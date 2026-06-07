@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "mapping": {
+    "cursor":       "ai",
+    "claude":       "ai",
+    "chatgpt":      "ai",
+    "raycast":      "system",
+    "iterm2":       "dev",
+    "vscode":       "dev",
+    "docker":       "dev",
+    "postman":      "dev",
+    "chrome":       "browser",
+    "firefox":      "browser",
+    "arc":          "browser",
+    "slack":        "comms",
+    "discord":      "comms",
+    "wechat":       "comms",
+    "figma":        "media",
+    "sketch":       "media",
+    "spotify":      "media",
+    "iina":         "media",
+    "obsidian":     "notes",
+    "notion":       "notes",
+    "things":       "notes",
+    "alfred":       "system",
+    "1password":    "system",
+    "bartender":    "system"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "categories": [
+    { "id": "ai",      "name": "AI 工具",  "icon": "🤖", "order": 1 },
+    { "id": "dev",     "name": "开发者",   "icon": "🛠", "order": 2 },
+    { "id": "browser", "name": "浏览器",   "icon": "🌐", "order": 3 },
+    { "id": "comms",   "name": "沟通",     "icon": "💬", "order": 4 },
+    { "id": "media",   "name": "媒体",     "icon": "🎨", "order": 5 },
+    { "id": "notes",   "name": "笔记",     "icon": "📝", "order": 6 },
+    { "id": "system",  "name": "系统",     "icon": "🔧", "order": 7 },
+    { "id": "other",   "name": "其他",     "icon": "📦", "order": 99 }
+  ]
+}
