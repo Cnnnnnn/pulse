@@ -25,6 +25,9 @@ import {
   isMuteActive,
   cleanExpiredMutes,
   saveAll,
+  markNotified,
+  loadLastOpened,
+  saveLastOpened,
 } from '../../src/main/state-store.js';
 
 let tmpDir;
@@ -288,5 +291,116 @@ describe('load() mutes 兼容 (Phase 27)', () => {
     saveAll([], statePath);
     const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
     expect(raw.mutes).toEqual({});
+  });
+});
+
+// ─── Phase 29: Last-opened ─────────────────────────────────────
+
+describe('loadLastOpened / saveLastOpened (Phase 29)', () => {
+  it('文件不存在 → {}', () => {
+    expect(loadLastOpened(statePath)).toEqual({});
+  });
+
+  it('老 state.json (无 last_opened 字段) → {} (向后兼容)', () => {
+    fs.writeFileSync(statePath, JSON.stringify({ v: 1, apps: { Cursor: { name: 'Cursor' } } }), 'utf-8');
+    expect(loadLastOpened(statePath)).toEqual({});
+  });
+
+  it('last_opened 是数组 (损坏) → {}', () => {
+    fs.writeFileSync(statePath, JSON.stringify({ v: 1, apps: {}, last_opened: [] }), 'utf-8');
+    expect(loadLastOpened(statePath)).toEqual({});
+  });
+
+  it('读出 last_opened map', () => {
+    const lo = {
+      Cursor:    { ms: 1750000000000, source: 'spotlight' },
+      WorkBuddy: { ms: null,          source: 'unknown' },
+    };
+    fs.writeFileSync(statePath, JSON.stringify({ v: 1, apps: {}, last_opened: lo }), 'utf-8');
+    expect(loadLastOpened(statePath)).toEqual(lo);
+  });
+
+  it('saveLastOpened 写入 + 原子', () => {
+    const map = { Cursor: { ms: 1750000000000, source: 'spotlight' } };
+    saveLastOpened(map, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.last_opened).toEqual(map);
+  });
+
+  it('saveLastOpened 保留 apps 字段 (不归 0)', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: { Cursor: { name: 'Cursor', latest_version: '3.6' } },
+      mutes: {},
+    }), 'utf-8');
+    saveLastOpened({ Kimi: { ms: 1700000000000, source: 'spotlight' } }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.apps.Cursor.latest_version).toBe('3.6');
+    expect(raw.last_opened.Kimi.ms).toBe(1700000000000);
+  });
+
+  it('saveLastOpened 保留 mutes 字段', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: {},
+      mutes: { Cursor: { until: 0, reason: 'manual' } },
+    }), 'utf-8');
+    saveLastOpened({ Kimi: { ms: 1700000000000, source: 'atime' } }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.mutes.Cursor.until).toBe(0);
+    expect(raw.last_opened.Kimi.source).toBe('atime');
+  });
+
+  it('saveLastOpened 写盘时清过期 mutes', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: {},
+      mutes: { Old: { until: NOW - 1, reason: 'manual' } },
+    }), 'utf-8');
+    saveLastOpened({ X: { ms: 1, source: 'spotlight' } }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.mutes).toEqual({});
+  });
+
+  it('saveLastOpened 校验: map 必须是 plain object', () => {
+    expect(() => saveLastOpened(null, statePath)).toThrow(TypeError);
+    expect(() => saveLastOpened('foo', statePath)).toThrow(TypeError);
+    expect(() => saveLastOpened([], statePath)).toThrow(TypeError);
+  });
+
+  it('saveAll 写盘时保留 last_opened 字段', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: {},
+      mutes: {},
+      last_opened: { X: { ms: 123, source: 'spotlight' } },
+    }), 'utf-8');
+    saveAll([{ name: 'Cursor', latest_version: '3.6', has_update: false, status: 'up_to_date' }], statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.last_opened.X.ms).toBe(123);
+  });
+
+  it('markNotified 写盘时保留 last_opened 字段', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: { Cursor: { name: 'Cursor' } },
+      mutes: {},
+      last_opened: { Cursor: { ms: 999, source: 'spotlight' } },
+    }), 'utf-8');
+    markNotified(['Cursor'], statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.last_opened.Cursor.ms).toBe(999);
+  });
+
+  it('clearMute 写盘时保留 last_opened 字段', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: {},
+      mutes: { Cursor: { until: 0, reason: 'manual' } },
+      last_opened: { Cursor: { ms: 999, source: 'spotlight' } },
+    }), 'utf-8');
+    clearMute('Cursor', statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.last_opened.Cursor.ms).toBe(999);
   });
 });

@@ -33,6 +33,10 @@
  *     "mutes": {                  // Phase 27: per-app 静音
  *       "Cursor": { "until": 1750000000000, "reason": "manual" },
  *       "Kimi":   { "until": 0,             "reason": "manual" }   // 0 = 永远
+ *     },
+ *     "last_opened": {            // Phase 29: per-app 最近打开
+ *       "Cursor":    { "ms": 1750000000000, "source": "spotlight" },
+ *       "WorkBuddy": { "ms": null,          "source": "unknown" }
  *     }
  *   }
  *
@@ -127,6 +131,7 @@ function saveAll(results, statePath = defaultPath()) {
     ts: now,
     apps,
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
   };
   writeAtomic(statePath, next);
   return next;
@@ -151,6 +156,7 @@ function markNotified(names, statePath = defaultPath()) {
     ts: now,
     apps,
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
   };
   writeAtomic(statePath, next);
   return next;
@@ -262,6 +268,45 @@ function clearMute(name, statePath = defaultPath()) {
     ts: now,
     apps: existing.apps || {},
     mutes,
+    last_opened: existing.last_opened || {},
+  };
+  writeAtomic(statePath, next);
+  return next;
+}
+
+// ─── Phase 29: Last-opened ───────────────────────────────────
+
+/**
+ * 读 last_opened 字段. 老 state.json 无该字段 → {} (兼容).
+ * 跟 mutes 不同, last_opened 没有 expiry, 不做 cleanup.
+ * @param {string} [statePath]
+ * @returns {object} { [name]: { ms: number|null, source: string } }
+ */
+function loadLastOpened(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return {};
+  if (!s.last_opened || typeof s.last_opened !== 'object' || Array.isArray(s.last_opened)) return {};
+  return s.last_opened;
+}
+
+/**
+ * 写 last_opened 字段. atomic write, 保留 apps / mutes.
+ * @param {object} map  { [name]: { ms, source } }
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveLastOpened(map, statePath = defaultPath()) {
+  if (!map || typeof map !== 'object' || Array.isArray(map)) {
+    throw new TypeError('saveLastOpened: map must be plain object');
+  }
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const now = Date.now();
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: map,
   };
   writeAtomic(statePath, next);
   return next;
@@ -294,4 +339,7 @@ module.exports = {
   getMutes,
   setMute,
   clearMute,
+  // Phase 29
+  loadLastOpened,
+  saveLastOpened,
 };

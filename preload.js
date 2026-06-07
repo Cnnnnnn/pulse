@@ -23,4 +23,9 @@ contextBridge.exposeInMainWorld('api', {
   getMutes:    ()                 => ipcRenderer.invoke('get-mutes'),
   setMute:     (name, durationSec) => ipcRenderer.invoke('set-mute', name, durationSec),
   clearMute:   (name)              => ipcRenderer.invoke('clear-mute', name),
+
+  // Phase 29: Last-opened (per-app 最近打开)
+  getLastOpened:        ()           => ipcRenderer.invoke('get-last-opened'),
+  refreshLastOpened:    ()           => ipcRenderer.invoke('refresh-last-opened'),
+  onLastOpenedUpdated:  (cb)         => ipcRenderer.on('last-opened-updated', (_, data) => cb(data)),
 });

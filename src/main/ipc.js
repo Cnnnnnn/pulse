@@ -20,6 +20,7 @@ const { runBulkUpgrade } = require('./bulk-upgrade');
 const stateStore = require('./state-store');
 const { getAppIcon } = require('./app-icon');
 const { mainLog } = require('./log');
+const lastOpened = require('./last-opened');
 
 // Bulk Upgrade: 一次只能跑一批; 用 AbortController 控制取消.
 let bulkUpgradeCtrl = null;
@@ -211,6 +212,53 @@ function registerIpcHandlers(deps) {
       mainLog.warn('[ipc] clear-mute threw', { name, msg: err && err.message });
       return { ok: false, reason: 'threw', mutes: stateStore.getMutes() };
     }
+  });
+
+  // ── Phase 29: Last-opened (per-app 最近打开时间) ────────────
+  // 渲染进程 bootstrap 拉一次, 用于 AppInfo 显示"上次打开 N 天前".
+  // 后续 checkUpdates 完成后, 主进程后台 refresh + 推 last-opened-updated 事件.
+
+  ipcMain.handle('get-last-opened', () => {
+    try {
+      return { lastOpened: stateStore.loadLastOpened() };
+    } catch (err) {
+      mainLog.warn('[ipc] get-last-opened threw', { msg: err && err.message });
+      return { lastOpened: {} };
+    }
+  });
+
+  /**
+   * 强制全量刷 last-opened. fire-and-forget — 完成时推 last-opened-updated 事件.
+   * - 不阻塞 IPC (Promise 在后台跑)
+   * - 11 app × ~100ms 一次 mdls, 总耗时 ~1.2s, 不阻塞 UI
+   * - 写入 state.json
+   */
+  ipcMain.handle('refresh-last-opened', () => {
+    const apps = (getConfig() && getConfig().apps) || [];
+    const refreshable = apps.filter((a) => a && a.name && a.bundle);
+    if (refreshable.length === 0) {
+      return { ok: true, count: 0 };
+    }
+    // fire-and-forget
+    (async () => {
+      try {
+        const next = {};
+        await Promise.all(refreshable.map(async (a) => {
+          try {
+            const r = await lastOpened.refreshOne(a.bundle);
+            next[a.name] = { ms: r.ms, source: r.source };
+          } catch (err) {
+            mainLog.warn('[ipc] refresh-last-opened item failed', { name: a.name, msg: err && err.message });
+            next[a.name] = { ms: null, source: 'unknown' };
+          }
+        }));
+        stateStore.saveLastOpened(next);
+        sendToRenderer('last-opened-updated', { lastOpened: next });
+      } catch (err) {
+        mainLog.warn('[ipc] refresh-last-opened batch failed', { msg: err && err.message });
+      }
+    })();
+    return { ok: true, count: refreshable.length };
   });
 }
 
