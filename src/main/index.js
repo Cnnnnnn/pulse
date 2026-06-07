@@ -25,6 +25,7 @@ const { mainLog, detectLog } = require('./log');
 const { migrateConfigFile, isOldSchemaApp } = require('../config/migrate');
 const { validateConfig, sanitizeConfig } = require('../config/schema');
 const stateStore = require('./state-store');
+const lastOpened = require('./last-opened');
 
 const ARCH = process.arch === 'arm64' ? 'arm64' : 'x64';
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
@@ -170,6 +171,36 @@ async function bootstrap() {
 
   // 7) ipc
   const tIpc = Date.now();
+  // Phase 29: 每次 check 完成后, 后台 refresh last-opened (mdls + atime 全刷),
+  // 写 state.json + 推 last-opened-updated 事件给 renderer.
+  // 11 app × ~100ms 总 ~1.2s, fire-and-forget, 不阻塞主流程.
+  function refreshLastOpenedAfterCheck() {
+    const apps = (runtimeConfig && runtimeConfig.apps) || [];
+    const refreshable = apps.filter((a) => a && a.name && a.bundle);
+    if (refreshable.length === 0) return;
+    (async () => {
+      try {
+        const next = {};
+        await Promise.all(refreshable.map(async (a) => {
+          try {
+            const r = await lastOpened.refreshOne(a.bundle);
+            next[a.name] = { ms: r.ms, source: r.source };
+          } catch (err) {
+            mainLog.warn(`[last-opened] refresh item failed: ${a.name} ${err && err.message}`);
+            next[a.name] = { ms: null, source: 'unknown' };
+          }
+        }));
+        stateStore.saveLastOpened(next);
+        const w = winMgr && winMgr.getWindow();
+        if (w && !w.isDestroyed()) {
+          w.webContents.send('last-opened-updated', { lastOpened: next });
+        }
+      } catch (err) {
+        mainLog.warn(`[last-opened] batch refresh failed: ${err && err.message}`);
+      }
+    })();
+  }
+
   registerIpcHandlers({
     getConfig: () => runtimeConfig,
     pool,
@@ -188,6 +219,8 @@ async function bootstrap() {
       } catch (err) {
         mainLog.warn(`state save failed: ${err.message}`);
       }
+      // Phase 29: 刷 last-opened (后台 async, 不阻塞)
+      refreshLastOpenedAfterCheck();
     },
   });
   mainLog.info(`ipc registered`);
