@@ -99,9 +99,10 @@ async function runCheck(deps, opts = {}) {
     }
 
     // Phase 17: Cooldown 抑制 — 只显示真正"新"或 cooldown 外的
+    //   suppressedByCooldown 接收整个 state (它内部读 state.apps), 不是 appsMap.
+    //   之前传 appsMap 是 bug — 让 cooldown 在生产里永远不触发 (默认 cooldown=0 掩盖了).
     const state = (typeof getState === 'function') ? getState() : null;
-    const appsMap = (state && state.apps) || {};
-    const suppressed = new Set(suppressedByCooldown(updateApps, appsMap, cooldownMs));
+    const suppressed = new Set(suppressedByCooldown(updateApps, state, cooldownMs));
     const notifyable = updateApps.filter((r) => !suppressed.has(r.name));
 
     if (notifyable.length > 0) {

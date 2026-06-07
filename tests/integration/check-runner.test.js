@@ -132,4 +132,88 @@ describe('runCheck (Phase 16)', () => {
       expect(calls.started).toHaveLength(0);
     });
   });
+
+  // Phase 17 latent bug fix: 之前传 appsMap 给 suppressedByCooldown, 内部读
+  // (appsMap).apps = undefined → cooldown 永远不触发. 默认 cooldown=0 掩盖了.
+  // 现在传整个 state, 让函数读 state.apps.
+  describe('cooldown 抑制 (Phase 17 bug fix regression)', () => {
+    function makeResult(name, hasUpdate = true) {
+      return {
+        name,
+        installed_version: '1.0',
+        latest_version: hasUpdate ? '1.1' : '1.0',
+        has_update: hasUpdate,
+        status: hasUpdate ? 'update_available' : 'up_to_date',
+        source: 'brew_formulae',
+        note: '',
+        bundle: `${name}.app`,
+      };
+    }
+
+    function makeDeps({ results, state, notifCfg = {} } = {}) {
+      const markNotified = vi.fn();
+      return {
+        getConfig: () => ({
+          apps: results.map((r) => ({ name: r.name, bundle: r.bundle, detectors: [] })),
+          notifications: notifCfg,
+        }),
+        pool: {
+          enqueue: vi.fn(async (task) => {
+            if (task.type === 'detect-app') {
+              return results.find((r) => r.name === task.payload.appCfg.name);
+            }
+            return { success: true, output: '' };
+          }),
+        },
+        getWindow: () => null,
+        onCheckComplete: vi.fn(),
+        getState: () => state,
+        markNotified,
+        Notification: class FakeNotification { show() { /* noop */ } },
+      };
+    }
+
+    it('cooldown 内的 app 被抑制 (last_notified 在窗口内)', async () => {
+      const now = Date.now();
+      const results = [makeResult('Cursor'), makeResult('Kimi')];
+      const state = {
+        apps: {
+          // Cursor: 1 小时前通知过, 24h cooldown 内 → 应被抑制
+          Cursor: { name: 'Cursor', last_notified: now - 1 * 60 * 60 * 1000 },
+        },
+      };
+      const deps = makeDeps({ results, state, notifCfg: { cooldown_hours: 24 } });
+      const markNotified = deps.markNotified;
+
+      await runCheck(deps, { silent: false });
+
+      // Cursor 被 cooldown 抑制, Kimi 正常
+      expect(markNotified).toHaveBeenCalledTimes(1);
+      expect(markNotified).toHaveBeenCalledWith(['Kimi']);
+    });
+
+    it('cooldown 已过的 app 正常通知 (last_notified 超出窗口)', async () => {
+      const now = Date.now();
+      const results = [makeResult('Cursor')];
+      const state = {
+        apps: { Cursor: { name: 'Cursor', last_notified: now - 25 * 60 * 60 * 1000 } },
+      };
+      const deps = makeDeps({ results, state, notifCfg: { cooldown_hours: 24 } });
+      const markNotified = deps.markNotified;
+
+      await runCheck(deps, { silent: false });
+
+      expect(markNotified).toHaveBeenCalledWith(['Cursor']);
+    });
+
+    it('state 没 apps 字段 → 不抑制 (兼容老 state.json)', async () => {
+      const results = [makeResult('Cursor')];
+      const deps = makeDeps({ results, state: {}, notifCfg: { cooldown_hours: 24 } });
+      const markNotified = deps.markNotified;
+
+      await runCheck(deps, { silent: false });
+
+      expect(markNotified).toHaveBeenCalledWith(['Cursor']);
+    });
+  });
 });
