@@ -3,6 +3,8 @@
  *
  * Phase 12: 持久化 last-known 检测结果.
  * Phase 27: 持久化 mutes (per-app 静音状态).
+ * Phase 29: 持久化 last_opened (per-app 最近打开时间).
+ * Phase A2: 持久化 active_category (Phase A app categorization, 顶部 tab).
  *
  * 数据流:
  *   - 启动时 load() → 给 renderer 当初始 UI (网络抽风时不至于"瞬时瞎")
@@ -37,7 +39,8 @@
  *     "last_opened": {            // Phase 29: per-app 最近打开
  *       "Cursor":    { "ms": 1750000000000, "source": "spotlight" },
  *       "WorkBuddy": { "ms": null,          "source": "unknown" }
- *     }
+ *     },
+ *     "active_category": "ai"     // Phase A: 当前选中的顶部 category tab ('all' | categoryId)
  *   }
  *
  * 兼容: 老 state.json 没有 mutes 字段 → load() 视作 {}；v 不变（v=1，向后兼容）
@@ -132,6 +135,7 @@ function saveAll(results, statePath = defaultPath()) {
     apps,
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
   };
   writeAtomic(statePath, next);
   return next;
@@ -157,6 +161,7 @@ function markNotified(names, statePath = defaultPath()) {
     apps,
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
   };
   writeAtomic(statePath, next);
   return next;
@@ -242,6 +247,8 @@ function setMute(name, untilMs, reason, statePath = defaultPath()) {
     ts: now,
     apps: existing.apps || {},
     mutes,
+    last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
   };
   writeAtomic(statePath, next);
   return next;
@@ -269,6 +276,7 @@ function clearMute(name, statePath = defaultPath()) {
     apps: existing.apps || {},
     mutes,
     last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
   };
   writeAtomic(statePath, next);
   return next;
@@ -326,6 +334,51 @@ function writeAtomic(filePath, data) {
   }
 }
 
+// ─── Phase A (App Categorization): Active category tab ──────────
+
+/**
+ * 读 active_category. 缺字段 / 非 string → 'all' 兜底.
+ * - 'all' 是合法值, 表示"全部 tab"
+ * - 其它合法值是 categoryId (e.g. 'ai', 'dev'), 渲染端用 category.js 验证
+ * - 非法值 (object / number / 不存在的 id) → 'all' (spec §7 边界)
+ *
+ * @param {string} [statePath]
+ * @returns {string}  'all' 或 categoryId
+ */
+function loadActiveCategory(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return 'all';
+  const v = s.active_category;
+  if (typeof v !== 'string' || v.length === 0) return 'all';
+  return v;
+}
+
+/**
+ * 写 active_category. atomic write, 保留 apps / mutes / last_opened.
+ * 写完返完整 state.
+ *
+ * @param {string} id             'all' 或 categoryId
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveActiveCategory(id, statePath = defaultPath()) {
+  if (typeof id !== 'string' || id.length === 0) {
+    throw new TypeError('saveActiveCategory: id must be non-empty string');
+  }
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const now = Date.now();
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
+    active_category: id,
+  };
+  writeAtomic(statePath, next);
+  return next;
+}
+
 module.exports = {
   load,
   saveAll,
@@ -342,4 +395,7 @@ module.exports = {
   // Phase 29
   loadLastOpened,
   saveLastOpened,
+  // Phase A (App Categorization)
+  loadActiveCategory,
+  saveActiveCategory,
 };

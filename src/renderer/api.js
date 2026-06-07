@@ -49,6 +49,9 @@ export function createApi(overrides = {}) {
     getLastOpened:        pick(overrides, 'getLastOpened'),
     refreshLastOpened:    pick(overrides, 'refreshLastOpened'),
     onLastOpenedUpdated:  pick(overrides, 'onLastOpenedUpdated'),
+    // Phase A (App Categorization): active category tab
+    getActiveCategory:    pick(overrides, 'getActiveCategory'),
+    saveActiveCategory:   pick(overrides, 'saveActiveCategory'),
   };
 }
 

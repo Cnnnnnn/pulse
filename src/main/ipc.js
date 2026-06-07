@@ -264,6 +264,32 @@ function registerIpcHandlers(deps) {
     })();
     return { ok: true, count: refreshable.length };
   });
+
+  // ── Phase A (App Categorization): active category tab ─────────
+  // 渲染进程 bootstrap 拉一次, 用于还原上次选中的 tab.
+  // 切 tab 时通过 save-active-category 写回.
+
+  ipcMain.handle('get-active-category', () => {
+    try {
+      return { activeCategory: stateStore.loadActiveCategory() };
+    } catch (err) {
+      mainLog.warn('[ipc] get-active-category threw', { msg: err && err.message });
+      return { activeCategory: 'all' };
+    }
+  });
+
+  ipcMain.handle('save-active-category', (_event, id) => {
+    if (typeof id !== 'string' || id.length === 0) {
+      return { ok: false, reason: 'invalid_id', activeCategory: stateStore.loadActiveCategory() };
+    }
+    try {
+      const next = stateStore.saveActiveCategory(id);
+      return { ok: true, activeCategory: next.active_category };
+    } catch (err) {
+      mainLog.warn('[ipc] save-active-category threw', { id, msg: err && err.message });
+      return { ok: false, reason: 'threw', activeCategory: stateStore.loadActiveCategory() };
+    }
+  });
 }
 
 module.exports = { registerIpcHandlers };

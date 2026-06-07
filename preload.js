@@ -28,4 +28,8 @@ contextBridge.exposeInMainWorld('api', {
   getLastOpened:        ()           => ipcRenderer.invoke('get-last-opened'),
   refreshLastOpened:    ()           => ipcRenderer.invoke('refresh-last-opened'),
   onLastOpenedUpdated:  (cb)         => ipcRenderer.on('last-opened-updated', (_, data) => cb(data)),
+
+  // Phase A (App Categorization): active category tab
+  getActiveCategory:    ()           => ipcRenderer.invoke('get-active-category'),
+  saveActiveCategory:   (id)         => ipcRenderer.invoke('save-active-category', id),
 });

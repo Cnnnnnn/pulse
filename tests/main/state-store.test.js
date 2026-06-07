@@ -28,6 +28,8 @@ import {
   markNotified,
   loadLastOpened,
   saveLastOpened,
+  loadActiveCategory,
+  saveActiveCategory,
 } from '../../src/main/state-store.js';
 
 let tmpDir;
@@ -402,5 +404,86 @@ describe('loadLastOpened / saveLastOpened (Phase 29)', () => {
     clearMute('Cursor', statePath);
     const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
     expect(raw.last_opened.Cursor.ms).toBe(999);
+  });
+});
+
+// ─── loadActiveCategory / saveActiveCategory (Phase A) ───
+
+describe('loadActiveCategory / saveActiveCategory (Phase A)', () => {
+  it('文件不存在 → "all" (兜底)', () => {
+    expect(loadActiveCategory(statePath)).toBe('all');
+  });
+
+  it('老 state.json (无 active_category 字段) → "all" (向后兼容)', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: {},
+      mutes: {},
+      last_opened: {},
+    }), 'utf-8');
+    expect(loadActiveCategory(statePath)).toBe('all');
+  });
+
+  it('active_category 是非 string (数字 / 数组 / null) → "all" 兜底', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1, apps: {}, mutes: {},
+      active_category: 123,
+    }), 'utf-8');
+    expect(loadActiveCategory(statePath)).toBe('all');
+
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1, apps: {}, mutes: {},
+      active_category: null,
+    }), 'utf-8');
+    expect(loadActiveCategory(statePath)).toBe('all');
+
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1, apps: {}, mutes: {},
+      active_category: ['a', 'b'],
+    }), 'utf-8');
+    expect(loadActiveCategory(statePath)).toBe('all');
+  });
+
+  it('saveActiveCategory 写入 + load 回读一致 (round-trip)', () => {
+    const next1 = saveActiveCategory('ai', statePath);
+    expect(next1.active_category).toBe('ai');
+    expect(loadActiveCategory(statePath)).toBe('ai');
+
+    const next2 = saveActiveCategory('dev', statePath);
+    expect(next2.active_category).toBe('dev');
+    expect(loadActiveCategory(statePath)).toBe('dev');
+
+    const next3 = saveActiveCategory('all', statePath);
+    expect(next3.active_category).toBe('all');
+    expect(loadActiveCategory(statePath)).toBe('all');
+  });
+
+  it('saveActiveCategory 保留 apps / mutes / last_opened 字段', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: { Cursor: { name: 'Cursor' } },
+      mutes: { Cursor: { until: 0, reason: 'manual' } },
+      last_opened: { Cursor: { ms: 999, source: 'spotlight' } },
+    }), 'utf-8');
+    saveActiveCategory('ai', statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.apps.Cursor.name).toBe('Cursor');
+    expect(raw.mutes.Cursor.until).toBe(0);
+    expect(raw.last_opened.Cursor.ms).toBe(999);
+    expect(raw.active_category).toBe('ai');
+  });
+
+  it('saveActiveCategory 校验: id 必须是 non-empty string', () => {
+    expect(() => saveActiveCategory('', statePath)).toThrow(TypeError);
+    expect(() => saveActiveCategory(null, statePath)).toThrow(TypeError);
+    expect(() => saveActiveCategory(123, statePath)).toThrow(TypeError);
+  });
+
+  it('setMute / clearMute 写盘时保留 active_category 字段', () => {
+    saveActiveCategory('ai', statePath);
+    setMute('Kimi', 0, 'manual', statePath);
+    expect(loadActiveCategory(statePath)).toBe('ai');
+    clearMute('Kimi', statePath);
+    expect(loadActiveCategory(statePath)).toBe('ai');
   });
 });
