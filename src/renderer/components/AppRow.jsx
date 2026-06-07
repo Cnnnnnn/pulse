@@ -116,14 +116,14 @@ export function AppRow({ name }) {
         muted={muted}
         muteUntil={muteEntry ? muteEntry.until : 0}
         lastOpened={lastOpenedEntry || null}
+        onShowChangelog={() => setChangelogOpen((v) => !v)}
+        isChangelogOpen={changelogOpen}
       />
       <AppVersions result={result} />
       <AppAction
         result={result}
         onUpgrade={handleUpgrade}
         isUpgrading={upgrading}
-        onShowChangelog={() => setChangelogOpen((v) => !v)}
-        isChangelogOpen={changelogOpen}
       />
       {changelogOpen && <ChangelogPanel result={result} />}
       {muteMenuAt && (

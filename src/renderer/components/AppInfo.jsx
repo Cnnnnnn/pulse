@@ -88,7 +88,14 @@ function muteUntilLabel(untilMs) {
   return `${d.getMonth() + 1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function AppInfo({ result, muted = false, muteUntil = 0, lastOpened = null }) {
+export function AppInfo({
+  result,
+  muted = false,
+  muteUntil = 0,
+  lastOpened = null,
+  onShowChangelog,
+  isChangelogOpen = false,
+}) {
   const source = sourceLabel(result.source);
   const note = result.note || '';
   const ts = result.ts;
@@ -158,10 +165,26 @@ export function AppInfo({ result, muted = false, muteUntil = 0, lastOpened = nul
     </span>
   ) : null;
 
+  // Phase 30+1: ⓘ info button. 移到 AppInfo 区域, 跟 app name 同行, 不再
+  // 夹在版本对比和升级按钮之间. 点击触发父组件的 onShowChangelog 回调.
+  // 出现条件: hasChangelog (跟 AppAction 旧逻辑一致).
+  const hasChangelog = !!(result.changelog || result.changelog_url || result.release_notes_url);
+  const infoButton = hasChangelog && onShowChangelog ? (
+    <button
+      class={`app-info-btn${isChangelogOpen ? ' active' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onShowChangelog(); }}
+      title={isChangelogOpen ? '收起更新说明' : '查看更新说明'}
+      aria-label="查看更新说明"
+    >
+      ⓘ
+    </button>
+  ) : null;
+
   return (
     <div class={`app-info${muted ? ' muted' : ''}`}>
       <div class="app-name-row">
         <span class="app-name">{result.name}</span>
+        {infoButton}
         {muteBadge}
       </div>
       <div class={`app-subtitle${stale ? ' stale' : ''}${errMsg ? ' has-error' : ''}`}>{subtitle}</div>

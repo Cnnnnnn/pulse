@@ -1,0 +1,40 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Pulse.app 应用图标 (1024x1024 source)
+    - macOS squircle: rx=224 (Big Sur style)
+    - Brand gradient: 浅橙 #ff7a4a → 深橙红 #e85d3a (对角)
+    - 中心: 白色 ECG pulse line, stroke 60
+    - 14% 内边距, 72% 内容宽度
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff8a5e"/>
+      <stop offset="50%" stop-color="#f57147"/>
+      <stop offset="100%" stop-color="#e85d3a"/>
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.15"/></feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Squircle background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="url(#bg)"/>
+
+  <!-- Subtle inner highlight (top-left gloss) -->
+  <rect x="0" y="0" width="1024" height="512" rx="224" ry="224" fill="url(#bg)" opacity="0"/>
+  <path d="M 0 0 L 1024 0 L 1024 380 Q 512 480, 0 380 Z" fill="white" opacity="0.06"/>
+
+  <!-- ECG pulse line (centered, scaled from 32x32 design) -->
+  <g transform="translate(112, 0)">
+    <path d="M 0 512 L 256 512 L 352 384 L 448 640 L 512 192 L 576 832 L 640 384 L 736 640 L 800 512 L 800 512 L 800 512"
+          fill="none" stroke="#ffffff" stroke-width="64"
+          stroke-linecap="round" stroke-linejoin="round"
+          opacity="0.98"/>
+  </g>
+</svg>

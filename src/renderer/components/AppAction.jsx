@@ -2,8 +2,8 @@
  * src/renderer/components/AppAction.jsx
  *
  * 行内操作: 有 brew_cask → "升级" 按钮; 否则 → status badge.
- * Phase 14: 当 result.changelog / result.changelog_url 非空, 多渲染一个
- * "ℹ️ What's New" 按钮, 点击触发父组件的 onShowChangelog 回调.
+ * Phase 30+1: ⓘ info 按钮从 AppAction 移到 AppInfo (跟 app name 同行),
+ * 这里不再渲染. AppAction 只负责主操作 (升级 / 状态 badge).
  *
  * 状态 badge 文案/颜色跟旧 renderer.js 的 STATUS_MAP 对齐:
  *   update_available → "有更新" / cls=update
@@ -24,7 +24,7 @@ const STATUS_MAP = {
   error:            { text: '出错',     cls: 'error'   },
 };
 
-export function AppAction({ result, onUpgrade, isUpgrading, onShowChangelog, isChangelogOpen }) {
+export function AppAction({ result, onUpgrade, isUpgrading }) {
   const note = result.note || '';
   const status = result.status;
 
@@ -36,52 +36,16 @@ export function AppAction({ result, onUpgrade, isUpgrading, onShowChangelog, isC
     return <span class="status-badge warning">需确认</span>;
   }
 
-  // Phase 20: hasChangelog 包含 release_notes_url — 多数 app 没机器可读 changelog,
-  // 但可能配了 release_notes_url. 这种情况也该有 ℹ️ 按钮 (进去看官网 release notes 页)
-  const hasChangelog = !!(result.changelog || result.changelog_url || result.release_notes_url);
-
-  // 有 brew cask 且需要升级 → 升级按钮 (可能跟 ℹ️ 按钮并排)
+  // 有 brew cask 且需要升级 → 升级按钮 (主操作)
   if (result.has_update && result.brew_cask) {
     return (
-      <div class="app-action-group">
-        {hasChangelog && (
-          <button
-            class={`btn-info-row${isChangelogOpen ? ' active' : ''}`}
-            onClick={() => onShowChangelog && onShowChangelog()}
-            title="查看更新说明"
-            aria-label="查看更新说明"
-          >
-            ℹ️
-          </button>
-        )}
-        <button
-          class="btn-upgrade-row"
-          onClick={() => onUpgrade(result.brew_cask, result.name)}
-          disabled={isUpgrading}
-        >
-          {isUpgrading ? '升级中...' : '升级'}
-        </button>
-      </div>
-    );
-  }
-
-  // 没 brew cask 但有 changelog → 也给 ℹ️ 按钮 (e.g. miniMaxCode 想知道修了啥)
-  if (hasChangelog) {
-    return (
-      <div class="app-action-group">
-        <button
-          class={`btn-info-row${isChangelogOpen ? ' active' : ''}`}
-          onClick={() => onShowChangelog && onShowChangelog()}
-          title="查看更新说明"
-          aria-label="查看更新说明"
-        >
-          ℹ️
-        </button>
-        {(() => {
-          const meta = STATUS_MAP[status] || { text: status || '', cls: 'warning' };
-          return <span class={`status-badge ${meta.cls}`}>{meta.text}</span>;
-        })()}
-      </div>
+      <button
+        class="btn-upgrade-row"
+        onClick={() => onUpgrade(result.brew_cask, result.name)}
+        disabled={isUpgrading}
+      >
+        {isUpgrading ? '升级中...' : '升级'}
+      </button>
     );
   }
 

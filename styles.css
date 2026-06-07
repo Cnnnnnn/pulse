@@ -1208,7 +1208,7 @@ body {
 .app-name-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .mute-badge {
@@ -1223,6 +1223,38 @@ body {
   color: var(--text-tertiary, #888);
   white-space: nowrap;
   line-height: 1.4;
+}
+
+/* Phase 30+1: ⓘ info button (移进 AppInfo 区域, 跟 app name 同行).
+ * 旧版在 AppAction 里 (跟升级按钮并排) 干扰了版本对比对齐.
+ * 现在是 inline 小圆按钮, 跟 mute badge 同一行.
+ */
+.app-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-tertiary, #888);
+  font-size: 12px;
+  font-style: normal;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: all 120ms ease;
+}
+.app-info-btn:hover {
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.3);
+  color: var(--accent-blue, #007aff);
+}
+.app-info-btn.active {
+  background: var(--accent-blue, #007aff);
+  border-color: var(--accent-blue, #007aff);
+  color: #fff;
 }
 
 /* 右键菜单: 浮动卡片 */
