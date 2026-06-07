@@ -88,7 +88,7 @@ export function AppRow({ name }) {
     // 只在 row 本体触发; 按钮/upgrade/menu 内部不抢
     if (e.target.closest('.btn-upgrade-row')
         || e.target.closest('.status-badge')
-        || e.target.closest('.btn-info-row')
+        || e.target.closest('.app-info-btn')
         || e.target.closest('.changelog-panel')
         || e.target.closest('.mute-menu')) return;
     e.preventDefault();
@@ -104,7 +104,7 @@ export function AppRow({ name }) {
         // 不拦截按钮 / badge / changelog panel 内点击
         if (e.target.closest('.btn-upgrade-row')
             || e.target.closest('.status-badge')
-            || e.target.closest('.btn-info-row')
+            || e.target.closest('.app-info-btn')
             || e.target.closest('.changelog-panel')) return;
         onRowClick(lookupConfig(result.name));
       }}

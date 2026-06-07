@@ -465,30 +465,6 @@ body {
   flex-shrink: 0;
 }
 
-.btn-info-row {
-  padding: 4px 8px;
-  font-size: 13px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-secondary, #555);
-  border: 1px solid var(--border, #ddd);
-  cursor: pointer;
-  transition: all var(--transition);
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.btn-info-row:hover {
-  background: var(--bg-hover, #e6e6e6);
-  color: var(--text-primary, #000);
-}
-
-.btn-info-row.active {
-  background: var(--accent-blue, #007aff);
-  color: #fff;
-  border-color: var(--accent-blue, #007aff);
-}
-
 /* ─── Phase 14: Changelog inline panel ─── */
 .changelog-panel {
   flex-basis: 100%;          /* 跨整行 */
