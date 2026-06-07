@@ -123,7 +123,7 @@ async function runCheck(deps, opts = {}) {
       const names = notifyable.map((r) => r.name).join('、');
       try {
         new Notification({
-          title: 'AppUpdateChecker',
+          title: 'Pulse',
           body: `${notifyable.length} 个应用有更新：${names}`,
           silent: false,
         }).show();

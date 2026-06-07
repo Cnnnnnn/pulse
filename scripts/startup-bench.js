@@ -33,10 +33,10 @@ const fs = require('fs');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
-// 跑 build 后的 .app (dist/mac-arm64/AppUpdateChecker.app) — 真生产路径
+// 跑 build 后的 .app (dist/mac-arm64/Pulse.app) — 真生产路径
 // dev 模式 (electron .) 也能跑, 但 1) node_modules/.bin/electron 在某些环境是
 // 错的平台 (CI 上 npm install 没装对), 2) 测 .app 才能反映最终用户首次启动感受
-const BUILT_APP = path.join(PROJECT_ROOT, 'dist', 'mac-arm64', 'AppUpdateChecker.app', 'Contents', 'MacOS', 'AppUpdateChecker');
+const BUILT_APP = path.join(PROJECT_ROOT, 'dist', 'mac-arm64', 'Pulse.app', 'Contents', 'MacOS', 'Pulse');
 const ELECTRON_DEV = path.join(PROJECT_ROOT, 'node_modules', '.bin', 'electron');
 
 function pickRunner() {
@@ -108,7 +108,7 @@ function runOnce() {
     };
 
     const runner = pickRunner();
-    const isApp = runner.endsWith('AppUpdateChecker');
+    const isApp = runner.endsWith('Pulse');
     const child = isApp
       ? spawn(runner, [], { env, stdio: ['ignore', 'pipe', 'pipe'] })
       : spawn(runner, ['.'], { cwd: PROJECT_ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });

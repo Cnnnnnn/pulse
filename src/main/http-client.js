@@ -20,7 +20,7 @@ const https = require('https');
 const { URL } = require('url');
 const { DetectorError, REASONS } = require('../detectors/errors');
 
-const UA = 'AppUpdateChecker/2.0';
+const UA = 'Pulse/2.2';
 // 默认 body 上限 1MB — 避免 server 直接返回完整 .dmg/.zip 时把 worker 内存炸了
 // Kimi endpoint: HEAD=400, GET=200 + 整个 dmg → 必须限
 // detector 可通过 opts.maxBodyBytes 调小/调大

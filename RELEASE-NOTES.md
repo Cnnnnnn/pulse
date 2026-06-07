@@ -1,4 +1,35 @@
-# AppUpdateChecker v2.0.0 — Release Notes
+# Pulse v2.2.0 — Release Notes
+
+---
+
+## v2.2.0 (Phase 28) — 2026-06-07
+
+### Brand: AppUpdateChecker → Pulse
+
+- **productName**: `AppUpdateChecker` → `Pulse`
+- **appId**: `com.appupdatechecker` → `com.appupdatechecker.pulse` (org 段保留, 跟老用户已装版不冲突)
+- 菜单栏显示 `Pulse` (替代 `AppUpdateChecker`)
+- 通知标题、Header `<h1>`、UA (`Pulse/2.2`)、index.html `<title>` 全部跟齐
+- state / logs 路径**保留** `~/Library/Application Support/AppUpdateChecker/` 不动 (兼容老数据)
+
+### Menu bar icon 重画
+
+- 旧: 像素 Buffer 画的圆环 + 箭头 (用户反馈"太丑")
+- 新: 4 个预渲染 PNG (`assets/iconTemplate@2x.png` + 10 个 badge 变体) — 单次 R-S ECG pulse, 1.8 stroke, 橙红 #e85d3a
+- 22 个 PNG 总共 17.2 KB, 0ms runtime 加载开销
+- `scripts/render-icons.js` 用 `@resvg/resvg-js` (纯 Rust, 无原生 binding) 一次性生成
+
+### Badge 行为
+
+- count 1-9 → 单独数字
+- count ≥ 10 → 显示 `9+` (跟 Twitter / Discord 一致)
+- retina (2x) + 1x 各一份, Electron 自动按 display scale 选
+
+### 测试
+
+- 465/465 全过 (Phase 28 业务逻辑 0 改动, 全是字符串 + asset)
+
+---
 
 ## v2.1.0 (Phase 27) — 2026-06-07
 

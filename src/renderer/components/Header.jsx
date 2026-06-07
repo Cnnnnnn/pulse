@@ -17,7 +17,7 @@ export function Header({ onCheck }) {
   return (
     <header id="header">
       <div class="header-left">
-        <h1 id="title">AppUpdateChecker</h1>
+        <h1 id="title">Pulse</h1>
         <p id="summary">{summaryText(status)}</p>
         {status === 'error' && lastError.value && (
           <p id="error-detail" class="error-detail">出错: {lastError.value}</p>
