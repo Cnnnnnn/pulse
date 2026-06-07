@@ -53,7 +53,7 @@ function loadFallbackIcon() {
  */
 function createTrayManager(opts) {
   const getConfig = opts.getConfig || (() => ({ apps: [] }));
-  const getConfigPath = opts.getConfigPath || (() => ''));
+  const getConfigPath = opts.getConfigPath || (() => '');
   const onCheck = opts.onCheck || (() => {});
   const onOpenPanel = opts.onOpenPanel || (() => {});
   const onOpenConfig = opts.onOpenConfig || (() => {});
