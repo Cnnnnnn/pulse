@@ -36,6 +36,8 @@ function createWindowManager(opts = {}) {
       minWidth: 560,
       minHeight: 400,
       show: false,
+      // Phase 28: 显式设 title, 防止 Electron 默认 "Electron" / 老 install 残留
+      title: 'Pulse',
       titleBarStyle: 'hiddenInset',
       vibrancy: 'under-window',
       visualEffectState: 'active',
@@ -49,7 +51,12 @@ function createWindowManager(opts = {}) {
       },
     });
 
+    // 双保险: index.html <title> 也设了, 但 BrowserWindow 显式 title 优先生效
     mainWindow.loadFile(indexPath);
+    // 页面加载完后再设一次, 防止 did-finish-load 之前 macOS 拿默认值
+    mainWindow.webContents.on('did-finish-load', () => {
+      try { mainWindow.setTitle('Pulse'); } catch { /* noop */ }
+    });
 
     mainWindow.once('ready-to-show', () => {
       if (config.check_on_launch) {
