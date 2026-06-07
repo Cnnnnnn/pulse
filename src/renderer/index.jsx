@@ -21,7 +21,7 @@
 
 import { render } from 'preact';
 import { App } from './App.jsx';
-import { apps, applyProgress, resetCheck, finishCheck, setError } from './store.js';
+import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes } from './store.js';
 import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
@@ -48,6 +48,11 @@ async function bootstrap() {
       applyCachedResults(cached);
     }
   } catch { /* 缓存加载失败不阻塞, 仍走正常 check 路径 */ }
+
+  // 1.6) Phase 27: 加载 mutes (per-app 静音), 让右键菜单 / badge 立即知道哪些是 muted
+  try {
+    await loadMutes();
+  } catch { /* noop, 默认空 map */ }
 
   // 2) 立即 render
   const mount = document.getElementById('app') || document.body;

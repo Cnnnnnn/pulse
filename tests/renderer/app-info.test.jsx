@@ -99,3 +99,41 @@ describe('AppInfo changelog preview (Phase 26)', () => {
     expect(el.textContent).toBe('x'.repeat(80) + '…');
   });
 });
+
+// ─── Phase 27: Mute Badge ───────────────────────────────
+
+describe('AppInfo mute badge (Phase 27)', () => {
+  it('muted=false → 不渲染 badge', () => {
+    const { container } = render(<AppInfo result={makeResult({ changelog: '' })} muted={false} />);
+    expect(container.querySelector('.mute-badge')).toBeNull();
+    expect(container.querySelector('.app-info').className).toBe('app-info');
+  });
+
+  it('muted=true, muteUntil=0 (永远) → "🔇 静音 (永远)"', () => {
+    const { container } = render(
+      <AppInfo result={makeResult({ changelog: '' })} muted={true} muteUntil={0} />
+    );
+    const badge = container.querySelector('.mute-badge');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toContain('永远');
+    expect(badge.textContent).toContain('🔇');
+  });
+
+  it('muted=true, muteUntil=具体时间 → "🔇 静音至 M/D HH:MM"', () => {
+    const until = new Date(2026, 5, 14, 9, 30).getTime(); // 6/14 09:30
+    const { container } = render(
+      <AppInfo result={makeResult({ changelog: '' })} muted={true} muteUntil={until} />
+    );
+    const badge = container.querySelector('.mute-badge');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toMatch(/6\/14 09:30/);
+    expect(badge.textContent).toContain('🔇');
+  });
+
+  it('muted=true → app-info 加 .muted class', () => {
+    const { container } = render(
+      <AppInfo result={makeResult({ changelog: '' })} muted={true} />
+    );
+    expect(container.querySelector('.app-info').classList.contains('muted')).toBe(true);
+  });
+});

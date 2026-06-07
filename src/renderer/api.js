@@ -41,6 +41,10 @@ export function createApi(overrides = {}) {
     bulkUpgradeCancel: pick(overrides, 'bulkUpgradeCancel'),
     onBulkUpgradeProgress: pick(overrides, 'onBulkUpgradeProgress'),
     onBulkUpgradeDone:     pick(overrides, 'onBulkUpgradeDone'),
+    // Phase 27: Mutes (per-app 静音)
+    getMutes:    pick(overrides, 'getMutes'),
+    setMute:     pick(overrides, 'setMute'),
+    clearMute:   pick(overrides, 'clearMute'),
   };
 }
 

@@ -18,4 +18,9 @@ contextBridge.exposeInMainWorld('api', {
   bulkUpgradeCancel: ()      => ipcRenderer.invoke('bulk-upgrade:cancel'),
   onBulkUpgradeProgress: (cb) => ipcRenderer.on('bulk-upgrade:progress', (_, data) => cb(data)),
   onBulkUpgradeDone:     (cb) => ipcRenderer.on('bulk-upgrade:done', (_, data) => cb(data)),
+
+  // Phase 27: Mutes (per-app 静音)
+  getMutes:    ()                 => ipcRenderer.invoke('get-mutes'),
+  setMute:     (name, durationSec) => ipcRenderer.invoke('set-mute', name, durationSec),
+  clearMute:   (name)              => ipcRenderer.invoke('clear-mute', name),
 });

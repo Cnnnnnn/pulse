@@ -1,6 +1,31 @@
 # AppUpdateChecker v2.0.0 — Release Notes
 
-## 概要
+## v2.1.0 (Phase 27) — 2026-06-07
+
+### New: per-app 静音
+
+- **右键任意 app 行** → 弹出菜单: 静音 7 天 / 30 天 / 90 天 / 永远
+- 静音期间: 跳过系统通知, 跳过 bulk upgrade 计数, 行整体灰显 + 🔇 静音 badge
+- 持久化到 `state.json` 的 `mutes` 字段, 跨重启保留; 过期项自动清理
+- 解除: 同一菜单里点 "取消静音"
+- 兼容老 state.json (无 mutes 字段时按空处理)
+
+### Fix (顺手): cooldown 抑制路径
+
+- 之前 `runCheck` 把 `state.apps` 抽成 `appsMap` 再传给 `suppressedByCooldown`, 但函数内部又读 `.apps`, 等于读 undefined → cooldown 永远不触发
+- 默认 `cooldown_hours: 0` 掩盖了 bug, 任何用户设 24h 都会发现 "通知不按 cooldown 走"
+- 修法: 直接传整个 `state` 给函数. 3 个 regression test 加到 `tests/integration/check-runner.test.js`
+
+### 测试
+
+- 新增 51 个 case: state-store 29 (持久化 + 兼容) + check-runner 7 (通知抑制) + mute-menu 11 (UI 交互) + app-info 4 (badge)
+- 总计 465 个 case 全过 (v2.0.0 是 411)
+
+---
+
+## v2.0.0
+
+### 概要
 
 完整重写 (spec §1-§17)。修复 7 个 app 检测不准的问题 + 启动慢/卡顿。
 

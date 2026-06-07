@@ -2,10 +2,12 @@
  * src/main/state-store.js
  *
  * Phase 12: 持久化 last-known 检测结果.
+ * Phase 27: 持久化 mutes (per-app 静音状态).
  *
  * 数据流:
  *   - 启动时 load() → 给 renderer 当初始 UI (网络抽风时不至于"瞬时瞎")
  *   - 每次 check-updates 完成时 saveAll() → atomic write
+ *   - 用户右键 → setMute / clearMute → atomic write (mutes 独立于 apps 写入)
  *
  * 路径: ~/Library/Application Support/AppUpdateChecker/state.json
  * (跟 Electron app.getPath('userData') 一致)
@@ -27,8 +29,14 @@
  *         "ts": 1234567890        // 这条结果的检测时间
  *       },
  *       ...
+ *     },
+ *     "mutes": {                  // Phase 27: per-app 静音
+ *       "Cursor": { "until": 1750000000000, "reason": "manual" },
+ *       "Kimi":   { "until": 0,             "reason": "manual" }   // 0 = 永远
  *     }
  *   }
+ *
+ * 兼容: 老 state.json 没有 mutes 字段 → load() 视作 {}；v 不变（v=1，向后兼容）
  */
 
 const fs = require('fs');
@@ -46,6 +54,10 @@ function defaultPath() {
 
 /**
  * 加载 state, 文件不存在/解析失败 → 返回 null (caller 当作"无缓存"处理).
+ *
+ * Phase 27: mutes 字段是可选的. 老 state.json 没有 mutes → load() 仍返回原对象
+ * (mutes 字段为 undefined). mutes 的兜底 (空 map) 在 getMutes/saveAll/setMute
+ * 等使用时各自处理 — load() 保持纯读, 不 mutate.
  */
 function load(statePath = defaultPath()) {
   try {
@@ -64,6 +76,7 @@ function load(statePath = defaultPath()) {
  * 把 results 数组 (来自 worker 的 result 对象) 合并进现有 state 并落盘.
  * - 缺失字段的 app 不动
  * - 新 app 加进去
+ * - mutes 字段保留 (不归 0)
  * - 写入是 atomic (写到 .tmp 再 rename), 防止写到一半断电/被杀进程
  *
  * Phase 18: changelog_history 处理. 当 r.latest_version 跟 prev.latest_version 不同 (且 prev 有
@@ -72,7 +85,7 @@ function load(statePath = defaultPath()) {
 const CHANGELOG_HISTORY_MAX = 10;
 
 function saveAll(results, statePath = defaultPath()) {
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {} };
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
   const now = Date.now();
   const apps = existing.apps || {};
   for (const r of results || []) {
@@ -109,7 +122,12 @@ function saveAll(results, statePath = defaultPath()) {
       changelog_history: history.length > 0 ? history : undefined,
     };
   }
-  const next = { v: SCHEMA_VERSION, ts: now, apps };
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps,
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+  };
   writeAtomic(statePath, next);
   return next;
 }
@@ -121,14 +139,19 @@ function saveAll(results, statePath = defaultPath()) {
  */
 function markNotified(names, statePath = defaultPath()) {
   if (!Array.isArray(names) || names.length === 0) return null;
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {} };
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
   const now = Date.now();
   const apps = existing.apps || {};
   for (const name of names) {
     if (!name || !apps[name]) continue;
     apps[name] = { ...apps[name], last_notified: now };
   }
-  const next = { v: SCHEMA_VERSION, ts: now, apps };
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps,
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+  };
   writeAtomic(statePath, next);
   return next;
 }
@@ -138,6 +161,110 @@ function markNotified(names, statePath = defaultPath()) {
  */
 function saveOne(result, statePath = defaultPath()) {
   return saveAll([result], statePath);
+}
+
+// ─── Phase 27: Mutes ──────────────────────────────────────────
+
+/**
+ * 判断单条 mute 是否还有效 (not expired).
+ * @param {{until?: number}} mute
+ * @param {number} now   epoch ms, 注入便于测试
+ * @returns {boolean}
+ */
+function isMuteActive(mute, now) {
+  if (!mute || typeof mute !== 'object') return false;
+  // until=0 → 永远有效
+  if (!mute.until) return true;
+  // until>0 → 到期时间. now < until → 还有效.
+  return typeof now === 'number' && now < mute.until;
+}
+
+/**
+ * 纯函数: 过滤掉过期的 mute entries. 写盘前调用, 保持 state.json 干净.
+ * @param {object} mutes
+ * @param {number} now
+ * @returns {object} 新的 mutes 对象 (新引用, 不 mutate 原对象)
+ */
+function cleanExpiredMutes(mutes, now) {
+  if (!mutes || typeof mutes !== 'object') return {};
+  const out = {};
+  for (const [name, m] of Object.entries(mutes)) {
+    if (isMuteActive(m, now)) out[name] = m;
+  }
+  return out;
+}
+
+/**
+ * 读 mutes. 同时清理过期的, 但不自动写盘 (避免每次读都 I/O).
+ * 写盘清理交给 setMute/clearMute.
+ *
+ * @param {string} [statePath]
+ * @param {number} [now]   注入便于测试, 默认 Date.now()
+ * @returns {object} { [name]: { until, reason } }
+ */
+function getMutes(statePath = defaultPath(), now) {
+  const t = (typeof now === 'number') ? now : Date.now();
+  const s = load(statePath);
+  if (!s) return {};
+  return cleanExpiredMutes(s.mutes || {}, t);
+}
+
+/**
+ * 设置某 app 静音. 写入 state.json (mutes 字段).
+ * @param {string} name           app name
+ * @param {number} untilMs        到期时间 (epoch ms); 0 = 永远
+ * @param {string} [reason]       'manual' (default) | 'auto-*'
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function setMute(name, untilMs, reason, statePath = defaultPath()) {
+  if (!name || typeof name !== 'string') {
+    throw new TypeError('setMute: name must be non-empty string');
+  }
+  if (typeof untilMs !== 'number' || !Number.isFinite(untilMs) || untilMs < 0) {
+    throw new TypeError('setMute: untilMs must be non-negative finite number (0 = forever)');
+  }
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const now = Date.now();
+  const mutes = cleanExpiredMutes(existing.mutes || {}, now);
+  mutes[name] = {
+    until: untilMs,
+    reason: (typeof reason === 'string' && reason) ? reason : 'manual',
+  };
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes,
+  };
+  writeAtomic(statePath, next);
+  return next;
+}
+
+/**
+ * 取消某 app 静音 (如果存在).
+ * @param {string} name
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function clearMute(name, statePath = defaultPath()) {
+  if (!name || typeof name !== 'string') {
+    throw new TypeError('clearMute: name must be non-empty string');
+  }
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const now = Date.now();
+  const mutes = cleanExpiredMutes(existing.mutes || {}, now);
+  if (name in mutes) {
+    delete mutes[name];
+  }
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes,
+  };
+  writeAtomic(statePath, next);
+  return next;
 }
 
 function writeAtomic(filePath, data) {
@@ -154,4 +281,17 @@ function writeAtomic(filePath, data) {
   }
 }
 
-module.exports = { load, saveAll, saveOne, markNotified, defaultPath, SCHEMA_VERSION };
+module.exports = {
+  load,
+  saveAll,
+  saveOne,
+  markNotified,
+  defaultPath,
+  SCHEMA_VERSION,
+  // Phase 27
+  isMuteActive,
+  cleanExpiredMutes,
+  getMutes,
+  setMute,
+  clearMute,
+};

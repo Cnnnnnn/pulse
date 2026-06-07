@@ -19,6 +19,7 @@ const { runCheck } = require('./check-runner');
 const { runBulkUpgrade } = require('./bulk-upgrade');
 const stateStore = require('./state-store');
 const { getAppIcon } = require('./app-icon');
+const { mainLog } = require('./log');
 
 // Bulk Upgrade: 一次只能跑一批; 用 AbortController 控制取消.
 let bulkUpgradeCtrl = null;
@@ -162,6 +163,53 @@ function registerIpcHandlers(deps) {
     } catch (err) {
       mainLog.warn('[ipc] get-app-icon threw', { bundle: bundlePath, msg: err && err.message });
       return { error: 'threw' };
+    }
+  });
+
+  // ── Phase 27: Mutes (per-app 静音) ─────────────────────
+  // 渲染进程负责显示菜单 / 触发 setMute / clearMute; 主进程只管读写 state.json
+  // (跟 last_notified 同一条线). 同步返当前 mutes, 让 renderer 立即更新 signal.
+
+  ipcMain.handle('get-mutes', () => {
+    try {
+      return { mutes: stateStore.getMutes() };
+    } catch (err) {
+      mainLog.warn('[ipc] get-mutes threw', { msg: err && err.message });
+      return { mutes: {} };
+    }
+  });
+
+  /**
+   * @param {string} name        app name
+   * @param {number} durationSec 静音时长 (秒). 0 = 永远.
+   */
+  ipcMain.handle('set-mute', (_event, name, durationSec) => {
+    if (!name || typeof name !== 'string') {
+      return { ok: false, reason: 'invalid_name', mutes: stateStore.getMutes() };
+    }
+    if (typeof durationSec !== 'number' || !Number.isFinite(durationSec) || durationSec < 0) {
+      return { ok: false, reason: 'invalid_duration', mutes: stateStore.getMutes() };
+    }
+    try {
+      const untilMs = durationSec === 0 ? 0 : Date.now() + durationSec * 1000;
+      const next = stateStore.setMute(name, untilMs, 'manual');
+      return { ok: true, mutes: next.mutes };
+    } catch (err) {
+      mainLog.warn('[ipc] set-mute threw', { name, msg: err && err.message });
+      return { ok: false, reason: 'threw', mutes: stateStore.getMutes() };
+    }
+  });
+
+  ipcMain.handle('clear-mute', (_event, name) => {
+    if (!name || typeof name !== 'string') {
+      return { ok: false, reason: 'invalid_name', mutes: stateStore.getMutes() };
+    }
+    try {
+      const next = stateStore.clearMute(name);
+      return { ok: true, mutes: next.mutes };
+    } catch (err) {
+      mainLog.warn('[ipc] clear-mute threw', { name, msg: err && err.message });
+      return { ok: false, reason: 'threw', mutes: stateStore.getMutes() };
     }
   });
 }

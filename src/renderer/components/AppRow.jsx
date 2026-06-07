@@ -14,16 +14,18 @@
  *   4. AppAvatar 内部的 useIcon 是 hook 级别的状态，缓存命中后只读不更新。
  *
  * 点击整行 → 打开 download_url (有的话)；点击升级按钮 → 走升级流。
+ * Phase 27: 右键 → 弹出 MuteMenu (per-app 静音).
  */
 
 import { useState, useCallback } from 'preact/hooks';
-import { getResultSignal } from '../store.js';
+import { getResultSignal, isMuted, mutedApps } from '../store.js';
 import { api } from '../api.js';
 import { AppAvatar } from './AppAvatar.jsx';
 import { AppInfo } from './AppInfo.jsx';
 import { AppVersions } from './AppVersions.jsx';
 import { AppAction } from './AppAction.jsx';
 import { ChangelogPanel } from './ChangelogPanel.jsx';
+import { MuteMenu } from './MuteMenu.jsx';
 
 export function AppRow({ name }) {
   const sig = getResultSignal(name);
@@ -32,6 +34,8 @@ export function AppRow({ name }) {
   const [upgrading, setUpgrading] = useState(false);
   // Phase 14: changelog inline panel 展开状态. 默认关.
   const [changelogOpen, setChangelogOpen] = useState(false);
+  // Phase 27: mute menu 状态. {x, y, appName} | null.
+  const [muteMenuAt, setMuteMenuAt] = useState(null);
 
   const handleUpgrade = useCallback(async (cask, appName) => {
     if (!cask) return;
@@ -72,9 +76,25 @@ export function AppRow({ name }) {
   // result.bundle 可能在旧 schema 不存在，缺省用空串
   const bundle = result.bundle || '';
 
+  // Phase 27: muted 状态. mutedApps 是 signal, 读 .value 触发订阅.
+  // isMuted() 内部检查 until 过期.
+  const muteEntry = mutedApps.value.get(name);
+  const muted = isMuted(name);
+
+  function onContextMenu(e) {
+    // 只在 row 本体触发; 按钮/upgrade/menu 内部不抢
+    if (e.target.closest('.btn-upgrade-row')
+        || e.target.closest('.status-badge')
+        || e.target.closest('.btn-info-row')
+        || e.target.closest('.changelog-panel')
+        || e.target.closest('.mute-menu')) return;
+    e.preventDefault();
+    setMuteMenuAt({ x: e.clientX, y: e.clientY });
+  }
+
   return (
     <div
-      class={`app-row${changelogOpen ? ' changelog-open' : ''}`}
+      class={`app-row${changelogOpen ? ' changelog-open' : ''}${muted ? ' muted' : ''}`}
       data-name={result.name}
       style={hasDownloadUrl(result.name) ? 'cursor: pointer' : ''}
       onClick={(e) => {
@@ -85,9 +105,10 @@ export function AppRow({ name }) {
             || e.target.closest('.changelog-panel')) return;
         onRowClick(lookupConfig(result.name));
       }}
+      onContextMenu={onContextMenu}
     >
       <AppAvatar bundle={bundle} name={result.name} />
-      <AppInfo result={result} />
+      <AppInfo result={result} muted={muted} muteUntil={muteEntry ? muteEntry.until : 0} />
       <AppVersions result={result} />
       <AppAction
         result={result}
@@ -97,6 +118,16 @@ export function AppRow({ name }) {
         isChangelogOpen={changelogOpen}
       />
       {changelogOpen && <ChangelogPanel result={result} />}
+      {muteMenuAt && (
+        <MuteMenu
+          x={muteMenuAt.x}
+          y={muteMenuAt.y}
+          appName={name}
+          isMuted={muted}
+          muteUntil={muteEntry ? muteEntry.until : 0}
+          onClose={() => setMuteMenuAt(null)}
+        />
+      )}
     </div>
   );
 }

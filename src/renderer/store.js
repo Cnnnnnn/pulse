@@ -34,6 +34,89 @@ export const cachedState = signal(null);
 export const searchQuery = signal('');
 export const activeFilter = signal('all');
 
+// Phase 27: Mutes. Map<name, {until, reason}>.
+//   - until: 0 = 永远, >0 = epoch ms 到期
+//   - reason: 'manual' 现阶段; 后续 'auto-cooldown' 之类
+// bootstrap 时通过 api.getMutes() 填进来. 后续 setMute/clearMute 经 IPC
+// 写到主进程 state.json 后, 再回写这个 signal (保证本地状态 = 主进程状态).
+export const mutedApps = signal(new Map());
+
+/**
+ * 判断某个 app 当前是否被静音 (考虑 expiry).
+ * @param {string} name
+ * @param {number} [now]   注入便于测试, 默认 Date.now()
+ * @returns {boolean}
+ */
+export function isMuted(name, now) {
+  if (!name) return false;
+  const m = mutedApps.value.get(name);
+  if (!m) return false;
+  const t = (typeof now === 'number') ? now : Date.now();
+  if (!m.until) return true;        // 0 = 永远
+  return t < m.until;
+}
+
+/**
+ * Mute 一个 app. 写主进程 + 同步本地 signal. durationSec=0 表示永远.
+ * @returns {Promise<{ok: boolean, reason?: string}>}
+ */
+export async function setMute(name, durationSec) {
+  if (!name || typeof name !== 'string') return { ok: false, reason: 'invalid_name' };
+  if (typeof durationSec !== 'number' || !Number.isFinite(durationSec) || durationSec < 0) {
+    return { ok: false, reason: 'invalid_duration' };
+  }
+  // 走 api 而不是直接调 ipcRenderer, 测试好 mock
+  // eslint-disable-next-line no-undef
+  const { api } = await import('./api.js');
+  const r = await api.setMute(name, durationSec);
+  if (r && r.ok && r.mutes) {
+    // 同步本地
+    const next = new Map();
+    for (const [k, v] of Object.entries(r.mutes)) next.set(k, v);
+    mutedApps.value = next;
+    return { ok: true };
+  }
+  return { ok: false, reason: (r && r.reason) || 'threw' };
+}
+
+/**
+ * 取消静音.
+ * @returns {Promise<{ok: boolean, reason?: string}>}
+ */
+export async function clearMute(name) {
+  if (!name || typeof name !== 'string') return { ok: false, reason: 'invalid_name' };
+  // eslint-disable-next-line no-undef
+  const { api } = await import('./api.js');
+  const r = await api.clearMute(name);
+  if (r && r.ok && r.mutes) {
+    const next = new Map();
+    for (const [k, v] of Object.entries(r.mutes)) next.set(k, v);
+    mutedApps.value = next;
+    return { ok: true };
+  }
+  return { ok: false, reason: (r && r.reason) || 'threw' };
+}
+
+/**
+ * Bootstrap 时调用: 从主进程拉一次 mutes, 填到 signal.
+ * @returns {Promise<object>} 当前 mutes
+ */
+export async function loadMutes() {
+  // eslint-disable-next-line no-undef
+  const { api } = await import('./api.js');
+  try {
+    const r = await api.getMutes();
+    const mutes = (r && r.mutes) || {};
+    const next = new Map();
+    for (const [k, v] of Object.entries(mutes)) next.set(k, v);
+    mutedApps.value = next;
+    return mutes;
+  } catch {
+    mutedApps.value = new Map();
+    return {};
+  }
+}
+
 // 注: Phase 25 app 图标走 useIcon hook 的 module-level cache (hooks/useIcon.js),
 //      不挂到全局 signal. AppAvatar 已经接好, 不再额外抽象.
 

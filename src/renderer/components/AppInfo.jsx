@@ -1,7 +1,7 @@
 /**
  * src/renderer/components/AppInfo.jsx
  *
- * App 名字 + 副标题 (source/note 派生)
+ * App 名字 + 副标题 (source/note 派生) + Phase 27 mute badge.
  */
 
 const SOURCE_LABELS = {
@@ -73,7 +73,19 @@ function changelogPreview(raw) {
   return truncated.replace(/[,;:\s]+$/, '') + '…';
 }
 
-export function AppInfo({ result }) {
+/**
+ * Phase 27: mute badge 文案.
+ * @param {number} untilMs  0 = 永远; >0 = 到期 epoch ms
+ * @returns {string}
+ */
+function muteUntilLabel(untilMs) {
+  if (!untilMs) return '永远';
+  const d = new Date(untilMs);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function AppInfo({ result, muted = false, muteUntil = 0 }) {
   const source = sourceLabel(result.source);
   const note = result.note || '';
   const ts = result.ts;
@@ -101,9 +113,20 @@ export function AppInfo({ result }) {
   // Phase 26: changelog inline preview (点 ℹ️ 看完整 panel)
   const preview = changelogPreview(result.changelog);
 
+  // Phase 27: mute badge. muted=true → 显示 "🔇 静音至 6/14" 或 "🔇 静音 (永远)"
+  // muted=false → 不显示. 通过 .muted CSS class 让 AppInfo 整体灰显 (opacity).
+  const muteBadge = muted ? (
+    <span class="mute-badge" title={`已静音, 跳过通知 / bulk upgrade. 到期: ${muteUntil ? muteUntilLabel(muteUntil) : '永远'}`}>
+      🔇 静音{muteUntil ? `至 ${muteUntilLabel(muteUntil)}` : ' (永远)'}
+    </span>
+  ) : null;
+
   return (
-    <div class="app-info">
-      <div class="app-name">{result.name}</div>
+    <div class={`app-info${muted ? ' muted' : ''}`}>
+      <div class="app-name-row">
+        <span class="app-name">{result.name}</span>
+        {muteBadge}
+      </div>
       <div class={`app-subtitle${stale ? ' stale' : ''}${errMsg ? ' has-error' : ''}`}>{subtitle}</div>
       {preview && <div class="app-changelog-preview" title={result.changelog}>{preview}</div>}
     </div>

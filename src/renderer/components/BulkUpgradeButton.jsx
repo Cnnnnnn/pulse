@@ -4,6 +4,7 @@
  * 顶部 "Upgrade All (N)" 按钮.
  * Phase 23: N 反映 filteredResults (search + tab 过滤后) 的 upgradable 数.
  *  click → 打开 BulkUpgradeModal (只装过滤后的 items).
+ * Phase 27: 过滤掉 muted apps (跟通知一致: muted 不被自动操作).
  *
  * 状态文案 (per spec §5.1):
  *   N > 0:        "Upgrade All (N)"  primary, 可点
@@ -11,7 +12,7 @@
  *   running:      "Upgrading 3/7..."  primary, disabled, 显示进度
  */
 
-import { results } from '../store.js';
+import { results, isMuted, mutedApps } from '../store.js';
 import { filteredResults } from '../selectors.js';
 import {
   openBulkUpgrade,
@@ -22,8 +23,12 @@ import {
 export function BulkUpgradeButton() {
   // Phase 23: 用 filteredResults 算 N — tab="已是最新" 时 N=0 (因为全都不是 upgradable)
   // 这样 "All up to date" 跟用户的 filter 意图一致
+  // Phase 27: 跳过 muted apps — 用户主动静音, 就不该被自动操作
+  // 读 mutedApps.value 是订阅点, mutes 变化时本组件重算 N
   const visibleResults = Array.from(filteredResults.value.values());
-  const upgradable = visibleResults.filter((r) => r && r.has_update);
+  const upgradable = visibleResults.filter((r) =>
+    r && r.has_update && !isMuted(r.name)
+  );
   const total = upgradable.length;
 
   // running 状态由 store-bulk-upgrade.js 提供 (preact signals 自动重渲染)
@@ -61,7 +66,7 @@ export function BulkUpgradeButton() {
       id="btn-upgrade"
       class="btn btn-primary"
       onClick={() => openBulkUpgrade(upgradable.map(toBulkItem))}
-      title="一键升级所有可升级应用"
+      title="一键升级所有可升级应用 (静音中的 app 会被跳过)"
     >
       Upgrade All ({total})
     </button>
