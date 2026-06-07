@@ -311,6 +311,50 @@ body {
   margin-top: 3px;
   line-height: 1.35;
   font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Phase 30: tier 颜色 — 按"上次打开"时间区间分 4 档, 让人一眼看出哪些很久没开
+ *  - hot  : ≤7 天,  默认色, 不加视觉噪音
+ *  - warm : 7-30 天, 琥珀色, 提示"该用了"
+ *  - cold : >30 天, 暗红, 提示"很久没碰"
+ *  - unknown: ms=null, 灰斜体, 区分数据缺失
+ *
+ * Dark mode 自动适配 (CSS 变量走 light dark two-way)
+ */
+.app-last-opened.tier-hot {
+  color: var(--text-tertiary, #888);
+}
+.app-last-opened.tier-warm {
+  color: #b07a00;
+  font-weight: 500;
+}
+.app-last-opened.tier-warm::before {
+  content: '🟡';
+  font-style: normal;
+  font-size: 9px;
+}
+.app-last-opened.tier-cold {
+  color: #b03030;
+  font-weight: 600;
+}
+.app-last-opened.tier-cold::before {
+  content: '🔴';
+  font-style: normal;
+  font-size: 9px;
+}
+.app-last-opened.tier-unknown {
+  color: var(--text-quaternary, #aaa);
+  font-style: italic;
+  font-weight: 400;
+}
+.app-last-opened.tier-unknown::before {
+  content: '·';
+  font-style: normal;
+  color: var(--text-quaternary, #aaa);
+  margin-right: 2px;
 }
 
 .app-versions {

@@ -196,3 +196,84 @@ describe('AppInfo last-opened sub-line (Phase 29)', () => {
     expect(el.textContent).toBe('未使用');
   });
 });
+
+// ─── Phase 30: tier 颜色分类 (last-opened) ───────────────────
+
+describe('AppInfo last-opened tier color (Phase 30)', () => {
+  it('hot tier (≤7 天) → tier-hot class, no 警告 icon', () => {
+    const recent = Date.now() - 3 * 86400 * 1000;
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: recent, source: 'spotlight' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el.classList.contains('tier-hot')).toBe(true);
+    expect(el.classList.contains('tier-warm')).toBe(false);
+    expect(el.classList.contains('tier-cold')).toBe(false);
+  });
+
+  it('warm tier (7-30 天) → tier-warm class', () => {
+    const old = Date.now() - 15 * 86400 * 1000;
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: old, source: 'spotlight' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el.classList.contains('tier-warm')).toBe(true);
+    expect(el.classList.contains('tier-cold')).toBe(false);
+  });
+
+  it('cold tier (>30 天) → tier-cold class', () => {
+    const veryOld = Date.now() - 90 * 86400 * 1000;
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: veryOld, source: 'spotlight' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el.classList.contains('tier-cold')).toBe(true);
+    expect(el.classList.contains('tier-warm')).toBe(false);
+  });
+
+  it('unknown tier (ms=null) → tier-unknown class', () => {
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: null, source: 'unknown' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el.classList.contains('tier-unknown')).toBe(true);
+  });
+
+  it('atime source + old ms → tier-cold class (颜色照常)', () => {
+    const veryOld = Date.now() - 90 * 86400 * 1000;
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: veryOld, source: 'atime' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el.classList.contains('tier-cold')).toBe(true);
+    expect(el.textContent).toContain('估算');
+  });
+
+  it('exactly 7 days → warm (boundary: ≤7 是 hot)', () => {
+    // hot 边界: ≤ 7 天
+    const t = Date.now() - 7 * 86400 * 1000;
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: t, source: 'spotlight' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el.classList.contains('tier-hot')).toBe(true);
+  });
+});

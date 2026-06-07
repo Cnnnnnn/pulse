@@ -2,8 +2,10 @@
  * src/renderer/components/AppInfo.jsx
  *
  * App 名字 + 副标题 (source/note 派生) + Phase 27 mute badge.
- * + Phase 29 上次打开时间 sub-line.
+ * + Phase 29 上次打开时间 sub-line (按 tier 颜色分类, Phase 30).
  */
+
+import { getLocalTier } from '../store.js';
 
 const SOURCE_LABELS = {
   'brew': 'Brew', 'sparkle': 'Sparkle', 'web(yml)': 'CDN',
@@ -114,24 +116,36 @@ export function AppInfo({ result, muted = false, muteUntil = 0, lastOpened = nul
   // Phase 26: changelog inline preview (点 ℹ️ 看完整 panel)
   const preview = changelogPreview(result.changelog);
 
-  // Phase 29: last-opened sub-line. 三种态:
-  //   - { ms, source: 'spotlight' } → "上次打开 · 2 天前"
+  // Phase 29: last-opened sub-line. 三种态 + 按 tier 颜色区分 (Phase 30).
+  //   - { ms, source: 'spotlight' } → "上次打开 · 2 天前" — hot/warm/cold
   //   - { ms, source: 'atime' }     → "上次打开 · 估算 · 5 天前"  (不靠谱)
   //   - { ms: null } 或 没数据        → "未使用"
   //   - 没 lastOpened 参数 (初次 render) → 不显示
+  //
+  // 颜色映射 (跟 mute menu tier 推荐一致, 一眼能看出冷热):
+  //   - hot (≤7天)   : 默认 tertiary 浅色, 没"问题感"
+  //   - warm (7-30天): 琥珀色, 提示"该用了"
+  //   - cold (>30天) : 暗红, 提示"很久没碰"
+  //   - unknown      : 灰斜体, 区分数据缺失
   let lastOpenedLine = null;
   if (lastOpened) {
+    const tier = getLocalTier(lastOpened.ms);
     if (lastOpened.ms == null) {
-      lastOpenedLine = <div class="app-last-opened">未使用</div>;
+      lastOpenedLine = <div class="app-last-opened tier-unknown">未使用</div>;
     } else if (lastOpened.source === 'atime') {
       lastOpenedLine = (
-        <div class="app-last-opened" title="atime 是 fallback, 不是真实启动时间">
+        <div
+          class={`app-last-opened tier-${tier}`}
+          title="atime 是 fallback, 不是真实启动时间"
+        >
           上次打开 · 估算 · {relativeTime(lastOpened.ms)}
         </div>
       );
     } else {
       lastOpenedLine = (
-        <div class="app-last-opened">上次打开 · {relativeTime(lastOpened.ms)}</div>
+        <div class={`app-last-opened tier-${tier}`}>
+          上次打开 · {relativeTime(lastOpened.ms)}
+        </div>
       );
     }
   }
