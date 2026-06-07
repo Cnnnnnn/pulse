@@ -232,6 +232,9 @@ function registerIpcHandlers(deps) {
    * - 不阻塞 IPC (Promise 在后台跑)
    * - 11 app × ~100ms 一次 mdls, 总耗时 ~1.2s, 不阻塞 UI
    * - 写入 state.json
+   *
+   * config 中 a.bundle 是裸 bundle 名 (e.g. "Cursor.app"), mdls/stat 需要
+   * 绝对路径 (/Applications/Cursor.app). 这里做一次 resolve.
    */
   ipcMain.handle('refresh-last-opened', () => {
     const apps = (getConfig() && getConfig().apps) || [];
@@ -244,8 +247,9 @@ function registerIpcHandlers(deps) {
       try {
         const next = {};
         await Promise.all(refreshable.map(async (a) => {
+          const path = a.bundle.startsWith('/') ? a.bundle : `/Applications/${a.bundle}`;
           try {
-            const r = await lastOpened.refreshOne(a.bundle);
+            const r = await lastOpened.refreshOne(path);
             next[a.name] = { ms: r.ms, source: r.source };
           } catch (err) {
             mainLog.warn('[ipc] refresh-last-opened item failed', { name: a.name, msg: err && err.message });
