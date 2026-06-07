@@ -2,6 +2,45 @@
 
 ---
 
+## v2.3.0 (Phase 29) — 2026-06-07
+
+### New: 最近打开时间 (last-opened)
+
+- 每个 app 监 macOS Spotlight 拿 `kMDItemLastUsedDate`，未索引 fallback 到 `stat -f '%a'` (atime)
+- 持久化到 `state.json` 的 `last_opened` 字段，跨重启保留
+- AppInfo 新加 "上次打开 · 2 天前" / "未使用" / "上次打开 · 估算 · 5 天前" 子标题
+- atime fallback 标 "估算" + tooltip 解释为什么不靠谱
+
+### New: 分级静音 (tier-aware mute)
+
+- tier 阈值：≤ 7天 = 热，7-30天 = 温，> 30天 = 冷
+- 5 个静音选项不变 (1/7/30/90/永远)，但**按 tier 排顺序 + 推荐项置顶加 ✨推荐 标签**
+  - 热 tier (天天用) → 推 1 天
+  - 温 / 未知 → 推 7 天
+  - 冷 (很久没用) → 推 30 天
+- 永远 永远在 last 位置
+
+### 流程
+
+- 每次 checkUpdates 完成后后台 async 刷 last-opened (mdls + atime)
+- 写盘后推 `last-opened-updated` 事件给 renderer，UI 自动重排
+- Bootstrap 时一次性 loadLastOpened 填初始值
+
+### 测试
+
+- 67 个新 case (29a 16 + 29b 24 + 29c 12 + 29d 15)
+- 总计 532/532 全过 (v2.2.0 是 465)
+
+### Phase 29 commit 拆分 (5 个独立可回滚)
+
+- 29a `4230f90` — 数据源 (last-opened.js)
+- 29b `9bc0947` — tier 逻辑 (tier.js, 纯函数)
+- 29c `1aa617c` — state-store 持久化 + IPC
+- 29d `c54370a` — renderer 集成 + UI
+- 29e `8a19476` — main/index.js 接入 checkUpdates 生命周期
+
+---
+
 ## v2.2.0 (Phase 28) — 2026-06-07
 
 ### Brand: AppUpdateChecker → Pulse
