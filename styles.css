@@ -292,6 +292,18 @@ body {
   color: var(--text-error, #c0392b);
 }
 
+/* Phase 26: changelog inline preview (80-char 截断) */
+.app-changelog-preview {
+  font-size: 12px;
+  color: var(--text-secondary, #555);
+  margin-top: 3px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .app-versions {
   display: flex;
   align-items: center;

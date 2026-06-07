@@ -52,6 +52,27 @@ function isStale(ts) {
   return (Date.now() - ts) > 24 * 60 * 60 * 1000;
 }
 
+/**
+ * Phase 26: 把 changelog (markdown/HTML/纯文本) 截成一行 preview.
+ *   - strip markdown 装饰字符 (#, *, -, 等) 和 HTML 标签
+ *   - 截到 80 字符, 词边界优先
+ *   - 末尾加 "…"
+ */
+function changelogPreview(raw) {
+  if (!raw) return '';
+  // 简单 HTML strip (我们只关心展示, 严格安全交给 ChangelogPanel)
+  let s = raw.replace(/<[^>]+>/g, ' ');
+  // 替换 markdown 列表符 / 装饰符 / 多余空白
+  s = s.replace(/^[\s#*>\-•·]+/gm, '');
+  s = s.replace(/\s+/g, ' ').trim();
+  if (s.length <= 80) return s;
+  // 截到 80 但尽量在词边界
+  const cut = s.slice(0, 80);
+  const lastSpace = cut.lastIndexOf(' ');
+  const truncated = lastSpace > 40 ? cut.slice(0, lastSpace) : cut;
+  return truncated.replace(/[,;:\s]+$/, '') + '…';
+}
+
 export function AppInfo({ result }) {
   const source = sourceLabel(result.source);
   const note = result.note || '';
@@ -77,10 +98,14 @@ export function AppInfo({ result }) {
     subtitle = subtitle ? `${subtitle} · ${rel}` : rel;
   }
 
+  // Phase 26: changelog inline preview (点 ℹ️ 看完整 panel)
+  const preview = changelogPreview(result.changelog);
+
   return (
     <div class="app-info">
       <div class="app-name">{result.name}</div>
       <div class={`app-subtitle${stale ? ' stale' : ''}${errMsg ? ' has-error' : ''}`}>{subtitle}</div>
+      {preview && <div class="app-changelog-preview" title={result.changelog}>{preview}</div>}
     </div>
   );
 }
