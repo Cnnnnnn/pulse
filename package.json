@@ -21,6 +21,7 @@
     "preact": "^10.22.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@testing-library/preact": "^3.2.4",
     "electron": "^35.0.0",
     "electron-builder": "^25.0.0",
