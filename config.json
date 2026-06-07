@@ -5,6 +5,7 @@
       "name": "Cursor",
       "bundle": "Cursor.app",
       "download_url": "https://www.cursor.com/downloads",
+      "release_notes_url": "https://www.cursor.com/changelog",
       "detectors": [
         {
           "type": "cursor_redirect",
@@ -120,6 +121,7 @@
       "name": "CodexBar",
       "bundle": "CodexBar.app",
       "download_url": "https://github.com/steipete/CodexBar/releases",
+      "release_notes_url": "https://github.com/steipete/CodexBar/releases",
       "detectors": [
         {
           "type": "sparkle_appcast",
