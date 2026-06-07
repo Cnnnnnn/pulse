@@ -46,6 +46,7 @@
       "index.html",
       "styles.css",
       "renderer-dist/renderer.bundle.js",
+      "assets/**",
       "package.json",
       "node_modules/**"
     ]

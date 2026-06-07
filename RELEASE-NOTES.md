@@ -7,7 +7,7 @@
 ### Brand: AppUpdateChecker → Pulse
 
 - **productName**: `AppUpdateChecker` → `Pulse`
-- **appId**: `com.appupdatechecker` → `com.appupdatechecker.pulse` (org 段保留, 跟老用户已装版不冲突)
+- **appId**: `com.appupdatechecker` → `com.appupdatechecker.pulse` — ⚠️ macOS 视为新 app. **v2.0.0 已装用户**先卸载旧版再装新, 否则会装出 2 个 app. 卸载前 state.json 备份到 `~/Library/Application Support/AppUpdateChecker/`, 新版装好后会自动迁移 (字段名兼容)
 - 菜单栏显示 `Pulse` (替代 `AppUpdateChecker`)
 - 通知标题、Header `<h1>`、UA (`Pulse/2.2`)、index.html `<title>` 全部跟齐
 - state / logs 路径**保留** `~/Library/Application Support/AppUpdateChecker/` 不动 (兼容老数据)
