@@ -14,6 +14,7 @@ import { readdirSync } from 'fs';
 import { join } from 'path';
 
 const MAIN_DIR = new URL('../../src/main/', import.meta.url).pathname;
+const CONFIG_DIR = new URL('../../src/config/', import.meta.url).pathname;
 
 describe('main process module load smoke (Phase 28+ regression)', () => {
   // 收集 src/main/*.js (排除 _test, test, spec 命名)
@@ -52,4 +53,18 @@ describe('main process module load smoke (Phase 28+ regression)', () => {
       expect(err).toBeNull();
     });
   }
+});
+
+describe('config module load smoke (Phase A1b regression)', () => {
+  // Phase A1b: src/config/category.js 启动期 require, 任何 syntax error /
+  // top-level throw / 缺依赖都会被 vitest 抓到.
+  it('src/config/category.js can be required without error', () => {
+    let err = null;
+    try {
+      require(join(CONFIG_DIR, 'category.js'));
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeNull();
+  });
 });
