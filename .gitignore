@@ -45,6 +45,9 @@ coverage/
 .mavis/plans/
 .opencode/
 
+# Brainstorming-2 visual companion session (HTML mockups, server state)
+.superpowers/
+
 # Bench output (scripts/startup-bench.js 跑出来的)
 tests/fixtures/startup-bench-*.json
 
