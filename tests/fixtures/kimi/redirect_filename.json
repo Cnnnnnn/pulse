@@ -1,0 +1,39 @@
+{
+  "app": "Kimi",
+  "appBundle": "Kimi.app",
+  "detector": "redirect_filename",
+  "url": "https://appsupport.moonshot.cn/api/app/pkg/latest/macos/download",
+  "request": {
+    "method": "HEAD",
+    "headers": {},
+    "body": null
+  },
+  "follow": false,
+  "recordedAt": "2026-06-05T10:31:45.636Z",
+  "elapsedMs": 329,
+  "ok": false,
+  "note": "first HEAD with follow=false; redirect_filename detector loops up to 5x",
+  "response": {
+    "status": 400,
+    "headers": {
+      "server": "nginx",
+      "date": "Fri, 05 Jun 2026 10:31:45 GMT",
+      "content-type": "application/json",
+      "content-length": "123",
+      "connection": "close",
+      "vary": "Origin",
+      "access-control-allow-origin": "*",
+      "x-request-id": "3721e5974734cf323711b7fb22b9bbaf",
+      "allow": "GET",
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+      "server-timing": "inner; dur=24"
+    },
+    "finalUrl": "https://appsupport.moonshot.cn/api/app/pkg/latest/macos/download",
+    "body": ""
+  },
+  "error": {
+    "type": "http_4xx",
+    "message": "HTTP 400",
+    "status": 400
+  }
+}

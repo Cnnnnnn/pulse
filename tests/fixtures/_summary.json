@@ -1,0 +1,178 @@
+{
+  "recordedAt": "2026-06-05T10:31:51.443Z",
+  "arch": "arm64",
+  "totalFixtures": 14,
+  "totalOk": 13,
+  "totalErr": 1,
+  "apps": [
+    {
+      "name": "Cursor",
+      "slug": "cursor",
+      "ok": 2,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "cursor_redirect",
+          "ok": true,
+          "file": "tests/fixtures/cursor/cursor_redirect.json"
+        },
+        {
+          "detector": "brew_formulae",
+          "ok": true,
+          "file": "tests/fixtures/cursor/brew_formulae.json"
+        }
+      ]
+    },
+    {
+      "name": "Kimi",
+      "slug": "kimi",
+      "ok": 1,
+      "error": 1,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "redirect_filename",
+          "ok": false,
+          "file": "tests/fixtures/kimi/redirect_filename.json"
+        },
+        {
+          "detector": "brew_formulae",
+          "ok": true,
+          "file": "tests/fixtures/kimi/brew_formulae.json"
+        }
+      ]
+    },
+    {
+      "name": "ima.copilot",
+      "slug": "ima.copilot",
+      "ok": 1,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "app_store_lookup",
+          "ok": true,
+          "file": "tests/fixtures/ima.copilot/app_store_lookup.json"
+        }
+      ]
+    },
+    {
+      "name": "MiniMax Code",
+      "slug": "minimax_code",
+      "ok": 1,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "electron_yml",
+          "ok": true,
+          "file": "tests/fixtures/minimax_code/electron_yml.json"
+        }
+      ]
+    },
+    {
+      "name": "WorkBuddy",
+      "slug": "workbuddy",
+      "ok": 1,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "api_json",
+          "ok": true,
+          "file": "tests/fixtures/workbuddy/api_json.json"
+        }
+      ]
+    },
+    {
+      "name": "QClaw",
+      "slug": "qclaw",
+      "ok": 1,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "qclaw_api",
+          "ok": true,
+          "file": "tests/fixtures/qclaw/qclaw_api.json"
+        }
+      ]
+    },
+    {
+      "name": "Marvis",
+      "slug": "marvis",
+      "ok": 1,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "redirect_filename",
+          "ok": true,
+          "file": "tests/fixtures/marvis/redirect_filename.json"
+        }
+      ]
+    },
+    {
+      "name": "QoderWork",
+      "slug": "qoderwork",
+      "ok": 1,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "electron_yml",
+          "ok": true,
+          "file": "tests/fixtures/qoderwork/electron_yml.json"
+        }
+      ]
+    },
+    {
+      "name": "Codex",
+      "slug": "codex",
+      "ok": 1,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "sparkle_appcast",
+          "ok": true,
+          "file": "tests/fixtures/codex/sparkle_appcast.json"
+        }
+      ]
+    },
+    {
+      "name": "CodexBar",
+      "slug": "codexbar",
+      "ok": 2,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "sparkle_appcast",
+          "ok": true,
+          "file": "tests/fixtures/codexbar/sparkle_appcast.json"
+        },
+        {
+          "detector": "brew_formulae",
+          "ok": true,
+          "file": "tests/fixtures/codexbar/brew_formulae.json"
+        }
+      ]
+    },
+    {
+      "name": "CC Switch",
+      "slug": "cc_switch",
+      "ok": 1,
+      "error": 0,
+      "skipped": false,
+      "fixtures": [
+        {
+          "detector": "brew_formulae",
+          "ok": true,
+          "file": "tests/fixtures/cc_switch/brew_formulae.json"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "app": "CodexBar",
+  "appBundle": "CodexBar.app",
+  "detector": "sparkle_appcast",
+  "url": "https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/xml, text/xml, */*"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:50.118Z",
+  "elapsedMs": 533,
+  "ok": true,
+  "note": "sparkle appcast XML; detector parses sparkle:shortVersionString",
+  "response": {
+    "status": 200,
+    "headers": {
+      "connection": "close",
+      "content-length": "7942",
+      "cache-control": "max-age=300",
+      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      "content-type": "text/plain; charset=utf-8",
+      "etag": "\"eff74cd807c96d882586d18bed029f0520836252e7a6f9caa315e54844cb1ccb\"",
+      "strict-transport-security": "max-age=31536000",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "deny",
+      "x-xss-protection": "1; mode=block",
+      "x-github-request-id": "B0FE:3A2F2A:81DB97:94F75B:6A22A595",
+      "accept-ranges": "bytes",
+      "date": "Fri, 05 Jun 2026 10:31:50 GMT",
+      "via": "1.1 varnish",
+      "x-served-by": "cache-sin-wsss1830064-SIN",
+      "x-cache": "MISS",
+      "x-cache-hits": "0",
+      "x-timer": "S1780655510.368614,VS0,VE274",
+      "vary": "Authorization,Accept-Encoding",
+      "access-control-allow-origin": "*",
+      "cross-origin-resource-policy": "cross-origin",
+      "x-fastly-request-id": "5a5892bb3aa0fac2bb8522b18d4b6ed68442beae",
+      "expires": "Fri, 05 Jun 2026 10:36:50 GMT",
+      "source-age": "0"
+    },
+    "finalUrl": "https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml",
+    "body": "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\n<rss xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\" version=\"2.0\">\n    <channel>\n        <title>CodexBar</title>\n        <item>\n            <title>0.32.4</title>\n            <pubDate>Tue, 02 Jun 2026 15:43:46 +0100</pubDate>\n            <link>https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml</link>\n            <sparkle:version>79</sparkle:version>\n            <sparkle:shortVersionString>0.32.4</sparkle:shortVersionString>\n            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>\n            <description><![CDATA[<h2>CodexBar 0.32.4</h2>\n<h3>Fixed</h3>\n<ul>\n<li>Menu bar: avoid queuing redundant provider refreshes when opening a fresh merged-menu dropdown, while still retrying missing or stale provider data after menu tracking ends (#1235, #1277). Thanks @hhh2210!</li>\n</ul>\n<p><a href=\"https://github.com/steipete/CodexBar/blob/main/CHANGELOG.md\">View full changelog</a></p>\n]]></description>\n            <enclosure url=\"https://github.com/steipete/CodexBar/releases/download/v0.32.4/CodexBar-macos-universal-0.32.4.zip\" length=\"45041903\" type=\"application/octet-stream\" sparkle:edSignature=\"UxQW12JvzM4qWOdLoSqPaM9+tOEii1CJEAAGGU4On1F4952QT9ueIXTLTHOdU0MzrHmqs2RmOICx7gL1FZHFBw==\"/>\n        </item>\n        <item>\n            <title>0.32.3</title>\n            <pubDate>Tue, 02 Jun 2026 12:30:56 +0100</pubDate>\n            <link>https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml</link>\n            <sparkle:version>78</sparkle:version>\n            <sparkle:shortVersionString>0.32.3</sparkle:shortVersionString>\n            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>\n            <description><![CDATA[<h2>CodexBar 0.32.3</h2>\n<h3>Fixed</h3>\n<ul>\n<li>Menu bar: stop forcing a private preferred-position value for fresh status items; suspicious stored positions are now cleared so AppKit can place CodexBar normally on macOS 26 / 5K displays (#1267). Thanks @AdrianSimionov, @kirocop, and @Yuxin-Qiao!</li>\n<li>Menu bar: cache provider brand icons so merged-icon status updates no longer repeatedly parse SVG assets on the main thread during hover/open animations (#1235, #1274). Thanks @andradebruno, @xingpz2008, and @Yuxin-Qiao!</li>\n<li>Copilot: treat GitHub Copilot Business token-billing zero-entitlement quotas as unavailable instead of showing misleading 0% used usage (#1258, #1270). Thanks @devYRPauli!</li>\n<li>Menu bar: prepare closed menus after refresh and only reuse stale dropdown content for data-refresh invalidations so merged menu opens stay responsive without bypassing privacy or structure changes (#1261). Thanks @ProspectOre!</li>\n<li>OpenAI Web: stop reloading away from login and Cloudflare blocking states so the dashboard WebView does not loop on route corrections (#1259). Thanks @ProspectOre!</li>\n</ul>\n<p><a href=\"https://github.com/steipete/CodexBar/blob/main/CHANGELOG.md\">View full changelog</a></p>\n]]></description>\n            <enclosure url=\"https://github.com/steipete/CodexBar/releases/download/v0.32.3/CodexBar-macos-universal-0.32.3.zip\" length=\"45040320\" type=\"application/octet-stream\" sparkle:edSignature=\"ksjUSEuIpJ1LJH7JvPwU+5aKTj3NiUXiqIRIcWJUmKm/RJZFZXojCAZ/BSXGg+G9gbbNk/nR3MZHW7jy7FTEDg==\"/>\n        </item>\n        <item>\n            <title>0.32.2</title>\n            <pubDate>Mon, 01 Jun 2026 04:43:41 +0100</pubDate>\n            <link>https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml</link>\n            <sparkle:version>77</sparkle:version>\n            <sparkle:shortVersionString>0.32.2</sparkle:shortVersionString>\n            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>\n            <description><![CDATA[<h2>CodexBar 0.32.2</h2>\n<h3>Added</h3>\n<ul>\n<li>QA: document the live CodexBar e2e flow and add a redacted provider-matrix helper for packaged CLI smoke tests.</li>\n</ul>\n<h3>Fixed</h3>\n<ul>\n<li>Menu bar: add breathing room to compact Codex account rows so the provider, account, status, and plan labels no longer hug the row edges.</li>\n<li>Performance: make Codex token-cost scanning faster and more memory-efficient on large local session corpora.</li>\n</ul>\n<p><a href=\"https://github.com/steipete/CodexBar/blob/main/CHANGELOG.md\">View full changelog</a></p>\n]]></description>\n            <enclosure url=\"https://github.com/steipete/CodexBar/releases/download/v0.32.2/CodexBar-macos-universal-0.32.2.zip\" length=\"45070301\" type=\"application/octet-stream\" sparkle:edSignature=\"pvj2uObMV/TgTZFYmi6hGfRRZR5gcz/7cV68N3apvRy4CvZSekdF6ip7lZa6ZwDdS2XEy9X+jLt1j8fcuLzNCg==\"/>\n        </item>\n        <item>\n            <title>0.14.0</title>\n            <pubDate>Thu, 25 Dec 2025 03:56:15 +0100</pubDate>\n            <link>https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml</link>\n            <sparkle:version>41</sparkle:version>\n            <sparkle:shortVersionString>0.14.0</sparkle:shortVersionString>\n            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>\n            <description><![CDATA[<h2>CodexBar 0.14.0</h2>\n<ul>\n<li>Antigravity: new local provider for the Antigravity language server (Claude + Gemini quotas) with an experimental toggle; improved plan display + debug output; clearer not-running/port errors; hide account switch.</li>\n<li>Status: poll Google Workspace incidents for Gemini + Antigravity; Status Page opens the Workspace status page.</li>\n            <li>Settings: add Providers tab; move cost usage + status toggles to General; keep display controls in Advanced.</li>\n<li>Menu/UI: widen the menu for four providers; cards/charts adapt to menu width; tighten provider switcher/toggle spacing; keep menus refreshed while open.</li>\n<li>Gemini: hide the dashboard action when unsupported.</li>\n<li>Claude: fix Extra usage spend/limit units (cents); improve CLI probe stability; surface web session info in Debug.</li>\n<li>OpenAI web: fix dashboard ghost overlay on desktop (WebKit keepalive window).</li>\n<li>Debug: add a debug-lldb build mode for troubleshooting.</li>\n</ul>\n<p><a href=\"https://github.com/steipete/CodexBar/blob/main/CHANGELOG.md\">View full changelog</a></p>\n]]></description>\n            <enclosure url=\"https://github.com/steipete/CodexBar/releases/download/v0.14.0/CodexBar-0.14.0.zip\" length=\"5382347\" type=\"application/octet-stream\" sparkle:edSignature=\"qhj8jnqH/eOXEP2plbZyTb8w1x0Afcpix0kC+pzMh5jX9Lkf3Yg2Bvd6/vsKdhOObEwJjQZRb/RKiSBx55J3DA==\"/>\n        </item>\n        <item>\n            <title>0.13.0</title>\n            <pubDate>Wed, 24 Dec 2025 01:53:35 +0100</pubDate>\n            <link>https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml</link>\n            <sparkle:version>40</sparkle:version>\n            <sparkle:shortVersionString>0.13.0</sparkle:shortVersionString>\n            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>\n            <enclosure url=\"https://github.com/steipete/CodexBar/releases/download/v0.13.0/CodexBar-0.13.0.zip\" length=\"5099083\" type=\"application/octet-stream\" sparkle:edSignature=\"EmhEmcTFQEpuQG6vZ288l9j278VjnpQdQcmZnU1JDvzERVTtnIg+8RDlsHV9niwejaOBPX6mvXST3vNJHpwADA==\"/>\n        </item>\n        <item>\n            <title>0.12.0</title>\n            <pubDate>Tue, 23 Dec 2025 04:39:05 +0100</pubDate>\n            <link>https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml</link>\n            <sparkle:version>39</sparkle:version>\n            <sparkle:shortVersionString>0.12.0</sparkle:shortVersionString>\n            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>\n            <enclosure url=\"https://github.com/steipete/CodexBar/releases/download/v0.12.0/CodexBar-0.12.0.zip\" length=\"4888386\" type=\"application/octet-stream\" sparkle:edSignature=\"tQMHO/RNAbvwRHXYnLAkNV2ksiV722qR8fEYzcbipgetacfPnwnLJ0Pe/lAiZ03PBmj3BkisHb74GosUlSV+DQ==\"/>\n        </item>\n    </channel>\n</rss>",
+    "bodyTruncated": false,
+    "bodyBytes": 7942
+  }
+}

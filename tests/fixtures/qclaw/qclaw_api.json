@@ -1,0 +1,40 @@
+{
+  "app": "QClaw",
+  "appBundle": "QClaw.app",
+  "detector": "qclaw_api",
+  "url": "https://jprx.m.qq.com/data/4066/forward",
+  "request": {
+    "method": "POST",
+    "headers": {
+      "Origin": "https://qclaw.qq.com",
+      "Referer": "https://qclaw.qq.com/"
+    },
+    "body": {
+      "from": "web",
+      "system_type": "macarm"
+    }
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:49.496Z",
+  "elapsedMs": 127,
+  "ok": true,
+  "note": "qclaw POST body { from: 'web', system_type: 'macarm' }",
+  "response": {
+    "status": 200,
+    "headers": {
+      "date": "Fri, 05 Jun 2026 10:31:49 GMT",
+      "content-type": "application/json",
+      "content-length": "881",
+      "connection": "close",
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://qclaw.qq.com",
+      "cache-control": "no-cache",
+      "server": "JPrxServer",
+      "strict-transport-security": "max-age=31536000; includeSubDomains"
+    },
+    "finalUrl": "https://jprx.m.qq.com/data/4066/forward",
+    "body": "{\"ret\":0,\"data\":{\"resp\":{\"common\":{\"code\":0,\"message\":\"Success\"},\"data\":{\"id\":10504,\"version_code\":\"0.2.24\",\"download_url\":\"https://package-cdn.qclaw.qq.com/qclaw/mac/arm64/0.2.24-5001-564/QClaw-0.2.24-5001-564-arm64.zip\",\"update_strategy\":1,\"update_content\":\"🎉 v0.2.24版本更新内容:\\n· 性能优化与 bugfix\\n\\n也可前往官网下载更新最新版：https://qclaw.qq.com\",\"system_type\":\"macarm\",\"channel\":\"5001\",\"package_info\":{\"files\":{\"dmg\":{\"name\":\"QClaw-0.2.24-5001-564-arm64.dmg\",\"url\":\"https://package-cdn.qclaw.qq.com/qclaw/mac/arm64/0.2.24-5001-564/QClaw-0.2.24-5001-564-arm64.dmg\",\"md5\":\"2e9ab62a75cc383e9d3fcd1c24d22d2a\",\"size\":578169185},\"zip\":{\"name\":\"QClaw-0.2.24-5001-564-arm64.zip\",\"url\":\"https://package-cdn.qclaw.qq.com/qclaw/mac/arm64/0.2.24-5001-564/QClaw-0.2.24-5001-564-arm64.zip\",\"md5\":\"52f588806c4910bae87bcafd0fa6d64b\",\"size\":569450445}}}}}\n}}",
+    "bodyTruncated": false,
+    "bodyBytes": 881
+  }
+}

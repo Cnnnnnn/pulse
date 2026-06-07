@@ -1,0 +1,49 @@
+{
+  "app": "CC Switch",
+  "appBundle": "CC Switch.app",
+  "detector": "brew_formulae",
+  "url": "https://formulae.brew.sh/api/cask/cc-switch.json",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:51.043Z",
+  "elapsedMs": 399,
+  "ok": true,
+  "note": "brew formulae API for cask='cc-switch'",
+  "response": {
+    "status": 200,
+    "headers": {
+      "connection": "close",
+      "content-length": "1826",
+      "server": "GitHub.com",
+      "content-type": "application/json; charset=utf-8",
+      "x-origin-cache": "HIT",
+      "last-modified": "Fri, 05 Jun 2026 10:17:13 GMT",
+      "access-control-allow-origin": "*",
+      "etag": "\"6a22a229-722\"",
+      "expires": "Fri, 05 Jun 2026 10:41:51 GMT",
+      "cache-control": "max-age=600",
+      "x-proxy-cache": "MISS",
+      "x-github-request-id": "E122:3A2E40:7E5528:80C51C:6A22A595",
+      "accept-ranges": "bytes",
+      "age": "0",
+      "date": "Fri, 05 Jun 2026 10:31:51 GMT",
+      "via": "1.1 varnish",
+      "x-served-by": "cache-sin-wsss1830098-SIN",
+      "x-cache": "MISS",
+      "x-cache-hits": "0",
+      "x-timer": "S1780655511.177648,VS0,VE260",
+      "vary": "Accept-Encoding",
+      "x-fastly-request-id": "b9bfb148930caddc4824ec76801717b1a4f81343"
+    },
+    "finalUrl": "https://formulae.brew.sh/api/cask/cc-switch.json",
+    "body": "{\"token\":\"cc-switch\",\"full_token\":\"cc-switch\",\"old_tokens\":[],\"tap\":\"homebrew/cask\",\"name\":[\"CC Switch\"],\"desc\":\"Configuration manager for AI coding agents\",\"homepage\":\"https://github.com/farion1231/cc-switch\",\"url\":\"https://github.com/farion1231/cc-switch/releases/download/v3.16.1/CC-Switch-v3.16.1-macOS.dmg\",\"url_specs\":{},\"version\":\"3.16.1\",\"autobump\":true,\"no_autobump_message\":null,\"skip_livecheck\":false,\"installed\":null,\"installed_time\":null,\"bundle_version\":null,\"bundle_short_version\":null,\"pinned\":false,\"pinned_version\":null,\"outdated\":false,\"sha256\":\"6f9426d597188651492a12f88ba27a46818b57cb9fdf2db364fa5fc62a61ffda\",\"artifacts\":[{\"app\":[\"CC Switch.app\"],\"target\":\"/Applications/CC Switch.app\"},{\"zap\":[{\"trash\":[\"~/.cc-switch\",\"~/Library/Application Support/com.ccswitch.desktop\",\"~/Library/Caches/com.ccswitch.desktop\",\"~/Library/Preferences/com.ccswitch.desktop.plist\",\"~/Library/Saved Application State/com.ccswitch.desktop.savedState\",\"~/Library/WebKit/com.ccswitch.desktop\"]}]}],\"caveats\":null,\"caveats_rosetta\":null,\"depends_on\":{\"macos\":{\">=\":[\"12\"]}},\"conflicts_with\":null,\"container\":null,\"rename\":[],\"auto_updates\":null,\"deprecated\":false,\"deprecation_date\":null,\"deprecation_reason\":null,\"deprecation_replacement_formula\":null,\"deprecation_replacement_cask\":null,\"deprecate_args\":null,\"disabled\":false,\"disable_date\":null,\"disable_reason\":null,\"disable_replacement_formula\":null,\"disable_replacement_cask\":null,\"disable_args\":null,\"tap_git_head\":\"6763f4750277f6802928634bd8104a8a2892ff05\",\"languages\":[],\"ruby_source_path\":\"Casks/c/cc-switch.rb\",\"ruby_source_checksum\":{\"sha256\":\"248645620ac390c5a77368c39c7ee5f2456f5c8c2ead485d087064f33b5d9916\"},\"variations\":{},\"analytics\":{\"install\":{\"30d\":{\"cc-switch\":36693},\"90d\":{\"cc-switch\":60883},\"365d\":{\"cc-switch\":60887}}},\n\"generated_date\":\"2026-06-05\"}\n",
+    "bodyTruncated": false,
+    "bodyBytes": 1826
+  }
+}

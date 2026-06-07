@@ -1,0 +1,49 @@
+{
+  "app": "Cursor",
+  "appBundle": "Cursor.app",
+  "detector": "brew_formulae",
+  "url": "https://formulae.brew.sh/api/cask/cursor.json",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:45.215Z",
+  "elapsedMs": 421,
+  "ok": true,
+  "note": "brew formulae API for cask='cursor'",
+  "response": {
+    "status": 200,
+    "headers": {
+      "connection": "close",
+      "content-length": "3274",
+      "server": "GitHub.com",
+      "content-type": "application/json; charset=utf-8",
+      "x-origin-cache": "HIT",
+      "last-modified": "Fri, 05 Jun 2026 10:17:13 GMT",
+      "access-control-allow-origin": "*",
+      "etag": "\"6a22a229-cca\"",
+      "expires": "Fri, 05 Jun 2026 10:41:45 GMT",
+      "cache-control": "max-age=600",
+      "x-proxy-cache": "MISS",
+      "x-github-request-id": "7D3C:BEA99:1481BD:15F43B:6A22A591",
+      "accept-ranges": "bytes",
+      "age": "0",
+      "date": "Fri, 05 Jun 2026 10:31:45 GMT",
+      "via": "1.1 varnish",
+      "x-served-by": "cache-sin-wsss1830098-SIN",
+      "x-cache": "MISS",
+      "x-cache-hits": "0",
+      "x-timer": "S1780655505.404045,VS0,VE228",
+      "vary": "Accept-Encoding",
+      "x-fastly-request-id": "27cc0394dcb0a847f01d8170fa6a638fb2cb37a1"
+    },
+    "finalUrl": "https://formulae.brew.sh/api/cask/cursor.json",
+    "body": "{\"token\":\"cursor\",\"full_token\":\"cursor\",\"old_tokens\":[],\"tap\":\"homebrew/cask\",\"name\":[\"Cursor\"],\"desc\":\"Write, edit, and chat about your code with AI\",\"homepage\":\"https://www.cursor.com/\",\"url\":\"https://downloads.cursor.com/production/81fcf2931d7687b4ff3f3017858d0c6dee7e2a68/darwin/arm64/Cursor-darwin-arm64.zip\",\"url_specs\":{},\"version\":\"3.6.31,81fcf2931d7687b4ff3f3017858d0c6dee7e2a68\",\"autobump\":true,\"no_autobump_message\":null,\"skip_livecheck\":false,\"installed\":null,\"installed_time\":null,\"bundle_version\":null,\"bundle_short_version\":null,\"pinned\":false,\"pinned_version\":null,\"outdated\":false,\"sha256\":\"a48877c1c1b33921d71b335e703693c4a4e9c1c78620ce628cd994cc42e7f8a1\",\"artifacts\":[{\"app\":[\"Cursor.app\"],\"target\":\"/Applications/Cursor.app\"},{\"binary\":[\"$APPDIR/Cursor.app/Contents/Resources/app/bin/code\",{\"target\":\"cursor\"}],\"target\":\"$HOMEBREW_PREFIX/bin/cursor\"},{\"zap\":[{\"trash\":[\"~/.cursor\",\"~/.cursor-tutor\",\"~/Library/Application Support/Caches/cursor-updater\",\"~/Library/Application Support/Cursor\",\"~/Library/Caches/com.todesktop.*\",\"~/Library/Caches/com.todesktop.*.ShipIt\",\"~/Library/HTTPStorages/com.todesktop.*\",\"~/Library/Logs/Cursor\",\"~/Library/Preferences/ByHost/com.todesktop.*.ShipIt.*.plist\",\"~/Library/Preferences/com.todesktop.*.plist\",\"~/Library/Saved Application State/com.todesktop.*.savedState\",\"~/Library/Saved Application State/todesktop.com.ToDesktop-Installer.savedState\"]}]}],\"caveats\":null,\"caveats_rosetta\":null,\"depends_on\":{\"macos\":{\">=\":[\"12\"]}},\"conflicts_with\":null,\"container\":null,\"rename\":[],\"auto_updates\":true,\"deprecated\":false,\"deprecation_date\":null,\"deprecation_reason\":null,\"deprecation_replacement_formula\":null,\"deprecation_replacement_cask\":null,\"deprecate_args\":null,\"disabled\":false,\"disable_date\":null,\"disable_reason\":null,\"disable_replacement_formula\":null,\"disable_replacement_cask\":null,\"disable_args\":null,\"tap_git_head\":\"6763f4750277f6802928634bd8104a8a2892ff05\",\"languages\":[],\"ruby_source_path\":\"Casks/c/cursor.rb\",\"ruby_source_checksum\":{\"sha256\":\"41c8b068d049cee359e77613b3be7a5c70d02f8a773453bbbf3894c5e941efb2\"},\"variations\":{\"tahoe\":{\"url\":\"https://downloads.cursor.com/production/81fcf2931d7687b4ff3f3017858d0c6dee7e2a68/darwin/x64/Cursor-darwin-x64.zip\",\"sha256\":\"b49d3681d65c0aabadd1d7999a8c8239974dd42bfcdb460fc0776190282caa4a\"},\"sequoia\":{\"url\":\"https://downloads.cursor.com/production/81fcf2931d7687b4ff3f3017858d0c6dee7e2a68/darwin/x64/Cursor-darwin-x64.zip\",\"sha256\":\"b49d3681d65c0aabadd1d7999a8c8239974dd42bfcdb460fc0776190282caa4a\"},\"sonoma\":{\"url\":\"https://downloads.cursor.com/production/81fcf2931d7687b4ff3f3017858d0c6dee7e2a68/darwin/x64/Cursor-darwin-x64.zip\",\"sha256\":\"b49d3681d65c0aabadd1d7999a8c8239974dd42bfcdb460fc0776190282caa4a\"},\"ventura\":{\"url\":\"https://downloads.cursor.com/production/81fcf2931d7687b4ff3f3017858d0c6dee7e2a68/darwin/x64/Cursor-darwin-x64.zip\",\"sha256\":\"b49d3681d65c0aabadd1d7999a8c8239974dd42bfcdb460fc0776190282caa4a\"},\"monterey\":{\"url\":\"https://downloads.cursor.com/production/81fcf2931d7687b4ff3f3017858d0c6dee7e2a68/darwin/x64/Cursor-darwin-x64.zip\",\"sha256\":\"b49d3681d65c0aabadd1d7999a8c8239974dd42bfcdb460fc0776190282caa4a\"}},\"analytics\":{\"install\":{\"30d\":{\"cursor\":11964},\"90d\":{\"cursor\":35288},\"365d\":{\"cursor\":133542}}},\n\"generated_date\":\"2026-06-05\"}\n",
+    "bodyTruncated": false,
+    "bodyBytes": 3274
+  }
+}

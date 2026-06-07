@@ -1,0 +1,53 @@
+{
+  "app": "MiniMax Code",
+  "appBundle": "MiniMax Code.app",
+  "detector": "electron_yml",
+  "url": "https://filecdn.minimax.chat/public/minimax-agent-prod/release/latest-mac.yml",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/x-yaml, text/yaml, text/plain"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:47.581Z",
+  "elapsedMs": 1691,
+  "ok": true,
+  "note": "electron-builder latest-mac.yml; detector parses version field",
+  "response": {
+    "status": 200,
+    "headers": {
+      "server": "Tengine",
+      "content-type": "text/yaml",
+      "content-length": "830",
+      "connection": "close",
+      "date": "Thu, 04 Jun 2026 16:04:23 GMT",
+      "x-oss-request-id": "6A21A207F5B7063733FBE795",
+      "x-oss-cdn-auth": "success",
+      "accept-ranges": "bytes",
+      "etag": "\"C99373F1FBB64E714DDE801A59DB8F97\"",
+      "last-modified": "Thu, 04 Jun 2026 16:03:48 GMT",
+      "x-oss-object-type": "Normal",
+      "x-oss-hash-crc64ecma": "16240022896892868890",
+      "x-oss-storage-class": "Standard",
+      "content-md5": "yZNz8fu2TnFN3oAaWduPlw==",
+      "x-oss-server-time": "5",
+      "via": "cache43.l2cn1800[0,0,200-0,H], cache10.l2cn1800[1,0], ens-cache15.cn9064[0,0,200-0,H], ens-cache17.cn9064[3,0]",
+      "age": "66446",
+      "ali-swift-global-savetime": "1780589063",
+      "x-cache": "HIT TCP_MEM_HIT dirn:-2:-2",
+      "x-swift-savetime": "Thu, 04 Jun 2026 16:05:16 GMT",
+      "x-swift-cachetime": "2591947",
+      "access-control-allow-methods": "*",
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "timing-allow-origin": "*",
+      "eagleid": "7ce10ea517806555091365045e"
+    },
+    "finalUrl": "https://filecdn.minimax.chat/public/minimax-agent-prod/release/latest-mac.yml",
+    "body": "version: 3.0.37\nfiles:\n  - url: MiniMax Code-3.0.37-mac.zip\n    sha512: lBbhto9pLF6Xf5b2iA8/T+6qM3sTApSyxsS4BQiPsMBhzdFO9x6qbOgahTYxrMtfGeX40DmFTNagXil3iYN+HQ==\n    size: 253604121\n  - url: MiniMax Code-3.0.37-arm64-mac.zip\n    sha512: OqrXjyGkZC8rrwcdGx66PSuikqHqtP2QRoDSetllnpEkT70ysap6aALkNel1ydcbOejJbgeH375H+IHgnhjdVw==\n    size: 242570106\n  - url: MiniMax Code-3.0.37.dmg\n    sha512: aTKd95e8NHxRijQxmQz3QLH19aHbLgAby3+jD93z/oIfUogTGGC3B4c+7wcKUkkKQLrdjkgj2wK1UHvk9HLy5g==\n    size: 257732339\n  - url: MiniMax Code-3.0.37-arm64.dmg\n    sha512: GaZOjJQ+K21WhZwZjkwlrGru5mJ5mAVH0yjn401hEq31oQhlWRLMzwIZhLsmWf+45kxAB/lUhYc274vtFHmFng==\n    size: 246543169\npath: MiniMax Code-3.0.37-mac.zip\nsha512: lBbhto9pLF6Xf5b2iA8/T+6qM3sTApSyxsS4BQiPsMBhzdFO9x6qbOgahTYxrMtfGeX40DmFTNagXil3iYN+HQ==\nreleaseDate: '2026-06-04T15:55:26.328Z'\n",
+    "bodyTruncated": false,
+    "bodyBytes": 830
+  }
+}

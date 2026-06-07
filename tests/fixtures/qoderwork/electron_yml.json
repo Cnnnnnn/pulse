@@ -1,0 +1,52 @@
+{
+  "app": "QoderWork",
+  "appBundle": "QoderWork CN.app",
+  "detector": "electron_yml",
+  "url": "https://static.qoder.com.cn/qoder-work-cn/releases/latest-mac.yml",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/x-yaml, text/yaml, text/plain"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:49.828Z",
+  "elapsedMs": 197,
+  "ok": true,
+  "note": "electron-builder latest-mac.yml; detector parses version field",
+  "response": {
+    "status": 200,
+    "headers": {
+      "server": "Tengine",
+      "content-type": "text/yaml",
+      "content-length": "403",
+      "connection": "close",
+      "date": "Fri, 05 Jun 2026 10:31:50 GMT",
+      "x-oss-request-id": "6A22A596D0E5EE33360EC08E",
+      "x-oss-cdn-auth": "success",
+      "accept-ranges": "bytes",
+      "x-oss-object-type": "Normal",
+      "x-oss-storage-class": "Standard",
+      "x-oss-version-id": "CAEQXxiBgMDH_arM9BkiIGRjMjM5YTQwM2FhYjQ1OGNhOWNhOGU4ZTgzNDcxNjY3",
+      "etag": "\"7110898E9C7DB5208C312987A3E61BCF\"",
+      "last-modified": "Thu, 04 Jun 2026 14:41:59 GMT",
+      "x-oss-hash-crc64ecma": "13780759933321856307",
+      "content-md5": "cRCJjpx9tSCMMSmHo+Ybzw==",
+      "x-oss-server-time": "3",
+      "via": "cache6.l2cn1800[86,89,206-0,H], cache34.l2cn1800[91,0], cache1.cn7642[110,110,200-0,M], cache3.cn7642[114,0]",
+      "age": "0",
+      "ali-swift-global-savetime": "1780655510",
+      "x-cache": "MISS TCP_MISS dirn:-2:-2",
+      "x-swift-savetime": "Fri, 05 Jun 2026 10:31:50 GMT",
+      "x-swift-cachetime": "3600",
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "timing-allow-origin": "*",
+      "eagleid": "b703cd9717806555099275218e"
+    },
+    "finalUrl": "https://static.qoder.com.cn/qoder-work-cn/releases/latest-mac.yml",
+    "body": "version: 0.5.8\nfiles:\n  - url: https://static.qoder.com.cn/qoder-work-cn/releases/latest/QoderWorkCN-arm64-mac.zip\n    sha512: McbjKakeVmX26lEEW05uw03rksxfXEdXqALKTcdAqkiuijKQD7G1dXRAPhdJyMDCxQsWlOIHf5RzesnWa1+l4A==\n    size: 263030550\npath: QoderWorkCN-arm64-mac.zip\nsha512: McbjKakeVmX26lEEW05uw03rksxfXEdXqALKTcdAqkiuijKQD7G1dXRAPhdJyMDCxQsWlOIHf5RzesnWa1+l4A==\nreleaseDate: 2026-06-04T14:30:37.003Z\n",
+    "bodyTruncated": false,
+    "bodyBytes": 403
+  }
+}

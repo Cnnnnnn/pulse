@@ -1,0 +1,32 @@
+{
+  "app": "Marvis",
+  "appBundle": "Marvis.app",
+  "detector": "redirect_filename",
+  "url": "https://marvis.qq.com/download/dmg",
+  "request": {
+    "method": "HEAD",
+    "headers": {},
+    "body": null
+  },
+  "follow": false,
+  "recordedAt": "2026-06-05T10:31:49.625Z",
+  "elapsedMs": 203,
+  "ok": true,
+  "note": "first HEAD with follow=false; redirect_filename detector loops up to 5x",
+  "response": {
+    "status": 302,
+    "headers": {
+      "server": "stgw",
+      "content-type": "text/html",
+      "location": "https://down.marvis.qq.com/marvis/pipeline/installer/465/marvis_1.0.10050_arm64_4000000002.dmg",
+      "age": "0",
+      "content-length": "137",
+      "connection": "close",
+      "date": "Fri, 05 Jun 2026 10:31:49 GMT",
+      "eo-log-uuid": "1529469634792348206",
+      "eo-cache-status": "MISS"
+    },
+    "finalUrl": "https://marvis.qq.com/download/dmg",
+    "body": ""
+  }
+}

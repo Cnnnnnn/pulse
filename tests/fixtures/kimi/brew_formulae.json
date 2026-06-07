@@ -1,0 +1,49 @@
+{
+  "app": "Kimi",
+  "appBundle": "Kimi.app",
+  "detector": "brew_formulae",
+  "url": "https://formulae.brew.sh/api/cask/kimi.json",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:45.965Z",
+  "elapsedMs": 447,
+  "ok": true,
+  "note": "brew formulae API for cask='kimi'",
+  "response": {
+    "status": 200,
+    "headers": {
+      "connection": "close",
+      "content-length": "1686",
+      "server": "GitHub.com",
+      "content-type": "application/json; charset=utf-8",
+      "x-origin-cache": "HIT",
+      "last-modified": "Fri, 05 Jun 2026 10:17:14 GMT",
+      "access-control-allow-origin": "*",
+      "etag": "\"6a22a22a-696\"",
+      "expires": "Fri, 05 Jun 2026 10:41:46 GMT",
+      "cache-control": "max-age=600",
+      "x-proxy-cache": "MISS",
+      "x-github-request-id": "9254:D5B91:14EA07:16595A:6A22A58E",
+      "accept-ranges": "bytes",
+      "age": "0",
+      "date": "Fri, 05 Jun 2026 10:31:46 GMT",
+      "via": "1.1 varnish",
+      "x-served-by": "cache-sin-wsss1830093-SIN",
+      "x-cache": "MISS",
+      "x-cache-hits": "0",
+      "x-timer": "S1780655506.171667,VS0,VE238",
+      "vary": "Accept-Encoding",
+      "x-fastly-request-id": "982b70c136acdb53d33d46d4ffa4d418806141e7"
+    },
+    "finalUrl": "https://formulae.brew.sh/api/cask/kimi.json",
+    "body": "{\"token\":\"kimi\",\"full_token\":\"kimi\",\"old_tokens\":[],\"tap\":\"homebrew/cask\",\"name\":[\"kimi\"],\"desc\":\"AI chat assistant from Moonshot\",\"homepage\":\"https://www.moonshot.ai/\",\"url\":\"https://kimi-img.moonshot.cn/app/download/mac/kimi_3.0.14.dmg\",\"url_specs\":{\"verified\":\"kimi-img.moonshot.cn/\"},\"version\":\"3.0.14\",\"autobump\":true,\"no_autobump_message\":null,\"skip_livecheck\":false,\"installed\":null,\"installed_time\":null,\"bundle_version\":null,\"bundle_short_version\":null,\"pinned\":false,\"pinned_version\":null,\"outdated\":false,\"sha256\":\"01e95539de3ed9b1a11c6ad985ee8fd80e00a81137d53c798bfb60753d3e678e\",\"artifacts\":[{\"app\":[\"Kimi.app\"],\"target\":\"/Applications/Kimi.app\"},{\"zap\":[{\"trash\":[\"~/Library/Application Support/kimi\",\"~/Library/Caches/KimiAppCache\",\"~/Library/HTTPStorages/com.moonshot.kimichat\",\"~/Library/Preferences/com.moonshot.kimichat.plist\"]}]}],\"caveats\":null,\"caveats_rosetta\":null,\"depends_on\":{\"arch\":[{\"type\":\"arm\",\"bits\":64}],\"macos\":{\">=\":[\"12\"]}},\"conflicts_with\":null,\"container\":null,\"rename\":[],\"auto_updates\":null,\"deprecated\":false,\"deprecation_date\":null,\"deprecation_reason\":null,\"deprecation_replacement_formula\":null,\"deprecation_replacement_cask\":null,\"deprecate_args\":null,\"disabled\":false,\"disable_date\":null,\"disable_reason\":null,\"disable_replacement_formula\":null,\"disable_replacement_cask\":null,\"disable_args\":null,\"tap_git_head\":\"6763f4750277f6802928634bd8104a8a2892ff05\",\"languages\":[],\"ruby_source_path\":\"Casks/k/kimi.rb\",\"ruby_source_checksum\":{\"sha256\":\"098df9efd69e89689ce9f4f401ca1b590f4b095d727c679553510d8076b0e6ee\"},\"variations\":{},\"analytics\":{\"install\":{\"30d\":{\"kimi\":155},\"90d\":{\"kimi\":155},\"365d\":{\"kimi\":346}}},\n\"generated_date\":\"2026-06-05\"}\n",
+    "bodyTruncated": false,
+    "bodyBytes": 1686
+  }
+}

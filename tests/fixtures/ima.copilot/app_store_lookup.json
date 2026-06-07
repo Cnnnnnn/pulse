@@ -1,0 +1,61 @@
+{
+  "app": "ima.copilot",
+  "appBundle": "ima.copilot.app",
+  "detector": "app_store_lookup",
+  "url": "https://itunes.apple.com/lookup?id=6737188438&country=cn",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:46.413Z",
+  "elapsedMs": 1167,
+  "ok": true,
+  "note": "iTunes lookup API; detector reads results[0].version",
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "text/javascript; charset=utf-8",
+      "content-length": "7652",
+      "connection": "close",
+      "x-dynamic-status": "MISS from KS-CLOUD-JM-CT-024-03, MISS from KS-CLOUD-ZHOUS-MP-05-16, MISS from KS-CLOUD-FZ-CT-321-02",
+      "server": "nginx",
+      "x-apple-jingle-correlation-key": "26GYUS2SDA5W64GZ7DKKPUXDHU",
+      "x-apple-request-uuid": "d78d8a4b-5218-3b6f-70d9-f8d4a7d2e33d",
+      "x-apple-translated-wo-url": "/WebObjects/MZStoreServices.woa/ws/wsLookup?id=6737188438&country=cn&urlDesc=",
+      "apple-tk": "false",
+      "x-b3-spanid": "81338579ed1e5e0c",
+      "b3": "d78d8a4b52183b6f70d9f8d4a7d2e33d-81338579ed1e5e0c",
+      "x-content-type-options": "nosniff",
+      "x-b3-traceid": "d78d8a4b52183b6f70d9f8d4a7d2e33d",
+      "x-webobjects-loadaverage": "0",
+      "x-responding-instance": "MZStoreServices:6501781:::",
+      "apple-seq": "0.0",
+      "content-disposition": "attachment; filename=1.txt",
+      "apple-originating-system": "MZStoreServices",
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+      "x-apple-orig-url": "https://itunes.apple.com/lookup?id=6737188438&country=cn",
+      "x-apple-application-site": "MR22",
+      "apple-timing-app": "19 ms",
+      "x-apple-application-instance": "6501781",
+      "x-daiquiri-instance": "daiquiri:12282004:mr47p00it-qujn04120301:7987:26HOTFIX24:daiquiri-amp-store-l7shared-ext-001-mr",
+      "x-daiquiri-debug-worker-pid": "22422",
+      "cache-control": "max-age=80346",
+      "date": "Fri, 05 Jun 2026 10:31:47 GMT",
+      "x-cache": "MISS KS-CLOUD",
+      "x-true-cache-key": "/L/itunes.apple.com/lookup vcd=2897 ci2=country=cn&id=6737188438///",
+      "x-cache-remote": "TCP_HIT from a23-33-185-173.deploy.akamaitechnologies.com (AkamaiGHost/22.5.2-6211a6b44d39bfe2e575630957feecb9) (-)",
+      "x-apple-partner": "origin.0",
+      "x-link-via": "jmct024:443;zhousmp05:443;fzct321:443;",
+      "x-ksc-request-id": "cf1c1bae1f0dde1fedd2f7c4bc1b7fbc",
+      "x-cdn-request-id": "cf1c1bae1f0dde1fedd2f7c4bc1b7fbc"
+    },
+    "finalUrl": "https://itunes.apple.com/lookup?id=6737188438&country=cn",
+    "body": "\n\n\n{\n \"resultCount\":1,\n \"results\": [\n{\"artistViewUrl\":\"https://apps.apple.com/cn/developer/tencent-technology-shenzhen-company-limited/id292374531?uo=4\", \n\"artworkUrl60\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/d0/7d/69/d07d6957-b912-e371-0f53-079df9c65c58/AppIcon-0-0-1x_U007epad-0-1-0-sRGB-85-220.png/60x60bb.jpg\", \n\"artworkUrl100\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/d0/7d/69/d07d6957-b912-e371-0f53-079df9c65c58/AppIcon-0-0-1x_U007epad-0-1-0-sRGB-85-220.png/100x100bb.jpg\", \"isGameCenterEnabled\":false, \"features\":[\"iosUniversal\"], \n\"supportedDevices\":[\"iPhone5s-iPhone5s\", \"iPadAir-iPadAir\", \"iPadAirCellular-iPadAirCellular\", \"iPadMiniRetina-iPadMiniRetina\", \"iPadMiniRetinaCellular-iPadMiniRetinaCellular\", \"iPhone6-iPhone6\", \"iPhone6Plus-iPhone6Plus\", \"iPadAir2-iPadAir2\", \"iPadAir2Cellular-iPadAir2Cellular\", \"iPadMini3-iPadMini3\", \"iPadMini3Cellular-iPadMini3Cellular\", \"iPodTouchSixthGen-iPodTouchSixthGen\", \"iPhone6s-iPhone6s\", \"iPhone6sPlus-iPhone6sPlus\", \"iPadMini4-iPadMini4\", \"iPadMini4Cellular-iPadMini4Cellular\", \"iPadPro-iPadPro\", \"iPadProCellular-iPadProCellular\", \"iPadPro97-iPadPro97\", \"iPadPro97Cellular-iPadPro97Cellular\", \"iPhoneSE-iPhoneSE\", \"iPhone7-iPhone7\", \"iPhone7Plus-iPhone7Plus\", \"iPad611-iPad611\", \"iPad612-iPad612\", \"iPad71-iPad71\", \"iPad72-iPad72\", \"iPad73-iPad73\", \"iPad74-iPad74\", \"iPhone8-iPhone8\", \"iPhone8Plus-iPhone8Plus\", \"iPhoneX-iPhoneX\", \"iPad75-iPad75\", \"iPad76-iPad76\", \"iPhoneXS-iPhoneXS\", \"iPhoneXSMax-iPhoneXSMax\", \"iPhoneXR-iPhoneXR\", \"iPad812-iPad812\", \"iPad834-iPad834\", \"iPad856-iPad856\", \"iPad878-iPad878\", \"iPadMini5-iPadMini5\", \"iPadMini5Cellular-iPadMini5Cellular\", \"iPadAir3-iPadAir3\", \"iPadAir3Cellular-iPadAir3Cellular\", \"iPodTouchSeventhGen-iPodTouchSeventhGen\", \"iPhone11-iPhone11\", \"iPhone11Pro-iPhone11Pro\", \"iPadSeventhGen-iPadSeventhGen\", \"iPadSeventhGenCellular-iPadSeventhGenCellular\", \"iPhone11ProMax-iPhone11ProMax\", \"iPhoneSESecondGen-iPhoneSESecondGen\", \"iPadProSecondGen-iPadProSecondGen\", \"iPadProSecondGenCellular-iPadProSecondGenCellular\", \"iPadProFourthGen-iPadProFourthGen\", \"iPadProFourthGenCellular-iPadProFourthGenCellular\", \"iPhone12Mini-iPhone12Mini\", \"iPhone12-iPhone12\", \"iPhone12Pro-iPhone12Pro\", \"iPhone12ProMax-iPhone12ProMax\", \"iPadAir4-iPadAir4\", \"iPadAir4Cellular-iPadAir4Cellular\", \"iPadEighthGen-iPadEighthGen\", \"iPadEighthGenCellular-iPadEighthGenCellular\", \"iPadProThirdGen-iPadProThirdGen\", \"iPadProThirdGenCellular-iPadProThirdGenCellular\", \"iPadProFifthGen-iPadProFifthGen\", \"iPadProFifthGenCellular-iPadProFifthGenCellular\", \"iPhone13Pro-iPhone13Pro\", \"iPhone13ProMax-iPhone13ProMax\", \"iPhone13Mini-iPhone13Mini\", \"iPhone13-iPhone13\", \"iPadMiniSixthGen-iPadMiniSixthGen\", \"iPadMiniSixthGenCellular-iPadMiniSixthGenCellular\", \"iPadNinthGen-iPadNinthGen\", \"iPadNinthGenCellular-iPadNinthGenCellular\", \"iPhoneSEThirdGen-iPhoneSEThirdGen\", \"iPadAirFifthGen-iPadAirFifthGen\", \"iPadAirFifthGenCellular-iPadAirFifthGenCellular\", \"iPhone14-iPhone14\", \"iPhone14Plus-iPhone14Plus\", \"iPhone14Pro-iPhone14Pro\", \"iPhone14ProMax-iPhone14ProMax\", \"iPadTenthGen-iPadTenthGen\", \"iPadTenthGenCellular-iPadTenthGenCellular\", \"iPadPro11FourthGen-iPadPro11FourthGen\", \"iPadPro11FourthGenCellular-iPadPro11FourthGenCellular\", \"iPadProSixthGen-iPadProSixthGen\", \"iPadProSixthGenCellular-iPadProSixthGenCellular\", \"iPhone15-iPhone15\", \"iPhone15Plus-iPhone15Plus\", \"iPhone15Pro-iPhone15Pro\", \"iPhone15ProMax-iPhone15ProMax\", \"iPadAir11M2-iPadAir11M2\", \"iPadAir11M2Cellular-iPadAir11M2Cellular\", \"iPadAir13M2-iPadAir13M2\", \"iPadAir13M2Cellular-iPadAir13M2Cellular\", \"iPadPro11M4-iPadPro11M4\", \"iPadPro11M4Cellular-iPadPro11M4Cellular\", \"iPadPro13M4-iPadPro13M4\", \"iPadPro13M4Cellular-iPadPro13M4Cellular\", \"iPhone16-iPhone16\", \"iPhone16Plus-iPhone16Plus\", \"iPhone16Pro-iPhone16Pro\", \"iPhone16ProMax-iPhone16ProMax\", \"iPadMiniA17Pro-iPadMiniA17Pro\", \"iPadMiniA17ProCellular-iPadMiniA17ProCellular\", \"iPhone16e-iPhone16e\", \"iPadA16-iPadA16\", \"iPadA16Cellular-iPadA16Cellular\", \"iPadAir11M3-iPadAir11M3\", \"iPadAir11M3Cellular-iPadAir11M3Cellular\", \"iPadAir13M3-iPadAir13M3\", \"iPadAir13M3Cellular-iPadAir13M3Cellular\", \"iPhone17Pro-iPhone17Pro\", \"iPhone17ProMax-iPhone17ProMax\", \"iPhone17-iPhone17\", \"iPhoneAir-iPhoneAir\", \"iPadPro11M5-iPadPro11M5\", \"iPadPro11M5Cellular-iPadPro11M5Cellular\", \"iPadPro13M5-iPadPro13M5\", \"iPadPro13M5Cellular-iPadPro13M5Cellular\", \"iPhone17e-iPhone17e\", \"iPadAir11M4-iPadAir11M4\", \"iPadAir11M4Cellular-iPadAir11M4Cellular\", \"iPadAir13M4-iPadAir13M4\", \"iPadAir13M4Cellular-iPadAir13M4Cellular\"], \"advisories\":[\"无限制网页访问\", \"偶尔/轻微的医药或医疗信息\"], \"kind\":\"software\", \"screenshotUrls\":[], \"ipadScreenshotUrls\":[], \"appletvScreenshotUrls\":[], \n\"artworkUrl512\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/d0/7d/69/d07d6957-b912-e371-0f53-079df9c65c58/AppIcon-0-0-1x_U007epad-0-1-0-sRGB-85-220.png/512x512bb.jpg\", \"averageUserRating\":4.84048999999999995935695551452226936817169189453125, \"trackCensoredName\":\"ima - 腾讯 AI 工作台\", \"trackViewUrl\":\"https://apps.apple.com/cn/app/ima-%E8%85%BE%E8%AE%AF-ai-%E5%B7%A5%E4%BD%9C%E5%8F%B0/id6737188438?uo=4\", \"contentAdvisoryRating\":\"17+\", \"releaseNotes\":\"1. 支持设置copilot首选模型；\\n2. 笔记支持浏览与编辑模式；\\n3. 修复一些已知问题，体验更流畅。\", \"artistId\":292374531, \"artistName\":\"Tencent Technology (Shenzhen) Company Limited\", \"genres\":[\"效率\"], \"price\":0.00, \"trackId\":6737188438, \"trackName\":\"ima - 腾讯 AI 工作台\", \"primaryGenreName\":\"Productivity\", \"primaryGenreId\":6007, \"genreIds\":[\"6007\"], \"sellerName\":\"Tencent Technology (Shenzhen) Company Limited\", \"isVppDeviceBasedLicensingEnabled\":true, \"currentVersionReleaseDate\":\"2026-06-01T06:44:26Z\", \"version\":\"2.5.3\", \"wrapperType\":\"software\", \"currency\":\"CNY\", \n\"description\":\"ima是以知识库为基础的AI工作台，提供“搜-读-写”一站式体验，具备以下核心功能：\\n• copilot：你的专属知识伙伴，擅长解决复杂任务，还会记住你的习惯偏好，越用越懂你\\n• 个人知识库：支持本地文件、微信文件、公众号文章、网页、图片、音频等多种内容解读，构建专属“第二大脑”\\n• 共享知识库：经验知识轻松流动，我的ima，也是我们的ima\\n• 知识库广场：发现各领域优质知识库，别人的智慧为我所用\\n• 任务模式：输入主题描述，ima自动拆解步骤、查阅资料，为你生成报告/播客/PPT，还能一键导出\\n• 录音纪要：长达2小时录音，支持多种语言，自动生成原文和纪要，会议记录很轻松\\n• 笔记：优质内容随手摘录记入笔记，随时唤起AI帮写生成文案、扩写、润色，还能一键配图\\n• AI生图：输入描述，快速生成指定比例、风格的图片，改到满意为止\\n• AI解读：上传文档，一键生成思维导图、真人有声播客、知识小测验，信息轻松消化\\n• 图文并茂：针对文档问答，自动匹配相关图表，内容更易懂\\nima专注于工作与学习场景，能实现信息的智能分析解读、交互式AI问答、高质量内容生成，辅助你完成课程学习、学术研究、信息整理/共享/应用等日常任务。\", \"bundleId\":\"com.tencent.imaios\", \"minimumOsVersion\":\"16.0\", \"averageUserRatingForCurrentVersion\":4.84048999999999995935695551452226936817169189453125, \"sellerUrl\":\"https://ima.qq.com\", \"languageCodesISO2A\":[\"EN\", \"ZH\", \"ZH\"], \"fileSizeBytes\":\"160766976\", \"formattedPrice\":\"免费\", \"userRatingCountForCurrentVersion\":17805, \"trackContentRating\":\"17+\", \"releaseDate\":\"2025-03-14T07:00:00Z\", \"userRatingCount\":17805}]\n}\n\n\n",
+    "bodyTruncated": false,
+    "bodyBytes": 7652
+  }
+}

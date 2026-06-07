@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppUpdateChecker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- 拖拽区域 (macOS title bar) -->
+  <div id="titlebar"></div>
+
+  <!-- 渲染挂载点: Preact 接管整个 <App/> 树 -->
+  <div id="app">
+    <!-- 启动前兜底, 防止白屏 -->
+    <div class="boot-skeleton">
+      <div class="boot-skeleton-header"></div>
+      <div class="boot-skeleton-content">
+        <div class="boot-skeleton-line"></div>
+        <div class="boot-skeleton-line short"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- esbuild 产物: src/renderer/index.jsx → renderer-dist/renderer.bundle.js -->
+  <script src="renderer-dist/renderer.bundle.js"></script>
+</body>
+</html>

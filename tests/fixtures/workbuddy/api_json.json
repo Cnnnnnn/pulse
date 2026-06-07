@@ -1,0 +1,34 @@
+{
+  "app": "WorkBuddy",
+  "appBundle": "WorkBuddy.app",
+  "detector": "api_json",
+  "url": "https://www.codebuddy.cn/v2/update?platform=workbuddy-darwin-arm64",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-05T10:31:49.273Z",
+  "elapsedMs": 222,
+  "ok": true,
+  "note": "api_json (covers web_type=api_json and github_release)",
+  "response": {
+    "status": 200,
+    "headers": {
+      "date": "Fri, 05 Jun 2026 10:31:49 GMT",
+      "content-type": "application/json; charset=utf-8",
+      "content-length": "329",
+      "connection": "close",
+      "traceid": "ec3cdd91176297fb1ed1d955deba75ee",
+      "x-request-id": "61e50538-3fe4-487f-a7d1-b17f88bb13cc",
+      "x-waf-uuid": "5ac88617a5c0e7dd7494ef21f7faa140-1bf2618c7496ad436bbfd0ffd02f5889"
+    },
+    "finalUrl": "https://www.codebuddy.cn/v2/update?platform=workbuddy-darwin-arm64",
+    "body": "{\"version\":\"5.0.2.29916712\",\"url\":\"https://download.codebuddy.cn/workbuddy/saas/darwin-arm64/WorkBuddy-darwin-arm64-5.0.2.29916712-0ce39ce2.zip\",\"productVersion\":\"5.0.2.29916712\",\"sha256hash\":\"b2c8a2650c31672b3f681cff1c078f9f174e4b6b60ff2d5a3add6d9c8834abba\",\"timestamp\":1780639912,\"hash\":\"\",\"name\":\"\",\"supportsFastUpdate\":false}",
+    "bodyTruncated": false,
+    "bodyBytes": 329
+  }
+}

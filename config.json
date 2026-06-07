@@ -1,0 +1,146 @@
+{
+  "check_on_launch": true,
+  "apps": [
+    {
+      "name": "Cursor",
+      "bundle": "Cursor.app",
+      "download_url": "https://www.cursor.com/downloads",
+      "detectors": [
+        {
+          "type": "cursor_redirect",
+          "url": "https://api2.cursor.sh/updates/download/golden/darwin-{arch_short}/cursor/3.6"
+        },
+        {
+          "type": "brew_formulae",
+          "cask": "cursor"
+        }
+      ]
+    },
+    {
+      "name": "Kimi",
+      "bundle": "Kimi.app",
+      "download_url": "https://kimi.moonshot.cn",
+      "detectors": [
+        {
+          "type": "redirect_filename",
+          "url": "https://appsupport.moonshot.cn/api/app/pkg/latest/macos/download"
+        },
+        {
+          "type": "brew_formulae",
+          "cask": "kimi"
+        }
+      ]
+    },
+    {
+      "name": "ima.copilot",
+      "bundle": "ima.copilot.app",
+      "download_url": "https://ima.qq.com/download/",
+      "version_sources": [
+        {
+          "type": "regex_file",
+          "path": "~/Library/Application Support/com.tencent.imamac/mmkv/RDConfigKVStoragePrefix_f3b56f2322_10001_release_0",
+          "pattern": "appVersion\\D{0,4}([0-9.]+)"
+        }
+      ],
+      "detectors": [
+        {
+          "type": "app_store_lookup",
+          "url": "https://itunes.apple.com/lookup?id=6737188438&country=cn"
+        }
+      ]
+    },
+    {
+      "name": "MiniMax Code",
+      "bundle": "MiniMax Code.app",
+      "download_url": "https://www.minimaxi.com",
+      "detectors": [
+        {
+          "type": "electron_yml",
+          "url": "https://filecdn.minimax.chat/public/minimax-agent-prod/release/latest-mac.yml"
+        }
+      ]
+    },
+    {
+      "name": "WorkBuddy",
+      "bundle": "WorkBuddy.app",
+      "download_url": "https://www.codebuddy.cn/workbuddy",
+      "detectors": [
+        {
+          "type": "api_json",
+          "url": "https://www.codebuddy.cn/v2/update?platform=workbuddy-darwin-{arch}"
+        }
+      ]
+    },
+    {
+      "name": "QClaw",
+      "bundle": "QClaw.app",
+      "download_url": "https://qclaw.qq.com",
+      "detectors": [
+        {
+          "type": "qclaw_api",
+          "url": "https://jprx.m.qq.com/data/4066/forward"
+        }
+      ]
+    },
+    {
+      "name": "Marvis",
+      "bundle": "Marvis.app",
+      "download_url": "https://marvis.qq.com",
+      "detectors": [
+        {
+          "type": "redirect_filename",
+          "url": "https://marvis.qq.com/download/dmg"
+        }
+      ]
+    },
+    {
+      "name": "QoderWork",
+      "bundle": "QoderWork CN.app",
+      "download_url": "https://qoder.com",
+      "bundle_changelog": true,
+      "detectors": [
+        {
+          "type": "electron_yml",
+          "url": "https://static.qoder.com.cn/qoder-work-cn/releases/latest-mac.yml"
+        }
+      ]
+    },
+    {
+      "name": "Codex",
+      "bundle": "Codex.app",
+      "download_url": "https://openai.com/codex/download",
+      "detectors": [
+        {
+          "type": "sparkle_appcast",
+          "url": "https://persistent.oaistatic.com/codex-app-prod/appcast.xml"
+        }
+      ]
+    },
+    {
+      "name": "CodexBar",
+      "bundle": "CodexBar.app",
+      "download_url": "https://github.com/steipete/CodexBar/releases",
+      "detectors": [
+        {
+          "type": "sparkle_appcast",
+          "url": "https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml"
+        },
+        {
+          "type": "brew_formulae",
+          "cask": "codexbar"
+        }
+      ]
+    },
+    {
+      "name": "CC Switch",
+      "bundle": "CC Switch.app",
+      "download_url": "",
+      "detectors": [
+        {
+          "type": "brew_formulae",
+          "cask": "cc-switch"
+        }
+      ]
+    }
+  ]
+}
