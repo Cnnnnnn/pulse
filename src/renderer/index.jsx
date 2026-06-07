@@ -21,11 +21,14 @@
 
 import { render } from 'preact';
 import { App } from './App.jsx';
-import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes, loadLastOpened, lastOpenedApps } from './store.js';
+import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes, loadLastOpened, loadActiveCategory, lastOpenedApps } from './store.js';
 import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
 import { createAutoRecheck } from './auto-recheck.js';
+
+// Phase A1b: import 触发顶层 setData, 之后 store / selectors 调 category.* 都有数据
+import './category-init.js';
 
 async function bootstrap() {
   // 1) 加载 config —— 即便失败也给空壳 UI
@@ -49,10 +52,10 @@ async function bootstrap() {
     }
   } catch { /* 缓存加载失败不阻塞, 仍走正常 check 路径 */ }
 
-  // 1.6) Phase 27 + 29: 加载 mutes + last-opened, 让右键菜单 / badge 立即知道
+  // 1.6) Phase 27 + 29 + A: 加载 mutes + last-opened + active_category, 让右键菜单 / badge / category tab 立即知道
   try {
-    await Promise.allSettled([loadMutes(), loadLastOpened()]);
-  } catch { /* noop, 默认空 map */ }
+    await Promise.allSettled([loadMutes(), loadLastOpened(), loadActiveCategory()]);
+  } catch { /* noop, 默认空 map / 'all' */ }
 
   // 1.7) Phase 29: 订阅主进程 last-opened-updated 事件, 主进程在每次 checkUpdates
   // 完成后会推过来. UI 自动跟最新 (AppInfo / MuteMenu 重渲染)

@@ -1,9 +1,10 @@
 /**
  * tests/config/category.test.js
  *
- * Phase A1b (App Categorization, Feature A): 8 类静态 map + 6 API + 降级路径.
+ * Phase A1b (App Categorization, Feature A): 8 类静态 map + 6 API + setData 注入.
  *
  * 覆盖 (跟 spec §8.1 对齐, ~20 cases):
+ *   - setData 注入 / 替换 / 默认 fallback
  *   - getCategory 命中 / 未命中 / fallback 'other' / 大小写 / 非 string
  *   - getAllCategories 顺序 (按 order asc) / 8 个全有 / 返回新引用
  *   - getCategoryById 命中 / 未命中 → undefined
@@ -11,15 +12,10 @@
  *   - validateCategoryMap 正常 / 缺 'other' / id 重复
  *   - getCategoryTabsWithCount "全部" / hide empty / 'other' 永显示 / 排序 /
  *     空 results / Map vs Iterable
- *   - 降级: 故意写坏 categories.json → fallback DEFAULT (用临时 dir)
+ *   - 没调 setData → DEFAULT_CATEGORIES 兜底, getCategory 全 'other'
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-
-// 1) 先用真实 config 测 (走磁盘)
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as real from '../../src/config/category.js';
 
 const GOOD_CATS = [
@@ -33,15 +29,33 @@ const GOOD_CATS = [
   { id: 'other', name: '其他', icon: '📦', order: 99 },
 ];
 
-describe('category.js — real config (走磁盘)', () => {
-  it('getCategory: 命中已知 mapping', () => {
+// 注入真实 config/categories.json + config/app-category.json 的数据, 让 "real config" 测有数据.
+beforeEach(() => {
+  real.setData({
+    cats: GOOD_CATS,
+    map: {
+      cursor: 'ai', claude: 'ai', chatgpt: 'ai',
+      raycast: 'system',
+      iterm2: 'dev', vscode: 'dev', docker: 'dev', postman: 'dev',
+      chrome: 'browser', firefox: 'browser', arc: 'browser',
+      slack: 'comms', discord: 'comms', wechat: 'comms',
+      figma: 'media', sketch: 'media', spotify: 'media', iina: 'media',
+      obsidian: 'notes', notion: 'notes', things: 'notes',
+      alfred: 'system', '1password': 'system', bartender: 'system',
+    },
+    source: 'test',
+  });
+});
+
+describe('category.js — getCategory (走注入数据)', () => {
+  it('命中已知 mapping', () => {
     expect(real.getCategory('cursor')).toBe('ai');
     expect(real.getCategory('vscode')).toBe('dev');
     expect(real.getCategory('chrome')).toBe('browser');
     expect(real.getCategory('raycast')).toBe('system');
   });
 
-  it('getCategory: 未命中 → "other" 兜底 (永不崩)', () => {
+  it('未命中 → "other" 兜底 (永不崩)', () => {
     expect(real.getCategory('unknown-app-xxx')).toBe('other');
     expect(real.getCategory('')).toBe('other');
     expect(real.getCategory(null)).toBe('other');
@@ -49,13 +63,15 @@ describe('category.js — real config (走磁盘)', () => {
     expect(real.getCategory(123)).toBe('other');
   });
 
-  it('getCategory: 大小写不敏感 (key.toLowerCase())', () => {
+  it('大小写不敏感 (key.toLowerCase())', () => {
     expect(real.getCategory('CURSOR')).toBe('ai');
     expect(real.getCategory('Cursor')).toBe('ai');
     expect(real.getCategory('VSCODE')).toBe('dev');
   });
+});
 
-  it('getAllCategories: 8 个 + 按 order asc', () => {
+describe('category.js — getAllCategories', () => {
+  it('8 个 + 按 order asc', () => {
     const cats = real.getAllCategories();
     expect(cats).toHaveLength(8);
     for (let i = 1; i < cats.length; i++) {
@@ -64,40 +80,58 @@ describe('category.js — real config (走磁盘)', () => {
     expect(cats[cats.length - 1].id).toBe('other');
   });
 
-  it('getAllCategories: 返回新引用, 不暴露内部 Map', () => {
+  it('返回新引用, 不暴露内部 Map', () => {
     const a = real.getAllCategories();
     const b = real.getAllCategories();
     expect(a).not.toBe(b);
     a[0].name = 'mutated';
     expect(real.getAllCategories()[0].name).not.toBe('mutated');
   });
+});
 
-  it('getCategoryById: 命中', () => {
+describe('category.js — getCategoryById / ByName', () => {
+  it('getCategoryById 命中', () => {
     const c = real.getCategoryById('ai');
     expect(c).toBeDefined();
     expect(c.name).toBe('AI 工具');
     expect(c.icon).toBe('🤖');
   });
 
-  it('getCategoryById: 未命中 → undefined', () => {
+  it('getCategoryById 未命中 → undefined', () => {
     expect(real.getCategoryById('nope')).toBeUndefined();
     expect(real.getCategoryById('')).toBeUndefined();
   });
 
-  it('getCategoryByName: 命中 (按显示名)', () => {
+  it('getCategoryByName 命中 (按显示名)', () => {
     expect(real.getCategoryByName('AI 工具').id).toBe('ai');
     expect(real.getCategoryByName('开发者').id).toBe('dev');
   });
 
-  it('getCategoryByName: 未命中 → "other" 兜底', () => {
+  it('getCategoryByName 未命中 → "other" 兜底', () => {
     expect(real.getCategoryByName('不存在').id).toBe('other');
     expect(real.getCategoryByName('').id).toBe('other');
   });
+});
 
-  it('validateCategoryMap: 正常 load → ok, 0 errors', () => {
+describe('category.js — validateCategoryMap', () => {
+  it('正常 load → ok, 0 errors', () => {
     const r = real.validateCategoryMap();
     expect(r.ok).toBe(true);
     expect(r.errors).toEqual([]);
+  });
+
+  it('id 重复 → error', () => {
+    real.setData({
+      cats: [
+        ...GOOD_CATS,
+        { id: 'ai', name: '重复', icon: '🤖', order: 100 },
+      ],
+      map: {},
+      source: 'test',
+    });
+    const r = real.validateCategoryMap();
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.includes('duplicate'))).toBe(true);
   });
 });
 
@@ -119,21 +153,16 @@ describe('category.js — getCategoryTabsWithCount', () => {
       ['kimi-extra', {}],  // unmapped → other
     ]);
     const tabs = real.getCategoryTabsWithCount(results);
-    // 第 1 个: 全部 (count 5)
     expect(tabs[0]).toMatchObject({ id: 'all', count: 5 });
-    // 最后 1 个: 其他 (count 1)
     expect(tabs[tabs.length - 1]).toMatchObject({ id: 'other', count: 1 });
-    // 全部 / 其他 之间是 count > 0 的 cat
     const middle = tabs.slice(1, -1);
     const ids = middle.map((t) => t.id);
     // ai (2) > dev (1) > browser (1), 同 count 按 order: dev (2) 先于 browser (3)
     expect(ids).toEqual(['ai', 'dev', 'browser']);
-    // 所有 middle tabs count > 0
     for (const t of middle) expect(t.count).toBeGreaterThan(0);
   });
 
   it('hide empty: 0 app 的 cat 不出现 (除 "其他")', () => {
-    // 只有 ai + dev 的 app
     const results = new Map([['cursor', {}], ['vscode', {}]]);
     const tabs = real.getCategoryTabsWithCount(results);
     const ids = tabs.map((t) => t.id);
@@ -170,83 +199,47 @@ describe('category.js — getCategoryTabsWithCount', () => {
   });
 });
 
-// ── 降级路径: 写坏 categories.json, 走 fallback ──
-describe('category.js — fallback when disk fails', () => {
-  let tmpDir;
-  let warnSpy;
-  let errSpy;
-
-  beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-category-fallback-'));
-    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+// ── setData 行为 ──
+describe('category.js — setData', () => {
+  it('没调 setData → 用 DEFAULT_CATEGORIES, getCategory 全 "other"', () => {
+    // 关键: beforeEach 已经 setData 一次; 这里模拟"未初始化"状态
+    real.setData({ cats: real._DEFAULT_CATEGORIES, map: {}, source: 'empty' });
+    expect(real.getCategory('cursor')).toBe('other');
+    expect(real.getCategory('vscode')).toBe('other');
+    expect(real.getAllCategories()).toHaveLength(8);
   });
 
-  afterEach(() => {
-    warnSpy.mockRestore();
-    errSpy.mockRestore();
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it('categories.json 损坏 → fallback DEFAULT, 不崩', async () => {
-    fs.writeFileSync(path.join(tmpDir, 'categories.json'), '{ broken json');
-    fs.writeFileSync(
-      path.join(tmpDir, 'app-category.json'),
-      JSON.stringify({ version: 1, mapping: { cursor: 'ai' } })
-    );
-
-    const mod = await import('../../src/config/category.js');
-    mod._init({
-      catsPath: path.join(tmpDir, 'categories.json'),
-      mapPath: path.join(tmpDir, 'app-category.json'),
-    });
-    const status = mod._LOAD_STATUS();
-    expect(status.usedFallback).toBe(true);
-    expect(status.errors.length).toBeGreaterThan(0);
-    // api 仍然 work (走 default)
-    expect(mod.getAllCategories()).toHaveLength(8);
-    expect(mod.getCategory('cursor')).toBe('ai');
-  });
-
-  it('app-category.json 缺 "other" cat → 启动期自动补, 0 errors', async () => {
+  it('缺 "other" cat → 启动期自动补', () => {
     const catsNoOther = GOOD_CATS.filter((c) => c.id !== 'other');
-    fs.writeFileSync(
-      path.join(tmpDir, 'categories.json'),
-      JSON.stringify({ version: 1, categories: catsNoOther })
-    );
-    fs.writeFileSync(
-      path.join(tmpDir, 'app-category.json'),
-      JSON.stringify({ version: 1, mapping: { cursor: 'ai' } })
-    );
-    const mod = await import('../../src/config/category.js');
-    mod._init({
-      catsPath: path.join(tmpDir, 'categories.json'),
-      mapPath: path.join(tmpDir, 'app-category.json'),
-    });
-    const cats = mod.getAllCategories();
+    real.setData({ cats: catsNoOther, map: { cursor: 'ai' }, source: 'test' });
+    const cats = real.getAllCategories();
     expect(cats.find((c) => c.id === 'other')).toBeDefined();
     expect(cats).toHaveLength(GOOD_CATS.length);
   });
 
-  it('app-category.json 引用不存在 categoryId → 跳过该 entry, log warn', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'categories.json'),
-      JSON.stringify({ version: 1, categories: GOOD_CATS })
-    );
-    fs.writeFileSync(
-      path.join(tmpDir, 'app-category.json'),
-      JSON.stringify({
-        version: 1,
-        mapping: { cursor: 'ai', bogus: 'nonexistent-cat-id' },
-      })
-    );
-    const mod = await import('../../src/config/category.js');
-    mod._init({
-      catsPath: path.join(tmpDir, 'categories.json'),
-      mapPath: path.join(tmpDir, 'app-category.json'),
+  it('app-category mapping 引用不存在 categoryId → 跳过 + log warn', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    real.setData({
+      cats: GOOD_CATS,
+      map: { cursor: 'ai', bogus: 'nonexistent-cat-id' },
+      source: 'test',
     });
-    expect(mod.getCategory('cursor')).toBe('ai');
-    expect(mod.getCategory('bogus')).toBe('other');  // 跳过后 fallback
-    expect(warnSpy).toHaveBeenCalled();
+    expect(real.getCategory('cursor')).toBe('ai');
+    expect(real.getCategory('bogus')).toBe('other');  // 跳过后 fallback
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('map 是非法类型 (数组) → 走默认空 mapping', () => {
+    real.setData({ cats: GOOD_CATS, map: ['nope'], source: 'test' });
+    expect(real.getCategory('cursor')).toBe('other');
+  });
+
+  it('替换 setData 多次 → 最新一次生效', () => {
+    real.setData({ cats: GOOD_CATS, map: { foo: 'dev' }, source: 'first' });
+    expect(real.getCategory('foo')).toBe('dev');
+    real.setData({ cats: GOOD_CATS, map: { bar: 'ai' }, source: 'second' });
+    expect(real.getCategory('foo')).toBe('other');
+    expect(real.getCategory('bar')).toBe('ai');
   });
 });

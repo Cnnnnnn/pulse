@@ -17,6 +17,7 @@
  */
 
 import { signal, computed } from '@preact/signals';
+import * as category from '../config/category.js';
 
 // ─── 公开 signals ──────────────────────────────────────
 export const apps = signal([]);                  // 从 config 加载的 app 列表
@@ -33,6 +34,12 @@ export const cachedState = signal(null);
 // searchQuery: 当前 search 框内容 (string). activeFilter: 'all' | 'update' | 'latest' | 'error'.
 export const searchQuery = signal('');
 export const activeFilter = signal('all');
+
+// Phase A (App Categorization): 当前选中的顶部 category tab.
+//   - 'all'    -> 全部 (默认, 不过滤)
+//   - categoryId -> 仅显示该 categoryId 的 app (e.g. 'ai', 'dev')
+// 持久化到 state.json.active_category; 还原由 loadActiveCategory() 完成.
+export const activeCategory = signal('all');
 
 // Phase 27: Mutes. Map<name, {until, reason}>.
 //   - until: 0 = 永远, >0 = epoch ms 到期
@@ -173,6 +180,63 @@ export async function refreshLastOpened() {
     return await api.refreshLastOpened();
   } catch {
     return { ok: false, count: 0 };
+  }
+}
+
+// ─── Phase A: Active category tab ──────────────────────────
+
+/**
+ * 设置 active category tab + 异步写 state.json.
+ * 同步: signal.value 立即更新 (驱动 UI)
+ * 异步: api.saveActiveCategory 走 IPC 写盘; 失败 log warn 不 throw.
+ *
+ * 复用 setMute 模式: dynamic import('./api.js') 避免循环依赖.
+ *
+ * @param {string} id    'all' 或 categoryId (e.g. 'ai', 'dev')
+ */
+export function setActiveCategory(id) {
+  if (typeof id !== 'string' || id.length === 0) {
+    // eslint-disable-next-line no-console
+    console.warn('[store] setActiveCategory: id must be non-empty string, got', id);
+    return;
+  }
+  activeCategory.value = id;
+  // 异步落盘, 失败 log warn, 不影响 UI
+  // eslint-disable-next-line no-undef
+  import('./api.js').then(({ api }) => {
+    if (api && typeof api.saveActiveCategory === 'function') {
+      // api.saveActiveCategory 可能是真实 promise (preload) 也可能是 noop (测试)
+      const p = api.saveActiveCategory(id);
+      if (p && typeof p.then === 'function') {
+        p.then(
+          () => {},
+          (err) => {
+            // eslint-disable-next-line no-console
+            console.warn('[store] saveActiveCategory failed:', err && err.message);
+          }
+        );
+      }
+    }
+  });
+}
+
+/**
+ * Bootstrap 时调用: 从主进程拉一次 active_category, 填到 signal.
+ * 跟 loadMutes / loadLastOpened 风格一致.
+ * @returns {Promise<string>} 当前 active_category id
+ */
+export async function loadActiveCategory() {
+  // eslint-disable-next-line no-undef
+  const { api } = await import('./api.js');
+  try {
+    const r = await api.getActiveCategory();
+    const saved = (r && r.activeCategory) || 'all';
+    if (typeof saved === 'string' && saved.length > 0) {
+      activeCategory.value = saved;
+    }
+    return activeCategory.value;
+  } catch {
+    return 'all';
   }
 }
 

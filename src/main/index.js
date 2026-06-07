@@ -7,6 +7,7 @@
  *   - 启动 worker pool（detect-app / brew-upgrade / brew-update）
  *   - 注册 tray / window / ipc
  *   - 启动时自动迁移老 config → 备份 .bak
+ *   - 启动时加载 category config (Phase A) → setData 注入
  *   - 埋点：写 startup.log + detect.log
  *
  * 被 electron 直接 require；用 CJS。
@@ -24,12 +25,15 @@ const { runCheck } = require('./check-runner');
 const { mainLog, detectLog } = require('./log');
 const { migrateConfigFile, isOldSchemaApp } = require('../config/migrate');
 const { validateConfig, sanitizeConfig } = require('../config/schema');
+const categoryConfig = require('../config/category');
 const stateStore = require('./state-store');
 const lastOpened = require('./last-opened');
 
 const ARCH = process.arch === 'arm64' ? 'arm64' : 'x64';
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
 const CONFIG_PATH = path.join(PROJECT_ROOT, 'config.json');
+const CATEGORIES_JSON_PATH = path.join(PROJECT_ROOT, 'config', 'categories.json');
+const APP_CATEGORY_JSON_PATH = path.join(PROJECT_ROOT, 'config', 'app-category.json');
 
 let isQuitting = false;
 let pool = null;
@@ -74,13 +78,60 @@ function loadConfig() {
 
 // ─── bootstrap ───────────────────────────────────────────
 
+/**
+ * Phase A: 启动时加载 category config. fs 读 config/*.json, 注入到 category module.
+ * 失败时 log warn, 不 throw (跟现有 config 容错一致).
+ */
+function loadCategoryConfig() {
+  let cats = null;
+  let map = null;
+  let usedFallback = false;
+
+  try {
+    const raw = fs.readFileSync(CATEGORIES_JSON_PATH, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
+      cats = parsed.categories;
+    }
+  } catch (err) {
+    mainLog.warn(`[category] categories.json read failed: ${err.message}`);
+  }
+
+  try {
+    const raw = fs.readFileSync(APP_CATEGORY_JSON_PATH, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.mapping && typeof parsed.mapping === 'object') {
+      map = parsed.mapping;
+    }
+  } catch (err) {
+    mainLog.warn(`[category] app-category.json read failed: ${err.message}`);
+  }
+
+  if (cats === null || map === null) {
+    usedFallback = true;
+    categoryConfig.setData({ source: 'fallback' });  // 用 module-level DEFAULT
+    mainLog.warn('[category] using hardcoded defaults (failed to read disk)');
+    return;
+  }
+
+  categoryConfig.setData({ cats, map, source: 'disk' });
+  const status = categoryConfig._LOAD_STATUS();
+  if (status.warnings.length > 0) {
+    mainLog.warn(`[category] load warnings: ${status.warnings.join('; ')}`);
+  }
+  mainLog.info(`[category] loaded ${cats.length} categories, ${Object.keys(map).length} mappings`);
+}
+
 async function bootstrap() {
   const t0 = Date.now();
   // 整进程级别的启动元信息 — 写一行, 便于人 grep
-  mainLog.info(`boot pid=${process.pid} arch=${ARCH} platform=${process.platform}`);
+  mainLog.info(`boot pid=${process.id} arch=${ARCH} platform=${process.platform}`);
 
   // 各阶段计时点 — spec §6 启动埋点格式
   const timings = { lock: 0, config: 0, pool: 0, window: 0, tray: 0, ipc: 0, total: 0 };
+
+  // 0) Phase A: 加载 category config (早期注入, 后面 IPC 通道要用到)
+  loadCategoryConfig();
 
   // 1) 单实例锁
   // 冷启动基准模式 (BENCH=1): 跳过单实例锁, 允许同时跑多个 .app 实例

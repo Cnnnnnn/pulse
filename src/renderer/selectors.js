@@ -8,7 +8,8 @@
  */
 
 import { computed } from '@preact/signals';
-import { results, resultSignals, searchQuery, activeFilter } from './store.js';
+import * as category from '../config/category.js';
+import { results, resultSignals, searchQuery, activeFilter, activeCategory } from './store.js';
 
 // ─── 分组定义 (跟旧 renderer.js 的 SECTION_DEFS 保持一致) ─
 export const SECTION_DEFS = [
@@ -144,16 +145,22 @@ export function matchesFilter(r, tab, q) {
 }
 
 /**
- * computed: filteredResults — 应用 search + tab 过滤的 Map<name, result>.
- * 订阅 results + searchQuery + activeFilter. 任一变化 → 重算.
+ * computed: filteredResults — 应用 search + tab + category 过滤的 Map<name, result>.
+ * 订阅 results + searchQuery + activeFilter + activeCategory. 任一变化 → 重算.
  * Returns Map 跟 results 形状一致, 方便 ResultsView 不用改.
+ *
+ * Phase A: 注入 activeCategory 过滤 — 'all' 不过滤, 其它值只留
+ *          category.getCategory(name) === activeCategory 的 app.
  */
 export const filteredResults = computed(() => {
   const tab = activeFilter.value;
   const q = (searchQuery.value || '').toLowerCase().trim();
+  const cat = activeCategory.value;
   const out = new Map();
   for (const [name, r] of results.value) {
-    if (matchesFilter(r, tab, q)) out.set(name, r);
+    if (!matchesFilter(r, tab, q)) continue;
+    if (cat !== 'all' && category.getCategory(name) !== cat) continue;
+    out.set(name, r);
   }
   return out;
 });

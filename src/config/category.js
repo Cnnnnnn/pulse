@@ -1,18 +1,22 @@
 /**
  * src/config/category.js
  *
- * Phase A1b (App Categorization, Feature A): 静态 map 加载 + 验证 + 纯函数 API.
+ * Phase A1b (App Categorization, Feature A): 静态 map + 验证 + 纯函数 API.
  *
- * 数据源:
- *   - config/categories.json   (8 类元数据)
- *   - config/app-category.json (24 app 1:1 映射)
+ * 数据源 (2 选 1):
+ *   1) 外部注入: setData({ cats, map, source })  ←  推荐路径
+ *      - main 进程: 启动时 fs.readFileSync JSON + 调 setData
+ *      - renderer:   esbuild 静态 import JSON + 调 setData
+ *   2) 硬编码 DEFAULT: 没调 setData 时, getCategory 全部返回 'other',
+ *      getAllCategories 返回 DEFAULT_CATEGORIES (永 display, 不崩).
  *
- * 降级:
- *   - 任意文件读不到 / parse 错 → log error, 用文件底部硬编码 DEFAULT
- *   - 任一 mapping 引用不存在的 categoryId → log warn + 跳过该 entry
- *   - 'other' 分类必须存在 (启动期保证)
+ * 设计原因:
+ *   - 不在 module 顶层 require('fs') / require('path'), 因为 renderer
+ *     (esbuild bundle, 跑在 chromium) 没有 node built-in (plan A1b 风险).
+ *   - main 进程 fs 读 + 注入; renderer esbuild inline JSON + 注入.
  *
  * API (跟 spec §4.1 一致):
+ *   - setData({ cats, map, source })              → 外部注入数据
  *   - getCategory(appName)            → categoryId  ('other' 兜底)
  *   - getAllCategories()              → Category[] (按 order asc)
  *   - getCategoryById(id)             → Category | undefined
@@ -20,20 +24,9 @@
  *   - validateCategoryMap()           → { ok, errors[], warnings[] }
  *   - getCategoryTabsWithCount(map)   → Tab[]  (sort + hide-empty)
  *
- * CommonJS 风格, 跟 src/config/{schema,migrate}.js 保持一致. main 进程 +
- * renderer (esbuild bundle) 都直接 require().
+ * CommonJS 风格, 跟 src/config/{schema,migrate}.js 保持一致.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-// 仓库根: src/config/category.js → ../../config
-const CONFIG_DIR = path.resolve(__dirname, '..', '..', 'config');
-const CATEGORIES_PATH = path.join(CONFIG_DIR, 'categories.json');
-const MAPPING_PATH = path.join(CONFIG_DIR, 'app-category.json');
-
-// 硬编码 fallback, 跟 config/categories.json schema 严格一致 (spec §3.3).
-// 仅 fallback 用; 正常路径从磁盘读.
 const DEFAULT_CATEGORIES = Object.freeze([
   Object.freeze({ id: 'ai',      name: 'AI 工具', icon: '🤖', order: 1 }),
   Object.freeze({ id: 'dev',     name: '开发者',  icon: '🛠', order: 2 }),
@@ -56,11 +49,11 @@ const DEFAULT_MAPPING = Object.freeze({
   alfred: 'system', '1password': 'system', bartender: 'system',
 });
 
-// ── Module-level 缓存 (启动期一次性构建, 不 hot reload) ──
+// ── Module-level 缓存 (setData 时构建, 之后只读) ──
 let APP_TO_CATEGORY = new Map();
 let CATEGORIES_BY_ID = new Map();
-let CATEGORIES_SORTED = [];
-let _LOAD_STATUS = { ok: true, usedFallback: false, errors: [], warnings: [] };
+let CATEGORIES_SORTED = [...DEFAULT_CATEGORIES];
+let _LOAD_STATUS = { ok: true, usedFallback: true, errors: [], warnings: ['module not yet initialized via setData'] };
 
 function _isCategoryShape(c) {
   return (
@@ -77,12 +70,14 @@ function _isCategoryShape(c) {
 }
 
 function _build(cats, map, source) {
+  const status = { ok: true, usedFallback: false, errors: [], warnings: [] };
+
   // 1. Filter + sort categories
   const valid = (Array.isArray(cats) ? cats : []).filter(_isCategoryShape);
   if (!valid.find((c) => c.id === 'other')) {
     // 兜底: 任何 'other' 缺失都强行补
     valid.push({ id: 'other', name: '其他', icon: '📦', order: 99 });
-    _LOAD_STATUS.warnings.push(`[${source}] 'other' category missing, appended fallback`);
+    status.warnings.push(`[${source}] 'other' category missing, appended fallback`);
   }
   const sorted = valid.slice().sort((a, b) => a.order - b.order);
   const byId = new Map(sorted.map((c) => [c.id, c]));
@@ -92,11 +87,11 @@ function _build(cats, map, source) {
   const entries = (map && typeof map === 'object' && !Array.isArray(map)) ? Object.entries(map) : [];
   for (const [rawName, catId] of entries) {
     if (typeof rawName !== 'string' || rawName.length === 0) {
-      _LOAD_STATUS.warnings.push(`[${source}] app-category.json: invalid app name key, skipping`);
+      status.warnings.push(`[${source}] app-category.json: invalid app name key, skipping`);
       continue;
     }
     if (typeof catId !== 'string' || !byId.has(catId)) {
-      _LOAD_STATUS.warnings.push(
+      status.warnings.push(
         `[${source}] app-category.json: app '${rawName}' → unknown categoryId '${catId}', skipping`
       );
       continue;
@@ -107,73 +102,26 @@ function _build(cats, map, source) {
   APP_TO_CATEGORY = appToCat;
   CATEGORIES_BY_ID = byId;
   CATEGORIES_SORTED = sorted;
-}
-
-function _loadFromDisk(catsPath = CATEGORIES_PATH, mapPath = MAPPING_PATH) {
-  const status = { ok: true, usedFallback: false, errors: [], warnings: [] };
-
-  // categories.json
-  let cats = null;
-  try {
-    const raw = fs.readFileSync(catsPath, 'utf-8');
-    const parsed = JSON.parse(raw);
-    if (parsed && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
-      cats = parsed.categories;
-    } else {
-      status.errors.push('categories.json: empty or missing "categories" array');
-    }
-  } catch (e) {
-    status.errors.push(`categories.json: ${e.message}`);
-  }
-
-  // app-category.json
-  let map = null;
-  try {
-    const raw = fs.readFileSync(mapPath, 'utf-8');
-    const parsed = JSON.parse(raw);
-    if (
-      parsed
-      && parsed.mapping
-      && typeof parsed.mapping === 'object'
-      && !Array.isArray(parsed.mapping)
-    ) {
-      map = parsed.mapping;
-    } else {
-      status.errors.push('app-category.json: empty or invalid "mapping" object');
-    }
-  } catch (e) {
-    status.errors.push(`app-category.json: ${e.message}`);
-  }
-
-  if (status.errors.length > 0) {
-    status.usedFallback = true;
-    // 走 default, 但 default 已经 frozen, deep-copy 防止 build 期间被改
-    return {
-      cats: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
-      map: { ...DEFAULT_MAPPING },
-      status,
-    };
-  }
-  return { cats, map, status };
-}
-
-function _init(opts = {}) {
-  const { catsPath, mapPath } = opts;
-  const { cats, map, status } = _loadFromDisk(catsPath, mapPath);
   _LOAD_STATUS = status;
-  _build(cats, map, status.usedFallback ? 'fallback' : 'disk');
+}
+
+/**
+ * 公开 API: 外部注入 category data. main 进程和 renderer 各自调一次.
+ *
+ * @param {object} opts
+ * @param {Array}  opts.cats     Category[]  (id, name, icon, order)
+ * @param {object} opts.map      { appName: categoryId }
+ * @param {string} [opts.source] 'disk' | 'inline' | 'fallback' (仅 log 用)
+ */
+function setData({ cats, map, source } = {}) {
+  _build(cats || DEFAULT_CATEGORIES, map || {}, source || 'inline');
   // 启动期 console 报告 (main + renderer 都会看到)
-  if (status.usedFallback) {
-    // eslint-disable-next-line no-console
-    console.error('[category] failed to load from disk, using hardcoded defaults:', status.errors);
-  } else if (status.warnings.length > 0) {
+  const status = _LOAD_STATUS;
+  if (status.warnings.length > 0) {
     // eslint-disable-next-line no-console
     console.warn('[category] load warnings:', status.warnings);
   }
 }
-
-// 自动 init (require 时一次性). plan A1b 要求.
-_init();
 
 // ── 6 API ──
 
@@ -295,6 +243,7 @@ function getCategoryTabsWithCount(results) {
 }
 
 module.exports = {
+  setData,
   getCategory,
   getAllCategories,
   getCategoryById,
@@ -302,10 +251,7 @@ module.exports = {
   validateCategoryMap,
   getCategoryTabsWithCount,
   // 测试/调试用 (不应在生产代码调)
-  _init,
   _LOAD_STATUS: () => _LOAD_STATUS,
   _DEFAULT_CATEGORIES: DEFAULT_CATEGORIES,
   _DEFAULT_MAPPING: DEFAULT_MAPPING,
-  _CATEGORIES_PATH: CATEGORIES_PATH,
-  _MAPPING_PATH: MAPPING_PATH,
 };
