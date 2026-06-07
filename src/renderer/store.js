@@ -56,6 +56,30 @@ export function isMuted(name, now) {
   return t < m.until;
 }
 
+// Phase 29: Last-opened. Map<name, {ms, source}>.
+//   - ms: 0/负 = 不知道 / 错误, >0 = epoch ms
+//   - source: 'spotlight' | 'atime' | 'unknown'
+// bootstrap 时通过 api.getLastOpened() 填进来. 主进程在 checkUpdates 完成后
+// 推 last-opened-updated 事件, signal 也回写.
+export const lastOpenedApps = signal(new Map());
+
+/**
+ * 纯函数: 给一个 lastMs + now, 算出 tier.
+ * 跟主进程 tier.js 同 logic (前端不调 IPC, 减少主进程来回).
+ * @param {number|null} lastMs
+ * @param {number} [now]
+ * @returns {'hot'|'warm'|'cold'|'unknown'}
+ */
+export function getLocalTier(lastMs, now) {
+  if (lastMs == null || typeof lastMs !== 'number') return 'unknown';
+  const t = (typeof now === 'number') ? now : Date.now();
+  if (t < lastMs) return 'unknown';
+  const ageDays = (t - lastMs) / 86400_000;
+  if (ageDays <= 7) return 'hot';
+  if (ageDays <= 30) return 'warm';
+  return 'cold';
+}
+
 /**
  * Mute 一个 app. 写主进程 + 同步本地 signal. durationSec=0 表示永远.
  * @returns {Promise<{ok: boolean, reason?: string}>}
@@ -114,6 +138,41 @@ export async function loadMutes() {
   } catch {
     mutedApps.value = new Map();
     return {};
+  }
+}
+
+/**
+ * Bootstrap 时调用: 从主进程拉一次 last-opened, 填到 signal.
+ * @returns {Promise<object>} 当前 last_opened map
+ */
+export async function loadLastOpened() {
+  // eslint-disable-next-line no-undef
+  const { api } = await import('./api.js');
+  try {
+    const r = await api.getLastOpened();
+    const lo = (r && r.lastOpened) || {};
+    const next = new Map();
+    for (const [k, v] of Object.entries(lo)) next.set(k, v);
+    lastOpenedApps.value = next;
+    return lo;
+  } catch {
+    lastOpenedApps.value = new Map();
+    return {};
+  }
+}
+
+/**
+ * 触发主进程 refresh-last-opened (fire-and-forget).
+ * 主进程完成后会推 last-opened-updated 事件, store 监听自动回写 signal.
+ * @returns {Promise<{ok: boolean, count: number}>}
+ */
+export async function refreshLastOpened() {
+  // eslint-disable-next-line no-undef
+  const { api } = await import('./api.js');
+  try {
+    return await api.refreshLastOpened();
+  } catch {
+    return { ok: false, count: 0 };
   }
 }
 

@@ -137,3 +137,62 @@ describe('AppInfo mute badge (Phase 27)', () => {
     expect(container.querySelector('.app-info').classList.contains('muted')).toBe(true);
   });
 });
+
+// ─── Phase 29: Last-Opened sub-line ─────────────────────────────
+
+describe('AppInfo last-opened sub-line (Phase 29)', () => {
+  it('lastOpened=null → 不渲染 sub-line', () => {
+    const { container } = render(
+      <AppInfo result={makeResult({ changelog: '' })} lastOpened={null} />
+    );
+    expect(container.querySelector('.app-last-opened')).toBeNull();
+  });
+
+  it('lastOpened 缺省 (没传 prop) → 不渲染 sub-line', () => {
+    const { container } = render(
+      <AppInfo result={makeResult({ changelog: '' })} />
+    );
+    expect(container.querySelector('.app-last-opened')).toBeNull();
+  });
+
+  it('source=spotlight + 3 天前 → "上次打开 · 3 天前"', () => {
+    const threeDaysAgo = Date.now() - 3 * 86400 * 1000;
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: threeDaysAgo, source: 'spotlight' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el).not.toBeNull();
+    expect(el.textContent).toContain('上次打开');
+    expect(el.textContent).toContain('3 天前');
+    expect(el.textContent).not.toContain('估算');
+  });
+
+  it('source=atime → "上次打开 · 估算 · N 天前" (标 不靠谱)', () => {
+    const longAgo = Date.now() - 5 * 86400 * 1000;
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: longAgo, source: 'atime' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el).not.toBeNull();
+    expect(el.textContent).toContain('估算');
+    expect(el.getAttribute('title')).toContain('atime');
+  });
+
+  it('ms=null → "未使用"', () => {
+    const { container } = render(
+      <AppInfo
+        result={makeResult({ changelog: '' })}
+        lastOpened={{ ms: null, source: 'unknown' }}
+      />
+    );
+    const el = container.querySelector('.app-last-opened');
+    expect(el).not.toBeNull();
+    expect(el.textContent).toBe('未使用');
+  });
+});

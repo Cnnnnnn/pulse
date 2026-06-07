@@ -2,6 +2,7 @@
  * src/renderer/components/AppInfo.jsx
  *
  * App 名字 + 副标题 (source/note 派生) + Phase 27 mute badge.
+ * + Phase 29 上次打开时间 sub-line.
  */
 
 const SOURCE_LABELS = {
@@ -85,7 +86,7 @@ function muteUntilLabel(untilMs) {
   return `${d.getMonth() + 1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function AppInfo({ result, muted = false, muteUntil = 0 }) {
+export function AppInfo({ result, muted = false, muteUntil = 0, lastOpened = null }) {
   const source = sourceLabel(result.source);
   const note = result.note || '';
   const ts = result.ts;
@@ -113,6 +114,28 @@ export function AppInfo({ result, muted = false, muteUntil = 0 }) {
   // Phase 26: changelog inline preview (点 ℹ️ 看完整 panel)
   const preview = changelogPreview(result.changelog);
 
+  // Phase 29: last-opened sub-line. 三种态:
+  //   - { ms, source: 'spotlight' } → "上次打开 · 2 天前"
+  //   - { ms, source: 'atime' }     → "上次打开 · 估算 · 5 天前"  (不靠谱)
+  //   - { ms: null } 或 没数据        → "未使用"
+  //   - 没 lastOpened 参数 (初次 render) → 不显示
+  let lastOpenedLine = null;
+  if (lastOpened) {
+    if (lastOpened.ms == null) {
+      lastOpenedLine = <div class="app-last-opened">未使用</div>;
+    } else if (lastOpened.source === 'atime') {
+      lastOpenedLine = (
+        <div class="app-last-opened" title="atime 是 fallback, 不是真实启动时间">
+          上次打开 · 估算 · {relativeTime(lastOpened.ms)}
+        </div>
+      );
+    } else {
+      lastOpenedLine = (
+        <div class="app-last-opened">上次打开 · {relativeTime(lastOpened.ms)}</div>
+      );
+    }
+  }
+
   // Phase 27: mute badge. muted=true → 显示 "🔇 静音至 6/14" 或 "🔇 静音 (永远)"
   // muted=false → 不显示. 通过 .muted CSS class 让 AppInfo 整体灰显 (opacity).
   const muteBadge = muted ? (
@@ -129,6 +152,7 @@ export function AppInfo({ result, muted = false, muteUntil = 0 }) {
       </div>
       <div class={`app-subtitle${stale ? ' stale' : ''}${errMsg ? ' has-error' : ''}`}>{subtitle}</div>
       {preview && <div class="app-changelog-preview" title={result.changelog}>{preview}</div>}
+      {lastOpenedLine}
     </div>
   );
 }

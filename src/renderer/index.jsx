@@ -21,7 +21,7 @@
 
 import { render } from 'preact';
 import { App } from './App.jsx';
-import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes } from './store.js';
+import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes, loadLastOpened, lastOpenedApps } from './store.js';
 import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
@@ -49,10 +49,19 @@ async function bootstrap() {
     }
   } catch { /* 缓存加载失败不阻塞, 仍走正常 check 路径 */ }
 
-  // 1.6) Phase 27: 加载 mutes (per-app 静音), 让右键菜单 / badge 立即知道哪些是 muted
+  // 1.6) Phase 27 + 29: 加载 mutes + last-opened, 让右键菜单 / badge 立即知道
   try {
-    await loadMutes();
+    await Promise.allSettled([loadMutes(), loadLastOpened()]);
   } catch { /* noop, 默认空 map */ }
+
+  // 1.7) Phase 29: 订阅主进程 last-opened-updated 事件, 主进程在每次 checkUpdates
+  // 完成后会推过来. UI 自动跟最新 (AppInfo / MuteMenu 重渲染)
+  api.onLastOpenedUpdated((data) => {
+    if (!data || !data.lastOpened) return;
+    const next = new Map();
+    for (const [k, v] of Object.entries(data.lastOpened)) next.set(k, v);
+    lastOpenedApps.value = next;
+  });
 
   // 2) 立即 render
   const mount = document.getElementById('app') || document.body;

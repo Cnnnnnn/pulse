@@ -18,7 +18,7 @@
  */
 
 import { useState, useCallback } from 'preact/hooks';
-import { getResultSignal, isMuted, mutedApps } from '../store.js';
+import { getResultSignal, isMuted, mutedApps, lastOpenedApps } from '../store.js';
 import { api } from '../api.js';
 import { AppAvatar } from './AppAvatar.jsx';
 import { AppInfo } from './AppInfo.jsx';
@@ -81,6 +81,9 @@ export function AppRow({ name }) {
   const muteEntry = mutedApps.value.get(name);
   const muted = isMuted(name);
 
+  // Phase 29: last-opened entry. 读 signal, 变化时本组件重渲染.
+  const lastOpenedEntry = lastOpenedApps.value.get(name);
+
   function onContextMenu(e) {
     // 只在 row 本体触发; 按钮/upgrade/menu 内部不抢
     if (e.target.closest('.btn-upgrade-row')
@@ -108,7 +111,12 @@ export function AppRow({ name }) {
       onContextMenu={onContextMenu}
     >
       <AppAvatar bundle={bundle} name={result.name} />
-      <AppInfo result={result} muted={muted} muteUntil={muteEntry ? muteEntry.until : 0} />
+      <AppInfo
+        result={result}
+        muted={muted}
+        muteUntil={muteEntry ? muteEntry.until : 0}
+        lastOpened={lastOpenedEntry || null}
+      />
       <AppVersions result={result} />
       <AppAction
         result={result}
@@ -125,6 +133,7 @@ export function AppRow({ name }) {
           appName={name}
           isMuted={muted}
           muteUntil={muteEntry ? muteEntry.until : 0}
+          lastOpened={lastOpenedEntry}
           onClose={() => setMuteMenuAt(null)}
         />
       )}

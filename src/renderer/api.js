@@ -45,6 +45,10 @@ export function createApi(overrides = {}) {
     getMutes:    pick(overrides, 'getMutes'),
     setMute:     pick(overrides, 'setMute'),
     clearMute:   pick(overrides, 'clearMute'),
+    // Phase 29: Last-opened (per-app 最近打开)
+    getLastOpened:        pick(overrides, 'getLastOpened'),
+    refreshLastOpened:    pick(overrides, 'refreshLastOpened'),
+    onLastOpenedUpdated:  pick(overrides, 'onLastOpenedUpdated'),
   };
 }
 

@@ -304,6 +304,15 @@ body {
   max-width: 100%;
 }
 
+/* Phase 29: last-opened sub-line. 副标题下, 浅色, 不抢眼 */
+.app-last-opened {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+  margin-top: 3px;
+  line-height: 1.35;
+  font-style: italic;
+}
+
 .app-versions {
   display: flex;
   align-items: center;
@@ -1244,5 +1253,20 @@ body {
   font-size: 14px;
   width: 16px;
   text-align: center;
+}
+
+/* Phase 29: 推荐项 (按 tier 算出来的合理静音时长) — 浅橙红 tint + 推荐标签 */
+.mute-menu-item--recommended {
+  background: rgba(232, 93, 58, 0.08);
+}
+.mute-menu-item--recommended:hover:not(:disabled) {
+  background: rgba(232, 93, 58, 0.15);
+}
+.mute-menu-recommended-tag {
+  margin-left: auto;
+  font-size: 10px;
+  color: #e85d3a;
+  letter-spacing: 0.3px;
+  font-weight: 600;
 }
 
