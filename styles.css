@@ -1452,3 +1452,119 @@ body {
   align-items: center;
   gap: 6px;
 }
+
+/* ── Phase B6d: AI Sessions Settings (modal + ⚙️ button) ── */
+
+/* ⚙️按钮 (Header右侧,BulkUpgradeButton后) */
+.btn-icon {
+ padding:6px8px;
+ min-width:30px;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+}
+.btn-icon svg { display: block; }
+.btn-icon.is-active {
+ color: var(--accent-blue, #007aff);
+ background: rgba(0,122,255,0.08);
+}
+.btn-icon.is-active:hover {
+ background: rgba(0,122,255,0.15);
+}
+
+/* AISettingsModal复用 modal-backdrop + modal-card (跟 BulkUpgradeModal 一致) */
+.ai-settings-modal {
+ width:480px;
+ max-width:92vw;
+}
+.ai-settings-modal .modal-body {
+ padding:16px;
+}
+.ai-settings-row {
+ display: flex;
+ flex-direction: column;
+ gap:4px;
+ margin-bottom:12px;
+}
+.ai-settings-label {
+ font-size:11px;
+ font-weight:600;
+ color: var(--text-secondary, #666);
+ text-transform: uppercase;
+ letter-spacing:0.5px;
+}
+.ai-settings-hint {
+ font-size:11px;
+ color: var(--text-tertiary, #999);
+ line-height:1.4;
+}
+.ai-settings-toggle {
+ display: flex;
+ align-items: center;
+ gap:8px;
+ font-size:13px;
+ font-weight:500;
+ color: var(--text-primary, #333);
+ cursor: pointer;
+}
+.ai-settings-toggle input {
+ margin:0;
+ cursor: pointer;
+}
+.ai-settings-modal select,
+.ai-settings-modal input[type="text"],
+.ai-settings-modal input[type="password"] {
+ padding:6px8px;
+ border:1px solid var(--bg-secondary, #e5e5ea);
+ border-radius:4px;
+ font-size:13px;
+ background: var(--bg-primary, #fff);
+ color: var(--text-primary, #333);
+}
+.ai-settings-modal select:disabled,
+.ai-settings-modal input:disabled {
+ opacity:0.5;
+ cursor: not-allowed;
+}
+.ai-settings-modal select:focus,
+.ai-settings-modal input:focus {
+ outline:2px solid var(--accent-blue, #007aff);
+ outline-offset: -1px;
+}
+.ai-settings-key-controls {
+ display: flex;
+ gap:6px;
+ align-items: center;
+}
+.ai-settings-key-controls input[type="password"] {
+ flex:1;
+ font-family: var(--font-mono, monospace);
+ letter-spacing:0.5px;
+}
+.ai-settings-test-row {
+ flex-direction: row;
+ align-items: center;
+ gap:12px;
+}
+.ai-settings-test-result {
+ font-size:12px;
+ font-family: var(--font-mono, monospace);
+}
+.ai-settings-test-result.ok {
+ color: var(--accent-green, #34c759);
+}
+.ai-settings-test-result.fail {
+ color: var(--accent-red, #ff3b30);
+}
+.ai-settings-save-status {
+ font-size:11px;
+ padding:4px8px;
+ border-radius:4px;
+ background: var(--bg-hover, rgba(0,0,0,0.04));
+ color: var(--text-secondary, #666);
+ font-family: var(--font-mono, monospace);
+}
+.ai-settings-save-status.error {
+ background: rgba(255,59,48,0.1);
+ color: var(--accent-red, #ff3b30);
+}
