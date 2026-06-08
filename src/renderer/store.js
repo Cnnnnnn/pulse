@@ -425,5 +425,182 @@ export function applyCachedResults(cached) {
 }
 
 // ─── 选择器 (selectors.js 也可访问 resultSignals) ───────
-// 把 resultSignals 重新导出供 selectors.js 用
+// 把 resultSignals重新导出供 selectors.js 用
 export { resultSignals };
+
+// ─── Phase B6c: AI Sessions Settings store ─────────────────────
+// renderer-side store for AISettingsModal.走 IPC跟主进程 state.json / safeStorage同步.
+
+//完整 ai_sessions_config (跟 state.json ai_sessions_config 同 shape):
+// { enabled, provider, ollama: { host, model }, cloud: { providerId, model, baseUrl? } }
+export const aiSessionsConfig = signal(null);
+
+// 每个 provider 的 api key状态: { [providerId]: { hasKey: boolean, available: boolean } }
+export const aiKeyStatus = signal({});
+
+// modal open状态 —Settings按钮 toggle, AISettingsModal 受 open.value 控制 mount
+export const aiSettingsOpen = signal(false);
+
+// healthcheck 中 (用户在 modal 里点 "测试连接")
+export const aiHealthcheckBusy = signal(false);
+// 最新 healthcheck 结果: { ok, error?, latencyMs?, providerId } 或 null
+export const aiHealthcheckResult = signal(null);
+
+// ─── Setters (测试 + IPC事件回写) ──────────────────────────
+export function setAISessionsConfig(cfg) {
+ aiSessionsConfig.value = cfg && typeof cfg === 'object' ? cfg : null;
+}
+export function setAIKeyStatus(providerId, status) {
+ const next = { ...aiKeyStatus.value };
+ if (status === null || status === undefined) {
+ delete next[providerId];
+ } else {
+ next[providerId] = status;
+ }
+ aiKeyStatus.value = next;
+}
+export function setAIKeyStatuses(map) {
+ aiKeyStatus.value = (map && typeof map === 'object') ? { ...map } : {};
+}
+export function openAISettings(open = true) {
+ aiSettingsOpen.value = Boolean(open);
+}
+export function setAIHealthcheckBusy(busy) {
+ aiHealthcheckBusy.value = Boolean(busy);
+}
+export function setAIHealthcheckResult(r) {
+ aiHealthcheckResult.value = r && typeof r === 'object' ? r : null;
+}
+
+// ─── Actions (走 IPC) ──────────────────────────────────────
+/**
+ * Bootstrap 时拉 ai_sessions_config. 老/没字段 → null.
+ * @returns {Promise<object|null>}
+ */
+export async function loadAISessionsConfig() {
+ const { api } = await import('./api.js');
+ try {
+ const r = await api.getAiSessionsConfig();
+ setAISessionsConfig(r && r.config ? r.config : null);
+ return aiSessionsConfig.value;
+ } catch {
+ return null;
+ }
+}
+
+/**
+ *探测所有4 个 cloud provider 的 key状态 (Modal打开时一次拉).
+ * @returns {Promise<object>} { [providerId]: { hasKey, available } }
+ */
+export async function probeAIKeyStatuses() {
+ const { api } = await import('./api.js');
+ const providers = ['openai', 'anthropic', 'deepseek', 'minimax'];
+ const next = {};
+ await Promise.all(providers.map(async (id) => {
+ try {
+ const r = await api.hasAiKey(id);
+ if (r && r.ok) next[id] = { hasKey: Boolean(r.hasKey), available: Boolean(r.available) };
+ else next[id] = { hasKey: false, available: false };
+ } catch {
+ next[id] = { hasKey: false, available: false };
+ }
+ }));
+ setAIKeyStatuses(next);
+ return next;
+}
+
+/**
+ *存 API key 到 safeStorage.成功 → 更新本地 keyStatus cache.
+ * @param {string} providerId
+ * @param {string} apiKey
+ * @returns {Promise<{ok: boolean, reason?: string}>}
+ */
+export async function setAIKey(providerId, apiKey) {
+ const { api } = await import('./api.js');
+ try {
+ const r = await api.setAiKey(providerId, apiKey);
+ if (r && r.ok) {
+ setAIKeyStatus(providerId, { hasKey: true, available: true });
+ return { ok: true };
+ }
+ return { ok: false, reason: r && r.reason };
+ } catch (err) {
+ return { ok: false, reason: 'threw', error: err && err.message };
+ }
+}
+
+/**
+ * 清 API key.成功 → 更新本地 cache.
+ * @param {string} providerId
+ * @returns {Promise<{ok: boolean}>}
+ */
+export async function clearAIKey(providerId) {
+ const { api } = await import('./api.js');
+ try {
+ const r = await api.clearAiKey(providerId);
+ if (r && r.ok) {
+ setAIKeyStatus(providerId, { hasKey: false, available: true });
+ return { ok: true };
+ }
+ return { ok: false };
+ } catch {
+ return { ok: false };
+ }
+}
+
+/**
+ * 测试当前/指定 provider 健康.走 IPC aiHealthcheck.
+ * @param {object} opts { providerId, model?, apiKey?, baseUrl? }
+ * @returns {Promise<{ok, error?, latencyMs?, status?}>}
+ */
+export async function runAIHealthcheck(opts) {
+ const { api } = await import('./api.js');
+ setAIHealthcheckBusy(true);
+ try {
+ const r = await api.aiHealthcheck(opts);
+ setAIHealthcheckResult(r || { ok: false, error: 'no_response' });
+ return r || { ok: false };
+ } catch (err) {
+ const out = { ok: false, error: (err && err.message) || 'unknown' };
+ setAIHealthcheckResult(out);
+ return out;
+ } finally {
+ setAIHealthcheckBusy(false);
+ }
+}
+
+/**
+ * 保存完整 ai_sessions_config 到 state.json (走 IPC).
+ *成功 → 更新本地 signal + main也会推 ai-sessions-config-updated事件 (subscribeSync 处理).
+ * @param {object} cfg
+ * @returns {Promise<{ok, config?, reason?}>}
+ */
+export async function saveAISessionsConfig(cfg) {
+ const { api } = await import('./api.js');
+ try {
+ const r = await api.saveAiSessionsConfig(cfg);
+ if (r && r.ok) {
+ setAISessionsConfig(r.config || cfg);
+ return { ok: true, config: r.config };
+ }
+ return { ok: false, reason: r && r.reason };
+ } catch (err) {
+ return { ok: false, reason: 'threw', error: err && err.message };
+ }
+}
+
+/**
+ *订阅 main推的 ai-sessions-config-updated事件 (其它窗口/手工 save 时同步).
+ * bootstrap 时调一次.
+ */
+export function subscribeAISessionsConfigUpdates() {
+ import('./api.js').then(({ api }) => {
+ if (api && typeof api.onAiSessionsConfigUpdated === 'function') {
+ api.onAiSessionsConfigUpdated((data) => {
+ if (data && data.config !== undefined) {
+ setAISessionsConfig(data.config || null);
+ }
+ });
+ }
+ });
+}
