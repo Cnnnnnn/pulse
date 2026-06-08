@@ -24,6 +24,7 @@ import { ErrorBanner } from './components/ErrorBanner.jsx';
 import { WeeklyBanner } from './components/WeeklyBanner.jsx';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { AIDigestBanner } from './components/AIDigestBanner.jsx';
+import { AISettingsModal } from './components/AISettingsModal.jsx';
 
 export function App({ onCheck }) {
   const status = checkStatus.value;
@@ -78,8 +79,10 @@ export function App({ onCheck }) {
           <button class="btn btn-ghost btn-sm" onClick={onOpenConfig}>打开配置</button>
         </div>
       </footer>
-      <BulkUpgradeModal />
-    </div>
+ <BulkUpgradeModal />
+ {/* Phase B6c.4: AI Settings modal —受 aiSettingsOpen signal 控制 mount */}
+ <AISettingsModal />
+ </div>
   );
 }
 
