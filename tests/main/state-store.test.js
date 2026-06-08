@@ -30,6 +30,12 @@ import {
   saveLastOpened,
   loadActiveCategory,
   saveActiveCategory,
+  cleanExpiredDigests,
+  loadDailyDigests,
+  saveDailyDigest,
+  loadAISessionsConfig,
+  saveAISessionsConfig,
+  DAILY_DIGESTS_GC_DAYS,
 } from '../../src/main/state-store.js';
 
 let tmpDir;
@@ -485,5 +491,131 @@ describe('loadActiveCategory / saveActiveCategory (Phase A)', () => {
     expect(loadActiveCategory(statePath)).toBe('ai');
     clearMute('Kimi', statePath);
     expect(loadActiveCategory(statePath)).toBe('ai');
+  });
+});
+
+// ─── loadDailyDigests / saveDailyDigest (Phase B) ───
+
+describe('loadDailyDigests / saveDailyDigest (Phase B)', () => {
+  it('文件不存在 → {}', () => {
+    expect(loadDailyDigests(statePath)).toEqual({});
+  });
+
+  it('老 state.json (无 daily_digests 字段) → {} (向后兼容)', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1, apps: {}, mutes: {}, last_opened: {}, active_category: 'all',
+    }), 'utf-8');
+    expect(loadDailyDigests(statePath)).toEqual({});
+  });
+
+  it('daily_digests 是数组 (损坏) → {}', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1, apps: {}, mutes: {}, daily_digests: ['bad'],
+    }), 'utf-8');
+    expect(loadDailyDigests(statePath)).toEqual({});
+  });
+
+  it('saveDailyDigest 写入 + loadDailyDigests 回读 (round-trip)', () => {
+    const digest = {
+      dateKey: '2026-06-07',
+      generatedAt: Date.now(),
+      provider: 'ollama',
+      model: 'qwen3.5:9b',
+      sessionCount: 3,
+      summary: '昨天主要工作:\n- 修 Pulse tray icon',
+      sessionIds: ['a', 'b', 'c'],
+    };
+    saveDailyDigest(digest, statePath);
+    const out = loadDailyDigests(statePath);
+    expect(out['2026-06-07']).toMatchObject({
+      dateKey: '2026-06-07',
+      provider: 'ollama',
+      model: 'qwen3.5:9b',
+      sessionCount: 3,
+      summary: digest.summary,
+    });
+    expect(out['2026-06-07'].sessionIds).toEqual(['a', 'b', 'c']);
+  });
+
+  it('saveDailyDigest 保留 apps / mutes / last_opened / active_category', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1,
+      apps: { Cursor: { name: 'Cursor' } },
+      mutes: { Cursor: { until: 0, reason: 'manual' } },
+      last_opened: { Cursor: { ms: 999, source: 'spotlight' } },
+      active_category: 'dev',
+    }), 'utf-8');
+    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.apps.Cursor.name).toBe('Cursor');
+    expect(raw.mutes.Cursor.until).toBe(0);
+    expect(raw.last_opened.Cursor.ms).toBe(999);
+    expect(raw.active_category).toBe('dev');
+  });
+
+  it('saveDailyDigest 校验: dateKey 必须有', () => {
+    expect(() => saveDailyDigest({}, statePath)).toThrow(TypeError);
+    expect(() => saveDailyDigest({ dateKey: '' }, statePath)).toThrow(TypeError);
+  });
+
+  it('cleanExpiredDigests: 30 天外 GC', () => {
+    const NOW = 1750000000000;
+    const old = {
+      '2026-04-01': { dateKey: '2026-04-01', generatedAt: NOW - 60 * 86400_000 },
+      '2026-05-15': { dateKey: '2026-05-15', generatedAt: NOW - 25 * 86400_000 },  // 25d → 留
+      '2026-06-01': { dateKey: '2026-06-01', generatedAt: NOW - 7 * 86400_000 },
+      'no-ts':      { dateKey: 'no-ts' },  // 无 generatedAt → 删 (cutoff 命中)
+    };
+    const out = cleanExpiredDigests(old, NOW);
+    expect(out['2026-04-01']).toBeUndefined();
+    expect(out['2026-05-15']).toBeDefined();
+    expect(out['2026-06-01']).toBeDefined();
+    expect(out['no-ts']).toBeUndefined();
+  });
+
+  it('saveAll / setMute / markNotified 写盘时保留 daily_digests + ai_sessions_config', () => {
+    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
+    saveAISessionsConfig({ enabled: true, provider: 'ollama', model: 'qwen3.5:9b' }, statePath);
+    setMute('Kimi', 0, 'manual', statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.daily_digests['2026-06-07']).toBeDefined();
+    expect(raw.ai_sessions_config.enabled).toBe(true);
+  });
+});
+
+// ─── loadAISessionsConfig / saveAISessionsConfig (Phase B) ───
+
+describe('loadAISessionsConfig / saveAISessionsConfig (Phase B)', () => {
+  it('文件不存在 → null', () => {
+    expect(loadAISessionsConfig(statePath)).toBeNull();
+  });
+
+  it('老 state.json (无 ai_sessions_config 字段) → null', () => {
+    fs.writeFileSync(statePath, JSON.stringify({ v: 1, apps: {}, mutes: {} }), 'utf-8');
+    expect(loadAISessionsConfig(statePath)).toBeNull();
+  });
+
+  it('saveAISessionsConfig 写入 + load 回读 (round-trip)', () => {
+    const cfg = { enabled: true, provider: 'ollama', model: 'qwen3.5:9b', ollama: { host: 'http://localhost:11434' } };
+    saveAISessionsConfig(cfg, statePath);
+    const out = loadAISessionsConfig(statePath);
+    expect(out).toMatchObject(cfg);
+  });
+
+  it('saveAISessionsConfig 保留 daily_digests 字段', () => {
+    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
+    saveAISessionsConfig({ enabled: true, provider: 'ollama' }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.daily_digests['2026-06-07']).toBeDefined();
+    expect(raw.ai_sessions_config.enabled).toBe(true);
+  });
+
+  it('saveAISessionsConfig 校验: cfg 必须是 object 或 null', () => {
+    expect(() => saveAISessionsConfig(123, statePath)).toThrow(TypeError);
+    expect(() => saveAISessionsConfig('str', statePath)).toThrow(TypeError);
+  });
+
+  it('DAILY_DIGESTS_GC_DAYS 常量 = 30', () => {
+    expect(DAILY_DIGESTS_GC_DAYS).toBe(30);
   });
 });

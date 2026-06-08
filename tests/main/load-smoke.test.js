@@ -68,3 +68,29 @@ describe('config module load smoke (Phase A1b regression)', () => {
     expect(err).toBeNull();
   });
 });
+
+describe('ai-sessions module load smoke (Phase B1a regression)', () => {
+  // Phase B1a: src/ai-sessions/{detector,summarizer,digest,storage,prompts,index}.js
+  // 任何 syntax error / 缺依赖 都会被 vitest 抓到.
+  const EXPECTED = [
+    'detector.js',
+    'summarizer.js',
+    'digest.js',
+    'storage.js',
+    'prompts.js',
+    'index.js',
+  ];
+  const AI_SESSIONS_DIR = new URL('../../src/ai-sessions/', import.meta.url).pathname;
+
+  for (const f of EXPECTED) {
+    it(`src/ai-sessions/${f} can be required without error`, () => {
+      let err = null;
+      try {
+        require(join(AI_SESSIONS_DIR, f));
+      } catch (e) {
+        err = e;
+      }
+      expect(err).toBeNull();
+    });
+  }
+});

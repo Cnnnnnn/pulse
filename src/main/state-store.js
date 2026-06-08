@@ -136,7 +136,11 @@ function saveAll(results, statePath = defaultPath()) {
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
+    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
+  if (existing.ai_sessions_config) {
+    next.ai_sessions_config = existing.ai_sessions_config;
+  }
   writeAtomic(statePath, next);
   return next;
 }
@@ -162,7 +166,11 @@ function markNotified(names, statePath = defaultPath()) {
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
+    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
+  if (existing.ai_sessions_config) {
+    next.ai_sessions_config = existing.ai_sessions_config;
+  }
   writeAtomic(statePath, next);
   return next;
 }
@@ -249,7 +257,11 @@ function setMute(name, untilMs, reason, statePath = defaultPath()) {
     mutes,
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
+    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
+  if (existing.ai_sessions_config) {
+    next.ai_sessions_config = existing.ai_sessions_config;
+  }
   writeAtomic(statePath, next);
   return next;
 }
@@ -277,7 +289,11 @@ function clearMute(name, statePath = defaultPath()) {
     mutes,
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
+    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
+  if (existing.ai_sessions_config) {
+    next.ai_sessions_config = existing.ai_sessions_config;
+  }
   writeAtomic(statePath, next);
   return next;
 }
@@ -315,7 +331,127 @@ function saveLastOpened(map, statePath = defaultPath()) {
     apps: existing.apps || {},
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: map,
+    active_category: existing.active_category || 'all',
+    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
+  if (existing.ai_sessions_config) {
+    next.ai_sessions_config = existing.ai_sessions_config;
+  }
+  writeAtomic(statePath, next);
+  return next;
+}
+
+// ─── Phase B (AI Sessions Daily Digest) ────────────────────────
+// 30 天外 digests 自动 GC, 跟 mutes / last_opened 同款处理.
+// 字段: daily_digests = { [dateKey]: Digest }
+//   Digest: { dateKey, generatedAt, provider, model, sessionCount, summary, sessionIds }
+//   ai_sessions_config = { enabled, provider, model, ollama: {host, model}, cloud: {providerId, model} }
+
+const DAILY_DIGESTS_GC_DAYS = 30;
+
+/**
+ * GC: 删 30 天外的 digests. 写盘前调 (跟 cleanExpiredMutes 风格一致).
+ * 30 是默认, 后续可让 config 覆盖 (spec §3.1).
+ * @param {object} digests  { [dateKey]: Digest }
+ * @param {number} now      epoch ms
+ * @returns {object} 新的 digests (新引用, 不 mutate 原对象)
+ */
+function cleanExpiredDigests(digests, now) {
+  if (!digests || typeof digests !== 'object') return {};
+  const out = {};
+  const cutoffMs = now - DAILY_DIGESTS_GC_DAYS * 86400_000;
+  for (const [dateKey, d] of Object.entries(digests)) {
+    if (!d || typeof d !== 'object' || typeof d.dateKey !== 'string') continue;
+    // generatedAt 不存在或早于 cutoff → 删
+    if (typeof d.generatedAt !== 'number' || d.generatedAt < cutoffMs) {
+      // spec 写 "30 天外" — 但 daily_digests 通常是昨天/前天/... 极少有 generatedAt
+      // 来自很老的时间 (例如手动 import 旧数据). cutoff 命中就 GC.
+      continue;
+    }
+    out[dateKey] = d;
+  }
+  return out;
+}
+
+/**
+ * 读 digests. 老 state.json (无 daily_digests 字段) → {} (兼容).
+ * @param {string} [statePath]
+ * @returns {object} { [dateKey]: Digest }
+ */
+function loadDailyDigests(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return {};
+  if (!s.daily_digests || typeof s.daily_digests !== 'object' || Array.isArray(s.daily_digests)) return {};
+  return cleanExpiredDigests(s.daily_digests, Date.now());
+}
+
+/**
+ * 写一条 digest. atomic write, 保留 apps / mutes / last_opened / active_category.
+ * @param {object} digest  Digest
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveDailyDigest(digest, statePath = defaultPath()) {
+  if (!digest || typeof digest !== 'object' || typeof digest.dateKey !== 'string') {
+    throw new TypeError('saveDailyDigest: digest must have non-empty dateKey');
+  }
+  if (digest.dateKey.length === 0) {
+    throw new TypeError('saveDailyDigest: digest.dateKey must be non-empty');
+  }
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const now = Date.now();
+  const digests = cleanExpiredDigests(existing.daily_digests || {}, now);
+  digests[digest.dateKey] = { ...digest, generatedAt: typeof digest.generatedAt === 'number' ? digest.generatedAt : now };
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
+    daily_digests: digests,
+  };
+  writeAtomic(statePath, next);
+  return next;
+}
+
+/**
+ * 读 AI sessions config. 老 state.json (无 ai_sessions_config 字段) → null (缺省).
+ * @param {string} [statePath]
+ * @returns {object|null}
+ */
+function loadAISessionsConfig(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s || !s.ai_sessions_config || typeof s.ai_sessions_config !== 'object') return null;
+  return { ...s.ai_sessions_config };
+}
+
+/**
+ * 写 AI sessions config. atomic write, 保留 apps / mutes / last_opened / active_category / daily_digests.
+ * @param {object} cfg
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveAISessionsConfig(cfg, statePath = defaultPath()) {
+  if (cfg != null && typeof cfg !== 'object') {
+    throw new TypeError('saveAISessionsConfig: cfg must be object or null');
+  }
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const now = Date.now();
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
+    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
+  };
+  if (cfg == null) {
+    // 显式清除字段
+  } else {
+    next.ai_sessions_config = { ...cfg };
+  }
   writeAtomic(statePath, next);
   return next;
 }
@@ -398,4 +534,11 @@ module.exports = {
   // Phase A (App Categorization)
   loadActiveCategory,
   saveActiveCategory,
+  // Phase B (AI Sessions Daily Digest)
+  DAILY_DIGESTS_GC_DAYS,
+  cleanExpiredDigests,
+  loadDailyDigests,
+  saveDailyDigest,
+  loadAISessionsConfig,
+  saveAISessionsConfig,
 };
