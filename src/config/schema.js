@@ -190,7 +190,37 @@ function sanitizeConfig(input) {
     check_interval_hours: checkIntervalHours,
   };
 
-  return { check_on_launch: col, apps: cleanApps, notifications };
+  return { check_on_launch: col, apps: cleanApps, notifications, aiSessions: _sanitizeAISessions(input.aiSessions) };
+}
+
+/**
+ * Phase B3c: AI sessions 配置 sanitize. 老 config (无 aiSessions 字段) 走默认:
+ *   enabled=false, provider='ollama', ollama host='http://localhost:11434',
+ *   ollama model='qwen3.5:9b', cloud=null.
+ *
+ * spec §3.2 / §4.4:
+ *   {
+ *     enabled: bool,
+ *     provider: 'ollama' | 'openai' | 'anthropic' | 'deepseek' | 'minimax',
+ *     ollama: { host: string, model: string },
+ *     cloud: { providerId, model, apiKeyRef? }  // B6 才用
+ *   }
+ */
+function _sanitizeAISessions(raw) {
+  const o = isPlainObject(raw) ? raw : {};
+  const enabled = o.enabled === true;  // 缺省 false (opt-in, 不影响老用户)
+  const provider = isNonEmptyString(o.provider) ? o.provider : 'ollama';
+  const ollamaRaw = isPlainObject(o.ollama) ? o.ollama : {};
+  const ollama = {
+    host: isNonEmptyString(ollamaRaw.host) ? ollamaRaw.host : 'http://localhost:11434',
+    model: isNonEmptyString(ollamaRaw.model) ? ollamaRaw.model : 'qwen3.5:9b',
+  };
+  const cloudRaw = isPlainObject(o.cloud) ? o.cloud : null;
+  const cloud = cloudRaw ? {
+    providerId: isNonEmptyString(cloudRaw.providerId) ? cloudRaw.providerId : null,
+    model: isNonEmptyString(cloudRaw.model) ? cloudRaw.model : null,
+  } : null;
+  return { enabled, provider, ollama, cloud };
 }
 
 module.exports = {

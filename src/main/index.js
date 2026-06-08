@@ -28,6 +28,8 @@ const { validateConfig, sanitizeConfig } = require('../config/schema');
 const categoryConfig = require('../config/category');
 const stateStore = require('./state-store');
 const lastOpened = require('./last-opened');
+const { HttpClient } = require('./http-client');
+const { OllamaSummarizer } = require('../ai-sessions/provider-ollama');
 
 const ARCH = process.arch === 'arm64' ? 'arm64' : 'x64';
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
@@ -122,6 +124,38 @@ function loadCategoryConfig() {
   mainLog.info(`[category] loaded ${cats.length} categories, ${Object.keys(map).length} mappings`);
 }
 
+/**
+ * Phase B3b: 启动时 healthcheck ollama (默认 provider). 3s timeout, 失败 log warn,
+ * 不阻塞启动 (spec §6 启动解耦). daily digest 跑时再失败再说.
+ */
+async function runAISessionsHealthcheck() {
+  const cfg = runtimeConfig && runtimeConfig.aiSessions;
+  if (!cfg || !cfg.enabled) {
+    mainLog.info('[ai-sessions] disabled in config, skip healthcheck');
+    return;
+  }
+  const provider = cfg.provider || 'ollama';
+  if (provider !== 'ollama') {
+    // cloud provider 的 healthcheck 走 cloud impl (B6 才接). 现在只 ollama.
+    mainLog.info(`[ai-sessions] provider=${provider}, healthcheck deferred to B6`);
+    return;
+  }
+  const model = (cfg.ollama && cfg.ollama.model) || 'qwen3.5:9b';
+  const host = (cfg.ollama && cfg.ollama.host) || 'http://localhost:11434';
+  const http = new HttpClient({ timeout: 3_000, maxRetries: 0 });
+  const ollama = new OllamaSummarizer();
+  try {
+    const r = await ollama.healthcheck({ provider, model, config: { host }, httpClient: http });
+    if (r.ok) {
+      mainLog.info(`[ai-sessions] ollama healthcheck ok (${r.latencyMs}ms, ${host})`);
+    } else {
+      mainLog.warn(`[ai-sessions] ollama healthcheck failed: ${r.error} (${r.latencyMs}ms, ${host})`);
+    }
+  } catch (err) {
+    mainLog.warn(`[ai-sessions] ollama healthcheck threw: ${err.message}`);
+  }
+}
+
 async function bootstrap() {
   const t0 = Date.now();
   // 整进程级别的启动元信息 — 写一行, 便于人 grep
@@ -132,6 +166,9 @@ async function bootstrap() {
 
   // 0) Phase A: 加载 category config (早期注入, 后面 IPC 通道要用到)
   loadCategoryConfig();
+
+  // 0.5) Phase B3b: AI sessions healthcheck (不阻塞启动, 3s timeout)
+  await runAISessionsHealthcheck();
 
   // 1) 单实例锁
   // 冷启动基准模式 (BENCH=1): 跳过单实例锁, 允许同时跑多个 .app 实例
