@@ -158,30 +158,34 @@ async function runAISessionsHealthcheck() {
 }
 
 /**
- * Phase B4: 实例化 DailyDigestRunner, 跑昨天 (idempotent) + 可选 7 天 backfill,
- * 启 24h cron. 失败不阻塞启动 (跟 B3 healthcheck 同款).
+ * Phase B4: 实例化 DailyDigestRunner,跑昨天 (idempotent) + 可选7 天 backfill,
+ *启24h cron.失败不阻塞启动 (跟 B3 healthcheck 同款).
+ *
+ * Phase B6b.5: runtime override —读 state.json ai_sessions_config (Settings modal改的),
+ *优先于 config.json. wiring.mergeAISessionsConfig合并.
  */
 async function runDailyDigestBootstrap() {
-  const cfg = runtimeConfig && runtimeConfig.aiSessions;
-  if (!cfg || !cfg.enabled) {
-    mainLog.info('[digest] disabled in config, skip bootstrap');
-    return;
-  }
-  let wiring;
-  try {
-    wiring = buildDailyDigestRunner({
-      config: cfg,
-      log: {
-        info:  (...a) => mainLog.info(...a),
-        warn:  (...a) => mainLog.warn(...a),
-        error: (...a) => mainLog.error(...a),
-      },
-    });
-    global.__pulse_dailyDigest = wiring;  // 暴露给 IPC handlers (B4c)
-  } catch (err) {
-    mainLog.warn(`[digest] buildDailyDigestRunner failed: ${err.message}`);
-    return;
-  }
+ const cfg = runtimeConfig && runtimeConfig.aiSessions;
+ if (!cfg || !cfg.enabled) {
+ mainLog.info('[digest] disabled in config, skip bootstrap');
+ return;
+ }
+ let wiring;
+ try {
+ wiring = buildDailyDigestRunner({
+ config: cfg,
+ runtimeOverride: stateStore.loadAISessionsConfig(),
+ log: {
+ info: (...a) => mainLog.info(...a),
+ warn: (...a) => mainLog.warn(...a),
+ error: (...a) => mainLog.error(...a),
+ },
+ });
+ global.__pulse_dailyDigest = wiring; //暴露给 IPC handlers (B4c)
+ } catch (err) {
+ mainLog.warn(`[digest] buildDailyDigestRunner failed: ${err.message}`);
+ return;
+ }
   try {
     const result = await wiring.runner.bootstrap();
     mainLog.info(`[digest] bootstrap done: yesterday=${result.yesterday ? 'ok' : 'skipped'} backfill=${result.backfill ? 'done' : 'skipped'}`);
