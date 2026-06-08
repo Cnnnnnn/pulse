@@ -19,34 +19,39 @@
  *   - 不退出：worker 长期存活，main 死了才退出
  */
 
-const { parentPort, workerData } = require('worker_threads');
-const fs = require('fs');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
+const { parentPort, workerData } = require("worker_threads");
+const fs = require("fs");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
 const pExecFile = promisify(execFile);
 
-const { HttpClient } = require('../main/http-client');
-const { DetectContext } = require('../detectors/base');
-const { DetectorError } = require('../detectors/errors');
-const { stripBuildNumber } = require('../utils/version-utils');
-const { tryVersionSource } = require('./version-source');
-const { AppBundleChangelogDetector } = require('../detectors/app-bundle-changelog');
+const { HttpClient } = require("../main/http-client");
+const { DetectContext } = require("../detectors/base");
+const { DetectorError } = require("../detectors/errors");
+const { stripBuildNumber } = require("../utils/version-utils");
+const { tryVersionSource } = require("./version-source");
+const {
+  AppBundleChangelogDetector,
+} = require("../detectors/app-bundle-changelog");
 
 // 加载所有 detector
 const DETECTORS = {
-  brew_formulae:      require('../detectors/brew-formulae'),
-  brew_local_cask:    require('../detectors/brew-local-cask'),
-  sparkle_appcast:    require('../detectors/sparkle-appcast'),
-  electron_yml:       require('../detectors/electron-yml'),
-  app_store_lookup:   require('../detectors/app-store-lookup'),
-  api_json:           require('../detectors/api-json'),
-  redirect_filename:  require('../detectors/redirect-filename'),
-  cursor_redirect:    require('../detectors/cursor-redirect'),
-  qclaw_api:          require('../detectors/qclaw-api'),
-  app_update_yml:     require('../detectors/app-update-yml'),
+  brew_formulae: require("../detectors/brew-formulae"),
+  brew_local_cask: require("../detectors/brew-local-cask"),
+  sparkle_appcast: require("../detectors/sparkle-appcast"),
+  electron_yml: require("../detectors/electron-yml"),
+  app_store_lookup: require("../detectors/app-store-lookup"),
+  api_json: require("../detectors/api-json"),
+  redirect_filename: require("../detectors/redirect-filename"),
+  cursor_redirect: require("../detectors/cursor-redirect"),
+  qclaw_api: require("../detectors/qclaw-api"),
+  app_update_yml: require("../detectors/app-update-yml"),
+  electron_zip_probe: require("../detectors/electron-zip-probe"),
 };
 
-const ARCH = (workerData && workerData.arch) || (process.arch === 'arm64' ? 'arm64' : 'x64');
+const ARCH =
+  (workerData && workerData.arch) ||
+  (process.arch === "arm64" ? "arm64" : "x64");
 
 const http = new HttpClient({ timeout: 8000, maxBodyBytes: 1024 * 1024 });
 const logger = makePostMessageLogger();
@@ -54,30 +59,41 @@ const logger = makePostMessageLogger();
 function makePostMessageLogger() {
   function send(level, text, meta) {
     try {
-      parentPort.postMessage({ type: 'log', level, text, meta: meta || null });
-    } catch { /* parent dead — ignore */ }
+      parentPort.postMessage({ type: "log", level, text, meta: meta || null });
+    } catch {
+      /* parent dead — ignore */
+    }
   }
   return {
-    debug: (t, m) => send('DEBUG', t, m),
-    info:  (t, m) => send('INFO', t, m),
-    warn:  (t, m) => send('WARN', t, m),
-    error: (t, m) => send('ERROR', t, m),
+    debug: (t, m) => send("DEBUG", t, m),
+    info: (t, m) => send("INFO", t, m),
+    warn: (t, m) => send("WARN", t, m),
+    error: (t, m) => send("ERROR", t, m),
   };
 }
 
 function sendProgress(payload) {
-  try { parentPort.postMessage({ type: 'progress', payload }); }
-  catch { /* noop */ }
+  try {
+    parentPort.postMessage({ type: "progress", payload });
+  } catch {
+    /* noop */
+  }
 }
 
 function sendResult(payload) {
-  try { parentPort.postMessage({ type: 'result', payload }); }
-  catch { /* noop */ }
+  try {
+    parentPort.postMessage({ type: "result", payload });
+  } catch {
+    /* noop */
+  }
 }
 
 function sendError(message) {
-  try { parentPort.postMessage({ type: 'error', message }); }
-  catch { /* noop */ }
+  try {
+    parentPort.postMessage({ type: "error", message });
+  } catch {
+    /* noop */
+  }
 }
 
 // ─── detector chain runner ───────────────────────────────
@@ -90,24 +106,24 @@ function makeDetector(detCfg) {
   // 之前的实现按 detCfg.type camelCase 推 class name, 但 'qclaw_api' 模块导出的是
   // 'QClawApiDetector' (中间 Q 大写), 不符合 camelCase 规则 → 找不到 → 抛 'unknown detector type'
   const Cls = Object.values(mod).find(
-    (v) => typeof v === 'function' && v.name === detCfg.type
+    (v) => typeof v === "function" && v.name === detCfg.type,
   );
   if (!Cls) return null;
   return new Cls(detCfg);
 }
 
 function cleanVersion(ver) {
-  if (!ver || typeof ver !== 'string') return null;
+  if (!ver || typeof ver !== "string") return null;
   let v = ver.trim();
-  if (v.includes(',')) v = v.split(',')[0];
-  if (v.startsWith('v') || v.startsWith('V')) v = v.slice(1);
+  if (v.includes(",")) v = v.split(",")[0];
+  if (v.startsWith("v") || v.startsWith("V")) v = v.slice(1);
   return v.trim() || null;
 }
 
 function compareVersions(installed, latest) {
   const ins = cleanVersion(installed);
   const lat = cleanVersion(latest);
-  if (ins === lat) return { hasUpdate: false, note: '' };
+  if (ins === lat) return { hasUpdate: false, note: "" };
 
   // Phase 7 bugfix: Marvis 这类 app, installed = "1.0.0.10155" (4 段: semver + build),
   //                  latest = "1.0.10051" (3 段, 命名约定省略了 0 patch).
@@ -116,13 +132,15 @@ function compareVersions(installed, latest) {
   //   - 若 base 一致, 比 build: ins_build > lat_build → installed_newer
   //   - 否则按 base 段比
   //   - 不识别的极端情况回退到段对齐比较.
-  const si = ins.split('.').map((s) => parseInt(s, 10) || 0);
-  const sl = lat.split('.').map((s) => parseInt(s, 10) || 0);
+  const si = ins.split(".").map((s) => parseInt(s, 10) || 0);
+  const sl = lat.split(".").map((s) => parseInt(s, 10) || 0);
 
   const looksLikeBuild = (n) => Number.isFinite(n) && n >= 100;
   const canNormalize =
-    si.length >= 3 && sl.length >= 3 &&
-    si[0] === sl[0] && si[1] === sl[1] &&
+    si.length >= 3 &&
+    sl.length >= 3 &&
+    si[0] === sl[0] &&
+    si[1] === sl[1] &&
     (si.length === 4 || sl.length === 4) &&
     (looksLikeBuild(si[si.length - 1]) || looksLikeBuild(sl[sl.length - 1]));
 
@@ -135,16 +153,18 @@ function compareVersions(installed, latest) {
     // base 比较
     for (let i = 0; i < 3; i++) {
       if (insBase[i] !== latBase[i]) {
-        if (latBase[i] > insBase[i]) return { hasUpdate: true, note: '' };
-        if (latBase[i] < insBase[i]) return { hasUpdate: false, note: 'installed_newer' };
+        if (latBase[i] > insBase[i]) return { hasUpdate: true, note: "" };
+        if (latBase[i] < insBase[i])
+          return { hasUpdate: false, note: "installed_newer" };
       }
     }
     // base 完全一致, 比 build
     if (insBuild !== latBuild) {
-      if (latBuild > insBuild) return { hasUpdate: true, note: '' };
-      if (latBuild < insBuild) return { hasUpdate: false, note: 'installed_newer' };
+      if (latBuild > insBuild) return { hasUpdate: true, note: "" };
+      if (latBuild < insBuild)
+        return { hasUpdate: false, note: "installed_newer" };
     }
-    return { hasUpdate: false, note: '' };
+    return { hasUpdate: false, note: "" };
   }
 
   // 兜底: 段对齐比较
@@ -152,10 +172,10 @@ function compareVersions(installed, latest) {
   for (let i = 0; i < maxLen; i++) {
     const a = si[i] || 0;
     const b = sl[i] || 0;
-    if (b > a) return { hasUpdate: true, note: '' };
-    if (b < a) return { hasUpdate: false, note: 'installed_newer' };
+    if (b > a) return { hasUpdate: true, note: "" };
+    if (b < a) return { hasUpdate: false, note: "installed_newer" };
   }
-  return { hasUpdate: false, note: '' };
+  return { hasUpdate: false, note: "" };
 }
 
 async function runDetectorChain(appCfg) {
@@ -165,7 +185,7 @@ async function runDetectorChain(appCfg) {
   for (const detCfg of detectors) {
     const Det = makeDetector(detCfg);
     if (!Det) {
-      trace.push({ det: detCfg.type, ms: 0, error: 'unknown detector type' });
+      trace.push({ det: detCfg.type, ms: 0, error: "unknown detector type" });
       continue;
     }
     const ctx = new DetectContext({
@@ -185,8 +205,14 @@ async function runDetectorChain(appCfg) {
     }
     const ms = Date.now() - t0;
     if (result) {
-      trace.push({ det: detCfg.type, ms, version: result.version, confidence: result.confidence, note: result.note });
-      if (result.version && result.confidence !== 'low') {
+      trace.push({
+        det: detCfg.type,
+        ms,
+        version: result.version,
+        confidence: result.confidence,
+        note: result.note,
+      });
+      if (result.version && result.confidence !== "low") {
         return { result, trace, stoppedAt: detCfg.type };
       }
       if (!firstHit && result.version) firstHit = { result, trace };
@@ -234,20 +260,31 @@ async function getInstalledVersion(bundleName, versionSources) {
   //       "pattern": "appVersion.{0,4}([0-9.]+)" }
   //   ]
 
-  const HOME = process.env.HOME || '/Users/Shared';
+  const HOME = process.env.HOME || "/Users/Shared";
 
   // 一次性读 plist (后面 plist source 也要用)
   let plistRaw = null;
   let bundleId = null;
   try {
     const { stdout } = await pExecFile(
-      'plutil', ['-convert', 'xml1', '-o', '-', `/Applications/${bundleName}/Contents/Info.plist`],
-      { timeout: 5000 }
+      "plutil",
+      [
+        "-convert",
+        "xml1",
+        "-o",
+        "-",
+        `/Applications/${bundleName}/Contents/Info.plist`,
+      ],
+      { timeout: 5000 },
     );
     plistRaw = stdout;
-    const m = stdout.match(/<key>CFBundleIdentifier<\/key>\s*<string>([^<]+)<\/string>/);
+    const m = stdout.match(
+      /<key>CFBundleIdentifier<\/key>\s*<string>([^<]+)<\/string>/,
+    );
     if (m) bundleId = m[1];
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
 
   // Phase 9: 用户配置的 version_sources 链 (按顺序尝试, 第一个非空 wins)
   if (Array.isArray(versionSources) && versionSources.length > 0) {
@@ -263,16 +300,20 @@ async function getInstalledVersion(bundleName, versionSources) {
   if (bundleId) {
     const installedJsonPath = `${HOME}/Library/Application Support/${bundleId}/installed.json`;
     try {
-      const raw = await fs.promises.readFile(installedJsonPath, 'utf-8');
+      const raw = await fs.promises.readFile(installedJsonPath, "utf-8");
       const j = JSON.parse(raw);
-      if (j && typeof j.appVersion === 'string' && j.appVersion.trim()) {
+      if (j && typeof j.appVersion === "string" && j.appVersion.trim()) {
         return j.appVersion.trim();
       }
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }
 
   if (plistRaw) {
-    const m1 = plistRaw.match(/<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/);
+    const m1 = plistRaw.match(
+      /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/,
+    );
     if (m1) return m1[1];
   }
 
@@ -281,9 +322,9 @@ async function getInstalledVersion(bundleName, versionSources) {
   }
   try {
     const { stdout } = await pExecFile(
-      'system_profiler',
-      ['SPApplicationsDataType', '-json', '-detailLevel', 'mini'],
-      { timeout: 30000 }
+      "system_profiler",
+      ["SPApplicationsDataType", "-json", "-detailLevel", "mini"],
+      { timeout: 30000 },
     );
     const data = JSON.parse(stdout);
     const apps = data.SPApplicationsDataType || [];
@@ -291,14 +332,16 @@ async function getInstalledVersion(bundleName, versionSources) {
     for (const app of apps) {
       if (app._name) map[app._name] = app.version || null;
       if (app.path) {
-        const bundle = app.path.split('/').pop();
+        const bundle = app.path.split("/").pop();
         map[`__path__${bundle}`] = app.version || null;
       }
     }
     _spCache.data = map;
     _spCache.time = Date.now();
     return lookupSp(bundleName, map);
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
 
   return null;
 }
@@ -312,7 +355,7 @@ async function getInstalledVersion(bundleName, versionSources) {
 function lookupSp(bundleName, map) {
   const fromPath = map[`__path__${bundleName}`];
   if (fromPath) return fromPath;
-  const appName = bundleName.replace(/\.app$/, '');
+  const appName = bundleName.replace(/\.app$/, "");
   return map[appName] || null;
 }
 
@@ -322,13 +365,19 @@ function lookupSp(bundleName, map) {
  * 没找到返回空串.
  */
 function extractBrewCask(appCfg) {
-  const dets = (appCfg && Array.isArray(appCfg.detectors)) ? appCfg.detectors : [];
+  const dets =
+    appCfg && Array.isArray(appCfg.detectors) ? appCfg.detectors : [];
   for (const d of dets) {
-    if (d && d.type === 'brew_formulae' && typeof d.cask === 'string' && d.cask.trim()) {
+    if (
+      d &&
+      d.type === "brew_formulae" &&
+      typeof d.cask === "string" &&
+      d.cask.trim()
+    ) {
       return d.cask.trim();
     }
   }
-  return '';
+  return "";
 }
 
 /**
@@ -341,7 +390,7 @@ function extractBrewCask(appCfg) {
  *   - 其它 (部分成功但用户看不到 latest) → 用最后一条 error (可能解释为啥)
  */
 function extractErrorMessage(trace, latest, versionUnknown) {
-  if (versionUnknown) return '已安装版本无法读取';
+  if (versionUnknown) return "已安装版本无法读取";
   if (!trace || trace.length === 0) return null;
   // 优先返回最后一条 error
   for (let i = trace.length - 1; i >= 0; i--) {
@@ -353,8 +402,8 @@ function extractErrorMessage(trace, latest, versionUnknown) {
 }
 
 function isChromiumVersion(ver) {
-  if (!ver || typeof ver !== 'string') return false;
-  const parts = ver.split('.');
+  if (!ver || typeof ver !== "string") return false;
+  const parts = ver.split(".");
   if (parts.length !== 4) return false;
   const major = parseInt(parts[0], 10);
   return major >= 80 && parts.every((p) => /^\d+$/.test(p));
@@ -363,35 +412,66 @@ function isChromiumVersion(ver) {
 // ─── task handlers ───────────────────────────────────────
 
 async function handleDetectApp(appCfg) {
-  const name = appCfg && appCfg.name || 'unknown';
-  const bundle = appCfg && appCfg.bundle || '';
+  const name = (appCfg && appCfg.name) || "unknown";
+  const bundle = (appCfg && appCfg.bundle) || "";
   const startedAt = Date.now();
-  sendProgress({ task: 'detect-app', name, status: 'started', ts: startedAt });
+  sendProgress({ task: "detect-app", name, status: "started", ts: startedAt });
 
   // installed — 先快查 app 是否存在（避免对不存在的 app 跑 system_profiler）
   const appExists = (() => {
-    try { return fs.existsSync(`/Applications/${bundle}`); } catch { return false; }
+    try {
+      return fs.existsSync(`/Applications/${bundle}`);
+    } catch {
+      return false;
+    }
   })();
   if (!appExists) {
     const r = {
-      name, installed_version: null, latest_version: null, has_update: false,
-      status: 'not_installed', source: '', note: '', bundle,
+      name,
+      installed_version: null,
+      latest_version: null,
+      has_update: false,
+      status: "not_installed",
+      source: "",
+      note: "",
+      bundle,
       brew_cask: extractBrewCask(appCfg),
-      trace: [], ms: Date.now() - startedAt,
+      trace: [],
+      ms: Date.now() - startedAt,
     };
-    sendProgress({ task: 'detect-app', name, status: 'not_installed' });
+    sendProgress({ task: "detect-app", name, status: "not_installed" });
     return r;
   }
 
   let installed = null;
   let versionUnknown = false;
-  try { installed = await getInstalledVersion(bundle, appCfg.version_sources); } catch { /* noop */ }
-  if (!installed) { installed = '未知'; versionUnknown = true; }
+  try {
+    installed = await getInstalledVersion(bundle, appCfg.version_sources);
+  } catch {
+    /* noop */
+  }
+  if (!installed) {
+    installed = "未知";
+    versionUnknown = true;
+  }
   // Phase 9 debug: log installed extraction path (will keep, useful for future diagnostics)
   try {
     const hasVS = !!(appCfg.version_sources && appCfg.version_sources.length);
-    parentPort.postMessage({ type: 'log', level: 'INFO', text: '', meta: { app: name, det: 'installed_extract', ms: 0, version: installed, note: hasVS ? `vs[${appCfg.version_sources.length}]` : 'legacy' } });
-  } catch { /* noop */ }
+    parentPort.postMessage({
+      type: "log",
+      level: "INFO",
+      text: "",
+      meta: {
+        app: name,
+        det: "installed_extract",
+        ms: 0,
+        version: installed,
+        note: hasVS ? `vs[${appCfg.version_sources.length}]` : "legacy",
+      },
+    });
+  } catch {
+    /* noop */
+  }
 
   // chain
   const { result, trace, stoppedAt } = await runDetectorChain(appCfg);
@@ -406,13 +486,15 @@ async function handleDetectApp(appCfg) {
       if (t.note) meta.note = t.note;
       // 用 postMessage 'log' 走 main process 落盘 (确保时区/格式一致)
       try {
-        parentPort.postMessage({ type: 'log', level: 'INFO', text: '', meta });
-      } catch { /* parent dead — ignore */ }
+        parentPort.postMessage({ type: "log", level: "INFO", text: "", meta });
+      } catch {
+        /* parent dead — ignore */
+      }
     }
   }
 
   const latest = result ? result.version : null;
-  const source = result ? (result.source || stoppedAt) : '';
+  const source = result ? result.source || stoppedAt : "";
 
   // Phase 11 bugfix: 升级按钮依赖 result.brew_cask, 但新 schema 把 cask 藏在
   // detectors[].cask 里 (老 schema 的顶层 brew_cask 字段不再有).
@@ -433,19 +515,21 @@ async function handleDetectApp(appCfg) {
       const bundleResult = await new AppBundleChangelogDetector().detect({
         appCfg,
         arch: ARCH,
-        http: null,  // 不用 http
+        http: null, // 不用 http
         logger,
         detCfg: {},
       });
       if (bundleResult && bundleResult.changelog) {
-        if (!result || !result.changelog) result.changelog = bundleResult.changelog;
-        if (result && !result.changelog_format) result.changelog_format = bundleResult.changelog_format;
+        if (!result || !result.changelog)
+          result.changelog = bundleResult.changelog;
+        if (result && !result.changelog_format)
+          result.changelog_format = bundleResult.changelog_format;
         // 写到 trace (诊断用, 不参与 version 比较)
         trace.push({
-          det: 'app_bundle_changelog',
+          det: "app_bundle_changelog",
           ms: 0,
-          version: '',
-          note: bundleResult.note || 'app bundle changelog',
+          version: "",
+          note: bundleResult.note || "app bundle changelog",
         });
       }
     } catch {
@@ -455,26 +539,27 @@ async function handleDetectApp(appCfg) {
 
   // Phase 18: 读 state.json 看是否有 changelog_history, 透传给 renderer
   // 读操作在 main 那边已做了, 我们只读 task payload 里的 (避免 worker 直接读 fs)
-  const changelogHistory = (appCfg && Array.isArray(appCfg.changelog_history))
-    ? appCfg.changelog_history
-    : [];
+  const changelogHistory =
+    appCfg && Array.isArray(appCfg.changelog_history)
+      ? appCfg.changelog_history
+      : [];
 
-  let note = '';
+  let note = "";
   let hasUpdate = false;
   if (versionUnknown) {
-    note = 'version_unknown';
-  } else if (latest && installed && installed !== '未知') {
+    note = "version_unknown";
+  } else if (latest && installed && installed !== "未知") {
     const cmp = compareVersions(installed, latest);
     hasUpdate = cmp.hasUpdate;
     note = cmp.note;
   }
 
   let status;
-  if (versionUnknown && latest) status = 'no_auto_check';
-  else if (!latest) status = 'no_auto_check';
-  else if (hasUpdate) status = 'update_available';
-  else if (note === 'incompatible') status = 'no_auto_check';
-  else status = 'up_to_date';
+  if (versionUnknown && latest) status = "no_auto_check";
+  else if (!latest) status = "no_auto_check";
+  else if (hasUpdate) status = "update_available";
+  else if (note === "incompatible") status = "no_auto_check";
+  else status = "up_to_date";
 
   const r = {
     name,
@@ -487,21 +572,21 @@ async function handleDetectApp(appCfg) {
     bundle,
     brew_cask: brewCask,
     // Phase 14: 透传 changelog (electron_yml / sparkle_appcast / api_json 解析出来)
-    changelog:       (result && result.changelog)       || '',
-    changelog_url:   (result && result.changelog_url)   || '',
-    changelog_format: (result && result.changelog_format) || 'md',
+    changelog: (result && result.changelog) || "",
+    changelog_url: (result && result.changelog_url) || "",
+    changelog_format: (result && result.changelog_format) || "md",
     // Phase 18: 老版本 release notes, state-store saveAll 推进来, worker 读 appCfg 透传
     changelog_history: changelogHistory,
     // Phase 20: per-app 配置的 release notes URL. 当 detector 没拿到 changelog 时,
     // UI 显示 "查看 release notes ↗" 链接. 没配就 fallback 到 download_url.
-    release_notes_url: appCfg.release_notes_url || '',
+    release_notes_url: appCfg.release_notes_url || "",
     // Phase 22: App Store trackId, 给 Bulk Upgrade 拼 macappstore:// 深链用.
     // app_store_lookup 探测器抓 iTunes lookup 响应的 results[0].trackId.
     track_id: (result && result.track_id) || 0,
     // Phase 22: sparkle <enclosure url="..."> — 该版本的 .zip 下载.
     // 给 Bulk Upgrade 走 openExternal 打开下载页, 比 shell.openPath 启动 app
     // 等 Sparkle updater 弹更可靠.
-    release_url: (result && result.release_url) || '',
+    release_url: (result && result.release_url) || "",
     // Phase 15: 错误原因. 全部 detector 都失败时, 把最后一条错误暴露给 UI
     // (status === 'no_auto_check' 且 !latest 才有意义)
     error_message: extractErrorMessage(trace, latest, versionUnknown),
@@ -510,45 +595,52 @@ async function handleDetectApp(appCfg) {
   };
   // Phase 7 bugfix: 之前 sendProgress 只发了 status 元数据, 渲染端拿不到 installed_version / bundle
   // → AppRow 显示 installed 为 "—" 占位. 改成发完整 result 对象.
-  sendProgress({ task: 'detect-app', ...r });
+  sendProgress({ task: "detect-app", ...r });
   return r;
 }
 
 async function handleBrewUpgrade(cask) {
-  if (!cask) return { success: false, output: 'no cask' };
+  if (!cask) return { success: false, output: "no cask" };
   try {
     const { stdout, stderr } = await pExecFile(
-      'brew', ['upgrade', '--cask', cask],
-      { timeout: 300000 }
+      "brew",
+      ["upgrade", "--cask", cask],
+      { timeout: 300000 },
     );
-    return { success: true, output: (stdout || '') + (stderr || '') };
+    return { success: true, output: (stdout || "") + (stderr || "") };
   } catch (err) {
-    return { success: false, output: (err && err.message) || 'brew upgrade failed' };
+    return {
+      success: false,
+      output: (err && err.message) || "brew upgrade failed",
+    };
   }
 }
 
 async function handleBrewUpdate() {
   try {
-    const { stdout } = await pExecFile('brew', ['update'], { timeout: 120000 });
-    return { success: true, output: stdout || '' };
+    const { stdout } = await pExecFile("brew", ["update"], { timeout: 120000 });
+    return { success: true, output: stdout || "" };
   } catch (err) {
-    return { success: false, output: (err && err.message) || 'brew update failed' };
+    return {
+      success: false,
+      output: (err && err.message) || "brew update failed",
+    };
   }
 }
 
 // ─── message loop ────────────────────────────────────────
 
 if (parentPort) {
-  parentPort.on('message', async (msg) => {
+  parentPort.on("message", async (msg) => {
     if (!msg || !msg.task) return;
     const { id, task } = msg;
     try {
       let result;
-      if (task.type === 'detect-app') {
+      if (task.type === "detect-app") {
         result = await handleDetectApp(task.payload && task.payload.appCfg);
-      } else if (task.type === 'brew-upgrade') {
+      } else if (task.type === "brew-upgrade") {
         result = await handleBrewUpgrade(task.payload && task.payload.cask);
-      } else if (task.type === 'brew-update') {
+      } else if (task.type === "brew-update") {
         result = await handleBrewUpdate();
       } else {
         sendError(`unknown task type: ${task.type}`);
@@ -562,5 +654,5 @@ if (parentPort) {
 
   // 主进程在 worker 启动时会 postMessage 一条 "init" 消息以触发 ready 回调
   // （可选；不在这里强制）
-  parentPort.postMessage({ type: 'log', level: 'INFO', text: 'worker ready' });
+  parentPort.postMessage({ type: "log", level: "INFO", text: "worker ready" });
 }

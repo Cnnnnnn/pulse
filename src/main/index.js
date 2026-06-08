@@ -13,30 +13,38 @@
  * 被 electron 直接 require；用 CJS。
  */
 
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-const fs = require('fs');
+const { app, BrowserWindow } = require("electron");
+const path = require("path");
+const fs = require("fs");
 
-const { WorkerPool } = require('../workers/pool');
-const { createWindowManager } = require('./window');
-const { createTrayManager } = require('./tray');
-const { registerIpcHandlers } = require('./ipc');
-const { runCheck } = require('./check-runner');
-const { mainLog, detectLog } = require('./log');
-const { migrateConfigFile, isOldSchemaApp } = require('../config/migrate');
-const { validateConfig, sanitizeConfig } = require('../config/schema');
-const categoryConfig = require('../config/category');
-const stateStore = require('./state-store');
-const lastOpened = require('./last-opened');
-const { HttpClient } = require('./http-client');
-const { OllamaSummarizer } = require('../ai-sessions/provider-ollama');
-const { buildDailyDigestRunner } = require('../ai-sessions/wiring');
+const { WorkerPool } = require("../workers/pool");
+const { createWindowManager } = require("./window");
+const { createTrayManager } = require("./tray");
+const { registerIpcHandlers } = require("./ipc");
+const { runCheck } = require("./check-runner");
+const { mainLog, detectLog } = require("./log");
+const { migrateConfigFile, isOldSchemaApp } = require("../config/migrate");
+const { validateConfig, sanitizeConfig } = require("../config/schema");
+const categoryConfig = require("../config/category");
+const stateStore = require("./state-store");
+const lastOpened = require("./last-opened");
+const { HttpClient } = require("./http-client");
+const { OllamaSummarizer } = require("../ai-sessions/provider-ollama");
+const { buildDailyDigestRunner } = require("../ai-sessions/wiring");
 
-const ARCH = process.arch === 'arm64' ? 'arm64' : 'x64';
-const PROJECT_ROOT = path.join(__dirname, '..', '..');
-const CONFIG_PATH = path.join(PROJECT_ROOT, 'config.json');
-const CATEGORIES_JSON_PATH = path.join(PROJECT_ROOT, 'config', 'categories.json');
-const APP_CATEGORY_JSON_PATH = path.join(PROJECT_ROOT, 'config', 'app-category.json');
+const ARCH = process.arch === "arm64" ? "arm64" : "x64";
+const PROJECT_ROOT = path.join(__dirname, "..", "..");
+const CONFIG_PATH = path.join(PROJECT_ROOT, "config.json");
+const CATEGORIES_JSON_PATH = path.join(
+  PROJECT_ROOT,
+  "config",
+  "categories.json",
+);
+const APP_CATEGORY_JSON_PATH = path.join(
+  PROJECT_ROOT,
+  "config",
+  "app-category.json",
+);
 
 let isQuitting = false;
 let pool = null;
@@ -49,7 +57,7 @@ let runtimeConfig = null;
 function loadConfig() {
   let parsed = null;
   try {
-    const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
+    const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
     parsed = JSON.parse(raw);
   } catch (err) {
     mainLog.error(`config read/parse failed: ${err.message}`);
@@ -57,8 +65,8 @@ function loadConfig() {
   }
 
   // 老 schema 触发自动迁移
-  const oldShape = Array.isArray(parsed && parsed.apps)
-    && parsed.apps.some(isOldSchemaApp);
+  const oldShape =
+    Array.isArray(parsed && parsed.apps) && parsed.apps.some(isOldSchemaApp);
   if (oldShape) {
     try {
       const r = migrateConfigFile({ configPath: CONFIG_PATH });
@@ -74,7 +82,7 @@ function loadConfig() {
 
   const v = validateConfig(parsed);
   if (!v.valid) {
-    mainLog.warn(`config validation: ${v.errors.slice(0, 5).join(' | ')}`);
+    mainLog.warn(`config validation: ${v.errors.slice(0, 5).join(" | ")}`);
   }
   return sanitizeConfig(v.config || parsed);
 }
@@ -91,9 +99,13 @@ function loadCategoryConfig() {
   let usedFallback = false;
 
   try {
-    const raw = fs.readFileSync(CATEGORIES_JSON_PATH, 'utf-8');
+    const raw = fs.readFileSync(CATEGORIES_JSON_PATH, "utf-8");
     const parsed = JSON.parse(raw);
-    if (parsed && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
+    if (
+      parsed &&
+      Array.isArray(parsed.categories) &&
+      parsed.categories.length > 0
+    ) {
       cats = parsed.categories;
     }
   } catch (err) {
@@ -101,9 +113,9 @@ function loadCategoryConfig() {
   }
 
   try {
-    const raw = fs.readFileSync(APP_CATEGORY_JSON_PATH, 'utf-8');
+    const raw = fs.readFileSync(APP_CATEGORY_JSON_PATH, "utf-8");
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.mapping && typeof parsed.mapping === 'object') {
+    if (parsed && parsed.mapping && typeof parsed.mapping === "object") {
       map = parsed.mapping;
     }
   } catch (err) {
@@ -112,17 +124,19 @@ function loadCategoryConfig() {
 
   if (cats === null || map === null) {
     usedFallback = true;
-    categoryConfig.setData({ source: 'fallback' });  // 用 module-level DEFAULT
-    mainLog.warn('[category] using hardcoded defaults (failed to read disk)');
+    categoryConfig.setData({ source: "fallback" }); // 用 module-level DEFAULT
+    mainLog.warn("[category] using hardcoded defaults (failed to read disk)");
     return;
   }
 
-  categoryConfig.setData({ cats, map, source: 'disk' });
+  categoryConfig.setData({ cats, map, source: "disk" });
   const status = categoryConfig._LOAD_STATUS();
   if (status.warnings.length > 0) {
-    mainLog.warn(`[category] load warnings: ${status.warnings.join('; ')}`);
+    mainLog.warn(`[category] load warnings: ${status.warnings.join("; ")}`);
   }
-  mainLog.info(`[category] loaded ${cats.length} categories, ${Object.keys(map).length} mappings`);
+  mainLog.info(
+    `[category] loaded ${cats.length} categories, ${Object.keys(map).length} mappings`,
+  );
 }
 
 /**
@@ -132,25 +146,36 @@ function loadCategoryConfig() {
 async function runAISessionsHealthcheck() {
   const cfg = runtimeConfig && runtimeConfig.aiSessions;
   if (!cfg || !cfg.enabled) {
-    mainLog.info('[ai-sessions] disabled in config, skip healthcheck');
+    mainLog.info("[ai-sessions] disabled in config, skip healthcheck");
     return;
   }
-  const provider = cfg.provider || 'ollama';
-  if (provider !== 'ollama') {
+  const provider = cfg.provider || "ollama";
+  if (provider !== "ollama") {
     // cloud provider 的 healthcheck 走 cloud impl (B6 才接). 现在只 ollama.
-    mainLog.info(`[ai-sessions] provider=${provider}, healthcheck deferred to B6`);
+    mainLog.info(
+      `[ai-sessions] provider=${provider}, healthcheck deferred to B6`,
+    );
     return;
   }
-  const model = (cfg.ollama && cfg.ollama.model) || 'qwen3.5:9b';
-  const host = (cfg.ollama && cfg.ollama.host) || 'http://localhost:11434';
+  const model = (cfg.ollama && cfg.ollama.model) || "qwen3.5:9b";
+  const host = (cfg.ollama && cfg.ollama.host) || "http://localhost:11434";
   const http = new HttpClient({ timeout: 3_000, maxRetries: 0 });
   const ollama = new OllamaSummarizer();
   try {
-    const r = await ollama.healthcheck({ provider, model, config: { host }, httpClient: http });
+    const r = await ollama.healthcheck({
+      provider,
+      model,
+      config: { host },
+      httpClient: http,
+    });
     if (r.ok) {
-      mainLog.info(`[ai-sessions] ollama healthcheck ok (${r.latencyMs}ms, ${host})`);
+      mainLog.info(
+        `[ai-sessions] ollama healthcheck ok (${r.latencyMs}ms, ${host})`,
+      );
     } else {
-      mainLog.warn(`[ai-sessions] ollama healthcheck failed: ${r.error} (${r.latencyMs}ms, ${host})`);
+      mainLog.warn(
+        `[ai-sessions] ollama healthcheck failed: ${r.error} (${r.latencyMs}ms, ${host})`,
+      );
     }
   } catch (err) {
     mainLog.warn(`[ai-sessions] ollama healthcheck threw: ${err.message}`);
@@ -165,66 +190,91 @@ async function runAISessionsHealthcheck() {
  *优先于 config.json. wiring.mergeAISessionsConfig合并.
  */
 async function runDailyDigestBootstrap() {
- const cfg = runtimeConfig && runtimeConfig.aiSessions;
- if (!cfg || !cfg.enabled) {
- mainLog.info('[digest] disabled in config, skip bootstrap');
- return;
- }
- let wiring;
- try {
- wiring = buildDailyDigestRunner({
- config: cfg,
- runtimeOverride: stateStore.loadAISessionsConfig(),
- log: {
- info: (...a) => mainLog.info(...a),
- warn: (...a) => mainLog.warn(...a),
- error: (...a) => mainLog.error(...a),
- },
- });
- global.__pulse_dailyDigest = wiring; //暴露给 IPC handlers (B4c)
- } catch (err) {
- mainLog.warn(`[digest] buildDailyDigestRunner failed: ${err.message}`);
- return;
- }
+  // config.json 可能没有 aiSessions 块（你目前就是这种情况）。
+  // 这时必须仍然初始化 wiring，让后续 Settings 里的“测试连接/回填”能工作。
+  const cfgBase =
+    runtimeConfig && runtimeConfig.aiSessions
+      ? runtimeConfig.aiSessions
+      : { enabled: false, provider: "ollama", ollama: {}, cloud: null };
+
+  let wiring;
+  try {
+    wiring = buildDailyDigestRunner({
+      config: cfgBase,
+      runtimeOverride: stateStore.loadAISessionsConfig(),
+      log: {
+        info: (...a) => mainLog.info(...a),
+        warn: (...a) => mainLog.warn(...a),
+        error: (...a) => mainLog.error(...a),
+      },
+    });
+    global.__pulse_dailyDigest = wiring; // 暴露给 IPC handlers (B4c)
+    global.__pulse_aiSessionsBaseCfg = cfgBase; // 给 ipc save-config 重建用
+  } catch (err) {
+    mainLog.warn(`[digest] buildDailyDigestRunner failed: ${err.message}`);
+    return;
+  }
+
+  // 仅当 merged config.enabled=true 时才跑 bootstrap + 24h cron
+  const enabled = Boolean(
+    wiring &&
+    wiring.runner &&
+    wiring.runner.config &&
+    wiring.runner.config.enabled,
+  );
+  if (!enabled) {
+    mainLog.info(
+      "[digest] ai-sessions disabled in merged config, skip bootstrap/cron",
+    );
+    return;
+  }
+
   try {
     const result = await wiring.runner.bootstrap();
-    mainLog.info(`[digest] bootstrap done: yesterday=${result.yesterday ? 'ok' : 'skipped'} backfill=${result.backfill ? 'done' : 'skipped'}`);
+    mainLog.info(
+      `[digest] bootstrap done: yesterday=${result.yesterday ? "ok" : "skipped"} backfill=${result.backfill ? "done" : "skipped"}`,
+    );
   } catch (err) {
     mainLog.warn(`[digest] bootstrap failed: ${err.message}`);
   }
   // 24h cron (idempotent, 多次调不会重复启)
   wiring.start(86400_000);
-  mainLog.info('[digest] 24h cron started');
+  mainLog.info("[digest] 24h cron started");
 }
 
 async function bootstrap() {
   const t0 = Date.now();
   // 整进程级别的启动元信息 — 写一行, 便于人 grep
-  mainLog.info(`boot pid=${process.id} arch=${ARCH} platform=${process.platform}`);
+  mainLog.info(
+    `boot pid=${process.id} arch=${ARCH} platform=${process.platform}`,
+  );
 
   // 各阶段计时点 — spec §6 启动埋点格式
-  const timings = { lock: 0, config: 0, pool: 0, window: 0, tray: 0, ipc: 0, total: 0 };
+  const timings = {
+    lock: 0,
+    config: 0,
+    pool: 0,
+    window: 0,
+    tray: 0,
+    ipc: 0,
+    total: 0,
+  };
 
   // 0) Phase A: 加载 category config (早期注入, 后面 IPC 通道要用到)
   loadCategoryConfig();
-
-  // 0.5) Phase B3b: AI sessions healthcheck (不阻塞启动, 3s timeout)
-  await runAISessionsHealthcheck();
-
-  // 0.6) Phase B4: 实例化 DailyDigestRunner, 跑昨天 + 可选 backfill + 24h cron
-  await runDailyDigestBootstrap();
 
   // 1) 单实例锁
   // 冷启动基准模式 (BENCH=1): 跳过单实例锁, 允许同时跑多个 .app 实例
   // 真实用户场景下不需要多实例, 但 benchmark 需要
   const tLock = Date.now();
-  const gotLock = process.env.BENCH === '1' ? true : app.requestSingleInstanceLock();
+  const gotLock =
+    process.env.BENCH === "1" ? true : app.requestSingleInstanceLock();
   if (!gotLock) {
-    mainLog.warn('single-instance lock failed, quitting');
+    mainLog.warn("single-instance lock failed, quitting");
     app.quit();
     return;
   }
-  app.on('second-instance', () => {
+  app.on("second-instance", () => {
     if (winMgr) winMgr.showWindow();
   });
   timings.lock = Date.now() - tLock;
@@ -232,35 +282,52 @@ async function bootstrap() {
   // 2) config
   const tConfig = Date.now();
   runtimeConfig = loadConfig();
-  mainLog.info(`config loaded: ${(runtimeConfig.apps || []).length} apps, check_on_launch=${runtimeConfig.check_on_launch}`);
+  mainLog.info(
+    `config loaded: ${(runtimeConfig.apps || []).length} apps, check_on_launch=${runtimeConfig.check_on_launch}`,
+  );
   timings.config = Date.now() - tConfig;
 
+  // 2.5) Phase B3b + B4: AI sessions healthcheck + DailyDigestRunner bootstrap
+  // 必须在 loadConfig() 之后，因为需要 runtimeConfig.aiSessions
+  await runAISessionsHealthcheck();
+  await runDailyDigestBootstrap();
+
   // 3) dock 隐藏
-  try { app.dock.hide(); } catch { /* noop */ }
+  try {
+    app.dock.hide();
+  } catch {
+    /* noop */
+  }
 
   // 4) worker pool
   const tPool = Date.now();
-  const workerScript = path.join(__dirname, '..', 'workers', 'detect-worker.js');
+  const workerScript = path.join(
+    __dirname,
+    "..",
+    "workers",
+    "detect-worker.js",
+  );
   pool = new WorkerPool({
-    size: Math.max(2, (require('os').cpus().length || 4) - 1),
+    size: Math.max(2, (require("os").cpus().length || 4) - 1),
     workerScript,
     workerOpts: { workerData: { arch: ARCH } },
     onProgress: (payload, id) => {
       const w = winMgr && winMgr.getWindow();
       if (w && !w.isDestroyed()) {
-        w.webContents.send('check-progress', payload);
+        w.webContents.send("check-progress", payload);
       }
     },
     onLog: (level, text, id, meta) => {
       // worker 自己 postMessage 的 log 消息: 走 main 的 detect logger 落盘
       // worker 现在发 spec §6 风格的 meta (k=v 拍平), 直接透传
       //   老式 free-text log (text 存在) 也兼容 — 把 workerId 塞到 meta.wid
-      const m = meta && typeof meta === 'object' ? { wid: id, ...meta } : { wid: id };
+      const m =
+        meta && typeof meta === "object" ? { wid: id, ...meta } : { wid: id };
       if (text) {
         // 自由文本: 把 text 放在 meta.note, 避免占位
         m.note = text;
       }
-      detectLog._write(level || 'INFO', '', m);
+      detectLog._write(level || "INFO", "", m);
     },
   });
   pool.start();
@@ -272,8 +339,8 @@ async function bootstrap() {
   winMgr = createWindowManager({
     config: runtimeConfig,
     getIsQuitting: () => isQuitting,
-    preloadPath: path.join(PROJECT_ROOT, 'preload.js'),
-    indexPath: path.join(PROJECT_ROOT, 'index.html'),
+    preloadPath: path.join(PROJECT_ROOT, "preload.js"),
+    indexPath: path.join(PROJECT_ROOT, "index.html"),
   });
   winMgr.createWindow();
   // window ready-to-show 由 BrowserWindow 自己 fire; 这里量"创建耗时"
@@ -288,10 +355,13 @@ async function bootstrap() {
       getConfigPath: () => CONFIG_PATH,
       onCheck: () => {
         const w = winMgr && winMgr.getWindow();
-        if (w && !w.isDestroyed()) w.webContents.send('start-check');
+        if (w && !w.isDestroyed()) w.webContents.send("start-check");
       },
       onOpenPanel: () => winMgr && winMgr.showWindow(),
-      onQuit: () => { isQuitting = true; app.quit(); },
+      onQuit: () => {
+        isQuitting = true;
+        app.quit();
+      },
     });
     trayMgr.install();
     mainLog.info(`tray installed: ${Date.now() - tTrayStart}ms`);
@@ -313,7 +383,7 @@ async function bootstrap() {
   // a config knob — v2.4 territory.)
   function resolveBundlePath(bundleName) {
     if (!bundleName) return null;
-    if (bundleName.startsWith('/')) return bundleName;  // 已是绝对路径
+    if (bundleName.startsWith("/")) return bundleName; // 已是绝对路径
     return `/Applications/${bundleName}`;
   }
   function refreshLastOpenedAfterCheck() {
@@ -323,27 +393,33 @@ async function bootstrap() {
     (async () => {
       try {
         const next = {};
-        await Promise.all(refreshable.map(async (a) => {
-          const path = resolveBundlePath(a.bundle);
-          if (!path) {
-            next[a.name] = { ms: null, source: 'unknown' };
-            return;
-          }
-          try {
-            const r = await lastOpened.refreshOne(path);
-            next[a.name] = { ms: r.ms, source: r.source };
-          } catch (err) {
-            mainLog.warn(`[last-opened] refresh item failed: ${a.name} ${err && err.message}`);
-            next[a.name] = { ms: null, source: 'unknown' };
-          }
-        }));
+        await Promise.all(
+          refreshable.map(async (a) => {
+            const path = resolveBundlePath(a.bundle);
+            if (!path) {
+              next[a.name] = { ms: null, source: "unknown" };
+              return;
+            }
+            try {
+              const r = await lastOpened.refreshOne(path);
+              next[a.name] = { ms: r.ms, source: r.source };
+            } catch (err) {
+              mainLog.warn(
+                `[last-opened] refresh item failed: ${a.name} ${err && err.message}`,
+              );
+              next[a.name] = { ms: null, source: "unknown" };
+            }
+          }),
+        );
         stateStore.saveLastOpened(next);
         const w = winMgr && winMgr.getWindow();
         if (w && !w.isDestroyed()) {
-          w.webContents.send('last-opened-updated', { lastOpened: next });
+          w.webContents.send("last-opened-updated", { lastOpened: next });
         }
       } catch (err) {
-        mainLog.warn(`[last-opened] batch refresh failed: ${err && err.message}`);
+        mainLog.warn(
+          `[last-opened] batch refresh failed: ${err && err.message}`,
+        );
       }
     })();
   }
@@ -379,7 +455,11 @@ async function bootstrap() {
   //   - silent=true 模式: 不发系统通知, 不弹 "checking" UI, 只更新 state + tray badge
   //   - 推 'auto-check-finished' 事件给 renderer, 让 UI 显示"刚刚自动检查过"
   //   - 应用退出时 clearInterval
-  const checkIntervalHours = (runtimeConfig && runtimeConfig.notifications && runtimeConfig.notifications.check_interval_hours) || 6;
+  const checkIntervalHours =
+    (runtimeConfig &&
+      runtimeConfig.notifications &&
+      runtimeConfig.notifications.check_interval_hours) ||
+    6;
   if (checkIntervalHours > 0) {
     const AUTO_CHECK_INTERVAL_MS = checkIntervalHours * 60 * 60 * 1000;
     const autoCheckTimer = setInterval(() => {
@@ -395,14 +475,16 @@ async function bootstrap() {
               const count = results.filter((r) => r.has_update).length;
               trayMgr.setBadge(count);
             }
-            try { stateStore.saveAll(results); } catch (err) {
+            try {
+              stateStore.saveAll(results);
+            } catch (err) {
               mainLog.warn(`state save failed: ${err.message}`);
             }
           },
           // Phase 17: auto-check 也用 state 跟踪 last_notified (虽然 silent 不发通知,
           // 但写状态保持一致). 这里不传 getState / markNotified, 因为 auto-check 静默.
         },
-        { silent: true }
+        { silent: true },
       ).catch((err) => {
         mainLog.warn(`auto-check failed: ${err && err.message}`);
       });
@@ -411,12 +493,18 @@ async function bootstrap() {
 
     // 退出时清掉
     if (!isQuitting) {
-      app.once('before-quit', () => {
-        try { clearInterval(autoCheckTimer); } catch { /* noop */ }
+      app.once("before-quit", () => {
+        try {
+          clearInterval(autoCheckTimer);
+        } catch {
+          /* noop */
+        }
       });
     }
   } else {
-    mainLog.info('auto-check disabled (notifications.check_interval_hours = 0)');
+    mainLog.info(
+      "auto-check disabled (notifications.check_interval_hours = 0)",
+    );
   }
 
   // ── spec §6 启动埋点: 一行 [startup] 把所有阶段耗时汇在一起 ──
@@ -435,31 +523,43 @@ async function bootstrap() {
 
 // 守卫：当 require('electron') 在非 electron runtime（Node 测试）下
 // app 是 undefined；只有真 electron 跑 main 时才会执行下面。
-if (app && typeof app.whenReady === 'function') {
+if (app && typeof app.whenReady === "function") {
   app.whenReady().then(() => {
     bootstrap().catch((err) => {
       mainLog.error(`bootstrap failed: ${err.message}`);
-      try { app.quit(); } catch { /* noop */ }
+      try {
+        app.quit();
+      } catch {
+        /* noop */
+      }
     });
   });
 
-  app.on('window-all-closed', () => {
+  app.on("window-all-closed", () => {
     // macOS: 不退出
   });
 
-  app.on('activate', () => {
+  app.on("activate", () => {
     if (winMgr) winMgr.showWindow();
   });
 
-  app.on('before-quit', () => {
+  app.on("before-quit", () => {
     isQuitting = true;
     if (pool) {
-      try { pool.stop(); } catch { /* noop */ }
+      try {
+        pool.stop();
+      } catch {
+        /* noop */
+      }
     }
     if (trayMgr) {
-      try { trayMgr.dispose(); } catch { /* noop */ }
+      try {
+        trayMgr.dispose();
+      } catch {
+        /* noop */
+      }
     }
-    mainLog.info('app quitting');
+    mainLog.info("app quitting");
   });
 }
 

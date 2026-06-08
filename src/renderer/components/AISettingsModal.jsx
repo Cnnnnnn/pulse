@@ -130,7 +130,7 @@ export function AISettingsModal() {
  apiKey: keyInput || undefined, //优先用未保存的输入
  baseUrl: cloudBaseUrl || DEFAULT_BASE_URL[cloudProviderId],
  }
- : { providerId: 'ollama' };
+      : { providerId: 'ollama', host: ollamaHost, model: ollamaModel };
  const r = await runAIHealthcheck(opts);
  setSaveStatus(r.ok ? 'test-ok' : { error: r.error || 'threw' });
  }
