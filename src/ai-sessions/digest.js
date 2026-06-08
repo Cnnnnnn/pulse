@@ -21,7 +21,7 @@
  */
 
 const DEFAULT_BACKFILL_DAYS = 7;
-const BACKFILL_SLEEP_MS = 5000;  // 防爆: 串行 N 天, 每 runOne 后 sleep 5s
+const BACKFILL_SLEEP_MS = 5000; // 防爆: 串行 N 天, 每 runOne 后 sleep 5s
 
 class DailyDigestRunner {
   /**
@@ -32,16 +32,30 @@ class DailyDigestRunner {
    * @param {object} [opts.config]     { enabled, backfillDays, locale }
    * @param {object} [opts.log]        logger, 接受 .info/.warn/.error(string)
    */
-  constructor({ detectors, summarizer, storage, config, log, backfillSleepMs } = {}) {
+  constructor({
+    detectors,
+    summarizer,
+    storage,
+    config,
+    log,
+    backfillSleepMs,
+  } = {}) {
     if (!Array.isArray(detectors)) {
-      throw new TypeError('DailyDigestRunner: detectors must be array');
+      throw new TypeError("DailyDigestRunner: detectors must be array");
     }
-    if (!summarizer || typeof summarizer.summarize !== 'function') {
-      throw new TypeError('DailyDigestRunner: summarizer must have summarize()');
+    if (!summarizer || typeof summarizer.summarize !== "function") {
+      throw new TypeError(
+        "DailyDigestRunner: summarizer must have summarize()",
+      );
     }
-    if (!storage || typeof storage.saveDigest !== 'function'
-                 || typeof storage.hasDigest !== 'function') {
-      throw new TypeError('DailyDigestRunner: storage must have saveDigest/hasDigest');
+    if (
+      !storage ||
+      typeof storage.saveDigest !== "function" ||
+      typeof storage.hasDigest !== "function"
+    ) {
+      throw new TypeError(
+        "DailyDigestRunner: storage must have saveDigest/hasDigest",
+      );
     }
     this.detectors = detectors;
     this.summarizer = summarizer;
@@ -49,7 +63,10 @@ class DailyDigestRunner {
     this.config = config || {};
     this.log = log || { info: () => {}, warn: () => {}, error: () => {} };
     // 可覆盖 BACKFILL_SLEEP_MS (单测用 0, 默认 5s 防爆)
-    this._backfillSleepMs = (typeof backfillSleepMs === 'number' && backfillSleepMs >= 0) ? backfillSleepMs : BACKFILL_SLEEP_MS;
+    this._backfillSleepMs =
+      typeof backfillSleepMs === "number" && backfillSleepMs >= 0
+        ? backfillSleepMs
+        : BACKFILL_SLEEP_MS;
     this._intervalHandle = null;
   }
 
@@ -65,9 +82,9 @@ class DailyDigestRunner {
    */
   async runOne(dateKey, opts = {}) {
     const force = Boolean(opts.force);
-    const now = (typeof opts.now === 'number') ? opts.now : Date.now();
-    if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-      throw new TypeError('runOne: dateKey must be YYYY-MM-DD');
+    const now = typeof opts.now === "number" ? opts.now : Date.now();
+    if (typeof dateKey !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+      throw new TypeError("runOne: dateKey must be YYYY-MM-DD");
     }
     if (!force && this.storage.hasDigest(dateKey)) {
       this.log.info(`[digest] ${dateKey} already exists, skip`);
@@ -79,7 +96,7 @@ class DailyDigestRunner {
     // 1. collect sessions from all detectors
     const allSessions = [];
     for (const det of this.detectors) {
-      if (!det || typeof det.isInstalled !== 'function') continue;
+      if (!det || typeof det.isInstalled !== "function") continue;
       const installed = await det.isInstalled();
       if (!installed) {
         this.log.info(`[digest] ${det.appName} not installed, skip`);
@@ -97,7 +114,9 @@ class DailyDigestRunner {
             allSessions.push(sess);
           }
         } catch (err) {
-          this.log.warn(`[digest] ${det.appName}/${m.id} read failed: ${err.message}`);
+          this.log.warn(
+            `[digest] ${det.appName}/${m.id} read failed: ${err.message}`,
+          );
         }
       }
     }
@@ -107,10 +126,15 @@ class DailyDigestRunner {
       return null;
     }
 
-    this.log.info(`[digest] ${dateKey} ${allSessions.length} sessions to summarize`);
+    this.log.info(
+      `[digest] ${dateKey} ${allSessions.length} sessions to summarize`,
+    );
 
     // 2. summarize
-    const summary = await this.summarizer.summarize(allSessions, { dateKey, locale: this.config.locale || 'zh-CN' });
+    const summary = await this.summarizer.summarize(allSessions, {
+      dateKey,
+      locale: this.config.locale || "zh-CN",
+    });
 
     // 3. persist
     const digest = {
@@ -123,7 +147,9 @@ class DailyDigestRunner {
       sessionIds: allSessions.map((s) => s.id),
     };
     this.storage.saveDigest(digest);
-    this.log.info(`[digest] ${dateKey} saved (${allSessions.length} sessions, ${summary.length} chars)`);
+    this.log.info(
+      `[digest] ${dateKey} saved (${allSessions.length} sessions, ${summary.length} chars)`,
+    );
     return digest;
   }
 
@@ -136,9 +162,13 @@ class DailyDigestRunner {
    * @returns {Promise<{done: number, total: number, results: object[]}>}
    */
   async runBackfill(days, opts = {}) {
-    const n = (typeof days === 'number' && days > 0) ? Math.floor(days) : (this.config.backfillDays || DEFAULT_BACKFILL_DAYS);
-    const now = (typeof opts.now === 'number') ? opts.now : Date.now();
-    const onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : () => {};
+    const n =
+      typeof days === "number" && days > 0
+        ? Math.floor(days)
+        : this.config.backfillDays || DEFAULT_BACKFILL_DAYS;
+    const now = typeof opts.now === "number" ? opts.now : Date.now();
+    const onProgress =
+      typeof opts.onProgress === "function" ? opts.onProgress : () => {};
 
     const results = [];
     // 串行 from oldest to newest (昨天 - (n-1) → 昨天)
@@ -152,7 +182,9 @@ class DailyDigestRunner {
       }
       onProgress(n - i, n);
       if (i > 0) {
-        await new Promise((resolve) => setTimeout(resolve, this._backfillSleepMs));
+        await new Promise((resolve) =>
+          setTimeout(resolve, this._backfillSleepMs),
+        );
       }
     }
     return { done: n, total: n, results };
@@ -160,22 +192,50 @@ class DailyDigestRunner {
 
   /**
    * 启动时: 跑昨天 (idempotent) + 可选 backfill.
+   *
+   * 顺序: 先看有没有任何 digest → 没 → backfill (含 yesterday +之前 N-1 天)
+   * 有 → 只跑 yesterday (其它天假设已有)
+   *
+   * @param {object} [opts]
+   * @param {function} [opts.onProgress]  backfill 进度回调 onProgress(done, total)
    * @returns {Promise<{yesterday: object|null, backfill: object|null}>}
    */
-  async bootstrap() {
+  async bootstrap(opts = {}) {
     if (!this.config.enabled) {
-      this.log.info('[digest] disabled in config, skip bootstrap');
+      this.log.info("[digest] disabled in config, skip bootstrap");
       return { yesterday: null, backfill: null };
     }
     const now = Date.now();
     const yesterday = this._dateKeyDaysAgo(1, now);
-    const yesterdayDigest = await this.runOne(yesterday, { now });
 
+    // B7c.2修: 先检查是否有 digest,决定是 backfill 还是只跑 yesterday.
+    // (之前是先跑 yesterday →写盘 → 再 loadDigests 检查 →永远 hasAny=true跳 backfill)
+    const digestsBefore = this.storage.loadDigests
+      ? this.storage.loadDigests()
+      : {};
+    const hasAny = Object.keys(digestsBefore).length > 0;
+
+    let yesterdayDigest = null;
     let backfillResult = null;
-    const digests = this.storage.loadDigests ? this.storage.loadDigests() : {};
-    const hasAny = Object.keys(digests).length > 0;
-    if (!hasAny && (this.config.backfillOnStart !== false)) {
-      backfillResult = await this.runBackfill(this.config.backfillDays || DEFAULT_BACKFILL_DAYS, { now });
+    if (!hasAny && this.config.backfillOnStart !== false) {
+      // 首次启动 (没历史 digest): 跑完整 backfill (含 yesterday 在内)
+      const backfillOpts = { now };
+      if (typeof opts.onProgress === "function") {
+        backfillOpts.onProgress = opts.onProgress;
+      }
+      backfillResult = await this.runBackfill(
+        this.config.backfillDays || DEFAULT_BACKFILL_DAYS,
+        backfillOpts,
+      );
+      // yesterday digest 就是 backfill 的最后1 天
+      yesterdayDigest =
+        backfillResult.results && backfillResult.results.length > 0
+          ? backfillResult.results.find((r) => r && r.dateKey === yesterday) ||
+            null
+          : null;
+    } else {
+      // 有历史: 只跑昨天 (idempotent)
+      yesterdayDigest = await this.runOne(yesterday, { now });
     }
     return { yesterday: yesterdayDigest, backfill: backfillResult };
   }
@@ -190,9 +250,9 @@ class DailyDigestRunner {
     if (this._intervalHandle) return this._intervalHandle;
     this._intervalHandle = setInterval(() => {
       const now = Date.now();
-      const yesterday = this._dateKeyDaysAgo(1, now);
-      this.runOne(yesterday, { now }).catch((err) => {
-        this.log.error(`[digest] interval ${yesterday} failed: ${err.message}`);
+      const dateKey = this._dateKeyDaysAgo(1, now);
+      this.runOne(dateKey, { now }).catch((err) => {
+        this.log.error(`[digest] interval ${dateKey} failed: ${err.message}`);
       });
     }, intervalMs);
     return this._intervalHandle;
@@ -217,10 +277,16 @@ class DailyDigestRunner {
    */
   _dateKeyDaysAgo(daysAgo, now) {
     const t = now - (daysAgo | 0) * 86400_000;
-    return new Intl.DateTimeFormat('en-CA', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
+    return new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     }).format(new Date(t));
   }
 }
 
-module.exports = { DailyDigestRunner, DEFAULT_BACKFILL_DAYS, BACKFILL_SLEEP_MS };
+module.exports = {
+  DailyDigestRunner,
+  DEFAULT_BACKFILL_DAYS,
+  BACKFILL_SLEEP_MS,
+};
