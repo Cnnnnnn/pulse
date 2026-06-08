@@ -21,6 +21,9 @@ const stateStore = require('./state-store');
 const { getAppIcon } = require('./app-icon');
 const { mainLog } = require('./log');
 const lastOpened = require('./last-opened');
+const aiStorage = require('../ai-sessions/storage');
+const { CloudSummarizer } = require('../ai-sessions/provider-cloud');
+const { PROVIDER_ENDPOINTS } = require('../ai-sessions/provider-cloud');
 
 // Bulk Upgrade: 一次只能跑一批; 用 AbortController 控制取消.
 let bulkUpgradeCtrl = null;
@@ -341,15 +344,135 @@ function registerIpcHandlers(deps) {
   });
 
   ipcMain.handle('ai-sessions:get-current', () => {
-    const wiring = _getDigestWiring();
-    if (!wiring) {
-      return { digest: null, enabled: false };
-    }
-    // 拿 "昨天" 的 digest (B5 banner 默认显示)
-    const yesterday = wiring.runner._dateKeyDaysAgo(1, Date.now());
-    const digest = wiring.storage.loadDigests()[yesterday] || null;
-    return { digest, enabled: true };
-  });
+ const wiring = _getDigestWiring();
+ if (!wiring) {
+ return { digest: null, enabled: false };
+ }
+ //拿 "昨天" 的 digest (B5 banner 默认显示)
+ const yesterday = wiring.runner._dateKeyDaysAgo(1, Date.now());
+ const digest = wiring.storage.loadDigests()[yesterday] || null;
+ return { digest, enabled: true };
+ });
+
+ // ── Phase B6c: AI Sessions Settings (云端API key + config) ─────
+ //6 个新通道:
+ // - ai-sessions:set-key —safeStorage存 API key
+ // - ai-sessions:clear-key —safeStorage删 API key
+ // - ai-sessions:has-key —探测某 providerId 有没存 key (不返 key本身)
+ // - ai-sessions:healthcheck —跑当前 / 指定 provider 健康检查
+ // - ai-sessions:get-config —读 state.json ai_sessions_config
+ // - ai-sessions:save-config —写 state.json ai_sessions_config +推事件
+
+ ipcMain.handle('ai-sessions:set-key', async (_event, providerId, apiKey) => {
+ if (typeof providerId !== 'string' || !/^[a-z0-9_-]+$/i.test(providerId)) {
+ return { ok: false, reason: 'invalid_providerId' };
+ }
+ if (typeof apiKey !== 'string' || apiKey.length ===0) {
+ return { ok: false, reason: 'invalid_apiKey' };
+ }
+ try {
+ const r = aiStorage.saveApiKey(providerId, apiKey);
+ if (!r) {
+ return { ok: false, reason: 'safeStorage_unavailable' };
+ }
+ mainLog.info(`[ipc] ai-sessions:set-key ok provider=${providerId}`);
+ return { ok: true };
+ } catch (err) {
+ mainLog.warn('[ipc] ai-sessions:set-key threw', { providerId, msg: err.message });
+ return { ok: false, reason: 'threw', error: err.message };
+ }
+ });
+
+ ipcMain.handle('ai-sessions:clear-key', async (_event, providerId) => {
+ if (typeof providerId !== 'string' || !/^[a-z0-9_-]+$/i.test(providerId)) {
+ return { ok: false, reason: 'invalid_providerId' };
+ }
+ try {
+ const r = aiStorage.clearApiKey(providerId);
+ return { ok: true, cleared: r };
+ } catch (err) {
+ mainLog.warn('[ipc] ai-sessions:clear-key threw', { providerId, msg: err.message });
+ return { ok: false, reason: 'threw', error: err.message };
+ }
+ });
+
+ ipcMain.handle('ai-sessions:has-key', async (_event, providerId) => {
+ if (typeof providerId !== 'string' || !/^[a-z0-9_-]+$/i.test(providerId)) {
+ return { ok: false, hasKey: false, available: false, reason: 'invalid_providerId' };
+ }
+ const available = aiStorage.isAvailable();
+ if (!available) {
+ return { ok: true, hasKey: false, available: false };
+ }
+ // 不直接返 key (安全);只探测 key file存在
+ const ss = (() => {
+ try { return require('electron').safeStorage; } catch { return null; }
+ })();
+ const filePath = (() => {
+ try {
+ const { app } = require('electron');
+ const path = require('path');
+ return path.join(app.getPath('userData'), 'ai-keys', `${providerId}.bin`);
+ } catch { return null; }
+ })();
+ if (!filePath) return { ok: true, hasKey: false, available: true };
+ const fs = require('fs');
+ const hasKey = fs.existsSync(filePath);
+ return { ok: true, hasKey, available: true };
+ });
+
+ ipcMain.handle('ai-sessions:healthcheck', async (_event, opts) => {
+ const wiring = _getDigestWiring();
+ if (!wiring) return { ok: false, error: 'not_initialized' };
+ const providerId = opts && typeof opts.providerId === 'string' ? opts.providerId : wiring.providerId;
+ if (!PROVIDER_ENDPOINTS[providerId]) {
+ return { ok: false, error: 'unsupported_providerId' };
+ }
+ //优先用 opts.apiKey (用户刚输的,可能没存盘);否则从 safeStorage拿
+ const apiKey = (opts && typeof opts.apiKey === 'string' && opts.apiKey.length >0)
+ ? opts.apiKey
+ : (() => { try { return aiStorage.loadApiKey(providerId); } catch { return null; } })();
+ if (!apiKey) return { ok: false, error: 'api_key_missing' };
+ const model = (opts && typeof opts.model === 'string' && opts.model.length >0)
+ ? opts.model
+ : 'gpt-4o-mini'; // 占位 (实际model不重要,healthcheck用 max_tokens=1)
+ try {
+ //临时 CloudSummarizer,不污染 wiring (wiring 用 saved config)
+ const tmp = new CloudSummarizer();
+ const r = await tmp.healthcheck({
+ provider: providerId, model, httpClient: null,
+ config: { providerId, model, apiKey, baseUrl: opts && opts.baseUrl },
+ });
+ return r;
+ } catch (err) {
+ return { ok: false, error: err.message };
+ }
+ });
+
+ ipcMain.handle('ai-sessions:get-config', async () => {
+ try {
+ const cfg = stateStore.loadAISessionsConfig();
+ return { ok: true, config: cfg };
+ } catch (err) {
+ mainLog.warn('[ipc] ai-sessions:get-config threw', { msg: err.message });
+ return { ok: false, reason: 'threw', error: err.message };
+ }
+ });
+
+ ipcMain.handle('ai-sessions:save-config', async (_event, cfg) => {
+ if (cfg != null && typeof cfg !== 'object') {
+ return { ok: false, reason: 'invalid_config' };
+ }
+ try {
+ const next = stateStore.saveAISessionsConfig(cfg);
+ sendToRenderer('ai-sessions-config-updated', { config: next.ai_sessions_config || null });
+ mainLog.info(`[ipc] ai-sessions:save-config ok enabled=${cfg && cfg.enabled} provider=${cfg && cfg.provider}`);
+ return { ok: true, config: next.ai_sessions_config || null };
+ } catch (err) {
+ mainLog.warn('[ipc] ai-sessions:save-config threw', { msg: err.message });
+ return { ok: false, reason: 'threw', error: err.message };
+ }
+ });
 }
 
 module.exports = { registerIpcHandlers };
