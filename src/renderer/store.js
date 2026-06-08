@@ -293,25 +293,29 @@ export async function loadDailyDigest() {
  * @returns {Promise<object|null>} 新 digest 或 null (失败)
  */
 export async function rerunDigest() {
-  digestLoading.value = true;
-  try {
-    // eslint-disable-next-line no-undef
-    const { api } = await import('./api.js');
-    const r = await api.rerunDigest();
-    if (r && r.ok && r.digest) {
-      dailyDigest.value = r.digest;
-      return r.digest;
-    }
-    // eslint-disable-next-line no-console
-    console.warn('[store] rerunDigest failed:', r && r.reason);
-    return null;
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[store] rerunDigest threw:', err && err.message);
-    return null;
-  } finally {
-    digestLoading.value = false;
-  }
+ digestLoading.value = true;
+ try {
+ // eslint-disable-next-line no-undef
+ const { api } = await import('./api.js');
+ const r = await api.rerunDigest();
+ if (r && r.ok && r.digest) {
+ dailyDigest.value = r.digest;
+ return r.digest;
+ }
+ // B7b.1: auth错 → toast提示更新 key
+ if (r && !r.ok && typeof r.error === 'string' && /^auth_/.test(r.error)) {
+ showToast('API key 无效,请在设置里更新', 'warn',5000);
+ }
+ // eslint-disable-next-line no-console
+ console.warn('[store] rerunDigest failed:', r && r.reason);
+ return null;
+ } catch (err) {
+ // eslint-disable-next-line no-console
+ console.warn('[store] rerunDigest threw:', err && err.message);
+ return null;
+ } finally {
+ digestLoading.value = false;
+ }
 }
 
 /**
@@ -559,10 +563,17 @@ export async function runAIHealthcheck(opts) {
  try {
  const r = await api.aiHealthcheck(opts);
  setAIHealthcheckResult(r || { ok: false, error: 'no_response' });
+ // B7b.1: auth_401/403 →一次性 toast提示用户更新 key (不弹 modal)
+ if (r && !r.ok && typeof r.error === 'string' && /^auth_/.test(r.error)) {
+ showToast('API key 无效,请在设置里更新', 'warn',5000);
+ }
  return r || { ok: false };
  } catch (err) {
  const out = { ok: false, error: (err && err.message) || 'unknown' };
  setAIHealthcheckResult(out);
+ if (/^auth_/.test(out.error || '')) {
+ showToast('API key 无效,请在设置里更新', 'warn',5000);
+ }
  return out;
  } finally {
  setAIHealthcheckBusy(false);
@@ -666,4 +677,51 @@ export async function triggerBackfill(days =7) {
  } catch (err) {
  return { ok: false, reason: 'threw', error: err && err.message };
  }
+}
+
+// ─── Phase B7b.1: Toast notifications ─────────────────────────────
+// store-side toast queue. Toast.jsx订阅 .value渲染。
+// 用 array (不是单个对象) —支持多 toast 同时显示 (queue)。
+
+// toast: Array<{ id: string, message: string, type: 'info'|'warn'|'error'|'success', ts: number }>
+export const toast = signal([]);
+
+let _toastIdCounter =0;
+function _nextToastId() {
+ _toastIdCounter +=1;
+ return `toast-${Date.now()}-${_toastIdCounter}`;
+}
+
+/**
+ * 显示一个 toast。默认5s 自动消失。
+ * @param {string} message
+ * @param {'info'|'warn'|'error'|'success'} [type='info']
+ * @param {number} [ms=5000] 0 = 不自动消失
+ * @returns {string} toast id
+ */
+export function showToast(message, type = 'info', ms =5000) {
+ if (typeof message !== 'string' || message.length ===0) return null;
+ const id = _nextToastId();
+ const t = { id, message, type, ts: Date.now() };
+ const next = [...toast.value, t];
+ toast.value = next;
+ if (ms >0) {
+ setTimeout(() => dismissToast(id), ms);
+ }
+ return id;
+}
+
+/**
+ *手动 dismiss toast (Toast组件的 ×按钮调)。
+ * @param {string} id
+ */
+export function dismissToast(id) {
+ toast.value = toast.value.filter((t) => t.id !== id);
+}
+
+/**
+ * 清所有 toast。
+ */
+export function clearToasts() {
+ toast.value = [];
 }

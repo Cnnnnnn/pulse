@@ -25,6 +25,7 @@ import { WeeklyBanner } from './components/WeeklyBanner.jsx';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { AIDigestBanner } from './components/AIDigestBanner.jsx';
 import { AISettingsModal } from './components/AISettingsModal.jsx';
+import { Toast } from './components/Toast.jsx';
 
 export function App({ onCheck }) {
   const status = checkStatus.value;
@@ -82,6 +83,8 @@ export function App({ onCheck }) {
  <BulkUpgradeModal />
  {/* Phase B6c.4: AI Settings modal —受 aiSettingsOpen signal 控制 mount */}
  <AISettingsModal />
+ {/* Phase B7b.1: Toast notifications —store.toast数组为空时不渲染 */}
+ <Toast />
  </div>
   );
 }
