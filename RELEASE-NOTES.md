@@ -2,6 +2,63 @@
 
 ---
 
+## v2.4.0 (Phase A) — 2026-06-08
+
+### New: 应用分类 (App Categorization)
+
+顶部新加 8 类 category tabs (底部下划线风格), 跟 search + 状态 tab 过滤器正交:
+
+| 分类 | icon | 顺序 |
+|------|------|------|
+| AI 工具 | 🤖 | 1 |
+| 开发者 | 🛠 | 2 |
+| 浏览器 | 🌐 | 3 |
+| 沟通 | 💬 | 4 |
+| 媒体 | 🎨 | 5 |
+| 笔记 | 📝 | 6 |
+| 系统 | 🔧 | 7 |
+| 其他 | 📦 | 99 (永显示) |
+
+- 静态 1:1 映射 (24 个 app) — `config/categories.json` + `config/app-category.json`
+- 顶部 tab 顺序: count desc → order asc, "全部" 永第一, "📦 其他" 永最后
+- hide empty: 0 app 的 tab 不显示 (除 "📦 其他" 兜底)
+- 切换 tab: 不丢 search query / 状态 tab / mute (持久化在 `state.json.active_category`)
+- 键盘快捷键: `0` 切 "全部", `1-9` 切前 9 个 tab (按 tab 顺序, 焦点在 input 时不抢)
+- 未映射 app → "📦 其他" (兜底, 永不崩)
+- 切 tab 时 `saveActiveCategory` 走 IPC, 失败 log warn 不阻塞 UI
+
+### 数据 + 架构
+
+- 静态 map 是 single source of truth, 走 git PR 维护
+- main 进程: 启动时 fs 读 JSON, 注入 `category.setData({ source: 'disk' })`
+- renderer: esbuild static import JSON, 顶层 `category-init.js` 调 `setData`
+- 失败降级: 缺 'other' / 引用不存在 id / 缺字段 — 全部走 module-level DEFAULT 兜底
+
+### 已知 follow-up (单独 PR)
+
+- spec 24 mapping 跟 `config.json` 实际监控的 11 app 只有 1 个 (Cursor) 重叠 → 初次启用时多数 app 归 "📦 其他"
+- 建议 PR: 把 spec 里 claude/chatgpt/firefox/arc/sketch/... 替换为 Kimi/ima.copilot/MiniMax Code/WorkBuddy/QClaw/Marvis/QoderWork/Codex/CodexBar/CC Switch
+
+### 测试
+
+- 84 个新 case: category.test.js 22 + state-store 7 + filter-by-category 12 + category-tabs 15 + category-keyboard 12 + load-smoke 1 + 其它 15
+- 总计 628/628 全过 (v2.3.0 是 532, +96)
+- esbuild bundle: 232kb (v2.3.0 是 218kb, +14kb = inline JSON + CategoryTabs 组件)
+
+### Phase A commit 拆分 (5 个独立可回滚)
+
+- A1a `1b96a70` — 2 个 JSON 数据文件
+- A1b `c3e2a78` — category.js runtime (后被 A3 refactor 改成 setData 注入)
+- A1c `39f3aea` — load-smoke coverage
+- A2 `08e85ba` — state-store active_category + IPC 3-place sync
+- A3 `66e18e5` — store signal + filteredResults + 2-process data inject
+- A4 `2a99ef0` — CategoryTabs 组件 + ResultsView 集成 + 视觉
+- A5 — keyboard 快捷键 + 边界 case (本 release)
+
+---
+
+
+
 ## v2.3.0 (Phase 29) — 2026-06-07
 
 ### New: 最近打开时间 (last-opened)
