@@ -21,7 +21,7 @@
 
 import { render } from 'preact';
 import { App } from './App.jsx';
-import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes, loadLastOpened, loadActiveCategory, lastOpenedApps } from './store.js';
+import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes, loadLastOpened, loadActiveCategory, loadDailyDigest, subscribeDigestUpdates, lastOpenedApps } from './store.js';
 import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
@@ -52,10 +52,13 @@ async function bootstrap() {
     }
   } catch { /* 缓存加载失败不阻塞, 仍走正常 check 路径 */ }
 
-  // 1.6) Phase 27 + 29 + A: 加载 mutes + last-opened + active_category, 让右键菜单 / badge / category tab 立即知道
+  // 1.6) Phase 27 + 29 + A + B5: 加载 mutes + last-opened + active_category + daily digest
   try {
-    await Promise.allSettled([loadMutes(), loadLastOpened(), loadActiveCategory()]);
-  } catch { /* noop, 默认空 map / 'all' */ }
+    await Promise.allSettled([loadMutes(), loadLastOpened(), loadActiveCategory(), loadDailyDigest()]);
+  } catch { /* noop, 默认空 map / 'all' / null digest */ }
+
+  // 1.7) Phase B5: 订阅主进程 ai-digest-updated 事件, 重跑 / 24h cron 完成时回写 signal
+  subscribeDigestUpdates();
 
   // 1.7) Phase 29: 订阅主进程 last-opened-updated 事件, 主进程在每次 checkUpdates
   // 完成后会推过来. UI 自动跟最新 (AppInfo / MuteMenu 重渲染)

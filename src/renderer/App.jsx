@@ -15,7 +15,7 @@
  */
 
 import { useEffect } from 'preact/hooks';
-import { checkStatus, results, checkStartTime, checkDuration, cachedState } from './store.js';
+import { checkStatus, results, checkStartTime, checkDuration, cachedState, dailyDigest, digestLoading, aiSessionsEnabled, rerunDigest } from './store.js';
 import { Header } from './components/Header.jsx';
 import { FilterBar } from './components/FilterBar.jsx';
 import { Skeleton } from './components/Skeleton.jsx';
@@ -23,6 +23,7 @@ import { ResultsView } from './components/ResultsView.jsx';
 import { ErrorBanner } from './components/ErrorBanner.jsx';
 import { WeeklyBanner } from './components/WeeklyBanner.jsx';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
+import { AIDigestBanner } from './components/AIDigestBanner.jsx';
 
 export function App({ onCheck }) {
   const status = checkStatus.value;
@@ -50,6 +51,8 @@ export function App({ onCheck }) {
     <div id="app">
       <div id="titlebar"></div>
       <Header onCheck={onCheck} />
+      {/* Phase B5: 顶部 AI digest banner (spec §5.2, 跟 spec 一致插在 Header 下、FilterBar 上) */}
+      {aiSessionsEnabled.value && <AIDigestBanner digest={dailyDigest.value} loading={digestLoading.value} onRerun={rerunDigest} />}
       <FilterBar />
       <main id="content">
         {/* Phase 19: 周报式摘要 banner, 0 升级时不显示. 在 results 出现后再挂, 避免骨架期空白 */}

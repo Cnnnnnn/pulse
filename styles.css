@@ -1384,3 +1384,71 @@ body {
 .category-tab.active .category-tab-count {
   color: var(--text-secondary);
 }
+
+/* Phase B5 (AI Sessions Daily Digest): 顶部 digest banner.
+   跟 WeeklyBanner 风格保持一致 (details/summary 折叠), 单独放在 Header 下、FilterBar 上.
+   见 spec §5.4 视觉细节.
+*/
+.ai-digest-banner {
+  margin: 0 8px 4px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--bg-secondary, #e5e5ea);
+  border-radius: 6px;
+  font-size: 12px;
+  overflow: hidden;
+}
+.ai-digest-banner[open] {
+  padding-bottom: 4px;
+}
+.ai-digest-banner > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  user-select: none;
+  transition: background 150ms ease;
+}
+.ai-digest-banner > summary::-webkit-details-marker { display: none; }
+.ai-digest-banner > summary:hover { background: rgba(0, 0, 0, 0.03); }
+.ai-digest-banner > summary:focus { outline: 2px solid #007aff55; outline-offset: -2px; }
+.ai-digest-banner .banner-icon { font-size: 13px; }
+.ai-digest-banner .banner-title { font-weight: 600; color: var(--text-primary, #333); }
+.ai-digest-banner .banner-count { color: var(--text-tertiary, #999); font-size: 11px; }
+.ai-digest-banner .banner-preview {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-secondary, #666); font-size: 12px;
+}
+.ai-digest-banner .rerun-btn {
+  background: transparent; border: 0; padding: 2px 4px; cursor: pointer;
+  font-size: 13px; line-height: 1; color: var(--text-tertiary, #999);
+  border-radius: 4px;
+}
+.ai-digest-banner .rerun-btn:hover { background: rgba(0, 0, 0, 0.06); color: #007aff; }
+.ai-digest-banner .ai-digest-content {
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary, #333);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border-top: 1px solid var(--bg-secondary, #e5e5ea);
+  margin: 0 4px;
+  font-family: var(--font-system);
+}
+.ai-digest-banner .ai-digest-meta {
+  padding: 4px 12px;
+  font-size: 10px;
+  color: var(--text-tertiary, #999);
+  text-align: right;
+}
+.ai-digest-banner.loading {
+  padding: 8px 12px;
+  color: var(--text-secondary, #666);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

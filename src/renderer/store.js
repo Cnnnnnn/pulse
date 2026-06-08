@@ -41,6 +41,14 @@ export const activeFilter = signal('all');
 // 持久化到 state.json.active_category; 还原由 loadActiveCategory() 完成.
 export const activeCategory = signal('all');
 
+// Phase B5 (AI Sessions Daily Digest): 昨日 digest banner
+//   - dailyDigest: 从 state.json.daily_digests[yesterday] 拿, 或 IPC 'ai-sessions:get-current' 拿
+//   - digestLoading: rerun / backfill 中
+//   - aiSessionsEnabled: config.aiSessions.enabled (banner 整体显隐)
+export const dailyDigest = signal(null);
+export const digestLoading = signal(false);
+export const aiSessionsEnabled = signal(false);
+
 // Phase 27: Mutes. Map<name, {until, reason}>.
 //   - until: 0 = 永远, >0 = epoch ms 到期
 //   - reason: 'manual' 现阶段; 后续 'auto-cooldown' 之类
@@ -238,6 +246,88 @@ export async function loadActiveCategory() {
   } catch {
     return 'all';
   }
+}
+
+// ─── Phase B5: AI Sessions Daily Digest ──────────────────────────
+
+/**
+ * 拿 digest 局部 setter (测试 / IPC 事件回写用).
+ * @param {object|null} digest
+ */
+export function setDailyDigest(digest) {
+  dailyDigest.value = digest;
+}
+
+export function setDigestLoading(loading) {
+  digestLoading.value = Boolean(loading);
+}
+
+export function setAISessionsEnabled(enabled) {
+  aiSessionsEnabled.value = Boolean(enabled);
+}
+
+/**
+ * Bootstrap 时调用: 从主进程拉 (1) aiSessions config enabled 标志 + (2) 昨日 digest.
+ * 失败 graceful — digest 留 null, enabled 留 false.
+ * @returns {Promise<{enabled: boolean, hasDigest: boolean}>}
+ */
+export async function loadDailyDigest() {
+  // eslint-disable-next-line no-undef
+  const { api } = await import('./api.js');
+  try {
+    const r = await api.getCurrentDigest();
+    setAISessionsEnabled(Boolean(r && r.enabled));
+    setDailyDigest(r && r.digest ? r.digest : null);
+    return { enabled: Boolean(r && r.enabled), hasDigest: Boolean(r && r.digest) };
+  } catch {
+    return { enabled: false, hasDigest: false };
+  }
+}
+
+/**
+ * 用户在 banner 点 🔄 调. 异步, 同步:
+ *   - digestLoading=true
+ *   - api.rerunDigest() 走 IPC
+ *   - 成功: 写回 dailyDigest signal
+ *   - 失败: log warn, 不 throw (UI 仍可用)
+ * @returns {Promise<object|null>} 新 digest 或 null (失败)
+ */
+export async function rerunDigest() {
+  digestLoading.value = true;
+  try {
+    // eslint-disable-next-line no-undef
+    const { api } = await import('./api.js');
+    const r = await api.rerunDigest();
+    if (r && r.ok && r.digest) {
+      dailyDigest.value = r.digest;
+      return r.digest;
+    }
+    // eslint-disable-next-line no-console
+    console.warn('[store] rerunDigest failed:', r && r.reason);
+    return null;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[store] rerunDigest threw:', err && err.message);
+    return null;
+  } finally {
+    digestLoading.value = false;
+  }
+}
+
+/**
+ * 订阅 main 推的 ai-digest-updated 事件, 同步回写 signal. bootstrap 时调.
+ */
+export function subscribeDigestUpdates() {
+  // eslint-disable-next-line no-undef
+  import('./api.js').then(({ api }) => {
+    if (api && typeof api.onDigestUpdated === 'function') {
+      api.onDigestUpdated((data) => {
+        if (data && data.digest) {
+          dailyDigest.value = data.digest;
+        }
+      });
+    }
+  });
 }
 
 // 注: Phase 25 app 图标走 useIcon hook 的 module-level cache (hooks/useIcon.js),
