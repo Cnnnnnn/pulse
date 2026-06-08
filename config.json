@@ -58,6 +58,11 @@
         {
           "type": "electron_yml",
           "url": "https://filecdn.minimax.chat/public/minimax-agent-prod/release/latest-mac.yml"
+        },
+        {
+          "type": "electron_zip_probe",
+          "baseUrl": "https://filecdn.minimax.chat/public/minimax-agent-prod/release",
+          "product": "MiniMax Code"
         }
       ]
     },
