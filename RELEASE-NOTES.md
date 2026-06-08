@@ -59,6 +59,90 @@
 
 
 
+---
+
+## v2.5.0 (Phase B) —2026-06-08
+
+### New: AI编程会话每日总结 (AI Sessions Daily Digest)
+
+
+顶部 ⚙️按钮 → AI总结 设置弹窗。**opt-in** — 默认关闭,老用户不受影响。
+
+5 个 LLM provider 任选:
+- **Ollama (本地)** — `qwen3.5:9b` 默认,无 auth,走 `http://localhost:11434`
+- **OpenAI** — `gpt-4o-mini` 默认,Bearer auth,走 `/v1/chat/completions`
+- **Anthropic** — `claude-sonnet-4-5` 默认,`x-api-key + anthropic-version:2023-06-01`走 `/v1/messages`
+- **DeepSeek** — `deepseek-chat` 默认,OpenAI兼容
+- **MiniMax** — `MiniMax-ABAB6.5s` 默认,OpenAI兼容 (`api.minimax.chat/v1`)
+
+### API key 管理 (OS Keychain)
+
+-走 Electron `safeStorage` (macOS Keychain / Windows DPAPI / Linux libsecret)
+-加密文件位置: `~/Library/Application Support/Pulse/ai-keys/<provider>.bin` (mode0o600)
+- Modal 提供 "保存 key" / "清空"按钮;key 不入 state.json (只 safeStorage ref)
+- "测试连接"走轻量 `POST max_tokens=1` → ok/auth_401/http_status状态
+- Linux 无 keyring 时 safeStorage不可用 →拒绝存 plaintext + UI hint
+
+### Banner + 自动生成
+
+-顶部 `<AIDigestBanner />` — 默认折叠,1 行60字符 preview + 🔄 重跑按钮
+-启动时跑昨天 digest (idempotent) +首次启动自动 backfill7 天
+-24h cron每天重跑昨天 digest
+-手动 rerun / backfill (≤30 天)走 IPC
+- digest持久化在 `state.json.daily_digests[dateKey]` (30 天 GC)
+
+###边界处理
+
+-401 → modal 测试连接显示 ✗ auth_401; digest跳过当天
+- LLM 超时120s → retry1 次;仍失败 → log warn + skip
+- safeStorage不可用 → wiring fallback stub summarizer (healthcheck永远 ok:false); digest 健康检查 fail → skip
+- 同一天已有 digest → idempotent skip (除非 force rerun)
+-损坏 safeStorage file → loadApiKey返 null + log warn
+- backfill 中不重跑 (复用 in-progress)
+
+### 数据 +架构
+
+- `state.json` 新字段: `daily_digests: { [dateKey]: Digest }` + `ai_sessions_config: { enabled, provider, ollama, cloud }`
+- `config.json` 的 `aiSessions`块可设 default;`ai_sessions_config` (state.json)优先
+-7 个 IPC通道 (`ai-sessions:set-key/clear-key/has-key/healthcheck/get-config/save-config` + config-updated事件)
+-3-place sync: ipc.js ↔ preload.js ↔ renderer/api.js
+
+### 测试
+
+-236 个新 case (B1+B2+B3+B4+B5+B6): provider-ollama21 + storage22 + provider-cloud37 + wiring16 + digest14 + cursor-detector13 + detector6 + summarizer7 + ai-digest-banner20 + ai-settings-modal13 + state-store B7 + integration8 + load-smoke1 +其它
+- 总计 **864/864 全过** (v2.4.0 是768, +96 for Phase B)
+- esbuild bundle:257kb (v2.4.0 是232kb, +25kb = provider-cloud + AISettingsModal + ⚙️ button + IPC)
+
+### Phase B commit拆分 (8 个独立可回滚)
+
+- B1 `1f3e6c1` —6 个抽象模块 + state-store扩字段
+- B2a `8930619` — CursorDetectorImpl file-scan skeleton
+- B2b `690c510` — readSession via node:sqlite (no native)
+- B3a `256fb7d` — OllamaSummarizer HTTP impl +21 case
+- B3b+c `781283d` — startup healthcheck + config schema
+- B4 `77dceb2` — wiring + IPC + cron +17 case
+- B5 `38f2ce1` — `<AIDigestBanner />` + store + bootstrap +20 case
+- **B6a `3d953e1` — safeStorage helper + DI +22 case (本 release关键)**
+- **B6b `d8cfd27` — CloudSummarizer (4 providers + Anthropic) +37 case**
+- **B6b.5 `713567c` — wiring cloud路由 + runtimeOverride +16 case**
+- **B6c `1f33aae` —6 IPC channels for Settings modal +3-place sync**
+- **B6c.2 `e01d9a3` — renderer store signals + actions for Settings**
+- **B6c.3 `7790976` — AISettingsModal +13 test case**
+- **B6c.4 `8b2b6f3` — Header ⚙️ button + App.jsx modal集成**
+- **B6d `8b1f065` —视觉样式 +错误路径验证**
+
+### Caveats (release 前你必做)
+
+- **真 SQLite query路径** (dev Node18 没 `node:sqlite`)
+- **真 ollama端到端** (起 ollama 服务 +跑 Pulse + 看 startup log)
+- **真 cloud端到端** (拿真 minimax/openai key +跑 Pulse + banner 显示 + rerun + backfill)
+- **真 safeStorage round-trip** (装 DMG +存 key + 重启 + load 一致)
+- **banner UI 真路径** (config.json 加 `aiSessions.enabled: true` 才能看到)
+
+---
+
+
+
 ## v2.3.0 (Phase 29) — 2026-06-07
 
 ### New: 最近打开时间 (last-opened)
