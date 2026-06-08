@@ -1322,3 +1322,65 @@ body {
   font-weight: 600;
 }
 
+
+/* Phase A (App Categorization): 顶部 8 类 tabs
+   - 跟 FilterBar 的 chip 风格区分: 这里用底部下划线 (spec §5.4)
+   - 8+ 个 tab 用下划线风格不挤, 跟 macOS 偏好设置风格一致
+*/
+.category-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--bg-secondary);
+  padding: 0 8px;
+  overflow-x: auto;
+  scrollbar-width: none;       /* Firefox: hide scrollbar */
+}
+.category-tabs::-webkit-scrollbar { display: none; }  /* Chrome/Safari: hide */
+
+.category-tab {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-system);
+  white-space: nowrap;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 150ms ease;
+  margin-bottom: -1px;          /* 覆盖父级 border-bottom, 让 active 下划线对齐 */
+}
+
+.category-tab:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.category-tab.active {
+  color: #007aff;
+  border-bottom-color: #007aff;
+}
+
+.category-tab-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.category-tab-name {
+  font-weight: 500;
+}
+
+.category-tab-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.category-tab.active .category-tab-count {
+  color: var(--text-secondary);
+}
