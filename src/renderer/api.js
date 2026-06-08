@@ -52,6 +52,12 @@ export function createApi(overrides = {}) {
     // Phase A (App Categorization): active category tab
     getActiveCategory:    pick(overrides, 'getActiveCategory'),
     saveActiveCategory:   pick(overrides, 'saveActiveCategory'),
+    // Phase B4 (AI Sessions Daily Digest)
+    rerunDigest:           pick(overrides, 'rerunDigest'),
+    backfillDigest:        pick(overrides, 'backfillDigest'),
+    getCurrentDigest:      pick(overrides, 'getCurrentDigest'),
+    onDigestUpdated:       pick(overrides, 'onDigestUpdated'),
+    onDigestProgress:      pick(overrides, 'onDigestProgress'),
   };
 }
 

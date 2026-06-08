@@ -32,6 +32,7 @@ import {
   saveActiveCategory,
   cleanExpiredDigests,
   loadDailyDigests,
+  hasDailyDigest,
   saveDailyDigest,
   loadAISessionsConfig,
   saveAISessionsConfig,
@@ -535,6 +536,17 @@ describe('loadDailyDigests / saveDailyDigest (Phase B)', () => {
       summary: digest.summary,
     });
     expect(out['2026-06-07'].sessionIds).toEqual(['a', 'b', 'c']);
+    // 顺便验证 hasDailyDigest
+    expect(hasDailyDigest('2026-06-07', statePath)).toBe(true);
+    expect(hasDailyDigest('2026-06-06', statePath)).toBe(false);
+  });
+
+  it('hasDailyDigest 边界: 不存在 / 空 / 非 string → false', () => {
+    expect(hasDailyDigest('missing', statePath)).toBe(false);
+    expect(hasDailyDigest('', statePath)).toBe(false);
+    expect(hasDailyDigest(null, statePath)).toBe(false);
+    fs.writeFileSync(statePath, JSON.stringify({ v: 1, apps: {}, mutes: {} }), 'utf-8');
+    expect(hasDailyDigest('2026-06-07', statePath)).toBe(false);
   });
 
   it('saveDailyDigest 保留 apps / mutes / last_opened / active_category', () => {

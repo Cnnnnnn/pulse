@@ -32,4 +32,11 @@ contextBridge.exposeInMainWorld('api', {
   // Phase A (App Categorization): active category tab
   getActiveCategory:    ()           => ipcRenderer.invoke('get-active-category'),
   saveActiveCategory:   (id)         => ipcRenderer.invoke('save-active-category', id),
+
+  // Phase B4 (AI Sessions Daily Digest): 手动 rerun / backfill / get current
+  rerunDigest:           (opts)       => ipcRenderer.invoke('ai-sessions:rerun', opts),
+  backfillDigest:        (days)       => ipcRenderer.invoke('ai-sessions:backfill', days),
+  getCurrentDigest:      ()           => ipcRenderer.invoke('ai-sessions:get-current'),
+  onDigestUpdated:       (cb)         => ipcRenderer.on('ai-digest-updated', (_, data) => cb(data)),
+  onDigestProgress:      (cb)         => ipcRenderer.on('ai-digest-progress', (_, data) => cb(data)),
 });

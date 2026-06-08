@@ -32,7 +32,7 @@ class DailyDigestRunner {
    * @param {object} [opts.config]     { enabled, backfillDays, locale }
    * @param {object} [opts.log]        logger, 接受 .info/.warn/.error(string)
    */
-  constructor({ detectors, summarizer, storage, config, log } = {}) {
+  constructor({ detectors, summarizer, storage, config, log, backfillSleepMs } = {}) {
     if (!Array.isArray(detectors)) {
       throw new TypeError('DailyDigestRunner: detectors must be array');
     }
@@ -48,6 +48,9 @@ class DailyDigestRunner {
     this.storage = storage;
     this.config = config || {};
     this.log = log || { info: () => {}, warn: () => {}, error: () => {} };
+    // 可覆盖 BACKFILL_SLEEP_MS (单测用 0, 默认 5s 防爆)
+    this._backfillSleepMs = (typeof backfillSleepMs === 'number' && backfillSleepMs >= 0) ? backfillSleepMs : BACKFILL_SLEEP_MS;
+    this._intervalHandle = null;
   }
 
   /**
@@ -149,7 +152,7 @@ class DailyDigestRunner {
       }
       onProgress(n - i, n);
       if (i > 0) {
-        await new Promise((resolve) => setTimeout(resolve, BACKFILL_SLEEP_MS));
+        await new Promise((resolve) => setTimeout(resolve, this._backfillSleepMs));
       }
     }
     return { done: n, total: n, results };
@@ -179,18 +182,30 @@ class DailyDigestRunner {
 
   /**
    * 24h 定时: 每 24h 跑一次昨天 digest.
-   * 立即返回 (返回 setInterval id, 可 clearInterval).
+   * 立即返回. Idempotent: 多次调不重复注册, 返同 handle.
    * @param {number} [intervalMs=86400000]
    * @returns {NodeJS.Timeout}
    */
   start(intervalMs = 86400_000) {
-    return setInterval(() => {
+    if (this._intervalHandle) return this._intervalHandle;
+    this._intervalHandle = setInterval(() => {
       const now = Date.now();
       const yesterday = this._dateKeyDaysAgo(1, now);
       this.runOne(yesterday, { now }).catch((err) => {
         this.log.error(`[digest] interval ${yesterday} failed: ${err.message}`);
       });
     }, intervalMs);
+    return this._intervalHandle;
+  }
+
+  /**
+   * 停 24h 定时. Idempotent.
+   */
+  stop() {
+    if (this._intervalHandle) {
+      clearInterval(this._intervalHandle);
+      this._intervalHandle = null;
+    }
   }
 
   /**

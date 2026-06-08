@@ -290,6 +290,66 @@ function registerIpcHandlers(deps) {
       return { ok: false, reason: 'threw', activeCategory: stateStore.loadActiveCategory() };
     }
   });
+
+  // ── Phase B4 (AI Sessions Daily Digest): 手动 rerun / backfill ─────
+  // main 进程 bootstrap 启了 DailyDigestRunner (24h cron), 用户在 UI 也能手动
+  // 触发 rerun yesterday / backfill N 天. 进度走 ai-digest-progress 事件.
+
+  function _getDigestWiring() {
+    return global.__pulse_dailyDigest || null;
+  }
+
+  ipcMain.handle('ai-sessions:rerun', async (_event, opts) => {
+    const wiring = _getDigestWiring();
+    if (!wiring) {
+      return { ok: false, reason: 'not_initialized' };
+    }
+    const dateKey = (opts && typeof opts.dateKey === 'string') ? opts.dateKey : (() => {
+      const t = Date.now();
+      return wiring.runner._dateKeyDaysAgo(1, t);
+    })();
+    try {
+      const r = await wiring.runner.runOne(dateKey, { force: true, now: Date.now() });
+      if (r) {
+        // 推 renderer 更新 (B5 banner 会订阅这个事件)
+        sendToRenderer('ai-digest-updated', { digest: r, source: 'rerun' });
+      }
+      return { ok: true, digest: r };
+    } catch (err) {
+      mainLog.warn('[ipc] ai-sessions:rerun failed', { dateKey, msg: err.message });
+      return { ok: false, reason: 'threw', error: err.message };
+    }
+  });
+
+  ipcMain.handle('ai-sessions:backfill', async (_event, days) => {
+    const wiring = _getDigestWiring();
+    if (!wiring) {
+      return { ok: false, reason: 'not_initialized' };
+    }
+    const n = (typeof days === 'number' && days > 0 && days <= 30) ? Math.floor(days) : 7;
+    try {
+      // 进度事件: backfill 是 N 天串行, 每跑完 1 天推 1 次
+      const onProgress = (done, total) => {
+        sendToRenderer('ai-digest-progress', { done, total, source: 'backfill' });
+      };
+      const r = await wiring.runner.runBackfill(n, { onProgress });
+      return { ok: true, ...r };
+    } catch (err) {
+      mainLog.warn('[ipc] ai-sessions:backfill failed', { days: n, msg: err.message });
+      return { ok: false, reason: 'threw', error: err.message };
+    }
+  });
+
+  ipcMain.handle('ai-sessions:get-current', () => {
+    const wiring = _getDigestWiring();
+    if (!wiring) {
+      return { digest: null, enabled: false };
+    }
+    // 拿 "昨天" 的 digest (B5 banner 默认显示)
+    const yesterday = wiring.runner._dateKeyDaysAgo(1, Date.now());
+    const digest = wiring.storage.loadDigests()[yesterday] || null;
+    return { digest, enabled: true };
+  });
 }
 
 module.exports = { registerIpcHandlers };

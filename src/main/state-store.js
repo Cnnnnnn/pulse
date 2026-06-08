@@ -386,6 +386,19 @@ function loadDailyDigests(statePath = defaultPath()) {
 }
 
 /**
+ * 检查指定 dateKey 是否已有 digest. 给 DailyDigestRunner idempotent 用.
+ * @param {string} dateKey
+ * @param {string} [statePath]
+ * @returns {boolean}
+ */
+function hasDailyDigest(dateKey, statePath = defaultPath()) {
+  if (typeof dateKey !== 'string' || dateKey.length === 0) return false;
+  const s = load(statePath);
+  if (!s || !s.daily_digests || typeof s.daily_digests !== 'object') return false;
+  return Boolean(s.daily_digests[dateKey]);
+}
+
+/**
  * 写一条 digest. atomic write, 保留 apps / mutes / last_opened / active_category.
  * @param {object} digest  Digest
  * @param {string} [statePath]
@@ -538,6 +551,7 @@ module.exports = {
   DAILY_DIGESTS_GC_DAYS,
   cleanExpiredDigests,
   loadDailyDigests,
+  hasDailyDigest,
   saveDailyDigest,
   loadAISessionsConfig,
   saveAISessionsConfig,

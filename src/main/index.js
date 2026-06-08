@@ -30,6 +30,7 @@ const stateStore = require('./state-store');
 const lastOpened = require('./last-opened');
 const { HttpClient } = require('./http-client');
 const { OllamaSummarizer } = require('../ai-sessions/provider-ollama');
+const { buildDailyDigestRunner } = require('../ai-sessions/wiring');
 
 const ARCH = process.arch === 'arm64' ? 'arm64' : 'x64';
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
@@ -156,6 +157,42 @@ async function runAISessionsHealthcheck() {
   }
 }
 
+/**
+ * Phase B4: 实例化 DailyDigestRunner, 跑昨天 (idempotent) + 可选 7 天 backfill,
+ * 启 24h cron. 失败不阻塞启动 (跟 B3 healthcheck 同款).
+ */
+async function runDailyDigestBootstrap() {
+  const cfg = runtimeConfig && runtimeConfig.aiSessions;
+  if (!cfg || !cfg.enabled) {
+    mainLog.info('[digest] disabled in config, skip bootstrap');
+    return;
+  }
+  let wiring;
+  try {
+    wiring = buildDailyDigestRunner({
+      config: cfg,
+      log: {
+        info:  (...a) => mainLog.info(...a),
+        warn:  (...a) => mainLog.warn(...a),
+        error: (...a) => mainLog.error(...a),
+      },
+    });
+    global.__pulse_dailyDigest = wiring;  // 暴露给 IPC handlers (B4c)
+  } catch (err) {
+    mainLog.warn(`[digest] buildDailyDigestRunner failed: ${err.message}`);
+    return;
+  }
+  try {
+    const result = await wiring.runner.bootstrap();
+    mainLog.info(`[digest] bootstrap done: yesterday=${result.yesterday ? 'ok' : 'skipped'} backfill=${result.backfill ? 'done' : 'skipped'}`);
+  } catch (err) {
+    mainLog.warn(`[digest] bootstrap failed: ${err.message}`);
+  }
+  // 24h cron (idempotent, 多次调不会重复启)
+  wiring.start(86400_000);
+  mainLog.info('[digest] 24h cron started');
+}
+
 async function bootstrap() {
   const t0 = Date.now();
   // 整进程级别的启动元信息 — 写一行, 便于人 grep
@@ -169,6 +206,9 @@ async function bootstrap() {
 
   // 0.5) Phase B3b: AI sessions healthcheck (不阻塞启动, 3s timeout)
   await runAISessionsHealthcheck();
+
+  // 0.6) Phase B4: 实例化 DailyDigestRunner, 跑昨天 + 可选 backfill + 24h cron
+  await runDailyDigestBootstrap();
 
   // 1) 单实例锁
   // 冷启动基准模式 (BENCH=1): 跳过单实例锁, 允许同时跑多个 .app 实例
