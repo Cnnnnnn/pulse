@@ -25,16 +25,17 @@
  */
 
 const VALID_DETECTOR_TYPES = new Set([
-  'brew_formulae',
-  'brew_local_cask',
-  'sparkle_appcast',
-  'electron_yml',
-  'app_store_lookup',
-  'api_json',
-  'redirect_filename',
-  'cursor_redirect',
-  'qclaw_api',
-  'app_update_yml',
+ "brew_formulae",
+ "brew_local_cask",
+ "sparkle_appcast",
+ "electron_yml",
+ "electron_zip_probe",
+ "app_store_lookup",
+ "api_json",
+ "redirect_filename",
+ "cursor_redirect",
+ "qclaw_api",
+ "app_update_yml",
 ]);
 
 function isNonEmptyString(v) {

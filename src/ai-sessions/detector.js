@@ -89,20 +89,23 @@ class AISessionDetector {
    * @param {number} [now]                   注入便于测试, 默认 Date.now()
    * @returns {Array}
    */
-  filterByLocalDay(sessions, dateKey, now) {
-    if (!Array.isArray(sessions)) return [];
-    if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return [];
-    const t = (typeof now === 'number') ? now : Date.now();
-    const dayStart = AISessionDetector._localDayStart(dateKey, t);
-    const dayEnd = dayStart + 86400_000;
-    return sessions.filter((s) => {
-      // 优先 mtimeMs, 否则 endedAt, 否则 startedAt
-      const ts = (typeof s.mtimeMs === 'number') ? s.mtimeMs
-              : (typeof s.endedAt === 'number' ? s.endedAt : 0)
-              || (typeof s.startedAt === 'number' ? s.startedAt : 0);
-      return ts >= dayStart && ts < dayEnd;
-    });
-  }
+ filterByLocalDay(sessions, dateKey, now) {
+ if (!Array.isArray(sessions)) return [];
+ if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return [];
+ const t = (typeof now === 'number') ? now : Date.now();
+ const dayStart = AISessionDetector._localDayStart(dateKey, t);
+ const dayEnd = dayStart +86400_000;
+ return sessions.filter((s) => {
+ // B7 fix:优先 endedAt > startedAt > mtimeMs (mtime只fallback, 不是主用)
+ // state.vscdb mtime跟 session实际时间无关 (改文件就更新)
+ const endedAt = (typeof s.endedAt === 'number' && s.endedAt >0) ? s.endedAt :0;
+ const startedAt = (typeof s.startedAt === 'number' && s.startedAt >0) ? s.startedAt :0;
+ const mtimeMs = (typeof s.mtimeMs === 'number' && s.mtimeMs >0) ? s.mtimeMs :0;
+ // 任一 ts 在 day window →算 match (最宽松)
+ const ts = endedAt || startedAt || mtimeMs;
+ return ts >= dayStart && ts < dayEnd;
+ });
+ }
 
   /**
    * 拿 dateKey 'YYYY-MM-DD' (本地时区) 当天 0:00 的 epoch ms.
