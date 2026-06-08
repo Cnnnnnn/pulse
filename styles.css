@@ -1568,3 +1568,28 @@ body {
  background: rgba(255,59,48,0.1);
  color: var(--accent-red, #ff3b30);
 }
+
+/* ── Phase B7a: Backfill progress ── */
+.backfill-progress {
+ display: inline-flex;
+ align-items: center;
+ gap:6px;
+ font-size:11px;
+ font-family: var(--font-mono, monospace);
+ color: var(--accent-blue, #007aff);
+ padding:4px8px;
+ background: rgba(0,122,255,0.08);
+ border-radius:4px;
+}
+.backfill-progress .spinner {
+ width:10px;
+ height:10px;
+ border:2px solid var(--accent-blue, #007aff);
+ border-top-color: transparent;
+ border-radius:50%;
+ animation: spin0.8s linear infinite;
+}
+@keyframes spin {
+ from { transform: rotate(0deg); }
+ to { transform: rotate(360deg); }
+}

@@ -9,7 +9,7 @@
 import { checkStatus, lastError } from '../store.js';
 import { summary, upgradableCount, checkedCount } from '../selectors.js';
 import { BulkUpgradeButton } from './BulkUpgradeButton.jsx';
-import { openAISettings, aiSessionsEnabled } from '../store.js';
+import { openAISettings, aiSessionsEnabled, backfillProgress } from '../store.js';
 
 export function Header({ onCheck }) {
   const status = checkStatus.value;
@@ -42,6 +42,13 @@ export function Header({ onCheck }) {
  </>)}
  </button>
  <BulkUpgradeButton />
+ {/* Phase B7a: backfill 中进度 —Header 显示 ⏳ N/T */}
+ {backfillProgress.value.active && (
+ <span id="backfill-progress" class="backfill-progress" role="status" aria-live="polite">
+ <span class="spinner"></span>
+ backfill {backfillProgress.value.done}/{backfillProgress.value.total}
+ </span>
+ )}
  {/* Phase B6c.4: AI总结 设置按钮 —toggle modal.
  aiSessionsEnabled=true 时按钮高亮(已配),false 时灰色(opt-in 没配) */}
  <button

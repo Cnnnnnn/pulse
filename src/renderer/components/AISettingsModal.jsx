@@ -24,6 +24,7 @@ import {
  aiHealthcheckBusy,
  aiHealthcheckResult,
  aiSettingsOpen,
+ backfillProgress,
  probeAIKeyStatuses,
  setAIKey,
  clearAIKey,
@@ -31,6 +32,7 @@ import {
  saveAISessionsConfig,
  openAISettings,
  loadAISessionsConfig,
+ triggerBackfill,
 } from '../store.js';
 
 const PROVIDERS = [
@@ -149,6 +151,13 @@ export function AISettingsModal() {
  };
  const r = await saveAISessionsConfig(next);
  setSaveStatus(r.ok ? 'saved' : { error: r.reason || 'threw' });
+ }
+
+ async function handleBackfill() {
+ setSaveStatus('backfilling');
+ const r = await triggerBackfill(7);
+ if (r.ok) setSaveStatus('backfill-ok');
+ else setSaveStatus({ error: r.reason || 'threw' });
  }
 
  const prov = findProvider(provider);
@@ -295,15 +304,26 @@ export function AISettingsModal() {
  </>
  )}
 
- {/* 测试连接 */}
+ {/* 测试连接 + 回填历史 */}
  <div class="ai-settings-row ai-settings-test-row">
  <button
  type="button"
  class="btn btn-secondary"
  onClick={handleTestConnection}
- disabled={!enabled || busy}
+ disabled={!enabled || busy || backfillProgress.value.active}
  >
  {busy ? '测试中…' : '测试连接'}
+ </button>
+ <button
+ type="button"
+ class="btn btn-ghost"
+ onClick={handleBackfill}
+ disabled={!enabled || busy || backfillProgress.value.active}
+ title="为最近7天生成 AI总结"
+ >
+ {backfillProgress.value.active
+ ? `回填中 ${backfillProgress.value.done}/${backfillProgress.value.total}`
+ : '回填历史7天'}
  </button>
  {lastTest && (
  <span class={`ai-settings-test-result ${lastTest.ok ? 'ok' : 'fail'}`}>
@@ -328,6 +348,8 @@ export function AISettingsModal() {
  {saveStatus === 'key-cleared' && '✓ key 已清'}
  {saveStatus === 'testing' && '测试连接…'}
  {saveStatus === 'test-ok' && '✓ 测试通过'}
+ {saveStatus === 'backfilling' && '回填历史中 (看顶部进度)…'}
+ {saveStatus === 'backfill-ok' && '✓ 回填完成'}
  {typeof saveStatus === 'object' && saveStatus.error && `✗ ${saveStatus.error}`}
  </span>
  </div>

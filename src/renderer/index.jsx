@@ -21,7 +21,7 @@
 
 import { render } from 'preact';
 import { App } from './App.jsx';
-import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes, loadLastOpened, loadActiveCategory, loadDailyDigest, subscribeDigestUpdates, lastOpenedApps } from './store.js';
+import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes, loadLastOpened, loadActiveCategory, loadDailyDigest, subscribeDigestUpdates, subscribeBackfillProgress, subscribeAISessionsConfigUpdates, loadAISessionsConfig, lastOpenedApps } from './store.js';
 import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
@@ -57,11 +57,15 @@ async function bootstrap() {
     await Promise.allSettled([loadMutes(), loadLastOpened(), loadActiveCategory(), loadDailyDigest()]);
   } catch { /* noop, 默认空 map / 'all' / null digest */ }
 
-  // 1.7) Phase B5: 订阅主进程 ai-digest-updated 事件, 重跑 / 24h cron 完成时回写 signal
-  subscribeDigestUpdates();
+ //1.7) Phase B5:订阅主进程 ai-digest-updated事件, 重跑 /24h cron 完成时回写 signal
+ subscribeDigestUpdates();
 
-  // 1.7) Phase 29: 订阅主进程 last-opened-updated 事件, 主进程在每次 checkUpdates
-  // 完成后会推过来. UI 自动跟最新 (AppInfo / MuteMenu 重渲染)
+ //1.7.1) Phase B7a:订阅 ai-digest-progress事件 (backfill进度)
+ subscribeBackfillProgress();
+
+ //1.7.2) Phase B6c.2:订阅 ai-sessions-config-updated事件 +拉初始 config
+ subscribeAISessionsConfigUpdates();
+ loadAISessionsConfig().catch(() => {});
   api.onLastOpenedUpdated((data) => {
     if (!data || !data.lastOpened) return;
     const next = new Map();

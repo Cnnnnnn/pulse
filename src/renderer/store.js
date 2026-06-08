@@ -315,19 +315,19 @@ export async function rerunDigest() {
 }
 
 /**
- * 订阅 main 推的 ai-digest-updated 事件, 同步回写 signal. bootstrap 时调.
+ *订阅 main推的 ai-digest-updated事件,同步回写 signal. bootstrap 时调.
  */
 export function subscribeDigestUpdates() {
-  // eslint-disable-next-line no-undef
-  import('./api.js').then(({ api }) => {
-    if (api && typeof api.onDigestUpdated === 'function') {
-      api.onDigestUpdated((data) => {
-        if (data && data.digest) {
-          dailyDigest.value = data.digest;
-        }
-      });
-    }
-  });
+ // eslint-disable-next-line no-undef
+ import('./api.js').then(({ api }) => {
+ if (api && typeof api.onDigestUpdated === 'function') {
+ api.onDigestUpdated((data) => {
+ if (data && data.digest) {
+ dailyDigest.value = data.digest;
+ }
+ });
+ }
+ });
 }
 
 // 注: Phase 25 app 图标走 useIcon hook 的 module-level cache (hooks/useIcon.js),
@@ -603,4 +603,67 @@ export function subscribeAISessionsConfigUpdates() {
  });
  }
  });
+}
+
+// ─── Phase B7a: Backfill progress ──────────────────────────────
+//订阅 main推的 ai-digest-progress事件 (backfill 中每跑完1 天推1 次)。
+//跟 dailyDigest / digestLoading配套:Header 显示 ⏳ N/T。
+
+// backfillProgress: { active: bool, done: number, total: number }
+export const backfillProgress = signal({ active: false, done:0, total:0 });
+
+export function setBackfillProgress(progress) {
+ if (progress && typeof progress === 'object') {
+ backfillProgress.value = {
+ active: Boolean(progress.active),
+ done: Number(progress.done) ||0,
+ total: Number(progress.total) ||0,
+ };
+ } else {
+ backfillProgress.value = { active: false, done:0, total:0 };
+ }
+}
+
+/**
+ *订阅 main推的 ai-digest-progress事件 (B4c已在 main进程实现)。
+ * payload: { done, total, source: 'backfill' }
+ * bootstrap 时调一次。
+ */
+export function subscribeBackfillProgress() {
+ import('./api.js').then(({ api }) => {
+ if (api && typeof api.onDigestProgress === 'function') {
+ api.onDigestProgress((data) => {
+ if (!data) return;
+ if (data.source === 'backfill') {
+ const total = Number(data.total) ||0;
+ const done = Number(data.done) ||0;
+ if (done >= total && total >0) {
+ // backfill 完成 →2s 后清 (给用户看到"完成"状态)
+ setBackfillProgress({ active: true, done, total });
+ setTimeout(() => setBackfillProgress({ active: false, done, total }),2000);
+ } else {
+ setBackfillProgress({ active: true, done, total });
+ }
+ }
+ });
+ }
+ });
+}
+
+/**
+ * 用户在 UI手动触发 backfill (走 IPC)。
+ * @param {number} days 默认7
+ * @returns {Promise<{ok, done?, total?}>}
+ */
+export async function triggerBackfill(days =7) {
+ const { api } = await import('./api.js');
+ try {
+ const r = await api.backfillDigest(days);
+ if (r && r.ok) {
+ return { ok: true, done: r.done, total: r.total };
+ }
+ return { ok: false, reason: r && r.reason };
+ } catch (err) {
+ return { ok: false, reason: 'threw', error: err && err.message };
+ }
 }
