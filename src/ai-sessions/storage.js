@@ -25,26 +25,45 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Lazy require electron. 避免 main process 启动时强制加载.
- * 实际 safeStorage 在 B6 + B4 调, 启动期不需要.
+ * Lazy require electron.避免 main process启动时强制加载.
+ *实际 safeStorage 在 B6 + B4调,启动期不需要.
+ *
+ * 测试注入: __setSafeStorageForTest({ encryptString, decryptString, isEncryptionAvailable })
+ * __setUserDataDirForTest('/tmp/xxx') —跳过 electron require
  */
+let _safeStorageOverride = null;
+let _userDataDirOverride = null;
+
+function __setSafeStorageForTest(safeStorage) {
+ _safeStorageOverride = safeStorage || null;
+}
+function __setUserDataDirForTest(dir) {
+ _userDataDirOverride = dir || null;
+}
+function __resetForTest() {
+ _safeStorageOverride = null;
+ _userDataDirOverride = null;
+}
+
 function _tryGetSafeStorage() {
-  try {
-    // eslint-disable-next-line global-require
-    return require('electron').safeStorage;
-  } catch {
-    return null;
-  }
+ if (_safeStorageOverride) return _safeStorageOverride;
+ try {
+ // eslint-disable-next-line global-require
+ return require('electron').safeStorage;
+ } catch {
+ return null;
+ }
 }
 
 function _tryGetUserDataDir() {
-  try {
-    // eslint-disable-next-line global-require
-    const { app } = require('electron');
-    return app.getPath('userData');
-  } catch {
-    return null;
-  }
+ if (_userDataDirOverride) return _userDataDirOverride;
+ try {
+ // eslint-disable-next-line global-require
+ const { app } = require('electron');
+ return app.getPath('userData');
+ } catch {
+ return null;
+ }
 }
 
 /**
@@ -101,24 +120,29 @@ function saveApiKey(providerId, apiKey) {
 }
 
 /**
- * 读 + 解密 API key.
+ *读 + 解密 API key.
  * @param {string} providerId
- * @returns {string|null}   解密后 key, 不可用 / 不存在 / 损坏 → null
+ * @returns {string|null} 解密后 key,不可用 / 不存在 /损坏 → null
  */
 function loadApiKey(providerId) {
-  const ss = _tryGetSafeStorage();
-  if (!ss) return null;
-  const file = _keyPath(providerId);
-  if (!fs.existsSync(file)) return null;
-  try {
-    const buf = fs.readFileSync(file);
-    return ss.decryptString(buf);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(`[ai-sessions] loadApiKey failed for ${providerId}: ${err.message}`);
-    return null;
-  }
+ const ss = _tryGetSafeStorage();
+ if (!ss) return null;
+ if (typeof ss.isEncryptionAvailable === 'function' && !ss.isEncryptionAvailable()) return null;
+ const file = _keyPath(providerId);
+ if (!fs.existsSync(file)) return null;
+ try {
+ const buf = fs.readFileSync(file);
+ const plain = ss.decryptString(buf);
+ if (typeof plain !== 'string') return null;
+ return plain;
+ } catch (err) {
+ // eslint-disable-next-line no-console
+ console.warn(`[ai-sessions] loadApiKey failed for ${providerId}: ${err.message}`);
+ return null;
+ }
 }
+
+
 
 /**
  * 删 API key file.
@@ -139,8 +163,12 @@ function clearApiKey(providerId) {
 }
 
 module.exports = {
-  isAvailable,
-  saveApiKey,
-  loadApiKey,
-  clearApiKey,
+ isAvailable,
+ saveApiKey,
+ loadApiKey,
+ clearApiKey,
+ // 测试用 (B6a):注入 safeStorage / userData dir,避免依赖 Electron runtime
+ __setSafeStorageForTest,
+ __setUserDataDirForTest,
+ __resetForTest,
 };
