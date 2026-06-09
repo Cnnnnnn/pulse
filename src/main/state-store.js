@@ -52,6 +52,30 @@ const os = require('os');
 
 const SCHEMA_VERSION = 1;
 
+// ─── 新字段 preserve helper (Phase v2.5.2) ─────────────────────────
+//
+// 用途: 让 saveAll / setMute / clearMute / saveLastOpened / saveActiveCategory
+//       / saveDailyDigest / saveAISessionsConfig 在写盘时自动保留这些 "patch 后
+//       加的" 字段, 避免被覆盖丢.
+//
+// 当前 preserve 的字段:
+//   - last_digest_attempts: ring buffer (排查 digest never runs 用)
+//   - classify_llm_cache: { appName: catId } (Step B LLM classify 用)
+//
+// 注: caller 不应该 mutate existing 直接, 应该从 load() 拿 immutable 副本.
+// 保留策略: 如果 next 里已经有这字段 (caller 显式设), 用 next 的; 否则从 existing 拿.
+function preserveExtraFields(existing, next) {
+  if (!existing || typeof existing !== 'object') return next;
+  if (!next || typeof next !== 'object') return next;
+  if (!('last_digest_attempts' in next) && Array.isArray(existing.last_digest_attempts)) {
+    next.last_digest_attempts = existing.last_digest_attempts;
+  }
+  if (!('classify_llm_cache' in next) && existing.classify_llm_cache && typeof existing.classify_llm_cache === 'object') {
+    next.classify_llm_cache = existing.classify_llm_cache;
+  }
+  return next;
+}
+
 function defaultPath() {
   // 跟 main 进程的 app.getPath('userData') 保持一致:
   // ~/Library/Application Support/app-update-checker
@@ -141,6 +165,7 @@ function saveAll(results, statePath = defaultPath()) {
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
   }
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -171,6 +196,7 @@ function markNotified(names, statePath = defaultPath()) {
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
   }
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -262,6 +288,7 @@ function setMute(name, untilMs, reason, statePath = defaultPath()) {
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
   }
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -294,6 +321,7 @@ function clearMute(name, statePath = defaultPath()) {
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
   }
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -337,6 +365,7 @@ function saveLastOpened(map, statePath = defaultPath()) {
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
   }
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -424,6 +453,7 @@ function saveDailyDigest(digest, statePath = defaultPath()) {
     active_category: existing.active_category || 'all',
     daily_digests: digests,
   };
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -491,6 +521,9 @@ function recordDigestAttempt(entry, statePath = defaultPath()) {
     last_digest_attempts: trimmed,
   };
   if (existing.ai_sessions_config) next.ai_sessions_config = existing.ai_sessions_config;
+  // recordDigestAttempt 本身是 last_digest_attempts 字段的写入方, preserveExtraFields
+  // 会自动跳过 (next 已有该字段), 但 classify_llm_cache 需要从 existing 保留.
+  preserveExtraFields(existing, next);
   try {
     writeAtomic(statePath, next);
   } catch (err) {
@@ -532,6 +565,7 @@ function saveAISessionsConfig(cfg, statePath = defaultPath()) {
   } else {
     next.ai_sessions_config = { ...cfg };
   }
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -591,6 +625,7 @@ function saveActiveCategory(id, statePath = defaultPath()) {
     last_opened: existing.last_opened || {},
     active_category: id,
   };
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -643,7 +678,9 @@ function saveLLMClassifyCache(map, statePath = defaultPath()) {
     classify_llm_cache: merged,
   };
   if (existing.ai_sessions_config) next.ai_sessions_config = existing.ai_sessions_config;
-  if (Array.isArray(existing.last_digest_attempts)) next.last_digest_attempts = existing.last_digest_attempts;
+  // next 已设 classify_llm_cache 字段, preserveExtraFields 会自动跳过该字段,
+  // 但会保留 last_digest_attempts 防止被吃.
+  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
