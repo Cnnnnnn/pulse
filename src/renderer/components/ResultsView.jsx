@@ -66,19 +66,26 @@ export function ResultsView() {
     return () => window.removeEventListener('keydown', onKey);
   }, [tabList]);
 
-  if (sections.length === 0) return <EmptyState filtered={hasAnyResults} />;
   return (
     <>
+      {/* CategoryTabs 永远显示, 让用户能切到别的分类 (即使当前 sections 空).
+        之前 sections.length === 0 → return EmptyState 整个跳掉 CategoryTabs,
+        用户切到 '其他' tab 但 0 个 app 时就完全无法切回去. 修法: tabs 跟
+        EmptyState 一起渲染. */}
       <CategoryTabs
         tabs={tabList}
         active={active}
         onSelect={setActiveCategory}
       />
-      <div class="results-container">
-        {sections.map((s) => (
-          <Section key={s.key} section={s} />
-        ))}
-      </div>
+      {sections.length === 0 ? (
+        <EmptyState filtered={hasAnyResults} />
+      ) : (
+        <div class="results-container">
+          {sections.map((s) => (
+            <Section key={s.key} section={s} />
+          ))}
+        </div>
+      )}
     </>
   );
 }

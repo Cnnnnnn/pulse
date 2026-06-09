@@ -170,13 +170,17 @@ describe('ResultsView 边界 (Phase A5b)', () => {
     expect(otherTab.textContent).toContain('(0)');
   });
 
-  it('空 results 时, tabs 列表仍有 "全部" + "其他" (count 都 0)', () => {
+  it('空 results 时, CategoryTabs 仍渲染 (让用户能切到别的 tab)', () => {
+    // v2.5.2: 修了一个 UX bug — 之前 sections.length === 0 → return EmptyState
+    // 完全跳过 CategoryTabs, 用户切到 "其他" tab 但 0 个 app 时看不到任何
+    // 分类 tab 切回去. 修法: CategoryTabs 永远渲染, 跟 EmptyState 共存.
     results.value = new Map();
     render(<ResultsView />);
-    // 但 sections.length === 0 → <EmptyState> 渲染, 没 CategoryTabs DOM
-    // 这里只能验证 tabs computed 本身 work
     const tabs = document.querySelectorAll('.category-tab');
-    expect(tabs).toHaveLength(0);  // EmptyState 路径, 没 tabs
+    // "全部" + "📦 其他" 永显示, 即使空
+    expect(tabs.length).toBeGreaterThanOrEqual(2);
+    // EmptyState 也在 (text='暂无数据' 而非 '无匹配项', 跟 EmptyState 实际文案匹配)
+    expect(document.body.textContent).toContain('暂无数据');
   });
 
   it('当前 activeCategory 指向被 hide 的空 tab → UI 不崩', () => {
