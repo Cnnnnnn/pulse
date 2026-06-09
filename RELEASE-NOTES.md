@@ -2,6 +2,68 @@
 
 ---
 
+## v2.5.1 (Phase A3 + B 排查 + Step B LLM classify) — 2026-06-09
+
+### Fix: 应用分类 + LLM classify 双管齐下
+
+v2.4.0 引入了 8 类 category tab, 但 v2.4.0 release notes 已经指出"未映射 app → 其他 tab 兜底", v2.5.0 没有跟。这个 release 彻底解决:
+
+**新 3 层 fallback (getCategory 路径):**
+1. 静态 map (config/app-category.json) — 已存在
+2. LLM classify cache (state.json.classify_llm_cache) — **新**
+3. 'other' 兜底
+
+**Step B — LLM classify (新):**
+- main 启动期, 对**未命中静态 map** 的 app 调一次 LLM (强制 `qwen2.5-coder:7b` 在 `127.0.0.1:11434`)
+- batch prompt 出所有 app 的 catId, 1 次 LLM 调 6 个 app
+- heuristic 预跑给 LLM 提示 "我猜是 X" (15+ 关键词 rule: cursor/claude/... → ai, vscode/docker/... → dev, ...)
+- 失败 graceful: 30s timeout, 不阻塞启动, log warn
+- 结果持久化到 `state.json.classify_llm_cache`, 下次启动不重复调
+
+**E2E 验证 (真 ollama, 6 个 app batch):**
+- Cursor → ai, Kimi → ai, Chrome → browser, Obsidian → notes, Telegram → comms, WezTerm → other (5/6 命中)
+- 耗时 ~11s (含 model load)
+
+### 排查 patch: Digest "never runs" 可观测性
+
+v2.5.0 的 AI Sessions 写完代码就 mark done, 但用户实际从未看到 digest banner 出内容 (state.json `daily_digests: {}`)。
+
+**这次补 trail, 排查下一启动:**
+- 启动期 main 在 3 个 phase 写 `state.json.last_digest_attempts[]` (ring buffer 8 条):
+  - `wiring_build` ok/error
+  - `merged_config` enabled/provider/detectors
+  - `bootstrap` yesterdayStatus/backfillStatus
+  - `no_sessions` (differentiate "no data" vs "didn't run")
+- `wiring.js` 加 `onNoSessions` hook, `digest.js` 在 no-sessions 分支调
+- 加 `stateStore.recordDigestAttempt()` / `loadDigestAttempts()` API
+
+**用户下次启动后, 拿 `~/Library/Application Support/AppUpdateChecker/state.json` 的 `last_digest_attempts` 给我看, 就能直接定位 "merged config 跳过了" 还是 "wiring build 失败" 还是 "no sessions 空跑"**。
+
+### 测试
+
+- 28 个新 case: category-llm.test.js 覆盖 heuristic / LLM cache / LLM caller mock / 3 层 fallback
+- 7 个新 case: state-store LLM classify cache 持久化
+- 8 个新 case: state-store recordDigestAttempt (含 ring buffer / graceful fail)
+- 总计 929/929 全过 (v2.5.0 是 852, +77)
+- 仍 4 skipped, 跟 v2.5.0 一致
+
+### 改动文件 (commit-by-commit 视角, 不需单独 PR)
+
+- `src/config/category.js` — heuristic rules + LLM classify + setLLMCache + getCategory 三层
+- `src/ai-sessions/digest.js` — onNoSessions hook
+- `src/ai-sessions/wiring.js` — onNoSessions 透传
+- `src/main/state-store.js` — recordDigestAttempt / loadLLMClassifyCache / saveLLMClassifyCache
+- `src/main/index.js` — classifyUnmappedAppsByLLM + bootstrap log + 启动期同步调
+- `tests/config/category-llm.test.js` (新) — 28 case
+- `tests/main/state-store.test.js` — 15 新 case
+
+### 已知 follow-up (单独 PR)
+
+- state.json 路径还停在 `~/Library/Application Support/AppUpdateChecker/` (老 name). 改 brand `Pulse` 时没迁. 跟当前 release 无关, 但下次 rebrand 时一起做.
+- BrowserWindow title 跟 package.json `name` 不强同步 (B 跟 B6c 之间发现的): 当前 `name: "pulse"`, window title 应该是 "Pulse" 但偶尔显老. 不在这次范围.
+
+---
+
 ## v2.4.0 (Phase A) — 2026-06-08
 
 ### New: 应用分类 (App Categorization)
