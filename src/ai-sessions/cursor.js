@@ -134,16 +134,18 @@ class CursorDetectorImpl {
       throw new Error(`readSession: failed to open ${file}: ${err.message}`);
     }
     try {
-      // Schema check: 表存在?
+      // Schema check: 表存在? 实际 Cursor 用 'ItemTable' (vscdb 通用), 不是
+      // 'cursorDiskKV' (spec §3.3 写错名, 我用 ItemTable, 兼容老 Cursor 版本).
       const tables = db.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='cursorDiskKV'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='ItemTable'"
       ).all();
       if (tables.length === 0) {
-        throw new Error('schema_mismatch: cursorDiskKV table missing (Cursor version may have changed)');
+        throw new Error('schema_mismatch: ItemTable table missing (Cursor version may have changed)');
       }
-      // Query: aiService.prompts:* keys
+      // Query: aiService.prompts / aiService.generations / composerData keys
+      // 全部拉出来, _parseSessionRows 里 join.
       const rows = db.prepare(
-        "SELECT key, value FROM cursorDiskKV WHERE key LIKE 'aiService.prompts:%' ORDER BY key"
+        "SELECT key, value FROM ItemTable WHERE key IN ('aiService.prompts', 'aiService.generations', 'composerData', 'composer.composerData') ORDER BY key"
       ).all();
 
       return _parseSessionRows(id, rows);
@@ -168,14 +170,18 @@ function _loadNodeSqlite() {
 
 /**
  * 纯函数: 把 SQL rows 解析成 Session. 抽出来便于单测 (无需 node:sqlite).
- * rows 形如: [{ key: 'aiService.prompts:<uuid>', value: '<json-string>' }, ...]
+ * rows 形如: [{ key: 'aiService.prompts', value: '[{text,commandType},...]' },
+ *             { key: 'aiService.generations', value: '[{unixMs,generationUUID,textDescription},...]' }]
  *
- * Cursor value schema (基于公开观察, spec §3.3):
- *   value 是 JSON string, 结构是:
- *     { messages: [{ role, content, timestamp }] }
- *   OR
- *     [{ role, content, timestamp }]
- * 容错: parse fail 的 row 跳过 (log warn via console.warn 兜底).
+ * Cursor 实测 (2026-06, ItemTable):
+ *   - aiService.prompts: Array<{text, commandType}>  (用户问题)
+ *   - aiService.generations: Array<{unixMs, generationUUID, type, textDescription}>
+ *   - composer.composerData: 其它 metadata, 通常没 chat content, 跳过
+ *
+ * 输出 messages 形如: [{role: 'user'|'assistant'|'unknown', content, ts}]
+ * 排序 by ts asc. ts=0 的排到末尾.
+ *
+ * 容错: parse fail / schema 不匹配 跳过 row, 不 throw.
  *
  * @param {string} id            workspace hash (即 session id)
  * @param {Array<{key: string, value: string}>} rows
@@ -196,35 +202,37 @@ function _parseSessionRows(id, rows) {
       console.warn(`[cursor] skip unparseable row key=${r.key}: ${err.message}`);
       continue;
     }
-    // 兼容 2 种 schema: { messages: [...] } 或 [...]
-    const msgs = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.messages) ? parsed.messages : null);
-    if (!msgs) {
-      // eslint-disable-next-line no-console
-      console.warn(`[cursor] skip row with no messages array: key=${r.key}`);
-      continue;
-    }
-    for (const m of msgs) {
-      if (!m || typeof m !== 'object') continue;
-      const role = (typeof m.role === 'string') ? m.role : (typeof m.type === 'string' ? m.type : 'unknown');
-      const content = (typeof m.content === 'string') ? m.content
-                    : (typeof m.text === 'string' ? m.text
-                    : (m.content != null ? String(m.content) : ''));
-      // Cursor schema 字段名可能是 'timestamp' / 'ts' / 'time' / 'createdAt'
-      const tsRaw = m.timestamp ?? m.ts ?? m.time ?? m.createdAt;
-      const ts = (typeof tsRaw === 'number') ? tsRaw
-              : (typeof tsRaw === 'string' && /^\d+$/.test(tsRaw)) ? parseInt(tsRaw, 10)
-              : 0;
-      allMessages.push({ role, content, ts });
+    if (!Array.isArray(parsed)) continue;  // 不是 array 就跳过 (跟老 schema {messages:[...]} 兼容无关, 反正 array 直接用)
+    if (r.key === 'aiService.prompts') {
+      // 用户问题 → role='user', ts=0 (没有 timestamp 字段, 后面用 generations unixMs 推)
+      for (const m of parsed) {
+        if (!m || typeof m !== 'object') continue;
+        const text = typeof m.text === 'string' ? m.text : '';
+        allMessages.push({ role: 'user', content: text, ts: 0 });
+      }
+    } else if (r.key === 'aiService.generations') {
+      // 模型回答 → role='assistant', ts=unixMs
+      for (const m of parsed) {
+        if (!m || typeof m !== 'object') continue;
+        const ts = (typeof m.unixMs === 'number') ? m.unixMs : 0;
+        const text = typeof m.textDescription === 'string' ? m.textDescription
+                   : (typeof m.text === 'string' ? m.text : '');
+        allMessages.push({ role: 'assistant', content: text, ts });
+      }
     }
   }
-  // 排序 by ts asc (没 ts 的排到末尾 — 用 Infinity 占位, 跟有 ts 的拉开)
+  // 排序 by ts asc (没 ts 的 prompts 排到末尾 — Infinity 占位, 但 prompts 数应该近似
+  // 跟 generations 配对, 如果 prompts 多了就排到最末; 不影响 summary 准确度)
   allMessages.sort((a, b) => {
     const ta = (a.ts && a.ts > 0) ? a.ts : Number.POSITIVE_INFINITY;
     const tb = (b.ts && b.ts > 0) ? b.ts : Number.POSITIVE_INFINITY;
     return ta - tb;
   });
-  const startedAt = allMessages.length > 0 ? (allMessages[0].ts || 0) : 0;
-  const endedAt = allMessages.length > 0 ? (allMessages[allMessages.length - 1].ts || 0) : 0;
+  // startedAt/endedAt: 用 messages 数组中**实际带 ts 的**min/max, 不依赖
+  // 排序后的 [0]/[length-1] (因为 prompts ts=0 可能排末尾).
+  const tsList = allMessages.map(m => m.ts).filter(t => t > 0);
+  const startedAt = tsList.length > 0 ? Math.min(...tsList) : (allMessages[0] ? allMessages[0].ts : 0);
+  const endedAt = tsList.length > 0 ? Math.max(...tsList) : (allMessages.length > 0 ? allMessages[allMessages.length - 1].ts : 0);
   return { id, startedAt, endedAt, messages: allMessages };
 }
 

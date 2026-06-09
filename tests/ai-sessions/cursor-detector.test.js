@@ -201,92 +201,82 @@ describe('CursorDetectorImpl — _parseSessionRows (B2b, 纯函数)', () => {
     });
   });
 
-  it('单 row 数组形式 [{role, content, ts}] → 正常 parse', () => {
-    const rows = [{
-      key: 'aiService.prompts:abc',
-      value: JSON.stringify([
-        { role: 'user', content: 'hi', timestamp: 1000 },
-        { role: 'assistant', content: 'hello', timestamp: 2000 },
-      ]),
-    }];
+  it('真 Cursor schema: aiService.prompts (user) + aiService.generations (assistant, unixMs)', () => {
+    const rows = [
+      { key: 'aiService.prompts', value: JSON.stringify([{ text: 'hi' }, { text: 'follow-up' }]) },
+      { key: 'aiService.generations', value: JSON.stringify([
+        { unixMs: 1000, generationUUID: 'g1', type: 'composer', textDescription: 'hello' },
+        { unixMs: 2000, generationUUID: 'g2', type: 'composer', textDescription: 'reply' },
+      ]) },
+    ];
     const s = _parseSessionRows('h1', rows);
-    expect(s.messages).toHaveLength(2);
-    expect(s.messages[0]).toMatchObject({ role: 'user', content: 'hi', ts: 1000 });
-    expect(s.messages[1]).toMatchObject({ role: 'assistant', content: 'hello', ts: 2000 });
+    expect(s.messages).toHaveLength(4);
+    // 2 prompts (ts=0) 排末尾, generations 按 unixMs 排前
+    expect(s.messages.slice(0, 2).map(m => m.role)).toEqual(['assistant', 'assistant']);
+    expect(s.messages.slice(0, 2).map(m => m.ts)).toEqual([1000, 2000]);
+    expect(s.messages.slice(2).map(m => m.role)).toEqual(['user', 'user']);
+    expect(s.messages.slice(2).map(m => m.content)).toEqual(['hi', 'follow-up']);
     expect(s.startedAt).toBe(1000);
     expect(s.endedAt).toBe(2000);
   });
 
-  it('object 形式 {messages: [...]} → 正常 parse', () => {
-    const rows = [{
-      key: 'aiService.prompts:def',
-      value: JSON.stringify({
-        messages: [
-          { role: 'user', content: 'q1', timestamp: 3000 },
-        ],
-      }),
-    }];
+  it('只有 prompts (没 generations) → 2 user msgs, ts=0', () => {
+    const rows = [
+      { key: 'aiService.prompts', value: JSON.stringify([{ text: 'a' }, { text: 'b' }]) },
+    ];
     const s = _parseSessionRows('h1', rows);
-    expect(s.messages).toHaveLength(1);
-    expect(s.messages[0].ts).toBe(3000);
+    expect(s.messages).toHaveLength(2);
+    expect(s.messages.every(m => m.role === 'user')).toBe(true);
+    expect(s.messages.every(m => m.ts === 0)).toBe(true);
   });
 
-  it('ts 字段名兼容: timestamp / ts / time / createdAt / string number', () => {
-    const rows = [{
-      key: 'k',
-      value: JSON.stringify([
-        { role: 'user', content: 'a', timestamp: 1 },
-        { role: 'user', content: 'b', ts: 2 },
-        { role: 'user', content: 'c', time: 3 },
-        { role: 'user', content: 'd', createdAt: 4 },
-        { role: 'user', content: 'e', timestamp: '12345' },  // string number
-      ]),
-    }];
+  it('只有 generations (没 prompts) → assistant msgs', () => {
+    const rows = [
+      { key: 'aiService.generations', value: JSON.stringify([
+        { unixMs: 500, textDescription: 'reply1' },
+        { unixMs: 800, textDescription: 'reply2' },
+      ]) },
+    ];
     const s = _parseSessionRows('h1', rows);
-    expect(s.messages.map((m) => m.ts)).toEqual([1, 2, 3, 4, 12345]);
-  });
-
-  it('messages 缺 ts → 排到末尾 (sort stable)', () => {
-    const rows = [{
-      key: 'k',
-      value: JSON.stringify([
-        { role: 'user', content: 'no-ts-1' },
-        { role: 'user', content: 'a', ts: 100 },
-        { role: 'user', content: 'no-ts-2' },
-      ]),
-    }];
-    const s = _parseSessionRows('h1', rows);
-    // 100 在中间, no-ts 排末尾 (sort by (ts || 0) = 0, 跟 0 同 stable)
-    expect(s.messages[0].content).toBe('a');
-    expect(s.messages[0].ts).toBe(100);
+    expect(s.messages).toHaveLength(2);
+    expect(s.messages.every(m => m.role === 'assistant')).toBe(true);
+    expect(s.messages.map(m => m.ts)).toEqual([500, 800]);
   });
 
   it('parse 失败的 row 跳过 + log warn (不 throw)', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const rows = [
       { key: 'k1', value: 'not json' },
-      { key: 'k2', value: JSON.stringify([{ role: 'user', content: 'ok', ts: 1 }]) },
-      { key: 'k3', value: '{"notMessages": "wrong shape"}' },
+      { key: 'aiService.prompts', value: JSON.stringify([{ text: 'ok' }]) },
+      { key: 'aiService.generations', value: '{"not":"array"}' },  // 不是 array 跳过
     ];
     const s = _parseSessionRows('h1', rows);
     expect(s.messages).toHaveLength(1);
     expect(s.messages[0].content).toBe('ok');
+    expect(s.messages[0].role).toBe('user');
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });
 
-  it('startedAt = first msg ts, endedAt = last msg ts (排序后)', () => {
-    const rows = [{
-      key: 'k',
-      value: JSON.stringify([
-        { role: 'user', content: 'b', ts: 200 },
-        { role: 'user', content: 'a', ts: 100 },
-        { role: 'user', content: 'c', ts: 300 },
-      ]),
-    }];
+  it('non-array value 跳过 (不 throw)', () => {
+    const rows = [
+      { key: 'aiService.prompts', value: '{"messages":[]}' },  // 不是 array 顶层, 老 schema, 跳过
+      { key: 'aiService.generations', value: JSON.stringify([{ unixMs: 100, textDescription: 'r' }]) },
+    ];
     const s = _parseSessionRows('h1', rows);
-    expect(s.startedAt).toBe(100);
-    expect(s.endedAt).toBe(300);
+    expect(s.messages).toHaveLength(1);
+    expect(s.messages[0].role).toBe('assistant');
+  });
+
+  it('空 array 跳过 (0 messages)', () => {
+    const rows = [
+      { key: 'aiService.prompts', value: '[]' },
+      { key: 'aiService.generations', value: '[]' },
+    ];
+    const s = _parseSessionRows('h1', rows);
+    expect(s.messages).toHaveLength(0);
+    expect(s.startedAt).toBe(0);
+    expect(s.endedAt).toBe(0);
   });
 
   it('id 透传 (workspace hash)', () => {
