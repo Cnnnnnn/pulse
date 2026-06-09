@@ -37,6 +37,11 @@ import {
   loadAISessionsConfig,
   saveAISessionsConfig,
   DAILY_DIGESTS_GC_DAYS,
+  recordDigestAttempt,
+  loadDigestAttempts,
+  DIGEST_ATTEMPT_BUFFER_MAX,
+  loadLLMClassifyCache,
+  saveLLMClassifyCache,
 } from '../../src/main/state-store.js';
 
 let tmpDir;
@@ -629,5 +634,135 @@ describe('loadAISessionsConfig / saveAISessionsConfig (Phase B)', () => {
 
   it('DAILY_DIGESTS_GC_DAYS 常量 = 30', () => {
     expect(DAILY_DIGESTS_GC_DAYS).toBe(30);
+  });
+});
+
+// ─── recordDigestAttempt / loadDigestAttempts (排查 patch) ───
+
+describe('recordDigestAttempt / loadDigestAttempts (digest "never runs" 排查)', () => {
+  it('文件不存在 → loadDigestAttempts 返 []', () => {
+    expect(loadDigestAttempts(statePath)).toEqual([]);
+  });
+
+  it('写一条 merged_config attempt → load 返一条带 phase/enabled/provider/detectors', () => {
+    recordDigestAttempt({
+      phase: 'merged_config',
+      ok: true,
+      enabled: true,
+      provider: 'ollama',
+      detectors: 'Cursor',
+    }, statePath);
+    const out = loadDigestAttempts(statePath);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      phase: 'merged_config',
+      ok: true,
+      enabled: true,
+      provider: 'ollama',
+      detectors: 'Cursor',
+    });
+    expect(typeof out[0].ts).toBe('number');
+    expect(out[0].ts).toBeGreaterThan(0);
+  });
+
+  it('写一条 wiring_build ok=false → 记录 reason', () => {
+    recordDigestAttempt({ phase: 'wiring_build', ok: false, reason: 'summarizer not found' }, statePath);
+    const out = loadDigestAttempts(statePath);
+    expect(out.length).toBeGreaterThanOrEqual(1);
+    const last = out[out.length - 1];
+    expect(last).toMatchObject({ phase: 'wiring_build', ok: false, reason: 'summarizer not found' });
+  });
+
+  it('写 bootstrap 结果 → 含 yesterdayStatus / backfillStatus', () => {
+    recordDigestAttempt({
+      phase: 'bootstrap',
+      ok: true,
+      yesterdayStatus: 'skipped_or_empty',
+      backfillStatus: 'skipped',
+    }, statePath);
+    const last = loadDigestAttempts(statePath).slice(-1)[0];
+    expect(last).toMatchObject({ phase: 'bootstrap', yesterdayStatus: 'skipped_or_empty', backfillStatus: 'skipped' });
+  });
+
+  it('ring buffer 截断: 写 12 条 → loadDigestAttempts 返 8 条 (DIGEST_ATTEMPT_BUFFER_MAX)', () => {
+    for (let i = 0; i < 12; i++) {
+      recordDigestAttempt({ phase: 'probe', ok: true, reason: `iter-${i}` }, statePath);
+    }
+    const out = loadDigestAttempts(statePath);
+    expect(out).toHaveLength(8);
+    // 留的是最后 8 条 (iter-4 .. iter-11)
+    expect(out[0].reason).toBe('iter-4');
+    expect(out[7].reason).toBe('iter-11');
+  });
+
+  it('recordDigestAttempt 不破坏其他字段 (apps / mutes / daily_digests)', () => {
+    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
+    recordDigestAttempt({ phase: 'merged_config', ok: true, enabled: false }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.daily_digests['2026-06-07']).toBeDefined();
+    expect(Array.isArray(raw.last_digest_attempts)).toBe(true);
+  });
+
+  it('recordDigestAttempt 在 load fail / write fail 时 不 throw (失败 graceful)', () => {
+    // bad path, 模拟 writeAtomic 失败 (不存在的目录不可写)
+    const badPath = '/this/path/definitely/does/not/exist/state.json';
+    expect(() => recordDigestAttempt({ phase: 'probe' }, badPath)).not.toThrow();
+  });
+
+  it('DIGEST_ATTEMPT_BUFFER_MAX = 8', () => {
+    expect(DIGEST_ATTEMPT_BUFFER_MAX).toBe(8);
+  });
+});
+
+// ─── loadLLMClassifyCache / saveLLMClassifyCache (Step B) ───
+
+describe('loadLLMClassifyCache / saveLLMClassifyCache (Step B LLM classify)', () => {
+  it('文件不存在 → loadLLMClassifyCache 返 {}', () => {
+    expect(loadLLMClassifyCache(statePath)).toEqual({});
+  });
+
+  it('老 state.json (无 classify_llm_cache 字段) → {}', () => {
+    fs.writeFileSync(statePath, JSON.stringify({ v: 1, apps: {}, mutes: {} }), 'utf-8');
+    expect(loadLLMClassifyCache(statePath)).toEqual({});
+  });
+
+  it('saveLLMClassifyCache 写入 + load 回读 (round-trip)', () => {
+    saveLLMClassifyCache({ kimi: 'ai', chrome: 'browser' }, statePath);
+    expect(loadLLMClassifyCache(statePath)).toEqual({ kimi: 'ai', chrome: 'browser' });
+  });
+
+  it('saveLLMClassifyCache 合并: 新值覆盖旧值, 旧值保留', () => {
+    saveLLMClassifyCache({ kimi: 'ai', chrome: 'browser' }, statePath);
+    saveLLMClassifyCache({ kimi: 'dev', spotify: 'media' }, statePath);
+    expect(loadLLMClassifyCache(statePath)).toEqual({
+      kimi: 'dev',       // 覆盖
+      chrome: 'browser', // 保留
+      spotify: 'media',  // 新增
+    });
+  });
+
+  it('saveLLMClassifyCache 过滤非 string / 空值', () => {
+    // 注: JS 整数 key 会自动转 string '123', 这是 by-design 行为
+    // 这里只测空 key / 空 value 被滤掉
+    saveLLMClassifyCache({ '': 'ai', kimi: 'ai', valid: '' }, statePath);
+    expect(loadLLMClassifyCache(statePath)).toEqual({ kimi: 'ai' });
+  });
+
+  it('saveLLMClassifyCache 校验: map 必须是 plain object', () => {
+    expect(() => saveLLMClassifyCache(null, statePath)).toThrow(TypeError);
+    expect(() => saveLLMClassifyCache([], statePath)).toThrow(TypeError);
+    expect(() => saveLLMClassifyCache(123, statePath)).toThrow(TypeError);
+  });
+
+  it('saveLLMClassifyCache 不破坏其他字段 (apps / mutes / daily_digests / ai_sessions_config / last_digest_attempts)', () => {
+    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
+    saveAISessionsConfig({ enabled: true, provider: 'ollama' }, statePath);
+    recordDigestAttempt({ phase: 'merged_config', ok: true, enabled: false }, statePath);
+    saveLLMClassifyCache({ kimi: 'ai' }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.daily_digests['2026-06-07']).toBeDefined();
+    expect(raw.ai_sessions_config.enabled).toBe(true);
+    expect(Array.isArray(raw.last_digest_attempts)).toBe(true);
+    expect(raw.classify_llm_cache).toEqual({ kimi: 'ai' });
   });
 });

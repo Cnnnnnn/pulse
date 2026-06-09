@@ -439,6 +439,73 @@ function loadAISessionsConfig(statePath = defaultPath()) {
   return { ...s.ai_sessions_config };
 }
 
+// ─── Digest 启动期 trail (排查用) ─────────────────────────
+//
+// 用途: main bootstrap 期间记录 "merged_config" / "wiring_build" / "bootstrap" 三个
+// 关键 phase 的状态, 写到 state.json.last_digest_attempts[] (ring buffer, 最多 8 条).
+// 排查 "digest never runs" 时: 用户拿 state.json 给我看, 我能直接看到:
+//   - merged config enabled? provider? detectors?
+//   - wiring build ok?
+//   - bootstrap 跑到哪? yesterday backfill 状态?
+// 走 atomic write, 不破坏其他字段. 失败 log warn 不 throw.
+
+const DIGEST_ATTEMPT_BUFFER_MAX = 8;
+
+function recordDigestAttempt(entry, statePath = defaultPath()) {
+  if (!entry || typeof entry !== 'object') return;
+  const now = Date.now();
+  const record = {
+    ts: now,
+    phase: typeof entry.phase === 'string' ? entry.phase : 'unknown',
+    ok: Boolean(entry.ok),
+    reason: typeof entry.reason === 'string' ? entry.reason : null,
+    provider: typeof entry.provider === 'string' ? entry.provider : null,
+    detectors: typeof entry.detectors === 'string' ? entry.detectors : null,
+    enabled: typeof entry.enabled === 'boolean' ? entry.enabled : null,
+    yesterdayStatus: typeof entry.yesterdayStatus === 'string' ? entry.yesterdayStatus : null,
+    backfillStatus: typeof entry.backfillStatus === 'string' ? entry.backfillStatus : null,
+  };
+  let existing;
+  try {
+    existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  } catch (err) {
+    // load 失败也不 throw, 只 log warn — 排查 patch 不能雪崩
+    // eslint-disable-next-line no-console
+    console.warn('[state-store] recordDigestAttempt: load failed', err && err.message);
+    return;
+  }
+  const attempts = Array.isArray(existing.last_digest_attempts) ? existing.last_digest_attempts.slice() : [];
+  attempts.push(record);
+  // ring buffer: 只留最近 N 条
+  const trimmed = attempts.length > DIGEST_ATTEMPT_BUFFER_MAX
+    ? attempts.slice(attempts.length - DIGEST_ATTEMPT_BUFFER_MAX)
+    : attempts;
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
+    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
+    last_digest_attempts: trimmed,
+  };
+  if (existing.ai_sessions_config) next.ai_sessions_config = existing.ai_sessions_config;
+  try {
+    writeAtomic(statePath, next);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[state-store] recordDigestAttempt: writeAtomic failed', err && err.message);
+  }
+}
+
+function loadDigestAttempts(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s || !Array.isArray(s.last_digest_attempts)) return [];
+  return s.last_digest_attempts.slice();
+}
+
+
 /**
  * 写 AI sessions config. atomic write, 保留 apps / mutes / last_opened / active_category / daily_digests.
  * @param {object} cfg
@@ -528,6 +595,59 @@ function saveActiveCategory(id, statePath = defaultPath()) {
   return next;
 }
 
+// ─── Step B: LLM classify cache 持久化 ─────────────────────────
+//
+// 用途: 启动时把 "Step B 之前已经分类过的 app" 从 state.json 拿出来,
+// 注入到 category module 的 LLM cache (避免重复调 LLM).
+// 写盘函数: main 调 LLM 拿到结果后, merge 旧值 + 新值再写盘 (不丢).
+//
+// Schema: state.json.classify_llm_cache = { "kimi": "ai", "kodi": "media", ... }
+// key 是 lowercase appName (跟 category module 一致).
+
+function loadLLMClassifyCache(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s || !s.classify_llm_cache || typeof s.classify_llm_cache !== 'object' || Array.isArray(s.classify_llm_cache)) return {};
+  // 简单 trim: 只保留 string → string
+  const out = {};
+  for (const [k, v] of Object.entries(s.classify_llm_cache)) {
+    if (typeof k === 'string' && k.length > 0 && typeof v === 'string' && v.length > 0) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+function saveLLMClassifyCache(map, statePath = defaultPath()) {
+  if (map == null || typeof map !== 'object' || Array.isArray(map)) {
+    throw new TypeError('saveLLMClassifyCache: map must be plain object');
+  }
+  // 简单 trim
+  const trimmed = {};
+  for (const [k, v] of Object.entries(map)) {
+    if (typeof k === 'string' && k.length > 0 && typeof v === 'string' && v.length > 0) {
+      trimmed[k] = v;
+    }
+  }
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const now = Date.now();
+  // 合并: 旧值 + 新值, 新值覆盖旧值 (新分类优先)
+  const merged = { ...(existing.classify_llm_cache || {}), ...trimmed };
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
+    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
+    classify_llm_cache: merged,
+  };
+  if (existing.ai_sessions_config) next.ai_sessions_config = existing.ai_sessions_config;
+  if (Array.isArray(existing.last_digest_attempts)) next.last_digest_attempts = existing.last_digest_attempts;
+  writeAtomic(statePath, next);
+  return next;
+}
+
 module.exports = {
   load,
   saveAll,
@@ -555,4 +675,11 @@ module.exports = {
   saveDailyDigest,
   loadAISessionsConfig,
   saveAISessionsConfig,
+  // 排查 patch: digest 启动期 trail (Phase B "never runs" 排查)
+  recordDigestAttempt,
+  loadDigestAttempts,
+  DIGEST_ATTEMPT_BUFFER_MAX,
+  // Step B: LLM classify cache 持久化
+  loadLLMClassifyCache,
+  saveLLMClassifyCache,
 };
