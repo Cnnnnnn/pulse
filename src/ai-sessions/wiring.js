@@ -121,6 +121,9 @@ function _makeStubSummarizer(providerId, reason) {
  * @param {object} [opts.detectorImpl] 注入 CursorDetectorImpl (默认 new)
  * @param {function} [opts.resolveApiKey] 注入 apiKey resolver (默认 _defaultResolveApiKey)
  * @param {object} [opts.log]           logger, 默认 console
+ * @param {function} [opts.onNoSessions] 排查 patch hook: 当某 dateKey 没有 session 可总结时回调
+ *                                        ({ dateKey, attemptedDetectors, at }) => void
+ *                                        main 用来写 state.json.last_digest_attempts trail
  * @returns {{ runner, summarizer, detectors, storage, start, stop, providerId }}
  * start/stop:24h cron control
  * providerId:实际生效的 providerId (e.g. 'ollama' | 'openai' | ...)
@@ -188,6 +191,7 @@ function buildDailyDigestRunner(opts = {}) {
  locale: cfg.locale || 'zh-CN',
  },
  log,
+ onNoSessions: typeof opts.onNoSessions === 'function' ? opts.onNoSessions : undefined,
  });
 
  let intervalHandle = null;

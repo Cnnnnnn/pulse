@@ -123,6 +123,15 @@ class DailyDigestRunner {
 
     if (allSessions.length === 0) {
       this.log.info(`[digest] ${dateKey} no sessions, skip`);
+      // 排查 patch: no-sessions 也写 trail, 让 "never runs" 排查能看到
+      // "不是 digest 没跑, 是没数据"
+      if (typeof this.onNoSessions === 'function') {
+        try {
+          this.onNoSessions({ dateKey, attemptedDetectors: this.detectors.length, at: now });
+        } catch (err) {
+          this.log.warn(`[digest] onNoSessions hook threw: ${err.message}`);
+        }
+      }
       return null;
     }
 
