@@ -108,6 +108,12 @@ class DailyDigestRunner {
       for (const m of metas) {
         try {
           const sess = await det.readSession(m.id);
+          // 排查: 详细 log 看每个 meta 的 read 状态, 排查 "no sessions" 根因
+          if (process.env.AI_DIGEST_DEBUG === '1') {
+            this.log.info(
+              `[digest] ${det.appName}/${m.id.slice(0, 8)}: msgs=${(sess.messages || []).length} startedAt=${sess.startedAt} endedAt=${sess.endedAt} mtimeMs=${m.mtimeMs}`,
+            );
+          }
           // filter by dateKey
           const filtered = det.filterByLocalDay([sess], dateKey, now);
           if (filtered.length > 0) {
