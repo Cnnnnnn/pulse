@@ -108,13 +108,13 @@ class AISessionDetector {
  }
 
   /**
-   * 拿 dateKey 'YYYY-MM-DD' (本地时区) 当天 0:00 的 epoch ms.
-   * 用 Intl 反推本地 UTC offset, 然后 UTC midnight - offset.
-   *
-   * @param {string} dateKey   'YYYY-MM-DD'
-   * @param {number} now        注入便于测试
-   * @returns {number}          epoch ms (本地 0:00)
-   */
+    * 拿 dateKey 'YYYY-MM-DD' (本地时区) 当天 0:00 的 epoch ms.
+    * 用 Intl 反推本地 UTC offset, 然后 UTC midnight - offset.
+    *
+    * @param {string} dateKey   'YYYY-MM-DD'
+    * @param {number} now        注入便于测试
+    * @returns {number}          epoch ms (本地 0:00)
+    */
   static _localDayStart(dateKey, now) {
     const m1 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
     if (!m1) return NaN;
@@ -125,10 +125,19 @@ class AISessionDetector {
     if (m < 1 || m > 12 || d < 1 || d > 31) return NaN;
     // 用 probe 算 local - UTC offset (ms). Date.getTimezoneOffset() 返 "UTC - local" 分钟数.
     // local - UTC = -getTimezoneOffset() * 60_000
+    // 目标: 本地 YYYY-MM-DD 0:00 的 epoch ms.
+    //   epoch = UTC YYYY-MM-DD 0:00 + (local - UTC) offset
+    // 例子 (Asia/Shanghai, UTC+8): 期望 2026-06-08 00:00 local = 2026-06-07T16:00Z.
+    //   utcMidnight = 2026-06-08T00:00Z (= 1749340800000)
+    //   localMinusUtcMs = -(-480) * 60000 = +28800000 (8h)
+    //   错: utcMidnight + 8h = 2026-06-08T08:00Z (NOT local midnight)
+    //   对: utcMidnight - 8h = 2026-06-07T16:00Z (correct)
+    // 所以公式应该是 utcMidnight - localMinusUtcMs (= utcMidnight - (local - UTC))
+    // 之前 v2.5.0 错把 + 写成 +, 没考虑 Date.UTC 的输入是 "本地" 还是 "UTC".
     const probe = new Date(now);
     const localMinusUtcMs = -probe.getTimezoneOffset() * 60_000;
     const utcMidnight = Date.UTC(y, m - 1, d, 0, 0, 0, 0);
-    return utcMidnight + localMinusUtcMs;
+    return utcMidnight - localMinusUtcMs;
   }
 }
 
