@@ -17,6 +17,17 @@ const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
+// Phase B2b: ai-sessions CursorDetector 读 vscdb 用 Node 22.5+ 内置的 node:sqlite.
+// Electron 35 默认不开 experimental flag → require('node:sqlite') 抛 → readSession
+// 返 'node:sqlite unavailable' → all sessions 静默 skip → digest 永远 "no sessions".
+// 启 flag 让 node:sqlite 可用 (Electron 35 跑 Node 22.15 runtime, flag 稳定).
+// 注: 这是 app.commandLine, 必须在 app.whenReady() 之前.
+try {
+  if (app && app.commandLine && typeof app.commandLine.appendSwitch === 'function') {
+    app.commandLine.appendSwitch('experimental-sqlite');
+  }
+} catch { /* noop — vitest load-smoke 环境里 app 是 undefined */ }
+
 const { WorkerPool } = require("../workers/pool");
 const { createWindowManager } = require("./window");
 const { createTrayManager } = require("./tray");
