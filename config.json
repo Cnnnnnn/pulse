@@ -158,7 +158,7 @@
       "model": "qwen3.5:9b"
     },
     "cloud": null,
-    "backfillDays": 3,
+    "backfillDays": 1,
     "locale": "zh-CN",
     "backfillOnStart": true
   }
