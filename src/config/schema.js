@@ -221,7 +221,18 @@ function _sanitizeAISessions(raw) {
     providerId: isNonEmptyString(cloudRaw.providerId) ? cloudRaw.providerId : null,
     model: isNonEmptyString(cloudRaw.model) ? cloudRaw.model : null,
   } : null;
-  return { enabled, provider, ollama, cloud };
+  // v2.5.2 (startup-30s fix): 把 phase B 额外字段也 sanitize, 防止 schema drop
+  // 导致 wiring 拿不到 backfillDays (fallback 到 DEFAULT=7, 启动 30s 复现).
+  // 字段集 (跟 wiring.mergeAISessionsConfig 字段对齐):
+  //   backfillDays: number (default 1, 跟 main/index.js 一致)
+  //   backfillOnStart: boolean (default true)
+  //   locale: string (default 'zh-CN')
+  const backfillDays = Number.isFinite(o.backfillDays) && o.backfillDays > 0
+    ? Math.floor(o.backfillDays)
+    : 1;
+  const backfillOnStart = o.backfillOnStart !== false;  // 缺省 true
+  const locale = isNonEmptyString(o.locale) ? o.locale : 'zh-CN';
+  return { enabled, provider, ollama, cloud, backfillDays, backfillOnStart, locale };
 }
 
 module.exports = {
