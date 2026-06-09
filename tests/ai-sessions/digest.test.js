@@ -58,7 +58,11 @@ function makeFakeStorage(initialDigests = {}) {
 }
 
 describe('DailyDigestRunner — runOne', () => {
-  it('0 sessions → null (no save)', async () => {
+  it('0 sessions → null + marker digest saved (idempotency for next bootstrap)', async () => {
+    // v2.5.2 startup-30s fix: 0 sessions 也写 marker digest (空 summary + marker:true),
+    // 让下次启动 hasAny=true → 跳过 7 天 backfill, 只跑 yesterday (1-2s).
+    // 之前 runOne 在 0 sessions 时不写盘, daily_digests 永远 {}, bootstrap 永远判为
+    // "首次启动" → 7 天 × 5s sleep = 30s.
     const detector = makeFakeDetector({ sessions: [] });
     const summarizer = makeFakeSummarizer();
     const storage = makeFakeStorage();
@@ -67,7 +71,16 @@ describe('DailyDigestRunner — runOne', () => {
     const out = await r.runOne('2026-06-07');
     expect(out).toBeNull();
     expect(summarizer.summarize).not.toHaveBeenCalled();
-    expect(storage.saveDigest).not.toHaveBeenCalled();
+    // marker digest should be saved with marker:true flag
+    expect(storage.saveDigest).toHaveBeenCalledOnce();
+    const savedArg = storage.saveDigest.mock.calls[0][0];
+    expect(savedArg).toMatchObject({
+      dateKey: '2026-06-07',
+      marker: true,
+      sessionCount: 0,
+      summary: '',
+      sessionIds: [],
+    });
   });
 
   it('有 sessions → digest saved + summarize 调 1 次', async () => {

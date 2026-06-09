@@ -132,6 +132,26 @@ class DailyDigestRunner {
           this.log.warn(`[digest] onNoSessions hook threw: ${err.message}`);
         }
       }
+      // Patch (v2.5.2 — startup-30s fix): 写 marker digest, 让下次启动 hasAny=true,
+      // 跳过 7 天 backfill. 之前 runOne 在 no-sessions 时不写盘, daily_digests 永远 {},
+      // bootstrap() 永远判为 "首次启动" → 每次启动跑 7 天 × 5s sleep = 30s.
+      // marker 内容: 空 summary + sessionCount:0 + marker:true, IPC 层能区分 "真 digest" vs "marker".
+      const marker = {
+        dateKey,
+        generatedAt: now,
+        provider: this.summarizer.provider,
+        model: this.summarizer.model,
+        sessionCount: 0,
+        summary: '',
+        sessionIds: [],
+        marker: true,  // 标记: 没数据只为了 idempotency, 不是真总结
+      };
+      try {
+        this.storage.saveDigest(marker);
+        this.log.info(`[digest] ${dateKey} saved marker (no sessions, idempotency)`);
+      } catch (err) {
+        this.log.warn(`[digest] ${dateKey} marker save failed: ${err.message}`);
+      }
       return null;
     }
 
@@ -223,6 +243,15 @@ class DailyDigestRunner {
       ? this.storage.loadDigests()
       : {};
     const hasAny = Object.keys(digestsBefore).length > 0;
+    // v2.5.2 startup-30s fix: 明说走哪条路径, 排查时一眼看清.
+    // 之前总是 7 天 backfill, 跑 30s (5s sleep × 6 条). 现在 marker 写盘后
+    // hasAny=true 走 fast path (只跑 yesterday, 1-2s).
+    if (hasAny) {
+      this.log.info(`[digest] bootstrap: has ${Object.keys(digestsBefore).length} prior digest(s), skip backfill → only yesterday`);
+    } else {
+      const n = this.config.backfillDays || DEFAULT_BACKFILL_DAYS;
+      this.log.info(`[digest] bootstrap: NO prior digest, will backfill ${n} day(s) (sleep ${this._backfillSleepMs}ms between)`);
+    }
 
     let yesterdayDigest = null;
     let backfillResult = null;
