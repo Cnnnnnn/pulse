@@ -140,6 +140,118 @@ function loadCategoryConfig() {
 }
 
 /**
+ * Step B (LLM classify): 启动期同步对未分类的 app 走 LLM 批量分类.
+ *
+ * 决策 (用户在 q3 选的 blocking-startup-ok): 同步调, 接受 1-2s 启动延迟.
+ *   - 静态 map + state.json.classify_llm_cache 都没有的 app → 收集
+ *   - 先 heuristic 预跑一遍, 给 LLM 提示 "我猜是 X"
+ *   - 调 LLM 一次, batch 出所有结果
+ *   - 写 state.json.classify_llm_cache + category.setLLMCache
+ *   - 整体 timeout 30s, 失败 graceful (不 throw, 也不阻塞启动流程, 但 log warn)
+ *
+ * 设计:
+ *   - 强制用 qwen2.5-coder:7b (用户在 q2 选的, 跟 aiSessions.provider 解耦)
+ *   - 不复用 LLMSummarizer 抽象 (那是给 messages 用的, 分类是 (system, user) plain)
+ *   - 复用 HttpClient (跟其他 detector 风格一致)
+ *
+ * 行为:
+ *   - 0 unmapped app → 跳过, 0 延迟
+ *   - 1-2 unmapped app → 1 次 LLM 调, 2-3s
+ *   - 3+ unmapped app → 1 次 LLM 调 (batch), 3-5s
+ *   - LLM 不可达 / 解析失败 → graceful skip, log warn, 用户看到 "其他" tab
+ */
+async function classifyUnmappedAppsByLLM() {
+  const t0 = Date.now();
+  if (!runtimeConfig || !Array.isArray(runtimeConfig.apps) || runtimeConfig.apps.length === 0) {
+    return;
+  }
+  // 1) reload state.json 旧 cache → 注入 category module (避免重复 LLM)
+  const oldCache = stateStore.loadLLMClassifyCache();
+  if (Object.keys(oldCache).length > 0) {
+    categoryConfig.setLLMCache(oldCache);
+    mainLog.info(`[category] LLM cache loaded: ${Object.keys(oldCache).length} entries`);
+  }
+
+  // 2) 收集未分类的 app (静态 map miss + cache miss)
+  const unmapped = [];
+  for (const app of runtimeConfig.apps) {
+    if (!app || typeof app.name !== "string" || app.name.length === 0) continue;
+    if (categoryConfig.getCategory(app.name) !== "other") continue;
+    // heuristic 预跑, 给 LLM 提示
+    const heur = categoryConfig.classifyByHeuristic(app);
+    unmapped.push({
+      name: app.name,
+      bundle: app.bundle,
+      download_url: app.download_url,
+      _heuristic: heur || undefined,
+    });
+  }
+  if (unmapped.length === 0) {
+    mainLog.info("[category] all apps already classified, skip LLM");
+    return;
+  }
+  mainLog.info(`[category] ${unmapped.length} unmapped apps → LLM classify`);
+
+  // 3) 调 LLM (走 HttpClient, 跟 detector 同款)
+  const host = "http://127.0.0.1:11434";  // 强制 IPv4 — node:fetch 走 ::1 ECONNREFUSED
+  const model = "qwen2.5-coder:7b";
+  const http = new HttpClient({ timeout: 30_000, maxRetries: 0 });
+  const llmCaller = async (systemMsg, userMsg) => {
+    const r = await http.post(
+      `${host}/api/chat`,
+      {
+        model,
+        messages: [
+          { role: "system", content: systemMsg },
+          { role: "user", content: userMsg },
+        ],
+        stream: false,
+        options: { num_predict: 1024, temperature: 0.1 },
+      },
+      { "Content-Type": "application/json" },
+      { timeout: 25_000 },
+    );
+    if (r.error) throw new Error(`llm caller: ${r.error} (${r.status || "no_status"})`);
+    if (r.status < 200 || r.status >= 300) {
+      throw new Error(`llm caller: http_status_${r.status} body=${(r.body || "").slice(0, 200)}`);
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(r.body);
+    } catch (err) {
+      throw new Error(`llm caller: response not JSON: ${err.message}`);
+    }
+    const content = parsed && parsed.message && typeof parsed.message.content === "string"
+      ? parsed.message.content
+      : "";
+    return content;
+  };
+
+  let llmResult = {};
+  try {
+    llmResult = await categoryConfig.classifyByLLM(unmapped, {
+      llmCaller,
+      timeoutMs: 28_000,
+    });
+  } catch (err) {
+    mainLog.warn(`[category] LLM classify threw: ${err.message}`);
+  }
+
+  // 4) 落盘 + 注入 module
+  if (Object.keys(llmResult).length > 0) {
+    categoryConfig.setLLMCache(llmResult);
+    stateStore.saveLLMClassifyCache(llmResult);
+    mainLog.info(
+      `[category] LLM classified ${Object.keys(llmResult).length}/${unmapped.length} apps in ${Date.now() - t0}ms: ${Object.entries(llmResult).map(([k, v]) => `${k}→${v}`).join(", ")}`,
+    );
+  } else {
+    mainLog.warn(
+      `[category] LLM classify returned 0 results in ${Date.now() - t0}ms (apps will fall through to 'other')`,
+    );
+  }
+}
+
+/**
  * Phase B3b: 启动时 healthcheck ollama (默认 provider). 3s timeout, 失败 log warn,
  * 不阻塞启动 (spec §6 启动解耦). daily digest 跑时再失败再说.
  */
@@ -207,11 +319,19 @@ async function runDailyDigestBootstrap() {
         warn: (...a) => mainLog.warn(...a),
         error: (...a) => mainLog.error(...a),
       },
+      onNoSessions: ({ dateKey, attemptedDetectors, at }) => {
+        stateStore.recordDigestAttempt({
+          phase: "no_sessions",
+          ok: true,
+          reason: `dateKey=${dateKey} attemptedDetectors=${attemptedDetectors}`,
+        });
+      },
     });
     global.__pulse_dailyDigest = wiring; // 暴露给 IPC handlers (B4c)
     global.__pulse_aiSessionsBaseCfg = cfgBase; // 给 ipc save-config 重建用
   } catch (err) {
     mainLog.warn(`[digest] buildDailyDigestRunner failed: ${err.message}`);
+    stateStore.recordDigestAttempt({ phase: "wiring_build", ok: false, reason: err.message });
     return;
   }
 
@@ -222,6 +342,18 @@ async function runDailyDigestBootstrap() {
     wiring.runner.config &&
     wiring.runner.config.enabled,
   );
+  // ── 排查补丁: 把 merged config 关键字段打到 log + state trail ──
+  const detectorNames = Array.isArray(wiring.detectors) ? wiring.detectors.map((d) => d.appName).join(",") : "(none)";
+  mainLog.info(
+    `[digest] merged-config: enabled=${enabled} provider=${wiring.providerId} detectors=[${detectorNames}] locale=${wiring.runner.config && wiring.runner.config.locale}`,
+  );
+  stateStore.recordDigestAttempt({
+    phase: "merged_config",
+    ok: true,
+    enabled,
+    provider: wiring.providerId,
+    detectors: detectorNames,
+  });
   if (!enabled) {
     mainLog.info(
       "[digest] ai-sessions disabled in merged config, skip bootstrap/cron",
@@ -234,8 +366,16 @@ async function runDailyDigestBootstrap() {
     mainLog.info(
       `[digest] bootstrap done: yesterday=${result.yesterday ? "ok" : "skipped"} backfill=${result.backfill ? "done" : "skipped"}`,
     );
+    // ── 排查补丁: 把 bootstrap 结果也写 trail, 含 reason ──
+    stateStore.recordDigestAttempt({
+      phase: "bootstrap",
+      ok: true,
+      yesterdayStatus: result.yesterday ? "ok" : (result.yesterday === null ? "skipped_or_empty" : "error"),
+      backfillStatus: result.backfill ? "done" : "skipped",
+    });
   } catch (err) {
     mainLog.warn(`[digest] bootstrap failed: ${err.message}`);
+    stateStore.recordDigestAttempt({ phase: "bootstrap", ok: false, reason: err.message });
   }
   // 24h cron (idempotent, 多次调不会重复启)
   wiring.start(86400_000);
@@ -262,6 +402,11 @@ async function bootstrap() {
 
   // 0) Phase A: 加载 category config (早期注入, 后面 IPC 通道要用到)
   loadCategoryConfig();
+
+  // 0.5) Step B (LLM classify): 启动期同步对未分类的 app 调 LLM.
+  // 在 worker pool 之前: 分类结果存到 category module, IPC handler 直接读.
+  // 失败 graceful — 不阻塞启动 (最坏情况: 1-2s 启动延迟 + "其他" tab 多几个 app).
+  await classifyUnmappedAppsByLLM();
 
   // 1) 单实例锁
   // 冷启动基准模式 (BENCH=1): 跳过单实例锁, 允许同时跑多个 .app 实例
@@ -290,14 +435,19 @@ async function bootstrap() {
   // 2.5) Phase B3b + B4: AI sessions healthcheck + DailyDigestRunner bootstrap
   // 必须在 loadConfig() 之后，因为需要 runtimeConfig.aiSessions
   await runAISessionsHealthcheck();
-  await runDailyDigestBootstrap();
+ await runDailyDigestBootstrap();
 
-  // 3) dock 隐藏
-  try {
-    app.dock.hide();
-  } catch {
-    /* noop */
-  }
+ //3) dock隐藏 (默认). PULSE_SHOW=1 env var时不 hide — 给 dev / screenshot / debugging用
+ try {
+ if (process.env.PULSE_SHOW === '1') {
+ // dev / screenshot: keep dock visible so panel can be activated
+ // 让 panel能 click显示 + 让截屏 capture UI
+ } else {
+ app.dock.hide();
+ }
+ } catch {
+ /* noop */
+ }
 
   // 4) worker pool
   const tPool = Date.now();
