@@ -25,6 +25,9 @@ const aiStorage = require("../ai-sessions/storage");
 const { CloudSummarizer } = require("../ai-sessions/provider-cloud");
 const { PROVIDER_ENDPOINTS } = require("../ai-sessions/provider-cloud");
 const { HttpClient } = require("./http-client");
+const configStore = require("./config-store");
+const libraryScanner = require("./library/scanner");
+const libraryOps = require("./library/ops");
 
 // Bulk Upgrade: 一次只能跑一批; 用 AbortController 控制取消.
 let bulkUpgradeCtrl = null;
@@ -37,9 +40,11 @@ let bulkUpgradeRunning = false;
  * @param {object} deps.getWindow         () => BrowserWindow | null
  * @param {object} deps.onCheckComplete   (results) => void   (用于更新 tray/badge)
  * @param {object} [deps.getCachedState]  () => state object  (Phase 12 last-known 缓存)
+ * @param {object} [deps.onConfigUpdated] (newConfig) => void   (v2.7.0 library: 写完通知 caller reload)
+ * @param {object} [deps.getConfigPath]   () => string           (v2.7.0 library: 给 config-store 用)
  */
 function registerIpcHandlers(deps) {
-  const { getConfig, pool, getWindow, onCheckComplete, getCachedState } = deps;
+  const { getConfig, pool, getWindow, onCheckComplete, getCachedState, onConfigUpdated, getConfigPath } = deps;
 
   function sendToRenderer(channel, payload) {
     const w = getWindow && getWindow();
@@ -634,6 +639,100 @@ function registerIpcHandlers(deps) {
       mainLog.warn("[ipc] ai-sessions:save-config threw", { msg: err.message });
       return { ok: false, reason: "threw", error: err.message };
     }
+  });
+
+  // ── v2.7.0 (My Apps Library): library 块 IPC ─────
+  // 7 个新通道, 全部走 config-store 写盘 + 推 config-updated 事件:
+  //   - library:list-unmonitored — 扫盘 + 过滤已监控 + 过滤已 ignored
+  //   - library:add             — 把一个 scanned app 加进 config.apps (caller 选好 detector)
+  //   - library:remove          — 从 config.apps 删一个 app
+  //   - library:set-sort-by     — library.sortBy
+  //   - library:set-pinned      — 整个 pinned 数组 (replace, 不 merge)
+  //   - library:set-ignored     — 整个 ignored 数组 (replace)
+  //   - library:set-tags        — 整个 tags map (replace)
+
+  /**
+   * 通用 helper: 写新 config, 推事件, 返回 sanitize 后形态.
+   * 失败统一走 ok:false + reason.
+   */
+  function _saveAndNotify(next) {
+    try {
+      const saved = configStore.saveConfig(next, {
+        configPath: typeof getConfigPath === "function" ? getConfigPath() : undefined,
+      });
+      if (typeof onConfigUpdated === "function") {
+        onConfigUpdated(saved);
+      }
+      sendToRenderer("config-updated", { config: saved });
+      return { ok: true, config: saved };
+    } catch (err) {
+      mainLog.warn("[ipc] library save threw", { msg: err && err.message });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  }
+
+  ipcMain.handle("library:list-unmonitored", () => {
+    try {
+      const cfg = getConfig() || { apps: [], library: { ignored: [] } };
+      const scanned = libraryScanner.scanInstalledApps();
+      const unmonitored = libraryScanner.filterUnmonitored(
+        scanned,
+        cfg.apps,
+        (cfg.library && cfg.library.ignored) || [],
+      );
+      return { ok: true, unmonitored, total: scanned.length };
+    } catch (err) {
+      mainLog.warn("[ipc] library:list-unmonitored threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  /**
+   * 把 scanned app 加进 config.apps. caller 传: { appName, bundleName, detectors }
+   * detectors 数组由 renderer 端的 detector wizard 选好, 至少 1 个, type 必须在合法集合.
+   */
+  ipcMain.handle("library:add", (_event, opts) => {
+    const cfg = getConfig() || { apps: [], library: { pinned: [], ignored: [], tags: {} } };
+    const r = libraryOps.addApp(cfg, opts);
+    if (!r.ok) return r;
+    return _saveAndNotify(r.config);
+  });
+
+  ipcMain.handle("library:remove", (_event, name) => {
+    const cfg = getConfig() || { apps: [], library: {} };
+    const r = libraryOps.removeApp(cfg, name);
+    if (!r.ok) return r;
+    return _saveAndNotify(r.config);
+  });
+
+  ipcMain.handle("library:set-sort-by", (_event, sortBy) => {
+    const cfg = getConfig() || { apps: [], library: {} };
+    const r = libraryOps.setSortBy(cfg, sortBy);
+    if (!r.ok) return r;
+    return _saveAndNotify(r.config);
+  });
+
+  ipcMain.handle("library:set-pinned", (_event, pinned) => {
+    const cfg = getConfig() || { apps: [], library: {} };
+    const r = libraryOps.setPinned(cfg, pinned);
+    if (!r.ok) return r;
+    return _saveAndNotify(r.config);
+  });
+
+  ipcMain.handle("library:set-ignored", (_event, ignored) => {
+    const cfg = getConfig() || { apps: [], library: {} };
+    const r = libraryOps.setIgnored(cfg, ignored);
+    if (!r.ok) return r;
+    return _saveAndNotify(r.config);
+  });
+
+  ipcMain.handle("library:set-tags", (_event, tags) => {
+    const cfg = getConfig() || { apps: [], library: {} };
+    const r = libraryOps.setTags(cfg, tags);
+    if (!r.ok) return r;
+    return _saveAndNotify(r.config);
   });
 }
 

@@ -2,6 +2,122 @@
 
 ---
 
+## v2.7.0 (My Apps Library) — 2026-06-10
+
+### New: My Apps Library (产品形态升级)
+
+工具从 "universal monitor" 升级到 "my personal app catalog" — 有 pin / tag / ignored / "未监控" 概念.
+
+#### Pin / Star ⭐
+
+- 顶部 ⭐ Pinned 区 (`<PinnedSection />`): 列出我加 ⭐ 的 app 名字 (chip 风格, 点 chip 取消 pin)
+- 单 app 行右侧 ⭐ 按钮 (`LibrarySection`), toggle 加 / 取消
+- "⭐ 我关注的" tab (`activeFilter='starred'`): 仅显示 pinned app
+- 持久化到 `config.json` 顶层 `library.pinned` (string[])
+
+#### 未监控 app 扫描
+
+- `src/main/library/scanner.js` 扫 `/Applications` + `~/Applications`, 返 {bundlePath, bundleName, bundleId, version, appName}
+- 读 `Info.plist` 走 `plutil -convert json` (macOS 自带, 0 依赖)
+- IPC `library:list-unmonitored` 跟 config + ignored 对比, 返未监控列表
+- "📦 未监控" tab (`activeFilter='unmonitored'`): 渲染 `<LibrarySection />` 替换 ResultsView
+
+#### Detector Wizard Modal
+
+- "监控" 按钮 → 弹 `<DetectorWizardModal />` (11 个 detector type 单选 + 必填字段)
+- 11 个 detector type: brew_formulae / brew_local_cask / electron_yml / electron_zip_probe / app_store_lookup / api_json / redirect_filename / cursor_redirect / qclaw_api / app_update_yml / sparkle_appcast
+- 校验: detector type 合法 + 必填字段非空 + appName/bundle 不重名
+- 提交后 IPC `library:add` 写 config + 推 `config-updated` 事件 + 本地 unmonitored 列表移除该项
+
+#### Tag 自由文本 + 过滤
+
+- 单 app `<TagInput />`: inline input + chip 列表, Enter 提交
+- 顶部 `<TagBar />`: 全 app 派生 unique tag 列表 + count, 预定义 popular (dev/ai/design/work/personal/media) 在前
+- 点击 tag chip → `activeTagFilter` signal, selectors 自动过滤
+- 严格大小写: 'Dev' / 'dev' / 'DEV' 各自独立, 不做 case-insensitive 去重
+- 持久化到 `config.json.library.tags` ({appName: string[]})
+- 单 tag 上限 32 字符, 单 app 上限 10 tag, 全局上限 50 tag (sanitize 兜底)
+
+#### 其它
+
+- 6 个 tab: 全部 / 有更新 / 已是最新 / 出错 / ⭐ 我关注的 / 📦 未监控
+- "忽略" 按钮: 加 app 进 `library.ignored` [{appName, bundle}], 跟 unmonitored 列表立即同步
+- "重新扫描" 按钮: 重新跑 scanner, 刷新 unmonitored 列表
+- 切到 "未监控" tab 时, ResultsView 隐藏, LibrarySection 顶替
+
+### Schema + 数据
+
+- `config.json` 顶层加 `library` 块: `{ sortBy, pinned, ignored, tags }`
+- `library.sortBy`: 'starred' | 'name' | 'lastUsed' | 'updateStatus' (4 选 1, 兜底 'starred')
+- `library.pinned`: string[] (app name, dedupe, 上限 200)
+- `library.ignored`: [{appName, bundle}] 对象数组 (v2.7.0 拍板: 不用 string[]), dedupe by appName, 上限 500
+- `library.tags`: {appName: string[]}, 严格大小写
+- 老 config (无 library 字段) → 默认 `{sortBy: 'starred', pinned: [], ignored: [], tags: {}}`, 不影响老用户
+
+### IPC 7 个新通道
+
+- `library:list-unmonitored` — 扫盘 + 过滤
+- `library:add` — 加 app + 同步从 ignored 移除
+- `library:remove` — 删 app
+- `library:set-sort-by` — sortBy 写
+- `library:set-pinned` — pinned 数组 replace
+- `library:set-ignored` — ignored 数组 replace
+- `library:set-tags` — tags map replace
+
+每个写操作 → `config-store.saveConfig` (atomic write, sanitize 兜底) → 推 `config-updated` 事件 → renderer 刷 store.
+
+### 边界处理
+
+- 老 config 无 library 字段 → sanitize 默认值, 不抛
+- 老 config library 字段缺 sortBy/pinned/ignored/tags 任一 → sanitize 兜底
+- ignored 旧 string[] 形态 (v5 草稿) → sanitize 丢弃非 object 元素, 让用户重新 ignore
+- tag 全局超 50 → 后续 app 跳过 (单 app 优先)
+- 写盘失败 → IPC 返 ok:false + reason, 不影响内存流
+- unmonitored 列表空 → LibrarySection 显示 "所有已装 app 都在监控列表"
+
+### 测试
+
+- 46 个新 case:
+  - `tests/config/library-schema.test.js` (21 case): sanitize 全边界 + 严格大小写 + ignored 对象数组
+  - `tests/main/library-scanner.test.js` (25 case): 扫盘 + dedupe + 排序 + 错误注入
+  - `tests/main/library-ops.test.js` (30 case): 6 个 ops 纯函数全边界
+  - `tests/main/config-store.test.js` (9 case): atomic write + sanitize 集成 + 失败清理
+  - `tests/renderer/filter.test.js` 改: `toMatchObject` 兼容新字段
+  - `tests/renderer/filter-bar.test.jsx` 既存 6 case 全过
+- 总计 1041 passed | 4 skipped (1045) (v2.6.7 是 999, +42 net)
+- esbuild bundle: 316kb (v2.6.7 是 282kb, +34kb = library scanner + 4 新组件 + detector wizard)
+
+### Files (commit-by-commit 视角, 单个集成 commit 收口)
+
+- `src/config/schema.js` — `_sanitizeLibrary` + DEFAULT
+- `src/main/config-store.js` (新) — atomic write + sanitize
+- `src/main/library/scanner.js` (新) — /Applications 扫盘
+- `src/main/library/ops.js` (新) — 6 个纯函数 mutations
+- `src/main/ipc.js` — 7 个 library handlers + _saveAndNotify
+- `src/main/index.js` — onConfigUpdated + getConfigPath 传给 ipc
+- `preload.js` — 7 个 library 通道 + onConfigUpdated 订阅
+- `src/renderer/api.js` — 7 个 library API
+- `src/renderer/store.js` — libraryConfig / unmonitoredApps / activeTagFilter signals
+- `src/renderer/selectors.js` — filteredResults + tabCounts 支持 'starred' / 'unmonitored' / tag 过滤
+- `src/renderer/App.jsx` — bootstrap 拉 library 数据 + 订阅 config-updated + LibrarySection 集成
+- `src/renderer/components/FilterBar.jsx` — 加 2 chip + 计数
+- `src/renderer/components/PinnedSection.jsx` (新) — 顶部 ⭐ 区
+- `src/renderer/components/LibrarySection.jsx` (新) — 未监控列表 + 行级 pin/ignore/add
+- `src/renderer/components/TagBar.jsx` (新) — 顶部 tag chip 过滤
+- `src/renderer/components/TagInput.jsx` (新) — 单 app tag inline 编辑
+- `src/renderer/components/DetectorWizardModal.jsx` (新) — 11 detector type + 字段表单
+- `.gitignore` — 加 `.mavis/` 顶层
+
+### 已知 follow-up (单独 PR)
+
+- 拖拽 manual reorder (v5 草稿里说要做, v2.7.0 没做)
+- bundleId 反查 detector 推荐 (现在 wizard 默认 brew_formulae)
+- 跟 v5 草稿比, v2.7.0 实施调整:
+  - ignored 用对象数组 (不是 string[]) — 用户拍板
+  - tag 严格大小写 (不是 case-insensitive 去重) — 用户拍板
+
+---
+
 ## v2.6.7 (AI Digest Generation Jobs) — 2026-06-10
 
 ### AI 总结生成机制重做

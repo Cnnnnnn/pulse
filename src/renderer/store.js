@@ -86,7 +86,8 @@ export const checkStartTime = computed(() => checkSession.value.startedAt);
 export const cachedState = signal(null);
 
 // Phase 23: Search + Filter 状态. FilterBar 写, selectors 读.
-// searchQuery: 当前 search 框内容 (string). activeFilter: 'all' | 'update' | 'latest' | 'error'.
+// searchQuery: 当前 search 框内容 (string). activeFilter: 'all' | 'update' | 'latest' | 'error'
+//   v2.7.0: 加 'starred' | 'unmonitored' — library 视角过滤
 export const searchQuery = signal('');
 export const activeFilter = signal('all');
 
@@ -95,6 +96,14 @@ export const activeFilter = signal('all');
 //   - categoryId -> 仅显示该 categoryId 的 app (e.g. 'ai', 'dev')
 // 持久化到 state.json.active_category; 还原由 loadActiveCategory() 完成.
 export const activeCategory = signal('all');
+
+// v2.7.0 (My Apps Library): library 数据 signals.
+//   - libraryConfig: { sortBy, pinned, ignored, tags }  // 整个 config.library 块
+//   - unmonitoredApps: 扫到的未监控 app 列表 (每次 IPC library:list-unmonitored 刷)
+//   - activeTagFilter: 当前选中的 tag (string | null) — 顶部 chip 过滤
+export const libraryConfig = signal({ sortBy: 'starred', pinned: [], ignored: [], tags: {} });
+export const unmonitoredApps = signal([]);
+export const activeTagFilter = signal(null);
 
 // ── AI 任务总结 (重做版): 任务为中心、按需生成 ──
 //   - aiTasksDateKey: 当前查看的日期 ('YYYY-MM-DD', 默认今天)

@@ -41,12 +41,22 @@ contextBridge.exposeInMainWorld('api', {
   // 跳到原始 session (任务卡 "查看原始" 用)
   openSession: (target) => ipcRenderer.invoke('ai-sessions:open-session', target),
 
- // Phase B6c (AI Sessions Settings): safeStorage API key + config
- setAiKey: (providerId, apiKey) => ipcRenderer.invoke('ai-sessions:set-key', providerId, apiKey),
- clearAiKey: (providerId) => ipcRenderer.invoke('ai-sessions:clear-key', providerId),
- hasAiKey: (providerId) => ipcRenderer.invoke('ai-sessions:has-key', providerId),
- aiHealthcheck: (opts) => ipcRenderer.invoke('ai-sessions:healthcheck', opts),
- getAiSessionsConfig: () => ipcRenderer.invoke('ai-sessions:get-config'),
- saveAiSessionsConfig: (cfg) => ipcRenderer.invoke('ai-sessions:save-config', cfg),
- onAiSessionsConfigUpdated: (cb) => ipcRenderer.on('ai-sessions-config-updated', (_, data) => cb(data)),
+  // Phase B6c (AI Sessions Settings): safeStorage API key + config
+  setAiKey: (providerId, apiKey) => ipcRenderer.invoke('ai-sessions:set-key', providerId, apiKey),
+  clearAiKey: (providerId) => ipcRenderer.invoke('ai-sessions:clear-key', providerId),
+  hasAiKey: (providerId) => ipcRenderer.invoke('ai-sessions:has-key', providerId),
+  aiHealthcheck: (opts) => ipcRenderer.invoke('ai-sessions:healthcheck', opts),
+  getAiSessionsConfig: () => ipcRenderer.invoke('ai-sessions:get-config'),
+  saveAiSessionsConfig: (cfg) => ipcRenderer.invoke('ai-sessions:save-config', cfg),
+  onAiSessionsConfigUpdated: (cb) => ipcRenderer.on('ai-sessions-config-updated', (_, data) => cb(data)),
+
+  // v2.7.0 (My Apps Library): 7 个新通道
+  libraryListUnmonitored: () => ipcRenderer.invoke('library:list-unmonitored'),
+  libraryAdd: (opts) => ipcRenderer.invoke('library:add', opts),
+  libraryRemove: (name) => ipcRenderer.invoke('library:remove', name),
+  librarySetSortBy: (sortBy) => ipcRenderer.invoke('library:set-sort-by', sortBy),
+  librarySetPinned: (pinned) => ipcRenderer.invoke('library:set-pinned', pinned),
+  librarySetIgnored: (ignored) => ipcRenderer.invoke('library:set-ignored', ignored),
+  librarySetTags: (tags) => ipcRenderer.invoke('library:set-tags', tags),
+  onConfigUpdated: (cb) => ipcRenderer.on('config-updated', (_, data) => cb(data)),
 });

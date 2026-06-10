@@ -59,7 +59,7 @@ export function createApi(overrides = {}) {
   onAiTaskSummaryUpdated: pick(overrides, 'onAiTaskSummaryUpdated'),
   // 跳到原始 session
   openSession: pick(overrides, 'openSession'),
- // Phase B6c (AI Sessions Settings)
+  // Phase B6c (AI Sessions Settings)
  setAiKey: pick(overrides, 'setAiKey'),
  clearAiKey: pick(overrides, 'clearAiKey'),
  hasAiKey: pick(overrides, 'hasAiKey'),
@@ -67,6 +67,15 @@ export function createApi(overrides = {}) {
  getAiSessionsConfig: pick(overrides, 'getAiSessionsConfig'),
  saveAiSessionsConfig: pick(overrides, 'saveAiSessionsConfig'),
  onAiSessionsConfigUpdated: pick(overrides, 'onAiSessionsConfigUpdated'),
+ // v2.7.0 (My Apps Library)
+ libraryListUnmonitored: pick(overrides, 'libraryListUnmonitored'),
+ libraryAdd: pick(overrides, 'libraryAdd'),
+ libraryRemove: pick(overrides, 'libraryRemove'),
+ librarySetSortBy: pick(overrides, 'librarySetSortBy'),
+ librarySetPinned: pick(overrides, 'librarySetPinned'),
+ librarySetIgnored: pick(overrides, 'librarySetIgnored'),
+ librarySetTags: pick(overrides, 'librarySetTags'),
+ onConfigUpdated: pick(overrides, 'onConfigUpdated'),
  };
 }
 

@@ -485,6 +485,7 @@ try {
 
   registerIpcHandlers({
     getConfig: () => runtimeConfig,
+    getConfigPath: () => CONFIG_PATH,
     pool,
     getWindow: () => winMgr && winMgr.getWindow(),
     // Phase 12: 每次 check-updates 完成时落盘 last-known 状态
@@ -503,6 +504,11 @@ try {
       }
       // Phase 29: 刷 last-opened (后台 async, 不阻塞)
       refreshLastOpenedAfterCheck();
+    },
+    // v2.7.0: library IPC 写完 config.json 后, 重新 reload 到内存并通知 renderer.
+    onConfigUpdated: (newConfig) => {
+      runtimeConfig = newConfig;
+      mainLog.info(`config updated: ${newConfig.apps.length} apps, library.pinned=${(newConfig.library && newConfig.library.pinned.length) || 0}`);
     },
   });
   mainLog.info(`ipc registered`);
