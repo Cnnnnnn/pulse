@@ -325,10 +325,15 @@ async function _readSessionViaCli(sqlitePath, sessionId) {
           try {
             const data = JSON.parse(dataStr);
             role = data.role || role;
+            // 跟 _parseMessageRow 同优先级: content > text > msg_content > msg_text
             if (typeof data.content === 'string') content = data.content;
             else if (Array.isArray(data.content)) {
-              content = data.content.map((c) => c.text || c.content || '').filter(Boolean).join('\n').trim();
+              content = data.content.map((c) => c.text || c.content || c.msg_content || c.msg_text || '').filter(Boolean).join('\n').trim();
             } else if (typeof data.text === 'string') content = data.text;
+            else if (typeof data.msg_content === 'string') content = data.msg_content;
+            else if (Array.isArray(data.msg_content)) {
+              content = data.msg_content.map((c) => c.text || c.content || c.msg_content || c.msg_text || '').filter(Boolean).join('\n').trim();
+            }
           } catch {
             content = dataStr;
           }
@@ -365,6 +370,10 @@ function _hasColumn(db, table, col) {
 /**
  * Parse session_messages 一行 → {role, content, ts}.
  * 容错: data 不是 JSON / 缺字段 → 跳过.
+ *
+ * MiniMax daemon schema 实测 (2026-06):
+ *   data = { msg_id, role, msg_type, msg_content, timestamp, source?, tool_calls?, usage?, finish_reason? }
+ *   注: 字段叫 msg_content, 不是 content / text (跟 OpenAI / Anthropic 不同).
  */
 function _parseMessageRow(row) {
   if (!row || typeof row.role !== 'string') return null;
@@ -379,7 +388,7 @@ function _parseMessageRow(row) {
   }
   if (!data || typeof data !== 'object') return null;
   const role = data.role || row.role;
-  // content 可能是 string (简单) 或 array (parts)
+  // content 可能是 string (简单) 或 array (parts). 优先级: content > text > msg_content > msg_text
   let content = '';
   if (typeof data.content === 'string') {
     content = data.content;
@@ -387,6 +396,11 @@ function _parseMessageRow(row) {
     content = _extractContent(data.content);
   } else if (typeof data.text === 'string') {
     content = data.text;
+  } else if (typeof data.msg_content === 'string') {
+    // MiniMax daemon 实际用的字段名
+    content = data.msg_content;
+  } else if (Array.isArray(data.msg_content)) {
+    content = _extractContent(data.msg_content);
   }
   // 跳过 system / 空内容
   if (!content || content.length === 0) return null;
@@ -407,6 +421,8 @@ function _extractContent(arr) {
     if (!c || typeof c !== 'object') continue;
     if (typeof c.text === 'string') parts.push(c.text);
     else if (typeof c.content === 'string') parts.push(c.content);
+    else if (typeof c.msg_content === 'string') parts.push(c.msg_content); // MiniMax daemon 字段名
+    else if (typeof c.msg_text === 'string') parts.push(c.msg_text);
   }
   return parts.join('\n').trim();
 }

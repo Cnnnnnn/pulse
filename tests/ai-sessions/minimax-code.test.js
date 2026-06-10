@@ -82,6 +82,38 @@ describe('minimax-code._parseMessageRow', () => {
     expect(out.ts).toBe(1000);
   });
 
+  it('data.msg_content (MiniMax daemon 字段名, 不是 content/text)', () => {
+    const row = {
+      role: 'user',
+      data: JSON.stringify({
+        msg_id: 'm1',
+        role: 'user',
+        msg_type: 1,
+        msg_content: 'minimax daemon 实际用的字段',
+        timestamp: 1778736771418,
+        source: 'api',
+      }),
+      timestamp: 1778736771418,
+    };
+    expect(_parseMessageRow(row)).toEqual({
+      role: 'user',
+      content: 'minimax daemon 实际用的字段',
+      ts: 1778736771418,
+    });
+  });
+
+  it('priority: content > text > msg_content > msg_text', () => {
+    // content 优先
+    expect(_parseMessageRow({ role: 'user', data: JSON.stringify({ content: 'a', msg_content: 'b' }), timestamp: 1 }))
+      .toMatchObject({ content: 'a' });
+    // 没 content 时 text 优先
+    expect(_parseMessageRow({ role: 'user', data: JSON.stringify({ text: 'a', msg_content: 'b' }), timestamp: 1 }))
+      .toMatchObject({ content: 'a' });
+    // 只有 msg_content 也 OK
+    expect(_parseMessageRow({ role: 'user', data: JSON.stringify({ msg_content: 'a' }), timestamp: 1 }))
+      .toMatchObject({ content: 'a' });
+  });
+
   it('空 content → 返 null (跳过)', () => {
     const row = {
       role: 'user',
@@ -171,8 +203,8 @@ describe('MiniMaxCodeDetectorImpl — CLI fallback (WAL snapshot workaround)', (
       ");",
       "INSERT INTO sessions VALUES ('mvs_test_001','Test session','/Users/me/proj','minimax/M3','finished',1000000,2000000,'opencode');",
       "INSERT INTO sessions VALUES ('mvs_test_002','Another','/Users/me/proj2','minimax/M3','started',1500000,2500000,'opencode');",
-      "INSERT INTO session_messages (session_id,role,data,timestamp) VALUES ('mvs_test_001','user','{\"role\":\"user\",\"content\":\"hi\",\"timestamp\":2000000}',2000000);",
-      "INSERT INTO session_messages (session_id,role,data,timestamp) VALUES ('mvs_test_001','assistant','{\"role\":\"assistant\",\"content\":\"hello\",\"timestamp\":2001000}',2001000);",
+      "INSERT INTO session_messages (session_id,role,data,timestamp) VALUES ('mvs_test_001','user','{\"role\":\"user\",\"msg_content\":\"hi\",\"msg_type\":1,\"timestamp\":2000000}',2000000);",
+      "INSERT INTO session_messages (session_id,role,data,timestamp) VALUES ('mvs_test_001','assistant','{\"role\":\"assistant\",\"msg_content\":\"hello\",\"msg_type\":2,\"timestamp\":2001000}',2001000);",
     ].join('\n');
     execSync(`sqlite3 "${dbPath}"`, { input: schema, stdio: ['pipe', 'pipe', 'pipe'] });
   });
