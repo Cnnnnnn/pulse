@@ -2,9 +2,15 @@
  * tests/detectors/api-json.test.js
  */
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { ApiJsonDetector } from '../../src/detectors/api-json.js';
 import { MockHttp, makeCtx } from '../helpers/mock-http.js';
 import { REASONS } from '../../src/detectors/errors.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WORKBUDDY_FIXTURE = path.join(__dirname, '..', 'fixtures', 'workbuddy', 'api_json.json');
 
 describe('ApiJsonDetector', () => {
   it('取顶层 version', async () => {
@@ -125,4 +131,58 @@ describe('ApiJsonDetector', () => {
       expect(r.changelog_url).toBe('');
     });
   });
+
+ // Phase6收尾: WorkBuddy真实 API端到端回归.
+ // Fixture: tests/fixtures/workbuddy/api_json.json (2026-06-05录制).
+ //真实响应: { version: "5.0.2.29916712", productVersion: "5.0.2.29916712",
+ // url: <download .zip>, sha256hash: <hex>, timestamp, supportsFastUpdate: false }
+ // detector行为:顶层 version命中 → stripBuildNumber → "5.0.2"
+ // (Phase8:4段末段 ≥1000剥掉, CI build counter行为一致).
+ //响应无 body / releaseNotes / changelog / html_url → changelog & changelog_url 都空.
+ // `url` 是 download URL (不是 changelog URL) — 不填 changelog_url避免误导.
+ describe('Phase6: WorkBuddy真实响应回归', () => {
+ it('顶层 version "5.0.2.29916712" → stripBuildNumber → "5.0.2" (high / api_json)', async () => {
+ const fixture = JSON.parse(fs.readFileSync(WORKBUDDY_FIXTURE, 'utf-8'));
+ //守护: 确保 fixture 是2026-06-05录的 WorkBuddy真实响应 (防 mock漂移)
+ expect(fixture.app).toBe('WorkBuddy');
+ expect(fixture.detector).toBe('api_json');
+ expect(fixture.ok).toBe(true);
+ expect(fixture.response.status).toBe(200);
+
+ // 用 fixture.response.body 当 mock GET响应 (真实完整 JSON字符串)
+ const http = new MockHttp({ get: [{ status:200, body: fixture.response.body }] });
+ const r = await new ApiJsonDetector({
+ url: 'https://www.codebuddy.cn/v2/update?platform=workbuddy-darwin-arm64',
+ }).detect(makeCtx({ http, arch: 'arm64' }));
+
+ // 主断言: 应用版本号 "5.0.2" (剥掉 CI build counter)
+ expect(r.version).toBe('5.0.2');
+ expect(r.confidence).toBe('high');
+ expect(r.source).toBe('api_json');
+ expect(r.note).toBe('api_json');
+
+ // WorkBuddy响应无 release notes字段, 不应误填
+ expect(r.changelog).toBe('');
+ expect(r.changelog_url).toBe('');
+
+ // raw 是完整解析后的对象, 可作 download URL / sha256提取入口
+ expect(r.raw).toBeDefined();
+ expect(r.raw.version).toBe('5.0.2.29916712');
+ expect(r.raw.productVersion).toBe('5.0.2.29916712');
+ expect(r.raw.url).toContain('download.codebuddy.cn/workbuddy/');
+ expect(r.raw.sha256hash).toMatch(/^[a-f0-9]{64}$/);
+ });
+
+ it('productVersion-only响应也能命中 (回退分支)', async () => {
+ //模拟 WorkBuddy API偶发只返 productVersion 不返 version 的场景
+ const body = JSON.stringify({
+ productVersion: '5.0.2.29916712',
+ url: 'https://download.codebuddy.cn/x.zip',
+ });
+ const http = new MockHttp({ get: [{ status:200, body }] });
+ const r = await new ApiJsonDetector({ url: 'x' }).detect(makeCtx({ http }));
+ expect(r.version).toBe('5.0.2'); // stripBuildNumber
+ expect(r.confidence).toBe('high');
+ });
+ });
 });
