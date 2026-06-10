@@ -70,11 +70,22 @@ class CodexDetectorImpl {
   /**
    * 扫所有 rollout-*.jsonl, parse 每个, 给每个 sub-session 输出 1 条 meta.
    *
+   * 默认只扫 mtime 在最近 MAX_MTIME_AGE_DAYS 天内的文件 (用户基本不查 N 个月前的).
+   * opts.maxMtimeAgeDays 可覆盖; 0 = 不限.
+   *
+   * @param {object} [opts]
+   * @param {number} [opts.maxMtimeAgeDays=60]
    * @returns {Promise<Array<{id: string, file: string, mtimeMs: number, sizeBytes: number}>>}
    */
-  async listSessions() {
+  async listSessions(opts = {}) {
     this._parsedByFile = new Map();
-    const files = await _scanAllRollouts(this.sessionsDir);
+    const maxMtimeAgeDays = (opts && typeof opts.maxMtimeAgeDays === 'number')
+      ? opts.maxMtimeAgeDays
+      : 60;
+    const cutoffMs = maxMtimeAgeDays > 0
+      ? Date.now() - maxMtimeAgeDays * 86400_000
+      : 0;
+    const files = await _scanAllRollouts(this.sessionsDir, cutoffMs);
     const out = [];
     for (const f of files) {
       try {
@@ -153,9 +164,12 @@ class CodexDetectorImpl {
 
 /**
  * 递归扫 sessionsDir, 列所有 rollout-*.jsonl 文件.
+ * cutoffMs = 0 → 不限; >0 → mtime < cutoffMs 的跳过 (省 stat / parse).
+ * @param {string} dir
+ * @param {number} [cutoffMs=0]
  * @returns {Promise<Array<{file, mtimeMs, sizeBytes}>>}
  */
-async function _scanAllRollouts(dir) {
+async function _scanAllRollouts(dir, cutoffMs = 0) {
   const out = [];
   let entries;
   try {
@@ -169,11 +183,12 @@ async function _scanAllRollouts(dir) {
   for (const e of entries) {
     const sub = path.join(dir, e.name);
     if (e.isDirectory()) {
-      const inner = await _scanAllRollouts(sub);
+      const inner = await _scanAllRollouts(sub, cutoffMs);
       out.push(...inner);
     } else if (e.isFile() && e.name.startsWith('rollout-') && e.name.endsWith('.jsonl')) {
       try {
         const st = await fsp.stat(sub);
+        if (cutoffMs > 0 && st.mtimeMs < cutoffMs) continue;
         out.push({ file: sub, mtimeMs: st.mtimeMs, sizeBytes: st.size });
       } catch {
         /* skip */

@@ -159,7 +159,12 @@ class TaskSummaryEngine {
       }
       let metas = [];
       try {
-        metas = await det.listSessions();
+        // 算 dateKey 的 epoch ms, 让 detector 知道我们要查哪一天附近 (省 stat 老的文件)
+        const targetMs = _dateKeyToMs(dateKey, now);
+        const maxAgeDays = targetMs > 0
+          ? Math.ceil((now - targetMs) / 86400_000) + 7  // dateKey 前后留 7 天 buffer
+          : 60;
+        metas = await det.listSessions({ maxMtimeAgeDays: Math.max(maxAgeDays, 7) });
       } catch (err) {
         this.log.warn(`[tasks] ${det.appName} listSessions failed: ${err.message}`);
         sourceStats.push({ appName: det.appName, installed: true, metaCount: 0, matchedCount: 0 });
@@ -195,6 +200,22 @@ function _assertDateKey(dateKey, fn) {
   if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
     throw new TypeError(`${fn}: dateKey must be YYYY-MM-DD`);
   }
+}
+
+/**
+ * 'YYYY-MM-DD' → 该天 0:00 的 epoch ms (本地时区). 失败返 0.
+ * 用 Intl 拿本地 offset, 跟 detector._localDayStart 同思路.
+ */
+function _dateKeyToMs(dateKey, now) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  if (!m) return 0;
+  const y = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10);
+  const d = parseInt(m[3], 10);
+  const probe = new Date(now);
+  const localMinusUtcMs = -probe.getTimezoneOffset() * 60_000;
+  const utcMidnight = Date.UTC(y, mo - 1, d, 0, 0, 0, 0);
+  return utcMidnight - localMinusUtcMs;
 }
 
 /**

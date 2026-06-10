@@ -48,10 +48,12 @@ class AISessionDetector {
 
   /**
    * 列出所有 session (从磁盘扫). 不读全文, 只返 meta.
+   * opts 透传给 impl (供 codex 传 maxMtimeAgeDays 等).
+   * @param {object} [opts]
    * @returns {Promise<Array<{id: string, file: string, mtimeMs: number, sizeBytes: number, appName: string}>>}
    */
-  async listSessions() {
-    const list = await this.impl.listSessions();
+  async listSessions(opts) {
+    const list = await this.impl.listSessions(opts);
     if (!Array.isArray(list)) return [];
     return list.map((m) => ({
       id: m.id,

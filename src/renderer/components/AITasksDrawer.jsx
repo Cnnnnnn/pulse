@@ -148,12 +148,12 @@ export function AITasksDrawer() {
 
   const [selectedKeys, setSelectedKeys] = useState([]);
 
-  // 打开抽屉 → 刷新当前日期的任务列表
+  // 打开抽屉 / 切日期 → 刷新当前日期的任务列表
   useEffect(() => {
     if (open && !configMode) {
       loadAiTasks(dateKey);
     }
-  }, [open]);
+  }, [open, dateKey, configMode]);
 
   // 切日期 / 数据刷新 → 清掉已不存在的勾选
   useEffect(() => {
@@ -174,7 +174,7 @@ export function AITasksDrawer() {
   });
 
   function switchDate(key) {
-    if (key === dateKey && !loading) return;
+    if (loading) return; // 已在加载中, 忽略重复点击 (避免重复扫描)
     setSelectedKeys([]);
     loadAiTasks(key);
   }
@@ -319,6 +319,7 @@ export function AITasksDrawer() {
                 <div class="drawer-loading">
                   <span class="digest-spinner large"></span>
                   <p>扫描 AI 任务中…</p>
+                  <p class="hint">首次或跨日切换可能需要 10–30 秒</p>
                 </div>
               )}
 

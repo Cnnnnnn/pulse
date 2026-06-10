@@ -371,9 +371,12 @@ export function needsConfig() {
  */
 export async function loadAiTasks(dateKey) {
   const key = (typeof dateKey === 'string' && dateKey) ? dateKey : aiTasksDateKey.value;
+  const isDateSwitch = key !== aiTasksDateKey.value;
   aiTasksDateKey.value = key;
   aiTasksLoading.value = true;
   aiTasksError.value = null;
+  // 切日期时立刻清空旧任务, 让 UI 看到 loading 而不是显示陈旧数据
+  if (isDateSwitch) aiTasks.value = [];
   try {
     // eslint-disable-next-line no-undef
     const { api } = await import('./api.js');
