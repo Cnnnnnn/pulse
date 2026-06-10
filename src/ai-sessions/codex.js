@@ -273,43 +273,91 @@ async function _parseCodexJsonl(file) {
 
 /**
  * 从 messages 抽 title.
- * 优先第一条 user 消息第一行非噪声文本, fallback 到 assistant 第一行.
- * 跟 cursor.js _firstMeaningfulLine 同思路 (独立实现, 避免跨文件 require).
+ * 优先找**有信息量**的第一条 user 消息第一行非噪声文本, fallback 到 assistant.
+ *
+ * "信息量"过滤: 跳过 < 8 字符的 query (太短像 '可以'/'好的'/'ok'), 跳过常见语气词开头
+ * (这样长会话里前几次短确认不会盖掉后续真正的 query).
  */
 function _extractCodexTitle(messages) {
   if (!Array.isArray(messages) || messages.length === 0) return '';
   // 1. 优先 user 消息 (codex 这里的 user 一定是真 query, 不是 system 注入)
   for (const msg of messages) {
     if (!msg || msg.role !== 'user' || typeof msg.content !== 'string') continue;
-    const line = _firstMeaningfulLine(msg.content);
+    const line = _firstInformativeLine(msg.content);
     if (line) return _trimTitle(line);
   }
   // 2. fallback: assistant 第一条有意义文本
   for (const msg of messages) {
     if (!msg || msg.role !== 'assistant' || typeof msg.content !== 'string') continue;
+    const line = _firstInformativeLine(msg.content);
+    if (line) return _trimTitle(line);
+  }
+  // 3. 实在没找到: 第一条 user 第一条 non-noise 行 (即便短)
+  for (const msg of messages) {
+    if (!msg || msg.role !== 'user' || typeof msg.content !== 'string') continue;
     const line = _firstMeaningfulLine(msg.content);
     if (line) return _trimTitle(line);
   }
   return '';
 }
 
+// 常见短确认/语气词开头 — 不足以作为 title, 跳过
+// 注: 只匹配**整个 string**或**极短**(< 10字符)的. '麻烦看下...' 不是语气词, 不跳.
+const _GENERIC_QUERY_RE = /^(可以|好的|好|ok|okay|yes|no|嗯|啊|哦|行|对|是|不是|继续|接着|然后|下一步|next|continue|go|ok,|好的,|好,|行,)$/i;
+
 /**
- * 跳 markdown 标题 / 单行 tag / 绝对路径 / URL / XML 标签块开头.
+ * 判断一行是否 "信息量足够" 做 title.
+ *  - 非空, 去噪后 ≥ 8 字符
+ *  - 不以常见短确认/语气词开头
+ *  - 不全是标点/数字
+ */
+function _isInformativeLine(line) {
+  if (!line || typeof line !== 'string') return false;
+  const t = line.trim();
+  if (t.length < 8) return false;
+  if (_GENERIC_QUERY_RE.test(t)) return false;
+  // 全是数字/标点不算
+  if (!/[一-龥a-zA-Z]/.test(t)) return false;
+  return true;
+}
+
+/**
+ * 找第一条**信息量足够**的非噪声行 (vs _firstMeaningfulLine 只跳噪声不过滤信息量).
+ * 用于 _extractCodexTitle 的"主路径".
+ */
+function _firstInformativeLine(text) {
+  const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    const clean = _stripNoiseLine(line);
+    if (!clean) continue;
+    if (_isInformativeLine(clean)) return clean;
+  }
+  return null;
+}
+
+/**
+ * 跳 markdown 标题 / 单行 tag / 绝对路径 / URL / XML 标签块开头, 提取 clean 行.
+ */
+function _stripNoiseLine(line) {
+  if (/^#/.test(line)) return null;
+  if (/^<[^>]+>$/.test(line)) return null;
+  if (/^<[a-z_]+>/i.test(line)) return null;
+  if (/^\/Users\//.test(line)) return null;
+  if (/^https?:\/\//i.test(line)) return null;
+  if (/\/Users\/[^\s]+/.test(line)) return null;
+  if (/https?:\/\/\S+/.test(line)) return null;
+  return line.replace(/\s+/g, ' ');
+}
+
+/**
+ * 找第一条 non-noise 行 (去掉 markdown 标题 / tag / 路径 / URL 后剩下的第一行).
  * 跟 cursor.js 的 _firstMeaningfulLine 同思路 (独立实现, 避免跨文件 require).
  */
 function _firstMeaningfulLine(text) {
   const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   for (const line of lines) {
-    if (/^#/.test(line)) continue;          // markdown 标题
-    if (/^<[^>]+>$/.test(line)) continue;   // 单行 <tag>
-    if (/^<[a-z_]+>/i.test(line)) continue; // <tag>...</tag> 开头 (XML 注入)
-    if (/^\/Users\//.test(line)) continue;  // 绝对路径开头
-    if (/^https?:\/\//i.test(line)) continue; // URL
-    // 行内含绝对路径 (e.g. "- config.toml: /Users/.../config.toml") 也跳
-    if (/\/Users\/[^\s]+/.test(line)) continue;
-    // 行内含 URL 也跳
-    if (/https?:\/\/\S+/.test(line)) continue;
-    return line.replace(/\s+/g, ' ');
+    const clean = _stripNoiseLine(line);
+    if (clean) return clean;
   }
   return null;
 }

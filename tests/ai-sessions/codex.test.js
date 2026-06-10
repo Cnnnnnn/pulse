@@ -135,6 +135,44 @@ describe('codex._extractCodexTitle — denoise', () => {
     expect(_extractCodexTitle([])).toBe('');
     expect(_extractCodexTitle(null)).toBe('');
   });
+
+  it('跳过短确认 query (可以/好的/ok) 找下一条有信息量的', () => {
+    // 第一条 user "可以" 太短 → 跳, 命中第二条 "分析 ntb-cvp-limit-success.md 实现"
+    const title = _extractCodexTitle([
+      { role: 'user', content: '可以' },
+      { role: 'assistant', content: '好的, 让我看...' },
+      { role: 'user', content: '分析 ntb-cvp-limit-success.md 实现' },
+    ]);
+    expect(title).toBe('分析 ntb-cvp-limit-success.md 实现');
+  });
+
+  it('跳过 < 8 字符 query, 包括纯语气词', () => {
+    const title = _extractCodexTitle([
+      { role: 'user', content: '好' },
+      { role: 'user', content: '嗯' },
+      { role: 'user', content: 'ok' },
+      { role: 'user', content: '麻烦看下首页那个弹窗逻辑' },
+    ]);
+    expect(title).toBe('麻烦看下首页那个弹窗逻辑');
+  });
+
+  it('所有 user 都是短确认 → fallback 第一条 user', () => {
+    const title = _extractCodexTitle([
+      { role: 'user', content: '可以' },
+      { role: 'user', content: '好的' },
+      { role: 'user', content: 'ok' },
+    ]);
+    expect(title).toBe('可以');  // fallback 第一条 user, 哪怕不 informative
+  });
+
+  it('全是 user 都 < 8 字符但不是语气词 → fallback', () => {
+    const title = _extractCodexTitle([
+      { role: 'user', content: 'hi' },
+      { role: 'user', content: 'hello' },
+      { role: 'user', content: 'a long enough line to pass filter' },
+    ]);
+    expect(title).toBe('a long enough line to pass filter');
+  });
 });
 
 describe('codex._parseCodexJsonl — stream parse', () => {
