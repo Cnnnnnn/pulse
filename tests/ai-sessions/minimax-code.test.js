@@ -7,9 +7,15 @@
  *   - _extractContent: array parts 拼字符串
  *   - _parseMessageRow: parse session_messages 一行 → {role, content, ts}
  *   - DetectorImpl.isInstalled / listSessions / readSession (mocked fs + sqlite)
+ *   - CLI fallback (WAL snapshot bug workaround)
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { execSync } from 'child_process';
+import fs from 'fs';
+import fsp from 'fs/promises';
+import os from 'os';
+import path from 'path';
 import {
   MiniMaxCodeDetectorImpl,
   _parseMessageRow,
@@ -140,5 +146,64 @@ describe('MiniMaxCodeDetectorImpl — basic behavior', () => {
       sqlitePath: '/nonexistent-minimax-sqlite-xyz',
     });
     expect(d.isInstalled()).toBe(false);
+  });
+});
+
+describe('MiniMaxCodeDetectorImpl — CLI fallback (WAL snapshot workaround)', () => {
+  // 真实 sqlite db + spawn sqlite3 CLI, 模拟 WAL snapshot bug 场景.
+  // 这个测试确保即使 node:sqlite 在 Electron 里读 WAL 出 0 rows, CLI 路径也能 work.
+  let tmpDir;
+  let dbPath;
+
+  beforeEach(async () => {
+    tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'minimax-cli-fallback-'));
+    dbPath = path.join(tmpDir, 'sqlite.db');
+    // 用 sqlite3 CLI 建表 + 插数据 (走 stdin 避免 shell 转义引号问题)
+    const schema = [
+      "CREATE TABLE sessions (",
+      "  session_id TEXT PRIMARY KEY,",
+      "  title TEXT, workspace_dir TEXT, effective_model TEXT, status TEXT,",
+      "  created_at INTEGER, updated_at INTEGER, framework_type TEXT",
+      ");",
+      "CREATE TABLE session_messages (",
+      "  id INTEGER PRIMARY KEY AUTOINCREMENT, msg_id TEXT, role TEXT,",
+      "  data TEXT, timestamp INTEGER, session_id TEXT",
+      ");",
+      "INSERT INTO sessions VALUES ('mvs_test_001','Test session','/Users/me/proj','minimax/M3','finished',1000000,2000000,'opencode');",
+      "INSERT INTO sessions VALUES ('mvs_test_002','Another','/Users/me/proj2','minimax/M3','started',1500000,2500000,'opencode');",
+      "INSERT INTO session_messages (session_id,role,data,timestamp) VALUES ('mvs_test_001','user','{\"role\":\"user\",\"content\":\"hi\",\"timestamp\":2000000}',2000000);",
+      "INSERT INTO session_messages (session_id,role,data,timestamp) VALUES ('mvs_test_001','assistant','{\"role\":\"assistant\",\"content\":\"hello\",\"timestamp\":2001000}',2001000);",
+    ].join('\n');
+    execSync(`sqlite3 "${dbPath}"`, { input: schema, stdio: ['pipe', 'pipe', 'pipe'] });
+  });
+
+  it('listSessions: node:sqlite 拿 0 rows 时 fallback 到 sqlite3 CLI', async () => {
+    // 直接调 _listSessionsViaCli 验证 (因为我们 mock 不到 node:sqlite 的 0 rows 行为)
+    const { _listSessionsViaCli } = await import('../../src/ai-sessions/minimax-code.js');
+    const rows = await _listSessionsViaCli(dbPath);
+    expect(rows.length).toBe(2);
+    expect(rows[0].id).toBe('mvs_test_002');  // updated_at DESC
+    expect(rows[0]._title).toBe('Another');
+    expect(rows[0]._workspaceDir).toBe('/Users/me/proj2');
+    expect(rows[1].id).toBe('mvs_test_001');
+  });
+
+  it('readSession via CLI: parse messages 正确', async () => {
+    const { _readSessionViaCli } = await import('../../src/ai-sessions/minimax-code.js');
+    const sess = await _readSessionViaCli(dbPath, 'mvs_test_001');
+    expect(sess.id).toBe('mvs_test_001');
+    expect(sess.messages.length).toBe(2);
+    expect(sess.messages[0]).toMatchObject({ role: 'user', content: 'hi', ts: 2000000 });
+    expect(sess.messages[1]).toMatchObject({ role: 'assistant', content: 'hello', ts: 2001000 });
+    expect(sess.startedAt).toBe(2000000);
+    expect(sess.endedAt).toBe(2001000);
+  });
+
+  it('readSession via CLI: 不存在的 session_id → empty messages', async () => {
+    const { _readSessionViaCli } = await import('../../src/ai-sessions/minimax-code.js');
+    const sess = await _readSessionViaCli(dbPath, 'mvs_nonexistent');
+    expect(sess.messages).toEqual([]);
+    expect(sess.startedAt).toBe(0);
+    expect(sess.endedAt).toBe(0);
   });
 });
