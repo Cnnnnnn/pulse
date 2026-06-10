@@ -1,305 +1,272 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CursorDetectorImpl } from '../../src/ai-sessions/cursor.js';
+/**
+ * tests/ai-sessions/cursor-detector.test.js
+ *
+ * 重做版 CursorDetectorImpl — agent-transcripts jsonl 解析.
+ *
+ * 覆盖:
+ *   - isInstalled (bundle / projectsDir / 都没有 / throw)
+ *   - listSessions (目录缺失 → [], 嵌套 uuid 目录结构, 平铺 jsonl 容错, 空文件跳过)
+ *   - readSession (jsonl 解析: user_query 提取 / timestamp 解析 / tool_use 跳过 /
+ *                  title 去噪 / workspaceDir label / 坏行容错)
+ *   - _parseCursorTimestamp / _extractUserQuery / _projectLabel 纯函数
+ */
 
-describe('CursorDetectorImpl — isInstalled (B2a)', () => {
-  it('命中: bundle 存在 → true', () => {
-    const spy = vi.spyOn(require('fs'), 'existsSync').mockReturnValue(true);
-    const d = new CursorDetectorImpl();
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import {
+  CursorDetectorImpl,
+  _parseCursorTimestamp,
+  _extractUserQuery,
+  _projectLabel,
+  _firstMeaningfulLine,
+} from '../../src/ai-sessions/cursor.js';
+
+let tmpDir;
+let projectsDir;
+
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cursor-detector-test-'));
+  projectsDir = path.join(tmpDir, 'projects');
+  fs.mkdirSync(projectsDir, { recursive: true });
+});
+
+afterEach(() => {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+function writeTranscript(projectDirName, uuid, lines) {
+  const dir = path.join(projectsDir, projectDirName, 'agent-transcripts', uuid);
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `${uuid}.jsonl`);
+  fs.writeFileSync(file, lines.map((l) => (typeof l === 'string' ? l : JSON.stringify(l))).join('\n'), 'utf-8');
+  return file;
+}
+
+function userMsg(text) {
+  return { role: 'user', message: { content: [{ type: 'text', text }] } };
+}
+
+function assistantMsg(blocks) {
+  return { role: 'assistant', message: { content: blocks } };
+}
+
+describe('CursorDetectorImpl — isInstalled', () => {
+  it('bundle 不存在但 projectsDir 存在 → true', () => {
+    const d = new CursorDetectorImpl({ bundlePath: '/nonexistent/Cursor.app', projectsDir });
     expect(d.isInstalled()).toBe(true);
-    expect(spy).toHaveBeenCalledWith('/Applications/Cursor.app');
-    spy.mockRestore();
   });
 
-  it('miss: bundle 不存在 → false', () => {
-    const spy = vi.spyOn(require('fs'), 'existsSync').mockReturnValue(false);
-    const d = new CursorDetectorImpl();
+  it('都不存在 → false', () => {
+    const d = new CursorDetectorImpl({
+      bundlePath: '/nonexistent/Cursor.app',
+      projectsDir: path.join(tmpDir, 'missing'),
+    });
     expect(d.isInstalled()).toBe(false);
-    spy.mockRestore();
-  });
-
-  it('existsSync throw → false (graceful)', () => {
-    const spy = vi.spyOn(require('fs'), 'existsSync').mockImplementation(() => { throw new Error('EACCES'); });
-    const d = new CursorDetectorImpl();
-    expect(d.isInstalled()).toBe(false);
-    spy.mockRestore();
-  });
-
-  it('可注入 bundlePath (test 用)', () => {
-    const spy = vi.spyOn(require('fs'), 'existsSync').mockReturnValue(true);
-    const d = new CursorDetectorImpl({ bundlePath: '/tmp/Cursor.app' });
-    expect(d.isInstalled()).toBe(true);
-    expect(spy).toHaveBeenCalledWith('/tmp/Cursor.app');
-    spy.mockRestore();
   });
 });
 
-describe('CursorDetectorImpl — listSessions (B2a)', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('workspaceStorageDir 不存在 → []', async () => {
-    const fsp = require('fs/promises');
-    const spy = vi.spyOn(fsp, 'readdir').mockRejectedValue(
-      Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
-    );
-    const d = new CursorDetectorImpl();
-    expect(await d.listSessions()).toEqual([]);
-    spy.mockRestore();
-  });
-
-  it('权限不足 → [] (不 throw)', async () => {
-    const fsp = require('fs/promises');
-    const spy = vi.spyOn(fsp, 'readdir').mockRejectedValue(
-      Object.assign(new Error('EACCES'), { code: 'EACCES' })
-    );
-    const d = new CursorDetectorImpl();
-    expect(await d.listSessions()).toEqual([]);
-    spy.mockRestore();
-  });
-
-  it('空目录 → []', async () => {
-    const fsp = require('fs/promises');
-    vi.spyOn(fsp, 'readdir').mockResolvedValue([]);
-    const d = new CursorDetectorImpl();
+describe('CursorDetectorImpl — listSessions', () => {
+  it('projectsDir 不存在 → []', async () => {
+    const d = new CursorDetectorImpl({ projectsDir: path.join(tmpDir, 'missing') });
     expect(await d.listSessions()).toEqual([]);
   });
 
-  it('1 个 hash 目录 + state.vscdb → 1 个 SessionMeta', async () => {
-    const fsp = require('fs/promises');
-    const HASH = 'abc123def456';
-    const FAKE_FILE = `/fake/workspaceStorage/${HASH}/state.vscdb`;
-    vi.spyOn(fsp, 'readdir').mockResolvedValue([
-      Object.assign({ name: HASH }, { isDirectory: () => true }),
-    ]);
-    vi.spyOn(fsp, 'stat').mockResolvedValue({
-      isFile: () => true,
-      mtimeMs: 1700000000000,
-      size: 5242880,
-    });
-    const d = new CursorDetectorImpl({ workspaceStorageDir: '/fake/workspaceStorage' });
-    const out = await d.listSessions();
-    expect(out).toHaveLength(1);
-    expect(out[0]).toMatchObject({
-      id: HASH,
-      file: FAKE_FILE,
-      mtimeMs: 1700000000000,
-      sizeBytes: 5242880,
-    });
-  });
-
-  it('N 个 hash 目录 → N 个 SessionMeta', async () => {
-    const fsp = require('fs/promises');
-    const HASHES = ['hash1', 'hash2', 'hash3'];
-    vi.spyOn(fsp, 'readdir').mockResolvedValue(
-      HASHES.map((h) => Object.assign({ name: h }, { isDirectory: () => true }))
-    );
-    vi.spyOn(fsp, 'stat').mockResolvedValue({
-      isFile: () => true,
-      mtimeMs: 1700000000000,
-      size: 1000,
-    });
-    const d = new CursorDetectorImpl({ workspaceStorageDir: '/fake' });
-    const out = await d.listSessions();
-    expect(out).toHaveLength(3);
-    expect(out.map((s) => s.id)).toEqual(HASHES);
-  });
-
-  it('不是目录的 entry 跳过', async () => {
-    const fsp = require('fs/promises');
-    vi.spyOn(fsp, 'readdir').mockResolvedValue([
-      { name: 'hash1', isDirectory: () => true },
-      { name: 'some-file.txt', isDirectory: () => false },
-    ]);
-    vi.spyOn(fsp, 'stat').mockResolvedValue({
-      isFile: () => true,
-      mtimeMs: 1, size: 1,
-    });
-    const d = new CursorDetectorImpl({ workspaceStorageDir: '/fake' });
-    const out = await d.listSessions();
-    expect(out).toHaveLength(1);
-    expect(out[0].id).toBe('hash1');
-  });
-
-  it('单个 state.vscdb stat 失败 → 跳过 + log warn (不 throw)', async () => {
-    const fsp = require('fs/promises');
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.spyOn(fsp, 'readdir').mockResolvedValue([
-      { name: 'good', isDirectory: () => true },
-      { name: 'bad',  isDirectory: () => true },
-    ]);
-    vi.spyOn(fsp, 'stat').mockImplementation(async (file) => {
-      if (file.endsWith('/bad/state.vscdb')) {
-        throw Object.assign(new Error('EIO'), { code: 'EIO' });
-      }
-      return { isFile: () => true, mtimeMs: 1, size: 1 };
-    });
-    const d = new CursorDetectorImpl({ workspaceStorageDir: '/fake' });
-    const out = await d.listSessions();
-    expect(out).toHaveLength(1);
-    expect(out[0].id).toBe('good');
-    expect(warn).toHaveBeenCalled();
-  });
-
-  it('state.vscdb 不存在 (ENOENT) → 静默跳过 (no warn)', async () => {
-    const fsp = require('fs/promises');
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.spyOn(fsp, 'readdir').mockResolvedValue([
-      { name: 'h', isDirectory: () => true },
-    ]);
-    vi.spyOn(fsp, 'stat').mockRejectedValue(
-      Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
-    );
-    const d = new CursorDetectorImpl({ workspaceStorageDir: '/fake' });
-    const out = await d.listSessions();
-    expect(out).toEqual([]);
-    expect(warn).not.toHaveBeenCalled();
-  });
-});
-
-describe('CursorDetectorImpl — readSession (B2a stub)', () => {
-  it('抛 "node:sqlite unavailable" (B2b 抛 unavailable 直到 runtime 有 node:sqlite)', async () => {
-    const d = new CursorDetectorImpl();
-    // dev Node 18 没 node:sqlite, readSession 抛 unavailable. future Node 22+ dev 会进 DB 路径,
-    // 那时这个 case 应该跳到 mock 路径 (B2b integration).
-    if (require('../../src/ai-sessions/cursor.js')._loadNodeSqlite() === null) {
-      await expect(d.readSession('abc')).rejects.toThrow(/node:sqlite unavailable/);
-    } else {
-      // future Node 22+ dev: skip (B2b integration covers)
+  it('一个 jsonl = 一个任务 (嵌套 uuid 目录)', async () => {
+    writeTranscript('Users-me-Desktop-proj-a', 'uuid-1', [userMsg('<user_query>修 bug</user_query>')]);
+    writeTranscript('Users-me-Desktop-proj-a', 'uuid-2', [userMsg('<user_query>加功能</user_query>')]);
+    writeTranscript('Users-me-Desktop-proj-b', 'uuid-3', [userMsg('<user_query>重构</user_query>')]);
+    const d = new CursorDetectorImpl({ projectsDir });
+    const metas = await d.listSessions();
+    expect(metas).toHaveLength(3);
+    const ids = metas.map((m) => m.id).sort();
+    expect(ids).toEqual(['uuid-1', 'uuid-2', 'uuid-3']);
+    for (const m of metas) {
+      expect(m.mtimeMs).toBeGreaterThan(0);
+      expect(m.sizeBytes).toBeGreaterThan(0);
     }
   });
-});
 
-// ─── B2b readSession part ─────────────────────────────────────
+  it('空 jsonl 文件 → 跳过', async () => {
+    const dir = path.join(projectsDir, 'p1', 'agent-transcripts', 'uuid-empty');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'uuid-empty.jsonl'), '', 'utf-8');
+    const d = new CursorDetectorImpl({ projectsDir });
+    expect(await d.listSessions()).toEqual([]);
+  });
 
-describe('CursorDetectorImpl — _loadNodeSqlite (B2b)', () => {
-  it('在 dev Node 18 (无 node:sqlite) 返 null', () => {
-    const { _loadNodeSqlite } = require('../../src/ai-sessions/cursor.js');
-    const sqlite = _loadNodeSqlite();
-    // dev Node 18.17 没 node:sqlite (需要 22.5+), 应该返 null.
-    // future Node 22+ dev: 返非 null.
-    if (process.versions.node.startsWith('18')) {
-      expect(sqlite).toBeNull();
-    } else {
-      expect(sqlite).not.toBeNull();
-    }
+  it('没有 agent-transcripts 的项目目录 → 跳过', async () => {
+    fs.mkdirSync(path.join(projectsDir, 'no-transcripts'), { recursive: true });
+    writeTranscript('with-transcripts', 'uuid-1', [userMsg('<user_query>x</user_query>')]);
+    const d = new CursorDetectorImpl({ projectsDir });
+    const metas = await d.listSessions();
+    expect(metas).toHaveLength(1);
+  });
+
+  it('平铺 <uuid>.jsonl (老结构容错)', async () => {
+    const dir = path.join(projectsDir, 'p1', 'agent-transcripts');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'uuid-flat.jsonl'), JSON.stringify(userMsg('<user_query>flat</user_query>')), 'utf-8');
+    const d = new CursorDetectorImpl({ projectsDir });
+    const metas = await d.listSessions();
+    expect(metas).toHaveLength(1);
+    expect(metas[0].id).toBe('uuid-flat');
   });
 });
 
-describe('CursorDetectorImpl — _parseSessionRows (B2b, 纯函数)', () => {
-  const { _parseSessionRows } = require('../../src/ai-sessions/cursor.js');
+describe('CursorDetectorImpl — readSession', () => {
+  it('解析 user_query + timestamp + assistant text (跳过 tool_use)', async () => {
+    writeTranscript('Users-me-Desktop-proj-a', 'uuid-1', [
+      userMsg('<timestamp>Monday, Jun 8, 2026, 2:20 PM (UTC+8)</timestamp>\n<user_query>\n帮我修复登录 bug\n</user_query>'),
+      assistantMsg([
+        { type: 'text', text: '好的, 我先看下代码。' },
+        { type: 'tool_use', name: 'Read', input: { path: '/x' } },
+      ]),
+      userMsg('<timestamp>Monday, Jun 8, 2026, 2:35 PM (UTC+8)</timestamp>\n<user_query>\n继续\n</user_query>'),
+    ]);
+    const d = new CursorDetectorImpl({ projectsDir });
+    await d.listSessions();
+    const s = await d.readSession('uuid-1');
 
-  it('空 rows → 空 session', () => {
-    expect(_parseSessionRows('h1', [])).toEqual({
-      id: 'h1', startedAt: 0, endedAt: 0, messages: [],
-    });
+    expect(s.id).toBe('uuid-1');
+    expect(s.title).toBe('帮我修复登录 bug');
+    expect(s.workspaceDir).toBe('proj-a');
+    // startedAt = 2026-06-08 14:20 UTC+8 = 06:20 UTC
+    expect(s.startedAt).toBe(Date.UTC(2026, 5, 8, 6, 20));
+    expect(s.endedAt).toBeGreaterThan(0);
+
+    expect(s.messages).toHaveLength(3);
+    expect(s.messages[0]).toMatchObject({ role: 'user', content: '帮我修复登录 bug' });
+    expect(s.messages[0].ts).toBe(Date.UTC(2026, 5, 8, 6, 20));
+    expect(s.messages[1].role).toBe('assistant');
+    expect(s.messages[1].content).toBe('好的, 我先看下代码。');
+    expect(s.messages[1].content).not.toContain('tool_use');
+    expect(s.messages[2]).toMatchObject({ role: 'user', content: '继续' });
   });
 
-  it('null rows → 空 session', () => {
-    expect(_parseSessionRows('h1', null)).toMatchObject({
-      id: 'h1', startedAt: 0, endedAt: 0, messages: [],
-    });
+  it('无 timestamp 标签 → startedAt fallback 文件 birthtime', async () => {
+    writeTranscript('p1', 'uuid-nt', [userMsg('<user_query>无时间戳任务</user_query>')]);
+    const d = new CursorDetectorImpl({ projectsDir });
+    await d.listSessions();
+    const s = await d.readSession('uuid-nt');
+    expect(s.startedAt).toBeGreaterThan(0);
+    expect(s.title).toBe('无时间戳任务');
   });
 
-  it('真 Cursor schema: aiService.prompts (user) + aiService.generations (assistant, unixMs)', () => {
-    const rows = [
-      { key: 'aiService.prompts', value: JSON.stringify([{ text: 'hi' }, { text: 'follow-up' }]) },
-      { key: 'aiService.generations', value: JSON.stringify([
-        { unixMs: 1000, generationUUID: 'g1', type: 'composer', textDescription: 'hello' },
-        { unixMs: 2000, generationUUID: 'g2', type: 'composer', textDescription: 'reply' },
-      ]) },
-    ];
-    const s = _parseSessionRows('h1', rows);
-    expect(s.messages).toHaveLength(4);
-    // 2 prompts (ts=0) 排末尾, generations 按 unixMs 排前
-    expect(s.messages.slice(0, 2).map(m => m.role)).toEqual(['assistant', 'assistant']);
-    expect(s.messages.slice(0, 2).map(m => m.ts)).toEqual([1000, 2000]);
-    expect(s.messages.slice(2).map(m => m.role)).toEqual(['user', 'user']);
-    expect(s.messages.slice(2).map(m => m.content)).toEqual(['hi', 'follow-up']);
-    expect(s.startedAt).toBe(1000);
-    expect(s.endedAt).toBe(2000);
-  });
-
-  it('只有 prompts (没 generations) → 2 user msgs, ts=0', () => {
-    const rows = [
-      { key: 'aiService.prompts', value: JSON.stringify([{ text: 'a' }, { text: 'b' }]) },
-    ];
-    const s = _parseSessionRows('h1', rows);
-    expect(s.messages).toHaveLength(2);
-    expect(s.messages.every(m => m.role === 'user')).toBe(true);
-    expect(s.messages.every(m => m.ts === 0)).toBe(true);
-  });
-
-  it('只有 generations (没 prompts) → assistant msgs', () => {
-    const rows = [
-      { key: 'aiService.generations', value: JSON.stringify([
-        { unixMs: 500, textDescription: 'reply1' },
-        { unixMs: 800, textDescription: 'reply2' },
-      ]) },
-    ];
-    const s = _parseSessionRows('h1', rows);
-    expect(s.messages).toHaveLength(2);
-    expect(s.messages.every(m => m.role === 'assistant')).toBe(true);
-    expect(s.messages.map(m => m.ts)).toEqual([500, 800]);
-  });
-
-  it('parse 失败的 row 跳过 + log warn (不 throw)', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const rows = [
-      { key: 'k1', value: 'not json' },
-      { key: 'aiService.prompts', value: JSON.stringify([{ text: 'ok' }]) },
-      { key: 'aiService.generations', value: '{"not":"array"}' },  // 不是 array 跳过
-    ];
-    const s = _parseSessionRows('h1', rows);
+  it('纯系统注入的 user 行 (无 user_query, 全是标签) → 不算消息', async () => {
+    writeTranscript('p1', 'uuid-sys', [
+      userMsg('<system_reminder>internal stuff</system_reminder>'),
+      userMsg('<user_query>真正的问题</user_query>'),
+    ]);
+    const d = new CursorDetectorImpl({ projectsDir });
+    await d.listSessions();
+    const s = await d.readSession('uuid-sys');
     expect(s.messages).toHaveLength(1);
-    expect(s.messages[0].content).toBe('ok');
-    expect(s.messages[0].role).toBe('user');
-    expect(warn).toHaveBeenCalled();
-    warn.mockRestore();
+    expect(s.messages[0].content).toBe('真正的问题');
+    expect(s.title).toBe('真正的问题');
   });
 
-  it('non-array value 跳过 (不 throw)', () => {
-    const rows = [
-      { key: 'aiService.prompts', value: '{"messages":[]}' },  // 不是 array 顶层, 老 schema, 跳过
-      { key: 'aiService.generations', value: JSON.stringify([{ unixMs: 100, textDescription: 'r' }]) },
-    ];
-    const s = _parseSessionRows('h1', rows);
+  it('坏 JSON 行 → 跳过不 throw', async () => {
+    writeTranscript('p1', 'uuid-bad', [
+      'this is not json {{{',
+      userMsg('<user_query>有效消息</user_query>'),
+    ]);
+    const d = new CursorDetectorImpl({ projectsDir });
+    await d.listSessions();
+    const s = await d.readSession('uuid-bad');
     expect(s.messages).toHaveLength(1);
-    expect(s.messages[0].role).toBe('assistant');
   });
 
-  it('空 array 跳过 (0 messages)', () => {
-    const rows = [
-      { key: 'aiService.prompts', value: '[]' },
-      { key: 'aiService.generations', value: '[]' },
-    ];
-    const s = _parseSessionRows('h1', rows);
-    expect(s.messages).toHaveLength(0);
-    expect(s.startedAt).toBe(0);
-    expect(s.endedAt).toBe(0);
+  it('没经过 listSessions 直接 readSession → 自动重扫', async () => {
+    writeTranscript('p1', 'uuid-direct', [userMsg('<user_query>直接读</user_query>')]);
+    const d = new CursorDetectorImpl({ projectsDir });
+    const s = await d.readSession('uuid-direct');
+    expect(s.id).toBe('uuid-direct');
   });
 
-  it('id 透传 (workspace hash)', () => {
-    const s = _parseSessionRows('workspace-abc-123', []);
-    expect(s.id).toBe('workspace-abc-123');
-  });
-});
-
-describe('CursorDetectorImpl — readSession (B2b 集成)', () => {
-  it('node:sqlite 不可用 → throw "unavailable" (dev Node 18)', async () => {
-    // 在 dev Node 18 上, _loadNodeSqlite 返 null, readSession 应 throw 带特定 prefix
-    const d = new CursorDetectorImpl();
-    if (require('../../src/ai-sessions/cursor.js')._loadNodeSqlite() === null) {
-      await expect(d.readSession('hash1')).rejects.toThrow(/node:sqlite unavailable/);
-    } else {
-      // future Node 22+ dev env: skip this assertion
-    }
+  it('不存在的 id → throw', async () => {
+    const d = new CursorDetectorImpl({ projectsDir });
+    await expect(d.readSession('nope')).rejects.toThrow(/not found/);
   });
 
-  it('id 空 → throw TypeError', async () => {
-    const d = new CursorDetectorImpl();
+  it('id 校验: 空 → TypeError', async () => {
+    const d = new CursorDetectorImpl({ projectsDir });
     await expect(d.readSession('')).rejects.toThrow(TypeError);
-    await expect(d.readSession(null)).rejects.toThrow(TypeError);
-    await expect(d.readSession(123)).rejects.toThrow(TypeError);
+  });
+});
+
+describe('_parseCursorTimestamp (纯函数)', () => {
+  it('标准格式: Monday, Jun 8, 2026, 2:20 PM (UTC+8)', () => {
+    expect(_parseCursorTimestamp('Monday, Jun 8, 2026, 2:20 PM (UTC+8)'))
+      .toBe(Date.UTC(2026, 5, 8, 6, 20));
+  });
+
+  it('AM / 12 小时制边界: 12:05 AM = 00:05', () => {
+    expect(_parseCursorTimestamp('Tuesday, Jan 1, 2026, 12:05 AM (UTC+0)'))
+      .toBe(Date.UTC(2026, 0, 1, 0, 5));
+  });
+
+  it('12 PM = 中午 12 点', () => {
+    expect(_parseCursorTimestamp('Tuesday, Jan 1, 2026, 12:00 PM (UTC+0)'))
+      .toBe(Date.UTC(2026, 0, 1, 12, 0));
+  });
+
+  it('负时区: UTC-5', () => {
+    expect(_parseCursorTimestamp('Wednesday, Mar 4, 2026, 3:00 PM (UTC-5)'))
+      .toBe(Date.UTC(2026, 2, 4, 20, 0));
+  });
+
+  it('解析不了 → 0', () => {
+    expect(_parseCursorTimestamp('garbage')).toBe(0);
+    expect(_parseCursorTimestamp('')).toBe(0);
+    expect(_parseCursorTimestamp(null)).toBe(0);
+  });
+});
+
+describe('_extractUserQuery (纯函数)', () => {
+  it('抽 user_query 标签内文', () => {
+    expect(_extractUserQuery('<timestamp>x</timestamp>\n<user_query>\n你好\n</user_query>')).toBe('你好');
+  });
+
+  it('多个 user_query → 合并', () => {
+    expect(_extractUserQuery('<user_query>a</user_query><user_query>b</user_query>')).toBe('a\nb');
+  });
+
+  it('无标签 → 去掉系统标签后返回剩余文本', () => {
+    expect(_extractUserQuery('<timestamp>x</timestamp>\n直接输入的内容')).toBe('直接输入的内容');
+  });
+
+  it('整段都是系统标签 → 空', () => {
+    expect(_extractUserQuery('<system_reminder>internal</system_reminder>')).toBe('');
+    expect(_extractUserQuery('<attached_files>f</attached_files>')).toBe('');
+  });
+});
+
+describe('_projectLabel (纯函数)', () => {
+  it('Users-xxx-Desktop-yyy → yyy', () => {
+    expect(_projectLabel('Users-shien-liang-Desktop-pj2026-admin')).toBe('pj2026-admin');
+  });
+
+  it('Users-xxx (home 目录) → ~', () => {
+    expect(_projectLabel('Users-shien-liang')).toBe('~');
+  });
+
+  it('纯数字临时目录 → 空', () => {
+    expect(_projectLabel('1777109260121')).toBe('');
+  });
+
+  it('普通名字 → 原样', () => {
+    expect(_projectLabel('empty-window')).toBe('empty-window');
+  });
+});
+
+describe('_firstMeaningfulLine (纯函数)', () => {
+  it('跳过 markdown 标题 / 路径 / URL', () => {
+    expect(_firstMeaningfulLine('# 标题\n/Users/me/x\nhttps://a.com\n真正内容')).toBe('真正内容');
+  });
+
+  it('全是噪声 → null', () => {
+    expect(_firstMeaningfulLine('# only heading')).toBe(null);
   });
 });

@@ -3,22 +3,22 @@
  *
  * 单个 app 行 —— 局部更新的关键单元。
  *
- * 局部更新机制：
- *   1. 父组件 (Section) 在 resultsBySection.value 变化时重新执行，
- *      但因为 section.items 是 name[] 而 AppRow 用了稳定的 key={name}，
- *      Preact 不会卸载已有 AppRow 实例。
- *   2. AppRow 内部 useState 的 [upgrading] 本地状态保留。
- *   3. AppRow 调用 getResultSignal(name) 拿到自己专属的 result signal，
- *      读 .value —— 这是订阅点。其它 row 的 result signal 变化不会触发
- *      本组件重渲染；本 signal .value 变化只触发本 row 重渲染。
- *   4. AppAvatar 内部的 useIcon 是 hook 级别的状态，缓存命中后只读不更新。
+ * v2 改进 — Per-app Phase 渲染:
+ *   - 新增 getAppPhaseSignal(name) 订阅: pending / detecting / done / error
+ *   - 'pending'   → 行显示灰色占位 (app 名 + "等待检测...")
+ *   - 'detecting' → 行显示 spinner 动画 (app 名 + 旋转图标)
+ *   - 'done'      → 正常显示检测结果
+ *   - 'error'     → 显示错误态 (红点 + 错误信息)
+ *   - 有 result 时优先显示 result (不管 phase), 兼容缓存结果场景
  *
- * 点击整行 → 打开 download_url (有的话)；点击升级按钮 → 走升级流。
- * Phase 27: 右键 → 弹出 MuteMenu (per-app 静音).
+ * 局部更新机制 (不变):
+ *   1. Section 传 name[], AppRow 用 key={name} 稳定复用
+ *   2. result signal + phase signal 都是 per-row, 只触发本组件重渲染
+ *   3. useState (upgrading, changelogOpen, muteMenuAt) 跨渲染保留
  */
 
 import { useState, useCallback } from 'preact/hooks';
-import { getResultSignal, isMuted, mutedApps, lastOpenedApps } from '../store.js';
+import { getResultSignal, getAppPhaseSignal, isMuted, mutedApps, lastOpenedApps } from '../store.js';
 import { api } from '../api.js';
 import { AppAvatar } from './AppAvatar.jsx';
 import { AppInfo } from './AppInfo.jsx';
@@ -28,13 +28,13 @@ import { ChangelogPanel } from './ChangelogPanel.jsx';
 import { MuteMenu } from './MuteMenu.jsx';
 
 export function AppRow({ name }) {
-  const sig = getResultSignal(name);
-  // 订阅: sig.value 变化时本组件重渲染
-  const result = sig.value;
+  // 订阅 per-row signals (本组件的订阅点)
+  const resultSig = getResultSignal(name);
+  const result = resultSig.value;
+  const phase = getAppPhaseSignal(name).value;
+
   const [upgrading, setUpgrading] = useState(false);
-  // Phase 14: changelog inline panel 展开状态. 默认关.
   const [changelogOpen, setChangelogOpen] = useState(false);
-  // Phase 27: mute menu 状态. {x, y, appName} | null.
   const [muteMenuAt, setMuteMenuAt] = useState(null);
 
   const handleUpgrade = useCallback(async (cask, appName) => {
@@ -43,49 +43,78 @@ export function AppRow({ name }) {
     try {
       const r = await api.brewUpgrade(cask);
       if (!r || !r.success) {
-        // brew 失败 → 兜底打开 download_url
         const cfg = lookupConfig(appName);
         if (cfg && cfg.download_url) {
           api.openUrl(cfg.download_url);
         }
       }
-      // 成功后 2s 内重新触发 check 让 UI 反映新版本
-      // (父组件持有 triggerCheck, 这里只能 setTimeout 调一次; 实测 OK)
-      setTimeout(() => window.dispatchEvent(new CustomEvent('app-row:upgraded', { detail: { appName } })), 2000);
+      setTimeout(() => window.dispatchEvent(
+        new CustomEvent('app-row:upgraded', { detail: { appName } })
+      ), 2000);
     } catch {
-      // ignore — row 仍显示原状态
+      // row 仍显示原状态
     } finally {
       setUpgrading(false);
     }
   }, []);
 
+  // ─── Phase-based 渲染 ──────────────────────────────────
+
+  // 还没有 result 且 phase 是 pending/detecting → 显示等待/检测态
   if (!result) {
-    // 还没收到 result (理论上 Section 不会传未到的 name，但保险)
+    if (phase === 'detecting') {
+      return (
+        <div class="app-row app-row--detecting" data-name={name}>
+          <AppAvatar bundle="" name={name} />
+          <div class="app-info">
+            <div class="app-name">{name}</div>
+            <div class="app-status-hint">
+              <span class="spinner spinner--sm"></span>
+              检测中...
+            </div>
+          </div>
+          <div class="app-versions"></div>
+          <div class="app-action"></div>
+        </div>
+      );
+    }
+
+    if (phase === 'error') {
+      return (
+        <div class="app-row app-row--error" data-name={name}>
+          <AppAvatar bundle="" name={name} />
+          <div class="app-info">
+            <div class="app-name">{name}</div>
+            <div class="app-status-hint app-status-hint--error">检测失败</div>
+          </div>
+          <div class="app-versions"></div>
+          <div class="app-action"></div>
+        </div>
+      );
+    }
+
+    // pending 或 idle (缓存态无结果)
     return (
-      <div class="app-row" data-name={name}>
-        <div class="app-avatar" style={{ background: '#eee' }}>?</div>
-        <div class="app-info"><div class="app-name">{name}</div></div>
+      <div class="app-row app-row--pending" data-name={name}>
+        <AppAvatar bundle="" name={name} />
+        <div class="app-info">
+          <div class="app-name">{name}</div>
+          <div class="app-status-hint app-status-hint--muted">等待检测</div>
+        </div>
+        <div class="app-versions"></div>
+        <div class="app-action"></div>
       </div>
     );
   }
 
-  const onRowClick = (cfg) => {
-    if (cfg && cfg.download_url) api.openUrl(cfg.download_url);
-  };
+  // ─── 有 result → 正常渲染检测结果 ──────────────────────
 
-  // result.bundle 可能在旧 schema 不存在，缺省用空串
   const bundle = result.bundle || '';
-
-  // Phase 27: muted 状态. mutedApps 是 signal, 读 .value 触发订阅.
-  // isMuted() 内部检查 until 过期.
   const muteEntry = mutedApps.value.get(name);
   const muted = isMuted(name);
-
-  // Phase 29: last-opened entry. 读 signal, 变化时本组件重渲染.
   const lastOpenedEntry = lastOpenedApps.value.get(name);
 
   function onContextMenu(e) {
-    // 只在 row 本体触发; 按钮/upgrade/menu 内部不抢
     if (e.target.closest('.btn-upgrade-row')
         || e.target.closest('.status-badge')
         || e.target.closest('.app-info-btn')
@@ -95,18 +124,21 @@ export function AppRow({ name }) {
     setMuteMenuAt({ x: e.clientX, y: e.clientY });
   }
 
+  // phase class 用于 CSS 区分 (error 行可加红色左边框等)
+  const phaseClass = phase === 'error' ? ' app-row--error' : '';
+
   return (
     <div
-      class={`app-row${changelogOpen ? ' changelog-open' : ''}${muted ? ' muted' : ''}`}
+      class={`app-row${changelogOpen ? ' changelog-open' : ''}${muted ? ' muted' : ''}${phaseClass}`}
       data-name={result.name}
       style={hasDownloadUrl(result.name) ? 'cursor: pointer' : ''}
       onClick={(e) => {
-        // 不拦截按钮 / badge / changelog panel 内点击
         if (e.target.closest('.btn-upgrade-row')
             || e.target.closest('.status-badge')
             || e.target.closest('.app-info-btn')
             || e.target.closest('.changelog-panel')) return;
-        onRowClick(lookupConfig(result.name));
+        const cfg = lookupConfig(result.name);
+        if (cfg && cfg.download_url) api.openUrl(cfg.download_url);
       }}
       onContextMenu={onContextMenu}
     >
@@ -145,13 +177,9 @@ export function AppRow({ name }) {
 let _configCache = null;
 function getConfig() {
   if (_configCache) return _configCache;
-  // 同步取 (不阻塞渲染)：bootstrap 已经 await getConfig() 完才 render
-  // 这里只在用户点击时兜底读
   return _configCache || { apps: [] };
 }
 
-// 同步读取 config (供 row 点击用)。
-// 真实路径下 _configCache 已经在 bootstrap 里塞好。
 export function primeConfigCache(cfg) {
   _configCache = cfg || { apps: [] };
 }

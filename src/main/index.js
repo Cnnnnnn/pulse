@@ -40,8 +40,7 @@ const categoryConfig = require("../config/category");
 const stateStore = require("./state-store");
 const lastOpened = require("./last-opened");
 const { HttpClient } = require("./http-client");
-const { OllamaSummarizer } = require("../ai-sessions/provider-ollama");
-const { buildDailyDigestRunner } = require("../ai-sessions/wiring");
+const { buildTaskSummaryEngine } = require("../ai-sessions/wiring");
 
 const ARCH = process.arch === "arm64" ? "arm64" : "x64";
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -263,66 +262,18 @@ async function classifyUnmappedAppsByLLM() {
 }
 
 /**
- * Phase B3b: 启动时 healthcheck ollama (默认 provider). 3s timeout, 失败 log warn,
- * 不阻塞启动 (spec §6 启动解耦). daily digest 跑时再失败再说.
+ * 重做版: 初始化 TaskSummaryEngine wiring (不跑任何 LLM / 不扫盘).
+ * 完全按需 — 用户打开抽屉时 IPC 'ai-tasks:list' 才扫描, 勾选生成才调 LLM.
+ * 没有 bootstrap / backfill / 24h cron.
  */
-async function runAISessionsHealthcheck() {
-  const cfg = runtimeConfig && runtimeConfig.aiSessions;
-  if (!cfg || !cfg.enabled) {
-    mainLog.info("[ai-sessions] disabled in config, skip healthcheck");
-    return;
-  }
-  const provider = cfg.provider || "ollama";
-  if (provider !== "ollama") {
-    // cloud provider 的 healthcheck 走 cloud impl (B6 才接). 现在只 ollama.
-    mainLog.info(
-      `[ai-sessions] provider=${provider}, healthcheck deferred to B6`,
-    );
-    return;
-  }
-  const model = (cfg.ollama && cfg.ollama.model) || "qwen3.5:9b";
-  const host = (cfg.ollama && cfg.ollama.host) || "http://localhost:11434";
-  const http = new HttpClient({ timeout: 3_000, maxRetries: 0 });
-  const ollama = new OllamaSummarizer();
-  try {
-    const r = await ollama.healthcheck({
-      provider,
-      model,
-      config: { host },
-      httpClient: http,
-    });
-    if (r.ok) {
-      mainLog.info(
-        `[ai-sessions] ollama healthcheck ok (${r.latencyMs}ms, ${host})`,
-      );
-    } else {
-      mainLog.warn(
-        `[ai-sessions] ollama healthcheck failed: ${r.error} (${r.latencyMs}ms, ${host})`,
-      );
-    }
-  } catch (err) {
-    mainLog.warn(`[ai-sessions] ollama healthcheck threw: ${err.message}`);
-  }
-}
+function initAiTasksWiring() {
+  const stateOverride = stateStore.loadAISessionsConfig();
+  const cfgBase = stateOverride && typeof stateOverride === 'object'
+    ? stateOverride
+    : { enabled: false, provider: 'minimax', cloud: null };
 
-/**
- * Phase B4: 实例化 DailyDigestRunner,跑昨天 (idempotent) + 可选7 天 backfill,
- *启24h cron.失败不阻塞启动 (跟 B3 healthcheck 同款).
- *
- * Phase B6b.5: runtime override —读 state.json ai_sessions_config (Settings modal改的),
- *优先于 config.json. wiring.mergeAISessionsConfig合并.
- */
-async function runDailyDigestBootstrap() {
-  // config.json 可能没有 aiSessions 块（你目前就是这种情况）。
-  // 这时必须仍然初始化 wiring，让后续 Settings 里的“测试连接/回填”能工作。
-  const cfgBase =
-    runtimeConfig && runtimeConfig.aiSessions
-      ? runtimeConfig.aiSessions
-      : { enabled: false, provider: "ollama", ollama: {}, cloud: null };
-
-  let wiring;
   try {
-    wiring = buildDailyDigestRunner({
+    const wiring = buildTaskSummaryEngine({
       config: cfgBase,
       runtimeOverride: stateStore.loadAISessionsConfig(),
       log: {
@@ -330,67 +281,16 @@ async function runDailyDigestBootstrap() {
         warn: (...a) => mainLog.warn(...a),
         error: (...a) => mainLog.error(...a),
       },
-      onNoSessions: ({ dateKey, attemptedDetectors, at }) => {
-        stateStore.recordDigestAttempt({
-          phase: "no_sessions",
-          ok: true,
-          reason: `dateKey=${dateKey} attemptedDetectors=${attemptedDetectors}`,
-        });
-      },
     });
-    global.__pulse_dailyDigest = wiring; // 暴露给 IPC handlers (B4c)
+    global.__pulse_aiTasks = wiring; // 暴露给 IPC handlers
     global.__pulse_aiSessionsBaseCfg = cfgBase; // 给 ipc save-config 重建用
-  } catch (err) {
-    mainLog.warn(`[digest] buildDailyDigestRunner failed: ${err.message}`);
-    stateStore.recordDigestAttempt({ phase: "wiring_build", ok: false, reason: err.message });
-    return;
-  }
-
-  // 仅当 merged config.enabled=true 时才跑 bootstrap + 24h cron
-  const enabled = Boolean(
-    wiring &&
-    wiring.runner &&
-    wiring.runner.config &&
-    wiring.runner.config.enabled,
-  );
-  // ── 排查补丁: 把 merged config 关键字段打到 log + state trail ──
-  const detectorNames = Array.isArray(wiring.detectors) ? wiring.detectors.map((d) => d.appName).join(",") : "(none)";
-  mainLog.info(
-    `[digest] merged-config: enabled=${enabled} provider=${wiring.providerId} detectors=[${detectorNames}] locale=${wiring.runner.config && wiring.runner.config.locale}`,
-  );
-  stateStore.recordDigestAttempt({
-    phase: "merged_config",
-    ok: true,
-    enabled,
-    provider: wiring.providerId,
-    detectors: detectorNames,
-  });
-  if (!enabled) {
+    const detectorNames = wiring.detectors.map((d) => d.appName).join(",");
     mainLog.info(
-      "[digest] ai-sessions disabled in merged config, skip bootstrap/cron",
+      `[tasks] wiring ready: provider=${wiring.providerId} detectors=[${detectorNames}]`,
     );
-    return;
-  }
-
-  try {
-    const result = await wiring.runner.bootstrap();
-    mainLog.info(
-      `[digest] bootstrap done: yesterday=${result.yesterday ? "ok" : "skipped"} backfill=${result.backfill ? "done" : "skipped"}`,
-    );
-    // ── 排查补丁: 把 bootstrap 结果也写 trail, 含 reason ──
-    stateStore.recordDigestAttempt({
-      phase: "bootstrap",
-      ok: true,
-      yesterdayStatus: result.yesterday ? "ok" : (result.yesterday === null ? "skipped_or_empty" : "error"),
-      backfillStatus: result.backfill ? "done" : "skipped",
-    });
   } catch (err) {
-    mainLog.warn(`[digest] bootstrap failed: ${err.message}`);
-    stateStore.recordDigestAttempt({ phase: "bootstrap", ok: false, reason: err.message });
+    mainLog.warn(`[tasks] buildTaskSummaryEngine failed: ${err.message}`);
   }
-  // 24h cron (idempotent, 多次调不会重复启)
-  wiring.start(86400_000);
-  mainLog.info("[digest] 24h cron started");
 }
 
 async function bootstrap() {
@@ -443,22 +343,20 @@ async function bootstrap() {
   );
   timings.config = Date.now() - tConfig;
 
-  // 2.5) Phase B3b + B4: AI sessions healthcheck + DailyDigestRunner bootstrap
-  // 必须在 loadConfig() 之后，因为需要 runtimeConfig.aiSessions
-  await runAISessionsHealthcheck();
- await runDailyDigestBootstrap();
+  // 2.5) AI 任务总结 wiring (重做版: 只初始化, 不扫盘不调 LLM)
+  initAiTasksWiring();
 
  //3) dock隐藏 (默认). PULSE_SHOW=1 env var时不 hide — 给 dev / screenshot / debugging用
- try {
- if (process.env.PULSE_SHOW === '1') {
- // dev / screenshot: keep dock visible so panel can be activated
- // 让 panel能 click显示 + 让截屏 capture UI
- } else {
- app.dock.hide();
- }
- } catch {
- /* noop */
- }
+try {
+  // Phase B7e: 默认让 Pulse 出现在 Dock + Cmd+Tab 列表, 像普通 app.
+  // 之前默认 dock.hide() 是 menu bar app 风格, 用户反馈想用 Cmd+Tab 切换.
+  // PULSE_HIDE_DOCK=1 保留 escape hatch (测试 / 老用户).
+  if (process.env.PULSE_HIDE_DOCK === '1') {
+  app.dock.hide();
+  }
+  } catch {
+  /* noop */
+  }
 
   // 4) worker pool
   const tPool = Date.now();
@@ -701,7 +599,25 @@ if (app && typeof app.whenReady === "function") {
   });
 
   app.on("activate", () => {
-    if (winMgr) winMgr.showWindow();
+    // macOS: 点击 dock 图标 (无 window / window 全关) 触发.
+    // 双击 dock 图标 raise 窗口也走这里 (window 还活着但 hidden).
+    // 双重保险: winMgr 还没初始化时 (极早期 activate) 直接调 showWindow.
+    if (winMgr) {
+      winMgr.showWindow();
+    } else {
+      // 早期: 等 createWindowManager 起来再 show, 或直接 fallback BrowserWindow.getAllWindows
+      const { BrowserWindow } = require('electron');
+      const wins = BrowserWindow.getAllWindows();
+      if (wins.length > 0) {
+        const w = wins[0];
+        if (w.isMinimized()) w.restore();
+        w.show();
+        w.focus();
+        if (process.platform === 'darwin') {
+          try { w.moveTop(); } catch { /* noop */ }
+        }
+      }
+    }
   });
 
   app.on("before-quit", () => {

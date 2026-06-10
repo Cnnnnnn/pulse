@@ -2,79 +2,75 @@
  * src/renderer/components/Header.jsx
  *
  * 顶部 Header: 标题 + 摘要 + "检查更新" + BulkUpgradeButton。
- * Bulk Upgrade 按钮抽到 BulkUpgradeButton.jsx (Phase 22), 状态/进度归它管。
- * 订阅 checkStatus, summary 三个 signal。
+ *
+ * v2 改进:
+ *   - 使用 checkSession.phase 替代旧 checkStatus
+ *   - 进度显示包含 per-app phase: "检查中 (3/11)..." 而非 "检查中 (3)..."
+ *   - 显示 detecting 态 app 数量 (有几个正在联网检测)
  */
 
-import { checkStatus, lastError } from '../store.js';
-import { summary, upgradableCount, checkedCount } from '../selectors.js';
+import { checkSession, lastError } from '../store.js';
+import { summary, upgradableCount, checkedCount, totalAppCount, detectingCount } from '../selectors.js';
 import { BulkUpgradeButton } from './BulkUpgradeButton.jsx';
-import { openAISettings, aiSessionsEnabled, backfillProgress } from '../store.js';
+import { AITasksButton } from './AITasksDrawer.jsx';
 
 export function Header({ onCheck }) {
-  const status = checkStatus.value;
-  const isRunning = status === 'running';
+  const session = checkSession.value;
+  const phase = session.phase;
+  const isRunning = phase === 'running';
 
   return (
     <header id="header">
       <div class="header-left">
         <h1 id="title">Pulse</h1>
-        <p id="summary">{summaryText(status)}</p>
-        {status === 'error' && lastError.value && (
+        <p id="summary">{summaryText(phase)}</p>
+        {phase === 'error' && lastError.value && (
           <p id="error-detail" class="error-detail">出错: {lastError.value}</p>
         )}
       </div>
- <div class="header-right">
- <button
- id="btn-check"
- class="btn btn-secondary"
- onClick={onCheck}
- disabled={isRunning}
- >
- {isRunning
- ? (<><span class="spinner"></span>检查中...</>)
- : (<>
- <svg width="16" height="16" viewBox="002424" fill="none" stroke="currentColor" stroke-width="2">
- <path d="M234v6h-6M120v-6h6"/>
- <path d="M3.519a9900114.85-3.36L2310M114l4.644.36A9900020.4915"/>
- </svg>
- 检查更新
- </>)}
- </button>
- <BulkUpgradeButton />
- {/* Phase B7a: backfill 中进度 —Header 显示 ⏳ N/T */}
- {backfillProgress.value.active && (
- <span id="backfill-progress" class="backfill-progress" role="status" aria-live="polite">
- <span class="spinner"></span>
- backfill {backfillProgress.value.done}/{backfillProgress.value.total}
- </span>
- )}
- {/* Phase B6c.4: AI总结 设置按钮 —toggle modal.
- aiSessionsEnabled=true 时按钮高亮(已配),false 时灰色(opt-in 没配) */}
- <button
- id="btn-ai-settings"
- class={`btn btn-ghost btn-icon ${aiSessionsEnabled.value ? 'is-active' : ''}`}
- onClick={() => openAISettings(true)}
- title={aiSessionsEnabled.value ? 'AI总结 设置' : '设置 AI每日总结 (opt-in)'}
- aria-label="AI总结 设置"
- >
- <svg width="16" height="16" viewBox="002424" fill="none" stroke="currentColor" stroke-width="2">
- <circle cx="12" cy="12" r="3"/>
- <path d="M19.415a1.651.65000.331.82l.06.06a2200102.8322001-2.830l-.06-.06a1.651.65000-1.82-.331.651.65000-11.51V21a22001-40v-.09A1.651.65000919.4a1.651.65000-1.82.33l-.06.06a22001-2.830220010-2.83l.06-.06a1.651.65000.33-1.821.651.65000-1.51-1H3a220010-4h.09A1.651.650004.69a1.651.65000-.33-1.82l-.06-.06a220010-2.83220012.830l.06.06a1.651.650001.82.33H9a1.651.650001-1.51V3a2200140v.09a1.651.6500011.511.651.650001.82-.33l.06-.06a220012.8302200102.83l-.06.06a1.651.65000-.331.82V9a1.651.650001.511H21a2200104h-.09a1.651.65000-1.511z"/>
- </svg>
- </button>
- </div>
+      <div class="header-right">
+        <button
+          id="btn-check"
+          class="btn btn-secondary"
+          onClick={onCheck}
+          disabled={isRunning}
+        >
+          {isRunning
+            ? (<><span class="spinner"></span>检查中...</>)
+            : (<>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 4v6h-6M1 20v-6h6"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                检查更新
+              </>)}
+        </button>
+        <BulkUpgradeButton />
+        <AITasksButton />
+      </div>
     </header>
   );
 }
 
-function summaryText(status) {
-  if (status === 'idle')    return '准备中...';
-  if (status === 'running') {
+/**
+ * 摘要文字 (v2: 基于 session phase + per-app phases)。
+ *
+ * running 期间显示: "检查中 (3/11)..." — 分子是已完成数, 分母是总数
+ * done 后显示统计摘要: "3 个有更新 · 5 个已是最新"
+ */
+function summaryText(phase) {
+  if (phase === 'idle') return '准备中...';
+  if (phase === 'running') {
     const done = checkedCount.value;
+    const total = totalAppCount.value;
+    const detecting = detectingCount.value;
+    if (total > 0) {
+      const suffix = detecting > 0 ? ` (${detecting} 检测中)` : '';
+      return `检查中 (${done}/${total})${suffix}...`;
+    }
     return done > 0 ? `检查中 (${done})...` : '检查中...';
   }
-  if (status === 'error')   return '检查失败';
-  // 'done'
+  if (phase === 'error') return '检查失败';
+  // done
   return summary.value;
 }

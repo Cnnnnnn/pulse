@@ -37,7 +37,10 @@ describe('CloudSummarizer —路由 + URL', () => {
  const s = new CloudSummarizer();
  await s.healthcheck({ provider: providerId, model: 'm', config: makeCfg(providerId), httpClient: http });
  const expected = PROVIDER_ENDPOINTS[providerId];
- const expectedUrl = `${expected.baseUrl}${expected.path}`;
+ // 去重 /v1 (如果 baseUrl 末尾是 /v1, 则剥除 path 的 /v1): _joinUrl 同逻辑
+ const expectedUrl = expected.baseUrl.endsWith('/v1') && expected.path.startsWith('/v1/')
+ ? `${expected.baseUrl}${expected.path.slice(3)}`
+ : `${expected.baseUrl}${expected.path}`;
  expect(http.post).toHaveBeenCalledWith(
  expectedUrl,
  expect.any(Object),

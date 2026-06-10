@@ -265,8 +265,8 @@ describe('AppInfo last-opened tier color (Phase 30)', () => {
   });
 
   it('exactly 7 days → warm (boundary: ≤7 是 hot)', () => {
-    // hot 边界: ≤ 7 天
-    const t = Date.now() - 7 * 86400 * 1000;
+    // hot 边界: ≤ 7 天 (留 1s margin, 避免渲染时刻跨过边界 flake)
+    const t = Date.now() - (7 * 86400 * 1000 - 1000);
     const { container } = render(
       <AppInfo
         result={makeResult({ changelog: '' })}

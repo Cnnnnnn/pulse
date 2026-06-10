@@ -30,16 +30,12 @@ import {
   saveLastOpened,
   loadActiveCategory,
   saveActiveCategory,
-  cleanExpiredDigests,
-  loadDailyDigests,
-  hasDailyDigest,
-  saveDailyDigest,
+  cleanExpiredTaskSummaries,
+  loadTaskSummaries,
+  saveTaskSummary,
   loadAISessionsConfig,
   saveAISessionsConfig,
-  DAILY_DIGESTS_GC_DAYS,
-  recordDigestAttempt,
-  loadDigestAttempts,
-  DIGEST_ATTEMPT_BUFFER_MAX,
+  TASK_SUMMARIES_GC_DAYS,
   loadLLMClassifyCache,
   saveLLMClassifyCache,
 } from '../../src/main/state-store.js';
@@ -500,61 +496,61 @@ describe('loadActiveCategory / saveActiveCategory (Phase A)', () => {
   });
 });
 
-// ─── loadDailyDigests / saveDailyDigest (Phase B) ───
+// ─── loadTaskSummaries / saveTaskSummary (重做版任务总结缓存) ───
 
-describe('loadDailyDigests / saveDailyDigest (Phase B)', () => {
+describe('loadTaskSummaries / saveTaskSummary', () => {
   it('文件不存在 → {}', () => {
-    expect(loadDailyDigests(statePath)).toEqual({});
+    expect(loadTaskSummaries(statePath)).toEqual({});
   });
 
-  it('老 state.json (无 daily_digests 字段) → {} (向后兼容)', () => {
+  it('老 state.json (无 task_summaries 字段) → {} (向后兼容)', () => {
     fs.writeFileSync(statePath, JSON.stringify({
       v: 1, apps: {}, mutes: {}, last_opened: {}, active_category: 'all',
     }), 'utf-8');
-    expect(loadDailyDigests(statePath)).toEqual({});
+    expect(loadTaskSummaries(statePath)).toEqual({});
   });
 
-  it('daily_digests 是数组 (损坏) → {}', () => {
+  it('task_summaries 是数组 (损坏) → {}', () => {
     fs.writeFileSync(statePath, JSON.stringify({
-      v: 1, apps: {}, mutes: {}, daily_digests: ['bad'],
+      v: 1, apps: {}, mutes: {}, task_summaries: ['bad'],
     }), 'utf-8');
-    expect(loadDailyDigests(statePath)).toEqual({});
+    expect(loadTaskSummaries(statePath)).toEqual({});
   });
 
-  it('saveDailyDigest 写入 + loadDailyDigests 回读 (round-trip)', () => {
-    const digest = {
-      dateKey: '2026-06-07',
+  it('saveTaskSummary 写入 + loadTaskSummaries 回读 (round-trip)', () => {
+    const entry = {
+      taskKey: 'cursor:uuid-1',
+      sessionId: 'uuid-1',
+      appName: 'cursor',
+      title: '修复 tray 图标',
+      userGoal: '修 Pulse tray icon',
+      outcome: '已修复',
+      provider: 'deepseek',
+      model: 'deepseek-chat',
       generatedAt: Date.now(),
-      provider: 'ollama',
-      model: 'qwen3.5:9b',
-      sessionCount: 3,
-      summary: '昨天主要工作:\n- 修 Pulse tray icon',
-      sessionIds: ['a', 'b', 'c'],
-    };
-    saveDailyDigest(digest, statePath);
-    const out = loadDailyDigests(statePath);
-    expect(out['2026-06-07']).toMatchObject({
+      contentHash: '4-abc123',
       dateKey: '2026-06-07',
-      provider: 'ollama',
-      model: 'qwen3.5:9b',
-      sessionCount: 3,
-      summary: digest.summary,
+    };
+    saveTaskSummary(entry, statePath);
+    const out = loadTaskSummaries(statePath);
+    expect(out['cursor:uuid-1']).toMatchObject({
+      taskKey: 'cursor:uuid-1',
+      appName: 'cursor',
+      title: '修复 tray 图标',
+      userGoal: '修 Pulse tray icon',
+      outcome: '已修复',
+      contentHash: '4-abc123',
     });
-    expect(out['2026-06-07'].sessionIds).toEqual(['a', 'b', 'c']);
-    // 顺便验证 hasDailyDigest
-    expect(hasDailyDigest('2026-06-07', statePath)).toBe(true);
-    expect(hasDailyDigest('2026-06-06', statePath)).toBe(false);
   });
 
-  it('hasDailyDigest 边界: 不存在 / 空 / 非 string → false', () => {
-    expect(hasDailyDigest('missing', statePath)).toBe(false);
-    expect(hasDailyDigest('', statePath)).toBe(false);
-    expect(hasDailyDigest(null, statePath)).toBe(false);
-    fs.writeFileSync(statePath, JSON.stringify({ v: 1, apps: {}, mutes: {} }), 'utf-8');
-    expect(hasDailyDigest('2026-06-07', statePath)).toBe(false);
+  it('saveTaskSummary 缺 generatedAt → 自动补 now', () => {
+    saveTaskSummary({ taskKey: 'codex:s1', title: 'x' }, statePath);
+    const out = loadTaskSummaries(statePath);
+    expect(typeof out['codex:s1'].generatedAt).toBe('number');
+    expect(out['codex:s1'].generatedAt).toBeGreaterThan(0);
   });
 
-  it('saveDailyDigest 保留 apps / mutes / last_opened / active_category', () => {
+  it('saveTaskSummary 保留 apps / mutes / last_opened / active_category', () => {
     fs.writeFileSync(statePath, JSON.stringify({
       v: 1,
       apps: { Cursor: { name: 'Cursor' } },
@@ -562,7 +558,7 @@ describe('loadDailyDigests / saveDailyDigest (Phase B)', () => {
       last_opened: { Cursor: { ms: 999, source: 'spotlight' } },
       active_category: 'dev',
     }), 'utf-8');
-    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
+    saveTaskSummary({ taskKey: 'cursor:u1', title: 'x' }, statePath);
     const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
     expect(raw.apps.Cursor.name).toBe('Cursor');
     expect(raw.mutes.Cursor.until).toBe(0);
@@ -570,33 +566,52 @@ describe('loadDailyDigests / saveDailyDigest (Phase B)', () => {
     expect(raw.active_category).toBe('dev');
   });
 
-  it('saveDailyDigest 校验: dateKey 必须有', () => {
-    expect(() => saveDailyDigest({}, statePath)).toThrow(TypeError);
-    expect(() => saveDailyDigest({ dateKey: '' }, statePath)).toThrow(TypeError);
+  it('saveTaskSummary 校验: taskKey 必须有', () => {
+    expect(() => saveTaskSummary({}, statePath)).toThrow(TypeError);
+    expect(() => saveTaskSummary({ taskKey: '' }, statePath)).toThrow(TypeError);
   });
 
-  it('cleanExpiredDigests: 30 天外 GC', () => {
-    const NOW = 1750000000000;
+  it('cleanExpiredTaskSummaries: 30 天外 GC', () => {
+    const NOW2 = 1750000000000;
     const old = {
-      '2026-04-01': { dateKey: '2026-04-01', generatedAt: NOW - 60 * 86400_000 },
-      '2026-05-15': { dateKey: '2026-05-15', generatedAt: NOW - 25 * 86400_000 },  // 25d → 留
-      '2026-06-01': { dateKey: '2026-06-01', generatedAt: NOW - 7 * 86400_000 },
-      'no-ts':      { dateKey: 'no-ts' },  // 无 generatedAt → 删 (cutoff 命中)
+      'cursor:a': { taskKey: 'cursor:a', generatedAt: NOW2 - 60 * 86400_000 },
+      'cursor:b': { taskKey: 'cursor:b', generatedAt: NOW2 - 25 * 86400_000 },  // 25d → 留
+      'codex:c':  { taskKey: 'codex:c',  generatedAt: NOW2 - 7 * 86400_000 },
+      'no-ts':    { taskKey: 'no-ts' },  // 无 generatedAt → 删
     };
-    const out = cleanExpiredDigests(old, NOW);
-    expect(out['2026-04-01']).toBeUndefined();
-    expect(out['2026-05-15']).toBeDefined();
-    expect(out['2026-06-01']).toBeDefined();
+    const out = cleanExpiredTaskSummaries(old, NOW2);
+    expect(out['cursor:a']).toBeUndefined();
+    expect(out['cursor:b']).toBeDefined();
+    expect(out['codex:c']).toBeDefined();
     expect(out['no-ts']).toBeUndefined();
   });
 
-  it('saveAll / setMute / markNotified 写盘时保留 daily_digests + ai_sessions_config', () => {
-    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
-    saveAISessionsConfig({ enabled: true, provider: 'ollama', model: 'qwen3.5:9b' }, statePath);
+  it('setMute / saveAISessionsConfig 写盘时保留 task_summaries', () => {
+    saveTaskSummary({ taskKey: 'cursor:u1', title: 'x' }, statePath);
+    saveAISessionsConfig({ enabled: true, provider: 'deepseek' }, statePath);
     setMute('Kimi', 0, 'manual', statePath);
     const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-    expect(raw.daily_digests['2026-06-07']).toBeDefined();
+    expect(raw.task_summaries['cursor:u1']).toBeDefined();
     expect(raw.ai_sessions_config.enabled).toBe(true);
+  });
+
+  it('TASK_SUMMARIES_GC_DAYS 常量 = 30', () => {
+    expect(TASK_SUMMARIES_GC_DAYS).toBe(30);
+  });
+
+  it('旧 daily_digests / daily_digest_v2 / last_digest_attempts 字段写盘时被丢弃', () => {
+    fs.writeFileSync(statePath, JSON.stringify({
+      v: 1, apps: {}, mutes: {},
+      daily_digests: { '2026-06-07': { dateKey: '2026-06-07' } },
+      daily_digest_v2: { '2026-06-07': { dateKey: '2026-06-07' } },
+      last_digest_attempts: [{ phase: 'probe' }],
+    }), 'utf-8');
+    saveTaskSummary({ taskKey: 'cursor:u1', title: 'x' }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+    expect(raw.daily_digests).toBeUndefined();
+    expect(raw.daily_digest_v2).toBeUndefined();
+    expect(raw.last_digest_attempts).toBeUndefined();
+    expect(raw.task_summaries['cursor:u1']).toBeDefined();
   });
 });
 
@@ -619,98 +634,17 @@ describe('loadAISessionsConfig / saveAISessionsConfig (Phase B)', () => {
     expect(out).toMatchObject(cfg);
   });
 
-  it('saveAISessionsConfig 保留 daily_digests 字段', () => {
-    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
-    saveAISessionsConfig({ enabled: true, provider: 'ollama' }, statePath);
+  it('saveAISessionsConfig 保留 task_summaries 字段', () => {
+    saveTaskSummary({ taskKey: 'cursor:u1', title: 'x' }, statePath);
+    saveAISessionsConfig({ enabled: true, provider: 'deepseek' }, statePath);
     const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-    expect(raw.daily_digests['2026-06-07']).toBeDefined();
+    expect(raw.task_summaries['cursor:u1']).toBeDefined();
     expect(raw.ai_sessions_config.enabled).toBe(true);
   });
 
   it('saveAISessionsConfig 校验: cfg 必须是 object 或 null', () => {
     expect(() => saveAISessionsConfig(123, statePath)).toThrow(TypeError);
     expect(() => saveAISessionsConfig('str', statePath)).toThrow(TypeError);
-  });
-
-  it('DAILY_DIGESTS_GC_DAYS 常量 = 30', () => {
-    expect(DAILY_DIGESTS_GC_DAYS).toBe(30);
-  });
-});
-
-// ─── recordDigestAttempt / loadDigestAttempts (排查 patch) ───
-
-describe('recordDigestAttempt / loadDigestAttempts (digest "never runs" 排查)', () => {
-  it('文件不存在 → loadDigestAttempts 返 []', () => {
-    expect(loadDigestAttempts(statePath)).toEqual([]);
-  });
-
-  it('写一条 merged_config attempt → load 返一条带 phase/enabled/provider/detectors', () => {
-    recordDigestAttempt({
-      phase: 'merged_config',
-      ok: true,
-      enabled: true,
-      provider: 'ollama',
-      detectors: 'Cursor',
-    }, statePath);
-    const out = loadDigestAttempts(statePath);
-    expect(out).toHaveLength(1);
-    expect(out[0]).toMatchObject({
-      phase: 'merged_config',
-      ok: true,
-      enabled: true,
-      provider: 'ollama',
-      detectors: 'Cursor',
-    });
-    expect(typeof out[0].ts).toBe('number');
-    expect(out[0].ts).toBeGreaterThan(0);
-  });
-
-  it('写一条 wiring_build ok=false → 记录 reason', () => {
-    recordDigestAttempt({ phase: 'wiring_build', ok: false, reason: 'summarizer not found' }, statePath);
-    const out = loadDigestAttempts(statePath);
-    expect(out.length).toBeGreaterThanOrEqual(1);
-    const last = out[out.length - 1];
-    expect(last).toMatchObject({ phase: 'wiring_build', ok: false, reason: 'summarizer not found' });
-  });
-
-  it('写 bootstrap 结果 → 含 yesterdayStatus / backfillStatus', () => {
-    recordDigestAttempt({
-      phase: 'bootstrap',
-      ok: true,
-      yesterdayStatus: 'skipped_or_empty',
-      backfillStatus: 'skipped',
-    }, statePath);
-    const last = loadDigestAttempts(statePath).slice(-1)[0];
-    expect(last).toMatchObject({ phase: 'bootstrap', yesterdayStatus: 'skipped_or_empty', backfillStatus: 'skipped' });
-  });
-
-  it('ring buffer 截断: 写 12 条 → loadDigestAttempts 返 8 条 (DIGEST_ATTEMPT_BUFFER_MAX)', () => {
-    for (let i = 0; i < 12; i++) {
-      recordDigestAttempt({ phase: 'probe', ok: true, reason: `iter-${i}` }, statePath);
-    }
-    const out = loadDigestAttempts(statePath);
-    expect(out).toHaveLength(8);
-    // 留的是最后 8 条 (iter-4 .. iter-11)
-    expect(out[0].reason).toBe('iter-4');
-    expect(out[7].reason).toBe('iter-11');
-  });
-
-  it('recordDigestAttempt 不破坏其他字段 (apps / mutes / daily_digests)', () => {
-    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
-    recordDigestAttempt({ phase: 'merged_config', ok: true, enabled: false }, statePath);
-    const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-    expect(raw.daily_digests['2026-06-07']).toBeDefined();
-    expect(Array.isArray(raw.last_digest_attempts)).toBe(true);
-  });
-
-  it('recordDigestAttempt 在 load fail / write fail 时 不 throw (失败 graceful)', () => {
-    // bad path, 模拟 writeAtomic 失败 (不存在的目录不可写)
-    const badPath = '/this/path/definitely/does/not/exist/state.json';
-    expect(() => recordDigestAttempt({ phase: 'probe' }, badPath)).not.toThrow();
-  });
-
-  it('DIGEST_ATTEMPT_BUFFER_MAX = 8', () => {
-    expect(DIGEST_ATTEMPT_BUFFER_MAX).toBe(8);
   });
 });
 
@@ -754,15 +688,13 @@ describe('loadLLMClassifyCache / saveLLMClassifyCache (Step B LLM classify)', ()
     expect(() => saveLLMClassifyCache(123, statePath)).toThrow(TypeError);
   });
 
-  it('saveLLMClassifyCache 不破坏其他字段 (apps / mutes / daily_digests / ai_sessions_config / last_digest_attempts)', () => {
-    saveDailyDigest({ dateKey: '2026-06-07', summary: 'x' }, statePath);
-    saveAISessionsConfig({ enabled: true, provider: 'ollama' }, statePath);
-    recordDigestAttempt({ phase: 'merged_config', ok: true, enabled: false }, statePath);
+  it('saveLLMClassifyCache 不破坏其他字段 (apps / mutes / task_summaries / ai_sessions_config)', () => {
+    saveTaskSummary({ taskKey: 'cursor:u1', title: 'x' }, statePath);
+    saveAISessionsConfig({ enabled: true, provider: 'deepseek' }, statePath);
     saveLLMClassifyCache({ kimi: 'ai' }, statePath);
     const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-    expect(raw.daily_digests['2026-06-07']).toBeDefined();
+    expect(raw.task_summaries['cursor:u1']).toBeDefined();
     expect(raw.ai_sessions_config.enabled).toBe(true);
-    expect(Array.isArray(raw.last_digest_attempts)).toBe(true);
     expect(raw.classify_llm_cache).toEqual({ kimi: 'ai' });
   });
 });

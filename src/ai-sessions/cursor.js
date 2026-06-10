@@ -1,21 +1,27 @@
 /**
  * src/ai-sessions/cursor.js
  *
- * Phase B2a (AI Sessions Daily Digest): CursorDetectorImpl (第一实现).
+ * 重做版 CursorDetectorImpl — 任务粒度.
  *
- * 跟 spec §4.2 一致:
- *   - appName: 'cursor'
- *   - isInstalled(): 同步检查 /Applications/Cursor.app 存在
- *   - listSessions(): 扫 workspaceStorage/<hash>/state.vscdb, 返 SessionMeta[]
- *   - readSession(id): B2b 才会用 better-sqlite3 读 SQLite (本文件不实现)
+ * 旧版把每个 workspace 的 state.vscdb 当一个 session (整个 workspace 几个月
+ * 的对话混成一锅, prompts 还没时间戳). 重做后改用 Cursor 的 agent transcripts:
  *
- * 设计:
- *   - isInstalled 同步 (fs.existsSync 廉价) — caller 用 await 包装
- *   - listSessions 异步 (fs.promises) — 不阻塞 event loop
- *   - mtimeMs / sizeBytes 直接 stat 拿, 不读文件
- *   - id 用 workspace hash (state.vscdb 父目录名), readSession 直接拿
- *   - 路径默认在 macOS 上; 其它平台靠 env 覆盖 (B2b 才需要, 这里先硬编码).
- *   NOTE: JSDoc 注释里出现 star-slash 序列会被 parser 当 comment end, 全文避免.
+ *   ~/.cursor/projects/<projectDir>/agent-transcripts/<uuid>/<uuid>.jsonl
+ *
+ * 一个 jsonl 文件 = 一次完整任务 (一个 chat session). 每行 JSON:
+ *   { role: 'user'|'assistant', message: { content: [{type:'text', text}, {type:'tool_use', ...}] } }
+ *
+ * user 消息的 text 内嵌:
+ *   <timestamp>Monday, Jun 8, 2026, 2:20 PM (UTC+8)</timestamp>
+ *   <user_query>真正的用户输入</user_query>
+ *
+ * 解析输出 (统一 Session schema):
+ *   - id:           uuid (文件 basename)
+ *   - title:        第一条 user_query 的首行 (去噪)
+ *   - startedAt:    第一条可解析的 <timestamp> (fallback 文件 birthtime)
+ *   - endedAt:      文件 mtime
+ *   - workspaceDir: 项目目录名还原出的可读 label (e.g. 'pj2026-admin')
+ *   - messages:     [{role, content, ts}] (assistant 只取 text 块, 跳过 tool_use)
  *
  * CommonJS, 跟 src/config/ 一致.
  */
@@ -24,52 +30,42 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
+const readline = require('readline');
 
 const CURSOR_BUNDLE_PATH = '/Applications/Cursor.app';
-const WORKSPACE_STORAGE_DIR = path.join(
-  os.homedir(),
-  'Library',
-  'Application Support',
-  'Cursor',
-  'User',
-  'workspaceStorage'
-);
+const CURSOR_PROJECTS_DIR = path.join(os.homedir(), '.cursor', 'projects');
 
 class CursorDetectorImpl {
   constructor(opts = {}) {
     this.appName = 'cursor';
     this.bundlePath = opts.bundlePath || CURSOR_BUNDLE_PATH;
-    this.workspaceStorageDir = opts.workspaceStorageDir || WORKSPACE_STORAGE_DIR;
+    this.projectsDir = opts.projectsDir || CURSOR_PROJECTS_DIR;
+    // listSessions 时建 id → {file, projectDirName} 索引, readSession 直接查
+    this._fileIndex = new Map();
   }
 
   /**
-   * 检查 Cursor.app 是否安装.
+   * Cursor.app 存在, 或 projects 目录存在 (CLI-only 也算装了).
    * @returns {boolean}
    */
   isInstalled() {
     try {
-      return fs.existsSync(this.bundlePath);
+      return fs.existsSync(this.bundlePath) || fs.existsSync(this.projectsDir);
     } catch {
       return false;
     }
   }
 
   /**
-   * 列所有 session (state.vscdb). 返 SessionMeta[]: { id, file, mtimeMs, sizeBytes }.
-   * 不读 SQLite 内容. 父目录名 = workspace hash = session id.
-   *
-   * 错误处理:
-   *   - workspaceStorageDir 不存在 → []
-   *   - 单个 stat 失败 → 跳过该 entry, log warn (不 throw)
-   *
+   * 扫 ~/.cursor/projects/<projectDir>/agent-transcripts/<uuid>/<uuid>.jsonl
+   * 一个 jsonl = 一个任务. 返 SessionMeta[].
    * @returns {Promise<Array<{id: string, file: string, mtimeMs: number, sizeBytes: number}>>}
    */
   async listSessions() {
-    let entries;
+    let projectEntries;
     try {
-      entries = await fsp.readdir(this.workspaceStorageDir, { withFileTypes: true });
+      projectEntries = await fsp.readdir(this.projectsDir, { withFileTypes: true });
     } catch (err) {
-      // 目录不存在 / 权限不足 → 返 []
       if (err && (err.code === 'ENOENT' || err.code === 'EACCES' || err.code === 'ENOTDIR')) {
         return [];
       }
@@ -77,170 +73,230 @@ class CursorDetectorImpl {
     }
 
     const out = [];
-    for (const e of entries) {
-      if (!e.isDirectory()) continue;
-      const hash = e.name;
-      const file = path.join(this.workspaceStorageDir, hash, 'state.vscdb');
+    this._fileIndex = new Map();
+    for (const projectEntry of projectEntries) {
+      if (!projectEntry.isDirectory()) continue;
+      const projectDirName = projectEntry.name;
+      const transcriptsDir = path.join(this.projectsDir, projectDirName, 'agent-transcripts');
+      let sessionDirs;
       try {
-        const st = await fsp.stat(file);
-        if (!st.isFile()) continue;
-        out.push({
-          id: hash,
-          file,
-          mtimeMs: st.mtimeMs,
-          sizeBytes: st.size,
-        });
-      } catch (err) {
-        if (err && err.code === 'ENOENT') continue;  // 没 vscdb, 跳过
-        // eslint-disable-next-line no-console
-        console.warn(`[cursor] stat failed for ${file}: ${err.message}`);
+        sessionDirs = await fsp.readdir(transcriptsDir, { withFileTypes: true });
+      } catch {
+        continue; // 项目没有 agent-transcripts, 跳过
+      }
+      for (const sessionEntry of sessionDirs) {
+        let file = null;
+        let id = null;
+        if (sessionEntry.isDirectory()) {
+          // 新结构: <uuid>/<uuid>.jsonl
+          id = sessionEntry.name;
+          file = path.join(transcriptsDir, id, `${id}.jsonl`);
+        } else if (sessionEntry.isFile() && sessionEntry.name.endsWith('.jsonl')) {
+          // 容错: 平铺 <uuid>.jsonl
+          id = sessionEntry.name.slice(0, -'.jsonl'.length);
+          file = path.join(transcriptsDir, sessionEntry.name);
+        } else {
+          continue;
+        }
+        try {
+          const st = await fsp.stat(file);
+          if (!st.isFile() || st.size === 0) continue;
+          this._fileIndex.set(id, { file, projectDirName, birthtimeMs: st.birthtimeMs });
+          out.push({ id, file, mtimeMs: st.mtimeMs, sizeBytes: st.size });
+        } catch {
+          continue; // 目录里没有同名 jsonl, 跳过
+        }
       }
     }
     return out;
   }
 
   /**
-   * 读 session 全文 (chat messages). 用 Node 22.5+ 内置的 node:sqlite (实验).
-   * - vscdb 路径: <workspaceStorageDir>/<hash>/state.vscdb
-   * - 表: cursorDiskKV, key LIKE 'aiService.prompts:%'
-   * - value 是 JSON 字符串 (parse 出 messages array)
-   * - startedAt = first message ts, endedAt = last message ts
-   *
-   * Schema 风险 (spec §3.3): Cursor 改 schema 频繁, 缺表 / 缺字段 → log warn + 抛
-   * 带 'schema_mismatch' prefix 的 Error, caller 可 catch + skip.
-   *
-   * 关键: node:sqlite 需要 Node 22.5+. dev Node 18 / 老 Electron 没这模块,
-   * 跑前 lazy-require 探测, 不在 → 抛 'node:sqlite unavailable' Error.
-   *
-   * @param {string} id   workspace hash
-   * @returns {Promise<{id: string, startedAt: number, endedAt: number, messages: Array<{role: string, content: string, ts: number}>}>}
+   * 读单个任务全文. id = transcript uuid.
+   * @param {string} id
+   * @returns {Promise<{id, startedAt, endedAt, messages, title?, workspaceDir?, file?}>}
    */
   async readSession(id) {
     if (typeof id !== 'string' || id.length === 0) {
       throw new TypeError('readSession: id must be non-empty string');
     }
-    const sqlite = _loadNodeSqlite();
-    if (!sqlite) {
-      throw new Error(
-        'readSession: node:sqlite unavailable (need Node 22.5+ or Electron 35+ runtime)'
-      );
+    let indexed = this._fileIndex.get(id);
+    if (!indexed) {
+      // 没经过 listSessions (或文件新出现) → 重扫一次
+      await this.listSessions();
+      indexed = this._fileIndex.get(id);
     }
-    const { DatabaseSync } = sqlite;
-    const file = path.join(this.workspaceStorageDir, id, 'state.vscdb');
-    let db;
-    try {
-      db = new DatabaseSync(file, { readOnly: true });
-    } catch (err) {
-      throw new Error(`readSession: failed to open ${file}: ${err.message}`);
+    if (!indexed) {
+      throw new Error(`readSession: cursor transcript not found for id=${id}`);
     }
-    try {
-      // Schema check: 表存在? 实际 Cursor 用 'ItemTable' (vscdb 通用), 不是
-      // 'cursorDiskKV' (spec §3.3 写错名, 我用 ItemTable, 兼容老 Cursor 版本).
-      const tables = db.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='ItemTable'"
-      ).all();
-      if (tables.length === 0) {
-        throw new Error('schema_mismatch: ItemTable table missing (Cursor version may have changed)');
-      }
-      // Query: aiService.prompts / aiService.generations / composerData keys
-      // 全部拉出来, _parseSessionRows 里 join.
-      const rows = db.prepare(
-        "SELECT key, value FROM ItemTable WHERE key IN ('aiService.prompts', 'aiService.generations', 'composerData', 'composer.composerData') ORDER BY key"
-      ).all();
-
-      return _parseSessionRows(id, rows);
-    } finally {
-      try { db.close(); } catch { /* noop */ }
-    }
+    const st = await fsp.stat(indexed.file);
+    const parsed = await _parseTranscriptJsonl(indexed.file);
+    const startedAt = parsed.firstTs || Math.floor(st.birthtimeMs) || 0;
+    const out = {
+      id,
+      startedAt,
+      endedAt: Math.floor(st.mtimeMs) || startedAt,
+      messages: parsed.messages,
+      file: indexed.file,
+    };
+    if (parsed.title) out.title = parsed.title;
+    const label = _projectLabel(indexed.projectDirName);
+    if (label) out.workspaceDir = label;
+    return out;
   }
 }
 
 /**
- * Lazy require node:sqlite. dev Node 18 / 老 Electron 没这模块, 返 null.
- * @returns {object|null}  module exports ({ DatabaseSync, ... }) or null
+ * 流式解析 transcript jsonl.
+ * @param {string} file
+ * @returns {Promise<{messages: Array, firstTs: number, title: string|null}>}
  */
-function _loadNodeSqlite() {
-  try {
-    // eslint-disable-next-line global-require
-    return require('node:sqlite');
-  } catch {
-    return null;
+async function _parseTranscriptJsonl(file) {
+  const stream = fs.createReadStream(file, { encoding: 'utf8' });
+  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+  const messages = [];
+  let firstTs = 0;
+  let lastTs = 0;
+  let title = null;
+
+  for await (const line of rl) {
+    if (!line || !line.trim()) continue;
+    let row;
+    try {
+      row = JSON.parse(line);
+    } catch {
+      continue; // 坏行跳过
+    }
+    if (!row || typeof row !== 'object') continue;
+    const role = row.role === 'user' || row.role === 'assistant' ? row.role : null;
+    if (!role) continue;
+    const rawText = _extractTextBlocks(row.message && row.message.content);
+    if (!rawText) continue;
+
+    if (role === 'user') {
+      const ts = _parseTimestampTag(rawText);
+      if (ts > 0) {
+        if (!firstTs) firstTs = ts;
+        lastTs = ts;
+      }
+      const query = _extractUserQuery(rawText);
+      if (!query) continue; // 纯系统注入 (attached_files 等) 跳过
+      if (!title) title = _firstMeaningfulLine(query);
+      messages.push({ role: 'user', content: query, ts: ts || lastTs || 0 });
+    } else {
+      messages.push({ role: 'assistant', content: rawText, ts: lastTs || 0 });
+    }
   }
+  return { messages, firstTs, title };
 }
 
 /**
- * 纯函数: 把 SQL rows 解析成 Session. 抽出来便于单测 (无需 node:sqlite).
- * rows 形如: [{ key: 'aiService.prompts', value: '[{text,commandType},...]' },
- *             { key: 'aiService.generations', value: '[{unixMs,generationUUID,textDescription},...]' }]
- *
- * Cursor 实测 (2026-06, ItemTable):
- *   - aiService.prompts: Array<{text, commandType}>  (用户问题)
- *   - aiService.generations: Array<{unixMs, generationUUID, type, textDescription}>
- *   - composer.composerData: 其它 metadata, 通常没 chat content, 跳过
- *
- * 输出 messages 形如: [{role: 'user'|'assistant'|'unknown', content, ts}]
- * 排序 by ts asc. ts=0 的排到末尾.
- *
- * 容错: parse fail / schema 不匹配 跳过 row, 不 throw.
- *
- * @param {string} id            workspace hash (即 session id)
- * @param {Array<{key: string, value: string}>} rows
- * @returns {{id: string, startedAt: number, endedAt: number, messages: Array}}
+ * message.content 数组里抽 text 块 (跳过 tool_use / image 等), 拼成字符串.
  */
-function _parseSessionRows(id, rows) {
-  if (!Array.isArray(rows)) {
-    return { id, startedAt: 0, endedAt: 0, messages: [] };
-  }
-  const allMessages = [];
-  for (const r of rows) {
-    if (!r || typeof r.value !== 'string') continue;
-    let parsed;
-    try {
-      parsed = JSON.parse(r.value);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn(`[cursor] skip unparseable row key=${r.key}: ${err.message}`);
-      continue;
-    }
-    if (!Array.isArray(parsed)) continue;  // 不是 array 就跳过 (跟老 schema {messages:[...]} 兼容无关, 反正 array 直接用)
-    if (r.key === 'aiService.prompts') {
-      // 用户问题 → role='user', ts=0 (没有 timestamp 字段, 后面用 generations unixMs 推)
-      for (const m of parsed) {
-        if (!m || typeof m !== 'object') continue;
-        const text = typeof m.text === 'string' ? m.text : '';
-        allMessages.push({ role: 'user', content: text, ts: 0 });
-      }
-    } else if (r.key === 'aiService.generations') {
-      // 模型回答 → role='assistant', ts=unixMs
-      for (const m of parsed) {
-        if (!m || typeof m !== 'object') continue;
-        const ts = (typeof m.unixMs === 'number') ? m.unixMs : 0;
-        const text = typeof m.textDescription === 'string' ? m.textDescription
-                   : (typeof m.text === 'string' ? m.text : '');
-        allMessages.push({ role: 'assistant', content: text, ts });
-      }
+function _extractTextBlocks(content) {
+  if (!Array.isArray(content)) return '';
+  const parts = [];
+  for (const c of content) {
+    if (!c || typeof c !== 'object') continue;
+    if (c.type === 'text' && typeof c.text === 'string' && c.text.trim()) {
+      parts.push(c.text);
     }
   }
-  // 排序 by ts asc (没 ts 的 prompts 排到末尾 — Infinity 占位, 但 prompts 数应该近似
-  // 跟 generations 配对, 如果 prompts 多了就排到最末; 不影响 summary 准确度)
-  allMessages.sort((a, b) => {
-    const ta = (a.ts && a.ts > 0) ? a.ts : Number.POSITIVE_INFINITY;
-    const tb = (b.ts && b.ts > 0) ? b.ts : Number.POSITIVE_INFINITY;
-    return ta - tb;
-  });
-  // startedAt/endedAt: 用 messages 数组中**实际带 ts 的**min/max, 不依赖
-  // 排序后的 [0]/[length-1] (因为 prompts ts=0 可能排末尾).
-  const tsList = allMessages.map(m => m.ts).filter(t => t > 0);
-  const startedAt = tsList.length > 0 ? Math.min(...tsList) : (allMessages[0] ? allMessages[0].ts : 0);
-  const endedAt = tsList.length > 0 ? Math.max(...tsList) : (allMessages.length > 0 ? allMessages[allMessages.length - 1].ts : 0);
-  return { id, startedAt, endedAt, messages: allMessages };
+  return parts.join('\n').trim();
+}
+
+/**
+ * 抽 <user_query>...</user_query> 内文. 没标签时退回原文 (老格式容错),
+ * 但要剔除 <timestamp>/<system_reminder> 等系统注入标签块.
+ */
+function _extractUserQuery(text) {
+  const matches = [...String(text || '').matchAll(/<user_query>([\s\S]*?)<\/user_query>/g)];
+  if (matches.length > 0) {
+    return matches.map((m) => m[1].trim()).filter(Boolean).join('\n').trim();
+  }
+  // 无 user_query 标签: 去掉已知系统标签块后, 剩文本才算用户输入
+  const stripped = String(text || '')
+    .replace(/<timestamp>[\s\S]*?<\/timestamp>/g, '')
+    .replace(/<system_reminder>[\s\S]*?<\/system_reminder>/g, '')
+    .replace(/<attached_files>[\s\S]*?<\/attached_files>/g, '')
+    .replace(/<system_notification>[\s\S]*?<\/system_notification>/g, '')
+    .trim();
+  // 整段都是别的 <xxx>...</xxx> 注入 → 不算用户输入
+  if (!stripped || /^<[a-z_]+>[\s\S]*<\/[a-z_]+>$/.test(stripped)) return '';
+  return stripped;
+}
+
+const _MONTHS = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+/**
+ * 解析 <timestamp>Monday, Jun 8, 2026, 2:20 PM (UTC+8)</timestamp> → epoch ms.
+ * 解析失败返 0.
+ */
+function _parseTimestampTag(text) {
+  const m = /<timestamp>([\s\S]*?)<\/timestamp>/.exec(String(text || ''));
+  if (!m) return 0;
+  return _parseCursorTimestamp(m[1]);
+}
+
+function _parseCursorTimestamp(raw) {
+  const m = /([A-Za-z]{3})[A-Za-z]*\s+(\d{1,2}),\s*(\d{4}),\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*\(UTC([+-]\d{1,2})(?::(\d{2}))?\)/i.exec(String(raw || ''));
+  if (!m) return 0;
+  const month = _MONTHS[m[1].toLowerCase()];
+  if (month === undefined) return 0;
+  const day = parseInt(m[2], 10);
+  const year = parseInt(m[3], 10);
+  let hour = parseInt(m[4], 10) % 12;
+  if (/pm/i.test(m[6])) hour += 12;
+  const minute = parseInt(m[5], 10);
+  const offsetHours = parseInt(m[7], 10);
+  const offsetMinutes = m[8] ? parseInt(m[8], 10) * Math.sign(offsetHours || 1) : 0;
+  const utc = Date.UTC(year, month, day, hour, minute, 0, 0);
+  return utc - (offsetHours * 60 + offsetMinutes) * 60_000;
+}
+
+/**
+ * 取首个有意义的行做 title (跳过 markdown 标题 / 路径 / URL 等噪声).
+ */
+function _firstMeaningfulLine(text) {
+  const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    if (/^#/.test(line)) continue;
+    if (/^<[^>]+>$/.test(line)) continue;
+    if (/^\/Users\//.test(line)) continue;
+    if (/^https?:\/\//i.test(line)) continue;
+    return line.replace(/\s+/g, ' ').slice(0, 60);
+  }
+  return null;
+}
+
+/**
+ * 项目目录名 → 可读 label.
+ *   'Users-shien-liang-Desktop-pj2026-admin' → 'pj2026-admin'
+ *   'Users-shien-liang'                      → '~'
+ *   '1777109260121' (数字临时目录)            → ''
+ *   'empty-window'                           → 'empty-window'
+ */
+function _projectLabel(dirName) {
+  const name = String(dirName || '');
+  if (!name || /^\d+$/.test(name)) return '';
+  const idx = name.indexOf('-Desktop-');
+  if (idx >= 0) return name.slice(idx + '-Desktop-'.length);
+  if (/^Users-/.test(name)) return '~';
+  return name;
 }
 
 module.exports = {
   CursorDetectorImpl,
   CURSOR_BUNDLE_PATH,
-  WORKSPACE_STORAGE_DIR,
-  // 内部 helper (测试 / 高级用法)
-  _loadNodeSqlite,
-  _parseSessionRows,
+  CURSOR_PROJECTS_DIR,
+  // 内部 helper (单测)
+  _parseTranscriptJsonl,
+  _extractUserQuery,
+  _parseCursorTimestamp,
+  _projectLabel,
+  _firstMeaningfulLine,
 };

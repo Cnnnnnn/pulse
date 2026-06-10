@@ -1,20 +1,20 @@
 /**
  * src/renderer/components/AISettingsModal.jsx
  *
- * Phase B6c.3 (AI Sessions Daily Digest): AI Sessions Settings弹窗.
+ * Phase B7g (Drawer-Integrated Config): 配置表单不再单独 modal.
  *
- *功能:
- * -启用 toggle (Settings 总开关)
- * - Provider select (ollama / openai / anthropic / deepseek / minimax)
- * - Provider-specific config:
- * - ollama: host + model
- * - cloud: providerId + model + baseUrl(可选)
- * - API key 输入框 (仅 cloud)—只写不显示, key从safeStorage
- * - '测试连接'按钮 →跑 healthcheck, 显示 ok/error/latency
- * - '保存'按钮 →写state.json ai_sessions_config
+ *拆出 <AIConfigForm /> —共享组件, AISettingsModal (legacy) + AIDigestDrawer 都用.
  *
- *受控:props接收 open + onClose,内部用 useState 管表单字段 (避免改 signal 的雪崩重渲染)
- *外部 store signal (aiSessionsConfig) 是 source of truth, mount 时拉一次.
+ * 设计:
+ * - AIConfigForm:纯表单 (provider/model/baseUrl/api-key/test/backfill/save).
+ * 不管外面的容器, 受控 open=false → 自动切回 drawer列表 view.
+ * - AISettingsModal: 老 modal还在 (兼容 external "打开 AI 设置" 调用),
+ * 但 App.jsx 已经不挂载, 仅做兜底 —实际使用走 drawer 内嵌 form.
+ *
+ * Phase B7e简化:
+ * - 只支持 cloud provider (deepseek / minimax).
+ * - 没有 "enabled" toggle (B7f 起 enabled 从 cfg 自动派生: 有 provider 即 enabled).
+ * - 没有 ollama / openai / anthropic 分支.
  */
 
 import { useState, useEffect } from 'preact/hooks';
@@ -24,93 +24,108 @@ import {
  aiHealthcheckBusy,
  aiHealthcheckResult,
  aiSettingsOpen,
- backfillProgress,
  probeAIKeyStatuses,
  setAIKey,
  clearAIKey,
  runAIHealthcheck,
  saveAISessionsConfig,
  openAISettings,
- loadAISessionsConfig,
- triggerBackfill,
 } from '../store.js';
 
-const PROVIDERS = [
- { id: 'ollama', label: 'Ollama (本地)', needsKey: false, defaultModel: 'qwen3.5:9b' },
- { id: 'openai', label: 'OpenAI', needsKey: true, defaultModel: 'gpt-4o-mini' },
- { id: 'anthropic', label: 'Anthropic', needsKey: true, defaultModel: 'claude-sonnet-4-5' },
- { id: 'deepseek', label: 'DeepSeek', needsKey: true, defaultModel: 'deepseek-chat' },
- { id: 'minimax', label: 'MiniMax', needsKey: true, defaultModel: 'MiniMax-ABAB6.5s' },
+// Phase B7g: 默认 model + base URL 用2026官网最新.
+// - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
+// 想用思考模式可手动改成 deepseek-reasoner.
+// - MiniMax: MiniMax-M3 (用户指定2026 最新). base URL = api.minimaxi.com/v1.
+export const PROVIDERS = [
+ { id: 'deepseek', label: 'DeepSeek', defaultModel: 'deepseek-chat', hint: 'DeepSeek-V3.1 ·128K上下文' },
+ { id: 'minimax', label: 'MiniMax', defaultModel: 'MiniMax-M3', hint: 'MiniMax 最新 M3 · 中文优化' },
 ];
 
-const DEFAULT_BASE_URL = {
- openai: 'https://api.openai.com',
- anthropic: 'https://api.anthropic.com',
+export const DEFAULT_BASE_URL = {
  deepseek: 'https://api.deepseek.com',
- minimax: 'https://api.minimax.chat',
+ minimax: 'https://api.minimaxi.com/v1',
 };
 
 function findProvider(id) {
- return PROVIDERS.find((p) => p.id === id) || null;
+ return PROVIDERS.find((p) => p.id === id) || PROVIDERS[0];
 }
 
-export function AISettingsModal() {
- if (!aiSettingsOpen.value) return null;
+function getSaveStatusMeta(saveStatus) {
+ if (typeof saveStatus === 'object' && saveStatus && saveStatus.error) {
+ return { text: `✗ ${saveStatus.error}`, tone: 'error' };
+ }
+ switch (saveStatus) {
+ case 'saving':
+ return { text: '保存中...', tone: 'info' };
+ case 'saved':
+ return { text: '✓ 配置已保存', tone: 'success' };
+ case 'saving-key':
+ return { text: '正在写入 Keychain...', tone: 'info' };
+ case 'key-saved':
+ return { text: '✓ key 已存储', tone: 'success' };
+ case 'clearing-key':
+ return { text: '正在清空 key...', tone: 'info' };
+ case 'key-cleared':
+ return { text: '✓ key 已清空', tone: 'success' };
+ case 'testing':
+ return { text: '测试连接中...', tone: 'info' };
+ case 'test-ok':
+ return { text: '✓ 测试通过', tone: 'success' };
+ default:
+ return null;
+ }
+}
+
+/**
+ *共享 AI config 表单.
+ *
+ * Props:
+ * - onSaved?: () => void 保存成功后回调 (drawer 用: 关 config mode +跑 rerun)
+ * - onCancel?: () => void取消回调 (drawer 用: 关 config mode 回列表 view)
+ * - compact?: boolean true 时去掉 backfill按钮 /简化文案 (drawer 用)
+ */
+export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  const cfg = aiSessionsConfig.value;
 
- // 表单局部 state (避免 store频繁重渲染). mount 时从 cfg seed.
- const [enabled, setEnabled] = useState(Boolean(cfg && cfg.enabled));
- const [provider, setProvider] = useState((cfg && cfg.provider) || 'ollama');
- const [ollamaHost, setOllamaHost] = useState((cfg && cfg.ollama && cfg.ollama.host) || 'http://localhost:11434');
- const [ollamaModel, setOllamaModel] = useState((cfg && cfg.ollama && cfg.ollama.model) || 'qwen3.5:9b');
- const [cloudProviderId, setCloudProviderId] = useState(
+ const initialProviderId =
  (cfg && cfg.cloud && cfg.cloud.providerId)
- || (provider !== 'ollama' ? provider : 'openai')
- );
+ || (cfg && cfg.provider && PROVIDERS.some(p => p.id === cfg.provider) ? cfg.provider : null)
+ || 'deepseek';
+ const [cloudProviderId, setCloudProviderId] = useState(initialProviderId);
  const [cloudModel, setCloudModel] = useState(
- (cfg && cfg.cloud && cfg.cloud.model) || ''
+ (cfg && cfg.cloud && cfg.cloud.model) || findProvider(initialProviderId).defaultModel,
  );
  const [cloudBaseUrl, setCloudBaseUrl] = useState(
- (cfg && cfg.cloud && cfg.cloud.baseUrl) || ''
+ (cfg && cfg.cloud && cfg.cloud.baseUrl) || DEFAULT_BASE_URL[initialProviderId] || '',
  );
- // API key 输入 (本地 state, 不入 store; 保存时调 setAIKey)
  const [keyInput, setKeyInput] = useState('');
- const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | {error}
+ const [saveStatus, setSaveStatus] = useState(null);
 
- // modal open 时拉一次 keyStatus (避免每次输入都重拉)
+ // mount 时拉一次 keyStatus (modal复用也会调; drawer 用也安全 — 已 cached)
  useEffect(() => {
  probeAIKeyStatuses();
  }, []);
 
- // 当 store里的 cfg变化 (外部 save推过来),重置本地表单
+ //外部 cfg变化 (e.g.另一个 settings同步了),重置表单
  useEffect(() => {
  if (cfg) {
- setEnabled(Boolean(cfg.enabled));
- setProvider(cfg.provider || 'ollama');
- if (cfg.ollama) {
- setOllamaHost(cfg.ollama.host || 'http://localhost:11434');
- setOllamaModel(cfg.ollama.model || 'qwen3.5:9b');
- }
  if (cfg.cloud) {
- setCloudProviderId(cfg.cloud.providerId || 'openai');
- setCloudModel(cfg.cloud.model || '');
- setCloudBaseUrl(cfg.cloud.baseUrl || '');
+ const pid = cfg.cloud.providerId;
+ if (pid && PROVIDERS.some(p => p.id === pid)) {
+ setCloudProviderId(pid);
+ setCloudModel(cfg.cloud.model || findProvider(pid).defaultModel);
+ setCloudBaseUrl(cfg.cloud.baseUrl || DEFAULT_BASE_URL[pid] || '');
+ }
  }
  }
  }, [cfg]);
-
- function handleClose() {
- openAISettings(false);
- setKeyInput('');
- setSaveStatus(null);
- }
 
  async function handleSaveKey() {
  if (!keyInput || !cloudProviderId) return;
  setSaveStatus('saving-key');
  const r = await setAIKey(cloudProviderId, keyInput);
  setSaveStatus(r.ok ? 'key-saved' : { error: r.reason || 'threw' });
- if (r.ok) setKeyInput(''); //清输入框 (key已存, 不留plaintext)
+ if (r.ok) setKeyInput('');
  }
 
  async function handleClearKey() {
@@ -121,16 +136,13 @@ export function AISettingsModal() {
  }
 
  async function handleTestConnection() {
- const isCloud = provider !== 'ollama';
  setSaveStatus('testing');
- const opts = isCloud
- ? {
+ const opts = {
  providerId: cloudProviderId,
  model: cloudModel || findProvider(cloudProviderId).defaultModel,
- apiKey: keyInput || undefined, //优先用未保存的输入
+ apiKey: keyInput || undefined,
  baseUrl: cloudBaseUrl || DEFAULT_BASE_URL[cloudProviderId],
- }
-      : { providerId: 'ollama', host: ollamaHost, model: ollamaModel };
+ };
  const r = await runAIHealthcheck(opts);
  setSaveStatus(r.ok ? 'test-ok' : { error: r.error || 'threw' });
  }
@@ -138,117 +150,99 @@ export function AISettingsModal() {
  async function handleSaveConfig() {
  setSaveStatus('saving');
  const next = {
- enabled,
- provider,
- ollama: { host: ollamaHost, model: ollamaModel },
- cloud: provider !== 'ollama'
- ? {
+ // Phase B7f: 没有显式 enabled字段 —配了 provider 即 enabled
+ provider: cloudProviderId,
+ cloud: {
  providerId: cloudProviderId,
  model: cloudModel || findProvider(cloudProviderId).defaultModel,
  baseUrl: cloudBaseUrl || undefined,
- }
- : null,
+ },
  };
  const r = await saveAISessionsConfig(next);
- setSaveStatus(r.ok ? 'saved' : { error: r.reason || 'threw' });
+ if (r.ok) {
+ setSaveStatus('saved');
+ if (typeof onSaved === 'function') onSaved(r.config || next);
+ } else {
+ setSaveStatus({ error: r.reason || 'threw' });
+ }
  }
 
- async function handleBackfill() {
- setSaveStatus('backfilling');
- const r = await triggerBackfill(7);
- if (r.ok) setSaveStatus('backfill-ok');
- else setSaveStatus({ error: r.reason || 'threw' });
- }
-
- const prov = findProvider(provider);
- const isCloud = provider !== 'ollama';
- const keyStatus = aiKeyStatus.value[isCloud ? cloudProviderId : provider] || { hasKey: false, available: false };
+ const prov = findProvider(cloudProviderId);
+ const keyStatus = aiKeyStatus.value[cloudProviderId] || { hasKey: false, available: false };
  const busy = aiHealthcheckBusy.value;
  const lastTest = aiHealthcheckResult.value;
+ const statusMeta = getSaveStatusMeta(saveStatus);
+ const providerDescriptor = cloudProviderId === 'deepseek' ? '推理稳定，适合通用总结' : '中文表现更强，适合高频日更';
+ const keyStatusText = keyStatus.available
+ ? (keyStatus.hasKey ? `✓ ${cloudProviderId} 已存 key` : `${cloudProviderId} 尚未存 key`)
+ : 'safeStorage 不可用，可临时改用环境变量';
 
  return (
- <div class="modal-backdrop" onClick={handleClose}>
- <div class="modal-card ai-settings-modal" onClick={(e) => e.stopPropagation()}>
- <div class="modal-header">
- <h2>AI总结 设置</h2>
- <button class="btn-close" onClick={handleClose} title="关闭" aria-label="关闭">×</button>
+ <div class="ai-config-form">
+ <section class="ai-config-hero">
+ <div class="ai-config-hero-icon" aria-hidden="true">
+ <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+ <path d="M12 3l7 4v5c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V7l7-4z" />
+ <path d="M9.5 12.5l1.8 1.8 3.2-4.3" />
+ </svg>
  </div>
-
- <div class="modal-body">
- {/*启用 toggle */}
- <div class="ai-settings-row">
- <label class="ai-settings-toggle">
- <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.currentTarget.checked)} />
- <span>启用 AI每日总结</span>
- </label>
- <small class="ai-settings-hint">
-启用后,每日生成昨日 AI编程会话总结 (banner 显示).opt-in,不影响其他功能。
- </small>
+ <div class="ai-config-hero-copy">
+ <div class="ai-config-hero-head">
+ <h3 class="ai-config-hero-title">配置 AI 总结引擎</h3>
+ <span class={`ai-config-provider-pill provider-${cloudProviderId}`}>{prov.label}</span>
  </div>
+ <p class="ai-config-hero-desc">
+ 选择提供方、模型和密钥后，Pulse 会为你勾选的 AI 任务生成总结。当前方案偏向 {providerDescriptor}。
+ </p>
+ </div>
+ </section>
 
- {/* Provider 选择 */}
- <div class="ai-settings-row">
- <label class="ai-settings-label">Provider</label>
- <select value={provider} onChange={(e) => setProvider(e.currentTarget.value)} disabled={!enabled}>
+ <section class="ai-config-section ai-config-section-provider">
+ <div class="ai-config-section-head">
+ <div>
+ <h4 class="ai-config-section-title">Provider</h4>
+ <p class="ai-config-section-desc">先确定模型提供方，下面的默认参数会自动同步。</p>
+ </div>
+ </div>
+ <div class="ai-settings-provider-grid">
  {PROVIDERS.map((p) => (
- <option key={p.id} value={p.id}>{p.label}</option>
- ))}
- </select>
- </div>
-
- {/* Ollama 配置 */}
- {provider === 'ollama' && (
- <>
- <div class="ai-settings-row">
- <label class="ai-settings-label">Ollama host</label>
- <input
- type="text"
- value={ollamaHost}
- onInput={(e) => setOllamaHost(e.currentTarget.value)}
- placeholder="http://localhost:11434"
- disabled={!enabled}
- />
- </div>
- <div class="ai-settings-row">
- <label class="ai-settings-label">Model</label>
- <input
- type="text"
- value={ollamaModel}
- onInput={(e) => setOllamaModel(e.currentTarget.value)}
- placeholder="qwen3.5:9b"
- disabled={!enabled}
- />
- </div>
- </>
- )}
-
- {/* Cloud 配置 */}
- {isCloud && (
- <>
- <div class="ai-settings-row">
- <label class="ai-settings-label">Cloud provider</label>
- <select
- value={cloudProviderId}
- onChange={(e) => {
- setCloudProviderId(e.currentTarget.value);
- setCloudModel(findProvider(e.currentTarget.value).defaultModel);
+ <button
+ key={p.id}
+ type="button"
+ class={`provider-card ${cloudProviderId === p.id ? 'selected' : ''}`}
+ onClick={() => {
+ setCloudProviderId(p.id);
+ setCloudModel(p.defaultModel);
+ setCloudBaseUrl(DEFAULT_BASE_URL[p.id] || '');
  }}
- disabled={!enabled}
  >
- {PROVIDERS.filter((p) => p.id !== 'ollama').map((p) => (
- <option key={p.id} value={p.id}>{p.label}</option>
+ <span class="provider-card-topline">
+ <span class="provider-card-name">{p.label}</span>
+ <span class="provider-card-tag">{p.id === 'deepseek' ? 'Balanced' : 'CN-first'}</span>
+ </span>
+ <span class="provider-card-hint">{p.hint}</span>
+ </button>
  ))}
- </select>
  </div>
+ </section>
+
+ <section class="ai-config-section ai-config-section-compact">
+ <div class="ai-config-section-head">
+ <div>
+ <h4 class="ai-config-section-title">连接参数</h4>
+ <p class="ai-config-section-desc">保留自动填好的默认值即可，只有自建代理时才需要改 Base URL。</p>
+ </div>
+ </div>
+ <div class="ai-settings-field-grid">
  <div class="ai-settings-row">
  <label class="ai-settings-label">Model</label>
  <input
  type="text"
  value={cloudModel}
  onInput={(e) => setCloudModel(e.currentTarget.value)}
- placeholder={findProvider(cloudProviderId).defaultModel}
- disabled={!enabled}
+ placeholder={prov.defaultModel}
  />
+ <small class="ai-settings-hint">建议先用默认模型，确认可用后再细调。</small>
  </div>
  <div class="ai-settings-row">
  <label class="ai-settings-label">Base URL (可选)</label>
@@ -257,30 +251,35 @@ export function AISettingsModal() {
  value={cloudBaseUrl}
  onInput={(e) => setCloudBaseUrl(e.currentTarget.value)}
  placeholder={DEFAULT_BASE_URL[cloudProviderId] || 'https://...'}
- disabled={!enabled}
  />
- <small class="ai-settings-hint">
-留空用默认。Base URL末尾的 /v1 自动处理。
- </small>
+ <small class="ai-settings-hint">留空使用官方地址，末尾的 /v1 会自动兼容。</small>
  </div>
+ </div>
+ </section>
 
- {/* API key */}
+ <section class="ai-config-section ai-config-section-compact ai-config-key-section">
+ <div class="ai-config-section-head">
+ <div>
+ <h4 class="ai-config-section-title">API Key</h4>
+ <p class="ai-config-section-desc">密钥只写入系统 Keychain，不会明文保存在配置文件里。</p>
+ </div>
+ <span class={`ai-config-inline-status ${keyStatus.hasKey ? 'ok' : 'idle'}`}>{keyStatusText}</span>
+ </div>
  <div class="ai-settings-row ai-settings-key-row">
- <label class="ai-settings-label">API Key</label>
  <div class="ai-settings-key-controls">
  <input
  type="password"
  value={keyInput}
  onInput={(e) => setKeyInput(e.currentTarget.value)}
- placeholder={keyStatus.hasKey ? '(已存储,输入新值替换)' : 'sk-...'}
- disabled={!enabled}
+ placeholder={keyStatus.hasKey ? '(已存储，输入新值替换)' : 'sk-...'}
  autocomplete="off"
+ spellcheck={false}
  />
  <button
  type="button"
- class="btn btn-secondary btn-sm"
+ class="btn btn-primary btn-sm"
  onClick={handleSaveKey}
- disabled={!enabled || !keyInput || busy}
+ disabled={!keyInput || busy}
  title="把当前输入的 key存到 OS keychain"
  >
  保存 key
@@ -289,7 +288,7 @@ export function AISettingsModal() {
  type="button"
  class="btn btn-ghost btn-sm"
  onClick={handleClearKey}
- disabled={!enabled || !keyStatus.hasKey || busy}
+ disabled={!keyStatus.hasKey || busy}
  title="从 OS keychain 删除已存的 key"
  >
  清空
@@ -297,76 +296,90 @@ export function AISettingsModal() {
  </div>
  <small class="ai-settings-hint">
  {keyStatus.available
- ? (keyStatus.hasKey ? '✓ 已存 key' : '未存 key')
- : '⚠️ safeStorage 在此平台不可用 (Linux 无 keyring)。可临时用环境变量。'}
+ ? '修改 key 后可以直接点“测试连接”验证，再保存最终配置。'
+ : '当前系统不支持 safeStorage，可改用环境变量提供 key。'}
  </small>
  </div>
- </>
- )}
+ </section>
 
- {/* 测试连接 + 回填历史 */}
+ <section class="ai-config-section ai-config-tools">
+ <div class="ai-config-section-head">
+ <div>
+ <h4 class="ai-config-section-title">验证连接</h4>
+ <p class="ai-config-section-desc">保存前先测试连接，确认 key 和模型可用。</p>
+ </div>
+ </div>
  <div class="ai-settings-row ai-settings-test-row">
  <button
  type="button"
  class="btn btn-secondary"
  onClick={handleTestConnection}
- disabled={!enabled || busy || backfillProgress.value.active}
+ disabled={busy}
  >
  {busy ? '测试中…' : '测试连接'}
- </button>
- <button
- type="button"
- class="btn btn-ghost"
- onClick={handleBackfill}
- disabled={!enabled || busy || backfillProgress.value.active}
- title="为最近7天生成 AI总结"
- >
- {backfillProgress.value.active
- ? `回填中 ${backfillProgress.value.done}/${backfillProgress.value.total}`
- : '回填历史7天'}
  </button>
  {lastTest && (
  <span class={`ai-settings-test-result ${lastTest.ok ? 'ok' : 'fail'}`}>
  {lastTest.ok
- ? `✓ ok (${lastTest.latencyMs ||0}ms)`
+ ? `✓ 连接正常 (${lastTest.latencyMs ||0}ms)`
  : `✗ ${lastTest.error || '失败'}`}
  </span>
  )}
  </div>
+ </section>
 
- {/* 保存 status */}
- {saveStatus && (
- <div class="ai-settings-row">
- <span class={`ai-settings-save-status ${
- typeof saveStatus === 'string' ? saveStatus : 'error'
- }`}>
- {saveStatus === 'saving' && '保存中…'}
- {saveStatus === 'saved' && '✓ 配置已保存'}
- {saveStatus === 'saving-key' && '保存 key…'}
- {saveStatus === 'key-saved' && '✓ key 已存'}
- {saveStatus === 'clearing-key' && '清 key…'}
- {saveStatus === 'key-cleared' && '✓ key 已清'}
- {saveStatus === 'testing' && '测试连接…'}
- {saveStatus === 'test-ok' && '✓ 测试通过'}
- {saveStatus === 'backfilling' && '回填历史中 (看顶部进度)…'}
- {saveStatus === 'backfill-ok' && '✓ 回填完成'}
- {typeof saveStatus === 'object' && saveStatus.error && `✗ ${saveStatus.error}`}
+ {statusMeta && (
+ <div class="ai-settings-row ai-settings-status-row">
+ <span class={`ai-settings-save-status ${statusMeta.tone}`}>
+ {statusMeta.text}
  </span>
  </div>
  )}
- </div>
 
- <div class="modal-footer">
- <div class="modal-footer-buttons">
- <button class="btn btn-ghost" onClick={handleClose}>关闭</button>
+ {/*底部按钮区 */}
+ <div class="ai-config-form-actions">
  <button
+ type="button"
+ class="btn btn-ghost"
+ onClick={() => {
+ if (typeof onCancel === 'function') onCancel();
+ }}
+ >
+ {compact ? '返回' : '关闭'}
+ </button>
+ <button
+ type="button"
  class="btn btn-primary"
  onClick={handleSaveConfig}
- disabled={!enabled || busy}
+ disabled={busy}
  >
  保存配置
  </button>
  </div>
+ </div>
+ );
+}
+
+/**
+ * Legacy AISettingsModal —保留作为兜底入口 (B7g之前代码可能还在调 openAISettings).
+ * App.jsx 现在不挂载它. 真使用走 drawer 内嵌的 AIConfigForm.
+ */
+export function AISettingsModal() {
+ if (!aiSettingsOpen.value) return null;
+
+ return (
+ <div class="modal-backdrop" onClick={() => openAISettings(false)}>
+ <div class="modal-card ai-settings-modal" onClick={(e) => e.stopPropagation()}>
+ <div class="modal-header">
+ <h2>AI总结设置</h2>
+ <button class="btn-close" onClick={() => openAISettings(false)} title="关闭" aria-label="关闭">×</button>
+ </div>
+
+ <div class="modal-body">
+ <AIConfigForm
+ onSaved={() => openAISettings(false)}
+ onCancel={() => openAISettings(false)}
+ />
  </div>
  </div>
  </div>

@@ -52,26 +52,29 @@ const os = require('os');
 
 const SCHEMA_VERSION = 1;
 
-// ─── 新字段 preserve helper (Phase v2.5.2) ─────────────────────────
+// ─── 新字段 preserve helper ─────────────────────────
 //
 // 用途: 让 saveAll / setMute / clearMute / saveLastOpened / saveActiveCategory
-//       / saveDailyDigest / saveAISessionsConfig 在写盘时自动保留这些 "patch 后
+//       / saveTaskSummary / saveAISessionsConfig 在写盘时自动保留这些 "patch 后
 //       加的" 字段, 避免被覆盖丢.
 //
 // 当前 preserve 的字段:
-//   - last_digest_attempts: ring buffer (排查 digest never runs 用)
 //   - classify_llm_cache: { appName: catId } (Step B LLM classify 用)
+//   - task_summaries: { taskKey: entry } (AI 任务总结缓存)
+//
+// 旧字段 daily_digests / daily_digest_v2 / last_digest_attempts 已废弃 —
+// 不再 preserve, 下次写盘自然消失.
 //
 // 注: caller 不应该 mutate existing 直接, 应该从 load() 拿 immutable 副本.
 // 保留策略: 如果 next 里已经有这字段 (caller 显式设), 用 next 的; 否则从 existing 拿.
 function preserveExtraFields(existing, next) {
   if (!existing || typeof existing !== 'object') return next;
   if (!next || typeof next !== 'object') return next;
-  if (!('last_digest_attempts' in next) && Array.isArray(existing.last_digest_attempts)) {
-    next.last_digest_attempts = existing.last_digest_attempts;
-  }
   if (!('classify_llm_cache' in next) && existing.classify_llm_cache && typeof existing.classify_llm_cache === 'object') {
     next.classify_llm_cache = existing.classify_llm_cache;
+  }
+  if (!('task_summaries' in next) && existing.task_summaries && typeof existing.task_summaries === 'object' && !Array.isArray(existing.task_summaries)) {
+    next.task_summaries = existing.task_summaries;
   }
   return next;
 }
@@ -160,7 +163,6 @@ function saveAll(results, statePath = defaultPath()) {
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
-    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -191,7 +193,6 @@ function markNotified(names, statePath = defaultPath()) {
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
-    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -283,7 +284,6 @@ function setMute(name, untilMs, reason, statePath = defaultPath()) {
     mutes,
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
-    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -316,7 +316,6 @@ function clearMute(name, statePath = defaultPath()) {
     mutes,
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
-    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -360,7 +359,6 @@ function saveLastOpened(map, statePath = defaultPath()) {
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: map,
     active_category: existing.active_category || 'all',
-    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -370,80 +368,59 @@ function saveLastOpened(map, statePath = defaultPath()) {
   return next;
 }
 
-// ─── Phase B (AI Sessions Daily Digest) ────────────────────────
-// 30 天外 digests 自动 GC, 跟 mutes / last_opened 同款处理.
-// 字段: daily_digests = { [dateKey]: Digest }
-//   Digest: { dateKey, generatedAt, provider, model, sessionCount, summary, sessionIds }
-//   ai_sessions_config = { enabled, provider, model, ollama: {host, model}, cloud: {providerId, model} }
+// ─── AI 任务总结缓存 (task_summaries) ────────────────────────
+// 重做版: 按任务缓存 (不再按天). 30 天外 GC, 跟 mutes 同款处理.
+// 字段: task_summaries = { [taskKey]: Entry }
+//   taskKey = "<appName>:<sessionId>"
+//   Entry   = { taskKey, sessionId, appName, title, userGoal, outcome,
+//               provider, model, generatedAt, contentHash, dateKey }
 
-const DAILY_DIGESTS_GC_DAYS = 30;
+const TASK_SUMMARIES_GC_DAYS = 30;
 
 /**
- * GC: 删 30 天外的 digests. 写盘前调 (跟 cleanExpiredMutes 风格一致).
- * 30 是默认, 后续可让 config 覆盖 (spec §3.1).
- * @param {object} digests  { [dateKey]: Digest }
- * @param {number} now      epoch ms
- * @returns {object} 新的 digests (新引用, 不 mutate 原对象)
+ * GC: 删 30 天外的任务总结. 写盘前调.
+ * @param {object} map  { [taskKey]: Entry }
+ * @param {number} now  epoch ms
+ * @returns {object} 新 map (新引用, 不 mutate 原对象)
  */
-function cleanExpiredDigests(digests, now) {
-  if (!digests || typeof digests !== 'object') return {};
+function cleanExpiredTaskSummaries(map, now) {
+  if (!map || typeof map !== 'object') return {};
   const out = {};
-  const cutoffMs = now - DAILY_DIGESTS_GC_DAYS * 86400_000;
-  for (const [dateKey, d] of Object.entries(digests)) {
-    if (!d || typeof d !== 'object' || typeof d.dateKey !== 'string') continue;
-    // generatedAt 不存在或早于 cutoff → 删
-    if (typeof d.generatedAt !== 'number' || d.generatedAt < cutoffMs) {
-      // spec 写 "30 天外" — 但 daily_digests 通常是昨天/前天/... 极少有 generatedAt
-      // 来自很老的时间 (例如手动 import 旧数据). cutoff 命中就 GC.
-      continue;
-    }
-    out[dateKey] = d;
+  const cutoffMs = now - TASK_SUMMARIES_GC_DAYS * 86400_000;
+  for (const [taskKey, e] of Object.entries(map)) {
+    if (!e || typeof e !== 'object') continue;
+    if (typeof e.generatedAt !== 'number' || e.generatedAt < cutoffMs) continue;
+    out[taskKey] = e;
   }
   return out;
 }
 
 /**
- * 读 digests. 老 state.json (无 daily_digests 字段) → {} (兼容).
+ * 读任务总结缓存. 老 state.json (无 task_summaries 字段) → {} (兼容).
  * @param {string} [statePath]
- * @returns {object} { [dateKey]: Digest }
+ * @returns {object} { [taskKey]: Entry }
  */
-function loadDailyDigests(statePath = defaultPath()) {
+function loadTaskSummaries(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return {};
-  if (!s.daily_digests || typeof s.daily_digests !== 'object' || Array.isArray(s.daily_digests)) return {};
-  return cleanExpiredDigests(s.daily_digests, Date.now());
+  if (!s.task_summaries || typeof s.task_summaries !== 'object' || Array.isArray(s.task_summaries)) return {};
+  return cleanExpiredTaskSummaries(s.task_summaries, Date.now());
 }
 
 /**
- * 检查指定 dateKey 是否已有 digest. 给 DailyDigestRunner idempotent 用.
- * @param {string} dateKey
- * @param {string} [statePath]
- * @returns {boolean}
- */
-function hasDailyDigest(dateKey, statePath = defaultPath()) {
-  if (typeof dateKey !== 'string' || dateKey.length === 0) return false;
-  const s = load(statePath);
-  if (!s || !s.daily_digests || typeof s.daily_digests !== 'object') return false;
-  return Boolean(s.daily_digests[dateKey]);
-}
-
-/**
- * 写一条 digest. atomic write, 保留 apps / mutes / last_opened / active_category.
- * @param {object} digest  Digest
+ * 写一条任务总结. atomic write, 保留其余字段.
+ * @param {object} entry   必须含 taskKey
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveDailyDigest(digest, statePath = defaultPath()) {
-  if (!digest || typeof digest !== 'object' || typeof digest.dateKey !== 'string') {
-    throw new TypeError('saveDailyDigest: digest must have non-empty dateKey');
-  }
-  if (digest.dateKey.length === 0) {
-    throw new TypeError('saveDailyDigest: digest.dateKey must be non-empty');
+function saveTaskSummary(entry, statePath = defaultPath()) {
+  if (!entry || typeof entry !== 'object' || typeof entry.taskKey !== 'string' || entry.taskKey.length === 0) {
+    throw new TypeError('saveTaskSummary: entry.taskKey must be non-empty string');
   }
   const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
   const now = Date.now();
-  const digests = cleanExpiredDigests(existing.daily_digests || {}, now);
-  digests[digest.dateKey] = { ...digest, generatedAt: typeof digest.generatedAt === 'number' ? digest.generatedAt : now };
+  const map = cleanExpiredTaskSummaries(existing.task_summaries || {}, now);
+  map[entry.taskKey] = { ...entry, generatedAt: typeof entry.generatedAt === 'number' ? entry.generatedAt : now };
   const next = {
     v: SCHEMA_VERSION,
     ts: now,
@@ -451,8 +428,11 @@ function saveDailyDigest(digest, statePath = defaultPath()) {
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
-    daily_digests: digests,
+    task_summaries: map,
   };
+  if (existing.ai_sessions_config) {
+    next.ai_sessions_config = existing.ai_sessions_config;
+  }
   preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
@@ -469,78 +449,8 @@ function loadAISessionsConfig(statePath = defaultPath()) {
   return { ...s.ai_sessions_config };
 }
 
-// ─── Digest 启动期 trail (排查用) ─────────────────────────
-//
-// 用途: main bootstrap 期间记录 "merged_config" / "wiring_build" / "bootstrap" 三个
-// 关键 phase 的状态, 写到 state.json.last_digest_attempts[] (ring buffer, 最多 8 条).
-// 排查 "digest never runs" 时: 用户拿 state.json 给我看, 我能直接看到:
-//   - merged config enabled? provider? detectors?
-//   - wiring build ok?
-//   - bootstrap 跑到哪? yesterday backfill 状态?
-// 走 atomic write, 不破坏其他字段. 失败 log warn 不 throw.
-
-const DIGEST_ATTEMPT_BUFFER_MAX = 8;
-
-function recordDigestAttempt(entry, statePath = defaultPath()) {
-  if (!entry || typeof entry !== 'object') return;
-  const now = Date.now();
-  const record = {
-    ts: now,
-    phase: typeof entry.phase === 'string' ? entry.phase : 'unknown',
-    ok: Boolean(entry.ok),
-    reason: typeof entry.reason === 'string' ? entry.reason : null,
-    provider: typeof entry.provider === 'string' ? entry.provider : null,
-    detectors: typeof entry.detectors === 'string' ? entry.detectors : null,
-    enabled: typeof entry.enabled === 'boolean' ? entry.enabled : null,
-    yesterdayStatus: typeof entry.yesterdayStatus === 'string' ? entry.yesterdayStatus : null,
-    backfillStatus: typeof entry.backfillStatus === 'string' ? entry.backfillStatus : null,
-  };
-  let existing;
-  try {
-    existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
-  } catch (err) {
-    // load 失败也不 throw, 只 log warn — 排查 patch 不能雪崩
-    // eslint-disable-next-line no-console
-    console.warn('[state-store] recordDigestAttempt: load failed', err && err.message);
-    return;
-  }
-  const attempts = Array.isArray(existing.last_digest_attempts) ? existing.last_digest_attempts.slice() : [];
-  attempts.push(record);
-  // ring buffer: 只留最近 N 条
-  const trimmed = attempts.length > DIGEST_ATTEMPT_BUFFER_MAX
-    ? attempts.slice(attempts.length - DIGEST_ATTEMPT_BUFFER_MAX)
-    : attempts;
-  const next = {
-    v: SCHEMA_VERSION,
-    ts: now,
-    apps: existing.apps || {},
-    mutes: cleanExpiredMutes(existing.mutes || {}, now),
-    last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
-    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
-    last_digest_attempts: trimmed,
-  };
-  if (existing.ai_sessions_config) next.ai_sessions_config = existing.ai_sessions_config;
-  // recordDigestAttempt 本身是 last_digest_attempts 字段的写入方, preserveExtraFields
-  // 会自动跳过 (next 已有该字段), 但 classify_llm_cache 需要从 existing 保留.
-  preserveExtraFields(existing, next);
-  try {
-    writeAtomic(statePath, next);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[state-store] recordDigestAttempt: writeAtomic failed', err && err.message);
-  }
-}
-
-function loadDigestAttempts(statePath = defaultPath()) {
-  const s = load(statePath);
-  if (!s || !Array.isArray(s.last_digest_attempts)) return [];
-  return s.last_digest_attempts.slice();
-}
-
-
 /**
- * 写 AI sessions config. atomic write, 保留 apps / mutes / last_opened / active_category / daily_digests.
+ * 写 AI sessions config. atomic write, 保留 apps / mutes / last_opened / active_category / task_summaries.
  * @param {object} cfg
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
@@ -558,7 +468,6 @@ function saveAISessionsConfig(cfg, statePath = defaultPath()) {
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
-    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
   };
   if (cfg == null) {
     // 显式清除字段
@@ -674,7 +583,6 @@ function saveLLMClassifyCache(map, statePath = defaultPath()) {
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || 'all',
-    daily_digests: cleanExpiredDigests(existing.daily_digests || {}, now),
     classify_llm_cache: merged,
   };
   if (existing.ai_sessions_config) next.ai_sessions_config = existing.ai_sessions_config;
@@ -704,18 +612,13 @@ module.exports = {
   // Phase A (App Categorization)
   loadActiveCategory,
   saveActiveCategory,
-  // Phase B (AI Sessions Daily Digest)
-  DAILY_DIGESTS_GC_DAYS,
-  cleanExpiredDigests,
-  loadDailyDigests,
-  hasDailyDigest,
-  saveDailyDigest,
+  // AI 任务总结缓存 (重做版)
+  TASK_SUMMARIES_GC_DAYS,
+  cleanExpiredTaskSummaries,
+  loadTaskSummaries,
+  saveTaskSummary,
   loadAISessionsConfig,
   saveAISessionsConfig,
-  // 排查 patch: digest 启动期 trail (Phase B "never runs" 排查)
-  recordDigestAttempt,
-  loadDigestAttempts,
-  DIGEST_ATTEMPT_BUFFER_MAX,
   // Step B: LLM classify cache 持久化
   loadLLMClassifyCache,
   saveLLMClassifyCache,

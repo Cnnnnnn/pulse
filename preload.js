@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('api', {
  openUrl: (url) => ipcRenderer.invoke('open-url', url),
 
  onCheckProgress: (cb) => ipcRenderer.on('check-progress', (_, data) => cb(data)),
+ onCheckDetecting: (cb) => ipcRenderer.on('check-detecting', (_, data) => cb(data)),
  onStartCheck: (cb) => ipcRenderer.on('start-check', () => cb()),
  onAutoCheckFinished: (cb) => ipcRenderer.on('auto-check-finished', (_, data) => cb(data)),
 
@@ -33,12 +34,12 @@ contextBridge.exposeInMainWorld('api', {
  getActiveCategory: () => ipcRenderer.invoke('get-active-category'),
  saveActiveCategory: (id) => ipcRenderer.invoke('save-active-category', id),
 
- // Phase B4 (AI Sessions Daily Digest):手动 rerun / backfill / get current
- rerunDigest: (opts) => ipcRenderer.invoke('ai-sessions:rerun', opts),
- backfillDigest: (days) => ipcRenderer.invoke('ai-sessions:backfill', days),
- getCurrentDigest: () => ipcRenderer.invoke('ai-sessions:get-current'),
- onDigestUpdated: (cb) => ipcRenderer.on('ai-digest-updated', (_, data) => cb(data)),
- onDigestProgress: (cb) => ipcRenderer.on('ai-digest-progress', (_, data) => cb(data)),
+// AI 任务总结 (重做版): 按需扫描 + 按需生成
+  listAiTasks: (opts) => ipcRenderer.invoke('ai-tasks:list', opts),
+  summarizeAiTasks: (opts) => ipcRenderer.invoke('ai-tasks:summarize', opts),
+  onAiTaskSummaryUpdated: (cb) => ipcRenderer.on('ai-task-summary-updated', (_, data) => cb(data)),
+  // 跳到原始 session (任务卡 "查看原始" 用)
+  openSession: (target) => ipcRenderer.invoke('ai-sessions:open-session', target),
 
  // Phase B6c (AI Sessions Settings): safeStorage API key + config
  setAiKey: (providerId, apiKey) => ipcRenderer.invoke('ai-sessions:set-key', providerId, apiKey),

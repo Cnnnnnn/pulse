@@ -1,21 +1,17 @@
 /**
  * src/renderer/App.jsx
  *
- * 根组件 —— 顶层布局 + 4 个状态视图 (idle / running / done / error) 切换。
+ * 根组件 —— 顶层布局 + 状态视图切换 (v2 Session-based)。
  *
- * 数据流：
- *   - bootstrap (index.jsx) 调 getConfig → apps.value = cfg.apps
- *                       调 triggerCheck → resetCheck → checkUpdates() →
- *                       (中途) 多次 applyProgress → finishCheck
- *   - 本组件只读 signals 不写
- *
- * Phase 22: BulkUpgradeModal 挂到根, 跟其他 UI 一起受 bulkUpgradeModalOpen 控制.
- *
- * Phase 23: 挂 FilterBar (search + tab 过滤), Cmd+F 拦截聚焦 search input.
+ * v2 改进:
+ *   - 视图切换基于 checkSession.phase (不再用旧的 checkStatus)
+ *   - footerTime 修复: 显示检查 *完成* 时间 (finishedAt), 而非开始时间
+ *   - running 期间也显示已有 results (不闪 skeleton)
+ *   - 每个 app 的 phase 驱动行级 spinner/done/error 态 (在 AppRow 内)
  */
 
 import { useEffect } from 'preact/hooks';
-import { checkStatus, results, checkStartTime, checkDuration, cachedState, dailyDigest, digestLoading, aiSessionsEnabled, rerunDigest } from './store.js';
+import { checkSession, results, cachedState } from './store.js';
 import { Header } from './components/Header.jsx';
 import { FilterBar } from './components/FilterBar.jsx';
 import { Skeleton } from './components/Skeleton.jsx';
@@ -23,24 +19,21 @@ import { ResultsView } from './components/ResultsView.jsx';
 import { ErrorBanner } from './components/ErrorBanner.jsx';
 import { WeeklyBanner } from './components/WeeklyBanner.jsx';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
-import { AIDigestBanner } from './components/AIDigestBanner.jsx';
-import { AISettingsModal } from './components/AISettingsModal.jsx';
+import { AITasksDrawer } from './components/AITasksDrawer.jsx';
 import { Toast } from './components/Toast.jsx';
 
 export function App({ onCheck }) {
-  const status = checkStatus.value;
+  const session = checkSession.value;
+  const phase = session.phase;
 
-  // Phase 23: 全局拦截 Cmd+F (mac) / Ctrl+F, 聚焦 search input.
-  // Electron 默认 "在页面查找" 跟我们的 search 重叠, 主动抢过来.
+  // 全局拦截 Cmd+F / Ctrl+F, 聚焦 search input
   useEffect(() => {
     function onKey(e) {
-      // e.key === 'f' (大小写都匹配 'f' / 'F'), 配合 metaKey 或 ctrlKey
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
         const input = document.getElementById('filter-search-input');
         if (input) {
           input.focus();
-          // 选中已有内容, 方便用户直接覆盖
           try { input.select(); } catch { /* noop */ }
         }
       }
@@ -49,25 +42,28 @@ export function App({ onCheck }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const hasResults = results.value.size > 0;
+
   return (
     <div id="app">
       <div id="titlebar"></div>
       <Header onCheck={onCheck} />
-      {/* Phase B5: 顶部 AI digest banner (spec §5.2, 跟 spec 一致插在 Header 下、FilterBar 上) */}
-      {aiSessionsEnabled.value && <AIDigestBanner digest={dailyDigest.value} loading={digestLoading.value} onRerun={rerunDigest} />}
+      <AITasksDrawer />
       <FilterBar />
       <main id="content">
-        {/* Phase 19: 周报式摘要 banner, 0 升级时不显示. 在 results 出现后再挂, 避免骨架期空白 */}
-        {results.value.size > 0 && <WeeklyBanner state={cachedState.value} />}
-        {/*
-          Phase 7 bugfix: 之前 'running' 状态只渲染 Skeleton, 即便部分 results 已到也看不见.
-          改成 "有 results 就立刻展示, 没 results 才显示 Skeleton".
-          这样卡在 Kimi 之类的慢检测上, 其它 10 个 app 的结果会一个个出来.
+        {/* 周报 banner, 有结果时显示 */}
+        {hasResults && <WeeklyBanner state={cachedState.value} />}
+
+        {/* 视图切换逻辑 (v2):
+            - running + 无结果 → Skeleton (等待首批 progress)
+            - 有结果 → ResultsView (running 期间也显示, 每个 AppRow 自带 phase 态)
+            - idle → ResultsView (显示缓存结果)
+            - error → ErrorBanner + ResultsView (保留上次结果)
         */}
-        {results.value.size === 0 && status === 'running' && <Skeleton />}
-        {results.value.size > 0 && <ResultsView />}
-        {status === 'idle'    && <ResultsView />}
-        {status === 'error'   && (
+        {!hasResults && phase === 'running' && <Skeleton />}
+        {hasResults && <ResultsView />}
+        {phase === 'idle' && !hasResults && <ResultsView />}
+        {phase === 'error' && (
           <>
             <ErrorBanner onRetry={onCheck} />
             <ResultsView />
@@ -75,27 +71,37 @@ export function App({ onCheck }) {
         )}
       </main>
       <footer id="footer">
-        <span id="check-time">{footerTime()}</span>
+        <span id="check-time">{footerTime(session)}</span>
         <div class="footer-right">
           <button class="btn btn-ghost btn-sm" onClick={onOpenConfig}>打开配置</button>
         </div>
       </footer>
- <BulkUpgradeModal />
- {/* Phase B6c.4: AI Settings modal —受 aiSettingsOpen signal 控制 mount */}
- <AISettingsModal />
- {/* Phase B7b.1: Toast notifications —store.toast数组为空时不渲染 */}
- <Toast />
- </div>
+      <BulkUpgradeModal />
+      <Toast />
+    </div>
   );
 }
 
-function footerTime() {
-  if (checkStatus.value === 'running' && checkStartTime.value) {
-    return `检查中... ${formatTime(new Date(checkStartTime.value))} 开始`;
+/**
+ * Footer 时间显示 (v2 修复)。
+ *
+ * 旧 bug: 显示 checkStartTime (检查开始时间), 用户看到的是"检查中... 10:30 开始"
+ * 但检查完成后仍然显示开始时间, 让人误以为检查还没结束。
+ *
+ * 修复: 完成后显示 finishedAt (完成时间), running 期间显示 startedAt。
+ */
+function footerTime(session) {
+  if (session.phase === 'running' && session.startedAt) {
+    return `检查中... ${formatTime(new Date(session.startedAt))} 开始`;
   }
-  if (checkDuration.value != null) {
-    return `上次检查: ${formatTime(new Date(Date.now() - checkDuration.value))} · 用时 ${(checkDuration.value / 1000).toFixed(1)}s`;
+  if (session.phase === 'done' && session.finishedAt && session.startedAt) {
+    const duration = session.finishedAt - session.startedAt;
+    return `上次检查: ${formatTime(new Date(session.finishedAt))} · 用时 ${(duration / 1000).toFixed(1)}s`;
   }
+  if (session.phase === 'error' && session.finishedAt) {
+    return `检查失败: ${formatTime(new Date(session.finishedAt))}`;
+  }
+  // idle — 如果有缓存结果的 finishedAt (上次检查遗留), 也可以显示
   return '';
 }
 
@@ -105,6 +111,5 @@ function formatTime(d) {
 }
 
 function onOpenConfig() {
-  // 打开 config 文件由主进程处理；这里发个事件让 bootstrap 绑
   window.dispatchEvent(new CustomEvent('app:open-config'));
 }

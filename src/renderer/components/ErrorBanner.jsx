@@ -5,10 +5,10 @@
  * 单 app 失败走 AppAction 内的 status badge，不进这里。
  */
 
-import { checkStatus, lastError } from '../store.js';
+import { checkSession, lastError } from '../store.js';
 
 export function ErrorBanner({ onRetry }) {
-  if (checkStatus.value !== 'error') return null;
+  if (checkSession.value.phase !== 'error') return null;
   return (
     <div class="error-banner" role="alert">
       <div class="error-banner-text">

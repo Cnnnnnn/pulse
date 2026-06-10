@@ -17,7 +17,7 @@
  *   - summarize() 走 prompts.js 拿 digest prompt template, flatten sessions → 喂给 LLM.
  */
 
-const { buildDigestPrompt } = require('./prompts');
+const { buildDigestPrompt, buildPerSessionPrompt } = require('./prompts');
 
 class LLMSummarizer {
   /**
@@ -79,7 +79,15 @@ class LLMSummarizer {
     }
     const dateKey = opts.dateKey || new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     const locale = opts.locale || 'zh-CN';
-    const { messages, meta } = buildDigestPrompt({ sessions, dateKey, locale, model: this.model, provider: this.provider });
+
+    // Phase B5b: per-session 模式 — digest.js 拆成 N 次单 session 调,
+    // 走 buildPerSessionPrompt (vs buildDigestPrompt 的 batch 模式).
+    // batch 模式在弱 coder model 上会忽略 "per-session" 指令, 一锅炖.
+    const perSession = Boolean(opts.perSession);
+    const { messages, meta } = perSession && sessions.length === 1
+      ? buildPerSessionPrompt({ session: sessions[0], index: opts.perSessionIndex || 0, locale })
+      : buildDigestPrompt({ sessions, dateKey, locale, model: this.model, provider: this.provider });
+
     const summary = await this.impl.summarize({
       messages,
       provider: this.provider,

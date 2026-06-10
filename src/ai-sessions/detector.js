@@ -72,13 +72,20 @@ class AISessionDetector {
       throw new TypeError('readSession: id must be non-empty string');
     }
     const s = await this.impl.readSession(id);
-    return {
+    const out = {
       id: s.id || id,
       appName: this.appName,
       startedAt: typeof s.startedAt === 'number' ? s.startedAt : 0,
       endedAt: typeof s.endedAt === 'number' ? s.endedAt : 0,
       messages: Array.isArray(s.messages) ? s.messages : [],
     };
+    // Phase B7c.4: 透传 file / workspaceDir / title / model 给 jump target.
+    // 旧 schema 不含这些字段, 容错 — 只在 impl 返了才带出来.
+    if (typeof s.file === 'string') out.file = s.file;
+    if (typeof s.workspaceDir === 'string') out.workspaceDir = s.workspaceDir;
+    if (typeof s.title === 'string') out.title = s.title;
+    if (typeof s.model === 'string') out.model = s.model;
+    return out;
   }
 
   /**

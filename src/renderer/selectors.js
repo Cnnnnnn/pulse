@@ -2,16 +2,26 @@
  * src/renderer/selectors.js
  *
  * 从原始 result 列表派生出按 section 分组的结果。
- * 用 computed signal 包裹：只有 results 变化时才会重算。
+ * 用 computed signal 包裹：只有依赖变化时才会重算。
  *
- * Phase 23: 加 filteredResults (search + tab 双重过滤) + tabCounts.
+ * v2 改进:
+ *   - 新增 per-app phase 相关选择器 (pendingCount, detectingCount, completedCount)
+ *   - checkedCount 改用 appPhases 计算 (O(n) 遍历 phase Map 而非 resultSignals)
+ *   - 不再读旧 checkStatus signal, 统一读 checkSession.phase
  */
 
 import { computed } from '@preact/signals';
 import * as category from '../config/category.js';
-import { results, resultSignals, searchQuery, activeFilter, activeCategory } from './store.js';
+import {
+  results,
+  resultSignals,
+  appPhases,
+  searchQuery,
+  activeFilter,
+  activeCategory,
+} from './store.js';
 
-// ─── 分组定义 (跟旧 renderer.js 的 SECTION_DEFS 保持一致) ─
+// ─── 分组定义 ──────────────────────────────────────
 export const SECTION_DEFS = [
   { key: 'update_available', label: '有待更新',   color: 'var(--accent-orange)', dotColor: '#ff9500' },
   { key: 'up_to_date',       label: '已是最新',   color: 'var(--accent-green)',  dotColor: '#34c759' },
@@ -23,10 +33,6 @@ export const SECTION_DEFS = [
 
 /**
  * 把单个 result 分到 section.key。
- * 沿用旧 renderer.js 的判定规则：
- *   - status=up_to_date 且 note=installed_newer → installed_newer
- *   - status=no_auto_check 且 note=incompatible → incompatible
- *   - 否则按 status 桶进；落不到已知桶 → no_auto_check
  */
 function pickSectionKey(r) {
   const note = r.note || '';
@@ -57,21 +63,17 @@ function buildSections(list) {
 }
 
 /**
- * computed signal: 订阅 results，重算时把所有 result 收集起来分组。
- * 注意：这里直接读 `results.value` (Map) —— 任何一次 applyProgress
- * 都会换一个新 Map 实例，因此这个 computed 会重算。
+ * computed signal: 按 section 分组的结果。
+ * 订阅 results Map (任何 applyProgress 都会换 Map 实例 → 触发重算)。
  *
- * 但 Section 渲染时只把 `section.items` (name 列表) 透传给 AppRow，
- * AppRow 自己从 resultSignals 取最新数据 —— 因此 Section 重渲染
- * 不会带动其它 row 重渲染。
+ * Section 渲染时只把 items (name[]) 透传给 AppRow,
+ * AppRow 自己从 resultSignals 取最新数据 → Section 重渲染不带动其它 row。
  */
 export const resultsBySection = computed(() => {
-  // 依赖 results Map
+  // 显式订阅 results Map
   // eslint-disable-next-line no-unused-expressions
   results.value;
 
-  // 收集所有已有 result (以 resultSignals 为真相源，因为 spec 写的是用 Map，
-  // 但 per-row signal 才能让单 row 订阅。我们两套都更新，保持一致)。
   const all = [];
   for (const [name, sig] of resultSignals) {
     if (sig.value) all.push(sig.value);
@@ -79,7 +81,8 @@ export const resultsBySection = computed(() => {
   return buildSections(all);
 });
 
-// ─── 派生数据选择器 ──────────────────────────────────────
+// ─── 摘要与计数 ──────────────────────────────────────
+
 /**
  * 摘要行: "3 个有更新 · 5 个已是最新 · 1 个需关注"
  */
@@ -109,33 +112,52 @@ export const upgradableCount = computed(() => {
   return n;
 });
 
-/** 是否还有 app 在 check (驱动 skeleton / 按钮 disabled) */
+// ─── Per-app phase 计数 (v2 新增) ──────────────────────
+
+/**
+ * 已完成的检测数 (phase = 'done' 或 'error')。
+ * 用 appPhases Map 计算, 比遍历 resultSignals 更准确
+ * (results 只有最终结果, phases 包含检测中的状态)。
+ */
 export const checkedCount = computed(() => {
   let n = 0;
-  for (const sig of resultSignals.values()) {
-    if (sig.value) n++;
+  for (const phase of appPhases.value.values()) {
+    if (phase === 'done' || phase === 'error') n++;
   }
   return n;
 });
 
-// ─── Phase 23: Search + Filter 派生 ───────────────────────
+/** 正在检测中的 app 数量 (phase = 'detecting', 显示 spinner) */
+export const detectingCount = computed(() => {
+  let n = 0;
+  for (const phase of appPhases.value.values()) {
+    if (phase === 'detecting') n++;
+  }
+  return n;
+});
+
+/** 等待检测的 app 数量 (phase = 'pending') */
+export const pendingCount = computed(() => {
+  let n = 0;
+  for (const phase of appPhases.value.values()) {
+    if (phase === 'pending') n++;
+  }
+  return n;
+});
+
+/** 总 app 数 (phase Map 的 size, 或 appOrder.length) */
+export const totalAppCount = computed(() => appPhases.value.size);
+
+// ─── Search + Filter 派生 ───────────────────────────
 
 /**
- * 纯函数: 判断 result 是否通过 tab + search 过滤.
- * 抽出来便于单元测试, selectors 内部也直接用.
- *
- * @param {object} r           result
- * @param {string} tab         'all' | 'update' | 'latest' | 'error'
- * @param {string} q           search query (已经 lowercase + trim)
- * @returns {boolean}
+ * 纯函数: 判断 result 是否通过 tab + search 过滤。
  */
 export function matchesFilter(r, tab, q) {
   if (!r) return false;
-  // tab filter
   if (tab === 'update' && !r.has_update) return false;
   if (tab === 'latest' && (r.has_update || r.status !== 'up_to_date')) return false;
   if (tab === 'error' && r.status !== 'error') return false;
-  // search filter (substring, case-insensitive, match name + bundle)
   if (q) {
     const nameMatch = r.name && r.name.toLowerCase().includes(q);
     const bundleMatch = r.bundle && r.bundle.toLowerCase().includes(q);
@@ -146,11 +168,6 @@ export function matchesFilter(r, tab, q) {
 
 /**
  * computed: filteredResults — 应用 search + tab + category 过滤的 Map<name, result>.
- * 订阅 results + searchQuery + activeFilter + activeCategory. 任一变化 → 重算.
- * Returns Map 跟 results 形状一致, 方便 ResultsView 不用改.
- *
- * Phase A: 注入 activeCategory 过滤 — 'all' 不过滤, 其它值只留
- *          category.getCategory(name) === activeCategory 的 app.
  */
 export const filteredResults = computed(() => {
   const tab = activeFilter.value;
@@ -166,8 +183,7 @@ export const filteredResults = computed(() => {
 });
 
 /**
- * computed: tabCounts — 4 个 tab 的 count, 用全局 results 算 (不受自己 filter 影响).
- *   { all, update, latest, error }
+ * computed: tabCounts — 4 个 tab 的 count。
  */
 export const tabCounts = computed(() => {
   const counts = { all: 0, update: 0, latest: 0, error: 0 };
@@ -182,12 +198,10 @@ export const tabCounts = computed(() => {
 });
 
 /**
- * computed: filteredResultsBySection — 跟 resultsBySection 同结构, 但只含
- *   过滤后的 result. 订阅 filteredResults + searchQuery + activeFilter.
- *   ResultsView 用它替代 resultsBySection.
+ * computed: filteredResultsBySection — 过滤后的分组结果。
  */
 export const filteredResultsBySection = computed(() => {
-  // 显式订阅, 触发重算
+  // 显式订阅
   // eslint-disable-next-line no-unused-expressions
   filteredResults.value;
   return buildSections(Array.from(filteredResults.value.values()));

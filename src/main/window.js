@@ -31,10 +31,11 @@ function createWindowManager(opts = {}) {
 
   function createWindow() {
     mainWindow = new BrowserWindow({
-      width: 780,
-      height: 620,
-      minWidth: 560,
-      minHeight: 400,
+      // Phase B7e: 默认加大 (1080x780), 给 digest drawer (460px) + main 列表留足空间.
+      width: 1080,
+      height: 780,
+      minWidth: 720,
+      minHeight: 540,
       show: false,
       // Phase 28: 显式设 title, 防止 Electron 默认 "Electron" / 老 install 残留
       title: 'Pulse',
@@ -43,7 +44,9 @@ function createWindowManager(opts = {}) {
       visualEffectState: 'active',
       transparent: true,
       resizable: true,
-      skipTaskbar: true,
+      // Phase B7e: 让 Pulse 出现在 Dock + Cmd+Tab 列表 (之前 skipTaskbar=true 隐藏).
+      // 用户明确反馈想用 Cmd+Tab 切换.
+      skipTaskbar: false,
       webPreferences: {
         preload: preloadPath,
         contextIsolation: true,
@@ -57,6 +60,26 @@ function createWindowManager(opts = {}) {
     mainWindow.webContents.on('did-finish-load', () => {
       try { mainWindow.setTitle('Pulse'); } catch { /* noop */ }
     });
+
+    // Phase B7e.4: 抓 renderer console + crash, 写到 mainLog 方便排查.
+    // 否则 renderer 静默挂掉时用户只看到空白屏, 没线索.
+    try {
+      const { mainLog } = require('./log');
+      mainWindow.webContents.on('console-message', (event) => {
+        try {
+          const msg = event && event.message ? String(event.message) : '';
+          if (msg) mainLog.warn(`[renderer:console] ${msg}`);
+        } catch { /* noop */ }
+      });
+      mainWindow.webContents.on('render-process-gone', (_event, details) => {
+        try {
+          mainLog.warn(`[renderer:gone] reason=${details && details.reason} exitCode=${details && details.exitCode}`);
+        } catch { /* noop */ }
+      });
+      mainWindow.webContents.on('did-fail-load', (_event, code, desc, url) => {
+        try { mainLog.warn(`[renderer:fail-load] code=${code} desc=${desc} url=${url}`); } catch { /* noop */ }
+      });
+    } catch { /* noop */ }
 
     mainWindow.once('ready-to-show', () => {
       if (config.check_on_launch) {

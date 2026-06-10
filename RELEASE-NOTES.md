@@ -2,6 +2,62 @@
 
 ---
 
+## v2.6.7 (AI Digest Generation Jobs) — 2026-06-10
+
+### AI 总结生成机制重做
+
+- 新增 `daily_digest_v2`: 按天保存完整 session catalog、append-only generation jobs、active generation。
+- 新增 catalog / generation IPC 与 renderer store 信号，选择区始终来自完整 catalog，不再被生成结果覆盖。
+- Drawer 改为“先选择 session，再生成总结”，结果区按本次 generation 分隔展示。
+- 总结 prompt 固定中文结构: `用户诉求` / `处理结果`，避免英文和散乱格式混入。
+- 保留 legacy `daily_digests` / rerun 兜底，降低迁移风险。
+
+---
+
+## v2.6.6 (Phase B7g: Drawer-Integrated Config + MiniMax2026 defaults) —2026-06-09
+
+### MiniMax 默认切到2026 最新（官方）
+
+- **Base URL**: `https://api.minimaxi.com/v1`（新版域名）
+- **默认 model**: `MiniMax-M3`（用户指定2026 最新，中文优化）
+- provider-cloud.js 的 `_joinUrl` 自动去重 baseUrl末尾的 `/v1`（避免 `.../v1/v1/chat/completions`双重）
+
+### Drawer-Integrated Config (B7g) — 不再有独立 Settings modal
+
+之前: 点 日历按钮 -> 显示"未配置"卡 ->引导用户去独立 modal启用 ->配完回来。
+现在: **点 ↻刷新按钮** -> 如果还没配齐 -> **自动在 drawer 内弹配置表单**;配完直接跑。
+
+**交互流**（你说的）:
+1. 点 日历 ->打开 drawer,看到"未配置"提示 + 一句 hint
+2. 点 ↻刷新按钮 -> **drawer原地切到 config view**（provider/model/baseUrl/api-key 表单）, 不跳独立 modal
+3.填好 key -> 点"保存配置" -> 自动跑 rerun 生成昨日总结
+4. 已配用户点 ↻ ->正常 rerun流程, 不弹 config
+
+**Drawer header 新增 ⚙按钮**（在 ↻旁边）— 已配用户也能直接调出配置表单改 model / baseUrl /换 key, 不需要走老的 Settings路径。
+
+**不再有显式 "启用" toggle**（B7f沿用）:
+- 有 provider + 有 key -> 自动 enabled（跟 cfg派生）
+- 无 provider / 无 key -> 不显示"启用"复选框 — 用户填表单就启用
+-旧 AISettingsModal组件保留但 App.jsx 不挂载（legacy兜底,任何人误调 openAISettings也不会崩）
+
+### Files
+
+- `src/renderer/store.js` — `digestConfigMode` signal（新）+ `needsConfig()` helper（新）+ `rerunDigest()` 自动弹 config
+- `src/renderer/components/AISettingsModal.jsx` —拆出 `<AIConfigForm />`共享组件（drawer + modal 共用）
+- `src/renderer/components/AIDigestBanner.jsx` — drawer header 加 ⚙按钮, body 根据 `digestConfigMode`切 view
+- `src/renderer/App.jsx` —移除 `<AISettingsModal />`挂载 + `onOpenSettings`接线
+- `src/ai-sessions/provider-cloud.js` — MiniMax baseUrl 更新到 `minimaxi.com/v1`
+- `tests/renderer/ai-digest-banner.test.jsx` — 重写:测新 AIDigestButton + AIDigestDrawer +33 个 case（含 B7g config mode）
+- `tests/renderer/ai-settings-modal.test.jsx` — 重写:测 `<AIConfigForm />`（21 case, 含 compact mode）
+- `tests/ai-sessions/provider-cloud.test.js` —修 baseUrl 去重逻辑期望
+
+###验证
+
+- `npm test` 全绿: **995 passed |4 skipped (999)**,62 test files
+- `npm run build:renderer` 通过:281.9kb bundle
+
+---
+
 ## v2.5.1 (Phase A3 + B 排查 + Step B LLM classify) — 2026-06-09
 
 ### Fix: 应用分类 + LLM classify 双管齐下

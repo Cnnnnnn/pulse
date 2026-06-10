@@ -13,7 +13,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { LLMSummarizer } from '../../src/ai-sessions/summarizer.js';
-import { buildDigestPrompt, formatSessionBlock, MAX_SESSION_MESSAGES, MAX_MESSAGE_CONTENT_CHARS } from '../../src/ai-sessions/prompts.js';
+import { buildDigestPrompt, buildPerSessionPrompt, formatSessionBlock, MAX_SESSION_MESSAGES, MAX_MESSAGE_CONTENT_CHARS } from '../../src/ai-sessions/prompts.js';
 
 function makeImpl(overrides = {}) {
   return {
@@ -157,6 +157,100 @@ describe('prompts.buildDigestPrompt', () => {
       dateKey: '2026-06-07',
     });
     expect(messages[1].content).toContain(`truncated to ${MAX_SESSION_MESSAGES}`);
+  });
+
+  // ── Phase B5b (per-session digest): system prompt 必须强制逐 session 输出 ──
+  it('zh-CN system prompt 含 "### Session" + "2-3 句" + 禁合并主题', () => {
+    const { messages } = buildDigestPrompt({ sessions: [], dateKey: '2026-06-07' });
+    const sys = messages[0].content;
+    expect(sys).toContain('### Session');
+    expect(sys).toContain('用户诉求');
+    expect(sys).toContain('处理结果');
+    expect(sys).toContain('保持每个 session 独立');
+    expect(sys).toContain('简体中文');
+  });
+
+  it('en-US system prompt 含 "### Session" + "2-3 sentence" + keep-order 指令', () => {
+    const { messages } = buildDigestPrompt({ sessions: [], dateKey: '2026-06-07', locale: 'en-US' });
+    const sys = messages[0].content;
+    expect(sys).toContain('### Session');
+    expect(sys).toMatch(/2-3\s*sentence/i);
+    expect(sys).toContain('input order');
+  });
+
+  it('user prompt 含 N 个 session 的 id, 顺序保留', () => {
+    const sessions = [
+      { id: 's-alpha', messages: [{ role: 'user', content: 'first', ts: 1 }] },
+      { id: 's-beta',  messages: [{ role: 'user', content: 'second', ts: 2 }] },
+      { id: 's-gamma', messages: [{ role: 'user', content: 'third', ts: 3 }] },
+    ];
+    const { messages } = buildDigestPrompt({ sessions, dateKey: '2026-06-07' });
+    const user = messages[1].content;
+    expect(user).toContain('Session 总数: 3');
+    // 按出现顺序: alpha 在 beta 之前, beta 在 gamma 之前
+    const a = user.indexOf('s-alpha');
+    const b = user.indexOf('s-beta');
+    const g = user.indexOf('s-gamma');
+    expect(a).toBeGreaterThan(-1);
+    expect(b).toBeGreaterThan(a);
+    expect(g).toBeGreaterThan(b);
+  });
+});
+
+describe('prompts.buildPerSessionPrompt — Phase B5b (single-session)', () => {
+  it('zh-CN system 强制输出 "### Session <N>:" + 固定两行字段, 禁写客套话', () => {
+    const { messages } = buildPerSessionPrompt({
+      session: { id: 's1', messages: [{ role: 'user', content: 'hi', ts: 1 }] },
+      index: 0,
+      locale: 'zh-CN',
+    });
+    const sys = messages[0].content;
+    expect(sys).toContain('### Session');
+    expect(sys).toContain('用户诉求');
+    expect(sys).toContain('处理结果');
+    expect(sys).toContain('简体中文');
+    expect(sys).toMatch(/不要客套话/);
+  });
+
+  it('en-US system 强制 "### Session <N>:" + 2-3 sentence', () => {
+    const { messages } = buildPerSessionPrompt({
+      session: { id: 's1', messages: [] },
+      index: 0,
+      locale: 'en-US',
+    });
+    const sys = messages[0].content;
+    expect(sys).toContain('### Session');
+    expect(sys).toMatch(/2-3\s*sentence/i);
+  });
+
+  it('user 只含 1 个 session 的 messages (不含 "Session 总数")', () => {
+    const { messages } = buildPerSessionPrompt({
+      session: {
+        id: 's-only',
+        startedAt: Date.UTC(2026, 5, 7, 12, 0, 0),  // 2026-06-07, 让 user prompt 含真日期
+        messages: [{ role: 'user', content: 'hello', ts: 1 }],
+      },
+      index: 0,
+      locale: 'zh-CN',
+    });
+    const user = messages[1].content;
+    // 不能含 batch prompt 的 "Session 总数" 字段
+    expect(user).not.toContain('Session 总数');
+    // 应含 session id (formatSessionBlock 输出)
+    expect(user).toContain('s-only');
+    // 含 started 时间 (从 startedAt 推日期, ISO 取前 10)
+    expect(user).toMatch(/日期:\s*2026-06-07/);
+  });
+
+  it('meta 含 locale / sessionId / index', () => {
+    const { meta } = buildPerSessionPrompt({
+      session: { id: 's-meta', messages: [] },
+      index: 7,
+      locale: 'zh-CN',
+    });
+    expect(meta.locale).toBe('zh-CN');
+    expect(meta.sessionId).toBe('s-meta');
+    expect(meta.index).toBe(7);
   });
 });
 

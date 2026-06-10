@@ -1,258 +1,238 @@
 /**
  * tests/ai-sessions/wiring.test.js
  *
- * Phase B6b.5 (AI Sessions Daily Digest): buildDailyDigestRunner 测试.
+ * 重做版 buildTaskSummaryEngine 测试.
  *
- *覆盖:
- * - 默认 cfg (ollama)走 OllamaSummarizer
- * - cfg.provider=openai/anthropic/deepseek/minimax走 CloudSummarizer
- * - apiKey拿不到 → fallback stub summarizer (healthcheck ok:false)
- * - cfg.provider 不支持 → fallback 'ollama'
- * - runtimeOverride优先于 cfg (B6c Settings modal改的)
- * - mergeAISessionsConfig各种 merge形态
+ * 覆盖:
+ *   - 默认 cfg → fallback minimax
+ *   - cfg.provider=deepseek/minimax 走 CloudSummarizer
+ *   - apiKey 拿不到 → stub summarizer
+ *   - model 缺失 → stub summarizer
+ *   - runtimeOverride 优先于 cfg
+ *   - 返 { engine, summarizer, detectors, storage, providerId, enabled }
+ *   - mergeAISessionsConfig 各种形态
  */
 
 import { describe, it, expect, vi } from 'vitest';
 import {
- buildDailyDigestRunner,
- mergeAISessionsConfig,
- SUPPORTED_PROVIDERS,
+  buildTaskSummaryEngine,
+  mergeAISessionsConfig,
+  SUPPORTED_PROVIDERS,
 } from '../../src/ai-sessions/wiring.js';
 
-function makeFakeOllama() {
- return { healthcheck: vi.fn(), summarize: vi.fn() };
-}
-
 function makeFakeCloud() {
- return { healthcheck: vi.fn(), summarize: vi.fn() };
+  return { healthcheck: vi.fn(), summarize: vi.fn() };
 }
 
-describe('SUPPORTED_PROVIDERS', () => {
- it('包含 ollama +4 cloud providers', () => {
- expect(SUPPORTED_PROVIDERS).toEqual(expect.arrayContaining(['ollama', 'openai', 'anthropic', 'deepseek', 'minimax']));
- expect(SUPPORTED_PROVIDERS).toHaveLength(5);
- });
+describe('SUPPORTED_PROVIDERS — only cloud', () => {
+  it('只含 deepseek + minimax', () => {
+    expect(SUPPORTED_PROVIDERS).toEqual(['deepseek', 'minimax']);
+  });
+
+  it('ollama / openai / anthropic 不再支持', () => {
+    expect(SUPPORTED_PROVIDERS).not.toContain('ollama');
+    expect(SUPPORTED_PROVIDERS).not.toContain('openai');
+    expect(SUPPORTED_PROVIDERS).not.toContain('anthropic');
+  });
 });
 
-describe('buildDailyDigestRunner — ollama路由', () => {
- it('cfg.provider=ollama → impl 是 OllamaSummarizer instance', () => {
- const fake = makeFakeOllama();
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'ollama', ollama: { host: 'http://x:1234', model: 'qwen3:7b' } },
- summarizerImpl: fake,
- });
- expect(w.providerId).toBe('ollama');
- expect(w.summarizer.provider).toBe('ollama');
- expect(w.summarizer.model).toBe('qwen3:7b');
- expect(w.summarizer.config.host).toBe('http://x:1234');
- });
+describe('buildTaskSummaryEngine — cloud 路由', () => {
+  for (const providerId of ['deepseek', 'minimax']) {
+    it(`${providerId} + 有 apiKey + 有 model → CloudSummarizer + apiKey 注入`, () => {
+      const fake = makeFakeCloud();
+      const w = buildTaskSummaryEngine({
+        config: {
+          enabled: true,
+          provider: providerId,
+          cloud: { providerId, model: `${providerId}-m` },
+        },
+        summarizerImpl: fake,
+        resolveApiKey: vi.fn(() => 'sk-test-key'),
+      });
+      expect(w.providerId).toBe(providerId);
+      expect(w.summarizer.provider).toBe(providerId);
+      expect(w.summarizer.model).toBe(`${providerId}-m`);
+      expect(w.summarizer.config.providerId).toBe(providerId);
+      expect(w.summarizer.config.apiKey).toBe('sk-test-key');
+    });
+  }
 
- it('cfg.provider缺省 → fallback ollama + 默认 model=qwen3.5:9b', () => {
- const fake = makeFakeOllama();
- const w = buildDailyDigestRunner({
- config: { enabled: true },
- summarizerImpl: fake,
- });
- expect(w.providerId).toBe('ollama');
- expect(w.summarizer.model).toBe('qwen3.5:9b');
- expect(w.summarizer.config.host).toBe('http://localhost:11434');
- });
+  it('deepseek + 没 apiKey → stub summarizer (healthcheck ok:false)', async () => {
+    const w = buildTaskSummaryEngine({
+      config: { enabled: true, provider: 'deepseek', cloud: { providerId: 'deepseek', model: 'deepseek-chat' } },
+      resolveApiKey: vi.fn(() => null),
+    });
+    expect(w.providerId).toBe('deepseek');
+    const h = await w.summarizer.impl.healthcheck({});
+    expect(h.ok).toBe(false);
+    expect(h.error).toMatch(/api key not found/);
+    await expect(w.summarizer.impl.summarize({})).rejects.toThrow(/no api key/);
+  });
+
+  it('minimax + 没 model → stub summarizer', async () => {
+    const w = buildTaskSummaryEngine({
+      config: { enabled: true, provider: 'minimax', cloud: { providerId: 'minimax' } },
+      resolveApiKey: vi.fn(() => 'sk-minimax'),
+    });
+    expect(w.providerId).toBe('minimax');
+    const h = await w.summarizer.impl.healthcheck({});
+    expect(h.ok).toBe(false);
+    expect(h.error).toMatch(/model not configured/);
+  });
+
+  it('cfg.provider 不支持 (e.g. "ollama" 老 state 残留, "openai", "gemini") → fallback minimax', () => {
+    for (const p of ['ollama', 'openai', 'gemini', undefined]) {
+      const fake = makeFakeCloud();
+      const w = buildTaskSummaryEngine({
+        config: { enabled: true, provider: p },
+        summarizerImpl: fake,
+      });
+      expect(w.providerId).toBe('minimax');
+      expect(w.summarizer.provider).toBe('minimax');
+    }
+  });
 });
 
-describe('buildDailyDigestRunner — cloud路由', () => {
- for (const providerId of ['openai', 'anthropic', 'deepseek', 'minimax']) {
- it(`${providerId} + 有 apiKey + 有 model → CloudSummarizer + apiKey注入`, () => {
- const fake = makeFakeCloud();
- const w = buildDailyDigestRunner({
- config: {
- enabled: true,
- provider: providerId,
- cloud: { providerId, model: `${providerId}-m` },
- },
- summarizerImpl: fake,
- resolveApiKey: vi.fn(() => 'sk-test-key'),
- });
- expect(w.providerId).toBe(providerId);
- expect(w.summarizer.provider).toBe(providerId);
- expect(w.summarizer.model).toBe(`${providerId}-m`);
- expect(w.summarizer.config.providerId).toBe(providerId);
- expect(w.summarizer.config.apiKey).toBe('sk-test-key');
- });
- }
+describe('buildTaskSummaryEngine — runtimeOverride (Settings)', () => {
+  it('runtimeOverride.enabled=true + provider=minimax → 走 minimax 路由', () => {
+    const fake = makeFakeCloud();
+    const w = buildTaskSummaryEngine({
+      config: { enabled: false, provider: 'deepseek' },
+      runtimeOverride: { enabled: true, provider: 'minimax', cloud: { providerId: 'minimax', model: 'm-1' } },
+      summarizerImpl: fake,
+      resolveApiKey: vi.fn(() => 'sk-m'),
+    });
+    expect(w.providerId).toBe('minimax');
+    expect(w.summarizer.provider).toBe('minimax');
+    expect(w.summarizer.config.apiKey).toBe('sk-m');
+  });
 
- it('openai + 没 apiKey → stub summarizer (healthcheck永远 ok:false)', async () => {
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'openai', cloud: { providerId: 'openai', model: 'gpt-4o-mini' } },
- resolveApiKey: vi.fn(() => null),
- });
- expect(w.providerId).toBe('openai');
- const h = await w.summarizer.impl.healthcheck({});
- expect(h.ok).toBe(false);
- expect(h.error).toMatch(/api key not found/);
- await expect(w.summarizer.impl.summarize({})).rejects.toThrow(/no api key/);
- });
+  it('runtimeOverride.cloud.model 优先 cfg.cloud.model', () => {
+    const fake = makeFakeCloud();
+    const w = buildTaskSummaryEngine({
+      config: { enabled: true, provider: 'deepseek', cloud: { providerId: 'deepseek', model: 'cfg-model' } },
+      runtimeOverride: { provider: 'deepseek', cloud: { model: 'override-model' } },
+      summarizerImpl: fake,
+      resolveApiKey: vi.fn(() => 'sk-d'),
+    });
+    expect(w.summarizer.model).toBe('override-model');
+  });
 
- it('anthropic + 没 model → stub summarizer', async () => {
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'anthropic', cloud: { providerId: 'anthropic' } },
- resolveApiKey: vi.fn(() => 'sk-ant'),
- });
- expect(w.providerId).toBe('anthropic');
- const h = await w.summarizer.impl.healthcheck({});
- expect(h.ok).toBe(false);
- expect(h.error).toMatch(/model not configured/);
- });
-
- it('cfg.providerId 不支持 (e.g. "gemini") → fallback ollama', () => {
- const fake = makeFakeOllama();
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'gemini' },
- summarizerImpl: fake,
- });
- expect(w.providerId).toBe('ollama');
- expect(w.summarizer.provider).toBe('ollama');
- });
+  it('runtimeOverride=null + cfg 也没 → fallback minimax + stub', () => {
+    const fake = makeFakeCloud();
+    const w = buildTaskSummaryEngine({
+      config: null,
+      runtimeOverride: null,
+      summarizerImpl: fake,
+      resolveApiKey: vi.fn(() => null),
+    });
+    expect(w.providerId).toBe('minimax');
+    expect(w.summarizer.provider).toBe('minimax');
+    expect(w.summarizer.model).toBe('stub');
+  });
 });
 
-describe('buildDailyDigestRunner — runtimeOverride (B6c Settings)', () => {
- it('runtimeOverride.enabled=true 即使 cfg.enabled=false →仍走 ollama路由', () => {
- const fake = makeFakeOllama();
- const w = buildDailyDigestRunner({
- config: { enabled: false, provider: 'ollama' },
- runtimeOverride: { enabled: true, provider: 'ollama', ollama: { model: 'qwen3.5:9b' } },
- summarizerImpl: fake,
- });
- expect(w.providerId).toBe('ollama');
- expect(w.summarizer.provider).toBe('ollama');
- });
+describe('buildTaskSummaryEngine — return shape', () => {
+  it('返 { engine, summarizer, detectors, storage, providerId, enabled }', () => {
+    const fake = makeFakeCloud();
+    const w = buildTaskSummaryEngine({
+      config: { enabled: true, provider: 'deepseek', cloud: { providerId: 'deepseek', model: 'm' } },
+      summarizerImpl: fake,
+      resolveApiKey: vi.fn(() => 'sk'),
+    });
+    expect(typeof w.engine.listTasks).toBe('function');
+    expect(typeof w.engine.summarizeTasks).toBe('function');
+    expect(w).toEqual(expect.objectContaining({
+      summarizer: expect.any(Object),
+      detectors: expect.any(Array),
+      storage: expect.any(Object),
+      providerId: 'deepseek',
+      enabled: true,
+    }));
+    // 默认 detectors: cursor + codex + minimax-code
+    expect(w.detectors.map((d) => d.appName)).toEqual(['cursor', 'codex', 'minimax-code']);
+  });
 
- it('runtimeOverride.provider=openai + cfg.provider=ollama → openai生效', () => {
- const fake = makeFakeCloud();
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'ollama' },
- runtimeOverride: { enabled: true, provider: 'openai', cloud: { providerId: 'openai', model: 'gpt-4o-mini' } },
- summarizerImpl: fake,
- resolveApiKey: vi.fn(() => 'sk-openai'),
- });
- expect(w.providerId).toBe('openai');
- expect(w.summarizer.provider).toBe('openai');
- });
+  it('extraDetectors 注入替代默认 codex/minimax', () => {
+    const fake = makeFakeCloud();
+    const stubImpl = { isInstalled: () => false, listSessions: async () => [], readSession: async () => ({}) };
+    const w = buildTaskSummaryEngine({
+      config: { enabled: true, provider: 'minimax', cloud: { providerId: 'minimax', model: 'm' } },
+      summarizerImpl: fake,
+      resolveApiKey: vi.fn(() => 'sk'),
+      extraDetectors: [{ appName: 'fake-app', impl: stubImpl }],
+    });
+    expect(w.detectors.map((d) => d.appName)).toEqual(['cursor', 'fake-app']);
+  });
 
- it('runtimeOverride.ollama.model优先 cfg.ollama.model', () => {
- const fake = makeFakeOllama();
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'ollama', ollama: { model: 'cfg-model' } },
- runtimeOverride: { provider: 'ollama', ollama: { model: 'override-model' } },
- summarizerImpl: fake,
- });
- expect(w.summarizer.model).toBe('override-model');
- });
-});
-
-describe('buildDailyDigestRunner — return shape', () => {
- it('返 { runner, summarizer, detectors, storage, start, stop, providerId }', () => {
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'ollama' },
- summarizerImpl: makeFakeOllama(),
- });
- expect(w).toEqual(expect.objectContaining({
- runner: expect.any(Object),
- summarizer: expect.any(Object),
- detectors: expect.any(Array),
- storage: expect.any(Object),
- providerId: 'ollama',
- }));
- expect(typeof w.start).toBe('function');
- expect(typeof w.stop).toBe('function');
- });
-
- it('start + stop idempotent + 清 interval', () => {
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'ollama' },
- summarizerImpl: makeFakeOllama(),
- });
- w.start(60_000);
- w.start(60_000); //二次 idempotent,不抛
- w.stop();
- w.stop(); //二次 idempotent
- });
-
- it('storage 是 state-store wrapper,saveDigest / hasDigest / loadDigests 可调', () => {
- const w = buildDailyDigestRunner({
- config: { enabled: true, provider: 'ollama' },
- summarizerImpl: makeFakeOllama(),
- statePath: '/tmp/nonexistent-state.json',
- });
- expect(typeof w.storage.saveDigest).toBe('function');
- expect(typeof w.storage.hasDigest).toBe('function');
- expect(typeof w.storage.loadDigests).toBe('function');
- // 不存在 path → loadDigests返 {} (graceful)
- expect(w.storage.loadDigests()).toEqual({});
- });
+  it('storage 是 state-store wrapper: loadTaskSummaries / saveTaskSummary 可调', () => {
+    const fake = makeFakeCloud();
+    const w = buildTaskSummaryEngine({
+      config: { enabled: true, provider: 'minimax', cloud: { providerId: 'minimax', model: 'm' } },
+      summarizerImpl: fake,
+      resolveApiKey: vi.fn(() => 'sk'),
+      statePath: '/tmp/nonexistent-state.json',
+    });
+    expect(typeof w.storage.loadTaskSummaries).toBe('function');
+    expect(typeof w.storage.saveTaskSummary).toBe('function');
+    // 不存在 path → loadTaskSummaries 返 {} (graceful)
+    expect(w.storage.loadTaskSummaries()).toEqual({});
+  });
 });
 
 describe('mergeAISessionsConfig', () => {
- it('override=null/undefined →返 cfg原样', () => {
- const cfg = { enabled: true, provider: 'ollama', ollama: { model: 'qwen3.5:9b' } };
- expect(mergeAISessionsConfig(cfg, null)).toEqual(cfg);
- expect(mergeAISessionsConfig(cfg, undefined)).toEqual(cfg);
- });
+  it('override=null/undefined → 返 cfg 原样', () => {
+    const cfg = { enabled: true, provider: 'deepseek', cloud: { model: 'm' } };
+    expect(mergeAISessionsConfig(cfg, null)).toEqual(cfg);
+    expect(mergeAISessionsConfig(cfg, undefined)).toEqual(cfg);
+  });
 
- it('override.enabled覆盖 cfg.enabled', () => {
- expect(mergeAISessionsConfig(
- { enabled: false, provider: 'ollama' },
- { enabled: true }
- ).enabled).toBe(true);
- });
+  it('override.enabled 覆盖 cfg.enabled', () => {
+    expect(mergeAISessionsConfig(
+      { enabled: false, provider: 'deepseek' },
+      { enabled: true },
+    ).enabled).toBe(true);
+  });
 
- it('override.provider覆盖 cfg.provider', () => {
- expect(mergeAISessionsConfig(
- { enabled: true, provider: 'ollama' },
- { provider: 'openai' }
- ).provider).toBe('openai');
- });
+  it('override.provider 覆盖 cfg.provider', () => {
+    expect(mergeAISessionsConfig(
+      { enabled: true, provider: 'deepseek' },
+      { provider: 'minimax' },
+    ).provider).toBe('minimax');
+  });
 
- it('override.ollama跟 cfg.ollama shallow-merge', () => {
- const out = mergeAISessionsConfig(
- { enabled: true, provider: 'ollama', ollama: { host: 'http://h', model: 'm1' } },
- { provider: 'ollama', ollama: { model: 'm2' } }
- );
- expect(out.ollama).toEqual({ host: 'http://h', model: 'm2' });
- });
+  it('override.cloud 部分覆盖 (e.g. 加 baseUrl)', () => {
+    const out = mergeAISessionsConfig(
+      { enabled: true, provider: 'deepseek', cloud: { providerId: 'deepseek', model: 'deepseek-chat' } },
+      { provider: 'deepseek', cloud: { baseUrl: 'https://proxy.example.com' } },
+    );
+    expect(out.cloud).toEqual({
+      providerId: 'deepseek',
+      model: 'deepseek-chat',
+      baseUrl: 'https://proxy.example.com',
+    });
+  });
 
- it('override.cloud 部分覆盖 (e.g. 加 baseUrl)', () => {
- const out = mergeAISessionsConfig(
- { enabled: true, provider: 'openai', cloud: { providerId: 'openai', model: 'gpt-4o-mini' } },
- { provider: 'openai', cloud: { baseUrl: 'https://proxy.example.com' } }
- );
- expect(out.cloud).toEqual({
- providerId: 'openai',
- model: 'gpt-4o-mini',
- baseUrl: 'https://proxy.example.com',
- });
- });
+  it('override 非 boolean enabled 保持 cfg 原值', () => {
+    const out = mergeAISessionsConfig(
+      { enabled: true, provider: 'deepseek' },
+      { enabled: 'yes' },
+    );
+    expect(out.enabled).toBe(true);
+  });
 
- it('override 非 boolean enabled保持 cfg 原值', () => {
- const out = mergeAISessionsConfig(
- { enabled: true, provider: 'ollama' },
- { enabled: 'yes' }
- );
- expect(out.enabled).toBe(true);
- });
+  it('override 不是 object → 返 cfg 原样', () => {
+    const cfg = { enabled: true, provider: 'deepseek' };
+    expect(mergeAISessionsConfig(cfg, 'string')).toEqual(cfg);
+    expect(mergeAISessionsConfig(cfg, 123)).toEqual(cfg);
+  });
 
- it('override 不是 object →返 cfg 原样', () => {
- const cfg = { enabled: true, provider: 'ollama' };
- expect(mergeAISessionsConfig(cfg, 'string')).toEqual(cfg);
- expect(mergeAISessionsConfig(cfg,123)).toEqual(cfg);
- });
-
- it('cfg缺省 → 用 fallback defaults', () => {
- const out = mergeAISessionsConfig(null, null);
- expect(out).toEqual({
- enabled: false,
- provider: 'ollama',
- ollama: {},
- cloud: null,
- });
- });
+  it('cfg 缺省 → 用 fallback defaults (provider=minimax)', () => {
+    const out = mergeAISessionsConfig(null, null);
+    expect(out).toEqual({
+      enabled: false,
+      provider: 'minimax',
+      cloud: null,
+    });
+  });
 });

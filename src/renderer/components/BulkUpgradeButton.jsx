@@ -12,7 +12,7 @@
  *   running:      "Upgrading 3/7..."  primary, disabled, 显示进度
  */
 
-import { results, isMuted, mutedApps } from '../store.js';
+import { isMuted, mutedApps } from '../store.js';
 import { filteredResults } from '../selectors.js';
 import {
   openBulkUpgrade,

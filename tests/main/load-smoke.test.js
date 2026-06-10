@@ -69,15 +69,20 @@ describe('config module load smoke (Phase A1b regression)', () => {
   });
 });
 
-describe('ai-sessions module load smoke (Phase B1a regression)', () => {
-  // Phase B1a: src/ai-sessions/{detector,summarizer,digest,storage,prompts,index}.js
+describe('ai-sessions module load smoke (重做版)', () => {
+  // 重做版: digest.js → engine.js (TaskSummaryEngine).
   // 任何 syntax error / 缺依赖 都会被 vitest 抓到.
   const EXPECTED = [
     'detector.js',
     'summarizer.js',
-    'digest.js',
+    'engine.js',
     'storage.js',
     'prompts.js',
+    'wiring.js',
+    'cursor.js',
+    'codex.js',
+    'minimax-code.js',
+    'provider-cloud.js',
     'index.js',
   ];
   const AI_SESSIONS_DIR = new URL('../../src/ai-sessions/', import.meta.url).pathname;

@@ -38,12 +38,22 @@
 
 const DEFAULT_TIMEOUT_MS =120_000; //跟 ollama 一致
 
-// Provider路由表. baseUrl 是 "root", path总是 /v1/...
+// Provider 路由表. baseUrl 是 "root", path 总是 /v1/...
+// Phase B7e.3 (2026-06): 端点更新到 2026 最新.
+//   - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
+//     也支持 deepseek-reasoner = 思考模式 (用户可手动改 model 字段切换).
+//     Base URL 不变 (api.deepseek.com).
+//   - MiniMax: 用 M2.7 (mini-site 最新, OpenAI 兼容).
+//     Base URL 改成新版 minimaxi.com (旧 minimax.chat 也仍兼容, 但官方推荐新域名).
+//     path 仍是 /v1/chat/completions (OpenAI 兼容格式; /v1/text/chatcompletion_v2 是
+//     MiniMax 私有格式, 不走 OpenAI 解析路径, 这里不接).
 const PROVIDER_ENDPOINTS = {
- openai: { baseUrl: 'https://api.openai.com', protocol: 'openai', path: '/v1/chat/completions' },
- anthropic: { baseUrl: 'https://api.anthropic.com', protocol: 'anthropic', path: '/v1/messages' },
- deepseek: { baseUrl: 'https://api.deepseek.com', protocol: 'openai', path: '/v1/chat/completions' },
- minimax: { baseUrl: 'https://api.minimax.chat', protocol: 'openai', path: '/v1/chat/completions' },
+  openai: { baseUrl: 'https://api.openai.com', protocol: 'openai', path: '/v1/chat/completions' },
+  anthropic: { baseUrl: 'https://api.anthropic.com', protocol: 'anthropic', path: '/v1/messages' },
+  // DeepSeek: 官方推荐 deepseek-chat (= V3.1 非思考), 备 deepseek-reasoner
+  deepseek: { baseUrl: 'https://api.deepseek.com', protocol: 'openai', path: '/v1/chat/completions' },
+  // MiniMax: M3 (用户指定 2026 最新); minimaxi.com/v1 — _joinUrl 会剥 path /v1 避免重复.
+  minimax: { baseUrl: 'https://api.minimaxi.com/v1', protocol: 'openai', path: '/v1/chat/completions' },
 };
 
 const ANTHROPIC_VERSION = '2023-06-01';

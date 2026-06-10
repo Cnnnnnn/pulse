@@ -1,27 +1,43 @@
 /**
  * src/renderer/index.jsx
  *
- * 启动流程 (spec §7):
+ * 启动流程 (v2 — Session-based):
  *   1. DOMContentLoaded → bootstrap()
  *   2. getConfig() → apps.value = cfg.apps
- *   3. primeConfigCache(cfg)  (给 AppRow 点击打开 download_url 用)
- *   4. render(<App />, #app)   —— **立即 render，不等 check**
- *   5. api.onCheckProgress(applyProgress)
- *   6. api.onStartCheck(() => triggerCheck())
- *   7. window 'app-row:upgraded' → triggerCheck() 重检
- *   8. window 'app:open-config' → api.openUrl(config path)
- *   9. cfg.check_on_launch → triggerCheck()
+ *   3. primeConfigCache(cfg)
+ *   4. 加载 cached state → applyCachedResults (用户立即看到上次结果)
+ *   5. 加载 mutes / last-opened / active category / digest (并行)
+ *   6. 订阅主进程事件
+ *   7. render(<App />, #app) — 立即渲染，不等 check
+ *   8. cfg.check_on_launch → triggerCheck()
  *
- * 关键不变量：render 和 triggerCheck 完全解耦，不再 setTimeout 1s。
- * 旧 setTimeout(triggerCheck, 1000) 取消 (spec §6 "启动解耦")。
- *
- * Phase 22: Bulk Upgrade 走 BulkUpgradeButton + BulkUpgradeModal,
- *   旧的 upgradeAll (concurrency=2, brew only) 删掉, 替换为 modal 流.
+ * v2 改进:
+ *   - 并发守卫: _checking 标志防止 triggerCheck() 重复执行
+ *   - Session ID: 每次 check 生成唯一 ID, progress 事件带 ID 校验
+ *   - detecting 状态: 主进程推 'check-detecting' 事件时, app 进入 spinner 态
+ *   - auto-check 完成后自动刷新 last-opened 数据
  */
 
 import { render } from 'preact';
 import { App } from './App.jsx';
-import { apps, applyProgress, resetCheck, finishCheck, setError, loadMutes, loadLastOpened, loadActiveCategory, loadDailyDigest, subscribeDigestUpdates, subscribeBackfillProgress, subscribeAISessionsConfigUpdates, loadAISessionsConfig, lastOpenedApps } from './store.js';
+import {
+  apps,
+  applyProgress,
+  markAppDetecting,
+  startCheck,
+  finishCheck,
+  setError,
+  isCheckRunning,
+  checkSession,
+  loadMutes,
+  loadLastOpened,
+  loadActiveCategory,
+  loadAiTasks,
+  subscribeAiTaskUpdates,
+  subscribeAISessionsConfigUpdates,
+  loadAISessionsConfig,
+  lastOpenedApps,
+} from './store.js';
 import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
@@ -30,6 +46,52 @@ import { createAutoRecheck } from './auto-recheck.js';
 // Phase A1b: import 触发顶层 setData, 之后 store / selectors 调 category.* 都有数据
 import './category-init.js';
 
+// ─── 并发守卫 ──────────────────────────────────────────────
+let _checking = false;
+
+/**
+ * 触发一轮完整的更新检查。
+ *
+ * v2 改进:
+ *   - 并发守卫: 如果已有 check 在跑, 直接返回 (不中断、不双跑)
+ *   - Session ID: startCheck() 返回唯一 sessionId, 传给 applyProgress 做校验
+ *   - 检测中的 app 先进入 'detecting' 态 (spinner), 结果到后切 'done'/'error'
+ */
+async function triggerCheck() {
+  // 并发守卫: 防止手动点击 + 自动检查 + bulk upgrade recheck 同时触发
+  if (_checking) {
+    // eslint-disable-next-line no-console
+    console.log('[index] triggerCheck: already running, skipping');
+    return;
+  }
+  if (activeRecheck) activeRecheck.cancel();
+
+  _checking = true;
+
+  // 收集本轮要检测的 app 名称列表 (给 startCheck 初始化 phases)
+  const appNames = apps.value.map(a => a.name);
+  const sessionId = startCheck(appNames);
+
+  try {
+    await api.checkUpdates();
+
+    // 只有当前 session 没被新 check 替换时才 finish
+    if (checkSession.value.id === sessionId) {
+      finishCheck();
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('checkUpdates failed:', err);
+    if (checkSession.value.id === sessionId) {
+      setError(err && err.message || String(err));
+    }
+  } finally {
+    _checking = false;
+  }
+}
+
+// ─── Bootstrap ──────────────────────────────────────────────
+
 async function bootstrap() {
   // 1) 加载 config —— 即便失败也给空壳 UI
   let cfg = { apps: [], check_on_launch: true };
@@ -37,35 +99,37 @@ async function bootstrap() {
     cfg = await api.getConfig();
     cfg.apps = cfg.apps || [];
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('getConfig failed:', err);
   }
   apps.value = cfg.apps;
   primeConfigCache(cfg);
 
-  // 1.5) Phase 12: 加载 last-known state 缓存, 网络抽风时 UI 不空白
-  //       在 render 之前 apply, 用户进来就能看到上次的版本信息
+  // 2) 加载 last-known state 缓存, 网络抽风时 UI 不空白
   try {
     const cached = await api.getCachedState();
     if (cached && cached.apps) {
       const { applyCachedResults } = await import('./store.js');
       applyCachedResults(cached);
     }
-  } catch { /* 缓存加载失败不阻塞, 仍走正常 check 路径 */ }
+  } catch { /* 缓存加载失败不阻塞 */ }
 
-  // 1.6) Phase 27 + 29 + A + B5: 加载 mutes + last-opened + active_category + daily digest
+  // 3) 并行加载 mutes + last-opened + active_category
   try {
-    await Promise.allSettled([loadMutes(), loadLastOpened(), loadActiveCategory(), loadDailyDigest()]);
-  } catch { /* noop, 默认空 map / 'all' / null digest */ }
+    await Promise.allSettled([
+      loadMutes(),
+      loadLastOpened(),
+      loadActiveCategory(),
+    ]);
+  } catch { /* noop */ }
 
- //1.7) Phase B5:订阅主进程 ai-digest-updated事件, 重跑 /24h cron 完成时回写 signal
- subscribeDigestUpdates();
+  // 4) 订阅主进程事件 + 拉今日任务列表 (不调 LLM, 给 Header badge 用)
+  subscribeAiTaskUpdates();
+  subscribeAISessionsConfigUpdates();
+  loadAISessionsConfig().catch(() => {});
+  loadAiTasks().catch(() => {});
 
- //1.7.1) Phase B7a:订阅 ai-digest-progress事件 (backfill进度)
- subscribeBackfillProgress();
-
- //1.7.2) Phase B6c.2:订阅 ai-sessions-config-updated事件 +拉初始 config
- subscribeAISessionsConfigUpdates();
- loadAISessionsConfig().catch(() => {});
+  // last-opened 实时更新
   api.onLastOpenedUpdated((data) => {
     if (!data || !data.lastOpened) return;
     const next = new Map();
@@ -73,71 +137,71 @@ async function bootstrap() {
     lastOpenedApps.value = next;
   });
 
-  // 2) 立即 render
+  // 5) 立即 render
   const mount = document.getElementById('app') || document.body;
   render(<App onCheck={triggerCheck} />, mount);
 
-  // 3) 监听主进程事件
-  api.onCheckProgress(applyProgress);
+  // 6) 监听检测进度事件
+  //    applyProgress 已内置 sessionId 校验, 过期事件会被丢弃
+  api.onCheckProgress((result) => {
+    // 可选: 如果 result 带了 sessionId, applyProgress 内部会自动校验
+    applyProgress(result, result && result._sessionId);
+  });
+
+  // detecting 事件: app 开始检测, UI 显示 spinner (可选, 主进程推了就用)
+  if (typeof api.onCheckDetecting === 'function') {
+    api.onCheckDetecting((data) => {
+      if (data && data.name) {
+        markAppDetecting(data.name, data._sessionId);
+      }
+    });
+  }
+
   api.onStartCheck(() => triggerCheck());
-  // Phase 16: 后台静默 check 完成时, 进度已经通过 worker postMessage 走 applyProgress 了.
-  // 这里再调一次 finishCheck() 把 checkStatus 切到 'done' (后台不发 check-started, 也不会有
-  // 任何手动 UI 状态在 'running' — 但 ensure status 不卡 'running' 万一)
+
+  // 后台自动 check 完成时: finish session + 刷新 last-opened
   api.onAutoCheckFinished(({ count, ts }) => {
-    finishCheck();
+    // 如果当前没有手动 check 在跑, 直接标记 done
+    if (!isCheckRunning()) {
+      finishCheck();
+    }
+    // 刷新 last-opened 数据
+    import('./store.js').then(({ refreshLastOpened }) => {
+      refreshLastOpened().catch(() => {});
+    });
+    // eslint-disable-next-line no-console
     console.log(`[auto-check] ${count} apps refreshed at ${new Date(ts).toLocaleString()}`);
   });
 
-  // Phase 22: Bulk Upgrade 事件订阅 — modal 状态在 store-bulk-upgrade.js
+  // Bulk Upgrade 事件
   api.onBulkUpgradeProgress(applyBulkUpgradeProgress);
-  // Phase 24: bulk upgrade done → 2s 后自动重检 (修 "升级完还显示有更新" UX bug)
-  // 2s 缓冲让 brew cask install / sparkle .zip 解压有时间完成
-  // 用户在 2s 内手点 "检查更新" → triggerCheck 会取消 pending recheck, 防双跑
   activeRecheck = createAutoRecheck({ triggerCheck });
   api.onBulkUpgradeDone((summary) => {
     applyBulkUpgradeDone(summary);
     activeRecheck.schedule();
   });
 
-  // 4) AppRow 升级完后希望重检
+  // AppRow 升级完后重检
   window.addEventListener('app-row:upgraded', () => triggerCheck());
 
-  // 5) "打开配置" 按钮
+  // "打开配置" 按钮
   window.addEventListener('app:open-config', () => {
-    // 让主进程走 shell.openPath —— renderer 这边能做的有限
-    if (typeof window !== 'undefined' && window.api && window.api.openUrl) {
-      // 兜底: 走 main 进程暴露的 openConfig handler (待 Phase 2 加)
-      try { window.api.openConfig && window.api.openConfig(); } catch {}
+    if (typeof window !== 'undefined' && window.api) {
+      try { window.api.openConfig && window.api.openConfig(); } catch { /* noop */ }
     }
   });
 
-  // 6) 按需触发 check
+  // 按需触发 check
   if (cfg.check_on_launch) {
     triggerCheck();
   }
 }
 
-const AUTO_RECHECK_DELAY_MS = 2000;
-
-// Phase 24: 活跃的 auto-recheck 句柄 (在 bootstrap 里创建并注入 triggerCheck).
-// triggerCheck 调 cancel() 防双跑. 不存在时 (例如测试直接调 triggerCheck) 跳过.
+// ─── Auto-recheck handle ──────────────────────────────────
 let activeRecheck = null;
-
-async function triggerCheck() {
-  if (activeRecheck) activeRecheck.cancel();
-  resetCheck();
-  try {
-    await api.checkUpdates();
-    finishCheck();
-  } catch (err) {
-    console.error('checkUpdates failed:', err);
-    setError(err && err.message || String(err));
-  }
-}
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bootstrap);
 } else {
-  // 脚本延迟加载时 readyState 已不是 'loading'
   bootstrap();
 }

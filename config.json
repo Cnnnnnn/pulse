@@ -149,17 +149,5 @@
         }
       ]
     }
-  ],
-  "aiSessions": {
-    "enabled": true,
-    "provider": "ollama",
-    "ollama": {
-      "host": "http://localhost:11434",
-      "model": "qwen2.5-coder:7b"
-    },
-    "cloud": null,
-    "backfillDays": 1,
-    "locale": "zh-CN",
-    "backfillOnStart": true
-  }
+  ]
 }

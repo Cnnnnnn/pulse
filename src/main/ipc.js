@@ -25,7 +25,6 @@ const aiStorage = require("../ai-sessions/storage");
 const { CloudSummarizer } = require("../ai-sessions/provider-cloud");
 const { PROVIDER_ENDPOINTS } = require("../ai-sessions/provider-cloud");
 const { HttpClient } = require("./http-client");
-const { OllamaSummarizer } = require("../ai-sessions/provider-ollama");
 
 // Bulk Upgrade: 一次只能跑一批; 用 AbortController 控制取消.
 let bulkUpgradeCtrl = null;
@@ -353,81 +352,96 @@ function registerIpcHandlers(deps) {
     }
   });
 
-  // ── Phase B4 (AI Sessions Daily Digest): 手动 rerun / backfill ─────
-  // main 进程 bootstrap 启了 DailyDigestRunner (24h cron), 用户在 UI 也能手动
-  // 触发 rerun yesterday / backfill N 天. 进度走 ai-digest-progress 事件.
+  // ── AI 任务总结 (重做版): 按需扫描 + 按需生成 ─────
+  // 没有 bootstrap / backfill / cron. 用户打开抽屉 → ai-tasks:list 扫盘 (不调 LLM),
+  // 勾选生成 → ai-tasks:summarize 逐任务调 LLM, 每完成一个推 ai-task-summary-updated.
 
-  function _getDigestWiring() {
-    return global.__pulse_dailyDigest || null;
+  function _getAiTasksWiring() {
+    return global.__pulse_aiTasks || null;
   }
 
-  ipcMain.handle("ai-sessions:rerun", async (_event, opts) => {
-    const wiring = _getDigestWiring();
-    if (!wiring) {
-      return { ok: false, reason: "not_initialized" };
-    }
-    const dateKey =
-      opts && typeof opts.dateKey === "string"
-        ? opts.dateKey
-        : (() => {
-            const t = Date.now();
-            return wiring.runner._dateKeyDaysAgo(1, t);
-          })();
-    try {
-      const r = await wiring.runner.runOne(dateKey, {
-        force: true,
-        now: Date.now(),
-      });
-      if (r) {
-        // 推 renderer 更新 (B5 banner 会订阅这个事件)
-        sendToRenderer("ai-digest-updated", { digest: r, source: "rerun" });
-      }
-      return { ok: true, digest: r };
-    } catch (err) {
-      mainLog.warn("[ipc] ai-sessions:rerun failed", {
-        dateKey,
-        msg: err.message,
-      });
-      return { ok: false, reason: "threw", error: err.message };
-    }
-  });
+  function _localDateKey(offsetDays = 0) {
+    const t = Date.now() - (offsetDays | 0) * 86400_000;
+    return new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(t));
+  }
 
-  ipcMain.handle("ai-sessions:backfill", async (_event, days) => {
-    const wiring = _getDigestWiring();
-    if (!wiring) {
-      return { ok: false, reason: "not_initialized" };
-    }
-    const n =
-      typeof days === "number" && days > 0 && days <= 30 ? Math.floor(days) : 7;
+  // 扫描某天的任务列表 (不调 LLM). opts: { dateKey?: 'YYYY-MM-DD' }, 默认今天.
+  ipcMain.handle("ai-tasks:list", async (_event, opts) => {
+    const wiring = _getAiTasksWiring();
+    if (!wiring) return { ok: false, reason: "not_initialized" };
+    const dateKey =
+      opts && typeof opts.dateKey === "string" && /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
+        ? opts.dateKey
+        : _localDateKey(0);
     try {
-      // 进度事件: backfill 是 N 天串行, 每跑完 1 天推 1 次
-      const onProgress = (done, total) => {
-        sendToRenderer("ai-digest-progress", {
-          done,
-          total,
-          source: "backfill",
-        });
-      };
-      const r = await wiring.runner.runBackfill(n, { onProgress });
+      const r = await wiring.engine.listTasks(dateKey, { now: Date.now() });
       return { ok: true, ...r };
     } catch (err) {
-      mainLog.warn("[ipc] ai-sessions:backfill failed", {
-        days: n,
-        msg: err.message,
-      });
+      mainLog.warn("[ipc] ai-tasks:list failed", { dateKey, msg: err.message });
       return { ok: false, reason: "threw", error: err.message };
     }
   });
 
-  ipcMain.handle("ai-sessions:get-current", () => {
-    const wiring = _getDigestWiring();
-    if (!wiring) {
-      return { digest: null, enabled: false };
+  // 为选中任务生成总结. opts: { dateKey, taskKeys: string[] }.
+  // 每个任务完成/失败即推 ai-task-summary-updated 事件 (单任务粒度).
+  ipcMain.handle("ai-tasks:summarize", async (_event, opts) => {
+    const wiring = _getAiTasksWiring();
+    if (!wiring) return { ok: false, reason: "not_initialized" };
+    const dateKey =
+      opts && typeof opts.dateKey === "string" && /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
+        ? opts.dateKey
+        : _localDateKey(0);
+    const taskKeys =
+      opts && Array.isArray(opts.taskKeys)
+        ? opts.taskKeys.filter((k) => typeof k === "string" && k.length > 0)
+        : [];
+    if (taskKeys.length === 0) {
+      return { ok: false, reason: "no_tasks_selected" };
     }
-    //拿 "昨天" 的 digest (B5 banner 默认显示)
-    const yesterday = wiring.runner._dateKeyDaysAgo(1, Date.now());
-    const digest = wiring.storage.loadDigests()[yesterday] || null;
-    return { digest, enabled: true };
+    try {
+      const r = await wiring.engine.summarizeTasks(taskKeys, {
+        dateKey,
+        now: Date.now(),
+        onTaskDone: (event) => {
+          sendToRenderer("ai-task-summary-updated", { dateKey, ...event });
+        },
+      });
+      return { ok: r.ok, dateKey, results: r.results, failures: r.failures };
+    } catch (err) {
+      mainLog.warn("[ipc] ai-tasks:summarize failed", { dateKey, msg: err.message });
+      return { ok: false, reason: "threw", error: err.message };
+    }
+  });
+
+  // 跳转原始 session (任务卡 "查看原始" 按钮触发).
+  // target 形如 "cursor://file/...", "codex://...", "minimax://...", 或绝对文件路径.
+  // URL scheme 走 shell.openExternal, 绝对路径走 shell.openPath (默认 app 打开).
+  const { shell } = require('electron');
+  ipcMain.handle("ai-sessions:open-session", async (_event, target) => {
+    if (typeof target !== 'string' || target.length === 0) {
+      return { ok: false, reason: 'invalid_target' };
+    }
+    try {
+      // URL scheme (cursor://, codex://, minimax://, https://)
+      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(target)) {
+        await shell.openExternal(target);
+        return { ok: true, mode: 'external' };
+      }
+      // 绝对文件路径
+      if (target.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(target)) {
+        const err = await shell.openPath(target);
+        if (err) return { ok: false, reason: 'openPath_failed', error: err };
+        return { ok: true, mode: 'openPath' };
+      }
+      return { ok: false, reason: 'unrecognized_target' };
+    } catch (err) {
+      mainLog.warn("[ipc] ai-sessions:open-session failed", { target, msg: err.message });
+      return { ok: false, reason: 'threw', error: err.message };
+    }
   });
 
   // ── Phase B6c: AI Sessions Settings (云端API key + config) ─────
@@ -521,34 +535,7 @@ function registerIpcHandlers(deps) {
   ipcMain.handle("ai-sessions:healthcheck", async (_event, opts) => {
     const stateCfg = stateStore.loadAISessionsConfig();
     const providerId =
-      opts && typeof opts.providerId === "string" ? opts.providerId : "ollama";
-
-    // ollama：不依赖 safeStorage
-    if (providerId === "ollama") {
-      const model =
-        opts && typeof opts.model === "string" && opts.model.length > 0
-          ? opts.model
-          : (stateCfg && stateCfg.ollama && stateCfg.ollama.model) ||
-            "qwen3.5:9b";
-      const host =
-        opts && typeof opts.host === "string" && opts.host.length > 0
-          ? opts.host
-          : (stateCfg && stateCfg.ollama && stateCfg.ollama.host) ||
-            "http://localhost:11434";
-
-      const httpClient = new HttpClient({ timeout: 3_000, maxRetries: 0 });
-      const ollama = new OllamaSummarizer();
-      try {
-        return await ollama.healthcheck({
-          provider: "ollama",
-          model,
-          config: { host },
-          httpClient,
-        });
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    }
+      opts && typeof opts.providerId === "string" ? opts.providerId : "deepseek";
 
     // cloud：需要 apiKey
     if (!PROVIDER_ENDPOINTS[providerId]) {
@@ -618,20 +605,15 @@ function registerIpcHandlers(deps) {
         `[ipc] ai-sessions:save-config ok enabled=${cfg && cfg.enabled} provider=${cfg && cfg.provider}`,
       );
 
-      // 重建 wiring，让后续“回填/重跑”使用最新的 provider/model/settings
+      // 重建 wiring，让后续生成使用最新的 provider/model/key
       try {
-        const old = _getDigestWiring();
-        if (old && typeof old.stop === "function") old.stop();
-
-        // base 配置来自 main/index.js（config.json 可缺）
         const baseCfg = global.__pulse_aiSessionsBaseCfg || {
           enabled: false,
-          provider: "ollama",
-          ollama: {},
+          provider: "minimax",
           cloud: null,
         };
-        const { buildDailyDigestRunner } = require("../ai-sessions/wiring");
-        const wiring = buildDailyDigestRunner({
+        const { buildTaskSummaryEngine } = require("../ai-sessions/wiring");
+        const wiring = buildTaskSummaryEngine({
           config: baseCfg,
           runtimeOverride: stateStore.loadAISessionsConfig(),
           log: {
@@ -640,15 +622,7 @@ function registerIpcHandlers(deps) {
             error: (...a) => mainLog.error(...a),
           },
         });
-        global.__pulse_dailyDigest = wiring;
-        if (
-          wiring &&
-          wiring.runner &&
-          wiring.runner.config &&
-          wiring.runner.config.enabled
-        ) {
-          wiring.start(86400_000);
-        }
+        global.__pulse_aiTasks = wiring;
       } catch (e) {
         mainLog.warn("[ipc] ai-sessions:save-config failed to rebuild wiring", {
           msg: e && e.message,

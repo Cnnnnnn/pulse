@@ -34,6 +34,7 @@ export function createApi(overrides = {}) {
  getAppIcon: pick(overrides, 'getAppIcon'),
  openUrl: pick(overrides, 'openUrl'),
  onCheckProgress: pick(overrides, 'onCheckProgress'),
+ onCheckDetecting: pick(overrides, 'onCheckDetecting'),
  onStartCheck: pick(overrides, 'onStartCheck'),
  onAutoCheckFinished: pick(overrides, 'onAutoCheckFinished'),
  // Phase22: Bulk Upgrade
@@ -52,12 +53,12 @@ export function createApi(overrides = {}) {
  // Phase A (App Categorization): active category tab
  getActiveCategory: pick(overrides, 'getActiveCategory'),
  saveActiveCategory: pick(overrides, 'saveActiveCategory'),
- // Phase B4 (AI Sessions Daily Digest)
- rerunDigest: pick(overrides, 'rerunDigest'),
- backfillDigest: pick(overrides, 'backfillDigest'),
- getCurrentDigest: pick(overrides, 'getCurrentDigest'),
- onDigestUpdated: pick(overrides, 'onDigestUpdated'),
- onDigestProgress: pick(overrides, 'onDigestProgress'),
+// AI 任务总结 (重做版)
+  listAiTasks: pick(overrides, 'listAiTasks'),
+  summarizeAiTasks: pick(overrides, 'summarizeAiTasks'),
+  onAiTaskSummaryUpdated: pick(overrides, 'onAiTaskSummaryUpdated'),
+  // 跳到原始 session
+  openSession: pick(overrides, 'openSession'),
  // Phase B6c (AI Sessions Settings)
  setAiKey: pick(overrides, 'setAiKey'),
  clearAiKey: pick(overrides, 'clearAiKey'),
