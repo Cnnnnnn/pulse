@@ -1,13 +1,7 @@
 /**
  * src/ai-sessions/codex.js
  *
- * CodexDetectorImpl — 2026-06-10 redesign.
- *
- * 之前: 1 个 JSONL 文件 = 1 个 session, readSession 返 1 个 Session, title 字段缺失
- *       (fallback 到第一条 user 消息 — 但那条是 AGENTS.md system 注入, 所有 session 都一样)
- *
- * 现在: 1 个 JSONL = N 个 sub-session, 按真实 user_query 边界切 (event_msg.user_message.timestamp).
- *       title 从 user_message 第一行非噪声文本抽. 跟 Cursor / minimax-code 行为对齐.
+ * CodexDetectorImpl — 2026-06-10 redesign (rev2: 取消 topic 拆分).
  *
  * Codex JSONL 路径:
  *   ~/.codex/sessions/YYYY/MM/DD/rollout-YYYY-MM-DDTHH-MM-SS-<uuid>.jsonl
@@ -23,10 +17,13 @@
  *                                  - 'agent_message'  → payload.message 是 assistant 回复
  *                                  - 'token_count' / 'agent_reasoning' / 'task_started' / 'task_complete' → 跳过
  *
- * Sub-session 模型:
- *   sub-session id = `<original-uuid>#topic-<index>` (0-based)
- *   sub-session 包含 1 条 user (来自 user_message) + N 条 assistant
- *   0 user_message → 1 个 stub sub-session (全部 assistant)
+ * Session 模型 (rev2):
+ *   1 个 JSONL = 1 个 session (跟 Cursor / minimax-code 风格对齐).
+ *   Codex 一次启动 = 一次长对话窗口, 里面的多次 user_query 是连续追问, 不切 topic.
+ *   之前按 user_message 切 sub-session 是错误的 — 一个长会话被切成几十个小碎片.
+ *
+ *   id = 文件 basename 里的 uuid (跟之前一样)
+ *   title = 第一条 event_msg.user_message 第一行非噪声文本 (跟 Cursor 同算法)
  *
  * CommonJS, 跟 src/config/ 一致.
  */
@@ -45,9 +42,6 @@ class CodexDetectorImpl {
     this.appName = 'codex';
     this.bundlePath = opts.bundlePath || CODEX_BUNDLE_PATH;
     this.sessionsDir = opts.sessionsDir || CODEX_SESSIONS_DIR;
-    // 缓存 listSessions 时 parse 出来的 sub-sessions, 供 readSession 复用
-    // key: 绝对文件路径, value: { originalUuid, workspaceDir, subSessions: [...] }
-    this._parsedByFile = new Map();
   }
 
   /**
@@ -68,9 +62,9 @@ class CodexDetectorImpl {
   }
 
   /**
-   * 扫所有 rollout-*.jsonl, parse 每个, 给每个 sub-session 输出 1 条 meta.
+   * 扫所有 rollout-*.jsonl, 给每个文件输出 1 条 meta (1 文件 = 1 session).
    *
-   * 默认只扫 mtime 在最近 MAX_MTIME_AGE_DAYS 天内的文件 (用户基本不查 N 个月前的).
+   * 默认只扫 mtime 在最近 maxMtimeAgeDays 天内的文件 (用户基本不查 N 个月前的).
    * opts.maxMtimeAgeDays 可覆盖; 0 = 不限.
    *
    * @param {object} [opts]
@@ -78,7 +72,6 @@ class CodexDetectorImpl {
    * @returns {Promise<Array<{id: string, file: string, mtimeMs: number, sizeBytes: number}>>}
    */
   async listSessions(opts = {}) {
-    this._parsedByFile = new Map();
     const maxMtimeAgeDays = (opts && typeof opts.maxMtimeAgeDays === 'number')
       ? opts.maxMtimeAgeDays
       : 60;
@@ -86,30 +79,16 @@ class CodexDetectorImpl {
       ? Date.now() - maxMtimeAgeDays * 86400_000
       : 0;
     const files = await _scanAllRollouts(this.sessionsDir, cutoffMs);
-    const out = [];
-    for (const f of files) {
-      try {
-        const parsed = await _parseCodexJsonl(f.file);
-        this._parsedByFile.set(f.file, parsed);
-        for (let i = 0; i < parsed.subSessions.length; i++) {
-          out.push({
-            id: parsed.subSessions[i].id,
-            file: f.file,
-            mtimeMs: f.mtimeMs,
-            sizeBytes: f.sizeBytes,
-          });
-        }
-      } catch (err) {
-        // 单文件 parse 失败不阻塞其他文件
-        // eslint-disable-next-line no-console
-        console.warn(`[codex] parse failed for ${f.file}: ${err && err.message}`);
-      }
-    }
-    return out;
+    return files.map((f) => ({
+      id: _idFromFilename(path.basename(f.file)) || path.basename(f.file, '.jsonl'),
+      file: f.file,
+      mtimeMs: f.mtimeMs,
+      sizeBytes: f.sizeBytes,
+    }));
   }
 
   /**
-   * 读 sub-session 全文. id 格式: `<uuid>#topic-<N>` 或兼容老的 `<uuid>` / basename.
+   * 读 session 全文. id 格式: `<uuid>` 或 basename.
    *
    * @param {string} id
    * @returns {Promise<{id, startedAt, endedAt, messages, title?, workspaceDir?, file?}>}
@@ -118,45 +97,11 @@ class CodexDetectorImpl {
     if (typeof id !== 'string' || id.length === 0) {
       throw new TypeError('readSession: id must be non-empty string');
     }
-    // 解析 id: 优先 "<uuid>#topic-<N>", fallback 到 "<uuid>" 兼容老 cache
-    const m = /^(.+?)#topic-(\d+)$/.exec(id);
-    const targetUuid = m ? m[1] : id;
-    const targetIndex = m ? parseInt(m[2], 10) : 0;
-
-    let file = null;
-    let parsed = null;
-    // 先在已 parse 的缓存里查 uuid
-    for (const [f, p] of this._parsedByFile.entries()) {
-      if (p.originalUuid === targetUuid || path.basename(f, '.jsonl').includes(targetUuid)) {
-        file = f;
-        parsed = p;
-        break;
-      }
+    const file = await _findFileById(this.sessionsDir, id);
+    if (!file) {
+      throw new Error(`readSession: codex file not found for id=${id}`);
     }
-    // 没命中 (没经过 listSessions 或文件新出现) → 重扫
-    if (!parsed) {
-      file = await _findFileById(this.sessionsDir, targetUuid);
-      if (!file) {
-        throw new Error(`readSession: codex file not found for id=${id}`);
-      }
-      parsed = await _parseCodexJsonl(file);
-      this._parsedByFile.set(file, parsed);
-    }
-
-    const sub = parsed.subSessions[targetIndex];
-    if (!sub) {
-      throw new Error(`readSession: codex sub-session not found for id=${id} (parsed ${parsed.subSessions.length} sub-sessions)`);
-    }
-    const out = {
-      id: sub.id,
-      startedAt: sub.startedAt,
-      endedAt: sub.endedAt,
-      messages: sub.messages,
-      title: sub.title,
-      file: parsed.filePath,
-    };
-    if (parsed.workspaceDir) out.workspaceDir = parsed.workspaceDir;
-    return out;
+    return await _parseCodexJsonl(file);
   }
 }
 
@@ -234,14 +179,19 @@ async function _findFileById(dir, id) {
 }
 
 /**
- * 流式读 JSONL, 提取所有 events (按时间顺序), 然后按 user_message 切 sub-session.
+ * 流式读 JSONL, 提取 Session {id, startedAt, endedAt, messages, title, workspaceDir}.
+ *
+ * 跟 Cursor / minimax-code 一致: 1 JSONL = 1 Session (一整次 Codex 对话窗口).
+ * Codex 里 event_msg.user_message 是真用户 query (跳 AGENTS.md / IDE selection / env 注入).
  *
  * @param {string} file
  * @returns {Promise<{
- *   originalUuid: string,
- *   workspaceDir: string|null,
- *   filePath: string,
- *   subSessions: Array<{id, startedAt, endedAt, messages, title}>
+ *   id: string,
+ *   startedAt: number,
+ *   endedAt: number,
+ *   messages: Array<{role, content, ts}>,
+ *   title: string,
+ *   workspaceDir?: string,
  * }>}
  */
 async function _parseCodexJsonl(file) {
@@ -249,7 +199,7 @@ async function _parseCodexJsonl(file) {
   const stream = fsRaw.createReadStream(file, { encoding: 'utf8' });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
 
-  const events = []; // { kind: 'user'|'assistant', content, ts }
+  const messages = []; // { role, content, ts }
   let sessionUuid = null;
   let workspaceDir = null;
   let idFromMeta = null;
@@ -278,7 +228,7 @@ async function _parseCodexJsonl(file) {
     if (row.type === 'event_msg' && row.payload && row.payload.type === 'user_message') {
       const content = typeof row.payload.message === 'string' ? row.payload.message.trim() : '';
       if (content) {
-        events.push({ kind: 'user', content, ts });
+        messages.push({ role: 'user', content, ts });
       }
       continue;
     }
@@ -287,7 +237,7 @@ async function _parseCodexJsonl(file) {
     if (row.type === 'event_msg' && row.payload && row.payload.type === 'agent_message') {
       const content = typeof row.payload.message === 'string' ? row.payload.message.trim() : '';
       if (content) {
-        events.push({ kind: 'assistant', content, ts });
+        messages.push({ role: 'assistant', content, ts });
       }
       continue;
     }
@@ -299,82 +249,36 @@ async function _parseCodexJsonl(file) {
       // role='user' 在 codex 里是 AGENTS.md / IDE selection / env system 注入, **跳过**
       if (role === 'user') continue;
       if (role === 'assistant' && content) {
-        events.push({ kind: 'assistant', content, ts });
+        messages.push({ role: 'assistant', content, ts });
       }
     }
   }
 
-  const originalUuid = sessionUuid || _idFromFilename(path.basename(file)) || path.basename(file, '.jsonl');
-  const subSessions = _splitByUserMessage(events, originalUuid);
+  // 按 ts asc 排序 (parse 阶段可能乱序, 取决于 IO)
+  messages.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  const tsList = messages.map((m) => m.ts).filter((t) => t > 0);
+  const startedAt = tsList.length > 0 ? Math.min(...tsList) : 0;
+  const endedAt = tsList.length > 0 ? Math.max(...tsList) : 0;
 
   const out = {
-    originalUuid,
-    workspaceDir: workspaceDir || null,
-    filePath: file,
-    subSessions,
+    id: sessionUuid || _idFromFilename(path.basename(file)) || path.basename(file, '.jsonl'),
+    startedAt,
+    endedAt,
+    messages,
+    title: _extractCodexTitle(messages),
   };
+  if (workspaceDir) out.workspaceDir = workspaceDir;
   return out;
 }
 
 /**
- * 按 user 事件切分 events → N 个 sub-session.
- * 0 user → 1 个 stub sub-session (全部 assistant messages).
- * assistant 在 user 之前 (agent prefill / artifact) → 跟下一个 user sub-session 合并,
- *   不丢消息, 不单独成 stub.
- */
-function _splitByUserMessage(events, originalUuid) {
-  // 按 ts asc 排序 (parse 阶段可能乱序, 取决于 IO)
-  const sorted = [...events].sort((a, b) => (a.ts || 0) - (b.ts || 0));
-
-  const subs = [];
-  let current = null;
-  let prefill = []; // assistant 在 user 之前 → 累积, 见到 user 时一起带过去
-
-  for (const ev of sorted) {
-    if (ev.kind === 'user') {
-      // 提交上一个 sub
-      if (current) subs.push(current);
-      current = { messages: [...prefill, { role: 'user', content: ev.content, ts: ev.ts || 0 }] };
-      prefill = [];
-    } else {
-      // assistant
-      const msg = { role: 'assistant', content: ev.content, ts: ev.ts || 0 };
-      if (current) {
-        current.messages.push(msg);
-      } else {
-        // 还在 prefill 阶段, 等第一个 user
-        prefill.push(msg);
-      }
-    }
-  }
-  if (current) subs.push(current);
-
-  // 整文件没 user: prefill 全部收尾成 1 个 stub
-  if (subs.length === 0) {
-    subs.push({ messages: prefill });
-  }
-
-  return subs.map((sub, index) => {
-    const tsList = sub.messages.map((m) => m.ts).filter((t) => t > 0);
-    const startedAt = tsList.length > 0 ? Math.min(...tsList) : 0;
-    const endedAt = tsList.length > 0 ? Math.max(...tsList) : 0;
-    return {
-      id: `${originalUuid}#topic-${index}`,
-      startedAt,
-      endedAt,
-      messages: sub.messages,
-      title: _extractCodexTitle(sub.messages),
-    };
-  });
-}
-
-/**
- * 从 sub-session messages 抽 title.
- * 优先 user 消息第一行非噪声文本, fallback 到 assistant 文本.
+ * 从 messages 抽 title.
+ * 优先第一条 user 消息第一行非噪声文本, fallback 到 assistant 第一行.
+ * 跟 cursor.js _firstMeaningfulLine 同思路 (独立实现, 避免跨文件 require).
  */
 function _extractCodexTitle(messages) {
   if (!Array.isArray(messages) || messages.length === 0) return '';
-  // 1. 优先 user (codex 这里的 user 一定是真 query, 不是 system 注入)
+  // 1. 优先 user 消息 (codex 这里的 user 一定是真 query, 不是 system 注入)
   for (const msg of messages) {
     if (!msg || msg.role !== 'user' || typeof msg.content !== 'string') continue;
     const line = _firstMeaningfulLine(msg.content);
@@ -449,7 +353,6 @@ module.exports = {
   CODEX_SESSIONS_DIR,
   // 内部 helper (单测)
   _parseCodexJsonl,
-  _splitByUserMessage,
   _extractCodexTitle,
   _firstMeaningfulLine,
   _idFromFilename,

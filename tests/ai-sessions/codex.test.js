@@ -1,16 +1,16 @@
 /**
  * tests/ai-sessions/codex.test.js
  *
- * CodexDetectorImpl 测试 — 适配 2026-06-10 redesign:
- *   _parseCodexJsonl 返 { originalUuid, workspaceDir, filePath, subSessions }
- *   每个 sub-session = { id, startedAt, endedAt, messages, title }
+ * CodexDetectorImpl 测试 — 2026-06-10 rev2:
+ *   _parseCodexJsonl 返单个 Session { id, startedAt, endedAt, messages, title, workspaceDir? }
+ *   跟 Cursor / minimax-code 一致: 1 JSONL = 1 session (一整次 Codex 对话窗口).
+ *   之前的 topic-split 被撤销 (同一会话多次 user_query 视为连续对话, 不切).
  *
  * 覆盖:
  *   - _idFromFilename: 从 rollout-YYYY-MM-DDTHH-MM-SS-<uuid>.jsonl 抽出 uuid
  *   - _extractResponseContent: 抽 input_text parts 拼成单字符串
  *   - _extractCodexTitle: 跳 AGENTS.md / 路径 / URL / XML 标签, 命中真 user_query
- *   - _splitByUserMessage: 按 user_message 切 sub-session
- *   - _parseCodexJsonl: 解析整个 JSONL → 多个 sub-session
+ *   - _parseCodexJsonl: 解析整个 JSONL → 1 Session (含 title)
  *   - DetectorImpl.isInstalled() / listSessions() / readSession() (mocked fs)
  */
 
@@ -18,7 +18,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   CodexDetectorImpl,
   _parseCodexJsonl,
-  _splitByUserMessage,
   _extractCodexTitle,
   _idFromFilename,
   _extractResponseContent,
@@ -138,100 +137,6 @@ describe('codex._extractCodexTitle — denoise', () => {
   });
 });
 
-describe('codex._splitByUserMessage — topic splitting', () => {
-  it('0 user → 1 stub sub-session', () => {
-    const subs = _splitByUserMessage([
-      { kind: 'assistant', content: 'only assistant', ts: 1000 },
-      { kind: 'assistant', content: 'another', ts: 2000 },
-    ], 'uuid-xyz');
-    expect(subs.length).toBe(1);
-    expect(subs[0].id).toBe('uuid-xyz#topic-0');
-    expect(subs[0].messages.length).toBe(2);
-    expect(subs[0].startedAt).toBe(1000);
-    expect(subs[0].endedAt).toBe(2000);
-  });
-
-  it('1 user + N assistant → 1 sub-session', () => {
-    const subs = _splitByUserMessage([
-      { kind: 'user', content: 'first query', ts: 1000 },
-      { kind: 'assistant', content: 'reply 1', ts: 1500 },
-      { kind: 'assistant', content: 'reply 2', ts: 2000 },
-    ], 'uuid-abc');
-    expect(subs.length).toBe(1);
-    expect(subs[0].messages.length).toBe(3);
-    expect(subs[0].messages[0].role).toBe('user');
-    expect(subs[0].messages[1].role).toBe('assistant');
-  });
-
-  it('3 user → 3 sub-session', () => {
-    const subs = _splitByUserMessage([
-      { kind: 'user', content: 'Q1', ts: 1000 },
-      { kind: 'assistant', content: 'A1', ts: 1500 },
-      { kind: 'user', content: 'Q2', ts: 2000 },
-      { kind: 'assistant', content: 'A2', ts: 2500 },
-      { kind: 'user', content: 'Q3', ts: 3000 },
-      { kind: 'assistant', content: 'A3', ts: 3500 },
-    ], 'uuid-multi');
-    expect(subs.length).toBe(3);
-    expect(subs.map((s) => s.id)).toEqual([
-      'uuid-multi#topic-0',
-      'uuid-multi#topic-1',
-      'uuid-multi#topic-2',
-    ]);
-    expect(subs[0].messages.map((m) => m.content)).toEqual(['Q1', 'A1']);
-    expect(subs[1].messages.map((m) => m.content)).toEqual(['Q2', 'A2']);
-    expect(subs[2].messages.map((m) => m.content)).toEqual(['Q3', 'A3']);
-    // 时间窗准确
-    expect(subs[0].startedAt).toBe(1000);
-    expect(subs[0].endedAt).toBe(1500);
-    expect(subs[1].startedAt).toBe(2000);
-    expect(subs[1].endedAt).toBe(2500);
-  });
-
-  it('重复 user_message (retry) → 2 sub-session (不去重, 保留历史)', () => {
-    const subs = _splitByUserMessage([
-      { kind: 'user', content: '一样的问题', ts: 1000 },
-      { kind: 'assistant', content: '答 1', ts: 1500 },
-      { kind: 'user', content: '一样的问题', ts: 2000 },
-      { kind: 'assistant', content: '答 2', ts: 2500 },
-    ], 'uuid-retry');
-    expect(subs.length).toBe(2);
-  });
-
-  it('assistant 在 user 之前 → 挂到第一个 stub (不会丢消息)', () => {
-    const subs = _splitByUserMessage([
-      { kind: 'assistant', content: 'prefill', ts: 500 },
-      { kind: 'user', content: 'real Q', ts: 1000 },
-      { kind: 'assistant', content: 'reply', ts: 1500 },
-    ], 'uuid-pre');
-    expect(subs.length).toBe(1);
-    expect(subs[0].messages.length).toBe(3);
-    expect(subs[0].messages[0].content).toBe('prefill');
-    expect(subs[0].messages[1].content).toBe('real Q');
-    expect(subs[0].startedAt).toBe(500);
-  });
-
-  it('空 events → 1 stub 空 sub-session', () => {
-    const subs = _splitByUserMessage([], 'uuid-empty');
-    expect(subs.length).toBe(1);
-    expect(subs[0].messages).toEqual([]);
-    expect(subs[0].startedAt).toBe(0);
-    expect(subs[0].endedAt).toBe(0);
-  });
-
-  it('乱序 ts → 排序后再切', () => {
-    const subs = _splitByUserMessage([
-      { kind: 'user', content: 'Q2', ts: 2000 },
-      { kind: 'assistant', content: 'A1', ts: 1500 },  // 实际在 Q1 之后
-      { kind: 'user', content: 'Q1', ts: 1000 },
-      { kind: 'assistant', content: 'A2', ts: 2500 },
-    ], 'uuid-order');
-    expect(subs.length).toBe(2);
-    expect(subs[0].messages.map((m) => m.content)).toEqual(['Q1', 'A1']);
-    expect(subs[1].messages.map((m) => m.content)).toEqual(['Q2', 'A2']);
-  });
-});
-
 describe('codex._parseCodexJsonl — stream parse', () => {
   let tmpDir;
   let tmpFile;
@@ -241,7 +146,7 @@ describe('codex._parseCodexJsonl — stream parse', () => {
     tmpFile = path.join(tmpDir, 'rollout-2026-04-20T12-34-30-test-uuid-1234.jsonl');
   });
 
-  it('解析 session_meta + response_item → 1 sub-session', async () => {
+  it('解析 session_meta + response_item → 1 Session (rev2: 不切 topic)', async () => {
     const lines = [
       JSON.stringify({
         timestamp: '2026-04-20T04:34:30.174Z',
@@ -258,7 +163,7 @@ describe('codex._parseCodexJsonl — stream parse', () => {
           content: [{ type: 'input_text', text: '# AGENTS.md instructions\nUse RTK for shell commands' }],
         },
       }),
-      // event_msg.user_message → 真用户 query (切分点)
+      // event_msg.user_message → 真用户 query
       JSON.stringify({
         timestamp: '2026-04-20T04:38:02.214Z',
         type: 'event_msg',
@@ -289,22 +194,18 @@ describe('codex._parseCodexJsonl — stream parse', () => {
     ];
     await fsp.writeFile(tmpFile, lines.join('\n') + '\n');
 
-    const r = await _parseCodexJsonl(tmpFile);
-    expect(r.originalUuid).toBe('test-uuid-1234');
-    expect(r.workspaceDir).toBe('/Users/me/proj');
-    expect(r.filePath).toBe(tmpFile);
-    expect(r.subSessions.length).toBe(1);
-    const sub = r.subSessions[0];
-    expect(sub.id).toBe('test-uuid-1234#topic-0');
-    expect(sub.messages.length).toBe(3);
-    expect(sub.messages[0]).toMatchObject({ role: 'user', content: '帮我看下 ntb-cvp-limit-success' });
-    expect(sub.messages[1].content).toBe('好的, 让我先看...');
-    expect(sub.messages[2].content).toBe('分析结果...');
-    expect(sub.title).toBe('帮我看下 ntb-cvp-limit-success');
-    expect(sub.startedAt).toBeLessThanOrEqual(sub.endedAt);
+    const sess = await _parseCodexJsonl(tmpFile);
+    expect(sess.id).toBe('test-uuid-1234');
+    expect(sess.workspaceDir).toBe('/Users/me/proj');
+    expect(sess.messages.length).toBe(3);
+    expect(sess.messages[0]).toMatchObject({ role: 'user', content: '帮我看下 ntb-cvp-limit-success' });
+    expect(sess.messages[1].content).toBe('好的, 让我先看...');
+    expect(sess.messages[2].content).toBe('分析结果...');
+    expect(sess.title).toBe('帮我看下 ntb-cvp-limit-success');
+    expect(sess.startedAt).toBeLessThanOrEqual(sess.endedAt);
   });
 
-  it('多 user_message → 多个 sub-session (核心场景)', async () => {
+  it('多 user_message → 1 Session (多轮连续, 不切)', async () => {
     const lines = [
       JSON.stringify({
         timestamp: '2026-04-20T04:34:30.174Z',
@@ -334,21 +235,20 @@ describe('codex._parseCodexJsonl — stream parse', () => {
     ];
     await fsp.writeFile(tmpFile, lines.join('\n') + '\n');
 
-    const r = await _parseCodexJsonl(tmpFile);
-    expect(r.subSessions.length).toBe(2);
-    expect(r.subSessions[0].id).toBe('multi-uuid#topic-0');
-    expect(r.subSessions[0].messages.length).toBe(2);
-    expect(r.subSessions[0].title).toContain('ntb-cvp-limit-success');
-    expect(r.subSessions[1].id).toBe('multi-uuid#topic-1');
-    expect(r.subSessions[1].title).toContain('实现还缺乏什么');
+    const sess = await _parseCodexJsonl(tmpFile);
+    expect(sess.id).toBe('multi-uuid');
+    expect(sess.messages.length).toBe(4); // 2 user + 2 assistant
+    expect(sess.title).toContain('ntb-cvp-limit-success'); // 第一条 user 第一行
   });
 
-  it('空文件 → 1 stub 空 sub-session', async () => {
+  it('空文件 → Session 但 messages 空', async () => {
     await fsp.writeFile(tmpFile, '');
-    const r = await _parseCodexJsonl(tmpFile);
-    expect(r.originalUuid).toBe('test-uuid-1234');
-    expect(r.subSessions.length).toBe(1);
-    expect(r.subSessions[0].messages).toEqual([]);
+    const sess = await _parseCodexJsonl(tmpFile);
+    expect(sess.id).toBe('test-uuid-1234');
+    expect(sess.messages).toEqual([]);
+    expect(sess.startedAt).toBe(0);
+    expect(sess.endedAt).toBe(0);
+    expect(sess.title).toBe('');
   });
 
   it('坏行 → 跳过, 不 throw', async () => {
@@ -362,9 +262,9 @@ describe('codex._parseCodexJsonl — stream parse', () => {
       '{malformed{json',
     ];
     await fsp.writeFile(tmpFile, lines.join('\n') + '\n');
-    const r = await _parseCodexJsonl(tmpFile);
-    expect(r.subSessions.length).toBe(1);
-    expect(r.subSessions[0].messages[0].content).toBe('still ok');
+    const sess = await _parseCodexJsonl(tmpFile);
+    expect(sess.messages.length).toBe(1);
+    expect(sess.messages[0].content).toBe('still ok');
   });
 
   it('response_item.user 是 AGENTS.md 系统注入, 不进 messages', async () => {
@@ -395,14 +295,13 @@ describe('codex._parseCodexJsonl — stream parse', () => {
       }),
     ];
     await fsp.writeFile(tmpFile, lines.join('\n') + '\n');
-    const r = await _parseCodexJsonl(tmpFile);
-    expect(r.subSessions.length).toBe(1);
+    const sess = await _parseCodexJsonl(tmpFile);
     // AGENTS.md 不进 messages
-    expect(r.subSessions[0].messages.find((m) => m.content.includes('AGENTS.md'))).toBeUndefined();
+    expect(sess.messages.find((m) => m.content.includes('AGENTS.md'))).toBeUndefined();
     // 真 query 进了
-    expect(r.subSessions[0].messages[0].content).toBe('实际 query');
+    expect(sess.messages[0].content).toBe('实际 query');
     // title 不会命中 AGENTS.md, 而是 "实际 query"
-    expect(r.subSessions[0].title).toBe('实际 query');
+    expect(sess.title).toBe('实际 query');
   });
 
   it('session_meta 缺失 → fallback 到 basename', async () => {
@@ -414,9 +313,8 @@ describe('codex._parseCodexJsonl — stream parse', () => {
       }),
     ];
     await fsp.writeFile(tmpFile, lines.join('\n') + '\n');
-    const r = await _parseCodexJsonl(tmpFile);
-    // 从 filename 抽 uuid
-    expect(r.originalUuid).toBe('test-uuid-1234');
+    const sess = await _parseCodexJsonl(tmpFile);
+    expect(sess.id).toBe('test-uuid-1234');
   });
 });
 
@@ -436,7 +334,7 @@ describe('CodexDetectorImpl — basic behavior', () => {
     expect(await d.listSessions()).toEqual([]);
   });
 
-  it('listSessions: 多 user_message → 输出 N 个 sub-session meta', async () => {
+  it('listSessions: 1 JSONL → 1 meta (rev2: 不切 topic)', async () => {
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'codex-detector-'));
     const file = path.join(tmpDir, 'rollout-2026-04-20T12-34-30-det-uuid-aaaa.jsonl');
     const lines = [
@@ -460,15 +358,33 @@ describe('CodexDetectorImpl — basic behavior', () => {
 
     const d = new CodexDetectorImpl({ sessionsDir: tmpDir });
     const metas = await d.listSessions();
-    expect(metas.length).toBe(2);
-    expect(metas[0].id).toBe('det-uuid-aaaa#topic-0');
-    expect(metas[1].id).toBe('det-uuid-aaaa#topic-1');
+    expect(metas.length).toBe(1);
+    expect(metas[0].id).toBe('det-uuid-aaaa');
     expect(metas[0].file).toBe(file);
     expect(metas[0].mtimeMs).toBeGreaterThan(0);
   });
 
-  it('readSession("#topic-N") → 返对应 sub-session', async () => {
-    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'codex-readsub-'));
+  it('listSessions: 多个 JSONL → 多个 meta', async () => {
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'codex-multifiles-'));
+    const file1 = path.join(tmpDir, 'rollout-2026-04-20T12-34-30-uuid-1111.jsonl');
+    const file2 = path.join(tmpDir, 'rollout-2026-04-20T13-00-00-uuid-2222.jsonl');
+    const lines = JSON.stringify({
+      timestamp: '2026-04-20T04:30:00Z',
+      type: 'event_msg',
+      payload: { type: 'user_message', message: 'hello' },
+    });
+    await fsp.writeFile(file1, lines + '\n');
+    await fsp.writeFile(file2, lines + '\n');
+
+    const d = new CodexDetectorImpl({ sessionsDir: tmpDir });
+    const metas = await d.listSessions();
+    expect(metas.length).toBe(2);
+    const ids = metas.map((m) => m.id).sort();
+    expect(ids).toEqual(['uuid-1111', 'uuid-2222']);
+  });
+
+  it('readSession(uuid) → 返整个 JSONL session (含多轮对话)', async () => {
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'codex-readmulti-'));
     const file = path.join(tmpDir, 'rollout-2026-04-20T12-34-30-rs-uuid-bbbb.jsonl');
     const lines = [
       JSON.stringify({
@@ -479,58 +395,39 @@ describe('CodexDetectorImpl — basic behavior', () => {
       JSON.stringify({
         timestamp: '2026-04-20T04:30:00Z',
         type: 'event_msg',
-        payload: { type: 'user_message', message: 'topic A 的问题' },
+        payload: { type: 'user_message', message: '第一个问题' },
       }),
       JSON.stringify({
         timestamp: '2026-04-20T04:31:00Z',
         type: 'event_msg',
-        payload: { type: 'agent_message', message: 'A 回复' },
+        payload: { type: 'agent_message', message: '回答 1' },
       }),
       JSON.stringify({
         timestamp: '2026-04-20T05:00:00Z',
         type: 'event_msg',
-        payload: { type: 'user_message', message: 'topic B 的问题' },
+        payload: { type: 'user_message', message: '追问' },
       }),
       JSON.stringify({
         timestamp: '2026-04-20T05:01:00Z',
         type: 'event_msg',
-        payload: { type: 'agent_message', message: 'B 回复' },
+        payload: { type: 'agent_message', message: '回答 2' },
       }),
     ];
     await fsp.writeFile(file, lines.join('\n') + '\n');
 
     const d = new CodexDetectorImpl({ sessionsDir: tmpDir });
-    await d.listSessions();  // 预热缓存
-    const sub1 = await d.readSession('rs-uuid-bbbb#topic-0');
-    expect(sub1.id).toBe('rs-uuid-bbbb#topic-0');
-    expect(sub1.messages[0].content).toBe('topic A 的问题');
-    expect(sub1.title).toContain('topic A');
-
-    const sub2 = await d.readSession('rs-uuid-bbbb#topic-1');
-    expect(sub2.id).toBe('rs-uuid-bbbb#topic-1');
-    expect(sub2.messages[0].content).toBe('topic B 的问题');
-    expect(sub2.title).toContain('topic B');
+    const sess = await d.readSession('rs-uuid-bbbb');
+    expect(sess.id).toBe('rs-uuid-bbbb');
+    // 整个对话 (2 user + 2 assistant) = 4 messages
+    expect(sess.messages.length).toBe(4);
+    expect(sess.messages[0].content).toBe('第一个问题');
+    expect(sess.messages[3].content).toBe('回答 2');
+    // title 用第一条 user
+    expect(sess.title).toContain('第一个问题');
   });
 
-  it('readSession 不存在的 topic index → throw', async () => {
-    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'codex-readbad-'));
-    const file = path.join(tmpDir, 'rollout-2026-04-20T12-34-30-bad-uuid-cccc.jsonl');
-    const lines = [
-      JSON.stringify({
-        timestamp: '2026-04-20T04:30:00Z',
-        type: 'session_meta',
-        payload: { id: 'bad-uuid-cccc' },
-      }),
-      JSON.stringify({
-        timestamp: '2026-04-20T04:30:00Z',
-        type: 'event_msg',
-        payload: { type: 'user_message', message: 'only one topic' },
-      }),
-    ];
-    await fsp.writeFile(file, lines.join('\n') + '\n');
-
-    const d = new CodexDetectorImpl({ sessionsDir: tmpDir });
-    await d.listSessions();
-    await expect(d.readSession('bad-uuid-cccc#topic-99')).rejects.toThrow(/sub-session not found/);
+  it('readSession 不存在的 id → throw', async () => {
+    const d = new CodexDetectorImpl({ sessionsDir: '/nonexistent-dir-xyz' });
+    await expect(d.readSession('nonexistent-uuid')).rejects.toThrow(/file not found/);
   });
 });
