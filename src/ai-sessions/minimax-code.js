@@ -61,22 +61,34 @@ class MiniMaxCodeDetectorImpl {
   async listSessions() {
     const sqlite = _loadNodeSqlite();
     if (!sqlite) {
-      // node:sqlite 不可用 (老 Node / 老 Electron) → 返空
+      // eslint-disable-next-line no-console
+      console.warn(`[minimax-code] node:sqlite unavailable (need Electron 35+ with --experimental-sqlite flag), returning empty list`);
       return [];
     }
     let stat;
     try {
       stat = fs.statSync(this.sqlitePath);
-    } catch {
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(`[minimax-code] stat failed for ${this.sqlitePath}: ${err.message}`);
       return [];
     }
     let db;
     try {
-      db = new sqlite.DatabaseSync(this.sqlitePath, { readOnly: true });
+      // 注: minimax daemon 跑时 db 是 WAL mode, 只读 connection 可能拿不到最新 wal snapshot
+      // 一些 node:sqlite 实现对 WAL + readOnly 跨进程有 bug (返 stale snapshot / 0 rows).
+      // 先试 readOnly; 失败回退 read-write (我们不写, 但能拿到正确的 snapshot).
+      try {
+        db = new sqlite.DatabaseSync(this.sqlitePath, { readOnly: true });
+        db.exec('PRAGMA journal_mode=wal');
+      } catch (roErr) {
+        db = new sqlite.DatabaseSync(this.sqlitePath);
+        db.exec('PRAGMA journal_mode=wal');
+      }
     } catch (err) {
       // 文件被 lock / schema 变了 / 其它 → 返空
       // eslint-disable-next-line no-console
-      console.warn(`[minimax-code] failed to open sqlite: ${err.message}`);
+      console.warn(`[minimax-code] failed to open sqlite ${this.sqlitePath}: ${err.message}`);
       return [];
     }
     try {
@@ -84,9 +96,11 @@ class MiniMaxCodeDetectorImpl {
         "SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'"
       ).all();
       if (tables.length === 0) {
-        // schema 不匹配
+        // eslint-disable-next-line no-console
+        console.warn(`[minimax-code] sessions table missing in ${this.sqlitePath}`);
         return [];
       }
+      const hasDeleted = _hasColumn(db, 'sessions', 'deleted_at');
       const rows = db.prepare(
         // last_active_at 很多 null, 退一步用 updated_at 排序.
         // 注: 早期 MiniMax Code daemon schema 没 deleted_at 列 — 我们动态探测, 没列就不加 WHERE.
@@ -94,9 +108,11 @@ class MiniMaxCodeDetectorImpl {
         `SELECT session_id, title, workspace_dir, effective_model,
                 status, created_at, updated_at, framework_type
          FROM sessions
-         ${_hasColumn(db, 'sessions', 'deleted_at') ? 'WHERE deleted_at IS NULL' : ''}
+         ${hasDeleted ? 'WHERE deleted_at IS NULL' : ''}
          ORDER BY updated_at DESC`
       ).all();
+      // eslint-disable-next-line no-console
+      console.log(`[minimax-code] listSessions: ${rows.length} rows from ${this.sqlitePath} (has_deleted_at=${hasDeleted})`);
       return rows.map((r) => ({
         id: r.session_id,
         file: this.sqlitePath,  // 共享 1 个 db, file 用来 jump fallback
