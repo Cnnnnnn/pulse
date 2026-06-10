@@ -2,6 +2,38 @@
 
 ---
 
+## v2.8.0 (WorkBuddy + QoderWork Detectors) — 2026-06-10
+
+### Feat: 2 个新 app 接入监控
+
+config.json 早就有这俩 entry, fixture 早录好, **v2.8.0 修通 detector 接入 + 回归测试**.
+
+- **WorkBuddy** (api_json): 真实响应 `{ version: "5.0.2.29916712" }` → 解析为 `5.0.2` (Phase 8 stripBuildNumber 剥掉 CI counter)
+- **QoderWork** (electron_yml): 真实响应 `version: 0.5.8` → 直接解析; `bundle_changelog: true` 走 detect-worker.js:513 已有 Phase 21 post-step 读 app bundle 的 changelog.md
+
+### Detector 通用能力零改动
+
+两个新 app 都吃现有 detector (`ApiJsonDetector` / `ElectronYmlDetector`), 没改 src/detectors/. 通用 detector 改坏了风险大, 这次走"不碰核心, 加测试"路径.
+
+### 改动
+
+- `tests/detectors/api-json.test.js` +60 行 (WorkBuddy fixture 回归)
+- `tests/detectors/electron-yml.test.js` +34 行 (QoderWork fixture 回归)
+- `package.json` version 2.6.5 → 2.8.0
+
+### 测试
+
+- `npm test`: **1044 passed | 4 skipped** (baseline 1041 + WorkBuddy +2 + QoderWork +1)
+- 全 11 app fixture 都能解析, 离线模式稳定
+
+### Commits
+
+- `009bbeb test(api-json): WorkBuddy fixture回归`
+- `34399a0 test(electron-yml): QoderWork fixture回归`
+- (release commit 含 package.json + RELEASE-NOTES)
+
+---
+
 ## v2.7.1 (Library UI Polish) — 2026-06-10
 
 ### Fix: Library 5 个新组件视觉打磨
