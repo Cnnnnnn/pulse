@@ -2,6 +2,93 @@
 
 ---
 
+## v2.7.1 (Library UI Polish) — 2026-06-10
+
+### Fix: Library 5 个新组件视觉打磨
+
+v2.7.0 引入的 My Apps Library 功能跑通, 但用户反馈"29 个未监控 app 贴脸堆" / "按钮权重失衡" / "跟 status tab 视觉一致看不出来". v2.7.1 收口.
+
+设计依据: `docs/superpowers/specs/2026-06-10-library-ui-polish.md` (130 行, 沿用现有 Pulse design token: --accent-* / --bg-* / --text-* / --border / --radius-*)
+
+### LibrarySection card 化
+
+- 现状 (v2.7.0): 29 个未监控 app 贴脸平铺, 行高 50px, 无 card
+- 改: 每个 app 一张 card (12px 16px padding, 1px border, 8px 间距)
+- 主行: appName 14px / 600, 副标题 12px / 400 用 `·` 分隔 bundle · version · bundleId
+- 按钮 group 右对齐, gap 8px: ⭐ / [监控] / [忽略] 权重统一
+- 已 pin 行: 左边框 2px `--accent-blue`
+- 已 ignored 行: opacity 0.5
+- hover: 整行 `--bg-hover` + `box-shadow: var(--shadow-sm)`
+- 空状态: 64px 圆 icon (✓, 绿) + 标题 + 副标题, 64px padding
+
+### PinnedSection 视觉升级
+
+- 容器: `rgba(0, 122, 255, 0.04)` 浅蓝底 + `--border-light` 底边
+- chip: 26px 高胶囊 (圆角 13px), `--bg-card` + 1px `--border`, hover 蓝边
+- chip 的 × 按钮: 18px 圆形, hover 红
+- 加 "只看这些 →" 按钮 (右侧 ghost)
+
+### TagBar 视觉统一
+
+- 跟 PinnedSection 同行 (flex-wrap, gap 6px)
+- chip: 26px 胶囊, 跟 PinnedSection 视觉同源但用 `--bg-secondary` 底区分
+- active 态: `--accent-blue` 蓝底白字 + 边框
+- empty 状态: 3 个 popular (dev/ai/design) 灰 chip, dashed border, hover 提示
+- "点 app 行的 + tag 加 tag" 提示文字
+
+### TagInput chip 升级
+
+- chip: 24px 高 (跟 Pinned/Tag 区分), 圆角 12px
+- × 按钮: 16px 圆形, hover 红
+- + tag 按钮: dashed border ghost, hover 蓝
+- input 展开: focus 边框 `--accent-blue` + 32px 高
+
+### DetectorWizardModal 3 步 stepper
+
+- 现状 (v2.7.0): 11 detector + 字段表, 单步填, 像 data form
+- 改 3 步: ① 选 detector → ② 填字段 → ③ 确认
+- 顶部 stepper: 24px 圆形 step, active 蓝填充, done 绿填充+✓, future 灰
+- step 1: 2 列 grid (140x80px) detector card, hover 蓝边, active `rgba(0, 122, 255, 0.08)` 蓝底
+- step 2: 字段表 (跟之前一样, 但 32px 高 input, label 12px / 500 uppercase)
+- step 3: 预览 "将添加 {appName}, detector: {type}, fields: {key=value}" 表格
+- footer: [← 上一步] (step 2-3) + [取消] + [下一步 →] / [保存并监控] (step 3)
+
+### FilterBar 视觉区分
+
+- 现状: status tab 跟 library chip 视觉一致, 用户分不清
+- 改: library chip 走 `--accent-orange` (#ff9500 macOS 橙), 跟 status tab 的 `--accent-blue` (#007aff) 区分
+- 加 `|` 分隔符 (`filter-tab-sep`, 灰, 4px 间距) 强化分组
+
+### 决策点
+
+- **library chip 颜色** = `#ff9500` (macOS 橙) — 跟 status tab 蓝区分 + "favorite" 语义天然暖色
+- **跟 Pinned / TagBar 同行布局** — 节省 56px 垂直, 跟 status tab 视觉连续
+- **card 化间距 8px** — 跟 8 分类 tab 视觉语言一致
+- **3 步 wizard** — "用户在完成过程" 感, 降低一次性 11+ 字段认知负担
+
+### 测试
+
+- 0 测试改动 (纯视觉 polish, logic 不动)
+- 0 失败: 1041 passed | 4 skipped (1045) (跟 v2.7.0 一致)
+- esbuild bundle: 319kb (v2.7.0 是 316kb, +3kb)
+
+### Files
+
+- `styles.css` — 加 .filter-chip / .pinned-* / .tag-bar / .library-* / .tag-input-* / .wizard-* 14 组类 (~480 行 CSS)
+- `src/renderer/components/LibrarySection.jsx` — 行重构成 card 化
+- `src/renderer/components/PinnedSection.jsx` — 改 import path
+- `src/renderer/components/TagBar.jsx` — 改 import path
+- `src/renderer/components/DetectorWizardModal.jsx` — 3 步 stepper + 2 列 grid + confirm step
+- `docs/superpowers/specs/2026-06-10-library-ui-polish.md` (新) — 设计 spec
+- `RELEASE-NOTES.md` — 本节
+
+### 不做的 (跟 v5 草稿的边界, v2.7.0 已知 follow-up 不变)
+
+- 拖拽 manual reorder
+- bundleId → detector 自动推荐
+
+---
+
 ## v2.7.0 (My Apps Library) — 2026-06-10
 
 ### New: My Apps Library (产品形态升级)

@@ -2,6 +2,7 @@
  * src/renderer/components/TagBar.jsx
  *
  * v2.7.0 (My Apps Library, B6): 顶部 tag 过滤 chip 横条.
+ * v2.7.1: 视觉统一 — 圆角 chip (26px) + active 蓝底 + 跟 PinnedSection 同行
  *
  * 数据源: libraryConfig.tags (object: {appName: [tag1, tag2]})
  * 派生出全部 tag 列表 (unique) + 每个 tag 的 count.
@@ -44,11 +45,10 @@ export function TagBar() {
     return [...popular, ...others];
   }, [tagCounts]);
 
-  // 没 tag → 显示 3 个 popular 入口 (灰显, hover 提示 "点 app 行加 tag")
+  // 没 tag → 显示 popular 入口 (灰 chip, hover 提示)
   if (sortedTags.length === 0) {
     return (
       <div class="tag-bar tag-bar-empty">
-        <span class="tag-bar-label">tag:</span>
         {POPULAR_TAGS.slice(0, 3).map((t) => (
           <span
             key={t}

@@ -2,11 +2,16 @@
  * src/renderer/components/DetectorWizardModal.jsx
  *
  * v2.7.0 (My Apps Library, B4): detector 选择 modal.
+ * v2.7.1: 3 步 stepper (选 detector → 填字段 → 确认) + 2 列 grid card
  *
  * 用户点 LibrarySection 的"监控"按钮 → 弹这个 modal:
- *   1. 顶部: "{appName} ({bundleName})" 信息卡
- *   2. 中部: 11 个 detector type 单选 + 每个 type 必填的字段 (URL / cask / ...)
- *   3. 底部: [取消] [保存并监控] 按钮
+ *   step 1: 顶部 stepper 显示 ① 选 detector (active) ─ ② 填字段 ─ ③ 确认
+ *          主体: 11 个 detector type 2 列 grid + 选中的 hint
+ *   step 2: ① ✓ ─ ② 填字段 (active) ─ ③ 确认
+ *          主体: 选中 detector 的 fields 表单
+ *   step 3: ① ✓ ─ ② ✓ ─ ③ 确认 (active)
+ *          主体: 预览 "将添加 {appName} 到监控, detector: {type}, fields: {key=value}"
+ *   footer: [← 上一步] (step 2-3) [取消] [下一步 →] / [保存并监控] (step 3)
  *
  * 提交后调 IPC libraryAdd, 关 modal + 重置 LibrarySection.
  */
@@ -21,7 +26,7 @@ const DETECTORS = [
   {
     type: 'brew_formulae',
     label: 'Homebrew Cask',
-    hint: "最简单 — 选 cask name, 工具调 brew info --cask 拿最新版本",
+    hint: '最简单 — 选 cask name, 工具调 brew info --cask 拿最新版本',
     fields: [
       { key: 'cask', label: 'Cask 名称', placeholder: 'cursor', required: true },
     ],
@@ -53,7 +58,7 @@ const DETECTORS = [
   },
   {
     type: 'redirect_filename',
-    label: 'Redirect → filename (含 version)',
+    label: 'Redirect → filename',
     hint: 'HTTP 302 重定向到带 version 的 dmg/zip 文件名',
     fields: [
       { key: 'url', label: 'Redirect URL', placeholder: 'https://.../download', required: true },
@@ -102,7 +107,7 @@ const DETECTORS = [
   },
   {
     type: 'brew_local_cask',
-    label: 'Brew local cask (本地扫)',
+    label: 'Brew local cask',
     hint: '从本地 /usr/local/Caskroom 扫已装 cask, 不联网',
     fields: [
       { key: 'cask', label: 'Cask 名称', placeholder: 'cursor', required: true },
@@ -110,10 +115,17 @@ const DETECTORS = [
   },
 ];
 
+const STEPS = [
+  { num: 1, label: '选 detector' },
+  { num: 2, label: '填字段' },
+  { num: 3, label: '确认' },
+];
+
 export function DetectorWizardModal({ item, onClose }) {
-  // 初始选 brew_formulae (最简单), 也可按 bundleId 启发式
+  // 初始选 brew_formulae (最简单)
   const [selectedType, setSelectedType] = useState(pickInitialType(item));
   const [fieldValues, setFieldValues] = useState({});
+  const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -125,8 +137,7 @@ export function DetectorWizardModal({ item, onClose }) {
   if (!item) return null;
 
   function pickInitialType(i) {
-    // 启发式: 有 cask token (e.g. "Figma" → "figma") 默认 brew_formulae
-    if (i && i.appName) return 'brew_formulae';
+    // 启发式: 默认 brew_formulae (最简单)
     return 'brew_formulae';
   }
 
@@ -134,7 +145,7 @@ export function DetectorWizardModal({ item, onClose }) {
     setFieldValues((prev) => ({ ...prev, [key]: value }));
   }
 
-  function validate() {
+  function validateFields() {
     if (!detector) return '请选一个 detector';
     for (const f of detector.fields) {
       if (f.required) {
@@ -145,12 +156,34 @@ export function DetectorWizardModal({ item, onClose }) {
     return null;
   }
 
-  function onSubmit() {
-    const v = validate();
-    if (v) {
-      setError(v);
-      return;
+  function goNext() {
+    if (step === 1) {
+      // 选 detector 即可
+      setStep(2);
+      setError(null);
+    } else if (step === 2) {
+      // 校验字段
+      const v = validateFields();
+      if (v) {
+        setError(v);
+        return;
+      }
+      setStep(3);
+      setError(null);
+    } else if (step === 3) {
+      // 提交
+      onSubmit();
     }
+  }
+
+  function goBack() {
+    if (step > 1) {
+      setStep(step - 1);
+      setError(null);
+    }
+  }
+
+  function onSubmit() {
     setSubmitting(true);
     setError(null);
     const detectors = [{ type: selectedType, ...filterCleanFields(detector, fieldValues) }];
@@ -178,40 +211,59 @@ export function DetectorWizardModal({ item, onClose }) {
   return (
     <div class="modal-backdrop" onClick={onClose}>
       <div class="modal modal-detector-wizard" onClick={(e) => e.stopPropagation()}>
+        {/* 顶部 stepper */}
+        <div class="wizard-stepper">
+          {STEPS.map((s, i) => {
+            const cls = step === s.num ? 'wizard-step active' : (step > s.num ? 'wizard-step done' : 'wizard-step');
+            return (
+              <span key={s.num} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <span class={cls}>
+                  <span class="wizard-step-num">{step > s.num ? '✓' : s.num}</span>
+                  <span>{s.label}</span>
+                </span>
+                {i < STEPS.length - 1 && <span class="wizard-step-sep" />}
+              </span>
+            );
+          })}
+        </div>
+
         <div class="modal-header">
           <h2 class="modal-title">监控新 app</h2>
           <button class="modal-close" onClick={onClose} aria-label="关闭">×</button>
         </div>
+
         <div class="modal-body">
           <div class="wizard-item-info">
             <div class="wizard-item-name">{item.appName || item.bundleName}</div>
             <div class="wizard-item-meta">
-              <span>{item.bundleName}</span>
+              {item.bundleName && <span>{item.bundleName}</span>}
               {item.version && <span>v{item.version}</span>}
               {item.bundleId && <span>{item.bundleId}</span>}
             </div>
           </div>
 
-          <div class="wizard-section">
-            <label class="wizard-section-label">Detector 类型</label>
-            <div class="wizard-detector-grid">
-              {DETECTORS.map((d) => (
-                <button
-                  key={d.type}
-                  class={`wizard-detector-card${selectedType === d.type ? ' active' : ''}`}
-                  onClick={() => { setSelectedType(d.type); setError(null); }}
-                >
-                  <div class="wizard-detector-label">{d.label}</div>
-                  <div class="wizard-detector-type">{d.type}</div>
-                </button>
-              ))}
-            </div>
-            {detector && <p class="wizard-detector-hint">{detector.hint}</p>}
-          </div>
-
-          {detector && detector.fields.length > 0 && (
+          {step === 1 && (
             <div class="wizard-section">
-              <label class="wizard-section-label">配置字段</label>
+              <label class="wizard-section-label">Detector 类型</label>
+              <div class="wizard-detector-grid">
+                {DETECTORS.map((d) => (
+                  <button
+                    key={d.type}
+                    class={`wizard-detector-card${selectedType === d.type ? ' active' : ''}`}
+                    onClick={() => { setSelectedType(d.type); setError(null); }}
+                  >
+                    <div class="wizard-detector-label">{d.label}</div>
+                    <div class="wizard-detector-type">{d.type}</div>
+                  </button>
+                ))}
+              </div>
+              {detector && <p class="wizard-detector-hint">{detector.hint}</p>}
+            </div>
+          )}
+
+          {step === 2 && detector && (
+            <div class="wizard-section">
+              <label class="wizard-section-label">{detector.label} · 配置字段</label>
               {detector.fields.map((f) => (
                 <div key={f.key} class="wizard-field">
                   <label class="wizard-field-label">
@@ -230,16 +282,47 @@ export function DetectorWizardModal({ item, onClose }) {
             </div>
           )}
 
+          {step === 3 && detector && (
+            <div class="wizard-section">
+              <label class="wizard-section-label">确认</label>
+              <div class="wizard-confirm-row">
+                <span class="wizard-confirm-row-label">App</span>
+                <span class="wizard-confirm-row-value">{item.appName || item.bundleName}</span>
+              </div>
+              <div class="wizard-confirm-row">
+                <span class="wizard-confirm-row-label">Bundle</span>
+                <span class="wizard-confirm-row-value">{item.bundleName}</span>
+              </div>
+              <div class="wizard-confirm-row">
+                <span class="wizard-confirm-row-label">Detector</span>
+                <span class="wizard-confirm-row-value">{detector.label} ({detector.type})</span>
+              </div>
+              {detector.fields.map((f) => (
+                <div key={f.key} class="wizard-confirm-row">
+                  <span class="wizard-confirm-row-label">{f.label}</span>
+                  <span class="wizard-confirm-row-value">
+                    {(fieldValues[f.key] || '').trim() || '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {error && <div class="wizard-error">{error}</div>}
         </div>
         <div class="modal-footer">
+          {step > 1 && (
+            <button class="btn btn-ghost" onClick={goBack} disabled={submitting}>
+              ← 上一步
+            </button>
+          )}
           <button class="btn btn-ghost" onClick={onClose} disabled={submitting}>取消</button>
           <button
             class="btn btn-primary"
-            onClick={onSubmit}
+            onClick={goNext}
             disabled={submitting}
           >
-            {submitting ? '保存中…' : '保存并监控'}
+            {submitting ? '保存中…' : (step === 3 ? '保存并监控' : '下一步 →')}
           </button>
         </div>
       </div>

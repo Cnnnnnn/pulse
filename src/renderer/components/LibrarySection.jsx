@@ -2,16 +2,16 @@
  * src/renderer/components/LibrarySection.jsx
  *
  * v2.7.0 (My Apps Library, B4): "未监控" tab 下的内容区.
+ * v2.7.1: UI polish — card 化行布局 + 统一 button 风格 + 空状态 icon
  *
  * 渲染:
- *   - 顶部 header: "未监控" 标题 + "重新扫描" 按钮 + "全部忽略" 按钮
- *   - 分组列表: 每组按字母排序
- *   - 每行: bundle 名 / appName / version / bundleId / [⭐ 关注] [⊕ 添加] [⊘ 忽略] 按钮
+ *   - 顶部 header: "📦 未监控的应用 29 · 装了新 app 后点 ↻" + "↻ 重新扫描" 按钮
+ *   - 卡片化行列表 (12px 16px padding, 1px border, 8px 间距)
+ *   - 空状态: 64px 圆 icon + 标题 + 副标题
  *
  * 数据源:
  *   - unmonitoredApps signal (来自 IPC library:list-unmonitored)
- *   - 写操作走 IPC libraryAdd / librarySetIgnored
- *   - 完成后通过 onConfigUpdated 事件刷 store.libraryConfig + unmonitoredApps
+ *   - 写操作走 IPC libraryAdd / librarySetIgnored / librarySetPinned
  *
  * detector wizard 不在这里, 单独成 modal (DetectorWizardModal.jsx).
  */
@@ -57,8 +57,8 @@ export function LibrarySection({ onOpenWizard }) {
     <div class="library-section">
       <div class="library-section-header">
         <h2 class="library-section-title">
-          📦 未监控的应用
-          <span class="library-section-count">{apps.length}</span>
+          <span>📦 未监控的应用</span>
+          <span class="library-section-count">· {apps.length} 个</span>
         </h2>
         <div class="library-section-actions">
           <button
@@ -92,9 +92,9 @@ export function LibrarySection({ onOpenWizard }) {
                 <div class="library-row-main">
                   <div class="library-row-name">{item.appName || item.bundleName}</div>
                   <div class="library-row-meta">
-                    <span class="library-row-bundle">{item.bundleName}</span>
-                    {item.version && <span class="library-row-version">v{item.version}</span>}
-                    {item.bundleId && <span class="library-row-bundleid">{item.bundleId}</span>}
+                    {item.bundleName && <span>{item.bundleName}</span>}
+                    {item.version && <span>v{item.version}</span>}
+                    {item.bundleId && <span>{item.bundleId}</span>}
                   </div>
                 </div>
                 <div class="library-row-actions">

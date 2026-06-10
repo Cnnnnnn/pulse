@@ -2,6 +2,7 @@
  * src/renderer/components/PinnedSection.jsx
  *
  * v2.7.0 (My Apps Library, B4): "⭐ 我关注的" 顶部区.
+ * v2.7.1: 视觉统一 — 浅蓝底 + 圆角 chip + "只看这些 →" 按钮
  *
  * 只在 library.pinned 非空时挂载. 渲染:
  *   - 顶部: "⭐ 我关注的" 标题
