@@ -59,4 +59,7 @@ contextBridge.exposeInMainWorld('api', {
   librarySetIgnored: (ignored) => ipcRenderer.invoke('library:set-ignored', ignored),
   librarySetTags: (tags) => ipcRenderer.invoke('library:set-tags', tags),
   onConfigUpdated: (cb) => ipcRenderer.on('config-updated', (_, data) => cb(data)),
+
+  // v2.7.2 (Auto-Detect): 1 步探查, 返 best detector + 全部 results
+  libraryAutoDetect: (item) => ipcRenderer.invoke('library:auto-detect', item),
 });

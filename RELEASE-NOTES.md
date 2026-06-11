@@ -2,35 +2,78 @@
 
 ---
 
-## v2.8.0 (WorkBuddy + QoderWork Detectors) — 2026-06-10
+## v2.7.2 (Library Auto-Detect) — 2026-06-11
 
-### Feat: 2 个新 app 接入监控
+### New: 自动探查 detector — 用户零负担
 
-config.json 早就有这俩 entry, fixture 早录好, **v2.8.0 修通 detector 接入 + 回归测试**.
+v2.7.0/v2.7.1 几轮 wizard 反复重做, 根因都指向同一件事:
+**让用户选 detector 是错方向** — 用户不知道 11 个 detector 啥区别, 也不知道自己 app 用哪个.
 
-- **WorkBuddy** (api_json): 真实响应 `{ version: "5.0.2.29916712" }` → 解析为 `5.0.2` (Phase 8 stripBuildNumber 剥掉 CI counter)
-- **QoderWork** (electron_yml): 真实响应 `version: 0.5.8` → 直接解析; `bundle_changelog: true` 走 detect-worker.js:513 已有 Phase 21 post-step 读 app bundle 的 changelog.md
+v2.7.2 改成 auto-detect: 4 层优先级链自动探查, 命中 1 键确认.
 
-### Detector 通用能力零改动
+### 优先级链 (1️⃣→3️⃣ 并行, 8s timeout, 4️⃣ 用户手选 fallback)
 
-两个新 app 都吃现有 detector (`ApiJsonDetector` / `ElectronYmlDetector`), 没改 src/detectors/. 通用 detector 改坏了风险大, 这次走"不碰核心, 加测试"路径.
+| 优先级 | 方式 | 配置 | 典型耗时 |
+|---|---|---|---|
+| 1️⃣ | bundleId 静态表 (14 已知 app) | 0 | <10ms |
+| 2️⃣ | 启发式 (appName 含 code/ide/chat/reader) | 0 | ~0ms (MVP 占位, v2.7.3+ 接 worker pool) |
+| 3️⃣ | brew info --cask <guess> 试探 | 0 | ~2-5s |
+| 4️⃣ | DetectorWizard 3 步手选 fallback | 用户填 | — |
 
-### 改动
+1️⃣ 命中时短路, 2️⃣3️⃣ 跑 `Promise.allSettled` 并行, 8s 总 timeout.
 
-- `tests/detectors/api-json.test.js` +60 行 (WorkBuddy fixture 回归)
-- `tests/detectors/electron-yml.test.js` +34 行 (QoderWork fixture 回归)
-- `package.json` version 2.6.5 → 2.8.0
+### AutoDetectModal (1 步 modal, 取代 wizard)
+
+- 4 状态: probing → one / many / none
+- probing 状态: spinner + "查静态表 + 试 brew, 一般 2-5 秒"
+- 命中 1: 静态表来源 (📚) + 命中详情 (type / version / cask), "监控它 →" 按钮
+- 命中 N: 多个 result, best 高亮蓝边
+- 都没命中: "自动探查没有匹配" + "手动选 →" 按钮 fallback 到 wizard
+- 用户随时可点 "手动选 →" 跳 3 步 wizard (fallback 保留)
+
+### 已知 app 覆盖 (bundleId 静态表 14 条)
+
+| bundleId | type |
+|---|---|
+| `com.cursor.cursor` | cursor_redirect |
+| `com.moonshot.kimi` | redirect_filename |
+| `com.tencent.imamac` | app_store_lookup |
+| `com.minimax.minimaxcode` / `com.minimax.code` | electron_yml |
+| `com.codebuddy.workbuddy` | api_json |
+| `com.qclaw.app` / `com.tencent.qclaw` | qclaw_api |
+| `com.electronlark.lark` | redirect_filename |
+| `com.qoder.qoderwork` | electron_yml (TODO: url 待 fixture) |
+| `com.openai.codex` / `com.openai.codexbar` | sparkle_appcast |
+| `com.codebuddy.codexbar` / `com.codebuddy.ccswitch` | sparkle_appcast |
+
+大小写不敏感反查, macOS 早期 bundleId (legacy) 兼容.
+
+### 改动文件 (5 改 + 1 新)
+
+- `src/main/ipc.js` — 加 `library:auto-detect` 通道
+- `preload.js` + `src/renderer/api.js` — 暴露
+- `src/renderer/components/LibrarySection.jsx` — [监控] 按钮触发 auto-detect
+- `src/renderer/components/AutoDetectModal.jsx` (新) — 1 步 modal
+- `src/renderer/App.jsx` — 集成 modal 状态
+- `styles.css` — `.autodetect-*` 类 (~150 行)
+
+### 后端 3 模块 (v2.7.2a 一起 commit, 见 git log)
+
+- `src/main/library/known-apps.js` — 14 bundleId 静态表
+- `src/main/library/brew-probe.js` — brew info wrapper + guessCaskName
+- `src/main/library/detect.js` — 4 层优先级 orchestrator + 并行 + timeout
 
 ### 测试
 
-- `npm test`: **1044 passed | 4 skipped** (baseline 1041 + WorkBuddy +2 + QoderWork +1)
-- 全 11 app fixture 都能解析, 离线模式稳定
+- 56 个新 case: known-apps 16 / brew-probe 17 / detect 23
+- 0 失败: **1100 passed | 4 skipped** (v2.7.1.2 是 1044, +56)
+- esbuild bundle: 330kb (v2.7.1.2 是 322kb, +8kb)
 
-### Commits
+### 已知 follow-up
 
-- `009bbeb test(api-json): WorkBuddy fixture回归`
-- `34399a0 test(electron-yml): QoderWork fixture回归`
-- (release commit 含 package.json + RELEASE-NOTES)
+- 2️⃣ 启发式占位 (MVP 返 ok=false, v2.7.3+ 接 worker pool 跑真 detector)
+- QoderWork bundleId 走 electron_yml 但 url 留 TODO (待 v2.8.0 fixture 填)
+- 4️⃣ fallback 仍是 3 步 wizard (旧版, 保留作为 escape hatch)
 
 ---
 

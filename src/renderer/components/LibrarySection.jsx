@@ -107,8 +107,8 @@ export function LibrarySection({ onOpenWizard }) {
                   </button>
                   <button
                     class="btn btn-primary btn-sm"
-                    onClick={() => onOpenWizard(item)}
-                    title="选 detector 后加入监控"
+                    onClick={() => onOpenAutoDetect && onOpenAutoDetect(item)}
+                    title="自动探查 detector + 加入监控"
                   >
                     监控
                   </button>
