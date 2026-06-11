@@ -36,10 +36,11 @@ describe('teams-data 静态数据 integrity', () => {
       expect(t.famous[0].name).toBeTruthy();
       expect(t.famous[0].position).toBeTruthy();
       expect(t.famous[0].club).toBeTruthy();
-      // v2.9.5: squad 26 人 (11 主力 + 5 替补 + 10 TBD)
-      expect(t.squad).toHaveLength(26);
-      // number 1-26 连续
-      for (let i = 0; i < 26; i += 1) {
+      // v2.9.6: squad 23-26 人 (FIFA 报名实际数, 至少 23)
+      expect(t.squad.length).toBeGreaterThanOrEqual(23);
+      expect(t.squad.length).toBeLessThanOrEqual(26);
+      // number 1-N 连续
+      for (let i = 0; i < t.squad.length; i += 1) {
         expect(t.squad[i].number).toBe(i + 1);
         expect(t.squad[i].name).toBeTruthy();
         expect(t.squad[i].position).toBeTruthy();
@@ -48,23 +49,23 @@ describe('teams-data 静态数据 integrity', () => {
     }
   });
 
-  it('G1 4 队 (Mexico/South Africa/Korea/Czechia) 有 真实 squad 数据', () => {
-    const g1Teams = ['Mexico', 'South Africa', 'Korea Republic', 'Czechia'];
-    for (const name of g1Teams) {
+  it('G1-G2 8 队 (Czechia/Mexico/South Africa/Korea/B&H/Canada/Qatar/Switzerland) 真实 squad', () => {
+    const realTeams = ['Czechia', 'Mexico', 'South Africa', 'Korea Republic', 'Bosnia & Herzegovina', 'Canada', 'Qatar', 'Switzerland'];
+    for (const name of realTeams) {
       const t = TEAMS[name];
       expect(t, `${name} 应该在 TEAMS`).toBeDefined();
       const realCount = t.squad.filter((p) => !p.name.startsWith('TBD-')).length;
       const tbdCount = t.squad.filter((p) => p.name.startsWith('TBD-')).length;
-      // 16 真实 (11 主力 + 5 替补) + 10 TBD
-      expect(realCount, `${name} 应有 16 真实`).toBe(16);
-      expect(tbdCount, `${name} 应有 10 TBD`).toBe(10);
+      // v2.9.6: 全部 真实, 0 TBD
+      expect(realCount, `${name} 应有 23+ 真实`).toBeGreaterThanOrEqual(23);
+      expect(tbdCount, `${name} 应该有 0 TBD`).toBe(0);
     }
   });
 
-  it('G2-G12 降级到 TBD 占位 (待 v2.9.6 填)', () => {
-    const g1Teams = new Set(['Mexico', 'South Africa', 'Korea Republic', 'Czechia']);
+  it('G3-G12 40 队 降级到 TBD 占位 (待 v2.9.7 填)', () => {
+    const realTeams = new Set(['Czechia', 'Mexico', 'South Africa', 'Korea Republic', 'Bosnia & Herzegovina', 'Canada', 'Qatar', 'Switzerland']);
     for (const t of Object.values(TEAMS)) {
-      if (g1Teams.has(t.name)) continue;
+      if (realTeams.has(t.name)) continue;
       const realCount = t.squad.filter((p) => !p.name.startsWith('TBD-')).length;
       expect(realCount, `${t.name} (G${t.group}) 暂无真实数据, 应 0`).toBe(0);
       // 26 TBD 占位
