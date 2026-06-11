@@ -22,6 +22,7 @@ export const WC_SUBTABS = [
 export function WorldcupLayout() {
   const [subTab, setSubTab] = useState('fixtures');
   const [search, setSearch] = useState('');
+  const [squadMatch, setSquadMatch] = useState(null);
 
   return (
     <div class="worldcup-layout">
@@ -34,9 +35,9 @@ export function WorldcupLayout() {
       />
       <div class="worldcup-layout-main">
         {subTab === 'teams' ? (
-          <WorldcupTeamsView search={search} />
+          <WorldcupTeamsView search={search} onTeamClick={() => {/* v2.9.4: 队详情 modal */}} />
         ) : (
-          <WorldcupView search={search} />
+          <WorldcupView search={search} squadMatch={squadMatch} setSquadMatch={setSquadMatch} />
         )}
       </div>
     </div>

@@ -9,8 +9,9 @@
  *   3) 成功 → groupMatchesByDate(matches) → section by day 渲染
  */
 
-import { useEffect, useMemo } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import MatchCard from './MatchCard.jsx';
+import SquadModal from './SquadModal.jsx';
 import { groupMatchesByDate } from './groupByDate.js';
 import {
   worldcupMatches,
@@ -39,6 +40,7 @@ export function WorldcupView({ search = '' }) {
   const data = worldcupMatches.value;
   const loading = worldcupLoading.value;
   const error = worldcupError.value;
+  const [squadMatch, setSquadMatch] = useState(null);
 
   // 首次 mount 自动拉
   useEffect(() => {
@@ -105,6 +107,7 @@ export function WorldcupView({ search = '' }) {
 
   return (
     <div class="worldcup-view">
+      {squadMatch && <SquadModal match={squadMatch} onClose={() => setSquadMatch(null)} />}
       <header class="worldcup-header">
         <h2 class="worldcup-title">⚽ {data.name || 'World Cup 2026'}</h2>
         <p class="worldcup-meta">
@@ -121,7 +124,11 @@ export function WorldcupView({ search = '' }) {
             </header>
             <div class="worldcup-day-matches">
               {g.matches.map((m, idx) => (
-                <MatchCard key={`${g.date}-${m.time || ''}-${idx}`} match={m} />
+                <MatchCard
+                  key={`${g.date}-${m.time || ''}-${idx}`}
+                  match={m}
+                  onClick={(mm) => setSquadMatch(mm)}
+                />
               ))}
             </div>
           </section>
