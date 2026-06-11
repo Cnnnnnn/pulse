@@ -210,7 +210,7 @@ export function DetectorWizardModal({ item, onClose }) {
 
   return (
     <div class="modal-backdrop" onClick={onClose}>
-      <div class="modal modal-detector-wizard" onClick={(e) => e.stopPropagation()}>
+      <div class="modal-card modal-detector-wizard" onClick={(e) => e.stopPropagation()}>
         {/* 顶部 stepper */}
         <div class="wizard-stepper">
           {STEPS.map((s, i) => {
@@ -228,8 +228,8 @@ export function DetectorWizardModal({ item, onClose }) {
         </div>
 
         <div class="modal-header">
-          <h2 class="modal-title">监控新 app</h2>
-          <button class="modal-close" onClick={onClose} aria-label="关闭">×</button>
+          <h2>监控新 app</h2>
+          <button class="btn-close" onClick={onClose} aria-label="关闭">×</button>
         </div>
 
         <div class="modal-body">

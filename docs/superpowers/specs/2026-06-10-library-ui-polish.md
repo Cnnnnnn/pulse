@@ -1,9 +1,28 @@
 # v2.7.0 → v2.7.1: Library UI Polish Design Spec
 
-> **Status**: 设计 → 实施
+> **Status**: ✅ 已实施 (v2.7.1 commit b7cd74d)
 > **Date**: 2026-06-10
 > **Scope**: v2.7.0 引入的 5 个新组件 (PinnedSection / LibrarySection / TagBar / TagInput / DetectorWizardModal) 视觉打磨
 > **设计目标**: 跟现有 Pulse 视觉语言对齐 (macOS light theme, #007aff 主色, 13px/500 字号, 150ms ease), 不引入新 design token, 不换技术栈 (仍 vanilla CSS 变量 + Preact)
+
+## 已知 patch (v2.7.1.1)
+
+### Fix: DetectorWizardModal class 名跟项目其它 modal 不一致
+
+**真机验时发现**: 我 v2.7.0/v2.7.1 写 modal 用了 `class="modal"` / `class="modal-close"` / `<h2 class="modal-title">`, 但 Pulse 现有所有 modal (BulkUpgradeModal / AISettingsModal) 用的真实 class 是:
+- `class="modal-card"` (有 `width: 560px` / `max-width` / `max-height: calc(100vh - 64px)` / `border-radius: var(--radius-lg)` / `box-shadow` 关键样式)
+- `class="btn-close"` (有 `font-size: 20px` / `color: var(--text-tertiary)`)
+- `<h2>` (无 class, 走 `.modal-header h2` 选择器)
+
+**症状**:
+1. modal 没居中, 没背景遮罩
+2. 11 个 detector 排成 1 列 (不是 spec 的 2 列 grid) — 因为没限宽, 父容器窄到 1 列
+3. modal 高度超过视窗, footer 被截, 浏览器滚动条反而出现
+4. × 关按钮跟 stepper 行的 ① 撞位置
+
+**修法**: 改 3 处 class 名 (`modal` → `modal-card`, `modal-close` → `btn-close`, `<h2 class="modal-title">` → `<h2>`), CSS 那边同名样式自动生效.
+
+**教训**: v2.7.0/v2.7.1 实施时我没 grep 现有 modal 怎么用 class, 自己拍脑袋写了 — 拍脑袋风险. 下次写 modal 前先 grep 现有 modal.
 
 ---
 
