@@ -36,17 +36,17 @@
       "name": "ima.copilot",
       "bundle": "ima.copilot.app",
       "download_url": "https://ima.qq.com/download/",
+      "detectors": [
+        {
+          "type": "app_store_lookup",
+          "url": "https://itunes.apple.com/lookup?id=6737188438&country=cn"
+        }
+      ],
       "version_sources": [
         {
           "type": "regex_file",
           "path": "~/Library/Application Support/com.tencent.imamac/mmkv/RDConfigKVStoragePrefix_f3b56f2322_10001_release_0",
           "pattern": "appVersion\\D{0,4}([0-9.]+)"
-        }
-      ],
-      "detectors": [
-        {
-          "type": "app_store_lookup",
-          "url": "https://itunes.apple.com/lookup?id=6737188438&country=cn"
         }
       ]
     },
@@ -149,5 +149,29 @@
         }
       ]
     }
-  ]
+  ],
+  "notifications": {
+    "quiet_hours_start": null,
+    "quiet_hours_end": null,
+    "cooldown_hours": null,
+    "check_interval_hours": 6
+  },
+  "aiSessions": {
+    "enabled": false,
+    "provider": "ollama",
+    "ollama": {
+      "host": "http://localhost:11434",
+      "model": "qwen3.5:9b"
+    },
+    "cloud": null,
+    "backfillDays": 1,
+    "backfillOnStart": true,
+    "locale": "zh-CN"
+  },
+  "library": {
+    "sortBy": "starred",
+    "pinned": [],
+    "ignored": [],
+    "tags": {}
+  }
 }

@@ -20,7 +20,7 @@ import { useState, useEffect } from 'preact/hooks';
 import { unmonitoredApps, libraryConfig, activeFilter } from '../store.js';
 import { api } from '../api.js';
 
-export function LibrarySection({ onOpenWizard }) {
+export function LibrarySection({ onOpenAutoDetect, onOpenWizard }) {
   const apps = unmonitoredApps.value;
   const pinned = (libraryConfig.value && libraryConfig.value.pinned) || [];
   const ignoredNames = new Set(
