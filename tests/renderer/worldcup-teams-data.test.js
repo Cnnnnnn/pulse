@@ -1,11 +1,12 @@
 /**
  * tests/renderer/worldcup-teams-data.test.js
  *
- * v2.9.2 squad skeleton — teams-data 单测
+ * v2.9.5 teams-data 单测 — 适配 26 人 squad (16 真实 + 10 TBD)
  *
  * 数据 integrity:
  *   - 48 队 (12 group × 4)
- *   - 字段完整 (name / cn / code / group / flag / famous / squad)
+ *   - 字段完整 (name / cn / code / group / flag / famous / squad 26)
+ *   - G1 (4 队) 有 16 真实人, 10 TBD 占位
  *   - flagFromCode 拼 regional indicator 正确
  */
 
@@ -24,7 +25,7 @@ describe('teams-data 静态数据 integrity', () => {
     }
   });
 
-  it('每队字段完整 (name / cn / code / group / flag / famous / squad)', () => {
+  it('每队字段完整 (name / cn / code / group / flag / famous / squad 26)', () => {
     for (const t of Object.values(TEAMS)) {
       expect(t.name).toBeTruthy();
       expect(t.cn).toBeTruthy();
@@ -35,10 +36,42 @@ describe('teams-data 静态数据 integrity', () => {
       expect(t.famous[0].name).toBeTruthy();
       expect(t.famous[0].position).toBeTruthy();
       expect(t.famous[0].club).toBeTruthy();
-      expect(t.squad).toHaveLength(25);
-      // 占位骨架: TBD-1 ~ TBD-25
-      for (let i = 0; i < 25; i += 1) {
+      // v2.9.5: squad 26 人 (11 主力 + 5 替补 + 10 TBD)
+      expect(t.squad).toHaveLength(26);
+      // number 1-26 连续
+      for (let i = 0; i < 26; i += 1) {
+        expect(t.squad[i].number).toBe(i + 1);
+        expect(t.squad[i].name).toBeTruthy();
+        expect(t.squad[i].position).toBeTruthy();
+        expect(t.squad[i].club).toBeTruthy();
+      }
+    }
+  });
+
+  it('G1 4 队 (Mexico/South Africa/Korea/Czechia) 有 真实 squad 数据', () => {
+    const g1Teams = ['Mexico', 'South Africa', 'Korea Republic', 'Czechia'];
+    for (const name of g1Teams) {
+      const t = TEAMS[name];
+      expect(t, `${name} 应该在 TEAMS`).toBeDefined();
+      const realCount = t.squad.filter((p) => !p.name.startsWith('TBD-')).length;
+      const tbdCount = t.squad.filter((p) => p.name.startsWith('TBD-')).length;
+      // 16 真实 (11 主力 + 5 替补) + 10 TBD
+      expect(realCount, `${name} 应有 16 真实`).toBe(16);
+      expect(tbdCount, `${name} 应有 10 TBD`).toBe(10);
+    }
+  });
+
+  it('G2-G12 降级到 TBD 占位 (待 v2.9.6 填)', () => {
+    const g1Teams = new Set(['Mexico', 'South Africa', 'Korea Republic', 'Czechia']);
+    for (const t of Object.values(TEAMS)) {
+      if (g1Teams.has(t.name)) continue;
+      const realCount = t.squad.filter((p) => !p.name.startsWith('TBD-')).length;
+      expect(realCount, `${t.name} (G${t.group}) 暂无真实数据, 应 0`).toBe(0);
+      // 26 TBD 占位
+      for (let i = 0; i < 26; i += 1) {
         expect(t.squad[i].name).toBe(`TBD-${i + 1}`);
+        expect(t.squad[i].position).toBe('TBD');
+        expect(t.squad[i].club).toBe('TBD');
       }
     }
   });

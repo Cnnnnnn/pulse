@@ -109,7 +109,7 @@ export function WorldcupView({ search = '' }) {
     <div class="worldcup-view">
       {squadMatch && <SquadModal match={squadMatch} onClose={() => setSquadMatch(null)} />}
       <header class="worldcup-header">
-        <h2 class="worldcup-title">⚽ {data.name || 'World Cup 2026'}</h2>
+        <h2 class="worldcup-title">⚽ 世界杯 2026</h2>
         <p class="worldcup-meta">
           共 {data.matches.length} 场赛事 · {dayGroups.length} 个比赛日
         </p>

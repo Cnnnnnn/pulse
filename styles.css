@@ -2936,6 +2936,33 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.match-card:hover {
+  border-color: var(--accent-primary, #007aff);
+}
+
+.match-card-tags {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.match-card-stage {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-primary, #007aff);
+  background: rgba(0, 122, 255, 0.08);
+  border-radius: 4px;
+  padding: 2px 8px;
+  letter-spacing: 0.02em;
 }
 
 .match-card-row {
@@ -2956,6 +2983,17 @@ body {
 
 .match-team-right {
   text-align: right;
+}
+
+.match-team-flag {
+  font-size: 18px;
+  margin-right: 6px;
+  line-height: 1;
+}
+
+.match-team-right .match-team-flag {
+  margin-right: 0;
+  margin-left: 6px;
 }
 
 .match-center {

@@ -29,6 +29,8 @@
  * data integrity: 队名必须跟 openfootball TXT 的 Group 行 1:1, 中文译名 跟 FIFA 官方对齐.
  */
 
+import { SQUADS } from './squads-data.js';
+
 // 50 队 数据 (12 组 × 4 队 + 2 邀请 = 50). 注: 2026 决赛圈实际 48 队, 邀请 2 队
 // 由 FIFA 2026 跟 USL 拍板. 这里 hardcode 50 跟 TXT 头部 Group 行 1:1.
 //
@@ -120,10 +122,10 @@ function flagFromCode(code) {
   );
 }
 
-// 25 占位骨架
+// 26 人占位骨架 (FIFA 报名未填时 fallback)
 function makeSquadSkeleton() {
   const list = [];
-  for (let i = 1; i <= 25; i += 1) {
+  for (let i = 1; i <= 26; i += 1) {
     list.push({ number: i, position: 'TBD', name: `TBD-${i}`, club: 'TBD' });
   }
   return list;
@@ -139,7 +141,7 @@ for (const t of TEAMS_RAW) {
     group: t.group,
     flag: flagFromCode(t.code),
     famous: [t.famous],
-    squad: makeSquadSkeleton(),
+    squad: SQUADS[t.name] || makeSquadSkeleton(),
   };
 }
 

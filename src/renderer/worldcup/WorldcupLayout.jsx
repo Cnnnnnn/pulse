@@ -23,6 +23,21 @@ export function WorldcupLayout() {
   const [subTab, setSubTab] = useState('fixtures');
   const [search, setSearch] = useState('');
   const [squadMatch, setSquadMatch] = useState(null);
+  const [teamSquad, setTeamSquad] = useState(null);
+
+  function handleTeamClick(team) {
+    // 1 队对 1 队 自身 虚拟 match (Stage = 球队, VS 自己也行)
+    setTeamSquad({
+      team1: team.name,
+      team2: team.name,  // 自己 vs 自己
+      stage: `${team.cn} 大名单`,
+      venue: 'FIFA 2026 报名',
+      time: '',
+      timezone: '',
+      date: '',
+      _isTeam: true,
+    });
+  }
 
   return (
     <div class="worldcup-layout">
@@ -35,9 +50,12 @@ export function WorldcupLayout() {
       />
       <div class="worldcup-layout-main">
         {subTab === 'teams' ? (
-          <WorldcupTeamsView search={search} onTeamClick={() => {/* v2.9.4: 队详情 modal */}} />
+          <WorldcupTeamsView search={search} onTeamClick={handleTeamClick} />
         ) : (
           <WorldcupView search={search} squadMatch={squadMatch} setSquadMatch={setSquadMatch} />
+        )}
+        {teamSquad && (
+          <SquadModal match={teamSquad} onClose={() => setTeamSquad(null)} />
         )}
       </div>
     </div>
