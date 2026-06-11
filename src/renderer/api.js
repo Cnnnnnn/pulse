@@ -67,15 +67,15 @@ export function createApi(overrides = {}) {
  getAiSessionsConfig: pick(overrides, 'getAiSessionsConfig'),
  saveAiSessionsConfig: pick(overrides, 'saveAiSessionsConfig'),
  onAiSessionsConfigUpdated: pick(overrides, 'onAiSessionsConfigUpdated'),
-  // v2.7.0 (My Apps Library)
-  libraryListUnmonitored: pick(overrides, 'libraryListUnmonitored'),
-  libraryAdd: pick(overrides, 'libraryAdd'),
-  libraryRemove: pick(overrides, 'libraryRemove'),
-  librarySetSortBy: pick(overrides, 'librarySetSortBy'),
-  librarySetPinned: pick(overrides, 'librarySetPinned'),
-  librarySetIgnored: pick(overrides, 'librarySetIgnored'),
-  librarySetTags: pick(overrides, 'librarySetTags'),
-  onConfigUpdated: pick(overrides, 'onConfigUpdated'),
+ // v2.7.0 (My Apps Library)
+ libraryListUnmonitored: pick(overrides, 'libraryListUnmonitored'),
+ libraryAdd: pick(overrides, 'libraryAdd'),
+ libraryRemove: pick(overrides, 'libraryRemove'),
+ librarySetSortBy: pick(overrides, 'librarySetSortBy'),
+ librarySetPinned: pick(overrides, 'librarySetPinned'),
+ librarySetIgnored: pick(overrides, 'librarySetIgnored'),
+ librarySetTags: pick(overrides, 'librarySetTags'),
+ onConfigUpdated: pick(overrides, 'onConfigUpdated'),
  };
 }
 
