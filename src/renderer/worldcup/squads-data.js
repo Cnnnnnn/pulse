@@ -1,7 +1,7 @@
 /**
  * src/renderer/worldcup/squads-data.js
  *
- * v2.9.6 — 48 队 26 人大名单 (完整, FIFA 2026 报名)
+ * v2.9.7 — 48 队 26 人大名单 (完整, FIFA 2026 报名)
  *
  * 数据来源: FlashscoreUSA 1248 players (2026-06 公布, 截止 2026-06-02)
  * 队名映射: 跟 teams-data.js FIFA 官方名 1:1
@@ -9,15 +9,30 @@
  *   - 'Cape Verde' (Flashscore) → 'Cabo Verde' (FIFA)
  *   - 'Iran' (Flashscore) → 'IR Iran' (FIFA)
  *   - 'D.R. Congo' (Flashscore) → 'Congo DR' (FIFA)
- *   - 'Türkiye' 跟 Flashscore 'Turkey' 同队, 走 FIFA 名
+ *   - 'Turkey' (Flashscore) → 'Türkiye' (FIFA)
+ *   - 'Ivory Coast' (Flashscore) → "Côte d'Ivoire" (FIFA, ASCII ' 跟 teams-data 对齐)
+ *   - 'Curacao' (Flashscore) → 'Curaçao' (FIFA, 保留 ç)
+ *   - 其它 41 队 跟 Flashscore 1:1
  *
- * 阵型 4-3-3 通用 (GK 3 + DF 9/10 + MF 7/8 + FW 4/6)
+ * 阵型 4-3-3 通用 (GK 3 + DF + MF + FW)
  * 注: 各队报名 23-26 人不等, 3 GK 必备. 队实际报名人数标在每队注释.
+ *
+ * 架构 (v2.9.7 3 拆 import 聚合):
+ *   - G1-G2 8 队 inline 在此文件 (历史 first batch, FIFA A/B 组)
+ *   - G3-G6 16 队 → ./squads-data-g3g6.js
+ *   - G7-G9 12 队 → ./squads-data-g7g9.js
+ *   - G10-G12 12 队 → ./squads-data-g10g12.js
+ *   - 3 拆文件保留作 source-of-truth (拆分便于独立 review/diff)
+ *   - teams-data.js `import { SQUADS } from './squads-data.js'` 仍拿到聚合 map
  *
  * Schema: [{ number, position, name, club }]
  */
 
-const SQUADS = {
+import { SQUADS_G3G6 } from './squads-data-g3g6.js';
+import { SQUADS_G7G9 } from './squads-data-g7g9.js';
+import { SQUADS_G10G12 } from './squads-data-g10g12.js';
+
+const SQUADS_G1G2 = {
   // ─── Group A (4 队) ─────────────────────────────
   // Czech Republic — 26 人
   Czechia: [
@@ -253,6 +268,18 @@ const SQUADS = {
     { number: 24, position: 'FW', name: 'Cedric Itten',          club: 'Fortuna Dusseldorf' },
     { number: 25, position: 'FW', name: 'Dan Ndoye',             club: 'Nottingham Forest' },
   ],
+};
+
+/**
+ * 聚合所有 48 队:
+ *   SQUADS_G1G2 (8)  + SQUADS_G3G6 (16) + SQUADS_G7G9 (12) + SQUADS_G10G12 (12) = 48
+ * 顺序: G1-G2 inline + 3 拆 import (按 FIFA 分组顺序)
+ */
+const SQUADS = {
+  ...SQUADS_G1G2,
+  ...SQUADS_G3G6,
+  ...SQUADS_G7G9,
+  ...SQUADS_G10G12,
 };
 
 export { SQUADS };

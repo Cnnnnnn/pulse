@@ -1,12 +1,12 @@
 /**
  * tests/renderer/worldcup-teams-data.test.js
  *
- * v2.9.5 teams-data 单测 — 适配 26 人 squad (16 真实 + 10 TBD)
+ * v2.9.7 teams-data 单测 — 适配 48 队 全部真实 squad (G3-G12 聚合完成)
  *
  * 数据 integrity:
  *   - 48 队 (12 group × 4)
- *   - 字段完整 (name / cn / code / group / flag / famous / squad 26)
- *   - G1 (4 队) 有 16 真实人, 10 TBD 占位
+ *   - 字段完整 (name / cn / code / group / flag / famous / squad 23-26)
+ *   - 48 队 全部有真实数据 (v2.9.7 G3-G12 聚合后, 0 TBD 占位)
  *   - flagFromCode 拼 regional indicator 正确
  */
 
@@ -56,24 +56,21 @@ describe('teams-data 静态数据 integrity', () => {
       expect(t, `${name} 应该在 TEAMS`).toBeDefined();
       const realCount = t.squad.filter((p) => !p.name.startsWith('TBD-')).length;
       const tbdCount = t.squad.filter((p) => p.name.startsWith('TBD-')).length;
-      // v2.9.6: 全部 真实, 0 TBD
+      // v2.9.7: 全部 真实, 0 TBD
       expect(realCount, `${name} 应有 23+ 真实`).toBeGreaterThanOrEqual(23);
       expect(tbdCount, `${name} 应该有 0 TBD`).toBe(0);
     }
   });
 
-  it('G3-G12 40 队 降级到 TBD 占位 (待 v2.9.7 填)', () => {
-    const realTeams = new Set(['Czechia', 'Mexico', 'South Africa', 'Korea Republic', 'Bosnia & Herzegovina', 'Canada', 'Qatar', 'Switzerland']);
+  it('G3-G12 40 队 全部真实 squad (v2.9.7 聚合完成)', () => {
+    const g1g2Teams = new Set(['Czechia', 'Mexico', 'South Africa', 'Korea Republic', 'Bosnia & Herzegovina', 'Canada', 'Qatar', 'Switzerland']);
     for (const t of Object.values(TEAMS)) {
-      if (realTeams.has(t.name)) continue;
+      if (g1g2Teams.has(t.name)) continue;
       const realCount = t.squad.filter((p) => !p.name.startsWith('TBD-')).length;
-      expect(realCount, `${t.name} (G${t.group}) 暂无真实数据, 应 0`).toBe(0);
-      // 26 TBD 占位
-      for (let i = 0; i < 26; i += 1) {
-        expect(t.squad[i].name).toBe(`TBD-${i + 1}`);
-        expect(t.squad[i].position).toBe('TBD');
-        expect(t.squad[i].club).toBe('TBD');
-      }
+      const tbdCount = t.squad.filter((p) => p.name.startsWith('TBD-')).length;
+      // v2.9.7: G3-G12 squads-data-g*.js 聚合后, 全部有 23+ 真实 (USA 25 + TBD-26, IR Iran 24 + 2 TBD, Iraq 23 + 3 TBD, Austria 25 + TBD-26 → 0~3 TBD)
+      expect(realCount, `${t.name} (G${t.group}) 应有 23+ 真实`).toBeGreaterThanOrEqual(23);
+      expect(tbdCount, `${t.name} (G${t.group}) TBD ≤3 (FIFA 报名 23-26 人实际)`).toBeLessThanOrEqual(3);
     }
   });
 
