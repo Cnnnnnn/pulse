@@ -14,7 +14,7 @@ import { summary, upgradableCount, checkedCount, totalAppCount, detectingCount }
 import { BulkUpgradeButton } from './BulkUpgradeButton.jsx';
 import { AITasksButton } from './AITasksDrawer.jsx';
 
-export function Header({ onCheck }) {
+export function Header({ onCheck, onOpenStats }) {
   const session = checkSession.value;
   const phase = session.phase;
   const isRunning = phase === 'running';
@@ -47,6 +47,15 @@ export function Header({ onCheck }) {
         </button>
         <BulkUpgradeButton />
         <AITasksButton />
+        {/* v2.8.1 F1 Stats 入口 */}
+        <button
+          class="btn btn-ghost btn-sm"
+          onClick={onOpenStats}
+          title="查看 Pulse 自我统计 (5 标 / detector 分布 / 升级历史 / mute 活跃)"
+          aria-label="Stats"
+        >
+          📊
+        </button>
       </div>
     </header>
   );

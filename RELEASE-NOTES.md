@@ -2,6 +2,54 @@
 
 ---
 
+## v2.8.1 (F1 Stats 自我统计) — 2026-06-11
+
+### 自我统计 modal — 4 段指标
+
+Header 加 📊 按钮 → 4 段 modal 看板. 0 联网, 全读 `state.json`, 实时.
+
+### 4 段
+
+| 段 | 指标 | 数据源 |
+|---|---|---|
+| **S1 总览** | 5 标: 已监控 / 可升级 / 本周升级 / ⭐Pinned / 🚫Ignored | `state.json.apps.*.status` + `libraryConfig.{pinned, ignored}` + `computeWeeklyStats` |
+| **S2 Detector 源分布** | 表格: 类型 × 数量 (count desc) | `state.json.apps.*.source` |
+| **S3 升级历史** | 3 档: 7d / 30d / 90d (复用 `weekly-stats.js`, 传 `windowMs`) | `state.json.apps.*.changelog_history` |
+| **S4 Mute 活跃** | 3 标: 活跃中 / 永久 (until=0) / 过期未清 + 列表 | `state.json.mutes.*` |
+
+数据 0 副作用 / 0 缓存 / 0 网络. 复用 `weekly-stats.js` 算 S1 weekUpgrades + S3 三档, 单一真值.
+
+### UI 位置
+
+- Header 右上 `📊` 按钮 (跟 `检查更新` / `BulkUpgradeButton` / `AITasksButton` 一排, `btn-ghost btn-sm`)
+- modal 640×max80vh, 4 段 section 上下叠, ESC 关 (跟 v2.8.0 wizard F2 一致)
+- 颜色: 跟现有 macOS 视觉语言一致, 用 `var(--text-*)` / `var(--bg-*)` 变量, 不引入新 design token
+- 表格数字 `font-variant-numeric: tabular-nums` 对齐
+- mute 状态 3 标色: active 橙 / permanent 蓝 / expired 灰
+
+### 改动文件 (5 改 + 1 新)
+
+- `src/renderer/stats.js` (新) — 4 段纯函数 (S1/S2/S3/S4)
+- `src/renderer/components/StatsModal.jsx` (新) — modal 4 段 + ESC 关
+- `src/renderer/components/Header.jsx` — 加 `onOpenStats` prop + 📊 按钮
+- `src/renderer/App.jsx` — `statsOpen` state + Header 传 `onOpenStats` + 挂载 `StatsModal`
+- `styles.css` — `.modal-stats` / `.stats-*` 类 (~140 行, 4 块视觉)
+- `tests/renderer/stats.test.js` (新) — 15 case: 4 段函数 + 边界 (永久/过期/活跃) + 排序 (count desc) + 自定义 windowDays
+
+### 验证
+
+- vitest **64 files / 1059 passed | 4 skipped** (v2.8.0 是 63/1044, 加 1 文件 + 15 case)
+- load-smoke 全过
+- 0 IPC 改动 (4 段全走现有 cachedState + libraryConfig signal)
+
+### 已知 follow-up
+
+- Stats 不持久化, 关 modal 重开重算 — 已无开销 (state.json in-memory, 50ms 内)
+- S1 标 "本周升级" = 7d, 跟 S3 7d 重复显示; 未来可改成 "本小时" / "今日" 区分
+- Stats 4 段全在同一个 modal — 未来如果数据多可拆 tab
+
+---
+
 ## v2.8.0 (Wizard UX Polish) — 2026-06-11
 
 ### 5 项 wizard 收尾 (v2.7.4 回滚 auto-detect 后 wizard 是唯一路径)

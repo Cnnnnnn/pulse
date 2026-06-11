@@ -35,11 +35,13 @@ import { PinnedSection } from './components/PinnedSection.jsx';
 import { TagBar } from './components/TagBar.jsx';
 import { LibrarySection, refreshUnmonitored } from './components/LibrarySection.jsx';
 import { DetectorWizardModal } from './components/DetectorWizardModal.jsx';
+import { StatsModal } from './components/StatsModal.jsx';
 
 export function App({ onCheck }) {
   const session = checkSession.value;
   const phase = session.phase;
   const [wizardItem, setWizardItem] = useState(null);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   // 全局拦截 Cmd+F / Ctrl+F, 聚焦 search input
   useEffect(() => {
@@ -88,7 +90,7 @@ export function App({ onCheck }) {
   return (
     <div id="app">
       <div id="titlebar"></div>
-      <Header onCheck={onCheck} />
+      <Header onCheck={onCheck} onOpenStats={() => setStatsOpen(true)} />
       <AITasksDrawer />
       <FilterBar />
       <PinnedSection />
@@ -127,6 +129,7 @@ export function App({ onCheck }) {
         </div>
       </footer>
       <BulkUpgradeModal />
+      {statsOpen && <StatsModal onClose={() => setStatsOpen(false)} />}
       {wizardItem && (
         <DetectorWizardModal
           item={wizardItem}
