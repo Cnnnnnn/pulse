@@ -2,6 +2,84 @@
 
 ---
 
+## v2.9.3 (SquadModal + 北京时间 + 国旗) — 2026-06-11
+
+### Match card 升级
+
+- **国旗 emoji**: 队名前加 (🇲🇽 vs 🇿🇦), 用 Unicode regional indicator 拼接 (0 网络)
+- **北京时间**: 自动从 TXT 原时间 + tz_offset 转到 UTC+8, e.g. `13:00 UTC-6` → `03:00+1d 北京` (跨日日期同步调)
+- **可点**: hover 边框变蓝, 点弹 SquadModal (跟 v2.9.0 "不做点详情" 反悔, 用户拍 `card_rich_modal`)
+
+### SquadModal (点 card 弹)
+
+- 顶: 阶段 + 日期 + 星期 + 🕒 北京 (灰显原 UTC) + 📍 场馆
+- 主体: 2 队大名单并列, 1 真实人 (Son / Mbappé / Messi 等) 头排 + 25 占位 TBD-1~TBD-25
+- 底: 数据来源 + 关闭
+- 隔离: ESC 关 / 点 backdrop 关 / 卡片内 .stopPropagation 不冒泡
+
+### timeUtils utility
+
+- `parseUtcOffset('UTC-6')` → 6 (跟 JS Date.getTimezoneOffset 反向, 正数=东)
+- `toBeijingTime(time, tz, date)` → `{date, time, originalTime, weekday}`, 跨日自动调
+
+### 验证
+
+- 62 files / 983 passed | 4 skipped (跟 v2.9.2 一致, +0 测)
+- esbuild 335.5kb (v2.9.2 是 326.9, +8.6kb = SquadModal 200 + MatchCard flag/bj + timeUtils 60 + CSS 150)
+
+---
+
+## v2.9.2 (Squad Skeleton — 48 队数据) — 2026-06-11
+
+### 48 队 squad skeleton
+
+- 1 真实人 (知名队长 / 核心球员) + 25 占位 `TBD-1`~`TBD-25`, 后期逐队填 (v2.9.5+)
+- FIFA 官方名 mapping (跟 TXT 1:1, trivia 注释修正):
+  - `South Korea` → `Korea Republic`
+  - `Iran` → `IR Iran`
+  - `Cape Verde` → `Cabo Verde`
+  - `DR Congo` → `Congo DR`
+  - `Ivory Coast` → `Côte d'Ivoire`
+  - `Czech Republic` → `Czechia`
+  - `Turkey` → `Türkiye`
+- 中文译名: FIFA 中文官网 / 新华体育 / 央视体育常用译
+- 国旗 emoji: Unicode regional indicator 拼接, 0 网络依赖
+
+### 球队列表实装
+
+- 进 [世界杯] tab → 点 [球队] 子 tab → 12 group × 4 队 grid 显示
+- 每 team card: 国旗 + 中文 + 英文 FIFA 官方名 + 1 真实人
+- 搜索 '中国' / 'Ger' / '🇩🇪' / 'A' 都过滤
+- hover card 边框变蓝, 点: 暂时 noop (v2.9.4 弹 队详情 modal)
+
+### 验证
+
+- 62 files / 983 passed | 4 skipped (+10 case `worldcup-teams-data.test.js`)
+- esbuild 326.9kb (v2.9.1 是 315.4, +11.5kb = teams-data 6KB + WorldcupTeamsView 200 + CSS 80)
+
+---
+
+## v2.9.1 (Layout 拆 — 2 独立顶部) — 2026-06-11
+
+### 2 套独立 layout
+
+- **VersionsLayout** (🔄 版本检查): 沿用 v2.6 顶部 (Header 检查更新 + FilterBar 搜索 + 状态栏)
+- **WorldcupLayout** (🏆 世界杯): 独立顶部 (品牌 + [赛程] / [球队] 子 tab + 搜索框)
+- AppShell 依 `activeNav` dispatch, 共享左侧 SideNav (180↔40 折叠)
+- 跟版本检查 0 共享 view / store / signal (除 navStore 2 signal)
+
+### Cmd+F 切搜索
+
+- 在 2 个 tab 都能唤起搜索框, 自动 focus 对应 layout 的 input
+- 2 套 layout 各自管 search state
+
+### 验证
+
+- 61 files / 973 passed | 4 skipped (v2.9.0 +1 file `WorldcupLayout.jsx`)
+- esbuild 315.4kb (v2.9.0 是 311.7, +3.7kb = WorldcupHeader + WorldcupLayout 200 + CSS 50)
+
+---
+
 ## v2.9.0 (World Cup 2026 — 世界杯专栏) — 2026-06-11
 
 ### 新增: 世界杯专栏
