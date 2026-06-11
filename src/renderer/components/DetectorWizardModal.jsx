@@ -14,8 +14,8 @@
  * 提交后调 IPC libraryAdd, 关 modal + 重置 LibrarySection.
  */
 
-import { useState, useMemo } from 'preact/hooks';
-import { unmonitoredApps } from '../store.js';
+import { useState, useMemo, useEffect } from 'preact/hooks';
+import { unmonitoredApps, showToast } from '../store.js';
 import { api } from '../api.js';
 
 // 11 个 detector types + 每个需要的 fields 定义
@@ -134,8 +134,31 @@ export function DetectorWizardModal({ item, onClose }) {
 
   if (!item) return null;
 
+  /**
+   * F1: 初始 detector 启发 (v2.8.0).
+   *
+   * 顺序按 1️⃣ 命中短路: 任一关键词命中就返, 不再走下一条.
+   * 不联网, 纯字符串大小写不敏感匹配. 兜底 brew_formulae.
+   *
+   * @param {object} i { appName, bundleName, bundleId, ... }
+   * @returns {string} detector.type
+   */
   function pickInitialType(i) {
-    // 启发式: 默认 brew_formulae (最简单)
+    if (!i) return 'brew_formulae';
+    const hay = `${i.appName || ''} ${i.bundleName || ''} ${i.bundleId || ''}`.toLowerCase();
+    // 1) Cursor 专属
+    if (/cursor/.test(hay)) return 'cursor_redirect';
+    // 2) QClaw 专属 (jprx.m.qq.com 那个)
+    if (/qclaw/.test(hay)) return 'qclaw_api';
+    // 3) Electron 风格 (Codex / VSCode / Kimi / minimax / WorkBuddy / QoderWork / Marvis)
+    if (/(codex|code\.|vscode|kimi|minimax|workbuddy|qoder|lark|electron)/.test(hay)) {
+      return 'electron_yml';
+    }
+    // 4) App Store 上架的 (macOS / iOS 通用)
+    if (/(store|wechat|whatsapp|zoom|tencent|feishu|bytedance)/.test(hay)) {
+      return 'app_store_lookup';
+    }
+    // 5) 兜底: brew (最常见 / 最简单)
     return 'brew_formulae';
   }
 
@@ -146,13 +169,36 @@ export function DetectorWizardModal({ item, onClose }) {
   function validateFields() {
     if (!detector) return '请选一个 detector';
     for (const f of detector.fields) {
-      if (f.required) {
-        const v = (fieldValues[f.key] || '').trim();
-        if (!v) return `${detector.label}: 必填字段 "${f.label}" 缺失`;
+      const v = (fieldValues[f.key] || '').trim();
+      if (f.required && !v) {
+        return `${detector.label}: 必填字段 "${f.label}" 缺失`;
+      }
+      // F3: url 字段实时校验 (非空时必须 http(s):// 开头)
+      if (f.key === 'url' && v && !/^https?:\/\//.test(v)) {
+        return `${detector.label}: 字段 "${f.label}" 必须以 http:// 或 https:// 开头`;
       }
     }
     return null;
   }
+
+  // F2: ESC 关 modal / Enter 提交 (或下一步)
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (!submitting) onClose();
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        // 跳过 textarea / 按钮 (避免双触发)
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag === 'TEXTAREA' || tag === 'BUTTON') return;
+        e.preventDefault();
+        if (!submitting) goNext();
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, submitting, fieldValues]);
 
   function goNext() {
     if (step === 1) {
@@ -219,6 +265,9 @@ export function DetectorWizardModal({ item, onClose }) {
     }).then((r) => {
       setSubmitting(false);
       if (r && r.ok) {
+        // F6: 成功弹 toast (v2.8.0)
+        const label = item.appName || item.bundleName;
+        showToast(`已监控 ${label}`, 'success', 3000);
         // 成功: 从 unmonitored 移除, 关 modal
         unmonitoredApps.value = unmonitoredApps.value.filter(
           (a) => a.bundlePath !== item.bundlePath,
@@ -416,7 +465,8 @@ function StepConfirm({ item, detector, fieldValues }) {
           <div key={f.key} class="wizard-confirm-row">
             <span class="wizard-confirm-label">{f.label}</span>
             <span class="wizard-confirm-value">
-              {(fieldValues[f.key] || '').trim() || <em class="wizard-confirm-empty">—</em>}
+              {/* F5: 既然 validate 已拦截空字段, 这里直接显示 trim 后的值, 不再出 "—" 占位 */}
+              {(fieldValues[f.key] || '').trim()}
             </span>
           </div>
         ))}

@@ -2,6 +2,67 @@
 
 ---
 
+## v2.8.0 (Wizard UX Polish) — 2026-06-11
+
+### 5 项 wizard 收尾 (v2.7.4 回滚 auto-detect 后 wizard 是唯一路径)
+
+v2.7.4 砍掉 auto-detect 后, 未监控 app 加监控全走 DetectorWizardModal 3 步手选. wizard 主体 (master-detail 3 步 / 11 detector schema / 必填校验 / 提交后 unmonitored 移除) 一直在, 但有几处细节收尾.
+
+### F1. 初始 detector 启发 (看 appName / bundleId 推)
+
+`pickInitialType` 之前死写 `brew_formulae`, 现在按关键词 1️⃣ 命中短路:
+
+| 关键词 | 推 detector | 命中 app (装机) |
+|---|---|---|
+| `cursor` | `cursor_redirect` | Cursor |
+| `qclaw` | `qclaw_api` | QClaw |
+| `codex` / `code.` / `vscode` / `kimi` / `minimax` / `workbuddy` / `qoder` / `lark` / `electron` | `electron_yml` | Codex, MiniMax Code, WorkBuddy, QoderWork, Marvis 等 |
+| `store` / `wechat` / `whatsapp` / `zoom` / `tencent` / `feishu` / `bytedance` | `app_store_lookup` | WeChat, WhatsApp, Zoom, 飞书, 印象笔记 |
+| 兜底 | `brew_formulae` | 其它 |
+
+不联网, 纯字符串大小写不敏感匹配. 1️⃣ 命中短路, 兜底 brew.
+
+### F2. 键盘交互 (ESC 关 / Enter 提交或下一步)
+
+- `ESC` 关 modal (跟 backdrop 点 × 等效, submitting 时不响应避免半完成)
+- `Enter` 提交 (Step 3) / 下一步 (Step 1/2), 跳过 textarea / button 避免双触发
+
+### F3. URL 字段实时校验 (非空时必须 `http://` 或 `https://` 开头)
+
+`validateFields` 改: 必填已校验, 现在 `url` 字段非空时再查前缀, 不对返 `"X: 字段 'Y' 必须以 http:// 或 https:// 开头"`.
+
+### F5. Step 3 确认页简化 (去多余 `—` 占位)
+
+`StepConfirm` 之前对空字段出 `<em>—</em>`, 但 `validateFields` 已拦了, 不会到 Step 3. 删 4 行多余逻辑, 直接 `(fieldValues[f.key] || '').trim()`.
+
+### F6. 提交成功弹 toast (不 silent 消失)
+
+`onSubmit` 成功分支: `showToast('已监控 ${label}', 'success', 3000)`. Toast 组件 (v2.x 早就有) 自动 mount, 3s 消失. 之前是 LibrarySection 看到 unmonitored 行消失才知道加了监控, 反馈隐晦.
+
+### 改动文件 (1 改)
+
+- `src/renderer/components/DetectorWizardModal.jsx` (+57 / -7)
+  - 加 `useEffect` import
+  - 加 `showToast` import
+  - `pickInitialType` 启发式 (5 关键词 + 兜底)
+  - `validateFields` 加 `url` 前缀校验
+  - `useEffect` 装 `keydown` (ESC / Enter)
+  - `onSubmit` 成功调 `showToast`
+  - `StepConfirm` 删 4 行 `<em>—</em>` 逻辑
+
+### 验证
+
+- vitest **63 files / 1044 passed | 4 skipped** (v2.7.4 baseline 一样, 没新增/删 case — 5 项是行为/UX 改动, 没新加 vitest 覆盖, 走真机验)
+- load-smoke 全过
+- 没改 main / ipc / api (无 IPC 通道增删)
+
+### 已知 follow-up
+
+- F4 cask name 启发提示 (读 local `brew list --cask`) — 用户没勾, 留 future
+- Step 1 detector 排序可改成"按推荐度排" (启发命中置顶), 跟 F1 配合
+
+---
+
 ## v2.7.4 (Revert Auto-Detect) — 2026-06-11
 
 ### Revert: 砍掉整个 auto-detect modal
