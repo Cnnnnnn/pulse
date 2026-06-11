@@ -130,9 +130,6 @@ function validateConfig(input) {
  */
 function sanitizeConfig(input) {
   if (!isPlainObject(input)) {
-    // 保留老兜底合约: 只返 check_on_launch + apps. 其它顶层块 (notifications /
-    // aiSessions / library) 在 caller 端各自 fallback — 这是 sanitizeConfig
-    // 设计的原意, 跟 schema 阶段 best-effort 不抛错的风格一致.
     return { check_on_launch: true, apps: [] };
   }
   const col = typeof input.check_on_launch === 'boolean' ? input.check_on_launch : true;
@@ -194,107 +191,7 @@ function sanitizeConfig(input) {
     check_interval_hours: checkIntervalHours,
   };
 
-  return {
-    check_on_launch: col,
-    apps: cleanApps,
-    notifications,
-    aiSessions: _sanitizeAISessions(input.aiSessions),
-    library: _sanitizeLibrary(input.library),
-  };
-}
-
-/**
- * v2.7.0 (My Apps Library): library 块 sanitize.
- *
- * 老 config.json 没有 library 字段 → 返回 DEFAULT_LIBRARY, 不影响老用户.
- *
- * 形态 (v2.7.0 终版):
- *   {
- *     sortBy: 'starred' | 'name' | 'lastUsed' | 'updateStatus',
- *     pinned:  ['Cursor', 'Kimi'],                  // app name 数组
- *     ignored: [{ appName: 'Foo', bundle: 'Foo.app' }],  // 已知但主动不监控
- *     tags:    { 'Cursor': ['dev', 'ai'], 'Figma': ['design'] }  // app name → tag 数组
- *   }
- *
- * 设计决策 (跟用户 v2.7.0 拍板):
- *   - pinned/ignored/tags 都是 Set-friendly 但持久化为 array (JSON 友好)
- *   - tag 严格大小写 (用户责任, 不做 case-insensitive 去重) — 'Dev' / 'dev' / 'DEV' 是 3 个 tag
- *   - ignored 用对象数组 {appName, bundle} — UI 端可能显示 appName, 扫描端需要 bundle
- *   - tag 自由文本, 不强制白名单 (跟 v5 brainstorm 决定一致), UI 端有 popular 预定义
- *   - 容错: 非法类型 / 引用不存在的 appName / 超长数组 全部静默清理
- *   - sortBy 非法值 → 'starred' 兜底
- */
-const VALID_SORT_BY = new Set(['starred', 'name', 'lastUsed', 'updateStatus']);
-const MAX_PINNED = 200;
-const MAX_IGNORED = 500;
-const MAX_TAGS = 50;
-const MAX_TAG_LEN = 32;
-
-function _sanitizeLibrary(raw) {
-  const o = isPlainObject(raw) ? raw : {};
-
-  // sortBy
-  const sortBy = VALID_SORT_BY.has(o.sortBy) ? o.sortBy : 'starred';
-
-  // pinned: app name 数组, 去重 (严格大小写) + 截断
-  const pinnedRaw = Array.isArray(o.pinned) ? o.pinned : [];
-  const pinned = [];
-  const pinnedSeen = new Set();
-  for (const name of pinnedRaw) {
-    if (typeof name !== 'string' || name.length === 0) continue;
-    if (pinnedSeen.has(name)) continue;
-    pinnedSeen.add(name);
-    pinned.push(name);
-    if (pinned.length >= MAX_PINNED) break;
-  }
-
-  // ignored: { appName, bundle } 对象数组, 去重 (按 appName) + 截断
-  // 兼容老 config: 旧版 ignored 可能是 string[] (bundle name) — 升级时跳过, 让用户重新 ignore
-  const ignoredRaw = Array.isArray(o.ignored) ? o.ignored : [];
-  const ignored = [];
-  const ignoredSeen = new Set();
-  for (const item of ignoredRaw) {
-    if (!isPlainObject(item)) continue; // 严格: 不容许 string 元素
-    const appName = typeof item.appName === 'string' ? item.appName : '';
-    const bundle = typeof item.bundle === 'string' ? item.bundle : '';
-    if (appName.length === 0 && bundle.length === 0) continue;
-    if (ignoredSeen.has(appName)) continue;
-    ignoredSeen.add(appName);
-    ignored.push({ appName, bundle });
-    if (ignored.length >= MAX_IGNORED) break;
-  }
-
-  // tags: { [appName]: string[] }, 严格大小写, 不做 case-insensitive 去重
-  const tagsRaw = isPlainObject(o.tags) ? o.tags : {};
-  const tags = {};
-  let tagCount = 0;
-  let tagOverflow = false;
-  for (const [appName, list] of Object.entries(tagsRaw)) {
-    if (tagOverflow) break;
-    if (typeof appName !== 'string' || appName.length === 0) continue;
-    if (!Array.isArray(list)) continue;
-    const cleanList = [];
-    let perAppOverflow = false;
-    for (const t of list) {
-      if (perAppOverflow) break;
-      if (typeof t !== 'string') continue;
-      const trimmed = t.trim();
-      if (trimmed.length === 0 || trimmed.length > MAX_TAG_LEN) continue;
-      // 严格大小写: 'Dev' / 'dev' / 'DEV' 各自独立, 不去重
-      cleanList.push(trimmed);
-      if (cleanList.length >= 10) perAppOverflow = true; // 单 app tag 上限
-      if (tagCount + cleanList.length >= MAX_TAGS) {
-        perAppOverflow = true;
-        tagOverflow = true;
-      }
-    }
-    if (cleanList.length > 0) {
-      tags[appName] = cleanList;
-      tagCount += cleanList.length;
-    }
-  }
-
-  return { sortBy, pinned, ignored, tags };
+  return { check_on_launch: col, apps: cleanApps, notifications, aiSessions: _sanitizeAISessions(input.aiSessions) };
 }
 
 /**
@@ -341,7 +238,5 @@ function _sanitizeAISessions(raw) {
 module.exports = {
   validateConfig,
   sanitizeConfig,
-  sanitizeLibrary: _sanitizeLibrary,
-  defaultLibrary: () => ({ sortBy: 'starred', pinned: [], ignored: [], tags: {} }),
   VALID_DETECTOR_TYPES,
 };

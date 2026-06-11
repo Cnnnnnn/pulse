@@ -19,8 +19,6 @@ import {
   searchQuery,
   activeFilter,
   activeCategory,
-  libraryConfig,
-  activeTagFilter,
 } from './store.js';
 
 // ─── 分组定义 ──────────────────────────────────────
@@ -169,45 +167,26 @@ export function matchesFilter(r, tab, q) {
 }
 
 /**
- * computed: filteredResults — 应用 search + tab + category + library 过滤的 Map<name, result>.
- * v2.7.0: tab 新增 'starred' | 'unmonitored' 两种 library 视角
- *   - 'starred': 仅显示 library.pinned 里的 app
- *   - 'unmonitored': 仅显示 unmonitoredApps (来自 IPC 扫盘) — 这个模式下 results 不参与
+ * computed: filteredResults — 应用 search + tab + category 过滤的 Map<name, result>.
  */
 export const filteredResults = computed(() => {
   const tab = activeFilter.value;
   const q = (searchQuery.value || '').toLowerCase().trim();
   const cat = activeCategory.value;
-  const lib = libraryConfig.value;
-  const tag = activeTagFilter.value;
   const out = new Map();
-
-  // 'unmonitored' 模式: 只返 unmonitoredApps (跟 results 解耦)
-  if (tab === 'unmonitored') {
-    // 这个 tab 由 LibrarySection 单独渲染, 这里返空 Map
-    return out;
-  }
-
   for (const [name, r] of results.value) {
-    // 'starred' 模式: 只过 pinned
-    if (tab === 'starred' && !(lib.pinned || []).includes(name)) continue;
     if (!matchesFilter(r, tab, q)) continue;
     if (cat !== 'all' && category.getCategory(name) !== cat) continue;
-    // tag 过滤: 当前 app 必须有 active tag
-    if (tag) {
-      const appTags = (lib.tags && lib.tags[name]) || [];
-      if (!appTags.includes(tag)) continue;
-    }
     out.set(name, r);
   }
   return out;
 });
 
 /**
- * computed: tabCounts — 6 个 tab 的 count (4 个 status + 2 个 library 视角).
+ * computed: tabCounts — 4 个 tab 的 count。
  */
 export const tabCounts = computed(() => {
-  const counts = { all: 0, update: 0, latest: 0, error: 0, starred: 0, unmonitored: 0 };
+  const counts = { all: 0, update: 0, latest: 0, error: 0 };
   for (const r of results.value.values()) {
     if (!r) continue;
     counts.all++;
@@ -215,10 +194,6 @@ export const tabCounts = computed(() => {
     else if (r.status === 'up_to_date') counts.latest++;
     if (r.status === 'error') counts.error++;
   }
-  // starred count = library.pinned 长度
-  const pinned = (libraryConfig.value && libraryConfig.value.pinned) || [];
-  counts.starred = pinned.length;
-  // unmonitored count 由 IPC library:list-unmonitored 拉, 这里只是兜底
   return counts;
 });
 

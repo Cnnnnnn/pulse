@@ -126,8 +126,7 @@ describe('tabCounts (computed)', () => {
       ['D', makeResult({ name: 'D', status: 'error' })],
     ]);
     const c = tabCounts.value;
-    // v2.7.0: tabCounts 多 starred + unmonitored 字段, 用 toMatchObject 只校验老字段
-    expect(c).toMatchObject({ all: 4, update: 1, latest: 2, error: 1 });
+    expect(c).toEqual({ all: 4, update: 1, latest: 2, error: 1 });
   });
 
   it('counts 不受 filter 影响 (用全局 results 算)', () => {

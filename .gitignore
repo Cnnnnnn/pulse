@@ -39,7 +39,6 @@ coverage/
 .eslintcache
 
 # mavis / agent stuff (会话级, 不入库)
-.mavis/
 .mavis/scratchpad/
 .mavis/queue/
 .mavis/branch-state.json
