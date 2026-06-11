@@ -2734,3 +2734,304 @@ body {
   gap: 10px;
   margin-top: 8px;
 }
+
+/* ─── v2.9.0 AppShell + SideNav (180↔40 折叠) ─────────────────────────── */
+
+#content {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.side-nav {
+  width: 180px;
+  flex-shrink: 0;
+  background: var(--bg-secondary, #f5f5f7);
+  border-right: 1px solid var(--border-subtle, #e5e5e7);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.18s ease;
+  overflow: hidden;
+}
+
+.side-nav-collapsed {
+  width: 40px;
+}
+
+.side-nav-header {
+  padding: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.side-nav-toggle {
+  background: transparent;
+  border: 0;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary, #555);
+}
+
+.side-nav-toggle:hover {
+  background: var(--bg-tertiary, #ebebed);
+}
+
+.side-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-nav-item {
+  margin: 0;
+}
+
+.side-nav-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-secondary, #555);
+  font-size: 13px;
+  border-radius: 6px;
+  margin: 0 6px;
+  width: calc(100% - 12px);
+}
+
+.side-nav-collapsed .side-nav-button {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.side-nav-button:hover {
+  background: var(--bg-tertiary, #ebebed);
+  color: var(--text-primary, #1a1a1a);
+}
+
+.side-nav-item-active .side-nav-button {
+  background: var(--accent-primary, #007aff);
+  color: #fff;
+}
+
+.side-nav-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.side-nav-collapsed .side-nav-label {
+  display: none;
+}
+
+.side-nav-label {
+  white-space: nowrap;
+}
+
+.app-shell-view {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+/* ─── v2.9.0 WorldcupView (section by day) ─────────────────────────── */
+
+.worldcup-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.worldcup-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+}
+
+.worldcup-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.worldcup-meta {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  margin: 0;
+}
+
+.worldcup-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.worldcup-day-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.worldcup-day-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+}
+
+.worldcup-day-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  font-variant-numeric: tabular-nums;
+}
+
+.worldcup-day-weekday {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+}
+
+.worldcup-day-count {
+  font-size: 12px;
+  color: var(--text-tertiary, #888);
+  margin-left: auto;
+}
+
+.worldcup-day-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.match-card {
+  background: var(--bg-secondary, #f5f5f7);
+  border: 1px solid var(--border-subtle, #e5e5e7);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.match-card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.match-team {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-team-right {
+  text-align: right;
+}
+
+.match-center {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary, #888);
+  min-width: 48px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.match-center-score {
+  color: var(--accent-primary, #007aff);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.match-meta {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-size: 12px;
+  color: var(--text-tertiary, #888);
+}
+
+.match-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.match-venue-sep {
+  padding: 0 4px;
+}
+
+.match-venue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worldcup-loading,
+.worldcup-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary, #666);
+}
+
+.worldcup-loading-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.worldcup-error {
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.worldcup-error-card {
+  background: var(--bg-secondary, #f5f5f7);
+  border: 1px solid var(--border-subtle, #e5e5e7);
+  border-radius: 8px;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 360px;
+  text-align: center;
+}
+
+.worldcup-error-icon {
+  font-size: 24px;
+}
+
+.worldcup-error-msg {
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+}

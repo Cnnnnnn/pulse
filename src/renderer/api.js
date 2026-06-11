@@ -66,8 +66,10 @@ export function createApi(overrides = {}) {
  aiHealthcheck: pick(overrides, 'aiHealthcheck'),
  getAiSessionsConfig: pick(overrides, 'getAiSessionsConfig'),
  saveAiSessionsConfig: pick(overrides, 'saveAiSessionsConfig'),
- onAiSessionsConfigUpdated: pick(overrides, 'onAiSessionsConfigUpdated'),
- };
+  onAiSessionsConfigUpdated: pick(overrides, 'onAiSessionsConfigUpdated'),
+  // v2.9.0 世界杯专栏
+  worldcupFetchFixtures: pick(overrides, 'worldcupFetchFixtures'),
+  };
 }
 
 /** 默认实例：绑定到 window.api (生产) */

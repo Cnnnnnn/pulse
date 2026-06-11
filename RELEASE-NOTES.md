@@ -2,6 +2,73 @@
 
 ---
 
+## v2.9.0 (World Cup 2026 — 世界杯专栏) — 2026-06-11
+
+### 新增: 世界杯专栏
+
+在 Pulse 仓库内新增 1 个独立 view "世界杯专栏", 通过左侧 nav 切换. 拍 6 边界 (见 `docs/superpowers/specs/2026-06-11-worldcup-view-design.md`):
+
+- **数据源**: `openfootball/worldcup` GitHub raw Football.TXT (CC0-1.0, 0 鉴权, 0 限流)
+- **范围**: 2026 世界杯 (6/11 - 7/19, 100 场)
+- **主页面**: section by day (39 个比赛日, 每 day 1-4 场)
+- **左侧 nav**: 180↔40 可折叠, 2 item (🏆 世界杯 / 🔄 版本检查)
+- **默认 tab**: 版本检查 (保 v2.6 习惯)
+- **跟版本检查隔离**: 完全独立 view + store + IPC, 0 共享 signal
+
+### Match card 极简 (你拍 card_minimal)
+
+- 左 / 右 队名
+- 中 `VS` (未赛) / `0-0` (已赛)
+- 下面 北京时间 (e.g. `13:00 UTC-6`) + 场址
+- 不倒计时 / 不实时比分 / 不点击 (跟 spec §9 不做的 7 项一致)
+
+### 数据流 (3 步)
+
+1. **mount** WorldcupView → `loadWorldcupFixtures()` (并发守卫)
+2. **main IPC** `worldcup:fetch-fixtures` → server-side fetch + TXT 解析
+3. **24h 缓存**: 命中 state.json `worldcup_txt` 字段, 否则 fetch GitHub raw URL, 写入缓存
+4. **失败**: error card + 重试按钮
+
+### 新增文件 (10)
+
+- `src/main/worldcup/{parser.js, fetcher.js}` — server-side 解析 + fetch
+- `src/renderer/worldcup/{store.js, groupByDate.js, WorldcupView.jsx, MatchCard.jsx, navStore.js}` — 独立 view + signal
+- `src/renderer/components/{SideNav.jsx, AppShell.jsx}` — 180↔40 折叠 nav + Shell 布局
+
+### 改文件 (5)
+
+- `src/main/ipc.js` — 加 `worldcup:fetch-fixtures` handler
+- `src/main/state-store.js` — 加 `loadWorldcupTxt` / `saveWorldcupTxt` (24h 缓存, preserveExtraFields 兼容 v=1)
+- `preload.js` — 加 `worldcupFetchFixtures` IPC 暴露
+- `src/renderer/api.js` — 加 `worldcupFetchFixtures` pick
+- `src/renderer/App.jsx` — 改用 AppShell 替代原 main 区, v2.6 phase 切逻辑移入 AppShell
+
+### 验证
+
+- vitest **61 files / 973 passed | 4 skipped** (v2.8.2 是 59/959, +2 files + 14 case)
+  - `tests/main/worldcup-parser.test.js`: 10 case (解析 sample / group 边界 / 队名缺失 skip / sort / Group by date)
+  - `tests/renderer/worldcup-groupByDate.test.js`: 4 case (空 / sort / 跳过无 date)
+- esbuild bundle: 311.7kb (v2.8.2 是 294.1kb, +17.6kb, 跟新增 view + nav + worldcup 模块对得上)
+- load-smoke 全过 (main 进程所有 .js require 路径健康)
+- 0 IPC 改动: v2.6 主体 (get-config / check-updates / 等) 不动
+- 0 v2.6 主体 store 改动: worldcup 用独立 signal, 跟 6.6 一致
+
+### 风险缓释 (spec §8)
+
+- TXT 解析容错: parser test + try/catch + skip 异常行
+- 网络偶尔拉不到: 8s timeout + 失败重试 + 24h 缓存
+- 数据 "不鲜" (TXT 静态): 跟 `card_minimal` 一致, 不显示倒计时
+- 跟 v2.7+ 已删 路径 0 混淆: spec 写明"全新独立路径", 0 引用任何 v2.7+ 文件名
+
+### 已知 follow-up
+
+- 不做实时比分 (TXT 是赛程数据, 比赛期间不更新)
+- 不做倒计时 (静态日期, 比赛开始后不显示)
+- 不做详情 modal / 关注收藏 / 通知
+- 暂只加 2026 世界杯, 中超 / 欧国联 / 多赛事暂不
+
+---
+
 ## v2.8.2 (Revert v2.7.x + v2.8.0 polish + v2.8.1 Stats) — 2026-06-11
 
 ### Revert: 砍掉所有 v2.7 + v2.8 引入, 回到 v2.6 体验

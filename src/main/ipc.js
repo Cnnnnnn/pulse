@@ -635,6 +635,18 @@ function registerIpcHandlers(deps) {
       return { ok: false, reason: "threw", error: err.message };
     }
   });
+
+  // ─── v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT ─────────────────
+  // 1 通道, server-side fetch (0 CORS), 24h 缓存 (state.json worldcup_txt)
+  const { fetchWorldcupFixtures } = require("./worldcup/fetcher");
+  ipcMain.handle("worldcup:fetch-fixtures", async () => {
+    try {
+      return await fetchWorldcupFixtures();
+    } catch (err) {
+      mainLog.warn("[ipc] worldcup:fetch-fixtures threw", { msg: err && err.message });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
 }
 
 module.exports = { registerIpcHandlers };

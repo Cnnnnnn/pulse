@@ -76,6 +76,9 @@ function preserveExtraFields(existing, next) {
   if (!('task_summaries' in next) && existing.task_summaries && typeof existing.task_summaries === 'object' && !Array.isArray(existing.task_summaries)) {
     next.task_summaries = existing.task_summaries;
   }
+  if (!('worldcup_txt' in next) && existing.worldcup_txt && typeof existing.worldcup_txt === 'object') {
+    next.worldcup_txt = existing.worldcup_txt;
+  }
   return next;
 }
 
@@ -368,6 +371,50 @@ function saveLastOpened(map, statePath = defaultPath()) {
   return next;
 }
 
+/**
+ * 读 worldcup Football.TXT 缓存. 老 state.json (无 worldcup_txt 字段) → null.
+ * 没 expiry (caller 用 ts 自查).
+ * @param {string} [statePath]
+ * @returns {{txt: string, ts: number}|null}
+ */
+function loadWorldcupTxt(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return null;
+  if (!s.worldcup_txt || typeof s.worldcup_txt !== 'object') return null;
+  const { txt, ts } = s.worldcup_txt;
+  if (typeof txt !== 'string' || typeof ts !== 'number') return null;
+  return { txt, ts };
+}
+
+/**
+ * 写 worldcup Football.TXT 缓存. atomic write, 保留 apps / mutes / last_opened 等.
+ * @param {{txt: string, ts: number}} entry
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveWorldcupTxt(entry, statePath = defaultPath()) {
+  if (!entry || typeof entry.txt !== 'string' || typeof entry.ts !== 'number') {
+    throw new TypeError('saveWorldcupTxt: entry must be {txt: string, ts: number}');
+  }
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const now = Date.now();
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
+    active_category: existing.active_category || 'all',
+    worldcup_txt: { txt: entry.txt, ts: entry.ts },
+  };
+  if (existing.ai_sessions_config) {
+    next.ai_sessions_config = existing.ai_sessions_config;
+  }
+  preserveExtraFields(existing, next);
+  writeAtomic(statePath, next);
+  return next;
+}
+
 // ─── AI 任务总结缓存 (task_summaries) ────────────────────────
 // 重做版: 按任务缓存 (不再按天). 30 天外 GC, 跟 mutes 同款处理.
 // 字段: task_summaries = { [taskKey]: Entry }
@@ -622,4 +669,7 @@ module.exports = {
   // Step B: LLM classify cache 持久化
   loadLLMClassifyCache,
   saveLLMClassifyCache,
+  // v2.9.0: 世界杯 Football.TXT 缓存 (24h TTL, fetcher 调用)
+  loadWorldcupTxt,
+  saveWorldcupTxt,
 };

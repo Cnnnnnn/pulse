@@ -47,6 +47,9 @@ contextBridge.exposeInMainWorld('api', {
  hasAiKey: (providerId) => ipcRenderer.invoke('ai-sessions:has-key', providerId),
  aiHealthcheck: (opts) => ipcRenderer.invoke('ai-sessions:healthcheck', opts),
  getAiSessionsConfig: () => ipcRenderer.invoke('ai-sessions:get-config'),
- saveAiSessionsConfig: (cfg) => ipcRenderer.invoke('ai-sessions:save-config', cfg),
- onAiSessionsConfigUpdated: (cb) => ipcRenderer.on('ai-sessions-config-updated', (_, data) => cb(data)),
+  saveAiSessionsConfig: (cfg) => ipcRenderer.invoke('ai-sessions:save-config', cfg),
+  onAiSessionsConfigUpdated: (cb) => ipcRenderer.on('ai-sessions-config-updated', (_, data) => cb(data)),
+
+  // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
+  worldcupFetchFixtures: () => ipcRenderer.invoke('worldcup:fetch-fixtures'),
 });
