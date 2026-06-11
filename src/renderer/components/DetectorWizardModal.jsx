@@ -2,16 +2,14 @@
  * src/renderer/components/DetectorWizardModal.jsx
  *
  * v2.7.0 (My Apps Library, B4): detector 选择 modal.
- * v2.7.1: 3 步 stepper (选 detector → 填字段 → 确认) + 2 列 grid card
- *
- * 用户点 LibrarySection 的"监控"按钮 → 弹这个 modal:
- *   step 1: 顶部 stepper 显示 ① 选 detector (active) ─ ② 填字段 ─ ③ 确认
- *          主体: 11 个 detector type 2 列 grid + 选中的 hint
- *   step 2: ① ✓ ─ ② 填字段 (active) ─ ③ 确认
- *          主体: 选中 detector 的 fields 表单
- *   step 3: ① ✓ ─ ② ✓ ─ ③ 确认 (active)
- *          主体: 预览 "将添加 {appName} 到监控, detector: {type}, fields: {key=value}"
- *   footer: [← 上一步] (step 2-3) [取消] [下一步 →] / [保存并监控] (step 3)
+ * v2.7.1: 3 步 stepper (选 detector → 填字段 → 确认) + 2 列 grid card.
+ * v2.7.1.2: 推翻重做 — 真正设计 wizard
+ *   - master-detail 布局 (左 220px 步骤导航, 右主体内容)
+ *   - 不再"顶部 stepper + 主体堆 11 个 detector" (像 form 不像 wizard)
+ *   - 左侧步骤是真导航 (可点跳, active 蓝 / done 绿 ✓ / future 灰)
+ *   - 右侧只显示当前步骤 1 个东西 (单 detector 大标题 / 字段表 / 预览)
+ *   - 步骤间视觉联系强 (左列高亮 + 主体大标题跟左列同步)
+ *   - modal 720×560, 居中 + backdrop
  *
  * 提交后调 IPC libraryAdd, 关 modal + 重置 LibrarySection.
  */
@@ -41,16 +39,16 @@ const DETECTORS = [
   },
   {
     type: 'api_json',
-    label: 'JSON API (key→version)',
+    label: 'JSON API',
     hint: '配一个返 JSON 的 URL, 用 .path 模板挖出 version 字段 (e.g. "data.version")',
     fields: [
       { key: 'url', label: 'API URL', placeholder: 'https://api.example.com/version', required: true },
-      { key: 'path', label: 'JSON path (e.g. data.version)', placeholder: 'version', required: false },
+      { key: 'path', label: 'JSON path', placeholder: 'version', required: false },
     ],
   },
   {
     type: 'app_store_lookup',
-    label: 'App Store (iTunes lookup)',
+    label: 'App Store',
     hint: '走 itunes.apple.com/lookup?id=...&country=cn',
     fields: [
       { key: 'url', label: 'Lookup URL', placeholder: 'https://itunes.apple.com/lookup?id=...', required: true },
@@ -58,7 +56,7 @@ const DETECTORS = [
   },
   {
     type: 'redirect_filename',
-    label: 'Redirect → filename',
+    label: 'Redirect 文件名',
     hint: 'HTTP 302 重定向到带 version 的 dmg/zip 文件名',
     fields: [
       { key: 'url', label: 'Redirect URL', placeholder: 'https://.../download', required: true },
@@ -78,7 +76,7 @@ const DETECTORS = [
     hint: '配 baseUrl + product name, 工具扫同目录 zip 拿最新',
     fields: [
       { key: 'baseUrl', label: 'Base URL', placeholder: 'https://.../release', required: true },
-      { key: 'product', label: 'Product 名 (e.g. "MiniMax Code")', placeholder: 'My App', required: true },
+      { key: 'product', label: 'Product 名', placeholder: 'My App', required: true },
     ],
   },
   {
@@ -91,7 +89,7 @@ const DETECTORS = [
   },
   {
     type: 'app_update_yml',
-    label: 'app-update.yml (老 electron-builder)',
+    label: 'app-update.yml',
     hint: 'Squirrel.windows 风格的 app-update.yml, 多数 Windows app 用',
     fields: [
       { key: 'url', label: 'YAML URL', placeholder: 'https://.../app-update.yml', required: true },
@@ -99,7 +97,7 @@ const DETECTORS = [
   },
   {
     type: 'sparkle_appcast',
-    label: 'Sparkle appcast (macOS)',
+    label: 'Sparkle appcast',
     hint: 'Sparkle 框架的 RSS appcast, indie macOS app 常见',
     fields: [
       { key: 'url', label: 'Appcast URL', placeholder: 'https://.../appcast.xml', required: true },
@@ -183,6 +181,33 @@ export function DetectorWizardModal({ item, onClose }) {
     }
   }
 
+  function jumpToStep(n) {
+    // 只允许: 跳回已完成步骤, 或当前步骤往后 1 步
+    // 不允许: 跳到未填字段的"确认"步骤
+    if (n === step) return;
+    if (n < step) {
+      // 跳回已完成步骤
+      setStep(n);
+      setError(null);
+      return;
+    }
+    // n > step: 校验当前 step 之后才能跳
+    if (n === step + 1) {
+      if (step === 1) {
+        setStep(2);
+        setError(null);
+      } else if (step === 2) {
+        const v = validateFields();
+        if (v) {
+          setError(v);
+          return;
+        }
+        setStep(3);
+        setError(null);
+      }
+    }
+  }
+
   function onSubmit() {
     setSubmitting(true);
     setError(null);
@@ -211,120 +236,190 @@ export function DetectorWizardModal({ item, onClose }) {
   return (
     <div class="modal-backdrop" onClick={onClose}>
       <div class="modal-card modal-detector-wizard" onClick={(e) => e.stopPropagation()}>
-        {/* 顶部 stepper */}
-        <div class="wizard-stepper">
-          {STEPS.map((s, i) => {
-            const cls = step === s.num ? 'wizard-step active' : (step > s.num ? 'wizard-step done' : 'wizard-step');
-            return (
-              <span key={s.num} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                <span class={cls}>
-                  <span class="wizard-step-num">{step > s.num ? '✓' : s.num}</span>
-                  <span>{s.label}</span>
-                </span>
-                {i < STEPS.length - 1 && <span class="wizard-step-sep" />}
-              </span>
-            );
-          })}
-        </div>
-
         <div class="modal-header">
           <h2>监控新 app</h2>
           <button class="btn-close" onClick={onClose} aria-label="关闭">×</button>
         </div>
 
-        <div class="modal-body">
-          <div class="wizard-item-info">
-            <div class="wizard-item-name">{item.appName || item.bundleName}</div>
-            <div class="wizard-item-meta">
-              {item.bundleName && <span>{item.bundleName}</span>}
-              {item.version && <span>v{item.version}</span>}
-              {item.bundleId && <span>{item.bundleId}</span>}
+        <div class="wizard-body">
+          {/* 左侧: 步骤导航 */}
+          <nav class="wizard-nav">
+            <div class="wizard-nav-app">
+              <div class="wizard-nav-app-name">{item.appName || item.bundleName}</div>
+              <div class="wizard-nav-app-meta">
+                {item.bundleName}
+                {item.version && <span> · v{item.version}</span>}
+              </div>
             </div>
-          </div>
-
-          {step === 1 && (
-            <div class="wizard-section">
-              <label class="wizard-section-label">Detector 类型</label>
-              <div class="wizard-detector-grid">
-                {DETECTORS.map((d) => (
+            <div class="wizard-nav-steps">
+              {STEPS.map((s) => {
+                const cls = step === s.num ? 'wizard-nav-step active' : (step > s.num ? 'wizard-nav-step done' : 'wizard-nav-step future');
+                const clickable = step > s.num || s.num === step + 1;
+                return (
                   <button
-                    key={d.type}
-                    class={`wizard-detector-card${selectedType === d.type ? ' active' : ''}`}
-                    onClick={() => { setSelectedType(d.type); setError(null); }}
+                    key={s.num}
+                    class={cls}
+                    onClick={() => clickable && jumpToStep(s.num)}
+                    disabled={!clickable}
+                    title={clickable ? `跳到步骤 ${s.num}: ${s.label}` : `先完成步骤 ${step}`}
                   >
-                    <div class="wizard-detector-label">{d.label}</div>
-                    <div class="wizard-detector-type">{d.type}</div>
+                    <span class="wizard-nav-step-num">
+                      {step > s.num ? '✓' : s.num}
+                    </span>
+                    <span class="wizard-nav-step-label">{s.label}</span>
                   </button>
-                ))}
-              </div>
-              {detector && <p class="wizard-detector-hint">{detector.hint}</p>}
+                );
+              })}
             </div>
-          )}
+          </nav>
 
-          {step === 2 && detector && (
-            <div class="wizard-section">
-              <label class="wizard-section-label">{detector.label} · 配置字段</label>
-              {detector.fields.map((f) => (
-                <div key={f.key} class="wizard-field">
-                  <label class="wizard-field-label">
-                    {f.label}
-                    {f.required && <span class="wizard-required">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    class="wizard-field-input"
-                    placeholder={f.placeholder}
-                    value={fieldValues[f.key] || ''}
-                    onInput={(e) => onFieldChange(f.key, e.target.value)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          {/* 右侧: 步骤内容 */}
+          <div class="wizard-content">
+            {step === 1 && (
+              <StepSelectDetector
+                detectors={DETECTORS}
+                selected={selectedType}
+                onSelect={(t) => { setSelectedType(t); setError(null); }}
+              />
+            )}
 
-          {step === 3 && detector && (
-            <div class="wizard-section">
-              <label class="wizard-section-label">确认</label>
-              <div class="wizard-confirm-row">
-                <span class="wizard-confirm-row-label">App</span>
-                <span class="wizard-confirm-row-value">{item.appName || item.bundleName}</span>
-              </div>
-              <div class="wizard-confirm-row">
-                <span class="wizard-confirm-row-label">Bundle</span>
-                <span class="wizard-confirm-row-value">{item.bundleName}</span>
-              </div>
-              <div class="wizard-confirm-row">
-                <span class="wizard-confirm-row-label">Detector</span>
-                <span class="wizard-confirm-row-value">{detector.label} ({detector.type})</span>
-              </div>
-              {detector.fields.map((f) => (
-                <div key={f.key} class="wizard-confirm-row">
-                  <span class="wizard-confirm-row-label">{f.label}</span>
-                  <span class="wizard-confirm-row-value">
-                    {(fieldValues[f.key] || '').trim() || '—'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+            {step === 2 && detector && (
+              <StepFillFields
+                detector={detector}
+                fieldValues={fieldValues}
+                onFieldChange={onFieldChange}
+              />
+            )}
 
-          {error && <div class="wizard-error">{error}</div>}
+            {step === 3 && detector && (
+              <StepConfirm
+                item={item}
+                detector={detector}
+                fieldValues={fieldValues}
+              />
+            )}
+
+            {error && <div class="wizard-error">{error}</div>}
+          </div>
         </div>
+
         <div class="modal-footer">
-          {step > 1 && (
-            <button class="btn btn-ghost" onClick={goBack} disabled={submitting}>
-              ← 上一步
+          <span class="wizard-footer-hint">
+            步骤 {step} / {STEPS.length}
+          </span>
+          <div class="modal-footer-buttons">
+            {step > 1 && (
+              <button class="btn btn-ghost" onClick={goBack} disabled={submitting}>
+                ← 上一步
+              </button>
+            )}
+            <button class="btn btn-ghost" onClick={onClose} disabled={submitting}>取消</button>
+            <button
+              class="btn btn-primary"
+              onClick={goNext}
+              disabled={submitting}
+            >
+              {submitting ? '保存中…' : (step === 3 ? '保存并监控' : '下一步 →')}
             </button>
-          )}
-          <button class="btn btn-ghost" onClick={onClose} disabled={submitting}>取消</button>
-          <button
-            class="btn btn-primary"
-            onClick={goNext}
-            disabled={submitting}
-          >
-            {submitting ? '保存中…' : (step === 3 ? '保存并监控' : '下一步 →')}
-          </button>
+          </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 1: 选 detector (单选 + 大字, 不用 grid) ────────
+function StepSelectDetector({ detectors, selected, onSelect }) {
+  return (
+    <div class="wizard-step-content">
+      <h3 class="wizard-step-title">选 detector 类型</h3>
+      <p class="wizard-step-hint">选一个最适合这个 app 的更新源</p>
+      <div class="wizard-detector-list">
+        {detectors.map((d) => (
+          <label
+            key={d.type}
+            class={`wizard-detector-option${selected === d.type ? ' active' : ''}`}
+          >
+            <input
+              type="radio"
+              name="detector-type"
+              value={d.type}
+              checked={selected === d.type}
+              onChange={() => onSelect(d.type)}
+              class="wizard-detector-radio"
+            />
+            <div class="wizard-detector-info">
+              <div class="wizard-detector-label">{d.label}</div>
+              <div class="wizard-detector-hint">{d.hint}</div>
+            </div>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Step 2: 填字段 ─────────────────────────────────────
+function StepFillFields({ detector, fieldValues, onFieldChange }) {
+  return (
+    <div class="wizard-step-content">
+      <h3 class="wizard-step-title">
+        <span class="wizard-step-title-prefix">填字段</span>
+        <span class="wizard-step-title-suffix">{detector.label}</span>
+      </h3>
+      <p class="wizard-step-hint">
+        <code class="wizard-step-code">{detector.type}</code> · {detector.hint}
+      </p>
+      <div class="wizard-fields">
+        {detector.fields.map((f) => (
+          <div key={f.key} class="wizard-field">
+            <label class="wizard-field-label">
+              {f.label}
+              {f.required && <span class="wizard-required">*</span>}
+            </label>
+            <input
+              type="text"
+              class="wizard-field-input"
+              placeholder={f.placeholder}
+              value={fieldValues[f.key] || ''}
+              onInput={(e) => onFieldChange(f.key, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Step 3: 确认 ───────────────────────────────────────
+function StepConfirm({ item, detector, fieldValues }) {
+  return (
+    <div class="wizard-step-content">
+      <h3 class="wizard-step-title">确认</h3>
+      <p class="wizard-step-hint">检查无误后点"保存并监控"</p>
+      <div class="wizard-confirm">
+        <div class="wizard-confirm-row">
+          <span class="wizard-confirm-label">App</span>
+          <span class="wizard-confirm-value">{item.appName || item.bundleName}</span>
+        </div>
+        <div class="wizard-confirm-row">
+          <span class="wizard-confirm-label">Bundle</span>
+          <span class="wizard-confirm-value">{item.bundleName}</span>
+        </div>
+        <div class="wizard-confirm-row">
+          <span class="wizard-confirm-label">Detector</span>
+          <span class="wizard-confirm-value">
+            <strong>{detector.label}</strong> · <code>{detector.type}</code>
+          </span>
+        </div>
+        {detector.fields.map((f) => (
+          <div key={f.key} class="wizard-confirm-row">
+            <span class="wizard-confirm-label">{f.label}</span>
+            <span class="wizard-confirm-value">
+              {(fieldValues[f.key] || '').trim() || <em class="wizard-confirm-empty">—</em>}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
