@@ -2,6 +2,54 @@
 
 ---
 
+## v2.7.4 (Revert Auto-Detect) — 2026-06-11
+
+### Revert: 砍掉整个 auto-detect modal
+
+v2.7.2a/2.7.2b/2.7.3 三轮 (静态表 / brew probe / 4 层 orchestrator / 1 步 modal) 做完, 真机验 1️⃣ 静态表 8/34 装命中, 26 个 unmonitored app 大半是 v2.7.0 config.json 已监控 (Kimi / Cursor / Lark / Marvis / WorkBuddy / QoderWork / CodexBar / CCSwitch / MiniMax Code / Codex) 走不到 auto-detect, 剩下探测基本都 none. 用户评价"基本探查不了, 没什么意义" → 回滚.
+
+### 改动
+
+**删** (6 文件):
+
+- `src/main/library/known-apps.js` — 25 bundleId 静态表 (v2.7.2a 14 + v2.7.3 11)
+- `src/main/library/brew-probe.js` — `brew info --cask` wrapper + guessCaskName
+- `src/main/library/detect.js` — 4 层优先级 orchestrator + `Promise.allSettled` + 8s timeout
+- `src/renderer/components/AutoDetectModal.jsx` — 4 状态 modal (probing/one/many/none)
+- `tests/main/library-known-apps.test.js` (26 case)
+- `tests/main/library-detect.test.js` + `tests/main/library-brew-probe.test.js` (~40 case)
+
+**改** (5 文件):
+
+- `src/main/ipc.js` — 删 `libraryDetect` require + `library:auto-detect` IPC handler (17 行)
+- `preload.js` — 删 `libraryAutoDetect` IPC 暴露
+- `src/renderer/api.js` — 删 `libraryAutoDetect` pick
+- `src/renderer/App.jsx` — 删 `AutoDetectModal` import / `autoDetectItem` state / 模态挂载 / `onOpenAutoDetect` 传参
+- `src/renderer/components/LibrarySection.jsx` — [监控] 按钮 onClick 从 `onOpenAutoDetect` 改 `onOpenWizard` (走 DetectorWizardModal 3 步, 用户手选 detector + 填字段)
+
+**留**:
+
+- `DetectorWizardModal.jsx` + `library/scanner.js` + `library/ops.js` + LibrarySection Pinned/Ignored/Tag — v2.7.0/2.7.1 还在用
+- 6 个 trash 文件 `mavis-trash` 可恢复 (`~/.Trash/`)
+- RELEASE-NOTES / spec doc 06-11 留作历史 changelog
+
+### 验证
+
+- vitest **63 files / 1044 passed | 4 skipped** (v2.7.2a 是 66/1110, 减 3 文件 + 66 case, 数字对得上)
+- 源码 `grep -E "autoDetect|known-apps|brew-probe|libraryDetect|libraryAutoDetect"` (排除 .md 历史): **0 命中**
+- load-smoke 覆盖 main 全 .js require 路径, 全过
+
+### 用户流程变化
+
+- v2.7.2/2.7.3: [监控] → AutoDetectModal 自动探查 → 命中 1 键确认
+- v2.7.4: [监控] → DetectorWizardModal 3 步手选 (type / fields / 确认)
+
+### 已知 follow-up
+
+- 如果将来要重新做 auto-detect: 先解决静态表 bundleId 大小写 / PascalCase 不匹配 (e.g. `com.openai.codexbar` vs `com.openai.codex` 实际装), 3️⃣ brew probe 命中率也低 (cask 名 guess 错) — 需要 v2.8+ 单独拍板方向
+
+---
+
 ## v2.7.2 (Library Auto-Detect) — 2026-06-11
 
 ### New: 自动探查 detector — 用户零负担

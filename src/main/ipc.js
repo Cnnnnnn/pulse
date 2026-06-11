@@ -28,7 +28,6 @@ const { HttpClient } = require("./http-client");
 const configStore = require("./config-store");
 const libraryScanner = require("./library/scanner");
 const libraryOps = require("./library/ops");
-const libraryDetect = require("./library/detect");
 
 // Bulk Upgrade: 一次只能跑一批; 用 AbortController 控制取消.
 let bulkUpgradeCtrl = null;
@@ -734,24 +733,6 @@ function registerIpcHandlers(deps) {
     const r = libraryOps.setTags(cfg, tags);
     if (!r.ok) return r;
     return _saveAndNotify(r.config);
-  });
-
-  // ── v2.7.2 (Library Auto-Detect): 1 步探查, 返 best detector 跟 results
-  // 取代 v2.7.0/v2.7.1 wizard (3 步手选) — 用户零负担
-  // 进度通过 pushEvent (不返 stream) — UI 端 "探查中..." 用本地状态, 完成后弹结果
-  ipcMain.handle("library:auto-detect", async (_event, item) => {
-    if (!item || typeof item !== "object") {
-      return { ok: false, reason: "invalid_item" };
-    }
-    try {
-      const r = await libraryDetect.detectDetector(item);
-      return { ok: true, results: r.results, best: r.best };
-    } catch (err) {
-      mainLog.warn("[ipc] library:auto-detect threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
   });
 }
 

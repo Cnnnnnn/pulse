@@ -35,13 +35,11 @@ import { PinnedSection } from './components/PinnedSection.jsx';
 import { TagBar } from './components/TagBar.jsx';
 import { LibrarySection, refreshUnmonitored } from './components/LibrarySection.jsx';
 import { DetectorWizardModal } from './components/DetectorWizardModal.jsx';
-import { AutoDetectModal } from './components/AutoDetectModal.jsx';
 
 export function App({ onCheck }) {
   const session = checkSession.value;
   const phase = session.phase;
   const [wizardItem, setWizardItem] = useState(null);
-  const [autoDetectItem, setAutoDetectItem] = useState(null);
 
   // 全局拦截 Cmd+F / Ctrl+F, 聚焦 search input
   useEffect(() => {
@@ -118,7 +116,6 @@ export function App({ onCheck }) {
         {/* v2.7.0: "未监控" tab 单独渲染, 替换 ResultsView */}
         {showUnmonitored && (
           <LibrarySection
-            onOpenAutoDetect={(item) => setAutoDetectItem(item)}
             onOpenWizard={(item) => setWizardItem(item)}
           />
         )}
@@ -130,13 +127,6 @@ export function App({ onCheck }) {
         </div>
       </footer>
       <BulkUpgradeModal />
-      {autoDetectItem && (
-        <AutoDetectModal
-          item={autoDetectItem}
-          onClose={() => setAutoDetectItem(null)}
-          onOpenWizard={(item) => { setAutoDetectItem(null); setWizardItem(item); }}
-        />
-      )}
       {wizardItem && (
         <DetectorWizardModal
           item={wizardItem}

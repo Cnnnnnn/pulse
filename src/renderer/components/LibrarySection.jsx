@@ -20,7 +20,7 @@ import { useState, useEffect } from 'preact/hooks';
 import { unmonitoredApps, libraryConfig, activeFilter } from '../store.js';
 import { api } from '../api.js';
 
-export function LibrarySection({ onOpenAutoDetect, onOpenWizard }) {
+export function LibrarySection({ onOpenWizard }) {
   const apps = unmonitoredApps.value;
   const pinned = (libraryConfig.value && libraryConfig.value.pinned) || [];
   const ignoredNames = new Set(
@@ -107,8 +107,8 @@ export function LibrarySection({ onOpenAutoDetect, onOpenWizard }) {
                   </button>
                   <button
                     class="btn btn-primary btn-sm"
-                    onClick={() => onOpenAutoDetect && onOpenAutoDetect(item)}
-                    title="自动探查 detector + 加入监控"
+                    onClick={() => onOpenWizard && onOpenWizard(item)}
+                    title="手动选 detector + 加入监控"
                   >
                     监控
                   </button>

@@ -76,8 +76,6 @@ export function createApi(overrides = {}) {
   librarySetIgnored: pick(overrides, 'librarySetIgnored'),
   librarySetTags: pick(overrides, 'librarySetTags'),
   onConfigUpdated: pick(overrides, 'onConfigUpdated'),
-  // v2.7.2 (Auto-Detect)
-  libraryAutoDetect: pick(overrides, 'libraryAutoDetect'),
  };
 }
 
