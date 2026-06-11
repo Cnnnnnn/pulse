@@ -1,37 +1,39 @@
 /**
  * src/renderer/components/AppShell.jsx
  *
- * v2.9.0 — Shell 布局 + main 视图切换
+ * v2.9.0 Shell 布局 + v2.9.1 拆 2 独立顶部
  *
  *  左侧 180px (或 40 折叠) SideNav
- *  右侧 main 区: 跟 v2.6 一样, 根据 checkSession.phase 切 Skeleton / ResultsView / ErrorBanner.
- *    但 activeNav='worldcup' 时, 完全显示 WorldcupView, 跳过 v2.6 的 phase 逻辑.
+ *  右侧 main 区: 根据 activeNav 切 2 个完全独立 layout
  *
- * 跟 v2.6 主体 隔离: 0 共享 view, 但 Header / FilterBar / 全局组件 仍 在 App.jsx 顶层
+ *    [版本检查] tab:
+ *      顶部: Header (含 检查更新 按钮) + FilterBar (搜索 + 4 status tab)
+ *      main:  v2.6 phase 切 (Skeleton / ResultsView / ErrorBanner) + WeeklyBanner
+ *
+ *    [世界杯] tab:
+ *      顶部: WorldcupHeader (品牌 + [赛程] / [球队] 子 tab + 搜索框)
+ *      main:  WorldcupView (赛程) / WorldcupTeamsView (球队)
+ *
+ * 跟 v2.6 主体隔离: 0 共享 view, 各自 Header / 搜索 / 切.
  */
 
 import { useEffect } from 'preact/hooks';
 import { activeNav, navCollapsed } from '../worldcup/navStore.js';
-import { checkSession, results } from '../store.js';
 import { SideNav } from './SideNav.jsx';
-import { Skeleton } from './Skeleton.jsx';
-import { ResultsView } from './ResultsView.jsx';
-import { ErrorBanner } from './ErrorBanner.jsx';
-import { WorldcupView } from '../worldcup/WorldcupView.jsx';
+import { VersionsLayout } from './VersionsLayout.jsx';
+import { WorldcupLayout } from '../worldcup/WorldcupLayout.jsx';
 
 export function AppShell({ onCheck }) {
   const nav = activeNav.value;
   const collapsed = navCollapsed.value;
-  const session = checkSession.value;
-  const phase = session.phase;
-  const hasResults = results.value.size > 0;
 
-  // Cmd+F 拦截 (在 AppShell 内也来一次, 防止 activeNav='worldcup' 时失效)
+  // Cmd+F 拦截: 切到对应搜索框
   useEffect(() => {
     function onKey(e) {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
-        const input = document.getElementById('filter-search-input');
+        const inputId = nav === 'worldcup' ? 'worldcup-search-input' : 'filter-search-input';
+        const input = document.getElementById(inputId);
         if (input) {
           input.focus();
           try { input.select(); } catch { /* noop */ }
@@ -40,27 +42,13 @@ export function AppShell({ onCheck }) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [nav]);
 
   return (
     <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
       <SideNav />
       <div class="app-shell-view">
-        {nav === 'worldcup' ? (
-          <WorldcupView />
-        ) : (
-          <>
-            {!hasResults && phase === 'running' && <Skeleton />}
-            {hasResults && <ResultsView />}
-            {phase === 'idle' && !hasResults && <ResultsView />}
-            {phase === 'error' && (
-              <>
-                <ErrorBanner onRetry={onCheck} />
-                <ResultsView />
-              </>
-            )}
-          </>
-        )}
+        {nav === 'worldcup' ? <WorldcupLayout /> : <VersionsLayout onCheck={onCheck} />}
       </div>
     </div>
   );

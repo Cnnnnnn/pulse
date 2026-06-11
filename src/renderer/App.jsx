@@ -1,30 +1,28 @@
 /**
  * src/renderer/App.jsx
  *
- * 根组件 —— 顶层布局 (v2.9.0 拍准).
+ * 根组件 —— 顶层布局 (v2.9.1 拍准).
  *
- * v2.9.0: AppShell 接管 main 区 (含 v2.6 phase 切 + v2.9.0 worldcup view 切).
- *   Header / FilterBar / 全局组件 (Toast / BulkUpgrade / AITasksDrawer) 仍 在顶层.
- *   WeeklyBanner 仍 在 Header 下方, 跟 v2.6 兼容.
+ * v2.9.0 → v2.9.1: AppShell 拆 2 独立 layout.
+ *   [版本检查] tab: Header (检查更新 按钮) + FilterBar + VersionsLayout (Skeleton/Results/Error).
+ *   [世界杯] tab:   WorldcupLayout (WorldcupHeader [品牌+子tab+搜索] + 主体).
+ *   2 套顶部 完全独立, 拍 1 拍 (跟版本检查相关元素 留 在 版本检查).
  *
  * v2 改进 (跟 v2.6 保持):
- *   - footerTime 修复: 显示检查 *完成* 时间
+ *   - footerTime 修复
+ *   - Cmd+F 拦截 (在 AppShell 里, 切对应搜索框)
  */
 
 import { checkSession } from './store.js';
 import { Header } from './components/Header.jsx';
 import { FilterBar } from './components/FilterBar.jsx';
-import { WeeklyBanner } from './components/WeeklyBanner.jsx';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { AITasksDrawer } from './components/AITasksDrawer.jsx';
 import { Toast } from './components/Toast.jsx';
 import { AppShell } from './components/AppShell.jsx';
-import { results } from './store.js';
 
 export function App({ onCheck }) {
   const session = checkSession.value;
-  const hasResults = results.value.size > 0;
-
   return (
     <div id="app">
       <div id="titlebar"></div>
@@ -32,7 +30,6 @@ export function App({ onCheck }) {
       <AITasksDrawer />
       <FilterBar />
       <main id="content">
-        {hasResults && <WeeklyBanner state={results.value} />}
         <AppShell onCheck={onCheck} />
       </main>
       <footer id="footer">

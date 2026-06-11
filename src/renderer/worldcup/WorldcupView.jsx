@@ -35,7 +35,7 @@ function formatWeekday(date) {
   return WEEKDAYS_CN[idx] || '';
 }
 
-export function WorldcupView() {
+export function WorldcupView({ search = '' }) {
   const data = worldcupMatches.value;
   const loading = worldcupLoading.value;
   const error = worldcupError.value;
@@ -49,8 +49,17 @@ export function WorldcupView() {
 
   const dayGroups = useMemo(() => {
     if (!data || !Array.isArray(data.matches)) return [];
-    return groupMatchesByDate(data.matches);
-  }, [data]);
+    let matches = data.matches;
+    if (search) {
+      const q = search.toLowerCase();
+      matches = matches.filter((m) => (
+        (m.team1 && m.team1.toLowerCase().includes(q)) ||
+        (m.team2 && m.team2.toLowerCase().includes(q)) ||
+        (m.venue && m.venue.toLowerCase().includes(q))
+      ));
+    }
+    return groupMatchesByDate(matches);
+  }, [data, search]);
 
   // 错误态
   if (error) {
