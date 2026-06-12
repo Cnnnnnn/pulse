@@ -9,21 +9,38 @@
  * 跟 VersionsLayout 完全独立: 0 共享 view / store / signal (除 navStore 2 signal)
  */
 
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { WorldcupView } from './WorldcupView.jsx';
 import { WorldcupTeamsView } from './WorldcupTeamsView.jsx';
+import { WorldcupScorersView } from './WorldcupScorersView.jsx';
 import { WorldcupHeader } from './WorldcupHeader.jsx';
+import SquadModal from './SquadModal.jsx';
+import {
+  bootstrapWorldcupTab,
+  refreshWorldcupScores,
+  worldcupScoresLoading,
+} from './store.js';
 
 export const WC_SUBTABS = [
   { key: 'fixtures', label: '赛程', icon: '📅' },
   { key: 'teams', label: '球队', icon: '👥' },
+  { key: 'scorers', label: '进球榜', icon: '⚽' },
 ];
 
 export function WorldcupLayout() {
   const [subTab, setSubTab] = useState('fixtures');
   const [search, setSearch] = useState('');
-  const [squadMatch, setSquadMatch] = useState(null);
   const [teamSquad, setTeamSquad] = useState(null);
+
+  function handleSubTabChange(tab) {
+    setSubTab(tab);
+    // 切子 tab 时关球队大名单弹窗，避免 modal-backdrop 挡住赛程区
+    setTeamSquad(null);
+  }
+
+  useEffect(() => {
+    bootstrapWorldcupTab();
+  }, []);
 
   function handleTeamClick(team) {
     // 1 队对 1 队 自身 虚拟 match (Stage = 球队, VS 自己也行)
@@ -44,15 +61,19 @@ export function WorldcupLayout() {
       <WorldcupHeader
         subTab={subTab}
         subTabs={WC_SUBTABS}
-        onSubTabChange={setSubTab}
+        onSubTabChange={handleSubTabChange}
         search={search}
         onSearchChange={setSearch}
+        onRefreshScores={() => refreshWorldcupScores()}
+        scoresLoading={worldcupScoresLoading.value}
       />
       <div class="worldcup-layout-main">
         {subTab === 'teams' ? (
           <WorldcupTeamsView search={search} onTeamClick={handleTeamClick} />
+        ) : subTab === 'scorers' ? (
+          <WorldcupScorersView search={search} />
         ) : (
-          <WorldcupView search={search} squadMatch={squadMatch} setSquadMatch={setSquadMatch} />
+          <WorldcupView search={search} />
         )}
         {teamSquad && (
           <SquadModal match={teamSquad} onClose={() => setTeamSquad(null)} />

@@ -18,8 +18,8 @@
  *  - resultSignals per-row 机制不变
  */
 
-import { signal, computed } from '@preact/signals';
-import * as category from '../config/category.js';
+import { signal, computed } from "@preact/signals";
+import * as category from "../config/category.js";
 
 // ─── Session ID 生成 ──────────────────────────────────
 let _sessionCounter = 0;
@@ -28,8 +28,8 @@ function generateSessionId() {
 }
 
 // ─── 公开 signals: Apps + Session ──────────────────────────
-export const apps = signal([]);                  // 从 config 加载的 app 列表
-export const results = signal(new Map());        // name → latest result (分组真相源)
+export const apps = signal([]); // 从 config 加载的 app 列表
+export const results = signal(new Map()); // name → latest result (分组真相源)
 
 /**
  * checkSession — 替代旧的 checkStatus / checkStartTime / checkDuration 三个信号。
@@ -47,7 +47,7 @@ export const results = signal(new Map());        // name → latest result (分�
  */
 export const checkSession = signal({
   id: null,
-  phase: 'idle',
+  phase: "idle",
   startedAt: null,
   finishedAt: null,
   error: null,
@@ -87,14 +87,14 @@ export const cachedState = signal(null);
 
 // Phase 23: Search + Filter 状态. FilterBar 写, selectors 读.
 // searchQuery: 当前 search 框内容 (string). activeFilter: 'all' | 'update' | 'latest' | 'error'.
-export const searchQuery = signal('');
-export const activeFilter = signal('all');
+export const searchQuery = signal("");
+export const activeFilter = signal("all");
 
 // Phase A (App Categorization): 当前选中的顶部 category tab.
 //   - 'all'    -> 全部 (默认, 不过滤)
 //   - categoryId -> 仅显示该 categoryId 的 app (e.g. 'ai', 'dev')
 // 持久化到 state.json.active_category; 还原由 loadActiveCategory() 完成.
-export const activeCategory = signal('all');
+export const activeCategory = signal("all");
 
 // ── AI 任务总结 (重做版): 任务为中心、按需生成 ──
 //   - aiTasksDateKey: 当前查看的日期 ('YYYY-MM-DD', 默认今天)
@@ -108,7 +108,9 @@ export const aiTasksSourceStats = signal([]);
 export const aiTasksLoading = signal(false);
 export const aiTasksError = signal(null);
 export const summarizingTaskKeys = signal(new Set());
-export const aiSummarizeBusy = computed(() => summarizingTaskKeys.value.size > 0);
+export const aiSummarizeBusy = computed(
+  () => summarizingTaskKeys.value.size > 0,
+);
 
 // 右侧 drawer 打开状态. Header 一个按钮, 点开才显示任务列表.
 export const digestDrawerOpen = signal(false);
@@ -124,11 +126,12 @@ export const digestConfigMode = signal(false);
  * @returns {string}
  */
 export function localDateKey(offsetDays = 0, now) {
-  const t = (typeof now === 'number' ? now : Date.now()) - (offsetDays | 0) * 86400_000;
-  return new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  const t =
+    (typeof now === "number" ? now : Date.now()) - (offsetDays | 0) * 86400_000;
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).format(new Date(t));
 }
 
@@ -149,8 +152,8 @@ export function isMuted(name, now) {
   if (!name) return false;
   const m = mutedApps.value.get(name);
   if (!m) return false;
-  const t = (typeof now === 'number') ? now : Date.now();
-  if (!m.until) return true;        // 0 = 永远
+  const t = typeof now === "number" ? now : Date.now();
+  if (!m.until) return true; // 0 = 永远
   return t < m.until;
 }
 
@@ -169,13 +172,13 @@ export const lastOpenedApps = signal(new Map());
  * @returns {'hot'|'warm'|'cold'|'unknown'}
  */
 export function getLocalTier(lastMs, now) {
-  if (lastMs == null || typeof lastMs !== 'number') return 'unknown';
-  const t = (typeof now === 'number') ? now : Date.now();
-  if (t < lastMs) return 'unknown';
+  if (lastMs == null || typeof lastMs !== "number") return "unknown";
+  const t = typeof now === "number" ? now : Date.now();
+  if (t < lastMs) return "unknown";
   const ageDays = (t - lastMs) / 86400_000;
-  if (ageDays <= 7) return 'hot';
-  if (ageDays <= 30) return 'warm';
-  return 'cold';
+  if (ageDays <= 7) return "hot";
+  if (ageDays <= 30) return "warm";
+  return "cold";
 }
 
 /**
@@ -183,13 +186,18 @@ export function getLocalTier(lastMs, now) {
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 export async function setMute(name, durationSec) {
-  if (!name || typeof name !== 'string') return { ok: false, reason: 'invalid_name' };
-  if (typeof durationSec !== 'number' || !Number.isFinite(durationSec) || durationSec < 0) {
-    return { ok: false, reason: 'invalid_duration' };
+  if (!name || typeof name !== "string")
+    return { ok: false, reason: "invalid_name" };
+  if (
+    typeof durationSec !== "number" ||
+    !Number.isFinite(durationSec) ||
+    durationSec < 0
+  ) {
+    return { ok: false, reason: "invalid_duration" };
   }
   // 走 api 而不是直接调 ipcRenderer, 测试好 mock
   // eslint-disable-next-line no-undef
-  const { api } = await import('./api.js');
+  const { api } = await import("./api.js");
   const r = await api.setMute(name, durationSec);
   if (r && r.ok && r.mutes) {
     // 同步本地
@@ -198,7 +206,7 @@ export async function setMute(name, durationSec) {
     mutedApps.value = next;
     return { ok: true };
   }
-  return { ok: false, reason: (r && r.reason) || 'threw' };
+  return { ok: false, reason: (r && r.reason) || "threw" };
 }
 
 /**
@@ -206,9 +214,10 @@ export async function setMute(name, durationSec) {
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 export async function clearMute(name) {
-  if (!name || typeof name !== 'string') return { ok: false, reason: 'invalid_name' };
+  if (!name || typeof name !== "string")
+    return { ok: false, reason: "invalid_name" };
   // eslint-disable-next-line no-undef
-  const { api } = await import('./api.js');
+  const { api } = await import("./api.js");
   const r = await api.clearMute(name);
   if (r && r.ok && r.mutes) {
     const next = new Map();
@@ -216,7 +225,7 @@ export async function clearMute(name) {
     mutedApps.value = next;
     return { ok: true };
   }
-  return { ok: false, reason: (r && r.reason) || 'threw' };
+  return { ok: false, reason: (r && r.reason) || "threw" };
 }
 
 /**
@@ -225,7 +234,7 @@ export async function clearMute(name) {
  */
 export async function loadMutes() {
   // eslint-disable-next-line no-undef
-  const { api } = await import('./api.js');
+  const { api } = await import("./api.js");
   try {
     const r = await api.getMutes();
     const mutes = (r && r.mutes) || {};
@@ -245,7 +254,7 @@ export async function loadMutes() {
  */
 export async function loadLastOpened() {
   // eslint-disable-next-line no-undef
-  const { api } = await import('./api.js');
+  const { api } = await import("./api.js");
   try {
     const r = await api.getLastOpened();
     const lo = (r && r.lastOpened) || {};
@@ -266,7 +275,7 @@ export async function loadLastOpened() {
  */
 export async function refreshLastOpened() {
   // eslint-disable-next-line no-undef
-  const { api } = await import('./api.js');
+  const { api } = await import("./api.js");
   try {
     return await api.refreshLastOpened();
   } catch {
@@ -286,25 +295,31 @@ export async function refreshLastOpened() {
  * @param {string} id    'all' 或 categoryId (e.g. 'ai', 'dev')
  */
 export function setActiveCategory(id) {
-  if (typeof id !== 'string' || id.length === 0) {
+  if (typeof id !== "string" || id.length === 0) {
     // eslint-disable-next-line no-console
-    console.warn('[store] setActiveCategory: id must be non-empty string, got', id);
+    console.warn(
+      "[store] setActiveCategory: id must be non-empty string, got",
+      id,
+    );
     return;
   }
   activeCategory.value = id;
   // 异步落盘, 失败 log warn, 不影响 UI
   // eslint-disable-next-line no-undef
-  import('./api.js').then(({ api }) => {
-    if (api && typeof api.saveActiveCategory === 'function') {
+  import("./api.js").then(({ api }) => {
+    if (api && typeof api.saveActiveCategory === "function") {
       // api.saveActiveCategory 可能是真实 promise (preload) 也可能是 noop (测试)
       const p = api.saveActiveCategory(id);
-      if (p && typeof p.then === 'function') {
+      if (p && typeof p.then === "function") {
         p.then(
           () => {},
           (err) => {
             // eslint-disable-next-line no-console
-            console.warn('[store] saveActiveCategory failed:', err && err.message);
-          }
+            console.warn(
+              "[store] saveActiveCategory failed:",
+              err && err.message,
+            );
+          },
         );
       }
     }
@@ -318,16 +333,16 @@ export function setActiveCategory(id) {
  */
 export async function loadActiveCategory() {
   // eslint-disable-next-line no-undef
-  const { api } = await import('./api.js');
+  const { api } = await import("./api.js");
   try {
     const r = await api.getActiveCategory();
-    const saved = (r && r.activeCategory) || 'all';
-    if (typeof saved === 'string' && saved.length > 0) {
+    const saved = (r && r.activeCategory) || "all";
+    if (typeof saved === "string" && saved.length > 0) {
       activeCategory.value = saved;
     }
     return activeCategory.value;
   } catch {
-    return 'all';
+    return "all";
   }
 }
 
@@ -341,13 +356,13 @@ export function setAISessionsEnabled(enabled) {
 //规则: 有 provider就算 enabled (实际能不能跑通是 healthcheck验证的事,
 // 用户填 key 即视为 "启用了 AI总结"). 不再有显式 toggle.
 export function syncEnabledFromConfig(cfg) {
- if (!cfg || typeof cfg !== 'object') {
- aiSessionsEnabled.value = false;
- return;
- }
- // providerId存在即 enabled
- const provider = cfg.provider || (cfg.cloud && cfg.cloud.providerId);
- aiSessionsEnabled.value = Boolean(provider);
+  if (!cfg || typeof cfg !== "object") {
+    aiSessionsEnabled.value = false;
+    return;
+  }
+  // providerId存在即 enabled
+  const provider = cfg.provider || (cfg.cloud && cfg.cloud.providerId);
+  aiSessionsEnabled.value = Boolean(provider);
 }
 
 // Phase B7g: 是否"已配齐到能跑" — cfg 有 provider +至少那个 provider 有 key.
@@ -355,13 +370,24 @@ export function syncEnabledFromConfig(cfg) {
 // 用于 rerunDigest: 检测到 needsConfig=true → 自动切到 drawer config view.
 // @returns {boolean}
 export function needsConfig() {
- const cfg = aiSessionsConfig.value;
- if (!cfg) return true;
- const providerId = cfg.provider || (cfg.cloud && cfg.cloud.providerId);
- if (!providerId) return true;
- const st = aiKeyStatus.value[providerId];
- if (!st || !st.hasKey) return true;
- return false;
+  const cfg = aiSessionsConfig.value;
+  if (!cfg) return true;
+  const providerId = cfg.provider || (cfg.cloud && cfg.cloud.providerId);
+  if (!providerId) return true;
+  const st = aiKeyStatus.value[providerId];
+  if (!st || !st.hasKey) return true;
+  return false;
+}
+
+/** 世界杯 AI 洞察 — 查共享 AI 是否就绪 */
+export async function refreshAIReadyStatus() {
+  try {
+    const { api } = await import("./api.js");
+    const r = await api.getAiSharedConfig();
+    return !!(r && r.ok && r.ready);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -370,7 +396,8 @@ export function needsConfig() {
  * @returns {Promise<Array>} 任务卡数组
  */
 export async function loadAiTasks(dateKey) {
-  const key = (typeof dateKey === 'string' && dateKey) ? dateKey : aiTasksDateKey.value;
+  const key =
+    typeof dateKey === "string" && dateKey ? dateKey : aiTasksDateKey.value;
   const isDateSwitch = key !== aiTasksDateKey.value;
   aiTasksDateKey.value = key;
   aiTasksLoading.value = true;
@@ -379,18 +406,20 @@ export async function loadAiTasks(dateKey) {
   if (isDateSwitch) aiTasks.value = [];
   try {
     // eslint-disable-next-line no-undef
-    const { api } = await import('./api.js');
+    const { api } = await import("./api.js");
     const r = await api.listAiTasks({ dateKey: key });
     if (aiTasksDateKey.value !== key) return []; // 用户已切到别的日期, 丢弃
     if (r && r.ok) {
       aiTasks.value = Array.isArray(r.tasks) ? r.tasks : [];
-      aiTasksSourceStats.value = Array.isArray(r.sourceStats) ? r.sourceStats : [];
+      aiTasksSourceStats.value = Array.isArray(r.sourceStats)
+        ? r.sourceStats
+        : [];
       return aiTasks.value;
     }
-    aiTasksError.value = (r && (r.error || r.reason)) || 'list_failed';
+    aiTasksError.value = (r && (r.error || r.reason)) || "list_failed";
     return [];
   } catch (err) {
-    aiTasksError.value = (err && err.message) || 'list_threw';
+    aiTasksError.value = (err && err.message) || "list_threw";
     return [];
   } finally {
     if (aiTasksDateKey.value === key) aiTasksLoading.value = false;
@@ -405,26 +434,32 @@ export async function loadAiTasks(dateKey) {
  */
 export async function summarizeAiTasks(taskKeys) {
   if (needsConfig()) return null;
-  const keys = Array.isArray(taskKeys) ? taskKeys.filter((k) => typeof k === 'string' && k.length > 0) : [];
+  const keys = Array.isArray(taskKeys)
+    ? taskKeys.filter((k) => typeof k === "string" && k.length > 0)
+    : [];
   if (keys.length === 0) return null;
   const dateKey = aiTasksDateKey.value;
   summarizingTaskKeys.value = new Set([...summarizingTaskKeys.value, ...keys]);
   try {
     // eslint-disable-next-line no-undef
-    const { api } = await import('./api.js');
+    const { api } = await import("./api.js");
     const r = await api.summarizeAiTasks({ dateKey, taskKeys: keys });
-    if (r && !r.ok && typeof r.error === 'string' && /^auth_/.test(r.error)) {
-      showToast('API key 无效,请在设置里更新', 'warn', 5000);
+    if (r && !r.ok && typeof r.error === "string" && /^auth_/.test(r.error)) {
+      showToast("API key 无效,请在设置里更新", "warn", 5000);
     }
-    const authFail = r && Array.isArray(r.failures)
-      && r.failures.some((f) => f && typeof f.message === 'string' && /^auth_/.test(f.message));
+    const authFail =
+      r &&
+      Array.isArray(r.failures) &&
+      r.failures.some(
+        (f) => f && typeof f.message === "string" && /^auth_/.test(f.message),
+      );
     if (authFail) {
-      showToast('API key 无效,请在设置里更新', 'warn', 5000);
+      showToast("API key 无效,请在设置里更新", "warn", 5000);
     }
     return r || null;
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn('[store] summarizeAiTasks threw:', err && err.message);
+    console.warn("[store] summarizeAiTasks threw:", err && err.message);
     return null;
   } finally {
     const next = new Set(summarizingTaskKeys.value);
@@ -439,16 +474,16 @@ export async function summarizeAiTasks(taskKeys) {
  * @param {object} data  { dateKey, taskKey, ok, task?, error? }
  */
 export function applyTaskSummaryEvent(data) {
-  if (!data || typeof data.taskKey !== 'string') return;
+  if (!data || typeof data.taskKey !== "string") return;
   if (summarizingTaskKeys.value.has(data.taskKey)) {
     const next = new Set(summarizingTaskKeys.value);
     next.delete(data.taskKey);
     summarizingTaskKeys.value = next;
   }
   if (data.ok && data.task && data.dateKey === aiTasksDateKey.value) {
-    aiTasks.value = aiTasks.value.map((t) => (
-      t && t.taskKey === data.taskKey ? data.task : t
-    ));
+    aiTasks.value = aiTasks.value.map((t) =>
+      t && t.taskKey === data.taskKey ? data.task : t,
+    );
   }
 }
 
@@ -457,8 +492,8 @@ export function applyTaskSummaryEvent(data) {
  */
 export function subscribeAiTaskUpdates() {
   // eslint-disable-next-line no-undef
-  import('./api.js').then(({ api }) => {
-    if (api && typeof api.onAiTaskSummaryUpdated === 'function') {
+  import("./api.js").then(({ api }) => {
+    if (api && typeof api.onAiTaskSummaryUpdated === "function") {
       api.onAiTaskSummaryUpdated(applyTaskSummaryEvent);
     }
   });
@@ -499,7 +534,7 @@ const appPhaseSignals = new Map();
 export function getAppPhaseSignal(name) {
   let sig = appPhaseSignals.get(name);
   if (!sig) {
-    sig = signal('idle');
+    sig = signal("idle");
     appPhaseSignals.set(name, sig);
   }
   return sig;
@@ -511,7 +546,7 @@ export function getAppPhaseSignal(name) {
  * @returns {'pending'|'detecting'|'done'|'error'|'idle'}
  */
 export function getAppPhase(name) {
-  return appPhases.value.get(name) || 'idle';
+  return appPhases.value.get(name) || "idle";
 }
 
 // ─── 变更 API (Session-based) ──────────────────────────────────
@@ -522,8 +557,8 @@ export function getAppPhase(name) {
  * @returns {'done'|'error'}
  */
 function resultToPhase(result) {
-  if (result.status === 'error') return 'error';
-  return 'done';  // 其他所有状态 (up_to_date, update_available, etc.) 都算 done
+  if (result.status === "error") return "error";
+  return "done"; // 其他所有状态 (up_to_date, update_available, etc.) 都算 done
 }
 
 /**
@@ -550,18 +585,18 @@ export function startCheck(appNames = []) {
   // 2. 所有 app 进入 'pending' phase
   const phases = new Map();
   for (const sig of appPhaseSignals.values()) {
-    sig.value = 'pending';
+    sig.value = "pending";
   }
   for (const name of appNames) {
-    phases.set(name, 'pending');
-    getAppPhaseSignal(name).value = 'pending';
+    phases.set(name, "pending");
+    getAppPhaseSignal(name).value = "pending";
   }
   appPhases.value = phases;
 
   // 3. 创建新 session
   checkSession.value = {
     id: sessionId,
-    phase: 'running',
+    phase: "running",
     startedAt: Date.now(),
     finishedAt: null,
     error: null,
@@ -576,7 +611,7 @@ export function startCheck(appNames = []) {
  * @deprecated 使用 startCheck() 代替
  */
 export function resetCheck() {
-  return startCheck(apps.value.map(a => a.name));
+  return startCheck(apps.value.map((a) => a.name));
 }
 
 /**
@@ -599,7 +634,9 @@ export function applyProgress(result, sessionId) {
   const currentSession = checkSession.value;
   if (sessionId && currentSession.id && sessionId !== currentSession.id) {
     // eslint-disable-next-line no-console
-    console.warn(`[store] applyProgress: stale session ${sessionId}, current=${currentSession.id}, discarding`);
+    console.warn(
+      `[store] applyProgress: stale session ${sessionId}, current=${currentSession.id}, discarding`,
+    );
     return;
   }
 
@@ -636,10 +673,10 @@ export function markAppDetecting(name, sessionId) {
 
   const nextPhases = new Map(appPhases.value);
   // 只有从 pending 才能切到 detecting (已 done/error 的不回退)
-  if (nextPhases.get(name) === 'pending' || !nextPhases.has(name)) {
-    nextPhases.set(name, 'detecting');
+  if (nextPhases.get(name) === "pending" || !nextPhases.has(name)) {
+    nextPhases.set(name, "detecting");
     appPhases.value = nextPhases;
-    getAppPhaseSignal(name).value = 'detecting';
+    getAppPhaseSignal(name).value = "detecting";
   }
 }
 
@@ -649,10 +686,10 @@ export function markAppDetecting(name, sessionId) {
  */
 export function finishCheck() {
   const s = checkSession.value;
-  if (s.phase !== 'running') return; // 防止重复 finish
+  if (s.phase !== "running") return; // 防止重复 finish
   checkSession.value = {
     ...s,
-    phase: 'done',
+    phase: "done",
     finishedAt: Date.now(),
   };
 }
@@ -665,12 +702,12 @@ export function finishCheck() {
  */
 export function setError(message) {
   const s = checkSession.value;
-  if (s.phase !== 'running') return;
+  if (s.phase !== "running") return;
   checkSession.value = {
     ...s,
-    phase: 'error',
+    phase: "error",
     finishedAt: Date.now(),
-    error: message || '未知错误',
+    error: message || "未知错误",
   };
 }
 
@@ -679,7 +716,7 @@ export function setError(message) {
  * @returns {boolean}
  */
 export function isCheckRunning() {
-  return checkSession.value.phase === 'running';
+  return checkSession.value.phase === "running";
 }
 
 /**
@@ -700,8 +737,8 @@ export function applyCachedResults(cached) {
     getResultSignal(name).value = r;
 
     // 缓存结果 → phase 设为 done (AppRow 直接显示结果)
-    nextPhases.set(name, 'done');
-    getAppPhaseSignal(name).value = 'done';
+    nextPhases.set(name, "done");
+    getAppPhaseSignal(name).value = "done";
   }
 
   results.value = nextResults;
@@ -733,21 +770,21 @@ export const aiHealthcheckResult = signal(null);
 
 // ─── Setters (测试 + IPC事件回写) ──────────────────────────
 export function setAISessionsConfig(cfg) {
-  aiSessionsConfig.value = cfg && typeof cfg === 'object' ? cfg : null;
+  aiSessionsConfig.value = cfg && typeof cfg === "object" ? cfg : null;
   // Phase B7f: enabled 状态从 cfg 派生 — 有 provider 即启用
   syncEnabledFromConfig(aiSessionsConfig.value);
 }
 export function setAIKeyStatus(providerId, status) {
- const next = { ...aiKeyStatus.value };
- if (status === null || status === undefined) {
- delete next[providerId];
- } else {
- next[providerId] = status;
- }
- aiKeyStatus.value = next;
+  const next = { ...aiKeyStatus.value };
+  if (status === null || status === undefined) {
+    delete next[providerId];
+  } else {
+    next[providerId] = status;
+  }
+  aiKeyStatus.value = next;
 }
 export function setAIKeyStatuses(map) {
- aiKeyStatus.value = (map && typeof map === 'object') ? { ...map } : {};
+  aiKeyStatus.value = map && typeof map === "object" ? { ...map } : {};
 }
 export function openAISettings(open = true) {
   aiSettingsOpen.value = Boolean(open);
@@ -759,10 +796,10 @@ export function toggleDigestDrawer() {
   digestDrawerOpen.value = !digestDrawerOpen.value;
 }
 export function setAIHealthcheckBusy(busy) {
- aiHealthcheckBusy.value = Boolean(busy);
+  aiHealthcheckBusy.value = Boolean(busy);
 }
 export function setAIHealthcheckResult(r) {
- aiHealthcheckResult.value = r && typeof r === 'object' ? r : null;
+  aiHealthcheckResult.value = r && typeof r === "object" ? r : null;
 }
 
 // ─── Actions (走 IPC) ──────────────────────────────────────
@@ -771,14 +808,14 @@ export function setAIHealthcheckResult(r) {
  * @returns {Promise<object|null>}
  */
 export async function loadAISessionsConfig() {
- const { api } = await import('./api.js');
- try {
- const r = await api.getAiSessionsConfig();
- setAISessionsConfig(r && r.config ? r.config : null);
- return aiSessionsConfig.value;
- } catch {
- return null;
- }
+  const { api } = await import("./api.js");
+  try {
+    const r = await api.getAiSessionsConfig();
+    setAISessionsConfig(r && r.config ? r.config : null);
+    return aiSessionsConfig.value;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -786,20 +823,26 @@ export async function loadAISessionsConfig() {
  * @returns {Promise<object>} { [providerId]: { hasKey, available } }
  */
 export async function probeAIKeyStatuses() {
- const { api } = await import('./api.js');
- const providers = ['openai', 'anthropic', 'deepseek', 'minimax'];
- const next = {};
- await Promise.all(providers.map(async (id) => {
- try {
- const r = await api.hasAiKey(id);
- if (r && r.ok) next[id] = { hasKey: Boolean(r.hasKey), available: Boolean(r.available) };
- else next[id] = { hasKey: false, available: false };
- } catch {
- next[id] = { hasKey: false, available: false };
- }
- }));
- setAIKeyStatuses(next);
- return next;
+  const { api } = await import("./api.js");
+  const providers = ["openai", "anthropic", "deepseek", "minimax"];
+  const next = {};
+  await Promise.all(
+    providers.map(async (id) => {
+      try {
+        const r = await api.hasAiKey(id);
+        if (r && r.ok)
+          next[id] = {
+            hasKey: Boolean(r.hasKey),
+            available: Boolean(r.available),
+          };
+        else next[id] = { hasKey: false, available: false };
+      } catch {
+        next[id] = { hasKey: false, available: false };
+      }
+    }),
+  );
+  setAIKeyStatuses(next);
+  return next;
 }
 
 /**
@@ -809,17 +852,17 @@ export async function probeAIKeyStatuses() {
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 export async function setAIKey(providerId, apiKey) {
- const { api } = await import('./api.js');
- try {
- const r = await api.setAiKey(providerId, apiKey);
- if (r && r.ok) {
- setAIKeyStatus(providerId, { hasKey: true, available: true });
- return { ok: true };
- }
- return { ok: false, reason: r && r.reason };
- } catch (err) {
- return { ok: false, reason: 'threw', error: err && err.message };
- }
+  const { api } = await import("./api.js");
+  try {
+    const r = await api.setAiKey(providerId, apiKey);
+    if (r && r.ok) {
+      setAIKeyStatus(providerId, { hasKey: true, available: true });
+      return { ok: true };
+    }
+    return { ok: false, reason: r && r.reason };
+  } catch (err) {
+    return { ok: false, reason: "threw", error: err && err.message };
+  }
 }
 
 /**
@@ -828,17 +871,17 @@ export async function setAIKey(providerId, apiKey) {
  * @returns {Promise<{ok: boolean}>}
  */
 export async function clearAIKey(providerId) {
- const { api } = await import('./api.js');
- try {
- const r = await api.clearAiKey(providerId);
- if (r && r.ok) {
- setAIKeyStatus(providerId, { hasKey: false, available: true });
- return { ok: true };
- }
- return { ok: false };
- } catch {
- return { ok: false };
- }
+  const { api } = await import("./api.js");
+  try {
+    const r = await api.clearAiKey(providerId);
+    if (r && r.ok) {
+      setAIKeyStatus(providerId, { hasKey: false, available: true });
+      return { ok: true };
+    }
+    return { ok: false };
+  } catch {
+    return { ok: false };
+  }
 }
 
 /**
@@ -847,26 +890,26 @@ export async function clearAIKey(providerId) {
  * @returns {Promise<{ok, error?, latencyMs?, status?}>}
  */
 export async function runAIHealthcheck(opts) {
- const { api } = await import('./api.js');
- setAIHealthcheckBusy(true);
- try {
- const r = await api.aiHealthcheck(opts);
- setAIHealthcheckResult(r || { ok: false, error: 'no_response' });
- // B7b.1: auth_401/403 →一次性 toast提示用户更新 key (不弹 modal)
- if (r && !r.ok && typeof r.error === 'string' && /^auth_/.test(r.error)) {
- showToast('API key 无效,请在设置里更新', 'warn',5000);
- }
- return r || { ok: false };
- } catch (err) {
- const out = { ok: false, error: (err && err.message) || 'unknown' };
- setAIHealthcheckResult(out);
- if (/^auth_/.test(out.error || '')) {
- showToast('API key 无效,请在设置里更新', 'warn',5000);
- }
- return out;
- } finally {
- setAIHealthcheckBusy(false);
- }
+  const { api } = await import("./api.js");
+  setAIHealthcheckBusy(true);
+  try {
+    const r = await api.aiHealthcheck(opts);
+    setAIHealthcheckResult(r || { ok: false, error: "no_response" });
+    // B7b.1: auth_401/403 →一次性 toast提示用户更新 key (不弹 modal)
+    if (r && !r.ok && typeof r.error === "string" && /^auth_/.test(r.error)) {
+      showToast("API key 无效,请在设置里更新", "warn", 5000);
+    }
+    return r || { ok: false };
+  } catch (err) {
+    const out = { ok: false, error: (err && err.message) || "unknown" };
+    setAIHealthcheckResult(out);
+    if (/^auth_/.test(out.error || "")) {
+      showToast("API key 无效,请在设置里更新", "warn", 5000);
+    }
+    return out;
+  } finally {
+    setAIHealthcheckBusy(false);
+  }
 }
 
 /**
@@ -876,17 +919,17 @@ export async function runAIHealthcheck(opts) {
  * @returns {Promise<{ok, config?, reason?}>}
  */
 export async function saveAISessionsConfig(cfg) {
- const { api } = await import('./api.js');
- try {
- const r = await api.saveAiSessionsConfig(cfg);
- if (r && r.ok) {
- setAISessionsConfig(r.config || cfg);
- return { ok: true, config: r.config };
- }
- return { ok: false, reason: r && r.reason };
- } catch (err) {
- return { ok: false, reason: 'threw', error: err && err.message };
- }
+  const { api } = await import("./api.js");
+  try {
+    const r = await api.saveAiSessionsConfig(cfg);
+    if (r && r.ok) {
+      setAISessionsConfig(r.config || cfg);
+      return { ok: true, config: r.config };
+    }
+    return { ok: false, reason: r && r.reason };
+  } catch (err) {
+    return { ok: false, reason: "threw", error: err && err.message };
+  }
 }
 
 /**
@@ -894,15 +937,15 @@ export async function saveAISessionsConfig(cfg) {
  * bootstrap 时调一次.
  */
 export function subscribeAISessionsConfigUpdates() {
- import('./api.js').then(({ api }) => {
- if (api && typeof api.onAiSessionsConfigUpdated === 'function') {
- api.onAiSessionsConfigUpdated((data) => {
- if (data && data.config !== undefined) {
- setAISessionsConfig(data.config || null);
- }
- });
- }
- });
+  import("./api.js").then(({ api }) => {
+    if (api && typeof api.onAiSessionsConfigUpdated === "function") {
+      api.onAiSessionsConfigUpdated((data) => {
+        if (data && data.config !== undefined) {
+          setAISessionsConfig(data.config || null);
+        }
+      });
+    }
+  });
 }
 
 // ─── Phase B7b.1: Toast notifications ─────────────────────────────
@@ -912,10 +955,10 @@ export function subscribeAISessionsConfigUpdates() {
 // toast: Array<{ id: string, message: string, type: 'info'|'warn'|'error'|'success', ts: number }>
 export const toast = signal([]);
 
-let _toastIdCounter =0;
+let _toastIdCounter = 0;
 function _nextToastId() {
- _toastIdCounter +=1;
- return `toast-${Date.now()}-${_toastIdCounter}`;
+  _toastIdCounter += 1;
+  return `toast-${Date.now()}-${_toastIdCounter}`;
 }
 
 /**
@@ -925,16 +968,16 @@ function _nextToastId() {
  * @param {number} [ms=5000] 0 = 不自动消失
  * @returns {string} toast id
  */
-export function showToast(message, type = 'info', ms =5000) {
- if (typeof message !== 'string' || message.length ===0) return null;
- const id = _nextToastId();
- const t = { id, message, type, ts: Date.now() };
- const next = [...toast.value, t];
- toast.value = next;
- if (ms >0) {
- setTimeout(() => dismissToast(id), ms);
- }
- return id;
+export function showToast(message, type = "info", ms = 5000) {
+  if (typeof message !== "string" || message.length === 0) return null;
+  const id = _nextToastId();
+  const t = { id, message, type, ts: Date.now() };
+  const next = [...toast.value, t];
+  toast.value = next;
+  if (ms > 0) {
+    setTimeout(() => dismissToast(id), ms);
+  }
+  return id;
 }
 
 /**
@@ -942,12 +985,12 @@ export function showToast(message, type = 'info', ms =5000) {
  * @param {string} id
  */
 export function dismissToast(id) {
- toast.value = toast.value.filter((t) => t.id !== id);
+  toast.value = toast.value.filter((t) => t.id !== id);
 }
 
 /**
  * 清所有 toast。
  */
 export function clearToasts() {
- toast.value = [];
+  toast.value = [];
 }

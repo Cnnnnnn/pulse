@@ -14,21 +14,32 @@
  * 跟 v2.6 主体 0 共享 nav state (除汉堡自己用)
  */
 
-import { useState } from 'preact/hooks';
 import { activeNav, navCollapsed, setActiveNav, toggleNavCollapsed } from '../worldcup/navStore.js';
+import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
 
 const NAV_ITEMS = [
   { key: 'worldcup', icon: '🏆', label: '世界杯', tooltip: '2026 世界杯赛程' },
+  { key: 'funds',    icon: '💰', label: '基金管理', tooltip: '基金持仓 + 实时盈亏 (v2.10+)' },
   { key: 'versions', icon: '🔄', label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
 ];
 
 export function SideNav() {
   const collapsed = navCollapsed.value;
   const current = activeNav.value;
+  // 显式订阅 config / key 信号, 避免 needsConfig 误判后 UI 不刷新
+  void aiSessionsConfig.value;
+  void aiKeyStatus.value;
+  const aiNeedsSetup = needsConfig();
 
   return (
     <nav class={`side-nav${collapsed ? ' side-nav-collapsed' : ''}`}>
       <div class="side-nav-header">
+        {!collapsed && (
+          <div class="side-nav-brand" aria-hidden="true">
+            <span class="side-nav-brand-mark">P</span>
+            <span class="side-nav-brand-name">Pulse</span>
+          </div>
+        )}
         <button
           class="side-nav-toggle"
           onClick={() => toggleNavCollapsed()}
@@ -42,7 +53,11 @@ export function SideNav() {
         {NAV_ITEMS.map((item) => {
           const isActive = current === item.key;
           return (
-            <li key={item.key} class={`side-nav-item${isActive ? ' side-nav-item-active' : ''}`}>
+            <li
+              key={item.key}
+              class={`side-nav-item${isActive ? ' side-nav-item-active' : ''}`}
+              data-nav={item.key}
+            >
               <button
                 class="side-nav-button"
                 onClick={() => setActiveNav(item.key)}
@@ -56,6 +71,19 @@ export function SideNav() {
           );
         })}
       </ul>
+      <div class="side-nav-footer">
+        <button
+          type="button"
+          class={`side-nav-button side-nav-ai-btn${aiNeedsSetup ? ' side-nav-ai-btn-needs-setup' : ''}`}
+          onClick={() => openAISettings(true)}
+          title={collapsed ? 'Pulse 共享 AI 配置' : ''}
+          aria-label="Pulse 共享 AI 配置"
+        >
+          <span class="side-nav-icon">🤖</span>
+          {!collapsed && <span class="side-nav-label">AI 配置</span>}
+          {aiNeedsSetup && <span class="side-nav-setup-dot" aria-hidden="true" />}
+        </button>
+      </div>
     </nav>
   );
 }

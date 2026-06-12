@@ -126,7 +126,10 @@ async function bootstrap() {
   // 4) 订阅主进程事件 + 拉今日任务列表 (不调 LLM, 给 Header badge 用)
   subscribeAiTaskUpdates();
   subscribeAISessionsConfigUpdates();
-  loadAISessionsConfig().catch(() => {});
+  Promise.allSettled([
+    loadAISessionsConfig(),
+    import('./store.js').then((m) => m.probeAIKeyStatuses()),
+  ]).catch(() => {});
   loadAiTasks().catch(() => {});
 
   // last-opened 实时更新

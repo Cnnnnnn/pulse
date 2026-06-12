@@ -25,6 +25,11 @@ const aiStorage = require("../ai-sessions/storage");
 const { CloudSummarizer } = require("../ai-sessions/provider-cloud");
 const { PROVIDER_ENDPOINTS } = require("../ai-sessions/provider-cloud");
 const { HttpClient } = require("./http-client");
+const fundStore = require("./fund-store");
+const fundHistoryStore = require("./fund-history-store");
+const { searchFunds } = require("../funds/fund-search");
+const { fetchFundNavBatch } = require("../funds/fund-fetcher");
+const { pickEffectiveNavNumber } = require("../funds/fund-nav-merge");
 
 // Bulk Upgrade: 一次只能跑一批; 用 AbortController 控制取消.
 let bulkUpgradeCtrl = null;
@@ -37,9 +42,21 @@ let bulkUpgradeRunning = false;
  * @param {object} deps.getWindow         () => BrowserWindow | null
  * @param {object} deps.onCheckComplete   (results) => void   (用于更新 tray/badge)
  * @param {object} [deps.getCachedState]  () => state object  (Phase 12 last-known 缓存)
+ * @param {object} [deps.getFundScheduler]  () => FundScheduler | null (Funds 净值定时)
  */
 function registerIpcHandlers(deps) {
-  const { getConfig, pool, getWindow, onCheckComplete, getCachedState } = deps;
+  const {
+    getConfig,
+    pool,
+    getWindow,
+    onCheckComplete,
+    getCachedState,
+    getFundScheduler,
+  } = deps;
+
+  function fundScheduler() {
+    return typeof getFundScheduler === "function" ? getFundScheduler() : null;
+  }
 
   function sendToRenderer(channel, payload) {
     const w = getWindow && getWindow();
@@ -374,7 +391,9 @@ function registerIpcHandlers(deps) {
     const wiring = _getAiTasksWiring();
     if (!wiring) return { ok: false, reason: "not_initialized" };
     const dateKey =
-      opts && typeof opts.dateKey === "string" && /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
+      opts &&
+      typeof opts.dateKey === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
         ? opts.dateKey
         : _localDateKey(0);
     try {
@@ -392,7 +411,9 @@ function registerIpcHandlers(deps) {
     const wiring = _getAiTasksWiring();
     if (!wiring) return { ok: false, reason: "not_initialized" };
     const dateKey =
-      opts && typeof opts.dateKey === "string" && /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
+      opts &&
+      typeof opts.dateKey === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
         ? opts.dateKey
         : _localDateKey(0);
     const taskKeys =
@@ -412,7 +433,10 @@ function registerIpcHandlers(deps) {
       });
       return { ok: r.ok, dateKey, results: r.results, failures: r.failures };
     } catch (err) {
-      mainLog.warn("[ipc] ai-tasks:summarize failed", { dateKey, msg: err.message });
+      mainLog.warn("[ipc] ai-tasks:summarize failed", {
+        dateKey,
+        msg: err.message,
+      });
       return { ok: false, reason: "threw", error: err.message };
     }
   });
@@ -420,27 +444,30 @@ function registerIpcHandlers(deps) {
   // 跳转原始 session (任务卡 "查看原始" 按钮触发).
   // target 形如 "cursor://file/...", "codex://...", "minimax://...", 或绝对文件路径.
   // URL scheme 走 shell.openExternal, 绝对路径走 shell.openPath (默认 app 打开).
-  const { shell } = require('electron');
+  const { shell } = require("electron");
   ipcMain.handle("ai-sessions:open-session", async (_event, target) => {
-    if (typeof target !== 'string' || target.length === 0) {
-      return { ok: false, reason: 'invalid_target' };
+    if (typeof target !== "string" || target.length === 0) {
+      return { ok: false, reason: "invalid_target" };
     }
     try {
       // URL scheme (cursor://, codex://, minimax://, https://)
       if (/^[a-z][a-z0-9+.-]*:\/\//i.test(target)) {
         await shell.openExternal(target);
-        return { ok: true, mode: 'external' };
+        return { ok: true, mode: "external" };
       }
       // 绝对文件路径
-      if (target.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(target)) {
+      if (target.startsWith("/") || /^[a-zA-Z]:[\\/]/.test(target)) {
         const err = await shell.openPath(target);
-        if (err) return { ok: false, reason: 'openPath_failed', error: err };
-        return { ok: true, mode: 'openPath' };
+        if (err) return { ok: false, reason: "openPath_failed", error: err };
+        return { ok: true, mode: "openPath" };
       }
-      return { ok: false, reason: 'unrecognized_target' };
+      return { ok: false, reason: "unrecognized_target" };
     } catch (err) {
-      mainLog.warn("[ipc] ai-sessions:open-session failed", { target, msg: err.message });
-      return { ok: false, reason: 'threw', error: err.message };
+      mainLog.warn("[ipc] ai-sessions:open-session failed", {
+        target,
+        msg: err.message,
+      });
+      return { ok: false, reason: "threw", error: err.message };
     }
   });
 
@@ -505,37 +532,25 @@ function registerIpcHandlers(deps) {
     if (!available) {
       return { ok: true, hasKey: false, available: false };
     }
-    // 不直接返 key (安全);只探测 key file存在
-    const ss = (() => {
-      try {
-        return require("electron").safeStorage;
-      } catch {
-        return null;
-      }
-    })();
-    const filePath = (() => {
-      try {
-        const { app } = require("electron");
-        const path = require("path");
-        return path.join(
-          app.getPath("userData"),
-          "ai-keys",
-          `${providerId}.bin`,
-        );
-      } catch {
-        return null;
-      }
-    })();
-    if (!filePath) return { ok: true, hasKey: false, available: true };
-    const fs = require("fs");
-    const hasKey = fs.existsSync(filePath);
-    return { ok: true, hasKey, available: true };
+    const hasKey = Boolean(aiStorage.loadApiKey(providerId));
+    const hasFile =
+      typeof aiStorage.hasApiKeyFile === "function"
+        ? aiStorage.hasApiKeyFile(providerId)
+        : hasKey;
+    return {
+      ok: true,
+      hasKey: hasKey || hasFile,
+      decryptOk: hasKey,
+      available: true,
+    };
   });
 
   ipcMain.handle("ai-sessions:healthcheck", async (_event, opts) => {
     const stateCfg = stateStore.loadAISessionsConfig();
     const providerId =
-      opts && typeof opts.providerId === "string" ? opts.providerId : "deepseek";
+      opts && typeof opts.providerId === "string"
+        ? opts.providerId
+        : "deepseek";
 
     // cloud：需要 apiKey
     if (!PROVIDER_ENDPOINTS[providerId]) {
@@ -639,11 +654,318 @@ function registerIpcHandlers(deps) {
   // ─── v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT ─────────────────
   // 1 通道, server-side fetch (0 CORS), 24h 缓存 (state.json worldcup_txt)
   const { fetchWorldcupFixtures } = require("./worldcup/fetcher");
+  const { refreshWorldcupScores } = require("./worldcup/scores-fetcher");
   ipcMain.handle("worldcup:fetch-fixtures", async () => {
     try {
       return await fetchWorldcupFixtures();
     } catch (err) {
-      mainLog.warn("[ipc] worldcup:fetch-fixtures threw", { msg: err && err.message });
+      mainLog.warn("[ipc] worldcup:fetch-fixtures threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+  ipcMain.handle("worldcup:load-scores", async () => {
+    try {
+      const cache = stateStore.loadWorldcupScores();
+      return {
+        ok: true,
+        scores: cache ? cache.entries : {},
+        ts: cache ? cache.ts : 0,
+      };
+    } catch (err) {
+      mainLog.warn("[ipc] worldcup:load-scores threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+  ipcMain.handle("worldcup:refresh-scores", async (_evt, payload) => {
+    try {
+      const eligibleKeys =
+        payload && Array.isArray(payload.eligibleKeys)
+          ? payload.eligibleKeys
+          : [];
+      return await refreshWorldcupScores(eligibleKeys);
+    } catch (err) {
+      mainLog.warn("[ipc] worldcup:refresh-scores threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  const { generateMatchInsight } = require("./worldcup/match-ai");
+  const { resolveSharedAiConfig } = require("../ai/shared-llm");
+
+  ipcMain.handle("worldcup:load-insights", async () => {
+    try {
+      const cache = stateStore.loadWorldcupMatchInsights();
+      return {
+        ok: true,
+        insights: cache ? cache.entries : {},
+        ts: cache ? cache.ts : 0,
+      };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("worldcup:generate-insight", async (_evt, payload) => {
+    try {
+      const match = payload && payload.match;
+      const type = payload && payload.type;
+      const force = !!(payload && payload.force);
+      const scoreEntry = payload && payload.scoreEntry;
+      return await generateMatchInsight({ match, type, force, scoreEntry });
+    } catch (err) {
+      mainLog.warn("[ipc] worldcup:generate-insight threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  // ─── v2.10.0 世界杯体彩记账 (stake + pnl per matchday) ───────────
+  const {
+    loadAll: betsLoadAll,
+    upsert: betsUpsert,
+    remove: betsRemove,
+  } = require("./worldcup/bets-store");
+
+  ipcMain.handle("worldcup:load-bets", async () => {
+    try {
+      return { ok: true, ...betsLoadAll() };
+    } catch (err) {
+      mainLog.warn("[ipc] worldcup:load-bets threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("worldcup:upsert-bet", async (_evt, payload) => {
+    try {
+      return betsUpsert(payload || {});
+    } catch (err) {
+      mainLog.warn("[ipc] worldcup:upsert-bet threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: err && err.message };
+    }
+  });
+
+  ipcMain.handle("worldcup:remove-bet", async (_evt, date) => {
+    try {
+      return betsRemove(date);
+    } catch (err) {
+      mainLog.warn("[ipc] worldcup:remove-bet threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  // 共享 AI 配置探测 (与 ai-sessions 同一套 state)
+  ipcMain.handle("ai:get-shared-config", async () => {
+    try {
+      const cfg = stateStore.loadAISessionsConfig();
+      const resolved = resolveSharedAiConfig();
+      return {
+        ok: true,
+        config: cfg,
+        ready: resolved.ok,
+        reason: resolved.ok ? null : resolved.reason,
+        providerId: resolved.providerId || null,
+        model: resolved.model || null,
+      };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  // ── 基金管理 (v2.10+) ─────────────────────────────────────────
+
+  // funds:list → 启动时拉一次 (返回 holdings + deletedIds, deletedIds 给"回收站"用)
+  ipcMain.handle("funds:list", () => {
+    try {
+      return { ok: true, ...fundStore.loadAll() };
+    } catch (err) {
+      mainLog.warn("[ipc] funds:list threw", { msg: err && err.message });
+      return {
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+        holdings: [],
+        deletedIds: [],
+      };
+    }
+  });
+
+  ipcMain.handle("funds:add", (_event, input) => {
+    try {
+      const out = fundStore.add(input);
+      // 持仓变了 → 立即推一次净值 (UI 不用等下一个 tick)
+      const sched = fundScheduler();
+      if (sched && out.holding) {
+        sched.fetchNow().catch(() => {});
+      }
+      return { ok: true, holding: out.holding, holdings: out.all.holdings };
+    } catch (err) {
+      if (err && err.name === "ValidationError") {
+        return { ok: false, reason: "validation", error: err.message };
+      }
+      mainLog.warn("[ipc] funds:add threw", { msg: err && err.message });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("funds:update", (_event, id, patch) => {
+    try {
+      const out = fundStore.update(id, patch);
+      if (!out) return { ok: false, reason: "not_found" };
+      return { ok: true, holding: out.holding, holdings: out.all.holdings };
+    } catch (err) {
+      if (err && err.name === "ValidationError") {
+        return { ok: false, reason: "validation", error: err.message };
+      }
+      mainLog.warn("[ipc] funds:update threw", { msg: err && err.message });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("funds:remove", (_event, id) => {
+    try {
+      const out = fundStore.remove(id);
+      if (!out.ok) return out;
+      // 删除触发 scheduler 推一次 (让 UI 知道这只不再有数据)
+      const sched = fundScheduler();
+      if (sched) {
+        sched.fetchNow().catch(() => {});
+      }
+      return out;
+    } catch (err) {
+      mainLog.warn("[ipc] funds:remove threw", { msg: err && err.message });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("funds:restore", (_event, id) => {
+    try {
+      const out = fundStore.restore(id);
+      return out.ok ? { ok: true, holding: out.holding } : out;
+    } catch (err) {
+      mainLog.warn("[ipc] funds:restore threw", { msg: err && err.message });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("funds:nav:fetch", async () => {
+    const sched = fundScheduler();
+    if (!sched) return { ok: false, reason: "no_scheduler" };
+    return sched.fetchNow();
+  });
+
+  ipcMain.handle("funds:nav:state", () => {
+    const sched = fundScheduler();
+    if (!sched)
+      return {
+        ok: false,
+        reason: "no_scheduler",
+        status: "closed",
+        lastFetch: null,
+        nextFetch: null,
+      };
+    return { ok: true, ...sched.getState() };
+  });
+
+  // funds:nav:fetch-codes → 只拉指定代码 (弹窗填码时用, 比全量 refresh 快)
+  ipcMain.handle("funds:nav:fetch-codes", async (_event, codes) => {
+    const list = [
+      ...new Set(
+        (Array.isArray(codes) ? codes : [])
+          .map((c) => String(c || "").trim())
+          .filter((c) => /^\d{6}$/.test(c)),
+      ),
+    ];
+    if (list.length === 0) return { ok: false, reason: "invalid_codes" };
+    try {
+      const httpClient = new HttpClient({ timeout: 5000, maxRetries: 0 });
+      const out = await fetchFundNavBatch(list, httpClient, {
+        concurrency: 4,
+        timeoutMs: 5000,
+      });
+      const sched = fundScheduler();
+      if (sched && sched.cacheNavResults) sched.cacheNavResults(out.results);
+      return { ok: true, ...out };
+    } catch (err) {
+      mainLog.warn("[ipc] funds:nav:fetch-codes threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  // funds:search → 关键字搜索基金 (天天基金搜索接口)
+  ipcMain.handle("funds:search", async (_event, query) => {
+    try {
+      const httpClient = new HttpClient({ timeout: 6000, maxRetries: 0 });
+      const results = await searchFunds(query, httpClient);
+      return { ok: true, results };
+    } catch (err) {
+      mainLog.warn("[ipc] funds:search threw", { msg: err && err.message });
+      return {
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+        results: [],
+      };
+    }
+  });
+
+  ipcMain.handle("funds:history:list", () => {
+    try {
+      const dailySnapshots = fundHistoryStore.loadSnapshots();
+      return { ok: true, dailySnapshots };
+    } catch (err) {
+      mainLog.warn("[ipc] funds:history:list threw", {
+        msg: err && err.message,
+      });
+      return {
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+        dailySnapshots: [],
+      };
+    }
+  });
+
+  ipcMain.handle("funds:set-nav-source", (_event, source) => {
+    try {
+      const all = fundStore.setNavSource(source);
+      return { ok: true, navSource: all.navSource };
+    } catch (err) {
+      mainLog.warn("[ipc] funds:set-nav-source threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  // funds:backfill → 用最新净值反填占位 holding (UI 主动触发, scheduler 也会自动调)
+  ipcMain.handle("funds:backfill", (_event, code) => {
+    try {
+      const sched = fundScheduler();
+      const cache =
+        sched && sched.getLastNavForCode ? sched.getLastNavForCode(code) : null;
+      const { navSource } = fundStore.loadAll();
+      const nav = pickEffectiveNavNumber(cache, navSource);
+      if (!nav) {
+        return { ok: false, reason: "no_nav_cached" };
+      }
+      return fundStore.backfillFromNav(code, nav);
+    } catch (err) {
+      mainLog.warn("[ipc] funds:backfill threw", { msg: err && err.message });
       return { ok: false, reason: "threw", error: err && err.message };
     }
   });

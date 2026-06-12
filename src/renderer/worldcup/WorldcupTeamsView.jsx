@@ -3,19 +3,23 @@
  *
  * v2.9.5 — 球队列表 (中文 + 弹 SquadModal)
  *
- * 12 group × 4 队 = 48 队, 列表按 group 排序.
+ * 12 group × 4 队 = 48 队; 组内按积分 → 净胜球排序.
  * 搜索框 (WorldcupHeader 传下来) 过滤 队名 / 中文 / 国旗.
  * 点 team card → 弹 SquadModal (传 1 虚拟 match, 1 队对 1 队 自身).
  */
 
-import { listTeams, lookupTeam } from './teams-data.js';
-
-function posCn(pos) {
-  return { GK: '门将', DF: '后卫', MF: '中场', FW: '前锋' }[pos] || pos;
-}
+import { listTeams } from './teams-data.js';
+import { worldcupMatches } from './store.js';
+import {
+  computeGroupStandings,
+  sortTeamsInGroup,
+  formatGoalDiff,
+} from './group-standings.js';
 
 export function WorldcupTeamsView({ search = '', onTeamClick }) {
   const teams = listTeams();
+  const matches = worldcupMatches.value?.matches || [];
+  const standings = computeGroupStandings(matches, teams);
   const q = search.toLowerCase();
   const filtered = q
     ? teams.filter((t) => (
@@ -51,28 +55,27 @@ export function WorldcupTeamsView({ search = '', onTeamClick }) {
             <span class="worldcup-group-count">{grouped[g].length} 支球队</span>
           </header>
           <div class="worldcup-teams-grid">
-            {grouped[g].map((t) => {
-              const realCount = (t.squad || []).filter((p) => !p.name.startsWith('TBD-')).length;
+            {sortTeamsInGroup(grouped[g], standings, g).map((t, idx) => {
+              const stat = standings[g]?.[t.name];
+              const pts = stat ? stat.pts : 0;
+              const gd = stat ? stat.gd : 0;
               return (
-                <button
-                  key={t.name}
-                  class="worldcup-team-card"
-                  onClick={() => onTeamClick && onTeamClick(t)}
-                  title={`${t.cn} (${t.name}) 大名单`}
-                >
-                  <span class="worldcup-team-flag">{t.flag}</span>
-                  <div class="worldcup-team-info">
-                    <div class="worldcup-team-cn">{t.cn}</div>
-                    <div class="worldcup-team-en">{t.name}</div>
-                  </div>
-                  <div class="worldcup-team-fam">
-                    <div class="worldcup-team-fam-pos">{posCn(t.famous[0].position)}</div>
-                    <div class="worldcup-team-fam-name">{t.famous[0].name}</div>
-                  </div>
-                  <div class="worldcup-team-squad-count">
-                    26 大名单 · {realCount} 已知
-                  </div>
-                </button>
+              <button
+                key={t.name}
+                class="worldcup-team-card"
+                onClick={() => onTeamClick && onTeamClick(t)}
+                title={`${t.cn} (${t.name}) · ${pts} 分 · 净胜球 ${formatGoalDiff(gd)}`}
+              >
+                <span class="worldcup-team-rank">{idx + 1}</span>
+                <span class="worldcup-team-flag">{t.flag}</span>
+                <span class="worldcup-team-cn">{t.cn}</span>
+                <span class="worldcup-team-standings">
+                  <span class="worldcup-team-pts">{pts}<small>分</small></span>
+                  <span class={`worldcup-team-gd${gd > 0 ? ' worldcup-team-gd--pos' : gd < 0 ? ' worldcup-team-gd--neg' : ''}`}>
+                    净胜球 {formatGoalDiff(gd)}
+                  </span>
+                </span>
+              </button>
               );
             })}
           </div>

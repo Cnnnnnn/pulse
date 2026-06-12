@@ -46,11 +46,93 @@
  * 兼容: 老 state.json 没有 mutes 字段 → load() 视作 {}；v 不变（v=1，向后兼容）
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
 const SCHEMA_VERSION = 1;
+
+const LEGACY_STATE_PATH = path.join(
+  os.homedir(),
+  "Library",
+  "Application Support",
+  "AppUpdateChecker",
+  "state.json",
+);
+
+/** Electron userData 下的 state.json; initStateStorePaths() 在 app ready 后设置 */
+let _resolvedStatePath = null;
+
+function _tryGetUserDataDir() {
+  try {
+    const { app } = require("electron");
+    if (app && typeof app.getPath === "function") {
+      return app.getPath("userData");
+    }
+  } catch {
+    /* vitest / 非 Electron */
+  }
+  return null;
+}
+
+/**
+ * app.whenReady 后调用: state.json 迁到 userData, 与 ai-keys 同目录.
+ * @returns {string} 生效的 state 路径
+ */
+function initStateStorePaths() {
+  const userData = _tryGetUserDataDir();
+  if (!userData) {
+    _resolvedStatePath = LEGACY_STATE_PATH;
+    return _resolvedStatePath;
+  }
+  const target = path.join(userData, "state.json");
+  migrateLegacyStateIfNeeded(target);
+  _resolvedStatePath = target;
+  return _resolvedStatePath;
+}
+
+function migrateLegacyStateIfNeeded(targetPath) {
+  try {
+    const dir = path.dirname(targetPath);
+    fs.mkdirSync(dir, { recursive: true });
+
+    const legacyExists = fs.existsSync(LEGACY_STATE_PATH);
+    const targetExists = fs.existsSync(targetPath);
+
+    if (!targetExists && legacyExists) {
+      fs.copyFileSync(LEGACY_STATE_PATH, targetPath);
+      return;
+    }
+
+    if (!legacyExists || !targetExists) return;
+
+    const legacy = JSON.parse(fs.readFileSync(LEGACY_STATE_PATH, "utf-8"));
+    const current = JSON.parse(fs.readFileSync(targetPath, "utf-8"));
+    let merged = false;
+
+    if (legacy.ai_sessions_config && !current.ai_sessions_config) {
+      current.ai_sessions_config = legacy.ai_sessions_config;
+      merged = true;
+    }
+    if (legacy.task_summaries && !current.task_summaries) {
+      current.task_summaries = legacy.task_summaries;
+      merged = true;
+    }
+    if (legacy.worldcup_match_insights && !current.worldcup_match_insights) {
+      current.worldcup_match_insights = legacy.worldcup_match_insights;
+      merged = true;
+    }
+    if (merged) {
+      writeAtomic(targetPath, current);
+    }
+  } catch {
+    /* 迁移失败不阻塞启动 */
+  }
+}
+
+function legacyDefaultPath() {
+  return LEGACY_STATE_PATH;
+}
 
 // ─── 新字段 preserve helper ─────────────────────────
 //
@@ -61,6 +143,7 @@ const SCHEMA_VERSION = 1;
 // 当前 preserve 的字段:
 //   - classify_llm_cache: { appName: catId } (Step B LLM classify 用)
 //   - task_summaries: { taskKey: entry } (AI 任务总结缓存)
+//   - funds: { holdings, deletedIds, dailySnapshots } (基金管理, fund-store 写入)
 //
 // 旧字段 daily_digests / daily_digest_v2 / last_digest_attempts 已废弃 —
 // 不再 preserve, 下次写盘自然消失.
@@ -68,25 +151,60 @@ const SCHEMA_VERSION = 1;
 // 注: caller 不应该 mutate existing 直接, 应该从 load() 拿 immutable 副本.
 // 保留策略: 如果 next 里已经有这字段 (caller 显式设), 用 next 的; 否则从 existing 拿.
 function preserveExtraFields(existing, next) {
-  if (!existing || typeof existing !== 'object') return next;
-  if (!next || typeof next !== 'object') return next;
-  if (!('classify_llm_cache' in next) && existing.classify_llm_cache && typeof existing.classify_llm_cache === 'object') {
+  if (!existing || typeof existing !== "object") return next;
+  if (!next || typeof next !== "object") return next;
+  if (
+    !("classify_llm_cache" in next) &&
+    existing.classify_llm_cache &&
+    typeof existing.classify_llm_cache === "object"
+  ) {
     next.classify_llm_cache = existing.classify_llm_cache;
   }
-  if (!('task_summaries' in next) && existing.task_summaries && typeof existing.task_summaries === 'object' && !Array.isArray(existing.task_summaries)) {
+  if (
+    !("task_summaries" in next) &&
+    existing.task_summaries &&
+    typeof existing.task_summaries === "object" &&
+    !Array.isArray(existing.task_summaries)
+  ) {
     next.task_summaries = existing.task_summaries;
   }
-  if (!('worldcup_txt' in next) && existing.worldcup_txt && typeof existing.worldcup_txt === 'object') {
+  if (
+    !("worldcup_txt" in next) &&
+    existing.worldcup_txt &&
+    typeof existing.worldcup_txt === "object"
+  ) {
     next.worldcup_txt = existing.worldcup_txt;
+  }
+  if (
+    !("worldcup_scores" in next) &&
+    existing.worldcup_scores &&
+    typeof existing.worldcup_scores === "object"
+  ) {
+    next.worldcup_scores = existing.worldcup_scores;
+  }
+  if (
+    !("worldcup_match_insights" in next) &&
+    existing.worldcup_match_insights &&
+    typeof existing.worldcup_match_insights === "object"
+  ) {
+    next.worldcup_match_insights = existing.worldcup_match_insights;
+  }
+  if (
+    !("funds" in next) &&
+    existing.funds &&
+    typeof existing.funds === "object" &&
+    !Array.isArray(existing.funds)
+  ) {
+    next.funds = existing.funds;
   }
   return next;
 }
 
 function defaultPath() {
-  // 跟 main 进程的 app.getPath('userData') 保持一致:
-  // ~/Library/Application Support/app-update-checker
-  // 但这里用更可读的目录名, 跟 logs 一致
-  return path.join(os.homedir(), 'Library', 'Application Support', 'AppUpdateChecker', 'state.json');
+  if (_resolvedStatePath) return _resolvedStatePath;
+  const userData = _tryGetUserDataDir();
+  if (userData) return path.join(userData, "state.json");
+  return LEGACY_STATE_PATH;
 }
 
 /**
@@ -98,9 +216,9 @@ function defaultPath() {
  */
 function load(statePath = defaultPath()) {
   try {
-    const raw = fs.readFileSync(statePath, 'utf-8');
+    const raw = fs.readFileSync(statePath, "utf-8");
     const j = JSON.parse(raw);
-    if (!j || typeof j !== 'object' || !j.apps || typeof j.apps !== 'object') {
+    if (!j || typeof j !== "object" || !j.apps || typeof j.apps !== "object") {
       return null;
     }
     return j;
@@ -122,7 +240,12 @@ function load(statePath = defaultPath()) {
 const CHANGELOG_HISTORY_MAX = 10;
 
 function saveAll(results, statePath = defaultPath()) {
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const apps = existing.apps || {};
   for (const r of results || []) {
@@ -130,12 +253,16 @@ function saveAll(results, statePath = defaultPath()) {
     const prev = apps[r.name] || {};
 
     // Phase 18: 检测到版本变化 → 把旧 changelog 推到 history
-    let history = Array.isArray(prev.changelog_history) ? prev.changelog_history : [];
+    let history = Array.isArray(prev.changelog_history)
+      ? prev.changelog_history
+      : [];
     const newVersion = r.latest_version;
     const oldVersion = prev.latest_version;
     if (
-      newVersion && oldVersion && newVersion !== oldVersion
-      && prev.changelog
+      newVersion &&
+      oldVersion &&
+      newVersion !== oldVersion &&
+      prev.changelog
     ) {
       // 推到队首, 去重:
       //   - 过滤掉同 oldVersion 的旧 entry (防重复推)
@@ -145,10 +272,12 @@ function saveAll(results, statePath = defaultPath()) {
         {
           version: oldVersion,
           changelog: prev.changelog,
-          changelog_url: prev.changelog_url || '',
+          changelog_url: prev.changelog_url || "",
           ts: prev.ts || now,
         },
-        ...history.filter((h) => h && h.version !== oldVersion && h.version !== newVersion),
+        ...history.filter(
+          (h) => h && h.version !== oldVersion && h.version !== newVersion,
+        ),
       ].slice(0, CHANGELOG_HISTORY_MAX);
     }
 
@@ -165,7 +294,7 @@ function saveAll(results, statePath = defaultPath()) {
     apps,
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -182,7 +311,12 @@ function saveAll(results, statePath = defaultPath()) {
  */
 function markNotified(names, statePath = defaultPath()) {
   if (!Array.isArray(names) || names.length === 0) return null;
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const apps = existing.apps || {};
   for (const name of names) {
@@ -195,7 +329,7 @@ function markNotified(names, statePath = defaultPath()) {
     apps,
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -221,11 +355,11 @@ function saveOne(result, statePath = defaultPath()) {
  * @returns {boolean}
  */
 function isMuteActive(mute, now) {
-  if (!mute || typeof mute !== 'object') return false;
+  if (!mute || typeof mute !== "object") return false;
   // until=0 → 永远有效
   if (!mute.until) return true;
   // until>0 → 到期时间. now < until → 还有效.
-  return typeof now === 'number' && now < mute.until;
+  return typeof now === "number" && now < mute.until;
 }
 
 /**
@@ -235,7 +369,7 @@ function isMuteActive(mute, now) {
  * @returns {object} 新的 mutes 对象 (新引用, 不 mutate 原对象)
  */
 function cleanExpiredMutes(mutes, now) {
-  if (!mutes || typeof mutes !== 'object') return {};
+  if (!mutes || typeof mutes !== "object") return {};
   const out = {};
   for (const [name, m] of Object.entries(mutes)) {
     if (isMuteActive(m, now)) out[name] = m;
@@ -252,7 +386,7 @@ function cleanExpiredMutes(mutes, now) {
  * @returns {object} { [name]: { until, reason } }
  */
 function getMutes(statePath = defaultPath(), now) {
-  const t = (typeof now === 'number') ? now : Date.now();
+  const t = typeof now === "number" ? now : Date.now();
   const s = load(statePath);
   if (!s) return {};
   return cleanExpiredMutes(s.mutes || {}, t);
@@ -267,18 +401,25 @@ function getMutes(statePath = defaultPath(), now) {
  * @returns {object} 写完后的完整 state
  */
 function setMute(name, untilMs, reason, statePath = defaultPath()) {
-  if (!name || typeof name !== 'string') {
-    throw new TypeError('setMute: name must be non-empty string');
+  if (!name || typeof name !== "string") {
+    throw new TypeError("setMute: name must be non-empty string");
   }
-  if (typeof untilMs !== 'number' || !Number.isFinite(untilMs) || untilMs < 0) {
-    throw new TypeError('setMute: untilMs must be non-negative finite number (0 = forever)');
+  if (typeof untilMs !== "number" || !Number.isFinite(untilMs) || untilMs < 0) {
+    throw new TypeError(
+      "setMute: untilMs must be non-negative finite number (0 = forever)",
+    );
   }
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const mutes = cleanExpiredMutes(existing.mutes || {}, now);
   mutes[name] = {
     until: untilMs,
-    reason: (typeof reason === 'string' && reason) ? reason : 'manual',
+    reason: typeof reason === "string" && reason ? reason : "manual",
   };
   const next = {
     v: SCHEMA_VERSION,
@@ -286,7 +427,7 @@ function setMute(name, untilMs, reason, statePath = defaultPath()) {
     apps: existing.apps || {},
     mutes,
     last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -303,10 +444,15 @@ function setMute(name, untilMs, reason, statePath = defaultPath()) {
  * @returns {object} 写完后的完整 state
  */
 function clearMute(name, statePath = defaultPath()) {
-  if (!name || typeof name !== 'string') {
-    throw new TypeError('clearMute: name must be non-empty string');
+  if (!name || typeof name !== "string") {
+    throw new TypeError("clearMute: name must be non-empty string");
   }
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const mutes = cleanExpiredMutes(existing.mutes || {}, now);
   if (name in mutes) {
@@ -318,7 +464,7 @@ function clearMute(name, statePath = defaultPath()) {
     apps: existing.apps || {},
     mutes,
     last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -339,7 +485,12 @@ function clearMute(name, statePath = defaultPath()) {
 function loadLastOpened(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return {};
-  if (!s.last_opened || typeof s.last_opened !== 'object' || Array.isArray(s.last_opened)) return {};
+  if (
+    !s.last_opened ||
+    typeof s.last_opened !== "object" ||
+    Array.isArray(s.last_opened)
+  )
+    return {};
   return s.last_opened;
 }
 
@@ -350,10 +501,15 @@ function loadLastOpened(statePath = defaultPath()) {
  * @returns {object} 写完后的完整 state
  */
 function saveLastOpened(map, statePath = defaultPath()) {
-  if (!map || typeof map !== 'object' || Array.isArray(map)) {
-    throw new TypeError('saveLastOpened: map must be plain object');
+  if (!map || typeof map !== "object" || Array.isArray(map)) {
+    throw new TypeError("saveLastOpened: map must be plain object");
   }
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const next = {
     v: SCHEMA_VERSION,
@@ -361,7 +517,7 @@ function saveLastOpened(map, statePath = defaultPath()) {
     apps: existing.apps || {},
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: map,
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
   };
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
@@ -380,9 +536,9 @@ function saveLastOpened(map, statePath = defaultPath()) {
 function loadWorldcupTxt(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return null;
-  if (!s.worldcup_txt || typeof s.worldcup_txt !== 'object') return null;
+  if (!s.worldcup_txt || typeof s.worldcup_txt !== "object") return null;
   const { txt, ts } = s.worldcup_txt;
-  if (typeof txt !== 'string' || typeof ts !== 'number') return null;
+  if (typeof txt !== "string" || typeof ts !== "number") return null;
   return { txt, ts };
 }
 
@@ -393,10 +549,17 @@ function loadWorldcupTxt(statePath = defaultPath()) {
  * @returns {object} 写完后的完整 state
  */
 function saveWorldcupTxt(entry, statePath = defaultPath()) {
-  if (!entry || typeof entry.txt !== 'string' || typeof entry.ts !== 'number') {
-    throw new TypeError('saveWorldcupTxt: entry must be {txt: string, ts: number}');
+  if (!entry || typeof entry.txt !== "string" || typeof entry.ts !== "number") {
+    throw new TypeError(
+      "saveWorldcupTxt: entry must be {txt: string, ts: number}",
+    );
   }
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const next = {
     v: SCHEMA_VERSION,
@@ -404,12 +567,124 @@ function saveWorldcupTxt(entry, statePath = defaultPath()) {
     apps: existing.apps || {},
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
     worldcup_txt: { txt: entry.txt, ts: entry.ts },
   };
+  if (existing.worldcup_scores) {
+    next.worldcup_scores = existing.worldcup_scores;
+  }
   if (existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
   }
+  preserveExtraFields(existing, next);
+  writeAtomic(statePath, next);
+  return next;
+}
+
+/**
+ * 读 worldcup 比分缓存
+ * @returns {{ entries: object, ts: number }|null}
+ */
+function loadWorldcupScores(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s || !s.worldcup_scores || typeof s.worldcup_scores !== "object")
+    return null;
+  const { entries, ts } = s.worldcup_scores;
+  if (!entries || typeof entries !== "object" || typeof ts !== "number")
+    return null;
+  return { entries, ts };
+}
+
+/**
+ * 写 worldcup 比分缓存
+ * @param {{ entries: object, ts: number }} cache
+ */
+function saveWorldcupScores(cache, statePath = defaultPath()) {
+  if (
+    !cache ||
+    typeof cache.entries !== "object" ||
+    typeof cache.ts !== "number"
+  ) {
+    throw new TypeError(
+      "saveWorldcupScores: cache must be {entries: object, ts: number}",
+    );
+  }
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
+  const now = Date.now();
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
+    active_category: existing.active_category || "all",
+    worldcup_scores: { entries: cache.entries, ts: cache.ts },
+  };
+  if (existing.worldcup_txt) {
+    next.worldcup_txt = existing.worldcup_txt;
+  }
+  if (existing.ai_sessions_config) {
+    next.ai_sessions_config = existing.ai_sessions_config;
+  }
+  preserveExtraFields(existing, next);
+  writeAtomic(statePath, next);
+  return next;
+}
+
+/**
+ * 读世界杯场次 AI 缓存 (赛前预测 / 赛后总结)
+ * @returns {{ entries: object, ts: number }|null}
+ */
+function loadWorldcupMatchInsights(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (
+    !s ||
+    !s.worldcup_match_insights ||
+    typeof s.worldcup_match_insights !== "object"
+  ) {
+    return null;
+  }
+  const { entries, ts } = s.worldcup_match_insights;
+  if (!entries || typeof entries !== "object" || typeof ts !== "number") {
+    return null;
+  }
+  return { entries, ts };
+}
+
+/**
+ * @param {{ entries: object, ts: number }} cache
+ */
+function saveWorldcupMatchInsights(cache, statePath = defaultPath()) {
+  if (
+    !cache ||
+    typeof cache.entries !== "object" ||
+    typeof cache.ts !== "number"
+  ) {
+    throw new TypeError(
+      "saveWorldcupMatchInsights: cache must be {entries: object, ts: number}",
+    );
+  }
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
+  const now = Date.now();
+  const next = {
+    v: SCHEMA_VERSION,
+    ts: now,
+    apps: existing.apps || {},
+    mutes: cleanExpiredMutes(existing.mutes || {}, now),
+    last_opened: existing.last_opened || {},
+    active_category: existing.active_category || "all",
+    worldcup_match_insights: { entries: cache.entries, ts: cache.ts },
+  };
   preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
@@ -431,12 +706,12 @@ const TASK_SUMMARIES_GC_DAYS = 30;
  * @returns {object} 新 map (新引用, 不 mutate 原对象)
  */
 function cleanExpiredTaskSummaries(map, now) {
-  if (!map || typeof map !== 'object') return {};
+  if (!map || typeof map !== "object") return {};
   const out = {};
   const cutoffMs = now - TASK_SUMMARIES_GC_DAYS * 86400_000;
   for (const [taskKey, e] of Object.entries(map)) {
-    if (!e || typeof e !== 'object') continue;
-    if (typeof e.generatedAt !== 'number' || e.generatedAt < cutoffMs) continue;
+    if (!e || typeof e !== "object") continue;
+    if (typeof e.generatedAt !== "number" || e.generatedAt < cutoffMs) continue;
     out[taskKey] = e;
   }
   return out;
@@ -450,7 +725,12 @@ function cleanExpiredTaskSummaries(map, now) {
 function loadTaskSummaries(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return {};
-  if (!s.task_summaries || typeof s.task_summaries !== 'object' || Array.isArray(s.task_summaries)) return {};
+  if (
+    !s.task_summaries ||
+    typeof s.task_summaries !== "object" ||
+    Array.isArray(s.task_summaries)
+  )
+    return {};
   return cleanExpiredTaskSummaries(s.task_summaries, Date.now());
 }
 
@@ -461,20 +741,36 @@ function loadTaskSummaries(statePath = defaultPath()) {
  * @returns {object} 写完后的完整 state
  */
 function saveTaskSummary(entry, statePath = defaultPath()) {
-  if (!entry || typeof entry !== 'object' || typeof entry.taskKey !== 'string' || entry.taskKey.length === 0) {
-    throw new TypeError('saveTaskSummary: entry.taskKey must be non-empty string');
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    typeof entry.taskKey !== "string" ||
+    entry.taskKey.length === 0
+  ) {
+    throw new TypeError(
+      "saveTaskSummary: entry.taskKey must be non-empty string",
+    );
   }
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const map = cleanExpiredTaskSummaries(existing.task_summaries || {}, now);
-  map[entry.taskKey] = { ...entry, generatedAt: typeof entry.generatedAt === 'number' ? entry.generatedAt : now };
+  map[entry.taskKey] = {
+    ...entry,
+    generatedAt:
+      typeof entry.generatedAt === "number" ? entry.generatedAt : now,
+  };
   const next = {
     v: SCHEMA_VERSION,
     ts: now,
     apps: existing.apps || {},
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
     task_summaries: map,
   };
   if (existing.ai_sessions_config) {
@@ -492,7 +788,8 @@ function saveTaskSummary(entry, statePath = defaultPath()) {
  */
 function loadAISessionsConfig(statePath = defaultPath()) {
   const s = load(statePath);
-  if (!s || !s.ai_sessions_config || typeof s.ai_sessions_config !== 'object') return null;
+  if (!s || !s.ai_sessions_config || typeof s.ai_sessions_config !== "object")
+    return null;
   return { ...s.ai_sessions_config };
 }
 
@@ -503,10 +800,15 @@ function loadAISessionsConfig(statePath = defaultPath()) {
  * @returns {object} 写完后的完整 state
  */
 function saveAISessionsConfig(cfg, statePath = defaultPath()) {
-  if (cfg != null && typeof cfg !== 'object') {
-    throw new TypeError('saveAISessionsConfig: cfg must be object or null');
+  if (cfg != null && typeof cfg !== "object") {
+    throw new TypeError("saveAISessionsConfig: cfg must be object or null");
   }
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const next = {
     v: SCHEMA_VERSION,
@@ -514,7 +816,7 @@ function saveAISessionsConfig(cfg, statePath = defaultPath()) {
     apps: existing.apps || {},
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
   };
   if (cfg == null) {
     // 显式清除字段
@@ -528,14 +830,22 @@ function saveAISessionsConfig(cfg, statePath = defaultPath()) {
 
 function writeAtomic(filePath, data) {
   const dir = path.dirname(filePath);
-  try { fs.mkdirSync(dir, { recursive: true }); } catch { /* noop */ }
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch {
+    /* noop */
+  }
   const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
   try {
-    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
     fs.renameSync(tmp, filePath);
   } catch (err) {
     // 清理 tmp, 重新抛
-    try { fs.unlinkSync(tmp); } catch { /* noop */ }
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* noop */
+    }
     throw err;
   }
 }
@@ -553,9 +863,9 @@ function writeAtomic(filePath, data) {
  */
 function loadActiveCategory(statePath = defaultPath()) {
   const s = load(statePath);
-  if (!s) return 'all';
+  if (!s) return "all";
   const v = s.active_category;
-  if (typeof v !== 'string' || v.length === 0) return 'all';
+  if (typeof v !== "string" || v.length === 0) return "all";
   return v;
 }
 
@@ -568,10 +878,15 @@ function loadActiveCategory(statePath = defaultPath()) {
  * @returns {object} 写完后的完整 state
  */
 function saveActiveCategory(id, statePath = defaultPath()) {
-  if (typeof id !== 'string' || id.length === 0) {
-    throw new TypeError('saveActiveCategory: id must be non-empty string');
+  if (typeof id !== "string" || id.length === 0) {
+    throw new TypeError("saveActiveCategory: id must be non-empty string");
   }
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   const next = {
     v: SCHEMA_VERSION,
@@ -597,11 +912,22 @@ function saveActiveCategory(id, statePath = defaultPath()) {
 
 function loadLLMClassifyCache(statePath = defaultPath()) {
   const s = load(statePath);
-  if (!s || !s.classify_llm_cache || typeof s.classify_llm_cache !== 'object' || Array.isArray(s.classify_llm_cache)) return {};
+  if (
+    !s ||
+    !s.classify_llm_cache ||
+    typeof s.classify_llm_cache !== "object" ||
+    Array.isArray(s.classify_llm_cache)
+  )
+    return {};
   // 简单 trim: 只保留 string → string
   const out = {};
   for (const [k, v] of Object.entries(s.classify_llm_cache)) {
-    if (typeof k === 'string' && k.length > 0 && typeof v === 'string' && v.length > 0) {
+    if (
+      typeof k === "string" &&
+      k.length > 0 &&
+      typeof v === "string" &&
+      v.length > 0
+    ) {
       out[k] = v;
     }
   }
@@ -609,17 +935,27 @@ function loadLLMClassifyCache(statePath = defaultPath()) {
 }
 
 function saveLLMClassifyCache(map, statePath = defaultPath()) {
-  if (map == null || typeof map !== 'object' || Array.isArray(map)) {
-    throw new TypeError('saveLLMClassifyCache: map must be plain object');
+  if (map == null || typeof map !== "object" || Array.isArray(map)) {
+    throw new TypeError("saveLLMClassifyCache: map must be plain object");
   }
   // 简单 trim
   const trimmed = {};
   for (const [k, v] of Object.entries(map)) {
-    if (typeof k === 'string' && k.length > 0 && typeof v === 'string' && v.length > 0) {
+    if (
+      typeof k === "string" &&
+      k.length > 0 &&
+      typeof v === "string" &&
+      v.length > 0
+    ) {
       trimmed[k] = v;
     }
   }
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const now = Date.now();
   // 合并: 旧值 + 新值, 新值覆盖旧值 (新分类优先)
   const merged = { ...(existing.classify_llm_cache || {}), ...trimmed };
@@ -629,10 +965,11 @@ function saveLLMClassifyCache(map, statePath = defaultPath()) {
     apps: existing.apps || {},
     mutes: cleanExpiredMutes(existing.mutes || {}, now),
     last_opened: existing.last_opened || {},
-    active_category: existing.active_category || 'all',
+    active_category: existing.active_category || "all",
     classify_llm_cache: merged,
   };
-  if (existing.ai_sessions_config) next.ai_sessions_config = existing.ai_sessions_config;
+  if (existing.ai_sessions_config)
+    next.ai_sessions_config = existing.ai_sessions_config;
   // next 已设 classify_llm_cache 字段, preserveExtraFields 会自动跳过该字段,
   // 但会保留 last_digest_attempts 防止被吃.
   preserveExtraFields(existing, next);
@@ -646,7 +983,11 @@ module.exports = {
   saveOne,
   markNotified,
   defaultPath,
+  legacyDefaultPath,
+  initStateStorePaths,
+  migrateLegacyStateIfNeeded,
   SCHEMA_VERSION,
+  writeAtomic, // 暴露给同进程的 fund-store 复用 (跟 saveAll 一致 atomic)
   // Phase 27
   isMuteActive,
   cleanExpiredMutes,
@@ -672,4 +1013,8 @@ module.exports = {
   // v2.9.0: 世界杯 Football.TXT 缓存 (24h TTL, fetcher 调用)
   loadWorldcupTxt,
   saveWorldcupTxt,
+  loadWorldcupScores,
+  saveWorldcupScores,
+  loadWorldcupMatchInsights,
+  saveWorldcupMatchInsights,
 };

@@ -13,8 +13,10 @@
  */
 
 import { memo } from 'preact/compat';
-import { lookupTeam } from './teams-data.js';
+import { displayTeam } from './teams-data.js';
 import { toBeijingTime } from './timeUtils.js';
+import MatchScorers from './MatchScorers.jsx';
+import MatchCardAi from './MatchCardAi.jsx';
 
 // TXT 阶段 → 中文
 const STAGE_CN = {
@@ -36,63 +38,100 @@ function stageCn(stage) {
 }
 
 function teamNameCn(name) {
-  if (!name) return '—';
-  const t = lookupTeam(name);
-  return t ? t.cn : name;
+  return displayTeam(name).cn;
 }
 
 function teamFlag(name) {
-  if (!name) return '';
-  const t = lookupTeam(name);
-  return t ? t.flag : '';
+  return displayTeam(name).flag;
+}
+
+function formatBjDisplay(bj, matchDate) {
+  if (!bj.time) return '';
+  const crossDay = bj.date && matchDate && bj.date !== matchDate;
+  const dateLabel = crossDay
+    ? `${bj.date.slice(5).replace('-', '月')}日 `
+    : '';
+  return `🕒 ${dateLabel}${bj.time} 北京时间 (原 ${bj.originalTime})`;
 }
 
 function MatchCard({ match, onClick }) {
   if (!match) return null;
   const { team1, team2, venue, time, timezone, score, stage } = match;
   const hasScore = score && (score.ft || score.et || score.pen);
-  const center = hasScore
-    ? (() => {
-        const ft = score.ft || [0, 0];
-        return `${ft[0]} - ${ft[1]}`;
-      })()
-    : '对';
+  const isLive = score && score.status === 'live';
+  const isFinal = hasScore && !isLive;
+  const ft = hasScore ? (score.ft || [0, 0]) : null;
 
   // 北京时间 (显示用) + 原始时间 (灰显)
   const bj = toBeijingTime(time, timezone, match.date);
 
+  const cardClass = [
+    'match-card',
+    isLive ? 'match-card--live' : '',
+    isFinal ? 'match-card--final' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <button
-      class="match-card"
-      onClick={() => onClick && onClick(match)}
-      title="点看 2 队大名单"
-    >
+    <div class={cardClass}>
+      <div
+        class="match-card-main"
+        role="button"
+        tabIndex={0}
+        onClick={() => onClick && onClick(match)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick && onClick(match);
+          }
+        }}
+        title="点看 2 队大名单"
+      >
       <div class="match-card-tags">
         <span class="match-card-stage">{stageCn(stage)}</span>
+        {isLive && (
+          <span class="match-card-live">{score.clock ? `${score.clock}` : '进行中'}</span>
+        )}
+        {isFinal && <span class="match-card-final">完赛</span>}
       </div>
       <div class="match-card-row">
         <div class="match-team match-team-left" title={team1}>
           <span class="match-team-flag">{teamFlag(team1)}</span>
           <span class="match-team-name">{teamNameCn(team1)}</span>
         </div>
-        <div class={`match-center${hasScore ? ' match-center-score' : ''}`}>
-          {center}
-        </div>
+        {hasScore ? (
+          <div class={`match-score match-score--${isLive ? 'live' : 'final'}`}>
+            <span class="match-score-num">{ft[0]}</span>
+            <span class="match-score-sep">-</span>
+            <span class="match-score-num">{ft[1]}</span>
+          </div>
+        ) : (
+          <div class="match-center">对</div>
+        )}
         <div class="match-team match-team-right" title={team2}>
           <span class="match-team-name">{teamNameCn(team2)}</span>
           <span class="match-team-flag">{teamFlag(team2)}</span>
         </div>
       </div>
+      {hasScore && score.scorers && score.scorers.length > 0 && (
+        <MatchScorers
+          scorers={score.scorers}
+          team1={team1}
+          team2={team2}
+          compact
+        />
+      )}
       <div class="match-meta">
         {bj.time && (
-          <span class="match-time" title={`本地 ${bj.originalTime}`}>
-            🕒 {bj.time} (北京时间, 原 {bj.originalTime})
+          <span class="match-time" title={`当地 ${bj.originalTime} · ${match.date || ''}`}>
+            {formatBjDisplay(bj, match.date)}
           </span>
         )}
         <span class="match-venue-sep"> · </span>
         <span class="match-venue" title={venue}>{venue || '—'}</span>
       </div>
-    </button>
+      </div>
+      <MatchCardAi match={match} score={score} />
+    </div>
   );
 }
 

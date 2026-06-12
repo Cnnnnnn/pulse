@@ -23,10 +23,16 @@ const fs = require("fs");
 // 启 flag 让 node:sqlite 可用 (Electron 35 跑 Node 22.15 runtime, flag 稳定).
 // 注: 这是 app.commandLine, 必须在 app.whenReady() 之前.
 try {
-  if (app && app.commandLine && typeof app.commandLine.appendSwitch === 'function') {
-    app.commandLine.appendSwitch('experimental-sqlite');
+  if (
+    app &&
+    app.commandLine &&
+    typeof app.commandLine.appendSwitch === "function"
+  ) {
+    app.commandLine.appendSwitch("experimental-sqlite");
   }
-} catch { /* noop — vitest load-smoke 环境里 app 是 undefined */ }
+} catch {
+  /* noop — vitest load-smoke 环境里 app 是 undefined */
+}
 
 const { WorkerPool } = require("../workers/pool");
 const { createWindowManager } = require("./window");
@@ -41,6 +47,8 @@ const stateStore = require("./state-store");
 const lastOpened = require("./last-opened");
 const { HttpClient } = require("./http-client");
 const { buildTaskSummaryEngine } = require("../ai-sessions/wiring");
+const fundStore = require("./fund-store");
+const { FundScheduler } = require("./fund-scheduler");
 
 const ARCH = process.arch === "arm64" ? "arm64" : "x64";
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -61,6 +69,15 @@ let pool = null;
 let trayMgr = null;
 let winMgr = null;
 let runtimeConfig = null;
+let fundScheduler = null;
+const httpClient = new HttpClient();
+
+function sendToRenderer(channel, payload) {
+  const w = winMgr && winMgr.getWindow();
+  if (w && !w.isDestroyed()) {
+    w.webContents.send(channel, payload);
+  }
+}
 
 // ─── config: load + migrate ─────────────────────────────
 
@@ -172,14 +189,20 @@ function loadCategoryConfig() {
  */
 async function classifyUnmappedAppsByLLM() {
   const t0 = Date.now();
-  if (!runtimeConfig || !Array.isArray(runtimeConfig.apps) || runtimeConfig.apps.length === 0) {
+  if (
+    !runtimeConfig ||
+    !Array.isArray(runtimeConfig.apps) ||
+    runtimeConfig.apps.length === 0
+  ) {
     return;
   }
   // 1) reload state.json 旧 cache → 注入 category module (避免重复 LLM)
   const oldCache = stateStore.loadLLMClassifyCache();
   if (Object.keys(oldCache).length > 0) {
     categoryConfig.setLLMCache(oldCache);
-    mainLog.info(`[category] LLM cache loaded: ${Object.keys(oldCache).length} entries`);
+    mainLog.info(
+      `[category] LLM cache loaded: ${Object.keys(oldCache).length} entries`,
+    );
   }
 
   // 2) 收集未分类的 app (静态 map miss + cache miss)
@@ -203,7 +226,7 @@ async function classifyUnmappedAppsByLLM() {
   mainLog.info(`[category] ${unmapped.length} unmapped apps → LLM classify`);
 
   // 3) 调 LLM (走 HttpClient, 跟 detector 同款)
-  const host = "http://127.0.0.1:11434";  // 强制 IPv4 — node:fetch 走 ::1 ECONNREFUSED
+  const host = "http://127.0.0.1:11434"; // 强制 IPv4 — node:fetch 走 ::1 ECONNREFUSED
   const model = "qwen2.5-coder:7b";
   const http = new HttpClient({ timeout: 30_000, maxRetries: 0 });
   const llmCaller = async (systemMsg, userMsg) => {
@@ -221,9 +244,12 @@ async function classifyUnmappedAppsByLLM() {
       { "Content-Type": "application/json" },
       { timeout: 25_000 },
     );
-    if (r.error) throw new Error(`llm caller: ${r.error} (${r.status || "no_status"})`);
+    if (r.error)
+      throw new Error(`llm caller: ${r.error} (${r.status || "no_status"})`);
     if (r.status < 200 || r.status >= 300) {
-      throw new Error(`llm caller: http_status_${r.status} body=${(r.body || "").slice(0, 200)}`);
+      throw new Error(
+        `llm caller: http_status_${r.status} body=${(r.body || "").slice(0, 200)}`,
+      );
     }
     let parsed;
     try {
@@ -231,9 +257,10 @@ async function classifyUnmappedAppsByLLM() {
     } catch (err) {
       throw new Error(`llm caller: response not JSON: ${err.message}`);
     }
-    const content = parsed && parsed.message && typeof parsed.message.content === "string"
-      ? parsed.message.content
-      : "";
+    const content =
+      parsed && parsed.message && typeof parsed.message.content === "string"
+        ? parsed.message.content
+        : "";
     return content;
   };
 
@@ -252,7 +279,11 @@ async function classifyUnmappedAppsByLLM() {
     categoryConfig.setLLMCache(llmResult);
     stateStore.saveLLMClassifyCache(llmResult);
     mainLog.info(
-      `[category] LLM classified ${Object.keys(llmResult).length}/${unmapped.length} apps in ${Date.now() - t0}ms: ${Object.entries(llmResult).map(([k, v]) => `${k}→${v}`).join(", ")}`,
+      `[category] LLM classified ${Object.keys(llmResult).length}/${unmapped.length} apps in ${Date.now() - t0}ms: ${Object.entries(
+        llmResult,
+      )
+        .map(([k, v]) => `${k}→${v}`)
+        .join(", ")}`,
     );
   } else {
     mainLog.warn(
@@ -268,9 +299,10 @@ async function classifyUnmappedAppsByLLM() {
  */
 function initAiTasksWiring() {
   const stateOverride = stateStore.loadAISessionsConfig();
-  const cfgBase = stateOverride && typeof stateOverride === 'object'
-    ? stateOverride
-    : { enabled: false, provider: 'minimax', cloud: null };
+  const cfgBase =
+    stateOverride && typeof stateOverride === "object"
+      ? stateOverride
+      : { enabled: false, provider: "minimax", cloud: null };
 
   try {
     const wiring = buildTaskSummaryEngine({
@@ -295,6 +327,8 @@ function initAiTasksWiring() {
 
 async function bootstrap() {
   const t0 = Date.now();
+  const statePath = stateStore.initStateStorePaths();
+  mainLog.info(`state store path: ${statePath}`);
   // 整进程级别的启动元信息 — 写一行, 便于人 grep
   mainLog.info(
     `boot pid=${process.id} arch=${ARCH} platform=${process.platform}`,
@@ -346,16 +380,16 @@ async function bootstrap() {
   // 2.5) AI 任务总结 wiring (重做版: 只初始化, 不扫盘不调 LLM)
   initAiTasksWiring();
 
- //3) dock隐藏 (默认). PULSE_SHOW=1 env var时不 hide — 给 dev / screenshot / debugging用
-try {
-  // Phase B7e: 默认让 Pulse 出现在 Dock + Cmd+Tab 列表, 像普通 app.
-  // 之前默认 dock.hide() 是 menu bar app 风格, 用户反馈想用 Cmd+Tab 切换.
-  // PULSE_HIDE_DOCK=1 保留 escape hatch (测试 / 老用户).
-  if (process.env.PULSE_HIDE_DOCK === '1') {
-  app.dock.hide();
-  }
+  //3) dock隐藏 (默认). PULSE_SHOW=1 env var时不 hide — 给 dev / screenshot / debugging用
+  try {
+    // Phase B7e: 默认让 Pulse 出现在 Dock + Cmd+Tab 列表, 像普通 app.
+    // 之前默认 dock.hide() 是 menu bar app 风格, 用户反馈想用 Cmd+Tab 切换.
+    // PULSE_HIDE_DOCK=1 保留 escape hatch (测试 / 老用户).
+    if (process.env.PULSE_HIDE_DOCK === "1") {
+      app.dock.hide();
+    }
   } catch {
-  /* noop */
+    /* noop */
   }
 
   // 4) worker pool
@@ -504,9 +538,45 @@ try {
       // Phase 29: 刷 last-opened (后台 async, 不阻塞)
       refreshLastOpenedAfterCheck();
     },
+    // v2.10+ Funds 净值 scheduler (下面单独构造 + start; 用 getter 避免注册时仍为 null)
+    getFundScheduler: () => fundScheduler,
   });
   mainLog.info(`ipc registered`);
   timings.ipc = Date.now() - tIpc;
+
+  // v2.10+ Funds 净值定时拉取
+  //  - 启动 scheduler, 事件推给 renderer
+  //  - 退出时 stop
+  try {
+    fundScheduler = new FundScheduler({
+      httpClient,
+      getCodes: () =>
+        (fundStore.loadAll().holdings || []).map((h) => h.code).filter(Boolean),
+      intervalMs: 5 * 60 * 1000,
+      concurrency: 4,
+      logger: mainLog,
+    });
+    fundScheduler.on("state", (st) => {
+      sendToRenderer("funds:nav:state", st);
+    });
+    fundScheduler.on("fetched", (payload) => {
+      sendToRenderer("funds:nav:fetched", payload);
+    });
+    fundScheduler.on("history", (payload) => {
+      sendToRenderer("funds:history:updated", payload);
+    });
+    fundScheduler.start();
+    mainLog.info("fund scheduler started");
+    app.once("before-quit", () => {
+      try {
+        fundScheduler && fundScheduler.stop();
+      } catch {
+        /* noop */
+      }
+    });
+  } catch (err) {
+    mainLog.warn(`fund scheduler init failed: ${err && err.message}`);
+  }
 
   // Phase 16: 后台定时静默 check — 打破"开 app 才检查"局限, 让 state 不变 stale
   //   - 默认每 6h 跑一次, Phase 24 起可由 config.notifications.check_interval_hours 配置
@@ -606,15 +676,19 @@ if (app && typeof app.whenReady === "function") {
       winMgr.showWindow();
     } else {
       // 早期: 等 createWindowManager 起来再 show, 或直接 fallback BrowserWindow.getAllWindows
-      const { BrowserWindow } = require('electron');
+      const { BrowserWindow } = require("electron");
       const wins = BrowserWindow.getAllWindows();
       if (wins.length > 0) {
         const w = wins[0];
         if (w.isMinimized()) w.restore();
         w.show();
         w.focus();
-        if (process.platform === 'darwin') {
-          try { w.moveTop(); } catch { /* noop */ }
+        if (process.platform === "darwin") {
+          try {
+            w.moveTop();
+          } catch {
+            /* noop */
+          }
         }
       }
     }

@@ -9,12 +9,12 @@
 
 import { signal } from '@preact/signals';
 
-// activeNav: 'worldcup' | 'versions', 默认 'versions' (拍 default_versions)
+// activeNav: 'worldcup' | 'funds' | 'versions', 默认 'versions' (拍 default_versions)
 export const activeNav = signal('versions');
 export const navCollapsed = signal(false);
 
 export function setActiveNav(key) {
-  if (key === 'worldcup' || key === 'versions') {
+  if (key === 'worldcup' || key === 'versions' || key === 'funds') {
     activeNav.value = key;
   }
 }

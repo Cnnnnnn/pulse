@@ -10,11 +10,19 @@
 
 import { useEffect, useRef } from 'preact/hooks';
 
-export function WorldcupHeader({ subTab, subTabs, onSubTabChange, search, onSearchChange }) {
+export function WorldcupHeader({
+  subTab,
+  subTabs,
+  onSubTabChange,
+  search,
+  onSearchChange,
+  onRefreshScores,
+  scoresLoading = false,
+}) {
   const inputRef = useRef(null);
   // subTab 切到 球队 时 auto-focus 搜索框
   useEffect(() => {
-    if (subTab === 'teams' && inputRef.current) {
+    if ((subTab === 'teams' || subTab === 'scorers') && inputRef.current) {
       inputRef.current.focus();
     }
   }, [subTab]);
@@ -25,6 +33,16 @@ export function WorldcupHeader({ subTab, subTabs, onSubTabChange, search, onSear
         <span class="worldcup-header-icon">⚽</span>
         <h2 class="worldcup-header-title">世界杯 2026</h2>
         <span class="worldcup-header-sub">美加墨 · 6/11 - 7/19 · 48 队 104 场</span>
+        <button
+          type="button"
+          class={`worldcup-refresh-btn${scoresLoading ? ' worldcup-refresh-btn-loading' : ''}`}
+          onClick={() => onRefreshScores && onRefreshScores()}
+          disabled={scoresLoading}
+          title="刷新比分"
+          aria-label="刷新比分"
+        >
+          <span class="worldcup-refresh-icon" aria-hidden="true">↻</span>
+        </button>
       </div>
       <div class="worldcup-header-controls">
         <div class="worldcup-subtabs">
@@ -44,7 +62,13 @@ export function WorldcupHeader({ subTab, subTabs, onSubTabChange, search, onSear
           id="worldcup-search-input"
           class="worldcup-search-input"
           type="search"
-          placeholder="搜索队名 / 场址..."
+          placeholder={
+            subTab === 'scorers'
+              ? '搜索球员 / 球队...'
+              : subTab === 'teams'
+                ? '搜索球队...'
+                : '搜索队名 / 场址...'
+          }
           value={search}
           onInput={(e) => onSearchChange(e.target.value)}
         />

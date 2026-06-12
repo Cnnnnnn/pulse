@@ -45,13 +45,6 @@ export function WorldcupView({ search = '' }) {
   const error = worldcupError.value;
   const [squadMatch, setSquadMatch] = useState(null);
 
-  // 首次 mount 自动拉
-  useEffect(() => {
-    if (!data && !loading && !error) {
-      loadWorldcupFixtures();
-    }
-  }, []);
-
   const dayGroups = useMemo(() => {
     if (!data || !Array.isArray(data.matches)) return [];
     let matches = data.matches;
@@ -117,10 +110,7 @@ export function WorldcupView({ search = '' }) {
   return (
     <div class="worldcup-view">
       {squadMatch && <SquadModal match={squadMatch} onClose={() => setSquadMatch(null)} />}
-      <header class="worldcup-header">
-        <h2 class="worldcup-title">⚽ 世界杯 2026</h2>
-      </header>
-      <p class="worldcup-meta">
+      <p class="worldcup-meta worldcup-fixtures-meta">
         共 {data.matches.length} 场赛事 · {dayGroups.length} 个比赛日
       </p>
       <WorldcupBetsStats allDates={dayGroups.map((d) => d.date)} />

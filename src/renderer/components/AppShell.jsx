@@ -1,10 +1,10 @@
 /**
  * src/renderer/components/AppShell.jsx
  *
- * v2.9.0 Shell 布局 + v2.9.1 拆 2 独立顶部
+ * v2.9.0 Shell 布局 + v2.9.1 拆 2 独立顶部 + v2.10+ 加 3rd (Funds)
  *
  *  左侧 180px (或 40 折叠) SideNav
- *  右侧 main 区: 根据 activeNav 切 2 个完全独立 layout
+ *  右侧 main 区: 根据 activeNav 切 3 个完全独立 layout
  *
  *    [版本检查] tab:
  *      顶部: Header (含 检查更新 按钮) + FilterBar (搜索 + 4 status tab)
@@ -14,25 +14,39 @@
  *      顶部: WorldcupHeader (品牌 + [赛程] / [球队] 子 tab + 搜索框)
  *      main:  WorldcupView (赛程) / WorldcupTeamsView (球队)
  *
+ *    [基金管理] tab (v2.10+):
+ *      顶部: FundHeader (总览卡片 + 工具栏 + 搜索框)
+ *      Tab:   持仓 | 盈亏记录
+ *      main:  FundList + CategoryTabs | FundPnlHistory
+ *
  * 跟 v2.6 主体隔离: 0 共享 view, 各自 Header / 搜索 / 切.
  */
 
 import { useEffect } from 'preact/hooks';
-import { activeNav, navCollapsed } from '../worldcup/navStore.js';
+import { activeNav, navCollapsed, setActiveNav } from '../worldcup/navStore.js';
 import { SideNav } from './SideNav.jsx';
 import { VersionsLayout } from './VersionsLayout.jsx';
 import { WorldcupLayout } from '../worldcup/WorldcupLayout.jsx';
+import { FundLayout } from '../funds/FundLayout.jsx';
 
 export function AppShell({ onCheck }) {
   const nav = activeNav.value;
   const collapsed = navCollapsed.value;
 
   // Cmd+F 拦截: 切到对应搜索框
+  // Cmd+Shift+F: 跳到基金管理栏目
   useEffect(() => {
     function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        setActiveNav('funds');
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
-        const inputId = nav === 'worldcup' ? 'worldcup-search-input' : 'filter-search-input';
+        let inputId = 'filter-search-input';
+        if (nav === 'worldcup') inputId = 'worldcup-search-input';
+        else if (nav === 'funds') inputId = 'fund-search-input';
         const input = document.getElementById(inputId);
         if (input) {
           input.focus();
@@ -48,7 +62,11 @@ export function AppShell({ onCheck }) {
     <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
       <SideNav />
       <div class="app-shell-view">
-        {nav === 'worldcup' ? <WorldcupLayout /> : <VersionsLayout onCheck={onCheck} />}
+        {nav === 'worldcup'
+          ? <WorldcupLayout />
+          : nav === 'funds'
+            ? <FundLayout />
+            : <VersionsLayout onCheck={onCheck} />}
       </div>
     </div>
   );

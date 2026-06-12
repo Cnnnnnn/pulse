@@ -16,6 +16,7 @@
 
 import { checkSession } from './store.js';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
+import { AISettingsModal } from './components/AISettingsModal.jsx';
 import { Toast } from './components/Toast.jsx';
 import { AppShell } from './components/AppShell.jsx';
 
@@ -34,6 +35,7 @@ export function App({ onCheck }) {
         </div>
       </footer>
       <BulkUpgradeModal />
+      <AISettingsModal />
       <Toast />
     </div>
   );

@@ -50,6 +50,18 @@ function findProvider(id) {
  return PROVIDERS.find((p) => p.id === id) || PROVIDERS[0];
 }
 
+function buildConfigPayload(providerId, model, baseUrl) {
+ const prov = findProvider(providerId);
+ return {
+ provider: providerId,
+ cloud: {
+ providerId,
+ model: model || prov.defaultModel,
+ baseUrl: baseUrl || undefined,
+ },
+ };
+}
+
 function getSaveStatusMeta(saveStatus) {
  if (typeof saveStatus === 'object' && saveStatus && saveStatus.error) {
  return { text: `✗ ${saveStatus.error}`, tone: 'error' };
@@ -62,7 +74,7 @@ function getSaveStatusMeta(saveStatus) {
  case 'saving-key':
  return { text: '正在写入 Keychain...', tone: 'info' };
  case 'key-saved':
- return { text: '✓ key 已存储', tone: 'success' };
+ return { text: '✓ key 已存储，配置已同步', tone: 'success' };
  case 'clearing-key':
  return { text: '正在清空 key...', tone: 'info' };
  case 'key-cleared':
@@ -120,12 +132,27 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  }
  }, [cfg]);
 
+ async function persistCloudConfig() {
+ const next = buildConfigPayload(cloudProviderId, cloudModel, cloudBaseUrl);
+ return saveAISessionsConfig(next);
+ }
+
  async function handleSaveKey() {
  if (!keyInput || !cloudProviderId) return;
  setSaveStatus('saving-key');
  const r = await setAIKey(cloudProviderId, keyInput);
- setSaveStatus(r.ok ? 'key-saved' : { error: r.reason || 'threw' });
- if (r.ok) setKeyInput('');
+ if (!r.ok) {
+ setSaveStatus({ error: r.reason || 'threw' });
+ return;
+ }
+ setKeyInput('');
+ const cfgR = await persistCloudConfig();
+ if (!cfgR.ok) {
+ setSaveStatus({ error: cfgR.reason || 'config_save_failed' });
+ return;
+ }
+ setSaveStatus('key-saved');
+ if (typeof onSaved === 'function') onSaved(cfgR.config);
  }
 
  async function handleClearKey() {
@@ -149,19 +176,10 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
 
  async function handleSaveConfig() {
  setSaveStatus('saving');
- const next = {
- // Phase B7f: 没有显式 enabled字段 —配了 provider 即 enabled
- provider: cloudProviderId,
- cloud: {
- providerId: cloudProviderId,
- model: cloudModel || findProvider(cloudProviderId).defaultModel,
- baseUrl: cloudBaseUrl || undefined,
- },
- };
- const r = await saveAISessionsConfig(next);
+ const r = await persistCloudConfig();
  if (r.ok) {
  setSaveStatus('saved');
- if (typeof onSaved === 'function') onSaved(r.config || next);
+ if (typeof onSaved === 'function') onSaved(r.config);
  } else {
  setSaveStatus({ error: r.reason || 'threw' });
  }

@@ -145,7 +145,7 @@ describe('<AIConfigForm /> — Phase B7f: 没有 enabled toggle', () => {
 });
 
 describe('<AIConfigForm /> — API key 操作', () => {
- it('点 "保存 key" → setAIKey 被调, 带 providerId + apiKey', async () => {
+ it('点 "保存 key" → setAIKey + saveAISessionsConfig 同步写入', async () => {
  store.aiSessionsConfig.value = {
  provider: 'deepseek',
  cloud: { providerId: 'deepseek', model: 'deepseek-chat' },
@@ -157,6 +157,15 @@ describe('<AIConfigForm /> — API key 操作', () => {
  fireEvent.click(saveKeyBtn);
  await new Promise((r) => setTimeout(r,10));
  expect(store.setAIKey).toHaveBeenCalledWith('deepseek', 'sk-test-123');
+ expect(store.saveAISessionsConfig).toHaveBeenCalledWith(
+ expect.objectContaining({
+ provider: 'deepseek',
+ cloud: expect.objectContaining({
+ providerId: 'deepseek',
+ model: 'deepseek-chat',
+ }),
+ }),
+ );
  });
 
  it('点 "清空" → clearAIKey 被调', async () => {
