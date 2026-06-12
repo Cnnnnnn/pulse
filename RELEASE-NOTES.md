@@ -2,6 +2,54 @@
 
 ---
 
+## v2.10.0 (世界杯体彩记账) — 2026-06-12
+
+### 世界杯 · 体彩记账 (new)
+- **比赛日底部小卡**: 每个 day section 底部一行，展示投入 / 盈亏（盈亏颜色：盈绿亏红）+ 编辑 / 清空按钮
+- **未填比赛日**: 灰色「未填 →」按钮，点开行内编辑表单
+- **顶部 stats card**: 总投入 / 总盈亏 / 已填 / 未填 / 盈亏率 5 个数字
+- **数据持久化**: `state.json.worldcupBets`，key = 比赛日 date (YYYY-MM-DD)
+- **不联动比赛结果**: 盈亏完全手填（用户拒绝玩法 / 赔率）
+- **快捷键**: Esc 取消，⌘/Ctrl+Enter 保存
+- **校验**: stake ≥ 0、pnl 任意、note ≤ 200 字、> 1e9 拒
+
+---
+
+## v2.9.8 (比分 / 进球榜 / 共享 AI / 配置记忆) — 2026-06-12
+
+### 世界杯 · 赛程与数据
+
+- **实时比分**: ESPN → worldcup26.ir → openfootball 三层回退；进行中 / 完赛不同样式（红 / 绿）
+- **进球者**: 完赛卡片与详情弹窗展示进球球员；完赛但缺 scorers 仍会刷新 ESPN
+- **进球榜 tab**: 按进球数排序，支持搜索球员 / 球队
+- **球队 tab**: 组内按积分 → 净胜球 → 进球排序；展示积分与净胜球
+- **中文队名 + 国旗**: TXT 别名（South Korea、Czech Republic 等）统一映射；未知占位队显示 🏳️
+
+### 世界杯 · AI 分析
+
+- **赛前预测 / 赛后总结**: 与 AI 任务总结共用 Provider / 模型 / Key
+- **按需生成**: 已有缓存只展示，点「赛前预测 / 赛后总结」才调 LLM；「重新生成」单独触发
+- **磁盘缓存**: 写入 `state.json` `worldcup_match_insights`，重启不丢
+
+### Pulse 共享 AI 配置
+
+- **侧栏入口**: 底部「AI 配置」，不再藏在 drawer 深处
+- **配置记忆**: 启动时加载上次 Provider / 模型 / Key 状态；以主进程实际可用性为准，避免误报「未配置」
+- **一键保存**: 「保存配置」同时写入 Keychain 中的 API Key（若输入框有 key）
+- **输出优化**: 过滤 LLM 思考链标签；弹窗加大可滚动
+
+### 其它
+
+- AI 任务 drawer z-index 修复，不再被顶栏遮挡
+- 新增 `src/ai/shared-llm.js` 供任务总结与世界杯 AI 共用
+
+### 验证
+
+- vitest 全绿（含 worldcup-teams-data / scorers-leaderboard / group-standings / match-ai）
+- renderer bundle ~555kb
+
+---
+
 ## v2.9.3 (SquadModal + 北京时间 + 国旗) — 2026-06-11
 
 ### Match card 升级
