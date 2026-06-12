@@ -80,7 +80,7 @@ body {
 /* ─── Header ─── */
 #header {
   position: relative;
-  z-index: 1100;  /* 高于 modal-backdrop (1000) */
+  z-index: 2000;  /* v2.9.7 改: 2000 (更高) 保险远高于 modal-backdrop (1) */
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -772,7 +772,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1;  /* v2.9.7 改: 1 (超低) 保险让 worldcup-header (2000) / side-nav (2000) 永远可点. modal-card 在 modal 自身, click 仍可达. backdrop 视觉仍 dim, click 穿透 → header 子 tab 切 永远可达 */
   animation: fadeIn 0.15s ease;
 }
 
@@ -2767,7 +2767,7 @@ body {
   transition: width 0.18s ease;
   overflow: hidden;
   position: relative;
-  z-index: 1100;  /* 高于 modal-backdrop (1000), 切 nav 在 modal 弹出时也可点 */
+  z-index: 2000;  /* v2.9.7 改: 2000 (更高) 保险远高于 modal-backdrop (1), 切 nav 永远可点 */
 }
 
 .side-nav-collapsed {
@@ -3096,7 +3096,7 @@ body {
   border-bottom: 1px solid var(--border-subtle, #e5e5e7);
   border-radius: 0;
   position: relative;
-  z-index: 1100;  /* 高于 modal-backdrop (1000), 让 子 tab 按钮 在 modal 弹出时 也可点 */
+  z-index: 2000;  /* v2.9.7 改: 2000 (更高) 保险远高于 modal-backdrop (1), 让 子 tab 按钮 在 modal 弹出时 也可点 */
 }
 
 .worldcup-header-brand {
