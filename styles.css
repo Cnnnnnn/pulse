@@ -3300,3 +3300,199 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ─── SquadModal (v2.9.7 修) ─── */
+
+.modal-squad {
+  width: 720px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.modal-squad .modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.modal-squad .modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.squad-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 20px;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  background: var(--bg-secondary, #f5f5f7);
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+  flex-shrink: 0;
+}
+
+.squad-meta-line {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.squad-body {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: 16px;
+  padding: 16px 20px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.modal-squad-team .squad-body {
+  grid-template-columns: 1fr;
+}
+
+.squad-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.squad-col-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+}
+
+.squad-col-flag {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.squad-col-cn {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.squad-col-en {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+}
+
+.squad-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.squad-empty {
+  font-size: 12px;
+  color: var(--text-tertiary, #888);
+  padding: 8px;
+  text-align: center;
+}
+
+.squad-row {
+  display: grid;
+  grid-template-columns: 28px 36px 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: transparent;
+  min-width: 0;
+}
+
+.squad-row:nth-child(even) {
+  background: var(--bg-secondary, #f5f5f7);
+}
+
+.squad-row-tbd {
+  opacity: 0.45;
+}
+
+.squad-num {
+  font-weight: 600;
+  color: var(--text-tertiary, #888);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.squad-pos {
+  font-size: 10px;
+  color: var(--text-tertiary, #888);
+  background: var(--bg-tertiary, #ebebed);
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.squad-name {
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.squad-club {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.squad-vs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--text-tertiary, #888);
+}
+
+.squad-vs-text {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-tertiary, #888);
+}
+
+.squad-vs-score {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent-primary, #007aff);
+  font-variant-numeric: tabular-nums;
+}
+
+.squad-vs-dash {
+  color: var(--text-tertiary, #888);
+  font-weight: 400;
+}
+
+.squad-vs-stage {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+}
