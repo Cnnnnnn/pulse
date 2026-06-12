@@ -3,6 +3,11 @@
  *
  * v2.10.0 比赛日底部小卡 — stake + pnl + note
  * 已填显示当前值, 未填显示按钮, 点开行内编辑.
+ *
+ * v2.10.1 polish:
+ *   - Fix 8: 保存成功后 footer 闪绿 1s
+ *   - Fix 9: note 加 title tooltip (鼠标 hover 看全)
+ *   - Fix 10: 盈亏 emoji (✅ 盈 / ❌ 亏 / — 0)
  */
 import { useState, useRef, useEffect } from "preact/hooks";
 import {
@@ -17,6 +22,12 @@ function fmtMoney(n) {
   return `${sign}¥${Math.abs(Math.round(n * 100) / 100)}`;
 }
 
+function pnlEmoji(n) {
+  if (n > 0) return "✅";
+  if (n < 0) return "❌";
+  return "—";
+}
+
 export function DayBetFooter({ date, search = "" }) {
   // 搜索态下不渲染 footer (专注比赛卡片, 不打扰)
   if (search) return null;
@@ -26,6 +37,8 @@ export function DayBetFooter({ date, search = "" }) {
   const [pnl, setPnl] = useState("");
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
+  const [flashing, setFlashing] = useState(false);
+  const flashTimerRef = useRef(null);
   const stakeRef = useRef(null);
 
   useEffect(() => {
@@ -33,6 +46,13 @@ export function DayBetFooter({ date, search = "" }) {
       stakeRef.current.focus();
     }
   }, [editing]);
+
+  // 卸载时清理 flash timer (避免 setState on unmounted)
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    };
+  }, []);
 
   function openEdit() {
     setStake(entry ? String(entry.stake) : "");
@@ -45,6 +65,12 @@ export function DayBetFooter({ date, search = "" }) {
   function cancel() {
     setEditing(false);
     setErr("");
+  }
+
+  function triggerFlash() {
+    setFlashing(true);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = setTimeout(() => setFlashing(false), 1000);
   }
 
   async function save() {
@@ -64,6 +90,7 @@ export function DayBetFooter({ date, search = "" }) {
       return;
     }
     setEditing(false);
+    triggerFlash(); // Fix 8
   }
 
   async function clear() {
@@ -121,13 +148,20 @@ export function DayBetFooter({ date, search = "" }) {
 
   if (entry) {
     const pnlClass = entry.pnl >= 0 ? "positive" : "negative";
+    const flashClass = flashing ? "day-bet-flash" : "";
     return (
-      <div class="day-bet-footer">
+      <div class={`day-bet-footer ${flashClass}`}>
         <span class="day-bet-label">体彩</span>
         <span class="day-bet-stake">投入 {fmtMoney(entry.stake)}</span>
         <span class="day-bet-sep">·</span>
-        <span class={`day-bet-pnl ${pnlClass}`}>盈亏 {fmtMoney(entry.pnl)}</span>
-        {entry.note && <span class="day-bet-note">「{entry.note}」</span>}
+        <span class={`day-bet-pnl ${pnlClass}`}>
+          {pnlEmoji(entry.pnl)} 盈亏 {fmtMoney(entry.pnl)}
+        </span>
+        {entry.note && (
+          <span class="day-bet-note" title={entry.note}>
+            「{entry.note}」
+          </span>
+        )}
         <span class="day-bet-actions">
           <button onClick={openEdit}>编辑</button>
           <button onClick={clear}>清空</button>

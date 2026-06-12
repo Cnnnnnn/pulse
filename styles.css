@@ -3633,3 +3633,13 @@ body {
   color: #fff;
   border-color: var(--accent, #3b82f6);
 }
+
+/* v2.10.1 Fix 8: 保存成功后整行闪绿 1s */
+@keyframes day-bet-flash {
+  0%   { background-color: transparent; }
+  10%  { background-color: rgba(16, 185, 129, 0.18); }
+  100% { background-color: transparent; }
+}
+.day-bet-flash {
+  animation: day-bet-flash 1s ease-out;
+}
