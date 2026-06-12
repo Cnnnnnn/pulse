@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import MatchCard from './MatchCard.jsx';
 import SquadModal from './SquadModal.jsx';
 import { groupMatchesByDate } from './groupByDate.js';
+import { displayTeam } from './teams-data.js';
 import {
   worldcupMatches,
   worldcupLoading,
@@ -20,6 +21,8 @@ import {
   loadWorldcupFixtures,
   clearWorldcupError,
 } from './store.js';
+import { WorldcupBetsStats } from './WorldcupBetsStats.jsx';
+import { DayBetFooter } from './DayBetFooter.jsx';
 
 const WEEKDAYS_CN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -54,11 +57,17 @@ export function WorldcupView({ search = '' }) {
     let matches = data.matches;
     if (search) {
       const q = search.toLowerCase();
-      matches = matches.filter((m) => (
-        (m.team1 && m.team1.toLowerCase().includes(q)) ||
-        (m.team2 && m.team2.toLowerCase().includes(q)) ||
-        (m.venue && m.venue.toLowerCase().includes(q))
-      ));
+      matches = matches.filter((m) => {
+        const d1 = displayTeam(m.team1);
+        const d2 = displayTeam(m.team2);
+        return (
+          (m.team1 && m.team1.toLowerCase().includes(q)) ||
+          (m.team2 && m.team2.toLowerCase().includes(q)) ||
+          (d1.cn && d1.cn.includes(q)) ||
+          (d2.cn && d2.cn.includes(q)) ||
+          (m.venue && m.venue.toLowerCase().includes(q))
+        );
+      });
     }
     return groupMatchesByDate(matches);
   }, [data, search]);
@@ -110,10 +119,11 @@ export function WorldcupView({ search = '' }) {
       {squadMatch && <SquadModal match={squadMatch} onClose={() => setSquadMatch(null)} />}
       <header class="worldcup-header">
         <h2 class="worldcup-title">⚽ 世界杯 2026</h2>
-        <p class="worldcup-meta">
-          共 {data.matches.length} 场赛事 · {dayGroups.length} 个比赛日
-        </p>
       </header>
+      <p class="worldcup-meta">
+        共 {data.matches.length} 场赛事 · {dayGroups.length} 个比赛日
+      </p>
+      <WorldcupBetsStats allDates={dayGroups.map((d) => d.date)} />
       <div class="worldcup-day-list">
         {dayGroups.map((g) => (
           <section key={g.date} class="worldcup-day-section">
@@ -131,6 +141,7 @@ export function WorldcupView({ search = '' }) {
                 />
               ))}
             </div>
+            <DayBetFooter date={g.date} search={search} />
           </section>
         ))}
       </div>
