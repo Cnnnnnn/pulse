@@ -28,6 +28,7 @@ import { SideNav } from './SideNav.jsx';
 import { VersionsLayout } from './VersionsLayout.jsx';
 import { WorldcupLayout } from '../worldcup/WorldcupLayout.jsx';
 import { FundLayout } from '../funds/FundLayout.jsx';
+import { NewsLayout } from '../ithome/NewsLayout.jsx';
 
 export function AppShell({ onCheck }) {
   const nav = activeNav.value;
@@ -45,7 +46,8 @@ export function AppShell({ onCheck }) {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
         let inputId = 'filter-search-input';
-        if (nav === 'worldcup') inputId = 'worldcup-search-input';
+        if (nav === 'ithome') inputId = 'ithome-search-input';
+        else if (nav === 'worldcup') inputId = 'worldcup-search-input';
         else if (nav === 'funds') inputId = 'fund-search-input';
         const input = document.getElementById(inputId);
         if (input) {
@@ -62,11 +64,13 @@ export function AppShell({ onCheck }) {
     <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
       <SideNav />
       <div class="app-shell-view">
-        {nav === 'worldcup'
-          ? <WorldcupLayout />
-          : nav === 'funds'
-            ? <FundLayout />
-            : <VersionsLayout onCheck={onCheck} />}
+        {nav === 'ithome'
+          ? <NewsLayout />
+          : nav === 'worldcup'
+            ? <WorldcupLayout />
+            : nav === 'funds'
+              ? <FundLayout />
+              : <VersionsLayout onCheck={onCheck} />}
       </div>
     </div>
   );

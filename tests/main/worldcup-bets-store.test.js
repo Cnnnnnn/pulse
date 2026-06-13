@@ -36,10 +36,7 @@ describe("bets-store", () => {
   });
 
   it("upsert adds a new entry", () => {
-    const r = betsStore.upsert(
-      { date: "2026-06-12", stake: 100, pnl: 120 },
-      p,
-    );
+    const r = betsStore.upsert({ date: "2026-06-12", stake: 100, pnl: 120 }, p);
     expect(r.ok).toBe(true);
     expect(r.entry).toMatchObject({
       date: "2026-06-12",
@@ -56,10 +53,7 @@ describe("bets-store", () => {
 
   it("upsert overwrites existing date", () => {
     betsStore.upsert({ date: "2026-06-12", stake: 100, pnl: 120 }, p);
-    const r = betsStore.upsert(
-      { date: "2026-06-12", stake: 200, pnl: -80 },
-      p,
-    );
+    const r = betsStore.upsert({ date: "2026-06-12", stake: 200, pnl: -80 }, p);
     expect(r.ok).toBe(true);
     expect(betsStore.loadAll(p).worldcupBets["2026-06-12"]).toMatchObject({
       stake: 200,
@@ -67,15 +61,22 @@ describe("bets-store", () => {
     });
   });
 
-  it("upsert preserves other state keys (no clobber)", () => {
-    writeFileSync(
-      p,
-      JSON.stringify({ apps: {}, mutes: {}, someOtherKey: 1 }),
-    );
+  it("upsert ensures apps/mutes shell so state-store.load can read bets later", () => {
     betsStore.upsert({ date: "2026-06-12", stake: 50, pnl: 0 }, p);
-    const raw = JSON.parse(
-      require("fs").readFileSync(p, "utf-8"),
-    );
+    const stateStore = require("../../src/main/state-store.js");
+    const loaded = stateStore.load(p);
+    expect(loaded).not.toBeNull();
+    expect(loaded.apps).toEqual({});
+    expect(loaded.worldcupBets["2026-06-12"]).toMatchObject({
+      stake: 50,
+      pnl: 0,
+    });
+  });
+
+  it("upsert preserves other state keys (no clobber)", () => {
+    writeFileSync(p, JSON.stringify({ apps: {}, mutes: {}, someOtherKey: 1 }));
+    betsStore.upsert({ date: "2026-06-12", stake: 50, pnl: 0 }, p);
+    const raw = JSON.parse(require("fs").readFileSync(p, "utf-8"));
     expect(raw.apps).toEqual({});
     expect(raw.mutes).toEqual({});
     expect(raw.someOtherKey).toBe(1);
@@ -87,10 +88,7 @@ describe("bets-store", () => {
 
   it("upsert sets updatedAt", () => {
     const before = Date.now();
-    const r = betsStore.upsert(
-      { date: "2026-06-12", stake: 100, pnl: 0 },
-      p,
-    );
+    const r = betsStore.upsert({ date: "2026-06-12", stake: 100, pnl: 0 }, p);
     expect(r.entry.updatedAt).toBeGreaterThanOrEqual(before);
   });
 
@@ -122,58 +120,37 @@ describe("bets-store", () => {
 
   it("rejects invalid date format", () => {
     expect(() =>
-      betsStore.upsert(
-        { date: "2026/06/12", stake: 0, pnl: 0 },
-        p,
-      ),
+      betsStore.upsert({ date: "2026/06/12", stake: 0, pnl: 0 }, p),
     ).toThrow(/invalid_date/);
   });
 
   it("rejects negative stake", () => {
     expect(() =>
-      betsStore.upsert(
-        { date: "2026-06-12", stake: -1, pnl: 0 },
-        p,
-      ),
+      betsStore.upsert({ date: "2026-06-12", stake: -1, pnl: 0 }, p),
     ).toThrow(/invalid_stake/);
   });
 
   it("rejects non-number stake/pnl", () => {
     expect(() =>
-      betsStore.upsert(
-        { date: "2026-06-12", stake: "abc", pnl: 0 },
-        p,
-      ),
+      betsStore.upsert({ date: "2026-06-12", stake: "abc", pnl: 0 }, p),
     ).toThrow();
     expect(() =>
-      betsStore.upsert(
-        { date: "2026-06-12", stake: 0, pnl: "xyz" },
-        p,
-      ),
+      betsStore.upsert({ date: "2026-06-12", stake: 0, pnl: "xyz" }, p),
     ).toThrow();
   });
 
   it("rejects NaN/Infinity stake/pnl", () => {
     expect(() =>
-      betsStore.upsert(
-        { date: "2026-06-12", stake: NaN, pnl: 0 },
-        p,
-      ),
+      betsStore.upsert({ date: "2026-06-12", stake: NaN, pnl: 0 }, p),
     ).toThrow();
     expect(() =>
-      betsStore.upsert(
-        { date: "2026-06-12", stake: 100, pnl: Infinity },
-        p,
-      ),
+      betsStore.upsert({ date: "2026-06-12", stake: 100, pnl: Infinity }, p),
     ).toThrow();
   });
 
   it("rejects stake/pnl > 1e9", () => {
     expect(() =>
-      betsStore.upsert(
-        { date: "2026-06-12", stake: 1e10, pnl: 0 },
-        p,
-      ),
+      betsStore.upsert({ date: "2026-06-12", stake: 1e10, pnl: 0 }, p),
     ).toThrow();
   });
 
@@ -188,10 +165,7 @@ describe("bets-store", () => {
   });
 
   it("accepts stake = 0 (白嫖合法)", () => {
-    const r = betsStore.upsert(
-      { date: "2026-06-12", stake: 0, pnl: 200 },
-      p,
-    );
+    const r = betsStore.upsert({ date: "2026-06-12", stake: 0, pnl: 200 }, p);
     expect(r.ok).toBe(true);
   });
 

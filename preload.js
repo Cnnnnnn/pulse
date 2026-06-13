@@ -77,9 +77,18 @@ contextBridge.exposeInMainWorld("api", {
   worldcupLoadBets: () => ipcRenderer.invoke("worldcup:load-bets"),
   worldcupUpsertBet: (payload) =>
     ipcRenderer.invoke("worldcup:upsert-bet", payload),
-  worldcupRemoveBet: (date) =>
-    ipcRenderer.invoke("worldcup:remove-bet", date),
+  worldcupRemoveBet: (date) => ipcRenderer.invoke("worldcup:remove-bet", date),
   getAiSharedConfig: () => ipcRenderer.invoke("ai:get-shared-config"),
+
+  // IT之家新闻
+  ithomeLoadNews: () => ipcRenderer.invoke("ithome:load-news"),
+  ithomeRefreshNews: (dateKey) =>
+    ipcRenderer.invoke("ithome:refresh-news", dateKey),
+  ithomeFetchDay: (dateKey) => ipcRenderer.invoke("ithome:fetch-day", dateKey),
+  ithomeSummarizeArticle: (payload) =>
+    ipcRenderer.invoke("ithome:summarize-article", payload),
+  ithomeToggleFavorite: (payload) =>
+    ipcRenderer.invoke("ithome:toggle-favorite", payload),
 
   // v2.10+ 基金管理: 持仓 CRUD + 净值拉取 / 推送
   fundsList: () => ipcRenderer.invoke("funds:list"),

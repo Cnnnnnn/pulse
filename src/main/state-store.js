@@ -144,6 +144,8 @@ function legacyDefaultPath() {
 //   - classify_llm_cache: { appName: catId } (Step B LLM classify 用)
 //   - task_summaries: { taskKey: entry } (AI 任务总结缓存)
 //   - funds: { holdings, deletedIds, dailySnapshots } (基金管理, fund-store 写入)
+//   - worldcupBets: { [date]: entry } (体彩记账, bets-store 写入)
+//   - ithome_news: { articles, summaries, favorites, ts } (IT之家新闻, news-store 写入)
 //
 // 旧字段 daily_digests / daily_digest_v2 / last_digest_attempts 已废弃 —
 // 不再 preserve, 下次写盘自然消失.
@@ -196,6 +198,22 @@ function preserveExtraFields(existing, next) {
     !Array.isArray(existing.funds)
   ) {
     next.funds = existing.funds;
+  }
+  if (
+    !("worldcupBets" in next) &&
+    existing.worldcupBets &&
+    typeof existing.worldcupBets === "object" &&
+    !Array.isArray(existing.worldcupBets)
+  ) {
+    next.worldcupBets = existing.worldcupBets;
+  }
+  if (
+    !("ithome_news" in next) &&
+    existing.ithome_news &&
+    typeof existing.ithome_news === "object" &&
+    !Array.isArray(existing.ithome_news)
+  ) {
+    next.ithome_news = existing.ithome_news;
   }
   return next;
 }

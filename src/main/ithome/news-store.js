@@ -1,0 +1,337 @@
+/**
+ * src/main/ithome/news-store.js
+ *
+ * IT之家新闻缓存 — state.json.ithome_news
+ */
+
+const fs = require("fs");
+const stateStore = require("../state-store");
+const { HttpClient } = require("../http-client");
+const { parseIthomeRss } = require("./rss-parser");
+const { parseIthomeListPage } = require("./list-parser");
+const {
+  assertFetchableDate,
+  isInCurrentMonth,
+  todayShanghaiDateKey,
+  listPageUrl,
+} = require("./date-bounds");
+const { mainLog } = require("../log");
+const { enrichSummaryEntry } = require("./article-summary-parse");
+
+const RSS_URL = "https://www.ithome.com/rss/";
+const FETCH_TIMEOUT_MS = 20000;
+const MAX_ARTICLES = 800;
+
+let _http = null;
+function http() {
+  if (!_http) {
+    _http = new HttpClient({
+      timeout: FETCH_TIMEOUT_MS,
+      maxBodyBytes: 3 * 1024 * 1024,
+    });
+  }
+  return _http;
+}
+
+function _readStateRaw(statePath) {
+  const p = statePath || stateStore.defaultPath();
+  try {
+    const raw = fs.readFileSync(p, "utf-8");
+    const j = JSON.parse(raw);
+    return j && typeof j === "object" ? j : {};
+  } catch (err) {
+    if (err && err.code === "ENOENT") return {};
+    mainLog.warn("[ithome/news-store] state read failed", {
+      msg: err && err.message,
+    });
+    return {};
+  }
+}
+
+function _emptyNews() {
+  return { ts: 0, articles: {}, summaries: {}, favorites: {} };
+}
+
+function _normalizeNews(raw) {
+  if (!raw || typeof raw !== "object") return _emptyNews();
+  return {
+    ts: typeof raw.ts === "number" ? raw.ts : 0,
+    articles:
+      raw.articles && typeof raw.articles === "object" ? raw.articles : {},
+    summaries:
+      raw.summaries && typeof raw.summaries === "object" ? raw.summaries : {},
+    favorites:
+      raw.favorites && typeof raw.favorites === "object" ? raw.favorites : {},
+  };
+}
+
+function _pruneArticles(articles, now = new Date()) {
+  const list = Object.values(articles || {});
+  list.sort((a, b) => {
+    const ta = Date.parse(a.pubDate || "") || 0;
+    const tb = Date.parse(b.pubDate || "") || 0;
+    return tb - ta;
+  });
+  const kept = list
+    .filter((a) => a && a.dateKey && isInCurrentMonth(a.dateKey, now))
+    .slice(0, MAX_ARTICLES);
+  const out = {};
+  for (const a of kept) {
+    if (a && a.id) out[a.id] = a;
+  }
+  return out;
+}
+
+function _enrichSummaries(summaries) {
+  const out = {};
+  for (const [id, entry] of Object.entries(summaries || {})) {
+    if (!entry || typeof entry !== "object") continue;
+    const fields = enrichSummaryEntry(entry);
+    out[id] = { ...entry, ...fields };
+  }
+  return out;
+}
+
+function _mergeSummariesForLoad(news) {
+  const summaries = _enrichSummaries(news.summaries);
+  for (const [id, fav] of Object.entries(news.favorites || {})) {
+    if (!fav || !fav.summary || summaries[id]) continue;
+    summaries[id] = _enrichSummaries({ [id]: fav.summary })[id];
+  }
+  return summaries;
+}
+
+function loadAll(statePath) {
+  const raw = _readStateRaw(statePath);
+  const news = _normalizeNews(raw.ithome_news);
+  return {
+    ok: true,
+    ...news,
+    summaries: _mergeSummariesForLoad(news),
+  };
+}
+
+function _writeNews(news, statePath) {
+  const path = statePath || stateStore.defaultPath();
+  const existing = _readStateRaw(path);
+  const next = {
+    ...existing,
+    v: existing.v || stateStore.SCHEMA_VERSION,
+    apps:
+      existing.apps && typeof existing.apps === "object" ? existing.apps : {},
+    mutes:
+      existing.mutes && typeof existing.mutes === "object"
+        ? existing.mutes
+        : {},
+    ithome_news: news,
+  };
+  stateStore.writeAtomic(path, next);
+}
+
+function getArticle(id, statePath) {
+  const news = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  if (news.articles[id]) return news.articles[id];
+  const fav = news.favorites[id];
+  return fav && fav.article ? fav.article : null;
+}
+
+function isFavorited(id, statePath) {
+  const news = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  return !!(news.favorites && news.favorites[id]);
+}
+
+function _mergeArticles(cur, parsed, now) {
+  const articles = { ...cur.articles };
+  for (const item of parsed) {
+    const prev = articles[item.id];
+    articles[item.id] = {
+      ...item,
+      excerpt: prev?.excerpt || item.excerpt || "",
+      fetchedAt: prev?.fetchedAt || now,
+      updatedAt: now,
+    };
+  }
+  return articles;
+}
+
+function _finalizeNews(cur, articles, now) {
+  const pruned = _pruneArticles(articles, new Date(now));
+  const summaryIds = new Set(Object.keys(pruned));
+  const favorites = { ...(cur.favorites || {}) };
+  const summaries = {};
+  for (const [id, s] of Object.entries(cur.summaries || {})) {
+    if (summaryIds.has(id)) {
+      summaries[id] = s;
+      continue;
+    }
+    if (favorites[id] && s) {
+      favorites[id] = {
+        ...favorites[id],
+        summary: favorites[id].summary || { ...s },
+      };
+    }
+  }
+  return {
+    ts: now,
+    articles: pruned,
+    summaries,
+    favorites,
+  };
+}
+
+/**
+ * 拉取指定日期列表页 (仅当月)
+ */
+async function fetchDay(dateKey, statePath) {
+  try {
+    assertFetchableDate(dateKey);
+  } catch (err) {
+    return { ok: false, reason: err.code || "invalid_date" };
+  }
+
+  const url = listPageUrl(dateKey);
+  const r = await http().get(url, {
+    timeout: FETCH_TIMEOUT_MS,
+    headers: {
+      Accept: "text/html",
+      "Accept-Language": "zh-CN,zh;q=0.9",
+    },
+  });
+  if (!r || r.status !== 200 || !r.body) {
+    return {
+      ok: false,
+      reason: r && r.error ? r.error : "fetch_failed",
+      status: r && r.status,
+    };
+  }
+
+  const parsed = parseIthomeListPage(r.body, dateKey);
+  if (parsed.length === 0) {
+    return { ok: false, reason: "parse_empty", dateKey };
+  }
+
+  const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  const now = Date.now();
+  const articles = _mergeArticles(cur, parsed, now);
+  const news = _finalizeNews(cur, articles, now);
+  _writeNews(news, statePath);
+
+  const dayCount = parsed.length;
+  return {
+    ok: true,
+    dateKey,
+    added: dayCount,
+    total: Object.keys(news.articles).length,
+    dayCount,
+    ts: now,
+  };
+}
+
+/**
+ * 拉取 RSS 并合并 (补充 excerpt，仍限制当月)
+ */
+async function refresh(statePath) {
+  const today = todayShanghaiDateKey();
+  const dayResult = await fetchDay(today, statePath);
+  if (!dayResult.ok && dayResult.reason !== "parse_empty") {
+    return dayResult;
+  }
+
+  const r = await http().get(RSS_URL, {
+    timeout: FETCH_TIMEOUT_MS,
+    headers: { Accept: "application/rss+xml, application/xml, text/xml, */*" },
+  });
+  if (!r || r.status !== 200 || !r.body) {
+    if (dayResult.ok) return dayResult;
+    return {
+      ok: false,
+      reason: r && r.error ? r.error : "fetch_failed",
+      status: r && r.status,
+    };
+  }
+
+  const parsed = parseIthomeRss(r.body).filter((item) =>
+    isInCurrentMonth(item.dateKey),
+  );
+  const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  const now = Date.now();
+  const articles = { ...cur.articles };
+  for (const item of parsed) {
+    const prev = articles[item.id];
+    articles[item.id] = {
+      ...item,
+      category: prev?.category || "",
+      fetchedAt: prev?.fetchedAt || now,
+      updatedAt: now,
+      excerpt: item.excerpt || prev?.excerpt || "",
+    };
+  }
+  const news = _finalizeNews(cur, articles, now);
+  _writeNews(news, statePath);
+  return {
+    ok: true,
+    added: parsed.length,
+    total: Object.keys(news.articles).length,
+    ts: now,
+    dateKey: today,
+  };
+}
+
+function saveSummary(id, entry, statePath) {
+  const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  const inArticles = !!cur.articles[id];
+  const inFavorites = !!(cur.favorites && cur.favorites[id]);
+  if (!inArticles && !inFavorites) {
+    return { ok: false, reason: "article_not_found" };
+  }
+  const summaries = { ...cur.summaries };
+  if (inArticles) summaries[id] = entry;
+  const favorites = { ...cur.favorites };
+  if (inFavorites) {
+    favorites[id] = {
+      ...favorites[id],
+      summary: { ...entry },
+    };
+  }
+  const news = { ...cur, summaries, favorites, ts: Date.now() };
+  _writeNews(news, statePath);
+  return { ok: true };
+}
+
+function toggleFavorite(id, statePath) {
+  const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  const favorites = { ...(cur.favorites || {}) };
+
+  if (favorites[id]) {
+    delete favorites[id];
+    const news = { ...cur, favorites, ts: Date.now() };
+    _writeNews(news, statePath);
+    return { ok: true, favorited: false, id };
+  }
+
+  const article = cur.articles[id];
+  if (!article) {
+    return { ok: false, reason: "article_not_found" };
+  }
+
+  const summary = cur.summaries[id] || null;
+  favorites[id] = {
+    article: { ...article },
+    favoritedAt: Date.now(),
+    summary: summary ? { ...summary } : null,
+  };
+  const news = { ...cur, favorites, ts: Date.now() };
+  _writeNews(news, statePath);
+  return { ok: true, favorited: true, id };
+}
+
+module.exports = {
+  RSS_URL,
+  loadAll,
+  refresh,
+  fetchDay,
+  getArticle,
+  saveSummary,
+  toggleFavorite,
+  isFavorited,
+};

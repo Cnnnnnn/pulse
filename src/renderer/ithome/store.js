@@ -1,0 +1,165 @@
+/**
+ * src/renderer/ithome/store.js
+ */
+
+import { signal } from "@preact/signals";
+import {
+  todayShanghaiDateKey,
+  articlesForDate,
+  favoriteDateKeys,
+} from "./news-utils.js";
+
+export const ithomeArticles = signal({});
+export const ithomeSummaries = signal({});
+export const ithomeFavorites = signal({});
+export const ithomeNewsTs = signal(0);
+export const ithomeNewsLoaded = signal(false);
+export const ithomeNewsLoading = signal(false);
+export const ithomeNewsError = signal(null);
+export const ithomeSelectedDate = signal(todayShanghaiDateKey());
+export const ithomeFavoriteSelectedDate = signal("");
+export const ithomeViewMode = signal("news");
+
+function _api() {
+  if (typeof window === "undefined" || !window.api) return null;
+  return window.api;
+}
+
+function _applyPayload(data) {
+  if (!data) return;
+  ithomeArticles.value = data.articles || {};
+  ithomeSummaries.value = data.summaries || {};
+  ithomeFavorites.value = data.favorites || {};
+  ithomeNewsTs.value = data.ts || 0;
+  ithomeNewsLoaded.value = true;
+  _syncFavoriteSelectedDate();
+}
+
+function _syncFavoriteSelectedDate() {
+  const dates = favoriteDateKeys(ithomeFavorites.value);
+  if (dates.length === 0) {
+    ithomeFavoriteSelectedDate.value = "";
+    return;
+  }
+  if (!dates.includes(ithomeFavoriteSelectedDate.value)) {
+    ithomeFavoriteSelectedDate.value = dates[0];
+  }
+}
+
+export function isArticleFavorited(id) {
+  return !!(id && ithomeFavorites.value[id]);
+}
+
+export async function loadIthomeNews() {
+  const a = _api();
+  if (!a || typeof a.ithomeLoadNews !== "function") return false;
+  try {
+    const r = await a.ithomeLoadNews();
+    if (r && r.ok !== false) {
+      _applyPayload(r);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchDayNews(dateKey) {
+  const a = _api();
+  if (!a || typeof a.ithomeFetchDay !== "function") {
+    return { ok: false, reason: "ipc_unavailable" };
+  }
+  if (ithomeNewsLoading.value) {
+    return { ok: false, reason: "busy" };
+  }
+  ithomeNewsLoading.value = true;
+  ithomeNewsError.value = null;
+  try {
+    const r = await a.ithomeFetchDay(dateKey);
+    if (!r || !r.ok) {
+      const reason = (r && r.reason) || "fetch_failed";
+      const map = {
+        not_current_month: "只能查看本月内的新闻",
+        future_date: "不能选择未来日期",
+        invalid_date: "日期无效",
+      };
+      ithomeNewsError.value = map[reason] || reason;
+      return r || { ok: false, reason: "fetch_failed" };
+    }
+    await loadIthomeNews();
+    return r;
+  } catch (err) {
+    ithomeNewsError.value = (err && err.message) || "拉取异常";
+    return { ok: false, reason: "threw" };
+  } finally {
+    ithomeNewsLoading.value = false;
+  }
+}
+
+export async function refreshIthomeNews() {
+  return fetchDayNews(ithomeSelectedDate.value);
+}
+
+export async function setIthomeSelectedDate(dateKey) {
+  ithomeSelectedDate.value = dateKey;
+  ithomeNewsError.value = null;
+  const cached = articlesForDate(ithomeArticles.value, dateKey);
+  if (cached.length === 0) {
+    await fetchDayNews(dateKey);
+  }
+}
+
+export async function summarizeIthomeArticle(id, force = false) {
+  const a = _api();
+  if (!a || typeof a.ithomeSummarizeArticle !== "function") {
+    return { ok: false, reason: "ipc_unavailable" };
+  }
+  const r = await a.ithomeSummarizeArticle({ id, force });
+  if (r && r.ok && r.text) {
+    ithomeSummaries.value = {
+      ...ithomeSummaries.value,
+      [id]: {
+        text: r.text,
+        abstract: r.abstract || "",
+        keywords: Array.isArray(r.keywords) ? r.keywords : [],
+        domain: r.domain || "",
+        impact: r.impact || "",
+        generatedAt: Date.now(),
+      },
+    };
+  }
+  return r;
+}
+
+export async function toggleIthomeFavorite(id) {
+  const a = _api();
+  if (!a || typeof a.ithomeToggleFavorite !== "function") {
+    return { ok: false, reason: "ipc_unavailable" };
+  }
+  const r = await a.ithomeToggleFavorite({ id });
+  if (r && r.ok) {
+    await loadIthomeNews();
+  }
+  return r;
+}
+
+export function setIthomeViewMode(mode) {
+  ithomeViewMode.value = mode === "favorites" ? "favorites" : "news";
+  if (ithomeViewMode.value === "favorites") {
+    _syncFavoriteSelectedDate();
+  }
+}
+
+export function setIthomeFavoriteSelectedDate(dateKey) {
+  ithomeFavoriteSelectedDate.value = dateKey;
+}
+
+export async function bootstrapIthomeTab() {
+  const today = todayShanghaiDateKey();
+  ithomeSelectedDate.value = today;
+  await loadIthomeNews();
+  if (articlesForDate(ithomeArticles.value, today).length === 0) {
+    await fetchDayNews(today);
+  }
+}

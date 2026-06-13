@@ -766,6 +766,68 @@ function registerIpcHandlers(deps) {
     }
   });
 
+  // ─── IT之家新闻 ─────────────────────────────────────────────
+  const ithomeNewsStore = require("./ithome/news-store");
+  const { summarizeArticle } = require("./ithome/article-ai");
+
+  ipcMain.handle("ithome:load-news", async () => {
+    try {
+      return ithomeNewsStore.loadAll();
+    } catch (err) {
+      mainLog.warn("[ipc] ithome:load-news threw", { msg: err && err.message });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("ithome:refresh-news", async (_evt, dateKey) => {
+    try {
+      if (dateKey) return await ithomeNewsStore.fetchDay(dateKey);
+      return await ithomeNewsStore.refresh();
+    } catch (err) {
+      mainLog.warn("[ipc] ithome:refresh-news threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("ithome:fetch-day", async (_evt, dateKey) => {
+    try {
+      return await ithomeNewsStore.fetchDay(dateKey);
+    } catch (err) {
+      mainLog.warn("[ipc] ithome:fetch-day threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("ithome:summarize-article", async (_evt, payload) => {
+    try {
+      return await summarizeArticle(payload || {});
+    } catch (err) {
+      mainLog.warn("[ipc] ithome:summarize-article threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  ipcMain.handle("ithome:toggle-favorite", async (_evt, payload) => {
+    try {
+      const id = payload && payload.id;
+      if (!id || typeof id !== "string") {
+        return { ok: false, reason: "invalid_args" };
+      }
+      return ithomeNewsStore.toggleFavorite(id);
+    } catch (err) {
+      mainLog.warn("[ipc] ithome:toggle-favorite threw", {
+        msg: err && err.message,
+      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
   // 共享 AI 配置探测 (与 ai-sessions 同一套 state)
   ipcMain.handle("ai:get-shared-config", async () => {
     try {

@@ -30,10 +30,9 @@ function _readStateRaw(statePath) {
     return j;
   } catch (err) {
     if (err && err.code === "ENOENT") return {};
-    mainLog.warn(
-      "[bets-store] state read failed, treating as empty",
-      { msg: err && err.message },
-    );
+    mainLog.warn("[bets-store] state read failed, treating as empty", {
+      msg: err && err.message,
+    });
     return {};
   }
 }
@@ -83,10 +82,19 @@ function loadAll(statePath) {
   return { worldcupBets: existing.worldcupBets || {} };
 }
 
+/** 保证 state.json 带 apps/mutes, 避免 load() 读不到后 saveAll 覆盖体彩 */
+function _withStateShell(raw) {
+  const base = raw && typeof raw === "object" ? { ...raw } : {};
+  if (!base.v) base.v = stateStore.SCHEMA_VERSION;
+  if (!base.apps || typeof base.apps !== "object") base.apps = {};
+  if (!base.mutes || typeof base.mutes !== "object") base.mutes = {};
+  return base;
+}
+
 function upsert(input, statePath) {
   _validateInput(input);
   const path = statePath || stateStore.defaultPath();
-  const existing = _readStateRaw(path);
+  const existing = _withStateShell(_readStateRaw(path));
   const worldcupBets = { ...(existing.worldcupBets || {}) };
   const entry = {
     date: input.date,
@@ -106,8 +114,8 @@ function remove(date, statePath) {
     return { ok: false, reason: "invalid_date" };
   }
   const path = statePath || stateStore.defaultPath();
-  const existing = _readStateRaw(path);
-  if (!existing || !existing.worldcupBets || !existing.worldcupBets[date]) {
+  const existing = _withStateShell(_readStateRaw(path));
+  if (!existing.worldcupBets || !existing.worldcupBets[date]) {
     return { ok: false, reason: "not_found" };
   }
   const worldcupBets = { ...existing.worldcupBets };

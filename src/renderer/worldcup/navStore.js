@@ -7,14 +7,16 @@
  * 跟 6.6 一致: 完全独立, 不放 v2.6 主体 store
  */
 
-import { signal } from '@preact/signals';
+import { signal } from "@preact/signals";
 
-// activeNav: 'worldcup' | 'funds' | 'versions', 默认 'versions' (拍 default_versions)
-export const activeNav = signal('versions');
+// activeNav: 'ithome' | 'worldcup' | 'funds' | 'versions', 默认 'versions'
+export const activeNav = signal("versions");
 export const navCollapsed = signal(false);
 
+const NAV_KEYS = new Set(["ithome", "worldcup", "funds", "versions"]);
+
 export function setActiveNav(key) {
-  if (key === 'worldcup' || key === 'versions' || key === 'funds') {
+  if (NAV_KEYS.has(key)) {
     activeNav.value = key;
   }
 }

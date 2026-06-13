@@ -18,6 +18,7 @@ import { activeNav, navCollapsed, setActiveNav, toggleNavCollapsed } from '../wo
 import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
 
 const NAV_ITEMS = [
+  { key: 'ithome',   icon: '📰', label: 'IT 新闻', tooltip: 'IT之家资讯 + AI 摘要' },
   { key: 'worldcup', icon: '🏆', label: '世界杯', tooltip: '2026 世界杯赛程' },
   { key: 'funds',    icon: '💰', label: '基金管理', tooltip: '基金持仓 + 实时盈亏 (v2.10+)' },
   { key: 'versions', icon: '🔄', label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
