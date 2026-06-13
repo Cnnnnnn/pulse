@@ -18,6 +18,7 @@
  */
 
 import { signal, computed } from "@preact/signals";
+import { taggedLog } from "../log.js";
 import {
   calcPortfolioTotal,
   zipHoldingsWithNav,
@@ -35,6 +36,8 @@ import {
   DEFAULT_NAV_SOURCE,
   normalizeNavSource,
 } from "../../funds/fund-nav-merge.js";
+
+const log = taggedLog("[funds]");
 
 // ── signals ──
 
@@ -153,8 +156,7 @@ export async function loadFunds(api) {
       holdings.value = [];
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn("[funds] loadFunds failed:", err && err.message);
+    log.warn("loadFunds failed:", err && err.message);
     holdings.value = [];
   }
 }
@@ -282,8 +284,7 @@ export async function loadFundHistory(api) {
       dailySnapshots.value = r.dailySnapshots || [];
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn("[funds] loadFundHistory failed:", err && err.message);
+    log.warn("loadFundHistory failed:", err && err.message);
   }
 }
 
@@ -297,8 +298,7 @@ export async function setNavSource(api, source) {
   try {
     await api.fundsSetNavSource(next);
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn("[funds] setNavSource failed:", err && err.message);
+    log.warn("setNavSource failed:", err && err.message);
   }
 }
 

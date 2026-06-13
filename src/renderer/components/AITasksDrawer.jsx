@@ -35,6 +35,9 @@ import {
 } from '../store.js';
 import { api } from '../api.js';
 import { AIConfigForm } from './AISettingsModal.jsx';
+import { taggedLog } from '../log.js';
+
+const log = taggedLog("[tasks]");
 
 const APP_ORDER = ['cursor', 'codex', 'minimax-code'];
 const APP_LABEL = {
@@ -419,8 +422,7 @@ function TaskCard({ task, selected, generating, onToggle, onGenerateSingle }) {
     if (!hasJump) return;
     const r = await api.openSession(task.jumpTarget);
     if (!r || !r.ok) {
-      // eslint-disable-next-line no-console
-      console.warn('[tasks] openSession failed:', task.jumpTarget, r);
+      log.warn('openSession failed:', task.jumpTarget, r);
     }
   }
 

@@ -15,7 +15,15 @@
 
 import { useState, useEffect } from 'preact/hooks';
 import { api } from '../api.js';
-import { resolveAppBundlePath } from '../../utils/app-paths.js';
+
+// Inline 避免 esbuild 拖入 node:path 依赖 (renderer 不该打 path 模块).
+function resolveAppBundlePath(bundle) {
+  if (!bundle || typeof bundle !== 'string') return null;
+  const trimmed = bundle.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('/')) return trimmed;
+  return `/Applications/${trimmed}`;
+}
 
 const iconCache = new Map();       // bundle → dataURL
 const inflight = new Map();        // bundle → Promise (避免重复请求)

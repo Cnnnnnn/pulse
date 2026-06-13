@@ -22,6 +22,9 @@ import { signal, computed } from "@preact/signals";
 import * as category from "../config/category.js";
 import { api } from "./api.js";
 import { DEFAULT_MODELS } from "../ai/default-models.js";
+import { taggedLog } from "./log.js";
+
+const log = taggedLog("[store]");
 
 // ─── Session ID 生成 ──────────────────────────────────
 let _sessionCounter = 0;
@@ -298,11 +301,7 @@ export async function refreshLastOpened() {
  */
 export function setActiveCategory(id) {
   if (typeof id !== "string" || id.length === 0) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      "[store] setActiveCategory: id must be non-empty string, got",
-      id,
-    );
+    log.warn("setActiveCategory: id must be non-empty string, got", id);
     return;
   }
   activeCategory.value = id;
@@ -316,11 +315,7 @@ export function setActiveCategory(id) {
         p.then(
           () => {},
           (err) => {
-            // eslint-disable-next-line no-console
-            console.warn(
-              "[store] saveActiveCategory failed:",
-              err && err.message,
-            );
+            log.warn("saveActiveCategory failed:", err && err.message);
           },
         );
       }
@@ -494,8 +489,7 @@ export async function summarizeAiTasks(taskKeys) {
     }
     return r || null;
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn("[store] summarizeAiTasks threw:", err && err.message);
+    log.warn("summarizeAiTasks threw:", err && err.message);
     return null;
   } finally {
     const next = new Set(summarizingTaskKeys.value);
@@ -678,9 +672,8 @@ export function applyProgress(result, sessionId) {
   // Session 校验: 如果提供了 sessionId 且与当前 session 不匹配 → 丢弃
   const currentSession = checkSession.value;
   if (sessionId && currentSession.id && sessionId !== currentSession.id) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[store] applyProgress: stale session ${sessionId}, current=${currentSession.id}, discarding`,
+    log.warn(
+      `applyProgress: stale session ${sessionId}, current=${currentSession.id}, discarding`,
     );
     return;
   }

@@ -43,6 +43,9 @@ import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
 import { createAutoRecheck } from './auto-recheck.js';
+import { taggedLog } from './log.js';
+
+const log = taggedLog("[index]");
 
 // Phase A1b: import 触发顶层 setData, 之后 store / selectors 调 category.* 都有数据
 import './category-init.js';
@@ -76,8 +79,7 @@ async function triggerCheck() {
       finishCheck();
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('checkUpdates failed:', err);
+    log.error("checkUpdates failed:", err);
     if (checkSession.value.id === sessionId) {
       setError(err && err.message || String(err));
     }
@@ -93,8 +95,7 @@ async function bootstrap() {
     cfg = await api.getConfig();
     cfg.apps = cfg.apps || [];
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('getConfig failed:', err);
+    log.error("getConfig failed:", err);
   }
   apps.value = cfg.apps;
   primeConfigCache(cfg);

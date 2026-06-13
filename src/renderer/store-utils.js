@@ -5,6 +5,8 @@
  * 主 store 走 src/renderer/api.js; 这些 feature store 直接绑 preload API.
  */
 
+import { log as rendererLog } from "./log.js";
+
 export function getApi() {
   if (typeof window === "undefined" || !window.api) return null;
   return window.api;
@@ -28,9 +30,7 @@ export async function wrapIpc(fn, opts = {}) {
   try {
     return await fn();
   } catch (err) {
-    if (typeof console !== "undefined") {
-      console.warn(label, err);
-    }
+    rendererLog.warn(label, err);
     return fallback;
   }
 }

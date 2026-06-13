@@ -28,6 +28,9 @@ import {
   bulkUpgradeErrors,
   closeBulkUpgrade,
 } from '../store-bulk-upgrade.js';
+import { taggedLog } from '../log.js';
+
+const log = taggedLog("[bulk-upgrade]");
 
 const SOURCE_LABELS = {
   brew_formulae:    'brew',
@@ -101,7 +104,7 @@ export function BulkUpgradeModal() {
     try {
       window.api && window.api.bulkUpgradeStart && window.api.bulkUpgradeStart(toRun);
     } catch (err) {
-      console.error('bulkUpgradeStart failed:', err);
+      log.error("bulkUpgradeStart failed:", err);
     }
   }
 
@@ -120,7 +123,7 @@ export function BulkUpgradeModal() {
     try {
       window.api && window.api.bulkUpgradeStart && window.api.bulkUpgradeStart([item]);
     } catch (err) {
-      console.error('bulkUpgradeStart retry failed:', err);
+      log.error("bulkUpgradeStart retry failed:", err);
     }
   }
 
@@ -133,7 +136,7 @@ export function BulkUpgradeModal() {
     try {
       window.api && window.api.bulkUpgradeStart && window.api.bulkUpgradeStart(failed);
     } catch (err) {
-      console.error('retry all failed:', err);
+      log.error("retry all failed:", err);
     }
   }
 

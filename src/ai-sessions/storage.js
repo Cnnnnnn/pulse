@@ -23,6 +23,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { SILENT_LOG } = require('./session-log');
 
 /**
  * Lazy require electron.避免 main process启动时强制加载.
@@ -96,19 +97,17 @@ function _keyPath(providerId) {
  * @param {string} apiKey
  * @returns {boolean}            success
  */
-function saveApiKey(providerId, apiKey) {
+function saveApiKey(providerId, apiKey, log = SILENT_LOG) {
   if (typeof apiKey !== 'string' || apiKey.length === 0) {
     throw new TypeError('saveApiKey: apiKey must be non-empty string');
   }
   const ss = _tryGetSafeStorage();
   if (!ss) {
-    // eslint-disable-next-line no-console
-    console.warn('[ai-sessions] safeStorage unavailable (not in Electron), cannot save API key');
+    log.warn('safeStorage unavailable (not in Electron), cannot save API key');
     return false;
   }
   if (typeof ss.isEncryptionAvailable === 'function' && !ss.isEncryptionAvailable()) {
-    // eslint-disable-next-line no-console
-    console.warn(`[ai-sessions] safeStorage encryption unavailable on this platform, refusing to save plain-text key (providerId=${providerId}). Use env var instead.`);
+    log.warn(`safeStorage encryption unavailable on this platform, refusing to save plain-text key (providerId=${providerId}). Use env var instead.`);
     return false;
   }
   const file = _keyPath(providerId);
@@ -124,7 +123,7 @@ function saveApiKey(providerId, apiKey) {
  * @param {string} providerId
  * @returns {string|null} 解密后 key,不可用 / 不存在 /损坏 → null
  */
-function loadApiKey(providerId) {
+function loadApiKey(providerId, log = SILENT_LOG) {
  const ss = _tryGetSafeStorage();
  if (!ss) return null;
  if (typeof ss.isEncryptionAvailable === 'function' && !ss.isEncryptionAvailable()) return null;
@@ -136,8 +135,7 @@ function loadApiKey(providerId) {
  if (typeof plain !== 'string') return null;
  return plain;
  } catch (err) {
- // eslint-disable-next-line no-console
- console.warn(`[ai-sessions] loadApiKey failed for ${providerId}: ${err.message}`);
+ log.warn(`loadApiKey failed for ${providerId}: ${err.message}`);
  return null;
  }
 }
@@ -149,15 +147,14 @@ function loadApiKey(providerId) {
  * @param {string} providerId
  * @returns {boolean}
  */
-function clearApiKey(providerId) {
+function clearApiKey(providerId, log = SILENT_LOG) {
   const file = _keyPath(providerId);
   try {
     fs.unlinkSync(file);
     return true;
   } catch (err) {
     if (err && err.code === 'ENOENT') return false;
-    // eslint-disable-next-line no-console
-    console.warn(`[ai-sessions] clearApiKey failed for ${providerId}: ${err.message}`);
+    log.warn(`clearApiKey failed for ${providerId}: ${err.message}`);
     return false;
   }
 }

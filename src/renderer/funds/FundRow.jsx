@@ -9,6 +9,9 @@
 import { useState } from 'preact/hooks';
 import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund } from './fundStore.js';
 import { api } from '../api.js';
+import { taggedLog } from '../log.js';
+
+const log = taggedLog("[funds]");
 
 const CATEGORY_LABEL = {
   stock: { icon: '📈', label: '股票' },
@@ -60,8 +63,7 @@ export function FundRow({ row }) {
   async function handleRemove() {
     const r = await removeFund(api, holding.id);
     if (!r.ok) {
-      // eslint-disable-next-line no-console
-      console.warn('[funds] remove failed:', r);
+      log.warn('remove failed:', r);
     }
     setConfirmRemove(false);
   }
