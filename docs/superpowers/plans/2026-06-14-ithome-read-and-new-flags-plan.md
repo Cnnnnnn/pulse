@@ -484,15 +484,20 @@ describe("ithome store read/new flags", () => {
     expect(ithomeNewIds.value.y).toBe(1);
   });
 
-  it("loadIthomeNews diff → newIds gets new ids only", async () => {
+  it("loadIthomeNews diff → newIds gets ids seen for the first time this session", async () => {
+    // 第一次 load: prevIds={} → 全部 a, b 标 NEW
     setLoadNewsPayload({ ok: true, articles: ARTICLES_BEFORE, dayStats: {}, summaries: {}, favorites: {} });
-    setLoadNewsPayload({ ok: true, articles: ARTICLES_AFTER, dayStats: {}, summaries: {}, favorites: {} });
     await loadIthomeNews();
+    expect(ithomeNewIds.value.a).toBe(1);
+    expect(ithomeNewIds.value.b).toBe(1);
+    // 第二次 load: prevIds={a,b} → c, d 是新出现的
+    setLoadNewsPayload({ ok: true, articles: ARTICLES_AFTER, dayStats: {}, summaries: {}, favorites: {} });
     await loadIthomeNews();
     expect(ithomeNewIds.value.c).toBe(1);
     expect(ithomeNewIds.value.d).toBe(1);
-    expect(ithomeNewIds.value.a).toBeUndefined();
-    expect(ithomeNewIds.value.b).toBeUndefined();
+    // 旧的 a, b 仍然在 newIds (没被清, 等用户点/切 tab 才清)
+    expect(ithomeNewIds.value.a).toBe(1);
+    expect(ithomeNewIds.value.b).toBe(1);
   });
 
   it("setIthomeViewMode clears newIds", () => {
@@ -548,12 +553,13 @@ function _applyPayload(data) {
     if (a && a.id && a.readAt) readIds[a.id] = a.readAt;
   }
   ithomeReadIds.value = readIds;
-  // diff 找出新文章
+  // diff 找出新文章 — 仅追踪本 session 内首次出现的 id
+  // (信号生命周期 = app 一次运行; 启动时 prevIds === {} 所以这次 load 不会
+  // 把所有现存文章都标 NEW, 这符合 spec 4.2 "app 重启后 NEW 全部清空" 的语义)
   const prevIds = new Set(Object.keys(ithomeNewIds.value));
-  const nextIds = new Set(Object.keys(ithomeArticles.value));
   const newMap = { ...ithomeNewIds.value };
   let mutated = false;
-  for (const id of nextIds) {
+  for (const id of Object.keys(ithomeArticles.value)) {
     if (!prevIds.has(id) && !readIds[id]) {
       newMap[id] = 1;
       mutated = true;
