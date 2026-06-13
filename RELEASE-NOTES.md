@@ -2,6 +2,29 @@
 
 ---
 
+## v2.11.4 (IT 新闻 · 已读 / 新文章 标记) — 2026-06-14
+
+### 新增
+- **已读标记**: 点标题 / 阅读原文后, 卡片 meta 行显示 `已读` tag, 标题变灰 (opacity 0.45, weight 400). 状态持久化到 `state.json.ithome_news.articles[id].readAt` (并同步到 favorites 同名 article)
+- **新文章标记**: 每次 refresh 期间, session 内首次出现 (非已读) 的 id 显示 `新` tag + 左侧 3px 紫色 (#af52de) 边杠. 切 tab / 切日期 / 切收藏日期 → 自动清空
+- **侧边日期 badge**: 默认 `20` (数字); 有已读时显示 `20 (已读 5)`, `已读 N` 部分用更暗颜色 (opacity 0.45)
+
+### 边界
+- 重复点已读文章 → `readAt` 幂等, 不更新时间戳
+- 收藏里的文章点过 → `favorites[id].article.readAt` 也会写入, 走收藏视图时仍正确
+- 刷新拉新 (RSS / list page) 时, `_mergeArticles` 和 refresh inline merge 都会保留旧 `readAt`, 已读状态不丢
+- app 重启 → 已读持久化保留, 新文章标记全清 (session-scoped 信号)
+- 收藏 / 摘要 / 抓取正文等行为完全不变
+
+### 工程
+- 主进程: `news-store.markArticleRead(id)` (幂等, 写 `articles` + `favorites`), IPC `ithome:mark-read` (`register-ithome.js`), preload 暴露 `ithomeMarkRead`
+- 渲染端: `ithomeReadIds` / `ithomeNewIds` signals (派生 from articles + diff), `markIthomeRead(id)` (乐观更新 + fire-and-forget IPC), `setIthomeViewMode` / `setIthomeSelectedDate` / `setIthomeFavoriteSelectedDate` 清空 newIds
+- UI: `NewsSidebar.dayCountTuple → { total, read }`; `NewsArticleRow` 派生 `isRead` / `isNew` 加 class + tag
+- 新增 utils: `readCountForDate(articles, readIds, dateKey)`
+- 整体测试: **1382 passed / 0 failed** (基线 1364 + 18 新增: 4 news-store + 4 news-utils + 7 store + 3 row)
+
+---
+
 ## v2.11.3 (IT 新闻 AI 总结 — 按需拉详情页正文) — 2026-06-14
 
 ### 问题
