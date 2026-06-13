@@ -67,6 +67,37 @@ function registerIpcHandlers(deps) {
     }
   }
 
+  /** 默认 IPC 异常响应 — 多数 handler catch 块都长这样 */
+  function threwResponse(err, extra = {}) {
+    return { ok: false, reason: "threw", error: err && err.message, ...extra };
+  }
+
+  /**
+   * ipcMain.handle + 统一 try/catch. 默认 threwResponse.
+   * @param {string} channel
+   * @param {(...args: unknown[]) => unknown} fn
+   * @param {{ onError?: (err: Error, ...args: unknown[]) => unknown, logMeta?: object | ((...args: unknown[]) => object), log?: boolean }} [opts]
+   */
+  function safeHandle(channel, fn, opts = {}) {
+    const { onError, logMeta, log = true, logIf } = opts;
+    ipcMain.handle(channel, async (...args) => {
+      try {
+        return await fn(...args);
+      } catch (err) {
+        if (log && (!logIf || logIf(err))) {
+          const meta =
+            typeof logMeta === "function" ? logMeta(...args) : logMeta || {};
+          mainLog.warn(`[ipc] ${channel} threw`, {
+            ...meta,
+            msg: err && err.message,
+          });
+        }
+        if (onError) return onError(err, ...args);
+        return threwResponse(err);
+      }
+    });
+  }
+
   // ── renderer → main ─────────────────────────────────────────
 
   ipcMain.handle("get-config", () => {
@@ -297,51 +328,55 @@ function registerIpcHandlers(deps) {
    * @param {string} name        app name
    * @param {number} durationSec 静音时长 (秒). 0 = 永远.
    */
-  ipcMain.handle("set-mute", (_event, name, durationSec) => {
-    if (!name || typeof name !== "string") {
-      return {
-        ok: false,
-        reason: "invalid_name",
-        mutes: stateStore.getMutes(),
-      };
-    }
-    if (
-      typeof durationSec !== "number" ||
-      !Number.isFinite(durationSec) ||
-      durationSec < 0
-    ) {
-      return {
-        ok: false,
-        reason: "invalid_duration",
-        mutes: stateStore.getMutes(),
-      };
-    }
-    try {
+  safeHandle(
+    "set-mute",
+    (_event, name, durationSec) => {
+      if (!name || typeof name !== "string") {
+        return {
+          ok: false,
+          reason: "invalid_name",
+          mutes: stateStore.getMutes(),
+        };
+      }
+      if (
+        typeof durationSec !== "number" ||
+        !Number.isFinite(durationSec) ||
+        durationSec < 0
+      ) {
+        return {
+          ok: false,
+          reason: "invalid_duration",
+          mutes: stateStore.getMutes(),
+        };
+      }
       const untilMs = durationSec === 0 ? 0 : Date.now() + durationSec * 1000;
       const next = stateStore.setMute(name, untilMs, "manual");
       return { ok: true, mutes: next.mutes };
-    } catch (err) {
-      mainLog.warn("[ipc] set-mute threw", { name, msg: err && err.message });
-      return { ok: false, reason: "threw", mutes: stateStore.getMutes() };
-    }
-  });
+    },
+    {
+      logMeta: (_evt, name) => ({ name }),
+      onError: () => ({ ok: false, reason: "threw", mutes: stateStore.getMutes() }),
+    },
+  );
 
-  ipcMain.handle("clear-mute", (_event, name) => {
-    if (!name || typeof name !== "string") {
-      return {
-        ok: false,
-        reason: "invalid_name",
-        mutes: stateStore.getMutes(),
-      };
-    }
-    try {
+  safeHandle(
+    "clear-mute",
+    (_event, name) => {
+      if (!name || typeof name !== "string") {
+        return {
+          ok: false,
+          reason: "invalid_name",
+          mutes: stateStore.getMutes(),
+        };
+      }
       const next = stateStore.clearMute(name);
       return { ok: true, mutes: next.mutes };
-    } catch (err) {
-      mainLog.warn("[ipc] clear-mute threw", { name, msg: err && err.message });
-      return { ok: false, reason: "threw", mutes: stateStore.getMutes() };
-    }
-  });
+    },
+    {
+      logMeta: (_evt, name) => ({ name }),
+      onError: () => ({ ok: false, reason: "threw", mutes: stateStore.getMutes() }),
+    },
+  );
 
   // ── Phase 29: Last-opened (per-app 最近打开时间) ────────────
   // 渲染进程 bootstrap 拉一次, 用于 AppInfo 显示"上次打开 N 天前".
@@ -418,29 +453,28 @@ function registerIpcHandlers(deps) {
     }
   });
 
-  ipcMain.handle("save-active-category", (_event, id) => {
-    if (typeof id !== "string" || id.length === 0) {
-      return {
-        ok: false,
-        reason: "invalid_id",
-        activeCategory: stateStore.loadActiveCategory(),
-      };
-    }
-    try {
+  safeHandle(
+    "save-active-category",
+    (_event, id) => {
+      if (typeof id !== "string" || id.length === 0) {
+        return {
+          ok: false,
+          reason: "invalid_id",
+          activeCategory: stateStore.loadActiveCategory(),
+        };
+      }
       const next = stateStore.saveActiveCategory(id);
       return { ok: true, activeCategory: next.active_category };
-    } catch (err) {
-      mainLog.warn("[ipc] save-active-category threw", {
-        id,
-        msg: err && err.message,
-      });
-      return {
+    },
+    {
+      logMeta: (_evt, id) => ({ id }),
+      onError: () => ({
         ok: false,
         reason: "threw",
         activeCategory: stateStore.loadActiveCategory(),
-      };
-    }
-  });
+      }),
+    },
+  );
 
   // ── AI 任务总结 (重做版): 按需扫描 + 按需生成 ─────
   // 没有 bootstrap / backfill / cron. 用户打开抽屉 → ai-tasks:list 扫盘 (不调 LLM),
@@ -460,43 +494,41 @@ function registerIpcHandlers(deps) {
   }
 
   // 扫描某天的任务列表 (不调 LLM). opts: { dateKey?: 'YYYY-MM-DD' }, 默认今天.
-  ipcMain.handle("ai-tasks:list", async (_event, opts) => {
-    const wiring = _getAiTasksWiring();
-    if (!wiring) return { ok: false, reason: "not_initialized" };
-    const dateKey =
-      opts &&
-      typeof opts.dateKey === "string" &&
-      /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
-        ? opts.dateKey
-        : _localDateKey(0);
-    try {
+  safeHandle(
+    "ai-tasks:list",
+    async (_event, opts) => {
+      const wiring = _getAiTasksWiring();
+      if (!wiring) return { ok: false, reason: "not_initialized" };
+      const dateKey =
+        opts &&
+        typeof opts.dateKey === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
+          ? opts.dateKey
+          : _localDateKey(0);
       const r = await wiring.engine.listTasks(dateKey, { now: Date.now() });
       return { ok: true, ...r };
-    } catch (err) {
-      mainLog.warn("[ipc] ai-tasks:list failed", { dateKey, msg: err.message });
-      return { ok: false, reason: "threw", error: err.message };
-    }
-  });
+    },
+    { logMeta: (_evt, opts) => ({ dateKey: opts && opts.dateKey }) },
+  );
 
-  // 为选中任务生成总结. opts: { dateKey, taskKeys: string[] }.
-  // 每个任务完成/失败即推 ai-task-summary-updated 事件 (单任务粒度).
-  ipcMain.handle("ai-tasks:summarize", async (_event, opts) => {
-    const wiring = _getAiTasksWiring();
-    if (!wiring) return { ok: false, reason: "not_initialized" };
-    const dateKey =
-      opts &&
-      typeof opts.dateKey === "string" &&
-      /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
-        ? opts.dateKey
-        : _localDateKey(0);
-    const taskKeys =
-      opts && Array.isArray(opts.taskKeys)
-        ? opts.taskKeys.filter((k) => typeof k === "string" && k.length > 0)
-        : [];
-    if (taskKeys.length === 0) {
-      return { ok: false, reason: "no_tasks_selected" };
-    }
-    try {
+  safeHandle(
+    "ai-tasks:summarize",
+    async (_event, opts) => {
+      const wiring = _getAiTasksWiring();
+      if (!wiring) return { ok: false, reason: "not_initialized" };
+      const dateKey =
+        opts &&
+        typeof opts.dateKey === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(opts.dateKey)
+          ? opts.dateKey
+          : _localDateKey(0);
+      const taskKeys =
+        opts && Array.isArray(opts.taskKeys)
+          ? opts.taskKeys.filter((k) => typeof k === "string" && k.length > 0)
+          : [];
+      if (taskKeys.length === 0) {
+        return { ok: false, reason: "no_tasks_selected" };
+      }
       const r = await wiring.engine.summarizeTasks(taskKeys, {
         dateKey,
         now: Date.now(),
@@ -505,43 +537,32 @@ function registerIpcHandlers(deps) {
         },
       });
       return { ok: r.ok, dateKey, results: r.results, failures: r.failures };
-    } catch (err) {
-      mainLog.warn("[ipc] ai-tasks:summarize failed", {
-        dateKey,
-        msg: err.message,
-      });
-      return { ok: false, reason: "threw", error: err.message };
-    }
-  });
+    },
+    { logMeta: (_evt, opts) => ({ dateKey: opts && opts.dateKey }) },
+  );
 
   // 跳转原始 session (任务卡 "查看原始" 按钮触发).
   // target 形如 "cursor://file/...", "codex://...", "minimax://...", 或绝对文件路径.
   // URL scheme 走 shell.openExternal, 绝对路径走 shell.openPath (默认 app 打开).
-  ipcMain.handle("ai-sessions:open-session", async (_event, target) => {
-    if (typeof target !== "string" || target.length === 0) {
-      return { ok: false, reason: "invalid_target" };
-    }
-    try {
-      // URL scheme (cursor://, codex://, minimax://, https://)
+  safeHandle(
+    "ai-sessions:open-session",
+    async (_event, target) => {
+      if (typeof target !== "string" || target.length === 0) {
+        return { ok: false, reason: "invalid_target" };
+      }
       if (/^[a-z][a-z0-9+.-]*:\/\//i.test(target)) {
         await shell.openExternal(target);
         return { ok: true, mode: "external" };
       }
-      // 绝对文件路径
       if (target.startsWith("/") || /^[a-zA-Z]:[\\/]/.test(target)) {
         const err = await shell.openPath(target);
         if (err) return { ok: false, reason: "openPath_failed", error: err };
         return { ok: true, mode: "openPath" };
       }
       return { ok: false, reason: "unrecognized_target" };
-    } catch (err) {
-      mainLog.warn("[ipc] ai-sessions:open-session failed", {
-        target,
-        msg: err.message,
-      });
-      return { ok: false, reason: "threw", error: err.message };
-    }
-  });
+    },
+    { logMeta: (_evt, target) => ({ target }) },
+  );
 
   // ── Phase B6c: AI Sessions Settings (云端API key + config) ─────
   //6 个新通道:
@@ -552,44 +573,36 @@ function registerIpcHandlers(deps) {
   // - ai-sessions:get-config —读 state.json ai_sessions_config
   // - ai-sessions:save-config —写 state.json ai_sessions_config +推事件
 
-  ipcMain.handle("ai-sessions:set-key", async (_event, providerId, apiKey) => {
-    if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
-      return { ok: false, reason: "invalid_providerId" };
-    }
-    if (typeof apiKey !== "string" || apiKey.length === 0) {
-      return { ok: false, reason: "invalid_apiKey" };
-    }
-    try {
+  safeHandle(
+    "ai-sessions:set-key",
+    async (_event, providerId, apiKey) => {
+      if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
+        return { ok: false, reason: "invalid_providerId" };
+      }
+      if (typeof apiKey !== "string" || apiKey.length === 0) {
+        return { ok: false, reason: "invalid_apiKey" };
+      }
       const r = aiStorage.saveApiKey(providerId, apiKey);
       if (!r) {
         return { ok: false, reason: "safeStorage_unavailable" };
       }
       mainLog.info(`[ipc] ai-sessions:set-key ok provider=${providerId}`);
       return { ok: true };
-    } catch (err) {
-      mainLog.warn("[ipc] ai-sessions:set-key threw", {
-        providerId,
-        msg: err.message,
-      });
-      return { ok: false, reason: "threw", error: err.message };
-    }
-  });
+    },
+    { logMeta: (_evt, providerId) => ({ providerId }) },
+  );
 
-  ipcMain.handle("ai-sessions:clear-key", async (_event, providerId) => {
-    if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
-      return { ok: false, reason: "invalid_providerId" };
-    }
-    try {
+  safeHandle(
+    "ai-sessions:clear-key",
+    async (_event, providerId) => {
+      if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
+        return { ok: false, reason: "invalid_providerId" };
+      }
       const r = aiStorage.clearApiKey(providerId);
       return { ok: true, cleared: r };
-    } catch (err) {
-      mainLog.warn("[ipc] ai-sessions:clear-key threw", {
-        providerId,
-        msg: err.message,
-      });
-      return { ok: false, reason: "threw", error: err.message };
-    }
-  });
+    },
+    { logMeta: (_evt, providerId) => ({ providerId }) },
+  );
 
   ipcMain.handle("ai-sessions:has-key", async (_event, providerId) => {
     if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
@@ -669,21 +682,17 @@ function registerIpcHandlers(deps) {
     }
   });
 
-  ipcMain.handle("ai-sessions:get-config", async () => {
-    try {
-      const cfg = stateStore.loadAISessionsConfig();
-      return { ok: true, config: cfg };
-    } catch (err) {
-      mainLog.warn("[ipc] ai-sessions:get-config threw", { msg: err.message });
-      return { ok: false, reason: "threw", error: err.message };
-    }
+  safeHandle("ai-sessions:get-config", async () => {
+    const cfg = stateStore.loadAISessionsConfig();
+    return { ok: true, config: cfg };
   });
 
-  ipcMain.handle("ai-sessions:save-config", async (_event, cfg) => {
-    if (cfg != null && typeof cfg !== "object") {
-      return { ok: false, reason: "invalid_config" };
-    }
-    try {
+  safeHandle(
+    "ai-sessions:save-config",
+    async (_event, cfg) => {
+      if (cfg != null && typeof cfg !== "object") {
+        return { ok: false, reason: "invalid_config" };
+      }
       const next = stateStore.saveAISessionsConfig(cfg);
       sendToRenderer("ai-sessions-config-updated", {
         config: next.ai_sessions_config || null,
@@ -692,7 +701,6 @@ function registerIpcHandlers(deps) {
         `[ipc] ai-sessions:save-config ok enabled=${cfg && cfg.enabled} provider=${cfg && cfg.provider}`,
       );
 
-      // 重建 wiring，让后续生成使用最新的 provider/model/key
       try {
         const baseCfg = global.__pulse_aiSessionsBaseCfg || {
           enabled: false,
@@ -717,85 +725,56 @@ function registerIpcHandlers(deps) {
       }
 
       return { ok: true, config: next.ai_sessions_config || null };
-    } catch (err) {
-      mainLog.warn("[ipc] ai-sessions:save-config threw", { msg: err.message });
-      return { ok: false, reason: "threw", error: err.message };
-    }
-  });
+    },
+  );
 
   // ─── v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT ─────────────────
   // 1 通道, server-side fetch (0 CORS), 24h 缓存 (state.json worldcup_txt)
   const { fetchWorldcupFixtures } = require("./worldcup/fetcher");
   const { refreshWorldcupScores } = require("./worldcup/scores-fetcher");
-  ipcMain.handle("worldcup:fetch-fixtures", async (_evt, payload) => {
-    try {
-      return await fetchWorldcupFixtures(payload || {});
-    } catch (err) {
-      mainLog.warn("[ipc] worldcup:fetch-fixtures threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+  safeHandle("worldcup:fetch-fixtures", async (_evt, payload) => {
+    return fetchWorldcupFixtures(payload || {});
   });
-  ipcMain.handle("worldcup:load-scores", async () => {
-    try {
-      const cache = stateStore.loadWorldcupScores();
-      return {
-        ok: true,
-        scores: cache ? cache.entries : {},
-        ts: cache ? cache.ts : 0,
-      };
-    } catch (err) {
-      mainLog.warn("[ipc] worldcup:load-scores threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+
+  safeHandle("worldcup:load-scores", async () => {
+    const cache = stateStore.loadWorldcupScores();
+    return {
+      ok: true,
+      scores: cache ? cache.entries : {},
+      ts: cache ? cache.ts : 0,
+    };
   });
-  ipcMain.handle("worldcup:refresh-scores", async (_evt, payload) => {
-    try {
-      const eligibleKeys =
-        payload && Array.isArray(payload.eligibleKeys)
-          ? payload.eligibleKeys
-          : [];
-      return await refreshWorldcupScores(eligibleKeys);
-    } catch (err) {
-      mainLog.warn("[ipc] worldcup:refresh-scores threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+
+  safeHandle("worldcup:refresh-scores", async (_evt, payload) => {
+    const eligibleKeys =
+      payload && Array.isArray(payload.eligibleKeys)
+        ? payload.eligibleKeys
+        : [];
+    return refreshWorldcupScores(eligibleKeys);
   });
 
   const { generateMatchInsight } = require("./worldcup/match-ai");
   const { resolveSharedAiConfig } = require("../ai/shared-llm");
 
-  ipcMain.handle("worldcup:load-insights", async () => {
-    try {
+  safeHandle(
+    "worldcup:load-insights",
+    async () => {
       const cache = stateStore.loadWorldcupMatchInsights();
       return {
         ok: true,
         insights: cache ? cache.entries : {},
         ts: cache ? cache.ts : 0,
       };
-    } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
+    },
+    { log: false },
+  );
 
-  ipcMain.handle("worldcup:generate-insight", async (_evt, payload) => {
-    try {
-      const match = payload && payload.match;
-      const type = payload && payload.type;
-      const force = !!(payload && payload.force);
-      const scoreEntry = payload && payload.scoreEntry;
-      return await generateMatchInsight({ match, type, force, scoreEntry });
-    } catch (err) {
-      mainLog.warn("[ipc] worldcup:generate-insight threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+  safeHandle("worldcup:generate-insight", async (_evt, payload) => {
+    const match = payload && payload.match;
+    const type = payload && payload.type;
+    const force = !!(payload && payload.force);
+    const scoreEntry = payload && payload.scoreEntry;
+    return generateMatchInsight({ match, type, force, scoreEntry });
   });
 
   // ─── v2.10.0 世界杯体彩记账 (stake + pnl per matchday) ───────────
@@ -805,104 +784,49 @@ function registerIpcHandlers(deps) {
     remove: betsRemove,
   } = require("./worldcup/bets-store");
 
-  ipcMain.handle("worldcup:load-bets", async () => {
-    try {
-      return { ok: true, ...betsLoadAll() };
-    } catch (err) {
-      mainLog.warn("[ipc] worldcup:load-bets threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+  safeHandle("worldcup:load-bets", async () => {
+    return { ok: true, ...betsLoadAll() };
   });
 
-  ipcMain.handle("worldcup:upsert-bet", async (_evt, payload) => {
-    try {
-      return betsUpsert(payload || {});
-    } catch (err) {
-      mainLog.warn("[ipc] worldcup:upsert-bet threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: err && err.message };
-    }
-  });
+  safeHandle(
+    "worldcup:upsert-bet",
+    async (_evt, payload) => betsUpsert(payload || {}),
+    { onError: (err) => ({ ok: false, reason: err && err.message }) },
+  );
 
-  ipcMain.handle("worldcup:remove-bet", async (_evt, date) => {
-    try {
-      return betsRemove(date);
-    } catch (err) {
-      mainLog.warn("[ipc] worldcup:remove-bet threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
+  safeHandle("worldcup:remove-bet", async (_evt, date) => betsRemove(date));
 
   // ─── IT之家新闻 ─────────────────────────────────────────────
   const ithomeNewsStore = require("./ithome/news-store");
   const { summarizeArticle } = require("./ithome/article-ai");
 
-  ipcMain.handle("ithome:load-news", async () => {
-    try {
-      return ithomeNewsStore.loadAll();
-    } catch (err) {
-      mainLog.warn("[ipc] ithome:load-news threw", { msg: err && err.message });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+  safeHandle("ithome:load-news", async () => ithomeNewsStore.loadAll());
+
+  safeHandle("ithome:refresh-news", async (_evt, dateKey) => {
+    if (dateKey) return ithomeNewsStore.fetchDay(dateKey);
+    return ithomeNewsStore.refresh();
   });
 
-  ipcMain.handle("ithome:refresh-news", async (_evt, dateKey) => {
-    try {
-      if (dateKey) return await ithomeNewsStore.fetchDay(dateKey);
-      return await ithomeNewsStore.refresh();
-    } catch (err) {
-      mainLog.warn("[ipc] ithome:refresh-news threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
+  safeHandle("ithome:fetch-day", async (_evt, dateKey) =>
+    ithomeNewsStore.fetchDay(dateKey),
+  );
 
-  ipcMain.handle("ithome:fetch-day", async (_evt, dateKey) => {
-    try {
-      return await ithomeNewsStore.fetchDay(dateKey);
-    } catch (err) {
-      mainLog.warn("[ipc] ithome:fetch-day threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
+  safeHandle("ithome:summarize-article", async (_evt, payload) =>
+    summarizeArticle(payload || {}),
+  );
 
-  ipcMain.handle("ithome:summarize-article", async (_evt, payload) => {
-    try {
-      return await summarizeArticle(payload || {});
-    } catch (err) {
-      mainLog.warn("[ipc] ithome:summarize-article threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
+  safeHandle("ithome:toggle-favorite", async (_evt, payload) => {
+    const id = payload && payload.id;
+    if (!id || typeof id !== "string") {
+      return { ok: false, reason: "invalid_args" };
     }
-  });
-
-  ipcMain.handle("ithome:toggle-favorite", async (_evt, payload) => {
-    try {
-      const id = payload && payload.id;
-      if (!id || typeof id !== "string") {
-        return { ok: false, reason: "invalid_args" };
-      }
-      return ithomeNewsStore.toggleFavorite(id);
-    } catch (err) {
-      mainLog.warn("[ipc] ithome:toggle-favorite threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+    return ithomeNewsStore.toggleFavorite(id);
   });
 
   // 共享 AI 配置探测 (与 ai-sessions 同一套 state)
-  ipcMain.handle("ai:get-shared-config", async () => {
-    try {
+  safeHandle(
+    "ai:get-shared-config",
+    async () => {
       const cfg = stateStore.loadAISessionsConfig();
       const resolved = resolveSharedAiConfig();
       return {
@@ -913,85 +837,74 @@ function registerIpcHandlers(deps) {
         providerId: resolved.providerId || null,
         model: resolved.model || null,
       };
-    } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
+    },
+    { log: false },
+  );
 
   // ── 基金管理 (v2.10+) ─────────────────────────────────────────
 
   // funds:list → 启动时拉一次 (返回 holdings + deletedIds, deletedIds 给"回收站"用)
-  ipcMain.handle("funds:list", () => {
-    try {
-      return { ok: true, ...fundStore.loadAll() };
-    } catch (err) {
-      mainLog.warn("[ipc] funds:list threw", { msg: err && err.message });
-      return {
-        ok: false,
-        reason: "threw",
-        error: err && err.message,
-        holdings: [],
-        deletedIds: [],
-      };
-    }
-  });
+  safeHandle(
+    "funds:list",
+    () => ({ ok: true, ...fundStore.loadAll() }),
+    {
+      onError: (err) =>
+        threwResponse(err, { holdings: [], deletedIds: [] }),
+    },
+  );
 
-  ipcMain.handle("funds:add", (_event, input) => {
-    try {
+  safeHandle(
+    "funds:add",
+    (_event, input) => {
       const out = fundStore.add(input);
-      // 持仓变了 → 立即推一次净值 (UI 不用等下一个 tick)
       const sched = fundScheduler();
       if (sched && out.holding) {
         sched.fetchNow().catch(() => {});
       }
       return { ok: true, holding: out.holding, holdings: out.all.holdings };
-    } catch (err) {
-      if (err && err.name === "ValidationError") {
-        return { ok: false, reason: "validation", error: err.message };
-      }
-      mainLog.warn("[ipc] funds:add threw", { msg: err && err.message });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
+    },
+    {
+      logIf: (err) => !(err && err.name === "ValidationError"),
+      onError: (err) => {
+        if (err && err.name === "ValidationError") {
+          return { ok: false, reason: "validation", error: err.message };
+        }
+        return threwResponse(err);
+      },
+    },
+  );
 
-  ipcMain.handle("funds:update", (_event, id, patch) => {
-    try {
+  safeHandle(
+    "funds:update",
+    (_event, id, patch) => {
       const out = fundStore.update(id, patch);
       if (!out) return { ok: false, reason: "not_found" };
       return { ok: true, holding: out.holding, holdings: out.all.holdings };
-    } catch (err) {
-      if (err && err.name === "ValidationError") {
-        return { ok: false, reason: "validation", error: err.message };
-      }
-      mainLog.warn("[ipc] funds:update threw", { msg: err && err.message });
-      return { ok: false, reason: "threw", error: err && err.message };
+    },
+    {
+      logIf: (err) => !(err && err.name === "ValidationError"),
+      onError: (err) => {
+        if (err && err.name === "ValidationError") {
+          return { ok: false, reason: "validation", error: err.message };
+        }
+        return threwResponse(err);
+      },
+    },
+  );
+
+  safeHandle("funds:remove", (_event, id) => {
+    const out = fundStore.remove(id);
+    if (!out.ok) return out;
+    const sched = fundScheduler();
+    if (sched) {
+      sched.fetchNow().catch(() => {});
     }
+    return out;
   });
 
-  ipcMain.handle("funds:remove", (_event, id) => {
-    try {
-      const out = fundStore.remove(id);
-      if (!out.ok) return out;
-      // 删除触发 scheduler 推一次 (让 UI 知道这只不再有数据)
-      const sched = fundScheduler();
-      if (sched) {
-        sched.fetchNow().catch(() => {});
-      }
-      return out;
-    } catch (err) {
-      mainLog.warn("[ipc] funds:remove threw", { msg: err && err.message });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
-
-  ipcMain.handle("funds:restore", (_event, id) => {
-    try {
-      const out = fundStore.restore(id);
-      return out.ok ? { ok: true, holding: out.holding } : out;
-    } catch (err) {
-      mainLog.warn("[ipc] funds:restore threw", { msg: err && err.message });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+  safeHandle("funds:restore", (_event, id) => {
+    const out = fundStore.restore(id);
+    return out.ok ? { ok: true, holding: out.holding } : out;
   });
 
   ipcMain.handle("funds:nav:fetch", async () => {
@@ -1014,7 +927,7 @@ function registerIpcHandlers(deps) {
   });
 
   // funds:nav:fetch-codes → 只拉指定代码 (弹窗填码时用, 比全量 refresh 快)
-  ipcMain.handle("funds:nav:fetch-codes", async (_event, codes) => {
+  safeHandle("funds:nav:fetch-codes", async (_event, codes) => {
     const list = [
       ...new Set(
         (Array.isArray(codes) ? codes : [])
@@ -1023,85 +936,50 @@ function registerIpcHandlers(deps) {
       ),
     ];
     if (list.length === 0) return { ok: false, reason: "invalid_codes" };
-    try {
-      const httpClient = new HttpClient({ timeout: 5000, maxRetries: 0 });
-      const out = await fetchFundNavBatch(list, httpClient, {
-        concurrency: 4,
-        timeoutMs: 5000,
-      });
-      const sched = fundScheduler();
-      if (sched && sched.cacheNavResults) sched.cacheNavResults(out.results);
-      return { ok: true, ...out };
-    } catch (err) {
-      mainLog.warn("[ipc] funds:nav:fetch-codes threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+    const httpClient = new HttpClient({ timeout: 5000, maxRetries: 0 });
+    const out = await fetchFundNavBatch(list, httpClient, {
+      concurrency: 4,
+      timeoutMs: 5000,
+    });
+    const sched = fundScheduler();
+    if (sched && sched.cacheNavResults) sched.cacheNavResults(out.results);
+    return { ok: true, ...out };
   });
 
-  // funds:search → 关键字搜索基金 (天天基金搜索接口)
-  ipcMain.handle("funds:search", async (_event, query) => {
-    try {
+  safeHandle(
+    "funds:search",
+    async (_event, query) => {
       const httpClient = new HttpClient({ timeout: 6000, maxRetries: 0 });
       const results = await searchFunds(query, httpClient);
       return { ok: true, results };
-    } catch (err) {
-      mainLog.warn("[ipc] funds:search threw", { msg: err && err.message });
-      return {
-        ok: false,
-        reason: "threw",
-        error: err && err.message,
-        results: [],
-      };
-    }
-  });
+    },
+    { onError: (err) => threwResponse(err, { results: [] }) },
+  );
 
-  ipcMain.handle("funds:history:list", () => {
-    try {
+  safeHandle(
+    "funds:history:list",
+    () => {
       const dailySnapshots = fundHistoryStore.loadSnapshots();
       return { ok: true, dailySnapshots };
-    } catch (err) {
-      mainLog.warn("[ipc] funds:history:list threw", {
-        msg: err && err.message,
-      });
-      return {
-        ok: false,
-        reason: "threw",
-        error: err && err.message,
-        dailySnapshots: [],
-      };
-    }
+    },
+    { onError: (err) => threwResponse(err, { dailySnapshots: [] }) },
+  );
+
+  safeHandle("funds:set-nav-source", (_event, source) => {
+    const all = fundStore.setNavSource(source);
+    return { ok: true, navSource: all.navSource };
   });
 
-  ipcMain.handle("funds:set-nav-source", (_event, source) => {
-    try {
-      const all = fundStore.setNavSource(source);
-      return { ok: true, navSource: all.navSource };
-    } catch (err) {
-      mainLog.warn("[ipc] funds:set-nav-source threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", error: err && err.message };
+  safeHandle("funds:backfill", (_event, code) => {
+    const sched = fundScheduler();
+    const cache =
+      sched && sched.getLastNavForCode ? sched.getLastNavForCode(code) : null;
+    const { navSource } = fundStore.loadAll();
+    const nav = pickEffectiveNavNumber(cache, navSource);
+    if (!nav) {
+      return { ok: false, reason: "no_nav_cached" };
     }
-  });
-
-  // funds:backfill → 用最新净值反填占位 holding (UI 主动触发, scheduler 也会自动调)
-  ipcMain.handle("funds:backfill", (_event, code) => {
-    try {
-      const sched = fundScheduler();
-      const cache =
-        sched && sched.getLastNavForCode ? sched.getLastNavForCode(code) : null;
-      const { navSource } = fundStore.loadAll();
-      const nav = pickEffectiveNavNumber(cache, navSource);
-      if (!nav) {
-        return { ok: false, reason: "no_nav_cached" };
-      }
-      return fundStore.backfillFromNav(code, nav);
-    } catch (err) {
-      mainLog.warn("[ipc] funds:backfill threw", { msg: err && err.message });
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
+    return fundStore.backfillFromNav(code, nav);
   });
 }
 
