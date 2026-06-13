@@ -8,42 +8,34 @@
  */
 
 import { signal, computed } from "@preact/signals";
+import { requireApiMethod, wrapIpc } from "../store-utils.js";
 
 export const reminders = signal([]); // Reminder[]
 export const remindersLoaded = signal(false);
 export const remindersOpen = signal(false);
 
-function _api() {
-  if (typeof window === "undefined" || !window.api) return null;
-  return window.api;
-}
-
 export async function loadReminders() {
-  const a = _api();
-  if (!a || typeof a.remindersList !== "function") return false;
-  try {
-    const r = await a.remindersList();
-    if (r && r.ok) {
-      reminders.value = r.reminders || [];
-      remindersLoaded.value = true;
-      return true;
-    }
-    return false;
-  } catch (err) {
-    if (typeof console !== "undefined") {
-      console.warn("[remindersStore] loadReminders failed", err);
-    }
-    return false;
-  }
+  const list = requireApiMethod("remindersList");
+  if (!list) return false;
+  return wrapIpc(
+    async () => {
+      const r = await list();
+      if (r && r.ok) {
+        reminders.value = r.reminders || [];
+        remindersLoaded.value = true;
+        return true;
+      }
+      return false;
+    },
+    { label: "[remindersStore] loadReminders failed", fallback: false },
+  );
 }
 
 export async function createReminder(input) {
-  const a = _api();
-  if (!a || typeof a.remindersCreate !== "function") {
-    return { ok: false, reason: "ipc_unavailable" };
-  }
+  const create = requireApiMethod("remindersCreate");
+  if (!create) return { ok: false, reason: "ipc_unavailable" };
   try {
-    const r = await a.remindersCreate(input);
+    const r = await create(input);
     if (r && r.ok) {
       reminders.value = [...reminders.value, r.reminder];
       return { ok: true, reminder: r.reminder };
@@ -55,12 +47,12 @@ export async function createReminder(input) {
 }
 
 export async function updateReminder(id, patch) {
-  const a = _api();
-  if (!a || typeof a.remindersUpdate !== "function") {
+  const update = requireApiMethod("remindersUpdate");
+  if (!update) {
     return { ok: false, reason: "ipc_unavailable" };
   }
   try {
-    const r = await a.remindersUpdate(id, patch);
+    const r = await update(id, patch);
     if (r && r.ok) {
       reminders.value = reminders.value.map((x) =>
         x.id === id ? r.reminder : x,
@@ -77,12 +69,12 @@ export async function updateReminder(id, patch) {
 }
 
 export async function removeReminder(id) {
-  const a = _api();
-  if (!a || typeof a.remindersRemove !== "function") {
+  const remove = requireApiMethod("remindersRemove");
+  if (!remove) {
     return { ok: false, reason: "ipc_unavailable" };
   }
   try {
-    const r = await a.remindersRemove(id);
+    const r = await remove(id);
     if (r && r.ok) {
       reminders.value = reminders.value.filter((x) => x.id !== id);
       return { ok: true };
@@ -94,12 +86,12 @@ export async function removeReminder(id) {
 }
 
 export async function markReminderDone(id) {
-  const a = _api();
-  if (!a || typeof a.remindersMarkDone !== "function") {
+  const markDone = requireApiMethod("remindersMarkDone");
+  if (!markDone) {
     return { ok: false, reason: "ipc_unavailable" };
   }
   try {
-    const r = await a.remindersMarkDone(id);
+    const r = await markDone(id);
     if (r && r.ok) {
       if (r.reminder === null) {
         // once → 删
@@ -118,12 +110,12 @@ export async function markReminderDone(id) {
 }
 
 export async function markReminderDismissed(id) {
-  const a = _api();
-  if (!a || typeof a.remindersMarkDismissed !== "function") {
+  const markDismissed = requireApiMethod("remindersMarkDismissed");
+  if (!markDismissed) {
     return { ok: false, reason: "ipc_unavailable" };
   }
   try {
-    const r = await a.remindersMarkDismissed(id);
+    const r = await markDismissed(id);
     if (r && r.ok) {
       reminders.value = reminders.value.map((x) =>
         x.id === id ? r.reminder : x,

@@ -8,42 +8,35 @@
  */
 
 import { signal } from "@preact/signals";
+import { getApi, requireApiMethod, wrapIpc } from "../store-utils.js";
 
 export const worldcupBets = signal({}); // { [date]: { date, stake, pnl, note, updatedAt } }
 export const betsLoaded = signal(false);
 
-function _api() {
-  if (typeof window === "undefined" || !window.api) return null;
-  return window.api;
-}
-
 export async function loadWorldcupBets() {
-  const a = _api();
-  if (!a || typeof a.worldcupLoadBets !== "function") return false;
-  try {
-    const r = await a.worldcupLoadBets();
-    if (r && r.ok) {
-      worldcupBets.value = r.worldcupBets || {};
-      betsLoaded.value = true;
-      return true;
-    }
-    return false;
-  } catch (err) {
-    // 静默, 不冲淡世界栏目
-    if (typeof console !== "undefined") {
-      console.warn("[betsStore] loadWorldcupBets failed", err);
-    }
-    return false;
-  }
+  const loadBets = requireApiMethod("worldcupLoadBets");
+  if (!loadBets) return false;
+  return wrapIpc(
+    async () => {
+      const r = await loadBets();
+      if (r && r.ok) {
+        worldcupBets.value = r.worldcupBets || {};
+        betsLoaded.value = true;
+        return true;
+      }
+      return false;
+    },
+    { label: "[betsStore] loadWorldcupBets failed", fallback: false },
+  );
 }
 
 export async function upsertWorldcupBet({ date, stake, pnl, note = "" }) {
-  const a = _api();
-  if (!a || typeof a.worldcupUpsertBet !== "function") {
+  const upsert = requireApiMethod("worldcupUpsertBet");
+  if (!upsert) {
     return { ok: false, reason: "ipc_unavailable" };
   }
   try {
-    const r = await a.worldcupUpsertBet({ date, stake, pnl, note });
+    const r = await upsert({ date, stake, pnl, note });
     if (r && r.ok) {
       worldcupBets.value = {
         ...worldcupBets.value,
@@ -58,12 +51,12 @@ export async function upsertWorldcupBet({ date, stake, pnl, note = "" }) {
 }
 
 export async function removeWorldcupBet(date) {
-  const a = _api();
-  if (!a || typeof a.worldcupRemoveBet !== "function") {
+  const remove = requireApiMethod("worldcupRemoveBet");
+  if (!remove) {
     return { ok: false, reason: "ipc_unavailable" };
   }
   try {
-    const r = await a.worldcupRemoveBet(date);
+    const r = await remove(date);
     if (r && r.ok) {
       const next = { ...worldcupBets.value };
       delete next[date];

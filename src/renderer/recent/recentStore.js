@@ -7,52 +7,40 @@
  */
 
 import { signal } from "@preact/signals";
+import { getApi, requireApiMethod, wrapIpc } from "../store-utils.js";
 
 export const recent = signal([]); // RecentActivityEntry[]
 export const recentLoaded = signal(false);
 export const recentOpen = signal(false);
 export const recentFilter = signal("all"); // 'all' | kind
 
-function _api() {
-  if (typeof window === "undefined" || !window.api) return null;
-  return window.api;
-}
-
 export async function loadRecent() {
-  const a = _api();
-  if (!a || typeof a.recentList !== "function") return false;
-  try {
-    const r = await a.recentList();
-    if (r && r.ok) {
-      recent.value = r.entries || [];
-      recentLoaded.value = true;
-      return true;
-    }
-    return false;
-  } catch (err) {
-    if (typeof console !== "undefined") {
-      console.warn("[recentStore] loadRecent failed", err);
-    }
-    return false;
-  }
+  const list = requireApiMethod("recentList");
+  if (!list) return false;
+  return wrapIpc(
+    async () => {
+      const r = await list();
+      if (r && r.ok) {
+        recent.value = r.entries || [];
+        recentLoaded.value = true;
+        return true;
+      }
+      return false;
+    },
+    { label: "[recentStore] loadRecent failed", fallback: false },
+  );
 }
 
-/**
- * 推一条 entry. 5min 内同 kind+ref 自动折叠 (主进程做).
- * 失败也不抛 — 时间线是辅助功能, 不冲淡主流程.
- */
 export async function pushRecent(entry) {
-  const a = _api();
-  if (!a || typeof a.recentPush !== "function") return false;
-  try {
-    const r = await a.recentPush(entry);
-    return !!(r && r.ok);
-  } catch (err) {
-    if (typeof console !== "undefined") {
-      console.warn("[recentStore] pushRecent failed", err);
-    }
-    return false;
-  }
+  const push = requireApiMethod("recentPush");
+  if (!push) return false;
+  return wrapIpc(
+    async () => {
+      const r = await push(entry);
+      return !!(r && r.ok);
+    },
+    { label: "[recentStore] pushRecent failed", fallback: false },
+  );
 }
 
 export function toggleRecentOpen() {
@@ -64,10 +52,9 @@ export function toggleRecentOpen() {
 
 /** 装好 IPC 监听: 收到 'recent:updated' 即时刷本地 signal */
 export function installRecentListener() {
-  if (typeof window === "undefined") return;
-  const a = window.api;
-  if (!a || typeof a.onRecentUpdated !== "function") return;
-  a.onRecentUpdated(({ entries }) => {
+  const api = getApi();
+  if (!api || typeof api.onRecentUpdated !== "function") return;
+  api.onRecentUpdated(({ entries }) => {
     if (Array.isArray(entries)) {
       recent.value = entries;
       recentLoaded.value = true;

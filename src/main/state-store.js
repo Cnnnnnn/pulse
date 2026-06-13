@@ -150,74 +150,36 @@ function migrateLegacyStateIfNeeded(targetPath) {
 //
 // 注: caller 不应该 mutate existing 直接, 应该从 load() 拿 immutable 副本.
 // 保留策略: 如果 next 里已经有这字段 (caller 显式设), 用 next 的; 否则从 existing 拿.
+const PRESERVE_FIELDS = [
+  { key: "classify_llm_cache", kind: "object" },
+  { key: "task_summaries", kind: "object", notArray: true },
+  { key: "worldcup_txt", kind: "object" },
+  { key: "worldcup_scores", kind: "object" },
+  { key: "worldcup_match_insights", kind: "object" },
+  { key: "funds", kind: "object", notArray: true },
+  { key: "worldcupBets", kind: "object", notArray: true },
+  { key: "ithome_news", kind: "object", notArray: true },
+  { key: "reminders", kind: "array" },
+  { key: "recentActivity", kind: "array" },
+];
+
+function shouldPreserveValue(val, spec) {
+  if (spec.kind === "array") return Array.isArray(val);
+  if (!val || typeof val !== "object") return false;
+  if (spec.notArray && Array.isArray(val)) return false;
+  return true;
+}
+
 function preserveExtraFields(existing, next) {
   if (!existing || typeof existing !== "object") return next;
   if (!next || typeof next !== "object") return next;
-  if (
-    !("classify_llm_cache" in next) &&
-    existing.classify_llm_cache &&
-    typeof existing.classify_llm_cache === "object"
-  ) {
-    next.classify_llm_cache = existing.classify_llm_cache;
-  }
-  if (
-    !("task_summaries" in next) &&
-    existing.task_summaries &&
-    typeof existing.task_summaries === "object" &&
-    !Array.isArray(existing.task_summaries)
-  ) {
-    next.task_summaries = existing.task_summaries;
-  }
-  if (
-    !("worldcup_txt" in next) &&
-    existing.worldcup_txt &&
-    typeof existing.worldcup_txt === "object"
-  ) {
-    next.worldcup_txt = existing.worldcup_txt;
-  }
-  if (
-    !("worldcup_scores" in next) &&
-    existing.worldcup_scores &&
-    typeof existing.worldcup_scores === "object"
-  ) {
-    next.worldcup_scores = existing.worldcup_scores;
-  }
-  if (
-    !("worldcup_match_insights" in next) &&
-    existing.worldcup_match_insights &&
-    typeof existing.worldcup_match_insights === "object"
-  ) {
-    next.worldcup_match_insights = existing.worldcup_match_insights;
-  }
-  if (
-    !("funds" in next) &&
-    existing.funds &&
-    typeof existing.funds === "object" &&
-    !Array.isArray(existing.funds)
-  ) {
-    next.funds = existing.funds;
-  }
-  if (
-    !("worldcupBets" in next) &&
-    existing.worldcupBets &&
-    typeof existing.worldcupBets === "object" &&
-    !Array.isArray(existing.worldcupBets)
-  ) {
-    next.worldcupBets = existing.worldcupBets;
-  }
-  if (
-    !("ithome_news" in next) &&
-    existing.ithome_news &&
-    typeof existing.ithome_news === "object" &&
-    !Array.isArray(existing.ithome_news)
-  ) {
-    next.ithome_news = existing.ithome_news;
-  }
-  if (!("reminders" in next) && Array.isArray(existing.reminders)) {
-    next.reminders = existing.reminders;
-  }
-  if (!("recentActivity" in next) && Array.isArray(existing.recentActivity)) {
-    next.recentActivity = existing.recentActivity;
+  for (const spec of PRESERVE_FIELDS) {
+    if (
+      !(spec.key in next) &&
+      shouldPreserveValue(existing[spec.key], spec)
+    ) {
+      next[spec.key] = existing[spec.key];
+    }
   }
   return next;
 }

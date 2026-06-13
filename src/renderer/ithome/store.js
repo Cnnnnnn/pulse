@@ -13,6 +13,7 @@ import {
   trackIthomeFavorite,
   trackIthomeSummary,
 } from "../recent/track.js";
+import { requireApiMethod } from "../store-utils.js";
 
 export const ithomeArticles = signal({});
 export const ithomeDayStats = signal({});
@@ -25,11 +26,6 @@ export const ithomeNewsError = signal(null);
 export const ithomeSelectedDate = signal(todayShanghaiDateKey());
 export const ithomeFavoriteSelectedDate = signal("");
 export const ithomeViewMode = signal("news");
-
-function _api() {
-  if (typeof window === "undefined" || !window.api) return null;
-  return window.api;
-}
 
 function _applyPayload(data) {
   if (!data) return;
@@ -58,10 +54,10 @@ export function isArticleFavorited(id) {
 }
 
 export async function loadIthomeNews() {
-  const a = _api();
-  if (!a || typeof a.ithomeLoadNews !== "function") return false;
+  const loadNews = requireApiMethod("ithomeLoadNews");
+  if (!loadNews) return false;
   try {
-    const r = await a.ithomeLoadNews();
+    const r = await loadNews();
     if (r && r.ok !== false) {
       _applyPayload(r);
       return true;
@@ -73,8 +69,8 @@ export async function loadIthomeNews() {
 }
 
 export async function fetchDayNews(dateKey) {
-  const a = _api();
-  if (!a || typeof a.ithomeFetchDay !== "function") {
+  const fetchDay = requireApiMethod("ithomeFetchDay");
+  if (!fetchDay) {
     return { ok: false, reason: "ipc_unavailable" };
   }
   if (ithomeNewsLoading.value) {
@@ -83,7 +79,7 @@ export async function fetchDayNews(dateKey) {
   ithomeNewsLoading.value = true;
   ithomeNewsError.value = null;
   try {
-    const r = await a.ithomeFetchDay(dateKey);
+    const r = await fetchDay(dateKey);
     if (!r || !r.ok) {
       const reason = (r && r.reason) || "fetch_failed";
       const map = {
@@ -122,11 +118,11 @@ export async function setIthomeSelectedDate(dateKey) {
 }
 
 export async function summarizeIthomeArticle(id, force = false) {
-  const a = _api();
-  if (!a || typeof a.ithomeSummarizeArticle !== "function") {
+  const summarize = requireApiMethod("ithomeSummarizeArticle");
+  if (!summarize) {
     return { ok: false, reason: "ipc_unavailable" };
   }
-  const r = await a.ithomeSummarizeArticle({ id, force });
+  const r = await summarize({ id, force });
   if (r && r.ok && r.text) {
     ithomeSummaries.value = {
       ...ithomeSummaries.value,
@@ -148,12 +144,12 @@ export async function summarizeIthomeArticle(id, force = false) {
 }
 
 export async function toggleIthomeFavorite(id) {
-  const a = _api();
-  if (!a || typeof a.ithomeToggleFavorite !== "function") {
+  const toggleFavorite = requireApiMethod("ithomeToggleFavorite");
+  if (!toggleFavorite) {
     return { ok: false, reason: "ipc_unavailable" };
   }
   const wasFav = isArticleFavorited(id);
-  const r = await a.ithomeToggleFavorite({ id });
+  const r = await toggleFavorite({ id });
   if (r && r.ok) {
     await loadIthomeNews();
     if (!wasFav && r.favorited) {
