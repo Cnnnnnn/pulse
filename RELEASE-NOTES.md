@@ -2,6 +2,43 @@
 
 ---
 
+## v2.11.2 (工程基础设施) — 2026-06-13
+
+本轮聚焦**项目工程化与稳定性**, 没有面向用户的新功能, 但都是 push 之前没人拦的"软肋":
+
+### CI · GitHub Actions
+- 项目原来完全没有 CI, 所有改动靠本地手测, push 不会被拦
+- 新增 `.github/workflows/ci.yml`: 每次 push / PR 跑 `npm test` + `npm run build:renderer` + 验证 bundle 产出
+- 顺手修一个 pre-existing 测试 (`worldcup-scores-api`): 用了固定过去日期 2026-06-12 触发时间相关逻辑假阳性, 改成相对未来 7 天
+
+### 主进程 · 全局错误兜底
+- 主进程原来没有 `uncaughtException` / `unhandledRejection` 兜底, IPC handler 或调度器里任何未捕获异常都会让后台任务**静默挂死**, 用户无感知
+- 新增 `error-guard.js`: 写日志 + 推 `main:error` IPC, renderer 收到弹错误 toast
+- 同一错误对象去重, 避免 promise 链双触发刷屏
+
+### state-store · 重构
+- `state-store.js` (1046 行) 里 10 个 save 函数重复 6 步样板, 抽成公共 `patchState(updater)` 范式, 每个函数只保留差异
+- 文件 1046 → 867 行 (少 179 行)
+- **顺手修 2 个 pre-existing bug**: `saveWorldcupMatchInsights` 和 `saveActiveCategory` 原本没保留 `ai_sessions_config`, 会把它吃掉
+
+### Funds · 净值源健壮性
+- 原来主源 (tiantian) 失败时 sina 数据完全浪费 (只是"附加"做交叉比对), 整个 fetch 抛错进 errors
+- 改成**主源失败自动 fallback 到备用源**: sina 升格成主快照, 标 `fallbackFrom: 'tiantian'`
+- 新增**源健康度跟踪** (`nav-source-health.js`): 滑动窗口 + 连续失败计数 + 成功率, 给 fetcher 用
+- alt 失败不再被静默吞, 加 debug 日志
+
+### DB · 换型评估
+- 评估"是否把 state.json 换成 SQLite", 结论 **当前不迁移** (实测 53 KB, 离 SQLite 划算阈值差 200 倍)
+- 完整评估文档 `docs/db-migration-assessment.md`, 含 3 个备选方案 + 触发条件
+- 顺手加 size 监控: state.json > 5MB 写 warn 日志, 为未来决策提供数据
+
+### 验证
+- 整体测试 **1325 passed / 4 skipped / 0 failed**
+- 新增测试 26 个 (error-guard 6 + state-store-patch 9 + nav-source-health 11)
+- renderer bundle 712.3kb
+
+---
+
 ## v2.11.1 (最近活动 & 提醒修复) — 2026-06-13
 
 ### 最近活动 · 采集点补齐
