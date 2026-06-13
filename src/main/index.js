@@ -1,31 +1,24 @@
 /**
  * src/main/index.js
  *
- * 主进程入口（spec §6 + 任务约束）：
- *   - 单实例锁
- *   - lifecycle: whenReady / before-quit / window-all-closed
- *   - 启动 worker pool（detect-app / brew-upgrade / brew-update）
- *   - 注册 tray / window / ipc
- *   - 启动时自动迁移老 config → 备份 .bak
- *   - 启动时加载 category config (Phase A) → setData 注入
- *   - 埋点：写 startup.log + detect.log
+ * 主进程入口（spec §6 + 任务约束）:
+ *   - 单实例锁 + lifecycle
+ *   - worker pool / window / tray / ipc
+ *   - 启动时 config + category + AI wiring + 各类 scheduler
  *
- * 被 electron 直接 require；用 CJS。
+ * 编排层 — 业务拆到 ./bootstrap/*.js.
  */
 
 const {
   app,
   BrowserWindow,
-  Notification: ElectronNotification,
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 
 // Phase B2b: ai-sessions CursorDetector 读 vscdb 用 Node 22.5+ 内置的 node:sqlite.
-// Electron 35 默认不开 experimental flag → require('node:sqlite') 抛 → readSession
-// 返 'node:sqlite unavailable' → all sessions 静默 skip → digest 永远 "no sessions".
-// 启 flag 让 node:sqlite 可用 (Electron 35 跑 Node 22.15 runtime, flag 稳定).
-// 注: 这是 app.commandLine, 必须在 app.whenReady() 之前.
+// 在 app.whenReady() 之前启 flag.
 try {
   if (
     app &&
@@ -42,305 +35,58 @@ const { WorkerPool } = require("../workers/pool");
 const { createWindowManager } = require("./window");
 const { createTrayManager } = require("./tray");
 const { registerIpcHandlers } = require("./ipc");
-const { runCheck, runCheckQueued } = require("./check-runner");
 const { mainLog, detectLog } = require("./log");
-const { migrateConfigFile, isOldSchemaApp } = require("../config/migrate");
-const { validateConfig, sanitizeConfig } = require("../config/schema");
-const categoryConfig = require("../config/category");
 const stateStore = require("./state-store");
-const lastOpened = require("./last-opened");
 const { HttpClient } = require("./http-client");
-const { buildTaskSummaryEngine } = require("../ai-sessions/wiring");
 const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
 const reminders = require("./reminders");
 const recentActivity = require("./recent-activity");
-const { installErrorGuard } = require("./error-guard");
-const { resolveAppBundlePath } = require("../utils/app-paths");
 
-const ARCH = process.arch === "arm64" ? "arm64" : "x64";
-const PROJECT_ROOT = path.join(__dirname, "..", "..");
-const CONFIG_PATH = path.join(PROJECT_ROOT, "config.json");
-const CATEGORIES_JSON_PATH = path.join(
+const {
+  ARCH,
+  CONFIG_PATH,
   PROJECT_ROOT,
-  "config",
-  "categories.json",
-);
-const APP_CATEGORY_JSON_PATH = path.join(
-  PROJECT_ROOT,
-  "config",
-  "app-category.json",
-);
+  loadConfig,
+} = require("./bootstrap/config.js");
+const {
+  loadCategoryConfig,
+  classifyUnmappedAppsByLLM,
+} = require("./bootstrap/category.js");
+const { initAiTasksWiring } = require("./bootstrap/ai-tasks.js");
+const {
+  startFundScheduler,
+  startRemindersScheduler,
+  wireRecentActivityListener,
+  startAutoCheckTimer,
+  makeRefreshLastOpenedAfterCheck,
+} = require("./bootstrap/schedulers.js");
+const {
+  createSender,
+  installErrorGuardBridge,
+} = require("./bootstrap/send-to-renderer.js");
+
+const httpClient = new HttpClient();
 
 let isQuitting = false;
 let pool = null;
 let trayMgr = null;
 let winMgr = null;
-let runtimeConfig = null;
 let fundScheduler = null;
-const httpClient = new HttpClient();
+let runtimeConfigRef = { current: null };
 
-function sendToRenderer(channel, payload) {
-  const w = winMgr && winMgr.getWindow();
-  if (w && !w.isDestroyed()) {
-    w.webContents.send(channel, payload);
-  }
+function getWindow() {
+  return winMgr && winMgr.getWindow();
 }
 
-// 主进程兜底: 任何未捕获异常都写日志 + 推 renderer, 避免 IPC / 调度器静默挂
-installErrorGuard((channel, payload) => sendToRenderer(channel, payload));
+const sendToRenderer = createSender({ getWindow });
 
-// ─── config: load + migrate ─────────────────────────────
-
-function loadConfig() {
-  let parsed = null;
-  try {
-    const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    mainLog.error(`config read/parse failed: ${err.message}`);
-    return sanitizeConfig(null);
-  }
-
-  // 老 schema 触发自动迁移
-  const oldShape =
-    Array.isArray(parsed && parsed.apps) && parsed.apps.some(isOldSchemaApp);
-  if (oldShape) {
-    try {
-      const r = migrateConfigFile({ configPath: CONFIG_PATH });
-      if (r.migrated) {
-        mainLog.info(`config migrated; backup=${r.backupPath}`);
-        parsed = r.config;
-      }
-    } catch (err) {
-      mainLog.error(`config migrate failed: ${err.message}`);
-      // 继续用 sanitize 后的 fallback
-    }
-  }
-
-  const v = validateConfig(parsed);
-  if (!v.valid) {
-    mainLog.warn(`config validation: ${v.errors.slice(0, 5).join(" | ")}`);
-  }
-  return sanitizeConfig(v.config || parsed);
-}
-
-// ─── bootstrap ───────────────────────────────────────────
-
-/**
- * Phase A: 启动时加载 category config. fs 读 config/*.json, 注入到 category module.
- * 失败时 log warn, 不 throw (跟现有 config 容错一致).
- */
-function loadCategoryConfig() {
-  let cats = null;
-  let map = null;
-  let usedFallback = false;
-
-  try {
-    const raw = fs.readFileSync(CATEGORIES_JSON_PATH, "utf-8");
-    const parsed = JSON.parse(raw);
-    if (
-      parsed &&
-      Array.isArray(parsed.categories) &&
-      parsed.categories.length > 0
-    ) {
-      cats = parsed.categories;
-    }
-  } catch (err) {
-    mainLog.warn(`[category] categories.json read failed: ${err.message}`);
-  }
-
-  try {
-    const raw = fs.readFileSync(APP_CATEGORY_JSON_PATH, "utf-8");
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.mapping && typeof parsed.mapping === "object") {
-      map = parsed.mapping;
-    }
-  } catch (err) {
-    mainLog.warn(`[category] app-category.json read failed: ${err.message}`);
-  }
-
-  if (cats === null || map === null) {
-    usedFallback = true;
-    categoryConfig.setData({ source: "fallback" }); // 用 module-level DEFAULT
-    mainLog.warn("[category] using hardcoded defaults (failed to read disk)");
-    return;
-  }
-
-  categoryConfig.setData({ cats, map, source: "disk" });
-  const status = categoryConfig._LOAD_STATUS();
-  if (status.warnings.length > 0) {
-    mainLog.warn(`[category] load warnings: ${status.warnings.join("; ")}`);
-  }
-  mainLog.info(
-    `[category] loaded ${cats.length} categories, ${Object.keys(map).length} mappings`,
-  );
-}
-
-/**
- * Step B (LLM classify): 启动期同步对未分类的 app 走 LLM 批量分类.
- *
- * 决策 (用户在 q3 选的 blocking-startup-ok): 同步调, 接受 1-2s 启动延迟.
- *   - 静态 map + state.json.classify_llm_cache 都没有的 app → 收集
- *   - 先 heuristic 预跑一遍, 给 LLM 提示 "我猜是 X"
- *   - 调 LLM 一次, batch 出所有结果
- *   - 写 state.json.classify_llm_cache + category.setLLMCache
- *   - 整体 timeout 30s, 失败 graceful (不 throw, 也不阻塞启动流程, 但 log warn)
- *
- * 设计:
- *   - 强制用 qwen2.5-coder:7b (用户在 q2 选的, 跟 aiSessions.provider 解耦)
- *   - 不复用 LLMSummarizer 抽象 (那是给 messages 用的, 分类是 (system, user) plain)
- *   - 复用 HttpClient (跟其他 detector 风格一致)
- *
- * 行为:
- *   - 0 unmapped app → 跳过, 0 延迟
- *   - 1-2 unmapped app → 1 次 LLM 调, 2-3s
- *   - 3+ unmapped app → 1 次 LLM 调 (batch), 3-5s
- *   - LLM 不可达 / 解析失败 → graceful skip, log warn, 用户看到 "其他" tab
- */
-async function classifyUnmappedAppsByLLM() {
-  const t0 = Date.now();
-  if (
-    !runtimeConfig ||
-    !Array.isArray(runtimeConfig.apps) ||
-    runtimeConfig.apps.length === 0
-  ) {
-    return;
-  }
-  // 1) reload state.json 旧 cache → 注入 category module (避免重复 LLM)
-  const oldCache = stateStore.loadLLMClassifyCache();
-  if (Object.keys(oldCache).length > 0) {
-    categoryConfig.setLLMCache(oldCache);
-    mainLog.info(
-      `[category] LLM cache loaded: ${Object.keys(oldCache).length} entries`,
-    );
-  }
-
-  // 2) 收集未分类的 app (静态 map miss + cache miss)
-  const unmapped = [];
-  for (const app of runtimeConfig.apps) {
-    if (!app || typeof app.name !== "string" || app.name.length === 0) continue;
-    if (categoryConfig.getCategory(app.name) !== "other") continue;
-    // heuristic 预跑, 给 LLM 提示
-    const heur = categoryConfig.classifyByHeuristic(app);
-    unmapped.push({
-      name: app.name,
-      bundle: app.bundle,
-      download_url: app.download_url,
-      _heuristic: heur || undefined,
-    });
-  }
-  if (unmapped.length === 0) {
-    mainLog.info("[category] all apps already classified, skip LLM");
-    return;
-  }
-  mainLog.info(`[category] ${unmapped.length} unmapped apps → LLM classify`);
-
-  // 3) 调 LLM (走 HttpClient, 跟 detector 同款)
-  const host = "http://127.0.0.1:11434"; // 强制 IPv4 — node:fetch 走 ::1 ECONNREFUSED
-  const model = "qwen2.5-coder:7b";
-  const http = new HttpClient({ timeout: 30_000, maxRetries: 0 });
-  const llmCaller = async (systemMsg, userMsg) => {
-    const r = await http.post(
-      `${host}/api/chat`,
-      {
-        model,
-        messages: [
-          { role: "system", content: systemMsg },
-          { role: "user", content: userMsg },
-        ],
-        stream: false,
-        options: { num_predict: 1024, temperature: 0.1 },
-      },
-      { "Content-Type": "application/json" },
-      { timeout: 25_000 },
-    );
-    if (r.error)
-      throw new Error(`llm caller: ${r.error} (${r.status || "no_status"})`);
-    if (r.status < 200 || r.status >= 300) {
-      throw new Error(
-        `llm caller: http_status_${r.status} body=${(r.body || "").slice(0, 200)}`,
-      );
-    }
-    let parsed;
-    try {
-      parsed = JSON.parse(r.body);
-    } catch (err) {
-      throw new Error(`llm caller: response not JSON: ${err.message}`);
-    }
-    const content =
-      parsed && parsed.message && typeof parsed.message.content === "string"
-        ? parsed.message.content
-        : "";
-    return content;
-  };
-
-  let llmResult = {};
-  try {
-    llmResult = await categoryConfig.classifyByLLM(unmapped, {
-      llmCaller,
-      timeoutMs: 28_000,
-    });
-  } catch (err) {
-    mainLog.warn(`[category] LLM classify threw: ${err.message}`);
-  }
-
-  // 4) 落盘 + 注入 module
-  if (Object.keys(llmResult).length > 0) {
-    categoryConfig.setLLMCache(llmResult);
-    stateStore.saveLLMClassifyCache(llmResult);
-    mainLog.info(
-      `[category] LLM classified ${Object.keys(llmResult).length}/${unmapped.length} apps in ${Date.now() - t0}ms: ${Object.entries(
-        llmResult,
-      )
-        .map(([k, v]) => `${k}→${v}`)
-        .join(", ")}`,
-    );
-  } else {
-    mainLog.warn(
-      `[category] LLM classify returned 0 results in ${Date.now() - t0}ms (apps will fall through to 'other')`,
-    );
-  }
-}
-
-/**
- * 重做版: 初始化 TaskSummaryEngine wiring (不跑任何 LLM / 不扫盘).
- * 完全按需 — 用户打开抽屉时 IPC 'ai-tasks:list' 才扫描, 勾选生成才调 LLM.
- * 没有 bootstrap / backfill / 24h cron.
- */
-function initAiTasksWiring() {
-  const stateOverride = stateStore.loadAISessionsConfig();
-  const cfgBase =
-    stateOverride && typeof stateOverride === "object"
-      ? stateOverride
-      : { enabled: false, provider: "minimax", cloud: null };
-
-  try {
-    const wiring = buildTaskSummaryEngine({
-      config: cfgBase,
-      runtimeOverride: stateStore.loadAISessionsConfig(),
-      log: {
-        info: (...a) => mainLog.info(...a),
-        warn: (...a) => mainLog.warn(...a),
-        error: (...a) => mainLog.error(...a),
-      },
-    });
-    global.__pulse_aiTasks = wiring; // 暴露给 IPC handlers
-    global.__pulse_aiSessionsBaseCfg = cfgBase; // 给 ipc save-config 重建用
-    const detectorNames = wiring.detectors.map((d) => d.appName).join(",");
-    mainLog.info(
-      `[tasks] wiring ready: provider=${wiring.providerId} detectors=[${detectorNames}]`,
-    );
-  } catch (err) {
-    mainLog.warn(`[tasks] buildTaskSummaryEngine failed: ${err.message}`);
-  }
-}
+installErrorGuardBridge(sendToRenderer);
 
 async function bootstrap() {
   const t0 = Date.now();
   const statePath = stateStore.initStateStorePaths();
   mainLog.info(`state store path: ${statePath}`);
-  // 启动时检查 state.json 大小: > 5MB 写 warn 日志, 供未来 db 换型决策用
   try {
     const st = fs.statSync(statePath);
     if (st && st.size > 5 * 1024 * 1024) {
@@ -352,12 +98,10 @@ async function bootstrap() {
   } catch {
     /* ENOENT 等不阻塞启动 */
   }
-  // 整进程级别的启动元信息 — 写一行, 便于人 grep
   mainLog.info(
-    `boot pid=${process.id} arch=${ARCH} platform=${process.platform}`,
+    `boot pid=${process.pid} arch=${ARCH} platform=${process.platform}`,
   );
 
-  // 各阶段计时点 — spec §6 启动埋点格式
   const timings = {
     lock: 0,
     config: 0,
@@ -371,14 +115,22 @@ async function bootstrap() {
   // 0) Phase A: 加载 category config (早期注入, 后面 IPC 通道要用到)
   loadCategoryConfig();
 
-  // 0.5) Step B (LLM classify): 启动期同步对未分类的 app 调 LLM.
-  // 在 worker pool 之前: 分类结果存到 category module, IPC handler 直接读.
-  // 失败 graceful — 不阻塞启动 (最坏情况: 1-2s 启动延迟 + "其他" tab 多几个 app).
-  await classifyUnmappedAppsByLLM();
+  // 0.5) Step B (LLM classify): 启动期同步对未分类的 app 调 LLM
+  // runtimeConfig 还没加载, 但 LLM 分类只依赖 config schema. 先用 raw config.
+  // 注意: 这一步允许时 LLM 不可用 graceful skip, 不会阻塞启动.
+  const earlyConfig = (() => {
+    try {
+      return loadConfig();
+    } catch {
+      return null;
+    }
+  })();
+  if (earlyConfig) {
+    runtimeConfigRef.current = earlyConfig;
+    await classifyUnmappedAppsByLLM(earlyConfig, { stateStore });
+  }
 
   // 1) 单实例锁
-  // 冷启动基准模式 (BENCH=1): 跳过单实例锁, 允许同时跑多个 .app 实例
-  // 真实用户场景下不需要多实例, 但 benchmark 需要
   const tLock = Date.now();
   const gotLock =
     process.env.BENCH === "1" ? true : app.requestSingleInstanceLock();
@@ -392,22 +144,20 @@ async function bootstrap() {
   });
   timings.lock = Date.now() - tLock;
 
-  // 2) config
+  // 2) config (再读一次以保证最新; 早期读是给 LLM 用)
   const tConfig = Date.now();
-  runtimeConfig = loadConfig();
+  const runtimeConfig = loadConfig();
+  runtimeConfigRef.current = runtimeConfig;
   mainLog.info(
     `config loaded: ${(runtimeConfig.apps || []).length} apps, check_on_launch=${runtimeConfig.check_on_launch}`,
   );
   timings.config = Date.now() - tConfig;
 
-  // 2.5) AI 任务总结 wiring (重做版: 只初始化, 不扫盘不调 LLM)
-  initAiTasksWiring();
+  // 2.5) AI 任务总结 wiring
+  initAiTasksWiring({ stateStore });
 
-  //3) dock隐藏 (默认). PULSE_SHOW=1 env var时不 hide — 给 dev / screenshot / debugging用
+  // 3) dock 隐藏
   try {
-    // Phase B7e: 默认让 Pulse 出现在 Dock + Cmd+Tab 列表, 像普通 app.
-    // 之前默认 dock.hide() 是 menu bar app 风格, 用户反馈想用 Cmd+Tab 切换.
-    // PULSE_HIDE_DOCK=1 保留 escape hatch (测试 / 老用户).
     if (process.env.PULSE_HIDE_DOCK === "1") {
       app.dock.hide();
     }
@@ -424,25 +174,19 @@ async function bootstrap() {
     "detect-worker.js",
   );
   pool = new WorkerPool({
-    size: Math.max(2, (require("os").cpus().length || 4) - 1),
+    size: Math.max(2, (os.cpus().length || 4) - 1),
     workerScript,
     workerOpts: { workerData: { arch: ARCH } },
-    onProgress: (payload, id) => {
-      const w = winMgr && winMgr.getWindow();
+    onProgress: (payload) => {
+      const w = getWindow();
       if (w && !w.isDestroyed()) {
         w.webContents.send("check-progress", payload);
       }
     },
     onLog: (level, text, id, meta) => {
-      // worker 自己 postMessage 的 log 消息: 走 main 的 detect logger 落盘
-      // worker 现在发 spec §6 风格的 meta (k=v 拍平), 直接透传
-      //   老式 free-text log (text 存在) 也兼容 — 把 workerId 塞到 meta.wid
       const m =
         meta && typeof meta === "object" ? { wid: id, ...meta } : { wid: id };
-      if (text) {
-        // 自由文本: 把 text 放在 meta.note, 避免占位
-        m.note = text;
-      }
+      if (text) m.note = text;
       detectLog._write(level || "INFO", "", m);
     },
   });
@@ -459,7 +203,6 @@ async function bootstrap() {
     indexPath: path.join(PROJECT_ROOT, "index.html"),
   });
   winMgr.createWindow();
-  // window ready-to-show 由 BrowserWindow 自己 fire; 这里量"创建耗时"
   mainLog.info(`window created: ${Date.now() - tWindow}ms`);
   timings.window = Date.now() - tWindow;
 
@@ -467,10 +210,10 @@ async function bootstrap() {
   const tTrayStart = Date.now();
   try {
     trayMgr = createTrayManager({
-      getConfig: () => runtimeConfig || { apps: [] },
+      getConfig: () => runtimeConfigRef.current || { apps: [] },
       getConfigPath: () => CONFIG_PATH,
       onCheck: () => {
-        const w = winMgr && winMgr.getWindow();
+        const w = getWindow();
         if (w && !w.isDestroyed()) w.webContents.send("start-check");
       },
       onOpenPanel: () => winMgr && winMgr.showWindow(),
@@ -489,55 +232,16 @@ async function bootstrap() {
 
   // 7) ipc
   const tIpc = Date.now();
-  // Phase 29: 每次 check 完成后, 后台 refresh last-opened (mdls + atime 全刷),
-  // 写 state.json + 推 last-opened-updated 事件给 renderer.
-  // 11 app × ~100ms 总 ~1.2s, fire-and-forget, 不阻塞主流程.
-  //
-  // Phase 29 hotfix: a.bundle is just the bundle name ("Cursor.app"), not a
-  // full path. mdls/stat need absolute path.
-  function refreshLastOpenedAfterCheck() {
-    const apps = (runtimeConfig && runtimeConfig.apps) || [];
-    const refreshable = apps.filter((a) => a && a.name && a.bundle);
-    if (refreshable.length === 0) return;
-    (async () => {
-      try {
-        const next = {};
-        await Promise.all(
-          refreshable.map(async (a) => {
-            const path = resolveAppBundlePath(a.bundle);
-            if (!path) {
-              next[a.name] = { ms: null, source: "unknown" };
-              return;
-            }
-            try {
-              const r = await lastOpened.refreshOne(path);
-              next[a.name] = { ms: r.ms, source: r.source };
-            } catch (err) {
-              mainLog.warn(
-                `[last-opened] refresh item failed: ${a.name} ${err && err.message}`,
-              );
-              next[a.name] = { ms: null, source: "unknown" };
-            }
-          }),
-        );
-        stateStore.saveLastOpened(next);
-        const w = winMgr && winMgr.getWindow();
-        if (w && !w.isDestroyed()) {
-          w.webContents.send("last-opened-updated", { lastOpened: next });
-        }
-      } catch (err) {
-        mainLog.warn(
-          `[last-opened] batch refresh failed: ${err && err.message}`,
-        );
-      }
-    })();
-  }
+  const refreshLastOpenedAfterCheck = makeRefreshLastOpenedAfterCheck({
+    runtimeConfigRef,
+    stateStore,
+    sendToRenderer,
+  });
 
   registerIpcHandlers({
-    getConfig: () => runtimeConfig,
+    getConfig: () => runtimeConfigRef.current,
     pool,
-    getWindow: () => winMgr && winMgr.getWindow(),
-    // Phase 12: 每次 check-updates 完成时落盘 last-known 状态
+    getWindow,
     getCachedState: () => stateStore.load(),
     onCheckComplete: (results) => {
       if (trayMgr) {
@@ -545,170 +249,37 @@ async function bootstrap() {
         const count = results.filter((r) => r.has_update).length;
         trayMgr.setBadge(count);
       }
-      // 持久化最新结果 (atomic write, 失败也不影响内存流)
       try {
         stateStore.saveAll(results);
       } catch (err) {
         mainLog.warn(`state save failed: ${err.message}`);
       }
-      // Phase 29: 刷 last-opened (后台 async, 不阻塞)
       refreshLastOpenedAfterCheck();
     },
-    // v2.10+ Funds 净值 scheduler (下面单独构造 + start; 用 getter 避免注册时仍为 null)
     getFundScheduler: () => fundScheduler,
   });
   mainLog.info(`ipc registered`);
   timings.ipc = Date.now() - tIpc;
 
-  // v2.10+ Funds 净值定时拉取
-  //  - 启动 scheduler, 事件推给 renderer
-  //  - 退出时 stop
-  try {
-    fundScheduler = new FundScheduler({
-      httpClient,
-      getCodes: () =>
-        (fundStore.loadAll().holdings || []).map((h) => h.code).filter(Boolean),
-      intervalMs: 5 * 60 * 1000,
-      concurrency: 4,
-      logger: mainLog,
-    });
-    fundScheduler.on("state", (st) => {
-      sendToRenderer("funds:nav:state", st);
-    });
-    fundScheduler.on("fetched", (payload) => {
-      sendToRenderer("funds:nav:fetched", payload);
-    });
-    fundScheduler.on("history", (payload) => {
-      sendToRenderer("funds:history:updated", payload);
-    });
-    fundScheduler.start();
-    mainLog.info("fund scheduler started");
-    app.once("before-quit", () => {
-      try {
-        fundScheduler && fundScheduler.stop();
-      } catch {
-        /* noop */
-      }
-    });
-  } catch (err) {
-    mainLog.warn(`fund scheduler init failed: ${err && err.message}`);
-  }
+  // 8) fund + reminders + recent listeners + auto-check timer
+  fundScheduler = startFundScheduler({
+    httpClient,
+    fundStore,
+    FundScheduler,
+    sendToRenderer,
+  });
+  startRemindersScheduler({ reminders, getWindow, sendToRenderer });
+  wireRecentActivityListener({ recentActivity, sendToRenderer });
+  startAutoCheckTimer({
+    runtimeConfig,
+    pool,
+    getWindow,
+    trayMgr,
+    stateStore,
+  });
 
-  // v2.11 Reminders scheduler (30s 扫一次; 触发时发系统通知 + 推 IPC 事件)
-  try {
-    reminders.startScheduler({
-      onFire: (r) => {
-        // 1) 系统通知
-        try {
-          if (ElectronNotification && ElectronNotification.isSupported()) {
-            const n = new ElectronNotification({
-              title: "Pulse 提醒",
-              body: r.title,
-              silent: false,
-            });
-            n.on("click", () => {
-              try {
-                if (winMgr) winMgr.showWindow();
-                sendToRenderer("reminders:open-modal", { id: r.id });
-              } catch {
-                /* noop */
-              }
-            });
-            n.show();
-          }
-        } catch (err) {
-          mainLog.warn(
-            `[reminders] notification show failed: ${err && err.message}`,
-          );
-        }
-        // 2) 推 IPC 给 renderer (让 modal/badge 即时刷新)
-        sendToRenderer("reminders:fired", { id: r.id, reminder: r });
-      },
-    });
-    mainLog.info("reminders scheduler started (30s sweep)");
-    app.once("before-quit", () => {
-      try {
-        reminders.stopScheduler();
-      } catch {
-        /* noop */
-      }
-    });
-  } catch (err) {
-    mainLog.warn(`reminders scheduler init failed: ${err && err.message}`);
-  }
-
-  try {
-    recentActivity.setOnUpdate(() => {
-      sendToRenderer("recent:updated", {
-        entries: recentActivity.list(),
-      });
-    });
-  } catch (err) {
-    mainLog.warn(`recent-activity onUpdate failed: ${err && err.message}`);
-  }
-
-  // Phase 16: 后台定时静默 check — 打破"开 app 才检查"局限, 让 state 不变 stale
-  //   - 默认每 6h 跑一次, Phase 24 起可由 config.notifications.check_interval_hours 配置
-  //   - 0 = 关闭 auto-check (显式 disable)
-  //   - silent=true 模式: 不发系统通知, 不弹 "checking" UI, 只更新 state + tray badge
-  //   - 推 'auto-check-finished' 事件给 renderer, 让 UI 显示"刚刚自动检查过"
-  //   - 应用退出时 clearInterval
-  const checkIntervalHours =
-    (runtimeConfig &&
-      runtimeConfig.notifications &&
-      runtimeConfig.notifications.check_interval_hours) ||
-    6;
-  if (checkIntervalHours > 0) {
-    const AUTO_CHECK_INTERVAL_MS = checkIntervalHours * 60 * 60 * 1000;
-    const autoCheckTimer = setInterval(() => {
-      mainLog.info(`auto-check triggered (${checkIntervalHours}h)`);
-      runCheckQueued(
-        {
-          getConfig: () => runtimeConfig,
-          pool,
-          getWindow: () => winMgr && winMgr.getWindow(),
-          onCheckComplete: (results) => {
-            if (trayMgr) {
-              trayMgr.setResults(results);
-              const count = results.filter((r) => r.has_update).length;
-              trayMgr.setBadge(count);
-            }
-            try {
-              stateStore.saveAll(results);
-            } catch (err) {
-              mainLog.warn(`state save failed: ${err.message}`);
-            }
-          },
-          // Phase 17: auto-check 也用 state 跟踪 last_notified (虽然 silent 不发通知,
-          // 但写状态保持一致). 这里不传 getState / markNotified, 因为 auto-check 静默.
-        },
-        { silent: true },
-      ).catch((err) => {
-        mainLog.warn(`auto-check failed: ${err && err.message}`);
-      });
-    }, AUTO_CHECK_INTERVAL_MS);
-    mainLog.info(`auto-check timer set: every ${checkIntervalHours}h`);
-
-    // 退出时清掉
-    if (!isQuitting) {
-      app.once("before-quit", () => {
-        try {
-          clearInterval(autoCheckTimer);
-        } catch {
-          /* noop */
-        }
-      });
-    }
-  } else {
-    mainLog.info(
-      "auto-check disabled (notifications.check_interval_hours = 0)",
-    );
-  }
-
-  // ── spec §6 启动埋点: 一行 [startup] 把所有阶段耗时汇在一起 ──
+  // 启动埋点
   timings.total = Date.now() - t0;
-  // 兼容老字段名: tray= (tray install), window= (window create)
-  // spec 字段名优先: tray / window / total
   mainLog.event({
     tray: `${timings.tray}ms`,
     window: `${timings.window}ms`,
@@ -717,10 +288,6 @@ async function bootstrap() {
   });
 }
 
-// ─── app lifecycle ───────────────────────────────────────
-
-// 守卫：当 require('electron') 在非 electron runtime（Node 测试）下
-// app 是 undefined；只有真 electron 跑 main 时才会执行下面。
 if (app && typeof app.whenReady === "function") {
   app.whenReady().then(() => {
     bootstrap().catch((err) => {
@@ -738,14 +305,9 @@ if (app && typeof app.whenReady === "function") {
   });
 
   app.on("activate", () => {
-    // macOS: 点击 dock 图标 (无 window / window 全关) 触发.
-    // 双击 dock 图标 raise 窗口也走这里 (window 还活着但 hidden).
-    // 双重保险: winMgr 还没初始化时 (极早期 activate) 直接调 showWindow.
     if (winMgr) {
       winMgr.showWindow();
     } else {
-      // 早期: 等 createWindowManager 起来再 show, 或直接 fallback BrowserWindow.getAllWindows
-      const { BrowserWindow } = require("electron");
       const wins = BrowserWindow.getAllWindows();
       if (wins.length > 0) {
         const w = wins[0];
@@ -783,7 +345,6 @@ if (app && typeof app.whenReady === "function") {
   });
 }
 
-// 导出供测试用
 module.exports = {
   loadConfig,
   ARCH,
