@@ -7,16 +7,17 @@
  * 配置: { type: 'brew_local_cask', cask: 'cursor' }
  */
 
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
-const { execFile } = require('child_process');
+const { Detector, DetectorResult } = require("./base");
+const { DetectorError, REASONS } = require("./errors");
+const { truncate, cleanVersion } = require("./utils");
+const { execFile } = require("child_process");
 
 class BrewLocalCaskDetector extends Detector {
-  static name = 'brew_local_cask';
+  static name = "brew_local_cask";
 
   constructor(opts = {}) {
     super({ timeout: opts.timeout ?? 15000 });
-    this.cask = opts.cask || '';
+    this.cask = opts.cask || "";
   }
 
   async detect(ctx) {
@@ -25,7 +26,7 @@ class BrewLocalCaskDetector extends Detector {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
-        note: 'no cask configured',
+        note: "no cask configured",
       });
     }
 
@@ -43,8 +44,9 @@ class BrewLocalCaskDetector extends Detector {
     }
 
     let data;
-    try { data = JSON.parse(stdout); }
-    catch (e) {
+    try {
+      data = JSON.parse(stdout);
+    } catch (e) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.PARSE,
@@ -61,7 +63,7 @@ class BrewLocalCaskDetector extends Detector {
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
         raw: caskInfo,
-        note: 'cask version empty',
+        note: "cask version empty",
       });
     }
 
@@ -69,38 +71,30 @@ class BrewLocalCaskDetector extends Detector {
       version: ver,
       raw: caskInfo,
       source: this.constructor.name,
-      confidence: 'high',
-      note: 'local brew cask',
+      confidence: "high",
+      note: "local brew cask",
     });
   }
 
   _runBrew(cask, timeout) {
     return new Promise((resolve, reject) => {
-      execFile('brew', ['info', '--cask', '--json=v2', cask], { timeout }, (err, stdout, stderr) => {
-        if (err) {
-          // 区分 timeout / 其他
-          if (err.killed || /timeout/i.test(String(err.message))) {
-            return reject(new Error('brew timeout'));
+      execFile(
+        "brew",
+        ["info", "--cask", "--json=v2", cask],
+        { timeout },
+        (err, stdout, stderr) => {
+          if (err) {
+            // 区分 timeout / 其他
+            if (err.killed || /timeout/i.test(String(err.message))) {
+              return reject(new Error("brew timeout"));
+            }
+            return reject(new Error(err.message || "brew failed"));
           }
-          return reject(new Error(err.message || 'brew failed'));
-        }
-        resolve(stdout);
-      });
+          resolve(stdout);
+        },
+      );
     });
   }
-}
-
-function truncate(s, n = 4096) {
-  if (!s) return null;
-  return s.length > n ? s.slice(0, n) + '…' : s;
-}
-
-function cleanVersion(ver) {
-  if (!ver || typeof ver !== 'string') return null;
-  let v = ver.trim();
-  if (v.includes(',')) v = v.split(',')[0];
-  if (v.startsWith('v') || v.startsWith('V')) v = v.slice(1);
-  return v || null;
 }
 
 module.exports = { BrewLocalCaskDetector };

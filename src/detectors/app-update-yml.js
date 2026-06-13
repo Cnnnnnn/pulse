@@ -9,16 +9,21 @@
  * 配置: { type: 'app_update_yml' }  (从 appCfg.bundle 读文件)
  */
 
-const fs = require('fs');
-const path = require('path');
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
+const fs = require("fs");
+const path = require("path");
+const { Detector, DetectorResult } = require("./base");
+const { DetectorError, REASONS } = require("./errors");
+const { truncate } = require("./utils");
 
 let yamlLib = null;
-try { yamlLib = require('js-yaml'); } catch { /* fallback to regex */ }
+try {
+  yamlLib = require("js-yaml");
+} catch {
+  /* fallback to regex */
+}
 
 class AppUpdateYmlDetector extends Detector {
-  static name = 'app_update_yml';
+  static name = "app_update_yml";
 
   constructor(opts = {}) {
     super({ timeout: opts.timeout ?? 8000 });
@@ -30,14 +35,14 @@ class AppUpdateYmlDetector extends Detector {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
-        note: 'no bundle in appCfg',
+        note: "no bundle in appCfg",
       });
     }
 
     const ymlPath = `/Applications/${bundle}/Contents/Resources/app-update.yml`;
     let ymlData;
     try {
-      const raw = fs.readFileSync(ymlPath, 'utf-8');
+      const raw = fs.readFileSync(ymlPath, "utf-8");
       ymlData = yamlLib ? yamlLib.load(raw) : parseYmlFallback(raw);
     } catch (e) {
       // 文件不存在 / 权限不足 → 视为本机未装或不是 electron-builder 出品
@@ -48,34 +53,38 @@ class AppUpdateYmlDetector extends Detector {
       });
     }
 
-    if (!ymlData || typeof ymlData !== 'object') {
+    if (!ymlData || typeof ymlData !== "object") {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
         raw: ymlData,
-        note: 'empty yml',
+        note: "empty yml",
       });
     }
 
-    const provider = String(ymlData.provider || '').toLowerCase();
-    const ymlUrl = ymlData.url || '';
+    const provider = String(ymlData.provider || "").toLowerCase();
+    const ymlUrl = ymlData.url || "";
 
-    if (provider === 'generic' && ymlUrl) {
+    if (provider === "generic" && ymlUrl) {
       // 把 .../foo.exe 替换成 .../latest-mac.yml
       const candidates = [
-        ymlUrl.replace(/\/[^/]+$/, '/latest-mac.yml'),
-        ymlUrl.replace(/\/[^/]+$/, '/latest.yml'),
+        ymlUrl.replace(/\/[^/]+$/, "/latest-mac.yml"),
+        ymlUrl.replace(/\/[^/]+$/, "/latest.yml"),
       ];
       for (const c of candidates) {
-        const r = await ctx.http.get(c, { timeout: ctx.timeout || this.timeout });
-        if (r.error === 'timeout' || r.error === 'network') continue;
+        const r = await ctx.http.get(c, {
+          timeout: ctx.timeout || this.timeout,
+        });
+        if (r.error === "timeout" || r.error === "network") continue;
         if (r.status >= 400) continue;
         let ver = null;
         if (yamlLib) {
           try {
             const d = yamlLib.load(r.body);
             ver = d && (d.version || (d[0] && d[0].version));
-          } catch { /* try next */ }
+          } catch {
+            /* try next */
+          }
         }
         if (!ver) {
           const m = r.body && r.body.match(/version:\s*['"]?([^'"\n]+)['"]?/);
@@ -86,35 +95,61 @@ class AppUpdateYmlDetector extends Detector {
             version: ver,
             raw: { ymlPath, ymlUrl, candidate: c },
             source: this.constructor.name,
-            confidence: 'high',
-            note: 'app-update(generic)',
+            confidence: "high",
+            note: "app-update(generic)",
           });
         }
       }
     }
 
-    if (provider === 'github' && ymlData.owner && ymlData.repo) {
+    if (provider === "github" && ymlData.owner && ymlData.repo) {
       const apiUrl = `https://api.github.com/repos/${encodeURIComponent(ymlData.owner)}/${encodeURIComponent(ymlData.repo)}/releases/latest`;
       const r = await ctx.http.get(apiUrl, {
         timeout: ctx.timeout || this.timeout,
-        headers: { Accept: 'application/vnd.github.v3+json' },
+        headers: { Accept: "application/vnd.github.v3+json" },
       });
-      if (r.error === 'timeout') {
-        throw new DetectorError({ detector: this.constructor.name, reason: REASONS.TIMEOUT, note: apiUrl });
+      if (r.error === "timeout") {
+        throw new DetectorError({
+          detector: this.constructor.name,
+          reason: REASONS.TIMEOUT,
+          note: apiUrl,
+        });
       }
-      if (r.error === 'network') {
-        throw new DetectorError({ detector: this.constructor.name, reason: REASONS.NETWORK, note: apiUrl });
+      if (r.error === "network") {
+        throw new DetectorError({
+          detector: this.constructor.name,
+          reason: REASONS.NETWORK,
+          note: apiUrl,
+        });
       }
       if (r.status >= 400 && r.status < 500) {
-        throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_4XX, httpStatus: r.status, raw: truncate(r.body), note: apiUrl });
+        throw new DetectorError({
+          detector: this.constructor.name,
+          reason: REASONS.HTTP_4XX,
+          httpStatus: r.status,
+          raw: truncate(r.body),
+          note: apiUrl,
+        });
       }
       if (r.status >= 500) {
-        throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_5XX, httpStatus: r.status, raw: truncate(r.body), note: apiUrl });
+        throw new DetectorError({
+          detector: this.constructor.name,
+          reason: REASONS.HTTP_5XX,
+          httpStatus: r.status,
+          raw: truncate(r.body),
+          note: apiUrl,
+        });
       }
       let data;
-      try { data = JSON.parse(r.body); }
-      catch (e) {
-        throw new DetectorError({ detector: this.constructor.name, reason: REASONS.PARSE, raw: truncate(r.body), note: e.message });
+      try {
+        data = JSON.parse(r.body);
+      } catch (e) {
+        throw new DetectorError({
+          detector: this.constructor.name,
+          reason: REASONS.PARSE,
+          raw: truncate(r.body),
+          note: e.message,
+        });
       }
       const tag = data && data.tag_name;
       if (tag) {
@@ -124,8 +159,8 @@ class AppUpdateYmlDetector extends Detector {
             version: m[1],
             raw: data,
             source: this.constructor.name,
-            confidence: 'high',
-            note: 'app-update(github)',
+            confidence: "high",
+            note: "app-update(github)",
           });
         }
       }
@@ -151,11 +186,6 @@ function parseYmlFallback(raw) {
     owner: ownerMatch ? ownerMatch[1].trim() : null,
     repo: repoMatch ? repoMatch[1].trim() : null,
   };
-}
-
-function truncate(s, n = 4096) {
-  if (!s) return null;
-  return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
 module.exports = { AppUpdateYmlDetector };

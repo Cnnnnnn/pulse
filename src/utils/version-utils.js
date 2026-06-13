@@ -6,13 +6,34 @@
  */
 
 /**
- * cleanVersion — 去掉 'v' 前缀和首尾空白.
- * "  v1.2.3  " → "1.2.3"
+ * cleanVersion — 规范化版本号字符串.
+ *
+ * 处理顺序: trim → 去引号包裹 → 去逗号 build hash → 去 v/V 前缀 → trim.
+ *
+ * 例:
+ *   "  v1.2.3  "             → "1.2.3"
+ *   "3.6.31,81fcf293"       → "3.6.31"        (brew 带 commit hash)
+ *   "\"1.0\""               → "1.0"           (iTunes 偶尔带引号)
+ *   "V2.0"                  → "2.0"
+ *
+ * 合并自原 4 处副本 (brew-formulae / brew-local-cask / app-store-lookup /
+ * detect-worker), 行为是它们的并集.
  */
 function cleanVersion(v) {
   if (v == null) return null;
-  let s = String(v);
-  if (s.startsWith('v') || s.startsWith('V')) s = s.slice(1);
+  let s = String(v).trim();
+  if (!s) return null;
+  // 去前后引号包裹 (iTunes / 某些 API 偶尔带)
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1);
+  }
+  // 去逗号 build hash: "3.6.31,81fcf293" → "3.6.31"
+  if (s.includes(",")) s = s.split(",")[0];
+  // 去 v/V 前缀
+  if (s.startsWith("v") || s.startsWith("V")) s = s.slice(1);
   return s.trim() || null;
 }
 
@@ -34,12 +55,12 @@ function cleanVersion(v) {
  *  - "1.2.3.4.5000"    → "1.2.3.4"
  */
 function stripBuildNumber(ver) {
-  if (typeof ver !== 'string') return ver;
-  const parts = ver.split('.');
+  if (typeof ver !== "string") return ver;
+  const parts = ver.split(".");
   if (parts.length < 4) return ver;
   const last = parseInt(parts[parts.length - 1], 10);
   if (!Number.isFinite(last) || last < 1000) return ver;
-  return parts.slice(0, -1).join('.');
+  return parts.slice(0, -1).join(".");
 }
 
 module.exports = { cleanVersion, stripBuildNumber };

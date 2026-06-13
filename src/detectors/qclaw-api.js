@@ -14,16 +14,17 @@
  *   - confidence 从 medium → high (因为该 detector 直接对腾讯网关, 数据可靠)
  */
 
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
-const { expandUrl } = require('./url-template');
+const { Detector, DetectorResult } = require("./base");
+const { DetectorError, REASONS } = require("./errors");
+const { expandUrl } = require("./url-template");
+const { truncate } = require("./utils");
 
 class QClawApiDetector extends Detector {
-  static name = 'qclaw_api';
+  static name = "qclaw_api";
 
   constructor(opts = {}) {
     super({ timeout: opts.timeout ?? 10000 });
-    this.url = opts.url || '';
+    this.url = opts.url || "";
   }
 
   async detect(ctx) {
@@ -32,41 +33,74 @@ class QClawApiDetector extends Detector {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
-        note: 'no url configured',
+        note: "no url configured",
       });
     }
     const url = expandUrl(rawUrl, ctx.arch);
 
-    const systemType = ctx.arch === 'arm64' ? 'macarm' : 'mac';
-    const body = { from: 'web', system_type: systemType };
+    const systemType = ctx.arch === "arm64" ? "macarm" : "mac";
+    const body = { from: "web", system_type: systemType };
     const headers = {
-      Origin: 'https://qclaw.qq.com',
-      Referer: 'https://qclaw.qq.com/',
+      Origin: "https://qclaw.qq.com",
+      Referer: "https://qclaw.qq.com/",
     };
 
-    const r = await ctx.http.post(url, body, headers, { timeout: ctx.timeout || this.timeout });
-    if (r.error === 'timeout') {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.TIMEOUT, note: url });
+    const r = await ctx.http.post(url, body, headers, {
+      timeout: ctx.timeout || this.timeout,
+    });
+    if (r.error === "timeout") {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.TIMEOUT,
+        note: url,
+      });
     }
-    if (r.error === 'network') {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.NETWORK, note: url });
+    if (r.error === "network") {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.NETWORK,
+        note: url,
+      });
     }
     if (r.status >= 400 && r.status < 500) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_4XX, httpStatus: r.status, raw: truncate(r.body), note: url });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.HTTP_4XX,
+        httpStatus: r.status,
+        raw: truncate(r.body),
+        note: url,
+      });
     }
     if (r.status >= 500) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_5XX, httpStatus: r.status, raw: truncate(r.body), note: url });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.HTTP_5XX,
+        httpStatus: r.status,
+        raw: truncate(r.body),
+        note: url,
+      });
     }
 
     let data;
-    try { data = JSON.parse(r.body); }
-    catch (e) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.PARSE, raw: truncate(r.body), note: e.message });
+    try {
+      data = JSON.parse(r.body);
+    } catch (e) {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.PARSE,
+        raw: truncate(r.body),
+        note: e.message,
+      });
     }
 
     // 顶层 ret 非 0 → 业务错误, 抛错 (data 可能含 msg)
-    if (data && typeof data === 'object' && data.ret != null && data.ret !== 0) {
-      const msg = (data.msg || data.message || `ret=${data.ret}`);
+    if (
+      data &&
+      typeof data === "object" &&
+      data.ret != null &&
+      data.ret !== 0
+    ) {
+      const msg = data.msg || data.message || `ret=${data.ret}`;
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
@@ -77,32 +111,33 @@ class QClawApiDetector extends Detector {
 
     // Phase 6: 多路径尝试 (按真实响应优先排序)
     const candidates = [
-      ['data', 'resp', 'data', 'version_code'],   // 真实 (2026-06-05 fixture)
-      ['data', 'resp', 'data', 'version'],        // 旧版 / 服务端调整后
-      ['data', 'resp', 'version_code'],
-      ['data', 'resp', 'version'],
-      ['data', 'version_code'],
-      ['data', 'version'],
-      ['resp', 'data', 'version_code'],
-      ['version_code'],
-      ['version'],
+      ["data", "resp", "data", "version_code"], // 真实 (2026-06-05 fixture)
+      ["data", "resp", "data", "version"], // 旧版 / 服务端调整后
+      ["data", "resp", "version_code"],
+      ["data", "resp", "version"],
+      ["data", "version_code"],
+      ["data", "version"],
+      ["resp", "data", "version_code"],
+      ["version_code"],
+      ["version"],
     ];
     for (const path of candidates) {
       const v = pluckPath(data, path);
-      if (v != null && v !== '') return new DetectorResult({
-        version: String(v),
-        raw: data,
-        source: this.constructor.name,
-        confidence: 'high',
-        note: `qclaw ${systemType} path=${path.join('.')}`,
-      });
+      if (v != null && v !== "")
+        return new DetectorResult({
+          version: String(v),
+          raw: data,
+          source: this.constructor.name,
+          confidence: "high",
+          note: `qclaw ${systemType} path=${path.join(".")}`,
+        });
     }
 
     throw new DetectorError({
       detector: this.constructor.name,
       reason: REASONS.NO_VERSION,
       raw: data,
-      note: 'no version_code / version in chain',
+      note: "no version_code / version in chain",
     });
   }
 }
@@ -110,15 +145,10 @@ class QClawApiDetector extends Detector {
 function pluckPath(obj, path) {
   let node = obj;
   for (const seg of path) {
-    if (node == null || typeof node !== 'object') return null;
+    if (node == null || typeof node !== "object") return null;
     node = node[seg];
   }
   return node;
-}
-
-function truncate(s, n = 4096) {
-  if (!s) return null;
-  return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
 module.exports = { QClawApiDetector };

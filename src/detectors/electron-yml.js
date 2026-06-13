@@ -14,19 +14,24 @@
  *   - regex fallback 更稳: 允许多种引号/前缀 (version: 1.2.3, version: '1.2.3', version: "1.2.3")
  */
 
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
-const { expandUrl } = require('./url-template');
+const { Detector, DetectorResult } = require("./base");
+const { DetectorError, REASONS } = require("./errors");
+const { expandUrl } = require("./url-template");
+const { truncate } = require("./utils");
 
 let yamlLib = null;
-try { yamlLib = require('js-yaml'); } catch { /* fallback to regex */ }
+try {
+  yamlLib = require("js-yaml");
+} catch {
+  /* fallback to regex */
+}
 
 class ElectronYmlDetector extends Detector {
-  static name = 'electron_yml';
+  static name = "electron_yml";
 
   constructor(opts = {}) {
     super({ timeout: opts.timeout ?? 8000 });
-    this.url = opts.url || '';
+    this.url = opts.url || "";
   }
 
   async detect(ctx) {
@@ -35,67 +40,110 @@ class ElectronYmlDetector extends Detector {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
-        note: 'no url configured',
+        note: "no url configured",
       });
     }
     const url = expandUrl(rawUrl, ctx.arch);
 
     const r = await ctx.http.get(url, { timeout: ctx.timeout || this.timeout });
-    if (r.error === 'timeout') {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.TIMEOUT, note: url });
+    if (r.error === "timeout") {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.TIMEOUT,
+        note: url,
+      });
     }
-    if (r.error === 'network') {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.NETWORK, note: url });
+    if (r.error === "network") {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.NETWORK,
+        note: url,
+      });
     }
     if (r.status >= 400 && r.status < 500) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_4XX, httpStatus: r.status, raw: truncate(r.body), note: url });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.HTTP_4XX,
+        httpStatus: r.status,
+        raw: truncate(r.body),
+        note: url,
+      });
     }
     if (r.status >= 500) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_5XX, httpStatus: r.status, raw: truncate(r.body), note: url });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.HTTP_5XX,
+        httpStatus: r.status,
+        raw: truncate(r.body),
+        note: url,
+      });
     }
 
     let ver = null;
-    let verSource = 'top';
+    let verSource = "top";
     let parsed = null;
     if (yamlLib) {
       try {
         const data = yamlLib.load(r.body);
         // Phase 6: 1) 顶层 version, 2) 数组第一个的 version, 3) path 文件名
-        ver = data && (data.version || (Array.isArray(data) && data[0] && data[0].version));
-        if (!ver && data && typeof data.path === 'string') {
+        ver =
+          data &&
+          (data.version || (Array.isArray(data) && data[0] && data[0].version));
+        if (!ver && data && typeof data.path === "string") {
           const m = data.path.match(/[vV]?(\d+\.\d+(?:\.\d+)*)/);
-          if (m) { ver = m[1]; verSource = 'path'; }
+          if (m) {
+            ver = m[1];
+            verSource = "path";
+          }
         }
         parsed = data;
       } catch (e) {
         // 继续尝试 regex 回退
         ver = regexExtractVersion(r.body);
         if (!ver) {
-          throw new DetectorError({ detector: this.constructor.name, reason: REASONS.PARSE, raw: truncate(r.body), note: e.message });
+          throw new DetectorError({
+            detector: this.constructor.name,
+            reason: REASONS.PARSE,
+            raw: truncate(r.body),
+            note: e.message,
+          });
         }
-        verSource = 'regex-after-yaml-fail';
+        verSource = "regex-after-yaml-fail";
       }
     } else {
       ver = regexExtractVersion(r.body);
       if (!ver) {
-        throw new DetectorError({ detector: this.constructor.name, reason: REASONS.NO_VERSION, raw: truncate(r.body), note: 'version field not found' });
+        throw new DetectorError({
+          detector: this.constructor.name,
+          reason: REASONS.NO_VERSION,
+          raw: truncate(r.body),
+          note: "version field not found",
+        });
       }
-      verSource = 'regex';
+      verSource = "regex";
     }
 
     if (!ver) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.NO_VERSION, raw: truncate(r.body), note: 'version field empty' });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.NO_VERSION,
+        raw: truncate(r.body),
+        note: "version field empty",
+      });
     }
 
     // Phase 14: 提取 releaseNotes. electron-builder 1.x+ 在 latest-mac.yml 里
     // 有 releaseNotes 字段 (string, markdown 格式). 老格式可能没有.
-    const changelog = (parsed && typeof parsed.releaseNotes === 'string') ? parsed.releaseNotes : '';
+    const changelog =
+      parsed && typeof parsed.releaseNotes === "string"
+        ? parsed.releaseNotes
+        : "";
 
     return new DetectorResult({
       version: String(ver).trim(),
       raw: truncate(r.body, 1024),
       source: this.constructor.name,
-      confidence: 'high',
+      confidence: "high",
       note: `electron yml (${verSource})`,
       changelog,
     });
@@ -116,11 +164,6 @@ function regexExtractVersion(body) {
   const pm = body.match(/^\s*path:\s*['"]?.*?[vV]?(\d+\.\d+(?:\.\d+)*)/m);
   if (pm) return pm[1];
   return null;
-}
-
-function truncate(s, n = 4096) {
-  if (!s) return null;
-  return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
 module.exports = { ElectronYmlDetector };

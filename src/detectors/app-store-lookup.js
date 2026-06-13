@@ -13,17 +13,18 @@
  *   - trim 引号 (iTunes 偶尔返回 "2.1.0" 带引号)
  */
 
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
-const { expandUrl } = require('./url-template');
+const { Detector, DetectorResult } = require("./base");
+const { DetectorError, REASONS } = require("./errors");
+const { expandUrl } = require("./url-template");
+const { truncate, cleanVersion } = require("./utils");
 
 class AppStoreLookupDetector extends Detector {
-  static name = 'app_store_lookup';
+  static name = "app_store_lookup";
 
   constructor(opts = {}) {
     // iTunes API 经常慢, 提到 15s; 仍允许 per-detector 配置覆盖
     super({ timeout: opts.timeout ?? 15000 });
-    this.url = opts.url || '';
+    this.url = opts.url || "";
   }
 
   async detect(ctx) {
@@ -32,29 +33,55 @@ class AppStoreLookupDetector extends Detector {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
-        note: 'no url configured',
+        note: "no url configured",
       });
     }
     const url = expandUrl(rawUrl, ctx.arch);
 
     const r = await ctx.http.get(url, { timeout: ctx.timeout || this.timeout });
-    if (r.error === 'timeout') {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.TIMEOUT, note: url });
+    if (r.error === "timeout") {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.TIMEOUT,
+        note: url,
+      });
     }
-    if (r.error === 'network') {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.NETWORK, note: url });
+    if (r.error === "network") {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.NETWORK,
+        note: url,
+      });
     }
     if (r.status >= 400 && r.status < 500) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_4XX, httpStatus: r.status, raw: truncate(r.body), note: url });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.HTTP_4XX,
+        httpStatus: r.status,
+        raw: truncate(r.body),
+        note: url,
+      });
     }
     if (r.status >= 500) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_5XX, httpStatus: r.status, raw: truncate(r.body), note: url });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.HTTP_5XX,
+        httpStatus: r.status,
+        raw: truncate(r.body),
+        note: url,
+      });
     }
 
     let data;
-    try { data = JSON.parse(r.body); }
-    catch (e) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.PARSE, raw: truncate(r.body), note: e.message });
+    try {
+      data = JSON.parse(r.body);
+    } catch (e) {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.PARSE,
+        raw: truncate(r.body),
+        note: e.message,
+      });
     }
 
     const results = data && data.results;
@@ -63,7 +90,7 @@ class AppStoreLookupDetector extends Detector {
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
         raw: data,
-        note: 'empty results',
+        note: "empty results",
       });
     }
     // Phase 6: results[0].version 可能为空 — 找第一个有 version 的
@@ -71,14 +98,18 @@ class AppStoreLookupDetector extends Detector {
     let pickedIdx = -1;
     for (let i = 0; i < results.length; i++) {
       const v = cleanVersion(results[i].version);
-      if (v) { ver = v; pickedIdx = i; break; }
+      if (v) {
+        ver = v;
+        pickedIdx = i;
+        break;
+      }
     }
     if (!ver) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
         raw: results[0],
-        note: 'version field empty in all results',
+        note: "version field empty in all results",
       });
     }
 
@@ -86,12 +117,12 @@ class AppStoreLookupDetector extends Detector {
       version: ver,
       raw: data,
       source: this.constructor.name,
-      confidence: 'high',
+      confidence: "high",
       note: `app store lookup (results[${pickedIdx}].version)`,
       // Phase 21: iTunes lookup 响应里 results[i].releaseNotes 字段 (HTML 格式).
       // 不是所有 app 都有 (Apple 端维护的少数), 但腾讯/微信/抖音系 通常有.
       changelog: pickReleaseNotes(results[pickedIdx]),
-      changelog_format: 'html',
+      changelog_format: "html",
       // Phase 22: trackId 给 Bulk Upgrade 用 (macappstore:// 深链)
       track_id: pickTrackId(results[pickedIdx]),
     });
@@ -99,9 +130,9 @@ class AppStoreLookupDetector extends Detector {
 }
 
 function pickReleaseNotes(item) {
-  if (!item || typeof item !== 'object') return '';
+  if (!item || typeof item !== "object") return "";
   const notes = item.releaseNotes;
-  return typeof notes === 'string' ? notes.trim() : '';
+  return typeof notes === "string" ? notes.trim() : "";
 }
 
 /**
@@ -110,30 +141,14 @@ function pickReleaseNotes(item) {
  * 没有 / 不是 number → 0 (bulk-upgrade-actions 会当 missing 处理).
  */
 function pickTrackId(item) {
-  if (!item || typeof item !== 'object') return 0;
+  if (!item || typeof item !== "object") return 0;
   const t = item.trackId;
-  if (typeof t === 'number' && Number.isFinite(t) && t > 0) return t;
-  if (typeof t === 'string' && /^\d+$/.test(t)) {
+  if (typeof t === "number" && Number.isFinite(t) && t > 0) return t;
+  if (typeof t === "string" && /^\d+$/.test(t)) {
     const n = Number(t);
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
   return 0;
-}
-
-function cleanVersion(ver) {
-  if (!ver || typeof ver !== 'string') return null;
-  let v = ver.trim();
-  // 去前后引号 (iTunes 偶尔带)
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-    v = v.slice(1, -1);
-  }
-  if (v.startsWith('v') || v.startsWith('V')) v = v.slice(1);
-  return v || null;
-}
-
-function truncate(s, n = 4096) {
-  if (!s) return null;
-  return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
 module.exports = { AppStoreLookupDetector };

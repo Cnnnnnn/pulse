@@ -28,7 +28,7 @@ const pExecFile = promisify(execFile);
 const { HttpClient } = require("../main/http-client");
 const { DetectContext } = require("../detectors/base");
 const { DetectorError } = require("../detectors/errors");
-const { stripBuildNumber } = require("../utils/version-utils");
+const { stripBuildNumber, cleanVersion } = require("../utils/version-utils");
 const { tryVersionSource } = require("./version-source");
 const {
   AppBundleChangelogDetector,
@@ -110,14 +110,6 @@ function makeDetector(detCfg) {
   );
   if (!Cls) return null;
   return new Cls(detCfg);
-}
-
-function cleanVersion(ver) {
-  if (!ver || typeof ver !== "string") return null;
-  let v = ver.trim();
-  if (v.includes(",")) v = v.split(",")[0];
-  if (v.startsWith("v") || v.startsWith("V")) v = v.slice(1);
-  return v.trim() || null;
 }
 
 function compareVersions(installed, latest) {

@@ -10,15 +10,16 @@
  * 配置: { type: 'sparkle_appcast', url: 'https://...' }
  */
 
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
+const { Detector, DetectorResult } = require("./base");
+const { DetectorError, REASONS } = require("./errors");
+const { truncate } = require("./utils");
 
 class SparkleAppcastDetector extends Detector {
-  static name = 'sparkle_appcast';
+  static name = "sparkle_appcast";
 
   constructor(opts = {}) {
     super({ timeout: opts.timeout ?? 8000 });
-    this.url = opts.url || '';
+    this.url = opts.url || "";
   }
 
   async detect(ctx) {
@@ -27,22 +28,42 @@ class SparkleAppcastDetector extends Detector {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
-        note: 'no url configured',
+        note: "no url configured",
       });
     }
 
     const r = await ctx.http.get(url, { timeout: ctx.timeout || this.timeout });
-    if (r.error === 'timeout') {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.TIMEOUT, note: url });
+    if (r.error === "timeout") {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.TIMEOUT,
+        note: url,
+      });
     }
-    if (r.error === 'network') {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.NETWORK, note: url });
+    if (r.error === "network") {
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.NETWORK,
+        note: url,
+      });
     }
     if (r.status >= 400 && r.status < 500) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_4XX, httpStatus: r.status, raw: truncate(r.body), note: url });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.HTTP_4XX,
+        httpStatus: r.status,
+        raw: truncate(r.body),
+        note: url,
+      });
     }
     if (r.status >= 500) {
-      throw new DetectorError({ detector: this.constructor.name, reason: REASONS.HTTP_5XX, httpStatus: r.status, raw: truncate(r.body), note: url });
+      throw new DetectorError({
+        detector: this.constructor.name,
+        reason: REASONS.HTTP_5XX,
+        httpStatus: r.status,
+        raw: truncate(r.body),
+        note: url,
+      });
     }
 
     const ver = extractSparkleVersion(r.body);
@@ -51,7 +72,7 @@ class SparkleAppcastDetector extends Detector {
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
         raw: truncate(r.body),
-        note: 'no sparkle:shortVersionString / sparkle:version',
+        note: "no sparkle:shortVersionString / sparkle:version",
       });
     }
 
@@ -68,10 +89,10 @@ class SparkleAppcastDetector extends Detector {
       version: ver,
       raw: truncate(r.body, 1024),
       source: this.constructor.name,
-      confidence: 'high',
-      note: 'sparkle appcast',
+      confidence: "high",
+      note: "sparkle appcast",
       changelog: desc,
-      changelog_format: 'html',
+      changelog_format: "html",
       release_url: releaseUrl,
     });
   }
@@ -85,16 +106,18 @@ class SparkleAppcastDetector extends Detector {
  * 如果没有 description 节点, 返回空串 (UI 端 fallback 到 "无 release notes").
  */
 function extractSparkleDescription(xml) {
-  if (!xml) return '';
+  if (!xml) return "";
   // 匹配第一个 <item>...</item> 块
   const itemMatch = xml.match(/<item[^>]*>([\s\S]*?)<\/item>/i);
   const block = itemMatch ? itemMatch[1] : xml;
   // 描述节点 (可能带 CDATA, 也可能不带)
-  let m = block.match(/<description[^>]*>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/description>/i);
+  let m = block.match(
+    /<description[^>]*>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/description>/i,
+  );
   if (m) return m[1].trim();
   m = block.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
   if (m) return m[1].trim();
-  return '';
+  return "";
 }
 
 function extractSparkleVersion(xml) {
@@ -120,16 +143,11 @@ function extractSparkleVersion(xml) {
  * 没找到 → 返回 '' (caller fallback 到 shell.openPath).
  */
 function extractSparkleEnclosureUrl(xml) {
-  if (!xml) return '';
+  if (!xml) return "";
   const itemMatch = xml.match(/<item[^>]*>([\s\S]*?)<\/item>/i);
   const block = itemMatch ? itemMatch[1] : xml;
   const m = block.match(/<enclosure\b[^>]*\burl\s*=\s*["']([^"']+)["']/i);
-  return m ? m[1].trim() : '';
-}
-
-function truncate(s, n = 4096) {
-  if (!s) return null;
-  return s.length > n ? s.slice(0, n) + '…' : s;
+  return m ? m[1].trim() : "";
 }
 
 module.exports = { SparkleAppcastDetector };
