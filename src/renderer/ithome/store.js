@@ -26,15 +26,37 @@ export const ithomeNewsError = signal(null);
 export const ithomeSelectedDate = signal(todayShanghaiDateKey());
 export const ithomeFavoriteSelectedDate = signal("");
 export const ithomeViewMode = signal("news");
+export const ithomeReadIds = signal({});
+export const ithomeNewIds = signal({});
 
 function _applyPayload(data) {
   if (!data) return;
-  ithomeArticles.value = data.articles || {};
+  const articles = data.articles || {};
+  ithomeArticles.value = articles;
   ithomeDayStats.value = data.dayStats || {};
   ithomeSummaries.value = data.summaries || {};
   ithomeFavorites.value = data.favorites || {};
   ithomeNewsTs.value = data.ts || 0;
   ithomeNewsLoaded.value = true;
+  // 派生 readIds (从 articles 的 readAt 字段)
+  const readIds = {};
+  for (const a of Object.values(articles)) {
+    if (a && a.id && a.readAt) readIds[a.id] = a.readAt;
+  }
+  ithomeReadIds.value = readIds;
+  // diff 找出新文章 — 仅追踪本 session 内首次出现的 id
+  // (信号生命周期 = app 一次运行; 启动时 prevIds === {} 所以这次 load 不会
+  // 把所有现存文章都标 NEW, 这符合 spec 4.2 "app 重启后 NEW 全部清空" 的语义)
+  const prevIds = new Set(Object.keys(ithomeNewIds.value));
+  const newMap = { ...ithomeNewIds.value };
+  let mutated = false;
+  for (const id of Object.keys(articles)) {
+    if (!prevIds.has(id) && !readIds[id]) {
+      newMap[id] = 1;
+      mutated = true;
+    }
+  }
+  if (mutated) ithomeNewIds.value = newMap;
   _syncFavoriteSelectedDate();
 }
 
@@ -108,6 +130,7 @@ export async function setIthomeSelectedDate(dateKey) {
   const prev = ithomeSelectedDate.value;
   ithomeSelectedDate.value = dateKey;
   ithomeNewsError.value = null;
+  ithomeNewIds.value = {};
   if (dateKey && dateKey !== prev) {
     trackIthomeView(dateKey);
   }
@@ -143,6 +166,36 @@ export async function summarizeIthomeArticle(id, force = false) {
   return r;
 }
 
+export async function markIthomeRead(id) {
+  if (!id) return { ok: false, reason: "invalid_args" };
+  const now = Date.now();
+  // 1. 乐观更新 readIds signal
+  ithomeReadIds.value = { ...ithomeReadIds.value, [id]: now };
+  // 2. 从 newIds 移除
+  if (ithomeNewIds.value[id]) {
+    const next = { ...ithomeNewIds.value };
+    delete next[id];
+    ithomeNewIds.value = next;
+  }
+  // 3. 同步更新 article.readAt in-memory
+  if (ithomeArticles.value[id]) {
+    ithomeArticles.value = {
+      ...ithomeArticles.value,
+      [id]: { ...ithomeArticles.value[id], readAt: now },
+    };
+  }
+  // 4. 异步落盘 (fire-and-forget)
+  const markRead = requireApiMethod("ithomeMarkRead");
+  if (markRead) {
+    try {
+      await markRead(id);
+    } catch {
+      /* ignore — signal 已是 source of truth */
+    }
+  }
+  return { ok: true };
+}
+
 export async function toggleIthomeFavorite(id) {
   const toggleFavorite = requireApiMethod("ithomeToggleFavorite");
   if (!toggleFavorite) {
@@ -164,6 +217,7 @@ export async function toggleIthomeFavorite(id) {
 
 export function setIthomeViewMode(mode) {
   ithomeViewMode.value = mode === "favorites" ? "favorites" : "news";
+  ithomeNewIds.value = {};
   if (ithomeViewMode.value === "favorites") {
     _syncFavoriteSelectedDate();
   }
@@ -171,6 +225,7 @@ export function setIthomeViewMode(mode) {
 
 export function setIthomeFavoriteSelectedDate(dateKey) {
   ithomeFavoriteSelectedDate.value = dateKey;
+  ithomeNewIds.value = {};
 }
 
 export async function bootstrapIthomeTab() {
