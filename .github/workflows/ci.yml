@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# 同分支新 push 取消老 run, 不浪费 CI 时间
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Test + Build renderer
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test -- --run
+
+      - name: Build renderer bundle
+        run: npm run build:renderer
+
+      - name: Verify bundle produced
+        run: |
+          test -f renderer-dist/renderer.bundle.js
+          echo "bundle size: $(du -h renderer-dist/renderer.bundle.js | cut -f1)"

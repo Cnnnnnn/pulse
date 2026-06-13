@@ -69,17 +69,24 @@ describe("scores-api-worldcup26", () => {
   });
 
   it("未开赛且未到开球时间 → 不产出比分", () => {
+    // 用相对未来的日期, 否则硬编码日期一过测试就假阳性 (今天已过开球时间)
+    const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const yyyy = future.getUTCFullYear();
+    const mm = String(future.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(future.getUTCDate()).padStart(2, "0");
+    const localDate = `${mm}/${dd}/${yyyy} 15:00`;
+    const isoDate = `${yyyy}-${mm}-${dd}`;
     const game = {
       home_team_name_en: "Canada",
       away_team_name_en: "Bosnia and Herzegovina",
-      local_date: "06/12/2026 15:00",
+      local_date: localDate,
       home_score: "0",
       away_score: "0",
       finished: "FALSE",
       time_elapsed: "notstarted",
     };
     const fixture = {
-      date: "2026-06-12",
+      date: isoDate,
       time: "15:00",
       timezone: "UTC-4",
       team1: "Canada",
