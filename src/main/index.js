@@ -339,6 +339,18 @@ async function bootstrap() {
   const t0 = Date.now();
   const statePath = stateStore.initStateStorePaths();
   mainLog.info(`state store path: ${statePath}`);
+  // 启动时检查 state.json 大小: > 5MB 写 warn 日志, 供未来 db 换型决策用
+  try {
+    const st = fs.statSync(statePath);
+    if (st && st.size > 5 * 1024 * 1024) {
+      mainLog.warn(
+        `[db-health] state.json size=${(st.size / 1024 / 1024).toFixed(2)}MB exceeds 5MB threshold. ` +
+          `Consider splitting large collection fields into separate files (see docs/db-migration-assessment.md).`,
+      );
+    }
+  } catch {
+    /* ENOENT 等不阻塞启动 */
+  }
   // 整进程级别的启动元信息 — 写一行, 便于人 grep
   mainLog.info(
     `boot pid=${process.id} arch=${ARCH} platform=${process.platform}`,
