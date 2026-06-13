@@ -22,6 +22,7 @@
 const EventEmitter = require("events");
 const { fetchFundNavBatch } = require("../funds/fund-fetcher");
 const { pickEffectiveNavNumber } = require("../funds/fund-nav-merge");
+const { NavSourceHealth } = require("../funds/nav-source-health");
 const {
   getTradingStatus,
   msUntilNextFetch,
@@ -42,6 +43,7 @@ const DEFAULT_CONCURRENCY = 4;
  *   concurrency?: number,
  *   logger?: { info, warn, error, debug },
  *   now?: () => Date,                                // 测试注入用
+ *   health?: { record: (source: string, ok: boolean, code?: string) => void },
  * }} opts
  */
 class FundScheduler extends EventEmitter {
@@ -57,6 +59,8 @@ class FundScheduler extends EventEmitter {
     this._concurrency = opts.concurrency ?? DEFAULT_CONCURRENCY;
     this._log = opts.logger || mainLog;
     this._now = opts.now || (() => new Date());
+    // 净值源健康度跟踪 — 给 fetcher 用, 也给 IPC snapshot 用
+    this._health = opts.health || new NavSourceHealth();
 
     this._status = "closed"; // 'closed' | 'idle' | 'running'
     this._lastFetch = null; // unix ms
@@ -152,6 +156,13 @@ class FundScheduler extends EventEmitter {
   }
 
   /**
+   * 净值源健康度快照 — 供 IPC funds:nav:health 返回给 UI.
+   */
+  getNavHealth() {
+    return this._health.snapshot();
+  }
+
+  /**
    * 手动立即触发一次拉取. 绕过定时器, 不论 status 是否 closed.
    * 已在 running 时返回 { ok: false, reason: 'in_flight' }.
    */
@@ -207,10 +218,15 @@ class FundScheduler extends EventEmitter {
 
     const startedAt = Date.now();
     try {
-      const out = await fetchFundNavBatch(codes, this._http, {
-        concurrency: this._concurrency,
-        timeoutMs: 8000,
-      });
+      const out = await fetchFundNavBatch(
+        codes,
+        this._http,
+        {
+          concurrency: this._concurrency,
+          timeoutMs: 8000,
+        },
+        this._health,
+      );
       this._lastFetch = Date.now();
       // 存最新 nav (供 backfill + IPC funds:backfill 用)
       if (out.results) {

@@ -220,9 +220,48 @@ describe("fetched 事件 payload", () => {
     });
     await s.fetchNow();
     expect(payload).toBeTruthy();
-    expect(payload.errors["000001"]).toMatch(/HTTP 500/);
+    // 主源 (tiantian) 500 时, sina 兜底 → 000001 进 results, 标 fallbackFrom
+    expect(payload.results["000001"]).toBeTruthy();
+    expect(payload.results["000001"].fallbackFrom).toBe("tiantian");
+    expect(payload.errors["000001"]).toBeUndefined();
     expect(payload.results["000002"]).toBeTruthy();
     expect(payload.fetchedAt).toBeGreaterThan(0);
     expect(payload.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("双源都失败 → 进 errors", async () => {
+    const http = dualSourceHttp({
+      tiantian: () => ({ status: 500, body: "oops" }),
+      sina: () => ({ status: 502, body: "bad gw" }),
+    });
+    const s = new FundScheduler({
+      httpClient: http,
+      getCodes: () => ["000001"],
+      now: () => new Date("2026-06-15T10:00:00"),
+      logger: silentLogger(),
+    });
+    let payload = null;
+    s.on("fetched", (p) => {
+      payload = p;
+    });
+    await s.fetchNow();
+    expect(payload).toBeTruthy();
+    expect(payload.errors["000001"]).toMatch(/HTTP 500/);
+    expect(payload.results["000001"]).toBeUndefined();
+  });
+
+  it("getNavHealth 返回源健康度快照", async () => {
+    const http = dualSourceHttp();
+    const s = new FundScheduler({
+      httpClient: http,
+      getCodes: () => ["000001"],
+      now: () => new Date("2026-06-15T10:00:00"),
+      logger: silentLogger(),
+    });
+    await s.fetchNow();
+    const snap = s.getNavHealth();
+    expect(snap.tiantian.samples).toBeGreaterThan(0);
+    expect(snap.sina.samples).toBeGreaterThan(0);
+    expect(snap.tiantian.successRate).toBe(1);
   });
 });

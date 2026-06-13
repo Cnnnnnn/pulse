@@ -231,12 +231,34 @@ describe("fetchFundNavBatch", () => {
     expect(http.getCalls).toHaveLength(6);
   });
 
-  it("部分失败 → 成功的进 results, 失败的进 errors", async () => {
+  it("主源 (tiantian) 失败时 → fallback 到备用源 (sina)", async () => {
     const http = dualSourceHttp({
       tiantian: (url) =>
         url.includes("/000002.js")
           ? { status: 500, body: "oops" }
           : { status: 200, body: SAMPLE_JSONP },
+    });
+    const codes = ["000001", "000002", "000003"];
+    const out = await fetchFundNavBatch(codes, http);
+    expect(out.results["000001"]).toBeDefined();
+    // 000002 主源挂了, 但 sina 兜底成功 → 仍在 results, 标 fallbackFrom
+    expect(out.results["000002"]).toBeDefined();
+    expect(out.results["000002"].fallbackFrom).toBe("tiantian");
+    expect(out.results["000002"].source).toBe("sina");
+    expect(out.results["000003"]).toBeDefined();
+    expect(out.errors).toEqual({});
+  });
+
+  it("主源 + 备用源都失败 → 进 errors", async () => {
+    const http = dualSourceHttp({
+      tiantian: (url) =>
+        url.includes("/000002.js")
+          ? { status: 500, body: "oops" }
+          : { status: 200, body: SAMPLE_JSONP },
+      sina: (url) =>
+        url.includes("of000002")
+          ? { status: 502, body: "bad gw" }
+          : { status: 200, body: SAMPLE_SINA },
     });
     const codes = ["000001", "000002", "000003"];
     const out = await fetchFundNavBatch(codes, http);
