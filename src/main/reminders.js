@@ -195,6 +195,31 @@ function _normalizeAll(arr) {
   return arr.map(_normalizeReminder).filter(Boolean);
 }
 
+/** 读 state + 规范化 reminders 列表 — update/remove/mark* 共用 */
+function _remindersCtx(statePath) {
+  const path = statePath || stateStore.defaultPath();
+  const existing = _withStateShell(_readStateRaw(path));
+  const reminders = Array.isArray(existing.reminders)
+    ? _normalizeAll(existing.reminders)
+    : [];
+  return { path, existing, reminders };
+}
+
+function _invalidIdResult(id) {
+  if (typeof id !== "string" || id.length === 0) {
+    return { ok: false, reason: "invalid_id" };
+  }
+  return null;
+}
+
+function _findReminderIndex(reminders, id) {
+  return reminders.findIndex((r) => r && r.id === id);
+}
+
+function _saveReminders(ctx, reminders) {
+  stateStore.writeAtomic(ctx.path, { ...ctx.existing, reminders });
+}
+
 // ── 公开 API: CRUD ────────────────────────────────────────
 
 /**
@@ -220,10 +245,7 @@ function create(input, statePath) {
     return { ok: false, reason: err.code || "invalid_input" };
   }
   const path = statePath || stateStore.defaultPath();
-  const existing = _withStateShell(_readStateRaw(path));
-  const reminders = Array.isArray(existing.reminders)
-    ? _normalizeAll(existing.reminders)
-    : [];
+  const { existing, reminders } = _remindersCtx(path);
   const reminder = {
     id: genId(),
     title: input.title,
@@ -252,22 +274,17 @@ function create(input, statePath) {
  * @returns {{ ok: true, reminder: Reminder } | { ok: false, reason: string }}
  */
 function update(id, patch, statePath) {
-  if (typeof id !== "string" || id.length === 0) {
-    return { ok: false, reason: "invalid_id" };
-  }
+  const badId = _invalidIdResult(id);
+  if (badId) return badId;
   try {
     _validatePatch(patch || {});
   } catch (err) {
     return { ok: false, reason: err.code || "invalid_patch" };
   }
-  const path = statePath || stateStore.defaultPath();
-  const existing = _withStateShell(_readStateRaw(path));
-  const reminders = Array.isArray(existing.reminders)
-    ? _normalizeAll(existing.reminders)
-    : [];
-  const idx = reminders.findIndex((r) => r && r.id === id);
+  const ctx = _remindersCtx(statePath);
+  const idx = _findReminderIndex(ctx.reminders, id);
   if (idx === -1) return { ok: false, reason: "not_found" };
-  const prev = reminders[idx];
+  const prev = ctx.reminders[idx];
   // 合并: 优先 patch 字段, repeat 切换时 weekday 一并切
   const next = {
     ...prev,
@@ -282,8 +299,8 @@ function update(id, patch, statePath) {
   // 重新规范化
   const normalized = _normalizeReminder(next);
   if (!normalized) return { ok: false, reason: "invalid_after_patch" };
-  reminders[idx] = normalized;
-  stateStore.writeAtomic(path, { ...existing, reminders });
+  ctx.reminders[idx] = normalized;
+  _saveReminders(ctx, ctx.reminders);
   return { ok: true, reminder: normalized };
 }
 
@@ -294,18 +311,13 @@ function update(id, patch, statePath) {
  * @returns {{ ok: true } | { ok: false, reason: string }}
  */
 function remove(id, statePath) {
-  if (typeof id !== "string" || id.length === 0) {
-    return { ok: false, reason: "invalid_id" };
-  }
-  const path = statePath || stateStore.defaultPath();
-  const existing = _withStateShell(_readStateRaw(path));
-  const reminders = Array.isArray(existing.reminders)
-    ? _normalizeAll(existing.reminders)
-    : [];
-  const idx = reminders.findIndex((r) => r && r.id === id);
+  const badId = _invalidIdResult(id);
+  if (badId) return badId;
+  const ctx = _remindersCtx(statePath);
+  const idx = _findReminderIndex(ctx.reminders, id);
   if (idx === -1) return { ok: false, reason: "not_found" };
-  reminders.splice(idx, 1);
-  stateStore.writeAtomic(path, { ...existing, reminders });
+  ctx.reminders.splice(idx, 1);
+  _saveReminders(ctx, ctx.reminders);
   return { ok: true };
 }
 
@@ -316,25 +328,20 @@ function remove(id, statePath) {
  * @returns {{ ok: true, reminder: Reminder } | { ok: false, reason: string }}
  */
 function markFired(id, statePath) {
-  if (typeof id !== "string" || id.length === 0) {
-    return { ok: false, reason: "invalid_id" };
-  }
-  const path = statePath || stateStore.defaultPath();
-  const existing = _withStateShell(_readStateRaw(path));
-  const reminders = Array.isArray(existing.reminders)
-    ? _normalizeAll(existing.reminders)
-    : [];
-  const idx = reminders.findIndex((r) => r && r.id === id);
+  const badId = _invalidIdResult(id);
+  if (badId) return badId;
+  const ctx = _remindersCtx(statePath);
+  const idx = _findReminderIndex(ctx.reminders, id);
   if (idx === -1) return { ok: false, reason: "not_found" };
   const now = Date.now();
-  reminders[idx] = {
-    ...reminders[idx],
+  ctx.reminders[idx] = {
+    ...ctx.reminders[idx],
     status: "fired",
     firedAt: now,
     lastNotifiedAt: now,
   };
-  const fired = reminders[idx];
-  stateStore.writeAtomic(path, { ...existing, reminders });
+  const fired = ctx.reminders[idx];
+  _saveReminders(ctx, ctx.reminders);
   recentActivity.push({
     kind: "reminder-fire",
     ref: id,
@@ -351,20 +358,15 @@ function markFired(id, statePath) {
  *   - reminder=null 表示已删除 (once 完成)
  */
 function markDone(id, statePath) {
-  if (typeof id !== "string" || id.length === 0) {
-    return { ok: false, reason: "invalid_id" };
-  }
-  const path = statePath || stateStore.defaultPath();
-  const existing = _withStateShell(_readStateRaw(path));
-  const reminders = Array.isArray(existing.reminders)
-    ? _normalizeAll(existing.reminders)
-    : [];
-  const idx = reminders.findIndex((r) => r && r.id === id);
+  const badId = _invalidIdResult(id);
+  if (badId) return badId;
+  const ctx = _remindersCtx(statePath);
+  const idx = _findReminderIndex(ctx.reminders, id);
   if (idx === -1) return { ok: false, reason: "not_found" };
-  const r = reminders[idx];
+  const r = ctx.reminders[idx];
   if (r.repeat === "once") {
-    reminders.splice(idx, 1);
-    stateStore.writeAtomic(path, { ...existing, reminders });
+    ctx.reminders.splice(idx, 1);
+    _saveReminders(ctx, ctx.reminders);
     recentActivity.push({
       kind: "reminder-done",
       ref: id,
@@ -372,22 +374,21 @@ function markDone(id, statePath) {
     });
     return { ok: true, reminder: null };
   }
-  // 重复: 算下次
   const nextTriggerAt = _computeNextFireTime(r, Date.now());
-  reminders[idx] = {
+  ctx.reminders[idx] = {
     ...r,
     status: "pending",
     triggerAt: nextTriggerAt,
     firedAt: undefined,
     lastNotifiedAt: undefined,
   };
-  stateStore.writeAtomic(path, { ...existing, reminders });
+  _saveReminders(ctx, ctx.reminders);
   recentActivity.push({
     kind: "reminder-done",
     ref: id,
     label: r.title,
   });
-  return { ok: true, reminder: reminders[idx] };
+  return { ok: true, reminder: ctx.reminders[idx] };
 }
 
 /**
@@ -397,19 +398,14 @@ function markDone(id, statePath) {
  * @returns {{ ok: true, reminder: Reminder } | { ok: false, reason: string }}
  */
 function markDismissed(id, statePath) {
-  if (typeof id !== "string" || id.length === 0) {
-    return { ok: false, reason: "invalid_id" };
-  }
-  const path = statePath || stateStore.defaultPath();
-  const existing = _withStateShell(_readStateRaw(path));
-  const reminders = Array.isArray(existing.reminders)
-    ? _normalizeAll(existing.reminders)
-    : [];
-  const idx = reminders.findIndex((r) => r && r.id === id);
+  const badId = _invalidIdResult(id);
+  if (badId) return badId;
+  const ctx = _remindersCtx(statePath);
+  const idx = _findReminderIndex(ctx.reminders, id);
   if (idx === -1) return { ok: false, reason: "not_found" };
-  reminders[idx] = { ...reminders[idx], status: "dismissed" };
-  const dismissed = reminders[idx];
-  stateStore.writeAtomic(path, { ...existing, reminders });
+  ctx.reminders[idx] = { ...ctx.reminders[idx], status: "dismissed" };
+  const dismissed = ctx.reminders[idx];
+  _saveReminders(ctx, ctx.reminders);
   recentActivity.push({
     kind: "reminder-dismissed",
     ref: id,
