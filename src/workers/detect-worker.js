@@ -29,6 +29,7 @@ const { HttpClient } = require("../main/http-client");
 const { DetectContext } = require("../detectors/base");
 const { DetectorError } = require("../detectors/errors");
 const { stripBuildNumber, cleanVersion } = require("../utils/version-utils");
+const { resolveAppBundlePath, appBundleResourcePath } = require("../utils/app-paths");
 const { tryVersionSource } = require("./version-source");
 const {
   AppBundleChangelogDetector,
@@ -265,7 +266,7 @@ async function getInstalledVersion(bundleName, versionSources) {
         "xml1",
         "-o",
         "-",
-        `/Applications/${bundleName}/Contents/Info.plist`,
+        appBundleResourcePath(bundleName, "Contents", "Info.plist"),
       ],
       { timeout: 5000 },
     );
@@ -412,7 +413,7 @@ async function handleDetectApp(appCfg) {
   // installed — 先快查 app 是否存在（避免对不存在的 app 跑 system_profiler）
   const appExists = (() => {
     try {
-      return fs.existsSync(`/Applications/${bundle}`);
+      return fs.existsSync(resolveAppBundlePath(bundle));
     } catch {
       return false;
     }

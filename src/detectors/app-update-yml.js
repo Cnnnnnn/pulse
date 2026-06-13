@@ -11,6 +11,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { appBundleResourcePath } = require("../utils/app-paths");
 const { Detector, DetectorResult } = require("./base");
 const { DetectorError, REASONS } = require("./errors");
 const { truncate, assertHttpResponse } = require("./utils");
@@ -39,7 +40,12 @@ class AppUpdateYmlDetector extends Detector {
       });
     }
 
-    const ymlPath = `/Applications/${bundle}/Contents/Resources/app-update.yml`;
+    const ymlPath = appBundleResourcePath(
+      bundle,
+      "Contents",
+      "Resources",
+      "app-update.yml",
+    );
     let ymlData;
     try {
       const raw = fs.readFileSync(ymlPath, "utf-8");

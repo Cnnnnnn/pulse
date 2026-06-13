@@ -59,8 +59,6 @@ import './category-init.js';
  */
 async function triggerCheck() {
   if (isCheckRunning()) {
-    // eslint-disable-next-line no-console
-    console.log('[index] triggerCheck: already running, skipping');
     return;
   }
   if (activeRecheck) activeRecheck.cancel();
@@ -190,7 +188,7 @@ async function bootstrap() {
   api.onStartCheck(() => triggerCheck());
 
   // 后台自动 check 完成时: finish session + 刷新 last-opened
-  api.onAutoCheckFinished(({ count, ts }) => {
+  api.onAutoCheckFinished(() => {
     // 如果当前没有手动 check 在跑, 直接标记 done
     if (!isCheckRunning()) {
       finishCheck();
@@ -199,8 +197,6 @@ async function bootstrap() {
     import('./store.js').then(({ refreshLastOpened }) => {
       refreshLastOpened().catch(() => {});
     });
-    // eslint-disable-next-line no-console
-    console.log(`[auto-check] ${count} apps refreshed at ${new Date(ts).toLocaleString()}`);
   });
 
   // Bulk Upgrade 事件

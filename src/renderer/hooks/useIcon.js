@@ -15,19 +15,16 @@
 
 import { useState, useEffect } from 'preact/hooks';
 import { api } from '../api.js';
+import { resolveAppBundlePath } from '../../utils/app-paths.js';
 
 const iconCache = new Map();       // bundle → dataURL
 const inflight = new Map();        // bundle → Promise (避免重复请求)
 
 /**
  * 把 config 里的 bundle (e.g. "Cursor.app") 拼成 macOS 全路径.
- * Phase 25: 之前 useIcon 直接传 "Cursor.app" 给 IPC, 但 nativeImage.createFromPath
- * 要的是 "/Applications/Cursor.app". 这里统一在 hook 里拼, 不污染 result.bundle.
  */
 function bundleToPath(bundle) {
-  if (!bundle || typeof bundle !== 'string') return null;
-  if (bundle.startsWith('/')) return bundle;  // 已经是全路径
-  return `/Applications/${bundle}`;
+  return resolveAppBundlePath(bundle);
 }
 
 /**

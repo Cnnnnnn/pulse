@@ -18,6 +18,7 @@ const fs = require("fs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const pExecFile = promisify(execFile);
+const { appBundleResourcePath } = require("../utils/app-paths");
 
 const { Detector, DetectorResult } = require("./base");
 const { DetectorError, REASONS } = require("./errors");
@@ -175,7 +176,7 @@ function decrementPatch(parts) {
 
 async function readInstalledVersion(bundle) {
   if (!bundle || typeof bundle !== "string") return null;
-  const plistPath = `/Applications/${bundle}/Contents/Info.plist`;
+  const plistPath = appBundleResourcePath(bundle, "Contents", "Info.plist");
   if (!fs.existsSync(plistPath)) return null;
   try {
     const { stdout } = await pExecFile(

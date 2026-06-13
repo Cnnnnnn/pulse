@@ -56,6 +56,7 @@ const { FundScheduler } = require("./fund-scheduler");
 const reminders = require("./reminders");
 const recentActivity = require("./recent-activity");
 const { installErrorGuard } = require("./error-guard");
+const { resolveAppBundlePath } = require("../utils/app-paths");
 
 const ARCH = process.arch === "arm64" ? "arm64" : "x64";
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -493,14 +494,7 @@ async function bootstrap() {
   // 11 app × ~100ms 总 ~1.2s, fire-and-forget, 不阻塞主流程.
   //
   // Phase 29 hotfix: a.bundle is just the bundle name ("Cursor.app"), not a
-  // full path. mdls/stat need absolute path. Prepend /Applications/.
-  // (User-installed apps go to /Applications; for custom dirs, would need
-  // a config knob — v2.4 territory.)
-  function resolveBundlePath(bundleName) {
-    if (!bundleName) return null;
-    if (bundleName.startsWith("/")) return bundleName; // 已是绝对路径
-    return `/Applications/${bundleName}`;
-  }
+  // full path. mdls/stat need absolute path.
   function refreshLastOpenedAfterCheck() {
     const apps = (runtimeConfig && runtimeConfig.apps) || [];
     const refreshable = apps.filter((a) => a && a.name && a.bundle);
@@ -510,7 +504,7 @@ async function bootstrap() {
         const next = {};
         await Promise.all(
           refreshable.map(async (a) => {
-            const path = resolveBundlePath(a.bundle);
+            const path = resolveAppBundlePath(a.bundle);
             if (!path) {
               next[a.name] = { ms: null, source: "unknown" };
               return;

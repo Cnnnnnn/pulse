@@ -21,6 +21,7 @@ const { CloudSummarizer } = require('./provider-cloud');
 const { TaskSummaryEngine } = require('./engine');
 const { HttpClient } = require('../main/http-client');
 const stateStore = require('../main/state-store');
+const { SILENT_LOG } = require('./session-log');
 
 // 只保留云 provider (minimax / deepseek).
 const SUPPORTED_PROVIDERS = ['deepseek', 'minimax'];
@@ -152,15 +153,15 @@ function buildTaskSummaryEngine(opts = {}) {
     // 默认: Codex + MiniMax Code (detector isInstalled() 内部 skip 未装的)
     const { CodexDetectorImpl } = require('./codex');
     const { MiniMaxCodeDetectorImpl } = require('./minimax-code');
+    const detectorLog = opts.log || SILENT_LOG;
     detectors.push(new AISessionDetector({ appName: 'codex',        impl: new CodexDetectorImpl() }));
-    detectors.push(new AISessionDetector({ appName: 'minimax-code', impl: new MiniMaxCodeDetectorImpl() }));
+    detectors.push(new AISessionDetector({
+      appName: 'minimax-code',
+      impl: new MiniMaxCodeDetectorImpl({ log: detectorLog }),
+    }));
   }
 
-  const log = opts.log || {
-    info: (...a) => console.log('[tasks]', ...a),
-    warn: (...a) => console.warn('[tasks]', ...a),
-    error: (...a) => console.error('[tasks]', ...a),
-  };
+  const log = opts.log || SILENT_LOG;
   const engine = new TaskSummaryEngine({
     detectors,
     summarizer,

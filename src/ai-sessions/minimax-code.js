@@ -28,18 +28,19 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { resolveAppBundlePath } = require('../utils/app-paths');
 const {
   loadNodeSqlite,
   listSessionsViaCli,
   readSessionViaCli,
 } = require('./sqlite-helper');
+const { SILENT_LOG, prefixLog } = require('./session-log');
 
-const MINIMAX_CODE_BUNDLE_PATH = '/Applications/MiniMax Code.app';
+const MINIMAX_CODE_BUNDLE_PATH = resolveAppBundlePath('MiniMax Code.app');
 const MINIMAX_SQLITE_PATH = path.join(os.homedir(), '.minimax', 'sqlite.db');
-const LOG_PREFIX = '[minimax-code]';
 
-function _loadNodeSqlite() {
-  return loadNodeSqlite(LOG_PREFIX);
+function _loadNodeSqlite(log = SILENT_LOG) {
+  return loadNodeSqlite(log);
 }
 
 class MiniMaxCodeDetectorImpl {
@@ -47,6 +48,7 @@ class MiniMaxCodeDetectorImpl {
     this.appName = 'minimax-code';
     this.bundlePath = opts.bundlePath || MINIMAX_CODE_BUNDLE_PATH;
     this.sqlitePath = opts.sqlitePath || MINIMAX_SQLITE_PATH;
+    this.log = prefixLog('[minimax-code]', opts.log || SILENT_LOG);
   }
 
   /**
@@ -69,18 +71,17 @@ class MiniMaxCodeDetectorImpl {
    * @returns {Promise<Array<{id: string, file: string, mtimeMs: number, sizeBytes: number}>>}
    */
   async listSessions() {
-    const loaded = _loadNodeSqlite();
+    const loaded = _loadNodeSqlite(this.log);
     if (!loaded) {
       // node:sqlite 不可用 — 用 sqlite3 CLI fallback
-      return await listSessionsViaCli(this.sqlitePath, LOG_PREFIX);
+      return await listSessionsViaCli(this.sqlitePath, this.log);
     }
     const sqlite = loaded.sqlite;
     let stat;
     try {
       stat = fs.statSync(this.sqlitePath);
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn(`[minimax-code] stat failed for ${this.sqlitePath}: ${err.message}`);
+      this.log.warn(`stat failed for ${this.sqlitePath}: ${err.message}`);
       return [];
     }
     let db;
@@ -97,18 +98,16 @@ class MiniMaxCodeDetectorImpl {
       }
     } catch (err) {
       // 文件被 lock / schema 变了 / 其它 → 返空 (再走 CLI fallback)
-      // eslint-disable-next-line no-console
-      console.warn(`[minimax-code] node:sqlite open failed (${err.message}); falling back to sqlite3 CLI`);
+      this.log.warn(`node:sqlite open failed (${err.message}); falling back to sqlite3 CLI`);
       try { db.close(); } catch { /* noop */ }
-      return await listSessionsViaCli(this.sqlitePath, LOG_PREFIX);
+      return await listSessionsViaCli(this.sqlitePath, this.log);
     }
     try {
       const tables = db.prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'"
       ).all();
       if (tables.length === 0) {
-        // eslint-disable-next-line no-console
-        console.warn(`[minimax-code] sessions table missing in ${this.sqlitePath}`);
+        this.log.warn(`sessions table missing in ${this.sqlitePath}`);
         return [];
       }
       const hasDeleted = _hasColumn(db, 'sessions', 'deleted_at');
@@ -122,13 +121,11 @@ class MiniMaxCodeDetectorImpl {
          ${hasDeleted ? 'WHERE deleted_at IS NULL' : ''}
          ORDER BY updated_at DESC`
       ).all();
-      // eslint-disable-next-line no-console
-      console.log(`[minimax-code] listSessions via node:sqlite: ${rows.length} rows from ${this.sqlitePath}`);
+      this.log.info(`listSessions via node:sqlite: ${rows.length} rows from ${this.sqlitePath}`);
       // 拿不到行 (WAL bug), fallback CLI
       if (rows.length === 0) {
-        // eslint-disable-next-line no-console
-        console.warn(`[minimax-code] node:sqlite returned 0 rows (likely WAL snapshot issue); falling back to sqlite3 CLI`);
-        return await listSessionsViaCli(this.sqlitePath, LOG_PREFIX);
+        this.log.warn('node:sqlite returned 0 rows (likely WAL snapshot issue); falling back to sqlite3 CLI');
+        return await listSessionsViaCli(this.sqlitePath, this.log);
       }
       return rows.map((r) => ({
         id: r.session_id,
@@ -156,9 +153,9 @@ class MiniMaxCodeDetectorImpl {
     if (typeof id !== 'string' || id.length === 0) {
       throw new TypeError('readSession: id must be non-empty string');
     }
-    const loaded = _loadNodeSqlite();
+    const loaded = _loadNodeSqlite(this.log);
     if (!loaded) {
-      return await readSessionViaCli(this.sqlitePath, id, LOG_PREFIX);
+      return await readSessionViaCli(this.sqlitePath, id, this.log);
     }
     const sqlite = loaded.sqlite;
     let db;
@@ -166,9 +163,8 @@ class MiniMaxCodeDetectorImpl {
       db = new sqlite.DatabaseSync(this.sqlitePath, { readOnly: true });
     } catch (err) {
       // node:sqlite open 失败 → 走 CLI fallback
-      // eslint-disable-next-line no-console
-      console.warn(`[minimax-code] readSession node:sqlite open failed (${err.message}); falling back to sqlite3 CLI`);
-      return await readSessionViaCli(this.sqlitePath, id, LOG_PREFIX);
+      this.log.warn(`readSession node:sqlite open failed (${err.message}); falling back to sqlite3 CLI`);
+      return await readSessionViaCli(this.sqlitePath, id, this.log);
     }
     try {
       const tables = db.prepare(
@@ -199,9 +195,8 @@ class MiniMaxCodeDetectorImpl {
 
       // 拿不到 messages (WAL bug) → CLI fallback
       if (messages.length === 0 && metaRows.length > 0) {
-        // eslint-disable-next-line no-console
-        console.warn(`[minimax-code] readSession via node:sqlite returned 0 messages for ${id}; falling back to sqlite3 CLI`);
-        return await readSessionViaCli(this.sqlitePath, id, LOG_PREFIX);
+        this.log.warn(`readSession via node:sqlite returned 0 messages for ${id}; falling back to sqlite3 CLI`);
+        return await readSessionViaCli(this.sqlitePath, id, this.log);
       }
 
       const tsList = messages.map(m => m.ts).filter(t => t > 0);
@@ -320,7 +315,7 @@ module.exports = {
   _parseMessageRow,
   _extractContent,
   _hasColumn,
-  _listSessionsViaCli: (sqlitePath) => listSessionsViaCli(sqlitePath, LOG_PREFIX),
-  _readSessionViaCli: (sqlitePath, sessionId) =>
-    readSessionViaCli(sqlitePath, sessionId, LOG_PREFIX),
+  _listSessionsViaCli: (sqlitePath, log) => listSessionsViaCli(sqlitePath, log),
+  _readSessionViaCli: (sqlitePath, sessionId, log) =>
+    readSessionViaCli(sqlitePath, sessionId, log),
 };

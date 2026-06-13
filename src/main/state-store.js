@@ -174,10 +174,7 @@ function preserveExtraFields(existing, next) {
   if (!existing || typeof existing !== "object") return next;
   if (!next || typeof next !== "object") return next;
   for (const spec of PRESERVE_FIELDS) {
-    if (
-      !(spec.key in next) &&
-      shouldPreserveValue(existing[spec.key], spec)
-    ) {
+    if (!(spec.key in next) && shouldPreserveValue(existing[spec.key], spec)) {
       next[spec.key] = existing[spec.key];
     }
   }

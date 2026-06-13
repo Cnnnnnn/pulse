@@ -6,14 +6,17 @@
 
 const fs = require("fs");
 const { spawn } = require("child_process");
+const { SILENT_LOG } = require("./session-log");
 
-function loadNodeSqlite(logPrefix = "[sqlite]") {
+/**
+ * @param {{ info?: Function, warn?: Function, error?: Function }} [log]
+ */
+function loadNodeSqlite(log = SILENT_LOG) {
   try {
     const sqlite = require("node:sqlite");
     return { sqlite, source: "node:sqlite" };
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(`${logPrefix} node:sqlite load failed: ${err.message}`);
+    if (log.warn) log.warn(`node:sqlite load failed: ${err.message}`);
     return null;
   }
 }
@@ -21,15 +24,10 @@ function loadNodeSqlite(logPrefix = "[sqlite]") {
 /**
  * @param {string} sqlitePath
  * @param {string} sql
- * @param {{ separator?: string, rejectOnError?: boolean, logPrefix?: string }} [opts]
- * @returns {Promise<{ stdout: string, stderr: string, code: number }>}
+ * @param {{ separator?: string, rejectOnError?: boolean, log?: object }} [opts]
  */
 function runSqliteCli(sqlitePath, sql, opts = {}) {
-  const {
-    separator = "\t",
-    rejectOnError = false,
-    logPrefix = "[sqlite]",
-  } = opts;
+  const { separator = "\t", rejectOnError = false, log = SILENT_LOG } = opts;
   return new Promise((resolve, reject) => {
     const proc = spawn(
       "sqlite3",
@@ -47,8 +45,7 @@ function runSqliteCli(sqlitePath, sql, opts = {}) {
     proc.on("error", (err) => {
       if (rejectOnError) reject(err);
       else {
-        // eslint-disable-next-line no-console
-        console.warn(`${logPrefix} sqlite3 CLI spawn failed: ${err.message}`);
+        if (log.warn) log.warn(`sqlite3 CLI spawn failed: ${err.message}`);
         resolve({ stdout: "", stderr: err.message, code: 1 });
       }
     });
@@ -61,23 +58,18 @@ function runSqliteCli(sqlitePath, sql, opts = {}) {
         );
         return;
       }
-      if (code !== 0) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `${logPrefix} sqlite3 CLI exited code=${code}: ${stderr.slice(0, 200)}`,
-        );
+      if (code !== 0 && log.warn) {
+        log.warn(`sqlite3 CLI exited code=${code}: ${stderr.slice(0, 200)}`);
       }
       resolve({ stdout, stderr, code: code || 0 });
     });
   });
 }
 
-async function listSessionsViaCli(sqlitePath, logPrefix = "[minimax-code]") {
+async function listSessionsViaCli(sqlitePath, log = SILENT_LOG) {
   const sql =
     "SELECT session_id, title, workspace_dir, effective_model, status, created_at, updated_at, framework_type FROM sessions ORDER BY updated_at DESC";
-  const { stdout, code } = await runSqliteCli(sqlitePath, sql, {
-    logPrefix,
-  });
+  const { stdout, code } = await runSqliteCli(sqlitePath, sql, { log });
   if (code !== 0) return [];
   let stat;
   try {
@@ -110,10 +102,11 @@ async function listSessionsViaCli(sqlitePath, logPrefix = "[minimax-code]") {
         framework_type: framework_type || "",
       };
     });
-  // eslint-disable-next-line no-console
-  console.log(
-    `${logPrefix} listSessions via sqlite3 CLI: ${rows.length} rows from ${sqlitePath}`,
-  );
+  if (log.info) {
+    log.info(
+      `listSessions via sqlite3 CLI: ${rows.length} rows from ${sqlitePath}`,
+    );
+  }
   return rows.map((r) => ({
     id: r.session_id,
     file: sqlitePath,
@@ -126,15 +119,11 @@ async function listSessionsViaCli(sqlitePath, logPrefix = "[minimax-code]") {
   }));
 }
 
-async function readSessionViaCli(
-  sqlitePath,
-  sessionId,
-  logPrefix = "[minimax-code]",
-) {
+async function readSessionViaCli(sqlitePath, sessionId, log = SILENT_LOG) {
   const safeId = String(sessionId).replace(/'/g, "''");
   const sql = `SELECT id, msg_id, role, data, timestamp FROM session_messages WHERE session_id = '${safeId}' ORDER BY id ASC`;
   const { stdout } = await runSqliteCli(sqlitePath, sql, {
-    logPrefix,
+    log,
     rejectOnError: true,
   });
   const rows = stdout.split("\n").filter((l) => l.length > 0);
