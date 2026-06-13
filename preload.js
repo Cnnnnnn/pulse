@@ -92,6 +92,7 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("ithome:summarize-article", payload),
   ithomeToggleFavorite: (payload) =>
     ipcRenderer.invoke("ithome:toggle-favorite", payload),
+  ithomeMarkRead: (id) => ipcRenderer.invoke("ithome:mark-read", id),
 
   // v2.10+ 基金管理: 持仓 CRUD + 净值拉取 / 推送
   fundsList: () => ipcRenderer.invoke("funds:list"),
