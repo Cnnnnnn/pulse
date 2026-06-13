@@ -15,6 +15,7 @@ import {
   weekdayShort,
   formatExcerptPreview,
   countSummarizedArticles,
+  sidebarDayCount,
 } from "../../src/renderer/ithome/news-utils.js";
 
 const NOW = new Date("2026-06-12T12:00:00+08:00");
@@ -95,5 +96,18 @@ describe("ithome news-utils", () => {
     const articles = [{ id: "a" }, { id: "b" }];
     const summaries = { a: { text: "ok" }, b: {} };
     expect(countSummarizedArticles(articles, summaries)).toBe(1);
+  });
+
+  it("sidebarDayCount prefers dayStats over cached articles", () => {
+    const articles = {
+      a: { id: "a", dateKey: "2026-06-08" },
+    };
+    const dayStats = {
+      "2026-06-08": { count: 120, fetchedAt: 1 },
+      "2026-06-10": { count: 0, fetchedAt: 1 },
+    };
+    expect(sidebarDayCount(dayStats, articles, "2026-06-08")).toBe(120);
+    expect(sidebarDayCount(dayStats, articles, "2026-06-09")).toBe(0);
+    expect(sidebarDayCount({}, articles, "2026-06-08")).toBe(1);
   });
 });

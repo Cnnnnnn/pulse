@@ -10,6 +10,7 @@ import {
 } from "./news-utils.js";
 
 export const ithomeArticles = signal({});
+export const ithomeDayStats = signal({});
 export const ithomeSummaries = signal({});
 export const ithomeFavorites = signal({});
 export const ithomeNewsTs = signal(0);
@@ -28,6 +29,7 @@ function _api() {
 function _applyPayload(data) {
   if (!data) return;
   ithomeArticles.value = data.articles || {};
+  ithomeDayStats.value = data.dayStats || {};
   ithomeSummaries.value = data.summaries || {};
   ithomeFavorites.value = data.favorites || {};
   ithomeNewsTs.value = data.ts || 0;

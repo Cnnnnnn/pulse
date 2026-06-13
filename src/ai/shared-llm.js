@@ -12,6 +12,8 @@ const { sanitizeLlmOutput } = require("./sanitize-llm-output");
 
 const SUPPORTED_PROVIDERS = ["openai", "anthropic", "deepseek", "minimax"];
 
+const { DEFAULT_MODELS } = require("./default-models");
+
 let _http = null;
 function _getHttp() {
   if (!_http) _http = new HttpClient({ timeout: 120_000, maxRetries: 1 });
@@ -53,8 +55,10 @@ function resolveSharedAiConfig() {
     return { ok: false, reason: "unsupported_provider" };
   }
   const cloud = cfg.cloud || {};
-  const model = cloud.model;
-  if (!model || typeof model !== "string") {
+  const model =
+    (typeof cloud.model === "string" && cloud.model) ||
+    DEFAULT_MODELS[providerId];
+  if (!model) {
     return { ok: false, reason: "model_missing" };
   }
   const apiKey = _loadApiKey(providerId);
@@ -108,6 +112,7 @@ async function chatCompletion(messages, opts = {}) {
 
 module.exports = {
   SUPPORTED_PROVIDERS,
+  DEFAULT_MODELS,
   resolveSharedAiConfig,
   chatCompletion,
 };

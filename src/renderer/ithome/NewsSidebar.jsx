@@ -7,6 +7,7 @@ import {
   ithomeSelectedDate,
   ithomeFavoriteSelectedDate,
   ithomeArticles,
+  ithomeDayStats,
   ithomeFavorites,
   setIthomeSelectedDate,
   setIthomeFavoriteSelectedDate,
@@ -14,24 +15,25 @@ import {
 import {
   monthDayRange,
   favoriteDateKeys,
-  articlesForDate,
   favoritesForDate,
+  sidebarDayCount,
   isTodayDateKey,
   weekdayShort,
   currentMonthLabel,
 } from "./news-utils.js";
 
-function dayCount(dateKey, isFavorites, articles, favorites) {
+function dayCount(dateKey, isFavorites, articles, dayStats, favorites) {
   if (isFavorites) {
     return favoritesForDate(favorites, dateKey).length;
   }
-  return articlesForDate(articles, dateKey).length;
+  return sidebarDayCount(dayStats, articles, dateKey);
 }
 
 export function NewsSidebar() {
   const mode = ithomeViewMode.value;
   const isFavorites = mode === "favorites";
   const articles = ithomeArticles.value;
+  const dayStats = ithomeDayStats.value;
   const favorites = ithomeFavorites.value;
   const selected = isFavorites
     ? ithomeFavoriteSelectedDate.value
@@ -65,7 +67,13 @@ export function NewsSidebar() {
           const active = dateKey === selected;
           const today = isTodayDateKey(dateKey);
           const [, , d] = dateKey.split("-");
-          const count = dayCount(dateKey, isFavorites, articles, favorites);
+          const count = dayCount(
+            dateKey,
+            isFavorites,
+            articles,
+            dayStats,
+            favorites,
+          );
           return (
             <button
               key={dateKey}

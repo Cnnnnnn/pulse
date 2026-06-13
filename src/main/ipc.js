@@ -15,7 +15,7 @@
  */
 
 const { ipcMain, shell } = require("electron");
-const { runCheck } = require("./check-runner");
+const { runCheck, runCheckQueued } = require("./check-runner");
 const { runBulkUpgrade } = require("./bulk-upgrade");
 const stateStore = require("./state-store");
 const { getAppIcon } = require("./app-icon");
@@ -30,6 +30,8 @@ const fundHistoryStore = require("./fund-history-store");
 const { searchFunds } = require("../funds/fund-search");
 const { fetchFundNavBatch } = require("../funds/fund-fetcher");
 const { pickEffectiveNavNumber } = require("../funds/fund-nav-merge");
+const reminders = require("./reminders");
+const recentActivity = require("./recent-activity");
 
 // Bulk Upgrade: 一次只能跑一批; 用 AbortController 控制取消.
 let bulkUpgradeCtrl = null;
@@ -75,6 +77,49 @@ function registerIpcHandlers(deps) {
     }
   });
 
+  // ── v2.11 Reminders (8 通道) ────────────────────────────────
+  ipcMain.handle("reminders:list", () => {
+    try {
+      return { ok: true, reminders: reminders.list() };
+    } catch (err) {
+      return { ok: false, reason: "list_failed", msg: err && err.message };
+    }
+  });
+  ipcMain.handle("reminders:create", (_evt, input) => {
+    return reminders.create(input);
+  });
+  ipcMain.handle("reminders:update", (_evt, payload) => {
+    if (!payload || typeof payload !== "object")
+      return { ok: false, reason: "invalid_input" };
+    return reminders.update(payload.id, payload.patch);
+  });
+  ipcMain.handle("reminders:remove", (_evt, id) => {
+    return reminders.remove(id);
+  });
+  ipcMain.handle("reminders:mark-done", (_evt, id) => {
+    return reminders.markDone(id);
+  });
+  ipcMain.handle("reminders:mark-dismissed", (_evt, id) => {
+    return reminders.markDismissed(id);
+  });
+
+  // ── v2.11 Recent Activity (2 通道) ────────────────────────────
+  ipcMain.handle("recent:list", () => {
+    try {
+      return { ok: true, entries: recentActivity.list() };
+    } catch (err) {
+      return { ok: false, reason: "list_failed", msg: err && err.message };
+    }
+  });
+  ipcMain.handle("recent:push", (_evt, entry) => {
+    const r = recentActivity.push(entry);
+    if (r && r.ok) {
+      // 推 IPC 事件给 renderer
+      sendToRenderer("recent:updated", { entries: recentActivity.list() });
+    }
+    return r;
+  });
+
   // Phase 12: renderer 启动时拉取 last-known state, 避免网络抽风时 UI 一片空白
   ipcMain.handle("get-cached-state", () => {
     if (typeof getCachedState !== "function") return null;
@@ -88,7 +133,7 @@ function registerIpcHandlers(deps) {
   ipcMain.handle("check-updates", async () => {
     // Phase 16/17: 抽到 check-runner.runCheck, 注入 state-store 让 quiet hours / cooldown
     // 跟踪 last_notified 字段
-    return runCheck(
+    return runCheckQueued(
       {
         getConfig,
         pool,
@@ -655,9 +700,9 @@ function registerIpcHandlers(deps) {
   // 1 通道, server-side fetch (0 CORS), 24h 缓存 (state.json worldcup_txt)
   const { fetchWorldcupFixtures } = require("./worldcup/fetcher");
   const { refreshWorldcupScores } = require("./worldcup/scores-fetcher");
-  ipcMain.handle("worldcup:fetch-fixtures", async () => {
+  ipcMain.handle("worldcup:fetch-fixtures", async (_evt, payload) => {
     try {
-      return await fetchWorldcupFixtures();
+      return await fetchWorldcupFixtures(payload || {});
     } catch (err) {
       mainLog.warn("[ipc] worldcup:fetch-fixtures threw", {
         msg: err && err.message,

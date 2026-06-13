@@ -628,7 +628,17 @@ async function handleBrewUpdate() {
   }
 }
 
-// ─── message loop ────────────────────────────────────────
+const DETECT_APP_TIMEOUT_MS = 90_000;
+const BREW_UPGRADE_TIMEOUT_MS = 320_000;
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms);
+    }),
+  ]);
+}
 
 if (parentPort) {
   parentPort.on("message", async (msg) => {
@@ -637,11 +647,23 @@ if (parentPort) {
     try {
       let result;
       if (task.type === "detect-app") {
-        result = await handleDetectApp(task.payload && task.payload.appCfg);
+        result = await withTimeout(
+          handleDetectApp(task.payload && task.payload.appCfg),
+          DETECT_APP_TIMEOUT_MS,
+          "detect-app",
+        );
       } else if (task.type === "brew-upgrade") {
-        result = await handleBrewUpgrade(task.payload && task.payload.cask);
+        result = await withTimeout(
+          handleBrewUpgrade(task.payload && task.payload.cask),
+          BREW_UPGRADE_TIMEOUT_MS,
+          "brew-upgrade",
+        );
       } else if (task.type === "brew-update") {
-        result = await handleBrewUpdate();
+        result = await withTimeout(
+          handleBrewUpdate(),
+          BREW_UPGRADE_TIMEOUT_MS,
+          "brew-update",
+        );
       } else {
         sendError(`unknown task type: ${task.type}`);
         return;

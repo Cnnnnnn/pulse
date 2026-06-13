@@ -31,9 +31,8 @@ export function VersionsLayout({ onCheck }) {
       <FilterBar />
       <div class="versions-layout-body">
         {hasResults && <WeeklyBanner state={results.value} />}
-        {!hasResults && phase === 'running' && <Skeleton />}
-        {hasResults && <ResultsView />}
-        {phase === 'idle' && !hasResults && <ResultsView />}
+        {phase === 'running' && !hasResults && <Skeleton />}
+        <ResultsView />
         {phase === 'error' && (
           <>
             <ErrorBanner onRetry={onCheck} />

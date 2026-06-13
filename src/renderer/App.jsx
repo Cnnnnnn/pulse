@@ -19,6 +19,8 @@ import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { AISettingsModal } from './components/AISettingsModal.jsx';
 import { Toast } from './components/Toast.jsx';
 import { AppShell } from './components/AppShell.jsx';
+import { RemindersModal } from './reminders/RemindersModal.jsx';
+import { RecentActivityModal } from './recent/RecentActivityModal.jsx';
 
 export function App({ onCheck }) {
   const session = checkSession.value;
@@ -36,6 +38,8 @@ export function App({ onCheck }) {
       </footer>
       <BulkUpgradeModal />
       <AISettingsModal />
+      <RemindersModal />
+      <RecentActivityModal />
       <Toast />
     </div>
   );

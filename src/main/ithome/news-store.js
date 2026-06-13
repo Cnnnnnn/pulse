@@ -20,7 +20,8 @@ const { enrichSummaryEntry } = require("./article-summary-parse");
 
 const RSS_URL = "https://www.ithome.com/rss/";
 const FETCH_TIMEOUT_MS = 20000;
-const MAX_ARTICLES = 800;
+/** 按自然日独立保留，避免全局上限挤掉已拉取日期的文章 */
+const MAX_ARTICLES_PER_DAY = 400;
 
 let _http = null;
 function http() {
@@ -49,7 +50,7 @@ function _readStateRaw(statePath) {
 }
 
 function _emptyNews() {
-  return { ts: 0, articles: {}, summaries: {}, favorites: {} };
+  return { ts: 0, articles: {}, summaries: {}, favorites: {}, dayStats: {} };
 }
 
 function _normalizeNews(raw) {
@@ -62,22 +63,42 @@ function _normalizeNews(raw) {
       raw.summaries && typeof raw.summaries === "object" ? raw.summaries : {},
     favorites:
       raw.favorites && typeof raw.favorites === "object" ? raw.favorites : {},
+    dayStats:
+      raw.dayStats && typeof raw.dayStats === "object" ? raw.dayStats : {},
   };
 }
 
-function _pruneArticles(articles, now = new Date()) {
-  const list = Object.values(articles || {});
-  list.sort((a, b) => {
-    const ta = Date.parse(a.pubDate || "") || 0;
-    const tb = Date.parse(b.pubDate || "") || 0;
-    return tb - ta;
-  });
-  const kept = list
-    .filter((a) => a && a.dateKey && isInCurrentMonth(a.dateKey, now))
-    .slice(0, MAX_ARTICLES);
+function _pruneDayStats(dayStats, now = new Date()) {
   const out = {};
-  for (const a of kept) {
-    if (a && a.id) out[a.id] = a;
+  for (const [dateKey, entry] of Object.entries(dayStats || {})) {
+    if (!entry || typeof entry !== "object") continue;
+    if (!isInCurrentMonth(dateKey, now)) continue;
+    const count = typeof entry.count === "number" ? entry.count : 0;
+    const fetchedAt = typeof entry.fetchedAt === "number" ? entry.fetchedAt : 0;
+    if (count > 0) out[dateKey] = { count, fetchedAt };
+  }
+  return out;
+}
+
+function _pruneArticles(articles, now = new Date()) {
+  const byDay = {};
+  for (const a of Object.values(articles || {})) {
+    if (!a || !a.id || !a.dateKey || !isInCurrentMonth(a.dateKey, now)) {
+      continue;
+    }
+    if (!byDay[a.dateKey]) byDay[a.dateKey] = [];
+    byDay[a.dateKey].push(a);
+  }
+  const out = {};
+  for (const items of Object.values(byDay)) {
+    items.sort((a, b) => {
+      const ta = Date.parse(a.pubDate || "") || 0;
+      const tb = Date.parse(b.pubDate || "") || 0;
+      return tb - ta;
+    });
+    for (const a of items.slice(0, MAX_ARTICLES_PER_DAY)) {
+      out[a.id] = a;
+    }
   }
   return out;
 }
@@ -154,8 +175,13 @@ function _mergeArticles(cur, parsed, now) {
   return articles;
 }
 
-function _finalizeNews(cur, articles, now) {
-  const pruned = _pruneArticles(articles, new Date(now));
+function _finalizeNews(cur, articles, dayStats, now) {
+  const at = new Date(now);
+  const pruned = _pruneArticles(articles, at);
+  const prunedDayStats = _pruneDayStats(
+    { ...(cur.dayStats || {}), ...(dayStats || {}) },
+    at,
+  );
   const summaryIds = new Set(Object.keys(pruned));
   const favorites = { ...(cur.favorites || {}) };
   const summaries = {};
@@ -176,6 +202,7 @@ function _finalizeNews(cur, articles, now) {
     articles: pruned,
     summaries,
     favorites,
+    dayStats: prunedDayStats,
   };
 }
 
@@ -213,7 +240,10 @@ async function fetchDay(dateKey, statePath) {
   const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
   const now = Date.now();
   const articles = _mergeArticles(cur, parsed, now);
-  const news = _finalizeNews(cur, articles, now);
+  const dayStats = {
+    [dateKey]: { count: parsed.length, fetchedAt: now },
+  };
+  const news = _finalizeNews(cur, articles, dayStats, now);
   _writeNews(news, statePath);
 
   const dayCount = parsed.length;
@@ -266,7 +296,7 @@ async function refresh(statePath) {
       excerpt: item.excerpt || prev?.excerpt || "",
     };
   }
-  const news = _finalizeNews(cur, articles, now);
+  const news = _finalizeNews(cur, articles, {}, now);
   _writeNews(news, statePath);
   return {
     ok: true,
@@ -334,4 +364,6 @@ module.exports = {
   saveSummary,
   toggleFavorite,
   isFavorited,
+  _pruneArticles,
+  MAX_ARTICLES_PER_DAY,
 };

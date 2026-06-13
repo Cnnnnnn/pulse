@@ -145,4 +145,50 @@ describe("ithome news-store", () => {
     );
     expect(newsStore.getArticle(article.id, p).title).toBe("A");
   });
+
+  it("_pruneArticles keeps each day independently", () => {
+    const now = new Date("2026-06-13T12:00:00+08:00");
+    const articles = {};
+    for (let d = 8; d <= 13; d += 1) {
+      const dateKey = `2026-06-${String(d).padStart(2, "0")}`;
+      for (let i = 0; i < 200; i += 1) {
+        const id = `${dateKey}-${i}`;
+        articles[id] = {
+          id,
+          dateKey,
+          pubDate: `${dateKey}T${String(i % 24).padStart(2, "0")}:00:00+08:00`,
+        };
+      }
+    }
+    const pruned = newsStore._pruneArticles(articles, now);
+    const countFor = (dateKey) =>
+      Object.values(pruned).filter((a) => a.dateKey === dateKey).length;
+    expect(countFor("2026-06-13")).toBe(200);
+    expect(countFor("2026-06-08")).toBe(200);
+    expect(Object.keys(pruned).length).toBe(6 * 200);
+  });
+
+  it("loadAll returns persisted dayStats", () => {
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {},
+          summaries: {},
+          favorites: {},
+          dayStats: {
+            "2026-06-10": { count: 169, fetchedAt: 1 },
+            "2026-06-08": { count: 120, fetchedAt: 1 },
+          },
+        },
+      }),
+    );
+    const loaded = newsStore.loadAll(p);
+    expect(loaded.dayStats["2026-06-10"].count).toBe(169);
+    expect(loaded.dayStats["2026-06-08"].count).toBe(120);
+  });
 });

@@ -1,5 +1,8 @@
 {
   "check_on_launch": true,
+  "recentActivity": {
+    "maxEntries": 200
+  },
   "apps": [
     {
       "name": "Cursor",

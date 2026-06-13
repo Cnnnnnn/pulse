@@ -45,7 +45,7 @@ function syncMatchesWithScores() {
  * 拉取 + 解析 + 写 store. 失败置 error.
  * @returns {Promise<boolean>} true=成功
  */
-export async function loadWorldcupFixtures() {
+export async function loadWorldcupFixtures(force = false) {
   if (worldcupLoading.value) return false; // 并发守卫
   worldcupLoading.value = true;
   worldcupError.value = null;
@@ -58,7 +58,9 @@ export async function loadWorldcupFixtures() {
       worldcupError.value = "worldcup IPC 不可用";
       return false;
     }
-    const r = await window.api.worldcupFetchFixtures();
+    const r = await window.api.worldcupFetchFixtures(
+      force ? { force: true } : {},
+    );
     if (!r || !r.ok) {
       worldcupError.value = (r && r.reason) || "加载失败";
       return false;
@@ -111,7 +113,11 @@ export async function refreshWorldcupScores() {
   if (worldcupScoresLoading.value) return false;
   worldcupScoresError.value = null;
 
-  if (!worldcupMatches.value?.matches) {
+  const curCount = worldcupMatches.value?.matches?.length || 0;
+  if (curCount < 70) {
+    const ok = await loadWorldcupFixtures(true);
+    if (!ok) return false;
+  } else if (!worldcupMatches.value?.matches) {
     const ok = await loadWorldcupFixtures();
     if (!ok) return false;
   }
@@ -122,9 +128,7 @@ export async function refreshWorldcupScores() {
   if (!matches || matches.length === 0) return true;
 
   const eligibleKeys = matches
-    .filter((m) =>
-      isScoreRefreshEligible(m, worldcupScores.value[matchKey(m)]),
-    )
+    .filter((m) => isScoreRefreshEligible(m, worldcupScores.value[matchKey(m)]))
     .map((m) => matchKey(m));
 
   if (eligibleKeys.length === 0) return true;
@@ -229,6 +233,9 @@ export async function generateWorldcupInsight(match, type, opts = {}) {
 /** 进入世界杯 tab: 拉赛程 + 读缓存 (insights/bets 并发) + 按需刷新比分 */
 export async function bootstrapWorldcupTab() {
   await loadWorldcupFixtures();
+  if ((worldcupMatches.value?.matches?.length || 0) < 70) {
+    await loadWorldcupFixtures(true);
+  }
   // insights + bets 独立 IPC, 并发
   await Promise.all([loadWorldcupInsightsCache(), loadWorldcupBets()]);
   await refreshWorldcupScores();

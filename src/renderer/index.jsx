@@ -12,7 +12,7 @@
  *   8. cfg.check_on_launch → triggerCheck()
  *
  * v2 改进:
- *   - 并发守卫: _checking 标志防止 triggerCheck() 重复执行
+ *   - 并发守卫: checkSession.phase === 'running' 时跳过重复触发
  *   - Session ID: 每次 check 生成唯一 ID, progress 事件带 ID 校验
  *   - detecting 状态: 主进程推 'check-detecting' 事件时, app 进入 spinner 态
  *   - auto-check 完成后自动刷新 last-opened 数据
@@ -23,6 +23,7 @@ import { App } from './App.jsx';
 import {
   apps,
   applyProgress,
+  applyProgressBatch,
   markAppDetecting,
   startCheck,
   finishCheck,
@@ -46,8 +47,7 @@ import { createAutoRecheck } from './auto-recheck.js';
 // Phase A1b: import 触发顶层 setData, 之后 store / selectors 调 category.* 都有数据
 import './category-init.js';
 
-// ─── 并发守卫 ──────────────────────────────────────────────
-let _checking = false;
+// ─── 触发检查 ──────────────────────────────────────────────
 
 /**
  * 触发一轮完整的更新检查。
@@ -58,25 +58,23 @@ let _checking = false;
  *   - 检测中的 app 先进入 'detecting' 态 (spinner), 结果到后切 'done'/'error'
  */
 async function triggerCheck() {
-  // 并发守卫: 防止手动点击 + 自动检查 + bulk upgrade recheck 同时触发
-  if (_checking) {
+  if (isCheckRunning()) {
     // eslint-disable-next-line no-console
     console.log('[index] triggerCheck: already running, skipping');
     return;
   }
   if (activeRecheck) activeRecheck.cancel();
 
-  _checking = true;
-
-  // 收集本轮要检测的 app 名称列表 (给 startCheck 初始化 phases)
   const appNames = apps.value.map(a => a.name);
   const sessionId = startCheck(appNames);
 
   try {
-    await api.checkUpdates();
+    const returned = await api.checkUpdates();
 
-    // 只有当前 session 没被新 check 替换时才 finish
     if (checkSession.value.id === sessionId) {
+      if (Array.isArray(returned) && returned.length > 0) {
+        applyProgressBatch(returned, sessionId);
+      }
       finishCheck();
     }
   } catch (err) {
@@ -85,8 +83,6 @@ async function triggerCheck() {
     if (checkSession.value.id === sessionId) {
       setError(err && err.message || String(err));
     }
-  } finally {
-    _checking = false;
   }
 }
 
@@ -147,9 +143,26 @@ async function bootstrap() {
   // 6) 监听检测进度事件
   //    applyProgress 已内置 sessionId 校验, 过期事件会被丢弃
   api.onCheckProgress((result) => {
-    // 可选: 如果 result 带了 sessionId, applyProgress 内部会自动校验
+    if (!result || !result.name) return;
+    if (result.status === 'started') {
+      markAppDetecting(result.name, result && result._sessionId);
+      return;
+    }
     applyProgress(result, result && result._sessionId);
   });
+
+  if (typeof api.onCheckFinished === 'function') {
+    api.onCheckFinished(async () => {
+      if (isCheckRunning()) finishCheck();
+      try {
+        const { applyCachedResults, results: resultsSig } = await import('./store.js');
+        if (resultsSig.value.size === 0) {
+          const cached = await api.getCachedState();
+          if (cached && cached.apps) applyCachedResults(cached);
+        }
+      } catch { /* noop */ }
+    });
+  }
 
   // detecting 事件: app 开始检测, UI 显示 spinner (可选, 主进程推了就用)
   if (typeof api.onCheckDetecting === 'function') {

@@ -13,7 +13,11 @@
  * 被 electron 直接 require；用 CJS。
  */
 
-const { app, BrowserWindow } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  Notification: ElectronNotification,
+} = require("electron");
 const path = require("path");
 const fs = require("fs");
 
@@ -38,7 +42,7 @@ const { WorkerPool } = require("../workers/pool");
 const { createWindowManager } = require("./window");
 const { createTrayManager } = require("./tray");
 const { registerIpcHandlers } = require("./ipc");
-const { runCheck } = require("./check-runner");
+const { runCheck, runCheckQueued } = require("./check-runner");
 const { mainLog, detectLog } = require("./log");
 const { migrateConfigFile, isOldSchemaApp } = require("../config/migrate");
 const { validateConfig, sanitizeConfig } = require("../config/schema");
@@ -49,6 +53,7 @@ const { HttpClient } = require("./http-client");
 const { buildTaskSummaryEngine } = require("../ai-sessions/wiring");
 const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
+const reminders = require("./reminders");
 
 const ARCH = process.arch === "arm64" ? "arm64" : "x64";
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -578,6 +583,49 @@ async function bootstrap() {
     mainLog.warn(`fund scheduler init failed: ${err && err.message}`);
   }
 
+  // v2.11 Reminders scheduler (30s 扫一次; 触发时发系统通知 + 推 IPC 事件)
+  try {
+    reminders.startScheduler({
+      onFire: (r) => {
+        // 1) 系统通知
+        try {
+          if (ElectronNotification && ElectronNotification.isSupported()) {
+            const n = new ElectronNotification({
+              title: "Pulse 提醒",
+              body: r.title,
+              silent: false,
+            });
+            n.on("click", () => {
+              try {
+                if (winMgr) winMgr.showWindow();
+                sendToRenderer("reminders:open-modal", { id: r.id });
+              } catch {
+                /* noop */
+              }
+            });
+            n.show();
+          }
+        } catch (err) {
+          mainLog.warn(
+            `[reminders] notification show failed: ${err && err.message}`,
+          );
+        }
+        // 2) 推 IPC 给 renderer (让 modal/badge 即时刷新)
+        sendToRenderer("reminders:fired", { id: r.id, reminder: r });
+      },
+    });
+    mainLog.info("reminders scheduler started (30s sweep)");
+    app.once("before-quit", () => {
+      try {
+        reminders.stopScheduler();
+      } catch {
+        /* noop */
+      }
+    });
+  } catch (err) {
+    mainLog.warn(`reminders scheduler init failed: ${err && err.message}`);
+  }
+
   // Phase 16: 后台定时静默 check — 打破"开 app 才检查"局限, 让 state 不变 stale
   //   - 默认每 6h 跑一次, Phase 24 起可由 config.notifications.check_interval_hours 配置
   //   - 0 = 关闭 auto-check (显式 disable)
@@ -593,7 +641,7 @@ async function bootstrap() {
     const AUTO_CHECK_INTERVAL_MS = checkIntervalHours * 60 * 60 * 1000;
     const autoCheckTimer = setInterval(() => {
       mainLog.info(`auto-check triggered (${checkIntervalHours}h)`);
-      runCheck(
+      runCheckQueued(
         {
           getConfig: () => runtimeConfig,
           pool,

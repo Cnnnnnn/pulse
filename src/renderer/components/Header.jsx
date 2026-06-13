@@ -13,6 +13,8 @@ import { checkSession, lastError } from '../store.js';
 import { summary, upgradableCount, checkedCount, totalAppCount, detectingCount } from '../selectors.js';
 import { BulkUpgradeButton } from './BulkUpgradeButton.jsx';
 import { AITasksButton } from './AITasksDrawer.jsx';
+import { RemindersButton } from '../reminders/RemindersModal.jsx';
+import { RecentButton } from '../recent/RecentActivityModal.jsx';
 
 export function Header({ onCheck }) {
   const session = checkSession.value;
@@ -47,6 +49,8 @@ export function Header({ onCheck }) {
         </button>
         <BulkUpgradeButton />
         <AITasksButton />
+        <RemindersButton />
+        <RecentButton />
       </div>
     </header>
   );

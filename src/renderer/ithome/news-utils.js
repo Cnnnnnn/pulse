@@ -48,6 +48,14 @@ export function canGoNextDay(dateKey, now = new Date()) {
   return idx >= 0 && idx < days.length - 1;
 }
 
+export function sidebarDayCount(dayStats, articles, dateKey) {
+  const stat = dayStats && dayStats[dateKey];
+  if (stat && typeof stat.count === "number" && stat.count > 0) {
+    return stat.count;
+  }
+  return articlesForDate(articles, dateKey).length;
+}
+
 export function articlesForDate(articles, dateKey) {
   const list = Object.values(articles || {}).filter(
     (a) => a && a.dateKey === dateKey,

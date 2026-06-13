@@ -37,6 +37,7 @@ export function createApi(overrides = {}) {
     onCheckDetecting: pick(overrides, "onCheckDetecting"),
     onStartCheck: pick(overrides, "onStartCheck"),
     onAutoCheckFinished: pick(overrides, "onAutoCheckFinished"),
+    onCheckFinished: pick(overrides, "onCheckFinished"),
     // Phase22: Bulk Upgrade
     bulkUpgradeStart: pick(overrides, "bulkUpgradeStart"),
     bulkUpgradeCancel: pick(overrides, "bulkUpgradeCancel"),
@@ -94,6 +95,19 @@ export function createApi(overrides = {}) {
     onFundsNavFetched: pick(overrides, "onFundsNavFetched"),
     onFundsNavState: pick(overrides, "onFundsNavState"),
     onFundsHistoryUpdated: pick(overrides, "onFundsHistoryUpdated"),
+    // v2.11 提醒
+    remindersList: pick(overrides, "remindersList"),
+    remindersCreate: pick(overrides, "remindersCreate"),
+    remindersUpdate: pick(overrides, "remindersUpdate"),
+    remindersRemove: pick(overrides, "remindersRemove"),
+    remindersMarkDone: pick(overrides, "remindersMarkDone"),
+    remindersMarkDismissed: pick(overrides, "remindersMarkDismissed"),
+    onRemindersFired: pick(overrides, "onRemindersFired"),
+    onRemindersOpenModal: pick(overrides, "onRemindersOpenModal"),
+    // v2.11 时间线
+    recentList: pick(overrides, "recentList"),
+    recentPush: pick(overrides, "recentPush"),
+    onRecentUpdated: pick(overrides, "onRecentUpdated"),
   };
 }
 

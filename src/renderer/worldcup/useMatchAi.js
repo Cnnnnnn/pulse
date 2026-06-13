@@ -19,7 +19,8 @@ function mapAiError(reason) {
   if (
     reason === "api_key_missing" ||
     reason === "config_missing" ||
-    reason === "model_missing"
+    reason === "model_missing" ||
+    reason === "unsupported_provider"
   ) {
     return "请先在侧栏「AI 配置」中保存 Provider、模型和 API Key";
   }

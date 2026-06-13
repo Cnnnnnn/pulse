@@ -5748,3 +5748,382 @@ body {
   }
   .ithome-row-link { margin-left: 0; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * v2.11 Reminders + Recent Activity modal 样式
+ * 复用 .modal-backdrop / .modal / .modal-header 等基础类, 这里只加扩展
+ * ───────────────────────────────────────────────────────────── */
+
+/* Header ⏰ 按钮 (跟 AITasksButton 同款) */
+#btn-reminders,
+#btn-recent {
+  position: relative;
+}
+
+#btn-reminders .reminder-badge,
+#btn-recent .reminder-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--accent, #ff3b30);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+#btn-reminders.has-content svg { color: var(--accent, #ff3b30); }
+
+/* ── RemindersModal / RecentActivityModal backdrop (portal → body) ── */
+.reminder-modal-backdrop,
+.recent-modal-backdrop {
+  z-index: 5500;
+}
+
+/* ── RemindersModal ── */
+.reminder-modal {
+  width: 480px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+.reminder-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+}
+.reminder-modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reminder-modal-header h2 .reminder-icon {
+  font-size: 18px;
+}
+.reminder-modal-sub {
+  margin-left: 8px;
+  display: inline-flex;
+  gap: 6px;
+}
+.reminder-fired-pill,
+.reminder-pending-pill {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.reminder-fired-pill {
+  background: var(--accent-soft, #ffebea);
+  color: var(--accent, #ff3b30);
+}
+.reminder-pending-pill {
+  background: var(--bg-soft, #f0f0f3);
+  color: var(--text-secondary, #666);
+}
+.reminder-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reminder-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 20px 16px;
+}
+.reminder-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-secondary, #666);
+}
+.reminder-empty-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.reminder-empty-hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #999);
+}
+.reminder-section {
+  margin-top: 14px;
+}
+.reminder-section:first-child { margin-top: 0; }
+.reminder-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary, #999);
+  margin: 0 0 6px 4px;
+}
+.reminder-section-dismissed { opacity: 0.6; }
+.reminder-section-more {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+}
+.reminder-modal-footer {
+  border-top: 1px solid var(--border-subtle, #e5e5e7);
+  padding: 8px 20px;
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+}
+
+.reminder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  background: var(--bg-soft, #f7f7fa);
+  transition: background 0.15s ease;
+}
+.reminder-row:hover {
+  background: var(--bg-hover, #efeff2);
+}
+.reminder-row.status-fired {
+  background: var(--accent-soft, #ffebea);
+}
+.reminder-row.status-fired:hover {
+  background: var(--accent-soft-hover, #ffe0df);
+}
+.reminder-row.status-dismissed {
+  opacity: 0.7;
+}
+.reminder-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.reminder-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reminder-meta {
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+  margin-top: 2px;
+}
+.reminder-fired-label {
+  color: var(--accent, #ff3b30);
+  font-weight: 500;
+}
+.reminder-row-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.reminder-row-actions .btn { padding: 2px 8px; font-size: 11px; }
+
+/* ReminderForm */
+.reminder-form {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+  background: var(--bg-soft, #fafafc);
+}
+.reminder-form-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+.reminder-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.reminder-form input[type="text"],
+.reminder-form input[type="datetime-local"] {
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border-default, #d0d0d5);
+  border-radius: 4px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1a1a1f);
+}
+.reminder-form input[type="text"]:focus,
+.reminder-form input[type="datetime-local"]:focus {
+  outline: 2px solid var(--accent, #ff3b30);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+.reminder-repeat-group,
+.reminder-weekday-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.reminder-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-default, #d0d0d5);
+}
+.reminder-radio input { margin: 0; }
+.reminder-form-error {
+  color: var(--accent, #ff3b30);
+  font-size: 12px;
+  padding: 4px 0;
+}
+.reminder-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ── RecentActivityModal ── */
+.recent-modal {
+  width: 520px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+.recent-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+}
+.recent-modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.recent-modal-sub {
+  margin-left: 8px;
+}
+.recent-count-pill {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-soft, #f0f0f3);
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+}
+.recent-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.recent-modal-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+}
+.recent-filter-pill {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-default, #d0d0d5);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.recent-filter-pill:hover {
+  background: var(--bg-soft, #f7f7fa);
+}
+.recent-filter-pill.is-active {
+  background: var(--accent, #ff3b30);
+  color: #fff;
+  border-color: var(--accent, #ff3b30);
+}
+.recent-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px 12px;
+}
+.recent-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-secondary, #666);
+}
+.recent-empty-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.recent-empty-hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #999);
+}
+.recent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.recent-row:hover {
+  background: var(--bg-hover, #efeff2);
+}
+.recent-icon {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.recent-main {
+  flex: 1;
+  min-width: 0;
+}
+.recent-label {
+  font-size: 13px;
+  color: var(--text-primary, #1a1a1f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-meta {
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+  margin-top: 1px;
+}
+.recent-count {
+  font-weight: 500;
+  color: var(--accent, #ff3b30);
+}
+.recent-time {
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+

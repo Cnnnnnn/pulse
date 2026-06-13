@@ -9,7 +9,7 @@
  *   - 'detecting' → 行显示 spinner 动画 (app 名 + 旋转图标)
  *   - 'done'      → 正常显示检测结果
  *   - 'error'     → 显示错误态 (红点 + 错误信息)
- *   - 有 result 时优先显示 result (不管 phase), 兼容缓存结果场景
+ *   - 检查 running 时 pending/detecting 优先于旧 result (避免误导)
  *
  * 局部更新机制 (不变):
  *   1. Section 传 name[], AppRow 用 key={name} 稳定复用
@@ -18,7 +18,14 @@
  */
 
 import { useState, useCallback } from 'preact/hooks';
-import { getResultSignal, getAppPhaseSignal, isMuted, mutedApps, lastOpenedApps } from '../store.js';
+import {
+  getResultSignal,
+  getAppPhaseSignal,
+  isMuted,
+  isCheckRunning,
+  mutedApps,
+  lastOpenedApps,
+} from '../store.js';
 import { api } from '../api.js';
 import { AppAvatar } from './AppAvatar.jsx';
 import { AppInfo } from './AppInfo.jsx';
@@ -60,8 +67,11 @@ export function AppRow({ name }) {
 
   // ─── Phase-based 渲染 ──────────────────────────────────
 
-  // 还没有 result 且 phase 是 pending/detecting → 显示等待/检测态
-  if (!result) {
+  // 本轮检查 running 时优先显示 pending/detecting, 避免旧 result 误导
+  const rechecking =
+    isCheckRunning() && (phase === 'pending' || phase === 'detecting');
+
+  if (!result || rechecking) {
     if (phase === 'detecting') {
       return (
         <div class="app-row app-row--detecting" data-name={name}>

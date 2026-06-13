@@ -29,6 +29,7 @@ import { VersionsLayout } from './VersionsLayout.jsx';
 import { WorldcupLayout } from '../worldcup/WorldcupLayout.jsx';
 import { FundLayout } from '../funds/FundLayout.jsx';
 import { NewsLayout } from '../ithome/NewsLayout.jsx';
+import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 
 export function AppShell({ onCheck }) {
   const nav = activeNav.value;
@@ -38,6 +39,15 @@ export function AppShell({ onCheck }) {
   // Cmd+Shift+F: 跳到基金管理栏目
   useEffect(() => {
     function onKey(e) {
+      // ⌘⇧R: 打开 RemindersModal (走新建态)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        if (!remindersOpen.value) {
+          loadReminders();
+          remindersOpen.value = true;
+        }
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
         setActiveNav('funds');

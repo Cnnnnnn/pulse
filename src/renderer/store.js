@@ -20,6 +20,8 @@
 
 import { signal, computed } from "@preact/signals";
 import * as category from "../config/category.js";
+import { api } from "./api.js";
+import { DEFAULT_MODELS } from "../ai/default-models.js";
 
 // ─── Session ID 生成 ──────────────────────────────────
 let _sessionCounter = 0;
@@ -370,21 +372,55 @@ export function syncEnabledFromConfig(cfg) {
 // 用于 rerunDigest: 检测到 needsConfig=true → 自动切到 drawer config view.
 // @returns {boolean}
 export function needsConfig() {
-  const cfg = aiSessionsConfig.value;
-  if (!cfg) return true;
-  const providerId = cfg.provider || (cfg.cloud && cfg.cloud.providerId);
-  if (!providerId) return true;
-  const st = aiKeyStatus.value[providerId];
-  if (!st || !st.hasKey) return true;
-  return false;
+  return !isAiReadyLocal();
 }
 
-/** 世界杯 AI 洞察 — 查共享 AI 是否就绪 */
+function _aiProviderId(cfg) {
+  if (!cfg || typeof cfg !== "object") return null;
+  const id = cfg.provider || (cfg.cloud && cfg.cloud.providerId);
+  return typeof id === "string" && id ? id : null;
+}
+
+function _aiModel(cfg, providerId) {
+  if (!cfg || !providerId) return null;
+  const cloud = cfg.cloud || {};
+  if (typeof cloud.model === "string" && cloud.model) return cloud.model;
+  return DEFAULT_MODELS[providerId] || null;
+}
+
+/** 渲染进程本地判断 (bootstrap / 保存配置后同步的 signals) */
+export function isAiReadyLocal() {
+  const cfg = aiSessionsConfig.value;
+  const providerId = _aiProviderId(cfg);
+  if (!providerId) return false;
+  if (!_aiModel(cfg, providerId)) return false;
+  const st = aiKeyStatus.value[providerId];
+  return !!(st && st.hasKey);
+}
+
+/** 世界杯 / IT 新闻等 — 查共享 AI 是否就绪 (主进程权威) */
 export async function refreshAIReadyStatus() {
+  if (isAiReadyLocal()) return true;
+
+  await Promise.allSettled([loadAISessionsConfig(), probeAIKeyStatuses()]);
+  if (isAiReadyLocal()) return true;
+
+  if (typeof api.getAiSharedConfig === "function") {
+    try {
+      const r = await api.getAiSharedConfig();
+      if (r && r.ok) return !!r.ready;
+    } catch {
+      /* fall through */
+    }
+  }
+
+  const providerId = _aiProviderId(aiSessionsConfig.value);
+  if (!providerId || !_aiModel(aiSessionsConfig.value, providerId)) {
+    return false;
+  }
   try {
-    const { api } = await import("./api.js");
-    const r = await api.getAiSharedConfig();
-    return !!(r && r.ok && r.ready);
+    const kr = await api.hasAiKey(providerId);
+    return !!(kr && kr.ok && kr.hasKey);
   } catch {
     return false;
   }
@@ -576,11 +612,8 @@ function resultToPhase(result) {
 export function startCheck(appNames = []) {
   const sessionId = generateSessionId();
 
-  // 1. 清空 results Map + per-row result signals
-  results.value = new Map();
-  for (const sig of resultSignals.values()) {
-    sig.value = undefined;
-  }
+  // 1. 保留上一轮 results (AppRow 在 running 时按 phase 显示 spinner)
+  //    新结果由 applyProgress / applyProgressBatch 覆盖
 
   // 2. 所有 app 进入 'pending' phase
   const phases = new Map();
@@ -627,6 +660,18 @@ export function resetCheck() {
  * @param {object} result  检测结果
  * @param {string} [sessionId]  事件所属的 session ID (可选, 用于校验)
  */
+/**
+ * 批量应用检测结果 (IPC 返回值兜底 / check-finished 后补全).
+ * @param {object[]} list
+ * @param {string} [sessionId]
+ */
+export function applyProgressBatch(list, sessionId) {
+  if (!Array.isArray(list)) return;
+  for (const r of list) {
+    applyProgress(r, sessionId);
+  }
+}
+
 export function applyProgress(result, sessionId) {
   if (!result || !result.name) return;
 

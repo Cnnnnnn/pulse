@@ -4,6 +4,7 @@
 
 import {
   ithomeArticles,
+  ithomeDayStats,
   ithomeNewsLoaded,
   ithomeNewsLoading,
   ithomeNewsError,
@@ -19,6 +20,7 @@ import {
   formatDayHeader,
   favoriteCount,
   countSummarizedArticles,
+  sidebarDayCount,
 } from "./news-utils.js";
 import { NewsArticleRow } from "./NewsArticleRow.jsx";
 
@@ -123,13 +125,20 @@ export function NewsView({ search = "", onRefresh }) {
     articles,
     ithomeSummaries.value,
   );
+  const displayCount = isFavorites
+    ? sourceArticles.length
+    : sidebarDayCount(
+        ithomeDayStats.value,
+        ithomeArticles.value,
+        dateKey,
+      );
 
   return (
     <div class="ithome-panel">
       <header class="ithome-panel-head">
         <h3 class="ithome-panel-title">{formatDayHeader(dateKey)}</h3>
         <span class="ithome-panel-meta">
-          {articles.length} 篇
+          {q ? articles.length : displayCount} 篇
           {summaryCount > 0 && ` · ${summaryCount} 篇已总结`}
         </span>
       </header>

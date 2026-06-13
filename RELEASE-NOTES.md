@@ -2,6 +2,38 @@
 
 ---
 
+## v2.11.0 (提醒 & 时间线) — 2026-06-13
+
+### 提醒 (new)
+- **本地提醒**: 标题 + 触发时间 + 4 种重复规则 (一次 / 每天 / 工作日 / 每周某天)
+- **触发方式**: 主进程 30s 扫一次, 到时间发系统通知 + 状态切 `fired` (待 ✓ 打卡), 避免通知一划就忘
+- **持久化**: `state.json.reminders[]`, 跟 worldcupBets / funds 平级, atomic write
+- **UI 入口**: Header ⏰ 按钮 + 弹 RemindersModal (待办 / 已触发 / 已忽略 3 分组)
+- **快捷键**: `⌘⇧R` 一键打开新建
+- **重复规则算下次**: 一次完成后删; 重复规则 `_computeNextFireTime` 纯函数算下次 (daily 跨日 / weekdays 跳周末 / weekly 跳到下个匹配 weekday), 41 个单测覆盖
+- **表单**: 标题 / 触发时间 (datetime-local) / 重复 radio / weekly 周几 radio / `Esc` 取消 / `Cmd+Enter` 保存
+
+### 最近活动 (new)
+- **统一时间线**: 跨 5 个 tab (app 升级 / 提醒 / 比赛 / 基金 / 新闻) 记录"最近我做了什么", 倒序展示
+- **UI 入口**: Header 🕒 按钮 + 弹 RecentActivityModal (5 个过滤 pill: 全部 / 升级 / 提醒 / 比赛 / 基金 / 新闻)
+- **配置项**: `config.json.recentActivity.maxEntries`, 默认 200, 范围 [50, 1000] 越界走 default
+- **折叠去重**: 5min 内同 kind+ref 自动折叠成 "X N 次", 超出 cap 环形覆盖
+- **持久化**: `state.json.recentActivity[]`, atomic write, 24 个单测覆盖
+- **点条目跳 tab**: 比赛/基金/新闻条目点击切到对应 tab
+
+### 已知限制
+- v2.11 主体跑通, **时间线 5 个采集点 (app-upgrade / reminder-* / worldcup / ithome / funds) v2.11.1 补** — v2.11 装的 modal 暂时为空, 等采集点接上就有数据
+- 提醒通知点击后只弹主窗口 + 拉起 modal, 不在主窗口打开新建表单 (避免遮挡)
+- 时间线容量走 `config.json` 静态配置, 暂不在 Settings 面板暴露
+
+### 验证
+- 65 个新增单测全绿 (reminders 41 + recent-activity 24)
+- 整体回归 1287/1292 绿 (1 个预先存在的 worldcup-scores-api 失败跟 v2.11 无关)
+- renderer bundle 697.8kb (v2.10 是 555kb, +143kb = 2 modal + 2 store + 入口按钮 + 折叠逻辑)
+- styles.css +368 行 (2 modal 完整样式)
+
+---
+
 ## v2.10.0 (世界杯体彩记账) — 2026-06-12
 
 ### 世界杯 · 体彩记账 (new)

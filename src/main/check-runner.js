@@ -15,9 +15,48 @@
  *   - onCheckComplete(results) → 推给 tray/badge + state-store
  */
 
-const { Notification: ElectronNotification } = require('electron');
-const { inQuietHours, suppressedByCooldown } = require('./notification-policy');
-const { isMuteActive } = require('./state-store');
+const { Notification: ElectronNotification } = require("electron");
+const { inQuietHours, suppressedByCooldown } = require("./notification-policy");
+const { isMuteActive } = require("./state-store");
+
+const PER_APP_DETECT_TIMEOUT_MS = 95_000;
+
+function scheduleOnCheckComplete(fn, results) {
+  if (typeof fn !== "function") return;
+  setImmediate(() => {
+    try {
+      fn(results);
+    } catch {
+      /* noop */
+    }
+  });
+}
+
+function enqueueDetectApp(pool, appCfg, history) {
+  const job = pool.enqueue({
+    type: "detect-app",
+    payload: {
+      appCfg: {
+        ...appCfg,
+        changelog_history: Array.isArray(history) ? history : [],
+      },
+    },
+  });
+  return Promise.race([
+    job,
+    new Promise((_, reject) => {
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `detect-app timeout: ${(appCfg && appCfg.name) || "unknown"}`,
+            ),
+          ),
+        PER_APP_DETECT_TIMEOUT_MS,
+      );
+    }),
+  ]);
+}
 
 /**
  * @param {object} deps
@@ -34,7 +73,12 @@ const { isMuteActive } = require('./state-store');
  */
 async function runCheck(deps, opts = {}) {
   const {
-    getConfig, pool, getWindow, onCheckComplete, getState, markNotified,
+    getConfig,
+    pool,
+    getWindow,
+    onCheckComplete,
+    getState,
+    markNotified,
     Notification: NotificationCtor,
   } = deps;
   const Notification = NotificationCtor || ElectronNotification;
@@ -43,10 +87,11 @@ async function runCheck(deps, opts = {}) {
   const apps = config.apps || [];
   const notifCfg = (config && config.notifications) || {};
   const quietStart = notifCfg.quiet_hours_start;
-  const quietEnd   = notifCfg.quiet_hours_end;
-  const cooldownMs = (typeof notifCfg.cooldown_hours === 'number' && notifCfg.cooldown_hours > 0)
-    ? notifCfg.cooldown_hours * 60 * 60 * 1000
-    : 0; // 0 = 不限制
+  const quietEnd = notifCfg.quiet_hours_end;
+  const cooldownMs =
+    typeof notifCfg.cooldown_hours === "number" && notifCfg.cooldown_hours > 0
+      ? notifCfg.cooldown_hours * 60 * 60 * 1000
+      : 0; // 0 = 不限制
 
   function sendToRenderer(channel, payload) {
     const w = getWindow && getWindow();
@@ -54,26 +99,22 @@ async function runCheck(deps, opts = {}) {
   }
 
   if (!silent) {
-    sendToRenderer('check-started', { count: apps.length, ts: Date.now() });
+    sendToRenderer("check-started", { count: apps.length, ts: Date.now() });
   }
 
-  // 队列化: 每个 app 一个 detect-app task
-  // Phase 18: 把 state.apps[name].changelog_history 透传给 worker, 一起进 result
-  const stateApps = (typeof getState === 'function' && getState() && getState().apps) || {};
+  // 队列化: 每个 app 一个 detect-app task (带主进程侧超时, 防止 worker 挂死占满 pool)
+  const stateApps =
+    (typeof getState === "function" && getState() && getState().apps) || {};
   const tasks = apps.map((appCfg) => {
-    const history = (appCfg && appCfg.name && stateApps[appCfg.name])
-      ? stateApps[appCfg.name].changelog_history
-      : undefined;
-    return pool.enqueue({
-      type: 'detect-app',
-      payload: {
-        appCfg: { ...appCfg, changelog_history: Array.isArray(history) ? history : [] },
-      },
-    });
+    const history =
+      appCfg && appCfg.name && stateApps[appCfg.name]
+        ? stateApps[appCfg.name].changelog_history
+        : undefined;
+    return enqueueDetectApp(pool, appCfg, history);
   });
   const settled = await Promise.allSettled(tasks);
   const results = settled.map((s, i) => {
-    if (s.status === 'fulfilled' && s.value) {
+    if (s.status === "fulfilled" && s.value) {
       return s.value;
     }
     const appCfg = apps[i] || {};
@@ -82,17 +123,15 @@ async function runCheck(deps, opts = {}) {
       installed_version: null,
       latest_version: null,
       has_update: false,
-      status: 'error',
-      source: '',
-      note: (s.reason && s.reason.message) || 'task failed',
-      bundle: appCfg.bundle || '',
+      status: "error",
+      source: "",
+      note: (s.reason && s.reason.message) || "task failed",
+      bundle: appCfg.bundle || "",
     };
   });
 
-  // 落盘 + tray/badge
-  if (typeof onCheckComplete === 'function') {
-    try { onCheckComplete(results); } catch { /* noop */ }
-  }
+  // 落盘 + tray/badge (在 check-finished 之后, 避免 saveAll 阻塞 UI 结束态)
+  const finishPayload = { count: results.length, ts: Date.now() };
 
   // 系统通知: silent 时不发
   if (!silent) {
@@ -100,47 +139,71 @@ async function runCheck(deps, opts = {}) {
 
     // Phase 17: Quiet hours 抑制
     if (inQuietHours(new Date(), quietStart, quietEnd)) {
-      // 静默时段: 不发, 但正常 finish
-      sendToRenderer('check-finished', { count: results.length, ts: Date.now() });
+      sendToRenderer("check-finished", finishPayload);
+      scheduleOnCheckComplete(onCheckComplete, results);
       return results;
     }
 
-    // Phase 17: Cooldown 抑制 — 只显示真正"新"或 cooldown 外的
-    //   suppressedByCooldown 接收整个 state (它内部读 state.apps), 不是 appsMap.
-    //   之前传 appsMap 是 bug — 让 cooldown 在生产里永远不触发 (默认 cooldown=0 掩盖了).
-    const state = (typeof getState === 'function') ? getState() : null;
-    const suppressed = new Set(suppressedByCooldown(updateApps, state, cooldownMs));
+    const state = typeof getState === "function" ? getState() : null;
+    const suppressed = new Set(
+      suppressedByCooldown(updateApps, state, cooldownMs),
+    );
     let notifyable = updateApps.filter((r) => !suppressed.has(r.name));
 
-    // Phase 27: Mutes 抑制 — 跳过已静音的 app
-    //   读 state.mutes, 过滤掉 isMuteActive(mute, now)=true 的
-    //   跟 cooldown 一样: 只抑制通知, 不影响 result / state.ts (user 还能看到 update)
     const mutes = (state && state.mutes) || {};
     const now = Date.now();
     notifyable = notifyable.filter((r) => !isMuteActive(mutes[r.name], now));
 
+    sendToRenderer("check-finished", finishPayload);
+    scheduleOnCheckComplete(onCheckComplete, results);
+
     if (notifyable.length > 0) {
-      const names = notifyable.map((r) => r.name).join('、');
+      const names = notifyable.map((r) => r.name).join("、");
       try {
         new Notification({
-          title: 'Pulse',
+          title: "Pulse",
           body: `${notifyable.length} 个应用有更新：${names}`,
           silent: false,
         }).show();
-      } catch { /* notification 不可用时静默 */ }
-      // 标记已通知 (写 state)
-      if (typeof markNotified === 'function') {
-        try { markNotified(notifyable.map((r) => r.name)); } catch { /* noop */ }
+      } catch {
+        /* notification 不可用时静默 */
+      }
+      if (typeof markNotified === "function") {
+        try {
+          markNotified(notifyable.map((r) => r.name));
+        } catch {
+          /* noop */
+        }
       }
     }
-
-    sendToRenderer('check-finished', { count: results.length, ts: Date.now() });
   } else {
-    // Phase 16: 后台 auto-check 完成, 推个事件给 renderer 让它知道"刚刚自动检查过"
-    sendToRenderer('auto-check-finished', { count: results.length, ts: Date.now() });
+    scheduleOnCheckComplete(onCheckComplete, results);
+    sendToRenderer("auto-check-finished", finishPayload);
   }
 
   return results;
 }
 
-module.exports = { runCheck };
+/** 串行化 check, 避免手动/自动检查同时占满 worker pool */
+let checkTail = Promise.resolve();
+let manualCheckInflight = null;
+
+function runCheckQueued(deps, opts = {}) {
+  const silent = !!opts.silent;
+  if (!silent && manualCheckInflight) {
+    return manualCheckInflight;
+  }
+  const job = checkTail.then(() => {
+    const running = runCheck(deps, opts);
+    if (!silent) manualCheckInflight = running;
+    return running.finally(() => {
+      if (!silent && manualCheckInflight === running) {
+        manualCheckInflight = null;
+      }
+    });
+  });
+  checkTail = job.catch(() => {});
+  return job;
+}
+
+module.exports = { runCheck, runCheckQueued };

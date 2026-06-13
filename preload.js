@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld("api", {
   onStartCheck: (cb) => ipcRenderer.on("start-check", () => cb()),
   onAutoCheckFinished: (cb) =>
     ipcRenderer.on("auto-check-finished", (_, data) => cb(data)),
+  onCheckFinished: (cb) =>
+    ipcRenderer.on("check-finished", (_, data) => cb(data)),
 
   // Bulk Upgrade (Phase22)
   bulkUpgradeStart: (items) => ipcRenderer.invoke("bulk-upgrade:start", items),
@@ -65,7 +67,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("ai-sessions-config-updated", (_, data) => cb(data)),
 
   // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
-  worldcupFetchFixtures: () => ipcRenderer.invoke("worldcup:fetch-fixtures"),
+  worldcupFetchFixtures: (payload) =>
+    ipcRenderer.invoke("worldcup:fetch-fixtures", payload),
   worldcupLoadScores: () => ipcRenderer.invoke("worldcup:load-scores"),
   worldcupRefreshScores: (payload) =>
     ipcRenderer.invoke("worldcup:refresh-scores", payload),
@@ -111,4 +114,24 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("funds:nav:state", (_, data) => cb(data)),
   onFundsHistoryUpdated: (cb) =>
     ipcRenderer.on("funds:history:updated", (_, data) => cb(data)),
+
+  // v2.11 提醒
+  remindersList: () => ipcRenderer.invoke("reminders:list"),
+  remindersCreate: (input) => ipcRenderer.invoke("reminders:create", input),
+  remindersUpdate: (id, patch) =>
+    ipcRenderer.invoke("reminders:update", { id, patch }),
+  remindersRemove: (id) => ipcRenderer.invoke("reminders:remove", id),
+  remindersMarkDone: (id) => ipcRenderer.invoke("reminders:mark-done", id),
+  remindersMarkDismissed: (id) =>
+    ipcRenderer.invoke("reminders:mark-dismissed", id),
+  onRemindersFired: (cb) =>
+    ipcRenderer.on("reminders:fired", (_, data) => cb(data)),
+  onRemindersOpenModal: (cb) =>
+    ipcRenderer.on("reminders:open-modal", (_, data) => cb(data)),
+
+  // v2.11 时间线
+  recentList: () => ipcRenderer.invoke("recent:list"),
+  recentPush: (entry) => ipcRenderer.invoke("recent:push", entry),
+  onRecentUpdated: (cb) =>
+    ipcRenderer.on("recent:updated", (_, data) => cb(data)),
 });
