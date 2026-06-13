@@ -192,3 +192,124 @@ describe("ithome news-store", () => {
     expect(loaded.dayStats["2026-06-08"].count).toBe(120);
   });
 });
+
+describe("ithome news-store markArticleRead", () => {
+  let p;
+  beforeEach(() => {
+    p = tmpStatePath();
+  });
+
+  it("markArticleRead 第一次写入 readAt", () => {
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {
+            "https://www.ithome.com/0/1/a.htm": {
+              id: "https://www.ithome.com/0/1/a.htm",
+              title: "A",
+              dateKey: "2026-06-13",
+            },
+          },
+          summaries: {},
+        },
+      }),
+    );
+    const r = newsStore.markArticleRead("https://www.ithome.com/0/1/a.htm", p);
+    expect(r.ok).toBe(true);
+    const article = newsStore.getArticle("https://www.ithome.com/0/1/a.htm", p);
+    expect(typeof article.readAt).toBe("number");
+    expect(article.readAt).toBeGreaterThan(0);
+  });
+
+  it("markArticleRead 重复调用不更新 readAt（幂等）", async () => {
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {
+            "https://www.ithome.com/0/1/a.htm": {
+              id: "https://www.ithome.com/0/1/a.htm",
+              title: "A",
+              dateKey: "2026-06-13",
+            },
+          },
+          summaries: {},
+        },
+      }),
+    );
+    newsStore.markArticleRead("https://www.ithome.com/0/1/a.htm", p);
+    const t1 = newsStore.getArticle("https://www.ithome.com/0/1/a.htm", p).readAt;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    newsStore.markArticleRead("https://www.ithome.com/0/1/a.htm", p);
+    const t2 = newsStore.getArticle("https://www.ithome.com/0/1/a.htm", p).readAt;
+    expect(t2).toBe(t1);
+  });
+
+  it("markArticleRead 写入已收藏文章的 readAt", () => {
+    const id = "https://www.ithome.com/0/1/fav.htm";
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {},
+          summaries: {},
+          favorites: {
+            [id]: {
+              article: { id, title: "Fav", dateKey: "2026-06-13" },
+              favoritedAt: 1,
+              summary: null,
+            },
+          },
+        },
+      }),
+    );
+    const r = newsStore.markArticleRead(id, p);
+    expect(r.ok).toBe(true);
+    const loaded = newsStore.loadAll(p);
+    expect(loaded.favorites[id].article.readAt).toBeGreaterThan(0);
+  });
+});
+
+describe("ithome news-store _mergeArticles preserves readAt", () => {
+  let p;
+  beforeEach(() => {
+    p = tmpStatePath();
+  });
+
+  it("刷新时 _mergeArticles 保留旧 readAt", () => {
+    const id = "https://www.ithome.com/0/1/a.htm";
+    const oldReadAt = 1000;
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {
+            [id]: { id, title: "old", dateKey: "2026-06-13", readAt: oldReadAt, fetchedAt: 1 },
+          },
+          summaries: {},
+        },
+      }),
+    );
+    const cur = newsStore.loadAll(p);
+    const merged = newsStore._mergeArticles(cur, [{ id, title: "new", dateKey: "2026-06-13", excerpt: "" }], 2000);
+    expect(merged[id].readAt).toBe(oldReadAt);
+    expect(merged[id].title).toBe("new");
+  });
+});
