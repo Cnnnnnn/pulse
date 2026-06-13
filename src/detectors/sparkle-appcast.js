@@ -12,7 +12,7 @@
 
 const { Detector, DetectorResult } = require("./base");
 const { DetectorError, REASONS } = require("./errors");
-const { truncate } = require("./utils");
+const { truncate, assertHttpResponse } = require("./utils");
 
 class SparkleAppcastDetector extends Detector {
   static name = "sparkle_appcast";
@@ -33,38 +33,7 @@ class SparkleAppcastDetector extends Detector {
     }
 
     const r = await ctx.http.get(url, { timeout: ctx.timeout || this.timeout });
-    if (r.error === "timeout") {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.TIMEOUT,
-        note: url,
-      });
-    }
-    if (r.error === "network") {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.NETWORK,
-        note: url,
-      });
-    }
-    if (r.status >= 400 && r.status < 500) {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.HTTP_4XX,
-        httpStatus: r.status,
-        raw: truncate(r.body),
-        note: url,
-      });
-    }
-    if (r.status >= 500) {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.HTTP_5XX,
-        httpStatus: r.status,
-        raw: truncate(r.body),
-        note: url,
-      });
-    }
+    assertHttpResponse(r, this.constructor.name, url);
 
     const ver = extractSparkleVersion(r.body);
     if (!ver) {

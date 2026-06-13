@@ -9,6 +9,7 @@
  */
 
 const { cleanVersion } = require("../utils/version-utils");
+const { DetectorError, REASONS } = require("./errors");
 
 /**
  * 把超长字符串截到 n 字符 + "…". detector response body 经常上万字符,
@@ -22,7 +23,51 @@ function truncate(s, n = 4096) {
   return s.length > n ? s.slice(0, n) + "…" : s;
 }
 
+/**
+ * HTTP 响应统一校验 — 9 个 detector 里重复的 timeout/network/4xx/5xx 链.
+ *
+ * @param {object} r           httpClient.get/head 返回值
+ * @param {string} detector    detector 类名 (this.constructor.name)
+ * @param {string} note        通常是 URL
+ * @param {{ includeRaw?: boolean, tooLargeNote?: string }} [opts]
+ */
+function assertHttpResponse(r, detector, note, opts = {}) {
+  const includeRaw = opts.includeRaw !== false;
+  if (r.error === "timeout") {
+    throw new DetectorError({ detector, reason: REASONS.TIMEOUT, note });
+  }
+  if (r.error === "network") {
+    throw new DetectorError({ detector, reason: REASONS.NETWORK, note });
+  }
+  if (r.error === "too_large") {
+    throw new DetectorError({
+      detector,
+      reason: REASONS.TOO_LARGE,
+      note: opts.tooLargeNote || "response body too large",
+    });
+  }
+  if (r.status >= 400 && r.status < 500) {
+    throw new DetectorError({
+      detector,
+      reason: REASONS.HTTP_4XX,
+      httpStatus: r.status,
+      ...(includeRaw ? { raw: truncate(r.body) } : {}),
+      note,
+    });
+  }
+  if (r.status >= 500) {
+    throw new DetectorError({
+      detector,
+      reason: REASONS.HTTP_5XX,
+      httpStatus: r.status,
+      ...(includeRaw ? { raw: truncate(r.body) } : {}),
+      note,
+    });
+  }
+}
+
 module.exports = {
   truncate,
   cleanVersion,
+  assertHttpResponse,
 };

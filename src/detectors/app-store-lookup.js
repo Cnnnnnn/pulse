@@ -16,7 +16,7 @@
 const { Detector, DetectorResult } = require("./base");
 const { DetectorError, REASONS } = require("./errors");
 const { expandUrl } = require("./url-template");
-const { truncate, cleanVersion } = require("./utils");
+const { truncate, cleanVersion, assertHttpResponse } = require("./utils");
 
 class AppStoreLookupDetector extends Detector {
   static name = "app_store_lookup";
@@ -39,38 +39,7 @@ class AppStoreLookupDetector extends Detector {
     const url = expandUrl(rawUrl, ctx.arch);
 
     const r = await ctx.http.get(url, { timeout: ctx.timeout || this.timeout });
-    if (r.error === "timeout") {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.TIMEOUT,
-        note: url,
-      });
-    }
-    if (r.error === "network") {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.NETWORK,
-        note: url,
-      });
-    }
-    if (r.status >= 400 && r.status < 500) {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.HTTP_4XX,
-        httpStatus: r.status,
-        raw: truncate(r.body),
-        note: url,
-      });
-    }
-    if (r.status >= 500) {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.HTTP_5XX,
-        httpStatus: r.status,
-        raw: truncate(r.body),
-        note: url,
-      });
-    }
+    assertHttpResponse(r, this.constructor.name, url);
 
     let data;
     try {

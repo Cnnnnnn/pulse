@@ -17,7 +17,7 @@
 const { Detector, DetectorResult } = require("./base");
 const { DetectorError, REASONS } = require("./errors");
 const { expandUrl } = require("./url-template");
-const { truncate } = require("./utils");
+const { truncate, assertHttpResponse } = require("./utils");
 
 class QClawApiDetector extends Detector {
   static name = "qclaw_api";
@@ -48,38 +48,7 @@ class QClawApiDetector extends Detector {
     const r = await ctx.http.post(url, body, headers, {
       timeout: ctx.timeout || this.timeout,
     });
-    if (r.error === "timeout") {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.TIMEOUT,
-        note: url,
-      });
-    }
-    if (r.error === "network") {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.NETWORK,
-        note: url,
-      });
-    }
-    if (r.status >= 400 && r.status < 500) {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.HTTP_4XX,
-        httpStatus: r.status,
-        raw: truncate(r.body),
-        note: url,
-      });
-    }
-    if (r.status >= 500) {
-      throw new DetectorError({
-        detector: this.constructor.name,
-        reason: REASONS.HTTP_5XX,
-        httpStatus: r.status,
-        raw: truncate(r.body),
-        note: url,
-      });
-    }
+    assertHttpResponse(r, this.constructor.name, url);
 
     let data;
     try {

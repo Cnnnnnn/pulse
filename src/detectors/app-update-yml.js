@@ -13,7 +13,7 @@ const fs = require("fs");
 const path = require("path");
 const { Detector, DetectorResult } = require("./base");
 const { DetectorError, REASONS } = require("./errors");
-const { truncate } = require("./utils");
+const { truncate, assertHttpResponse } = require("./utils");
 
 let yamlLib = null;
 try {
@@ -108,38 +108,7 @@ class AppUpdateYmlDetector extends Detector {
         timeout: ctx.timeout || this.timeout,
         headers: { Accept: "application/vnd.github.v3+json" },
       });
-      if (r.error === "timeout") {
-        throw new DetectorError({
-          detector: this.constructor.name,
-          reason: REASONS.TIMEOUT,
-          note: apiUrl,
-        });
-      }
-      if (r.error === "network") {
-        throw new DetectorError({
-          detector: this.constructor.name,
-          reason: REASONS.NETWORK,
-          note: apiUrl,
-        });
-      }
-      if (r.status >= 400 && r.status < 500) {
-        throw new DetectorError({
-          detector: this.constructor.name,
-          reason: REASONS.HTTP_4XX,
-          httpStatus: r.status,
-          raw: truncate(r.body),
-          note: apiUrl,
-        });
-      }
-      if (r.status >= 500) {
-        throw new DetectorError({
-          detector: this.constructor.name,
-          reason: REASONS.HTTP_5XX,
-          httpStatus: r.status,
-          raw: truncate(r.body),
-          note: apiUrl,
-        });
-      }
+      assertHttpResponse(r, this.constructor.name, apiUrl);
       let data;
       try {
         data = JSON.parse(r.body);
