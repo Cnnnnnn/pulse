@@ -9,6 +9,7 @@ import {
   ithomeArticles,
   ithomeDayStats,
   ithomeFavorites,
+  ithomeReadIds,
   setIthomeSelectedDate,
   setIthomeFavoriteSelectedDate,
 } from "./store.js";
@@ -20,13 +21,17 @@ import {
   isTodayDateKey,
   weekdayShort,
   currentMonthLabel,
+  readCountForDate,
 } from "./news-utils.js";
 
-function dayCount(dateKey, isFavorites, articles, dayStats, favorites) {
+function dayCountTuple(dateKey, isFavorites, articles, dayStats, favorites, readIds) {
   if (isFavorites) {
-    return favoritesForDate(favorites, dateKey).length;
+    return { total: favoritesForDate(favorites, dateKey).length, read: 0 };
   }
-  return sidebarDayCount(dayStats, articles, dateKey);
+  return {
+    total: sidebarDayCount(dayStats, articles, dateKey),
+    read: readCountForDate(articles, readIds, dateKey),
+  };
 }
 
 export function NewsSidebar() {
@@ -35,6 +40,7 @@ export function NewsSidebar() {
   const articles = ithomeArticles.value;
   const dayStats = ithomeDayStats.value;
   const favorites = ithomeFavorites.value;
+  const readIds = ithomeReadIds.value;
   const selected = isFavorites
     ? ithomeFavoriteSelectedDate.value
     : ithomeSelectedDate.value;
@@ -67,12 +73,13 @@ export function NewsSidebar() {
           const active = dateKey === selected;
           const today = isTodayDateKey(dateKey);
           const [, , d] = dateKey.split("-");
-          const count = dayCount(
+          const { total, read } = dayCountTuple(
             dateKey,
             isFavorites,
             articles,
             dayStats,
             favorites,
+            readIds,
           );
           return (
             <button
@@ -90,8 +97,13 @@ export function NewsSidebar() {
                   )}
                 </span>
               </span>
-              {count > 0 && (
-                <span class="ithome-sidebar-item-badge">{count}</span>
+              {total > 0 && (
+                <span class="ithome-sidebar-item-badge">
+                  {total}
+                  {read > 0 && (
+                    <span class="ithome-sidebar-item-badge-read"> (已读 {read})</span>
+                  )}
+                </span>
               )}
             </button>
           );
