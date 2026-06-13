@@ -130,10 +130,6 @@ function migrateLegacyStateIfNeeded(targetPath) {
   }
 }
 
-function legacyDefaultPath() {
-  return LEGACY_STATE_PATH;
-}
-
 // ─── 新字段 preserve helper ─────────────────────────
 //
 // 用途: 让 saveAll / setMute / clearMute / saveLastOpened / saveActiveCategory
@@ -364,6 +360,8 @@ function markNotified(names, statePath = defaultPath()) {
     next.apps = apps;
   }, statePath);
 }
+
+// ─── Phase 27: Mutes ──────────────────────────────────────────
 
 /**
  * 把单个 result 加/更新进 state (用于更细粒度的写入, 比如每个 worker 跑完就写一次).
@@ -828,7 +826,6 @@ module.exports = {
   saveOne,
   markNotified,
   defaultPath,
-  legacyDefaultPath,
   initStateStorePaths,
   migrateLegacyStateIfNeeded,
   SCHEMA_VERSION,

@@ -517,7 +517,6 @@ function registerIpcHandlers(deps) {
   // 跳转原始 session (任务卡 "查看原始" 按钮触发).
   // target 形如 "cursor://file/...", "codex://...", "minimax://...", 或绝对文件路径.
   // URL scheme 走 shell.openExternal, 绝对路径走 shell.openPath (默认 app 打开).
-  const { shell } = require("electron");
   ipcMain.handle("ai-sessions:open-session", async (_event, target) => {
     if (typeof target !== "string" || target.length === 0) {
       return { ok: false, reason: "invalid_target" };
