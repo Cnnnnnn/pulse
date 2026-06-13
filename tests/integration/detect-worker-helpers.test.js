@@ -5,13 +5,14 @@
  * Phase 15: extractErrorMessage
  *
  * Worker 内部函数, 不导出, 通过 source-string eval 测.
+ * 重构后 extractBrewCask / extractErrorMessage 搬到 result-builder.js.
  */
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
 const SRC = fs.readFileSync(
-  path.join(__dirname, '../../src/workers/detect-worker.js'),
+  path.join(__dirname, '../../src/workers/result-builder.js'),
   'utf-8'
 );
 
