@@ -307,6 +307,39 @@ async function refresh(statePath) {
   };
 }
 
+function attachArticleBody(id, body, statePath) {
+  if (!id || typeof id !== "string") {
+    return { ok: false, reason: "invalid_args" };
+  }
+  const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  if (!cur.articles[id] && !(cur.favorites && cur.favorites[id])) {
+    return { ok: false, reason: "article_not_found" };
+  }
+  const articles = { ...cur.articles };
+  if (articles[id]) {
+    articles[id] = {
+      ...articles[id],
+      body: typeof body === "string" ? body : "",
+      bodyFetchedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  }
+  const favorites = { ...(cur.favorites || {}) };
+  if (favorites[id]) {
+    favorites[id] = {
+      ...favorites[id],
+      article: {
+        ...(favorites[id].article || {}),
+        body: typeof body === "string" ? body : "",
+        bodyFetchedAt: Date.now(),
+      },
+    };
+  }
+  const news = { ...cur, articles, favorites, ts: Date.now() };
+  _writeNews(news, statePath);
+  return { ok: true };
+}
+
 function saveSummary(id, entry, statePath) {
   const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
   const inArticles = !!cur.articles[id];
@@ -364,6 +397,7 @@ module.exports = {
   saveSummary,
   toggleFavorite,
   isFavorited,
+  attachArticleBody,
   _pruneArticles,
   MAX_ARTICLES_PER_DAY,
 };

@@ -24,8 +24,21 @@ function mapAiError(reason) {
   return reason || "生成失败";
 }
 
+/** 与后端 article-page-fetcher MIN_USEFUL_BODY_CHARS 保持一致 */
+const MIN_USEFUL_BODY_CHARS = 200;
+
+function needsBodyFetch(article) {
+  if (!article) return false;
+  const body = (article.body || "").trim();
+  if (body.length >= MIN_USEFUL_BODY_CHARS) return false;
+  const excerpt = (article.excerpt || "").trim();
+  if (excerpt.length >= MIN_USEFUL_BODY_CHARS) return false;
+  return true;
+}
+
 export function NewsArticleRow({ article }) {
   const [busy, setBusy] = useState(false);
+  const [fetchingBody, setFetchingBody] = useState(false);
   const [favBusy, setFavBusy] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -70,7 +83,11 @@ export function NewsArticleRow({ article }) {
       return;
     }
     setError(null);
-    setBusy(true);
+    if (needsBodyFetch(article)) {
+      setFetchingBody(true);
+    } else {
+      setBusy(true);
+    }
     try {
       const r = await summarizeIthomeArticle(article.id, force);
       if (!r || !r.ok) {
@@ -79,17 +96,20 @@ export function NewsArticleRow({ article }) {
         setExpanded(true);
       }
     } finally {
+      setFetchingBody(false);
       setBusy(false);
     }
   }
 
-  const aiLabel = busy
-    ? "总结中…"
-    : hasSummary
-      ? expanded
-        ? "收起"
-        : "摘要"
-      : "AI 总结";
+  const aiLabel = fetchingBody
+    ? "抓取正文中…"
+    : busy
+      ? "总结中…"
+      : hasSummary
+        ? expanded
+          ? "收起"
+          : "摘要"
+        : "AI 总结";
 
   return (
     <article
@@ -131,7 +151,7 @@ export function NewsArticleRow({ article }) {
         <button
           type="button"
           class={`ithome-row-btn ithome-row-btn--ai${hasSummary ? " has-summary" : ""}`}
-          disabled={busy}
+          disabled={busy || fetchingBody}
           onClick={() => handleSummarize(false)}
         >
           ✨ {aiLabel}
@@ -147,7 +167,7 @@ export function NewsArticleRow({ article }) {
           <button
             type="button"
             class="ithome-row-link ithome-row-link--muted"
-            disabled={busy}
+            disabled={busy || fetchingBody}
             onClick={() => handleSummarize(true)}
           >
             重新生成

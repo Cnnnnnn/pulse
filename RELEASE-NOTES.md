@@ -2,6 +2,35 @@
 
 ---
 
+## v2.11.3 (IT 新闻 AI 总结 — 按需拉详情页正文) — 2026-06-14
+
+### 问题
+- 之前在 IT 之家新闻卡片点 **AI 总结** 时, 主进程把 `article.excerpt` (列表页短摘录, 经常为空) 当正文喂给 LLM
+- LLM 只看到标题, 就**自己编**一句免责: "由于原文正文缺失, 以上信息仅依据标题整理, 可能不完整"
+- 截图里很多摘要都被这段废话污染, 实际总结质量被标题空想拖累
+
+### 修复
+- **按需抓取详情页正文** (`article-page-fetcher.js`): 检测到 `excerpt` < 200 字符时, 自动 HTTP 拉 `https://www.ithome.com/0/.../*.htm`, 解析 `<div id="paragraph">`, 去除投稿/广告段, 把正文落到 `state.json.ithome_news.articles[id].body`
+- **LLM 提示词重排** (`article-ai.js buildMessages`): 优先用 `body` (>= 200 字) → 回退到 `excerpt` → 都缺才给免责提示
+- **`contentHash` 包含 body**: body 落盘后, 旧 summary 的 hash 自动失效, 下次访问会被重新计算 (默认**不**主动清空, 用户点 "重新生成" 才用上带正文的版本 — 升级不打扰现有用户)
+- **UI 加进度反馈** (`NewsArticleRow.jsx`): 按钮文案分两段: `抓取正文中…` (需要抓详情页时) → `总结中…` (走 LLM), 对应阶段 disable
+- **抓取失败不影响总结**: 详情页 404/解析失败时, 主进程走原来的 fallback 提示, 用户仍能拿到一个 (相对粗糙的) 总结
+
+### 用户行为变化
+- 升级后, **旧的 AI 摘要会原样保留** — 它们是用旧 hash 算出来的, 仍合法; 不会自动重算
+- 想看带正文的版本: 列表里点 **`重新生成`**
+- 第一次点 **`AI 总结`** 的某条新闻: 按钮会先显示 `抓取正文中…` (约 1-3 秒, 看网络) 然后 `总结中…`, 比之前多一步
+
+### 工程
+- 新增 `article-page-parser.js` (解析详情页) / `article-page-fetcher.js` (拉取 + 落盘), 都用 vitest 单测覆盖, 含真实 IT 之家 HTML fixture (`tests/fixtures/ithome/article-866661.html`)
+- `news-store.js` 新增 `attachArticleBody(id, body, statePath)`, 不动 schema 不影响 favorites/summaries
+- 关键文案:
+  - 主进程抓详情页失败 (HTTP 4xx/5xx) → 走原 fallback 提示 "信息可能不完整"
+  - 详情页无 `#paragraph` → 同上
+- 整体测试: **1364 passed / 0 failed**, 新增 23 个 (parser 8 + fetcher 6 + ai 6 + row 3)
+
+---
+
 ## v2.11.2 (工程基础设施) — 2026-06-13
 
 本轮聚焦**项目工程化与稳定性**, 没有面向用户的新功能, 但都是 push 之前没人拦的"软肋":
