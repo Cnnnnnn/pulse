@@ -9,17 +9,23 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, cleanup, fireEvent, act } from "@testing-library/preact";
 
-const { mockSummarize, mockSummaries, mockFavorites } = vi.hoisted(() => ({
+const { mockSummarize, mockSummaries, mockFavorites, mockReadIds, mockNewIds, mockMarkRead } = vi.hoisted(() => ({
   mockSummarize: vi.fn(),
   mockSummaries: { value: {} },
   mockFavorites: { value: {} },
+  mockReadIds: { value: {} },
+  mockNewIds: { value: {} },
+  mockMarkRead: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 vi.mock("../../src/renderer/ithome/store.js", () => ({
   ithomeSummaries: mockSummaries,
   ithomeFavorites: mockFavorites,
+  ithomeReadIds: mockReadIds,
+  ithomeNewIds: mockNewIds,
   summarizeIthomeArticle: mockSummarize,
   toggleIthomeFavorite: vi.fn(),
+  markIthomeRead: mockMarkRead,
 }));
 
 vi.mock("../../src/renderer/store.js", () => ({
@@ -106,5 +112,39 @@ describe("NewsArticleRow AI 总结按钮", () => {
     await act(async () => {
       resolveSummarize();
     });
+  });
+});
+
+describe("NewsArticleRow 已读/新 视觉", () => {
+  const ARTICLE_ID = "https://www.ithome.com/0/1/1.htm";
+  beforeEach(() => {
+    mockReadIds.value = {};
+    mockNewIds.value = {};
+  });
+  afterEach(() => cleanup());
+
+  it("已读: 加 is-read class + meta 行有 已读 tag", () => {
+    mockReadIds.value = { [ARTICLE_ID]: Date.now() };
+    const article = makeArticle({ excerpt: "x".repeat(500) });
+    const { container, getByText } = render(<NewsArticleRow article={article} />);
+    expect(container.querySelector(".ithome-row").classList.contains("is-read")).toBe(true);
+    expect(getByText("已读")).toBeTruthy();
+  });
+
+  it("新文章: 加 is-new class + meta 行有 新 tag", () => {
+    mockNewIds.value = { [ARTICLE_ID]: 1 };
+    const article = makeArticle({ excerpt: "x".repeat(500) });
+    const { container, getByText } = render(<NewsArticleRow article={article} />);
+    expect(container.querySelector(".ithome-row").classList.contains("is-new")).toBe(true);
+    expect(getByText("新")).toBeTruthy();
+  });
+
+  it("点标题时调用 markIthomeRead", async () => {
+    const article = makeArticle({ excerpt: "x".repeat(500) });
+    const { getByText } = render(<NewsArticleRow article={article} />);
+    await act(async () => {
+      fireEvent.click(getByText("测试标题"));
+    });
+    expect(mockMarkRead).toHaveBeenCalledWith(ARTICLE_ID);
   });
 });

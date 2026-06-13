@@ -6,8 +6,11 @@ import { useState } from "preact/hooks";
 import {
   ithomeSummaries,
   ithomeFavorites,
+  ithomeReadIds,
+  ithomeNewIds,
   summarizeIthomeArticle,
   toggleIthomeFavorite,
+  markIthomeRead,
 } from "./store.js";
 import { formatArticleTime, formatExcerptPreview } from "./news-utils.js";
 import { NewsArticleSummary } from "./NewsArticleSummary.jsx";
@@ -48,11 +51,14 @@ export function NewsArticleRow({ article }) {
   const summary = ithomeSummaries.value[article.id];
   const hasSummary = !!(summary && summary.text);
   const favorited = !!ithomeFavorites.value[article.id];
+  const isRead = !!ithomeReadIds.value[article.id];
+  const isNew = !!ithomeNewIds.value[article.id];
   const timeLabel = formatArticleTime(article.pubDate);
   const excerptPreview = formatExcerptPreview(article.excerpt);
 
   async function openLink(e) {
     e.preventDefault();
+    markIthomeRead(article.id);
     if (typeof window !== "undefined" && window.api?.openUrl) {
       await window.api.openUrl(article.link);
     } else if (article.link) {
@@ -113,7 +119,7 @@ export function NewsArticleRow({ article }) {
 
   return (
     <article
-      class={`ithome-row${favorited ? " is-favorited" : ""}${expanded ? " is-expanded" : ""}`}
+      class={`ithome-row${favorited ? " is-favorited" : ""}${expanded ? " is-expanded" : ""}${isRead ? " is-read" : ""}${isNew ? " is-new" : ""}`}
     >
       <div class="ithome-row-head">
         <div class="ithome-row-meta">
@@ -121,6 +127,8 @@ export function NewsArticleRow({ article }) {
           {article.category && (
             <span class="ithome-row-tag">{article.category}</span>
           )}
+          {isNew && <span class="ithome-row-tag ithome-row-tag--new">新</span>}
+          {isRead && <span class="ithome-row-tag ithome-row-tag--read">已读</span>}
         </div>
         <button
           type="button"
