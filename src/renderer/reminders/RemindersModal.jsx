@@ -159,7 +159,9 @@ function ReminderRow({ r, now, onEdit }) {
 function ReminderForm({ initial, onSave, onCancel, onDelete }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [triggerStr, setTriggerStr] = useState(
-    initial?.triggerAt ? toLocalInputValue(initial.triggerAt) : toLocalInputValue(Date.now() + 60 * 60 * 1000),
+    initial?.triggerAt
+      ? toLocalInputValue(initial.triggerAt)
+      : toLocalInputValue(Date.now() + 5 * 60 * 1000),
   );
   const [repeat, setRepeat] = useState(initial?.repeat || "once");
   const [weekday, setWeekday] = useState(

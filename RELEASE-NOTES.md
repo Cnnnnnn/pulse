@@ -2,6 +2,40 @@
 
 ---
 
+## v2.11.1 (最近活动 & 提醒修复) — 2026-06-13
+
+### 最近活动 · 采集点补齐
+- v2.11.0 的时间线只搭了存储和弹窗 UI, 但 `pushRecent` **从未被调用** → modal 一直是空的. v2.11.1 补齐全部采集点:
+  - **版本检查**: 检查完成 / 单个升级成功 / 批量升级每个成功项
+  - **提醒**: 新建 / **编辑** / 触发 / 完成 / 忽略 (5 个)
+  - **世界杯**: 点比赛卡片 / **AI 赛前预测 / 赛后总结** 生成成功
+  - **基金**: 切 tab / **新增 / 编辑 / 移除持仓** / **刷新净值**
+  - **新闻**: 切 tab / 切日期 / 收藏 / **AI 总结**
+  - **设置**: 打开 AI 配置
+- 合计覆盖 **18 种活动**
+
+### 最近活动 · 筛选分组
+- 原 pill 用单 kind 精确匹配, 新加的细分 kind (如 `fund-add` / `ithome-summary`) 被过滤掉
+- 改成**类别前缀分组**: 升级 / 提醒 / 比赛 / 基金 / 新闻 / 设置 6 个类别, 各自覆盖多个 kind
+- 新增「设置」类别 pill
+
+### 最近活动 · 持久化修复
+- **根因**: `state-store.preserveExtraFields()` 没保留 `recentActivity` (和 `reminders`) 字段
+- 每次 `saveAll` (检查更新) / `setMute` / `saveLastOpened` / `saveAISessionsConfig` 写盘都会重建 state, 只保留登记过的字段 (funds / worldcupBets / ithome_news 等), `recentActivity` 没登记 → 被吃掉
+- 现象: 列表只剩最近一次 push 的那条 (因为 push 自己也写一次盘)
+- **修复**: preserveExtraFields 新增 `reminders` 和 `recentActivity` (数组类型校验), 单测覆盖
+
+### 提醒 · 默认时间
+- 新建提醒时 datetime-local 默认值从「现在 + 1 小时」改成「**现在 + 5 分钟**」, 更贴近"马上提醒"直觉
+- 避免打开表单后没改时间, 直接按 1 小时后存盘
+
+### 验证
+- 新增单测: state-store preserveExtraFields 保留 reminders/recentActivity
+- 整体回归绿 (reminders 41 / recent-activity 24 / state-store 73)
+- renderer bundle 711.9kb (v2.11.0 是 697.8kb, +14kb = 18 个 track fn + 采集点接入)
+
+---
+
 ## v2.11.0 (提醒 & 时间线) — 2026-06-13
 
 ### 提醒 (new)
