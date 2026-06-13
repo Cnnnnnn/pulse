@@ -55,6 +55,7 @@ const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
 const reminders = require("./reminders");
 const recentActivity = require("./recent-activity");
+const { installErrorGuard } = require("./error-guard");
 
 const ARCH = process.arch === "arm64" ? "arm64" : "x64";
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -84,6 +85,9 @@ function sendToRenderer(channel, payload) {
     w.webContents.send(channel, payload);
   }
 }
+
+// 主进程兜底: 任何未捕获异常都写日志 + 推 renderer, 避免 IPC / 调度器静默挂
+installErrorGuard((channel, payload) => sendToRenderer(channel, payload));
 
 // ─── config: load + migrate ─────────────────────────────
 

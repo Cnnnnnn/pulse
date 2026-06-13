@@ -108,6 +108,8 @@ export function createApi(overrides = {}) {
     recentList: pick(overrides, "recentList"),
     recentPush: pick(overrides, "recentPush"),
     onRecentUpdated: pick(overrides, "onRecentUpdated"),
+    // v2.12 主进程未捕获错误兜底
+    onMainError: pick(overrides, "onMainError"),
   };
 }
 

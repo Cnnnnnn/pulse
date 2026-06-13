@@ -134,4 +134,7 @@ contextBridge.exposeInMainWorld("api", {
   recentPush: (entry) => ipcRenderer.invoke("recent:push", entry),
   onRecentUpdated: (cb) =>
     ipcRenderer.on("recent:updated", (_, data) => cb(data)),
+
+  // v2.12 主进程未捕获错误兜底 (main:error)
+  onMainError: (cb) => ipcRenderer.on("main:error", (_, data) => cb(data)),
 });

@@ -140,6 +140,16 @@ async function bootstrap() {
     lastOpenedApps.value = next;
   });
 
+  // 主进程未捕获错误兜底 → 提示用户 (v2.12)
+  if (typeof api.onMainError === "function") {
+    api.onMainError((data) => {
+      import("./store.js").then(({ showToast }) => {
+        const msg = (data && data.message) || "后台任务出错";
+        showToast(`后台异常: ${msg}`, "error", 8000);
+      });
+    });
+  }
+
   // 5) 立即 render
   const mount = document.getElementById('app') || document.body;
   render(<App onCheck={triggerCheck} />, mount);
