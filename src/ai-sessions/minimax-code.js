@@ -28,9 +28,19 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const {
+  loadNodeSqlite,
+  listSessionsViaCli,
+  readSessionViaCli,
+} = require('./sqlite-helper');
 
 const MINIMAX_CODE_BUNDLE_PATH = '/Applications/MiniMax Code.app';
 const MINIMAX_SQLITE_PATH = path.join(os.homedir(), '.minimax', 'sqlite.db');
+const LOG_PREFIX = '[minimax-code]';
+
+function _loadNodeSqlite() {
+  return loadNodeSqlite(LOG_PREFIX);
+}
 
 class MiniMaxCodeDetectorImpl {
   constructor(opts = {}) {
@@ -62,7 +72,7 @@ class MiniMaxCodeDetectorImpl {
     const loaded = _loadNodeSqlite();
     if (!loaded) {
       // node:sqlite 不可用 — 用 sqlite3 CLI fallback
-      return await _listSessionsViaCli(this.sqlitePath);
+      return await listSessionsViaCli(this.sqlitePath, LOG_PREFIX);
     }
     const sqlite = loaded.sqlite;
     let stat;
@@ -90,7 +100,7 @@ class MiniMaxCodeDetectorImpl {
       // eslint-disable-next-line no-console
       console.warn(`[minimax-code] node:sqlite open failed (${err.message}); falling back to sqlite3 CLI`);
       try { db.close(); } catch { /* noop */ }
-      return await _listSessionsViaCli(this.sqlitePath);
+      return await listSessionsViaCli(this.sqlitePath, LOG_PREFIX);
     }
     try {
       const tables = db.prepare(
@@ -118,7 +128,7 @@ class MiniMaxCodeDetectorImpl {
       if (rows.length === 0) {
         // eslint-disable-next-line no-console
         console.warn(`[minimax-code] node:sqlite returned 0 rows (likely WAL snapshot issue); falling back to sqlite3 CLI`);
-        return await _listSessionsViaCli(this.sqlitePath);
+        return await listSessionsViaCli(this.sqlitePath, LOG_PREFIX);
       }
       return rows.map((r) => ({
         id: r.session_id,
@@ -148,7 +158,7 @@ class MiniMaxCodeDetectorImpl {
     }
     const loaded = _loadNodeSqlite();
     if (!loaded) {
-      return await _readSessionViaCli(this.sqlitePath, id);
+      return await readSessionViaCli(this.sqlitePath, id, LOG_PREFIX);
     }
     const sqlite = loaded.sqlite;
     let db;
@@ -158,7 +168,7 @@ class MiniMaxCodeDetectorImpl {
       // node:sqlite open 失败 → 走 CLI fallback
       // eslint-disable-next-line no-console
       console.warn(`[minimax-code] readSession node:sqlite open failed (${err.message}); falling back to sqlite3 CLI`);
-      return await _readSessionViaCli(this.sqlitePath, id);
+      return await readSessionViaCli(this.sqlitePath, id, LOG_PREFIX);
     }
     try {
       const tables = db.prepare(
@@ -191,7 +201,7 @@ class MiniMaxCodeDetectorImpl {
       if (messages.length === 0 && metaRows.length > 0) {
         // eslint-disable-next-line no-console
         console.warn(`[minimax-code] readSession via node:sqlite returned 0 messages for ${id}; falling back to sqlite3 CLI`);
-        return await _readSessionViaCli(this.sqlitePath, id);
+        return await readSessionViaCli(this.sqlitePath, id, LOG_PREFIX);
       }
 
       const tsList = messages.map(m => m.ts).filter(t => t > 0);
@@ -214,141 +224,6 @@ class MiniMaxCodeDetectorImpl {
       try { db.close(); } catch { /* noop */ }
     }
   }
-}
-
-/**
- * Lazy require node:sqlite. 老 Node 18 / 老 Electron 没这模块, 返 null.
- * @returns {object|null} { sqlite, source: 'node:sqlite' } 或 null
- */
-function _loadNodeSqlite() {
-  try {
-    // eslint-disable-next-line global-require
-    const sqlite = require('node:sqlite');
-    return { sqlite, source: 'node:sqlite' };
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(`[minimax-code] node:sqlite load failed: ${err.message}`);
-    return null;
-  }
-}
-
-/**
- * Fallback: 通过系统 sqlite3 CLI 读 sessions 表 (macOS 自带 /usr/bin/sqlite3).
- * 比 node:sqlite 慢 (spawn 进程), 但绝对可靠, 处理 WAL 也正确.
- * @param {string} sqlitePath
- * @returns {Promise<Array>}
- */
-async function _listSessionsViaCli(sqlitePath) {
-  const { spawn } = require('child_process');
-  const sql = "SELECT session_id, title, workspace_dir, effective_model, status, created_at, updated_at, framework_type FROM sessions ORDER BY updated_at DESC";
-  return new Promise((resolve) => {
-    const proc = spawn('sqlite3', ['-separator', '\t', sqlitePath, sql], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (d) => { stdout += d.toString(); });
-    proc.stderr.on('data', (d) => { stderr += d.toString(); });
-    proc.on('error', (err) => {
-      // eslint-disable-next-line no-console
-      console.warn(`[minimax-code] sqlite3 CLI spawn failed: ${err.message}`);
-      resolve([]);
-    });
-    proc.on('close', (code) => {
-      if (code !== 0) {
-        // eslint-disable-next-line no-console
-        console.warn(`[minimax-code] sqlite3 CLI exited code=${code}: ${stderr.slice(0, 200)}`);
-        resolve([]);
-        return;
-      }
-      let stat;
-      try { stat = fs.statSync(sqlitePath); } catch { stat = null; }
-      const rows = stdout.split('\n').filter((l) => l.length > 0).map((line) => {
-        const [session_id, title, workspace_dir, effective_model, status, created_at, updated_at, framework_type] = line.split('\t');
-        return {
-          session_id: session_id || '',
-          title: title || '',
-          workspace_dir: workspace_dir || '',
-          effective_model: effective_model || '',
-          status: status || '',
-          created_at: created_at ? parseInt(created_at, 10) : 0,
-          updated_at: updated_at ? parseInt(updated_at, 10) : 0,
-          framework_type: framework_type || '',
-        };
-      });
-      // eslint-disable-next-line no-console
-      console.log(`[minimax-code] listSessions via sqlite3 CLI: ${rows.length} rows from ${sqlitePath}`);
-      resolve(rows.map((r) => ({
-        id: r.session_id,
-        file: sqlitePath,
-        mtimeMs: r.updated_at > 0 ? r.updated_at : (stat ? stat.mtimeMs : 0),
-        sizeBytes: stat ? stat.size : 0,
-        _workspaceDir: r.workspace_dir || null,
-        _title: r.title || null,
-        _effectiveModel: r.effective_model || null,
-        _frameworkType: r.framework_type || null,
-      })));
-    });
-  });
-}
-
-/**
- * Fallback: 通过 sqlite3 CLI 读某 session 的 messages.
- * @param {string} sqlitePath
- * @param {string} sessionId
- * @returns {Promise<{id, startedAt, endedAt, messages, ...}>}
- */
-async function _readSessionViaCli(sqlitePath, sessionId) {
-  const { spawn } = require('child_process');
-  // shell escape session_id (avoid injection)
-  const safeId = String(sessionId).replace(/'/g, "''");
-  const sql = `SELECT id, msg_id, role, data, timestamp FROM session_messages WHERE session_id = '${safeId}' ORDER BY id ASC`;
-  return new Promise((resolve, reject) => {
-    const proc = spawn('sqlite3', ['-separator', '\t', sqlitePath, sql], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (d) => { stdout += d.toString(); });
-    proc.stderr.on('data', (d) => { stderr += d.toString(); });
-    proc.on('error', (err) => reject(err));
-    proc.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`sqlite3 CLI exited code=${code}: ${stderr.slice(0, 200)}`));
-        return;
-      }
-      const rows = stdout.split('\n').filter((l) => l.length > 0);
-      const messages = [];
-      for (const line of rows) {
-        const parts = line.split('\t');
-        const dataStr = parts[3] || '';
-        const ts = parts[4] ? parseInt(parts[4], 10) : 0;
-        let content = '';
-        let role = parts[2] || 'unknown';
-        if (dataStr) {
-          try {
-            const data = JSON.parse(dataStr);
-            role = data.role || role;
-            // 跟 _parseMessageRow 同优先级: content > text > msg_content > msg_text
-            if (typeof data.content === 'string') content = data.content;
-            else if (Array.isArray(data.content)) {
-              content = data.content.map((c) => c.text || c.content || c.msg_content || c.msg_text || '').filter(Boolean).join('\n').trim();
-            } else if (typeof data.text === 'string') content = data.text;
-            else if (typeof data.msg_content === 'string') content = data.msg_content;
-            else if (Array.isArray(data.msg_content)) {
-              content = data.msg_content.map((c) => c.text || c.content || c.msg_content || c.msg_text || '').filter(Boolean).join('\n').trim();
-            }
-          } catch {
-            content = dataStr;
-          }
-        }
-        if (content) messages.push({ role, content, ts });
-      }
-      const tsList = messages.map((m) => m.ts).filter((t) => t > 0);
-      resolve({
-        id: sessionId,
-        startedAt: tsList.length > 0 ? Math.min(...tsList) : 0,
-        endedAt: tsList.length > 0 ? Math.max(...tsList) : 0,
-        messages,
-      });
-    });
-  });
 }
 
 /**
@@ -445,6 +320,7 @@ module.exports = {
   _parseMessageRow,
   _extractContent,
   _hasColumn,
-  _listSessionsViaCli,
-  _readSessionViaCli,
+  _listSessionsViaCli: (sqlitePath) => listSessionsViaCli(sqlitePath, LOG_PREFIX),
+  _readSessionViaCli: (sqlitePath, sessionId) =>
+    readSessionViaCli(sqlitePath, sessionId, LOG_PREFIX),
 };

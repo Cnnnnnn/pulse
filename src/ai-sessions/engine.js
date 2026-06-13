@@ -17,6 +17,9 @@
  * CommonJS, 跟 src/config/ 一致.
  */
 
+const { dateKeyToMs } = require("./date-utils");
+const { looksLikePromptNoise } = require("./text-utils");
+
 class TaskSummaryEngine {
   /**
    * @param {object} opts
@@ -160,7 +163,7 @@ class TaskSummaryEngine {
       let metas = [];
       try {
         // 算 dateKey 的 epoch ms, 让 detector 知道我们要查哪一天附近 (省 stat 老的文件)
-        const targetMs = _dateKeyToMs(dateKey, now);
+        const targetMs = dateKeyToMs(dateKey, now);
         const maxAgeDays = targetMs > 0
           ? Math.ceil((now - targetMs) / 86400_000) + 7  // dateKey 前后留 7 天 buffer
           : 60;
@@ -204,23 +207,6 @@ function _assertDateKey(dateKey, fn) {
 
 /**
  * 'YYYY-MM-DD' → 该天 0:00 的 epoch ms (本地时区). 失败返 0.
- * 用 Intl 拿本地 offset, 跟 detector._localDayStart 同思路.
- */
-function _dateKeyToMs(dateKey, now) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
-  if (!m) return 0;
-  const y = parseInt(m[1], 10);
-  const mo = parseInt(m[2], 10);
-  const d = parseInt(m[3], 10);
-  const probe = new Date(now);
-  const localMinusUtcMs = -probe.getTimezoneOffset() * 60_000;
-  const utcMidnight = Date.UTC(y, mo - 1, d, 0, 0, 0, 0);
-  return utcMidnight - localMinusUtcMs;
-}
-
-/**
- * 粗过滤: mtime 是否落在 dateKey 前后 2 天窗口内 (本地时区误差容忍).
- * 不精确 — 精确过滤交给 detector.filterByLocalDay; 这里只为省读全文的 IO.
  */
 function _nearDay(mtimeMs, dateKey, now) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
@@ -298,7 +284,7 @@ function _projectOf(session) {
  * 任务标题: detector 的 title 优先, 否则第一条非噪声 user 消息首行.
  */
 function _inferTaskTitle(session) {
-  if (session && typeof session.title === 'string' && session.title.trim() && !_looksLikePromptNoise(session.title)) {
+  if (session && typeof session.title === 'string' && session.title.trim() && !looksLikePromptNoise(session.title)) {
     return session.title.trim().replace(/\s+/g, ' ').slice(0, 48);
   }
   if (!session || !Array.isArray(session.messages)) return '';
@@ -306,26 +292,11 @@ function _inferTaskTitle(session) {
     if (!msg || msg.role !== 'user' || typeof msg.content !== 'string') continue;
     const lines = msg.content.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     for (const line of lines) {
-      if (_looksLikePromptNoise(line)) continue;
+      if (looksLikePromptNoise(line)) continue;
       return line.replace(/\s+/g, ' ').slice(0, 48);
     }
   }
   return '';
-}
-
-function _looksLikePromptNoise(text) {
-  const line = String(text || '').trim();
-  if (!line) return true;
-  if (/^#/.test(line)) return true;
-  if (/^<[^>]+>$/.test(line)) return true;
-  if (/^You are /i.test(line)) return true;
-  if (/AGENTS\.md/i.test(line)) return true;
-  if (/instructions?\s+for/i.test(line)) return true;
-  if (/^\/Users\//.test(line)) return true;
-  if (/^https?:\/\//i.test(line)) return true;
-  if (/^\[[^\]]+\]\(.+\)$/.test(line)) return true;
-  if (line.split('/').length >= 4) return true;
-  return false;
 }
 
 /**

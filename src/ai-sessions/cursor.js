@@ -30,7 +30,8 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
-const readline = require('readline');
+const { parseJsonlFile } = require('./jsonl-reader');
+const { firstMeaningfulLine } = require('./text-utils');
 
 const CURSOR_BUNDLE_PATH = '/Applications/Cursor.app';
 const CURSOR_PROJECTS_DIR = path.join(os.homedir(), '.cursor', 'projects');
@@ -152,27 +153,16 @@ class CursorDetectorImpl {
  * @returns {Promise<{messages: Array, firstTs: number, title: string|null}>}
  */
 async function _parseTranscriptJsonl(file) {
-  const stream = fs.createReadStream(file, { encoding: 'utf8' });
-  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-
   const messages = [];
   let firstTs = 0;
   let lastTs = 0;
   let title = null;
 
-  for await (const line of rl) {
-    if (!line || !line.trim()) continue;
-    let row;
-    try {
-      row = JSON.parse(line);
-    } catch {
-      continue; // 坏行跳过
-    }
-    if (!row || typeof row !== 'object') continue;
+  await parseJsonlFile(file, (row) => {
     const role = row.role === 'user' || row.role === 'assistant' ? row.role : null;
-    if (!role) continue;
+    if (!role) return;
     const rawText = _extractTextBlocks(row.message && row.message.content);
-    if (!rawText) continue;
+    if (!rawText) return;
 
     if (role === 'user') {
       const ts = _parseTimestampTag(rawText);
@@ -181,13 +171,13 @@ async function _parseTranscriptJsonl(file) {
         lastTs = ts;
       }
       const query = _extractUserQuery(rawText);
-      if (!query) continue; // 纯系统注入 (attached_files 等) 跳过
-      if (!title) title = _firstMeaningfulLine(query);
+      if (!query) return;
+      if (!title) title = firstMeaningfulLine(query, 60);
       messages.push({ role: 'user', content: query, ts: ts || lastTs || 0 });
     } else {
       messages.push({ role: 'assistant', content: rawText, ts: lastTs || 0 });
     }
-  }
+  });
   return { messages, firstTs, title };
 }
 
@@ -260,17 +250,10 @@ function _parseCursorTimestamp(raw) {
 
 /**
  * 取首个有意义的行做 title (跳过 markdown 标题 / 路径 / URL 等噪声).
+ * 单测仍从此模块导出.
  */
 function _firstMeaningfulLine(text) {
-  const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  for (const line of lines) {
-    if (/^#/.test(line)) continue;
-    if (/^<[^>]+>$/.test(line)) continue;
-    if (/^\/Users\//.test(line)) continue;
-    if (/^https?:\/\//i.test(line)) continue;
-    return line.replace(/\s+/g, ' ').slice(0, 60);
-  }
-  return null;
+  return firstMeaningfulLine(text, 60);
 }
 
 /**

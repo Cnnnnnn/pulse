@@ -32,7 +32,12 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const os = require('os');
 const path = require('path');
-const readline = require('readline');
+const { parseJsonlFile } = require('./jsonl-reader');
+const {
+  firstMeaningfulLine,
+  firstInformativeLine,
+  trimTitle,
+} = require('./text-utils');
 
 const CODEX_BUNDLE_PATH = '/Applications/Codex.app';
 const CODEX_SESSIONS_DIR = path.join(os.homedir(), '.codex', 'sessions');
@@ -195,66 +200,47 @@ async function _findFileById(dir, id) {
  * }>}
  */
 async function _parseCodexJsonl(file) {
-  const fsRaw = require('fs');
-  const stream = fsRaw.createReadStream(file, { encoding: 'utf8' });
-  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-
-  const messages = []; // { role, content, ts }
+  const messages = [];
   let sessionUuid = null;
   let workspaceDir = null;
   let idFromMeta = null;
 
-  for await (const line of rl) {
-    if (!line || !line.trim()) continue;
-    let row;
-    try {
-      row = JSON.parse(line);
-    } catch {
-      continue;
-    }
-    if (!row || typeof row !== 'object') continue;
-
+  await parseJsonlFile(file, (row) => {
     const ts = _parseTs(row.timestamp);
 
-    // session_meta → workspace / uuid
     if (row.type === 'session_meta' && row.payload && typeof row.payload === 'object') {
       if (typeof row.payload.cwd === 'string') workspaceDir = row.payload.cwd;
       if (typeof row.payload.id === 'string') idFromMeta = row.payload.id;
       if (idFromMeta) sessionUuid = idFromMeta;
-      continue;
+      return;
     }
 
-    // event_msg.user_message → 真用户 query (codex 里这是唯一的 user 输入源)
     if (row.type === 'event_msg' && row.payload && row.payload.type === 'user_message') {
       const content = typeof row.payload.message === 'string' ? row.payload.message.trim() : '';
       if (content) {
         messages.push({ role: 'user', content, ts });
       }
-      continue;
+      return;
     }
 
-    // event_msg.agent_message → assistant 回复 (新格式)
     if (row.type === 'event_msg' && row.payload && row.payload.type === 'agent_message') {
       const content = typeof row.payload.message === 'string' ? row.payload.message.trim() : '';
       if (content) {
         messages.push({ role: 'assistant', content, ts });
       }
-      continue;
+      return;
     }
 
-    // response_item.message → assistant / user
     if (row.type === 'response_item' && row.payload && row.payload.type === 'message') {
       const role = row.payload.role;
       const content = _extractResponseContent(row.payload.content);
-      // role='user' 在 codex 里是 AGENTS.md / IDE selection / env system 注入, **跳过**
-      if (role === 'user') continue;
+      if (role === 'user') return;
       if (role === 'assistant' && content) {
         messages.push({ role: 'assistant', content, ts });
       }
     }
-  }
+  });
 
-  // 按 ts asc 排序 (parse 阶段可能乱序, 取决于 IO)
   messages.sort((a, b) => (a.ts || 0) - (b.ts || 0));
   const tsList = messages.map((m) => m.ts).filter((t) => t > 0);
   const startedAt = tsList.length > 0 ? Math.min(...tsList) : 0;
@@ -280,90 +266,27 @@ async function _parseCodexJsonl(file) {
  */
 function _extractCodexTitle(messages) {
   if (!Array.isArray(messages) || messages.length === 0) return '';
-  // 1. 优先 user 消息 (codex 这里的 user 一定是真 query, 不是 system 注入)
   for (const msg of messages) {
     if (!msg || msg.role !== 'user' || typeof msg.content !== 'string') continue;
-    const line = _firstInformativeLine(msg.content);
-    if (line) return _trimTitle(line);
+    const line = firstInformativeLine(msg.content);
+    if (line) return trimTitle(line);
   }
-  // 2. fallback: assistant 第一条有意义文本
   for (const msg of messages) {
     if (!msg || msg.role !== 'assistant' || typeof msg.content !== 'string') continue;
-    const line = _firstInformativeLine(msg.content);
-    if (line) return _trimTitle(line);
+    const line = firstInformativeLine(msg.content);
+    if (line) return trimTitle(line);
   }
-  // 3. 实在没找到: 第一条 user 第一条 non-noise 行 (即便短)
   for (const msg of messages) {
     if (!msg || msg.role !== 'user' || typeof msg.content !== 'string') continue;
-    const line = _firstMeaningfulLine(msg.content);
-    if (line) return _trimTitle(line);
+    const line = firstMeaningfulLine(msg.content);
+    if (line) return trimTitle(line);
   }
   return '';
 }
 
-// 常见短确认/语气词开头 — 不足以作为 title, 跳过
-// 注: 只匹配**整个 string**或**极短**(< 10字符)的. '麻烦看下...' 不是语气词, 不跳.
-const _GENERIC_QUERY_RE = /^(可以|好的|好|ok|okay|yes|no|嗯|啊|哦|行|对|是|不是|继续|接着|然后|下一步|next|continue|go|ok,|好的,|好,|行,)$/i;
-
-/**
- * 判断一行是否 "信息量足够" 做 title.
- *  - 非空, 去噪后 ≥ 8 字符
- *  - 不以常见短确认/语气词开头
- *  - 不全是标点/数字
- */
-function _isInformativeLine(line) {
-  if (!line || typeof line !== 'string') return false;
-  const t = line.trim();
-  if (t.length < 8) return false;
-  if (_GENERIC_QUERY_RE.test(t)) return false;
-  // 全是数字/标点不算
-  if (!/[一-龥a-zA-Z]/.test(t)) return false;
-  return true;
-}
-
-/**
- * 找第一条**信息量足够**的非噪声行 (vs _firstMeaningfulLine 只跳噪声不过滤信息量).
- * 用于 _extractCodexTitle 的"主路径".
- */
-function _firstInformativeLine(text) {
-  const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  for (const line of lines) {
-    const clean = _stripNoiseLine(line);
-    if (!clean) continue;
-    if (_isInformativeLine(clean)) return clean;
-  }
-  return null;
-}
-
-/**
- * 跳 markdown 标题 / 单行 tag / 绝对路径 / URL / XML 标签块开头, 提取 clean 行.
- */
-function _stripNoiseLine(line) {
-  if (/^#/.test(line)) return null;
-  if (/^<[^>]+>$/.test(line)) return null;
-  if (/^<[a-z_]+>/i.test(line)) return null;
-  if (/^\/Users\//.test(line)) return null;
-  if (/^https?:\/\//i.test(line)) return null;
-  if (/\/Users\/[^\s]+/.test(line)) return null;
-  if (/https?:\/\/\S+/.test(line)) return null;
-  return line.replace(/\s+/g, ' ');
-}
-
-/**
- * 找第一条 non-noise 行 (去掉 markdown 标题 / tag / 路径 / URL 后剩下的第一行).
- * 跟 cursor.js 的 _firstMeaningfulLine 同思路 (独立实现, 避免跨文件 require).
- */
+/** 单测兼容导出 */
 function _firstMeaningfulLine(text) {
-  const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  for (const line of lines) {
-    const clean = _stripNoiseLine(line);
-    if (clean) return clean;
-  }
-  return null;
-}
-
-function _trimTitle(s) {
-  return String(s || '').replace(/\s+/g, ' ').trim().slice(0, 48);
+  return firstMeaningfulLine(text);
 }
 
 /**
