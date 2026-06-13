@@ -125,6 +125,10 @@ async function bootstrap() {
   Promise.allSettled([
     loadAISessionsConfig(),
     import('./store.js').then((m) => m.probeAIKeyStatuses()),
+    import('./recent/recentStore.js').then((m) => {
+      m.installRecentListener();
+      return m.loadRecent();
+    }),
   ]).catch(() => {});
   loadAiTasks().catch(() => {});
 

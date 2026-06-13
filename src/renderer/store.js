@@ -833,6 +833,9 @@ export function setAIKeyStatuses(map) {
 }
 export function openAISettings(open = true) {
   aiSettingsOpen.value = Boolean(open);
+  if (open) {
+    import("./recent/track.js").then((m) => m.trackSettingsOpen());
+  }
 }
 export function openDigestDrawer(open = true) {
   digestDrawerOpen.value = Boolean(open);

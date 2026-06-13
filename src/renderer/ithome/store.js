@@ -8,6 +8,11 @@ import {
   articlesForDate,
   favoriteDateKeys,
 } from "./news-utils.js";
+import {
+  trackIthomeView,
+  trackIthomeFavorite,
+  trackIthomeSummary,
+} from "../recent/track.js";
 
 export const ithomeArticles = signal({});
 export const ithomeDayStats = signal({});
@@ -104,8 +109,12 @@ export async function refreshIthomeNews() {
 }
 
 export async function setIthomeSelectedDate(dateKey) {
+  const prev = ithomeSelectedDate.value;
   ithomeSelectedDate.value = dateKey;
   ithomeNewsError.value = null;
+  if (dateKey && dateKey !== prev) {
+    trackIthomeView(dateKey);
+  }
   const cached = articlesForDate(ithomeArticles.value, dateKey);
   if (cached.length === 0) {
     await fetchDayNews(dateKey);
@@ -130,6 +139,10 @@ export async function summarizeIthomeArticle(id, force = false) {
         generatedAt: Date.now(),
       },
     };
+    const article =
+      ithomeArticles.value[id] ||
+      (ithomeFavorites.value[id] && ithomeFavorites.value[id].article);
+    if (article) trackIthomeSummary(article);
   }
   return r;
 }
@@ -139,9 +152,16 @@ export async function toggleIthomeFavorite(id) {
   if (!a || typeof a.ithomeToggleFavorite !== "function") {
     return { ok: false, reason: "ipc_unavailable" };
   }
+  const wasFav = isArticleFavorited(id);
   const r = await a.ithomeToggleFavorite({ id });
   if (r && r.ok) {
     await loadIthomeNews();
+    if (!wasFav && r.favorited) {
+      const article =
+        ithomeArticles.value[id] ||
+        (ithomeFavorites.value[id] && ithomeFavorites.value[id].article);
+      if (article) trackIthomeFavorite(article);
+    }
   }
   return r;
 }

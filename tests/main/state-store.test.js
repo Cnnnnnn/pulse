@@ -793,6 +793,31 @@ describe("loadTaskSummaries / saveTaskSummary", () => {
     expect(raw.ai_sessions_config.enabled).toBe(true);
   });
 
+  it("saveAll / setMute / saveLastOpened 写盘时保留 reminders / recentActivity", () => {
+    fs.writeFileSync(
+      statePath,
+      JSON.stringify({
+        v: 1,
+        apps: { X: { name: "X" } },
+        mutes: {},
+        reminders: [{ id: "r-1", title: "开会", status: "pending" }],
+        recentActivity: [
+          { ts: 1, kind: "ithome-view", ref: "2026-06-13", label: "新闻" },
+          { ts: 2, kind: "app-upgrade", ref: "Cursor", label: "Cursor 已升级" },
+        ],
+      }),
+      "utf-8",
+    );
+    saveAll([{ name: "X", status: "up_to_date" }], statePath);
+    setMute("Kimi", 0, "manual", statePath);
+    saveLastOpened({ Cursor: { ms: 1, source: "test" } }, statePath);
+    const raw = JSON.parse(fs.readFileSync(statePath, "utf-8"));
+    expect(raw.reminders).toHaveLength(1);
+    expect(raw.reminders[0].id).toBe("r-1");
+    expect(raw.recentActivity).toHaveLength(2);
+    expect(raw.recentActivity[1].kind).toBe("app-upgrade");
+  });
+
   it("TASK_SUMMARIES_GC_DAYS 常量 = 30", () => {
     expect(TASK_SUMMARIES_GC_DAYS).toBe(30);
   });

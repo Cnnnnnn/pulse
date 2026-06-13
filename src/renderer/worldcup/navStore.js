@@ -8,6 +8,7 @@
  */
 
 import { signal } from "@preact/signals";
+import { trackFundView, trackIthomeView } from "../recent/track.js";
 
 // activeNav: 'ithome' | 'worldcup' | 'funds' | 'versions', 默认 'versions'
 export const activeNav = signal("versions");
@@ -16,8 +17,14 @@ export const navCollapsed = signal(false);
 const NAV_KEYS = new Set(["ithome", "worldcup", "funds", "versions"]);
 
 export function setActiveNav(key) {
-  if (NAV_KEYS.has(key)) {
-    activeNav.value = key;
+  if (!NAV_KEYS.has(key)) return;
+  const prev = activeNav.value;
+  activeNav.value = key;
+  if (key === "funds" && prev !== "funds") {
+    trackFundView();
+  }
+  if (key === "ithome" && prev !== "ithome") {
+    trackIthomeView();
   }
 }
 

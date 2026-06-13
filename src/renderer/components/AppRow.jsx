@@ -49,6 +49,10 @@ export function AppRow({ name }) {
     setUpgrading(true);
     try {
       const r = await api.brewUpgrade(cask);
+      if (r && r.success) {
+        const { trackAppUpgrade } = await import('../recent/track.js');
+        trackAppUpgrade(appName);
+      }
       if (!r || !r.success) {
         const cfg = lookupConfig(appName);
         if (cfg && cfg.download_url) {

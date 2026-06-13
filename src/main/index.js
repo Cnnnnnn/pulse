@@ -54,6 +54,7 @@ const { buildTaskSummaryEngine } = require("../ai-sessions/wiring");
 const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
 const reminders = require("./reminders");
+const recentActivity = require("./recent-activity");
 
 const ARCH = process.arch === "arm64" ? "arm64" : "x64";
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -624,6 +625,16 @@ async function bootstrap() {
     });
   } catch (err) {
     mainLog.warn(`reminders scheduler init failed: ${err && err.message}`);
+  }
+
+  try {
+    recentActivity.setOnUpdate(() => {
+      sendToRenderer("recent:updated", {
+        entries: recentActivity.list(),
+      });
+    });
+  } catch (err) {
+    mainLog.warn(`recent-activity onUpdate failed: ${err && err.message}`);
   }
 
   // Phase 16: 后台定时静默 check — 打破"开 app 才检查"局限, 让 state 不变 stale

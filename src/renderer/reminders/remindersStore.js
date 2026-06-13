@@ -65,6 +65,9 @@ export async function updateReminder(id, patch) {
       reminders.value = reminders.value.map((x) =>
         x.id === id ? r.reminder : x,
       );
+      import("../recent/track.js").then((m) =>
+        m.trackReminderUpdate(r.reminder),
+      );
       return { ok: true, reminder: r.reminder };
     }
     return { ok: false, reason: r && r.reason };

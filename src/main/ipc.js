@@ -160,8 +160,22 @@ function registerIpcHandlers(deps) {
 
   ipcMain.handle("brew-upgrade", async (_event, caskName) => {
     if (!caskName) return { success: false, output: "no cask" };
-    // 走 worker 跑（保持主进程不阻塞）
-    return pool.enqueue({ type: "brew-upgrade", payload: { cask: caskName } });
+    const r = await pool.enqueue({
+      type: "brew-upgrade",
+      payload: { cask: caskName },
+    });
+    if (r && r.success) {
+      try {
+        recentActivity.push({
+          kind: "app-upgrade",
+          ref: String(caskName),
+          label: `${caskName} 已升级`,
+        });
+      } catch {
+        /* noop */
+      }
+    }
+    return r;
   });
 
   ipcMain.handle("open-url", async (_event, url) => {
@@ -199,6 +213,20 @@ function registerIpcHandlers(deps) {
       },
     })
       .then((summary) => {
+        try {
+          for (const s of summary.succeeded || []) {
+            const item = items.find((i) => i.id === s.id);
+            if (item && item.name) {
+              recentActivity.push({
+                kind: "app-upgrade",
+                ref: item.name,
+                label: `${item.name} 已升级`,
+              });
+            }
+          }
+        } catch {
+          /* noop */
+        }
         sendToRenderer("bulk-upgrade:done", summary);
         if (ctrl === bulkUpgradeCtrl) {
           bulkUpgradeCtrl = null;

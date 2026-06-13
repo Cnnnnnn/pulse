@@ -8,6 +8,7 @@ import { useState } from "preact/hooks";
 import { matchKey, isMatchUpcoming } from "./match-utils.js";
 import { worldcupMatchInsights, generateWorldcupInsight } from "./store.js";
 import { refreshAIReadyStatus } from "../store.js";
+import { trackWorldcupInsight } from "../recent/track.js";
 
 function insightFor(match, type) {
   const key = matchKey(match);
@@ -64,6 +65,7 @@ export function useMatchAi(match, score) {
         setError(mapAiError(r && r.reason));
       } else {
         setExpanded(true);
+        trackWorldcupInsight(match, type);
       }
     } finally {
       setBusyType(null);

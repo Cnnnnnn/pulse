@@ -18,6 +18,7 @@
 const { Notification: ElectronNotification } = require("electron");
 const { inQuietHours, suppressedByCooldown } = require("./notification-policy");
 const { isMuteActive } = require("./state-store");
+const recentActivity = require("./recent-activity");
 
 const PER_APP_DETECT_TIMEOUT_MS = 95_000;
 
@@ -135,6 +136,16 @@ async function runCheck(deps, opts = {}) {
 
   // 系统通知: silent 时不发
   if (!silent) {
+    try {
+      recentActivity.push({
+        kind: "app-check",
+        ref: "versions-check",
+        label: `检查了 ${results.length} 个应用`,
+      });
+    } catch {
+      /* noop */
+    }
+
     const updateApps = results.filter((r) => r.has_update);
 
     // Phase 17: Quiet hours 抑制

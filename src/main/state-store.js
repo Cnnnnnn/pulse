@@ -146,6 +146,8 @@ function legacyDefaultPath() {
 //   - funds: { holdings, deletedIds, dailySnapshots } (基金管理, fund-store 写入)
 //   - worldcupBets: { [date]: entry } (体彩记账, bets-store 写入)
 //   - ithome_news: { articles, summaries, favorites, ts } (IT之家新闻, news-store 写入)
+//   - reminders: [] (提醒, reminders.js 写入)
+//   - recentActivity: [] (最近活动时间线, recent-activity.js 写入)
 //
 // 旧字段 daily_digests / daily_digest_v2 / last_digest_attempts 已废弃 —
 // 不再 preserve, 下次写盘自然消失.
@@ -214,6 +216,12 @@ function preserveExtraFields(existing, next) {
     !Array.isArray(existing.ithome_news)
   ) {
     next.ithome_news = existing.ithome_news;
+  }
+  if (!("reminders" in next) && Array.isArray(existing.reminders)) {
+    next.reminders = existing.reminders;
+  }
+  if (!("recentActivity" in next) && Array.isArray(existing.recentActivity)) {
+    next.recentActivity = existing.recentActivity;
   }
   return next;
 }

@@ -163,6 +163,9 @@ export async function addFund(api, input) {
   const r = await api.fundsAdd(input);
   if (r && r.ok) {
     holdings.value = r.holdings || [];
+    import("../recent/track.js").then((m) =>
+      m.trackFundAdd(input && input.code, input && input.name),
+    );
     return { ok: true, holding: r.holding };
   }
   return { ok: false, reason: r && r.reason, error: r && r.error };
@@ -172,15 +175,23 @@ export async function updateFund(api, id, patch) {
   const r = await api.fundsUpdate(id, patch);
   if (r && r.ok) {
     holdings.value = r.holdings || [];
+    const h = r.holding || {};
+    import("../recent/track.js").then((m) =>
+      m.trackFundUpdate(h.code || id, h.name, patch),
+    );
     return { ok: true, holding: r.holding };
   }
   return { ok: false, reason: r && r.reason, error: r && r.error };
 }
 
 export async function removeFund(api, id) {
+  const removed = (holdings.value || []).find((h) => h && h.id === id) || {};
   const r = await api.fundsRemove(id);
   if (r && r.ok) {
     holdings.value = r.all ? r.all.holdings : [];
+    import("../recent/track.js").then((m) =>
+      m.trackFundRemove(removed.code || id, removed.name),
+    );
     return { ok: true };
   }
   return { ok: false, reason: r && r.reason };
@@ -224,6 +235,8 @@ export async function fetchNavNow(api) {
         ),
       };
     }
+    const count = r.results ? Object.keys(r.results).length : 0;
+    import("../recent/track.js").then((m) => m.trackFundNavFetch(count));
     // 不阻塞 UI: 状态/持仓后台同步
     void loadNavState(api);
     void loadFunds(api);

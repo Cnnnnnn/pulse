@@ -26,6 +26,7 @@
 const fs = require("fs");
 const crypto = require("crypto");
 const stateStore = require("./state-store");
+const recentActivity = require("./recent-activity");
 const { mainLog } = require("./log");
 
 const VALID_REPEATS = ["once", "daily", "weekdays", "weekly"];
@@ -235,6 +236,11 @@ function create(input, statePath) {
   reminders.push(reminder);
   const next = { ...existing, reminders };
   stateStore.writeAtomic(path, next);
+  recentActivity.push({
+    kind: "reminder-create",
+    ref: reminder.id,
+    label: reminder.title,
+  });
   return { ok: true, reminder };
 }
 
@@ -268,7 +274,8 @@ function update(id, patch, statePath) {
     ...patch,
   };
   if (next.repeat === "weekly") {
-    if (next.weekday == null && prev.weekday != null) next.weekday = prev.weekday;
+    if (next.weekday == null && prev.weekday != null)
+      next.weekday = prev.weekday;
   } else {
     next.weekday = undefined;
   }
@@ -326,8 +333,14 @@ function markFired(id, statePath) {
     firedAt: now,
     lastNotifiedAt: now,
   };
+  const fired = reminders[idx];
   stateStore.writeAtomic(path, { ...existing, reminders });
-  return { ok: true, reminder: reminders[idx] };
+  recentActivity.push({
+    kind: "reminder-fire",
+    ref: id,
+    label: fired.title,
+  });
+  return { ok: true, reminder: fired };
 }
 
 /**
@@ -352,6 +365,11 @@ function markDone(id, statePath) {
   if (r.repeat === "once") {
     reminders.splice(idx, 1);
     stateStore.writeAtomic(path, { ...existing, reminders });
+    recentActivity.push({
+      kind: "reminder-done",
+      ref: id,
+      label: r.title,
+    });
     return { ok: true, reminder: null };
   }
   // 重复: 算下次
@@ -364,6 +382,11 @@ function markDone(id, statePath) {
     lastNotifiedAt: undefined,
   };
   stateStore.writeAtomic(path, { ...existing, reminders });
+  recentActivity.push({
+    kind: "reminder-done",
+    ref: id,
+    label: r.title,
+  });
   return { ok: true, reminder: reminders[idx] };
 }
 
@@ -385,8 +408,14 @@ function markDismissed(id, statePath) {
   const idx = reminders.findIndex((r) => r && r.id === id);
   if (idx === -1) return { ok: false, reason: "not_found" };
   reminders[idx] = { ...reminders[idx], status: "dismissed" };
+  const dismissed = reminders[idx];
   stateStore.writeAtomic(path, { ...existing, reminders });
-  return { ok: true, reminder: reminders[idx] };
+  recentActivity.push({
+    kind: "reminder-dismissed",
+    ref: id,
+    label: dismissed.title,
+  });
+  return { ok: true, reminder: dismissed };
 }
 
 // ── 调度器 ────────────────────────────────────────────────
@@ -407,7 +436,9 @@ function startScheduler({ onFire, statePath } = {}) {
   try {
     _sweepOnce(Date.now(), _sweepStatePath || undefined);
   } catch (err) {
-    mainLog.warn("[reminders] initial sweep failed", { msg: err && err.message });
+    mainLog.warn("[reminders] initial sweep failed", {
+      msg: err && err.message,
+    });
   }
   _sweepTimer = setInterval(() => {
     try {

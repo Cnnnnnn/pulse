@@ -25,13 +25,20 @@ const VALID_KINDS = [
   "app-upgrade",
   "app-check",
   "reminder-create",
+  "reminder-update",
   "reminder-fire",
   "reminder-done",
   "reminder-dismissed",
   "worldcup-match-view",
+  "worldcup-insight",
   "fund-view",
+  "fund-add",
+  "fund-update",
+  "fund-remove",
+  "fund-nav-fetch",
   "ithome-view",
   "ithome-favorite",
+  "ithome-summary",
   "settings-open",
 ];
 
@@ -101,11 +108,11 @@ function _validateEntry(entry) {
  * @returns {number}
  */
 function _getMaxEntries(configPath, now) {
-  const t = (typeof now === "number") ? now : Date.now();
+  const t = typeof now === "number" ? now : Date.now();
   if (
     _cachedConfig &&
     configPath === _cachedConfig.path &&
-    (t - _cachedConfigAt) < CONFIG_TTL_MS
+    t - _cachedConfigAt < CONFIG_TTL_MS
   ) {
     return _cachedConfig.max;
   }
@@ -174,7 +181,10 @@ function _normalizeAll(arr) {
  * @returns {{ entries: RecentActivityEntry[], deduped: boolean }}
  */
 function _dedupAndPush(entries, entry, now, max) {
-  const cap = Math.max(MIN_MAX_ENTRIES, Math.min(MAX_MAX_ENTRIES, max || DEFAULT_MAX_ENTRIES));
+  const cap = Math.max(
+    MIN_MAX_ENTRIES,
+    Math.min(MAX_MAX_ENTRIES, max || DEFAULT_MAX_ENTRIES),
+  );
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i];
     if (
@@ -233,7 +243,7 @@ function push(entry, opts) {
   const v = _validateEntry(entry);
   if (!v.ok) return v;
   const o = opts || {};
-  const now = (typeof o.now === "number") ? o.now : Date.now();
+  const now = typeof o.now === "number" ? o.now : Date.now();
   const path = o.statePath || stateStore.defaultPath();
   const existing = _withStateShell(_readStateRaw(path));
   const entries = _normalizeAll(existing.recentActivity);

@@ -20,30 +20,79 @@ const KIND_META = {
   "app-upgrade": { icon: "⬆", label: "升级" },
   "app-check": { icon: "🔄", label: "检查" },
   "reminder-create": { icon: "⏰+", label: "新建提醒" },
+  "reminder-update": { icon: "✏", label: "编辑提醒" },
   "reminder-fire": { icon: "🔔", label: "提醒触发" },
   "reminder-done": { icon: "✓", label: "提醒完成" },
   "reminder-dismissed": { icon: "✕", label: "忽略提醒" },
   "worldcup-match-view": { icon: "⚽", label: "比赛" },
+  "worldcup-insight": { icon: "🔮", label: "AI 分析" },
   "fund-view": { icon: "💰", label: "基金" },
+  "fund-add": { icon: "💰+", label: "新增基金" },
+  "fund-update": { icon: "✏", label: "编辑基金" },
+  "fund-remove": { icon: "✕", label: "移除基金" },
+  "fund-nav-fetch": { icon: "🔄", label: "刷新净值" },
   "ithome-view": { icon: "📰", label: "新闻" },
   "ithome-favorite": { icon: "★", label: "收藏" },
+  "ithome-summary": { icon: "✨", label: "AI 总结" },
   "settings-open": { icon: "⚙", label: "设置" },
 };
 
 const FILTERS = [
   { id: "all", label: "全部" },
-  { id: "app-upgrade", label: "升级" },
-  { id: "reminder-create", label: "提醒" },
-  { id: "worldcup-match-view", label: "比赛" },
-  { id: "fund-view", label: "基金" },
-  { id: "ithome-view", label: "新闻" },
+  { id: "app", label: "升级", kinds: ["app-upgrade", "app-check"] },
+  {
+    id: "reminder",
+    label: "提醒",
+    kinds: [
+      "reminder-create",
+      "reminder-update",
+      "reminder-fire",
+      "reminder-done",
+      "reminder-dismissed",
+    ],
+  },
+  {
+    id: "worldcup",
+    label: "比赛",
+    kinds: ["worldcup-match-view", "worldcup-insight"],
+  },
+  {
+    id: "fund",
+    label: "基金",
+    kinds: [
+      "fund-view",
+      "fund-add",
+      "fund-update",
+      "fund-remove",
+      "fund-nav-fetch",
+    ],
+  },
+  {
+    id: "ithome",
+    label: "新闻",
+    kinds: ["ithome-view", "ithome-favorite", "ithome-summary"],
+  },
+  { id: "settings", label: "设置", kinds: ["settings-open"] },
 ];
 
 /** 找 kind 对应的 nav 目标 (点跳过去) */
 function navForKind(kind) {
-  if (kind === "worldcup-match-view") return "worldcup";
-  if (kind === "fund-view") return "funds";
-  if (kind === "ithome-view" || kind === "ithome-favorite") return "ithome";
+  if (kind === "worldcup-match-view" || kind === "worldcup-insight")
+    return "worldcup";
+  if (
+    kind === "fund-view" ||
+    kind === "fund-add" ||
+    kind === "fund-update" ||
+    kind === "fund-remove" ||
+    kind === "fund-nav-fetch"
+  )
+    return "funds";
+  if (
+    kind === "ithome-view" ||
+    kind === "ithome-favorite" ||
+    kind === "ithome-summary"
+  )
+    return "ithome";
   if (kind === "settings-open") return null; // 留在当前
   return null;
 }
@@ -96,7 +145,10 @@ export function RecentActivityModal() {
     const arr = Array.isArray(list) ? list : [];
     const sorted = arr.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
     if (filter === "all") return sorted;
-    return sorted.filter((e) => e && e.kind === filter);
+    const f = FILTERS.find((x) => x.id === filter);
+    if (!f || !Array.isArray(f.kinds)) return sorted;
+    const allow = new Set(f.kinds);
+    return sorted.filter((e) => e && allow.has(e.kind));
   }, [list, filter]);
 
   useEffect(() => {

@@ -22,6 +22,7 @@ import {
   clearWorldcupError,
 } from './store.js';
 import { WorldcupBetsStats } from './WorldcupBetsStats.jsx';
+import { trackWorldcupMatchView } from '../recent/track.js';
 import { DayBetFooter } from './DayBetFooter.jsx';
 
 const WEEKDAYS_CN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -127,7 +128,10 @@ export function WorldcupView({ search = '' }) {
                 <MatchCard
                   key={`${g.date}-${m.time || ''}-${idx}`}
                   match={m}
-                  onClick={(mm) => setSquadMatch(mm)}
+                  onClick={(mm) => {
+                    trackWorldcupMatchView(mm);
+                    setSquadMatch(mm);
+                  }}
                 />
               ))}
             </div>
