@@ -66,6 +66,12 @@ contextBridge.exposeInMainWorld("api", {
   onAiSessionsConfigUpdated: (cb) =>
     ipcRenderer.on("ai-sessions-config-updated", (_, data) => cb(data)),
 
+  // v2.13 AI 用量 (Minimax coding plan)
+  aiUsageGetCached: () => ipcRenderer.invoke("ai-usage:get-cached"),
+  aiUsageFetch: (opts) => ipcRenderer.invoke("ai-usage:fetch", opts),
+  onAiUsageUpdated: (cb) =>
+    ipcRenderer.on("ai-usage-updated", (_, data) => cb(data)),
+
   // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
   worldcupFetchFixtures: (payload) =>
     ipcRenderer.invoke("worldcup:fetch-fixtures", payload),
