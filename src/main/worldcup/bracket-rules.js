@@ -102,9 +102,138 @@ function matchAnnexCCase(_advancingGroups) {
   return { rowIndex: 0, config: ANNEX_C_DEFAULT };
 }
 
+/**
+ * Resolve one slot spec (from Annex C template) against group results.
+ * Returns { team: { name } | null, source: string, ... }.
+ *
+ * @param {{type: 'group', rank: string, group: string} | {type: 'best-third', pool: string[]}} slotSpec
+ * @param {Record<string, {winner?: string, runnerUp?: string, third?: string}>} groupResults
+ * @returns {{team: {name: string} | null, source: string, rank?: string, group?: string, pool?: string[]}}
+ */
+function resolveSlot(slotSpec, groupResults) {
+  if (slotSpec.type === 'group') {
+    const gr = groupResults[slotSpec.group] || {};
+    const teamName = gr[slotSpec.rank];
+    if (!teamName) {
+      return { team: null, source: `group:${slotSpec.group}:${slotSpec.rank}`, rank: slotSpec.rank, group: slotSpec.group };
+    }
+    return { team: { name: teamName }, source: `group:${slotSpec.group}:${slotSpec.rank}`, rank: slotSpec.rank, group: slotSpec.group };
+  }
+  if (slotSpec.type === 'best-third') {
+    return { team: null, source: 'best-third-pool', pool: slotSpec.pool };
+  }
+  return { team: null, source: 'unknown' };
+}
+
+function sourceLabel(slotSpec) {
+  if (slotSpec.type === 'group') return `group:${slotSpec.group}:${slotSpec.rank}`;
+  if (slotSpec.type === 'best-third') return `best-third:${slotSpec.pool.join(',')}`;
+  return 'unknown';
+}
+
+/**
+ * Resolve 16 Round-of-32 matches from Annex C template + group results.
+ *
+ * @param {object} annexConfig (from matchAnnexCCase)
+ * @param {Record<string, {winner?: string, runnerUp?: string, third?: string}>} groupResults
+ * @returns {Array<{matchNum: number, slot1: object, slot2: object, score: null, status: string, source1: string, source2: string}>}
+ */
+function resolveR32Matchups(annexConfig, groupResults) {
+  return annexConfig.r32Matches_73_88.map((tmpl) => {
+    const slot1 = resolveSlot(tmpl.slot1, groupResults);
+    const slot2 = resolveSlot(tmpl.slot2, groupResults);
+    return {
+      matchNum: tmpl.num,
+      slot1,
+      slot2,
+      score: null,
+      status: slot1.team && slot2.team ? 'pending' : 'projected',
+      source1: sourceLabel(tmpl.slot1),
+      source2: sourceLabel(tmpl.slot2),
+    };
+  });
+}
+
+/**
+ * Determine winner of a finished match from its score. Returns 'slot1' / 'slot2' / null.
+ * Considers 90min (ft), extra time (et), then penalties (pen).
+ *
+ * @param {{ft?: [number, number], et?: [number, number], pen?: [number, number]}|null} score
+ * @returns {'slot1' | 'slot2' | null}
+ */
+function determineWinner(score) {
+  if (!score || !score.ft) return null;
+  const [h, a] = score.ft;
+  if (h > a) return 'slot1';
+  if (h < a) return 'slot2';
+  if (score.et && Array.isArray(score.et)) {
+    const [eh, ea] = score.et;
+    if (eh > ea) return 'slot1';
+    if (eh < ea) return 'slot2';
+  }
+  if (score.pen && Array.isArray(score.pen)) {
+    const [ph, pa] = score.pen;
+    if (ph > pa) return 'slot1';
+    if (ph < pa) return 'slot2';
+  }
+  return null;
+}
+
+function parseSource(src) {
+  const m = String(src || '').match(/^([a-z0-9]+):(\d+)(-loser)?$/);
+  if (!m) return { stage: null, num: null, loser: false };
+  return { stage: m[1], num: parseInt(m[2], 10), loser: !!m[3] };
+}
+
+function resolveFromSource(parsed, prevByNum) {
+  if (!parsed.stage || !parsed.num) return { team: null, source: 'invalid' };
+  const prev = prevByNum.get(parsed.num);
+  if (!prev) return { team: null, source: `${parsed.stage}:${parsed.num}` };
+  const winnerKey = determineWinner(prev.score);
+  if (winnerKey === null) {
+    return { team: null, source: `${parsed.stage}:${parsed.num}${parsed.loser ? '-loser' : ''}` };
+  }
+  const winnerSlot = winnerKey === 'slot1' ? prev.slot1 : prev.slot2;
+  const loserSlot = winnerKey === 'slot1' ? prev.slot2 : prev.slot1;
+  const chosen = parsed.loser ? loserSlot : winnerSlot;
+  return {
+    team: chosen ? chosen.team : null,
+    source: `${parsed.stage}:${parsed.num}${parsed.loser ? '-loser' : ''}`,
+  };
+}
+
+/**
+ * Propagate winners/losers from a previous stage into the next stage slots.
+ *
+ * @param {Array} prevMatches - previous stage matches (with score on each)
+ * @param {Array<{num: number, sources: string[]}>} nextTemplate - next stage template (from ANNEX_C_DEFAULT)
+ * @returns {Array<{matchNum: number, slot1: object, slot2: object, score: null, status: string, source1: string, source2: string}>}
+ */
+function propagateWinner(prevMatches, nextTemplate) {
+  const prevByNum = new Map((prevMatches || []).map((m) => [m.matchNum, m]));
+  return (nextTemplate || []).map((tmpl) => {
+    const sources = tmpl.sources.map((src) => parseSource(src));
+    const slot1 = resolveFromSource(sources[0], prevByNum);
+    const slot2 = resolveFromSource(sources[1], prevByNum);
+    return {
+      matchNum: tmpl.num,
+      slot1,
+      slot2,
+      score: null,
+      status: slot1.team && slot2.team ? 'pending' : 'projected',
+      source1: tmpl.sources[0],
+      source2: tmpl.sources[1],
+    };
+  });
+}
+
 module.exports = {
   sortThirdPlaced,
   selectThirdPlaced,
   matchAnnexCCase,
+  resolveR32Matchups,
+  propagateWinner,
+  determineWinner,
+  parseSource,
   ANNEX_C_DEFAULT,
 };

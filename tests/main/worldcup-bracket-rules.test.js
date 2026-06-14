@@ -3,6 +3,8 @@ const {
   sortThirdPlaced,
   selectThirdPlaced,
   matchAnnexCCase,
+  resolveR32Matchups,
+  propagateWinner,
 } = require("../../src/main/worldcup/bracket-rules");
 
 describe("sortThirdPlaced", () => {
@@ -121,5 +123,104 @@ describe("matchAnnexCCase", () => {
     expect(result.config.sfMatches_101_102).toHaveLength(2);
     expect(result.config.finalMatch.num).toBe(104);
     expect(result.config.thirdMatch.num).toBe(103);
+  });
+});
+
+describe("resolveR32Matchups", () => {
+  test("resolves 16 R32 matches with real team names from group results", () => {
+    const groupResults = {
+      A: { winner: 'Mexico', runnerUp: 'South Africa', third: 'South Korea' },
+      B: { winner: 'Canada', runnerUp: 'Switzerland', third: 'Qatar' },
+      C: { winner: 'Brazil', runnerUp: 'Morocco', third: 'Scotland' },
+      D: { winner: 'USA', runnerUp: 'Paraguay', third: 'Australia' },
+      E: { winner: 'Germany', runnerUp: 'Curaçao', third: 'Ivory Coast' },
+      F: { winner: 'Netherlands', runnerUp: 'Japan', third: 'Sweden' },
+      G: { winner: 'Belgium', runnerUp: 'Egypt', third: 'Iran' },
+      H: { winner: 'Spain', runnerUp: 'Cape Verde', third: 'Saudi Arabia' },
+      I: { winner: 'France', runnerUp: 'Senegal', third: 'Iraq' },
+      J: { winner: 'Argentina', runnerUp: 'Algeria', third: 'Austria' },
+      K: { winner: 'Portugal', runnerUp: 'DR Congo', third: 'Colombia' },
+      L: { winner: 'England', runnerUp: 'Croatia', third: 'Ghana' },
+    };
+    const annex = matchAnnexCCase(['E', 'I', 'J', 'K', 'L', 'D', 'F', 'G']);
+    const r32 = resolveR32Matchups(annex.config, groupResults);
+    expect(r32).toHaveLength(16);
+    expect(r32[0].matchNum).toBe(73);
+    expect(r32[0].slot1.team.name).toBe('South Africa');
+    expect(r32[0].slot2.team.name).toBe('Switzerland');
+    expect(r32[1].matchNum).toBe(74);
+    expect(r32[1].slot1.team.name).toBe('Germany');
+    expect(r32[1].slot2.source).toBe('best-third-pool');
+  });
+
+  test("returns slot.team=null when group result missing", () => {
+    const groupResults = { A: { winner: 'Mexico', runnerUp: 'X', third: 'Y' } };
+    const annex = matchAnnexCCase(['E']);
+    const r32 = resolveR32Matchups(annex.config, groupResults);
+    const m74 = r32.find((m) => m.matchNum === 74);
+    expect(m74.slot1.team).toBeNull();
+  });
+
+  test("status is 'pending' when both teams resolved", () => {
+    const groupResults = {
+      A: { winner: 'A1', runnerUp: 'A2', third: 'A3' },
+      B: { winner: 'B1', runnerUp: 'B2', third: 'B3' },
+    };
+    const r32 = resolveR32Matchups(matchAnnexCCase([]).config, groupResults);
+    expect(r32[0].status).toBe('pending');
+  });
+});
+
+describe("propagateWinner", () => {
+  test("propagates R32 winners into R16 slots when all final", () => {
+    const r32Matches = [
+      { matchNum: 73, slot1: { team: { name: 'A' } }, slot2: { team: { name: 'B' } }, score: { ft: [2, 1], status: 'final' } },
+      { matchNum: 74, slot1: { team: { name: 'C' } }, slot2: { team: { name: 'D' } }, score: { ft: [1, 1], et: [2, 1], status: 'final' } },
+      { matchNum: 75, slot1: { team: { name: 'E' } }, slot2: { team: { name: 'F' } }, score: { ft: [0, 0], pen: [4, 3], status: 'final' } },
+      { matchNum: 76, slot1: { team: { name: 'G' } }, slot2: { team: { name: 'H' } }, score: { ft: [3, 0], status: 'final' } },
+      { matchNum: 77, slot1: { team: { name: 'I' } }, slot2: { team: { name: 'J' } }, score: { ft: [1, 2], status: 'final' } },
+      { matchNum: 78, slot1: { team: { name: 'K' } }, slot2: { team: { name: 'L' } }, score: { ft: [2, 0], status: 'final' } },
+      { matchNum: 79, slot1: { team: { name: 'M' } }, slot2: { team: { name: 'N' } }, score: { ft: [1, 1], et: [1, 2], status: 'final' } },
+      { matchNum: 80, slot1: { team: { name: 'O' } }, slot2: { team: { name: 'P' } }, score: { ft: [0, 1], status: 'final' } },
+    ];
+    const r16Template = [
+      { num: 89, sources: ['r32:74', 'r32:77'] },
+      { num: 90, sources: ['r32:73', 'r32:75'] },
+      { num: 91, sources: ['r32:76', 'r32:78'] },
+      { num: 92, sources: ['r32:79', 'r32:80'] },
+      { num: 93, sources: ['r32:83', 'r32:84'] },
+      { num: 94, sources: ['r32:81', 'r32:82'] },
+      { num: 95, sources: ['r32:86', 'r32:88'] },
+      { num: 96, sources: ['r32:85', 'r32:87'] },
+    ];
+    const r16 = propagateWinner(r32Matches, r16Template);
+    expect(r16).toHaveLength(8);
+    expect(r16[0].slot1.team.name).toBe('C'); // 74 winner via et
+    expect(r16[0].slot2.team.name).toBe('J'); // 77 winner
+    expect(r16[1].slot1.team.name).toBe('A'); // 73 winner
+    expect(r16[1].slot2.team.name).toBe('E'); // 75 winner via pen
+  });
+
+  test("returns null team for unplayed matches", () => {
+    const r32Matches = [
+      { matchNum: 73, slot1: { team: { name: 'A' } }, slot2: { team: { name: 'B' } }, score: null },
+      { matchNum: 75, slot1: { team: { name: 'E' } }, slot2: { team: { name: 'F' } }, score: null },
+    ];
+    const r16Template = [{ num: 90, sources: ['r32:73', 'r32:75'] }];
+    const r16 = propagateWinner(r32Matches, r16Template);
+    expect(r16[0].slot1.team).toBeNull();
+    expect(r16[0].slot2.team).toBeNull();
+    expect(r16[0].slot1.source).toBe('r32:73');
+  });
+
+  test("propagates losers for third-place match", () => {
+    const sfMatches = [
+      { matchNum: 101, slot1: { team: { name: 'W1' } }, slot2: { team: { name: 'L1' } }, score: { ft: [2, 1], status: 'final' } },
+      { matchNum: 102, slot1: { team: { name: 'W2' } }, slot2: { team: { name: 'L2' } }, score: { ft: [0, 1], status: 'final' } },
+    ];
+    const thirdTemplate = [{ num: 103, sources: ['sf:101-loser', 'sf:102-loser'] }];
+    const third = propagateWinner(sfMatches, thirdTemplate);
+    expect(third[0].slot1.team.name).toBe('L1'); // 101 loser
+    expect(third[0].slot2.team.name).toBe('W2'); // 102 winner (sf:102-loser = the team that LOST 102 = slot1)
   });
 });
