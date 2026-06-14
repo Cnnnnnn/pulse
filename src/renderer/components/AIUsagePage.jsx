@@ -172,11 +172,11 @@ export function AIUsagePage() {
           <div class="ai-usage-subtitle">
             {snapshot ? (
               <>
-                Minimax Coding Plan 配额 · 上次更新: {ageLabel}
+                Minimax coding plan 配额 · 上次更新: {ageLabel}
                 {fromCache && " (从缓存恢复)"}
               </>
             ) : (
-              "Minimax Coding Plan 配额 · 尚无数据"
+              "Minimax coding plan 配额 · 尚无数据"
             )}
           </div>
         </div>
