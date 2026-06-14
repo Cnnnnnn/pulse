@@ -18,6 +18,9 @@ const log = taggedLog("[store/ai-usage]");
 /** 当前显示的 snapshot (从 main 同步) */
 export const aiUsageSnapshot = signal(null);
 
+/** 上一轮 snapshot — 用于算 burn rate / 预计耗尽时间. 首次启动为 null. */
+export const aiUsagePrevSnapshot = signal(null);
+
 /** 上一轮 fetch 失败的 reason, 用于在 UI 顶部显示 banner */
 export const aiUsageLastError = signal(null);
 
@@ -36,13 +39,19 @@ export function _resetSubscribeForTest() {
 
 /**
  * 处理 main 主动 push 的 ai-usage-updated 事件.
- * @param {{snapshot?: object}} data
+ * @param {{snapshot?: object, prevSnapshot?: object|null}} data
  */
 export function applyAiUsageEvent(data) {
   if (!data || !data.snapshot) return;
+  // 轮转: 当前 snapshot → prevSnapshot (供下轮 diff)
+  // 但只在 prevSnapshot 还没设过这一对时才覆盖 (避免覆盖刚刚手工测试时设的).
+  // 简单起见: 每轮 push 总是把"当前"挪到"prev", 然后把新值放当前.
+  aiUsagePrevSnapshot.value = aiUsageSnapshot.value;
   aiUsageSnapshot.value = data.snapshot;
   aiUsageFromCache.value = false;
   aiUsageLastError.value = null;
+  // data.prevSnapshot 是 main 进程基于 state.json 的更老一个, 用不到 (signal 轮转已经够)
+  void data.prevSnapshot;
 }
 
 /**

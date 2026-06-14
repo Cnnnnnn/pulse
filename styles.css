@@ -6421,6 +6421,13 @@ body {
   color: var(--text-secondary, #888);
 }
 
+.ai-usage-card-burn-hint {
+  font-size: 11px;
+  color: #c47a3a;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
 .ai-usage-footer {
   margin-top: 12px;
   font-size: 11px;

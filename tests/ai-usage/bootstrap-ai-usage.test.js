@@ -61,7 +61,7 @@ describe("bootstrapAiUsage", () => {
     expect(deps.pushCalls).toEqual([
       {
         channel: "ai-usage-updated",
-        payload: { snapshot: { provider: "minimax" } },
+        payload: { snapshot: { provider: "minimax" }, prevSnapshot: null },
       },
     ]);
   });

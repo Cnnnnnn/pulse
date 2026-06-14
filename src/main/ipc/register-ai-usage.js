@@ -65,8 +65,10 @@ const _internals = {
       return r;
     }
 
+    // 读上一轮 snapshot (用于 renderer 算 burn rate / 预计耗尽时间)
+    const prevSnapshot = deps.stateStore.load() || null;
     deps.stateStore.save(r.snapshot);
-    deps.pushEvent("ai-usage-updated", { snapshot: r.snapshot });
+    deps.pushEvent("ai-usage-updated", { snapshot: r.snapshot, prevSnapshot });
     return r;
   },
 };
