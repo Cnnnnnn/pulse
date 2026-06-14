@@ -147,11 +147,44 @@ export const nextDue = computed(() => {
   return pending[0] || null;
 });
 
-// ── 跟 IPC 事件联动: reminders:fired (主进程推) ──────────────
-//
-// 主进程触发新 reminder 时会推 ipcRenderer 'reminders:fired',
-// preload 那边暴露 onRemindersFired (TODO). 这里先用一个 in-app listener 兜底
-// (loadReminders 重新拉一次). 后端 D5 时把 IPC channel 加上.
+// ── 跟 IPC 事件联动: reminders:fired / reminders:open-modal (主进程推) ──
+
+import { getApi } from "../api.js";
+
+let _installed = false;
+
+/**
+ * 装好 IPC 监听: 主进程推 reminders:fired → 合并到 reminders signal;
+ * 推 reminders:open-modal → 自动弹 modal. 多次调用幂等.
+ * 跟 installRecentListener() 同样的 pattern.
+ */
+export function installRemindersListener() {
+  if (_installed) return;
+  const api = getApi();
+  if (!api) return;
+
+  if (typeof api.onRemindersFired === "function") {
+    api.onRemindersFired(({ reminder }) => {
+      if (!reminder || !reminder.id) return;
+      const idx = reminders.value.findIndex((r) => r && r.id === reminder.id);
+      if (idx >= 0) {
+        const next = [...reminders.value];
+        next[idx] = { ...next[idx], ...reminder };
+        reminders.value = next;
+      } else {
+        reminders.value = [...reminders.value, reminder];
+      }
+    });
+  }
+
+  if (typeof api.onRemindersOpenModal === "function") {
+    api.onRemindersOpenModal(() => {
+      remindersOpen.value = true;
+    });
+  }
+
+  _installed = true;
+}
 
 export function toggleRemindersOpen() {
   remindersOpen.value = !remindersOpen.value;
