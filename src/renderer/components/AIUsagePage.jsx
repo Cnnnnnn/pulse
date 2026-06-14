@@ -168,15 +168,15 @@ export function AIUsagePage() {
     <div class="ai-usage-page">
       <div class="ai-usage-header">
         <div>
-          <h2 class="ai-usage-title">AI 用量</h2>
+          <h2 class="ai-usage-title">Minimax 用量</h2>
           <div class="ai-usage-subtitle">
             {snapshot ? (
               <>
-                上次更新: {ageLabel}
+                Minimax Coding Plan 配额 · 上次更新: {ageLabel}
                 {fromCache && " (从缓存恢复)"}
               </>
             ) : (
-              "尚无数据"
+              "Minimax Coding Plan 配额 · 尚无数据"
             )}
           </div>
         </div>

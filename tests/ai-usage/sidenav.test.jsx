@@ -34,12 +34,12 @@ beforeEach(() => {
   cleanup();
 });
 
-describe("SideNav AI 用量入口", () => {
-  test("包含 ai-usage 入口项", () => {
+describe("SideNav Minimax 入口", () => {
+  test("包含 ai-usage 入口项 (label 标注 Minimax)", () => {
     const { container } = render(<SideNav />);
     const item = container.querySelector('[data-nav="ai-usage"]');
     expect(item).toBeTruthy();
-    expect(item.textContent).toContain("AI 用量");
+    expect(item.textContent).toContain("Minimax");
   });
 
   test("点击 → setActiveNav('ai-usage')", () => {
