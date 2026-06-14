@@ -227,12 +227,100 @@ function propagateWinner(prevMatches, nextTemplate) {
   });
 }
 
+/**
+ * Simple non-cryptographic hash for inputs fingerprint.
+ * @param {object} groupStandings
+ * @param {object} scores
+ * @returns {string} 8-char hex
+ */
+function simpleHash(groupStandings, scores) {
+  const payload = JSON.stringify({ g: groupStandings, s: scores });
+  let hash = 0;
+  for (let i = 0; i < payload.length; i += 1) {
+    hash = ((hash << 5) - hash) + payload.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+/**
+ * Compute the full knockout bracket from current group standings + scores.
+ *
+ * @param {{groupStandings: object, scores?: object}} input
+ * @returns {object|null} BracketSnapshot or null if no group data
+ */
+function computeBracket({ groupStandings, scores } = {}) {
+  if (!groupStandings || typeof groupStandings !== 'object' || Object.keys(groupStandings).length === 0) {
+    return null;
+  }
+
+  const warnings = [];
+  const groupResults = {};
+  const thirdStandings = {};
+
+  for (const [letter, gs] of Object.entries(groupStandings)) {
+    if (!gs) {
+      warnings.push(`group_${letter}_incomplete`);
+      continue;
+    }
+    groupResults[letter] = {
+      winner: gs.winner || null,
+      runnerUp: gs.runnerUp || null,
+      third: gs.third && gs.third.name ? gs.third.name : null,
+    };
+    if (gs.third) {
+      thirdStandings[letter] = {
+        pts: gs.third.pts || 0,
+        gd: gs.third.gd || 0,
+        gf: gs.third.gf || 0,
+      };
+    }
+  }
+
+  const sortedThird = sortThirdPlaced(thirdStandings);
+  const advancing = selectThirdPlaced(sortedThird, 8);
+  const annex = matchAnnexCCase(advancing);
+  if (annex.rowIndex !== 0) warnings.push('annexC_unexpected_row');
+
+  const r32 = resolveR32Matchups(annex.config, groupResults);
+  const r16 = propagateWinner(r32, annex.config.r16Matches_89_96);
+  const qf = propagateWinner(r16, annex.config.qfMatches_97_100);
+  const sf = propagateWinner(qf, annex.config.sfMatches_101_102);
+  const finalArr = propagateWinner(sf, [annex.config.finalMatch]);
+  const thirdArr = propagateWinner(sf, [annex.config.thirdMatch]);
+  const finalMatch = finalArr[0];
+  const thirdMatch = thirdArr[0];
+
+  warnings.push('simplified_annex_c_default_row');
+
+  const completeGroups = Object.values(groupStandings).filter((g) => g && g.winner && g.runnerUp);
+  const projected = completeGroups.length < 12 || advancing.length < 8;
+  if (projected) warnings.push('bracket_partial');
+
+  return {
+    version: 1,
+    computedAt: Date.now(),
+    inputsHash: 'sha256:' + simpleHash(groupStandings, scores || {}),
+    projected,
+    r32,
+    r16,
+    qf,
+    sf,
+    final: finalMatch,
+    third: thirdMatch,
+    thirdPlacedAdvancing: advancing,
+    annexCIndex: annex.rowIndex,
+    warnings,
+  };
+}
+
 module.exports = {
   sortThirdPlaced,
   selectThirdPlaced,
   matchAnnexCCase,
   resolveR32Matchups,
   propagateWinner,
+  computeBracket,
   determineWinner,
   parseSource,
   ANNEX_C_DEFAULT,

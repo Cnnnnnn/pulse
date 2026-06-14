@@ -5,6 +5,7 @@ const {
   matchAnnexCCase,
   resolveR32Matchups,
   propagateWinner,
+  computeBracket,
 } = require("../../src/main/worldcup/bracket-rules");
 
 describe("sortThirdPlaced", () => {
@@ -222,5 +223,71 @@ describe("propagateWinner", () => {
     const third = propagateWinner(sfMatches, thirdTemplate);
     expect(third[0].slot1.team.name).toBe('L1'); // 101 loser
     expect(third[0].slot2.team.name).toBe('W2'); // 102 winner (sf:102-loser = the team that LOST 102 = slot1)
+  });
+});
+
+describe("computeBracket", () => {
+  const FULL_STANDINGS = {
+    A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 3, gd: 0, gf: 2 } },
+    B: { winner: "Canada", runnerUp: "Switzerland", third: { name: "Qatar", pts: 3, gd: 0, gf: 2 } },
+    C: { winner: "Brazil", runnerUp: "Morocco", third: { name: "Scotland", pts: 3, gd: 0, gf: 2 } },
+    D: { winner: "USA", runnerUp: "Paraguay", third: { name: "Australia", pts: 3, gd: 0, gf: 2 } },
+    E: { winner: "Germany", runnerUp: "Curaçao", third: { name: "Ivory Coast", pts: 3, gd: 0, gf: 2 } },
+    F: { winner: "Netherlands", runnerUp: "Japan", third: { name: "Sweden", pts: 3, gd: 0, gf: 2 } },
+    G: { winner: "Belgium", runnerUp: "Egypt", third: { name: "Iran", pts: 3, gd: 0, gf: 2 } },
+    H: { winner: "Spain", runnerUp: "Cape Verde", third: { name: "Saudi Arabia", pts: 3, gd: 0, gf: 2 } },
+    I: { winner: "France", runnerUp: "Senegal", third: { name: "Iraq", pts: 3, gd: 0, gf: 2 } },
+    J: { winner: "Argentina", runnerUp: "Algeria", third: { name: "Austria", pts: 3, gd: 0, gf: 2 } },
+    K: { winner: "Portugal", runnerUp: "DR Congo", third: { name: "Colombia", pts: 3, gd: 0, gf: 2 } },
+    L: { winner: "England", runnerUp: "Croatia", third: { name: "Ghana", pts: 3, gd: 0, gf: 2 } },
+  };
+
+  test("returns complete bracket when all groups finished", () => {
+    const snapshot = computeBracket({ groupStandings: FULL_STANDINGS, scores: {} });
+    expect(snapshot).not.toBeNull();
+    expect(snapshot.projected).toBe(false);
+    expect(snapshot.r32).toHaveLength(16);
+    expect(snapshot.r16).toHaveLength(8);
+    expect(snapshot.qf).toHaveLength(4);
+    expect(snapshot.sf).toHaveLength(2);
+    expect(snapshot.final).toBeDefined();
+    expect(snapshot.third).toBeDefined();
+    expect(snapshot.thirdPlacedAdvancing).toHaveLength(8);
+    expect(snapshot.version).toBe(1);
+    expect(snapshot.annexCIndex).toBe(0);
+    expect(snapshot.inputsHash).toMatch(/^sha256:/);
+  });
+
+  test("returns projected=true with warnings when some groups incomplete", () => {
+    const partial = {
+      A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 3, gd: 0, gf: 2 } },
+      B: null, // 未完
+      C: { winner: "Brazil", runnerUp: "Morocco", third: null },
+      D: null,
+      E: null,
+      F: null,
+      G: null,
+      H: null,
+      I: null,
+      J: null,
+      K: null,
+      L: null,
+    };
+    const snapshot = computeBracket({ groupStandings: partial, scores: {} });
+    expect(snapshot.projected).toBe(true);
+    expect(snapshot.warnings).toContain('group_B_incomplete');
+    expect(snapshot.warnings).toContain('bracket_partial');
+  });
+
+  test("returns null when groupStandings is empty/null", () => {
+    expect(computeBracket({ groupStandings: {}, scores: {} })).toBeNull();
+    expect(computeBracket({ groupStandings: null, scores: {} })).toBeNull();
+    expect(computeBracket({})).toBeNull();
+  });
+
+  test("final match number is 104 and third is 103", () => {
+    const snapshot = computeBracket({ groupStandings: FULL_STANDINGS, scores: {} });
+    expect(snapshot.final.matchNum).toBe(104);
+    expect(snapshot.third.matchNum).toBe(103);
   });
 });
