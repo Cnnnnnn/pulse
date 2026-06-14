@@ -61,3 +61,49 @@ describe("BracketTree", () => {
     expect(teams[1].classList.contains("bracket-card-team--bottom")).toBe(true);
   });
 });
+
+describe("BracketConnectors", () => {
+  let BracketTree;
+  beforeEach(async () => {
+    vi.resetModules();
+    // Mock ResizeObserver as a no-op (happy-dom's ResizeObserver stub may
+    // not be defined, which would crash the useConnectors effect)
+    global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+    // Provide non-zero getBoundingClientRect for every element so the
+    // useConnectors hook can compute paths without relying on real layout.
+    Element.prototype.getBoundingClientRect = function () {
+      return { left: 0, top: 0, right: 100, bottom: 80, width: 100, height: 80, x: 0, y: 0, toJSON() { return this; } };
+    };
+    vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
+      displayTeam: (name) => name ? { flag: "🏳", cn: name } : null,
+    }));
+    global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
+    const mod = await import("../../src/renderer/worldcup/BracketTree.jsx");
+    BracketTree = mod.BracketTree;
+  });
+  afterEach(() => {
+    delete global.window;
+    delete global.ResizeObserver;
+    vi.doUnmock("../../../src/renderer/worldcup/teams-data.js");
+  });
+
+  test("renders 32 SVG paths (16 R32→R16 + 8 R16→QF + 4 QF→SF + 2 SF→Final + 2 SF→Third)", () => {
+    const fullSnapshot = {
+      ...sampleSnapshot,
+      r32: Array.from({ length: 16 }, (_, i) => ({ matchNum: 73 + i, slot1: { team: null, source: `r32:${73+i}` }, slot2: { team: null, source: `r32:${73+i}` }, status: "projected" })),
+      r16: Array.from({ length: 8 }, (_, i) => ({ matchNum: 89 + i, slot1: { team: null, source: `r16:${89+i}` }, slot2: { team: null, source: `r16:${89+i}` }, status: "projected" })),
+      qf: Array.from({ length: 4 }, (_, i) => ({ matchNum: 97 + i, slot1: { team: null, source: `qf:${97+i}` }, slot2: { team: null, source: `qf:${97+i}` }, status: "projected" })),
+      sf: Array.from({ length: 2 }, (_, i) => ({ matchNum: 101 + i, slot1: { team: null, source: `sf:${101+i}` }, slot2: { team: null, source: `sf:${101+i}` }, status: "projected" })),
+      final: { matchNum: 104, slot1: { team: null, source: "sf:101" }, slot2: { team: null, source: "sf:102" }, status: "projected" },
+      third: { matchNum: 103, slot1: { team: null, source: "sf:101-loser" }, slot2: { team: null, source: "sf:102-loser" }, status: "projected" },
+    };
+    const { container } = render(<BracketTree snapshot={fullSnapshot} onMatchClick={() => {}} />);
+    return new Promise((resolve) => setTimeout(resolve, 50)).then(() => {
+      const svg = container.querySelector(".bracket-tree-connectors");
+      expect(svg).toBeTruthy();
+      const paths = container.querySelectorAll(".bracket-tree-connectors path");
+      // 16+8+4+2+2 = 32
+      expect(paths.length).toBe(32);
+    });
+  });
+});

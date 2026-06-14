@@ -6816,3 +6816,32 @@ body {
   text-align: center;
   margin-top: 2px;
 }
+.bracket-tree-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.bracket-tree-connector {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 1;
+  fill: none;
+}
+.bracket-tree-connector--highlighted {
+  stroke: rgba(74, 222, 128, 0.55);
+  stroke-width: 1.5;
+}
+.bracket-tree-columns {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  width: 100%;
+}
+.bracket-tree-column-section {
+  display: flex;
+  flex-direction: column;
+}
