@@ -25,6 +25,7 @@ import {
   aiUsageFromCache,
   fetchAiUsage,
 } from "../store/ai-usage-store.js";
+import { useNowTick } from "../hooks/useNowTick.jsx";
 import { taggedLog } from "../log.js";
 
 const log = taggedLog("[ai-usage]");
@@ -60,20 +61,6 @@ function formatPercent(used, total) {
     return null;
   }
   return Math.min(100, Math.round((used / total) * 100));
-}
-
-// ─── 倒计时 tick hook ─────────────────────────────────────────
-
-/**
- * 每秒返回一次 now, 强制组件 re-render. 当组件 unmount 时 clear.
- */
-function useNowTick() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
 }
 
 // ─── 窗口卡 ──────────────────────────────────────────────
