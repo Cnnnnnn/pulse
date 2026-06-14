@@ -112,6 +112,48 @@ function MatchCard({ match, onClick }) {
   );
 }
 
+function FinalMatchCard({ match, kind, onClick }) {
+  if (!match) return null;
+  const { matchNum, slot1, slot2, status } = match;
+  const t1 = teamCn(slot1);
+  const t2 = teamCn(slot2);
+  const cls = kind === "final" ? "bracket-card--final-prominent" : "bracket-card--third-prominent";
+  const headText = kind === "final" ? `FINAL · M${matchNum}` : `3rd · M${matchNum}`;
+  return (
+    <div
+      ref={(el) => { if (el) el.__matchData = match; }}
+      class={`bracket-card ${cls} bracket-card--${status}`}
+      onClick={() => onClick && onClick(match)}
+    >
+      <div class="bracket-card-head">{headText}</div>
+      <div class="bracket-card-team bracket-card-team--top">
+        {t1 ? (
+          <>
+            <span class="bracket-card-flag">{t1.flag}</span>
+            <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
+            {match.score && <span class="bracket-card-score">{match.score.ft?.[0] ?? "?"}</span>}
+          </>
+        ) : (
+          <span class="bracket-card-placeholder">{slotPlaceholder(slot1)}</span>
+        )}
+      </div>
+      <div class="bracket-card-divider" />
+      <div class="bracket-card-team bracket-card-team--bottom">
+        {t2 ? (
+          <>
+            <span class="bracket-card-flag">{t2.flag}</span>
+            <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
+            {match.score && <span class="bracket-card-score">{match.score.ft?.[1] ?? "?"}</span>}
+          </>
+        ) : (
+          <span class="bracket-card-placeholder">{slotPlaceholder(slot2)}</span>
+        )}
+      </div>
+      <div class="bracket-card-status">{statusBadge(status)}</div>
+    </div>
+  );
+}
+
 function StageColumn({ stage, matches, onMatchClick, columnRef }) {
   const matchList = Array.isArray(matches) ? matches : (matches ? [matches] : []);
   return (
@@ -133,10 +175,10 @@ function FinalColumn({ finalMatch, thirdMatch, onMatchClick, finalColRef, thirdC
       <div class="bracket-tree-column-title">决赛 & 季军</div>
       <div class="bracket-tree-column-cards">
         <div ref={finalColRef} class="bracket-tree-column-section bracket-tree-column-section--final">
-          {finalMatch && <MatchCard match={finalMatch} onClick={onMatchClick} />}
+          {finalMatch && <FinalMatchCard match={finalMatch} kind="final" onClick={onMatchClick} />}
         </div>
         <div ref={thirdColRef} class="bracket-tree-column-section bracket-tree-column-section--third">
-          {thirdMatch && <MatchCard match={thirdMatch} onClick={onMatchClick} />}
+          {thirdMatch && <FinalMatchCard match={thirdMatch} kind="third" onClick={onMatchClick} />}
         </div>
       </div>
     </div>

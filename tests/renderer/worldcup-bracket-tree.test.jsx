@@ -107,3 +107,58 @@ describe("BracketConnectors", () => {
     });
   });
 });
+
+describe("FinalColumn styling", () => {
+  let BracketTree;
+  beforeEach(async () => {
+    vi.resetModules();
+    global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+    Element.prototype.getBoundingClientRect = function () {
+      return { left: 0, top: 0, right: 100, bottom: 80, width: 100, height: 80, x: 0, y: 0, toJSON() { return this; } };
+    };
+    vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
+      displayTeam: (name) => name ? { flag: "🏳", cn: name } : null,
+    }));
+    global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
+    const mod = await import("../../src/renderer/worldcup/BracketTree.jsx");
+    BracketTree = mod.BracketTree;
+  });
+  afterEach(() => {
+    delete global.window;
+    delete global.ResizeObserver;
+    vi.doUnmock("../../../src/renderer/worldcup/teams-data.js");
+  });
+
+  test("FinalColumn renders a Final card with .bracket-card--final-prominent class", () => {
+    const snapshot = {
+      ...sampleSnapshot,
+      final: { matchNum: 104, slot1: { team: { name: "Brazil" }, source: "sf:101" }, slot2: { team: { name: "France" }, source: "sf:102" }, status: "pending" },
+      third: { matchNum: 103, slot1: { team: null, source: "sf:101-loser" }, slot2: { team: null, source: "sf:102-loser" }, status: "projected" },
+    };
+    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} />);
+    const finalCard = container.querySelector(".bracket-card--final-prominent");
+    expect(finalCard).toBeTruthy();
+  });
+
+  test("FinalColumn renders a Third card with .bracket-card--third-prominent class", () => {
+    const snapshot = {
+      ...sampleSnapshot,
+      final: { matchNum: 104, slot1: { team: null, source: "sf:101" }, slot2: { team: null, source: "sf:102" }, status: "projected" },
+      third: { matchNum: 103, slot1: { team: null, source: "sf:101-loser" }, slot2: { team: null, source: "sf:102-loser" }, status: "projected" },
+    };
+    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} />);
+    const thirdCard = container.querySelector(".bracket-card--third-prominent");
+    expect(thirdCard).toBeTruthy();
+  });
+
+  test("Final card shows FINAL badge in its head", () => {
+    const snapshot = {
+      ...sampleSnapshot,
+      final: { matchNum: 104, slot1: { team: { name: "Brazil" }, source: "sf:101" }, slot2: { team: { name: "France" }, source: "sf:102" }, status: "pending" },
+      third: null,
+    };
+    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} />);
+    const finalCard = container.querySelector(".bracket-card--final-prominent");
+    expect(finalCard.textContent).toContain("FINAL");
+  });
+});

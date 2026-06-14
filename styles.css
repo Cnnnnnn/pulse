@@ -6845,3 +6845,54 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* === Bracket tree v2: Final + Third prominent cards === */
+.bracket-tree-column--final {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+.bracket-tree-column-section--final,
+.bracket-tree-column-section--third {
+  display: flex;
+  flex-direction: column;
+}
+.bracket-card--final-prominent {
+  width: 240px;
+  min-height: 100px;
+  border: 1.5px solid #fbbf24;
+  background: rgba(251, 191, 36, 0.06);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+  align-self: center;
+}
+.bracket-card--final-prominent .bracket-card-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fbbf24;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.bracket-card--final-prominent .bracket-card-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.bracket-card--final-prominent .bracket-card-score {
+  font-size: 16px;
+  color: #fbbf24;
+}
+.bracket-card--third-prominent {
+  width: 200px;
+  min-height: 70px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  align-self: center;
+}
+.bracket-card--third-prominent .bracket-card-head {
+  font-size: 9px;
+  color: #9ca3af;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-bottom: 4px;
+}
