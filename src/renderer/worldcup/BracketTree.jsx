@@ -11,6 +11,13 @@
  * - useConnectors: 测量相邻列卡片 DOM 位置, 画 M-H-V-H 折线
  * - 路径高亮: 上游 status=final 且 下游 slot.team 双侧均已 resolve
  * - ResizeObserver (降级 window resize) 防抖 50ms 重算
+ *
+ * Task 4 (本次): 响应式 fallback — 当 window.innerWidth < 900px 时,
+ * 隐藏水平 tree, 改用 BracketTreeFallback (v1 垂直堆叠 5 段) 渲染.
+ * - useNarrowViewport: 监听 resize, 返回是否 < maxWidth
+ * - BracketTreeFallback / FallbackStageSection / FallbackMatchCard:
+ *   提取自 WorldcupBracketView.jsx v1 代码, 复用 v1 CSS (无 .bracket-tree
+ *   前缀的 .bracket-stage / .bracket-grid / .bracket-card)
  */
 
 import { useState, useEffect, useRef, useCallback } from "preact/hooks";
@@ -23,6 +30,15 @@ const STAGE_LABELS = {
   sf: "半决赛",
   final: "决赛",
   third: "季军赛",
+};
+
+const FALLBACK_STAGE_LABELS = {
+  r32: { title: "1/16 决赛 (Round of 32)", count: 16 },
+  r16: { title: "1/8 决赛 (Round of 16)", count: 8 },
+  qf:  { title: "1/4 决赛 (Quarter-finals)", count: 4 },
+  sf:  { title: "半决赛 (Semi-finals)", count: 2 },
+  final: { title: "决赛", count: 1 },
+  third: { title: "季军赛", count: 1 },
 };
 
 const STAGE_PAIRS = [
@@ -270,7 +286,152 @@ function BracketConnectors({ paths }) {
   );
 }
 
+function useNarrowViewport(maxWidth = 900) {
+  const [narrow, setNarrow] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < maxWidth;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    if (typeof window.addEventListener !== "function") return undefined;
+    const onResize = () => setNarrow(window.innerWidth < maxWidth);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [maxWidth]);
+  return narrow;
+}
+
+function FallbackMatchCard({ match, onClick }) {
+  if (!match) return null;
+  const { matchNum, slot1, slot2, status } = match;
+  const t1 = teamCn(slot1);
+  const t2 = teamCn(slot2);
+  const p1 = !t1 ? slotPlaceholder(slot1) : null;
+  const p2 = !t2 ? slotPlaceholder(slot2) : null;
+
+  return (
+    <div
+      class={`bracket-card bracket-card--${status}`}
+      onClick={() => onClick && onClick(match)}
+    >
+      <div class="bracket-card-num">Match {matchNum}</div>
+      <div class="bracket-card-row">
+        <div class="bracket-card-team">
+          {t1 ? (
+            <>
+              <span class="bracket-card-flag">{t1.flag}</span>
+              <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
+            </>
+          ) : (
+            <span class="bracket-card-placeholder">{p1}</span>
+          )}
+        </div>
+        <div class="bracket-card-vs">vs</div>
+        <div class="bracket-card-team">
+          {t2 ? (
+            <>
+              <span class="bracket-card-flag">{t2.flag}</span>
+              <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
+            </>
+          ) : (
+            <span class="bracket-card-placeholder">{p2}</span>
+          )}
+        </div>
+      </div>
+      <div class="bracket-card-status">
+        {status === "pending" && <span class="bracket-badge">未赛</span>}
+        {status === "projected" && <span class="bracket-badge bracket-badge--lock">🔒 待定</span>}
+        {status === "live" && <span class="bracket-badge bracket-badge--live">● 进行中</span>}
+        {status === "final" && <span class="bracket-badge bracket-badge--done">✓ 已完赛</span>}
+      </div>
+    </div>
+  );
+}
+
+function FallbackStageSection({ stageKey, matches, onMatchClick }) {
+  const label = FALLBACK_STAGE_LABELS[stageKey];
+  if (!label) return null;
+
+  const matchList = Array.isArray(matches) ? matches : (matches ? [matches] : []);
+  const hasContent = matchList.length > 0 && matchList.some(Boolean);
+
+  if (!hasContent) {
+    return (
+      <section class="bracket-stage bracket-stage--empty">
+        <header class="bracket-stage-header">
+          <span class="bracket-stage-title">{label.title}</span>
+          <span class="bracket-stage-count">[待定]</span>
+        </header>
+        <p class="bracket-stage-empty-msg">小组赛尚未确定对阵</p>
+      </section>
+    );
+  }
+
+  return (
+    <section class={`bracket-stage bracket-stage--${stageKey}`}>
+      <header class="bracket-stage-header">
+        <span class="bracket-stage-title">{label.title}</span>
+        <span class="bracket-stage-count">[{matchList.filter(Boolean).length} 场]</span>
+      </header>
+      <div class={`bracket-grid bracket-grid--${label.count}`}>
+        {matchList.map((m) =>
+          m ? <FallbackMatchCard key={m.matchNum} match={m} onClick={onMatchClick} /> : null
+        )}
+      </div>
+    </section>
+  );
+}
+
+function BracketTreeFallbackFinals({ finalMatch, thirdMatch, onMatchClick }) {
+  const matchList = [thirdMatch, finalMatch].filter(Boolean);
+  const hasContent = matchList.length > 0;
+  if (!hasContent) {
+    return (
+      <section class="bracket-stage bracket-stage--empty">
+        <header class="bracket-stage-header">
+          <span class="bracket-stage-title">决赛 & 季军赛</span>
+          <span class="bracket-stage-count">[待定]</span>
+        </header>
+        <p class="bracket-stage-empty-msg">小组赛尚未确定对阵</p>
+      </section>
+    );
+  }
+  return (
+    <section class="bracket-stage bracket-stage--finals">
+      <header class="bracket-stage-header">
+        <span class="bracket-stage-title">决赛 & 季军赛</span>
+        <span class="bracket-stage-count">[{matchList.length} 场]</span>
+      </header>
+      <div class="bracket-finals">
+        {matchList.map((m) => (
+          <FallbackMatchCard key={m.matchNum} match={m} onClick={onMatchClick} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function BracketTreeFallback({ snapshot, onMatchClick }) {
+  if (!snapshot) return null;
+  // Structure: r32 / r16 / qf / sf / finals(= final + third) = 5 .bracket-stage
+  return (
+    <div class="bracket-tree-fallback">
+      <FallbackStageSection stageKey="r32" matches={snapshot.r32} onMatchClick={onMatchClick} />
+      <FallbackStageSection stageKey="r16" matches={snapshot.r16} onMatchClick={onMatchClick} />
+      <FallbackStageSection stageKey="qf" matches={snapshot.qf} onMatchClick={onMatchClick} />
+      <FallbackStageSection stageKey="sf" matches={snapshot.sf} onMatchClick={onMatchClick} />
+      <BracketTreeFallbackFinals
+        finalMatch={snapshot.final}
+        thirdMatch={snapshot.third}
+        onMatchClick={onMatchClick}
+      />
+    </div>
+  );
+}
+
 export function BracketTree({ snapshot, onMatchClick }) {
+  const narrow = useNarrowViewport(900);
   const columnRefs = useRef({
     container: null,
     r32Col: null, r16Col: null, qfCol: null, sfCol: null, finalCol: null, thirdCol: null,
@@ -280,6 +441,9 @@ export function BracketTree({ snapshot, onMatchClick }) {
   useEffect(() => { triggerRecalc(); }, [snapshot, triggerRecalc]);
 
   if (!snapshot) return null;
+  if (narrow) {
+    return <BracketTreeFallback snapshot={snapshot} onMatchClick={onMatchClick} />;
+  }
   return (
     <div class="bracket-tree" ref={(el) => { columnRefs.current.container = el; }}>
       <BracketConnectors paths={paths} />

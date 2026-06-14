@@ -162,3 +162,64 @@ describe("FinalColumn styling", () => {
     expect(finalCard.textContent).toContain("FINAL");
   });
 });
+
+describe("Responsive fallback", () => {
+  let BracketTree;
+  let originalInnerWidth;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    // happy-dom provides `window`; grab original innerWidth defensively via
+    // globalThis in case a prior test's afterEach left the bare identifier
+    // temporarily unhooked. Once we set up `global.window` below, the
+    // component under test will see our mock.
+    originalInnerWidth = (typeof window !== "undefined" && window.innerWidth) || 1024;
+    global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+    Element.prototype.getBoundingClientRect = function () {
+      return { left: 0, top: 0, right: 100, bottom: 80, width: 100, height: 80, x: 0, y: 0, toJSON() { return this; } };
+    };
+    vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
+      displayTeam: (name) => name ? { flag: "🏳", cn: name } : null,
+    }));
+    // Establish window global with innerWidth so the new useNarrowViewport
+    // hook can read window.innerWidth on first render.
+    global.window = global.window || {};
+    Object.defineProperty(global.window, "innerWidth", { value: 1200, configurable: true, writable: true });
+    Object.defineProperty(global.window, "api", {
+      value: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) },
+      configurable: true, writable: true,
+    });
+    const mod = await import("../../src/renderer/worldcup/BracketTree.jsx");
+    BracketTree = mod.BracketTree;
+  });
+  afterEach(() => {
+    if (typeof window !== "undefined") {
+      Object.defineProperty(window, "innerWidth", { value: originalInnerWidth, configurable: true, writable: true });
+    }
+    delete global.window;
+    delete global.ResizeObserver;
+    vi.doUnmock("../../../src/renderer/worldcup/teams-data.js");
+  });
+
+  test("renders horizontal tree when window width >= 900px", () => {
+    Object.defineProperty(window, "innerWidth", { value: 1200, configurable: true, writable: true });
+    const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} />);
+    expect(container.querySelector(".bracket-tree")).toBeTruthy();
+    expect(container.querySelector(".bracket-tree-fallback")).toBeNull();
+  });
+
+  test("renders vertical fallback when window width < 900px", () => {
+    Object.defineProperty(window, "innerWidth", { value: 800, configurable: true, writable: true });
+    const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} />);
+    expect(container.querySelector(".bracket-tree-fallback")).toBeTruthy();
+    expect(container.querySelector(".bracket-tree")).toBeNull();
+  });
+
+  test("fallback renders all 5 stage sections (r32, r16, qf, sf, final+third)", () => {
+    Object.defineProperty(window, "innerWidth", { value: 800, configurable: true, writable: true });
+    const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} />);
+    // v1 used .bracket-stage class for each section
+    const sections = container.querySelectorAll(".bracket-tree-fallback .bracket-stage");
+    expect(sections.length).toBe(5);
+  });
+});

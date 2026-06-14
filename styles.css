@@ -6896,3 +6896,13 @@ body {
   text-align: center;
   margin-bottom: 4px;
 }
+
+/* === Responsive fallback: hide horizontal tree on narrow viewport === */
+/* Defensive media queries in addition to JS detection — suppress either
+   side of the breakpoint even if JS detection is delayed / fails. */
+@media (min-width: 900px) {
+  .bracket-tree-fallback { display: none; }
+}
+@media (max-width: 899px) {
+  .bracket-tree { display: none; }
+}
