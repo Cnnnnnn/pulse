@@ -26,6 +26,20 @@ describe('_pickNumber', () => {
   });
 });
 
+describe('_pickTotal', () => {
+  const { _pickTotal } = require('../../src/ai-usage/normalize');
+  test('returns positive numbers as-is', () => {
+    expect(_pickTotal({ x: 6000 }, ['x'])).toBe(6000);
+  });
+  test('returns null for 0 (zero total = API field absent)', () => {
+    expect(_pickTotal({ x: 0 }, ['x'])).toBe(null);
+  });
+  test('returns null for negative or missing', () => {
+    expect(_pickTotal({ x: -1 }, ['x'])).toBe(null);
+    expect(_pickTotal({}, ['x'])).toBe(null);
+  });
+});
+
 describe('_pickString', () => {
   test('returns first present key value as string', () => {
     expect(_pickString({ a: 'hello', b: 'world' }, ['a', 'b'])).toBe('hello');
@@ -170,6 +184,34 @@ describe('normalize', () => {
     expect(r.snapshot.windows.video.usedPercent).toBe(0);
     expect(r.snapshot.windows.video.modelName).toBe('video');
     expect(r.snapshot.windows.video.status).toBe(1);
+  });
+
+  test('total=0 from API 视为 null (避免 UI 误显示 "剩 0 / 0"), percent 仍生效', () => {
+    // 真实 API 偶尔对没订阅的 quota 返 0, 不应作为 "总配额" 显示
+    const r = normalize(OK_FIXTURE, { fetchedAt: 1000 });
+    // OK_FIXTURE 的 5h total=6000, 不应受影响
+    expect(r.snapshot.windows['5h'].total).toBe(6000);
+    // 模拟 total=0
+    const zeroTotal = {
+      base_resp: { status_code: 0 },
+      model_remains: [
+        {
+          model_name: 'general',
+          current_interval_total_count: 0,
+          current_interval_usage_count: 0,
+          current_interval_remaining_percent: 79,
+          current_weekly_total_count: 0,
+          current_weekly_usage_count: 0,
+          current_weekly_remaining_percent: 81,
+        },
+      ],
+    };
+    const r2 = normalize(zeroTotal, { fetchedAt: 1000 });
+    expect(r2.snapshot.windows['5h'].total).toBe(null);
+    expect(r2.snapshot.windows['5h'].remaining).toBe(0); // remaining=0 真实保留
+    expect(r2.snapshot.windows['5h'].usedPercent).toBe(21); // 100-79
+    expect(r2.snapshot.windows.weekly.total).toBe(null);
+    expect(r2.snapshot.windows.weekly.usedPercent).toBe(19); // 100-81
   });
 
   test('captures throttled status (status=0) for API-limited windows', () => {
