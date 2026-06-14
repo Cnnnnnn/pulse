@@ -122,6 +122,21 @@ class MiniMaxQuotaClient {
     if (!n.ok) {
       return { ok: false, reason: n.reason, error: n.error, status };
     }
+
+    // 8) 调试: 把原始响应写到 ~/Library/Logs/Pulse/minimax-raw.json
+    //    (便于排查 schema drift, 修好字段映射后可移除)
+    try {
+      const path = require("path");
+      const fs = require("fs");
+      const os = require("os");
+      const logDir = path.join(os.homedir(), "Library", "Logs", "Pulse");
+      fs.mkdirSync(logDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(logDir, "minimax-raw.json"),
+        JSON.stringify(parsed, null, 2),
+      );
+    } catch { /* ignore — 诊断失败不影响主流程 */ }
+
     return { ok: true, snapshot: n.snapshot };
   }
 }
