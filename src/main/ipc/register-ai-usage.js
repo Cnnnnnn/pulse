@@ -43,7 +43,8 @@ const _internals = {
    */
   async getCached({ deps }) {
     const snapshot = deps.stateStore.load();
-    return { ok: true, snapshot };
+    const history = deps.stateStore.loadHistory();
+    return { ok: true, snapshot, history };
   },
 
   /**
@@ -68,10 +69,52 @@ const _internals = {
     // 读上一轮 snapshot (用于 renderer 算 burn rate / 预计耗尽时间)
     const prevSnapshot = deps.stateStore.load() || null;
     deps.stateStore.save(r.snapshot);
-    deps.pushEvent("ai-usage-updated", { snapshot: r.snapshot, prevSnapshot });
+
+    // 追加当天 used 到 history (sparkline 持久化)
+    // 5h 窗口的 used 是当天累积消耗的最佳代理
+    const w = r.snapshot && r.snapshot.windows && r.snapshot.windows["5h"];
+    if (w) {
+      try {
+        const date = _localDateKey();
+        const used = typeof w.used === "number" && w.used > 0
+          ? w.used
+          : (typeof w.usedPercent === "number" ? w.usedPercent : 0);
+        const percent = typeof w.usedPercent === "number" ? w.usedPercent : null;
+        if (used > 0) {
+          deps.stateStore.appendHistory({ date, used, percent });
+        }
+      } catch (e) {
+        // 写历史失败不阻塞主流程
+        log_warn_history(e);
+      }
+    }
+
+    const history = deps.stateStore.loadHistory();
+    deps.pushEvent("ai-usage-updated", { snapshot: r.snapshot, prevSnapshot, history });
     return r;
   },
 };
+
+/**
+ * 本地时区 "YYYY-MM-DD". 不用 ISO 的 UTC (跨时区可能错位).
+ * @returns {string}
+ */
+function _localDateKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function log_warn_history(e) {
+  // 历史写入失败不应该阻塞 fetch 主流程; 用 console 而非 renderer log (main 进程)
+  try {
+    console.warn("[ai-usage] appendHistory failed:", e && e.message);
+  } catch {
+    /* noop */
+  }
+}
 
 /**
  * @param {object} ctx
@@ -86,6 +129,8 @@ function registerAiUsageHandlers(ctx) {
     stateStore: {
       load: stateStore.loadAiUsageSnapshot,
       save: stateStore.saveAiUsageSnapshot,
+      loadHistory: stateStore.loadAiUsageHistory,
+      appendHistory: stateStore.appendAiUsageHistoryDay,
     },
     storage: {
       loadApiKey: aiStorage.loadApiKey.bind(aiStorage),

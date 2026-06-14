@@ -161,6 +161,9 @@ const PRESERVE_FIELDS = [
   { key: "ithome_news", kind: "object", notArray: true },
   { key: "reminders", kind: "array" },
   { key: "recentActivity", kind: "array" },
+  // AI 用量相关: ai_usage (snapshot) + ai_usage_history 互不覆盖
+  { key: "ai_usage", kind: "object", notArray: true },
+  { key: "ai_usage_history", kind: "object", notArray: true },
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -768,7 +771,97 @@ function saveAiUsageSnapshot(snapshot, statePath = defaultPath()) {
   }, statePath);
 }
 
-// ─── Step B: LLM classify cache 持久化 ─────────────────────────
+// ─── AI 配额历史 (ai_usage_history) ─────────────────────────────
+//
+// 用途: 每天累积 minimax coding plan 5h 窗口的 used, 用于 sparkline 趋势图.
+// 每次 fetch 成功后, 拿当前 used (取当天最大值) 写回当天 entry.
+//
+// Schema: state.json.ai_usage_history = { days: [{date, used, percent, updatedAt}] }
+//   date     "YYYY-MM-DD" (本地时区), 唯一 key
+//   used     当天 used 的最大值 (used 是累积量, 可能因 5h 窗口重置回落)
+//   percent  当天 used 最高时的 percent
+//   updatedAt epoch ms
+//
+// 保留 30 天 (GC 删更早的), 不让文件无限涨.
+
+const USAGE_HISTORY_GC_DAYS = 30;
+const USAGE_HISTORY_MAX_DAYS = 30;
+
+/**
+ * GC: 删 30 天外的 entry. 写盘前调.
+ * @param {Array<{date: string}>|null|undefined} days
+ * @returns {Array}
+ */
+function cleanExpiredUsageHistory(days) {
+  if (!Array.isArray(days)) return [];
+  // 简单按 date string 倒序排, 截前 N 条. YYYY-MM-DD 可直接字符串比较.
+  const sorted = [...days]
+    .filter((d) => d && typeof d === "object" && typeof d.date === "string")
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+  return sorted.slice(0, USAGE_HISTORY_MAX_DAYS);
+}
+
+/**
+ * 读 AI 用量历史. 老 state.json (无 ai_usage_history 字段) → { days: [] }.
+ * @param {string} [statePath]
+ * @returns {{days: Array<{date: string, used: number, percent: number|null, updatedAt: number}>}}
+ */
+function loadAiUsageHistory(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return { days: [] };
+  if (
+    !s.ai_usage_history ||
+    typeof s.ai_usage_history !== "object" ||
+    Array.isArray(s.ai_usage_history)
+  ) {
+    return { days: [] };
+  }
+  const raw = Array.isArray(s.ai_usage_history.days) ? s.ai_usage_history.days : [];
+  return { days: cleanExpiredUsageHistory(raw) };
+}
+
+/**
+ * 追加/更新一天的 entry. 取 max(新 used, 旧 used), updatedAt 刷新.
+ * 30 天外自动 GC.
+ * @param {{date: string, used: number, percent?: number|null}} entry
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function appendAiUsageHistoryDay(entry, statePath = defaultPath()) {
+  if (
+    !entry ||
+    typeof entry.date !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)
+  ) {
+    throw new TypeError("appendAiUsageHistoryDay: entry.date must be YYYY-MM-DD");
+  }
+  if (typeof entry.used !== "number" || !Number.isFinite(entry.used) || entry.used < 0) {
+    throw new TypeError("appendAiUsageHistoryDay: entry.used must be non-negative number");
+  }
+  return patchState((next, existing, now) => {
+    const oldDays = Array.isArray(existing.ai_usage_history && existing.ai_usage_history.days)
+      ? existing.ai_usage_history.days
+      : [];
+    const map = new Map();
+    for (const d of oldDays) {
+      if (d && typeof d.date === "string") map.set(d.date, d);
+    }
+    const prev = map.get(entry.date);
+    const used = Math.max(prev && typeof prev.used === "number" ? prev.used : 0, entry.used);
+    const percent = entry.percent != null
+      ? Math.max(prev && typeof prev.percent === "number" ? prev.percent : 0, entry.percent)
+      : (prev && typeof prev.percent === "number" ? prev.percent : null);
+    map.set(entry.date, {
+      date: entry.date,
+      used,
+      percent: typeof percent === "number" ? percent : null,
+      updatedAt: now,
+    });
+    next.ai_usage_history = { days: cleanExpiredUsageHistory([...map.values()]) };
+  }, statePath);
+}
+
+
 //
 // 用途: 启动时把 "Step B 之前已经分类过的 app" 从 state.json 拿出来,
 // 注入到 category module 的 LLM cache (避免重复调 LLM).
@@ -859,6 +952,12 @@ module.exports = {
   // AI 配额快照
   loadAiUsageSnapshot,
   saveAiUsageSnapshot,
+  // AI 配额历史 (sparkline 用)
+  USAGE_HISTORY_GC_DAYS,
+  USAGE_HISTORY_MAX_DAYS,
+  cleanExpiredUsageHistory,
+  loadAiUsageHistory,
+  appendAiUsageHistoryDay,
   // Step B: LLM classify cache 持久化
   loadLLMClassifyCache,
   saveLLMClassifyCache,

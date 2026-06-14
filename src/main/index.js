@@ -268,6 +268,8 @@ async function bootstrap() {
     stateStore: {
       load: stateStore.loadAiUsageSnapshot,
       save: stateStore.saveAiUsageSnapshot,
+      loadHistory: stateStore.loadAiUsageHistory,
+      appendHistory: stateStore.appendAiUsageHistoryDay,
     },
     storage: require("../ai-sessions/storage"),
     MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,

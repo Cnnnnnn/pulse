@@ -62,6 +62,8 @@ describe("AI usage 端到端", () => {
         save: (s) => {
           fs.writeFileSync(statePath, JSON.stringify({ v: 1, ai_usage: s }, null, 2));
         },
+        loadHistory: () => ({ days: [] }),
+        appendHistory: () => {},
       },
       storage,
       MiniMaxQuotaClient,
@@ -74,7 +76,7 @@ describe("AI usage 端到端", () => {
 
     // 1) push 事件
     expect(pushCalls).toEqual([
-      { c: "ai-usage-updated", p: { snapshot: FAKE_SNAPSHOT, prevSnapshot: null } },
+      { c: "ai-usage-updated", p: { snapshot: FAKE_SNAPSHOT, prevSnapshot: null, history: { days: [] } } },
     ]);
 
     // 2) state.json 落盘
@@ -92,6 +94,8 @@ describe("AI usage 端到端", () => {
         save: () => {
           saveCalled = true;
         },
+        loadHistory: () => ({ days: [] }),
+        appendHistory: () => {},
       },
       storage: { loadApiKey: () => "fake-key" },
       MiniMaxQuotaClient: function () {
@@ -116,7 +120,7 @@ describe("AI usage 端到端", () => {
     const pushCalls = [];
     let clientConstructed = false;
     const deps = {
-      stateStore: { load: () => null, save: () => {} },
+      stateStore: { load: () => null, save: () => {}, loadHistory: () => ({ days: [] }), appendHistory: () => {} },
       storage: { loadApiKey: () => null },
       MiniMaxQuotaClient: function () {
         clientConstructed = true;
@@ -152,6 +156,8 @@ describe("AI usage 端到端", () => {
             cache.value = s;
             fs.writeFileSync(statePath, JSON.stringify({ v: 1, ai_usage: s }, null, 2));
           },
+          loadHistory: () => ({ days: [] }),
+          appendHistory: () => {},
         },
         storage: { loadApiKey: () => "fake-key" },
         MiniMaxQuotaClient,
@@ -177,6 +183,8 @@ describe("AI usage 端到端", () => {
             cache.value = s;
             fs.writeFileSync(statePath, JSON.stringify({ v: 1, ai_usage: s }, null, 2));
           },
+          loadHistory: () => ({ days: [] }),
+          appendHistory: () => {},
         },
         storage: { loadApiKey: () => "fake-key" },
         MiniMaxQuotaClient,
@@ -200,9 +208,11 @@ describe("AI usage 端到端", () => {
           if (!s.ai_usage || typeof s.ai_usage !== "object") return null;
           return { ...s.ai_usage };
         },
+        loadHistory: () => ({ days: [] }),
+        appendHistory: () => {},
       },
     };
     const r = await _internals.getCached({ deps });
-    expect(r).toEqual({ ok: true, snapshot: null });
+    expect(r).toEqual({ ok: true, snapshot: null, history: { days: [] } });
   });
 });

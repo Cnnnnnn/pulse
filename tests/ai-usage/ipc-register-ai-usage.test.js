@@ -36,6 +36,8 @@ function makeDeps(overrides = {}) {
   const stateStore = {
     load: overrides.loadAiUsageSnapshot || (() => null),
     save: overrides.saveAiUsageSnapshot || vi.fn(),
+    loadHistory: overrides.loadAiUsageHistory || (() => ({ days: [] })),
+    appendHistory: overrides.appendAiUsageHistoryDay || vi.fn(),
   };
   const storage = {
     loadApiKey: overrides.loadApiKey || vi.fn(() => "fake-key"),
@@ -62,10 +64,10 @@ beforeEach(() => {
 
 describe("register-ai-usage._internals", () => {
   describe("getCached", () => {
-    test("returns { ok, snapshot: null } when no snapshot", async () => {
+    test("returns { ok, snapshot: null, history: { days: [] } } when no snapshot", async () => {
       const deps = makeDeps();
       const r = await _internals.getCached({ deps: deps });
-      expect(r).toEqual({ ok: true, snapshot: null });
+      expect(r).toEqual({ ok: true, snapshot: null, history: { days: [] } });
     });
 
     test("returns cached snapshot when present", async () => {
@@ -105,12 +107,38 @@ describe("register-ai-usage._internals", () => {
       expect(deps.stateStore.save).toHaveBeenCalledWith(FAKE_SNAPSHOT);
       // pushed (含 prevSnapshot 供 renderer 算 burn rate)
       expect(deps.sendCalls).toEqual([
-        { channel: "ai-usage-updated", payload: { snapshot: FAKE_SNAPSHOT, prevSnapshot: null } },
+        { channel: "ai-usage-updated", payload: { snapshot: FAKE_SNAPSHOT, prevSnapshot: null, history: { days: [] } } },
       ]);
       // client constructed once
       expect(deps.clientCalls).toHaveLength(1);
       expect(deps.clientCalls[0].apiKey).toBe("fake-key");
       expect(deps.clientCalls[0].region).toBe("cn");
+    });
+
+    test("成功 fetch → appendHistory 用 5h.used", async () => {
+      const appendHistory = vi.fn();
+      const deps = makeDeps({
+        fetchResults: [{ ok: true, snapshot: FAKE_SNAPSHOT }],
+        appendAiUsageHistoryDay: appendHistory,
+      });
+      await _internals.fetch({ deps: deps, opts: {} });
+      expect(appendHistory).toHaveBeenCalledTimes(1);
+      const arg = appendHistory.mock.calls[0][0];
+      expect(arg.used).toBe(1800); // 5h.used
+      expect(arg.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    test("成功 fetch 但 5h.used=0 → 不调 appendHistory", async () => {
+      const appendHistory = vi.fn();
+      const deps = makeDeps({
+        fetchResults: [{
+          ok: true,
+          snapshot: { ...FAKE_SNAPSHOT, windows: { "5h": { total: 100, remaining: 100, used: 0, usedPercent: 0 } } },
+        }],
+        appendAiUsageHistoryDay: appendHistory,
+      });
+      await _internals.fetch({ deps: deps, opts: {} });
+      expect(appendHistory).not.toHaveBeenCalled();
     });
 
     test("failure: returns error, does NOT save, does NOT push", async () => {
