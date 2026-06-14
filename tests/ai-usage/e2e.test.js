@@ -74,7 +74,7 @@ describe("AI usage 端到端", () => {
 
     // 1) push 事件
     expect(pushCalls).toEqual([
-      { c: "ai-usage-updated", p: { snapshot: FAKE_SNAPSHOT } },
+      { c: "ai-usage-updated", p: { snapshot: FAKE_SNAPSHOT, prevSnapshot: null } },
     ]);
 
     // 2) state.json 落盘

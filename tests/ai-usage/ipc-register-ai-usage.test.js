@@ -103,9 +103,9 @@ describe("register-ai-usage._internals", () => {
       expect(r.snapshot).toEqual(FAKE_SNAPSHOT);
       // saved
       expect(deps.stateStore.save).toHaveBeenCalledWith(FAKE_SNAPSHOT);
-      // pushed
+      // pushed (含 prevSnapshot 供 renderer 算 burn rate)
       expect(deps.sendCalls).toEqual([
-        { channel: "ai-usage-updated", payload: { snapshot: FAKE_SNAPSHOT } },
+        { channel: "ai-usage-updated", payload: { snapshot: FAKE_SNAPSHOT, prevSnapshot: null } },
       ]);
       // client constructed once
       expect(deps.clientCalls).toHaveLength(1);
