@@ -8,7 +8,7 @@
  */
 
 import { signal, computed } from "@preact/signals";
-import { requireApiMethod, wrapIpc } from "../store-utils.js";
+import { getApi, requireApiMethod, wrapIpc } from "../store-utils.js";
 
 export const reminders = signal([]); // Reminder[]
 export const remindersLoaded = signal(false);
@@ -148,8 +148,6 @@ export const nextDue = computed(() => {
 });
 
 // ── 跟 IPC 事件联动: reminders:fired / reminders:open-modal (主进程推) ──
-
-import { getApi } from "../api.js";
 
 let _installed = false;
 

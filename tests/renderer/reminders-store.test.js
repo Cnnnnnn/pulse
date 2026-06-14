@@ -24,7 +24,7 @@ const { apiState, emitFired, emitOpenModal } = vi.hoisted(() => {
   return { apiState, emitFired, emitOpenModal };
 });
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/store-utils.js", () => ({
   getApi: () => ({
     onRemindersFired: (cb) => {
       apiState.firedHandlers.push(cb);
@@ -41,6 +41,28 @@ vi.mock("../../src/renderer/api.js", () => ({
       };
     },
   }),
+  requireApiMethod: (name) => {
+    if (name === "onRemindersFired") {
+      return (cb) => {
+        apiState.firedHandlers.push(cb);
+        return () => {
+          const i = apiState.firedHandlers.indexOf(cb);
+          if (i >= 0) apiState.firedHandlers.splice(i, 1);
+        };
+      };
+    }
+    if (name === "onRemindersOpenModal") {
+      return (cb) => {
+        apiState.openModalHandlers.push(cb);
+        return () => {
+          const i = apiState.openModalHandlers.indexOf(cb);
+          if (i >= 0) apiState.openModalHandlers.splice(i, 1);
+        };
+      };
+    }
+    return () => {};
+  },
+  wrapIpc: (fn) => fn,
 }));
 
 let reminders;
