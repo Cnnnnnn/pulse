@@ -5,11 +5,11 @@
  * Spec: docs/superpowers/specs/2026-06-14-minimax-coding-plan-usage-design.md §4.1
  */
 
-const { normalize } = require('./normalize');
+const { normalize } = require("./normalize");
 
 const ENDPOINTS = {
-  cn: 'https://www.minimaxi.com/v1/token_plan/remains',
-  global: 'https://www.minimax.io/v1/token_plan/remains',
+  cn: "https://www.minimaxi.com/v1/token_plan/remains",
+  global: "https://www.minimax.io/v1/token_plan/remains",
 };
 
 /**
@@ -19,9 +19,10 @@ const ENDPOINTS = {
  */
 function _resolveEndpoint(opts = {}) {
   const env = process.env.MINIMAX_TOKEN_PLAN_URL;
-  if (typeof env === 'string' && env.length > 0) return env;
-  if (typeof opts.endpoint === 'string' && opts.endpoint.length > 0) return opts.endpoint;
-  const region = opts.region === 'global' ? 'global' : 'cn';
+  if (typeof env === "string" && env.length > 0) return env;
+  if (typeof opts.endpoint === "string" && opts.endpoint.length > 0)
+    return opts.endpoint;
+  const region = opts.region === "global" ? "global" : "cn";
   return ENDPOINTS[region];
 }
 
@@ -36,8 +37,11 @@ class MiniMaxQuotaClient {
    */
   constructor(opts = {}) {
     this.apiKey = opts.apiKey || null;
-    this.region = opts.region === 'global' ? 'global' : 'cn';
-    this.endpoint = _resolveEndpoint({ region: this.region, endpoint: opts.endpoint });
+    this.region = opts.region === "global" ? "global" : "cn";
+    this.endpoint = _resolveEndpoint({
+      region: this.region,
+      endpoint: opts.endpoint,
+    });
     this.httpClient = opts.httpClient || null;
     this.log = opts.log || { info: () => {}, warn: () => {}, error: () => {} };
     this._customHttpClient = Boolean(opts.httpClient);
@@ -52,15 +56,72 @@ class MiniMaxQuotaClient {
   async fetchOnce(opts = {}) {
     if (this._inFlight) return this._inFlight;
     this._inFlight = (async () => {
-      try { return await this._doFetch(opts); }
-      finally { this._inFlight = null; }
+      try {
+        return await this._doFetch(opts);
+      } finally {
+        this._inFlight = null;
+      }
     })();
     return this._inFlight;
   }
 
   async _doFetch(opts = {}) {
-    // stub — Task U1.4 填实现
-    throw new Error('not implemented');
+    // 1) apiKey 校验
+    if (typeof this.apiKey !== "string" || this.apiKey.length === 0) {
+      return { ok: false, reason: "api_key_missing" };
+    }
+
+    // 2) 选 endpoint (opts.region 可 override)
+    const region = opts.region === "global" ? "global" : this.region;
+    const endpoint = _resolveEndpoint({ region, endpoint: this.endpoint });
+
+    // 3) lazy create HttpClient
+    const http = this.httpClient || require("../main/http-client");
+
+    // 4) 发请求
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${this.apiKey}`,
+    };
+    let r;
+    try {
+      r = await http.post(endpoint, {}, headers, { timeout: 15_000 });
+    } catch (err) {
+      return { ok: false, reason: "network_failed", error: (err && err.message) || "unknown" };
+    }
+
+    // 5) 解析 status
+    if (r.error && !r.status) {
+      return { ok: false, reason: "network_failed", error: r.error };
+    }
+    const status = r.status;
+    if (status === 401) return { ok: false, reason: "auth_401", status };
+    if (status === 403) return { ok: false, reason: "auth_403", status };
+    if (status === 429) return { ok: false, reason: "rate_limited", status };
+    if (status === 404) return { ok: false, reason: "http_status_404", status };
+    if (status >= 500) return { ok: false, reason: `http_status_${status}`, status };
+    if (status < 200 || status >= 300) {
+      return { ok: false, reason: `http_status_${status}`, status };
+    }
+
+    // 6) parse JSON
+    let parsed;
+    try { parsed = JSON.parse(r.body); }
+    catch (err) {
+      return { ok: false, reason: "response_not_json", error: err.message, status };
+    }
+
+    // 7) normalize
+    const n = normalize(parsed, {
+      fetchedAt: Date.now(),
+      endpoint,
+      provider: "minimax",
+      region,
+    });
+    if (!n.ok) {
+      return { ok: false, reason: n.reason, error: n.error, status };
+    }
+    return { ok: true, snapshot: n.snapshot };
   }
 }
 
