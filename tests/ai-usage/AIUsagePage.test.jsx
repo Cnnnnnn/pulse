@@ -81,11 +81,11 @@ describe("AIUsagePage", () => {
     expect(container.textContent).toContain("还没有配额数据");
   });
 
-  test("渲染两个窗口卡 (5h + weekly)", () => {
+  test("渲染三个窗口卡 (5h + weekly + video)", () => {
     mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
     const cards = container.querySelectorAll(".ai-usage-card");
-    expect(cards).toHaveLength(2);
+    expect(cards).toHaveLength(3);
     expect(container.textContent).toContain("5 小时滚动窗口");
     expect(container.textContent).toContain("周窗口");
     expect(container.textContent).toContain("4200");
@@ -93,10 +93,10 @@ describe("AIUsagePage", () => {
   });
 
   test("窗口数据缺 → empty card, 不崩", () => {
-    mockSnapshot = { ...FAKE_SNAPSHOT, windows: { "5h": null, weekly: null } };
+    mockSnapshot = { ...FAKE_SNAPSHOT, windows: { "5h": null, weekly: null, video: null } };
     const { container } = render(<AIUsagePage />);
     const empties = container.querySelectorAll(".ai-usage-card--empty");
-    expect(empties).toHaveLength(2);
+    expect(empties).toHaveLength(3);
   });
 
   test("lastError + snapshot → warn banner", () => {
