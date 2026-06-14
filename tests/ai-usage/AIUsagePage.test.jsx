@@ -12,6 +12,7 @@ import { render, fireEvent, cleanup } from "@testing-library/preact";
 
 let mockSnapshot = null;
 let mockPrevSnapshot = null;
+let mockHistory = { days: [] };
 let mockLastError = null;
 let mockFetching = false;
 let mockFromCache = true;
@@ -23,6 +24,9 @@ vi.mock("../../src/renderer/store/ai-usage-store.js", () => ({
   },
   get aiUsagePrevSnapshot() {
     return { get value() { return mockPrevSnapshot; } };
+  },
+  get aiUsageHistory() {
+    return { get value() { return mockHistory; } };
   },
   get aiUsageLastError() {
     return { get value() { return mockLastError; } };
@@ -93,6 +97,7 @@ const FAKE_SNAPSHOT = {
 beforeEach(() => {
   mockSnapshot = null;
   mockPrevSnapshot = null;
+  mockHistory = { days: [] };
   mockLastError = null;
   mockFetching = false;
   mockFromCache = true;

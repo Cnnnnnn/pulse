@@ -14,6 +14,8 @@ function makeDeps(overrides = {}) {
   const stateStore = {
     load: overrides.loadAiUsageSnapshot || (() => null),
     save: overrides.saveAiUsageSnapshot || (() => {}),
+    loadHistory: overrides.loadAiUsageHistory || (() => ({ days: [] })),
+    appendHistory: overrides.appendAiUsageHistoryDay || (() => {}),
   };
   const storage = {
     loadApiKey: overrides.loadApiKey || (() => "fake-key"),
@@ -61,7 +63,7 @@ describe("bootstrapAiUsage", () => {
     expect(deps.pushCalls).toEqual([
       {
         channel: "ai-usage-updated",
-        payload: { snapshot: { provider: "minimax" }, prevSnapshot: null },
+        payload: { snapshot: { provider: "minimax" }, prevSnapshot: null, history: { days: [] } },
       },
     ]);
   });

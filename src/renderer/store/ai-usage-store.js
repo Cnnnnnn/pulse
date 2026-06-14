@@ -21,6 +21,9 @@ export const aiUsageSnapshot = signal(null);
 /** 上一轮 snapshot — 用于算 burn rate / 预计耗尽时间. 首次启动为 null. */
 export const aiUsagePrevSnapshot = signal(null);
 
+/** 历史 used 序列, 用于 sparkline. { days: [{date, used, percent, updatedAt}] } */
+export const aiUsageHistory = signal({ days: [] });
+
 /** 上一轮 fetch 失败的 reason, 用于在 UI 顶部显示 banner */
 export const aiUsageLastError = signal(null);
 
@@ -39,7 +42,7 @@ export function _resetSubscribeForTest() {
 
 /**
  * 处理 main 主动 push 的 ai-usage-updated 事件.
- * @param {{snapshot?: object, prevSnapshot?: object|null}} data
+ * @param {{snapshot?: object, prevSnapshot?: object|null, history?: {days: Array}}} data
  */
 export function applyAiUsageEvent(data) {
   if (!data || !data.snapshot) return;
@@ -50,6 +53,10 @@ export function applyAiUsageEvent(data) {
   aiUsageSnapshot.value = data.snapshot;
   aiUsageFromCache.value = false;
   aiUsageLastError.value = null;
+  // 历史 (sparkline)
+  if (data.history && Array.isArray(data.history.days)) {
+    aiUsageHistory.value = data.history;
+  }
   // data.prevSnapshot 是 main 进程基于 state.json 的更老一个, 用不到 (signal 轮转已经够)
   void data.prevSnapshot;
 }
@@ -75,6 +82,9 @@ export async function loadAiUsageCached() {
     if (r && r.ok && r.snapshot) {
       aiUsageSnapshot.value = r.snapshot;
       aiUsageFromCache.value = true;
+    }
+    if (r && r.ok && r.history && Array.isArray(r.history.days)) {
+      aiUsageHistory.value = r.history;
     }
   } catch (err) {
     log.warn("loadAiUsageCached threw:", err && err.message);

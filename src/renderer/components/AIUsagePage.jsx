@@ -21,6 +21,7 @@ import { useEffect, useState, useMemo } from "preact/hooks";
 import {
   aiUsageSnapshot,
   aiUsagePrevSnapshot,
+  aiUsageHistory,
   aiUsageLastError,
   aiUsageFetching,
   aiUsageFromCache,
@@ -28,6 +29,7 @@ import {
 } from "../store/ai-usage-store.js";
 import { useNowTick } from "../hooks/useNowTick.jsx";
 import { computeBlowUpAt, formatBlowUpIn } from "../../ai-usage/derive.js";
+import { UsageSparkline } from "./UsageSparkline.jsx";
 import { taggedLog } from "../log.js";
 
 const log = taggedLog("[ai-usage]");
@@ -321,6 +323,13 @@ export function AIUsagePage() {
               : null}
             now={now}
           />
+        </div>
+      )}
+
+      {snapshot && (
+        <div class="ai-usage-history">
+          <div class="ai-usage-history-title">最近 7 天用量趋势</div>
+          <UsageSparkline history={aiUsageHistory.value} days={7} height={56} />
         </div>
       )}
 
