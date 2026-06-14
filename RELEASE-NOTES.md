@@ -2,7 +2,7 @@
 
 ---
 
-## v2.15.0 (世界杯 · bracket 视觉升级 v2) — 2026-06-14
+## v2.15.0 (世界杯 · bracket 视觉升级 v2 + 实时计算) — 2026-06-14
 
 ### 新增
 - **对阵模块视觉升级 v2**: 5 阶段水平 bracket tree + SVG 连线 (R32 → R16 → QF → SF → 决赛/季军), 左右分支结构一目了然
@@ -11,16 +11,31 @@
 - **季军赛** 用 200×70 灰色卡片
 - 已完赛 **R32 → R16** 的连线高亮为绿色 (`.bracket-tree-path--finished`)
 - **窗口 < 900px** 时自动回退到垂直堆叠布局 (`BracketTreeFallback`), 复用 v1 CSS
+- **进入「对阵」tab 自动重算** (30s 节流), 切走再切回不会重复算但 > 30s 一定会拉新
+
+### 修复
+- 小组赛未开赛时, bracket 不再**伪造** 8 个晋级第 3 名 (之前 `rankGroup` 总返回 best-effort 排名导致字母序前 8 误判)
+- 小组赛未开赛 / 阶段缺失时显示**结构化占位** ("A 组第 1" / "B 组第 2" / "R32 #74 胜者") + 🔒 待定徽标
+- "小组赛尚未开始" **独立空态** (避免误渲染半空 bracket)
 
 ### 工程
 - 渲染端
-  - `src/renderer/worldcup/BracketTree.jsx` — 5 列 flex 布局 + `useConnectors` hook (ResizeObserver + M-H-V-H 折线) + `useNarrowViewport` 响应式
+  - `src/renderer/worldcup/BracketTree.jsx` — 5 列 flex 布局 + `useConnectors` hook (ResizeObserver + M-H-V-H 折线) + `useNarrowViewport` 响应式 + `BracketTreeFallback`
+  - `src/renderer/worldcup/bracketStore.js` — 30s 模块级 throttle (`lastAutoComputeAt`)
   - `src/renderer/worldcup/WorldcupBracketView.jsx` — 委托给 `<BracketTree>` 渲染
+- 主进程
+  - `src/main/worldcup/bracket.js` — `rankGroup` 改 best-effort, 无比赛组返回 `null`
+  - `src/main/worldcup/bracket-rules.js` — `computeBracket` 输出 `completeGroupCount` + 第三名仅在有实际比赛数据时入选
 - CSS
   - `styles.css` — `.bracket-tree-*` (columns / column-section / column-cards / card / connectors / path / path--finished) + `.bracket-stage--finals` / `.bracket-finals`
 - 测试
   - `tests/renderer/worldcup-bracket-tree.test.jsx` — 5 列结构 + fallback 切换 + 决赛/季军卡样式
   - `tests/renderer/worldcup-bracket-view.test.jsx` — view ↔ BracketTree 集成 + 5 列断言
+  - `tests/renderer/worldcup-bracket-store.test.js` — 30s throttle + force bypass
+  - `tests/main/worldcup-bracket-ipc.test.js` — `rankGroup` 无比赛→null + 部分完赛 best-effort
+
+### 测试
+- 整体测试: **1621 passed / 0 failed** (v2.14.0 基线 1594 + 27 新增)
 
 ---
 
