@@ -20,12 +20,14 @@
 import { useEffect, useState, useMemo } from "preact/hooks";
 import {
   aiUsageSnapshot,
+  aiUsagePrevSnapshot,
   aiUsageLastError,
   aiUsageFetching,
   aiUsageFromCache,
   fetchAiUsage,
 } from "../store/ai-usage-store.js";
 import { useNowTick } from "../hooks/useNowTick.jsx";
+import { computeBlowUpAt, formatBlowUpIn } from "../../ai-usage/derive.js";
 import { taggedLog } from "../log.js";
 
 const log = taggedLog("[ai-usage]");
@@ -86,10 +88,11 @@ function formatPercent(used, total) {
 
 /**
  * @param {object} props
- * @param {{label: string, total: number, remaining: number, used: number, usedPercent: number, resetAt: number, resetInSec: number} | null} props.window
+ * @param {{label: string, total: number, remaining: number, used: number, usedPercent: number, resetAt: number, resetInSec: number, fetchedAt: number} | null} props.window
+ * @param {object|null} [props.prevWindow]  上一轮同 key 窗口, 用于算 burn rate
  * @param {number} props.now  用于倒计时
  */
-function WindowCard({ window: w, now }) {
+function WindowCard({ window: w, prevWindow = null, now }) {
   if (!w) {
     return (
       <div class="ai-usage-card ai-usage-card--empty">
@@ -122,6 +125,15 @@ function WindowCard({ window: w, now }) {
   const resetClock = typeof w.endTime === "number" && w.endTime > now
     ? formatClockTime(w.endTime)
     : null;
+
+  // 预计耗尽: 用 prevWindow (上一轮同窗口) 算 burn rate
+  const blowUpAt = computeBlowUpAt(
+    { used: w.used, remaining: w.remaining, fetchedAt: w.fetchedAt || now },
+    prevWindow && typeof prevWindow.used === "number" && typeof prevWindow.fetchedAt === "number"
+      ? { used: prevWindow.used, fetchedAt: prevWindow.fetchedAt }
+      : null,
+  );
+  const blowUpIn = formatBlowUpIn(blowUpAt, now);
 
   return (
     <div class="ai-usage-card">
@@ -168,6 +180,12 @@ function WindowCard({ window: w, now }) {
             ? `下次重置 ${resetClock}`
             : "已可重置"}
       </div>
+
+      {blowUpIn && (
+        <div class="ai-usage-card-burn-hint">
+          按当前速度 {blowUpIn} 用完
+        </div>
+      )}
     </div>
   );
 }
@@ -253,9 +271,27 @@ export function AIUsagePage() {
 
       {snapshot && (
         <div class="ai-usage-cards">
-          <WindowCard window={snapshot.windows["5h"]} now={now} />
-          <WindowCard window={snapshot.windows.weekly} now={now} />
-          <WindowCard window={snapshot.windows.video} now={now} />
+          <WindowCard
+            window={snapshot.windows["5h"]}
+            prevWindow={aiUsagePrevSnapshot.value && aiUsagePrevSnapshot.value.windows
+              ? aiUsagePrevSnapshot.value.windows["5h"]
+              : null}
+            now={now}
+          />
+          <WindowCard
+            window={snapshot.windows.weekly}
+            prevWindow={aiUsagePrevSnapshot.value && aiUsagePrevSnapshot.value.windows
+              ? aiUsagePrevSnapshot.value.windows.weekly
+              : null}
+            now={now}
+          />
+          <WindowCard
+            window={snapshot.windows.video}
+            prevWindow={aiUsagePrevSnapshot.value && aiUsagePrevSnapshot.value.windows
+              ? aiUsagePrevSnapshot.value.windows.video
+              : null}
+            now={now}
+          />
         </div>
       )}
 

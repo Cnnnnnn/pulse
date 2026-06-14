@@ -11,6 +11,7 @@ import { describe, test, expect, beforeEach, vi } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 
 let mockSnapshot = null;
+let mockPrevSnapshot = null;
 let mockLastError = null;
 let mockFetching = false;
 let mockFromCache = true;
@@ -19,6 +20,9 @@ const fetchCalls = [];
 vi.mock("../../src/renderer/store/ai-usage-store.js", () => ({
   get aiUsageSnapshot() {
     return { get value() { return mockSnapshot; } };
+  },
+  get aiUsagePrevSnapshot() {
+    return { get value() { return mockPrevSnapshot; } };
   },
   get aiUsageLastError() {
     return { get value() { return mockLastError; } };
@@ -39,10 +43,11 @@ const { AIUsagePage } = await import(
   "../../src/renderer/components/AIUsagePage.jsx"
 );
 
+const NOW = Date.now();
 const FAKE_SNAPSHOT = {
   provider: "minimax",
   region: "cn",
-  fetchedAt: Date.now() - 60_000,
+  fetchedAt: NOW,
   endpoint: "https://www.minimaxi.com/v1/token_plan/remains",
   windows: {
     "5h": {
@@ -50,9 +55,10 @@ const FAKE_SNAPSHOT = {
       remaining: 4200,
       used: 1800,
       usedPercent: 30,
-      resetAt: Date.now() + 3600_000,
+      resetAt: NOW + 3600_000,
       resetInSec: 3600,
-      endTime: Date.now() + 3600_000,
+      endTime: NOW + 3600_000,
+      fetchedAt: NOW,
       label: "5 小时滚动窗口",
       status: 1,
     },
@@ -61,9 +67,10 @@ const FAKE_SNAPSHOT = {
       remaining: 12000,
       used: 38000,
       usedPercent: 76,
-      resetAt: Date.now() + 5 * 86400_000,
+      resetAt: NOW + 5 * 86400_000,
       resetInSec: 5 * 86400,
-      endTime: Date.now() + 5 * 86400_000,
+      endTime: NOW + 5 * 86400_000,
+      fetchedAt: NOW,
       label: "周窗口",
       status: 1,
     },
@@ -73,7 +80,8 @@ const FAKE_SNAPSHOT = {
       used: 3,
       usedPercent: 100,
       resetInSec: 5 * 86400,
-      endTime: Date.now() + 5 * 86400_000,
+      endTime: NOW + 5 * 86400_000,
+      fetchedAt: NOW,
       label: "视频赠送",
       modelName: "video",
       status: 1,
@@ -84,6 +92,7 @@ const FAKE_SNAPSHOT = {
 
 beforeEach(() => {
   mockSnapshot = null;
+  mockPrevSnapshot = null;
   mockLastError = null;
   mockFetching = false;
   mockFromCache = true;
@@ -195,5 +204,49 @@ describe("AIUsagePage", () => {
     const { container } = render(<AIUsagePage />);
     // 5h 的 endTime 是 now+3600s, 应该有 HH:mm 格式
     expect(container.textContent).toMatch(/\d{2}:\d{2}/);
+  });
+
+  test("无 prevSnapshot 时不显示 burn rate 提示", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    mockPrevSnapshot = null;
+    const { container } = render(<AIUsagePage />);
+    expect(container.textContent).not.toMatch(/按当前速度/);
+  });
+
+  test("有 prevSnapshot 且有消耗时显示 burn rate 提示", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    // 1 小时前 snapshot, 5h 窗口 used 从 1000 → 1800 (+800)
+    mockPrevSnapshot = {
+      ...FAKE_SNAPSHOT,
+      fetchedAt: NOW - 3600_000,
+      windows: {
+        ...FAKE_SNAPSHOT.windows,
+        "5h": { ...FAKE_SNAPSHOT.windows["5h"], used: 1000, remaining: 5000, fetchedAt: NOW - 3600_000 },
+      },
+    };
+    const { container } = render(<AIUsagePage />);
+    // 800/h, remaining 4200, blowUpAt = 4200/800=5.25h (在 24h 内) → 应显示
+    const burnHints = container.querySelectorAll(".ai-usage-card-burn-hint");
+    if (burnHints.length === 0) {
+      // debug: 看 weekly 卡的输入
+      console.log("debug cards HTML:", container.innerHTML);
+    }
+    expect(burnHints.length).toBeGreaterThan(0);
+    expect(burnHints[0].textContent).toMatch(/按当前速度.*5\s*小时后/);
+  });
+
+  test("prev 窗口的 used 减少 (重置) 不显示 burn rate", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    mockPrevSnapshot = {
+      ...FAKE_SNAPSHOT,
+      fetchedAt: NOW - 3600_000,
+      windows: {
+        ...FAKE_SNAPSHOT.windows,
+        "5h": { ...FAKE_SNAPSHOT.windows["5h"], used: 5000, remaining: 1000, fetchedAt: NOW - 3600_000 },
+      },
+    };
+    const { container } = render(<AIUsagePage />);
+    // used 减少 → derive 返 null → 不显示
+    expect(container.textContent).not.toMatch(/按当前速度/);
   });
 });
