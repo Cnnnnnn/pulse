@@ -257,12 +257,14 @@ function computeBracket({ groupStandings, scores } = {}) {
   const warnings = [];
   const groupResults = {};
   const thirdStandings = {};
+  const groupComplete = {};
 
   for (const [letter, gs] of Object.entries(groupStandings)) {
     if (!gs) {
       warnings.push(`group_${letter}_incomplete`);
       continue;
     }
+    groupComplete[letter] = gs.complete === true;
     groupResults[letter] = {
       winner: gs.winner || null,
       runnerUp: gs.runnerUp || null,
@@ -293,15 +295,17 @@ function computeBracket({ groupStandings, scores } = {}) {
 
   warnings.push('simplified_annex_c_default_row');
 
-  const completeGroups = Object.values(groupStandings).filter((g) => g && g.winner && g.runnerUp);
-  const projected = completeGroups.length < 12 || advancing.length < 8;
-  if (projected) warnings.push('bracket_partial');
+  const completeGroupCount = Object.values(groupComplete).filter(Boolean).length;
+  const hasAnyData = Object.keys(groupComplete).length > 0;
+  const projected = completeGroupCount < 12 || !hasAnyData;
+  if (projected && hasAnyData) warnings.push('bracket_partial');
 
   return {
     version: 1,
     computedAt: Date.now(),
     inputsHash: 'sha256:' + simpleHash(groupStandings, scores || {}),
     projected,
+    completeGroupCount,
     r32,
     r16,
     qf,

@@ -44,11 +44,34 @@ function teamCn(slot) {
   return displayTeam(slot.team.name);
 }
 
+const RANK_LABELS = { winner: "第 1", runnerUp: "第 2", third: "第 3" };
+
+function slotPlaceholder(slot) {
+  if (!slot) return "未定";
+  if (slot.team) return null; // MatchCard 走另一条分支
+  // 上游来源: 胜者 / 败者 / 未知
+  if (slot.source && /^[a-z0-9]+:\d+(-loser)?$/.test(slot.source)) {
+    const [stage, num] = slot.source.split(":");
+    const tail = slot.source.includes("-loser") ? "败者" : "胜者";
+    return `${stage.toUpperCase()} #${num} ${tail}`;
+  }
+  if (slot.source && slot.source.startsWith("group:") && slot.group && slot.rank) {
+    const rank = RANK_LABELS[slot.rank] || slot.rank;
+    return `${slot.group} 组${rank}`;
+  }
+  if (slot.source === "best-third-pool" && Array.isArray(slot.pool)) {
+    return `第 3 名 (${slot.pool.join("/")})`;
+  }
+  return "未定";
+}
+
 function MatchCard({ match, onClick }) {
   if (!match) return null;
   const { matchNum, slot1, slot2, status } = match;
   const t1 = teamCn(slot1);
   const t2 = teamCn(slot2);
+  const p1 = !t1 ? slotPlaceholder(slot1) : null;
+  const p2 = !t2 ? slotPlaceholder(slot2) : null;
 
   return (
     <div
@@ -64,11 +87,7 @@ function MatchCard({ match, onClick }) {
               <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
             </>
           ) : (
-            <span class="bracket-card-placeholder">
-              {slot1?.source?.startsWith("r32:")
-                ? `胜者 ${slot1.source.split(":")[1]}`
-                : "未定"}
-            </span>
+            <span class="bracket-card-placeholder">{p1}</span>
           )}
         </div>
         <div class="bracket-card-vs">vs</div>
@@ -79,11 +98,7 @@ function MatchCard({ match, onClick }) {
               <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
             </>
           ) : (
-            <span class="bracket-card-placeholder">
-              {slot2?.source?.startsWith("r32:")
-                ? `胜者 ${slot2.source.split(":")[1]}`
-                : "未定"}
-            </span>
+            <span class="bracket-card-placeholder">{p2}</span>
           )}
         </div>
       </div>
@@ -192,6 +207,11 @@ export function WorldcupBracketView() {
     );
   }
 
+  // 空态: 小组赛完全没有数据 (所有组 played=0)
+  // 保留 snapshot 结构以显示 header 工具栏, 但用空态消息提示
+  const completeGroupCount = snapshot.completeGroupCount || 0;
+  const noGroupData = completeGroupCount === 0;
+
   const advancingCount = snapshot.thirdPlacedAdvancing ? snapshot.thirdPlacedAdvancing.length : 0;
   const projectedBanner = snapshot.projected
     ? `基于 ${advancingCount} 个晋级第3名 · 待小组赛完赛`
@@ -216,14 +236,22 @@ export function WorldcupBracketView() {
           )}
         </div>
       </div>
-      <StageSection stageKey="r32" matches={snapshot.r32} onMatchClick={handleMatchClick} />
-      <StageSection stageKey="r16" matches={snapshot.r16} onMatchClick={handleMatchClick} />
-      <StageSection stageKey="qf" matches={snapshot.qf} onMatchClick={handleMatchClick} />
-      <StageSection stageKey="sf" matches={snapshot.sf} onMatchClick={handleMatchClick} />
-      <div class="bracket-finals">
-        <StageSection stageKey="third" matches={snapshot.third} onMatchClick={handleMatchClick} />
-        <StageSection stageKey="final" matches={snapshot.final} onMatchClick={handleMatchClick} />
-      </div>
+      {noGroupData ? (
+        <div class="bracket-view bracket-view--empty">
+          <p class="bracket-empty-msg">小组赛尚未开始，待 6/11 揭幕战后再计算淘汰赛对阵</p>
+        </div>
+      ) : (
+        <>
+          <StageSection stageKey="r32" matches={snapshot.r32} onMatchClick={handleMatchClick} />
+          <StageSection stageKey="r16" matches={snapshot.r16} onMatchClick={handleMatchClick} />
+          <StageSection stageKey="qf" matches={snapshot.qf} onMatchClick={handleMatchClick} />
+          <StageSection stageKey="sf" matches={snapshot.sf} onMatchClick={handleMatchClick} />
+          <div class="bracket-finals">
+            <StageSection stageKey="third" matches={snapshot.third} onMatchClick={handleMatchClick} />
+            <StageSection stageKey="final" matches={snapshot.final} onMatchClick={handleMatchClick} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

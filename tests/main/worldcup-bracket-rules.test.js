@@ -228,18 +228,18 @@ describe("propagateWinner", () => {
 
 describe("computeBracket", () => {
   const FULL_STANDINGS = {
-    A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 3, gd: 0, gf: 2 } },
-    B: { winner: "Canada", runnerUp: "Switzerland", third: { name: "Qatar", pts: 3, gd: 0, gf: 2 } },
-    C: { winner: "Brazil", runnerUp: "Morocco", third: { name: "Scotland", pts: 3, gd: 0, gf: 2 } },
-    D: { winner: "USA", runnerUp: "Paraguay", third: { name: "Australia", pts: 3, gd: 0, gf: 2 } },
-    E: { winner: "Germany", runnerUp: "Curaçao", third: { name: "Ivory Coast", pts: 3, gd: 0, gf: 2 } },
-    F: { winner: "Netherlands", runnerUp: "Japan", third: { name: "Sweden", pts: 3, gd: 0, gf: 2 } },
-    G: { winner: "Belgium", runnerUp: "Egypt", third: { name: "Iran", pts: 3, gd: 0, gf: 2 } },
-    H: { winner: "Spain", runnerUp: "Cape Verde", third: { name: "Saudi Arabia", pts: 3, gd: 0, gf: 2 } },
-    I: { winner: "France", runnerUp: "Senegal", third: { name: "Iraq", pts: 3, gd: 0, gf: 2 } },
-    J: { winner: "Argentina", runnerUp: "Algeria", third: { name: "Austria", pts: 3, gd: 0, gf: 2 } },
-    K: { winner: "Portugal", runnerUp: "DR Congo", third: { name: "Colombia", pts: 3, gd: 0, gf: 2 } },
-    L: { winner: "England", runnerUp: "Croatia", third: { name: "Ghana", pts: 3, gd: 0, gf: 2 } },
+    A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 3, gd: 0, gf: 2 }, complete: true },
+    B: { winner: "Canada", runnerUp: "Switzerland", third: { name: "Qatar", pts: 3, gd: 0, gf: 2 }, complete: true },
+    C: { winner: "Brazil", runnerUp: "Morocco", third: { name: "Scotland", pts: 3, gd: 0, gf: 2 }, complete: true },
+    D: { winner: "USA", runnerUp: "Paraguay", third: { name: "Australia", pts: 3, gd: 0, gf: 2 }, complete: true },
+    E: { winner: "Germany", runnerUp: "Curaçao", third: { name: "Ivory Coast", pts: 3, gd: 0, gf: 2 }, complete: true },
+    F: { winner: "Netherlands", runnerUp: "Japan", third: { name: "Sweden", pts: 3, gd: 0, gf: 2 }, complete: true },
+    G: { winner: "Belgium", runnerUp: "Egypt", third: { name: "Iran", pts: 3, gd: 0, gf: 2 }, complete: true },
+    H: { winner: "Spain", runnerUp: "Cape Verde", third: { name: "Saudi Arabia", pts: 3, gd: 0, gf: 2 }, complete: true },
+    I: { winner: "France", runnerUp: "Senegal", third: { name: "Iraq", pts: 3, gd: 0, gf: 2 }, complete: true },
+    J: { winner: "Argentina", runnerUp: "Algeria", third: { name: "Austria", pts: 3, gd: 0, gf: 2 }, complete: true },
+    K: { winner: "Portugal", runnerUp: "DR Congo", third: { name: "Colombia", pts: 3, gd: 0, gf: 2 }, complete: true },
+    L: { winner: "England", runnerUp: "Croatia", third: { name: "Ghana", pts: 3, gd: 0, gf: 2 }, complete: true },
   };
 
   test("returns complete bracket when all groups finished", () => {
@@ -260,9 +260,9 @@ describe("computeBracket", () => {
 
   test("returns projected=true with warnings when some groups incomplete", () => {
     const partial = {
-      A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 3, gd: 0, gf: 2 } },
+      A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 3, gd: 0, gf: 2 }, complete: true },
       B: null, // 未完
-      C: { winner: "Brazil", runnerUp: "Morocco", third: null },
+      C: { winner: "Brazil", runnerUp: "Morocco", third: null, complete: false },
       D: null,
       E: null,
       F: null,
@@ -277,6 +277,80 @@ describe("computeBracket", () => {
     expect(snapshot.projected).toBe(true);
     expect(snapshot.warnings).toContain('group_B_incomplete');
     expect(snapshot.warnings).toContain('bracket_partial');
+    expect(snapshot.completeGroupCount).toBe(1);
+    // A 组完赛 → Match 73 应该是 A vs B (B 组未定 → slot2 仍为 group:B:runnerUp 但 team=null)
+    const m73 = snapshot.r32.find((m) => m.matchNum === 73);
+    expect(m73.slot1.team.name).toBe('South Africa'); // A runnerUp
+    expect(m73.slot2.team).toBeNull();
+    expect(m73.slot2.source).toBe('group:B:runnerUp');
+  });
+
+  test("groups with played=0 still produce best-effort standings (projected bracket)", () => {
+    // 模拟: 小组赛未开始 → 所有组 played=0 但已有 4 队名单
+    // rankGroup 会返回 winner/runnerUp/third (按字母序), complete=false
+    const noData = {
+      A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 0, gd: 0, gf: 0 }, complete: false },
+      B: { winner: "Canada", runnerUp: "Switzerland", third: { name: "Qatar", pts: 0, gd: 0, gf: 0 }, complete: false },
+      C: { winner: "Brazil", runnerUp: "Morocco", third: { name: "Scotland", pts: 0, gd: 0, gf: 0 }, complete: false },
+      D: { winner: "USA", runnerUp: "Paraguay", third: { name: "Australia", pts: 0, gd: 0, gf: 0 }, complete: false },
+      E: { winner: "Germany", runnerUp: "Curaçao", third: { name: "Ivory Coast", pts: 0, gd: 0, gf: 0 }, complete: false },
+      F: { winner: "Netherlands", runnerUp: "Japan", third: { name: "Sweden", pts: 0, gd: 0, gf: 0 }, complete: false },
+      G: { winner: "Belgium", runnerUp: "Egypt", third: { name: "Iran", pts: 0, gd: 0, gf: 0 }, complete: false },
+      H: { winner: "Spain", runnerUp: "Cape Verde", third: { name: "Saudi Arabia", pts: 0, gd: 0, gf: 0 }, complete: false },
+      I: { winner: "France", runnerUp: "Senegal", third: { name: "Iraq", pts: 0, gd: 0, gf: 0 }, complete: false },
+      J: { winner: "Argentina", runnerUp: "Algeria", third: { name: "Austria", pts: 0, gd: 0, gf: 0 }, complete: false },
+      K: { winner: "Portugal", runnerUp: "DR Congo", third: { name: "Colombia", pts: 0, gd: 0, gf: 0 }, complete: false },
+      L: { winner: "England", runnerUp: "Croatia", third: { name: "Ghana", pts: 0, gd: 0, gf: 0 }, complete: false },
+    };
+    const snapshot = computeBracket({ groupStandings: noData, scores: {} });
+    expect(snapshot).not.toBeNull();
+    expect(snapshot.projected).toBe(true);
+    expect(snapshot.completeGroupCount).toBe(0);
+    expect(snapshot.warnings).toContain('bracket_partial');
+    // 关键: 即使所有组都未完赛, R32 slot 仍能 fill (按 winner/runnerUp 名称) → renderer 会显示 "A 组第 1" 占位
+    const m73 = snapshot.r32.find((m) => m.matchNum === 73);
+    expect(m73.slot1.team.name).toBe('South Africa');
+    expect(m73.slot2.team.name).toBe('Switzerland');
+  });
+
+  test("mixed: some groups complete, some best-effort → projected with correct count", () => {
+    // 模拟: 4 组完赛, 8 组未完 (但有 standings)
+    const mixed = {
+      A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 6, gd: 2, gf: 5 }, complete: true },
+      B: { winner: "Canada", runnerUp: "Switzerland", third: { name: "Qatar", pts: 6, gd: 2, gf: 5 }, complete: true },
+      C: { winner: "Brazil", runnerUp: "Morocco", third: { name: "Scotland", pts: 6, gd: 2, gf: 5 }, complete: true },
+      D: { winner: "USA", runnerUp: "Paraguay", third: { name: "Australia", pts: 6, gd: 2, gf: 5 }, complete: true },
+      E: { winner: "Germany", runnerUp: "Curaçao", third: { name: "Ivory Coast", pts: 0, gd: 0, gf: 0 }, complete: false },
+      F: { winner: "Netherlands", runnerUp: "Japan", third: { name: "Sweden", pts: 0, gd: 0, gf: 0 }, complete: false },
+      G: { winner: "Belgium", runnerUp: "Egypt", third: { name: "Iran", pts: 0, gd: 0, gf: 0 }, complete: false },
+      H: { winner: "Spain", runnerUp: "Cape Verde", third: { name: "Saudi Arabia", pts: 0, gd: 0, gf: 0 }, complete: false },
+      I: { winner: "France", runnerUp: "Senegal", third: { name: "Iraq", pts: 0, gd: 0, gf: 0 }, complete: false },
+      J: { winner: "Argentina", runnerUp: "Algeria", third: { name: "Austria", pts: 0, gd: 0, gf: 0 }, complete: false },
+      K: { winner: "Portugal", runnerUp: "DR Congo", third: { name: "Colombia", pts: 0, gd: 0, gf: 0 }, complete: false },
+      L: { winner: "England", runnerUp: "Croatia", third: { name: "Ghana", pts: 0, gd: 0, gf: 0 }, complete: false },
+    };
+    const snapshot = computeBracket({ groupStandings: mixed, scores: {} });
+    expect(snapshot.projected).toBe(true);
+    expect(snapshot.completeGroupCount).toBe(4);
+  });
+
+  test("all groups null → completeGroupCount=0 still produces bracket (placeholder UI)", () => {
+    // 极端: 所有组都 null → 不应返回 null, 应返回 placeholder bracket
+    const allNull = {
+      A: null, B: null, C: null, D: null,
+      E: null, F: null, G: null, H: null,
+      I: null, J: null, K: null, L: null,
+    };
+    const snapshot = computeBracket({ groupStandings: allNull, scores: {} });
+    expect(snapshot).not.toBeNull();
+    expect(snapshot.completeGroupCount).toBe(0);
+    expect(snapshot.projected).toBe(true);
+    // 12 个 group_X_incomplete warnings
+    const groupWarnings = snapshot.warnings.filter((w) => w.startsWith('group_') && w.endsWith('_incomplete'));
+    expect(groupWarnings).toHaveLength(12);
+    // R32 全部 slot 是 null team → 仍渲染 placeholder
+    expect(snapshot.r32).toHaveLength(16);
+    expect(snapshot.r32[0].slot1.team).toBeNull();
   });
 
   test("returns null when groupStandings is empty/null", () => {

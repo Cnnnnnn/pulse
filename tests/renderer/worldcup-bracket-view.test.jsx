@@ -13,6 +13,7 @@ const sampleSnapshot = {
   computedAt: 12345,
   inputsHash: "sha256:abc",
   projected: true,
+  completeGroupCount: 4,
   r32: [
     {
       matchNum: 73,
@@ -61,6 +62,14 @@ describe("WorldcupBracketView smoke", () => {
     worldcupBracket.value = null;
     const { container } = render(<WorldcupBracketView />);
     expect(container.textContent).toMatch(/小组赛尚未开始|暂无数据/);
+  });
+
+  test("renders no-group-data empty state when completeGroupCount=0", () => {
+    worldcupBracket.value = { ...sampleSnapshot, completeGroupCount: 0 };
+    const { container } = render(<WorldcupBracketView />);
+    expect(container.textContent).toContain("小组赛尚未开始");
+    // 阶段 section 不应该渲染
+    expect(container.querySelector(".bracket-stage")).toBeNull();
   });
 
   test("renders error state when bracketError set", () => {

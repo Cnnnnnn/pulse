@@ -107,7 +107,7 @@ function extractGroupStandings(matches, groupsData) {
 
 function rankGroup(letter, matches, teams) {
   const stats = {};
-  for (const t of teams) stats[t] = { pts: 0, gd: 0, gf: 0, played: 0 };
+  for (const t of teams) stats[t] = { pts: 0, gd: 0, gf: 0, ga: 0, played: 0 };
 
   for (const m of matches || []) {
     const mLetter = (m.stage || "").match(/^Group\s+([A-L])/i);
@@ -123,6 +123,8 @@ function rankGroup(letter, matches, teams) {
     stats[m.team2].played += 1;
     stats[m.team1].gf += h;
     stats[m.team2].gf += a;
+    stats[m.team1].ga += a;
+    stats[m.team2].ga += h;
     stats[m.team1].gd += h - a;
     stats[m.team2].gd += a - h;
     if (h > a) stats[m.team1].pts += 3;
@@ -137,16 +139,16 @@ function rankGroup(letter, matches, teams) {
     return a[0].localeCompare(b[0]);
   });
 
-  // 简化: 假设每组打完 3 场 = "completed". 项目里实际数据流由 scores 决定,
-  // 这里若任一队未参赛 (played=0) → 整组视为未完.
-  const completed = sorted.length >= 3 && sorted.every(([, s]) => s.played >= 3);
-  if (!completed) return null;
   if (sorted.length < 3) return null;
 
+  // best-effort: 始终返回当前 best-of 排名 (可能为 0 场赛后)
+  // 用 played >= 3 标记组赛是否完赛
+  const complete = sorted.length >= 3 && sorted.every(([, s]) => s.played >= 3);
   return {
     winner: sorted[0][0],
     runnerUp: sorted[1][0],
-    third: { name: sorted[2][0], pts: sorted[2][1].pts, gd: sorted[2][1].gd, gf: sorted[2][1].gf },
+    third: { name: sorted[2][0], pts: sorted[2][1].pts, gd: sorted[2][1].gd, gf: sorted[2][1].gf, ga: sorted[2][1].ga },
+    complete,
   };
 }
 
