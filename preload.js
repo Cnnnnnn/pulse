@@ -87,6 +87,12 @@ contextBridge.exposeInMainWorld("api", {
   worldcupUpsertBet: (payload) =>
     ipcRenderer.invoke("worldcup:upsert-bet", payload),
   worldcupRemoveBet: (date) => ipcRenderer.invoke("worldcup:remove-bet", date),
+
+  // 世界杯淘汰赛对阵表 (bracket compute + load)
+  worldcupComputeBracket: (payload) =>
+    ipcRenderer.invoke("worldcup:compute-bracket", payload),
+  worldcupLoadBracket: () => ipcRenderer.invoke("worldcup:load-bracket"),
+
   getAiSharedConfig: () => ipcRenderer.invoke("ai:get-shared-config"),
 
   // IT之家新闻
