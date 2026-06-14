@@ -1,0 +1,10 @@
+{
+  "base_resp": { "status_code": 0, "status_msg": "success" },
+  "coding_plan_remains": [
+    {
+      "current_interval_total_count": 6000,
+      "current_interval_usage_count": 4200,
+      "interval_remains_time": "00:01:00:00"
+    }
+  ]
+}

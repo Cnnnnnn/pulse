@@ -1,0 +1,10 @@
+{
+  "base_resp": { "status_code": 0, "status_msg": "success" },
+  "model_remains": [
+    {
+      "current_weekly_total_count": 50000,
+      "current_weekly_usage_count": 38000,
+      "weekly_remains_time": "05:22:00:00"
+    }
+  ]
+}
