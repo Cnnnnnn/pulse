@@ -215,6 +215,21 @@ export function AIUsagePage() {
     [snapshot, now],
   );
 
+  // 今日已用: 5h 窗口的 used 值 (滚动窗口 ≈ 当天累积消耗).
+  // 当 used 缺失 (API 未返 total/used) 时显示 "—".
+  const todayUsed = useMemo(() => {
+    const w = snapshot && snapshot.windows && snapshot.windows["5h"];
+    if (!w) return null;
+    if (typeof w.used === "number" && w.used > 0) return w.used;
+    // fallback: percent × total (如果有)
+    if (typeof w.usedPercent === "number" && typeof w.total === "number" && w.total > 0) {
+      return Math.round((w.usedPercent / 100) * w.total);
+    }
+    // 最后 fallback: percent 已知但 total 未知 → 用百分号形式
+    if (typeof w.usedPercent === "number") return null;
+    return null;
+  }, [snapshot]);
+
   return (
     <div class="ai-usage-page">
       <div class="ai-usage-header">
@@ -223,7 +238,19 @@ export function AIUsagePage() {
           <div class="ai-usage-subtitle">
             {snapshot ? (
               <>
-                Minimax coding plan 配额 · 上次更新: {ageLabel}
+                Minimax coding plan 配额 · 今日已用{" "}
+                {todayUsed !== null ? (
+                  <span class="ai-usage-today-value">
+                    {todayUsed.toLocaleString()} 单位
+                  </span>
+                ) : snapshot.windows["5h"] && typeof snapshot.windows["5h"].usedPercent === "number" ? (
+                  <span class="ai-usage-today-value">
+                    {snapshot.windows["5h"].usedPercent}%
+                  </span>
+                ) : (
+                  "—"
+                )}
+                {" "}· 上次更新: {ageLabel}
                 {fromCache && " (从缓存恢复)"}
               </>
             ) : (

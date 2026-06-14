@@ -6234,6 +6234,11 @@ body {
   color: var(--text-secondary, #6b6b76);
 }
 
+.ai-usage-today-value {
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1f);
+}
+
 .ai-usage-refresh-btn {
   appearance: none;
   border: 1px solid var(--border, #e1e1e6);

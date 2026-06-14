@@ -206,6 +206,39 @@ describe("AIUsagePage", () => {
     expect(container.textContent).toMatch(/\d{2}:\d{2}/);
   });
 
+  test("'今日已用' 显示在 header 副标题, 5h.used=1800 → '今日已用 1,800 单位'", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    const { container } = render(<AIUsagePage />);
+    // 1800 应被 toLocaleString 格式化为 "1,800"
+    expect(container.textContent).toMatch(/今日已用\s*1,800\s*单位/);
+  });
+
+  test("'今日已用' 当 5h.used 缺失但有 percent + total 时, 用 percent × total 估算", () => {
+    mockSnapshot = {
+      ...FAKE_SNAPSHOT,
+      windows: {
+        ...FAKE_SNAPSHOT.windows,
+        "5h": { ...FAKE_SNAPSHOT.windows["5h"], used: null, total: 1000, remaining: 700, usedPercent: 30 },
+      },
+    };
+    const { container } = render(<AIUsagePage />);
+    // 30% × 1000 = 300
+    expect(container.textContent).toMatch(/今日已用\s*300\s*单位/);
+  });
+
+  test("'今日已用' 当 used/percent/total 全缺失时, 显示百分号或占位", () => {
+    mockSnapshot = {
+      ...FAKE_SNAPSHOT,
+      windows: {
+        ...FAKE_SNAPSHOT.windows,
+        "5h": { ...FAKE_SNAPSHOT.windows["5h"], used: null, total: null, remaining: null, usedPercent: 42 },
+      },
+    };
+    const { container } = render(<AIUsagePage />);
+    // 走 percent 分支: "今日已用 42%"
+    expect(container.textContent).toMatch(/今日已用\s*42\s*%/);
+  });
+
   test("total=0/null 时不显示 '剩 X / Y' 而显示 '已用 X%' (避免 0/0 误导)", () => {
     // 模拟 API 返 0 当 total 时的场景 (被 normalize 修成 null)
     mockSnapshot = {
