@@ -117,6 +117,8 @@ function normalize(rawResponse, opts = {}) {
     endpoint: typeof opts.endpoint === 'string' ? opts.endpoint : null,
     windows: {},
     credits: null,
+    // 调试: 把 block 原始数据带进 snapshot, UI 暂不展示. 方便后续排查 schema drift.
+    _rawBlock: block || null,
   };
 
   if (!block) {
