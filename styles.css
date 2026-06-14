@@ -6298,18 +6298,20 @@ body {
 
 .ai-usage-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 16px;
+  /* 强制 3 张卡片在一行 (视口窄时降级到 2 + 1) */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .ai-usage-card {
   background: var(--bg-elevated, #ffffff);
   border: 1px solid var(--border, #e1e1e6);
   border-radius: 10px;
-  padding: 18px 20px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0; /* 允许内容收缩, 避免 grid 撑破 */
 }
 
 .ai-usage-card--empty {
@@ -6344,9 +6346,10 @@ body {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
-  color: var(--text-primary, #1a1a1f);
+  color: var(--text-primary, #1a1f);
+  flex-wrap: wrap;
 }
 
 .ai-usage-card-remaining {
