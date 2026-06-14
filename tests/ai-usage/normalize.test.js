@@ -112,25 +112,37 @@ describe('normalize', () => {
       model_remains: [
         {
           model_name: 'general',
+          start_time: 1781420400000,
+          end_time: 1781438400000,
+          remains_time: 14854940,
           current_interval_total_count: 0,
           current_interval_usage_count: 0,
-          remains_time: 14854940,
           current_weekly_total_count: 0,
           current_weekly_usage_count: 0,
+          weekly_start_time: 1780848000000,
+          weekly_end_time: 1781452800000,
           weekly_remains_time: 29254940,
           current_interval_remaining_percent: 98,
           current_weekly_remaining_percent: 82,
+          current_interval_status: 1,
+          current_weekly_status: 1,
         },
         {
           model_name: 'video',
+          start_time: 1781366400000,
+          end_time: 1781452800000,
+          remains_time: 29254940,
           current_interval_total_count: 3,
           current_interval_usage_count: 0,
-          remains_time: 29254940,
           current_weekly_total_count: 21,
           current_weekly_usage_count: 0,
+          weekly_start_time: 1780848000000,
+          weekly_end_time: 1781452800000,
           weekly_remains_time: 29254940,
           current_interval_remaining_percent: 100,
           current_weekly_remaining_percent: 100,
+          current_interval_status: 1,
+          current_weekly_status: 1,
         },
       ],
     };
@@ -141,15 +153,41 @@ describe('normalize', () => {
     expect(r.snapshot.windows['5h'].modelName).toBe('general');
     // remains_time 14854940 是毫秒, 应当转成秒 (14855)
     expect(r.snapshot.windows['5h'].resetInSec).toBe(14855);
+    // 状态: 1=正常
+    expect(r.snapshot.windows['5h'].status).toBe(1);
+    // endTime/startTime 透传
+    expect(r.snapshot.windows['5h'].endTime).toBe(1781438400000);
+    expect(r.snapshot.windows['5h'].startTime).toBe(1781420400000);
     // 周窗口: used 18% (100-82)
     expect(r.snapshot.windows.weekly.usedPercent).toBe(18);
     expect(r.snapshot.windows.weekly.modelName).toBe('general');
     expect(r.snapshot.windows.weekly.resetInSec).toBe(29255);
+    expect(r.snapshot.windows.weekly.status).toBe(1);
+    expect(r.snapshot.windows.weekly.endTime).toBe(1781452800000);
     // 视频赠送窗口: 0/3
     expect(r.snapshot.windows.video.total).toBe(3);
     expect(r.snapshot.windows.video.remaining).toBe(0);
     expect(r.snapshot.windows.video.usedPercent).toBe(0);
     expect(r.snapshot.windows.video.modelName).toBe('video');
+    expect(r.snapshot.windows.video.status).toBe(1);
+  });
+
+  test('captures throttled status (status=0) for API-limited windows', () => {
+    const limited = {
+      base_resp: { status_code: 0 },
+      model_remains: [
+        {
+          model_name: 'general',
+          current_interval_total_count: 100,
+          current_interval_usage_count: 100,
+          current_interval_remaining_percent: 0,
+          current_interval_status: 0, // 受限
+          remains_time: 60000,
+        },
+      ],
+    };
+    const r = normalize(limited, { fetchedAt: 0 });
+    expect(r.snapshot.windows['5h'].status).toBe(0);
   });
 
   test('treats current_interval_usage_count as REMAINING (not used)', () => {

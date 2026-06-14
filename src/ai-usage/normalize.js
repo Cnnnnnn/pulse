@@ -88,7 +88,7 @@ function _pickBlocks(raw) {
  * @param {object} opts
  * @returns {object|null}
  */
-function _buildWindow({ total, remaining, usedPercent, resetSec, label, fetchedAt, modelName }) {
+function _buildWindow({ total, remaining, usedPercent, resetSec, label, fetchedAt, modelName, status, startTime, endTime }) {
   if (total === null && remaining === null && usedPercent === null && resetSec === null) return null;
   const used = (typeof total === 'number' && typeof remaining === 'number')
     ? Math.max(0, total - remaining) : null;
@@ -107,6 +107,11 @@ function _buildWindow({ total, remaining, usedPercent, resetSec, label, fetchedA
     resetInSec: typeof resetSec === 'number' ? resetSec : null,
     label: label || '',
     modelName: modelName || null,
+    // 状态: 1=正常, 0=限流. UI 渲染徽章.
+    status: typeof status === 'number' ? status : null,
+    // 窗口起止 epoch ms. UI 渲染 "HH:mm 重置"
+    startTime: typeof startTime === 'number' ? startTime : null,
+    endTime: typeof endTime === 'number' ? endTime : null,
   };
 }
 
@@ -164,6 +169,7 @@ function normalize(rawResponse, opts = {}) {
     const intervalResetSec = _parseRemainsTime(
       _pickNumber(general, ['remains_time']) ?? _pickString(general, ['interval_remains_time']),
     );
+    const intervalStatus = _pickNumber(general, ['current_interval_status']);
     if (intervalTotal !== null || intervalRemaining !== null || intervalUsedPct !== null || intervalResetSec !== null) {
       snapshot.windows['5h'] = _buildWindow({
         total: intervalTotal,
@@ -173,6 +179,9 @@ function normalize(rawResponse, opts = {}) {
         label: '5 小时滚动窗口',
         fetchedAt: snapshot.fetchedAt,
         modelName: 'general',
+        status: intervalStatus,
+        startTime: _pickNumber(general, ['start_time']),
+        endTime: _pickNumber(general, ['end_time']),
       });
     } else {
       snapshot.windows['5h'] = null;
@@ -189,6 +198,7 @@ function normalize(rawResponse, opts = {}) {
     const weeklyResetSec = _parseRemainsTime(
       _pickNumber(general, ['weekly_remains_time']) ?? _pickString(general, ['weekly_remains_time']),
     );
+    const weeklyStatus = _pickNumber(general, ['current_weekly_status']);
     if (weeklyTotal !== null || weeklyRemaining !== null || weeklyUsedPct !== null || weeklyResetSec !== null) {
       snapshot.windows.weekly = _buildWindow({
         total: weeklyTotal,
@@ -198,6 +208,9 @@ function normalize(rawResponse, opts = {}) {
         label: '周窗口',
         fetchedAt: snapshot.fetchedAt,
         modelName: 'general',
+        status: weeklyStatus,
+        startTime: _pickNumber(general, ['weekly_start_time']),
+        endTime: _pickNumber(general, ['weekly_end_time']),
       });
     } else {
       snapshot.windows.weekly = null;
@@ -225,6 +238,9 @@ function normalize(rawResponse, opts = {}) {
         label: '视频赠送',
         fetchedAt: snapshot.fetchedAt,
         modelName: 'video',
+        status: _pickNumber(video, ['current_interval_status']),
+        startTime: _pickNumber(video, ['start_time']),
+        endTime: _pickNumber(video, ['end_time']),
       });
     } else {
       snapshot.windows.video = null;
