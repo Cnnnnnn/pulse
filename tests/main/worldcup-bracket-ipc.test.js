@@ -105,4 +105,78 @@ describe("worldcup bracket IPC handler", () => {
     expect(r.ok).toBe(true);
     expect(r.snapshot.r32).toHaveLength(16);
   });
+
+  test("rankGroup returns null when no matches played in group", () => {
+    const { rankGroup } = require("../../src/main/worldcup/bracket");
+    const teams = ["Mexico", "South Africa", "South Korea", "USA"];
+    // 没有 final matches → played 全 0 → 应该返回 null (无数据, 不污染 third 排序)
+    const r = rankGroup("A", [], teams);
+    expect(r).toBeNull();
+  });
+
+  test("rankGroup returns best-effort when ≥1 match played", () => {
+    const { rankGroup } = require("../../src/main/worldcup/bracket");
+    const teams = ["Mexico", "South Africa", "South Korea", "USA"];
+    const matches = [
+      {
+        stage: "Group A",
+        team1: "Mexico",
+        team2: "South Africa",
+        score: { status: "final", ft: [2, 1] },
+      },
+    ];
+    const r = rankGroup("A", matches, teams);
+    expect(r).not.toBeNull();
+    expect(r.complete).toBe(false);
+    expect(r.winner).toBe("Mexico");
+    // runnerUp: pts=0, gd=0 队里 alphabetical 最小 → South Korea
+    // third:    pts=0, gd=0 队里 alphabetical 次小 → USA
+    // (South Africa pts=0 gd=-1 排第 4)
+    expect(r.runnerUp).toBe("South Korea");
+    expect(r.third.name).toBe("USA");
+  });
+
+  test("extractGroupStandings returns all null when no final matches", () => {
+    const { extractGroupStandings } = require("../../src/main/worldcup/bracket");
+    const groupsData = [
+      { letter: "A", teams: ["Mexico", "South Africa", "South Korea", "USA"] },
+      { letter: "B", teams: ["Canada", "Switzerland", "Qatar", "Iran"] },
+    ];
+    const standings = extractGroupStandings([], groupsData);
+    expect(standings.A).toBeNull();
+    expect(standings.B).toBeNull();
+  });
+
+  test("end-to-end: no final matches → snapshot has empty advancing and many warnings", async () => {
+    const { computeWorldcupBracket } = require("../../src/main/worldcup/bracket");
+    const groupsData = [
+      { letter: "A", teams: ["Mexico", "South Africa", "South Korea", "USA"] },
+      { letter: "B", teams: ["Canada", "Switzerland", "Qatar", "Iran"] },
+      { letter: "C", teams: ["Brazil", "Morocco", "Scotland", "Norway"] },
+      { letter: "D", teams: ["USA", "Paraguay", "Australia", "TBD"] },
+      { letter: "E", teams: ["Germany", "Curaçao", "Ivory Coast", "Ecuador"] },
+      { letter: "F", teams: ["Netherlands", "Japan", "Sweden", "Tunisia"] },
+      { letter: "G", teams: ["Belgium", "Egypt", "Iran", "New Zealand"] },
+      { letter: "H", teams: ["Spain", "Cape Verde", "Saudi Arabia", "Uruguay"] },
+      { letter: "I", teams: ["France", "Senegal", "Iraq", "Norway"] },
+      { letter: "J", teams: ["Argentina", "Algeria", "Austria", "Jordan"] },
+      { letter: "K", teams: ["Portugal", "DR Congo", "Colombia", "Uzbekistan"] },
+      { letter: "L", teams: ["England", "Croatia", "Ghana", "Panama"] },
+    ];
+    // fetcher 返 0 场比赛 (小组赛未开赛)
+    const stubFetcherEmpty = () => ({ ok: true, data: { name: "WC 2026", groups: groupsData, matches: [] } });
+    const r = await computeWorldcupBracket({
+      statePath,
+      fetcher: stubFetcherEmpty,
+      scores: stubScores,
+      teamsData: () => groupsData,
+    });
+    expect(r.ok).toBe(true);
+    expect(r.snapshot).toBeDefined();
+    expect(r.snapshot.thirdPlacedAdvancing).toEqual([]); // 关键: 不应再假装有 8 个晋级
+    expect(r.snapshot.completeGroupCount).toBe(0);
+    // 12 个 group_X_incomplete 警告
+    const groupIncomplete = r.snapshot.warnings.filter((w) => w.startsWith("group_") && w.endsWith("_incomplete"));
+    expect(groupIncomplete).toHaveLength(12);
+  });
 });

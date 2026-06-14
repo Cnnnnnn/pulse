@@ -98,8 +98,8 @@ describe("WorldcupBracketView smoke", () => {
     expect(container.textContent).toMatch(/小组赛尚未开始|暂无数据/);
   });
 
-  test("renders no-group-data empty state when completeGroupCount=0", async () => {
-    mockComputeImpl = async () => ({ ok: true, snapshot: { ...sampleSnapshot, completeGroupCount: 0 } });
+  test("renders no-group-data empty state when no advancing thirds", async () => {
+    mockComputeImpl = async () => ({ ok: true, snapshot: { ...sampleSnapshot, thirdPlacedAdvancing: [] } });
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
     expect(container.textContent).toContain("小组赛尚未开始");

@@ -141,7 +141,13 @@ function rankGroup(letter, matches, teams) {
 
   if (sorted.length < 3) return null;
 
-  // best-effort: 始终返回当前 best-of 排名 (可能为 0 场赛后)
+  // 如果本组没有任何比赛进行过 (所有队 played=0), 视为无数据
+  // 这样可以避免把所有组都填上 best-effort (pts=0 全部相同 → 字母序) 的"假数据",
+  // 进而污染 third-placed 排序.
+  const hasAnyMatch = sorted.some(([, s]) => s.played > 0);
+  if (!hasAnyMatch) return null;
+
+  // best-effort: 有 ≥1 场比赛即可返回当前 best-of 排名
   // 用 played >= 3 标记组赛是否完赛
   const complete = sorted.length >= 3 && sorted.every(([, s]) => s.played >= 3);
   return {

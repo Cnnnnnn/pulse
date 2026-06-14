@@ -210,12 +210,11 @@ export function WorldcupBracketView() {
     );
   }
 
-  // 空态: 小组赛完全没有数据 (所有组 played=0)
+  // 空态: 小组赛完全没有数据 (没有任何组的 third-placed 算出)
   // 保留 snapshot 结构以显示 header 工具栏, 但用空态消息提示
-  const completeGroupCount = snapshot.completeGroupCount || 0;
-  const noGroupData = completeGroupCount === 0;
-
   const advancingCount = snapshot.thirdPlacedAdvancing ? snapshot.thirdPlacedAdvancing.length : 0;
+  const noGroupData = advancingCount === 0;
+
   const projectedBanner = snapshot.projected
     ? `基于 ${advancingCount} 个晋级第3名 · 待小组赛完赛`
     : "小组赛已完赛";
