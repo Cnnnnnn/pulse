@@ -2,6 +2,16 @@
 
 ---
 
+## v2.11.7 (check-store · stale phase signal 清理 + session id 唯一) — 2026-06-14
+
+### 修 bug
+- **stale phase signal**: `startCheck` 之前会 loop `appPhaseSignals.values()` 把所有已 init signal 设 "pending", **但** line 82 整替换 `appPhases.value` 只含新 `appNames`. 老的 (新 check 不含的) app phase signal 停在 "pending", 跟新 maps 脱节, AppRow 通过 `getAppPhaseSignal(name).value` 读到 stale "pending" → 显示 loading 永远不结束
+- 场景: 用户卸装 Slack, 下次只 check Cursor → Slack phase signal 仍 "pending"
+- 修: 重置时区分, 不在新 appNames 里的 → 设 "idle"
+- **session id 重复**: `_sessionCounter` 之前未自增, 同毫秒多次 `startCheck` 产生同样 id → `applyProgress` 的 stale check (`sessionId !== currentSession.id`) 失效. 改成 `_sessionCounter++`
+
+---
+
 ## v2.11.6 (ithome article 解析 · 切除 footer 污染) — 2026-06-14
 
 ### 修 bug
