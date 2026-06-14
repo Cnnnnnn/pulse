@@ -154,7 +154,10 @@ export function WorldcupBracketView() {
   const [squadMatch, setSquadMatch] = useState(null);
 
   useEffect(() => {
+    // 进入 tab: 先同步拉 cache 让用户立刻看到上次结果,
+    // 然后后台触发 compute 拿到最新 (30s 节流避免 tab 切换重复算).
     loadBracket();
+    computeBracket();
   }, []);
 
   function handleMatchClick(match) {
