@@ -2,6 +2,21 @@
 
 ---
 
+## v2.11.5 (全局 ConfirmDialog · 替代 window.confirm) — 2026-06-14
+
+### 改进
+- **全局 ConfirmDialog**: 新组件 `src/renderer/components/ConfirmDialog.jsx` + store `src/renderer/confirmStore.js` (signals)
+- 替代浏览器原生 `window.confirm` (Electron 桌面 app 里视觉不一致 / 不跟主题)
+- API: `await openConfirm({ title, message, confirmText, cancelText })` → `Promise<boolean>`
+- 重复调用自动取消前一个 (前一个 resolve `false`); 不支持队列 (单线程串行, 实际不需要)
+- z-index 5600 (比 reminder/recent modal 的 5500 高一档, 确认弹窗永远在最上)
+
+### 替换
+- `src/renderer/reminders/RemindersModal.jsx` 删除提醒
+- `src/renderer/worldcup/DayBetFooter.jsx` 清空体彩记录
+
+---
+
 ## v2.11.4 (IT 新闻 · 已读 / 新文章 标记) — 2026-06-14
 
 ### 新增

@@ -22,6 +22,7 @@ import {
   firedCount,
   toggleRemindersOpen,
 } from "./remindersStore.js";
+import { openConfirm } from "../confirmStore.js";
 
 const REPEATS = [
   { id: "once", label: "一次" },
@@ -139,8 +140,15 @@ function ReminderRow({ r, now, onEdit }) {
             </button>
             <button
               class="btn btn-ghost btn-sm"
-              onClick={() => {
-                if (window.confirm(`删除提醒 "${r.title}"?`)) {
+              onClick={async () => {
+                if (
+                  await openConfirm({
+                    title: "删除提醒",
+                    message: `确定删除提醒 "${r.title}"?`,
+                    confirmText: "删除",
+                    cancelText: "再想想",
+                  })
+                ) {
                   removeReminder(r.id);
                 }
               }}

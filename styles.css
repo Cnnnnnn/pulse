@@ -6160,3 +6160,35 @@ body {
   white-space: nowrap;
 }
 
+/* ── ConfirmDialog (portal → body) ── */
+.confirm-dialog-backdrop {
+  z-index: 5600; /* 比 reminder/recent modal (5500) 高一档, 跟 user 实际操作重叠时确认在上 */
+}
+.confirm-dialog {
+  width: 400px;
+  max-width: calc(100vw - 48px);
+  padding: 20px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.confirm-dialog-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1f);
+}
+.confirm-dialog-message {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary, #555);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+

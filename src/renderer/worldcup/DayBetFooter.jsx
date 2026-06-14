@@ -10,6 +10,7 @@
  *   - Fix 10: 盈亏 emoji (✅ 盈 / ❌ 亏 / — 0)
  */
 import { useState, useRef, useEffect } from "preact/hooks";
+import { openConfirm } from "../confirmStore.js";
 import {
   worldcupBets,
   upsertWorldcupBet,
@@ -94,7 +95,14 @@ export function DayBetFooter({ date, search = "" }) {
   }
 
   async function clear() {
-    if (typeof window === "undefined" || !window.confirm("清空这一天的体彩记录？")) {
+    if (
+      !(await openConfirm({
+        title: "清空体彩记录",
+        message: "清空这一天的体彩记录？",
+        confirmText: "清空",
+        cancelText: "再想想",
+      }))
+    ) {
       return;
     }
     await removeWorldcupBet(date);
