@@ -2,6 +2,68 @@
 
 ---
 
+## v2.13.0 (AI 用量 · Minimax coding plan 配额展示) — 2026-06-14
+
+### 新增
+- **AI 用量页面** (`📊 AI 用量` 左侧导航): 拉取并展示 `Minimax coding plan` 当前配额, 含 5 小时滚动窗口 + 周窗口
+- 进度条 + 剩余/总量数字 + 重置倒计时 (每秒 tick, 卸载时自动 clear 无泄漏)
+- 上次更新相对时间显示 + 从缓存恢复标注
+- 手动刷新按钮 + 失败 banner (保留 last-known snapshot)
+- 启动时 main 端 fire-and-forget 预热一次, renderer 进来就有数据
+
+### 工程
+- 主进程
+  - `src/ai-usage/client.js` — `MiniMaxQuotaClient`, 调 `POST https://www.minimaxi.com/v1/token_plan/remains`, 完整错误映射 (401/403/429/5xx/JSON 解析失败/网络失败/api_key 缺失)
+  - `src/ai-usage/normalize.js` — `_pickNumber` / `_pickString` (多候选 key, 防御 schema drift) / `_parseDdHhMmSs` / `normalize()` (兼容新旧 schema: `model_remains[0]` → `coding_plan_remains[0]` fallback)
+  - `src/ai-usage/index.js` — 统一导出
+  - `src/main/state-store.js` — `loadAiUsageSnapshot` / `saveAiUsageSnapshot` (复用 `patchState`, 自动 preserve 其他字段)
+  - `src/main/ipc/register-ai-usage.js` — IPC handlers (`ai-usage:get-cached` / `ai-usage:fetch`), 业务逻辑提到 `_internals` 注入 deps, 单测不依赖 electron
+  - `src/main/bootstrap/ai-usage.js` — `bootstrapAiUsage({deps, opts})` 装配 + 可选预热
+  - `src/main/ipc/index.js` — 接入 `registerAiUsageHandlers(ctx)`
+- 渲染端
+  - `src/renderer/api.js` + `preload.js` — 暴露 `aiUsageGetCached` / `aiUsageFetch` / `onAiUsageUpdated`
+  - `src/renderer/store/ai-usage-store.js` — 4 signals: `aiUsageSnapshot` / `aiUsageLastError` / `aiUsageFetching` / `aiUsageFromCache`
+  - `src/renderer/hooks/useNowTick.jsx` — 通用 now tick hook (复用, 1s tick + unmount clear)
+  - `src/renderer/components/AIUsagePage.jsx` — 页面主组件 (倒计时 / 进度条 / banner / 空态)
+  - `src/renderer/components/AIUsageLayout.jsx` — mount 时 subscribe + loadCached
+  - `src/renderer/components/SideNav.jsx` + `src/renderer/worldcup/navStore.js` — 加 `ai-usage` 入口项 + NAV_KEYS
+  - `src/renderer/components/AppShell.jsx` — 路由 `nav === 'ai-usage'` → `<AIUsageLayout />`
+- 复用现有 `safeStorage` 加密的 Minimax API key (subscription key = API key)
+
+### 边界
+- **API key 缺失** (用户没在"AI 配置"设置 Minimax key) → 拉取返 `{ ok: false, reason: "api_key_missing" }`, UI 显示空态 + 错误 banner 提示去配置
+- **网络失败 / 429 / 5xx** → 失败 reason 透传到 UI, 保留 last-known snapshot
+- **字段缺失** (新 schema 临时下线) → normalize 静默降级: 缺哪个 window 该 window 显示 `null`, 另一个正常显示
+- **重复 click 刷新** → 客户端 `_inFlight` 单例, 不会触发重复 HTTP
+- **预热 fetch 失败** → 启动期完全吞掉, 不阻塞 bootstrap, UI 后续手动 fetch 仍可恢复
+- **历史快照** → V1 只展示当前配额 + 重置倒计时, 无历史趋势 (按 spec 范围)
+- **警告/硬限** → V1 仅展示, 不在用尽前做警告 (按 spec 范围)
+
+### 安全
+- 不写新字段到 safeStorage 之外的地方; AI 配额走现有 minimax key
+- IPC 输入严格校验 (region='cn'/'global', snapshot 是 object)
+- 失败响应不暴露内部 stack
+
+### 文档
+- 设计: `docs/superpowers/specs/2026-06-14-minimax-coding-plan-usage-design.md`
+- 实施计划: `docs/superpowers/plans/2026-06-14-minimax-coding-plan-usage-plan.md`
+
+### 测试
+- 整体测试: **1509 passed / 0 failed** (基线 1364 + 145 新增)
+  - normalize: 21
+  - client: 17 (+ 2 partial/old-schema)
+  - state-store ai-usage: 7
+  - IPC register-ai-usage: 8
+  - bootstrap-ai-usage: 5
+  - preload/api 入口 + hook: 已有
+  - ai-usage-store: 11
+  - AIUsagePage: 9
+  - sidenav + AppShell 路由: 5
+  - useNowTick: 4
+  - e2e: 5
+
+---
+
 ## v2.11.7 (check-store · stale phase signal 清理 + session id 唯一) — 2026-06-14
 
 ### 修 bug
