@@ -95,7 +95,13 @@ describe("remindersStore installRemindersListener", () => {
     installRemindersListener();
     emitFired({
       id: "r1",
-      reminder: { id: "r1", title: "old", status: "fired", triggerAt: NOW, firedAt: NOW },
+      reminder: {
+        id: "r1",
+        title: "old",
+        status: "fired",
+        triggerAt: NOW,
+        firedAt: NOW,
+      },
     });
     expect(reminders.value[0].status).toBe("fired");
     expect(reminders.value[0].firedAt).toBe(NOW);

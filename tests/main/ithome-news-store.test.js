@@ -313,3 +313,155 @@ describe("ithome news-store _mergeArticles preserves readAt", () => {
     expect(merged[id].title).toBe("new");
   });
 });
+
+describe("ithome news-store attachArticleBody", () => {
+  let p;
+  beforeEach(() => {
+    p = tmpStatePath();
+  });
+
+  function seedArticle(id, extra = {}) {
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {
+            [id]: { id, title: "T", dateKey: "2026-06-13", fetchedAt: 1, ...extra },
+          },
+          summaries: {},
+        },
+      }),
+    );
+  }
+
+  it("writes body + bodyFetchedAt to article", () => {
+    const id = "https://www.ithome.com/0/1/x.htm";
+    seedArticle(id);
+    const r = newsStore.attachArticleBody(id, "正文内容", p);
+    expect(r.ok).toBe(true);
+    const a = newsStore.getArticle(id, p);
+    expect(a.body).toBe("正文内容");
+    expect(typeof a.bodyFetchedAt).toBe("number");
+  });
+
+  it("also writes to favorites.article.body if present", () => {
+    const id = "https://www.ithome.com/0/1/y.htm";
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {},
+          summaries: {},
+          favorites: {
+            [id]: {
+              id,
+              article: { id, title: "Fav", dateKey: "2026-06-13" },
+              addedAt: 1,
+            },
+          },
+        },
+      }),
+    );
+    const r = newsStore.attachArticleBody(id, "收藏正文", p);
+    expect(r.ok).toBe(true);
+    const loaded = newsStore.loadAll(p);
+    expect(loaded.favorites[id].article.body).toBe("收藏正文");
+  });
+
+  it("returns article_not_found for unknown id", () => {
+    const r = newsStore.attachArticleBody("nonexistent", "x", p);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("article_not_found");
+  });
+
+  it("returns invalid_args for non-string id", () => {
+    expect(newsStore.attachArticleBody(null, "x", p).reason).toBe("invalid_args");
+    expect(newsStore.attachArticleBody("", "x", p).reason).toBe("invalid_args");
+    expect(newsStore.attachArticleBody(123, "x", p).reason).toBe("invalid_args");
+  });
+
+  it("normalizes non-string body to empty string", () => {
+    const id = "https://www.ithome.com/0/1/z.htm";
+    seedArticle(id);
+    const r = newsStore.attachArticleBody(id, null, p);
+    expect(r.ok).toBe(true);
+    expect(newsStore.getArticle(id, p).body).toBe("");
+  });
+});
+
+describe("ithome news-store saveSummary", () => {
+  let p;
+  beforeEach(() => {
+    p = tmpStatePath();
+  });
+
+  it("writes summary under summaries[id]", () => {
+    const id = "https://www.ithome.com/0/1/sum.htm";
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: { [id]: { id, title: "T", dateKey: "2026-06-13" } },
+          summaries: {},
+        },
+      }),
+    );
+    const entry = {
+      text: "摘要正文",
+      abstract: "abstract",
+      keywords: ["k1", "k2"],
+      domain: "AI",
+      impact: "影响",
+      contentHash: "abc",
+      generatedAt: 1234,
+      provider: "shared",
+    };
+    const r = newsStore.saveSummary(id, entry, p);
+    expect(r.ok).toBe(true);
+    const loaded = newsStore.loadAll(p);
+    expect(loaded.summaries[id].text).toBe("摘要正文");
+    expect(loaded.summaries[id].contentHash).toBe("abc");
+  });
+
+  it("returns article_not_found for unknown id", () => {
+    const r = newsStore.saveSummary("missing", { text: "x" }, p);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("article_not_found");
+  });
+
+  it("also works for favorited article", () => {
+    const id = "https://www.ithome.com/0/1/sum-fav.htm";
+    writeFileSync(
+      p,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {},
+          summaries: {},
+          favorites: {
+            [id]: { id, article: { id, title: "F" }, addedAt: 1 },
+          },
+        },
+      }),
+    );
+    const r = newsStore.saveSummary(id, { text: "Fav 摘要" }, p);
+    expect(r.ok).toBe(true);
+    const loaded = newsStore.loadAll(p);
+    expect(loaded.summaries[id].text).toBe("Fav 摘要");
+  });
+});
