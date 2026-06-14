@@ -120,3 +120,83 @@ describe("WorldcupBracketView smoke", () => {
     });
   });
 });
+
+describe("WorldcupBracketView + BracketTree integration", () => {
+  let originalInnerWidth;
+
+  beforeEach(() => {
+    if (testStartOffset === undefined) testStartOffset = Date.now() + 31_000;
+    const offset = testStartOffset;
+    testStartOffset += 31_000;
+    vi.useFakeTimers();
+    vi.setSystemTime(offset);
+    computeCalls = 0;
+    loadCalls = 0;
+    mockComputeImpl = async () => ({ ok: true, snapshot: { ...sampleSnapshot, computedAt: Date.now() } });
+    global.window.api = {
+      worldcupComputeBracket: async (...args) => {
+        computeCalls += 1;
+        return mockComputeImpl(...args);
+      },
+      worldcupLoadBracket: async () => {
+        loadCalls += 1;
+        return { ok: true, snapshot: sampleSnapshot };
+      },
+    };
+    worldcupBracket.value = sampleSnapshot;
+    bracketComputing.value = false;
+    bracketError.value = null;
+    bracketLastComputedAt.value = null;
+    // happy-dom 的 default innerWidth 在 1024 左右, 这里显式锁定为 wide 模式,
+    // 单个 narrow 测试里再覆盖. defensive restore: 保存原始值.
+    originalInnerWidth = (typeof window !== "undefined" && window.innerWidth) || 1024;
+    Object.defineProperty(window, "innerWidth", { value: 1200, configurable: true, writable: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    delete global.window.api;
+    if (typeof window !== "undefined") {
+      Object.defineProperty(window, "innerWidth", { value: originalInnerWidth, configurable: true, writable: true });
+    }
+  });
+
+  test("wide viewport delegates to BracketTree horizontal tree", async () => {
+    const { container } = render(<WorldcupBracketView />);
+    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
+    // BracketTree 渲染其 5-列水平布局容器
+    expect(container.querySelector(".bracket-tree")).toBeTruthy();
+    // 不会渲染 narrow fallback
+    expect(container.querySelector(".bracket-tree-fallback")).toBeNull();
+    // 5 个 stage column (R32 / R16 / QF / SF / Final+Third) 都存在
+    expect(container.querySelectorAll(".bracket-tree-column")).toHaveLength(5);
+  });
+
+  test("match card click opens SquadModal with bracket match data", async () => {
+    const { container } = render(<WorldcupBracketView />);
+    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
+    // 点击 R32 列里的第一张 match card (M73 = South Africa vs Switzerland)
+    const firstCard = container.querySelector(".bracket-tree-column--r32 .bracket-card");
+    expect(firstCard).toBeTruthy();
+    firstCard.click();
+    // SquadModal 走 createPortal 渲染到 document.body, 不在 container 里.
+    // WorldcupBracketView.handleMatchClick 构造 stage: `Match ${match.matchNum}`,
+    // 即 "Match 73"; squad 名显示 South Africa / Switzerland
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Match 73");
+      expect(document.body.textContent).toMatch(/South Africa/);
+      expect(document.body.textContent).toMatch(/Switzerland/);
+    });
+  });
+
+  test("narrow viewport falls back to vertical stack", async () => {
+    // 必须在 render 之前修改 innerWidth, useNarrowViewport 在初次 mount
+    // 时同步读 window.innerWidth, 之后才会监听 resize.
+    Object.defineProperty(window, "innerWidth", { value: 800, configurable: true, writable: true });
+    const { container } = render(<WorldcupBracketView />);
+    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
+    // tree 隐藏, fallback 渲染
+    expect(container.querySelector(".bracket-tree")).toBeNull();
+    expect(container.querySelector(".bracket-tree-fallback")).toBeTruthy();
+  });
+});
