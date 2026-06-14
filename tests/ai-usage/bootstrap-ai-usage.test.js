@@ -25,7 +25,8 @@ function makeDeps(overrides = {}) {
       overrides.fetchResult || { ok: true, snapshot: { provider: "minimax" } };
   };
   const pushCalls = [];
-  const sendToRenderer = (channel, payload) => pushCalls.push({ channel, payload });
+  const sendToRenderer = (channel, payload) =>
+    pushCalls.push({ channel, payload });
   const register = (channel) => registeredChannels.push(channel);
   return {
     stateStore,
@@ -63,7 +64,11 @@ describe("bootstrapAiUsage", () => {
     expect(deps.pushCalls).toEqual([
       {
         channel: "ai-usage-updated",
-        payload: { snapshot: { provider: "minimax" }, prevSnapshot: null, history: { days: [] } },
+        payload: {
+          snapshot: { provider: "minimax" },
+          prevSnapshot: null,
+          history: { days: [] },
+        },
       },
     ]);
   });

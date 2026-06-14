@@ -61,16 +61,16 @@ describe("UsageSparkline", () => {
     expect(parseInt(filled[0].style.height, 10)).toBeGreaterThan(0);
   });
 
-  test("同 date 多次 → 只 1 根 filled, 取最大 used 决定高度", async () => {
+  test("同 date 多次 → 只 1 根 filled, 取最大 percent 决定高度", async () => {
     const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
     const today = todayKey();
     const { container } = render(
       <UsageSparkline
         history={{
           days: [
-            { date: today, used: 100 },
-            { date: today, used: 300 },
-            { date: today, used: 200 },
+            { date: today, percent: 20 },
+            { date: today, percent: 80 },
+            { date: today, percent: 50 },
           ],
         }}
         days={7}
@@ -78,8 +78,8 @@ describe("UsageSparkline", () => {
     );
     const filled = container.querySelectorAll(".ai-usage-sparkline-bar--filled");
     expect(filled.length).toBe(1);
-    // yMax=300, max filled = (300/300)*(56-6) = 50px
-    expect(parseInt(filled[0].style.height, 10)).toBeGreaterThan(40);
+    // percent=80, height = (80/100)*(56-6) = 40px
+    expect(parseInt(filled[0].style.height, 10)).toBeGreaterThanOrEqual(38);
   });
 
   test("数据多过 N → 截到最近 7 天 (今天永远在最右)", async () => {
@@ -105,12 +105,12 @@ describe("UsageSparkline", () => {
     expect(container.querySelectorAll(".ai-usage-sparkline-bar--filled").length).toBe(0);
   });
 
-  test("hover bar → 显示 tooltip (含数字)", async () => {
+  test("hover bar → 显示 tooltip (含 percent + used 单位)", async () => {
     const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
     const today = todayKey();
     const { container } = render(
       <UsageSparkline
-        history={{ days: [{ date: today, used: 500, percent: 30 }] }}
+        history={{ days: [{ date: today, percent: 30, used: 500 }] }}
         days={7}
       />
     );
@@ -121,5 +121,21 @@ describe("UsageSparkline", () => {
     expect(tooltip.textContent).toMatch(/500/);
     expect(tooltip.textContent).toMatch(/30%/);
     fireEvent.mouseLeave(bar);
+  });
+
+  test("有 percent 但 used=null → tooltip 只显示百分比", async () => {
+    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
+    const today = todayKey();
+    const { container } = render(
+      <UsageSparkline
+        history={{ days: [{ date: today, percent: 25 }] }}
+        days={7}
+      />
+    );
+    const bar = container.querySelector(".ai-usage-sparkline-bar--filled");
+    fireEvent.mouseEnter(bar);
+    const tooltip = container.querySelector(".ai-usage-sparkline-tooltip");
+    expect(tooltip.textContent).toMatch(/25%/);
+    expect(tooltip.textContent).not.toMatch(/单位/);
   });
 });

@@ -115,25 +115,39 @@ describe("register-ai-usage._internals", () => {
       expect(deps.clientCalls[0].region).toBe("cn");
     });
 
-    test("成功 fetch → appendHistory 用 5h.used", async () => {
+    test("成功 fetch → appendHistory 用 5h.usedPercent 作主指标, used 作辅助", async () => {
       const appendHistory = vi.fn();
       const deps = makeDeps({
-        fetchResults: [{ ok: true, snapshot: FAKE_SNAPSHOT }],
+        fetchResults: [{ ok: true, snapshot: { ...FAKE_SNAPSHOT, windows: { ...FAKE_SNAPSHOT.windows, "5h": { ...FAKE_SNAPSHOT.windows["5h"], usedPercent: 30, used: 1800 } } } }],
         appendAiUsageHistoryDay: appendHistory,
       });
       await _internals.fetch({ deps: deps, opts: {} });
       expect(appendHistory).toHaveBeenCalledTimes(1);
       const arg = appendHistory.mock.calls[0][0];
-      expect(arg.used).toBe(1800); // 5h.used
+      expect(arg.percent).toBe(30);
+      expect(arg.used).toBe(1800);
       expect(arg.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
-    test("成功 fetch 但 5h.used=0 → 不调 appendHistory", async () => {
+    test("成功 fetch 但 5h.usedPercent=0 → 不调 appendHistory (避免空 bar 污染)", async () => {
       const appendHistory = vi.fn();
       const deps = makeDeps({
         fetchResults: [{
           ok: true,
-          snapshot: { ...FAKE_SNAPSHOT, windows: { "5h": { total: 100, remaining: 100, used: 0, usedPercent: 0 } } },
+          snapshot: { ...FAKE_SNAPSHOT, windows: { ...FAKE_SNAPSHOT.windows, "5h": { total: 100, remaining: 100, used: 0, usedPercent: 0 } } },
+        }],
+        appendAiUsageHistoryDay: appendHistory,
+      });
+      await _internals.fetch({ deps: deps, opts: {} });
+      expect(appendHistory).not.toHaveBeenCalled();
+    });
+
+    test("成功 fetch 5h.usedPercent 未知 → 不调 appendHistory", async () => {
+      const appendHistory = vi.fn();
+      const deps = makeDeps({
+        fetchResults: [{
+          ok: true,
+          snapshot: { ...FAKE_SNAPSHOT, windows: { ...FAKE_SNAPSHOT.windows, "5h": { total: 100, remaining: 100, used: 50 } } }, // 没 usedPercent
         }],
         appendAiUsageHistoryDay: appendHistory,
       });

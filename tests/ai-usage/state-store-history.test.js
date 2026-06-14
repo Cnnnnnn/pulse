@@ -52,40 +52,56 @@ describe('loadAiUsageHistory', () => {
 
 describe('appendAiUsageHistoryDay', () => {
   test('date 格式不合法 → throw', () => {
-    expect(() => stateStore.appendAiUsageHistoryDay({ date: '2026/06/13', used: 100 }, statePath))
+    expect(() => stateStore.appendAiUsageHistoryDay({ date: '2026/06/13', percent: 20 }, statePath))
       .toThrow(/YYYY-MM-DD/);
   });
-  test('used 缺失/非 number → throw', () => {
-    expect(() => stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', used: 'x' }, statePath))
-      .toThrow(/non-negative number/);
+  test('percent 缺失/非 number/越界 → throw', () => {
+    expect(() => stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 'x' }, statePath))
+      .toThrow(/0-100/);
     expect(() => stateStore.appendAiUsageHistoryDay({ date: '2026-06-13' }, statePath))
+      .toThrow(/0-100/);
+    expect(() => stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 150 }, statePath))
+      .toThrow(/0-100/);
+    expect(() => stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: -1 }, statePath))
+      .toThrow(/0-100/);
+  });
+  test('used (可选) 非 number → throw', () => {
+    expect(() => stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 20, used: 'x' }, statePath))
       .toThrow(/non-negative number/);
   });
-  test('首次 append → 写盘 1 条, 其它字段保留', () => {
+  test('首次 append → 写盘 1 条 (used 缺省 → null), 其它字段保留', () => {
     fs.writeFileSync(statePath, JSON.stringify({ apps: { Foo: { name: 'Foo' } } }), 'utf-8');
-    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', used: 100, percent: 20 }, statePath);
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 20 }, statePath);
     const r = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
     expect(r.ai_usage_history.days).toEqual([
-      expect.objectContaining({ date: '2026-06-13', used: 100, percent: 20 }),
+      expect.objectContaining({ date: '2026-06-13', percent: 20, used: null }),
     ]);
     expect(r.apps.Foo.name).toBe('Foo'); // 其它字段保留
   });
-  test('同一天多次 append → used 取 max', () => {
+  test('同一天多次 append → percent 取 max, used 各自取 max', () => {
     fs.writeFileSync(statePath, JSON.stringify({ apps: {} }), 'utf-8');
-    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', used: 100, percent: 20 }, statePath);
-    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', used: 200, percent: 30 }, statePath);
-    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', used: 150, percent: 25 }, statePath);
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 20, used: 100 }, statePath);
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 30, used: 200 }, statePath);
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 25, used: 150 }, statePath);
     const r = stateStore.loadAiUsageHistory(statePath);
     expect(r.days.length).toBe(1);
-    expect(r.days[0].used).toBe(200);
     expect(r.days[0].percent).toBe(30);
+    expect(r.days[0].used).toBe(200);
   });
   test('不同天 append → 累加 entries', () => {
     fs.writeFileSync(statePath, JSON.stringify({ apps: {} }), 'utf-8');
-    stateStore.appendAiUsageHistoryDay({ date: '2026-06-12', used: 100 }, statePath);
-    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', used: 200 }, statePath);
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-12', percent: 15, used: 100 }, statePath);
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 25, used: 200 }, statePath);
     const r = stateStore.loadAiUsageHistory(statePath);
     expect(r.days.length).toBe(2);
+  });
+  test('同 date 新 entry 只有 percent (没 used) → 旧 used 保留', () => {
+    fs.writeFileSync(statePath, JSON.stringify({ apps: {} }), 'utf-8');
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 20, used: 500 }, statePath);
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 30 }, statePath); // 无 used
+    const r = stateStore.loadAiUsageHistory(statePath);
+    expect(r.days[0].percent).toBe(30);
+    expect(r.days[0].used).toBe(500); // 旧 used 保留
   });
   test('保留 apps / mutes / ai_usage / last_opened 其它字段 (patchState 自动 preserve)', () => {
     fs.writeFileSync(statePath, JSON.stringify({
@@ -94,7 +110,7 @@ describe('appendAiUsageHistoryDay', () => {
       ai_usage: { provider: 'minimax', region: 'cn' },
       last_opened: { Foo: { ms: 12345, source: 'spotlight' } },
     }), 'utf-8');
-    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', used: 100 }, statePath);
+    stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 20, used: 100 }, statePath);
     const r = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
     expect(r.apps.Foo.name).toBe('Foo');
     expect(r.mutes.Foo.until).toBe(0);
