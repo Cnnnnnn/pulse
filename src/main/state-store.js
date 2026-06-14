@@ -721,6 +721,53 @@ function saveActiveCategory(id, statePath = defaultPath()) {
   }, statePath);
 }
 
+// ─── AI 配额快照 (ai_usage) ───────────────────────────────────
+//
+// 用途: 缓存 minimax coding plan 配额快照, 用于:
+//   - 启动时给 renderer 当 initial UI (网络抽风时不"瞬时瞎")
+//   - 上次 fetch 失败时, 仍能展示 last known snapshot
+//
+// Schema: state.json.ai_usage = { provider, region, fetchedAt, endpoint,
+//                                 windows: { '5h': {...}, weekly: {...} | null },
+//                                 credits: ... | null }
+//
+// V1 只持久化 minimax 快照; 未来如接入多 provider, 考虑改成
+// { [provider]: snapshot } 形式; 现阶段 1 个 provider 写平铺最简单.
+
+/**
+ * 读 AI 配额快照. 老 state.json (无 ai_usage 字段) 或值非法 → null.
+ * @param {string} [statePath]
+ * @returns {object|null}
+ */
+function loadAiUsageSnapshot(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return null;
+  if (!s.ai_usage || typeof s.ai_usage !== "object" || Array.isArray(s.ai_usage))
+    return null;
+  return { ...s.ai_usage };
+}
+
+/**
+ * 写 AI 配额快照. atomic write, 保留 apps / mutes / last_opened /
+ * active_category / task_summaries / ai_sessions_config 等所有其它字段.
+ *
+ * @param {object} snapshot  必须含 provider / region / fetchedAt
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveAiUsageSnapshot(snapshot, statePath = defaultPath()) {
+  if (
+    !snapshot ||
+    typeof snapshot !== "object" ||
+    Array.isArray(snapshot)
+  ) {
+    throw new TypeError("saveAiUsageSnapshot: snapshot must be plain object");
+  }
+  return patchState((next) => {
+    next.ai_usage = { ...snapshot };
+  }, statePath);
+}
+
 // ─── Step B: LLM classify cache 持久化 ─────────────────────────
 //
 // 用途: 启动时把 "Step B 之前已经分类过的 app" 从 state.json 拿出来,
@@ -809,6 +856,9 @@ module.exports = {
   saveTaskSummary,
   loadAISessionsConfig,
   saveAISessionsConfig,
+  // AI 配额快照
+  loadAiUsageSnapshot,
+  saveAiUsageSnapshot,
   // Step B: LLM classify cache 持久化
   loadLLMClassifyCache,
   saveLLMClassifyCache,
