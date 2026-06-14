@@ -206,6 +206,24 @@ describe("AIUsagePage", () => {
     expect(container.textContent).toMatch(/\d{2}:\d{2}/);
   });
 
+  test("total=0/null 时不显示 '剩 X / Y' 而显示 '已用 X%' (避免 0/0 误导)", () => {
+    // 模拟 API 返 0 当 total 时的场景 (被 normalize 修成 null)
+    mockSnapshot = {
+      ...FAKE_SNAPSHOT,
+      windows: {
+        ...FAKE_SNAPSHOT.windows,
+        "5h": { ...FAKE_SNAPSHOT.windows["5h"], total: null, remaining: 0, usedPercent: 21 },
+        weekly: { ...FAKE_SNAPSHOT.windows.weekly, total: null, remaining: 0, usedPercent: 19 },
+      },
+    };
+    const { container } = render(<AIUsagePage />);
+    // 不应该出现 "剩 0" 或 "0 / 0"
+    expect(container.textContent).not.toMatch(/剩\s*0\s*\/\s*0/);
+    // 应显示百分比
+    expect(container.textContent).toMatch(/已用\s*21\s*%/);
+    expect(container.textContent).toMatch(/已用\s*19\s*%/);
+  });
+
   test("无 prevSnapshot 时不显示 burn rate 提示", () => {
     mockSnapshot = FAKE_SNAPSHOT;
     mockPrevSnapshot = null;

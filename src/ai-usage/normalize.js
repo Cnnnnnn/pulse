@@ -26,6 +26,19 @@ function _pickNumber(obj, keys) {
 }
 
 /**
+ * 取 total 字段专用: 接受 _pickNumber 同样的值, 但 0 → null.
+ * 0 不可能是真实 "总配额 = 0" (语义无意义), API 返 0 通常是字段缺失占位.
+ * 让 UI fallback 到百分比显示, 避免出现 "剩 0 / 0" 的误导.
+ * @param {object|null|undefined} obj
+ * @param {string[]} keys
+ * @returns {number|null}
+ */
+function _pickTotal(obj, keys) {
+  const n = _pickNumber(obj, keys);
+  return n === 0 ? null : n;
+}
+
+/**
  * 从 obj 取第一个存在的 key 的值, coerce 成 string.
  * @param {object|null|undefined} obj
  * @param {string[]} keys
@@ -159,7 +172,7 @@ function normalize(rawResponse, opts = {}) {
 
   // 4) general 块的 5h 窗口
   if (general) {
-    const intervalTotal = _pickNumber(general, ['current_interval_total_count']);
+    const intervalTotal = _pickTotal(general, ['current_interval_total_count']);
     const intervalRemaining = _pickNumber(general, ['current_interval_usage_count']);
     const intervalUsedPct = (() => {
       const pct = _pickNumber(general, ['current_interval_remaining_percent']);
@@ -188,7 +201,7 @@ function normalize(rawResponse, opts = {}) {
     }
 
     // 5) general 块的周窗口
-    const weeklyTotal = _pickNumber(general, ['current_weekly_total_count']);
+    const weeklyTotal = _pickTotal(general, ['current_weekly_total_count']);
     const weeklyRemaining = _pickNumber(general, ['current_weekly_usage_count']);
     const weeklyUsedPct = (() => {
       const pct = _pickNumber(general, ['current_weekly_remaining_percent']);
@@ -219,7 +232,7 @@ function normalize(rawResponse, opts = {}) {
 
   // 6) video 块 (视频赠送) — 用 interval 字段当视频配额窗口
   if (video) {
-    const vTotal = _pickNumber(video, ['current_interval_total_count']);
+    const vTotal = _pickTotal(video, ['current_interval_total_count']);
     const vRemaining = _pickNumber(video, ['current_interval_usage_count']);
     const vUsedPct = (() => {
       const pct = _pickNumber(video, ['current_interval_remaining_percent']);
@@ -252,6 +265,7 @@ function normalize(rawResponse, opts = {}) {
 
 module.exports = {
   _pickNumber,
+  _pickTotal,
   _pickString,
   _parseRemainsTime,
   _pickBlocks,

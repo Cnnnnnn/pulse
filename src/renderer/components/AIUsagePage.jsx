@@ -117,8 +117,10 @@ function WindowCard({ window: w, prevWindow = null, now }) {
     countdown = w.resetInSec;
   }
 
-  // 有 total + remaining 数字就显示 "剩 X / Y" (更具体)
-  const hasFraction = typeof w.total === "number" && typeof w.remaining === "number";
+  // 有 total + remaining 数字就显示 "剩 X / Y" (更具体).
+  // total=0 视为"API 未返配额总额" (字段缺失/未订阅), fallback 到百分比显示,
+  // 避免出现误导性的 "剩 0 / 0".
+  const hasFraction = typeof w.total === "number" && w.total > 0 && typeof w.remaining === "number";
   // 没数字但有百分比 → 显示 "已用 X%"
   const statusBadge = formatStatus(w.status);
   // 重置时间绝对值: endTime 是 epoch ms, 算到 now 仍未来才显示
