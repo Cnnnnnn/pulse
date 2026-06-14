@@ -6703,3 +6703,116 @@ body {
 @media (max-width: 600px) {
   .bracket-finals { grid-template-columns: 1fr; }
 }
+
+/* === Bracket tree v2 (horizontal 5-column) === */
+.bracket-tree {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  padding: 16px 0;
+  overflow-x: auto;
+  min-height: 600px;
+  position: relative;
+}
+.bracket-tree-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  flex: 1;
+  gap: 12px;
+}
+.bracket-tree-column-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.bracket-tree-column-cards {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 12px;
+}
+.bracket-tree .bracket-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+  min-height: 64px;
+  position: relative;
+  z-index: 1;
+}
+.bracket-tree .bracket-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+.bracket-tree .bracket-card--projected {
+  opacity: 0.55;
+  border-style: dashed;
+}
+.bracket-tree .bracket-card--final-state {
+  border-color: #4ade80;
+}
+.bracket-tree .bracket-card--live {
+  border-color: #ef4444;
+}
+.bracket-tree .bracket-card-head {
+  font-size: 9px;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.bracket-tree .bracket-card-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  min-width: 0;
+}
+.bracket-tree .bracket-card-team--top {
+  /* default */
+}
+.bracket-tree .bracket-card-team--bottom {
+  /* default */
+}
+.bracket-tree .bracket-card-flag {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.bracket-tree .bracket-card-name {
+  font-size: 11px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #e5e7eb;
+}
+.bracket-tree .bracket-card-score {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e5e7eb;
+  margin-left: auto;
+}
+.bracket-tree .bracket-card-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 2px 0;
+}
+.bracket-tree .bracket-card-placeholder {
+  color: #6b7280;
+  font-style: italic;
+  font-size: 10px;
+  flex: 1;
+}
+.bracket-tree .bracket-card-status {
+  text-align: center;
+  margin-top: 2px;
+}
