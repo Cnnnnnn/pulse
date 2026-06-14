@@ -19,6 +19,7 @@ const DETECTORS = {
   qclaw_api: require("../detectors/qclaw-api"),
   app_update_yml: require("../detectors/app-update-yml"),
   electron_zip_probe: require("../detectors/electron-zip-probe"),
+  html_changelog: require("../detectors/html-changelog"),
 };
 
 function makeDetector(detCfg) {

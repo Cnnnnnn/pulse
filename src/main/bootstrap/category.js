@@ -8,10 +8,7 @@ const fs = require("fs");
 const { mainLog } = require("../log");
 const categoryConfig = require("../../config/category");
 const { HttpClient } = require("../http-client");
-const {
-  CATEGORIES_JSON_PATH,
-  APP_CATEGORY_JSON_PATH,
-} = require("./config");
+const { CATEGORIES_JSON_PATH, APP_CATEGORY_JSON_PATH } = require("./config");
 
 /**
  * 加载 category config (categories.json + app-category.json) → setData 注入.
@@ -78,6 +75,9 @@ async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
   ) {
     return;
   }
+  // [v2.16] 旧 cache 加载同步做 — 即便 LLM 跑失败 / ollama 不在, 历史分类立即可见.
+  // 拆出来是因为外面 (main/index.js) 改成 fire-and-forget, 不再等这步.
+  // 把同步部分合进 LLM 调用里会让旧 cache 也被延后注入, 是个回归.
   const oldCache = stateStore.loadLLMClassifyCache();
   if (Object.keys(oldCache).length > 0) {
     categoryConfig.setLLMCache(oldCache);
@@ -89,6 +89,7 @@ async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
   const unmapped = [];
   for (const app of runtimeConfig.apps) {
     if (!app || typeof app.name !== "string" || app.name.length === 0) continue;
+    // [v2.16] 注意: getCategory 现在会查到刚注入的 LLM cache (上一步), 所以已分类的会跳过
     if (categoryConfig.getCategory(app.name) !== "other") continue;
     const heur = categoryConfig.classifyByHeuristic(app);
     unmapped.push({
@@ -169,4 +170,34 @@ async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
   }
 }
 
-module.exports = { loadCategoryConfig, classifyUnmappedAppsByLLM };
+/**
+ * [v2.16] 同步注入历史 LLM cache — fire-and-forget 拆分, 让 bootstrap 立即可用
+ * 旧分类, 不必等异步 LLM 跑完. 跟 classifyUnmappedAppsByLLM 内的 cache 加载逻辑一致.
+ *
+ * 用法: bootstrap() 启动时同步调一次, 把 state.json 里的历史 LLM 分类注入 module-level
+ *      Map; 之后 getCategory() 立即能看到. classifyUnmappedAppsByLLM 内部会再次注入
+ *      (会覆盖, 但内容相同, 幂等), 所以重复注入是安全的.
+ *
+ * @param {object} deps
+ * @param {object} deps.stateStore
+ */
+function primeLLMCacheFromDisk(deps) {
+  const { stateStore } = deps;
+  try {
+    const oldCache = stateStore.loadLLMClassifyCache();
+    if (Object.keys(oldCache).length > 0) {
+      categoryConfig.setLLMCache(oldCache);
+      mainLog.info(
+        `[category] LLM cache primed: ${Object.keys(oldCache).length} entries`,
+      );
+    }
+  } catch (err) {
+    mainLog.warn(`[category] prime LLM cache failed: ${err && err.message}`);
+  }
+}
+
+module.exports = {
+  loadCategoryConfig,
+  classifyUnmappedAppsByLLM,
+  primeLLMCacheFromDisk,
+};

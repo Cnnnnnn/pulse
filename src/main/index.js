@@ -9,10 +9,7 @@
  * 编排层 — 业务拆到 ./bootstrap/*.js.
  */
 
-const {
-  app,
-  BrowserWindow,
-} = require("electron");
+const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -39,6 +36,7 @@ const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const { mainLog, detectLog } = require("./log");
 const stateStore = require("./state-store");
 const { HttpClient } = require("./http-client");
+const { computePoolSize } = require("./pool-size");
 const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
 const reminders = require("./reminders");
@@ -53,6 +51,7 @@ const {
 const {
   loadCategoryConfig,
   classifyUnmappedAppsByLLM,
+  primeLLMCacheFromDisk,
 } = require("./bootstrap/category.js");
 const { initAiTasksWiring } = require("./bootstrap/ai-tasks.js");
 const {
@@ -116,9 +115,20 @@ async function bootstrap() {
   // 0) Phase A: 加载 category config (早期注入, 后面 IPC 通道要用到)
   loadCategoryConfig();
 
-  // 0.5) Step B (LLM classify): 启动期同步对未分类的 app 调 LLM
-  // runtimeConfig 还没加载, 但 LLM 分类只依赖 config schema. 先用 raw config.
-  // 注意: 这一步允许时 LLM 不可用 graceful skip, 不会阻塞启动.
+  // 0.4) Step B-prime (v2.16): 同步从 disk 注入历史 LLM cache.
+  //       关键: 这步必须同步, 跟 fire-and-forget 的 LLM 推理分开.
+  //       否则 fire-and-forget 会让旧 cache 也延后注入, 回归.
+  //       (历史分类 < 100ms 同步读盘, 用户感知不到, 但能让首屏 tabs 立即看到正确分类)
+  primeLLMCacheFromDisk({ stateStore });
+
+  // 0.5) Step B (LLM classify): 启动期 fire-and-forget 后台跑.
+  // 之前: await — 阻塞 bootstrap, 最坏 28s 等 ollama qwen2.5-coder:7b.
+  // 修法: 立即返, 后台跑; 完成时调 setLLMCache + save, 之后所有 getCategory 调用
+  //      立即看到正确分类 (LLM_CLASSIFY_CACHE 是 module-level Map, 写入即生效).
+  // 权衡: 用户启动后立即切 category tab 时, 未分类 app 会落 'other' (兜底);
+  //       0-28s 后 LLM 跑完, 下次 IPC (get-config / check-updates / 切 tab) 触发的
+  //       getCategory 会拿到正确分类. 用户感知: 不再"卡 28s 才看到首屏".
+  //       (后续可增强: LLM 完成时推 'category:updated' IPC 让 renderer 主动重算 tabs)
   const earlyConfig = (() => {
     try {
       return loadConfig();
@@ -128,7 +138,9 @@ async function bootstrap() {
   })();
   if (earlyConfig) {
     runtimeConfigRef.current = earlyConfig;
-    await classifyUnmappedAppsByLLM(earlyConfig, { stateStore });
+    classifyUnmappedAppsByLLM(earlyConfig, { stateStore }).catch((err) => {
+      mainLog.warn(`[bootstrap] LLM classify rejected: ${err && err.message}`);
+    });
   }
 
   // 1) 单实例锁
@@ -174,8 +186,12 @@ async function bootstrap() {
     "workers",
     "detect-worker.js",
   );
+  // [v2.16] pool size 走 cap=4 (抽到 src/main/pool-size.js 测)
+  // 8 核机器上 cpus-1=7 浪费, 13 个 app 跑 detect 链 (app 间并行) 用不到 7 个 worker.
+  // 实测启动节省 ~50-100ms (少 spawn 3 个 worker, 每个 init V8 + require chain ~20ms).
+  const poolSize = computePoolSize();
   pool = new WorkerPool({
-    size: Math.max(2, (os.cpus().length || 4) - 1),
+    size: poolSize,
     workerScript,
     workerOpts: { workerData: { arch: ARCH } },
     onProgress: (payload) => {
@@ -264,17 +280,20 @@ async function bootstrap() {
 
   // 7.5) AI usage warmup (fire-and-forget) — 让 renderer 进入 AI 用量页时立即有数据
   //      IPC handlers 已在 registerIpcHandlers 里注册, 这里只跑 warmup
-  bootstrapAiUsage({
-    stateStore: {
-      load: stateStore.loadAiUsageSnapshot,
-      save: stateStore.saveAiUsageSnapshot,
-      loadHistory: stateStore.loadAiUsageHistory,
-      appendHistory: stateStore.appendAiUsageHistoryDay,
+  bootstrapAiUsage(
+    {
+      stateStore: {
+        load: stateStore.loadAiUsageSnapshot,
+        save: stateStore.saveAiUsageSnapshot,
+        loadHistory: stateStore.loadAiUsageHistory,
+        appendHistory: stateStore.appendAiUsageHistoryDay,
+      },
+      storage: require("../ai-sessions/storage"),
+      MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
+      sendToRenderer,
     },
-    storage: require("../ai-sessions/storage"),
-    MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
-    sendToRenderer,
-  }, { warmup: true, registerIpc: false });
+    { warmup: true, registerIpc: false },
+  );
 
   // 8) fund + reminders + recent listeners + auto-check timer
   fundScheduler = startFundScheduler({

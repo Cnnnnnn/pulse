@@ -17,6 +17,13 @@
         {
           "type": "brew_formulae",
           "cask": "cursor"
+        },
+        {
+          "type": "html_changelog",
+          "url": "https://www.cursor.com/changelog",
+          "section_pattern": "<article>",
+          "section_end": "</article>",
+          "version_pattern": "<span class=\"label\">([0-9.]+)</span>"
         }
       ]
     },
@@ -24,6 +31,7 @@
       "name": "Kimi",
       "bundle": "Kimi.app",
       "download_url": "https://kimi.moonshot.cn",
+      "release_notes_url": "https://kimi.moonshot.cn/docs/changelog",
       "detectors": [
         {
           "type": "redirect_filename",
@@ -57,6 +65,7 @@
       "name": "MiniMax Code",
       "bundle": "MiniMax Code.app",
       "download_url": "https://www.minimaxi.com",
+      "release_notes_url": "https://www.minimaxi.com/changelog",
       "detectors": [
         {
           "type": "electron_yml",
@@ -70,9 +79,27 @@
       ]
     },
     {
+      "name": "MiniMax Hub",
+      "bundle": "MiniMax Hub.app",
+      "download_url": "https://hub.minimax.io/",
+      "release_notes_url": "https://hub.minimax.io/",
+      "detectors": [
+        {
+          "type": "electron_yml",
+          "url": "https://filecdn.minimax.chat/public/minimax-hub/release/domestic/latest-mac.yml"
+        },
+        {
+          "type": "electron_zip_probe",
+          "baseUrl": "https://filecdn.minimax.chat/public/minimax-hub/release/domestic",
+          "product": "MiniMax Hub"
+        }
+      ]
+    },
+    {
       "name": "WorkBuddy",
       "bundle": "WorkBuddy.app",
       "download_url": "https://www.codebuddy.cn/workbuddy",
+      "release_notes_url": "https://www.codebuddy.cn/workbuddy",
       "detectors": [
         {
           "type": "api_json",
@@ -84,6 +111,7 @@
       "name": "QClaw",
       "bundle": "QClaw.app",
       "download_url": "https://qclaw.qq.com",
+      "release_notes_url": "https://qclaw.qq.com",
       "detectors": [
         {
           "type": "qclaw_api",
@@ -95,10 +123,29 @@
       "name": "Marvis",
       "bundle": "Marvis.app",
       "download_url": "https://marvis.qq.com",
+      "release_notes_url": "https://marvis.qq.com",
       "detectors": [
         {
           "type": "redirect_filename",
           "url": "https://marvis.qq.com/download/dmg"
+        }
+      ]
+    },
+    {
+      "name": "ZCode",
+      "bundle": "ZCode.app",
+      "download_url": "https://zcode.z.ai/",
+      "release_notes_url": "https://zcode.z.ai/en/changelog",
+      "detectors": [
+        {
+          "type": "redirect_filename",
+          "url": "https://cdn.zcode-ai.com/zcode/electron/releases/3.0.1/ZCode-3.0.1-mac-{arch}.dmg"
+        },
+        {
+          "type": "html_changelog",
+          "url": "https://zcode.z.ai/en/changelog",
+          "section_pattern": "<div class=\"flex flex-col gap-6 border-b border-neutral-800 pb-16\">",
+          "version_pattern": "<span class=\"w-fit rounded-full[^\"]*font-mono[^\"]*\">([0-9.]+)</span>"
         }
       ]
     },
@@ -144,7 +191,8 @@
     {
       "name": "CC Switch",
       "bundle": "CC Switch.app",
-      "download_url": "",
+      "download_url": "https://github.com/johnhomides/cc-switch",
+      "release_notes_url": "https://github.com/johnhomides/cc-switch/releases",
       "detectors": [
         {
           "type": "brew_formulae",
