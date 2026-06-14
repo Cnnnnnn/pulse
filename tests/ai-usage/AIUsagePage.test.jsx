@@ -49,17 +49,34 @@ const FAKE_SNAPSHOT = {
       total: 6000,
       remaining: 4200,
       used: 1800,
+      usedPercent: 30,
       resetAt: Date.now() + 3600_000,
       resetInSec: 3600,
+      endTime: Date.now() + 3600_000,
       label: "5 小时滚动窗口",
+      status: 1,
     },
     weekly: {
       total: 50000,
       remaining: 12000,
       used: 38000,
+      usedPercent: 76,
       resetAt: Date.now() + 5 * 86400_000,
       resetInSec: 5 * 86400,
+      endTime: Date.now() + 5 * 86400_000,
       label: "周窗口",
+      status: 1,
+    },
+    video: {
+      total: 3,
+      remaining: 0,
+      used: 3,
+      usedPercent: 100,
+      resetInSec: 5 * 86400,
+      endTime: Date.now() + 5 * 86400_000,
+      label: "视频赠送",
+      modelName: "video",
+      status: 1,
     },
   },
   credits: null,
@@ -148,5 +165,35 @@ describe("AIUsagePage", () => {
     const widths = Array.from(fills).map((el) => el.style.width);
     expect(widths).toContain("30%");
     expect(widths).toContain("76%");
+  });
+
+  test("显示 '剩 X / Y' 绝对数字", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    const { container } = render(<AIUsagePage />);
+    // 5h: 剩 4200 / 6000
+    expect(container.textContent).toContain("剩 4200");
+    expect(container.textContent).toContain("剩 12000");
+    // video: 剩 0 / 3
+    expect(container.textContent).toContain("剩 0");
+  });
+
+  test("状态徽章 (status=1 → 正常, status=0 → 已限流)", () => {
+    mockSnapshot = {
+      ...FAKE_SNAPSHOT,
+      windows: {
+        ...FAKE_SNAPSHOT.windows,
+        "5h": { ...FAKE_SNAPSHOT.windows["5h"], status: 0 },
+      },
+    };
+    const { container } = render(<AIUsagePage />);
+    expect(container.textContent).toContain("已限流");
+    expect(container.querySelector(".ai-usage-status--throttled")).toBeTruthy();
+  });
+
+  test("重置时间绝对值 (HH:mm) 出现在 hint 行", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    const { container } = render(<AIUsagePage />);
+    // 5h 的 endTime 是 now+3600s, 应该有 HH:mm 格式
+    expect(container.textContent).toMatch(/\d{2}:\d{2}/);
   });
 });

@@ -6330,6 +6330,35 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary, #1a1a1f);
+  gap: 6px;
+}
+
+.ai-usage-card-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ai-usage-status {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ai-usage-status--ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.ai-usage-status--throttled {
+  background: #ffebee;
+  color: #c62828;
 }
 
 .ai-usage-card-countdown {

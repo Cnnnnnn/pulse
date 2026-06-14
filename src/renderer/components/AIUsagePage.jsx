@@ -47,6 +47,25 @@ function formatCountdown(resetInSec) {
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
+/**
+ * epoch ms → "HH:mm"  (本地时区)
+ */
+function formatClockTime(epochMs) {
+  if (typeof epochMs !== "number" || epochMs <= 0) return null;
+  const d = new Date(epochMs);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * status code → { label, className }
+ * API 返 1=正常, 0=受限. 保守按这个二元处理.
+ */
+function formatStatus(status) {
+  if (status === 1) return { label: "正常", className: "ai-usage-status--ok" };
+  if (status === 0) return { label: "已限流", className: "ai-usage-status--throttled" };
+  return null;
+}
+
 function formatAge(ms, now) {
   if (typeof ms !== "number" || ms <= 0) return "—";
   const diff = Math.max(0, Math.floor((now - ms) / 1000));
@@ -95,25 +114,35 @@ function WindowCard({ window: w, now }) {
     countdown = w.resetInSec;
   }
 
-  // 渲染用: remaining/total 数字, 但当 total 是百分比单位 (100) 时不显示
-  const showAsFraction =
-    typeof w.total === "number" &&
-    typeof w.remaining === "number" &&
-    (w.total > 100 || w.remaining > 0 || w.modelName === "video");
+  // 有 total + remaining 数字就显示 "剩 X / Y" (更具体)
+  const hasFraction = typeof w.total === "number" && typeof w.remaining === "number";
+  // 没数字但有百分比 → 显示 "已用 X%"
+  const statusBadge = formatStatus(w.status);
+  // 重置时间绝对值: endTime 是 epoch ms, 算到 now 仍未来才显示
+  const resetClock = typeof w.endTime === "number" && w.endTime > now
+    ? formatClockTime(w.endTime)
+    : null;
 
   return (
     <div class="ai-usage-card">
       <div class="ai-usage-card-header">
-        <div class="ai-usage-card-label">{w.label}</div>
+        <div class="ai-usage-card-label">
+          {w.label}
+          {statusBadge && (
+            <span class={`ai-usage-status ${statusBadge.className}`}>
+              {statusBadge.label}
+            </span>
+          )}
+        </div>
         <div class="ai-usage-card-countdown">{formatCountdown(countdown)}</div>
       </div>
 
       <div class="ai-usage-card-numbers">
-        {showAsFraction ? (
+        {hasFraction ? (
           <>
-            <span class="ai-usage-card-remaining">{w.remaining ?? "—"}</span>
+            <span class="ai-usage-card-remaining">剩 {w.remaining}</span>
             <span class="ai-usage-card-divider">/</span>
-            <span class="ai-usage-card-total">{w.total ?? "—"}</span>
+            <span class="ai-usage-card-total">{w.total}</span>
           </>
         ) : (
           <span class="ai-usage-card-remaining">已用 {pct ?? "—"}%</span>
@@ -134,8 +163,10 @@ function WindowCard({ window: w, now }) {
 
       <div class="ai-usage-card-reset-hint">
         {countdown !== null && countdown > 0
-          ? `${formatCountdown(countdown)} 后重置`
-          : "已可重置"}
+          ? `${formatCountdown(countdown)} 后重置${resetClock ? ` (${resetClock})` : ""}`
+          : resetClock
+            ? `下次重置 ${resetClock}`
+            : "已可重置"}
       </div>
     </div>
   );
