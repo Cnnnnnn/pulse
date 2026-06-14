@@ -156,6 +156,7 @@ const PRESERVE_FIELDS = [
   { key: "worldcup_txt", kind: "object" },
   { key: "worldcup_scores", kind: "object" },
   { key: "worldcup_match_insights", kind: "object" },
+  { key: "worldcup_bracket_snapshot", kind: "object" },
   { key: "funds", kind: "object", notArray: true },
   { key: "worldcupBets", kind: "object", notArray: true },
   { key: "ithome_news", kind: "object", notArray: true },
@@ -486,6 +487,39 @@ function saveWorldcupTxt(entry, statePath = defaultPath()) {
   }
   return patchState((next) => {
     next.worldcup_txt = { txt: entry.txt, ts: entry.ts };
+  }, statePath);
+}
+
+/**
+ * 读 worldcup 淘汰赛 bracket snapshot. 老 state.json (无 worldcup_bracket_snapshot
+ * 字段) 或值非法 → null. 没有 expiry — caller 用 computedAt 自查.
+ * @param {string} [statePath]
+ * @returns {object|null}  BracketSnapshot
+ *   { version, computedAt, projected, r32, r16, qf, sf, final, third,
+ *     thirdPlacedAdvancing, annexCIndex, warnings }
+ */
+function loadWorldcupBracket(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return null;
+  const snap = s.worldcup_bracket_snapshot;
+  if (!snap || typeof snap !== "object") return null;
+  return snap;
+}
+
+/**
+ * 写 worldcup 淘汰赛 bracket snapshot. atomic write, 保留 apps / mutes /
+ * last_opened / worldcup_txt / worldcup_scores / worldcup_match_insights
+ * 等所有其它字段.
+ * @param {object} snapshot  BracketSnapshot
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveWorldcupBracket(snapshot, statePath = defaultPath()) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+    throw new TypeError("saveWorldcupBracket: snapshot must be plain object");
+  }
+  return patchState((next) => {
+    next.worldcup_bracket_snapshot = { ...snapshot };
   }, statePath);
 }
 
@@ -968,4 +1002,7 @@ module.exports = {
   saveWorldcupScores,
   loadWorldcupMatchInsights,
   saveWorldcupMatchInsights,
+  // 世界杯淘汰赛 bracket 快照
+  loadWorldcupBracket,
+  saveWorldcupBracket,
 };

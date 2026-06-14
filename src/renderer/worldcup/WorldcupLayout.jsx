@@ -13,6 +13,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { WorldcupView } from './WorldcupView.jsx';
 import { WorldcupTeamsView } from './WorldcupTeamsView.jsx';
 import { WorldcupScorersView } from './WorldcupScorersView.jsx';
+import { WorldcupBracketView } from './WorldcupBracketView.jsx';
 import { WorldcupHeader } from './WorldcupHeader.jsx';
 import SquadModal from './SquadModal.jsx';
 import {
@@ -25,6 +26,7 @@ export const WC_SUBTABS = [
   { key: 'fixtures', label: '赛程', icon: '📅' },
   { key: 'teams', label: '球队', icon: '👥' },
   { key: 'scorers', label: '进球榜', icon: '⚽' },
+  { key: 'bracket', label: '对阵', icon: '🏆' },
 ];
 
 export function WorldcupLayout() {
@@ -72,6 +74,8 @@ export function WorldcupLayout() {
           <WorldcupTeamsView search={search} onTeamClick={handleTeamClick} />
         ) : subTab === 'scorers' ? (
           <WorldcupScorersView search={search} />
+        ) : subTab === 'bracket' ? (
+          <WorldcupBracketView />
         ) : (
           <WorldcupView search={search} />
         )}

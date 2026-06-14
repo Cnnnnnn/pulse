@@ -2,6 +2,47 @@
 
 ---
 
+## v2.14.0 (世界杯 · 淘汰赛 bracket 自动推演) — 2026-06-14
+
+### 新增
+- **「对阵」tab** (`⚽ 世界杯` → `对阵`): 实时计算 2026 世界杯淘汰赛对阵图 (小组赛 → 1/16 决赛 → 1/8 决赛 → 1/4 决赛 → 半决赛 → 决赛 + 季军赛)
+- 小组赛阶段结束即按 **Annex C** 规则挑选 8 支成绩最好的第三名晋级, 自动填入 1/16 决赛 6 个跨组名额
+- 每场比赛可手动选择胜方, 主进程 `computeBracket` 实时推演后续对阵, renderer 通过 IPC 拉新 bracket
+- bracket 状态走 `worldcup_bracket_snapshot` (state-store), 重启后恢复
+
+### 工程
+- 主进程
+  - `src/main/worldcup/bracket-rules.js` — `sortThirdPlaced` / `selectThirdPlaced` / `matchAnnexCCase` / `ANNEX_C_DEFAULT` / `resolveR32Matchups` / `propagateWinner` / `computeBracket` 入口
+  - `src/main/worldcup/bracket.js` — `computeWorldcupBracket` IPC handler
+  - `src/main/ipc/index.js` — 接入 `worldcup:compute-bracket` / `worldcup:load-bracket` 通道
+  - `src/main/state-store.js` — `loadWorldcupBracketSnapshot` / `saveWorldcupBracketSnapshot`
+- 渲染端
+  - `src/renderer/worldcup/bracketStore.js` — 4 signals: `bracket` / `bracketLoading` / `bracketError` / `bracketDirty`
+  - `preload.js` + `src/renderer/api.js` — 暴露 `worldcupComputeBracket` / `worldcupLoadBracket`
+  - `src/renderer/worldcup/WorldcupBracketView.jsx` — bracket 视图主组件
+  - `src/renderer/worldcup/WorldcupHeader.jsx` + `WorldcupLayout.jsx` — 第 4 个 sub-tab + 路由 `bracket`
+- CSS
+  - `styles.css` — `bracket-view` / `bracket-stage` / `bracket-card` 等样式
+
+### 边界
+- **小组赛未结束** → bracket 显示空 stage, 仅展示已确定的晋级路径
+- **Annex C 解析失败** → 退回到默认 case (UCLA 排序), bracket 仍可生成
+- **重复 compute** → `_inFlight` 单例, 不会重复计算
+- **snapshot 损坏** → 静默降级, 当作空 bracket 重新算
+
+### 文档
+- 设计: `docs/superpowers/specs/2026-06-14-worldcup-bracket-design.md`
+- 实施计划: `docs/superpowers/plans/2026-06-14-worldcup-bracket-plan.md`
+
+### 测试
+- 整体测试: **1594 passed / 0 failed** (基线 1509 + 85 新增)
+  - bracket-rules (sortThirdPlaced / selectThirdPlaced / matchAnnexCCase / resolveR32Matchups / propagateWinner / computeBracket): 60+
+  - bracket IPC handler: 8
+  - bracket state-store: 7
+  - renderer bracketStore + WorldcupBracketView: 10
+
+---
+
 ## v2.13.0 (AI 用量 · Minimax coding plan 配额展示) — 2026-06-14
 
 ### 新增

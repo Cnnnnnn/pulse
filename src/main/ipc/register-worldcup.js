@@ -1,4 +1,8 @@
 const stateStore = require("../state-store");
+const {
+  computeWorldcupBracket,
+  loadWorldcupBracket,
+} = require("../worldcup/bracket");
 const { fetchWorldcupFixtures } = require("../worldcup/fetcher");
 const { refreshWorldcupScores } = require("../worldcup/scores-fetcher");
 const { generateMatchInsight } = require("../worldcup/match-ai");
@@ -62,6 +66,16 @@ function registerWorldcupHandlers(ctx) {
     "worldcup:upsert-bet",
     async (_evt, payload) => betsUpsert(payload || {}),
     { onError: (err) => ({ ok: false, reason: err && err.message }) },
+  );
+
+  safeHandle("worldcup:compute-bracket", async (_evt, payload) =>
+    computeWorldcupBracket(payload || {}),
+  );
+
+  safeHandle(
+    "worldcup:load-bracket",
+    async () => loadWorldcupBracket(),
+    { log: false },
   );
 
   safeHandle("worldcup:remove-bet", async (_evt, date) => betsRemove(date));
