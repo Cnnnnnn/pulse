@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-const { _pickNumber, _pickString, _parseDdHhMmSs, normalize } = require('../../src/ai-usage/normalize');
+const { _pickNumber, _pickString, _parseRemainsTime, normalize } = require('../../src/ai-usage/normalize');
 
 describe('_pickNumber', () => {
   test('returns first present key value as number', () => {
@@ -42,22 +42,31 @@ describe('_pickString', () => {
   });
 });
 
-describe('_parseDdHhMmSs', () => {
-  test('parses DD:HH:MM:SS to total seconds', () => {
-    expect(_parseDdHhMmSs('00:01:00:00')).toBe(3600);
-    expect(_parseDdHhMmSs('01:00:00:00')).toBe(86400);
-    expect(_parseDdHhMmSs('00:00:01:00')).toBe(60);
-    expect(_parseDdHhMmSs('00:00:00:30')).toBe(30);
-    expect(_parseDdHhMmSs('00:00:00:00')).toBe(0);
+describe('_parseRemainsTime', () => {
+  test('parses DD:HH:MM:SS to total seconds (legacy schema)', () => {
+    expect(_parseRemainsTime('00:01:00:00')).toBe(3600);
+    expect(_parseRemainsTime('01:00:00:00')).toBe(86400);
+    expect(_parseRemainsTime('00:00:01:00')).toBe(60);
+    expect(_parseRemainsTime('00:00:00:30')).toBe(30);
+    expect(_parseRemainsTime('00:00:00:00')).toBe(0);
+  });
+  test('parses numeric seconds and ms (new schema)', () => {
+    // 小数当秒
+    expect(_parseRemainsTime(3600)).toBe(3600);
+    expect(_parseRemainsTime(0)).toBe(0);
+    // 大数 (≥ 10000) 当毫秒, 转秒
+    expect(_parseRemainsTime(14854940)).toBe(14855);
+    expect(_parseRemainsTime(29254940)).toBe(29255);
+  });
+  test('parses numeric string (loose format)', () => {
+    expect(_parseRemainsTime('3600')).toBe(3600);
   });
   test('returns null for malformed input', () => {
-    expect(_parseDdHhMmSs('garbage')).toBe(null);
-    expect(_parseDdHhMmSs('')).toBe(null);
-    expect(_parseDdHhMmSs(null)).toBe(null);
-    expect(_parseDdHhMmSs(undefined)).toBe(null);
-  });
-  test('returns null for partial input', () => {
-    expect(_parseDdHhMmSs('01:02:03')).toBe(null);
+    expect(_parseRemainsTime('garbage')).toBe(null);
+    expect(_parseRemainsTime('')).toBe(null);
+    expect(_parseRemainsTime(null)).toBe(null);
+    expect(_parseRemainsTime(undefined)).toBe(null);
+    expect(_parseRemainsTime('01:02:03')).toBe(null);
   });
 });
 
@@ -82,10 +91,11 @@ describe('normalize', () => {
     expect(r.snapshot.provider).toBe('minimax');
     expect(r.snapshot.region).toBe('cn');
     expect(r.snapshot.fetchedAt).toBe(1000);
-    expect(r.snapshot.windows['5h']).toEqual({
+    expect(r.snapshot.windows['5h']).toMatchObject({
       total: 6000,
       remaining: 4200,
       used: 1800,
+      usedPercent: 30,
       resetAt: 1000 + (4 * 3600 + 59 * 60 + 30) * 1000,
       resetInSec: 4 * 3600 + 59 * 60 + 30,
       label: '5 小时滚动窗口',
@@ -94,6 +104,52 @@ describe('normalize', () => {
     expect(r.snapshot.windows.weekly.remaining).toBe(38000);
     expect(r.snapshot.windows.weekly.used).toBe(12000);
     expect(r.snapshot.credits).toBe(null);
+  });
+
+  test('parses real API schema (model_remains[0].general + video, *_remaining_percent, seconds)', () => {
+    const realApi = {
+      base_resp: { status_code: 0, status_msg: 'success' },
+      model_remains: [
+        {
+          model_name: 'general',
+          current_interval_total_count: 0,
+          current_interval_usage_count: 0,
+          remains_time: 14854940,
+          current_weekly_total_count: 0,
+          current_weekly_usage_count: 0,
+          weekly_remains_time: 29254940,
+          current_interval_remaining_percent: 98,
+          current_weekly_remaining_percent: 82,
+        },
+        {
+          model_name: 'video',
+          current_interval_total_count: 3,
+          current_interval_usage_count: 0,
+          remains_time: 29254940,
+          current_weekly_total_count: 21,
+          current_weekly_usage_count: 0,
+          weekly_remains_time: 29254940,
+          current_interval_remaining_percent: 100,
+          current_weekly_remaining_percent: 100,
+        },
+      ],
+    };
+    const r = normalize(realApi, { fetchedAt: 1000 });
+    expect(r.ok).toBe(true);
+    // 5h 窗口: general, used 2% (100-98)
+    expect(r.snapshot.windows['5h'].usedPercent).toBe(2);
+    expect(r.snapshot.windows['5h'].modelName).toBe('general');
+    // remains_time 14854940 是毫秒, 应当转成秒 (14855)
+    expect(r.snapshot.windows['5h'].resetInSec).toBe(14855);
+    // 周窗口: used 18% (100-82)
+    expect(r.snapshot.windows.weekly.usedPercent).toBe(18);
+    expect(r.snapshot.windows.weekly.modelName).toBe('general');
+    expect(r.snapshot.windows.weekly.resetInSec).toBe(29255);
+    // 视频赠送窗口: 0/3
+    expect(r.snapshot.windows.video.total).toBe(3);
+    expect(r.snapshot.windows.video.remaining).toBe(0);
+    expect(r.snapshot.windows.video.usedPercent).toBe(0);
+    expect(r.snapshot.windows.video.modelName).toBe('video');
   });
 
   test('treats current_interval_usage_count as REMAINING (not used)', () => {

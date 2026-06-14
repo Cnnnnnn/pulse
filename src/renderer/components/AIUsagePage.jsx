@@ -67,7 +67,7 @@ function formatPercent(used, total) {
 
 /**
  * @param {object} props
- * @param {{label: string, total: number, remaining: number, used: number, resetAt: number, resetInSec: number} | null} props.window
+ * @param {{label: string, total: number, remaining: number, used: number, usedPercent: number, resetAt: number, resetInSec: number} | null} props.window
  * @param {number} props.now  用于倒计时
  */
 function WindowCard({ window: w, now }) {
@@ -80,9 +80,26 @@ function WindowCard({ window: w, now }) {
     );
   }
 
-  const pct = formatPercent(w.used, w.total);
-  const countdown =
-    typeof w.resetAt === "number" ? Math.max(0, Math.floor((w.resetAt - now) / 1000)) : w.resetInSec;
+  // 优先用后端给的 usedPercent (来自 *_remaining_percent 字段, 准);
+  // fallback 客户端算 used/total
+  const pct =
+    typeof w.usedPercent === "number"
+      ? w.usedPercent
+      : formatPercent(w.used, w.total);
+
+  // 倒计时优先用 resetAt (算到 now 的差), 都没有就用 resetInSec
+  let countdown = null;
+  if (typeof w.resetAt === "number") {
+    countdown = Math.max(0, Math.floor((w.resetAt - now) / 1000));
+  } else if (typeof w.resetInSec === "number") {
+    countdown = w.resetInSec;
+  }
+
+  // 渲染用: remaining/total 数字, 但当 total 是百分比单位 (100) 时不显示
+  const showAsFraction =
+    typeof w.total === "number" &&
+    typeof w.remaining === "number" &&
+    (w.total > 100 || w.remaining > 0 || w.modelName === "video");
 
   return (
     <div class="ai-usage-card">
@@ -92,10 +109,18 @@ function WindowCard({ window: w, now }) {
       </div>
 
       <div class="ai-usage-card-numbers">
-        <span class="ai-usage-card-remaining">{w.remaining ?? "—"}</span>
-        <span class="ai-usage-card-divider">/</span>
-        <span class="ai-usage-card-total">{w.total ?? "—"}</span>
-        {pct !== null && <span class="ai-usage-card-pct">{pct}% 已用</span>}
+        {showAsFraction ? (
+          <>
+            <span class="ai-usage-card-remaining">{w.remaining ?? "—"}</span>
+            <span class="ai-usage-card-divider">/</span>
+            <span class="ai-usage-card-total">{w.total ?? "—"}</span>
+          </>
+        ) : (
+          <span class="ai-usage-card-remaining">已用 {pct ?? "—"}%</span>
+        )}
+        {pct !== null && (
+          <span class="ai-usage-card-pct">{pct}% 已用</span>
+        )}
       </div>
 
       {pct !== null && (
@@ -108,7 +133,7 @@ function WindowCard({ window: w, now }) {
       )}
 
       <div class="ai-usage-card-reset-hint">
-        {countdown > 0
+        {countdown !== null && countdown > 0
           ? `${formatCountdown(countdown)} 后重置`
           : "已可重置"}
       </div>
@@ -199,6 +224,7 @@ export function AIUsagePage() {
         <div class="ai-usage-cards">
           <WindowCard window={snapshot.windows["5h"]} now={now} />
           <WindowCard window={snapshot.windows.weekly} now={now} />
+          <WindowCard window={snapshot.windows.video} now={now} />
         </div>
       )}
 
