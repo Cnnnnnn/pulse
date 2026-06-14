@@ -128,6 +128,9 @@ async function bootstrap() {
       m.installRecentListener();
       return m.loadRecent();
     }),
+    import('./reminders/remindersStore.js').then((m) => {
+      m.installRemindersListener();
+    }),
   ]).catch(() => {});
   loadAiTasks().catch(() => {});
 

@@ -66,6 +66,12 @@ contextBridge.exposeInMainWorld("api", {
   onAiSessionsConfigUpdated: (cb) =>
     ipcRenderer.on("ai-sessions-config-updated", (_, data) => cb(data)),
 
+  // v2.13 AI 用量 (Minimax coding plan)
+  aiUsageGetCached: () => ipcRenderer.invoke("ai-usage:get-cached"),
+  aiUsageFetch: (opts) => ipcRenderer.invoke("ai-usage:fetch", opts),
+  onAiUsageUpdated: (cb) =>
+    ipcRenderer.on("ai-usage-updated", (_, data) => cb(data)),
+
   // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
   worldcupFetchFixtures: (payload) =>
     ipcRenderer.invoke("worldcup:fetch-fixtures", payload),
@@ -92,6 +98,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("ithome:summarize-article", payload),
   ithomeToggleFavorite: (payload) =>
     ipcRenderer.invoke("ithome:toggle-favorite", payload),
+  ithomeMarkRead: (id) => ipcRenderer.invoke("ithome:mark-read", id),
+  ithomeMarkRead: (id) => ipcRenderer.invoke("ithome:mark-read", id),
 
   // v2.10+ 基金管理: 持仓 CRUD + 净值拉取 / 推送
   fundsList: () => ipcRenderer.invoke("funds:list"),

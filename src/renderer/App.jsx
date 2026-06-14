@@ -18,6 +18,7 @@ import { checkSession } from './store.js';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { AISettingsModal } from './components/AISettingsModal.jsx';
 import { Toast } from './components/Toast.jsx';
+import { ConfirmDialog } from './components/ConfirmDialog.jsx';
 import { AppShell } from './components/AppShell.jsx';
 import { RemindersModal } from './reminders/RemindersModal.jsx';
 import { RecentActivityModal } from './recent/RecentActivityModal.jsx';
@@ -40,6 +41,7 @@ export function App({ onCheck }) {
       <AISettingsModal />
       <RemindersModal />
       <RecentActivityModal />
+      <ConfirmDialog />
       <Toast />
     </div>
   );

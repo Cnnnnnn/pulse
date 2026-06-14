@@ -110,6 +110,10 @@ export function createApi(overrides = {}) {
     onRecentUpdated: pick(overrides, "onRecentUpdated"),
     // v2.12 主进程未捕获错误兜底
     onMainError: pick(overrides, "onMainError"),
+    // v2.13 AI 用量 (Minimax coding plan)
+    aiUsageGetCached: pick(overrides, "aiUsageGetCached"),
+    aiUsageFetch: pick(overrides, "aiUsageFetch"),
+    onAiUsageUpdated: pick(overrides, "onAiUsageUpdated"),
   };
 }
 

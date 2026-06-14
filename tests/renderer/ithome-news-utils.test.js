@@ -16,6 +16,7 @@ import {
   formatExcerptPreview,
   countSummarizedArticles,
   sidebarDayCount,
+  readCountForDate,
 } from "../../src/renderer/ithome/news-utils.js";
 
 const NOW = new Date("2026-06-12T12:00:00+08:00");
@@ -109,5 +110,30 @@ describe("ithome news-utils", () => {
     expect(sidebarDayCount(dayStats, articles, "2026-06-08")).toBe(120);
     expect(sidebarDayCount(dayStats, articles, "2026-06-09")).toBe(0);
     expect(sidebarDayCount({}, articles, "2026-06-08")).toBe(1);
+  });
+});
+
+describe("ithome news-utils readCountForDate", () => {
+  const articles = {
+    a: { id: "a", dateKey: "2026-06-12" },
+    b: { id: "b", dateKey: "2026-06-12" },
+    c: { id: "c", dateKey: "2026-06-12" },
+    d: { id: "d", dateKey: "2026-06-13" },
+  };
+
+  it("counts articles of dateKey present in readIds", () => {
+    expect(readCountForDate(articles, { a: 1, b: 1 }, "2026-06-12")).toBe(2);
+  });
+
+  it("returns 0 when no articles match", () => {
+    expect(readCountForDate(articles, {}, "2026-06-12")).toBe(0);
+  });
+
+  it("returns count when all read", () => {
+    expect(readCountForDate(articles, { a: 1, b: 1, c: 1 }, "2026-06-12")).toBe(3);
+  });
+
+  it("does not count articles of other dates", () => {
+    expect(readCountForDate(articles, { a: 1, b: 1, d: 1 }, "2026-06-12")).toBe(2);
   });
 });

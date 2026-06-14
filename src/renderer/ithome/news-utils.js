@@ -171,3 +171,12 @@ export function countSummarizedArticles(articles, summaries) {
   return (articles || []).filter((a) => a && summaries && summaries[a.id]?.text)
     .length;
 }
+
+export function readCountForDate(articles, readIds, dateKey) {
+  if (!articles || !readIds) return 0;
+  let n = 0;
+  for (const a of Object.values(articles)) {
+    if (a && a.dateKey === dateKey && readIds[a.id]) n += 1;
+  }
+  return n;
+}

@@ -170,6 +170,7 @@ function _mergeArticles(cur, parsed, now) {
       excerpt: prev?.excerpt || item.excerpt || "",
       fetchedAt: prev?.fetchedAt || now,
       updatedAt: now,
+      readAt: prev?.readAt || item.readAt || 0,
     };
   }
   return articles;
@@ -294,6 +295,7 @@ async function refresh(statePath) {
       fetchedAt: prev?.fetchedAt || now,
       updatedAt: now,
       excerpt: item.excerpt || prev?.excerpt || "",
+      readAt: prev?.readAt || item.readAt || 0,
     };
   }
   const news = _finalizeNews(cur, articles, {}, now);
@@ -305,6 +307,70 @@ async function refresh(statePath) {
     ts: now,
     dateKey: today,
   };
+}
+
+function markArticleRead(id, statePath) {
+  if (!id || typeof id !== "string") {
+    return { ok: false, reason: "invalid_args" };
+  }
+  const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  if (!cur.articles[id] && !(cur.favorites && cur.favorites[id])) {
+    return { ok: false, reason: "article_not_found" };
+  }
+  const articles = { ...cur.articles };
+  if (articles[id] && !articles[id].readAt) {
+    articles[id] = {
+      ...articles[id],
+      readAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  }
+  const favorites = { ...(cur.favorites || {}) };
+  if (favorites[id] && favorites[id].article && !favorites[id].article.readAt) {
+    favorites[id] = {
+      ...favorites[id],
+      article: {
+        ...favorites[id].article,
+        readAt: Date.now(),
+      },
+    };
+  }
+  const news = { ...cur, articles, favorites, ts: Date.now() };
+  _writeNews(news, statePath);
+  return { ok: true };
+}
+
+function attachArticleBody(id, body, statePath) {
+  if (!id || typeof id !== "string") {
+    return { ok: false, reason: "invalid_args" };
+  }
+  const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+  if (!cur.articles[id] && !(cur.favorites && cur.favorites[id])) {
+    return { ok: false, reason: "article_not_found" };
+  }
+  const articles = { ...cur.articles };
+  if (articles[id]) {
+    articles[id] = {
+      ...articles[id],
+      body: typeof body === "string" ? body : "",
+      bodyFetchedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  }
+  const favorites = { ...(cur.favorites || {}) };
+  if (favorites[id]) {
+    favorites[id] = {
+      ...favorites[id],
+      article: {
+        ...(favorites[id].article || {}),
+        body: typeof body === "string" ? body : "",
+        bodyFetchedAt: Date.now(),
+      },
+    };
+  }
+  const news = { ...cur, articles, favorites, ts: Date.now() };
+  _writeNews(news, statePath);
+  return { ok: true };
 }
 
 function saveSummary(id, entry, statePath) {
@@ -364,6 +430,9 @@ module.exports = {
   saveSummary,
   toggleFavorite,
   isFavorited,
+  attachArticleBody,
+  markArticleRead,
   _pruneArticles,
+  _mergeArticles,
   MAX_ARTICLES_PER_DAY,
 };

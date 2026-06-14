@@ -6,6 +6,7 @@ const { createIpcContext } = require("./context");
 const { registerCoreHandlers } = require("./register-core");
 const { registerRemindersRecentHandlers } = require("./register-reminders-recent");
 const { registerAiHandlers } = require("./register-ai");
+const { registerAiUsageHandlers } = require("./register-ai-usage");
 const { registerWorldcupHandlers } = require("./register-worldcup");
 const { registerIthomeHandlers } = require("./register-ithome");
 const { registerFundsHandlers } = require("./register-funds");
@@ -18,6 +19,7 @@ function registerIpcHandlers(deps) {
   registerCoreHandlers(ctx);
   registerRemindersRecentHandlers(ctx);
   registerAiHandlers(ctx);
+  registerAiUsageHandlers(ctx);
   registerWorldcupHandlers(ctx);
   registerIthomeHandlers(ctx);
   registerFundsHandlers(ctx);

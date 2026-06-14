@@ -26,6 +26,13 @@ function registerIthomeHandlers(ctx) {
     }
     return ithomeNewsStore.toggleFavorite(id);
   });
+
+  safeHandle("ithome:mark-read", async (_evt, id) => {
+    if (!id || typeof id !== "string") {
+      return { ok: false, reason: "invalid_args" };
+    }
+    return ithomeNewsStore.markArticleRead(id);
+  });
 }
 
 module.exports = { registerIthomeHandlers };

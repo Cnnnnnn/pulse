@@ -6,8 +6,11 @@ import { useState } from "preact/hooks";
 import {
   ithomeSummaries,
   ithomeFavorites,
+  ithomeReadIds,
+  ithomeNewIds,
   summarizeIthomeArticle,
   toggleIthomeFavorite,
+  markIthomeRead,
 } from "./store.js";
 import { formatArticleTime, formatExcerptPreview } from "./news-utils.js";
 import { NewsArticleSummary } from "./NewsArticleSummary.jsx";
@@ -24,8 +27,21 @@ function mapAiError(reason) {
   return reason || "生成失败";
 }
 
+/** 与后端 article-page-fetcher MIN_USEFUL_BODY_CHARS 保持一致 */
+const MIN_USEFUL_BODY_CHARS = 200;
+
+function needsBodyFetch(article) {
+  if (!article) return false;
+  const body = (article.body || "").trim();
+  if (body.length >= MIN_USEFUL_BODY_CHARS) return false;
+  const excerpt = (article.excerpt || "").trim();
+  if (excerpt.length >= MIN_USEFUL_BODY_CHARS) return false;
+  return true;
+}
+
 export function NewsArticleRow({ article }) {
   const [busy, setBusy] = useState(false);
+  const [fetchingBody, setFetchingBody] = useState(false);
   const [favBusy, setFavBusy] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -35,11 +51,14 @@ export function NewsArticleRow({ article }) {
   const summary = ithomeSummaries.value[article.id];
   const hasSummary = !!(summary && summary.text);
   const favorited = !!ithomeFavorites.value[article.id];
+  const isRead = !!ithomeReadIds.value[article.id];
+  const isNew = !!ithomeNewIds.value[article.id];
   const timeLabel = formatArticleTime(article.pubDate);
   const excerptPreview = formatExcerptPreview(article.excerpt);
 
   async function openLink(e) {
     e.preventDefault();
+    markIthomeRead(article.id);
     if (typeof window !== "undefined" && window.api?.openUrl) {
       await window.api.openUrl(article.link);
     } else if (article.link) {
@@ -70,7 +89,11 @@ export function NewsArticleRow({ article }) {
       return;
     }
     setError(null);
-    setBusy(true);
+    if (needsBodyFetch(article)) {
+      setFetchingBody(true);
+    } else {
+      setBusy(true);
+    }
     try {
       const r = await summarizeIthomeArticle(article.id, force);
       if (!r || !r.ok) {
@@ -79,21 +102,24 @@ export function NewsArticleRow({ article }) {
         setExpanded(true);
       }
     } finally {
+      setFetchingBody(false);
       setBusy(false);
     }
   }
 
-  const aiLabel = busy
-    ? "总结中…"
-    : hasSummary
-      ? expanded
-        ? "收起"
-        : "摘要"
-      : "AI 总结";
+  const aiLabel = fetchingBody
+    ? "抓取正文中…"
+    : busy
+      ? "总结中…"
+      : hasSummary
+        ? expanded
+          ? "收起"
+          : "摘要"
+        : "AI 总结";
 
   return (
     <article
-      class={`ithome-row${favorited ? " is-favorited" : ""}${expanded ? " is-expanded" : ""}`}
+      class={`ithome-row${favorited ? " is-favorited" : ""}${expanded ? " is-expanded" : ""}${isRead ? " is-read" : ""}${isNew ? " is-new" : ""}`}
     >
       <div class="ithome-row-head">
         <div class="ithome-row-meta">
@@ -101,6 +127,8 @@ export function NewsArticleRow({ article }) {
           {article.category && (
             <span class="ithome-row-tag">{article.category}</span>
           )}
+          {isNew && <span class="ithome-row-tag ithome-row-tag--new">新</span>}
+          {isRead && <span class="ithome-row-tag ithome-row-tag--read">已读</span>}
         </div>
         <button
           type="button"
@@ -131,7 +159,7 @@ export function NewsArticleRow({ article }) {
         <button
           type="button"
           class={`ithome-row-btn ithome-row-btn--ai${hasSummary ? " has-summary" : ""}`}
-          disabled={busy}
+          disabled={busy || fetchingBody}
           onClick={() => handleSummarize(false)}
         >
           ✨ {aiLabel}
@@ -147,7 +175,7 @@ export function NewsArticleRow({ article }) {
           <button
             type="button"
             class="ithome-row-link ithome-row-link--muted"
-            disabled={busy}
+            disabled={busy || fetchingBody}
             onClick={() => handleSummarize(true)}
           >
             重新生成

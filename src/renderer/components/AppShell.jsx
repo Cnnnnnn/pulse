@@ -29,6 +29,7 @@ import { VersionsLayout } from './VersionsLayout.jsx';
 import { WorldcupLayout } from '../worldcup/WorldcupLayout.jsx';
 import { FundLayout } from '../funds/FundLayout.jsx';
 import { NewsLayout } from '../ithome/NewsLayout.jsx';
+import { AIUsageLayout } from './AIUsageLayout.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 
 export function AppShell({ onCheck }) {
@@ -80,7 +81,9 @@ export function AppShell({ onCheck }) {
             ? <WorldcupLayout />
             : nav === 'funds'
               ? <FundLayout />
-              : <VersionsLayout onCheck={onCheck} />}
+              : nav === 'ai-usage'
+                ? <AIUsageLayout />
+                : <VersionsLayout onCheck={onCheck} />}
       </div>
     </div>
   );

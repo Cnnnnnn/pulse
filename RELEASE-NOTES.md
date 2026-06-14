@@ -2,6 +2,155 @@
 
 ---
 
+## v2.13.0 (AI 用量 · Minimax coding plan 配额展示) — 2026-06-14
+
+### 新增
+- **AI 用量页面** (`📊 AI 用量` 左侧导航): 拉取并展示 `Minimax coding plan` 当前配额, 含 5 小时滚动窗口 + 周窗口
+- 进度条 + 剩余/总量数字 + 重置倒计时 (每秒 tick, 卸载时自动 clear 无泄漏)
+- 上次更新相对时间显示 + 从缓存恢复标注
+- 手动刷新按钮 + 失败 banner (保留 last-known snapshot)
+- 启动时 main 端 fire-and-forget 预热一次, renderer 进来就有数据
+
+### 工程
+- 主进程
+  - `src/ai-usage/client.js` — `MiniMaxQuotaClient`, 调 `POST https://www.minimaxi.com/v1/token_plan/remains`, 完整错误映射 (401/403/429/5xx/JSON 解析失败/网络失败/api_key 缺失)
+  - `src/ai-usage/normalize.js` — `_pickNumber` / `_pickString` (多候选 key, 防御 schema drift) / `_parseDdHhMmSs` / `normalize()` (兼容新旧 schema: `model_remains[0]` → `coding_plan_remains[0]` fallback)
+  - `src/ai-usage/index.js` — 统一导出
+  - `src/main/state-store.js` — `loadAiUsageSnapshot` / `saveAiUsageSnapshot` (复用 `patchState`, 自动 preserve 其他字段)
+  - `src/main/ipc/register-ai-usage.js` — IPC handlers (`ai-usage:get-cached` / `ai-usage:fetch`), 业务逻辑提到 `_internals` 注入 deps, 单测不依赖 electron
+  - `src/main/bootstrap/ai-usage.js` — `bootstrapAiUsage({deps, opts})` 装配 + 可选预热
+  - `src/main/ipc/index.js` — 接入 `registerAiUsageHandlers(ctx)`
+- 渲染端
+  - `src/renderer/api.js` + `preload.js` — 暴露 `aiUsageGetCached` / `aiUsageFetch` / `onAiUsageUpdated`
+  - `src/renderer/store/ai-usage-store.js` — 4 signals: `aiUsageSnapshot` / `aiUsageLastError` / `aiUsageFetching` / `aiUsageFromCache`
+  - `src/renderer/hooks/useNowTick.jsx` — 通用 now tick hook (复用, 1s tick + unmount clear)
+  - `src/renderer/components/AIUsagePage.jsx` — 页面主组件 (倒计时 / 进度条 / banner / 空态)
+  - `src/renderer/components/AIUsageLayout.jsx` — mount 时 subscribe + loadCached
+  - `src/renderer/components/SideNav.jsx` + `src/renderer/worldcup/navStore.js` — 加 `ai-usage` 入口项 + NAV_KEYS
+  - `src/renderer/components/AppShell.jsx` — 路由 `nav === 'ai-usage'` → `<AIUsageLayout />`
+- 复用现有 `safeStorage` 加密的 Minimax API key (subscription key = API key)
+
+### 边界
+- **API key 缺失** (用户没在"AI 配置"设置 Minimax key) → 拉取返 `{ ok: false, reason: "api_key_missing" }`, UI 显示空态 + 错误 banner 提示去配置
+- **网络失败 / 429 / 5xx** → 失败 reason 透传到 UI, 保留 last-known snapshot
+- **字段缺失** (新 schema 临时下线) → normalize 静默降级: 缺哪个 window 该 window 显示 `null`, 另一个正常显示
+- **重复 click 刷新** → 客户端 `_inFlight` 单例, 不会触发重复 HTTP
+- **预热 fetch 失败** → 启动期完全吞掉, 不阻塞 bootstrap, UI 后续手动 fetch 仍可恢复
+- **历史快照** → V1 只展示当前配额 + 重置倒计时, 无历史趋势 (按 spec 范围)
+- **警告/硬限** → V1 仅展示, 不在用尽前做警告 (按 spec 范围)
+
+### 安全
+- 不写新字段到 safeStorage 之外的地方; AI 配额走现有 minimax key
+- IPC 输入严格校验 (region='cn'/'global', snapshot 是 object)
+- 失败响应不暴露内部 stack
+
+### 文档
+- 设计: `docs/superpowers/specs/2026-06-14-minimax-coding-plan-usage-design.md`
+- 实施计划: `docs/superpowers/plans/2026-06-14-minimax-coding-plan-usage-plan.md`
+
+### 测试
+- 整体测试: **1509 passed / 0 failed** (基线 1364 + 145 新增)
+  - normalize: 21
+  - client: 17 (+ 2 partial/old-schema)
+  - state-store ai-usage: 7
+  - IPC register-ai-usage: 8
+  - bootstrap-ai-usage: 5
+  - preload/api 入口 + hook: 已有
+  - ai-usage-store: 11
+  - AIUsagePage: 9
+  - sidenav + AppShell 路由: 5
+  - useNowTick: 4
+  - e2e: 5
+
+---
+
+## v2.11.7 (check-store · stale phase signal 清理 + session id 唯一) — 2026-06-14
+
+### 修 bug
+- **stale phase signal**: `startCheck` 之前会 loop `appPhaseSignals.values()` 把所有已 init signal 设 "pending", **但** line 82 整替换 `appPhases.value` 只含新 `appNames`. 老的 (新 check 不含的) app phase signal 停在 "pending", 跟新 maps 脱节, AppRow 通过 `getAppPhaseSignal(name).value` 读到 stale "pending" → 显示 loading 永远不结束
+- 场景: 用户卸装 Slack, 下次只 check Cursor → Slack phase signal 仍 "pending"
+- 修: 重置时区分, 不在新 appNames 里的 → 设 "idle"
+- **session id 重复**: `_sessionCounter` 之前未自增, 同毫秒多次 `startCheck` 产生同样 id → `applyProgress` 的 stale check (`sessionId !== currentSession.id`) 失效. 改成 `_sessionCounter++`
+
+---
+
+## v2.11.6 (ithome article 解析 · 切除 footer 污染) — 2026-06-14
+
+### 修 bug
+- **article-page-parser.js** `_extractParagraphBlock` 之前用 `html.lastIndexOf("</div>")` 找 paragraph close —— 错. IT 之家文章页 paragraph 后面还跟着 `<div class="newserror">` / `<div class="shareto">` / 软媒旗下网站 / 版权等 footer div, lastIndexOf 会把整个 footer 一锅端
+- 改用 depth-balanced 扫描: 维护 div 嵌套 depth, 遇到 `</div>` 才 depth--, depth 归零时定位真正的 paragraph close
+- 效果: IT 之家 fixture body 从 1155 字符 → 605 字符, 不再含 `投诉水文` / `相关文章` / `软媒旗下` / `Archiver` 等 footer 噪音
+- 提升 AI 总结质量 (之前 footer 内容会被送进 LLM prompt)
+
+---
+
+## v2.11.5 (全局 ConfirmDialog · 替代 window.confirm) — 2026-06-14
+
+### 改进
+- **全局 ConfirmDialog**: 新组件 `src/renderer/components/ConfirmDialog.jsx` + store `src/renderer/confirmStore.js` (signals)
+- 替代浏览器原生 `window.confirm` (Electron 桌面 app 里视觉不一致 / 不跟主题)
+- API: `await openConfirm({ title, message, confirmText, cancelText })` → `Promise<boolean>`
+- 重复调用自动取消前一个 (前一个 resolve `false`); 不支持队列 (单线程串行, 实际不需要)
+- z-index 5600 (比 reminder/recent modal 的 5500 高一档, 确认弹窗永远在最上)
+
+### 替换
+- `src/renderer/reminders/RemindersModal.jsx` 删除提醒
+- `src/renderer/worldcup/DayBetFooter.jsx` 清空体彩记录
+
+---
+
+## v2.11.4 (IT 新闻 · 已读 / 新文章 标记) — 2026-06-14
+
+### 新增
+- **已读标记**: 点标题 / 阅读原文后, 卡片 meta 行显示 `已读` tag, 标题变灰 (opacity 0.45, weight 400). 状态持久化到 `state.json.ithome_news.articles[id].readAt` (并同步到 favorites 同名 article)
+- **新文章标记**: 每次 refresh 期间, session 内首次出现 (非已读) 的 id 显示 `新` tag + 左侧 3px 紫色 (#af52de) 边杠. 切 tab / 切日期 / 切收藏日期 → 自动清空
+- **侧边日期 badge**: 默认 `20` (数字); 有已读时显示 `20 (已读 5)`, `已读 N` 部分用更暗颜色 (opacity 0.45)
+
+### 边界
+- 重复点已读文章 → `readAt` 幂等, 不更新时间戳
+- 收藏里的文章点过 → `favorites[id].article.readAt` 也会写入, 走收藏视图时仍正确
+- 刷新拉新 (RSS / list page) 时, `_mergeArticles` 和 refresh inline merge 都会保留旧 `readAt`, 已读状态不丢
+- app 重启 → 已读持久化保留, 新文章标记全清 (session-scoped 信号)
+- 收藏 / 摘要 / 抓取正文等行为完全不变
+
+### 工程
+- 主进程: `news-store.markArticleRead(id)` (幂等, 写 `articles` + `favorites`), IPC `ithome:mark-read` (`register-ithome.js`), preload 暴露 `ithomeMarkRead`
+- 渲染端: `ithomeReadIds` / `ithomeNewIds` signals (派生 from articles + diff), `markIthomeRead(id)` (乐观更新 + fire-and-forget IPC), `setIthomeViewMode` / `setIthomeSelectedDate` / `setIthomeFavoriteSelectedDate` 清空 newIds
+- UI: `NewsSidebar.dayCountTuple → { total, read }`; `NewsArticleRow` 派生 `isRead` / `isNew` 加 class + tag
+- 新增 utils: `readCountForDate(articles, readIds, dateKey)`
+- 整体测试: **1382 passed / 0 failed** (基线 1364 + 18 新增: 4 news-store + 4 news-utils + 7 store + 3 row)
+
+---
+
+## v2.11.3 (IT 新闻 AI 总结 — 按需拉详情页正文) — 2026-06-14
+
+### 问题
+- 之前在 IT 之家新闻卡片点 **AI 总结** 时, 主进程把 `article.excerpt` (列表页短摘录, 经常为空) 当正文喂给 LLM
+- LLM 只看到标题, 就**自己编**一句免责: "由于原文正文缺失, 以上信息仅依据标题整理, 可能不完整"
+- 截图里很多摘要都被这段废话污染, 实际总结质量被标题空想拖累
+
+### 修复
+- **按需抓取详情页正文** (`article-page-fetcher.js`): 检测到 `excerpt` < 200 字符时, 自动 HTTP 拉 `https://www.ithome.com/0/.../*.htm`, 解析 `<div id="paragraph">`, 去除投稿/广告段, 把正文落到 `state.json.ithome_news.articles[id].body`
+- **LLM 提示词重排** (`article-ai.js buildMessages`): 优先用 `body` (>= 200 字) → 回退到 `excerpt` → 都缺才给免责提示
+- **`contentHash` 包含 body**: body 落盘后, 旧 summary 的 hash 自动失效, 下次访问会被重新计算 (默认**不**主动清空, 用户点 "重新生成" 才用上带正文的版本 — 升级不打扰现有用户)
+- **UI 加进度反馈** (`NewsArticleRow.jsx`): 按钮文案分两段: `抓取正文中…` (需要抓详情页时) → `总结中…` (走 LLM), 对应阶段 disable
+- **抓取失败不影响总结**: 详情页 404/解析失败时, 主进程走原来的 fallback 提示, 用户仍能拿到一个 (相对粗糙的) 总结
+
+### 用户行为变化
+- 升级后, **旧的 AI 摘要会原样保留** — 它们是用旧 hash 算出来的, 仍合法; 不会自动重算
+- 想看带正文的版本: 列表里点 **`重新生成`**
+- 第一次点 **`AI 总结`** 的某条新闻: 按钮会先显示 `抓取正文中…` (约 1-3 秒, 看网络) 然后 `总结中…`, 比之前多一步
+
+### 工程
+- 新增 `article-page-parser.js` (解析详情页) / `article-page-fetcher.js` (拉取 + 落盘), 都用 vitest 单测覆盖, 含真实 IT 之家 HTML fixture (`tests/fixtures/ithome/article-866661.html`)
+- `news-store.js` 新增 `attachArticleBody(id, body, statePath)`, 不动 schema 不影响 favorites/summaries
+- 关键文案:
+  - 主进程抓详情页失败 (HTTP 4xx/5xx) → 走原 fallback 提示 "信息可能不完整"
+  - 详情页无 `#paragraph` → 同上
+- 整体测试: **1364 passed / 0 failed**, 新增 23 个 (parser 8 + fetcher 6 + ai 6 + row 3)
+
+---
+
 ## v2.11.2 (工程基础设施) — 2026-06-13
 
 本轮聚焦**项目工程化与稳定性**, 没有面向用户的新功能, 但都是 push 之前没人拦的"软肋":
