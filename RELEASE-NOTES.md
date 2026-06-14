@@ -2,6 +2,28 @@
 
 ---
 
+## v2.15.0 (世界杯 · bracket 视觉升级 v2) — 2026-06-14
+
+### 新增
+- **对阵模块视觉升级 v2**: 5 阶段水平 bracket tree + SVG 连线 (R32 → R16 → QF → SF → 决赛/季军), 左右分支结构一目了然
+- 卡片改为**上下两队版式** (team1 上 / 分隔线 / team2 下), 比分右对齐
+- **决赛** 用 240×100 金色边框卡片 + 居中标题
+- **季军赛** 用 200×70 灰色卡片
+- 已完赛 **R32 → R16** 的连线高亮为绿色 (`.bracket-tree-path--finished`)
+- **窗口 < 900px** 时自动回退到垂直堆叠布局 (`BracketTreeFallback`), 复用 v1 CSS
+
+### 工程
+- 渲染端
+  - `src/renderer/worldcup/BracketTree.jsx` — 5 列 flex 布局 + `useConnectors` hook (ResizeObserver + M-H-V-H 折线) + `useNarrowViewport` 响应式
+  - `src/renderer/worldcup/WorldcupBracketView.jsx` — 委托给 `<BracketTree>` 渲染
+- CSS
+  - `styles.css` — `.bracket-tree-*` (columns / column-section / column-cards / card / connectors / path / path--finished) + `.bracket-stage--finals` / `.bracket-finals`
+- 测试
+  - `tests/renderer/worldcup-bracket-tree.test.jsx` — 5 列结构 + fallback 切换 + 决赛/季军卡样式
+  - `tests/renderer/worldcup-bracket-view.test.jsx` — view ↔ BracketTree 集成 + 5 列断言
+
+---
+
 ## v2.14.0 (世界杯 · 淘汰赛 bracket 自动推演) — 2026-06-14
 
 ### 新增
