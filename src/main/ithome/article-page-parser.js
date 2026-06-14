@@ -26,10 +26,36 @@ function _extractParagraphBlock(html) {
   const m = PARAGRAPH_OPEN_RE.exec(html);
   if (!m) return "";
   const start = m.index + m[0].length;
-  // 非贪婪在嵌套 div 处会过早闭合；用 lastIndexOf 拿最深 </div>
-  const close = html.lastIndexOf("</div>");
-  if (close < start) return "";
-  return html.slice(start, close);
+  // depth-balanced 匹配: 从 start 扫描, 维护 div 嵌套 depth.
+  // 见到 `<div` → depth++, 见到 `</div>` → depth--; depth 归零时定位 paragraph close.
+  // 避免 lastIndexOf 把 paragraph 之后的 footer div (newserror / shareto / 软媒旗下) 一锅端.
+  let depth = 1;
+  let i = start;
+  const len = html.length;
+  while (i < len) {
+    const nextOpen = html.indexOf("<div", i);
+    const nextClose = html.indexOf("</div", i);
+    if (nextClose === -1) return ""; // 未闭合
+    if (nextOpen !== -1 && nextOpen < nextClose) {
+      // 确认是 `<div` 而非 `<divxxx` (比如 `<divide`): 检查 next char 是空白/>/eof
+      const after = html[nextOpen + 4];
+      if (after === undefined || /[\s>/]/.test(after)) {
+        depth++;
+        i = nextOpen + 4;
+        continue;
+      }
+      // 不是真正的 <div, 跳过这一位
+      i = nextOpen + 1;
+    } else {
+      depth--;
+      if (depth === 0) {
+        // close 标签长度 `</div>` = 6
+        return html.slice(start, nextClose + 6);
+      }
+      i = nextClose + 6;
+    }
+  }
+  return "";
 }
 
 function _normalizeWhitespace(s) {

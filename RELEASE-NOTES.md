@@ -2,6 +2,16 @@
 
 ---
 
+## v2.11.6 (ithome article 解析 · 切除 footer 污染) — 2026-06-14
+
+### 修 bug
+- **article-page-parser.js** `_extractParagraphBlock` 之前用 `html.lastIndexOf("</div>")` 找 paragraph close —— 错. IT 之家文章页 paragraph 后面还跟着 `<div class="newserror">` / `<div class="shareto">` / 软媒旗下网站 / 版权等 footer div, lastIndexOf 会把整个 footer 一锅端
+- 改用 depth-balanced 扫描: 维护 div 嵌套 depth, 遇到 `</div>` 才 depth--, depth 归零时定位真正的 paragraph close
+- 效果: IT 之家 fixture body 从 1155 字符 → 605 字符, 不再含 `投诉水文` / `相关文章` / `软媒旗下` / `Archiver` 等 footer 噪音
+- 提升 AI 总结质量 (之前 footer 内容会被送进 LLM prompt)
+
+---
+
 ## v2.11.5 (全局 ConfirmDialog · 替代 window.confirm) — 2026-06-14
 
 ### 改进

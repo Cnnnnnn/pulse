@@ -83,4 +83,17 @@ describe("ithome article-page-parser", () => {
     const empty = parseIthomeArticlePage("<html></html>");
     expect(hasArticleContent(empty)).toBe(false);
   });
+
+  it("does not include post-paragraph footer / 投诉水文 / 相关文章 / 软媒旗下", () => {
+    // 修 bug: 之前 _extractParagraphBlock 用 lastIndexOf("</div>") 会把
+    // paragraph 之后的所有 footer div (newserror / shareto / 软媒旗下网站 / 版权)
+    // 都包进 body, 污染 AI 总结. 修复后, body 应在 paragraph close 处结束.
+    const r = parseIthomeArticlePage(FIXTURE);
+    expect(r.ok).toBe(true);
+    expect(r.body).not.toContain("投诉水文");
+    expect(r.body).not.toContain("下载IT之家APP");
+    expect(r.body).not.toContain("相关文章");
+    expect(r.body).not.toContain("软媒旗下");
+    expect(r.body).not.toContain("Archiver");
+  });
 });
