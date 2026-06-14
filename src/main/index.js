@@ -35,6 +35,7 @@ const { WorkerPool } = require("../workers/pool");
 const { createWindowManager } = require("./window");
 const { createTrayManager } = require("./tray");
 const { registerIpcHandlers } = require("./ipc");
+const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const { mainLog, detectLog } = require("./log");
 const stateStore = require("./state-store");
 const { HttpClient } = require("./http-client");
@@ -260,6 +261,18 @@ async function bootstrap() {
   });
   mainLog.info(`ipc registered`);
   timings.ipc = Date.now() - tIpc;
+
+  // 7.5) AI usage warmup (fire-and-forget) — 让 renderer 进入 AI 用量页时立即有数据
+  //      IPC handlers 已在 registerIpcHandlers 里注册, 这里只跑 warmup
+  bootstrapAiUsage({
+    stateStore: {
+      load: stateStore.loadAiUsageSnapshot,
+      save: stateStore.saveAiUsageSnapshot,
+    },
+    storage: require("../ai-sessions/storage"),
+    MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
+    sendToRenderer,
+  }, { warmup: true, registerIpc: false });
 
   // 8) fund + reminders + recent listeners + auto-check timer
   fundScheduler = startFundScheduler({

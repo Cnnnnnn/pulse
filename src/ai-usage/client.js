@@ -75,17 +75,18 @@ class MiniMaxQuotaClient {
     const region = opts.region === "global" ? "global" : this.region;
     const endpoint = _resolveEndpoint({ region, endpoint: this.endpoint });
 
-    // 3) lazy create HttpClient
-    const http = this.httpClient || require("../main/http-client");
+    // 3) lazy create HttpClient (require 返 { HttpClient } object, 要 new 出 instance)
+    const { HttpClient: HttpClientCtor } = require("../main/http-client");
+    const http = this.httpClient || new HttpClientCtor({ timeout: 15_000, maxRetries: 0 });
 
-    // 4) 发请求
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${this.apiKey}`,
-    };
+    // 4) 发请求 — minimax /v1/token_plan/remains 是 GET, 不带 body
+    //    HttpClient.get(url, opts) 是 2 参 (不是 post 风格的 4 参)
     let r;
     try {
-      r = await http.post(endpoint, {}, headers, { timeout: 15_000 });
+      r = await http.get(endpoint, {
+        headers: { Authorization: `Bearer ${this.apiKey}` },
+        timeout: 15_000,
+      });
     } catch (err) {
       return { ok: false, reason: "network_failed", error: (err && err.message) || "unknown" };
     }
