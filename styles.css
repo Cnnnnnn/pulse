@@ -6192,3 +6192,213 @@ body {
   margin-top: 4px;
 }
 
+
+
+/* ─── AI 用量页面 ──────────────────────────────────────────── */
+
+.ai-usage-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px 32px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.ai-usage-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 880px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.ai-usage-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ai-usage-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1f);
+}
+
+.ai-usage-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary, #6b6b76);
+}
+
+.ai-usage-refresh-btn {
+  appearance: none;
+  border: 1px solid var(--border, #e1e1e6);
+  background: var(--bg-elevated, #ffffff);
+  color: var(--text-primary, #1a1a1f);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ai-usage-refresh-btn:hover:not(:disabled) {
+  background: var(--bg-hover, #f4f4f7);
+  border-color: var(--border-hover, #c4c4cc);
+}
+
+.ai-usage-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-usage-banner {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ai-usage-banner--warn {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  color: #8a6d00;
+}
+
+.ai-usage-banner--error {
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  color: #b71c1c;
+}
+
+.ai-usage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 16px;
+  background: var(--bg-elevated, #fafafa);
+  border: 1px dashed var(--border, #e1e1e6);
+  border-radius: 10px;
+  color: var(--text-secondary, #6b6b76);
+}
+
+.ai-usage-empty p {
+  margin: 4px 0;
+}
+
+.ai-usage-empty-hint {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.ai-usage-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.ai-usage-card {
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border, #e1e1e6);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-usage-card--empty {
+  background: var(--bg-elevated, #fafafa);
+  color: var(--text-secondary, #888);
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  font-size: 13px;
+}
+
+.ai-usage-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1f);
+}
+
+.ai-usage-card-countdown {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #6b6b76);
+  background: var(--bg-hover, #f4f4f7);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.ai-usage-card-numbers {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1f);
+}
+
+.ai-usage-card-remaining {
+  color: #1a73e8;
+}
+
+.ai-usage-card-divider {
+  font-weight: 300;
+  color: var(--text-secondary, #aaa);
+  margin: 0 2px;
+}
+
+.ai-usage-card-total {
+  color: var(--text-secondary, #6b6b76);
+  font-size: 18px;
+}
+
+.ai-usage-card-pct {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #6b6b76);
+}
+
+.ai-usage-card-bar {
+  height: 6px;
+  background: var(--bg-hover, #e9e9ef);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ai-usage-card-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+  transition: width 0.4s ease;
+}
+
+.ai-usage-card-reset-hint {
+  font-size: 11px;
+  color: var(--text-secondary, #888);
+}
+
+.ai-usage-footer {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-secondary, #888);
+}
+
+.ai-usage-footer code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--bg-hover, #f4f4f7);
+  padding: 1px 4px;
+  border-radius: 3px;
+}

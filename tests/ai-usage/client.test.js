@@ -42,8 +42,19 @@ describe("_resolveEndpoint", () => {
 function makeMockHttpClient(map) {
   return {
     calls: [],
+    // HttpClient.get 签名: (url, opts) — 2 参
+    async get(url, opts) {
+      this.calls.push({ url, opts, method: "GET" });
+      const r = map[url];
+      if (!r) {
+        return { status: 404, body: "{}", error: "no_fixture" };
+      }
+      if (r.throw) throw new Error(r.throw);
+      return { status: r.status, body: r.body };
+    },
+    // HttpClient.post 签名: (url, data, headers, opts) — 4 参
     async post(url, body, headers, opts) {
-      this.calls.push({ url, body, headers, opts });
+      this.calls.push({ url, body, headers, opts, method: "POST" });
       const r = map[url];
       if (!r) {
         return { status: 404, body: "{}", error: "no_fixture" };
@@ -79,7 +90,8 @@ describe("MiniMaxQuotaClient.fetchOnce", () => {
     expect(r.snapshot.windows["5h"].used).toBe(1800);
     expect(r.snapshot.windows.weekly.total).toBe(50000);
     expect(http.calls).toHaveLength(1);
-    expect(http.calls[0].headers.Authorization).toBe("Bearer sk-test");
+    expect(http.calls[0].method).toBe("GET");
+    expect(http.calls[0].opts.headers.Authorization).toBe("Bearer sk-test");
     expect(http.calls[0].opts.timeout).toBe(15_000);
   });
 

@@ -171,9 +171,21 @@ export function AIUsagePage() {
       )}
 
       {lastError && !snapshot && (
-        <div class="ai-usage-banner ai-usage-banner--error">
-          拉取失败: {lastError}
-        </div>
+        <>
+          <div class="ai-usage-banner ai-usage-banner--error">
+            拉取失败: {lastError}
+            {lastError === "api_key_missing" && (
+              <span> · 请在左下角"AI 配置"中填入 Minimax 的 API key</span>
+            )}
+            {lastError === "network_failed" && (
+              <span> · 请检查网络连接或代理设置</span>
+            )}
+          </div>
+          <div class="ai-usage-empty">
+            <p>还没有配额数据</p>
+            <p class="ai-usage-empty-hint">点击右上角"刷新"按钮重试,或排查上面失败原因</p>
+          </div>
+        </>
       )}
 
       {!snapshot && !lastError && (

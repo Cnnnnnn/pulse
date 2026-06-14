@@ -24,6 +24,7 @@ const { _internals } = require("../ipc/register-ai-usage");
  */
 function bootstrapAiUsage(deps, opts = {}) {
   const warmup = opts.warmup !== false;
+  const registerIpc = opts.registerIpc !== false; // 默认也注册 IPC, 调用方可选跳过
 
   // ── 1) 内部 deps: _internals.fetch/getCached 期望 deps.pushEvent
   //      外部 deps 用 sendToRenderer (跟 main process 别处一致), 这里包一层.
@@ -34,13 +35,15 @@ function bootstrapAiUsage(deps, opts = {}) {
     pushEvent: deps.sendToRenderer,
   };
 
-  // ── 2) 注册 IPC handlers ──
-  deps.register("ai-usage:get-cached", async () =>
-    _internals.getCached({ deps: internalDeps }),
-  );
-  deps.register("ai-usage:fetch", async (_event, evtOpts) =>
-    _internals.fetch({ deps: internalDeps, opts: evtOpts || {} }),
-  );
+  // ── 2) 注册 IPC handlers (可选 — 调用方在 registerIpcHandlers 已注册时可跳过) ──
+  if (registerIpc && typeof deps.register === "function") {
+    deps.register("ai-usage:get-cached", async () =>
+      _internals.getCached({ deps: internalDeps }),
+    );
+    deps.register("ai-usage:fetch", async (_event, evtOpts) =>
+      _internals.fetch({ deps: internalDeps, opts: evtOpts || {} }),
+    );
+  }
 
   // ── 3) 预热 fetch (fire-and-forget) ──
   if (warmup) {
