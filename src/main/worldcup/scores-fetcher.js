@@ -74,6 +74,73 @@ async function _fetchFreshTxt() {
 }
 
 /**
+ * 并行调 ESPN + wc26, 串行兜底 openfootball txt.
+ * 抽出来便于测试 — 接收可注入 fetchers + freshTxtFn.
+ *
+ * @param {string[]} keys
+ * @param {Array} targetFixtures 跟 keys 对齐的 fixtures
+ * @param {object} opts
+ * @param {Function} opts.fetchEspn (fixtures) => Promise<Record<string, object>>
+ * @param {Function} opts.fetchWc26 (fixtures) => Promise<Record<string, object>>
+ * @param {Function} [opts.fetchFreshTxt] () => Promise<{ok, data?}>  openfootball 兜底
+ * @param {Function} opts.scoreEntryFromMatch (match) => object|null  解析 openfootball match 为 score entry
+ * @returns {Promise<{merged: object, updatedKeys: string[], sources: object}>}
+ */
+async function _fetchScoresLayered(keys, targetFixtures, opts) {
+  const { fetchEspn, fetchWc26, fetchFreshTxt, scoreEntryFromMatch } = opts;
+  const merged = {};
+  const updatedKeys = [];
+  const sources = { espn: 0, worldcup26: 0, openfootball: 0 };
+
+  // Layer 1 + Layer 2 并行 (两源独立, 互不依赖)
+  // 任一源失败时 fetcher 内部已 catch 并返回 {}, 不影响另一源
+  const [fromEspn, fromApi] = await Promise.all([
+    fetchEspn(targetFixtures),
+    fetchWc26(targetFixtures),
+  ]);
+
+  for (const k of keys) {
+    if (fromEspn[k]) {
+      merged[k] = fromEspn[k];
+      updatedKeys.push(k);
+      sources.espn += 1;
+    }
+  }
+
+  const needWc26 = keys.filter((k) => !fromEspn[k]);
+  for (const k of needWc26) {
+    if (fromApi[k]) {
+      merged[k] = fromApi[k];
+      updatedKeys.push(k);
+      sources.worldcup26 += 1;
+    }
+  }
+
+  // Layer 3: openfootball TXT (仅补仍未覆盖的场次, 依赖前两层结果, 必须串行)
+  const missingKeys = keys.filter((k) => !fromEspn[k] && !fromApi[k]);
+  if (missingKeys.length > 0 && typeof fetchFreshTxt === "function") {
+    const fresh = await fetchFreshTxt();
+    if (fresh.ok && fresh.data && fresh.data.matches) {
+      const byKey = new Map();
+      for (const m of fresh.data.matches) {
+        byKey.set(matchKey(m), m);
+      }
+      for (const k of missingKeys) {
+        const m = byKey.get(k);
+        const entry = m ? scoreEntryFromMatch(m) : null;
+        if (entry) {
+          merged[k] = entry;
+          updatedKeys.push(k);
+          sources.openfootball += 1;
+        }
+      }
+    }
+  }
+
+  return { merged, updatedKeys, sources };
+}
+
+/**
  * @param {string[]} eligibleKeys
  * @returns {Promise<{ok: boolean, scores?: object, updatedKeys?: string[], skipped?: boolean, reason?: string, sources?: object}>}
  */
@@ -101,62 +168,23 @@ async function refreshWorldcupScores(eligibleKeys) {
     }
 
     const targetFixtures = _fixturesForKeys(fixturesData.matches, keys);
-    const merged = { ...(existing.entries || {}) };
-    const updatedKeys = [];
-    const sources = { espn: 0, worldcup26: 0, openfootball: 0 };
+    const http = _getHttp();
+    const layered = await _fetchScoresLayered(keys, targetFixtures, {
+      fetchEspn: (fx) => fetchScoresFromEspn(http, fx, matchKey),
+      fetchWc26: (fx) => fetchScoresFromWorldcup26(http, fx, matchKey),
+      fetchFreshTxt: _fetchFreshTxt,
+      scoreEntryFromMatch: _scoreEntryFromMatch,
+    });
 
-    // Layer 1: ESPN (进行中/完赛最准)
-    const fromEspn = await fetchScoresFromEspn(
-      _getHttp(),
-      targetFixtures,
-      matchKey,
-    );
-    for (const k of keys) {
-      if (fromEspn[k]) {
-        merged[k] = fromEspn[k];
-        updatedKeys.push(k);
-        sources.espn += 1;
-      }
-    }
-
-    // Layer 2: worldcup26.ir
-    const needWc26 = keys.filter((k) => !fromEspn[k]);
-    const fromApi = await fetchScoresFromWorldcup26(
-      _getHttp(),
-      _fixturesForKeys(fixturesData.matches, needWc26),
-      matchKey,
-    );
-    for (const k of needWc26) {
-      if (fromApi[k]) {
-        merged[k] = fromApi[k];
-        updatedKeys.push(k);
-        sources.worldcup26 += 1;
-      }
-    }
-
-    // Layer 3: openfootball TXT (仅补仍未覆盖的场次)
-    const missingKeys = keys.filter((k) => !fromEspn[k] && !fromApi[k]);
-    if (missingKeys.length > 0) {
-      const fresh = await _fetchFreshTxt();
-      if (fresh.ok && fresh.data && fresh.data.matches) {
-        const byKey = new Map();
-        for (const m of fresh.data.matches) {
-          byKey.set(matchKey(m), m);
-        }
-        for (const k of missingKeys) {
-          const m = byKey.get(k);
-          const entry = m ? _scoreEntryFromMatch(m) : null;
-          if (entry) {
-            merged[k] = entry;
-            updatedKeys.push(k);
-            sources.openfootball += 1;
-          }
-        }
-      }
-    }
-
+    // 跟 existing.entries merge (已有的 entries 保留, 新 entries 覆盖)
+    const merged = { ...(existing.entries || {}), ...layered.merged };
     stateStore.saveWorldcupScores({ entries: merged, ts: Date.now() });
-    return { ok: true, scores: merged, updatedKeys, sources };
+    return {
+      ok: true,
+      scores: merged,
+      updatedKeys: layered.updatedKeys,
+      sources: layered.sources,
+    };
   } catch (err) {
     mainLog.warn("[worldcup/scores-fetcher] refresh threw", {
       msg: err && err.message,
@@ -172,4 +200,5 @@ async function refreshWorldcupScores(eligibleKeys) {
 
 module.exports = {
   refreshWorldcupScores,
+  _fetchScoresLayered,
 };
