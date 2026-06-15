@@ -13,7 +13,7 @@ function parseUtcOffsetHours(tz) {
 
 function matchKey(match) {
   if (!match) return "";
-  return `${match.date}|${match.time}|${match.team1}|${match.team2}`;
+  return `${match.date || ""}|${match.time || ""}|${match.team1 || ""}|${match.team2 || ""}`;
 }
 
 function matchKickoffUtcMs(match) {
