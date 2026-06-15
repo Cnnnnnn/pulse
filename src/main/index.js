@@ -41,6 +41,7 @@ const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
 const reminders = require("./reminders");
 const recentActivity = require("./recent-activity");
+const goalWatcher = require("./worldcup/goal-watcher");
 
 const {
   ARCH,
@@ -57,6 +58,7 @@ const { initAiTasksWiring } = require("./bootstrap/ai-tasks.js");
 const {
   startFundScheduler,
   startRemindersScheduler,
+  startWorldcupGoalWatcher,
   wireRecentActivityListener,
   startAutoCheckTimer,
   makeRefreshLastOpenedAfterCheck,
@@ -303,6 +305,12 @@ async function bootstrap() {
     sendToRenderer,
   });
   startRemindersScheduler({ reminders, getWindow, sendToRenderer });
+  startWorldcupGoalWatcher({
+    getWindow,
+    sendToRenderer,
+    getConfig: () => runtimeConfigRef.current,
+    goalWatcher,
+  });
   wireRecentActivityListener({ recentActivity, sendToRenderer });
   startAutoCheckTimer({
     runtimeConfig,
