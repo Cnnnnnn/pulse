@@ -39,8 +39,45 @@ function _goalKeyOfScorer(scorer) {
   return `${scorer.minute || ""}|${scorer.player || "undefined"}|${scorer.teamSide || ""}`;
 }
 
+/**
+ * Diff 新进球: 比对 prevScores / newScores, 双重过滤 (prevScorers + notified list).
+ * 纯函数, 无 IO.
+ * @param {object} prevScores    { [matchKey]: scoreEntry }
+ * @param {object} newScores     { [matchKey]: scoreEntry }
+ * @param {object} prevNotified  { [matchKey]: { notified: string[], updatedAt: number } }
+ * @returns {Array<{matchKey: string, scorer: object, key: string}>}
+ */
+function _diffNewGoals(prevScores, newScores, prevNotified) {
+  const out = [];
+  const prev = prevScores || {};
+  const next = newScores || {};
+  const notified = prevNotified || {};
+
+  for (const [matchKeyStr, newEntry] of Object.entries(next)) {
+    if (!newEntry || !Array.isArray(newEntry.scorers)) continue;
+    // 完赛 + 有 scorers → 视为已 stable, 跳过 (防止重启后重推历史)
+    if (newEntry.status === "final" && newEntry.scorers.length > 0) continue;
+
+    const prevEntry = prev[matchKeyStr];
+    const prevScorers = (prevEntry && Array.isArray(prevEntry.scorers)) ? prevEntry.scorers : [];
+    const prevScorerKeys = new Set(prevScorers.map(_goalKeyOfScorer));
+    const alreadyNotified = new Set(
+      ((notified[matchKeyStr] || {}).notified || []),
+    );
+
+    for (const scorer of newEntry.scorers) {
+      const key = _goalKeyOfScorer(scorer);
+      if (prevScorerKeys.has(key)) continue;       // 上轮已含 (60s 内重复抓)
+      if (alreadyNotified.has(key)) continue;      // 已通知过 (重启后)
+      out.push({ matchKey: matchKeyStr, scorer, key });
+    }
+  }
+  return out;
+}
+
 module.exports = {
   _goalKeyOfScorer,
+  _diffNewGoals,
   SWEEP_INTERVAL_MS,
   MAX_GOAL_KEYS_PER_MATCH,
   MAX_NOTIFICATIONS_PER_SWEEP,
