@@ -96,10 +96,127 @@ function _formatGoalNotification(scorer, fixture) {
   };
 }
 
+/**
+ * 单次 sweep: 拉 fixtures → 算 eligible → 拉最新 scores → diff → 推 → 写盘.
+ * 全部依赖注入, 纯 IO 都在 deps 跟 stateStore.
+ * @param {number} now  epoch ms
+ * @param {object} deps
+ * @param {function} deps.refreshScores   async (keys) => { ok, scores, ... }
+ * @param {function} deps.loadFixtures    () => { txt, ts } | null
+ * @param {function} deps.onGoal          (notif, meta) => void
+ * @param {object} deps.log              { info, warn, error }
+ * @param {function} deps.onError         (err) => void
+ * @param {string} [deps.statePath]      可选 state.json 路径 (测试用, 默认走 stateStore.defaultPath)
+ * @returns {Promise<{notifiedCount: number, errors: string[]}>}
+ */
+async function _sweepOnce(now, deps) {
+  const { refreshScores, loadFixtures, onGoal, log, onError, statePath } = deps;
+  const errors = [];
+  let notifiedCount = 0;
+
+  try {
+    // 1) fixtures cache
+    const cached = loadFixtures();
+    if (!cached || !cached.txt) {
+      log.info("[goal-watcher] no fixtures cache, skip");
+      return { notifiedCount: 0, errors: ["no_fixtures"] };
+    }
+    const fixturesData = parseWorldcupTxt(cached.txt);
+    const allMatches = (fixturesData && fixturesData.matches) || [];
+
+    // 2) eligibleKeys: 已开球 + 未过期 + 未 final stable
+    const oldScoresCache = stateStore.loadWorldcupScores(statePath) || { entries: {} };
+    const oldEntries = oldScoresCache.entries || {};
+    const cutoffMs = now - MATCH_TOO_OLD_DAYS * 86400_000;
+    const eligibleKeys = allMatches
+      .filter((m) => isMatchStarted(m, now))
+      .filter((m) => {
+        const k = matchKickoffUtcMs(m);
+        return k != null && k >= cutoffMs;
+      })
+      .filter((m) => {
+        const e = oldEntries[matchKey(m)];
+        if (e && e.status === "final" && Array.isArray(e.scorers) && e.scorers.length > 0) return false;
+        return true;
+      })
+      .map(matchKey);
+
+    if (eligibleKeys.length === 0) {
+      return { notifiedCount: 0, errors: [] };
+    }
+
+    // 3) 拉最新
+    const refresh = await refreshScores(eligibleKeys);
+    if (!refresh || !refresh.ok) {
+      log.warn("[goal-watcher] refresh failed", { reason: refresh && refresh.reason });
+      return { notifiedCount: 0, errors: ["refresh_failed"] };
+    }
+    const newScores = refresh.scores || {};
+
+    // 4) 读旧 notified
+    const raw = stateStore.load(statePath) || {};
+    const prevNotified = raw.worldcupGoalNotified || {};
+
+    // 5) diff
+    const newGoals = _diffNewGoals(oldEntries, newScores, prevNotified);
+    if (newGoals.length === 0) {
+      return { notifiedCount: 0, errors: [] };
+    }
+
+    // 6) 拼通知 + 调 onGoal
+    const byKey = new Map(allMatches.map((m) => [matchKey(m), m]));
+    const toNotify = newGoals.slice(0, MAX_NOTIFICATIONS_PER_SWEEP);
+    const notifiedMap = new Map(); // matchKey → string[] (新 keys)
+
+    for (const g of toNotify) {
+      const fixture = byKey.get(g.matchKey);
+      if (!fixture) continue;
+      const fixtureWithScore = { ...fixture, score: newScores[g.matchKey] };
+      const notif = _formatGoalNotification(g.scorer, fixtureWithScore);
+      try {
+        onGoal(notif, { matchKey: g.matchKey, scorer: g.scorer, fixture });
+        if (!notifiedMap.has(g.matchKey)) notifiedMap.set(g.matchKey, []);
+        notifiedMap.get(g.matchKey).push(g.key);
+        notifiedCount += 1;
+      } catch (err) {
+        log.warn("[goal-watcher] onGoal failed", { msg: err.message });
+        errors.push(`onGoal_failed:${g.matchKey}`);
+      }
+    }
+
+    // 7) atomic write
+    if (notifiedMap.size > 0) {
+      try {
+        stateStore.patchState((next) => {
+          const prev = next.worldcupGoalNotified || {};
+          const merged = { ...prev };
+          for (const [mk, keys] of notifiedMap) {
+            const existingKeys = (prev[mk] && prev[mk].notified) || [];
+            merged[mk] = {
+              notified: [...existingKeys, ...keys].slice(-MAX_GOAL_KEYS_PER_MATCH),
+              updatedAt: now,
+            };
+          }
+          next.worldcupGoalNotified = merged;
+        }, statePath);
+      } catch (err) {
+        log.warn("[goal-watcher] state write failed", { msg: err.message });
+        errors.push("state_write_failed");
+      }
+    }
+
+    return { notifiedCount, errors };
+  } catch (err) {
+    if (typeof onError === "function") onError(err);
+    return { notifiedCount, errors: [...errors, (err && err.message) || "unknown"] };
+  }
+}
+
 module.exports = {
   _goalKeyOfScorer,
   _diffNewGoals,
   _formatGoalNotification,
+  _sweepOnce,
   SWEEP_INTERVAL_MS,
   MAX_GOAL_KEYS_PER_MATCH,
   MAX_NOTIFICATIONS_PER_SWEEP,
