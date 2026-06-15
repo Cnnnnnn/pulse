@@ -212,11 +212,77 @@ async function _sweepOnce(now, deps) {
   }
 }
 
+// ── 调度 ─────────────────────────────────────────────────
+
+let _sweepTimer = null;
+let _onGoal = null;
+let _deps = null;
+
+/**
+ * 启动 60s sweep. 第一次立即 _sweepOnce 一次 (拉启动前已在 live 的进球).
+ * 重复调 → 先 stop 老的, 再起新的.
+ * @param {object} deps
+ * @param {function} deps.refreshScores
+ * @param {function} deps.loadFixtures
+ * @param {function} deps.onGoal
+ * @param {object} [deps.log]
+ * @param {function} [deps.onError]
+ * @param {number} [deps.now]   epoch ms, 注入便于测试; 默认 Date.now()
+ */
+function startGoalWatcher(deps) {
+  if (!deps || typeof deps.onGoal !== "function") {
+    throw new TypeError("startGoalWatcher: deps.onGoal must be function");
+  }
+  if (typeof deps.refreshScores !== "function") {
+    throw new TypeError("startGoalWatcher: deps.refreshScores must be function");
+  }
+  if (typeof deps.loadFixtures !== "function") {
+    throw new TypeError("startGoalWatcher: deps.loadFixtures must be function");
+  }
+  stopGoalWatcher();
+  _deps = deps;
+  _onGoal = deps.onGoal;
+  const log = deps.log || { info: () => {}, warn: () => {}, error: () => {} };
+  const now0 = typeof deps.now === "number" ? deps.now : Date.now();
+
+  // 启动时 sweep 一次
+  _sweepOnce(now0, deps).catch((err) => {
+    log.warn("[goal-watcher] initial sweep failed", { msg: err && err.message });
+  });
+
+  // 60s setInterval
+  _sweepTimer = setInterval(() => {
+    _sweepOnce(Date.now(), _deps || deps).catch((err) => {
+      log.warn("[goal-watcher] sweep failed", { msg: err && err.message });
+    });
+  }, SWEEP_INTERVAL_MS);
+  if (_sweepTimer && typeof _sweepTimer.unref === "function") {
+    _sweepTimer.unref();
+  }
+}
+
+function stopGoalWatcher() {
+  if (_sweepTimer) {
+    clearInterval(_sweepTimer);
+    _sweepTimer = null;
+  }
+  _onGoal = null;
+  _deps = null;
+}
+
+function isGoalWatcherRunning() {
+  return _sweepTimer !== null;
+}
+
 module.exports = {
   _goalKeyOfScorer,
   _diffNewGoals,
   _formatGoalNotification,
   _sweepOnce,
+  get _sweepTimer() { return _sweepTimer; },
+  startGoalWatcher,
+  stopGoalWatcher,
+  isGoalWatcherRunning,
   SWEEP_INTERVAL_MS,
   MAX_GOAL_KEYS_PER_MATCH,
   MAX_NOTIFICATIONS_PER_SWEEP,

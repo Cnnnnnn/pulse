@@ -234,3 +234,44 @@ describe("goal-watcher: _sweepOnce (end-to-end mock)", () => {
     expect(onGoalCalls).toBe(1);
   });
 });
+
+describe("goal-watcher: scheduler lifecycle", () => {
+  it("startGoalWatcher + stopGoalWatcher toggle isGoalWatcherRunning", () => {
+    expect(goalWatcher.isGoalWatcherRunning()).toBe(false);
+    goalWatcher.startGoalWatcher({
+      refreshScores: async () => ({ ok: true, scores: {} }),
+      loadFixtures: () => null,
+      onGoal: () => {},
+      log: { info: () => {}, warn: () => {}, error: () => {} },
+      onError: () => {},
+    });
+    expect(goalWatcher.isGoalWatcherRunning()).toBe(true);
+    goalWatcher.stopGoalWatcher();
+    expect(goalWatcher.isGoalWatcherRunning()).toBe(false);
+  });
+
+  it("startGoalWatcher 重复调 → 先停老的, 再起新的 (idempotent)", () => {
+    goalWatcher.startGoalWatcher({
+      refreshScores: async () => ({ ok: true, scores: {} }),
+      loadFixtures: () => null,
+      onGoal: () => {},
+      log: { info: () => {}, warn: () => {}, error: () => {} },
+      onError: () => {},
+    });
+    const t1 = goalWatcher._sweepTimer;
+    goalWatcher.startGoalWatcher({
+      refreshScores: async () => ({ ok: true, scores: {} }),
+      loadFixtures: () => null,
+      onGoal: () => {},
+      log: { info: () => {}, warn: () => {}, error: () => {} },
+      onError: () => {},
+    });
+    const t2 = goalWatcher._sweepTimer;
+    expect(t1).not.toBe(t2);
+    goalWatcher.stopGoalWatcher();
+  });
+
+  it("startGoalWatcher 缺 onGoal → throw", () => {
+    expect(() => goalWatcher.startGoalWatcher({})).toThrow(TypeError);
+  });
+});
