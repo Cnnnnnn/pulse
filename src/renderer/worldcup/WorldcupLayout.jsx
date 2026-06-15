@@ -33,6 +33,7 @@ export function WorldcupLayout() {
   const [subTab, setSubTab] = useState('fixtures');
   const [search, setSearch] = useState('');
   const [teamSquad, setTeamSquad] = useState(null);
+  const [focusMatchKey, setFocusMatchKey] = useState(null);
 
   function handleSubTabChange(tab) {
     setSubTab(tab);
@@ -42,6 +43,16 @@ export function WorldcupLayout() {
 
   useEffect(() => {
     bootstrapWorldcupTab();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window.api?.onWorldcupFocusMatch !== "function") return;
+    const off = window.api.onWorldcupFocusMatch(({ matchKey }) => {
+      if (!matchKey) return;
+      setSubTab("fixtures");
+      setFocusMatchKey(matchKey);
+    });
+    return () => { if (typeof off === "function") off(); };
   }, []);
 
   function handleTeamClick(team) {
@@ -77,7 +88,11 @@ export function WorldcupLayout() {
         ) : subTab === 'bracket' ? (
           <WorldcupBracketView />
         ) : (
-          <WorldcupView search={search} />
+          <WorldcupView
+            search={search}
+            focusMatchKey={focusMatchKey}
+            onFocusMatchConsumed={() => setFocusMatchKey(null)}
+          />
         )}
         {teamSquad && (
           <SquadModal match={teamSquad} onClose={() => setTeamSquad(null)} />

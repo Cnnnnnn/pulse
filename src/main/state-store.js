@@ -157,6 +157,7 @@ const PRESERVE_FIELDS = [
   { key: "worldcup_scores", kind: "object" },
   { key: "worldcup_match_insights", kind: "object" },
   { key: "worldcup_bracket_snapshot", kind: "object" },
+  { key: "worldcupGoalNotified", kind: "object", notArray: true },  // 新增 (goal notifications v1)
   { key: "funds", kind: "object", notArray: true },
   { key: "worldcupBets", kind: "object", notArray: true },
   { key: "ithome_news", kind: "object", notArray: true },

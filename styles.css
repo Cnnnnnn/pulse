@@ -6906,3 +6906,14 @@ body {
 @media (max-width: 899px) {
   .bracket-tree { display: none; }
 }
+
+/* v2.16.0 世界杯进球通知: 3 秒黄色高亮 */
+.match-row-highlight {
+  animation: goal-highlight-pulse 3s ease-out;
+}
+
+@keyframes goal-highlight-pulse {
+  0%   { background-color: rgba(255, 215, 0, 0.55); }
+  60%  { background-color: rgba(255, 215, 0, 0.20); }
+  100% { background-color: transparent; }
+}

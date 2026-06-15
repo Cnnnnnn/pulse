@@ -9,6 +9,8 @@ const { app, Notification: ElectronNotification } = require("electron");
 const { mainLog } = require("../log");
 const { runCheckQueued } = require("../check-runner");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
+const { inQuietHours } = require("../notification-policy");
+const stateStore = require("../state-store");
 
 /**
  * @param {object} deps
@@ -111,6 +113,79 @@ function wireRecentActivityListener(deps) {
     });
   } catch (err) {
     mainLog.warn(`recent-activity onUpdate failed: ${err && err.message}`);
+  }
+}
+
+/**
+ * v2.16.0 世界杯进球通知 — 60s sweep + 系统通知.
+ * 复用 refreshWorldcupScores / inQuietHours / Electron Notification.
+ * @param {object} deps
+ * @param {function} deps.getWindow
+ * @param {function} deps.sendToRenderer
+ * @param {function} deps.getConfig
+ * @param {object} deps.goalWatcher
+ */
+function startWorldcupGoalWatcher(deps) {
+  const { getWindow, sendToRenderer, getConfig, goalWatcher } = deps;
+  try {
+    goalWatcher.startGoalWatcher({
+      refreshScores: (keys) => require("../worldcup/scores-fetcher").refreshWorldcupScores(keys),
+      loadFixtures: () => stateStore.loadWorldcupTxt(),
+      onGoal: (notif, meta) => {
+        try {
+          // 复用现有 quiet hours
+          const cfg = (typeof getConfig === "function" ? getConfig() : null) || {};
+          const qh = (cfg.notifications) || {};
+          const now = new Date();
+          if (inQuietHours(now, qh.quiet_hours_start, qh.quiet_hours_end)) {
+            mainLog.info(`[worldcup/goal-watcher] quiet hours skip: ${meta.matchKey}`);
+            return;
+          }
+          if (!ElectronNotification.isSupported()) return;
+          const n = new ElectronNotification({
+            title: notif.title,
+            body: notif.body,
+            silent: false,
+          });
+          n.on("click", () => {
+            try {
+              const w = getWindow();
+              if (w && !w.isDestroyed()) {
+                w.show();
+                w.focus();
+              }
+            } catch {
+              /* noop */
+            }
+            try {
+              sendToRenderer("worldcup:focus-match", { matchKey: meta.matchKey });
+            } catch (err) {
+              mainLog.warn(`[worldcup/goal-watcher] sendToRenderer failed: ${err && err.message}`);
+            }
+          });
+          n.show();
+        } catch (err) {
+          mainLog.warn(
+            `[worldcup/goal-watcher] notification show failed: ${err && err.message}`,
+          );
+        }
+      },
+      log: {
+        info: (...args) => mainLog.info(...args),
+        warn: (...args) => mainLog.warn(...args),
+        error: (...args) => mainLog.error(...args),
+      },
+    });
+    mainLog.info("worldcup goal watcher started (60s sweep)");
+    app.once("before-quit", () => {
+      try {
+        goalWatcher.stopGoalWatcher();
+      } catch {
+        /* noop */
+      }
+    });
+  } catch (err) {
+    mainLog.warn(`worldcup goal watcher init failed: ${err && err.message}`);
   }
 }
 
@@ -223,6 +298,7 @@ function makeRefreshLastOpenedAfterCheck(deps) {
 module.exports = {
   startFundScheduler,
   startRemindersScheduler,
+  startWorldcupGoalWatcher,
   wireRecentActivityListener,
   startAutoCheckTimer,
   makeRefreshLastOpenedAfterCheck,
