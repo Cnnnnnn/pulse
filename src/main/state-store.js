@@ -838,7 +838,7 @@ function cleanExpiredUsageHistory(days) {
 /**
  * 读 AI 用量历史. 老 state.json (无 ai_usage_history 字段) → { days: [] }.
  * @param {string} [statePath]
- * @returns {{days: Array<{date: string, used: number, percent: number|null, updatedAt: number}>}}
+ * @returns {{days: Array<{date: string, percent: number, used: number|null, updatedAt: number}>}}
  */
 function loadAiUsageHistory(statePath = defaultPath()) {
   const s = load(statePath);
@@ -869,8 +869,11 @@ function appendAiUsageHistoryDay(entry, statePath = defaultPath()) {
   ) {
     throw new TypeError("appendAiUsageHistoryDay: entry.date must be YYYY-MM-DD");
   }
-  if (typeof entry.used !== "number" || !Number.isFinite(entry.used) || entry.used < 0) {
-    throw new TypeError("appendAiUsageHistoryDay: entry.used must be non-negative number");
+  if (typeof entry.percent !== "number" || !Number.isFinite(entry.percent) || entry.percent < 0 || entry.percent > 100) {
+    throw new TypeError("appendAiUsageHistoryDay: entry.percent must be 0-100 number");
+  }
+  if (entry.used != null && (typeof entry.used !== "number" || !Number.isFinite(entry.used) || entry.used < 0)) {
+    throw new TypeError("appendAiUsageHistoryDay: entry.used (if present) must be non-negative number");
   }
   return patchState((next, existing, now) => {
     const oldDays = Array.isArray(existing.ai_usage_history && existing.ai_usage_history.days)
@@ -881,14 +884,17 @@ function appendAiUsageHistoryDay(entry, statePath = defaultPath()) {
       if (d && typeof d.date === "string") map.set(d.date, d);
     }
     const prev = map.get(entry.date);
-    const used = Math.max(prev && typeof prev.used === "number" ? prev.used : 0, entry.used);
-    const percent = entry.percent != null
-      ? Math.max(prev && typeof prev.percent === "number" ? prev.percent : 0, entry.percent)
-      : (prev && typeof prev.percent === "number" ? prev.percent : null);
+    // percent 必填, 取 max (5h 窗口重置 percent 会回落, 保留当天最高水位)
+    const percent = Math.max(prev && typeof prev.percent === "number" ? prev.percent : 0, entry.percent);
+    // used 可选, 如果新 entry 有则跟旧 max 比, 否则保留旧值
+    let used = prev && typeof prev.used === "number" ? prev.used : null;
+    if (typeof entry.used === "number") {
+      used = Math.max(used == null ? 0 : used, entry.used);
+    }
     map.set(entry.date, {
       date: entry.date,
-      used,
-      percent: typeof percent === "number" ? percent : null,
+      percent,
+      used: typeof used === "number" ? used : null,
       updatedAt: now,
     });
     next.ai_usage_history = { days: cleanExpiredUsageHistory([...map.values()]) };

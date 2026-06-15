@@ -328,7 +328,7 @@ export function AIUsagePage() {
 
       {snapshot && (
         <div class="ai-usage-history">
-          <div class="ai-usage-history-title">最近 7 天用量趋势</div>
+          <div class="ai-usage-history-title">最近 7 天用量趋势 (5h 窗口已用%)</div>
           <UsageSparkline history={aiUsageHistory.value} days={7} height={56} />
         </div>
       )}

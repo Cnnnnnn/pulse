@@ -71,18 +71,14 @@ const _internals = {
     deps.stateStore.save(r.snapshot);
 
     // 追加当天 used 到 history (sparkline 持久化)
-    // 5h 窗口的 used 是当天累积消耗的最佳代理
+    // 用 5h 窗口的 usedPercent (0-100) 作主指标, used (绝对数) 作 tooltip 辅助
     const w = r.snapshot && r.snapshot.windows && r.snapshot.windows["5h"];
-    if (w) {
+    if (w && typeof w.usedPercent === "number" && w.usedPercent > 0) {
       try {
         const date = _localDateKey();
-        const used = typeof w.used === "number" && w.used > 0
-          ? w.used
-          : (typeof w.usedPercent === "number" ? w.usedPercent : 0);
-        const percent = typeof w.usedPercent === "number" ? w.usedPercent : null;
-        if (used > 0) {
-          deps.stateStore.appendHistory({ date, used, percent });
-        }
+        const percent = w.usedPercent; // 0-100
+        const used = typeof w.used === "number" && w.used > 0 ? w.used : null;
+        deps.stateStore.appendHistory({ date, percent, used });
       } catch (e) {
         // 写历史失败不阻塞主流程
         log_warn_history(e);
