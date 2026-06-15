@@ -75,9 +75,31 @@ function _diffNewGoals(prevScores, newScores, prevNotified) {
   return out;
 }
 
+/**
+ * 拼系统通知的 title + body. 纯函数.
+ * @param {{minute: string, player: string, teamSide: string, ownGoal?: boolean, penalty?: boolean}} scorer
+ * @param {{team1: string, team2: string, score?: {ft: [number, number]}}} fixture
+ * @returns {{title: string, body: string}}
+ */
+function _formatGoalNotification(scorer, fixture) {
+  const prefix = scorer.ownGoal ? "乌龙球 · " : scorer.penalty ? "点球 · " : "进球 · ";
+  const teamName = scorer.teamSide === "team1" ? fixture.team1 : fixture.team2;
+  const oppName = scorer.teamSide === "team1" ? fixture.team2 : fixture.team1;
+  const ft = fixture.score && Array.isArray(fixture.score.ft) ? fixture.score.ft : null;
+  const scoreStr = ft ? `${ft[0]}-${ft[1]}` : "";
+  const body = scoreStr
+    ? `${teamName} vs ${oppName} · 当前 ${scoreStr}`
+    : `${teamName} vs ${oppName}`;
+  return {
+    title: `${prefix}${scorer.minute || ""} ${scorer.player || ""}`.trim(),
+    body,
+  };
+}
+
 module.exports = {
   _goalKeyOfScorer,
   _diffNewGoals,
+  _formatGoalNotification,
   SWEEP_INTERVAL_MS,
   MAX_GOAL_KEYS_PER_MATCH,
   MAX_NOTIFICATIONS_PER_SWEEP,
