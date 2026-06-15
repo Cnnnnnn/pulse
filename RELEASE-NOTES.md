@@ -2,6 +2,26 @@
 
 ---
 
+## v2.16.1 (世界杯 · 刷新卡顿修复 + 比分源并行) — 2026-06-15
+
+### 修复
+- **世界杯刷新"点不动"** bug: `refreshWorldcupScores` 进函数立刻 set `worldcupScoresLoading=true`, 整个函数包进 try/finally, 任何路径 (fixtures 阶段 / 早期 return / 错误 / 成功) 都正确 reset loading
+  - 之前: fixtures 阶段没设 loading → 按钮不转圈 → 用户重复点 → IPC 队列堆积 → UI 卡死
+  - 现在: 进函数立刻 disable 按钮 + 转圈, 并发守卫覆盖整个生命周期
+
+### 变更
+- **3 层比分源 ESPN + wc26 改并行** (`scores-fetcher.js`)
+  - 之前: ESPN → wc26 → openfootball 全串行, 单次 refresh 最坏 24s
+  - 现在: ESPN + wc26 `Promise.all` 并行 (两源独立, 互不依赖), openfootball 仍串行 (依赖前两层结果)
+  - 实测: 5s (主要 ESPN 单源延迟), 比之前最坏 24s 快 5 倍
+- 抽出 `_fetchScoresLayered(keys, fixtures, opts)` DI 函数便于单测 (9 个测试覆盖并行 / 优先级 / 兜底 / 失败传播)
+
+### 测试
+- `tests/renderer/worldcup-refresh-scores-loading.test.js` (新增, 4 case) — `refreshWorldcupScores` loading 生命周期回归测试
+- `tests/main/worldcup-scores-fetcher.test.js` (新增, 9 case) — `_fetchScoresLayered` 并行 + 优先级 + 兜底测试
+
+---
+
 ## v2.16.0 (世界杯 · 进球通知推送) — 2026-06-15
 
 ### 新增
