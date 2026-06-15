@@ -93,6 +93,10 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("worldcup:compute-bracket", payload),
   worldcupLoadBracket: () => ipcRenderer.invoke("worldcup:load-bracket"),
 
+  // v2.16.0 世界杯进球通知: main 推通知点击 → renderer 切 tab + scroll
+  onWorldcupFocusMatch: (cb) =>
+    ipcRenderer.on("worldcup:focus-match", (_, data) => cb(data)),
+
   getAiSharedConfig: () => ipcRenderer.invoke("ai:get-shared-config"),
 
   // IT之家新闻

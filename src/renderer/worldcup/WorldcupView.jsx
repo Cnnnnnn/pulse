@@ -40,7 +40,7 @@ function formatWeekday(date) {
   return WEEKDAYS_CN[idx] || '';
 }
 
-export function WorldcupView({ search = '' }) {
+export function WorldcupView({ search = '', focusMatchKey = null, onFocusMatchConsumed }) {
   const data = worldcupMatches.value;
   const loading = worldcupLoading.value;
   const error = worldcupError.value;
@@ -65,6 +65,26 @@ export function WorldcupView({ search = '' }) {
     }
     return groupMatchesByDate(matches);
   }, [data, search]);
+
+  useEffect(() => {
+    if (!focusMatchKey) return;
+    requestAnimationFrame(() => {
+      const el = document.querySelector(
+        `[data-match-key="${(focusMatchKey || "").replace(/"/g, '\\"')}"]`,
+      );
+      if (!el) {
+        console.warn(`[worldcup] focus-match: element not found: ${focusMatchKey}`);
+        if (typeof onFocusMatchConsumed === "function") onFocusMatchConsumed();
+        return;
+      }
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("match-row-highlight");
+      setTimeout(() => {
+        try { el.classList.remove("match-row-highlight"); } catch { /* noop */ }
+        if (typeof onFocusMatchConsumed === "function") onFocusMatchConsumed();
+      }, 3000);
+    });
+  }, [focusMatchKey]);
 
   // 错误态
   if (error) {
