@@ -7,7 +7,7 @@ node_modules/
 dist/
 renderer-dist/
 out/
-build/
+# build/ 留着 — electron-builder entitlements + 后续资源文件会放在这里
 
 # Logs
 *.log

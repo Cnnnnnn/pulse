@@ -14,6 +14,24 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
+// safeStorage 兼容性: 早期 Pulse 版本 (当时 package.json 只有 name="pulse",
+// 没有 productName) 走小写 "pulse Safe Storage" 作为 keychain service name,
+// 老用户的 .bin 加密文件绑了那个 service 下的 master key. 现在加了
+// productName="Pulse" → Electron 默认走大写 "Pulse Safe Storage" → 拿到不同
+// 的 master key → decrypt 老 .bin 失败, 看起来 "deepseek/minimax 正常 GLM
+// 异常" 其实是全部 decrypt 失败 (UI 走 hasFile 兜底让状态栏误显 "已存 key").
+//
+// 强制设回小写 "pulse" 保持兼容. 必须在 app.whenReady() 之前调, 才能影响
+// Electron 内部 cache 的 KeychainPassword service name.
+// 详见 https://github.com/electron/electron/issues/45328
+if (app && typeof app.setName === "function") {
+  try {
+    app.setName("pulse");
+  } catch {
+    /* noop — vitest 环境里 app 可能不可用 */
+  }
+}
+
 // Phase B2b: ai-sessions CursorDetector 读 vscdb 用 Node 22.5+ 内置的 node:sqlite.
 // 在 app.whenReady() 之前启 flag.
 try {

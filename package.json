@@ -38,8 +38,14 @@
       "icon": "assets/icon.icns",
       "target": [
         "dmg"
-      ]
+      ],
+      "identity": null,
+      "gatekeeperAssess": false,
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
     },
+    "afterPack": "build/after-pack.cjs",
     "files": [
       "src/**",
       "preload.js",

@@ -62,9 +62,24 @@ function buildConfigPayload(providerId, model, baseUrl) {
  };
 }
 
+function humanizeReason(reason) {
+ switch (reason) {
+ case 'safeStorage_unavailable':
+ return 'safeStorage 不可用 (keychain 拒绝访问)';
+ case 'invalid_providerId':
+ return 'provider id 不合法';
+ case 'invalid_apiKey':
+ return 'API key 不能为空';
+ case 'threw':
+ return '调用 IPC 时抛错';
+ default:
+ return reason;
+ }
+}
+
 function getSaveStatusMeta(saveStatus) {
  if (typeof saveStatus === 'object' && saveStatus && saveStatus.error) {
- return { text: `✗ ${saveStatus.error}`, tone: 'error' };
+ return { text: `✗ ${humanizeReason(saveStatus.error)}`, tone: 'error' };
  }
  switch (saveStatus) {
  case 'saving':
@@ -193,7 +208,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  const providerDescriptor = cloudProviderId === 'deepseek' ? '推理稳定，适合通用总结' : '中文表现更强，适合高频日更';
  const keyStatusText = keyStatus.available
  ? (keyStatus.hasKey ? `✓ ${cloudProviderId} 已存 key` : `${cloudProviderId} 尚未存 key`)
- : 'safeStorage 不可用，可临时改用环境变量';
+ : '⚠ safeStorage 不可用，请在系统钥匙串 (Keychain Access.app) 手动允许 Electron 访问';
 
  return (
  <div class="ai-config-form">
@@ -315,7 +330,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  <small class="ai-settings-hint">
  {keyStatus.available
  ? '修改 key 后可以直接点“测试连接”验证，再保存最终配置。'
- : '当前系统不支持 safeStorage，可改用环境变量提供 key。'}
+ : '当前系统拒绝 Electron 访问钥匙串。详见 docs/keychain-troubleshooting.md 手动清理脏 item,或重新打包正式版。'}
  </small>
  </div>
  </section>
