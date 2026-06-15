@@ -17,6 +17,7 @@ import { displayTeam } from './teams-data.js';
 import { toBeijingTime } from './timeUtils.js';
 import MatchScorers from './MatchScorers.jsx';
 import MatchCardAi from './MatchCardAi.jsx';
+import { matchKey as computeMatchKey } from '../../utils/match-key.js';
 
 // TXT 阶段 → 中文
 const STAGE_CN = {
@@ -72,7 +73,7 @@ function MatchCard({ match, onClick }) {
   ].filter(Boolean).join(' ');
 
   return (
-    <div class={cardClass}>
+    <div class={cardClass} data-match-key={computeMatchKey(match)}>
       <div
         class="match-card-main"
         role="button"
