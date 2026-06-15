@@ -2,6 +2,37 @@
 
 ---
 
+## v2.16.0 (世界杯 · 进球通知推送) — 2026-06-15
+
+### 新增
+- **世界杯进球通知**: Pulse 跑着时, 60s 轮询所有进行中的比赛, ESPN 抓到新进球就通过系统通知推送
+- 通知含「进球 / 乌龙球 / 点球」前缀 + 当前比分 (`阿根廷 vs 法国 · 当前 1-0`)
+- **点击通知自动切到世界杯 tab** + `scrollIntoView` 滚到该场比赛 + **3 秒黄色脉冲高亮** (`.match-row-highlight`)
+- **复用现有 quiet hours 抑制** (跟 app 更新通知同源配置)
+- **重启不重推历史进球**: 双重去重走 `state.json.worldcupGoalNotified` 顶层字段 (上轮 scorers + 历史 notified 列表)
+
+### 变更
+- `state-store.js` `PRESERVE_FIELDS` 加 `worldcupGoalNotified` (避免其他 patchState 写盘时丢字段)
+- `bootstrap/schedulers.js` 加 `startWorldcupGoalWatcher` 调度入口 (跟 `startRemindersScheduler` 同模式)
+- `MatchCard` 根 div 加 `data-match-key` 属性 (供 IPC focus 定位)
+- `WorldcupLayout` 监听 `worldcup:focus-match` IPC → 切到赛程 sub-tab + 传 `focusMatchKey` 给 `WorldcupView`
+- `WorldcupView` 收到 `focusMatchKey` → `querySelector` + `scrollIntoView` + `match-row-highlight` 3 秒
+- `preload.js` 暴露 `onWorldcupFocusMatch` IPC 桥
+- `styles.css` 加 `.match-row-highlight` + `@keyframes goal-highlight-pulse`
+- `src/main/worldcup/match-key.js` 跟新建 `src/utils/match-key.js` 加 `|| ""` 兜底 (renderer 端防御性)
+
+### 实现细节
+- 复用现有 `refreshWorldcupScores` (ESPN → worldcup26 → openfootball 三层) — 不另起 HTTP 流量
+- `goalKey = minute|player|teamSide` (ownGoal/penalty 不进 key, 防止 ESPN 偶发漏标破坏去重)
+- 单场 `notified` goalKey 上限 50, 单 sweep 推送上限 10 (防刷爆 state.json / 通知轰炸)
+- 完赛比赛 (`status=final + scorers` 非空) 不再扫, 防止重启后重推历史
+- 启动时 sweep 一次, 推启动前已在 live 的进球
+- 30 天前比赛排除 (默认 `MATCH_TOO_OLD_DAYS=30`)
+- 主进程模块 `src/main/worldcup/goal-watcher.js` (~280 行, 7 个导出, 14 个单测 + 3 个 integration smoke)
+- `_sweepOnce` 全部 DI: `refreshScores` / `loadFixtures` / `onGoal` / `log` / `onError` / `statePath` (测试用)
+
+---
+
 ## v2.15.0 (世界杯 · bracket 视觉升级 v2 + 实时计算) — 2026-06-14
 
 ### 新增
