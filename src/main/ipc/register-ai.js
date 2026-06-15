@@ -126,12 +126,13 @@ function registerAiHandlers(ctx) {
         ok: false,
         hasKey: false,
         available: false,
+        safeStorageOk: false,
         reason: "invalid_providerId",
       };
     }
-    const available = aiStorage.isAvailable();
-    if (!available) {
-      return { ok: true, hasKey: false, available: false };
+    const safeStorageOk = Boolean(aiStorage.isAvailable());
+    if (!safeStorageOk) {
+      return { ok: true, hasKey: false, available: false, safeStorageOk: false };
     }
     const hasKey = Boolean(aiStorage.loadApiKey(providerId));
     const hasFile =
@@ -143,6 +144,7 @@ function registerAiHandlers(ctx) {
       hasKey: hasKey || hasFile,
       decryptOk: hasKey,
       available: true,
+      safeStorageOk: true,
     };
   });
 

@@ -38,7 +38,10 @@
       "icon": "assets/icon.icns",
       "target": [
         "dmg"
-      ]
+      ],
+      "hardenedRuntime": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
     },
     "files": [
       "src/**",
