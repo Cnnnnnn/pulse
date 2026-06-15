@@ -111,30 +111,31 @@ export async function loadWorldcupScoresCache() {
  */
 export async function refreshWorldcupScores() {
   if (worldcupScoresLoading.value) return false;
-  worldcupScoresError.value = null;
-
-  const curCount = worldcupMatches.value?.matches?.length || 0;
-  if (curCount < 70) {
-    const ok = await loadWorldcupFixtures(true);
-    if (!ok) return false;
-  } else if (!worldcupMatches.value?.matches) {
-    const ok = await loadWorldcupFixtures();
-    if (!ok) return false;
-  }
-
-  await loadWorldcupScoresCache();
-
-  const matches = worldcupMatches.value?.matches;
-  if (!matches || matches.length === 0) return true;
-
-  const eligibleKeys = matches
-    .filter((m) => isScoreRefreshEligible(m, worldcupScores.value[matchKey(m)]))
-    .map((m) => matchKey(m));
-
-  if (eligibleKeys.length === 0) return true;
-
   worldcupScoresLoading.value = true;
+  worldcupScoresError.value = null;
   try {
+    const curCount = worldcupMatches.value?.matches?.length || 0;
+    if (curCount < 70) {
+      const ok = await loadWorldcupFixtures(true);
+      if (!ok) return false;
+    } else if (!worldcupMatches.value?.matches) {
+      const ok = await loadWorldcupFixtures();
+      if (!ok) return false;
+    }
+
+    await loadWorldcupScoresCache();
+
+    const matches = worldcupMatches.value?.matches;
+    if (!matches || matches.length === 0) return true;
+
+    const eligibleKeys = matches
+      .filter((m) =>
+        isScoreRefreshEligible(m, worldcupScores.value[matchKey(m)]),
+      )
+      .map((m) => matchKey(m));
+
+    if (eligibleKeys.length === 0) return true;
+
     if (
       typeof window === "undefined" ||
       !window.api ||
