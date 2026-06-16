@@ -6222,6 +6222,41 @@ body {
   overflow-y: auto;
 }
 
+/* AI 用量页 provider 切换 tab (minimax / glm) */
+.ai-usage-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--bg-secondary);
+  max-width: 880px;
+  width: 100%;
+  margin: 0 auto 4px;
+}
+
+.ai-usage-tab {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-system);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 150ms ease;
+  margin-bottom: -1px;
+}
+
+.ai-usage-tab:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ai-usage-tab--active {
+  color: #007aff;
+  border-bottom-color: #007aff;
+}
+
 .ai-usage-page {
   display: flex;
   flex-direction: column;

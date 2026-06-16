@@ -73,7 +73,8 @@ describe('appendAiUsageHistoryDay', () => {
     fs.writeFileSync(statePath, JSON.stringify({ apps: { Foo: { name: 'Foo' } } }), 'utf-8');
     stateStore.appendAiUsageHistoryDay({ date: '2026-06-13', percent: 20 }, statePath);
     const r = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-    expect(r.ai_usage_history.days).toEqual([
+    // v2: history 落盘为 { schema_version, providers: { minimax: { days } } }
+    expect(r.ai_usage_history.providers.minimax.days).toEqual([
       expect.objectContaining({ date: '2026-06-13', percent: 20, used: null }),
     ]);
     expect(r.apps.Foo.name).toBe('Foo'); // 其它字段保留
@@ -114,9 +115,12 @@ describe('appendAiUsageHistoryDay', () => {
     const r = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
     expect(r.apps.Foo.name).toBe('Foo');
     expect(r.mutes.Foo.until).toBe(0);
+    // 写 history 不触发 ai_usage 迁移 — v1 ai_usage 原样保留
     expect(r.ai_usage.provider).toBe('minimax');
     expect(r.last_opened.Foo.ms).toBe(12345);
-    expect(r.ai_usage_history.days.length).toBe(1);
+    // v2: history 落盘为 { schema_version, providers: { minimax: { days } } }
+    expect(r.ai_usage_history.schema_version).toBe(2);
+    expect(r.ai_usage_history.providers.minimax.days.length).toBe(1);
   });
 });
 

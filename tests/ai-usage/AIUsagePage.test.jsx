@@ -16,31 +16,39 @@ let mockHistory = { days: [] };
 let mockLastError = null;
 let mockFetching = false;
 let mockFromCache = true;
+let mockActiveProvider = "minimax";
 const fetchCalls = [];
+// GLM 槽 (默认无数据, 除非测试显式设)
+let mockGlmSnapshot = null;
 
 vi.mock("../../src/renderer/store/ai-usage-store.js", () => ({
+  AI_USAGE_PROVIDERS: ["minimax", "glm"],
   get aiUsageSnapshot() {
-    return { get value() { return mockSnapshot; } };
+    return { get value() { return { minimax: mockSnapshot, glm: mockGlmSnapshot }; } };
   },
   get aiUsagePrevSnapshot() {
-    return { get value() { return mockPrevSnapshot; } };
+    return { get value() { return { minimax: mockPrevSnapshot, glm: null }; } };
   },
   get aiUsageHistory() {
-    return { get value() { return mockHistory; } };
+    return { get value() { return { minimax: mockHistory, glm: { days: [] } }; } };
   },
   get aiUsageLastError() {
-    return { get value() { return mockLastError; } };
+    return { get value() { return { minimax: mockLastError, glm: null }; } };
   },
   get aiUsageFetching() {
-    return { get value() { return mockFetching; } };
+    return { get value() { return { minimax: mockFetching, glm: false }; } };
   },
   get aiUsageFromCache() {
-    return { get value() { return mockFromCache; } };
+    return { get value() { return { minimax: mockFromCache, glm: true }; } };
+  },
+  get aiUsageActiveProvider() {
+    return { get value() { return mockActiveProvider; }, set value(v) { mockActiveProvider = v; } };
   },
   fetchAiUsage: (...args) => {
     fetchCalls.push(args);
     return Promise.resolve({ ok: true });
   },
+  setActiveProvider: (pid) => { mockActiveProvider = pid; },
 }));
 
 const { AIUsagePage } = await import(
@@ -101,6 +109,8 @@ beforeEach(() => {
   mockLastError = null;
   mockFetching = false;
   mockFromCache = true;
+  mockActiveProvider = "minimax";
+  mockGlmSnapshot = null;
   fetchCalls.length = 0;
   cleanup();
 });
@@ -154,12 +164,12 @@ describe("AIUsagePage", () => {
     expect(container.textContent).toContain("从缓存恢复");
   });
 
-  test("刷新按钮 click → 调 fetchAiUsage", async () => {
+  test("刷新按钮 click → 调 fetchAiUsage({provider:'minimax'})", async () => {
     mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
     const btn = container.querySelector(".ai-usage-refresh-btn");
     await fireEvent.click(btn);
-    expect(fetchCalls).toEqual([[]]);
+    expect(fetchCalls).toEqual([[{ provider: "minimax" }]]);
   });
 
   test("fetching=true → button disabled + 显示 刷新中", () => {
@@ -304,5 +314,53 @@ describe("AIUsagePage", () => {
     const { container } = render(<AIUsagePage />);
     // used 减少 → derive 返 null → 不显示
     expect(container.textContent).not.toMatch(/按当前速度/);
+  });
+
+  // ─── v2 多 provider + 崩溃回归 ───────────────────────────────
+
+  test("GLM tab: 切换后渲染 GLM 标题 + 数据", () => {
+    mockActiveProvider = "glm";
+    mockGlmSnapshot = {
+      provider: "glm",
+      region: "global",
+      fetchedAt: NOW,
+      endpoint: "https://api.z.ai/api/monitor/usage/quota/limit",
+      windows: {
+        "5h": { total: 800000000, remaining: 672000000, usedPercent: 15, label: "5 小时滚动窗口" },
+        weekly: null,
+        mcp: null,
+      },
+    };
+    const { container } = render(<AIUsagePage />);
+    expect(container.textContent).toContain("GLM 用量");
+    expect(container.textContent).toContain("5 小时滚动窗口");
+  });
+
+  test("Tab 切换按钮存在 (Minimax + GLM)", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    const { container } = render(<AIUsagePage />);
+    const tabs = container.querySelectorAll(".ai-usage-tab");
+    expect(tabs).toHaveLength(2);
+    expect(tabs[0].textContent).toContain("Minimax");
+    expect(tabs[1].textContent).toContain("GLM");
+  });
+
+  test("点击 GLM tab → 切换 active provider", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    const { container } = render(<AIUsagePage />);
+    const glmTab = Array.from(container.querySelectorAll(".ai-usage-tab"))
+      .find((t) => t.textContent.includes("GLM"));
+    fireEvent.click(glmTab);
+    expect(mockActiveProvider).toBe("glm");
+  });
+
+  test("回归: snapshot 有值但 windows 为 undefined 不崩 (v2 脏数据场景)", () => {
+    // 模拟 main 返回 {schema_version, providers} 但某 provider 快照缺 windows
+    mockSnapshot = { provider: "minimax", fetchedAt: NOW, endpoint: null };
+    // 不应抛错
+    const { container } = render(<AIUsagePage />);
+    // 三张卡都应是 empty card (windows 各项 ?? null)
+    const empties = container.querySelectorAll(".ai-usage-card--empty");
+    expect(empties.length).toBe(3);
   });
 });

@@ -765,45 +765,32 @@ function saveActiveCategory(id, statePath = defaultPath()) {
 //   - 启动时给 renderer 当 initial UI (网络抽风时不"瞬时瞎")
 //   - 上次 fetch 失败时, 仍能展示 last known snapshot
 //
-// Schema: state.json.ai_usage = { provider, region, fetchedAt, endpoint,
-//                                 windows: { '5h': {...}, weekly: {...} | null },
-//                                 credits: ... | null }
-//
-// V1 只持久化 minimax 快照; 未来如接入多 provider, 考虑改成
-// { [provider]: snapshot } 形式; 现阶段 1 个 provider 写平铺最简单.
+// v1 平铺 schema (单 minimax) 已废弃 — 现走 v2 多 provider (见下方).
+// 这两个旧函数保留作向后兼容: 读写都落到 v2 的 providers.minimax 槽,
+// 老调用方 / 老测试无需改动.
 
 /**
- * 读 AI 配额快照. 老 state.json (无 ai_usage 字段) 或值非法 → null.
+ * 读 AI 配额快照 (minimax, v1 兼容). 内部走 v2 providers.minimax.
+ * 老 state.json (无 ai_usage) → null.
  * @param {string} [statePath]
  * @returns {object|null}
  */
 function loadAiUsageSnapshot(statePath = defaultPath()) {
-  const s = load(statePath);
-  if (!s) return null;
-  if (!s.ai_usage || typeof s.ai_usage !== "object" || Array.isArray(s.ai_usage))
-    return null;
-  return { ...s.ai_usage };
+  return loadAiUsageSnapshotProvider("minimax", statePath);
 }
 
 /**
- * 写 AI 配额快照. atomic write, 保留 apps / mutes / last_opened /
- * active_category / task_summaries / ai_sessions_config 等所有其它字段.
- *
+ * 写 AI 配额快照 (minimax, v1 兼容). 内部走 v2 providers.minimax.
  * @param {object} snapshot  必须含 provider / region / fetchedAt
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
 function saveAiUsageSnapshot(snapshot, statePath = defaultPath()) {
-  if (
-    !snapshot ||
-    typeof snapshot !== "object" ||
-    Array.isArray(snapshot)
-  ) {
-    throw new TypeError("saveAiUsageSnapshot: snapshot must be plain object");
-  }
-  return patchState((next) => {
-    next.ai_usage = { ...snapshot };
-  }, statePath);
+  return saveAiUsageSnapshotProvider(
+    (snapshot && snapshot.provider) || "minimax",
+    snapshot,
+    statePath,
+  );
 }
 
 // ─── AI 配额历史 (ai_usage_history) ─────────────────────────────
@@ -837,68 +824,206 @@ function cleanExpiredUsageHistory(days) {
 }
 
 /**
- * 读 AI 用量历史. 老 state.json (无 ai_usage_history 字段) → { days: [] }.
+ * 读 AI 用量历史 (minimax, v1 兼容). 内部走 v2 providers.minimax.
  * @param {string} [statePath]
- * @returns {{days: Array<{date: string, percent: number, used: number|null, updatedAt: number}>}}
+ * @returns {{days: Array}}
  */
 function loadAiUsageHistory(statePath = defaultPath()) {
-  const s = load(statePath);
-  if (!s) return { days: [] };
-  if (
-    !s.ai_usage_history ||
-    typeof s.ai_usage_history !== "object" ||
-    Array.isArray(s.ai_usage_history)
-  ) {
-    return { days: [] };
-  }
-  const raw = Array.isArray(s.ai_usage_history.days) ? s.ai_usage_history.days : [];
-  return { days: cleanExpiredUsageHistory(raw) };
+  return loadAiUsageHistoryProvider("minimax", statePath);
 }
 
 /**
- * 追加/更新一天的 entry. 取 max(新 used, 旧 used), updatedAt 刷新.
- * 30 天外自动 GC.
+ * 追加/更新一天的 entry (minimax, v1 兼容). 内部走 v2 providers.minimax.
  * @param {{date: string, used: number, percent?: number|null}} entry
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
 function appendAiUsageHistoryDay(entry, statePath = defaultPath()) {
+  return appendAiUsageHistoryDayProvider("minimax", entry, statePath);
+}
+
+// ─── AI 配额快照 (v2 多 provider) ─────────────────────────────
+//
+// v2 schema:
+//   state.json.ai_usage = {
+//     schema_version: 2,
+//     providers: {
+//       minimax: { provider, region, fetchedAt, endpoint, windows: {...}, ... },
+//       glm:     { ... },
+//     },
+//   }
+//   state.json.ai_usage_history = {
+//     schema_version: 2,
+//     providers: {
+//       minimax: { days: [...] },
+//       glm:     { days: [...] },
+//     },
+//   }
+//
+// 历史 v1 (平铺单 minimax) 由 _ensureAiUsageV2 惰性迁移.
+const AI_USAGE_KNOWN_PROVIDERS = ["minimax", "glm"];
+
+function _isAiUsageV2(val) {
+  return (
+    val &&
+    typeof val === "object" &&
+    !Array.isArray(val) &&
+    val.schema_version === 2 &&
+    val.providers &&
+    typeof val.providers === "object"
+  );
+}
+
+/**
+ * 读 ai_usage, 保证返回 v2 形状 { schema_version, providers }.
+ * 盘上是 v1 平铺 (有 ai_usage 但无 schema_version) → 提升为 v2 并落盘一次性迁移.
+ * 盘上无 ai_usage → 返回 v2 空壳 (providers={}).
+ * @param {string} [statePath]
+ * @returns {{schema_version:2, providers: object}}
+ */
+function _ensureAiUsageV2(statePath = defaultPath()) {
+  const s = load(statePath);
+  const empty = { schema_version: 2, providers: {} };
+  if (!s || !s.ai_usage || typeof s.ai_usage !== "object" || Array.isArray(s.ai_usage)) {
+    return empty;
+  }
+  if (_isAiUsageV2(s.ai_usage)) {
+    return { schema_version: 2, providers: { ...s.ai_usage.providers } };
+  }
+  // v1 平铺 → 当 minimax
+  const migrated = { schema_version: 2, providers: { minimax: { ...s.ai_usage } } };
+  patchState((next) => {
+    next.ai_usage = migrated;
+  }, statePath);
+  return migrated;
+}
+
+/**
+ * 读某 provider 的 AI 配额快照. 无 → null.
+ * @param {string} providerId
+ * @param {string} [statePath]
+ * @returns {object|null}
+ */
+function loadAiUsageSnapshotProvider(providerId, statePath = defaultPath()) {
+  if (typeof providerId !== "string" || !providerId) return null;
+  const v2 = _ensureAiUsageV2(statePath);
+  const snap = v2.providers[providerId];
+  if (!snap || typeof snap !== "object") return null;
+  return { ...snap };
+}
+
+/**
+ * 写某 provider 的快照 (atomic, 不影响其它 provider / 字段).
+ * @param {string} providerId
+ * @param {object} snapshot
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveAiUsageSnapshotProvider(providerId, snapshot, statePath = defaultPath()) {
+  if (typeof providerId !== "string" || !providerId) {
+    throw new TypeError("saveAiUsageSnapshotProvider: providerId must be non-empty string");
+  }
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+    throw new TypeError("saveAiUsageSnapshotProvider: snapshot must be plain object");
+  }
+  const v2 = _ensureAiUsageV2(statePath);
+  v2.providers[providerId] = { ...snapshot };
+  return patchState((next) => {
+    next.ai_usage = { schema_version: 2, providers: { ...v2.providers } };
+  }, statePath);
+}
+
+/**
+ * 读某 provider 的 history. 无 → { days: [] }.
+ * @param {string} providerId
+ * @param {string} [statePath]
+ * @returns {{days: Array}}
+ */
+function loadAiUsageHistoryProvider(providerId, statePath = defaultPath()) {
+  if (typeof providerId !== "string" || !providerId) return { days: [] };
+  const s = load(statePath);
+  if (!s || !s.ai_usage_history || typeof s.ai_usage_history !== "object") {
+    return { days: [] };
+  }
+  let days;
+  if (_isAiUsageV2(s.ai_usage_history)) {
+    const ph =
+      s.ai_usage_history.providers &&
+      s.ai_usage_history.providers[providerId];
+    days = ph && Array.isArray(ph.days) ? ph.days : [];
+  } else if (providerId === "minimax") {
+    // v1 平铺 history → minimax
+    days = Array.isArray(s.ai_usage_history.days) ? s.ai_usage_history.days : [];
+  } else {
+    days = [];
+  }
+  return { days: cleanExpiredUsageHistory(days) };
+}
+
+/**
+ * 追加/更新某 provider 当天的 history entry.
+ * @param {string} providerId
+ * @param {{date: string, used?: number, percent: number}} entry
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function appendAiUsageHistoryDayProvider(
+  providerId,
+  entry,
+  statePath = defaultPath(),
+) {
+  if (typeof providerId !== "string" || !providerId) {
+    throw new TypeError("appendAiUsageHistoryDayProvider: providerId must be non-empty string");
+  }
+  // 复用 v1 的 entry 校验逻辑 (日期格式 + percent 0-100 + used 类型)
+  // 直接调 appendAiUsageHistoryDay 会写到 v1 平铺, 这里要写到 v2 providers 槽.
   if (
     !entry ||
     typeof entry.date !== "string" ||
     !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)
   ) {
-    throw new TypeError("appendAiUsageHistoryDay: entry.date must be YYYY-MM-DD");
+    throw new TypeError("appendAiUsageHistoryDayProvider: entry.date must be YYYY-MM-DD");
   }
   if (typeof entry.percent !== "number" || !Number.isFinite(entry.percent) || entry.percent < 0 || entry.percent > 100) {
-    throw new TypeError("appendAiUsageHistoryDay: entry.percent must be 0-100 number");
+    throw new TypeError("appendAiUsageHistoryDayProvider: entry.percent must be 0-100 number");
   }
   if (entry.used != null && (typeof entry.used !== "number" || !Number.isFinite(entry.used) || entry.used < 0)) {
-    throw new TypeError("appendAiUsageHistoryDay: entry.used (if present) must be non-negative number");
+    throw new TypeError("appendAiUsageHistoryDayProvider: entry.used (if present) must be non-negative number");
   }
-  return patchState((next, existing, now) => {
-    const oldDays = Array.isArray(existing.ai_usage_history && existing.ai_usage_history.days)
-      ? existing.ai_usage_history.days
-      : [];
-    const map = new Map();
-    for (const d of oldDays) {
-      if (d && typeof d.date === "string") map.set(d.date, d);
-    }
-    const prev = map.get(entry.date);
-    // percent 必填, 取 max (5h 窗口重置 percent 会回落, 保留当天最高水位)
-    const percent = Math.max(prev && typeof prev.percent === "number" ? prev.percent : 0, entry.percent);
-    // used 可选, 如果新 entry 有则跟旧 max 比, 否则保留旧值
-    let used = prev && typeof prev.used === "number" ? prev.used : null;
-    if (typeof entry.used === "number") {
-      used = Math.max(used == null ? 0 : used, entry.used);
-    }
-    map.set(entry.date, {
-      date: entry.date,
-      percent,
-      used: typeof used === "number" ? used : null,
-      updatedAt: now,
-    });
-    next.ai_usage_history = { days: cleanExpiredUsageHistory([...map.values()]) };
+
+  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const cur = existing.ai_usage_history;
+  let providers;
+  if (cur && _isAiUsageV2(cur)) {
+    providers = { ...cur.providers };
+  } else if (cur && Array.isArray(cur.days)) {
+    // v1 平铺 → minimax
+    providers = { minimax: { days: cur.days } };
+  } else {
+    providers = {};
+  }
+  const slot = providers[providerId];
+  const oldDays = slot && Array.isArray(slot.days) ? slot.days : [];
+  const map = new Map();
+  for (const d of oldDays) {
+    if (d && typeof d.date === "string") map.set(d.date, d);
+  }
+  const prev = map.get(entry.date);
+  const percent = Math.max(prev && typeof prev.percent === "number" ? prev.percent : 0, entry.percent);
+  let used = prev && typeof prev.used === "number" ? prev.used : null;
+  if (typeof entry.used === "number") {
+    used = Math.max(used == null ? 0 : used, entry.used);
+  }
+  map.set(entry.date, {
+    date: entry.date,
+    percent,
+    used: typeof used === "number" ? used : null,
+    updatedAt: Date.now(),
+  });
+  providers[providerId] = { days: cleanExpiredUsageHistory([...map.values()]) };
+
+  return patchState((next) => {
+    next.ai_usage_history = { schema_version: 2, providers: { ...providers } };
   }, statePath);
 }
 
@@ -993,12 +1118,18 @@ module.exports = {
   // AI 配额快照
   loadAiUsageSnapshot,
   saveAiUsageSnapshot,
+  // AI 配额快照 v2 (多 provider)
+  loadAiUsageSnapshotProvider,
+  saveAiUsageSnapshotProvider,
   // AI 配额历史 (sparkline 用)
   USAGE_HISTORY_GC_DAYS,
   USAGE_HISTORY_MAX_DAYS,
   cleanExpiredUsageHistory,
   loadAiUsageHistory,
   appendAiUsageHistoryDay,
+  // AI 配额历史 v2 (多 provider)
+  loadAiUsageHistoryProvider,
+  appendAiUsageHistoryDayProvider,
   // Step B: LLM classify cache 持久化
   loadLLMClassifyCache,
   saveLLMClassifyCache,

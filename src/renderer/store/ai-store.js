@@ -243,7 +243,7 @@ export async function loadAISessionsConfig() {
 }
 
 export async function probeAIKeyStatuses() {
-  const providers = ["openai", "anthropic", "deepseek", "minimax"];
+  const providers = ["openai", "anthropic", "deepseek", "minimax", "glm"];
   const next = {};
   await Promise.all(
     providers.map(async (id) => {

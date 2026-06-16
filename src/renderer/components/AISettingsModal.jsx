@@ -36,14 +36,17 @@ import {
 // - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
 // 想用思考模式可手动改成 deepseek-reasoner.
 // - MiniMax: MiniMax-M3 (用户指定2026 最新). base URL = api.minimaxi.com/v1.
+// - GLM: 智谱 z.ai, 用于"AI 用量"页监控 GLM 编程套餐配额.
 export const PROVIDERS = [
  { id: 'deepseek', label: 'DeepSeek', defaultModel: 'deepseek-chat', hint: 'DeepSeek-V3.1 ·128K上下文' },
  { id: 'minimax', label: 'MiniMax', defaultModel: 'MiniMax-M3', hint: 'MiniMax 最新 M3 · 中文优化' },
+ { id: 'glm', label: 'GLM (智谱)', defaultModel: 'glm-4.6', hint: 'z.ai · 编程套餐用量监控' },
 ];
 
 export const DEFAULT_BASE_URL = {
  deepseek: 'https://api.deepseek.com',
  minimax: 'https://api.minimaxi.com/v1',
+ glm: 'https://api.z.ai/api/paas/v4',
 };
 
 function findProvider(id) {

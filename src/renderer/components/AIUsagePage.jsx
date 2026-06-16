@@ -19,13 +19,16 @@
 
 import { useEffect, useState, useMemo } from "preact/hooks";
 import {
+  AI_USAGE_PROVIDERS,
   aiUsageSnapshot,
   aiUsagePrevSnapshot,
   aiUsageHistory,
   aiUsageLastError,
   aiUsageFetching,
   aiUsageFromCache,
+  aiUsageActiveProvider,
   fetchAiUsage,
+  setActiveProvider,
 } from "../store/ai-usage-store.js";
 import { useNowTick } from "../hooks/useNowTick.jsx";
 import { computeBlowUpAt, formatBlowUpIn } from "../../ai-usage/derive.js";
@@ -194,22 +197,47 @@ function WindowCard({ window: w, prevWindow = null, now }) {
   );
 }
 
-// ─── 主页面 ───────────────────────────────────────────────
+// ─── 单 provider 视图 (原 AIUsagePage body, 防御化 + GLM 感知) ──────────
 
-export function AIUsagePage() {
-  const snapshot = aiUsageSnapshot.value;
-  const lastError = aiUsageLastError.value;
-  const fetching = aiUsageFetching.value;
-  const fromCache = aiUsageFromCache.value;
+const PROVIDER_META = {
+  minimax: { title: "Minimax 用量", label: "Minimax", planLabel: "Minimax coding plan 配额" },
+  glm: { title: "GLM 用量", label: "GLM (智谱)", planLabel: "GLM 编程套餐配额" },
+};
+
+/**
+ * GLM 的 token 数动辄亿级, 单独紧凑格式化 (复用 format-glm 纯函数).
+ * minimax 用 toLocaleString 原样.
+ */
+function formatTodayUsed(provider, used) {
+  if (used === null) return null;
+  if (provider === "glm") {
+    const { formatTokens } = require("../../ai-usage/format-glm");
+    const s = formatTokens(used);
+    return s ? `${s} tokens` : null;
+  }
+  return `${used.toLocaleString()} 单位`;
+}
+
+function ProviderUsageView({ provider }) {
+  const snapshots = aiUsageSnapshot.value;
+  const prevSnapshots = aiUsagePrevSnapshot.value;
+  const histories = aiUsageHistory.value;
+  const errors = aiUsageLastError.value;
+  const fetchingMap = aiUsageFetching.value;
+  const fromCacheMap = aiUsageFromCache.value;
   const now = useNowTick();
 
-  useEffect(() => {
-    log.info("AIUsagePage mounted, snapshot provider=", snapshot && snapshot.provider);
-  }, []);
+  const snapshot = snapshots[provider] || null;
+  const prevSnapshot = prevSnapshots[provider] || null;
+  const history = histories[provider] || { days: [] };
+  const lastError = errors[provider] || null;
+  const fetching = !!fetchingMap[provider];
+  const fromCache = !!fromCacheMap[provider];
+  const meta = PROVIDER_META[provider] || PROVIDER_META.minimax;
 
   const onRefresh = async () => {
-    log.info("manual refresh clicked");
-    await fetchAiUsage();
+    log.info("manual refresh clicked, provider=", provider);
+    await fetchAiUsage({ provider });
   };
 
   const ageLabel = useMemo(
@@ -218,37 +246,32 @@ export function AIUsagePage() {
   );
 
   // 今日已用: 5h 窗口的 used 值 (滚动窗口 ≈ 当天累积消耗).
-  // 当 used 缺失 (API 未返 total/used) 时显示 "—".
+  // 防御: snapshot / windows / windows["5h"] 任一为空都不崩.
+  const w5h = snapshot?.windows?.["5h"] ?? null;
   const todayUsed = useMemo(() => {
-    const w = snapshot && snapshot.windows && snapshot.windows["5h"];
-    if (!w) return null;
-    if (typeof w.used === "number" && w.used > 0) return w.used;
-    // fallback: percent × total (如果有)
-    if (typeof w.usedPercent === "number" && typeof w.total === "number" && w.total > 0) {
-      return Math.round((w.usedPercent / 100) * w.total);
+    if (!w5h) return null;
+    if (typeof w5h.used === "number" && w5h.used > 0) return w5h.used;
+    if (typeof w5h.usedPercent === "number" && typeof w5h.total === "number" && w5h.total > 0) {
+      return Math.round((w5h.usedPercent / 100) * w5h.total);
     }
-    // 最后 fallback: percent 已知但 total 未知 → 用百分号形式
-    if (typeof w.usedPercent === "number") return null;
     return null;
-  }, [snapshot]);
+  }, [w5h]);
+
+  const todayLabel = formatTodayUsed(provider, todayUsed);
 
   return (
     <div class="ai-usage-page">
       <div class="ai-usage-header">
         <div>
-          <h2 class="ai-usage-title">Minimax 用量</h2>
+          <h2 class="ai-usage-title">{meta.title}</h2>
           <div class="ai-usage-subtitle">
             {snapshot ? (
               <>
-                Minimax coding plan 配额 · 今日已用{" "}
-                {todayUsed !== null ? (
-                  <span class="ai-usage-today-value">
-                    {todayUsed.toLocaleString()} 单位
-                  </span>
-                ) : snapshot.windows["5h"] && typeof snapshot.windows["5h"].usedPercent === "number" ? (
-                  <span class="ai-usage-today-value">
-                    {snapshot.windows["5h"].usedPercent}%
-                  </span>
+                {meta.planLabel} · 今日已用{" "}
+                {todayLabel !== null ? (
+                  <span class="ai-usage-today-value">{todayLabel}</span>
+                ) : w5h && typeof w5h.usedPercent === "number" ? (
+                  <span class="ai-usage-today-value">{w5h.usedPercent}%</span>
                 ) : (
                   "—"
                 )}
@@ -256,7 +279,7 @@ export function AIUsagePage() {
                 {fromCache && " (从缓存恢复)"}
               </>
             ) : (
-              "Minimax coding plan 配额 · 尚无数据"
+              `${meta.planLabel} · 尚无数据`
             )}
           </div>
         </div>
@@ -280,7 +303,7 @@ export function AIUsagePage() {
           <div class="ai-usage-banner ai-usage-banner--error">
             拉取失败: {lastError}
             {lastError === "api_key_missing" && (
-              <span> · 请在左下角"AI 配置"中填入 Minimax 的 API key</span>
+              <span> · 请在左下角"AI 配置"中填入 {meta.label} 的 API key</span>
             )}
             {lastError === "network_failed" && (
               <span> · 请检查网络连接或代理设置</span>
@@ -303,24 +326,22 @@ export function AIUsagePage() {
       {snapshot && (
         <div class="ai-usage-cards">
           <WindowCard
-            window={snapshot.windows["5h"]}
-            prevWindow={aiUsagePrevSnapshot.value && aiUsagePrevSnapshot.value.windows
-              ? aiUsagePrevSnapshot.value.windows["5h"]
-              : null}
+            window={snapshot?.windows?.["5h"] ?? null}
+            prevWindow={prevSnapshot?.windows?.["5h"] ?? null}
             now={now}
           />
           <WindowCard
-            window={snapshot.windows.weekly}
-            prevWindow={aiUsagePrevSnapshot.value && aiUsagePrevSnapshot.value.windows
-              ? aiUsagePrevSnapshot.value.windows.weekly
-              : null}
+            window={snapshot?.windows?.weekly ?? null}
+            prevWindow={prevSnapshot?.windows?.weekly ?? null}
             now={now}
           />
           <WindowCard
-            window={snapshot.windows.video}
-            prevWindow={aiUsagePrevSnapshot.value && aiUsagePrevSnapshot.value.windows
-              ? aiUsagePrevSnapshot.value.windows.video
-              : null}
+            window={provider === "glm" ? (snapshot?.windows?.mcp ?? null) : (snapshot?.windows?.video ?? null)}
+            prevWindow={
+              provider === "glm"
+                ? (prevSnapshot?.windows?.mcp ?? null)
+                : (prevSnapshot?.windows?.video ?? null)
+            }
             now={now}
           />
         </div>
@@ -329,7 +350,7 @@ export function AIUsagePage() {
       {snapshot && (
         <div class="ai-usage-history">
           <div class="ai-usage-history-title">最近 7 天用量趋势 (5h 窗口已用%)</div>
-          <UsageSparkline history={aiUsageHistory.value} days={7} height={56} />
+          <UsageSparkline history={history} days={7} height={56} />
         </div>
       )}
 
@@ -338,6 +359,33 @@ export function AIUsagePage() {
           endpoint: <code>{snapshot.endpoint}</code>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── 主页面: Tab 切换 + 当前 provider 视图 ──────────────────────
+
+export function AIUsagePage() {
+  const active = aiUsageActiveProvider.value;
+
+  useEffect(() => {
+    log.info("AIUsagePage mounted, active provider=", active);
+  }, []);
+
+  return (
+    <div class="ai-usage-layout-inner">
+      <div class="ai-usage-tabs">
+        {AI_USAGE_PROVIDERS.map((pid) => (
+          <button
+            key={pid}
+            class={`ai-usage-tab${pid === active ? " ai-usage-tab--active" : ""}`}
+            onClick={() => setActiveProvider(pid)}
+          >
+            {(PROVIDER_META[pid] || { label: pid }).label}
+          </button>
+        ))}
+      </div>
+      <ProviderUsageView provider={active} />
     </div>
   );
 }

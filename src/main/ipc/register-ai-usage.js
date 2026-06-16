@@ -1,15 +1,16 @@
 /**
  * src/main/ipc/register-ai-usage.js
  *
- * IPC handlers for AI usage page (Minimax coding plan quota).
+ * IPC handlers for AI usage page (multi-provider: minimax + glm coding plans).
  * Spec: docs/superpowers/specs/2026-06-14-minimax-coding-plan-usage-design.md §4.2
  *
  * Channels:
- *   - ai-usage:get-cached  → { ok, snapshot }   (从 state.json 读 last-known, 同步)
- *   - ai-usage:fetch       → { ok, snapshot?, reason?, error?, status? }
+ *   - ai-usage:get-cached  → { ok, providers: {minimax, glm}, histories: {minimax, glm} }
+ *                            (一次返全部已配置 provider, renderer 建 tab)
+ *   - ai-usage:fetch       → { ok, provider, snapshot?, reason?, error?, status? }
  *
  * 事件推送:
- *   - ai-usage-updated     → { snapshot }  (fetch 成功后 renderer 自动刷新)
+ *   - ai-usage-updated     → { provider, snapshot, history }  (单 provider fetch 成功后推)
  *
  * 业务逻辑提到 _internals.fetch / _internals.getCached, 接受 {deps, opts} 注入,
  * 单测不依赖 electron / safeStorage. register* 是薄包装, 注入真实 deps.
@@ -18,17 +19,29 @@
 const stateStore = require("../state-store");
 const aiStorage = require("../../ai-sessions/storage");
 const { MiniMaxQuotaClient } = require("../../ai-usage/client");
+const { GlmQuotaClient } = require("../../ai-usage/client-glm");
 
-const PROVIDER_ID = "minimax";
+const KNOWN_PROVIDERS = ["minimax", "glm"];
 
 /**
- * 读 minimax API key from safeStorage. 出错时返 null (UI 友好).
+ * @param {string} providerId
+ * @returns {Function|null}  对应的 QuotaClient 构造器
+ */
+function _pickClientCtor(deps, providerId) {
+  if (providerId === "minimax") return deps.MiniMaxQuotaClient;
+  if (providerId === "glm") return deps.GlmQuotaClient;
+  return null;
+}
+
+/**
+ * 读 provider API key from safeStorage. 出错时返 null (UI 友好).
  * @param {{loadApiKey: function}} storage
+ * @param {string} providerId
  * @returns {string|null}
  */
-function _loadApiKeySafe(storage) {
+function _loadApiKeySafe(storage, providerId) {
   try {
-    const key = storage.loadApiKey(PROVIDER_ID);
+    const key = storage.loadApiKey(providerId);
     if (typeof key === "string" && key.length > 0) return key;
     return null;
   } catch {
@@ -38,37 +51,51 @@ function _loadApiKeySafe(storage) {
 
 const _internals = {
   /**
+   * 返回所有 provider 的快照 + 历史, renderer 一次拿全建 tab.
    * @param {object} args
-   * @param {object} args.deps  { stateStore, pushEvent }
+   * @param {object} args.deps  { stateStore }
    */
   async getCached({ deps }) {
-    const snapshot = deps.stateStore.load();
-    const history = deps.stateStore.loadHistory();
-    return { ok: true, snapshot, history };
+    const providers = {};
+    const histories = {};
+    for (const pid of KNOWN_PROVIDERS) {
+      providers[pid] = deps.stateStore.loadSnapshotProvider(pid);
+      histories[pid] = deps.stateStore.loadHistoryProvider(pid);
+    }
+    return { ok: true, providers, histories };
   },
 
   /**
+   * 单 provider fetch. opts.provider 选 client (默认 minimax).
    * @param {object} args
-   * @param {object} args.deps  { stateStore, storage, MiniMaxQuotaClient, pushEvent }
-   * @param {object} [args.opts] { region: 'cn' | 'global' }
+   * @param {object} args.deps  { stateStore, storage, MiniMaxQuotaClient, GlmQuotaClient, pushEvent }
+   * @param {object} [args.opts] { provider: 'minimax' | 'glm', region?: 'cn' | 'global' }
    */
   async fetch({ deps, opts = {} }) {
-    const apiKey = _loadApiKeySafe(deps.storage);
+    const providerId =
+      opts && typeof opts.provider === "string" && opts.provider
+        ? opts.provider
+        : "minimax";
+
+    const ClientCtor = _pickClientCtor(deps, providerId);
+    if (!ClientCtor) {
+      return { ok: false, provider: providerId, reason: "unknown_provider" };
+    }
+
+    const apiKey = _loadApiKeySafe(deps.storage, providerId);
     if (!apiKey) {
-      return { ok: false, reason: "api_key_missing" };
+      return { ok: false, provider: providerId, reason: "api_key_missing" };
     }
 
     const region = opts && opts.region === "global" ? "global" : "cn";
-    const ClientCtor = deps.MiniMaxQuotaClient;
     const client = new ClientCtor({ apiKey, region });
     const r = await client.fetchOnce();
     if (!r.ok) {
-      return r;
+      return { ...r, provider: providerId };
     }
 
-    // 读上一轮 snapshot (用于 renderer 算 burn rate / 预计耗尽时间)
-    const prevSnapshot = deps.stateStore.load() || null;
-    deps.stateStore.save(r.snapshot);
+    // 写该 provider 的 snapshot (atomic, 不影响其它 provider)
+    deps.stateStore.saveSnapshotProvider(providerId, r.snapshot);
 
     // 追加当天 used 到 history (sparkline 持久化)
     // 用 5h 窗口的 usedPercent (0-100) 作主指标, used (绝对数) 作 tooltip 辅助
@@ -78,16 +105,19 @@ const _internals = {
         const date = _localDateKey();
         const percent = w.usedPercent; // 0-100
         const used = typeof w.used === "number" && w.used > 0 ? w.used : null;
-        deps.stateStore.appendHistory({ date, percent, used });
+        deps.stateStore.appendHistoryProvider(providerId, { date, percent, used });
       } catch (e) {
-        // 写历史失败不阻塞主流程
         log_warn_history(e);
       }
     }
 
-    const history = deps.stateStore.loadHistory();
-    deps.pushEvent("ai-usage-updated", { snapshot: r.snapshot, prevSnapshot, history });
-    return r;
+    const history = deps.stateStore.loadHistoryProvider(providerId);
+    deps.pushEvent("ai-usage-updated", {
+      provider: providerId,
+      snapshot: r.snapshot,
+      history,
+    });
+    return { ...r, provider: providerId };
   },
 };
 
@@ -123,15 +153,16 @@ function registerAiUsageHandlers(ctx) {
   // 真实 deps — 引用项目内 module
   const deps = {
     stateStore: {
-      load: stateStore.loadAiUsageSnapshot,
-      save: stateStore.saveAiUsageSnapshot,
-      loadHistory: stateStore.loadAiUsageHistory,
-      appendHistory: stateStore.appendAiUsageHistoryDay,
+      loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,
+      saveSnapshotProvider: stateStore.saveAiUsageSnapshotProvider,
+      loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
+      appendHistoryProvider: stateStore.appendAiUsageHistoryDayProvider,
     },
     storage: {
       loadApiKey: aiStorage.loadApiKey.bind(aiStorage),
     },
     MiniMaxQuotaClient,
+    GlmQuotaClient,
     pushEvent: sendToRenderer,
   };
 
@@ -142,4 +173,4 @@ function registerAiUsageHandlers(ctx) {
   );
 }
 
-module.exports = { registerAiUsageHandlers, _internals };
+module.exports = { registerAiUsageHandlers, _internals, KNOWN_PROVIDERS };

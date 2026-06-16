@@ -57,14 +57,15 @@ beforeEach(() => {
 // ── <AIConfigForm /> — shared form (drawer + legacy modal 都用) ───────
 
 describe('<AIConfigForm /> — Phase B7e: 只 deepseek + minimax', () => {
- it('渲染2 张 provider-card (deepseek + minimax), 没有 ollama/openai/anthropic', () => {
+ it('渲染 provider-card (deepseek + minimax + glm), 没有 ollama/openai/anthropic', () => {
  const onSaved = vi.fn();
  const { container } = render(<AIConfigForm onSaved={onSaved} />);
  const cards = container.querySelectorAll('.provider-card');
- expect(cards.length).toBe(2);
+ expect(cards.length).toBe(3);
  const labels = Array.from(cards).map((c) => c.querySelector('.provider-card-name').textContent);
  expect(labels.some((text) => text.includes('DeepSeek'))).toBe(true);
  expect(labels.some((text) => text.includes('MiniMax'))).toBe(true);
+ expect(labels.some((text) => text.includes('GLM'))).toBe(true);
  expect(labels.some((text) => text.includes('Ollama'))).toBe(false);
  expect(labels.some((text) => text.includes('OpenAI'))).toBe(false);
  expect(labels.some((text) => text.includes('Anthropic'))).toBe(false);

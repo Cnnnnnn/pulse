@@ -3,20 +3,22 @@
  *
  * AI usage 页面 main 进程 bootstrap.
  * - register IPC handlers (ai-usage:get-cached, ai-usage:fetch)
- * - 启动后 fire-and-forget 预热一次 fetch, renderer 进来就有数据
+ * - 启动后 fire-and-forget 预热所有已配置 provider 各一次 fetch, renderer 进来就有数据
  *
  * Spec: docs/superpowers/specs/2026-06-14-minimax-coding-plan-usage-design.md §4.4
  *
  * 设计: 业务逻辑复用 register-ai-usage._internals, 此处只负责装配 + warmup.
+ *      multi-provider v2: minimax + glm 各自 fire-and-forget.
  */
 
-const { _internals } = require("../ipc/register-ai-usage");
+const { _internals, KNOWN_PROVIDERS } = require("../ipc/register-ai-usage");
 
 /**
  * @param {object} deps
- * @param {object} deps.stateStore   { load, save }
+ * @param {object} deps.stateStore   { loadSnapshotProvider, saveSnapshotProvider, loadHistoryProvider, appendHistoryProvider }
  * @param {object} deps.storage      { loadApiKey }
  * @param {Function} deps.MiniMaxQuotaClient
+ * @param {Function} deps.GlmQuotaClient
  * @param {(channel: string, payload: any) => void} deps.sendToRenderer
  * @param {(channel: string, fn: Function) => void} deps.register   main 的 safeHandle
  * @param {object} [opts]
@@ -32,6 +34,7 @@ function bootstrapAiUsage(deps, opts = {}) {
     stateStore: deps.stateStore,
     storage: deps.storage,
     MiniMaxQuotaClient: deps.MiniMaxQuotaClient,
+    GlmQuotaClient: deps.GlmQuotaClient,
     pushEvent: deps.sendToRenderer,
   };
 
@@ -45,14 +48,18 @@ function bootstrapAiUsage(deps, opts = {}) {
     );
   }
 
-  // ── 3) 预热 fetch (fire-and-forget) ──
+  // ── 3) 预热 fetch (fire-and-forget) — 对每个已配置 provider 各拉一次 ──
   if (warmup) {
-    Promise.resolve()
-      .then(() => _internals.fetch({ deps: internalDeps, opts: {} }))
-      .catch(() => {
-        /* 启动期 fetch 失败完全吞掉 — 不阻塞 bootstrap, 错误由 UI 后续 fetch 显示 */
-      });
+    for (const provider of KNOWN_PROVIDERS) {
+      Promise.resolve()
+        .then(() =>
+          _internals.fetch({ deps: internalDeps, opts: { provider } }),
+        )
+        .catch(() => {
+          /* 启动期 fetch 失败完全吞掉 — 不阻塞 bootstrap, 错误由 UI 后续 fetch 显示 */
+        });
+    }
   }
 }
 
-module.exports = { bootstrapAiUsage };
+module.exports = { bootstrapAiUsage, KNOWN_PROVIDERS };
