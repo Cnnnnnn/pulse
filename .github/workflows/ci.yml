@@ -5,6 +5,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 # 同分支新 push 取消老 run, 不浪费 CI 时间
 concurrency:
