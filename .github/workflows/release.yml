@@ -20,7 +20,8 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm install -g npm@10.8.2
+      - run: npm ci --no-audit --no-fund
       - run: npm test -- --run
       - run: npm run build:renderer
       - name: Build macOS (electron-builder)
@@ -46,7 +47,8 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm install -g npm@10.8.2
+      - run: npm ci --no-audit --no-fund
       - run: npm test -- --run
       - run: npm run build:renderer
       - name: Build Windows (electron-builder NSIS)

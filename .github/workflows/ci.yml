@@ -27,8 +27,16 @@ jobs:
           node-version: 20
           cache: npm
 
+      # 2026-06: GitHub runner 的 bundled npm 9.x 在跑老 dependency tree (rimraf 3,
+      # glob 7-10 等 deprecate) 时会 race condition 报 "Exit handler never
+      # called!" 并整体 exit 1, 后续步骤拿不到 vitest binary. 锁 npm 10.8.2
+      # (npm/cli #7666 验证的 last-known-good) 绕开.
+      # 背景: https://github.com/npm/cli/issues/7666
+      - name: Pin npm to last-known-good
+        run: npm install -g npm@10.8.2
+
       - name: Install deps
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Run unit tests
         run: npm test -- --run
