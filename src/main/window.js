@@ -11,6 +11,7 @@
 
 const { BrowserWindow } = require('electron');
 const path = require('path');
+const platform = require('../platform');
 
 /**
  * @param {object} opts
@@ -39,19 +40,15 @@ function createWindowManager(opts = {}) {
       show: false,
       // Phase 28: 显式设 title, 防止 Electron 默认 "Electron" / 老 install 残留
       title: 'Pulse',
-      titleBarStyle: 'hiddenInset',
-      vibrancy: 'under-window',
-      visualEffectState: 'active',
-      transparent: true,
       resizable: true,
-      // Phase B7e: 让 Pulse 出现在 Dock + Cmd+Tab 列表 (之前 skipTaskbar=true 隐藏).
-      // 用户明确反馈想用 Cmd+Tab 切换.
-      skipTaskbar: false,
       webPreferences: {
         preload: preloadPath,
         contextIsolation: true,
         nodeIntegration: false,
       },
+      // 视觉选项走平台层 (mac: vibrancy + hiddenInset; win: acrylic + hidden)
+      // 展开在末尾, 让 platform 返回值覆盖上面的同名字段 (如果有).
+      ...platform.getWindowOptions(),
     });
 
     // 双保险: index.html <title> 也设了, 但 BrowserWindow 显式 title 优先生效
