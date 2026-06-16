@@ -22,8 +22,11 @@ try {
 const { queryAllUninstallKeys } = require('../workers/win-registry');
 const iv = require('../workers/installed-version');
 const { getActionForApp } = require('../main/bulk-upgrade-actions');
-const { defaultExec } = require('../main/bulk-upgrade');
-const winAppIcon = require('../main/app-icon-windows');
+
+// bulk-upgrade.js / app-icon-windows.js 顶部 require('electron'),
+// 而 platform 模块也被 worker thread (task-handlers.js) require —
+// worker 里 require('electron') 会崩. 所以 electron 相关的 require 必须懒加载.
+// worker 只用 resolveAppPath / getInstalledVersion, 不碰这些 electron 方法.
 
 const WINDOW_OPTIONS = {
   titleBarStyle: 'hidden',
@@ -65,7 +68,9 @@ async function getInstalledVersion(appCfg) {
 async function getAppIcon(appPath) {
   // P4: 委托给 src/main/app-icon-windows.js (走 Electron app.getFileIcon API).
   // 跟 macos.js 委托给 src/main/app-icon.js 完全对称.
+  // 懒加载 — app-icon-windows.js require('electron'), 顶层 require 会让 worker 崩.
   if (!appPath || typeof appPath !== 'string') return null;
+  const winAppIcon = require('../main/app-icon-windows');
   return winAppIcon.getAppIcon(appPath);
 }
 
@@ -106,6 +111,8 @@ function getUpgradeAction(appCfg, detectResult) {
  * match exactly across platforms.
  */
 async function execUpgrade(action) {
+  // 懒加载 — bulk-upgrade.js require('electron'), 顶层 require 会让 worker 崩.
+  const { defaultExec } = require('../main/bulk-upgrade');
   return defaultExec(action);
 }
 

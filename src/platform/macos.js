@@ -10,13 +10,16 @@
  *   getUpgradeAction    → src/main/bulk-upgrade-actions.js
  *   execUpgrade         → src/main/bulk-upgrade.js (defaultExec)
  *   getWindowOptions    → 常量 (从现有 window.js 提取)
+ *
+ * 注意: getAppIcon / getUpgradeAction / execUpgrade 委托的模块 require 了
+ * 'electron' (bulk-upgrade.js → shell). 而 platform 模块也被 worker thread
+ * (task-handlers.js) require — worker 里 require('electron') 会崩.
+ * 所以 electron 相关的 require 必须懒加载 (函数体内), 不能放模块顶层.
+ * worker 只用 resolveAppPath / getInstalledVersion, 不碰这些 electron 方法.
  */
 
 const { resolveAppBundlePath } = require('../utils/app-paths');
 const iv = require('../workers/installed-version');
-const appIconMod = require('../main/app-icon');
-const { getActionForApp } = require('../main/bulk-upgrade-actions');
-const bulkUpgrade = require('../main/bulk-upgrade');
 
 /**
  * macOS 窗口选项 — 跟现有 src/main/window.js createWindow() 的值完全一致.
@@ -42,11 +45,14 @@ async function getInstalledVersion(appCfg) {
   return iv.getInstalledVersion(bundle, sources);
 }
 
+// 以下三个方法只在 main 进程调, require 了 electron, 必须懒加载避免 worker 崩.
 async function getAppIcon(appPath) {
+  const appIconMod = require('../main/app-icon');
   return appIconMod.getAppIcon(appPath);
 }
 
 function getUpgradeAction(_appCfg, detectResult) {
+  const { getActionForApp } = require('../main/bulk-upgrade-actions');
   // getActionForApp 读 item.source / cask / trackId / bundleName / releaseUrl.
   // detectResult 的字段名 (source, brew_cask, track_id, release_url) 要映射到
   // getActionForApp 期望的 (source, cask, trackId, releaseUrl, bundleName).
@@ -63,6 +69,8 @@ function getUpgradeAction(_appCfg, detectResult) {
 }
 
 async function execUpgrade(action) {
+  // bulk-upgrade.js 顶部 require('electron'), 不能放模块顶层 (worker 会崩)
+  const bulkUpgrade = require('../main/bulk-upgrade');
   return bulkUpgrade.defaultExec(action);
 }
 
