@@ -54,6 +54,8 @@ const PROVIDER_ENDPOINTS = {
   deepseek: { baseUrl: 'https://api.deepseek.com', protocol: 'openai', path: '/v1/chat/completions' },
   // MiniMax: M3 (用户指定 2026 最新); minimaxi.com/v1 — _joinUrl 会剥 path /v1 避免重复.
   minimax: { baseUrl: 'https://api.minimaxi.com/v1', protocol: 'openai', path: '/v1/chat/completions' },
+  // GLM (智谱 z.ai): OpenAI 兼容协议; base /api/paas/v4, chat 走 /chat/completions.
+  glm: { baseUrl: 'https://api.z.ai/api/paas/v4', protocol: 'openai', path: '/chat/completions' },
 };
 
 const ANTHROPIC_VERSION = '2023-06-01';
