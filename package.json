@@ -54,7 +54,8 @@
       "icon": "assets/icon.ico",
       "target": [
         "nsis"
-      ]
+      ],
+      "artifactName": "Pulse-Setup-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
