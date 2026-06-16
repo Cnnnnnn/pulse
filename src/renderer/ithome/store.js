@@ -108,6 +108,12 @@ export async function fetchDayNews(dateKey) {
         not_current_month: "只能查看本月内的新闻",
         future_date: "不能选择未来日期",
         invalid_date: "日期无效",
+        parse_empty: "该日期暂无新闻数据（可能是太早的日期或网站暂时无法访问）",
+        parse_failed: "新闻页面解析失败，可能是网站结构变化，请稍后重试",
+        fetch_failed: "拉取失败，请检查网络连接后重试",
+        network_failed: "网络连接失败，请检查网络或代理设置",
+        busy: "正在加载中，请稍候",
+        ipc_unavailable: "系统通信异常，请重启应用",
       };
       ithomeNewsError.value = map[reason] || reason;
       return r || { ok: false, reason: "fetch_failed" };

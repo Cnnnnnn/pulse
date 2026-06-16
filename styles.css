@@ -31,6 +31,8 @@
   --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
   --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  /* Windows / Linux 系统字体回退 (body.platform-win 覆盖 --font-system) */
+  --font-windows: "Segoe UI", "Segoe UI Variable", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
   --transition: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   /* 布局与语义色 — 统一中性底 + 系统蓝强调 */
   --page-padding: 20px;
@@ -77,7 +79,9 @@
 /* Win11: Electron backgroundMaterial='acrylic' 在 main 端处理, 透明背景. */
 /* Win10: backgroundMaterial 被忽略, 走 fallback 纯色. */
 body.platform-win {
-  /* 覆盖 :root --content-bg 的浅色, 用 Win10 友好的深色系 */
+  /* Windows 用系统原生字体 (Segoe UI / 微软雅黑), 不用 mac 的 -apple-system */
+  --font-system: var(--font-windows);
+  /* 覆盖 :root --content-bg 的浅色, 用 Win10/11 友好的深色系 */
   --content-bg: #1e1e2e;
   --chrome-bg: #2c2c34;
   --bg-primary: rgba(44, 44, 52, 0.95);
@@ -86,8 +90,22 @@ body.platform-win {
   --bg-modal: #2c2c34;
   --border: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.06);
-  --text-primary: #e8e8ed;
-  --text-secondary: #a1a1a6;
+  /* 提高文字对比度 — Windows 上 acrylic 背景下旧值太灰看不清 */
+  --text-primary: #f0f0f5;
+  --text-secondary: #b8b8c4;
+  --text-tertiary: #8888a0;
+  /* Windows 上字体渲染比 mac 偏小, 全局放大 1px (13→14 基准) */
+  font-size: 14px;
+}
+
+/* Windows 上小字号元素再提一档 (9px→10px, 10px→11px, 11px→12px) */
+body.platform-win .row-latest-version,
+body.platform-win .row-installed-version,
+body.platform-win .row-note,
+body.platform-win .ai-usage-card-countdown,
+body.platform-win .ithome-row-meta,
+body.platform-win .ithome-panel-empty-hint {
+  font-size: 12px;
 }
 
 /* ─── Reset ─── */
