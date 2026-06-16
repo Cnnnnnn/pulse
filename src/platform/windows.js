@@ -21,6 +21,8 @@ try {
 
 const { queryAllUninstallKeys } = require('../workers/win-registry');
 const iv = require('../workers/installed-version');
+const { getActionForApp } = require('../main/bulk-upgrade-actions');
+const { defaultExec } = require('../main/bulk-upgrade');
 
 const WINDOW_OPTIONS = {
   titleBarStyle: 'hidden',
@@ -64,14 +66,29 @@ async function getAppIcon(_appPath) {
   return null;
 }
 
-function getUpgradeAction(_appCfg, _detectResult) {
-  // P1 stub — P3 填 winget 分支
-  return { type: 'none', reason: 'windows upgrade not yet implemented (P3)' };
+/**
+ * Map a platform-agnostic upgrade item to a winget (or none) action.
+ *
+ * Per spec §3, Windows app upgrades flow exclusively through winget_show sources.
+ * Other sources (sparkle_appcast, electron_yml, etc.) on Windows still go through
+ * their respective upgrade paths IF we wire them in a later phase — for P3 we
+ * only implement the winget path, so everything else returns 'none'.
+ *
+ * Delegates to the shared `bulk-upgrade-actions.getActionForApp` so the action
+ * shape is identical to the macOS path and tests/main code stays consistent.
+ */
+function getUpgradeAction(_appCfg, detectResult) {
+  return getActionForApp(detectResult);
 }
 
-async function execUpgrade(_action) {
-  // P1 stub — P3 填 winget execFile
-  throw new Error('windows execUpgrade not yet implemented (P3)');
+/**
+ * Execute an upgrade action. Delegates to `bulk-upgrade.defaultExec` which now
+ * handles winget alongside the macOS brew/mas/open paths. We always use
+ * defaultExec (never any winget-specific shortcut) so the execution semantics
+ * match exactly across platforms.
+ */
+async function execUpgrade(action) {
+  return defaultExec(action);
 }
 
 function getWindowOptions() {
