@@ -113,14 +113,18 @@ describe('saveApiKey + loadApiKey round-trip', () => {
  expect(loadApiKey('deepseek')).toBe(longKey);
  });
 
- it('写入时 file存在且 mode =0o600', () => {
- saveApiKey('minimax', 'sk-test');
- const file = path.join(tmpDir, 'ai-keys', 'minimax.bin');
- expect(fs.existsSync(file)).toBe(true);
- const stat = fs.statSync(file);
- //0o600 =384
- expect(stat.mode &0o777).toBe(0o600);
- });
+it('写入时 file存在且 mode =0o600', () => {
+  // Windows 不强制 POSIX mode bit (fs.writeFileSync mode 参数被忽略, 走 NTFS
+  // DACL), 0o666 也不意味着 world-writable — NTFS ACL 由 user 自己控制. mac/linux
+  // 上 fs 真的给 0o600.
+  if (process.platform === 'win32') return;
+  saveApiKey('minimax', 'sk-test');
+  const file = path.join(tmpDir, 'ai-keys', 'minimax.bin');
+  expect(fs.existsSync(file)).toBe(true);
+  const stat = fs.statSync(file);
+  //0o600 =384
+  expect(stat.mode &0o777).toBe(0o600);
+});
 });
 
 describe('saveApiKey边界', () => {
