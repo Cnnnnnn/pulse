@@ -1,0 +1,64 @@
+name: Release Build
+
+# Tag 推送 (v*) 或手动 dispatch 都触发.
+# 用于生产 release, CI (.github/workflows/ci.yml) 仍负责 PR + main 跑的
+# 单元测试 + renderer bundle, 跟这里解耦.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    name: Build macOS (DMG + ZIP)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --run
+      - run: npm run build:renderer
+      - name: Build macOS (electron-builder)
+        run: npm run build:mac
+        env:
+          # 本机 dev build 跳过代码签名; 正式发布时配 Apple Developer 证书.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pulse-macos
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: warn
+
+  build-win:
+    name: Build Windows (NSIS .exe)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --run
+      - run: npm run build:renderer
+      - name: Build Windows (electron-builder NSIS)
+        run: npm run build:win
+        env:
+          # NSIS 跳过代码签名 (dev); 正式发布前配 EV 证书
+          # (CSC_LINK base64 + CSC_KEY_PASSWORD).
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pulse-windows
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+          if-no-files-found: warn
