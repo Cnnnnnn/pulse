@@ -15,6 +15,18 @@
  *         if (r.status !== 200) throw new Error(`HTTP ${r.status}`);
  *         return r.body;  // string or Buffer depending on content-type
  *       });
+ *
+ * Dispatcher signature note: the original plan proposed a DI-container shape of
+ * `fetchAllQuotes({ yahooFetcher, sinaFetcher, httpGet })` so each fetcher could
+ * be swapped independently in tests. We deliberately use the simpler
+ * `fetchAllQuotes(httpGet)` signature instead. Only two fetchers exist (Yahoo
+ * and Sina), there is no realistic scenario where they would need to be
+ * replaced independently — a fake HTTP layer covers all failure-mode and
+ * response-shape variations the dispatcher cares about. The per-fetcher
+ * parsing modules already accept their own dependencies (see
+ * `fetchYahooQuotes` / `fetchSinaQuotes`), so any test that needs to control
+ * parsing behaviour can inject there. Keeping the dispatcher surface narrow
+ * avoids a needless indirection layer.
  */
 
 const { METALS, FX_RATES } = require('./metal-config.js');
