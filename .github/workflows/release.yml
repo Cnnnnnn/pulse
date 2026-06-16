@@ -22,15 +22,15 @@ jobs:
           cache: npm
       - run: npm install -g npm@10.8.2
       - name: Install deps (resilient)
+        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
+        # "Exit handler never called!" (npm/cli #7666) 会让 npm ci 在
+        # node_modules 装到一半时 SIGSEGV, .bin links 完全没建. 强制 fresh
+        # install + rebuild bin-links + 自验 vitest binary:
         run: |
-          set +e
-          npm ci --no-audit --no-fund --ignore-scripts
-          CI_RC=$?
           set -e
-          if [ ! -x node_modules/.bin/vitest ]; then
-            echo "::warning::npm ci 没装上 vitest (rc=$CI_RC), retry with npm install"
-            npm install --no-audit --no-fund --ignore-scripts
-          fi
+          rm -rf node_modules
+          npm install --no-audit --no-fund
+          npm rebuild --bin-links 2>/dev/null || true
           if [ ! -x node_modules/.bin/vitest ]; then
             echo "::error::vitest binary 仍未就位, 装 deps 失败"
             ls -la node_modules/.bin/ 2>&1 | head -20
@@ -64,15 +64,15 @@ jobs:
           cache: npm
       - run: npm install -g npm@10.8.2
       - name: Install deps (resilient)
+        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
+        # "Exit handler never called!" (npm/cli #7666) 会让 npm ci 在
+        # node_modules 装到一半时 SIGSEGV, .bin links 完全没建. 强制 fresh
+        # install + rebuild bin-links + 自验 vitest binary:
         run: |
-          set +e
-          npm ci --no-audit --no-fund --ignore-scripts
-          CI_RC=$?
           set -e
-          if [ ! -x node_modules/.bin/vitest ]; then
-            echo "::warning::npm ci 没装上 vitest (rc=$CI_RC), retry with npm install"
-            npm install --no-audit --no-fund --ignore-scripts
-          fi
+          rm -rf node_modules
+          npm install --no-audit --no-fund
+          npm rebuild --bin-links 2>/dev/null || true
           if [ ! -x node_modules/.bin/vitest ]; then
             echo "::error::vitest binary 仍未就位, 装 deps 失败"
             ls -la node_modules/.bin/ 2>&1 | head -20
