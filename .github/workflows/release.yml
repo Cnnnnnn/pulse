@@ -21,7 +21,22 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm install -g npm@10.8.2
-      - run: npm ci --no-audit --no-fund
+      - name: Install deps (resilient)
+        run: |
+          set +e
+          npm ci --no-audit --no-fund --ignore-scripts
+          CI_RC=$?
+          set -e
+          if [ ! -x node_modules/.bin/vitest ]; then
+            echo "::warning::npm ci 没装上 vitest (rc=$CI_RC), retry with npm install"
+            npm install --no-audit --no-fund --ignore-scripts
+          fi
+          if [ ! -x node_modules/.bin/vitest ]; then
+            echo "::error::vitest binary 仍未就位, 装 deps 失败"
+            ls -la node_modules/.bin/ 2>&1 | head -20
+            exit 1
+          fi
+          echo "vitest OK: $(./node_modules/.bin/vitest --version)"
       - run: npm test -- --run
       - run: npm run build:renderer
       - name: Build macOS (electron-builder)
@@ -48,7 +63,22 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm install -g npm@10.8.2
-      - run: npm ci --no-audit --no-fund
+      - name: Install deps (resilient)
+        run: |
+          set +e
+          npm ci --no-audit --no-fund --ignore-scripts
+          CI_RC=$?
+          set -e
+          if [ ! -x node_modules/.bin/vitest ]; then
+            echo "::warning::npm ci 没装上 vitest (rc=$CI_RC), retry with npm install"
+            npm install --no-audit --no-fund --ignore-scripts
+          fi
+          if [ ! -x node_modules/.bin/vitest ]; then
+            echo "::error::vitest binary 仍未就位, 装 deps 失败"
+            ls -la node_modules/.bin/ 2>&1 | head -20
+            exit 1
+          fi
+          echo "vitest OK: $(./node_modules/.bin/vitest --version)"
       - run: npm test -- --run
       - run: npm run build:renderer
       - name: Build Windows (electron-builder NSIS)

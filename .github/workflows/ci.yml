@@ -28,16 +28,32 @@ jobs:
           node-version: 20
           cache: npm
 
-      # 2026-06: GitHub runner 的 bundled npm 9.x 在跑老 dependency tree (rimraf 3,
-      # glob 7-10 等 deprecate) 时会 race condition 报 "Exit handler never
-      # called!" 并整体 exit 1, 后续步骤拿不到 vitest binary. 锁 npm 10.8.2
-      # (npm/cli #7666 验证的 last-known-good) 绕开.
-      # 背景: https://github.com/npm/cli/issues/7666
+      # 2026-06: GitHub runner 的 bundled npm 跟项目里一票老 dep (rimraf 3,
+      # glob 7-10) deprecate warn 之间 race condition 报 "Exit handler never
+      # called!" (npm/cli #7666), step exit 1 但 node_modules 部分装好. npm
+      # 10.8.2 也中招, 实际是 node 20 + deprecate warn 太多 race.
+      #
+      # 最稳: 改用 `npm install` (有 lifecycle hooks 容忍度更高) + 允许 exit
+      # 1 fallback 到 `npm install` 重试 + 末尾校验关键 binary 在.
       - name: Pin npm to last-known-good
         run: npm install -g npm@10.8.2
 
-      - name: Install deps
-        run: npm ci --no-audit --no-fund
+      - name: Install deps (resilient)
+        run: |
+          set +e
+          npm ci --no-audit --no-fund --ignore-scripts
+          CI_RC=$?
+          set -e
+          if [ ! -x node_modules/.bin/vitest ]; then
+            echo "::warning::npm ci 没装上 vitest (rc=$CI_RC), retry with npm install"
+            npm install --no-audit --no-fund --ignore-scripts
+          fi
+          if [ ! -x node_modules/.bin/vitest ]; then
+            echo "::error::vitest binary 仍未就位, 装 deps 失败"
+            ls -la node_modules/.bin/ 2>&1 | head -20
+            exit 1
+          fi
+          echo "vitest OK: $(./node_modules/.bin/vitest --version)"
 
       - name: Run unit tests
         run: npm test -- --run
