@@ -85,6 +85,12 @@ jobs:
           npm config delete //npm.shopee.io/:_authToken
           npm config set registry https://registry.npmjs.org/
           npm config get registry
+      - name: Install sqlite3 CLI for tests
+        # tests/ai-sessions/minimax-code.test.js 用 sqlite3 CLI 跑 WAL snapshot
+        # fallback 集成测试. windows-latest runner 默认没装, choco 装
+        # sqlite 一次, 之后 PATH 就有 sqlite3.exe.
+        shell: pwsh
+        run: choco install sqlite -y --no-progress
       - name: Install deps
         # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
         # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
