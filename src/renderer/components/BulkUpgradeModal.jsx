@@ -46,6 +46,13 @@ const SOURCE_LABELS = {
   winget_show:      'winget', // P3: Windows 端 winget 升级
 };
 
+// P3: 主按钮 + footer 文案按平台分支. macOS 默认 'brew upgrade', Windows 'winget upgrade'.
+// platformInfo 由 preload.js (P1) 注入到 window.
+const PLATFORM = (typeof window !== 'undefined'
+  && window.platformInfo
+  && window.platformInfo.platform) || 'darwin';
+const UPGRADE_VERB = PLATFORM === 'win32' ? 'winget upgrade' : 'brew upgrade';
+
 // 不可升级的源 (跟 store-bulk-upgrade.js 的 isUpgradableSource 对齐)
 const NON_UPGRADABLE = new Set(['redirect_filename', 'cursor_redirect']);
 
@@ -142,7 +149,7 @@ export function BulkUpgradeModal() {
   }
 
   const footerLabel = running
-    ? `升级中 ${doneCount}/${upgradableCount}`
+    ? `${UPGRADE_VERB} ${doneCount}/${upgradableCount}`
     : summary
       ? `${summary.succeeded.length} 成功, ${summary.failed.length} 失败, ${summary.skipped.length} 跳过${summary.cancelled ? ' (已取消)' : ''}`
       : `已选 ${selectedCount} / ${upgradableCount}`;
@@ -193,7 +200,7 @@ export function BulkUpgradeModal() {
                 onClick={handleStart}
                 disabled={running || selectedCount === 0}
               >
-                升级 {selectedCount} 个应用
+                {UPGRADE_VERB} {selectedCount} 个应用
               </button>
             )}
             {summary && summary.failed.length > 0 && !running && (
