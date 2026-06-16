@@ -33,9 +33,10 @@ describe('task-handlers uses platform.resolveAppPath', () => {
     expect(platform.resolveAppPath(null, {})).toBeNull();
   });
 
-  it('windows 平台层 resolveAppPath 是 stub (P2 填) → null', () => {
+  it('windows 平台层 resolveAppPath (P2 实现) 返回 win_bundle 标记', () => {
     const win = require('../../src/platform/windows.js');
-    // 即便当前测试环境是 mac, windows.js 的 stub 行为固定
-    expect(win.resolveAppPath('Cursor', { win_bundle: 'Cursor' })).toBeNull();
+    // P2: resolveAppPath 返回 win_bundle 作为存在性标记 (非 null)
+    expect(win.resolveAppPath(null, { win_bundle: 'Cursor' })).toBe('Cursor');
+    expect(win.resolveAppPath(null, {})).toBeNull();
   });
 });

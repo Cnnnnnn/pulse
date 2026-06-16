@@ -40,6 +40,11 @@ async function handleDetectApp(appCfg, deps) {
 
   const appExists = (() => {
     try {
+      // Windows: 没有固定安装路径, resolveAppPath 返回 win_bundle 标记.
+      // 不走 fs.existsSync, 直接当成 "可能安装", 让 getInstalledVersion (注册表) 判断.
+      if (process.platform === 'win32') {
+        return !!platform.resolveAppPath(bundle, appCfg);
+      }
       return fs.existsSync(platform.resolveAppPath(bundle, appCfg));
     } catch {
       return false;
