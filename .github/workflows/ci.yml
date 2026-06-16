@@ -55,11 +55,17 @@ jobs:
         # (npm/cli #7666), 重试直到 binary 装上. 3 次重试 + 每次 set +e
         # 接受 partial 状态:
         run: |
+          echo "=== npm config relevant ==="
+          echo "registry=$(npm config get registry)"
+          echo "omit=$(npm config get omit)"
+          echo "production=$(npm config get production)"
+          echo "NODE_ENV=$NODE_ENV"
+          echo "NPM_CONFIG_OMIT=$NPM_CONFIG_OMIT"
           for i in 1 2 3; do
             echo "=== install attempt $i ==="
             rm -rf node_modules
             set +e
-            npm install --no-audit --no-fund
+            npm install --no-audit --no-fund --include=dev
             RC=$?
             set -e
             echo "rc=$RC"
