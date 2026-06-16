@@ -7,6 +7,7 @@
     {
       "name": "Cursor",
       "bundle": "Cursor.app",
+      "win_bundle": "Cursor",
       "download_url": "https://www.cursor.com/downloads",
       "release_notes_url": "https://www.cursor.com/changelog",
       "detectors": [
@@ -36,6 +37,7 @@
     {
       "name": "Kimi",
       "bundle": "Kimi.app",
+      "win_bundle": "Kimi",
       "download_url": "https://kimi.moonshot.cn",
       "release_notes_url": "https://kimi.moonshot.cn/docs/changelog",
       "detectors": [
@@ -58,6 +60,7 @@
     {
       "name": "ima.copilot",
       "bundle": "ima.copilot.app",
+      "win_bundle": "ima.copilot",
       "download_url": "https://ima.qq.com/download/",
       "version_sources": [
         {
@@ -82,6 +85,7 @@
     {
       "name": "MiniMax Code",
       "bundle": "MiniMax Code.app",
+      "win_bundle": "MiniMax Code",
       "download_url": "https://www.minimaxi.com",
       "release_notes_url": "https://www.minimaxi.com/changelog",
       "detectors": [
@@ -105,6 +109,7 @@
     {
       "name": "MiniMax Hub",
       "bundle": "MiniMax Hub.app",
+      "win_bundle": "MiniMax Hub",
       "download_url": "https://hub.minimax.io/",
       "release_notes_url": "https://hub.minimax.io/",
       "detectors": [
@@ -128,6 +133,7 @@
     {
       "name": "WorkBuddy",
       "bundle": "WorkBuddy.app",
+      "win_bundle": "WorkBuddy",
       "download_url": "https://www.codebuddy.cn/workbuddy",
       "release_notes_url": "https://www.codebuddy.cn/workbuddy",
       "detectors": [
@@ -146,6 +152,7 @@
     {
       "name": "QClaw",
       "bundle": "QClaw.app",
+      "win_bundle": "QClaw",
       "download_url": "https://qclaw.qq.com",
       "release_notes_url": "https://qclaw.qq.com",
       "detectors": [
@@ -164,6 +171,7 @@
     {
       "name": "Marvis",
       "bundle": "Marvis.app",
+      "win_bundle": "Marvis",
       "download_url": "https://marvis.qq.com",
       "release_notes_url": "https://marvis.qq.com",
       "detectors": [
@@ -182,6 +190,7 @@
     {
       "name": "ZCode",
       "bundle": "ZCode.app",
+      "win_bundle": "ZCode",
       "download_url": "https://zcode.z.ai/",
       "release_notes_url": "https://zcode.z.ai/en/changelog",
       "detectors": [
@@ -206,6 +215,7 @@
     {
       "name": "QoderWork",
       "bundle": "QoderWork CN.app",
+      "win_bundle": "QoderWork",
       "download_url": "https://qoder.com",
       "bundle_changelog": true,
       "detectors": [
@@ -224,6 +234,7 @@
     {
       "name": "Codex",
       "bundle": "Codex.app",
+      "win_bundle": "Codex",
       "download_url": "https://openai.com/codex/download",
       "detectors": [
         {
@@ -241,6 +252,7 @@
     {
       "name": "CodexBar",
       "bundle": "CodexBar.app",
+      "win_bundle": "CodexBar",
       "download_url": "https://github.com/steipete/CodexBar/releases",
       "release_notes_url": "https://github.com/steipete/CodexBar/releases",
       "detectors": [
@@ -263,6 +275,7 @@
     {
       "name": "CC Switch",
       "bundle": "CC Switch.app",
+      "win_bundle": "CC Switch",
       "download_url": "https://github.com/johnhomides/cc-switch",
       "release_notes_url": "https://github.com/johnhomides/cc-switch/releases",
       "detectors": [
