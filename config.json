@@ -195,10 +195,6 @@
       "release_notes_url": "https://zcode.z.ai/en/changelog",
       "detectors": [
         {
-          "type": "redirect_filename",
-          "url": "https://cdn.zcode-ai.com/zcode/electron/releases/3.0.1/ZCode-3.0.1-mac-{arch}.dmg"
-        },
-        {
           "type": "html_changelog",
           "url": "https://zcode.z.ai/en/changelog",
           "section_pattern": "<div class=\"flex flex-col gap-6 border-b border-neutral-800 pb-16\">",
