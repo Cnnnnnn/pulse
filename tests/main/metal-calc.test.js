@@ -66,11 +66,11 @@ describe('convertToCNY', () => {
 });
 
 describe('calcHoldingPnl', () => {
-  it('computes total pnl in CNY (using frozen costPriceCNY)', () => {
+  it('computes total pnl in CNY (using frozen per-unit costPriceCNY)', () => {
     const result = calcHoldingPnl(sampleHolding, sampleQuote, 6.7557);
     const currentCNY = 2348.5 * 6.7557 * 0.5;
-    const pnlCNY = currentCNY - 16590;
-    const pnlPct = (pnlCNY / 16590) * 100;
+    const pnlCNY = currentCNY - 16590 * 0.5;
+    const pnlPct = (pnlCNY / (16590 * 0.5)) * 100;
     expect(result).toEqual({
       pnlCNY: expect.closeTo(pnlCNY, 5),
       pnlPct: expect.closeTo(pnlPct, 5),
@@ -123,10 +123,10 @@ describe('calcOverview', () => {
     expect(result.totalMarketValueCNY).toBeCloseTo(expectedMV, 2);
   });
 
-  it('aggregates total pnl using costPriceCNY', () => {
+  it('aggregates total pnl using per-unit costPriceCNY', () => {
     const result = calcOverview(holdingMap, quoteMap, fx);
     const expectedMV = 2348.5 * 6.7557 * 0.5;
-    expect(result.totalPnlCNY).toBeCloseTo(expectedMV - 16590, 2);
+    expect(result.totalPnlCNY).toBeCloseTo(expectedMV - 16590 * 0.5, 2);
   });
 
   it('aggregates today estimated pnl', () => {

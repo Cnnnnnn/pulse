@@ -5,8 +5,9 @@
  * No I/O, no state — testable in isolation.
  *
  * Convention for `holding.costPriceCNY`:
- *   It is the FROZEN TOTAL cost of the position in CNY (recorded at buy time,
- *   i.e. costPriceCNY = costPrice × cnyPerUsdAtBuyTime × quantity).
+ *   It is the PER-UNIT cost in CNY, frozen at buy time
+ *   (i.e. costPriceCNY = costPrice × cnyPerUsdAtBuyTime, per single unit of the metal).
+ *   The total position cost is therefore `costPriceCNY × quantity`.
  *   We do NOT recompute it from the live rate — that would silently change
  *   the user's recorded basis when FX moves.
  */
@@ -40,7 +41,7 @@ function convertToCNY(amount, fromCurrency, cnyPerUsd) {
 
 /**
  * Compute total holding P&L in CNY.
- * Uses the frozen costPriceCNY (recorded at buy time) — NOT live FX.
+ * Uses the frozen per-unit costPriceCNY (recorded at buy time) — NOT live FX.
  * @param {{quantity: number, costPriceCNY: number} | null} holding
  * @param {{price: number, currency: string, unit: string}} quote
  * @param {number|null} cnyPerUsd
@@ -51,8 +52,8 @@ function calcHoldingPnl(holding, quote, cnyPerUsd) {
   const currentCNY = convertToCNY(quote.price, quote.currency, cnyPerUsd);
   if (currentCNY == null) return null;
   const currentTotalCNY = currentCNY * holding.quantity;
-  // costPriceCNY is the FROZEN total position cost (already includes quantity)
-  const costTotalCNY = holding.costPriceCNY;
+  // costPriceCNY is the PER-UNIT cost; multiply by quantity to get total basis.
+  const costTotalCNY = holding.costPriceCNY * holding.quantity;
   const pnlCNY = currentTotalCNY - costTotalCNY;
   const pnlPct = costTotalCNY === 0 ? 0 : (pnlCNY / costTotalCNY) * 100;
   return { pnlCNY, pnlPct };
@@ -99,8 +100,8 @@ function calcOverview(holdingMap, quoteMap, cnyPerUsd) {
       continue;
     }
     totalMV += mv * holding.quantity;
-    // costPriceCNY is the FROZEN total position cost (already includes quantity)
-    totalCost += holding.costPriceCNY;
+    // costPriceCNY is the PER-UNIT cost; multiply by quantity to get total basis.
+    totalCost += holding.costPriceCNY * holding.quantity;
 
     const today = convertToCNY(quote.change, quote.currency, cnyPerUsd);
     if (today != null) {
