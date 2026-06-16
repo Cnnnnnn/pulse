@@ -23,10 +23,16 @@ const path = require("path");
 exports.default = async function (context) {
   // macOS-only: codesign 是 macOS 工具, Windows/Linux 上没. electron-builder
   // 在所有平台都调 after-pack hook (跨平台代码不能假设 macOS), 我们自己守
-  // platform gate, Windows/Linux 直接 no-op. Windows 走 SignTool (要 EV
-  // 证书), 没证书时 electron-builder 默认不签也能跑 NSIS 安装.
-  if (process.platform !== "darwin") {
-    console.log(`[after-pack] skip ad-hoc signing (platform=${process.platform})`);
+  // target platform gate (用 context.electronPlatformName, 不是 process.platform —
+  // 后者是构建主机的平台, 在 mac 上交叉编译 win 包时仍是 darwin 会误进).
+  // Windows/Linux 目标直接 no-op. Windows 走 SignTool (要 EV 证书), 没证书时
+  // electron-builder 默认不签也能跑 NSIS 安装.
+  const targetPlatform =
+    (context && context.electronPlatformName) || process.platform;
+  if (targetPlatform !== "darwin") {
+    console.log(
+      `[after-pack] skip ad-hoc signing (target=${targetPlatform})`,
+    );
     return;
   }
 
