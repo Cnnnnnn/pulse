@@ -23,6 +23,7 @@ const { queryAllUninstallKeys } = require('../workers/win-registry');
 const iv = require('../workers/installed-version');
 const { getActionForApp } = require('../main/bulk-upgrade-actions');
 const { defaultExec } = require('../main/bulk-upgrade');
+const winAppIcon = require('../main/app-icon-windows');
 
 const WINDOW_OPTIONS = {
   titleBarStyle: 'hidden',
@@ -61,9 +62,11 @@ async function getInstalledVersion(appCfg) {
   return null;
 }
 
-async function getAppIcon(_appPath) {
-  // P1 stub — P4 填 app.getFileIcon + toDataURL
-  return null;
+async function getAppIcon(appPath) {
+  // P4: 委托给 src/main/app-icon-windows.js (走 Electron app.getFileIcon API).
+  // 跟 macos.js 委托给 src/main/app-icon.js 完全对称.
+  if (!appPath || typeof appPath !== 'string') return null;
+  return winAppIcon.getAppIcon(appPath);
 }
 
 /**
