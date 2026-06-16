@@ -20,9 +20,9 @@ jobs:
         with:
           # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
           # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
-          # 锁到 22.4.0 (last known good) 绕开.
+          # 锁到 22.4.1 (npm/cli #7666 验证 last known good) 绕开.
           # 跟踪: https://github.com/npm/cli/issues/7666
-          node-version: 22.4.0
+          node-version: 22.4.1
           cache: npm
       - run: npm install -g npm@10.8.2
       - name: Override registry to public npm
@@ -63,9 +63,9 @@ jobs:
         with:
           # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
           # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
-          # 锁到 22.4.0 (last known good) 绕开.
+          # 锁到 22.4.1 (npm/cli #7666 验证 last known good) 绕开.
           # 跟踪: https://github.com/npm/cli/issues/7666
-          node-version: 22.4.0
+          node-version: 22.4.1
           cache: npm
       - run: npm install -g npm@10.8.2
       - name: Override registry to public npm
