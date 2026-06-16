@@ -18,7 +18,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
+          # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
+          # 锁到 22.4.0 (last known good) 绕开.
+          # 跟踪: https://github.com/npm/cli/issues/7666
+          node-version: 22.4.0
           cache: npm
       - run: npm install -g npm@10.8.2
       - name: Override registry to public npm
@@ -32,38 +36,8 @@ jobs:
           npm config delete //npm.shopee.io/:_authToken
           npm config set registry https://registry.npmjs.org/
           npm config get registry
-      - name: Install deps (with retry)
-        # npm install 在 lifecycle hook 处理 deprecate signal 时会 SIGSEGV
-        # (npm/cli #7666), 重试直到 binary 装上. 3 次重试 + 每次 set +e
-        # 接受 partial 状态:
-        run: |
-          echo "=== npm config relevant ==="
-          echo "registry=$(npm config get registry)"
-          echo "omit=$(npm config get omit)"
-          echo "production=$(npm config get production)"
-          echo "NODE_ENV=$NODE_ENV"
-          echo "NPM_CONFIG_OMIT=$NPM_CONFIG_OMIT"
-          for i in 1 2 3; do
-            echo "=== install attempt $i ==="
-            rm -rf node_modules
-            set +e
-            npm install --no-audit --no-fund --include=dev
-            RC=$?
-            set -e
-            echo "rc=$RC"
-            if [ -x node_modules/.bin/vitest ]; then
-              echo "vitest OK on attempt $i"
-              break
-            fi
-            if [ "$i" = "3" ]; then
-              echo "::error::vitest 仍未就位, 3 次重试全失败"
-              ls -la node_modules/.bin/ 2>&1 | head -20
-              ls -la node_modules/ 2>&1 | head -10
-              exit 1
-            fi
-            sleep 3
-          done
-          echo "vitest OK: $(./node_modules/.bin/vitest --version)"
+      - name: Install deps
+        run: npm install --no-audit --no-fund
       - run: ./node_modules/.bin/vitest --run
       - run: npm run build:renderer
       - name: Build macOS (electron-builder)
@@ -87,7 +61,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
+          # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
+          # 锁到 22.4.0 (last known good) 绕开.
+          # 跟踪: https://github.com/npm/cli/issues/7666
+          node-version: 22.4.0
           cache: npm
       - run: npm install -g npm@10.8.2
       - name: Override registry to public npm
@@ -101,38 +79,8 @@ jobs:
           npm config delete //npm.shopee.io/:_authToken
           npm config set registry https://registry.npmjs.org/
           npm config get registry
-      - name: Install deps (with retry)
-        # npm install 在 lifecycle hook 处理 deprecate signal 时会 SIGSEGV
-        # (npm/cli #7666), 重试直到 binary 装上. 3 次重试 + 每次 set +e
-        # 接受 partial 状态:
-        run: |
-          echo "=== npm config relevant ==="
-          echo "registry=$(npm config get registry)"
-          echo "omit=$(npm config get omit)"
-          echo "production=$(npm config get production)"
-          echo "NODE_ENV=$NODE_ENV"
-          echo "NPM_CONFIG_OMIT=$NPM_CONFIG_OMIT"
-          for i in 1 2 3; do
-            echo "=== install attempt $i ==="
-            rm -rf node_modules
-            set +e
-            npm install --no-audit --no-fund --include=dev
-            RC=$?
-            set -e
-            echo "rc=$RC"
-            if [ -x node_modules/.bin/vitest ]; then
-              echo "vitest OK on attempt $i"
-              break
-            fi
-            if [ "$i" = "3" ]; then
-              echo "::error::vitest 仍未就位, 3 次重试全失败"
-              ls -la node_modules/.bin/ 2>&1 | head -20
-              ls -la node_modules/ 2>&1 | head -10
-              exit 1
-            fi
-            sleep 3
-          done
-          echo "vitest OK: $(./node_modules/.bin/vitest --version)"
+      - name: Install deps
+        run: npm install --no-audit --no-fund
       - run: ./node_modules/.bin/vitest --run
       - run: npm run build:renderer
       - name: Build Windows (electron-builder NSIS)
