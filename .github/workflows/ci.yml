@@ -40,23 +40,40 @@ jobs:
 
       - name: Install deps (resilient)
         # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
-        # "Exit handler never called!" (npm/cli #7666) 会让 npm ci 在
-        # node_modules 装到一半时 SIGSEGV, .bin links 完全没建. 强制 fresh
-        # install + rebuild bin-links + 自验 vitest binary:
+        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hooks
+        # 处理 signal 时 crash, 把 devDeps (vitest 等) 跳掉. 分两步: 先
+        # --omit=dev 装 prod (确定性更高), 再装 devDeps, 最后 build bin-links
+        # + 自验 vitest:
         run: |
           set -e
           rm -rf node_modules
-          npm install --no-audit --no-fund
+          # 第一次: 仅 prod deps (lifecycle hook 少, 几乎不会 crash)
+          set +e
+          npm install --omit=dev --no-audit --no-fund
+          PROD_RC=$?
+          set -e
+          echo "prod install rc=$PROD_RC"
+          # 第二次: devDeps (vitest, jsdom, esbuild 等)
+          set +e
+          npm install --include=dev --no-audit --no-fund
+          DEV_RC=$?
+          set -e
+          echo "dev install rc=$DEV_RC"
+          # 强制重建 .bin symlinks
           npm rebuild --bin-links 2>/dev/null || true
           if [ ! -x node_modules/.bin/vitest ]; then
             echo "::error::vitest binary 仍未就位, 装 deps 失败"
+            echo "PROD_RC=$PROD_RC DEV_RC=$DEV_RC"
             ls -la node_modules/.bin/ 2>&1 | head -20
+            ls -la node_modules/vitest 2>&1 | head -5
             exit 1
           fi
           echo "vitest OK: $(./node_modules/.bin/vitest --version)"
 
       - name: Run unit tests
-        run: npm test -- --run
+        # 用 ./node_modules/.bin/vitest 显式路径, 绕开 npm scripts 调用
+        # vitest 时 PATH 解析不到的问题.
+        run: ./node_modules/.bin/vitest --run
 
       - name: Build renderer bundle
         run: npm run build:renderer
