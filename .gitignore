@@ -7,7 +7,11 @@ node_modules/
 dist/
 renderer-dist/
 out/
-build/
+# build/ 根下的 .cjs + .plist (electron-builder afterPack hook 路径) 必入库
+# build/ 内的其它东西 (.DS_Store, scratch 脚本等) 还是 ignore
+build/*
+!build/*.cjs
+!build/*.plist
 
 # Logs
 *.log
