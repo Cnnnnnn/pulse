@@ -20,6 +20,8 @@ const DETECTORS = {
   app_update_yml: require("../detectors/app-update-yml"),
   electron_zip_probe: require("../detectors/electron-zip-probe"),
   html_changelog: require("../detectors/html-changelog"),
+  winget_show: require("../detectors/winget-show"),
+  github_release: require("../detectors/github-release"),
 };
 
 function makeDetector(detCfg) {
