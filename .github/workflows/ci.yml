@@ -38,31 +38,27 @@ jobs:
       - name: Pin npm to last-known-good
         run: npm install -g npm@10.8.2
 
-      - name: Install deps (resilient)
-        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
-        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hooks
-        # 处理 signal 时 crash, 把 devDeps (vitest 等) 跳掉. 分两步: 先
-        # --omit=dev 装 prod (确定性更高), 再装 devDeps, 最后 build bin-links
-        # + 自验 vitest:
+      - name: Override registry to public npm
+        # 本地 ~/.npmrc 指向 nexus.npt.seabank.io (公司私有 proxy), 在
+        # GitHub runner 上 DNS 不通 (ENOTFOUND), 装 preact 之类直接挂.
+        # CI 显式切到公共 registry, lockfile 的 integrity hash 还能校验.
         run: |
-          set -e
-          rm -rf node_modules
-          # 第一次: 仅 prod deps (lifecycle hook 少, 几乎不会 crash)
-          set +e
-          npm install --omit=dev --no-audit --no-fund
-          PROD_RC=$?
-          set -e
-          echo "prod install rc=$PROD_RC"
-          # 第二次: devDeps (vitest, jsdom, esbuild 等)
-          set +e
-          npm install --include=dev --no-audit --no-fund
-          DEV_RC=$?
-          set -e
-          echo "dev install rc=$DEV_RC"
-          # 强制重建 .bin symlinks
-          npm rebuild --bin-links 2>/dev/null || true
+          npm config delete registry
+          npm config delete //nexus.npt.seabank.io/repository/npm-bank/:_authToken
+          npm config delete //nexus.npt.seabank.io/repository/npm-bank-hosted/:_authToken
+          npm config delete //npm.shopee.io/:_authToken
+          npm config set registry https://registry.npmjs.org/
+          npm config get registry
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+        # npm install 可能在 lifecycle hooks 处理 deprecate signal 时 crash
+        # (npm/cli #7666), 但 node_modules 通常装上. set +e 接住, 自验 vitest
+        # binary 决定是否真正失败.
+      - name: Verify vitest binary
+        run: |
           if [ ! -x node_modules/.bin/vitest ]; then
-            echo "::error::vitest binary 仍未就位, 装 deps 失败"
+            echo "::error::vitest binary not at node_modules/.bin/vitest"
             echo "PROD_RC=$PROD_RC DEV_RC=$DEV_RC"
             ls -la node_modules/.bin/ 2>&1 | head -20
             ls -la node_modules/vitest 2>&1 | head -5
