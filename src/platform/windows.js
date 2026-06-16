@@ -74,11 +74,26 @@ async function getAppIcon(_appPath) {
  * their respective upgrade paths IF we wire them in a later phase — for P3 we
  * only implement the winget path, so everything else returns 'none'.
  *
+ * Field remapping mirrors macos.js: detectResult carries detector-shaped field
+ * names (source, ...), while getActionForApp expects bulk-upgrade-action-shaped
+ * names (source, wingetId). The winget_id lives on appCfg (from config.json),
+ * NOT on detectResult — detectors don't know about config-level identifiers.
+ *
  * Delegates to the shared `bulk-upgrade-actions.getActionForApp` so the action
  * shape is identical to the macOS path and tests/main code stays consistent.
  */
-function getUpgradeAction(_appCfg, detectResult) {
-  return getActionForApp(detectResult);
+function getUpgradeAction(appCfg, detectResult) {
+  // P3: 把 detectResult 路由给 bulk-upgrade-actions.
+  // mac 端 (getActionForApp) 用的字段名 (source / cask / trackId / releaseUrl / bundleName) 跟
+  // Windows 端 getActionForApp 用的字段名 (source / wingetId) 略有不同. win 端走 winget_show
+  // 分支, 只用 source + winget_id.
+  const item = {
+    id: (detectResult && detectResult.name) || (appCfg && appCfg.name),
+    name: (detectResult && detectResult.name) || (appCfg && appCfg.name),
+    source: detectResult && detectResult.source,
+    wingetId: (appCfg && appCfg.winget_id) || (detectResult && detectResult.winget_id),
+  };
+  return getActionForApp(item);
 }
 
 /**

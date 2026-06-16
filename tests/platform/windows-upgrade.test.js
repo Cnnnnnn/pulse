@@ -63,36 +63,67 @@ describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
   });
 
   describe('getUpgradeAction', () => {
-    it('委托给 bulk-upgrade-actions.getActionForApp, 透传 item', () => {
-      const item = {
-        id: 'cursor',
+    it('委托给 bulk-upgrade-actions.getActionForApp, 字段重映射 (appCfg.winget_id → item.wingetId)', () => {
+      const detectResult = {
         name: 'Cursor',
         source: 'winget_show',
-        wingetId: 'Anysphere.Cursor',
       };
+      const appCfg = { name: 'Cursor', winget_id: 'Anysphere.Cursor' };
       mockGetActionForApp.mockReturnValueOnce({
         type: 'winget',
         id: 'Anysphere.Cursor',
       });
 
       const win = require('../../src/platform/windows.js');
-      const action = win.getUpgradeAction({ win_bundle: 'Cursor' }, item);
+      const action = win.getUpgradeAction(appCfg, detectResult);
 
       expect(mockGetActionForApp).toHaveBeenCalledTimes(1);
-      expect(mockGetActionForApp).toHaveBeenCalledWith(item);
+      expect(mockGetActionForApp).toHaveBeenCalledWith({
+        id: 'Cursor',
+        name: 'Cursor',
+        source: 'winget_show',
+        wingetId: 'Anysphere.Cursor',
+      });
       expect(action).toEqual({ type: 'winget', id: 'Anysphere.Cursor' });
     });
 
+    it('appCfg 缺 winget_id → item.wingetId undefined (bulk-upgrade-actions 自己处理 missing id)', () => {
+      const detectResult = { name: 'X', source: 'winget_show' };
+      const appCfg = { name: 'X' };
+      mockGetActionForApp.mockReturnValueOnce({
+        type: 'none',
+        reason: 'winget: missing id',
+      });
+
+      const win = require('../../src/platform/windows.js');
+      const action = win.getUpgradeAction(appCfg, detectResult);
+
+      expect(mockGetActionForApp).toHaveBeenCalledWith({
+        id: 'X',
+        name: 'X',
+        source: 'winget_show',
+        wingetId: undefined,
+      });
+      expect(action.type).toBe('none');
+    });
+
     it('非 winget source → 返回 { type: "none", reason } (无自动升级路径)', () => {
-      const item = { id: 'sparkle-app', source: 'sparkle_appcast' };
+      const detectResult = { id: 'sparkle-app', name: 'SparkleApp', source: 'sparkle_appcast' };
+      const appCfg = { name: 'SparkleApp' };
       mockGetActionForApp.mockReturnValueOnce({
         type: 'none',
         reason: "source 'sparkle_appcast' has no auto-upgrade",
       });
 
       const win = require('../../src/platform/windows.js');
-      const action = win.getUpgradeAction({}, item);
+      const action = win.getUpgradeAction(appCfg, detectResult);
 
+      expect(mockGetActionForApp).toHaveBeenCalledWith({
+        id: 'SparkleApp',
+        name: 'SparkleApp',
+        source: 'sparkle_appcast',
+        wingetId: undefined,
+      });
       expect(action.type).toBe('none');
       expect(action.reason).toMatch(/sparkle_appcast/);
     });
