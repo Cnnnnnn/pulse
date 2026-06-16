@@ -92,6 +92,24 @@ function _keyPath(providerId) {
 }
 
 /**
+ * 兼容查找: 优先 .bin (当前), 回退 .enc (历史版本写的).
+ * 老用户 key 存成 <providerId>.enc, 现在代码读 .bin, 不兼容会丢 key.
+ * @param {string} providerId
+ * @returns {string|null} 实际存在的文件路径, 都没有 → null
+ */
+function _findKeyFile(providerId) {
+  const bin = _keyPath(providerId);
+  if (fs.existsSync(bin)) return bin;
+  // 回退历史后缀 .enc
+  const userData = _tryGetUserDataDir();
+  if (userData) {
+    const enc = path.join(userData, 'ai-keys', `${providerId}.enc`);
+    if (fs.existsSync(enc)) return enc;
+  }
+  return null;
+}
+
+/**
  * 加密 + 写 API key.
  * @param {string} providerId   'openai' | 'anthropic' | 'deepseek' | 'minimax' | 'ollama'
  * @param {string} apiKey
@@ -127,8 +145,9 @@ function loadApiKey(providerId, log = SILENT_LOG) {
  const ss = _tryGetSafeStorage();
  if (!ss) return null;
  if (typeof ss.isEncryptionAvailable === 'function' && !ss.isEncryptionAvailable()) return null;
- const file = _keyPath(providerId);
- if (!fs.existsSync(file)) return null;
+ // 兼容 .bin (当前) + .enc (历史版本) — 两边都找不到才返 null
+ const file = _findKeyFile(providerId);
+ if (!file) return null;
  try {
  const buf = fs.readFileSync(file);
  const plain = ss.decryptString(buf);
@@ -148,15 +167,19 @@ function loadApiKey(providerId, log = SILENT_LOG) {
  * @returns {boolean}
  */
 function clearApiKey(providerId, log = SILENT_LOG) {
-  const file = _keyPath(providerId);
-  try {
-    fs.unlinkSync(file);
-    return true;
-  } catch (err) {
-    if (err && err.code === 'ENOENT') return false;
-    log.warn(`clearApiKey failed for ${providerId}: ${err.message}`);
-    return false;
-  }
+ // 兼容: 同时删 .bin 和 .enc (历史版本可能写的 .enc)
+ let removed = false;
+ for (const file of [_keyPath(providerId), _findKeyFile(providerId)]) {
+   if (!file) continue;
+   try {
+     fs.unlinkSync(file);
+     removed = true;
+   } catch (err) {
+     if (err && err.code === 'ENOENT') continue;
+     log.warn(`clearApiKey failed for ${providerId}: ${err.message}`);
+   }
+ }
+ return removed;
 }
 
 module.exports = {
