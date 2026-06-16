@@ -43,6 +43,7 @@ const SOURCE_LABELS = {
   api_json:         'api',
   redirect_filename: 'manual',
   cursor_redirect:   'manual',
+  winget_show:      'winget', // P3: Windows 端 winget 升级
 };
 
 // 不可升级的源 (跟 store-bulk-upgrade.js 的 isUpgradableSource 对齐)

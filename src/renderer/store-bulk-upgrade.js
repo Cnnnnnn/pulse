@@ -101,7 +101,9 @@ export function applyBulkUpgradeDone(summary) {
 }
 
 // 工具: 判断 source 是否有可执行升级路径
-function isUpgradableSource(src) {
+// exported for tests + reuse by BulkUpgradeModal (single source of truth).
+// P3: winget_show added — Windows 端 winget upgrade (spec §3).
+export function isUpgradableSource(src) {
   return src === 'brew_formulae'
     || src === 'brew_local_cask'
     || src === 'sparkle_appcast'
@@ -109,5 +111,6 @@ function isUpgradableSource(src) {
     || src === 'electron_yml'
     || src === 'qclaw_api'
     || src === 'app_update_yml'
-    || src === 'api_json';
+    || src === 'api_json'
+    || src === 'winget_show';
 }
