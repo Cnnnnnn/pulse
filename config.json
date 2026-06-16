@@ -24,8 +24,14 @@
           "section_pattern": "<article>",
           "section_end": "</article>",
           "version_pattern": "<span class=\"label\">([0-9.]+)</span>"
+        },
+        {
+          "type": "winget_show",
+          "id": "Anysphere.Cursor",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "Anysphere.Cursor"
     },
     {
       "name": "Kimi",
@@ -40,8 +46,14 @@
         {
           "type": "brew_formulae",
           "cask": "kimi"
+        },
+        {
+          "type": "winget_show",
+          "id": "MoonshotAI.Kimi",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "MoonshotAI.Kimi"
     },
     {
       "name": "ima.copilot",
@@ -58,8 +70,14 @@
         {
           "type": "app_store_lookup",
           "url": "https://itunes.apple.com/lookup?id=6737188438&country=cn"
+        },
+        {
+          "type": "winget_show",
+          "id": "Tencent.ima",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "Tencent.ima"
     },
     {
       "name": "MiniMax Code",
@@ -75,8 +93,14 @@
           "type": "electron_zip_probe",
           "baseUrl": "https://filecdn.minimax.chat/public/minimax-agent-prod/release",
           "product": "MiniMax Code"
+        },
+        {
+          "type": "winget_show",
+          "id": "MiniMax.MiniMaxCode",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "MiniMax.MiniMaxCode"
     },
     {
       "name": "MiniMax Hub",
@@ -92,8 +116,14 @@
           "type": "electron_zip_probe",
           "baseUrl": "https://filecdn.minimax.chat/public/minimax-hub/release/domestic",
           "product": "MiniMax Hub"
+        },
+        {
+          "type": "winget_show",
+          "id": "MiniMax.MiniMaxHub",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "MiniMax.MiniMaxHub"
     },
     {
       "name": "WorkBuddy",
@@ -104,8 +134,14 @@
         {
           "type": "api_json",
           "url": "https://www.codebuddy.cn/v2/update?platform=workbuddy-darwin-{arch}"
+        },
+        {
+          "type": "winget_show",
+          "id": "Tencent.WorkBuddy",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "Tencent.WorkBuddy"
     },
     {
       "name": "QClaw",
@@ -116,8 +152,14 @@
         {
           "type": "qclaw_api",
           "url": "https://jprx.m.qq.com/data/4066/forward"
+        },
+        {
+          "type": "winget_show",
+          "id": "Tencent.QClaw",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "Tencent.QClaw"
     },
     {
       "name": "Marvis",
@@ -128,8 +170,14 @@
         {
           "type": "redirect_filename",
           "url": "https://marvis.qq.com/download/dmg"
+        },
+        {
+          "type": "winget_show",
+          "id": "Tencent.Marvis",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "Tencent.Marvis"
     },
     {
       "name": "ZCode",
@@ -146,8 +194,14 @@
           "url": "https://zcode.z.ai/en/changelog",
           "section_pattern": "<div class=\"flex flex-col gap-6 border-b border-neutral-800 pb-16\">",
           "version_pattern": "<span class=\"w-fit rounded-full[^\"]*font-mono[^\"]*\">([0-9.]+)</span>"
+        },
+        {
+          "type": "winget_show",
+          "id": "Zhipu.ZCode",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "Zhipu.ZCode"
     },
     {
       "name": "QoderWork",
@@ -158,8 +212,14 @@
         {
           "type": "electron_yml",
           "url": "https://static.qoder.com.cn/qoder-work-cn/releases/latest-mac.yml"
+        },
+        {
+          "type": "winget_show",
+          "id": "Qoder.QoderWork",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "Qoder.QoderWork"
     },
     {
       "name": "Codex",
@@ -169,8 +229,14 @@
         {
           "type": "sparkle_appcast",
           "url": "https://persistent.oaistatic.com/codex-app-prod/appcast.xml"
+        },
+        {
+          "type": "winget_show",
+          "id": "OpenAI.Codex",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "OpenAI.Codex"
     },
     {
       "name": "CodexBar",
@@ -185,8 +251,14 @@
         {
           "type": "brew_formulae",
           "cask": "codexbar"
+        },
+        {
+          "type": "winget_show",
+          "id": "Steipeteme.CodexBar",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "Steipeteme.CodexBar"
     },
     {
       "name": "CC Switch",
@@ -197,8 +269,14 @@
         {
           "type": "brew_formulae",
           "cask": "cc-switch"
+        },
+        {
+          "type": "winget_show",
+          "id": "CCSwitch.CCSwitch",
+          "platform": "win"
         }
-      ]
+      ],
+      "winget_id": "CCSwitch.CCSwitch"
     }
   ]
 }
