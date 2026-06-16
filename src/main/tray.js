@@ -11,13 +11,31 @@
  * 依赖：electron (tray/nativeImage/menu)、detect 状态 (lastResults)。
  */
 
-const { Tray, Menu, nativeImage, shell } = require('electron');
+const { Tray, Menu, nativeImage, nativeTheme, shell } = require('electron');
 const path = require('path');
 
 const ASSETS = path.join(__dirname, '..', '..', 'assets');
 
-/** 加载模板图标 (Apple template image: 适配 light/dark). */
-function loadTrayIcon() {
+/**
+ * 加载模板图标.
+ * - macOS: Apple template image, 走 setTemplateImage(true) 自动适配 light/dark.
+ * - Windows: 没有 setTemplateImage 协议, 用两套静态 ICO + nativeTheme 切换.
+ *
+ * @param {object} [theme] - 注入依赖, 默认走 require('electron').nativeTheme.
+ */
+function loadTrayIcon(theme) {
+  if (process.platform === 'win32') {
+    // P4: Windows 端用 ICO + 深浅色两套.
+    // nativeTheme.shouldUseDarkColors 反映 OS 当前主题.
+    const effectiveTheme = theme || nativeTheme;
+    const file = effectiveTheme.shouldUseDarkColors
+      ? 'iconTrayDark.ico'
+      : 'iconTray.ico';
+    const png = nativeImage.createFromPath(path.join(ASSETS, file));
+    if (png.isEmpty()) return loadFallbackIcon();
+    return png;
+  }
+  // macOS 现状不变 (template image)
   const png = nativeImage.createFromPath(path.join(ASSETS, 'iconTemplate@2x.png'));
   if (png.isEmpty()) return null;
   png.setTemplateImage(true);
@@ -69,6 +87,15 @@ function createTrayManager(opts) {
     tray.setToolTip('Pulse');
     tray.on('click', () => onOpenPanel());
     rebuildMenu();
+
+    // P4: Windows 端监听主题变化, 切换亮/暗两套 ICO.
+    // macOS 走 template image 协议, 不需要 listener.
+    if (process.platform === 'win32') {
+      nativeTheme.on('updated', () => {
+        const next = loadTrayIcon();
+        if (next && tray) tray.setImage(next);
+      });
+    }
   }
 
   function rebuildMenu() {
