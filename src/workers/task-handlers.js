@@ -7,7 +7,7 @@
 const fs = require("fs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
-const { resolveAppBundlePath } = require("../utils/app-paths");
+const platform = require("../platform");
 const { runDetectorChain } = require("./detector-chain");
 const { getInstalledVersion } = require("./installed-version");
 const { buildDetectResult } = require("./result-builder");
@@ -40,7 +40,7 @@ async function handleDetectApp(appCfg, deps) {
 
   const appExists = (() => {
     try {
-      return fs.existsSync(resolveAppBundlePath(bundle));
+      return fs.existsSync(platform.resolveAppPath(bundle, appCfg));
     } catch {
       return false;
     }
