@@ -14,6 +14,24 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
+// safeStorage 兼容性: 早期版本 Pulse (npm 包的 name="pulse") 用小写
+// "pulse Safe Storage" 作为 keychain service name, 老用户 .bin 加密文件绑了
+// 那个 service 下的 master key. 现在 productName="Pulse" → Electron 默认走
+// 大写 "Pulse Safe Storage" → 拿到的 master key 跟老文件不兼容, decrypt
+// 失败, 看起来 "deepseek/minimax 正常, GLM 异常" 其实是全部都 decrypt 失败
+// (UI 走 hasFile 兜底让状态栏误显 "已存 key").
+//
+// 强制设回小写 "pulse" 保持兼容, 必须在 app.whenReady() 之前调才能影响
+// safeStorage 用的 service name (Electron 内部 cache).
+// 详见 https://github.com/electron/electron/issues/45328
+if (app && typeof app.setName === "function") {
+  try {
+    app.setName("pulse");
+  } catch {
+    /* noop — vitest 环境里 app 可能不可用 */
+  }
+}
+
 // Phase B2b: ai-sessions CursorDetector 读 vscdb 用 Node 22.5+ 内置的 node:sqlite.
 // 在 app.whenReady() 之前启 flag.
 try {
@@ -195,7 +213,7 @@ async function bootstrap() {
   pool = new WorkerPool({
     size: poolSize,
     workerScript,
-    workerOpts: { workerData: { arch: ARCH } },
+      workerOpts: { workerData: { arch: ARCH, platform: process.platform } },
     onProgress: (payload) => {
       const w = getWindow();
       if (w && !w.isDestroyed()) {
@@ -282,16 +300,18 @@ async function bootstrap() {
 
   // 7.5) AI usage warmup (fire-and-forget) — 让 renderer 进入 AI 用量页时立即有数据
   //      IPC handlers 已在 registerIpcHandlers 里注册, 这里只跑 warmup
+  //      (multi-provider v2: minimax + glm 各自 fire-and-forget)
   bootstrapAiUsage(
     {
       stateStore: {
-        load: stateStore.loadAiUsageSnapshot,
-        save: stateStore.saveAiUsageSnapshot,
-        loadHistory: stateStore.loadAiUsageHistory,
-        appendHistory: stateStore.appendAiUsageHistoryDay,
+        loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,
+        saveSnapshotProvider: stateStore.saveAiUsageSnapshotProvider,
+        loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
+        appendHistoryProvider: stateStore.appendAiUsageHistoryDayProvider,
       },
       storage: require("../ai-sessions/storage"),
       MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
+      GlmQuotaClient: require("../ai-usage/client-glm").GlmQuotaClient,
       sendToRenderer,
     },
     { warmup: true, registerIpc: false },

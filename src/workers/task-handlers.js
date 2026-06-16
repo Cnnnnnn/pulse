@@ -11,7 +11,7 @@ const platform = require("../platform");
 const { runDetectorChain } = require("./detector-chain");
 const { getInstalledVersion } = require("./installed-version");
 const { buildDetectResult } = require("./result-builder");
-const { sendProgress, postLog, ARCH } = require("./ipc");
+const { sendProgress, postLog, ARCH, PLATFORM } = require("./ipc");
 const { AppBundleChangelogDetector } = require("../detectors/app-bundle-changelog");
 
 const pExecFile = promisify(execFile);
@@ -92,6 +92,7 @@ async function handleDetectApp(appCfg, deps) {
 
   const chainResult = await runDetectorChain(appCfg, {
     arch: ARCH,
+    platform: PLATFORM,
     http,
     logger,
   });
