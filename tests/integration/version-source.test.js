@@ -128,8 +128,9 @@ describe('tryVersionSource', () => {
       expect(v).toBe('2.5.3'); // stripBuildNumber 剥掉 4392
     });
 
-    it('MMKV 多版本时只取第一次出现 (g=implied)', async () => {
-      // 同一个文件里多次 appVersion 出现, 旧版本在前. 我们用第一个.
+    it('MMKV 多版本时取最大的 (追加写入场景)', async () => {
+      // 同一个文件里多次 appVersion 出现, 已装版本是文件里最大的 (追加写入
+      // 把新版本写到文件末尾). 取最大 + stripBuildNumber 剥 build counter.
       const p = path.join(tmpDir, 'mmkv.bin');
       const content = `appVersion":"2.5.2.4342" ... appVersion":"2.5.3.4392"`;
       fs.writeFileSync(p, content);
@@ -141,7 +142,7 @@ describe('tryVersionSource', () => {
         },
         { homeDir: tmpDir }
       );
-      expect(v).toBe('2.5.2'); // 第一个, 然后 stripBuildNumber 剥 4342
+      expect(v).toBe('2.5.3'); // 最大的 2.5.3.4392 → stripBuildNumber → 2.5.3
     });
 
     it('没 capture group → 用整段 match', async () => {

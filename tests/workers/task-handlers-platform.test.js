@@ -25,12 +25,13 @@ describe('task-handlers uses platform.resolveAppPath', () => {
   });
 
   it('platform.resolveAppPath 委托 app-paths, mac 上行为不变', () => {
-    const platform = require('../../src/platform');
-    // macos 平台层委托 resolveAppBundlePath — 同样把 "Cursor.app" → "/Applications/Cursor.app"
-    expect(platform.resolveAppPath('Cursor.app', {})).toBe(
+    // 调 macos.js 直接, 避免 index.js 跑 process.platform switch (CI 是 linux
+    // 会走 windows 分支, 行为不一样)
+    const macos = require('../../src/platform/macos.js');
+    expect(macos.resolveAppPath('Cursor.app', {})).toBe(
       '/Applications/Cursor.app',
     );
-    expect(platform.resolveAppPath(null, {})).toBeNull();
+    expect(macos.resolveAppPath(null, {})).toBeNull();
   });
 
   it('windows 平台层 resolveAppPath (P2 实现) 返回 win_bundle 标记', () => {
