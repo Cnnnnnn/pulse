@@ -45,6 +45,10 @@ const FX_RATES = [
   { id: 'CNY_PER_USD', primary: { kind: 'yahoo-chart', symbol: 'CNY=X' } },
 ];
 
+/**
+ * Derived list of metal ids. Used as the default `watchedIds` value
+ * in the renderer's metalStore (Task 7).
+ */
 const METAL_IDS = METALS.map((m) => m.id);
 
 function getMetalById(id) {
