@@ -110,6 +110,42 @@ describe('parseYahooResponse', () => {
     expect(result.quotes).toEqual({});
     expect(result.fx).toEqual({});
   });
+
+  it('skips items with non-finite price', () => {
+    const sampleNullPrice = {
+      meta: {
+        symbol: 'GC=F',
+        currency: 'USD',
+        regularMarketPrice: null, // Yahoo occasionally returns null off-hours
+        previousClose: 4351.6,
+        regularMarketTime: 1781633600,
+      },
+    };
+    const result = parseYahooResponse(
+      { chart: { result: [sampleNullPrice], error: null } },
+      { 'GC=F': { metalId: 'XAU', priceScale: 1 / 100 } }
+    );
+    expect(result.quotes).toEqual({});
+    expect(result.fx).toEqual({});
+  });
+
+  it('skips items with non-finite quoteTime', () => {
+    const sampleNullTime = {
+      meta: {
+        symbol: 'GC=F',
+        currency: 'USD',
+        regularMarketPrice: 4362.8,
+        previousClose: 4351.6,
+        regularMarketTime: null,
+      },
+    };
+    const result = parseYahooResponse(
+      { chart: { result: [sampleNullTime], error: null } },
+      { 'GC=F': { metalId: 'XAU', priceScale: 1 / 100 } }
+    );
+    expect(result.quotes).toEqual({});
+    expect(result.fx).toEqual({});
+  });
 });
 
 describe('fetchYahooQuotes', () => {
@@ -137,5 +173,19 @@ describe('fetchYahooQuotes', () => {
   it('throws on invalid JSON', async () => {
     const mockHttpGet = vi.fn().mockResolvedValue('not json');
     await expect(fetchYahooQuotes(['GC=F'], mockHttpGet)).rejects.toThrow();
+  });
+
+  it('forwards symbolToMetal/symbolToFx mapping to the parser', async () => {
+    const mockHttpGet = vi.fn().mockResolvedValue(JSON.stringify(sampleYahooResponse));
+    const result = await fetchYahooQuotes(
+      ['GC=F', 'SI=F', 'CNY=X'],
+      mockHttpGet,
+      { 'GC=F': { metalId: 'XAU', priceScale: 1 / 100 }, 'SI=F': { metalId: 'XAG', priceScale: 1 / 50 } },
+      { 'CNY=X': 'CNY_PER_USD' }
+    );
+    expect(result.quotes.XAU).toBeDefined();
+    expect(result.quotes.XAG).toBeDefined();
+    expect(result.fx.CNY_PER_USD).toBeDefined();
+    expect(result.quotes.XAU.price).toBeCloseTo(43.628, 3);
   });
 });
