@@ -2,6 +2,40 @@
 
 ---
 
+## v2.18.0 (Windows · winget 升级) — 2026-06-16
+
+### 新增
+- **Windows 端一键升级走 winget** (跟 macOS 端 brew 对齐, spec §3):
+  - `src/main/bulk-upgrade-actions.js` 加 `winget_show` source 分支, 产出 `{ type: 'winget', id }`
+  - `src/main/bulk-upgrade.js defaultExec` 加 `winget` case, 跑 `winget upgrade --id <id> --accept-package-agreements --accept-source-agreements` (两个 `--accept-*` 标志抑制交互式 license 提示; 缺 id 短路返回 `{ ok: false, reason: 'winget: missing id' }` 不 spawn)
+  - Non-zero exit (含 UAC 拒绝 / winget error 1603) 透传 `{ ok: false, exitCode }` (跟 mac brew 错误处理同构)
+- **platform/windows.js 真实实现** (替换 P1 stub):
+  - `getUpgradeAction(appCfg, detectResult)` 委托 `bulk-upgrade-actions.getActionForApp`, 内部字段重映射 `appCfg.winget_id → item.wingetId` (跟 macos.js 对称)
+  - `execUpgrade(action)` 委托 `bulk-upgrade.defaultExec`
+- **config.json 13 个 app 全加 winget 升级路径**:
+  - 顶层 `winget_id` 字段
+  - `detectors[]` 追加 `{ type: 'winget_show', id: <winget_id>, platform: 'win' }`
+- **renderer**:
+  - `src/renderer/store-bulk-upgrade.js` `isUpgradableSource` 接受 `winget_show` (现在 `export`, BulkUpgradeModal 可共享同一份 source of truth)
+  - `src/renderer/components/BulkUpgradeModal.jsx` `SOURCE_LABELS` 加 `winget_show: 'winget'` + 主按钮 + footer running 文案按 `window.platformInfo.platform` 分支 (darwin → "brew upgrade N 个", win32 → "winget upgrade N 个")
+
+### 变更
+- 测试基线 1855 PASS / 1 FAIL (FAIL 为 baseline 已存在的 `tryVersionSource regex_file MMKV 多版本时只取第一次出现`, 跟本 release 无关)
+- 新增测试覆盖 (3 文件):
+  - `tests/main/bulk-upgrade-winget.test.js` — `getActionForApp` winget_show 分支 (camelCase + snake_case + missing-id + null) + `defaultExec` winget case (happy / non-zero / missing-id)
+  - `tests/platform/windows-upgrade.test.js` — `windows.js getUpgradeAction` 字段重映射 + `execUpgrade` 委托透传
+  - `tests/renderer/store-bulk-upgrade-winget.test.js` — `isUpgradableSource` 行为 + `SOURCE_LABELS` + `NON_UPGRADABLE` 静态约束
+- `src/renderer/components/BulkUpgradeModal.jsx` 既有测试 `bulk-upgrade-modal.test.jsx` 的按钮文案断言从 `/升级 1 个应用/` 更新到 `/brew upgrade 1 个应用/`
+- `src/main/bulk-upgrade.js execBrew` 的 call site (`execFile` → `childProcess.execFile`) 在 Task 2 期间被 implementer 多余地改了一笔, 已 revert (commit 60821d3), 跟 winget 引入的 `childProcess` 引用风格保持一致
+- macOS 行为零变化 (所有新分支都带 platform 守卫, 仅 win32 触发; winget_show detector platform=win → detector-chain 的 platform 过滤跳过)
+
+### 已知限制
+- Windows 端 13 个 app 的 winget_id 是基于公开 winget-pkgs 仓库推断, 部分 id (如 MiniMax.MiniMaxCode / MiniMax.MiniMaxHub / Tencent.QClaw / Tencent.Marvis / Zhipu.ZCode / Qoder.QoderWork / CCSwitch.CCSwitch) 实际 winget 仓库可能没收录 → 升级时 winget 会返 `No package found`, 自动标 `failed`. 用户可以手动 `winget install <id>` 验证.
+- V1 不做升级后自动重新检测版本 (spec YAGNI)
+- V1 不做 winget UAC 后的自动 polling 状态 (失败 → user 手动重试)
+
+---
+
 ## v2.16.1 (世界杯 · 刷新卡顿修复 + 比分源并行) — 2026-06-15
 
 ### 修复
