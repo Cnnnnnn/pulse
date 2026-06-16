@@ -14,6 +14,11 @@ import {
   _clearIconCache,
 } from "../../src/main/app-icon.js";
 
+// 整个测试文件都是 macOS-only: sips CLI + .icns + Info.plist CFBundleIconFile
+// 路径只对 macOS bundle 有意义. Windows 上 app-icon-windows.js 走完全不同的
+// 逻辑 (PowerShell + .ico), 它的测试应该在 app-icon-windows.test.js.
+const itMac = process.platform === "darwin" ? it : it.skip;
+
 function makeFs(overrides = {}) {
   return {
     existsSync: vi.fn(() => true),
@@ -36,7 +41,7 @@ describe("getAppIcon (Phase 25 v5)", () => {
     _clearIconCache();
   });
 
-  it("sips PNG buffer → base64 dataUrl", async () => {
+  itMac("sips PNG buffer → base64 dataUrl", async () => {
     let pngOutPath = null;
     const fs = makeFs({
       readFileSync: (p) => {
@@ -65,7 +70,7 @@ describe("getAppIcon (Phase 25 v5)", () => {
     expect(_spawn).toHaveBeenCalled();
   });
 
-  it("sips 失败 → null", async () => {
+  itMac("sips 失败 → null", async () => {
     const fs = makeFs({
       readFileSync: () => "<plist/>",
       readdirSync: () => ["icon.icns"],
@@ -79,7 +84,7 @@ describe("getAppIcon (Phase 25 v5)", () => {
     expect(r).toBeNull();
   });
 
-  it("找不到 .icns → null", async () => {
+  itMac("找不到 .icns → null", async () => {
     const fs = makeFs({
       readFileSync: () => "<plist/>",
       readdirSync: () => ["other.txt", "a.png"],
@@ -93,7 +98,7 @@ describe("getAppIcon (Phase 25 v5)", () => {
     expect(r).toBeNull();
   });
 
-  it("bundle 不存在 → null", async () => {
+  itMac("bundle 不存在 → null", async () => {
     const fs = makeFs({ existsSync: vi.fn(() => false) });
     const _app = makeApp();
     expect(
@@ -101,7 +106,7 @@ describe("getAppIcon (Phase 25 v5)", () => {
     ).toBeNull();
   });
 
-  it("空路径 → null", async () => {
+  itMac("空路径 → null", async () => {
     const fs = makeFs();
     const _app = makeApp();
     expect(await getAppIcon("", { fs, app: _app })).toBeNull();
@@ -110,7 +115,7 @@ describe("getAppIcon (Phase 25 v5)", () => {
 });
 
 describe("findIcnsPath (helper)", () => {
-  it("Info.plist 拿 CFBundleIconFile", () => {
+  itMac("Info.plist 拿 CFBundleIconFile", () => {
     const fs = makeFs({
       existsSync: (p) => p.includes("Info.plist") || p.includes("AppIcon.icns"),
       readFileSync: () => "<key>CFBundleIconFile</key><string>AppIcon</string>",
@@ -120,7 +125,7 @@ describe("findIcnsPath (helper)", () => {
     );
   });
 
-  it("Info.plist 缺字段 → Resources glob", () => {
+  itMac("Info.plist 缺字段 → Resources glob", () => {
     const fs = makeFs({
       existsSync: (p) => p.includes("Info.plist") || p.endsWith("Resources"),
       readFileSync: () => "<plist/>",
@@ -131,7 +136,7 @@ describe("findIcnsPath (helper)", () => {
     );
   });
 
-  it("都没 → null", () => {
+  itMac("都没 → null", () => {
     const fs = makeFs({
       existsSync: () => false,
       readFileSync: () => "<plist/>",
@@ -176,7 +181,7 @@ describe("getAppIcon cache + in-flight dedup", () => {
     };
   }
 
-  it("第二次同 bundle → 命中 cache, sips 0 次", async () => {
+  itMac("第二次同 bundle → 命中 cache, sips 0 次", async () => {
     const deps = makeOkEnv();
     const r1 = await getAppIcon("/Applications/Cursor.app", deps);
     const callsAfterFirst = deps.spawn.mock.calls.length;
@@ -188,7 +193,7 @@ describe("getAppIcon cache + in-flight dedup", () => {
     expect(callsAfterFirst).toBe(1);
   });
 
-  it("不同 bundle → 各跑一次 sips, 互不污染", async () => {
+  itMac("不同 bundle → 各跑一次 sips, 互不污染", async () => {
     const deps = makeOkEnv();
     const r1 = await getAppIcon("/Applications/A.app", deps);
     const r2 = await getAppIcon("/Applications/B.app", deps);
@@ -198,7 +203,7 @@ describe("getAppIcon cache + in-flight dedup", () => {
     expect(deps.spawn).toHaveBeenCalledTimes(2);
   });
 
-  it("并发同 bundle → 1 次 sips (in-flight 复用)", async () => {
+  itMac("并发同 bundle → 1 次 sips (in-flight 复用)", async () => {
     const deps = makeOkEnv();
     // 13 个 AppRow 同时挂载的模拟
     const promises = [];
@@ -214,7 +219,7 @@ describe("getAppIcon cache + in-flight dedup", () => {
     }
   });
 
-  it("并发结束后, 后续单次请求 → 命中 cache, 0 sips", async () => {
+  itMac("并发结束后, 后续单次请求 → 命中 cache, 0 sips", async () => {
     const deps = makeOkEnv();
     await Promise.all([
       getAppIcon("/Applications/Cursor.app", deps),
@@ -226,7 +231,7 @@ describe("getAppIcon cache + in-flight dedup", () => {
     expect(deps.spawn).toHaveBeenCalledTimes(1);
   });
 
-  it("负缓存: sips 失败 → 不入 cache, 下次再试", async () => {
+  itMac("负缓存: sips 失败 → 不入 cache, 下次再试", async () => {
     const deps = makeOkEnv();
     // 第 1 次: sips 失败
     deps.spawn.mockImplementationOnce(() => fakeSipsFail);
@@ -243,7 +248,7 @@ describe("getAppIcon cache + in-flight dedup", () => {
     expect(deps.spawn).toHaveBeenCalledTimes(2);
   });
 
-  it("负缓存: bundle 不存在 → 不入 cache, 下次再试", async () => {
+  itMac("负缓存: bundle 不存在 → 不入 cache, 下次再试", async () => {
     let exists = false;
     const deps = {
       fs: makeFs({ existsSync: () => exists }),
@@ -267,7 +272,7 @@ describe("getAppIcon cache + in-flight dedup", () => {
     expect(r2).toMatch(/^data:image\/png;base64,/);
   });
 
-  it("空路径 → null, 不入 cache 不入 in-flight", async () => {
+  itMac("空路径 → null, 不入 cache 不入 in-flight", async () => {
     const deps = makeOkEnv();
     expect(await getAppIcon("", deps)).toBeNull();
     expect(await getAppIcon(null, deps)).toBeNull();
@@ -278,7 +283,7 @@ describe("getAppIcon cache + in-flight dedup", () => {
     expect(r).toMatch(/^data:image\/png;base64,/);
   });
 
-  it("_clearIconCache 之后 → cache 清空, 下次重新跑 sips", async () => {
+  itMac("_clearIconCache 之后 → cache 清空, 下次重新跑 sips", async () => {
     const deps = makeOkEnv();
     await getAppIcon("/Applications/Cursor.app", deps);
     expect(deps.spawn).toHaveBeenCalledTimes(1);

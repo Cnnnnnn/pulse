@@ -16,7 +16,7 @@
  *              renderer 关闭 modal → abort, 不影响其他 IPC
  */
 
-const { execFile } = require('child_process');
+const childProcess = require('child_process');
 const { shell } = require('electron');
 const { getActionForApp } = require('./bulk-upgrade-actions');
 
@@ -145,9 +145,12 @@ function makeError(message, output) {
 // ── default exec ────────────────────────────────────────
 
 /**
- * 默认的 exec: 处理 brew / open / open_url / mas 四种 action.
+ * 默认的 exec: 处理 brew / open / open_url / mas / winget 五种 action.
  * open / open_url / mas 是 fire-and-forget — shell.openPath/openExternal 几乎瞬间返回,
  * "成功" 意味着 URL/path 格式合法被 OS 接受, 不保证 app 真的弹更新 / 用户完成下载.
+ *
+ * brew / winget 返回 { output } 或 throw Error(output) (走 runOne 失败路径).
+ * winget 用 child-process event 形式以便测试能 mock; brew 沿用 callback 形式.
  */
 async function defaultExec(action) {
   if (action.type === 'brew') {
@@ -162,12 +165,15 @@ async function defaultExec(action) {
   if (action.type === 'mas') {
     return execMas(action.trackId, action.fallbackUrl);
   }
+  if (action.type === 'winget') {
+    return execWinget(action.id);
+  }
   throw new Error(`unknown action type: ${action && action.type}`);
 }
 
 function execBrew(cmd, args) {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { timeout: 0 }, (err, stdout, stderr) => {
+      execFile(cmd, args, { timeout: 0 }, (err, stdout, stderr) => {
       const out = (stdout || '') + (stderr ? '\n[stderr]\n' + stderr : '');
       // brew upgrade 退出码:
       //   0 = 成功升级
@@ -180,6 +186,52 @@ function execBrew(cmd, args) {
         return;
       }
       resolve({ output: out });
+    });
+  });
+}
+
+/**
+ * Run `winget upgrade --id <id> --accept-package-agreements --accept-source-agreements`.
+ * Returns { ok, exitCode?, stdout?, stderr?, reason?, error? }.
+ *
+ * The two `--accept-*` flags suppress interactive license/source-agreement prompts
+ * that would otherwise hang the upgrade flow (no TTY in the Electron main process).
+ * Non-zero exit (UAC decline, winget error code 1603, etc.) surfaces as
+ * { ok: false, exitCode }; spawn failure (e.g. winget not on PATH) surfaces as
+ * { ok: false, reason, error }.
+ *
+ * Missing / empty id short-circuits with { ok: false, reason } WITHOUT spawning —
+ * this is the contract `defaultExec` callers rely on to skip invalid actions
+ * gracefully.
+ */
+function execWinget(id) {
+  return new Promise((resolve) => {
+    if (!id || typeof id !== 'string' || !id.trim()) {
+      return resolve({ ok: false, reason: 'winget: missing id' });
+    }
+    const args = [
+      'upgrade',
+      '--id', id.trim(),
+      '--accept-package-agreements',
+      '--accept-source-agreements',
+    ];
+    // No callback: rely on child-process events so tests can mock execFile
+    // by returning a stub EventEmitter. In production, execFile without a
+    // callback also returns a ChildProcess with the same events.
+    const child = childProcess.execFile('winget', args);
+    let stdout = '';
+    let stderr = '';
+    child.stdout?.on('data', (d) => { stdout += d.toString(); });
+    child.stderr?.on('data', (d) => { stderr += d.toString(); });
+    child.on('error', (err) => {
+      resolve({ ok: false, reason: 'winget: spawn failed', error: err && err.message });
+    });
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ ok: true, exitCode: 0, stdout, stderr });
+      } else {
+        resolve({ ok: false, exitCode: code, stdout, stderr });
+      }
     });
   });
 }
@@ -234,4 +286,5 @@ module.exports = {
   runBulkUpgrade,
   defaultExec, // exported for tests
   execBrew,    // exported for tests
+  execWinget,  // exported for tests
 };

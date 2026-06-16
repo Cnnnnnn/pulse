@@ -2,6 +2,76 @@
 
 ---
 
+## v2.19.0 (Windows · UI 打磨 + 图标 + CI) — 2026-06-16
+
+### 新增
+- **Windows 端 app-icon 真实实现**: `src/main/app-icon-windows.js` 走 Electron `app.getFileIcon(path).toDataURL()` (macOS SIGTRAP bug 在 Windows 不存在). 跟 macOS 端 (`src/main/app-icon.js`) 同构 cache + in-flight 协议
+- **`platform/windows.js getAppIcon`**: 委托给新模块, P1 stub 替换
+- **renderer `body.platform-win` class**: bootstrap 时按 `window.platformInfo.platform` 给 body 加 class. styles.css 加 Win10 纯色 fallback 背景变量 (Win11 acrylic 由 Electron 处理)
+- **`useIcon` 平台守卫**: Windows 端不再拼 `/Applications/x.exe` 错误路径, 返 null 走 fallback 渐变头像. `resolveAppBundlePath` 改为 named export 方便测试
+- **Windows tray ICO + 主题切换**: tray.js Windows 端读 `assets/iconTray.ico` / `iconTrayDark.ico`, 监听 `nativeTheme.on('updated')` 切换两套. macOS 现状不变 (template image 自适应 light/dark)
+- **CI Windows 构建 workflow**: `.github/workflows/release.yml` 加 windows-latest runner, 出 NSIS 安装包. macOS job 也加进去, tag 推送触发
+- **`npm run build:all`**: 同时出 mac + win 安装包
+- **`scripts/render-windows-icons.js`**: SVG (ECG 路径) + iconApp-1024.png → PNG → ICO (png-to-ico) 资源生成脚本
+
+### 资产
+- `assets/icon.ico` (16/32/48/256 layers) — Windows app icon
+- `assets/iconTray.ico` (16/32 layers, light) — tray 亮色
+- `assets/iconTrayDark.ico` (16/32 layers, dark) — tray 暗色
+- `assets/iconBadge.ico` (16/32 layers, sample digit "1")
+- 资源由 `scripts/render-windows-icons.js` 从 `iconApp-1024.png` / inline SVG 生成
+
+### 变更
+- 测试基线 1884 PASS / 2 FAIL (FAIL 均为 baseline 已存在: `tryVersionSource regex_file MMKV 多版本` + `classifyUnmappedAppsByLLM` LLM timeout, 跟本 release 无关)
+- 新增测试覆盖 (5 文件):
+  - `tests/main/app-icon-windows.test.js` — Windows icon module (cache / in-flight / error handling, 7 case)
+  - `tests/platform/windows-app-icon.test.js` — windows.js getAppIcon 委托 (3 case)
+  - `tests/renderer/platform-body-class.test.jsx` — body class 注入 + 幂等 + 平台切换 (6 case)
+  - `tests/renderer/useIcon.test.js` — useIcon 平台守卫 (6 case)
+  - `tests/main/tray.test.js` (新) — Windows ICO loading + nativeTheme mock (7 case, light/dark 走 child_process 隔离执行绕过 vitest CJS module graph 缓存)
+- macOS 行为零变化 (tray.js mac 分支 + useIcon mac 路径 + app-icon.js + bulk-upgrade 完全不变)
+
+### 已知限制
+- ICO 资源由 SVG / iconApp-1024.png 自动生成, 视觉质量依赖 designer 出更精细的源 SVG. 自动化生成能保证 ICO 格式正确, 但图标细节仍需人工 review
+- Win10 backgroundMaterial='acrylic' 静默忽略, 走 styles.css `body.platform-win` 纯色 fallback. Win11 直接走 acrylic 透明效果
+- ICO 文件偏大 (`assets/icon.ico` ~ 280KB), electron-builder NSIS 打包后体积影响可忽略. 后续可用 sharp 优化但非阻塞 P4
+
+---
+
+## v2.18.0 (Windows · winget 升级) — 2026-06-16
+
+### 新增
+- **Windows 端一键升级走 winget** (跟 macOS 端 brew 对齐, spec §3):
+  - `src/main/bulk-upgrade-actions.js` 加 `winget_show` source 分支, 产出 `{ type: 'winget', id }`
+  - `src/main/bulk-upgrade.js defaultExec` 加 `winget` case, 跑 `winget upgrade --id <id> --accept-package-agreements --accept-source-agreements` (两个 `--accept-*` 标志抑制交互式 license 提示; 缺 id 短路返回 `{ ok: false, reason: 'winget: missing id' }` 不 spawn)
+  - Non-zero exit (含 UAC 拒绝 / winget error 1603) 透传 `{ ok: false, exitCode }` (跟 mac brew 错误处理同构)
+- **platform/windows.js 真实实现** (替换 P1 stub):
+  - `getUpgradeAction(appCfg, detectResult)` 委托 `bulk-upgrade-actions.getActionForApp`, 内部字段重映射 `appCfg.winget_id → item.wingetId` (跟 macos.js 对称)
+  - `execUpgrade(action)` 委托 `bulk-upgrade.defaultExec`
+- **config.json 13 个 app 全加 winget 升级路径**:
+  - 顶层 `winget_id` 字段
+  - `detectors[]` 追加 `{ type: 'winget_show', id: <winget_id>, platform: 'win' }`
+- **renderer**:
+  - `src/renderer/store-bulk-upgrade.js` `isUpgradableSource` 接受 `winget_show` (现在 `export`, BulkUpgradeModal 可共享同一份 source of truth)
+  - `src/renderer/components/BulkUpgradeModal.jsx` `SOURCE_LABELS` 加 `winget_show: 'winget'` + 主按钮 + footer running 文案按 `window.platformInfo.platform` 分支 (darwin → "brew upgrade N 个", win32 → "winget upgrade N 个")
+
+### 变更
+- 测试基线 1855 PASS / 1 FAIL (FAIL 为 baseline 已存在的 `tryVersionSource regex_file MMKV 多版本时只取第一次出现`, 跟本 release 无关)
+- 新增测试覆盖 (3 文件):
+  - `tests/main/bulk-upgrade-winget.test.js` — `getActionForApp` winget_show 分支 (camelCase + snake_case + missing-id + null) + `defaultExec` winget case (happy / non-zero / missing-id)
+  - `tests/platform/windows-upgrade.test.js` — `windows.js getUpgradeAction` 字段重映射 + `execUpgrade` 委托透传
+  - `tests/renderer/store-bulk-upgrade-winget.test.js` — `isUpgradableSource` 行为 + `SOURCE_LABELS` + `NON_UPGRADABLE` 静态约束
+- `src/renderer/components/BulkUpgradeModal.jsx` 既有测试 `bulk-upgrade-modal.test.jsx` 的按钮文案断言从 `/升级 1 个应用/` 更新到 `/brew upgrade 1 个应用/`
+- `src/main/bulk-upgrade.js execBrew` 的 call site (`execFile` → `childProcess.execFile`) 在 Task 2 期间被 implementer 多余地改了一笔, 已 revert (commit 60821d3), 跟 winget 引入的 `childProcess` 引用风格保持一致
+- macOS 行为零变化 (所有新分支都带 platform 守卫, 仅 win32 触发; winget_show detector platform=win → detector-chain 的 platform 过滤跳过)
+
+### 已知限制
+- Windows 端 13 个 app 的 winget_id 是基于公开 winget-pkgs 仓库推断, 部分 id (如 MiniMax.MiniMaxCode / MiniMax.MiniMaxHub / Tencent.QClaw / Tencent.Marvis / Zhipu.ZCode / Qoder.QoderWork / CCSwitch.CCSwitch) 实际 winget 仓库可能没收录 → 升级时 winget 会返 `No package found`, 自动标 `failed`. 用户可以手动 `winget install <id>` 验证.
+- V1 不做升级后自动重新检测版本 (spec YAGNI)
+- V1 不做 winget UAC 后的自动 polling 状态 (失败 → user 手动重试)
+
+---
+
 ## v2.16.1 (世界杯 · 刷新卡顿修复 + 比分源并行) — 2026-06-15
 
 ### 修复

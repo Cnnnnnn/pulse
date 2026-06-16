@@ -115,11 +115,16 @@ async function getInstalledVersion(bundleName, versionSources) {
   const { plistRaw, bundleId } = await readPlistOnce(bundleName);
 
   if (Array.isArray(versionSources) && versionSources.length > 0) {
-    for (const src of versionSources) {
+    const currentPlatform = process.platform;
+    const filtered = versionSources.filter(
+      (s) => !s.platform || s.platform === currentPlatform,
+    );
+    for (const src of filtered) {
       const v = await tryVersionSource(src, { bundleId, plistRaw });
       if (v) return v;
     }
-    return null;
+    if (filtered.length > 0) return null;
+    // filtered.length === 0: 当前平台没配 source, 走下面的 fallback 链
   }
 
   const fromJson = await tryInstalledJson(bundleId);

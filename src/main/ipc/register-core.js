@@ -2,11 +2,10 @@ const { ipcMain, shell } = require("electron");
 const { runCheckQueued } = require("../check-runner");
 const { runBulkUpgrade } = require("../bulk-upgrade");
 const stateStore = require("../state-store");
-const { getAppIcon } = require("../app-icon");
+const platform = require("../../platform");
 const { mainLog } = require("../log");
 const lastOpened = require("../last-opened");
 const recentActivity = require("../recent-activity");
-const { resolveAppBundlePath } = require("../../utils/app-paths");
 
 let bulkUpgradeCtrl = null;
 let bulkUpgradeRunning = false;
@@ -155,7 +154,7 @@ function registerCoreHandlers(ctx) {
 
   ipcMain.handle("get-app-icon", async (_event, bundlePath) => {
     try {
-      const dataUrl = await getAppIcon(bundlePath);
+      const dataUrl = await platform.getAppIcon(bundlePath);
       if (!dataUrl) return { error: "not_found" };
       if (typeof dataUrl !== "string" || dataUrl.length < 30)
         return { error: "invalid" };
@@ -256,7 +255,7 @@ function registerCoreHandlers(ctx) {
         const next = {};
         await Promise.all(
           refreshable.map(async (a) => {
-            const bundlePath = resolveAppBundlePath(a.bundle);
+            const bundlePath = platform.resolveAppPath(a.bundle, a);
             try {
               const r = await lastOpened.refreshOne(bundlePath);
               next[a.name] = { ms: r.ms, source: r.source };

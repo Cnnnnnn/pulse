@@ -73,6 +73,23 @@
   }
 }
 
+/* ─── Platform: Windows (P4) ─── */
+/* Win11: Electron backgroundMaterial='acrylic' 在 main 端处理, 透明背景. */
+/* Win10: backgroundMaterial 被忽略, 走 fallback 纯色. */
+body.platform-win {
+  /* 覆盖 :root --content-bg 的浅色, 用 Win10 友好的深色系 */
+  --content-bg: #1e1e2e;
+  --chrome-bg: #2c2c34;
+  --bg-primary: rgba(44, 44, 52, 0.95);
+  --bg-secondary: rgba(36, 36, 42, 0.95);
+  --bg-card: rgba(44, 44, 52, 0.95);
+  --bg-modal: #2c2c34;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --text-primary: #e8e8ed;
+  --text-secondary: #a1a1a6;
+}
+
 /* ─── Reset ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }

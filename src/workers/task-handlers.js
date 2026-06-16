@@ -7,11 +7,11 @@
 const fs = require("fs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
-const { resolveAppBundlePath } = require("../utils/app-paths");
+const platform = require("../platform");
 const { runDetectorChain } = require("./detector-chain");
 const { getInstalledVersion } = require("./installed-version");
 const { buildDetectResult } = require("./result-builder");
-const { sendProgress, postLog, ARCH } = require("./ipc");
+const { sendProgress, postLog, ARCH, PLATFORM } = require("./ipc");
 const { AppBundleChangelogDetector } = require("../detectors/app-bundle-changelog");
 
 const pExecFile = promisify(execFile);
@@ -40,7 +40,12 @@ async function handleDetectApp(appCfg, deps) {
 
   const appExists = (() => {
     try {
-      return fs.existsSync(resolveAppBundlePath(bundle));
+      // Windows: 没有固定安装路径, resolveAppPath 返回 win_bundle 标记.
+      // 不走 fs.existsSync, 直接当成 "可能安装", 让 getInstalledVersion (注册表) 判断.
+      if (process.platform === 'win32') {
+        return !!platform.resolveAppPath(bundle, appCfg);
+      }
+      return fs.existsSync(platform.resolveAppPath(bundle, appCfg));
     } catch {
       return false;
     }
@@ -87,6 +92,7 @@ async function handleDetectApp(appCfg, deps) {
 
   const chainResult = await runDetectorChain(appCfg, {
     arch: ARCH,
+    platform: PLATFORM,
     http,
     logger,
   });

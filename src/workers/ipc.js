@@ -10,6 +10,9 @@ const ARCH =
   (workerData && workerData.arch) ||
   (process.arch === "arm64" ? "arm64" : "x64");
 
+const PLATFORM =
+  (workerData && workerData.platform) || process.platform;
+
 function makePostMessageLogger() {
   function send(level, text, meta) {
     try {
@@ -60,6 +63,7 @@ function postLog(level, text, meta) {
 
 module.exports = {
   ARCH,
+  PLATFORM,
   makePostMessageLogger,
   sendProgress,
   sendResult,

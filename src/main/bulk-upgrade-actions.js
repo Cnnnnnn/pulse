@@ -14,6 +14,7 @@
  *   { type: 'brew', cmd, args }
  *   { type: 'open', path }
  *   { type: 'mas', trackId, fallbackUrl }
+ *   { type: 'winget', id }
  *   { type: 'none', reason }
  */
 
@@ -27,6 +28,8 @@ const APP_DIR = '/Applications';
  * @param {string} [item.cask]        brew only
  * @param {string} [item.bundleName]  for 'open' actions
  * @param {number} [item.trackId]     app_store only
+ * @param {string} [item.wingetId]    winget only (camelCase, primary)
+ * @param {string} [item.winget_id]   winget only (snake_case, fallback for legacy items)
  * @returns {object} action
  */
 function getActionForApp(item) {
@@ -90,6 +93,18 @@ function getActionForApp(item) {
       type: 'open',
       path: buildAppPath(bn),
     };
+  }
+
+  // Windows: winget_show → `winget upgrade --id <id>` (spec §3)
+  // winget_id 字段可能用 snake_case 或 camelCase (renderer 侧 item 命名历史)
+  if (src === 'winget_show') {
+    const wid = (typeof item.wingetId === 'string' && item.wingetId.trim())
+      || (typeof item.winget_id === 'string' && item.winget_id.trim())
+      || '';
+    if (!wid) {
+      return { type: 'none', reason: 'winget: missing id' };
+    }
+    return { type: 'winget', id: wid };
   }
 
   // redirect_filename / cursor_redirect / 其它: 走 redirect 到 download 页

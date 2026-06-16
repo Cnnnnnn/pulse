@@ -103,7 +103,7 @@ describe('BulkUpgradeModal', () => {
     expect(checkboxes[1].checked).toBe(true);
   });
 
-  it('"升级 N 个应用" 调 api.bulkUpgradeStart (过滤 selected)', () => {
+  it('主按钮 (mac 默认 "brew upgrade N 个应用") 调 api.bulkUpgradeStart (过滤 selected)', () => {
     openBulkUpgrade([
       makeItem({ id: 'cursor', name: 'Cursor' }),
       makeItem({ id: 'kimi', name: 'Kimi' }),
@@ -112,8 +112,9 @@ describe('BulkUpgradeModal', () => {
     // 取消 cursor
     const cb = container.querySelectorAll('input[type=checkbox]')[0];
     fireEvent.click(cb);
-    // 找 "升级 1 个应用" 按钮
-    const btn = getByText(/升级 1 个应用/);
+    // P3: 按钮文案按平台分支 (mac 默认 'brew upgrade', win 'winget upgrade').
+    // jsdom 默认无 window.platformInfo → fallback 到 'darwin' → 'brew upgrade'.
+    const btn = getByText(/brew upgrade 1 个应用/);
     fireEvent.click(btn);
     expect(window.api.bulkUpgradeStart).toHaveBeenCalledTimes(1);
     const call = window.api.bulkUpgradeStart.mock.calls[0][0];

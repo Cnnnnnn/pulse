@@ -12,9 +12,10 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync } from 'fs';
 import { join } from 'path';
+import { fileURLToPath } from 'url';
 
-const MAIN_DIR = new URL('../../src/main/', import.meta.url).pathname;
-const CONFIG_DIR = new URL('../../src/config/', import.meta.url).pathname;
+const MAIN_DIR = join(fileURLToPath(import.meta.url), '../../../src/main/');
+const CONFIG_DIR = join(fileURLToPath(import.meta.url), '../../../src/config/');
 
 describe('main process module load smoke (Phase 28+ regression)', () => {
   // 收集 src/main/*.js (排除 _test, test, spec 命名)
@@ -85,7 +86,7 @@ describe('ai-sessions module load smoke (重做版)', () => {
     'provider-cloud.js',
     'index.js',
   ];
-  const AI_SESSIONS_DIR = new URL('../../src/ai-sessions/', import.meta.url).pathname;
+  const AI_SESSIONS_DIR = join(fileURLToPath(import.meta.url), '../../../src/ai-sessions/');
 
   for (const f of EXPECTED) {
     it(`src/ai-sessions/${f} can be required without error`, () => {

@@ -1,0 +1,116 @@
+name: Release Build
+
+# Tag 推送 (v*) 或手动 dispatch 都触发.
+# 用于生产 release, CI (.github/workflows/ci.yml) 仍负责 PR + main 跑的
+# 单元测试 + renderer bundle, 跟这里解耦.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    name: Build macOS (DMG + ZIP)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
+          # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
+          # 锁到 22.4.1 (npm/cli #7666 验证 last known good) 绕开.
+          # 跟踪: https://github.com/npm/cli/issues/7666
+          node-version: 22.4.1
+          cache: npm
+      - run: npm install -g npm@10.8.2
+      - name: Override registry to public npm
+        # lockfile 里 250 处 resolved 指向 nexus.npt.seabank.io (公司私有
+        # proxy), 在 GitHub runner 上 ENOTFOUND, 装 preact 之类直接挂. CI
+        # 显式切到公共 registry, lockfile integrity hash 还能校验.
+        run: |
+          npm config delete registry
+          npm config delete //nexus.npt.seabank.io/repository/npm-bank/:_authToken
+          npm config delete //nexus.npt.seabank.io/repository/npm-bank-hosted/:_authToken
+          npm config delete //npm.shopee.io/:_authToken
+          npm config set registry https://registry.npmjs.org/
+          npm config get registry
+      - name: Install deps
+        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
+        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
+        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
+        # npm 那个 buggy promise-call-limit, install 完整.
+        run: |
+          npm install -g pnpm@9
+          pnpm install --reporter=append-only
+      - run: pnpm exec vitest --run
+      - run: npm run build:renderer
+      - name: Build macOS (electron-builder)
+        run: npm run build:mac
+        env:
+          # 本机 dev build 跳过代码签名; 正式发布时配 Apple Developer 证书.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pulse-macos
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: warn
+
+  build-win:
+    name: Build Windows (NSIS .exe)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
+          # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
+          # 锁到 22.4.1 (npm/cli #7666 验证 last known good) 绕开.
+          # 跟踪: https://github.com/npm/cli/issues/7666
+          node-version: 22.4.1
+          cache: npm
+      - run: npm install -g npm@10.8.2
+      - name: Override registry to public npm
+        # lockfile 里 250 处 resolved 指向 nexus.npt.seabank.io (公司私有
+        # proxy), 在 GitHub runner 上 ENOTFOUND, 装 preact 之类直接挂. CI
+        # 显式切到公共 registry, lockfile integrity hash 还能校验.
+        run: |
+          npm config delete registry
+          npm config delete //nexus.npt.seabank.io/repository/npm-bank/:_authToken
+          npm config delete //nexus.npt.seabank.io/repository/npm-bank-hosted/:_authToken
+          npm config delete //npm.shopee.io/:_authToken
+          npm config set registry https://registry.npmjs.org/
+          npm config get registry
+      - name: Install sqlite3 CLI for tests
+        # tests/ai-sessions/minimax-code.test.js 用 sqlite3 CLI 跑 WAL snapshot
+        # fallback 集成测试. windows-latest runner 默认没装, choco 装
+        # sqlite 一次, 之后 PATH 就有 sqlite3.exe.
+        shell: pwsh
+        run: choco install sqlite -y --no-progress
+      - name: Install deps
+        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
+        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
+        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
+        # npm 那个 buggy promise-call-limit, install 完整.
+        run: |
+          npm install -g pnpm@9
+          pnpm install --reporter=append-only
+      - run: pnpm exec vitest --run
+      - run: npm run build:renderer
+      - name: Build Windows (electron-builder NSIS)
+        run: npm run build:win
+        env:
+          # NSIS 跳过代码签名 (dev); 正式发布前配 EV 证书
+          # (CSC_LINK base64 + CSC_KEY_PASSWORD).
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pulse-windows
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+          if-no-files-found: warn

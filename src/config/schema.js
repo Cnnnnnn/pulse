@@ -37,6 +37,8 @@ const VALID_DETECTOR_TYPES = new Set([
   "qclaw_api",
   "app_update_yml",
   "html_changelog",
+  "winget_show",
+  "github_release",
 ]);
 
 function isNonEmptyString(v) {
@@ -167,7 +169,14 @@ function sanitizeConfig(input) {
     );
     if (cleanDets.length === 0) continue;
     // Phase 9: sanitize 也保留 version_sources. 不认识/不合法的 type 静默丢弃.
-    const validVS = new Set(["installed_json", "plist", "regex_file"]);
+    const validVS = new Set([
+      "installed_json",
+      "plist",
+      "regex_file",
+      "registry_version",
+      "winget_list",
+      "windows_app_yml",
+    ]);
     const vs = Array.isArray(a.version_sources) ? a.version_sources : [];
     const cleanVS = vs
       .filter(
@@ -178,6 +187,9 @@ function sanitizeConfig(input) {
         const out = { type: s.type };
         if (s.path) out.path = String(s.path);
         if (s.pattern) out.pattern = String(s.pattern);
+        if (isNonEmptyString(s.reg_path)) out.reg_path = s.reg_path;
+        if (isNonEmptyString(s.winget_id)) out.winget_id = s.winget_id;
+        if (isNonEmptyString(s.platform)) out.platform = s.platform;
         return out;
       });
     cleanApps.push({
@@ -192,7 +204,25 @@ function sanitizeConfig(input) {
         : undefined,
       // Phase 21: 是否读 app bundle 内的 changelog 文件 (CHANGELOG.md 等).
       bundle_changelog: a.bundle_changelog === true ? true : undefined,
-      detectors: cleanDets,
+      // P2: Windows 标识字段
+      win_bundle: isNonEmptyString(a.win_bundle) ? a.win_bundle : undefined,
+      winget_id: isNonEmptyString(a.winget_id) ? a.winget_id : undefined,
+      detectors: cleanDets.map((d) => {
+        const out = { type: d.type };
+        if (isNonEmptyString(d.url)) out.url = d.url;
+        if (isNonEmptyString(d.cask)) out.cask = d.cask;
+        if (isNonEmptyString(d.field)) out.field = d.field;
+        if (isNonEmptyString(d.id)) out.id = d.id;
+        if (isNonEmptyString(d.platform)) out.platform = d.platform;
+        if (typeof d.timeout === "number" && d.timeout > 0)
+          out.timeout = d.timeout;
+        if (isNonEmptyString(d.section_pattern))
+          out.section_pattern = d.section_pattern;
+        if (isNonEmptyString(d.section_end)) out.section_end = d.section_end;
+        if (isNonEmptyString(d.version_pattern))
+          out.version_pattern = d.version_pattern;
+        return out;
+      }),
       version_sources: cleanVS.length > 0 ? cleanVS : undefined,
     });
   }

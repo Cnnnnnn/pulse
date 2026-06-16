@@ -20,6 +20,8 @@ const DETECTORS = {
   app_update_yml: require("../detectors/app-update-yml"),
   electron_zip_probe: require("../detectors/electron-zip-probe"),
   html_changelog: require("../detectors/html-changelog"),
+  winget_show: require("../detectors/winget-show"),
+  github_release: require("../detectors/github-release"),
 };
 
 function makeDetector(detCfg) {
@@ -82,11 +84,17 @@ function compareVersions(installed, latest) {
 }
 
 async function runDetectorChain(appCfg, deps) {
-  const { arch, http, logger } = deps;
+  const { arch, http, logger, platform } = deps;
+  const currentPlatform = platform || process.platform;
   const detectors = Array.isArray(appCfg.detectors) ? appCfg.detectors : [];
   const trace = [];
   let firstHit = null;
   for (const detCfg of detectors) {
+    // 平台过滤: 只跑 platform===当前平台 或没标 platform 的 detector
+    if (detCfg.platform && detCfg.platform !== currentPlatform) {
+      trace.push({ det: detCfg.type, ms: 0, skipped: 'platform' });
+      continue;
+    }
     const Det = makeDetector(detCfg);
     if (!Det) {
       trace.push({ det: detCfg.type, ms: 0, error: "unknown detector type" });
@@ -98,6 +106,7 @@ async function runDetectorChain(appCfg, deps) {
       http,
       logger,
       detCfg,
+      platform: currentPlatform,
     });
     const t0 = Date.now();
     let result = null;

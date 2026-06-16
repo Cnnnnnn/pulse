@@ -44,6 +44,7 @@ import { primeConfigCache } from './components/AppRow.jsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
 import { createAutoRecheck } from './auto-recheck.js';
 import { taggedLog } from './log.js';
+import { applyPlatformBodyClass } from './platform-body-class.js';
 
 const log = taggedLog("[index]");
 
@@ -89,6 +90,10 @@ async function triggerCheck() {
 // ─── Bootstrap ──────────────────────────────────────────────
 
 async function bootstrap() {
+  // 0) P4: 尽早给 body 加 platform class (Win10 fallback 背景需要在
+  //    App 首次 paint 前生效, 否则会有一次白闪).
+  applyPlatformBodyClass();
+
   // 1) 加载 config —— 即便失败也给空壳 UI
   let cfg = { apps: [], check_on_launch: true };
   try {

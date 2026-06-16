@@ -55,12 +55,13 @@ class DetectContext {
    * @param {object} opt.logger   结构化 logger: { debug, info, warn, error }
    * @param {object} [opt.detCfg] 当前 detector 在 detectors[] 里的具体配置（含 url/timeout/...）
    */
-  constructor({ appCfg, arch, http, logger, detCfg = {} }) {
+  constructor({ appCfg, arch, http, logger, detCfg = {}, platform } = {}) {
     this.appCfg = appCfg;
     this.arch = arch;
     this.http = http;
     this.logger = logger;
     this.detCfg = detCfg;
+    this.platform = platform || process.platform;
   }
 
   /** 取 per-detector 配置的 url（带空值兜底） */

@@ -5,6 +5,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 # 同分支新 push 取消老 run, 不浪费 CI 时间
 concurrency:
@@ -24,14 +25,47 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
+          # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
+          # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
+          # 22.5.1 修了原 bug, 但 22.5.x 后续小版本仍偶发. 锁到 Node 20 LTS
+          # (issue 7666 实测稳定 + 本地 dev 环境一致). 跟踪:
+          # https://github.com/npm/cli/issues/7666
           node-version: 20
           cache: npm
 
+      # 2026-06: GitHub runner 的 bundled npm 跟项目里一票老 dep (rimraf 3,
+      # glob 7-10) deprecate warn 之间 race condition 报 "Exit handler never
+      # called!" (npm/cli #7666), step exit 1 但 node_modules 部分装好. npm
+      # 10.8.2 也中招, 实际是 node 20 + deprecate warn 太多 race.
+      #
+      # 最稳: 改用 `npm install` (有 lifecycle hooks 容忍度更高) + 允许 exit
+      # 1 fallback 到 `npm install` 重试 + 末尾校验关键 binary 在.
+      - name: Pin npm to last-known-good
+        run: npm install -g npm@10.8.2
+
+      - name: Override registry to public npm
+        # 本地 ~/.npmrc 指向 nexus.npt.seabank.io (公司私有 proxy), 在
+        # GitHub runner 上 DNS 不通 (ENOTFOUND), 装 preact 之类直接挂.
+        # CI 显式切到公共 registry, lockfile 的 integrity hash 还能校验.
+        run: |
+          npm config delete registry
+          npm config delete //nexus.npt.seabank.io/repository/npm-bank/:_authToken
+          npm config delete //nexus.npt.seabank.io/repository/npm-bank-hosted/:_authToken
+          npm config delete //npm.shopee.io/:_authToken
+          npm config set registry https://registry.npmjs.org/
+          npm config get registry
+
       - name: Install deps
-        run: npm ci
+        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
+        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
+        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
+        # npm 那个 buggy promise-call-limit, install 完整.
+        run: |
+          npm install -g pnpm@9
+          pnpm install --reporter=append-only
 
       - name: Run unit tests
-        run: npm test -- --run
+        run: pnpm exec vitest --run
 
       - name: Build renderer bundle
         run: npm run build:renderer

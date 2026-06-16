@@ -1,5 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
+contextBridge.exposeInMainWorld("platformInfo", {
+  platform: process.platform,
+});
+
 contextBridge.exposeInMainWorld("api", {
   getConfig: () => ipcRenderer.invoke("get-config"),
   getCachedState: () => ipcRenderer.invoke("get-cached-state"),
@@ -59,6 +63,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("ai-sessions:clear-key", providerId),
   hasAiKey: (providerId) =>
     ipcRenderer.invoke("ai-sessions:has-key", providerId),
+  getAiKey: (providerId) =>
+    ipcRenderer.invoke("ai-sessions:get-key", providerId),
   aiHealthcheck: (opts) => ipcRenderer.invoke("ai-sessions:healthcheck", opts),
   getAiSessionsConfig: () => ipcRenderer.invoke("ai-sessions:get-config"),
   saveAiSessionsConfig: (cfg) =>

@@ -17,11 +17,21 @@ import { useState, useEffect } from 'preact/hooks';
 import { api } from '../api.js';
 
 // Inline 避免 esbuild 拖入 node:path 依赖 (renderer 不该打 path 模块).
-function resolveAppBundlePath(bundle) {
+// P4: 加平台守卫 — win32 上返 null, 防止拼出 /Applications/Cursor.exe 错路径.
+//     useIcon 不会在 Windows 真跑 (windows.js getAppIcon 走真实 .exe 路径 +
+//     app.getFileIcon), 这是防御性 coding.
+export function resolveAppBundlePath(bundle) {
   if (!bundle || typeof bundle !== 'string') return null;
   const trimmed = bundle.trim();
   if (!trimmed) return null;
   if (trimmed.startsWith('/')) return trimmed;
+  if (
+    typeof window !== 'undefined'
+    && window.platformInfo
+    && window.platformInfo.platform === 'win32'
+  ) {
+    return null;
+  }
   return `/Applications/${trimmed}`;
 }
 
