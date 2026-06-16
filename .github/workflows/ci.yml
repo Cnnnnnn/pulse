@@ -27,9 +27,10 @@ jobs:
         with:
           # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
           # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
-          # 锁到 22.4.1 (npm/cli #7666 验证 last known good) 绕开.
-          # 跟踪: https://github.com/npm/cli/issues/7666
-          node-version: 22.4.1
+          # 22.5.1 修了原 bug, 但 22.5.x 后续小版本仍偶发. 锁到 Node 20 LTS
+          # (issue 7666 实测稳定 + 本地 dev 环境一致). 跟踪:
+          # https://github.com/npm/cli/issues/7666
+          node-version: 20
           cache: npm
 
       # 2026-06: GitHub runner 的 bundled npm 跟项目里一票老 dep (rimraf 3,
@@ -55,12 +56,16 @@ jobs:
           npm config get registry
 
       - name: Install deps
-        run: npm install --no-audit --no-fund
+        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
+        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
+        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
+        # npm 那个 buggy promise-call-limit, install 完整.
+        run: |
+          npm install -g pnpm@9
+          pnpm install --reporter=append-only
 
       - name: Run unit tests
-        # 用 ./node_modules/.bin/vitest 显式路径, 绕开 npm scripts 调用
-        # vitest 时 PATH 解析不到的问题.
-        run: ./node_modules/.bin/vitest --run
+        run: pnpm exec vitest --run
 
       - name: Build renderer bundle
         run: npm run build:renderer

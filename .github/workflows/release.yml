@@ -37,8 +37,14 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           npm config get registry
       - name: Install deps
-        run: npm install --no-audit --no-fund
-      - run: ./node_modules/.bin/vitest --run
+        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
+        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
+        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
+        # npm 那个 buggy promise-call-limit, install 完整.
+        run: |
+          npm install -g pnpm@9
+          pnpm install --reporter=append-only
+      - run: pnpm exec vitest --run
       - run: npm run build:renderer
       - name: Build macOS (electron-builder)
         run: npm run build:mac
@@ -80,8 +86,14 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           npm config get registry
       - name: Install deps
-        run: npm install --no-audit --no-fund
-      - run: ./node_modules/.bin/vitest --run
+        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
+        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
+        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
+        # npm 那个 buggy promise-call-limit, install 完整.
+        run: |
+          npm install -g pnpm@9
+          pnpm install --reporter=append-only
+      - run: pnpm exec vitest --run
       - run: npm run build:renderer
       - name: Build Windows (electron-builder NSIS)
         run: npm run build:win
