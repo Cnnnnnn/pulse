@@ -2,6 +2,42 @@
 
 ---
 
+## v2.19.0 (Windows · UI 打磨 + 图标 + CI) — 2026-06-16
+
+### 新增
+- **Windows 端 app-icon 真实实现**: `src/main/app-icon-windows.js` 走 Electron `app.getFileIcon(path).toDataURL()` (macOS SIGTRAP bug 在 Windows 不存在). 跟 macOS 端 (`src/main/app-icon.js`) 同构 cache + in-flight 协议
+- **`platform/windows.js getAppIcon`**: 委托给新模块, P1 stub 替换
+- **renderer `body.platform-win` class**: bootstrap 时按 `window.platformInfo.platform` 给 body 加 class. styles.css 加 Win10 纯色 fallback 背景变量 (Win11 acrylic 由 Electron 处理)
+- **`useIcon` 平台守卫**: Windows 端不再拼 `/Applications/x.exe` 错误路径, 返 null 走 fallback 渐变头像. `resolveAppBundlePath` 改为 named export 方便测试
+- **Windows tray ICO + 主题切换**: tray.js Windows 端读 `assets/iconTray.ico` / `iconTrayDark.ico`, 监听 `nativeTheme.on('updated')` 切换两套. macOS 现状不变 (template image 自适应 light/dark)
+- **CI Windows 构建 workflow**: `.github/workflows/release.yml` 加 windows-latest runner, 出 NSIS 安装包. macOS job 也加进去, tag 推送触发
+- **`npm run build:all`**: 同时出 mac + win 安装包
+- **`scripts/render-windows-icons.js`**: SVG (ECG 路径) + iconApp-1024.png → PNG → ICO (png-to-ico) 资源生成脚本
+
+### 资产
+- `assets/icon.ico` (16/32/48/256 layers) — Windows app icon
+- `assets/iconTray.ico` (16/32 layers, light) — tray 亮色
+- `assets/iconTrayDark.ico` (16/32 layers, dark) — tray 暗色
+- `assets/iconBadge.ico` (16/32 layers, sample digit "1")
+- 资源由 `scripts/render-windows-icons.js` 从 `iconApp-1024.png` / inline SVG 生成
+
+### 变更
+- 测试基线 1884 PASS / 2 FAIL (FAIL 均为 baseline 已存在: `tryVersionSource regex_file MMKV 多版本` + `classifyUnmappedAppsByLLM` LLM timeout, 跟本 release 无关)
+- 新增测试覆盖 (5 文件):
+  - `tests/main/app-icon-windows.test.js` — Windows icon module (cache / in-flight / error handling, 7 case)
+  - `tests/platform/windows-app-icon.test.js` — windows.js getAppIcon 委托 (3 case)
+  - `tests/renderer/platform-body-class.test.jsx` — body class 注入 + 幂等 + 平台切换 (6 case)
+  - `tests/renderer/useIcon.test.js` — useIcon 平台守卫 (6 case)
+  - `tests/main/tray.test.js` (新) — Windows ICO loading + nativeTheme mock (7 case, light/dark 走 child_process 隔离执行绕过 vitest CJS module graph 缓存)
+- macOS 行为零变化 (tray.js mac 分支 + useIcon mac 路径 + app-icon.js + bulk-upgrade 完全不变)
+
+### 已知限制
+- ICO 资源由 SVG / iconApp-1024.png 自动生成, 视觉质量依赖 designer 出更精细的源 SVG. 自动化生成能保证 ICO 格式正确, 但图标细节仍需人工 review
+- Win10 backgroundMaterial='acrylic' 静默忽略, 走 styles.css `body.platform-win` 纯色 fallback. Win11 直接走 acrylic 透明效果
+- ICO 文件偏大 (`assets/icon.ico` ~ 280KB), electron-builder NSIS 打包后体积影响可忽略. 后续可用 sharp 优化但非阻塞 P4
+
+---
+
 ## v2.18.0 (Windows · winget 升级) — 2026-06-16
 
 ### 新增
