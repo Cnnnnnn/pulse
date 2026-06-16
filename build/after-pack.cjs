@@ -21,6 +21,15 @@ const { execFileSync } = require("child_process");
 const path = require("path");
 
 exports.default = async function (context) {
+  // macOS-only: codesign 是 macOS 工具, Windows/Linux 上没. electron-builder
+  // 在所有平台都调 after-pack hook (跨平台代码不能假设 macOS), 我们自己守
+  // platform gate, Windows/Linux 直接 no-op. Windows 走 SignTool (要 EV
+  // 证书), 没证书时 electron-builder 默认不签也能跑 NSIS 安装.
+  if (process.platform !== "darwin") {
+    console.log(`[after-pack] skip ad-hoc signing (platform=${process.platform})`);
+    return;
+  }
+
   const appOutDir = context.appOutDir;
   const productFilename = context.packager.appInfo.productFilename;
   const appPath = path.join(appOutDir, `${productFilename}.app`);
