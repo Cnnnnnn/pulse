@@ -121,17 +121,20 @@ describe('calcOverview', () => {
     const result = calcOverview(holdingMap, quoteMap, fx);
     const expectedMV = 2348.5 * 6.7557 * 0.5;
     expect(result.totalMarketValueCNY).toBeCloseTo(expectedMV, 2);
+    expect(result.hasFxMissing).toBe(false);
   });
 
   it('aggregates total pnl using per-unit costPriceCNY', () => {
     const result = calcOverview(holdingMap, quoteMap, fx);
     const expectedMV = 2348.5 * 6.7557 * 0.5;
     expect(result.totalPnlCNY).toBeCloseTo(expectedMV - 16590 * 0.5, 2);
+    expect(result.hasFxMissing).toBe(false);
   });
 
   it('aggregates today estimated pnl', () => {
     const result = calcOverview(holdingMap, quoteMap, fx);
     expect(result.todayEstimatedCNY).toBeCloseTo(9.8 * 0.5 * 6.7557, 2);
+    expect(result.hasFxMissing).toBe(false);
   });
 
   it('returns null for CNY fields when fx is missing', () => {
@@ -139,6 +142,7 @@ describe('calcOverview', () => {
     expect(result.totalMarketValueCNY).toBe(null);
     expect(result.totalPnlCNY).toBe(null);
     expect(result.todayEstimatedCNY).toBe(null);
+    expect(result.hasFxMissing).toBe(true);
   });
 
   it('returns zeros when no holdings', () => {
@@ -146,5 +150,36 @@ describe('calcOverview', () => {
     expect(result.totalMarketValueCNY).toBe(0);
     expect(result.totalPnlCNY).toBe(0);
     expect(result.todayEstimatedCNY).toBe(0);
+    expect(result.hasFxMissing).toBe(false);
+  });
+
+  it('partial-fx-missing sets hasFxMissing but returns partial sum', () => {
+    const usdHolding = { ...sampleHolding, id: 'hXAU' };
+    const cnyHolding = {
+      id: 'hAU9999',
+      quantity: 10,
+      costPrice: 480,
+      costCurrency: 'CNY',
+      costPriceCNY: 480,
+    };
+    const cnyQuote = {
+      id: 'AU9999',
+      price: 500,
+      prevClose: 495,
+      change: 5,
+      changePct: 1.01,
+      currency: 'CNY',
+      unit: 'g',
+    };
+    const result = calcOverview(
+      { XAU: usdHolding, AU9999: cnyHolding },
+      { XAU: sampleQuote, AU9999: cnyQuote },
+      null
+    );
+    // Only AU9999 (CNY) should be summed; XAU (USD) is dropped.
+    expect(result.totalMarketValueCNY).toBe(500 * 10);
+    expect(result.totalPnlCNY).toBe(500 * 10 - 480 * 10);
+    expect(result.todayEstimatedCNY).toBe(5 * 10);
+    expect(result.hasFxMissing).toBe(true);
   });
 });

@@ -79,9 +79,65 @@ function calcTodayPnl(holding, quote, cnyPerUsd) {
 
 /**
  * Aggregate portfolio overview across all watched metals.
+ *
+ * Null-vs-partial rule:
+ *   - When FX is missing AND no holding could be converted to CNY (`totalMV === 0`),
+ *     all three CNY fields are `null` to signal "no trustworthy number".
+ *   - When FX is missing for SOME holdings but at least one converted successfully,
+ *     the CNY fields contain the partial sum and `hasFxMissing` is `true` so the
+ *     renderer can display a "汇率待刷新" warning alongside the partial totals.
+ *
  * @param {Object<string, {quantity, costPriceCNY} | null>} holdingMap
+ *   Map of metal id → holding. Entries with `null`/missing holdings are skipped.
  * @param {Object<string, {price, change, changePct, currency}>} quoteMap
+ *   Map of metal id → live quote. Entries with `null`/missing quotes are skipped.
  * @param {number|null} cnyPerUsd
+ *   USD→CNY rate (1 USD = X CNY), or `null` when FX is unavailable.
+ * @returns {{
+ *   totalMarketValueCNY: number|null,
+ *   totalPnlCNY: number|null,
+ *   todayEstimatedCNY: number|null,
+ *   hasFxMissing: boolean
+ * }}
+ *   Aggregated portfolio totals. `hasFxMissing` is `true` when at least one
+ *   holding could not be converted to CNY (FX missing). The three CNY fields
+ *   are `null` only when FX is missing AND no holding converted (`totalMV === 0`);
+ *   otherwise they hold the partial sum and the caller MUST check `hasFxMissing`
+ *   before displaying them as authoritative.
+ *
+ * @example
+ *   // Happy path — FX present
+ *   calcOverview({ XAU: holding }, { XAU: quote }, 6.7557);
+ *   // => {
+ *   //   totalMarketValueCNY: 7932.34,
+ *   //   totalPnlCNY: -362.66,
+ *   //   todayEstimatedCNY: 33.10,
+ *   //   hasFxMissing: false
+ *   // }
+ *
+ * @example
+ *   // All-FX-missing — no holdings could convert
+ *   calcOverview({ XAU: usdHolding }, { XAU: usdQuote }, null);
+ *   // => {
+ *   //   totalMarketValueCNY: null,
+ *   //   totalPnlCNY: null,
+ *   //   todayEstimatedCNY: null,
+ *   //   hasFxMissing: true
+ *   // }
+ *
+ * @example
+ *   // Partial-FX-missing — CNY holding converts, USD holding drops out
+ *   calcOverview(
+ *     { XAU: usdHolding, AU9999: cnyHolding },
+ *     { XAU: usdQuote,   AU9999: cnyQuote   },
+ *     null
+ *   );
+ *   // => {
+ *   //   totalMarketValueCNY: <AU9999 partial MV>,  // not null
+ *   //   totalPnlCNY:        <AU9999 partial PnL>,
+ *   //   todayEstimatedCNY:  <AU9999 partial today>,
+ *   //   hasFxMissing: true                         // renderer should warn
+ *   // }
  */
 function calcOverview(holdingMap, quoteMap, cnyPerUsd) {
   let totalMV = 0;
@@ -109,10 +165,12 @@ function calcOverview(holdingMap, quoteMap, cnyPerUsd) {
     }
   }
 
+  const allFxMissing = hasFxMissing && totalMV === 0;
   return {
-    totalMarketValueCNY: hasFxMissing && totalMV === 0 ? null : totalMV,
-    totalPnlCNY: hasFxMissing && totalMV === 0 ? null : totalMV - totalCost,
-    todayEstimatedCNY: hasFxMissing && totalMV === 0 ? null : todayEst,
+    totalMarketValueCNY: allFxMissing ? null : totalMV,
+    totalPnlCNY: allFxMissing ? null : totalMV - totalCost,
+    todayEstimatedCNY: allFxMissing ? null : todayEst,
+    hasFxMissing,
   };
 }
 
