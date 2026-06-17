@@ -53,6 +53,7 @@ const { registerIpcHandlers } = require("./ipc");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const { mainLog, detectLog } = require("./log");
 const stateStore = require("./state-store");
+const aiStorage = require("../ai-sessions/storage");
 const { HttpClient } = require("./http-client");
 const { computePoolSize } = require("./pool-size");
 const fundStore = require("./fund-store");
@@ -293,15 +294,15 @@ async function bootstrap() {
     timings.tray = Date.now() - tTrayStart;
   }
 
-  // 6.5) v2.22 Task B2: AI 用量 cache (从 state.json 读 last-known, 不主动 fetch)
-  // 简化路线: B2 只负责把 cache 推到 tray 一次性显示, 不做定时刷新.
-  // 完整 fetch + 30min 轮询留到 B2.1 后续任务 (需要把 register-ai-usage 的
-  // _internals.fetch deps 注入在主进程直接调, 跟现在 IPC 通道是同一份 deps).
-  // 现在: 当 renderer 在 AI 用量 tab 触发 fetch → state.json 被更新 →
-  // 下一次 onCheckComplete 走 trayMgr.setResults() 触发 scheduleRebuild,
-  // 重建时通过 aiUsageCache.getTraySummary 读最新 state.json, 自动反映.
+  // 6.5) v2.22 Task B2 + B2.1: AI 用量 cache + 30min 自动刷新
+  // B2: 启动时从 state.json 读 last-known 推 tray
+  // B2.1: 30min setInterval 调 register-ai-usage._internals.fetch (双 provider),
+  //       写回 state.json 后重新构造 tray summary 推 tray.
+  // Tray 不依赖 IPC 通道 — 走模块级 state.json + ai-usage-cache.
+  let aiUsageScheduler = null;
   try {
     const { createAiUsageCache } = require("./ai-usage-cache");
+    const { createAiUsageRefreshScheduler } = require("./ai-usage-refresh-scheduler");
     const aiUsageCache = createAiUsageCache({});
     if (trayMgr) {
       trayMgr.setAiUsage({
@@ -310,6 +311,29 @@ async function bootstrap() {
       });
     }
     mainLog.info("ai-usage tray initialized (read-only from state.json)");
+
+    // B2.1: 30min 自动刷新 — 复用 register-ai-usage 的 deps (跟 IPC 通道同源)
+    aiUsageScheduler = createAiUsageRefreshScheduler({
+      trayMgr,
+      deps: {
+        stateStore: {
+          loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,
+          saveSnapshotProvider: stateStore.saveAiUsageSnapshotProvider,
+          loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
+          appendHistoryProvider: stateStore.appendAiUsageHistoryDayProvider,
+        },
+        storage: {
+          loadApiKey: (pid) => {
+            try { return aiStorage.loadApiKey(pid); } catch { return null; }
+          },
+        },
+        MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
+        GlmQuotaClient: require("../ai-usage/client-glm").GlmQuotaClient,
+        pushEvent: () => {}, // tray refresh 不需要推 renderer (renderer 走自己的 IPC)
+      },
+    });
+    aiUsageScheduler.start({ intervalMs: 30 * 60 * 1000 });
+    mainLog.info("ai-usage tray refresh scheduler started (every 30min)");
   } catch (err) {
     mainLog.warn(`ai-usage tray init failed: ${err && err.message}`);
   }
@@ -524,6 +548,9 @@ if (app && typeof app.whenReady === "function") {
       stopMetalScheduler();
     } catch {
       /* noop */
+    }
+    if (aiUsageScheduler) {
+      try { aiUsageScheduler.stop(); } catch { /* noop */ }
     }
     mainLog.info("app quitting");
   });
