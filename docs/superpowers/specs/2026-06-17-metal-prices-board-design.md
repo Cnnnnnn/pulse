@@ -1,5 +1,35 @@
 # 贵金属实时看板 + 个人持仓 (2026-06-17)
 
+> ## ⚠️ 实施修订 (2026-06-17, commit 6989054)
+>
+> 本 spec 原设计**国际金/银/汇率走 Yahoo Finance v8 chart API**(`GC=F`/`SI=F`/`CNY=X`),
+> 但实施时实测发现 **Yahoo v8 chart 接口已挂**(返回 sad-panda HTML 而非 JSON),
+> 导致国际品种卡片一直"加载中"。已做如下数据源替换(正文保留原设计作历史记录):
+>
+> | 品种 | 原设计 | 实施替换 | 说明 |
+> |------|--------|----------|------|
+> | XAU 国际黄金 | Yahoo `GC=F` + priceScale 1/100 | **新浪 `hf_GC`** | hf_* 已是现货 USD/oz,**无需 priceScale 换算** |
+> | XAG 国际白银 | Yahoo `SI=F` + priceScale 1/50 | **新浪 `hf_SI`** | 同上,无需换算 |
+> | CNY_PER_USD 汇率 | Yahoo `CNY=X` | **新浪 `USDCNY`** | 取字段 `[5]` 中间价 |
+> | AU9999 国内金 | 新浪 `AU0` | (未改) | ⚠️ AU0/AG0 返回 **2024-07-17 陈旧数据**,新浪该接口疑似停更,另开 issue 处理 |
+> | AG9999 国内银 | 新浪 `AG0` | (未改) | 同上 |
+>
+> **代码层影响**:
+> - `metal-yahoo-fetcher.js` 已删除(191 行死路径)
+> - 新增 `metal-sina-hf-fetcher.js`(解析 hf_GC/hf_SI/USDCNY 三种行格式)
+> - `metal-config.js`: kind `yahoo-chart` → `sina-hf`,symbol 改 `hf_GC`/`hf_SI`/`USDCNY`,删 priceScale
+> - `metal-fetcher.js` dispatcher: yahoo 分支 → sina-hf 分支
+> - `metal-calc.js` / `metal-scheduler.js` / `metal-ipc.js` / renderer 全部不动(fetcher 层抽象的收益兑现了)
+> - 0 新依赖(hf_* 只解析 ASCII 数字字段,中文名来自 config,不需要 iconv-lite)
+>
+> **field layout 实测确认 (2026-06-17)**:
+> ```
+> hf_GC / hf_SI (15 字段):
+>   [0]current [2]bid [3]ask [4]high [5]low [6]time(HH:MM:SS) [7]prevClose [12]date(YYYY-MM-DD)
+> USDCNY (11 字段):
+>   [0]time [1]bid [3]ask [5]mid(←用作 rate) [10]date
+> ```
+
 ## Problem
 
 Pulse 当前覆盖了版本检查、AI 用量、基金盈亏、世界杯比分,但用户最常关心的另一类"实时数据"——**贵金属价格(黄金/白银)**——没有入口。痛点:
