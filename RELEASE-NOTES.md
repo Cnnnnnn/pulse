@@ -2,6 +2,31 @@
 
 ---
 
+## v2.20.0 (🥇 贵金属实时看板) — 2026-06-17
+
+### 新增
+- **🥇 贵金属栏目**: 实时盯黄金白银价格
+  - **4 个品种**: XAU / XAG (国际, USD/oz) + AU9999 / AG9999 (国内, CNY/g)
+  - **5 分钟自动刷新**, 24/7 跑
+  - **总览 CNY 折算**: 总市值 / 总盈亏 / 今日预估 (跨币种汇总成人民币)
+  - **个人持仓** (可选): 录入时按当时汇率快照冻结人民币成本, 累计盈亏不随汇率漂移
+  - **失败兜底**: 沿用 funds 的 last-known 模式, Yahoo 挂不影响 Sina, 反之亦然
+  - **键盘快捷键**: `Cmd+Shift+M` 跳到栏目
+- **样式系统**: `styles.css` 加 ~200 行 metals-* 样式 (跟 funds 同构, 紧凑 2 列网格 + 红涨绿跌中国习惯)
+
+### 依赖
+- 新增 `iconv-lite` (~200KB, GBK 解码) — 已在 v2.20.0 之前的依赖列表里, 本 release 启用
+
+### 文件
+- 新增 `src/renderer/metals/MetalLayout.jsx` / `MetalHeader.jsx` / `MetalGrid.jsx` / `MetalCard.jsx` / `AddMetalModal.jsx` / `metalStore.js`
+- 新增 `src/metals/metal-config.js` / `metal-calc.js` / `metal-aggregate.js` / `metal-store.js` (main) / `metalsApi.js` (preload)
+- 新增 `src/main/metal-scheduler.js` (5 分钟轮询)
+- `styles.css` 末尾追加 metals 样式段
+- `src/renderer/components/SideNav.jsx` 加 "🥇 贵金属" nav item
+- `src/renderer/components/AppShell.jsx` 加 `Cmd+Shift+M` 跳栏快捷键
+
+---
+
 ## v2.19.0 (Windows · UI 打磨 + 图标 + CI) — 2026-06-16
 
 ### 新增

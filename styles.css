@@ -6987,3 +6987,250 @@ body {
   60%  { background-color: rgba(255, 215, 0, 0.20); }
   100% { background-color: transparent; }
 }
+
+/* ═══════════════════════════════════════════════════
+   贵金属 (Metals Prices Board) — v2.20.0
+   实时金属价格看板: 总览 + 卡片网格 + 添加持仓 Modal
+   跟 funds 同构 (CNY 折算 + 持仓盈亏), 但样式略紧凑 (2 列网格)
+   ═══════════════════════════════════════════════════ */
+
+.metals-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+  padding: 16px;
+  background: var(--content-bg, #f5f5f7);
+}
+
+.metals-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metals-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metals-header-row h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.metals-header-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary, #888);
+}
+
+.metals-overview-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-card {
+  background: var(--bg-modal, #fff);
+  border: 1px solid var(--border-subtle, #e5e5e7);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.overview-label {
+  font-size: 12px;
+  color: var(--text-tertiary, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.overview-value {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 4px 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.overview-value.positive { color: var(--color-up, #d33); }   /* 中国市场: 红涨 */
+.overview-value.negative { color: var(--color-down, #2a7); }
+
+.overview-meta {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+}
+
+.metal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .metal-grid { grid-template-columns: minmax(0, 1fr); }
+  .metals-overview-cards { grid-template-columns: minmax(0, 1fr); }
+}
+
+.metal-card {
+  background: var(--bg-modal, #fff);
+  border: 1px solid var(--border-subtle, #e5e5e7);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.metal-card-up    { border-left: 3px solid var(--color-up, #d33); }
+.metal-card-down  { border-left: 3px solid var(--color-down, #2a7); }
+.metal-card-flat  { border-left: 3px solid var(--border-subtle, #e5e5e7); }
+.metal-card-error { border-color: var(--color-error, #d33); }
+
+.metal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.metal-card-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary, #888);
+  font-size: 18px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.btn-icon:hover {
+  color: var(--text-primary, #222);
+  background: var(--bg-elevated, #f5f5f5);
+}
+
+.metal-card-price {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-main {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, #1d1d1f);
+}
+
+.price-ref {
+  font-size: 12px;
+  color: var(--text-tertiary, #888);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-change {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.price-change.up       { color: var(--color-up, #d33); }
+.price-change.down     { color: var(--color-down, #2a7); }
+.price-change.flat     { color: var(--text-tertiary, #888); }
+.price-change.positive { color: var(--color-up, #d33); }
+.price-change.negative { color: var(--color-down, #2a7); }
+
+.change-amount {
+  margin-left: 6px;
+  opacity: 0.75;
+}
+
+.metal-card-divider {
+  height: 1px;
+  background: var(--border-subtle, #e5e5e7);
+  margin: 4px 0;
+}
+
+.metal-card-holding {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary, #555);
+}
+
+.holding-row {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.holding-row.pnl.positive { color: var(--color-up, #d33); font-weight: 600; }
+.holding-row.pnl.negative { color: var(--color-down, #2a7); font-weight: 600; }
+
+.metal-card-loading,
+.metal-card-error-body {
+  font-size: 13px;
+  color: var(--text-tertiary, #888);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.metal-card-error-body { color: var(--color-error, #d33); }
+
+.metal-card-error-meta {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+  text-align: center;
+}
+
+.metal-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 12px;
+  color: var(--text-tertiary, #888);
+  background: var(--bg-modal, #fff);
+  border: 1px dashed var(--border-subtle, #e5e5e7);
+  border-radius: 10px;
+}
+
+.metal-empty-state h3 {
+  margin: 0;
+  color: var(--text-primary, #1d1d1f);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.metal-empty-state p { margin: 0; }
+
+.metal-empty-state .empty-icon {
+  font-size: 48px;
+}
+
+.spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

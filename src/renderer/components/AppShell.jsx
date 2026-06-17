@@ -39,6 +39,7 @@ export function AppShell({ onCheck }) {
 
   // Cmd+F 拦截: 切到对应搜索框
   // Cmd+Shift+F: 跳到基金管理栏目
+  // Cmd+Shift+M: 跳到贵金属栏目
   useEffect(() => {
     function onKey(e) {
       // ⌘⇧R: 打开 RemindersModal (走新建态)
@@ -53,6 +54,11 @@ export function AppShell({ onCheck }) {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
         setActiveNav('funds');
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'm' || e.key === 'M')) {
+        e.preventDefault();
+        setActiveNav('metals');
         return;
       }
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
