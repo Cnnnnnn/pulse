@@ -2,6 +2,58 @@
 
 ---
 
+## v2.21.0 (🥇 贵金属 UI 重做 + 国内数据源切东方财富) — 2026-06-17
+
+### 新增
+- **🥇 贵金属卡片 UI 重做 (中国投资者视角)**:
+  - **主显示口径统一为 ¥/克** (28px 加粗) — 不论国际 (USD/oz) 还是国内 (CNY/g) 品种, 一眼看到"每克人民币多少钱"
+  - **副显示**: ↑/↓ X.XX% (±¥X.XX/克) — 涨跌幅度 + 涨跌金额, 红涨绿跌中国习惯
+  - **参考行**: 国际品种显示现货 $XXX/oz · 时间; 国内品种显示来源 (上海黄金交易所) · 时间
+  - **录入持仓 modal 重做**:
+    - 完整 .metal-modal-* 样式系统 (跟 funds 的 .fund-modal-* 同构)
+    - **实时预览**: 输入数量 + 成本价后, 实时算出 ≈ 总成本 ¥XXX · 每克成本 ¥YYY/克
+    - 成本币种可选 USD/CNY; USD 时按当时汇率快照折算成 ¥/克
+    - 校验: 数量/价格必须为正数; 缺汇率时给出明确文案
+    - 错误提示用 .error-msg 行内展示, 不再 `alert()` 弹窗
+
+### 修复
+- **国内现货数据修复**: 新浪 `hq.sinajs.cn/list=AU0,AG0` 接口已**停更**, 持续返回 2024-07-17 的陈旧数据 (AG0=8100 元/千克容易误读为 8100 元/克)
+  - 切到 **东方财富 push2delay.eastmoney.com**: `118.AU9999` / `118.AG9999`
+  - 实测 (2026-06-17): AU=939.18 元/克, AG=16.875 元/克, 当天新鲜数据
+  - **f43 价格陷阱**: 东方财富 f43 是内部整数, 黄金/白银除数不同 (黄金 元/克 ÷100, 白银 元/千克 ÷100000), 在 `metal-config.js` 每品种显式声明 `priceDivisor`, fetcher 不猜
+  - 选用 push2delay 而非 push2.eastmoney.com: push2 端对 node 原生 https 频繁出现 `socket hang up` (TLS ClientHello 不友好 + 临时封 IP), push2delay 限流宽松, 5 分钟刷新场景 15 分钟延时完全可接受
+  - 新增 `src/metals/metal-eastmoney-fetcher.js`, dispatcher 改为 sina-hf + eastmoney 双 fetcher 并发 + 失败隔离
+  - **半失败语义**: 单个 secid 失败被吞掉 (其他品种仍能成功); **所有** secid 都失败时 fetcher 抛聚合错, dispatcher 登记到 `errors['eastmoney']` (跟 sina-hf 的"全或无"对齐)
+
+### 变更
+- **删除废弃 fetcher**:
+  - `src/metals/metal-sina-fetcher.js` (旧 sina-jsonp AU0/AG0) — 已被 eastmoney 替代, 无引用
+  - `tests/main/metal-sina-fetcher.test.js` — 同步删除
+- **测试基线 1975 PASS / 0 FAIL**:
+  - 重写 `tests/main/metal-fetcher.test.js` 适配 sina-hf + eastmoney 双 batch (5 case: buildFetcherPlan / fetchAllQuotes 合并 / 双向失败隔离 / 双失败 / 并发)
+  - 新增 `tests/main/metal-eastmoney-fetcher.test.js` (18 case: buildEastmoneyUrl / parseEastmoneyQuote 含 AU/AG 除数差异 / parseEastmoneyResponse / fetchEastmoneyQuotes 含半失败 + 全失败聚合错)
+  - 更新 `tests/main/metal-config.test.js`: `primary.kind` 接受 `'sina-hf' | 'eastmoney'`, 新增 priceDivisor 校验 (AU=100, AG=100000)
+- **端到端实测**: 用 Pulse 真实 `HttpClient` 调东方财富 + sina 真实接口, XAU/XAG/AU9999/AG9999 四品种 + FX (USDCNY) 全部 200, 无 socket hang up
+- 端到端 fetch 样例: `node -e "..."` 输出 XAU=$4345.701, XAG=$70.522, AU9999=¥939.18, AG9999=¥16.875, FX=6.757
+
+### 文件
+- 新增: `src/metals/metal-eastmoney-fetcher.js`
+- 新增: `tests/main/metal-eastmoney-fetcher.test.js`
+- 改动: `src/metals/metal-config.js` (国内品种改 eastmoney + priceDivisor)
+- 改动: `src/metals/metal-fetcher.js` (dispatcher 去掉 sina-jsonp, 加 eastmoney)
+- 改动: `src/renderer/metals/MetalCard.jsx` (¥/克 为主显示 + 涨跌换算)
+- 改动: `src/renderer/metals/AddMetalModal.jsx` (UI 重做 + 实时预览)
+- 改动: `styles.css` (~300 行新增/调整 metals-* 样式, 卡片阴影/过渡/红绿基色统一)
+- 改动: `tests/main/metal-fetcher.test.js` (适配新 dispatcher)
+- 改动: `tests/main/metal-config.test.js` (新增 eastmoney + priceDivisor 断言)
+- 删除: `src/metals/metal-sina-fetcher.js` + `tests/main/metal-sina-fetcher.test.js`
+
+### 已知限制
+- 东方财富 f43 价格除数 (黄金 100 / 白银 100000) 是基于 2026-06-17 实测, 未来如果东方财富调整报价基准 (例如白银也改成 元/克), 需更新 `metal-config.js` 的 `priceDivisor`. 在 fetcher 层加除数推断是 YAGNI, 显式声明更易审计
+- push2delay 限流相对宽松但仍是第三方源, 若挂掉 dispatcher 会把 `errors['eastmoney']` 填充, UI 走 last-known 兜底 (跟 sina-hf 同构)
+
+---
+
 ## v2.20.0 (🥇 贵金属实时看板) — 2026-06-17
 
 ### 新增
