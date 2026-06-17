@@ -186,6 +186,7 @@ function createTrayManager(opts) {
   const onOpenPanel = opts.onOpenPanel || (() => {});
   const onOpenConfig = opts.onOpenConfig || (() => {});
   const onQuit = opts.onQuit || (() => {});
+  const onFocusUpdate = opts.onFocusUpdate || (() => {});
 
   let tray = null;
   let lastResults = [];
@@ -217,6 +218,7 @@ function createTrayManager(opts) {
       onCheck,
       onOpenConfig,
       onQuit,
+      onFocusUpdate,
       getConfigPath,
     });
     tray.setContextMenu(Menu.buildFromTemplate(template));

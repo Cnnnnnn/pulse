@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("auto-check-finished", (_, data) => cb(data)),
   onCheckFinished: (cb) =>
     ipcRenderer.on("check-finished", (_, data) => cb(data)),
+  // v2.22: 菜单栏点击更新行 → renderer 接收定位指令
+  onTrayFocus: (cb) => ipcRenderer.on("tray:focus", (_, data) => cb(data)),
 
   // Bulk Upgrade (Phase22)
   bulkUpgradeStart: (items) => ipcRenderer.invoke("bulk-upgrade:start", items),

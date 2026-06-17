@@ -263,6 +263,18 @@ async function bootstrap() {
         isQuitting = true;
         app.quit();
       },
+      // v2.22 Task A3: 菜单栏升级行点击 → 显示面板 + 推 tray:focus 事件
+      onFocusUpdate: (data) => {
+        if (winMgr) winMgr.showWindow();
+        const w = getWindow();
+        if (w && !w.isDestroyed()) {
+          w.webContents.send("tray:focus", {
+            tab: "versions",
+            rowName: data && data.rowName,
+            action: data && data.action,
+          });
+        }
+      },
     });
     trayMgr.install();
     mainLog.info(`tray installed: ${Date.now() - tTrayStart}ms`);
