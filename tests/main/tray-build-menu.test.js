@@ -15,7 +15,7 @@ import { _internal } from '../../src/main/tray.js';
 const { buildMenu } = _internal;
 
 describe('tray.buildMenu — 基础结构 (Task A1 refactor)', () => {
-  it('无结果时: 显示 "尚未检查" 占位 + 4 个底部 action', () => {
+  it('results=[] 时: 显示 "── 🔄 检查更新 · 尚未检查 ──" 段头 + 4 个底部 action', () => {
     const m = buildMenu({
       results: [],
       aiUsage: null,
@@ -23,10 +23,8 @@ describe('tray.buildMenu — 基础结构 (Task A1 refactor)', () => {
       metals: null,
     });
     const labels = m.map((i) => i.label).filter(Boolean);
-    // A1 是纯重构, 不动原行为: lastResults.length === 0 时
-    // rebuildMenu 会 push "尚未检查" 占位行 (现状保留), 再跟 4 个底部 action.
     expect(labels).toEqual([
-      '尚未检查',
+      '── 🔄 检查更新 · 尚未检查 ──',
       '打开面板',
       '检查更新',
       '打开配置文件',
@@ -57,5 +55,47 @@ describe('tray.buildMenu — 基础结构 (Task A1 refactor)', () => {
     expect(onCheck).toHaveBeenCalledOnce();
     expect(onOpenConfig).toHaveBeenCalledOnce();
     expect(onQuit).toHaveBeenCalledOnce();
+  });
+
+  it('有 1 个更新: 显示段头 + 升级行 + 点击触发 onFocusUpdate', () => {
+    const onFocusUpdate = vi.fn();
+    const m = buildMenu({
+      results: [
+        { name: 'Codex', installed_version: '26.609', latest_version: '26.611', has_update: true, status: 'update_available' },
+      ],
+      onFocusUpdate,
+    });
+    expect(m[0].label).toBe('── 🔄 检查更新 (1 待升级) ──');
+    const updateRow = m.find((i) => i.label && i.label.startsWith('Codex'));
+    expect(updateRow.label).toContain('26.609');
+    expect(updateRow.label).toContain('26.611');
+    expect(updateRow.label).toContain('⬆️ 升级');
+    updateRow.click();
+    expect(onFocusUpdate).toHaveBeenCalledWith({
+      rowName: 'Codex',
+      action: 'upgrade',
+    });
+  });
+
+  it('全部最新 (无 update): 显示 "全部最新 (N)" 段头 + 提示行', () => {
+    const m = buildMenu({
+      results: [
+        { name: 'Cursor', installed_version: '3.7.42', latest_version: '3.7.42', has_update: false, status: 'up_to_date' },
+        { name: 'Kimi', installed_version: '3.0.20', latest_version: '3.0.20', has_update: false, status: 'up_to_date' },
+      ],
+    });
+    const labels = m.map((i) => i.label).filter(Boolean);
+    // 段头 + 提示行 + 4 个底部 action (无 rowName, 因为不点)
+    expect(labels[0]).toBe('── 🔄 检查更新 · 全部最新 (2) ──');
+    expect(labels[1]).toBe('  点击"检查更新"手动刷新');
+    // 段后 separator (type:'separator') + 4 actions
+    expect(labels).toEqual([
+      '── 🔄 检查更新 · 全部最新 (2) ──',
+      '  点击"检查更新"手动刷新',
+      '打开面板',
+      '检查更新',
+      '打开配置文件',
+      '退出',
+    ]);
   });
 });

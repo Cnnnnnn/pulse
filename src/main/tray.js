@@ -102,52 +102,45 @@ function buildMenu(opts) {
   } = opts;
   const template = [];
 
-  // ─── 有更新 / 已是最新 / 需关注 (现状保留) ───
+  // ─── 🔄 检查更新 (v2.22 Task A2: 内容预览) ───
   if (results.length > 0) {
     const updates = results.filter((r) => r.has_update);
     const upToDate = results.filter((r) => r.status === 'up_to_date');
-    const other = results.filter(
-      (r) => !r.has_update && r.status !== 'up_to_date' && r.status !== 'not_installed'
-    );
 
     if (updates.length > 0) {
-      template.push({ label: `── 有更新 (${updates.length}) ──`, enabled: false });
-      const cfgApps = (getConfig().apps) || [];
+      template.push({
+        label: `── 🔄 检查更新 (${updates.length} 待升级) ──`,
+        enabled: false,
+      });
       updates.forEach((r) => {
         const ver = r.latest_version
           ? `${r.installed_version || '?'} → ${r.latest_version}`
           : '';
         template.push({
-          label: `${r.name}  ${ver}`,
+          label: `${r.name}  ${ver}  ⬆️ 升级`,
           click: () => {
-            onOpenPanel();
-            const cfg = cfgApps.find((a) => a.name === r.name);
-            if (cfg && cfg.download_url) {
-              require('electron').shell.openExternal(cfg.download_url);
-            }
+            onFocusUpdate({ rowName: r.name, action: 'upgrade' });
           },
         });
       });
       template.push({ type: 'separator' });
-    }
-
-    if (upToDate.length > 0) {
-      template.push({ label: `── 已是最新 (${upToDate.length}) ──`, enabled: false });
-      upToDate.forEach((r) => {
-        template.push({ label: `${r.name}  ${r.installed_version || ''}`, enabled: false });
+    } else if (upToDate.length > 0) {
+      // 没有更新时显示总览 (1 行)
+      template.push({
+        label: `── 🔄 检查更新 · 全部最新 (${upToDate.length}) ──`,
+        enabled: false,
       });
-      template.push({ type: 'separator' });
-    }
-
-    if (other.length > 0) {
-      template.push({ label: `── 需关注 (${other.length}) ──`, enabled: false });
-      other.forEach((r) => {
-        template.push({ label: `${r.name}  ${r.installed_version || ''}`, enabled: false });
+      template.push({
+        label: '  点击"检查更新"手动刷新',
+        enabled: false,
       });
       template.push({ type: 'separator' });
     }
   } else {
-    template.push({ label: '尚未检查', enabled: false });
+    template.push({
+      label: '── 🔄 检查更新 · 尚未检查 ──',
+      enabled: false,
+    });
     template.push({ type: 'separator' });
   }
 
@@ -157,7 +150,6 @@ function buildMenu(opts) {
   void aiUsage;
   void worldcup;
   void metals;
-  void onFocusUpdate;
 
   // ─── 底部 action (不变) ───
   template.push(
