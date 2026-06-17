@@ -118,6 +118,14 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("ithome:toggle-favorite", payload),
   ithomeMarkRead: (id) => ipcRenderer.invoke("ithome:mark-read", id),
   ithomeMarkRead: (id) => ipcRenderer.invoke("ithome:mark-read", id),
+  ithomeShareCard: (id) => ipcRenderer.invoke("ithome:share-card", { id }),
+
+  // For share-card off-screen page to receive share-data event
+  onShareData: (cb) => {
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("share-data", handler);
+    return () => ipcRenderer.removeListener("share-data", handler);
+  },
 
   // v2.10+ 基金管理: 持仓 CRUD + 净值拉取 / 推送
   fundsList: () => ipcRenderer.invoke("funds:list"),

@@ -7,15 +7,26 @@
 
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, cleanup, fireEvent, act } from "@testing-library/preact";
+import { render, cleanup, fireEvent, act, screen, waitFor } from "@testing-library/preact";
 
-const { mockSummarize, mockSummaries, mockFavorites, mockReadIds, mockNewIds, mockMarkRead } = vi.hoisted(() => ({
+const {
+  mockSummarize,
+  mockSummaries,
+  mockFavorites,
+  mockReadIds,
+  mockNewIds,
+  mockMarkRead,
+  mockShareArticle,
+  mockSharingIds,
+} = vi.hoisted(() => ({
   mockSummarize: vi.fn(),
   mockSummaries: { value: {} },
   mockFavorites: { value: {} },
   mockReadIds: { value: {} },
   mockNewIds: { value: {} },
   mockMarkRead: vi.fn().mockResolvedValue({ ok: true }),
+  mockShareArticle: vi.fn().mockResolvedValue({ ok: true, bytes: 1234 }),
+  mockSharingIds: { value: {} },
 }));
 
 vi.mock("../../src/renderer/ithome/store.js", () => ({
@@ -23,9 +34,11 @@ vi.mock("../../src/renderer/ithome/store.js", () => ({
   ithomeFavorites: mockFavorites,
   ithomeReadIds: mockReadIds,
   ithomeNewIds: mockNewIds,
+  ithomeSharingIds: mockSharingIds,
   summarizeIthomeArticle: mockSummarize,
   toggleIthomeFavorite: vi.fn(),
   markIthomeRead: mockMarkRead,
+  shareIthomeArticle: mockShareArticle,
 }));
 
 vi.mock("../../src/renderer/store.js", () => ({
@@ -146,5 +159,70 @@ describe("NewsArticleRow 已读/新 视觉", () => {
       fireEvent.click(getByText("测试标题"));
     });
     expect(mockMarkRead).toHaveBeenCalledWith(ARTICLE_ID);
+  });
+});
+
+describe("NewsArticleRow 分享按钮", () => {
+  const baseArticle = {
+    id: "s1",
+    title: "Test",
+    pubDate: "2026-06-17T10:00:00+08:00",
+    link: "https://x",
+  };
+
+  beforeEach(() => {
+    mockSummaries.value = {};
+    mockSharingIds.value = {};
+    mockShareArticle.mockReset();
+    mockShareArticle.mockResolvedValue({ ok: true, bytes: 1234 });
+  });
+  afterEach(() => cleanup());
+
+  it("仅当 summary.text 存在时渲染分享按钮", () => {
+    const { rerender } = render(<NewsArticleRow article={baseArticle} />);
+    expect(screen.queryByText(/分享/)).toBeNull();
+
+    mockSummaries.value = { s1: { text: "sum", keywords: [] } };
+    rerender(<NewsArticleRow article={baseArticle} />);
+    expect(screen.getByText(/分享/)).toBeTruthy();
+  });
+
+  it("分享中: 按钮 disabled 且文案为 生成图片中", () => {
+    mockSummaries.value = { s1: { text: "sum", keywords: [] } };
+    mockSharingIds.value = { s1: true };
+    render(<NewsArticleRow article={baseArticle} />);
+    const btn = screen.getByText(/生成图片中/);
+    expect(btn.getAttribute("disabled")).not.toBeNull();
+  });
+
+  it("点击调用 shareIthomeArticle 并显示成功 toast", async () => {
+    mockSummaries.value = { s1: { text: "sum", keywords: [] } };
+    render(<NewsArticleRow article={baseArticle} />);
+    fireEvent.click(screen.getByText(/分享/));
+    await waitFor(() =>
+      expect(screen.getByText(/已复制到剪贴板/)).toBeTruthy(),
+    );
+    expect(mockShareArticle).toHaveBeenCalledWith("s1");
+  });
+
+  it("IPC 失败时显示错误 toast", async () => {
+    mockSummaries.value = { s1: { text: "sum", keywords: [] } };
+    mockShareArticle.mockResolvedValueOnce({ ok: false, reason: "render_failed" });
+    render(<NewsArticleRow article={baseArticle} />);
+    fireEvent.click(screen.getByText(/分享/));
+    await waitFor(() =>
+      expect(screen.getByText(/图片生成失败/)).toBeTruthy(),
+    );
+  });
+
+  it("用 ithomeSharingIds 信号控制 disabled 状态", () => {
+    mockSummaries.value = { s1: { text: "sum", keywords: [] } };
+    mockSharingIds.value = {};
+    const { rerender } = render(<NewsArticleRow article={baseArticle} />);
+    expect(screen.getByText(/分享/).getAttribute("disabled")).toBeNull();
+
+    mockSharingIds.value = { s1: true };
+    rerender(<NewsArticleRow article={baseArticle} />);
+    expect(screen.getByText(/生成图片中/).getAttribute("disabled")).not.toBeNull();
   });
 });

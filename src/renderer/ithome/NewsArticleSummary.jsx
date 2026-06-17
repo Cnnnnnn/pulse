@@ -4,7 +4,7 @@
  * IT 新闻 AI 摘要 — 布局对齐会话总结 (summary-result-grid)
  */
 
-function splitKeywords(raw) {
+export function splitKeywords(raw) {
   if (Array.isArray(raw)) return raw.filter(Boolean);
   return String(raw || "")
     .split(/[,，、;；|/]\s*/)

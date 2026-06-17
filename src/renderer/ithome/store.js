@@ -28,6 +28,7 @@ export const ithomeFavoriteSelectedDate = signal("");
 export const ithomeViewMode = signal("news");
 export const ithomeReadIds = signal({});
 export const ithomeNewIds = signal({});
+export const ithomeSharingIds = signal({});
 
 function _applyPayload(data) {
   if (!data) return;
@@ -240,5 +241,26 @@ export async function bootstrapIthomeTab() {
   await loadIthomeNews();
   if (articlesForDate(ithomeArticles.value, today).length === 0) {
     await fetchDayNews(today);
+  }
+}
+
+export async function shareIthomeArticle(id) {
+  if (!id) return { ok: false, reason: "invalid_args" };
+  // 乐观锁
+  ithomeSharingIds.value = { ...ithomeSharingIds.value, [id]: true };
+  const shareCard = requireApiMethod("ithomeShareCard");
+  if (!shareCard) {
+    ithomeSharingIds.value = { ...ithomeSharingIds.value, [id]: false };
+    return { ok: false, reason: "ipc_unavailable" };
+  }
+  try {
+    const r = await shareCard(id);
+    return r || { ok: false, reason: "unknown" };
+  } catch (err) {
+    return { ok: false, reason: "threw", error: err && err.message };
+  } finally {
+    const next = { ...ithomeSharingIds.value };
+    delete next[id];
+    ithomeSharingIds.value = next;
   }
 }

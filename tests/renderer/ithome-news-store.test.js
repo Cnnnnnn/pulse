@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const { mockMarkRead, mockLoadNews, setLoadNewsPayload, resetLoadNewsMock } = vi.hoisted(() => {
+const { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoadNewsMock } = vi.hoisted(() => {
   const mockMarkRead = vi.fn().mockResolvedValue({ ok: true });
   const queue = [];
   const mockLoadNews = vi.fn(() => {
@@ -18,19 +18,22 @@ const { mockMarkRead, mockLoadNews, setLoadNewsPayload, resetLoadNewsMock } = vi
     }
     return Promise.resolve(queue.shift());
   });
+  const mockShareCard = vi.fn().mockResolvedValue({ ok: true, bytes: 1234 });
   const setLoadNewsPayload = (payload) => queue.push(payload);
   const resetLoadNewsMock = () => {
     mockMarkRead.mockClear();
     mockLoadNews.mockClear();
+    mockShareCard.mockClear();
     queue.length = 0;
   };
-  return { mockMarkRead, mockLoadNews, setLoadNewsPayload, resetLoadNewsMock };
+  return { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoadNewsMock };
 });
 
 vi.mock("../../src/renderer/store-utils.js", () => ({
   requireApiMethod: (name) => {
     if (name === "ithomeMarkRead") return mockMarkRead;
     if (name === "ithomeLoadNews") return mockLoadNews;
+    if (name === "ithomeShareCard") return mockShareCard;
     return undefined;
   },
 }));
@@ -44,12 +47,14 @@ vi.mock("../../src/renderer/recent/track.js", () => ({
 import {
   ithomeReadIds,
   ithomeNewIds,
+  ithomeSharingIds,
   ithomeArticles,
   markIthomeRead,
   loadIthomeNews,
   setIthomeViewMode,
   setIthomeSelectedDate,
   setIthomeFavoriteSelectedDate,
+  shareIthomeArticle,
 } from "../../src/renderer/ithome/store.js";
 
 const ARTICLES_BEFORE = {
@@ -120,5 +125,32 @@ describe("ithome store read/new flags", () => {
     ithomeNewIds.value = { a: 1 };
     setIthomeFavoriteSelectedDate("2026-06-11");
     expect(ithomeNewIds.value).toEqual({});
+  });
+});
+
+describe("shareIthomeArticle", () => {
+  beforeEach(() => {
+    resetLoadNewsMock();
+    ithomeSharingIds.value = {};
+  });
+
+  it("sets sharingIds[id]=true synchronously, clears on success", async () => {
+    expect(ithomeSharingIds.value["a1"]).toBeFalsy();
+
+    const p = shareIthomeArticle("a1");
+    expect(ithomeSharingIds.value["a1"]).toBe(true);
+
+    const r = await p;
+    expect(r.ok).toBe(true);
+    expect(ithomeSharingIds.value["a1"]).toBeFalsy();
+  });
+
+  it("clears sharingIds on failure", async () => {
+    mockShareCard.mockResolvedValueOnce({ ok: false, reason: "no_summary" });
+    const p = shareIthomeArticle("a2");
+    expect(ithomeSharingIds.value["a2"]).toBe(true);
+    const r = await p;
+    expect(r.ok).toBe(false);
+    expect(ithomeSharingIds.value["a2"]).toBeFalsy();
   });
 });

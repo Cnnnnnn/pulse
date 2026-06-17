@@ -9,6 +9,7 @@ const { registerAiHandlers } = require("./register-ai");
 const { registerAiUsageHandlers } = require("./register-ai-usage");
 const { registerWorldcupHandlers } = require("./register-worldcup");
 const { registerIthomeHandlers } = require("./register-ithome");
+const { registerIthomeShareHandlers } = require("./register-ithome-share");
 const { registerFundsHandlers } = require("./register-funds");
 
 /**
@@ -22,6 +23,7 @@ function registerIpcHandlers(deps) {
   registerAiUsageHandlers(ctx);
   registerWorldcupHandlers(ctx);
   registerIthomeHandlers(ctx);
+  registerIthomeShareHandlers(ctx);
   registerFundsHandlers(ctx);
 }
 

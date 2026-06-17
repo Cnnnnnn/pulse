@@ -8,12 +8,15 @@ import {
   ithomeFavorites,
   ithomeReadIds,
   ithomeNewIds,
+  ithomeSharingIds,
   summarizeIthomeArticle,
   toggleIthomeFavorite,
   markIthomeRead,
+  shareIthomeArticle,
 } from "./store.js";
 import { formatArticleTime, formatExcerptPreview } from "./news-utils.js";
 import { NewsArticleSummary } from "./NewsArticleSummary.jsx";
+import { NewsShareToast } from "./NewsShareToast.jsx";
 import { refreshAIReadyStatus } from "../store.js";
 
 function mapAiError(reason) {
@@ -45,6 +48,7 @@ export function NewsArticleRow({ article }) {
   const [favBusy, setFavBusy] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  const [toast, setToast] = useState(null);
 
   if (!article) return null;
 
@@ -53,6 +57,7 @@ export function NewsArticleRow({ article }) {
   const favorited = !!ithomeFavorites.value[article.id];
   const isRead = !!ithomeReadIds.value[article.id];
   const isNew = !!ithomeNewIds.value[article.id];
+  const sharing = !!ithomeSharingIds.value[article.id];
   const timeLabel = formatArticleTime(article.pubDate);
   const excerptPreview = formatExcerptPreview(article.excerpt);
 
@@ -106,6 +111,25 @@ export function NewsArticleRow({ article }) {
       setBusy(false);
     }
   }
+
+async function handleShare(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (sharing) return;
+  const r = await shareIthomeArticle(article.id);
+  if (r && r.ok) {
+    setToast({ kind: "success", message: "✅ 已复制到剪贴板,可 ⌘V 粘贴" });
+  } else {
+    const reason = r && r.reason;
+    const message =
+      reason === "article_not_found"
+        ? "❌ 文章已过期,无法生成分享卡片"
+        : reason === "no_summary"
+          ? "❌ 暂无 AI 总结,请先生成"
+          : "❌ 图片生成失败,请重试";
+    setToast({ kind: "error", message });
+  }
+}
 
   const aiLabel = fetchingBody
     ? "抓取正文中…"
@@ -174,6 +198,18 @@ export function NewsArticleRow({ article }) {
         {hasSummary && (
           <button
             type="button"
+            class="ithome-row-link ithome-row-link--muted ithome-row-link--share"
+            disabled={sharing}
+            onClick={handleShare}
+            aria-label="生成分享图片"
+            title="生成分享图片"
+          >
+            {sharing ? "生成图片中…" : "📤 分享"}
+          </button>
+        )}
+        {hasSummary && (
+          <button
+            type="button"
             class="ithome-row-link ithome-row-link--muted"
             disabled={busy || fetchingBody}
             onClick={() => handleSummarize(true)}
@@ -184,6 +220,15 @@ export function NewsArticleRow({ article }) {
       </div>
 
       {error && <p class="ithome-row-error">{error}</p>}
+
+      {toast && (
+        <NewsShareToast
+          key={`${toast.kind}-${toast.message}`}
+          message={toast.message}
+          kind={toast.kind}
+          onDone={() => setToast(null)}
+        />
+      )}
 
       {hasSummary && expanded && (
         <div class="ithome-row-summary">
