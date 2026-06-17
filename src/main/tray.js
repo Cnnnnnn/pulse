@@ -97,6 +97,7 @@ function buildMenu(opts) {
     onOpenConfig = () => {},
     onQuit = () => {},
     onFocusUpdate = () => {},
+    onFocusWorldcup = () => {},
     getConfigPath = () => '',
     getConfig = () => ({ apps: [] }),
   } = opts;
@@ -158,7 +159,7 @@ function buildMenu(opts) {
 
   // ─── ⚽ 世界杯 (v2.22 Task C2) ───
   if (worldcup) {
-    const wcLines = buildWorldcupLines(worldcup);
+    const wcLines = buildWorldcupLines(worldcup, onFocusWorldcup);
     if (wcLines.length > 0) {
       template.push({ label: "── ⚽ 世界杯 ──", enabled: false });
       for (const line of wcLines) {
@@ -243,9 +244,10 @@ function _ageLabel(deltaMs) {
  * - 今日未开赛 → "  team1 vs team2  13:00"
  * - 今日无比赛 + 有 upcoming →  "  下一场: team1 vs team2  明天 15:00"
  */
-function buildWorldcupLines(wc) {
+function buildWorldcupLines(wc, onFocusWorldcup) {
   const lines = [];
   const today = Array.isArray(wc.todayMatches) ? wc.todayMatches : [];
+  const cb = (typeof onFocusWorldcup === "function") ? onFocusWorldcup : () => {};
   for (const m of today) {
     if (!m || !m.team1 || !m.team2) continue;
     const score = m.score || {};
@@ -259,7 +261,8 @@ function buildWorldcupLines(wc) {
     }
     lines.push({
       label: `  ${m.team1} vs ${m.team2}${scoreText}`,
-      enabled: false,
+      enabled: typeof m.key === "string",
+      click: () => { if (m.key) cb({ matchKey: m.key }); },
     });
   }
   const upcoming = Array.isArray(wc.upcoming) ? wc.upcoming : [];
@@ -268,7 +271,8 @@ function buildWorldcupLines(wc) {
     if (next && next.team1 && next.team2) {
       lines.push({
         label: `  下一场: ${next.team1} vs ${next.team2}  ${next.time || next.date || ""}`.trim(),
-        enabled: false,
+        enabled: typeof next.key === "string",
+        click: () => { if (next.key) cb({ matchKey: next.key }); },
       });
     }
   }
@@ -292,6 +296,7 @@ function createTrayManager(opts) {
   const onOpenConfig = opts.onOpenConfig || (() => {});
   const onQuit = opts.onQuit || (() => {});
   const onFocusUpdate = opts.onFocusUpdate || (() => {});
+  const onFocusWorldcup = opts.onFocusWorldcup || (() => {});
 
   let tray = null;
   let lastResults = [];
@@ -326,6 +331,7 @@ function createTrayManager(opts) {
       onOpenConfig,
       onQuit,
       onFocusUpdate,
+      onFocusWorldcup,
       getConfigPath,
     });
     tray.setContextMenu(Menu.buildFromTemplate(template));

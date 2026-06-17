@@ -183,3 +183,50 @@ describe('tray.buildMenu — ⚽ 世界杯段 (Task C2)', () => {
     expect(upcomingRow).toBeDefined();
   });
 });
+
+describe('tray.buildMenu — ⚽ 世界杯段 clickable (Task C3)', () => {
+  it('今日比赛行 → enabled: true (可点击)', () => {
+    let captured = null;
+    const m = buildMenu({
+      results: [],
+      worldcup: {
+        todayMatches: [{ key: '2026-06-17|13:00|Mexico|South Africa', team1: 'Mexico', team2: 'South Africa', time: '13:00' }],
+      },
+      onFocusWorldcup: (data) => { captured = data; },
+    });
+    const matchRow = m.find((i) => i.label && i.label.includes('Mexico') && i.label.includes('South Africa'));
+    expect(matchRow).toBeDefined();
+    expect(matchRow.enabled).toBe(true);
+    // 模拟 click
+    matchRow.click();
+    expect(captured).toEqual({ matchKey: '2026-06-17|13:00|Mexico|South Africa' });
+  });
+
+  it('"下一场" 行 → 也可点击 + 调 onFocusWorldcup', () => {
+    let captured = null;
+    const m = buildMenu({
+      results: [],
+      worldcup: {
+        todayMatches: [],
+        upcoming: [{ key: '2026-06-18|15:00|Spain|France', team1: 'Spain', team2: 'France', time: '明天 15:00' }],
+      },
+      onFocusWorldcup: (data) => { captured = data; },
+    });
+    const nextRow = m.find((i) => i.label && i.label.includes('下一场') && i.label.includes('Spain'));
+    expect(nextRow).toBeDefined();
+    expect(nextRow.enabled).toBe(true);
+    nextRow.click();
+    expect(captured).toEqual({ matchKey: '2026-06-18|15:00|Spain|France' });
+  });
+
+  it('onFocusWorldcup 缺省 → 回调 stub 不抛异常', () => {
+    const m = buildMenu({
+      results: [],
+      worldcup: {
+        todayMatches: [{ key: 'k1', team1: 'A', team2: 'B', time: '12:00' }],
+      },
+    });
+    const matchRow = m.find((i) => i.label && i.label.includes('A') && i.label.includes('B'));
+    expect(() => matchRow.click()).not.toThrow();
+  });
+});

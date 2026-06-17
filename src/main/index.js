@@ -275,6 +275,15 @@ async function bootstrap() {
           });
         }
       },
+      // v2.22 Task C3: 菜单栏世界杯行点击 → 显示面板 + 推 worldcup:focus-match
+      // 复用现有 WorldcupLayout 监听的 worldcup:focus-match IPC, 不新增通道.
+      onFocusWorldcup: (data) => {
+        if (winMgr) winMgr.showWindow();
+        const w = getWindow();
+        if (w && !w.isDestroyed()) {
+          w.webContents.send("worldcup:focus-match", { matchKey: data && data.matchKey });
+        }
+      },
     });
     trayMgr.install();
     mainLog.info(`tray installed: ${Date.now() - tTrayStart}ms`);
