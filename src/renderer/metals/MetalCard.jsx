@@ -95,12 +95,12 @@ export function MetalCard({ metal, onEdit }) {
               成本 {formatCurrency(holding.costPrice, holding.costCurrency)} / {metal.unit}
             </div>
             {holdingPnl && (
-              <div class={`holding-row pnl ${holdingPnl.pnlCNY > 0 ? 'gain' : holdingPnl.pnlCNY < 0 ? 'loss' : ''}`}>
+              <div class={`holding-row pnl ${holdingPnl.pnlCNY > 0 ? 'positive' : holdingPnl.pnlCNY < 0 ? 'negative' : ''}`}>
                 累计 {holdingPnl.pnlCNY > 0 ? '+' : ''}{formatCNY(holdingPnl.pnlCNY)} ({holdingPnl.pnlPct.toFixed(2)}%)
               </div>
             )}
             {todayPnl && (
-              <div class={`holding-row pnl ${todayPnl.todayPnlCNY > 0 ? 'gain' : todayPnl.todayPnlCNY < 0 ? 'loss' : ''}`}>
+              <div class={`holding-row pnl ${todayPnl.todayPnlCNY > 0 ? 'positive' : todayPnl.todayPnlCNY < 0 ? 'negative' : ''}`}>
                 今日 {todayPnl.todayPnlCNY > 0 ? '+' : ''}{formatCNY(todayPnl.todayPnlCNY)} ({todayPnl.todayPnlPct.toFixed(2)}%)
               </div>
             )}

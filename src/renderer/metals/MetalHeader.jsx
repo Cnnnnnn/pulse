@@ -19,7 +19,7 @@ function formatTime(ts) {
 export function MetalHeader() {
   const ov = overview.value;
   const state = schedulerState.value;
-  const fx = fxCache.value;
+  const fx = fxCache.value.rate;
 
   return (
     <div class="metals-header">
@@ -45,7 +45,7 @@ export function MetalHeader() {
 
         <div class="overview-card">
           <div class="overview-label">总盈亏 (CNY)</div>
-          <div class={`overview-value ${ov.totalPnlCNY > 0 ? 'gain' : ov.totalPnlCNY < 0 ? 'loss' : ''}`}>
+          <div class={`overview-value ${ov.totalPnlCNY > 0 ? 'positive' : ov.totalPnlCNY < 0 ? 'negative' : ''}`}>
             {formatCNY(ov.totalPnlCNY)}
           </div>
           <div class="overview-meta">
@@ -57,7 +57,7 @@ export function MetalHeader() {
 
         <div class="overview-card">
           <div class="overview-label">今日预估 (CNY)</div>
-          <div class={`overview-value ${ov.todayEstimatedCNY > 0 ? 'gain' : ov.todayEstimatedCNY < 0 ? 'loss' : ''}`}>
+          <div class={`overview-value ${ov.todayEstimatedCNY > 0 ? 'positive' : ov.todayEstimatedCNY < 0 ? 'negative' : ''}`}>
             {formatCNY(ov.todayEstimatedCNY)}
           </div>
           <div class="overview-meta">↑ 较昨收</div>
