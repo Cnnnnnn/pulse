@@ -61,6 +61,124 @@ function loadFallbackIcon() {
 }
 
 /**
+ * 构造 tray context menu 的 template 数组 (纯函数, 无 Electron Tray 副作用).
+ *
+ * v2.22 Task A1: 从 rebuildMenu 抽出, 方便单测. 无行为变化 — 仍是
+ *   - 有更新 / 已是最新 / 需关注 三段 (现状保留)
+ *   - 无结果 → "尚未检查" 占位
+ *   - 底部 4 个 action: 打开面板 / 检查更新 / 打开配置文件 / 退出
+ *
+ * 后续 Task A2-A4 会在此函数里按段替换内容; callback 注入已经预留
+ * onFocusUpdate (A2 用). aiUsage / worldcup / metals 字段已收, 待
+ * B2/C2/D1 在函数体内插入对应段.
+ *
+ * @param {object} opts
+ * @param {Array}  [opts.results=[]]      - detect 返回的 app 状态列表
+ * @param {object} [opts.aiUsage=null]    - A2/B2 任务: AI 配额状态
+ * @param {object} [opts.worldcup=null]   - C2 任务: 世界杯比分
+ * @param {object} [opts.metals=null]     - D1 任务: 贵金属行情
+ * @param {Function} [opts.onOpenPanel]   - 点击 "打开面板" 时调用
+ * @param {Function} [opts.onCheck]       - 点击 "检查更新" 时调用
+ * @param {Function} [opts.onOpenConfig]  - 配置文件无路径时回退回调
+ * @param {Function} [opts.onQuit]        - 点击 "退出" 时调用
+ * @param {Function} [opts.onFocusUpdate] - A2 任务: 聚焦到某条 update
+ * @param {Function} [opts.getConfigPath] - 返回配置文件绝对路径
+ * @param {Function} [opts.getConfig]     - 返回配置对象 (含 apps 数组)
+ * @returns {Array} Electron Menu template 数组
+ */
+function buildMenu(opts) {
+  const {
+    results = [],
+    aiUsage = null,
+    worldcup = null,
+    metals = null,
+    onOpenPanel = () => {},
+    onCheck = () => {},
+    onOpenConfig = () => {},
+    onQuit = () => {},
+    onFocusUpdate = () => {},
+    getConfigPath = () => '',
+    getConfig = () => ({ apps: [] }),
+  } = opts;
+  const template = [];
+
+  // ─── 有更新 / 已是最新 / 需关注 (现状保留) ───
+  if (results.length > 0) {
+    const updates = results.filter((r) => r.has_update);
+    const upToDate = results.filter((r) => r.status === 'up_to_date');
+    const other = results.filter(
+      (r) => !r.has_update && r.status !== 'up_to_date' && r.status !== 'not_installed'
+    );
+
+    if (updates.length > 0) {
+      template.push({ label: `── 有更新 (${updates.length}) ──`, enabled: false });
+      const cfgApps = (getConfig().apps) || [];
+      updates.forEach((r) => {
+        const ver = r.latest_version
+          ? `${r.installed_version || '?'} → ${r.latest_version}`
+          : '';
+        template.push({
+          label: `${r.name}  ${ver}`,
+          click: () => {
+            onOpenPanel();
+            const cfg = cfgApps.find((a) => a.name === r.name);
+            if (cfg && cfg.download_url) {
+              require('electron').shell.openExternal(cfg.download_url);
+            }
+          },
+        });
+      });
+      template.push({ type: 'separator' });
+    }
+
+    if (upToDate.length > 0) {
+      template.push({ label: `── 已是最新 (${upToDate.length}) ──`, enabled: false });
+      upToDate.forEach((r) => {
+        template.push({ label: `${r.name}  ${r.installed_version || ''}`, enabled: false });
+      });
+      template.push({ type: 'separator' });
+    }
+
+    if (other.length > 0) {
+      template.push({ label: `── 需关注 (${other.length}) ──`, enabled: false });
+      other.forEach((r) => {
+        template.push({ label: `${r.name}  ${r.installed_version || ''}`, enabled: false });
+      });
+      template.push({ type: 'separator' });
+    }
+  } else {
+    template.push({ label: '尚未检查', enabled: false });
+    template.push({ type: 'separator' });
+  }
+
+  // ─── TODO A2-A4: 各模块段插入这里 ───
+  // 占位: A1 仅抽出函数, 不动内容
+  // (aiUsage / worldcup / metals 在 B2/C2/D1 任务里加段)
+  void aiUsage;
+  void worldcup;
+  void metals;
+  void onFocusUpdate;
+
+  // ─── 底部 action (不变) ───
+  template.push(
+    { label: '打开面板', click: () => onOpenPanel() },
+    { label: '检查更新', click: () => onCheck() },
+    { type: 'separator' },
+    {
+      label: '打开配置文件',
+      click: () => {
+        const p = getConfigPath();
+        if (p) require('electron').shell.openPath(p);
+        else onOpenConfig();
+      },
+    },
+    { type: 'separator' },
+    { label: '退出', click: () => onQuit() }
+  );
+  return template;
+}
+
+/**
  * Tray 管理器 — 封装 icon + menu + badge，单一职责。
  * 用法：
  *   const tray = createTrayManager({ getApps, getConfigPath, getConfig, onCheck, onQuit, onOpenPanel, onOpenConfig });
@@ -100,65 +218,15 @@ function createTrayManager(opts) {
 
   function rebuildMenu() {
     if (!tray) return;
-    const template = [];
-
-    if (lastResults.length > 0) {
-      const updates = lastResults.filter((r) => r.has_update);
-      const upToDate = lastResults.filter((r) => r.status === 'up_to_date');
-      const other = lastResults.filter(
-        (r) => !r.has_update && r.status !== 'up_to_date' && r.status !== 'not_installed'
-      );
-
-      if (updates.length > 0) {
-        template.push({ label: `── 有更新 (${updates.length}) ──`, enabled: false });
-        const cfgApps = (getConfig().apps || []);
-        updates.forEach((r) => {
-          const ver = r.latest_version ? `${r.installed_version || '?'} → ${r.latest_version}` : '';
-          template.push({
-            label: `${r.name}  ${ver}`,
-            click: () => {
-              onOpenPanel();
-              const cfg = cfgApps.find((a) => a.name === r.name);
-              if (cfg && cfg.download_url) shell.openExternal(cfg.download_url);
-            },
-          });
-        });
-        template.push({ type: 'separator' });
-      }
-
-      if (upToDate.length > 0) {
-        template.push({ label: `── 已是最新 (${upToDate.length}) ──`, enabled: false });
-        upToDate.forEach((r) => {
-          template.push({ label: `${r.name}  ${r.installed_version || ''}`, enabled: false });
-        });
-        template.push({ type: 'separator' });
-      }
-
-      if (other.length > 0) {
-        template.push({ label: `── 需关注 (${other.length}) ──`, enabled: false });
-        other.forEach((r) => {
-          template.push({ label: `${r.name}  ${r.installed_version || ''}`, enabled: false });
-        });
-        template.push({ type: 'separator' });
-      }
-    } else {
-      template.push({ label: '尚未检查', enabled: false });
-      template.push({ type: 'separator' });
-    }
-
-    template.push(
-      { label: '打开面板', click: () => onOpenPanel() },
-      { label: '检查更新', click: () => onCheck() },
-      { type: 'separator' },
-      { label: '打开配置文件', click: () => {
-          const p = getConfigPath();
-          if (p) shell.openPath(p);
-          else onOpenConfig();
-        } },
-      { type: 'separator' },
-      { label: '退出', click: () => onQuit() }
-    );
-
+    const template = buildMenu({
+      results: lastResults,
+      getConfig: getConfig,
+      onOpenPanel,
+      onCheck,
+      onOpenConfig,
+      onQuit,
+      getConfigPath,
+    });
     tray.setContextMenu(Menu.buildFromTemplate(template));
   }
 
@@ -193,6 +261,6 @@ function createTrayManager(opts) {
 
 module.exports = {
   createTrayManager,
-  // 暴露给测试 (assets 加载 + badge 变体选择)
-  _internal: { loadTrayIcon, loadBadgeIcon, loadFallbackIcon, ASSETS },
+  // 暴露给测试 (assets 加载 + badge 变体选择 + menu template 纯函数)
+  _internal: { loadTrayIcon, loadBadgeIcon, loadFallbackIcon, buildMenu, ASSETS },
 };
