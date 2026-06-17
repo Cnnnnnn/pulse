@@ -144,10 +144,20 @@ function buildMenu(opts) {
     template.push({ type: 'separator' });
   }
 
+  // ─── 📊 AI coding plan 用量 (v2.22 Task B2) ───
+  if (aiUsage) {
+    const lines = buildAiUsageLines(aiUsage);
+    if (lines.length > 0) {
+      template.push({ label: "── 📊 AI coding plan 用量 ──", enabled: false });
+      for (const line of lines) {
+        template.push(line);
+      }
+      template.push({ type: "separator" });
+    }
+  }
+
   // ─── TODO A2-A4: 各模块段插入这里 ───
-  // 占位: A1 仅抽出函数, 不动内容
-  // (aiUsage / worldcup / metals 在 B2/C2/D1 任务里加段)
-  void aiUsage;
+  // (worldcup / metals 在 C2/D1 任务里加段)
   void worldcup;
   void metals;
 
@@ -168,6 +178,51 @@ function buildMenu(opts) {
     { label: '退出', click: () => onQuit() }
   );
   return template;
+}
+
+const PROVIDER_NAME = { minimax: "MiniMax", glm: "GLM" };
+
+/**
+ * 把 aiUsage summary map 渲染成 menu template 行 (v2.22 Task B2).
+ * summaryMap = { minimax: {status, percent, remainLabel, fetchedAt}, glm: {...} }
+ * - 某 provider unconfigured → 跳过该 provider, 不显示该行
+ * - 某 provider ok → "  ProviderName: N% 已用 (剩 X)"  (陈旧时追加 " (Nh 前)")
+ * - 某 provider error → "  ProviderName: 拉取失败"
+ * - 全部 unconfigured → 整段只显示一行 "  未配置"
+ */
+function buildAiUsageLines(summaryMap) {
+  const lines = [];
+  let hasAny = false;
+  for (const pid of ["minimax", "glm"]) {
+    const s = summaryMap[pid];
+    if (!s || s.status === "unconfigured") continue;
+    hasAny = true;
+    if (s.status === "ok") {
+      const ageLabel = s.fetchedAt ? _ageLabel(Date.now() - s.fetchedAt) : "";
+      lines.push({
+        label: `  ${PROVIDER_NAME[pid]}: ${s.percent}% 已用 (剩 ${s.remainLabel})${ageLabel}`,
+        enabled: false,
+      });
+    } else if (s.status === "error") {
+      lines.push({ label: `  ${PROVIDER_NAME[pid]}: 拉取失败`, enabled: false });
+    }
+  }
+  if (!hasAny) {
+    lines.push({ label: "  未配置", enabled: false });
+  }
+  return lines;
+}
+
+/**
+ * 把毫秒差格式化成 " (Nm 前)" / " (Nh 前)" (v2.22 Task B2).
+ * < 60s → "" (不显示)
+ */
+function _ageLabel(deltaMs) {
+  if (deltaMs < 60_000) return "";
+  const m = Math.floor(deltaMs / 60_000);
+  if (m < 60) return ` (${m}m 前)`;
+  const h = Math.floor(m / 60);
+  return ` (${h}h 前)`;
 }
 
 /**
@@ -213,6 +268,7 @@ function createTrayManager(opts) {
     if (!tray) return;
     const template = buildMenu({
       results: lastResults,
+      aiUsage: lastAiUsage,
       getConfig: getConfig,
       onOpenPanel,
       onCheck,
@@ -226,7 +282,28 @@ function createTrayManager(opts) {
 
   function setResults(results) {
     lastResults = Array.isArray(results) ? results : [];
-    rebuildMenu();
+    scheduleRebuild();
+  }
+
+  // ─── debounce + Windows throttle (v2.22 Task B2) ───
+  let rebuildTimer = null;
+  let lastRebuildAt = 0;
+  function scheduleRebuild() {
+    if (rebuildTimer) return;
+    const elapsed = Date.now() - lastRebuildAt;
+    const minInterval = process.platform === "win32" ? 1000 : 0;
+    const delay = Math.max(200, minInterval - elapsed);
+    rebuildTimer = setTimeout(() => {
+      rebuildTimer = null;
+      lastRebuildAt = Date.now();
+      rebuildMenu();
+    }, delay);
+  }
+
+  let lastAiUsage = null;
+  function setAiUsage(snapshot) {
+    lastAiUsage = snapshot;
+    scheduleRebuild();
   }
 
   function setBadge(updateCount) {
@@ -250,7 +327,7 @@ function createTrayManager(opts) {
     }
   }
 
-  return { install, setResults, setBadge, dispose };
+  return { install, setResults, setBadge, setAiUsage, dispose };
 }
 
 module.exports = {

@@ -99,3 +99,47 @@ describe('tray.buildMenu — 基础结构 (Task A1 refactor)', () => {
     ]);
   });
 });
+
+describe('tray.buildMenu — 📊 AI 用量段 (Task B2)', () => {
+  it('两 provider 都 unconfigured → 整段只显示"未配置"', () => {
+    const m = buildMenu({
+      results: [],
+      aiUsage: { minimax: { status: 'unconfigured' }, glm: { status: 'unconfigured' } },
+    });
+    // 找 "未配置" 行 (在 AI section 中)
+    const unconfiguredRow = m.find((i) => i.label && i.label.trim() === '未配置');
+    expect(unconfiguredRow).toBeDefined();
+  });
+
+  it('minimax ok + glm unconfigured → 显示 MiniMax 行 (含 percent + remainLabel),GLM 不显示', () => {
+    const m = buildMenu({
+      results: [],
+      aiUsage: {
+        minimax: { status: 'ok', percent: 72, remainLabel: '1.2h', fetchedAt: Date.now() },
+        glm: { status: 'unconfigured' },
+      },
+    });
+    const aiLines = m.filter((i) => i.label && (i.label.includes('MiniMax') || i.label.includes('GLM')));
+    expect(aiLines).toHaveLength(1);
+    expect(aiLines[0].label).toContain('72%');
+    expect(aiLines[0].label).toContain('1.2h');
+  });
+
+  it('aiUsage=null → 整段隐藏 (无 AI section 行)', () => {
+    const m = buildMenu({ results: [] });
+    const aiLines = m.filter((i) => i.label && (i.label.includes('MiniMax') || i.label.includes('GLM') || i.label.trim() === '未配置'));
+    expect(aiLines).toHaveLength(0);
+  });
+
+  it('陈旧数据 (>1h) → 行尾 (Nh 前)', () => {
+    const old = Date.now() - 2 * 60 * 60 * 1000; // 2h 前
+    const m = buildMenu({
+      results: [],
+      aiUsage: {
+        minimax: { status: 'ok', percent: 80, remainLabel: '1h', fetchedAt: old },
+      },
+    });
+    const aiLines = m.filter((i) => i.label && i.label.includes('MiniMax'));
+    expect(aiLines[0].label).toContain('(2h 前)');
+  });
+});

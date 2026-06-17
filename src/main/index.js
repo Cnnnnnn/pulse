@@ -284,6 +284,27 @@ async function bootstrap() {
     timings.tray = Date.now() - tTrayStart;
   }
 
+  // 6.5) v2.22 Task B2: AI 用量 cache (从 state.json 读 last-known, 不主动 fetch)
+  // 简化路线: B2 只负责把 cache 推到 tray 一次性显示, 不做定时刷新.
+  // 完整 fetch + 30min 轮询留到 B2.1 后续任务 (需要把 register-ai-usage 的
+  // _internals.fetch deps 注入在主进程直接调, 跟现在 IPC 通道是同一份 deps).
+  // 现在: 当 renderer 在 AI 用量 tab 触发 fetch → state.json 被更新 →
+  // 下一次 onCheckComplete 走 trayMgr.setResults() 触发 scheduleRebuild,
+  // 重建时通过 aiUsageCache.getTraySummary 读最新 state.json, 自动反映.
+  try {
+    const { createAiUsageCache } = require("./ai-usage-cache");
+    const aiUsageCache = createAiUsageCache({});
+    if (trayMgr) {
+      trayMgr.setAiUsage({
+        minimax: aiUsageCache.getTraySummary("minimax"),
+        glm: aiUsageCache.getTraySummary("glm"),
+      });
+    }
+    mainLog.info("ai-usage tray initialized (read-only from state.json)");
+  } catch (err) {
+    mainLog.warn(`ai-usage tray init failed: ${err && err.message}`);
+  }
+
   // 7) ipc
   const tIpc = Date.now();
   const refreshLastOpenedAfterCheck = makeRefreshLastOpenedAfterCheck({
