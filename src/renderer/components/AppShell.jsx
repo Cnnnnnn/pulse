@@ -61,7 +61,6 @@ export function AppShell({ onCheck }) {
         if (nav === 'ithome') inputId = 'ithome-search-input';
         else if (nav === 'worldcup') inputId = 'worldcup-search-input';
         else if (nav === 'funds') inputId = 'fund-search-input';
-        else if (nav === 'metals') inputId = 'metal-search-input';
         const input = document.getElementById(inputId);
         if (input) {
           input.focus();

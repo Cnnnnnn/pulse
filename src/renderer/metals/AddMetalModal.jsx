@@ -111,6 +111,7 @@ export function AddMetalModal() {
           <input
             type="number"
             step="0.01"
+            min="0"
             value={quantity}
             onInput={(e) => setQuantity(e.target.value)}
             placeholder={selectedMetal?.unit === 'oz' ? '0.5' : '100'}
@@ -122,6 +123,7 @@ export function AddMetalModal() {
           <input
             type="number"
             step="0.0001"
+            min="0"
             value={costPrice}
             onInput={(e) => setCostPrice(e.target.value)}
             placeholder="0.00"
