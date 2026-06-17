@@ -124,9 +124,12 @@ function wireRecentActivityListener(deps) {
  * @param {function} deps.sendToRenderer
  * @param {function} deps.getConfig
  * @param {object} deps.goalWatcher
+ * @param {function} [deps.onScoresChanged]  v2.22 C2.1 — goal-watcher 每次 sweep 完
+ *   (refreshScores 成功) fire, 跟 onGoal 独立. 透传给 goalWatcher.startGoalWatcher.
+ *   tray pushWorldcupToTray 走这里, 替换之前的 60s setInterval 兜底轮询.
  */
 function startWorldcupGoalWatcher(deps) {
-  const { getWindow, sendToRenderer, getConfig, goalWatcher } = deps;
+  const { getWindow, sendToRenderer, getConfig, goalWatcher, onScoresChanged } = deps;
   try {
     goalWatcher.startGoalWatcher({
       refreshScores: (keys) => require("../worldcup/scores-fetcher").refreshWorldcupScores(keys),
@@ -175,6 +178,8 @@ function startWorldcupGoalWatcher(deps) {
         warn: (...args) => mainLog.warn(...args),
         error: (...args) => mainLog.error(...args),
       },
+      // v2.22 C2.1: 透传 onScoresChanged (only if defined, 避免显式 undefined)
+      ...(typeof onScoresChanged === "function" ? { onScoresChanged } : {}),
     });
     mainLog.info("worldcup goal watcher started (60s sweep)");
     app.once("before-quit", () => {

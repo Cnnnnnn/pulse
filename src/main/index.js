@@ -339,10 +339,13 @@ async function bootstrap() {
   }
 
   // 6.6) v2.22 Task C2: 世界杯 tray cache (从 state.json 读 today/upcoming, 不主动 fetch)
+  // v2.22 Task C2.1: pushWorldcupToTray hoist 到 try 块外, 让后面的 startWorldcupGoalWatcher
+  //   能通过 onScoresChanged 钩进来 — 替换之前的 60s setInterval 轮询.
+  let pushWorldcupToTray = () => {};
   try {
     const { createWorldcupTrayCache } = require("./worldcup-tray-cache");
     const worldcupCache = createWorldcupTrayCache({});
-    function pushWorldcupToTray() {
+    pushWorldcupToTray = () => {
       if (!trayMgr) return;
       const today = worldcupCache.getTodayLive();
       const upcoming = worldcupCache.getUpcoming(3);
@@ -351,18 +354,9 @@ async function bootstrap() {
         upcoming: upcoming.ok ? upcoming.matches : [],
         ts: today.ts || (upcoming.ok ? upcoming.ts : null),
       });
-    }
+    };
     pushWorldcupToTray();
     mainLog.info("worldcup tray initialized (read-only from state.json)");
-
-    // v2.22 Task C2.1: goal-watcher 推 tray (live 比分变化立即反映)
-    // 通过 setInterval 简单 60s 轮询 (与 goal-watcher 同频). 不依赖 goal-watcher
-    // 的内部 hook, 避免改 goal-watcher 的签名.
-    const WORLDCUP_TRAY_REFRESH_MS = 60 * 1000;
-    const worldcupTrayTimer = setInterval(pushWorldcupToTray, WORLDCUP_TRAY_REFRESH_MS);
-    app.once("before-quit", () => {
-      try { clearInterval(worldcupTrayTimer); } catch { /* noop */ }
-    });
   } catch (err) {
     mainLog.warn(`worldcup tray init failed: ${err && err.message}`);
   }
@@ -471,6 +465,10 @@ async function bootstrap() {
     sendToRenderer,
     getConfig: () => runtimeConfigRef.current,
     goalWatcher,
+    // v2.22 Task C2.1: 钩 goal-watcher, 每次 sweep 完 (refreshScores 成功) 推一次 tray.
+    // 替换之前的 60s setInterval 兜底轮询 — goal-watcher 跟 scores-fetcher 写盘同源,
+    // cache 必然 fresh, sweep fire 的时刻就是 tray 反映比分变化的时刻.
+    onScoresChanged: pushWorldcupToTray,
   });
   wireRecentActivityListener({ recentActivity, sendToRenderer });
   startAutoCheckTimer({
