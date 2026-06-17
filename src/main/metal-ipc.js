@@ -132,7 +132,7 @@ function startMetalScheduler() {
         broadcast('metals:quote:changed', { quotes: quoteCache, fx: fxCache });
       }
       if (update.state) {
-        broadcast('metals:quote:state', update.state);
+        broadcast('metals:quote:state-changed', update.state);
       }
     },
   });

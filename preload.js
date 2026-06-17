@@ -178,7 +178,7 @@ contextBridge.exposeInMainWorld("metalsApi", {
   },
   onStateUpdate: (cb) => {
     const handler = (_evt, data) => cb(data);
-    ipcRenderer.on("metals:quote:state", handler);
-    return () => ipcRenderer.removeListener("metals:quote:state", handler);
+    ipcRenderer.on("metals:quote:state-changed", handler);
+    return () => ipcRenderer.removeListener("metals:quote:state-changed", handler);
   },
 });
