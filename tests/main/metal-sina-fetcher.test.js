@@ -5,7 +5,11 @@
  *   - parseSinaLine: 单行解析 / 字段映射 / 容错
  *   - parseSinaResponse: 多行解析 / symbol→metal mapping
  *   - parseSinaTime: HHMMSS + YYYY-MM-DD → unix ms
- *   - fetchSinaQuotes: URL 构造 / GBK Buffer 解码 / HTTP 失败 / 错误响应类型
+ *   - fetchSinaQuotes: URL 构造 / HTTP 失败 / 错误响应类型
+ *
+ * 注: 不再测 GBK Buffer 解码 — Pulse http-client 永远输出 UTF-8 string,
+ * sina 接口的 number / ASCII 字段在 GBK / UTF-8 下字节级兼容,
+ * 不需要 iconv-lite. v2.20.0 起已删除该分支.
  *
  * Sina field positions (verified):
  *   [0] name, [1] time HHMMSS, [2] current, [3] prevClose, [4] open, ...
@@ -121,15 +125,6 @@ describe('fetchSinaQuotes', () => {
     expect(headers.Referer).toContain('finance.sina.com.cn');
   });
 
-  it('decodes GBK Buffer via iconv-lite', async () => {
-    const iconv = (await import('iconv-lite')).default;
-    const gbkBuffer = iconv.encode(sampleFullResponse, 'gbk');
-    const mockHttpGet = vi.fn().mockResolvedValue(gbkBuffer);
-    const quotes = await fetchSinaQuotes(['AU0', 'AG0'], mockHttpGet);
-    expect(quotes.AU9999.price).toBe(574.86);
-    expect(quotes.AG9999.price).toBe(8100.0);
-  });
-
   it('returns parsed quotes when httpGet returns string', async () => {
     const mockHttpGet = vi.fn().mockResolvedValue(sampleFullResponse);
     const quotes = await fetchSinaQuotes(['AU0', 'AG0'], mockHttpGet);
@@ -143,7 +138,7 @@ describe('fetchSinaQuotes', () => {
   });
 
   it('throws on unexpected response type', async () => {
-    const mockHttpGet = vi.fn().mockResolvedValue(12345); // neither Buffer nor string
+    const mockHttpGet = vi.fn().mockResolvedValue(12345); // neither string
     await expect(fetchSinaQuotes(['AU0'], mockHttpGet)).rejects.toThrow(
       /Unexpected response type/
     );

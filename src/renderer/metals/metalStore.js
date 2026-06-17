@@ -59,11 +59,17 @@ export const overview = computed(() => {
   };
 });
 
+let _unsubQuote = null;
+let _unsubState = null;
+
 export async function initMetalStore() {
   if (!window.metalsApi) {
     console.warn('[metals] window.metalsApi not exposed — check preload.js');
     return;
   }
+
+  // 防御性: 如果之前注册过 (re-mount 时), 先清掉旧的, 避免 listener 堆积
+  cleanupMetalStore();
 
   // Load initial config + state
   const cfg = await window.metalsApi.list();
@@ -74,15 +80,30 @@ export async function initMetalStore() {
   if (state && state.fx) fxCache.value = state.fx;
   if (state && state.scheduler) schedulerState.value = state.scheduler;
 
-  // Subscribe to live updates
-  window.metalsApi.onQuoteChanged((data) => {
+  // Subscribe to live updates (preload 返回 unsubscribe 函数)
+  _unsubQuote = window.metalsApi.onQuoteChanged((data) => {
     if (data.quotes) quoteCache.value = data.quotes;
     if (data.fx) fxCache.value = data.fx;
   });
 
-  window.metalsApi.onStateUpdate((data) => {
+  _unsubState = window.metalsApi.onStateUpdate((data) => {
     schedulerState.value = data;
   });
+}
+
+/**
+ * 解绑 IPC listener, 避免 MetalLayout 反复 mount/unmount 时 listener 堆积.
+ * 幂等: 没注册过 / 重复调都安全.
+ */
+export function cleanupMetalStore() {
+  if (_unsubQuote) {
+    try { _unsubQuote(); } catch { /* noop */ }
+    _unsubQuote = null;
+  }
+  if (_unsubState) {
+    try { _unsubState(); } catch { /* noop */ }
+    _unsubState = null;
+  }
 }
 
 export async function refreshNow() {

@@ -2,14 +2,16 @@
  * src/metals/metal-sina-fetcher.js
  *
  * Sina hq.sinajs.cn JSONP client for domestic metals (AU9999, AG9999).
- * Returns GBK-encoded body; we use iconv-lite to decode to UTF-8.
  *
- * HTTP abstraction: takes an injected `httpGet(url, headers) => Promise<string|Buffer>`
- * so tests can pass decoded strings without needing iconv. The dispatcher
- * (metal-fetcher.js) is responsible for adapting `httpClient` into this shape.
+ * 注: 接口名义上是 GBK 编码, 但我们只解析 number / ASCII 字段
+ * (time / price / prevClose / open / high / low / bid / ask / volume / date),
+ * 这些字段在 GBK 下字节级 == ASCII / UTF-8 兼容. MetalCard 用的中文 name
+ * 来自本地 metal-config.js, 不来自 fetcher. 所以不需要 GBK 解码依赖.
+ *
+ * HTTP 抽象: 接收注入的 `httpGet(url, headers) => Promise<string>`,
+ * 测试可以直接传 UTF-8 string. dispatcher (metal-fetcher.js) 负责把
+ * Pulse 的 httpClient 适配成这个 shape.
  */
-
-const iconv = require('iconv-lite');
 
 const SINA_BASE = 'https://hq.sinajs.cn/list';
 
@@ -87,7 +89,7 @@ function parseSinaTime(time, date) {
 
 /**
  * Parse a full Sina response (multiple JSONP lines).
- * @param {string} text - UTF-8 decoded response body
+ * @param {string} text - response body string
  * @param {Object} symbolToMetal - { 'AU0': 'AU9999', 'AG0': 'AG9999' }
  */
 function parseSinaResponse(text, symbolToMetal) {
@@ -109,27 +111,21 @@ function parseSinaResponse(text, symbolToMetal) {
 /**
  * Fetch Sina quotes for the given symbols.
  * @param {string[]} symbols - e.g. ['AU0', 'AG0']
- * @param {Function} httpGet - injected HTTP getter, returns Buffer or string
+ * @param {Function} httpGet - injected HTTP getter, returns Promise<string>
  */
 async function fetchSinaQuotes(symbols, httpGet) {
   const url = buildSinaUrl(symbols);
   const response = await httpGet(url, DEFAULT_HEADERS);
 
-  // Decode GBK → UTF-8
-  let text;
-  if (Buffer.isBuffer(response)) {
-    text = iconv.decode(response, 'gbk');
-  } else if (typeof response === 'string') {
-    text = response;
-  } else {
-    throw new Error('Unexpected response type from Sina fetcher');
+  if (typeof response !== 'string') {
+    throw new Error('Unexpected response type from Sina fetcher (expected string)');
   }
 
   const symbolToMetal = {};
   if (symbols.includes('AU0')) symbolToMetal.AU0 = 'AU9999';
   if (symbols.includes('AG0')) symbolToMetal.AG0 = 'AG9999';
 
-  return parseSinaResponse(text, symbolToMetal);
+  return parseSinaResponse(response, symbolToMetal);
 }
 
 module.exports = {

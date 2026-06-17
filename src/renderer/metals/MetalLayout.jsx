@@ -8,11 +8,12 @@ import { useEffect } from 'preact/hooks';
 import { MetalHeader } from './MetalHeader.jsx';
 import { MetalGrid } from './MetalGrid.jsx';
 import { AddMetalModal } from './AddMetalModal.jsx';
-import { addModalOpen, editingMetalId, initMetalStore } from './metalStore.js';
+import { addModalOpen, editingMetalId, initMetalStore, cleanupMetalStore } from './metalStore.js';
 
 export function MetalLayout() {
   useEffect(() => {
     initMetalStore();
+    return () => cleanupMetalStore();
   }, []);
 
   const handleEdit = (metalId) => {

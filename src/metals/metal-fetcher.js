@@ -4,7 +4,7 @@
  * Unified dispatcher that runs Yahoo and Sina fetchers concurrently.
  * Failures are isolated per fetcher — one down doesn't block the other.
  *
- * HTTP abstraction: this module takes an injected `httpGet(url, headers) => Promise<string|Buffer>`
+ * HTTP abstraction: this module takes an injected `httpGet(url, headers) => Promise<string>`
  * so the same module is testable in isolation. The main-process caller
  * (metal-scheduler.js) is responsible for adapting Pulse's `httpClient` into this shape:
  *
@@ -13,7 +13,7 @@
  *       .then(r => {
  *         if (r.error) throw new Error(r.error);
  *         if (r.status !== 200) throw new Error(`HTTP ${r.status}`);
- *         return r.body;  // string or Buffer depending on content-type
+ *         return r.body;  // always a UTF-8 string
  *       });
  *
  * Dispatcher signature note: the original plan proposed a DI-container shape of
@@ -65,7 +65,7 @@ function buildFetcherPlan() {
 /**
  * Fetch all metal quotes + FX rates with failure isolation.
  *
- * @param {Function} httpGet - injected HTTP getter: (url, headers) => Promise<string|Buffer>
+ * @param {Function} httpGet - injected HTTP getter: (url, headers) => Promise<string>
  * @returns {Promise<{quotes: Object, fx: Object, errors: Object}>}
  */
 async function fetchAllQuotes(httpGet) {

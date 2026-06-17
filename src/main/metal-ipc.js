@@ -31,14 +31,14 @@ let fxCache = { rate: null, fetchedAt: null };
 
 /**
  * Adapter: Pulse's httpClient returns { status, body, headers, error? }.
- * The metals fetchers expect (url, headers) => string|Buffer.
- * This adapter wraps the status check + JSON passthrough.
+ * The metals fetchers expect (url, headers) => string.
+ * This adapter wraps the status check + body passthrough.
  */
 function httpGetAdapter(url, headers) {
   return httpClientGet(url, { headers, timeoutMs: 8000 }).then((r) => {
     if (r.error) throw new Error(r.error);
     if (r.status !== 200) throw new Error(`HTTP ${r.status}`);
-    return r.body; // string for JSON, Buffer for binary
+    return r.body;
   });
 }
 
@@ -53,14 +53,13 @@ function loadConfig() {
 }
 
 function persistConfig(metalsPayload) {
-  const statePath = stateStore.defaultPath();
-  const existing = stateStore.load(statePath);
-  const nextState = Object.assign({}, existing || {}, {
-    v: (existing && existing.v) || stateStore.SCHEMA_VERSION,
-    ts: Date.now(),
-    metals: metalsPayload,
+  // 走 patchState: 自动处理 apps / mutes / last_opened / active_category /
+  // ai_sessions_config 基础字段, 再 preserveExtraFields 兜住其余 (funds / worldcup*
+  // / ithome_news / reminders / recentActivity 等). 比手撸 Object.assign 更安全:
+  // 老实现遇到 state.json 缺失会写出缺 apps 字段的 state, 直接破坏 Pulse 主流程.
+  stateStore.patchState((next) => {
+    next.metals = metalsPayload;
   });
-  stateStore.writeAtomic(statePath, nextState);
   return metalsPayload;
 }
 

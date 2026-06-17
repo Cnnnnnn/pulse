@@ -15,13 +15,14 @@
 - **样式系统**: `styles.css` 加 ~200 行 metals-* 样式 (跟 funds 同构, 紧凑 2 列网格 + 红涨绿跌中国习惯)
 
 ### 依赖
-- 新增 `iconv-lite` (~200KB, GBK 解码) — 已在 v2.20.0 之前的依赖列表里, 本 release 启用
+- ~~`iconv-lite` (~200KB, GBK 解码)~~ — **已移除**. Sina hq.sinajs.cn 接口我们只解析 number / ASCII 字段 (time / price / prevClose / date 等), 这些字段 GBK / UTF-8 字节级兼容; 中文 name 走本地 `metal-config.js`, 不依赖 fetcher 解码. Pulse `http-client` 也永远返 UTF-8 string, Buffer 解码分支永远走不到. 整个 iconv-lite 依赖直接 `npm uninstall`.
 
 ### 文件
-- 新增 `src/renderer/metals/MetalLayout.jsx` / `MetalHeader.jsx` / `MetalGrid.jsx` / `MetalCard.jsx` / `AddMetalModal.jsx` / `metalStore.js`
-- 新增 `src/metals/metal-config.js` / `metal-calc.js` / `metal-aggregate.js` / `metal-store.js` (main) / `metalsApi.js` (preload)
-- 新增 `src/main/metal-scheduler.js` (5 分钟轮询)
-- `styles.css` 末尾追加 metals 样式段
+- 新增 renderer: `src/renderer/metals/` (`MetalLayout.jsx` / `MetalHeader.jsx` / `MetalGrid.jsx` / `MetalCard.jsx` / `AddMetalModal.jsx` / `metalStore.js`)
+- 新增模块: `src/metals/` (`metal-config.js` / `metal-calc.js` / `metal-yahoo-fetcher.js` / `metal-sina-fetcher.js` / `metal-fetcher.js` / `metal-scheduler.js`)
+- 新增 IPC 桥: `src/main/metal-ipc.js` (handler 注册 + scheduler 启停)
+- `preload.js` 暴露 `window.metalsApi` (contextBridge)
+- `styles.css` 末尾追加 metals-* 样式段 (2 列卡片网格 + CNY 折算概览)
 - `src/renderer/components/SideNav.jsx` 加 "🥇 贵金属" nav item
 - `src/renderer/components/AppShell.jsx` 加 `Cmd+Shift+M` 跳栏快捷键
 

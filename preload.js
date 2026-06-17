@@ -172,9 +172,13 @@ contextBridge.exposeInMainWorld("metalsApi", {
   fetchNow: () => ipcRenderer.invoke("metals:quote:fetch"),
   getState: () => ipcRenderer.invoke("metals:quote:state"),
   onQuoteChanged: (cb) => {
-    ipcRenderer.on("metals:quote:changed", (_evt, data) => cb(data));
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("metals:quote:changed", handler);
+    return () => ipcRenderer.removeListener("metals:quote:changed", handler);
   },
   onStateUpdate: (cb) => {
-    ipcRenderer.on("metals:quote:state", (_evt, data) => cb(data));
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("metals:quote:state", handler);
+    return () => ipcRenderer.removeListener("metals:quote:state", handler);
   },
 });
