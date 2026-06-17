@@ -22,20 +22,33 @@ describe('metal-config', () => {
   it('each metal has primary source with valid kind', () => {
     for (const m of METALS) {
       expect(m.primary).toBeTruthy();
-      expect(['sina-hf', 'sina-jsonp']).toContain(m.primary.kind);
-      expect(m.primary.symbol).toBeTruthy();
+      expect(['sina-hf', 'eastmoney']).toContain(m.primary.kind);
     }
   });
 
-  it('international metals (XAU/XAG) use sina-hf, domestic (AU9999/AG9999) use sina-jsonp', () => {
+  it('international metals (XAU/XAG) use sina-hf, domestic (AU9999/AG9999) use eastmoney', () => {
     const xau = getMetalById('XAU');
     const xag = getMetalById('XAG');
     const au = getMetalById('AU9999');
     const ag = getMetalById('AG9999');
     expect(xau.primary.kind).toBe('sina-hf');
+    expect(xau.primary.symbol).toBe('hf_GC');
     expect(xag.primary.kind).toBe('sina-hf');
-    expect(au.primary.kind).toBe('sina-jsonp');
-    expect(ag.primary.kind).toBe('sina-jsonp');
+    expect(xag.primary.symbol).toBe('hf_SI');
+    expect(au.primary.kind).toBe('eastmoney');
+    expect(au.primary.secid).toBe('118.AU9999');
+    expect(ag.primary.kind).toBe('eastmoney');
+    expect(ag.primary.secid).toBe('118.AG9999');
+  });
+
+  it('eastmoney domestic metals have correct priceDivisor (AU:100, AG:100000)', () => {
+    // 关键陷阱: 黄金以 元/克 报价, f43 ÷ 100 = 939.18;
+    //          白银以 元/千克 报价, f43 ÷ 100000 = 16.875.
+    // priceDivisor 在 config 里显式声明, fetcher 不猜.
+    const au = getMetalById('AU9999');
+    const ag = getMetalById('AG9999');
+    expect(au.primary.priceDivisor).toBe(100);
+    expect(ag.primary.priceDivisor).toBe(100000);
   });
 
   it('sina-hf metals have no priceScale (hf_* quotes are already per-unit)', () => {

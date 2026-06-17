@@ -1,48 +1,35 @@
 /**
  * src/metals/metal-fetcher.js
  *
- * Unified dispatcher that runs the Sina hf fetcher (international metals + FX)
- * and the Sina jsonp fetcher (domestic metals) concurrently. Failures are
- * isolated per fetcher — one down doesn't block the other.
+ * Unified dispatcher that runs three fetchers concurrently with failure isolation:
+ *   - sina-hf:     国际金/银 (hf_GC, hf_SI) + 汇率 (USDCNY), 1 次 HTTP
+ *   - eastmoney:   国内金/银 (AU9999, AG9999), 每品种 1 次 HTTP 并发
  *
- * HTTP abstraction: this module takes an injected `httpGet(url, headers) => Promise<string>`
- * so the same module is testable in isolation. The main-process caller
- * (metal-scheduler.js) is responsible for adapting Pulse's `httpClient` into this shape:
+ * 任一 fetcher 挂掉不影响其他. 历史变迁见 metal-sina-hf-fetcher.js /
+ * metal-eastmoney-fetcher.js 头部注释.
  *
- *   const wrappedGet = (url, headers) =>
- *     httpClient.get(url, { headers, timeoutMs: 8000 })
- *       .then(r => {
- *         if (r.error) throw new Error(r.error);
- *         if (r.status !== 200) throw new Error(`HTTP ${r.status}`);
- *         return r.body;  // always a UTF-8 string
- *       });
- *
- * History: the original design (v2.20 plan) used a Yahoo v8 chart fetcher for
- * international metals + FX. Yahoo's endpoint died mid-2026, so we replaced it
- * with the Sina hf_* symbols (already USD/oz, no priceScale needed). The
- * domestic path (sina-jsonp, AU0/AG0) is unchanged. The dispatcher surface
- * stays the same — only the fetcher module swapped.
+ * HTTP abstraction: 注入 httpGet(url, headers) => Promise<string>.
  */
 
 const { METALS, FX_RATES } = require('./metal-config.js');
 const { fetchHfQuotes } = require('./metal-sina-hf-fetcher.js');
-const { fetchSinaQuotes } = require('./metal-sina-fetcher.js');
+const { fetchEastmoneyQuotes } = require('./metal-eastmoney-fetcher.js');
 
 /**
  * Build the fetch plan: which symbols go to which fetcher.
  *   sina-hf:    XAU (hf_GC), XAG (hf_SI), CNY_PER_USD (USDCNY)
- *   sina-jsonp: AU9999 (AU0), AG9999 (AG0)
+ *   eastmoney:  AU9999 (118.AU9999), AG9999 (118.AG9999)
  * @returns {Array<{kind: string, symbols: string[]}>}
  */
 function buildFetcherPlan() {
   const hfSymbols = [];
-  const sinaSymbols = [];
+  const eastmoneyItems = [];
 
   for (const metal of METALS) {
     if (metal.primary.kind === 'sina-hf') {
       hfSymbols.push(metal.primary.symbol);
-    } else if (metal.primary.kind === 'sina-jsonp') {
-      sinaSymbols.push(metal.primary.symbol);
+    } else if (metal.primary.kind === 'eastmoney') {
+      eastmoneyItems.push(metal.primary.secid);
     }
   }
 
@@ -54,7 +41,7 @@ function buildFetcherPlan() {
 
   const plan = [];
   if (hfSymbols.length > 0) plan.push({ kind: 'sina-hf', symbols: hfSymbols });
-  if (sinaSymbols.length > 0) plan.push({ kind: 'sina-jsonp', symbols: sinaSymbols });
+  if (eastmoneyItems.length > 0) plan.push({ kind: 'eastmoney', secids: eastmoneyItems });
   return plan;
 }
 
@@ -68,7 +55,7 @@ async function fetchAllQuotes(httpGet) {
   const plan = buildFetcherPlan();
   const errors = {};
 
-  // Build symbol → metal mapping for hf fetcher (international metals)
+  // === sina-hf 映射 (国际金属 + 汇率) ===
   const hfSymbolToMetal = {};
   for (const metal of METALS) {
     if (metal.primary.kind === 'sina-hf') {
@@ -78,8 +65,6 @@ async function fetchAllQuotes(httpGet) {
       };
     }
   }
-
-  // Build symbol → fx mapping for hf fetcher (USDCNY)
   const hfSymbolToFx = {};
   for (const fx of FX_RATES) {
     if (fx.primary.kind === 'sina-hf') {
@@ -87,16 +72,28 @@ async function fetchAllQuotes(httpGet) {
     }
   }
 
-  const hfBatch = plan.find((p) => p.kind === 'sina-hf');
-  const sinaBatch = plan.find((p) => p.kind === 'sina-jsonp');
+  // === eastmoney 映射 (国内现货) ===
+  const eastmoneyItems = [];
+  for (const metal of METALS) {
+    if (metal.primary.kind === 'eastmoney') {
+      eastmoneyItems.push({
+        secid: metal.primary.secid,
+        metalId: metal.id,
+        priceDivisor: metal.primary.priceDivisor,
+      });
+    }
+  }
 
-  // Run both concurrently with isolation
-  const [hfResult, sinaResult] = await Promise.allSettled([
+  const hfBatch = plan.find((p) => p.kind === 'sina-hf');
+  const emBatch = plan.find((p) => p.kind === 'eastmoney');
+
+  // 三个 fetcher 并发 (sina-hf, eastmoney; sina-jsonp 已废弃)
+  const [hfResult, emResult] = await Promise.allSettled([
     hfBatch
       ? fetchHfQuotes(hfBatch.symbols, httpGet, hfSymbolToMetal, hfSymbolToFx)
       : Promise.resolve({ quotes: {}, fx: {} }),
-    sinaBatch
-      ? fetchSinaQuotes(sinaBatch.symbols, httpGet)
+    emBatch
+      ? fetchEastmoneyQuotes(eastmoneyItems, httpGet)
       : Promise.resolve({}),
   ]);
 
@@ -110,10 +107,10 @@ async function fetchAllQuotes(httpGet) {
     errors['sina-hf'] = hfResult.reason;
   }
 
-  if (sinaResult.status === 'fulfilled') {
-    Object.assign(quotes, sinaResult.value);
+  if (emResult.status === 'fulfilled') {
+    Object.assign(quotes, emResult.value);
   } else {
-    errors['sina-jsonp'] = sinaResult.reason;
+    errors['eastmoney'] = emResult.reason;
   }
 
   return { quotes, fx, errors };
