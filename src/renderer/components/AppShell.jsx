@@ -28,6 +28,7 @@ import { SideNav } from './SideNav.jsx';
 import { VersionsLayout } from './VersionsLayout.jsx';
 import { WorldcupLayout } from '../worldcup/WorldcupLayout.jsx';
 import { FundLayout } from '../funds/FundLayout.jsx';
+import { MetalLayout } from '../metals/MetalLayout.jsx';
 import { NewsLayout } from '../ithome/NewsLayout.jsx';
 import { AIUsageLayout } from './AIUsageLayout.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
@@ -60,6 +61,7 @@ export function AppShell({ onCheck }) {
         if (nav === 'ithome') inputId = 'ithome-search-input';
         else if (nav === 'worldcup') inputId = 'worldcup-search-input';
         else if (nav === 'funds') inputId = 'fund-search-input';
+        else if (nav === 'metals') inputId = 'metal-search-input';
         const input = document.getElementById(inputId);
         if (input) {
           input.focus();
@@ -81,9 +83,11 @@ export function AppShell({ onCheck }) {
             ? <WorldcupLayout />
             : nav === 'funds'
               ? <FundLayout />
-              : nav === 'ai-usage'
-                ? <AIUsageLayout />
-                : <VersionsLayout onCheck={onCheck} />}
+              : nav === 'metals'
+                ? <MetalLayout />
+                : nav === 'ai-usage'
+                  ? <AIUsageLayout />
+                  : <VersionsLayout onCheck={onCheck} />}
       </div>
     </div>
   );
