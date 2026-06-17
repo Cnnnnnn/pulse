@@ -15,7 +15,7 @@
  */
 
 const { ipcMain, webContents } = require('electron');
-const { httpGet: httpClientGet } = require('./http-client.js');
+const { HttpClient } = require('./http-client.js');
 const { MetalScheduler } = require('../metals/metal-scheduler.js');
 const stateStore = require('./state-store.js');
 
@@ -24,6 +24,11 @@ const DEFAULT_CONFIG = {
   holdings: { XAU: null, XAG: null, AU9999: null, AG9999: null },
   deletedIds: [],
 };
+
+// Singleton HttpClient — metals fetches are 2 lightweight GETs per 5-min cycle,
+// no need to instantiate per-request. Mirrors the shared-instance style used
+// elsewhere in the main process (vs funds, which spins up per-handler clients).
+const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
 
 let scheduler = null;
 let quoteCache = { data: {}, errors: {}, fetchedAt: null };
@@ -35,7 +40,7 @@ let fxCache = { rate: null, fetchedAt: null };
  * This adapter wraps the status check + body passthrough.
  */
 function httpGetAdapter(url, headers) {
-  return httpClientGet(url, { headers, timeoutMs: 8000 }).then((r) => {
+  return httpClient.get(url, { headers, timeoutMs: 8000 }).then((r) => {
     if (r.error) throw new Error(r.error);
     if (r.status !== 200) throw new Error(`HTTP ${r.status}`);
     return r.body;
