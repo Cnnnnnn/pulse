@@ -1,14 +1,31 @@
 /**
  * src/renderer/metals/AddMetalModal.jsx
  *
- * Modal for adding a new metal watch OR editing an existing holding.
- * On save: computes costPriceCNY snapshot using current FX rate,
- * then persists via metalsApi.upsertHolding.
+ * v2.21 重做: 添加关注 / 编辑持仓 modal.
+ * 用 .metal-modal-* 样式系统 (参考 funds 的 .fund-modal-*).
+ *
+ * 实时预览: 输入数量 + 成本后, 实时算出
+ *   ≈ 总成本 ¥XXX · 每克成本 ¥YYY/克
+ * 成本币种可选 USD/CNY; USD 时用当前汇率快照换算成 CNY 冻结.
  */
 
-import { useState, useEffect } from 'preact/hooks';
-import { addModalOpen, editingMetalId, config, upsertHolding, removeHolding, fxCache } from './metalStore.js';
+import { useState, useEffect, useMemo } from 'preact/hooks';
+import {
+  addModalOpen,
+  editingMetalId,
+  config,
+  upsertHolding,
+  removeHolding,
+  fxCache,
+} from './metalStore.js';
 import { METALS, getMetalById } from '../../metals/metal-config.js';
+
+const GRAM_PER_OZ = 31.1035;
+
+function formatCNY(value, decimals = 2) {
+  if (value == null || !Number.isFinite(value)) return '—';
+  return `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
 
 export function AddMetalModal() {
   const editingMetal = editingMetalId.value
@@ -29,11 +46,12 @@ export function AddMetalModal() {
     currentHolding?.costCurrency || 'USD'
   );
   const [note, setNote] = useState(currentHolding?.note || '');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const selectedMetal = getMetalById(selectedMetalId);
   const fx = fxCache.value.rate;
 
-  // Reset form when modal opens/closes
+  // Reset form when modal opens/switches metal
   useEffect(() => {
     if (editingMetal) {
       setSelectedMetalId(editingMetal.id);
@@ -42,22 +60,51 @@ export function AddMetalModal() {
       setCostCurrency(currentHolding?.costCurrency || 'USD');
       setNote(currentHolding?.note || '');
     }
+    setErrorMsg('');
   }, [editingMetalId.value]);
 
+  // 实时预览: 把成本价换算到 ¥/克
+  const preview = useMemo(() => {
+    const qty = parseFloat(quantity);
+    const price = parseFloat(costPrice);
+    if (isNaN(qty) || isNaN(price) || !selectedMetal) return null;
+
+    // 成本价 → 每克人民币
+    let priceCNYPerGram;
+    if (costCurrency === 'CNY') {
+      // 国内品种本身就是 ¥/g; 国际品种按克数输入 (假设用户已折算)
+      priceCNYPerGram = selectedMetal.unit === 'g' ? price : price;
+    } else {
+      // USD: 国际品种 oz → g 换算
+      if (fx == null) return { fxMissing: true };
+      priceCNYPerGram = (price * fx) / (selectedMetal.unit === 'oz' ? GRAM_PER_OZ : 1);
+    }
+    const totalCNY = priceCNYPerGram * qty;
+    return { priceCNYPerGram, totalCNY };
+  }, [quantity, costPrice, costCurrency, selectedMetal, fx]);
+
   const handleSave = async () => {
+    setErrorMsg('');
     if (!selectedMetal) return;
     const qty = parseFloat(quantity);
     const price = parseFloat(costPrice);
-    if (isNaN(qty) || isNaN(price)) return;
+    if (isNaN(qty) || qty <= 0) {
+      setErrorMsg('请输入有效的数量');
+      return;
+    }
+    if (isNaN(price) || price <= 0) {
+      setErrorMsg('请输入有效的成本价');
+      return;
+    }
 
     // Compute costPriceCNY snapshot using current FX rate (frozen at save time)
     let costPriceCNY;
     if (costCurrency === 'CNY') {
-      costPriceCNY = price;
+      costPriceCNY = selectedMetal.unit === 'g' ? price : price;
     } else if (fx) {
-      costPriceCNY = price * fx;
+      costPriceCNY = (price * fx) / (selectedMetal.unit === 'oz' ? GRAM_PER_OZ : 1);
     } else {
-      alert('汇率未就绪,请稍后重试');
+      setErrorMsg('汇率未就绪，请稍后重试');
       return;
     }
 
@@ -88,72 +135,104 @@ export function AddMetalModal() {
     editingMetalId.value = null;
   };
 
+  const unitLabel = selectedMetal?.unit === 'oz' ? '盎司' : '克';
+
   return (
-    <div class="modal-overlay" onClick={handleClose}>
-      <div class="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h3>{editingMetal ? '编辑持仓' : '添加关注'}</h3>
+    <div class="metal-modal-overlay" onClick={handleClose}>
+      <div class="metal-modal" onClick={(e) => e.stopPropagation()}>
+        <div class="metal-modal-header">
+          <h3>{editingMetal ? '编辑持仓' : '添加关注'}</h3>
+          <button class="metal-modal-close" onClick={handleClose} aria-label="关闭">×</button>
+        </div>
 
-        <label class="modal-field">
-          <span>品种</span>
-          <select
-            value={selectedMetalId}
-            onChange={(e) => setSelectedMetalId(e.target.value)}
-            disabled={!!editingMetal}
-          >
-            {METALS.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-        </label>
+        <div class="metal-modal-body">
+          <label class="metal-modal-field">
+            <span class="metal-modal-label">品种</span>
+            <select
+              value={selectedMetalId}
+              onChange={(e) => setSelectedMetalId(e.target.value)}
+              disabled={!!editingMetal}
+            >
+              {METALS.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </label>
 
-        <label class="modal-field">
-          <span>数量 ({selectedMetal?.unit})</span>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={quantity}
-            onInput={(e) => setQuantity(e.target.value)}
-            placeholder={selectedMetal?.unit === 'oz' ? '0.5' : '100'}
-          />
-        </label>
+          <div class="metal-modal-row">
+            <label class="metal-modal-field">
+              <span class="metal-modal-label">
+                数量 ({unitLabel})
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={quantity}
+                onInput={(e) => setQuantity(e.target.value)}
+                placeholder={selectedMetal?.unit === 'oz' ? '0.5' : '100'}
+              />
+            </label>
 
-        <label class="modal-field">
-          <span>成本价 ({costCurrency} / {selectedMetal?.unit})</span>
-          <input
-            type="number"
-            step="0.0001"
-            min="0"
-            value={costPrice}
-            onInput={(e) => setCostPrice(e.target.value)}
-            placeholder="0.00"
-          />
-        </label>
+            <label class="metal-modal-field">
+              <span class="metal-modal-label">成本币种</span>
+              <select value={costCurrency} onChange={(e) => setCostCurrency(e.target.value)}>
+                <option value="USD">USD 美元</option>
+                <option value="CNY">CNY 人民币</option>
+              </select>
+            </label>
+          </div>
 
-        <label class="modal-field">
-          <span>成本币种</span>
-          <select value={costCurrency} onChange={(e) => setCostCurrency(e.target.value)}>
-            <option value="USD">USD (美元)</option>
-            <option value="CNY">CNY (人民币)</option>
-          </select>
-        </label>
+          <label class="metal-modal-field">
+            <span class="metal-modal-label">
+              成本价 ({costCurrency} / {selectedMetal?.unit})
+            </span>
+            <input
+              type="number"
+              step="0.0001"
+              min="0"
+              value={costPrice}
+              onInput={(e) => setCostPrice(e.target.value)}
+              placeholder="0.00"
+            />
+          </label>
 
-        <label class="modal-field">
-          <span>备注 (可选)</span>
-          <input
-            type="text"
-            value={note}
-            onInput={(e) => setNote(e.target.value)}
-            placeholder="e.g. 招行积存金 2024-03"
-          />
-        </label>
-
-        <div class="modal-actions">
-          {editingMetal && currentHolding && (
-            <button class="btn btn-ghost" onClick={handleRemove}>清除持仓</button>
+          {preview && !preview.fxMissing && (
+            <div class="metal-modal-computed">
+              ≈ 每克成本 {formatCNY(preview.priceCNYPerGram)} · 总成本 {formatCNY(preview.totalCNY)}
+            </div>
           )}
-          <button class="btn btn-ghost" onClick={handleClose}>取消</button>
-          <button class="btn btn-primary" onClick={handleSave}>保存</button>
+          {preview && preview.fxMissing && (
+            <div class="metal-modal-computed metal-modal-computed-warn">
+              ⚠️ 汇率未就绪，USD 成本暂无法换算
+            </div>
+          )}
+
+          <label class="metal-modal-field">
+            <span class="metal-modal-label">
+              备注 <span class="metal-modal-label-optional">可选</span>
+            </span>
+            <input
+              type="text"
+              value={note}
+              onInput={(e) => setNote(e.target.value)}
+              placeholder="e.g. 招行积存金 2024-03"
+            />
+          </label>
+
+          {errorMsg && <div class="metal-modal-error">{errorMsg}</div>}
+        </div>
+
+        <div class="metal-modal-footer">
+          {editingMetal && currentHolding && (
+            <button class="metal-btn metal-btn-danger" onClick={handleRemove}>清除持仓</button>
+          )}
+          <div class="metal-modal-footer-right">
+            <button class="metal-btn metal-btn-ghost" onClick={handleClose}>取消</button>
+            <button class="metal-btn metal-btn-primary" onClick={handleSave}>
+              {editingMetal ? '更新' : '保存'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
