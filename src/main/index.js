@@ -420,9 +420,12 @@ async function bootstrap() {
   //      a renderer invoke would resolve the promise but lose the response.
   //      Scheduler also starts here so initial 5-min tick is on the same
   //      lifecycle as other schedulers (stopped on before-quit below).
-  //      v2.22 Task D1: 传 onUpdateTray 让 scheduler onUpdate 钩点直接推 tray,
-  //      不新增 IPC 通道. getTraySnapshot() 读模块级 quoteCache (live only).
-  registerMetalIpc({
+  //      v2.22 Task D1 + D1-refactor: register/start are split for clean
+  //      lifecycle. onUpdateTray hook goes to startMetalScheduler, NOT to
+  //      registerMetalIpc. Tray reads module-level quoteCache (live only)
+  //      via getTraySnapshot — no IPC channel for tray updates.
+  registerMetalIpc();
+  startMetalScheduler({
     onUpdateTray: () => {
       if (!trayMgr) return;
       try {
@@ -431,7 +434,6 @@ async function bootstrap() {
       } catch (err) { /* noop */ }
     },
   });
-  startMetalScheduler();
 
   // 7.5) AI usage warmup (fire-and-forget) — 让 renderer 进入 AI 用量页时立即有数据
   //      IPC handlers 已在 registerIpcHandlers 里注册, 这里只跑 warmup

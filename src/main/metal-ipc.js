@@ -95,9 +95,12 @@ function getTraySnapshot() {
   };
 }
 
-function registerMetalIpc(opts = {}) {
-  const onUpdateTray = typeof opts.onUpdateTray === "function" ? opts.onUpdateTray : null;
-
+/**
+ * v2.22 Task D1-refactor: 只注册 IPC handlers, 不启 scheduler.
+ * 拆分前 registerMetalIpc 内部隐式启 scheduler, 跟调度生命周期混淆.
+ * 现在: registerMetalIpc() 跟 startMetalScheduler() 互相独立, caller 显式控制.
+ */
+function registerMetalIpc() {
   ipcMain.handle('metals:list', () => loadConfig());
 
   ipcMain.handle('metals:config:update', (_evt, { patch }) => saveConfig(patch));
@@ -127,10 +130,6 @@ function registerMetalIpc(opts = {}) {
     quotes: quoteCache,
     fx: fxCache,
   }));
-
-  // v2.22 Task D1: 保存 onUpdateTray 给 startMetalScheduler 用
-  // (scheduler 在 startMetalScheduler 里实例化, 那里会读 _trayUpdateFn).
-  startMetalScheduler({ onUpdateTray });
 }
 
 /**
