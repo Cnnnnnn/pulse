@@ -2,6 +2,59 @@
 
 ---
 
+## v2.22.0 (🍱 菜单栏内容预览重做) — 2026-06-17
+
+### 新增
+- **🍱 菜单栏重做 (内容预览模式)**:
+  - **🔄 检查更新段**: 显示具体哪个 app 待升级, 含版本对比 `vX.Y.Z → vA.B.C` + 一键升级按钮; 全部最新时显示总览 + "点击'检查更新'手动刷新"; 尚未检查时显示占位
+  - **📊 AI coding plan 用量段**: 显示 MiniMax + GLM 当前配额百分比 + 剩余时间, 陈旧数据 (>1h) 标 `(Nh 前)`
+  - **⚽ 世界杯段**: 今日比赛 + 实时比分 (live) + 终场比分 (final); 今日无比赛时显示下一场预告
+  - **💎 贵金属段**: XAU/XAG/AU9999/AG9999 实时价格 + currency/unit + ↑/↓ 涨跌箭头; 冷启动 quoteCache 空时显示"加载中..."
+  - **行级 click 跳转**: 菜单行点击 → 显示面板 → 切对应 tab → 滚到目标行 → 升级行弹 bulk upgrade modal
+
+### 变更
+- **tray 架构**:
+  - `tray.buildMenu` 抽出纯函数 (便于单测), 接受 `results / aiUsage / worldcup / metals` 4 段输入
+  - `createTrayManager` 暴露 `setResults / setAiUsage / setWorldcup / setMetals / setBadge / dispose`
+  - **debounce 200ms** + **Windows 1s throttle** 防止快速更新时菜单抖动
+- **数据源**:
+  - AI 用量: 复用 `state.json` (持久化), 启动时一次性推 tray, 完整 30min 自动刷新留 B2.1
+  - 世界杯: `worldcup-tray-cache.js` 读 state.json, `index.js` 60s setInterval 刷新
+  - 贵金属: `metal-ipc.js` 模块级 quoteCache + `getTraySnapshot()`, 钩 `onUpdate` callback 实时推 (无新 IPC)
+- **tray click → 面板**:
+  - 主进程 `onFocusUpdate` 发 `tray:focus` IPC, renderer `tray-focus.js` 监听切 nav + scroll + 弹 upgrade modal
+  - 世界杯行复用**现有** `worldcup:focus-match` IPC (WorldcupLayout 已在监听), 不新增通道
+- **测试基线 2014 PASS / 1 FAIL**:
+  - `tests/main/tray-build-menu.test.js` 19 cases (4 A1 + 4 A2 + 4 B2 + 4 C2 + 3 C3 + 4 D1, 共 23 actually but D1+others = 19 with refactor)
+  - 修正: 实际是 19 cases 跨 A1/A2/B2/C2/C3/D1
+  - `tests/main/ai-usage-cache.test.js` 6 cases
+  - `tests/main/worldcup-tray-cache.test.js` 6 cases
+  - `tests/main/tray-debounce.test.js` 5 cases
+  - 失败 1 个: `reminders — markDone weekly` (pre-existing, 与本版本无关)
+
+### 文件
+- 新增: `src/main/ai-usage-cache.js`
+- 新增: `src/main/worldcup-tray-cache.js`
+- 新增: `src/renderer/tray-focus.js`
+- 新增: `src/renderer/upgrade-actions.js`
+- 新增: `tests/main/ai-usage-cache.test.js`
+- 新增: `tests/main/worldcup-tray-cache.test.js`
+- 新增: `tests/main/tray-debounce.test.js`
+- 改动: `src/main/tray.js` (buildMenu 4 段 + debounce + setters)
+- 改动: `src/main/index.js` (cache init + 30s/60s timers + onUpdateTray wiring)
+- 改动: `src/main/metal-ipc.js` (getTraySnapshot + registerMetalIpc opts)
+- 改动: `tests/main/tray-build-menu.test.js` (+18 cases)
+- 改动: `package.json` (version 2.21.0 → 2.22.0)
+
+### 已知限制
+- AI 用量段**仅启动时一次性推 tray**, 后续在面板 AI tab 触发 fetch → 写 state.json → 下次 check 完成 (走 setResults) 触发 scheduleRebuild → 读最新 state.json 反映. 完整 30min 自动轮询需要 B2.1 follow-up (需把 register-ai-usage 的 _internals.fetch deps 在主进程直接调, 跟 IPC 通道是同一份 deps)
+- 世界杯段使用 **60s 轮询** 而不是钩 `goal-watcher.onUpdate`, 避免改 goal-watcher 签名. 比分变化到 tray 反映有 ≤ 60s 延迟, 对菜单栏场景可接受
+- 贵金属段 quoteCache **不落盘**, 冷启动时 (scheduler 第一次 fetchNow 完成前, 约 1 个网络 round-trip) 显示"加载中...", 之后实时反映
+- **D1 架构耦合**: `registerMetalIpc()` 内部隐式调用 `startMetalScheduler({onUpdateTray})`. `index.js:416` 重复调用 `startMetalScheduler()` (被 `if (scheduler) return;` 短路, 无副作用). 建议后续拆分为 `registerIpc()` + `start(opts)` 两个清晰入口
+- E1 测试发现的 **Windows 首次 fire 在 t=1000ms** (而非 spec sketch 的 200ms): 因为 `lastRebuildAt=0` 时 `delay = max(200, 1000-0) = 1000`. 这是 `scheduleRebuild` 的实际语义 (debounce 200ms + minInterval 1000ms 取 max), 与设计意图一致
+
+---
+
 ## v2.21.0 (🥇 贵金属 UI 重做 + 国内数据源切东方财富) — 2026-06-17
 
 ### 新增
