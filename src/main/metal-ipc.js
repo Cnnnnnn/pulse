@@ -80,6 +80,26 @@ function broadcast(channel, payload) {
   }
 }
 
+/**
+ * v2.22 Task D1: 给 tray 用的简化 snapshot.
+ * 复用模块级 quoteCache / fxCache + loadConfig() 拿 holdings.
+ * 不持久化 quoteCache (live only, 跟原架构一致).
+ */
+function getTraySnapshot() {
+  return {
+    quotes: quoteCache && quoteCache.data ? { ...quoteCache.data } : {},
+    fx: fxCache && typeof fxCache.rate === "number" ? { ...fxCache } : null,
+    fetchedAt: quoteCache && quoteCache.fetchedAt ? quoteCache.fetchedAt : null,
+    errors: quoteCache && quoteCache.errors ? { ...quoteCache.errors } : {},
+    holdings: loadConfig() && loadConfig().holdings ? { ...loadConfig().holdings } : {},
+  };
+}
+
+/**
+ * v2.22 Task D1-refactor: 只注册 IPC handlers, 不启 scheduler.
+ * 拆分前 registerMetalIpc 内部隐式启 scheduler, 跟调度生命周期混淆.
+ * 现在: registerMetalIpc() 跟 startMetalScheduler() 互相独立, caller 显式控制.
+ */
 function registerMetalIpc() {
   ipcMain.handle('metals:list', () => loadConfig());
 
@@ -112,8 +132,13 @@ function registerMetalIpc() {
   }));
 }
 
-function startMetalScheduler() {
+/**
+ * v2.22 Task D1: 接受 opts.onUpdateTray 回调, scheduler onUpdate 时调用.
+ * tray 直接读模块级 quoteCache / fxCache (无 IPC 通道), 走 getTraySnapshot().
+ */
+function startMetalScheduler(opts = {}) {
   if (scheduler) return;
+  const onUpdateTray = typeof opts.onUpdateTray === "function" ? opts.onUpdateTray : null;
   scheduler = new MetalScheduler({
     httpGet: httpGetAdapter,
     onUpdate: (update) => {
@@ -130,6 +155,10 @@ function startMetalScheduler() {
           };
         }
         broadcast('metals:quote:changed', { quotes: quoteCache, fx: fxCache });
+        // v2.22 Task D1: 推 tray (复用 onUpdate 钩点, 不新增 IPC)
+        if (onUpdateTray) {
+          try { onUpdateTray(getTraySnapshot()); } catch (err) { /* noop */ }
+        }
       }
       if (update.state) {
         broadcast('metals:quote:state-changed', update.state);
@@ -151,4 +180,5 @@ module.exports = {
   startMetalScheduler,
   stopMetalScheduler,
   loadConfig,
+  getTraySnapshot,
 };

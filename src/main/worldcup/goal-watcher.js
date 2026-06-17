@@ -104,13 +104,14 @@ function _formatGoalNotification(scorer, fixture) {
  * @param {function} deps.refreshScores   async (keys) => { ok, scores, ... }
  * @param {function} deps.loadFixtures    () => { txt, ts } | null
  * @param {function} deps.onGoal          (notif, meta) => void
+ * @param {function} [deps.onScoresChanged]  (newScores) => void  v2.22 C2.1
  * @param {object} deps.log              { info, warn, error }
  * @param {function} deps.onError         (err) => void
  * @param {string} [deps.statePath]      可选 state.json 路径 (测试用, 默认走 stateStore.defaultPath)
  * @returns {Promise<{notifiedCount: number, errors: string[]}>}
  */
 async function _sweepOnce(now, deps) {
-  const { refreshScores, loadFixtures, onGoal, log, onError, statePath } = deps;
+  const { refreshScores, loadFixtures, onGoal, onScoresChanged, log, onError, statePath } = deps;
   const errors = [];
   let notifiedCount = 0;
 
@@ -152,6 +153,20 @@ async function _sweepOnce(now, deps) {
       return { notifiedCount: 0, errors: ["refresh_failed"] };
     }
     const newScores = refresh.scores || {};
+
+    // v2.22 Task C2.1: 通知 tray (避免 60s 轮询).
+    // 每次 sweep 完 (refreshScores 成功 + 至少 1 eligible key) 都 fire,
+    // 跟 onGoal 独立 — 即使没进球也推. Tray 从 state.json.worldcup_scores 读,
+    // 跟 refreshScores 写盘后的状态一致, 所以 cache 必然是 fresh 的.
+    if (typeof onScoresChanged === "function") {
+      try {
+        onScoresChanged(newScores);
+      } catch (err) {
+        log.warn("[goal-watcher] onScoresChanged failed", {
+          msg: err && err.message,
+        });
+      }
+    }
 
     // 4) 读旧 notified
     const raw = stateStore.load(statePath) || {};
@@ -225,6 +240,7 @@ let _deps = null;
  * @param {function} deps.refreshScores
  * @param {function} deps.loadFixtures
  * @param {function} deps.onGoal
+ * @param {function} [deps.onScoresChanged]  v2.22 C2.1, 透传到 _sweepOnce
  * @param {object} [deps.log]
  * @param {function} [deps.onError]
  * @param {number} [deps.now]   epoch ms, 注入便于测试; 默认 Date.now()

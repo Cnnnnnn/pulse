@@ -61,6 +61,267 @@ function loadFallbackIcon() {
 }
 
 /**
+ * 构造 tray context menu 的 template 数组 (纯函数, 无 Electron Tray 副作用).
+ *
+ * v2.22 Task A1: 从 rebuildMenu 抽出, 方便单测. 无行为变化 — 仍是
+ *   - 有更新 / 已是最新 / 需关注 三段 (现状保留)
+ *   - 无结果 → "尚未检查" 占位
+ *   - 底部 4 个 action: 打开面板 / 检查更新 / 打开配置文件 / 退出
+ *
+ * 后续 Task A2-A4 会在此函数里按段替换内容; callback 注入已经预留
+ * onFocusUpdate (A2 用). aiUsage / worldcup / metals 字段已收, 待
+ * B2/C2/D1 在函数体内插入对应段.
+ *
+ * @param {object} opts
+ * @param {Array}  [opts.results=[]]      - detect 返回的 app 状态列表
+ * @param {object} [opts.aiUsage=null]    - A2/B2 任务: AI 配额状态
+ * @param {object} [opts.worldcup=null]   - C2 任务: 世界杯比分
+ * @param {object} [opts.metals=null]     - D1 任务: 贵金属行情
+ * @param {Function} [opts.onOpenPanel]   - 点击 "打开面板" 时调用
+ * @param {Function} [opts.onCheck]       - 点击 "检查更新" 时调用
+ * @param {Function} [opts.onOpenConfig]  - 配置文件无路径时回退回调
+ * @param {Function} [opts.onQuit]        - 点击 "退出" 时调用
+ * @param {Function} [opts.onFocusUpdate] - A2 任务: 聚焦到某条 update
+ * @param {Function} [opts.getConfigPath] - 返回配置文件绝对路径
+ * @param {Function} [opts.getConfig]     - 返回配置对象 (含 apps 数组)
+ * @returns {Array} Electron Menu template 数组
+ */
+function buildMenu(opts) {
+  const {
+    results = [],
+    aiUsage = null,
+    worldcup = null,
+    metals = null,
+    onOpenPanel = () => {},
+    onCheck = () => {},
+    onOpenConfig = () => {},
+    onQuit = () => {},
+    onFocusUpdate = () => {},
+    onFocusWorldcup = () => {},
+    getConfigPath = () => '',
+    getConfig = () => ({ apps: [] }),
+  } = opts;
+  const template = [];
+
+  // ─── 🔄 检查更新 (v2.22 Task A2: 内容预览) ───
+  if (results.length > 0) {
+    const updates = results.filter((r) => r.has_update);
+    const upToDate = results.filter((r) => r.status === 'up_to_date');
+
+    if (updates.length > 0) {
+      template.push({
+        label: `── 🔄 检查更新 (${updates.length} 待升级) ──`,
+        enabled: false,
+      });
+      updates.forEach((r) => {
+        const ver = r.latest_version
+          ? `${r.installed_version || '?'} → ${r.latest_version}`
+          : '';
+        template.push({
+          label: `${r.name}  ${ver}  ⬆️ 升级`,
+          click: () => {
+            onFocusUpdate({ rowName: r.name, action: 'upgrade' });
+          },
+        });
+      });
+      template.push({ type: 'separator' });
+    } else if (upToDate.length > 0) {
+      // 没有更新时显示总览 (1 行)
+      template.push({
+        label: `── 🔄 检查更新 · 全部最新 (${upToDate.length}) ──`,
+        enabled: false,
+      });
+      template.push({
+        label: '  点击"检查更新"手动刷新',
+        enabled: false,
+      });
+      template.push({ type: 'separator' });
+    }
+  } else {
+    template.push({
+      label: '── 🔄 检查更新 · 尚未检查 ──',
+      enabled: false,
+    });
+    template.push({ type: 'separator' });
+  }
+
+  // ─── 📊 AI coding plan 用量 (v2.22 Task B2) ───
+  if (aiUsage) {
+    const lines = buildAiUsageLines(aiUsage);
+    if (lines.length > 0) {
+      template.push({ label: "── 📊 AI coding plan 用量 ──", enabled: false });
+      for (const line of lines) {
+        template.push(line);
+      }
+      template.push({ type: "separator" });
+    }
+  }
+
+  // ─── ⚽ 世界杯 (v2.22 Task C2) ───
+  if (worldcup) {
+    const wcLines = buildWorldcupLines(worldcup, onFocusWorldcup);
+    if (wcLines.length > 0) {
+      template.push({ label: "── ⚽ 世界杯 ──", enabled: false });
+      for (const line of wcLines) {
+        template.push(line);
+      }
+      template.push({ type: "separator" });
+    }
+  }
+
+  // ─── 💎 贵金属 (v2.22 Task D1) ───
+  if (metals) {
+    const ml = buildMetalsLines(metals);
+    if (ml.length > 0) {
+      template.push({ label: "── 💎 贵金属 ──", enabled: false });
+      for (const line of ml) {
+        template.push(line);
+      }
+      template.push({ type: "separator" });
+    }
+  }
+
+  // ─── 底部 action (不变) ───
+  template.push(
+    { label: '打开面板', click: () => onOpenPanel() },
+    { label: '检查更新', click: () => onCheck() },
+    { type: 'separator' },
+    {
+      label: '打开配置文件',
+      click: () => {
+        const p = getConfigPath();
+        if (p) require('electron').shell.openPath(p);
+        else onOpenConfig();
+      },
+    },
+    { type: 'separator' },
+    { label: '退出', click: () => onQuit() }
+  );
+  return template;
+}
+
+const PROVIDER_NAME = { minimax: "MiniMax", glm: "GLM" };
+
+/**
+ * 把 aiUsage summary map 渲染成 menu template 行 (v2.22 Task B2).
+ * summaryMap = { minimax: {status, percent, remainLabel, fetchedAt}, glm: {...} }
+ * - 某 provider unconfigured → 跳过该 provider, 不显示该行
+ * - 某 provider ok → "  ProviderName: N% 已用 (剩 X)"  (陈旧时追加 " (Nh 前)")
+ * - 某 provider error → "  ProviderName: 拉取失败"
+ * - 全部 unconfigured → 整段只显示一行 "  未配置"
+ */
+function buildAiUsageLines(summaryMap) {
+  const lines = [];
+  let hasAny = false;
+  for (const pid of ["minimax", "glm"]) {
+    const s = summaryMap[pid];
+    if (!s || s.status === "unconfigured") continue;
+    hasAny = true;
+    if (s.status === "ok") {
+      const ageLabel = s.fetchedAt ? _ageLabel(Date.now() - s.fetchedAt) : "";
+      lines.push({
+        label: `  ${PROVIDER_NAME[pid]}: ${s.percent}% 已用 (剩 ${s.remainLabel})${ageLabel}`,
+        enabled: false,
+      });
+    } else if (s.status === "error") {
+      lines.push({ label: `  ${PROVIDER_NAME[pid]}: 拉取失败`, enabled: false });
+    }
+  }
+  if (!hasAny) {
+    lines.push({ label: "  未配置", enabled: false });
+  }
+  return lines;
+}
+
+/**
+ * 把毫秒差格式化成 " (Nm 前)" / " (Nh 前)" (v2.22 Task B2).
+ * < 60s → "" (不显示)
+ */
+function _ageLabel(deltaMs) {
+  if (deltaMs < 60_000) return "";
+  const m = Math.floor(deltaMs / 60_000);
+  if (m < 60) return ` (${m}m 前)`;
+  const h = Math.floor(m / 60);
+  return ` (${h}h 前)`;
+}
+
+/**
+ * 把 worldcup summary map 渲染成 menu template 行 (v2.22 Task C2).
+ * wc = { todayMatches: [...], upcoming: [...] }
+ * - 今日 live 比赛 → "  team1 vs team2  2-1 (live)"
+ * - 今日已结束 → "  team1 vs team2  1-0 (终)"
+ * - 今日未开赛 → "  team1 vs team2  13:00"
+ * - 今日无比赛 + 有 upcoming →  "  下一场: team1 vs team2  明天 15:00"
+ */
+function buildWorldcupLines(wc, onFocusWorldcup) {
+  const lines = [];
+  const today = Array.isArray(wc.todayMatches) ? wc.todayMatches : [];
+  const cb = (typeof onFocusWorldcup === "function") ? onFocusWorldcup : () => {};
+  for (const m of today) {
+    if (!m || !m.team1 || !m.team2) continue;
+    const score = m.score || {};
+    let scoreText = "";
+    if (score.status === "live" && Array.isArray(score.ft)) {
+      scoreText = `  ${score.ft[0]}-${score.ft[1]} (live)`;
+    } else if (score.status === "final" && Array.isArray(score.ft)) {
+      scoreText = `  ${score.ft[0]}-${score.ft[1]} (终)`;
+    } else if (m.time) {
+      scoreText = `  ${m.time}`;
+    }
+    lines.push({
+      label: `  ${m.team1} vs ${m.team2}${scoreText}`,
+      enabled: typeof m.key === "string",
+      click: () => { if (m.key) cb({ matchKey: m.key }); },
+    });
+  }
+  const upcoming = Array.isArray(wc.upcoming) ? wc.upcoming : [];
+  if (today.length === 0 && upcoming.length > 0) {
+    const next = upcoming[0];
+    if (next && next.team1 && next.team2) {
+      lines.push({
+        label: `  下一场: ${next.team1} vs ${next.team2}  ${next.time || next.date || ""}`.trim(),
+        enabled: typeof next.key === "string",
+        click: () => { if (next.key) cb({ matchKey: next.key }); },
+      });
+    }
+  }
+  return lines;
+}
+
+const METAL_NAME = { XAU: '黄金', XAG: '白银', AU9999: 'Au9999', AG9999: 'Ag9999' };
+
+/**
+ * 把 metals snapshot 渲染成 menu template 行 (v2.22 Task D1).
+ * metals = { quotes: {XAU:{price,prevClose,currency,unit,...}, ...}, ... }
+ * - 无任何 quote → 整段只显示一行 "  加载中..." (cold start 或 scheduler 未拉)
+ * - 有 quote → 每条金属一行 "  名称 (id): price currency/unit ↑/↓"
+ */
+function buildMetalsLines(metals) {
+  const lines = [];
+  const quotes = metals && metals.quotes && typeof metals.quotes === "object" ? metals.quotes : {};
+  const keys = Object.keys(quotes).filter((k) => quotes[k] && typeof quotes[k].price === "number");
+  if (keys.length === 0) {
+    lines.push({ label: "  加载中...", enabled: false });
+    return lines;
+  }
+  for (const id of keys) {
+    const q = quotes[id];
+    const name = METAL_NAME[id] || id;
+    const arrow = (typeof q.prevClose === "number" && q.prevClose > 0)
+      ? (q.price > q.prevClose ? " ↑" : q.price < q.prevClose ? " ↓" : "")
+      : "";
+    const unit = q.unit || "";
+    const cur = q.currency || "";
+    const priceStr = (typeof q.price === "number") ? q.price.toFixed(2) : "?";
+    lines.push({
+      label: `  ${name} (${id}): ${priceStr} ${cur}/${unit}${arrow}`,
+      enabled: false,
+    });
+  }
+  return lines;
+}
+
+/**
  * Tray 管理器 — 封装 icon + menu + badge，单一职责。
  * 用法：
  *   const tray = createTrayManager({ getApps, getConfigPath, getConfig, onCheck, onQuit, onOpenPanel, onOpenConfig });
@@ -76,6 +337,8 @@ function createTrayManager(opts) {
   const onOpenPanel = opts.onOpenPanel || (() => {});
   const onOpenConfig = opts.onOpenConfig || (() => {});
   const onQuit = opts.onQuit || (() => {});
+  const onFocusUpdate = opts.onFocusUpdate || (() => {});
+  const onFocusWorldcup = opts.onFocusWorldcup || (() => {});
 
   let tray = null;
   let lastResults = [];
@@ -100,71 +363,59 @@ function createTrayManager(opts) {
 
   function rebuildMenu() {
     if (!tray) return;
-    const template = [];
-
-    if (lastResults.length > 0) {
-      const updates = lastResults.filter((r) => r.has_update);
-      const upToDate = lastResults.filter((r) => r.status === 'up_to_date');
-      const other = lastResults.filter(
-        (r) => !r.has_update && r.status !== 'up_to_date' && r.status !== 'not_installed'
-      );
-
-      if (updates.length > 0) {
-        template.push({ label: `── 有更新 (${updates.length}) ──`, enabled: false });
-        const cfgApps = (getConfig().apps || []);
-        updates.forEach((r) => {
-          const ver = r.latest_version ? `${r.installed_version || '?'} → ${r.latest_version}` : '';
-          template.push({
-            label: `${r.name}  ${ver}`,
-            click: () => {
-              onOpenPanel();
-              const cfg = cfgApps.find((a) => a.name === r.name);
-              if (cfg && cfg.download_url) shell.openExternal(cfg.download_url);
-            },
-          });
-        });
-        template.push({ type: 'separator' });
-      }
-
-      if (upToDate.length > 0) {
-        template.push({ label: `── 已是最新 (${upToDate.length}) ──`, enabled: false });
-        upToDate.forEach((r) => {
-          template.push({ label: `${r.name}  ${r.installed_version || ''}`, enabled: false });
-        });
-        template.push({ type: 'separator' });
-      }
-
-      if (other.length > 0) {
-        template.push({ label: `── 需关注 (${other.length}) ──`, enabled: false });
-        other.forEach((r) => {
-          template.push({ label: `${r.name}  ${r.installed_version || ''}`, enabled: false });
-        });
-        template.push({ type: 'separator' });
-      }
-    } else {
-      template.push({ label: '尚未检查', enabled: false });
-      template.push({ type: 'separator' });
-    }
-
-    template.push(
-      { label: '打开面板', click: () => onOpenPanel() },
-      { label: '检查更新', click: () => onCheck() },
-      { type: 'separator' },
-      { label: '打开配置文件', click: () => {
-          const p = getConfigPath();
-          if (p) shell.openPath(p);
-          else onOpenConfig();
-        } },
-      { type: 'separator' },
-      { label: '退出', click: () => onQuit() }
-    );
-
+    const template = buildMenu({
+      results: lastResults,
+      aiUsage: lastAiUsage,
+      worldcup: lastWorldcup,
+      metals: lastMetals,
+      getConfig: getConfig,
+      onOpenPanel,
+      onCheck,
+      onOpenConfig,
+      onQuit,
+      onFocusUpdate,
+      onFocusWorldcup,
+      getConfigPath,
+    });
     tray.setContextMenu(Menu.buildFromTemplate(template));
   }
 
   function setResults(results) {
     lastResults = Array.isArray(results) ? results : [];
-    rebuildMenu();
+    scheduleRebuild();
+  }
+
+  // ─── debounce + Windows throttle (v2.22 Task B2) ───
+  let rebuildTimer = null;
+  let lastRebuildAt = 0;
+  function scheduleRebuild() {
+    if (rebuildTimer) return;
+    const elapsed = Date.now() - lastRebuildAt;
+    const minInterval = process.platform === "win32" ? 1000 : 0;
+    const delay = Math.max(200, minInterval - elapsed);
+    rebuildTimer = setTimeout(() => {
+      rebuildTimer = null;
+      lastRebuildAt = Date.now();
+      rebuildMenu();
+    }, delay);
+  }
+
+  let lastAiUsage = null;
+  function setAiUsage(snapshot) {
+    lastAiUsage = snapshot;
+    scheduleRebuild();
+  }
+
+  let lastWorldcup = null;
+  function setWorldcup(snapshot) {
+    lastWorldcup = snapshot;
+    scheduleRebuild();
+  }
+
+  let lastMetals = null;
+  function setMetals(snapshot) {
+    lastMetals = snapshot;
+    scheduleRebuild();
   }
 
   function setBadge(updateCount) {
@@ -188,11 +439,11 @@ function createTrayManager(opts) {
     }
   }
 
-  return { install, setResults, setBadge, dispose };
+  return { install, setResults, setBadge, setAiUsage, setWorldcup, setMetals, dispose };
 }
 
 module.exports = {
   createTrayManager,
-  // 暴露给测试 (assets 加载 + badge 变体选择)
-  _internal: { loadTrayIcon, loadBadgeIcon, loadFallbackIcon, ASSETS },
+  // 暴露给测试 (assets 加载 + badge 变体选择 + menu template 纯函数)
+  _internal: { loadTrayIcon, loadBadgeIcon, loadFallbackIcon, buildMenu, ASSETS },
 };

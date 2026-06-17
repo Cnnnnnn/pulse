@@ -53,6 +53,7 @@ const { registerIpcHandlers } = require("./ipc");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const { mainLog, detectLog } = require("./log");
 const stateStore = require("./state-store");
+const aiStorage = require("../ai-sessions/storage");
 const { HttpClient } = require("./http-client");
 const { computePoolSize } = require("./pool-size");
 const fundStore = require("./fund-store");
@@ -263,6 +264,27 @@ async function bootstrap() {
         isQuitting = true;
         app.quit();
       },
+      // v2.22 Task A3: 菜单栏升级行点击 → 显示面板 + 推 tray:focus 事件
+      onFocusUpdate: (data) => {
+        if (winMgr) winMgr.showWindow();
+        const w = getWindow();
+        if (w && !w.isDestroyed()) {
+          w.webContents.send("tray:focus", {
+            tab: "versions",
+            rowName: data && data.rowName,
+            action: data && data.action,
+          });
+        }
+      },
+      // v2.22 Task C3: 菜单栏世界杯行点击 → 显示面板 + 推 worldcup:focus-match
+      // 复用现有 WorldcupLayout 监听的 worldcup:focus-match IPC, 不新增通道.
+      onFocusWorldcup: (data) => {
+        if (winMgr) winMgr.showWindow();
+        const w = getWindow();
+        if (w && !w.isDestroyed()) {
+          w.webContents.send("worldcup:focus-match", { matchKey: data && data.matchKey });
+        }
+      },
     });
     trayMgr.install();
     mainLog.info(`tray installed: ${Date.now() - tTrayStart}ms`);
@@ -270,6 +292,95 @@ async function bootstrap() {
   } catch (err) {
     mainLog.error(`tray install failed: ${err.message}`);
     timings.tray = Date.now() - tTrayStart;
+  }
+
+  // 6.5) v2.22 Task B2 + B2.1: AI 用量 cache + 30min 自动刷新
+  // B2: 启动时从 state.json 读 last-known 推 tray
+  // B2.1: 30min setInterval 调 register-ai-usage._internals.fetch (双 provider),
+  //       写回 state.json 后重新构造 tray summary 推 tray.
+  // Tray 不依赖 IPC 通道 — 走模块级 state.json + ai-usage-cache.
+  let aiUsageScheduler = null;
+  try {
+    const { createAiUsageCache } = require("./ai-usage-cache");
+    const { createAiUsageRefreshScheduler } = require("./ai-usage-refresh-scheduler");
+    const aiUsageCache = createAiUsageCache({});
+    if (trayMgr) {
+      trayMgr.setAiUsage({
+        minimax: aiUsageCache.getTraySummary("minimax"),
+        glm: aiUsageCache.getTraySummary("glm"),
+      });
+    }
+    mainLog.info("ai-usage tray initialized (read-only from state.json)");
+
+    // B2.1: 30min 自动刷新 — 复用 register-ai-usage 的 deps (跟 IPC 通道同源)
+    aiUsageScheduler = createAiUsageRefreshScheduler({
+      trayMgr,
+      deps: {
+        stateStore: {
+          loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,
+          saveSnapshotProvider: stateStore.saveAiUsageSnapshotProvider,
+          loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
+          appendHistoryProvider: stateStore.appendAiUsageHistoryDayProvider,
+        },
+        storage: {
+          loadApiKey: (pid) => {
+            try { return aiStorage.loadApiKey(pid); } catch { return null; }
+          },
+        },
+        MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
+        GlmQuotaClient: require("../ai-usage/client-glm").GlmQuotaClient,
+        pushEvent: () => {}, // tray refresh 不需要推 renderer (renderer 走自己的 IPC)
+      },
+    });
+    aiUsageScheduler.start({ intervalMs: 30 * 60 * 1000 });
+    mainLog.info("ai-usage tray refresh scheduler started (every 30min)");
+  } catch (err) {
+    mainLog.warn(`ai-usage tray init failed: ${err && err.message}`);
+  }
+
+  // 6.6) v2.22 Task C2: 世界杯 tray cache (从 state.json 读 today/upcoming, 不主动 fetch)
+  // v2.22 Task C2.1: pushWorldcupToTray hoist 到 try 块外, 让后面的 startWorldcupGoalWatcher
+  //   能通过 onScoresChanged 钩进来 — 替换之前的 60s setInterval 轮询.
+  let pushWorldcupToTray = () => {};
+  try {
+    const { createWorldcupTrayCache } = require("./worldcup-tray-cache");
+    const worldcupCache = createWorldcupTrayCache({});
+    pushWorldcupToTray = () => {
+      if (!trayMgr) return;
+      const today = worldcupCache.getTodayLive();
+      const upcoming = worldcupCache.getUpcoming(3);
+      trayMgr.setWorldcup({
+        todayMatches: today.ok ? today.matches : [],
+        upcoming: upcoming.ok ? upcoming.matches : [],
+        ts: today.ts || (upcoming.ok ? upcoming.ts : null),
+      });
+    };
+    pushWorldcupToTray();
+    mainLog.info("worldcup tray initialized (read-only from state.json)");
+  } catch (err) {
+    mainLog.warn(`worldcup tray init failed: ${err && err.message}`);
+  }
+
+  // 6.7) v2.22 Task D1: 贵金属 tray (从 metal-ipc 模块级 cache 读 quoteCache)
+  try {
+    const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc");
+    function pushMetalsToTray() {
+      if (!trayMgr) return;
+      const snap = getMetalsTraySnapshot();
+      trayMgr.setMetals(snap);
+    }
+    pushMetalsToTray();
+    mainLog.info("metals tray initialized (live quoteCache)");
+
+    // 60s 轮询作为 fallback (防止 scheduler 没推过来时 tray 仍能反映最新).
+    // 主推送路径仍是 registerMetalIpc({onUpdateTray}) 钩点.
+    const METALS_TRAY_REFRESH_MS = 60 * 1000;
+    const metalsTrayTimer = setInterval(pushMetalsToTray, METALS_TRAY_REFRESH_MS);
+    app.once("before-quit", () => {
+      try { clearInterval(metalsTrayTimer); } catch { /* noop */ }
+    });
+  } catch (err) {
+    mainLog.warn(`metals tray init failed: ${err && err.message}`);
   }
 
   // 7) ipc
@@ -309,8 +420,20 @@ async function bootstrap() {
   //      a renderer invoke would resolve the promise but lose the response.
   //      Scheduler also starts here so initial 5-min tick is on the same
   //      lifecycle as other schedulers (stopped on before-quit below).
+  //      v2.22 Task D1 + D1-refactor: register/start are split for clean
+  //      lifecycle. onUpdateTray hook goes to startMetalScheduler, NOT to
+  //      registerMetalIpc. Tray reads module-level quoteCache (live only)
+  //      via getTraySnapshot — no IPC channel for tray updates.
   registerMetalIpc();
-  startMetalScheduler();
+  startMetalScheduler({
+    onUpdateTray: () => {
+      if (!trayMgr) return;
+      try {
+        const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc");
+        trayMgr.setMetals(getMetalsTraySnapshot());
+      } catch (err) { /* noop */ }
+    },
+  });
 
   // 7.5) AI usage warmup (fire-and-forget) — 让 renderer 进入 AI 用量页时立即有数据
   //      IPC handlers 已在 registerIpcHandlers 里注册, 这里只跑 warmup
@@ -344,6 +467,10 @@ async function bootstrap() {
     sendToRenderer,
     getConfig: () => runtimeConfigRef.current,
     goalWatcher,
+    // v2.22 Task C2.1: 钩 goal-watcher, 每次 sweep 完 (refreshScores 成功) 推一次 tray.
+    // 替换之前的 60s setInterval 兜底轮询 — goal-watcher 跟 scores-fetcher 写盘同源,
+    // cache 必然 fresh, sweep fire 的时刻就是 tray 反映比分变化的时刻.
+    onScoresChanged: pushWorldcupToTray,
   });
   wireRecentActivityListener({ recentActivity, sendToRenderer });
   startAutoCheckTimer({
@@ -421,6 +548,9 @@ if (app && typeof app.whenReady === "function") {
       stopMetalScheduler();
     } catch {
       /* noop */
+    }
+    if (aiUsageScheduler) {
+      try { aiUsageScheduler.stop(); } catch { /* noop */ }
     }
     mainLog.info("app quitting");
   });

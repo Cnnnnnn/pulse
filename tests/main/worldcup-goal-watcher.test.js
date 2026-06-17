@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { mkdtempSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -273,5 +273,111 @@ describe("goal-watcher: scheduler lifecycle", () => {
 
   it("startGoalWatcher 缺 onGoal → throw", () => {
     expect(() => goalWatcher.startGoalWatcher({})).toThrow(TypeError);
+  });
+});
+
+// ── v2.22 Task C2.1: onScoresChanged hook ───────────────────
+//
+// 事件驱动: goal-watcher 每次 sweep 完 (refreshScores 成功 + 至少 1 eligible key)
+// 调 onScoresChanged(newScores) — 跟 onGoal 独立, 进球没进也 fire.
+// 注: 仅 sweep 真正走了 refreshScores 才会触发; eligibleKeys.length === 0 时
+// sweep 提前 return (line 144-145), onScoresChanged 不会被调.
+describe("goal-watcher: onScoresChanged hook (Task C2.1)", () => {
+  it("_sweepOnce with eligible live match + new scores → onScoresChanged fires with newScores map", async () => {
+    const p = tmpStatePath();
+    writeFileSync(p, JSON.stringify({
+      v: 1, ts: 1000, apps: {}, mutes: {},
+      worldcup_txt: { txt: FIXTURES_TXT_OPENFOOTBALL, ts: 1000 },
+    }));
+
+    const newMatchKey = "2026-06-15|22:00|ARG|FRA";
+    const mockRefreshScores = async () => ({
+      ok: true,
+      scores: {
+        [newMatchKey]: {
+          ft: [2, 1],
+          status: "live",
+          scorers: [],
+        },
+      },
+    });
+
+    const onScoresChanged = vi.fn();
+    const mockLog = { info: () => {}, warn: () => {}, error: () => {} };
+    const now = Date.parse("2026-06-15T22:30:00Z");
+
+    await goalWatcher._sweepOnce(now, {
+      refreshScores: mockRefreshScores,
+      loadFixtures: () => stateStore.loadWorldcupTxt(p),
+      onGoal: () => {},
+      onScoresChanged,
+      log: mockLog,
+      onError: () => {},
+      statePath: p,
+    });
+
+    // onScoresChanged 调 1 次, 传入 newScores map
+    expect(onScoresChanged).toHaveBeenCalledTimes(1);
+    const arg = onScoresChanged.mock.calls[0][0];
+    expect(arg).toBeDefined();
+    expect(arg[newMatchKey]).toBeDefined();
+    expect(arg[newMatchKey].ft).toEqual([2, 1]);
+  });
+
+  it("_sweepOnce with no eligible keys → onScoresChanged NOT fired (early return)", async () => {
+    // 没有 fixtures → loadFixtures() 返 null, sweep 在 line 120 提前 return
+    const p = tmpStatePath();
+    writeFileSync(p, JSON.stringify({ v: 1, ts: 1000, apps: {}, mutes: {} }));
+
+    const onScoresChanged = vi.fn();
+    const mockLog = { info: () => {}, warn: () => {}, error: () => {} };
+    const now = Date.now();
+
+    await goalWatcher._sweepOnce(now, {
+      refreshScores: async () => ({ ok: true, scores: {} }),
+      loadFixtures: () => stateStore.loadWorldcupTxt(p), // 返 null (state 没 worldcup_txt)
+      onGoal: () => {},
+      onScoresChanged,
+      log: mockLog,
+      onError: () => {},
+      statePath: p,
+    });
+
+    expect(onScoresChanged).not.toHaveBeenCalled();
+  });
+
+  it("startGoalWatcher accepts onScoresChanged + fires after initial sweep", async () => {
+    const p = tmpStatePath();
+    writeFileSync(p, JSON.stringify({
+      v: 1, ts: 1000, apps: {}, mutes: {},
+      worldcup_txt: { txt: FIXTURES_TXT_OPENFOOTBALL, ts: 1000 },
+    }));
+
+    const newMatchKey = "2026-06-15|22:00|ARG|FRA";
+    const onScoresChanged = vi.fn();
+    const now = Date.parse("2026-06-15T22:30:00Z");
+
+    // 先 stop 任何遗留 timer
+    goalWatcher.stopGoalWatcher();
+    goalWatcher.startGoalWatcher({
+      refreshScores: async () => ({
+        ok: true,
+        scores: { [newMatchKey]: { ft: [0, 0], status: "live", scorers: [] } },
+      }),
+      loadFixtures: () => stateStore.loadWorldcupTxt(p),
+      onGoal: () => {},
+      onScoresChanged,
+      log: { info: () => {}, warn: () => {}, error: () => {} },
+      onError: () => {},
+      now,                     // 注入 now → 启动 sweep 也会走到 refreshScores
+      statePath: p,
+    });
+
+    // 启动时 sweep 是 fire-and-forget; 等 microtask + setImmediate 链
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(onScoresChanged).toHaveBeenCalled();
+    expect(onScoresChanged.mock.calls[0][0][newMatchKey]).toBeDefined();
+    goalWatcher.stopGoalWatcher();
   });
 });

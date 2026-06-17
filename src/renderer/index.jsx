@@ -196,6 +196,11 @@ async function bootstrap() {
 
   api.onStartCheck(() => triggerCheck());
 
+  // v2.22 Task A3: 订阅菜单栏点击 → 切 tab + 滚 + 弹 modal
+  import('./tray-focus.js').then(({ subscribeTrayFocus }) => {
+    subscribeTrayFocus(api);
+  });
+
   // 后台自动 check 完成时: finish session + 刷新 last-opened
   api.onAutoCheckFinished(() => {
     // 如果当前没有手动 check 在跑, 直接标记 done
