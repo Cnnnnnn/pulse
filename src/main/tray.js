@@ -169,8 +169,17 @@ function buildMenu(opts) {
     }
   }
 
-  // ─── D1: 贵金属段插入这里 ───
-  void metals;
+  // ─── 💎 贵金属 (v2.22 Task D1) ───
+  if (metals) {
+    const ml = buildMetalsLines(metals);
+    if (ml.length > 0) {
+      template.push({ label: "── 💎 贵金属 ──", enabled: false });
+      for (const line of ml) {
+        template.push(line);
+      }
+      template.push({ type: "separator" });
+    }
+  }
 
   // ─── 底部 action (不变) ───
   template.push(
@@ -279,6 +288,39 @@ function buildWorldcupLines(wc, onFocusWorldcup) {
   return lines;
 }
 
+const METAL_NAME = { XAU: '黄金', XAG: '白银', AU9999: 'Au9999', AG9999: 'Ag9999' };
+
+/**
+ * 把 metals snapshot 渲染成 menu template 行 (v2.22 Task D1).
+ * metals = { quotes: {XAU:{price,prevClose,currency,unit,...}, ...}, ... }
+ * - 无任何 quote → 整段只显示一行 "  加载中..." (cold start 或 scheduler 未拉)
+ * - 有 quote → 每条金属一行 "  名称 (id): price currency/unit ↑/↓"
+ */
+function buildMetalsLines(metals) {
+  const lines = [];
+  const quotes = metals && metals.quotes && typeof metals.quotes === "object" ? metals.quotes : {};
+  const keys = Object.keys(quotes).filter((k) => quotes[k] && typeof quotes[k].price === "number");
+  if (keys.length === 0) {
+    lines.push({ label: "  加载中...", enabled: false });
+    return lines;
+  }
+  for (const id of keys) {
+    const q = quotes[id];
+    const name = METAL_NAME[id] || id;
+    const arrow = (typeof q.prevClose === "number" && q.prevClose > 0)
+      ? (q.price > q.prevClose ? " ↑" : q.price < q.prevClose ? " ↓" : "")
+      : "";
+    const unit = q.unit || "";
+    const cur = q.currency || "";
+    const priceStr = (typeof q.price === "number") ? q.price.toFixed(2) : "?";
+    lines.push({
+      label: `  ${name} (${id}): ${priceStr} ${cur}/${unit}${arrow}`,
+      enabled: false,
+    });
+  }
+  return lines;
+}
+
 /**
  * Tray 管理器 — 封装 icon + menu + badge，单一职责。
  * 用法：
@@ -325,6 +367,7 @@ function createTrayManager(opts) {
       results: lastResults,
       aiUsage: lastAiUsage,
       worldcup: lastWorldcup,
+      metals: lastMetals,
       getConfig: getConfig,
       onOpenPanel,
       onCheck,
@@ -369,6 +412,12 @@ function createTrayManager(opts) {
     scheduleRebuild();
   }
 
+  let lastMetals = null;
+  function setMetals(snapshot) {
+    lastMetals = snapshot;
+    scheduleRebuild();
+  }
+
   function setBadge(updateCount) {
     if (!tray) return;
     if (updateCount > 0) {
@@ -390,7 +439,7 @@ function createTrayManager(opts) {
     }
   }
 
-  return { install, setResults, setBadge, setAiUsage, setWorldcup, dispose };
+  return { install, setResults, setBadge, setAiUsage, setWorldcup, setMetals, dispose };
 }
 
 module.exports = {

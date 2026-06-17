@@ -343,6 +343,28 @@ async function bootstrap() {
     mainLog.warn(`worldcup tray init failed: ${err && err.message}`);
   }
 
+  // 6.7) v2.22 Task D1: 贵金属 tray (从 metal-ipc 模块级 cache 读 quoteCache)
+  try {
+    const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc");
+    function pushMetalsToTray() {
+      if (!trayMgr) return;
+      const snap = getMetalsTraySnapshot();
+      trayMgr.setMetals(snap);
+    }
+    pushMetalsToTray();
+    mainLog.info("metals tray initialized (live quoteCache)");
+
+    // 60s 轮询作为 fallback (防止 scheduler 没推过来时 tray 仍能反映最新).
+    // 主推送路径仍是 registerMetalIpc({onUpdateTray}) 钩点.
+    const METALS_TRAY_REFRESH_MS = 60 * 1000;
+    const metalsTrayTimer = setInterval(pushMetalsToTray, METALS_TRAY_REFRESH_MS);
+    app.once("before-quit", () => {
+      try { clearInterval(metalsTrayTimer); } catch { /* noop */ }
+    });
+  } catch (err) {
+    mainLog.warn(`metals tray init failed: ${err && err.message}`);
+  }
+
   // 7) ipc
   const tIpc = Date.now();
   const refreshLastOpenedAfterCheck = makeRefreshLastOpenedAfterCheck({
@@ -380,7 +402,17 @@ async function bootstrap() {
   //      a renderer invoke would resolve the promise but lose the response.
   //      Scheduler also starts here so initial 5-min tick is on the same
   //      lifecycle as other schedulers (stopped on before-quit below).
-  registerMetalIpc();
+  //      v2.22 Task D1: 传 onUpdateTray 让 scheduler onUpdate 钩点直接推 tray,
+  //      不新增 IPC 通道. getTraySnapshot() 读模块级 quoteCache (live only).
+  registerMetalIpc({
+    onUpdateTray: () => {
+      if (!trayMgr) return;
+      try {
+        const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc");
+        trayMgr.setMetals(getMetalsTraySnapshot());
+      } catch (err) { /* noop */ }
+    },
+  });
   startMetalScheduler();
 
   // 7.5) AI usage warmup (fire-and-forget) — 让 renderer 进入 AI 用量页时立即有数据

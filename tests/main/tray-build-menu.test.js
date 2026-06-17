@@ -230,3 +230,53 @@ describe('tray.buildMenu — ⚽ 世界杯段 clickable (Task C3)', () => {
     expect(() => matchRow.click()).not.toThrow();
   });
 });
+
+describe('tray.buildMenu — 💎 贵金属段 (Task D1)', () => {
+  it('有报价 → 显示 💎 段 + XAU 价格行 (USD/oz)', () => {
+    const m = buildMenu({
+      results: [],
+      metals: {
+        quotes: { XAU: { price: 3350.42, prevClose: 3340.10, currency: 'USD', unit: 'oz' } },
+        holdings: {},
+        fetchedAt: Date.now(),
+        errors: {},
+      },
+    });
+    const headerRow = m.find((i) => i.label && i.label.includes('💎'));
+    expect(headerRow).toBeDefined();
+    const priceRow = m.find((i) => i.label && i.label.includes('XAU') && i.label.includes('3350'));
+    expect(priceRow).toBeDefined();
+  });
+
+  it('无报价 (scheduler 未拉到) → 显示 "加载中..." 而非崩溃', () => {
+    const m = buildMenu({
+      results: [],
+      metals: { quotes: {}, holdings: {}, fetchedAt: null, errors: {} },
+    });
+    const headerRow = m.find((i) => i.label && i.label.includes('💎'));
+    expect(headerRow).toBeDefined();
+    const loadingRow = m.find((i) => i.label && i.label.includes('加载中'));
+    expect(loadingRow).toBeDefined();
+  });
+
+  it('报价有变化 (price vs prevClose) → 行尾带 ↑/↓', () => {
+    const m1 = buildMenu({
+      results: [],
+      metals: { quotes: { XAU: { price: 3400, prevClose: 3340, currency: 'USD', unit: 'oz' } }, holdings: {}, fetchedAt: Date.now(), errors: {} },
+    });
+    const m2 = buildMenu({
+      results: [],
+      metals: { quotes: { XAU: { price: 3300, prevClose: 3340, currency: 'USD', unit: 'oz' } }, holdings: {}, fetchedAt: Date.now(), errors: {} },
+    });
+    const row1 = m1.find((i) => i.label && i.label.includes('XAU'));
+    const row2 = m2.find((i) => i.label && i.label.includes('XAU'));
+    expect(row1.label).toContain('↑');
+    expect(row2.label).toContain('↓');
+  });
+
+  it('metals=null → 整段隐藏', () => {
+    const m = buildMenu({ results: [] });
+    const metalRows = m.filter((i) => i.label && i.label.includes('💎'));
+    expect(metalRows).toHaveLength(0);
+  });
+});
