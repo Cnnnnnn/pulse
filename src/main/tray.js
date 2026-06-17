@@ -156,9 +156,19 @@ function buildMenu(opts) {
     }
   }
 
-  // ─── TODO A2-A4: 各模块段插入这里 ───
-  // (worldcup / metals 在 C2/D1 任务里加段)
-  void worldcup;
+  // ─── ⚽ 世界杯 (v2.22 Task C2) ───
+  if (worldcup) {
+    const wcLines = buildWorldcupLines(worldcup);
+    if (wcLines.length > 0) {
+      template.push({ label: "── ⚽ 世界杯 ──", enabled: false });
+      for (const line of wcLines) {
+        template.push(line);
+      }
+      template.push({ type: "separator" });
+    }
+  }
+
+  // ─── D1: 贵金属段插入这里 ───
   void metals;
 
   // ─── 底部 action (不变) ───
@@ -226,6 +236,46 @@ function _ageLabel(deltaMs) {
 }
 
 /**
+ * 把 worldcup summary map 渲染成 menu template 行 (v2.22 Task C2).
+ * wc = { todayMatches: [...], upcoming: [...] }
+ * - 今日 live 比赛 → "  team1 vs team2  2-1 (live)"
+ * - 今日已结束 → "  team1 vs team2  1-0 (终)"
+ * - 今日未开赛 → "  team1 vs team2  13:00"
+ * - 今日无比赛 + 有 upcoming →  "  下一场: team1 vs team2  明天 15:00"
+ */
+function buildWorldcupLines(wc) {
+  const lines = [];
+  const today = Array.isArray(wc.todayMatches) ? wc.todayMatches : [];
+  for (const m of today) {
+    if (!m || !m.team1 || !m.team2) continue;
+    const score = m.score || {};
+    let scoreText = "";
+    if (score.status === "live" && Array.isArray(score.ft)) {
+      scoreText = `  ${score.ft[0]}-${score.ft[1]} (live)`;
+    } else if (score.status === "final" && Array.isArray(score.ft)) {
+      scoreText = `  ${score.ft[0]}-${score.ft[1]} (终)`;
+    } else if (m.time) {
+      scoreText = `  ${m.time}`;
+    }
+    lines.push({
+      label: `  ${m.team1} vs ${m.team2}${scoreText}`,
+      enabled: false,
+    });
+  }
+  const upcoming = Array.isArray(wc.upcoming) ? wc.upcoming : [];
+  if (today.length === 0 && upcoming.length > 0) {
+    const next = upcoming[0];
+    if (next && next.team1 && next.team2) {
+      lines.push({
+        label: `  下一场: ${next.team1} vs ${next.team2}  ${next.time || next.date || ""}`.trim(),
+        enabled: false,
+      });
+    }
+  }
+  return lines;
+}
+
+/**
  * Tray 管理器 — 封装 icon + menu + badge，单一职责。
  * 用法：
  *   const tray = createTrayManager({ getApps, getConfigPath, getConfig, onCheck, onQuit, onOpenPanel, onOpenConfig });
@@ -269,6 +319,7 @@ function createTrayManager(opts) {
     const template = buildMenu({
       results: lastResults,
       aiUsage: lastAiUsage,
+      worldcup: lastWorldcup,
       getConfig: getConfig,
       onOpenPanel,
       onCheck,
@@ -306,6 +357,12 @@ function createTrayManager(opts) {
     scheduleRebuild();
   }
 
+  let lastWorldcup = null;
+  function setWorldcup(snapshot) {
+    lastWorldcup = snapshot;
+    scheduleRebuild();
+  }
+
   function setBadge(updateCount) {
     if (!tray) return;
     if (updateCount > 0) {
@@ -327,7 +384,7 @@ function createTrayManager(opts) {
     }
   }
 
-  return { install, setResults, setBadge, setAiUsage, dispose };
+  return { install, setResults, setBadge, setAiUsage, setWorldcup, dispose };
 }
 
 module.exports = {

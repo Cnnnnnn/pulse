@@ -143,3 +143,43 @@ describe('tray.buildMenu — 📊 AI 用量段 (Task B2)', () => {
     expect(aiLines[0].label).toContain('(2h 前)');
   });
 });
+
+describe('tray.buildMenu — ⚽ 世界杯段 (Task C2)', () => {
+  it('有今日比赛 → 显示 ⚽ 段 + 至少一行 team1 vs team2', () => {
+    const m = buildMenu({
+      results: [],
+      worldcup: { todayMatches: [{ team1: 'Mexico', team2: 'South Africa', time: '13:00', score: { ft: [1, 0], status: 'live' } }] },
+    });
+    const headerRow = m.find((i) => i.label && i.label.includes('⚽'));
+    expect(headerRow).toBeDefined();
+    const matchRow = m.find((i) => i.label && i.label.includes('Mexico') && i.label.includes('South Africa'));
+    expect(matchRow).toBeDefined();
+  });
+
+  it('live 比赛显示实时比分', () => {
+    const m = buildMenu({
+      results: [],
+      worldcup: { todayMatches: [{ team1: 'Brazil', team2: 'Argentina', time: '20:00', score: { ft: [2, 1], status: 'live' } }] },
+    });
+    const matchRow = m.find((i) => i.label && i.label.includes('Brazil'));
+    expect(matchRow.label).toContain('2-1');
+  });
+
+  it('worldcup=null → 整段隐藏', () => {
+    const m = buildMenu({ results: [] });
+    const wcRows = m.filter((i) => i.label && i.label.includes('⚽'));
+    expect(wcRows).toHaveLength(0);
+  });
+
+  it('显示即将开始的下一场 (无今日比赛)', () => {
+    const m = buildMenu({
+      results: [],
+      worldcup: {
+        todayMatches: [],
+        upcoming: [{ team1: 'Spain', team2: 'France', time: '明天 15:00', date: '2026-06-18' }],
+      },
+    });
+    const upcomingRow = m.find((i) => i.label && i.label.includes('下一场') && i.label.includes('Spain'));
+    expect(upcomingRow).toBeDefined();
+  });
+});

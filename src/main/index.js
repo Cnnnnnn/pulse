@@ -305,6 +305,35 @@ async function bootstrap() {
     mainLog.warn(`ai-usage tray init failed: ${err && err.message}`);
   }
 
+  // 6.6) v2.22 Task C2: 世界杯 tray cache (从 state.json 读 today/upcoming, 不主动 fetch)
+  try {
+    const { createWorldcupTrayCache } = require("./worldcup-tray-cache");
+    const worldcupCache = createWorldcupTrayCache({});
+    function pushWorldcupToTray() {
+      if (!trayMgr) return;
+      const today = worldcupCache.getTodayLive();
+      const upcoming = worldcupCache.getUpcoming(3);
+      trayMgr.setWorldcup({
+        todayMatches: today.ok ? today.matches : [],
+        upcoming: upcoming.ok ? upcoming.matches : [],
+        ts: today.ts || (upcoming.ok ? upcoming.ts : null),
+      });
+    }
+    pushWorldcupToTray();
+    mainLog.info("worldcup tray initialized (read-only from state.json)");
+
+    // v2.22 Task C2.1: goal-watcher 推 tray (live 比分变化立即反映)
+    // 通过 setInterval 简单 60s 轮询 (与 goal-watcher 同频). 不依赖 goal-watcher
+    // 的内部 hook, 避免改 goal-watcher 的签名.
+    const WORLDCUP_TRAY_REFRESH_MS = 60 * 1000;
+    const worldcupTrayTimer = setInterval(pushWorldcupToTray, WORLDCUP_TRAY_REFRESH_MS);
+    app.once("before-quit", () => {
+      try { clearInterval(worldcupTrayTimer); } catch { /* noop */ }
+    });
+  } catch (err) {
+    mainLog.warn(`worldcup tray init failed: ${err && err.message}`);
+  }
+
   // 7) ipc
   const tIpc = Date.now();
   const refreshLastOpenedAfterCheck = makeRefreshLastOpenedAfterCheck({
