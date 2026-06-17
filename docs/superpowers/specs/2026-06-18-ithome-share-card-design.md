@@ -63,10 +63,10 @@ hasSummary === false →  不显示
         + toast(ok)
 ```
 
-- 期间按钮 `disabled`,文案:`生成图片中…`
+- 期间「📤 分享」按钮自身 `disabled`(**不影响同卡片其他按钮**),文案:`生成图片中…`
 - 成功 toast:`✅ 已复制到剪贴板,可 ⌘V 粘贴`,3s 自动消失
 - 失败 toast:`❌ 图片生成失败,请重试`,3s 自动消失
-- 多次连点同一卡片:disabled 防抖生效
+- 多次连点同一卡片:disabled 防抖生效(实现:点击瞬间即 `sharingIds[id] = true`,即使 IPC reject 也要 catch 后清回)
 - 不同卡片之间**不**互锁
 
 ### 4.4 错误边界
@@ -198,6 +198,7 @@ renderer toast
 - `summary.text.length ≤ 300` → 全部展示
 - `> 300` → 截断到 300 字 + `...`
 - 关键词 chips 最多取前 5 个
+- `summary.keywords` 约定为 `string[]`(沿用现有 `ithome-summary-keywords` 渲染方式),若不是数组(legacy text)需 `splitKeywords` 处理(参照 `NewsArticleSummary.normalizeArticleSummary`)
 - 任一字段缺失 → 该区域不渲染(不要"暂无XX"的占位,渐变背景直接露出来)
 
 ### 6.4 字体
