@@ -162,3 +162,19 @@ contextBridge.exposeInMainWorld("api", {
   // v2.12 主进程未捕获错误兜底 (main:error)
   onMainError: (cb) => ipcRenderer.on("main:error", (_, data) => cb(data)),
 });
+
+// 贵金属 (v2.20.0) — 独立 contextBridge, 跟 funds / reminders / worldcup 一致
+contextBridge.exposeInMainWorld("metalsApi", {
+  list: () => ipcRenderer.invoke("metals:list"),
+  updateConfig: (patch) => ipcRenderer.invoke("metals:config:update", { patch }),
+  upsertHolding: (id, holding) => ipcRenderer.invoke("metals:holding:upsert", { id, holding }),
+  removeHolding: (id) => ipcRenderer.invoke("metals:holding:remove", { id }),
+  fetchNow: () => ipcRenderer.invoke("metals:quote:fetch"),
+  getState: () => ipcRenderer.invoke("metals:quote:state"),
+  onQuoteChanged: (cb) => {
+    ipcRenderer.on("metals:quote:changed", (_evt, data) => cb(data));
+  },
+  onStateUpdate: (cb) => {
+    ipcRenderer.on("metals:quote:state", (_evt, data) => cb(data));
+  },
+});

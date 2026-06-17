@@ -57,6 +57,11 @@ const { HttpClient } = require("./http-client");
 const { computePoolSize } = require("./pool-size");
 const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
+const {
+  registerMetalIpc,
+  startMetalScheduler,
+  stopMetalScheduler,
+} = require("./metal-ipc.js");
 const reminders = require("./reminders");
 const recentActivity = require("./recent-activity");
 const goalWatcher = require("./worldcup/goal-watcher");
@@ -298,6 +303,15 @@ async function bootstrap() {
   mainLog.info(`ipc registered`);
   timings.ipc = Date.now() - tIpc;
 
+  // 7.4) Metals IPC handlers + scheduler — must register IPC synchronously
+  //      BEFORE the renderer can invoke any metals:* channel. Per the
+  //      electron-merge-debug skill: any ipcMain.handle that's added after
+  //      a renderer invoke would resolve the promise but lose the response.
+  //      Scheduler also starts here so initial 5-min tick is on the same
+  //      lifecycle as other schedulers (stopped on before-quit below).
+  registerMetalIpc();
+  startMetalScheduler();
+
   // 7.5) AI usage warmup (fire-and-forget) — 让 renderer 进入 AI 用量页时立即有数据
   //      IPC handlers 已在 registerIpcHandlers 里注册, 这里只跑 warmup
   //      (multi-provider v2: minimax + glm 各自 fire-and-forget)
@@ -402,6 +416,11 @@ if (app && typeof app.whenReady === "function") {
       } catch {
         /* noop */
       }
+    }
+    try {
+      stopMetalScheduler();
+    } catch {
+      /* noop */
     }
     mainLog.info("app quitting");
   });
