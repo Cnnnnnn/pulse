@@ -1,8 +1,9 @@
 /**
  * src/metals/metal-fetcher.js
  *
- * Unified dispatcher that runs Yahoo and Sina fetchers concurrently.
- * Failures are isolated per fetcher — one down doesn't block the other.
+ * Unified dispatcher that runs the Sina hf fetcher (international metals + FX)
+ * and the Sina jsonp fetcher (domestic metals) concurrently. Failures are
+ * isolated per fetcher — one down doesn't block the other.
  *
  * HTTP abstraction: this module takes an injected `httpGet(url, headers) => Promise<string>`
  * so the same module is testable in isolation. The main-process caller
@@ -16,48 +17,43 @@
  *         return r.body;  // always a UTF-8 string
  *       });
  *
- * Dispatcher signature note: the original plan proposed a DI-container shape of
- * `fetchAllQuotes({ yahooFetcher, sinaFetcher, httpGet })` so each fetcher could
- * be swapped independently in tests. We deliberately use the simpler
- * `fetchAllQuotes(httpGet)` signature instead. Only two fetchers exist (Yahoo
- * and Sina), there is no realistic scenario where they would need to be
- * replaced independently — a fake HTTP layer covers all failure-mode and
- * response-shape variations the dispatcher cares about. The per-fetcher
- * parsing modules already accept their own dependencies (see
- * `fetchYahooQuotes` / `fetchSinaQuotes`), so any test that needs to control
- * parsing behaviour can inject there. Keeping the dispatcher surface narrow
- * avoids a needless indirection layer.
+ * History: the original design (v2.20 plan) used a Yahoo v8 chart fetcher for
+ * international metals + FX. Yahoo's endpoint died mid-2026, so we replaced it
+ * with the Sina hf_* symbols (already USD/oz, no priceScale needed). The
+ * domestic path (sina-jsonp, AU0/AG0) is unchanged. The dispatcher surface
+ * stays the same — only the fetcher module swapped.
  */
 
 const { METALS, FX_RATES } = require('./metal-config.js');
-const { fetchYahooQuotes } = require('./metal-yahoo-fetcher.js');
+const { fetchHfQuotes } = require('./metal-sina-hf-fetcher.js');
 const { fetchSinaQuotes } = require('./metal-sina-fetcher.js');
 
 /**
  * Build the fetch plan: which symbols go to which fetcher.
- * Yahoo: XAU, XAG, CNY=X. Sina: AU9999, AG9999.
+ *   sina-hf:    XAU (hf_GC), XAG (hf_SI), CNY_PER_USD (USDCNY)
+ *   sina-jsonp: AU9999 (AU0), AG9999 (AG0)
  * @returns {Array<{kind: string, symbols: string[]}>}
  */
 function buildFetcherPlan() {
-  const yahooSymbols = [];
+  const hfSymbols = [];
   const sinaSymbols = [];
 
   for (const metal of METALS) {
-    if (metal.primary.kind === 'yahoo-chart') {
-      yahooSymbols.push(metal.primary.symbol);
+    if (metal.primary.kind === 'sina-hf') {
+      hfSymbols.push(metal.primary.symbol);
     } else if (metal.primary.kind === 'sina-jsonp') {
       sinaSymbols.push(metal.primary.symbol);
     }
   }
 
   for (const fx of FX_RATES) {
-    if (fx.primary.kind === 'yahoo-chart') {
-      yahooSymbols.push(fx.primary.symbol);
+    if (fx.primary.kind === 'sina-hf') {
+      hfSymbols.push(fx.primary.symbol);
     }
   }
 
   const plan = [];
-  if (yahooSymbols.length > 0) plan.push({ kind: 'yahoo-chart', symbols: yahooSymbols });
+  if (hfSymbols.length > 0) plan.push({ kind: 'sina-hf', symbols: hfSymbols });
   if (sinaSymbols.length > 0) plan.push({ kind: 'sina-jsonp', symbols: sinaSymbols });
   return plan;
 }
@@ -72,32 +68,32 @@ async function fetchAllQuotes(httpGet) {
   const plan = buildFetcherPlan();
   const errors = {};
 
-  // Build symbol → metal mapping for Yahoo
-  const yahooSymbolToMetal = {};
+  // Build symbol → metal mapping for hf fetcher (international metals)
+  const hfSymbolToMetal = {};
   for (const metal of METALS) {
-    if (metal.primary.kind === 'yahoo-chart') {
-      yahooSymbolToMetal[metal.primary.symbol] = {
+    if (metal.primary.kind === 'sina-hf') {
+      hfSymbolToMetal[metal.primary.symbol] = {
         metalId: metal.id,
-        priceScale: metal.primary.priceScale || 1,
+        meta: { unit: metal.unit, currency: metal.currency },
       };
     }
   }
 
-  // Build symbol → fx mapping for Yahoo
-  const yahooSymbolToFx = {};
+  // Build symbol → fx mapping for hf fetcher (USDCNY)
+  const hfSymbolToFx = {};
   for (const fx of FX_RATES) {
-    if (fx.primary.kind === 'yahoo-chart') {
-      yahooSymbolToFx[fx.primary.symbol] = fx.id;
+    if (fx.primary.kind === 'sina-hf') {
+      hfSymbolToFx[fx.primary.symbol] = fx.id;
     }
   }
 
-  const yahooBatch = plan.find((p) => p.kind === 'yahoo-chart');
+  const hfBatch = plan.find((p) => p.kind === 'sina-hf');
   const sinaBatch = plan.find((p) => p.kind === 'sina-jsonp');
 
   // Run both concurrently with isolation
-  const [yahooResult, sinaResult] = await Promise.allSettled([
-    yahooBatch
-      ? fetchYahooQuotes(yahooBatch.symbols, httpGet, yahooSymbolToMetal, yahooSymbolToFx)
+  const [hfResult, sinaResult] = await Promise.allSettled([
+    hfBatch
+      ? fetchHfQuotes(hfBatch.symbols, httpGet, hfSymbolToMetal, hfSymbolToFx)
       : Promise.resolve({ quotes: {}, fx: {} }),
     sinaBatch
       ? fetchSinaQuotes(sinaBatch.symbols, httpGet)
@@ -107,17 +103,17 @@ async function fetchAllQuotes(httpGet) {
   const quotes = {};
   const fx = {};
 
-  if (yahooResult.status === 'fulfilled') {
-    Object.assign(quotes, yahooResult.value.quotes);
-    Object.assign(fx, yahooResult.value.fx);
+  if (hfResult.status === 'fulfilled') {
+    Object.assign(quotes, hfResult.value.quotes);
+    Object.assign(fx, hfResult.value.fx);
   } else {
-    errors.yahoo = yahooResult.reason;
+    errors['sina-hf'] = hfResult.reason;
   }
 
   if (sinaResult.status === 'fulfilled') {
     Object.assign(quotes, sinaResult.value);
   } else {
-    errors.sina = sinaResult.reason;
+    errors['sina-jsonp'] = sinaResult.reason;
   }
 
   return { quotes, fx, errors };

@@ -22,19 +22,34 @@ describe('metal-config', () => {
   it('each metal has primary source with valid kind', () => {
     for (const m of METALS) {
       expect(m.primary).toBeTruthy();
-      expect(['yahoo-chart', 'sina-jsonp']).toContain(m.primary.kind);
+      expect(['sina-hf', 'sina-jsonp']).toContain(m.primary.kind);
       expect(m.primary.symbol).toBeTruthy();
     }
   });
 
-  it('international metals (XAU/XAG) use yahoo-chart, domestic (AU9999/AG9999) use sina-jsonp', () => {
+  it('international metals (XAU/XAG) use sina-hf, domestic (AU9999/AG9999) use sina-jsonp', () => {
     const xau = getMetalById('XAU');
     const xag = getMetalById('XAG');
     const au = getMetalById('AU9999');
     const ag = getMetalById('AG9999');
-    expect(xau.primary.kind).toBe('yahoo-chart');
-    expect(xag.primary.kind).toBe('yahoo-chart');
+    expect(xau.primary.kind).toBe('sina-hf');
+    expect(xag.primary.kind).toBe('sina-hf');
     expect(au.primary.kind).toBe('sina-jsonp');
     expect(ag.primary.kind).toBe('sina-jsonp');
+  });
+
+  it('sina-hf metals have no priceScale (hf_* quotes are already per-unit)', () => {
+    for (const m of METALS) {
+      if (m.primary.kind === 'sina-hf') {
+        expect(m.primary.priceScale).toBeUndefined();
+      }
+    }
+  });
+
+  it('FX rate uses sina-hf', () => {
+    expect(FX_RATES).toHaveLength(1);
+    expect(FX_RATES[0].id).toBe('CNY_PER_USD');
+    expect(FX_RATES[0].primary.kind).toBe('sina-hf');
+    expect(FX_RATES[0].primary.symbol).toBe('USDCNY');
   });
 });

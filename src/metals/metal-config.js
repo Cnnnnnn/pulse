@@ -6,6 +6,12 @@
  * only requires editing this file.
  */
 
+// Data source note (v2.20.0):
+//   Yahoo Finance v8 chart API is dead (returns sad-panda HTML). We replaced
+//   it with Sina `hf_*` international spot quotes, which are already denominated
+//   in USD/oz — so NO priceScale conversion is needed (unlike the old Yahoo
+//   futures-contract path that divided GC=F by 100 / SI=F by 50).
+//   Field layout verified 2026-06-17 — see metal-sina-hf-fetcher.js.
 const METALS = [
   {
     id: 'XAU',
@@ -13,7 +19,7 @@ const METALS = [
     shortName: '黄金',
     unit: 'oz',
     currency: 'USD',
-    primary: { kind: 'yahoo-chart', symbol: 'GC=F', priceScale: 1 / 100 },
+    primary: { kind: 'sina-hf', symbol: 'hf_GC' },
   },
   {
     id: 'XAG',
@@ -21,7 +27,7 @@ const METALS = [
     shortName: '白银',
     unit: 'oz',
     currency: 'USD',
-    primary: { kind: 'yahoo-chart', symbol: 'SI=F', priceScale: 1 / 50 },
+    primary: { kind: 'sina-hf', symbol: 'hf_SI' },
   },
   {
     id: 'AU9999',
@@ -41,8 +47,9 @@ const METALS = [
   },
 ];
 
+// USDCNY Sina row layout: [0]=time [1]=bid [3]=ask [5]=mid. We surface mid as rate.
 const FX_RATES = [
-  { id: 'CNY_PER_USD', primary: { kind: 'yahoo-chart', symbol: 'CNY=X' } },
+  { id: 'CNY_PER_USD', primary: { kind: 'sina-hf', symbol: 'USDCNY' } },
 ];
 
 /**
