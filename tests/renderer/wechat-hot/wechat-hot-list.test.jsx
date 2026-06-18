@@ -109,4 +109,22 @@ describe("WechatHotList", () => {
     expect(first.textContent).toContain("1234万");
     expect(first.textContent).toContain("沸");
   });
+
+  it("emits rank-1/2/3 modifier classes for top 3 ranks and rank-tail for >=11", () => {
+    const items = [
+      { rank: 1, title: "X", url: "https://a" },
+      { rank: 2, title: "Y", url: "https://b" },
+      { rank: 3, title: "Z", url: "https://c" },
+      { rank: 4, title: "W", url: "https://d" },
+      { rank: 11, title: "V", url: "https://e" },
+    ];
+    const { container } = render(<WechatHotList items={items} />);
+    const ranks = container.querySelectorAll(".wechat-hot-list-rank");
+    expect(ranks[0].className).toMatch(/rank-1/);
+    expect(ranks[1].className).toMatch(/rank-2/);
+    expect(ranks[2].className).toMatch(/rank-3/);
+    // rank 4 has no modifier (4-10 falls through to default styling)
+    expect(ranks[3].className).not.toMatch(/rank-/);
+    expect(ranks[4].className).toMatch(/rank-tail/);
+  });
 });

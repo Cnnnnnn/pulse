@@ -15,6 +15,11 @@
   --border: rgba(0, 0, 0, 0.08);
   --border-subtle: #e5e5e7;
   --border-light: rgba(0, 0, 0, 0.04);
+  --border-soft: rgba(0, 0, 0, 0.08);
+  --text-soft: rgba(0, 0, 0, 0.55);
+  --surface: #ffffff;
+  --surface-soft: #f5f5f7;
+  --hover-soft: rgba(0, 0, 0, 0.04);
   --accent-primary: #007aff;
   --text-primary: #1d1d1f;
   --text-secondary: #6e6e73;
@@ -60,6 +65,11 @@
     --border: rgba(255, 255, 255, 0.1);
     --border-subtle: rgba(255, 255, 255, 0.1);
     --border-light: rgba(255, 255, 255, 0.05);
+    --border-soft: rgba(255, 255, 255, 0.08);
+    --text-soft: rgba(255, 255, 255, 0.55);
+    --surface: #1c1c1e;
+    --surface-soft: #2c2c2e;
+    --hover-soft: rgba(255, 255, 255, 0.06);
     --accent-primary: #0a84ff;
     --text-primary: #f5f5f7;
     --text-secondary: #a1a1a6;
@@ -7756,6 +7766,15 @@ body {
 .wechat-hot-list-rank.rank-1 { color: rgb(220, 38, 38); }
 .wechat-hot-list-rank.rank-2 { color: rgb(217, 119, 6); }
 .wechat-hot-list-rank.rank-3 { color: rgb(194, 65, 12); }
+
+.wechat-hot-list-rank.rank-tail {
+  color: var(--text-tertiary, rgba(0, 0, 0, 0.35));
+}
+
+.wechat-hot-list-row:focus-visible {
+  outline: 2px solid var(--accent-primary, #007aff);
+  outline-offset: -2px;
+}
 
 .wechat-hot-list-title {
   flex: 1;

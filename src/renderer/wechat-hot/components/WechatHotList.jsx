@@ -15,6 +15,15 @@ const EMPTY_TEXT = {
   error: "拉取失败",
 };
 
+/** 根据 rank 返回 CSS 修饰类: 1-3 用醒目色, 11+ 用浅色 tail, 其他无修饰 */
+function rankClass(rank) {
+  if (rank === 1) return "rank-1";
+  if (rank === 2) return "rank-2";
+  if (rank === 3) return "rank-3";
+  if (typeof rank === "number" && rank >= 11) return "rank-tail";
+  return "";
+}
+
 export function WechatHotList({ items = [], query = "", reason = "empty" } = {}) {
   const q = typeof query === "string" ? query.trim().toLowerCase() : "";
   const filtered = q
@@ -43,7 +52,7 @@ export function WechatHotList({ items = [], query = "", reason = "empty" } = {})
               if (it.url) openExternal(it.url);
             }}
           >
-            <span class="wechat-hot-list-rank">{it.rank}</span>
+            <span class={`wechat-hot-list-rank ${rankClass(it.rank)}`}>{it.rank}</span>
             <span class="wechat-hot-list-title">{it.title}</span>
             {it.tag ? <span class="wechat-hot-list-tag">{it.tag}</span> : null}
             {it.heat ? <span class="wechat-hot-list-heat">{it.heat}</span> : null}
