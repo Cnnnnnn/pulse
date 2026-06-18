@@ -60,9 +60,9 @@ describe("WechatHotHeader", () => {
     }));
     mockWechatHotSignals.wechatHotLastFetched.value = 1700000000000;
     const { container } = render(<WechatHotHeader {...baseProps} />);
-    expect(container.textContent).toContain("微信热搜");
+    expect(container.textContent).toContain("微博热搜");
     expect(container.textContent).toContain("30 条");
-    expect(container.textContent).toContain("tenhot");
+    expect(container.textContent).toContain("xxapi");
   });
 
   it("search input change calls onSearchChange", () => {

@@ -112,7 +112,7 @@ export function createApi(overrides = {}) {
     onMainError: pick(overrides, "onMainError"),
     // Universal "open URL in system browser" bridge (validates http/https in main).
     openUrl: pick(overrides, "openUrl"),
-    // 微信热搜 (v2.24)
+    // 微博热搜 (v2.24.1, 原微信热搜 v2.24.0)
     wechatHotLoad: pick(overrides, "wechatHotLoad"),
     wechatHotRefresh: pick(overrides, "wechatHotRefresh"),
     onWechatHotUpdated: pick(overrides, "onWechatHotUpdated"),

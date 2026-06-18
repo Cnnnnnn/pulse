@@ -15,8 +15,8 @@ function makeFetcher(impl) {
   return vi.fn(impl);
 }
 
-const EMPTY = { items: [], fetchedAt: 0, source: "tenhot" };
-const OK = { items: [{ rank: 1, title: "X", url: "https://x" }], fetchedAt: 1700000000000, source: "tenhot" };
+const EMPTY = { items: [], fetchedAt: 0, source: "xxapi" };
+const OK = { items: [{ rank: 1, title: "X", url: "https://x" }], fetchedAt: 1700000000000, source: "xxapi" };
 
 describe("wechat-hot cache", () => {
   let cache;

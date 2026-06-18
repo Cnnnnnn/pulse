@@ -79,7 +79,7 @@ export function cleanupWechatHotUpdates() {
 
 const REASON_MAP = {
   fetch_failed: "拉取失败，请检查网络连接后重试",
-  parse_failed: "热搜页面解析失败，可能是源结构变化，请稍后重试",
+  parse_failed: "微博热搜页面解析失败，可能是源结构变化，请稍后重试",
   http_timeout: "网络连接超时，请重试",
   threw: "拉取异常",
   ipc_unavailable: "系统通信异常，请重启应用",

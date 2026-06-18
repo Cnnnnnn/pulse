@@ -12,7 +12,7 @@
  *   - 失败后 in-flight 释放, 下次 refresh 会重新 fetch
  */
 
-const EMPTY = { items: [], fetchedAt: 0, source: "tenhot" };
+const EMPTY = { items: [], fetchedAt: 0, source: "xxapi" };
 
 /**
  * @param {object} args
@@ -38,7 +38,7 @@ function createWechatHotCache({ fetcher, onUpdate } = {}) {
         if (!payload || !Array.isArray(payload.items)) {
           throw Object.assign(new Error("bad payload"), { reason: "parse_failed" });
         }
-        cache = { items: payload.items, fetchedAt: payload.fetchedAt || Date.now(), source: payload.source || "tenhot" };
+        cache = { items: payload.items, fetchedAt: payload.fetchedAt || Date.now(), source: payload.source || "xxapi" };
         if (typeof onUpdate === "function") {
           try { onUpdate(cache); } catch { /* noop */ }
         }

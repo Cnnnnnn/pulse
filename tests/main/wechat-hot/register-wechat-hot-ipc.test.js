@@ -58,7 +58,7 @@ function clearStubs() {
   fetchWechatHot.mockResolvedValue({
     items: [{ rank: 1, title: "X", url: "https://x" }],
     fetchedAt: 1700000000000,
-    source: "tenhot",
+    source: "xxapi",
   });
 }
 
@@ -105,7 +105,7 @@ describe("wechat-hot IPC handlers", () => {
     registerMod.registerWechatHotHandlers({ safeHandle, sendToRenderer });
 
     const r = await handlers["wechat-hot:load"]();
-    expect(r).toEqual({ items: [], fetchedAt: 0, source: "tenhot" });
+    expect(r).toEqual({ items: [], fetchedAt: 0, source: "xxapi" });
     expect(fetchWechatHot).not.toHaveBeenCalled();
     expect(sendToRenderer).not.toHaveBeenCalled();
   });
@@ -124,7 +124,7 @@ describe("wechat-hot IPC handlers", () => {
     // onUpdate should fire sendToRenderer with UPDATED_CHANNEL
     expect(sendToRenderer).toHaveBeenCalledWith(registerMod.UPDATED_CHANNEL, expect.objectContaining({
       items: expect.any(Array),
-      source: "tenhot",
+      source: "xxapi",
     }));
   });
 

@@ -16,7 +16,7 @@ import {
 import { formatCooldown, formatTime } from "../utils.js";
 
 const COOLDOWN_MS = 15000;
-const SOURCE = "tenhot";
+const SOURCE = "xxapi";
 
 export function WechatHotHeader({ search = "", onSearchChange = () => {} } = {}) {
   const now = useNowTick(1000);
@@ -32,10 +32,10 @@ export function WechatHotHeader({ search = "", onSearchChange = () => {} } = {})
   return (
     <header class="wechat-hot-header">
       <div class="wechat-hot-header-row">
-        <h1 class="wechat-hot-header-title">📈 微信热搜</h1>
+        <h1 class="wechat-hot-header-title">🔥 微博热搜</h1>
       </div>
       <div class="wechat-hot-header-subtitle">
-        微信指数 · API: {SOURCE} · {itemCount} 条 · 更新于 {formatTime(lastFetched)}
+        微博热搜榜 · API: {SOURCE} · {itemCount} 条 · 更新于 {formatTime(lastFetched)}
       </div>
       <div class="wechat-hot-header-toolbar">
         <button

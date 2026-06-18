@@ -1,10 +1,20 @@
 # 微信热搜栏目设计 Spec
 
-- **日期**: 2026-06-18
+- **日期**: 2026-06-18 (init) → 2026-06-18 (v2.24.1 替换为微博热搜)
 - **作者**: Mavis (brainstorming-2)
-- **状态**: 待用户 review
+- **状态**: v2.24.0 已发 + 立即 hotfix v2.24.1
 - **项目类型**: macOS 菜单栏 Electron 应用 (Pulse v2.x)
 - **目标特性**: 在 Pulse 增加「📈 微信热搜」栏目，实时拉取最新热搜榜，用户可手动刷新，点击条目跳转到原始 URL。
+
+> **v2.24.1 hotfix 变更 (2026-06-18)**:
+> - 用户确认要的是**微博热搜**,不是微信热搜。v2.24.0 上线后才发现上游 `tenhot-api.vercel.app/api/hotsearch/wxrank` 已 404,且命名也是误传。
+> - 整体替换为微博热搜:
+>   - **主源**: `https://v2.xxapi.cn/api/weibohot` (返 `{code:200, data:[{index,title,hot,url}]}`)
+>   - **Fallback**: `https://weibo.com/ajax/side/hotSearch` (微博官方 ajax, 返 `{ok:1, data:{realtime:[...]}}`,需 Referer/UA 头,50 条上限)
+> - UI 同步: 图标 `📈` → `🔥`,label/tooltip `微信热搜` → `微博热搜`,Header 副标题 `微信指数` → `微博热搜榜`
+> - IPC channel / preload / 组件命名 / SideNav key / Cmd+F 焦点 id / `open-url:open` / 15s 冷却 / 4 种 empty-state / CSS 样式全部沿用,**无需清缓存, 数据流无缝切换**
+> - 完整变更见 [RELEASE-NOTES.md v2.24.1](../../../../RELEASE-NOTES.md)
+> - 本 spec 文档以下章节保留为 v2.24.0 原始设计稿;实际代码以 v2.24.1 hotfix 为准
 
 ## 1. 背景
 

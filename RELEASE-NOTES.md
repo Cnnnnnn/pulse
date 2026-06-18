@@ -2,6 +2,49 @@
 
 ---
 
+## v2.24.1 (🔥 微博热搜 hotfix) — 2026-06-18
+
+### 修复
+- **🔥 微信热搜 → 微博热搜**: v2.24.0 上线的「微信热搜」因上游 `tenhot-api.vercel.app/api/hotsearch/wxrank` 404 失效,整体替换为微博热搜
+  - 主源: `https://v2.xxapi.cn/api/weibohot` (返 `{code:200, data:[{index,title,hot,url}]}`)
+  - Fallback: `https://weibo.com/ajax/side/hotSearch` (官方 ajax, 需 Referer/UA 头, 50 条上限)
+  - Fallback 触发条件: xxapi 任意失败(5xx / parse_failed / http_timeout / network)
+  - 两条源都失败时抛主源 reason;fallback 自身被用户感知为「能用就行」,不暴露双源错误
+
+### 变更
+- **`src/main/wechat-hot/list-parser.js`**: 适配 xxapi 结构 — `code === 200`, `data` 直接是数组, `hot` 是字符串(非嵌套对象)
+- **`src/main/wechat-hot/fetcher.js`**: 拆 `fetchAndParsePrimary` + `fetchAndParseFallback` 两个内部函数,主失败试 fallback;新增 `parseWeiboAjaxRealtime` 处理微博官方 ajax 响应(`{ok:1, data:{realtime:[...]}}`),把 `num` 格式化为「N 万」/原数,把 `word` 拼成搜索 URL
+- **`src/main/wechat-hot/cache.js`**: EMPTY.source 默认 `"xxapi"`(原来 `"tenhot"`)
+- **`src/renderer/wechat-hot/components/WechatHotHeader.jsx`**: 标题 `📈 微信热搜` → `🔥 微博热搜`;副标题 `微信指数` → `微博热搜榜`;`SOURCE = "xxapi"`
+- **`src/renderer/wechat-hot/store.js`**: `REASON_MAP.parse_failed` 文案改为「微博热搜页面解析失败」
+- **`src/renderer/components/SideNav.jsx`**: 图标 `📈` → `🔥`;label/tooltip `微信热搜` → `微博热搜`
+
+### 不变
+- IPC channel 名(`wechat-hot:load` / `wechat-hot:refresh` / `wechat-hot:updated`)、preload 暴露、`WechatHot*` 组件命名、SideNav key、Cmd+F 焦点 id、`open-url:open` IPC、15s 冷却、4 种 empty-state、CSS 样式 — 全部沿用
+- 这意味着:用户从 v2.24.0 升到 v2.24.1 **无需清缓存**, 数据流无缝切换
+
+### 测试
+- 同步更新 6 个测试文件(list-parser / fetcher / cache / IPC / header / store),新增 5 个 fallback 场景单测
+- main 30/30 通过,renderer 36/36 通过
+
+### 文件
+- 修改: `package.json` (version 2.24.0 → 2.24.1)
+- 修改: `src/main/wechat-hot/list-parser.js`
+- 修改: `src/main/wechat-hot/fetcher.js`
+- 修改: `src/main/wechat-hot/cache.js`
+- 修改: `src/renderer/wechat-hot/components/WechatHotHeader.jsx`
+- 修改: `src/renderer/wechat-hot/store.js`
+- 修改: `src/renderer/components/SideNav.jsx`
+- 修改: `src/renderer/api.js` (注释)
+- 修改: `tests/main/wechat-hot/list-parser.test.js`
+- 修改: `tests/main/wechat-hot/fetcher.test.js`
+- 修改: `tests/main/wechat-hot/cache.test.js`
+- 修改: `tests/main/wechat-hot/register-wechat-hot-ipc.test.js`
+- 修改: `tests/renderer/wechat-hot/wechat-hot-header.test.jsx`
+- 修改: `tests/renderer/wechat-hot/store.test.js`
+
+---
+
 ## v2.24.0 (📈 微信热搜) — 2026-06-18
 
 ### 新增
