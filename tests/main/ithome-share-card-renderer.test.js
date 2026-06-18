@@ -18,10 +18,13 @@ const mockSend = vi.fn();
 const mockCapturePage = vi.fn();
 const mockExecuteJavaScript = vi.fn();
 
+const mockOn = vi.fn();
+
 const mockWebContents = {
   send: mockSend,
   executeJavaScript: mockExecuteJavaScript,
   capturePage: mockCapturePage,
+  on: mockOn,
 };
 
 const mockWindow = {
