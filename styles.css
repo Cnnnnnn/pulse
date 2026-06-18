@@ -2628,6 +2628,32 @@ body {
 .toast-error { border-left:3px solid var(--accent-red, #ff3b30); background: #fef2f2; }
 .toast-success { border-left:3px solid var(--accent-green, #34c759); }
 
+/* ── Phase Q8: state.json corruption self-recovery banner ── */
+.state-recovered-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  max-width: 560px;
+  padding: 12px 16px;
+  background: rgba(255, 196, 0, 0.18);
+  border: 1px solid rgba(255, 196, 0, 0.45);
+  border-radius: 8px;
+  color: var(--text-primary, #222);
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.state-recovered-banner__title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.state-recovered-banner__body {
+  margin-bottom: 8px;
+  opacity: 0.85;
+}
+
 /* ── v2: Per-app Phase 状态样式 ── */
 
 /* 等待检测: 轻微透明, 灰色文字 */
