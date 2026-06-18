@@ -30,6 +30,7 @@ import { WorldcupLayout } from '../worldcup/WorldcupLayout.jsx';
 import { FundLayout } from '../funds/FundLayout.jsx';
 import { MetalLayout } from '../metals/MetalLayout.jsx';
 import { NewsLayout } from '../ithome/NewsLayout.jsx';
+import { WechatHotLayout } from '../wechat-hot/components/WechatHotLayout.jsx';
 import { AIUsageLayout } from './AIUsageLayout.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 
@@ -65,6 +66,7 @@ export function AppShell({ onCheck }) {
         e.preventDefault();
         let inputId = 'filter-search-input';
         if (nav === 'ithome') inputId = 'ithome-search-input';
+        else if (nav === 'wechat-hot') inputId = 'wechat-hot-search-input';
         else if (nav === 'worldcup') inputId = 'worldcup-search-input';
         else if (nav === 'funds') inputId = 'fund-search-input';
         const input = document.getElementById(inputId);
@@ -84,15 +86,17 @@ export function AppShell({ onCheck }) {
       <div class="app-shell-view">
         {nav === 'ithome'
           ? <NewsLayout />
-          : nav === 'worldcup'
-            ? <WorldcupLayout />
-            : nav === 'funds'
-              ? <FundLayout />
-              : nav === 'metals'
-                ? <MetalLayout />
-                : nav === 'ai-usage'
-                  ? <AIUsageLayout />
-                  : <VersionsLayout onCheck={onCheck} />}
+          : nav === 'wechat-hot'
+            ? <WechatHotLayout />
+            : nav === 'worldcup'
+              ? <WorldcupLayout />
+              : nav === 'funds'
+                ? <FundLayout />
+                : nav === 'metals'
+                  ? <MetalLayout />
+                  : nav === 'ai-usage'
+                    ? <AIUsageLayout />
+                    : <VersionsLayout onCheck={onCheck} />}
       </div>
     </div>
   );
