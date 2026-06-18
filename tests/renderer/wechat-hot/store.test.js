@@ -113,11 +113,17 @@ describe("wechat-hot store: refreshWechatHot 15s cooldown", () => {
 });
 
 describe("wechat-hot store: subscribe", () => {
-  it("subscribe stores unsub; cleanup calls it", () => {
+  it("subscribe stores unsub; subscribe twice is idempotent; cleanup calls it", () => {
     const unsub = vi.fn();
     mockApi.onWechatHotUpdated.mockReturnValueOnce(unsub);
     subscribeWechatHotUpdates();
     expect(wechatHotUpdatedUnsub.value).toBe(unsub);
+    // idempotent: second call must not re-register
+    subscribeWechatHotUpdates();
+    expect(mockApi.onWechatHotUpdated).toHaveBeenCalledTimes(1);
+    cleanupWechatHotUpdates();
+    expect(unsub).toHaveBeenCalledTimes(1);
+    // cleanup is also safe to call again
     cleanupWechatHotUpdates();
     expect(unsub).toHaveBeenCalledTimes(1);
   });
