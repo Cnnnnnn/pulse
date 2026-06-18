@@ -2,6 +2,55 @@
 
 ---
 
+## v2.23.0 (📤 IT之家新闻分享卡片) — 2026-06-18
+
+### 新增
+- **📤 IT之家新闻分享卡片**: AI 总结过的新闻可一键分享
+  - 点击「📤 分享」按钮 → 离屏渲染 1080×1080 PNG → 自动复制到剪贴板 → ⌘V 粘贴
+  - 卡片展示 AI 总结的全部 4 个结构化字段:摘要(主卡白底)+ 关键词(chips)+ 所属领域(次级卡)+ 影响方面(次级卡)
+  - 字段缺失不渲染占位,渐变背景直接外露
+  - 摘要 300 字上限 + line-clamp 10 行防溢出
+  - 水印「◆ Pulse · IT之家新闻速读」absolute 钉死底部
+
+### 变更
+- **IT之家摘要数据流**: `news-store` 通过 `article-summary-parse.enrichSummaryEntry` 把 `text` 解析为 `{abstract, keywords, domain, impact}` 结构化字段
+- **NewsArticleSummary.normalizeArticleSummary**: 扩展结构化判定 — `abstract/domain/impact` 任一存在或 `keywords` 为数组即走结构化分支,否则 fallback legacy text
+- **NewsShareCard 数据来源**: 改用 `normalizeArticleSummary` 而非手写解析 — 分享卡和主卡 4 段共享同一来源,**绝不会出现"主卡显示 X,分享卡显示 Y"**
+- **分享卡渲染流程重构**: 渲染端通过 IPC `share-card:ready` **主动通知**主进程(不再用 `requestAnimationFrame` / `setTimeout` 标志位轮询)— off-screen window 节流定时器,IPC 事件驱动是唯一稳的方案
+  - preload 新增 `shareCardReady: () => ipcRenderer.send("share-card:ready")`
+  - 主进程 `ipcMain.on("share-card:ready")` 注册 listener,ready promise resolve 后再 capturePage
+- **离屏 BrowserWindow 配置**: webPreferences 加 `backgroundThrottling: false`(节流兜底)+ preload 路径(此前缺失导致 contextBridge 不注入)+ sandbox: false
+
+### 修复
+- **render_timeout (`❌ 图片生成失败,请重试`)**: 离屏 BrowserWindow 缺 `preload` 配置 → contextBridge 未注入 → `window.api` 是 undefined → 渲染端永远拿不到 share-data
+- **摘要截断长度**: 之前 `text.slice(0, max-3) + "..."` = 300 字;改为 `text.slice(0, max) + "..."` = 303 字(符合 spec 「300 字 + ...」)
+- **错误 toast 不区分**: 之前统一显示「图片生成失败,请重试」;现根据 IPC `reason` 区分 `article_not_found`(文章已过期) / `no_summary`(暂无 AI 总结) / `render_failed`(图片生成失败)
+- **卡片底部水印被裁**: 之前 flex + `margin-top: auto` 在 line-clamp 强制摘要固有高度时被挤到 1080 之外;改用 `position: absolute; bottom: 32px` 钉死底部
+
+### 文件
+- 新增: `share-card.html` (离屏渲染 HTML)
+- 新增: `src/renderer/ithome/NewsShareCard.jsx`
+- 新增: `src/renderer/ithome/NewsShareCardPage.jsx`
+- 新增: `src/renderer/ithome/NewsShareToast.jsx`
+- 新增: `src/main/ithome/share-card-renderer.js`
+- 新增: `src/main/ithome/clipboard-image.js`
+- 新增: `src/main/ipc/register-ithome-share.js`
+- 新增: `docs/superpowers/specs/2026-06-18-ithome-share-card-design.md`
+- 新增: `docs/superpowers/plans/2026-06-18-ithome-share-card-plan.md`
+- 新增: `tests/renderer/ithome-news-share-card.test.jsx` (9 cases)
+- 新增: `tests/main/ithome-share-card-renderer.test.js` (3 cases)
+- 改动: `src/renderer/ithome/store.js` (+sharingIds signal + shareIthomeArticle)
+- 改动: `src/renderer/ithome/NewsArticleRow.jsx` (+📤 按钮 + toast)
+- 改动: `src/renderer/ithome/NewsArticleSummary.jsx` (normalizeArticleSummary 扩展)
+- 改动: `src/main/ipc/index.js` (注册 ithome:share-card handler)
+- 改动: `src/main/ithome/article-summary-parse.js` (enrichSummaryEntry)
+- 改动: `src/main/ithome/news-store.js` (enrich summaries on load)
+- 改动: `preload.js` (+ithomeShareCard + onShareData + shareCardReady)
+- 改动: `styles.css` (+.share-card-* + .news-share-toast-*)
+- 改动: `package.json` (version 2.22.0 → 2.23.0)
+
+---
+
 ## v2.22.0 (🍱 菜单栏内容预览重做) — 2026-06-17
 
 ### 新增
