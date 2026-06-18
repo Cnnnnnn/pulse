@@ -1186,7 +1186,9 @@ function loadOrRecover(statePath = defaultPath()) {
         backup: backup.ok ? backup.backupPath : null,
         backupFailed: !backup.ok,
         reason: err.parseError ? "parse_failed" : "schema_failed",
-        errors: err.schemaErrors || (err.parseError && err.parseError.message ? [err.parseError.message] : []),
+        errors: Array.isArray(err.schemaErrors) && err.schemaErrors.length > 0
+          ? err.schemaErrors
+          : (err.parseError && err.parseError.message ? [err.parseError.message] : []),
         ts: Date.now(),
       };
       _lastRecoveryEvent = event;
