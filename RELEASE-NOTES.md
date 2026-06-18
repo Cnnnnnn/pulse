@@ -2,6 +2,51 @@
 
 ---
 
+## v2.24.0 (📈 微信热搜) — 2026-06-18
+
+### 新增
+- **📈 微信热搜栏目**: SideNav 在 IT 新闻之后新增「📈 微信热搜」入口
+  - 进入 tab 即通过 tenhot 聚合 API 拉取实时热搜(纯实时,不后台定时)
+  - 列表展示:排名 + 标题 + (热度) + (标签);前三名 rank 颜色强调(红/黄/橙),11 名起浅灰
+  - 顶栏手动「↻ 刷新」按钮 + 15s 冷却防滥用(冷却期内按钮 disabled + 倒计时 Ns)
+  - 顶栏搜索框(`#wechat-hot-search-input`)支持大小写不敏感子串过滤
+  - Cmd+F 自动 focus 微信热搜搜索框
+  - 点击列表行 → 系统浏览器打开原 URL(新增 IPC `open-url:open` + URL http/https 白名单校验)
+  - 错误态:首屏拉取失败显示「拉取失败」红色提示 + 顶 banner;非空时后台拉失败仅顶 banner
+
+### 变更
+- **`open-url` IPC 重构**: 从 `register-core.js` 抽出到独立 `src/main/ipc/register-open-url.js`,channel 由 `open-url` → `open-url:open`,handler 增加 `http://`/`https://` 协议校验,reject `file://`/`javascript:`/`javascript:` 等任意协议;`AppRow.jsx` / `NewsArticleRow.jsx` / `WechatHotList.jsx` 自动跟随
+- **`renderer/utils/external-link.js`** 新增:封装 `window.api.openUrl(url)` 调用 + `window.open` fallback,统一外部链接入口
+
+### 文件
+- 新增: `src/main/wechat-hot/list-parser.js` (纯函数 parser, 5 tests)
+- 新增: `src/main/wechat-hot/fetcher.js` (HttpClient 注入, 6 tests)
+- 新增: `src/main/wechat-hot/cache.js` (内存 cache + in-flight guard, 6 tests)
+- 新增: `src/main/ipc/register-wechat-hot.js` (IPC load + refresh, 6 tests)
+- 新增: `src/main/ipc/register-open-url.js` (URL 校验 + shell.openExternal, 10 tests)
+- 新增: `src/renderer/wechat-hot/store.js` (signals + 15s 冷却 + REASON_MAP, 9 tests)
+- 新增: `src/renderer/wechat-hot/utils.js` (formatTime + formatCooldown)
+- 新增: `src/renderer/wechat-hot/components/WechatHotLayout.jsx` (顶层容器 + 状态机)
+- 新增: `src/renderer/wechat-hot/components/WechatHotHeader.jsx` (title + 刷新 + 搜索 + 错误 banner)
+- 新增: `src/renderer/wechat-hot/components/WechatHotList.jsx` (列表 + 4 种空态)
+- 新增: `src/renderer/utils/external-link.js` (统一外链入口)
+- 修改: `preload.js` (+3 wechat-hot 方法 + 1 openUrl 桥接)
+- 修改: `src/renderer/api.js` (+3 wechat-hot wrapper + 1 openUrl wrapper)
+- 修改: `src/main/ipc/index.js` (+2 register 调用)
+- 修改: `src/main/ipc/register-core.js` (-1 死代码: 旧 open-url handler)
+- 修改: `src/renderer/components/SideNav.jsx` (+1 nav 条目)
+- 修改: `src/renderer/components/AppShell.jsx` (+1 view 分支 + Cmd+F 拦截)
+- 修改: `src/renderer/worldcup/navStore.js` (+1 nav key)
+- 修改: `styles.css` (+5 theme 变量 + ~150 行 wechat-hot 样式)
+- 新增: `docs/superpowers/specs/2026-06-18-wechat-hot-design.md`
+- 新增: `docs/superpowers/plans/2026-06-18-wechat-hot-plan.md`
+
+### 测试
+- 新增 54 个测试(list-parser 5 + fetcher 6 + cache 6 + IPC 16 + store 9 + List 13 + Header 8 + Layout 7)
+- 全套 2109/2111 通过;2 个 pre-existing 失败 (`reminders weekday` + `LLM classify timeout`) 与本 PR 无关
+
+---
+
 ## v2.23.0 (📤 IT之家新闻分享卡片) — 2026-06-18
 
 ### 新增
