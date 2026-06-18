@@ -2,45 +2,32 @@
  * src/renderer/wechat-hot/components/WechatHotHeader.jsx
  *
  * 标题 + 副标题 + 刷新按钮 + 搜索框 + 错误 banner.
- * 冷却计时器: 1s tick, 用 setInterval 监听 now().
+ * 搜索状态由 Layout 持有并通过 props 传入, 其余展示数据全部从 store signals 直接读.
  */
-import { useEffect, useState } from "preact/hooks";
+import { useNowTick } from "../../hooks/useNowTick.jsx";
 import {
   refreshWechatHot,
   wechatHotError,
+  wechatHotItems,
+  wechatHotLastFetched,
   wechatHotLastRefreshAt,
   wechatHotLoading,
 } from "../store.js";
+import { formatCooldown, formatTime } from "../utils.js";
 
 const COOLDOWN_MS = 15000;
+const SOURCE = "tenhot";
 
-function formatTime(ms) {
-  if (!ms || typeof ms !== "number") return "—";
-  const d = new Date(ms);
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-}
+export function WechatHotHeader({ search = "", onSearchChange = () => {} } = {}) {
+  const now = useNowTick(1000);
 
-export function WechatHotHeader({
-  itemCount = 0,
-  source = "tenhot",
-  lastFetched = 0,
-  query = "",
-  onQueryChange = () => {},
-} = {}) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
+  const itemCount = wechatHotItems.value.length;
+  const lastFetched = wechatHotLastFetched.value;
+  const error = wechatHotError.value;
   const cooling = now - wechatHotLastRefreshAt.value < COOLDOWN_MS;
   const remaining = cooling
     ? Math.max(1, Math.ceil((COOLDOWN_MS - (now - wechatHotLastRefreshAt.value)) / 1000))
     : 0;
-
-  const error = wechatHotError.value;
 
   return (
     <header class="wechat-hot-header">
@@ -48,23 +35,23 @@ export function WechatHotHeader({
         <h1 class="wechat-hot-header-title">📈 微信热搜</h1>
       </div>
       <div class="wechat-hot-header-subtitle">
-        微信指数 · API: {source} · {itemCount} 条 · 更新于 {formatTime(lastFetched)}
+        微信指数 · API: {SOURCE} · {itemCount} 条 · 更新于 {formatTime(lastFetched)}
       </div>
       <div class="wechat-hot-header-toolbar">
         <button
           type="button"
           class="wechat-hot-header-refresh"
           disabled={cooling || wechatHotLoading.value}
-          onClick={() => { refreshWechatHot(); }}
+          onClick={refreshWechatHot}
         >
-          {cooling ? `冷却 ${remaining}s` : "↻ 刷新"}
+          {cooling ? formatCooldown(COOLDOWN_MS - (now - wechatHotLastRefreshAt.value)) : "↻ 刷新"}
         </button>
         <input
           id="wechat-hot-search-input"
           type="search"
           placeholder="搜索热搜……"
-          value={query}
-          onInput={(e) => onQueryChange(e.currentTarget.value)}
+          value={search}
+          onInput={(e) => onSearchChange(e.currentTarget.value)}
         />
       </div>
       {error ? (
