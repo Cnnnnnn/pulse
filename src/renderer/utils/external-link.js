@@ -2,8 +2,9 @@
  * src/renderer/utils/external-link.js
  *
  * Renderer-side helper to open an external URL via the preload bridge.
- * 在 Electron 环境里 window.api.openUrl 会经 IPC 调 shell.openExternal;
- * 浏览器/测试环境下回退 window.open(noopener)。
+ * In Electron, window.api.openUrl goes through IPC to shell.openExternal
+ * (validated http/https in main process, see register-open-url.js).
+ * Tests / non-Electron environments fall back to window.open().
  */
 
 export async function openExternal(url) {
@@ -13,7 +14,7 @@ export async function openExternal(url) {
       await window.api.openUrl(url);
       return;
     } catch {
-      /* fall through to window.open */
+      /* noop — open failure surfaces to caller */
     }
   }
   if (typeof window !== "undefined" && typeof window.open === "function") {

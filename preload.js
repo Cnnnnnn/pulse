@@ -11,7 +11,6 @@ contextBridge.exposeInMainWorld("api", {
   brewUpgrade: (cask) => ipcRenderer.invoke("brew-upgrade", cask),
   brewUpdate: () => ipcRenderer.invoke("brew-update"),
   getAppIcon: (b) => ipcRenderer.invoke("get-app-icon", b),
-  openUrl: (url) => ipcRenderer.invoke("open-url", url),
 
   onCheckProgress: (cb) =>
     ipcRenderer.on("check-progress", (_, data) => cb(data)),
@@ -106,6 +105,9 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("worldcup:focus-match", (_, data) => cb(data)),
 
   getAiSharedConfig: () => ipcRenderer.invoke("ai:get-shared-config"),
+
+  // Universal "open URL in system browser" bridge (validated http/https in main process).
+  openUrl: (url) => ipcRenderer.invoke("open-url:open", url),
 
   // 微信热搜 (v2.24)
   wechatHotLoad: () => ipcRenderer.invoke("wechat-hot:load"),
