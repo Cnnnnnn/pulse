@@ -35,6 +35,9 @@ function extractErrorMessage(trace, latest, versionUnknown) {
     if (trace[i].error) {
       return trace[i].error;
     }
+    if (trace[i].skipped === 'circuit_open') {
+      return "电路熔断 · 5 分钟内重试";
+    }
   }
   return null;
 }

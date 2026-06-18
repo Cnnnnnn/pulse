@@ -2,6 +2,49 @@
 
 ---
 
+## Unreleased (🚧 检测器熔断 — Phase C1)
+
+### 新增
+- **🔌 检测器智能失败重试 + 熔断 (Phase C1)**: 解决"上游 xxapi 持续 5xx 时每个 app 每次检测都浪费 ~2s + 日志刷屏"问题
+  - 状态机:`closed` → 3 次连续失败 → `open`(5 分钟冷却,跳过该 detector) → `half_open`(试探) → 成功回 `closed` / 失败重新 `open`
+  - per-detector 维度,key = `<detType>:<url|identifier>`,持久化到 `state.json.circuitBreakers`
+  - 失败定义:`{ok:false}`、非 2xx HTTP、timeout 三种都算
+  - UI 透出:app 行检测结果错误时,subtitle 文案变 `电路熔断 · 5 分钟内重试`
+
+### 变更
+- **`src/workers/detector-chain.js`**: 每次调用前 `shouldAllow(breaker, now)`,调用后 `recordSuccess` / `recordFailure` 并写回持久化;`breakerKey()` 按 `url > id > cask > product > baseUrl` 优先级构造
+- **`src/main/state-store.js`**: `PRESERVE_FIELDS` 新增 `circuitBreakers` 字段,跨 saveAll 自动保留
+- **`src/workers/result-builder.js`**: `extractErrorMessage` 新增对 `trace[i].skipped === 'circuit_open'` 的识别,返回 "电路熔断 · 5 分钟内重试" 走现有 `error_message` 通道
+
+### 不变
+- detector 接口(`detect(ctx) → DetectorResult`)、`DETECTORS` 注册表、settings schema — 全部沿用
+- 失败原因枚举(`DetectorError.reason`),新值 `circuit_open` 是 trace 字段而非新 reason
+- 未知 detector 类型 / 平台过滤的早返回路径不会触发 CB(config bug ≠ upstream failure)
+
+### 文件
+- 新增: `src/detectors/circuit-breaker.js` (106 行, 纯状态机, 8 tests)
+- 新增: `src/detectors/circuit-breaker-storage.js` (68 行, state-store 适配, 6 tests)
+- 新增: `tests/detectors/circuit-breaker.test.js`
+- 新增: `tests/detectors/circuit-breaker-storage.test.js`
+- 修改: `src/workers/detector-chain.js` (+33 / -13)
+- 修改: `src/main/state-store.js` (+1 行 PRESERVE_FIELDS)
+- 修改: `src/workers/result-builder.js` (+3 行 extractErrorMessage)
+- 新增: `tests/workers/detector-chain-circuit-breaker.test.js` (3 tests)
+- 新增: `tests/workers/result-builder.test.js` (5 tests)
+
+### 测试
+- 新增 22 个 CB 相关单元 + 集成测试,全跑过 vitest
+- 全套 2155/2157 通过,2 pre-existing unrelated 失败(`reminders weekday` + `worldcup-tray-cache getUpcoming`)
+
+### 手动 e2e(留给用户验证)
+- `npm run dev`
+- 临时在 `src/detectors/api-json.js` 顶部加 `throw new Error('forced')`
+- 触发 3 次 check,观察第 4 次该 app 行 subtitle 显示「电路熔断 · 5 分钟内重试」
+- 等待 5 分钟,验证下次 check 该 detector 跑了一次 probe
+- 撤掉 `throw`
+
+---
+
 ## v2.24.1 (🔥 微博热搜 hotfix) — 2026-06-18
 
 ### 修复

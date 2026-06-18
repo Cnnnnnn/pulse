@@ -6,6 +6,14 @@
 
 const { DetectContext } = require("../detectors/base");
 const { cleanVersion } = require("../utils/version-utils");
+const cbStorage = require("../detectors/circuit-breaker-storage");
+const {
+  shouldAllow,
+  transitionAfterProbe,
+  recordSuccess,
+  recordFailure,
+  createBreaker,
+} = require("../detectors/circuit-breaker");
 
 const DETECTORS = {
   brew_formulae: require("../detectors/brew-formulae"),
@@ -32,6 +40,11 @@ function makeDetector(detCfg) {
   );
   if (!Cls) return null;
   return new Cls(detCfg);
+}
+
+function breakerKey(detCfg) {
+  const id = detCfg.url || detCfg.id || detCfg.cask || detCfg.product || detCfg.baseUrl || "";
+  return `${detCfg.type}:${id}`;
 }
 
 function compareVersions(installed, latest) {
@@ -89,8 +102,8 @@ async function runDetectorChain(appCfg, deps) {
   const detectors = Array.isArray(appCfg.detectors) ? appCfg.detectors : [];
   const trace = [];
   let firstHit = null;
+  const stored = await cbStorage.loadBreakers();
   for (const detCfg of detectors) {
-    // 平台过滤: 只跑 platform===当前平台 或没标 platform 的 detector
     if (detCfg.platform && detCfg.platform !== currentPlatform) {
       trace.push({ det: detCfg.type, ms: 0, skipped: 'platform' });
       continue;
@@ -100,13 +113,19 @@ async function runDetectorChain(appCfg, deps) {
       trace.push({ det: detCfg.type, ms: 0, error: "unknown detector type" });
       continue;
     }
+    const key = breakerKey(detCfg);
+    const storedBreaker = stored[key];
+    const breaker = storedBreaker
+      ? cbStorage.hydrate(storedBreaker)
+      : createBreaker({ key });
+    const now = breaker._now();
+    if (!shouldAllow(breaker, now)) {
+      trace.push({ det: detCfg.type, ms: 0, skipped: 'circuit_open', breakerState: 'open' });
+      continue;
+    }
+    const probe = transitionAfterProbe(breaker, now);
     const ctx = new DetectContext({
-      appCfg,
-      arch,
-      http,
-      logger,
-      detCfg,
-      platform: currentPlatform,
+      appCfg, arch, http, logger, detCfg, platform: currentPlatform,
     });
     const t0 = Date.now();
     let result = null;
@@ -118,19 +137,20 @@ async function runDetectorChain(appCfg, deps) {
     }
     const ms = Date.now() - t0;
     if (result) {
+      const next = recordSuccess(probe, now);
+      await cbStorage.upsertBreaker(key, cbStorage.snapshot(next));
       trace.push({
-        det: detCfg.type,
-        ms,
-        version: result.version,
-        confidence: result.confidence,
-        note: result.note,
+        det: detCfg.type, ms,
+        version: result.version, confidence: result.confidence, note: result.note,
       });
       if (result.version && result.confidence !== "low") {
         return { result, trace, stoppedAt: detCfg.type };
       }
       if (!firstHit && result.version) firstHit = { result, trace };
     } else {
-      trace.push({ det: detCfg.type, ms, error });
+      const next = recordFailure(probe, now);
+      await cbStorage.upsertBreaker(key, cbStorage.snapshot(next));
+      trace.push({ det: detCfg.type, ms, error, breakerState: next.state });
     }
   }
   return { result: firstHit ? firstHit.result : null, trace, stoppedAt: null };

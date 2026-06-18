@@ -166,6 +166,7 @@ const PRESERVE_FIELDS = [
   // AI 用量相关: ai_usage (snapshot) + ai_usage_history 互不覆盖
   { key: "ai_usage", kind: "object", notArray: true },
   { key: "ai_usage_history", kind: "object", notArray: true },
+  { key: "circuitBreakers", kind: "object", notArray: true },  // Phase C1: per-detector circuit breaker state
 ];
 
 function shouldPreserveValue(val, spec) {
