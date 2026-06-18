@@ -157,6 +157,13 @@ async function bootstrap() {
     });
   }
 
+  // Phase Q8: state.json corruption self-recovery banner
+  api.onStateRecovered((evt) => {
+    import("./store.js").then(({ stateRecoveredSignal }) => {
+      if (evt) stateRecoveredSignal.value = evt;
+    });
+  });
+
   // 5) 立即 render
   const mount = document.getElementById('app') || document.body;
   render(<App onCheck={triggerCheck} />, mount);
