@@ -211,7 +211,7 @@ GET https://tenhot-api.vercel.app/api/hotsearch/wxrank
 
 - 顶层 `code === 0` 才算成功，否则抛 `parse_failed`
 - 过滤 `title` 长度 < 1 的条目
-- 按 `id` 排序，rank = i+1
+- 按上游 API 返回顺序赋 rank = i+1（依赖 tenhot 已按热度返回，不在客户端重排）
 - `hot.value` → `heat`（原样字符串），`label.name` → `tag`
 - 失败时 throw 一组 reason：
   - `fetch_failed`：HTTP 4xx/5xx
