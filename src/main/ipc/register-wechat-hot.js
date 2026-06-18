@@ -35,7 +35,7 @@ function registerWechatHotHandlers(ctx) {
     try {
       return await cache.refresh();
     } catch (err) {
-      mainLog.warn(`[wechat-hot] refresh failed: ${err && err.message}`);
+      mainLog.warn(`[ipc] wechat-hot:refresh failed: reason=${err && err.reason}, msg=${err && err.message}`);
       return { ok: false, reason: err && err.reason ? err.reason : "threw" };
     }
   });
