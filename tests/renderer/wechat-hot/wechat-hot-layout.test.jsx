@@ -7,7 +7,10 @@
  * - 渲染 WechatHotHeader + WechatHotList (wrapper 为 .wechat-hot-body, 与 List 内部的
  *   .wechat-hot-list 区分, 避免 class 冲突).
  * - 持有 search 状态: input 改变后 List 只渲染匹配的项.
- * - 根据 store signals 推算 reason: loading / error / empty / no-match.
+ * - 根据 store signals 推算 reason: loading / empty / no-match.
+ * - "error + items 空" 由 Layout 自己渲染错误空态 (避免与 Header banner 重复),
+ *   不再把 reason="error" 传给 List.
+ * - "error + items 非空" 走 normal List 路径 (banner 显示, 列表照常显示 stale data).
  */
 
 // @vitest-environment happy-dom
@@ -122,5 +125,41 @@ describe("WechatHotLayout", () => {
     fireEvent.input(input, { target: { value: "完全不存在的内容" } });
     expect(container.textContent).toMatch(/未找到「完全不存在的内容」/);
     expect(container.querySelectorAll(".wechat-hot-list-row")).toHaveLength(0);
+  });
+
+  it("renders error empty state in body (not List) when error set and items empty", () => {
+    mockBootstrap.mockResolvedValueOnce(undefined);
+    mockSubscribe.mockReturnValueOnce(() => {});
+    signals.wechatHotError.value = "网络连接超时, 请重试";
+    signals.wechatHotItems.value = [];
+    const { container } = render(<WechatHotLayout />);
+    // Header banner is still rendered.
+    expect(container.querySelector(".wechat-hot-header-error")).toBeTruthy();
+    expect(container.textContent).toContain("网络连接超时, 请重试");
+    // Layout renders its own error empty state inside .wechat-hot-body.
+    const errEmpty = container.querySelector(".wechat-hot-list-empty.wechat-hot-list-empty-error");
+    expect(errEmpty).toBeTruthy();
+    expect(errEmpty.textContent).toBe("网络连接超时, 请重试");
+    // List is NOT rendered for this state (avoids the duplicate "拉取失败" empty state).
+    expect(container.querySelector(".wechat-hot-list-empty")).toBe(errEmpty);
+    expect(container.querySelectorAll(".wechat-hot-list-row")).toHaveLength(0);
+  });
+
+  it("keeps rendering the list when error is set but items are non-empty", () => {
+    mockBootstrap.mockResolvedValueOnce(undefined);
+    mockSubscribe.mockReturnValueOnce(() => {});
+    signals.wechatHotError.value = "网络连接超时, 请重试";
+    signals.wechatHotItems.value = [
+      { rank: 1, title: "苹果发布会", url: "https://a" },
+    ];
+    const { container } = render(<WechatHotLayout />);
+    // Header banner shown.
+    expect(container.querySelector(".wechat-hot-header-error")).toBeTruthy();
+    // Stale list still rendered (spec §4.4).
+    const rows = container.querySelectorAll(".wechat-hot-list-row");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain("苹果");
+    // Layout should NOT take over with its own error empty state in this branch.
+    expect(container.querySelector(".wechat-hot-list-empty.wechat-hot-list-empty-error")).toBeNull();
   });
 });

@@ -7805,3 +7805,7 @@ body {
   font-size: 13px;
   color: var(--text-soft, rgba(0, 0, 0, 0.55));
 }
+
+.wechat-hot-list-empty.wechat-hot-list-empty-error {
+  color: rgb(185, 28, 28);
+}

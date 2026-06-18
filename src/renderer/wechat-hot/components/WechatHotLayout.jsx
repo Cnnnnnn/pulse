@@ -4,9 +4,13 @@
  * 顶层容器: bootstrap + subscribe on mount, cleanup on unmount,
  * 持有 search state, 渲染 Header + List.
  *
- * 注意: 真正的过滤在 WechatHotList 中执行 (query prop).
- * Layout 只根据 items / loading / error / query 推导出一个 reason,
- * 让 List 决定空态文案. 这避免了双层过滤逻辑.
+ * Layout 编排 reason (loading / empty / no-match) 推给 List,
+ * 但 "error + items empty" 的失败态 Layout 自己渲染, 避免
+ * Header banner 与 List 的 "拉取失败" empty-state 同时出现 (双重重叠).
+ *
+ * Spec §4.4 期望:
+ * - error + items 空 → 仅顶部 banner + body 一个错误空态 (本组件早返回)
+ * - error + items 非空 → 顶部 banner, 列表照常显示 (spec 定义的 stale-data 行为)
  */
 import { useEffect, useState } from "preact/hooks";
 import {
@@ -41,11 +45,22 @@ export function WechatHotLayout() {
   const q = search.trim().toLowerCase();
   const hasAnyMatch = q ? items.some((it) => titleMatches(it, q)) : true;
 
+  if (error && items.length === 0) {
+    return (
+      <div class="wechat-hot-layout">
+        <WechatHotHeader search={search} onSearchChange={setSearch} />
+        <div class="wechat-hot-body">
+          <div class="wechat-hot-list-empty wechat-hot-list-empty-error">
+            {error}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   let reason = "empty";
   if (loading && items.length === 0) {
     reason = "loading";
-  } else if (error && items.length === 0) {
-    reason = "error";
   } else if (items.length === 0) {
     reason = "empty";
   } else if (!hasAnyMatch) {
