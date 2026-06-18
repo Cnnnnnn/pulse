@@ -107,6 +107,15 @@ contextBridge.exposeInMainWorld("api", {
 
   getAiSharedConfig: () => ipcRenderer.invoke("ai:get-shared-config"),
 
+  // 微信热搜 (v2.24)
+  wechatHotLoad: () => ipcRenderer.invoke("wechat-hot:load"),
+  wechatHotRefresh: () => ipcRenderer.invoke("wechat-hot:refresh"),
+  onWechatHotUpdated: (cb) => {
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("wechat-hot:updated", handler);
+    return () => ipcRenderer.removeListener("wechat-hot:updated", handler);
+  },
+
   // IT之家新闻
   ithomeLoadNews: () => ipcRenderer.invoke("ithome:load-news"),
   ithomeRefreshNews: (dateKey) =>
