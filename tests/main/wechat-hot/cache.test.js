@@ -51,14 +51,18 @@ describe("wechat-hot cache", () => {
     expect(r1).toEqual(OK);
   });
 
-  it("refresh after failure does NOT cache the failure; cache stays prior state", async () => {
-    const fetcher = vi.fn().mockRejectedValue(Object.assign(new Error("x"), { reason: "fetch_failed" }));
+  it("refresh after failure does NOT cache the failure; cache stays prior state; next refresh re-fetches", async () => {
+    const fetcher = vi.fn().mockRejectedValueOnce(Object.assign(new Error("x"), { reason: "fetch_failed" }));
     cache = createWechatHotCache({ fetcher });
     await expect(cache.refresh()).rejects.toMatchObject({ reason: "fetch_failed" });
     // 失败后 cache 保持 initial EMPTY (load() 不暴露 throw)
     expect(cache.load()).toEqual(EMPTY);
     // in-flight 已释放, 下次 refresh 会重新 fetch
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    fetcher.mockResolvedValueOnce(OK);
+    const r = await cache.refresh();
+    expect(r).toEqual(OK);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(cache.load()).toEqual(OK);
   });
 
   it("onUpdate hook is called with new payload after success", async () => {
