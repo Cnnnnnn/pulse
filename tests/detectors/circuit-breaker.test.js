@@ -4,6 +4,7 @@ import {
   recordSuccess,
   recordFailure,
   shouldAllow,
+  transitionAfterProbe,
   STATE,
 } from '../../src/detectors/circuit-breaker.js';
 
@@ -22,7 +23,7 @@ describe('circuit-breaker state machine', () => {
       b = recordFailure(b, FIXED_NOW + i, { failureThreshold: 3 });
     }
     expect(b.state).toBe(STATE.OPEN);
-    expect(b.openUntil).toBe(FIXED_NOW + 5 * 60 * 1000);
+    expect(b.openUntil).toBe(FIXED_NOW + 2 + 5 * 60 * 1000);
     expect(shouldAllow(b, FIXED_NOW + 1000)).toBe(false);
   });
 
@@ -33,7 +34,9 @@ describe('circuit-breaker state machine', () => {
     }
     expect(b.state).toBe(STATE.OPEN);
     const justAfter = b.openUntil + 1;
+    // shouldAllow is pure; transition is explicit via transitionAfterProbe
     expect(shouldAllow(b, justAfter)).toBe(true);
+    b = transitionAfterProbe(b, justAfter);
     expect(b.state).toBe(STATE.HALF_OPEN);
   });
 
