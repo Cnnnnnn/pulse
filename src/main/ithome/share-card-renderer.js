@@ -60,13 +60,40 @@ async function createShareCardPng(payload, opts = {}) {
     win.webContents.send("share-data", { article, summary });
     mainLog.warn("[share-card] sent share-data");
 
-    // 等 __renderReady
+    // 立即探测 renderer 状态
+    const probe1 = await win.webContents.executeJavaScript(`
+      JSON.stringify({
+        api: typeof window.api,
+        onShareData: typeof (window.api && window.api.onShareData),
+        root: !!document.getElementById("root"),
+        rootHTML: (document.getElementById("root") || {}).innerHTML?.length || 0,
+        ready: window.__renderReady,
+      })
+    `);
+    mainLog.warn("[share-card] probe@t+0", probe1);
+
+    // 等 __renderReady(短一些 timeout 用于快速失败)
     const ready = await Promise.race([
       win.webContents.executeJavaScript("window.__renderReady === true"),
       _timeoutPromise(timeoutMs, "render_timeout"),
     ]);
     mainLog.warn("[share-card] __renderReady", { ready });
-    if (!ready) throw new Error("render_timeout");
+
+    if (!ready) {
+      // 失败时再探测一次,看 renderer 走到哪了
+      const probe2 = await win.webContents.executeJavaScript(`
+        JSON.stringify({
+          api: typeof window.api,
+          onShareData: typeof (window.api && window.api.onShareData),
+          root: !!document.getElementById("root"),
+          rootHTML: (document.getElementById("root") || {}).innerHTML?.length || 0,
+          ready: window.__renderReady,
+          url: location.href,
+        })
+      `);
+      mainLog.warn("[share-card] probe@fail", probe2);
+      throw new Error("render_timeout");
+    }
 
     // 留一帧 paint
     await new Promise((r) => setTimeout(r, 100));
