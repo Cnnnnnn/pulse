@@ -129,4 +129,11 @@ describe('circuit-breaker-storage', () => {
     const next = updater({});
     expect(next.circuitBreakers).toEqual({ 'c:d': { state: 'closed' } });
   });
+
+  it('state-store PRESERVE_FIELDS includes circuitBreakers', async () => {
+    const fs = await import('fs');
+    const url = new URL('../../src/main/state-store.js', import.meta.url);
+    const src = fs.readFileSync(url, 'utf-8');
+    expect(src).toMatch(/circuitBreakers/);
+  });
 });
