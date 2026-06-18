@@ -46,9 +46,8 @@ describe('circuit-breaker state machine', () => {
       b = recordFailure(b, FIXED_NOW + i, { failureThreshold: 3 });
     }
     const probeTime = b.openUntil + 1;
-    b = shouldAllow(b, probeTime) ? b : b;
-    const allowed = shouldAllow(b, probeTime);
-    expect(allowed).toBe(true);
+    b = transitionAfterProbe(b, probeTime);
+    expect(b.state).toBe(STATE.HALF_OPEN);
     const closed = recordSuccess(b, probeTime);
     expect(closed.state).toBe(STATE.CLOSED);
     expect(closed.consecutiveFailures).toBe(0);
@@ -60,7 +59,8 @@ describe('circuit-breaker state machine', () => {
       b = recordFailure(b, FIXED_NOW + i, { failureThreshold: 3 });
     }
     const probeTime = b.openUntil + 1;
-    shouldAllow(b, probeTime);
+    b = transitionAfterProbe(b, probeTime);
+    expect(b.state).toBe(STATE.HALF_OPEN);
     const reopened = recordFailure(b, probeTime + 1, { failureThreshold: 3 });
     expect(reopened.state).toBe(STATE.OPEN);
     expect(reopened.openUntil).toBeGreaterThan(b.openUntil);
@@ -85,5 +85,10 @@ describe('circuit-breaker state machine', () => {
     b = recordFailure(b, FIXED_NOW + 4, { failureThreshold: 5, cooldownMs: 1000 });
     expect(b.state).toBe(STATE.OPEN);
     expect(b.openUntil).toBe(FIXED_NOW + 4 + 1000);
+  });
+
+  it('throws when key is missing', () => {
+    expect(() => createBreaker()).toThrow(/key is required/);
+    expect(() => createBreaker({ key: '' })).toThrow(/key is required/);
   });
 });
