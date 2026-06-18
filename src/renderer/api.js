@@ -3,9 +3,10 @@
  *
  * window.api包装层。preload.js 通过 contextBridge暴露：
  * getConfig / checkUpdates / brewUpgrade / brewUpdate /
- * getAppIcon / openUrl / onCheckProgress / onStartCheck /
+ * getAppIcon / onCheckProgress / onStartCheck /
  * bulkUpgradeStart / bulkUpgradeCancel / onBulkUpgradeProgress / onBulkUpgradeDone
  * (Phase22 bulk upgrade 新增)
+ * openUrl — universal "open URL in system browser" bridge (v2.24+).
  *
  * 这里包一层：
  * - 默认从 window.api 取值（生产路径）
@@ -32,7 +33,6 @@ export function createApi(overrides = {}) {
     brewUpgrade: pick(overrides, "brewUpgrade"),
     brewUpdate: pick(overrides, "brewUpdate"),
     getAppIcon: pick(overrides, "getAppIcon"),
-    openUrl: pick(overrides, "openUrl"),
     onCheckProgress: pick(overrides, "onCheckProgress"),
     onCheckDetecting: pick(overrides, "onCheckDetecting"),
     onStartCheck: pick(overrides, "onStartCheck"),
@@ -110,6 +110,12 @@ export function createApi(overrides = {}) {
     onRecentUpdated: pick(overrides, "onRecentUpdated"),
     // v2.12 主进程未捕获错误兜底
     onMainError: pick(overrides, "onMainError"),
+    // Universal "open URL in system browser" bridge (validates http/https in main).
+    openUrl: pick(overrides, "openUrl"),
+    // 微信热搜 (v2.24)
+    wechatHotLoad: pick(overrides, "wechatHotLoad"),
+    wechatHotRefresh: pick(overrides, "wechatHotRefresh"),
+    onWechatHotUpdated: pick(overrides, "onWechatHotUpdated"),
     // v2.13 AI 用量 (Minimax coding plan)
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),
     aiUsageFetch: pick(overrides, "aiUsageFetch"),

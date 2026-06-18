@@ -4,6 +4,7 @@
 
 const { createIpcContext } = require("./context");
 const { registerCoreHandlers } = require("./register-core");
+const { registerOpenUrlHandlers } = require("./register-open-url");
 const { registerRemindersRecentHandlers } = require("./register-reminders-recent");
 const { registerAiHandlers } = require("./register-ai");
 const { registerAiUsageHandlers } = require("./register-ai-usage");
@@ -11,6 +12,7 @@ const { registerWorldcupHandlers } = require("./register-worldcup");
 const { registerIthomeHandlers } = require("./register-ithome");
 const { registerIthomeShareHandlers } = require("./register-ithome-share");
 const { registerFundsHandlers } = require("./register-funds");
+const { registerWechatHotHandlers } = require("./register-wechat-hot");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -18,6 +20,7 @@ const { registerFundsHandlers } = require("./register-funds");
 function registerIpcHandlers(deps) {
   const ctx = createIpcContext(deps);
   registerCoreHandlers(ctx);
+  registerOpenUrlHandlers(ctx);
   registerRemindersRecentHandlers(ctx);
   registerAiHandlers(ctx);
   registerAiUsageHandlers(ctx);
@@ -25,6 +28,7 @@ function registerIpcHandlers(deps) {
   registerIthomeHandlers(ctx);
   registerIthomeShareHandlers(ctx);
   registerFundsHandlers(ctx);
+  registerWechatHotHandlers(ctx); // ← 新增
 }
 
 module.exports = { registerIpcHandlers };

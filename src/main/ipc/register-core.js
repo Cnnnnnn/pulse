@@ -1,4 +1,4 @@
-const { ipcMain, shell } = require("electron");
+const { ipcMain } = require("electron");
 const { runCheckQueued } = require("../check-runner");
 const { runBulkUpgrade } = require("../bulk-upgrade");
 const stateStore = require("../state-store");
@@ -75,18 +75,6 @@ function registerCoreHandlers(ctx) {
       }
     }
     return r;
-  });
-
-  ipcMain.handle("open-url", async (_event, url) => {
-    if (url && /^https?:\/\//.test(url)) {
-      try {
-        await shell.openExternal(url);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    return false;
   });
 
   ipcMain.handle("bulk-upgrade:start", async (_event, items) => {
