@@ -2915,6 +2915,38 @@ body {
   background: var(--bg-tertiary, #ebebed);
 }
 
+.side-nav-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.side-nav-refresh-btn {
+  background: transparent;
+  border: 0;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: var(--text-secondary, #555);
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.side-nav-refresh-btn:hover {
+  background: var(--bg-tertiary, #ebebed);
+}
+
+.side-nav-refresh-btn:active {
+  transform: scale(0.92);
+}
+
+.side-nav-refresh-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
 .side-nav-list {
   list-style: none;
   margin: 0;

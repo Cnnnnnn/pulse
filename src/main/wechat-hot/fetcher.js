@@ -30,7 +30,10 @@ const FALLBACK_HEADERS = {
  * @param {number} [args.timeoutMs=10000]
  * @returns {Promise<{items: object[], fetchedAt: number, source: string}>}
  */
-async function fetchWechatHot({ httpClient, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+async function fetchWechatHot({
+  httpClient,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+} = {}) {
   if (!httpClient || typeof httpClient.get !== "function") {
     throw withReason("fetch_failed", "httpClient missing");
   }
@@ -56,7 +59,12 @@ async function fetchAndParsePrimary(httpClient, timeoutMs) {
   if (res && (res.error === "timeout" || res.error === "network")) {
     throw withReason("http_timeout", res.error);
   }
-  if (!res || typeof res.status !== "number" || res.status < 200 || res.status >= 300) {
+  if (
+    !res ||
+    typeof res.status !== "number" ||
+    res.status < 200 ||
+    res.status >= 300
+  ) {
     throw withReason("fetch_failed", `xxapi status=${res && res.status}`);
   }
   let raw;
@@ -76,7 +84,12 @@ async function fetchAndParseFallback(httpClient, timeoutMs) {
   if (res && (res.error === "timeout" || res.error === "network")) {
     throw withReason("http_timeout", `weibo.com ${res.error}`);
   }
-  if (!res || typeof res.status !== "number" || res.status < 200 || res.status >= 300) {
+  if (
+    !res ||
+    typeof res.status !== "number" ||
+    res.status < 200 ||
+    res.status >= 300
+  ) {
     throw withReason("fetch_failed", `weibo.com status=${res && res.status}`);
   }
   let raw;
@@ -99,7 +112,8 @@ function parseWeiboAjaxRealtime(raw) {
   if (raw.ok !== 1) {
     throw withReason("parse_failed", `weibo.com ok=${raw.ok}`);
   }
-  const realtime = raw.data && Array.isArray(raw.data.realtime) ? raw.data.realtime : null;
+  const realtime =
+    raw.data && Array.isArray(raw.data.realtime) ? raw.data.realtime : null;
   if (!realtime) {
     throw withReason("parse_failed", "weibo.com data.realtime missing");
   }

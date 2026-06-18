@@ -72,7 +72,11 @@ export function subscribeWechatHotUpdates() {
 
 export function cleanupWechatHotUpdates() {
   if (wechatHotUpdatedUnsub.value) {
-    try { wechatHotUpdatedUnsub.value(); } catch { /* noop */ }
+    try {
+      wechatHotUpdatedUnsub.value();
+    } catch {
+      /* noop */
+    }
     wechatHotUpdatedUnsub.value = null;
   }
 }

@@ -12,10 +12,14 @@
  * store.navCollapsed 驱动 180↔40 宽度
  *
  * 跟 v2.6 主体 0 共享 nav state (除汉堡自己用)
+ *
+ * v2.24.2 顶部加 ↻ 全局刷新按钮 (折叠时仍显示为图标),
+ *   按 activeNav 派发到 nav-refresh.js registry.
  */
 
 import { activeNav, navCollapsed, setActiveNav, toggleNavCollapsed } from '../worldcup/navStore.js';
 import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
+import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
 
 const NAV_ITEMS = [
   { key: 'ithome',    icon: '📰', label: 'IT 新闻', tooltip: 'IT之家资讯 + AI 摘要' },
@@ -44,14 +48,27 @@ export function SideNav() {
             <span class="side-nav-brand-name">Pulse</span>
           </div>
         )}
-        <button
-          class="side-nav-toggle"
-          onClick={() => toggleNavCollapsed()}
-          title={collapsed ? '展开' : '折叠'}
-          aria-label={collapsed ? '展开' : '折叠'}
-        >
-          ☰
-        </button>
+        <div class="side-nav-header-actions">
+          {REFRESHABLE_NAV_KEYS.has(activeNav.value) && (
+            <button
+              type="button"
+              class="side-nav-refresh-btn"
+              onClick={() => refreshActiveNav(activeNav.value)}
+              title="刷新当前栏目"
+              aria-label="刷新当前栏目"
+            >
+              <span aria-hidden="true">↻</span>
+            </button>
+          )}
+          <button
+            class="side-nav-toggle"
+            onClick={() => toggleNavCollapsed()}
+            title={collapsed ? '展开' : '折叠'}
+            aria-label={collapsed ? '展开' : '折叠'}
+          >
+            ☰
+          </button>
+        </div>
       </div>
       <ul class="side-nav-list">
         {NAV_ITEMS.map((item) => {

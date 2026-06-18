@@ -9,14 +9,20 @@
  *   - onUpdate 在 success 时被调用
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-const { createWechatHotCache } = require("../../../src/main/wechat-hot/cache.js");
+const {
+  createWechatHotCache,
+} = require("../../../src/main/wechat-hot/cache.js");
 
 function makeFetcher(impl) {
   return vi.fn(impl);
 }
 
 const EMPTY = { items: [], fetchedAt: 0, source: "xxapi" };
-const OK = { items: [{ rank: 1, title: "X", url: "https://x" }], fetchedAt: 1700000000000, source: "xxapi" };
+const OK = {
+  items: [{ rank: 1, title: "X", url: "https://x" }],
+  fetchedAt: 1700000000000,
+  source: "xxapi",
+};
 
 describe("wechat-hot cache", () => {
   let cache;
@@ -39,7 +45,12 @@ describe("wechat-hot cache", () => {
 
   it("refresh during in-flight returns the same in-flight promise (no double fetch)", async () => {
     let resolveFetch;
-    const fetcher = vi.fn(() => new Promise((res) => { resolveFetch = res; }));
+    const fetcher = vi.fn(
+      () =>
+        new Promise((res) => {
+          resolveFetch = res;
+        }),
+    );
     cache = createWechatHotCache({ fetcher });
     const p1 = cache.refresh();
     const p2 = cache.refresh();
@@ -52,9 +63,15 @@ describe("wechat-hot cache", () => {
   });
 
   it("refresh after failure does NOT cache the failure; cache stays prior state; next refresh re-fetches", async () => {
-    const fetcher = vi.fn().mockRejectedValueOnce(Object.assign(new Error("x"), { reason: "fetch_failed" }));
+    const fetcher = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error("x"), { reason: "fetch_failed" }),
+      );
     cache = createWechatHotCache({ fetcher });
-    await expect(cache.refresh()).rejects.toMatchObject({ reason: "fetch_failed" });
+    await expect(cache.refresh()).rejects.toMatchObject({
+      reason: "fetch_failed",
+    });
     // 失败后 cache 保持 initial EMPTY (load() 不暴露 throw)
     expect(cache.load()).toEqual(EMPTY);
     // in-flight 已释放, 下次 refresh 会重新 fetch

@@ -13,11 +13,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const httpClientPath = require.resolve("../../../src/main/http-client.js");
 const fetcherPath = require.resolve("../../../src/main/wechat-hot/fetcher.js");
-const registerPath = require.resolve("../../../src/main/ipc/register-wechat-hot.js");
+const registerPath =
+  require.resolve("../../../src/main/ipc/register-wechat-hot.js");
 const logPath = require.resolve("../../../src/main/log.js");
 
 const mockHttpClientInstance = { get: vi.fn() };
-const HttpClientCtor = vi.fn(function () { return mockHttpClientInstance; });
+const HttpClientCtor = vi.fn(function () {
+  return mockHttpClientInstance;
+});
 const fetchWechatHot = vi.fn();
 const mainLogWarn = vi.fn();
 
@@ -43,8 +46,20 @@ function stubModules() {
       createLogger: () => ({}),
       resolveLogDir: () => "/tmp",
       isDebug: () => false,
-      mainLog: { warn: mainLogWarn, info: vi.fn(), error: vi.fn(), debug: vi.fn(), event: vi.fn() },
-      detectLog: { warn: vi.fn(), info: vi.fn(), error: vi.fn(), debug: vi.fn(), event: vi.fn() },
+      mainLog: {
+        warn: mainLogWarn,
+        info: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+        event: vi.fn(),
+      },
+      detectLog: {
+        warn: vi.fn(),
+        info: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+        event: vi.fn(),
+      },
     },
   };
 }
@@ -84,22 +99,34 @@ describe("wechat-hot IPC handlers", () => {
 
   it("registers wechat-hot:load and wechat-hot:refresh via safeHandle", () => {
     const handlers = {};
-    const safeHandle = vi.fn((channel, fn) => { handlers[channel] = fn; });
+    const safeHandle = vi.fn((channel, fn) => {
+      handlers[channel] = fn;
+    });
     const sendToRenderer = vi.fn();
 
     registerMod.registerWechatHotHandlers({ safeHandle, sendToRenderer });
 
-    expect(safeHandle).toHaveBeenCalledWith("wechat-hot:load", expect.any(Function));
-    expect(safeHandle).toHaveBeenCalledWith("wechat-hot:refresh", expect.any(Function));
+    expect(safeHandle).toHaveBeenCalledWith(
+      "wechat-hot:load",
+      expect.any(Function),
+    );
+    expect(safeHandle).toHaveBeenCalledWith(
+      "wechat-hot:refresh",
+      expect.any(Function),
+    );
     expect(handlers["wechat-hot:load"]).toBeDefined();
     expect(handlers["wechat-hot:refresh"]).toBeDefined();
     // HttpClient was instantiated with timeout (same pattern as metal-ipc)
-    expect(HttpClientCtor).toHaveBeenCalledWith(expect.objectContaining({ timeout: expect.any(Number) }));
+    expect(HttpClientCtor).toHaveBeenCalledWith(
+      expect.objectContaining({ timeout: expect.any(Number) }),
+    );
   });
 
   it("wechat-hot:load handler returns initial empty cache (no network)", async () => {
     const handlers = {};
-    const safeHandle = vi.fn((channel, fn) => { handlers[channel] = fn; });
+    const safeHandle = vi.fn((channel, fn) => {
+      handlers[channel] = fn;
+    });
     const sendToRenderer = vi.fn();
 
     registerMod.registerWechatHotHandlers({ safeHandle, sendToRenderer });
@@ -112,7 +139,9 @@ describe("wechat-hot IPC handlers", () => {
 
   it("wechat-hot:refresh success path: calls fetchWechatHot and broadcasts to sendToRenderer", async () => {
     const handlers = {};
-    const safeHandle = vi.fn((channel, fn) => { handlers[channel] = fn; });
+    const safeHandle = vi.fn((channel, fn) => {
+      handlers[channel] = fn;
+    });
     const sendToRenderer = vi.fn();
 
     registerMod.registerWechatHotHandlers({ safeHandle, sendToRenderer });
@@ -122,10 +151,13 @@ describe("wechat-hot IPC handlers", () => {
     expect(r.items).toHaveLength(1);
     expect(r.items[0].title).toBe("X");
     // onUpdate should fire sendToRenderer with UPDATED_CHANNEL
-    expect(sendToRenderer).toHaveBeenCalledWith(registerMod.UPDATED_CHANNEL, expect.objectContaining({
-      items: expect.any(Array),
-      source: "xxapi",
-    }));
+    expect(sendToRenderer).toHaveBeenCalledWith(
+      registerMod.UPDATED_CHANNEL,
+      expect.objectContaining({
+        items: expect.any(Array),
+        source: "xxapi",
+      }),
+    );
   });
 
   it("wechat-hot:refresh failure path: returns { ok: false, reason } and logs warning", async () => {
@@ -134,22 +166,30 @@ describe("wechat-hot IPC handlers", () => {
       Object.assign(new Error("upstream down"), { reason: "fetch_failed" }),
     );
     const handlers = {};
-    const safeHandle = vi.fn((channel, fn) => { handlers[channel] = fn; });
+    const safeHandle = vi.fn((channel, fn) => {
+      handlers[channel] = fn;
+    });
     const sendToRenderer = vi.fn();
 
     registerMod.registerWechatHotHandlers({ safeHandle, sendToRenderer });
 
     const r = await handlers["wechat-hot:refresh"]();
     expect(r).toEqual({ ok: false, reason: "fetch_failed" });
-    expect(mainLogWarn).toHaveBeenCalledWith(expect.stringContaining("wechat-hot:refresh"));
-    expect(mainLogWarn).toHaveBeenCalledWith(expect.stringContaining("fetch_failed"));
+    expect(mainLogWarn).toHaveBeenCalledWith(
+      expect.stringContaining("wechat-hot:refresh"),
+    );
+    expect(mainLogWarn).toHaveBeenCalledWith(
+      expect.stringContaining("fetch_failed"),
+    );
     expect(sendToRenderer).not.toHaveBeenCalled();
   });
 
   it("early-returns if safeHandle is not a function", () => {
     const sendToRenderer = vi.fn();
     // No safeHandle at all
-    expect(() => registerMod.registerWechatHotHandlers({ sendToRenderer })).not.toThrow();
+    expect(() =>
+      registerMod.registerWechatHotHandlers({ sendToRenderer }),
+    ).not.toThrow();
     expect(HttpClientCtor).not.toHaveBeenCalled();
   });
 });

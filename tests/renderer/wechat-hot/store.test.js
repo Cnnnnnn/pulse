@@ -67,7 +67,11 @@ describe("wechat-hot store: applyPayload", () => {
 
 describe("wechat-hot store: bootstrap", () => {
   it("loads cache; refreshes when cache empty", async () => {
-    mockApi.wechatHotLoad.mockResolvedValueOnce({ items: [], fetchedAt: 0, source: "xxapi" });
+    mockApi.wechatHotLoad.mockResolvedValueOnce({
+      items: [],
+      fetchedAt: 0,
+      source: "xxapi",
+    });
     mockApi.wechatHotRefresh.mockResolvedValueOnce(SAMPLE);
     await bootstrapWechatHotTab();
     expect(mockApi.wechatHotLoad).toHaveBeenCalledTimes(1);

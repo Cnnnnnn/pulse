@@ -30,17 +30,29 @@ function createWechatHotCache({ fetcher, onUpdate } = {}) {
   async function refresh() {
     if (inflight) return inflight;
     if (typeof fetcher !== "function") {
-      throw Object.assign(new Error("fetcher missing"), { reason: "fetch_failed" });
+      throw Object.assign(new Error("fetcher missing"), {
+        reason: "fetch_failed",
+      });
     }
     inflight = (async () => {
       try {
         const payload = await fetcher({});
         if (!payload || !Array.isArray(payload.items)) {
-          throw Object.assign(new Error("bad payload"), { reason: "parse_failed" });
+          throw Object.assign(new Error("bad payload"), {
+            reason: "parse_failed",
+          });
         }
-        cache = { items: payload.items, fetchedAt: payload.fetchedAt || Date.now(), source: payload.source || "xxapi" };
+        cache = {
+          items: payload.items,
+          fetchedAt: payload.fetchedAt || Date.now(),
+          source: payload.source || "xxapi",
+        };
         if (typeof onUpdate === "function") {
-          try { onUpdate(cache); } catch { /* noop */ }
+          try {
+            onUpdate(cache);
+          } catch {
+            /* noop */
+          }
         }
         return cache;
       } finally {

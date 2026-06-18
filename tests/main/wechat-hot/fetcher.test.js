@@ -28,7 +28,14 @@ function makeClient(responses) {
 
 const RAW_XXAPI_OK = JSON.stringify({
   code: 200,
-  data: [{ index: 1, title: "X", hot: "208万", url: "https://s.weibo.com/weibo?q=X" }],
+  data: [
+    {
+      index: 1,
+      title: "X",
+      hot: "208万",
+      url: "https://s.weibo.com/weibo?q=X",
+    },
+  ],
 });
 
 const RAW_WEIBO_AJAX_OK = JSON.stringify({
@@ -47,7 +54,10 @@ describe("wechat-hot fetcher (xxapi primary)", () => {
     const client = makeClient([{ status: 200, body: RAW_XXAPI_OK }]);
     const r = await fetchWechatHot({ httpClient: client });
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith(URL_PRIMARY, expect.objectContaining({ timeout: 10000 }));
+    expect(client.get).toHaveBeenCalledWith(
+      URL_PRIMARY,
+      expect.objectContaining({ timeout: 10000 }),
+    );
     expect(r.items).toHaveLength(1);
     expect(r.items[0].title).toBe("X");
     expect(r.source).toBe("xxapi");
@@ -155,20 +165,26 @@ describe("parseWeiboAjaxRealtime (weibo.com ajax format)", () => {
   });
 
   it("throws parse_failed on ok !== 1", () => {
-    expect(() => parseWeiboAjaxRealtime({ ok: 0, data: { realtime: [] } }))
-      .toThrowError(expect.objectContaining({ reason: "parse_failed" }));
+    expect(() =>
+      parseWeiboAjaxRealtime({ ok: 0, data: { realtime: [] } }),
+    ).toThrowError(expect.objectContaining({ reason: "parse_failed" }));
   });
 
   it("throws parse_failed on missing realtime", () => {
-    expect(() => parseWeiboAjaxRealtime({ ok: 1, data: {} }))
-      .toThrowError(expect.objectContaining({ reason: "parse_failed" }));
-    expect(() => parseWeiboAjaxRealtime({ ok: 1 }))
-      .toThrowError(expect.objectContaining({ reason: "parse_failed" }));
+    expect(() => parseWeiboAjaxRealtime({ ok: 1, data: {} })).toThrowError(
+      expect.objectContaining({ reason: "parse_failed" }),
+    );
+    expect(() => parseWeiboAjaxRealtime({ ok: 1 })).toThrowError(
+      expect.objectContaining({ reason: "parse_failed" }),
+    );
   });
 
   it("throws parse_failed on empty realtime (all entries filtered)", () => {
     expect(() =>
-      parseWeiboAjaxRealtime({ ok: 1, data: { realtime: [{ word: "", num: 1 }] } }),
+      parseWeiboAjaxRealtime({
+        ok: 1,
+        data: { realtime: [{ word: "", num: 1 }] },
+      }),
     ).toThrowError(expect.objectContaining({ reason: "parse_failed" }));
   });
 
