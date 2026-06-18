@@ -127,6 +127,11 @@ contextBridge.exposeInMainWorld("api", {
     return () => ipcRenderer.removeListener("share-data", handler);
   },
 
+  // Off-screen page 主动通知主进程:卡片已渲染完成,主进程可截图
+  // 不依赖任何渲染端定时器/setTimeout/rAF(都被 hidden 窗口节流)
+  // 通过 IPC 直接驱动主进程 readiness 解析,稳如老狗
+  shareCardReady: () => ipcRenderer.send("share-card:ready"),
+
   // v2.10+ 基金管理: 持仓 CRUD + 净值拉取 / 推送
   fundsList: () => ipcRenderer.invoke("funds:list"),
   fundsAdd: (input) => ipcRenderer.invoke("funds:add", input),
@@ -176,8 +181,10 @@ contextBridge.exposeInMainWorld("api", {
 // 贵金属 (v2.20.0) — 独立 contextBridge, 跟 funds / reminders / worldcup 一致
 contextBridge.exposeInMainWorld("metalsApi", {
   list: () => ipcRenderer.invoke("metals:list"),
-  updateConfig: (patch) => ipcRenderer.invoke("metals:config:update", { patch }),
-  upsertHolding: (id, holding) => ipcRenderer.invoke("metals:holding:upsert", { id, holding }),
+  updateConfig: (patch) =>
+    ipcRenderer.invoke("metals:config:update", { patch }),
+  upsertHolding: (id, holding) =>
+    ipcRenderer.invoke("metals:holding:upsert", { id, holding }),
   removeHolding: (id) => ipcRenderer.invoke("metals:holding:remove", { id }),
   fetchNow: () => ipcRenderer.invoke("metals:quote:fetch"),
   getState: () => ipcRenderer.invoke("metals:quote:state"),
@@ -189,6 +196,7 @@ contextBridge.exposeInMainWorld("metalsApi", {
   onStateUpdate: (cb) => {
     const handler = (_evt, data) => cb(data);
     ipcRenderer.on("metals:quote:state-changed", handler);
-    return () => ipcRenderer.removeListener("metals:quote:state-changed", handler);
+    return () =>
+      ipcRenderer.removeListener("metals:quote:state-changed", handler);
   },
 });

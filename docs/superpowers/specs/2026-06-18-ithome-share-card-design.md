@@ -165,13 +165,23 @@ renderer toast
 │  │  Claude 4.5 发布,编程能力大幅提升  │   │
 │  └─────────────────────────────────────┘   │
 │                                          │
-│  ┌─ 摘要卡 (半透明白底,圆角 16px) ─┐    │
-│  │  Anthropic 正式发布 Claude 4.5... │    │
-│  │  本次更新重点提升了 SWE-bench...  │    │
+│  ┌─ 摘要卡 (主卡 · 白底深字) ──────┐     │
+│  │  Anthropic 正式发布 Claude 4.5... │     │  flex:1 自适应
+│  │  本次更新重点提升了 SWE-bench...  │     │
 │  └─────────────────────────────────────┘   │
 │                                          │
 │  ┌─ 关键词 chips (紫底白字) ────────┐   │
 │  │  #AI  #Claude  #编程              │   │
+│  └─────────────────────────────────────┘   │
+│                                          │
+│  ┌─ 所属领域 (次级卡 · 半透明白底) ─┐    │
+│  │  所属领域                          │    │  14px label 60% 透明
+│  │  人工智能                          │    │  22px 白字
+│  └─────────────────────────────────────┘   │
+│                                          │
+│  ┌─ 影响方面 (次级卡 · 半透明白底) ─┐    │
+│  │  影响方面                          │    │
+│  │  AI 编程工具格局重塑               │    │
 │  └─────────────────────────────────────┘   │
 │                                          │
 │  ┌─ 底部水印 (白 60%) ──────────────┐   │
@@ -179,6 +189,9 @@ renderer toast
 │  └─────────────────────────────────────┘   │
 └─────────────────────────────────────────┘
 ```
+
+四段(摘要 + 关键词 + 所属领域 + 影响方面)上下堆叠,字段缺失则该区段不渲染,
+摘要区自动用 `flex: 1 1 auto` 吸收剩余空间。
 
 ### 6.2 色板
 
@@ -191,15 +204,21 @@ renderer toast
 | 摘要卡文字 | `#1f2937` (深灰) |
 | 关键词 chip 背景 | `#7c3aed` (紫罗兰) |
 | 关键词 chip 文字 | `#ffffff` |
+| 所属领域 / 影响方面容器 | `rgba(255, 255, 255, 0.12)` |
+| 所属领域 / 影响方面 label | `rgba(255, 255, 255, 0.6)` |
+| 所属领域 / 影响方面 文本 | `#ffffff` |
 | 水印 | `rgba(255, 255, 255, 0.6)` |
 
-### 6.3 摘要截断
+### 6.3 数据截断与字段处理
 
-- `summary.text.length ≤ 300` → 全部展示
+- 摘要来源:`NewsArticleSummary.normalizeArticleSummary(summary).abstract`(自动处理 legacy `text` fallback)
+- `abstract.length ≤ 300` → 全部展示
 - `> 300` → 截断到 300 字 + `...`
-- 关键词 chips 最多取前 5 个
-- `summary.keywords` 约定为 `string[]`(沿用现有 `ithome-summary-keywords` 渲染方式),若不是数组(legacy text)需 `splitKeywords` 处理(参照 `NewsArticleSummary.normalizeArticleSummary`)
+- 关键词 chips 最多取前 5 个,来自 `fields.keywords`
+- 所属领域 / 影响方面:来自 `fields.domain` / `fields.impact`,**不截断**(用 `word-break: break-word` 防溢出)
+- `summary.keywords` 约定为 `string[]`(`splitKeywords` 处理 legacy 字符串)
 - 任一字段缺失 → 该区域不渲染(不要"暂无XX"的占位,渐变背景直接露出来)
+- `normalizeArticleSummary` 的结构化判定:存在 `abstract` / `domain` / `impact` 任一字段,或 `keywords` 为数组 → 走结构化分支(同时仍接受 `text` 作 `abstract` 来源);否则视为纯 text 摘要
 
 ### 6.4 字体
 

@@ -4,7 +4,7 @@
  * 分享卡片 Preact 组件 — 1080×1080 视觉卡片,纯展示,无副作用。
  * Props: { article, summary }
  */
-import { splitKeywords } from "./NewsArticleSummary.jsx";
+import { normalizeArticleSummary } from "./NewsArticleSummary.jsx";
 
 const MAX_SUMMARY_CHARS = 300;
 const MAX_KEYWORDS = 5;
@@ -34,12 +34,9 @@ function formatShareCardTime(pubDate) {
 
 export function NewsShareCard({ article, summary }) {
   if (!article) return null;
-  const text = (summary && summary.text) || "";
-  const truncated = truncate(text, MAX_SUMMARY_CHARS);
-  const keywords = splitKeywords(summary && summary.keywords).slice(
-    0,
-    MAX_KEYWORDS,
-  );
+  const fields = normalizeArticleSummary(summary);
+  const truncated = truncate(fields.abstract, MAX_SUMMARY_CHARS);
+  const keywords = fields.keywords.slice(0, MAX_KEYWORDS);
   const timeLabel = formatShareCardTime(article.pubDate);
 
   return (
@@ -65,6 +62,20 @@ export function NewsShareCard({ article, summary }) {
           {keywords.map((kw) => (
             <span key={kw} class="share-card-keyword">#{kw}</span>
           ))}
+        </div>
+      )}
+
+      {fields.domain && (
+        <div class="share-card-field">
+          <div class="share-card-field-label">所属领域</div>
+          <div class="share-card-field-text">{fields.domain}</div>
+        </div>
+      )}
+
+      {fields.impact && (
+        <div class="share-card-field">
+          <div class="share-card-field-label">影响方面</div>
+          <div class="share-card-field-text">{fields.impact}</div>
         </div>
       )}
 

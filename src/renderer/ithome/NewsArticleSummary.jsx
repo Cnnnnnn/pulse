@@ -17,17 +17,22 @@ export function normalizeArticleSummary(summary) {
   if (!summary || typeof summary !== "object") {
     return { abstract: "", keywords: [], domain: "", impact: "" };
   }
-  if (summary.abstract || summary.domain || summary.impact) {
+  // 任何结构化字段或数组型 keywords → 走结构化分支;
+  // 否则视为纯 text 摘要(无 keywords/domain/impact)
+  const text = String(summary.text || "").trim();
+  const abstract = summary.abstract || text;
+  const hasStructured =
+    summary.abstract || summary.domain || summary.impact || Array.isArray(summary.keywords);
+  if (hasStructured) {
     return {
-      abstract: summary.abstract || "",
+      abstract,
       keywords: splitKeywords(summary.keywords),
       domain: summary.domain || "",
       impact: summary.impact || "",
     };
   }
-  const text = String(summary.text || "").trim();
   return {
-    abstract: text,
+    abstract,
     keywords: [],
     domain: "",
     impact: "",

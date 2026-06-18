@@ -77,4 +77,61 @@ describe("NewsShareCard", () => {
     );
     expect(container.querySelector(".share-card-summary")).toBeNull();
   });
+
+  it("renders domain and impact fields when both are present", () => {
+    const { container } = render(
+      <NewsShareCard
+        article={{ id: "a1", title: "t", pubDate: "2026-06-17" }}
+        summary={{
+          text: "Anthropic 发布 Claude 4.5",
+          keywords: ["AI", "Claude"],
+          domain: "人工智能",
+          impact: "AI 编程工具格局重塑",
+        }}
+      />,
+    );
+    const fields = container.querySelectorAll(".share-card-field");
+    expect(fields).toHaveLength(2);
+    const labels = container.querySelectorAll(".share-card-field-label");
+    expect(labels[0].textContent).toBe("所属领域");
+    expect(labels[1].textContent).toBe("影响方面");
+    const texts = container.querySelectorAll(".share-card-field-text");
+    expect(texts[0].textContent).toBe("人工智能");
+    expect(texts[1].textContent).toBe("AI 编程工具格局重塑");
+  });
+
+  it("skips domain section when domain is empty", () => {
+    const { container } = render(
+      <NewsShareCard
+        article={{ id: "x", title: "t", pubDate: "2026-06-17" }}
+        summary={{ text: "ok", keywords: ["a"], impact: "影响" }}
+      />,
+    );
+    const fields = container.querySelectorAll(".share-card-field");
+    expect(fields).toHaveLength(1);
+    expect(fields[0].querySelector(".share-card-field-label").textContent).toBe("影响方面");
+  });
+
+  it("skips impact section when impact is empty", () => {
+    const { container } = render(
+      <NewsShareCard
+        article={{ id: "x", title: "t", pubDate: "2026-06-17" }}
+        summary={{ text: "ok", keywords: ["a"], domain: "AI" }}
+      />,
+    );
+    const fields = container.querySelectorAll(".share-card-field");
+    expect(fields).toHaveLength(1);
+    expect(fields[0].querySelector(".share-card-field-label").textContent).toBe("所属领域");
+  });
+
+  it("falls back to abstract when text is missing", () => {
+    const { container } = render(
+      <NewsShareCard
+        article={{ id: "x", title: "t", pubDate: "2026-06-17" }}
+        summary={{ abstract: "通过 abstract 字段提供的摘要", keywords: [] }}
+      />,
+    );
+    const text = container.querySelector(".share-card-summary-text").textContent;
+    expect(text).toContain("通过 abstract 字段提供的摘要");
+  });
 });

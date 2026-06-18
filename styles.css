@@ -7507,8 +7507,8 @@ body {
   height: 1080px;
   box-sizing: border-box;
   padding: 40px;
-  display: flex;
-  flex-direction: column;
+  position: relative; /* 水印 absolute 钉死底部 */
+  overflow: hidden;
   background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 100%);
   color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
@@ -7519,8 +7519,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 22px;
-  margin-bottom: 32px;
+  font-size: 20px;
+  margin-bottom: 16px;
 }
 
 .share-card-source,
@@ -7536,49 +7536,78 @@ body {
 }
 
 .share-card-title {
-  font-size: 56px;
+  font-size: 44px;
   font-weight: 700;
   line-height: 1.2;
-  margin: 0 0 32px 0;
+  margin: 0 0 16px 0;
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .share-card-summary {
   background: rgba(255, 255, 255, 0.92);
   color: #1f2937;
   border-radius: 16px;
-  padding: 40px;
-  margin-bottom: 28px;
-  flex: 1 1 auto;
-  overflow: hidden;
+  padding: 24px 28px;
+  margin-bottom: 14px;
 }
 
 .share-card-summary-text {
-  font-size: 24px;
-  line-height: 1.6;
+  font-size: 20px;
+  line-height: 1.55;
   margin: 0;
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 10;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .share-card-keywords {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .share-card-keyword {
   background: #7c3aed;
   color: #ffffff;
   border-radius: 999px;
-  padding: 8px 18px;
-  font-size: 22px;
+  padding: 5px 14px;
+  font-size: 18px;
 }
 
-.share-card-watermark {
-  margin-top: auto;
-  font-size: 20px;
+.share-card-field {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 10px;
+}
+
+.share-card-field-label {
+  font-size: 12px;
   opacity: 0.6;
+  margin-bottom: 3px;
+  letter-spacing: 0.5px;
+}
+
+.share-card-field-text {
+  font-size: 18px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* 水印 absolute 钉死底部 — 不受 flex 流影响,保证一定在 1080 内 */
+.share-card-watermark {
+  position: absolute;
+  right: 40px;
+  bottom: 32px;
+  font-size: 16px;
+  opacity: 0.55;
   text-align: right;
 }
 
