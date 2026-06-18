@@ -45,6 +45,59 @@
 
 ---
 
+## Unreleased (🛡 state.json 损坏自愈 — Phase Q8)
+
+### 新增
+- **🛡 state.json 损坏自愈 (Phase Q8)**: state.json 半路写失败 / 外部编辑器破坏 / 磁盘错误 → 启动崩溃 + 全部数据丢失,现在自动备份恢复并通知用户
+  - 启动时校验 schema(顶层必填 `v` / `apps`,其他字段类型校验,未知字段保留 forward-compat)
+  - 校验失败:`rename state.json → state.corrupt-{ISO timestamp}.json` + 用 baseline 启动
+  - 备份失败不阻塞启动,只 log warn
+  - IPC `state:recovered` 推 renderer,显示一次性黄色 banner "设置已恢复默认" + 备份路径
+  - 用户 dismiss 后写 localStorage 标记,下次启动同一事件不再显示
+  - 缺失的 state.json(冷启动)不走恢复路径,正常 baseline 启动
+
+### 变更
+- **`src/main/state-store.js`**: 新增内部 `_loadOrThrow()` 区分"文件不存在"(返 null)vs"损坏"(抛 `StateCorruptedError`)vs"合法 JSON 但 schema 错"(同样抛);新增 `loadOrRecover()` / `getLastRecoveryEvent()` / `StateCorruptedError` 导出
+- **`src/main/index.js`**: `bootstrap()` 早期调 `initStateRecovery()`,window 创建后 `setImmediate` 内 `takeRecoveryEvent()` + `sendToRenderer("state:recovered", evt)`
+- **`preload.js`**: 新增 `onStateRecovered(cb)` 暴露给 renderer
+- **不** bump `SCHEMA_VERSION`(纯 additive,旧 state.json 仍合法)
+
+### 不变
+- `patchState` 接口、`load()` 公共契约(继续 swallow 错误返 null)、saveAll / setMute / clearMute 等写入路径
+- IPC channel 名(只新增 `state:recovered`,不替换任何旧通道)
+- forward compat 字段(`PRESERVE_FIELDS` 列表)继续受保护
+- 现有 `getMutes` / `loadLastOpened` / `_ensureAiUsageV2` 等 `load()` 调用方不受影响(走 swallow-null 路径)
+
+### 文件
+- 新增: `src/main/state-store-schema.js` (纯 schema 校验, 0 依赖, 8 tests)
+- 新增: `src/main/bootstrap/state-init.js` (启动期 wiring)
+- 新增: `src/renderer/components/StateRecoveredBanner.jsx`
+- 新增: `src/renderer/store/state-recovery-store.js` (signal re-export)
+- 新增: `tests/main/state-store-recovery.test.js` (6 tests)
+- 新增: `tests/renderer/state-recovered-banner.test.jsx` (4 tests)
+- 修改: `src/main/state-store.js` (+~85 行:_loadOrThrow / StateCorruptedError / _backupCorruptState / loadOrRecover / getLastRecoveryEvent)
+- 修改: `src/main/index.js` (3 处插入:require / init / setImmediate push)
+- 修改: `preload.js` (+1 method)
+- 修改: `src/renderer/api.js` (+1 wrapper)
+- 修改: `src/renderer/store/index.js` (+1 export *)
+- 修改: `src/renderer/index.jsx` (+1 api.onStateRecovered subscription)
+- 修改: `src/renderer/App.jsx` (+1 import + 1 JSX tag)
+- 修改: `styles.css` (+~26 行 banner 样式)
+
+### 测试
+- 新增 18 个 schema + recovery + banner 测试
+- 全套 2174/2176 通过,2 pre-existing unrelated 失败(`reminders weekday` + `worldcup-tray-cache getUpcoming`)
+- E2E 验证(`/tmp/pulse-e2e/state.json`): corrupt JSON → backup + parse_failed event;schema-invalid → backup + schema_failed event + errors 详情;missing file → null + no event;valid → 返 state + no event;consume-once 工作(连读两次第二次 null)
+
+### 手动 e2e(留给用户验证)
+- 关闭 Pulse
+- `echo "garbage" > ~/Library/Application\ Support/pulse/state.json`
+- 启动 → 看 banner "设置已恢复默认" + 检查 `state.corrupt-*.json` 已生成 + 新 state.json 是 baseline
+- dismiss banner + 重启 → banner 不再出现
+- 模拟 schema 损坏:`echo '{"v":1,"ts":0}' > ~/Library/Application\ Support/pulse/state.json`(少 apps 字段)→ 启动看 banner + 备份
+
+---
+
 ## v2.24.1 (🔥 微博热搜 hotfix) — 2026-06-18
 
 ### 修复
