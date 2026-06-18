@@ -120,6 +120,8 @@ export function createApi(overrides = {}) {
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),
     aiUsageFetch: pick(overrides, "aiUsageFetch"),
     onAiUsageUpdated: pick(overrides, "onAiUsageUpdated"),
+    // Phase Q8: state.json corruption self-recovery banner
+    onStateRecovered: pick(overrides, "onStateRecovered"),
   };
 }
 

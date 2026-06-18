@@ -51,6 +51,7 @@ const { createWindowManager } = require("./window");
 const { createTrayManager } = require("./tray");
 const { registerIpcHandlers } = require("./ipc");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
+const { initStateRecovery, takeRecoveryEvent } = require("./bootstrap/state-init");
 const { mainLog, detectLog } = require("./log");
 const stateStore = require("./state-store");
 const aiStorage = require("../ai-sessions/storage");
@@ -113,6 +114,10 @@ async function bootstrap() {
   const t0 = Date.now();
   const statePath = stateStore.initStateStorePaths();
   mainLog.info(`state store path: ${statePath}`);
+  // Phase Q8: run loadOrRecover to back up any corrupt state.json and record
+  // the recovery event for the renderer's banner. Must happen before any other
+  // module reads state, so they see the baseline (not corrupt data).
+  initStateRecovery();
   try {
     const st = fs.statSync(statePath);
     if (st && st.size > 5 * 1024 * 1024) {
@@ -246,6 +251,16 @@ async function bootstrap() {
     indexPath: path.join(PROJECT_ROOT, "index.html"),
   });
   winMgr.createWindow();
+  // Phase Q8: if a recovery event was recorded, push it to the renderer once
+  // the window is alive. Use setImmediate to let the renderer load before push.
+  setImmediate(() => {
+    const evt = takeRecoveryEvent();
+    if (!evt) return;
+    sendToRenderer("state:recovered", evt);
+    mainLog.info(
+      `state.json recovery pushed to renderer: reason=${evt.reason} backup=${evt.backup || "(none)"}`,
+    );
+  });
   mainLog.info(`window created: ${Date.now() - tWindow}ms`);
   timings.window = Date.now() - tWindow;
 

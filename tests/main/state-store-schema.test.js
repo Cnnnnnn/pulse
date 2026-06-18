@@ -1,0 +1,67 @@
+import { describe, it, expect } from 'vitest';
+import {
+  validateState,
+  isStateValid,
+  STATE_SCHEMA_VERSION,
+} from '../../src/main/state-store-schema.js';
+
+describe('state-store-schema', () => {
+  it('exports the same schema version as state-store (1)', () => {
+    expect(STATE_SCHEMA_VERSION).toBe(1);
+  });
+
+  it('accepts a minimal valid state', () => {
+    const r = validateState({ v: 1, ts: 0, apps: {} });
+    expect(r.ok).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(isStateValid({ v: 1, ts: 0, apps: {} })).toBe(true);
+  });
+
+  it('rejects null / non-object', () => {
+    expect(isStateValid(null)).toBe(false);
+    expect(isStateValid(undefined)).toBe(false);
+    expect(isStateValid('string')).toBe(false);
+    expect(isStateValid(42)).toBe(false);
+  });
+
+  it('rejects when v is missing or wrong type', () => {
+    const r1 = validateState({ ts: 0, apps: {} });
+    expect(r1.ok).toBe(false);
+    expect(r1.errors.some((e) => e.includes('v'))).toBe(true);
+
+    const r2 = validateState({ v: '1', ts: 0, apps: {} });
+    expect(r2.ok).toBe(false);
+  });
+
+  it('rejects when apps is missing or not an object', () => {
+    expect(isStateValid({ v: 1, ts: 0 })).toBe(false);
+    expect(isStateValid({ v: 1, ts: 0, apps: 'nope' })).toBe(false);
+    expect(isStateValid({ v: 1, ts: 0, apps: [] })).toBe(false);
+  });
+
+  it('accepts unknown top-level fields (forward compat)', () => {
+    const s = { v: 1, ts: 0, apps: {}, futureField: { anything: 1 } };
+    expect(isStateValid(s)).toBe(true);
+  });
+
+  it('rejects when optional known fields have wrong types', () => {
+    expect(isStateValid({ v: 1, ts: 0, apps: {}, mutes: 'bad' })).toBe(false);
+    expect(isStateValid({ v: 1, ts: 0, apps: {}, mutes: [] })).toBe(false);
+    expect(isStateValid({ v: 1, ts: 0, apps: {}, recentActivity: 'bad' })).toBe(false);
+    // reminders must be array
+    expect(isStateValid({ v: 1, ts: 0, apps: {}, reminders: {} })).toBe(false);
+  });
+
+  it('accepts valid optional fields of correct types', () => {
+    const s = {
+      v: 1, ts: 0, apps: {},
+      mutes: { Cursor: { until: 0 } },
+      last_opened: { Cursor: { ms: 1234 } },
+      active_category: 'ai',
+      reminders: [],
+      recentActivity: [],
+      circuitBreakers: { 'api_json:http://x': { state: 'open' } },
+    };
+    expect(isStateValid(s)).toBe(true);
+  });
+});

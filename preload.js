@@ -79,6 +79,10 @@ contextBridge.exposeInMainWorld("api", {
   onAiUsageUpdated: (cb) =>
     ipcRenderer.on("ai-usage-updated", (_, data) => cb(data)),
 
+  // Phase Q8: state.json corruption self-recovery banner
+  onStateRecovered: (cb) =>
+    ipcRenderer.on("state:recovered", (_, data) => cb(data)),
+
   // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
   worldcupFetchFixtures: (payload) =>
     ipcRenderer.invoke("worldcup:fetch-fixtures", payload),
