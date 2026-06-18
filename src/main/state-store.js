@@ -47,8 +47,21 @@
  */
 
 const fs = require("fs");
+const { renameSync } = fs;
 const path = require("path");
 const os = require("os");
+const { isStateValid, validateState } = require("./state-store-schema");
+
+class StateCorruptedError extends Error {
+  constructor(message, { path, raw = null, parseError = null, schemaErrors = [] } = {}) {
+    super(message);
+    this.name = "StateCorruptedError";
+    this.path = path;
+    this.raw = raw;
+    this.parseError = parseError;
+    this.schemaErrors = schemaErrors;
+  }
+}
 
 const SCHEMA_VERSION = 1;
 
@@ -62,6 +75,9 @@ const LEGACY_STATE_PATH = path.join(
 
 /** Electron userData 下的 state.json; initStateStorePaths() 在 app ready 后设置 */
 let _resolvedStatePath = null;
+
+// Phase Q8: last recovery event (consume-once). Set by loadOrRecover, read by IPC push to renderer.
+let _lastRecoveryEvent = null;
 
 function _tryGetUserDataDir() {
   try {
@@ -232,6 +248,43 @@ function patchState(updater, statePath = defaultPath(), opts = {}) {
   preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
+}
+
+/**
+ * Phase Q8: internal loader that distinguishes missing / corrupted / valid.
+ *  - File missing → return null (cold start, normal)
+ *  - File present but invalid JSON → throw StateCorruptedError (parse_failed)
+ *  - File present, valid JSON, but fails schema → throw StateCorruptedError (schema_failed)
+ *  - File present, valid JSON, valid schema → return parsed state
+ *
+ * @param {string} statePath
+ * @returns {object|null}
+ */
+function _loadOrThrow(statePath) {
+  let raw;
+  try {
+    raw = fs.readFileSync(statePath, "utf-8");
+  } catch (err) {
+    if (err && err.code === "ENOENT") return null; // missing — cold start
+    throw err; // permission / IO — propagate (caller will surface)
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    throw new StateCorruptedError(
+      `state.json is not valid JSON: ${e.message}`,
+      { path: statePath, raw: raw.slice(0, 1024), parseError: e },
+    );
+  }
+  if (!isStateValid(parsed)) {
+    const { errors } = validateState(parsed);
+    throw new StateCorruptedError(
+      "state.json failed schema validation",
+      { path: statePath, raw: raw.slice(0, 1024), schemaErrors: errors },
+    );
+  }
+  return parsed;
 }
 
 /**
@@ -1086,6 +1139,74 @@ function saveLLMClassifyCache(map, statePath = defaultPath()) {
   }, statePath);
 }
 
+function _backupCorruptState(statePath) {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  // Pattern: <dirname>/state.corrupt-<ts>.json
+  //  - "state.corrupt-" 是固定的字面 anchor, 测试 + 取证都靠它一眼定位损坏的 backup.
+  //  - 时间戳 (ISO 替换 : 和 .) 防止同一次启动内多次损坏互相覆盖.
+  //  - 跟原 statePath 的 basename 解耦, 即使将来 statePath 改名也不会污染历史 backup.
+  const dir = path.dirname(statePath);
+  const backupPath = path.join(dir, `state.corrupt-${ts}.json`);
+  try {
+    renameSync(statePath, backupPath);
+    return { ok: true, backupPath };
+  } catch (err) {
+    // Best-effort: backup failure must not block startup
+    try {
+      const { mainLog } = require("./log");
+      mainLog.warn(
+        `state-store: failed to back up corrupt state to ${backupPath}: ${err && err.message}`,
+      );
+    } catch {
+      /* log module may not exist in test env; swallow */
+    }
+    return { ok: false, error: err && err.message };
+  }
+}
+
+/**
+ * Phase Q8: safe startup entry point. On corrupt state, back up the file and
+ * return null (so the caller falls back to the default baseline). Records
+ * the recovery event for the renderer to consume via getLastRecoveryEvent.
+ *
+ * @param {string} [statePath]
+ * @returns {object|null}
+ */
+function loadOrRecover(statePath = defaultPath()) {
+  try {
+    const state = _loadOrThrow(statePath);
+    // Successful load — clear any stale event from a previous boot
+    _lastRecoveryEvent = null;
+    return state;
+  } catch (err) {
+    if (err && err.name === "StateCorruptedError") {
+      const backup = _backupCorruptState(statePath);
+      const event = {
+        path: statePath,
+        backup: backup.ok ? backup.backupPath : null,
+        backupFailed: !backup.ok,
+        reason: err.parseError ? "parse_failed" : "schema_failed",
+        errors: err.schemaErrors || (err.parseError && err.parseError.message ? [err.parseError.message] : []),
+        ts: Date.now(),
+      };
+      _lastRecoveryEvent = event;
+      return null; // baseline will be used by patchState
+    }
+    throw err; // unrelated IO error — propagate
+  }
+}
+
+/**
+ * Phase Q8: consume-once accessor for the last recovery event. Returns the
+ * event on first call, null thereafter. The renderer asks for this once at
+ * bootstrap; if null, no banner is shown.
+ */
+function getLastRecoveryEvent() {
+  const evt = _lastRecoveryEvent;
+  _lastRecoveryEvent = null; // consume
+  return evt;
+}
+
 module.exports = {
   load,
   saveAll,
@@ -1144,4 +1265,8 @@ module.exports = {
   // 世界杯淘汰赛 bracket 快照
   loadWorldcupBracket,
   saveWorldcupBracket,
+  // Phase Q8: state.json corruption self-recovery
+  StateCorruptedError,
+  loadOrRecover,
+  getLastRecoveryEvent,
 };
