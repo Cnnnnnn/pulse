@@ -2855,6 +2855,85 @@ body {
   margin-bottom: 12px;
 }
 
+/* ── Phase C2: Snooze menu (per-app "等下次再升") ── */
+.snooze-menu {
+  position: absolute;
+  z-index: 50;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--bg-secondary, #e5e5ea);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  padding: 4px;
+  min-width: 200px;
+  font-size: 12px;
+  color: var(--text-primary, #222);
+}
+.snooze-menu__title {
+  padding: 4px 8px;
+  font-weight: 600;
+  color: var(--text-tertiary, #666);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.snooze-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  color: var(--text-primary, #222);
+  font: inherit;
+}
+.snooze-menu__item:hover:not(:disabled) {
+  background: var(--bg-secondary, #f4f4f5);
+}
+.snooze-menu__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.snooze-menu__divider {
+  height: 1px;
+  background: var(--bg-secondary, #e5e5ea);
+  margin: 4px 0;
+}
+.snooze-menu__status {
+  padding: 4px 8px;
+  color: var(--text-tertiary, #888);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.snooze-menu__cancel {
+  background: transparent;
+  border: 1px solid var(--bg-secondary, #e5e5ea);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-secondary, #555);
+}
+.snooze-menu__cancel:hover {
+  background: var(--bg-secondary, #f4f4f5);
+}
+.row-action-snooze {
+  background: transparent;
+  border: 1px solid var(--bg-secondary, #e5e5ea);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+  margin-left: 4px;
+}
+.row-action-snooze:hover {
+  background: var(--bg-secondary, #f4f4f5);
+  color: var(--text-primary, #222);
+}
+
 /* ── v2: Per-app Phase 状态样式 ── */
 
 /* 等待检测: 轻微透明, 灰色文字 */
