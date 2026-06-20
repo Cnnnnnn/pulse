@@ -31,7 +31,7 @@ function presetLocalTime(preset) {
   return d.getTime();
 }
 
-export function SnoozeMenu({ name, latestVersion = null, snoozeUntil = null, skippedVersion = null, onClose }) {
+export function SnoozeMenu({ name, latestVersion = null, snoozeUntil = null, skippedVersion = null, x = 0, y = 0, onClose }) {
   function handlePick(preset) {
     if (preset === 'skip-version') {
       api.setAppSnooze && api.setAppSnooze(name, { version: latestVersion || '' });
@@ -49,8 +49,10 @@ export function SnoozeMenu({ name, latestVersion = null, snoozeUntil = null, ski
 
   const isSnoozed = (snoozeUntil && snoozeUntil > Date.now()) || skippedVersion;
 
+  const style = x || y ? { left: `${x}px`, top: `${y}px` } : undefined;
+
   return (
-    <div class="snooze-menu" role="menu">
+    <div class="snooze-menu" role="menu" style={style}>
       <div class="snooze-menu__title">等下次再升</div>
       <button class="snooze-menu__item" role="menuitem" onClick={() => handlePick('tonight')}>
         ⏰ 今晚 ({fmtTs(presetLocalTime('tonight'))})
