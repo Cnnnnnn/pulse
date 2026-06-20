@@ -93,9 +93,10 @@ describe('error-aggregator', () => {
       writeFileSync(join(dir, `errors-${ymd}.jsonl`), '{"id":"x","ts":0,"message":"old"}\n');
     }
     const removed = await agg.cleanup();
-    expect(removed).toBe(1);
+    expect(removed).toBe(1); // only -40d file
     const remaining = readdirSync(dir).sort();
-    expect(remaining.length).toBe(4);
+    // -1d, -10d files within retention, plus -40d removed: 2 remaining
+    expect(remaining).toHaveLength(2);
     expect(remaining.every((f) => f.startsWith('errors-'))).toBe(true);
   });
 
