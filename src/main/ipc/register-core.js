@@ -300,6 +300,33 @@ function registerCoreHandlers(ctx) {
       }),
     },
   );
+
+  // Phase I5: digest IPC handlers
+  safeHandle("digest:fetch-sections", () => {
+    try {
+      const { aggregate } = require("../digest/aggregate");
+      const state = stateStore.load() || {};
+      const result = aggregate(state, { now: new Date() });
+      return { ok: true, ...result };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message, sections: [], lines: [] };
+    }
+  });
+
+  safeHandle("digest:update-settings", (_event, cfg) => {
+    if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) {
+      return { ok: false, reason: "bad_cfg" };
+    }
+    try {
+      stateStore.saveDailyDigest({
+        enabled: typeof cfg.enabled === "boolean" ? cfg.enabled : undefined,
+        time: typeof cfg.time === "string" ? cfg.time : undefined,
+      });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
 }
 
 module.exports = { registerCoreHandlers };

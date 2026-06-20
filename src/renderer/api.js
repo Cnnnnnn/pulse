@@ -122,6 +122,10 @@ export function createApi(overrides = {}) {
     onAiUsageUpdated: pick(overrides, "onAiUsageUpdated"),
     // Phase Q8: state.json corruption self-recovery banner
     onStateRecovered: pick(overrides, "onStateRecovered"),
+    // Phase I5: daily digest
+    digestFetchSections: pick(overrides, "digestFetchSections"),
+    digestUpdateSettings: pick(overrides, "digestUpdateSettings"),
+    onDigestOpen: pick(overrides, "onDigestOpen"),
   };
 }
 

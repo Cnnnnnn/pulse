@@ -83,6 +83,11 @@ contextBridge.exposeInMainWorld("api", {
   onStateRecovered: (cb) =>
     ipcRenderer.on("state:recovered", (_, data) => cb(data)),
 
+  // Phase I5: daily digest
+  digestFetchSections: () => ipcRenderer.invoke("digest:fetch-sections"),
+  digestUpdateSettings: (cfg) => ipcRenderer.invoke("digest:update-settings", cfg),
+  onDigestOpen: (cb) => ipcRenderer.on("digest:open", (_, data) => cb(data)),
+
   // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
   worldcupFetchFixtures: (payload) =>
     ipcRenderer.invoke("worldcup:fetch-fixtures", payload),
