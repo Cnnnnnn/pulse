@@ -357,6 +357,11 @@ function saveAll(results, statePath = defaultPath()) {
         ts: now,
         last_notified: prev.last_notified,
         changelog_history: history.length > 0 ? history : undefined,
+        // Phase C2: preserve snooze fields across saves
+        snoozeUntil: typeof prev.snoozeUntil === "number" ? prev.snoozeUntil : undefined,
+        skippedVersion: typeof prev.skippedVersion === "string" && prev.skippedVersion.length > 0
+          ? prev.skippedVersion
+          : undefined,
       };
 
       // Phase C2: clear skippedVersion when user upgrades past the skipped version.
@@ -371,6 +376,13 @@ function saveAll(results, statePath = defaultPath()) {
         prev.skippedVersion !== newLatest
       ) {
         delete apps[r.name].skippedVersion;
+      }
+      // snoozeUntil 不再是未来时也清掉(避免无限期 stale 状态)
+      if (
+        typeof apps[r.name].snoozeUntil === "number" &&
+        apps[r.name].snoozeUntil <= now
+      ) {
+        delete apps[r.name].snoozeUntil;
       }
     }
     next.apps = apps;
