@@ -33,6 +33,7 @@ import { AppVersions } from './AppVersions.jsx';
 import { AppAction } from './AppAction.jsx';
 import { ChangelogPanel } from './ChangelogPanel.jsx';
 import { MuteMenu } from './MuteMenu.jsx';
+import { SnoozeMenu } from './SnoozeMenu.jsx';
 
 export function AppRow({ name }) {
   // 订阅 per-row signals (本组件的订阅点)
@@ -43,6 +44,7 @@ export function AppRow({ name }) {
   const [upgrading, setUpgrading] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [muteMenuAt, setMuteMenuAt] = useState(null);
+  const [snoozeMenuAt, setSnoozeMenuAt] = useState(null);
 
   const handleUpgrade = useCallback(async (cask, appName) => {
     if (!cask) return;
@@ -171,6 +173,15 @@ export function AppRow({ name }) {
         onUpgrade={handleUpgrade}
         isUpgrading={upgrading}
       />
+      {result.has_update && (
+        <button
+          class="row-action-snooze"
+          onClick={(e) => { e.stopPropagation(); setSnoozeMenuAt({ x: e.clientX, y: e.clientY }); }}
+          title="等下次再升"
+        >
+          ⏰
+        </button>
+      )}
       {changelogOpen && <ChangelogPanel result={result} />}
       {muteMenuAt && (
         <MuteMenu
@@ -181,6 +192,17 @@ export function AppRow({ name }) {
           muteUntil={muteEntry ? muteEntry.until : 0}
           lastOpened={lastOpenedEntry}
           onClose={() => setMuteMenuAt(null)}
+        />
+      )}
+      {snoozeMenuAt && (
+        <SnoozeMenu
+          x={snoozeMenuAt.x}
+          y={snoozeMenuAt.y}
+          name={result.name}
+          latestVersion={result.latest_version}
+          snoozeUntil={result.snoozeUntil}
+          skippedVersion={result.skippedVersion}
+          onClose={() => setSnoozeMenuAt(null)}
         />
       )}
     </div>
