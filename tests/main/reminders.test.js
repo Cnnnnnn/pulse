@@ -284,11 +284,17 @@ describe("reminders — markDone", () => {
   });
 
   it("weekly → markDone 后跳到下个匹配 weekday", () => {
-    const monMs = new Date("2026-06-15T10:00:00Z").getTime();
+    // Anchor triggerAt in the past so markDone has to roll forward; the
+    // expected next-fire date is derived from now + weekday, not from the
+    // trigger anchor. This keeps the test stable as real time advances.
+    // vitest.config forces TZ=UTC, so use UTC accessors throughout.
+    const now = new Date();
+    const trigger = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7));
+    trigger.setUTCHours(10, 0, 0, 0);
     const r = reminders.create(
       {
         title: "周三",
-        triggerAt: monMs,
+        triggerAt: trigger.getTime(),
         repeat: "weekly",
         weekday: 3,
       },
@@ -298,8 +304,18 @@ describe("reminders — markDone", () => {
     expect(done.ok).toBe(true);
     const next = new Date(done.reminder.triggerAt);
     expect(next.getUTCDay()).toBe(3); // Wed
-    // 应是 2026-06-17
-    expect(next.getUTCDate()).toBe(17);
+    // Compute expected: from today (UTC), walk forward until weekday=3 (Wed).
+    const expected = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    expected.setUTCHours(10, 0, 0, 0);
+    let safety = 0;
+    while (expected.getUTCDay() !== 3 || expected.getTime() <= now.getTime()) {
+      expected.setUTCDate(expected.getUTCDate() + 1);
+      safety += 1;
+      if (safety > 8) break;
+    }
+    expect(next.getUTCDate()).toBe(expected.getUTCDate());
+    expect(next.getUTCMonth()).toBe(expected.getUTCMonth());
+    expect(next.getUTCHours()).toBe(10); // hour preserved from triggerAt
   });
 
   it("markDone on missing id returns ok=false", () => {

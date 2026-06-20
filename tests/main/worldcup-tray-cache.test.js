@@ -25,8 +25,8 @@ function writeState(statePath, obj) {
 }
 
 /** YYYY-MM-DD (UTC, since vitest forces TZ=UTC) */
-function todayStr() {
-  const t = new Date();
+function todayStr(base) {
+  const t = base || new Date();
   return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
 }
 
@@ -146,12 +146,14 @@ describe("worldcup-tray-cache", () => {
   });
 
   it("getUpcoming returns N matches sorted by kickoff", () => {
-    const today = new Date();
+    // Anchored on "now + 1 day" so the test stays correct regardless of when
+    // it runs: getUpcoming filters out past kickoffs (kickoffUtcMs > nowMs).
+    const base = new Date(Date.now() + 24 * 3600 * 1000);
     const txt = buildTxt([
-      { date: todayStr(), time: "13:00", team1: "Mexico", team2: "South Africa" },
-      { date: offsetDay(today, 1), time: "14:00", team1: "Brazil", team2: "Argentina" },
-      { date: offsetDay(today, 2), time: "15:00", team1: "Spain", team2: "France" },
-      { date: offsetDay(today, 3), time: "16:00", team1: "Germany", team2: "Italy" },
+      { date: todayStr(base), time: "13:00", team1: "Mexico", team2: "South Africa" },
+      { date: offsetDay(base, 1), time: "14:00", team1: "Brazil", team2: "Argentina" },
+      { date: offsetDay(base, 2), time: "15:00", team1: "Spain", team2: "France" },
+      { date: offsetDay(base, 3), time: "16:00", team1: "Germany", team2: "Italy" },
     ]);
     writeState(statePath, { apps: {}, worldcup_txt: { txt, ts: Date.now() } });
     const cache = createWorldcupTrayCache({ statePath });
