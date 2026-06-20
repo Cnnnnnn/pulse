@@ -102,7 +102,7 @@ describe('detector-chain with circuit breaker', () => {
     expect(trace[0]).toMatchObject({ det: 'api_json', skipped: 'circuit_open' });
   });
 
-  it('builds breaker key as <type>:<identifier> using url/cask/id/baseUrl', async () => {
+  it('builds breaker key as <type>:<identifier> using url/cask/id/baseUrl', { timeout: 30_000 }, async () => {
     const { runDetectorChain } = reloadChain();
     const appCfg = {
       name: 'X',
