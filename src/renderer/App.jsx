@@ -19,6 +19,7 @@ import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { AISettingsModal } from './components/AISettingsModal.jsx';
 import { Toast } from './components/Toast.jsx';
 import { StateRecoveredBanner } from './components/StateRecoveredBanner.jsx';
+import { DigestDrawer } from './digest/DigestDrawer.jsx';
 import { ConfirmDialog } from './components/ConfirmDialog.jsx';
 import { AppShell } from './components/AppShell.jsx';
 import { RemindersModal } from './reminders/RemindersModal.jsx';
@@ -45,6 +46,7 @@ export function App({ onCheck }) {
       <ConfirmDialog />
       <Toast />
       <StateRecoveredBanner />
+      <DigestDrawer />
     </div>
   );
 }
