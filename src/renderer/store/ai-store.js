@@ -12,6 +12,7 @@ import { DEFAULT_MODELS } from "../../ai/default-models.js";
 import { api } from "../api.js";
 import { taggedLog } from "../log.js";
 import { showToast } from "./toast-store.js";
+import { digestDrawerOpen } from "../digest/digest-store.js";
 
 const log = taggedLog("[store/ai]");
 
@@ -35,9 +36,6 @@ export const summarizingTaskKeys = signal(new Set());
 export const aiSummarizeBusy = computed(
   () => summarizingTaskKeys.value.size > 0,
 );
-
-export const digestDrawerOpen = signal(false);
-export const digestConfigMode = signal(false);
 
 export const aiSessionsConfig = signal(null);
 export const aiKeyStatus = signal({});

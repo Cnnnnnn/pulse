@@ -9,3 +9,4 @@ export * from "./ui-store.js";
 export * from "./ai-store.js";
 export * from "./toast-store.js";
 export * from "./state-recovery-store.js";
+export * from "../digest/digest-store.js";
