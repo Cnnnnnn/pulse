@@ -24,7 +24,9 @@ export function DigestDrawer() {
   useEffect(() => {
     if (!open) return;
     digestLoading.value = true;
-    api.digestFetchSections().then((resp) => {
+    const result = api.digestFetchSections();
+    const p = (result && typeof result.then === 'function') ? result : Promise.resolve(null);
+    p.then((resp) => {
       if (resp && resp.ok) {
         digestSections.value = resp.sections || [];
         digestLines.value = resp.lines || [];

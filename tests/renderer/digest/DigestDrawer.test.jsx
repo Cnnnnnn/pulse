@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, fireEvent, cleanup } from '@testing-library/preact';
+import { render, fireEvent, cleanup, waitFor } from '@testing-library/preact';
 import { DigestDrawer } from '../../../src/renderer/digest/DigestDrawer.jsx';
 import { digestDrawerOpen, digestSections, digestLines, digestDate, digestLoading } from '../../../src/renderer/digest/digest-store.js';
+import { api } from '../../../src/renderer/api.js';
 
 describe('DigestDrawer', () => {
   beforeEach(() => {
@@ -19,13 +20,15 @@ describe('DigestDrawer', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders drawer with empty state when open and no sections', () => {
+  it('renders drawer with empty state when open and no sections', async () => {
     digestDrawerOpen.value = true;
     const { container } = render(<DigestDrawer />);
-    expect(container.textContent).toMatch(/今天没有重要变化/);
+    await waitFor(() => {
+      expect(container.textContent).toMatch(/今天没有重要变化/);
+    });
   });
 
-  it('renders one section per kind in digestSections', () => {
+  it('renders one section per kind in digestSections', async () => {
     digestDrawerOpen.value = true;
     digestDate.value = '2026-06-20';
     digestSections.value = [
@@ -33,8 +36,10 @@ describe('DigestDrawer', () => {
       { kind: 'hot', items: [{ title: '热搜A' }] },
     ];
     const { container } = render(<DigestDrawer />);
-    expect(container.textContent).toContain('Cursor');
-    expect(container.textContent).toContain('热搜A');
+    await waitFor(() => {
+      expect(container.textContent).toContain('Cursor');
+      expect(container.textContent).toContain('热搜A');
+    });
   });
 
   it('closes drawer when close button clicked', () => {
@@ -46,9 +51,15 @@ describe('DigestDrawer', () => {
   });
 
   it('shows loading indicator when digestLoading=true', () => {
-    digestDrawerOpen.value = true;
-    digestLoading.value = true;
-    const { container } = render(<DigestDrawer />);
-    expect(container.textContent).toMatch(/加载中|loading/i);
+    const originalFetch = api.digestFetchSections;
+    api.digestFetchSections = () => new Promise(() => {});
+    try {
+      digestDrawerOpen.value = true;
+      digestLoading.value = true;
+      const { container } = render(<DigestDrawer />);
+      expect(container.textContent).toMatch(/加载中|loading/i);
+    } finally {
+      api.digestFetchSections = originalFetch;
+    }
   });
 });
