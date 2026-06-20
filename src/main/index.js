@@ -118,7 +118,7 @@ async function bootstrap() {
   mainLog.info(`state store path: ${statePath}`);
   // Phase Q6: capture uncaught main errors + best-effort cleanup of old logs
   try {
-    initErrorCapture({});
+    initErrorCapture({ sendToRenderer });
     mainLog.info("error capture enabled");
   } catch (err) {
     mainLog.warn(`[error-init] failed: ${err && err.message}`);
