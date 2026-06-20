@@ -17,6 +17,21 @@ const { mainLog } = require("./log");
 let _sendToRenderer = null;
 const _seen = new WeakSet();
 
+// Phase Q6: lazy require of bootstrap/error-init so error-guard can also
+// append each reported error into the JSONL aggregator. try/catch guards
+// against circular-dep / require failure — bootstrap may not exist in
+// minimal test contexts.
+let _bootstrapInstance = null;
+function _getBootstrap() {
+  if (_bootstrapInstance !== null) return _bootstrapInstance;
+  try {
+    _bootstrapInstance = require("./bootstrap/error-init");
+  } catch {
+    _bootstrapInstance = false;
+  }
+  return _bootstrapInstance;
+}
+
 /**
  * 进程退出期可预期的错误 code — 不推 renderer toast.
  *
@@ -90,7 +105,39 @@ function _report(kind, err) {
  */
 function installErrorGuard(sendToRenderer) {
   if (typeof sendToRenderer === "function") {
-    _sendToRenderer = sendToRenderer;
+    const original = sendToRenderer;
+    // Phase Q6: wrap so each main:error toast also lands in the JSONL
+    // aggregator. Preserve original call (channel, payload) verbatim so
+    // toast behavior is unchanged.
+    _sendToRenderer = (channel, payload) => {
+      try {
+        original(channel, payload);
+      } catch {
+        /* swallow — renderer's IPC may be torn down */
+      }
+      if (channel === "main:error") {
+        try {
+          const mod = _getBootstrap();
+          if (mod && typeof mod.getInstance === "function") {
+            const inst = mod.getInstance();
+            if (inst && inst.aggregator) {
+              const p = payload || {};
+              inst.aggregator
+                .append({
+                  source: "main",
+                  level: "error",
+                  message: p.message || String(p),
+                  stack: p.stack || "",
+                  context: { channel, kind: p.kind || "error-guard" },
+                })
+                .catch(() => {});
+            }
+          }
+        } catch {
+          /* swallow */
+        }
+      }
+    };
   }
 
   process.on("uncaughtException", (err) => {
