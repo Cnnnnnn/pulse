@@ -20,6 +20,7 @@
 
 import { render } from 'preact';
 import { App } from './App.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import {
   apps,
   applyProgress,
@@ -175,7 +176,12 @@ async function bootstrap() {
 
   // 5) 立即 render
   const mount = document.getElementById('app') || document.body;
-  render(<App onCheck={triggerCheck} />, mount);
+  render(
+    <ErrorBoundary>
+      <App onCheck={triggerCheck} />
+    </ErrorBoundary>,
+    mount,
+  );
 
   // 6) 监听检测进度事件
   //    applyProgress 已内置 sessionId 校验, 过期事件会被丢弃
