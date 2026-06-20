@@ -18,6 +18,7 @@
 const { Notification: ElectronNotification } = require("electron");
 const { inQuietHours, suppressedByCooldown } = require("./notification-policy");
 const { isMuteActive } = require("./state-store");
+const { applySnoozeFilter } = require("./snooze");
 const recentActivity = require("./recent-activity");
 
 const PER_APP_DETECT_TIMEOUT_MS = 95_000;
@@ -134,6 +135,15 @@ async function runCheck(deps, opts = {}) {
   // 落盘 + tray/badge (在 check-finished 之后, 避免 saveAll 阻塞 UI 结束态)
   const finishPayload = { count: results.length, ts: Date.now() };
 
+  // Phase C2: load state + apply snooze filter up front, so both silent / non-silent
+  // branches (and the final return) see consistent filtered results.
+  const state = typeof getState === "function" ? getState() : null;
+  // Phase C2: snoozed apps lose has_update (badge / tray / notification skip).
+  // applySnoozeFilter returns a NEW array, so the original `results` is preserved
+  // for callers that may inspect raw detection output; downstream consumers here
+  // all use `filteredResults`.
+  const filteredResults = applySnoozeFilter(results, state, Date.now());
+
   // 系统通知: silent 时不发
   if (!silent) {
     try {
@@ -146,16 +156,15 @@ async function runCheck(deps, opts = {}) {
       /* noop */
     }
 
-    const updateApps = results.filter((r) => r.has_update);
+    const updateApps = filteredResults.filter((r) => r.has_update);
 
     // Phase 17: Quiet hours 抑制
     if (inQuietHours(new Date(), quietStart, quietEnd)) {
       sendToRenderer("check-finished", finishPayload);
-      scheduleOnCheckComplete(onCheckComplete, results);
-      return results;
+      scheduleOnCheckComplete(onCheckComplete, filteredResults);
+      return filteredResults;
     }
 
-    const state = typeof getState === "function" ? getState() : null;
     const suppressed = new Set(
       suppressedByCooldown(updateApps, state, cooldownMs),
     );
@@ -166,7 +175,7 @@ async function runCheck(deps, opts = {}) {
     notifyable = notifyable.filter((r) => !isMuteActive(mutes[r.name], now));
 
     sendToRenderer("check-finished", finishPayload);
-    scheduleOnCheckComplete(onCheckComplete, results);
+    scheduleOnCheckComplete(onCheckComplete, filteredResults);
 
     if (notifyable.length > 0) {
       const names = notifyable.map((r) => r.name).join("、");
@@ -188,11 +197,11 @@ async function runCheck(deps, opts = {}) {
       }
     }
   } else {
-    scheduleOnCheckComplete(onCheckComplete, results);
+    scheduleOnCheckComplete(onCheckComplete, filteredResults);
     sendToRenderer("auto-check-finished", finishPayload);
   }
 
-  return results;
+  return filteredResults;
 }
 
 /** 串行化 check, 避免手动/自动检查同时占满 worker pool */

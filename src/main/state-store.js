@@ -358,6 +358,20 @@ function saveAll(results, statePath = defaultPath()) {
         last_notified: prev.last_notified,
         changelog_history: history.length > 0 ? history : undefined,
       };
+
+      // Phase C2: clear skippedVersion when user upgrades past the skipped version.
+      // 当 latest_version 变化 (新版本上线) → 自动清除 app.skippedVersion,
+      // 这样 "跳过该版本" 的 snooze 不再黏在新版本上, 用户升到新版本或新版
+      // 再次出现时, 通知/UI 会正常显示.
+      const newLatest = r.latest_version;
+      if (
+        prev.skippedVersion &&
+        typeof newLatest === "string" &&
+        newLatest.length > 0 &&
+        prev.skippedVersion !== newLatest
+      ) {
+        delete apps[r.name].skippedVersion;
+      }
     }
     next.apps = apps;
   }, statePath);
