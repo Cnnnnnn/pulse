@@ -2,6 +2,7 @@ const { ipcMain } = require("electron");
 const { runCheckQueued } = require("../check-runner");
 const { runBulkUpgrade } = require("../bulk-upgrade");
 const stateStore = require("../state-store");
+const { aggregate } = require("../digest/aggregate");
 const platform = require("../../platform");
 const { mainLog } = require("../log");
 const lastOpened = require("../last-opened");
@@ -304,7 +305,6 @@ function registerCoreHandlers(ctx) {
   // Phase I5: digest IPC handlers
   safeHandle("digest:fetch-sections", () => {
     try {
-      const { aggregate } = require("../digest/aggregate");
       const state = stateStore.load() || {};
       const result = aggregate(state, { now: new Date() });
       return { ok: true, ...result };
