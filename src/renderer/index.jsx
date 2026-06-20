@@ -240,6 +240,9 @@ async function bootstrap() {
   // AppRow 升级完后重检
   window.addEventListener('app-row:upgraded', () => triggerCheck());
 
+  // Phase Q6: install global error listeners
+  import("./error-reporting.js").then((m) => m.installErrorReporting()).catch(() => {});
+
   // "打开配置" 按钮
   window.addEventListener('app:open-config', () => {
     if (typeof window !== 'undefined' && window.api) {
