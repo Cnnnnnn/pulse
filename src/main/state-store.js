@@ -479,6 +479,68 @@ function clearMute(name, statePath = defaultPath()) {
   }, statePath);
 }
 
+// ─── Phase C2: Per-app snooze (等下次再升) ─────────────────────
+
+/**
+ * Phase C2: write app snooze (until ms or skippedVersion). Atomic write, preserves other fields.
+ * @param {string} name
+ * @param {{until?: number, version?: string}} opts
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function setAppSnooze(name, opts, statePath = defaultPath()) {
+  if (!name || typeof name !== "string") {
+    throw new TypeError("setAppSnooze: name must be non-empty string");
+  }
+  if (!opts || typeof opts !== "object" || Array.isArray(opts)) {
+    throw new TypeError("setAppSnooze: opts must be plain object");
+  }
+  return patchState((next, existing) => {
+    const prev = (existing.apps && existing.apps[name]) || {};
+    const updated = { ...prev };
+    if (typeof opts.until === "number") {
+      updated.snoozeUntil = opts.until;
+    }
+    if (typeof opts.version === "string" && opts.version.length > 0) {
+      updated.skippedVersion = opts.version;
+    }
+    next.apps = { ...(existing.apps || {}), [name]: updated };
+  }, statePath);
+}
+
+/**
+ * Phase C2: clear all snooze for an app.
+ * @param {string} name
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function clearAppSnooze(name, statePath = defaultPath()) {
+  if (!name || typeof name !== "string") {
+    throw new TypeError("clearAppSnooze: name must be non-empty string");
+  }
+  return patchState((next, existing) => {
+    const prev = (existing.apps && existing.apps[name]);
+    if (!prev) return;
+    const { snoozeUntil: _u, skippedVersion: _v, ...rest } = prev;
+    next.apps = { ...(existing.apps || {}), [name]: rest };
+  }, statePath);
+}
+
+/**
+ * Phase C2: read snooze sub-state for one app.
+ * @param {string} name
+ * @param {string} [statePath]
+ * @returns {{snoozeUntil: number|null, skippedVersion: string|null}}
+ */
+function loadAppSnooze(name, statePath = defaultPath()) {
+  const s = load(statePath);
+  const app = s && s.apps && s.apps[name];
+  return {
+    snoozeUntil: app && typeof app.snoozeUntil === "number" ? app.snoozeUntil : null,
+    skippedVersion: app && typeof app.skippedVersion === "string" ? app.skippedVersion : null,
+  };
+}
+
 // ─── Phase 29: Last-opened ───────────────────────────────────
 
 /**
@@ -1311,4 +1373,8 @@ module.exports = {
   // Phase I5: daily digest sub-state
   saveDailyDigest,
   loadDailyDigest,
+  // Phase C2: per-app snooze
+  setAppSnooze,
+  clearAppSnooze,
+  loadAppSnooze,
 };
