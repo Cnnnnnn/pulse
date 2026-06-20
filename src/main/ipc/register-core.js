@@ -327,6 +327,89 @@ function registerCoreHandlers(ctx) {
       return { ok: false, reason: "threw", error: err && err.message };
     }
   });
+
+  // Phase Q6: error aggregator IPC handlers
+  safeHandle("error:fetch-entries", (_event, opts) => {
+    try {
+      const { getInstance } = require("../bootstrap/error-init");
+      const inst = getInstance();
+      if (!inst) return { ok: false, reason: "not_initialized", entries: [], stats: { total: 0, byLevel: {}, skipped: 0 } };
+      return inst.aggregator.query(opts || {});
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message, entries: [], stats: { total: 0, byLevel: {}, skipped: 0 } };
+    }
+  });
+
+  safeHandle("error:copy-all", () => {
+    try {
+      const { getInstance } = require("../bootstrap/error-init");
+      const inst = getInstance();
+      if (!inst) return Promise.resolve({ ok: false, reason: "not_initialized", text: "" });
+      return inst.aggregator.query({}).then((r) => ({
+        ok: true,
+        text: (r.entries || []).map((e) => JSON.stringify(e)).join("\n"),
+      }));
+    } catch (err) {
+      return Promise.resolve({ ok: false, reason: "threw", error: err && err.message, text: "" });
+    }
+  });
+
+  safeHandle("error:export-zip", () => {
+    // Best-effort stub: real zip export deferred. We surface the logsDir.
+    try {
+      const { getInstance } = require("../bootstrap/error-init");
+      const inst = getInstance();
+      return Promise.resolve({
+        ok: true,
+        path: inst && inst.aggregator && inst.aggregator.logsDir,
+        note: "ZIP export deferred; logs dir returned.",
+      });
+    } catch (err) {
+      return Promise.resolve({ ok: false, reason: "threw", error: err && err.message });
+    }
+  });
+
+  safeHandle("error:clear-old", () => {
+    try {
+      const { getInstance } = require("../bootstrap/error-init");
+      const inst = getInstance();
+      if (!inst) return Promise.resolve({ ok: false, reason: "not_initialized", removed: 0 });
+      return inst.aggregator.cleanup().then((removed) => ({ ok: true, removed }));
+    } catch (err) {
+      return Promise.resolve({ ok: false, reason: "threw", error: err && err.message, removed: 0 });
+    }
+  });
+
+  safeHandle("error:open-folder", () => {
+    try {
+      const { shell } = require("electron");
+      const { getInstance } = require("../bootstrap/error-init");
+      const inst = getInstance();
+      const dir = inst && inst.aggregator && inst.aggregator.logsDir;
+      if (!dir) return { ok: false, reason: "no_dir" };
+      shell.openPath(dir);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  safeHandle("error:report", (_event, entry) => {
+    try {
+      const { getInstance } = require("../bootstrap/error-init");
+      const inst = getInstance();
+      if (!inst || !entry) return { ok: false, reason: "no_instance_or_entry" };
+      return inst.aggregator.append({
+        source: 'renderer',
+        level: entry.level || 'error',
+        message: entry.message || 'unknown',
+        stack: entry.stack || '',
+        context: { ...(entry.context || {}), kind: 'renderer-report' },
+      }).then((e) => ({ ok: true, id: e.id }));
+    } catch (err) {
+      return Promise.resolve({ ok: false, reason: "threw", error: err && err.message });
+    }
+  });
 }
 
 module.exports = { registerCoreHandlers };

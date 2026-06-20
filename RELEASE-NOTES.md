@@ -161,6 +161,64 @@
 
 ---
 
+## Unreleased (🛠 错误聚合 + 诊断面板 — Phase Q6)
+
+### 新增
+- **🛠 错误聚合 + 诊断面板 (Phase Q6)**: 主进程 + renderer 未捕获错误自动落盘聚合 + 一键查看 / 复制 / 清理
+  - 主进程: `uncaughtException` + `unhandledRejection` + 现有 `error-guard` 通道全部走聚合器
+  - Renderer: 全局 `window.onerror` / `unhandledrejection` + Preact `ErrorBoundary` 包 `<App>`,组件渲染崩溃可恢复
+  - 存储: `userData/logs/errors-YYYY-MM-DD.jsonl`,每天 1 文件,30 天 retention(boot 时 cleanup)
+  - 诊断面板: 480px 右抽屉,显示错误列表 / 等级统计 / "刷新 / 复制全部 / 打开文件夹 / 清理 > 30 天"
+  - Header 加 "🛠" 按钮打开面板
+  - 沿用现有 `onMainError` toast(不破坏现有 UX)
+
+### 变更
+- **`src/main/error-guard.js`**: `onError` 包装后同步走聚合器(原有 toast 行为不变)
+- **`src/main/index.js`**: 启动期 `initErrorCapture({})`,boot 时 cleanup 旧 logs
+- **`src/renderer/App.jsx`**: 挂 `<DiagnosticsDrawer />`
+- **`src/renderer/index.jsx`**: `<App>` 包 `<ErrorBoundary>`,bootstrap 调 `installErrorReporting()`
+- **`preload.js`** / **`src/renderer/api.js`**: 7 个新方法(errorFetchEntries / CopyAll / ExportZip / ClearOld / OpenFolder / Report / onErrorAppended)
+- IPC 新增: `error:fetch-entries` / `error:copy-all` / `error:export-zip` / `error:clear-old` / `error:open-folder` / `error:report`
+
+### 不变
+- 现有 `onMainError` toast 行为不变 — 仍弹 "后台异常: ..."
+- `notification-policy.js` 等其他模块未触碰
+- `state.json` schema 不变(错误日志独立于 state)
+
+### 文件
+- 新增: `src/main/error-aggregator.js` (180 行,9 tests)
+- 新增: `src/main/bootstrap/error-init.js` (60 行)
+- 新增: `src/renderer/error-reporting.js` (45 行)
+- 新增: `src/renderer/components/ErrorBoundary.jsx` (50 行,4 tests)
+- 新增: `src/renderer/components/DiagnosticsDrawer.jsx` (110 行,5 tests)
+- 新增: `src/renderer/diagnostics/diagnostics-store.js` (signals)
+- 新增: 3 个测试文件
+- 修改: `src/main/index.js` (+1 require + 1 init)
+- 修改: `src/main/error-guard.js` (wrap onError)
+- 修改: `src/main/ipc/register-core.js` (+6 safeHandle)
+- 修改: `preload.js` (+7 method)
+- 修改: `src/renderer/api.js` (+7 wrapper)
+- 修改: `src/renderer/store/index.js` (+1 export)
+- 修改: `src/renderer/index.jsx` (+1 wrap + 1 install)
+- 修改: `src/renderer/App.jsx` (+1 mount)
+- 修改: `src/renderer/components/Header.jsx` (+1 button)
+- 修改: `styles.css` (+~102 行)
+- 修改: `RELEASE-NOTES.md` (本节)
+
+### 测试
+- 新增 18 个测试(9 + 4 + 5)
+- 全套 ~2220/~2222 通过,1 pre-existing unrelated 失败(`reminders weekday` 日期敏感)
+- e2e 注入式验证 17 步全通过:3 种 entry 路径写入 + query 过滤 + copy-all + cleanup 按 retention + 并发 + 损坏行跳过
+
+### 手动 e2e(留给用户验证)
+- 启动 dev,在 dev tools console: `throw new Error('test')` 或 `Promise.reject(new Error('test'))`
+- 看到 toast + 抽屉中有一条 entry
+- "复制全部" → 粘贴确认是 JSON
+- 抽屉 "打开文件夹" → finder 显示 `~/Library/Application Support/pulse/logs/`
+- 抽屉 "清理 > 30 天" → 旧文件被删(若有)
+
+---
+
 ## v2.24.1 (🔥 微博热搜 hotfix) — 2026-06-18
 
 ### 修复

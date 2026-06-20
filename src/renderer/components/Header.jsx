@@ -51,6 +51,13 @@ export function Header({ onCheck }) {
         <AITasksButton />
         <RemindersButton />
         <RecentButton />
+        <button
+          class="header-btn"
+          onClick={() => import("../diagnostics/diagnostics-store.js").then(({ diagnosticsDrawerOpen }) => { diagnosticsDrawerOpen.value = true; })}
+          title="错误诊断"
+        >
+          🛠
+        </button>
       </div>
     </header>
   );

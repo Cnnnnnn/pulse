@@ -88,6 +88,15 @@ contextBridge.exposeInMainWorld("api", {
   digestUpdateSettings: (cfg) => ipcRenderer.invoke("digest:update-settings", cfg),
   onDigestOpen: (cb) => ipcRenderer.on("digest:open", (_, data) => cb(data)),
 
+  // Phase Q6: error aggregator
+  errorFetchEntries: (opts) => ipcRenderer.invoke("error:fetch-entries", opts),
+  errorCopyAll: () => ipcRenderer.invoke("error:copy-all"),
+  errorExportZip: (opts) => ipcRenderer.invoke("error:export-zip", opts),
+  errorClearOld: (opts) => ipcRenderer.invoke("error:clear-old", opts),
+  errorOpenFolder: () => ipcRenderer.invoke("error:open-folder"),
+  errorReport: (entry) => ipcRenderer.invoke("error:report", entry),
+  onErrorAppended: (cb) => ipcRenderer.on("error:appended", (_, data) => cb(data)),
+
   // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
   worldcupFetchFixtures: (payload) =>
     ipcRenderer.invoke("worldcup:fetch-fixtures", payload),

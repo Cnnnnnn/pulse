@@ -126,6 +126,14 @@ export function createApi(overrides = {}) {
     digestFetchSections: pick(overrides, "digestFetchSections"),
     digestUpdateSettings: pick(overrides, "digestUpdateSettings"),
     onDigestOpen: pick(overrides, "onDigestOpen"),
+    // Phase Q6: error aggregator
+    errorFetchEntries: pick(overrides, "errorFetchEntries"),
+    errorCopyAll: pick(overrides, "errorCopyAll"),
+    errorExportZip: pick(overrides, "errorExportZip"),
+    errorClearOld: pick(overrides, "errorClearOld"),
+    errorOpenFolder: pick(overrides, "errorOpenFolder"),
+    errorReport: pick(overrides, "errorReport"),
+    onErrorAppended: pick(overrides, "onErrorAppended"),
   };
 }
 

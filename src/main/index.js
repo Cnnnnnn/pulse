@@ -53,6 +53,7 @@ const { registerIpcHandlers } = require("./ipc");
 const { startDailySummaryJob } = require("./digest/daily-summary-job");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const { initStateRecovery, takeRecoveryEvent } = require("./bootstrap/state-init");
+const { initErrorCapture } = require("./bootstrap/error-init");
 const { mainLog, detectLog } = require("./log");
 const stateStore = require("./state-store");
 const aiStorage = require("../ai-sessions/storage");
@@ -115,6 +116,13 @@ async function bootstrap() {
   const t0 = Date.now();
   const statePath = stateStore.initStateStorePaths();
   mainLog.info(`state store path: ${statePath}`);
+  // Phase Q6: capture uncaught main errors + best-effort cleanup of old logs
+  try {
+    initErrorCapture({ sendToRenderer });
+    mainLog.info("error capture enabled");
+  } catch (err) {
+    mainLog.warn(`[error-init] failed: ${err && err.message}`);
+  }
   // Phase Q8: run loadOrRecover to back up any corrupt state.json and record
   // the recovery event for the renderer's banner. Must happen before any other
   // module reads state, so they see the baseline (not corrupt data).

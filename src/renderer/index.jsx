@@ -20,6 +20,7 @@
 
 import { render } from 'preact';
 import { App } from './App.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import {
   apps,
   applyProgress,
@@ -175,7 +176,12 @@ async function bootstrap() {
 
   // 5) 立即 render
   const mount = document.getElementById('app') || document.body;
-  render(<App onCheck={triggerCheck} />, mount);
+  render(
+    <ErrorBoundary>
+      <App onCheck={triggerCheck} />
+    </ErrorBoundary>,
+    mount,
+  );
 
   // 6) 监听检测进度事件
   //    applyProgress 已内置 sessionId 校验, 过期事件会被丢弃
@@ -239,6 +245,9 @@ async function bootstrap() {
 
   // AppRow 升级完后重检
   window.addEventListener('app-row:upgraded', () => triggerCheck());
+
+  // Phase Q6: install global error listeners
+  import("./error-reporting.js").then((m) => m.installErrorReporting()).catch(() => {});
 
   // "打开配置" 按钮
   window.addEventListener('app:open-config', () => {
