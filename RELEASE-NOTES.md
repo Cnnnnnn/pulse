@@ -219,6 +219,50 @@
 
 ---
 
+## Unreleased (⏰ 等下次再升调度 — Phase C2)
+
+### 新增
+- **⏰ 等下次再升调度 (Phase C2)**: app 行 ⏰ 按钮 → 4 个预设 + 跳过此版本 + 取消
+  - 今晚 22:00 / 明早 9:00 / 本周六 10:00 / 跳过此版本 (latest)
+  - 期间 badge 不计 + 通知不弹 + tray 不显,但 `latest_version` 仍可见
+  - "跳过此版本" 自动在用户升级后清除(`saveAll` 检测到 `latest_version` 变化即清)
+  - 已 snooze 时菜单显示 "已延后到 X / 取消" + "跳过 3.6.33 / 取消"
+
+### 变更
+- **`src/main/state-store.js`**: 新增 `setAppSnooze(name, opts)` / `clearAppSnooze(name)` / `loadAppSnooze(name)`;`saveAll` 保留 `snoozeUntil` + `skippedVersion`,只在 latest_version 变化时清 skippedVersion
+- **`src/main/check-runner.js`**: `runCheck` 应用 `applySnoozeFilter`(badge / 通知 / tray 全部看到 filtered 后的 `has_update=false`)
+- **`src/renderer/components/AppRow.jsx`**: 有 `has_update` 时显示 ⏰ 按钮 → 挂 `<SnoozeMenu />`
+- IPC 新增: `snooze:set` / `snooze:clear` (renderer→main)
+
+### 不变
+- `state.json` schema 不变(`snoozeUntil` / `skippedVersion` 是 app entry 的可选字段,forward-compat)
+- 检测器、配置、其他 IPC 通道均未触碰
+- 旧 state.json(无 snooze 字段)继续正常工作
+
+### 文件
+- 新增: `src/main/snooze.js` (~80 行, 16 tests)
+- 新增: `src/renderer/components/SnoozeMenu.jsx` (~70 行, 5 tests)
+- 修改: `src/main/state-store.js` (+3 functions + saveAll preserve)
+- 修改: `src/main/check-runner.js` (apply filter)
+- 修改: `src/renderer/components/AppRow.jsx` (+1 button + SnoozeMenu mount)
+- 修改: `src/main/ipc/register-core.js` (+2 safeHandle)
+- 修改: `preload.js` (+2 method)
+- 修改: `src/renderer/api.js` (+2 wrapper)
+- 修改: `styles.css` (+~79 行)
+
+### 测试
+- 新增 21 个测试(16 + 5)
+- 全套 ~2243/~2245 通过,1 pre-existing unrelated 失败(`reminders weekday` 日期敏感)
+- e2e 注入式 17 步全过:set/load/filter/clear/saveAll 自动清除 + 同版本保留
+
+### 手动 e2e(留给用户验证)
+- 任意有 has_update 的 app 行,点 ⏰ → 选 "今晚 22:00"
+- 等到 22:00,触发 check,该 app 不在 badge 里,通知也没有
+- 第二天 check 重新恢复(下次更新才会再次出现)
+- 选 "跳过此版本" → 该版本在状态行可见但 badge 不计;升级后自动清除
+
+---
+
 ## v2.24.1 (🔥 微博热搜 hotfix) — 2026-06-18
 
 ### 修复

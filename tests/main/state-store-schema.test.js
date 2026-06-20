@@ -77,4 +77,20 @@ describe('state-store-schema', () => {
     expect(isStateValid({ v: 1, ts: 0, apps: {}, daily_digest: 'bad' })).toBe(false);
     expect(isStateValid({ v: 1, ts: 0, apps: {}, daily_digest: [] })).toBe(false);
   });
+
+  it('accepts app entries with snoozeUntil + skippedVersion sub-fields', () => {
+    const s = {
+      v: 1, ts: 0, apps: {
+        Cursor: {
+          name: 'Cursor',
+          installed_version: '3.6.32',
+          latest_version: '3.6.33',
+          has_update: true,
+          snoozeUntil: 1750513200000,
+          skippedVersion: '3.6.33',
+        },
+      },
+    };
+    expect(isStateValid(s)).toBe(true);
+  });
 });

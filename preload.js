@@ -97,6 +97,10 @@ contextBridge.exposeInMainWorld("api", {
   errorReport: (entry) => ipcRenderer.invoke("error:report", entry),
   onErrorAppended: (cb) => ipcRenderer.on("error:appended", (_, data) => cb(data)),
 
+  // Phase C2: per-app snooze
+  setAppSnooze: (name, opts) => ipcRenderer.invoke("snooze:set", name, opts),
+  clearAppSnooze: (name) => ipcRenderer.invoke("snooze:clear", name),
+
   // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
   worldcupFetchFixtures: (payload) =>
     ipcRenderer.invoke("worldcup:fetch-fixtures", payload),

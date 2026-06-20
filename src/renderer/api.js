@@ -134,6 +134,9 @@ export function createApi(overrides = {}) {
     errorOpenFolder: pick(overrides, "errorOpenFolder"),
     errorReport: pick(overrides, "errorReport"),
     onErrorAppended: pick(overrides, "onErrorAppended"),
+    // Phase C2: per-app snooze
+    setAppSnooze: pick(overrides, "setAppSnooze"),
+    clearAppSnooze: pick(overrides, "clearAppSnooze"),
   };
 }
 

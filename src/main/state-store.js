@@ -357,7 +357,33 @@ function saveAll(results, statePath = defaultPath()) {
         ts: now,
         last_notified: prev.last_notified,
         changelog_history: history.length > 0 ? history : undefined,
+        // Phase C2: preserve snooze fields across saves
+        snoozeUntil: typeof prev.snoozeUntil === "number" ? prev.snoozeUntil : undefined,
+        skippedVersion: typeof prev.skippedVersion === "string" && prev.skippedVersion.length > 0
+          ? prev.skippedVersion
+          : undefined,
       };
+
+      // Phase C2: clear skippedVersion when user upgrades past the skipped version.
+      // 当 latest_version 变化 (新版本上线) → 自动清除 app.skippedVersion,
+      // 这样 "跳过该版本" 的 snooze 不再黏在新版本上, 用户升到新版本或新版
+      // 再次出现时, 通知/UI 会正常显示.
+      const newLatest = r.latest_version;
+      if (
+        prev.skippedVersion &&
+        typeof newLatest === "string" &&
+        newLatest.length > 0 &&
+        prev.skippedVersion !== newLatest
+      ) {
+        delete apps[r.name].skippedVersion;
+      }
+      // snoozeUntil 不再是未来时也清掉(避免无限期 stale 状态)
+      if (
+        typeof apps[r.name].snoozeUntil === "number" &&
+        apps[r.name].snoozeUntil <= now
+      ) {
+        delete apps[r.name].snoozeUntil;
+      }
     }
     next.apps = apps;
   }, statePath);
@@ -477,6 +503,68 @@ function clearMute(name, statePath = defaultPath()) {
     if (name in mutes) delete mutes[name];
     next.mutes = mutes;
   }, statePath);
+}
+
+// ─── Phase C2: Per-app snooze (等下次再升) ─────────────────────
+
+/**
+ * Phase C2: write app snooze (until ms or skippedVersion). Atomic write, preserves other fields.
+ * @param {string} name
+ * @param {{until?: number, version?: string}} opts
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function setAppSnooze(name, opts, statePath = defaultPath()) {
+  if (!name || typeof name !== "string") {
+    throw new TypeError("setAppSnooze: name must be non-empty string");
+  }
+  if (!opts || typeof opts !== "object" || Array.isArray(opts)) {
+    throw new TypeError("setAppSnooze: opts must be plain object");
+  }
+  return patchState((next, existing) => {
+    const prev = (existing.apps && existing.apps[name]) || {};
+    const updated = { ...prev };
+    if (typeof opts.until === "number") {
+      updated.snoozeUntil = opts.until;
+    }
+    if (typeof opts.version === "string" && opts.version.length > 0) {
+      updated.skippedVersion = opts.version;
+    }
+    next.apps = { ...(existing.apps || {}), [name]: updated };
+  }, statePath);
+}
+
+/**
+ * Phase C2: clear all snooze for an app.
+ * @param {string} name
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function clearAppSnooze(name, statePath = defaultPath()) {
+  if (!name || typeof name !== "string") {
+    throw new TypeError("clearAppSnooze: name must be non-empty string");
+  }
+  return patchState((next, existing) => {
+    const prev = (existing.apps && existing.apps[name]);
+    if (!prev) return;
+    const { snoozeUntil: _u, skippedVersion: _v, ...rest } = prev;
+    next.apps = { ...(existing.apps || {}), [name]: rest };
+  }, statePath);
+}
+
+/**
+ * Phase C2: read snooze sub-state for one app.
+ * @param {string} name
+ * @param {string} [statePath]
+ * @returns {{snoozeUntil: number|null, skippedVersion: string|null}}
+ */
+function loadAppSnooze(name, statePath = defaultPath()) {
+  const s = load(statePath);
+  const app = s && s.apps && s.apps[name];
+  return {
+    snoozeUntil: app && typeof app.snoozeUntil === "number" ? app.snoozeUntil : null,
+    skippedVersion: app && typeof app.skippedVersion === "string" ? app.skippedVersion : null,
+  };
 }
 
 // ─── Phase 29: Last-opened ───────────────────────────────────
@@ -1311,4 +1399,8 @@ module.exports = {
   // Phase I5: daily digest sub-state
   saveDailyDigest,
   loadDailyDigest,
+  // Phase C2: per-app snooze
+  setAppSnooze,
+  clearAppSnooze,
+  loadAppSnooze,
 };
