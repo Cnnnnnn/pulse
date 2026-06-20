@@ -410,6 +410,28 @@ function registerCoreHandlers(ctx) {
       return Promise.resolve({ ok: false, reason: "threw", error: err && err.message });
     }
   });
+
+  // Phase C2: per-app snooze IPC handlers
+  safeHandle("snooze:set", (_event, name, opts) => {
+    if (!name || typeof name !== "string") return { ok: false, reason: "bad_name" };
+    if (!opts || typeof opts !== "object" || Array.isArray(opts)) return { ok: false, reason: "bad_opts" };
+    try {
+      stateStore.setAppSnooze(name, opts);
+      return { ok: true, name };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  safeHandle("snooze:clear", (_event, name) => {
+    if (!name || typeof name !== "string") return { ok: false, reason: "bad_name" };
+    try {
+      stateStore.clearAppSnooze(name);
+      return { ok: true, name };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
 }
 
 module.exports = { registerCoreHandlers };
