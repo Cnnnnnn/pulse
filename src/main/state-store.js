@@ -183,6 +183,7 @@ const PRESERVE_FIELDS = [
   { key: "ai_usage", kind: "object", notArray: true },
   { key: "ai_usage_history", kind: "object", notArray: true },
   { key: "circuitBreakers", kind: "object", notArray: true },  // Phase C1: per-detector circuit breaker state
+  { key: "daily_digest", kind: "object", notArray: true },  // Phase I5: daily digest settings + last_push_date
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -813,6 +814,42 @@ function saveActiveCategory(id, statePath = defaultPath()) {
   }, statePath);
 }
 
+// ─── Phase I5: Daily Digest (notification settings) ──────────
+
+/**
+ * Phase I5: write daily_digest sub-state. Atomic write, preserves other fields.
+ * @param {{enabled?: boolean, time?: string, last_push_date?: string|null}} cfg
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveDailyDigest(cfg, statePath = defaultPath()) {
+  if (cfg == null || typeof cfg !== "object" || Array.isArray(cfg)) {
+    throw new TypeError("saveDailyDigest: cfg must be plain object");
+  }
+  return patchState((next, existing) => {
+    const prev = (existing.daily_digest && typeof existing.daily_digest === "object")
+      ? existing.daily_digest
+      : {};
+    next.daily_digest = { ...prev, ...cfg };
+  }, statePath);
+}
+
+/**
+ * Phase I5: read daily_digest sub-state. Missing/invalid → default shape.
+ * @param {string} [statePath]
+ * @returns {{enabled: boolean, time: string, last_push_date: string|null}}
+ */
+function loadDailyDigest(statePath = defaultPath()) {
+  const s = load(statePath);
+  const def = { enabled: true, time: "08:30", last_push_date: null };
+  if (!s || !s.daily_digest || typeof s.daily_digest !== "object" || Array.isArray(s.daily_digest)) return def;
+  return {
+    enabled: typeof s.daily_digest.enabled === "boolean" ? s.daily_digest.enabled : def.enabled,
+    time: typeof s.daily_digest.time === "string" ? s.daily_digest.time : def.time,
+    last_push_date: typeof s.daily_digest.last_push_date === "string" ? s.daily_digest.last_push_date : null,
+  };
+}
+
 // ─── AI 配额快照 (ai_usage) ───────────────────────────────────
 //
 // 用途: 缓存 minimax coding plan 配额快照, 用于:
@@ -1271,4 +1308,7 @@ module.exports = {
   StateCorruptedError,
   loadOrRecover,
   getLastRecoveryEvent,
+  // Phase I5: daily digest sub-state
+  saveDailyDigest,
+  loadDailyDigest,
 };
