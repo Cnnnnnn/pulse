@@ -16,10 +16,8 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import {
-  digestDrawerOpen,
   openDigestDrawer,
   toggleDigestDrawer,
-  digestConfigMode,
   aiSessionsEnabled,
   aiTasks,
   aiTasksDateKey,
@@ -33,6 +31,7 @@ import {
   needsConfig,
   showToast,
 } from '../store.js';
+import { digestDrawerOpen, digestConfigMode } from '../digest/digest-store.js';
 import { api } from '../api.js';
 import { AIConfigForm } from './AISettingsModal.jsx';
 import { taggedLog } from '../log.js';

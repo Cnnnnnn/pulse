@@ -50,6 +50,7 @@ const { WorkerPool } = require("../workers/pool");
 const { createWindowManager } = require("./window");
 const { createTrayManager } = require("./tray");
 const { registerIpcHandlers } = require("./ipc");
+const { startDailySummaryJob } = require("./digest/daily-summary-job");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const { initStateRecovery, takeRecoveryEvent } = require("./bootstrap/state-init");
 const { mainLog, detectLog } = require("./log");
@@ -427,6 +428,56 @@ async function bootstrap() {
     getFundScheduler: () => fundScheduler,
   });
   mainLog.info(`ipc registered`);
+
+  // Phase I5: start daily digest scheduler. setInterval(60s) ticks; the job
+  // gates on enabled + last_push_date. We use setInterval so the bootstrap
+  // completes immediately without waiting for the first tick.
+  try {
+    startDailySummaryJob({
+      getState: () => {
+        try { return stateStore.load() || {}; } catch { return {}; }
+      },
+      setState: (partial) => {
+        try {
+          if (partial && partial.daily_digest) {
+            stateStore.saveDailyDigest(partial.daily_digest);
+          }
+        } catch (err) {
+          mainLog.warn(`[digest] saveDailyDigest failed: ${err && err.message}`);
+        }
+      },
+      getConfig: () => (runtimeConfigRef.current || { apps: [], notifications: {} }),
+      sendNotification: (n) => {
+        try {
+          const { Notification: ElectronNotification } = require("electron");
+          if (!ElectronNotification.isSupported || !ElectronNotification.isSupported()) {
+            mainLog.warn("[digest] notification not supported on this platform");
+            return;
+          }
+          const note = new ElectronNotification({
+            title: n.title,
+            body: n.body,
+            silent: false,
+          });
+          note.on("click", () => {
+            try {
+              if (winMgr) winMgr.showWindow();
+              const w = getWindow();
+              if (w && !w.isDestroyed()) w.webContents.send("digest:open", { date: new Date().toISOString().slice(0, 10) });
+            } catch (err) {
+              mainLog.warn(`[digest] notification click failed: ${err && err.message}`);
+            }
+          });
+          note.show();
+        } catch (err) {
+          mainLog.warn(`[digest] sendNotification threw: ${err && err.message}`);
+        }
+      },
+    });
+    mainLog.info("daily digest job started");
+  } catch (err) {
+    mainLog.warn(`[digest] job bootstrap failed: ${err && err.message}`);
+  }
   timings.ipc = Date.now() - tIpc;
 
   // 7.4) Metals IPC handlers + scheduler — must register IPC synchronously

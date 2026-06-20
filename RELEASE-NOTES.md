@@ -98,6 +98,69 @@
 
 ---
 
+## Unreleased (🌅 每日早报通知 + Digest 抽屉 — Phase I1+I5)
+
+### 新增
+- **🌅 每日早报通知 (Phase I5)**: 早 8:30 (Settings 可调时间 + 开关) 推一条精简通知,用户**不用打开 app 就知道**今天关键变化
+  - 数据来源:5 source aggregator(可升级应用 / 微博热搜 / IT 新闻 / 基金涨跌 / AI 用量预警),最多 6 行
+  - 静默:无重要变化不推;quiet hours (23:00–08:00) 内跳过;同日 `last_push_date` 闸门不重复推
+  - 点击通知 → 打开主窗口 + Digest 抽屉(480px,右侧)
+- **📋 Digest 抽屉 (Phase I1)**: 全源聚合 view,5 个 section + 每 section 独立 click-through(列表形式,留作后续"点击跳源")
+  - 与现有 AI digest 抽屉(AITasksDrawer)并列 — 抽屉里的 `digestDrawerOpen` / `digestConfigMode` signal 已迁移到 `digest-store.js` 做统一管理
+- **⚙️ Settings → AI 设置 → 每日早报通知 section**: 启用开关 + HH:MM 时间选择器,实时保存,无需重启
+
+### 变更
+- **`src/main/state-store.js`**: `PRESERVE_FIELDS` 新增 `daily_digest` 字段;新增 `saveDailyDigest(cfg)` / `loadDailyDigest()` helper
+- **`src/main/state-store-schema.js`**: `FIELD_SPECS` 新增 `daily_digest: { kind: 'object' }`(可选字段,forward-compat)
+- **`src/main/index.js`**: 启动期 `startDailySummaryJob(...)`,notification 复用现有 `electron.Notification` 注入模式;notification click → `winMgr.showWindow()` + `webContents.send('digest:open')`
+- **`src/renderer/store/ai-store.js`**: 移除 2 个 `digestDrawerOpen` / `digestConfigMode` signal 定义(已迁移到 `digest-store.js`),保留 2 处 setState 调用但改 import 路径
+- **IPC 新增**: `digest:fetch-sections` / `digest:update-settings` (renderer→main), `digest:open` (main→renderer)
+
+### 不变
+- 现有 AI digest 抽屉 (AITasksDrawer) 行为不变 — 只是 signal 定义位置迁移,功能不变
+- `notification-policy.js` `inQuietHours` 复用,不重写
+- 通知 channel 名不重,仅新增
+- forward compat: `daily_digest` 是可选字段,旧 state.json 不受影响
+- 现有 push 通知(版本检查完成时等)行为不变
+
+### 文件
+- 新增: `src/main/digest/aggregate.js` (纯函数,11 tests)
+- 新增: `src/main/digest/daily-summary-job.js` (scheduler,8 tests)
+- 新增: `src/renderer/digest/DigestDrawer.jsx` + `DigestSection.jsx` (5 tests)
+- 新增: `src/renderer/digest/digest-store.js` (signals,含迁移自 ai-store 的 2 个)
+- 新增: `src/renderer/components/DailyDigestSettings.jsx`
+- 新增: `tests/main/digest/aggregate.test.js` (11 tests)
+- 新增: `tests/main/digest/daily-summary-job.test.js` (8 tests)
+- 新增: `tests/renderer/digest/DigestDrawer.test.jsx` (5 tests)
+- 修改: `src/main/index.js` (+~50 行 bootstrap)
+- 修改: `src/main/ipc/register-core.js` (+2 safeHandle)
+- 修改: `src/main/state-store.js` (+1 PRESERVE_FIELDS + 2 helpers + 2 exports)
+- 修改: `src/main/state-store-schema.js` (+1 FIELD_SPECS entry)
+- 修改: `preload.js` (+3 method)
+- 修改: `src/renderer/api.js` (+3 wrapper)
+- 修改: `src/renderer/store/index.js` (+1 export *)
+- 修改: `src/renderer/store/ai-store.js` (-2 export + +1 import)
+- 修改: `src/renderer/components/AITasksDrawer.jsx` (import path 微调)
+- 修改: `src/renderer/components/AISettingsModal.jsx` (+1 embed)
+- 修改: `src/renderer/index.jsx` (+1 subscription)
+- 修改: `src/renderer/App.jsx` (+1 mount)
+- 修改: `styles.css` (+~99 行)
+- 修改: `RELEASE-NOTES.md` (本节)
+
+### 测试
+- 新增 24 个 digest 测试 (11 + 8 + 5)
+- 全套 2201/2203 通过,2 pre-existing unrelated 失败(`reminders weekday` + 偶发 `bootstrap-category` LLM 超时)
+- e2e(注入式)验证 7 步全通过:save/load config、aggregator 5 source sections、scheduler 在 08:30 推送并写 last_push_date、同日 re-trigger 跳过、quiet hours 跳过、空 lines 静默不写闸门、低信号 state 静默
+
+### 手动 e2e(留给用户验证)
+- Settings → AI 设置 → 每日早报通知 → 启用 + 时间设 now+2min
+- 等 trigger → 系统通知出现,标题 `🌅 Pulse 早报 · YYYY-MM-DD`,body 最多 6 行
+- 点通知 → 主窗口打开 + 右侧 Digest 抽屉出现,显示各 section
+- 调时间到 quiet hours(07:30)→ 等 trigger 不推送
+- 删除所有有数据源 + 重启 → 等 trigger 不推送(静默)
+
+---
+
 ## v2.24.1 (🔥 微博热搜 hotfix) — 2026-06-18
 
 ### 修复

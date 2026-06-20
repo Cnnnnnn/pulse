@@ -19,18 +19,19 @@
 
 import { useState, useEffect } from 'preact/hooks';
 import {
- aiSessionsConfig,
- aiKeyStatus,
- aiHealthcheckBusy,
- aiHealthcheckResult,
- aiSettingsOpen,
- probeAIKeyStatuses,
- setAIKey,
- clearAIKey,
- runAIHealthcheck,
- saveAISessionsConfig,
- openAISettings,
+  aiSessionsConfig,
+  aiKeyStatus,
+  aiHealthcheckBusy,
+  aiHealthcheckResult,
+  aiSettingsOpen,
+  probeAIKeyStatuses,
+  setAIKey,
+  clearAIKey,
+  runAIHealthcheck,
+  saveAISessionsConfig,
+  openAISettings,
 } from '../store.js';
+import { DailyDigestSettings } from './DailyDigestSettings.jsx';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.
 // - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
@@ -396,13 +397,14 @@ export function AISettingsModal() {
  <button class="btn-close" onClick={() => openAISettings(false)} title="关闭" aria-label="关闭">×</button>
  </div>
 
- <div class="modal-body">
- <AIConfigForm
- onSaved={() => openAISettings(false)}
- onCancel={() => openAISettings(false)}
- />
- </div>
- </div>
- </div>
- );
+      <div class="modal-body">
+        <AIConfigForm
+          onSaved={() => openAISettings(false)}
+          onCancel={() => openAISettings(false)}
+        />
+        <DailyDigestSettings />
+      </div>
+    </div>
+  </div>
+  );
 }

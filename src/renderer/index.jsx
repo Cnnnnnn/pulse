@@ -157,6 +157,15 @@ async function bootstrap() {
     });
   }
 
+  // Phase I5: open digest drawer on notification click
+  if (typeof api.onDigestOpen === "function") {
+    api.onDigestOpen(() => {
+      import("./store.js").then(({ digestDrawerOpen }) => {
+        digestDrawerOpen.value = true;
+      });
+    });
+  }
+
   // Phase Q8: state.json corruption self-recovery banner
   api.onStateRecovered((evt) => {
     import("./store.js").then(({ stateRecoveredSignal }) => {

@@ -64,4 +64,17 @@ describe('state-store-schema', () => {
     };
     expect(isStateValid(s)).toBe(true);
   });
+
+  it('accepts valid daily_digest field of correct type', () => {
+    const s = {
+      v: 1, ts: 0, apps: {},
+      daily_digest: { enabled: true, time: '08:30', last_push_date: '2026-06-20' },
+    };
+    expect(isStateValid(s)).toBe(true);
+  });
+
+  it('rejects daily_digest with wrong type', () => {
+    expect(isStateValid({ v: 1, ts: 0, apps: {}, daily_digest: 'bad' })).toBe(false);
+    expect(isStateValid({ v: 1, ts: 0, apps: {}, daily_digest: [] })).toBe(false);
+  });
 });
