@@ -331,15 +331,15 @@ function auditTimers(rootDir, opts) {
       if (logger) {
         if (kind === 'orphan') {
           logger.info(
-            `[timer-registry] [orphan] ${file}:${site.line} ${site.func} ${ms != null ? ms + 'ms ' : ''}(no clear found in 50 lines)`,
+            `[timer-registry] [orphan] ${file}:${site.line} ${site.func} ${site.ms != null ? site.ms + 'ms ' : ''}(no clear found in 50 lines)`,
           );
         } else if (kind === 'dup-schedule') {
           logger.info(
-            `[timer-registry] [dup-schedule] ${file}:${site.line} ${site.func} ${ms != null ? ms + 'ms ' : ''}(var ${site.var} reassigned without prior clear)`,
+            `[timer-registry] [dup-schedule] ${file}:${site.line} ${site.func} ${site.ms != null ? site.ms + 'ms ' : ''}(var ${site.var} reassigned without prior clear)`,
           );
         } else if (kind === 'debounce') {
           logger.info(
-            `[timer-registry] [debounce] ${file}:${site.line} ${site.func} ${ms != null ? ms + 'ms ' : ''}`,
+            `[timer-registry] [debounce] ${file}:${site.line} ${site.func} ${site.ms != null ? site.ms + 'ms ' : ''}`,
           );
         }
       }
