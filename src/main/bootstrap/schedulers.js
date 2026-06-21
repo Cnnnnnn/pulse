@@ -11,6 +11,7 @@ const { runCheckQueued } = require("../check-runner");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
 const { inQuietHours } = require("../notification-policy");
 const stateStore = require("../state-store");
+const { setManagedInterval, clearManaged } = require("../timer-registry");
 
 /**
  * @param {object} deps
@@ -217,35 +218,39 @@ function startAutoCheckTimer(deps) {
     return;
   }
   const AUTO_CHECK_INTERVAL_MS = checkIntervalHours * 60 * 60 * 1000;
-  const autoCheckTimer = setInterval(() => {
-    mainLog.info(`auto-check triggered (${checkIntervalHours}h)`);
-    runCheckQueued(
-      {
-        getConfig: () => runtimeConfig,
-        pool,
-        getWindow,
-        onCheckComplete: (results) => {
-          if (trayMgr) {
-            trayMgr.setResults(results);
-            const count = results.filter((r) => r.has_update).length;
-            trayMgr.setBadge(count);
-          }
-          try {
-            stateStore.saveAll(results);
-          } catch (err) {
-            mainLog.warn(`state save failed: ${err.message}`);
-          }
+  const autoCheckTimer = setManagedInterval(
+    () => {
+      mainLog.info(`auto-check triggered (${checkIntervalHours}h)`);
+      runCheckQueued(
+        {
+          getConfig: () => runtimeConfig,
+          pool,
+          getWindow,
+          onCheckComplete: (results) => {
+            if (trayMgr) {
+              trayMgr.setResults(results);
+              const count = results.filter((r) => r.has_update).length;
+              trayMgr.setBadge(count);
+            }
+            try {
+              stateStore.saveAll(results);
+            } catch (err) {
+              mainLog.warn(`state save failed: ${err.message}`);
+            }
+          },
         },
-      },
-      { silent: true },
-    ).catch((err) => {
-      mainLog.warn(`auto-check failed: ${err && err.message}`);
-    });
-  }, AUTO_CHECK_INTERVAL_MS);
+        { silent: true },
+      ).catch((err) => {
+        mainLog.warn(`auto-check failed: ${err && err.message}`);
+      });
+    },
+    AUTO_CHECK_INTERVAL_MS,
+    { label: "auto-check", file: "src/main/bootstrap/schedulers.js", line: 220 },
+  );
   mainLog.info(`auto-check timer set: every ${checkIntervalHours}h`);
   app.once("before-quit", () => {
     try {
-      clearInterval(autoCheckTimer);
+      clearManaged(autoCheckTimer);
     } catch {
       /* noop */
     }
