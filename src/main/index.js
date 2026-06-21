@@ -59,6 +59,7 @@ const stateStore = require("./state-store");
 const aiStorage = require("../ai-sessions/storage");
 const { HttpClient } = require("./http-client");
 const { computePoolSize } = require("./pool-size");
+const { auditTimers, clearAllManaged } = require("./timer-registry");
 const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
 const {
@@ -567,12 +568,32 @@ async function bootstrap() {
 
 if (app && typeof app.whenReady === "function") {
   app.whenReady().then(() => {
-    bootstrap().catch((err) => {
-      mainLog.error(`bootstrap failed: ${err.message}`);
+    // Phase Q5 v1: scan audit fixtures for timer cleanup patterns.
+    try {
+      const audit = auditTimers(
+        path.join(__dirname, "..", "tests", "fixtures", "timer-audit"),
+        { logger: mainLog },
+      );
+      mainLog.info(
+        `[timer-registry] startup audit summary: total=${audit.total} clean=${audit.clean} orphan=${audit.orphan} debounce=${audit.debounce} dupSchedule=${audit.dupSchedule}`,
+      );
+    } catch (err) {
+      mainLog.warn(`[timer-registry] startup audit failed: ${err && err.message}`);
+    }
+
+    // Phase Q5 v1: clear any remaining managed timers on quit.
+    app.once("before-quit", () => {
       try {
-        app.quit();
-      } catch {
-        /* noop */
+        const cleared = clearAllManaged();
+        if (cleared > 0) {
+          mainLog.info(
+            `[timer-registry] before-quit cleared ${cleared} managed timer(s)`,
+          );
+        }
+      } catch (err) {
+        mainLog.warn(
+          `[timer-registry] before-quit clearAllManaged failed: ${err && err.message}`,
+        );
       }
     });
   });
