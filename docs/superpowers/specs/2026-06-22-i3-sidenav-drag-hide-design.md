@@ -129,10 +129,12 @@ function arrayMove(arr, from, to, position) {
   if (from === to) return arr;
   const out = arr.slice();
   const [moved] = out.splice(from, 1);
-  // 'before' = 插到 to 之前, 'after' = 插到 to 之后
-  const insertAt = position === 'after' && to < from ? to + 1
-                : position === 'after' ? to + 1
-                : to;
+  // 'before' = 插到 to 之前(到 to 索引), 'after' = 插到 to 之后(到 to + 1 索引).
+  // splice 后 from 已移除, 所以新 to 索引视原 to vs from 比较:
+  //   - to > from: 'before' → to - 1, 'after' → to (原 to 在新数组的 to 位置)
+  //   - to < from: 'before' → to,     'after' → to + 1
+  //   - to === from: 不可能(已 return)
+  const insertAt = (to > from ? to - 1 : to) + (position === 'after' ? 1 : 0);
   out.splice(insertAt, 0, moved);
   return out;
 }
