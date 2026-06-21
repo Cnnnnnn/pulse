@@ -47,7 +47,8 @@ getStats()                          // → { count, byType: { interval: N, timeo
 
 // 控制端
 clearManaged(handle)                // 单个清理(原 + 数组移除)
-clearAllManaged(labelPrefix?)       // 全部 / 按 label 前缀
+clearAllManaged(labelPrefix?)       // labelPrefix 为 undefined 时清空所有;
+                                    // 否则只清 label 以该字符串开头的
 
 // 启动 audit(读 fixture)
 auditTimers(rootDir, opts?)         // 同步扫 fixture + 写 main log
@@ -199,7 +200,7 @@ case:
 - [ ] `src/main/index.js` 在 `app.whenReady` 之后调 `auditTimers`,失败只 warn
 - [ ] `before-quit` 钩子兜底 `clearAllManaged`(放在 index.js)
 - [ ] `npm test` 全绿(不破坏现有 230+ 测试)
-- [ ] 启动 audit 输出在 main log 可见(manual: `npm start` 跑一次看)
+- [ ] 启动 audit 输出在 main log 可见(manual: `npm start` 跑一次,`mainLog.info` 级别,前缀 `[timer-registry]`)
 - [ ] 新文件单测覆盖率 ≥ 80%
 
 ## 8. Rollout
