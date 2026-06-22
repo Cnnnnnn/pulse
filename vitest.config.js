@@ -9,21 +9,21 @@ const { defineConfig } = require("vitest/config");
 
 module.exports = defineConfig({
   test: {
-    environment: 'node',     // 默认 node；renderer 组件测试显式切到 happy-dom
-    include: ['tests/**/*.test.{js,jsx}'],
-    testTimeout: 8000,       // 多数 detector 自身 timeout 就是 8s
-    pool: 'forks',           // macOS 稳；windows 也兼容
-    globals: false,          // 显式 import，避免 vitest 1.x 的隐式全局
+    environment: "node", // 默认 node；renderer 组件测试显式切到 happy-dom
+    include: ["tests/**/*.test.{js,jsx}"],
+    testTimeout: 8000, // 多数 detector 自身 timeout 就是 8s
+    pool: "forks", // macOS 稳；windows 也兼容
+    globals: false, // 显式 import，避免 vitest 1.x 的隐式全局
     env: {
       // Phase B1: AI Sessions tests assume UTC for local-day arithmetic
       // (filterByLocalDay / _localDayStart). Default macOS / Linux tz
       // would make dayStart off by hours, breaking dateKey assumptions.
-      TZ: 'UTC',
+      TZ: "UTC",
     },
   },
   esbuild: {
-    jsx: 'automatic',
-    jsxImportSource: 'preact',
+    jsx: "automatic",
+    jsxImportSource: "preact",
   },
   resolve: {
     alias: {

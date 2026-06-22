@@ -19,7 +19,15 @@ import { trayMenuPrefs } from "../trayConfigStore.js";
 export const activeNav = signal("versions");
 export const navCollapsed = signal(false);
 
-const NAV_KEYS = new Set(["ithome", "wechat-hot", "worldcup", "funds", "metals", "ai-usage", "versions"]);
+const NAV_KEYS = new Set([
+  "ithome",
+  "wechat-hot",
+  "worldcup",
+  "funds",
+  "metals",
+  "ai-usage",
+  "versions",
+]);
 
 // 跟 src/renderer/components/SideNav.jsx 的 NAV_TO_PREFS_SEGMENT 保持一致.
 // nav key → prefs segment key. 不在 map 里的 nav 始终可见.

@@ -73,7 +73,10 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
   it("关 activeNav (versions) → 自动切到第一个可见 nav (ithome)", async () => {
     activeNav.value = "versions";
     await new Promise((r) => setTimeout(r, 0));
-    await applyPrefs({ ...ALL_ON, segments: { ...ALL_ON.segments, updates: false } });
+    await applyPrefs({
+      ...ALL_ON,
+      segments: { ...ALL_ON.segments, updates: false },
+    });
     await new Promise((r) => setTimeout(r, 0));
     expect(activeNav.value).toBe("ithome");
   });
@@ -81,7 +84,10 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
   it("关 ai-usage → 当前是 ai-usage 时切到第一个可见 nav", async () => {
     activeNav.value = "ai-usage";
     await new Promise((r) => setTimeout(r, 0));
-    await applyPrefs({ ...ALL_ON, segments: { ...ALL_ON.segments, ai_usage: false } });
+    await applyPrefs({
+      ...ALL_ON,
+      segments: { ...ALL_ON.segments, ai_usage: false },
+    });
     await new Promise((r) => setTimeout(r, 0));
     // 第一个可见的是 ithome (固定 nav)
     expect(activeNav.value).toBe("ithome");
@@ -90,7 +96,10 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
   it("activeNav 是固定 nav (funds) → 关任何动态 prefs 都不动", async () => {
     activeNav.value = "funds";
     await new Promise((r) => setTimeout(r, 0));
-    await applyPrefs({ ...ALL_ON, segments: { ...ALL_ON.segments, updates: false, ai_usage: false } });
+    await applyPrefs({
+      ...ALL_ON,
+      segments: { ...ALL_ON.segments, updates: false, ai_usage: false },
+    });
     await new Promise((r) => setTimeout(r, 0));
     expect(activeNav.value).toBe("funds");
   });
@@ -104,7 +113,10 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
   });
 
   it("手动 setActiveNav 到一个被关的 nav 也会被 effect 弹回", async () => {
-    await applyPrefs({ ...ALL_ON, segments: { ...ALL_ON.segments, worldcup: false } });
+    await applyPrefs({
+      ...ALL_ON,
+      segments: { ...ALL_ON.segments, worldcup: false },
+    });
     activeNav.value = "worldcup"; // 直接设,跳过 setActiveNav 校验
     await new Promise((r) => setTimeout(r, 0));
     expect(activeNav.value).not.toBe("worldcup");
