@@ -21,6 +21,9 @@ function createOrchestrator(deps) {
   const degradedThreshold = deps.degradedThreshold || 3;
   const cooldownThreshold = deps.cooldownThreshold || 3;
   const cooldownMs = deps.cooldownMs || 30 * 60 * 1000;
+  // 单个 source fetch 总超时 (ms). HttpClient 的 socket timeout 不覆盖 DNS/握手阶段,
+  // 镜像不可达时会无限挂起; 这层保证快速失败以触发 degraded 路径.
+  const perSourceTimeoutMs = deps.perSourceTimeoutMs || 12000;
 
   // runtime health per source
   const health = new Map();
@@ -57,7 +60,18 @@ function createOrchestrator(deps) {
         continue;
       }
       try {
-        const raw = await src.fetchUserTimeline(handleArg);
+        // HttpClient 的 req.setTimeout 只覆盖 socket inactivity, DNS/TCP 握手
+        // 阶段挂起时不触发 (镜像不可达时 fetch 无限等待, 永不 degraded).
+        // 这里包一层总超时, 保证单个 source 最多 perSourceTimeoutMs 后失败.
+        const raw = await Promise.race([
+          src.fetchUserTimeline(handleArg),
+          new Promise((_resolve, reject) => {
+            setTimeout(
+              () => reject(new Error(`source ${src.id} timeout`)),
+              perSourceTimeoutMs,
+            );
+          }),
+        ]);
         if (Array.isArray(raw)) {
           const hh = health.get(src.id);
           hh.consecutiveFailures = 0;

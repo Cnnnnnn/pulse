@@ -82,9 +82,15 @@ describe("TwitterSerenityPanel", () => {
 
   it("点强制刷新调 twitterFetch", async () => {
     twitterFetch.mockResolvedValue({ tweets: [] });
-    const { getByText } = render(<TwitterSerenityPanel />);
+    const { container } = render(<TwitterSerenityPanel />);
     await waitFor(() => expect(twitterList).toHaveBeenCalled());
-    fireEvent.click(getByText("强制刷新"));
+    // 等初始 loading 结束, 按钮回到"强制刷新"
+    await waitFor(() => {
+      const btn = container.querySelector(".serenity-refresh");
+      expect(btn).toBeTruthy();
+      expect(btn.disabled).toBe(false);
+    });
+    fireEvent.click(container.querySelector(".serenity-refresh"));
     await waitFor(() => expect(twitterFetch).toHaveBeenCalled());
   });
 

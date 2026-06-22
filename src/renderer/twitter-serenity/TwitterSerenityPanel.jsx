@@ -32,36 +32,64 @@ export function TwitterSerenityPanel() {
   const [showPasteBox, setShowPasteBox] = useState(false);
   const [pasteText, setPasteText] = useState("");
 
-  useEffect(() => {
-    let mounted = true;
-    serenityLoading.value = true;
-    // 防护: api.twitterList 在测试/非 Electron 环境可能返回 undefined (noop 兜底).
-    Promise.resolve(api.twitterList())
+  // 从 main 拉最新 cache 状态并刷 signals. refresh / paste / 初始挂载都复用.
+  function loadFromServer() {
+    return Promise.resolve(api.twitterList())
       .then((r) => {
-        if (!mounted) return;
         if (r && r.tweets) serenityTweets.value = r.tweets;
         serenityLastFetchedAt.value = r && r.lastFetchedAt;
         serenityDegraded.value = r && r.degraded;
-        serenityLoading.value = false;
       })
       .catch((e) => {
-        if (!mounted) return;
-        serenityError.value = e.message || String(e);
-        serenityLoading.value = false;
+        serenityError.value = (e && e.message) || String(e);
       });
+  }
+
+  useEffect(() => {
+    let mounted = true;
+    serenityLoading.value = true;
+    loadFromServer().finally(() => {
+      if (mounted) serenityLoading.value = false;
+    });
+
+    // 实时事件订阅: main 后台 fetch 完成或 degraded 时推送, 同步刷 signals.
+    const offUpdated = api.onTwitterUpdated
+      ? api.onTwitterUpdated((data) => {
+          if (!mounted) return;
+          if (data && data.tweets) serenityTweets.value = data.tweets;
+          if (data && data.lastFetchedAt)
+            serenityLastFetchedAt.value = data.lastFetchedAt;
+          serenityDegraded.value = false;
+        })
+      : null;
+    const offDegraded = api.onTwitterDegraded
+      ? api.onTwitterDegraded((data) => {
+          if (!mounted) return;
+          serenityDegraded.value = true;
+          // degraded 时也重新拉一次, 拿 main 的 lastFetchedAt
+          loadFromServer();
+        })
+      : null;
+
     return () => {
       mounted = false;
+      // preload.js 的事件 listener 返回的是解绑函数; 若非函数则 noop
+      if (typeof offUpdated === "function") offUpdated();
+      if (typeof offDegraded === "function") offDegraded();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function refresh() {
     serenityLoading.value = true;
     try {
-      const r = await api.twitterFetch();
-      if (r && r.tweets) serenityTweets.value = r.tweets;
-    } finally {
-      serenityLoading.value = false;
+      await api.twitterFetch();
+    } catch {
+      /* noop, loadFromServer 会反映状态 */
     }
+    // fetch 完成后重新拉 cache, 刷新 UI (fetch 返回值不含完整 cache 结构)
+    await loadFromServer();
+    serenityLoading.value = false;
   }
 
   async function handleTranslate(tweet) {
@@ -76,8 +104,7 @@ export function TwitterSerenityPanel() {
     if (r && r.results && r.results.length) {
       setPasteText("");
       setShowPasteBox(false);
-      const list = await api.twitterList();
-      if (list && list.tweets) serenityTweets.value = list.tweets;
+      await loadFromServer();
     }
   }
 
