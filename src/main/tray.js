@@ -77,9 +77,11 @@ function loadFallbackIcon() {
  * @param {object} [opts.aiUsage=null]    - A2/B2 任务: AI 配额状态
  * @param {object} [opts.worldcup=null]   - C2 任务: 世界杯比分
  * @param {object} [opts.metals=null]     - D1 任务: 贵金属行情
+ * @param {object} [opts.trayPrefs]       - Phase v1: tray 菜单项 prefs (默认 DEFAULT_PREFS 全开)
  * @param {Function} [opts.onOpenPanel]   - 点击 "打开面板" 时调用
  * @param {Function} [opts.onCheck]       - 点击 "检查更新" 时调用
  * @param {Function} [opts.onOpenConfig]  - 配置文件无路径时回退回调
+ * @param {Function} [opts.onOpenTrayConfig] - Phase v1: 点击「菜单栏配置...」时调用
  * @param {Function} [opts.onQuit]        - 点击 "退出" 时调用
  * @param {Function} [opts.onFocusUpdate] - A2 任务: 聚焦到某条 update
  * @param {Function} [opts.getConfigPath] - 返回配置文件绝对路径
@@ -92,61 +94,66 @@ function buildMenu(opts) {
     aiUsage = null,
     worldcup = null,
     metals = null,
+    trayPrefs = require("./tray-menu-prefs").DEFAULT_PREFS,
     onOpenPanel = () => {},
     onCheck = () => {},
     onOpenConfig = () => {},
+    onOpenTrayConfig = () => {},
     onQuit = () => {},
     onFocusUpdate = () => {},
     onFocusWorldcup = () => {},
     getConfigPath = () => '',
     getConfig = () => ({ apps: [] }),
   } = opts;
+  const seg = trayPrefs.segments;
   const template = [];
 
   // ─── 🔄 检查更新 (v2.22 Task A2: 内容预览) ───
-  if (results.length > 0) {
-    const updates = results.filter((r) => r.has_update);
-    const upToDate = results.filter((r) => r.status === 'up_to_date');
+  if (seg.updates) {
+    if (results.length > 0) {
+      const updates = results.filter((r) => r.has_update);
+      const upToDate = results.filter((r) => r.status === 'up_to_date');
 
-    if (updates.length > 0) {
-      template.push({
-        label: `── 🔄 检查更新 (${updates.length} 待升级) ──`,
-        enabled: false,
-      });
-      updates.forEach((r) => {
-        const ver = r.latest_version
-          ? `${r.installed_version || '?'} → ${r.latest_version}`
-          : '';
+      if (updates.length > 0) {
         template.push({
-          label: `${r.name}  ${ver}  ⬆️ 升级`,
-          click: () => {
-            onFocusUpdate({ rowName: r.name, action: 'upgrade' });
-          },
+          label: `── 🔄 检查更新 (${updates.length} 待升级) ──`,
+          enabled: false,
         });
-      });
-      template.push({ type: 'separator' });
-    } else if (upToDate.length > 0) {
-      // 没有更新时显示总览 (1 行)
+        updates.forEach((r) => {
+          const ver = r.latest_version
+            ? `${r.installed_version || '?'} → ${r.latest_version}`
+            : '';
+          template.push({
+            label: `${r.name}  ${ver}  ⬆️ 升级`,
+            click: () => {
+              onFocusUpdate({ rowName: r.name, action: 'upgrade' });
+            },
+          });
+        });
+        template.push({ type: 'separator' });
+      } else if (upToDate.length > 0) {
+        // 没有更新时显示总览 (1 行)
+        template.push({
+          label: `── 🔄 检查更新 · 全部最新 (${upToDate.length}) ──`,
+          enabled: false,
+        });
+        template.push({
+          label: '  点击"检查更新"手动刷新',
+          enabled: false,
+        });
+        template.push({ type: 'separator' });
+      }
+    } else {
       template.push({
-        label: `── 🔄 检查更新 · 全部最新 (${upToDate.length}) ──`,
-        enabled: false,
-      });
-      template.push({
-        label: '  点击"检查更新"手动刷新',
+        label: '── 🔄 检查更新 · 尚未检查 ──',
         enabled: false,
       });
       template.push({ type: 'separator' });
     }
-  } else {
-    template.push({
-      label: '── 🔄 检查更新 · 尚未检查 ──',
-      enabled: false,
-    });
-    template.push({ type: 'separator' });
   }
 
   // ─── 📊 AI coding plan 用量 (v2.22 Task B2) ───
-  if (aiUsage) {
+  if (seg.ai_usage && aiUsage) {
     const lines = buildAiUsageLines(aiUsage);
     if (lines.length > 0) {
       template.push({ label: "── 📊 AI coding plan 用量 ──", enabled: false });
@@ -158,7 +165,7 @@ function buildMenu(opts) {
   }
 
   // ─── ⚽ 世界杯 (v2.22 Task C2) ───
-  if (worldcup) {
+  if (seg.worldcup && worldcup) {
     const wcLines = buildWorldcupLines(worldcup, onFocusWorldcup);
     if (wcLines.length > 0) {
       template.push({ label: "── ⚽ 世界杯 ──", enabled: false });
@@ -170,7 +177,7 @@ function buildMenu(opts) {
   }
 
   // ─── 💎 贵金属 (v2.22 Task D1) ───
-  if (metals) {
+  if (seg.metals && metals) {
     const ml = buildMetalsLines(metals);
     if (ml.length > 0) {
       template.push({ label: "── 💎 贵金属 ──", enabled: false });
@@ -181,22 +188,24 @@ function buildMenu(opts) {
     }
   }
 
-  // ─── 底部 action (不变) ───
-  template.push(
-    { label: '打开面板', click: () => onOpenPanel() },
-    { label: '检查更新', click: () => onCheck() },
-    { type: 'separator' },
-    {
+  // ─── 底部 action (Phase v1: check_action / config_action 可关, 打开面板 + 退出锁死) ───
+  template.push({ label: '打开面板', click: () => onOpenPanel() });
+  if (seg.check_action) {
+    template.push({ label: '检查更新', click: () => onCheck() });
+  }
+  template.push({ type: 'separator' });
+  if (seg.config_action) {
+    template.push({
       label: '打开配置文件',
       click: () => {
         const p = getConfigPath();
         if (p) require('electron').shell.openPath(p);
         else onOpenConfig();
       },
-    },
-    { type: 'separator' },
-    { label: '退出', click: () => onQuit() }
-  );
+    });
+  }
+  template.push({ type: 'separator' });
+  template.push({ label: '退出', click: () => onQuit() });
   return template;
 }
 
