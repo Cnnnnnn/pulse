@@ -10,11 +10,11 @@
 import { signal } from "@preact/signals";
 import { trackFundView, trackIthomeView } from "../recent/track.js";
 
-// activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'ai-usage' | 'serenity' | 'versions', 默认 'versions'
+// activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'ai-usage' | 'versions', 默认 'versions'
 export const activeNav = signal("versions");
 export const navCollapsed = signal(false);
 
-const NAV_KEYS = new Set(["ithome", "wechat-hot", "worldcup", "funds", "metals", "ai-usage", "serenity", "versions"]);
+const NAV_KEYS = new Set(["ithome", "wechat-hot", "worldcup", "funds", "metals", "ai-usage", "versions"]);
 
 export function setActiveNav(key) {
   if (!NAV_KEYS.has(key)) return;

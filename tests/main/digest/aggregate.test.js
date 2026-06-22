@@ -9,9 +9,9 @@ import { aggregate, MAX_LINES, SECTION_ORDER } from '../../../src/main/digest/ag
 const NOW = new Date('2026-06-20T08:30:00');
 
 describe('aggregate', () => {
-  it('exports MAX_LINES = 6 and SECTION_ORDER with 7 kinds (incl. serenity)', () => {
+  it('exports MAX_LINES = 6 and SECTION_ORDER with 6 kinds', () => {
     expect(MAX_LINES).toBe(6);
-    expect(SECTION_ORDER).toEqual(['updates', 'hot', 'news', 'funds', 'ai_usage', 'worldcup', 'serenity']);
+    expect(SECTION_ORDER).toEqual(['updates', 'hot', 'news', 'funds', 'ai_usage', 'worldcup']);
   });
 
   it('returns empty sections + empty lines for empty state', () => {

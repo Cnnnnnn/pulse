@@ -10,7 +10,6 @@ const LABELS = {
   funds: { title: '基金变动', icon: '💹' },
   ai_usage: { title: 'AI 用量预警', icon: '⚠' },
   worldcup: { title: '今日比赛', icon: '⚽' },
-  serenity: { title: 'Serenity 推文', icon: '🐦' },
 };
 
 export function DigestSection({ section }) {
@@ -48,10 +47,6 @@ function renderItem(kind, it) {
       return `${it.provider} ${it.percent}%`;
     case 'worldcup':
       return `${it.home} vs ${it.away}`;
-    case 'serenity': {
-      const tag = it.isTranslated ? '[译] ' : '';
-      return `${tag}@${it.handle}: ${it.text}`;
-    }
     default:
       return JSON.stringify(it);
   }

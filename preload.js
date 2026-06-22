@@ -209,23 +209,6 @@ contextBridge.exposeInMainWorld("api", {
 
   // v2.12 主进程未捕获错误兜底 (main:error)
   onMainError: (cb) => ipcRenderer.on("main:error", (_, data) => cb(data)),
-
-  // Twitter Serenity (spec 2026-06-22)
-  twitterList: () => ipcRenderer.invoke("twitter:list"),
-  twitterFetch: () => ipcRenderer.invoke("twitter:fetch"),
-  twitterTranslate: (tweet) => ipcRenderer.invoke("twitter:translate", tweet),
-  twitterSourcesList: () => ipcRenderer.invoke("twitter:sources:list"),
-  twitterSourcesAdd: (src) => ipcRenderer.invoke("twitter:sources:add", src),
-  twitterSourcesRemove: (id) =>
-    ipcRenderer.invoke("twitter:sources:remove", id),
-  twitterSourcesTest: (src) =>
-    ipcRenderer.invoke("twitter:sources:test", src),
-  twitterManualPaste: (text) =>
-    ipcRenderer.invoke("twitter:manual-paste", text),
-  onTwitterUpdated: (cb) =>
-    ipcRenderer.on("twitter:updated", (_, data) => cb(data)),
-  onTwitterDegraded: (cb) =>
-    ipcRenderer.on("twitter:degraded", (_, data) => cb(data)),
 });
 
 // 贵金属 (v2.20.0) — 独立 contextBridge, 跟 funds / reminders / worldcup 一致

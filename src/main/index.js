@@ -51,7 +51,6 @@ const { createWindowManager } = require("./window");
 const { createTrayManager } = require("./tray");
 const { registerIpcHandlers } = require("./ipc");
 const { startDailySummaryJob } = require("./digest/daily-summary-job");
-const { startTwitterSerenity, stopTwitterSerenity } = require("./twitter-serenity");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const {
   initStateRecovery,
@@ -527,25 +526,6 @@ async function bootstrap() {
   } catch (err) {
     mainLog.warn(`[digest] job bootstrap failed: ${err && err.message}`);
   }
-
-  // 7.3b) Twitter Serenity — register IPC + start 5min poll scheduler.
-  //       IPC handlers must register synchronously (same reason as metals above).
-  //       scheduler.start() 立即触发首次 fetch (判 quiet hours), 后续 5min 轮询.
-  try {
-    startTwitterSerenity({
-      ipcMain,
-      logger: mainLog,
-      sendEvent: (channel, payload) => {
-        const w = getWindow();
-        if (w && !w.isDestroyed()) w.webContents.send(channel, payload);
-      },
-    });
-    mainLog.info("twitter-serenity started");
-  } catch (err) {
-    mainLog.warn(
-      `[twitter-serenity] bootstrap failed: ${err && err.message}`,
-    );
-  }
   timings.ipc = Date.now() - tIpc;
 
   // 7.4) Metals IPC handlers + scheduler — must register IPC synchronously
@@ -718,11 +698,6 @@ if (app && typeof app.whenReady === "function") {
     }
     try {
       stopMetalScheduler();
-    } catch {
-      /* noop */
-    }
-    try {
-      stopTwitterSerenity();
     } catch {
       /* noop */
     }

@@ -32,7 +32,6 @@ import {
   openAISettings,
 } from '../store.js';
 import { DailyDigestSettings } from './DailyDigestSettings.jsx';
-import { TwitterSourcesSettings } from '../twitter-serenity/TwitterSourcesSettings.jsx';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.
 // - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
@@ -404,7 +403,6 @@ export function AISettingsModal() {
           onCancel={() => openAISettings(false)}
         />
         <DailyDigestSettings />
-        <TwitterSourcesSettings />
       </div>
     </div>
   </div>
