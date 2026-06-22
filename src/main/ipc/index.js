@@ -4,6 +4,7 @@
 
 const { createIpcContext } = require("./context");
 const { registerCoreHandlers } = require("./register-core");
+const { registerTrayConfigHandlers } = require("./register-tray-config");
 const { registerOpenUrlHandlers } = require("./register-open-url");
 const { registerRemindersRecentHandlers } = require("./register-reminders-recent");
 const { registerAiHandlers } = require("./register-ai");
@@ -20,6 +21,7 @@ const { registerWechatHotHandlers } = require("./register-wechat-hot");
 function registerIpcHandlers(deps) {
   const ctx = createIpcContext(deps);
   registerCoreHandlers(ctx);
+  registerTrayConfigHandlers(ctx); // Phase v1: tray 菜单配置
   registerOpenUrlHandlers(ctx);
   registerRemindersRecentHandlers(ctx);
   registerAiHandlers(ctx);
