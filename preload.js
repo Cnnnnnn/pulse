@@ -217,6 +217,31 @@ contextBridge.exposeInMainWorld("api", {
   windowClose: () => ipcRenderer.invoke("window:close"),
 });
 
+// Phase v1: Tray 菜单配置 (主面板内 modal)
+// 独立 contextBridge 跟在 metalsApi 后面, 不并入 `api` 因为 spec 把这个当作"用户偏好面板",
+// 不属于业务 API 表面 (供未来 power user / 第三方接入复用).
+contextBridge.exposeInMainWorld("pulse", {
+  tray: {
+    // 渲染端主动通知 main (目前 modal 走 main → renderer 的 open 信号,
+    // 这里保留对称 API, 方便未来由 renderer 直接发起).
+    openConfig: () => ipcRenderer.send("tray:open-config"),
+    closeConfigModal: () => ipcRenderer.send("tray:close-config"),
+    getPrefs: () => ipcRenderer.invoke("tray:get-prefs"),
+    savePrefs: (prefs) => ipcRenderer.invoke("tray:save-prefs", prefs),
+    // main → renderer listener (返回 unsubscribe 函数, modal unmount 时清理).
+    onOpenConfig: (cb) => {
+      const handler = (_evt) => cb();
+      ipcRenderer.on("tray:open-config", handler);
+      return () => ipcRenderer.removeListener("tray:open-config", handler);
+    },
+    onCloseConfigModal: (cb) => {
+      const handler = (_evt) => cb();
+      ipcRenderer.on("tray:close-config", handler);
+      return () => ipcRenderer.removeListener("tray:close-config", handler);
+    },
+  },
+});
+
 // 贵金属 (v2.20.0) — 独立 contextBridge, 跟 funds / reminders / worldcup 一致
 contextBridge.exposeInMainWorld("metalsApi", {
   list: () => ipcRenderer.invoke("metals:list"),
