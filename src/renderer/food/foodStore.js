@@ -38,6 +38,7 @@ export function resetFoodState() {
   foodList.value = [];
   foodLoading.value = false;
   foodError.value = null;
+  foodConfig.value = { hasAmapKey: false };
 }
 
 export async function loadFoodConfig() {

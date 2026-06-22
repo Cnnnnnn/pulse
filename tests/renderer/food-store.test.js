@@ -14,9 +14,11 @@ import {
   foodList,
   foodLoading,
   foodError,
+  foodConfig,
   setFoodList,
   setFoodLoading,
   setFoodError,
+  setFoodConfig,
   resetFoodState,
 } from "../../src/renderer/food/foodStore.js";
 
@@ -50,9 +52,11 @@ describe("foodStore state machine", () => {
     setFoodList([{ id: "1" }]);
     setFoodLoading(true);
     setFoodError("e");
+    setFoodConfig({ hasAmapKey: true });
     resetFoodState();
     expect(foodList.value).toEqual([]);
     expect(foodLoading.value).toBe(false);
     expect(foodError.value).toBeNull();
+    expect(foodConfig.value).toEqual({ hasAmapKey: false });
   });
 });
