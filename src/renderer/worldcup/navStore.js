@@ -27,6 +27,7 @@ const NAV_KEYS = new Set([
   "metals",
   "ai-usage",
   "versions",
+  "food",
 ]);
 
 // 跟 src/renderer/components/SideNav.jsx 的 NAV_TO_PREFS_SEGMENT 保持一致.
