@@ -345,12 +345,14 @@ function createTrayManager(opts) {
   const onCheck = opts.onCheck || (() => {});
   const onOpenPanel = opts.onOpenPanel || (() => {});
   const onOpenConfig = opts.onOpenConfig || (() => {});
+  const onOpenTrayConfig = opts.onOpenTrayConfig || (() => {});
   const onQuit = opts.onQuit || (() => {});
   const onFocusUpdate = opts.onFocusUpdate || (() => {});
   const onFocusWorldcup = opts.onFocusWorldcup || (() => {});
 
   let tray = null;
   let lastResults = [];
+  let lastTrayMenuPrefs = require("./tray-menu-prefs").DEFAULT_PREFS;
 
   function install() {
     let icon = loadTrayIcon();
@@ -377,15 +379,24 @@ function createTrayManager(opts) {
       aiUsage: lastAiUsage,
       worldcup: lastWorldcup,
       metals: lastMetals,
+      trayPrefs: lastTrayMenuPrefs,
       getConfig: getConfig,
       onOpenPanel,
       onCheck,
       onOpenConfig,
+      onOpenTrayConfig,
       onQuit,
       onFocusUpdate,
       onFocusWorldcup,
       getConfigPath,
     });
+    // Phase v1: 锁死位置,在「退出」上方拼「菜单栏配置...」(用户可配置入口,锁死位置不漂移)
+    if (template.length > 0 && template[template.length - 1].label === '退出') {
+      template.splice(-1, 0,
+        { type: 'separator' },
+        { label: '菜单栏配置...', click: () => onOpenTrayConfig() },
+      );
+    }
     tray.setContextMenu(Menu.buildFromTemplate(template));
   }
 
@@ -427,6 +438,13 @@ function createTrayManager(opts) {
     scheduleRebuild();
   }
 
+  // Phase v1: 注入 prefs,触发 rebuild. trayPrefs 是 normalizePrefs 归一化过的对象.
+  function setTrayMenuPrefs(prefs) {
+    const { normalizePrefs, DEFAULT_PREFS: DEF } = require("./tray-menu-prefs");
+    lastTrayMenuPrefs = normalizePrefs(prefs) || DEF;
+    scheduleRebuild();
+  }
+
   function setBadge(updateCount) {
     if (!tray) return;
     if (updateCount > 0) {
@@ -448,7 +466,7 @@ function createTrayManager(opts) {
     }
   }
 
-  return { install, setResults, setBadge, setAiUsage, setWorldcup, setMetals, dispose };
+  return { install, setResults, setBadge, setAiUsage, setWorldcup, setMetals, setTrayMenuPrefs, dispose };
 }
 
 module.exports = {
