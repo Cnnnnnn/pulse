@@ -63,7 +63,7 @@ class StateCorruptedError extends Error {
   }
 }
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const LEGACY_STATE_PATH = path.join(
   os.homedir(),
@@ -631,6 +631,72 @@ function saveWorldcupTxt(entry, statePath = defaultPath()) {
   }
   return patchState((next) => {
     next.worldcup_txt = { txt: entry.txt, ts: entry.ts };
+  }, statePath);
+}
+
+/**
+ * Twitter Serenity — 内置默认镜像源 (首次启动写入 state.json, 用户可在设置页改).
+ * 对齐 spec §5.3: 3 个 Nitter 派生 + 1 个公共 RSSHub.
+ */
+const DEFAULT_TWITTER_SOURCES = [
+  { id: "nitter-twiiit", type: "nitter", url: "https://twiiit.com", enabled: true, priority: 1 },
+  { id: "nitter-xcancel", type: "nitter", url: "https://xcancel.com", enabled: true, priority: 2 },
+  { id: "nitter-poast", type: "nitter", url: "https://nitter.poast.org", enabled: true, priority: 3 },
+  { id: "rsshub-public", type: "rsshub", url: "https://rsshub.app", enabled: true, priority: 4 },
+];
+
+/**
+ * 读 twitterCache. 老 state.json (无字段) → null.
+ * @param {string} [statePath]
+ * @returns {object|null}  twitterCache 对象 (handle/tweets/translations/...)
+ */
+function loadTwitterCache(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return null;
+  if (!s.twitterCache || typeof s.twitterCache !== "object") return null;
+  return s.twitterCache;
+}
+
+/**
+ * 写 twitterCache. atomic write, 保留所有其他字段 (走 patchState 范式).
+ * @param {object} cache
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveTwitterCache(cache, statePath = defaultPath()) {
+  if (!cache || typeof cache !== "object" || Array.isArray(cache)) {
+    throw new TypeError("saveTwitterCache: cache must be plain object");
+  }
+  return patchState((next) => {
+    next.twitterCache = cache;
+  }, statePath);
+}
+
+/**
+ * 读 twitterSources. 无值或空数组 → 返回默认 4 镜像 (首次启动 fallback).
+ * @param {string} [statePath]
+ * @returns {object[]}  镜像源配置数组
+ */
+function loadTwitterSources(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (s && Array.isArray(s.twitterSources) && s.twitterSources.length > 0) {
+    return s.twitterSources;
+  }
+  return DEFAULT_TWITTER_SOURCES.slice();
+}
+
+/**
+ * 写 twitterSources. atomic write, 保留所有其他字段.
+ * @param {object[]} sources
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveTwitterSources(sources, statePath = defaultPath()) {
+  if (!Array.isArray(sources)) {
+    throw new TypeError("saveTwitterSources: sources must be array");
+  }
+  return patchState((next) => {
+    next.twitterSources = sources;
   }, statePath);
 }
 
@@ -1403,4 +1469,10 @@ module.exports = {
   setAppSnooze,
   clearAppSnooze,
   loadAppSnooze,
+  // Twitter Serenity (spec 2026-06-22)
+  DEFAULT_TWITTER_SOURCES,
+  loadTwitterCache,
+  saveTwitterCache,
+  loadTwitterSources,
+  saveTwitterSources,
 };

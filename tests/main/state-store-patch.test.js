@@ -99,7 +99,7 @@ describe("patchState (公共范式)", () => {
     seed({ v: 1, ts: 1, apps: { A: { name: "A" } } });
     const next = patchState(undefined, statePath);
     expect(next.apps.A).toBeDefined();
-    expect(next.v).toBe(1);
+    expect(next.v).toBe(2);
   });
 });
 

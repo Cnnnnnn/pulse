@@ -8,7 +8,7 @@
  * This module must stay dependency-free (require only Node built-ins).
  */
 
-const STATE_SCHEMA_VERSION = 1;
+const STATE_SCHEMA_VERSION = 2;
 
 // Per-field type spec. Each entry is a predicate function.
 // If a field is absent it's "ok" (optional). If present, must match.
@@ -36,6 +36,8 @@ const FIELD_SPECS = {
   worldcup_bracket_snapshot: { kind: 'object' },
   worldcupGoalNotified: { kind: 'object' },
   daily_digest:       { kind: 'object' },
+  twitterCache:       { kind: 'object' },
+  twitterSources:     { kind: 'array' },
 };
 
 function isObject(v) {

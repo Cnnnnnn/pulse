@@ -6,8 +6,8 @@ import {
 } from '../../src/main/state-store-schema.js';
 
 describe('state-store-schema', () => {
-  it('exports the same schema version as state-store (1)', () => {
-    expect(STATE_SCHEMA_VERSION).toBe(1);
+  it('exports the current schema version (2, bumped for twitterCache/twitterSources)', () => {
+    expect(STATE_SCHEMA_VERSION).toBe(2);
   });
 
   it('accepts a minimal valid state', () => {

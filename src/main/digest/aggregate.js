@@ -13,7 +13,7 @@
 
 const MAX_LINES = 6;
 
-const SECTION_ORDER = ['updates', 'hot', 'news', 'funds', 'ai_usage', 'worldcup'];
+const SECTION_ORDER = ['updates', 'hot', 'news', 'funds', 'ai_usage', 'worldcup', 'serenity'];
 
 const MAX_LINE_LEN = 60;
 const UPDATES_CAP = 3;
@@ -22,6 +22,7 @@ const NEWS_CAP = 1;
 const FUNDS_CAP = 2;
 const AI_USAGE_CAP = 1;
 const WORLDUP_CAP = 1;
+const SERENITY_CAP = 3;
 const AI_USAGE_THRESHOLD_PCT = 80;
 const FUND_DELTA_THRESHOLD_PCT = 1;
 
@@ -116,6 +117,21 @@ function sectionWorldcup(wc) {
   return first ? { kind: 'worldcup', items: [{ home: first.home, away: first.away, kickoff: first.kickoff }] } : null;
 }
 
+// Twitter Serenity (spec 2026-06-22 §6.3): Top 3 最新推文, 优先译文
+function sectionSerenity(twitterCache) {
+  if (!twitterCache || !Array.isArray(twitterCache.tweets) || twitterCache.tweets.length === 0) return null;
+  const translations = twitterCache.translations || {};
+  const items = twitterCache.tweets.slice(0, SERENITY_CAP).map((t) => {
+    const zh = translations[t.id];
+    return {
+      handle: (t.author && t.author.handle) || '',
+      text: zh || truncate(t.text || '', MAX_LINE_LEN),
+      isTranslated: !!zh,
+    };
+  });
+  return { kind: 'serenity', items };
+}
+
 function lineFor(s) {
   if (!s || !s.items || !s.items.length) return null;
   const first = s.items[0];
@@ -136,6 +152,10 @@ function lineFor(s) {
       return `• AI 用量: ${first.provider} ${first.percent}%`;
     case 'worldcup':
       return `• 比赛: ${first.home} vs ${first.away}`;
+    case 'serenity': {
+      const tag = first.isTranslated ? '[译] ' : '';
+      return `• Serenity: ${tag}@${first.handle}: ${first.text}`;
+    }
     default:
       return null;
   }
@@ -159,6 +179,7 @@ function aggregate(state, opts = {}) {
     () => sectionFunds(s.funds),
     () => sectionAiUsage(s.ai_usage),
     () => sectionWorldcup(s.worldcup),
+    () => sectionSerenity(s.twitterCache),
   ];
 
   const sections = [];

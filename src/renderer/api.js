@@ -137,6 +137,17 @@ export function createApi(overrides = {}) {
     // Phase C2: per-app snooze
     setAppSnooze: pick(overrides, "setAppSnooze"),
     clearAppSnooze: pick(overrides, "clearAppSnooze"),
+    // Twitter Serenity (spec 2026-06-22)
+    twitterList: pick(overrides, "twitterList"),
+    twitterFetch: pick(overrides, "twitterFetch"),
+    twitterTranslate: pick(overrides, "twitterTranslate"),
+    twitterSourcesList: pick(overrides, "twitterSourcesList"),
+    twitterSourcesAdd: pick(overrides, "twitterSourcesAdd"),
+    twitterSourcesRemove: pick(overrides, "twitterSourcesRemove"),
+    twitterSourcesTest: pick(overrides, "twitterSourcesTest"),
+    twitterManualPaste: pick(overrides, "twitterManualPaste"),
+    onTwitterUpdated: pick(overrides, "onTwitterUpdated"),
+    onTwitterDegraded: pick(overrides, "onTwitterDegraded"),
   };
 }
 
