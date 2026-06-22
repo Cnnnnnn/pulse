@@ -52,7 +52,10 @@ const { createTrayManager } = require("./tray");
 const { registerIpcHandlers } = require("./ipc");
 const { startDailySummaryJob } = require("./digest/daily-summary-job");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
-const { initStateRecovery, takeRecoveryEvent } = require("./bootstrap/state-init");
+const {
+  initStateRecovery,
+  takeRecoveryEvent,
+} = require("./bootstrap/state-init");
 const { initErrorCapture } = require("./bootstrap/error-init");
 const { mainLog, detectLog } = require("./log");
 const stateStore = require("./state-store");
@@ -234,7 +237,7 @@ async function bootstrap() {
   pool = new WorkerPool({
     size: poolSize,
     workerScript,
-      workerOpts: { workerData: { arch: ARCH, platform: process.platform } },
+    workerOpts: { workerData: { arch: ARCH, platform: process.platform } },
     onProgress: (payload) => {
       const w = getWindow();
       if (w && !w.isDestroyed()) {
@@ -307,7 +310,9 @@ async function bootstrap() {
         if (winMgr) winMgr.showWindow();
         const w = getWindow();
         if (w && !w.isDestroyed()) {
-          w.webContents.send("worldcup:focus-match", { matchKey: data && data.matchKey });
+          w.webContents.send("worldcup:focus-match", {
+            matchKey: data && data.matchKey,
+          });
         }
       },
     });
@@ -327,7 +332,9 @@ async function bootstrap() {
   let aiUsageScheduler = null;
   try {
     const { createAiUsageCache } = require("./ai-usage-cache");
-    const { createAiUsageRefreshScheduler } = require("./ai-usage-refresh-scheduler");
+    const {
+      createAiUsageRefreshScheduler,
+    } = require("./ai-usage-refresh-scheduler");
     const aiUsageCache = createAiUsageCache({});
     if (trayMgr) {
       trayMgr.setAiUsage({
@@ -349,7 +356,11 @@ async function bootstrap() {
         },
         storage: {
           loadApiKey: (pid) => {
-            try { return aiStorage.loadApiKey(pid); } catch { return null; }
+            try {
+              return aiStorage.loadApiKey(pid);
+            } catch {
+              return null;
+            }
           },
         },
         MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
@@ -400,9 +411,16 @@ async function bootstrap() {
     // 60s 轮询作为 fallback (防止 scheduler 没推过来时 tray 仍能反映最新).
     // 主推送路径仍是 registerMetalIpc({onUpdateTray}) 钩点.
     const METALS_TRAY_REFRESH_MS = 60 * 1000;
-    const metalsTrayTimer = setInterval(pushMetalsToTray, METALS_TRAY_REFRESH_MS);
+    const metalsTrayTimer = setInterval(
+      pushMetalsToTray,
+      METALS_TRAY_REFRESH_MS,
+    );
     app.once("before-quit", () => {
-      try { clearInterval(metalsTrayTimer); } catch { /* noop */ }
+      try {
+        clearInterval(metalsTrayTimer);
+      } catch {
+        /* noop */
+      }
     });
   } catch (err) {
     mainLog.warn(`metals tray init failed: ${err && err.message}`);
@@ -444,7 +462,11 @@ async function bootstrap() {
   try {
     startDailySummaryJob({
       getState: () => {
-        try { return stateStore.load() || {}; } catch { return {}; }
+        try {
+          return stateStore.load() || {};
+        } catch {
+          return {};
+        }
       },
       setState: (partial) => {
         try {
@@ -452,15 +474,23 @@ async function bootstrap() {
             stateStore.saveDailyDigest(partial.daily_digest);
           }
         } catch (err) {
-          mainLog.warn(`[digest] saveDailyDigest failed: ${err && err.message}`);
+          mainLog.warn(
+            `[digest] saveDailyDigest failed: ${err && err.message}`,
+          );
         }
       },
-      getConfig: () => (runtimeConfigRef.current || { apps: [], notifications: {} }),
+      getConfig: () =>
+        runtimeConfigRef.current || { apps: [], notifications: {} },
       sendNotification: (n) => {
         try {
           const { Notification: ElectronNotification } = require("electron");
-          if (!ElectronNotification.isSupported || !ElectronNotification.isSupported()) {
-            mainLog.warn("[digest] notification not supported on this platform");
+          if (
+            !ElectronNotification.isSupported ||
+            !ElectronNotification.isSupported()
+          ) {
+            mainLog.warn(
+              "[digest] notification not supported on this platform",
+            );
             return;
           }
           const note = new ElectronNotification({
@@ -472,14 +502,21 @@ async function bootstrap() {
             try {
               if (winMgr) winMgr.showWindow();
               const w = getWindow();
-              if (w && !w.isDestroyed()) w.webContents.send("digest:open", { date: new Date().toISOString().slice(0, 10) });
+              if (w && !w.isDestroyed())
+                w.webContents.send("digest:open", {
+                  date: new Date().toISOString().slice(0, 10),
+                });
             } catch (err) {
-              mainLog.warn(`[digest] notification click failed: ${err && err.message}`);
+              mainLog.warn(
+                `[digest] notification click failed: ${err && err.message}`,
+              );
             }
           });
           note.show();
         } catch (err) {
-          mainLog.warn(`[digest] sendNotification threw: ${err && err.message}`);
+          mainLog.warn(
+            `[digest] sendNotification threw: ${err && err.message}`,
+          );
         }
       },
     });
@@ -504,9 +541,13 @@ async function bootstrap() {
     onUpdateTray: () => {
       if (!trayMgr) return;
       try {
-        const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc");
+        const {
+          getTraySnapshot: getMetalsTraySnapshot,
+        } = require("./metal-ipc");
         trayMgr.setMetals(getMetalsTraySnapshot());
-      } catch (err) { /* noop */ }
+      } catch (err) {
+        /* noop */
+      }
     },
   });
 
@@ -569,6 +610,7 @@ async function bootstrap() {
 if (app && typeof app.whenReady === "function") {
   app.whenReady().then(() => {
     // Phase Q5 v1: scan audit fixtures for timer cleanup patterns.
+    // 必须在 bootstrap() 之前跑 — timer-audit 读 fixture 只读, 不依赖 runtime state.
     try {
       const audit = auditTimers(
         path.join(__dirname, "..", "tests", "fixtures", "timer-audit"),
@@ -578,8 +620,21 @@ if (app && typeof app.whenReady === "function") {
         `[timer-registry] startup audit summary: total=${audit.total} clean=${audit.clean} orphan=${audit.orphan} debounce=${audit.debounce} dupSchedule=${audit.dupSchedule}`,
       );
     } catch (err) {
-      mainLog.warn(`[timer-registry] startup audit failed: ${err && err.message}`);
+      mainLog.warn(
+        `[timer-registry] startup audit failed: ${err && err.message}`,
+      );
     }
+
+    // 启动主流程 (window/tray/IPC/schedulers). 必须 await, 否则后续 lifecycle handler
+    // (activate / before-quit) 引用闭包变量 (pool/trayMgr/aiUsageScheduler) 会拿到 undefined.
+    bootstrap().catch((err) => {
+      mainLog.error(`bootstrap failed: ${err.message}`);
+      try {
+        app.quit();
+      } catch {
+        /* noop */
+      }
+    });
 
     // Phase Q5 v1: clear any remaining managed timers on quit.
     app.once("before-quit", () => {
@@ -645,7 +700,11 @@ if (app && typeof app.whenReady === "function") {
       /* noop */
     }
     if (aiUsageScheduler) {
-      try { aiUsageScheduler.stop(); } catch { /* noop */ }
+      try {
+        aiUsageScheduler.stop();
+      } catch {
+        /* noop */
+      }
     }
     mainLog.info("app quitting");
   });

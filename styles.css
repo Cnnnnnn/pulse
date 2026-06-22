@@ -3226,6 +3226,22 @@ body {
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
+  /* 折叠态 (40px) 下两个按钮总宽超容器, 允许 wrap 避免第一个被 overflow:hidden 裁切 */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* 折叠态: header-actions 容器只有 40px, 两个图标按钮必须上下排 */
+.side-nav-collapsed .side-nav-header-actions {
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+}
+
+.side-nav-collapsed .side-nav-refresh-btn,
+.side-nav-collapsed .side-nav-toggle {
+  padding: 4px 4px;
 }
 
 .side-nav-refresh-btn {
