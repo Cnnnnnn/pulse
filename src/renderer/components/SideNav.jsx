@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { key: 'funds',     icon: '💰', label: '基金管理', tooltip: '基金持仓 + 实时盈亏 (v2.10+)' },
   { key: 'metals',    icon: '🥇', label: '贵金属', tooltip: '黄金白银实时价格 + 持仓盈亏' },
   { key: 'ai-usage',  icon: '📊', label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
+  { key: 'serenity',  icon: '🐦', label: 'Serenity', tooltip: 'Serenity 财经推文 + AI 中文翻译' },
   { key: 'versions',  icon: '🔄', label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
 ];
 
