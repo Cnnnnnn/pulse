@@ -140,17 +140,18 @@ describe("classifyUnmappedAppsByLLM (async, fire-and-forget)", () => {
       { name: "Cursor", bundle: "Cursor.app" }, // 已分类 (dev)
       { name: "UnknownApp", bundle: "Unknown.app" }, // 未分类
     ]);
-    // 注入 mock LLM caller: 让 classifyByLLM 返 { unknownapp: 'dev' }
-    const llmCaller = async () => '{"unknownapp": "dev"}';
-    await classifyUnmappedAppsByLLM(cfg, {
-      stateStore,
-      // classifyByLLM 内部需要 categoryConfig.classifyByLLM 接受 llmCaller
-      // 但它的 signature 是 (unmapped, { llmCaller, timeoutMs })
-      // 这里直接通过 module-level setLLMCaller (test helper)
-    });
-    // 上面没传 llmCaller, classifyByLLM 会返 {} (graceful skip)
-    // 关键断言: 不抛
-    expect(true).toBe(true);
+    // 注入 mock llmCaller 避免真打 ollama (127.0.0.1:11434 没服务会等到 25s 超时)
+    const llmCaller = vi.fn(async () => '{"unknownapp": "dev"}');
+    await classifyUnmappedAppsByLLM(cfg, { stateStore, llmCaller });
+    // mock 被调 (说明走到了 LLM 分支, 不是空 cached 短路)
+    expect(llmCaller).toHaveBeenCalledTimes(1);
+    // mock JSON 解析后写入 cache → getCategory 返 'dev'
+    expect(categoryConfig.getCategory("UnknownApp")).toBe("dev");
+    // 写入磁盘
+    expect(stateStore.saveLLMClassifyCache).toHaveBeenCalledTimes(1);
+    expect(stateStore.saveLLMClassifyCache).toHaveBeenCalledWith(
+      expect.objectContaining({ unknownapp: "dev" }),
+    );
   });
 
   it("空 config / 无 apps → noop, 不抛", async () => {
@@ -161,14 +162,21 @@ describe("classifyUnmappedAppsByLLM (async, fire-and-forget)", () => {
     ).not.toThrow();
   });
 
-  it("classifyByLLM 抛错 → 不向外抛 (内部 try/catch 兜住)", async () => {
+  it("llmCaller 抛错 → 不向外抛 (内部 try/catch 兜住)", async () => {
     const stateStore = makeStateStore();
     const cfg = makeAppConfig([{ name: "X1" }]);
-    // classifyByLLM 内部会因没 llmCaller 返 {}, 不会抛. 我们只断言:
-    // 调用方能安全 await, 不抛.
+    const llmCaller = vi.fn(async () => {
+      throw new Error("simulated ollama 502");
+    });
+    // 调用方能安全 await, 不抛; mock 失败时 classifyByLLM 内部 try/catch
+    // 兜住, 返 {}, 落到 "0 results" warn log 分支.
     await expect(
-      classifyUnmappedAppsByLLM(cfg, { stateStore }),
+      classifyUnmappedAppsByLLM(cfg, { stateStore, llmCaller }),
     ).resolves.toBeUndefined();
+    expect(llmCaller).toHaveBeenCalledTimes(1);
+    // LLM 失败: cache 没写, save 也没调
+    expect(stateStore.saveLLMClassifyCache).not.toHaveBeenCalled();
+    expect(categoryConfig.getCategory("X1")).toBe("other");
   });
 });
 

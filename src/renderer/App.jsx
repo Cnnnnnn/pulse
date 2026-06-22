@@ -15,6 +15,7 @@
  */
 
 import { checkSession } from './store.js';
+import { api } from './api.js';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { AISettingsModal } from './components/AISettingsModal.jsx';
 import { Toast } from './components/Toast.jsx';
@@ -26,11 +27,52 @@ import { AppShell } from './components/AppShell.jsx';
 import { RemindersModal } from './reminders/RemindersModal.jsx';
 import { RecentActivityModal } from './recent/RecentActivityModal.jsx';
 
+const isWin = (typeof window !== 'undefined' && window.platformInfo && window.platformInfo.platform) === 'win32';
+
 export function App({ onCheck }) {
   const session = checkSession.value;
   return (
     <div id="app">
-      <div id="titlebar"></div>
+      <div id="titlebar">
+        {isWin && (
+          <div class="window-controls">
+            <button
+              type="button"
+              class="window-control-btn window-control-btn--minimize"
+              onClick={() => api.windowMinimize()}
+              title="最小化"
+              aria-label="最小化"
+            >
+              {/* 减号图标 (SVG, Win11 风格) */}
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <rect x="0" y="4.25" width="10" height="1.5" fill="currentColor" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="window-control-btn window-control-btn--maximize"
+              onClick={() => api.windowToggleMaximize()}
+              title="最大化"
+              aria-label="最大化"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.2" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="window-control-btn window-control-btn--close"
+              onClick={() => api.windowClose()}
+              title="关闭"
+              aria-label="关闭"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <path d="M0.7 0.7 L9.3 9.3 M9.3 0.7 L0.7 9.3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
       <main id="content">
         <AppShell onCheck={onCheck} />
       </main>

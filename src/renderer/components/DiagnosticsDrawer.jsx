@@ -72,36 +72,43 @@ export function DiagnosticsDrawer() {
   }
 
   return (
-    <aside class="diagnostics-drawer" role="complementary">
-      <header class="diagnostics-drawer__header">
-        <span class="diagnostics-drawer__title">错误诊断</span>
-        <button class="btn btn-sm" onClick={refresh}>刷新</button>
-        <button class="btn btn-sm" onClick={copyAll}>复制全部</button>
-        <button class="btn btn-sm" onClick={openFolder}>打开文件夹</button>
-        <button class="diagnostics-drawer__close" onClick={close} aria-label="关闭">×</button>
-      </header>
-      <div class="diagnostics-drawer__stats">
-        共 <b>{stats.total}</b> 条 · error: {stats.byLevel.error || 0} · warn: {stats.byLevel.warn || 0} · unhandled: {stats.byLevel.unhandled || 0}
-      </div>
-      <div class="diagnostics-drawer__body">
-        {loading && <div class="diagnostics-drawer__loading">加载中...</div>}
-        {!loading && entries.length === 0 && (
-          <div class="diagnostics-drawer__empty">暂无错误</div>
-        )}
-        {!loading && entries.map((e) => (
-          <div key={e.id} class={`error-entry error-entry--${e.source || 'main'} error-entry--${e.level || 'error'}`}>
-            <div class="error-entry__meta">
-              <span class="error-entry__time">{fmtTs(e.ts)}</span>
-              <span class="error-entry__source">[{e.source}]</span>
-              <span class="error-entry__level">{e.level}</span>
+    <>
+      <div
+        class={`diagnostics-overlay ${open ? 'visible' : ''}`}
+        onClick={close}
+        aria-hidden="true"
+      />
+      <aside class="diagnostics-drawer" role="complementary">
+        <header class="diagnostics-drawer__header">
+          <span class="diagnostics-drawer__title">错误诊断</span>
+          <button class="btn btn-sm" onClick={refresh}>刷新</button>
+          <button class="btn btn-sm" onClick={copyAll}>复制全部</button>
+          <button class="btn btn-sm" onClick={openFolder}>打开文件夹</button>
+          <button class="diagnostics-drawer__close" onClick={close} aria-label="关闭">×</button>
+        </header>
+        <div class="diagnostics-drawer__stats">
+          共 <b>{stats.total}</b> 条 · error: {stats.byLevel.error || 0} · warn: {stats.byLevel.warn || 0} · unhandled: {stats.byLevel.unhandled || 0}
+        </div>
+        <div class="diagnostics-drawer__body">
+          {loading && <div class="diagnostics-drawer__loading">加载中...</div>}
+          {!loading && entries.length === 0 && (
+            <div class="diagnostics-drawer__empty">暂无错误</div>
+          )}
+          {!loading && entries.map((e) => (
+            <div key={e.id} class={`error-entry error-entry--${e.source || 'main'} error-entry--${e.level || 'error'}`}>
+              <div class="error-entry__meta">
+                <span class="error-entry__time">{fmtTs(e.ts)}</span>
+                <span class="error-entry__source">[{e.source}]</span>
+                <span class="error-entry__level">{e.level}</span>
+              </div>
+              <div class="error-entry__message">{e.message}</div>
             </div>
-            <div class="error-entry__message">{e.message}</div>
-          </div>
-        ))}
-      </div>
-      <footer class="diagnostics-drawer__footer">
-        <button class="btn btn-sm" onClick={clearOld}>清理 &gt; 30 天</button>
-      </footer>
-    </aside>
+          ))}
+        </div>
+        <footer class="diagnostics-drawer__footer">
+          <button class="btn btn-sm" onClick={clearOld}>清理 &gt; 30 天</button>
+        </footer>
+      </aside>
+    </>
   );
 }

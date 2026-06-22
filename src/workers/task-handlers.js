@@ -12,7 +12,9 @@ const { runDetectorChain } = require("./detector-chain");
 const { getInstalledVersion } = require("./installed-version");
 const { buildDetectResult } = require("./result-builder");
 const { sendProgress, postLog, ARCH, PLATFORM } = require("./ipc");
-const { AppBundleChangelogDetector } = require("../detectors/app-bundle-changelog");
+const {
+  AppBundleChangelogDetector,
+} = require("../detectors/app-bundle-changelog");
 
 const pExecFile = promisify(execFile);
 
@@ -23,10 +25,7 @@ function withTimeout(promise, ms, label) {
   return Promise.race([
     promise,
     new Promise((_, reject) => {
-      setTimeout(
-        () => reject(new Error(`${label} timeout after ${ms}ms`)),
-        ms,
-      );
+      setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms);
     }),
   ]);
 }
@@ -38,18 +37,21 @@ async function handleDetectApp(appCfg, deps) {
   const startedAt = Date.now();
   sendProgress({ task: "detect-app", name, status: "started", ts: startedAt });
 
-  const appExists = (() => {
-    try {
-      // Windows: 没有固定安装路径, resolveAppPath 返回 win_bundle 标记.
-      // 不走 fs.existsSync, 直接当成 "可能安装", 让 getInstalledVersion (注册表) 判断.
-      if (process.platform === 'win32') {
-        return !!platform.resolveAppPath(bundle, appCfg);
-      }
-      return fs.existsSync(platform.resolveAppPath(bundle, appCfg));
-    } catch {
-      return false;
+  let appExists;
+  try {
+    // Windows: resolveAppPath 只回 win_bundle 字符串 (静态配置), 拿它做
+    // "appExists" 判定永远 true, 哪怕用户根本没装这个 app — 结果就是
+    // getInstalledVersion 返回 null → 标 version_unknown → UI 误显示
+    // "已安装版本无法读取". 改走真正的安装探测: win 上调 getInstalledVersion
+    // (注册表扫 + version_sources), 返回 null 即视为未安装.
+    if (process.platform === "win32") {
+      appExists = !!(await platform.getInstalledVersion(appCfg));
+    } else {
+      appExists = fs.existsSync(platform.resolveAppPath(bundle, appCfg));
     }
-  })();
+  } catch {
+    appExists = false;
+  }
   if (!appExists) {
     const r = {
       name,

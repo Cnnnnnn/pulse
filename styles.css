@@ -98,12 +98,41 @@ body.platform-win {
   --bg-secondary: rgba(36, 36, 42, 0.95);
   --bg-card: rgba(44, 44, 52, 0.95);
   --bg-modal: #2c2c34;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.06);
+  --surface: #2c2c34;
+  --surface-soft: #36363f;
+  --bg-elevated: #36363f;
+  --bg-tertiary: #3a3a44;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --bg-section: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.05);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --hover-soft: rgba(255, 255, 255, 0.06);
   /* 提高文字对比度 — Windows 上 acrylic 背景下旧值太灰看不清 */
   --text-primary: #f0f0f5;
   --text-secondary: #b8b8c4;
   --text-tertiary: #8888a0;
+  /* 副标题/弱化文本 (wechat-hot list-title 等用 var(--text-soft)):
+     浅色 :root 默认 rgba(0,0,0,0.55) 在深色 bg 上几乎不可见.
+     Win 上调成浅色透明白, 跟 --text-secondary 同档对比度. */
+  --text-soft: rgba(255, 255, 255, 0.72);
+  /* 强调色: 浅色 :root 默认 #007aff 在深色 acrylic bg 上对比度差.
+     改用 macOS dark scheme 的 #0a84ff 同款 (已在 prefers-color-scheme dark 块里用).
+     保持跨 light/dark scheme 一致, win 上总是显示亮蓝. */
+  --accent-primary: #0a84ff;
+  --accent-blue: #0a84ff;
+  --accent-orange: #ff9f0a;
+  --accent-green: #30d158;
+  --accent-red: #ff453a;
+  --accent-fund: #0a84ff;
+  --accent-worldcup: #0a84ff;
+  --accent-versions: #0a84ff;
+  /* 上涨/下跌 (金融面板) 在深色 bg 上微调 */
+  --color-up: #ff453a;
+  --color-down: #30d158;
+  /* focus ring 也提亮, 不然深色 bg 看不到 */
+  --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.45);
   /* Windows 上字体渲染比 mac 偏小, 全局放大 1px (13→14 基准) */
   font-size: 14px;
 }
@@ -136,6 +165,38 @@ body {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
+}
+
+/* macOS 走 hiddenInset: OS 自带红黄绿三颗灯, 我们不画 (避免重复) */
+#titlebar .window-controls { display: none; }
+/* Win 上 titleBarStyle:'hidden' 隐藏了 OS 三键 → renderer 补三个按钮 */
+body.platform-win #titlebar { display: flex; justify-content: flex-end; align-items: stretch; }
+body.platform-win #titlebar .window-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+body.platform-win .window-control-btn {
+  width: 46px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary, #6e6e73);
+  font-family: var(--font-system);
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background var(--transition, 0.18s ease), color var(--transition, 0.18s ease);
+}
+body.platform-win .window-control-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #f0f0f5);
+}
+body.platform-win .window-control-btn--close:hover {
+  background: #c42b1c;
+  color: #ffffff;
 }
 
 /* ─── App 容器 ─── */
@@ -2754,6 +2815,19 @@ body {
 }
 
 /* ── Phase Q6: Diagnostics drawer + ErrorBoundary ── */
+.diagnostics-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  transition: background 200ms ease;
+  z-index: 4000;
+}
+.diagnostics-overlay.visible {
+  background: rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+}
+
 .diagnostics-drawer {
   position: fixed;
   top: 0;
@@ -2764,7 +2838,7 @@ body {
   background: var(--bg-primary, #fff);
   border-left: 1px solid var(--bg-secondary, #e5e5ea);
   box-shadow: -4px 0 12px rgba(0,0,0,0.08);
-  z-index: 1000;
+  z-index: 4100;
   display: flex;
   flex-direction: column;
   font-size: 13px;
@@ -2776,23 +2850,40 @@ body {
   gap: 6px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
+  min-height: 44px;
+}
+.diagnostics-drawer__header .btn-sm {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
 }
 .diagnostics-drawer__title {
   font-weight: 600;
   font-size: 14px;
-  margin-right: 8px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .diagnostics-drawer__close {
   background: transparent;
   border: 0;
   cursor: pointer;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   color: var(--text-tertiary, #666);
-  margin-left: auto;
-  padding: 0 4px;
+  padding: 0;
+  margin-left: 6px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 4px);
+  flex-shrink: 0;
 }
-.diagnostics-drawer__close:hover { color: var(--text-primary, #222); }
+.diagnostics-drawer__close:hover { color: var(--text-primary, #222); background: var(--bg-hover, #f5f5f7); }
 .diagnostics-drawer__stats {
   padding: 6px 12px;
   font-size: 12px;

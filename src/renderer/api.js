@@ -137,6 +137,12 @@ export function createApi(overrides = {}) {
     // Phase C2: per-app snooze
     setAppSnooze: pick(overrides, "setAppSnooze"),
     clearAppSnooze: pick(overrides, "clearAppSnooze"),
+    // Win 窗口控件 (renderer 画的 min/max/close 按钮调这里).
+    // 在 mac 上虽然也调, 但 renderer 这边只在 body.platform-win 渲染按钮,
+    // 不会触达. 兜底函数保 noop 避免 undefined crash.
+    windowMinimize: pick(overrides, "windowMinimize"),
+    windowToggleMaximize: pick(overrides, "windowToggleMaximize"),
+    windowClose: pick(overrides, "windowClose"),
   };
 }
 

@@ -209,6 +209,12 @@ contextBridge.exposeInMainWorld("api", {
 
   // v2.12 主进程未捕获错误兜底 (main:error)
   onMainError: (cb) => ipcRenderer.on("main:error", (_, data) => cb(data)),
+
+  // Win 窗口控件: titleBarStyle:'hidden' 隐藏 OS 三键, renderer 画按钮调这里.
+  // mac 走 hiddenInset 自带三颗灯, 不调这里.
+  windowMinimize: () => ipcRenderer.invoke("window:minimize"),
+  windowToggleMaximize: () => ipcRenderer.invoke("window:toggle-maximize"),
+  windowClose: () => ipcRenderer.invoke("window:close"),
 });
 
 // 贵金属 (v2.20.0) — 独立 contextBridge, 跟 funds / reminders / worldcup 一致

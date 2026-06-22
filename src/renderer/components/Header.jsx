@@ -15,6 +15,7 @@ import { BulkUpgradeButton } from './BulkUpgradeButton.jsx';
 import { AITasksButton } from './AITasksDrawer.jsx';
 import { RemindersButton } from '../reminders/RemindersModal.jsx';
 import { RecentButton } from '../recent/RecentActivityModal.jsx';
+import { diagnosticsDrawerOpen } from '../diagnostics/diagnostics-store.js';
 
 export function Header({ onCheck }) {
   const session = checkSession.value;
@@ -52,11 +53,16 @@ export function Header({ onCheck }) {
         <RemindersButton />
         <RecentButton />
         <button
-          class="header-btn"
-          onClick={() => import("../diagnostics/diagnostics-store.js").then(({ diagnosticsDrawerOpen }) => { diagnosticsDrawerOpen.value = true; })}
+          id="btn-diagnostics"
+          class={`btn btn-ghost btn-icon ${diagnosticsDrawerOpen.value ? 'is-active' : ''}`}
+          onClick={() => { diagnosticsDrawerOpen.value = !diagnosticsDrawerOpen.value; }}
           title="错误诊断"
+          aria-label="错误诊断"
+          aria-expanded={diagnosticsDrawerOpen.value}
         >
-          🛠
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </svg>
         </button>
       </div>
     </header>

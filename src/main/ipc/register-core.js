@@ -12,8 +12,15 @@ let bulkUpgradeCtrl = null;
 let bulkUpgradeRunning = false;
 
 function registerCoreHandlers(ctx) {
-  const { getConfig, pool, getWindow, onCheckComplete, getCachedState, sendToRenderer, safeHandle } =
-    ctx;
+  const {
+    getConfig,
+    pool,
+    getWindow,
+    onCheckComplete,
+    getCachedState,
+    sendToRenderer,
+    safeHandle,
+  } = ctx;
 
   ipcMain.handle("get-config", () => {
     try {
@@ -155,6 +162,29 @@ function registerCoreHandlers(ctx) {
       });
       return { error: "threw" };
     }
+  });
+
+  // Win 走 titleBarStyle:'hidden' 把 OS 三键隐藏, renderer 画三个按钮调这里.
+  // mac 走 hiddenInset 自带三颗灯, 不调这里. 不做平台守卫 — 调了也对 mac 无副作用
+  // (Win 上 hide 行为已存在, mac 上 minimize/close 走 hide 同路径, maximize 走 OS 全屏).
+  ipcMain.handle("window:minimize", () => {
+    const w = getWindow();
+    if (w && !w.isDestroyed()) w.minimize();
+  });
+  ipcMain.handle("window:toggle-maximize", () => {
+    const w = getWindow();
+    if (!w || w.isDestroyed()) return { maximized: false };
+    if (w.isMaximized()) w.unmaximize();
+    else w.maximize();
+    return { maximized: w.isMaximized() };
+  });
+  ipcMain.handle("window:close", () => {
+    // 走 window.close() 让 isQuitting 守卫在 window.js 接管:
+    //   - quit 中 (Cmd+Q / tray quit) → 真退出
+    //   - 否则 → hide (tray 模式)
+    // 不要直接 w.destroy(), 否则 tray 模式窗口再开不回来.
+    const w = getWindow();
+    if (w && !w.isDestroyed()) w.close();
   });
 
   ipcMain.handle("get-mutes", () => {
@@ -309,7 +339,13 @@ function registerCoreHandlers(ctx) {
       const result = aggregate(state, { now: new Date() });
       return { ok: true, ...result };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message, sections: [], lines: [] };
+      return {
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+        sections: [],
+        lines: [],
+      };
     }
   });
 
@@ -329,14 +365,31 @@ function registerCoreHandlers(ctx) {
   });
 
   // Phase Q6: error aggregator IPC handlers
-  safeHandle("error:fetch-entries", (_event, opts) => {
+  safeHandle("error:fetch-entries", async (_event, opts) => {
     try {
       const { getInstance } = require("../bootstrap/error-init");
       const inst = getInstance();
-      if (!inst) return { ok: false, reason: "not_initialized", entries: [], stats: { total: 0, byLevel: {}, skipped: 0 } };
-      return inst.aggregator.query(opts || {});
+      if (!inst)
+        return {
+          ok: false,
+          reason: "not_initialized",
+          entries: [],
+          stats: { total: 0, byLevel: {}, skipped: 0 },
+        };
+      const r = await inst.aggregator.query(opts || {});
+      return {
+        ok: true,
+        entries: r.entries || [],
+        stats: r.stats || { total: 0, byLevel: {}, skipped: 0 },
+      };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message, entries: [], stats: { total: 0, byLevel: {}, skipped: 0 } };
+      return {
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+        entries: [],
+        stats: { total: 0, byLevel: {}, skipped: 0 },
+      };
     }
   });
 
@@ -344,13 +397,23 @@ function registerCoreHandlers(ctx) {
     try {
       const { getInstance } = require("../bootstrap/error-init");
       const inst = getInstance();
-      if (!inst) return Promise.resolve({ ok: false, reason: "not_initialized", text: "" });
+      if (!inst)
+        return Promise.resolve({
+          ok: false,
+          reason: "not_initialized",
+          text: "",
+        });
       return inst.aggregator.query({}).then((r) => ({
         ok: true,
         text: (r.entries || []).map((e) => JSON.stringify(e)).join("\n"),
       }));
     } catch (err) {
-      return Promise.resolve({ ok: false, reason: "threw", error: err && err.message, text: "" });
+      return Promise.resolve({
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+        text: "",
+      });
     }
   });
 
@@ -365,7 +428,11 @@ function registerCoreHandlers(ctx) {
         note: "ZIP export deferred; logs dir returned.",
       });
     } catch (err) {
-      return Promise.resolve({ ok: false, reason: "threw", error: err && err.message });
+      return Promise.resolve({
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+      });
     }
   });
 
@@ -373,10 +440,22 @@ function registerCoreHandlers(ctx) {
     try {
       const { getInstance } = require("../bootstrap/error-init");
       const inst = getInstance();
-      if (!inst) return Promise.resolve({ ok: false, reason: "not_initialized", removed: 0 });
-      return inst.aggregator.cleanup().then((removed) => ({ ok: true, removed }));
+      if (!inst)
+        return Promise.resolve({
+          ok: false,
+          reason: "not_initialized",
+          removed: 0,
+        });
+      return inst.aggregator
+        .cleanup()
+        .then((removed) => ({ ok: true, removed }));
     } catch (err) {
-      return Promise.resolve({ ok: false, reason: "threw", error: err && err.message, removed: 0 });
+      return Promise.resolve({
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+        removed: 0,
+      });
     }
   });
 
@@ -399,22 +478,30 @@ function registerCoreHandlers(ctx) {
       const { getInstance } = require("../bootstrap/error-init");
       const inst = getInstance();
       if (!inst || !entry) return { ok: false, reason: "no_instance_or_entry" };
-      return inst.aggregator.append({
-        source: 'renderer',
-        level: entry.level || 'error',
-        message: entry.message || 'unknown',
-        stack: entry.stack || '',
-        context: { ...(entry.context || {}), kind: 'renderer-report' },
-      }).then((e) => ({ ok: true, id: e.id }));
+      return inst.aggregator
+        .append({
+          source: "renderer",
+          level: entry.level || "error",
+          message: entry.message || "unknown",
+          stack: entry.stack || "",
+          context: { ...(entry.context || {}), kind: "renderer-report" },
+        })
+        .then((e) => ({ ok: true, id: e.id }));
     } catch (err) {
-      return Promise.resolve({ ok: false, reason: "threw", error: err && err.message });
+      return Promise.resolve({
+        ok: false,
+        reason: "threw",
+        error: err && err.message,
+      });
     }
   });
 
   // Phase C2: per-app snooze IPC handlers
   safeHandle("snooze:set", (_event, name, opts) => {
-    if (!name || typeof name !== "string") return { ok: false, reason: "bad_name" };
-    if (!opts || typeof opts !== "object" || Array.isArray(opts)) return { ok: false, reason: "bad_opts" };
+    if (!name || typeof name !== "string")
+      return { ok: false, reason: "bad_name" };
+    if (!opts || typeof opts !== "object" || Array.isArray(opts))
+      return { ok: false, reason: "bad_opts" };
     try {
       stateStore.setAppSnooze(name, opts);
       return { ok: true, name };
@@ -424,7 +511,8 @@ function registerCoreHandlers(ctx) {
   });
 
   safeHandle("snooze:clear", (_event, name) => {
-    if (!name || typeof name !== "string") return { ok: false, reason: "bad_name" };
+    if (!name || typeof name !== "string")
+      return { ok: false, reason: "bad_name" };
     try {
       stateStore.clearAppSnooze(name);
       return { ok: true, name };

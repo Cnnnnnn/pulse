@@ -64,9 +64,11 @@ function loadCategoryConfig() {
  * @param {object} runtimeConfig
  * @param {object} deps
  * @param {object} deps.stateStore
+ * @param {function} [deps.llmCaller]  可选, 测试用; 不传则走内置 ollama caller.
+ *                                     signature: async (systemMsg, userMsg) => string
  */
 async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
-  const { stateStore } = deps;
+  const { stateStore, llmCaller: externalLlmCaller } = deps;
   const t0 = Date.now();
   if (
     !runtimeConfig ||
@@ -105,10 +107,45 @@ async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
   }
   mainLog.info(`[category] ${unmapped.length} unmapped apps → LLM classify`);
 
+  const llmCaller = externalLlmCaller || defaultOllamaCaller();
+
+  let llmResult = {};
+  try {
+    llmResult = await categoryConfig.classifyByLLM(unmapped, {
+      llmCaller,
+      timeoutMs: 28_000,
+    });
+  } catch (err) {
+    mainLog.warn(`[category] LLM classify threw: ${err.message}`);
+  }
+
+  if (Object.keys(llmResult).length > 0) {
+    categoryConfig.setLLMCache(llmResult);
+    stateStore.saveLLMClassifyCache(llmResult);
+    mainLog.info(
+      `[category] LLM classified ${Object.keys(llmResult).length}/${unmapped.length} apps in ${Date.now() - t0}ms: ${Object.entries(
+        llmResult,
+      )
+        .map(([k, v]) => `${k}→${v}`)
+        .join(", ")}`,
+    );
+  } else {
+    mainLog.warn(
+      `[category] LLM classify returned 0 results in ${Date.now() - t0}ms (apps will fall through to 'other')`,
+    );
+  }
+}
+
+/**
+ * 默认 ollama caller — 内置 localhost:11434 + qwen2.5-coder:7b.
+ * 拆成 named function 是为了让 (a) deps.llmCaller override 走快速路径
+ * (b) 单测能 mock ollama 这一层 (不用 stub HttpClient).
+ */
+function defaultOllamaCaller() {
   const host = "http://127.0.0.1:11434";
   const model = "qwen2.5-coder:7b";
   const http = new HttpClient({ timeout: 30_000, maxRetries: 0 });
-  const llmCaller = async (systemMsg, userMsg) => {
+  return async (systemMsg, userMsg) => {
     const r = await http.post(
       `${host}/api/chat`,
       {
@@ -142,32 +179,6 @@ async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
         : "";
     return content;
   };
-
-  let llmResult = {};
-  try {
-    llmResult = await categoryConfig.classifyByLLM(unmapped, {
-      llmCaller,
-      timeoutMs: 28_000,
-    });
-  } catch (err) {
-    mainLog.warn(`[category] LLM classify threw: ${err.message}`);
-  }
-
-  if (Object.keys(llmResult).length > 0) {
-    categoryConfig.setLLMCache(llmResult);
-    stateStore.saveLLMClassifyCache(llmResult);
-    mainLog.info(
-      `[category] LLM classified ${Object.keys(llmResult).length}/${unmapped.length} apps in ${Date.now() - t0}ms: ${Object.entries(
-        llmResult,
-      )
-        .map(([k, v]) => `${k}→${v}`)
-        .join(", ")}`,
-    );
-  } else {
-    mainLog.warn(
-      `[category] LLM classify returned 0 results in ${Date.now() - t0}ms (apps will fall through to 'other')`,
-    );
-  }
 }
 
 /**
