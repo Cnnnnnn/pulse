@@ -3,6 +3,7 @@
 | 日期       | 作者         | 状态                          |
 | ---------- | ------------ | ----------------------------- |
 | 2026-06-22 | brainstorming | 设计已批准,待 writing-plans |
+| 2026-06-22 | (扩展) | v1 扩展:同步联动主面板 nav tab |
 
 > 本 spec 对应用户原话:「菜单栏配置选择展示能力,比如有些用户他跟本不需要用到检查更新,他可以移除掉」。
 > 不属于产品路线图直接编号任务,作为零散功能 v1 立项。
@@ -21,6 +22,15 @@
 - 配置 UI 是主面板内的 modal(不开新 BrowserWindow)
 - 持久化到 `state.json.tray_menu_prefs`
 - happy-dom 单测覆盖 prefs 纯函数 + buildMenu 接线 + modal 关键交互
+
+**v1 扩展(同日,实现期发现单控菜单栏不彻底)**:
+
+- 4 个动态段(`updates` / `ai_usage` / `worldcup` / `metals`)**同时联动**主面板 SideNav 对应 nav tab:
+  - `updates` ↔ `🔄 版本检查` · `ai_usage` ↔ `📊 AI 用量` · `worldcup` ↔ `🏆 世界杯` · `metals` ↔ `🥇 贵金属`
+- 3 个固定 nav(`📰 IT 新闻` / `🔥 微博热搜` / `💰 基金管理`)+ 「🤖 AI 配置」按钮 **始终显示**(spec v1 没覆盖,留)
+- `check_action` / `config_action` **只影响**菜单栏底部按钮(主面板无对应 nav)
+- 当前 `activeNav` 被关时,自动切到第一个可见 nav(让用户进面板总有内容看)
+- 实现要点:`SideNav` 订阅 `trayMenuPrefs` signal 过滤 nav 项;`navStore.installNavWatch()` effect 检测 `activeNav` 被关时切换
 
 **v1 明确不做**(留给后续版本):
 
@@ -54,9 +64,22 @@
 ### 2.3 完全不动
 
 - `config.json` — 用户的 tray 偏好不进产品配置文件(那是产品配置,这是用户偏好)
-- `src/renderer/store.js`、`App.jsx`、`navStore.js` — modal 顶层 mounted,不进 nav store
+- `src/renderer/store.js`、`App.jsx` — modal 顶层 mounted,不进 nav store
 - `src/renderer/api.js` — IPC bridge 已经在 modal 里 `window.pulse.tray.*` 直调
 - 「打开面板」「退出」的渲染逻辑 — 锁死写死在 `buildMenu`
+
+### 2.3.1 v1 扩展期调整(改动文件从 5 个增到 7 个)
+
+| 文件 | 改动 | 估行 |
+|---|---|---|
+| `src/renderer/components/SideNav.jsx` | 加 `NAV_TO_PREFS_SEGMENT` map,4 个动态 nav 项订阅 `trayMenuPrefs` 过滤 | +15 |
+| `src/renderer/worldcup/navStore.js` | 加 `installNavWatch()` effect — current nav 被关时切到第一个可见 | +25 |
+| `src/renderer/trayConfigStore.js` | 加 `trayMenuPrefs` signal + `applyTrayPrefsFromMain(prefs)` | +10 |
+| `src/renderer/index.jsx` | bootstrap 拉 prefs → apply + installNavWatch | +12 |
+| `src/renderer/components/TrayMenuConfigModal.jsx` | 保存成功后 `applyTrayPrefsFromMain` (SideNav 立即过滤) | +3 |
+| `jsconfig.json` + `vitest.config.js` | 新增 `@main/*` alias,允许 renderer import `src/main/*`(让 `TRAY_SEGMENTS` 单源真相在 renderer 测试里能解析) | +4 |
+
+> 关键:navStore.js **改了**(原 spec 把它列在"完全不动",v1 扩展期被动)。`activeNav` 仍然在 navStore,**不**进 trayConfigStore — effect 装在 navStore 是因为 `activeNav` 是它管理的状态。
 
 ### 2.4 模块依赖图
 
@@ -296,6 +319,33 @@ tray.setContextMenu(Menu.buildFromTemplate(tpl));
 2. 切换 checkbox → 「保存」按钮从 disabled 变 enabled
 3. 点「保存」 → 调 `savePrefs`,且传入参数包含完整 6 个 key 的 `segments` 对象
 
+### 4.4 `tests/renderer/sidenav-prefs.test.jsx`(≥ 5 case)— v1 扩展
+
+SideNav 根据 `trayMenuPrefs` 过滤 nav 项:
+
+1. 默认 prefs 全开 → 7 个 nav 全显示
+2. 关 `updates` → `versions` nav 隐藏
+3. 关 `ai_usage` → `ai-usage` nav 隐藏
+4. 4 个动态全关 → 只剩 3 个固定 nav(ithome / wechat-hot / funds)
+5. 只关 `check_action` / `config_action`(只影响菜单栏底部) → SideNav 全部 nav 仍显示
+
+### 4.5 `tests/renderer/nav-store-prefs.test.js`(≥ 4 case)— v1 扩展
+
+`navStore.installNavWatch` effect:
+
+1. 全开 prefs → `activeNav` 不变
+2. 关 `activeNav` 对应 segment → 自动切到第一个可见 nav(ithome 兜底)
+3. `activeNav` 是固定 nav(funds) → 关任何动态 prefs 都不动
+4. 4 个动态全关 + `activeNav=versions` → 切到 `ithome`
+
+### 4.6 `tests/renderer/tray-config-store.test.js`(≥ 3 case)— v1 扩展
+
+`trayConfigStore.trayMenuPrefs` signal + `applyTrayPrefsFromMain`:
+
+1. `openTrayConfig` / `closeTrayConfig` 切换 `trayConfigOpen`
+2. `applyTrayPrefsFromMain` 合法 prefs → 更新 signal
+3. `applyTrayPrefsFromMain` 非法(null / 非对象 / 缺 segments)→ 不动 signal
+
 ## 5. 错误处理
 
 | 场景 | 处理 |
@@ -323,5 +373,15 @@ tray.setContextMenu(Menu.buildFromTemplate(tpl));
 **边界已 cover**:
 
 - 6 项全关 → 菜单退化到 3 行(打开面板 / 菜单栏配置... / 退出),不空
-- 老用户升级 → 无 `tray_menu_prefs` 字段 → 自动全开
+- 4 个动态全关 → SideNav 退化到 4 个固定项(IT 新闻 / 微博热搜 / 基金管理 / AI 配置),`activeNav` 自动切到 `ithome`
+- 当前 `activeNav` 是被关的动态 nav → effect 立即切到第一个可见 nav(用户不会看到空白面板)
+- 老用户升级 → 无 `tray_menu_prefs` 字段 → 自动全开(SideNav 显示全部 7 nav)
 - 锁死项不进 schema 也不进 UI,单一真相 = `buildMenu` 硬编码 + modal 的 `TRAY_SEGMENTS` 常量 6 项
+- `@main/*` alias 让 renderer 在测试里能解析 `src/main/tray-menu-prefs.js`(避免重复定义常量)
+
+**v1 扩展期未做**(留给后续版本,跟 v1 不冲突):
+
+- 主面板 nav tab 顺序拖拽重排 — 主面板 nav 顺序固定,跟 menu 一样只 on/off
+- nav tab 内子 tab(如「赛程 / 球队」)跟随 prefs — 当前没暴露,UI 层级过深会反人类
+- nav 锁定项「power user 模式」 — 同 menu,永不做
+- 隐藏某 nav tab 后,自动重排 SideNav 顺序填补空位 — 当前固定 NAV_ITEMS 顺序,空位保留(简单可预测)
