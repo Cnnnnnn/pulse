@@ -9,7 +9,7 @@
  * 编排层 — 业务拆到 ./bootstrap/*.js.
  */
 
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
