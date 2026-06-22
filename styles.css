@@ -8254,3 +8254,63 @@ body.platform-win .window-control-btn--close:hover {
 .wechat-hot-list-empty.wechat-hot-list-empty-error {
   color: rgb(185, 28, 28);
 }
+
+/* ─── Tray 菜单配置 modal (Phase v1) ────────────────────────────── */
+.tray-config-modal {
+  width: 440px;
+  max-width: 92vw;
+}
+.tray-config-modal .modal-body {
+  padding: 16px;
+}
+.tray-config-modal-loading {
+  padding: 32px 8px;
+  text-align: center;
+  color: var(--text-soft, rgba(0, 0, 0, 0.55));
+  font-size: 13px;
+}
+.tray-config-modal-error {
+  padding: 24px 8px;
+  text-align: center;
+  font-size: 14px;
+  color: rgb(185, 28, 28);
+}
+.tray-config-hint {
+  font-size: 13px;
+  color: var(--text-soft, rgba(0, 0, 0, 0.6));
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+.tray-config-segments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tray-config-segment-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.tray-config-segment-row:hover {
+  background: var(--hover-bg, rgba(0, 0, 0, 0.04));
+}
+.tray-config-segment-row input[type="checkbox"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.tray-config-segment-label {
+  font-size: 14px;
+  color: var(--text-main, rgba(0, 0, 0, 0.88));
+}
+.tray-config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
