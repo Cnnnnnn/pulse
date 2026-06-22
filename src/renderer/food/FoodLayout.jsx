@@ -24,6 +24,26 @@ import { showToast } from "../store.js";
 const GEO_SUPPORTED = typeof navigator !== "undefined" && !!navigator.geolocation;
 const NO_RESULT_ERRORS = new Set(["invalid_location", "no_match", "geocode_failed"]);
 
+// spec §6 错误处理矩阵 — 哪些 error code 需要弹 toast, 以及对应文案
+// no_key / invalid_location / no_match / geocode_failed 由 Empty card 自解释, 不弹
+const TOAST_MESSAGES = {
+  invalid_key: "高德 key 无效,请检查配置",
+  quota: "高德 key 配额已用完",
+  network: "附近服务暂时不可达,稍后重试",
+  timeout: "附近服务超时,稍后重试",
+  api_error: "附近服务异常",
+  parse: "附近服务异常",
+};
+const FALLBACK_TOAST = "附近服务异常";
+
+function toastForError(code) {
+  if (!code) return null;
+  if (code in TOAST_MESSAGES) return TOAST_MESSAGES[code];
+  if (NO_RESULT_ERRORS.has(code) || code === "no_key") return null;
+  // 兜底: 任何未列出的 code (catch-all) 都提示服务异常
+  return FALLBACK_TOAST;
+}
+
 export function FoodLayout() {
   const list = foodList.value;
   const loading = foodLoading.value;
@@ -33,6 +53,12 @@ export function FoodLayout() {
   const [lastSearch, setLastSearch] = useState(null);
 
   useEffect(() => { loadFoodConfig(); }, []);
+
+  // spec §6 错误处理矩阵 — 每次 foodError 转入一个"需要 toast"的 code 就弹一次
+  useEffect(() => {
+    const msg = toastForError(foodError.value);
+    if (msg) showToast(msg, "warn", 5000);
+  }, [foodError.value]);
 
   const sortedList = sortBy === "rating"
     ? [...list].sort((a, b) => {
