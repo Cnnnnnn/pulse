@@ -305,19 +305,21 @@ navigator.geolocation.getCurrentPosition(success, error, {timeout: 10000})
 
 ## 8. 改动规模 & 文件清单
 
-**新增 16 文件**:
+**新增 17 文件**:
 
-主进程 (5 + 4 测试):
+主进程 (6 + 4 测试 + 1 fixture):
 ```
+src/main/food/food-config.js
 src/main/food/amap-client.js
 src/main/food/dianping-scraper.js
 src/main/food/food-aggregator.js
 src/main/food/food-cache.js
-src/main/food/food-config.js
+src/main/food/index.js                  ← orchestrator (Task 6)
 src/main/food/amap-client.test.js
 src/main/food/dianping-scraper.test.js
 src/main/food/food-aggregator.test.js
 src/main/food/food-cache.test.js
+tests/fixtures/dianping-search-sample.html
 ```
 
 渲染进程 (2 + 5):
