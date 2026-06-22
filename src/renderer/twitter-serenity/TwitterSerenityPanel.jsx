@@ -35,8 +35,8 @@ export function TwitterSerenityPanel() {
   useEffect(() => {
     let mounted = true;
     serenityLoading.value = true;
-    api
-      .twitterList()
+    // 防护: api.twitterList 在测试/非 Electron 环境可能返回 undefined (noop 兜底).
+    Promise.resolve(api.twitterList())
       .then((r) => {
         if (!mounted) return;
         if (r && r.tweets) serenityTweets.value = r.tweets;

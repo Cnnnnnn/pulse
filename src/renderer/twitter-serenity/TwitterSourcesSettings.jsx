@@ -20,7 +20,11 @@ export function TwitterSourcesSettings() {
   const [testResult, setTestResult] = useState({});
 
   useEffect(() => {
-    api.twitterSourcesList().then((r) => setSources(r || []));
+    // 防护: api.twitterSourcesList 在测试/非 Electron 环境可能是 noop (返回 undefined).
+    // Promise.resolve 包装让它对非 Promise 也容错.
+    Promise.resolve(api.twitterSourcesList()).then((r) =>
+      setSources(Array.isArray(r) ? r : []),
+    );
   }, []);
 
   async function addSrc() {
