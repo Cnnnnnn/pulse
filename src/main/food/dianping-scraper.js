@@ -51,7 +51,8 @@ function parseShopListHtml(html) {
 }
 
 function createDianpingScraper(opts = {}) {
-  const http = opts.http || new HttpClient({ timeout: TIMEOUT_MS });
+  // 合规: maxRetries=0 — 重试会加剧大众点评反爬触发, 触发后封 IP, 失败必须单次即降级.
+  const http = opts.http || new HttpClient({ timeout: TIMEOUT_MS, maxRetries: 0 });
   const log = opts.logger || mainLog;
 
   async function search(params) {

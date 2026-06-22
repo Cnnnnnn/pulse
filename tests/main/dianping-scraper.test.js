@@ -58,6 +58,8 @@ describe("dianping-scraper.search", () => {
     const r = await s.search({ lat: 39.99, lng: 116.48 });
     expect(r.ok).toBe(false);
     expect(r.error).toBe("network");
+    // 合规: 网络错误不允许重试, 避免触发大众点评反爬封 IP
+    expect(http.get).toHaveBeenCalledTimes(1);
   });
 
   it("returns rate_limit on 403", async () => {
