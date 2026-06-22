@@ -32,6 +32,7 @@ import { MetalLayout } from '../metals/MetalLayout.jsx';
 import { NewsLayout } from '../ithome/NewsLayout.jsx';
 import { WechatHotLayout } from '../wechat-hot/components/WechatHotLayout.jsx';
 import { AIUsageLayout } from './AIUsageLayout.jsx';
+import { TwitterSerenityPanel } from '../twitter-serenity/TwitterSerenityPanel.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 
 export function AppShell({ onCheck }) {
@@ -96,7 +97,9 @@ export function AppShell({ onCheck }) {
                   ? <MetalLayout />
                   : nav === 'ai-usage'
                     ? <AIUsageLayout />
-                    : <VersionsLayout onCheck={onCheck} />}
+                    : nav === 'serenity'
+                      ? <TwitterSerenityPanel />
+                      : <VersionsLayout onCheck={onCheck} />}
       </div>
     </div>
   );
