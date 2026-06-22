@@ -4,7 +4,8 @@
  * renderer 组件测试用 happy-dom 隔离环境（在测试文件头部加
  * `// @vitest-environment happy-dom` 切换）。
  */
-const { defineConfig } = require('vitest/config');
+const path = require("path");
+const { defineConfig } = require("vitest/config");
 
 module.exports = defineConfig({
   test: {
@@ -23,5 +24,12 @@ module.exports = defineConfig({
   esbuild: {
     jsx: 'automatic',
     jsxImportSource: 'preact',
+  },
+  resolve: {
+    alias: {
+      // Phase v1: 允许 renderer 文件 import 主进程模块 (tray-menu-prefs.js 提供单一真相).
+      // vitest 1.x 默认 fs.strict 阻止跨 src 目录, 这里放开.
+      "@main": path.resolve(__dirname, "src/main"),
+    },
   },
 });

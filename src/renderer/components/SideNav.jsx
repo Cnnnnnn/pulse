@@ -20,6 +20,16 @@
 import { activeNav, navCollapsed, setActiveNav, toggleNavCollapsed } from '../worldcup/navStore.js';
 import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
+import { trayMenuPrefs } from '../trayConfigStore.js';
+
+// Phase v1: 4 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).
+// nav key → prefs segment key. 不在 map 里的 nav 始终显示 (spec 明确不动).
+const NAV_TO_PREFS_SEGMENT = {
+  'versions': 'updates',
+  'ai-usage': 'ai_usage',
+  'worldcup': 'worldcup',
+  'metals': 'metals',
+};
 
 const NAV_ITEMS = [
   { key: 'ithome',    icon: '📰', label: 'IT 新闻', tooltip: 'IT之家资讯 + AI 摘要' },
@@ -34,10 +44,17 @@ const NAV_ITEMS = [
 export function SideNav() {
   const collapsed = navCollapsed.value;
   const current = activeNav.value;
+  const prefs = trayMenuPrefs.value;
   // 显式订阅 config / key 信号, 避免 needsConfig 误判后 UI 不刷新
   void aiSessionsConfig.value;
   void aiKeyStatus.value;
   const aiNeedsSetup = needsConfig();
+
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    const segKey = NAV_TO_PREFS_SEGMENT[item.key];
+    if (!segKey) return true; // 不在 map → 始终显示
+    return prefs.segments[segKey] !== false;
+  });
 
   return (
     <nav class={`side-nav${collapsed ? ' side-nav-collapsed' : ''}`}>
@@ -71,7 +88,7 @@ export function SideNav() {
         </div>
       </div>
       <ul class="side-nav-list">
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = current === item.key;
           return (
             <li

@@ -96,7 +96,7 @@ index.js
 }
 ```
 
-**锁死的 2 项**(`open_panel` / `quit`)不进 schema — `buildMenu` 永远渲染,根本不读 prefs。
+**锁死的 2 项**(`打开面板` / `退出`)**不进 schema,也不进 `TRAY_SEGMENTS` 列表** — `buildMenu` 永远渲染,根本不读 prefs。这两个 key 不存在于数据层,不存在「被尝试关闭」的可能。
 
 **兼容性**:老 `state.json` 没有 `tray_menu_prefs` → `getTrayMenuPrefs()` 返回 `DEFAULT_PREFS`,无需迁移。
 
@@ -220,7 +220,7 @@ function buildMenu(opts) {
 }
 ```
 
-**退化情况**:6 项全关时 `template = [打开面板, ─, ─, 退出]`(3 行),tray 菜单不空。
+**退化情况**:6 项全关时最终 template = `[打开面板, sep, sep, 菜单栏配置, sep, 退出]` = 3 个 menu item + 3 个 separator,tray 菜单不空。
 
 ### 3.5 「菜单栏配置...」位置
 
@@ -286,7 +286,7 @@ tray.setContextMenu(Menu.buildFromTemplate(tpl));
 复用已有的 `_internal.buildMenu`,扩展测试:
 
 1. `trayPrefs.segments.updates = false` → 输出不含「🔄 检查更新」字样
-2. 6 项全 `false` → 输出只剩「打开面板」「菜单栏配置...」「退出」(3 行 + 2 个 separator)
+2. 6 项全 `false` → 输出只剩「打开面板」「菜单栏配置...」「退出」(3 个 menu item,中间 1 个 separator)
 3. 不传 `trayPrefs` → 默认全显示,行为与现状完全一致(向后兼容)
 4. 「打开面板」「退出」**永远**在输出里,不依赖 prefs
 

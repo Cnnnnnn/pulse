@@ -5,16 +5,63 @@
  *
  * 拍 6.4 + 6.5: navCollapsed + activeNav
  * 跟 6.6 一致: 完全独立, 不放 v2.6 主体 store
+ *
+ * Phase v1: 加 effect — activeNav 被 prefs 关掉时自动切到第一个可见 nav
+ *   (4 个动态 nav: versions/ai-usage/worldcup/metals 跟 tray menu prefs 联动).
+ *   3 个固定 nav (ithome/wechat-hot/funds) 始终可见,兜底保险.
  */
 
-import { signal } from "@preact/signals";
+import { effect, signal } from "@preact/signals";
 import { trackFundView, trackIthomeView } from "../recent/track.js";
+import { trayMenuPrefs } from "../trayConfigStore.js";
 
 // activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'ai-usage' | 'versions', 默认 'versions'
 export const activeNav = signal("versions");
 export const navCollapsed = signal(false);
 
 const NAV_KEYS = new Set(["ithome", "wechat-hot", "worldcup", "funds", "metals", "ai-usage", "versions"]);
+
+// 跟 src/renderer/components/SideNav.jsx 的 NAV_TO_PREFS_SEGMENT 保持一致.
+// nav key → prefs segment key. 不在 map 里的 nav 始终可见.
+const NAV_TO_PREFS_SEGMENT = {
+  versions: "updates",
+  "ai-usage": "ai_usage",
+  worldcup: "worldcup",
+  metals: "metals",
+};
+
+function isNavVisible(key, prefs) {
+  const segKey = NAV_TO_PREFS_SEGMENT[key];
+  if (!segKey) return true;
+  if (!prefs || !prefs.segments) return true;
+  return prefs.segments[segKey] !== false;
+}
+
+/**
+ * 当前 activeNav 被关掉时, 切到第一个可见 nav.
+ * 不可见列表 (activeNav 不可见 + 没有其他可见 nav) 时不动 (极端兜底, 不会发生因为有 3 个固定 tab).
+ */
+function firstVisibleNav(prefs) {
+  for (const k of NAV_KEYS) {
+    if (isNavVisible(k, prefs)) return k;
+  }
+  return activeNav.value; // 兜底: 全部不可见时停留
+}
+
+let _navWatchInstalled = false;
+export function installNavWatch() {
+  if (_navWatchInstalled) return;
+  _navWatchInstalled = true;
+  effect(() => {
+    const prefs = trayMenuPrefs.value;
+    const cur = activeNav.value;
+    if (isNavVisible(cur, prefs)) return;
+    const next = firstVisibleNav(prefs);
+    if (next !== cur) {
+      activeNav.value = next;
+    }
+  });
+}
 
 export function setActiveNav(key) {
   if (!NAV_KEYS.has(key)) return;

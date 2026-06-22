@@ -269,6 +269,15 @@ async function bootstrap() {
         import('./trayConfigStore.js').then(({ closeTrayConfig }) => closeTrayConfig());
       });
     }
+    // bootstrap 拉一次 prefs → trayConfigStore (SideNav 过滤 nav tab 用)
+    // main 失败 → DEFAULT_PREFS,4 个动态 nav tab 全显示 (向后兼容)
+    import('./trayConfigStore.js').then(({ applyTrayPrefsFromMain }) => {
+      Promise.resolve(trayApi.getPrefs && trayApi.getPrefs()).then((r) => {
+        if (r && r.ok && r.prefs) applyTrayPrefsFromMain(r.prefs);
+      }).catch(() => { /* 默认全开 */ });
+    });
+    // 安装 nav watch (current nav 被关时切到第一个可见 nav)
+    import('./worldcup/navStore.js').then(({ installNavWatch }) => installNavWatch());
   }
 
   // 按需触发 check

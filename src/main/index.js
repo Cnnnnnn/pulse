@@ -98,7 +98,9 @@ const {
   createSender,
   installErrorGuardBridge,
 } = require("./bootstrap/send-to-renderer.js");
-const { setTrayManager: registerTrayManager } = require("./bootstrap/tray-init.js");
+const {
+  setTrayManager: registerTrayManager,
+} = require("./bootstrap/tray-init.js");
 
 const httpClient = new HttpClient();
 
@@ -322,9 +324,21 @@ async function bootstrap() {
         if (winMgr) winMgr.showWindow();
         const w = getWindow();
         if (w && !w.isDestroyed()) {
-          try { w.show(); } catch { /* noop */ }
-          try { w.focus(); } catch { /* noop */ }
-          try { w.webContents.send("tray:open-config"); } catch { /* noop */ }
+          try {
+            w.show();
+          } catch {
+            /* noop */
+          }
+          try {
+            w.focus();
+          } catch {
+            /* noop */
+          }
+          try {
+            w.webContents.send("tray:open-config");
+          } catch {
+            /* noop */
+          }
         }
       },
     });

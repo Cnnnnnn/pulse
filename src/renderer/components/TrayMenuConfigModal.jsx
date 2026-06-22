@@ -14,8 +14,8 @@
  * 锁死说明: 「打开面板」/「退出」不暴露在 modal 里 — 根本没渲染, buildMenu 硬编码.
  */
 import { useState, useEffect } from "preact/hooks";
-import { trayConfigOpen, closeTrayConfig } from "../trayConfigStore.js";
-import { TRAY_SEGMENTS } from "../../main/tray-menu-prefs.js";
+import { trayConfigOpen, closeTrayConfig, applyTrayPrefsFromMain } from "../trayConfigStore.js";
+import { TRAY_SEGMENTS } from "@main/tray-menu-prefs.js";
 import { showToast } from "../store.js";
 
 const SEGMENT_LABELS = TRAY_SEGMENTS;
@@ -73,7 +73,12 @@ export function TrayMenuConfigModal() {
       const trayApi = window.pulse && window.pulse.tray;
       const r = await trayApi.savePrefs({ version: 1, segments: draft });
       if (r && r.ok) {
-        setOriginal(r.prefs && r.prefs.segments ? r.prefs.segments : draft);
+        const savedPrefs = r.prefs && r.prefs.segments
+          ? r.prefs
+          : { version: 1, segments: draft };
+        setOriginal(savedPrefs.segments);
+        // 同步推到 renderer 端 trayMenuPrefs signal (SideNav 立即过滤)
+        applyTrayPrefsFromMain(savedPrefs);
         // 关 modal 走 IPC, main 推 close 信号回流
         trayApi.closeConfigModal();
       } else {
