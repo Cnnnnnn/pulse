@@ -107,6 +107,7 @@ let pool = null;
 let trayMgr = null;
 let winMgr = null;
 let fundScheduler = null;
+let aiUsageScheduler = null;
 let runtimeConfigRef = { current: null };
 
 function getWindow() {
@@ -330,7 +331,8 @@ async function bootstrap() {
   // B2.1: 30min setInterval 调 register-ai-usage._internals.fetch (双 provider),
   //       写回 state.json 后重新构造 tray summary 推 tray.
   // Tray 不依赖 IPC 通道 — 走模块级 state.json + ai-usage-cache.
-  let aiUsageScheduler = null;
+  // aiUsageScheduler 已在 module-level 声明 (line ~110), before-quit handler 需访问.
+  aiUsageScheduler = null;
   try {
     const { createAiUsageCache } = require("./ai-usage-cache");
     const {
