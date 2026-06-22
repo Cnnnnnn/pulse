@@ -98,6 +98,7 @@ const {
   createSender,
   installErrorGuardBridge,
 } = require("./bootstrap/send-to-renderer.js");
+const { setTrayManager: registerTrayManager } = require("./bootstrap/tray-init.js");
 
 const httpClient = new HttpClient();
 
@@ -316,8 +317,25 @@ async function bootstrap() {
           });
         }
       },
+      // Phase v1: 「菜单栏配置...」点击 → 主面板 + 推 tray:open-config (renderer 挂 modal)
+      onOpenTrayConfig: () => {
+        if (winMgr) winMgr.showWindow();
+        const w = getWindow();
+        if (w && !w.isDestroyed()) {
+          try { w.show(); } catch { /* noop */ }
+          try { w.focus(); } catch { /* noop */ }
+          try { w.webContents.send("tray:open-config"); } catch { /* noop */ }
+        }
+      },
     });
     trayMgr.install();
+    registerTrayManager(trayMgr);
+    // Phase v1: bootstrap 时把 prefs 注入 trayMgr (覆盖默认全开)
+    try {
+      trayMgr.setTrayMenuPrefs(stateStore.loadTrayMenuPrefs());
+    } catch (err) {
+      mainLog.warn(`tray menu prefs load failed: ${err && err.message}`);
+    }
     mainLog.info(`tray installed: ${Date.now() - tTrayStart}ms`);
     timings.tray = Date.now() - tTrayStart;
   } catch (err) {
@@ -692,6 +710,11 @@ if (app && typeof app.whenReady === "function") {
     if (trayMgr) {
       try {
         trayMgr.dispose();
+      } catch {
+        /* noop */
+      }
+      try {
+        registerTrayManager(null);
       } catch {
         /* noop */
       }
