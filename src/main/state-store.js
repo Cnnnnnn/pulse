@@ -40,7 +40,18 @@
  *       "Cursor":    { "ms": 1750000000000, "source": "spotlight" },
  *       "WorkBuddy": { "ms": null,          "source": "unknown" }
  *     },
- *     "active_category": "ai"     // Phase A: 当前选中的顶部 category tab ('all' | categoryId)
+ *     "active_category": "ai",    // Phase A: 当前选中的顶部 category tab ('all' | categoryId)
+ *     "tray_menu_prefs": {         // Phase v1: tray 菜单项配置选择展示
+ *       "version": 1,
+ *       "segments": {
+ *         "updates": true,         // 🔄 检查更新(动态段)
+ *         "ai_usage": true,        // 📊 AI 用量
+ *         "worldcup": true,        // ⚽ 世界杯
+ *         "metals": true,          // 💎 贵金属
+ *         "check_action": true,    // 底部「检查更新」按钮
+ *         "config_action": true    // 底部「打开配置文件」按钮
+ *       }
+ *     }
  *   }
  *
  * 兼容: 老 state.json 没有 mutes 字段 → load() 视作 {}；v 不变（v=1，向后兼容）
@@ -184,6 +195,7 @@ const PRESERVE_FIELDS = [
   { key: "ai_usage_history", kind: "object", notArray: true },
   { key: "circuitBreakers", kind: "object", notArray: true },  // Phase C1: per-detector circuit breaker state
   { key: "daily_digest", kind: "object", notArray: true },  // Phase I5: daily digest settings + last_push_date
+  { key: "tray_menu_prefs", kind: "object", notArray: true },  // Phase v1: tray menu segment prefs
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -902,6 +914,39 @@ function saveActiveCategory(id, statePath = defaultPath()) {
   }, statePath);
 }
 
+// ─── Phase v1: Tray menu prefs (菜单栏配置选择展示) ─────────
+
+/**
+ * 读 tray_menu_prefs. 缺字段 / 非法 → DEFAULT_PREFS (来自 tray-menu-prefs).
+ * 永不为 null — 调用方直接当 truthy 对象用.
+ * @param {string} [statePath]
+ * @returns {{version:number, segments: Record<string, boolean>}}
+ */
+function loadTrayMenuPrefs(statePath = defaultPath()) {
+  const { DEFAULT_PREFS: DEF, normalizePrefs } = require("./tray-menu-prefs");
+  const s = load(statePath);
+  if (!s || !s.tray_menu_prefs) return DEF;
+  return normalizePrefs(s.tray_menu_prefs);
+}
+
+/**
+ * 写 tray_menu_prefs. atomic write, 保留 apps / mutes / last_opened / active_category /
+ * classify_llm_cache / task_summaries / funds / worldcupBets / ithome_news / reminders /
+ * recentActivity / ai_usage / ai_usage_history / circuitBreakers / daily_digest 等所有字段
+ * (走 patchState 公共范式, 自动 preserve).
+ *
+ * @param {object} prefs        由 normalizePrefs 归一化过的 prefs 对象
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveTrayMenuPrefs(prefs, statePath = defaultPath()) {
+  const { normalizePrefs } = require("./tray-menu-prefs");
+  const normalized = normalizePrefs(prefs);
+  return patchState((next) => {
+    next.tray_menu_prefs = normalized;
+  }, statePath);
+}
+
 // ─── Phase I5: Daily Digest (notification settings) ──────────
 
 /**
@@ -1403,4 +1448,7 @@ module.exports = {
   setAppSnooze,
   clearAppSnooze,
   loadAppSnooze,
+  // Phase v1: tray menu prefs
+  loadTrayMenuPrefs,
+  saveTrayMenuPrefs,
 };
