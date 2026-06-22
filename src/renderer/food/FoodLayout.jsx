@@ -19,6 +19,7 @@ import {
   loadFoodConfig,
   searchNearby,
 } from "./foodStore.js";
+import { showToast } from "../store.js";
 
 const GEO_SUPPORTED = typeof navigator !== "undefined" && !!navigator.geolocation;
 const NO_RESULT_ERRORS = new Set(["invalid_location", "no_match", "geocode_failed"]);
@@ -60,9 +61,7 @@ export function FoodLayout() {
       reason === "unavailable" ? "定位失败,请手动输入" :
       reason === "timeout" ? "定位超时,请手动输入" :
       "定位不可用,请手动输入";
-    window.dispatchEvent(new CustomEvent("app:toast", {
-      detail: { type: "warn", message },
-    }));
+    showToast(message, "warn", 3000);
   }
 
   return (
