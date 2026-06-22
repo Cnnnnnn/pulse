@@ -26,6 +26,7 @@ import { ConfirmDialog } from './components/ConfirmDialog.jsx';
 import { AppShell } from './components/AppShell.jsx';
 import { RemindersModal } from './reminders/RemindersModal.jsx';
 import { RecentActivityModal } from './recent/RecentActivityModal.jsx';
+import { TrayMenuConfigModal } from './components/TrayMenuConfigModal.jsx';
 
 const isWin = (typeof window !== 'undefined' && window.platformInfo && window.platformInfo.platform) === 'win32';
 
@@ -86,6 +87,7 @@ export function App({ onCheck }) {
       <AISettingsModal />
       <RemindersModal />
       <RecentActivityModal />
+      <TrayMenuConfigModal />
       <ConfirmDialog />
       <Toast />
       <StateRecoveredBanner />

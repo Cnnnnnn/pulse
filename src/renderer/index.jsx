@@ -256,6 +256,21 @@ async function bootstrap() {
     }
   });
 
+  // Phase v1: 订阅 tray 配置 modal 开关信号 (main 拥有真相)
+  if (typeof window !== 'undefined' && window.pulse && window.pulse.tray) {
+    const trayApi = window.pulse.tray;
+    if (typeof trayApi.onOpenConfig === 'function') {
+      trayApi.onOpenConfig(() => {
+        import('./trayConfigStore.js').then(({ openTrayConfig }) => openTrayConfig());
+      });
+    }
+    if (typeof trayApi.onCloseConfigModal === 'function') {
+      trayApi.onCloseConfigModal(() => {
+        import('./trayConfigStore.js').then(({ closeTrayConfig }) => closeTrayConfig());
+      });
+    }
+  }
+
   // 按需触发 check
   if (cfg.check_on_launch) {
     triggerCheck();
