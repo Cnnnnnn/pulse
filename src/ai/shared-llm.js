@@ -110,9 +110,32 @@ async function chatCompletion(messages, opts = {}) {
   }
 }
 
+/**
+ * 通用翻译包装. 内部走 chatCompletion, prompt 由调用方传入.
+ * @param {string} text 待翻译文本
+ * @param {object} opts
+ * @param {string} opts.prompt  完整 system prompt (调用方负责拼好, 含语言/风格/保留词约束)
+ * @param {string} [opts.from]  源语言 (仅记录, 不强制; 透传给 prompt 由调用方拼接)
+ * @param {string} [opts.to]    目标语言 (同上)
+ * @returns {Promise<string>}   翻译后文本 (已 strip); 失败 (无 config/网络错误等) 返回空串
+ */
+async function translate(text, opts = {}) {
+  if (!text || typeof text !== "string") return "";
+  const prompt = (opts && opts.prompt) || "";
+  const resp = await chatCompletion([
+    { role: "system", content: prompt },
+    { role: "user", content: text },
+  ]);
+  if (resp && resp.ok && typeof resp.text === "string") {
+    return resp.text.trim();
+  }
+  return "";
+}
+
 module.exports = {
   SUPPORTED_PROVIDERS,
   DEFAULT_MODELS,
   resolveSharedAiConfig,
   chatCompletion,
+  translate,
 };
