@@ -63,6 +63,14 @@ describe("amap-client.geocode", () => {
     expect(r.ok).toBe(false);
     expect(r.error).toBe("network");
   });
+
+  it("returns timeout when http reports timeout (I-1)", async () => {
+    const http = makeStubHttp([{ status: 0, body: "", error: "timeout" }]);
+    const c = createAmapClient({ key: "k", http });
+    const r = await c.geocode("x");
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe("timeout");
+  });
 });
 
 describe("amap-client.aroundSearch", () => {

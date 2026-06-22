@@ -42,7 +42,7 @@ function createAmapClient(opts) {
     const r = await http.get(url, { timeout: TIMEOUT_MS });
     if (!r || r.error) {
       if (log && log.warn) log.warn("[amap] http error", { err: r && r.error });
-      return { ok: false, error: r && r.error === "timeout" ? "network" : "network" };
+      return { ok: false, error: r && r.error === "timeout" ? "timeout" : "network" };
     }
     let body;
     try { body = JSON.parse(r.body); }
