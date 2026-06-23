@@ -9,7 +9,6 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import {
-  initStateStorePaths,
   _setStatePathForTest,
   loadOrRecover,
   getLastSeenRelease,
@@ -44,9 +43,11 @@ describe('last_seen_release', () => {
     setLastSeenRelease('2.32.0', 1750000000000);
     expect(getLastSeenRelease()).toEqual({ version: '2.32.0', at: 1750000000000 });
 
-    // 重新模拟进程重启: 重新指向同一文件即可 (无 in-memory 缓存)
+    // 重新模拟进程重启: store 是无状态的 (每次 load 都读盘),
+    // 重新指向同一文件即可. 注意不能调 initStateStorePaths() —
+    // 它在 vitest 环境里 _tryGetUserDataDir() 返回空, 会把路径重置回 LEGACY_STATE_PATH,
+    // 覆盖我们设的 tmpDir.
     _setStatePathForTest(statePath);
-    initStateStorePaths(statePath);
     expect(getLastSeenRelease()).toEqual({ version: '2.32.0', at: 1750000000000 });
   });
 });

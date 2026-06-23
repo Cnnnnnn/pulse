@@ -290,7 +290,7 @@ async function bootstrap() {
   // fire-and-forget, 不阻塞 check.
   (async () => {
     try {
-      const payload = await api.releaseNotesGetCurrent();
+      const payload = await api.releaseNotes.getCurrent();
       if (!payload) return;
       // 推到 store 供 Trigger 决定红点 (entryPath='auto' 隐含"未看" 状态)
       releaseNotesPayload.value = payload;
