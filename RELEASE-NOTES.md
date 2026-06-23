@@ -2,6 +2,44 @@
 
 ---
 
+## Unreleased (🔌 后台检测智能时间窗 — Phase C4)
+
+### 新增
+- **🔌 后台检测节流 (Phase C4)**: quiet hours 内 auto-check 直接跳过检测（不只压通知），结束后自动补跑一次
+  - 复用现有 `notifications.quiet_hours_start/end` 配置, 不新增配置项
+  - quiet hours 内跳过: 不打外部 API、不起 worker、不写 state, 真正省电省网
+  - quiet hours 结束后的首个 tick 自动补跑（`lastAutoCheckAt` 语义）
+  - 检测失败时 `lastAutoCheckAt` 不更新, 下个 tick 重试
+
+### 变更
+- **`src/main/bootstrap/schedulers.js`**: `startAutoCheckTimer` 重写 — 新增 `decideAutoCheck` 纯决策函数 + `checkOnce` 执行函数; 返回 `{ stop, triggerNow }` + `__resetForTest` (照搬 daily-summary-job 可测性模式)
+- **`src/main/bootstrap/schedulers.js`**: config 取值从启动快照 `runtimeConfig` 改为实时 `runtimeConfigRef.current`, quiet hours 配置改了立即生效无需重启 (与项目其他模块对齐)
+- **`src/main/index.js`**: `startAutoCheckTimer` 传参 `runtimeConfig` → `runtimeConfigRef` (1 处)
+
+### 修复
+- **`check_interval_hours: 0` 无法禁用 auto-check** (pre-existing bug): `|| 6` 把 0 当 falsy 吞成 6 → 改用 `typeof === "number"` 显式判断, 0 现在能正确禁用
+
+### 不变
+- 手动检测 (用户点"检查更新") 不受 quiet hours 影响, 永远立即执行
+- `check_on_launch` (启动检测) 照跑
+- 未配 quiet hours 的用户行为完全等同现状 (零回归)
+- `check-runner.js` / 通知抑制逻辑 / cooldown 全部不动
+
+### 文件
+- 修改: `src/main/bootstrap/schedulers.js` (+~130 行: decideAutoCheck + checkOnce + startAutoCheckTimer 重写)
+- 修改: `src/main/index.js` (1 行传参)
+- 新增: `tests/main/schedulers-auto-check.test.js` (13 case)
+
+### 测试
+- 新增 13 个 C4 相关单测 (decideAutoCheck 7 + checkOnce 4 + startAutoCheckTimer 2)
+- 全量回归 **2315 passed | 4 skipped / 0 failed** (C4 引入 0 回归)
+- renderer bundle 构建正常 (862.3kb)
+
+### 手动 e2e(留给用户验证)
+- 见 spec §5.4: 设 quiet hours 窗口 → 观察跳过 → 窗口结束观察补跑 → 确认手动检测不受影响
+
+---
+
 ## Unreleased (🚧 检测器熔断 — Phase C1)
 
 ### 新增
