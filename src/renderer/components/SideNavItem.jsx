@@ -26,6 +26,7 @@ export function SideNavItem({
   item,
   active = false,
   collapsed = false,
+  badge = 0,
   onSelect,
   onReorder,
   onHide,
@@ -152,6 +153,11 @@ export function SideNavItem({
         aria-label={item.label}
       >
         <span class="side-nav-icon">{item.icon}</span>
+        {badge > 0 && (
+          <span class="side-nav-badge" aria-label={`${badge} 条未读`}>
+            {badge}
+          </span>
+        )}
         {!collapsed && <span class="side-nav-label">{item.label}</span>}
       </button>
       <dialog
