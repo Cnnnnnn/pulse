@@ -41,6 +41,18 @@
  *       "WorkBuddy": { "ms": null,          "source": "unknown" }
  *     },
  *     "active_category": "ai",    // Phase A: 当前选中的顶部 category tab ('all' | categoryId)
+ *     "version_history": {        // 2026-06-14: app rollback — 每 app 升级历史 (倒序, cap 2)
+ *       "Cursor": [
+ *         {
+ *           "from": "3.6.31",
+ *           "to": "3.6.32",
+ *           "at": 1750000000000,
+ *           "backupPath": "/Users/x/backups/Cursor.app/3.6.31.app",
+ *           "source": "brew_formulae",
+ *           "sizeBytes": 482000000
+ *         }
+ *       ]
+ *     },
  *     "tray_menu_prefs": {         // Phase v1: tray 菜单项配置选择展示
  *       "version": 1,
  *       "segments": {
@@ -201,6 +213,7 @@ function migrateLegacyStateIfNeeded(targetPath) {
 //   - ithome_news: { articles, summaries, favorites, ts } (IT之家新闻, news-store 写入)
 //   - reminders: [] (提醒, reminders.js 写入)
 //   - recentActivity: [] (最近活动时间线, recent-activity.js 写入)
+//   - version_history: { appName: [VersionEntry, ...] } (2026-06-14 app rollback, version-history.js 写入)
 //
 // 旧字段 daily_digests / daily_digest_v2 / last_digest_attempts 已废弃 —
 // 不再 preserve, 下次写盘自然消失.
@@ -226,6 +239,7 @@ const PRESERVE_FIELDS = [
   { key: "circuitBreakers", kind: "object", notArray: true },  // Phase C1: per-detector circuit breaker state
   { key: "daily_digest", kind: "object", notArray: true },  // Phase I5: daily digest settings + last_push_date
   { key: "tray_menu_prefs", kind: "object", notArray: true },  // Phase v1: tray menu segment prefs
+  { key: "version_history", kind: "object", notArray: true },  // Phase C3: per-app version history cap-2
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -1410,6 +1424,51 @@ function getLastRecoveryEvent() {
   return evt;
 }
 
+// ─── App rollback · version_history ─────────────────────────────
+//
+// 用途: 记录每次 brew 升级前的旧版本 + 备份路径. 给"一键回滚"用.
+// Schema: { [appName]: [VersionEntry, ...] } (倒序, 0 是当前装的版本)
+// VersionEntry: { from, to, at, backupPath, source, sizeBytes }
+//
+// 设计: 跟 mutes / last_opened / task_summaries 平级, 走 patchState 保留.
+// 读 / 写都通过 helper; load() 保持纯读 (不 mutate 老 state.json).
+
+/**
+ * 读 version_history. 老 state.json (无 version_history 字段) / 损坏 → {} (兜底).
+ * @param {string} [statePath]
+ * @returns {object} { [appName]: VersionEntry[] }
+ */
+function getVersionHistory(statePath = defaultPath()) {
+  try {
+    const s = load(statePath);
+    if (!s) return {};
+    if (
+      !s.version_history ||
+      typeof s.version_history !== "object" ||
+      Array.isArray(s.version_history)
+    )
+      return {};
+    return s.version_history;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * 写 version_history. atomic write, 保留 apps / mutes / last_opened / active_category 等.
+ * map 必须是 plain object; null/undefined → {} 兜底.
+ * @param {object} map  { [appName]: VersionEntry[] }
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveVersionHistory(map, statePath = defaultPath()) {
+  const safeMap =
+    map != null && typeof map === "object" && !Array.isArray(map) ? map : {};
+  return patchState((next) => {
+    next.version_history = { ...safeMap };
+  }, statePath);
+}
+
 module.exports = {
   load,
   saveAll,
@@ -1482,6 +1541,9 @@ module.exports = {
   // Phase v1: tray menu prefs
   loadTrayMenuPrefs,
   saveTrayMenuPrefs,
+  // 2026-06-14: app rollback — 升级历史 (倒序, cap 2)
+  getVersionHistory,
+  saveVersionHistory,
   // A3: 搜索索引注入
   setSearchIndex,
 };
