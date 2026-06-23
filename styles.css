@@ -3516,6 +3516,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .side-nav-button {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -4769,6 +4770,28 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .side-nav-collapsed .side-nav-setup-dot { top: 4px; right: 4px; }
+
+/* ─── I6: SideNav 未读角标 (ithome) ─── */
+.side-nav-badge {
+  position: absolute;
+  top: 2px;
+  right: 18px;            /* 展开态: 锚定 icon 右上 (icon 在 button 左侧) */
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;   /* 不挡下层 button 点击 */
+  z-index: 1;
+}
+
+.side-nav-collapsed .side-nav-badge {
+  right: 2px;             /* 折叠态: 40px 窄栏, 锚定 button 右上 */
+}
 
 /* ─── App shell: 基金全宽 ─── */
 .app-shell-view:has(> .fund-layout),
