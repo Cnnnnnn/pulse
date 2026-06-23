@@ -46,7 +46,7 @@ import {
   decideAutoCheck,
   startAutoCheckTimer,
   __resetForTest,
-} from '../../../src/main/bootstrap/schedulers.js';
+} from '../../src/main/bootstrap/schedulers.js';
 
 describe('decideAutoCheck', () => {
   const INTERVAL = 6 * 60 * 60 * 1000; // 6h
@@ -222,7 +222,7 @@ import {
   checkOnce,
   startAutoCheckTimer,
   __resetForTest,
-} from '../../../src/main/bootstrap/schedulers.js';
+} from '../../src/main/bootstrap/schedulers.js';
 ```
 
 在文件末尾（`decideAutoCheck` describe block 之后）追加：
@@ -246,15 +246,15 @@ describe('checkOnce', () => {
         getWindow: () => null,
         trayMgr: null,
         stateStore: { saveAll: () => {} },
-        runCheck: () => {
-          runCheckCalls.push(Date.now());
-          return Promise.resolve([]);
-        },
       },
       state: { lastAutoCheckAt: null },
       intervalMs: 6 * 60 * 60 * 1000,
       now: () => new Date('2026-06-23T10:00:00'),
       log: { info: () => {}, warn: () => {} },
+      runCheck: () => {
+        runCheckCalls.push(Date.now());
+        return Promise.resolve([]);
+      },
     };
   });
 
@@ -276,7 +276,7 @@ describe('checkOnce', () => {
   });
 
   it('does not update lastAutoCheckAt when runCheck rejects', async () => {
-    ctx.deps.runCheck = () => Promise.reject(new Error('boom'));
+    ctx.runCheck = () => Promise.reject(new Error('boom'));
     await checkOnce(ctx);
     expect(ctx.state.lastAutoCheckAt).toBeNull();
   });

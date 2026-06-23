@@ -36,6 +36,72 @@ function decideAutoCheck({ now, quietStart, quietEnd, lastAutoCheckAt, intervalM
 }
 
 /**
+ * C4: 单次 tick 执行体. 决策 → 执行 → 更新 lastAutoCheckAt.
+ * 抽出来便于单测; startAutoCheckTimer 的 timer 回调和 triggerNow 都调它.
+ *
+ * @param {object}  ctx
+ * @param {object}  ctx.deps           startAutoCheckTimer 收到的 deps (含 runtimeConfigRef/pool/...)
+ * @param {{lastAutoCheckAt: number|null}} ctx.state  可变状态对象 (闭包持有, 跨 tick 保持)
+ * @param {number}  ctx.intervalMs
+ * @param {function} [ctx.now]          注入当前时间, 测试用. 默认 () => new Date()
+ * @param {function} [ctx.runCheck]     注入 runCheckQueued 的替代, 测试用.
+ *                                       默认 require("../check-runner").runCheckQueued
+ * @param {object}  [ctx.log]           注入 logger, 默认 mainLog
+ */
+async function checkOnce(ctx) {
+  const { deps, state, intervalMs } = ctx;
+  const nowFn = ctx.now || (() => new Date());
+  const log = ctx.log || mainLog;
+  const currentCfg = (deps.runtimeConfigRef && deps.runtimeConfigRef.current) || {};
+  const qh = currentCfg.notifications || {};
+  const now = nowFn();
+
+  const decision = decideAutoCheck({
+    now,
+    quietStart: qh.quiet_hours_start,
+    quietEnd: qh.quiet_hours_end,
+    lastAutoCheckAt: state.lastAutoCheckAt,
+    intervalMs,
+  });
+
+  if (decision.action === "skip") {
+    log.info(`auto-check skipped (${decision.reason})`);
+    return decision;
+  }
+
+  log.info("auto-check triggered");
+  const runCheck =
+    ctx.runCheck ||
+    ((runDeps, opts) => require("../check-runner").runCheckQueued(runDeps, opts));
+  try {
+    await runCheck(
+      {
+        getConfig: () => deps.runtimeConfigRef.current,
+        pool: deps.pool,
+        getWindow: deps.getWindow,
+        onCheckComplete: (results) => {
+          if (deps.trayMgr) {
+            deps.trayMgr.setResults(results);
+            deps.trayMgr.setBadge(results.filter((r) => r.has_update).length);
+          }
+          try {
+            deps.stateStore.saveAll(results);
+          } catch (err) {
+            log.warn(`state save failed: ${err.message}`);
+          }
+        },
+      },
+      { silent: true },
+    );
+    state.lastAutoCheckAt = Date.now();
+    return { action: "run" };
+  } catch (err) {
+    log.warn(`auto-check failed: ${err && err.message}`);
+    return { action: "error", error: err && err.message };
+  }
+}
+
+/**
  * @param {object} deps
  * @param {object} deps.httpClient
  * @param {object} deps.fundStore
@@ -329,6 +395,7 @@ function makeRefreshLastOpenedAfterCheck(deps) {
 
 module.exports = {
   decideAutoCheck,
+  checkOnce,
   startFundScheduler,
   startRemindersScheduler,
   startWorldcupGoalWatcher,

@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   decideAutoCheck,
+  checkOnce,
   startAutoCheckTimer,
   __resetForTest,
 } from '../../src/main/bootstrap/schedulers.js';
@@ -104,5 +105,73 @@ describe('decideAutoCheck', () => {
         intervalMs: INTERVAL,
       }),
     ).toEqual({ action: 'skip', reason: 'quiet_hours' });
+  });
+});
+
+describe('checkOnce', () => {
+  let ctx;
+  let runCheckCalls;
+
+  beforeEach(() => {
+    runCheckCalls = [];
+    ctx = {
+      deps: {
+        runtimeConfigRef: {
+          current: {
+            apps: [],
+            notifications: {},
+          },
+        },
+        pool: {},
+        getWindow: () => null,
+        trayMgr: null,
+        stateStore: { saveAll: () => {} },
+      },
+      state: { lastAutoCheckAt: null },
+      intervalMs: 6 * 60 * 60 * 1000,
+      now: () => new Date('2026-06-23T10:00:00'),
+      log: { info: () => {}, warn: () => {} },
+      runCheck: () => {
+        runCheckCalls.push(Date.now());
+        return Promise.resolve([]);
+      },
+    };
+  });
+
+  it('runs check and updates lastAutoCheckAt on success', async () => {
+    await checkOnce(ctx);
+    expect(runCheckCalls).toHaveLength(1);
+    expect(ctx.state.lastAutoCheckAt).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('skips and does not update lastAutoCheckAt in quiet hours', async () => {
+    ctx.deps.runtimeConfigRef.current.notifications = {
+      quiet_hours_start: '23:00',
+      quiet_hours_end: '08:00',
+    };
+    ctx.now = () => new Date('2026-06-23T03:00:00');
+    await checkOnce(ctx);
+    expect(runCheckCalls).toHaveLength(0);
+    expect(ctx.state.lastAutoCheckAt).toBeNull();
+  });
+
+  it('does not update lastAutoCheckAt when runCheck rejects', async () => {
+    ctx.runCheck = () => Promise.reject(new Error('boom'));
+    await checkOnce(ctx);
+    expect(ctx.state.lastAutoCheckAt).toBeNull();
+  });
+
+  it('reads runtimeConfigRef.current fresh each tick (hot reload)', async () => {
+    // 第一次 tick: 无 quiet hours, 正常跑
+    await checkOnce(ctx);
+    expect(runCheckCalls).toHaveLength(1);
+    // 第二次 tick: 改配置加 quiet hours, 应跳过
+    ctx.deps.runtimeConfigRef.current.notifications = {
+      quiet_hours_start: '23:00',
+      quiet_hours_end: '08:00',
+    };
+    ctx.now = () => new Date('2026-06-23T03:00:00');
+    await checkOnce(ctx);
+    expect(runCheckCalls).toHaveLength(1); // 仍是 1, 第二次被跳过
   });
 });
