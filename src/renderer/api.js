@@ -120,10 +120,6 @@ export function createApi(overrides = {}) {
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),
     aiUsageFetch: pick(overrides, "aiUsageFetch"),
     onAiUsageUpdated: pick(overrides, "onAiUsageUpdated"),
-    // 附近美食推荐 (v2.26+)
-    foodFetchNearby: pick(overrides, "foodFetchNearby"),
-    foodGetConfig: pick(overrides, "foodGetConfig"),
-    foodSaveConfig: pick(overrides, "foodSaveConfig"),
     // Phase Q8: state.json corruption self-recovery banner
     onStateRecovered: pick(overrides, "onStateRecovered"),
     // Phase I5: daily digest

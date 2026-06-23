@@ -32,7 +32,6 @@ import { MetalLayout } from '../metals/MetalLayout.jsx';
 import { NewsLayout } from '../ithome/NewsLayout.jsx';
 import { WechatHotLayout } from '../wechat-hot/components/WechatHotLayout.jsx';
 import { AIUsageLayout } from './AIUsageLayout.jsx';
-import { FoodLayout } from '../food/FoodLayout.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 
 export function AppShell({ onCheck }) {
@@ -97,9 +96,7 @@ export function AppShell({ onCheck }) {
                   ? <MetalLayout />
                   : nav === 'ai-usage'
                     ? <AIUsageLayout />
-                    : nav === 'food'
-                      ? <FoodLayout />
-                      : <VersionsLayout onCheck={onCheck} />}
+                    : <VersionsLayout onCheck={onCheck} />}
       </div>
     </div>
   );

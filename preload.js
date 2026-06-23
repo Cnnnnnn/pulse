@@ -79,11 +79,6 @@ contextBridge.exposeInMainWorld("api", {
   onAiUsageUpdated: (cb) =>
     ipcRenderer.on("ai-usage-updated", (_, data) => cb(data)),
 
-  // 附近美食推荐 (v2.26+)
-  foodFetchNearby: (opts) => ipcRenderer.invoke("food:fetch-nearby", opts),
-  foodGetConfig: () => ipcRenderer.invoke("food:get-config"),
-  foodSaveConfig: (opts) => ipcRenderer.invoke("food:save-config", opts),
-
   // Phase Q8: state.json corruption self-recovery banner
   onStateRecovered: (cb) =>
     ipcRenderer.on("state:recovered", (_, data) => cb(data)),

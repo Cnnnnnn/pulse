@@ -51,19 +51,6 @@ macOS / Windows 菜单栏小工具 — 盯着你装的那批 app 的版本，一
   - macOS：plist → `installed.json` → MMKV/自定义 regex_file → system_profiler（兜底链）
   - Windows：注册表（3 个 Uninstall 根键）→ winget → electron-builder yml
 
-## 附近美食 (v2.26+)
-
-Header 🍜 tab — 当前位置附近的美食推荐,整合高德地图(POI)+ 大众点评(评分)。
-
-- **位置来源**: 手动输入文字地址 / 📍 浏览器定位(10s 超时)
-- **搜索半径**: 500m / 1000m (默认) / 2000m
-- **缓存**: 30 分钟, 同位置不重复请求
-- **API key**: 在 ⚙️ AI/集成 配置里设置高德 key (safeStorage 加密)
-- **失败降级**: 大众点评失败时不报错, 评分字段自动隐藏, POI 数据仍可用
-
-> ⚠️ 数据源包含对大众点评公开搜索页面的爬取, 严格意义上违反其服务条款。
-> 仅供个人本地使用, 不发布到任何商业渠道。
-
 ## 提醒 (v2.11+)
 
 **opt-in** — 装上就能用, 0 配置. Header ⏰ 按钮 + 弹 RemindersModal.

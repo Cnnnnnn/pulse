@@ -73,7 +73,6 @@ const {
 const reminders = require("./reminders");
 const recentActivity = require("./recent-activity");
 const goalWatcher = require("./worldcup/goal-watcher");
-const { bootstrapFood } = require("./food/index");
 
 const {
   ARCH,
@@ -604,10 +603,6 @@ async function bootstrap() {
     },
     { warmup: true, registerIpc: false },
   );
-
-  // 7.6) v2.26+ Task 6: food 模块启动钩子 (reset 单例引用, 等首个 fetchNearbyFood 调 _getCache/_getAmap)
-  //      当前 MVP 无后台预热需求, bootstrapFood 仅清空引用 + 记一行日志.
-  bootstrapFood();
 
   // 8) fund + reminders + recent listeners + auto-check timer
   fundScheduler = startFundScheduler({

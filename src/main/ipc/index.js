@@ -14,7 +14,6 @@ const { registerIthomeHandlers } = require("./register-ithome");
 const { registerIthomeShareHandlers } = require("./register-ithome-share");
 const { registerFundsHandlers } = require("./register-funds");
 const { registerWechatHotHandlers } = require("./register-wechat-hot");
-const { registerFoodHandlers } = require("./register-food");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -32,7 +31,6 @@ function registerIpcHandlers(deps) {
   registerIthomeShareHandlers(ctx);
   registerFundsHandlers(ctx);
   registerWechatHotHandlers(ctx); // ← 新增
-  registerFoodHandlers(ctx);
 }
 
 module.exports = { registerIpcHandlers };

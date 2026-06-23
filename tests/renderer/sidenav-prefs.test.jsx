@@ -85,7 +85,6 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "funds",
       "metals",
       "ai-usage",
-      "food",
       "versions",
     ]);
   });
@@ -128,7 +127,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual(["ithome", "wechat-hot", "funds", "food"]);
+    expect(visibleNavKeys()).toEqual(["ithome", "wechat-hot", "funds"]);
   });
 
   it("只关非动态 prefs (check_action/config_action) → 全部 nav 仍显示", () => {
@@ -151,7 +150,6 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "funds",
       "metals",
       "ai-usage",
-      "food",
       "versions",
     ]);
   });
