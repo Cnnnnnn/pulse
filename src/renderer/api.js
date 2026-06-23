@@ -29,6 +29,8 @@ export function createApi(overrides = {}) {
   return {
     getConfig: pick(overrides, "getConfig"),
     getCachedState: pick(overrides, "getCachedState"),
+    searchQuery: pick(overrides, "searchQuery"),
+    searchUpsert: pick(overrides, "searchUpsert"),
     checkUpdates: pick(overrides, "checkUpdates"),
     brewUpgrade: pick(overrides, "brewUpgrade"),
     brewUpdate: pick(overrides, "brewUpdate"),

@@ -50,6 +50,8 @@ const { WorkerPool } = require("../workers/pool");
 const { createWindowManager } = require("./window");
 const { createTrayManager } = require("./tray");
 const { registerIpcHandlers } = require("./ipc");
+const { createSearchIndex } = require("./search/search-index");
+const { registerSearchIpc } = require("./ipc/register-search");
 const { startDailySummaryJob } = require("./digest/daily-summary-job");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const {
@@ -489,6 +491,19 @@ async function bootstrap() {
     getFundScheduler: () => fundScheduler,
   });
   mainLog.info(`ipc registered`);
+
+  // A3: 全文搜索 — 启动构建索引 + 注册 IPC
+  try {
+    const searchIndex = createSearchIndex();
+    const tSearch = Date.now();
+    searchIndex.buildFromState(stateStore.load());
+    mainLog.info(
+      `search index built: ${searchIndex.size()} docs in ${Date.now() - tSearch}ms`,
+    );
+    registerSearchIpc({ ipcMain, searchIndex, stateStore });
+  } catch (err) {
+    mainLog.warn(`search index init failed: ${err && err.message}`);
+  }
 
   // Phase I5: start daily digest scheduler. setInterval(60s) ticks; the job
   // gates on enabled + last_push_date. We use setInterval so the bootstrap

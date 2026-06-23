@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld("platformInfo", {
 contextBridge.exposeInMainWorld("api", {
   getConfig: () => ipcRenderer.invoke("get-config"),
   getCachedState: () => ipcRenderer.invoke("get-cached-state"),
+  searchQuery: (q, source) => ipcRenderer.invoke("search:query", { q, source }),
+  searchUpsert: (doc) => ipcRenderer.invoke("search:upsert", doc),
   checkUpdates: () => ipcRenderer.invoke("check-updates"),
   brewUpgrade: (cask) => ipcRenderer.invoke("brew-upgrade", cask),
   brewUpdate: () => ipcRenderer.invoke("brew-update"),
