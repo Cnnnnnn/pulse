@@ -10,6 +10,13 @@ import {
   errorEntries,
   errorStats,
   errorLoading,
+  diagnosticsStartup,
+  diagnosticsMetrics,
+  diagnosticsTopFailures,
+  diagnosticsSamples,
+  diagnosticsDiagnosticsLoading,
+  diagnosticsExporting,
+  diagnosticsLastExport,
 } from '../diagnostics/diagnostics-store.js';
 import { api } from '../api.js';
 
@@ -20,11 +27,25 @@ function fmtTs(ts) {
   return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+function fmtBytes(n) {
+  if (typeof n !== 'number' || !isFinite(n)) return '-';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 export function DiagnosticsDrawer() {
   const open = diagnosticsDrawerOpen.value;
   const entries = errorEntries.value;
   const stats = errorStats.value;
   const loading = errorLoading.value;
+  const startup = diagnosticsStartup.value;
+  const metrics = diagnosticsMetrics.value;
+  const topFailures = diagnosticsTopFailures.value;
+  const samples = diagnosticsSamples.value;
+  const diagLoading = diagnosticsDiagnosticsLoading.value;
+  const exporting = diagnosticsExporting.value;
+  const lastExport = diagnosticsLastExport.value;
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +58,27 @@ export function DiagnosticsDrawer() {
       }
     }).finally(() => {
       errorLoading.value = false;
+    });
+  }, [open]);
+
+  // Phase Q1 v2: 拉 startup + metrics + top-5 + ring buffer
+  useEffect(() => {
+    if (!open) return;
+    diagnosticsDiagnosticsLoading.value = true;
+    Promise.all([
+      api.diagnosticsFetch ? api.diagnosticsFetch({ topN: 5 }) : null,
+      api.diagnosticsFetchSamples ? api.diagnosticsFetchSamples() : null,
+    ]).then(([dResp, sResp]) => {
+      if (dResp && dResp.ok) {
+        diagnosticsStartup.value = dResp.startup || null;
+        diagnosticsMetrics.value = dResp.metrics || { latest: null, peak: null, count: 0 };
+        diagnosticsTopFailures.value = dResp.topFailures || [];
+      }
+      if (sResp && sResp.ok) {
+        diagnosticsSamples.value = sResp.samples || [];
+      }
+    }).finally(() => {
+      diagnosticsDiagnosticsLoading.value = false;
     });
   }, [open]);
 
@@ -70,6 +112,33 @@ export function DiagnosticsDrawer() {
     if (api.errorClearOld) await api.errorClearOld({});
     await refresh();
   }
+  async function exportZip() {
+    if (exporting) return;
+    diagnosticsExporting.value = true;
+    try {
+      const r = await (api.errorExportZip ? api.errorExportZip({}) : null);
+      if (r && r.ok) {
+        diagnosticsLastExport.value = {
+          path: r.path,
+          sizeBytes: r.sizeBytes,
+          fileCount: r.fileCount,
+          ts: Date.now(),
+        };
+      } else {
+        diagnosticsLastExport.value = {
+          error: (r && (r.reason || r.error)) || 'export_failed',
+          ts: Date.now(),
+        };
+      }
+    } catch (err) {
+      diagnosticsLastExport.value = { error: (err && err.message) || 'export_failed', ts: Date.now() };
+    } finally {
+      diagnosticsExporting.value = false;
+    }
+  }
+
+  // samples 是时间序列, 文本迷你趋势图 (bar 用 heapUsed relative)
+  const samplesMax = samples.reduce((m, s) => Math.max(m, s && s.heapUsed || 0), 0);
 
   return (
     <>
@@ -89,6 +158,77 @@ export function DiagnosticsDrawer() {
         <div class="diagnostics-drawer__stats">
           共 <b>{stats.total}</b> 条 · error: {stats.byLevel.error || 0} · warn: {stats.byLevel.warn || 0} · unhandled: {stats.byLevel.unhandled || 0}
         </div>
+
+        {/* Phase Q1 v2: 启动时间 + metrics + top-5 + 趋势 + 导出 */}
+        <section class="diag-section">
+          <h3 class="diag-section__title">启动时间</h3>
+          {diagLoading && !startup && <div class="diag-section__loading">加载中…</div>}
+          {startup && (
+            <div class="diag-row">
+              <span class="diag-row__label">bootstrap</span>
+              <span class="diag-row__value">{startup.bootstrapMs == null ? '-' : `${startup.bootstrapMs} ms`}</span>
+              <span class="diag-row__label" style="margin-left: 16px;">renderer ready</span>
+              <span class="diag-row__value">{startup.readyMs == null ? '-' : `${startup.readyMs} ms`}</span>
+            </div>
+          )}
+        </section>
+
+        <section class="diag-section">
+          <h3 class="diag-section__title">性能 (近 {metrics.count || 0} 个采样)</h3>
+          {metrics.latest && (
+            <div class="diag-row">
+              <span class="diag-row__label">heap</span>
+              <span class="diag-row__value">{fmtBytes(metrics.latest.heapUsed)}</span>
+              <span class="diag-row__label" style="margin-left: 12px;">rss</span>
+              <span class="diag-row__value">{fmtBytes(metrics.latest.rss)}</span>
+              <span class="diag-row__label" style="margin-left: 12px;">cpu user</span>
+              <span class="diag-row__value">{metrics.latest.cpuUser} µs</span>
+            </div>
+          )}
+          {metrics.peak && (
+            <div class="diag-row diag-row--sub">
+              <span class="diag-row__label">peak heap / rss</span>
+              <span class="diag-row__value">{fmtBytes(metrics.peak.heapUsed)} / {fmtBytes(metrics.peak.rss)}</span>
+            </div>
+          )}
+          {samples.length > 1 && (
+            <div class="diag-trend" title="heap trend (近 60 帧)">
+              {samples.map((s, i) => (
+                <span
+                  key={i}
+                  class="diag-trend__bar"
+                  style={{ height: `${samplesMax > 0 ? Math.max(2, Math.round((s.heapUsed / samplesMax) * 24)) : 2}px` }}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section class="diag-section">
+          <h3 class="diag-section__title">Top 5 失败</h3>
+          {topFailures.length === 0 && <div class="diag-section__empty">暂无</div>}
+          {topFailures.map((t, i) => (
+            <div key={i} class="diag-failure">
+              <span class="diag-failure__count">{t.count}×</span>
+              <span class="diag-failure__source">[{t.source}]</span>
+              <span class="diag-failure__message">{t.message}</span>
+            </div>
+          ))}
+        </section>
+
+        <section class="diag-section diag-section--export">
+          <button class="btn btn-sm" onClick={exportZip} disabled={exporting}>
+            {exporting ? '导出中…' : '导出诊断包 (.tar.gz → 桌面)'}
+          </button>
+          {lastExport && !lastExport.error && (
+            <div class="diag-export__ok">
+              已导出 → <code>{lastExport.path}</code> ({fmtBytes(lastExport.sizeBytes)}, {lastExport.fileCount} 个文件)
+            </div>
+          )}
+          {lastExport && lastExport.error && (
+            <div class="diag-export__err">导出失败: {lastExport.error}</div>
+          )}
+        </section>
         <div class="diagnostics-drawer__body">
           {loading && <div class="diagnostics-drawer__loading">加载中...</div>}
           {!loading && entries.length === 0 && (

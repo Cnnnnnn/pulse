@@ -2940,6 +2940,87 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 8px 12px;
   border-top: 1px solid var(--bg-secondary, #e5e5ea);
 }
+
+/* Phase Q1 v2: diagnostics sections (startup / metrics / top-5 / exports) */
+.diag-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
+}
+.diag-section--export { background: rgba(0, 0, 0, 0.02); }
+.diag-section__title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #555);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.diag-section__loading, .diag-section__empty {
+  font-size: 12px;
+  color: var(--text-tertiary, #888);
+  font-style: italic;
+}
+.diag-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.diag-row--sub {
+  font-size: 11px;
+  color: var(--text-tertiary, #888);
+}
+.diag-row__label { color: var(--text-tertiary, #888); }
+.diag-row__value { font-weight: 600; }
+.diag-trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 26px;
+  margin-top: 4px;
+}
+.diag-trend__bar {
+  flex: 1;
+  background: linear-gradient(180deg, #4a90e2 0%, #357abd 100%);
+  border-radius: 1px;
+  min-width: 2px;
+}
+.diag-failure {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.diag-failure__count {
+  font-weight: 700;
+  color: var(--accent, #4a90e2);
+  min-width: 24px;
+}
+.diag-failure__source {
+  color: var(--text-tertiary, #888);
+  font-family: var(--font-mono, monospace);
+}
+.diag-failure__message {
+  flex: 1;
+  word-break: break-word;
+}
+.diag-export__ok {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--accent, #4a90e2);
+}
+.diag-export__ok code {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  word-break: break-all;
+}
+.diag-export__err {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--error, #d93b3b);
+}
 .error-entry {
   padding: 8px 0;
   border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
