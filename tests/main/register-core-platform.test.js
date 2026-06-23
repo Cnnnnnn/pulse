@@ -27,13 +27,15 @@ describe('register-core uses platform layer', () => {
     expect(src).not.toMatch(/require\(["']\.\.\/app-icon["']\)/);
   });
 
-  it('refresh-last-opened 调 platform.resolveAppPath (不再直接 require app-paths)', () => {
+  it('refresh-last-opened handler body 调 platform.resolveAppPath', () => {
     const src = readFileSync(
       join(__dirname, '../../src/main/ipc/register-core.js'),
       'utf-8',
     );
     expect(src).toContain('platform.resolveAppPath');
-    expect(src).not.toMatch(/require\(["'].*app-paths["']\)/);
+    // 2026-06-14: Phase C3 rollback 也 require app-paths 里的 resolveAppBundlePath,
+    // 这是平台无关工具 (返回 fs 路径), 跟 platform.resolveAppPath 不是同一回事.
+    // 这条静态检查只确保 refresh-last-opened 走 platform, 不限制其它 IPC.
   });
 
   it('platform.getAppIcon 委托 app-icon.js (mac 行为不变)', async () => {
