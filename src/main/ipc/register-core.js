@@ -85,6 +85,29 @@ function registerCoreHandlers(ctx) {
     );
     // check 完成后, versionHistory counts 不变, 但 broadcast 一下保持 renderer 心跳一致
     broadcastVersionHistoryCounts(sendToRenderer);
+    // I2 v1: pinned app 独立通知 (走 electron.Notification + inQuietHours)
+    try {
+      const { checkWatchlistUpdates } = require("../watchlist");
+      const { Notification: ElectronNotification } = require("electron");
+      const sendNotification = (n) => {
+        if (
+          !ElectronNotification.isSupported ||
+          !ElectronNotification.isSupported()
+        ) {
+          return;
+        }
+        new ElectronNotification({
+          title: n.title,
+          body: n.body,
+          silent: false,
+        });
+      };
+      checkWatchlistUpdates({ results: r, sendNotification });
+    } catch (err) {
+      mainLog.warn(
+        `[ipc] check-updates watchlist hook failed: ${err && err.message}`,
+      );
+    }
     return r;
   });
 
@@ -512,6 +535,54 @@ function registerCoreHandlers(ctx) {
       return { ok: true, samples: getSamples() };
     } catch (err) {
       return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  // Phase I2 v1: watchlist IPC (pinned apps)
+  safeHandle("watchlist:list", () => {
+    try {
+      const { loadWatchlist } = require("../state-store");
+      return { ok: true, items: loadWatchlist() };
+    } catch (err) {
+      return { ok: false, reason: "load_failed", error: err && err.message };
+    }
+  });
+
+  safeHandle("watchlist:add", (_e, payload) => {
+    try {
+      const { loadWatchlist, saveWatchlist } = require("../state-store");
+      const appName = payload && payload.appName;
+      if (typeof appName !== "string" || appName.length === 0) {
+        return { ok: false, reason: "invalid_appName" };
+      }
+      const list = loadWatchlist();
+      if (list.some((w) => w.appName === appName)) {
+        return { ok: true, items: list }; // 幂等: 已 pin 不重复
+      }
+      const next = [
+        ...list,
+        { appName, addedAt: Date.now(), lastNotifiedVersion: null },
+      ];
+      saveWatchlist(next);
+      return { ok: true, items: next };
+    } catch (err) {
+      return { ok: false, reason: "save_failed", error: err && err.message };
+    }
+  });
+
+  safeHandle("watchlist:remove", (_e, payload) => {
+    try {
+      const { loadWatchlist, saveWatchlist } = require("../state-store");
+      const appName = payload && payload.appName;
+      if (typeof appName !== "string" || appName.length === 0) {
+        return { ok: false, reason: "invalid_appName" };
+      }
+      const list = loadWatchlist();
+      const next = list.filter((w) => w.appName !== appName);
+      saveWatchlist(next);
+      return { ok: true, items: next };
+    } catch (err) {
+      return { ok: false, reason: "save_failed", error: err && err.message };
     }
   });
 
