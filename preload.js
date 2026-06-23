@@ -98,6 +98,10 @@ contextBridge.exposeInMainWorld("api", {
   // Phase Q1 v2: diagnostics drawer
   diagnosticsFetch: (opts) => ipcRenderer.invoke("diagnostics:fetch", opts),
   diagnosticsFetchSamples: () => ipcRenderer.invoke("diagnostics:fetch-samples"),
+  // I2 v1: watchlist (pinned apps)
+  watchlistList: () => ipcRenderer.invoke("watchlist:list"),
+  watchlistAdd: (appName) => ipcRenderer.invoke("watchlist:add", { appName }),
+  watchlistRemove: (appName) => ipcRenderer.invoke("watchlist:remove", { appName }),
   errorOpenFolder: () => ipcRenderer.invoke("error:open-folder"),
   errorReport: (entry) => ipcRenderer.invoke("error:report", entry),
   onErrorAppended: (cb) => ipcRenderer.on("error:appended", (_, data) => cb(data)),

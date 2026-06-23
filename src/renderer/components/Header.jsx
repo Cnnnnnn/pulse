@@ -16,6 +16,7 @@ import { AITasksButton } from './AITasksDrawer.jsx';
 import { RemindersButton } from '../reminders/RemindersModal.jsx';
 import { RecentButton } from '../recent/RecentActivityModal.jsx';
 import { diagnosticsDrawerOpen } from '../diagnostics/diagnostics-store.js';
+import { watchlistDrawerOpen, watchlistItems } from '../watchlist/watchlist-store.js';
 
 export function Header({ onCheck }) {
   const session = checkSession.value;
@@ -63,6 +64,16 @@ export function Header({ onCheck }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
           </svg>
+        </button>
+        <button
+          id="btn-watchlist"
+          class={`btn btn-ghost btn-icon ${watchlistDrawerOpen.value ? 'is-active' : ''}`}
+          onClick={() => { watchlistDrawerOpen.value = !watchlistDrawerOpen.value; }}
+          title={`关注列表 (${watchlistItems.value.length})`}
+          aria-label="关注列表"
+          aria-expanded={watchlistDrawerOpen.value}
+        >
+          <span style={{ fontSize: '16px', lineHeight: 1 }}>{watchlistItems.value.length > 0 ? '★' : '☆'}</span>
         </button>
       </div>
     </header>

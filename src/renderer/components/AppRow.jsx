@@ -36,6 +36,11 @@ import { MuteMenu } from './MuteMenu.jsx';
 import { SnoozeMenu } from './SnoozeMenu.jsx';
 import { openVersionHistory } from '../store-version-history.js';
 import { versionHistoryCounts } from '../store-version-history-counts.js';
+import {
+  watchlistItems,
+  addWatchlist,
+  removeWatchlist,
+} from '../watchlist/watchlist-store.js';
 
 export function AppRow({ name }) {
   // 订阅 per-row signals (本组件的订阅点)
@@ -131,6 +136,13 @@ export function AppRow({ name }) {
   const muteEntry = mutedApps.value.get(name);
   const muted = isMuted(name);
   const lastOpenedEntry = lastOpenedApps.value.get(name);
+  // I2 v1: pinned state
+  const pinned = watchlistItems.value.some(w => w.appName === result.name);
+  const togglePin = (e) => {
+    e.stopPropagation();
+    if (pinned) removeWatchlist(result.name);
+    else addWatchlist(result.name);
+  };
 
   function onContextMenu(e) {
     if (e.target.closest('.btn-upgrade-row')
@@ -195,6 +207,15 @@ export function AppRow({ name }) {
             {versionHistoryCounts.value.get(result.name)}
           </span>
         ) : null}
+      </button>
+      <button
+        class={`row-action-pin ${pinned ? 'is-pinned' : ''}`}
+        onClick={togglePin}
+        title={pinned ? '取消关注' : '加入关注列表'}
+        aria-label={pinned ? '取消关注' : '加入关注列表'}
+        aria-pressed={pinned}
+      >
+        {pinned ? '★' : '☆'}
       </button>
       {changelogOpen && <ChangelogPanel result={result} />}
       {muteMenuAt && (

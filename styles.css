@@ -3141,6 +3141,29 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-primary, #222);
 }
 
+/* I2 v1: row-action-pin — ⭐ button next to row-action-snooze/rollback */
+.row-action-pin {
+  background: transparent;
+  border: 1px solid var(--bg-secondary, #e5e5ea);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+  margin-left: 4px;
+}
+.row-action-pin:hover {
+  background: var(--bg-secondary, #f4f4f5);
+  color: #f5a623;
+}
+.row-action-pin.is-pinned {
+  color: #f5a623;
+  background: rgba(245, 166, 35, 0.08);
+}
+.row-action-pin.is-pinned:hover {
+  color: #d97706;
+}
+
 /* ── v2: Per-app Phase 状态样式 ── */
 
 /* 等待检测: 轻微透明, 灰色文字 */
@@ -8685,4 +8708,112 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 @keyframes search-pulse {
   0%, 100% { background-color: transparent; }
   50% { background-color: rgba(255, 214, 10, 0.2); }
+}
+
+/* ── I2 v1: Watchlist drawer (mirrors DiagnosticsDrawer) ── */
+.watchlist-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  transition: background 0.15s ease;
+  z-index: 4050;
+}
+.watchlist-overlay.visible {
+  background: rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+}
+.watchlist-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 360px;
+  max-width: 90vw;
+  background: var(--bg-primary, #fff);
+  border-left: 1px solid var(--bg-secondary, #e5e5ea);
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
+  z-index: 4100;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--text-primary, #222);
+}
+.watchlist-drawer__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
+  min-height: 44px;
+}
+.watchlist-drawer__title {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+}
+.watchlist-drawer__close {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-tertiary, #666);
+  padding: 0;
+  margin-left: 6px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+.watchlist-drawer__close:hover {
+  color: var(--text-primary, #222);
+  background: var(--bg-hover, #f5f5f7);
+}
+.watchlist-drawer__stats {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-secondary, #555);
+  border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
+}
+.watchlist-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+.watchlist-drawer__empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-secondary, #888);
+  font-size: 12px;
+}
+.watchlist-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
+}
+.watchlist-entry:last-child {
+  border-bottom: 0;
+}
+.watchlist-entry__main {
+  flex: 1;
+  min-width: 0;
+}
+.watchlist-entry__name {
+  display: block;
+  font-weight: 500;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.watchlist-entry__meta {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary, #888);
+  margin-top: 2px;
 }
