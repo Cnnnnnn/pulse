@@ -2,9 +2,16 @@
 
 ---
 
-## Unreleased (🔌 后台检测智能时间窗 — Phase C4)
+## v2.27.0 (🔌 后台检测智能时间窗 + 🎨 Windows 主题重做) — 2026-06-23
 
 ### 新增
+- **🎨 Windows 主题重做**: 中性石墨灰 + 天青蓝, 对齐 Win11 Mica 原生质感
+  - 取代旧 #1e1e2e/#2c2c34 紫灰底 (发冷发脏) + #0a84ff 纯蓝 (与背景色调不统一)
+  - 层次结构: 内容区 #202020 (最深) → chrome/卡片 #2b2b2b → hover #3a3a3a
+  - 强调色改天青蓝 #4cc2ff (链接/图标/focus/选中态)
+  - 文字对比度提亮: primary #ededed / secondary #b8b8b8
+  - 亮底配深字: `.btn-primary` / `.side-nav-brand-mark` 文字改深蓝黑 #003046 (WCAG)
+  - 滚动条 thumb 改浅色半透明 (深底上默认不可见)
 - **🔌 后台检测节流 (Phase C4)**: quiet hours 内 auto-check 直接跳过检测（不只压通知），结束后自动补跑一次
   - 复用现有 `notifications.quiet_hours_start/end` 配置, 不新增配置项
   - quiet hours 内跳过: 不打外部 API、不起 worker、不写 state, 真正省电省网
@@ -12,6 +19,7 @@
   - 检测失败时 `lastAutoCheckAt` 不更新, 下个 tick 重试
 
 ### 变更
+- **`styles.css`**: Windows 主题配色重做 (v2.27 注释段, ~70 行)
 - **`src/main/bootstrap/schedulers.js`**: `startAutoCheckTimer` 重写 — 新增 `decideAutoCheck` 纯决策函数 + `checkOnce` 执行函数; 返回 `{ stop, triggerNow }` + `__resetForTest` (照搬 daily-summary-job 可测性模式)
 - **`src/main/bootstrap/schedulers.js`**: config 取值从启动快照 `runtimeConfig` 改为实时 `runtimeConfigRef.current`, quiet hours 配置改了立即生效无需重启 (与项目其他模块对齐)
 - **`src/main/index.js`**: `startAutoCheckTimer` 传参 `runtimeConfig` → `runtimeConfigRef` (1 处)
@@ -23,11 +31,14 @@
 - 手动检测 (用户点"检查更新") 不受 quiet hours 影响, 永远立即执行
 - `check_on_launch` (启动检测) 照跑
 - 未配 quiet hours 的用户行为完全等同现状 (零回归)
+- macOS 主题完全不变 (本次只改 `body.platform-win` 块)
 - `check-runner.js` / 通知抑制逻辑 / cooldown 全部不动
 
 ### 文件
+- 修改: `styles.css` (+70 / -35, Windows 主题段)
 - 修改: `src/main/bootstrap/schedulers.js` (+~130 行: decideAutoCheck + checkOnce + startAutoCheckTimer 重写)
 - 修改: `src/main/index.js` (1 行传参)
+- 修改: `package.json` (version 2.26.0 → 2.27.0)
 - 新增: `tests/main/schedulers-auto-check.test.js` (13 case)
 
 ### 测试
@@ -36,7 +47,8 @@
 - renderer bundle 构建正常 (862.3kb)
 
 ### 手动 e2e(留给用户验证)
-- 见 spec §5.4: 设 quiet hours 窗口 → 观察跳过 → 窗口结束观察补跑 → 确认手动检测不受影响
+- C4: 设 quiet hours 窗口 → 观察跳过 → 窗口结束观察补跑 → 确认手动检测不受影响
+- Windows 主题: Windows 10/11 实机或虚拟机验证配色 (macOS 开发环境无法验证 acrylic 效果)
 
 ---
 
