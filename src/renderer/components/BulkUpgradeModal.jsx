@@ -161,6 +161,9 @@ export function BulkUpgradeModal() {
           <h2>批量升级 ({upgradableCount} 个应用)</h2>
           <button class="btn-close" onClick={closeBulkUpgrade} title="关闭" aria-label="关闭">×</button>
         </div>
+        <div class="modal-subtitle">
+          升级前会自动备份最近 2 个版本 (cap 2), 升级后可通过 ⏪ 按钮一键回滚。
+        </div>
 
         <div class="modal-body">
           {Object.entries(groups).map(([source, list]) => (

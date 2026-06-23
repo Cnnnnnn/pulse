@@ -217,6 +217,18 @@ contextBridge.exposeInMainWorld("api", {
   windowMinimize: () => ipcRenderer.invoke("window:minimize"),
   windowToggleMaximize: () => ipcRenderer.invoke("window:toggle-maximize"),
   windowClose: () => ipcRenderer.invoke("window:close"),
+
+  // Phase C3: App rollback bridge
+  getVersionHistory: (appName) => ipcRenderer.invoke("get-version-history", appName),
+  rollbackApp: (appName, version) =>
+    ipcRenderer.invoke("rollback-app", appName, version),
+  deleteBackup: (appName, version) =>
+    ipcRenderer.invoke("delete-backup", appName, version),
+  onVersionHistoryUpdated: (cb) => {
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("version-history-updated", handler);
+    return () => ipcRenderer.removeListener("version-history-updated", handler);
+  },
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

@@ -145,6 +145,11 @@ export function createApi(overrides = {}) {
     windowMinimize: pick(overrides, "windowMinimize"),
     windowToggleMaximize: pick(overrides, "windowToggleMaximize"),
     windowClose: pick(overrides, "windowClose"),
+    // Phase C3: App rollback bridge
+    getVersionHistory: pick(overrides, "getVersionHistory"),
+    rollbackApp: pick(overrides, "rollbackApp"),
+    deleteBackup: pick(overrides, "deleteBackup"),
+    onVersionHistoryUpdated: pick(overrides, "onVersionHistoryUpdated"),
   };
 }
 
