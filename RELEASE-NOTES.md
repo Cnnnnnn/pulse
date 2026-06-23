@@ -2,6 +2,53 @@
 
 ---
 
+## Unreleased (🔍 全文搜索 Cmd+K — Phase A3)
+
+### 新增
+- **🔍 全文搜索 (Phase A3)**: Cmd+K (macOS) / Ctrl+K (Windows) 唤起全局搜索 modal, 跨本地持久化文本检索
+  - 搜索范围: IT之家新闻 (标题/摘要/正文/AI总结 ~3000条) + AI 任务总结 + 提醒 + 基金名 + 受监控 app 名
+  - 倒排索引: 启动时从 state.json 构建内存 Map, bigram 中文分词 (零依赖), 标题权重 +2 / 全文 +1, AND 语义
+  - UI: 左侧来源栏 (各源命中数) + 右侧结果列表 (标题 + 命中片段高亮)
+  - 键盘: ↑↓ 导航 / Enter 跳转 / Esc 关闭
+  - 跳转: 切到对应面板 + 滚动定位 + 3 秒高亮 (复用 tray-focus 模式)
+
+### 变更
+- 主进程新增 `src/main/search/` (tokenizer + highlight + build-docs + search-index) + IPC `search:query`/`search:upsert`/`search:rebuild`
+- 渲染端新增 `src/renderer/search/` (SearchModal + SearchSourceBar + SearchResultList + SearchResultRow + searchStore + search-nav)
+- `AppShell.jsx`: Cmd+K/Ctrl+K 监听 + 挂 `<SearchModal />`
+- `NewsArticleRow.jsx`: 加 `data-article-id` 供跳转定位
+- `styles.css`: 搜索 modal 样式 (~90 行)
+
+### 不变
+- 现有功能零改动; 未配/不触发搜索的路径完全无感
+- 索引在内存, 不落盘, 重启重建 (启动 ~50-100ms 构建开销)
+- 手动检测 / 通知 / 其他面板行为完全不变
+
+### 文件
+- 新增: `src/main/search/{tokenizer,highlight,build-docs,search-index}.js` + `src/main/ipc/register-search.js`
+- 新增: `src/renderer/search/{SearchModal,SearchSourceBar,SearchResultList,SearchResultRow}.jsx` + `searchStore.js` + `search-nav.js`
+- 新增: `tests/main/search/*.test.js` (36 case) + `tests/renderer/search/*.test.js` (9 case)
+- 修改: `src/main/index.js` (bootstrap 构建索引 + 注册 IPC)
+- 修改: `preload.js` + `src/renderer/api.js` (暴露 searchQuery/searchUpsert)
+- 修改: `src/renderer/components/AppShell.jsx` + `src/renderer/ithome/NewsArticleRow.jsx`
+- 修改: `styles.css` (+~90 行)
+
+### 测试
+- 新增 45 个 A3 相关单测 (tokenizer 8 + highlight 6 + build-docs 7 + search-index 10 + register-search 5 + searchStore 4 + search-nav 5)
+- 全量回归 **2360 passed | 4 skipped / 0 failed** (A3 引入 0 回归)
+
+### 已知限制
+- **实时 upsert 延后**: 当前仅在启动时构建索引, 运行时新增的新闻/AI总结/提醒需重启才进索引 (后续优化)
+- reminder/fund/ai-task 行的 data-*-id 跳转定位尚未补全 (news 跳转已可用; 其他源命中后只切面板不滚动)
+- CJK bigram 可能产生少量误召回 (如搜"工智"命中"人工智能"), AND 语义 + 排序保证相关结果靠前
+
+### 手动 e2e(留给用户验证)
+- Cmd+K 唤起 → 输入 "性能" → 看到新闻 + AI任务命中 → ↑↓ 导航 → Enter 跳转到新闻面板并高亮
+- 点左侧来源栏切源 → 结果重新匹配
+- Esc 关闭
+
+---
+
 ## v2.27.0 (🔌 后台检测智能时间窗 + 🎨 Windows 主题重做) — 2026-06-23
 
 ### 新增
