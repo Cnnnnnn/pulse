@@ -48,6 +48,7 @@ import {
   ithomeReadIds,
   ithomeNewIds,
   ithomeSharingIds,
+  ithomeUnreadBadge,
   ithomeArticles,
   markIthomeRead,
   loadIthomeNews,
@@ -152,5 +153,30 @@ describe("shareIthomeArticle", () => {
     const r = await p;
     expect(r.ok).toBe(false);
     expect(ithomeSharingIds.value["a2"]).toBeFalsy();
+  });
+});
+
+describe("ithomeUnreadBadge — SideNav 未读角标 (I6)", () => {
+  beforeEach(() => {
+    // ithomeNewIds 是 module-level signal, 跨 it 残留 — 每个 case 前显式清空
+    ithomeNewIds.value = {};
+  });
+
+  it("空 newIds → 0", () => {
+    expect(ithomeUnreadBadge.value).toBe(0);
+  });
+
+  it("newIds 有 3 个 id → 3", () => {
+    ithomeNewIds.value = { a: 1, b: 1, c: 1 };
+    expect(ithomeUnreadBadge.value).toBe(3);
+  });
+
+  it("删掉 1 个 id 后 → 数字 -1", () => {
+    ithomeNewIds.value = { a: 1, b: 1, c: 1 };
+    expect(ithomeUnreadBadge.value).toBe(3);
+    const next = { ...ithomeNewIds.value };
+    delete next.a;
+    ithomeNewIds.value = next;
+    expect(ithomeUnreadBadge.value).toBe(2);
   });
 });

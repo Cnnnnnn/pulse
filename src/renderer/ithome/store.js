@@ -2,7 +2,7 @@
  * src/renderer/ithome/store.js
  */
 
-import { signal } from "@preact/signals";
+import { signal, computed } from "@preact/signals";
 import {
   todayShanghaiDateKey,
   articlesForDate,
@@ -28,6 +28,14 @@ export const ithomeFavoriteSelectedDate = signal("");
 export const ithomeViewMode = signal("news");
 export const ithomeReadIds = signal({});
 export const ithomeNewIds = signal({});
+/**
+ * SideNav 未读角标 (I6) — 本 session 新增且未读的文章数.
+ * 直接派生自 ithomeNewIds, 行为完全跟随:
+ *   读一篇 (markIthomeRead) → -1; 切日期/重启 → 归 0.
+ */
+export const ithomeUnreadBadge = computed(
+  () => Object.keys(ithomeNewIds.value).length
+);
 export const ithomeSharingIds = signal({});
 
 function _applyPayload(data) {
