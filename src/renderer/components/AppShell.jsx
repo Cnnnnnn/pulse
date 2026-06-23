@@ -33,6 +33,8 @@ import { NewsLayout } from '../ithome/NewsLayout.jsx';
 import { WechatHotLayout } from '../wechat-hot/components/WechatHotLayout.jsx';
 import { AIUsageLayout } from './AIUsageLayout.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
+import { SearchModal } from '../search/SearchModal.jsx';
+import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
 
 export function AppShell({ onCheck }) {
   const nav = activeNav.value;
@@ -60,6 +62,13 @@ export function AppShell({ onCheck }) {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'm' || e.key === 'M')) {
         e.preventDefault();
         setActiveNav('metals');
+        return;
+      }
+      // A3: Cmd+K / Ctrl+K 全文搜索
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        if (isSearchOpen.value) closeSearch();
+        else openSearch();
         return;
       }
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
@@ -98,6 +107,7 @@ export function AppShell({ onCheck }) {
                     ? <AIUsageLayout />
                     : <VersionsLayout onCheck={onCheck} />}
       </div>
+      <SearchModal />
     </div>
   );
 }

@@ -4,7 +4,7 @@
  * A3: 搜索结果跳转. 切面板 + 滚动 + 高亮 (复用 .search-highlight class).
  * 找不到目标元素时只切面板, console.warn.
  */
-import { setNav } from '../worldcup/navStore.js';
+import { setActiveNav } from '../worldcup/navStore.js';
 import { closeSearch } from './searchStore.js';
 
 const HIGHLIGHT_CLASS = 'search-highlight';
@@ -39,23 +39,23 @@ export function navigateToResult(result) {
   const { source, nativeId, payload } = result;
   switch (source) {
     case 'news':
-      setNav('ithome');
+      setActiveNav('ithome');
       scrollAndHighlight(`[data-article-id="${cssEscape(nativeId)}"]`);
       break;
     case 'ai-task':
-      setNav('ai-tasks');
+      setActiveNav('ai-tasks');
       scrollAndHighlight(`[data-task-key="${cssEscape(nativeId)}"]`);
       break;
     case 'reminder':
-      setNav('reminders');
+      setActiveNav('reminders');
       scrollAndHighlight(`[data-reminder-id="${cssEscape(nativeId)}"]`);
       break;
     case 'fund':
-      setNav('funds');
+      setActiveNav('funds');
       scrollAndHighlight(`[data-fund-code="${cssEscape((payload && payload.code) || '')}"]`);
       break;
     case 'app':
-      setNav('versions');
+      setActiveNav('versions');
       scrollAndHighlight(`[data-name="${cssEscape(nativeId)}"]`); // AppRow 已有 data-name
       break;
     default:

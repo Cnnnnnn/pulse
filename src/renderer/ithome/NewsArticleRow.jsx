@@ -144,6 +144,7 @@ async function handleShare(e) {
   return (
     <article
       class={`ithome-row${favorited ? " is-favorited" : ""}${expanded ? " is-expanded" : ""}${isRead ? " is-read" : ""}${isNew ? " is-new" : ""}`}
+      data-article-id={article.id}
     >
       <div class="ithome-row-head">
         <div class="ithome-row-meta">
