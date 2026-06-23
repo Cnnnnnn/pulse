@@ -65,6 +65,7 @@ const aiStorage = require("../ai-sessions/storage");
 const { HttpClient } = require("./http-client");
 const { computePoolSize } = require("./pool-size");
 const { auditTimers, clearAllManaged } = require("./timer-registry");
+const { markBootstrapDone } = require("./diagnostics");
 const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
 const {
@@ -680,14 +681,20 @@ if (app && typeof app.whenReady === "function") {
 
     // 启动主流程 (window/tray/IPC/schedulers). 必须 await, 否则后续 lifecycle handler
     // (activate / before-quit) 引用闭包变量 (pool/trayMgr/aiUsageScheduler) 会拿到 undefined.
-    bootstrap().catch((err) => {
-      mainLog.error(`bootstrap failed: ${err.message}`);
-      try {
-        app.quit();
-      } catch {
-        /* noop */
-      }
-    });
+    bootstrap()
+      .then(() => {
+        // Phase Q4 v1: bootstrap done — tray / window / pool / ipc 全部就绪.
+        // 后续 markRendererReady 在 window.js did-finish-load 触发.
+        markBootstrapDone();
+      })
+      .catch((err) => {
+        mainLog.error(`bootstrap failed: ${err.message}`);
+        try {
+          app.quit();
+        } catch {
+          /* noop */
+        }
+      });
 
     // Phase Q5 v1: clear any remaining managed timers on quit.
     app.once("before-quit", () => {

@@ -56,6 +56,12 @@ function createWindowManager(opts = {}) {
     // 页面加载完后再设一次, 防止 did-finish-load 之前 macOS 拿默认值
     mainWindow.webContents.on('did-finish-load', () => {
       try { mainWindow.setTitle('Pulse'); } catch { /* noop */ }
+      // Phase Q4 v1: 启动时间埋点 — renderer 完整加载完 (preload + bundle + dom).
+      // best-effort: diagnostics 失败不影响主流程.
+      try {
+        const { markRendererReady } = require('./diagnostics');
+        markRendererReady();
+      } catch { /* noop */ }
     });
 
     // Phase B7e.4: 抓 renderer console + crash, 写到 mainLog 方便排查.
