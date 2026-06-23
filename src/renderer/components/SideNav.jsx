@@ -26,6 +26,7 @@ import {
   effectiveVisibleItems,
 } from '../worldcup/navStore.js';
 import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
+import { ithomeUnreadBadge } from '../ithome/store.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
 import { trayMenuPrefs } from '../trayConfigStore.js';
 import {
@@ -68,6 +69,10 @@ export function SideNav() {
   void aiSessionsConfig.value;
   void aiKeyStatus.value;
   const aiNeedsSetup = needsConfig();
+
+  // I6: ithome 未读角标 — 显式订阅确保 UI 刷新
+  void ithomeUnreadBadge.value;
+  const navBadges = { ithome: ithomeUnreadBadge.value };
 
   // Phase I3: nav 重排 + 隐藏 (localStorage 持久化)
   const [sidenavPrefs, setSidenavPrefs] = useState(() => loadPrefs());
@@ -169,6 +174,7 @@ export function SideNav() {
               item={item}
               active={isActive}
               collapsed={collapsed}
+              badge={navBadges[item.key] || 0}
               draggable={!collapsed}
               onSelect={setActiveNav}
               onReorder={handleReorder}
