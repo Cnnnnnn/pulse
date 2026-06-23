@@ -28,12 +28,19 @@ let mockTrayMenuPrefs = signal({
   },
 });
 
-vi.mock("../../src/renderer/worldcup/navStore.js", () => ({
-  get activeNav() { return { get value() { return mockActiveNavValue; } }; },
-  get navCollapsed() { return { get value() { return mockNavCollapsedValue; } }; },
-  setActiveNav: vi.fn((k) => { mockActiveNavValue = k; }),
-  toggleNavCollapsed: vi.fn(() => { mockNavCollapsedValue = !mockNavCollapsedValue; }),
-}));
+vi.mock("../../src/renderer/worldcup/navStore.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    // 复用真实的 NAV_KEYS_LIST / effectiveVisibleItems (SideNav + sidenav-prefs 依赖),
+    // 只覆盖 activeNav / navCollapsed 两个 signal 让测试可控.
+    NAV_KEYS_LIST: actual.NAV_KEYS_LIST,
+    effectiveVisibleItems: actual.effectiveVisibleItems,
+    get activeNav() { return { get value() { return mockActiveNavValue; } }; },
+    get navCollapsed() { return { get value() { return mockNavCollapsedValue; } }; },
+    setActiveNav: vi.fn((k) => { mockActiveNavValue = k; }),
+    toggleNavCollapsed: vi.fn(() => { mockNavCollapsedValue = !mockNavCollapsedValue; }),
+  };
+});
 
 vi.mock("../../src/renderer/store.js", () => ({
   openAISettings: vi.fn(),

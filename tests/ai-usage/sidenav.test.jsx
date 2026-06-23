@@ -12,12 +12,19 @@ import { render, fireEvent, cleanup } from "@testing-library/preact";
 let mockActiveNav = "versions";
 let mockNavCollapsed = false;
 
-vi.mock("../../src/renderer/worldcup/navStore.js", () => ({
-  get activeNav() { return { get value() { return mockActiveNav; } }; },
-  get navCollapsed() { return { get value() { return mockNavCollapsed; } }; },
-  setActiveNav: (k) => { mockActiveNav = k; },
-  toggleNavCollapsed: () => { mockNavCollapsed = !mockNavCollapsed; },
-}));
+vi.mock("../../src/renderer/worldcup/navStore.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    // 复用真实的 NAV_KEYS_LIST / effectiveVisibleItems (SideNav + sidenav-prefs 依赖),
+    // 只覆盖 activeNav / navCollapsed 两个 signal 让测试可控.
+    NAV_KEYS_LIST: actual.NAV_KEYS_LIST,
+    effectiveVisibleItems: actual.effectiveVisibleItems,
+    get activeNav() { return { get value() { return mockActiveNav; } }; },
+    get navCollapsed() { return { get value() { return mockNavCollapsed; } }; },
+    setActiveNav: (k) => { mockActiveNav = k; },
+    toggleNavCollapsed: () => { mockNavCollapsed = !mockNavCollapsed; },
+  };
+});
 
 vi.mock("../../src/renderer/store.js", () => ({
   openAISettings: vi.fn(),

@@ -3,6 +3,9 @@ node_modules/
 .pnp/
 .pnp.js
 
+# codegraph local cache (index db + daemon socket)
+.codegraph/
+
 # Build output
 dist/
 renderer-dist/
