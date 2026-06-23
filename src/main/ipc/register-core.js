@@ -7,6 +7,10 @@ const platform = require("../../platform");
 const { mainLog } = require("../log");
 const lastOpened = require("../last-opened");
 const recentActivity = require("../recent-activity");
+const versionHistory = require("../version-history");
+const backup = require("../backup");
+const rollback = require("../rollback");
+const { resolveAppBundlePath } = require("../../utils/app-paths");
 
 let bulkUpgradeCtrl = null;
 let bulkUpgradeRunning = false;
@@ -495,6 +499,122 @@ function registerCoreHandlers(ctx) {
       });
     }
   });
+
+  // Phase C3: app rollback IPC handlers
+  safeHandle("get-version-history", (_event, appName) => {
+    if (!appName || typeof appName !== "string") {
+      return { ok: false, reason: "bad_name", entries: [], totalSizeBytes: 0 };
+    }
+    try {
+      const entries = versionHistory.listHistory(appName);
+      const totalSizeBytes = versionHistory.getTotalSize();
+      return { ok: true, entries, totalSizeBytes };
+    } catch (err) {
+      mainLog.warn("[ipc] get-version-history threw", { msg: err && err.message });
+      return { ok: false, reason: "threw", entries: [], totalSizeBytes: 0 };
+    }
+  });
+
+  safeHandle(
+    "rollback-app",
+    async (_event, appName, toVersion) => {
+      if (!appName || typeof appName !== "string" || !toVersion || typeof toVersion !== "string") {
+        return { ok: false, reason: "invalid_args" };
+      }
+      const apps = (getConfig() && getConfig().apps) || [];
+      const appCfg = apps.find((a) => a && a.name === appName);
+      if (!appCfg || !appCfg.bundle) {
+        return { ok: false, reason: "app_not_found" };
+      }
+      const entries = versionHistory.listHistory(appName);
+      const entry = entries.find((e) => e.to === toVersion);
+      if (!entry) {
+        return { ok: false, reason: "history_not_found" };
+      }
+      const targetAppPath = resolveAppBundlePath(appCfg.bundle);
+      try {
+        const r = await rollback.doRollback({
+          appName,
+          bundleName: appCfg.bundle,
+          targetAppPath,
+          backupPath: entry.backupPath,
+          rollbackToVersion: toVersion,
+          currentInstalledVersion:
+            (appCfg.installed_version || appCfg.latest_version || "").toString() || "unknown",
+          onUpdateInstalled: (newVer) => {
+            try {
+              // 写 apps[appName].installed_version — 通过 saveAll 单条模式,
+              // 但更简单是直接调 state-store 的 patch 范式. 这里走 setAppInstalledVersion
+              // helper (在 state-store.js 末尾新增 — 见 Task 6).
+              stateStore.saveAppInstalledVersion(appName, newVer);
+            } catch (err) {
+              mainLog.warn("[ipc] rollback-app: onUpdateInstalled failed", {
+                msg: err && err.message,
+              });
+            }
+          },
+          onActivity: (payload) => {
+            try {
+              recentActivity.push(payload);
+            } catch (err) {
+              mainLog.warn("[ipc] rollback-app: onActivity failed", { msg: err && err.message });
+            }
+          },
+          onBroadcast: (event, payload) => {
+            try {
+              sendToRenderer(event, payload);
+            } catch (err) {
+              mainLog.warn("[ipc] rollback-app: onBroadcast failed", { msg: err && err.message });
+            }
+          },
+        });
+        return r;
+      } catch (err) {
+        mainLog.warn("[ipc] rollback-app threw", { msg: err && err.message });
+        return { ok: false, reason: "threw", error: err && err.message };
+      }
+    },
+    {
+      logMeta: (_evt, appName, toVersion) => ({ appName, toVersion }),
+      onError: () => ({ ok: false, reason: "threw" }),
+    },
+  );
+
+  safeHandle(
+    "delete-backup",
+    (_event, appName, version) => {
+      if (!appName || typeof appName !== "string" || !version || typeof version !== "string") {
+        return { ok: false, reason: "invalid_args" };
+      }
+      try {
+        const { app: electronApp } = require("electron");
+        const userDataDir =
+          electronApp && typeof electronApp.getPath === "function"
+            ? electronApp.getPath("userData")
+            : null;
+        let freed = 0;
+        if (userDataDir) {
+          // 用 appName 作为 bundleName 兜底 (caller 应该传 bundleName)
+          // 这里 entries 里存的 backupPath 是 .../<bundleName>/<version>.app
+          // 我们需要 bundleName 来定位目录 — 从 config 找
+          const apps = (getConfig() && getConfig().apps) || [];
+          const appCfg = apps.find((a) => a && a.name === appName);
+          const bundleName = (appCfg && appCfg.bundle) || appName;
+          freed = backup.deleteBackup(bundleName, version, { userDataDir });
+        }
+        // 再删 state entry
+        const stateFreed = versionHistory.deleteEntry(appName, version);
+        return { ok: true, freedBytes: freed + stateFreed };
+      } catch (err) {
+        mainLog.warn("[ipc] delete-backup threw", { msg: err && err.message });
+        return { ok: false, reason: "threw" };
+      }
+    },
+    {
+      logMeta: (_evt, appName, version) => ({ appName, version }),
+      onError: () => ({ ok: false, reason: "threw" }),
+    },
+  );
 
   // Phase C2: per-app snooze IPC handlers
   safeHandle("snooze:set", (_event, name, opts) => {

@@ -160,6 +160,15 @@ function initStateStorePaths() {
   return _resolvedStatePath;
 }
 
+/**
+ * Test-only: 把 state 路径强制设到指定位置, 绕开 defaultPath().
+ * 生产代码不要调.
+ * @param {string} p  绝对路径, e.g. /tmp/test/state.json
+ */
+function _setStatePathForTest(p) {
+  _resolvedStatePath = p;
+}
+
 function migrateLegacyStateIfNeeded(targetPath) {
   try {
     const dir = path.dirname(targetPath);
@@ -621,6 +630,33 @@ function loadAppSnooze(name, statePath = defaultPath()) {
     snoozeUntil: app && typeof app.snoozeUntil === "number" ? app.snoozeUntil : null,
     skippedVersion: app && typeof app.skippedVersion === "string" ? app.skippedVersion : null,
   };
+}
+
+// ─── Phase C3: App rollback helpers ────────────────────────
+
+/**
+ * Phase C3: write installed_version for one app (called by rollback IPC).
+ * Lightweight patch: 不动 latest_version / has_update / changelog — 那些要等下次
+ * detect-run 自然更新; rollback 只把"我现在装的版本"这一行的事实同步到 state.
+ * @param {string} name
+ * @param {string} version
+ * @param {string} [statePath]
+ * @returns {object|null} 写完后的完整 state; null on 失败
+ */
+function saveAppInstalledVersion(name, version, statePath = defaultPath()) {
+  if (!name || typeof name !== "string") return null;
+  if (typeof version !== "string" || version.length === 0) return null;
+  try {
+    return patchState((next, existing) => {
+      const prev = (existing.apps && existing.apps[name]) || {};
+      next.apps = {
+        ...(existing.apps || {}),
+        [name]: { ...prev, installed_version: version, ts: Date.now() },
+      };
+    }, statePath);
+  } catch {
+    return null;
+  }
 }
 
 // ─── Phase 29: Last-opened ───────────────────────────────────
@@ -1531,6 +1567,7 @@ module.exports = {
   StateCorruptedError,
   loadOrRecover,
   getLastRecoveryEvent,
+  _setStatePathForTest,
   // Phase I5: daily digest sub-state
   saveDailyDigest,
   loadDailyDigest,
@@ -1544,6 +1581,8 @@ module.exports = {
   // 2026-06-14: app rollback — 升级历史 (倒序, cap 2)
   getVersionHistory,
   saveVersionHistory,
+  // 2026-06-14: app rollback — 写单条 installed_version (rollback IPC 用)
+  saveAppInstalledVersion,
   // A3: 搜索索引注入
   setSearchIndex,
 };
