@@ -17,10 +17,51 @@
  */
 
 const childProcess = require('child_process');
-const { shell } = require('electron');
+const { shell, app } = require('electron');
 const { getActionForApp } = require('./bulk-upgrade-actions');
+const backup = require('./backup');
+const versionHistory = require('./version-history');
+const { resolveAppBundlePath } = require('../utils/app-paths');
+
+// Testability hook: 让 vitest 直接注入 userDataDir, 跳过 `app.getPath('userData')`
+// (在 node 测试环境下 `require('electron')` 拿到的是 binary path string, 没有 app).
+let _testUserDataDirOverride = null;
+function _setUserDataDirForTest(dir) {
+  _testUserDataDirOverride = dir;
+}
 
 const DEFAULT_PER_ITEM_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
+
+/**
+ * 升级 brew app 前 backup 当前版本. best-effort: 任何失败都不抛, 只在 onProgress
+ * 透出 warning. caller 据此决定是否 recordUpgrade.
+ *
+ * @returns {Promise<{backupPath: string, sizeBytes: number} | null>}
+ *          null = 没 backup (跳过了 / 失败了).
+ */
+async function backupBeforeBrew(item, userDataDir, onProgress) {
+  if (!item || !item.bundleName || !userDataDir) return null;
+  const emitWarning = (reason) => {
+    try { onProgress({ id: item.id, status: 'running', warning: reason || 'backup_skipped' }); } catch { /* noop */ }
+  };
+  try {
+    const appPath = resolveAppBundlePath(item.bundleName);
+    const installedVer = (item.current && String(item.current)) || 'unknown';
+    const raw = await backup.backupBundleVersion(item.bundleName, installedVer, {
+      userDataDir,
+      sourceAppPath: appPath,
+    });
+    if (raw && raw.ok) {
+      backup.pruneOldBackups(item.bundleName, { userDataDir, keep: 2 });
+      return { backupPath: raw.backupPath, sizeBytes: raw.sizeBytes };
+    }
+    emitWarning((raw && raw.reason) || 'backup_skipped');
+    return null;
+  } catch (err) {
+    emitWarning((err && err.message) || 'backup_failed');
+    return null;
+  }
+}
 
 /**
  * @param {object} opts
@@ -71,12 +112,41 @@ async function runBulkUpgrade(opts) {
     // 跑这个 item
     try { onProgress({ id: item.id, status: 'running', action: action.type }); } catch { /* noop */ }
     const t0 = Date.now();
+
+    // 1. backup (only for brew with bundleName + resolvable userData, best-effort)
+    let backupInfo = null;
+    if (action.type === 'brew' && item.bundleName) {
+      const userDataDir = _testUserDataDirOverride
+        || ((app && typeof app.getPath === 'function') ? app.getPath('userData') : null);
+      if (userDataDir) {
+        backupInfo = await backupBeforeBrew(item, userDataDir, onProgress);
+      }
+    }
+
     try {
       const result = await runOne(action, exec, perItemTimeoutMs, signal);
       const durationMs = Date.now() - t0;
       succeeded.push({ id: item.id, durationMs, action: action.type });
       try { onProgress({ id: item.id, status: 'done', durationMs, action: action.type, output: result.output || '' }); }
       catch { /* noop */ }
+
+      // 2. recordUpgrade (only for brew with successful backup)
+      // 注: to 用 item.latest (renderer 透传的升级意图) 作为 best-effort 锚点;
+      //    升级失败的 case recordUpgrade 不会被调, 不污染历史.
+      if (action.type === 'brew' && backupInfo && item.name && item.latest && backupInfo.backupPath) {
+        try {
+          versionHistory.recordUpgrade(item.name, {
+            from: String(item.current || 'unknown'),
+            to: String(item.latest),
+            at: Date.now(),
+            backupPath: backupInfo.backupPath,
+            source: String(item.source || 'brew_formulae'),
+            sizeBytes: backupInfo.sizeBytes || 0,
+          });
+        } catch {
+          /* noop */
+        }
+      }
     } catch (err) {
       const durationMs = Date.now() - t0;
       const error = (err && err.message) || 'unknown error';
@@ -287,4 +357,6 @@ module.exports = {
   defaultExec, // exported for tests
   execBrew,    // exported for tests
   execWinget,  // exported for tests
+  // Testability hook (vitest only)
+  _setUserDataDirForTest,
 };

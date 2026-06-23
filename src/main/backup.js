@@ -18,24 +18,37 @@
 const path = require("path");
 const fs = require("fs");
 const fsp = fs.promises;
-const { promisify } = require("util");
-const { execFile } = require("child_process");
-const pExecFile = promisify(execFile);
 const { createLogger } = require("./log");
 
 const log = createLogger("backup");
-const pExecFileSafe = (file, args) =>
-  pExecFile(file, args).catch((err) => ({ stdout: "", stderr: err && err.message }));
 
 function getBackupDir(bundleName, { userDataDir }) {
   return path.join(userDataDir, "backups", bundleName);
 }
 
+/**
+ * 递归算目录占用 (字节). 纯 fs API, 不 spawn 子进程 — 避免 sandbox 下 du 卡死.
+ * 容错: 任何 stat / readdir 失败 → 返回 0, 不 throw.
+ * @param {string} p
+ * @returns {Promise<number>}
+ */
 async function dirSize(p) {
-  // du -sk 给出 KB, 转 byte. macOS 自带. 失败 → 0.
-  const { stdout } = await pExecFileSafe("du", ["-sk", p]);
-  const kb = parseInt((stdout || "").split("\t")[0], 10);
-  return Number.isFinite(kb) ? kb * 1024 : 0;
+  let total = 0;
+  const stack = [p];
+  while (stack.length > 0) {
+    const cur = stack.pop();
+    let st;
+    try { st = await fsp.lstat(cur); } catch { continue; }
+    if (st.isSymbolicLink()) continue;
+    if (st.isDirectory()) {
+      let entries;
+      try { entries = await fsp.readdir(cur); } catch { continue; }
+      for (const name of entries) stack.push(path.join(cur, name));
+    } else {
+      total += st.size;
+    }
+  }
+  return total;
 }
 
 /**

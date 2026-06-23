@@ -69,6 +69,30 @@ describe("backupBundleVersion", () => {
     expect(r.sizeBytes).toBeGreaterThan(0);
   });
 
+  it("dirSize 准确 (嵌套文件 size 累加) — 通过 backupBundleVersion.sizeBytes 验证", async () => {
+    const src = path.join(tmpRoot, "Size.app");
+    fs.mkdirSync(path.join(src, "sub"), { recursive: true });
+    fs.writeFileSync(path.join(src, "a.txt"), "12345");
+    fs.writeFileSync(path.join(src, "sub", "b.txt"), "678");
+    const r = await backupBundleVersion("Size.app", "1.0.0", {
+      userDataDir: tmpRoot,
+      sourceAppPath: src,
+    });
+    expect(r.ok).toBe(true);
+    expect(r.sizeBytes).toBe(5 + 3);
+  });
+
+  it("dirSize 不 spawn 子进程 (不 import child_process)", async () => {
+    // 静态检查: backup.js 源代码不能 require child_process, 否则 sandbox 下 du / sh
+    // 可能 hang 导致整个 vitest worker 卡死, 牵连宿主进程 (历史 bug).
+    const src = fs.readFileSync(
+      new URL("../../src/main/backup.js", import.meta.url),
+      "utf-8",
+    );
+    expect(src).not.toMatch(/require\(['"]child_process['"]\)/);
+    expect(src).not.toMatch(/\bexecFile\b/);
+  });
+
   it("源不存在 → ok:false reason:source_missing, 不 throw", async () => {
     const r = await backupBundleVersion("Missing.app", "1.0.0", {
       userDataDir: tmpRoot,
