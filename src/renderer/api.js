@@ -133,6 +133,9 @@ export function createApi(overrides = {}) {
     errorCopyAll: pick(overrides, "errorCopyAll"),
     errorExportZip: pick(overrides, "errorExportZip"),
     errorClearOld: pick(overrides, "errorClearOld"),
+    // Phase Q1 v2: diagnostics drawer
+    diagnosticsFetch: pick(overrides, "diagnosticsFetch"),
+    diagnosticsFetchSamples: pick(overrides, "diagnosticsFetchSamples"),
     errorOpenFolder: pick(overrides, "errorOpenFolder"),
     errorReport: pick(overrides, "errorReport"),
     onErrorAppended: pick(overrides, "onErrorAppended"),

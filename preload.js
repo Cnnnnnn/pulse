@@ -95,6 +95,9 @@ contextBridge.exposeInMainWorld("api", {
   errorCopyAll: () => ipcRenderer.invoke("error:copy-all"),
   errorExportZip: (opts) => ipcRenderer.invoke("error:export-zip", opts),
   errorClearOld: (opts) => ipcRenderer.invoke("error:clear-old", opts),
+  // Phase Q1 v2: diagnostics drawer
+  diagnosticsFetch: (opts) => ipcRenderer.invoke("diagnostics:fetch", opts),
+  diagnosticsFetchSamples: () => ipcRenderer.invoke("diagnostics:fetch-samples"),
   errorOpenFolder: () => ipcRenderer.invoke("error:open-folder"),
   errorReport: (entry) => ipcRenderer.invoke("error:report", entry),
   onErrorAppended: (cb) => ipcRenderer.on("error:appended", (_, data) => cb(data)),
