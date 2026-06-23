@@ -29,6 +29,42 @@ const NAV_KEYS = new Set([
   "versions",
 ]);
 
+// Phase I3: 数组版 (供 sidenav-prefs 持久化 order 用)
+export const NAV_KEYS_LIST = [
+  "ithome",
+  "wechat-hot",
+  "worldcup",
+  "funds",
+  "metals",
+  "ai-usage",
+  "versions",
+];
+
+/**
+ * Phase I3: 计算"实际可见"nav 列表
+ * - prefs.order 优先, 按顺序排
+ * - 排除 prefs.hidden
+ * - 排除未知 key (防御)
+ * - 不在 prefs.order 里的已知 key 追加到末尾
+ * @param {{order?: string[], hidden?: string[]} | null} prefs
+ * @returns {string[]}
+ */
+export function effectiveVisibleItems(prefs) {
+  const order = (prefs && Array.isArray(prefs.order) && prefs.order.length > 0)
+    ? prefs.order.filter((k) => NAV_KEYS.has(k))
+    : NAV_KEYS_LIST.slice();
+  const hidden = new Set((prefs && Array.isArray(prefs.hidden)) ? prefs.hidden : []);
+  const out = [];
+  for (const k of order) {
+    if (!hidden.has(k)) out.push(k);
+  }
+  // 兜底: prefs.order 漏掉的已知 key 追加到末尾
+  for (const k of NAV_KEYS_LIST) {
+    if (!out.includes(k) && !hidden.has(k)) out.push(k);
+  }
+  return out;
+}
+
 // 跟 src/renderer/components/SideNav.jsx 的 NAV_TO_PREFS_SEGMENT 保持一致.
 // nav key → prefs segment key. 不在 map 里的 nav 始终可见.
 const NAV_TO_PREFS_SEGMENT = {
