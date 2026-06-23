@@ -249,6 +249,7 @@ const PRESERVE_FIELDS = [
   { key: "daily_digest", kind: "object", notArray: true },  // Phase I5: daily digest settings + last_push_date
   { key: "tray_menu_prefs", kind: "object", notArray: true },  // Phase v1: tray menu segment prefs
   { key: "version_history", kind: "object", notArray: true },  // Phase C3: per-app version history cap-2
+  { key: "startup_samples", kind: "array" },                     // Phase Q1 v2: cap-20 ready-time history
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -1505,6 +1506,38 @@ function saveVersionHistory(map, statePath = defaultPath()) {
   }, statePath);
 }
 
+// ─── Phase Q1 v2: startup samples (启动耗时历史) ──────────────
+
+/**
+ * @param {string} [statePath]
+ * @returns {Array<{ts:number, readyMs:number}>} 倒序, 最新在前
+ */
+function loadStartupSamples(statePath = defaultPath()) {
+  try {
+    const s = load(statePath);
+    const arr = s && s.startup_samples;
+    if (!Array.isArray(arr)) return [];
+    // 兼容容错: 每条只保留 { ts, readyMs } 两个 number 字段
+    return arr
+      .filter((e) => e && typeof e === "object" && typeof e.readyMs === "number")
+      .map((e) => ({ ts: e.ts || 0, readyMs: e.readyMs }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * @param {Array<{ts:number, readyMs:number}>} samples  caller 自己负责 cap (建议 20)
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveStartupSamples(samples, statePath = defaultPath()) {
+  const safe = Array.isArray(samples) ? samples : [];
+  return patchState((next) => {
+    next.startup_samples = safe;
+  }, statePath);
+}
+
 module.exports = {
   load,
   saveAll,
@@ -1583,6 +1616,9 @@ module.exports = {
   saveVersionHistory,
   // 2026-06-14: app rollback — 写单条 installed_version (rollback IPC 用)
   saveAppInstalledVersion,
+  // 2026-06-23: Phase Q1 v2 — 启动耗时历史 (cap 20)
+  loadStartupSamples,
+  saveStartupSamples,
   // A3: 搜索索引注入
   setSearchIndex,
 };
