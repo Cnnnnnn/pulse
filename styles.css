@@ -3129,9 +3129,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .snooze-menu__cancel:hover {
   background: var(--bg-secondary, #f4f4f5);
 }
-.row-action-snooze {
+/* App 行右侧动作按钮共基底 (snooze / rollback / pin) — 无边框,
+   hover 时显示浅灰底色. 修 feedback "按钮为啥有黑色框框住" */
+.row-action-snooze,
+.row-action-rollback,
+.row-action-pin {
   background: transparent;
-  border: 1px solid var(--bg-secondary, #e5e5ea);
+  border: 0;
   border-radius: 4px;
   padding: 2px 6px;
   cursor: pointer;
@@ -3139,24 +3143,18 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-secondary, #555);
   margin-left: 4px;
 }
-.row-action-snooze:hover {
+.row-action-snooze:hover,
+.row-action-rollback:hover,
+.row-action-pin:hover {
   background: var(--bg-secondary, #f4f4f5);
   color: var(--text-primary, #222);
 }
 
 /* I2 v1: row-action-pin — ⭐ button next to row-action-snooze/rollback */
 .row-action-pin {
-  background: transparent;
-  border: 1px solid var(--bg-secondary, #e5e5ea);
-  border-radius: 4px;
-  padding: 2px 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text-secondary, #555);
-  margin-left: 4px;
+  /* 同基底 */
 }
 .row-action-pin:hover {
-  background: var(--bg-secondary, #f4f4f5);
   color: #f5a623;
 }
 .row-action-pin.is-pinned {
