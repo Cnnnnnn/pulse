@@ -14,6 +14,28 @@ const stateStore = require("../state-store");
 const { setManagedInterval, clearManaged } = require("../timer-registry");
 
 /**
+ * C4: 纯决策函数 — 判断本次 auto-check tick 应该 run 还是 skip.
+ * 不读外部状态, 所有输入通过参数传入, 便于直接单测.
+ *
+ * @param {object}  args
+ * @param {Date}    args.now
+ * @param {string|null} args.quietStart  "HH:MM" 或 null
+ * @param {string|null} args.quietEnd    "HH:MM" 或 null
+ * @param {number|null} args.lastAutoCheckAt  epoch ms, null = 从未成功跑过
+ * @param {number}  args.intervalMs
+ * @returns {{action: 'run'} | {action: 'skip', reason: 'quiet_hours' | 'too_soon'}}
+ */
+function decideAutoCheck({ now, quietStart, quietEnd, lastAutoCheckAt, intervalMs }) {
+  if (quietStart && quietEnd && inQuietHours(now, quietStart, quietEnd)) {
+    return { action: "skip", reason: "quiet_hours" };
+  }
+  if (lastAutoCheckAt !== null && now.getTime() - lastAutoCheckAt < intervalMs) {
+    return { action: "skip", reason: "too_soon" };
+  }
+  return { action: "run" };
+}
+
+/**
  * @param {object} deps
  * @param {object} deps.httpClient
  * @param {object} deps.fundStore
@@ -306,6 +328,7 @@ function makeRefreshLastOpenedAfterCheck(deps) {
 }
 
 module.exports = {
+  decideAutoCheck,
   startFundScheduler,
   startRemindersScheduler,
   startWorldcupGoalWatcher,
