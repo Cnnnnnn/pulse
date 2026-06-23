@@ -15,6 +15,7 @@ import { BulkUpgradeButton } from './BulkUpgradeButton.jsx';
 import { AITasksButton } from './AITasksDrawer.jsx';
 import { RemindersButton } from '../reminders/RemindersModal.jsx';
 import { RecentButton } from '../recent/RecentActivityModal.jsx';
+import { ReleaseNotesTrigger } from './ReleaseNotesTrigger.jsx';
 import { diagnosticsDrawerOpen } from '../diagnostics/diagnostics-store.js';
 import { watchlistDrawerOpen, watchlistItems } from '../watchlist/watchlist-store.js';
 
@@ -75,6 +76,7 @@ export function Header({ onCheck }) {
         >
           <span style={{ fontSize: '16px', lineHeight: 1 }}>{watchlistItems.value.length > 0 ? '★' : '☆'}</span>
         </button>
+        <ReleaseNotesTrigger />
       </div>
     </header>
   );

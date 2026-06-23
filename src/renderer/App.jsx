@@ -23,6 +23,7 @@ import { StateRecoveredBanner } from './components/StateRecoveredBanner.jsx';
 import { DigestDrawer } from './digest/DigestDrawer.jsx';
 import { DiagnosticsDrawer } from './components/DiagnosticsDrawer.jsx';
 import { WatchlistDrawer } from './components/WatchlistDrawer.jsx';
+import { ReleaseNotesWizard } from './components/ReleaseNotesWizard.jsx';
 import { ConfirmDialog } from './components/ConfirmDialog.jsx';
 import { AppShell } from './components/AppShell.jsx';
 import { RemindersModal } from './reminders/RemindersModal.jsx';
@@ -95,6 +96,7 @@ export function App({ onCheck }) {
       <DigestDrawer />
       <DiagnosticsDrawer />
       <WatchlistDrawer />
+      <ReleaseNotesWizard />
     </div>
   );
 }
