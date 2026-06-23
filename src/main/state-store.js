@@ -251,6 +251,7 @@ const PRESERVE_FIELDS = [
   { key: "version_history", kind: "object", notArray: true },  // Phase C3: per-app version history cap-2
   { key: "startup_samples", kind: "array" },                     // Phase Q1 v2: cap-20 ready-time history
   { key: "watchlist", kind: "array" },                           // I2 v1: pinned apps, [{appName, addedAt, lastNotifiedVersion}]
+  { key: "last_seen_release", kind: "object", notArray: true },  // ON: { version, at } — release notes onboarding
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -1507,6 +1508,48 @@ function saveVersionHistory(map, statePath = defaultPath()) {
   }, statePath);
 }
 
+// ─── ON: release notes onboarding — last_seen_release ──────────
+//
+// 用途: 记录用户最近一次看完 release notes 的版本. 启动时 main 比对
+// app.getVersion() 和 last_seen_release.version, 不一致就弹向导.
+// 老 state.json (无 last_seen_release 字段) / 损坏 → null (兜底, 视为未看).
+//
+// 跟 mutes / version_history 平级, 走 patchState 保留 (PRESERVE_FIELDS 登记).
+
+/**
+ * @param {string} [statePath]
+ * @returns {{version: string, at: number} | null}
+ */
+function getLastSeenRelease(statePath = defaultPath()) {
+  try {
+    const s = load(statePath);
+    if (!s || !s.last_seen_release) return null;
+    const { version, at } = s.last_seen_release;
+    if (typeof version !== "string" || typeof at !== "number") return null;
+    return { version, at };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {string} version semver string
+ * @param {number} at      epoch ms
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function setLastSeenRelease(version, at, statePath = defaultPath()) {
+  if (typeof version !== "string" || !version) {
+    throw new TypeError("setLastSeenRelease: version must be non-empty string");
+  }
+  if (typeof at !== "number" || !Number.isFinite(at) || at < 0) {
+    throw new TypeError("setLastSeenRelease: at must be non-negative finite number");
+  }
+  return patchState((next) => {
+    next.last_seen_release = { version, at };
+  }, statePath);
+}
+
 // ─── Phase Q1 v2: startup samples (启动耗时历史) ──────────────
 
 /**
@@ -1657,6 +1700,9 @@ module.exports = {
   // I2 v1: watchlist
   loadWatchlist,
   saveWatchlist,
+  // ON: release notes onboarding — 用户最近一次看完 release notes 的版本
+  getLastSeenRelease,
+  setLastSeenRelease,
   // A3: 搜索索引注入
   setSearchIndex,
 };
