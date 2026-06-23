@@ -17,10 +17,29 @@
  *   按 activeNav 派发到 nav-refresh.js registry.
  */
 
-import { activeNav, navCollapsed, setActiveNav, toggleNavCollapsed } from '../worldcup/navStore.js';
+import { useEffect, useState } from 'preact/hooks';
+import {
+  activeNav,
+  navCollapsed,
+  setActiveNav,
+  toggleNavCollapsed,
+  effectiveVisibleItems,
+} from '../worldcup/navStore.js';
 import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
 import { trayMenuPrefs } from '../trayConfigStore.js';
+import {
+  loadPrefs,
+  savePrefs,
+  listHidden,
+  hideItem,
+  restoreItem,
+  reorderItems,
+  moveToTop,
+  moveToBottom,
+} from './sidenav-prefs.js';
+import { SideNavItem } from './SideNavItem.jsx';
+import { HiddenItemsDrawer } from './HiddenItemsDrawer.jsx';
 
 // Phase v1: 4 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).
 // nav key → prefs segment key. 不在 map 里的 nav 始终显示 (spec 明确不动).
@@ -44,17 +63,59 @@ const NAV_ITEMS = [
 export function SideNav() {
   const collapsed = navCollapsed.value;
   const current = activeNav.value;
-  const prefs = trayMenuPrefs.value;
+  const trayPrefs = trayMenuPrefs.value;
   // 显式订阅 config / key 信号, 避免 needsConfig 误判后 UI 不刷新
   void aiSessionsConfig.value;
   void aiKeyStatus.value;
   const aiNeedsSetup = needsConfig();
 
-  const visibleNavItems = NAV_ITEMS.filter((item) => {
-    const segKey = NAV_TO_PREFS_SEGMENT[item.key];
-    if (!segKey) return true; // 不在 map → 始终显示
-    return prefs.segments[segKey] !== false;
+  // Phase I3: nav 重排 + 隐藏 (localStorage 持久化)
+  const [sidenavPrefs, setSidenavPrefs] = useState(() => loadPrefs());
+  const [hiddenDrawerOpen, setHiddenDrawerOpen] = useState(false);
+
+  // 跟 trayMenuPrefs 同步 (tray 菜单关掉的 nav 也算不可见)
+  // Phase I3 v1: 直接用 effectiveVisibleItems (navStore.js 已实现)
+  const visibleKeys = effectiveVisibleItems(sidenavPrefs).filter((key) => {
+    const segKey = NAV_TO_PREFS_SEGMENT[key];
+    if (!segKey) return true;
+    return trayPrefs.segments[segKey] !== false;
   });
+  const visibleNavItems = visibleKeys
+    .map((key) => NAV_ITEMS.find((item) => item.key === key))
+    .filter(Boolean);
+  const hiddenNavItems = listHidden(sidenavPrefs)
+    .map((key) => NAV_ITEMS.find((item) => item.key === key))
+    .filter(Boolean);
+
+  // activeNav 隐藏后: 自动切第一个可见 (避免"点不出来"的死锁)
+  useEffect(() => {
+    if (visibleKeys.length > 0 && !visibleKeys.includes(current)) {
+      setActiveNav(visibleKeys[0]);
+    }
+  }, [sidenavPrefs, trayPrefs, visibleKeys.join(','), current]);
+
+  function applyPrefs(next) {
+    setSidenavPrefs(next);
+    savePrefs(next);
+  }
+
+  function handleReorder(fromKey, toKey, position) {
+    applyPrefs(reorderItems(sidenavPrefs, fromKey, toKey, position));
+  }
+  function handleHide(key) {
+    applyPrefs(hideItem(sidenavPrefs, key));
+  }
+  function handleMoveTop(key) {
+    applyPrefs(moveToTop(sidenavPrefs, key));
+  }
+  function handleMoveBottom(key) {
+    applyPrefs(moveToBottom(sidenavPrefs, key));
+  }
+  function handleRestore(key) {
+    applyPrefs(restoreItem(sidenavPrefs, key));
+  }
+
+  const allHidden = visibleNavItems.length === 0;
 
   return (
     <nav class={`side-nav${collapsed ? ' side-nav-collapsed' : ''}`}>
@@ -87,25 +148,34 @@ export function SideNav() {
           </button>
         </div>
       </div>
+      {allHidden && !collapsed && (
+        <div class="side-nav-empty-banner">
+          已隐藏全部 nav 项 ·{' '}
+          <button
+            type="button"
+            class="side-nav-empty-banner__link"
+            onClick={() => setHiddenDrawerOpen(true)}
+          >
+            点这里恢复
+          </button>
+        </div>
+      )}
       <ul class="side-nav-list">
         {visibleNavItems.map((item) => {
           const isActive = current === item.key;
           return (
-            <li
+            <SideNavItem
               key={item.key}
-              class={`side-nav-item${isActive ? ' side-nav-item-active' : ''}`}
-              data-nav={item.key}
-            >
-              <button
-                class="side-nav-button"
-                onClick={() => setActiveNav(item.key)}
-                title={collapsed ? item.tooltip : ''}
-                aria-label={item.label}
-              >
-                <span class="side-nav-icon">{item.icon}</span>
-                {!collapsed && <span class="side-nav-label">{item.label}</span>}
-              </button>
-            </li>
+              item={item}
+              active={isActive}
+              collapsed={collapsed}
+              draggable={!collapsed}
+              onSelect={setActiveNav}
+              onReorder={handleReorder}
+              onHide={handleHide}
+              onMoveTop={handleMoveTop}
+              onMoveBottom={handleMoveBottom}
+            />
           );
         })}
       </ul>
@@ -121,7 +191,24 @@ export function SideNav() {
           {!collapsed && <span class="side-nav-label">AI 配置</span>}
           {aiNeedsSetup && <span class="side-nav-setup-dot" aria-hidden="true" />}
         </button>
+        {!collapsed && hiddenNavItems.length > 0 && (
+          <button
+            type="button"
+            class="side-nav-hidden-toggle"
+            onClick={() => setHiddenDrawerOpen(true)}
+            data-testid="side-nav-hidden-toggle"
+          >
+            <span class="side-nav-icon" aria-hidden="true">▾</span>
+            <span class="side-nav-label">已隐藏 ({hiddenNavItems.length})</span>
+          </button>
+        )}
       </div>
+      <HiddenItemsDrawer
+        open={hiddenDrawerOpen}
+        hiddenItems={hiddenNavItems}
+        onRestore={handleRestore}
+        onClose={() => setHiddenDrawerOpen(false)}
+      />
     </nav>
   );
 }
