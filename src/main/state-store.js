@@ -250,6 +250,7 @@ const PRESERVE_FIELDS = [
   { key: "tray_menu_prefs", kind: "object", notArray: true },  // Phase v1: tray menu segment prefs
   { key: "version_history", kind: "object", notArray: true },  // Phase C3: per-app version history cap-2
   { key: "startup_samples", kind: "array" },                     // Phase Q1 v2: cap-20 ready-time history
+  { key: "watchlist", kind: "array" },                           // I2 v1: pinned apps, [{appName, addedAt, lastNotifiedVersion}]
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -1538,6 +1539,40 @@ function saveStartupSamples(samples, statePath = defaultPath()) {
   }, statePath);
 }
 
+/**
+ * I2 v1: load watchlist (pinned apps).
+ * Old state.json without watchlist field → []. 兼容老数据.
+ * 容错: 抹掉缺 appName 的脏条目.
+ * @returns {Array<{appName: string, addedAt: number, lastNotifiedVersion: string|null}>}
+ */
+function loadWatchlist(statePath = defaultPath()) {
+  try {
+    const s = load(statePath);
+    const wl = s && Array.isArray(s.watchlist) ? s.watchlist : [];
+    return wl.filter((w) => w && typeof w.appName === "string").map((w) => ({
+      appName: w.appName,
+      addedAt: typeof w.addedAt === "number" ? w.addedAt : 0,
+      lastNotifiedVersion:
+        typeof w.lastNotifiedVersion === "string" ? w.lastNotifiedVersion : null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * I2 v1: save watchlist, 自动保留 PRESERVE_FIELDS.
+ * @param {Array<{appName: string, addedAt?: number, lastNotifiedVersion?: string|null}>} list
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveWatchlist(list, statePath = defaultPath()) {
+  const safe = Array.isArray(list) ? list : [];
+  return patchState((next) => {
+    next.watchlist = safe;
+  }, statePath);
+}
+
 module.exports = {
   load,
   saveAll,
@@ -1619,6 +1654,9 @@ module.exports = {
   // 2026-06-23: Phase Q1 v2 — 启动耗时历史 (cap 20)
   loadStartupSamples,
   saveStartupSamples,
+  // I2 v1: watchlist
+  loadWatchlist,
+  saveWatchlist,
   // A3: 搜索索引注入
   setSearchIndex,
 };
