@@ -229,6 +229,12 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("version-history-updated", handler);
     return () => ipcRenderer.removeListener("version-history-updated", handler);
   },
+  // per-app history 数量广播 (AppRow ⏪ 按钮的徽章 + 可见性)
+  onVersionHistoryCountsUpdated: (cb) => {
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("version-history-counts-updated", handler);
+    return () => ipcRenderer.removeListener("version-history-counts-updated", handler);
+  },
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

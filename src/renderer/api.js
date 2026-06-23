@@ -150,6 +150,7 @@ export function createApi(overrides = {}) {
     rollbackApp: pick(overrides, "rollbackApp"),
     deleteBackup: pick(overrides, "deleteBackup"),
     onVersionHistoryUpdated: pick(overrides, "onVersionHistoryUpdated"),
+    onVersionHistoryCountsUpdated: pick(overrides, "onVersionHistoryCountsUpdated"),
   };
 }
 

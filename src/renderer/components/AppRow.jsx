@@ -35,6 +35,7 @@ import { ChangelogPanel } from './ChangelogPanel.jsx';
 import { MuteMenu } from './MuteMenu.jsx';
 import { SnoozeMenu } from './SnoozeMenu.jsx';
 import { openVersionHistory } from '../store-version-history.js';
+import { versionHistoryCounts } from '../store-version-history-counts.js';
 
 export function AppRow({ name }) {
   // 订阅 per-row signals (本组件的订阅点)
@@ -189,7 +190,11 @@ export function AppRow({ name }) {
         title="查看回滚历史"
         aria-label="查看回滚历史"
       >
-        ⏪
+        ⏪{versionHistoryCounts.value.get(result.name) > 0 ? (
+          <span class="row-action-rollback__badge">
+            {versionHistoryCounts.value.get(result.name)}
+          </span>
+        ) : null}
       </button>
       {changelogOpen && <ChangelogPanel result={result} />}
       {muteMenuAt && (

@@ -90,10 +90,25 @@ function getTotalSize(statePath = stateStore.defaultPath()) {
   return total;
 }
 
+/**
+ * 全部 app 的 entries 数量 (扁平 map). 给 renderer 做 ⏪ 按钮的徽章 + 可见性判断.
+ * @param {string} [statePath]
+ * @returns {Object<string, number>}
+ */
+function getAllCounts(statePath = stateStore.defaultPath()) {
+  const vh = getAll(statePath);
+  const out = {};
+  for (const app of Object.keys(vh)) {
+    out[app] = (vh[app] || []).length;
+  }
+  return out;
+}
+
 module.exports = {
   HISTORY_CAP,
   recordUpgrade,
   listHistory,
   deleteEntry,
   getTotalSize,
+  getAllCounts,
 };

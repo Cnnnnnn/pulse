@@ -15,6 +15,22 @@ const { resolveAppBundlePath } = require("../../utils/app-paths");
 let bulkUpgradeCtrl = null;
 let bulkUpgradeRunning = false;
 
+/**
+ * Push current per-app history counts to renderer.
+ * 挂在: check-updates 完成 / bulk-upgrade 完成 / rollback / delete 之后.
+ * renderer ⏪ 按钮 + 角标靠这个 signal 触发 re-render.
+ */
+function broadcastVersionHistoryCounts(sendToRenderer) {
+  if (typeof sendToRenderer !== "function") return;
+  try {
+    const counts = versionHistory.getAllCounts();
+    const totalSizeBytes = versionHistory.getTotalSize();
+    sendToRenderer("version-history-counts-updated", { counts, totalSizeBytes });
+  } catch (err) {
+    mainLog.warn("[ipc] broadcastVersionHistoryCounts failed", { msg: err && err.message });
+  }
+}
+
 function registerCoreHandlers(ctx) {
   const {
     getConfig,
@@ -44,7 +60,7 @@ function registerCoreHandlers(ctx) {
   });
 
   ipcMain.handle("check-updates", async () => {
-    return runCheckQueued(
+    const r = await runCheckQueued(
       {
         getConfig,
         pool,
@@ -67,6 +83,9 @@ function registerCoreHandlers(ctx) {
       },
       { silent: false },
     );
+    // check 完成后, versionHistory counts 不变, 但 broadcast 一下保持 renderer 心跳一致
+    broadcastVersionHistoryCounts(sendToRenderer);
+    return r;
   });
 
   ipcMain.handle("brew-upgrade", async (_event, caskName) => {
@@ -123,6 +142,8 @@ function registerCoreHandlers(ctx) {
           /* noop */
         }
         sendToRenderer("bulk-upgrade:done", summary);
+        // bulk-upgrade 里有 brew 类型, 每次会 backup + recordUpgrade → versionHistory 变了
+        broadcastVersionHistoryCounts(sendToRenderer);
         if (ctrl === bulkUpgradeCtrl) {
           bulkUpgradeCtrl = null;
           bulkUpgradeRunning = false;
@@ -135,6 +156,8 @@ function registerCoreHandlers(ctx) {
           skipped: [],
           cancelled: false,
         });
+        // catch 路径下 bulk-upgrade 可能已经部分成功, broadcast 一次保证 renderer 同步
+        broadcastVersionHistoryCounts(sendToRenderer);
         if (ctrl === bulkUpgradeCtrl) {
           bulkUpgradeCtrl = null;
           bulkUpgradeRunning = false;
@@ -568,6 +591,9 @@ function registerCoreHandlers(ctx) {
             }
           },
         });
+        // rollback 成功后: onUpdateInstalled 写 installed_version, doRollback broadcast
+        // version-history-updated. 这里再推一次 counts 兜底 (renderer drawer 也在听).
+        broadcastVersionHistoryCounts(sendToRenderer);
         return r;
       } catch (err) {
         mainLog.warn("[ipc] rollback-app threw", { msg: err && err.message });
@@ -604,6 +630,8 @@ function registerCoreHandlers(ctx) {
         }
         // 再删 state entry
         const stateFreed = versionHistory.deleteEntry(appName, version);
+        // delete 后 count 会变, broadcast 让 renderer ⏪ 角标立即更新
+        broadcastVersionHistoryCounts(sendToRenderer);
         return { ok: true, freedBytes: freed + stateFreed };
       } catch (err) {
         mainLog.warn("[ipc] delete-backup threw", { msg: err && err.message });
