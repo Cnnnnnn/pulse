@@ -175,3 +175,49 @@ describe('checkOnce', () => {
     expect(runCheckCalls).toHaveLength(1); // 仍是 1, 第二次被跳过
   });
 });
+
+describe('startAutoCheckTimer', () => {
+  beforeEach(() => {
+    __resetForTest();
+  });
+
+  afterEach(() => {
+    __resetForTest();
+  });
+
+  it('returns { stop, triggerNow } and triggerNow runs checkOnce', async () => {
+    const runCheckCalls = [];
+    const handle = startAutoCheckTimer({
+      runtimeConfigRef: {
+        current: { apps: [], notifications: { check_interval_hours: 6 } },
+      },
+      pool: {},
+      getWindow: () => null,
+      trayMgr: null,
+      stateStore: { saveAll: () => {} },
+      _testNow: () => new Date('2026-06-23T10:00:00'),
+      _testRunCheck: () => {
+        runCheckCalls.push(Date.now());
+        return Promise.resolve([]);
+      },
+    });
+    expect(typeof handle.stop).toBe('function');
+    expect(typeof handle.triggerNow).toBe('function');
+    await handle.triggerNow();
+    expect(runCheckCalls).toHaveLength(1);
+    handle.stop();
+  });
+
+  it('returns null when check_interval_hours = 0', () => {
+    const handle = startAutoCheckTimer({
+      runtimeConfigRef: {
+        current: { apps: [], notifications: { check_interval_hours: 0 } },
+      },
+      pool: {},
+      getWindow: () => null,
+      trayMgr: null,
+      stateStore: { saveAll: () => {} },
+    });
+    expect(handle).toBeNull();
+  });
+});

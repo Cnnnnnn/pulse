@@ -493,8 +493,9 @@ Expected: FAIL — `startAutoCheckTimer` 当前返回 undefined，断言 `typeof
  */
 function startAutoCheckTimer(deps) {
   const cfg = (deps.runtimeConfigRef && deps.runtimeConfigRef.current) || {};
-  const checkIntervalHours =
-    (cfg.notifications && cfg.notifications.check_interval_hours) || 6;
+  const rawInterval = cfg.notifications && cfg.notifications.check_interval_hours;
+  // 注意: 不能用 `|| 6`, 否则 0 会被 falsy 吞成 6 (无法禁用). 显式区分 undefined/null.
+  const checkIntervalHours = typeof rawInterval === "number" ? rawInterval : 6;
   if (checkIntervalHours <= 0) {
     mainLog.info('auto-check disabled (check_interval_hours = 0)');
     return null;
@@ -526,13 +527,15 @@ function startAutoCheckTimer(deps) {
     // ↑ line 填 setManagedInterval 调用在源码里的真实行号 (timer-registry audit 用)
   );
   mainLog.info(`auto-check timer set: every ${checkIntervalHours}h`);
-  app.once('before-quit', () => {
-    try {
-      if (_autoCheckHandle.interval) clearManaged(_autoCheckHandle.interval);
-    } catch {
-      /* noop */
-    }
-  });
+  if (app && typeof app.once === "function") {
+    app.once("before-quit", () => {
+      try {
+        if (_autoCheckHandle.interval) clearManaged(_autoCheckHandle.interval);
+      } catch {
+        /* noop */
+      }
+    });
+  }
 
   return {
     stop: () => {

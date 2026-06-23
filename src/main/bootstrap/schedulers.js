@@ -7,11 +7,20 @@
 
 const { app, Notification: ElectronNotification } = require("electron");
 const { mainLog } = require("../log");
-const { runCheckQueued } = require("../check-runner");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
 const { inQuietHours } = require("../notification-policy");
 const stateStore = require("../state-store");
 const { setManagedInterval, clearManaged } = require("../timer-registry");
+
+// C4: 模块级 timer handle (跟 daily-summary-job 的 _handle 同构), 便于 __resetForTest 清理.
+const _autoCheckHandle = { interval: null };
+
+function __resetForTest() {
+  if (_autoCheckHandle.interval) {
+    clearManaged(_autoCheckHandle.interval);
+    _autoCheckHandle.interval = null;
+  }
+}
 
 /**
  * C4: 纯决策函数 — 判断本次 auto-check tick 应该 run 还是 skip.
@@ -284,65 +293,77 @@ function startWorldcupGoalWatcher(deps) {
 }
 
 /**
- * Phase 16: 后台定时静默 check — 打破"开 app 才检查"局限.
+ * Phase 16 / C4: 后台定时静默 check. C4 起: quiet hours 内跳过检测,
+ * quiet hours 结束后补跑一次 (lastAutoCheckAt=null 语义). 顺带把 config
+ * 取值从启动快照改为 runtimeConfigRef.current, 让 quiet hours 热生效.
+ *
+ * Public API (照搬 daily-summary-job 可测性模式):
+ *   startAutoCheckTimer(deps) → { stop, triggerNow } | null
+ *   __resetForTest()  // clear module-level timer handle between tests
+ *
  * @param {object} deps
- * @param {object|null} deps.runtimeConfig
+ * @param {object} deps.runtimeConfigRef   { current: config } 实时引用 (热重载)
  * @param {object} deps.pool
  * @param {function} deps.getWindow
  * @param {object} deps.trayMgr
  * @param {object} deps.stateStore
+ * @param {function} [deps._testNow]       测试注入: 当前时间
+ * @param {function} [deps._testRunCheck]  测试注入: runCheckQueued 替代
  */
 function startAutoCheckTimer(deps) {
-  const { runtimeConfig, pool, getWindow, trayMgr, stateStore } = deps;
-  const checkIntervalHours =
-    (runtimeConfig &&
-      runtimeConfig.notifications &&
-      runtimeConfig.notifications.check_interval_hours) ||
-    6;
+  const cfg = (deps.runtimeConfigRef && deps.runtimeConfigRef.current) || {};
+  const rawInterval = cfg.notifications && cfg.notifications.check_interval_hours;
+  // 注意: 不能用 `|| 6`, 否则 0 会被 falsy 吞成 6 (无法禁用). 显式区分 undefined/null.
+  const checkIntervalHours = typeof rawInterval === "number" ? rawInterval : 6;
   if (checkIntervalHours <= 0) {
-    mainLog.info(
-      "auto-check disabled (notifications.check_interval_hours = 0)",
-    );
-    return;
+    mainLog.info("auto-check disabled (check_interval_hours = 0)");
+    return null;
   }
   const AUTO_CHECK_INTERVAL_MS = checkIntervalHours * 60 * 60 * 1000;
-  const autoCheckTimer = setManagedInterval(
+
+  const ctxState = { lastAutoCheckAt: null };
+
+  // C4: 把 deps 转成 checkOnce 需要的 ctx (单次构建, 跨 tick 复用闭包)
+  const buildCtx = () => ({
+    deps,
+    state: ctxState,
+    intervalMs: AUTO_CHECK_INTERVAL_MS,
+    now: deps._testNow,
+    runCheck: deps._testRunCheck,
+  });
+
+  if (_autoCheckHandle.interval) {
+    clearManaged(_autoCheckHandle.interval);
+  }
+  _autoCheckHandle.interval = setManagedInterval(
     () => {
-      mainLog.info(`auto-check triggered (${checkIntervalHours}h)`);
-      runCheckQueued(
-        {
-          getConfig: () => runtimeConfig,
-          pool,
-          getWindow,
-          onCheckComplete: (results) => {
-            if (trayMgr) {
-              trayMgr.setResults(results);
-              const count = results.filter((r) => r.has_update).length;
-              trayMgr.setBadge(count);
-            }
-            try {
-              stateStore.saveAll(results);
-            } catch (err) {
-              mainLog.warn(`state save failed: ${err.message}`);
-            }
-          },
-        },
-        { silent: true },
-      ).catch((err) => {
-        mainLog.warn(`auto-check failed: ${err && err.message}`);
+      checkOnce(buildCtx()).catch(() => {
+        /* swallow — timer callback never throws */
       });
     },
     AUTO_CHECK_INTERVAL_MS,
-    { label: "auto-check", file: "src/main/bootstrap/schedulers.js", line: 220 },
+    { label: "auto-check", file: "src/main/bootstrap/schedulers.js", line: 335 },
   );
   mainLog.info(`auto-check timer set: every ${checkIntervalHours}h`);
-  app.once("before-quit", () => {
-    try {
-      clearManaged(autoCheckTimer);
-    } catch {
-      /* noop */
-    }
-  });
+  if (app && typeof app.once === "function") {
+    app.once("before-quit", () => {
+      try {
+        if (_autoCheckHandle.interval) clearManaged(_autoCheckHandle.interval);
+      } catch {
+        /* noop */
+      }
+    });
+  }
+
+  return {
+    stop: () => {
+      if (_autoCheckHandle.interval) {
+        clearManaged(_autoCheckHandle.interval);
+        _autoCheckHandle.interval = null;
+      }
+    },
+    triggerNow: () => checkOnce(buildCtx()),
+  };
 }
 
 /**
@@ -396,6 +417,7 @@ function makeRefreshLastOpenedAfterCheck(deps) {
 module.exports = {
   decideAutoCheck,
   checkOnce,
+  __resetForTest,
   startFundScheduler,
   startRemindersScheduler,
   startWorldcupGoalWatcher,

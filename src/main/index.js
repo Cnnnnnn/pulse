@@ -624,7 +624,7 @@ async function bootstrap() {
   });
   wireRecentActivityListener({ recentActivity, sendToRenderer });
   startAutoCheckTimer({
-    runtimeConfig,
+    runtimeConfigRef,
     pool,
     getWindow,
     trayMgr,
