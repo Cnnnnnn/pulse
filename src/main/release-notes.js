@@ -19,16 +19,24 @@ const log = createLogger('release-notes');
 
 /**
  * 注册 IPC handlers. 在 main process 启动时 (app.whenReady 之后) 调一次.
- * @param {Electron.IpcMain} ipcMainRef electron.ipcMain
- * @param {object} [deps]
- * @param {object} [deps.app]      electron.app (默认 require('electron').app)
- * @param {object} [deps.stateStore] state-store 模块 (默认 default)
- * @param {object} [deps.loader]   release-notes loader 模块 (默认 default)
+ * 用法: registerReleaseNotes({ ipcMain, app, stateStore, loader }) — 跟
+ * registerSearchIpc 风格一致. Prod 调用只传 { ipcMain, app }, stateStore/loader
+ * 走 default.
+ *
+ * @param {object} ctx
+ * @param {Electron.IpcMain} ctx.ipcMain   electron.ipcMain (prod 必传)
+ * @param {Electron.App}    [ctx.app]      electron.app (prod 必传, 测试可省)
+ * @param {object}          [ctx.stateStore] state-store 模块 (默认 default)
+ * @param {object}          [ctx.loader]   release-notes loader 模块 (默认 default)
  */
-function registerReleaseNotes(ipcMainRef, deps = {}) {
-  const app = deps.app || require('electron').app;
-  const stateStore = deps.stateStore || defaultStateStore;
-  const loader = deps.loader || defaultLoader;
+function registerReleaseNotes(ctx) {
+  if (!ctx || !ctx.ipcMain) {
+    throw new TypeError('registerReleaseNotes: ctx.ipcMain is required');
+  }
+  const ipcMainRef = ctx.ipcMain;
+  const app = ctx.app || require('electron').app;
+  const stateStore = ctx.stateStore || defaultStateStore;
+  const loader = ctx.loader || defaultLoader;
   ipcMainRef.handle('release-notes:get-current', async () => {
     let currentVersion;
     try {

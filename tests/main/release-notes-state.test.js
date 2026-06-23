@@ -22,12 +22,15 @@ let statePath;
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-rn-state-'));
   statePath = path.join(tmpDir, 'state.json');
+  // 只用 _setStatePathForTest. initStateStorePaths() 在 vitest 环境会把路径
+  // 重置回 LEGACY_STATE_PATH, 覆盖我们设的 tmpDir 路径.
   _setStatePathForTest(statePath);
-  initStateStorePaths(statePath);
 });
 
 describe('last_seen_release', () => {
   it('returns null when state.json does not exist', () => {
+    // tmpDir 是新创建的, state.json 不存在
+    expect(fs.existsSync(statePath)).toBe(false);
     expect(getLastSeenRelease()).toBeNull();
   });
 

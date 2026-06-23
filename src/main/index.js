@@ -502,6 +502,9 @@ async function bootstrap() {
       `search index built: ${searchIndex.size()} docs in ${Date.now() - tSearch}ms`,
     );
     registerSearchIpc({ ipcMain, searchIndex, stateStore });
+    // ON: release notes onboarding — IPC handlers (getCurrent / getVersion / markSeen)
+    const { registerReleaseNotes } = require("./release-notes");
+    registerReleaseNotes({ ipcMain, app });
     // 注入 setter: 各模块写盘后实时 upsert (news/reminders/ai-task)
     stateStore.setSearchIndex(searchIndex);
     reminders.setSearchIndex(searchIndex);

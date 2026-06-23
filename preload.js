@@ -102,6 +102,10 @@ contextBridge.exposeInMainWorld("api", {
   watchlistList: () => ipcRenderer.invoke("watchlist:list"),
   watchlistAdd: (appName) => ipcRenderer.invoke("watchlist:add", { appName }),
   watchlistRemove: (appName) => ipcRenderer.invoke("watchlist:remove", { appName }),
+  // ON: release notes onboarding
+  releaseNotesGetCurrent: () => ipcRenderer.invoke("release-notes:get-current"),
+  releaseNotesGetVersion: (version) => ipcRenderer.invoke("release-notes:get-version", version),
+  releaseNotesMarkSeen: (version) => ipcRenderer.invoke("release-notes:mark-seen", version),
   errorOpenFolder: () => ipcRenderer.invoke("error:open-folder"),
   errorReport: (entry) => ipcRenderer.invoke("error:report", entry),
   onErrorAppended: (cb) => ipcRenderer.on("error:appended", (_, data) => cb(data)),

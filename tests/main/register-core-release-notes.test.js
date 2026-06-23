@@ -26,7 +26,8 @@ const fakeIpcMain = {
 
 function setupHandlers(overrides = {}) {
   Object.keys(handlers).forEach((k) => delete handlers[k]);
-  registerReleaseNotes(fakeIpcMain, {
+  registerReleaseNotes({
+    ipcMain: fakeIpcMain,
     app: overrides.app || mockApp,
     stateStore: overrides.stateStore || mockStateStore,
     loader: overrides.loader || mockLoader,
