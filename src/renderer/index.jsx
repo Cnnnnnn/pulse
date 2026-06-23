@@ -22,6 +22,10 @@ import { render } from 'preact';
 import { App } from './App.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import {
+  openReleaseNotes,
+  releaseNotesPayload,
+} from './release-notes-store.js';
+import {
   apps,
   applyProgress,
   applyProgressBatch,
@@ -279,6 +283,24 @@ async function bootstrap() {
     // 安装 nav watch (current nav 被关时切到第一个可见 nav)
     import('./worldcup/navStore.js').then(({ installNavWatch }) => installNavWatch());
   }
+
+  // ON: release notes onboarding — auto 路径, 升级后首次启动才弹.
+  // 跟 check_on_launch 无关: ON 始终拉, 但 onlyShowOnUpgrade 已经在
+  // main 端 getCurrent handler 里判 (last_seen_release.version 对比).
+  // fire-and-forget, 不阻塞 check.
+  (async () => {
+    try {
+      const payload = await api.releaseNotesGetCurrent();
+      if (!payload) return;
+      // 推到 store 供 Trigger 决定红点 (entryPath='auto' 隐含"未看" 状态)
+      releaseNotesPayload.value = payload;
+      if (!payload.alreadySeen) {
+        openReleaseNotes('auto', payload);
+      }
+    } catch (err) {
+      // bootstrap 阶段失败不弹: 不让 release notes 阻塞主流程
+    }
+  })();
 
   // 按需触发 check
   if (cfg.check_on_launch) {
