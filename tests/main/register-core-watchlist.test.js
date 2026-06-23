@@ -1,0 +1,164 @@
+/**
+ * tests/main/register-core-watchlist.test.js
+ *
+ * 2026-06-23: I2 v1 — IPC handler 单元测试
+ *   - watchlist:list / add / remove
+ *   - 覆盖: 正常路径 / 幂等 add / 异常路径 (save throw) / 非法 appName
+ *
+ * Mocking 策略 (跟 register-core-diagnostics.test.js 一致):
+ *   - electron require.cache stub (vitest vi.mock('electron') 在 vite module
+ *     graph 下不稳, 用 require.cache + vi.resetModules)
+ *   - state-store mock via require.cache (control mockWatchlist directly)
+ */
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+
+// ─── electron stub ───────────────────────────────────────────────
+const handlers = new Map();
+const mockHandle = vi.fn((name, fn) => handlers.set(name, fn));
+const electronStub = {
+  ipcMain: { handle: mockHandle },
+  Notification: class { static isSupported() { return false; } },
+};
+const electronPath = require.resolve("electron");
+
+// ─── state-store mock ───────────────────────────────────────────
+let mockWatchlist = [];
+let saveShouldThrow = false;
+const stateStoreStub = {
+  loadWatchlist: () => {
+    if (loadShouldThrow) throw new Error("disk full");
+    return [...mockWatchlist];
+  },
+  saveWatchlist: (list) => {
+    if (saveShouldThrow) throw new Error("disk full");
+    mockWatchlist = list;
+  },
+  // 其余 stub 调用 — register-core 其它 handler 不需要, 但 import 时会拿
+  load: () => ({}),
+  saveAll: () => ({}),
+  markNotified: () => {},
+};
+let loadShouldThrow = false;
+const stateStorePath = require.resolve("../../src/main/state-store.js");
+
+// ─── reset + re-register ────────────────────────────────────────
+let registerCoreHandlers;
+function freshRegister() {
+  // 重置 handlers + 注入 stubs (mockWatchlist / flags 由 caller 控制)
+  handlers.clear();
+  mockHandle.mockClear();
+  require.cache[electronPath] = {
+    id: electronPath, filename: electronPath, loaded: true, exports: electronStub,
+  };
+  require.cache[stateStorePath] = {
+    id: stateStorePath, filename: stateStorePath, loaded: true, exports: stateStoreStub,
+  };
+  // 重置 register-core 模块缓存, 让它 fresh require
+  delete require.cache[require.resolve("../../src/main/ipc/register-core.js")];
+  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.js"));
+  // 传 ctx with safeHandle (since register-core reads safeHandle from ctx, not electron)
+  const mockSafeHandle = vi.fn((name, fn) => handlers.set(name, fn));
+  registerCoreHandlers({ safeHandle: mockSafeHandle });
+}
+
+beforeEach(() => {
+  mockWatchlist = [];
+  saveShouldThrow = false;
+  loadShouldThrow = false;
+  freshRegister();
+});
+
+describe("watchlist IPC handlers", () => {
+  it("watchlist:list — returns current list", () => {
+    mockWatchlist = [{ appName: "VSCode", addedAt: 1, lastNotifiedVersion: null }];
+    freshRegister();
+    const h = handlers.get("watchlist:list");
+    expect(h).toBeDefined();
+    const r = h({});
+    expect(r).toMatchObject({ ok: true });
+    expect(r.items).toEqual([{ appName: "VSCode", addedAt: 1, lastNotifiedVersion: null }]);
+  });
+
+  it("watchlist:list — 空 → []", () => {
+    const h = handlers.get("watchlist:list");
+    const r = h({});
+    expect(r).toEqual({ ok: true, items: [] });
+  });
+
+  it("watchlist:add — appends new entry with addedAt", () => {
+    const h = handlers.get("watchlist:add");
+    const r = h({}, { appName: "Slack" });
+    expect(r).toMatchObject({ ok: true });
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0].appName).toBe("Slack");
+    expect(r.items[0].addedAt).toBeGreaterThan(0);
+    expect(r.items[0].lastNotifiedVersion).toBeNull();
+  });
+
+  it("watchlist:add — 幂等 (同名 add 不重复)", () => {
+    const h = handlers.get("watchlist:add");
+    h({}, { appName: "VSCode" });
+    const r2 = h({}, { appName: "VSCode" });
+    expect(r2.ok).toBe(true);
+    expect(r2.items).toHaveLength(1);
+  });
+
+  it("watchlist:add — 空字符串 → ok:false invalid_appName", () => {
+    const h = handlers.get("watchlist:add");
+    expect(h({}, { appName: "" })).toEqual({ ok: false, reason: "invalid_appName" });
+  });
+
+  it("watchlist:add — null payload → ok:false invalid_appName", () => {
+    const h = handlers.get("watchlist:add");
+    expect(h({}, null)).toEqual({ ok: false, reason: "invalid_appName" });
+  });
+
+  it("watchlist:add — 非字符串 appName → ok:false", () => {
+    const h = handlers.get("watchlist:add");
+    expect(h({}, { appName: 42 })).toEqual({ ok: false, reason: "invalid_appName" });
+  });
+
+  it("watchlist:remove — 过滤目标", () => {
+    mockWatchlist = [
+      { appName: "VSCode", addedAt: 1, lastNotifiedVersion: null },
+      { appName: "Slack", addedAt: 2, lastNotifiedVersion: null },
+    ];
+    freshRegister();
+    const h = handlers.get("watchlist:remove");
+    const r = h({}, { appName: "VSCode" });
+    expect(r.ok).toBe(true);
+    expect(r.items).toEqual([{ appName: "Slack", addedAt: 2, lastNotifiedVersion: null }]);
+  });
+
+  it("watchlist:remove — 非法 appName → ok:false", () => {
+    const h = handlers.get("watchlist:remove");
+    expect(h({}, { appName: 42 })).toEqual({ ok: false, reason: "invalid_appName" });
+  });
+
+  it("watchlist:remove — 不存在 → ok:true, items 空", () => {
+    const h = handlers.get("watchlist:remove");
+    const r = h({}, { appName: "NotPinned" });
+    expect(r.ok).toBe(true);
+    expect(r.items).toEqual([]);
+  });
+
+  it("watchlist:list — load 抛错 → ok:false, reason:load_failed", () => {
+    loadShouldThrow = true;
+    freshRegister();
+    const h = handlers.get("watchlist:list");
+    const r = h({});
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("load_failed");
+  });
+
+  it("watchlist:add — save 抛错 → ok:false, reason:save_failed", () => {
+    saveShouldThrow = true;
+    const h = handlers.get("watchlist:add");
+    const r = h({}, { appName: "VSCode" });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("save_failed");
+  });
+});
