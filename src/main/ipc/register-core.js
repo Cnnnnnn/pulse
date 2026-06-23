@@ -444,22 +444,74 @@ function registerCoreHandlers(ctx) {
     }
   });
 
-  safeHandle("error:export-zip", () => {
-    // Best-effort stub: real zip export deferred. We surface the logsDir.
+  safeHandle("error:export-zip", async () => {
+    // Phase Q1 v2: 真实导出 — 把 errors-*.jsonl + raw 日志 + diagnostics
+    // 合成一个 .tar.gz 写到桌面. 复用 diagnostics-aggregator.bundleDiagnostics.
     try {
       const { getInstance } = require("../bootstrap/error-init");
+      const { bundleDiagnostics } = require("../diagnostics-aggregator");
+      const { resolveLogDir } = require("../log");
+      const diagnostics = require("../diagnostics");
       const inst = getInstance();
-      return Promise.resolve({
-        ok: true,
-        path: inst && inst.aggregator && inst.aggregator.logsDir,
-        note: "ZIP export deferred; logs dir returned.",
+      const mainLogDir = resolveLogDir();
+      const errLogDir = inst && inst.aggregator && inst.aggregator.logsDir;
+      // 启动 metrics 摘要塞到 extras — drawer 里点导出时已经把当前快照打包.
+      const startup = diagnostics.getStartup();
+      const metrics = diagnostics.getMetricsSummary();
+      const r = await bundleDiagnostics({
+        logsDir: errLogDir,
+        extraLogsDirs: [mainLogDir].filter((d) => d && d !== errLogDir),
+        aggregator: inst && inst.aggregator,
+        extras: { startup, metrics },
+        // outputDir 默认 ~/Desktop (bundleDiagnostics 内置)
       });
+      if (!r.ok) return { ok: false, reason: r.error || "bundle_failed" };
+      return { ok: true, path: r.path, sizeBytes: r.sizeBytes, fileCount: r.fileCount };
     } catch (err) {
-      return Promise.resolve({
-        ok: false,
-        reason: "threw",
-        error: err && err.message,
-      });
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  // Phase Q1 v2: diagnostics IPC — drawer 一次拉全 (startup + metrics + top-5)
+  safeHandle("diagnostics:fetch", async (_event, opts) => {
+    try {
+      const { getStartup, getMetricsSummary } = require("../diagnostics");
+      const { computeTopFailures } = require("../diagnostics-aggregator");
+      const { getInstance } = require("../bootstrap/error-init");
+      const sinceMs =
+        (opts && typeof opts.sinceMs === "number" && opts.sinceMs) ||
+        Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const topN = (opts && typeof opts.topN === "number" && opts.topN > 0) ? opts.topN : 5;
+      const inst = getInstance();
+      let entries = [];
+      let stats = { total: 0, byLevel: {}, skipped: 0 };
+      if (inst && inst.aggregator && typeof inst.aggregator.query === "function") {
+        try {
+          const r = await inst.aggregator.query({ since: sinceMs, limit: 5000 });
+          entries = r.entries || [];
+          stats = r.stats || stats;
+        } catch { /* noop */ }
+      }
+      return {
+        ok: true,
+        startup: getStartup(),
+        metrics: getMetricsSummary(),
+        topFailures: computeTopFailures(entries, topN),
+        stats,
+        sinceMs,
+      };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
+
+  // Phase Q1 v2: 拉 ring buffer (60 帧) 给 drawer "近期趋势" 用
+  safeHandle("diagnostics:fetch-samples", () => {
+    try {
+      const { getSamples } = require("../diagnostics");
+      return { ok: true, samples: getSamples() };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
     }
   });
 
