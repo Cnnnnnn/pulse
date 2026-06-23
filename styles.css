@@ -8844,7 +8844,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  /* 低于 modal-backdrop (z-index 5000): 完成时弹出的 ConfirmDialog
+     (复用 modal-backdrop) 必须盖在 wizard 之上, 否则被遮罩挡住. */
+  z-index: 4000;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }

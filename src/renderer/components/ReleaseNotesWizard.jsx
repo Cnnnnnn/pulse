@@ -5,9 +5,13 @@
  *   - 渲染 md (走现有 renderChangelog, marked + DOMPurify)
  *   - 渲染 slides (每页 title + subtitle + body, body 同样走 renderChangelog)
  *   - 进度点 + 翻页
- *   - 4 种关闭路径 (skip / 完成 / ESC / 遮罩) 都视为 "完成本版"
- *   - auto 路径关闭时调 mark-seen; manual 路径关闭时**不**调
- *   - 永远不阻断关闭: mark-seen 失败也正常关 + toast
+ *
+ * "mark-seen" (写 last_seen_release → 下次启动不弹) 的唯一触发路径:
+ *   auto 入口 + 翻到最后一页 + 点【完成】+ 确认弹窗点【收到】.
+ * 其余关闭方式 (skip / ESC / 遮罩 / 稍后再说) 都不写 → 下次启动还会弹.
+ * manual 入口 (Header 📖 手动重看) 永不弹确认、永不写 mark-seen.
+ *
+ * 永远不阻断关闭: mark-seen 失败也正常关 + toast.
  *
  * v1 不做 focus trap (跟 spec §3.8 out-of-scope 一致). ESC + ← → + Enter
  * 覆盖基本键盘可达性.
@@ -17,6 +21,7 @@ import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { renderChangelog } from '../changelog.js';
 import { showToast } from '../store.js';
 import { api } from '../api.js';
+import { openConfirm } from '../confirmStore.js';
 import {
   releaseNotesOpen,
   releaseNotesEntryPath,
@@ -43,14 +48,14 @@ function WizardInner({ payload }) {
   const [page, setPage] = useState(0);
   const closeHandledRef = useRef(false);
 
-  // entryPath is read from the store at close time (not captured), so
-  // manual vs auto decision is always fresh.
-  const handleClose = useCallback(async () => {
+  // 关闭向导. markSeen=true 时调 mark-seen (写 last_seen_release → 下次不弹).
+  // 唯一传 markSeen=true 的入口是 handleComplete (完成→收到).
+  // skip / ESC / 遮罩 / 稍后再说 都传 false → 下次启动还会弹.
+  const handleClose = useCallback(async (markSeen = false) => {
     if (closeHandledRef.current) return;
     closeHandledRef.current = true;
-    const path = releaseNotesEntryPath.value;
     closeReleaseNotes();
-    if (path === 'auto') {
+    if (markSeen) {
       try {
         const r = await api.releaseNotes.markSeen(version);
         if (!r || !r.ok) {
@@ -62,6 +67,23 @@ function WizardInner({ payload }) {
     }
     clearReleaseNotes(); // also drops entryPath → 'auto' + payload
   }, [version]);
+
+  // 翻到最后一页点【完成】时调.
+  // auto 入口 → 弹确认 (收到=写 mark-seen / 稍后=不写).
+  // manual 入口 (Header 📖 手动重看) → 不弹确认, 直接关 (不写 mark-seen).
+  const handleComplete = useCallback(async () => {
+    if (releaseNotesEntryPath.value === 'manual') {
+      handleClose(false);
+      return;
+    }
+    const ok = await openConfirm({
+      title: '已读完本版本更新',
+      message: '点击「收到」后, 下次启动将不再自动弹出本向导。',
+      confirmText: '收到',
+      cancelText: '稍后再说',
+    });
+    handleClose(ok);
+  }, [handleClose]);
 
   // ESC / ← / → / Enter
   useEffect(() => {
@@ -75,12 +97,12 @@ function WizardInner({ payload }) {
       } else if (e.key === 'ArrowLeft') {
         setPage((p) => Math.max(p - 1, 0));
       } else if (e.key === 'Enter' && page === totalPages - 1) {
-        handleClose();
+        handleComplete();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [handleClose, totalPages, page]);
+  }, [handleClose, handleComplete, totalPages, page]);
 
   // 每次重新打开 (version 变) → 重置 page 0 + 关闭 lock
   useEffect(() => {
@@ -109,7 +131,7 @@ function WizardInner({ payload }) {
   return (
     <div
       class="release-notes-wizard-overlay"
-      onClick={handleClose}
+      onClick={() => handleClose(false)}
       role="presentation"
     >
       <div
@@ -151,7 +173,7 @@ function WizardInner({ payload }) {
           <button
             type="button"
             class="btn btn-ghost"
-            onClick={handleClose}
+            onClick={() => handleClose(false)}
           >
             跳过
           </button>
@@ -177,7 +199,7 @@ function WizardInner({ payload }) {
               <button
                 type="button"
                 class="btn btn-primary"
-                onClick={handleClose}
+                onClick={handleComplete}
               >
                 完成
               </button>

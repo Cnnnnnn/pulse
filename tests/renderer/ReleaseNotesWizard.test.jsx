@@ -2,12 +2,13 @@
 /**
  * tests/renderer/ReleaseNotesWizard.test.jsx
  *
- * ON: 向导 modal 组件. 测:
+ * ON: 向导 modal 组件. 新版行为 (v2 — "每次都弹直到收到"):
  *   - 默认隐藏
  *   - open signal → 显示
  *   - 翻页 ← →
- *   - 4 种关闭路径 (skip / 完成 / ESC / 遮罩) 都调 mark-seen (auto 路径)
- *   - manual 路径关闭 → 不调 mark-seen
+ *   - skip / ESC / 遮罩 → 只关向导, **不调** mark-seen (下次启动还会弹)
+ *   - 完成按钮 (auto 入口) → 弹 confirm; 收到 → mark-seen; 稍后再说 → 不调
+ *   - 完成按钮 (manual 入口) → 不弹 confirm, 不调 mark-seen
  *   - mark-seen 失败 → 仍关闭 + toast
  *   - 只有 changelog 无 slides → 单页
  *   - slide body 走 DOMPurify (无 <script> 注入)
@@ -19,6 +20,9 @@ const mockToast = vi.fn();
 const mockReleaseNotesMarkSeen = vi.fn();
 const mockReleaseNotesGetCurrent = vi.fn();
 const mockReleaseNotesGetVersion = vi.fn();
+
+// confirm mock: 默认 resolve true (收到). 单测可临时改成 false (稍后) 或 reject.
+const mockOpenConfirm = vi.fn();
 
 vi.mock('../../src/renderer/api.js', () => ({
   api: {
@@ -32,6 +36,10 @@ vi.mock('../../src/renderer/api.js', () => ({
 
 vi.mock('../../src/renderer/store.js', () => ({
   showToast: (...args) => mockToast(...args),
+}));
+
+vi.mock('../../src/renderer/confirmStore.js', () => ({
+  openConfirm: (...args) => mockOpenConfirm(...args),
 }));
 
 const store = await import('../../src/renderer/release-notes-store.js');
@@ -49,6 +57,8 @@ beforeEach(() => {
   store.__resetForTest();
   vi.clearAllMocks();
   mockReleaseNotesMarkSeen.mockResolvedValue({ ok: true, version: '2.32.0' });
+  // 默认 confirm 点「收到」
+  mockOpenConfirm.mockResolvedValue(true);
 });
 
 describe('ReleaseNotesWizard', () => {
@@ -82,51 +92,10 @@ describe('ReleaseNotesWizard', () => {
     expect(container.textContent).toContain('A');
   });
 
-  it('skip button on auto path → calls mark-seen + closes', async () => {
-    openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
-    const { getByText } = render(<ReleaseNotesWizard />);
-    fireEvent.click(getByText(/跳过/));
-    await waitFor(() => {
-      expect(mockReleaseNotesMarkSeen).toHaveBeenCalledWith('2.32.0');
-    });
-    expect(store.releaseNotesOpen.value).toBe(false);
-  });
+  // ── 新版: skip / ESC / 遮罩 都不调 mark-seen (下次启动还会弹) ──
 
-  it('完成 button on auto path (last page, no slides) → calls mark-seen + closes', async () => {
+  it('skip button → closes WITHOUT mark-seen (下次启动还会弹)', async () => {
     openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
-    const { getByText } = render(<ReleaseNotesWizard />);
-    fireEvent.click(getByText(/完成/));
-    await waitFor(() => {
-      expect(mockReleaseNotesMarkSeen).toHaveBeenCalledWith('2.32.0');
-    });
-  });
-
-  it('ESC key → auto path → calls mark-seen + closes', async () => {
-    openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
-    render(<ReleaseNotesWizard />);
-    // useEffect 注册 listener 在 mount 后跑, 等一个 microtask
-    await new Promise((r) => setTimeout(r, 0));
-    // happy-dom 下 fireEvent.keyDown 不可靠; 用原生 KeyboardEvent dispatch
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await waitFor(() => {
-      expect(mockReleaseNotesMarkSeen).toHaveBeenCalledWith('2.32.0');
-    });
-  });
-
-  it('overlay click → auto path → calls mark-seen + closes', async () => {
-    openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
-    const { container } = render(<ReleaseNotesWizard />);
-    fireEvent.click(container.querySelector('.release-notes-wizard-overlay'));
-    await waitFor(() => {
-      expect(mockReleaseNotesMarkSeen).toHaveBeenCalledWith('2.32.0');
-    });
-  });
-
-  it('manual path close → does NOT call mark-seen', async () => {
-    store.__resetForTest();
-    store.releaseNotesEntryPath.value = 'manual';
-    store.releaseNotesPayload.value = { version: '2.32.0', changelogMd: '# x', slides: null };
-    store.releaseNotesOpen.value = true;
     const { getByText } = render(<ReleaseNotesWizard />);
     fireEvent.click(getByText(/跳过/));
     await waitFor(() => {
@@ -135,22 +104,90 @@ describe('ReleaseNotesWizard', () => {
     expect(mockReleaseNotesMarkSeen).not.toHaveBeenCalled();
   });
 
-  it('mark-seen failure (ok:false) → still closes + shows toast', async () => {
+  it('ESC key → closes WITHOUT mark-seen', async () => {
+    openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
+    render(<ReleaseNotesWizard />);
+    await new Promise((r) => setTimeout(r, 0));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await waitFor(() => {
+      expect(store.releaseNotesOpen.value).toBe(false);
+    });
+    expect(mockReleaseNotesMarkSeen).not.toHaveBeenCalled();
+  });
+
+  it('overlay click → closes WITHOUT mark-seen', async () => {
+    openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
+    const { container } = render(<ReleaseNotesWizard />);
+    fireEvent.click(container.querySelector('.release-notes-wizard-overlay'));
+    await waitFor(() => {
+      expect(store.releaseNotesOpen.value).toBe(false);
+    });
+    expect(mockReleaseNotesMarkSeen).not.toHaveBeenCalled();
+  });
+
+  // ── 新版: 完成 → confirm → 收到/稍后 ──
+
+  it('完成 (auto) → confirm → 收到 → calls mark-seen + closes', async () => {
+    mockOpenConfirm.mockResolvedValue(true);
+    openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
+    const { getByText } = render(<ReleaseNotesWizard />);
+    fireEvent.click(getByText(/完成/));
+    await waitFor(() => {
+      expect(mockReleaseNotesMarkSeen).toHaveBeenCalledWith('2.32.0');
+    });
+    await waitFor(() => {
+      expect(store.releaseNotesOpen.value).toBe(false);
+    });
+    // confirm 用了正确的文案
+    expect(mockOpenConfirm).toHaveBeenCalledWith(expect.objectContaining({
+      confirmText: '收到',
+      cancelText: '稍后再说',
+    }));
+  });
+
+  it('完成 (auto) → confirm → 稍后再说 → does NOT call mark-seen, still closes', async () => {
+    mockOpenConfirm.mockResolvedValue(false);
+    openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
+    const { getByText } = render(<ReleaseNotesWizard />);
+    fireEvent.click(getByText(/完成/));
+    await waitFor(() => {
+      expect(store.releaseNotesOpen.value).toBe(false);
+    });
+    expect(mockReleaseNotesMarkSeen).not.toHaveBeenCalled();
+  });
+
+  it('完成 (manual 入口) → does NOT open confirm, does NOT call mark-seen', async () => {
+    store.__resetForTest();
+    store.releaseNotesEntryPath.value = 'manual';
+    store.releaseNotesPayload.value = { version: '2.32.0', changelogMd: '# x', slides: null };
+    store.releaseNotesOpen.value = true;
+    const { getByText } = render(<ReleaseNotesWizard />);
+    fireEvent.click(getByText(/完成/));
+    await waitFor(() => {
+      expect(store.releaseNotesOpen.value).toBe(false);
+    });
+    expect(mockOpenConfirm).not.toHaveBeenCalled();
+    expect(mockReleaseNotesMarkSeen).not.toHaveBeenCalled();
+  });
+
+  it('mark-seen failure (ok:false after 收到) → still closes + shows toast', async () => {
+    mockOpenConfirm.mockResolvedValue(true);
     mockReleaseNotesMarkSeen.mockResolvedValue({ ok: false, version: '2.32.0' });
     openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
     const { getByText } = render(<ReleaseNotesWizard />);
-    fireEvent.click(getByText(/跳过/));
+    fireEvent.click(getByText(/完成/));
     await waitFor(() => {
       expect(store.releaseNotesOpen.value).toBe(false);
     });
     expect(mockToast).toHaveBeenCalledWith(expect.stringContaining('保存失败'), 'warn');
   });
 
-  it('mark-seen throw → still closes + shows toast', async () => {
+  it('mark-seen throw (after 收到) → still closes + shows toast', async () => {
+    mockOpenConfirm.mockResolvedValue(true);
     mockReleaseNotesMarkSeen.mockRejectedValue(new Error('IPC fail'));
     openAsAuto({ version: '2.32.0', changelogMd: '# x', slides: null });
     const { getByText } = render(<ReleaseNotesWizard />);
-    fireEvent.click(getByText(/跳过/));
+    fireEvent.click(getByText(/完成/));
     await waitFor(() => {
       expect(store.releaseNotesOpen.value).toBe(false);
     });
@@ -179,9 +216,6 @@ describe('ReleaseNotesWizard', () => {
     fireEvent.click(getByText(/下一步/));
     // preact batches setState; wait a tick for re-render
     await new Promise((r) => setTimeout(r, 0));
-    // (ponytail: marked 将 'before <script>...</script> after' 当 block html
-    // 整体吞掉, 所以 body 可能是空. 关键断言: 没有任何 <script> 元素注入到 DOM.
-    // 真实 XSS 防护由 DOMPurify 承担, 跟 changelog.test.js 41-46 同一断言.)
     expect(container.querySelector('script')).toBeFalsy();
   });
 });
