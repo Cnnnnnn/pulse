@@ -265,6 +265,119 @@ describe("HtmlChangelogDetector", () => {
   });
 });
 
+describe("MiniMax Code changelog (mintlify/next.js)", () => {
+  // 从真实 https://agent.minimaxi.com/docs/changelog 简化的 fixture:
+  // 每个 version 是独立 <h2 id="vX-Y-Z"> ... <span>vX.Y.Z</span></h2>,
+  // 下面跟 <h3>...</h3><ul><li>...</li></ul>, 中间用 <hr/> 分隔.
+  // 没有 <div>/<article> 包整个 section, 所以 section_pattern 锁 <h2 id="v" 即可.
+  const MINIMAX_HTML = `
+<html><body>
+  <div class="doc">
+    <h2 class="flex whitespace-pre-wrap group font-semibold" id="v3-0-47">
+      <span class="cursor-pointer">v3.0.47</span>
+    </h2>
+    <ul><li>修复部分代理情况下服务不可用的问题</li></ul>
+    <hr/>
+    <h2 class="flex whitespace-pre-wrap group font-semibold" id="v3-0-46">
+      <span class="cursor-pointer">v3.0.46</span>
+    </h2>
+    <h3 id="新功能"><span class="cursor-pointer">新功能</span></h3>
+    <ul><li>Worktree 基准分支选择</li></ul>
+    <hr/>
+    <h2 class="flex whitespace-pre-wrap group font-semibold" id="v3-0-37-v3-0-40">
+      <span class="cursor-pointer">v3.0.37~v3.0.40 — 2026-06-08</span>
+    </h2>
+  </div>
+</body></html>
+`;
+  const MINIMAX_CFG = {
+    url: "https://agent.minimaxi.com/docs/changelog",
+    section_pattern: "<h2 ",
+    section_end: "</h2>",
+    version_pattern: '<span class="cursor-pointer">v([0-9.]+)</span>',
+  };
+
+  it("首个 h2 里有版本 → 直接拿", async () => {
+    const http = new MockHttp({ get: [{ status: 200, body: MINIMAX_HTML }] });
+    const r = await new HtmlChangelogDetector(MINIMAX_CFG).detect(
+      makeCtx({ http }),
+    );
+    expect(r.version).toBe("3.0.47");
+    expect(r.confidence).toBe("high");
+    expect(r.note).toContain("first section");
+  });
+
+  it("首个 h2 没有版本 → 退化到 page-max 取最大版本", async () => {
+    // 最新 h2 没有版本 span (e.g. 整段重构还没切回模板), 退到整页搜
+    const html = MINIMAX_HTML.replace(
+      '<span class="cursor-pointer">v3.0.47</span>',
+      '<span class="cursor-pointer">Bug 修复</span>',
+    );
+    const http = new MockHttp({ get: [{ status: 200, body: html }] });
+    const r = await new HtmlChangelogDetector(MINIMAX_CFG).detect(
+      makeCtx({ http }),
+    );
+    expect(r.version).toBe("3.0.46"); // page-max 选最大
+    expect(r.note).toContain("page-max");
+  });
+
+  it("整页都没有版本 → no_version", async () => {
+    const html = '<html><body><h2 id="v0-0-0"><span>noop</span></h2></body></html>';
+    const http = new MockHttp({ get: [{ status: 200, body: html }] });
+    await expect(
+      new HtmlChangelogDetector(MINIMAX_CFG).detect(makeCtx({ http })),
+    ).rejects.toMatchObject({ reason: REASONS.NO_VERSION });
+  });
+});
+
+describe("WorkBuddy changelog (VitePress)", () => {
+  // 从真实 https://www.codebuddy.cn/docs/workbuddy/Changelog 简化的 fixture:
+  // 每个 version 是 <h2 id="_X-Y-Z-版本发布-🚀-YYYY-MM-DD" tabindex="-1">X.Y.Z 版本发布 ...</h2>
+  // 后面跟 <ul><li>...</li></ul>. 没有 <div>/<article> 包整个 section.
+  // section_pattern 锁 <h2 id="_" (VitePress content h2 的 slug 前缀是 _).
+  const WORKBUDDY_HTML = `
+<html><body>
+  <div class="VPDoc">
+    <h2 class="text" data-v-248cc913>入门指南</h2>  <!-- 侧栏 nav, 不是版本 section -->
+    <div class="VPDocContent">
+      <h2 id="_5-1-5-版本发布-🚀-2026-06-21" tabindex="-1">5.1.5 版本发布 🚀（2026-06-21） <a class="header-anchor" href="#_5-1-5">​</a></h2>
+      <ul><li>优化产物面板展示</li><li>修复连接器误恢复</li></ul>
+      <h2 id="_5-1-4-版本发布-🚀-2026-06-18" tabindex="-1">5.1.4 版本发布 🚀（2026-06-18） <a class="header-anchor" href="#_5-1-4">​</a></h2>
+      <ul><li>修复 macOS 检查更新后无法自动拉起</li></ul>
+    </div>
+  </div>
+</body></html>
+`;
+  const WORKBUDDY_CFG = {
+    url: "https://www.codebuddy.cn/docs/workbuddy/Changelog",
+    section_pattern: '<h2 id="_',
+    section_end: "</h2>",
+    version_pattern: ">([0-9.]+) 版本发布",
+  };
+
+  it("首个 content h2 → 5.1.5 (跳过侧栏 nav h2)", async () => {
+    const http = new MockHttp({ get: [{ status: 200, body: WORKBUDDY_HTML }] });
+    const r = await new HtmlChangelogDetector(WORKBUDDY_CFG).detect(
+      makeCtx({ http }),
+    );
+    expect(r.version).toBe("5.1.5");
+    expect(r.confidence).toBe("high");
+  });
+
+  it("旧格式 (4.x) 也能抓", async () => {
+    const html = `
+      <h2 id="_4-24-8-版本发布-🚀-2026-06-03" tabindex="-1">4.24.8 版本发布 🚀(2026-06-03) <a class="header-anchor">​</a></h2>
+      <ul><li>x</li></ul>
+      <h2 id="_4-24-7-版本发布-🚀-2026-06-01" tabindex="-1">4.24.7 版本发布 🚀(2026-06-01) <a class="header-anchor">​</a></h2>
+      <ul><li>y</li></ul>`;
+    const http = new MockHttp({ get: [{ status: 200, body: html }] });
+    const r = await new HtmlChangelogDetector(WORKBUDDY_CFG).detect(
+      makeCtx({ http }),
+    );
+    expect(r.version).toBe("4.24.8");
+  });
+});
+
 describe("compareVersionsDesc", () => {
   it("基本 semver 排序 (倒序)", async () => {
     const { compareVersionsDesc } =

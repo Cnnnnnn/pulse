@@ -102,6 +102,13 @@
           "type": "winget_show",
           "id": "MiniMax.MiniMaxCode",
           "platform": "win"
+        },
+        {
+          "type": "html_changelog",
+          "url": "https://agent.minimaxi.com/docs/changelog",
+          "section_pattern": "<h2 ",
+          "section_end": "</h2>",
+          "version_pattern": "<span class=\"cursor-pointer\">v([0-9.]+)</span>"
         }
       ],
       "winget_id": "MiniMax.MiniMaxCode"
@@ -135,7 +142,7 @@
       "bundle": "WorkBuddy.app",
       "win_bundle": "WorkBuddy",
       "download_url": "https://www.codebuddy.cn/workbuddy",
-      "release_notes_url": "https://www.codebuddy.cn/workbuddy",
+      "release_notes_url": "https://www.codebuddy.cn/docs/workbuddy/Changelog",
       "detectors": [
         {
           "type": "api_json",
@@ -145,6 +152,13 @@
           "type": "winget_show",
           "id": "Tencent.WorkBuddy",
           "platform": "win"
+        },
+        {
+          "type": "html_changelog",
+          "url": "https://www.codebuddy.cn/docs/workbuddy/Changelog",
+          "section_pattern": "<h2 id=\"_",
+          "section_end": "</h2>",
+          "version_pattern": ">([0-9.]+) 版本发布"
         }
       ],
       "winget_id": "Tencent.WorkBuddy"
