@@ -428,6 +428,7 @@ function TaskCard({ task, selected, generating, onToggle, onGenerateSingle }) {
   return (
     <article
       class={`ai-task-card ${selected ? 'selected' : ''} status-${status.id}`}
+      data-task-key={task.taskKey}
       onClick={onToggle}
     >
       <label class="session-select" onClick={(e) => e.stopPropagation()}>

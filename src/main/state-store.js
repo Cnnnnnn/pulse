@@ -90,6 +90,36 @@ let _resolvedStatePath = null;
 // Phase Q8: last recovery event (consume-once). Set by loadOrRecover, read by IPC push to renderer.
 let _lastRecoveryEvent = null;
 
+// A3: 搜索索引引用 (setter 注入). saveTaskSummary 写盘后 upsert ai-task doc.
+let _searchIndex = null;
+function setSearchIndex(si) {
+  _searchIndex = si;
+}
+
+function _upsertAiTaskDoc(entry) {
+  if (!_searchIndex || !entry || !entry.taskKey) return;
+  try {
+    const searchText = [entry.title, entry.userGoal, entry.outcome]
+      .filter(Boolean)
+      .join(" ");
+    _searchIndex.upsert({
+      id: `ai-task:${entry.taskKey}`,
+      source: "ai-task",
+      nativeId: entry.taskKey,
+      title: entry.title || entry.taskKey,
+      snippet: entry.userGoal || "",
+      searchText,
+      payload: {
+        navTarget: "ai-tasks",
+        appName: entry.appName,
+        dateKey: entry.dateKey,
+      },
+    });
+  } catch {
+    /* noop */
+  }
+}
+
 function _tryGetUserDataDir() {
   try {
     const { app } = require("electron");
@@ -821,6 +851,7 @@ function saveTaskSummary(entry, statePath = defaultPath()) {
     };
     next.task_summaries = map;
   }, statePath);
+  _upsertAiTaskDoc(entry);
 }
 
 /**
@@ -1451,4 +1482,6 @@ module.exports = {
   // Phase v1: tray menu prefs
   loadTrayMenuPrefs,
   saveTrayMenuPrefs,
+  // A3: 搜索索引注入
+  setSearchIndex,
 };

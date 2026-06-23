@@ -492,7 +492,7 @@ async function bootstrap() {
   });
   mainLog.info(`ipc registered`);
 
-  // A3: 全文搜索 — 启动构建索引 + 注册 IPC
+  // A3: 全文搜索 — 启动构建索引 + 注册 IPC + 注入各模块 setter (实时 upsert)
   try {
     const searchIndex = createSearchIndex();
     const tSearch = Date.now();
@@ -501,6 +501,10 @@ async function bootstrap() {
       `search index built: ${searchIndex.size()} docs in ${Date.now() - tSearch}ms`,
     );
     registerSearchIpc({ ipcMain, searchIndex, stateStore });
+    // 注入 setter: 各模块写盘后实时 upsert (news/reminders/ai-task)
+    stateStore.setSearchIndex(searchIndex);
+    reminders.setSearchIndex(searchIndex);
+    require("./ithome/news-store").setSearchIndex(searchIndex);
   } catch (err) {
     mainLog.warn(`search index init failed: ${err && err.message}`);
   }

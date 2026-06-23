@@ -24,6 +24,62 @@ const FETCH_TIMEOUT_MS = 20000;
 const MAX_ARTICLES_PER_DAY = 400;
 
 let _http = null;
+
+// A3: 搜索索引引用 (setter 注入). 写盘成功后 upsert 单条 doc.
+let _searchIndex = null;
+function setSearchIndex(si) {
+  _searchIndex = si;
+}
+
+/**
+ * A3: 从单条 article + summary 构造搜索 Doc 并 upsert.
+ * 复用 build-docs.js 的字段拼装逻辑 (单条版).
+ */
+function _upsertNewsDoc(id, news) {
+  if (!_searchIndex || !id) return;
+  try {
+    const articles = (news && news.articles) || {};
+    const summaries = (news && news.summaries) || {};
+    const favorites = (news && news.favorites) || {};
+    // favorites 优先 (含 summary 快照)
+    const fav = favorites[id];
+    const art = (fav && fav.article) || articles[id];
+    if (!art) return;
+    const sum = (fav && fav.summary) || summaries[id] || {};
+    const searchText = [
+      art.title, art.excerpt, art.body, sum.abstract,
+      Array.isArray(sum.keywords) ? sum.keywords.join(" ") : "",
+      sum.domain, sum.impact,
+    ].filter(Boolean).join(" ");
+    _searchIndex.upsert({
+      id: `news:${id}`,
+      source: "news",
+      nativeId: id,
+      title: art.title || id,
+      snippet: art.excerpt || (sum.abstract ? sum.abstract.slice(0, 60) : ""),
+      searchText,
+      payload: {
+        navTarget: "ithome",
+        dateMs: art.fetchedAt || (fav && fav.favoritedAt) || 0,
+        dateKey: art.dateKey,
+      },
+    });
+  } catch {
+    /* noop — 搜索索引 upsert 失败不影响主功能 */
+  }
+}
+
+/**
+ * A3: 删除单条 news doc (取消收藏且 articles 无此条时).
+ */
+function _removeNewsDoc(id) {
+  if (!_searchIndex || !id) return;
+  try {
+    _searchIndex.remove(`news:${id}`);
+  } catch {
+    /* noop */
+  }
+}
 function http() {
   if (!_http) {
     _http = new HttpClient({
@@ -370,6 +426,7 @@ function attachArticleBody(id, body, statePath) {
   }
   const news = { ...cur, articles, favorites, ts: Date.now() };
   _writeNews(news, statePath);
+  _upsertNewsDoc(id, news);
   return { ok: true };
 }
 
@@ -391,6 +448,7 @@ function saveSummary(id, entry, statePath) {
   }
   const news = { ...cur, summaries, favorites, ts: Date.now() };
   _writeNews(news, statePath);
+  _upsertNewsDoc(id, news);
   return { ok: true };
 }
 
@@ -402,6 +460,9 @@ function toggleFavorite(id, statePath) {
     delete favorites[id];
     const news = { ...cur, favorites, ts: Date.now() };
     _writeNews(news, statePath);
+    // 取消收藏: 若 articles 仍有此条则 upsert (用 article 版本重建 doc), 否则 remove
+    if (news.articles && news.articles[id]) _upsertNewsDoc(id, news);
+    else _removeNewsDoc(id);
     return { ok: true, favorited: false, id };
   }
 
@@ -418,6 +479,7 @@ function toggleFavorite(id, statePath) {
   };
   const news = { ...cur, favorites, ts: Date.now() };
   _writeNews(news, statePath);
+  _upsertNewsDoc(id, news);
   return { ok: true, favorited: true, id };
 }
 
@@ -432,6 +494,7 @@ module.exports = {
   isFavorited,
   attachArticleBody,
   markArticleRead,
+  setSearchIndex,
   _pruneArticles,
   _mergeArticles,
   MAX_ARTICLES_PER_DAY,

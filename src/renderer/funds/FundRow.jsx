@@ -69,7 +69,7 @@ export function FundRow({ row }) {
   }
 
   return (
-    <div class={`fund-row${errMsg ? ' fund-row-error' : ''}${pendingNav ? ' fund-row-pending' : ''}`}>
+    <div class={`fund-row${errMsg ? ' fund-row-error' : ''}${pendingNav ? ' fund-row-pending' : ''}`} data-fund-code={holding.code}>
       <div class="fund-row-main">
         <div class="fund-row-info">
           <div class="fund-row-line1">

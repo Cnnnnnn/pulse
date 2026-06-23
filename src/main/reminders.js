@@ -40,6 +40,38 @@ let _sweepTimer = null;
 let _onFire = null;
 let _sweepStatePath = null;
 
+// A3: 搜索索引引用 (setter 注入). create/update/remove 后 upsert/remove.
+let _searchIndex = null;
+function setSearchIndex(si) {
+  _searchIndex = si;
+}
+
+function _upsertReminderDoc(r) {
+  if (!_searchIndex || !r || !r.id) return;
+  try {
+    _searchIndex.upsert({
+      id: `reminder:${r.id}`,
+      source: "reminder",
+      nativeId: r.id,
+      title: r.title || r.id,
+      snippet: "",
+      searchText: r.title || "",
+      payload: { navTarget: "reminders", dateMs: r.triggerAt || r.createdAt || 0 },
+    });
+  } catch {
+    /* noop */
+  }
+}
+
+function _removeReminderDoc(id) {
+  if (!_searchIndex || !id) return;
+  try {
+    _searchIndex.remove(`reminder:${id}`);
+  } catch {
+    /* noop */
+  }
+}
+
 // ── 内部 helpers ──────────────────────────────────────────
 
 /**
@@ -263,6 +295,7 @@ function create(input, statePath) {
     ref: reminder.id,
     label: reminder.title,
   });
+  _upsertReminderDoc(reminder);
   return { ok: true, reminder };
 }
 
@@ -301,6 +334,7 @@ function update(id, patch, statePath) {
   if (!normalized) return { ok: false, reason: "invalid_after_patch" };
   ctx.reminders[idx] = normalized;
   _saveReminders(ctx, ctx.reminders);
+  _upsertReminderDoc(normalized);
   return { ok: true, reminder: normalized };
 }
 
@@ -318,6 +352,7 @@ function remove(id, statePath) {
   if (idx === -1) return { ok: false, reason: "not_found" };
   ctx.reminders.splice(idx, 1);
   _saveReminders(ctx, ctx.reminders);
+  _removeReminderDoc(id);
   return { ok: true };
 }
 
@@ -633,6 +668,7 @@ module.exports = {
   MAX_TITLE_LEN,
   MAX_TRIGGER_AT,
   // test-only
+  setSearchIndex,
   _validateCreateInput,
   _validatePatch,
   _normalizeReminder,

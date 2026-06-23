@@ -100,6 +100,7 @@ function ReminderRow({ r, now, onEdit }) {
     <div
       class={`reminder-row status-${r.status}`}
       data-id={r.id}
+      data-reminder-id={r.id}
     >
       <div class="reminder-row-main">
         <div class="reminder-title">{r.title}</div>
