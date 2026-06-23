@@ -1,6 +1,6 @@
 {
   "name": "pulse",
-  "version": "2.29.0",
+  "version": "2.30.0",
   "description": "macOS 菜单栏更新监测器 — Pulse",
   "main": "src/main/index.js",
   "scripts": {
@@ -12,7 +12,8 @@
     "build:win": "npm run build:renderer && electron-builder --win --x64 --publish never",
     "build:all": "npm run build:mac && npm run build:win",
     "dev": "npm run build:renderer && NODE_ENV=development electron .",
-    "test": "vitest"
+    "test": "vitest",
+    "baseline:q4": "node scripts/q4-baseline.js"
   },
   "author": "Pulse",
   "license": "MIT",
