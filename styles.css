@@ -88,53 +88,84 @@
 /* ─── Platform: Windows (P4) ─── */
 /* Win11: Electron backgroundMaterial='acrylic' 在 main 端处理, 透明背景. */
 /* Win10: backgroundMaterial 被忽略, 走 fallback 纯色. */
+/* v2.27: 重新设计配色 — 纯中性石墨灰 (去紫调) + 天青蓝强调, 贴合 Win11 Mica 原生质感.
+   层次: chrome (侧栏) 比内容区亮一档, 卡片再亮一档浮起来, hover 态更高.
+   取代旧 #1e1e2e/#2c2c34 紫灰底 (发冷发脏) + 纯蓝 #0a84ff (与背景色调不统一). */
 body.platform-win {
   /* Windows 用系统原生字体 (Segoe UI / 微软雅黑), 不用 mac 的 -apple-system */
   --font-system: var(--font-windows);
-  /* 覆盖 :root --content-bg 的浅色, 用 Win10/11 友好的深色系 */
-  --content-bg: #1e1e2e;
-  --chrome-bg: #2c2c34;
-  --bg-primary: rgba(44, 44, 52, 0.95);
-  --bg-secondary: rgba(36, 36, 42, 0.95);
-  --bg-card: rgba(44, 44, 52, 0.95);
-  --bg-modal: #2c2c34;
-  --surface: #2c2c34;
-  --surface-soft: #36363f;
-  --bg-elevated: #36363f;
-  --bg-tertiary: #3a3a44;
+
+  /* ── 层次结构: 由暗到亮, 卡片浮起 (alpha 给 Win11 acrylic 透出) ── */
+  /* 内容区: 最深中性石墨灰 (无紫无蓝, 纯灰) */
+  --content-bg: #202020;
+  /* chrome (侧栏/titlebar): 亮一档, 跟内容区拉开层次 */
+  --chrome-bg: rgba(43, 43, 43, 0.92);
+  /* 卡片: 再亮一点, 配 alpha 让 acrylic 微透 */
+  --bg-card: rgba(43, 43, 43, 0.92);
+  --bg-primary: rgba(43, 43, 43, 0.92);
+  --bg-secondary: rgba(50, 50, 50, 0.90);
+  --bg-modal: #2b2b2b;
+  --surface: #2b2b2b;
+  --surface-soft: #323232;
+  --bg-elevated: #323232;
+  /* hover/tertiary: 最亮档, 用于交互悬停 */
+  --bg-tertiary: #3a3a3a;
   --bg-hover: rgba(255, 255, 255, 0.06);
   --bg-section: rgba(255, 255, 255, 0.04);
+  --hover-soft: rgba(255, 255, 255, 0.06);
+
+  /* ── 边框: 中性, 不带紫蓝调 ── */
   --border: rgba(255, 255, 255, 0.10);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-light: rgba(255, 255, 255, 0.05);
   --border-soft: rgba(255, 255, 255, 0.08);
-  --hover-soft: rgba(255, 255, 255, 0.06);
-  /* 提高文字对比度 — Windows 上 acrylic 背景下旧值太灰看不清 */
-  --text-primary: #f0f0f5;
-  --text-secondary: #b8b8c4;
-  --text-tertiary: #8888a0;
-  /* 副标题/弱化文本 (wechat-hot list-title 等用 var(--text-soft)):
+
+  /* ── 文字: 高对比中性, 旧值太灰看不清 ── */
+  --text-primary: #ededed;
+  --text-secondary: #b8b8b8;
+  --text-tertiary: #8a8a8a;
+  /* 弱化文本 (wechat-hot list-title 等用 --text-soft):
      浅色 :root 默认 rgba(0,0,0,0.55) 在深色 bg 上几乎不可见.
      Win 上调成浅色透明白, 跟 --text-secondary 同档对比度. */
   --text-soft: rgba(255, 255, 255, 0.72);
-  /* 强调色: 浅色 :root 默认 #007aff 在深色 acrylic bg 上对比度差.
-     改用 macOS dark scheme 的 #0a84ff 同款 (已在 prefers-color-scheme dark 块里用).
-     保持跨 light/dark scheme 一致, win 上总是显示亮蓝. */
-  --accent-primary: #0a84ff;
-  --accent-blue: #0a84ff;
+
+  /* ── 强调色: Win11 天青蓝, 在中性灰底上更通透统一 ──
+     (链接 / 图标 / focus / 选中态边框) */
+  --accent-primary: #4cc2ff;
+  --accent-blue: #4cc2ff;
+  --accent-fund: #4cc2ff;
+  --accent-worldcup: #4cc2ff;
+  --accent-versions: #4cc2ff;
   --accent-orange: #ff9f0a;
-  --accent-green: #30d158;
-  --accent-red: #ff453a;
-  --accent-fund: #0a84ff;
-  --accent-worldcup: #0a84ff;
-  --accent-versions: #0a84ff;
+  --accent-green: #3fb950;
+  --accent-red: #ff6b6b;
   /* 上涨/下跌 (金融面板) 在深色 bg 上微调 */
-  --color-up: #ff453a;
-  --color-down: #30d158;
-  /* focus ring 也提亮, 不然深色 bg 看不到 */
-  --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.45);
+  --color-up: #ff6b6b;
+  --color-down: #3fb950;
+
+  /* focus ring 提亮, 不然深色 bg 看不到 */
+  --focus-ring: 0 0 0 3px rgba(76, 194, 255, 0.40);
+
   /* Windows 上字体渲染比 mac 偏小, 全局放大 1px (13→14 基准) */
   font-size: 14px;
+}
+
+/* Win11 dark 规范: 亮天青蓝 (#4cc2ff) 底色太浅, 配白字对比度不足 WCAG.
+   官方做法是亮底配深字. 仅 win 平台覆盖 .btn-primary 文字色为深蓝黑. */
+body.platform-win .btn-primary {
+  color: #003046;
+}
+/* 侧栏品牌 mark (蓝底白字) 同理: accent 太亮, 白字糊 → 深字 */
+body.platform-win .side-nav-brand-mark {
+  color: #003046;
+}
+
+/* Win 上深色内容区, 滚动条用浅色半透明 (默认 rgba(0,0,0,...) 在深底上不可见) */
+body.platform-win #content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+body.platform-win #content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 /* Windows 上小字号元素再提一档 (9px→10px, 10px→11px, 11px→12px) */
@@ -2208,7 +2239,7 @@ body.platform-win .window-control-btn--close:hover {
   height: 18px;
   border-radius: 6px;
   border: 1.5px solid rgba(15,23,42,0.18);
-  background: #fff;
+  background: var(--surface, #fff);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2508,7 +2539,7 @@ body.platform-win .window-control-btn--close:hover {
  outline: none;
  border-color: var(--accent-blue, #007aff);
  box-shadow: 0 0 0 2px rgba(0,122,255,0.1);
- background: #fff;
+ background: var(--surface, #fff);
 }
 .ai-settings-key-controls {
  display: flex;
@@ -2688,6 +2719,10 @@ body.platform-win .window-control-btn--close:hover {
 .toast-warn { border-left:3px solid #f59e0b; background: #fffbeb; }
 .toast-error { border-left:3px solid var(--accent-red, #ff3b30); background: #fef2f2; }
 .toast-success { border-left:3px solid var(--accent-green, #34c759); }
+
+/* Win 深色底: warn/error 浅黄/浅红底突兀, 改用同色调半透明叠在 surface 上 */
+body.platform-win .toast-warn { background: rgba(245, 158, 11, 0.14); }
+body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 /* ── Phase Q8: state.json corruption self-recovery banner ── */
 .state-recovered-banner {
@@ -4735,7 +4770,7 @@ body.platform-win .window-control-btn--close:hover {
 }
 
 .match-card-ai-btn:hover:not(:disabled) {
-  background: #fff;
+  background: var(--surface, #fff);
   border-color: rgba(0, 122, 255, 0.5);
 }
 
@@ -5390,7 +5425,7 @@ body.platform-win .window-control-btn--close:hover {
   left: 0; right: 0;
   top: calc(100% + 4px);
   z-index: 10;
-  background: #fff;
+  background: var(--surface, #fff);
   border: 1px solid var(--border, #e5e5e5);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
