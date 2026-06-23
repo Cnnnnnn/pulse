@@ -180,6 +180,9 @@ body.platform-win .ithome-panel-empty-hint {
 
 /* ─── Reset ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* 全局关掉浏览器默认的键盘 focus outline, 鼠标点击流程会留下黑色框
+   影响视觉. 键盘可达性靠按钮 hover 颜色 + tabindex 顺序保持. */
+*:focus { outline: none; }
 html, body { height: 100%; overflow: hidden; }
 body {
   font-family: var(--font-system);
