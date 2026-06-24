@@ -107,6 +107,8 @@ contextBridge.exposeInMainWorld("api", {
   // Phase Q1 v2: diagnostics drawer
   diagnosticsFetch: (opts) => ipcRenderer.invoke("diagnostics:fetch", opts),
   diagnosticsFetchSamples: () => ipcRenderer.invoke("diagnostics:fetch-samples"),
+  // C7 v2.35.0: 检测结果导出
+  detectResultsExport: (opts) => ipcRenderer.invoke("detect-results:export", opts),
   // I2 v1: watchlist (pinned apps)
   watchlistList: () => ipcRenderer.invoke("watchlist:list"),
   watchlistAdd: (appName) => ipcRenderer.invoke("watchlist:add", { appName }),

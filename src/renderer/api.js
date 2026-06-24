@@ -136,6 +136,8 @@ export function createApi(overrides = {}) {
     // Phase Q1 v2: diagnostics drawer
     diagnosticsFetch: pick(overrides, "diagnosticsFetch"),
     diagnosticsFetchSamples: pick(overrides, "diagnosticsFetchSamples"),
+    // C7 v2.35.0: 检测结果导出
+    detectResultsExport: pick(overrides, "detectResultsExport"),
     // I2 v1: watchlist (pinned apps)
     watchlistList: pick(overrides, "watchlistList"),
     watchlistAdd: pick(overrides, "watchlistAdd"),

@@ -7,8 +7,11 @@
  *   - 使用 checkSession.phase 替代旧 checkStatus
  *   - 进度显示包含 per-app phase: "检查中 (3/11)..." 而非 "检查中 (3)..."
  *   - 显示 detecting 态 app 数量 (有几个正在联网检测)
+ *
+ * C7 v2.35.0: 检测结果导出 JSON / CSV
  */
 
+import { useState } from 'preact/hooks';
 import { checkSession, lastError } from '../store.js';
 import { summary, upgradableCount, checkedCount, totalAppCount, detectingCount } from '../selectors.js';
 import { BulkUpgradeButton } from './BulkUpgradeButton.jsx';
@@ -18,11 +21,31 @@ import { RecentButton } from '../recent/RecentActivityModal.jsx';
 import { ReleaseNotesTrigger } from './ReleaseNotesTrigger.jsx';
 import { diagnosticsDrawerOpen } from '../diagnostics/diagnostics-store.js';
 import { watchlistDrawerOpen, watchlistItems } from '../watchlist/watchlist-store.js';
+import { api } from '../api.js';
 
 export function Header({ onCheck }) {
   const session = checkSession.value;
   const phase = session.phase;
   const isRunning = phase === 'running';
+  const [exporting, setExporting] = useState(false);
+  const [lastExport, setLastExport] = useState(null);
+
+  async function exportResults(format) {
+    if (exporting || !api.detectResultsExport) return;
+    setExporting(true);
+    try {
+      const r = await api.detectResultsExport({ format });
+      if (r && r.ok) {
+        setLastExport({ path: r.path, sizeBytes: r.sizeBytes, rowCount: r.rowCount, format, ts: Date.now() });
+      } else {
+        setLastExport({ error: (r && (r.reason || r.error)) || 'export_failed', ts: Date.now() });
+      }
+    } catch (err) {
+      setLastExport({ error: (err && err.message) || 'export_failed', ts: Date.now() });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <header id="header">
@@ -32,8 +55,34 @@ export function Header({ onCheck }) {
         {phase === 'error' && lastError.value && (
           <p id="error-detail" class="error-detail">出错: {lastError.value}</p>
         )}
+        {lastExport && !lastExport.error && (
+          <p class="header-export-ok" title={lastExport.path}>
+            已导出 {lastExport.format?.toUpperCase()} ({lastExport.rowCount} 条) → 桌面
+          </p>
+        )}
+        {lastExport && lastExport.error && (
+          <p class="header-export-err">导出失败: {lastExport.error}</p>
+        )}
       </div>
       <div class="header-right">
+        <button
+          id="btn-export-json"
+          class="btn btn-ghost btn-sm"
+          onClick={() => exportResults('json')}
+          disabled={exporting}
+          title="导出检测结果 (JSON → 桌面)"
+        >
+          {exporting ? '…' : 'JSON'}
+        </button>
+        <button
+          id="btn-export-csv"
+          class="btn btn-ghost btn-sm"
+          onClick={() => exportResults('csv')}
+          disabled={exporting}
+          title="导出检测结果 (CSV → 桌面)"
+        >
+          {exporting ? '…' : 'CSV'}
+        </button>
         <button
           id="btn-check"
           class="btn btn-secondary"

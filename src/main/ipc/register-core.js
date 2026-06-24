@@ -791,6 +791,35 @@ function registerCoreHandlers(ctx) {
       return { ok: false, reason: "threw", error: err && err.message };
     }
   });
+
+  // C7 v2.35.0: 检测结果导出 (JSON / CSV → 桌面)
+  safeHandle("detect-results:export", async (_event, opts) => {
+    try {
+      const { exportDetectResults } = require("../detect-results-export");
+      const format = opts && opts.format;
+      let state = null;
+      if (typeof getCachedState === "function") {
+        try {
+          state = getCachedState();
+        } catch { /* noop */ }
+      }
+      let pulseVersion = "";
+      try {
+        pulseVersion = require("../../../package.json").version || "";
+      } catch { /* noop */ }
+      const r = exportDetectResults({ state, format, pulseVersion });
+      if (!r.ok) return { ok: false, reason: r.error || "export_failed" };
+      return {
+        ok: true,
+        path: r.path,
+        sizeBytes: r.sizeBytes,
+        rowCount: r.rowCount,
+        format,
+      };
+    } catch (err) {
+      return { ok: false, reason: "threw", error: err && err.message };
+    }
+  });
 }
 
 module.exports = { registerCoreHandlers };

@@ -891,6 +891,16 @@ body.platform-win .window-control-btn--close:hover {
   color: var(--accent-red) !important;
   margin-top: 4px !important;
 }
+.header-export-ok {
+  font-size: 12px !important;
+  color: var(--accent-green, #34c759) !important;
+  margin-top: 4px !important;
+}
+.header-export-err {
+  font-size: 12px !important;
+  color: var(--accent-red) !important;
+  margin-top: 4px !important;
+}
 
 /* ─── Results container ─── */
 .results-container { padding-bottom: 8px; }
