@@ -28,7 +28,14 @@ Pulse 有 3 个 AI 功能(都走 `chatCompletion`),prompt 全部**硬编码**在
 | 世界杯赛前 | `match-ai.js` | `buildPreMatchPrompt(match)` | system = "你是资深足球分析师..." + `OUTPUT_RULES`(4行格式) |
 | 世界杯赛后 | `match-ai.js` | `buildPostMatchPrompt(match, scoreEntry)` | system = "你是资深足球评论员..." + `OUTPUT_RULES`(4行格式) |
 
-三者结构一致:system 角色句 + rules 输出格式约束。
+三者结构有差异:
+- ithome: system = 角色句 + OUTPUT_RULES(2 段)
+- worldcup pre/post: system = 角色句 + 内容指引("分三段:对阵看点...") +
+  OUTPUT_RULES(3 段)
+
+**统一方案**:worldcup 的"内容指引"并入 system 字段(它本就是角色描述的一部分),
+最终 3 个 prompt 都是 { system, rules } 两字段。system = 角色句(+内容指引),
+rules = OUTPUT_RULES。零信息丢失。
 
 **不含 category**:`src/config/category.js` 的 `classifyByLLM` 用 DI `llmCaller`(不走 `chatCompletion`),
 结构不同,本次不动,留 v2。
