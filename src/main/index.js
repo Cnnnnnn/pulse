@@ -496,19 +496,26 @@ async function bootstrap() {
   // A3: 全文搜索 — 启动构建索引 + 注册 IPC + 注入各模块 setter (实时 upsert)
   try {
     const searchIndex = createSearchIndex();
-    const tSearch = Date.now();
-    searchIndex.buildFromState(stateStore.load());
-    mainLog.info(
-      `search index built: ${searchIndex.size()} docs in ${Date.now() - tSearch}ms`,
-    );
     registerSearchIpc({ ipcMain, searchIndex, stateStore });
-    // ON: release notes onboarding — IPC handlers (getCurrent / getVersion / markSeen)
     const { registerReleaseNotes } = require("./release-notes");
     registerReleaseNotes({ ipcMain, app });
-    // 注入 setter: 各模块写盘后实时 upsert (news/reminders/ai-task)
     stateStore.setSearchIndex(searchIndex);
     reminders.setSearchIndex(searchIndex);
     require("./ithome/news-store").setSearchIndex(searchIndex);
+    // ponytail: Q4 v2 — 索引构建延后, 不阻塞 window load / markBootstrapDone
+    setImmediate(() => {
+      try {
+        const tSearch = Date.now();
+        searchIndex.buildFromState(stateStore.load());
+        mainLog.info(
+          `search index built (deferred): ${searchIndex.size()} docs in ${Date.now() - tSearch}ms`,
+        );
+      } catch (err) {
+        mainLog.warn(
+          `[search] deferred build failed: ${err && err.message}`,
+        );
+      }
+    });
   } catch (err) {
     mainLog.warn(`search index init failed: ${err && err.message}`);
   }

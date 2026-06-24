@@ -18,6 +18,9 @@ const { registerFundsHandlers } = require("./register-funds");
 const { registerWechatHotHandlers } = require("./register-wechat-hot");
 const { registerAiPromptsHandlers } = require("./register-ai-prompts");
 const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice");
+const {
+  registerChangelogSummaryHandlers,
+} = require("./register-changelog-summary");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -37,6 +40,7 @@ function registerIpcHandlers(deps) {
   registerWechatHotHandlers(ctx); // ← 新增
   registerAiPromptsHandlers(ctx); // A7: AI prompt 模板化
   registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
+  registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要
 }
 
 module.exports = { registerIpcHandlers };

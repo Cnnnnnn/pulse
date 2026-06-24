@@ -255,6 +255,7 @@ const PRESERVE_FIELDS = [
   { key: "wechat_hot", kind: "object", notArray: true },          // I6 v2: { readIds: { title: readAt } } — wechat-hot 已读词
   { key: "ai_prompts", kind: "object", notArray: true },           // A7: { promptId: { system, rules } } — 用户自定义 AI prompt
   { key: "upgrade_advice_cache", kind: "object", notArray: true }, // A2: 升级建议缓存
+  { key: "changelog_summary_cache", kind: "object", notArray: true }, // A1: changelog 摘要缓存
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -894,6 +895,40 @@ function saveUpgradeAdviceEntry(entry, statePath = defaultPath()) {
     const map = cleanExpiredUpgradeAdvice(existing.upgrade_advice_cache || {}, now);
     map[entry.cacheKey] = { ...entry, generatedAt: entry.generatedAt || now };
     next.upgrade_advice_cache = map;
+  }, statePath);
+}
+
+// ─── A1: changelog 摘要缓存 (复用 A2 30 天 GC) ───────────────
+
+function loadChangelogSummaryCache(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (
+    !s ||
+    !s.changelog_summary_cache ||
+    typeof s.changelog_summary_cache !== "object"
+  ) {
+    return {};
+  }
+  return cleanExpiredUpgradeAdvice(s.changelog_summary_cache, Date.now());
+}
+
+function loadChangelogSummaryEntry(cacheKey, statePath = defaultPath()) {
+  if (!cacheKey) return null;
+  const map = loadChangelogSummaryCache(statePath);
+  return map[cacheKey] || null;
+}
+
+function saveChangelogSummaryEntry(entry, statePath = defaultPath()) {
+  if (!entry || typeof entry !== "object" || typeof entry.cacheKey !== "string") {
+    throw new TypeError("saveChangelogSummaryEntry: entry.cacheKey required");
+  }
+  return patchState((next, existing, now) => {
+    const map = cleanExpiredUpgradeAdvice(
+      existing.changelog_summary_cache || {},
+      now,
+    );
+    map[entry.cacheKey] = { ...entry, generatedAt: entry.generatedAt || now };
+    next.changelog_summary_cache = map;
   }, statePath);
 }
 
@@ -1874,6 +1909,9 @@ module.exports = {
   loadUpgradeAdviceCache,
   loadUpgradeAdviceEntry,
   saveUpgradeAdviceEntry,
+  loadChangelogSummaryCache,
+  loadChangelogSummaryEntry,
+  saveChangelogSummaryEntry,
   // A3: 搜索索引注入
   setSearchIndex,
 };

@@ -5,17 +5,9 @@
  *   1. DOMContentLoaded → bootstrap()
  *   2. getConfig() → apps.value = cfg.apps
  *   3. primeConfigCache(cfg)
- *   4. 加载 cached state → applyCachedResults (用户立即看到上次结果)
- *   5. 加载 mutes / last-opened / active category / digest (并行)
- *   6. 订阅主进程事件
- *   7. render(<App />, #app) — 立即渲染，不等 check
- *   8. cfg.check_on_launch → triggerCheck()
- *
- * v2 改进:
- *   - 并发守卫: checkSession.phase === 'running' 时跳过重复触发
- *   - Session ID: 每次 check 生成唯一 ID, progress 事件带 ID 校验
- *   - detecting 状态: 主进程推 'check-detecting' 事件时, app 进入 spinner 态
- *   - auto-check 完成后自动刷新 last-opened 数据
+ *   4. render(<App />) — Q4 v2: 尽早首屏, 不等缓存/mutes
+ *   5. requestIdleCallback → 加载 cached state / mutes / AI 等
+ *   6. cfg.check_on_launch → triggerCheck()
  */
 
 import { render } from 'preact';
@@ -53,23 +45,12 @@ import { applyPlatformBodyClass } from './platform-body-class.js';
 
 const log = taggedLog("[index]");
 
-// Phase A1b: import 触发顶层 setData, 之后 store / selectors 调 category.* 都有数据
 import './category-init.js';
 
-// ─── 触发检查 ──────────────────────────────────────────────
+let activeRecheck = null;
 
-/**
- * 触发一轮完整的更新检查。
- *
- * v2 改进:
- *   - 并发守卫: 如果已有 check 在跑, 直接返回 (不中断、不双跑)
- *   - Session ID: startCheck() 返回唯一 sessionId, 传给 applyProgress 做校验
- *   - 检测中的 app 先进入 'detecting' 态 (spinner), 结果到后切 'done'/'error'
- */
 async function triggerCheck() {
-  if (isCheckRunning()) {
-    return;
-  }
+  if (isCheckRunning()) return;
   if (activeRecheck) activeRecheck.cancel();
 
   const appNames = apps.value.map(a => a.name);
@@ -77,7 +58,6 @@ async function triggerCheck() {
 
   try {
     const returned = await api.checkUpdates();
-
     if (checkSession.value.id === sessionId) {
       if (Array.isArray(returned) && returned.length > 0) {
         applyProgressBatch(returned, sessionId);
@@ -92,59 +72,7 @@ async function triggerCheck() {
   }
 }
 
-// ─── Bootstrap ──────────────────────────────────────────────
-
-async function bootstrap() {
-  // 0) P4: 尽早给 body 加 platform class (Win10 fallback 背景需要在
-  //    App 首次 paint 前生效, 否则会有一次白闪).
-  applyPlatformBodyClass();
-
-  // 1) 加载 config —— 即便失败也给空壳 UI
-  let cfg = { apps: [], check_on_launch: true };
-  try {
-    cfg = await api.getConfig();
-    cfg.apps = cfg.apps || [];
-  } catch (err) {
-    log.error("getConfig failed:", err);
-  }
-  apps.value = cfg.apps;
-  primeConfigCache(cfg);
-
-  // 2) 加载 last-known state 缓存, 网络抽风时 UI 不空白
-  try {
-    const cached = await api.getCachedState();
-    if (cached && cached.apps) {
-      const { applyCachedResults } = await import('./store.js');
-      applyCachedResults(cached);
-    }
-  } catch { /* 缓存加载失败不阻塞 */ }
-
-  // 3) 并行加载 mutes + last-opened + active_category
-  try {
-    await Promise.allSettled([
-      loadMutes(),
-      loadLastOpened(),
-      loadActiveCategory(),
-    ]);
-  } catch { /* noop */ }
-
-  // 4) 订阅主进程事件 + 拉今日任务列表 (不调 LLM, 给 Header badge 用)
-  subscribeAiTaskUpdates();
-  subscribeAISessionsConfigUpdates();
-  Promise.allSettled([
-    loadAISessionsConfig(),
-    import('./store.js').then((m) => m.probeAIKeyStatuses()),
-    import('./recent/recentStore.js').then((m) => {
-      m.installRecentListener();
-      return m.loadRecent();
-    }),
-    import('./reminders/remindersStore.js').then((m) => {
-      m.installRemindersListener();
-    }),
-  ]).catch(() => {});
-  loadAiTasks().catch(() => {});
-
-  // last-opened 实时更新
+function wireRendererListeners() {
   api.onLastOpenedUpdated((data) => {
     if (!data || !data.lastOpened) return;
     const next = new Map();
@@ -152,7 +80,6 @@ async function bootstrap() {
     lastOpenedApps.value = next;
   });
 
-  // 主进程未捕获错误兜底 → 提示用户 (v2.12)
   if (typeof api.onMainError === "function") {
     api.onMainError((data) => {
       import("./store.js").then(({ showToast }) => {
@@ -162,7 +89,6 @@ async function bootstrap() {
     });
   }
 
-  // Phase I5: open digest drawer on notification click
   if (typeof api.onDigestOpen === "function") {
     api.onDigestOpen(() => {
       import("./store.js").then(({ digestDrawerOpen }) => {
@@ -171,24 +97,12 @@ async function bootstrap() {
     });
   }
 
-  // Phase Q8: state.json corruption self-recovery banner
   api.onStateRecovered((evt) => {
     import("./store.js").then(({ stateRecoveredSignal }) => {
       if (evt) stateRecoveredSignal.value = evt;
     });
   });
 
-  // 5) 立即 render
-  const mount = document.getElementById('app') || document.body;
-  render(
-    <ErrorBoundary>
-      <App onCheck={triggerCheck} />
-    </ErrorBoundary>,
-    mount,
-  );
-
-  // 6) 监听检测进度事件
-  //    applyProgress 已内置 sessionId 校验, 过期事件会被丢弃
   api.onCheckProgress((result) => {
     if (!result || !result.name) return;
     if (result.status === 'started') {
@@ -211,7 +125,6 @@ async function bootstrap() {
     });
   }
 
-  // detecting 事件: app 开始检测, UI 显示 spinner (可选, 主进程推了就用)
   if (typeof api.onCheckDetecting === 'function') {
     api.onCheckDetecting((data) => {
       if (data && data.name) {
@@ -222,24 +135,17 @@ async function bootstrap() {
 
   api.onStartCheck(() => triggerCheck());
 
-  // v2.22 Task A3: 订阅菜单栏点击 → 切 tab + 滚 + 弹 modal
   import('./tray-focus.js').then(({ subscribeTrayFocus }) => {
     subscribeTrayFocus(api);
   });
 
-  // 后台自动 check 完成时: finish session + 刷新 last-opened
   api.onAutoCheckFinished(() => {
-    // 如果当前没有手动 check 在跑, 直接标记 done
-    if (!isCheckRunning()) {
-      finishCheck();
-    }
-    // 刷新 last-opened 数据
+    if (!isCheckRunning()) finishCheck();
     import('./store.js').then(({ refreshLastOpened }) => {
       refreshLastOpened().catch(() => {});
     });
   });
 
-  // Bulk Upgrade 事件
   api.onBulkUpgradeProgress(applyBulkUpgradeProgress);
   activeRecheck = createAutoRecheck({ triggerCheck });
   api.onBulkUpgradeDone((summary) => {
@@ -247,20 +153,15 @@ async function bootstrap() {
     activeRecheck.schedule();
   });
 
-  // AppRow 升级完后重检
   window.addEventListener('app-row:upgraded', () => triggerCheck());
-
-  // Phase Q6: install global error listeners
   import("./error-reporting.js").then((m) => m.installErrorReporting()).catch(() => {});
 
-  // "打开配置" 按钮
   window.addEventListener('app:open-config', () => {
     if (typeof window !== 'undefined' && window.api) {
       try { window.api.openConfig && window.api.openConfig(); } catch { /* noop */ }
     }
   });
 
-  // Phase v1: 订阅 tray 配置 modal 开关信号 (main 拥有真相)
   if (typeof window !== 'undefined' && window.pulse && window.pulse.tray) {
     const trayApi = window.pulse.tray;
     if (typeof trayApi.onOpenConfig === 'function') {
@@ -273,43 +174,94 @@ async function bootstrap() {
         import('./trayConfigStore.js').then(({ closeTrayConfig }) => closeTrayConfig());
       });
     }
-    // bootstrap 拉一次 prefs → trayConfigStore (SideNav 过滤 nav tab 用)
-    // main 失败 → DEFAULT_PREFS,4 个动态 nav tab 全显示 (向后兼容)
     import('./trayConfigStore.js').then(({ applyTrayPrefsFromMain }) => {
       Promise.resolve(trayApi.getPrefs && trayApi.getPrefs()).then((r) => {
         if (r && r.ok && r.prefs) applyTrayPrefsFromMain(r.prefs);
-      }).catch(() => { /* 默认全开 */ });
+      }).catch(() => {});
     });
-    // 安装 nav watch (current nav 被关时切到第一个可见 nav)
     import('./worldcup/navStore.js').then(({ installNavWatch }) => installNavWatch());
   }
+}
 
-  // ON: release notes onboarding — auto 路径, 升级后首次启动才弹.
-  // 跟 check_on_launch 无关: ON 始终拉, 但 onlyShowOnUpgrade 已经在
-  // main 端 getCurrent handler 里判 (last_seen_release.version 对比).
-  // fire-and-forget, 不阻塞 check.
-  (async () => {
-    try {
-      const payload = await api.releaseNotes.getCurrent();
-      if (!payload) return;
-      // 推到 store 供 Trigger 决定红点 (entryPath='auto' 隐含"未看" 状态)
-      releaseNotesPayload.value = payload;
-      if (!payload.alreadySeen) {
-        openReleaseNotes('auto', payload);
-      }
-    } catch (err) {
-      // bootstrap 阶段失败不弹: 不让 release notes 阻塞主流程
+async function bootstrapDeferred(cfg) {
+  try {
+    const cached = await api.getCachedState();
+    if (cached && cached.apps) {
+      const { applyCachedResults } = await import('./store.js');
+      applyCachedResults(cached);
     }
-  })();
+  } catch { /* noop */ }
 
-  // 按需触发 check
+  try {
+    await Promise.allSettled([
+      loadMutes(),
+      loadLastOpened(),
+      loadActiveCategory(),
+    ]);
+  } catch { /* noop */ }
+
+  subscribeAiTaskUpdates();
+  subscribeAISessionsConfigUpdates();
+  Promise.allSettled([
+    loadAISessionsConfig(),
+    import('./store.js').then((m) => m.probeAIKeyStatuses()),
+    import('./recent/recentStore.js').then((m) => {
+      m.installRecentListener();
+      return m.loadRecent();
+    }),
+    import('./reminders/remindersStore.js').then((m) => {
+      m.installRemindersListener();
+    }),
+  ]).catch(() => {});
+  loadAiTasks().catch(() => {});
+
+  try {
+    const payload = await api.releaseNotes.getCurrent();
+    if (!payload) return;
+    releaseNotesPayload.value = payload;
+    if (!payload.alreadySeen) {
+      openReleaseNotes('auto', payload);
+    }
+  } catch { /* noop */ }
+
   if (cfg.check_on_launch) {
     triggerCheck();
   }
 }
 
-// ─── Auto-recheck handle ──────────────────────────────────
-let activeRecheck = null;
+function scheduleDeferredBootstrap(cfg) {
+  const run = () => bootstrapDeferred(cfg).catch(() => {});
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(run, { timeout: 2000 });
+  } else {
+    setTimeout(run, 0);
+  }
+}
+
+async function bootstrap() {
+  applyPlatformBodyClass();
+
+  let cfg = { apps: [], check_on_launch: true };
+  try {
+    cfg = await api.getConfig();
+    cfg.apps = cfg.apps || [];
+  } catch (err) {
+    log.error("getConfig failed:", err);
+  }
+  apps.value = cfg.apps;
+  primeConfigCache(cfg);
+
+  const mount = document.getElementById('app') || document.body;
+  render(
+    <ErrorBoundary>
+      <App onCheck={triggerCheck} />
+    </ErrorBoundary>,
+    mount,
+  );
+
+  wireRendererListeners();
+  scheduleDeferredBootstrap(cfg);
+}
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bootstrap);

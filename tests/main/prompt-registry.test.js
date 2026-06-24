@@ -41,17 +41,18 @@ function writeAiPrompts(prompts) {
 }
 
 describe("prompt-registry (A7)", () => {
-  it("PROMPT_KEYS 含 5 个 prompt (A7 v2 + A2)", () => {
+  it("PROMPT_KEYS 含 6 个 prompt (A7 v2 + A2 + A1)", () => {
     expect(PROMPT_KEYS).toEqual(
       expect.arrayContaining([
         "ithome_summary",
         "worldcup_prematch",
         "worldcup_postmatch",
         "upgrade_advice",
+        "changelog_summary",
         "category_classify",
       ]),
     );
-    expect(PROMPT_KEYS).toHaveLength(5);
+    expect(PROMPT_KEYS).toHaveLength(6);
   });
 
   it("DEFAULT_PROMPTS 每个 prompt 有 system + rules", () => {

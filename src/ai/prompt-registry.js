@@ -68,6 +68,21 @@ const DEFAULT_PROMPTS = {
     ].join("\n"),
     fewShot: "",
   },
+  changelog_summary: {
+    system: [
+      "你是 macOS 应用 release notes 编辑。从多段 changelog 中提炼用户最关心的要点，",
+      "忽略琐碎 bugfix 堆砌，优先安全修复、新功能、破坏性变更。",
+    ].join(""),
+    rules: [
+      "【硬性要求】",
+      "1. 只输出严格 JSON，不要 markdown fence 或额外文字。",
+      "2. JSON schema:",
+      '   {"oneLiner":"一句话总览，≤60字","highlights":["要点1","要点2","要点3"]}',
+      "3. highlights 必须 1–3 条，每条 ≤50 字，简体中文。",
+      "4. changelog 极少时保守概括，不编造未提及的功能。",
+    ].join("\n"),
+    fewShot: "",
+  },
   category_classify: {
     system: "你是一个 app 分类助手。",
     rules: [

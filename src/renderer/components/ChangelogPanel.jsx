@@ -8,6 +8,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'preact/hooks';
 import { renderChangelog } from '../changelog.js';
+import { ChangelogSummary } from './ChangelogSummary.jsx';
 
 export function ChangelogPanel({ result }) {
   const src = result && result.changelog;
@@ -65,7 +66,12 @@ export function ChangelogPanel({ result }) {
 
   return (
     <div class="changelog-panel">
-      <div class="changelog-version-label">{activeLabel}</div>
+      <div class="changelog-panel-top">
+        <div class="changelog-version-label">{activeLabel}</div>
+        {isCurrent && result && result.name && (
+          <ChangelogSummary appName={result.name} />
+        )}
+      </div>
       <div
         class="changelog-body"
         // 渲染来自 detector 的 release notes, 已经过 DOMPurify.sanitize, 安全

@@ -8654,6 +8654,74 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .upgrade-advice-retry:hover, .upgrade-advice-refresh:hover { opacity: 1; }
 
+.changelog-panel-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.changelog-summary-trigger {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle, #e5e5e7);
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+}
+
+.changelog-summary-trigger:hover {
+  border-color: var(--accent-blue, #007aff);
+  color: var(--accent-blue, #007aff);
+}
+
+.changelog-summary {
+  font-size: 12px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: rgba(0, 122, 255, 0.06);
+  border: 1px solid rgba(0, 122, 255, 0.15);
+  position: relative;
+}
+
+.changelog-summary-oneliner {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-primary, #111);
+}
+
+.changelog-summary-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary, #444);
+}
+
+.changelog-summary-list li { margin: 2px 0; }
+
+.changelog-summary--loading { font-style: italic; color: var(--text-soft, #888); }
+
+.changelog-summary--error { color: var(--accent-red, #ff3b30); }
+
+.changelog-summary-retry,
+.changelog-summary-refresh {
+  margin-left: 6px;
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.changelog-summary-refresh {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
 .wechat-hot-list-rank {
   flex-shrink: 0;
   width: 24px;
