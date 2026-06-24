@@ -34,6 +34,7 @@ import {
 import { digestDrawerOpen, digestConfigMode } from '../digest/digest-store.js';
 import { api } from '../api.js';
 import { AIConfigForm } from './AISettingsModal.jsx';
+import { PromptSettings } from './PromptSettings.jsx';
 import { taggedLog } from '../log.js';
 
 const log = taggedLog("[tasks]");
@@ -298,6 +299,7 @@ export function AITasksDrawer() {
                 onSaved={() => { digestConfigMode.value = false; }}
                 onCancel={() => { digestConfigMode.value = false; }}
               />
+              <PromptSettings />
             </div>
           ) : (
             <>

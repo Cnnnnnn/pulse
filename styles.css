@@ -8533,6 +8533,20 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   opacity: 0.5;
 }
 
+/* ─── A7: Prompt 模板设置 ─── */
+.prompt-settings { padding: 12px 0; }
+.prompt-settings-title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+.prompt-settings-hint { font-size: 11px; color: var(--text-soft, rgba(0,0,0,.5)); margin: 0 0 12px; }
+.prompt-settings-item { margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary, #f5f5f7); border-radius: 8px; }
+.prompt-settings-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.prompt-settings-item-label { font-size: 13px; font-weight: 600; }
+.prompt-settings-default-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--border-subtle, #e5e5e7); color: var(--text-soft, rgba(0,0,0,.5)); }
+.prompt-settings-field { display: block; margin-bottom: 8px; }
+.prompt-settings-field-label { display: block; font-size: 11px; color: var(--text-soft, rgba(0,0,0,.5)); margin-bottom: 3px; }
+.prompt-settings-textarea { width: 100%; font: inherit; font-size: 12px; padding: 6px 8px; border: 1px solid var(--border-subtle, #e5e5e7); border-radius: 6px; resize: vertical; box-sizing: border-box; }
+.prompt-settings-textarea--rules { font-family: ui-monospace, monospace; font-size: 11px; }
+.prompt-settings-loading { padding: 20px; text-align: center; color: var(--text-soft, rgba(0,0,0,.5)); font-size: 12px; }
+
 .wechat-hot-list-rank {
   flex-shrink: 0;
   width: 24px;
