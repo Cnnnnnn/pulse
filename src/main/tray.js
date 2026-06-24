@@ -108,6 +108,14 @@ function buildMenu(opts) {
   const seg = trayPrefs.segments;
   const template = [];
 
+  // ─── I7: 顶部总览 (全局快照) ───
+  // 用户开菜单瞬间拿到"全局快照"; 与下方各 segment 互补.
+  const summaryLine = buildSummaryLine(results);
+  if (summaryLine) {
+    template.push(summaryLine);
+    template.push({ type: 'separator' });
+  }
+
   // ─── 🔄 检查更新 (v2.22 Task A2: 内容预览) ───
   if (seg.updates) {
     if (results.length > 0) {
@@ -252,6 +260,51 @@ function _ageLabel(deltaMs) {
   if (m < 60) return ` (${m}m 前)`;
   const h = Math.floor(m / 60);
   return ` (${h}h 前)`;
+}
+
+/**
+ * I7: 构造 tray 菜单顶部总览行.
+ *   - 无 results → "🔔 Pulse · 尚未检测"
+ *   - 有 results → "🔔 Pulse · N 应用 · M 待升级 · Xm 前"
+ *                   或 "🔔 Pulse · N 应用 · 全部最新 · Xm 前"
+ *   - age < 60s → 省略 "Xm 前" (避免刚检测完还显示)
+ *
+ * 返回 null 表示不应插入 (理论上不会发生, 但留兜底).
+ * ponytail: macOS Tray 没有 hover tooltip API, 用菜单顶部 1 行代替,
+ * 用户左键/右键打开菜单立即可见, 信息密度比 tooltip 高.
+ * age 格式与下方 AI 用量段统一 ("Xm 前" / "Xh 前", 无括号), 信息层视觉对齐.
+ */
+function buildSummaryLine(results) {
+  if (!Array.isArray(results) || results.length === 0) {
+    return { label: "🔔 Pulse · 尚未检测", enabled: false };
+  }
+  const total = results.length;
+  const pending = results.filter((r) => r && r.has_update).length;
+  // 找最早 ts (最旧的那次检测)
+  const tsList = results
+    .map((r) => (r && typeof r.ts === "number" ? r.ts : null))
+    .filter((t) => t !== null);
+  const oldestTs = tsList.length > 0 ? Math.min.apply(null, tsList) : null;
+  const age = oldestTs !== null ? _summaryAgeLabel(Date.now() - oldestTs) : "";
+
+  const statusBit = pending > 0 ? `${pending} 待升级` : "全部最新";
+  return {
+    label: `🔔 Pulse · ${total} 应用 · ${statusBit}${age}`,
+    enabled: false,
+  };
+}
+
+/**
+ * I7 专用 age 格式 (与 buildAiUsageLines 的 _ageLabel 输出区分开):
+ * "3m 前" / "1h 前" (无括号, 无前导空格, 直接拼接到上一行的 "· " 后).
+ * < 60s → "" (不显示).
+ */
+function _summaryAgeLabel(deltaMs) {
+  if (deltaMs < 60_000) return "";
+  const m = Math.floor(deltaMs / 60_000);
+  if (m < 60) return ` · ${m}m 前`;
+  const h = Math.floor(m / 60);
+  return ` · ${h}h 前`;
 }
 
 /**
@@ -472,5 +525,12 @@ function createTrayManager(opts) {
 module.exports = {
   createTrayManager,
   // 暴露给测试 (assets 加载 + badge 变体选择 + menu template 纯函数)
-  _internal: { loadTrayIcon, loadBadgeIcon, loadFallbackIcon, buildMenu, ASSETS },
+  _internal: {
+    loadTrayIcon,
+    loadBadgeIcon,
+    loadFallbackIcon,
+    buildMenu,
+    buildSummaryLine,
+    ASSETS,
+  },
 };

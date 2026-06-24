@@ -34,7 +34,7 @@ function scheduleOnCheckComplete(fn, results) {
   });
 }
 
-function enqueueDetectApp(pool, appCfg, history) {
+function enqueueDetectApp(pool, appCfg, history, incremental) {
   const job = pool.enqueue({
     type: "detect-app",
     payload: {
@@ -42,6 +42,7 @@ function enqueueDetectApp(pool, appCfg, history) {
         ...appCfg,
         changelog_history: Array.isArray(history) ? history : [],
       },
+      incremental: incremental || null,
     },
   });
   return Promise.race([
@@ -107,12 +108,21 @@ async function runCheck(deps, opts = {}) {
   // 队列化: 每个 app 一个 detect-app task (带主进程侧超时, 防止 worker 挂死占满 pool)
   const stateApps =
     (typeof getState === "function" && getState() && getState().apps) || {};
+  // C5: 构造 appsLastChecked map, 让 worker 用作"最近 7d 已检测过"判定.
+  // silent=true (后台自动) 用增量模式; silent=false (用户手动) 全链刷新.
+  const appsLastChecked = {};
+  for (const [name, app] of Object.entries(stateApps)) {
+    if (app && typeof app.ts === "number") appsLastChecked[name] = app.ts;
+  }
+  const incrementalPayload = silent
+    ? { appsLastChecked, recentDays: 7 }
+    : null;
   const tasks = apps.map((appCfg) => {
     const history =
       appCfg && appCfg.name && stateApps[appCfg.name]
         ? stateApps[appCfg.name].changelog_history
         : undefined;
-    return enqueueDetectApp(pool, appCfg, history);
+    return enqueueDetectApp(pool, appCfg, history, incrementalPayload);
   });
   const settled = await Promise.allSettled(tasks);
   const results = settled.map((s, i) => {

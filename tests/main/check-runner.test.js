@@ -58,10 +58,10 @@ function makePool(results) {
   };
 }
 
-function makeDeps({ results, state = {}, notifCfg = {}, markNotified = () => {} } = {}) {
+function makeDeps({ results, state = {}, notifCfg = {}, markNotified = () => {}, poolOverride = null } = {}) {
   return {
     getConfig: () => ({ apps: results.map((r) => ({ name: r.name, detectors: [] })), notifications: notifCfg }),
-    pool: makePool(results),
+    pool: poolOverride || makePool(results),
     getWindow: () => null,           // 不推到 renderer
     onCheckComplete: () => {},
     getState: () => state,
@@ -193,5 +193,78 @@ describe('runCheck notification mute filter (Phase 27)', () => {
 
     expect(notificationInstances).toHaveLength(0);
     expect(markNotified).not.toHaveBeenCalled();
+  });
+});
+
+// ── C5: incremental payload 注入 ─────────────────────────
+
+describe('runCheck incremental payload (C5)', () => {
+  it('silent=true → enqueue payload 携带 incremental appsLastChecked (来自 state.apps.*.ts)', async () => {
+    const seen = [];
+    const pool = {
+      enqueue: (task) => {
+        if (task.type === 'detect-app') {
+          seen.push({ name: task.payload.appCfg.name, incremental: task.payload.incremental });
+        }
+        return Promise.resolve({ name: task.payload.appCfg.name, status: 'up_to_date', has_update: false });
+      },
+    };
+    const state = {
+      apps: {
+        Cursor: { ts: FAKE_NOW - 2 * FAKE_DAY },     // 2 天前, < 7d 阈值
+        Kimi: { ts: FAKE_NOW - 10 * FAKE_DAY },      // 10 天前, > 7d 阈值
+        Ghost: { ts: FAKE_NOW - 1 * FAKE_DAY },      // 1 天前
+      },
+    };
+    const results = [makeResult('Cursor'), makeResult('Kimi'), makeResult('Ghost')];
+    const deps = makeDeps({ results, state, poolOverride: pool });
+
+    await runCheck(deps, { silent: true });
+
+    expect(seen).toHaveLength(3);
+    // 每个 task 都有 incremental (silent=true 走增量模式)
+    for (const s of seen) {
+      expect(s.incremental).toBeTruthy();
+      expect(s.incremental.recentDays).toBe(7);
+    }
+    // appsLastChecked map 含 3 个 app 的 ts
+    expect(seen[0].incremental.appsLastChecked.Cursor).toBe(FAKE_NOW - 2 * FAKE_DAY);
+    expect(seen[0].incremental.appsLastChecked.Kimi).toBe(FAKE_NOW - 10 * FAKE_DAY);
+    expect(seen[0].incremental.appsLastChecked.Ghost).toBe(FAKE_NOW - 1 * FAKE_DAY);
+  });
+
+  it('silent=false (manual) → enqueue payload.incremental=null (走全链)', async () => {
+    const seen = [];
+    const pool = {
+      enqueue: (task) => {
+        if (task.type === 'detect-app') {
+          seen.push({ name: task.payload.appCfg.name, incremental: task.payload.incremental });
+        }
+        return Promise.resolve({ name: task.payload.appCfg.name, status: 'up_to_date', has_update: false });
+      },
+    };
+    const state = { apps: { Cursor: { ts: FAKE_NOW - 1000 } } };
+    const results = [makeResult('Cursor')];
+    const deps = makeDeps({ results, state, poolOverride: pool });
+
+    await runCheck(deps, { silent: false });
+
+    expect(seen[0].incremental).toBeNull();
+  });
+
+  it('state.apps 全空 → appsLastChecked 空对象, recentDays=7 仍在', async () => {
+    const seen = [];
+    const pool = {
+      enqueue: (task) => {
+        if (task.type === 'detect-app') seen.push(task.payload);
+        return Promise.resolve({ name: task.payload.appCfg.name, status: 'up_to_date', has_update: false });
+      },
+    };
+    const results = [makeResult('Cursor')];
+    const deps = makeDeps({ results, state: { apps: {} }, poolOverride: pool });
+
+    await runCheck(deps, { silent: true });
+
+    expect(seen[0].incremental).toEqual({ appsLastChecked: {}, recentDays: 7 });
   });
 });

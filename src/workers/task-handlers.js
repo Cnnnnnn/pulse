@@ -64,6 +64,7 @@ async function handleDetectApp(appCfg, deps) {
       bundle,
       brew_cask: require("./result-builder").extractBrewCask(appCfg),
       trace: [],
+      ts: startedAt,
       ms: Date.now() - startedAt,
     };
     sendProgress({ task: "detect-app", name, status: "not_installed" });
@@ -97,6 +98,7 @@ async function handleDetectApp(appCfg, deps) {
     platform: PLATFORM,
     http,
     logger,
+    incremental: deps.incremental || null,
   });
 
   if (chainResult.trace.length) {

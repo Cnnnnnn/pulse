@@ -104,6 +104,8 @@ function buildDetectResult({
     release_url: (result && result.release_url) || "",
     error_message: extractErrorMessage(trace, latest, versionUnknown),
     trace,
+    // I7: 写盘时间戳, 用于 tray 顶部摘要显示 "5m 前检测"
+    ts: startedAt,
     ms: Date.now() - startedAt,
   };
 }

@@ -14,6 +14,7 @@ const {
   recordFailure,
   createBreaker,
 } = require("../detectors/circuit-breaker");
+const { decideIncremental } = require("./detector-chain-incremental");
 
 const DETECTORS = {
   brew_formulae: require("../detectors/brew-formulae"),
@@ -97,13 +98,39 @@ function compareVersions(installed, latest) {
 }
 
 async function runDetectorChain(appCfg, deps) {
-  const { arch, http, logger, platform } = deps;
+  const { arch, http, logger, platform, incremental } = deps;
   const currentPlatform = platform || process.platform;
   const detectors = Array.isArray(appCfg.detectors) ? appCfg.detectors : [];
   const trace = [];
   let firstHit = null;
   const stored = await cbStorage.loadBreakers();
-  for (const detCfg of detectors) {
+
+  // C5: 增量模式决策 — app 名在 appCfg 上, ts 在 incremental.appsLastChecked[name]
+  let detectorLimit = detectors.length;
+  let isIncremental = false;
+  if (incremental && typeof incremental === "object") {
+    const name = (appCfg && appCfg.name) || "";
+    const appTs =
+      incremental.appsLastChecked && name
+        ? incremental.appsLastChecked[name]
+        : null;
+    const decision = decideIncremental({
+      detectors,
+      appTs,
+      recentDays: incremental.recentDays || 7,
+      now: Date.now(),
+    });
+    isIncremental = decision.useIncremental;
+    detectorLimit = decision.maxIndex;
+  }
+
+  for (let idx = 0; idx < detectors.length; idx++) {
+    const detCfg = detectors[idx];
+    if (idx >= detectorLimit) {
+      // C5: 增量模式跳过剩余 detector
+      trace.push({ det: detCfg.type, ms: 0, skipped: "incremental" });
+      continue;
+    }
     if (detCfg.platform && detCfg.platform !== currentPlatform) {
       trace.push({ det: detCfg.type, ms: 0, skipped: 'platform' });
       continue;
@@ -144,6 +171,14 @@ async function runDetectorChain(appCfg, deps) {
         version: result.version, confidence: result.confidence, note: result.note,
       });
       if (result.version && result.confidence !== "low") {
+        if (isIncremental) {
+          return {
+            result,
+            trace,
+            stoppedAt: detCfg.type,
+            incremental: { skippedCount: detectors.length - detectorLimit },
+          };
+        }
         return { result, trace, stoppedAt: detCfg.type };
       }
       if (!firstHit && result.version) firstHit = { result, trace };
@@ -153,7 +188,17 @@ async function runDetectorChain(appCfg, deps) {
       trace.push({ det: detCfg.type, ms, error, breakerState: next.state });
     }
   }
-  return { result: firstHit ? firstHit.result : null, trace, stoppedAt: null };
+  const out = {
+    result: firstHit ? firstHit.result : null,
+    trace,
+    stoppedAt: null,
+  };
+  if (isIncremental) {
+    out.incremental = {
+      skippedCount: detectors.length - detectorLimit,
+    };
+  }
+  return out;
 }
 
 module.exports = { makeDetector, runDetectorChain, compareVersions };
