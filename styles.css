@@ -4774,8 +4774,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 /* ─── I6: SideNav 未读角标 (ithome) ─── */
 .side-nav-badge {
   position: absolute;
-  top: 2px;
-  right: 18px;            /* 展开态: 锚定 icon 右上 (icon 在 button 左侧) */
+  top: 50%;
+  transform: translateY(-50%);
+  right: 14px;            /* 展开态: 与 title 垂直居中对齐 */
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
