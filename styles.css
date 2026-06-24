@@ -8929,6 +8929,26 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-secondary, #555);
   border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
 }
+
+.watchlist-keyword-form {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
+}
+
+.watchlist-keyword-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle, #e5e5e7);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.fund-row-action-btn--active {
+  color: var(--accent, #007aff);
+}
 .watchlist-drawer__body {
   flex: 1;
   overflow-y: auto;

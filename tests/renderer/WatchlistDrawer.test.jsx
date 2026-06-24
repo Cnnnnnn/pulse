@@ -62,8 +62,8 @@ describe("WatchlistDrawer", () => {
 
   it("打开时 refresh + 渲染列表", async () => {
     watchlistItems.value = [
-      { appName: "VSCode", addedAt: 1000, lastNotifiedVersion: "1.95.3" },
-      { appName: "Slack", addedAt: 2000, lastNotifiedVersion: null },
+      { type: "app", ref: "VSCode", addedAt: 1000, lastNotifiedVersion: "1.95.3" },
+      { type: "app", ref: "Slack", addedAt: 2000, lastNotifiedVersion: null },
     ];
     watchlistDrawerOpen.value = true;
     const { container } = render(<WatchlistDrawer />);
@@ -82,19 +82,22 @@ describe("WatchlistDrawer", () => {
     const { container } = render(<WatchlistDrawer />);
     const empty = container.querySelector(".watchlist-drawer__empty");
     expect(empty).not.toBeNull();
-    expect(empty.textContent).toContain("⭐ 加一个");
+    expect(empty.textContent).toContain("关键词");
   });
 
   it("点 去 pin 调 api.watchlistRemove", async () => {
     watchlistItems.value = [
-      { appName: "VSCode", addedAt: 1, lastNotifiedVersion: null },
+      { type: "app", ref: "VSCode", addedAt: 1, lastNotifiedVersion: null },
     ];
     watchlistDrawerOpen.value = true;
     const { container } = render(<WatchlistDrawer />);
     const removeBtn = container.querySelector(".watchlist-entry button");
     expect(removeBtn).not.toBeNull();
     fireEvent.click(removeBtn);
-    expect(mockApi.watchlistRemove).toHaveBeenCalledWith("VSCode");
+    expect(mockApi.watchlistRemove).toHaveBeenCalledWith({
+      type: "app",
+      ref: "VSCode",
+    });
   });
 
   it("浮层 click 关闭", () => {
@@ -117,9 +120,9 @@ describe("WatchlistDrawer", () => {
 
   it("stats 显示当前 count", () => {
     watchlistItems.value = [
-      { appName: "A", addedAt: 1, lastNotifiedVersion: null },
-      { appName: "B", addedAt: 2, lastNotifiedVersion: null },
-      { appName: "C", addedAt: 3, lastNotifiedVersion: null },
+      { type: "app", ref: "A", addedAt: 1, lastNotifiedVersion: null },
+      { type: "fund", ref: "000001", addedAt: 2, lastNotifiedNav: null },
+      { type: "keyword", ref: "AI", addedAt: 3, lastMatchKey: null },
     ];
     watchlistDrawerOpen.value = true;
     const { container } = render(<WatchlistDrawer />);
@@ -139,7 +142,7 @@ describe("Header btn-watchlist", () => {
 
   it("非空 list 显示 ★", () => {
     watchlistItems.value = [
-      { appName: "A", addedAt: 1, lastNotifiedVersion: null },
+      { type: "app", ref: "A", addedAt: 1, lastNotifiedVersion: null },
     ];
     const { container } = render(<Header onCheck={() => {}} />);
     const btn = container.querySelector("#btn-watchlist");

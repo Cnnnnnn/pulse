@@ -182,6 +182,13 @@ function startFundScheduler(deps) {
           saveAlertPrefs: (patch) => fundStore.setAlertPrefs(patch),
           log: mainLog,
         });
+        const { checkWatchlistFundUpdates, makeWatchlistSendNotification } =
+          require("../watchlist");
+        checkWatchlistFundUpdates({
+          navMap: (payload && payload.results) || {},
+          navSource: all.navSource,
+          sendNotification: makeWatchlistSendNotification(getConfig),
+        });
       } catch (err) {
         mainLog.warn(
           `[fund-scheduler] alert check failed: ${err && err.message}`,

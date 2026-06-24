@@ -551,18 +551,40 @@ function registerCoreHandlers(ctx) {
   safeHandle("watchlist:add", (_e, payload) => {
     try {
       const { loadWatchlist, saveWatchlist } = require("../state-store");
-      const appName = payload && payload.appName;
-      if (typeof appName !== "string" || appName.length === 0) {
-        return { ok: false, reason: "invalid_appName" };
+      const legacyName = payload && payload.appName;
+      const type =
+        payload && typeof payload.type === "string"
+          ? payload.type
+          : legacyName
+            ? "app"
+            : null;
+      const ref =
+        payload && typeof payload.ref === "string"
+          ? payload.ref.trim()
+          : typeof legacyName === "string"
+            ? legacyName
+            : "";
+      if (!type || !ref) {
+        return { ok: false, reason: "invalid_payload" };
+      }
+      if (!["app", "fund", "keyword"].includes(type)) {
+        return { ok: false, reason: "invalid_type" };
+      }
+      if (type === "fund" && !/^\d{6}$/.test(ref)) {
+        return { ok: false, reason: "invalid_fund_code" };
+      }
+      if (type === "keyword" && ref.length > 40) {
+        return { ok: false, reason: "keyword_too_long" };
       }
       const list = loadWatchlist();
-      if (list.some((w) => w.appName === appName)) {
-        return { ok: true, items: list }; // 幂等: 已 pin 不重复
+      if (list.some((w) => w.type === type && w.ref === ref)) {
+        return { ok: true, items: list };
       }
-      const next = [
-        ...list,
-        { appName, addedAt: Date.now(), lastNotifiedVersion: null },
-      ];
+      const entry = { type, ref, addedAt: Date.now() };
+      if (type === "app") entry.lastNotifiedVersion = null;
+      if (type === "fund") entry.lastNotifiedNav = null;
+      if (type === "keyword") entry.lastMatchKey = null;
+      const next = [...list, entry];
       saveWatchlist(next);
       return { ok: true, items: next };
     } catch (err) {
@@ -572,13 +594,27 @@ function registerCoreHandlers(ctx) {
 
   safeHandle("watchlist:remove", (_e, payload) => {
     try {
-      const { loadWatchlist, saveWatchlist } = require("../state-store");
-      const appName = payload && payload.appName;
-      if (typeof appName !== "string" || appName.length === 0) {
-        return { ok: false, reason: "invalid_appName" };
+      const { loadWatchlist, saveWatchlist, watchlistItemKey } =
+        require("../state-store");
+      const legacyName = payload && payload.appName;
+      const type =
+        payload && typeof payload.type === "string"
+          ? payload.type
+          : legacyName
+            ? "app"
+            : null;
+      const ref =
+        payload && typeof payload.ref === "string"
+          ? payload.ref
+          : typeof legacyName === "string"
+            ? legacyName
+            : "";
+      if (!type || !ref) {
+        return { ok: false, reason: "invalid_payload" };
       }
+      const key = `${type}:${ref}`;
       const list = loadWatchlist();
-      const next = list.filter((w) => w.appName !== appName);
+      const next = list.filter((w) => watchlistItemKey(w) !== key);
       saveWatchlist(next);
       return { ok: true, items: next };
     } catch (err) {

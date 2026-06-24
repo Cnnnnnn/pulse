@@ -2,13 +2,41 @@ const ithomeNewsStore = require("../ithome/news-store");
 const { summarizeArticle } = require("../ithome/article-ai");
 
 function registerIthomeHandlers(ctx) {
-  const { safeHandle } = ctx;
+  const { safeHandle, getConfig } = ctx;
+
+  function runKeywordWatchlistFromNews(news) {
+    try {
+      const articles =
+        news && news.articles && typeof news.articles === "object"
+          ? Object.values(news.articles)
+          : [];
+      const headlines = articles
+        .filter((a) => a && typeof a.title === "string")
+        .map((a) => ({ title: a.title }));
+      const {
+        checkWatchlistKeywordUpdates,
+        makeWatchlistSendNotification,
+      } = require("../watchlist");
+      checkWatchlistKeywordUpdates({
+        headlines,
+        sendNotification: makeWatchlistSendNotification(getConfig),
+      });
+    } catch {
+      /* noop */
+    }
+  }
 
   safeHandle("ithome:load-news", async () => ithomeNewsStore.loadAll());
 
   safeHandle("ithome:refresh-news", async (_evt, dateKey) => {
-    if (dateKey) return ithomeNewsStore.fetchDay(dateKey);
-    return ithomeNewsStore.refresh();
+    const out = dateKey
+      ? await ithomeNewsStore.fetchDay(dateKey)
+      : await ithomeNewsStore.refresh();
+    if (out && out.ok !== false) {
+      const all = await ithomeNewsStore.loadAll();
+      runKeywordWatchlistFromNews(all);
+    }
+    return out;
   });
 
   safeHandle("ithome:fetch-day", async (_evt, dateKey) =>

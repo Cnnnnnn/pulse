@@ -1,18 +1,16 @@
 /**
  * src/renderer/components/WatchlistDrawer.jsx
  *
- * 2026-06-23: Phase I2 v1 — 关注列表抽屉.
- *
- * 模式: 镜像 DiagnosticsDrawer 的 overlay + aside 模式.
- * 数据流: 打开时 refreshWatchlist() 拉主进程 state.json.watchlist,
- *        列表行显示 appName / 上次通知版本 / 添加时间, 每行 "去 pin" 按钮.
+ * I2 v2 — 关注列表: app / 基金 / 关键词
  */
-import { useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import {
   watchlistDrawerOpen,
   watchlistItems,
   refreshWatchlist,
-  removeWatchlist,
+  removeWatchlistItem,
+  addWatchlistItem,
+  itemKey,
 } from '../watchlist/watchlist-store.js';
 
 function fmtTs(ts) {
@@ -22,9 +20,42 @@ function fmtTs(ts) {
   return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+const TYPE_LABEL = {
+  app: { icon: '⭐', label: 'App' },
+  fund: { icon: '💰', label: '基金' },
+  keyword: { icon: '🔍', label: '关键词' },
+};
+
+function entryTitle(w) {
+  if (w.type === 'app') return w.ref;
+  if (w.type === 'fund') return w.ref;
+  return `「${w.ref}」`;
+}
+
+function entryMeta(w) {
+  if (w.type === 'app') {
+    return w.lastNotifiedVersion
+      ? `上次通知版本: ${w.lastNotifiedVersion}`
+      : '尚未通知';
+  }
+  if (w.type === 'fund') {
+    return w.lastNotifiedNav != null
+      ? `基准净值: ${Number(w.lastNotifiedNav).toFixed(4)}`
+      : '等待首次净值';
+  }
+  if (w.type === 'keyword') {
+    return w.lastMatchKey
+      ? `最近匹配: ${w.lastMatchKey}`
+      : '等待首次匹配';
+  }
+  return '';
+}
+
 export function WatchlistDrawer() {
   const open = watchlistDrawerOpen.value;
   const items = watchlistItems.value;
+  const [keyword, setKeyword] = useState('');
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -34,8 +65,15 @@ export function WatchlistDrawer() {
   if (!open) return null;
 
   function close() { watchlistDrawerOpen.value = false; }
-  function onRemove(appName) {
-    removeWatchlist(appName);
+
+  async function onAddKeyword(e) {
+    e.preventDefault();
+    const kw = keyword.trim();
+    if (!kw) return;
+    setAdding(true);
+    await addWatchlistItem({ type: 'keyword', ref: kw });
+    setKeyword('');
+    setAdding(false);
   }
 
   return (
@@ -51,36 +89,52 @@ export function WatchlistDrawer() {
           <button class="watchlist-drawer__close" onClick={close} aria-label="关闭">×</button>
         </header>
         <div class="watchlist-drawer__stats">
-          共 <b>{items.length}</b> 个 app
+          共 <b>{items.length}</b> 项
         </div>
+        <form class="watchlist-keyword-form" onSubmit={onAddKeyword}>
+          <input
+            type="text"
+            class="watchlist-keyword-input"
+            placeholder="添加关键词 (热搜/IT之家)"
+            value={keyword}
+            onInput={(e) => setKeyword(e.currentTarget.value)}
+            maxLength={40}
+          />
+          <button type="submit" class="btn btn-sm" disabled={adding || !keyword.trim()}>
+            添加
+          </button>
+        </form>
         <div class="watchlist-drawer__body">
           {items.length === 0 && (
             <div class="watchlist-drawer__empty">
-              还没有 pin 的 app,点列表项右侧的 ⭐ 加一个
+              Pin App (列表 ⭐)、基金 (基金行 ⭐)，或上方添加关键词
             </div>
           )}
-          {items.map((w) => (
-            <div key={w.appName} class="watchlist-entry">
-              <div class="watchlist-entry__main">
-                <span class="watchlist-entry__name">⭐ {w.appName}</span>
-                <div class="watchlist-entry__meta">
-                  {w.lastNotifiedVersion ? (
-                    <span>上次通知: {w.lastNotifiedVersion}</span>
-                  ) : (
-                    <span>尚未通知</span>
-                  )}
-                  {w.addedAt ? <span style="margin-left: 8px;">添加: {fmtTs(w.addedAt)}</span> : null}
+          {items.map((w) => {
+            const meta = TYPE_LABEL[w.type] || TYPE_LABEL.app;
+            return (
+              <div key={itemKey(w)} class="watchlist-entry">
+                <div class="watchlist-entry__main">
+                  <span class="watchlist-entry__name">
+                    {meta.icon} {meta.label} · {entryTitle(w)}
+                  </span>
+                  <div class="watchlist-entry__meta">
+                    <span>{entryMeta(w)}</span>
+                    {w.addedAt ? (
+                      <span style="margin-left: 8px;">添加: {fmtTs(w.addedAt)}</span>
+                    ) : null}
+                  </div>
                 </div>
+                <button
+                  class="btn btn-sm"
+                  onClick={() => removeWatchlistItem({ type: w.type, ref: w.ref })}
+                  aria-label={`去 pin ${w.ref}`}
+                >
+                  去 pin
+                </button>
               </div>
-              <button
-                class="btn btn-sm"
-                onClick={() => onRemove(w.appName)}
-                aria-label={`去 pin ${w.appName}`}
-              >
-                去 pin
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </aside>
     </>

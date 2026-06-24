@@ -16,8 +16,25 @@ const UPDATED_CHANNEL = "wechat-hot:updated";
 const TIMEOUT_MS = 10000;
 
 function registerWechatHotHandlers(ctx) {
-  const { safeHandle, sendToRenderer } = ctx;
+  const { safeHandle, sendToRenderer, getConfig } = ctx;
   if (typeof safeHandle !== "function") return;
+
+  function runKeywordWatchlist(items) {
+    try {
+      const {
+        checkWatchlistKeywordUpdates,
+        makeWatchlistSendNotification,
+      } = require("../watchlist");
+      checkWatchlistKeywordUpdates({
+        headlines: items || [],
+        sendNotification: makeWatchlistSendNotification(getConfig),
+      });
+    } catch (err) {
+      mainLog.warn(
+        `[wechat-hot] watchlist keyword check failed: ${err && err.message}`,
+      );
+    }
+  }
 
   // 单例 HttpClient — 单次 GET 拉取, 跟 metal-ipc.js 同模式
   const httpClient = new HttpClient({ timeout: TIMEOUT_MS, maxRetries: 0 });
@@ -27,6 +44,7 @@ function registerWechatHotHandlers(ctx) {
       if (typeof sendToRenderer === "function") {
         try { sendToRenderer(UPDATED_CHANNEL, payload); } catch { /* noop */ }
       }
+      runKeywordWatchlist(payload && payload.items);
     },
   });
 

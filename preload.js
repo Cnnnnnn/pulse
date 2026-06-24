@@ -117,9 +117,16 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("detect-results:export", opts),
   // I2 v1: watchlist (pinned apps)
   watchlistList: () => ipcRenderer.invoke("watchlist:list"),
-  watchlistAdd: (appName) => ipcRenderer.invoke("watchlist:add", { appName }),
-  watchlistRemove: (appName) =>
-    ipcRenderer.invoke("watchlist:remove", { appName }),
+  watchlistAdd: (payload) =>
+    ipcRenderer.invoke(
+      "watchlist:add",
+      typeof payload === "string" ? { appName: payload } : payload,
+    ),
+  watchlistRemove: (payload) =>
+    ipcRenderer.invoke(
+      "watchlist:remove",
+      typeof payload === "string" ? { appName: payload } : payload,
+    ),
   // ON: release notes onboarding (nested form, 跟 spec §3.4 一致)
   releaseNotes: {
     getCurrent: () => ipcRenderer.invoke("release-notes:get-current"),

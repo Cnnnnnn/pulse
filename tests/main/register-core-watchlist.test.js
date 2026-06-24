@@ -30,12 +30,25 @@ let saveShouldThrow = false;
 const stateStoreStub = {
   loadWatchlist: () => {
     if (loadShouldThrow) throw new Error("disk full");
-    return [...mockWatchlist];
+    return mockWatchlist.map((w) => {
+      if (w && w.type) return w;
+      if (w && w.appName) {
+        return {
+          type: "app",
+          ref: w.appName,
+          addedAt: w.addedAt || 0,
+          lastNotifiedVersion: w.lastNotifiedVersion ?? null,
+        };
+      }
+      return w;
+    });
   },
   saveWatchlist: (list) => {
     if (saveShouldThrow) throw new Error("disk full");
     mockWatchlist = list;
   },
+  watchlistItemKey: (item) =>
+    `${item && item.type ? item.type : "app"}:${item && (item.ref || item.appName) ? item.ref || item.appName : ""}`,
   // 其余 stub 调用 — register-core 其它 handler 不需要, 但 import 时会拿
   load: () => ({}),
   saveAll: () => ({}),
@@ -73,13 +86,13 @@ beforeEach(() => {
 
 describe("watchlist IPC handlers", () => {
   it("watchlist:list — returns current list", () => {
-    mockWatchlist = [{ appName: "VSCode", addedAt: 1, lastNotifiedVersion: null }];
+    mockWatchlist = [{ type: "app", ref: "VSCode", addedAt: 1, lastNotifiedVersion: null }];
     freshRegister();
     const h = handlers.get("watchlist:list");
     expect(h).toBeDefined();
     const r = h({});
     expect(r).toMatchObject({ ok: true });
-    expect(r.items).toEqual([{ appName: "VSCode", addedAt: 1, lastNotifiedVersion: null }]);
+    expect(r.items[0].ref).toBe("VSCode");
   });
 
   it("watchlist:list — 空 → []", () => {
@@ -93,9 +106,25 @@ describe("watchlist IPC handlers", () => {
     const r = h({}, { appName: "Slack" });
     expect(r).toMatchObject({ ok: true });
     expect(r.items).toHaveLength(1);
-    expect(r.items[0].appName).toBe("Slack");
+    expect(r.items[0].type).toBe("app");
+    expect(r.items[0].ref).toBe("Slack");
     expect(r.items[0].addedAt).toBeGreaterThan(0);
     expect(r.items[0].lastNotifiedVersion).toBeNull();
+  });
+
+  it("watchlist:add — fund code", () => {
+    const h = handlers.get("watchlist:add");
+    const r = h({}, { type: "fund", ref: "000001" });
+    expect(r.ok).toBe(true);
+    expect(r.items[0].type).toBe("fund");
+    expect(r.items[0].lastNotifiedNav).toBeNull();
+  });
+
+  it("watchlist:add — keyword", () => {
+    const h = handlers.get("watchlist:add");
+    const r = h({}, { type: "keyword", ref: "苹果" });
+    expect(r.ok).toBe(true);
+    expect(r.items[0].type).toBe("keyword");
   });
 
   it("watchlist:add — 幂等 (同名 add 不重复)", () => {
@@ -106,36 +135,37 @@ describe("watchlist IPC handlers", () => {
     expect(r2.items).toHaveLength(1);
   });
 
-  it("watchlist:add — 空字符串 → ok:false invalid_appName", () => {
+  it("watchlist:add — 空字符串 → ok:false invalid_payload", () => {
     const h = handlers.get("watchlist:add");
-    expect(h({}, { appName: "" })).toEqual({ ok: false, reason: "invalid_appName" });
+    expect(h({}, { appName: "" })).toEqual({ ok: false, reason: "invalid_payload" });
   });
 
-  it("watchlist:add — null payload → ok:false invalid_appName", () => {
+  it("watchlist:add — null payload → ok:false invalid_payload", () => {
     const h = handlers.get("watchlist:add");
-    expect(h({}, null)).toEqual({ ok: false, reason: "invalid_appName" });
+    expect(h({}, null)).toEqual({ ok: false, reason: "invalid_payload" });
   });
 
   it("watchlist:add — 非字符串 appName → ok:false", () => {
     const h = handlers.get("watchlist:add");
-    expect(h({}, { appName: 42 })).toEqual({ ok: false, reason: "invalid_appName" });
+    expect(h({}, { appName: 42 })).toEqual({ ok: false, reason: "invalid_payload" });
   });
 
   it("watchlist:remove — 过滤目标", () => {
     mockWatchlist = [
-      { appName: "VSCode", addedAt: 1, lastNotifiedVersion: null },
-      { appName: "Slack", addedAt: 2, lastNotifiedVersion: null },
+      { type: "app", ref: "VSCode", addedAt: 1, lastNotifiedVersion: null },
+      { type: "app", ref: "Slack", addedAt: 2, lastNotifiedVersion: null },
     ];
     freshRegister();
     const h = handlers.get("watchlist:remove");
     const r = h({}, { appName: "VSCode" });
     expect(r.ok).toBe(true);
-    expect(r.items).toEqual([{ appName: "Slack", addedAt: 2, lastNotifiedVersion: null }]);
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0].ref).toBe("Slack");
   });
 
-  it("watchlist:remove — 非法 appName → ok:false", () => {
+  it("watchlist:remove — 非法 payload → ok:false", () => {
     const h = handlers.get("watchlist:remove");
-    expect(h({}, { appName: 42 })).toEqual({ ok: false, reason: "invalid_appName" });
+    expect(h({}, { appName: 42 })).toEqual({ ok: false, reason: "invalid_payload" });
   });
 
   it("watchlist:remove — 不存在 → ok:true, items 空", () => {

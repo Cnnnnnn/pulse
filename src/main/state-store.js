@@ -1686,20 +1686,76 @@ function saveStartupSamples(samples, statePath = defaultPath()) {
 
 /**
  * I2 v1: load watchlist (pinned apps).
- * Old state.json without watchlist field → []. 兼容老数据.
- * 容错: 抹掉缺 appName 的脏条目.
- * @returns {Array<{appName: string, addedAt: number, lastNotifiedVersion: string|null}>}
+ * I2 v2: 支持 type=app|fund|keyword, ref 为统一主键.
+ * Old state.json without watchlist field → []. 兼容老数据 (appName → type:app).
+ * @returns {Array<object>}
  */
+function normalizeWatchlistItem(w) {
+  if (!w || typeof w !== "object") return null;
+  const addedAt = typeof w.addedAt === "number" ? w.addedAt : 0;
+  if (typeof w.appName === "string" && w.appName.length > 0) {
+    return {
+      type: "app",
+      ref: w.appName,
+      addedAt,
+      lastNotifiedVersion:
+        typeof w.lastNotifiedVersion === "string"
+          ? w.lastNotifiedVersion
+          : null,
+    };
+  }
+  const type = w.type;
+  const ref = w.ref;
+  if (typeof type !== "string" || typeof ref !== "string" || ref.length === 0) {
+    return null;
+  }
+  if (type === "app") {
+    return {
+      type: "app",
+      ref,
+      addedAt,
+      lastNotifiedVersion:
+        typeof w.lastNotifiedVersion === "string"
+          ? w.lastNotifiedVersion
+          : null,
+    };
+  }
+  if (type === "fund") {
+    const nav =
+      w.lastNotifiedNav == null ? null : Number(w.lastNotifiedNav);
+    return {
+      type: "fund",
+      ref,
+      addedAt,
+      lastNotifiedNav: Number.isFinite(nav) ? nav : null,
+    };
+  }
+  if (type === "keyword") {
+    return {
+      type: "keyword",
+      ref,
+      addedAt,
+      lastMatchKey:
+        typeof w.lastMatchKey === "string" ? w.lastMatchKey : null,
+    };
+  }
+  return null;
+}
+
+function watchlistItemKey(item) {
+  if (!item) return "";
+  const type = item.type || "app";
+  const ref = item.ref || item.appName || "";
+  return `${type}:${ref}`;
+}
+
 function loadWatchlist(statePath = defaultPath()) {
   try {
     const s = load(statePath);
     const wl = s && Array.isArray(s.watchlist) ? s.watchlist : [];
-    return wl.filter((w) => w && typeof w.appName === "string").map((w) => ({
-      appName: w.appName,
-      addedAt: typeof w.addedAt === "number" ? w.addedAt : 0,
-      lastNotifiedVersion:
-        typeof w.lastNotifiedVersion === "string" ? w.lastNotifiedVersion : null,
-    }));
+    return wl
+      .map(normalizeWatchlistItem)
+      .filter(Boolean);
   } catch {
     return [];
   }
@@ -1707,12 +1763,14 @@ function loadWatchlist(statePath = defaultPath()) {
 
 /**
  * I2 v1: save watchlist, 自动保留 PRESERVE_FIELDS.
- * @param {Array<{appName: string, addedAt?: number, lastNotifiedVersion?: string|null}>} list
+ * @param {Array<object>} list
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
 function saveWatchlist(list, statePath = defaultPath()) {
-  const safe = Array.isArray(list) ? list : [];
+  const safe = (Array.isArray(list) ? list : [])
+    .map(normalizeWatchlistItem)
+    .filter(Boolean);
   return patchState((next) => {
     next.watchlist = safe;
   }, statePath);
@@ -1802,6 +1860,8 @@ module.exports = {
   // I2 v1: watchlist
   loadWatchlist,
   saveWatchlist,
+  normalizeWatchlistItem,
+  watchlistItemKey,
   // ON: release notes onboarding — 用户最近一次看完 release notes 的版本
   getLastSeenRelease,
   setLastSeenRelease,

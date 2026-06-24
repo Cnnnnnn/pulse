@@ -40,6 +40,7 @@ import {
   watchlistItems,
   addWatchlist,
   removeWatchlist,
+  isAppPinned,
 } from '../watchlist/watchlist-store.js';
 
 export function AppRow({ name }) {
@@ -137,7 +138,7 @@ export function AppRow({ name }) {
   const muted = isMuted(name);
   const lastOpenedEntry = lastOpenedApps.value.get(name);
   // I2 v1: pinned state
-  const pinned = watchlistItems.value.some(w => w.appName === result.name);
+  const pinned = isAppPinned(result.name);
   const togglePin = (e) => {
     e.stopPropagation();
     if (pinned) removeWatchlist(result.name);

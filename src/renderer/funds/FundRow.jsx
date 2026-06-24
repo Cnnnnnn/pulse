@@ -8,6 +8,7 @@
 
 import { useState } from 'preact/hooks';
 import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund } from './fundStore.js';
+import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.js';
 import { api } from '../api.js';
 import { taggedLog } from '../log.js';
 
@@ -54,6 +55,12 @@ export function FundRow({ row }) {
   const sourceShort = source === 'sina' ? '新浪' : '天天';
   const sourceUnavailable =
     source === 'sina' && rawNavSnap && rawNavSnap.altAvailable === false;
+  const pinned = isFundPinned(holding.code);
+  const togglePin = (e) => {
+    e.stopPropagation();
+    if (pinned) removeWatchlistItem({ type: 'fund', ref: holding.code });
+    else addWatchlistItem({ type: 'fund', ref: holding.code });
+  };
 
   async function handleBackfill() {
     if (!holding.code) return;
@@ -80,6 +87,14 @@ export function FundRow({ row }) {
               {cat.label}
             </span>
             <span class="fund-row-actions">
+              <button
+                type="button"
+                class={`fund-row-action-btn${pinned ? ' fund-row-action-btn--active' : ''}`}
+                title={pinned ? '取消关注' : '关注净值'}
+                onClick={togglePin}
+              >
+                {pinned ? '★' : '☆'}
+              </button>
               <button
                 type="button"
                 class="fund-row-action-btn"
