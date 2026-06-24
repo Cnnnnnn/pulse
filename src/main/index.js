@@ -385,6 +385,7 @@ async function bootstrap() {
     aiUsageScheduler = createAiUsageRefreshScheduler({
       trayMgr,
       getConfig: () => runtimeConfigRef.current,
+      sendToRenderer: require("./bootstrap/send-to-renderer").sendToRenderer,
       deps: {
         stateStore: {
           loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,

@@ -123,7 +123,10 @@ export function createApi(overrides = {}) {
     // v2.13 AI 用量 (Minimax coding plan)
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),
     aiUsageFetch: pick(overrides, "aiUsageFetch"),
+    aiUsageAlertPrefsGet: pick(overrides, "aiUsageAlertPrefsGet"),
+    aiUsageAlertPrefsSet: pick(overrides, "aiUsageAlertPrefsSet"),
     onAiUsageUpdated: pick(overrides, "onAiUsageUpdated"),
+    onSidenavBadge: pick(overrides, "onSidenavBadge"),
     // Phase Q8: state.json corruption self-recovery banner
     onStateRecovered: pick(overrides, "onStateRecovered"),
     // Phase I5: daily digest

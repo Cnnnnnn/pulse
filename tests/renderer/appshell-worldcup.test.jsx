@@ -33,8 +33,8 @@ describe('AppShell worldcup nav', () => {
   it('shows worldcup header when worldcup nav is active', async () => {
     activeNav.value = 'worldcup';
     const { getByText } = render(<AppShell onCheck={() => {}} />);
-    expect(getByText('世界杯 2026')).toBeTruthy();
     await waitFor(() => {
+      expect(getByText('世界杯 2026')).toBeTruthy();
       expect(document.querySelector('.match-card')).toBeTruthy();
     });
   });

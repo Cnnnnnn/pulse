@@ -5,19 +5,39 @@
  */
 "use strict";
 
-const { detectUsageAnomaly } = require("../ai-usage/anomaly-detect");
+const {
+  detectUsageAnomaly,
+  DEFAULT_ABS_MIN_PCT,
+  DEFAULT_SPIKE_RATIO,
+  DEFAULT_RE_ALERT_STEP_PCT,
+} = require("../ai-usage/anomaly-detect");
 const { todayKey } = require("../ai-usage/history-series");
 const stateStore = require("./state-store");
 
 const DEFAULT_ALERT_PREFS = {
   enabled: true,
+  absMinPct: DEFAULT_ABS_MIN_PCT,
+  spikeRatio: DEFAULT_SPIKE_RATIO,
+  reAlertStepPct: DEFAULT_RE_ALERT_STEP_PCT,
   lastNotified: {},
 };
 
 function normalizeAlertPrefs(raw) {
-  const out = { enabled: true, lastNotified: {} };
+  const out = {
+    enabled: true,
+    absMinPct: DEFAULT_ALERT_PREFS.absMinPct,
+    spikeRatio: DEFAULT_ALERT_PREFS.spikeRatio,
+    reAlertStepPct: DEFAULT_ALERT_PREFS.reAlertStepPct,
+    lastNotified: {},
+  };
   if (!raw || typeof raw !== "object") return out;
   if (raw.enabled === false) out.enabled = false;
+  const abs = Number(raw.absMinPct);
+  const ratio = Number(raw.spikeRatio);
+  const step = Number(raw.reAlertStepPct);
+  if (Number.isFinite(abs) && abs > 0) out.absMinPct = abs;
+  if (Number.isFinite(ratio) && ratio > 0) out.spikeRatio = ratio;
+  if (Number.isFinite(step) && step > 0) out.reAlertStepPct = step;
   if (raw.lastNotified && typeof raw.lastNotified === "object") {
     for (const [pid, v] of Object.entries(raw.lastNotified)) {
       if (!v || typeof v !== "object") continue;
@@ -28,6 +48,16 @@ function normalizeAlertPrefs(raw) {
     }
   }
   return out;
+}
+
+function detectOptsFromPrefs(prefs, lastNotifiedPercent) {
+  return {
+    enabled: prefs.enabled,
+    absMinPct: prefs.absMinPct,
+    spikeRatio: prefs.spikeRatio,
+    reAlertStepPct: prefs.reAlertStepPct,
+    lastNotifiedPercent,
+  };
 }
 
 function topTasksByMsgCount(tasks, limit = 3) {
@@ -59,7 +89,10 @@ function checkAiUsageAlertsPure({ providerId, historyDays, alertPrefs }) {
   const lastNotifiedPercent =
     prev && prev.date === todayKey() ? prev.percent : undefined;
 
-  const det = detectUsageAnomaly(historyDays, { lastNotifiedPercent });
+  const det = detectUsageAnomaly(
+    historyDays,
+    detectOptsFromPrefs(prefs, lastNotifiedPercent),
+  );
   if (!det.anomaly) {
     return { ...empty, checked: 1 };
   }

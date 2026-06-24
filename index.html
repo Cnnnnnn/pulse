@@ -22,7 +22,7 @@
     </div>
   </div>
 
-  <!-- esbuild 产物: src/renderer/index.jsx → renderer-dist/renderer.bundle.js -->
-  <script src="renderer-dist/renderer.bundle.js"></script>
+  <!-- esbuild 产物: src/renderer/index.jsx → renderer-dist/index.js (+ lazy chunks) -->
+  <script type="module" src="renderer-dist/index.js"></script>
 </body>
 </html>

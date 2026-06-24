@@ -7,7 +7,7 @@
 // @vitest-environment happy-dom
 
 import { describe, test, expect, beforeEach, vi } from "vitest";
-import { render, cleanup } from "@testing-library/preact";
+import { render, cleanup, waitFor } from "@testing-library/preact";
 
 let mockActiveNav = "versions";
 
@@ -62,10 +62,10 @@ describe("AppShell 路由", () => {
     expect(queryByTestId("ai-usage")).toBe(null);
   });
 
-  test("activeNav='ai-usage' → AIUsageLayout", () => {
+  test("activeNav='ai-usage' → AIUsageLayout", async () => {
     mockActiveNav = "ai-usage";
     const { getByTestId, queryByTestId } = render(<AppShell />);
-    expect(getByTestId("ai-usage")).toBeTruthy();
+    await waitFor(() => expect(getByTestId("ai-usage")).toBeTruthy());
     expect(queryByTestId("versions")).toBe(null);
   });
 });

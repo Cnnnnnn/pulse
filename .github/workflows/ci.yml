@@ -72,5 +72,6 @@ jobs:
 
       - name: Verify bundle produced
         run: |
-          test -f renderer-dist/renderer.bundle.js
-          echo "bundle size: $(du -h renderer-dist/renderer.bundle.js | cut -f1)"
+          test -f renderer-dist/index.js
+          echo "entry size: $(du -h renderer-dist/index.js | cut -f1)"
+          echo "chunks: $(ls renderer-dist/chunk-*.js 2>/dev/null | wc -l | tr -d ' ')"

@@ -14,6 +14,8 @@
 import { effect, signal } from "@preact/signals";
 import { trackFundView, trackIthomeView } from "../recent/track.js";
 import { trayMenuPrefs } from "../trayConfigStore.js";
+import { clearFundNavBadge } from "../funds/fundStore.js";
+import { clearAiUsageNavBadge } from "../store/ai-usage-store.js";
 
 // activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'ai-usage' | 'versions', 默认 'versions'
 export const activeNav = signal("versions");
@@ -50,10 +52,13 @@ export const NAV_KEYS_LIST = [
  * @returns {string[]}
  */
 export function effectiveVisibleItems(prefs) {
-  const order = (prefs && Array.isArray(prefs.order) && prefs.order.length > 0)
-    ? prefs.order.filter((k) => NAV_KEYS.has(k))
-    : NAV_KEYS_LIST.slice();
-  const hidden = new Set((prefs && Array.isArray(prefs.hidden)) ? prefs.hidden : []);
+  const order =
+    prefs && Array.isArray(prefs.order) && prefs.order.length > 0
+      ? prefs.order.filter((k) => NAV_KEYS.has(k))
+      : NAV_KEYS_LIST.slice();
+  const hidden = new Set(
+    prefs && Array.isArray(prefs.hidden) ? prefs.hidden : [],
+  );
   const out = [];
   for (const k of order) {
     if (!hidden.has(k)) out.push(k);
@@ -113,6 +118,10 @@ export function setActiveNav(key) {
   activeNav.value = key;
   if (key === "funds" && prev !== "funds") {
     trackFundView();
+    clearFundNavBadge();
+  }
+  if (key === "ai-usage" && prev !== "ai-usage") {
+    clearAiUsageNavBadge();
   }
   if (key === "ithome" && prev !== "ithome") {
     trackIthomeView();

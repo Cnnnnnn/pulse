@@ -8,9 +8,10 @@
  * snapshot 不直接落 renderer 盘 — main 进程 state.json 才是 source of truth, renderer 只持有 "当前显示用" 副本.
  */
 
-import { signal } from "@preact/signals";
+import { signal, computed } from "@preact/signals";
 import { api } from "../api.js";
 import { taggedLog } from "../log.js";
+import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
 
 const log = taggedLog("[store/ai-usage]");
 
@@ -43,6 +44,92 @@ export const aiUsageFromCache = signal(emptySlots(true));
 /** 当前选中的 provider tab. */
 export const aiUsageActiveProvider = signal("minimax");
 
+/** A4 v2: 异常检测偏好 */
+export const aiUsageAlertPrefs = signal({
+  enabled: true,
+  absMinPct: 55,
+  spikeRatio: 1.5,
+  reAlertStepPct: 5,
+  lastNotified: {},
+});
+
+export const aiUsageAlertModalOpen = signal(false);
+
+/** I6 v3: 用量异常未读角标 (进入 ai-usage 后清零) */
+export const aiUsageNavBadge = signal(0);
+
+let _badgeDismissed = false;
+
+function recomputeAiUsageNavBadge() {
+  if (_badgeDismissed) return;
+  const prefs = aiUsageAlertPrefs.value;
+  if (!prefs || prefs.enabled === false) {
+    aiUsageNavBadge.value = 0;
+    return;
+  }
+  let count = 0;
+  for (const pid of AI_USAGE_PROVIDERS) {
+    const hist = aiUsageHistory.value[pid];
+    const days = hist && Array.isArray(hist.days) ? hist.days : [];
+    const det = detectUsageAnomaly(days, {
+      enabled: prefs.enabled,
+      absMinPct: prefs.absMinPct,
+      spikeRatio: prefs.spikeRatio,
+      reAlertStepPct: prefs.reAlertStepPct,
+    });
+    if (det.anomaly) count++;
+  }
+  aiUsageNavBadge.value = count;
+}
+
+export function clearAiUsageNavBadge() {
+  _badgeDismissed = true;
+  aiUsageNavBadge.value = 0;
+}
+
+export function bumpAiUsageNavBadge(count = 1) {
+  _badgeDismissed = false;
+  const n = Math.max(1, Number(count) || 1);
+  aiUsageNavBadge.value += n;
+}
+
+export function openAiUsageAlertModal() {
+  aiUsageAlertModalOpen.value = true;
+}
+
+export function closeAiUsageAlertModal() {
+  aiUsageAlertModalOpen.value = false;
+}
+
+export async function loadAiUsageAlertPrefs() {
+  if (!api.aiUsageAlertPrefsGet) return;
+  try {
+    const r = await api.aiUsageAlertPrefsGet();
+    if (r && r.ok && r.prefs) {
+      aiUsageAlertPrefs.value = r.prefs;
+      recomputeAiUsageNavBadge();
+    }
+  } catch (err) {
+    log.warn("loadAiUsageAlertPrefs failed:", err && err.message);
+  }
+}
+
+export async function saveAiUsageAlertPrefs(patch) {
+  if (!api.aiUsageAlertPrefsSet) return { ok: false };
+  try {
+    const r = await api.aiUsageAlertPrefsSet(patch);
+    if (r && r.ok && r.prefs) {
+      aiUsageAlertPrefs.value = r.prefs;
+      _badgeDismissed = false;
+      recomputeAiUsageNavBadge();
+    }
+    return r;
+  } catch (err) {
+    log.warn("saveAiUsageAlertPrefs failed:", err && err.message);
+    return { ok: false };
+  }
+}
+
 let _subscribed = false;
 
 /** 测试 hook: 重置 subscribe-once guard. 生产不调用. */
@@ -63,12 +150,16 @@ export function applyAiUsageEvent(data) {
     ...aiUsagePrevSnapshot.value,
     [pid]: aiUsageSnapshot.value[pid],
   };
-  aiUsageSnapshot.value = { ...aiUsageSnapshot.value, [pid]: data.snapshot || null };
+  aiUsageSnapshot.value = {
+    ...aiUsageSnapshot.value,
+    [pid]: data.snapshot || null,
+  };
   aiUsageFromCache.value = { ...aiUsageFromCache.value, [pid]: false };
   aiUsageLastError.value = { ...aiUsageLastError.value, [pid]: null };
   if (data.history && Array.isArray(data.history.days)) {
     aiUsageHistory.value = { ...aiUsageHistory.value, [pid]: data.history };
   }
+  recomputeAiUsageNavBadge();
 }
 
 /**
@@ -79,6 +170,13 @@ export function subscribeAiUsageUpdates() {
   _subscribed = true;
   if (api && typeof api.onAiUsageUpdated === "function") {
     api.onAiUsageUpdated(applyAiUsageEvent);
+  }
+  if (api && typeof api.onSidenavBadge === "function") {
+    api.onSidenavBadge((payload) => {
+      if (payload && payload.key === "ai-usage") {
+        bumpAiUsageNavBadge(payload.count || 1);
+      }
+    });
   }
 }
 
@@ -110,6 +208,8 @@ export async function loadAiUsageCached() {
       }
       aiUsageHistory.value = nextHist;
     }
+    await loadAiUsageAlertPrefs();
+    recomputeAiUsageNavBadge();
   } catch (err) {
     log.warn("loadAiUsageCached threw:", err && err.message);
   }
@@ -140,7 +240,10 @@ export async function fetchAiUsage(opts = {}) {
     return r || { ok: false, reason: "no_response" };
   } catch (err) {
     const out = { ok: false, reason: "threw", error: err && err.message };
-    aiUsageLastError.value = { ...aiUsageLastError.value, [provider]: out.reason };
+    aiUsageLastError.value = {
+      ...aiUsageLastError.value,
+      [provider]: out.reason,
+    };
     return out;
   } finally {
     aiUsageFetching.value = { ...aiUsageFetching.value, [provider]: false };

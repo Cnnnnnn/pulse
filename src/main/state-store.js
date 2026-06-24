@@ -924,34 +924,48 @@ function saveUpgradeAdviceEntry(entry, statePath = defaultPath()) {
 
 function loadAiUsageAlertPrefs(statePath = defaultPath()) {
   const s = load(statePath);
-  const raw = s && s.ai_usage_alert_prefs;
-  if (!raw || typeof raw !== "object") {
-    return { enabled: true, lastNotified: {} };
-  }
-  return {
-    enabled: raw.enabled !== false,
-    lastNotified:
-      raw.lastNotified && typeof raw.lastNotified === "object"
-        ? { ...raw.lastNotified }
-        : {},
-  };
+  return normalizeAiUsageAlertPrefs(s && s.ai_usage_alert_prefs);
 }
 
 function saveAiUsageAlertPrefs(patch, statePath = defaultPath()) {
   return patchState((next, existing) => {
-    const raw = existing.ai_usage_alert_prefs;
-    const cur = {
-      enabled: !raw || raw.enabled !== false,
-      lastNotified:
-        raw && raw.lastNotified && typeof raw.lastNotified === "object"
-          ? { ...raw.lastNotified }
-          : {},
-    };
-    next.ai_usage_alert_prefs = {
-      enabled: patch.enabled !== undefined ? !!patch.enabled : cur.enabled,
-      lastNotified: { ...cur.lastNotified, ...(patch.lastNotified || {}) },
-    };
+    const cur = normalizeAiUsageAlertPrefs(existing.ai_usage_alert_prefs);
+    next.ai_usage_alert_prefs = normalizeAiUsageAlertPrefs({
+      ...cur,
+      ...patch,
+      lastNotified: {
+        ...cur.lastNotified,
+        ...(patch.lastNotified || {}),
+      },
+    });
   }, statePath);
+}
+
+function normalizeAiUsageAlertPrefs(raw) {
+  const {
+    DEFAULT_ABS_MIN_PCT,
+    DEFAULT_SPIKE_RATIO,
+    DEFAULT_RE_ALERT_STEP_PCT,
+  } = require("../ai-usage/anomaly-detect");
+  const out = {
+    enabled: true,
+    absMinPct: DEFAULT_ABS_MIN_PCT,
+    spikeRatio: DEFAULT_SPIKE_RATIO,
+    reAlertStepPct: DEFAULT_RE_ALERT_STEP_PCT,
+    lastNotified: {},
+  };
+  if (!raw || typeof raw !== "object") return out;
+  if (raw.enabled === false) out.enabled = false;
+  const abs = Number(raw.absMinPct);
+  const ratio = Number(raw.spikeRatio);
+  const step = Number(raw.reAlertStepPct);
+  if (Number.isFinite(abs) && abs > 0) out.absMinPct = abs;
+  if (Number.isFinite(ratio) && ratio > 0) out.spikeRatio = ratio;
+  if (Number.isFinite(step) && step > 0) out.reAlertStepPct = step;
+  if (raw.lastNotified && typeof raw.lastNotified === "object") {
+    out.lastNotified = { ...raw.lastNotified };
+  }
+  return out;
 }
 
 // ─── A1: changelog 摘要缓存 (复用 A2 30 天 GC) ───────────────

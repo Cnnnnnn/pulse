@@ -28,6 +28,8 @@ import {
 import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
 import { ithomeUnreadBadge } from '../ithome/store.js';
 import { wechatHotUnreadBadge } from '../wechat-hot/store.js';
+import { fundUnreadBadge } from '../funds/fundStore.js';
+import { aiUsageNavBadge } from '../store/ai-usage-store.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
 import { trayMenuPrefs } from '../trayConfigStore.js';
 import {
@@ -74,9 +76,13 @@ export function SideNav() {
   // I6: 未读角标 — 显式订阅确保 UI 刷新 (ithome + wechat-hot)
   void ithomeUnreadBadge.value;
   void wechatHotUnreadBadge.value;
+  void fundUnreadBadge.value;
+  void aiUsageNavBadge.value;
   const navBadges = {
     ithome: ithomeUnreadBadge.value,
     'wechat-hot': wechatHotUnreadBadge.value,
+    funds: fundUnreadBadge.value,
+    'ai-usage': aiUsageNavBadge.value,
   };
 
   // Phase I3: nav 重排 + 隐藏 (localStorage 持久化)

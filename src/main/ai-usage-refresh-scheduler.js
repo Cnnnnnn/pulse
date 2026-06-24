@@ -22,6 +22,8 @@ function createAiUsageRefreshScheduler(opts = {}) {
   const getConfig =
     typeof opts.getConfig === "function" ? opts.getConfig : null;
   const alertDeps = opts.alertDeps || null;
+  const sendToRenderer =
+    typeof opts.sendToRenderer === "function" ? opts.sendToRenderer : null;
 
   let intervalHandle = null;
   let stopped = false;
@@ -103,7 +105,16 @@ function createAiUsageRefreshScheduler(opts = {}) {
             silent: false,
           }).show();
         };
-        await checkAiUsageAlerts({ ...alertDeps, sendNotification });
+        const alertOut = await checkAiUsageAlerts({
+          ...alertDeps,
+          sendNotification,
+        });
+        if (alertOut && alertOut.notified > 0 && sendToRenderer) {
+          sendToRenderer("sidenav:badge", {
+            key: "ai-usage",
+            count: alertOut.notified,
+          });
+        }
       } catch {
         /* noop */
       }

@@ -44,11 +44,25 @@ vi.mock("../../src/renderer/store/ai-usage-store.js", () => ({
   get aiUsageActiveProvider() {
     return { get value() { return mockActiveProvider; }, set value(v) { mockActiveProvider = v; } };
   },
+  get aiUsageAlertPrefs() {
+    return {
+      get value() {
+        return {
+          enabled: true,
+          absMinPct: 55,
+          spikeRatio: 1.5,
+          reAlertStepPct: 5,
+          lastNotified: {},
+        };
+      },
+    };
+  },
   fetchAiUsage: (...args) => {
     fetchCalls.push(args);
     return Promise.resolve({ ok: true });
   },
   setActiveProvider: (pid) => { mockActiveProvider = pid; },
+  openAiUsageAlertModal: vi.fn(),
 }));
 
 const { AIUsagePage } = await import(

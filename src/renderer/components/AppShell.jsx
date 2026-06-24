@@ -25,13 +25,7 @@
 import { useEffect } from 'preact/hooks';
 import { activeNav, navCollapsed, setActiveNav } from '../worldcup/navStore.js';
 import { SideNav } from './SideNav.jsx';
-import { VersionsLayout } from './VersionsLayout.jsx';
-import { WorldcupLayout } from '../worldcup/WorldcupLayout.jsx';
-import { FundLayout } from '../funds/FundLayout.jsx';
-import { MetalLayout } from '../metals/MetalLayout.jsx';
-import { NewsLayout } from '../ithome/NewsLayout.jsx';
-import { WechatHotLayout } from '../wechat-hot/components/WechatHotLayout.jsx';
-import { AIUsageLayout } from './AIUsageLayout.jsx';
+import { LazyNavPanel } from './LazyNavPanel.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 import { SearchModal } from '../search/SearchModal.jsx';
 import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
@@ -93,19 +87,7 @@ export function AppShell({ onCheck }) {
     <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
       <SideNav />
       <div class="app-shell-view">
-        {nav === 'ithome'
-          ? <NewsLayout />
-          : nav === 'wechat-hot'
-            ? <WechatHotLayout />
-            : nav === 'worldcup'
-              ? <WorldcupLayout />
-              : nav === 'funds'
-                ? <FundLayout />
-                : nav === 'metals'
-                  ? <MetalLayout />
-                  : nav === 'ai-usage'
-                    ? <AIUsageLayout />
-                    : <VersionsLayout onCheck={onCheck} />}
+        <LazyNavPanel nav={nav} onCheck={onCheck} />
       </div>
       <SearchModal />
     </div>

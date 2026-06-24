@@ -92,8 +92,13 @@ contextBridge.exposeInMainWorld("api", {
   // v2.13 AI 用量 (Minimax coding plan)
   aiUsageGetCached: () => ipcRenderer.invoke("ai-usage:get-cached"),
   aiUsageFetch: (opts) => ipcRenderer.invoke("ai-usage:fetch", opts),
+  aiUsageAlertPrefsGet: () => ipcRenderer.invoke("ai-usage:alert-prefs:get"),
+  aiUsageAlertPrefsSet: (patch) =>
+    ipcRenderer.invoke("ai-usage:alert-prefs:set", patch),
   onAiUsageUpdated: (cb) =>
     ipcRenderer.on("ai-usage-updated", (_, data) => cb(data)),
+  onSidenavBadge: (cb) =>
+    ipcRenderer.on("sidenav:badge", (_, data) => cb(data)),
 
   // Phase Q8: state.json corruption self-recovery banner
   onStateRecovered: (cb) =>

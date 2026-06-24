@@ -11,8 +11,10 @@ import { useEffect } from "preact/hooks";
 import {
   loadAiUsageCached,
   subscribeAiUsageUpdates,
+  aiUsageAlertModalOpen,
 } from "../store/ai-usage-store.js";
 import { AIUsagePage } from "./AIUsagePage.jsx";
+import { AIUsageAlertModal } from "./AIUsageAlertModal.jsx";
 
 export function AIUsageLayout() {
   useEffect(() => {
@@ -23,6 +25,7 @@ export function AIUsageLayout() {
   return (
     <div class="ai-usage-layout">
       <AIUsagePage />
+      {aiUsageAlertModalOpen.value && <AIUsageAlertModal />}
     </div>
   );
 }

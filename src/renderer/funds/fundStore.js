@@ -61,6 +61,19 @@ export const alertPrefs = signal({
   lossPct: -5,
 });
 export const alertModalOpen = signal(false);
+
+/** I6 v3: 盈亏提醒未读角标 */
+export const fundUnreadBadge = signal(0);
+
+export function clearFundNavBadge() {
+  fundUnreadBadge.value = 0;
+}
+
+export function bumpFundNavBadge(count = 1) {
+  const n = Number(count);
+  if (!Number.isFinite(n) || n <= 0) return;
+  fundUnreadBadge.value += n;
+}
 export { NAV_SOURCE_LABELS };
 
 // ── computed ──
@@ -390,6 +403,13 @@ export function subscribeNavUpdates(api) {
         void loadFundHistory(api);
       }
     });
+  const offSidenavBadge =
+    api.onSidenavBadge &&
+    api.onSidenavBadge((payload) => {
+      if (payload && payload.key === "funds") {
+        bumpFundNavBadge(payload.count || 1);
+      }
+    });
   return () => {
     try {
       offState && offState();
@@ -403,6 +423,11 @@ export function subscribeNavUpdates(api) {
     }
     try {
       offHistory && offHistory();
+    } catch {
+      /* noop */
+    }
+    try {
+      offSidenavBadge && offSidenavBadge();
     } catch {
       /* noop */
     }

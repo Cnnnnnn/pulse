@@ -173,7 +173,7 @@ function startFundScheduler(deps) {
             silent: false,
           }).show();
         };
-        checkFundAlerts({
+        const alertOut = checkFundAlerts({
           holdings: all.holdings,
           navMap: (payload && payload.results) || {},
           alertPrefs: all.alertPrefs,
@@ -182,8 +182,16 @@ function startFundScheduler(deps) {
           saveAlertPrefs: (patch) => fundStore.setAlertPrefs(patch),
           log: mainLog,
         });
-        const { checkWatchlistFundUpdates, makeWatchlistSendNotification } =
-          require("../watchlist");
+        if (alertOut && alertOut.notified > 0) {
+          sendToRenderer("sidenav:badge", {
+            key: "funds",
+            count: alertOut.notified,
+          });
+        }
+        const {
+          checkWatchlistFundUpdates,
+          makeWatchlistSendNotification,
+        } = require("../watchlist");
         checkWatchlistFundUpdates({
           navMap: (payload && payload.results) || {},
           navSource: all.navSource,

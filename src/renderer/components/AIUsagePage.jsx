@@ -27,12 +27,15 @@ import {
   aiUsageFetching,
   aiUsageFromCache,
   aiUsageActiveProvider,
+  aiUsageAlertPrefs,
   fetchAiUsage,
   setActiveProvider,
+  openAiUsageAlertModal,
 } from "../store/ai-usage-store.js";
 import { useNowTick } from "../hooks/useNowTick.jsx";
 import { computeBlowUpAt, formatBlowUpIn } from "../../ai-usage/derive.js";
 import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
+import { todayKey } from "../../ai-usage/history-series.js";
 import { UsageSparkline } from "./UsageSparkline.jsx";
 import { taggedLog } from "../log.js";
 
@@ -260,9 +263,23 @@ function ProviderUsageView({ provider }) {
 
   const todayLabel = formatTodayUsed(provider, todayUsed);
 
+  const prefs = aiUsageAlertPrefs.value;
+  const prevNotified = prefs.lastNotified?.[provider];
+  const lastNotifiedPercent =
+    prevNotified && prevNotified.date === todayKey()
+      ? prevNotified.percent
+      : undefined;
+
   const anomaly = useMemo(
-    () => detectUsageAnomaly(history.days || []),
-    [history],
+    () =>
+      detectUsageAnomaly(history.days || [], {
+        enabled: prefs.enabled,
+        absMinPct: prefs.absMinPct,
+        spikeRatio: prefs.spikeRatio,
+        reAlertStepPct: prefs.reAlertStepPct,
+        lastNotifiedPercent,
+      }),
+    [history, prefs, provider, lastNotifiedPercent],
   );
 
   return (
@@ -289,13 +306,24 @@ function ProviderUsageView({ provider }) {
             )}
           </div>
         </div>
-        <button
-          class="ai-usage-refresh-btn"
-          onClick={onRefresh}
-          disabled={fetching}
-        >
-          {fetching ? "刷新中…" : "刷新"}
-        </button>
+        <div class="ai-usage-header-actions">
+          <button
+            type="button"
+            class={`fund-btn fund-btn-ghost${prefs.enabled !== false ? " fund-btn-active" : ""}`}
+            onClick={() => openAiUsageAlertModal()}
+            title="用量异常提醒"
+            aria-label="用量异常提醒"
+          >
+            🔔
+          </button>
+          <button
+            class="ai-usage-refresh-btn"
+            onClick={onRefresh}
+            disabled={fetching}
+          >
+            {fetching ? "刷新中…" : "刷新"}
+          </button>
+        </div>
       </div>
 
       {anomaly.anomaly && (

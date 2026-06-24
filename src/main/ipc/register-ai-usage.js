@@ -105,7 +105,11 @@ const _internals = {
         const date = _localDateKey();
         const percent = w.usedPercent; // 0-100
         const used = typeof w.used === "number" && w.used > 0 ? w.used : null;
-        deps.stateStore.appendHistoryProvider(providerId, { date, percent, used });
+        deps.stateStore.appendHistoryProvider(providerId, {
+          date,
+          percent,
+          used,
+        });
       } catch (e) {
         log_warn_history(e);
       }
@@ -171,6 +175,20 @@ function registerAiUsageHandlers(ctx) {
   safeHandle("ai-usage:fetch", async (_event, opts) =>
     _internals.fetch({ deps, opts: opts || {} }),
   );
+
+  safeHandle("ai-usage:alert-prefs:get", () => ({
+    ok: true,
+    prefs: stateStore.loadAiUsageAlertPrefs(),
+  }));
+
+  safeHandle("ai-usage:alert-prefs:set", (_event, patch) => {
+    try {
+      stateStore.saveAiUsageAlertPrefs(patch || {});
+      return { ok: true, prefs: stateStore.loadAiUsageAlertPrefs() };
+    } catch (err) {
+      return { ok: false, reason: "save_failed", error: err && err.message };
+    }
+  });
 }
 
 module.exports = { registerAiUsageHandlers, _internals, KNOWN_PROVIDERS };
