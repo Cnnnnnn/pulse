@@ -21,6 +21,7 @@ import { FundPnlHistory } from './FundPnlHistory.jsx';
 import { CategoryTabs } from './CategoryTabs.jsx';
 import { FundList } from './FundList.jsx';
 import { AddFundModal } from './AddFundModal.jsx';
+import { FundAlertModal } from './FundAlertModal.jsx';
 import {
   loadFunds,
   loadNavState,
@@ -28,6 +29,7 @@ import {
   subscribeNavUpdates,
   fetchNavNow,
   addModalOpen,
+  alertModalOpen,
 } from './fundStore.js';
 import { api } from '../api.js';
 
@@ -60,6 +62,7 @@ export function FundLayout() {
         )}
       </div>
       {addModalOpen.value && <AddFundModal />}
+      {alertModalOpen.value && <FundAlertModal />}
     </div>
   );
 }

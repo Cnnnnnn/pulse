@@ -55,6 +55,12 @@ export const editingHolding = signal(null);
 export const dailySnapshots = signal([]);
 export const selectedHistoryMonth = signal(ymShanghai(new Date()));
 export const navSource = signal(DEFAULT_NAV_SOURCE);
+export const alertPrefs = signal({
+  enabled: false,
+  profitPct: 10,
+  lossPct: -5,
+});
+export const alertModalOpen = signal(false);
 export { NAV_SOURCE_LABELS };
 
 // ── computed ──
@@ -144,6 +150,14 @@ export function closeModal() {
   editingHolding.value = null;
 }
 
+export function openAlertModal() {
+  alertModalOpen.value = true;
+}
+
+export function closeAlertModal() {
+  alertModalOpen.value = false;
+}
+
 // ── async actions (走 IPC) ──
 
 export async function loadFunds(api) {
@@ -152,6 +166,13 @@ export async function loadFunds(api) {
     if (r && r.ok) {
       holdings.value = r.holdings || [];
       navSource.value = normalizeNavSource(r.navSource);
+      if (r.alertPrefs) {
+        alertPrefs.value = {
+          enabled: !!r.alertPrefs.enabled,
+          profitPct: Number(r.alertPrefs.profitPct) || 10,
+          lossPct: Number(r.alertPrefs.lossPct) || -5,
+        };
+      }
     } else {
       holdings.value = [];
     }
@@ -299,6 +320,38 @@ export async function setNavSource(api, source) {
     await api.fundsSetNavSource(next);
   } catch (err) {
     log.warn("setNavSource failed:", err && err.message);
+  }
+}
+
+export async function loadAlertPrefs(api) {
+  try {
+    const r = await api.fundsAlertPrefsGet();
+    if (r && r.ok && r.alertPrefs) {
+      alertPrefs.value = {
+        enabled: !!r.alertPrefs.enabled,
+        profitPct: Number(r.alertPrefs.profitPct) || 10,
+        lossPct: Number(r.alertPrefs.lossPct) || -5,
+      };
+    }
+  } catch (err) {
+    log.warn("loadAlertPrefs failed:", err && err.message);
+  }
+}
+
+export async function saveAlertPrefs(api, patch) {
+  try {
+    const r = await api.fundsAlertPrefsSet(patch);
+    if (r && r.ok && r.alertPrefs) {
+      alertPrefs.value = {
+        enabled: !!r.alertPrefs.enabled,
+        profitPct: Number(r.alertPrefs.profitPct) || 10,
+        lossPct: Number(r.alertPrefs.lossPct) || -5,
+      };
+    }
+    return r;
+  } catch (err) {
+    log.warn("saveAlertPrefs failed:", err && err.message);
+    return { ok: false };
   }
 }
 

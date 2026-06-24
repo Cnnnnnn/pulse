@@ -9,13 +9,9 @@ const { pickEffectiveNavNumber } = require("../../funds/fund-nav-merge");
 function registerFundsHandlers(ctx) {
   const { safeHandle, threwResponse, fundScheduler } = ctx;
 
-  safeHandle(
-    "funds:list",
-    () => ({ ok: true, ...fundStore.loadAll() }),
-    {
-      onError: (err) => threwResponse(err, { holdings: [], deletedIds: [] }),
-    },
-  );
+  safeHandle("funds:list", () => ({ ok: true, ...fundStore.loadAll() }), {
+    onError: (err) => threwResponse(err, { holdings: [], deletedIds: [] }),
+  });
 
   safeHandle(
     "funds:add",
@@ -143,6 +139,16 @@ function registerFundsHandlers(ctx) {
       return { ok: false, reason: "no_nav_cached" };
     }
     return fundStore.backfillFromNav(code, nav);
+  });
+
+  safeHandle("funds:alert-prefs:get", () => {
+    const { alertPrefs } = fundStore.loadAll();
+    return { ok: true, alertPrefs };
+  });
+
+  safeHandle("funds:alert-prefs:set", (_event, patch) => {
+    const all = fundStore.setAlertPrefs(patch || {});
+    return { ok: true, alertPrefs: all.alertPrefs };
   });
 }
 

@@ -79,7 +79,8 @@ contextBridge.exposeInMainWorld("api", {
   aiPromptsLoad: () => ipcRenderer.invoke("ai-prompts:load"),
   aiPromptsSave: (prompts) => ipcRenderer.invoke("ai-prompts:save", prompts),
   aiPromptsReset: (key) => ipcRenderer.invoke("ai-prompts:reset", key),
-  upgradeAdviceFetch: (opts) => ipcRenderer.invoke("upgrade-advice:fetch", opts),
+  upgradeAdviceFetch: (opts) =>
+    ipcRenderer.invoke("upgrade-advice:fetch", opts),
   onAiPromptsUpdated: (cb) => {
     const handler = (_evt) => cb();
     ipcRenderer.on("ai-prompts-updated", handler);
@@ -98,7 +99,8 @@ contextBridge.exposeInMainWorld("api", {
 
   // Phase I5: daily digest
   digestFetchSections: () => ipcRenderer.invoke("digest:fetch-sections"),
-  digestUpdateSettings: (cfg) => ipcRenderer.invoke("digest:update-settings", cfg),
+  digestUpdateSettings: (cfg) =>
+    ipcRenderer.invoke("digest:update-settings", cfg),
   onDigestOpen: (cb) => ipcRenderer.on("digest:open", (_, data) => cb(data)),
 
   // Phase Q6: error aggregator
@@ -108,22 +110,28 @@ contextBridge.exposeInMainWorld("api", {
   errorClearOld: (opts) => ipcRenderer.invoke("error:clear-old", opts),
   // Phase Q1 v2: diagnostics drawer
   diagnosticsFetch: (opts) => ipcRenderer.invoke("diagnostics:fetch", opts),
-  diagnosticsFetchSamples: () => ipcRenderer.invoke("diagnostics:fetch-samples"),
+  diagnosticsFetchSamples: () =>
+    ipcRenderer.invoke("diagnostics:fetch-samples"),
   // C7 v2.35.0: 检测结果导出
-  detectResultsExport: (opts) => ipcRenderer.invoke("detect-results:export", opts),
+  detectResultsExport: (opts) =>
+    ipcRenderer.invoke("detect-results:export", opts),
   // I2 v1: watchlist (pinned apps)
   watchlistList: () => ipcRenderer.invoke("watchlist:list"),
   watchlistAdd: (appName) => ipcRenderer.invoke("watchlist:add", { appName }),
-  watchlistRemove: (appName) => ipcRenderer.invoke("watchlist:remove", { appName }),
+  watchlistRemove: (appName) =>
+    ipcRenderer.invoke("watchlist:remove", { appName }),
   // ON: release notes onboarding (nested form, 跟 spec §3.4 一致)
   releaseNotes: {
     getCurrent: () => ipcRenderer.invoke("release-notes:get-current"),
-    getVersion: (version) => ipcRenderer.invoke("release-notes:get-version", version),
-    markSeen: (version) => ipcRenderer.invoke("release-notes:mark-seen", version),
+    getVersion: (version) =>
+      ipcRenderer.invoke("release-notes:get-version", version),
+    markSeen: (version) =>
+      ipcRenderer.invoke("release-notes:mark-seen", version),
   },
   errorOpenFolder: () => ipcRenderer.invoke("error:open-folder"),
   errorReport: (entry) => ipcRenderer.invoke("error:report", entry),
-  onErrorAppended: (cb) => ipcRenderer.on("error:appended", (_, data) => cb(data)),
+  onErrorAppended: (cb) =>
+    ipcRenderer.on("error:appended", (_, data) => cb(data)),
 
   // Phase C2: per-app snooze
   setAppSnooze: (name, opts) => ipcRenderer.invoke("snooze:set", name, opts),
@@ -163,7 +171,8 @@ contextBridge.exposeInMainWorld("api", {
   wechatHotLoad: () => ipcRenderer.invoke("wechat-hot:load"),
   wechatHotRefresh: () => ipcRenderer.invoke("wechat-hot:refresh"),
   wechatHotLoadRead: () => ipcRenderer.invoke("wechat-hot:load-read"),
-  wechatHotMarkRead: (title) => ipcRenderer.invoke("wechat-hot:mark-read", title),
+  wechatHotMarkRead: (title) =>
+    ipcRenderer.invoke("wechat-hot:mark-read", title),
   onWechatHotUpdated: (cb) => {
     const handler = (_evt, data) => cb(data);
     ipcRenderer.on("wechat-hot:updated", handler);
@@ -210,6 +219,9 @@ contextBridge.exposeInMainWorld("api", {
   fundsHistoryList: () => ipcRenderer.invoke("funds:history:list"),
   fundsSetNavSource: (source) =>
     ipcRenderer.invoke("funds:set-nav-source", source),
+  fundsAlertPrefsGet: () => ipcRenderer.invoke("funds:alert-prefs:get"),
+  fundsAlertPrefsSet: (patch) =>
+    ipcRenderer.invoke("funds:alert-prefs:set", patch),
   onFundsNavFetched: (cb) =>
     ipcRenderer.on("funds:nav:fetched", (_, data) => cb(data)),
   onFundsNavState: (cb) =>
@@ -247,7 +259,8 @@ contextBridge.exposeInMainWorld("api", {
   windowClose: () => ipcRenderer.invoke("window:close"),
 
   // Phase C3: App rollback bridge
-  getVersionHistory: (appName) => ipcRenderer.invoke("get-version-history", appName),
+  getVersionHistory: (appName) =>
+    ipcRenderer.invoke("get-version-history", appName),
   rollbackApp: (appName, version) =>
     ipcRenderer.invoke("rollback-app", appName, version),
   deleteBackup: (appName, version) =>
@@ -261,7 +274,8 @@ contextBridge.exposeInMainWorld("api", {
   onVersionHistoryCountsUpdated: (cb) => {
     const handler = (_evt, data) => cb(data);
     ipcRenderer.on("version-history-counts-updated", handler);
-    return () => ipcRenderer.removeListener("version-history-counts-updated", handler);
+    return () =>
+      ipcRenderer.removeListener("version-history-counts-updated", handler);
   },
 });
 

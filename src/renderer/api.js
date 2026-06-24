@@ -94,6 +94,8 @@ export function createApi(overrides = {}) {
     fundsNavState: pick(overrides, "fundsNavState"),
     fundsHistoryList: pick(overrides, "fundsHistoryList"),
     fundsSetNavSource: pick(overrides, "fundsSetNavSource"),
+    fundsAlertPrefsGet: pick(overrides, "fundsAlertPrefsGet"),
+    fundsAlertPrefsSet: pick(overrides, "fundsAlertPrefsSet"),
     onFundsNavFetched: pick(overrides, "onFundsNavFetched"),
     onFundsNavState: pick(overrides, "onFundsNavState"),
     onFundsHistoryUpdated: pick(overrides, "onFundsHistoryUpdated"),
@@ -159,13 +161,21 @@ export function createApi(overrides = {}) {
     rollbackApp: pick(overrides, "rollbackApp"),
     deleteBackup: pick(overrides, "deleteBackup"),
     onVersionHistoryUpdated: pick(overrides, "onVersionHistoryUpdated"),
-    onVersionHistoryCountsUpdated: pick(overrides, "onVersionHistoryCountsUpdated"),
+    onVersionHistoryCountsUpdated: pick(
+      overrides,
+      "onVersionHistoryCountsUpdated",
+    ),
     // ON: release notes onboarding (nested, 跟 spec §3.4 + preload 一致).
     // preload 暴露 window.api.releaseNotes = { getCurrent, getVersion, markSeen },
     // 这里从 window.api.releaseNotes 整块取; 测试 overrides 时传 releaseNotes 子对象.
     releaseNotes: (overrides && overrides.releaseNotes) ||
-      (typeof window !== "undefined" && window.api && window.api.releaseNotes) ||
-      { getCurrent: noop, getVersion: noop, markSeen: noop },
+      (typeof window !== "undefined" &&
+        window.api &&
+        window.api.releaseNotes) || {
+        getCurrent: noop,
+        getVersion: noop,
+        markSeen: noop,
+      },
     // A7: AI prompt 模板化
     aiPromptsLoad: pick(overrides, "aiPromptsLoad"),
     aiPromptsSave: pick(overrides, "aiPromptsSave"),

@@ -9,6 +9,7 @@
  *     deletedIds: DeletedHolding[],    // 软删, 7 天 GC
  *     dailySnapshots: DailySnapshot[], // 每日盈亏快照
  *     navSource: 'tiantian' | 'sina',   // 估值数据源 (用户切换)
+ *     alertPrefs: { enabled, profitPct, lossPct, lastNotified }  // I8 盈亏阈值提醒
  *   }
  *
  * 设计原则:
@@ -35,6 +36,7 @@ const {
   normalizeNavSource,
   DEFAULT_NAV_SOURCE,
 } = require("../funds/fund-nav-merge");
+const { normalizeAlertPrefs } = require("./fund-alerts");
 
 /**
  * 读 holdings + deletedIds. 文件不存在 / 解析失败 → 兜底空.
@@ -73,6 +75,10 @@ function saveAll(patch, statePath) {
       patch && patch.navSource !== undefined
         ? normalizeNavSource(patch.navSource)
         : cur.navSource,
+    alertPrefs:
+      patch && patch.alertPrefs !== undefined
+        ? normalizeAlertPrefs(patch.alertPrefs)
+        : cur.alertPrefs,
   };
   // GC: 清掉超期 deleted
   next.deletedIds = cleanExpiredDeleted(next.deletedIds);
@@ -205,6 +211,7 @@ function normalizeFunds(raw) {
     deletedIds: [],
     dailySnapshots: [],
     navSource: DEFAULT_NAV_SOURCE,
+    alertPrefs: normalizeAlertPrefs(null),
   };
   if (!raw || typeof raw !== "object") return out;
   if (Array.isArray(raw.holdings)) {
@@ -217,7 +224,29 @@ function normalizeFunds(raw) {
     out.dailySnapshots = raw.dailySnapshots.filter(isValidSnapshot);
   }
   out.navSource = normalizeNavSource(raw.navSource);
+  out.alertPrefs = normalizeAlertPrefs(raw.alertPrefs);
   return out;
+}
+
+/**
+ * 更新盈亏提醒偏好 (合并写盘).
+ * @param {object} patch  { enabled?, profitPct?, lossPct?, lastNotified? }
+ */
+function setAlertPrefs(patch, statePath) {
+  const cur = loadAll(statePath);
+  const nextPrefs = normalizeAlertPrefs(
+    Object.assign({}, cur.alertPrefs, patch),
+  );
+  return saveAll(
+    {
+      holdings: cur.holdings,
+      deletedIds: cur.deletedIds,
+      dailySnapshots: cur.dailySnapshots,
+      navSource: cur.navSource,
+      alertPrefs: nextPrefs,
+    },
+    statePath,
+  );
 }
 
 function isValidHolding(h) {
@@ -343,6 +372,7 @@ module.exports = {
   loadAll,
   saveAll,
   setNavSource,
+  setAlertPrefs,
   add,
   update,
   remove,

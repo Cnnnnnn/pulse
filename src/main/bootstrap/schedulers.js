@@ -34,11 +34,20 @@ function __resetForTest() {
  * @param {number}  args.intervalMs
  * @returns {{action: 'run'} | {action: 'skip', reason: 'quiet_hours' | 'too_soon'}}
  */
-function decideAutoCheck({ now, quietStart, quietEnd, lastAutoCheckAt, intervalMs }) {
+function decideAutoCheck({
+  now,
+  quietStart,
+  quietEnd,
+  lastAutoCheckAt,
+  intervalMs,
+}) {
   if (quietStart && quietEnd && inQuietHours(now, quietStart, quietEnd)) {
     return { action: "skip", reason: "quiet_hours" };
   }
-  if (lastAutoCheckAt !== null && now.getTime() - lastAutoCheckAt < intervalMs) {
+  if (
+    lastAutoCheckAt !== null &&
+    now.getTime() - lastAutoCheckAt < intervalMs
+  ) {
     return { action: "skip", reason: "too_soon" };
   }
   return { action: "run" };
@@ -61,7 +70,8 @@ async function checkOnce(ctx) {
   const { deps, state, intervalMs } = ctx;
   const nowFn = ctx.now || (() => new Date());
   const log = ctx.log || mainLog;
-  const currentCfg = (deps.runtimeConfigRef && deps.runtimeConfigRef.current) || {};
+  const currentCfg =
+    (deps.runtimeConfigRef && deps.runtimeConfigRef.current) || {};
   const qh = currentCfg.notifications || {};
   const now = nowFn();
 
@@ -81,7 +91,8 @@ async function checkOnce(ctx) {
   log.info("auto-check triggered");
   const runCheck =
     ctx.runCheck ||
-    ((runDeps, opts) => require("../check-runner").runCheckQueued(runDeps, opts));
+    ((runDeps, opts) =>
+      require("../check-runner").runCheckQueued(runDeps, opts));
   try {
     await runCheck(
       {
@@ -119,7 +130,8 @@ async function checkOnce(ctx) {
  * @returns {object|null}
  */
 function startFundScheduler(deps) {
-  const { httpClient, fundStore, FundScheduler, sendToRenderer } = deps;
+  const { httpClient, fundStore, FundScheduler, sendToRenderer, getConfig } =
+    deps;
   try {
     const sched = new FundScheduler({
       httpClient,
@@ -130,8 +142,55 @@ function startFundScheduler(deps) {
       logger: mainLog,
     });
     sched.on("state", (st) => sendToRenderer("funds:nav:state", st));
-    sched.on("fetched", (payload) => sendToRenderer("funds:nav:fetched", payload));
-    sched.on("history", (payload) => sendToRenderer("funds:history:updated", payload));
+    sched.on("fetched", (payload) => {
+      sendToRenderer("funds:nav:fetched", payload);
+      try {
+        const { checkFundAlerts } = require("../fund-alerts");
+        const all = fundStore.loadAll();
+        const cfg = typeof getConfig === "function" ? getConfig() || {} : {};
+        const notif = cfg.notifications || {};
+        const sendNotification = (n) => {
+          if (
+            notif.quiet_hours_start &&
+            notif.quiet_hours_end &&
+            inQuietHours(
+              new Date(),
+              notif.quiet_hours_start,
+              notif.quiet_hours_end,
+            )
+          ) {
+            return;
+          }
+          if (
+            !ElectronNotification.isSupported ||
+            !ElectronNotification.isSupported()
+          ) {
+            return;
+          }
+          new ElectronNotification({
+            title: n.title,
+            body: n.body,
+            silent: false,
+          }).show();
+        };
+        checkFundAlerts({
+          holdings: all.holdings,
+          navMap: (payload && payload.results) || {},
+          alertPrefs: all.alertPrefs,
+          navSource: all.navSource,
+          sendNotification,
+          saveAlertPrefs: (patch) => fundStore.setAlertPrefs(patch),
+          log: mainLog,
+        });
+      } catch (err) {
+        mainLog.warn(
+          `[fund-scheduler] alert check failed: ${err && err.message}`,
+        );
+      }
+    });
+    sched.on("history", (payload) =>
+      sendToRenderer("funds:history:updated", payload),
+    );
     sched.start();
     mainLog.info("fund scheduler started");
     app.once("before-quit", () => {
@@ -227,19 +286,24 @@ function wireRecentActivityListener(deps) {
  *   tray pushWorldcupToTray 走这里, 替换之前的 60s setInterval 兜底轮询.
  */
 function startWorldcupGoalWatcher(deps) {
-  const { getWindow, sendToRenderer, getConfig, goalWatcher, onScoresChanged } = deps;
+  const { getWindow, sendToRenderer, getConfig, goalWatcher, onScoresChanged } =
+    deps;
   try {
     goalWatcher.startGoalWatcher({
-      refreshScores: (keys) => require("../worldcup/scores-fetcher").refreshWorldcupScores(keys),
+      refreshScores: (keys) =>
+        require("../worldcup/scores-fetcher").refreshWorldcupScores(keys),
       loadFixtures: () => stateStore.loadWorldcupTxt(),
       onGoal: (notif, meta) => {
         try {
           // 复用现有 quiet hours
-          const cfg = (typeof getConfig === "function" ? getConfig() : null) || {};
-          const qh = (cfg.notifications) || {};
+          const cfg =
+            (typeof getConfig === "function" ? getConfig() : null) || {};
+          const qh = cfg.notifications || {};
           const now = new Date();
           if (inQuietHours(now, qh.quiet_hours_start, qh.quiet_hours_end)) {
-            mainLog.info(`[worldcup/goal-watcher] quiet hours skip: ${meta.matchKey}`);
+            mainLog.info(
+              `[worldcup/goal-watcher] quiet hours skip: ${meta.matchKey}`,
+            );
             return;
           }
           if (!ElectronNotification.isSupported()) return;
@@ -259,9 +323,13 @@ function startWorldcupGoalWatcher(deps) {
               /* noop */
             }
             try {
-              sendToRenderer("worldcup:focus-match", { matchKey: meta.matchKey });
+              sendToRenderer("worldcup:focus-match", {
+                matchKey: meta.matchKey,
+              });
             } catch (err) {
-              mainLog.warn(`[worldcup/goal-watcher] sendToRenderer failed: ${err && err.message}`);
+              mainLog.warn(
+                `[worldcup/goal-watcher] sendToRenderer failed: ${err && err.message}`,
+              );
             }
           });
           n.show();
@@ -312,7 +380,8 @@ function startWorldcupGoalWatcher(deps) {
  */
 function startAutoCheckTimer(deps) {
   const cfg = (deps.runtimeConfigRef && deps.runtimeConfigRef.current) || {};
-  const rawInterval = cfg.notifications && cfg.notifications.check_interval_hours;
+  const rawInterval =
+    cfg.notifications && cfg.notifications.check_interval_hours;
   // 注意: 不能用 `|| 6`, 否则 0 会被 falsy 吞成 6 (无法禁用). 显式区分 undefined/null.
   const checkIntervalHours = typeof rawInterval === "number" ? rawInterval : 6;
   if (checkIntervalHours <= 0) {
@@ -342,7 +411,11 @@ function startAutoCheckTimer(deps) {
       });
     },
     AUTO_CHECK_INTERVAL_MS,
-    { label: "auto-check", file: "src/main/bootstrap/schedulers.js", line: 335 },
+    {
+      label: "auto-check",
+      file: "src/main/bootstrap/schedulers.js",
+      line: 335,
+    },
   );
   mainLog.info(`auto-check timer set: every ${checkIntervalHours}h`);
   if (app && typeof app.once === "function") {

@@ -633,6 +633,7 @@ async function bootstrap() {
     fundStore,
     FundScheduler,
     sendToRenderer,
+    getConfig: () => runtimeConfigRef.current,
   });
   startRemindersScheduler({ reminders, getWindow, sendToRenderer });
   startWorldcupGoalWatcher({

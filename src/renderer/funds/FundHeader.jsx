@@ -10,10 +10,12 @@ import {
   totalMetrics,
   schedulerState,
   openAddModal,
+  openAlertModal,
   searchQuery,
   setSearchQuery,
   pnlRollups,
   navSource,
+  alertPrefs,
   NAV_SOURCE_LABELS,
   setNavSource,
 } from './fundStore.js';
@@ -96,6 +98,15 @@ export function FundHeader({ onRefresh }) {
             onClick={() => openAddModal()}
           >
             + 添加持仓
+          </button>
+          <button
+            type="button"
+            class={`fund-btn fund-btn-ghost${alertPrefs.value.enabled ? ' fund-btn-active' : ''}`}
+            onClick={() => openAlertModal()}
+            title="盈亏阈值提醒"
+            aria-label="盈亏阈值提醒"
+          >
+            🔔
           </button>
           <button
             type="button"
