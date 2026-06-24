@@ -17,13 +17,14 @@ export function isAppPinned(appName) {
 }
 
 export function isFundPinned(code) {
-  return watchlistItems.value.some(
-    (w) => w.type === "fund" && w.ref === code,
-  );
+  return watchlistItems.value.some((w) => w.type === "fund" && w.ref === code);
 }
 
-export const isPinned = (appName) =>
-  computed(() => isAppPinned(appName));
+export function isMetalPinned(id) {
+  return watchlistItems.value.some((w) => w.type === "metal" && w.ref === id);
+}
+
+export const isPinned = (appName) => computed(() => isAppPinned(appName));
 
 export function itemKey(w) {
   if (!w) return "";

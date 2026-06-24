@@ -76,7 +76,10 @@ const os = require("os");
 const { isStateValid, validateState } = require("./state-store-schema");
 
 class StateCorruptedError extends Error {
-  constructor(message, { path, raw = null, parseError = null, schemaErrors = [] } = {}) {
+  constructor(
+    message,
+    { path, raw = null, parseError = null, schemaErrors = [] } = {},
+  ) {
     super(message);
     this.name = "StateCorruptedError";
     this.path = path;
@@ -236,7 +239,7 @@ const PRESERVE_FIELDS = [
   { key: "worldcup_scores", kind: "object" },
   { key: "worldcup_match_insights", kind: "object" },
   { key: "worldcup_bracket_snapshot", kind: "object" },
-  { key: "worldcupGoalNotified", kind: "object", notArray: true },  // 新增 (goal notifications v1)
+  { key: "worldcupGoalNotified", kind: "object", notArray: true }, // 新增 (goal notifications v1)
   { key: "funds", kind: "object", notArray: true },
   { key: "worldcupBets", kind: "object", notArray: true },
   { key: "ithome_news", kind: "object", notArray: true },
@@ -245,15 +248,16 @@ const PRESERVE_FIELDS = [
   // AI 用量相关: ai_usage (snapshot) + ai_usage_history 互不覆盖
   { key: "ai_usage", kind: "object", notArray: true },
   { key: "ai_usage_history", kind: "object", notArray: true },
-  { key: "circuitBreakers", kind: "object", notArray: true },  // Phase C1: per-detector circuit breaker state
-  { key: "daily_digest", kind: "object", notArray: true },  // Phase I5: daily digest settings + last_push_date
-  { key: "tray_menu_prefs", kind: "object", notArray: true },  // Phase v1: tray menu segment prefs
-  { key: "version_history", kind: "object", notArray: true },  // Phase C3: per-app version history cap-2
-  { key: "startup_samples", kind: "array" },                     // Phase Q1 v2: cap-20 ready-time history
-  { key: "watchlist", kind: "array" },                           // I2 v1: pinned apps, [{appName, addedAt, lastNotifiedVersion}]
-  { key: "last_seen_release", kind: "object", notArray: true },  // ON: { version, at } — release notes onboarding
-  { key: "wechat_hot", kind: "object", notArray: true },          // I6 v2: { readIds: { title: readAt } } — wechat-hot 已读词
-  { key: "ai_prompts", kind: "object", notArray: true },           // A7: { promptId: { system, rules } } — 用户自定义 AI prompt
+  { key: "ai_usage_alert_prefs", kind: "object", notArray: true }, // A4: 用量异常告警去重
+  { key: "circuitBreakers", kind: "object", notArray: true }, // Phase C1: per-detector circuit breaker state
+  { key: "daily_digest", kind: "object", notArray: true }, // Phase I5: daily digest settings + last_push_date
+  { key: "tray_menu_prefs", kind: "object", notArray: true }, // Phase v1: tray menu segment prefs
+  { key: "version_history", kind: "object", notArray: true }, // Phase C3: per-app version history cap-2
+  { key: "startup_samples", kind: "array" }, // Phase Q1 v2: cap-20 ready-time history
+  { key: "watchlist", kind: "array" }, // I2 v1: pinned apps, [{appName, addedAt, lastNotifiedVersion}]
+  { key: "last_seen_release", kind: "object", notArray: true }, // ON: { version, at } — release notes onboarding
+  { key: "wechat_hot", kind: "object", notArray: true }, // I6 v2: { readIds: { title: readAt } } — wechat-hot 已读词
+  { key: "ai_prompts", kind: "object", notArray: true }, // A7: { promptId: { system, rules } } — 用户自定义 AI prompt
   { key: "upgrade_advice_cache", kind: "object", notArray: true }, // A2: 升级建议缓存
   { key: "changelog_summary_cache", kind: "object", notArray: true }, // A1: changelog 摘要缓存
 ];
@@ -352,10 +356,11 @@ function _loadOrThrow(statePath) {
   }
   if (!isStateValid(parsed)) {
     const { errors } = validateState(parsed);
-    throw new StateCorruptedError(
-      "state.json failed schema validation",
-      { path: statePath, raw: raw.slice(0, 1024), schemaErrors: errors },
-    );
+    throw new StateCorruptedError("state.json failed schema validation", {
+      path: statePath,
+      raw: raw.slice(0, 1024),
+      schemaErrors: errors,
+    });
   }
   return parsed;
 }
@@ -430,10 +435,13 @@ function saveAll(results, statePath = defaultPath()) {
         last_notified: prev.last_notified,
         changelog_history: history.length > 0 ? history : undefined,
         // Phase C2: preserve snooze fields across saves
-        snoozeUntil: typeof prev.snoozeUntil === "number" ? prev.snoozeUntil : undefined,
-        skippedVersion: typeof prev.skippedVersion === "string" && prev.skippedVersion.length > 0
-          ? prev.skippedVersion
-          : undefined,
+        snoozeUntil:
+          typeof prev.snoozeUntil === "number" ? prev.snoozeUntil : undefined,
+        skippedVersion:
+          typeof prev.skippedVersion === "string" &&
+          prev.skippedVersion.length > 0
+            ? prev.skippedVersion
+            : undefined,
       };
 
       // Phase C2: clear skippedVersion when user upgrades past the skipped version.
@@ -617,7 +625,7 @@ function clearAppSnooze(name, statePath = defaultPath()) {
     throw new TypeError("clearAppSnooze: name must be non-empty string");
   }
   return patchState((next, existing) => {
-    const prev = (existing.apps && existing.apps[name]);
+    const prev = existing.apps && existing.apps[name];
     if (!prev) return;
     const { snoozeUntil: _u, skippedVersion: _v, ...rest } = prev;
     next.apps = { ...(existing.apps || {}), [name]: rest };
@@ -634,8 +642,10 @@ function loadAppSnooze(name, statePath = defaultPath()) {
   const s = load(statePath);
   const app = s && s.apps && s.apps[name];
   return {
-    snoozeUntil: app && typeof app.snoozeUntil === "number" ? app.snoozeUntil : null,
-    skippedVersion: app && typeof app.skippedVersion === "string" ? app.skippedVersion : null,
+    snoozeUntil:
+      app && typeof app.snoozeUntil === "number" ? app.snoozeUntil : null,
+    skippedVersion:
+      app && typeof app.skippedVersion === "string" ? app.skippedVersion : null,
   };
 }
 
@@ -810,7 +820,8 @@ function loadWechatHotRead(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s || !s.wechat_hot || typeof s.wechat_hot !== "object") return {};
   const readIds = s.wechat_hot.readIds;
-  if (!readIds || typeof readIds !== "object" || Array.isArray(readIds)) return {};
+  if (!readIds || typeof readIds !== "object" || Array.isArray(readIds))
+    return {};
   return readIds;
 }
 
@@ -875,7 +886,11 @@ function cleanExpiredUpgradeAdvice(map, now) {
 
 function loadUpgradeAdviceCache(statePath = defaultPath()) {
   const s = load(statePath);
-  if (!s || !s.upgrade_advice_cache || typeof s.upgrade_advice_cache !== "object") {
+  if (
+    !s ||
+    !s.upgrade_advice_cache ||
+    typeof s.upgrade_advice_cache !== "object"
+  ) {
     return {};
   }
   return cleanExpiredUpgradeAdvice(s.upgrade_advice_cache, Date.now());
@@ -888,13 +903,54 @@ function loadUpgradeAdviceEntry(cacheKey, statePath = defaultPath()) {
 }
 
 function saveUpgradeAdviceEntry(entry, statePath = defaultPath()) {
-  if (!entry || typeof entry !== "object" || typeof entry.cacheKey !== "string") {
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    typeof entry.cacheKey !== "string"
+  ) {
     throw new TypeError("saveUpgradeAdviceEntry: entry.cacheKey required");
   }
   return patchState((next, existing, now) => {
-    const map = cleanExpiredUpgradeAdvice(existing.upgrade_advice_cache || {}, now);
+    const map = cleanExpiredUpgradeAdvice(
+      existing.upgrade_advice_cache || {},
+      now,
+    );
     map[entry.cacheKey] = { ...entry, generatedAt: entry.generatedAt || now };
     next.upgrade_advice_cache = map;
+  }, statePath);
+}
+
+// ─── A4: AI 用量异常告警偏好 ─────────────────────────────────
+
+function loadAiUsageAlertPrefs(statePath = defaultPath()) {
+  const s = load(statePath);
+  const raw = s && s.ai_usage_alert_prefs;
+  if (!raw || typeof raw !== "object") {
+    return { enabled: true, lastNotified: {} };
+  }
+  return {
+    enabled: raw.enabled !== false,
+    lastNotified:
+      raw.lastNotified && typeof raw.lastNotified === "object"
+        ? { ...raw.lastNotified }
+        : {},
+  };
+}
+
+function saveAiUsageAlertPrefs(patch, statePath = defaultPath()) {
+  return patchState((next, existing) => {
+    const raw = existing.ai_usage_alert_prefs;
+    const cur = {
+      enabled: !raw || raw.enabled !== false,
+      lastNotified:
+        raw && raw.lastNotified && typeof raw.lastNotified === "object"
+          ? { ...raw.lastNotified }
+          : {},
+    };
+    next.ai_usage_alert_prefs = {
+      enabled: patch.enabled !== undefined ? !!patch.enabled : cur.enabled,
+      lastNotified: { ...cur.lastNotified, ...(patch.lastNotified || {}) },
+    };
   }, statePath);
 }
 
@@ -919,7 +975,11 @@ function loadChangelogSummaryEntry(cacheKey, statePath = defaultPath()) {
 }
 
 function saveChangelogSummaryEntry(entry, statePath = defaultPath()) {
-  if (!entry || typeof entry !== "object" || typeof entry.cacheKey !== "string") {
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    typeof entry.cacheKey !== "string"
+  ) {
     throw new TypeError("saveChangelogSummaryEntry: entry.cacheKey required");
   }
   return patchState((next, existing, now) => {
@@ -1181,9 +1241,10 @@ function saveDailyDigest(cfg, statePath = defaultPath()) {
     throw new TypeError("saveDailyDigest: cfg must be plain object");
   }
   return patchState((next, existing) => {
-    const prev = (existing.daily_digest && typeof existing.daily_digest === "object")
-      ? existing.daily_digest
-      : {};
+    const prev =
+      existing.daily_digest && typeof existing.daily_digest === "object"
+        ? existing.daily_digest
+        : {};
     next.daily_digest = { ...prev, ...cfg };
   }, statePath);
 }
@@ -1196,11 +1257,24 @@ function saveDailyDigest(cfg, statePath = defaultPath()) {
 function loadDailyDigest(statePath = defaultPath()) {
   const s = load(statePath);
   const def = { enabled: true, time: "08:30", last_push_date: null };
-  if (!s || !s.daily_digest || typeof s.daily_digest !== "object" || Array.isArray(s.daily_digest)) return def;
+  if (
+    !s ||
+    !s.daily_digest ||
+    typeof s.daily_digest !== "object" ||
+    Array.isArray(s.daily_digest)
+  )
+    return def;
   return {
-    enabled: typeof s.daily_digest.enabled === "boolean" ? s.daily_digest.enabled : def.enabled,
-    time: typeof s.daily_digest.time === "string" ? s.daily_digest.time : def.time,
-    last_push_date: typeof s.daily_digest.last_push_date === "string" ? s.daily_digest.last_push_date : null,
+    enabled:
+      typeof s.daily_digest.enabled === "boolean"
+        ? s.daily_digest.enabled
+        : def.enabled,
+    time:
+      typeof s.daily_digest.time === "string" ? s.daily_digest.time : def.time,
+    last_push_date:
+      typeof s.daily_digest.last_push_date === "string"
+        ? s.daily_digest.last_push_date
+        : null,
   };
 }
 
@@ -1329,14 +1403,22 @@ function _isAiUsageV2(val) {
 function _ensureAiUsageV2(statePath = defaultPath()) {
   const s = load(statePath);
   const empty = { schema_version: 2, providers: {} };
-  if (!s || !s.ai_usage || typeof s.ai_usage !== "object" || Array.isArray(s.ai_usage)) {
+  if (
+    !s ||
+    !s.ai_usage ||
+    typeof s.ai_usage !== "object" ||
+    Array.isArray(s.ai_usage)
+  ) {
     return empty;
   }
   if (_isAiUsageV2(s.ai_usage)) {
     return { schema_version: 2, providers: { ...s.ai_usage.providers } };
   }
   // v1 平铺 → 当 minimax
-  const migrated = { schema_version: 2, providers: { minimax: { ...s.ai_usage } } };
+  const migrated = {
+    schema_version: 2,
+    providers: { minimax: { ...s.ai_usage } },
+  };
   patchState((next) => {
     next.ai_usage = migrated;
   }, statePath);
@@ -1364,12 +1446,20 @@ function loadAiUsageSnapshotProvider(providerId, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveAiUsageSnapshotProvider(providerId, snapshot, statePath = defaultPath()) {
+function saveAiUsageSnapshotProvider(
+  providerId,
+  snapshot,
+  statePath = defaultPath(),
+) {
   if (typeof providerId !== "string" || !providerId) {
-    throw new TypeError("saveAiUsageSnapshotProvider: providerId must be non-empty string");
+    throw new TypeError(
+      "saveAiUsageSnapshotProvider: providerId must be non-empty string",
+    );
   }
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
-    throw new TypeError("saveAiUsageSnapshotProvider: snapshot must be plain object");
+    throw new TypeError(
+      "saveAiUsageSnapshotProvider: snapshot must be plain object",
+    );
   }
   const v2 = _ensureAiUsageV2(statePath);
   v2.providers[providerId] = { ...snapshot };
@@ -1393,12 +1483,13 @@ function loadAiUsageHistoryProvider(providerId, statePath = defaultPath()) {
   let days;
   if (_isAiUsageV2(s.ai_usage_history)) {
     const ph =
-      s.ai_usage_history.providers &&
-      s.ai_usage_history.providers[providerId];
+      s.ai_usage_history.providers && s.ai_usage_history.providers[providerId];
     days = ph && Array.isArray(ph.days) ? ph.days : [];
   } else if (providerId === "minimax") {
     // v1 平铺 history → minimax
-    days = Array.isArray(s.ai_usage_history.days) ? s.ai_usage_history.days : [];
+    days = Array.isArray(s.ai_usage_history.days)
+      ? s.ai_usage_history.days
+      : [];
   } else {
     days = [];
   }
@@ -1418,7 +1509,9 @@ function appendAiUsageHistoryDayProvider(
   statePath = defaultPath(),
 ) {
   if (typeof providerId !== "string" || !providerId) {
-    throw new TypeError("appendAiUsageHistoryDayProvider: providerId must be non-empty string");
+    throw new TypeError(
+      "appendAiUsageHistoryDayProvider: providerId must be non-empty string",
+    );
   }
   // 复用 v1 的 entry 校验逻辑 (日期格式 + percent 0-100 + used 类型)
   // 直接调 appendAiUsageHistoryDay 会写到 v1 平铺, 这里要写到 v2 providers 槽.
@@ -1427,16 +1520,37 @@ function appendAiUsageHistoryDayProvider(
     typeof entry.date !== "string" ||
     !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)
   ) {
-    throw new TypeError("appendAiUsageHistoryDayProvider: entry.date must be YYYY-MM-DD");
+    throw new TypeError(
+      "appendAiUsageHistoryDayProvider: entry.date must be YYYY-MM-DD",
+    );
   }
-  if (typeof entry.percent !== "number" || !Number.isFinite(entry.percent) || entry.percent < 0 || entry.percent > 100) {
-    throw new TypeError("appendAiUsageHistoryDayProvider: entry.percent must be 0-100 number");
+  if (
+    typeof entry.percent !== "number" ||
+    !Number.isFinite(entry.percent) ||
+    entry.percent < 0 ||
+    entry.percent > 100
+  ) {
+    throw new TypeError(
+      "appendAiUsageHistoryDayProvider: entry.percent must be 0-100 number",
+    );
   }
-  if (entry.used != null && (typeof entry.used !== "number" || !Number.isFinite(entry.used) || entry.used < 0)) {
-    throw new TypeError("appendAiUsageHistoryDayProvider: entry.used (if present) must be non-negative number");
+  if (
+    entry.used != null &&
+    (typeof entry.used !== "number" ||
+      !Number.isFinite(entry.used) ||
+      entry.used < 0)
+  ) {
+    throw new TypeError(
+      "appendAiUsageHistoryDayProvider: entry.used (if present) must be non-negative number",
+    );
   }
 
-  const existing = load(statePath) || { v: SCHEMA_VERSION, ts: 0, apps: {}, mutes: {} };
+  const existing = load(statePath) || {
+    v: SCHEMA_VERSION,
+    ts: 0,
+    apps: {},
+    mutes: {},
+  };
   const cur = existing.ai_usage_history;
   let providers;
   if (cur && _isAiUsageV2(cur)) {
@@ -1454,7 +1568,10 @@ function appendAiUsageHistoryDayProvider(
     if (d && typeof d.date === "string") map.set(d.date, d);
   }
   const prev = map.get(entry.date);
-  const percent = Math.max(prev && typeof prev.percent === "number" ? prev.percent : 0, entry.percent);
+  const percent = Math.max(
+    prev && typeof prev.percent === "number" ? prev.percent : 0,
+    entry.percent,
+  );
   let used = prev && typeof prev.used === "number" ? prev.used : null;
   if (typeof entry.used === "number") {
     used = Math.max(used == null ? 0 : used, entry.used);
@@ -1471,7 +1588,6 @@ function appendAiUsageHistoryDayProvider(
     next.ai_usage_history = { schema_version: 2, providers: { ...providers } };
   }, statePath);
 }
-
 
 //
 // 用途: 启动时把 "Step B 之前已经分类过的 app" 从 state.json 拿出来,
@@ -1577,9 +1693,12 @@ function loadOrRecover(statePath = defaultPath()) {
         backup: backup.ok ? backup.backupPath : null,
         backupFailed: !backup.ok,
         reason: err.parseError ? "parse_failed" : "schema_failed",
-        errors: Array.isArray(err.schemaErrors) && err.schemaErrors.length > 0
-          ? err.schemaErrors
-          : (err.parseError && err.parseError.message ? [err.parseError.message] : []),
+        errors:
+          Array.isArray(err.schemaErrors) && err.schemaErrors.length > 0
+            ? err.schemaErrors
+            : err.parseError && err.parseError.message
+              ? [err.parseError.message]
+              : [],
         ts: Date.now(),
       };
       _lastRecoveryEvent = event;
@@ -1680,7 +1799,9 @@ function setLastSeenRelease(version, at, statePath = defaultPath()) {
     throw new TypeError("setLastSeenRelease: version must be non-empty string");
   }
   if (typeof at !== "number" || !Number.isFinite(at) || at < 0) {
-    throw new TypeError("setLastSeenRelease: at must be non-negative finite number");
+    throw new TypeError(
+      "setLastSeenRelease: at must be non-negative finite number",
+    );
   }
   return patchState((next) => {
     next.last_seen_release = { version, at };
@@ -1700,7 +1821,9 @@ function loadStartupSamples(statePath = defaultPath()) {
     if (!Array.isArray(arr)) return [];
     // 兼容容错: 每条只保留 { ts, readyMs } 两个 number 字段
     return arr
-      .filter((e) => e && typeof e === "object" && typeof e.readyMs === "number")
+      .filter(
+        (e) => e && typeof e === "object" && typeof e.readyMs === "number",
+      )
       .map((e) => ({ ts: e.ts || 0, readyMs: e.readyMs }));
   } catch {
     return [];
@@ -1756,8 +1879,7 @@ function normalizeWatchlistItem(w) {
     };
   }
   if (type === "fund") {
-    const nav =
-      w.lastNotifiedNav == null ? null : Number(w.lastNotifiedNav);
+    const nav = w.lastNotifiedNav == null ? null : Number(w.lastNotifiedNav);
     return {
       type: "fund",
       ref,
@@ -1770,8 +1892,17 @@ function normalizeWatchlistItem(w) {
       type: "keyword",
       ref,
       addedAt,
-      lastMatchKey:
-        typeof w.lastMatchKey === "string" ? w.lastMatchKey : null,
+      lastMatchKey: typeof w.lastMatchKey === "string" ? w.lastMatchKey : null,
+    };
+  }
+  if (type === "metal") {
+    const price =
+      w.lastNotifiedPrice == null ? null : Number(w.lastNotifiedPrice);
+    return {
+      type: "metal",
+      ref,
+      addedAt,
+      lastNotifiedPrice: Number.isFinite(price) ? price : null,
     };
   }
   return null;
@@ -1788,9 +1919,7 @@ function loadWatchlist(statePath = defaultPath()) {
   try {
     const s = load(statePath);
     const wl = s && Array.isArray(s.watchlist) ? s.watchlist : [];
-    return wl
-      .map(normalizeWatchlistItem)
-      .filter(Boolean);
+    return wl.map(normalizeWatchlistItem).filter(Boolean);
   } catch {
     return [];
   }
@@ -1912,6 +2041,8 @@ module.exports = {
   loadChangelogSummaryCache,
   loadChangelogSummaryEntry,
   saveChangelogSummaryEntry,
+  loadAiUsageAlertPrefs,
+  saveAiUsageAlertPrefs,
   // A3: 搜索索引注入
   setSearchIndex,
 };

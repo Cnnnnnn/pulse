@@ -14,13 +14,13 @@
  * classify_llm_cache etc.) without relying on PRESERVE_FIELDS.
  */
 
-const { ipcMain, webContents } = require('electron');
-const { HttpClient } = require('./http-client.js');
-const { MetalScheduler } = require('../metals/metal-scheduler.js');
-const stateStore = require('./state-store.js');
+const { ipcMain, webContents } = require("electron");
+const { HttpClient } = require("./http-client.js");
+const { MetalScheduler } = require("../metals/metal-scheduler.js");
+const stateStore = require("./state-store.js");
 
 const DEFAULT_CONFIG = {
-  watchedIds: ['XAU', 'XAG', 'AU9999', 'AG9999'],
+  watchedIds: ["XAU", "XAG", "AU9999", "AG9999"],
   holdings: { XAU: null, XAG: null, AU9999: null, AG9999: null },
   deletedIds: [],
 };
@@ -91,7 +91,8 @@ function getTraySnapshot() {
     fx: fxCache && typeof fxCache.rate === "number" ? { ...fxCache } : null,
     fetchedAt: quoteCache && quoteCache.fetchedAt ? quoteCache.fetchedAt : null,
     errors: quoteCache && quoteCache.errors ? { ...quoteCache.errors } : {},
-    holdings: loadConfig() && loadConfig().holdings ? { ...loadConfig().holdings } : {},
+    holdings:
+      loadConfig() && loadConfig().holdings ? { ...loadConfig().holdings } : {},
   };
 }
 
@@ -101,32 +102,34 @@ function getTraySnapshot() {
  * 现在: registerMetalIpc() 跟 startMetalScheduler() 互相独立, caller 显式控制.
  */
 function registerMetalIpc() {
-  ipcMain.handle('metals:list', () => loadConfig());
+  ipcMain.handle("metals:list", () => loadConfig());
 
-  ipcMain.handle('metals:config:update', (_evt, { patch }) => saveConfig(patch));
+  ipcMain.handle("metals:config:update", (_evt, { patch }) =>
+    saveConfig(patch),
+  );
 
-  ipcMain.handle('metals:holding:upsert', (_evt, { id, holding }) => {
+  ipcMain.handle("metals:holding:upsert", (_evt, { id, holding }) => {
     const cfg = loadConfig();
     cfg.holdings[id] = holding;
     persistConfig(cfg);
     return cfg;
   });
 
-  ipcMain.handle('metals:holding:remove', (_evt, { id }) => {
+  ipcMain.handle("metals:holding:remove", (_evt, { id }) => {
     const cfg = loadConfig();
     cfg.holdings[id] = null;
     persistConfig(cfg);
     return cfg;
   });
 
-  ipcMain.handle('metals:quote:fetch', async () => {
-    if (!scheduler) return { ok: false, error: 'scheduler not started' };
+  ipcMain.handle("metals:quote:fetch", async () => {
+    if (!scheduler) return { ok: false, error: "scheduler not started" };
     await scheduler.fetchNow();
     return { ok: true, quotes: quoteCache, fx: fxCache };
   });
 
-  ipcMain.handle('metals:quote:state', () => ({
-    scheduler: scheduler ? scheduler.getState() : { status: 'idle' },
+  ipcMain.handle("metals:quote:state", () => ({
+    scheduler: scheduler ? scheduler.getState() : { status: "idle" },
     quotes: quoteCache,
     fx: fxCache,
   }));
@@ -138,7 +141,10 @@ function registerMetalIpc() {
  */
 function startMetalScheduler(opts = {}) {
   if (scheduler) return;
-  const onUpdateTray = typeof opts.onUpdateTray === "function" ? opts.onUpdateTray : null;
+  const onUpdateTray =
+    typeof opts.onUpdateTray === "function" ? opts.onUpdateTray : null;
+  const getConfig =
+    typeof opts.getConfig === "function" ? opts.getConfig : null;
   scheduler = new MetalScheduler({
     httpGet: httpGetAdapter,
     onUpdate: (update) => {
@@ -154,14 +160,36 @@ function startMetalScheduler(opts = {}) {
             fetchedAt: update.fetchedAt,
           };
         }
-        broadcast('metals:quote:changed', { quotes: quoteCache, fx: fxCache });
-        // v2.22 Task D1: 推 tray (复用 onUpdate 钩点, 不新增 IPC)
+        broadcast("metals:quote:changed", { quotes: quoteCache, fx: fxCache });
         if (onUpdateTray) {
-          try { onUpdateTray(getTraySnapshot()); } catch (err) { /* noop */ }
+          try {
+            onUpdateTray(getTraySnapshot());
+          } catch (err) {
+            /* noop */
+          }
+        }
+        if (getConfig) {
+          try {
+            const {
+              checkWatchlistMetalUpdates,
+              makeWatchlistSendNotification,
+            } = require("./watchlist");
+            const { getMetalById } = require("../metals/metal-config");
+            checkWatchlistMetalUpdates({
+              quoteMap: quoteCache.data,
+              sendNotification: makeWatchlistSendNotification(getConfig),
+              getMetalLabel: (id) => {
+                const m = getMetalById(id);
+                return (m && m.shortName) || id;
+              },
+            });
+          } catch (err) {
+            /* noop — watchlist 是 best-effort */
+          }
         }
       }
       if (update.state) {
-        broadcast('metals:quote:state-changed', update.state);
+        broadcast("metals:quote:state-changed", update.state);
       }
     },
   });

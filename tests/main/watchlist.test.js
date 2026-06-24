@@ -16,7 +16,10 @@ const {
   checkWatchlistFundUpdates,
   checkWatchlistKeywordUpdatesPure,
   checkWatchlistKeywordUpdates,
+  checkWatchlistMetalUpdatesPure,
+  checkWatchlistMetalUpdates,
   FUND_NAV_CHANGE_PCT,
+  METAL_PRICE_CHANGE_PCT,
 } = require("../../src/main/watchlist");
 
 const appItem = (ref, lastNotifiedVersion = null) => ({
@@ -134,7 +137,9 @@ describe("checkWatchlistFundUpdates (副作用)", () => {
     const saveWatchlist = vi.fn();
     const sendNotification = vi.fn();
     checkWatchlistFundUpdates({
-      watchlist: [{ type: "fund", ref: "000001", addedAt: 1, lastNotifiedNav: null }],
+      watchlist: [
+        { type: "fund", ref: "000001", addedAt: 1, lastNotifiedNav: null },
+      ],
       navMap: { "000001": { nav: 1.2, dayChange: 0 } },
       saveWatchlist,
       sendNotification,
@@ -148,11 +153,55 @@ describe("checkWatchlistKeywordUpdates (副作用)", () => {
   it("新匹配 → 通知", () => {
     const sendNotification = vi.fn();
     checkWatchlistKeywordUpdates({
-      watchlist: [{ type: "keyword", ref: "AI", addedAt: 1, lastMatchKey: "旧" }],
+      watchlist: [
+        { type: "keyword", ref: "AI", addedAt: 1, lastMatchKey: "旧" },
+      ],
       headlines: [{ title: "AI 大模型" }],
       saveWatchlist: vi.fn(),
       sendNotification,
     });
     expect(sendNotification).toHaveBeenCalledOnce();
+  });
+});
+
+describe("checkWatchlistMetalUpdatesPure", () => {
+  const metalItem = (ref, lastNotifiedPrice = null) => ({
+    type: "metal",
+    ref,
+    addedAt: 1,
+    lastNotifiedPrice,
+  });
+
+  it("首次有报价 → baseline", () => {
+    const r = checkWatchlistMetalUpdatesPure({
+      watchlist: [metalItem("XAU")],
+      quoteMap: { XAU: { price: 2300 } },
+    });
+    expect(r.notified).toBe(0);
+    expect(r.baselines[0].lastNotifiedPrice).toBe(2300);
+  });
+
+  it(`价格变动 ≥ ${METAL_PRICE_CHANGE_PCT}% → 通知`, () => {
+    const r = checkWatchlistMetalUpdatesPure({
+      watchlist: [metalItem("XAU", 2300)],
+      quoteMap: { XAU: { price: 2350 } },
+    });
+    expect(r.notified).toBe(1);
+    expect(r.items[0].dir).toBe("涨");
+  });
+});
+
+describe("checkWatchlistMetalUpdates (副作用)", () => {
+  it("baseline → 只写盘", () => {
+    const sendNotification = vi.fn();
+    checkWatchlistMetalUpdates({
+      watchlist: [
+        { type: "metal", ref: "XAU", addedAt: 1, lastNotifiedPrice: null },
+      ],
+      quoteMap: { XAU: { price: 100 } },
+      saveWatchlist: vi.fn(),
+      sendNotification,
+    });
+    expect(sendNotification).not.toHaveBeenCalled();
   });
 });

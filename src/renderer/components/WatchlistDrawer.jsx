@@ -1,7 +1,7 @@
 /**
  * src/renderer/components/WatchlistDrawer.jsx
  *
- * I2 v2 — 关注列表: app / 基金 / 关键词
+ * I2 v2 — 关注列表: app / 基金 / 关键词 / 贵金属
  */
 import { useEffect, useState } from 'preact/hooks';
 import {
@@ -12,6 +12,7 @@ import {
   addWatchlistItem,
   itemKey,
 } from '../watchlist/watchlist-store.js';
+import { getMetalById } from '../../metals/metal-config.js';
 
 function fmtTs(ts) {
   if (!ts || typeof ts !== 'number') return '';
@@ -24,11 +25,16 @@ const TYPE_LABEL = {
   app: { icon: '⭐', label: 'App' },
   fund: { icon: '💰', label: '基金' },
   keyword: { icon: '🔍', label: '关键词' },
+  metal: { icon: '🥇', label: '贵金属' },
 };
 
 function entryTitle(w) {
   if (w.type === 'app') return w.ref;
   if (w.type === 'fund') return w.ref;
+  if (w.type === 'metal') {
+    const m = getMetalById(w.ref);
+    return m ? m.shortName : w.ref;
+  }
   return `「${w.ref}」`;
 }
 
@@ -42,6 +48,11 @@ function entryMeta(w) {
     return w.lastNotifiedNav != null
       ? `基准净值: ${Number(w.lastNotifiedNav).toFixed(4)}`
       : '等待首次净值';
+  }
+  if (w.type === 'metal') {
+    return w.lastNotifiedPrice != null
+      ? `基准价: ${Number(w.lastNotifiedPrice).toFixed(2)}`
+      : '等待首次报价';
   }
   if (w.type === 'keyword') {
     return w.lastMatchKey
@@ -107,7 +118,7 @@ export function WatchlistDrawer() {
         <div class="watchlist-drawer__body">
           {items.length === 0 && (
             <div class="watchlist-drawer__empty">
-              Pin App (列表 ⭐)、基金 (基金行 ⭐)，或上方添加关键词
+              Pin App (列表 ⭐)、基金/贵金属 (卡片 ⭐)，或上方添加关键词
             </div>
           )}
           {items.map((w) => {

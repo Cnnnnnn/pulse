@@ -7197,6 +7197,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   background: linear-gradient(180deg, #ff9544 0%, #f37735 100%);
 }
 
+.ai-usage-sparkline-bar--anomaly {
+  background: linear-gradient(180deg, #ff6b6b 0%, #e03131 100%);
+  box-shadow: 0 0 0 1px rgba(224, 49, 49, 0.35);
+}
+
 .ai-usage-sparkline-bar--hover {
   transform: translateY(-2px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -7951,6 +7956,12 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary, #1d1d1f);
+}
+
+.metal-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .btn-icon {

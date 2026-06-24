@@ -25,9 +25,14 @@ function broadcastVersionHistoryCounts(sendToRenderer) {
   try {
     const counts = versionHistory.getAllCounts();
     const totalSizeBytes = versionHistory.getTotalSize();
-    sendToRenderer("version-history-counts-updated", { counts, totalSizeBytes });
+    sendToRenderer("version-history-counts-updated", {
+      counts,
+      totalSizeBytes,
+    });
   } catch (err) {
-    mainLog.warn("[ipc] broadcastVersionHistoryCounts failed", { msg: err && err.message });
+    mainLog.warn("[ipc] broadcastVersionHistoryCounts failed", {
+      msg: err && err.message,
+    });
   }
 }
 
@@ -489,7 +494,12 @@ function registerCoreHandlers(ctx) {
         // outputDir 默认 ~/Desktop (bundleDiagnostics 内置)
       });
       if (!r.ok) return { ok: false, reason: r.error || "bundle_failed" };
-      return { ok: true, path: r.path, sizeBytes: r.sizeBytes, fileCount: r.fileCount };
+      return {
+        ok: true,
+        path: r.path,
+        sizeBytes: r.sizeBytes,
+        fileCount: r.fileCount,
+      };
     } catch (err) {
       return { ok: false, reason: "threw", error: err && err.message };
     }
@@ -504,16 +514,26 @@ function registerCoreHandlers(ctx) {
       const sinceMs =
         (opts && typeof opts.sinceMs === "number" && opts.sinceMs) ||
         Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const topN = (opts && typeof opts.topN === "number" && opts.topN > 0) ? opts.topN : 5;
+      const topN =
+        opts && typeof opts.topN === "number" && opts.topN > 0 ? opts.topN : 5;
       const inst = getInstance();
       let entries = [];
       let stats = { total: 0, byLevel: {}, skipped: 0 };
-      if (inst && inst.aggregator && typeof inst.aggregator.query === "function") {
+      if (
+        inst &&
+        inst.aggregator &&
+        typeof inst.aggregator.query === "function"
+      ) {
         try {
-          const r = await inst.aggregator.query({ since: sinceMs, limit: 5000 });
+          const r = await inst.aggregator.query({
+            since: sinceMs,
+            limit: 5000,
+          });
           entries = r.entries || [];
           stats = r.stats || stats;
-        } catch { /* noop */ }
+        } catch {
+          /* noop */
+        }
       }
       return {
         ok: true,
@@ -567,7 +587,7 @@ function registerCoreHandlers(ctx) {
       if (!type || !ref) {
         return { ok: false, reason: "invalid_payload" };
       }
-      if (!["app", "fund", "keyword"].includes(type)) {
+      if (!["app", "fund", "keyword", "metal"].includes(type)) {
         return { ok: false, reason: "invalid_type" };
       }
       if (type === "fund" && !/^\d{6}$/.test(ref)) {
@@ -575,6 +595,12 @@ function registerCoreHandlers(ctx) {
       }
       if (type === "keyword" && ref.length > 40) {
         return { ok: false, reason: "keyword_too_long" };
+      }
+      if (type === "metal") {
+        const { METAL_IDS } = require("../../metals/metal-config");
+        if (!METAL_IDS.includes(ref)) {
+          return { ok: false, reason: "invalid_metal_id" };
+        }
       }
       const list = loadWatchlist();
       if (list.some((w) => w.type === type && w.ref === ref)) {
@@ -584,6 +610,7 @@ function registerCoreHandlers(ctx) {
       if (type === "app") entry.lastNotifiedVersion = null;
       if (type === "fund") entry.lastNotifiedNav = null;
       if (type === "keyword") entry.lastMatchKey = null;
+      if (type === "metal") entry.lastNotifiedPrice = null;
       const next = [...list, entry];
       saveWatchlist(next);
       return { ok: true, items: next };
@@ -594,8 +621,11 @@ function registerCoreHandlers(ctx) {
 
   safeHandle("watchlist:remove", (_e, payload) => {
     try {
-      const { loadWatchlist, saveWatchlist, watchlistItemKey } =
-        require("../state-store");
+      const {
+        loadWatchlist,
+        saveWatchlist,
+        watchlistItemKey,
+      } = require("../state-store");
       const legacyName = payload && payload.appName;
       const type =
         payload && typeof payload.type === "string"
@@ -692,7 +722,9 @@ function registerCoreHandlers(ctx) {
       const totalSizeBytes = versionHistory.getTotalSize();
       return { ok: true, entries, totalSizeBytes };
     } catch (err) {
-      mainLog.warn("[ipc] get-version-history threw", { msg: err && err.message });
+      mainLog.warn("[ipc] get-version-history threw", {
+        msg: err && err.message,
+      });
       return { ok: false, reason: "threw", entries: [], totalSizeBytes: 0 };
     }
   });
@@ -700,7 +732,12 @@ function registerCoreHandlers(ctx) {
   safeHandle(
     "rollback-app",
     async (_event, appName, toVersion) => {
-      if (!appName || typeof appName !== "string" || !toVersion || typeof toVersion !== "string") {
+      if (
+        !appName ||
+        typeof appName !== "string" ||
+        !toVersion ||
+        typeof toVersion !== "string"
+      ) {
         return { ok: false, reason: "invalid_args" };
       }
       const apps = (getConfig() && getConfig().apps) || [];
@@ -722,7 +759,11 @@ function registerCoreHandlers(ctx) {
           backupPath: entry.backupPath,
           rollbackToVersion: toVersion,
           currentInstalledVersion:
-            (appCfg.installed_version || appCfg.latest_version || "").toString() || "unknown",
+            (
+              appCfg.installed_version ||
+              appCfg.latest_version ||
+              ""
+            ).toString() || "unknown",
           onUpdateInstalled: (newVer) => {
             try {
               // 写 apps[appName].installed_version — 通过 saveAll 单条模式,
@@ -739,14 +780,18 @@ function registerCoreHandlers(ctx) {
             try {
               recentActivity.push(payload);
             } catch (err) {
-              mainLog.warn("[ipc] rollback-app: onActivity failed", { msg: err && err.message });
+              mainLog.warn("[ipc] rollback-app: onActivity failed", {
+                msg: err && err.message,
+              });
             }
           },
           onBroadcast: (event, payload) => {
             try {
               sendToRenderer(event, payload);
             } catch (err) {
-              mainLog.warn("[ipc] rollback-app: onBroadcast failed", { msg: err && err.message });
+              mainLog.warn("[ipc] rollback-app: onBroadcast failed", {
+                msg: err && err.message,
+              });
             }
           },
         });
@@ -768,7 +813,12 @@ function registerCoreHandlers(ctx) {
   safeHandle(
     "delete-backup",
     (_event, appName, version) => {
-      if (!appName || typeof appName !== "string" || !version || typeof version !== "string") {
+      if (
+        !appName ||
+        typeof appName !== "string" ||
+        !version ||
+        typeof version !== "string"
+      ) {
         return { ok: false, reason: "invalid_args" };
       }
       try {
@@ -837,12 +887,16 @@ function registerCoreHandlers(ctx) {
       if (typeof getCachedState === "function") {
         try {
           state = getCachedState();
-        } catch { /* noop */ }
+        } catch {
+          /* noop */
+        }
       }
       let pulseVersion = "";
       try {
         pulseVersion = require("../../../package.json").version || "";
-      } catch { /* noop */ }
+      } catch {
+        /* noop */
+      }
       const r = exportDetectResults({ state, format, pulseVersion });
       if (!r.ok) return { ok: false, reason: r.error || "export_failed" };
       return {

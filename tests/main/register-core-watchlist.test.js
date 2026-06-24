@@ -20,7 +20,11 @@ const handlers = new Map();
 const mockHandle = vi.fn((name, fn) => handlers.set(name, fn));
 const electronStub = {
   ipcMain: { handle: mockHandle },
-  Notification: class { static isSupported() { return false; } },
+  Notification: class {
+    static isSupported() {
+      return false;
+    }
+  },
 };
 const electronPath = require.resolve("electron");
 
@@ -64,10 +68,16 @@ function freshRegister() {
   handlers.clear();
   mockHandle.mockClear();
   require.cache[electronPath] = {
-    id: electronPath, filename: electronPath, loaded: true, exports: electronStub,
+    id: electronPath,
+    filename: electronPath,
+    loaded: true,
+    exports: electronStub,
   };
   require.cache[stateStorePath] = {
-    id: stateStorePath, filename: stateStorePath, loaded: true, exports: stateStoreStub,
+    id: stateStorePath,
+    filename: stateStorePath,
+    loaded: true,
+    exports: stateStoreStub,
   };
   // 重置 register-core 模块缓存, 让它 fresh require
   delete require.cache[require.resolve("../../src/main/ipc/register-core.js")];
@@ -86,7 +96,9 @@ beforeEach(() => {
 
 describe("watchlist IPC handlers", () => {
   it("watchlist:list — returns current list", () => {
-    mockWatchlist = [{ type: "app", ref: "VSCode", addedAt: 1, lastNotifiedVersion: null }];
+    mockWatchlist = [
+      { type: "app", ref: "VSCode", addedAt: 1, lastNotifiedVersion: null },
+    ];
     freshRegister();
     const h = handlers.get("watchlist:list");
     expect(h).toBeDefined();
@@ -137,7 +149,10 @@ describe("watchlist IPC handlers", () => {
 
   it("watchlist:add — 空字符串 → ok:false invalid_payload", () => {
     const h = handlers.get("watchlist:add");
-    expect(h({}, { appName: "" })).toEqual({ ok: false, reason: "invalid_payload" });
+    expect(h({}, { appName: "" })).toEqual({
+      ok: false,
+      reason: "invalid_payload",
+    });
   });
 
   it("watchlist:add — null payload → ok:false invalid_payload", () => {
@@ -147,7 +162,10 @@ describe("watchlist IPC handlers", () => {
 
   it("watchlist:add — 非字符串 appName → ok:false", () => {
     const h = handlers.get("watchlist:add");
-    expect(h({}, { appName: 42 })).toEqual({ ok: false, reason: "invalid_payload" });
+    expect(h({}, { appName: 42 })).toEqual({
+      ok: false,
+      reason: "invalid_payload",
+    });
   });
 
   it("watchlist:remove — 过滤目标", () => {
@@ -165,7 +183,10 @@ describe("watchlist IPC handlers", () => {
 
   it("watchlist:remove — 非法 payload → ok:false", () => {
     const h = handlers.get("watchlist:remove");
-    expect(h({}, { appName: 42 })).toEqual({ ok: false, reason: "invalid_payload" });
+    expect(h({}, { appName: 42 })).toEqual({
+      ok: false,
+      reason: "invalid_payload",
+    });
   });
 
   it("watchlist:remove — 不存在 → ok:true, items 空", () => {
@@ -190,5 +211,22 @@ describe("watchlist IPC handlers", () => {
     const r = h({}, { appName: "VSCode" });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("save_failed");
+  });
+
+  it("watchlist:add — metal 合法 id", () => {
+    const h = handlers.get("watchlist:add");
+    const r = h({}, { type: "metal", ref: "XAU" });
+    expect(r.ok).toBe(true);
+    expect(r.items.some((w) => w.type === "metal" && w.ref === "XAU")).toBe(
+      true,
+    );
+    expect(r.items.find((w) => w.ref === "XAU").lastNotifiedPrice).toBe(null);
+  });
+
+  it("watchlist:add — metal 非法 id → invalid_metal_id", () => {
+    const h = handlers.get("watchlist:add");
+    const r = h({}, { type: "metal", ref: "INVALID" });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("invalid_metal_id");
   });
 });

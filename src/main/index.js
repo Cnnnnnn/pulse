@@ -384,6 +384,7 @@ async function bootstrap() {
     // B2.1: 30min 自动刷新 — 复用 register-ai-usage 的 deps (跟 IPC 通道同源)
     aiUsageScheduler = createAiUsageRefreshScheduler({
       trayMgr,
+      getConfig: () => runtimeConfigRef.current,
       deps: {
         stateStore: {
           loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,
@@ -402,10 +403,21 @@ async function bootstrap() {
         },
         MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
         GlmQuotaClient: require("../ai-usage/client-glm").GlmQuotaClient,
-        pushEvent: () => {}, // tray refresh 不需要推 renderer (renderer 走自己的 IPC)
+        pushEvent: () => {},
+      },
+      alertDeps: {
+        providers: ["minimax", "glm"],
+        loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
+        loadAlertPrefs: stateStore.loadAiUsageAlertPrefs,
+        saveAlertPrefs: stateStore.saveAiUsageAlertPrefs,
+        listTasks: async (dateKey) => {
+          const wiring = global.__pulse_aiTasks;
+          if (!wiring || !wiring.engine) return { tasks: [] };
+          return wiring.engine.listTasks(dateKey);
+        },
       },
     });
-    aiUsageScheduler.start({ intervalMs: 30 * 60 * 1000 });
+    aiUsageScheduler.start({ intervalMs: 30 * 60 * 1000, deferInitial: true });
     mainLog.info("ai-usage tray refresh scheduler started (every 30min)");
   } catch (err) {
     mainLog.warn(`ai-usage tray init failed: ${err && err.message}`);
@@ -511,9 +523,7 @@ async function bootstrap() {
           `search index built (deferred): ${searchIndex.size()} docs in ${Date.now() - tSearch}ms`,
         );
       } catch (err) {
-        mainLog.warn(
-          `[search] deferred build failed: ${err && err.message}`,
-        );
+        mainLog.warn(`[search] deferred build failed: ${err && err.message}`);
       }
     });
   } catch (err) {
@@ -602,6 +612,7 @@ async function bootstrap() {
   //      via getTraySnapshot — no IPC channel for tray updates.
   registerMetalIpc();
   startMetalScheduler({
+    getConfig: () => runtimeConfigRef.current,
     onUpdateTray: () => {
       if (!trayMgr) return;
       try {
@@ -615,24 +626,24 @@ async function bootstrap() {
     },
   });
 
-  // 7.5) AI usage warmup (fire-and-forget) — 让 renderer 进入 AI 用量页时立即有数据
-  //      IPC handlers 已在 registerIpcHandlers 里注册, 这里只跑 warmup
-  //      (multi-provider v2: minimax + glm 各自 fire-and-forget)
-  bootstrapAiUsage(
-    {
-      stateStore: {
-        loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,
-        saveSnapshotProvider: stateStore.saveAiUsageSnapshotProvider,
-        loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
-        appendHistoryProvider: stateStore.appendAiUsageHistoryDayProvider,
+  // 7.5) AI usage warmup — Q4 v3: 延后到 setImmediate, 不阻塞 bootstrap 同步段
+  setImmediate(() => {
+    bootstrapAiUsage(
+      {
+        stateStore: {
+          loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,
+          saveSnapshotProvider: stateStore.saveAiUsageSnapshotProvider,
+          loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
+          appendHistoryProvider: stateStore.appendAiUsageHistoryDayProvider,
+        },
+        storage: require("../ai-sessions/storage"),
+        MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
+        GlmQuotaClient: require("../ai-usage/client-glm").GlmQuotaClient,
+        sendToRenderer,
       },
-      storage: require("../ai-sessions/storage"),
-      MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
-      GlmQuotaClient: require("../ai-usage/client-glm").GlmQuotaClient,
-      sendToRenderer,
-    },
-    { warmup: true, registerIpc: false },
-  );
+      { warmup: true, registerIpc: false },
+    );
+  });
 
   // 8) fund + reminders + recent listeners + auto-check timer
   fundScheduler = startFundScheduler({

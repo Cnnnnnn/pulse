@@ -32,6 +32,7 @@ import {
 } from "../store/ai-usage-store.js";
 import { useNowTick } from "../hooks/useNowTick.jsx";
 import { computeBlowUpAt, formatBlowUpIn } from "../../ai-usage/derive.js";
+import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
 import { UsageSparkline } from "./UsageSparkline.jsx";
 import { taggedLog } from "../log.js";
 
@@ -259,6 +260,11 @@ function ProviderUsageView({ provider }) {
 
   const todayLabel = formatTodayUsed(provider, todayUsed);
 
+  const anomaly = useMemo(
+    () => detectUsageAnomaly(history.days || []),
+    [history],
+  );
+
   return (
     <div class="ai-usage-page">
       <div class="ai-usage-header">
@@ -291,6 +297,12 @@ function ProviderUsageView({ provider }) {
           {fetching ? "刷新中…" : "刷新"}
         </button>
       </div>
+
+      {anomaly.anomaly && (
+        <div class="ai-usage-banner ai-usage-banner--warn ai-usage-anomaly-banner">
+          今日用量 {anomaly.todayPercent}% 明显高于近 7 日中位（约 {Math.round(anomaly.baselineMedian)}%），建议检查 AI 任务用量
+        </div>
+      )}
 
       {lastError && snapshot && (
         <div class="ai-usage-banner ai-usage-banner--warn">
@@ -350,7 +362,12 @@ function ProviderUsageView({ provider }) {
       {snapshot && (
         <div class="ai-usage-history">
           <div class="ai-usage-history-title">最近 7 天用量趋势 (5h 窗口已用%)</div>
-          <UsageSparkline history={history} days={7} height={56} />
+          <UsageSparkline
+            history={history}
+            days={7}
+            height={56}
+            anomalyToday={anomaly.anomaly}
+          />
         </div>
       )}
 

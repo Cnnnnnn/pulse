@@ -17,6 +17,11 @@
 
 import { quoteCache, fxCache, config } from './metalStore.js';
 import { calcChange, calcHoldingPnl, calcTodayPnl } from '../../metals/metal-calc.js';
+import {
+  isMetalPinned,
+  addWatchlistItem,
+  removeWatchlistItem,
+} from '../watchlist/watchlist-store.js';
 
 const GRAM_PER_OZ = 31.1035;
 
@@ -40,6 +45,12 @@ export function MetalCard({ metal, onEdit }) {
   const error = quoteCache.value.errors[metal.id];
   const holding = config.value.holdings[metal.id];
   const fx = fxCache.value.rate;
+  const pinned = isMetalPinned(metal.id);
+  const togglePin = (e) => {
+    e.stopPropagation();
+    if (pinned) removeWatchlistItem({ type: 'metal', ref: metal.id });
+    else addWatchlistItem({ type: 'metal', ref: metal.id });
+  };
 
   // 每克人民币价格 (主显示)
   const isCNY = quote && quote.currency === 'CNY';
@@ -67,7 +78,17 @@ export function MetalCard({ metal, onEdit }) {
       <div class="metal-card metal-card-error">
         <div class="metal-card-header">
           <h3>{metal.name}</h3>
-          <button class="btn-icon" onClick={() => onEdit(metal.id)}>⋯</button>
+          <div class="metal-card-actions">
+            <button
+              type="button"
+              class={`fund-row-action-btn${pinned ? ' fund-row-action-btn--active' : ''}`}
+              onClick={togglePin}
+              title={pinned ? '取消关注' : '价格异动提醒'}
+            >
+              {pinned ? '★' : '☆'}
+            </button>
+            <button class="btn-icon" onClick={() => onEdit(metal.id)}>⋯</button>
+          </div>
         </div>
         <div class="metal-card-error-body">⚠️ 数据获取失败</div>
         <div class="metal-card-error-meta">
@@ -84,7 +105,17 @@ export function MetalCard({ metal, onEdit }) {
       <div class="metal-card">
         <div class="metal-card-header">
           <h3>{metal.name}</h3>
-          <button class="btn-icon" onClick={() => onEdit(metal.id)}>⋯</button>
+          <div class="metal-card-actions">
+            <button
+              type="button"
+              class={`fund-row-action-btn${pinned ? ' fund-row-action-btn--active' : ''}`}
+              onClick={togglePin}
+              title={pinned ? '取消关注' : '价格异动提醒'}
+            >
+              {pinned ? '★' : '☆'}
+            </button>
+            <button class="btn-icon" onClick={() => onEdit(metal.id)}>⋯</button>
+          </div>
         </div>
         <div class="metal-card-loading">加载中...</div>
       </div>
@@ -101,7 +132,18 @@ export function MetalCard({ metal, onEdit }) {
     <div class={`metal-card metal-card-${trend}`}>
       <div class="metal-card-header">
         <h3>{metal.name}</h3>
-        <button class="btn-icon" onClick={() => onEdit(metal.id)} title="编辑持仓">⋯</button>
+        <div class="metal-card-actions">
+          <button
+            type="button"
+            class={`fund-row-action-btn${pinned ? ' fund-row-action-btn--active' : ''}`}
+            onClick={togglePin}
+            title={pinned ? '取消关注' : '价格异动提醒'}
+            aria-label={pinned ? '取消关注' : '加入关注列表'}
+          >
+            {pinned ? '★' : '☆'}
+          </button>
+          <button class="btn-icon" onClick={() => onEdit(metal.id)} title="编辑持仓">⋯</button>
+        </div>
       </div>
 
       <div class="metal-card-price-main">
