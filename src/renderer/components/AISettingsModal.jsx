@@ -8,8 +8,7 @@
  * 设计:
  * - AIConfigForm:纯表单 (provider/model/baseUrl/api-key/test/backfill/save).
  * 不管外面的容器, 受控 open=false → 自动切回 drawer列表 view.
- * - AISettingsModal: 老 modal还在 (兼容 external "打开 AI 设置" 调用),
- * 但 App.jsx 已经不挂载, 仅做兜底 —实际使用走 drawer 内嵌 form.
+ * - AISettingsModal: SideNav「AI 配置」入口 + 兼容 openAISettings() 调用.
  *
  * Phase B7e简化:
  * - 只支持 cloud provider (deepseek / minimax).
@@ -32,6 +31,7 @@ import {
   openAISettings,
 } from '../store.js';
 import { DailyDigestSettings } from './DailyDigestSettings.jsx';
+import { AISettingsScene } from './AISettingsScene.jsx';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.
 // - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
@@ -383,8 +383,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
 }
 
 /**
- * Legacy AISettingsModal —保留作为兜底入口 (B7g之前代码可能还在调 openAISettings).
- * App.jsx 现在不挂载它. 真使用走 drawer 内嵌的 AIConfigForm.
+ * SideNav「AI 配置」弹窗 — 连接设置 + Prompt 模板 + 早报设置.
  */
 export function AISettingsModal() {
  if (!aiSettingsOpen.value) return null;
@@ -393,12 +392,12 @@ export function AISettingsModal() {
  <div class="modal-backdrop" onClick={() => openAISettings(false)}>
  <div class="modal-card ai-settings-modal" onClick={(e) => e.stopPropagation()}>
  <div class="modal-header">
- <h2>AI总结设置</h2>
+ <h2>AI 设置</h2>
  <button class="btn-close" onClick={() => openAISettings(false)} title="关闭" aria-label="关闭">×</button>
  </div>
 
       <div class="modal-body">
-        <AIConfigForm
+        <AISettingsScene
           onSaved={() => openAISettings(false)}
           onCancel={() => openAISettings(false)}
         />

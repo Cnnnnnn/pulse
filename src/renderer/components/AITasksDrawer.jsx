@@ -34,7 +34,7 @@ import {
 import { digestDrawerOpen, digestConfigMode } from '../digest/digest-store.js';
 import { api } from '../api.js';
 import { AIConfigForm } from './AISettingsModal.jsx';
-import { PromptSettings } from './PromptSettings.jsx';
+import { AISettingsScene } from './AISettingsScene.jsx';
 import { taggedLog } from '../log.js';
 
 const log = taggedLog("[tasks]");
@@ -322,37 +322,13 @@ export function AITasksDrawer() {
 
         <div class="drawer-body">
           {configMode ? (
-            <div class="digest-setup-scene">
-              <div class="ai-config-tabs" role="tablist" aria-label="AI 设置分类">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={configTab === 'connection'}
-                  class={`ai-config-tab ${configTab === 'connection' ? 'active' : ''}`}
-                  onClick={() => setConfigTab('connection')}
-                >
-                  连接设置
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={configTab === 'prompts'}
-                  class={`ai-config-tab ${configTab === 'prompts' ? 'active' : ''}`}
-                  onClick={() => setConfigTab('prompts')}
-                >
-                  Prompt 模板
-                </button>
-              </div>
-              {configTab === 'connection' ? (
-                <AIConfigForm
-                  compact
-                  onSaved={closeConfig}
-                  onCancel={closeConfig}
-                />
-              ) : (
-                <PromptSettings />
-              )}
-            </div>
+            <AISettingsScene
+              key={configTab}
+              compact
+              initialTab={configTab}
+              onSaved={closeConfig}
+              onCancel={closeConfig}
+            />
           ) : (
             <>
               {/* 日期切换 */}
