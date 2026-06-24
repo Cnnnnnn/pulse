@@ -5,12 +5,24 @@
  */
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
+import { humanizeAiError } from "../../ai/ai-errors.js";
 
 const REC_LABELS = {
   upgrade: "建议升级",
   wait: "可再等等",
   skip: "建议跳过",
 };
+
+function ageLabel(generatedAt) {
+  if (typeof generatedAt !== "number") return "";
+  const delta = Date.now() - generatedAt;
+  if (delta < 60_000) return "刚刚生成";
+  const m = Math.floor(delta / 60_000);
+  if (m < 60) return `${m}m 前生成`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h 前生成`;
+  return `${Math.floor(h / 24)}d 前生成`;
+}
 
 export function UpgradeAdvice({ appName, hasUpdate }) {
   const [loading, setLoading] = useState(false);
@@ -27,13 +39,12 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
       const r = await api.upgradeAdviceFetch({ appName, force });
       if (r && r.ok) {
         setAdvice(r);
-      } else if (r && r.reason === "api_key_missing") {
-        setError("需配置 AI API Key");
       } else {
-        setError((r && (r.reason || r.error)) || "获取失败");
+        const { label, raw } = humanizeAiError(r && r.reason, r && r.error);
+        setError({ label, raw });
       }
     } catch (err) {
-      setError((err && err.message) || "获取失败");
+      setError({ label: "获取失败", raw: (err && err.message) || "" });
     } finally {
       setLoading(false);
     }
@@ -53,13 +64,17 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
   }
 
   if (loading) {
-    return <div class="upgrade-advice upgrade-advice--loading">分析中…</div>;
+    return (
+      <div class="upgrade-advice upgrade-advice--loading">
+        <span class="upgrade-advice-loading-label">💡 AI 分析中 · 通常 5–10s</span>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div class="upgrade-advice upgrade-advice--error" title={error}>
-        {error}
+      <div class="upgrade-advice upgrade-advice--error" title={error.raw}>
+        {error.label}
         <button
           type="button"
           class="upgrade-advice-retry"
@@ -72,14 +87,26 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
   }
 
   const rec = advice.recommendation || "wait";
+  const cachedAt = ageLabel(advice.generatedAt);
+  const reasons = Array.isArray(advice.reasons) ? advice.reasons.filter(Boolean) : [];
   return (
     <div
       class={`upgrade-advice upgrade-advice--${rec}`}
-      title={advice.reasons && advice.reasons.join(" · ")}
+      title={reasons.join(" · ")}
       onClick={(e) => e.stopPropagation()}
     >
       <span class="upgrade-advice-badge">{REC_LABELS[rec] || rec}</span>
       <span class="upgrade-advice-summary">{advice.summary}</span>
+      {reasons.length > 0 && (
+        <ul class="upgrade-advice-reasons">
+          {reasons.map((r) => (
+            <li key={r}>▸ {r}</li>
+          ))}
+        </ul>
+      )}
+      {cachedAt && (
+        <span class="upgrade-advice-cached">{cachedAt}</span>
+      )}
       <button
         type="button"
         class="upgrade-advice-refresh"

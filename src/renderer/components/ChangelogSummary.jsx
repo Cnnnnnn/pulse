@@ -5,6 +5,23 @@
  */
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
+import { humanizeAiError } from "../../ai/ai-errors.js";
+
+function ageLabel(generatedAt) {
+  if (typeof generatedAt !== "number") return "";
+  const delta = Date.now() - generatedAt;
+  if (delta < 60_000) return "刚刚生成";
+  const m = Math.floor(delta / 60_000);
+  if (m < 60) return `${m}m 前生成`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h 前生成`;
+  return `${Math.floor(h / 24)}d 前生成`;
+}
+
+function clampText(s, n) {
+  if (typeof s !== "string") return "";
+  return s.length > n ? `${s.slice(0, n)}…` : s;
+}
 
 export function ChangelogSummary({ appName }) {
   const [loading, setLoading] = useState(false);
@@ -21,13 +38,12 @@ export function ChangelogSummary({ appName }) {
       const r = await api.changelogSummaryFetch({ appName, force });
       if (r && r.ok) {
         setSummary(r);
-      } else if (r && r.reason === "api_key_missing") {
-        setError("需配置 AI API Key");
       } else {
-        setError((r && (r.reason || r.error)) || "获取失败");
+        const { label, raw } = humanizeAiError(r && r.reason, r && r.error);
+        setError({ label, raw });
       }
     } catch (err) {
-      setError((err && err.message) || "获取失败");
+      setError({ label: "获取失败", raw: (err && err.message) || "" });
     } finally {
       setLoading(false);
     }
@@ -47,13 +63,21 @@ export function ChangelogSummary({ appName }) {
   }
 
   if (loading) {
-    return <div class="changelog-summary changelog-summary--loading">摘要生成中…</div>;
+    return (
+      <div class="changelog-summary changelog-summary--loading">
+        <div class="changelog-summary-skel" />
+        <div class="changelog-summary-skel changelog-summary-skel--line" />
+        <div class="changelog-summary-skel changelog-summary-skel--line" />
+        <div class="changelog-summary-skel changelog-summary-skel--line" />
+        <div class="changelog-summary-loading-label">✨ AI 提炼中 · 通常 5–15s</div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div class="changelog-summary changelog-summary--error">
-        {error}
+      <div class="changelog-summary changelog-summary--error" title={error.raw}>
+        {error.label}
         <button
           type="button"
           class="changelog-summary-retry"
@@ -69,19 +93,23 @@ export function ChangelogSummary({ appName }) {
   const showList =
     items.length > 0 &&
     !(items.length === 1 && summary.oneLiner && items[0] === summary.oneLiner);
+  const cachedAt = ageLabel(summary.generatedAt);
 
   return (
     <div class="changelog-summary" onClick={(e) => e.stopPropagation()}>
       <div class="changelog-summary-label">✨ 本版要点</div>
       {summary.oneLiner && (
-        <div class="changelog-summary-oneliner">{summary.oneLiner}</div>
+        <div class="changelog-summary-oneliner">{clampText(summary.oneLiner, 60)}</div>
       )}
       {showList && (
         <ol class="changelog-summary-list">
           {items.map((h) => (
-            <li key={h}>{h}</li>
+            <li key={h}>{clampText(h, 50)}</li>
           ))}
         </ol>
+      )}
+      {cachedAt && (
+        <div class="changelog-summary-cached">{cachedAt}</div>
       )}
     </div>
   );
