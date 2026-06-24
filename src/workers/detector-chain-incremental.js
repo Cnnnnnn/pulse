@@ -20,7 +20,12 @@
  * @param {number} args.now          当前时间 (epoch ms, 注入便于测试)
  * @returns {{useIncremental: boolean, maxIndex: number}}
  */
-function decideIncremental({ detectors, appTs, recentDays = 7, now = Date.now() }) {
+function decideIncremental({
+  detectors,
+  appTs,
+  recentDays = 7,
+  now = Date.now(),
+}) {
   const total = Array.isArray(detectors) ? detectors.length : 0;
   if (total <= 1) return { useIncremental: false, maxIndex: total };
 

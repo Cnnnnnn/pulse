@@ -7,10 +7,12 @@
 当前 `runDetectorChain(appCfg, deps)` 对每个 app 串行跑完整 detector 链(13 个 detector 类型,平均 1-3 个/app)。即使某个 app **上次检测完无更新且已超过 7 天**,下次检测时仍跑全链。
 
 实测数据(本地 baseline):
+
 - 13 个 app × 平均 1.5s/app = ~20s 全量检测
 - 90% 情况下,无更新 app 不再需要跑 fallback detector(主 detector 已 confidence=high 命中)
 
 **降本空间**:对"最近 7d 无更新"的 app,**只跑第一个 detector**,失败/低 confidence 才继续。
+
 - 估算节省 ~30-50% 总检测时间(无更新 app 占大多数)
 
 ## 2. 现状
@@ -55,13 +57,16 @@ async function runDetectorChain(appCfg, opts = {}) {
   const incrementalCfg = incremental || {}; // { appsLastChecked: {...}, recentDays: 7 }
   // ...
   const recentMs = (incrementalCfg.recentDays || 7) * 86400_000;
-  const appTs = incrementalCfg.appsLastChecked && incrementalCfg.appsLastChecked[name];
-  const useIncremental = detectors.length > 1 && appTs && (Date.now() - appTs) < recentMs;
+  const appTs =
+    incrementalCfg.appsLastChecked && incrementalCfg.appsLastChecked[name];
+  const useIncremental =
+    detectors.length > 1 && appTs && Date.now() - appTs < recentMs;
   // 循环: 用 useIncremental 限制上限到 detectors[0]
 }
 ```
 
 **调用方** (`src/workers/task-handlers.js` `handleDetectApp`):
+
 - `opts.incremental = { appsLastChecked: stateStore.loadAll().ts, recentDays: 7 }`
 
 **state-store**:`apps: { Cursor: { ts, ... } }` 已有,无需改 schema
@@ -79,11 +84,11 @@ async function runDetectorChain(appCfg, opts = {}) {
 
 ## 6. 风险
 
-| 风险 | 等级 | 缓解 |
-|------|------|------|
-| 主 detector 间歇性失败导致漏报新版本 | 中 | 用户可手动"检查更新"走全链 |
-| 7d 阈值过宽,真有版本时延迟 7d 才发 | 低 | 默认 7d,可调(`recentDays` 注入) |
-| 用户关电脑 7d+ 后第一次开机检测 | 低 | 走全链(`appTs` 超过阈值) |
+| 风险                                 | 等级 | 缓解                            |
+| ------------------------------------ | ---- | ------------------------------- |
+| 主 detector 间歇性失败导致漏报新版本 | 中   | 用户可手动"检查更新"走全链      |
+| 7d 阈值过宽,真有版本时延迟 7d 才发   | 低   | 默认 7d,可调(`recentDays` 注入) |
+| 用户关电脑 7d+ 后第一次开机检测      | 低   | 走全链(`appTs` 超过阈值)        |
 
 ## 7. 实施
 

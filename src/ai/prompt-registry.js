@@ -93,6 +93,22 @@ const DEFAULT_PROMPTS = {
     ].join("\n"),
     fewShot: "",
   },
+  // A7 v3: 每日早报改写 — 把聚合的硬编码模板行改成可读的中文段落
+  daily_digest_summary: {
+    system: [
+      "你是 Pulse 桌面助手的早报编辑。",
+      "把当日要点改写成简洁可读的中文早报，给用户一眼看完今天发生了什么。",
+    ].join(""),
+    rules: [
+      "【硬性要求】",
+      "1. 全文必须使用简体中文。",
+      "2. 输出 2-4 个要点，每行一条；不要 markdown 列表符号，不要编号。",
+      "3. 保留所有具体数字、版本号、百分比与基金涨跌方向。",
+      "4. 不要编造要点列表里没有的信息。",
+      "5. 不要写开场白 / 结尾客套话，直接给要点。",
+    ].join("\n"),
+    fewShot: "",
+  },
 };
 
 const PROMPT_KEYS = Object.keys(DEFAULT_PROMPTS);

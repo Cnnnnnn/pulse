@@ -11,10 +11,10 @@
  * 依赖：electron (tray/nativeImage/menu)、detect 状态 (lastResults)。
  */
 
-const { Tray, Menu, nativeImage, nativeTheme, shell } = require('electron');
-const path = require('path');
+const { Tray, Menu, nativeImage, nativeTheme, shell } = require("electron");
+const path = require("path");
 
-const ASSETS = path.join(__dirname, '..', '..', 'assets');
+const ASSETS = path.join(__dirname, "..", "..", "assets");
 
 /**
  * 加载模板图标.
@@ -24,19 +24,21 @@ const ASSETS = path.join(__dirname, '..', '..', 'assets');
  * @param {object} [theme] - 注入依赖, 默认走 require('electron').nativeTheme.
  */
 function loadTrayIcon(theme) {
-  if (process.platform === 'win32') {
+  if (process.platform === "win32") {
     // P4: Windows 端用 ICO + 深浅色两套.
     // nativeTheme.shouldUseDarkColors 反映 OS 当前主题.
     const effectiveTheme = theme || nativeTheme;
     const file = effectiveTheme.shouldUseDarkColors
-      ? 'iconTrayDark.ico'
-      : 'iconTray.ico';
+      ? "iconTrayDark.ico"
+      : "iconTray.ico";
     const png = nativeImage.createFromPath(path.join(ASSETS, file));
     if (png.isEmpty()) return loadFallbackIcon();
     return png;
   }
   // macOS 现状不变 (template image)
-  const png = nativeImage.createFromPath(path.join(ASSETS, 'iconTemplate@2x.png'));
+  const png = nativeImage.createFromPath(
+    path.join(ASSETS, "iconTemplate@2x.png"),
+  );
   if (png.isEmpty()) return null;
   png.setTemplateImage(true);
   return png;
@@ -45,8 +47,10 @@ function loadTrayIcon(theme) {
 /** 加载 badge 图标 (count 1-9 → 数字; ≥10 → 9+). */
 function loadBadgeIcon(count) {
   const n = Math.max(0, Math.min(99, count | 0));
-  const variant = n >= 10 ? '9plus' : String(n);
-  const png = nativeImage.createFromPath(path.join(ASSETS, `iconBadge-${variant}@2x.png`));
+  const variant = n >= 10 ? "9plus" : String(n);
+  const png = nativeImage.createFromPath(
+    path.join(ASSETS, `iconBadge-${variant}@2x.png`),
+  );
   return png.isEmpty() ? null : png;
 }
 
@@ -54,8 +58,8 @@ function loadBadgeIcon(count) {
 function loadFallbackIcon() {
   // 1x1 transparent PNG
   const buf = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    'base64'
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "base64",
   );
   return nativeImage.createFromBuffer(buf);
 }
@@ -102,7 +106,7 @@ function buildMenu(opts) {
     onQuit = () => {},
     onFocusUpdate = () => {},
     onFocusWorldcup = () => {},
-    getConfigPath = () => '',
+    getConfigPath = () => "",
     getConfig = () => ({ apps: [] }),
   } = opts;
   const seg = trayPrefs.segments;
@@ -113,14 +117,14 @@ function buildMenu(opts) {
   const summaryLine = buildSummaryLine(results);
   if (summaryLine) {
     template.push(summaryLine);
-    template.push({ type: 'separator' });
+    template.push({ type: "separator" });
   }
 
   // ─── 🔄 检查更新 (v2.22 Task A2: 内容预览) ───
   if (seg.updates) {
     if (results.length > 0) {
       const updates = results.filter((r) => r.has_update);
-      const upToDate = results.filter((r) => r.status === 'up_to_date');
+      const upToDate = results.filter((r) => r.status === "up_to_date");
 
       if (updates.length > 0) {
         template.push({
@@ -129,16 +133,16 @@ function buildMenu(opts) {
         });
         updates.forEach((r) => {
           const ver = r.latest_version
-            ? `${r.installed_version || '?'} → ${r.latest_version}`
-            : '';
+            ? `${r.installed_version || "?"} → ${r.latest_version}`
+            : "";
           template.push({
             label: `${r.name}  ${ver}  ⬆️ 升级`,
             click: () => {
-              onFocusUpdate({ rowName: r.name, action: 'upgrade' });
+              onFocusUpdate({ rowName: r.name, action: "upgrade" });
             },
           });
         });
-        template.push({ type: 'separator' });
+        template.push({ type: "separator" });
       } else if (upToDate.length > 0) {
         // 没有更新时显示总览 (1 行)
         template.push({
@@ -149,14 +153,14 @@ function buildMenu(opts) {
           label: '  点击"检查更新"手动刷新',
           enabled: false,
         });
-        template.push({ type: 'separator' });
+        template.push({ type: "separator" });
       }
     } else {
       template.push({
-        label: '── 🔄 检查更新 · 尚未检查 ──',
+        label: "── 🔄 检查更新 · 尚未检查 ──",
         enabled: false,
       });
-      template.push({ type: 'separator' });
+      template.push({ type: "separator" });
     }
   }
 
@@ -197,23 +201,23 @@ function buildMenu(opts) {
   }
 
   // ─── 底部 action (Phase v1: check_action / config_action 可关, 打开面板 + 退出锁死) ───
-  template.push({ label: '打开面板', click: () => onOpenPanel() });
+  template.push({ label: "打开面板", click: () => onOpenPanel() });
   if (seg.check_action) {
-    template.push({ label: '检查更新', click: () => onCheck() });
+    template.push({ label: "检查更新", click: () => onCheck() });
   }
-  template.push({ type: 'separator' });
+  template.push({ type: "separator" });
   if (seg.config_action) {
     template.push({
-      label: '打开配置文件',
+      label: "打开配置文件",
       click: () => {
         const p = getConfigPath();
-        if (p) require('electron').shell.openPath(p);
+        if (p) require("electron").shell.openPath(p);
         else onOpenConfig();
       },
     });
   }
-  template.push({ type: 'separator' });
-  template.push({ label: '退出', click: () => onQuit() });
+  template.push({ type: "separator" });
+  template.push({ label: "退出", click: () => onQuit() });
   return template;
 }
 
@@ -241,7 +245,10 @@ function buildAiUsageLines(summaryMap) {
         enabled: false,
       });
     } else if (s.status === "error") {
-      lines.push({ label: `  ${PROVIDER_NAME[pid]}: 拉取失败`, enabled: false });
+      lines.push({
+        label: `  ${PROVIDER_NAME[pid]}: 拉取失败`,
+        enabled: false,
+      });
     }
   }
   if (!hasAny) {
@@ -318,7 +325,7 @@ function _summaryAgeLabel(deltaMs) {
 function buildWorldcupLines(wc, onFocusWorldcup) {
   const lines = [];
   const today = Array.isArray(wc.todayMatches) ? wc.todayMatches : [];
-  const cb = (typeof onFocusWorldcup === "function") ? onFocusWorldcup : () => {};
+  const cb = typeof onFocusWorldcup === "function" ? onFocusWorldcup : () => {};
   for (const m of today) {
     if (!m || !m.team1 || !m.team2) continue;
     const score = m.score || {};
@@ -333,7 +340,9 @@ function buildWorldcupLines(wc, onFocusWorldcup) {
     lines.push({
       label: `  ${m.team1} vs ${m.team2}${scoreText}`,
       enabled: typeof m.key === "string",
-      click: () => { if (m.key) cb({ matchKey: m.key }); },
+      click: () => {
+        if (m.key) cb({ matchKey: m.key });
+      },
     });
   }
   const upcoming = Array.isArray(wc.upcoming) ? wc.upcoming : [];
@@ -341,16 +350,24 @@ function buildWorldcupLines(wc, onFocusWorldcup) {
     const next = upcoming[0];
     if (next && next.team1 && next.team2) {
       lines.push({
-        label: `  下一场: ${next.team1} vs ${next.team2}  ${next.time || next.date || ""}`.trim(),
+        label:
+          `  下一场: ${next.team1} vs ${next.team2}  ${next.time || next.date || ""}`.trim(),
         enabled: typeof next.key === "string",
-        click: () => { if (next.key) cb({ matchKey: next.key }); },
+        click: () => {
+          if (next.key) cb({ matchKey: next.key });
+        },
       });
     }
   }
   return lines;
 }
 
-const METAL_NAME = { XAU: '黄金', XAG: '白银', AU9999: 'Au9999', AG9999: 'Ag9999' };
+const METAL_NAME = {
+  XAU: "黄金",
+  XAG: "白银",
+  AU9999: "Au9999",
+  AG9999: "Ag9999",
+};
 
 /**
  * 把 metals snapshot 渲染成 menu template 行 (v2.22 Task D1).
@@ -360,8 +377,13 @@ const METAL_NAME = { XAU: '黄金', XAG: '白银', AU9999: 'Au9999', AG9999: 'Ag
  */
 function buildMetalsLines(metals) {
   const lines = [];
-  const quotes = metals && metals.quotes && typeof metals.quotes === "object" ? metals.quotes : {};
-  const keys = Object.keys(quotes).filter((k) => quotes[k] && typeof quotes[k].price === "number");
+  const quotes =
+    metals && metals.quotes && typeof metals.quotes === "object"
+      ? metals.quotes
+      : {};
+  const keys = Object.keys(quotes).filter(
+    (k) => quotes[k] && typeof quotes[k].price === "number",
+  );
   if (keys.length === 0) {
     lines.push({ label: "  加载中...", enabled: false });
     return lines;
@@ -369,12 +391,17 @@ function buildMetalsLines(metals) {
   for (const id of keys) {
     const q = quotes[id];
     const name = METAL_NAME[id] || id;
-    const arrow = (typeof q.prevClose === "number" && q.prevClose > 0)
-      ? (q.price > q.prevClose ? " ↑" : q.price < q.prevClose ? " ↓" : "")
-      : "";
+    const arrow =
+      typeof q.prevClose === "number" && q.prevClose > 0
+        ? q.price > q.prevClose
+          ? " ↑"
+          : q.price < q.prevClose
+            ? " ↓"
+            : ""
+        : "";
     const unit = q.unit || "";
     const cur = q.currency || "";
-    const priceStr = (typeof q.price === "number") ? q.price.toFixed(2) : "?";
+    const priceStr = typeof q.price === "number" ? q.price.toFixed(2) : "?";
     lines.push({
       label: `  ${name} (${id}): ${priceStr} ${cur}/${unit}${arrow}`,
       enabled: false,
@@ -394,7 +421,7 @@ function buildMetalsLines(metals) {
  */
 function createTrayManager(opts) {
   const getConfig = opts.getConfig || (() => ({ apps: [] }));
-  const getConfigPath = opts.getConfigPath || (() => '');
+  const getConfigPath = opts.getConfigPath || (() => "");
   const onCheck = opts.onCheck || (() => {});
   const onOpenPanel = opts.onOpenPanel || (() => {});
   const onOpenConfig = opts.onOpenConfig || (() => {});
@@ -411,14 +438,14 @@ function createTrayManager(opts) {
     let icon = loadTrayIcon();
     if (!icon) icon = loadFallbackIcon();
     tray = new Tray(icon);
-    tray.setToolTip('Pulse');
-    tray.on('click', () => onOpenPanel());
+    tray.setToolTip("Pulse");
+    tray.on("click", () => onOpenPanel());
     rebuildMenu();
 
     // P4: Windows 端监听主题变化, 切换亮/暗两套 ICO.
     // macOS 走 template image 协议, 不需要 listener.
-    if (process.platform === 'win32') {
-      nativeTheme.on('updated', () => {
+    if (process.platform === "win32") {
+      nativeTheme.on("updated", () => {
         const next = loadTrayIcon();
         if (next && tray) tray.setImage(next);
       });
@@ -444,10 +471,12 @@ function createTrayManager(opts) {
       getConfigPath,
     });
     // Phase v1: 锁死位置,在「退出」上方拼「菜单栏配置...」(用户可配置入口,锁死位置不漂移)
-    if (template.length > 0 && template[template.length - 1].label === '退出') {
-      template.splice(-1, 0,
-        { type: 'separator' },
-        { label: '菜单栏配置...', click: () => onOpenTrayConfig() },
+    if (template.length > 0 && template[template.length - 1].label === "退出") {
+      template.splice(
+        -1,
+        0,
+        { type: "separator" },
+        { label: "菜单栏配置...", click: () => onOpenTrayConfig() },
       );
     }
     tray.setContextMenu(Menu.buildFromTemplate(template));
@@ -508,18 +537,31 @@ function createTrayManager(opts) {
       const icon = loadTrayIcon() || loadFallbackIcon();
       icon.setTemplateImage(true);
       tray.setImage(icon);
-      tray.setToolTip('Pulse — 已是最新');
+      tray.setToolTip("Pulse — 已是最新");
     }
   }
 
   function dispose() {
     if (tray) {
-      try { tray.destroy(); } catch { /* noop */ }
+      try {
+        tray.destroy();
+      } catch {
+        /* noop */
+      }
       tray = null;
     }
   }
 
-  return { install, setResults, setBadge, setAiUsage, setWorldcup, setMetals, setTrayMenuPrefs, dispose };
+  return {
+    install,
+    setResults,
+    setBadge,
+    setAiUsage,
+    setWorldcup,
+    setMetals,
+    setTrayMenuPrefs,
+    dispose,
+  };
 }
 
 module.exports = {

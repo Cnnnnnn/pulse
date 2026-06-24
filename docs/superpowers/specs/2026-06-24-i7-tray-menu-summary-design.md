@@ -31,6 +31,7 @@ if (updates.length > 0) {
 ```
 
 **问题**:
+
 - 有更新 → 直接 list,但缺"上次什么时候检测的"
 - 全部最新 → 只显示总数,缺"最后检测时间"
 - AI 用量 / 世界杯 / 贵金属各自段有数据,但**没有"上次检测什么时候"的全局时戳**
@@ -40,6 +41,7 @@ if (updates.length > 0) {
 ### 3.1 做
 
 `buildMenu` 顶部(在所有 segment 之前)push 一行 **"全局快照"**:
+
 - 文本格式:`🔔 Pulse · N 应用 M 待升级 · 5m 前`
 - 计算:
   - `N = results.length`(检测过的 app 数)
@@ -58,6 +60,7 @@ if (updates.length > 0) {
 ## 4. 接口
 
 `buildMenu` 增加新参数 `summary`:
+
 - `summary: { appCount, updateCount, lastCheckedAt, hasAnyResult } | null`
 - 默认 `null` → 不显示 summary 行(向后兼容)
 - `setResults(results)` 处:从 `results` 算 `summary` 并传入
@@ -75,11 +78,11 @@ if (updates.length > 0) {
 
 ## 6. 风险
 
-| 风险 | 等级 | 缓解 |
-|------|------|------|
-| 用户感觉顶部加了"重复信息" | 低 | 仅 1 行;与下方 segment 互补(总览 vs 详情) |
-| lastCheckedAt 缺失 → 文本显示 "—" | 低 | 走兜底分支 |
-| 中文混排宽度 | 低 | 走半角间隔 |
+| 风险                              | 等级 | 缓解                                      |
+| --------------------------------- | ---- | ----------------------------------------- |
+| 用户感觉顶部加了"重复信息"        | 低   | 仅 1 行;与下方 segment 互补(总览 vs 详情) |
+| lastCheckedAt 缺失 → 文本显示 "—" | 低   | 走兜底分支                                |
+| 中文混排宽度                      | 低   | 走半角间隔                                |
 
 ## 7. 实施
 

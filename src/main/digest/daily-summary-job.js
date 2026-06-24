@@ -19,8 +19,12 @@
 
 const { inQuietHours } = require('../notification-policy');
 const { aggregate: defaultAggregate } = require('./aggregate');
+const { resolvePrompt: defaultResolvePrompt } = require('../../ai/prompt-registry');
+const defaultSharedLlm = require('../../ai/shared-llm');
 
 const DEFAULT_TIME = '08:30';
+// A7 v3: LLM 改写超时 (硬上限). 失败/超时回退原 lines, 不阻塞 push.
+const REWRITE_TIMEOUT_MS = 8000;
 const _handle = { interval: null, deps: null };
 
 function parseTargetMinutes(hhmm) {
@@ -40,7 +44,7 @@ function ymd(d) {
   return `${y}-${mm}-${dd}`;
 }
 
-function checkAndPush(deps) {
+async function checkAndPush(deps) {
   const state = deps.getState() || {};
   const cfg = (state.daily_digest) || {};
   if (cfg.enabled === false) return { skipped: 'disabled' };
@@ -73,9 +77,26 @@ function checkAndPush(deps) {
     return { skipped: 'empty_lines' };
   }
 
+  // A7 v3: LLM 改写 result.lines → bodyLines. 失败/超时回退原 lines, push 不破.
+  let bodyLines = result.lines;
+  let rewritten = false;
+  try {
+    const rewriteDeps = {
+      sharedLlm: deps.sharedLlm || defaultSharedLlm,
+      resolvePrompt: deps.resolvePrompt || defaultResolvePrompt,
+    };
+    const next = await tryRewriteSummary(result.lines, result.date, rewriteDeps);
+    if (Array.isArray(next) && next.length > 0) {
+      bodyLines = next;
+      rewritten = next !== result.lines;
+    }
+  } catch {
+    // swallow — push 走原 lines
+  }
+
   deps.sendNotification({
     title: `🌅 Pulse 早报 · ${result.date}`,
-    body: result.lines.join('\n'),
+    body: bodyLines.join('\n'),
   });
 
   deps.setState({
@@ -85,7 +106,67 @@ function checkAndPush(deps) {
     },
   });
 
-  return { pushed: true, lines: result.lines.length };
+  return { pushed: true, lines: result.lines.length, rewritten };
+}
+
+/**
+ * A7 v3: 用 LLM 把硬编码的要点行改写成可读段落. 失败/超时回退原 lines.
+ * 纯函数 + 依赖注入, 便于单测.
+ *
+ * @param {string[]} lines    - aggregator 输出的要点行
+ * @param {string}   date     - 'YYYY-MM-DD'
+ * @param {object}   deps
+ * @param {object}   deps.sharedLlm    - 含 chatCompletion(messages, opts) => Promise<{ok, text?, reason?}>
+ * @param {Function} deps.resolvePrompt - (key) => {system, rules, fewShot}
+ * @param {number}   [deps.timeoutMs=8000]
+ * @returns {Promise<string[]>} 改写后的 lines 或原 lines
+ */
+async function tryRewriteSummary(lines, date, deps) {
+  if (!Array.isArray(lines) || lines.length === 0) return lines;
+  if (!deps || !deps.sharedLlm || typeof deps.sharedLlm.chatCompletion !== 'function') {
+    return lines;
+  }
+  let prompt;
+  try {
+    prompt = (deps.resolvePrompt || defaultResolvePrompt)('daily_digest_summary');
+  } catch {
+    return lines;
+  }
+  if (!prompt || typeof prompt.system !== 'string') return lines;
+
+  const userContent = [
+    prompt.rules || '',
+    `日期: ${date}`,
+    '要点:',
+    ...lines.map((l) => `  ${l}`),
+  ].join('\n');
+
+  const messages = [
+    { role: 'system', content: prompt.system },
+    { role: 'user', content: userContent },
+  ];
+
+  const timeoutMs = typeof deps.timeoutMs === 'number' ? deps.timeoutMs : REWRITE_TIMEOUT_MS;
+  // ponytail: chatCompletion 内部 try/catch 已包, 这里再 Promise.race 兜 8s.
+  // 不传 httpClient → 走 shared-llm 内部默认 (120s), 我们外层卡 8s.
+  const llmPromise = deps.sharedLlm.chatCompletion(messages);
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => resolve({ ok: false, reason: 'timeout' }), timeoutMs);
+  });
+  let result;
+  try {
+    result = await Promise.race([llmPromise, timeoutPromise]);
+  } catch {
+    return lines;
+  }
+  if (!result || !result.ok || typeof result.text !== 'string' || !result.text.trim()) {
+    return lines;
+  }
+  const rewritten = result.text
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return rewritten.length > 0 ? rewritten : lines;
 }
 
 function startDailySummaryJob(deps) {
@@ -123,4 +204,10 @@ function __resetForTest() {
   _handle.deps = null;
 }
 
-module.exports = { startDailySummaryJob, __resetForTest, parseTargetMinutes, checkAndPush };
+module.exports = {
+  startDailySummaryJob,
+  __resetForTest,
+  parseTargetMinutes,
+  checkAndPush,
+  tryRewriteSummary,
+};

@@ -58,4 +58,15 @@ describe("PromptSettings (A7)", () => {
     await new Promise((r) => setTimeout(r, 600));
     expect(store.saveAiPrompts).toHaveBeenCalled();
   });
+
+  // A7 v3: daily_digest_summary key 加入后 PromptSettings 自动渲染
+  it("daily_digest_summary prompt 出现 → 多渲染一个 item + 9 个 textarea", () => {
+    store.aiPrompts.value = {
+      ...SAMPLE,
+      daily_digest_summary: { system: "编辑", rules: "1. 简洁", isDefault: false },
+    };
+    render(<PromptSettings />);
+    expect(document.body.querySelectorAll(".prompt-settings-item")).toHaveLength(4);
+    expect(document.body.querySelectorAll(".prompt-settings-textarea")).toHaveLength(12);
+  });
 });

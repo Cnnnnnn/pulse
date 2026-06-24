@@ -1264,7 +1264,7 @@ function saveDailyDigest(cfg, statePath = defaultPath()) {
 }
 
 /**
- * Phase I5: read daily_digest sub-state. Missing/invalid → default shape.
+ * Phase I5 + A7: read daily_digest sub-state. Missing/invalid → default shape.
  * @param {string} [statePath]
  * @returns {{enabled: boolean, time: string, last_push_date: string|null}}
  */

@@ -44,7 +44,13 @@ function makeDetector(detCfg) {
 }
 
 function breakerKey(detCfg) {
-  const id = detCfg.url || detCfg.id || detCfg.cask || detCfg.product || detCfg.baseUrl || "";
+  const id =
+    detCfg.url ||
+    detCfg.id ||
+    detCfg.cask ||
+    detCfg.product ||
+    detCfg.baseUrl ||
+    "";
   return `${detCfg.type}:${id}`;
 }
 
@@ -132,7 +138,7 @@ async function runDetectorChain(appCfg, deps) {
       continue;
     }
     if (detCfg.platform && detCfg.platform !== currentPlatform) {
-      trace.push({ det: detCfg.type, ms: 0, skipped: 'platform' });
+      trace.push({ det: detCfg.type, ms: 0, skipped: "platform" });
       continue;
     }
     const Det = makeDetector(detCfg);
@@ -147,12 +153,22 @@ async function runDetectorChain(appCfg, deps) {
       : createBreaker({ key });
     const now = breaker._now();
     if (!shouldAllow(breaker, now)) {
-      trace.push({ det: detCfg.type, ms: 0, skipped: 'circuit_open', breakerState: 'open' });
+      trace.push({
+        det: detCfg.type,
+        ms: 0,
+        skipped: "circuit_open",
+        breakerState: "open",
+      });
       continue;
     }
     const probe = transitionAfterProbe(breaker, now);
     const ctx = new DetectContext({
-      appCfg, arch, http, logger, detCfg, platform: currentPlatform,
+      appCfg,
+      arch,
+      http,
+      logger,
+      detCfg,
+      platform: currentPlatform,
     });
     const t0 = Date.now();
     let result = null;
@@ -167,8 +183,11 @@ async function runDetectorChain(appCfg, deps) {
       const next = recordSuccess(probe, now);
       await cbStorage.upsertBreaker(key, cbStorage.snapshot(next));
       trace.push({
-        det: detCfg.type, ms,
-        version: result.version, confidence: result.confidence, note: result.note,
+        det: detCfg.type,
+        ms,
+        version: result.version,
+        confidence: result.confidence,
+        note: result.note,
       });
       if (result.version && result.confidence !== "low") {
         if (isIncremental) {

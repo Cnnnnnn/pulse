@@ -21,9 +21,8 @@ describe("runDetectorChain — incremental mode (C5)", () => {
   it("无 incremental 参数 → 走全链 (向后兼容)", async () => {
     // 直接构造 detectors 数组 + stub makeDetector; 走简化路径
     // 由于 detector 真实网络/HTTP 复杂, 改测决策函数本身:
-    const { decideIncremental } = await import(
-      "../../src/workers/detector-chain-incremental.js"
-    );
+    const { decideIncremental } =
+      await import("../../src/workers/detector-chain-incremental.js");
     expect(
       decideIncremental({
         detectors: APP_CFG.detectors,
@@ -35,9 +34,8 @@ describe("runDetectorChain — incremental mode (C5)", () => {
   });
 
   it("incremental + appTs 缺失 → useIncremental=false (全链)", async () => {
-    const { decideIncremental } = await import(
-      "../../src/workers/detector-chain-incremental.js"
-    );
+    const { decideIncremental } =
+      await import("../../src/workers/detector-chain-incremental.js");
     expect(
       decideIncremental({
         detectors: APP_CFG.detectors,
@@ -49,9 +47,8 @@ describe("runDetectorChain — incremental mode (C5)", () => {
   });
 
   it("incremental + appTs > 7d 前 → 全链", async () => {
-    const { decideIncremental } = await import(
-      "../../src/workers/detector-chain-incremental.js"
-    );
+    const { decideIncremental } =
+      await import("../../src/workers/detector-chain-incremental.js");
     const now = 1700100000000;
     const tenDaysAgo = now - 10 * 86400_000;
     expect(
@@ -65,9 +62,8 @@ describe("runDetectorChain — incremental mode (C5)", () => {
   });
 
   it("incremental + appTs < 7d 前 → 只跑 1 个", async () => {
-    const { decideIncremental } = await import(
-      "../../src/workers/detector-chain-incremental.js"
-    );
+    const { decideIncremental } =
+      await import("../../src/workers/detector-chain-incremental.js");
     const now = 1700100000000;
     const twoDaysAgo = now - 2 * 86400_000;
     expect(
@@ -81,9 +77,8 @@ describe("runDetectorChain — incremental mode (C5)", () => {
   });
 
   it("detectors.length=1 → useIncremental=false (无意义)", async () => {
-    const { decideIncremental } = await import(
-      "../../src/workers/detector-chain-incremental.js"
-    );
+    const { decideIncremental } =
+      await import("../../src/workers/detector-chain-incremental.js");
     expect(
       decideIncremental({
         detectors: [{ type: "single", url: "x" }],
@@ -95,9 +90,8 @@ describe("runDetectorChain — incremental mode (C5)", () => {
   });
 
   it("incremental + detectors=空数组 → 全 0 (边界)", async () => {
-    const { decideIncremental } = await import(
-      "../../src/workers/detector-chain-incremental.js"
-    );
+    const { decideIncremental } =
+      await import("../../src/workers/detector-chain-incremental.js");
     expect(
       decideIncremental({
         detectors: [],

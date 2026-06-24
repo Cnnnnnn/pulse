@@ -114,9 +114,7 @@ async function runCheck(deps, opts = {}) {
   for (const [name, app] of Object.entries(stateApps)) {
     if (app && typeof app.ts === "number") appsLastChecked[name] = app.ts;
   }
-  const incrementalPayload = silent
-    ? { appsLastChecked, recentDays: 7 }
-    : null;
+  const incrementalPayload = silent ? { appsLastChecked, recentDays: 7 } : null;
   const tasks = apps.map((appCfg) => {
     const history =
       appCfg && appCfg.name && stateApps[appCfg.name]
