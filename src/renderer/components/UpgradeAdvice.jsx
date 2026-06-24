@@ -87,6 +87,7 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
   }
 
   const rec = advice.recommendation || "wait";
+  const conf = advice.confidence || "medium";
   const cachedAt = ageLabel(advice.generatedAt);
   const reasons = Array.isArray(advice.reasons) ? advice.reasons.filter(Boolean) : [];
   return (
@@ -96,6 +97,13 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
       onClick={(e) => e.stopPropagation()}
     >
       <span class="upgrade-advice-badge">{REC_LABELS[rec] || rec}</span>
+      <span
+        class={`upgrade-advice-confidence upgrade-advice-confidence--${conf}`}
+        title={`模型置信度: ${conf}`}
+        aria-label={`confidence-${conf}`}
+      >
+        ●
+      </span>
       <span class="upgrade-advice-summary">{advice.summary}</span>
       {reasons.length > 0 && (
         <ul class="upgrade-advice-reasons">
@@ -111,7 +119,7 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
         type="button"
         class="upgrade-advice-refresh"
         onClick={(e) => { e.stopPropagation(); fetchAdvice(true); }}
-        title="重新分析"
+        title="重新分析 (会消耗 AI 配额)"
       >
         ↻
       </button>

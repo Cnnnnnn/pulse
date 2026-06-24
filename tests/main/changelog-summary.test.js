@@ -100,6 +100,17 @@ describe("buildSummaryMessages", () => {
     expect(msgs[1].content).toContain("Cursor");
     expect(msgs[1].content).toContain("Security");
   });
+
+  it("默认 few-shot 示例被注入 user content", () => {
+    const msgs = buildSummaryMessages({
+      name: "VSCode",
+      installed_version: "1.0",
+      latest_version: "2.0",
+      changelog: "Critical security fix",
+    });
+    expect(msgs[1].content).toContain("【参考示例】");
+    expect(msgs[1].content).toContain("VSCode");
+  });
 });
 
 describe("fetchChangelogSummary 端到端", () => {

@@ -66,7 +66,13 @@ const DEFAULT_PROMPTS = {
       "4. 很久没用(cold)的非关键 app → 倾向 wait/skip; 安全/崩溃修复 → 倾向 upgrade。",
       "5. changelog 为空时根据版本号和使用频次保守判断，confidence 降为 medium/low。",
     ].join("\n"),
-    fewShot: "",
+    fewShot: [
+      "输入: iTerm2 1.0 → 2.0, changelog 短 (4 行普通 bugfix), cold 30d+ 未用",
+      '输出: {"recommendation":"wait","confidence":"medium","summary":"iTerm2 很久没用,可先等下次使用再升","reasons":["使用频次低","无关键修复"]}',
+      "",
+      "输入: Cursor 1.0 → 2.0, changelog 含 \"Critical security fix in extension host\", hot 7d 内常用",
+      '输出: {"recommendation":"upgrade","confidence":"high","summary":"含关键安全修复,建议尽快升","reasons":["安全修复","常用"]}',
+    ].join("\n"),
   },
   changelog_summary: {
     system: [
@@ -81,7 +87,10 @@ const DEFAULT_PROMPTS = {
       "3. highlights 必须 1–3 条，每条 ≤50 字，简体中文。",
       "4. changelog 极少时保守概括，不编造未提及的功能。",
     ].join("\n"),
-    fewShot: "",
+    fewShot: [
+      "输入: VSCode changelog 含 \"Critical security fix in extension host. Add workspace trust. Performance: TS 5.5 20% faster.\"",
+      '输出: {"oneLiner":"含关键安全修复 + 工作区信任机制 + TS 性能","highlights":["关键安全修复","工作区信任","TS 5.5 性能"]}',
+    ].join("\n"),
   },
   category_classify: {
     system: "你是一个 app 分类助手。",

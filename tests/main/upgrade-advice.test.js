@@ -101,6 +101,21 @@ describe("upgrade-advice", () => {
     expect(msgs[1].content).toContain("Cursor");
     expect(msgs[1].content).toContain("bugfix");
   });
+
+  it("buildAdviceMessages 默认 few-shot 示例被注入 user content", () => {
+    const msgs = buildAdviceMessages(
+      {
+        name: "Cursor",
+        installed_version: "1",
+        latest_version: "2",
+        changelog: "x",
+      },
+      { ms: Date.now() - 86400_000 },
+    );
+    expect(msgs[1].content).toContain("【参考示例】");
+    expect(msgs[1].content).toContain("iTerm2");
+    expect(msgs[1].content).toContain("Cursor");
+  });
 });
 
 describe("fetchUpgradeAdvice 端到端", () => {

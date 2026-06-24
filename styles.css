@@ -8676,6 +8676,15 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-style: italic;
   margin-left: auto;
 }
+.upgrade-advice-confidence {
+  flex-shrink: 0;
+  font-size: 9px;
+  line-height: 1;
+  margin-left: -2px;
+}
+.upgrade-advice-confidence--high   { color: var(--accent-green, #34c759); }
+.upgrade-advice-confidence--medium { color: #ff9500; opacity: 0.7; }
+.upgrade-advice-confidence--low    { color: #8e8e93; opacity: 0.5; }
 
 .changelog-panel-head {
   display: flex;

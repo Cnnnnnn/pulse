@@ -117,4 +117,19 @@ describe("prompt-registry (A7)", () => {
     const p = resolvePrompt("ithome_summary");
     expect(p.fewShot).toBe("示例输出");
   });
+
+  it("A1/A2 默认 fewShot 非空 (v2.46 打磨后填了示例)", () => {
+    expect(DEFAULT_PROMPTS.upgrade_advice.fewShot).toBeTruthy();
+    expect(DEFAULT_PROMPTS.upgrade_advice.fewShot.length).toBeGreaterThan(20);
+    expect(DEFAULT_PROMPTS.upgrade_advice.fewShot).toContain("recommendation");
+    expect(DEFAULT_PROMPTS.changelog_summary.fewShot).toBeTruthy();
+    expect(DEFAULT_PROMPTS.changelog_summary.fewShot).toContain("oneLiner");
+  });
+
+  it("A1/A2 默认 fewShot 出现在 resolvePrompt 返值", () => {
+    const a1 = resolvePrompt("changelog_summary");
+    expect(a1.fewShot).toBe(DEFAULT_PROMPTS.changelog_summary.fewShot);
+    const a2 = resolvePrompt("upgrade_advice");
+    expect(a2.fewShot).toBe(DEFAULT_PROMPTS.upgrade_advice.fewShot);
+  });
 });
