@@ -27,6 +27,7 @@ import {
 } from '../worldcup/navStore.js';
 import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
 import { ithomeUnreadBadge } from '../ithome/store.js';
+import { wechatHotUnreadBadge } from '../wechat-hot/store.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
 import { trayMenuPrefs } from '../trayConfigStore.js';
 import {
@@ -70,9 +71,13 @@ export function SideNav() {
   void aiKeyStatus.value;
   const aiNeedsSetup = needsConfig();
 
-  // I6: ithome 未读角标 — 显式订阅确保 UI 刷新
+  // I6: 未读角标 — 显式订阅确保 UI 刷新 (ithome + wechat-hot)
   void ithomeUnreadBadge.value;
-  const navBadges = { ithome: ithomeUnreadBadge.value };
+  void wechatHotUnreadBadge.value;
+  const navBadges = {
+    ithome: ithomeUnreadBadge.value,
+    'wechat-hot': wechatHotUnreadBadge.value,
+  };
 
   // Phase I3: nav 重排 + 隐藏 (localStorage 持久化)
   const [sidenavPrefs, setSidenavPrefs] = useState(() => loadPrefs());

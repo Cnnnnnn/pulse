@@ -8527,6 +8527,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   background: var(--hover-soft, rgba(0, 0, 0, 0.04));
 }
 
+/* I6 v2: 已读热搜半透明变灰 (仿 ithome .ithome-row.is-read) */
+.wechat-hot-list-row.is-read {
+  opacity: 0.5;
+}
+
 .wechat-hot-list-rank {
   flex-shrink: 0;
   width: 24px;
