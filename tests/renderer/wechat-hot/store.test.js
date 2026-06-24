@@ -9,6 +9,8 @@ const { mockApi } = vi.hoisted(() => ({
   mockApi: {
     wechatHotLoad: vi.fn(),
     wechatHotRefresh: vi.fn(),
+    wechatHotLoadRead: vi.fn(() => Promise.resolve({})),
+    wechatHotMarkRead: vi.fn(() => Promise.resolve({ ok: true })),
     onWechatHotUpdated: vi.fn(() => () => {}),
   },
 }));

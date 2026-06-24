@@ -20,6 +20,8 @@ import {
   wechatHotError,
   wechatHotItems,
   wechatHotLoading,
+  wechatHotReadIds,
+  markWechatHotRead,
 } from "../store.js";
 import { WechatHotHeader } from "./WechatHotHeader.jsx";
 import { WechatHotList } from "./WechatHotList.jsx";
@@ -42,6 +44,7 @@ export function WechatHotLayout() {
   const items = wechatHotItems.value;
   const loading = wechatHotLoading.value;
   const error = wechatHotError.value;
+  const readIds = wechatHotReadIds.value;   // I6 v2
   const q = search.trim().toLowerCase();
   const hasAnyMatch = q ? items.some((it) => titleMatches(it, q)) : true;
 
@@ -71,7 +74,8 @@ export function WechatHotLayout() {
     <div class="wechat-hot-layout">
       <WechatHotHeader search={search} onSearchChange={setSearch} />
       <div class="wechat-hot-body">
-        <WechatHotList items={items} query={search} reason={reason} />
+        <WechatHotList items={items} query={search} reason={reason}
+          readIds={readIds} onMarkRead={markWechatHotRead} />
       </div>
     </div>
   );

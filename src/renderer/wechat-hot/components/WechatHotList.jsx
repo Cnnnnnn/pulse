@@ -24,7 +24,8 @@ function rankClass(rank) {
   return "";
 }
 
-export function WechatHotList({ items = [], query = "", reason = "empty" } = {}) {
+export function WechatHotList({ items = [], query = "", reason = "empty",
+                                 readIds = {}, onMarkRead } = {}) {
   const q = typeof query === "string" ? query.trim().toLowerCase() : "";
   const filtered = q
     ? items.filter((it) => typeof it?.title === "string" && it.title.toLowerCase().includes(q))
@@ -42,23 +43,27 @@ export function WechatHotList({ items = [], query = "", reason = "empty" } = {})
   }
   return (
     <ul class="wechat-hot-list">
-      {filtered.map((it) => (
-        <li key={it.url}>
-          <button
-            type="button"
-            class="wechat-hot-list-row"
-            aria-label={`打开热搜：${it.title}`}
-            onClick={() => {
-              if (it.url) openExternal(it.url);
-            }}
-          >
-            <span class={`wechat-hot-list-rank ${rankClass(it.rank)}`}>{it.rank}</span>
-            <span class="wechat-hot-list-title">{it.title}</span>
-            {it.tag ? <span class="wechat-hot-list-tag">{it.tag}</span> : null}
-            {it.heat ? <span class="wechat-hot-list-heat">{it.heat}</span> : null}
-          </button>
-        </li>
-      ))}
+      {filtered.map((it) => {
+        const isRead = !!(readIds && readIds[it.title]);
+        return (
+          <li key={it.url}>
+            <button
+              type="button"
+              class={`wechat-hot-list-row${isRead ? " is-read" : ""}`}
+              aria-label={`打开热搜：${it.title}`}
+              onClick={() => {
+                if (onMarkRead) onMarkRead(it.title);
+                if (it.url) openExternal(it.url);
+              }}
+            >
+              <span class={`wechat-hot-list-rank ${rankClass(it.rank)}`}>{it.rank}</span>
+              <span class="wechat-hot-list-title">{it.title}</span>
+              {it.tag ? <span class="wechat-hot-list-tag">{it.tag}</span> : null}
+              {it.heat ? <span class="wechat-hot-list-heat">{it.heat}</span> : null}
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }

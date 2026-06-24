@@ -17,11 +17,12 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 
-const { mockBootstrap, mockSubscribe, mockCleanup, mockRefresh, signals } = vi.hoisted(() => ({
+const { mockBootstrap, mockSubscribe, mockCleanup, mockRefresh, mockMarkRead, signals } = vi.hoisted(() => ({
   mockBootstrap: vi.fn(),
   mockSubscribe: vi.fn(),
   mockCleanup: vi.fn(),
   mockRefresh: vi.fn(),
+  mockMarkRead: vi.fn(),
   signals: {
     wechatHotItems: { value: [] },
     wechatHotLoaded: { value: false },
@@ -29,6 +30,7 @@ const { mockBootstrap, mockSubscribe, mockCleanup, mockRefresh, signals } = vi.h
     wechatHotError: { value: null },
     wechatHotLastFetched: { value: 0 },
     wechatHotLastRefreshAt: { value: 0 },
+    wechatHotReadIds: { value: {} },
   },
 }));
 
@@ -37,12 +39,14 @@ vi.mock("../../../src/renderer/wechat-hot/store.js", () => ({
   subscribeWechatHotUpdates: mockSubscribe,
   cleanupWechatHotUpdates: mockCleanup,
   refreshWechatHot: mockRefresh,
+  markWechatHotRead: mockMarkRead,
   wechatHotItems: signals.wechatHotItems,
   wechatHotLoaded: signals.wechatHotLoaded,
   wechatHotLoading: signals.wechatHotLoading,
   wechatHotError: signals.wechatHotError,
   wechatHotLastFetched: signals.wechatHotLastFetched,
   wechatHotLastRefreshAt: signals.wechatHotLastRefreshAt,
+  wechatHotReadIds: signals.wechatHotReadIds,
 }));
 
 import { WechatHotLayout } from "../../../src/renderer/wechat-hot/components/WechatHotLayout.jsx";
@@ -53,12 +57,14 @@ beforeEach(() => {
   mockSubscribe.mockReset();
   mockCleanup.mockReset();
   mockRefresh.mockReset();
+  mockMarkRead.mockReset();
   signals.wechatHotItems.value = [];
   signals.wechatHotLoaded.value = false;
   signals.wechatHotLoading.value = false;
   signals.wechatHotError.value = null;
   signals.wechatHotLastFetched.value = 0;
   signals.wechatHotLastRefreshAt.value = 0;
+  signals.wechatHotReadIds.value = {};
 });
 
 afterEach(() => {
