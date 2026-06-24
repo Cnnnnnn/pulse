@@ -1732,6 +1732,10 @@ body.platform-win .window-control-btn--close:hover {
   opacity: 0.4;
   cursor: not-allowed;
 }
+.drawer-icon-btn.is-active {
+  background: rgba(0, 122, 255, 0.12);
+  color: var(--accent-blue, #007aff);
+}
 .drawer-icon-btn-rerun svg.is-spin {
   animation: digest-spin 800ms linear infinite;
 }
@@ -2275,6 +2279,30 @@ body.platform-win .window-control-btn--close:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.ai-config-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0 2px;
+}
+.ai-config-tab {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border-subtle, rgba(0,0,0,.08));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-soft, rgba(0,0,0,.55));
+  cursor: pointer;
+}
+.ai-config-tab.active {
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.35);
+  color: var(--accent-blue, #007aff);
+}
+.ai-config-tab:hover:not(.active) {
+  background: rgba(0, 0, 0, 0.04);
 }
 .digest-setup-intro {
   display: flex;
@@ -8556,6 +8584,53 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .prompt-settings-textarea { width: 100%; font: inherit; font-size: 12px; padding: 6px 8px; border: 1px solid var(--border-subtle, #e5e5e7); border-radius: 6px; resize: vertical; box-sizing: border-box; }
 .prompt-settings-textarea--rules { font-family: ui-monospace, monospace; font-size: 11px; }
 .prompt-settings-loading { padding: 20px; text-align: center; color: var(--text-soft, rgba(0,0,0,.5)); font-size: 12px; }
+.prompt-settings-reset { margin-left: auto; font-size: 11px; }
+
+/* A2: 升级建议 */
+.upgrade-advice-trigger {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px dashed var(--border-subtle, #e5e5e7);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-soft, rgba(0,0,0,.55));
+  cursor: pointer;
+}
+.upgrade-advice-trigger:hover { border-color: var(--accent-blue, #007aff); color: var(--accent-blue, #007aff); }
+.upgrade-advice {
+  margin-top: 4px;
+  font-size: 11px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.35;
+}
+.upgrade-advice-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 10px;
+}
+.upgrade-advice--upgrade .upgrade-advice-badge { background: rgba(52, 199, 89, 0.15); color: var(--accent-green, #34c759); }
+.upgrade-advice--wait .upgrade-advice-badge { background: rgba(255, 149, 0, 0.15); color: #ff9500; }
+.upgrade-advice--skip .upgrade-advice-badge { background: rgba(142, 142, 147, 0.15); color: #8e8e93; }
+.upgrade-advice-summary { color: var(--text-secondary, rgba(0,0,0,.65)); }
+.upgrade-advice--loading { color: var(--text-soft, rgba(0,0,0,.45)); font-style: italic; }
+.upgrade-advice--error { color: var(--accent-red, #ff3b30); }
+.upgrade-advice-retry, .upgrade-advice-refresh {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 11px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+}
+.upgrade-advice-retry:hover, .upgrade-advice-refresh:hover { opacity: 1; }
 
 .wechat-hot-list-rank {
   flex-shrink: 0;

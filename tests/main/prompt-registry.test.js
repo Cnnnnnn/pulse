@@ -6,17 +6,32 @@ import path from "path";
 // prompt-registry 顶层 require state-store, 必须同步 require 拿同一实例.
 // _setStatePathForTest 设 _resolvedStatePath, defaultPath() 会返回它.
 const stateStore = require("../../src/main/state-store.js");
-const { DEFAULT_PROMPTS, resolvePrompt, PROMPT_KEYS } = require("../../src/ai/prompt-registry.js");
+const {
+  DEFAULT_PROMPTS,
+  resolvePrompt,
+  PROMPT_KEYS,
+} = require("../../src/ai/prompt-registry.js");
 
 let tmpFile;
 beforeEach(() => {
-  tmpFile = path.join(os.tmpdir(), `pulse-a7reg-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  tmpFile = path.join(
+    os.tmpdir(),
+    `pulse-a7reg-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
+  );
   // load() 校验 apps 必须非空对象 (空 {} 是 falsy 会返 null), 给个占位 app
-  fs.writeFileSync(tmpFile, JSON.stringify({ v: 1, apps: { __test: { installed_version: "1" } } }), "utf-8");
+  fs.writeFileSync(
+    tmpFile,
+    JSON.stringify({ v: 1, apps: { __test: { installed_version: "1" } } }),
+    "utf-8",
+  );
   stateStore._setStatePathForTest(tmpFile);
 });
 afterEach(() => {
-  try { fs.unlinkSync(tmpFile); } catch { /* noop */ }
+  try {
+    fs.unlinkSync(tmpFile);
+  } catch {
+    /* noop */
+  }
 });
 
 function writeAiPrompts(prompts) {
@@ -26,15 +41,17 @@ function writeAiPrompts(prompts) {
 }
 
 describe("prompt-registry (A7)", () => {
-  it("PROMPT_KEYS 含 3 个 prompt", () => {
+  it("PROMPT_KEYS 含 5 个 prompt (A7 v2 + A2)", () => {
     expect(PROMPT_KEYS).toEqual(
       expect.arrayContaining([
         "ithome_summary",
         "worldcup_prematch",
         "worldcup_postmatch",
+        "upgrade_advice",
+        "category_classify",
       ]),
     );
-    expect(PROMPT_KEYS).toHaveLength(3);
+    expect(PROMPT_KEYS).toHaveLength(5);
   });
 
   it("DEFAULT_PROMPTS 每个 prompt 有 system + rules", () => {
@@ -85,5 +102,17 @@ describe("prompt-registry (A7)", () => {
 
   it("DEFAULT_PROMPTS.worldcup_postmatch.system 含「足球评论员」", () => {
     expect(DEFAULT_PROMPTS.worldcup_postmatch.system).toContain("足球评论员");
+  });
+
+  it("upgrade_advice 默认含 JSON schema 规则", () => {
+    expect(DEFAULT_PROMPTS.upgrade_advice.rules).toContain("recommendation");
+  });
+
+  it("resolvePrompt fewShot 用户可覆盖", () => {
+    writeAiPrompts({
+      ithome_summary: { system: "自定义", rules: "规则", fewShot: "示例输出" },
+    });
+    const p = resolvePrompt("ithome_summary");
+    expect(p.fewShot).toBe("示例输出");
   });
 });

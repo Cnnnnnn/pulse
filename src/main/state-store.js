@@ -254,6 +254,7 @@ const PRESERVE_FIELDS = [
   { key: "last_seen_release", kind: "object", notArray: true },  // ON: { version, at } — release notes onboarding
   { key: "wechat_hot", kind: "object", notArray: true },          // I6 v2: { readIds: { title: readAt } } — wechat-hot 已读词
   { key: "ai_prompts", kind: "object", notArray: true },           // A7: { promptId: { system, rules } } — 用户自定义 AI prompt
+  { key: "upgrade_advice_cache", kind: "object", notArray: true }, // A2: 升级建议缓存
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -852,6 +853,47 @@ function saveAiPrompts(prompts, statePath = defaultPath()) {
   }
   return patchState((next) => {
     next.ai_prompts = prompts;
+  }, statePath);
+}
+
+// ─── A2: 升级建议缓存 ────────────────────────────────────────
+
+const UPGRADE_ADVICE_GC_DAYS = 30;
+
+function cleanExpiredUpgradeAdvice(map, now) {
+  if (!map || typeof map !== "object") return {};
+  const out = {};
+  const cutoffMs = now - UPGRADE_ADVICE_GC_DAYS * 86400_000;
+  for (const [k, e] of Object.entries(map)) {
+    if (!e || typeof e !== "object") continue;
+    if (typeof e.generatedAt !== "number" || e.generatedAt < cutoffMs) continue;
+    out[k] = e;
+  }
+  return out;
+}
+
+function loadUpgradeAdviceCache(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s || !s.upgrade_advice_cache || typeof s.upgrade_advice_cache !== "object") {
+    return {};
+  }
+  return cleanExpiredUpgradeAdvice(s.upgrade_advice_cache, Date.now());
+}
+
+function loadUpgradeAdviceEntry(cacheKey, statePath = defaultPath()) {
+  if (!cacheKey) return null;
+  const map = loadUpgradeAdviceCache(statePath);
+  return map[cacheKey] || null;
+}
+
+function saveUpgradeAdviceEntry(entry, statePath = defaultPath()) {
+  if (!entry || typeof entry !== "object" || typeof entry.cacheKey !== "string") {
+    throw new TypeError("saveUpgradeAdviceEntry: entry.cacheKey required");
+  }
+  return patchState((next, existing, now) => {
+    const map = cleanExpiredUpgradeAdvice(existing.upgrade_advice_cache || {}, now);
+    map[entry.cacheKey] = { ...entry, generatedAt: entry.generatedAt || now };
+    next.upgrade_advice_cache = map;
   }, statePath);
 }
 
@@ -1769,6 +1811,9 @@ module.exports = {
   // A7: AI prompt 模板化
   loadAiPrompts,
   saveAiPrompts,
+  loadUpgradeAdviceCache,
+  loadUpgradeAdviceEntry,
+  saveUpgradeAdviceEntry,
   // A3: 搜索索引注入
   setSearchIndex,
 };

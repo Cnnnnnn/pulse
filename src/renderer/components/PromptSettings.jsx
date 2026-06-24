@@ -1,21 +1,20 @@
 /**
  * src/renderer/components/PromptSettings.jsx
  *
- * A7: AI prompt 模板编辑面板. 3 个 prompt × (system + rules) textarea.
- * debounce 500ms 保存. isDefault=true 显示 "默认" 标记.
+ * A7 / A7 v2: AI prompt 编辑 — system + rules + few-shot + 恢复默认.
  */
 import { useEffect, useState, useRef } from "preact/hooks";
 import {
   aiPrompts,
   loadAiPrompts,
   saveAiPrompts,
+  resetAiPrompt,
   promptLabel,
 } from "../store/prompt-store.js";
 import { showToast } from "../store.js";
 
 export function PromptSettings() {
   const prompts = aiPrompts.value;
-  // 本地草稿 (避免每次按键都保存)
   const [draft, setDraft] = useState(null);
   const debounceRef = useRef(null);
 
@@ -23,22 +22,21 @@ export function PromptSettings() {
     loadAiPrompts();
   }, []);
 
-  // prompts 加载完 → 初始化草稿
   useEffect(() => {
     if (prompts && !draft) {
       const d = {};
       for (const key of Object.keys(prompts)) {
-        d[key] = { system: prompts[key].system, rules: prompts[key].rules };
+        d[key] = {
+          system: prompts[key].system,
+          rules: prompts[key].rules,
+          fewShot: prompts[key].fewShot || "",
+        };
       }
       setDraft(d);
     }
   }, [prompts, draft]);
 
-  function updateField(key, field, value) {
-    if (!draft) return;
-    const next = { ...draft, [key]: { ...draft[key], [field]: value } };
-    setDraft(next);
-    // debounce 保存
+  function scheduleSave(next) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       const r = await saveAiPrompts(next);
@@ -48,6 +46,23 @@ export function PromptSettings() {
         showToast("保存失败", "error", 2500);
       }
     }, 500);
+  }
+
+  function updateField(key, field, value) {
+    if (!draft) return;
+    const next = { ...draft, [key]: { ...draft[key], [field]: value } };
+    setDraft(next);
+    scheduleSave(next);
+  }
+
+  async function handleReset(key) {
+    const r = await resetAiPrompt(key);
+    if (r && r.ok) {
+      setDraft(null);
+      showToast("已恢复默认", "success", 1500);
+    } else {
+      showToast("恢复失败", "error", 2500);
+    }
   }
 
   useEffect(() => () => {
@@ -62,7 +77,7 @@ export function PromptSettings() {
     <section class="prompt-settings">
       <h3 class="prompt-settings-title">AI Prompt 模板</h3>
       <p class="prompt-settings-hint">
-        自定义 AI 摘要/预测的 prompt。留空 system 恢复默认。改错可手动清空重存。
+        自定义 AI 摘要/预测/升级建议的 prompt。few-shot 为可选参考示例。
       </p>
       {Object.keys(prompts).map((key) => (
         <div class="prompt-settings-item" key={key}>
@@ -70,6 +85,15 @@ export function PromptSettings() {
             <span class="prompt-settings-item-label">{promptLabel(key)}</span>
             {prompts[key].isDefault && (
               <span class="prompt-settings-default-tag">默认</span>
+            )}
+            {!prompts[key].isDefault && (
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm prompt-settings-reset"
+                onClick={() => handleReset(key)}
+              >
+                恢复默认
+              </button>
             )}
           </div>
           <label class="prompt-settings-field">
@@ -90,6 +114,16 @@ export function PromptSettings() {
               value={draft[key]?.rules || ""}
               onInput={(e) => updateField(key, "rules", e.target.value)}
               placeholder={prompts[key].rules}
+            />
+          </label>
+          <label class="prompt-settings-field">
+            <span class="prompt-settings-field-label">Few-shot 示例 (可选)</span>
+            <textarea
+              class="prompt-settings-textarea prompt-settings-textarea--rules"
+              rows="3"
+              value={draft[key]?.fewShot || ""}
+              onInput={(e) => updateField(key, "fewShot", e.target.value)}
+              placeholder="留空则不用示例"
             />
           </label>
         </div>

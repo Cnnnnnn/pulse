@@ -6,6 +6,7 @@
  */
 
 import { getLocalTier } from '../store.js';
+import { UpgradeAdvice } from './UpgradeAdvice.jsx';
 
 const SOURCE_LABELS = {
   'brew': 'Brew', 'sparkle': 'Sparkle', 'web(yml)': 'CDN',
@@ -189,6 +190,9 @@ export function AppInfo({
       </div>
       <div class={`app-subtitle${stale ? ' stale' : ''}${errMsg ? ' has-error' : ''}`}>{subtitle}</div>
       {preview && <div class="app-changelog-preview" title={result.changelog}>{preview}</div>}
+      {result.has_update && (
+        <UpgradeAdvice appName={result.name} hasUpdate={result.has_update} />
+      )}
       {lastOpenedLine}
     </div>
   );

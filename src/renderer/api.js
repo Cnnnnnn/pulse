@@ -169,6 +169,8 @@ export function createApi(overrides = {}) {
     // A7: AI prompt 模板化
     aiPromptsLoad: pick(overrides, "aiPromptsLoad"),
     aiPromptsSave: pick(overrides, "aiPromptsSave"),
+    aiPromptsReset: pick(overrides, "aiPromptsReset"),
+    upgradeAdviceFetch: pick(overrides, "upgradeAdviceFetch"),
     onAiPromptsUpdated: pick(overrides, "onAiPromptsUpdated"),
   };
 }

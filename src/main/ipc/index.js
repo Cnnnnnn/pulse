@@ -6,7 +6,9 @@ const { createIpcContext } = require("./context");
 const { registerCoreHandlers } = require("./register-core");
 const { registerTrayConfigHandlers } = require("./register-tray-config");
 const { registerOpenUrlHandlers } = require("./register-open-url");
-const { registerRemindersRecentHandlers } = require("./register-reminders-recent");
+const {
+  registerRemindersRecentHandlers,
+} = require("./register-reminders-recent");
 const { registerAiHandlers } = require("./register-ai");
 const { registerAiUsageHandlers } = require("./register-ai-usage");
 const { registerWorldcupHandlers } = require("./register-worldcup");
@@ -15,6 +17,7 @@ const { registerIthomeShareHandlers } = require("./register-ithome-share");
 const { registerFundsHandlers } = require("./register-funds");
 const { registerWechatHotHandlers } = require("./register-wechat-hot");
 const { registerAiPromptsHandlers } = require("./register-ai-prompts");
+const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -33,6 +36,7 @@ function registerIpcHandlers(deps) {
   registerFundsHandlers(ctx);
   registerWechatHotHandlers(ctx); // ← 新增
   registerAiPromptsHandlers(ctx); // A7: AI prompt 模板化
+  registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
 }
 
 module.exports = { registerIpcHandlers };

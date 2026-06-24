@@ -16,6 +16,7 @@ vi.mock("../../src/renderer/store/prompt-store.js", () => ({
   aiPrompts: store.aiPrompts,
   loadAiPrompts: store.loadAiPrompts,
   saveAiPrompts: store.saveAiPrompts,
+  resetAiPrompt: vi.fn(async () => ({ ok: true })),
   promptLabel: (k) => k,
 }));
 
@@ -52,7 +53,7 @@ describe("PromptSettings (A7)", () => {
   it("编辑 system textarea 触发保存 (debounce 500ms)", async () => {
     render(<PromptSettings />);
     const textareas = document.body.querySelectorAll(".prompt-settings-textarea");
-    expect(textareas).toHaveLength(6);
+    expect(textareas).toHaveLength(9); // 3 prompts × (system + rules + fewShot)
     fireEvent.input(textareas[0], { target: { value: "新角色" } });
     await new Promise((r) => setTimeout(r, 600));
     expect(store.saveAiPrompts).toHaveBeenCalled();

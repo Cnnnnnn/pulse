@@ -108,12 +108,25 @@ async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
   mainLog.info(`[category] ${unmapped.length} unmapped apps → LLM classify`);
 
   const llmCaller = externalLlmCaller || defaultOllamaCaller();
+  let systemMsg;
+  try {
+    const { resolvePrompt } = require("../../ai/prompt-registry");
+    const validCatIds = categoryConfig.getAllCategories().map((c) => c.id);
+    const prompt = resolvePrompt("category_classify");
+    systemMsg = [
+      prompt.system,
+      prompt.rules.replace(/\{\{CATEGORY_IDS\}\}/g, validCatIds.join(", ")),
+    ].join("\n");
+  } catch {
+    systemMsg = undefined;
+  }
 
   let llmResult = {};
   try {
     llmResult = await categoryConfig.classifyByLLM(unmapped, {
       llmCaller,
       timeoutMs: 28_000,
+      systemMsg,
     });
   } catch (err) {
     mainLog.warn(`[category] LLM classify threw: ${err.message}`);

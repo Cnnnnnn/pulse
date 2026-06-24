@@ -150,6 +150,17 @@ export function AITasksDrawer() {
   const busy = aiSummarizeBusy.value;
 
   const [selectedKeys, setSelectedKeys] = useState([]);
+  const [configTab, setConfigTab] = useState('connection'); // connection | prompts
+
+  function openConfig(tab = 'connection') {
+    setConfigTab(tab);
+    digestConfigMode.value = true;
+  }
+
+  function closeConfig() {
+    digestConfigMode.value = false;
+    setConfigTab('connection');
+  }
 
   // 打开抽屉 / 切日期 → 刷新当前日期的任务列表
   useEffect(() => {
@@ -203,7 +214,7 @@ export function AITasksDrawer() {
     const target = (Array.isArray(keys) && keys.length > 0 ? keys : selectedKeys).filter(Boolean);
     if (target.length === 0 || busy) return;
     if (needsConfig()) {
-      digestConfigMode.value = true;
+      openConfig('connection');
       showToast('请先配置 AI Provider 和 API Key', 'info', 3000);
       return;
     }
@@ -246,7 +257,9 @@ export function AITasksDrawer() {
             </span>
             <div class="drawer-title-block">
               <h2 class="drawer-title">
-                {configMode ? 'AI 总结设置' : `${formatDateLabel(dateKey)}的 AI 任务`}
+                {configMode
+                  ? (configTab === 'prompts' ? 'AI Prompt 模板' : 'AI 总结设置')
+                  : `${formatDateLabel(dateKey)}的 AI 任务`}
               </h2>
               {!configMode && tasks.length > 0 && (
                 <p class="drawer-subtitle">
@@ -267,6 +280,22 @@ export function AITasksDrawer() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={loading ? 'is-spin' : ''}>
                 <path d="M21 12a9 9 0 1 1-3-6.7" />
                 <path d="M21 4v5h-5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class={`drawer-icon-btn ${configMode ? 'is-active' : ''}`}
+              onClick={() => {
+                if (configMode) closeConfig();
+                else openConfig('connection');
+              }}
+              title={configMode ? '返回任务列表' : 'AI 设置'}
+              aria-label={configMode ? '返回任务列表' : 'AI 设置'}
+              aria-pressed={configMode}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
               </svg>
             </button>
             <button
@@ -294,12 +323,35 @@ export function AITasksDrawer() {
         <div class="drawer-body">
           {configMode ? (
             <div class="digest-setup-scene">
-              <AIConfigForm
-                compact
-                onSaved={() => { digestConfigMode.value = false; }}
-                onCancel={() => { digestConfigMode.value = false; }}
-              />
-              <PromptSettings />
+              <div class="ai-config-tabs" role="tablist" aria-label="AI 设置分类">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={configTab === 'connection'}
+                  class={`ai-config-tab ${configTab === 'connection' ? 'active' : ''}`}
+                  onClick={() => setConfigTab('connection')}
+                >
+                  连接设置
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={configTab === 'prompts'}
+                  class={`ai-config-tab ${configTab === 'prompts' ? 'active' : ''}`}
+                  onClick={() => setConfigTab('prompts')}
+                >
+                  Prompt 模板
+                </button>
+              </div>
+              {configTab === 'connection' ? (
+                <AIConfigForm
+                  compact
+                  onSaved={closeConfig}
+                  onCancel={closeConfig}
+                />
+              ) : (
+                <PromptSettings />
+              )}
             </div>
           ) : (
             <>
@@ -397,10 +449,18 @@ export function AITasksDrawer() {
               <button
                 type="button"
                 class="drawer-footer-text-link"
-                onClick={() => { digestConfigMode.value = true; }}
+                onClick={() => openConfig('connection')}
                 title="修改 Provider / Model / API Key"
               >
                 修改 AI 设置
+              </button>
+              <button
+                type="button"
+                class="drawer-footer-text-link"
+                onClick={() => openConfig('prompts')}
+                title="编辑 AI Prompt 模板"
+              >
+                Prompt 模板
               </button>
             </div>
           </footer>

@@ -1,13 +1,11 @@
 /**
  * src/renderer/store/prompt-store.js
- *
- * A7: AI prompt 模板化的 renderer store.
- * 加载/保存 prompt 配置, 提供 aiPrompts signal 给 PromptSettings 组件.
  */
+
 import { signal } from "@preact/signals";
 import { api } from "../api.js";
 
-/** @type {Signal<Record<string, {system: string, rules: string, isDefault: boolean}>|null>} */
+/** @type {Signal<Record<string, {system: string, rules: string, fewShot: string, isDefault: boolean}>|null>} */
 export const aiPrompts = signal(null);
 export const aiPromptsLoading = signal(false);
 export const aiPromptsSaving = signal(false);
@@ -16,6 +14,8 @@ const PROMPT_LABELS = {
   ithome_summary: "📰 IT之家文章摘要",
   worldcup_prematch: "🏆 世界杯赛前预测",
   worldcup_postmatch: "🏆 世界杯赛后总结",
+  upgrade_advice: "💡 升级建议 (该不该升)",
+  category_classify: "🏷️ App 分类",
 };
 
 export function promptLabel(key) {
@@ -47,6 +47,19 @@ export async function saveAiPrompts(prompts) {
     return { ok: false };
   } finally {
     aiPromptsSaving.value = false;
+  }
+}
+
+export async function resetAiPrompt(key) {
+  if (!api || typeof api.aiPromptsReset !== "function") return { ok: false };
+  try {
+    const r = await api.aiPromptsReset(key);
+    if (r && r.ok) {
+      aiPrompts.value = await api.aiPromptsLoad();
+    }
+    return r;
+  } catch {
+    return { ok: false };
   }
 }
 

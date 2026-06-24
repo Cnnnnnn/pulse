@@ -266,12 +266,14 @@ async function classifyByLLM(apps, opts = {}) {
     return {};
   }
   const validCatIds = CATEGORIES_SORTED.map((c) => c.id);
-  const systemMsg = [
-    '你是一个 app 分类助手.',
-    `你只能输出以下 categoryId 之一: ${validCatIds.join(', ')}`,
-    '对每个 app 选最合适的一个. 输出严格 JSON 格式: {"appName": "categoryId", ...}',
-    '不要任何额外文字、markdown fence 或注释.',
-  ].join(' ');
+  const systemMsg = typeof opts.systemMsg === 'string' && opts.systemMsg.trim()
+    ? opts.systemMsg.trim()
+    : [
+      '你是一个 app 分类助手.',
+      `你只能输出以下 categoryId 之一: ${validCatIds.join(', ')}`,
+      '对每个 app 选最合适的一个. 输出严格 JSON 格式: {"appName": "categoryId", ...}',
+      '不要任何额外文字、markdown fence 或注释.',
+    ].join(' ');
   const userLines = ['下面是待分类的 app 列表 (含启发式提示, 你可参考但独立判断):', ''];
   for (const a of apps) {
     if (!a || typeof a.name !== 'string' || a.name.length === 0) continue;

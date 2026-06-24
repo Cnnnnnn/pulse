@@ -78,6 +78,8 @@ contextBridge.exposeInMainWorld("api", {
   // A7: AI prompt 模板化
   aiPromptsLoad: () => ipcRenderer.invoke("ai-prompts:load"),
   aiPromptsSave: (prompts) => ipcRenderer.invoke("ai-prompts:save", prompts),
+  aiPromptsReset: (key) => ipcRenderer.invoke("ai-prompts:reset", key),
+  upgradeAdviceFetch: (opts) => ipcRenderer.invoke("upgrade-advice:fetch", opts),
   onAiPromptsUpdated: (cb) => {
     const handler = (_evt) => cb();
     ipcRenderer.on("ai-prompts-updated", handler);

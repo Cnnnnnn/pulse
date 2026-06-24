@@ -1,11 +1,8 @@
 /**
  * src/ai/prompt-registry.js
  *
- * AI prompt 注册中心 — 3 个 prompt(ithome 摘要 + worldcup 赛前/赛后)。
- * 默认值 = 此前硬编码原值(零行为变化); 用户可在 Settings 改。
- * 存储: state.json.ai_prompts (state-store.loadAiPrompts/saveAiPrompts)。
- *
- * worldcup 的"内容指引"(分三段...) 并入 system 字段(本就是角色描述一部分)。
+ * AI prompt 注册中心 — ithome / worldcup / 升级建议 / app 分类.
+ * 默认值 = 此前硬编码原值; 用户可在 Settings 改 (含可选 few-shot).
  */
 
 const stateStore = require("../main/state-store");
@@ -23,6 +20,7 @@ const DEFAULT_PROMPTS = {
       "所属领域：<如 消费电子、人工智能、政策监管、游戏 等>",
       "影响方面：<说明可能影响的用户群体、行业或产品方向>",
     ].join("\n"),
+    fewShot: "",
   },
   worldcup_prematch: {
     system: [
@@ -36,6 +34,7 @@ const DEFAULT_PROMPTS = {
       "3. 禁止输出思考过程或任何 XML 标签，只写正文。",
       "4. 直接开始写正文，不要前言或元说明。",
     ].join("\n"),
+    fewShot: "",
   },
   worldcup_postmatch: {
     system: [
@@ -50,34 +49,65 @@ const DEFAULT_PROMPTS = {
       "3. 禁止输出思考过程或任何 XML 标签，只写正文。",
       "4. 直接开始写正文，不要前言或元说明。",
     ].join("\n"),
+    fewShot: "",
+  },
+  upgrade_advice: {
+    system: [
+      "你是 macOS 应用升级顾问。根据 release notes、版本变化和使用频次，",
+      "帮用户判断「该不该现在升级」。语气简洁、务实，不夸大风险也不盲目推荐。",
+    ].join(""),
+    rules: [
+      "【硬性要求】",
+      "1. 只输出严格 JSON，不要 markdown fence 或额外文字。",
+      "2. JSON schema:",
+      '   {"recommendation":"upgrade"|"wait"|"skip","confidence":"high"|"medium"|"low",',
+      '    "summary":"一句话建议，≤80字","reasons":["理由1","理由2"]}',
+      "3. recommendation 含义: upgrade=建议现在升; wait=不急可等等; skip=建议跳过此版本。",
+      "4. 很久没用(cold)的非关键 app → 倾向 wait/skip; 安全/崩溃修复 → 倾向 upgrade。",
+      "5. changelog 为空时根据版本号和使用频次保守判断，confidence 降为 medium/low。",
+    ].join("\n"),
+    fewShot: "",
+  },
+  category_classify: {
+    system: "你是一个 app 分类助手。",
+    rules: [
+      "你只能输出以下 categoryId 之一: {{CATEGORY_IDS}}",
+      "对每个 app 选最合适的一个。",
+      '输出严格 JSON 格式: {"appName": "categoryId", ...}',
+      "不要任何额外文字、markdown fence 或注释。",
+    ].join("\n"),
+    fewShot: "",
   },
 };
 
 const PROMPT_KEYS = Object.keys(DEFAULT_PROMPTS);
 
 /**
- * 解析某个 prompt: 有用户配置(且 system 非空)用配置, 否则用默认.
- * 整体替换语义: 用户配了该 key 就用 {system, rules} 整体,
- * 不做 system/rules 分别 fallback (避免混搭).
- * @param {string} key  prompt id
- * @returns {{ system: string, rules: string }}
+ * @param {string} key
+ * @returns {{ system: string, rules: string, fewShot: string }}
  */
 function resolvePrompt(key) {
   const def = DEFAULT_PROMPTS[key];
   if (!def) throw new Error(`unknown prompt key: ${key}`);
   const userPrompts = stateStore.loadAiPrompts();
   const user = userPrompts && userPrompts[key];
-  // 整体替换语义: 用户配了该 key 且 system 非空 → 整体用用户配置;
-  // system 为空(用户清空了) → 回退默认 (不做 system/rules 分别 fallback).
   if (
     user &&
     typeof user.system === "string" &&
     user.system.trim() &&
     typeof user.rules === "string"
   ) {
-    return { system: user.system, rules: user.rules };
+    return {
+      system: user.system,
+      rules: user.rules,
+      fewShot: typeof user.fewShot === "string" ? user.fewShot : "",
+    };
   }
-  return { system: def.system, rules: def.rules };
+  return {
+    system: def.system,
+    rules: def.rules,
+    fewShot: def.fewShot || "",
+  };
 }
 
 module.exports = { DEFAULT_PROMPTS, resolvePrompt, PROMPT_KEYS };

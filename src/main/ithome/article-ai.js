@@ -58,10 +58,14 @@ function buildMessages(article) {
     label = "正文：";
   }
   const prompt = resolvePrompt("ithome_summary");
+  const systemParts = [`${prompt.system}\n${prompt.rules}`];
+  if (prompt.fewShot && prompt.fewShot.trim()) {
+    systemParts.push(`\n【参考示例】\n${prompt.fewShot.trim()}`);
+  }
   return [
     {
       role: "system",
-      content: `${prompt.system}\n${prompt.rules}`,
+      content: systemParts.join("\n"),
     },
     {
       role: "user",
