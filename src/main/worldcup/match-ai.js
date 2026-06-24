@@ -5,6 +5,7 @@
  */
 
 const { chatCompletion } = require("../../ai/shared-llm");
+const { resolvePrompt } = require("../../ai/prompt-registry");
 const { sanitizeLlmOutput } = require("../../ai/sanitize-llm-output");
 const stateStore = require("../state-store");
 const { matchKey } = require("./match-key");
@@ -24,24 +25,13 @@ function _formatScorers(scorers, team1, team2) {
     .join("\n");
 }
 
-const OUTPUT_RULES = [
-  "【硬性要求】",
-  "1. 全文必须使用简体中文，禁止英文段落。",
-  "2. 只输出给用户看的正文，禁止输出思考过程、分析步骤、XML/HTML 标签。",
-  "3. 禁止输出思考过程或任何 XML 标签，只写正文。",
-  "4. 直接开始写正文，不要前言或元说明。",
-].join("\n");
-
 function buildPreMatchPrompt(match) {
   const { team1, team2, stage, venue, date, time, timezone } = match;
+  const prompt = resolvePrompt("worldcup_prematch");
   return [
     {
       role: "system",
-      content: [
-        "你是资深足球分析师。用简体中文写赛前预测，语气专业但易懂，200–350 字。",
-        "分三段：对阵看点、关键球员/战术、预测比分与理由。不要编造具体伤病除非用户数据里有。",
-        OUTPUT_RULES,
-      ].join("\n"),
+      content: `${prompt.system}\n${prompt.rules}`,
     },
     {
       role: "user",
@@ -64,15 +54,11 @@ function buildPostMatchPrompt(match, scoreEntry) {
     team1,
     team2,
   );
+  const prompt = resolvePrompt("worldcup_postmatch");
   return [
     {
       role: "system",
-      content: [
-        "你是资深足球评论员。用简体中文写赛后总结，250–400 字。",
-        "包含：比赛进程、进球/关键瞬间解读、双方表现评价、出线或晋级影响（如适用）。",
-        "基于给定比分与进球者，不要编造未提供的进球。",
-        OUTPUT_RULES,
-      ].join("\n"),
+      content: `${prompt.system}\n${prompt.rules}`,
     },
     {
       role: "user",

@@ -6,6 +6,7 @@
 
 const crypto = require("crypto");
 const { chatCompletion } = require("../../ai/shared-llm");
+const { resolvePrompt } = require("../../ai/prompt-registry");
 const { sanitizeLlmOutput } = require("../../ai/sanitize-llm-output");
 const newsStore = require("./news-store");
 const {
@@ -20,17 +21,6 @@ const {
 
 const PROMPT_BODY_LIMIT = 5000;
 const MIN_USEFUL_BODY_CHARS = 200;
-
-const OUTPUT_RULES = [
-  "【硬性要求】",
-  "1. 全文必须使用简体中文。",
-  "2. 只输出给用户看的正文，禁止思考过程或 XML/HTML 标签。",
-  "3. 严格按以下四行格式输出（每行一项，行首为固定标签，不要编号列表）：",
-  "摘要：<80–150 字，概括核心事实与背景>",
-  "关键词：<3–5 个词，用顿号分隔>",
-  "所属领域：<如 消费电子、人工智能、政策监管、游戏 等>",
-  "影响方面：<说明可能影响的用户群体、行业或产品方向>",
-].join("\n");
 
 function summaryResponse(entry, cached) {
   const fields = enrichSummaryEntry(entry);
@@ -67,13 +57,11 @@ function buildMessages(article) {
     primary = "(无原文正文，请根据标题给出简短说明，并注明信息可能不完整)";
     label = "正文：";
   }
+  const prompt = resolvePrompt("ithome_summary");
   return [
     {
       role: "system",
-      content: [
-        "你是科技新闻编辑，擅长把 IT 资讯浓缩成清晰的中文摘要。",
-        OUTPUT_RULES,
-      ].join("\n"),
+      content: `${prompt.system}\n${prompt.rules}`,
     },
     {
       role: "user",
