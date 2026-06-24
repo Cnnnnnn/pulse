@@ -164,6 +164,10 @@ export function createApi(overrides = {}) {
     releaseNotes: (overrides && overrides.releaseNotes) ||
       (typeof window !== "undefined" && window.api && window.api.releaseNotes) ||
       { getCurrent: noop, getVersion: noop, markSeen: noop },
+    // A7: AI prompt 模板化
+    aiPromptsLoad: pick(overrides, "aiPromptsLoad"),
+    aiPromptsSave: pick(overrides, "aiPromptsSave"),
+    onAiPromptsUpdated: pick(overrides, "onAiPromptsUpdated"),
   };
 }
 

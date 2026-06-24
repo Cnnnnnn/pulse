@@ -75,6 +75,15 @@ contextBridge.exposeInMainWorld("api", {
   onAiSessionsConfigUpdated: (cb) =>
     ipcRenderer.on("ai-sessions-config-updated", (_, data) => cb(data)),
 
+  // A7: AI prompt 模板化
+  aiPromptsLoad: () => ipcRenderer.invoke("ai-prompts:load"),
+  aiPromptsSave: (prompts) => ipcRenderer.invoke("ai-prompts:save", prompts),
+  onAiPromptsUpdated: (cb) => {
+    const handler = (_evt) => cb();
+    ipcRenderer.on("ai-prompts-updated", handler);
+    return () => ipcRenderer.removeListener("ai-prompts-updated", handler);
+  },
+
   // v2.13 AI 用量 (Minimax coding plan)
   aiUsageGetCached: () => ipcRenderer.invoke("ai-usage:get-cached"),
   aiUsageFetch: (opts) => ipcRenderer.invoke("ai-usage:fetch", opts),
