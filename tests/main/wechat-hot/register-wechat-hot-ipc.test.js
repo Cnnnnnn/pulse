@@ -16,6 +16,7 @@ const fetcherPath = require.resolve("../../../src/main/wechat-hot/fetcher.js");
 const registerPath =
   require.resolve("../../../src/main/ipc/register-wechat-hot.js");
 const logPath = require.resolve("../../../src/main/log.js");
+const readStorePath = require.resolve("../../../src/main/wechat-hot/read-store.js");
 
 const mockHttpClientInstance = { get: vi.fn() };
 const HttpClientCtor = vi.fn(function () {
@@ -23,6 +24,8 @@ const HttpClientCtor = vi.fn(function () {
 });
 const fetchWechatHot = vi.fn();
 const mainLogWarn = vi.fn();
+const loadReadIds = vi.fn(() => ({}));
+const markItemRead = vi.fn(() => ({ ok: true }));
 
 function stubModules() {
   vi.resetModules();
@@ -62,6 +65,12 @@ function stubModules() {
       },
     },
   };
+  require.cache[readStorePath] = {
+    id: readStorePath,
+    filename: readStorePath,
+    loaded: true,
+    exports: { loadReadIds, markItemRead },
+  };
 }
 
 function clearStubs() {
@@ -69,6 +78,10 @@ function clearStubs() {
   mockHttpClientInstance.get.mockReset();
   fetchWechatHot.mockReset();
   mainLogWarn.mockReset();
+  loadReadIds.mockReset();
+  markItemRead.mockReset();
+  loadReadIds.mockReturnValue({});
+  markItemRead.mockReturnValue({ ok: true });
   // Default: successful fetch returns one item
   fetchWechatHot.mockResolvedValue({
     items: [{ rank: 1, title: "X", url: "https://x" }],
@@ -94,6 +107,7 @@ describe("wechat-hot IPC handlers", () => {
     delete require.cache[httpClientPath];
     delete require.cache[fetcherPath];
     delete require.cache[logPath];
+    delete require.cache[readStorePath];
     delete require.cache[registerPath];
   });
 
@@ -191,5 +205,63 @@ describe("wechat-hot IPC handlers", () => {
       registerMod.registerWechatHotHandlers({ sendToRenderer }),
     ).not.toThrow();
     expect(HttpClientCtor).not.toHaveBeenCalled();
+  });
+});
+
+describe("wechat-hot IPC: mark-read / load-read (I6 v2)", () => {
+  beforeEach(() => {
+    stubModules();
+    clearStubs();
+    freshModule();
+  });
+
+  afterEach(() => {
+    delete require.cache[httpClientPath];
+    delete require.cache[fetcherPath];
+    delete require.cache[logPath];
+    delete require.cache[readStorePath];
+    delete require.cache[registerPath];
+  });
+
+  function getHandlers() {
+    const handlers = {};
+    const safeHandle = vi.fn((channel, fn) => {
+      handlers[channel] = fn;
+    });
+    registerMod.registerWechatHotHandlers({ safeHandle, sendToRenderer: vi.fn() });
+    return handlers;
+  }
+
+  it("注册 wechat-hot:load-read channel", () => {
+    const handlers = getHandlers();
+    expect(typeof handlers["wechat-hot:load-read"]).toBe("function");
+  });
+
+  it("注册 wechat-hot:mark-read channel", () => {
+    const handlers = getHandlers();
+    expect(typeof handlers["wechat-hot:mark-read"]).toBe("function");
+  });
+
+  it("wechat-hot:load-read 调 readStore.loadReadIds 并返回结果", async () => {
+    loadReadIds.mockReturnValueOnce({ "词": 1 });
+    const handlers = getHandlers();
+    const r = await handlers["wechat-hot:load-read"]();
+    expect(loadReadIds).toHaveBeenCalled();
+    expect(r).toEqual({ "词": 1 });
+  });
+
+  it("wechat-hot:mark-read 调 readStore.markItemRead(title)", async () => {
+    markItemRead.mockReturnValueOnce({ ok: true });
+    const handlers = getHandlers();
+    const r = await handlers["wechat-hot:mark-read"]({}, "热搜词");
+    expect(markItemRead).toHaveBeenCalledWith("热搜词");
+    expect(r.ok).toBe(true);
+  });
+
+  it("wechat-hot:mark-read 无效 title → invalid_args", async () => {
+    const handlers = getHandlers();
+    const r = await handlers["wechat-hot:mark-read"]({}, "");
+    expect(r).toEqual({ ok: false, reason: "invalid_args" });
+    expect(markItemRead).not.toHaveBeenCalled();
   });
 });

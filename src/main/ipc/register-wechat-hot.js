@@ -8,6 +8,7 @@
 
 const { fetchWechatHot } = require("../wechat-hot/fetcher.js");
 const { createWechatHotCache } = require("../wechat-hot/cache.js");
+const { loadReadIds, markItemRead } = require("../wechat-hot/read-store.js");
 const { HttpClient } = require("../http-client.js");
 const { mainLog } = require("../log");
 
@@ -38,6 +39,16 @@ function registerWechatHotHandlers(ctx) {
       mainLog.warn(`[ipc] wechat-hot:refresh failed: reason=${err && err.reason}, msg=${err && err.message}`);
       return { ok: false, reason: err && err.reason ? err.reason : "threw" };
     }
+  });
+
+  // I6 v2: 已读词持久化 (仿 ithome:mark-read)
+  safeHandle("wechat-hot:load-read", () => loadReadIds());
+
+  safeHandle("wechat-hot:mark-read", (_evt, title) => {
+    if (!title || typeof title !== "string") {
+      return { ok: false, reason: "invalid_args" };
+    }
+    return markItemRead(title);
   });
 }
 

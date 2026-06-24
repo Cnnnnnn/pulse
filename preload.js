@@ -149,6 +149,8 @@ contextBridge.exposeInMainWorld("api", {
   // 微信热搜 (v2.24)
   wechatHotLoad: () => ipcRenderer.invoke("wechat-hot:load"),
   wechatHotRefresh: () => ipcRenderer.invoke("wechat-hot:refresh"),
+  wechatHotLoadRead: () => ipcRenderer.invoke("wechat-hot:load-read"),
+  wechatHotMarkRead: (title) => ipcRenderer.invoke("wechat-hot:mark-read", title),
   onWechatHotUpdated: (cb) => {
     const handler = (_evt, data) => cb(data);
     ipcRenderer.on("wechat-hot:updated", handler);
