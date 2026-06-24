@@ -5,7 +5,7 @@
  * Mirror src/renderer/ithome/store.js 风格.
  */
 
-import { signal } from "@preact/signals";
+import { signal, computed } from "@preact/signals";
 import { api } from "../api.js";
 
 const COOLDOWN_MS = 15000;
@@ -17,6 +17,15 @@ export const wechatHotError = signal(null);
 export const wechatHotLastFetched = signal(0);
 export const wechatHotLastRefreshAt = signal(0);
 export const wechatHotUpdatedUnsub = signal(null);
+export const wechatHotReadIds = signal({});
+export const wechatHotNewIds = signal({});
+/**
+ * SideNav 未读角标 (I6 v2) — 本 session 新增且未读的热搜词数.
+ * 派生自 wechatHotNewIds: 点行 (markWechatHotRead) → -1; refresh 新词 → +N; 重启 → 归 0.
+ */
+export const wechatHotUnreadBadge = computed(
+  () => Object.keys(wechatHotNewIds.value).length
+);
 
 export function applyPayload(payload) {
   if (!payload || typeof payload !== "object") return;
@@ -24,10 +33,24 @@ export function applyPayload(payload) {
   wechatHotLastFetched.value = payload.fetchedAt || 0;
   wechatHotLoaded.value = true;
   wechatHotError.value = null;
+  // I6 v2: diff 产生 newIds — 本 session 首次出现且未读的词
+  const prevIds = new Set(Object.keys(wechatHotNewIds.value));
+  const newMap = { ...wechatHotNewIds.value };
+  let mutated = false;
+  for (const it of wechatHotItems.value) {
+    const title = it && it.title;
+    if (title && !prevIds.has(title) && !wechatHotReadIds.value[title]) {
+      newMap[title] = 1;
+      mutated = true;
+    }
+  }
+  if (mutated) wechatHotNewIds.value = newMap;
 }
 
 export async function bootstrapWechatHotTab() {
   try {
+    // I6 v2: 先拉已读词, 再 load (diff 依赖 readIds)
+    wechatHotReadIds.value = await api.wechatHotLoadRead();
     const cached = await api.wechatHotLoad();
     applyPayload(cached);
     if (!cached || !Array.isArray(cached.items) || cached.items.length === 0) {
@@ -79,6 +102,25 @@ export function cleanupWechatHotUpdates() {
     }
     wechatHotUpdatedUnsub.value = null;
   }
+}
+
+export async function markWechatHotRead(title) {
+  if (!title || typeof title !== "string") {
+    return { ok: false, reason: "invalid_args" };
+  }
+  const now = Date.now();
+  wechatHotReadIds.value = { ...wechatHotReadIds.value, [title]: now };
+  if (wechatHotNewIds.value[title]) {
+    const next = { ...wechatHotNewIds.value };
+    delete next[title];
+    wechatHotNewIds.value = next;
+  }
+  try {
+    await api.wechatHotMarkRead(title);
+  } catch {
+    /* signal is source of truth */
+  }
+  return { ok: true };
 }
 
 const REASON_MAP = {
