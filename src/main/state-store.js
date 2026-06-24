@@ -253,6 +253,7 @@ const PRESERVE_FIELDS = [
   { key: "watchlist", kind: "array" },                           // I2 v1: pinned apps, [{appName, addedAt, lastNotifiedVersion}]
   { key: "last_seen_release", kind: "object", notArray: true },  // ON: { version, at } — release notes onboarding
   { key: "wechat_hot", kind: "object", notArray: true },          // I6 v2: { readIds: { title: readAt } } — wechat-hot 已读词
+  { key: "ai_prompts", kind: "object", notArray: true },           // A7: { promptId: { system, rules } } — 用户自定义 AI prompt
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -823,6 +824,34 @@ function saveWechatHotRead(readIds, statePath = defaultPath()) {
   }
   return patchState((next) => {
     next.wechat_hot = { readIds };
+  }, statePath);
+}
+
+// ─── A7: AI prompt 模板化 ────────────────────────────────────
+
+/**
+ * 读 ai_prompts. 老 state.json 无该字段 → {} (兼容).
+ * @param {string} [statePath]
+ * @returns {Record<string, {system: string, rules: string}>}
+ */
+function loadAiPrompts(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s || !s.ai_prompts || typeof s.ai_prompts !== "object") return {};
+  return s.ai_prompts;
+}
+
+/**
+ * 写 ai_prompts. atomic write, 保留所有其它字段.
+ * @param {Record<string, {system: string, rules: string}>} prompts
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveAiPrompts(prompts, statePath = defaultPath()) {
+  if (!prompts || typeof prompts !== "object" || Array.isArray(prompts)) {
+    throw new TypeError("saveAiPrompts: prompts must be plain object");
+  }
+  return patchState((next) => {
+    next.ai_prompts = prompts;
   }, statePath);
 }
 
@@ -1737,6 +1766,9 @@ module.exports = {
   // I6 v2: wechat-hot 已读词
   loadWechatHotRead,
   saveWechatHotRead,
+  // A7: AI prompt 模板化
+  loadAiPrompts,
+  saveAiPrompts,
   // A3: 搜索索引注入
   setSearchIndex,
 };
