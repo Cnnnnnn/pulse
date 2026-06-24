@@ -17,18 +17,20 @@
  *   now()                → Date (defaults to () => new Date())
  */
 
-const { inQuietHours } = require('../notification-policy');
-const { aggregate: defaultAggregate } = require('./aggregate');
-const { resolvePrompt: defaultResolvePrompt } = require('../../ai/prompt-registry');
-const defaultSharedLlm = require('../../ai/shared-llm');
+const { inQuietHours } = require("../notification-policy");
+const { aggregate: defaultAggregate } = require("./aggregate");
+const {
+  resolvePrompt: defaultResolvePrompt,
+} = require("../../ai/prompt-registry");
+const defaultSharedLlm = require("../../ai/shared-llm");
 
-const DEFAULT_TIME = '08:30';
+const DEFAULT_TIME = "08:30";
 // A7 v3: LLM 改写超时 (硬上限). 失败/超时回退原 lines, 不阻塞 push.
 const REWRITE_TIMEOUT_MS = 8000;
 const _handle = { interval: null, deps: null };
 
 function parseTargetMinutes(hhmm) {
-  if (typeof hhmm !== 'string') return null;
+  if (typeof hhmm !== "string") return null;
   const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
   const h = parseInt(m[1], 10);
@@ -39,42 +41,45 @@ function parseTargetMinutes(hhmm) {
 
 function ymd(d) {
   const y = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
   return `${y}-${mm}-${dd}`;
 }
 
 async function checkAndPush(deps) {
   const state = deps.getState() || {};
-  const cfg = (state.daily_digest) || {};
-  if (cfg.enabled === false) return { skipped: 'disabled' };
+  const cfg = state.daily_digest || {};
+  if (cfg.enabled === false) return { skipped: "disabled" };
 
   const nowFn = deps.now || (() => new Date());
   const now = nowFn();
   const notifCfg = (deps.getConfig && deps.getConfig().notifications) || {};
   if (notifCfg.quiet_hours_start && notifCfg.quiet_hours_end) {
-    if (inQuietHours(now, notifCfg.quiet_hours_start, notifCfg.quiet_hours_end)) {
-      return { skipped: 'quiet_hours' };
+    if (
+      inQuietHours(now, notifCfg.quiet_hours_start, notifCfg.quiet_hours_end)
+    ) {
+      return { skipped: "quiet_hours" };
     }
   }
 
-  const target = parseTargetMinutes(cfg.time) ?? parseTargetMinutes(DEFAULT_TIME);
-  if (target === null) return { skipped: 'bad_time' };
+  const target =
+    parseTargetMinutes(cfg.time) ?? parseTargetMinutes(DEFAULT_TIME);
+  if (target === null) return { skipped: "bad_time" };
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  if (nowMin !== target) return { skipped: 'wrong_minute' };
+  if (nowMin !== target) return { skipped: "wrong_minute" };
 
   const today = ymd(now);
-  if (cfg.last_push_date === today) return { skipped: 'already_pushed_today' };
+  if (cfg.last_push_date === today) return { skipped: "already_pushed_today" };
 
   const aggregate = deps.aggregate || defaultAggregate;
   let result;
   try {
     result = aggregate(state, { now });
   } catch (err) {
-    return { skipped: 'aggregate_threw', error: err && err.message };
+    return { skipped: "aggregate_threw", error: err && err.message };
   }
   if (!result || !Array.isArray(result.lines) || result.lines.length === 0) {
-    return { skipped: 'empty_lines' };
+    return { skipped: "empty_lines" };
   }
 
   // A7 v3: LLM 改写 result.lines → bodyLines. 失败/超时回退原 lines, push 不破.
@@ -85,7 +90,11 @@ async function checkAndPush(deps) {
       sharedLlm: deps.sharedLlm || defaultSharedLlm,
       resolvePrompt: deps.resolvePrompt || defaultResolvePrompt,
     };
-    const next = await tryRewriteSummary(result.lines, result.date, rewriteDeps);
+    const next = await tryRewriteSummary(
+      result.lines,
+      result.date,
+      rewriteDeps,
+    );
     if (Array.isArray(next) && next.length > 0) {
       bodyLines = next;
       rewritten = next !== result.lines;
@@ -96,7 +105,7 @@ async function checkAndPush(deps) {
 
   deps.sendNotification({
     title: `🌅 Pulse 早报 · ${result.date}`,
-    body: bodyLines.join('\n'),
+    body: bodyLines.join("\n"),
   });
 
   deps.setState({
@@ -123,35 +132,42 @@ async function checkAndPush(deps) {
  */
 async function tryRewriteSummary(lines, date, deps) {
   if (!Array.isArray(lines) || lines.length === 0) return lines;
-  if (!deps || !deps.sharedLlm || typeof deps.sharedLlm.chatCompletion !== 'function') {
+  if (
+    !deps ||
+    !deps.sharedLlm ||
+    typeof deps.sharedLlm.chatCompletion !== "function"
+  ) {
     return lines;
   }
   let prompt;
   try {
-    prompt = (deps.resolvePrompt || defaultResolvePrompt)('daily_digest_summary');
+    prompt = (deps.resolvePrompt || defaultResolvePrompt)(
+      "daily_digest_summary",
+    );
   } catch {
     return lines;
   }
-  if (!prompt || typeof prompt.system !== 'string') return lines;
+  if (!prompt || typeof prompt.system !== "string") return lines;
 
   const userContent = [
-    prompt.rules || '',
+    prompt.rules || "",
     `日期: ${date}`,
-    '要点:',
+    "要点:",
     ...lines.map((l) => `  ${l}`),
-  ].join('\n');
+  ].join("\n");
 
   const messages = [
-    { role: 'system', content: prompt.system },
-    { role: 'user', content: userContent },
+    { role: "system", content: prompt.system },
+    { role: "user", content: userContent },
   ];
 
-  const timeoutMs = typeof deps.timeoutMs === 'number' ? deps.timeoutMs : REWRITE_TIMEOUT_MS;
+  const timeoutMs =
+    typeof deps.timeoutMs === "number" ? deps.timeoutMs : REWRITE_TIMEOUT_MS;
   // ponytail: chatCompletion 内部 try/catch 已包, 这里再 Promise.race 兜 8s.
   // 不传 httpClient → 走 shared-llm 内部默认 (120s), 我们外层卡 8s.
   const llmPromise = deps.sharedLlm.chatCompletion(messages);
   const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({ ok: false, reason: 'timeout' }), timeoutMs);
+    setTimeout(() => resolve({ ok: false, reason: "timeout" }), timeoutMs);
   });
   let result;
   try {
@@ -159,19 +175,26 @@ async function tryRewriteSummary(lines, date, deps) {
   } catch {
     return lines;
   }
-  if (!result || !result.ok || typeof result.text !== 'string' || !result.text.trim()) {
+  if (
+    !result ||
+    !result.ok ||
+    typeof result.text !== "string" ||
+    !result.text.trim()
+  ) {
     return lines;
   }
   const rewritten = result.text
-    .split('\n')
+    .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
   return rewritten.length > 0 ? rewritten : lines;
 }
 
 function startDailySummaryJob(deps) {
-  if (!deps || typeof deps.sendNotification !== 'function') {
-    throw new TypeError('startDailySummaryJob: deps.sendNotification is required');
+  if (!deps || typeof deps.sendNotification !== "function") {
+    throw new TypeError(
+      "startDailySummaryJob: deps.sendNotification is required",
+    );
   }
   if (_handle.interval) {
     clearInterval(_handle.interval);

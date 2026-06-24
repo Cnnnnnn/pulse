@@ -16,6 +16,7 @@ import { trackFundView, trackIthomeView } from "../recent/track.js";
 import { trayMenuPrefs } from "../trayConfigStore.js";
 import { clearFundNavBadge } from "../funds/fundStore.js";
 import { clearAiUsageNavBadge } from "../store/ai-usage-store.js";
+import { clearWechatHotUnreadBadge } from "../wechat-hot/store.js";
 
 // activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'ai-usage' | 'versions', 默认 'versions'
 export const activeNav = signal("versions");
@@ -125,6 +126,10 @@ export function setActiveNav(key) {
   }
   if (key === "ithome" && prev !== "ithome") {
     trackIthomeView();
+  }
+  // I6 v2: wechat-hot 切到该 tab 时清未读角标 (对标 funds/ai-usage)
+  if (key === "wechat-hot" && prev !== "wechat-hot") {
+    clearWechatHotUnreadBadge();
   }
 }
 

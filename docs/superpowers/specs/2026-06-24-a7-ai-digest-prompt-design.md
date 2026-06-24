@@ -7,6 +7,7 @@
 roadmap §13.4 标 A7 为"补半成品":基建 `shared-llm.js` 全有,只差 `config.aiDigest.prompts` 配置化 + Settings 面板。
 
 **对账(2026-06-24)**:A7 的"基建"实际上**已经远超预期**:
+
 - `state-store.loadAiPrompts/saveAiPrompts` ✅ 持久化 + schema
 - `src/ai/prompt-registry.js` ✅ DEFAULT_PROMPTS(6 个 key)+ `resolvePrompt(key)` 合并用户配置
 - `src/main/ipc/register-ai-prompts.js` ✅ `ai-prompts:load/save/reset` 三个 IPC
@@ -21,7 +22,7 @@ roadmap §13.4 标 A7 为"补半成品":基建 `shared-llm.js` 全有,只差 `co
 // src/main/digest/daily-summary-job.js:76-79
 deps.sendNotification({
   title: `🌅 Pulse 早报 · ${result.date}`,
-  body: result.lines.join('\n'),  // 硬编码模板字符串
+  body: result.lines.join("\n"), // 硬编码模板字符串
 });
 ```
 
@@ -70,34 +71,47 @@ async function tryRewriteSummary(lines, date, { sharedLlm, prompt, signal }) {
 ```
 
 实现:
+
 ```js
 const userContent = [
   prompt.rules,
   `日期: ${date}`,
-  '要点:',
-  ...lines.map(l => `  ${l}`),
-].join('\n');
+  "要点:",
+  ...lines.map((l) => `  ${l}`),
+].join("\n");
 const messages = [
-  { role: 'system', content: prompt.system },
-  { role: 'user', content: userContent },
+  { role: "system", content: prompt.system },
+  { role: "user", content: userContent },
 ];
 const result = await sharedLlm.chatCompletion(messages, { signal });
 if (result.ok && result.text) {
-  return result.text.split('\n').map(s => s.trim()).filter(Boolean);
+  return result.text
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
-return lines;  // 失败回退
+return lines; // 失败回退
 ```
 
 ### checkAndPush 集成
 
 ```js
 // 在 push 之前:
-const prompt = (deps.resolvePrompt || defaultResolvePrompt)('daily_digest_summary');
-const rewriteDeps = { sharedLlm: deps.sharedLlm || require('../../ai/shared-llm'), prompt };
-const bodyLines = await tryRewriteSummary(result.lines, result.date, rewriteDeps);
+const prompt = (deps.resolvePrompt || defaultResolvePrompt)(
+  "daily_digest_summary",
+);
+const rewriteDeps = {
+  sharedLlm: deps.sharedLlm || require("../../ai/shared-llm"),
+  prompt,
+};
+const bodyLines = await tryRewriteSummary(
+  result.lines,
+  result.date,
+  rewriteDeps,
+);
 deps.sendNotification({
   title: `🌅 Pulse 早报 · ${result.date}`,
-  body: bodyLines.join('\n'),
+  body: bodyLines.join("\n"),
 });
 ```
 
@@ -118,12 +132,12 @@ deps.sendNotification({
 
 ## 6. 风险
 
-| 风险 | 等级 | 缓解 |
-|------|------|------|
-| LLM 慢导致 push 卡住 | 中 | 8s Promise.race 超时 + 回退 |
-| LLM 失败污染 state | 低 | 失败回退原 lines, 不写 last_push_date 失败标记 |
-| 用户填错 prompt 模板 | 低 | prompt-registry 已有校验;失败回退 |
-| 输出太长撑爆 push | 低 | 现有 `truncate(line, 60)` 兜底 |
+| 风险                 | 等级 | 缓解                                           |
+| -------------------- | ---- | ---------------------------------------------- |
+| LLM 慢导致 push 卡住 | 中   | 8s Promise.race 超时 + 回退                    |
+| LLM 失败污染 state   | 低   | 失败回退原 lines, 不写 last_push_date 失败标记 |
+| 用户填错 prompt 模板 | 低   | prompt-registry 已有校验;失败回退              |
+| 输出太长撑爆 push    | 低   | 现有 `truncate(line, 60)` 兜底                 |
 
 ## 7. 实施
 

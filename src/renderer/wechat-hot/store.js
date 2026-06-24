@@ -123,6 +123,18 @@ export async function markWechatHotRead(title) {
   return { ok: true };
 }
 
+/**
+ * I6 v2: 用户首次切到 wechat-hot tab 时清零未读角标.
+ * 行为对标 clearFundNavBadge / clearAiUsageNavBadge (src/renderer/worldcup/navStore.js setActiveNav).
+ * 跟 ithome 的"view mode 切换时清"区别: wechat-hot 没有 view mode, 所以"切到 tab"即代表"看过".
+ * ponytail: 不动 wechatHotReadIds (持久化已读词), 只清 session 级 newIds.
+ * 重启后 newIds 本来就归 0, 行为可观察.
+ */
+export function clearWechatHotUnreadBadge() {
+  if (Object.keys(wechatHotNewIds.value).length === 0) return;
+  wechatHotNewIds.value = {};
+}
+
 const REASON_MAP = {
   fetch_failed: "拉取失败，请检查网络连接后重试",
   parse_failed: "微博热搜页面解析失败，可能是源结构变化，请稍后重试",
