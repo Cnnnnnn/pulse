@@ -64,23 +64,22 @@ describe('renderChangelog', () => {
     });
   });
 
-  describe('Full notes 链接', () => {
-    it('changelogUrl 是合法 https → 加 Full notes ↗', () => {
+  describe('完整 changelog 链接', () => {
+    it('changelogUrl 是合法 https → 加查看链接', () => {
       const html = renderChangelog('- A', 'md', 'https://github.com/foo/bar/releases/tag/v1');
-      expect(html).toContain('Full notes');
+      expect(html).toContain('查看完整 release notes');
       expect(html).toContain('https://github.com/foo/bar/releases/tag/v1');
       expect(html).toContain('target="_blank"');
     });
 
-    it('changelogUrl 是 javascript: → 不加 Full notes (非 http 被我们函数本身过滤)', () => {
+    it('changelogUrl 是 javascript: → 不加链接 (非 http 被我们函数本身过滤)', () => {
       const html = renderChangelog('- A', 'md', 'javascript:alert(1)');
-      // renderChangelog 函数自己判断 /^https?:\/\// → javascript: 不通过
-      expect(html).not.toContain('Full notes');
+      expect(html).not.toContain('查看完整 release notes');
     });
 
-    it('changelogUrl 是 ftp → 不加 Full notes', () => {
+    it('changelogUrl 是 ftp → 不加链接', () => {
       const html = renderChangelog('- A', 'md', 'ftp://x');
-      expect(html).not.toContain('Full notes');
+      expect(html).not.toContain('查看完整 release notes');
     });
   });
 

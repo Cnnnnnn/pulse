@@ -42,9 +42,9 @@ export function renderChangelog(src, format = 'md', changelogUrl = '') {
     ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|#|\/)/i,
   });
 
-  // 末尾追加 "Full notes ↗" 链接
+  // 末尾追加完整 changelog 链接
   if (changelogUrl && /^https?:\/\//.test(changelogUrl)) {
-    safe += `<p class="changelog-full-link"><a href="${changelogUrl}" target="_blank" rel="noopener">Full notes ↗</a></p>`;
+    safe += `<p class="changelog-full-link"><a href="${changelogUrl}" target="_blank" rel="noopener">查看完整 release notes</a></p>`;
   }
 
   return safe;

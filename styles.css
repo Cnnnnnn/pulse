@@ -384,15 +384,6 @@ body.platform-win .window-control-btn--close:hover {
   background: var(--bg-hover);
 }
 
-.app-row[style*="cursor: pointer"]:hover::after {
-  content: '↗';
-  position: absolute;
-  right: 24px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-  opacity: 0.6;
-}
-
 .app-row {
   position: relative;
 }
@@ -683,12 +674,17 @@ body.platform-win .window-control-btn--close:hover {
 }
 .changelog-panel a:hover { text-decoration: underline; }
 
+.changelog-panel-head:has(.changelog-summary) + .changelog-body {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-subtle, #ddd);
+}
+
 .changelog-full-link {
   margin-top: 8px !important;
   padding-top: 8px;
   border-top: 1px dashed var(--border, #ddd);
   font-size: 11px;
-  text-align: right;
 }
 
 .changelog-empty {
@@ -8654,23 +8650,32 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .upgrade-advice-retry:hover, .upgrade-advice-refresh:hover { opacity: 1; }
 
-.changelog-panel-top {
+.changelog-panel-head {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+/* 摘要展开后占满整行 */
+.changelog-panel-head .changelog-summary,
+.changelog-panel-head .changelog-summary--loading,
+.changelog-panel-head .changelog-summary--error {
+  flex-basis: 100%;
+  width: 100%;
+  margin-bottom: 0;
 }
 
 .changelog-summary-trigger {
-  flex-shrink: 0;
-  font-size: 12px;
+  font-size: 11px;
   padding: 2px 8px;
   border-radius: 6px;
   border: 1px solid var(--border-subtle, #e5e5e7);
-  background: transparent;
+  background: var(--bg-modal, #fff);
   cursor: pointer;
   color: var(--text-secondary, #666);
+  white-space: nowrap;
 }
 
 .changelog-summary-trigger:hover {
@@ -8680,46 +8685,66 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .changelog-summary {
   font-size: 12px;
-  padding: 8px 10px;
-  margin-bottom: 8px;
+  padding: 10px 12px;
   border-radius: 8px;
   background: rgba(0, 122, 255, 0.06);
   border: 1px solid rgba(0, 122, 255, 0.15);
-  position: relative;
+  box-sizing: border-box;
+}
+
+.changelog-summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-blue, #007aff);
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
 }
 
 .changelog-summary-oneliner {
   font-weight: 600;
   margin-bottom: 6px;
   color: var(--text-primary, #111);
+  line-height: 1.45;
+  word-break: break-word;
+  padding-right: 2px;
 }
 
 .changelog-summary-list {
   margin: 0;
-  padding-left: 18px;
+  padding: 0 4px 0 20px;
   color: var(--text-secondary, #444);
+  line-height: 1.45;
 }
 
-.changelog-summary-list li { margin: 2px 0; }
+.changelog-summary-list li {
+  margin: 4px 0;
+  word-break: break-word;
+}
 
-.changelog-summary--loading { font-style: italic; color: var(--text-soft, #888); }
+.changelog-summary--loading {
+  font-style: italic;
+  color: var(--text-soft, #888);
+  padding: 8px 0;
+}
 
-.changelog-summary--error { color: var(--accent-red, #ff3b30); }
+.changelog-summary--error {
+  color: var(--accent-red, #ff3b30);
+  padding: 8px 0;
+}
 
-.changelog-summary-retry,
-.changelog-summary-refresh {
+.changelog-summary-retry {
   margin-left: 6px;
-  font-size: 11px;
+  font-size: 12px;
   border: none;
   background: transparent;
   cursor: pointer;
-  opacity: 0.7;
+  color: var(--accent-blue, #007aff);
+  text-decoration: underline;
+  padding: 0;
 }
 
-.changelog-summary-refresh {
-  position: absolute;
-  top: 6px;
-  right: 6px;
+.changelog-summary-retry:hover {
+  opacity: 0.85;
 }
 
 .wechat-hot-list-rank {

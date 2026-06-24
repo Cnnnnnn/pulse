@@ -51,7 +51,7 @@ export function ChangelogPanel({ result }) {
         <div class="changelog-empty">
           无 release notes 源 —{' '}
           {fallbackUrl
-            ? <a href={fallbackUrl} target="_blank" rel="noopener">查看官网 ↗</a>
+            ? <a href={fallbackUrl} target="_blank" rel="noopener">查看官网</a>
             : <span>查看官网</span>}
         </div>
         {history.length > 0 && <HistoryTabs history={history} view={view} onChange={setView} />}
@@ -66,7 +66,7 @@ export function ChangelogPanel({ result }) {
 
   return (
     <div class="changelog-panel">
-      <div class="changelog-panel-top">
+      <div class="changelog-panel-head">
         <div class="changelog-version-label">{activeLabel}</div>
         {isCurrent && result && result.name && (
           <ChangelogSummary appName={result.name} />

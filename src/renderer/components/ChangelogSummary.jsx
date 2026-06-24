@@ -6,7 +6,7 @@
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
 
-export function ChangelogSummary({ appName, hasChangelog }) {
+export function ChangelogSummary({ appName }) {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
@@ -66,26 +66,23 @@ export function ChangelogSummary({ appName, hasChangelog }) {
   }
 
   const items = (summary && summary.highlights) || [];
+  const showList =
+    items.length > 0 &&
+    !(items.length === 1 && summary.oneLiner && items[0] === summary.oneLiner);
+
   return (
     <div class="changelog-summary" onClick={(e) => e.stopPropagation()}>
+      <div class="changelog-summary-label">✨ 本版要点</div>
       {summary.oneLiner && (
         <div class="changelog-summary-oneliner">{summary.oneLiner}</div>
       )}
-      {items.length > 0 && (
+      {showList && (
         <ol class="changelog-summary-list">
           {items.map((h) => (
             <li key={h}>{h}</li>
           ))}
         </ol>
       )}
-      <button
-        type="button"
-        class="changelog-summary-refresh"
-        onClick={(e) => { e.stopPropagation(); fetchSummary(true); }}
-        title="重新生成"
-      >
-        ↻
-      </button>
     </div>
   );
 }
