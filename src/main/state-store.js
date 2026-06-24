@@ -252,6 +252,7 @@ const PRESERVE_FIELDS = [
   { key: "startup_samples", kind: "array" },                     // Phase Q1 v2: cap-20 ready-time history
   { key: "watchlist", kind: "array" },                           // I2 v1: pinned apps, [{appName, addedAt, lastNotifiedVersion}]
   { key: "last_seen_release", kind: "object", notArray: true },  // ON: { version, at } — release notes onboarding
+  { key: "wechat_hot", kind: "object", notArray: true },          // I6 v2: { readIds: { title: readAt } } — wechat-hot 已读词
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -792,6 +793,36 @@ function saveWorldcupScores(cache, statePath = defaultPath()) {
   }
   return patchState((next) => {
     next.worldcup_scores = { entries: cache.entries, ts: cache.ts };
+  }, statePath);
+}
+
+// ─── I6 v2: wechat-hot 已读词 ───────────────────────────────
+
+/**
+ * 读 wechat_hot.readIds. 老 state.json 无该字段 → {} (兼容).
+ * @param {string} [statePath]
+ * @returns {Record<string, number>}
+ */
+function loadWechatHotRead(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s || !s.wechat_hot || typeof s.wechat_hot !== "object") return {};
+  const readIds = s.wechat_hot.readIds;
+  if (!readIds || typeof readIds !== "object" || Array.isArray(readIds)) return {};
+  return readIds;
+}
+
+/**
+ * 写 wechat_hot.readIds. atomic write, 保留所有其它字段.
+ * @param {Record<string, number>} readIds
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveWechatHotRead(readIds, statePath = defaultPath()) {
+  if (!readIds || typeof readIds !== "object" || Array.isArray(readIds)) {
+    throw new TypeError("saveWechatHotRead: readIds must be plain object");
+  }
+  return patchState((next) => {
+    next.wechat_hot = { readIds };
   }, statePath);
 }
 
@@ -1703,6 +1734,9 @@ module.exports = {
   // ON: release notes onboarding — 用户最近一次看完 release notes 的版本
   getLastSeenRelease,
   setLastSeenRelease,
+  // I6 v2: wechat-hot 已读词
+  loadWechatHotRead,
+  saveWechatHotRead,
   // A3: 搜索索引注入
   setSearchIndex,
 };
