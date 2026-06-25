@@ -32,12 +32,16 @@ vi.mock("electron", () => ({
 
 // mock child_process.execFile — sandbox 下不真 spawn pgrep/osascript
 const cp = require("child_process");
-vi.spyOn(cp, "execFile").mockImplementation((_file, _args, _optsOrCb, _cb) => {
+function mockExecFile(_file, _args, _optsOrCb, _cb) {
   // pgrep 没匹配到时 exit code = 1, 抛异常 — 这就是 "没在跑"
   const err = new Error("exit code 1: no match");
   if (typeof _optsOrCb === "function") _optsOrCb(err);
-  return Promise.reject(err);
-});
+  // callback 已处理 err (把 err 传给 node-style callback), return 一个 fulfilled
+  // Promise 而不是 reject — 否则 vitest 1.x 把它当 unhandled rejection,
+  // 即使该 Promise 不被 await 也会让 exit code 变 1, CI fail.
+  return Promise.resolve();
+}
+vi.spyOn(cp, "execFile").mockImplementation(mockExecFile);
 
 const { doRollback, isAppRunning, killAppGraceful } = require("../../src/main/rollback.js");
 
@@ -50,11 +54,7 @@ afterEach(() => {
   fs.rmSync(tmpRoot, { recursive: true, force: true });
   vi.restoreAllMocks();
   // 重新 spy 上, 因为 restoreAllMocks 会清掉
-  vi.spyOn(cp, "execFile").mockImplementation((_file, _args, _optsOrCb, _cb) => {
-    const err = new Error("exit code 1: no match");
-    if (typeof _optsOrCb === "function") _optsOrCb(err);
-    return Promise.reject(err);
-  });
+  vi.spyOn(cp, "execFile").mockImplementation(mockExecFile);
 });
 
 describe("doRollback", () => {
