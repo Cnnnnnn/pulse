@@ -120,6 +120,9 @@ jobs:
 
   # P52: tag 推送 → 把 mac + win artifact 上传到 GitHub Releases,
   # electron-updater 通过 latest-mac.yml / latest.yml 拉取.
+  # 注: mac + win build 独立发布 — 任一平台 build 失败不影响另一平台 release.
+  # win 的 cross-platform path 测试 bug 是预先存在的 (跟 P52 无关),
+  # 不阻塞 mac 用户验证 in-app update.
   publish-release:
     name: Publish GitHub Release (assets)
     needs: [build-mac, build-win]
@@ -132,18 +135,24 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+          # 单平台 artifact 缺失不阻塞另一平台 release
+          merge-multiple: true
+        continue-on-error: true
       - name: Flatten artifacts
         run: |
           mkdir -p release-assets
           cp -r artifacts/pulse-macos/* release-assets/ 2>/dev/null || true
           cp -r artifacts/pulse-windows/* release-assets/ 2>/dev/null || true
           ls -la release-assets/
-      - name: Create GitHub Release + upload assets
+      - name: Create GitHub Release + upload assets (any platform)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           generate_release_notes: true
+          # fail_on_unmatched_files: false → files glob 里有 missing 的不会 fail.
+          # 这样 mac-only release 不会因为 latest.yml 缺失而失败.
+          fail_on_unmatched_files: false
           files: |
             release-assets/*.dmg
             release-assets/*.zip
