@@ -6,6 +6,7 @@
 
 import { useMatchAi } from './useMatchAi.js';
 import { formatInsightText } from './insight-text.js';
+import { IconEdit, IconWand } from '../components/icons.jsx';
 
 export function MatchCardAi({ match, score }) {
   const ai = useMatchAi(match, score);
@@ -49,7 +50,7 @@ export function MatchCardAi({ match, score }) {
             handleGenerate(type, false);
           }}
         >
-          {isFinal ? '📝' : '🔮'} {label}
+          {isFinal ? <IconEdit size={14} /> : <IconWand size={14} />} {label}
         </button>
         {hasInsight && (
           <button

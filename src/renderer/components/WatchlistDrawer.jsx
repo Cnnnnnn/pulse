@@ -14,6 +14,8 @@ import {
 } from '../watchlist/watchlist-store.js';
 import { getMetalById } from '../../metals/metal-config.js';
 import { DrawerShell } from './DrawerShell.jsx';
+import { DrawerEmpty } from './EmptyState.jsx';
+import { IconStar, WatchlistTypeIcon } from './icons.jsx';
 
 function fmtTs(ts) {
   if (!ts || typeof ts !== 'number') return '';
@@ -23,10 +25,10 @@ function fmtTs(ts) {
 }
 
 const TYPE_LABEL = {
-  app: { icon: '⭐', label: 'App' },
-  fund: { icon: '💰', label: '基金' },
-  keyword: { icon: '🔍', label: '关键词' },
-  metal: { icon: '🥇', label: '贵金属' },
+  app: { label: 'App' },
+  fund: { label: '基金' },
+  keyword: { label: '关键词' },
+  metal: { label: '贵金属' },
 };
 
 function entryTitle(w) {
@@ -90,7 +92,12 @@ export function WatchlistDrawer() {
     <DrawerShell
       open={open}
       onClose={close}
-      title="⭐ 关注列表"
+      title={(
+        <span class="watchlist-drawer__title-row">
+          <IconStar size={16} />
+          关注列表
+        </span>
+      )}
       overlayClass="watchlist-overlay"
       drawerClass="watchlist-drawer"
       ariaLabel="关注列表"
@@ -116,9 +123,10 @@ export function WatchlistDrawer() {
       )}
     >
       {items.length === 0 && (
-        <div class="watchlist-drawer__empty">
-          在应用列表、基金/贵金属卡片点 ⭐ 关注，或上方添加关键词
-        </div>
+        <DrawerEmpty
+          message="在应用列表、基金/贵金属卡片点星标关注，或上方添加关键词"
+          className="watchlist-drawer__empty"
+        />
       )}
       {items.map((w) => {
         const meta = TYPE_LABEL[w.type] || TYPE_LABEL.app;
@@ -126,7 +134,7 @@ export function WatchlistDrawer() {
           <div key={itemKey(w)} class="watchlist-entry">
             <div class="watchlist-entry__main">
               <span class="watchlist-entry__name">
-                {meta.icon} {meta.label} · {entryTitle(w)}
+                <WatchlistTypeIcon type={w.type} size={14} /> {meta.label} · {entryTitle(w)}
               </span>
               <div class="watchlist-entry__meta">
                 <span>{entryMeta(w)}</span>

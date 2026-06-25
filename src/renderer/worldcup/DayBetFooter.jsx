@@ -7,10 +7,11 @@
  * v2.10.1 polish:
  *   - Fix 8: 保存成功后 footer 闪绿 1s
  *   - Fix 9: note 加 title tooltip (鼠标 hover 看全)
- *   - Fix 10: 盈亏 emoji (✅ 盈 / ❌ 亏 / — 0)
+ *   - Fix 10: 盈亏符号 (PnlSignIcon 盈 / IconX 亏 / — 0)
  */
 import { useState, useRef, useEffect } from "preact/hooks";
 import { openConfirm } from "../confirmStore.js";
+import { PnlSignIcon } from "../components/icons.jsx";
 import {
   worldcupBets,
   upsertWorldcupBet,
@@ -23,10 +24,9 @@ function fmtMoney(n) {
   return `${sign}¥${Math.abs(Math.round(n * 100) / 100)}`;
 }
 
-function pnlEmoji(n) {
-  if (n > 0) return "✅";
-  if (n < 0) return "❌";
-  return "—";
+function pnlSign(n) {
+  if (!Number.isFinite(n) || n === 0) return null;
+  return <PnlSignIcon value={n} size={14} />;
 }
 
 export function DayBetFooter({ date, search = "" }) {
@@ -163,7 +163,7 @@ export function DayBetFooter({ date, search = "" }) {
         <span class="day-bet-stake">投入 {fmtMoney(entry.stake)}</span>
         <span class="day-bet-sep">·</span>
         <span class={`day-bet-pnl ${pnlClass}`}>
-          {pnlEmoji(entry.pnl)} 盈亏 {fmtMoney(entry.pnl)}
+          {pnlSign(entry.pnl) ?? "—"} 盈亏 {fmtMoney(entry.pnl)}
         </span>
         {entry.note && (
           <span class="day-bet-note" title={entry.note}>

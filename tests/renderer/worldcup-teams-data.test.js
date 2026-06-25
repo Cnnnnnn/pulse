@@ -7,7 +7,7 @@
  *   - 48 队 (12 group × 4)
  *   - 字段完整 (name / cn / code / group / flag / famous / squad 23-26)
  *   - 48 队 全部有真实数据 (v2.9.7 G3-G12 聚合后, 0 TBD 占位)
- *   - flagFromCode 拼 regional indicator 正确
+ *   - flagFromCode 规范化 ISO alpha-2 code
  */
 
 import { describe, it, expect } from 'vitest';
@@ -31,7 +31,7 @@ describe('teams-data 静态数据 integrity', () => {
       expect(t.cn).toBeTruthy();
       expect(t.code).toHaveLength(2);
       expect(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']).toContain(t.group);
-      expect(t.flag.length).toBeGreaterThan(0);
+      expect(t.flag).toBe(t.code);
       expect(t.famous).toHaveLength(1);
       expect(t.famous[0].name).toBeTruthy();
       expect(t.famous[0].position).toBeTruthy();
@@ -127,17 +127,17 @@ describe('lookupTeam', () => {
 });
 
 describe('flagFromCode', () => {
-  it('MX → 🇲🇽', () => {
-    expect(flagFromCode('MX')).toBe('🇲🇽');
+  it('MX → MX', () => {
+    expect(flagFromCode('MX')).toBe('MX');
   });
 
-  it('US → 🇺🇸', () => {
-    expect(flagFromCode('US')).toBe('🇺🇸');
+  it('us → US', () => {
+    expect(flagFromCode('us')).toBe('US');
   });
 
-  it('空 / 非法 → 🏳️', () => {
-    expect(flagFromCode('')).toBe('🏳️');
-    expect(flagFromCode(null)).toBe('🏳️');
-    expect(flagFromCode('USA')).toBe('🏳️');  // 3 字符不合法
+  it('空 / 非法 → null', () => {
+    expect(flagFromCode('')).toBeNull();
+    expect(flagFromCode(null)).toBeNull();
+    expect(flagFromCode('USA')).toBeNull();  // 3 字符不合法
   });
 });

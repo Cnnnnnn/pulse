@@ -33,14 +33,14 @@
  */
 
 const DEFAULT_CATEGORIES = Object.freeze([
-  Object.freeze({ id: 'ai',      name: 'AI 工具', icon: '🤖', order: 1 }),
-  Object.freeze({ id: 'dev',     name: '开发者',  icon: '🛠', order: 2 }),
-  Object.freeze({ id: 'browser', name: '浏览器',  icon: '🌐', order: 3 }),
-  Object.freeze({ id: 'comms',   name: '沟通',    icon: '💬', order: 4 }),
-  Object.freeze({ id: 'media',   name: '媒体',    icon: '🎨', order: 5 }),
-  Object.freeze({ id: 'notes',   name: '笔记',    icon: '📝', order: 6 }),
-  Object.freeze({ id: 'system',  name: '系统',    icon: '🔧', order: 7 }),
-  Object.freeze({ id: 'other',   name: '其他',    icon: '📦', order: 99 }),
+  Object.freeze({ id: 'ai',      name: 'AI 工具', order: 1 }),
+  Object.freeze({ id: 'dev',     name: '开发者',  order: 2 }),
+  Object.freeze({ id: 'browser', name: '浏览器',  order: 3 }),
+  Object.freeze({ id: 'comms',   name: '沟通',    order: 4 }),
+  Object.freeze({ id: 'media',   name: '媒体',    order: 5 }),
+  Object.freeze({ id: 'notes',   name: '笔记',    order: 6 }),
+  Object.freeze({ id: 'system',  name: '系统',    order: 7 }),
+  Object.freeze({ id: 'other',   name: '其他',    order: 99 }),
 ]);
 
 const DEFAULT_MAPPING = Object.freeze({
@@ -94,7 +94,6 @@ function _isCategoryShape(c) {
     && c.id.length > 0
     && typeof c.name === 'string'
     && c.name.length > 0
-    && typeof c.icon === 'string'
     && typeof c.order === 'number'
     && Number.isFinite(c.order)
   );
@@ -107,7 +106,7 @@ function _build(cats, map, source) {
   const valid = (Array.isArray(cats) ? cats : []).filter(_isCategoryShape);
   if (!valid.find((c) => c.id === 'other')) {
     // 兜底: 任何 'other' 缺失都强行补
-    valid.push({ id: 'other', name: '其他', icon: '📦', order: 99 });
+    valid.push({ id: 'other', name: '其他', order: 99 });
     status.warnings.push(`[${source}] 'other' category missing, appended fallback`);
   }
   const sorted = valid.slice().sort((a, b) => a.order - b.order);
@@ -342,12 +341,12 @@ function getCategoryById(id) {
  */
 function getCategoryByName(name) {
   if (typeof name !== 'string' || name.length === 0) {
-    return { ...(CATEGORIES_BY_ID.get('other') || { id: 'other', name: '其他', icon: '📦', order: 99 }) };
+    return { ...(CATEGORIES_BY_ID.get('other') || { id: 'other', name: '其他', order: 99 }) };
   }
   for (const c of CATEGORIES_SORTED) {
     if (c.name === name) return { ...c };
   }
-  return { ...(CATEGORIES_BY_ID.get('other') || { id: 'other', name: '其他', icon: '📦', order: 99 }) };
+  return { ...(CATEGORIES_BY_ID.get('other') || { id: 'other', name: '其他', order: 99 }) };
 }
 
 /**
@@ -373,11 +372,8 @@ function validateCategoryMap() {
 }
 
 /**
- * 给 renderer 用: 根据当前 results (Map<name, result>) 算出 tab 列表.
- * "全部" + 非空非'other'分类(count desc → order asc) + "📦 其他" 永远在末.
- *
  * @param {Map<string, any>|Iterable<string>} results  Map<appName, result> 或单纯的可迭代 name 集合
- * @returns {Array<{id: string, name: string, icon: string, count: number, title: string}>}
+ * @returns {Array<{id: string, name: string, count: number, title: string}>}
  */
 function getCategoryTabsWithCount(results) {
   const counts = new Map();
@@ -402,7 +398,7 @@ function getCategoryTabsWithCount(results) {
 
   const tabs = [];
   // 1) "全部" 永远第一
-  tabs.push({ id: 'all', name: '全部', icon: '📋', count: total, title: '所有 app' });
+  tabs.push({ id: 'all', name: '全部', count: total, title: '所有 app' });
 
   // 2) 其他 7 个分类 (除 'other'), 按 count desc → order asc
   const cats = CATEGORIES_SORTED.filter((c) => c.id !== 'other');
@@ -415,11 +411,11 @@ function getCategoryTabsWithCount(results) {
   for (const cat of cats) {
     const count = counts.get(cat.id) || 0;
     if (count === 0) continue;  // hide empty
-    tabs.push({ id: cat.id, name: cat.name, icon: cat.icon, count, title: cat.name });
+    tabs.push({ id: cat.id, name: cat.name, count, title: cat.name });
   }
 
-  // 3) "📦 其他" 永远在末
-  tabs.push({ id: 'other', name: '其他', icon: '📦', count: counts.get('other') || 0, title: '其他' });
+  // 3) "其他" 永远在末
+  tabs.push({ id: 'other', name: '其他', count: counts.get('other') || 0, title: '其他' });
   return tabs;
 }
 

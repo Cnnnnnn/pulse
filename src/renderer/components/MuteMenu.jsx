@@ -3,7 +3,7 @@
  *
  * Phase 27 + 29: 右键菜单 — 让用户静音 / 取消静音一个 app.
  *
- * Phase 29: 选项按 tier-aware 排序 + 推荐项加 ✨推荐 标签.
+ * Phase 29: 选项按 tier-aware 排序 + 推荐项加 IconSparkles 推荐 标签.
  *   - 5 个固定选项 (1/7/30/90/永远) 不变
  *   - 按 lastOpenedApps[name] 算 tier (hot/warm/cold/unknown)
  *   - 推荐项置顶高亮 (1天 for hot, 7天 for warm/unknown, 30天 for cold)
@@ -35,6 +35,7 @@
 
 import { useEffect, useRef, useState, useLayoutEffect } from 'preact/hooks';
 import { setMute, clearMute, getLocalTier } from '../store.js';
+import { IconBell, IconVolumeOff, IconSparkles } from './icons.jsx';
 
 const BASE_OPTIONS = [
   { label: '1 天',     seconds: 1 * 24 * 3600 },
@@ -156,7 +157,7 @@ export function MuteMenu({ x, y, appName, isMuted, muteUntil, lastOpened = null,
       onContextMenu={(e) => e.preventDefault()}
     >
       <div class="mute-menu-header">
-        <span class="mute-menu-icon">{isMuted ? '🔇' : '🔔'}</span>
+        <span class="mute-menu-icon">{isMuted ? <IconVolumeOff size={14} /> : <IconBell size={14} />}</span>
         <span class="mute-menu-app">{appName}</span>
         {isMuted && <span class="mute-menu-status">已静音至 {formatUntil(muteUntil)}</span>}
       </div>
@@ -168,7 +169,7 @@ export function MuteMenu({ x, y, appName, isMuted, muteUntil, lastOpened = null,
           disabled={busy}
           role="menuitem"
         >
-          <span class="mute-menu-item-icon">🔔</span>
+          <span class="mute-menu-item-icon"><IconBell size={14} /></span>
           取消静音
         </button>
       ) : (
@@ -180,7 +181,7 @@ export function MuteMenu({ x, y, appName, isMuted, muteUntil, lastOpened = null,
             disabled={busy}
             role="menuitem"
           >
-            <span class="mute-menu-item-icon">{opt.recommended ? '✨' : '🔇'}</span>
+            <span class="mute-menu-item-icon">{opt.recommended ? <IconSparkles size={14} /> : <IconVolumeOff size={14} />}</span>
             静音 {opt.label}
             {opt.recommended && <span class="mute-menu-recommended-tag">推荐</span>}
           </button>

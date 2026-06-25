@@ -32,6 +32,7 @@ import {
 } from '../store.js';
 import { DailyDigestSettings } from './DailyDigestSettings.jsx';
 import { AISettingsScene } from './AISettingsScene.jsx';
+import { ModalShell } from './ModalShell.jsx';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.
 // - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
@@ -386,24 +387,20 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  * SideNav「AI 配置」弹窗 — 连接设置 + Prompt 模板 + 早报设置.
  */
 export function AISettingsModal() {
- if (!aiSettingsOpen.value) return null;
+ const open = aiSettingsOpen.value;
 
  return (
- <div class="modal-backdrop" onClick={() => openAISettings(false)}>
- <div class="modal-card ai-settings-modal" onClick={(e) => e.stopPropagation()}>
- <div class="modal-header">
- <h2>AI 设置</h2>
- <button class="btn-close" onClick={() => openAISettings(false)} title="关闭" aria-label="关闭">×</button>
- </div>
-
-      <div class="modal-body">
-        <AISettingsScene
-          onSaved={() => openAISettings(false)}
-          onCancel={() => openAISettings(false)}
-        />
-        <DailyDigestSettings />
-      </div>
-    </div>
-  </div>
+ <ModalShell
+   open={open}
+   onClose={() => openAISettings(false)}
+   title="AI 设置"
+   cardClass="ai-settings-modal"
+ >
+      <AISettingsScene
+        onSaved={() => openAISettings(false)}
+        onCancel={() => openAISettings(false)}
+      />
+      <DailyDigestSettings />
+ </ModalShell>
   );
 }

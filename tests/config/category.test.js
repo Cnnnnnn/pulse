@@ -137,7 +137,7 @@ describe('category.js — validateCategoryMap', () => {
 
 // ── getCategoryTabsWithCount: 排序 + hide-empty + 'other' 永显示 ──
 describe('category.js — getCategoryTabsWithCount', () => {
-  it('空 results: 1 个 "全部" tab + 1 个 "📦 其他" tab (count 0)', () => {
+  it('空 results: 1 个 "全部" tab + 1 个 "其他" tab (count 0)', () => {
     const tabs = real.getCategoryTabsWithCount(new Map());
     expect(tabs).toHaveLength(2);
     expect(tabs[0]).toMatchObject({ id: 'all', count: 0 });
@@ -174,7 +174,7 @@ describe('category.js — getCategoryTabsWithCount', () => {
     expect(ids).not.toContain('media');
   });
 
-  it('"📦 其他" 即使 count=0 也显示 (兜底)', () => {
+  it('"其他" 即使 count=0 也显示 (兜底)', () => {
     const results = new Map([['cursor', {}]]);
     const tabs = real.getCategoryTabsWithCount(results);
     const other = tabs.find((t) => t.id === 'other');
@@ -189,12 +189,12 @@ describe('category.js — getCategoryTabsWithCount', () => {
 
   it('null / undefined 入参 → "全部" + "其他" (count 0)', () => {
     expect(real.getCategoryTabsWithCount(null)).toEqual([
-      { id: 'all', name: '全部', icon: '📋', count: 0, title: '所有 app' },
-      { id: 'other', name: '其他', icon: '📦', count: 0, title: '其他' },
+      { id: 'all', name: '全部', count: 0, title: '所有 app' },
+      { id: 'other', name: '其他', count: 0, title: '其他' },
     ]);
     expect(real.getCategoryTabsWithCount(undefined)).toEqual([
-      { id: 'all', name: '全部', icon: '📋', count: 0, title: '所有 app' },
-      { id: 'other', name: '其他', icon: '📦', count: 0, title: '其他' },
+      { id: 'all', name: '全部', count: 0, title: '所有 app' },
+      { id: 'other', name: '其他', count: 0, title: '其他' },
     ]);
   });
 });

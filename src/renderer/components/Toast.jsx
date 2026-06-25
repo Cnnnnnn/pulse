@@ -15,16 +15,10 @@
  */
 
 import { toast, dismissToast } from '../store.js';
+import { ToastTypeIcon } from './icons.jsx';
 
-const TOAST_DEFAULT_MS =5000;
-const TOAST_MAX_VISIBLE =3;
-
-const TYPE_ICON = {
- info: 'ℹ️',
- warn: '⚠️',
- error: '✗',
- success: '✓',
-};
+const TOAST_DEFAULT_MS = 5000;
+const TOAST_MAX_VISIBLE = 3;
 
 export function Toast() {
  const current = toast.value;
@@ -42,7 +36,7 @@ export function Toast() {
  role={t.type === 'error' || t.type === 'warn' ? 'alert' : 'status'}
  aria-live={t.type === 'error' ? 'assertive' : 'polite'}
  >
- <span class="toast-icon">{TYPE_ICON[t.type || 'info'] || 'ℹ️'}</span>
+ <span class="toast-icon"><ToastTypeIcon type={t.type || 'info'} size={14} /></span>
  <span class="toast-message">{t.message}</span>
  <button
  type="button"

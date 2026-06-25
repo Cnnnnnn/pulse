@@ -6,6 +6,7 @@
 import { useState } from 'preact/hooks';
 import { AIConfigForm } from './AISettingsModal.jsx';
 import { PromptSettings } from './PromptSettings.jsx';
+import { TabList, Tab } from './TabList.jsx';
 
 /**
  * @param {object} props
@@ -24,26 +25,14 @@ export function AISettingsScene({
 
   return (
     <div class="digest-setup-scene">
-      <div class="ai-config-tabs" role="tablist" aria-label="AI 设置分类">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'connection'}
-          class={`ai-config-tab ${tab === 'connection' ? 'active' : ''}`}
-          onClick={() => setTab('connection')}
-        >
+      <TabList variant="config" ariaLabel="AI 设置分类">
+        <Tab variant="config" active={tab === 'connection'} onClick={() => setTab('connection')}>
           连接设置
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'prompts'}
-          class={`ai-config-tab ${tab === 'prompts' ? 'active' : ''}`}
-          onClick={() => setTab('prompts')}
-        >
+        </Tab>
+        <Tab variant="config" active={tab === 'prompts'} onClick={() => setTab('prompts')}>
           Prompt 模板
-        </button>
-      </div>
+        </Tab>
+      </TabList>
       {tab === 'connection' ? (
         <AIConfigForm compact={compact} onSaved={onSaved} onCancel={onCancel} />
       ) : (

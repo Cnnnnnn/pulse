@@ -7,14 +7,16 @@
 
 import { useEffect } from 'preact/hooks';
 import { activeCategory, categoryCounts, setActiveCategory } from './fundStore.js';
+import { TabList, Tab } from '../components/TabList.jsx';
+import { CategoryTabIcon } from '../components/icons.jsx';
 
 const TABS = [
-  { id: 'all',   icon: '🗂', name: '全部',   title: '全部基金' },
-  { id: 'stock', icon: '📈', name: '股票',   title: '股票型基金' },
-  { id: 'bond',  icon: '📊', name: '债券',   title: '债券型基金' },
-  { id: 'money', icon: '💵', name: '货币',   title: '货币型基金' },
-  { id: 'qdii',  icon: '🌏', name: 'QDII',   title: '海外配置 (QDII)' },
-  { id: 'other', icon: '📦', name: '其他',   title: '混合 / 其他' },
+  { id: 'all',   name: '全部',   title: '全部基金' },
+  { id: 'stock', name: '股票',   title: '股票型基金' },
+  { id: 'bond',  name: '债券',   title: '债券型基金' },
+  { id: 'money', name: '货币',   title: '货币型基金' },
+  { id: 'qdii',  name: 'QDII',   title: '海外配置 (QDII)' },
+  { id: 'other', name: '其他',   title: '混合 / 其他' },
 ];
 
 export function CategoryTabs() {
@@ -40,23 +42,21 @@ export function CategoryTabs() {
   const active = activeCategory.value;
 
   return (
-    <div class="category-tabs" role="tablist" aria-label="基金分类">
+    <TabList variant="underline" ariaLabel="基金分类">
       {TABS.map((t) => (
-        <button
+        <Tab
           key={t.id}
-          type="button"
-          class={`category-tab${active === t.id ? ' active' : ''}`}
+          variant="underline"
+          active={active === t.id}
           onClick={() => setActiveCategory(t.id)}
           title={t.title}
-          role="tab"
-          aria-selected={active === t.id}
+          icon={<CategoryTabIcon id={t.id} domain="fund" />}
+          count={counts[t.id] || 0}
         >
-          <span class="category-tab-icon">{t.icon}</span>
-          <span class="category-tab-name">{t.name}</span>
-          <span class="category-tab-count">({counts[t.id] || 0})</span>
-        </button>
+          {t.name}
+        </Tab>
       ))}
-    </div>
+    </TabList>
   );
 }
 

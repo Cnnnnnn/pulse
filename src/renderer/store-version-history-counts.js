@@ -3,7 +3,7 @@
  *
  * 2026-06-14: App rollback · renderer-side cached per-app history counts.
  *
- * 目的: AppRow 的 ⏪ 按钮只对 "有备份可回滚" 的 app 显示 + 角标显示 count.
+ * 目的: AppRow 的 IconRotateCcw 按钮只对 "有备份可回滚" 的 app 显示 + 角标显示 count.
  * 不在每次 render 时拉整个 history, 只拉一份扁平 count 摘要.
  *
  * 流程:

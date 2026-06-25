@@ -3,21 +3,23 @@
  *
  * Phase I1+I5: per-section rendering inside DigestDrawer.
  */
+import { DigestSectionIcon } from '../components/icons.jsx';
+
 const LABELS = {
-  updates: { title: '可升级应用', icon: '⬆' },
-  hot: { title: '微博热搜', icon: '🔥' },
-  news: { title: 'IT 新闻', icon: '📰' },
-  funds: { title: '基金变动', icon: '💹' },
-  ai_usage: { title: 'AI 用量预警', icon: '⚠' },
-  worldcup: { title: '今日比赛', icon: '⚽' },
+  updates: { title: '可升级应用' },
+  hot: { title: '微博热搜' },
+  news: { title: 'IT 新闻' },
+  funds: { title: '基金变动' },
+  ai_usage: { title: 'AI 用量预警' },
+  worldcup: { title: '今日比赛' },
 };
 
 export function DigestSection({ section }) {
-  const meta = LABELS[section.kind] || { title: section.kind, icon: '•' };
+  const meta = LABELS[section.kind] || { title: section.kind };
   return (
     <div class={`digest-section digest-section--${section.kind}`}>
       <div class="digest-section__header">
-        <span class="digest-section__icon">{meta.icon}</span>
+        <span class="digest-section__icon"><DigestSectionIcon kind={section.kind} size={14} /></span>
         <span class="digest-section__title">{meta.title}</span>
       </div>
       <ul class="digest-section__items">

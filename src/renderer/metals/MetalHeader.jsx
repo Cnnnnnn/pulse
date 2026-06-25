@@ -5,6 +5,7 @@
  */
 
 import { overview, schedulerState, fxCache, refreshNow } from './metalStore.js';
+import { IconMedal, IconRefresh } from '../components/icons.jsx';
 
 function formatCNY(value) {
   if (value == null) return '—';
@@ -24,11 +25,16 @@ export function MetalHeader() {
   return (
     <div class="metals-header">
       <div class="metals-header-row">
-        <h2>🥇 贵金属</h2>
+        <h2 class="metals-header-title">
+          <IconMedal size={20} />
+          贵金属
+        </h2>
         <div class="metals-header-status">
           最后更新: {formatTime(state.lastFetch)}
           {state.status === 'running' && <span class="spinner"> ⟳</span>}
-          <button class="btn btn-ghost btn-sm" onClick={refreshNow}>🔄 刷新</button>
+          <button class="btn btn-ghost btn-sm metals-refresh-btn" onClick={refreshNow}>
+            <IconRefresh size={14} /> 刷新
+          </button>
         </div>
       </div>
 

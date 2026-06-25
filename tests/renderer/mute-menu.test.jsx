@@ -63,7 +63,8 @@ describe('MuteMenu (Phase 27 + 29)', () => {
     it('显示 app name + 静音 icon', () => {
       const { container } = setup({ appName: 'Kimi' });
       expect(container.querySelector('.mute-menu-app').textContent).toBe('Kimi');
-      expect(container.querySelector('.mute-menu-icon').textContent).toBe('🔔');
+      const icon = container.querySelector('.mute-menu-icon svg');
+      expect(icon).toBeTruthy(); // IconBell SVG
     });
 
     it('点 7 天 (top, recommended) → setMute("Cursor", 7*24*3600)', async () => {
@@ -171,7 +172,8 @@ describe('MuteMenu (Phase 27 + 29)', () => {
       expect(items).toHaveLength(1);
       expect(items[0].textContent).toContain('取消静音');
       expect(container.querySelector('.mute-menu-status').textContent).toMatch(/已静音至/);
-      expect(container.querySelector('.mute-menu-icon').textContent).toBe('🔇');
+      const icon = container.querySelector('.mute-menu-icon svg');
+      expect(icon).toBeTruthy(); // IconVolumeOff SVG
     });
 
     it('永远 (until=0) → 显示 "永远"', () => {

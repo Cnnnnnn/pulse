@@ -9,6 +9,8 @@ import {
   closeAiUsageAlertModal,
   saveAiUsageAlertPrefs,
 } from '../store/ai-usage-store.js';
+import { BareModalShell } from './ModalShell.jsx';
+import { IconBarChart } from './icons.jsx';
 
 export function AIUsageAlertModal() {
   const cur = aiUsageAlertPrefs.value;
@@ -55,14 +57,19 @@ export function AIUsageAlertModal() {
   }
 
   return (
-    <div class="fund-modal-overlay" onClick={() => closeAiUsageAlertModal()}>
-      <div
-        class="fund-modal fund-alert-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <form class="fund-modal-form" onSubmit={handleSubmit}>
+    <BareModalShell
+      open
+      onClose={closeAiUsageAlertModal}
+      overlayClass="fund-modal-overlay"
+      cardClass="fund-modal fund-alert-modal"
+      usePortal
+      ariaLabel="用量异常提醒"
+    >
+      <form class="fund-modal-form" onSubmit={handleSubmit}>
           <div class="fund-modal-header">
-            <span class="fund-modal-title">📊 用量异常提醒</span>
+            <span class="fund-modal-title fund-modal-title-row">
+              <IconBarChart size={16} /> 用量异常提醒
+            </span>
             <button
               type="button"
               class="fund-modal-close"
@@ -141,7 +148,6 @@ export function AIUsageAlertModal() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </BareModalShell>
   );
 }

@@ -41,9 +41,7 @@ describe("scorers-leaderboard", () => {
       "Korea Republic",
     );
     expect(list.find((r) => r.player === "Hwang In-Beom")?.teamCn).toBe("韩国");
-    expect(
-      list.find((r) => r.player === "Hwang In-Beom")?.flag.length,
-    ).toBeGreaterThan(0);
+    expect(list.find((r) => r.player === "Hwang In-Beom")?.flag).toBe('KR');
   });
 
   it("乌龙不计入射手", () => {

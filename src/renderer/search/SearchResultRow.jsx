@@ -2,8 +2,7 @@
  * 单条结果卡片 — 标题(高亮) + matchedSnippet + 来源标签 + 时间
  */
 import DOMPurify from 'dompurify';
-
-const SOURCE_ICON = { news: '📰', 'ai-task': '🤖', reminder: '⏰', fund: '📊', app: '🔄' };
+import { SearchSourceIcon } from '../components/icons.jsx';
 
 function formatTimeAgo(ms) {
   if (!ms) return '';
@@ -25,7 +24,7 @@ export function SearchResultRow({ result, isSelected, onClick }) {
       onClick={onClick}
     >
       <div class="search-result-title">
-        <span class="search-result-icon">{SOURCE_ICON[result.source] || '•'}</span>
+        <span class="search-result-icon"><SearchSourceIcon source={result.source} size={14} /></span>
         <span>{result.title}</span>
         {dateMs ? <span class="search-result-time">{formatTimeAgo(dateMs)}</span> : null}
       </div>

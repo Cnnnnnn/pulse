@@ -14,6 +14,7 @@ import {
   wechatHotLoading,
 } from "../store.js";
 import { formatCooldown, formatTime } from "../utils.js";
+import { IconFlame, IconRefresh } from "../../components/icons.jsx";
 
 const COOLDOWN_MS = 15000;
 const SOURCE = "xxapi";
@@ -32,7 +33,7 @@ export function WechatHotHeader({ search = "", onSearchChange = () => {} } = {})
   return (
     <header class="wechat-hot-header">
       <div class="wechat-hot-header-row">
-        <h1 class="wechat-hot-header-title">🔥 微博热搜</h1>
+        <h1 class="wechat-hot-header-title"><IconFlame size={18} /> 微博热搜</h1>
       </div>
       <div class="wechat-hot-header-subtitle">
         微博热搜榜 · API: {SOURCE} · {itemCount} 条 · 更新于 {formatTime(lastFetched)}
@@ -44,7 +45,7 @@ export function WechatHotHeader({ search = "", onSearchChange = () => {} } = {})
           disabled={cooling || wechatHotLoading.value}
           onClick={refreshWechatHot}
         >
-          {cooling ? formatCooldown(COOLDOWN_MS - (now - wechatHotLastRefreshAt.value)) : "↻ 刷新"}
+          {cooling ? formatCooldown(COOLDOWN_MS - (now - wechatHotLastRefreshAt.value)) : <><IconRefresh size={14} /> 刷新</>}
         </button>
         <input
           id="wechat-hot-search-input"

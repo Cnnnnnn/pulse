@@ -3,18 +3,16 @@
  *
  * v2.9.5 — 兼容 2 模式:
  *   - 比赛详情 (match._isTeam = false): 2 队 squad 并列, 中 VS / 比分
- *   - 1 队详情 (match._isTeam = true): 单列 26 人 squad (从 队 详情 tab 点 team card 触发)
- *
- * 数据 schema 跟 match.team1/team2/... 通用.
+ *   - 1 队详情 (match._isTeam = true): 单列 26 人 squad
  */
 
-import { useEffect } from 'preact/hooks';
-import { createPortal } from 'preact/compat';
 import { lookupTeam, displayTeam } from './teams-data.js';
+import { TeamFlag, IconClock, IconMapPin } from '../components/icons.jsx';
 import { resolvePlayerCn } from './player-cn.js';
 import { toBeijingTime } from './timeUtils.js';
 import MatchScorers from './MatchScorers.jsx';
 import MatchAiPanel from './MatchAiPanel.jsx';
+import { ModalShell } from '../components/ModalShell.jsx';
 
 const POS_LABELS = {
   GK: '门将', DF: '后卫', MF: '中场', FW: '前锋',
@@ -22,16 +20,8 @@ const POS_LABELS = {
 };
 
 function SquadModal({ match, onClose }) {
-  // ESC 关
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === 'Escape') onClose && onClose();
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   if (!match) return null;
+
   const { team1, team2, stage, venue, time, timezone, score } = match;
   const isTeamMode = match._isTeam === true;
   const t1 = lookupTeam(team1);
@@ -73,49 +63,67 @@ function SquadModal({ match, onClose }) {
     );
   }
 
-  const modal = (
-    <div class="modal-backdrop modal-backdrop-top modal-backdrop-squad" onClick={onClose}>
-      <div class={`modal-card modal-squad${isTeamMode ? ' modal-squad-team' : ''}`} onClick={(e) => e.stopPropagation()}>
-        <div class="modal-header">
-          <h2>{stage || (isTeamMode ? '球队详情' : '比赛详情')}</h2>
-          <button class="btn-close" onClick={onClose} aria-label="关闭">×</button>
+  const beforeBody = (
+    <>
+      {(match.date || bj.time || venue) && (
+        <div class="squad-meta">
+          {match.date && <span class="squad-meta-date">{match.date} · {bj.weekday || ''}</span>}
+          {bj.time && (
+            <span class="squad-meta-time">
+              <IconClock size={12} />
+              {bj.date && bj.date !== match.date ? ` ${bj.date} ` : ' '}
+              {bj.time} 北京 (原 {bj.originalTime})
+            </span>
+          )}
+          {venue && <span class="squad-meta-venue"><IconMapPin size={12} /> {venue}</span>}
         </div>
+      )}
 
-        {(match.date || bj.time || venue) && (
-          <div class="squad-meta">
-            {match.date && <span class="squad-meta-date">{match.date} · {bj.weekday || ''}</span>}
-            {bj.time && (
-              <span class="squad-meta-time">
-                🕒
-                {bj.date && bj.date !== match.date ? ` ${bj.date} ` : ' '}
-                {bj.time} 北京 (原 {bj.originalTime})
-              </span>
-            )}
-            {venue && <span class="squad-meta-venue">📍 {venue}</span>}
+      {!isTeamMode && score && score.ft && (
+        <div class={`squad-score-banner squad-score-banner--${score.status === 'live' ? 'live' : 'final'}`}>
+          <div class="squad-score-side">
+            <span class="squad-score-flag"><TeamFlag code={d1.flag} size={24} /></span>
+            <span class="squad-score-name">{d1.cn}</span>
           </div>
-        )}
-
-        {!isTeamMode && score && score.ft && (
-          <div class={`squad-score-banner squad-score-banner--${score.status === 'live' ? 'live' : 'final'}`}>
-            <div class="squad-score-side">
-              <span class="squad-score-flag">{d1.flag}</span>
-              <span class="squad-score-name">{d1.cn}</span>
-            </div>
-            <div class="squad-score-ft">
-              <span class="squad-score-num">{score.ft[0]}</span>
-              <span class="squad-score-sep">-</span>
-              <span class="squad-score-num">{score.ft[1]}</span>
-              {score.status === 'live' && <span class="squad-score-badge squad-score-badge--live">进行中</span>}
-              {score.status === 'final' && <span class="squad-score-badge squad-score-badge--final">完赛</span>}
-            </div>
-            <div class="squad-score-side squad-score-side--away">
-              <span class="squad-score-name">{d2.cn}</span>
-              <span class="squad-score-flag">{d2.flag}</span>
-            </div>
+          <div class="squad-score-ft">
+            <span class="squad-score-num">{score.ft[0]}</span>
+            <span class="squad-score-sep">-</span>
+            <span class="squad-score-num">{score.ft[1]}</span>
+            {score.status === 'live' && <span class="squad-score-badge squad-score-badge--live">进行中</span>}
+            {score.status === 'final' && <span class="squad-score-badge squad-score-badge--final">完赛</span>}
           </div>
-        )}
+          <div class="squad-score-side squad-score-side--away">
+            <span class="squad-score-name">{d2.cn}</span>
+            <span class="squad-score-flag"><TeamFlag code={d2.flag} size={24} /></span>
+          </div>
+        </div>
+      )}
+    </>
+  );
 
-        <div class="modal-squad-scroll">
+  const footer = (
+    <>
+      <span class="wizard-footer-hint">数据来源 openfootball/worldcup · 大名单 FIFA 2026 报名</span>
+      <div class="modal-footer-buttons">
+        <button type="button" class="btn btn-ghost" onClick={onClose}>关闭</button>
+      </div>
+    </>
+  );
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      usePortal
+      title={stage || (isTeamMode ? '球队详情' : '比赛详情')}
+      backdropClass="modal-backdrop modal-backdrop-top modal-backdrop-squad"
+      cardClass={`modal-squad${isTeamMode ? ' modal-squad-team' : ''}`}
+      beforeBody={beforeBody}
+      wrapBody={false}
+      footer={footer}
+      ariaLabel={stage || '比赛详情'}
+    >
+      <div class="modal-squad-scroll">
         {!isTeamMode && score && score.scorers && score.scorers.length > 0 && (
           <div class="modal-squad-scorers">
             <MatchScorers scorers={score.scorers} team1={team1} team2={team2} />
@@ -126,7 +134,7 @@ function SquadModal({ match, onClose }) {
           <div class="squad-col">
             {!isTeamMode && (
               <div class="squad-col-header">
-                <span class="squad-col-flag">{d1.flag}</span>
+                <span class="squad-col-flag"><TeamFlag code={d1.flag} size={16} /></span>
                 <div>
                   <div class="squad-col-cn">{d1.cn}</div>
                   <div class="squad-col-en">{t1 ? t1.name : team1}</div>
@@ -154,7 +162,7 @@ function SquadModal({ match, onClose }) {
           {!isTeamMode && (
             <div class="squad-col">
               <div class="squad-col-header">
-                <span class="squad-col-flag">{d2.flag}</span>
+                <span class="squad-col-flag"><TeamFlag code={d2.flag} size={16} /></span>
                 <div>
                   <div class="squad-col-cn">{d2.cn}</div>
                   <div class="squad-col-en">{t2 ? t2.name : team2}</div>
@@ -166,19 +174,9 @@ function SquadModal({ match, onClose }) {
         </div>
 
         {!isTeamMode && <MatchAiPanel match={match} score={score} />}
-        </div>
-
-        <div class="modal-footer">
-          <span class="wizard-footer-hint">数据来源 openfootball/worldcup · 大名单 FIFA 2026 报名</span>
-          <div class="modal-footer-buttons">
-            <button class="btn btn-ghost" onClick={onClose}>关闭</button>
-          </div>
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
-
-  return createPortal(modal, document.body);
 }
 
 export default SquadModal;

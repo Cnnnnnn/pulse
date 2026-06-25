@@ -18,7 +18,7 @@
  *     [fifaName]: {
  *       name: 'Mexico',
  *       cn: '墨西哥',
- *       flag: '🇲🇽',
+ *       code: 'MX',
  *       group: 'A',
  *       famous: [{ number, position, name, club }]   // 1 真实人
  *       squad: [TBD-1, TBD-2, ..., TBD-25]
@@ -612,14 +612,10 @@ const TEAMS_RAW = [
   },
 ];
 
-// regional indicator 拼接国旗 emoji
+// ISO alpha-2 队旗 code（UI 用 TeamFlag SVG 渲染，非 emoji）
 function flagFromCode(code) {
-  if (!code || code.length !== 2) return "🏳️";
-  const A = 0x1f1e6;
-  return String.fromCodePoint(
-    A + (code.charCodeAt(0) - 65),
-    A + (code.charCodeAt(1) - 65),
-  );
+  if (!code || typeof code !== 'string' || code.length !== 2) return null;
+  return code.toUpperCase();
 }
 
 // 26 人占位骨架 (FIFA 报名未填时 fallback)
@@ -680,7 +676,7 @@ function lookupTeam(enName) {
 }
 
 /**
- * UI 展示用: 始终返回中文名 + 国旗 (未知队回退英文名 + 🏳️)
+ * UI 展示用: 始终返回中文名 + 队旗 code（未知队回退英文名 + null code）
  * @param {string} enName
  */
 function displayTeam(enName) {
@@ -688,7 +684,7 @@ function displayTeam(enName) {
   return {
     officialName: t ? t.name : enName,
     cn: t ? t.cn : enName,
-    flag: t ? t.flag : "🏳️",
+    flag: t ? t.code : null,
     group: t ? t.group : null,
     found: Boolean(t),
   };

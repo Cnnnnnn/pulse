@@ -33,7 +33,7 @@ describe("DayBetFooter v2.10.1 polish", () => {
     };
   });
 
-  it("Fix 10: 盈亏 pnl>0 显示 ✅", async () => {
+  it("Fix 10: 盈亏 pnl>0 显示 ✅ → PnlSignIcon SVG", async () => {
     worldcupBets.value = {
       "2026-06-12": { stake: 100, pnl: 120, note: "" },
     };
@@ -41,18 +41,18 @@ describe("DayBetFooter v2.10.1 polish", () => {
     const pnl = container.querySelector(".day-bet-pnl");
     expect(pnl).toBeTruthy();
     expect(pnl.textContent).toMatch(/盈亏 \+?¥120/);
-    expect(pnl.textContent).toContain("✅");
+    expect(pnl.querySelector("svg")).toBeTruthy();
     expect(pnl.classList.contains("positive")).toBe(true);
   });
 
-  it("Fix 10: 亏 pnl<0 显示 ❌", async () => {
+  it("Fix 10: 亏 pnl<0 显示 ❌ → PnlSignIcon SVG", async () => {
     worldcupBets.value = {
       "2026-06-13": { stake: 50, pnl: -30, note: "" },
     };
     const { container } = render(<DayBetFooter date="2026-06-13" />);
     const pnl = container.querySelector(".day-bet-pnl");
     expect(pnl.textContent).toMatch(/盈亏 -¥30/);
-    expect(pnl.textContent).toContain("❌");
+    expect(pnl.querySelector("svg")).toBeTruthy();
     expect(pnl.classList.contains("negative")).toBe(true);
   });
 

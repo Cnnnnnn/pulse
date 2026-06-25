@@ -94,9 +94,9 @@ describe('SideNav 折叠态 — 顶部按钮可见性 (regression: 折叠后按�
     const toggleBtn = container.querySelector('.side-nav-toggle');
     expect(refreshBtn).toBeTruthy();
     expect(toggleBtn).toBeTruthy();
-    // 两个按钮都必须有真实文本 (↻ / ☰)
-    expect(refreshBtn.textContent.trim()).toBe('↻');
-    expect(toggleBtn.textContent.trim()).toBe('☰');
+    // 两个按钮都必须有 SVG 图标 (刷新 / 菜单)
+    expect(refreshBtn.querySelector('svg')).toBeTruthy();
+    expect(toggleBtn.querySelector('svg')).toBeTruthy();
   });
 
   test('styles.css 中 .side-nav-collapsed 折叠宽度定义 = 40px', async () => {

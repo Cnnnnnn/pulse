@@ -5,7 +5,6 @@
  */
 
 import { useState, useEffect, useMemo } from "preact/hooks";
-import { createPortal } from "preact/compat";
 import {
   recent,
   recentOpen,
@@ -14,27 +13,31 @@ import {
   loadRecent,
   toggleRecentOpen,
 } from "./recentStore.js";
-import { activeNav, setActiveNav } from "../worldcup/navStore.js";
+import { setActiveNav } from "../worldcup/navStore.js";
+import { TabList, Tab } from "../components/TabList.jsx";
+import { PanelEmpty } from "../components/EmptyState.jsx";
+import { ModalShell, ModalHeader } from "../components/ModalShell.jsx";
+import { IconClock, RecentActivityIcon, IconX } from "../components/icons.jsx";
 
 const KIND_META = {
-  "app-upgrade": { icon: "⬆", label: "升级" },
-  "app-check": { icon: "🔄", label: "检查" },
-  "reminder-create": { icon: "⏰+", label: "新建提醒" },
-  "reminder-update": { icon: "✏", label: "编辑提醒" },
-  "reminder-fire": { icon: "🔔", label: "提醒触发" },
-  "reminder-done": { icon: "✓", label: "提醒完成" },
-  "reminder-dismissed": { icon: "✕", label: "忽略提醒" },
-  "worldcup-match-view": { icon: "⚽", label: "比赛" },
-  "worldcup-insight": { icon: "🔮", label: "AI 分析" },
-  "fund-view": { icon: "💰", label: "基金" },
-  "fund-add": { icon: "💰+", label: "新增基金" },
-  "fund-update": { icon: "✏", label: "编辑基金" },
-  "fund-remove": { icon: "✕", label: "移除基金" },
-  "fund-nav-fetch": { icon: "🔄", label: "刷新净值" },
-  "ithome-view": { icon: "📰", label: "新闻" },
-  "ithome-favorite": { icon: "★", label: "收藏" },
-  "ithome-summary": { icon: "✨", label: "AI 总结" },
-  "settings-open": { icon: "⚙", label: "设置" },
+  "app-upgrade": { label: "升级" },
+  "app-check": { label: "检查" },
+  "reminder-create": { label: "新建提醒" },
+  "reminder-update": { label: "编辑提醒" },
+  "reminder-fire": { label: "提醒触发" },
+  "reminder-done": { label: "提醒完成" },
+  "reminder-dismissed": { label: "忽略提醒" },
+  "worldcup-match-view": { label: "比赛" },
+  "worldcup-insight": { label: "AI 分析" },
+  "fund-view": { label: "基金" },
+  "fund-add": { label: "新增基金" },
+  "fund-update": { label: "编辑基金" },
+  "fund-remove": { label: "移除基金" },
+  "fund-nav-fetch": { label: "刷新净值" },
+  "ithome-view": { label: "新闻" },
+  "ithome-favorite": { label: "收藏" },
+  "ithome-summary": { label: "AI 总结" },
+  "settings-open": { label: "设置" },
 };
 
 const FILTERS = [
@@ -114,14 +117,14 @@ function relTime(ts, now) {
 }
 
 function RecentRow({ e, now, onClick }) {
-  const meta = KIND_META[e.kind] || { icon: "·", label: e.kind };
+  const meta = KIND_META[e.kind] || { label: e.kind };
   const count = typeof e.count === "number" && e.count > 1 ? e.count : null;
   return (
     <div
       class={`recent-row kind-${e.kind}`}
       onClick={() => onClick && onClick(e)}
     >
-      <span class="recent-icon" aria-hidden="true">{meta.icon}</span>
+      <span class="recent-icon" aria-hidden="true"><RecentActivityIcon kind={e.kind} size={14} /></span>
       <div class="recent-main">
         <div class="recent-label">{e.label}</div>
         <div class="recent-meta">
@@ -155,19 +158,9 @@ export function RecentActivityModal() {
     if (open && !loaded) loadRecent();
   }, [open, loaded]);
 
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        recentOpen.value = false;
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  if (!open) return null;
+  function close() {
+    recentOpen.value = false;
+  }
 
   function onRowClick(e) {
     const target = navForKind(e.kind);
@@ -177,74 +170,72 @@ export function RecentActivityModal() {
     }
   }
 
-  const modal = (
-    <div
-      class="modal-backdrop recent-modal-backdrop"
-      onClick={(ev) => {
-        if (ev.target === ev.currentTarget) recentOpen.value = false;
-      }}
-    >
-      <div
-        class="modal-card recent-modal"
-        role="dialog"
-        aria-label="最近活动"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header class="recent-modal-header">
-          <h2>
-            <span aria-hidden="true">🕒</span>
-            最近活动
-            <span class="recent-modal-sub">
-              {loaded && list.length > 0 && (
-                <span class="recent-count-pill">{list.length} 条</span>
-              )}
-            </span>
-          </h2>
-          <div class="recent-modal-header-actions">
-            <button
-              class="btn btn-ghost btn-sm"
-              onClick={() => (recentOpen.value = false)}
-              aria-label="关闭"
-            >
-              ✕
-            </button>
-          </div>
-        </header>
+  const header = (
+    <ModalHeader className="recent-modal-header">
+      <h2>
+        <span class="recent-modal-icon" aria-hidden="true"><IconClock size={18} /></span>
+        最近活动
+        <span class="recent-modal-sub">
+          {loaded && list.length > 0 && (
+            <span class="recent-count-pill">{list.length} 条</span>
+          )}
+        </span>
+      </h2>
+      <div class="recent-modal-header-actions">
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          onClick={close}
+          aria-label="关闭"
+        >
+          <IconX size={14} />
+        </button>
+      </div>
+    </ModalHeader>
+  );
 
-        <div class="recent-modal-filters">
+  return (
+    <ModalShell
+      open={open}
+      onClose={close}
+      usePortal
+      backdropClass="modal-backdrop recent-modal-backdrop"
+      cardClass="recent-modal"
+      ariaLabel="最近活动"
+      header={header}
+      beforeBody={(
+        <TabList variant="pill">
           {FILTERS.map((f) => (
-            <button
+            <Tab
               key={f.id}
-              class={`recent-filter-pill ${filter === f.id ? "is-active" : ""}`}
+              variant="pill"
+              active={filter === f.id}
               onClick={() => (recentFilter.value = f.id)}
             >
               {f.label}
-            </button>
+            </Tab>
           ))}
-        </div>
-
-        <div class="recent-modal-body">
-          {!loaded && <div class="recent-empty">加载中...</div>}
-          {loaded && list.length === 0 && (
-            <div class="recent-empty">
-              <div class="recent-empty-title">还没有活动记录</div>
-              <div class="recent-empty-hint">
-                去点点 Pulse 各功能试试 — 升级 / 提醒 / 比赛 / 基金 / 新闻都会记录.
-              </div>
-            </div>
-          )}
-          {loaded && filtered.length === 0 && list.length > 0 && (
-            <div class="recent-empty">当前过滤下没活动</div>
-          )}
-          {loaded && filtered.map((e) => (
-            <RecentRow key={`${e.kind}-${e.ref}-${e.ts}`} e={e} now={now} onClick={onRowClick} />
-          ))}
-        </div>
-      </div>
-    </div>
+        </TabList>
+      )}
+      bodyClass="recent-modal-body"
+    >
+      {!loaded && <PanelEmpty className="recent-empty">加载中...</PanelEmpty>}
+      {loaded && list.length === 0 && (
+        <PanelEmpty className="recent-empty">
+          <div class="recent-empty-title">还没有活动记录</div>
+          <div class="recent-empty-hint">
+            去点点 Pulse 各功能试试 — 升级 / 提醒 / 比赛 / 基金 / 新闻都会记录.
+          </div>
+        </PanelEmpty>
+      )}
+      {loaded && filtered.length === 0 && list.length > 0 && (
+        <PanelEmpty className="recent-empty">当前过滤下没活动</PanelEmpty>
+      )}
+      {loaded && filtered.map((e) => (
+        <RecentRow key={`${e.kind}-${e.ref}-${e.ts}`} e={e} now={now} onClick={onRowClick} />
+      ))}
+    </ModalShell>
   );
-
-  return createPortal(modal, document.body);
 }
 
 function useNowTick(active) {
@@ -269,10 +260,7 @@ export function RecentButton() {
       aria-label="最近活动"
       aria-expanded={open}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
+      <IconClock size={16} />
     </button>
   );
 }

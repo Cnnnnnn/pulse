@@ -7,6 +7,7 @@
 
 import { getLocalTier } from '../store.js';
 import { UpgradeAdvice } from './UpgradeAdvice.jsx';
+import { IconVolumeOff, IconInfo } from './icons.jsx';
 
 const SOURCE_LABELS = {
   'brew': 'Brew', 'sparkle': 'Sparkle', 'web(yml)': 'CDN',
@@ -121,7 +122,7 @@ export function AppInfo({
     subtitle = subtitle ? `${subtitle} · ${rel}` : rel;
   }
 
-  // Phase 26: changelog inline preview (点 ℹ️ 看完整 panel)
+  // Phase 26: changelog inline preview (点 IconInfo 看完整 panel)
   const preview = changelogPreview(result.changelog);
 
   // Phase 29: last-opened sub-line. 三种态 + 按 tier 颜色区分 (Phase 30).
@@ -162,7 +163,7 @@ export function AppInfo({
   // muted=false → 不显示. 通过 .muted CSS class 让 AppInfo 整体灰显 (opacity).
   const muteBadge = muted ? (
     <span class="mute-badge" title={`已静音, 跳过通知 / bulk upgrade. 到期: ${muteUntil ? muteUntilLabel(muteUntil) : '永远'}`}>
-      🔇 静音{muteUntil ? `至 ${muteUntilLabel(muteUntil)}` : ' (永远)'}
+      <IconVolumeOff size={12} /> 静音{muteUntil ? `至 ${muteUntilLabel(muteUntil)}` : ' (永远)'}
     </span>
   ) : null;
 
@@ -177,7 +178,7 @@ export function AppInfo({
       title={isChangelogOpen ? '收起更新说明' : '查看更新说明'}
       aria-label="查看更新说明"
     >
-      ⓘ
+      <IconInfo size={14} />
     </button>
   ) : null;
 

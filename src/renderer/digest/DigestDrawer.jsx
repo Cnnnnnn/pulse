@@ -15,6 +15,7 @@ import {
 import { api } from '../api.js';
 import { DigestSection } from './DigestSection.jsx';
 import { DrawerShell } from '../components/DrawerShell.jsx';
+import { DrawerEmpty } from '../components/EmptyState.jsx';
 
 export function DigestDrawer() {
   const open = digestDrawerOpen.value;
@@ -55,7 +56,7 @@ export function DigestDrawer() {
     >
       {loading && <div class="digest-drawer__loading">加载中...</div>}
       {!loading && sections.length === 0 && (
-        <div class="digest-drawer__empty">今天没有重要变化</div>
+        <DrawerEmpty message="今天没有重要变化" className="digest-drawer__empty" />
       )}
       {!loading && sections.map((s, i) => (
         <DigestSection key={i} section={s} />

@@ -29,6 +29,8 @@ import {
   closeBulkUpgrade,
 } from '../store-bulk-upgrade.js';
 import { taggedLog } from '../log.js';
+import { ModalShell } from './ModalShell.jsx';
+import { BulkStatusIcon, IconRotateCcw } from './icons.jsx';
 
 const log = taggedLog("[bulk-upgrade]");
 
@@ -65,29 +67,20 @@ const STATUS_TEXT = {
   cancelled: '已取消',
 };
 
-const STATUS_ICON = {
-  pending:   '·',
-  running:   '↻',
-  done:      '✓',
-  failed:    '✗',
-  skipped:   '—',
-  cancelled: '⊘',
-};
-
 export function BulkUpgradeModal() {
-  if (!bulkUpgradeModalOpen.value) return null;
-
+  const open = bulkUpgradeModalOpen.value;
   const items = bulkUpgradeItems.value;
   const statuses = bulkUpgradeStatuses.value;
   const running = bulkUpgradeRunning.value;
   const summary = bulkUpgradeSummary.value;
   const doneCount = bulkUpgradeDoneCount.value;
 
-  // 默认全选 (但只勾选 upgradable 的)
   const initialSelected = new Set(
     items.filter((it) => !NON_UPGRADABLE.has(it.source)).map((it) => it.id)
   );
   const [selected, setSelected] = useState(initialSelected);
+
+  if (!open) return null;
 
   // 分组 by source
   const groups = groupBySource(items);
@@ -155,50 +148,27 @@ export function BulkUpgradeModal() {
       : `已选 ${selectedCount} / ${upgradableCount}`;
 
   return (
-    <div class="modal-backdrop" onClick={handleCancel}>
-      <div class="modal-card bulk-upgrade-modal" onClick={(e) => e.stopPropagation()}>
-        <div class="modal-header">
-          <h2>批量升级 ({upgradableCount} 个应用)</h2>
-          <button class="btn-close" onClick={closeBulkUpgrade} title="关闭" aria-label="关闭">×</button>
-        </div>
+    <ModalShell
+      open={open}
+      onClose={handleCancel}
+      onBackdropClick={handleCancel}
+      title={`批量升级 (${upgradableCount} 个应用)`}
+      cardClass="bulk-upgrade-modal"
+      beforeBody={(
         <div class="modal-subtitle">
-          升级前会自动备份最近 2 个版本 (cap 2), 升级后可通过 ⏪ 按钮一键回滚。
+          升级前会自动备份最近 2 个版本 (cap 2), 升级后可通过 <IconRotateCcw size={12} /> 按钮一键回滚。
         </div>
-
-        <div class="modal-body">
-          {Object.entries(groups).map(([source, list]) => (
-            <div class="bulk-group" key={source}>
-              <div class="bulk-group-header">
-                <span class={`source-tag source-${source}`}>{SOURCE_LABELS[source] || source}</span>
-                <span class="bulk-group-count">{list.length}</span>
-              </div>
-              <div class="bulk-list">
-                {list.map((item) => (
-                  <BulkRow
-                    key={item.id}
-                    item={item}
-                    status={statuses.get(item.id) || 'pending'}
-                    selected={selected.has(item.id)}
-                    onToggle={() => toggle(item.id)}
-                    running={running}
-                    onRetry={() => handleRetry(item.id)}
-                    error={bulkUpgradeErrors.value.get(item.id)}
-                    output={bulkUpgradeOutput.value.get(item.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div class="modal-footer">
+      )}
+      footer={(
+        <>
           <span class="bulk-summary">{footerLabel}</span>
           <div class="modal-footer-buttons">
-            <button class="btn btn-ghost" onClick={handleCancel}>
+            <button type="button" class="btn btn-ghost" onClick={handleCancel}>
               {running ? '取消' : summary ? '关闭' : '取消'}
             </button>
             {!summary && (
               <button
+                type="button"
                 class="btn btn-primary"
                 onClick={handleStart}
                 disabled={running || selectedCount === 0}
@@ -207,14 +177,38 @@ export function BulkUpgradeModal() {
               </button>
             )}
             {summary && summary.failed.length > 0 && !running && (
-              <button class="btn btn-secondary" onClick={handleRetryAllFailed}>
+              <button type="button" class="btn btn-secondary" onClick={handleRetryAllFailed}>
                 重试 {summary.failed.length} 个失败
               </button>
             )}
           </div>
+        </>
+      )}
+    >
+      {Object.entries(groups).map(([source, list]) => (
+        <div class="bulk-group" key={source}>
+          <div class="bulk-group-header">
+            <span class={`source-tag source-${source}`}>{SOURCE_LABELS[source] || source}</span>
+            <span class="bulk-group-count">{list.length}</span>
+          </div>
+          <div class="bulk-list">
+            {list.map((item) => (
+              <BulkRow
+                key={item.id}
+                item={item}
+                status={statuses.get(item.id) || 'pending'}
+                selected={selected.has(item.id)}
+                onToggle={() => toggle(item.id)}
+                running={running}
+                onRetry={() => handleRetry(item.id)}
+                error={bulkUpgradeErrors.value.get(item.id)}
+                output={bulkUpgradeOutput.value.get(item.id)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-    </div>
+      ))}
+    </ModalShell>
   );
 }
 
@@ -233,7 +227,7 @@ function BulkRow({ item, status, selected, onToggle, running, onRetry, error, ou
       />
       <span class="bulk-name">{item.name}</span>
       <span class="bulk-versions">{item.current} → {item.latest}</span>
-      <span class="bulk-status-icon" title={STATUS_TEXT[status] || status}>{STATUS_ICON[status] || '·'}</span>
+      <span class="bulk-status-icon" title={STATUS_TEXT[status] || status}><BulkStatusIcon status={status} size={12} /></span>
       <span class="bulk-status-text">{STATUS_TEXT[status] || status}</span>
       {status === 'failed' && !running && (
         <button class="btn btn-ghost btn-sm bulk-retry-btn" onClick={onRetry} title="重试">重试</button>

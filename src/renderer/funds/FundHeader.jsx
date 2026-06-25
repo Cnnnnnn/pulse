@@ -3,7 +3,7 @@
  *
  * 总览卡片 + 工具栏:
  *   4 个数字卡片: 今日预估 / 总市值 / 总盈亏 / 收益率
- *   工具栏: 品牌 + [+ 添加持仓] [🔄 刷新] [最后更新] + 搜索框
+ *   工具栏: 品牌 + [+ 添加持仓] [IconRefresh 刷新] [最后更新] + 搜索框
  */
 
 import {
@@ -20,6 +20,7 @@ import {
   setNavSource,
 } from './fundStore.js';
 import { api } from '../api.js';
+import { IconBell, IconCoin, IconLoader, IconRefresh } from '../components/icons.jsx';
 
 function fmtCurrency(n) {
   if (!Number.isFinite(n)) return '¥0.00';
@@ -60,12 +61,16 @@ export function FundHeader({ onRefresh }) {
     <div class="fund-header">
       <div class="fund-header-toolbar">
         <div class="fund-header-brand">
-          <span class="fund-header-icon">💰</span>
+          <span class="fund-header-icon" aria-hidden="true"><IconCoin size={20} /></span>
           <div class="fund-header-brand-text">
             <h2 class="fund-header-title">基金管理</h2>
             <span class="fund-header-sub">
               {statusText}
-              {isRunning && <span class="fund-spinner" aria-hidden="true"> ⏳</span>}
+              {isRunning && (
+                <span class="fund-spinner" aria-hidden="true">
+                  <IconLoader size={12} />
+                </span>
+              )}
             </span>
           </div>
         </div>
@@ -106,7 +111,7 @@ export function FundHeader({ onRefresh }) {
             title="盈亏阈值提醒"
             aria-label="盈亏阈值提醒"
           >
-            🔔
+            <IconBell size={16} />
           </button>
           <button
             type="button"
@@ -116,7 +121,7 @@ export function FundHeader({ onRefresh }) {
             title="立即刷新净值"
             aria-label="立即刷新净值"
           >
-            🔄
+            <IconRefresh size={16} />
           </button>
         </div>
       </div>

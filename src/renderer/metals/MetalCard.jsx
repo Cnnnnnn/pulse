@@ -22,6 +22,7 @@ import {
   addWatchlistItem,
   removeWatchlistItem,
 } from '../watchlist/watchlist-store.js';
+import { PinIcon, IconMoreHorizontal, IconAlert } from '../components/icons.jsx';
 
 const GRAM_PER_OZ = 31.1035;
 
@@ -85,12 +86,12 @@ export function MetalCard({ metal, onEdit }) {
               onClick={togglePin}
               title={pinned ? '取消关注' : '价格异动提醒'}
             >
-              {pinned ? '★' : '☆'}
+              <PinIcon filled={pinned} size={14} />
             </button>
-            <button class="btn-icon" onClick={() => onEdit(metal.id)}>⋯</button>
+            <button class="btn-icon" onClick={() => onEdit(metal.id)} aria-label="编辑"><IconMoreHorizontal size={14} /></button>
           </div>
         </div>
-        <div class="metal-card-error-body">⚠️ 数据获取失败</div>
+        <div class="metal-card-error-body"><IconAlert size={14} /> 数据获取失败</div>
         <div class="metal-card-error-meta">
           上次成功: {quoteCache.value.fetchedAt
             ? formatTime(quoteCache.value.fetchedAt)
@@ -112,9 +113,9 @@ export function MetalCard({ metal, onEdit }) {
               onClick={togglePin}
               title={pinned ? '取消关注' : '价格异动提醒'}
             >
-              {pinned ? '★' : '☆'}
+              <PinIcon filled={pinned} size={14} />
             </button>
-            <button class="btn-icon" onClick={() => onEdit(metal.id)}>⋯</button>
+            <button class="btn-icon" onClick={() => onEdit(metal.id)} aria-label="编辑"><IconMoreHorizontal size={14} /></button>
           </div>
         </div>
         <div class="metal-card-loading">加载中...</div>
@@ -140,9 +141,9 @@ export function MetalCard({ metal, onEdit }) {
             title={pinned ? '取消关注' : '价格异动提醒'}
             aria-label={pinned ? '取消关注' : '加入关注列表'}
           >
-            {pinned ? '★' : '☆'}
+            <PinIcon filled={pinned} size={14} />
           </button>
-          <button class="btn-icon" onClick={() => onEdit(metal.id)} title="编辑持仓">⋯</button>
+          <button class="btn-icon" onClick={() => onEdit(metal.id)} title="编辑持仓" aria-label="编辑持仓"><IconMoreHorizontal size={14} /></button>
         </div>
       </div>
 

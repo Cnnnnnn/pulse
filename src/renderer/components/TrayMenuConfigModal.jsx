@@ -17,12 +17,12 @@ import { useState, useEffect } from "preact/hooks";
 import { trayConfigOpen, closeTrayConfig, applyTrayPrefsFromMain } from "../trayConfigStore.js";
 import { TRAY_SEGMENTS } from "@main/tray-menu-prefs.js";
 import { showToast } from "../store.js";
+import { ModalShell } from "./ModalShell.jsx";
 
 const SEGMENT_LABELS = TRAY_SEGMENTS;
 
 export function TrayMenuConfigModal() {
-  if (!trayConfigOpen.value) return null;
-
+  const open = trayConfigOpen.value;
   const [phase, setPhase] = useState("loading"); // "loading" | "ready" | "error"
   const [original, setOriginal] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -105,14 +105,17 @@ export function TrayMenuConfigModal() {
     handleCancel();
   }
 
+  if (!open) return null;
+
   return (
-    <div class="modal-backdrop tray-config-backdrop" onClick={handleBackdrop}>
-      <div class="modal-card tray-config-modal" onClick={(e) => e.stopPropagation()}>
-        <div class="modal-header">
-          <h2>菜单栏配置</h2>
-          <button class="btn-close" onClick={handleCancel} title="关闭" aria-label="关闭">×</button>
-        </div>
-        <div class="modal-body">
+    <ModalShell
+      open={open}
+      onClose={handleCancel}
+      onBackdropClick={handleBackdrop}
+      title="菜单栏配置"
+      cardClass="tray-config-modal"
+      backdropClass="modal-backdrop tray-config-backdrop"
+    >
           {phase === "loading" && (
             <div class="tray-config-modal-loading">加载中...</div>
           )}
@@ -161,8 +164,6 @@ export function TrayMenuConfigModal() {
               </div>
             </>
           )}
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

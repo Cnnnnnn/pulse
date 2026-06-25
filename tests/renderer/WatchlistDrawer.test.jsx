@@ -132,21 +132,21 @@ describe("WatchlistDrawer", () => {
 });
 
 describe("Header btn-watchlist", () => {
-  it("空 list 显示 ☆", () => {
+  it("空 list 显示关注图标", () => {
     watchlistItems.value = [];
     const { container } = render(<Header onCheck={() => {}} />);
     const btn = container.querySelector("#btn-watchlist");
     expect(btn).not.toBeNull();
-    expect(btn.textContent).toBe("☆");
+    expect(btn.querySelector("svg")).not.toBeNull();
   });
 
-  it("非空 list 显示 ★", () => {
+  it("非空 list 显示实心关注图标", () => {
     watchlistItems.value = [
       { type: "app", ref: "A", addedAt: 1, lastNotifiedVersion: null },
     ];
     const { container } = render(<Header onCheck={() => {}} />);
     const btn = container.querySelector("#btn-watchlist");
-    expect(btn.textContent).toBe("★");
+    expect(btn.querySelector("svg")).not.toBeNull();
     expect(btn.getAttribute("title")).toContain("1");
   });
 

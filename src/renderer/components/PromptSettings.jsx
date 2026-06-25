@@ -13,6 +13,7 @@ import {
 } from "../store/prompt-store.js";
 import { showToast } from "../store.js";
 import { api } from "../api.js";
+import { PromptSectionIcon } from "./icons.jsx";
 
 export function PromptSettings() {
   const prompts = aiPrompts.value;
@@ -157,7 +158,7 @@ export function PromptSettings() {
           type="button"
           class="btn btn-ghost btn-sm prompt-settings-export-feedback"
           onClick={exportFeedback}
-          title="导出 👍/👎 反馈样本为 JSON, 可作为 few-shot 调优的数据源"
+          title="导出 IconThumbsUp/IconThumbsDown 反馈样本为 JSON, 可作为 few-shot 调优的数据源"
         >
           导出 AI 反馈样本{feedbackCount != null ? ` (${feedbackCount})` : ""}
         </button>
@@ -197,7 +198,9 @@ export function PromptSettings() {
       {Object.keys(prompts).map((key) => (
         <div class="prompt-settings-item" key={key}>
           <div class="prompt-settings-item-head">
-            <span class="prompt-settings-item-label">{promptLabel(key)}</span>
+            <span class="prompt-settings-item-label">
+              <PromptSectionIcon promptKey={key} size={14} /> {promptLabel(key)}
+            </span>
             {prompts[key].isDefault && (
               <span class="prompt-settings-default-tag">默认</span>
             )}

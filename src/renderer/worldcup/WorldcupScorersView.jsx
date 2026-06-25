@@ -9,6 +9,7 @@ import {
   buildScorersLeaderboard,
   filterScorersLeaderboard,
 } from './scorers-leaderboard.js';
+import { TeamFlag } from '../components/icons.jsx';
 
 export function WorldcupScorersView({ search = '' }) {
   const matches = worldcupMatches.value?.matches || [];
@@ -59,7 +60,7 @@ export function WorldcupScorersView({ search = '' }) {
               )}
             </span>
             <span class="worldcup-scorers-col-team" role="cell">
-              {r.flag && <span class="worldcup-scorers-team-flag">{r.flag}</span>}
+              {r.flag && <span class="worldcup-scorers-team-flag"><TeamFlag code={r.flag} size={12} /></span>}
               <span>{r.teamCn}</span>
             </span>
             <span class="worldcup-scorers-col-goals" role="cell">

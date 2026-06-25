@@ -38,6 +38,7 @@ import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
 import { todayKey } from "../../ai-usage/history-series.js";
 import { UsageSparkline } from "./UsageSparkline.jsx";
 import { taggedLog } from "../log.js";
+import { IconBell } from "./icons.jsx";
 
 const log = taggedLog("[ai-usage]");
 
@@ -314,7 +315,7 @@ function ProviderUsageView({ provider }) {
             title="用量异常提醒"
             aria-label="用量异常提醒"
           >
-            🔔
+            <IconBell size={16} />
           </button>
           <button
             class="ai-usage-refresh-btn"

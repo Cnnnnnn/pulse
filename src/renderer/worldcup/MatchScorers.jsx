@@ -5,6 +5,7 @@
  */
 
 import { displayTeam } from './teams-data.js';
+import { TeamFlag, IconFootball } from '../components/icons.jsx';
 import { resolvePlayerCnByName } from './player-cn.js';
 
 function formatScorer(s) {
@@ -31,7 +32,7 @@ export function MatchScorers({ scorers, team1, team2, compact = false }) {
       <div class="match-scorers match-scorers--compact">
         {scorers.map((s, i) => (
           <span key={`${s.minute}-${s.player}-${i}`} class="match-scorer-chip">
-            ⚽ {formatScorer(s)}
+            <IconFootball size={12} /> {formatScorer(s)}
           </span>
         ))}
       </div>
@@ -43,7 +44,7 @@ export function MatchScorers({ scorers, team1, team2, compact = false }) {
       {t1Scorers.length > 0 && (
         <div class="match-scorers-side">
           <span class="match-scorers-team">
-            {t1.flag} {t1.cn}
+            <TeamFlag code={t1.flag} size={12} /> {t1.cn}
           </span>
           <ul class="match-scorers-list">
             {t1Scorers.map((s, i) => (
@@ -55,7 +56,7 @@ export function MatchScorers({ scorers, team1, team2, compact = false }) {
       {t2Scorers.length > 0 && (
         <div class="match-scorers-side">
           <span class="match-scorers-team">
-            {t2.flag} {t2.cn}
+            <TeamFlag code={t2.flag} size={12} /> {t2.cn}
           </span>
           <ul class="match-scorers-list">
             {t2Scorers.map((s, i) => (

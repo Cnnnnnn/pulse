@@ -21,6 +21,13 @@
  */
 
 import { useEffect, useRef, useState } from "preact/hooks";
+import { Badge } from "./Badge.jsx";
+import {
+  NavIcon,
+  IconChevronDown,
+  IconChevronUp,
+  IconTrash,
+} from "./icons.jsx";
 
 export function SideNavItem({
   item,
@@ -152,11 +159,11 @@ export function SideNavItem({
         title={collapsed ? item.tooltip : ""}
         aria-label={item.label}
       >
-        <span class="side-nav-icon">{item.icon}</span>
+        <span class="side-nav-icon" aria-hidden="true"><NavIcon navKey={item.key} size={18} /></span>
         {badge > 0 && (
-          <span class="side-nav-badge" aria-label={`${badge} 条未读`}>
+          <Badge type="sidenav" ariaLabel={`${badge} 条未读`}>
             {badge}
-          </span>
+          </Badge>
         )}
         {!collapsed && <span class="side-nav-label">{item.label}</span>}
       </button>
@@ -165,15 +172,17 @@ export function SideNavItem({
         class="sidenav-context-menu"
         aria-label={`${item.label} 操作`}
       >
-        <div class="sidenav-context-menu__title">{item.icon} {item.label}</div>
+        <div class="sidenav-context-menu__title">
+          <NavIcon navKey={item.key} size={16} /> {item.label}
+        </div>
         <button type="button" class="sidenav-context-menu__btn" onClick={handleMoveTop}>
-          ⬆ 移到顶部
+          <IconChevronUp size={14} /> 移到顶部
         </button>
         <button type="button" class="sidenav-context-menu__btn" onClick={handleMoveBottom}>
-          ⬇ 移到底部
+          <IconChevronDown size={14} /> 移到底部
         </button>
         <button type="button" class="sidenav-context-menu__btn sidenav-context-menu__btn--danger" onClick={handleHide}>
-          🗑 隐藏
+          <IconTrash size={14} /> 隐藏
         </button>
         <button type="button" class="sidenav-context-menu__btn sidenav-context-menu__btn--cancel" onClick={closeMenu}>
           取消

@@ -5,7 +5,7 @@
  *
  * 2 nav item:
  *   - 🏆 世界杯
- *   - 🔄 版本检查
+ *   - IconRefresh 版本检查
  *
  * 顶部 ☰ 汉堡切换折叠
  * store.activeNav (signal) 驱动 WorldcupView / ResultsView 切换
@@ -13,7 +13,7 @@
  *
  * 跟 v2.6 主体 0 共享 nav state (除汉堡自己用)
  *
- * v2.24.2 顶部加 ↻ 全局刷新按钮 (折叠时仍显示为图标),
+ * v2.24.2 顶部加 IconRefresh 全局刷新按钮 (折叠时仍显示为图标),
  *   按 activeNav 派发到 nav-refresh.js registry.
  */
 
@@ -44,6 +44,7 @@ import {
 } from './sidenav-prefs.js';
 import { SideNavItem } from './SideNavItem.jsx';
 import { HiddenItemsDrawer } from './HiddenItemsDrawer.jsx';
+import { IconBot, IconChevronDown, IconMenu, IconRefresh } from './icons.jsx';
 
 // Phase v1: 4 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).
 // nav key → prefs segment key. 不在 map 里的 nav 始终显示 (spec 明确不动).
@@ -55,13 +56,13 @@ const NAV_TO_PREFS_SEGMENT = {
 };
 
 const NAV_ITEMS = [
-  { key: 'ithome',    icon: '📰', label: 'IT 新闻', tooltip: 'IT之家资讯 + AI 摘要' },
-  { key: 'wechat-hot',icon: '🔥', label: '微博热搜', tooltip: '微博实时热搜 · 手动刷新' },
-  { key: 'worldcup',  icon: '🏆', label: '世界杯', tooltip: '2026 世界杯赛程' },
-  { key: 'funds',     icon: '💰', label: '基金管理', tooltip: '基金持仓 + 实时盈亏 (v2.10+)' },
-  { key: 'metals',    icon: '🥇', label: '贵金属', tooltip: '黄金白银实时价格 + 持仓盈亏' },
-  { key: 'ai-usage',  icon: '📊', label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
-  { key: 'versions',  icon: '🔄', label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
+  { key: 'ithome',    label: 'IT 新闻', tooltip: 'IT之家资讯 + AI 摘要' },
+  { key: 'wechat-hot',label: '微博热搜', tooltip: '微博实时热搜 · 手动刷新' },
+  { key: 'worldcup',  label: '世界杯', tooltip: '2026 世界杯赛程' },
+  { key: 'funds',     label: '基金管理', tooltip: '基金持仓 + 实时盈亏 (v2.10+)' },
+  { key: 'metals',    label: '贵金属', tooltip: '黄金白银实时价格 + 持仓盈亏' },
+  { key: 'ai-usage',  label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
+  { key: 'versions',  label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
 ];
 
 export function SideNav() {
@@ -151,7 +152,7 @@ export function SideNav() {
               title="刷新当前栏目"
               aria-label="刷新当前栏目"
             >
-              <span aria-hidden="true">↻</span>
+              <IconRefresh size={16} />
             </button>
           )}
           <button
@@ -160,7 +161,7 @@ export function SideNav() {
             title={collapsed ? '展开' : '折叠'}
             aria-label={collapsed ? '展开' : '折叠'}
           >
-            ☰
+            <IconMenu size={16} />
           </button>
         </div>
       </div>
@@ -204,7 +205,7 @@ export function SideNav() {
           title={collapsed ? 'Pulse 共享 AI 配置' : ''}
           aria-label="Pulse 共享 AI 配置"
         >
-          <span class="side-nav-icon">🤖</span>
+          <span class="side-nav-icon" aria-hidden="true"><IconBot size={18} /></span>
           {!collapsed && <span class="side-nav-label">AI 配置</span>}
           {aiNeedsSetup && <span class="side-nav-setup-dot" aria-hidden="true" />}
         </button>
@@ -215,7 +216,7 @@ export function SideNav() {
             onClick={() => setHiddenDrawerOpen(true)}
             data-testid="side-nav-hidden-toggle"
           >
-            <span class="side-nav-icon" aria-hidden="true">▾</span>
+            <span class="side-nav-icon" aria-hidden="true"><IconChevronDown size={14} /></span>
             <span class="side-nav-label">已隐藏 ({hiddenNavItems.length})</span>
           </button>
         )}

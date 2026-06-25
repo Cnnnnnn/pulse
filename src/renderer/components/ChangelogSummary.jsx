@@ -6,6 +6,7 @@
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
 import { humanizeAiError } from "../../ai/ai-errors.js";
+import { IconSparkles, IconRefresh, IconThumbsUp, IconThumbsDown } from "./icons.jsx";
 
 function ageLabel(generatedAt) {
   if (typeof generatedAt !== "number") return "";
@@ -76,7 +77,7 @@ export function ChangelogSummary({ appName }) {
         onClick={(e) => { e.stopPropagation(); fetchSummary(false); }}
         title="AI 提炼本版最重要的 3 件事"
       >
-        ✨ 3 件大事
+        <IconSparkles size={14} /> 3 件大事
       </button>
     );
   }
@@ -88,7 +89,7 @@ export function ChangelogSummary({ appName }) {
         <div class="changelog-summary-skel changelog-summary-skel--line" />
         <div class="changelog-summary-skel changelog-summary-skel--line" />
         <div class="changelog-summary-skel changelog-summary-skel--line" />
-        <div class="changelog-summary-loading-label">✨ AI 提炼中 · 通常 5–15s</div>
+        <div class="changelog-summary-loading-label"><IconSparkles size={14} /> AI 提炼中 · 通常 5–15s</div>
       </div>
     );
   }
@@ -116,7 +117,7 @@ export function ChangelogSummary({ appName }) {
 
   return (
     <div class="changelog-summary" onClick={(e) => e.stopPropagation()}>
-      <div class="changelog-summary-label">✨ 本版要点</div>
+      <div class="changelog-summary-label"><IconSparkles size={14} /> 本版要点</div>
       {summary.oneLiner && (
         <div class="changelog-summary-oneliner">{clampText(summary.oneLiner, 60)}</div>
       )}
@@ -138,7 +139,7 @@ export function ChangelogSummary({ appName }) {
           onClick={(e) => { e.stopPropagation(); sendVote("up"); }}
           title="有用"
           disabled={!!vote}
-        >👍</button>
+        ><IconThumbsUp size={14} /></button>
         <button
           type="button"
           class={`changelog-summary-feedback-btn ${vote === "down" ? "is-active" : ""}`}
@@ -146,7 +147,7 @@ export function ChangelogSummary({ appName }) {
           onClick={(e) => { e.stopPropagation(); sendVote("down"); }}
           title="没用"
           disabled={!!vote}
-        >👎</button>
+        ><IconThumbsDown size={14} /></button>
       </span>
     </div>
   );

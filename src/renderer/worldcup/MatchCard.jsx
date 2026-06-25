@@ -6,7 +6,7 @@
  * 形态 (重排):
  *   - 顶 row: [阶段] [组别] (居中 tag)
  *   - 中 row: [flag] 队1中文名   对 / 比分   队2中文名 [flag]
- *   - 底 row: 🕒 北京时间 · 场址
+ *   - 底 row: IconClock 北京时间 · 场址
  *   - 整 card 可点 → 弹 SquadModal
  *
  * 中文: 队名走 lookupTeam(team).cn, 组别走 `${groupCn}组`, 阶段走 stageMap
@@ -14,10 +14,12 @@
 
 import { memo } from 'preact/compat';
 import { displayTeam } from './teams-data.js';
+import { TeamFlag } from '../components/icons.jsx';
 import { toBeijingTime } from './timeUtils.js';
 import MatchScorers from './MatchScorers.jsx';
 import MatchCardAi from './MatchCardAi.jsx';
 import { matchKey as computeMatchKey } from '../../utils/match-key.js';
+import { IconClock } from '../components/icons.jsx';
 
 // TXT 阶段 → 中文
 const STAGE_CN = {
@@ -42,7 +44,7 @@ function teamNameCn(name) {
   return displayTeam(name).cn;
 }
 
-function teamFlag(name) {
+function teamFlagCode(name) {
   return displayTeam(name).flag;
 }
 
@@ -52,7 +54,11 @@ function formatBjDisplay(bj, matchDate) {
   const dateLabel = crossDay
     ? `${bj.date.slice(5).replace('-', '月')}日 `
     : '';
-  return `🕒 ${dateLabel}${bj.time} 北京时间 (原 ${bj.originalTime})`;
+  return (
+    <>
+      <IconClock size={12} /> {dateLabel}{bj.time} 北京时间 (原 {bj.originalTime})
+    </>
+  );
 }
 
 function MatchCard({ match, onClick }) {
@@ -96,7 +102,7 @@ function MatchCard({ match, onClick }) {
       </div>
       <div class="match-card-row">
         <div class="match-team match-team-left" title={team1}>
-          <span class="match-team-flag">{teamFlag(team1)}</span>
+          <span class="match-team-flag"><TeamFlag code={teamFlagCode(team1)} size={16} /></span>
           <span class="match-team-name">{teamNameCn(team1)}</span>
         </div>
         {hasScore ? (
@@ -110,7 +116,7 @@ function MatchCard({ match, onClick }) {
         )}
         <div class="match-team match-team-right" title={team2}>
           <span class="match-team-name">{teamNameCn(team2)}</span>
-          <span class="match-team-flag">{teamFlag(team2)}</span>
+          <span class="match-team-flag"><TeamFlag code={teamFlagCode(team2)} size={16} /></span>
         </div>
       </div>
       {hasScore && score.scorers && score.scorers.length > 0 && (

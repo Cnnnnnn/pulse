@@ -14,6 +14,8 @@ import {
 import { SearchSourceBar } from './SearchSourceBar.jsx';
 import { SearchResultList } from './SearchResultList.jsx';
 import { navigateToResult } from './search-nav.js';
+import { ModalShell } from '../components/ModalShell.jsx';
+import { IconSearch } from '../components/icons.jsx';
 
 export function SearchModal() {
   const inputRef = useRef(null);
@@ -25,14 +27,7 @@ export function SearchModal() {
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  const onKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      closeSearch();
-      return;
-    }
+  function onCardKeyDown(e) {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       moveSearchSelection(1);
@@ -47,33 +42,38 @@ export function SearchModal() {
       e.preventDefault();
       const r = searchResults.value[searchSelectedIndex.value];
       if (r) navigateToResult(r);
-      return;
     }
-  };
+  }
 
   return (
-    <div class="search-modal-overlay" onClick={closeSearch}>
-      <div
-        class="search-modal"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={onKeyDown}
-      >
-        <div class="search-modal-input-wrap">
-          <span class="search-modal-icon">🔍</span>
-          <input
-            ref={inputRef}
-            class="search-modal-input"
-            placeholder="搜索新闻、AI 任务、提醒..."
-            value={searchQuery.value}
-            onInput={(e) => setSearchQuery(e.target.value)}
-          />
-          <span class="search-modal-esc">Esc</span>
-        </div>
-        <div class="search-modal-body">
-          <SearchSourceBar />
-          <SearchResultList onSelect={navigateToResult} />
-        </div>
+    <ModalShell
+      open={isOpen}
+      onClose={closeSearch}
+      layout="bare"
+      backdropClass="search-modal-overlay"
+      cardClass="search-modal"
+      useModalCardClass={false}
+      onCardKeyDown={onCardKeyDown}
+      ariaLabel="搜索"
+      usePortal
+    >
+      <div class="search-modal-input-wrap">
+        <span class="search-modal-icon" aria-hidden="true">
+          <IconSearch size={16} />
+        </span>
+        <input
+          ref={inputRef}
+          class="search-modal-input"
+          placeholder="搜索新闻、AI 任务、提醒..."
+          value={searchQuery.value}
+          onInput={(e) => setSearchQuery(e.target.value)}
+        />
+        <span class="search-modal-esc">Esc</span>
       </div>
-    </div>
+      <div class="search-modal-body">
+        <SearchSourceBar />
+        <SearchResultList onSelect={navigateToResult} />
+      </div>
+    </ModalShell>
   );
 }

@@ -5,6 +5,7 @@
  * 4 presets + cancel if currently snoozed.
  */
 import { api } from '../api.js';
+import { IconClock, IconSun, IconCalendar, IconBan } from './icons.jsx';
 
 function fmtTs(ms) {
   if (!ms) return '';
@@ -55,13 +56,13 @@ export function SnoozeMenu({ name, latestVersion = null, snoozeUntil = null, ski
     <div class="snooze-menu" role="menu" style={style}>
       <div class="snooze-menu__title">等下次再升</div>
       <button class="snooze-menu__item" role="menuitem" onClick={() => handlePick('tonight')}>
-        ⏰ 今晚 ({fmtTs(presetLocalTime('tonight'))})
+        <IconClock size={14} /> 今晚 ({fmtTs(presetLocalTime('tonight'))})
       </button>
       <button class="snooze-menu__item" role="menuitem" onClick={() => handlePick('tomorrow')}>
-        ☀️ 明早 9:00 ({fmtTs(presetLocalTime('tomorrow'))})
+        <IconSun size={14} /> 明早 9:00 ({fmtTs(presetLocalTime('tomorrow'))})
       </button>
       <button class="snooze-menu__item" role="menuitem" onClick={() => handlePick('weekend')}>
-        📅 本周六 10:00
+        <IconCalendar size={14} /> 本周六 10:00
       </button>
       <button
         class="snooze-menu__item"
@@ -69,7 +70,7 @@ export function SnoozeMenu({ name, latestVersion = null, snoozeUntil = null, ski
         onClick={() => handlePick('skip-version')}
         disabled={!latestVersion}
       >
-        ⊘ 跳过此版本 {latestVersion ? `(${latestVersion})` : ''}
+        <IconBan size={14} /> 跳过此版本 {latestVersion ? `(${latestVersion})` : ''}
       </button>
       {isSnoozed && (
         <>

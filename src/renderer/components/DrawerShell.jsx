@@ -1,28 +1,40 @@
 /**
  * DrawerShell — overlay + fixed aside + header (title / ×) + body (+ optional slots).
- * ponytail: 只封装 ESC / 遮罩点击 / 关闭按钮; 各 drawer 保留自己的 BEM class 以复用现有 CSS.
  */
-import { useEffect } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 
 export function DrawerShell({
   open,
   onClose,
+  onEscape,
   title,
   titleExtra = null,
+  header = null,
+  headerActions = null,
   overlayClass,
   drawerClass,
+  drawerExtraClass = '',
   showOverlay = true,
   role = 'complementary',
   ariaLabel,
   beforeBody = null,
   footer = null,
+  bodyClass,
   children,
 }) {
+  const onEscapeRef = useRef(onEscape);
+  onEscapeRef.current = onEscape;
+
   useEffect(() => {
     if (!open) return;
     function onKey(e) {
       if (e.key === 'Escape') {
         e.preventDefault();
+        const esc = onEscapeRef.current;
+        if (esc) {
+          const block = esc(e);
+          if (block === false) return;
+        }
         onClose();
       }
     }
@@ -31,6 +43,9 @@ export function DrawerShell({
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const drawerCls = `${drawerClass}${drawerExtraClass ? ` ${drawerExtraClass}` : ''}`;
+  const bodyCls = bodyClass || `${drawerClass}__body`;
 
   return (
     <>
@@ -41,21 +56,24 @@ export function DrawerShell({
           aria-hidden="true"
         />
       ) : null}
-      <aside class={drawerClass} role={role} aria-label={ariaLabel}>
-        <header class={`${drawerClass}__header`}>
-          <span class={`${drawerClass}__title`}>{title}</span>
-          {titleExtra}
-          <button
-            type="button"
-            class={`${drawerClass}__close`}
-            onClick={onClose}
-            aria-label="关闭"
-          >
-            ×
-          </button>
-        </header>
+      <aside class={drawerCls} role={role} aria-label={ariaLabel || title}>
+        {header || (
+          <header class={`${drawerClass}__header`}>
+            <span class={`${drawerClass}__title`}>{title}</span>
+            {titleExtra}
+            {headerActions}
+            <button
+              type="button"
+              class={`${drawerClass}__close`}
+              onClick={onClose}
+              aria-label="关闭"
+            >
+              ×
+            </button>
+          </header>
+        )}
         {beforeBody}
-        <div class={`${drawerClass}__body`}>{children}</div>
+        <div class={bodyCls}>{children}</div>
         {footer}
       </aside>
     </>

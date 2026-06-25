@@ -7,6 +7,7 @@
 
 import { useMemo } from 'preact/hooks';
 import { computeWeeklyStats } from '../weekly-stats.js';
+import { IconBarChart } from './icons.jsx';
 
 function fmtRel(ts) {
   if (!ts) return '';
@@ -36,7 +37,7 @@ export function WeeklyBanner({ state }) {
 
   return (
     <div class="weekly-banner">
-      <span class="weekly-banner-icon">📊</span>
+      <span class="weekly-banner-icon" aria-hidden="true"><IconBarChart size={18} /></span>
       <span class="weekly-banner-text">
         <strong>本周</strong> 有 <strong>{upgrades}</strong> 次版本变化
         {apps.length > 0 && <>（{appList}{more}）</>}

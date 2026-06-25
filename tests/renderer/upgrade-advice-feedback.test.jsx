@@ -26,7 +26,7 @@ describe("UpgradeAdvice 反馈按钮", () => {
     vi.restoreAllMocks();
   });
 
-  it("结果态显示 👍 / 👎 两个按钮", async () => {
+  it("结果态显示 IconThumbsUp / IconThumbsDown 两个按钮", async () => {
     const { container } = render(<UpgradeAdvice appName="VSCode" hasUpdate />);
     fireEvent.click(container.querySelector(".upgrade-advice-trigger"));
     await waitFor(() => {
@@ -36,7 +36,7 @@ describe("UpgradeAdvice 反馈按钮", () => {
     expect(container.querySelector('[aria-label="feedback-down"]')).toBeTruthy();
   });
 
-  it("点 👍 调用 feedbackRecord 带 feature=advice + 当前 advice 字段", async () => {
+  it("点 IconThumbsUp 调用 feedbackRecord 带 feature=advice + 当前 advice 字段", async () => {
     const { container } = render(<UpgradeAdvice appName="VSCode" hasUpdate />);
     fireEvent.click(container.querySelector(".upgrade-advice-trigger"));
     await waitFor(() => {
@@ -77,7 +77,7 @@ describe("UpgradeAdvice 反馈按钮", () => {
     expect(api.feedbackRecord.mock.calls[0][0].vote).toBe("down");
   });
 
-  it("force 刷新(↻)记录一条 implicit=refreshed 隐式信号", async () => {
+  it("force 刷新记录一条 implicit=refreshed 隐式信号", async () => {
     const { container } = render(<UpgradeAdvice appName="VSCode" hasUpdate />);
     // 先拉一次出结果
     fireEvent.click(container.querySelector(".upgrade-advice-trigger"));
@@ -86,7 +86,7 @@ describe("UpgradeAdvice 反馈按钮", () => {
     });
     // 清掉前面 fetch 不该记的调用
     api.feedbackRecord.mockClear();
-    // 点 ↻ force 重生成
+    // 点 refresh force 重生成
     fireEvent.click(container.querySelector(".upgrade-advice-refresh"));
     await waitFor(() => {
       const refreshedCall = api.feedbackRecord.mock.calls.find(

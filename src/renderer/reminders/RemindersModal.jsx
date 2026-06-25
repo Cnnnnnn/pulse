@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect, useRef, useMemo } from "preact/hooks";
-import { createPortal } from "preact/compat";
 import {
   reminders,
   remindersOpen,
@@ -23,6 +22,10 @@ import {
   toggleRemindersOpen,
 } from "./remindersStore.js";
 import { openConfirm } from "../confirmStore.js";
+import { Badge } from "../components/Badge.jsx";
+import { ModalShell, ModalHeader } from "../components/ModalShell.jsx";
+import { PanelEmpty } from "../components/EmptyState.jsx";
+import { IconBell } from "../components/icons.jsx";
 
 const REPEATS = [
   { id: "once", label: "一次" },
@@ -344,153 +347,141 @@ export function RemindersModal() {
     if (!open) setEditing(null);
   }, [open]);
 
-  // Esc 关 modal (form 自己的 Esc 在 form 内部处理)
-  function onBackdropKey(e) {
-    if (!open) return;
-    if (editing) return; // form 内部已处理
-    if (e.key === "Escape") {
-      e.preventDefault();
-      remindersOpen.value = false;
-    }
+  function close() {
+    remindersOpen.value = false;
   }
-  useEffect(() => {
-    if (!open) return;
-    window.addEventListener("keydown", onBackdropKey);
-    return () => window.removeEventListener("keydown", onBackdropKey);
-  }, [open, editing]);
 
-  if (!open) return null;
-
-  const modal = (
-    <div
-      class="modal-backdrop reminder-modal-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) remindersOpen.value = false;
-      }}
-    >
-      <div
-        class="modal-card reminder-modal"
-        role="dialog"
-        aria-label="提醒"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header class="reminder-modal-header">
-          <h2>
-            <span class="reminder-icon" aria-hidden="true">⏰</span>
-            提醒
-            <span class="reminder-modal-sub">
-              {fired.length > 0 && (
-                <span class="reminder-fired-pill">{fired.length} 待打卡</span>
-              )}
-              {pending.length > 0 && (
-                <span class="reminder-pending-pill">{pending.length} 待办</span>
-              )}
-            </span>
-          </h2>
-          <div class="reminder-modal-header-actions">
-            {editing !== "new" && (
-              <button
-                class="btn btn-primary btn-sm"
-                onClick={() => setEditing("new")}
-              >
-                + 新建
-              </button>
-            )}
-            <button
-              class="btn btn-ghost btn-sm"
-              onClick={() => (remindersOpen.value = false)}
-              aria-label="关闭"
-            >
-              ✕
-            </button>
-          </div>
-        </header>
-
-        {editing === "new" && (
-          <ReminderForm
-            onSave={() => setEditing(null)}
-            onCancel={() => setEditing(null)}
-          />
+  const header = (
+    <ModalHeader className="reminder-modal-header">
+      <h2>
+        <span class="reminder-icon" aria-hidden="true"><IconBell size={18} /></span>
+        提醒
+        <span class="reminder-modal-sub">
+          {fired.length > 0 && (
+            <span class="reminder-fired-pill">{fired.length} 待打卡</span>
+          )}
+          {pending.length > 0 && (
+            <span class="reminder-pending-pill">{pending.length} 待办</span>
+          )}
+        </span>
+      </h2>
+      <div class="reminder-modal-header-actions">
+        {editing !== "new" && (
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            onClick={() => setEditing("new")}
+          >
+            + 新建
+          </button>
         )}
-        {editing && editing !== "new" && (
-          <ReminderForm
-            initial={editing}
-            onSave={() => setEditing(null)}
-            onCancel={() => setEditing(null)}
-            onDelete={(id) => {
-              removeReminder(id);
-              setEditing(null);
-            }}
-          />
-        )}
-
-        {!editing && (
-          <div class="reminder-modal-body">
-            {!loaded && <div class="reminder-empty">加载中...</div>}
-            {loaded && list.length === 0 && (
-              <div class="reminder-empty">
-                <div class="reminder-empty-title">还没有提醒</div>
-                <div class="reminder-empty-hint">
-                  点右上 "+ 新建" 加一个. ⌘⇧R 一键打开新建.
-                </div>
-              </div>
-            )}
-            {loaded && fired.length > 0 && (
-              <section class="reminder-section">
-                <h3 class="reminder-section-title">已触发 (待打卡)</h3>
-                {fired.map((r) => (
-                  <ReminderRow
-                    key={r.id}
-                    r={r}
-                    now={now}
-                    onEdit={() => setEditing(r)}
-                  />
-                ))}
-              </section>
-            )}
-            {loaded && pending.length > 0 && (
-              <section class="reminder-section">
-                <h3 class="reminder-section-title">待办</h3>
-                {pending.map((r) => (
-                  <ReminderRow
-                    key={r.id}
-                    r={r}
-                    now={now}
-                    onEdit={() => setEditing(r)}
-                  />
-                ))}
-              </section>
-            )}
-            {loaded && dismissed.length > 0 && (
-              <section class="reminder-section reminder-section-dismissed">
-                <h3 class="reminder-section-title">已忽略 ({dismissed.length})</h3>
-                {dismissed.slice(0, 5).map((r) => (
-                  <ReminderRow
-                    key={r.id}
-                    r={r}
-                    now={now}
-                    onEdit={() => setEditing(r)}
-                  />
-                ))}
-                {dismissed.length > 5 && (
-                  <div class="reminder-section-more">
-                    还有 {dismissed.length - 5} 条已忽略
-                  </div>
-                )}
-              </section>
-            )}
-            {loaded && nextDue.value && (
-              <footer class="reminder-modal-footer">
-                下一个: {nextDue.value.title} · {relTime(nextDue.value.triggerAt, now)}
-              </footer>
-            )}
-          </div>
-        )}
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          onClick={close}
+          aria-label="关闭"
+        >
+          ✕
+        </button>
       </div>
-    </div>
+    </ModalHeader>
   );
 
-  return createPortal(modal, document.body);
+  const formSlot = editing === "new" ? (
+    <ReminderForm
+      onSave={() => setEditing(null)}
+      onCancel={() => setEditing(null)}
+    />
+  ) : editing ? (
+    <ReminderForm
+      initial={editing}
+      onSave={() => setEditing(null)}
+      onCancel={() => setEditing(null)}
+      onDelete={(id) => {
+        removeReminder(id);
+        setEditing(null);
+      }}
+    />
+  ) : null;
+
+  return (
+    <ModalShell
+      open={open}
+      onClose={close}
+      onEscape={() => (editing ? false : undefined)}
+      usePortal
+      backdropClass="modal-backdrop reminder-modal-backdrop"
+      cardClass="reminder-modal"
+      ariaLabel="提醒"
+      header={header}
+      beforeBody={formSlot}
+      wrapBody={!editing}
+      bodyClass="reminder-modal-body"
+    >
+      {!editing ? (
+        <>
+      {!loaded && <PanelEmpty className="reminder-empty">加载中...</PanelEmpty>}
+      {loaded && list.length === 0 && (
+        <PanelEmpty className="reminder-empty">
+          <div class="reminder-empty-title">还没有提醒</div>
+          <div class="reminder-empty-hint">
+            点右上 "+ 新建" 加一个. ⌘⇧R 一键打开新建.
+          </div>
+        </PanelEmpty>
+      )}
+      {loaded && fired.length > 0 && (
+        <section class="reminder-section">
+          <h3 class="reminder-section-title">已触发 (待打卡)</h3>
+          {fired.map((r) => (
+            <ReminderRow
+              key={r.id}
+              r={r}
+              now={now}
+              onEdit={() => setEditing(r)}
+            />
+          ))}
+        </section>
+      )}
+      {loaded && pending.length > 0 && (
+        <section class="reminder-section">
+          <h3 class="reminder-section-title">待办</h3>
+          {pending.map((r) => (
+            <ReminderRow
+              key={r.id}
+              r={r}
+              now={now}
+              onEdit={() => setEditing(r)}
+            />
+          ))}
+        </section>
+      )}
+      {loaded && dismissed.length > 0 && (
+        <section class="reminder-section reminder-section-dismissed">
+          <h3 class="reminder-section-title">已忽略 ({dismissed.length})</h3>
+          {dismissed.slice(0, 5).map((r) => (
+            <ReminderRow
+              key={r.id}
+              r={r}
+              now={now}
+              onEdit={() => setEditing(r)}
+            />
+          ))}
+          {dismissed.length > 5 && (
+            <div class="reminder-section-more">
+              还有 {dismissed.length - 5} 条已忽略
+            </div>
+          )}
+        </section>
+      )}
+      {loaded && nextDue.value && (
+        <footer class="reminder-modal-footer">
+          下一个: {nextDue.value.title} · {relTime(nextDue.value.triggerAt, now)}
+        </footer>
+      )}
+        </>
+      ) : null}
+    </ModalShell>
+  );
 }
 
 /** 每分钟 tick 一次, 让相对时间保持新鲜 */
@@ -523,7 +514,7 @@ export function RemindersButton() {
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
       </svg>
-      {fired > 0 && <span class="reminder-badge">{fired}</span>}
+      {fired > 0 && <Badge type="reminder">{fired}</Badge>}
     </button>
   );
 }

@@ -3,12 +3,13 @@
  *
  * v2.9.1 — 世界杯 tab 独立顶部
  *
- * 品牌区: ⚽ Pulse · 世界杯 2026
+ * 品牌区: IconFootball Pulse · 世界杯 2026
  * 2 子 tab: [赛程] / [球队]
  * 搜索框: 按 队 / 场址 过滤 (id="worldcup-search-input", 跟 Cmd+F 切对齐)
  */
 
 import { useEffect, useRef } from 'preact/hooks';
+import { IconFootball, IconRefresh, WorldcupTabIcon } from '../components/icons.jsx';
 
 export function WorldcupHeader({
   subTab,
@@ -30,7 +31,9 @@ export function WorldcupHeader({
   return (
     <div class="worldcup-header">
       <div class="worldcup-header-brand">
-        <span class="worldcup-header-icon">⚽</span>
+        <span class="worldcup-header-icon" aria-hidden="true">
+          <IconFootball size={20} />
+        </span>
         <h2 class="worldcup-header-title">世界杯 2026</h2>
         <span class="worldcup-header-sub">美加墨 · 6/11 - 7/19 · 48 队 104 场</span>
         <button
@@ -41,7 +44,9 @@ export function WorldcupHeader({
           title="刷新比分"
           aria-label="刷新比分"
         >
-          <span class="worldcup-refresh-icon" aria-hidden="true">↻</span>
+          <span class="worldcup-refresh-icon" aria-hidden="true">
+            <IconRefresh size={18} />
+          </span>
         </button>
       </div>
       <div class="worldcup-header-controls">
@@ -52,7 +57,9 @@ export function WorldcupHeader({
               class={`worldcup-subtab${subTab === t.key ? ' worldcup-subtab-active' : ''}`}
               onClick={() => onSubTabChange(t.key)}
             >
-              <span class="worldcup-subtab-icon">{t.icon}</span>
+              <span class="worldcup-subtab-icon" aria-hidden="true">
+                <WorldcupTabIcon tabKey={t.key} />
+              </span>
               <span class="worldcup-subtab-label">{t.label}</span>
             </button>
           ))}

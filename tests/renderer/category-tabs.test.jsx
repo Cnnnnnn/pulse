@@ -136,12 +136,14 @@ describe('<CategoryTabs />', () => {
     expect(ai.getAttribute('title')).toBe('AI 工具');
   });
 
-  it('emoji + name + count 三个 span 都渲染', () => {
+  it('icon + name + count 三个 span 都渲染', () => {
     const { container } = render(
       <CategoryTabs tabs={SAMPLE_TABS} active="all" onSelect={() => {}} />
     );
     const first = container.querySelector('.category-tab');
-    expect(first.querySelector('.category-tab-icon')).not.toBeNull();
+    const icon = first.querySelector('.category-tab-icon');
+    expect(icon).not.toBeNull();
+    expect(icon.querySelector('svg')).not.toBeNull();
     expect(first.querySelector('.category-tab-name')).not.toBeNull();
     expect(first.querySelector('.category-tab-count')).not.toBeNull();
   });

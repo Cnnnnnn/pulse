@@ -22,6 +22,7 @@ import { renderChangelog } from '../changelog.js';
 import { showToast } from '../store.js';
 import { api } from '../api.js';
 import { openConfirm } from '../confirmStore.js';
+import { BareModalShell } from './ModalShell.jsx';
 import {
   releaseNotesOpen,
   releaseNotesEntryPath,
@@ -85,25 +86,6 @@ function WizardInner({ payload }) {
     handleClose(ok);
   }, [handleClose]);
 
-  // ESC / ← / → / Enter
-  useEffect(() => {
-    const onKey = (e) => {
-      if (!releaseNotesOpen.value) return;
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        handleClose();
-      } else if (e.key === 'ArrowRight') {
-        setPage((p) => Math.min(p + 1, totalPages - 1));
-      } else if (e.key === 'ArrowLeft') {
-        setPage((p) => Math.max(p - 1, 0));
-      } else if (e.key === 'Enter' && page === totalPages - 1) {
-        handleComplete();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [handleClose, handleComplete, totalPages, page]);
-
   // 每次重新打开 (version 变) → 重置 page 0 + 关闭 lock
   useEffect(() => {
     setPage(0);
@@ -113,6 +95,19 @@ function WizardInner({ payload }) {
   const isFirstPage = page === 0;
   const isLastPage = page === totalPages - 1;
   const currentSlide = !isFirstPage ? slidesArr[page - TOTAL_PAGE_OFFSET] : null;
+
+  function onCardKeyDown(e) {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setPage((p) => Math.min(p + 1, totalPages - 1));
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setPage((p) => Math.max(p - 1, 0));
+    } else if (e.key === 'Enter' && page === totalPages - 1) {
+      e.preventDefault();
+      handleComplete();
+    }
+  }
 
   // bodyHtml: compute per render (no useMemo, easier to reason about).
   // (ponytail: renderChangelog 内部 marked + DOMPurify 已经 cache-friendly;
@@ -129,18 +124,14 @@ function WizardInner({ payload }) {
   }
 
   return (
-    <div
-      class="release-notes-wizard-overlay"
-      onClick={() => handleClose(false)}
-      role="presentation"
+    <BareModalShell
+      open
+      onClose={() => handleClose(false)}
+      onCardKeyDown={onCardKeyDown}
+      overlayClass="release-notes-wizard-overlay"
+      cardClass="release-notes-wizard"
+      ariaLabelledBy="rnw-title"
     >
-      <div
-        class="release-notes-wizard"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="rnw-title"
-        onClick={(e) => e.stopPropagation()}
-      >
         <header class="release-notes-wizard-header">
           <h2 id="rnw-title" class="release-notes-wizard-title">
             {isFirstPage
@@ -206,7 +197,6 @@ function WizardInner({ payload }) {
             )}
           </div>
         </footer>
-      </div>
-    </div>
+    </BareModalShell>
   );
 }

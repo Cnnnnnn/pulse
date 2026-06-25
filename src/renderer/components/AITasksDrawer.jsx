@@ -33,9 +33,12 @@ import {
 } from '../store.js';
 import { aiTasksDrawerOpen, digestConfigMode } from '../digest/digest-store.js';
 import { api } from '../api.js';
-import { AIConfigForm } from './AISettingsModal.jsx';
 import { AISettingsScene } from './AISettingsScene.jsx';
 import { taggedLog } from '../log.js';
+import { Badge, TaskStatusBadge } from './Badge.jsx';
+import { TabList, Tab } from './TabList.jsx';
+import { DrawerEmpty } from './EmptyState.jsx';
+import { DrawerShell } from './DrawerShell.jsx';
 
 const log = taggedLog("[tasks]");
 
@@ -132,8 +135,8 @@ export function AITasksButton() {
         <rect x="3" y="4" width="18" height="18" rx="2" />
         <path d="M16 2v4M8 2v4M3 10h18" />
       </svg>
-      {count > 0 && <span class="digest-badge">{count}</span>}
-      {!enabled && count === 0 && <span class="digest-badge setup-badge" aria-hidden="true">·</span>}
+      {count > 0 && <Badge type="digest">{count}</Badge>}
+      {!enabled && count === 0 && <Badge type="setup">·</Badge>}
     </button>
   );
 }
@@ -162,18 +165,16 @@ export function AITasksDrawer() {
     setConfigTab('connection');
   }
 
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        if (configMode) closeConfig();
-        else openDigestDrawer(false);
-      }
+  function closeDrawer() {
+    openDigestDrawer(false);
+  }
+
+  function onEscapeKey() {
+    if (configMode) {
+      closeConfig();
+      return false;
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, configMode]);
+  }
 
   // 打开抽屉 / 切日期 → 刷新当前日期的任务列表
   useEffect(() => {
@@ -244,20 +245,17 @@ export function AITasksDrawer() {
   }
 
   return (
-    <>
-      {/* 遮罩 (点击关闭) */}
-      <div
-        class={`ai-digest-overlay ${open ? 'visible' : ''}`}
-        onClick={() => openDigestDrawer(false)}
-        aria-hidden="true"
-      />
-      {/* drawer 容器 */}
-      <aside
-        class={`ai-digest-drawer ${open ? 'open' : ''} ${configMode ? 'config-mode' : ''}`}
-        role="dialog"
-        aria-label="AI 任务总结"
-        aria-hidden={!open}
-      >
+    <DrawerShell
+      open={open}
+      onClose={closeDrawer}
+      onEscape={onEscapeKey}
+      overlayClass="ai-digest-overlay"
+      drawerClass="ai-digest-drawer"
+      drawerExtraClass={`open${configMode ? ' config-mode' : ''}`}
+      bodyClass="drawer-body"
+      role="dialog"
+      ariaLabel="AI 任务总结"
+      header={(
         <header class="drawer-header">
           <div class="drawer-title-row">
             <span class="drawer-icon">
@@ -314,7 +312,7 @@ export function AITasksDrawer() {
             <button
               type="button"
               class="drawer-icon-btn"
-              onClick={() => openDigestDrawer(false)}
+              onClick={closeDrawer}
               title="关闭"
               aria-label="关闭"
             >
@@ -324,138 +322,126 @@ export function AITasksDrawer() {
             </button>
           </div>
         </header>
-
-        {/* 生成中顶部 banner */}
-        {busy && (
-          <div class="ai-digest-drawer-banner" role="status" aria-live="polite">
-            <span class="digest-spinner small"></span>
-            <span class="banner-text">生成总结中 ({generatingSet.size} 个任务)...</span>
-          </div>
-        )}
-
-        <div class="drawer-body">
-          {configMode ? (
-            <AISettingsScene
-              key={configTab}
-              compact
-              initialTab={configTab}
-              onSaved={closeConfig}
-              onCancel={closeConfig}
-            />
-          ) : (
-            <>
-              {/* 日期切换 */}
-              <div class="ai-tasks-date-row" role="tablist" aria-label="日期切换">
-                {dateChips.map((chip) => (
-                  <button
-                    key={chip.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={chip.key === dateKey}
-                    class={`ai-tasks-date-chip ${chip.key === dateKey ? 'active' : ''}`}
-                    onClick={() => switchDate(chip.key)}
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-
-              {loading && tasks.length === 0 && (
-                <div class="drawer-loading">
-                  <span class="digest-spinner large"></span>
-                  <p>扫描 AI 任务中…</p>
-                  <p class="hint">首次或跨日切换可能需要 10–30 秒</p>
-                </div>
-              )}
-
-              {error && !loading && (
-                <div class="drawer-empty">
-                  <p>任务列表加载失败</p>
-                  <p class="hint">{error}</p>
-                </div>
-              )}
-
-              {!loading && !error && tasks.length === 0 && (
-                <div class="drawer-empty">
-                  <p>{formatDateLabel(dateKey)}没有 AI 编程任务。</p>
-                  <p class="hint">用了 Cursor / Codex / MiniMax Code 之后再来看。</p>
-                </div>
-              )}
-
-              {/* 按应用分组的任务列表 */}
-              {groups.map((group) => {
-                const groupKeys = group.tasks.map((t) => t.taskKey);
-                const allSelected = groupKeys.every((k) => selectedSet.has(k));
-                return (
-                  <section class="ai-tasks-group" key={group.appName}>
-                    <div class="ai-tasks-group-head">
-                      <span class="session-app-group-pill" style={{ backgroundColor: group.color }}>
-                        {group.label}
-                      </span>
-                      <span class="ai-tasks-group-count">{group.tasks.length} 个任务</span>
-                      <button
-                        type="button"
-                        class="ai-tasks-group-select"
-                        onClick={() => toggleGroup(group)}
-                      >
-                        {allSelected ? '取消全选' : '全选'}
-                      </button>
-                    </div>
-                    <div class="ai-tasks-group-list">
-                      {group.tasks.map((task) => (
-                        <TaskCard
-                          key={task.taskKey}
-                          task={task}
-                          selected={selectedSet.has(task.taskKey)}
-                          generating={generatingSet.has(task.taskKey)}
-                          onToggle={() => toggleTask(task.taskKey)}
-                          onGenerateSingle={() => handleGenerate([task.taskKey])}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-            </>
-          )}
+      )}
+      beforeBody={busy ? (
+        <div class="ai-digest-drawer-banner" role="status" aria-live="polite">
+          <span class="digest-spinner small"></span>
+          <span class="banner-text">生成总结中 ({generatingSet.size} 个任务)...</span>
         </div>
+      ) : null}
+      footer={!configMode ? (
+        <footer class="drawer-footer">
+          <span class="drawer-footer-time">
+            {selectedKeys.length > 0 ? `已选 ${selectedKeys.length} 个任务` : '勾选任务后生成总结'}
+          </span>
+          <div class="drawer-footer-actions">
+            <button
+              type="button"
+              class="drawer-footer-btn-primary"
+              onClick={() => handleGenerate()}
+              disabled={busy || selectedKeys.length === 0}
+              title={selectedKeys.length > 0 ? `为 ${selectedKeys.length} 个任务生成总结` : '先勾选任务'}
+            >
+              {busy ? '生成中…' : `生成总结 (${selectedKeys.length})`}
+            </button>
+            <button
+              type="button"
+              class="drawer-footer-text-link"
+              onClick={() => openConfig('connection')}
+              title="修改 Provider / Model / API Key"
+            >
+              修改 AI 设置
+            </button>
+            <button
+              type="button"
+              class="drawer-footer-text-link"
+              onClick={() => openConfig('prompts')}
+              title="编辑 AI Prompt 模板"
+            >
+              Prompt 模板
+            </button>
+          </div>
+        </footer>
+      ) : null}
+    >
+      {configMode ? (
+        <AISettingsScene
+          key={configTab}
+          compact
+          initialTab={configTab}
+          onSaved={closeConfig}
+          onCancel={closeConfig}
+        />
+      ) : (
+        <>
+          <TabList variant="date" ariaLabel="日期切换">
+            {dateChips.map((chip) => (
+              <Tab
+                key={chip.key}
+                variant="date"
+                active={chip.key === dateKey}
+                onClick={() => switchDate(chip.key)}
+              >
+                {chip.label}
+              </Tab>
+            ))}
+          </TabList>
 
-        {!configMode && (
-          <footer class="drawer-footer">
-            <span class="drawer-footer-time">
-              {selectedKeys.length > 0 ? `已选 ${selectedKeys.length} 个任务` : '勾选任务后生成总结'}
-            </span>
-            <div class="drawer-footer-actions">
-              <button
-                type="button"
-                class="drawer-footer-btn-primary"
-                onClick={() => handleGenerate()}
-                disabled={busy || selectedKeys.length === 0}
-                title={selectedKeys.length > 0 ? `为 ${selectedKeys.length} 个任务生成总结` : '先勾选任务'}
-              >
-                {busy ? '生成中…' : `生成总结 (${selectedKeys.length})`}
-              </button>
-              <button
-                type="button"
-                class="drawer-footer-text-link"
-                onClick={() => openConfig('connection')}
-                title="修改 Provider / Model / API Key"
-              >
-                修改 AI 设置
-              </button>
-              <button
-                type="button"
-                class="drawer-footer-text-link"
-                onClick={() => openConfig('prompts')}
-                title="编辑 AI Prompt 模板"
-              >
-                Prompt 模板
-              </button>
+          {loading && tasks.length === 0 && (
+            <div class="drawer-loading">
+              <span class="digest-spinner large"></span>
+              <p>扫描 AI 任务中…</p>
+              <p class="hint">首次或跨日切换可能需要 10–30 秒</p>
             </div>
-          </footer>
-        )}
-      </aside>
-    </>
+          )}
+
+          {error && !loading && (
+            <DrawerEmpty message="任务列表加载失败" hint={error} />
+          )}
+
+          {!loading && !error && tasks.length === 0 && (
+            <DrawerEmpty
+              message={`${formatDateLabel(dateKey)}没有 AI 编程任务。`}
+              hint="用了 Cursor / Codex / MiniMax Code 之后再来看。"
+            />
+          )}
+
+          {groups.map((group) => {
+            const groupKeys = group.tasks.map((t) => t.taskKey);
+            const allSelected = groupKeys.every((k) => selectedSet.has(k));
+            return (
+              <section class="ai-tasks-group" key={group.appName}>
+                <div class="ai-tasks-group-head">
+                  <span class="session-app-group-pill" style={{ backgroundColor: group.color }}>
+                    {group.label}
+                  </span>
+                  <span class="ai-tasks-group-count">{group.tasks.length} 个任务</span>
+                  <button
+                    type="button"
+                    class="ai-tasks-group-select"
+                    onClick={() => toggleGroup(group)}
+                  >
+                    {allSelected ? '取消全选' : '全选'}
+                  </button>
+                </div>
+                <div class="ai-tasks-group-list">
+                  {group.tasks.map((task) => (
+                    <TaskCard
+                      key={task.taskKey}
+                      task={task}
+                      selected={selectedSet.has(task.taskKey)}
+                      generating={generatingSet.has(task.taskKey)}
+                      onToggle={() => toggleTask(task.taskKey)}
+                      onGenerateSingle={() => handleGenerate([task.taskKey])}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </>
+      )}
+    </DrawerShell>
   );
 }
 
@@ -493,10 +479,10 @@ function TaskCard({ task, selected, generating, onToggle, onGenerateSingle }) {
       </label>
       <div class="ai-task-card-content">
         <div class="ai-task-card-topline">
-          <span class={`ai-task-status-badge ${status.id}`}>
+          <TaskStatusBadge status={status.id}>
             {generating && <span class="digest-spinner small"></span>}
             {status.label}
-          </span>
+          </TaskStatusBadge>
           <span class="session-selection-meta">
             <span class="session-time">{formatHmRange(task.startedAt, task.endedAt)}</span>
             <span class="session-sep">·</span>

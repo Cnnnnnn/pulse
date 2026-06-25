@@ -7,6 +7,8 @@
 import { useState } from 'preact/hooks';
 import { alertPrefs, closeAlertModal, saveAlertPrefs } from './fundStore.js';
 import { api } from '../api.js';
+import { BareModalShell } from '../components/ModalShell.jsx';
+import { IconBell } from '../components/icons.jsx';
 
 export function FundAlertModal() {
   const cur = alertPrefs.value;
@@ -44,11 +46,17 @@ export function FundAlertModal() {
   }
 
   return (
-    <div class="fund-modal-overlay" onClick={() => closeAlertModal()}>
-      <div class="fund-modal fund-alert-modal" onClick={(e) => e.stopPropagation()}>
-        <form class="fund-modal-form" onSubmit={handleSubmit}>
+    <BareModalShell
+      open
+      onClose={closeAlertModal}
+      overlayClass="fund-modal-overlay"
+      cardClass="fund-modal fund-alert-modal"
+      usePortal
+      ariaLabel="盈亏提醒"
+    >
+      <form class="fund-modal-form" onSubmit={handleSubmit}>
           <div class="fund-modal-header">
-            <span class="fund-modal-title">🔔 盈亏提醒</span>
+            <span class="fund-modal-title fund-modal-title-row"><IconBell size={16} /> 盈亏提醒</span>
             <button
               type="button"
               class="fund-modal-close"
@@ -114,8 +122,7 @@ export function FundAlertModal() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </BareModalShell>
   );
 }
 

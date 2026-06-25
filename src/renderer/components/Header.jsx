@@ -22,6 +22,7 @@ import { ReleaseNotesTrigger } from './ReleaseNotesTrigger.jsx';
 import { diagnosticsDrawerOpen } from '../diagnostics/diagnostics-store.js';
 import { watchlistDrawerOpen, watchlistItems } from '../watchlist/watchlist-store.js';
 import { api } from '../api.js';
+import { IconStar } from './icons.jsx';
 
 export function Header({ onCheck }) {
   const session = checkSession.value;
@@ -123,7 +124,7 @@ export function Header({ onCheck }) {
           aria-label="关注列表"
           aria-expanded={watchlistDrawerOpen.value}
         >
-          <span style={{ fontSize: '16px', lineHeight: 1 }}>{watchlistItems.value.length > 0 ? '★' : '☆'}</span>
+          <IconStar filled={watchlistItems.value.length > 0} size={16} />
         </button>
         <ReleaseNotesTrigger />
       </div>

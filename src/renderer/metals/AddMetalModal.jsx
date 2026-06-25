@@ -19,6 +19,8 @@ import {
   fxCache,
 } from './metalStore.js';
 import { METALS, getMetalById } from '../../metals/metal-config.js';
+import { BareModalShell } from '../components/ModalShell.jsx';
+import { IconAlert } from '../components/icons.jsx';
 
 const GRAM_PER_OZ = 31.1035;
 
@@ -138,9 +140,15 @@ export function AddMetalModal() {
   const unitLabel = selectedMetal?.unit === 'oz' ? '盎司' : '克';
 
   return (
-    <div class="metal-modal-overlay" onClick={handleClose}>
-      <div class="metal-modal" onClick={(e) => e.stopPropagation()}>
-        <div class="metal-modal-header">
+    <BareModalShell
+      open
+      onClose={handleClose}
+      overlayClass="metal-modal-overlay"
+      cardClass="metal-modal"
+      usePortal
+      ariaLabel={editingMetal ? '编辑持仓' : '添加关注'}
+    >
+      <div class="metal-modal-header">
           <h3>{editingMetal ? '编辑持仓' : '添加关注'}</h3>
           <button class="metal-modal-close" onClick={handleClose} aria-label="关闭">×</button>
         </div>
@@ -204,7 +212,7 @@ export function AddMetalModal() {
           )}
           {preview && preview.fxMissing && (
             <div class="metal-modal-computed metal-modal-computed-warn">
-              ⚠️ 汇率未就绪，USD 成本暂无法换算
+              <IconAlert size={14} /> 汇率未就绪，USD 成本暂无法换算
             </div>
           )}
 
@@ -234,7 +242,6 @@ export function AddMetalModal() {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </BareModalShell>
   );
 }

@@ -91,7 +91,7 @@ describe("WechatHotHeader", () => {
     const { container } = render(<WechatHotHeader {...baseProps} />);
     const btn = container.querySelector(".wechat-hot-header-refresh");
     expect(btn.disabled).toBe(false);
-    expect(btn.textContent).toContain("↻ 刷新");
+    expect(btn.textContent).toContain("刷新");
   });
 
   it("shows error banner when wechatHotError is set", () => {

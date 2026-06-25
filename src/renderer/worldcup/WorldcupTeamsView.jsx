@@ -9,6 +9,7 @@
  */
 
 import { listTeams } from './teams-data.js';
+import { TeamFlag } from '../components/icons.jsx';
 import { worldcupMatches } from './store.js';
 import {
   computeGroupStandings,
@@ -25,7 +26,7 @@ export function WorldcupTeamsView({ search = '', onTeamClick }) {
     ? teams.filter((t) => (
         t.name.toLowerCase().includes(q) ||
         t.cn.includes(q) ||
-        t.flag.includes(q) ||
+        t.code.toLowerCase().includes(q) ||
         t.group.toLowerCase().includes(q)
       ))
     : teams;
@@ -67,7 +68,7 @@ export function WorldcupTeamsView({ search = '', onTeamClick }) {
                 title={`${t.cn} (${t.name}) · ${pts} 分 · 净胜球 ${formatGoalDiff(gd)}`}
               >
                 <span class="worldcup-team-rank">{idx + 1}</span>
-                <span class="worldcup-team-flag">{t.flag}</span>
+                <span class="worldcup-team-flag"><TeamFlag code={t.code} size={20} /></span>
                 <span class="worldcup-team-cn">{t.cn}</span>
                 <span class="worldcup-team-standings">
                   <span class="worldcup-team-pts">{pts}<small>分</small></span>

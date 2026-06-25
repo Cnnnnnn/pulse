@@ -1,7 +1,7 @@
 /**
  * src/renderer/nav-refresh.js
  *
- * v2.24.2 全局刷新注册表 — SideNav 顶部 ↻ 按钮点击时,
+ * v2.24.2 全局刷新注册表 — SideNav 顶部 IconRefresh 按钮点击时,
  * 根据当前 activeNav 调对应的 refresh 函数.
  *
  * 设计原则:

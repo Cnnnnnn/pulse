@@ -24,6 +24,7 @@ import {
 import { WorldcupBetsStats } from './WorldcupBetsStats.jsx';
 import { trackWorldcupMatchView } from '../recent/track.js';
 import { DayBetFooter } from './DayBetFooter.jsx';
+import { IconAlert } from '../components/icons.jsx';
 
 const WEEKDAYS_CN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -91,7 +92,7 @@ export function WorldcupView({ search = '', focusMatchKey = null, onFocusMatchCo
     return (
       <div class="worldcup-view worldcup-error">
         <div class="worldcup-error-card">
-          <div class="worldcup-error-icon">⚠️</div>
+          <div class="worldcup-error-icon"><IconAlert size={24} /></div>
           <div class="worldcup-error-msg">赛程加载失败: {error}</div>
           <button
             class="btn btn-primary btn-sm"

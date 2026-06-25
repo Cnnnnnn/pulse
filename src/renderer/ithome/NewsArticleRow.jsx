@@ -18,6 +18,7 @@ import { formatArticleTime, formatExcerptPreview } from "./news-utils.js";
 import { NewsArticleSummary } from "./NewsArticleSummary.jsx";
 import { NewsShareToast } from "./NewsShareToast.jsx";
 import { refreshAIReadyStatus } from "../store.js";
+import { PinIcon, IconSparkles, IconShare } from "../components/icons.jsx";
 
 function mapAiError(reason) {
   if (
@@ -118,15 +119,15 @@ async function handleShare(e) {
   if (sharing) return;
   const r = await shareIthomeArticle(article.id);
   if (r && r.ok) {
-    setToast({ kind: "success", message: "✅ 已复制到剪贴板,可 ⌘V 粘贴" });
+    setToast({ kind: "success", message: "已复制到剪贴板,可 ⌘V 粘贴" });
   } else {
     const reason = r && r.reason;
     const message =
       reason === "article_not_found"
-        ? "❌ 文章已过期,无法生成分享卡片"
+        ? "文章已过期,无法生成分享卡片"
         : reason === "no_summary"
-          ? "❌ 暂无 AI 总结,请先生成"
-          : "❌ 图片生成失败,请重试";
+          ? "暂无 AI 总结,请先生成"
+          : "图片生成失败,请重试";
     setToast({ kind: "error", message });
   }
 }
@@ -163,7 +164,7 @@ async function handleShare(e) {
           title={favorited ? "取消收藏" : "收藏"}
           aria-label={favorited ? "取消收藏" : "收藏"}
         >
-          {favorited ? "★" : "☆"}
+          <PinIcon filled={favorited} size={14} />
         </button>
       </div>
 
@@ -187,7 +188,7 @@ async function handleShare(e) {
           disabled={busy || fetchingBody}
           onClick={() => handleSummarize(false)}
         >
-          ✨ {aiLabel}
+          <IconSparkles size={14} /> {aiLabel}
         </button>
         <a
           class="ithome-row-link"
@@ -205,7 +206,7 @@ async function handleShare(e) {
             aria-label="生成分享图片"
             title="生成分享图片"
           >
-            {sharing ? "生成图片中…" : "📤 分享"}
+            {sharing ? "生成图片中…" : <><IconShare size={14} /> 分享</>}
           </button>
         )}
         {hasSummary && (

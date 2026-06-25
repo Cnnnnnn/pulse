@@ -3,7 +3,7 @@
  *
  * 单只基金行 — 显示代码 / 名称 / 份额 / 成本 / 净值 / 市值 / 盈亏 / 今日预估.
  *
- * 错误态 (单只拉取失败): 显示 ⚠️ + 错误信息.
+ * 错误态 (单只拉取失败): 显示 IconAlert + 错误信息.
  */
 
 import { useState } from 'preact/hooks';
@@ -11,15 +11,24 @@ import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, back
 import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.js';
 import { api } from '../api.js';
 import { taggedLog } from '../log.js';
+import { openConfirm } from '../confirmStore.js';
+import {
+  CategoryTabIcon,
+  PinIcon,
+  IconEdit,
+  IconTrash,
+  IconLoader,
+  IconAlert,
+} from '../components/icons.jsx';
 
 const log = taggedLog("[funds]");
 
 const CATEGORY_LABEL = {
-  stock: { icon: '📈', label: '股票' },
-  bond:  { icon: '📊', label: '债券' },
-  money: { icon: '💵', label: '货币' },
-  qdii:  { icon: '🌏', label: 'QDII' },
-  other: { icon: '📦', label: '其他' },
+  stock: { label: '股票' },
+  bond:  { label: '债券' },
+  money: { label: '货币' },
+  qdii:  { label: 'QDII' },
+  other: { label: '其他' },
 };
 
 function fmtNum(n, digits = 4) {
@@ -41,7 +50,6 @@ function fmtPct(p) {
 
 export function FundRow({ row }) {
   const [expanded, setExpanded] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState(false);
 
   const holding = row.holding;
   const metrics = row.metrics;
@@ -72,7 +80,17 @@ export function FundRow({ row }) {
     if (!r.ok) {
       log.warn('remove failed:', r);
     }
-    setConfirmRemove(false);
+  }
+
+  async function confirmRemove(e) {
+    e.stopPropagation();
+    const ok = await openConfirm({
+      title: '删除持仓',
+      message: `确定删除 ${holding.name}？7 天内可在回收站恢复`,
+      confirmText: '删除',
+      cancelText: '取消',
+    });
+    if (ok) await handleRemove();
   }
 
   return (
@@ -83,7 +101,9 @@ export function FundRow({ row }) {
             <span class="fund-row-code">{holding.code}</span>
             <span class="fund-row-name">{holding.name}</span>
             <span class="fund-row-category" title={cat.label}>
-              <span class="fund-row-cat-icon">{cat.icon}</span>
+              <span class="fund-row-cat-icon">
+                <CategoryTabIcon id={holding.category} domain="fund" size={14} />
+              </span>
               {cat.label}
             </span>
             <span class="fund-row-actions">
@@ -93,7 +113,7 @@ export function FundRow({ row }) {
                 title={pinned ? '取消关注' : '关注净值'}
                 onClick={togglePin}
               >
-                {pinned ? '★' : '☆'}
+                <PinIcon filled={pinned} size={14} />
               </button>
               <button
                 type="button"
@@ -101,15 +121,15 @@ export function FundRow({ row }) {
                 title="编辑"
                 onClick={(e) => { e.stopPropagation(); openEditModal(holding); }}
               >
-                ✎
+                <IconEdit size={14} />
               </button>
               <button
                 type="button"
                 class="fund-row-action-btn"
                 title="删除"
-                onClick={(e) => { e.stopPropagation(); setConfirmRemove(true); }}
+                onClick={confirmRemove}
               >
-                🗑
+                <IconTrash size={14} />
               </button>
             </span>
           </div>
@@ -121,7 +141,7 @@ export function FundRow({ row }) {
         </div>
         {pendingNav ? (
           <div class="fund-row-metrics fund-row-pending-msg">
-            <span class="fund-row-pending-icon">⏳</span>
+            <span class="fund-row-pending-icon"><IconLoader size={14} /></span>
             净值还没拉到, 5 分钟内会自动反推成本.
             {navSnap && (navSnap.nav > 0 || navSnap.estimatedNav > 0) && (
               <button
@@ -135,12 +155,12 @@ export function FundRow({ row }) {
           </div>
         ) : sourceUnavailable ? (
           <div class="fund-row-metrics fund-row-err-msg">
-            <span class="fund-row-err-icon">⚠️</span>
+            <span class="fund-row-err-icon"><IconAlert size={14} /></span>
             新浪财经数据不可用，请切换{NAV_SOURCE_LABELS.tiantian}或稍后刷新
           </div>
         ) : errMsg ? (
           <div class="fund-row-metrics fund-row-err-msg">
-            <span class="fund-row-err-icon">⚠️</span>
+            <span class="fund-row-err-icon"><IconAlert size={14} /></span>
             净值拉取失败 ({errMsg}), UI 数据可能过期
           </div>
         ) : (
@@ -226,33 +246,6 @@ export function FundRow({ row }) {
         </div>
       )}
 
-      {confirmRemove && (
-        <div class="fund-confirm-overlay" onClick={() => setConfirmRemove(false)}>
-          <div class="fund-confirm-modal" onClick={(e) => e.stopPropagation()}>
-            <div class="fund-confirm-title">删除持仓</div>
-            <div class="fund-confirm-body">
-              确定删除 <b>{holding.name}</b>?
-              <div class="fund-confirm-sub">7 天内可在回收站恢复</div>
-            </div>
-            <div class="fund-confirm-actions">
-              <button
-                type="button"
-                class="fund-btn fund-btn-ghost"
-                onClick={() => setConfirmRemove(false)}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                class="fund-btn fund-btn-danger"
-                onClick={handleRemove}
-              >
-                删除
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

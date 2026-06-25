@@ -42,6 +42,7 @@ import {
   removeWatchlist,
   isAppPinned,
 } from '../watchlist/watchlist-store.js';
+import { PinIcon, IconClock, IconRotateCcw } from './icons.jsx';
 
 export function AppRow({ name }) {
   // 订阅 per-row signals (本组件的订阅点)
@@ -193,8 +194,9 @@ export function AppRow({ name }) {
           class="row-action-snooze"
           onClick={(e) => { e.stopPropagation(); setSnoozeMenuAt({ x: e.clientX, y: e.clientY }); }}
           title="等下次再升"
+          aria-label="等下次再升"
         >
-          ⏰
+          <IconClock size={14} />
         </button>
       )}
       <button
@@ -203,7 +205,8 @@ export function AppRow({ name }) {
         title="查看回滚历史"
         aria-label="查看回滚历史"
       >
-        ⏪{versionHistoryCounts.value.get(result.name) > 0 ? (
+        <IconRotateCcw size={14} />
+        {versionHistoryCounts.value.get(result.name) > 0 ? (
           <span class="row-action-rollback__badge">
             {versionHistoryCounts.value.get(result.name)}
           </span>
@@ -216,7 +219,7 @@ export function AppRow({ name }) {
         aria-label={pinned ? '取消关注' : '加入关注列表'}
         aria-pressed={pinned}
       >
-        {pinned ? '★' : '☆'}
+        <PinIcon filled={pinned} size={14} />
       </button>
       {changelogOpen && <ChangelogPanel result={result} />}
       {muteMenuAt && (

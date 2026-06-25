@@ -2,12 +2,11 @@
  * src/renderer/components/ConfigImportModal.jsx
  *
  * P61 — 配置导入 diff 预览 + 字段级勾选覆盖确认.
- * 流程: 挂载时调 configImportLoad (弹文件选择对话框 + 算 diff) →
- *      用户勾选要导入的字段 → 点导入调 configImportApply.
  */
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api.js";
 import { showToast } from "../store.js";
+import { ModalShell } from "./ModalShell.jsx";
 
 const FIELD_LABELS = {
   watchlist: "关注列表",
@@ -49,7 +48,7 @@ export function ConfigImportModal({ onClose }) {
       })
       .catch(() => onClose())
       .finally(() => setLoading(false));
-  }, []);
+  }, [onClose]);
 
   function toggle(field) {
     setSelected((s) => ({ ...s, [field]: !s[field] }));
@@ -83,71 +82,80 @@ export function ConfigImportModal({ onClose }) {
     setApplying(false);
   }
 
-  return (
-    <div class="config-import-modal">
-      <div class="config-import-modal-content">
-        <h3>导入配置</h3>
-        {filePath && (
-          <p class="config-import-source">来源: {filePath}</p>
-        )}
-        {loading && <p>加载中…</p>}
-        {!loading && diff && (
-          <table class="config-import-diff">
-            <thead>
-              <tr>
-                <th>导入</th>
-                <th>字段</th>
-                <th>状态</th>
-                <th>当前</th>
-                <th>传入</th>
-                <th>说明</th>
-              </tr>
-            </thead>
-            <tbody>
-              {diff.map((d) => (
-                <tr key={d.field} class={`config-import-row is-${d.status}`}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      aria-label={d.field}
-                      checked={!!selected[d.field]}
-                      disabled={d.status === "removed"}
-                      onChange={() => toggle(d.field)}
-                    />
-                  </td>
-                  <td>{FIELD_LABELS[d.field] || d.field}</td>
-                  <td>
-                    <span class={`config-import-status is-${d.status}`}>
-                      {d.status}
-                    </span>
-                  </td>
-                  <td>{d.currentCount}</td>
-                  <td>{d.incomingCount}</td>
-                  <td>{d.summary}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <div class="config-import-actions">
-          <button
-            type="button"
-            class="btn btn-ghost"
-            onClick={onClose}
-            disabled={applying}
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary"
-            onClick={doApply}
-            disabled={applying || loading}
-          >
-            {applying ? "导入中…" : "导入"}
-          </button>
-        </div>
-      </div>
+  const footer = (
+    <div class="config-import-actions">
+      <button
+        type="button"
+        class="btn btn-ghost"
+        onClick={onClose}
+        disabled={applying}
+      >
+        取消
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        onClick={doApply}
+        disabled={applying || loading}
+      >
+        {applying ? "导入中…" : "导入"}
+      </button>
     </div>
+  );
+
+  return (
+    <ModalShell
+      open
+      onClose={onClose}
+      title="导入配置"
+      backdropClass="config-import-modal"
+      cardClass="config-import-modal-content"
+      useModalCardClass={false}
+      footer={footer}
+      ariaLabel="导入配置"
+    >
+      {filePath && (
+        <p class="config-import-source">来源: {filePath}</p>
+      )}
+      {loading && <p>加载中…</p>}
+      {!loading && diff && (
+        <table class="config-import-diff">
+          <thead>
+            <tr>
+              <th>导入</th>
+              <th>字段</th>
+              <th>状态</th>
+              <th>当前</th>
+              <th>传入</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            {diff.map((d) => (
+              <tr key={d.field} class={`config-import-row is-${d.status}`}>
+                <td>
+                  <input
+                    type="checkbox"
+                    aria-label={d.field}
+                    checked={!!selected[d.field]}
+                    disabled={d.status === "removed"}
+                    onChange={() => toggle(d.field)}
+                  />
+                </td>
+                <td>{FIELD_LABELS[d.field] || d.field}</td>
+                <td>
+                  <span class={`config-import-status is-${d.status}`}>
+                    {d.status}
+                  </span>
+                </td>
+                <td>{d.currentCount}</td>
+                <td>{d.incomingCount}</td>
+                <td>{d.summary}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </ModalShell>
   );
 }

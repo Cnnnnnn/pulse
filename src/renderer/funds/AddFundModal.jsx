@@ -10,6 +10,9 @@ import { editingHolding, closeModal, addFund, updateFund, navCache, navSource, f
 import { pickEffectiveNavNumber } from '../../funds/fund-nav-merge.js';
 import { inferCategoryFromFtype, categoryLabel } from '../../funds/fund-category.js';
 import { api } from '../api.js';
+import { BareModalShell } from '../components/ModalShell.jsx';
+import { TabList, Tab } from '../components/TabList.jsx';
+import { IconCoin, IconBarChart } from '../components/icons.jsx';
 
 function initialForm(holding) {
   if (holding) {
@@ -74,20 +77,12 @@ export function AddFundModal() {
     }, 0);
   }, [editing && editing.id]);
 
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === 'Escape') {
-        if (dropdownOpen) {
-          setDropdownOpen(false);
-          e.stopPropagation();
-          return;
-        }
-        closeModal();
-      }
+  function onEscapeKey() {
+    if (dropdownOpen) {
+      setDropdownOpen(false);
+      return false;
     }
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [dropdownOpen]);
+  }
 
   function updateField(k, v) {
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -192,10 +187,8 @@ export function AddFundModal() {
     if (!item.latestNav || item.latestNav <= 0) prefetchNav(item.code);
   }
 
-  function handleOverlayClick(e) {
-    if (dropdownOpen && !e.target.closest('.fund-search-dropdown') && !e.target.closest('.fund-modal-input')) {
-      setDropdownOpen(false);
-    }
+  function handleBackdropClick() {
+    if (dropdownOpen) setDropdownOpen(false);
     closeModal();
   }
 
@@ -296,9 +289,17 @@ export function AddFundModal() {
   const showMeta = form.name || (form.code.length === 6 && (searching || resolving));
 
   return (
-    <div class="fund-modal-overlay" onClick={handleOverlayClick}>
-      <div class="fund-modal" onClick={(e) => e.stopPropagation()}>
-        <form class="fund-modal-form" onSubmit={handleSubmit}>
+    <BareModalShell
+      open
+      onClose={closeModal}
+      onEscape={onEscapeKey}
+      onBackdropClick={handleBackdropClick}
+      overlayClass="fund-modal-overlay"
+      cardClass="fund-modal"
+      usePortal
+      ariaLabel={editing ? '编辑持仓' : '添加持仓'}
+    >
+      <form class="fund-modal-form" onSubmit={handleSubmit}>
           <div class="fund-modal-header">
             <span class="fund-modal-title">
               {editing ? '编辑持仓' : '添加持仓'}
@@ -315,26 +316,24 @@ export function AddFundModal() {
 
           <div class="fund-modal-body">
             <div class="fund-modal-field">
-              <div class="fund-mode-toggle" role="tablist">
-                <button
-                  type="button"
-                  class={`fund-mode-toggle-btn${mode === 'amount' ? ' active' : ''}`}
+              <TabList variant="config" className="fund-mode-toggle" ariaLabel="录入方式">
+                <Tab
+                  variant="config"
+                  className="fund-mode-toggle-btn"
+                  active={mode === 'amount'}
                   onClick={() => setMode('amount')}
-                  role="tab"
-                  aria-selected={mode === 'amount'}
                 >
-                  💰 按金额
-                </button>
-                <button
-                  type="button"
-                  class={`fund-mode-toggle-btn${mode === 'shares' ? ' active' : ''}`}
+                  <IconCoin size={14} /> 按金额
+                </Tab>
+                <Tab
+                  variant="config"
+                  className="fund-mode-toggle-btn"
+                  active={mode === 'shares'}
                   onClick={() => setMode('shares')}
-                  role="tab"
-                  aria-selected={mode === 'shares'}
                 >
-                  📊 按份额
-                </button>
-              </div>
+                  <IconBarChart size={14} /> 按份额
+                </Tab>
+              </TabList>
             </div>
 
             <div class="fund-modal-field fund-modal-field-with-dropdown">
@@ -505,8 +504,7 @@ export function AddFundModal() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </BareModalShell>
   );
 }
 

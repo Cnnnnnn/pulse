@@ -5,7 +5,7 @@
  *
  * 5 阶段水平 flex 排列 (R32 → R16 → QF → SF → Final/Third)
  * MatchCard 上下两队版式: team1 (上) / 分隔线 / team2 (下), 比分右对齐
- * 占位 slot: 显示「A 组第 1」/「R32 #73 胜者」/「第 3 名 (A/B/C/D/F)」/🔒 待定
+ * 占位 slot: 显示「A 组第 1」/「R32 #73 胜者」/「第 3 名 (A/B/C/D/F)」/IconLock 待定
  *
  * Task 2 (本次): 在 Task 1 基础上加 SVG 连接器层 (L 型折线 + ResizeObserver)
  * - useConnectors: 测量相邻列卡片 DOM 位置, 画 M-H-V-H 折线
@@ -22,6 +22,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { displayTeam } from "./teams-data.js";
+import { TeamFlag, IconLock } from "../components/icons.jsx";
 
 const STAGE_LABELS = {
   r32: "1/16 决赛",
@@ -73,7 +74,7 @@ function slotPlaceholder(slot) {
 
 function statusBadge(status) {
   if (status === "pending") return <span class="bracket-badge">未赛</span>;
-  if (status === "projected") return <span class="bracket-badge bracket-badge--lock">🔒 待定</span>;
+  if (status === "projected") return <span class="bracket-badge bracket-badge--lock"><IconLock size={12} /> 待定</span>;
   if (status === "live") return <span class="bracket-badge bracket-badge--live">● 进行中</span>;
   if (status === "final") return <span class="bracket-badge bracket-badge--done">✓ 已完赛</span>;
   return null;
@@ -103,7 +104,7 @@ function MatchCard({ match, onClick }) {
       <div class="bracket-card-team bracket-card-team--top">
         {t1 ? (
           <>
-            <span class="bracket-card-flag">{t1.flag}</span>
+            <span class="bracket-card-flag"><TeamFlag code={t1.flag} size={12} /></span>
             <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
             {match.score && <span class="bracket-card-score">{match.score.ft?.[0] ?? "?"}</span>}
           </>
@@ -115,7 +116,7 @@ function MatchCard({ match, onClick }) {
       <div class="bracket-card-team bracket-card-team--bottom">
         {t2 ? (
           <>
-            <span class="bracket-card-flag">{t2.flag}</span>
+            <span class="bracket-card-flag"><TeamFlag code={t2.flag} size={12} /></span>
             <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
             {match.score && <span class="bracket-card-score">{match.score.ft?.[1] ?? "?"}</span>}
           </>
@@ -145,7 +146,7 @@ function FinalMatchCard({ match, kind, onClick }) {
       <div class="bracket-card-team bracket-card-team--top">
         {t1 ? (
           <>
-            <span class="bracket-card-flag">{t1.flag}</span>
+            <span class="bracket-card-flag"><TeamFlag code={t1.flag} size={12} /></span>
             <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
             {match.score && <span class="bracket-card-score">{match.score.ft?.[0] ?? "?"}</span>}
           </>
@@ -157,7 +158,7 @@ function FinalMatchCard({ match, kind, onClick }) {
       <div class="bracket-card-team bracket-card-team--bottom">
         {t2 ? (
           <>
-            <span class="bracket-card-flag">{t2.flag}</span>
+            <span class="bracket-card-flag"><TeamFlag code={t2.flag} size={12} /></span>
             <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
             {match.score && <span class="bracket-card-score">{match.score.ft?.[1] ?? "?"}</span>}
           </>
@@ -320,7 +321,7 @@ function FallbackMatchCard({ match, onClick }) {
         <div class="bracket-card-team">
           {t1 ? (
             <>
-              <span class="bracket-card-flag">{t1.flag}</span>
+              <span class="bracket-card-flag"><TeamFlag code={t1.flag} size={12} /></span>
               <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
             </>
           ) : (
@@ -331,7 +332,7 @@ function FallbackMatchCard({ match, onClick }) {
         <div class="bracket-card-team">
           {t2 ? (
             <>
-              <span class="bracket-card-flag">{t2.flag}</span>
+              <span class="bracket-card-flag"><TeamFlag code={t2.flag} size={12} /></span>
               <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
             </>
           ) : (
@@ -341,7 +342,7 @@ function FallbackMatchCard({ match, onClick }) {
       </div>
       <div class="bracket-card-status">
         {status === "pending" && <span class="bracket-badge">未赛</span>}
-        {status === "projected" && <span class="bracket-badge bracket-badge--lock">🔒 待定</span>}
+        {status === "projected" && <span class="bracket-badge bracket-badge--lock"><IconLock size={12} /> 待定</span>}
         {status === "live" && <span class="bracket-badge bracket-badge--live">● 进行中</span>}
         {status === "final" && <span class="bracket-badge bracket-badge--done">✓ 已完赛</span>}
       </div>

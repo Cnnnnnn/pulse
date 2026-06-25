@@ -23,6 +23,7 @@ import {
   sidebarDayCount,
 } from "./news-utils.js";
 import { NewsArticleRow } from "./NewsArticleRow.jsx";
+import { PinIcon, IconRefresh } from "../components/icons.jsx";
 
 export function NewsView({ search = "", onRefresh }) {
   const loaded = ithomeNewsLoaded.value;
@@ -61,7 +62,7 @@ export function NewsView({ search = "", onRefresh }) {
       <div class="ithome-panel-empty">
         <p class="ithome-panel-empty-title">还没有收藏</p>
         <p class="ithome-panel-empty-hint">
-          在「本月新闻」中点击 ☆ 即可加入收藏夹
+          在「本月新闻」中点击 <PinIcon filled={false} size={14} /> 即可加入收藏夹
         </p>
       </div>
     );
@@ -106,7 +107,7 @@ export function NewsView({ search = "", onRefresh }) {
             ? "试试其他关键词或切换左侧日期"
             : isFavorites
               ? "切换左侧其他日期查看"
-              : "点击顶栏 ↻ 拉取当日新闻"}
+              : <>点击顶栏 <IconRefresh size={14} /> 拉取当日新闻</>}
         </p>
         {!isFavorites && !q && onRefresh && (
           <button

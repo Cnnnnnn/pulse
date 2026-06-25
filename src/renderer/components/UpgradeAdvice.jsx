@@ -6,6 +6,7 @@
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
 import { humanizeAiError } from "../../ai/ai-errors.js";
+import { IconRefresh, IconThumbsUp, IconThumbsDown } from "./icons.jsx";
 
 const REC_LABELS = {
   upgrade: "建议升级",
@@ -159,7 +160,7 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
           onClick={(e) => { e.stopPropagation(); sendVote("up"); }}
           title="有用"
           disabled={!!vote}
-        >👍</button>
+        ><IconThumbsUp size={14} /></button>
         <button
           type="button"
           class={`upgrade-advice-feedback-btn ${vote === "down" ? "is-active" : ""}`}
@@ -167,7 +168,7 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
           onClick={(e) => { e.stopPropagation(); sendVote("down"); }}
           title="没用"
           disabled={!!vote}
-        >👎</button>
+        ><IconThumbsDown size={14} /></button>
       </span>
       <button
         type="button"
@@ -175,7 +176,7 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
         onClick={(e) => { e.stopPropagation(); fetchAdvice(true); }}
         title="重新分析 (会消耗 AI 配额)"
       >
-        ↻
+        <IconRefresh size={14} />
       </button>
     </div>
   );

@@ -23,7 +23,7 @@ describe("ChangelogSummary 反馈按钮", () => {
     vi.restoreAllMocks();
   });
 
-  it("结果态显示 👍 / 👎", async () => {
+  it("结果态显示 IconThumbsUp / IconThumbsDown", async () => {
     const { container } = render(<ChangelogSummary appName="VSCode" />);
     fireEvent.click(container.querySelector(".changelog-summary-trigger"));
     await waitFor(() => {
@@ -33,7 +33,7 @@ describe("ChangelogSummary 反馈按钮", () => {
     expect(container.querySelector('[aria-label="feedback-down"]')).toBeTruthy();
   });
 
-  it("点 👍 带 feature=summary", async () => {
+  it("点 IconThumbsUp 带 feature=summary", async () => {
     const { container } = render(<ChangelogSummary appName="VSCode" />);
     fireEvent.click(container.querySelector(".changelog-summary-trigger"));
     await waitFor(() => {
@@ -47,7 +47,7 @@ describe("ChangelogSummary 反馈按钮", () => {
     expect(arg.vote).toBe("up");
   });
 
-  it("点 👎 也记录", async () => {
+  it("点 IconThumbsDown 也记录", async () => {
     const { container } = render(<ChangelogSummary appName="VSCode" />);
     fireEvent.click(container.querySelector(".changelog-summary-trigger"));
     await waitFor(() => {

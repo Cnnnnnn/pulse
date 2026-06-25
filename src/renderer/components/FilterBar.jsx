@@ -16,6 +16,7 @@
 
 import { searchQuery, activeFilter } from '../store.js';
 import { tabCounts } from '../selectors.js';
+import { TabList, Tab } from './TabList.jsx';
 
 const TABS = [
   { key: 'all',    label: '全部' },
@@ -65,20 +66,19 @@ export function FilterBar() {
           >×</button>
         )}
       </div>
-      <div class="filter-tabs" role="tablist">
+      <TabList variant="chip">
         {TABS.map((t) => (
-          <button
+          <Tab
             key={t.key}
-            class={`filter-tab${active === t.key ? ' active' : ''}`}
+            variant="chip"
+            active={active === t.key}
             onClick={() => setTab(t.key)}
-            role="tab"
-            aria-selected={active === t.key}
+            count={counts[t.key] || 0}
           >
             {t.label}
-            <span class="count">{counts[t.key] || 0}</span>
-          </button>
+          </Tab>
         ))}
-      </div>
+      </TabList>
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   clearBracketError,
 } from "./bracketStore.js";
 import { trackWorldcupMatchView } from "../recent/track.js";
+import { IconAlert, IconRefresh, IconLoader } from "../components/icons.jsx";
 
 function formatRelativeTime(ts) {
   if (!ts) return "从未计算";
@@ -67,7 +68,7 @@ export function WorldcupBracketView() {
     return (
       <div class="bracket-view bracket-view--error">
         <div class="bracket-error-card">
-          <div class="bracket-error-icon">⚠️</div>
+          <div class="bracket-error-icon"><IconAlert size={24} /></div>
           <div class="bracket-error-msg">计算失败: {error}</div>
           <button class="btn btn-primary btn-sm" onClick={handleRefresh}>
             重试
@@ -87,7 +88,7 @@ export function WorldcupBracketView() {
           onClick={handleRefresh}
           disabled={computing}
         >
-          {computing ? "计算中..." : "🔄 尝试计算"}
+          {computing ? <><IconLoader size={14} /> 计算中...</> : <><IconRefresh size={14} /> 尝试计算</>}
         </button>
       </div>
     );
@@ -109,13 +110,13 @@ export function WorldcupBracketView() {
           onClick={handleRefresh}
           disabled={computing}
         >
-          {computing ? "⟳ 计算中..." : "🔄 重新计算"}
+          {computing ? <><IconLoader size={14} /> 计算中...</> : <><IconRefresh size={14} /> 重新计算</>}
         </button>
         <div class="bracket-meta">
           <span>上次计算: {formatRelativeTime(lastComputedAt)}</span>
           <span> · {projectedBanner}</span>
           {snapshot.warnings && snapshot.warnings.length > 0 && (
-            <span class="bracket-warnings"> · ⚠️ {snapshot.warnings.length} 个警告</span>
+            <span class="bracket-warnings"> · <IconAlert size={12} /> {snapshot.warnings.length} 个警告</span>
           )}
         </div>
       </div>

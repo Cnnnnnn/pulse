@@ -31,7 +31,7 @@ describe("BracketTree", () => {
     vi.resetModules();
     // mock teams-data so displayTeam returns predictable flag/cn
     vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
-      displayTeam: (name) => name ? { flag: "🏳", cn: name } : null,
+      displayTeam: (name) => name ? { flag: 'XX', cn: name } : null,
     }));
     // mock window.api to prevent compute on mount errors
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
@@ -75,7 +75,7 @@ describe("BracketConnectors", () => {
       return { left: 0, top: 0, right: 100, bottom: 80, width: 100, height: 80, x: 0, y: 0, toJSON() { return this; } };
     };
     vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
-      displayTeam: (name) => name ? { flag: "🏳", cn: name } : null,
+      displayTeam: (name) => name ? { flag: 'XX', cn: name } : null,
     }));
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
     const mod = await import("../../src/renderer/worldcup/BracketTree.jsx");
@@ -117,7 +117,7 @@ describe("FinalColumn styling", () => {
       return { left: 0, top: 0, right: 100, bottom: 80, width: 100, height: 80, x: 0, y: 0, toJSON() { return this; } };
     };
     vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
-      displayTeam: (name) => name ? { flag: "🏳", cn: name } : null,
+      displayTeam: (name) => name ? { flag: 'XX', cn: name } : null,
     }));
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
     const mod = await import("../../src/renderer/worldcup/BracketTree.jsx");
@@ -179,7 +179,7 @@ describe("Responsive fallback", () => {
       return { left: 0, top: 0, right: 100, bottom: 80, width: 100, height: 80, x: 0, y: 0, toJSON() { return this; } };
     };
     vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
-      displayTeam: (name) => name ? { flag: "🏳", cn: name } : null,
+      displayTeam: (name) => name ? { flag: 'XX', cn: name } : null,
     }));
     // Establish window global with innerWidth so the new useNarrowViewport
     // hook can read window.innerWidth on first render.

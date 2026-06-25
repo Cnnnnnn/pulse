@@ -16,6 +16,8 @@
  * `incompatible`   (note) 显式 → "需确认" / cls=warning
  */
 
+import { StatusBadge } from './Badge.jsx';
+
 const STATUS_MAP = {
   update_available: { text: '有更新',   cls: 'update'  },
   up_to_date:       { text: '最新',     cls: 'latest'  },
@@ -30,10 +32,10 @@ export function AppAction({ result, onUpgrade, isUpgrading }) {
 
   // 特殊 note 显式覆盖
   if (note === 'installed_newer') {
-    return <span class="status-badge info">预发布</span>;
+    return <StatusBadge status="info">预发布</StatusBadge>;
   }
   if (note === 'incompatible') {
-    return <span class="status-badge warning">需确认</span>;
+    return <StatusBadge status="warning">需确认</StatusBadge>;
   }
 
   // 有 brew cask 且需要升级 → 升级按钮 (主操作)
@@ -54,5 +56,5 @@ export function AppAction({ result, onUpgrade, isUpgrading }) {
   const meta = STATUS_MAP[status] || { text: status || '', cls: 'warning' };
   const errorMsg = result.error_message;
   const title = errorMsg ? `${meta.text} · ${errorMsg}` : meta.text;
-  return <span class={`status-badge ${meta.cls}`} title={title}>{meta.text}</span>;
+  return <StatusBadge status={meta.cls} title={title}>{meta.text}</StatusBadge>;
 }

@@ -10,10 +10,11 @@ import {
   ithomeFavorites,
 } from "./store.js";
 import { currentMonthLabel, favoriteCount } from "./news-utils.js";
+import { IconNews, IconRefresh, IconCalendar, IconStar } from "../components/icons.jsx";
 
 const SUBTABS = [
-  { key: "news", label: "本月新闻", icon: "📅" },
-  { key: "favorites", label: "收藏", icon: "⭐" },
+  { key: "news", label: "本月新闻", Icon: IconCalendar },
+  { key: "favorites", label: "收藏", Icon: IconStar },
 ];
 
 function formatTs(ts) {
@@ -44,7 +45,7 @@ export function NewsHeader({
   return (
     <div class="ithome-header">
       <div class="ithome-header-brand">
-        <span class="ithome-header-icon">📰</span>
+        <span class="ithome-header-icon"><IconNews size={18} /></span>
         <h2 class="ithome-header-title">IT 新闻</h2>
         <span class="ithome-header-sub">
           {isFavorites
@@ -61,7 +62,7 @@ export function NewsHeader({
             aria-label="拉取当前日期新闻"
           >
             <span class="ithome-refresh-icon" aria-hidden="true">
-              ↻
+              <IconRefresh size={14} />
             </span>
           </button>
         )}
@@ -83,7 +84,7 @@ export function NewsHeader({
                 class={`ithome-subtab${active ? " ithome-subtab-active" : ""}`}
                 onClick={() => setIthomeViewMode(t.key)}
               >
-                <span class="ithome-subtab-icon">{t.icon}</span>
+                <span class="ithome-subtab-icon"><t.Icon size={14} /></span>
                 <span class="ithome-subtab-label">{label}</span>
               </button>
             );

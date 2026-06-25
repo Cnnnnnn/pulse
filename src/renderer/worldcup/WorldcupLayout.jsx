@@ -23,10 +23,10 @@ import {
 } from './store.js';
 
 export const WC_SUBTABS = [
-  { key: 'fixtures', label: '赛程', icon: '📅' },
-  { key: 'teams', label: '球队', icon: '👥' },
-  { key: 'scorers', label: '进球榜', icon: '⚽' },
-  { key: 'bracket', label: '对阵', icon: '🏆' },
+  { key: 'fixtures', label: '赛程' },
+  { key: 'teams', label: '球队' },
+  { key: 'scorers', label: '进球榜' },
+  { key: 'bracket', label: '对阵' },
 ];
 
 export function WorldcupLayout() {
