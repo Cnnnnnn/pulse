@@ -8808,6 +8808,24 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-top: 4px;
   font-style: italic;
 }
+/* A8: 反馈按钮 */
+.changelog-summary-feedback {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+.changelog-summary-feedback-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 2px;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.changelog-summary-feedback-btn:hover:not(:disabled) { opacity: 1; }
+.changelog-summary-feedback-btn.is-active { opacity: 1; }
+.changelog-summary-feedback-btn:disabled { cursor: default; opacity: 1; }
 
 .changelog-summary--error {
   color: var(--accent-red, #ff3b30);

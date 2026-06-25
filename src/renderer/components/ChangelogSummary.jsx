@@ -27,8 +27,27 @@ export function ChangelogSummary({ appName }) {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
+  const [vote, setVote] = useState(null); // A8: null | "up" | "down"
 
   if (!appName) return null;
+
+  async function sendVote(v) {
+    if (vote || !api.feedbackRecord) return;
+    setVote(v);
+    try {
+      await api.feedbackRecord({
+        feature: "summary",
+        appName,
+        version: null,
+        rec: null,
+        confidence: null,
+        vote: v,
+        ts: Date.now(),
+      });
+    } catch {
+      /* noop */
+    }
+  }
 
   async function fetchSummary(force = false) {
     if (loading || !api.changelogSummaryFetch) return;
@@ -111,6 +130,24 @@ export function ChangelogSummary({ appName }) {
       {cachedAt && (
         <div class="changelog-summary-cached">{cachedAt}</div>
       )}
+      <span class="changelog-summary-feedback">
+        <button
+          type="button"
+          class={`changelog-summary-feedback-btn ${vote === "up" ? "is-active" : ""}`}
+          aria-label="feedback-up"
+          onClick={(e) => { e.stopPropagation(); sendVote("up"); }}
+          title="有用"
+          disabled={!!vote}
+        >👍</button>
+        <button
+          type="button"
+          class={`changelog-summary-feedback-btn ${vote === "down" ? "is-active" : ""}`}
+          aria-label="feedback-down"
+          onClick={(e) => { e.stopPropagation(); sendVote("down"); }}
+          title="没用"
+          disabled={!!vote}
+        >👎</button>
+      </span>
     </div>
   );
 }
