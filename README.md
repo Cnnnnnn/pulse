@@ -8,15 +8,17 @@ macOS / Windows 菜单栏小工具 — 盯着你装的那批 app 的版本，一
 
 从 [GitHub Releases](https://github.com/Cnnnnnn/pulse/releases/latest) 下载对应平台的安装包：
 
-### macOS (Apple Silicon)
+### macOS
 
-1. 下载 `Pulse-2.19.0-arm64.dmg`
+1. 根据你的 CPU 架构下载：
+   - **Apple Silicon** (M1/M2/M3/M4): `Pulse-2.46.0-arm64.dmg`
+   - **Intel** (2017 前机型): `Pulse-2.46.0-x64.dmg`
 2. 打开 dmg，把 Pulse 拖进 `/Applications/`
 3. 首次运行授权：
    - "Pulse 想要访问 .../Applications" — 允许
    - 通知权限（macOS 13+）— 允许，否则收不到更新横幅
 
-> Intel Mac 暂未提供预编译包，可从源码 `npm run build:mac -- --x64` 自行构建。
+> 不确定架构？点左上角  → 关于本机，看"芯片"或"处理器"那一行。
 
 ### Windows
 

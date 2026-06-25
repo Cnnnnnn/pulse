@@ -90,6 +90,42 @@ exports.default = async function (context) {
     );
   }
 
+  // sign nested .framework bundles (Electron Framework, Squirrel, etc.) with
+  // inherit entitlements. 没有这一步, codesign main app 会报
+  // "code object is not signed at all" — 因为 framework 是 macOS 的
+  // versioned bundle, 内部有 main binary + framework symlinks, 需要 codesign
+  // 自己走到, electron-builder 默认 universal 流程漏了 (x64 sub 失败就是这)
+  const frameworks = (() => {
+    const fs = require("fs");
+    const out = [];
+    const frameworksDir = path.join(appPath, "Contents/Frameworks");
+    if (!fs.existsSync(frameworksDir)) return out;
+    for (const name of fs.readdirSync(frameworksDir)) {
+      if (name.endsWith(".framework")) {
+        out.push(path.join(frameworksDir, name));
+      }
+    }
+    return out;
+  })();
+  for (const fw of frameworks) {
+    console.log(`[after-pack]   ad-hoc sign (framework) ${fw}`);
+    execFileSync(
+      "codesign",
+      [
+        "--force",
+        "--deep",
+        "--sign",
+        "-",
+        "--entitlements",
+        entitlementsInherit,
+        "--timestamp=none",
+        "--options=runtime",
+        fw,
+      ],
+      { stdio: "inherit" },
+    );
+  }
+
   // sign main app with main entitlements
   console.log(`[after-pack]   ad-hoc sign (main) ${appPath}`);
   execFileSync(

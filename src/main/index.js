@@ -489,9 +489,9 @@ async function bootstrap() {
     pool,
     getWindow,
     getCachedState: () => stateStore.load(),
-    onCheckComplete: (results) => {
+    onCheckComplete: (results, staleNames) => {
       if (trayMgr) {
-        trayMgr.setResults(results);
+        trayMgr.setResults(results, staleNames);
         const count = results.filter((r) => r.has_update).length;
         trayMgr.setBadge(count);
       }

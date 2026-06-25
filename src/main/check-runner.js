@@ -20,14 +20,15 @@ const { inQuietHours, suppressedByCooldown } = require("./notification-policy");
 const { isMuteActive } = require("./state-store");
 const { applySnoozeFilter } = require("./snooze");
 const recentActivity = require("./recent-activity");
+const { detectStaleApps } = require("../utils/stale-detect");
 
 const PER_APP_DETECT_TIMEOUT_MS = 95_000;
 
-function scheduleOnCheckComplete(fn, results) {
+function scheduleOnCheckComplete(fn, results, staleNames) {
   if (typeof fn !== "function") return;
   setImmediate(() => {
     try {
-      fn(results);
+      fn(results, staleNames);
     } catch {
       /* noop */
     }
@@ -141,7 +142,14 @@ async function runCheck(deps, opts = {}) {
   });
 
   // 落盘 + tray/badge (在 check-finished 之后, 避免 saveAll 阻塞 UI 结束态)
-  const finishPayload = { count: results.length, ts: Date.now() };
+  // stale 提示: 7 天没新结果的 app, 推到 tray 显示 + 留 hook 给后续 "全链重跑" 用
+  const { staleNames, freshestTs } = detectStaleApps(stateApps, Date.now());
+  const finishPayload = {
+    count: results.length,
+    ts: Date.now(),
+    stale: staleNames,
+    freshestTs,
+  };
 
   // Phase C2: load state + apply snooze filter up front, so both silent / non-silent
   // branches (and the final return) see consistent filtered results.
@@ -183,7 +191,7 @@ async function runCheck(deps, opts = {}) {
     notifyable = notifyable.filter((r) => !isMuteActive(mutes[r.name], now));
 
     sendToRenderer("check-finished", finishPayload);
-    scheduleOnCheckComplete(onCheckComplete, filteredResults);
+    scheduleOnCheckComplete(onCheckComplete, filteredResults, finishPayload.stale);
 
     if (notifyable.length > 0) {
       const names = notifyable.map((r) => r.name).join("、");
@@ -205,7 +213,7 @@ async function runCheck(deps, opts = {}) {
       }
     }
   } else {
-    scheduleOnCheckComplete(onCheckComplete, filteredResults);
+    scheduleOnCheckComplete(onCheckComplete, filteredResults, finishPayload.stale);
     sendToRenderer("auto-check-finished", finishPayload);
   }
 

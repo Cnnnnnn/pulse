@@ -90,6 +90,7 @@ function loadFallbackIcon() {
  * @param {Function} [opts.onFocusUpdate] - A2 任务: 聚焦到某条 update
  * @param {Function} [opts.getConfigPath] - 返回配置文件绝对路径
  * @param {Function} [opts.getConfig]     - 返回配置对象 (含 apps 数组)
+ * @param {string[]} [opts.staleNames]    - 超过 7 天没新结果的 app 名字, 显示 "重检查" 入口
  * @returns {Array} Electron Menu template 数组
  */
 function buildMenu(opts) {
@@ -98,6 +99,7 @@ function buildMenu(opts) {
     aiUsage = null,
     worldcup = null,
     metals = null,
+    staleNames = [],
     trayPrefs = require("./tray-menu-prefs").DEFAULT_PREFS,
     onOpenPanel = () => {},
     onCheck = () => {},
@@ -201,6 +203,14 @@ function buildMenu(opts) {
   }
 
   // ─── 底部 action (Phase v1: check_action / config_action 可关, 打开面板 + 退出锁死) ───
+  // Phase stale: "N 个 app 超过 7 天没新结果" → 点击触发 onCheck 重检查
+  if (Array.isArray(staleNames) && staleNames.length > 0) {
+    template.push({
+      label: `${staleNames.length} 个 app 超过 7 天没新结果 — 点击重检查`,
+      click: () => onCheck(),
+    });
+    template.push({ type: "separator" });
+  }
   template.push({ label: "打开面板", click: () => onOpenPanel() });
   if (seg.check_action) {
     template.push({ label: "检查更新", click: () => onCheck() });
@@ -415,7 +425,7 @@ function buildMetalsLines(metals) {
  * 用法：
  *   const tray = createTrayManager({ getApps, getConfigPath, getConfig, onCheck, onQuit, onOpenPanel, onOpenConfig });
  *   tray.install();
- *   tray.setResults(results);
+ *   tray.setResults(results, staleNames);
  *   tray.setBadge(updateCount);
  *   tray.dispose();
  */
@@ -432,6 +442,7 @@ function createTrayManager(opts) {
 
   let tray = null;
   let lastResults = [];
+  let lastStaleNames = [];
   let lastTrayMenuPrefs = require("./tray-menu-prefs").DEFAULT_PREFS;
 
   function install() {
@@ -460,6 +471,7 @@ function createTrayManager(opts) {
       worldcup: lastWorldcup,
       metals: lastMetals,
       trayPrefs: lastTrayMenuPrefs,
+      staleNames: lastStaleNames,
       getConfig: getConfig,
       onOpenPanel,
       onCheck,
@@ -482,8 +494,9 @@ function createTrayManager(opts) {
     tray.setContextMenu(Menu.buildFromTemplate(template));
   }
 
-  function setResults(results) {
+  function setResults(results, staleNames) {
     lastResults = Array.isArray(results) ? results : [];
+    if (Array.isArray(staleNames)) lastStaleNames = staleNames;
     scheduleRebuild();
   }
 

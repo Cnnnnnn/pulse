@@ -73,7 +73,17 @@ const fs = require("fs");
 const { renameSync } = fs;
 const path = require("path");
 const os = require("os");
-const { isStateValid, validateState } = require("./state-store-schema");
+// Schema 校验只在 _loadOrThrow 走错误分支时用, 走 happy path (冷启 load)
+// 完全不需要。require 本身 cached, 但把 require 挪到函数内, 至少让模块
+// evaluate 阶段不需要再触发 state-store-schema.js 的同步求值 (zero deps
+// 的小模块, 但养成 "hot path 之外不 import" 的习惯, 后续拆分时省事).
+// ponytail: < 1ms 量级, 真要抠直接 lazy import 整个 state-store.js.
+let _schema = null;
+function _getSchema() {
+  if (_schema) return _schema;
+  _schema = require("./state-store-schema");
+  return _schema;
+}
 
 class StateCorruptedError extends Error {
   constructor(
@@ -357,8 +367,8 @@ function _loadOrThrow(statePath) {
       { path: statePath, raw: raw.slice(0, 1024), parseError: e },
     );
   }
-  if (!isStateValid(parsed)) {
-    const { errors } = validateState(parsed);
+  if (!_getSchema().isStateValid(parsed)) {
+    const { errors } = _getSchema().validateState(parsed);
     throw new StateCorruptedError("state.json failed schema validation", {
       path: statePath,
       raw: raw.slice(0, 1024),
