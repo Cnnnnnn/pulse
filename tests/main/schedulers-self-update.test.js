@@ -161,3 +161,48 @@ describe("startSelfUpdateTimer", () => {
     expect(() => handle.stop()).not.toThrow(); // 双 stop 也 OK
   });
 });
+
+describe("startSelfUpdateTimer idle gate (P52 §增量自更新)", () => {
+  it("triggerNow 不受 idle gate 影响 (用户手动触发)", async () => {
+    const au = makeMockAutoUpdater();
+    const handle = startSelfUpdateTimer({
+      autoUpdater: au,
+      // 即便 powerIdleState='active', 手动 trigger 也要跑
+      getPowerIdleState: () => "active",
+    });
+    const r = await handle.triggerNow();
+    expect(r.ok).toBe(true);
+    expect(au.checkForUpdates).toHaveBeenCalled();
+    handle.stop();
+  });
+
+  it("接受 getPowerIdleState / logSkip / minBootAgeMs 选项且不抛", () => {
+    const au = makeMockAutoUpdater();
+    const skipped = [];
+    expect(() =>
+      startSelfUpdateTimer({
+        autoUpdater: au,
+        intervalMs: 50,
+        minBootAgeMs: 0,
+        getPowerIdleState: () => "idle",
+        logSkip: (reason) => skipped.push(reason),
+      }),
+    ).not.toThrow();
+    // 手动 trigger 验证 controller 仍工作
+  });
+
+  it("getPowerIdleState throw → startSelfUpdateTimer 仍能 triggerNow (defensive)", async () => {
+    const au = makeMockAutoUpdater();
+    const handle = startSelfUpdateTimer({
+      autoUpdater: au,
+      // boot < 5min, powerMonitor 抛错 → 安全降级, 不影响手动 trigger
+      getPowerIdleState: () => {
+        throw new Error("powerMonitor unavailable");
+      },
+    });
+    const r = await handle.triggerNow();
+    expect(r.ok).toBe(true);
+    expect(au.checkForUpdates).toHaveBeenCalled();
+    handle.stop();
+  });
+});

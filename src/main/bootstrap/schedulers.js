@@ -436,6 +436,35 @@ function startSelfUpdateTimer(deps = {}) {
 
   const controller = makeSelfUpdateController({ autoUpdater });
 
+  // P52 §增量自更新: 6h 周期 tick 仅在 idle 跑. 启动检测 + 手动 trigger 不受限.
+  // 决策跟 detector-chain-incremental 同款范式 (纯函数 + 接线层).
+  let bootStartedAt = Date.now();
+  let getPowerIdleState =
+    typeof deps.getPowerIdleState === "function"
+      ? deps.getPowerIdleState
+      : () => null;
+  let logSkip =
+    typeof deps.logSkip === "function"
+      ? deps.logSkip
+      : (reason) =>
+          mainLog.info(`self-update tick skipped (${reason})`);
+  const { decideSelfUpdateTick } = require("../self-update-idle");
+
+  // 幂等 powerMonitor 查询: 接线层提供 getPowerIdleState fn,
+  // 测试注入 mock, 生产接 electron.powerMonitor.getSystemIdleState.
+  // 任何异常 → 返 null (纯函数把 null 当 "unknown" 处理, 不阻断但也不强跑).
+  function safeGetPowerIdleState(fn) {
+    try {
+      const r = fn();
+      if (r === "active" || r === "idle" || r === "locked" || r === "unknown") {
+        return r;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   async function checkOnce() {
     return controller.checkNow();
   }
@@ -445,6 +474,15 @@ function startSelfUpdateTimer(deps = {}) {
   try {
     intervalHandle = setManagedInterval(
       () => {
+        const decision = decideSelfUpdateTick({
+          bootStartedAt,
+          now: Date.now(),
+          powerIdleState: safeGetPowerIdleState(getPowerIdleState),
+        });
+        if (decision.action === "skip") {
+          logSkip(decision.reason);
+          return;
+        }
         checkOnce().catch(() => {
           /* swallow */
         });
@@ -456,7 +494,7 @@ function startSelfUpdateTimer(deps = {}) {
         line: 0,
       },
     );
-    mainLog.info(`self-update timer set: every ${Math.round(intervalMs / 60000)}min`);
+    mainLog.info(`self-update timer set: every ${Math.round(intervalMs / 60000)}min (idle-gated)`);
   } catch (err) {
     mainLog.warn(`[self-update] setManagedInterval failed: ${err && err.message}`);
   }

@@ -135,6 +135,25 @@ async function bootstrap() {
   try {
     selfUpdateHandle = startSelfUpdateTimer({
       getCurrentVersion: () => app.getVersion(),
+      // P52 §增量自更新: 6h 周期 tick 用 Electron powerMonitor 判 idle.
+      // 启动 5min 内 + 系统非 idle → skip; 用户手动 triggerNow 不受限.
+      getPowerIdleState: () => {
+        try {
+          const { powerMonitor } = require("electron");
+          if (
+            powerMonitor &&
+            typeof powerMonitor.getSystemIdleState === "function"
+          ) {
+            // threshold 120s: 用户 2 分钟无操作算 idle; 锁屏/屏保也算.
+            return powerMonitor.getSystemIdleState(120);
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      },
+      logSkip: (reason) =>
+        mainLog.info(`[self-update] 6h tick skipped (${reason})`),
     });
   } catch (err) {
     mainLog.warn(`[self-update] bootstrap failed: ${err && err.message}`);
