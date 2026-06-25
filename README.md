@@ -30,6 +30,14 @@ macOS / Windows 菜单栏小工具 — 盯着你装的那批 app 的版本，一
 
 > 不确定架构？任务管理器 → 性能 → CPU，看右上角"机率"或"体系结构"。
 
+## 截图一览
+
+> 完整采集流程见 `docs/screenshots/CAPTURE.md`. 重新截图触发条件: major version bump / 改主面板 / 加新 AI 板块.
+
+| 主窗口 | 菜单栏 | AI 摘要 | 每日 digest |
+|---|---|---|---|
+| ![主窗口](docs/screenshots/main-window.png) | ![tray 菜单](docs/screenshots/tray-menu.png) | ![AI 摘要](docs/screenshots/ai-summary.png) | ![digest](docs/screenshots/digest-drawer.png) |
+
 ## 它做什么
 
 打开后是个 floating window，列着你配的每个 app：
