@@ -8647,6 +8647,28 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: 11px;
   color: var(--text-soft, rgba(0,0,0,.5));
 }
+/* P61: 配置导入 modal */
+.config-import-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+.config-import-modal-content {
+  background: var(--bg, #fff); border-radius: 10px; padding: 20px;
+  max-width: 560px; width: 90%; max-height: 80vh; overflow: auto;
+}
+.config-import-source { font-size: 11px; color: var(--text-soft, #888); word-break: break-all; margin: 4px 0 8px; }
+.config-import-diff { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0; }
+.config-import-diff th, .config-import-diff td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border, #eee); }
+.config-import-diff th { font-weight: 600; background: var(--bg-soft, #f5f5f7); }
+.config-import-status { padding: 1px 6px; border-radius: 8px; font-size: 10px; }
+.config-import-status.is-added { background: #d4edda; color: #155724; }
+.config-import-status.is-changed { background: #fff3cd; color: #856404; }
+.config-import-status.is-same { background: var(--bg-soft, #eee); color: var(--text-soft, #888); }
+.config-import-status.is-removed { background: #f8d7da; color: #721c24; }
+.config-import-row.is-removed { opacity: 0.5; }
+.config-import-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+/* P61: DiagnosticsDrawer 配置备份区 */
+.diag-config-portability-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .prompt-settings-item { margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary, #f5f5f7); border-radius: 8px; }
 .prompt-settings-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .prompt-settings-item-label { font-size: 13px; font-weight: 600; }

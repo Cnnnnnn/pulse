@@ -87,6 +87,9 @@ contextBridge.exposeInMainWorld("api", {
   feedbackExport: () => ipcRenderer.invoke("feedback:export"),
   tokenBudgetGet: () => ipcRenderer.invoke("token-budget:get"),
   tokenBudgetSet: (payload) => ipcRenderer.invoke("token-budget:set", payload),
+  configExport: (pulseVersion) => ipcRenderer.invoke("config:export", pulseVersion),
+  configImportLoad: () => ipcRenderer.invoke("config:import-load"),
+  configImportApply: (payload) => ipcRenderer.invoke("config:import-apply", payload),
   onAiPromptsUpdated: (cb) => {
     const handler = (_evt) => cb();
     ipcRenderer.on("ai-prompts-updated", handler);

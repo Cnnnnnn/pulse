@@ -23,6 +23,9 @@ const {
 } = require("./register-changelog-summary");
 const { registerAiFeedbackHandlers } = require("./register-ai-feedback");
 const { registerTokenBudgetHandlers } = require("./register-token-budget");
+const {
+  registerConfigPortabilityHandlers,
+} = require("./register-config-portability");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -45,6 +48,10 @@ function registerIpcHandlers(deps) {
   registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要
   registerAiFeedbackHandlers(ctx); // A8: AI 反馈闭环
   registerTokenBudgetHandlers(ctx); // P71: token 预算
+  registerConfigPortabilityHandlers({
+    ...ctx,
+    dialog: require("electron").dialog,
+  }); // P61: 配置导入导出 (首次引入 electron dialog)
 }
 
 module.exports = { registerIpcHandlers };

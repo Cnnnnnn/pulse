@@ -189,6 +189,9 @@ export function createApi(overrides = {}) {
     feedbackExport: pick(overrides, "feedbackExport"),
     tokenBudgetGet: pick(overrides, "tokenBudgetGet"),
     tokenBudgetSet: pick(overrides, "tokenBudgetSet"),
+    configExport: pick(overrides, "configExport"),
+    configImportLoad: pick(overrides, "configImportLoad"),
+    configImportApply: pick(overrides, "configImportApply"),
     onAiPromptsUpdated: pick(overrides, "onAiPromptsUpdated"),
   };
 }
