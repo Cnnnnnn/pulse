@@ -48,6 +48,45 @@ export function DiagnosticsDrawer() {
   const samples = diagnosticsSamples.value;
   const diagLoading = diagnosticsDiagnosticsLoading.value;
   const exporting = diagnosticsExporting.value;
+
+  // P52: 自更新状态 (拉一次, 下载进度定期重拉)
+  const [updateState, setUpdateState] = useState(null);
+  useEffect(() => {
+    if (!api.selfUpdateGetState) return undefined;
+    let cancelled = false;
+    const pull = async () => {
+      try {
+        const r = await api.selfUpdateGetState();
+        if (!cancelled && r && r.ok) setUpdateState(r.state);
+      } catch {
+        /* noop */
+      }
+    };
+    pull();
+    // downloading 状态下每 2s 重拉一次 progress, 其他状态只拉一次
+    const interval = setInterval(pull, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [open]);
+
+  const onSelfUpdateCheck = async () => {
+    if (!api.selfUpdateCheck) return;
+    const r = await api.selfUpdateCheck();
+    if (r && r.ok && api.selfUpdateGetState) {
+      const s = await api.selfUpdateGetState();
+      if (s && s.ok) setUpdateState(s.state);
+    }
+  };
+  const onSelfUpdateInstall = async () => {
+    if (!api.selfUpdateInstall) return;
+    const r = await api.selfUpdateInstall();
+    if (r && !r.ok) {
+      // eslint-disable-next-line no-alert
+      window.alert(`退出并安装失败: ${r.error || r.reason || "未知错误"}`);
+    }
+  };
   const lastExport = diagnosticsLastExport.value;
 
   const [importOpen, setImportOpen] = useState(false);
@@ -166,6 +205,34 @@ export function DiagnosticsDrawer() {
 
   const diagSections = (
     <>
+      {updateState && updateState.available && (
+        <div class="diag-self-update">
+          <div class="diag-self-update-info">
+            <b>Pulse 有新版 v{updateState.version}</b>
+            {updateState.status === "checking" && " (检测中…)"}
+            {updateState.status === "downloading" &&
+              ` (下载中 ${updateState.downloadPercent}%)`}
+            {updateState.status === "downloaded" && " (已下载, 待安装)"}
+            {updateState.status === "error" && ` (错误: ${updateState.error})`}
+          </div>
+          {updateState.status === "downloaded" && (
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              onClick={onSelfUpdateInstall}
+            >
+              退出并安装
+            </button>
+          )}
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            onClick={onSelfUpdateCheck}
+          >
+            重新检测
+          </button>
+        </div>
+      )}
       <div class="diagnostics-drawer__stats">
         共 <b>{stats.total}</b> 条 · error: {stats.byLevel.error || 0} · warn: {stats.byLevel.warn || 0} · unhandled: {stats.byLevel.unhandled || 0}
       </div>

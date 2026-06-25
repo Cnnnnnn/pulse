@@ -3006,6 +3006,17 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   flex-shrink: 0;
 }
 .diagnostics-drawer__close:hover { color: var(--text-primary, #222); background: var(--bg-hover, #f5f5f7); }
+.diag-self-update {
+  display: flex; align-items: center; gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  margin: var(--space-2, 8px);
+  background: linear-gradient(90deg, rgba(40,167,69,.10), rgba(40,167,69,0));
+  border: 1px solid rgba(40,167,69,.25);
+  border-radius: var(--radius-md, 6px);
+  font-size: var(--font-size-sm, 12px);
+}
+.diag-self-update-info { flex: 1 1 160px; min-width: 0; }
 .diagnostics-drawer__stats {
   padding: var(--space-1h, 6px) var(--space-3, 12px);
   font-size: var(--font-size-sm, 12px);

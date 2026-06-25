@@ -91,6 +91,7 @@ function loadFallbackIcon() {
  * @param {Function} [opts.getConfigPath] - 返回配置文件绝对路径
  * @param {Function} [opts.getConfig]     - 返回配置对象 (含 apps 数组)
  * @param {string[]} [opts.staleNames]    - 超过 7 天没新结果的 app 名字, 显示 "重检查" 入口
+ * @param {object}  [opts.selfUpdateState] - P52: {available, version, status, ...} Pulse 自更新状态
  * @returns {Array} Electron Menu template 数组
  */
 function buildMenu(opts) {
@@ -100,6 +101,7 @@ function buildMenu(opts) {
     worldcup = null,
     metals = null,
     staleNames = [],
+    selfUpdateState = null,
     trayPrefs = require("./tray-menu-prefs").DEFAULT_PREFS,
     onOpenPanel = () => {},
     onCheck = () => {},
@@ -203,6 +205,18 @@ function buildMenu(opts) {
   }
 
   // ─── 底部 action (Phase v1: check_action / config_action 可关, 打开面板 + 退出锁死) ───
+  // P52: "Pulse 有新版 vX.Y.Z" → 点击打开主面板 (DiagnosticsDrawer 提示)
+  if (
+    selfUpdateState &&
+    selfUpdateState.available &&
+    selfUpdateState.version
+  ) {
+    template.push({
+      label: `Pulse 有新版 v${selfUpdateState.version} — 点击查看`,
+      click: () => onOpenPanel(),
+    });
+    template.push({ type: "separator" });
+  }
   // Phase stale: "N 个 app 超过 7 天没新结果" → 点击触发 onCheck 重检查
   if (Array.isArray(staleNames) && staleNames.length > 0) {
     template.push({
@@ -443,6 +457,7 @@ function createTrayManager(opts) {
   let tray = null;
   let lastResults = [];
   let lastStaleNames = [];
+  let lastSelfUpdateState = null;
   let lastTrayMenuPrefs = require("./tray-menu-prefs").DEFAULT_PREFS;
 
   function install() {
@@ -472,6 +487,7 @@ function createTrayManager(opts) {
       metals: lastMetals,
       trayPrefs: lastTrayMenuPrefs,
       staleNames: lastStaleNames,
+      selfUpdateState: lastSelfUpdateState,
       getConfig: getConfig,
       onOpenPanel,
       onCheck,
@@ -497,6 +513,12 @@ function createTrayManager(opts) {
   function setResults(results, staleNames) {
     lastResults = Array.isArray(results) ? results : [];
     if (Array.isArray(staleNames)) lastStaleNames = staleNames;
+    scheduleRebuild();
+  }
+
+  // P52: 自更新 state 变化时 rebuild tray menu (e.g. 检测到 v2.47.0)
+  function setSelfUpdateState(state) {
+    lastSelfUpdateState = state || null;
     scheduleRebuild();
   }
 
@@ -572,6 +594,7 @@ function createTrayManager(opts) {
     setAiUsage,
     setWorldcup,
     setMetals,
+    setSelfUpdateState,
     setTrayMenuPrefs,
     dispose,
   };
