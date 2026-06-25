@@ -8660,6 +8660,25 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   opacity: 0.7;
 }
 .upgrade-advice-retry:hover, .upgrade-advice-refresh:hover { opacity: 1; }
+/* A8: 反馈按钮 */
+.upgrade-advice-feedback {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.upgrade-advice-feedback-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 2px;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.upgrade-advice-feedback-btn:hover:not(:disabled) { opacity: 1; }
+.upgrade-advice-feedback-btn.is-active { opacity: 1; }
+.upgrade-advice-feedback-btn:disabled { cursor: default; opacity: 1; }
 .upgrade-advice-loading-label { font-style: italic; font-size: 11px; }
 .upgrade-advice-reasons {
   list-style: none;
