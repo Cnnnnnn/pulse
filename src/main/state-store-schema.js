@@ -36,6 +36,8 @@ const FIELD_SPECS = {
   worldcup_bracket_snapshot: { kind: 'object' },
   worldcupGoalNotified: { kind: 'object' },
   daily_digest:       { kind: 'object' },
+  tokenSpend:         { kind: 'object' },  // P71: 每日 token 消耗 {"YYYY-MM-DD": number}
+  tokenBudgetConfig:  { kind: 'object' },  // P71: { dailyLimit, mode }
 };
 
 function isObject(v) {
