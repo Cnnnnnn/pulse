@@ -8604,6 +8604,36 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .prompt-settings { padding: 12px 0; }
 .prompt-settings-title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
 .prompt-settings-hint { font-size: 11px; color: var(--text-soft, rgba(0,0,0,.5)); margin: 0 0 12px; }
+/* P71: token 预算行 */
+.token-budget-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  background: var(--bg-soft, rgba(0,0,0,.03));
+  border-radius: 6px;
+  font-size: 12px;
+}
+.token-budget-label { font-weight: 600; }
+.token-budget-limit-input {
+  width: 90px;
+  padding: 3px 6px;
+  font-size: 12px;
+  border: 1px solid var(--border, rgba(0,0,0,.15));
+  border-radius: 4px;
+}
+.token-budget-mode-select {
+  padding: 3px 6px;
+  font-size: 12px;
+  border: 1px solid var(--border, rgba(0,0,0,.15));
+  border-radius: 4px;
+}
+.token-budget-spend {
+  font-size: 11px;
+  color: var(--text-soft, rgba(0,0,0,.5));
+}
 .prompt-settings-item { margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary, #f5f5f7); border-radius: 8px; }
 .prompt-settings-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .prompt-settings-item-label { font-size: 13px; font-weight: 600; }
