@@ -52,6 +52,23 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
 
   async function fetchAdvice(force = false) {
     if (loading || !api.upgradeAdviceFetch) return;
+    // A8: force 重生成 = 用户对当前结果不满意 → 记一条隐式反馈
+    if (force && api.feedbackRecord && advice) {
+      try {
+        api.feedbackRecord({
+          feature: "advice",
+          appName,
+          version: advice.latestVersion,
+          rec: advice.recommendation,
+          confidence: advice.confidence,
+          vote: null,
+          implicit: "refreshed",
+          ts: Date.now(),
+        });
+      } catch {
+        /* noop */
+      }
+    }
     setLoading(true);
     setError(null);
     try {

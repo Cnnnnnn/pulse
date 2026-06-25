@@ -76,4 +76,25 @@ describe("UpgradeAdvice 反馈按钮", () => {
     await waitFor(() => expect(api.feedbackRecord).toHaveBeenCalled());
     expect(api.feedbackRecord.mock.calls[0][0].vote).toBe("down");
   });
+
+  it("force 刷新(↻)记录一条 implicit=refreshed 隐式信号", async () => {
+    const { container } = render(<UpgradeAdvice appName="VSCode" hasUpdate />);
+    // 先拉一次出结果
+    fireEvent.click(container.querySelector(".upgrade-advice-trigger"));
+    await waitFor(() => {
+      expect(container.querySelector(".upgrade-advice-refresh")).toBeTruthy();
+    });
+    // 清掉前面 fetch 不该记的调用
+    api.feedbackRecord.mockClear();
+    // 点 ↻ force 重生成
+    fireEvent.click(container.querySelector(".upgrade-advice-refresh"));
+    await waitFor(() => {
+      const refreshedCall = api.feedbackRecord.mock.calls.find(
+        (c) => c[0] && c[0].implicit === "refreshed"
+      );
+      expect(refreshedCall).toBeTruthy();
+      expect(refreshedCall[0].feature).toBe("advice");
+      expect(refreshedCall[0].appName).toBe("VSCode");
+    });
+  });
 });
