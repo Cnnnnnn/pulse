@@ -17,10 +17,18 @@ function createIpcContext(deps) {
     onCheckComplete,
     getCachedState,
     getFundScheduler,
+    getSelfUpdateController,
   } = deps;
 
   function fundScheduler() {
     return typeof getFundScheduler === "function" ? getFundScheduler() : null;
+  }
+
+  // P52: 自更新 controller (startSelfUpdateTimer 注入的)
+  function selfUpdateController() {
+    return typeof getSelfUpdateController === "function"
+      ? getSelfUpdateController()
+      : null;
   }
 
   function sendToRenderer(channel, payload) {
@@ -61,6 +69,7 @@ function createIpcContext(deps) {
     onCheckComplete,
     getCachedState,
     fundScheduler,
+    selfUpdateController,
     sendToRenderer,
     threwResponse,
     safeHandle,

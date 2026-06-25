@@ -96,6 +96,7 @@ const {
   wireRecentActivityListener,
   startAutoCheckTimer,
   makeRefreshLastOpenedAfterCheck,
+  startSelfUpdateTimer,
 } = require("./bootstrap/schedulers.js");
 const {
   createSender,
@@ -127,6 +128,31 @@ async function bootstrap() {
   const t0 = Date.now();
   const statePath = stateStore.initStateStorePaths();
   mainLog.info(`state store path: ${statePath}`);
+
+  // P52: 自更新 controller — 必须早于 registerIpcHandlers,
+  // 因为 IPC handler 启动时就读 selfUpdateController().
+  let selfUpdateHandle = null;
+  try {
+    selfUpdateHandle = startSelfUpdateTimer({
+      getCurrentVersion: () => app.getVersion(),
+    });
+  } catch (err) {
+    mainLog.warn(`[self-update] bootstrap failed: ${err && err.message}`);
+  }
+
+  // P52: 把 controller state 推 tray (avail → 显示 "Pulse 有新版 vX.Y.Z")
+  function pushSelfUpdateToTray() {
+    try {
+      if (trayMgr && selfUpdateHandle && selfUpdateHandle.controller) {
+        trayMgr.setSelfUpdateState(selfUpdateHandle.controller.getState());
+      }
+    } catch (err) {
+      mainLog.warn(`[self-update] push to tray failed: ${err && err.message}`);
+    }
+  }
+  // 30s 内 timer 已 dispatch 完一次 (autoUpdater.checking-for-update), 同步拉一次 state.
+  setTimeout(pushSelfUpdateToTray, 35000);
+  setInterval(pushSelfUpdateToTray, 5 * 60 * 1000); // 5min 兜底轮询, 状态变化时实时性靠 autoUpdater event
   // Phase Q6: capture uncaught main errors + best-effort cleanup of old logs
   try {
     initErrorCapture({ sendToRenderer });
@@ -503,6 +529,10 @@ async function bootstrap() {
       refreshLastOpenedAfterCheck();
     },
     getFundScheduler: () => fundScheduler,
+    getSelfUpdateController: () =>
+      selfUpdateHandle && selfUpdateHandle.controller
+        ? selfUpdateHandle.controller
+        : null,
   });
   mainLog.info(`ipc registered`);
 

@@ -298,6 +298,11 @@ contextBridge.exposeInMainWorld("api", {
     return () =>
       ipcRenderer.removeListener("version-history-counts-updated", handler);
   },
+
+  // P52: Pulse 自更新 (半自动档: 检测+下载+手动确认安装)
+  selfUpdateGetState: () => ipcRenderer.invoke("self-update:get-state"),
+  selfUpdateCheck: () => ipcRenderer.invoke("self-update:check"),
+  selfUpdateInstall: () => ipcRenderer.invoke("self-update:install"),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

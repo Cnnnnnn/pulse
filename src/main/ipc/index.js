@@ -23,6 +23,7 @@ const {
 } = require("./register-changelog-summary");
 const { registerAiFeedbackHandlers } = require("./register-ai-feedback");
 const { registerTokenBudgetHandlers } = require("./register-token-budget");
+const { registerSelfUpdateHandlers } = require("./register-self-update");
 const {
   registerConfigPortabilityHandlers,
 } = require("./register-config-portability");
@@ -52,6 +53,10 @@ function registerIpcHandlers(deps) {
     ...ctx,
     dialog: require("electron").dialog,
   }); // P61: 配置导入导出 (首次引入 electron dialog)
+  registerSelfUpdateHandlers({
+    ...ctx,
+    controller: ctx.selfUpdateController ? ctx.selfUpdateController() : null,
+  }); // P52: 自更新 IPC (controller 由 bootstrap 注入, 未注入则不注册任何 handler)
 }
 
 module.exports = { registerIpcHandlers };
