@@ -83,4 +83,41 @@ describe('GithubReleaseDetector', () => {
     );
     expect(r.changelog).toContain('Fixed bug');
   });
+
+  // P53: html_url 透传到 release_url, 让 ChangelogPanel 跳到该版本 release page.
+  it('html_url 透传到 release_url', async () => {
+    const htmlUrl =
+      'https://github.com/owner/repo/releases/tag/v3.7.12';
+    const http = new MockHttp({
+      get: [
+        {
+          status: 200,
+          body: JSON.stringify({
+            tag_name: 'v3.7.12',
+            html_url: htmlUrl,
+            body: 'changes',
+          }),
+        },
+      ],
+    });
+    const r = await new GithubReleaseDetector({ url: 'x' }).detect(
+      makeCtx({ http }),
+    );
+    expect(r.release_url).toBe(htmlUrl);
+  });
+
+  it('html_url 缺失 → release_url 为空字符串', async () => {
+    const http = new MockHttp({
+      get: [
+        {
+          status: 200,
+          body: JSON.stringify({ tag_name: '1.0.0' }),
+        },
+      ],
+    });
+    const r = await new GithubReleaseDetector({ url: 'x' }).detect(
+      makeCtx({ http }),
+    );
+    expect(r.release_url).toBe('');
+  });
 });

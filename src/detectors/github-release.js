@@ -68,6 +68,12 @@ class GithubReleaseDetector extends Detector {
     // release body 当 changelog (markdown 格式)
     const changelog = data && typeof data.body === 'string' ? data.body : '';
 
+    // html_url 是 GitHub 给的天然 releases page URL, 跟 tag 绑定
+    // (https://github.com/{owner}/{repo}/releases/tag/{tag_name}). 用作 release_url
+    // 让 ChangelogPanel / BulkUpgrade 能 deep-link 到具体版本.
+    const releaseUrl =
+      data && typeof data.html_url === 'string' ? data.html_url : '';
+
     return new DetectorResult({
       version,
       raw: truncate(r.body, 1024),
@@ -75,6 +81,7 @@ class GithubReleaseDetector extends Detector {
       confidence: 'high',
       note: 'github releases latest',
       changelog,
+      release_url: releaseUrl,
     });
   }
 }

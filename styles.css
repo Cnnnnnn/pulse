@@ -8987,6 +8987,28 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-bottom: 0;
 }
 
+/* ↗ Releases 按钮 (P53: deep link to GitHub Releases / release page).
+   走主进程 open-url IPC (验证 http/https 后 shell.openExternal),
+   跟系统 "在浏览器打开" 一致. */
+.changelog-releases-btn {
+  margin-left: auto;
+  font-size: var(--font-size-xs, 11px);
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  border-radius: var(--radius-sm, 4px);
+  color: var(--accent-color, #4a90e2);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.changelog-releases-btn:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--accent-color, #4a90e2);
+}
+.changelog-releases-btn:active {
+  transform: translateY(0.5px);
+}
+
 .changelog-summary-trigger {
   font-size: var(--font-size-xs, 11px);
   padding: 2px 8px;

@@ -123,6 +123,7 @@ describe('detector-chain: github_release 接入', () => {
           body: JSON.stringify({
             tag_name: 'v2.5.0',
             name: 'Release 2.5.0',
+            html_url: 'https://github.com/owner/myapp/releases/tag/v2.5.0',
             body: '## Changes\n- New feature',
           }),
         },
@@ -149,6 +150,10 @@ describe('detector-chain: github_release 接入', () => {
     expect(r.result.confidence).toBe('high');
     expect(r.result.source).toBe('github_release');
     expect(r.result.changelog).toContain('New feature');
+    // P53: html_url 透传到 release_url (ChangelogPanel ↗ 按钮用)
+    expect(r.result.release_url).toBe(
+      'https://github.com/owner/myapp/releases/tag/v2.5.0',
+    );
     expect(http.getCalls).toHaveLength(1);
     expect(http.getCalls[0].url).toBe(
       'https://api.github.com/repos/owner/myapp/releases/latest',

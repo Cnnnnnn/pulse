@@ -9,6 +9,35 @@
 import { useState, useMemo, useEffect, useRef } from 'preact/hooks';
 import { renderChangelog } from '../changelog.js';
 import { ChangelogSummary } from './ChangelogSummary.jsx';
+import { api } from '../api.js';
+
+/**
+ * Deep-link 到 GitHub Releases / 该版本 release page. 主进程 open-url IPC
+ * 验证 + shell.openExternal 打开系统浏览器 (Electron target=_blank 默认
+ * 在 Pulse 内开新 BrowserWindow, 不是用户预期的"系统浏览器打开").
+ */
+function openExternal(url) {
+  if (!url) return;
+  if (api && typeof api.openUrl === 'function') {
+    api.openUrl(url).catch(() => {});
+  } else if (typeof window !== 'undefined' && window.open) {
+    // 兜底: 没 preload (例如 dev/snapshot) 时, 用 window.open (browser 内开 tab)
+    try { window.open(url, '_blank', 'noopener'); } catch { /* noop */ }
+  }
+}
+
+/**
+ * 根据 source 字段给出 release page 按钮文案. 通用 fallback: "查看发布页".
+ */
+function releasesLinkLabel(source) {
+  if (typeof source === 'string' && source.includes('github')) {
+    return '↗ GitHub Releases';
+  }
+  if (typeof source === 'string' && source.startsWith('sparkle')) {
+    return '↗ 项目主页';
+  }
+  return '↗ 查看发布页';
+}
 
 export function ChangelogPanel({ result }) {
   const src = result && result.changelog;
@@ -21,6 +50,10 @@ export function ChangelogPanel({ result }) {
     || url
     || (result && result.download_url)
     || '';
+  // 当前 detector 返的 release page URL (e.g. github_release.html_url),
+  // 跟 fallback 区别: 永远是该版本的 releases page, 不是 changelog 备份页.
+  // 显示在 panel 头部, 让用户一键跳到 "原汁原味" 的 release notes.
+  const releaseUrl = (result && result.release_url) || '';
   const [view, setView] = useState('current'); // 'current' | history index
 
   // 切换 view 时重置到 current
@@ -33,7 +66,7 @@ export function ChangelogPanel({ result }) {
   }, [result && result.latest_version]);
 
   // 源/url/历史/release_notes_url 都没有 → 整个 panel 都不渲染
-  if (!src && !url && history.length === 0 && !fallbackUrl) return null;
+  if (!src && !url && history.length === 0 && !fallbackUrl && !releaseUrl) return null;
 
   // 当前选中显示的内容
   const isCurrent = view === 'current';
@@ -70,6 +103,18 @@ export function ChangelogPanel({ result }) {
         <div class="changelog-version-label">{activeLabel}</div>
         {isCurrent && result && result.name && (
           <ChangelogSummary appName={result.name} />
+        )}
+        {/* ↗ Releases 按钮: 跳到该版本的 release page (e.g. GitHub Releases).
+            只在 release_url 存在时显示, 走主进程 open-url IPC → shell.openExternal. */}
+        {isCurrent && releaseUrl && (
+          <button
+            type="button"
+            class="changelog-releases-btn"
+            title={`在浏览器打开: ${releaseUrl}`}
+            onClick={() => openExternal(releaseUrl)}
+          >
+            {releasesLinkLabel(result.source)}
+          </button>
         )}
       </div>
       <div
