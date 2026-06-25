@@ -5591,6 +5591,19 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 0;
 }
 
+.ai-usage-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.ai-usage-header-actions .ai-usage-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+}
+
 .fund-btn {
   border: 1px solid var(--border, #e5e5e5);
   border-radius: 8px;

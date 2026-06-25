@@ -316,7 +316,7 @@ function ProviderUsageView({ provider }) {
             aria-label="用量异常提醒"
             aria-pressed={prefs.enabled !== false}
           >
-            <IconBell size={16} />
+            <IconBell size={18} />
           </button>
           <button
             class="ai-usage-refresh-btn"
