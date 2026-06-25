@@ -28,11 +28,47 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
   const [loading, setLoading] = useState(false);
   const [advice, setAdvice] = useState(null);
   const [error, setError] = useState(null);
+  const [vote, setVote] = useState(null); // A8: null | "up" | "down" (反馈后锁定)
 
   if (!hasUpdate || !appName) return null;
 
+  async function sendVote(v) {
+    if (vote || !api.feedbackRecord) return; // 已投过 / 无 API
+    setVote(v);
+    try {
+      await api.feedbackRecord({
+        feature: "advice",
+        appName,
+        version: advice && advice.latestVersion,
+        rec: advice && advice.recommendation,
+        confidence: advice && advice.confidence,
+        vote: v,
+        ts: Date.now(),
+      });
+    } catch {
+      /* noop, 反馈丢失不影响主流程 */
+    }
+  }
+
   async function fetchAdvice(force = false) {
     if (loading || !api.upgradeAdviceFetch) return;
+    // A8: force 重生成 = 用户对当前结果不满意 → 记一条隐式反馈
+    if (force && api.feedbackRecord && advice) {
+      try {
+        api.feedbackRecord({
+          feature: "advice",
+          appName,
+          version: advice.latestVersion,
+          rec: advice.recommendation,
+          confidence: advice.confidence,
+          vote: null,
+          implicit: "refreshed",
+          ts: Date.now(),
+        });
+      } catch {
+        /* noop */
+      }
+    }
     setLoading(true);
     setError(null);
     try {
@@ -115,6 +151,24 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
       {cachedAt && (
         <span class="upgrade-advice-cached">{cachedAt}</span>
       )}
+      <span class="upgrade-advice-feedback">
+        <button
+          type="button"
+          class={`upgrade-advice-feedback-btn ${vote === "up" ? "is-active" : ""}`}
+          aria-label="feedback-up"
+          onClick={(e) => { e.stopPropagation(); sendVote("up"); }}
+          title="有用"
+          disabled={!!vote}
+        >👍</button>
+        <button
+          type="button"
+          class={`upgrade-advice-feedback-btn ${vote === "down" ? "is-active" : ""}`}
+          aria-label="feedback-down"
+          onClick={(e) => { e.stopPropagation(); sendVote("down"); }}
+          title="没用"
+          disabled={!!vote}
+        >👎</button>
+      </span>
       <button
         type="button"
         class="upgrade-advice-refresh"

@@ -36,6 +36,7 @@ const FIELD_SPECS = {
   worldcup_bracket_snapshot: { kind: 'object' },
   worldcupGoalNotified: { kind: 'object' },
   daily_digest:       { kind: 'object' },
+  aiFeedback:         { kind: 'array' },   // A8: AI 反馈样本 cap-500
 };
 
 function isObject(v) {

@@ -260,6 +260,7 @@ const PRESERVE_FIELDS = [
   { key: "ai_prompts", kind: "object", notArray: true }, // A7: { promptId: { system, rules } } — 用户自定义 AI prompt
   { key: "upgrade_advice_cache", kind: "object", notArray: true }, // A2: 升级建议缓存
   { key: "changelog_summary_cache", kind: "object", notArray: true }, // A1: changelog 摘要缓存
+  { key: "aiFeedback", kind: "array" }, // A8: AI 反馈样本 cap-500
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -1857,6 +1858,35 @@ function saveStartupSamples(samples, statePath = defaultPath()) {
 }
 
 /**
+ * A8: load AI 反馈样本 (cap 500, 由 ai-feedback-store.pruneToCap 维护).
+ * 无字段 / 损坏 → []. caller (IPC) 负责 dedupe + cap.
+ * @param {string} [statePath]
+ * @returns {Array<object>}
+ */
+function loadAiFeedback(statePath = defaultPath()) {
+  try {
+    const s = load(statePath);
+    const arr = s && s.aiFeedback;
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A8: save AI 反馈样本. 非数组忽略 (防御). 不破坏其它字段 (走 patchState).
+ * @param {Array<object>} samples
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveAiFeedback(samples, statePath = defaultPath()) {
+  if (!Array.isArray(samples)) return load(statePath);
+  return patchState((next) => {
+    next.aiFeedback = samples;
+  }, statePath);
+}
+
+/**
  * I2 v1: load watchlist (pinned apps).
  * I2 v2: 支持 type=app|fund|keyword, ref 为统一主键.
  * Old state.json without watchlist field → []. 兼容老数据 (appName → type:app).
@@ -2035,6 +2065,9 @@ module.exports = {
   // 2026-06-23: Phase Q1 v2 — 启动耗时历史 (cap 20)
   loadStartupSamples,
   saveStartupSamples,
+  // A8: AI 反馈样本
+  loadAiFeedback,
+  saveAiFeedback,
   // I2 v1: watchlist
   loadWatchlist,
   saveWatchlist,
