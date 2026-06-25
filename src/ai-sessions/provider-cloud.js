@@ -281,7 +281,30 @@ class CloudSummarizer {
  if (content == null) {
  throw new Error(`cloud_summarize: missing content in response (provider=${providerId}); body=${(r.body || '').slice(0,200)}`);
  }
- return content;
+
+ // P71: 透出 token usage 给预算统计. 协议差异归一成 { total_tokens, prompt_tokens, completion_tokens }.
+ let usage = null;
+ if (parsed && parsed.usage && typeof parsed.usage === 'object') {
+   if (ep.protocol === 'openai') {
+     const u = parsed.usage;
+     const num = (v) => (typeof v === 'number' ? v : null);
+     usage = {
+       total_tokens: num(u.total_tokens),
+       prompt_tokens: num(u.prompt_tokens),
+       completion_tokens: num(u.completion_tokens),
+     };
+   } else {
+     // Anthropic: input_tokens / output_tokens
+     const input = typeof parsed.usage.input_tokens === 'number' ? parsed.usage.input_tokens : 0;
+     const output = typeof parsed.usage.output_tokens === 'number' ? parsed.usage.output_tokens : 0;
+     usage = {
+       total_tokens: input + output,
+       prompt_tokens: input || null,
+       completion_tokens: output || null,
+     };
+   }
+ }
+ return { content, usage };
  }
 }
 

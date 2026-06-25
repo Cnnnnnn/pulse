@@ -94,13 +94,15 @@ async function chatCompletion(messages, opts = {}) {
   const httpClient = opts.httpClient || _getHttp();
   const summarizer = opts.impl || new CloudSummarizer();
   try {
-    const text = await summarizer.summarize({
+    const result = await summarizer.summarize({
       messages,
       provider: resolved.providerId,
       model: resolved.model,
       config: resolved.config,
       httpClient,
     });
+    // P71: summarize 返回 { content, usage }; 兼容旧 string 返回
+    const text = typeof result === "string" ? result : (result && result.content);
     return {
       ok: true,
       text: sanitizeLlmOutput(String(text || "").trim()),

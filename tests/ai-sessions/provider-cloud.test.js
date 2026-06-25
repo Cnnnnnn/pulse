@@ -79,7 +79,7 @@ describe('CloudSummarizer —路由 + URL', () => {
  config: makeCfg(providerId),
  httpClient: http,
  });
- expect(out).toBe('#总结\n- a'); // 真换行 (JSON parse 后 \n)
+ expect(out.content).toBe('#总结\n- a'); // P71: 返回 { content, usage }; 真换行 (JSON parse 后 \n)
  });
  }
 });
