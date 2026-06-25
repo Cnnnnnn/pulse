@@ -27,7 +27,16 @@ function registerConfigPortabilityHandlers(ctx) {
   safeHandle("config:export", async (_evt, pulseVersion) => {
     try {
       const state = stateStore.load() || {};
-      const payload = serializeConfig(state, pulseVersion || "");
+      // pulseVersion 优先用传入; 否则从 package.json 读 (渲染层无 version 来源)
+      let ver = pulseVersion || "";
+      if (!ver) {
+        try {
+          ver = require("../../../package.json").version || "";
+        } catch {
+          ver = "";
+        }
+      }
+      const payload = serializeConfig(state, ver);
       const content = JSON.stringify(payload, null, 2);
       const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       const outName = `pulse-config-${ts}.json`;

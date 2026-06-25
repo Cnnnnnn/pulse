@@ -4,7 +4,7 @@
  * Phase Q6: 480px right-side drawer showing error entries from main.
  * Fetches on open, supports copy-all / open folder / clear-old actions.
  */
-import { useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import {
   diagnosticsDrawerOpen,
   errorEntries,
@@ -19,6 +19,7 @@ import {
   diagnosticsLastExport,
 } from '../diagnostics/diagnostics-store.js';
 import { api } from '../api.js';
+import { ConfigImportModal } from './ConfigImportModal.jsx';
 
 function fmtTs(ts) {
   if (!ts) return '';
@@ -137,6 +138,29 @@ export function DiagnosticsDrawer() {
     }
   }
 
+  // P61: 配置导入导出
+  const [importOpen, setImportOpen] = useState(false);
+  const [configExportState, setConfigExportState] = useState(null); // {path} | {error}
+  const [configExporting, setConfigExporting] = useState(false);
+
+  async function exportConfig() {
+    if (configExporting) return;
+    setConfigExporting(true);
+    setConfigExportState(null);
+    try {
+      const r = await (api.configExport ? api.configExport() : null);
+      if (r && r.ok) {
+        setConfigExportState({ path: r.path, ts: Date.now() });
+      } else {
+        setConfigExportState({ error: (r && (r.reason || r.error)) || 'export_failed', ts: Date.now() });
+      }
+    } catch (err) {
+      setConfigExportState({ error: (err && err.message) || 'export_failed', ts: Date.now() });
+    } finally {
+      setConfigExporting(false);
+    }
+  }
+
   // samples 是时间序列, 文本迷你趋势图 (bar 用 heapUsed relative)
   const samplesMax = samples.reduce((m, s) => Math.max(m, s && s.heapUsed || 0), 0);
 
@@ -228,6 +252,28 @@ export function DiagnosticsDrawer() {
           {lastExport && lastExport.error && (
             <div class="diag-export__err">导出失败: {lastExport.error}</div>
           )}
+        </section>
+
+        {/* P61: 配置导入导出 */}
+        <section class="diag-section diag-section--config-portability">
+          <div class="diag-section-title">配置备份</div>
+          <div class="diag-config-portability-actions">
+            <button class="btn btn-sm" onClick={exportConfig} disabled={configExporting}>
+              {configExporting ? '导出中…' : '导出配置 (.json → 桌面)'}
+            </button>
+            <button class="btn btn-sm" onClick={() => setImportOpen(true)}>
+              导入配置
+            </button>
+          </div>
+          {configExportState && !configExportState.error && (
+            <div class="diag-export__ok">
+              已导出 → <code>{configExportState.path}</code>
+            </div>
+          )}
+          {configExportState && configExportState.error && (
+            <div class="diag-export__err">导出失败: {configExportState.error}</div>
+          )}
+          {importOpen && <ConfigImportModal onClose={() => setImportOpen(false)} />}
         </section>
         <div class="diagnostics-drawer__body">
           {loading && <div class="diagnostics-drawer__loading">加载中...</div>}

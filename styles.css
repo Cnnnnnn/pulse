@@ -8624,6 +8624,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .config-import-status.is-removed { background: #f8d7da; color: #721c24; }
 .config-import-row.is-removed { opacity: 0.5; }
 .config-import-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+/* P61: DiagnosticsDrawer 配置备份区 */
+.diag-config-portability-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .prompt-settings-item { margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary, #f5f5f7); border-radius: 8px; }
 .prompt-settings-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .prompt-settings-item-label { font-size: 13px; font-weight: 600; }
