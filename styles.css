@@ -8604,6 +8604,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .prompt-settings { padding: 12px 0; }
 .prompt-settings-title { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
 .prompt-settings-hint { font-size: 11px; color: var(--text-soft, rgba(0,0,0,.5)); margin: 0 0 12px; }
+/* A8: 反馈样本导出按钮 */
+.prompt-settings-feedback-row { margin-bottom: 12px; }
+.prompt-settings-export-feedback { font-size: 11px; }
 .prompt-settings-item { margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary, #f5f5f7); border-radius: 8px; }
 .prompt-settings-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .prompt-settings-item-label { font-size: 13px; font-weight: 600; }

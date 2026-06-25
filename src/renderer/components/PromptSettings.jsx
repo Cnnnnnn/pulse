@@ -12,15 +12,51 @@ import {
   promptLabel,
 } from "../store/prompt-store.js";
 import { showToast } from "../store.js";
+import { api } from "../api.js";
 
 export function PromptSettings() {
   const prompts = aiPrompts.value;
   const [draft, setDraft] = useState(null);
   const debounceRef = useRef(null);
+  const [feedbackCount, setFeedbackCount] = useState(null);
 
   useEffect(() => {
     loadAiPrompts();
+    // A8: 拉取反馈样本数, 显示在导出按钮
+    if (api.feedbackExport) {
+      api.feedbackExport()
+        .then((r) => {
+          if (r && r.ok && Array.isArray(r.samples)) {
+            setFeedbackCount(r.samples.length);
+          }
+        })
+        .catch(() => {});
+    }
   }, []);
+
+  async function exportFeedback() {
+    if (!api.feedbackExport) return;
+    try {
+      const r = await api.feedbackExport();
+      if (!r || !r.ok) {
+        showToast("导出失败", "error", 2500);
+        return;
+      }
+      const samples = Array.isArray(r.samples) ? r.samples : [];
+      const blob = new Blob([JSON.stringify(samples, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pulse-ai-feedback.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`已导出 ${samples.length} 条反馈`, "success", 2000);
+    } catch {
+      showToast("导出失败", "error", 2500);
+    }
+  }
 
   useEffect(() => {
     if (prompts && !draft) {
@@ -79,6 +115,16 @@ export function PromptSettings() {
       <p class="prompt-settings-hint">
         自定义 AI 摘要/预测/升级建议的 prompt。few-shot 为可选参考示例。
       </p>
+      <div class="prompt-settings-feedback-row">
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm prompt-settings-export-feedback"
+          onClick={exportFeedback}
+          title="导出 👍/👎 反馈样本为 JSON, 可作为 few-shot 调优的数据源"
+        >
+          导出 AI 反馈样本{feedbackCount != null ? ` (${feedbackCount})` : ""}
+        </button>
+      </div>
       {Object.keys(prompts).map((key) => (
         <div class="prompt-settings-item" key={key}>
           <div class="prompt-settings-item-head">
