@@ -128,6 +128,7 @@ Minimax coding plan / GLM 编程套餐的配额实时监控 — Header 切到"AI
       "detectors": [
         { "type": "brew_formulae", "cask": "myapp" },
         { "type": "electron_yml",  "url": "https://example.com/latest.yml" },
+        { "type": "github_release", "url": "https://api.github.com/repos/owner/myapp/releases/latest" },
         { "type": "winget_show",   "id": "Publisher.MyApp", "platform": "win" }
       ],
       "winget_id": "Publisher.MyApp"
@@ -152,7 +153,7 @@ Minimax coding plan / GLM 编程套餐的配额实时监控 — Header 切到"AI
 | `qclaw_api` | QClaw 私有 API | QClaw |
 | `html_changelog` | 解析 changelog HTML 页面 | ZCode |
 | `winget_show` | Windows winget show --versions | Windows 端通用 |
-| `github_release` | GitHub Releases API (tag_name) | 通用 |
+| `github_release` | GitHub Releases API `releases/latest` (取 `tag_name`，自动去 `v` 前缀) | 通用（mac/win 都能用，发布在 GitHub 的 Electron app 开箱即用） |
 
 ## 开发
 
