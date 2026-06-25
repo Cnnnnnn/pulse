@@ -43,6 +43,18 @@ describe("ai-feedback-store", () => {
       expect(recordFeedback(list, { feature: "advice", vote: "up", ts: 100 })).toBe(list);
       expect(recordFeedback(list, { appName: "X", vote: "up", ts: 100 })).toBe(list);
     });
+
+    it("仅 implicit 信号(vote 缺)也能记录", () => {
+      const out = recordFeedback([], { feature: "advice", appName: "X", version: "1", implicit: "refreshed", ts: 100 });
+      expect(out).toHaveLength(1);
+      expect(out[0].implicit).toBe("refreshed");
+      expect(out[0].vote).toBeNull();
+    });
+
+    it("既无 vote 也无 implicit 拒绝", () => {
+      const list = [{ id: "old", ts: 50 }];
+      expect(recordFeedback(list, { feature: "advice", appName: "X", version: "1", ts: 100 })).toBe(list);
+    });
   });
 
   describe("pruneToCap", () => {

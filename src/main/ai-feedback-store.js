@@ -23,9 +23,12 @@ function dedupeKey(sample) {
 function recordFeedback(list, raw) {
   if (!Array.isArray(list)) return list;
   if (!raw || typeof raw !== "object") return list;
-  // 防御: 必填 feature / appName / vote / ts
-  if (!raw.feature || !raw.appName || !raw.vote || typeof raw.ts !== "number") {
+  // 防御: 必填 feature / appName / ts; 且 vote 或 implicit 至少一个
+  if (!raw.feature || !raw.appName || typeof raw.ts !== "number") {
     return list;
+  }
+  if (!raw.vote && !raw.implicit) {
+    return list; // 既无显式 vote 也无隐式信号, 无意义
   }
   const sample = {
     id: dedupeKey(raw),
@@ -34,7 +37,7 @@ function recordFeedback(list, raw) {
     version: typeof raw.version === "string" ? raw.version : null,
     rec: raw.rec || null,
     confidence: raw.confidence || null,
-    vote: raw.vote,
+    vote: raw.vote || null,
     implicit: raw.implicit || null,
     ts: raw.ts,
   };

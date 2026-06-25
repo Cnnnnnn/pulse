@@ -21,6 +21,7 @@ const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice");
 const {
   registerChangelogSummaryHandlers,
 } = require("./register-changelog-summary");
+const { registerAiFeedbackHandlers } = require("./register-ai-feedback");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -41,6 +42,7 @@ function registerIpcHandlers(deps) {
   registerAiPromptsHandlers(ctx); // A7: AI prompt 模板化
   registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
   registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要
+  registerAiFeedbackHandlers(ctx); // A8: AI 反馈闭环
 }
 
 module.exports = { registerIpcHandlers };
