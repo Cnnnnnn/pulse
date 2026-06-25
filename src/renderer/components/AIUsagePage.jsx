@@ -310,10 +310,11 @@ function ProviderUsageView({ provider }) {
         <div class="ai-usage-header-actions">
           <button
             type="button"
-            class={`fund-btn fund-btn-ghost${prefs.enabled !== false ? " fund-btn-active" : ""}`}
+            class="ai-usage-bell-btn fund-btn fund-btn-ghost"
             onClick={() => openAiUsageAlertModal()}
             title="用量异常提醒"
             aria-label="用量异常提醒"
+            aria-pressed={prefs.enabled !== false}
           >
             <IconBell size={16} />
           </button>
