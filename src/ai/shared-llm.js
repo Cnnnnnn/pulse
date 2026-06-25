@@ -8,6 +8,12 @@
 const { CloudSummarizer } = require("../ai-sessions/provider-cloud");
 const { HttpClient } = require("../main/http-client");
 const stateStore = require("../main/state-store");
+const {
+  isOverBudget,
+  todayKey,
+  addSpend,
+  pruneDays,
+} = require("../main/token-budget");
 const { sanitizeLlmOutput } = require("./sanitize-llm-output");
 
 const SUPPORTED_PROVIDERS = ["openai", "anthropic", "deepseek", "minimax"];
@@ -91,6 +97,15 @@ async function chatCompletion(messages, opts = {}) {
   if (!resolved.ok) {
     return { ok: false, reason: resolved.reason };
   }
+  // P71: block 模式预算检查 — 超限直接拦截, 不消耗 token
+  const cfg = stateStore.loadTokenBudgetConfig();
+  if (cfg.mode === "block" && cfg.dailyLimit > 0) {
+    const spend = stateStore.loadTokenSpend();
+    if (isOverBudget(spend, todayKey(), cfg.dailyLimit)) {
+      return { ok: false, reason: "budget_exceeded" };
+    }
+  }
+
   const httpClient = opts.httpClient || _getHttp();
   const summarizer = opts.impl || new CloudSummarizer();
   try {
@@ -103,6 +118,18 @@ async function chatCompletion(messages, opts = {}) {
     });
     // P71: summarize 返回 { content, usage }; 兼容旧 string 返回
     const text = typeof result === "string" ? result : (result && result.content);
+    const usage = result && typeof result === "object" ? result.usage : null;
+    // P71: 累计 token 消耗 (warn/block 都记, 供 UI 显示 + 后续拦截判断)
+    if (usage && typeof usage.total_tokens === "number") {
+      try {
+        const dayKey = todayKey();
+        const spend = stateStore.loadTokenSpend();
+        const next = pruneDays(addSpend(spend, dayKey, usage.total_tokens));
+        stateStore.saveTokenSpend(next);
+      } catch {
+        /* 预算统计失败不影响主流程 */
+      }
+    }
     return {
       ok: true,
       text: sanitizeLlmOutput(String(text || "").trim()),
