@@ -21,6 +21,9 @@ const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice");
 const {
   registerChangelogSummaryHandlers,
 } = require("./register-changelog-summary");
+const {
+  registerConfigPortabilityHandlers,
+} = require("./register-config-portability");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -41,6 +44,10 @@ function registerIpcHandlers(deps) {
   registerAiPromptsHandlers(ctx); // A7: AI prompt 模板化
   registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
   registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要
+  registerConfigPortabilityHandlers({
+    ...ctx,
+    dialog: require("electron").dialog,
+  }); // P61: 配置导入导出 (首次引入 electron dialog)
 }
 
 module.exports = { registerIpcHandlers };
