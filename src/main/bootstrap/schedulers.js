@@ -288,6 +288,224 @@ function wireRecentActivityListener(deps) {
   }
 }
 
+// ---- P52: Pulse 自更新 ----
+
+/**
+ * P52: 自更新 controller (事件订阅 + 状态机 reducer + quitAndInstall).
+ *
+ * 输入 deps.autoUpdater (electron-updater 的 autoUpdater 单例), 输出 controller:
+ *   - controller.getState()     返回当前 update state
+ *   - controller.checkNow()     立即触发 checkForUpdates
+ *   - controller.quitAndInstall() 退出并安装已下载的更新
+ *
+ * 半自动档: 检测 + 自动下载 + 提示手动确认安装. 不自动 quitAndInstall.
+ *
+ * 本函数是接线层, 不可单测 (依赖 electron-updater 运行时).
+ * 状态转换走 src/main/self-updater.js 的 reduceUpdateState 纯函数, 那里有单测.
+ *
+ * @param {object} deps
+ * @param {object} deps.autoUpdater  electron-updater autoUpdater (测试可注入 mock)
+ * @returns {{
+ *   getState: () => object,
+ *   checkNow: () => Promise<{ok: boolean, reason?: string}>,
+ *   quitAndInstall: () => void,
+ * }}
+ */
+function makeSelfUpdateController(deps) {
+  const { autoUpdater } = deps || {};
+  const { INITIAL_UPDATE_STATE, reduceUpdateState } = require("../self-updater");
+  let state = { ...INITIAL_UPDATE_STATE };
+
+  function dispatch(action) {
+    state = reduceUpdateState(state, action);
+  }
+
+  if (!autoUpdater || typeof autoUpdater.checkForUpdates !== "function") {
+    return {
+      getState: () => state,
+      checkNow: async () => ({ ok: false, reason: "no-autoUpdater" }),
+      quitAndInstall: () => {
+        /* noop */
+      },
+    };
+  }
+
+  // 半自动档配置
+  try {
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = false;
+  } catch {
+    /* mock 可能只读 — ignore */
+  }
+
+  // 事件 → dispatch
+  try {
+    autoUpdater.on("checking-for-update", () => dispatch({ type: "CHECKING" }));
+    autoUpdater.on("update-available", (info) =>
+      dispatch({
+        type: "UPDATE_AVAILABLE",
+        version: info && info.version,
+        releaseNotes:
+          (info && info.releaseNotes) ||
+          (info && typeof info.releaseNotes === "string"
+            ? info.releaseNotes
+            : null),
+      }),
+    );
+    autoUpdater.on("update-not-available", () =>
+      dispatch({ type: "UPDATE_NOT_AVAILABLE" }),
+    );
+    autoUpdater.on("download-progress", (p) =>
+      dispatch({
+        type: "DOWNLOAD_PROGRESS",
+        percent:
+          p && typeof p.percent === "number" ? Math.round(p.percent) : null,
+      }),
+    );
+    autoUpdater.on("update-downloaded", () =>
+      dispatch({ type: "UPDATE_DOWNLOADED" }),
+    );
+    autoUpdater.on("error", (err) =>
+      dispatch({ type: "ERROR", message: (err && err.message) || String(err) }),
+    );
+  } catch {
+    /* mock 没 on — 不订阅, 不阻断 */
+  }
+
+  return {
+    getState: () => state,
+    checkNow: async () => {
+      try {
+        await autoUpdater.checkForUpdates();
+        return { ok: true };
+      } catch (err) {
+        dispatch({ type: "ERROR", message: (err && err.message) || String(err) });
+        return { ok: false, reason: "threw", error: err && err.message };
+      }
+    },
+    quitAndInstall: () => {
+      try {
+        if (typeof autoUpdater.quitAndInstall === "function") {
+          autoUpdater.quitAndInstall();
+        }
+      } catch {
+        /* noop */
+      }
+    },
+  };
+}
+
+/**
+ * P52: 启动自更新检测. 复用 setManagedInterval 范式, 启动时延迟 30s 检测一次 + 每 6h 复检.
+ * 半自动档: 检测 + 下载, 不自动 quitAndInstall (等用户在 UI 点安装).
+ *
+ * @param {object} [deps]
+ * @param {object} [deps.autoUpdater]   测试注入; 默认 require("electron-updater")
+ * @param {number}  [deps.intervalMs]   默认 6h
+ * @returns {{
+ *   stop: () => void,
+ *   triggerNow: () => Promise<{ok: boolean, reason?: string}>,
+ *   controller: ReturnType<typeof makeSelfUpdateController>,
+ * } | null}
+ */
+function startSelfUpdateTimer(deps = {}) {
+  const intervalMs =
+    typeof deps.intervalMs === "number" && deps.intervalMs > 0
+      ? deps.intervalMs
+      : 6 * 60 * 60 * 1000;
+
+  let autoUpdater = deps.autoUpdater;
+  if (!autoUpdater) {
+    try {
+      // eslint-disable-next-line global-require
+      const mod = require("electron-updater");
+      autoUpdater = mod.autoUpdater;
+    } catch (err) {
+      mainLog.warn(
+        `[self-update] electron-updater not available: ${err && err.message}`,
+      );
+      // 降级: 返一个 "未启用" controller, IPC 仍能注册但 checkNow 返 no-autoUpdater
+      const controller = makeSelfUpdateController({});
+      return {
+        stop: () => {},
+        triggerNow: async () => ({ ok: false, reason: "no-autoUpdater" }),
+        controller,
+      };
+    }
+  }
+
+  const controller = makeSelfUpdateController({ autoUpdater });
+
+  async function checkOnce() {
+    return controller.checkNow();
+  }
+
+  // setManagedInterval 范式 (参考 startAutoCheckTimer)
+  let intervalHandle = null;
+  try {
+    intervalHandle = setManagedInterval(
+      () => {
+        checkOnce().catch(() => {
+          /* swallow */
+        });
+      },
+      intervalMs,
+      {
+        label: "self-update",
+        file: "src/main/bootstrap/schedulers.js",
+        line: 0,
+      },
+    );
+    mainLog.info(`self-update timer set: every ${Math.round(intervalMs / 60000)}min`);
+  } catch (err) {
+    mainLog.warn(`[self-update] setManagedInterval failed: ${err && err.message}`);
+  }
+
+  // 启动时延迟 30s 检测一次 (避免跟启动 check 抢资源)
+  let initialTimer = null;
+  try {
+    initialTimer = setTimeout(() => {
+      checkOnce().catch(() => {});
+    }, 30000);
+  } catch {
+    /* noop */
+  }
+
+  if (app && typeof app.once === "function") {
+    app.once("before-quit", () => {
+      try {
+        if (intervalHandle) clearManaged(intervalHandle);
+      } catch {
+        /* noop */
+      }
+      try {
+        if (initialTimer) clearTimeout(initialTimer);
+      } catch {
+        /* noop */
+      }
+    });
+  }
+
+  return {
+    stop: () => {
+      try {
+        if (intervalHandle) clearManaged(intervalHandle);
+      } catch {
+        /* noop */
+      }
+      try {
+        if (initialTimer) clearTimeout(initialTimer);
+      } catch {
+        /* noop */
+      }
+      intervalHandle = null;
+      initialTimer = null;
+    },
+    triggerNow: checkOnce,
+    controller,
+  };
+}
+
 /**
  * v2.16.0 世界杯进球通知 — 60s sweep + 系统通知.
  * 复用 refreshWorldcupScores / inQuietHours / Electron Notification.
@@ -512,4 +730,6 @@ module.exports = {
   wireRecentActivityListener,
   startAutoCheckTimer,
   makeRefreshLastOpenedAfterCheck,
+  startSelfUpdateTimer,
+  makeSelfUpdateController,
 };
