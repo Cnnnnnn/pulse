@@ -187,6 +187,8 @@ export function createApi(overrides = {}) {
     changelogSummaryFetch: pick(overrides, "changelogSummaryFetch"),
     feedbackRecord: pick(overrides, "feedbackRecord"),
     feedbackExport: pick(overrides, "feedbackExport"),
+    tokenBudgetGet: pick(overrides, "tokenBudgetGet"),
+    tokenBudgetSet: pick(overrides, "tokenBudgetSet"),
     onAiPromptsUpdated: pick(overrides, "onAiPromptsUpdated"),
   };
 }

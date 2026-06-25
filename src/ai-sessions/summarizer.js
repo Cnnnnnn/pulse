@@ -88,7 +88,7 @@ class LLMSummarizer {
       ? buildPerSessionPrompt({ session: sessions[0], index: opts.perSessionIndex || 0, locale })
       : buildDigestPrompt({ sessions, dateKey, locale, model: this.model, provider: this.provider });
 
-    const summary = await this.impl.summarize({
+    const result = await this.impl.summarize({
       messages,
       provider: this.provider,
       model: this.model,
@@ -96,8 +96,10 @@ class LLMSummarizer {
       httpClient: this.httpClient,
       meta,
     });
+    // P71: summarize 返回 { content, usage }; 兼容旧 string 返回
+    const summary = typeof result === 'string' ? result : (result && result.content);
     if (typeof summary !== 'string') {
-      throw new TypeError('summarize: impl.summarize must return string');
+      throw new TypeError('summarize: impl.summarize must return string content');
     }
     return summary;
   }

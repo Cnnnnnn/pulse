@@ -6,10 +6,10 @@
  *  click → 打开 BulkUpgradeModal (只装过滤后的 items).
  * Phase 27: 过滤掉 muted apps (跟通知一致: muted 不被自动操作).
  *
- * 状态文案 (per spec §5.1):
- *   N > 0:        "Upgrade All (N)"  primary, 可点
- *   N = 0:        "All up to date"   ghost, disabled
- *   running:      "Upgrading 3/7..."  primary, disabled, 显示进度
+ * 状态文案:
+ *   N > 0:        "一键升级 (N)"  primary, 可点
+ *   N = 0:        "已全部最新"   primary, disabled
+ *   running:      "升级中 3/7..."  primary, disabled, 显示进度
  */
 
 import { isMuted, mutedApps } from '../store.js';
@@ -43,7 +43,7 @@ export function BulkUpgradeButton() {
         disabled
         title="当前无可升级应用"
       >
-        All up to date
+        已全部最新
       </button>
     );
   }
@@ -56,7 +56,7 @@ export function BulkUpgradeButton() {
         disabled
         title="正在升级"
       >
-        Upgrading {doneCount}/{total}...
+        升级中 {doneCount}/{total}...
       </button>
     );
   }
@@ -68,7 +68,7 @@ export function BulkUpgradeButton() {
       onClick={() => openBulkUpgrade(upgradable.map(toBulkItem))}
       title="一键升级所有可升级应用 (静音中的 app 会被跳过)"
     >
-      Upgrade All ({total})
+      一键升级 ({total})
     </button>
   );
 }

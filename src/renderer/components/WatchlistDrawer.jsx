@@ -13,6 +13,7 @@ import {
   itemKey,
 } from '../watchlist/watchlist-store.js';
 import { getMetalById } from '../../metals/metal-config.js';
+import { DrawerShell } from './DrawerShell.jsx';
 
 function fmtTs(ts) {
   if (!ts || typeof ts !== 'number') return '';
@@ -73,8 +74,6 @@ export function WatchlistDrawer() {
     refreshWatchlist();
   }, [open]);
 
-  if (!open) return null;
-
   function close() { watchlistDrawerOpen.value = false; }
 
   async function onAddKeyword(e) {
@@ -88,66 +87,64 @@ export function WatchlistDrawer() {
   }
 
   return (
-    <>
-      <div
-        class={`watchlist-overlay ${open ? 'visible' : ''}`}
-        onClick={close}
-        aria-hidden="true"
-      />
-      <aside class="watchlist-drawer" role="complementary">
-        <header class="watchlist-drawer__header">
-          <span class="watchlist-drawer__title">⭐ 关注列表</span>
-          <button class="watchlist-drawer__close" onClick={close} aria-label="关闭">×</button>
-        </header>
-        <div class="watchlist-drawer__stats">
-          共 <b>{items.length}</b> 项
+    <DrawerShell
+      open={open}
+      onClose={close}
+      title="⭐ 关注列表"
+      overlayClass="watchlist-overlay"
+      drawerClass="watchlist-drawer"
+      ariaLabel="关注列表"
+      beforeBody={(
+        <>
+          <div class="watchlist-drawer__stats">
+            共 <b>{items.length}</b> 项
+          </div>
+          <form class="watchlist-keyword-form" onSubmit={onAddKeyword}>
+            <input
+              type="text"
+              class="watchlist-keyword-input"
+              placeholder="添加关键词 (热搜/IT之家)"
+              value={keyword}
+              onInput={(e) => setKeyword(e.currentTarget.value)}
+              maxLength={40}
+            />
+            <button type="submit" class="btn btn-sm" disabled={adding || !keyword.trim()}>
+              添加
+            </button>
+          </form>
+        </>
+      )}
+    >
+      {items.length === 0 && (
+        <div class="watchlist-drawer__empty">
+          在应用列表、基金/贵金属卡片点 ⭐ 关注，或上方添加关键词
         </div>
-        <form class="watchlist-keyword-form" onSubmit={onAddKeyword}>
-          <input
-            type="text"
-            class="watchlist-keyword-input"
-            placeholder="添加关键词 (热搜/IT之家)"
-            value={keyword}
-            onInput={(e) => setKeyword(e.currentTarget.value)}
-            maxLength={40}
-          />
-          <button type="submit" class="btn btn-sm" disabled={adding || !keyword.trim()}>
-            添加
-          </button>
-        </form>
-        <div class="watchlist-drawer__body">
-          {items.length === 0 && (
-            <div class="watchlist-drawer__empty">
-              Pin App (列表 ⭐)、基金/贵金属 (卡片 ⭐)，或上方添加关键词
-            </div>
-          )}
-          {items.map((w) => {
-            const meta = TYPE_LABEL[w.type] || TYPE_LABEL.app;
-            return (
-              <div key={itemKey(w)} class="watchlist-entry">
-                <div class="watchlist-entry__main">
-                  <span class="watchlist-entry__name">
-                    {meta.icon} {meta.label} · {entryTitle(w)}
-                  </span>
-                  <div class="watchlist-entry__meta">
-                    <span>{entryMeta(w)}</span>
-                    {w.addedAt ? (
-                      <span style="margin-left: 8px;">添加: {fmtTs(w.addedAt)}</span>
-                    ) : null}
-                  </div>
-                </div>
-                <button
-                  class="btn btn-sm"
-                  onClick={() => removeWatchlistItem({ type: w.type, ref: w.ref })}
-                  aria-label={`去 pin ${w.ref}`}
-                >
-                  去 pin
-                </button>
+      )}
+      {items.map((w) => {
+        const meta = TYPE_LABEL[w.type] || TYPE_LABEL.app;
+        return (
+          <div key={itemKey(w)} class="watchlist-entry">
+            <div class="watchlist-entry__main">
+              <span class="watchlist-entry__name">
+                {meta.icon} {meta.label} · {entryTitle(w)}
+              </span>
+              <div class="watchlist-entry__meta">
+                <span>{entryMeta(w)}</span>
+                {w.addedAt ? (
+                  <span style="margin-left: 8px;">添加: {fmtTs(w.addedAt)}</span>
+                ) : null}
               </div>
-            );
-          })}
-        </div>
-      </aside>
-    </>
+            </div>
+            <button
+              class="btn btn-sm"
+              onClick={() => removeWatchlistItem({ type: w.type, ref: w.ref })}
+              aria-label={`从关注列表移除 ${w.ref}`}
+            >
+              移除
+            </button>
+          </div>
+        );
+      })}
+    </DrawerShell>
   );
 }

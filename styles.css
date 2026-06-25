@@ -41,6 +41,19 @@
   --transition: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   /* 布局与语义色 — 统一中性底 + 系统蓝强调 */
   --page-padding: 20px;
+  /* ponytail: P2 令牌 — 新样式优先用这些, 旧魔数逐步迁移 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-lg: 14px;
+  --z-index-drawer-overlay: 4050;
+  --z-index-drawer: 4100;
+  --z-index-modal: 5000;
   --chrome-bg: #ffffff;
   --content-bg: #f5f5f7;
   --accent-fund: var(--accent-primary);
@@ -349,7 +362,7 @@ body.platform-win .window-control-btn--close:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px 8px;
+  padding: 12px var(--page-padding) 8px;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -373,19 +386,16 @@ body.platform-win .window-control-btn--close:hover {
 .app-row {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 10px var(--page-padding);
   gap: 14px;
   transition: background var(--transition);
   cursor: default;
   border-bottom: 1px solid var(--border-light);
+  position: relative;
 }
 
 .app-row:hover {
   background: var(--bg-hover);
-}
-
-.app-row {
-  position: relative;
 }
 
 .app-avatar {
@@ -2316,7 +2326,7 @@ body.platform-win .window-control-btn--close:hover {
 
 /* ⚙️按钮 (Header右侧,BulkUpgradeButton后) */
 .btn-icon {
- padding:6px8px;
+ padding: 6px 8px;
  min-width:30px;
  display: inline-flex;
  align-items: center;
@@ -2729,17 +2739,17 @@ body.platform-win .window-control-btn--close:hover {
 .toast {
  display: flex;
  align-items: center;
- gap:8px;
- padding:8px12px;
+ gap: 8px;
+ padding: 8px 12px;
  background: var(--bg-primary, #fff);
- border:1px solid var(--bg-secondary, #e5e5ea);
- border-radius:6px;
- box-shadow:02px12px rgba(0,0,0,0.12);
- font-size:12px;
+ border: 1px solid var(--bg-secondary, #e5e5ea);
+ border-radius: 6px;
+ box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+ font-size: 12px;
  color: var(--text-primary, #333);
  pointer-events: auto;
- max-width:480px;
- animation: toast-in0.2s ease-out;
+ max-width: 480px;
+ animation: toast-in 0.2s ease-out;
 }
 @keyframes toast-in {
  from { opacity:0; transform: translateY(-8px); }
@@ -2748,7 +2758,7 @@ body.platform-win .window-control-btn--close:hover {
 .toast-icon { font-size:14px; flex-shrink:0; }
 .toast-message { flex:1; }
 .toast-close {
- background: transparent; border:0; padding:04px; cursor: pointer;
+ background: transparent; border: 0; padding: 0 4px; cursor: pointer;
  font-size:16px; line-height:1; color: var(--text-tertiary, #999);
 }
 .toast-close:hover { color: var(--text-primary, #333); }
@@ -7964,7 +7974,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: 4px;
 }
 
-.btn-icon {
+.metal-card-actions .btn-icon {
   background: none;
   border: none;
   cursor: pointer;
@@ -7975,7 +7985,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   line-height: 1;
 }
 
-.btn-icon:hover {
+.metal-card-actions .btn-icon:hover {
   color: var(--text-primary, #1d1d1f);
   background: var(--bg-elevated, #f5f5f7);
 }
@@ -8607,6 +8617,36 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 /* A8: 反馈样本导出按钮 */
 .prompt-settings-feedback-row { margin-bottom: 12px; }
 .prompt-settings-export-feedback { font-size: 11px; }
+/* P71: token 预算行 */
+.token-budget-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  background: var(--bg-soft, rgba(0,0,0,.03));
+  border-radius: 6px;
+  font-size: 12px;
+}
+.token-budget-label { font-weight: 600; }
+.token-budget-limit-input {
+  width: 90px;
+  padding: 3px 6px;
+  font-size: 12px;
+  border: 1px solid var(--border, rgba(0,0,0,.15));
+  border-radius: 4px;
+}
+.token-budget-mode-select {
+  padding: 3px 6px;
+  font-size: 12px;
+  border: 1px solid var(--border, rgba(0,0,0,.15));
+  border-radius: 4px;
+}
+.token-budget-spend {
+  font-size: 11px;
+  color: var(--text-soft, rgba(0,0,0,.5));
+}
 .prompt-settings-item { margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary, #f5f5f7); border-radius: 8px; }
 .prompt-settings-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .prompt-settings-item-label { font-size: 13px; font-weight: 600; }

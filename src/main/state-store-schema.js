@@ -37,6 +37,8 @@ const FIELD_SPECS = {
   worldcupGoalNotified: { kind: 'object' },
   daily_digest:       { kind: 'object' },
   aiFeedback:         { kind: 'array' },   // A8: AI 反馈样本 cap-500
+  tokenSpend:         { kind: 'object' },  // P71: 每日 token 消耗 {"YYYY-MM-DD": number}
+  tokenBudgetConfig:  { kind: 'object' },  // P71: { dailyLimit, mode }
 };
 
 function isObject(v) {

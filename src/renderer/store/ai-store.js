@@ -12,7 +12,7 @@ import { DEFAULT_MODELS } from "../../ai/default-models.js";
 import { api } from "../api.js";
 import { taggedLog } from "../log.js";
 import { showToast } from "./toast-store.js";
-import { digestDrawerOpen } from "../digest/digest-store.js";
+import { aiTasksDrawerOpen, digestConfigMode } from "../digest/digest-store.js";
 
 const log = taggedLog("[store/ai]");
 
@@ -215,11 +215,14 @@ export function openAISettings(open = true) {
 }
 
 export function openDigestDrawer(open = true) {
-  digestDrawerOpen.value = Boolean(open);
+  aiTasksDrawerOpen.value = Boolean(open);
+  if (!open) digestConfigMode.value = false;
 }
 
 export function toggleDigestDrawer() {
-  digestDrawerOpen.value = !digestDrawerOpen.value;
+  const next = !aiTasksDrawerOpen.value;
+  aiTasksDrawerOpen.value = next;
+  if (!next) digestConfigMode.value = false;
 }
 
 export function setAIHealthcheckBusy(busy) {

@@ -8,7 +8,7 @@
  *   - 抽屉关闭时不渲染列表
  *   - 打开时 refresh + 渲染列表
  *   - 空态文案
- *   - 点 "去 pin" 调 api.watchlistRemove
+ *   - 点 "移除" 调 api.watchlistRemove
  *   - 浮层 click 关闭
  *   - Header btn-watchlist 显示 ★/☆ 根据 count
  */
@@ -85,7 +85,7 @@ describe("WatchlistDrawer", () => {
     expect(empty.textContent).toContain("关键词");
   });
 
-  it("点 去 pin 调 api.watchlistRemove", async () => {
+  it("点 移除 调 api.watchlistRemove", async () => {
     watchlistItems.value = [
       { type: "app", ref: "VSCode", addedAt: 1, lastNotifiedVersion: null },
     ];

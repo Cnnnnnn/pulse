@@ -42,15 +42,15 @@ describe('BulkUpgradeButton', () => {
   });
   afterEach(() => cleanup());
 
-  it('N=0 → 显示 "All up to date" 且 disabled', () => {
+  it('N=0 → 显示 "已全部最新" 且 disabled', () => {
     results.value = new Map([['Cursor', makeResult('Cursor', false)]]);
     const { getByRole } = render(<BulkUpgradeButton />);
     const btn = getByRole('button');
-    expect(btn.textContent).toBe('All up to date');
+    expect(btn.textContent).toBe('已全部最新');
     expect(btn.disabled).toBe(true);
   });
 
-  it('N=3 → 显示 "Upgrade All (3)" 且可点', () => {
+  it('N=3 → 显示 "一键升级 (3)" 且可点', () => {
     results.value = new Map([
       ['Cursor',   makeResult('Cursor', true)],
       ['Kimi',     makeResult('Kimi', true)],
@@ -58,11 +58,11 @@ describe('BulkUpgradeButton', () => {
     ]);
     const { getByRole } = render(<BulkUpgradeButton />);
     const btn = getByRole('button');
-    expect(btn.textContent).toBe('Upgrade All (3)');
+    expect(btn.textContent).toBe('一键升级 (3)');
     expect(btn.disabled).toBe(false);
   });
 
-  it('running → 显示 "Upgrading X/Y..." 且 disabled', () => {
+  it('running → 显示 "升级中 X/Y..." 且 disabled', () => {
     results.value = new Map([
       ['Cursor', makeResult('Cursor', true)],
       ['Kimi',   makeResult('Kimi', true)],
@@ -70,7 +70,7 @@ describe('BulkUpgradeButton', () => {
     bulkUpgradeRunning.value = true;
     const { getByRole } = render(<BulkUpgradeButton />);
     const btn = getByRole('button');
-    expect(btn.textContent).toMatch(/^Upgrading \d+\/2/);
+    expect(btn.textContent).toMatch(/^升级中 \d+\/2/);
     expect(btn.disabled).toBe(true);
     bulkUpgradeRunning.value = false; // 还原
   });
@@ -96,7 +96,7 @@ describe('BulkUpgradeButton', () => {
   });
 
   // Phase 23: filteredResults awareness
-  it('tab="已是最新" 过滤后 N=0 → "All up to date" disabled (即便 results 有 upgradable)', () => {
+  it('tab="已是最新" 过滤后 N=0 → "已全部最新" disabled (即便 results 有 upgradable)', () => {
     results.value = new Map([
       ['Cursor',   makeResult('Cursor', true)],
       ['Kimi',     makeResult('Kimi', true)],
@@ -104,7 +104,7 @@ describe('BulkUpgradeButton', () => {
     activeFilter.value = 'latest'; // 全部都是 up_to_date 才显示
     const { getByRole } = render(<BulkUpgradeButton />);
     const btn = getByRole('button');
-    expect(btn.textContent).toBe('All up to date');
+    expect(btn.textContent).toBe('已全部最新');
     expect(btn.disabled).toBe(true);
   });
 
@@ -119,6 +119,6 @@ describe('BulkUpgradeButton', () => {
     const { getByRole } = render(<BulkUpgradeButton />);
     const btn = getByRole('button');
     // 过滤后: Codex (has_update + name match) → 1
-    expect(btn.textContent).toBe('Upgrade All (1)');
+    expect(btn.textContent).toBe('一键升级 (1)');
   });
 });

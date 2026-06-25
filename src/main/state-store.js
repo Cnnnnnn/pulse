@@ -261,6 +261,8 @@ const PRESERVE_FIELDS = [
   { key: "upgrade_advice_cache", kind: "object", notArray: true }, // A2: 升级建议缓存
   { key: "changelog_summary_cache", kind: "object", notArray: true }, // A1: changelog 摘要缓存
   { key: "aiFeedback", kind: "array" }, // A8: AI 反馈样本 cap-500
+  { key: "tokenSpend", kind: "object" }, // P71: 每日 token 消耗
+  { key: "tokenBudgetConfig", kind: "object" }, // P71: 预算配置 { dailyLimit, mode }
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -1887,6 +1889,64 @@ function saveAiFeedback(samples, statePath = defaultPath()) {
 }
 
 /**
+ * P71: load 每日 token 消耗 map. 无/损坏 → {}.
+ * @param {string} [statePath]
+ * @returns {Record<string, number>}
+ */
+function loadTokenSpend(statePath = defaultPath()) {
+  try {
+    const s = load(statePath);
+    const m = s && s.tokenSpend;
+    return m && typeof m === "object" ? m : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * P71: save 每日 token 消耗. 走 patchState 不破坏其它字段.
+ * @param {Record<string, number>} spendMap
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveTokenSpend(spendMap, statePath = defaultPath()) {
+  return patchState((next) => {
+    next.tokenSpend = spendMap || {};
+  }, statePath);
+}
+
+/**
+ * P71: load token 预算配置. 无/损坏 → 默认值 (dailyLimit=0 不限制, mode=warn).
+ * @param {string} [statePath]
+ * @returns {{dailyLimit: number, mode: "warn"|"block"}}
+ */
+function loadTokenBudgetConfig(statePath = defaultPath()) {
+  try {
+    const s = load(statePath);
+    const c = s && s.tokenBudgetConfig;
+    const dailyLimit =
+      c && typeof c.dailyLimit === "number" ? c.dailyLimit : 0;
+    const mode =
+      c && (c.mode === "warn" || c.mode === "block") ? c.mode : "warn";
+    return { dailyLimit, mode };
+  } catch {
+    return { dailyLimit: 0, mode: "warn" };
+  }
+}
+
+/**
+ * P71: save token 预算配置.
+ * @param {{dailyLimit: number, mode: "warn"|"block"}} cfg
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+function saveTokenBudgetConfig(cfg, statePath = defaultPath()) {
+  return patchState((next) => {
+    next.tokenBudgetConfig = cfg || {};
+  }, statePath);
+}
+
+/**
  * I2 v1: load watchlist (pinned apps).
  * I2 v2: 支持 type=app|fund|keyword, ref 为统一主键.
  * Old state.json without watchlist field → []. 兼容老数据 (appName → type:app).
@@ -2068,6 +2128,11 @@ module.exports = {
   // A8: AI 反馈样本
   loadAiFeedback,
   saveAiFeedback,
+  // P71: token 预算
+  loadTokenSpend,
+  saveTokenSpend,
+  loadTokenBudgetConfig,
+  saveTokenBudgetConfig,
   // I2 v1: watchlist
   loadWatchlist,
   saveWatchlist,

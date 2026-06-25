@@ -14,6 +14,7 @@ import {
 } from './digest-store.js';
 import { api } from '../api.js';
 import { DigestSection } from './DigestSection.jsx';
+import { DrawerShell } from '../components/DrawerShell.jsx';
 
 export function DigestDrawer() {
   const open = digestDrawerOpen.value;
@@ -37,28 +38,28 @@ export function DigestDrawer() {
     });
   }, [open]);
 
-  if (!open) return null;
-
   function close() {
     digestDrawerOpen.value = false;
   }
 
   return (
-    <aside class="digest-drawer" role="complementary">
-      <header class="digest-drawer__header">
-        <span class="digest-drawer__title">每日早报</span>
-        {date && <span class="digest-drawer__date">{date}</span>}
-        <button class="digest-drawer__close" onClick={close} aria-label="关闭">×</button>
-      </header>
-      <div class="digest-drawer__body">
-        {loading && <div class="digest-drawer__loading">加载中...</div>}
-        {!loading && sections.length === 0 && (
-          <div class="digest-drawer__empty">今天没有重要变化</div>
-        )}
-        {!loading && sections.map((s, i) => (
-          <DigestSection key={i} section={s} />
-        ))}
-      </div>
-    </aside>
+    <DrawerShell
+      open={open}
+      onClose={close}
+      title="每日早报"
+      titleExtra={date ? <span class="digest-drawer__date">{date}</span> : null}
+      showOverlay={false}
+      overlayClass="digest-overlay"
+      drawerClass="digest-drawer"
+      ariaLabel="每日早报"
+    >
+      {loading && <div class="digest-drawer__loading">加载中...</div>}
+      {!loading && sections.length === 0 && (
+        <div class="digest-drawer__empty">今天没有重要变化</div>
+      )}
+      {!loading && sections.map((s, i) => (
+        <DigestSection key={i} section={s} />
+      ))}
+    </DrawerShell>
   );
 }

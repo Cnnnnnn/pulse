@@ -18,7 +18,12 @@ export function PromptSettings() {
   const prompts = aiPrompts.value;
   const [draft, setDraft] = useState(null);
   const debounceRef = useRef(null);
+  // A8: 反馈样本数
   const [feedbackCount, setFeedbackCount] = useState(null);
+  // P71: token 预算
+  const [budget, setBudget] = useState({ dailyLimit: 0, mode: "warn" });
+  const [todaySpend, setTodaySpend] = useState(0);
+  const [budgetLoaded, setBudgetLoaded] = useState(false);
 
   useEffect(() => {
     loadAiPrompts();
@@ -31,6 +36,20 @@ export function PromptSettings() {
           }
         })
         .catch(() => {});
+    }
+    // P71: 拉取预算配置 + 当日用量
+    if (api.tokenBudgetGet) {
+      api.tokenBudgetGet()
+        .then((r) => {
+          if (r && r.ok && r.config) {
+            setBudget(r.config);
+            setTodaySpend(r.todaySpend || 0);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setBudgetLoaded(true));
+    } else {
+      setBudgetLoaded(true);
     }
   }, []);
 
@@ -55,6 +74,22 @@ export function PromptSettings() {
       showToast(`已导出 ${samples.length} 条反馈`, "success", 2000);
     } catch {
       showToast("导出失败", "error", 2500);
+    }
+  }
+
+  async function saveBudget(patch) {
+    const next = { ...budget, ...patch };
+    setBudget(next);
+    if (!api.tokenBudgetSet) return;
+    try {
+      const r = await api.tokenBudgetSet(next);
+      if (r && r.ok) {
+        showToast("预算已更新", "success", 1500);
+      } else {
+        showToast("预算更新失败", "error", 2000);
+      }
+    } catch {
+      showToast("预算更新失败", "error", 2000);
     }
   }
 
@@ -115,6 +150,8 @@ export function PromptSettings() {
       <p class="prompt-settings-hint">
         自定义 AI 摘要/预测/升级建议的 prompt。few-shot 为可选参考示例。
       </p>
+
+      {/* A8: 反馈样本导出 (few-shot 调优数据源) */}
       <div class="prompt-settings-feedback-row">
         <button
           type="button"
@@ -124,6 +161,38 @@ export function PromptSettings() {
         >
           导出 AI 反馈样本{feedbackCount != null ? ` (${feedbackCount})` : ""}
         </button>
+      </div>
+
+      {/* P71: token 预算 (成本治理 / 防漏钱) */}
+      <div class="token-budget-row">
+        <label class="token-budget-label">每日 AI token 预算</label>
+        <input
+          type="number"
+          min="0"
+          step="1000"
+          class="token-budget-limit-input"
+          value={budget.dailyLimit}
+          disabled={!budgetLoaded}
+          onInput={(e) => {
+            setBudget({ ...budget, dailyLimit: Number(e.target.value) });
+          }}
+          onBlur={(e) => saveBudget({ dailyLimit: Number(e.target.value) || 0 })}
+          title="0 = 不限制"
+        />
+        <select
+          class="token-budget-mode-select"
+          value={budget.mode}
+          disabled={!budgetLoaded}
+          onChange={(e) => saveBudget({ mode: e.target.value })}
+        >
+          <option value="warn">超限仅警告</option>
+          <option value="block">超限拦截</option>
+        </select>
+        <span class="token-budget-spend">
+          {budget.dailyLimit === 0
+            ? "当前: 不限制"
+            : `今日已用 ${todaySpend}`}
+        </span>
       </div>
       {Object.keys(prompts).map((key) => (
         <div class="prompt-settings-item" key={key}>

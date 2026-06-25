@@ -31,7 +31,7 @@ import {
   needsConfig,
   showToast,
 } from '../store.js';
-import { digestDrawerOpen, digestConfigMode } from '../digest/digest-store.js';
+import { aiTasksDrawerOpen, digestConfigMode } from '../digest/digest-store.js';
 import { api } from '../api.js';
 import { AIConfigForm } from './AISettingsModal.jsx';
 import { AISettingsScene } from './AISettingsScene.jsx';
@@ -114,7 +114,7 @@ function taskStatus(task, generating) {
 // ── AITasksButton (Header 旁的入口) ────────────────────────────────────
 // badge = 今日任务数 (bootstrap 时 loadAiTasks() 扫一次, 不调 LLM).
 export function AITasksButton() {
-  const open = digestDrawerOpen.value;
+  const open = aiTasksDrawerOpen.value;
   const isToday = aiTasksDateKey.value === localDateKey(0);
   const count = isToday ? aiTasks.value.length : 0;
   const enabled = aiSessionsEnabled.value;
@@ -140,7 +140,7 @@ export function AITasksButton() {
 
 // ── AITasksDrawer (右侧 drawer, App.jsx 顶部挂载) ─────────────────────
 export function AITasksDrawer() {
-  const open = digestDrawerOpen.value;
+  const open = aiTasksDrawerOpen.value;
   const configMode = digestConfigMode.value;
   const dateKey = aiTasksDateKey.value;
   const tasks = aiTasks.value;
@@ -161,6 +161,19 @@ export function AITasksDrawer() {
     digestConfigMode.value = false;
     setConfigTab('connection');
   }
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (configMode) closeConfig();
+        else openDigestDrawer(false);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, configMode]);
 
   // 打开抽屉 / 切日期 → 刷新当前日期的任务列表
   useEffect(() => {
