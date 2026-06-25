@@ -185,6 +185,8 @@ export function createApi(overrides = {}) {
     aiPromptsReset: pick(overrides, "aiPromptsReset"),
     upgradeAdviceFetch: pick(overrides, "upgradeAdviceFetch"),
     changelogSummaryFetch: pick(overrides, "changelogSummaryFetch"),
+    tokenBudgetGet: pick(overrides, "tokenBudgetGet"),
+    tokenBudgetSet: pick(overrides, "tokenBudgetSet"),
     onAiPromptsUpdated: pick(overrides, "onAiPromptsUpdated"),
   };
 }

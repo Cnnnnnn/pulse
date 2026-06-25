@@ -83,6 +83,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("upgrade-advice:fetch", opts),
   changelogSummaryFetch: (opts) =>
     ipcRenderer.invoke("changelog-summary:fetch", opts),
+  tokenBudgetGet: () => ipcRenderer.invoke("token-budget:get"),
+  tokenBudgetSet: (payload) => ipcRenderer.invoke("token-budget:set", payload),
   onAiPromptsUpdated: (cb) => {
     const handler = (_evt) => cb();
     ipcRenderer.on("ai-prompts-updated", handler);

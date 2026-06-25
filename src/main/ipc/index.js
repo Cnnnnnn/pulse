@@ -21,6 +21,7 @@ const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice");
 const {
   registerChangelogSummaryHandlers,
 } = require("./register-changelog-summary");
+const { registerTokenBudgetHandlers } = require("./register-token-budget");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -41,6 +42,7 @@ function registerIpcHandlers(deps) {
   registerAiPromptsHandlers(ctx); // A7: AI prompt 模板化
   registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
   registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要
+  registerTokenBudgetHandlers(ctx); // P71: token 预算
 }
 
 module.exports = { registerIpcHandlers };
