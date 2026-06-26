@@ -61,6 +61,8 @@ const NAV_ITEMS = [
   { key: 'worldcup',  label: '世界杯', tooltip: '2026 世界杯赛程' },
   { key: 'funds',     label: '基金管理', tooltip: '基金持仓 + 实时盈亏 (v2.10+)' },
   { key: 'metals',    label: '贵金属', tooltip: '黄金白银实时价格 + 持仓盈亏' },
+  { key: 'stocks',    label: '选股', tooltip: 'A股条件选股筛选器 (阶段一)' },
+  { key: 'stock-watchlist', label: '自选股', tooltip: '股票自选列表 + 行情刷新' },
   { key: 'ai-usage',  label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
   { key: 'versions',  label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
 ];
