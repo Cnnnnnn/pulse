@@ -41,7 +41,7 @@ function writeAiPrompts(prompts) {
 }
 
 describe("prompt-registry (A7)", () => {
-  it("PROMPT_KEYS 含 8 个 prompt (A7 v2 + A2 + A1 + v3 daily_digest + stock_screener_advise stage 2)", () => {
+  it("PROMPT_KEYS 含 9 个 prompt (A7 v2 + A2 + A1 + v3 daily_digest + stock_screener_advise stage 2 + stock_detail_analyze stage 4)", () => {
     expect(PROMPT_KEYS).toEqual(
       expect.arrayContaining([
         "ithome_summary",
@@ -52,9 +52,10 @@ describe("prompt-registry (A7)", () => {
         "category_classify",
         "daily_digest_summary",
         "stock_screener_advise",
+        "stock_detail_analyze",
       ]),
     );
-    expect(PROMPT_KEYS).toHaveLength(8);
+    expect(PROMPT_KEYS).toHaveLength(9);
   });
 
   it("DEFAULT_PROMPTS 每个 prompt 有 system + rules", () => {

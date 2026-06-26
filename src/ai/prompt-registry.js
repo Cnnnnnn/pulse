@@ -118,6 +118,22 @@ const DEFAULT_PROMPTS = {
     ].join("\n"),
     fewShot: "",
   },
+  // 阶段四: 个股 AI 分析 — summary / perAngle / risks / signal
+  stock_detail_analyze: {
+    system: [
+      "你是严谨的 A 股研究助理. 基于用户选中的分析角度 + 实际数据, 输出客观、中性的解读.",
+      '绝不出具"买入/卖出/加仓/减仓/看多/看空/必涨/必跌/强烈推荐"等投资建议.',
+      '严格按 JSON 格式输出 (含 summary / perAngle / risks / signal 4 个 key), 不输出其它任何文字.',
+    ].join("\n"),
+    rules: [
+      "【硬性要求】",
+      '1. signal 白名单: 必须是 "positive" | "neutral" | "cautious" 之一, 其它值降级为 "neutral".',
+      "2. summary 长度不超过 200 字, 简体中文.",
+      "3. perAngle 的每个 key 对应用户选中的角度, 给出基于数据的客观观察 (不要预测涨跌).",
+      "4. risks 列出 1-3 条值得关注的风险点 (基于数据, 不要泛泛而谈).",
+    ].join("\n"),
+    fewShot: "",
+  },
   // 阶段二: 选股 AI 推荐策略 — 生成 criteria + sortConfig + summary
   stock_screener_advise: {
     system: [
