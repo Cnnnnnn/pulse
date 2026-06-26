@@ -17,6 +17,10 @@ const LOADERS = {
     import('../worldcup/WorldcupLayout.jsx').then((m) => m.WorldcupLayout),
   funds: () => import('../funds/FundLayout.jsx').then((m) => m.FundLayout),
   metals: () => import('../metals/MetalLayout.jsx').then((m) => m.MetalLayout),
+  stocks: () =>
+    import('../stocks/StockLayout.jsx').then((m) => m.StockLayout),
+  'stock-watchlist': () =>
+    import('../stocks/WatchlistPanel.jsx').then((m) => m.WatchlistPanel),
   'ai-usage': () =>
     import('./AIUsageLayout.jsx').then((m) => m.AIUsageLayout),
 };
