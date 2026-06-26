@@ -18,7 +18,7 @@ import { clearFundNavBadge } from "../funds/fundStore.js";
 import { clearAiUsageNavBadge } from "../store/ai-usage-store.js";
 import { clearWechatHotUnreadBadge } from "../wechat-hot/store.js";
 
-// activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'ai-usage' | 'versions', 默认 'versions'
+// activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'stocks' | 'stock-watchlist' | 'ai-usage' | 'versions', 默认 'versions'
 export const activeNav = signal("versions");
 export const navCollapsed = signal(false);
 
@@ -28,6 +28,8 @@ const NAV_KEYS = new Set([
   "worldcup",
   "funds",
   "metals",
+  "stocks",
+  "stock-watchlist",
   "ai-usage",
   "versions",
 ]);
@@ -39,6 +41,8 @@ export const NAV_KEYS_LIST = [
   "worldcup",
   "funds",
   "metals",
+  "stocks",
+  "stock-watchlist",
   "ai-usage",
   "versions",
 ];
