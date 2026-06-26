@@ -1,0 +1,229 @@
+/**
+ * tests/ai/stock-detail-advisor.test.js
+ *
+ * ponytail: vitest 1.6 的 vi.mock 只 hook ESM import, 不 hook CJS require.
+ * advisor.js 是 CJS, 内部用 require(...). 改用 require.cache 注入模式
+ * (见 tests/detectors/circuit-breaker-storage.test.js + stock-screener-advisor.test.js).
+ */
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
+const stateStorePath = require.resolve("../../src/main/state-store.js");
+const promptRegistryPath = require.resolve("../../src/ai/prompt-registry.js");
+const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
+const stockAnglesPath = require.resolve("../../src/stocks/stock-detail-angles.js");
+const advisorPath = require.resolve("../../src/ai/stock-detail-advisor.js");
+
+const mockChat = vi.fn();
+const _mockState = { stockDetailCache: {}, apps: {} };
+
+function reloadAdvisor() {
+  delete require.cache[advisorPath];
+  delete require.cache[stockAnglesPath];
+  require.cache[sharedLlmPath] = {
+    id: sharedLlmPath,
+    filename: sharedLlmPath,
+    loaded: true,
+    exports: { chatCompletion: (...args) => mockChat(...args) },
+  };
+  require.cache[promptRegistryPath] = {
+    id: promptRegistryPath,
+    filename: promptRegistryPath,
+    loaded: true,
+    exports: {
+      resolvePrompt: (key) => ({
+        system: `MOCK-SYS-${key}`,
+        rules: `MOCK-RULES-${key}`,
+        fewShot: "",
+      }),
+    },
+  };
+  require.cache[stateStorePath] = {
+    id: stateStorePath,
+    filename: stateStorePath,
+    loaded: true,
+    exports: {
+      load: () => _mockState,
+      patchState: (fn) => fn(_mockState),
+    },
+  };
+  require.cache[stockAnglesPath] = {
+    id: stockAnglesPath,
+    filename: stockAnglesPath,
+    loaded: true,
+    exports: {
+      ANGLE_DEFS: [
+        { key: "price_trend", label: "价格趋势", group: "行情", promptHint: "近 30 日", dataShape: "PriceTrendData" },
+        { key: "valuation", label: "估值水位", group: "财务", promptHint: "PE PB", dataShape: "ValuationData" },
+        { key: "capital_flow", label: "资金流向", group: "资金", promptHint: "主力净流入", dataShape: "CapitalFlowData" },
+      ],
+      getAngle: (k) => {
+        const map = {
+          price_trend: { key: "price_trend", label: "价格趋势" },
+          valuation: { key: "valuation", label: "估值水位" },
+          capital_flow: { key: "capital_flow", label: "资金流向" },
+        };
+        return map[k] || null;
+      },
+    },
+  };
+  return require(advisorPath);
+}
+
+let advisor = reloadAdvisor();
+
+beforeEach(() => {
+  mockChat.mockReset();
+  _mockState.stockDetailCache = {};
+  _mockState.apps = {};
+});
+
+const mkPerAngleData = (over = {}) => ({
+  price_trend: { status: "ok", data: { closes: [100, 101, 102, 103, 105], change5d: 2.5, change20d: 8.0, amplitude: 5.2 } },
+  valuation: { status: "ok", data: { pe: 28.5, pb: 8.2, pePercentile3y: 70 } },
+  ...over,
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// aiStockDetailAnalyze
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("aiStockDetailAnalyze", () => {
+  it("returns invalid_args when code missing", async () => {
+    const r = await advisor.aiStockDetailAnalyze({ angles: ["price_trend"], perAngleData: mkPerAngleData() });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("invalid_args");
+  });
+
+  it("cache hit: does not call chatCompletion", async () => {
+    const key = advisor.adviseCacheKey({ code: "600519", angles: ["price_trend"], perAngleData: mkPerAngleData() });
+    _mockState.stockDetailCache = {
+      [key]: { result: { summary: "cached", perAngle: {}, risks: [], signal: "neutral" }, fetchedAt: Date.now() },
+    };
+    const r = await advisor.aiStockDetailAnalyze({ code: "600519", angles: ["price_trend"], perAngleData: mkPerAngleData() });
+    expect(r.ok).toBe(true);
+    expect(r.fromCache).toBe(true);
+    expect(r.result.summary).toBe("cached");
+    expect(mockChat).not.toHaveBeenCalled();
+  });
+
+  it("cache miss + LLM success → calls chatCompletion, writes cache", async () => {
+    mockChat.mockResolvedValue({
+      ok: true,
+      text: JSON.stringify({
+        summary: "测试总结",
+        perAngle: { price_trend: "近 30 日上行" },
+        risks: ["估值偏高"],
+        signal: "neutral",
+      }),
+    });
+    const r = await advisor.aiStockDetailAnalyze({ code: "600519", angles: ["price_trend"], perAngleData: mkPerAngleData() });
+    expect(r.ok).toBe(true);
+    expect(r.fromCache).toBe(false);
+    expect(r.result.summary).toBe("测试总结");
+    expect(r.result.signal).toBe("neutral");
+    expect(mockChat).toHaveBeenCalledTimes(1);
+    expect(Object.keys(_mockState.stockDetailCache)).toHaveLength(1);
+  });
+
+  it("LLM failure: returns reason from chatCompletion", async () => {
+    mockChat.mockResolvedValue({ ok: false, reason: "budget_exceeded" });
+    const r = await advisor.aiStockDetailAnalyze({ code: "600519", angles: ["price_trend"], perAngleData: mkPerAngleData() });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("budget_exceeded");
+  });
+
+  it("LLM returns broken JSON: returns parse_failed, does NOT write cache", async () => {
+    mockChat.mockResolvedValue({ ok: true, text: "not json" });
+    const r = await advisor.aiStockDetailAnalyze({ code: "600519", angles: ["price_trend"], perAngleData: mkPerAngleData() });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("parse_failed");
+    expect(Object.keys(_mockState.stockDetailCache)).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// parseAndValidateAnalyze
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("parseAndValidateAnalyze", () => {
+  it("returns null on empty input", () => {
+    expect(advisor.parseAndValidateAnalyze("")).toBe(null);
+  });
+
+  it("uses fallback summary when missing", () => {
+    const out = advisor.parseAndValidateAnalyze(JSON.stringify({ perAngle: {}, risks: [], signal: "neutral" }));
+    expect(typeof out.summary).toBe("string");
+    expect(out.summary.length).toBeGreaterThan(0);
+  });
+
+  it("normalizes signal to whitelist", () => {
+    const out = advisor.parseAndValidateAnalyze(JSON.stringify({ summary: "x", perAngle: {}, risks: [], signal: "BUY" }));
+    expect(out.signal).toBe("neutral");
+  });
+
+  it("accepts valid signal values", () => {
+    for (const s of ["positive", "neutral", "cautious"]) {
+      const out = advisor.parseAndValidateAnalyze(JSON.stringify({ summary: "x", perAngle: {}, risks: [], signal: s }));
+      expect(out.signal).toBe(s);
+    }
+  });
+
+  it("truncates summary > 200 chars", () => {
+    const long = "x".repeat(300);
+    const out = advisor.parseAndValidateAnalyze(JSON.stringify({ summary: long, perAngle: {}, risks: [], signal: "neutral" }));
+    expect(out.summary.length).toBeLessThanOrEqual(200);
+  });
+
+  it("rewrites forbidden summary keywords (买入/卖出/加仓/减仓)", () => {
+    const out = advisor.parseAndValidateAnalyze(JSON.stringify({ summary: "强烈推荐买入", perAngle: {}, risks: [], signal: "positive" }));
+    expect(out.summary).not.toMatch(/强烈推荐|买入/);
+    expect(out.summary).toContain("当前市场呈现");
+  });
+
+  it("does NOT leak userId / watchlist / search history (PII safety)", () => {
+    const out = advisor.parseAndValidateAnalyze(JSON.stringify({
+      summary: "userId 123 看多 watchlist 查询",
+      perAngle: {}, risks: [], signal: "neutral",
+    }));
+    expect(out.summary).not.toMatch(/userId|watchlist|searchHistory|search_history/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// buildAnalyzeMessages
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("buildAnalyzeMessages", () => {
+  it("throws on missing code", () => {
+    expect(() => advisor.buildAnalyzeMessages({ angles: ["price_trend"], perAngleData: mkPerAngleData() })).toThrow();
+  });
+
+  it("returns system + user messages", () => {
+    const msgs = advisor.buildAnalyzeMessages({ code: "600519", angles: ["price_trend"], perAngleData: mkPerAngleData() });
+    expect(msgs).toHaveLength(2);
+    expect(msgs[0].role).toBe("system");
+    expect(msgs[1].role).toBe("user");
+    expect(msgs[0].content).toContain("MOCK-SYS-stock_detail_analyze");
+  });
+
+  it("user message includes code + angle labels", () => {
+    const msgs = advisor.buildAnalyzeMessages({ code: "600519", angles: ["price_trend", "valuation"], perAngleData: mkPerAngleData() });
+    expect(msgs[1].content).toContain("600519");
+    expect(msgs[1].content).toContain("价格趋势");
+    expect(msgs[1].content).toContain("估值水位");
+  });
+
+  it("user message includes perAngleData values", () => {
+    const msgs = advisor.buildAnalyzeMessages({ code: "600519", angles: ["valuation"], perAngleData: mkPerAngleData() });
+    expect(msgs[1].content).toContain("28.5");
+  });
+
+  it("user message marks failed angles (no leakage of raw error)", () => {
+    const pad = mkPerAngleData({ capital_flow: { status: "failed", reason: "fetch_failed" } });
+    const msgs = advisor.buildAnalyzeMessages({ code: "600519", angles: ["price_trend", "capital_flow"], perAngleData: pad });
+    expect(msgs[1].content).toMatch(/capital_flow.*数据缺失/);
+  });
+});
