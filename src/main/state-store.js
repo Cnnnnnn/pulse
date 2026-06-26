@@ -273,6 +273,8 @@ const PRESERVE_FIELDS = [
   { key: "aiFeedback", kind: "array" }, // A8: AI 反馈样本 cap-500
   { key: "tokenSpend", kind: "object" }, // P71: 每日 token 消耗
   { key: "tokenBudgetConfig", kind: "object" }, // P71: 预算配置 { dailyLimit, mode }
+  { key: "stockWatchlist", kind: "array" }, // 股票筛选器: 自选股 [{code,name,industry,addedAt}]
+  { key: "stockScreener", kind: "object", notArray: true }, // 股票筛选器: 上次条件 + 策略 + 排序
 ];
 
 function shouldPreserveValue(val, spec) {
