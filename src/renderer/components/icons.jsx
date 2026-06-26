@@ -573,9 +573,42 @@ export function IconLock({ size = 14 }) {
   );
 }
 
-/** ISO alpha-2 队旗占位 SVG（统一替代 Unicode 国旗 emoji） */
+/**
+ * 队旗渲染: 有 ISO code → 彩色真实国旗 SVG (4:3, 来自 flags.jsx);
+ * 无 code → 通用 IconFlag 占位. 国旗必须用真实配色, 不走 stroke/currentColor.
+ */
+import { FLAG_SVGS } from "../worldcup/flags.jsx";
+
 export function TeamFlag({ code, size = 16, className }) {
-  const label = code ? String(code).toUpperCase() : null;
+  const key = code ? String(code).toUpperCase() : null;
+  const label = key;
+  const flagSvg = key ? FLAG_SVGS[key] : null;
+  if (flagSvg) {
+    // 真实国旗: 独立 <svg>, viewBox 4:3, 彩色填充. 跟 stroke 风格 IconSvg 隔离.
+    return (
+      <span
+        class={className}
+        title={label || undefined}
+        aria-label={label ? `球队 ${label}` : undefined}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={size}
+          height={Math.round((size * 3) / 4)}
+          viewBox="0 0 60 40"
+          role="img"
+          style={{ display: "block", borderRadius: "1px" }}
+        >
+          {flagSvg}
+        </svg>
+      </span>
+    );
+  }
+  // fallback: 通用旗子图标 (无 code 或 code 未收录)
   return (
     <span
       class={className}
