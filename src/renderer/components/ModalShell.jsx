@@ -31,6 +31,7 @@ export function ModalShell({
   children,
   usePortal = false,
   layout = 'standard',
+  cardRef = null,
 }) {
   const onEscapeRef = useRef(onEscape);
   onEscapeRef.current = onEscape;
@@ -93,6 +94,7 @@ export function ModalShell({
       }}
     >
       <div
+        ref={cardRef}
         class={cardCls}
         role={role}
         aria-label={ariaLabelledBy ? undefined : (ariaLabel || title)}
@@ -122,6 +124,7 @@ export function BareModalShell({
   role = 'dialog',
   ariaLabel,
   ariaLabelledBy,
+  cardRef = null,
   children,
 }) {
   return (
@@ -139,6 +142,7 @@ export function BareModalShell({
       role={role}
       ariaLabel={ariaLabel}
       ariaLabelledBy={ariaLabelledBy}
+      cardRef={cardRef}
     >
       {children}
     </ModalShell>

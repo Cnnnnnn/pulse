@@ -12,6 +12,14 @@
  *   watchlist: StockWatchItem[] // 自选股
  *   watchlistQuotes: object     // 自选股行情 {code:{...}}
  *   advancedOpen: boolean       // 高级条件折叠
+ *   aiAdviseOpen: boolean       // 阶段二: AI 推荐抽屉是否打开
+ *   aiAdvise: {                 // 阶段二: AI 推荐当前状态
+ *     status: "idle"|"loading"|"ready"|"error",
+ *     result: {criteria, sortConfig, summary}|null,
+ *     fromCache: boolean,
+ *     reason: string|null,
+ *     error: string|null
+ *   }
  */
 import { signal, computed } from "@preact/signals";
 import { taggedLog } from "../log.js";
@@ -35,6 +43,15 @@ export const watchlist = signal([]);
 export const watchlistQuotes = signal({});
 export const advancedOpen = signal(false);
 export const addModalOpen = signal(false);
+// 阶段二: AI 推荐抽屉
+export const aiAdviseOpen = signal(false);
+export const aiAdvise = signal({
+  status: "idle",
+  result: null,
+  fromCache: false,
+  reason: null,
+  error: null,
+});
 
 export const sortConfig = computed(() => ({
   key: sortKey.value,
@@ -84,6 +101,92 @@ export function openAddModal() {
 
 export function closeAddModal() {
   addModalOpen.value = false;
+}
+
+// ── 阶段二: AI 推荐策略抽屉 ──
+
+export function openAdvise() {
+  aiAdviseOpen.value = true;
+  // ponytail: 打开抽屉时重置 state (清掉上次的 error, 但保留 result 让用户看上一份).
+  if (aiAdvise.value.status === "loading") return; // 加载中不允许重置
+  aiAdvise.value = {
+    ...aiAdvise.value,
+    status: "idle",
+    reason: null,
+    error: null,
+  };
+}
+
+export function closeAdvise() {
+  aiAdviseOpen.value = false;
+}
+
+/**
+ * 请求 AI 推荐. 调 main 进程 stocks:ai-advise, 更新 aiAdvise signal.
+ * ponytail: 不重打 IPC 的 criteria 已经在 store 里, 直接传 snapshot 给 main.
+ */
+export async function requestAiAdvise(api, payload) {
+  if (!api || !api.stocksAiAdvise) {
+    aiAdvise.value = { status: "error", result: null, fromCache: false, reason: "no_api", error: "api 不可用" };
+    return;
+  }
+  aiAdvise.value = { ...aiAdvise.value, status: "loading", reason: null, error: null };
+  try {
+    const r = await api.stocksAiAdvise({
+      intentChip: payload.intentChip,
+      freeText: payload.freeText || "",
+      currentCriteria: criteria.value,
+    });
+    if (r && r.ok) {
+      aiAdvise.value = {
+        status: "ready",
+        result: r.result,
+        fromCache: !!r.fromCache,
+        reason: null,
+        error: null,
+      };
+    } else {
+      aiAdvise.value = {
+        status: "error",
+        result: null,
+        fromCache: false,
+        reason: (r && r.reason) || "unknown",
+        error: (r && r.error) || null,
+      };
+    }
+  } catch (e) {
+    aiAdvise.value = {
+      status: "error",
+      result: null,
+      fromCache: false,
+      reason: "exception",
+      error: e && e.message ? e.message : String(e),
+    };
+  }
+}
+
+/**
+ * 把 AI 推荐的 criteria + sortConfig 应用到 store.
+ * ponytail: 不自动点 runScreen (避免 token 烧光后跑 40s); 用户手动点 🔍.
+ *          sortConfig 写到 sortKey + sortDir signal, 立即本地重排 results.
+ */
+export function applyAiAdvise() {
+  const r = aiAdvise.value && aiAdvise.value.result;
+  if (!r) return;
+  // criteria: 走 setCriteria 让 activeStrategy 切 "custom"
+  if (r.criteria && typeof r.criteria === "object") {
+    setCriteria(r.criteria);
+  }
+  // sortConfig: 直接写 signals + 立即本地重排
+  if (r.sortConfig && r.sortConfig.key) {
+    sortKey.value = r.sortConfig.key;
+    sortDir.value = r.sortConfig.dir === "asc" ? "asc" : "desc";
+    results.value = sortStocks(results.value, {
+      key: sortKey.value,
+      dir: sortDir.value,
+    });
+  }
+  closeAdvise();
 }
 
 /** 是否在自选 (表格 ⭐ 用) */

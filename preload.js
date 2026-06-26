@@ -307,6 +307,8 @@ contextBridge.exposeInMainWorld("api", {
   // 选股分析 (阶段一): 筛选 + 搜索 + 自选股 + 行情推送
   stocksScreen: (payload) => ipcRenderer.invoke("stocks:screen", payload),
   stocksSearch: (query) => ipcRenderer.invoke("stocks:search", query),
+  // 阶段二: AI 推荐筛选条件 (chatCompletion + 24h 缓存)
+  stocksAiAdvise: (payload) => ipcRenderer.invoke("stocks:ai-advise", payload),
   stocksWatchlistList: () => ipcRenderer.invoke("stocks:watchlist:list"),
   stocksWatchlistAdd: (payload) =>
     ipcRenderer.invoke("stocks:watchlist:add", payload),

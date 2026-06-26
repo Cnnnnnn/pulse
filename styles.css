@@ -9781,6 +9781,102 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .stock-modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary, #6e6e73); }
 .stock-modal-body { padding: 14px 16px; }
 .stock-modal-input { width: 100%; background: var(--bg-card, #ffffff); border: 1px solid var(--border, rgba(0,0,0,0.08)); color: var(--text-primary, #1d1d1f); padding: 8px 10px; border-radius: 6px; font-size: 13px; }
+/* 阶段二: AI 推荐抽屉 + AI 按钮 — 复用 stock-* 主题变量, light/dark 一致. */
+.stock-btn-ai {
+  background: linear-gradient(135deg, var(--accent-primary, #007aff), var(--accent-secondary, #5856d6));
+  color: #fff; border: none;
+}
+.stock-btn-ai:hover:not([disabled]) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+/* ponytail: 层级 — drawer 是 fixed 浮层, 渲染时永远在最上面.
+   关键是不让 drawer 在过渡期间 "滑过" 列表造成视觉穿插.
+   方案: 抽屉打开瞬间 overlay 立刻全屏覆盖 + drawer 在最终位置 fade in;
+   同时让 stock-results-pad-drawer 立即让位 (无 transition), 避免抽屉和表格争抢同一空间.
+   结果: 视觉上要么"无抽屉 + 列表完整", 要么"抽屉覆盖右侧 + 列表让出", 没有中间穿插帧. */
+.stock-advise-overlay {
+  z-index: var(--z-index-modal, 5000);
+  background: transparent;
+  pointer-events: none;
+  animation: none;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+.stock-advise-overlay > .stock-advise-drawer { pointer-events: auto; }
+.stock-advise-drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(360px, 90vw);
+  background: var(--bg-card, #ffffff);
+  border-left: 1px solid var(--border, rgba(0,0,0,0.08));
+  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+  display: flex; flex-direction: column;
+  /* fade only — 没有位移, 不会 "滑过" 列表 */
+  animation: stock-advise-fade 0.15s ease-out;
+}
+@keyframes stock-advise-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* ponytail: 抽屉打开时表格容器立刻让出右侧 360px + 16px 间距 (无 transition),
+   与 drawer fade in 同步, 没有抽屉 vs 表格的位移竞争. */
+.stock-results-pad-drawer { padding-right: calc(min(360px, 90vw) + 16px); }
+.stock-advise-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border, rgba(0,0,0,0.08)); }
+.stock-advise-title { font-size: 15px; font-weight: 600; color: var(--text-primary, #1d1d1f); }
+.stock-advise-subtitle { padding: 10px 16px 0; font-size: 12px; color: var(--text-secondary, #6e6e73); line-height: 1.5; }
+.stock-advise-hint { color: var(--text-tertiary, #8e8e93); }
+.stock-advise-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+.stock-advise-section { margin-bottom: 14px; }
+.stock-advise-section-title { font-size: 13px; font-weight: 600; color: var(--text-primary, #1d1d1f); margin: 12px 0 6px; display: flex; align-items: center; gap: 8px; }
+.stock-advise-label { font-size: 12px; color: var(--text-secondary, #6e6e73); margin-bottom: 6px; }
+.stock-advise-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.stock-advise-chip {
+  padding: 6px 12px; border-radius: 14px; font-size: 12px;
+  background: var(--bg-elevated, #f5f5f7); color: var(--text-primary, #1d1d1f);
+  border: 1px solid var(--border, rgba(0,0,0,0.08)); cursor: pointer;
+  transition: all 0.15s ease;
+}
+.stock-advise-chip:hover { border-color: var(--accent-primary, #007aff); }
+.stock-advise-chip.active {
+  background: var(--accent-primary, #007aff); color: #fff; border-color: var(--accent-primary, #007aff);
+}
+.stock-advise-input {
+  width: 100%; padding: 8px 10px; border-radius: 6px; font-size: 13px;
+  background: var(--bg-card, #ffffff); color: var(--text-primary, #1d1d1f);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+}
+.stock-advise-generate { width: 100%; margin-top: 8px; }
+.stock-advise-error {
+  margin-top: 14px; padding: 12px;
+  background: rgba(255,59,48,0.08); border: 1px solid rgba(255,59,48,0.3); border-radius: 8px;
+}
+.stock-advise-error-title { font-size: 13px; font-weight: 600; color: #ff3b30; margin-bottom: 4px; }
+.stock-advise-error-sub { font-size: 12px; color: var(--text-secondary, #6e6e73); margin-bottom: 10px; line-height: 1.5; }
+.stock-advise-preview {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border, rgba(0,0,0,0.08));
+}
+.stock-advise-cache-tag {
+  font-size: 10px; padding: 2px 6px; border-radius: 8px;
+  background: var(--bg-elevated, #f5f5f7); color: var(--text-tertiary, #8e8e93);
+  font-weight: normal;
+}
+.stock-advise-list {
+  list-style: none; margin: 0 0 12px; padding: 10px 12px;
+  background: var(--bg-elevated, #f5f5f7); border-radius: 8px;
+  font-size: 13px; color: var(--text-primary, #1d1d1f);
+}
+.stock-advise-list li { padding: 3px 0; }
+.stock-advise-list-empty { color: var(--text-tertiary, #8e8e93); font-style: italic; }
+.stock-advise-sort { color: var(--accent-primary, #007aff); font-weight: 500; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--border, rgba(0,0,0,0.08)); }
+.stock-advise-summary {
+  font-size: 13px; color: var(--text-secondary, #6e6e73);
+  padding: 10px 12px; background: var(--bg-elevated, #f5f5f7); border-radius: 8px;
+  line-height: 1.6;
+}
+.stock-advise-actions { display: flex; gap: 8px; margin-top: 12px; }
+.stock-advise-actions .stock-btn { flex: 1; }
+.stock-advise-apply-hint { font-size: 11px; color: var(--text-tertiary, #8e8e93); margin-top: 8px; text-align: center; }
 .stock-search-list { list-style: none; margin: 10px 0 0; padding: 0; max-height: 300px; overflow-y: auto; }
 .stock-search-item { display: flex; gap: 10px; padding: 8px 6px; border-radius: 5px; cursor: pointer; }
 .stock-search-item:hover { background: var(--surface-2, #2c2c2e); }

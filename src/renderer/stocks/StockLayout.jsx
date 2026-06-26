@@ -9,6 +9,7 @@ import { useEffect } from "preact/hooks";
 import { StrategyBar } from "./StrategyBar.jsx";
 import { CriteriaPanel } from "./CriteriaPanel.jsx";
 import { ResultTable } from "./ResultTable.jsx";
+import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
 import {
   runScreen,
   loadWatchlist,
@@ -16,6 +17,8 @@ import {
   refreshWatchlistQuotes,
   fetchedAt,
   loading,
+  openAdvise,
+  aiAdviseOpen,
 } from "./stockStore.js";
 import { api } from "../api.js";
 
@@ -54,6 +57,15 @@ export function StockLayout() {
           <span class="stock-updated">更新于 {fmtTime(ts)}</span>
           <button
             type="button"
+            class="stock-btn stock-btn-secondary stock-btn-ai"
+            disabled={loading.value}
+            onClick={() => openAdvise()}
+            aria-label="AI 推荐筛选条件"
+          >
+            🧠 AI 推荐
+          </button>
+          <button
+            type="button"
             class="stock-btn stock-btn-primary"
             disabled={loading.value}
             onClick={() => runScreen(api)}
@@ -64,7 +76,10 @@ export function StockLayout() {
       </div>
       <StrategyBar />
       <CriteriaPanel />
-      <ResultTable api={api} />
+      <div class={aiAdviseOpen.value ? "stock-results-pad-drawer" : ""}>
+        <ResultTable api={api} />
+      </div>
+      <AiAdviseDrawer api={api} />
     </div>
   );
 }

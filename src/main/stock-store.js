@@ -128,6 +128,36 @@ function saveStockScreener(patch, statePath) {
   return next;
 }
 
+// ponytail: 阶段二 — AI 推荐策略缓存. advisor.js 直接走 state-store.patchState,
+// 这里只提供 load + 一个 prune-old-entries helper (IPC handler 调用前清理过期).
+function loadAiStockAdviseCache(statePath) {
+  const s = stateStore.load(statePath);
+  const cache = s && s.aiStockAdviseCache;
+  if (!cache || typeof cache !== "object") return {};
+  return cache;
+}
+
+function pruneAiStockAdviseCache(ttlMs, statePath) {
+  // ponytail: 清理 24h+ 过期条目, 防 state.json 无限增长. 调用方传 ttlMs (advisor CACHE_TTL_MS).
+  const cache = loadAiStockAdviseCache(statePath);
+  const now = Date.now();
+  let changed = false;
+  const next = {};
+  for (const [k, v] of Object.entries(cache)) {
+    if (v && typeof v.fetchedAt === "number" && now - v.fetchedAt < ttlMs) {
+      next[k] = v;
+    } else {
+      changed = true;
+    }
+  }
+  if (changed) {
+    stateStore.patchState((st) => {
+      st.aiStockAdviseCache = next;
+    }, statePath);
+  }
+  return next;
+}
+
 module.exports = {
   loadStockWatchlist,
   saveStockWatchlist,
@@ -135,6 +165,8 @@ module.exports = {
   removeStock,
   loadStockScreener,
   saveStockScreener,
+  loadAiStockAdviseCache,
+  pruneAiStockAdviseCache,
   normalizeItem,
   ValidationError,
   DEFAULT_SCREENER,

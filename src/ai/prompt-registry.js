@@ -118,6 +118,27 @@ const DEFAULT_PROMPTS = {
     ].join("\n"),
     fewShot: "",
   },
+  // 阶段二: 选股 AI 推荐策略 — 生成 criteria + sortConfig + summary
+  stock_screener_advise: {
+    system: [
+      "你是 A 股策略助手。根据用户的投资意图和今日 A 股市场快照，",
+      "推荐一套具体的筛选条件 (PE/PB/ROE/股息率/市值/行业/换手/动量) 和排序维度，",
+      "并用一句话描述当前市场行情。",
+    ].join(""),
+    rules: [
+      "【硬性要求】",
+      "1. 只输出严格 JSON，不要 markdown fence 或额外文字。",
+      '2. JSON schema: {"criteria":{"peMin":number|null,"peMax":number|null,"pbMin":number|null,"pbMax":number|null,"roeMin":number|null,"dividendYieldMin":number|null,"turnoverMin":number|null,"turnoverMax":number|null,"change5dMin":number|null,"marketCapTier":"all"|"large"|"mid"|"small"|null,"industries":string[]},"sortConfig":{"key":"roe"|"pe"|"pb"|"changePct"|"marketCap"|"turnover"|"price"|"name"|"industry","dir":"asc"|"desc"}|null,"summary":"一句话当前市场总结, ≤120字, 简体中文"}',
+      "3. criteria 各字段: 不设则传 null; 数值必须合理 (例: peMin ≤ peMax, roeMin 0-30, dividendYieldMin 0-15).",
+      "4. marketCapTier: 大盘 large / 中盘 mid / 小盘 small / 全市场 all; 不确定时 null.",
+      "5. industries: 字符串数组, 表示行业偏好 (例: [\"银行\", \"地产\"]); 不指定则 [].",
+      '6. sortConfig: 推荐按哪个字段排序; dir 默认 "desc" (大→小).',
+      "7. summary: 客观描述当前市场, 不给买卖建议, 不预测涨跌. 必须基于市场快照实际数字, 不编造.",
+      "8. 参考市场快照的 PE 中位数 / 30 分位 / 70 分位, 推荐合理的 PE 范围 (例: 低估值意图 → peMax 设在 P30 附近).",
+      "9. 所有数字字段必须是 number 或 null, 字符串字段必须是 string, 数组字段必须是数组. 类型错误会被丢弃.",
+    ].join("\n"),
+    fewShot: "",
+  },
 };
 
 const PROMPT_KEYS = Object.keys(DEFAULT_PROMPTS);

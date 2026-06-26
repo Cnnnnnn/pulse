@@ -275,6 +275,7 @@ const PRESERVE_FIELDS = [
   { key: "tokenBudgetConfig", kind: "object" }, // P71: 预算配置 { dailyLimit, mode }
   { key: "stockWatchlist", kind: "array" }, // 股票筛选器: 自选股 [{code,name,industry,addedAt}]
   { key: "stockScreener", kind: "object", notArray: true }, // 股票筛选器: 上次条件 + 策略 + 排序
+  { key: "aiStockAdviseCache", kind: "object", notArray: true }, // 选股 AI 推荐缓存: { "v1::<sha1>": {result, fetchedAt} }
 ];
 
 function shouldPreserveValue(val, spec) {

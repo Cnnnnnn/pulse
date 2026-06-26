@@ -4,7 +4,10 @@
  * A 股筛选器常量: 东财 clist 接口参数 / 字段映射 / 市值分档阈值.
  *
  * 对照 spec §5.2. 这些常量被 stock-fetcher (API 调用) / stock-filter (过滤) /
- * strategies (预设策略) 共用.
+ * strategies (预设策略) / renderer (条件区) 共用.
+ *
+ * ponytail: 纯常量模块, 不依赖 node 内置 (会被 renderer 端 bundle).
+ *          需要 node 能力的函数 (computeMarketOverview 等) 拆到 market-overview.js.
  */
 
 // 东财 clist 接口的 fs 参数: 沪深全部 A 股

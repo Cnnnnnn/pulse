@@ -12,9 +12,7 @@ import {
 
 describe("stock-constants", () => {
   it("MARKET_PARAM covers sh + sz main board", () => {
-    expect(MARKET_PARAM).toBe(
-      "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23",
-    );
+    expect(MARKET_PARAM).toBe("m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23");
   });
 
   it("FIELD_MAP maps east-money fields to stock keys", () => {
