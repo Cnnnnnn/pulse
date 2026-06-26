@@ -21,6 +21,8 @@ const LOADERS = {
     import('../stocks/StockLayout.jsx').then((m) => m.StockLayout),
   'stock-watchlist': () =>
     import('../stocks/WatchlistPanel.jsx').then((m) => m.WatchlistPanel),
+  'stock-detail': () =>
+    import('../stocks/StockDetailLayout.jsx').then((m) => m.StockDetailLayout),
   'ai-usage': () =>
     import('./AIUsageLayout.jsx').then((m) => m.AIUsageLayout),
 };
