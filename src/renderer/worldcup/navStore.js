@@ -30,6 +30,7 @@ const NAV_KEYS = new Set([
   "metals",
   "stocks",
   "stock-watchlist",
+  "stock-detail",
   "ai-usage",
   "versions",
 ]);
@@ -43,6 +44,7 @@ export const NAV_KEYS_LIST = [
   "metals",
   "stocks",
   "stock-watchlist",
+  "stock-detail",
   "ai-usage",
   "versions",
 ];

@@ -83,7 +83,7 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 9 个 nav 全显示", () => {
+  it("默认 prefs 全开 → 10 个 nav 全显示", () => {
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
       "ithome",
@@ -93,6 +93,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "metals",
       "stocks",
       "stock-watchlist",
+      "stock-detail",
       "ai-usage",
       "versions",
     ]);
@@ -123,7 +124,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("4 个动态全关 → 只剩 5 个固定 nav (ithome/wechat-hot/funds/stocks/stock-watchlist)", () => {
+  it("4 个动态全关 → 只剩 6 个固定 nav (ithome/wechat-hot/funds/stocks/stock-watchlist/stock-detail)", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -142,6 +143,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "funds",
       "stocks",
       "stock-watchlist",
+      "stock-detail",
     ]);
   });
 
@@ -166,6 +168,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "metals",
       "stocks",
       "stock-watchlist",
+      "stock-detail",
       "ai-usage",
       "versions",
     ]);

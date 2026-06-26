@@ -126,10 +126,10 @@ describe("sidenav-prefs: reorderItems", () => {
   beforeEach(() => localStorage.clear());
 
   it("reorderItems: from → to 'before'", () => {
-    const p0 = resetPrefs(); // [ithome, wechat-hot, worldcup, funds, metals, stocks, stock-watchlist, ai-usage, versions]
+    const p0 = resetPrefs(); // [ithome, wechat-hot, worldcup, funds, metals, stocks, stock-watchlist, stock-detail, ai-usage, versions]
     const p1 = reorderItems(p0, "ithome", "funds", "before");
     expect(p1.order).toEqual([
-      "wechat-hot", "worldcup", "ithome", "funds", "metals", "stocks", "stock-watchlist", "ai-usage", "versions",
+      "wechat-hot", "worldcup", "ithome", "funds", "metals", "stocks", "stock-watchlist", "stock-detail", "ai-usage", "versions",
     ]);
   });
 
@@ -137,7 +137,7 @@ describe("sidenav-prefs: reorderItems", () => {
     const p0 = resetPrefs();
     const p1 = reorderItems(p0, "ithome", "funds", "after");
     expect(p1.order).toEqual([
-      "wechat-hot", "worldcup", "funds", "ithome", "metals", "stocks", "stock-watchlist", "ai-usage", "versions",
+      "wechat-hot", "worldcup", "funds", "ithome", "metals", "stocks", "stock-watchlist", "stock-detail", "ai-usage", "versions",
     ]);
   });
 
@@ -172,8 +172,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 9 个 nav key", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(9);
+  it("DEFAULTS_FOR_TESTS: 10 个 nav key", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(10);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });
