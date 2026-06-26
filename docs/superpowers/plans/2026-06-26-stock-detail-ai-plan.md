@@ -572,7 +572,7 @@ function makeClient(responses) {
   return { get: vi.fn(async () => responses.shift() || fail()) };
 }
 
-const kline = (date, c) => `${date},${c + 1},${c + 2},${c - 1},${c},1000,10000,0.5`;
+const kline = (date, c) => `${date},${c + 1},${c},${c - 1},${c + 2},1000,10000,0.5`;  // open, close, high, low — close = c 跟测试期望 closes[i] = c 对齐
 
 beforeEach(() => vi.restoreAllMocks());
 
@@ -599,9 +599,11 @@ describe("fetchPriceTrend", () => {
   it("falls back to sina when eastmoney fails", async () => {
     const http = makeClient([
       fail(500),
-      { ok: true, status: 200, body: { data: { klines: [
-        "2026-05-01,10,11,9,10,1000,10000,0.5", "2026-05-02,11,12,10,11,1100,11000,0.5",
-      ] } } },
+      { ok: true, status: 200, body: [
+        // sina 真实 shape: 顶层 array of objects (不是 eastmoney 的 {data:{klines:[...]}})
+        { day: "2026-05-01", open: 10, close: 11, high: 12, low: 9, amount: 10000, turnover: 0.5 },
+        { day: "2026-05-02", open: 11, close: 12, high: 13, low: 10, amount: 11000, turnover: 0.5 },
+      ] },
     ]);
     const r = await fetchPriceTrend(http, { code: "600519" });
     expect(r.ok).toBe(true);
@@ -776,21 +778,22 @@ git commit -m "feat(stocks): price_trend fetcher (eastmoney + sina fallback)"
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fetchVolumeTurnover } from "../../../src/stocks/detail-fetchers/volume-turnover.js";
 
-const ok = (klines) => ({ ok: true, status: 200, body: { data: { klines } } });
+const emOK = (klines) => ({ ok: true, status: 200, body: { data: { klines } } });
+const sinaOK = (items) => ({ ok: true, status: 200, body: items });
 const fail = (status = 500) => ({ ok: false, status, error: "http_error" });
 
 function makeClient(responses) {
   return { get: vi.fn(async () => responses.shift() || fail()) };
 }
 
-const kline = (date, c) => `${date},${c + 1},${c + 2},${c - 1},${c},1000,${c * 100000},${c * 0.1}`;
+const kline = (date, c) => `${date},${c + 1},${c},${c - 1},${c + 2},1000,${c * 100000},${c * 0.1}`;  // open, close, high, low — close = c 跟测试期望对齐
 
 beforeEach(() => vi.restoreAllMocks());
 
 describe("fetchVolumeTurnover", () => {
   it("computes avg/latest amount + turnover from eastmoney", async () => {
     const klines = Array.from({ length: 30 }, (_, i) => kline(`2026-05-${(i + 1).toString().padStart(2, "0")}`, 10 + i));
-    const http = makeClient([ok(klines)]);
+    const http = makeClient([emOK(klines)]);
     const r = await fetchVolumeTurnover(http, { code: "600519" });
     expect(r.ok).toBe(true);
     expect(r.data.latestAmount).toBe(39 * 100000);
@@ -808,7 +811,12 @@ describe("fetchVolumeTurnover", () => {
 
   it("falls back to sina on primary failure", async () => {
     const klines = Array.from({ length: 30 }, (_, i) => kline(`2026-05-${(i + 1).toString().padStart(2, "0")}`, 10 + i));
-    const http = makeClient([fail(500), ok(klines)]);
+    // sina fallback 用 sina 真实 shape (顶层 array of objects), 不是 eastmoney 的 {data:{klines}}
+    const sinaBody = klines.map((csv, i) => {
+      const parts = csv.split(",");
+      return { day: parts[0], open: +parts[1], close: +parts[2], high: +parts[3], low: +parts[4], amount: +parts[6], turnover: +parts[7] };
+    });
+    const http = makeClient([fail(500), sinaOK(sinaBody)]);
     const r = await fetchVolumeTurnover(http, { code: "600519" });
     expect(r.ok).toBe(true);
     expect(http.get).toHaveBeenCalledTimes(2);
@@ -1314,7 +1322,8 @@ git commit -m "feat(stocks): capital_flow fetcher"
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fetchTechIndicators } from "../../../src/stocks/detail-fetchers/tech-indicators.js";
 
-const emOK = (closes) => ({ ok: true, status: 200, body: { data: { klines: closes.map((c, i) => `2026-05-${(i+1).toString().padStart(2,"0")},${c+1},${c+2},${c-1},${c},1000,10000,0.5`) } } });
+const emOK = (closes) => ({ ok: true, status: 200, body: { data: { klines: closes.map((c, i) => `2026-05-${(i+1).toString().padStart(2,"0")},${c},${c},${c},${c},1000,10000,0.5`) } } });  // 模板: open, close, high, low — close=c 让 parsed closes == closes
+const sinaOK = (closes) => ({ ok: true, status: 200, body: closes.map((c, i) => ({ day: `2026-05-${(i+1).toString().padStart(2,"0")}`, open: c, close: c, high: c, low: c, amount: 10000, turnover: 0.5 })) });
 const fail = () => ({ ok: false, status: 500, error: "http_error" });
 
 function makeClient(responses) {
@@ -1329,9 +1338,9 @@ describe("fetchTechIndicators", () => {
     const http = makeClient([emOK(closes)]);
     const r = await fetchTechIndicators(http, { code: "600519" });
     expect(r.ok).toBe(true);
-    expect(r.data.ma5).toBeCloseTo(127, 0);
-    expect(r.data.ma10).toBeCloseTo(124.5, 0);
-    expect(r.data.ma20).toBeCloseTo(119.5, 0);
+    expect(r.data.ma5).toBeCloseTo(127, 0);   // mean(125..129)
+    expect(r.data.ma10).toBeCloseTo(124.5, 0); // mean(120..129)
+    expect(r.data.ma20).toBeCloseTo(119.5, 0); // mean(110..129)
     expect(typeof r.data.macdHist).toBe("number");
   });
 
