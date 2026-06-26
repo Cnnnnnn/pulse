@@ -197,6 +197,14 @@ export function createApi(overrides = {}) {
     configImportLoad: pick(overrides, "configImportLoad"),
     configImportApply: pick(overrides, "configImportApply"),
     onAiPromptsUpdated: pick(overrides, "onAiPromptsUpdated"),
+    // 选股分析 (阶段一): 筛选 + 搜索 + 自选股 + 行情推送
+    stocksScreen: pick(overrides, "stocksScreen"),
+    stocksSearch: pick(overrides, "stocksSearch"),
+    stocksWatchlistList: pick(overrides, "stocksWatchlistList"),
+    stocksWatchlistAdd: pick(overrides, "stocksWatchlistAdd"),
+    stocksWatchlistRemove: pick(overrides, "stocksWatchlistRemove"),
+    stocksWatchlistQuotes: pick(overrides, "stocksWatchlistQuotes"),
+    onStocksWatchlistQuotes: pick(overrides, "onStocksWatchlistQuotes"),
   };
 }
 

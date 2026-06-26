@@ -27,6 +27,7 @@ const { registerSelfUpdateHandlers } = require("./register-self-update");
 const {
   registerConfigPortabilityHandlers,
 } = require("./register-config-portability");
+const { registerStocksHandlers } = require("./register-stocks");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -57,6 +58,7 @@ function registerIpcHandlers(deps) {
     ...ctx,
     controller: ctx.selfUpdateController ? ctx.selfUpdateController() : null,
   }); // P52: 自更新 IPC (controller 由 bootstrap 注入, 未注入则不注册任何 handler)
+  registerStocksHandlers(ctx); // 股票筛选器 (选股分析阶段一)
 }
 
 module.exports = { registerIpcHandlers };

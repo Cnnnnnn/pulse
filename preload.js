@@ -303,6 +303,21 @@ contextBridge.exposeInMainWorld("api", {
   selfUpdateGetState: () => ipcRenderer.invoke("self-update:get-state"),
   selfUpdateCheck: () => ipcRenderer.invoke("self-update:check"),
   selfUpdateInstall: () => ipcRenderer.invoke("self-update:install"),
+
+  // 选股分析 (阶段一): 筛选 + 搜索 + 自选股 + 行情推送
+  stocksScreen: (payload) => ipcRenderer.invoke("stocks:screen", payload),
+  stocksSearch: (query) => ipcRenderer.invoke("stocks:search", query),
+  stocksWatchlistList: () => ipcRenderer.invoke("stocks:watchlist:list"),
+  stocksWatchlistAdd: (payload) =>
+    ipcRenderer.invoke("stocks:watchlist:add", payload),
+  stocksWatchlistRemove: (payload) =>
+    ipcRenderer.invoke("stocks:watchlist:remove", payload),
+  stocksWatchlistQuotes: () => ipcRenderer.invoke("stocks:watchlist:quotes"),
+  onStocksWatchlistQuotes: (cb) => {
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("stocks:watchlist:quotes", handler);
+    return () => ipcRenderer.removeListener("stocks:watchlist:quotes", handler);
+  },
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)
