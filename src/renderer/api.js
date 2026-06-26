@@ -202,6 +202,9 @@ export function createApi(overrides = {}) {
     stocksSearch: pick(overrides, "stocksSearch"),
     // 阶段二: AI 推荐筛选条件
     stocksAiAdvise: pick(overrides, "stocksAiAdvise"),
+    // 阶段三: 个股多角度分析 + AI 详情
+    stocksDetailAngles: pick(overrides, "stocksDetailAngles"),
+    stocksDetailAnalyze: pick(overrides, "stocksDetailAnalyze"),
     stocksWatchlistList: pick(overrides, "stocksWatchlistList"),
     stocksWatchlistAdd: pick(overrides, "stocksWatchlistAdd"),
     stocksWatchlistRemove: pick(overrides, "stocksWatchlistRemove"),
