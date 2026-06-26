@@ -1,9 +1,39 @@
 /**
  * src/stocks/detail-fetchers/volume-turnover.js
  *
- * 阶段四 stub. Task 5 替换为真实实现 (东财 kline 成交额 + 换手率).
+ * volume_turnover angle fetcher. 东财 kline 优先, sina 备援.
  */
-async function fetchVolumeTurnover(_httpClient, { code: _code }) {
-  return { ok: false, reason: "not_implemented", error: "stub" };
+const emKline = require("./_shared-em-kline");
+const sinaKline = require("./_shared-sina-kline");
+
+async function fetchVolumeTurnover(httpClient, { code }) {
+  const primary = await emKline.fetchEastmoneyKline(httpClient, code, 30);
+  if (primary.ok) {
+    const parsed = emKline.parseEastmoneyKlines(primary.body);
+    if (parsed && parsed.length > 0) return { ok: true, data: summarize(parsed) };
+  }
+  const fallback = await sinaKline.fetchSinaKline(httpClient, code, 30);
+  if (fallback.ok) {
+    const parsed = sinaKline.parseSinaKlines(fallback.body);
+    if (parsed && parsed.length > 0) return { ok: true, data: summarize(parsed) };
+  }
+  return { ok: false, reason: primary.ok ? "parse_failed" : "fetch_failed", error: "fetch error" };
 }
+
+function summarize(klines) {
+  const amounts = klines.map((k) => k.amount || 0);
+  const turnovers = klines.map((k) => k.turnover || 0);
+  return {
+    avgAmount30d: avg(amounts),
+    latestAmount: amounts[amounts.length - 1] || 0,
+    avgTurnover30d: avg(turnovers),
+    latestTurnover: turnovers[turnovers.length - 1] || 0,
+  };
+}
+
+function avg(arr) {
+  if (!arr || arr.length === 0) return 0;
+  return arr.reduce((s, x) => s + x, 0) / arr.length;
+}
+
 module.exports = { fetchVolumeTurnover };
