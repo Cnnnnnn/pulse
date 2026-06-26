@@ -263,9 +263,15 @@ describe("bundleDiagnostics", () => {
   });
 
   it("outputDir 创建失败 → ok:false reason", async () => {
+    // 用一个已存在的文件作为 outputDir 父目录: 不能在文件下建子目录,
+    // 跨平台一致 (Linux/macOS/Windows 都拒绝 mkdir <file>/blah).
+    // 之前用 "/nonexistent-root-abc-xyz/blah" 想靠根目录不可写触发失败,
+    // 但 Windows 没有根目录概念, 该路径会落到当前盘符下可创建 → mkdir 成功.
+    const blockingFile = path.join(tmpDir, "a-file-not-a-dir");
+    fs.writeFileSync(blockingFile, "x");
     const r = await bundleDiagnostics({
       logsDir: tmpDir,
-      outputDir: "/nonexistent-root-abc-xyz/blah",
+      outputDir: path.join(blockingFile, "blah"),
     });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/mkdir failed/);
