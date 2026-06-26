@@ -14,6 +14,7 @@ import {
   addWatchlist,
   removeWatchlist,
   isInWatchlist,
+  runScreen,
 } from "./stockStore.js";
 import { PanelEmpty } from "../components/EmptyState.jsx";
 
@@ -38,9 +39,30 @@ export function ResultTable({ api }) {
     else addWatchlist(api, code);
   }
 
-  if (err) {
+  if (err && !isLoading) {
+    // ponytail: 仅在非 loading 时显示错误页. loading 期间保留旧表格 + loading 角标,
+    //          避免"切策略 → loading 40s (sina fallback 翻页) → 用户看不到任何变化" 的体验断.
     return (
-      <div class="stock-table-error">行情接口暂时不可用: {err}</div>
+      <PanelEmpty className="stock-empty-state">
+        <div class="stock-empty-title">📡 行情拉取失败</div>
+        <div class="stock-empty-sub">{err}</div>
+        <button
+          type="button"
+          class="stock-btn stock-btn-secondary stock-btn-lg"
+          onClick={() => runScreen(api)}
+        >
+          重试
+        </button>
+      </PanelEmpty>
+    );
+  }
+  if (isLoading && rows.length === 0) {
+    // ponytail: 首次拉取 (无旧数据) + loading → 友好占位, 不闪空.
+    return (
+      <PanelEmpty className="stock-empty-state">
+        <div class="stock-empty-title">⏳ 正在拉取全市场行情…</div>
+        <div class="stock-empty-sub">首次加载约 30-40s (sina 备用源翻页), 请稍候</div>
+      </PanelEmpty>
     );
   }
   if (!isLoading && rows.length === 0) {
@@ -53,7 +75,15 @@ export function ResultTable({ api }) {
   }
 
   return (
-    <div class="stock-table">
+    <div class={`stock-table${isLoading ? " stock-table-loading" : ""}`}>
+      {isLoading && (
+        // ponytail: 40s loading 期间让用户明确知道正在拉新数据 (切策略后).
+        // 用顶部 2px 蓝色 progress bar + 整个表格 opacity 弱化, 强反馈替代底部 11px 角标.
+        <div class="stock-table-loading-bar" aria-live="polite">
+          <div class="stock-table-loading-bar-inner" />
+          <span class="stock-table-loading-text">正在按新条件拉取行情…</span>
+        </div>
+      )}
       <div class="stock-table-head">
         {COLUMNS.map((col) => (
           <span

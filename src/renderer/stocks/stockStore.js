@@ -17,6 +17,7 @@ import { signal, computed } from "@preact/signals";
 import { taggedLog } from "../log.js";
 import { STRATEGIES, buildCriteria, getStrategy } from "../../stocks/strategies";
 import { DEFAULT_SCREENER_CRITERIA } from "../../stocks/stock-constants";
+import { sortStocks } from "../../stocks/stock-filter";
 
 const log = taggedLog("[stocks]");
 
@@ -63,6 +64,14 @@ export function setSort(key) {
     sortKey.value = key;
     sortDir.value = "desc";
   }
+  // ponytail: 点列头立即本地重排 results, 不重打 IPC.
+  //   主进程 IPC 时已按当时 sortConfig 排好; 用户切列后改前端 sort 即可 (瞬时反馈).
+  //   下次点筛选会把新 sort 推到主进程, 整个链路一致.
+  //   字符串列 (name/industry) 由 sortStocks 的 localeCompare 处理, 不依赖 fid.
+  results.value = sortStocks(results.value, {
+    key: sortKey.value,
+    dir: sortDir.value,
+  });
 }
 
 export function toggleAdvanced() {

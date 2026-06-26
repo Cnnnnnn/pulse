@@ -73,7 +73,11 @@ function matchCriteria(r, c) {
 }
 
 /**
- * 按列排序. null/非数值排尾.
+ * 按列排序. 数字按数值排, 字符串按 localeCompare.
+ * null/undefined 排尾 (与方向无关, 不让坏数据污染排序).
+ *
+ * ponytail: 东财 clist 翻页拉全量时, 后端只能按 fid (数值列) 排; 字符串列
+ *          (name/industry) 必须前端重排, 否则用户点 "名称" 列看到的是后端默认 ROE 排序.
  * @param {Array} rows
  * @param {{key:string, dir:"asc"|"desc"}|null} sort
  * @returns {Array} 排序后的新数组
@@ -83,16 +87,21 @@ function sortStocks(rows, sort) {
   if (!sort || !sort.key) return [...rows];
   const dir = sort.dir === "asc" ? 1 : -1;
   return [...rows].sort((a, b) => {
-    const av = a && a[sort.key];
-    const bv = b && b[sort.key];
-    // null/非数 排尾
-    const aBad = !isNum(av);
-    const bBad = !isNum(bv);
+    const av = a ? a[sort.key] : undefined;
+    const bv = b ? b[sort.key] : undefined;
+    const aBad = av == null || av === "";
+    const bBad = bv == null || bv === "";
     if (aBad && bBad) return 0;
-    if (aBad) return 1;
+    if (aBad) return 1; // 坏数据永远排尾 (跟方向无关)
     if (bBad) return -1;
-    if (av === bv) return 0;
-    return av < bv ? -dir : dir;
+    // 数字按数值, 字符串按 localeCompare. 混合类型按数字优先.
+    if (isNum(av) && isNum(bv)) {
+      if (av === bv) return 0;
+      return av < bv ? -dir : dir;
+    }
+    const cmp = String(av).localeCompare(String(bv), "zh-Hans-CN");
+    if (cmp === 0) return 0;
+    return cmp < 0 ? -dir : dir;
   });
 }
 

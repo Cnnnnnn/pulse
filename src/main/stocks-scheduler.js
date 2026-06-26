@@ -7,9 +7,12 @@
  * 推送 "stocks:watchlist:quotes" 到渲染端. 非盘中休眠.
  *
  * 独立实例, 不复用 FundScheduler (避免两套数据耦合).
+ *
+ * ponytail: 走 createStockHttpClient — Electron 环境自动用 Chromium net.fetch,
+ * 绕开 push2.eastmoney.com 对 Node OpenSSL 的 RST 反爬.
  */
-const { HttpClient } = require("./http-client");
-const { fetchStocks } = require("../stocks/stock-fetcher");
+const { createStockHttpClient } = require("./chromium-http-client");
+const { fetchStocksByCodes } = require("../stocks/stock-fetcher");
 const stockStore = require("./stock-store");
 
 /**
@@ -58,23 +61,21 @@ class StockQuoteScheduler {
     try {
       const items = stockStore.loadStockWatchlist();
       if (items.length === 0) return;
-      const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
-      const out = await fetchStocks(httpClient);
+      const httpClient = createStockHttpClient({ timeout: 10000, maxRetries: 1 });
+      const codes = items.map((i) => i.code);
+      const out = await fetchStocksByCodes(codes, httpClient);
       if (out.error) {
         this._log("warn", `stock quote fetch failed: ${out.error}`);
         return;
       }
-      const want = new Set(items.map((i) => i.code));
       const quotes = {};
       for (const row of out.rows) {
-        if (want.has(row.code)) {
-          quotes[row.code] = {
-            price: row.price,
-            changePct: row.changePct,
-            pe: row.pe,
-            roe: row.roe,
-          };
-        }
+        quotes[row.code] = {
+          price: row.price,
+          changePct: row.changePct,
+          pe: row.pe,
+          roe: row.roe,
+        };
       }
       this._send("stocks:watchlist:quotes", {
         quotes,

@@ -21,13 +21,29 @@ const FIELD_MAP = {
   turnover: "f8", // 换手率 %
   pe: "f9", // PE 动态
   pb: "f23",
-  roe: "f21", // ROE 摊薄
+  roe: "f173", // ROE (净资产收益率 %) — 注: f21 是流通市值, 非 ROE
   industry: "f100",
   marketCap: "f20", // 总市值 (元)
 };
 
 // 请求 fields 参数 (逗号拼接所有东财字段)
 const FIELDS_PARAM = Object.values(FIELD_MAP).join(",");
+
+// 东财 clist 强制单页 ≤100 条 (pz 再大也只返 100).
+// 策略: 把"排序意图"下推给东财 (fid=排序字段), 翻页拉该维度全量, 前端再二次过滤.
+// sortKey (我们的 key) → 东财 fid (排序字段).
+const SORT_KEY_TO_FID = {
+  roe: "f173",
+  pe: "f9",
+  pb: "f23",
+  changePct: "f3",
+  marketCap: "f20",
+  turnover: "f8",
+  price: "f2",
+};
+
+/** 默认排序字段 (东财 fid), 当 sortKey 未知时用. */
+const DEFAULT_FID = "f173"; // 按 ROE 降序
 
 const MARKET_CAP_TIERS = ["all", "large", "mid", "small"];
 
@@ -68,6 +84,8 @@ module.exports = {
   MARKET_PARAM,
   FIELD_MAP,
   FIELDS_PARAM,
+  SORT_KEY_TO_FID,
+  DEFAULT_FID,
   MARKET_CAP_TIERS,
   MARKET_CAP_LARGE,
   MARKET_CAP_MID,

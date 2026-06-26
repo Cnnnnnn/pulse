@@ -3,6 +3,8 @@ import {
   MARKET_PARAM,
   FIELD_MAP,
   FIELDS_PARAM,
+  SORT_KEY_TO_FID,
+  DEFAULT_FID,
   MARKET_CAP_TIERS,
   tierForMarketCap,
   DEFAULT_SCREENER_CRITERIA,
@@ -23,7 +25,7 @@ describe("stock-constants", () => {
     expect(FIELD_MAP.turnover).toBe("f8");
     expect(FIELD_MAP.pe).toBe("f9");
     expect(FIELD_MAP.pb).toBe("f23");
-    expect(FIELD_MAP.roe).toBe("f21");
+    expect(FIELD_MAP.roe).toBe("f173");
     expect(FIELD_MAP.industry).toBe("f100");
     expect(FIELD_MAP.marketCap).toBe("f20");
   });
@@ -32,6 +34,18 @@ describe("stock-constants", () => {
     expect(typeof FIELDS_PARAM).toBe("string");
     expect(FIELDS_PARAM).toContain("f12");
     expect(FIELDS_PARAM).toContain("f20");
+  });
+
+  it("SORT_KEY_TO_FID maps sort keys to east-money fid (roe→f173)", () => {
+    expect(SORT_KEY_TO_FID.roe).toBe("f173");
+    expect(SORT_KEY_TO_FID.pe).toBe("f9");
+    expect(SORT_KEY_TO_FID.pb).toBe("f23");
+    expect(SORT_KEY_TO_FID.changePct).toBe("f3");
+    expect(SORT_KEY_TO_FID.marketCap).toBe("f20");
+  });
+
+  it("DEFAULT_FID is f173 (ROE)", () => {
+    expect(DEFAULT_FID).toBe("f173");
   });
 
   it("tierForMarketCap classifies by thresholds (500亿=5e11, 100亿=1e11)", () => {

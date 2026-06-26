@@ -15,6 +15,7 @@ import {
   subscribeWatchlistQuotes,
   refreshWatchlistQuotes,
   fetchedAt,
+  loading,
 } from "./stockStore.js";
 import { api } from "../api.js";
 
@@ -54,9 +55,10 @@ export function StockLayout() {
           <button
             type="button"
             class="stock-btn stock-btn-primary"
+            disabled={loading.value}
             onClick={() => runScreen(api)}
           >
-            🔍 筛选
+            {loading.value ? "⏳ 筛选中…" : "🔍 筛选"}
           </button>
         </div>
       </div>

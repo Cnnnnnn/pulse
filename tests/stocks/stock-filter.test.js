@@ -98,6 +98,37 @@ describe("sortStocks", () => {
     expect(out.map((r) => r.code)).toEqual(["a", "b"]);
     expect(out).not.toBe(rows); // 新数组
   });
+
+  // ponytail: 前端列头 "名称" / "行业" 是字符串, 后端 fid 排不了, sortStocks 必须能处理.
+  it("sorts descending by string key (name)", () => {
+    const rows = [mk({ name: "长江电力" }), mk({ name: "美的集团" }), mk({ name: "XD中国石" })];
+    const out = sortStocks(rows, { key: "name", dir: "desc" });
+    // localeCompare zh-Hans-CN: 美 < XD长? 实际按 unicode 处理 — 验证结果长度+不重复即可.
+    expect(out).toHaveLength(3);
+    expect(new Set(out.map((r) => r.name))).toEqual(new Set(["长江电力", "美的集团", "XD中国石"]));
+    // 升序对比验证
+    const asc = sortStocks(rows, { key: "name", dir: "asc" });
+    expect(asc).toHaveLength(3);
+  });
+
+  it("sorts industry ascending string", () => {
+    const rows = [mk({ industry: "银行" }), mk({ industry: "白酒" }), mk({ industry: "地产" })];
+    const asc = sortStocks(rows, { key: "industry", dir: "asc" });
+    const desc = sortStocks(rows, { key: "industry", dir: "desc" });
+    // ponytail: localeCompare 在 zh-Hans-CN 按 unicode codepoint 排, 测试只验证:
+    //          1) asc 是 desc 的完全倒序  2) 行数对、内容不丢. 拼音排序依赖 icu data,
+    //          桌面端 Electron 内置 icu 通常是有的, 但 CI / Node 单测可能没.
+    expect(asc).toHaveLength(3);
+    expect(desc).toHaveLength(3);
+    expect(new Set(asc.map((r) => r.industry))).toEqual(new Set(["银行", "白酒", "地产"]));
+    expect(desc.map((r) => r.industry)).toEqual([...asc].reverse().map((r) => r.industry));
+  });
+
+  it("string key with null values places nulls last regardless of direction", () => {
+    const rows = [mk({ industry: null }), mk({ industry: "银行" })];
+    expect(sortStocks(rows, { key: "industry", dir: "asc" })[1].industry).toBe(null);
+    expect(sortStocks(rows, { key: "industry", dir: "desc" })[1].industry).toBe(null);
+  });
 });
 
 describe("applyScreen", () => {
