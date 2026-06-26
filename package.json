@@ -1,6 +1,6 @@
 {
   "name": "pulse",
-  "version": "2.46.4",
+  "version": "2.46.5",
   "description": "macOS 菜单栏更新监测器 — Pulse",
   "main": "src/main/index.js",
   "scripts": {
@@ -51,7 +51,8 @@
       "category": "public.app-category.utilities",
       "icon": "assets/icon.icns",
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "identity": null,
       "gatekeeperAssess": false,
