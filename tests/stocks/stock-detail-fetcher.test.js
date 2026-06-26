@@ -22,6 +22,9 @@ const mockValuationFetcher = vi.fn(async () => ({
   reason: "fetch_failed",
   error: "network",
 }));
+const mockThrowsFetcher = vi.fn(async () => {
+  throw new Error("boom");
+});
 
 const mockAngleDefs = [
   {
@@ -39,6 +42,14 @@ const mockAngleDefs = [
     promptHint: "test",
     dataShape: "ValuationData",
     fetcher: mockValuationFetcher,
+  },
+  {
+    key: "throws_angle",
+    label: "抛错",
+    group: "异常",
+    promptHint: "test",
+    dataShape: "ThrowsData",
+    fetcher: mockThrowsFetcher,
   },
 ];
 
@@ -89,5 +100,15 @@ describe("fetchStockDetailAngles", () => {
     expect(out.totalCount).toBe(0);
     expect(out.fulfilledCount).toBe(0);
     expect(Object.keys(out.perAngle)).toHaveLength(0);
+  });
+
+  it("isolates fetcher rejection as exception without breaking others", async () => {
+    const out = await fetchStockDetailAngles(httpClient, "600519", ["price_trend", "throws_angle"]);
+    expect(out.totalCount).toBe(2);
+    expect(out.fulfilledCount).toBe(1);
+    expect(out.perAngle.price_trend.status).toBe("ok");
+    expect(out.perAngle.throws_angle.status).toBe("failed");
+    expect(out.perAngle.throws_angle.reason).toBe("exception");
+    expect(out.perAngle.throws_angle.error).toContain("boom");
   });
 });
