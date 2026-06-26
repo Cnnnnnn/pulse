@@ -45,7 +45,8 @@ v2 路线图 (见 `2026-06-25-product-roadmap-v2-design.md`) Pillar 4 (AI 驱动
   | `news_buzz` | 新闻舆情 | 舆情 | 东财财经新闻聚合 |
 - **数据策略**: lazy 拉取 (选中哪个角度才拉哪个), 失败隔离
 - **AI 输出**: 结构化 JSON `{summary, perAngle, risks, signal}` — 复用品类 advisor 的
-  `parseAndValidate` 模式
+  `parseAndValidate` 模式. 注: 这里的 `perAngle` 是 LLM 解读的 `{[angleKey]: "一句话"}`,
+  与 store 里 `perAngleData` (已拉到的原始数据) 是两个不同字段, 不要混淆
 - **缓存**:
   - 60s 内存 (数据, 避免重复点同一组合重打接口)
   - 24h 持久化 (AI 输出, 走 `state.json.stockDetailCache`, 与 advisor 一致)
@@ -204,6 +205,9 @@ module.exports = { registerStockDetailHandlers };
 ├─────────────────────────────────────┤
 │ 💡 AI 综合解读                       │  结构化输出
 │  · 总结: (LLM 生成的 1-2 句)         │
+│  · 各角度解读:                       │
+│    - 价格趋势: 近 30 日 +5.2%, 高位震荡 │
+│    - 估值: PE 28x, 处于近 3 年 70% 分位 │
 │  · 关注点: (LLM 生成的风险列表)      │
 │  · 信号: 中性 / 偏多 / 谨慎          │
 └─────────────────────────────────────┘
@@ -429,7 +433,7 @@ async function fetchValuation(httpClient, { code }) {
 - 抽屉打开 → 0ms (无数据, 立即可用)
 - 输入代码 → 250ms debounce → 搜索 ~300ms → 渲染选中
 - 切角度 → 拉单接口 1-3s (端到端)
-- 全部 7 角度并行拉 → 不超过 5s (含 fallback)
+- 全部 7 角度并行拉 → 不超过 5s (含主源 + sina/腾讯 fallback)
 - AI 分析 → 取决于 LLM 响应, 2-8s (无前端阻塞, 可取消)
 
 ## 7. 设计要点
