@@ -223,6 +223,40 @@ function startFundScheduler(deps) {
 }
 
 /**
+ * 启动自选股行情后台刷新 scheduler. 对照 spec §5.3.
+ * 盘中 (9:30-15:00 工作日) 每 5 分钟拉一次自选股行情, 推送到渲染端.
+ * 失败不阻断启动.
+ * @param {object} deps.StockQuoteScheduler
+ * @param {function} deps.sendToRenderer
+ * @returns {object|null}
+ */
+function startStockScheduler(deps) {
+  const { StockQuoteScheduler, sendToRenderer } = deps;
+  try {
+    const sched = new StockQuoteScheduler({
+      sendToRenderer,
+      intervalMs: 5 * 60 * 1000,
+      logger: mainLog,
+    });
+    sched.start();
+    mainLog.info("stock quote scheduler started");
+    app.once("before-quit", () => {
+      try {
+        sched && sched.stop();
+      } catch {
+        /* noop */
+      }
+    });
+    return sched;
+  } catch (err) {
+    mainLog.warn(
+      `stock scheduler init failed: ${err && err.message}`,
+    );
+    return null;
+  }
+}
+
+/**
  * @param {object} deps
  * @param {object} deps.reminders
  * @param {function} deps.getWindow
@@ -763,6 +797,7 @@ module.exports = {
   checkOnce,
   __resetForTest,
   startFundScheduler,
+  startStockScheduler,
   startRemindersScheduler,
   startWorldcupGoalWatcher,
   wireRecentActivityListener,
