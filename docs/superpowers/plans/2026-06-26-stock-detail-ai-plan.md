@@ -921,11 +921,12 @@ beforeEach(() => vi.restoreAllMocks());
 
 describe("fetchValuation", () => {
   it("computes PE/PB from eastmoney F10", async () => {
-    const http = makeClient([emOK({ f57: 30, f59: 50, f60: 1e9, f116: 1.5e11 })]);
+    // f57 EPS, f59 BVPS, f60 总股本, f116 总市值. price = 总市值/总股本 = 1500. PE = 1500/30 = 50, PB = 1500/50 = 30
+    const http = makeClient([emOK({ f57: 30, f59: 50, f60: 1e8, f116: 1.5e11 })]);
     const r = await fetchValuation(http, { code: "600519" });
     expect(r.ok).toBe(true);
     expect(r.data.pe).toBeCloseTo(50, 0);
-    expect(r.data.pb).toBeCloseTo(3, 0);
+    expect(r.data.pb).toBeCloseTo(30, 0);
     expect(r.data.pePercentile3y).toBeNull();
   });
 
