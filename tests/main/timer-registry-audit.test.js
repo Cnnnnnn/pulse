@@ -8,12 +8,13 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const { auditTimers } = require('../../src/main/timer-registry.js');
 
 const FIXTURE_DIR = path.resolve(
-  path.dirname(new URL(import.meta.url).pathname),
+  path.dirname(fileURLToPath(import.meta.url)),
   '../fixtures/timer-audit',
 );
 
