@@ -169,7 +169,7 @@ describe("rollback-app", () => {
       expect.objectContaining({
         appName: "Cursor",
         bundleName: "Cursor.app",
-        backupPath: expect.stringContaining("Cursor.app/3.6.31.app"),
+        backupPath: expect.stringMatching(/Cursor\.app[\\/]+3\.6\.31\.app/),
         rollbackToVersion: "3.6.32",
       }),
     );
