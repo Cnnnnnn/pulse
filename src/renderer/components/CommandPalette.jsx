@@ -82,7 +82,9 @@ export function CommandPalette() {
 
   function execute(item) {
     if (item.kind === "view") navigateTo(item.id);
-    else if (item.kind === "action" && item.id === "action-check") api.runCheck();
+    else if (item.kind === "action" && item.id === "action-check") {
+      api.versionsRunCheck && api.versionsRunCheck();
+    }
     else if (item.kind === "app") navigateTo("library");
     closePalette();
   }
