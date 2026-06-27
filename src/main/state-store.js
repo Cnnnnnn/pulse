@@ -277,6 +277,7 @@ const PRESERVE_FIELDS = [
   { key: "stockScreener", kind: "object", notArray: true }, // 股票筛选器: 上次条件 + 策略 + 排序
   { key: "aiStockAdviseCache", kind: "object", notArray: true }, // 选股 AI 推荐缓存: { "v1::<sha1>": {result, fetchedAt} }
   { key: "stockDetailCache", kind: "object", notArray: true }, // 个股 AI 分析缓存: { "v1::<sha1>": {result, fetchedAt} }
+  { key: "overviewCache", kind: "object", notArray: true }, // Task 15: overview AI summary cache { text, fetchedAt }
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -2043,6 +2044,41 @@ function loadWatchlist(statePath = defaultPath()) {
   }
 }
 
+// ─── Task 15: Overview AI summary cache ────────────────────────
+//
+// 用途: overview 页 AI 洞察 24h 内命中缓存直接返. 字段: { text, fetchedAt }.
+// 走 PRESERVE_FIELDS 自动保留.
+
+function loadOverviewCache(statePath = defaultPath()) {
+  try {
+    const s = load(statePath);
+    const c = s && s.overviewCache;
+    if (!c || typeof c !== "object" || Array.isArray(c)) return null;
+    if (typeof c.text !== "string" || typeof c.fetchedAt !== "number") {
+      return null;
+    }
+    return { text: c.text, fetchedAt: c.fetchedAt };
+  } catch {
+    return null;
+  }
+}
+
+function saveOverviewCache(entry, statePath = defaultPath()) {
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    typeof entry.text !== "string" ||
+    typeof entry.fetchedAt !== "number"
+  ) {
+    throw new TypeError(
+      "saveOverviewCache: entry must be {text: string, fetchedAt: number}",
+    );
+  }
+  return patchState((next) => {
+    next.overviewCache = { text: entry.text, fetchedAt: entry.fetchedAt };
+  }, statePath);
+}
+
 /**
  * I2 v1: save watchlist, 自动保留 PRESERVE_FIELDS.
  * @param {Array<object>} list
@@ -2152,6 +2188,9 @@ module.exports = {
   saveWatchlist,
   normalizeWatchlistItem,
   watchlistItemKey,
+  // Task 15: Overview AI summary cache
+  loadOverviewCache,
+  saveOverviewCache,
   // ON: release notes onboarding — 用户最近一次看完 release notes 的版本
   getLastSeenRelease,
   setLastSeenRelease,
