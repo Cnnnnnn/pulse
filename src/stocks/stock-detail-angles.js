@@ -12,6 +12,7 @@ const ANGLE_DEFS = [
     promptHint: "近 30 日收盘价序列、振幅、近 5/20 日涨跌幅",
     dataShape: "PriceTrendData",
     fetcher: require("./detail-fetchers/price-trend").fetchPriceTrend,
+    sparkline: getSparklineData,
   },
   {
     key: "volume_turnover",
@@ -65,6 +66,15 @@ const ANGLE_DEFS = [
 
 function getAngle(key) {
   return ANGLE_DEFS.find((a) => a.key === key) || null;
+}
+
+function getSparklineData(d) {
+  if (!d || !Array.isArray(d.closes) || d.closes.length === 0) return null;
+  const first = Number(d.closes[0]);
+  const last = Number(d.closes[d.closes.length - 1]);
+  if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
+  const color = last > first ? "up" : last < first ? "down" : "flat";
+  return { closes: d.closes, color };
 }
 
 module.exports = { ANGLE_DEFS, getAngle };
