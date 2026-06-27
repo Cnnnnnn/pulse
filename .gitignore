@@ -69,3 +69,5 @@ app.asar
 
 # Worktrees (isolated feature workspaces)
 .worktrees/
+
+.cursor/
