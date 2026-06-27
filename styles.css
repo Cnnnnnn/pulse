@@ -9988,3 +9988,106 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .signal-positive { color: #34c759; }
 .signal-neutral { color: var(--text-primary, #1d1d1f); }
 .signal-cautious { color: #ff9500; }
+
+/* ponytail: 新版 chip 三态 (loading-spinner / ready-check / failed-mark) + disabled.
+   旧 .stock-detail-chip.active/.failed 保留向后兼容 (万一残留 DOM). */
+.stock-detail-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 14px; font-size: 12px;
+  background: var(--bg-elevated, #f5f5f7); color: var(--text-primary, #1d1d1f);
+  border: 1px solid var(--border, rgba(0,0,0,0.08)); cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.stock-detail-chip:hover:not(.disabled) { border-color: var(--accent-primary, #007aff); }
+.stock-detail-chip.active {
+  background: var(--accent-primary, #007aff); color: #fff; border-color: var(--accent-primary, #007aff);
+}
+.stock-detail-chip.loading {
+  opacity: 0.85; cursor: progress;
+}
+.stock-detail-chip.ready {
+  border-color: #34c759;
+}
+.stock-detail-chip.ready.active { background: var(--accent-primary, #007aff); border-color: var(--accent-primary, #007aff); }
+.stock-detail-chip.failed {
+  border-color: #ff3b30; color: #ff3b30;
+}
+.stock-detail-chip.disabled {
+  opacity: 0.45; cursor: not-allowed;
+}
+.stock-detail-chip-mark {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #ff3b30; color: #fff; font-size: 10px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.stock-detail-chip-check {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #34c759; color: #fff; font-size: 10px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.stock-detail-chip-spinner {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--border, rgba(0,0,0,0.12));
+  border-top-color: var(--accent-primary, #007aff);
+  animation: stock-detail-spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+@keyframes stock-detail-spin {
+  to { transform: rotate(360deg); }
+}
+.stock-detail-title-block { display: flex; flex-direction: column; gap: 2px; }
+.stock-detail-subtitle-inline { font-size: 11px; font-weight: 400; color: var(--text-tertiary, #8e8e93); }
+.stock-detail-section-meta {
+  font-size: 11px; font-weight: 400; color: var(--text-tertiary, #8e8e93);
+  margin-left: 6px;
+}
+.stock-detail-preview { list-style: none; margin: 0 0 10px; padding: 0; }
+.stock-detail-preview-empty { font-size: 12px; color: var(--text-tertiary, #8e8e93); padding: 6px 0; }
+.stock-detail-preview-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; border-radius: 6px;
+  background: var(--bg-elevated, #f5f5f7);
+  margin-bottom: 4px;
+}
+.stock-detail-preview-row.status-loading { background: rgba(0,122,255,0.08); }
+.stock-detail-preview-row.status-failed { background: rgba(255,59,48,0.08); }
+.stock-detail-preview-row.status-ready { background: rgba(52,199,89,0.08); }
+.stock-detail-preview-status {
+  font-size: 11px; color: var(--text-tertiary, #8e8e93);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.stock-detail-preview-row.status-loading .stock-detail-preview-status { color: var(--accent-primary, #007aff); }
+.stock-detail-preview-row.status-failed .stock-detail-preview-status { color: #ff3b30; }
+.stock-detail-preview-row.status-ready .stock-detail-preview-status { color: #34c759; }
+.stock-detail-footer-hint {
+  margin-top: 12px; padding: 8px 10px;
+  background: var(--bg-elevated, #f5f5f7); border-radius: 6px;
+  font-size: 11px; color: var(--text-tertiary, #8e8e93);
+  line-height: 1.5;
+}
+
+/* === versions PageHeader (Phase v2: 5-view overhaul) === */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+  gap: 16px;
+}
+.page-header-text { min-width: 0; }
+.page-header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+  margin: 0;
+}
+.page-header-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary, #6e6e73);
+  margin: 4px 0 0;
+}
+.page-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
