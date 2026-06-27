@@ -3,6 +3,19 @@
    企业级 macOS 仪表盘设计
    ═══════════════════════════════════════════════════ */
 
+/**
+ * ponytail: prefers-reduced-motion 全局禁用动画/过渡.
+ * spinner 静态化 (后续 task 给 .spinner 加 animation: none).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 :root {
   --bg-primary: rgba(255, 255, 255, 0.82);
   --bg-secondary: rgba(246, 246, 246, 0.9);
@@ -8568,6 +8581,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none !important; }
 }
 
 /* ==========================================================================
