@@ -54,11 +54,12 @@ function mapRecentEvent(e) {
   if (!e || typeof e !== "object") return null;
   const kind = typeof e.kind === "string" ? e.kind : "";
   const type = KIND_TO_TYPE[kind] || kind || "other";
-  // 简单 description: appName + kind 后缀. 后续可改用 track.js label 字段.
-  const appName = typeof e.appName === "string" && e.appName ? e.appName : "";
-  const description = appName
-    ? `${appName} · ${type}`
-    : type;
+  // 优先用 main 侧 track.js 写入的中文 label (比如 "检查了 13 个应用" /
+  // "VS Code 已升级" / "提醒: 下午 3 点开会"), 远比 ref/appName 可读.
+  // label 缺失时才退到 ref+kind 拼接.
+  const label = typeof e.label === "string" && e.label ? e.label : "";
+  const ref = typeof e.appName === "string" && e.appName ? e.appName : "";
+  const description = label || (ref ? `${ref} · ${type}` : type);
   return {
     type,
     description,
