@@ -1,3 +1,4 @@
+// @deprecated since v2.50 — Q1.3 用户不用 AI 摘要. 保留供 Insights 页后续复用. 不要在 OverviewPage 引用.
 /**
  * src/renderer/components/AIInsightsBlock.jsx
  *

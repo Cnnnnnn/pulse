@@ -218,6 +218,8 @@ export function createApi(overrides = {}) {
     versionsOverviewWatchlist: pick(overrides, "versionsOverviewWatchlist"),
     versionsOverviewRecent: pick(overrides, "versionsOverviewRecent"),
     versionsOverviewAiInsights: pick(overrides, "versionsOverviewAiInsights"),
+    // v2.50 (T5): TopBar / OverviewEmptyState CTA 触发检查
+    versionsRunCheck: pick(overrides, "versionsRunCheck"),
   };
 }
 

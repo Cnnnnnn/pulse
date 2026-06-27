@@ -15,11 +15,13 @@ const require = createRequire(import.meta.url);
 const stateStorePath = require.resolve("../../src/main/state-store.js");
 const recentPath = require.resolve("../../src/main/recent-activity.js");
 const advisorPath = require.resolve("../../src/ai/versions-overview-advisor.js");
+const checkRunnerPath = require.resolve("../../src/main/check-runner.js");
 const registerPath = require.resolve(
   "../../src/main/ipc/register-versions-overview.js",
 );
 
 const stubAiSummary = vi.fn(async () => "static summary text");
+const stubRunCheckQueued = vi.fn(async () => []);
 
 // In-memory state-store mock (只暴露本测试需要的函数)
 let mockApps = {};
@@ -42,6 +44,7 @@ function stubModules() {
         mockOverviewCache = { ...entry };
         return mockOverviewCache;
       },
+      markNotified: () => {},
     },
   };
   require.cache[recentPath] = {
@@ -58,6 +61,12 @@ function stubModules() {
     loaded: true,
     exports: { aiOverviewSummary: stubAiSummary },
   };
+  require.cache[checkRunnerPath] = {
+    id: checkRunnerPath,
+    filename: checkRunnerPath,
+    loaded: true,
+    exports: { runCheckQueued: stubRunCheckQueued },
+  };
 }
 
 let mockRecentEntries = [];
@@ -70,6 +79,8 @@ beforeEach(() => {
   saveCacheCalled = 0;
   stubAiSummary.mockReset();
   stubAiSummary.mockResolvedValue("static summary text");
+  stubRunCheckQueued.mockReset();
+  stubRunCheckQueued.mockResolvedValue([]);
   stubModules();
 });
 
@@ -77,11 +88,12 @@ afterEach(() => {
   delete require.cache[stateStorePath];
   delete require.cache[recentPath];
   delete require.cache[advisorPath];
+  delete require.cache[checkRunnerPath];
   delete require.cache[registerPath];
 });
 
 describe("register-versions-overview IPC", () => {
-  it("导出 6 个 handler", () => {
+  it("导出 7 个 handler", () => {
     const mod = require(registerPath);
     expect(typeof mod.registerVersionsOverviewHandlers).toBe("function");
     expect(typeof mod.getOverviewKpis).toBe("function");
@@ -199,7 +211,7 @@ describe("register-versions-overview IPC", () => {
     expect(r.results.some((x) => x.id === "action-check")).toBe(true);
   });
 
-  it("registerVersionsOverviewHandlers — 注册 6 个 channel", () => {
+  it("registerVersionsOverviewHandlers — 注册 7 个 channel (含 versions:run-check)", () => {
     const handlers = {};
     const { registerVersionsOverviewHandlers } = require(registerPath);
     registerVersionsOverviewHandlers({
@@ -214,6 +226,41 @@ describe("register-versions-overview IPC", () => {
       "versions:overview-recent",
       "versions:overview-trend",
       "versions:overview-watchlist",
+      "versions:run-check",
     ]);
+  });
+
+  it("versions:run-check — 调 runCheckQueued, 返 { started: true }", async () => {
+    const handlers = {};
+    const { registerVersionsOverviewHandlers } = require(registerPath);
+    registerVersionsOverviewHandlers({
+      safeHandle: (ch, fn) => {
+        handlers[ch] = fn;
+      },
+      getConfig: () => ({ apps: [] }),
+      pool: {},
+      getWindow: () => null,
+      onCheckComplete: () => {},
+    });
+    const r = await handlers["versions:run-check"]();
+    expect(stubRunCheckQueued).toHaveBeenCalledTimes(1);
+    expect(r).toEqual({ started: true });
+  });
+
+  it("versions:run-check — runCheckQueued 抛错 → 返 { started: false, error }", async () => {
+    stubRunCheckQueued.mockRejectedValueOnce(new Error("boom"));
+    const handlers = {};
+    const { registerVersionsOverviewHandlers } = require(registerPath);
+    registerVersionsOverviewHandlers({
+      safeHandle: (ch, fn) => {
+        handlers[ch] = fn;
+      },
+      getConfig: () => ({ apps: [] }),
+      pool: {},
+      getWindow: () => null,
+      onCheckComplete: () => {},
+    });
+    const r = await handlers["versions:run-check"]();
+    expect(r).toEqual({ started: false, error: "boom" });
   });
 });

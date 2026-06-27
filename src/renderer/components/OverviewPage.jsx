@@ -1,89 +1,124 @@
 /**
  * src/renderer/components/OverviewPage.jsx
  *
- * 默认路由 /versions/overview. KPI 立即渲染, 其他 4 个 lazy 加载.
+ * v2.50 (T5): 重写 — 3 列布局 (KPI / 关注 / 最近) + EmptyState 切换.
+ * 4 个 Overview* 子组件 (T1-T4) 已是 dumb components, signal 注入.
+ * 本组件是 composing smart component: 拉数据 + 切分支 + IPC 接线.
  *
- * IPC 响应形状 (实测, 跟 plan 略有不同):
- *   versionsOverviewKpis       → { upgradable, latest, error, total }
- *   versionsOverviewTrend      → number[]  (7 天, 直接是数组)
- *   versionsOverviewWatchlist  → Array<{ name, has_update }>
- *   versionsOverviewRecent     → Array<{ kind, appName, ts }>
- *   versionsOverviewAiInsights → { ok: true, text, fromCache } | { ok: false, reason, error }
+ * 数据流 (跟 plan §4.1 一致):
+ *   - 首次挂载 → 调 3 个 IPC 拉数据 → 写本地 signal
+ *   - kpis.total === 0 → 显 EmptyState (大按钮 CTA)
+ *   - kpis.total > 0   → 显 3 列 grid
+ *   - EmptyState CTA click → api.versionsRunCheck → loading 态 2s
+ *
+ * v2.49 错位的 TrendSparkline / AIInsightsBlock 已 @deprecated, 不再 import.
+ *
+ * T3 形状映射: IPC 返 { kind, appName, ts }, T3 要 { type, description, timestamp }.
+ * mapRecentEvent() 写在文件底部, 单纯去掉前缀 + 拼 description.
  */
-import { useEffect } from "preact/hooks";
-import { PageHeader } from "./PageHeader.jsx";
-import { KPICard } from "./KPICard.jsx";
-import { TrendSparkline } from "./TrendSparkline.jsx";
-import { WatchlistQuick } from "./WatchlistQuick.jsx";
-import { RecentTimeline } from "./RecentTimeline.jsx";
-import { AIInsightsBlock } from "./AIInsightsBlock.jsx";
-import {
-  kpis, trend,
-  setKpis, setTrend, setWatchlistQuick, setRecentActivity, setAiInsights,
-} from "../overview-store.js";
+import { useEffect, useState } from "preact/hooks";
+import { signal } from "@preact/signals";
 import { api } from "../api.js";
+import { navigateTo } from "../route-store.js";
+import { OverviewKPIWall } from "./OverviewKPIWall.jsx";
+import { OverviewWatchlistMini } from "./OverviewWatchlistMini.jsx";
+import { OverviewRecentMini } from "./OverviewRecentMini.jsx";
+import { OverviewEmptyState } from "./OverviewEmptyState.jsx";
+import "./OverviewPage.css";
+
+const kpisSignal = signal({ upgradable: 0, latest: 0, error: 0, total: 0 });
+const watchlistSignal = signal([]);
+const recentSignal = signal([]);
+
+// 测试用 reset — module-level signals 在多 test 间共享, 需手动归零.
+export function _resetOverviewSignals() {
+  kpisSignal.value = { upgradable: 0, latest: 0, error: 0, total: 0 };
+  watchlistSignal.value = [];
+  recentSignal.value = [];
+}
+
+// kind → type 映射 (跟 plan brief §"CRITICAL: T3 hand-off shape mismatch" 一致).
+// 已知 5 个 kind 给短 type; 其它 kind 原样透传 (T3 用 "·" 兜底展示).
+const KIND_TO_TYPE = {
+  "app-upgrade": "upgrade",
+  "app-check": "check",
+  "app-error": "error",
+  "app-snooze": "snooze",
+  "star-app": "star",
+};
+
+function mapRecentEvent(e) {
+  if (!e || typeof e !== "object") return null;
+  const kind = typeof e.kind === "string" ? e.kind : "";
+  const type = KIND_TO_TYPE[kind] || kind || "other";
+  // 简单 description: appName + kind 后缀. 后续可改用 track.js label 字段.
+  const appName = typeof e.appName === "string" && e.appName ? e.appName : "";
+  const description = appName
+    ? `${appName} · ${type}`
+    : type;
+  return {
+    type,
+    description,
+    timestamp: typeof e.ts === "number" ? e.ts : 0,
+  };
+}
 
 export function OverviewPage() {
-  const k = kpis.value;
-  const t = trend.value;
+  const [isLoadingCheck, setIsLoadingCheck] = useState(false);
+  const total = kpisSignal.value.total;
 
   useEffect(() => {
-    // KPI instant
-    if (api.versionsOverviewKpis) {
-      api.versionsOverviewKpis().then((r) => { if (r) setKpis(r); });
-    }
-    // Trend lazy 100ms
-    const t1 = setTimeout(() => {
-      if (!api.versionsOverviewTrend) return;
-      api.versionsOverviewTrend().then((arr) => { if (Array.isArray(arr)) setTrend(arr); });
-    }, 100);
-    // Watchlist lazy 200ms
-    const t2 = setTimeout(() => {
-      if (!api.versionsOverviewWatchlist) return;
-      api.versionsOverviewWatchlist().then((arr) => { if (Array.isArray(arr)) setWatchlistQuick(arr); });
-    }, 200);
-    // Recent lazy 300ms
-    const t3 = setTimeout(() => {
-      if (!api.versionsOverviewRecent) return;
-      api.versionsOverviewRecent().then((arr) => { if (Array.isArray(arr)) setRecentActivity(arr); });
-    }, 300);
-    // AI insights lazy 500ms
-    const t4 = setTimeout(() => {
-      if (!api.versionsOverviewAiInsights) return;
-      setAiInsights({ status: "loading", text: "", fromCache: false });
-      api.versionsOverviewAiInsights().then((r) => {
-        if (r && r.ok) setAiInsights({ status: "ready", text: r.text || "", fromCache: !!r.fromCache });
-        else setAiInsights({ status: "error", text: "", fromCache: false });
-      });
-    }, 500);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
+    let cancelled = false;
+    Promise.all([
+      api.versionsOverviewKpis().then((d) => {
+        if (!cancelled && d) kpisSignal.value = d;
+      }),
+      api.versionsOverviewWatchlist().then((d) => {
+        if (!cancelled && Array.isArray(d)) watchlistSignal.value = d;
+      }),
+      api.versionsOverviewRecent().then((d) => {
+        if (!cancelled && Array.isArray(d)) {
+          // 形状映射: IPC shape (kind/appName/ts) → T3 contract (type/description/timestamp)
+          // ponytail: 全部透传 (不 filter), 让 T3 的 "·" 兜底渲染未知 type.
+          // 这样未来 track.js 加新 kind 不会让 Overview 静默丢事件.
+          recentSignal.value = d.map(mapRecentEvent).filter(Boolean);
+        }
+      }),
+    ]).catch(() => {
+      // 单个 IPC 失败不阻塞其它; 其它 signal 已写, UI 仍能渲染.
+    });
+    return () => { cancelled = true; };
   }, []);
+
+  const runCheck = async () => {
+    setIsLoadingCheck(true);
+    try {
+      await api.versionsRunCheck();
+    } catch {
+      /* swallowed — main 侧 safeHandle 已返 { started: false, error } */
+    } finally {
+      // 简单 2s 视觉 hold (check 通常 < 2s). 避免按钮闪一下又可点.
+      setTimeout(() => setIsLoadingCheck(false), 2000);
+    }
+  };
+
+  if (total === 0) {
+    return <OverviewEmptyState onRunCheck={runCheck} isLoading={isLoadingCheck} />;
+  }
 
   return (
     <div class="overview-page">
-      <PageHeader title="总览" subtitle={`${k.total} 个 app · ${k.upgradable} 个可升级`} />
-      <div class="kpi-grid">
-        <KPICard label="可升级" value={k.upgradable} variant="warning" />
-        <KPICard label="最新" value={k.latest} variant="success" />
-        <KPICard label="出错" value={k.error} variant="danger" />
-        <KPICard label="总监控" value={k.total} variant="default" />
-      </div>
-      <div class="overview-section">
-        <h3 class="overview-section-title">过去 7 天趋势</h3>
-        <div class="trend-sparkline">
-          <TrendSparkline data={t} />
-        </div>
-      </div>
       <div class="overview-grid">
-        <WatchlistQuick />
-        <RecentTimeline />
+        <OverviewKPIWall kpis={kpisSignal} />
+        <OverviewWatchlistMini
+          watchlist={watchlistSignal}
+          onViewAll={() => navigateTo("library")}
+        />
+        <OverviewRecentMini
+          events={recentSignal}
+          onViewAll={() => navigateTo("settings")}
+        />
       </div>
-      <AIInsightsBlock />
     </div>
   );
 }

@@ -9,6 +9,7 @@
  */
 const stateStore = require("../state-store");
 const recentActivity = require("../recent-activity");
+const { runCheckQueued } = require("../check-runner");
 const { aiOverviewSummary } = require("../../ai/versions-overview-advisor.js");
 
 const TREND_DEFAULT = [0, 0, 0, 0, 0, 0, 0];
@@ -126,6 +127,23 @@ function registerVersionsOverviewHandlers(ctx) {
   safeHandle("versions:command-search", async (_e, { q }) =>
     commandSearch(ctx, q),
   );
+  // v2.50 (T5): TopBar / OverviewEmptyState CTA — 复用 check-runner.runCheckQueued
+  // (跟 register-core.js 的 check-updates 同一个入口, 不重复实现).
+  safeHandle("versions:run-check", async () => runCheckQueued({
+    getConfig: ctx.getConfig,
+    pool: ctx.pool,
+    getWindow: ctx.getWindow,
+    onCheckComplete: ctx.onCheckComplete,
+    getState: () => {
+      try { return stateStore.load(); } catch { return null; }
+    },
+    markNotified: (names) => {
+      try { stateStore.markNotified(names); } catch { /* noop */ }
+    },
+  }, { silent: false }).then(() => ({ started: true })).catch((e) => ({
+    started: false,
+    error: (e && e.message) || String(e),
+  })));
 }
 
 module.exports = {

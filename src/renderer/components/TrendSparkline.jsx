@@ -1,3 +1,4 @@
+// @deprecated since v2.50 — v2.49 错位 (Overview 不用). 保留供 Insights 页后续复用. 不要在 OverviewPage 引用.
 /**
  * src/renderer/components/TrendSparkline.jsx
  *
