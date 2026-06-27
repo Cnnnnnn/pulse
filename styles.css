@@ -661,6 +661,27 @@ body.platform-win .window-control-btn--close:hover {
 .btn-upgrade-row:active { transform: scale(0.95); }
 .btn-upgrade-row:disabled { opacity: 0.4; pointer-events: none; }
 
+/* ─── LibraryPage 检查更新主按钮 (2026-06-27) ─── 比 upgrade-row 更醒目, 作页面主操作 */
+.btn-run-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1h, 6px);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: var(--font-size-sm, 12px);
+  font-weight: 600;
+  font-family: var(--font-system);
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.btn-run-check:hover { filter: brightness(1.08); }
+.btn-run-check:active { transform: scale(0.96); }
+.btn-run-check:disabled { opacity: 0.5; pointer-events: none; }
+
 /* ─── Phase 14: Action group (ℹ️ + 升级/badge 并排) ─── */
 .app-action-group {
   display: flex;
