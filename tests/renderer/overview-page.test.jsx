@@ -137,4 +137,36 @@ describe("OverviewPage integration", () => {
     expect(container.textContent).toContain("vscode");
     expect(container.textContent).toContain("升");
   });
+
+  it("renders watchlist dots/badges from real IPC shape (name + has_update → id + name + status)", async () => {
+    mockApi.versionsOverviewKpis.mockResolvedValue({ upgradable: 1, latest: 1, error: 0, total: 2 });
+    // IPC real shape: 只 name + has_update, 没有 id 也没有 status.
+    mockApi.versionsOverviewWatchlist.mockResolvedValue([
+      { name: "vscode", has_update: true },
+      { name: "slack", has_update: false },
+    ]);
+    mockApi.versionsOverviewRecent.mockResolvedValue([]);
+
+    const { container } = render(<OverviewPage />);
+    await waitFor(() => {
+      expect(container.querySelector(".overview-grid")).toBeTruthy();
+    });
+
+    const items = container.querySelectorAll(".watchlist-item");
+    expect(items).toHaveLength(2);
+    // 形状映射后 vscode 拿 upgradable status → 显 dot-upgradable + 升 badge
+    const upgradableDot = container.querySelector(".dot-upgradable");
+    expect(upgradableDot).toBeTruthy();
+    const badges = container.querySelectorAll(".watchlist-badge");
+    expect(badges).toHaveLength(1);
+    // 没 status 兜底成 undefined 时不会出现 dot-undefined 这种 broken class
+    expect(container.querySelector(".dot-undefined")).toBeNull();
+    // name 字段被透传
+    expect(items[0].textContent).toContain("vscode");
+    expect(items[1].textContent).toContain("slack");
+    // 没 React key warning (key 来自 item.id = name, 都非空)
+    for (const li of items) {
+      expect(li.getAttribute("role")).toBe("listitem");
+    }
+  });
 });

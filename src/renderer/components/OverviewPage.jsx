@@ -13,6 +13,9 @@
  *
  * v2.49 错位的 TrendSparkline / AIInsightsBlock 已 @deprecated, 不再 import.
  *
+ * T2 形状映射: IPC 返 { name, has_update }, T2 要 { id, name, status }.
+ * mapWatchlistItem() 把 has_update → "upgradable"/"latest", 用 name 做 id.
+ *
  * T3 形状映射: IPC 返 { kind, appName, ts }, T3 要 { type, description, timestamp }.
  * mapRecentEvent() 写在文件底部, 单纯去掉前缀 + 拼 description.
  */
@@ -63,6 +66,20 @@ function mapRecentEvent(e) {
   };
 }
 
+// T2 形状映射: IPC { name, has_update } → T2 contract { id, name, status }.
+// ponytail: 主进程 IPC 契约不动 (tests/main/versions-overview-ipc.test.js 锁住
+// {name, has_update} 形状); 形状桥接全部放这里, T2 单测仍按 {id,name,status} 验.
+function mapWatchlistItem(w) {
+  if (!w || typeof w !== "object") return null;
+  const name = typeof w.name === "string" && w.name ? w.name : "";
+  if (!name) return null;
+  return {
+    id: name,
+    name,
+    status: w.has_update ? "upgradable" : "latest",
+  };
+}
+
 export function OverviewPage() {
   const [isLoadingCheck, setIsLoadingCheck] = useState(false);
   const total = kpisSignal.value.total;
@@ -74,7 +91,10 @@ export function OverviewPage() {
         if (!cancelled && d) kpisSignal.value = d;
       }),
       api.versionsOverviewWatchlist().then((d) => {
-        if (!cancelled && Array.isArray(d)) watchlistSignal.value = d;
+        if (!cancelled && Array.isArray(d)) {
+          // 形状映射: IPC shape (name/has_update) → T2 contract (id/name/status)
+          watchlistSignal.value = d.map(mapWatchlistItem).filter(Boolean);
+        }
       }),
       api.versionsOverviewRecent().then((d) => {
         if (!cancelled && Array.isArray(d)) {
