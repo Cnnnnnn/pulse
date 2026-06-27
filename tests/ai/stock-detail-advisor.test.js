@@ -249,4 +249,28 @@ describe("buildAnalyzeMessages", () => {
     expect(system).toContain("输入:");
     expect(system).toContain("输出:");
   });
+
+  it("解析 LLM 模仿 few-shot 示例的输出 (含 '暂无数据' 的 perAngle 项)", () => {
+    // ponytail: 模拟 LLM 看到 few-shot 后学到的输出格式, 数据缺失的 angle 填 "暂无数据".
+    // parseAndValidate 不区分空字符串 vs 业务串 — "暂无数据" 应作为有效解读保留.
+    const llmText = JSON.stringify({
+      summary: "沪电股份近 30 日累计涨幅 37.14% 表现强势, 短期加速 (5 日 +8.5%); 资金流向与新闻舆情数据缺失.",
+      perAngle: {
+        price_trend: "30 日累计 37.14% 涨幅显著, 5 日 +8.5% 显示短期加速.",
+        capital_flow: "暂无数据",
+        news_buzz: "暂无数据",
+      },
+      risks: [
+        "短期累计涨幅 37% 较快, 后续存在技术性回调可能.",
+        "资金面与舆情数据缺失, 风险评估不完整.",
+      ],
+      signal: "neutral",
+    });
+    const parsed = advisor.parseAndValidateAnalyze(llmText);
+    expect(parsed).not.toBeNull();
+    expect(parsed.perAngle.capital_flow).toBe("暂无数据");
+    expect(parsed.perAngle.news_buzz).toBe("暂无数据");
+    expect(parsed.risks).toHaveLength(2);
+    expect(parsed.signal).toBe("neutral");
+  });
 });
