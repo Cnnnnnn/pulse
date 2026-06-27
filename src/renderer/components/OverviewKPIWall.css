@@ -1,0 +1,33 @@
+/* src/renderer/components/OverviewKPIWall.css
+ * v2.50 (T1): KPI 墙 — 可升级 32px 橙, 其他 20px 灰. 颜色用 token.
+ */
+.overview-kpi-wall {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kpi-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.kpi-number-large {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent-upgradable, #ff9500);
+  line-height: 1;
+}
+
+.kpi-number-small {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-secondary, #6e6e73);
+  line-height: 1;
+}
+
+.kpi-label {
+  font-size: 11px;
+  color: var(--text-tertiary, #8e8e93);
+}
