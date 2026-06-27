@@ -682,6 +682,27 @@ body.platform-win .window-control-btn--close:hover {
 .btn-run-check:active { transform: scale(0.96); }
 .btn-run-check:disabled { opacity: 0.5; pointer-events: none; }
 
+/* ─── LibraryPage 滚动容器 (2026-06-27) ───
+   .app-shell-view:has(>.versions-layout) 把父级设成 overflow:hidden + flex 列,
+   旧 dashboard 靠 .versions-layout-body 滚动; LibraryPage 接管该职责:
+   flex:1 + min-height:0 + overflow-y:auto 让列表区成为可滚动主体. */
+.library-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+/* PageHeader / MergedFilterChip 钉在顶部, 只让列表体滚动 */
+.library-page .page-header,
+.library-page .merged-filter {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-modal, #fff);
+}
+.library-page .merged-filter { top: var(--page-header-h, auto); }
+
 /* ─── Phase 14: Action group (ℹ️ + 升级/badge 并排) ─── */
 .app-action-group {
   display: flex;
@@ -10214,7 +10235,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .topbar-logo {
   font-size: 14px; font-weight: 700;
   color: var(--accent-primary, #007aff);
+  background: none; border: none; cursor: pointer;
+  padding: 0; font-family: inherit;
 }
+.topbar-logo:hover { opacity: 0.8; }
+.topbar-logo:disabled { opacity: 0.5; pointer-events: none; }
 .topbar-center { flex: 1; display: flex; justify-content: center; }
 .topbar-search {
   display: flex; align-items: center; gap: 8px;
@@ -10244,6 +10269,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   transition: background 0.15s ease;
 }
 .topbar-icon-btn:hover { background: var(--bg-elevated, #f5f5f7); }
+.topbar-icon-btn:disabled { opacity: 0.5; pointer-events: none; cursor: default; }
+/* 检查更新中: 图标旋转, 直观反馈 (aria-busy=true 时) */
+.topbar-icon-btn[aria-busy="true"] svg { animation: topbar-spin 0.9s linear infinite; }
+@keyframes topbar-spin { to { transform: rotate(360deg); } }
 .topbar-ai { color: var(--accent-primary, #007aff); }
 .topbar-badge {
   position: absolute; top: 2px; right: 2px;

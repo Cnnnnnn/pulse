@@ -10,6 +10,7 @@ import { upgradableCount } from "../selectors.js";
 import { api } from "../api.js";
 import { navigateTo } from "../route-store.js";
 import { showToast } from "../store/toast-store.js";
+import { useRunCheck } from "../hooks/useRunCheck.js";
 import {
   IconCommand, IconSparkles, IconBell, IconMoreHorizontal,
   IconRefresh, IconStar, IconSettings, IconCalendar, IconNote,
@@ -18,6 +19,7 @@ import {
 export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const badge = upgradableCount.value;
+  const { isLoading: isChecking, run: runCheck } = useRunCheck();
 
   async function exportResults(format) {
     if (!api.detectResultsExport) return;
@@ -39,7 +41,16 @@ export function TopBar() {
   return (
     <header class="topbar" role="banner">
       <div class="topbar-left">
-        <span class="topbar-logo">Pulse</span>
+        <button
+          type="button"
+          class="topbar-logo"
+          onClick={() => navigateTo("library")}
+          aria-label="返回应用库"
+          title="应用库"
+          data-testid="topbar-logo"
+        >
+          Pulse
+        </button>
       </div>
       <div class="topbar-center">
         <button
@@ -57,7 +68,9 @@ export function TopBar() {
         <button
           type="button"
           class="topbar-icon-btn"
-          onClick={() => api.versionsRunCheck && api.versionsRunCheck()}
+          onClick={runCheck}
+          disabled={isChecking}
+          aria-busy={isChecking}
           aria-label="检查更新"
           title="检查更新"
           data-testid="topbar-run-check"
