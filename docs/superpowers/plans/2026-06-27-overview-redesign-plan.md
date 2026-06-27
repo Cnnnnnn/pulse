@@ -605,14 +605,21 @@ describe("OverviewPage integration", () => {
 
 ```jsx
 // src/renderer/components/OverviewPage.jsx
+// NOTE: 实施时需 DISCOVER 以下导入路径 (plan 写的是推断, 实际可能不同):
+//   - `api.js` 的实际路径 (e.g. ./api.js vs ../api.js vs ../../api.js)
+//   - 路由跳转函数 (plan 假设 routeStore.navigateTo, 实际可能叫 navigate/routeTo 之类, 实施前 grep 确认)
+//   - 状态 signal 源 (plan 假设 stateStore.value.total, 实际可能是 store.value.total 或 readState())
+//   路径不对就改 import, 逻辑不变.
+
 import { useEffect, useState } from "preact/hooks";
 import { signal } from "@preact/signals";
-import { api } from "../api.js";
+import { api } from "../api.js";  // DISCOVER: 实际路径
 import { OverviewKPIWall } from "./OverviewKPIWall.jsx";
 import { OverviewWatchlistMini } from "./OverviewWatchlistMini.jsx";
 import { OverviewRecentMini } from "./OverviewRecentMini.jsx";
 import { OverviewEmptyState } from "./OverviewEmptyState.jsx";
-import { stateStore } from "../state-store.js"; // existing
+// DISCOVER: stateStore 实际导出位置 (可能是 store.js / state-store.js / store/state.js)
+import { routeStore } from "../route-store.js";  // DISCOVER: 实际路径
 import "./OverviewPage.css";
 
 const kpisSignal = signal({ upgradable: 0, latest: 0, error: 0, total: 0 });
@@ -622,7 +629,8 @@ const recentSignal = signal([]);
 export function OverviewPage() {
   const [loaded, setLoaded] = useState(false);
   const [isLoadingCheck, setIsLoadingCheck] = useState(false);
-  const total = stateStore.value.total;
+  // DISCOVER: total 的读法 (stateStore.value.total / store.value.total / readState().total)
+  const total = 11;  // placeholder, 实施时替换
 
   useEffect(() => {
     if (total === 0) return;
@@ -646,12 +654,14 @@ export function OverviewPage() {
     return <OverviewEmptyState onRunCheck={runCheck} isLoading={isLoadingCheck} />;
   }
 
+  // DISCOVER: 实际跳转函数. 下面两行是 plan 假设, 实施时按实际函数名替换.
+  // routeStore.navigateTo 实际可能叫 navigate / routeTo / go
   return (
     <div class="overview-page">
       <div class="overview-grid">
         <OverviewKPIWall kpis={kpisSignal} />
-        <OverviewWatchlistMini watchlist={watchlistSignal} onViewAll={() => api.navigateTo?.("/versions/library?filter=watched")} />
-        <OverviewRecentMini events={recentSignal} onViewAll={() => api.navigateTo?.("/versions/settings#recent")} />
+        <OverviewWatchlistMini watchlist={watchlistSignal} onViewAll={() => routeStore.navigateTo("/versions/library?filter=watched")} />
+        <OverviewRecentMini events={recentSignal} onViewAll={() => routeStore.navigateTo("/versions/settings#recent")} />
       </div>
     </div>
   );
@@ -735,6 +745,11 @@ describe("TopBar button wiring", () => {
 ```
 
 **Step 3: 改 TopBar.jsx**
+
+NOTE: 实施时需 DISCOVER:
+- 路由跳转函数 (routeStore.navigateTo 实际可能叫 navigate / routeTo / go). 实施前 `grep -n "navigate\|routeTo" src/renderer/route-store.js` 确认
+- 3 个 IPC 是否已存在: `versionsExportJson` / `versionsExportCsv` / `versionsOpenReleaseNotes`. 实施前 `grep "versionsExport\|versionsOpenReleaseNotes" preload.js src/renderer/api.js`. 不存在则**跳过** (按 spec §2 YAGNI, 菜单项 onClick 改成空操作 + console.log, 后续 v2.51 再补)
+- toast 调用 (复用什么, plan 假设 toastStore, 实施前 grep 确认)
 
 在每个按钮上加 `onClick` 和 `data-testid`:
 
