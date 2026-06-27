@@ -42,7 +42,6 @@ import {
   watchlistDrawerOpen,
 } from "../../src/renderer/watchlist/watchlist-store.js";
 import { WatchlistDrawer } from "../../src/renderer/components/WatchlistDrawer.jsx";
-import { Header } from "../../src/renderer/components/Header.jsx";
 
 beforeEach(() => {
   cleanup();
@@ -131,30 +130,5 @@ describe("WatchlistDrawer", () => {
   });
 });
 
-describe("Header btn-watchlist", () => {
-  it("空 list 显示关注图标", () => {
-    watchlistItems.value = [];
-    const { container } = render(<Header onCheck={() => {}} />);
-    const btn = container.querySelector("#btn-watchlist");
-    expect(btn).not.toBeNull();
-    expect(btn.querySelector("svg")).not.toBeNull();
-  });
-
-  it("非空 list 显示实心关注图标", () => {
-    watchlistItems.value = [
-      { type: "app", ref: "A", addedAt: 1, lastNotifiedVersion: null },
-    ];
-    const { container } = render(<Header onCheck={() => {}} />);
-    const btn = container.querySelector("#btn-watchlist");
-    expect(btn.querySelector("svg")).not.toBeNull();
-    expect(btn.getAttribute("title")).toContain("1");
-  });
-
-  it("点 btn-watchlist 切 watchlistDrawerOpen", () => {
-    watchlistDrawerOpen.value = false;
-    const { container } = render(<Header onCheck={() => {}} />);
-    const btn = container.querySelector("#btn-watchlist");
-    fireEvent.click(btn);
-    expect(watchlistDrawerOpen.value).toBe(true);
-  });
-});
+// Header btn-watchlist tests removed in v2.49 (Header migrated to TopBar).
+// The 关注 icon now lives in TopBar overflow menu; coverage moves to TopBar.test.jsx.

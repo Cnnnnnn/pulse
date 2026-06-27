@@ -12,6 +12,8 @@
 
 import { checkSession, results } from '../store.js';
 import { Header } from './Header.jsx';
+import { TopBar } from './TopBar.jsx';
+import { CommandPalette } from './CommandPalette.jsx';
 import { FilterBar } from './FilterBar.jsx';
 import { AITasksDrawer } from './AITasksDrawer.jsx';
 import { Skeleton } from './Skeleton.jsx';
@@ -26,6 +28,8 @@ export function VersionsLayout({ onCheck }) {
 
   return (
     <div class="versions-layout">
+      <TopBar />
+      <CommandPalette />
       <Header onCheck={onCheck} />
       <AITasksDrawer />
       <FilterBar />
