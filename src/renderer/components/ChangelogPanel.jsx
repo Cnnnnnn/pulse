@@ -44,15 +44,8 @@ export function ChangelogPanel({ result }) {
   const url = result && result.changelog_url;
   const format = (result && result.changelog_format) || 'md';
   const history = (result && Array.isArray(result.changelog_history)) ? result.changelog_history : [];
-  // Phase 20: 没 detector 拉到 changelog 时, 仍可显示 "查看 release notes ↗" 链接
-  // fallback: release_notes_url > changelog_url > download_url
-  const fallbackUrl = (result && result.release_notes_url)
-    || url
-    || (result && result.download_url)
-    || '';
   // 当前 detector 返的 release page URL (e.g. github_release.html_url),
-  // 跟 fallback 区别: 永远是该版本的 releases page, 不是 changelog 备份页.
-  // 显示在 panel 头部, 让用户一键跳到 "原汁原味" 的 release notes.
+  // 永远是该版本的 releases page, 显示在 panel 头部让用户一键跳转.
   const releaseUrl = (result && result.release_url) || '';
   const [view, setView] = useState('current'); // 'current' | history index
 
@@ -65,28 +58,22 @@ export function ChangelogPanel({ result }) {
     }
   }, [result && result.latest_version]);
 
-  // 源/url/历史/release_notes_url 都没有 → 整个 panel 都不渲染
-  if (!src && !url && history.length === 0 && !fallbackUrl && !releaseUrl) return null;
+  // 源/url/历史都没有 → 整个 panel 都不渲染
+  if (!src && !url && history.length === 0 && !releaseUrl) return null;
 
   // 当前选中显示的内容
   const isCurrent = view === 'current';
   const activeSrc = isCurrent ? src : (history[view] && history[view].changelog) || '';
   const activeUrl = isCurrent ? url : (history[view] && history[view].changelog_url) || '';
   const activeLabel = isCurrent
-    ? (result && result.latest_version ? `${result.latest_version} (current)` : 'current')
-    : (history[view] && history[view].version) || 'older';
+    ? ((result && result.latest_version) || 'latest')
+    : ((history[view] && history[view].version) || 'older');
 
-  // 没源没 changelog_url (但可能有 release_notes_url) → 空状态
+  // 没源没 changelog_url → 空状态 (仅版本标签 + 历史 tab, 不再展示 fallback 链接)
   if (!activeSrc && !activeUrl) {
     return (
       <div class="changelog-panel">
         <div class="changelog-version-label">{activeLabel}</div>
-        <div class="changelog-empty">
-          无 release notes 源 —{' '}
-          {fallbackUrl
-            ? <a href={fallbackUrl} target="_blank" rel="noopener">查看官网</a>
-            : <span>查看官网</span>}
-        </div>
         {history.length > 0 && <HistoryTabs history={history} view={view} onChange={setView} />}
       </div>
     );
@@ -139,7 +126,7 @@ function HistoryTabs({ history, view, onChange }) {
         class={`changelog-history-tab${view === 'current' ? ' active' : ''}`}
         onClick={() => onChange('current')}
       >
-        current
+        latest
       </button>
       {history.map((h, i) => (
         <button
