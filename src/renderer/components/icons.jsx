@@ -741,3 +741,22 @@ export function IconThumbsDown({ size = 14 }) {
     </Svg>
   );
 }
+
+export function IconCommand({ size = 14 }) {
+  return (
+    <Svg size={size}>
+      <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+    </Svg>
+  );
+}
+
+export function IconGrid({ size = 14 }) {
+  return (
+    <Svg size={size}>
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </Svg>
+  );
+}
