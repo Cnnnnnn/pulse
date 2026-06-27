@@ -40,4 +40,45 @@ describe("stock-detail-angles", () => {
   it("getAngle returns null for unknown key", () => {
     expect(getAngle("not_a_key")).toBeNull();
   });
+
+  describe("price_trend.getSparklineData", () => {
+    // import 在文件顶部
+    // const { ANGLE_DEFS, getAngle } = require("../../src/stocks/stock-detail-angles.js");
+    // (如果文件顶部已有 import, 复用, 不重复声明)
+    const ang = getAngle("price_trend");
+
+    it("null data 返 null", () => {
+      expect(ang.sparkline(null)).toBeNull();
+      expect(ang.sparkline(undefined)).toBeNull();
+    });
+
+    it("空 closes 返 null", () => {
+      expect(ang.sparkline({ closes: [] })).toBeNull();
+    });
+
+    it("NaN/非数 返 null", () => {
+      expect(ang.sparkline({ closes: [NaN, NaN] })).toBeNull();
+    });
+
+    it("上涨: 返 closes + color='up'", () => {
+      expect(ang.sparkline({ closes: [80, 90, 100] })).toEqual({
+        closes: [80, 90, 100],
+        color: "up",
+      });
+    });
+
+    it("下跌: 返 closes + color='down'", () => {
+      expect(ang.sparkline({ closes: [100, 90, 80] })).toEqual({
+        closes: [100, 90, 80],
+        color: "down",
+      });
+    });
+
+    it("平: 返 closes + color='flat'", () => {
+      expect(ang.sparkline({ closes: [100, 100] })).toEqual({
+        closes: [100, 100],
+        color: "flat",
+      });
+    });
+  });
 });
