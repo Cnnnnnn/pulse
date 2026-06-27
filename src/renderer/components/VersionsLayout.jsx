@@ -18,6 +18,7 @@ import { TopBar } from './TopBar.jsx';
 import { CommandPalette } from './CommandPalette.jsx';
 import { MergedFilterChip } from './MergedFilterChip.jsx';
 import { LibraryPage } from './LibraryPage.jsx';
+import { OverviewPage } from './OverviewPage.jsx';
 import { AITasksDrawer } from './AITasksDrawer.jsx';
 import { Skeleton } from './Skeleton.jsx';
 import { ResultsView } from './ResultsView.jsx';
@@ -36,6 +37,16 @@ export function VersionsLayout({ onCheck }) {
         <TopBar />
         <CommandPalette />
         <LibraryPage />
+      </div>
+    );
+  }
+
+  if (route === "overview") {
+    return (
+      <div class="versions-layout">
+        <TopBar />
+        <CommandPalette />
+        <OverviewPage />
       </div>
     );
   }

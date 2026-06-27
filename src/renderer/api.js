@@ -212,6 +212,12 @@ export function createApi(overrides = {}) {
     onStocksWatchlistQuotes: pick(overrides, "onStocksWatchlistQuotes"),
     // Cmd+K command palette 全局搜索
     versionsCommandSearch: pick(overrides, "versionsCommandSearch"),
+    // Task 18: OverviewPage 5 个数据源 IPC bridge
+    versionsOverviewKpis: pick(overrides, "versionsOverviewKpis"),
+    versionsOverviewTrend: pick(overrides, "versionsOverviewTrend"),
+    versionsOverviewWatchlist: pick(overrides, "versionsOverviewWatchlist"),
+    versionsOverviewRecent: pick(overrides, "versionsOverviewRecent"),
+    versionsOverviewAiInsights: pick(overrides, "versionsOverviewAiInsights"),
   };
 }
 

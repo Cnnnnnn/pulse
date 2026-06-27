@@ -10424,3 +10424,16 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: #ff3b30; padding: 2px 8px; border-radius: 4px;
   cursor: pointer; font-size: 11px;
 }
+
+/* OverviewPage — Task 18 整合 layout */
+.overview-page { padding: 0; }
+.overview-section { padding: 0 20px 16px; }
+.overview-section-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+  margin: 0 0 8px;
+}
+.overview-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  padding: 0 20px 16px;
+}
