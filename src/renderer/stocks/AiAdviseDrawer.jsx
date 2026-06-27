@@ -5,9 +5,9 @@
  * 走 stockStore.requestAiAdvise / applyAiAdvise (signal-driven).
  *
  * ponytail: 不做对话式追问, 单轮意图 + 一份预览. 不自动点筛选.
- *          复用 BareModalShell (不引入新 modal 容器).
+ *          复用 AIDrawerShell (不引入新 modal 容器).
  */
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import {
   aiAdvise,
   aiAdviseOpen,
@@ -15,7 +15,7 @@ import {
   requestAiAdvise,
   applyAiAdvise,
 } from "./stockStore.js";
-import { BareModalShell } from "../components/ModalShell.jsx";
+import { AIDrawerShell } from "../components/AIDrawerShell.jsx";
 
 // ponytail: 6 个预设 chip 跟 strategies.js 同级硬编码 (不开新 store 模块).
 //   label 给用户看, id 是 LLM prompt 里的"意图标识".
@@ -42,22 +42,6 @@ export function AiAdviseDrawer({ api }) {
   const state = aiAdvise.value;
   const [selectedChip, setSelectedChip] = useState(PRESET_CHIPS[0].id);
   const [freeText, setFreeText] = useState("");
-  const cardRef = useRef(null);
-
-  // ponytail: overlay 是 pointer-events:none (不挡列表), 这里挂 document 监听补"点抽屉外关闭".
-  //   只在 open 时挂, 关闭即卸载 — 不会持续拦截其他面板点击.
-  //   忽略打开触发按钮本身 (mousedown 先于 click, 否则会关-开闪烁).
-  useEffect(() => {
-    if (!open) return undefined;
-    function onDocDown(e) {
-      const card = cardRef.current;
-      if (card && card.contains(e.target)) return;
-      if (e.target && e.target.closest && e.target.closest(".stock-btn-ai")) return;
-      closeAdvise();
-    }
-    document.addEventListener("mousedown", onDocDown);
-    return () => document.removeEventListener("mousedown", onDocDown);
-  }, [open]);
 
   function handleGenerate() {
     const chip = PRESET_CHIPS.find((c) => c.id === selectedChip);
@@ -73,26 +57,12 @@ export function AiAdviseDrawer({ api }) {
   }
 
   return (
-    <BareModalShell
+    <AIDrawerShell
       open={open}
       onClose={closeAdvise}
-      usePortal
-      ariaLabel="AI 推荐筛选条件"
-      overlayClass="stock-advise-overlay"
-      cardClass="stock-advise-drawer"
-      cardRef={cardRef}
+      title="🧠 AI 推荐"
+      subtitle="根据偏好 + 市场现状给出筛选条件"
     >
-      <div class="stock-advise-header">
-        <span class="stock-advise-title">🧠 AI 推荐策略</span>
-        <button
-          type="button"
-          class="stock-modal-close"
-          onClick={closeAdvise}
-          aria-label="关闭"
-        >
-          ×
-        </button>
-      </div>
       <div class="stock-advise-subtitle">
         描述你的意图, AI 基于当日市场快照推荐筛选条件.
         <br />
@@ -186,7 +156,7 @@ export function AiAdviseDrawer({ api }) {
           </div>
         )}
       </div>
-    </BareModalShell>
+    </AIDrawerShell>
   );
 }
 

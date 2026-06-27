@@ -10437,3 +10437,35 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
   padding: 0 20px 16px;
 }
+
+/* AIDrawerShell — 共享 AI 抽屉外壳 (Task 20) */
+.ai-drawer-overlay {
+  position: fixed; inset: 0; z-index: 8000;
+  background: transparent; pointer-events: none;
+  display: flex; align-items: stretch; justify-content: flex-end;
+}
+.ai-drawer-overlay > .ai-drawer-shell { pointer-events: auto; }
+.ai-drawer-shell {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(480px, 90vw);
+  background: var(--bg-card, #fff);
+  border-left: 1px solid var(--border, rgba(0,0,0,0.08));
+  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+  display: flex; flex-direction: column;
+  animation: ai-drawer-fade 0.15s ease-out;
+}
+@keyframes ai-drawer-fade { from { opacity: 0; } to { opacity: 1; } }
+.ai-drawer-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+}
+.ai-drawer-title-block { display: flex; flex-direction: column; gap: 2px; }
+.ai-drawer-title { font-size: 15px; font-weight: 600; color: var(--text-primary, #1d1d1f); }
+.ai-drawer-subtitle { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
+.ai-drawer-close {
+  width: 28px; height: 28px;
+  background: transparent; border: 0; border-radius: 4px;
+  font-size: 20px; color: var(--text-tertiary, #8e8e93); cursor: pointer;
+}
+.ai-drawer-close:hover { background: var(--bg-elevated, #f5f5f7); color: var(--text-primary, #1d1d1f); }
+.ai-drawer-body { padding: 14px 16px; overflow-y: auto; flex: 1; }

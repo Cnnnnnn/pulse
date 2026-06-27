@@ -1,15 +1,33 @@
 /**
  * src/renderer/stocks/StockDetailDrawer.jsx
  *
- * 阶段四: 个股 AI 分析抽屉. 560px 右侧, fade-only, 表格立即让位 padding.
- * 复用 BareModalShell + 阶段二 AiAdviseDrawer 的层级修复模式.
+ * 阶段四: 个股 AI 分析抽屉. 共享 AIDrawerShell 外壳 (480px 右侧, fade-only).
+ *
+ * 交互状态机 (按 design-system "Data-Dense Dashboard" 风格):
+ *   1. 空状态: 只显示股票代码搜索框 + 提示 "先选 1 只股票"
+ *   2. 已选股票: chips 解禁, 默认勾选的 2 个 angle 立即 lazy 拉数据 (chip 上 spinner)
+ *   3. 全 ready 或部分 ready: 显示 "🚀 开始 AI 分析" 按钮
+ *   4. AI 分析中/完成/失败: 显示对应 block
+ *
+ * ponytail:
+ *   - selectStock 自动触发默认 angle 拉取 (用户不必手动点 chip 才能看到数据)
+ *   - dropdown 只在用户主动打字时显示, 选中后立刻关闭清空 (避免 "下拉连出两次")
  */
 import { useState, useEffect, useRef } from "preact/hooks";
-import { BareModalShell } from "../components/ModalShell.jsx";
-import { ANGLE_DEFS, getAngle } from "../../stocks/stock-detail-angles.js";  // ESM import of CJS
+import { AIDrawerShell } from "../components/AIDrawerShell.jsx";
+import { ANGLE_DEFS, getAngle } from "../../stocks/stock-detail-angles.js";
 import {
-  codeInput, selectedStock, selectedAngles, perAngleData, aiResult,
-  detailOpen, selectStock, toggleAngle, loadAngleData, requestAiDetail, resetDetail,
+  codeInput,
+  selectedStock,
+  selectedAngles,
+  perAngleData,
+  aiResult,
+  detailOpen,
+  selectStock,
+  toggleAngle,
+  loadAngleData,
+  requestAiDetail,
+  resetDetail,
 } from "./stockDetailStore.js";
 import { taggedLog } from "../log.js";
 
@@ -24,48 +42,86 @@ const ERROR_REASON_TEXT = {
   no_api: "AI 通道未就绪",
 };
 
-function StockSearchInput({ api, onSelect }) {
-  const [results, setResults] = useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
+const FETCH_REASON_TEXT = {
+  fetch_failed: "网络请求失败",
+  parse_failed: "数据格式异常",
+  exception: "拉取异常",
+  all_fetch_failed: "全部数据源失败",
+  invalid_args: "参数错误",
+};
 
+function StockSearchInput({ api }) {
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const wrapRef = useRef(null);
+  const reqIdRef = useRef(0);
+
+  // 用户打字 → 拉搜索. query 跟 codeInput 分离: 一旦选中 stock, 立刻清 query 关 dropdown,
+  // 防止选完股票后 dropdown 又被 codeInput 变化触发出第二次.
   useEffect(() => {
-    if (!codeInput.value || codeInput.value.length < 2) {
+    if (!query || query.length < 2) {
       setResults([]);
+      setOpen(false);
       return undefined;
     }
+    const myId = ++reqIdRef.current;
     const timer = setTimeout(async () => {
       if (!api || !api.stocksSearch) return;
-      const r = await api.stocksSearch(codeInput.value);
+      const r = await api.stocksSearch(query);
+      // 只接受最近一次请求的结果
+      if (myId !== reqIdRef.current) return;
       if (r && r.ok) {
         setResults((r.results || []).slice(0, 8));
-        setShowDropdown(true);
+        setOpen(true);
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [codeInput.value]);
+  }, [query]);
+
+  // click outside 关闭 dropdown
+  useEffect(() => {
+    function onDoc(e) {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  function pick(r) {
+    // 先关 dropdown 清 query, 再触发 store (store 内部会异步拉默认 angle 数据)
+    setOpen(false);
+    setQuery("");
+    setResults([]);
+    codeInput.value = r.code;
+    selectStock(r, api);
+  }
 
   return (
-    <div class="stock-detail-search">
+    <div class="stock-detail-search" ref={wrapRef}>
       <input
         class="stock-detail-input"
         type="text"
-        value={codeInput.value}
-        onInput={(e) => { codeInput.value = e.currentTarget.value; }}
+        value={query}
+        onInput={(e) => {
+          setQuery(e.currentTarget.value);
+          codeInput.value = e.currentTarget.value;
+        }}
         placeholder="输入 6 位股票代码或名称"
         maxLength={20}
         autoComplete="off"
       />
-      {showDropdown && results.length > 0 && (
-        <ul class="stock-detail-dropdown">
+      {open && results.length > 0 && (
+        <ul class="stock-detail-dropdown" role="listbox">
           {results.map((r) => (
             <li
               key={r.code}
+              role="option"
+              aria-selected="false"
               class="stock-detail-dropdown-item"
-              onClick={() => {
-                onSelect(r);
-                setShowDropdown(false);
-                codeInput.value = r.code;
-              }}
+              onMouseDown={(e) => e.preventDefault() /* 避免 input blur */}
+              onClick={() => pick(r)}
             >
               <span class="stock-detail-dropdown-code">{r.code}</span>
               <span class="stock-detail-dropdown-name">{r.name}</span>
@@ -78,55 +134,81 @@ function StockSearchInput({ api, onSelect }) {
   );
 }
 
-function AngleChip({ angle, selected, onToggle }) {
-  const entry = perAngleData.value[angle.key];
-  const failed = entry && entry.status === "failed";
+function AngleChip({ angle, selected, status, onToggle, disabled }) {
+  const failed = status === "failed";
+  const loading = status === "loading" || status === "ok-loading";
+  const ready = status === "ok" || status === "ready";
+  const klass = `stock-detail-chip${selected ? " active" : ""}${failed ? " failed" : ""}${loading ? " loading" : ""}${ready ? " ready" : ""}${disabled ? " disabled" : ""}`;
+  const title = disabled
+    ? "先选 1 只股票"
+    : failed
+    ? `拉取失败: ${FETCH_REASON_TEXT[angle.error] || angle.error || "未知"}`
+    : loading
+    ? "拉取中…"
+    : ready
+    ? "已加载"
+    : angle.promptHint;
   return (
     <button
       type="button"
-      class={`stock-detail-chip${selected ? " active" : ""}${failed ? " failed" : ""}`}
+      class={klass}
       onClick={onToggle}
-      title={failed ? `拉取失败: ${entry.reason}` : angle.promptHint}
+      disabled={disabled}
+      title={title}
+      aria-pressed={selected}
     >
-      {angle.label}{failed ? " ⚠" : ""}
+      <span class="stock-detail-chip-label">{angle.label}</span>
+      {loading && <span class="stock-detail-chip-spinner" aria-hidden="true" />}
+      {failed && <span class="stock-detail-chip-mark" aria-hidden="true">!</span>}
+      {ready && <span class="stock-detail-chip-check" aria-hidden="true">✓</span>}
     </button>
   );
 }
 
 function PerAnglePreview() {
   const angles = Array.from(selectedAngles.value);
-  if (angles.length === 0) return null;
+  if (angles.length === 0) {
+    return <div class="stock-detail-preview-empty">未选择任何分析角度</div>;
+  }
   return (
-    <div class="stock-detail-preview">
-      <div class="stock-detail-preview-title">已选 {angles.length} 个角度</div>
+    <ul class="stock-detail-preview">
       {angles.map((k) => {
         const ang = getAngle(k);
         const entry = perAngleData.value[k];
+        const status = entry ? entry.status : "idle";
+        const klass = `stock-detail-preview-row status-${status}`;
+        const text =
+          status === "ok" || status === "ready"
+            ? "已加载"
+            : status === "loading"
+              ? "加载中…"
+              : status === "failed"
+                ? `失败: ${FETCH_REASON_TEXT[entry.reason] || entry.reason || ""}`
+                : "等待中";
         return (
-          <div key={k} class="stock-detail-preview-row">
+          <li key={k} class={klass}>
             <span class="stock-detail-preview-label">{ang ? ang.label : k}</span>
-            <span class="stock-detail-preview-status">
-              {entry ? (entry.status === "ok" ? "已加载" : entry.status === "loading" ? "加载中…" : "失败") : "未拉取"}
-            </span>
-          </div>
+            <span class="stock-detail-preview-status">{text}</span>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
 function AiResultBlock() {
   const state = aiResult.value;
-  if (state.status === "idle" || state.status === "loading") {
+  if (state.status === "loading") {
     return (
-      <div class="stock-detail-ai-loading">
-        {state.status === "loading" ? "⏳ AI 解读中…" : ""}
+      <div class="stock-detail-ai-loading" role="status" aria-live="polite">
+        <span class="stock-detail-chip-spinner" />
+        <span>AI 解读中…</span>
       </div>
     );
   }
   if (state.status === "error") {
     return (
-      <div class="stock-detail-ai-error">
+      <div class="stock-detail-ai-error" role="alert">
         <div class="stock-detail-ai-error-title">⚠️ 出错了</div>
         <div class="stock-detail-ai-error-sub">
           {ERROR_REASON_TEXT[state.reason] || state.error || state.reason || "未知错误"}
@@ -138,7 +220,7 @@ function AiResultBlock() {
     const r = state.result;
     return (
       <div class="stock-detail-ai-result">
-        {state.fromCache && <div class="stock-detail-cache-tag">缓存命中</div>}
+        {state.fromCache && <div class="stock-detail-cache-tag">缓存命中 (24h)</div>}
         <div class="stock-detail-section-title">💡 总结</div>
         <div class="stock-detail-summary">{r.summary}</div>
         {r.perAngle && Object.keys(r.perAngle).length > 0 && (
@@ -147,7 +229,11 @@ function AiResultBlock() {
             <ul class="stock-detail-per-angle">
               {Object.entries(r.perAngle).map(([k, v]) => {
                 const ang = getAngle(k);
-                return <li key={k}><b>{ang ? ang.label : k}:</b> {v}</li>;
+                return (
+                  <li key={k}>
+                    <b>{ang ? ang.label : k}:</b> {v}
+                  </li>
+                );
               })}
             </ul>
           </>
@@ -156,7 +242,9 @@ function AiResultBlock() {
           <>
             <div class="stock-detail-section-title">⚠️ 关注点</div>
             <ul class="stock-detail-risks">
-              {r.risks.map((s, i) => <li key={i}>{s}</li>)}
+              {r.risks.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
             </ul>
           </>
         )}
@@ -171,97 +259,105 @@ function AiResultBlock() {
 
 export function StockDetailDrawer({ api }) {
   const open = detailOpen.value;
-  const cardRef = useRef(null);
+  const stock = selectedStock.value;
 
+  // 关闭抽屉时重置状态
   useEffect(() => {
-    if (!open) return undefined;
-    function onDocDown(e) {
-      const card = cardRef.current;
-      if (card && card.contains(e.target)) return;
-      if (e.target && e.target.closest && e.target.closest(".stock-detail-open")) return;
-      closeDrawer();
+    if (!open) {
+      // 延迟到淡出动画结束后 (CSS 0.15s)
+      const t = setTimeout(() => resetDetail(), 200);
+      return () => clearTimeout(t);
     }
-    document.addEventListener("mousedown", onDocDown);
-    return () => document.removeEventListener("mousedown", onDocDown);
+    return undefined;
   }, [open]);
-
-  function closeDrawer() {
-    detailOpen.value = false;
-  }
 
   function handleAngleToggle(key) {
     const wasSelected = selectedAngles.value.has(key);
     toggleAngle(key);
-    // 若新勾选, 触发 lazy 拉取
-    if (!wasSelected && selectedStock.value) {
-      void loadAngleData(api, selectedStock.value.code, key);
+    // 新勾选 → lazy 拉; 已选 → 取消 (下次再勾会重新拉)
+    if (!wasSelected && stock) {
+      void loadAngleData(api, stock.code, key);
     }
   }
 
   function handleGenerate() {
-    if (!selectedStock.value) return;
+    if (!stock) return;
     void requestAiDetail(api, {
-      code: selectedStock.value.code,
+      code: stock.code,
       angles: Array.from(selectedAngles.value),
       perAngleData: perAngleData.value,
       freeText: "",
     });
   }
 
+  const readyCount = Array.from(selectedAngles.value).filter((k) => {
+    const e = perAngleData.value[k];
+    return e && (e.status === "ok" || e.status === "ready");
+  }).length;
+  const totalCount = selectedAngles.value.size;
+  const canGenerate = !!stock && totalCount > 0 && aiResult.value.status !== "loading";
+
   return (
-    <BareModalShell
+    <AIDrawerShell
       open={open}
-      onClose={closeDrawer}
-      usePortal
-      ariaLabel="个股 AI 分析"
-      overlayClass="stock-detail-overlay"
-      cardClass="stock-detail-drawer"
-      cardRef={cardRef}
+      onClose={() => { detailOpen.value = false; }}
+      title="🔍 个股 AI 分析"
+      subtitle={stock ? `${stock.name} · ${stock.code}` : ""}
     >
-      <div class="stock-detail-header">
-        <span class="stock-detail-title">🔍 个股 AI 分析</span>
-        <button type="button" class="stock-modal-close" onClick={closeDrawer} aria-label="关闭">×</button>
-      </div>
-      <div class="stock-detail-subtitle">
-        选 1+ 个分析角度, AI 按真实数据客观解读.
-        <br />
-        <span class="stock-detail-hint">AI 不出具买入/卖出等投资建议, 仅基于数据描述现状。</span>
-      </div>
       <div class="stock-detail-body">
-        <div class="stock-detail-section">
-          <div class="stock-detail-section-title">股票代码</div>
-          <StockSearchInput api={api} onSelect={(r) => selectStock(r)} />
-          {selectedStock.value && (
-            <div class="stock-detail-selected">
-              {selectedStock.value.name} · {selectedStock.value.industry}
+        <section class="stock-detail-section">
+          <label class="stock-detail-section-title" for="stock-detail-input">
+            股票
+          </label>
+          <StockSearchInput api={api} />
+          {!stock && (
+            <div class="stock-detail-hint">
+              输入代码或名称, 从下拉里选一只 (默认勾选 2 个角度, 选完自动拉数据).
             </div>
           )}
-        </div>
-        <div class="stock-detail-section">
-          <div class="stock-detail-section-title">选个分析角度 (可多选)</div>
-          <div class="stock-detail-chips">
-            {ANGLE_DEFS.map((angle) => (
-              <AngleChip
-                key={angle.key}
-                angle={angle}
-                selected={selectedAngles.value.has(angle.key)}
-                onToggle={() => handleAngleToggle(angle.key)}
-              />
-            ))}
+        </section>
+
+        <section class="stock-detail-section">
+          <div class="stock-detail-section-title">
+            分析角度 <span class="stock-detail-section-meta">{readyCount}/{totalCount} 已加载</span>
           </div>
-        </div>
+          <div class="stock-detail-chips" role="group" aria-label="分析角度多选">
+            {ANGLE_DEFS.map((angle) => {
+              const entry = perAngleData.value[angle.key];
+              return (
+                <AngleChip
+                  key={angle.key}
+                  angle={angle}
+                  selected={selectedAngles.value.has(angle.key)}
+                  status={entry ? entry.status : "idle"}
+                  disabled={!stock}
+                  onToggle={() => handleAngleToggle(angle.key)}
+                />
+              );
+            })}
+          </div>
+        </section>
+
         <PerAnglePreview />
+
         <button
           type="button"
           class="stock-btn stock-btn-primary stock-btn-lg stock-detail-generate"
-          disabled={aiResult.value.status === "loading" || selectedAngles.value.size === 0 || !selectedStock.value}
+          disabled={!canGenerate}
           onClick={handleGenerate}
         >
-          {aiResult.value.status === "loading" ? "⏳ 生成中…" : "🚀 开始 AI 分析"}
+          {aiResult.value.status === "loading"
+            ? "⏳ 生成中…"
+            : `🚀 开始 AI 分析 (${totalCount} 个角度)`}
         </button>
+
         <AiResultBlock />
+
+        <div class="stock-detail-footer-hint">
+          AI 不出具买入/卖出等投资建议, 仅基于数据描述现状.
+        </div>
       </div>
-    </BareModalShell>
+    </AIDrawerShell>
   );
 }
 
