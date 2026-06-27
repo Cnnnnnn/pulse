@@ -6,7 +6,7 @@
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
 import { humanizeAiError } from "../../ai/ai-errors.js";
-import { IconRefresh, IconThumbsUp, IconThumbsDown } from "./icons.jsx";
+import { IconRefresh, IconThumbsUp, IconThumbsDown, IconSparkles } from "./icons.jsx";
 
 const REC_LABELS = {
   upgrade: "建议升级",
@@ -95,7 +95,7 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
         onClick={(e) => { e.stopPropagation(); fetchAdvice(false); }}
         title="AI 分析该不该升级"
       >
-        💡 该不该升?
+        <IconSparkles size={14} /> 该不该升?
       </button>
     );
   }
@@ -103,7 +103,7 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
   if (loading) {
     return (
       <div class="upgrade-advice upgrade-advice--loading">
-        <span class="upgrade-advice-loading-label">💡 AI 分析中 · 通常 5–10s</span>
+        <span class="upgrade-advice-loading-label"><IconSparkles size={14} /> AI 分析中 · 通常 5–10s</span>
       </div>
     );
   }

@@ -9,7 +9,7 @@
  * "mark-seen" (写 last_seen_release → 下次启动不弹) 的唯一触发路径:
  *   auto 入口 + 翻到最后一页 + 点【完成】+ 确认弹窗点【收到】.
  * 其余关闭方式 (skip / ESC / 遮罩 / 稍后再说) 都不写 → 下次启动还会弹.
- * manual 入口 (Header 📖 手动重看) 永不弹确认、永不写 mark-seen.
+ * manual 入口 (Header IconBook 手动重看) 永不弹确认、永不写 mark-seen.
  *
  * 永远不阻断关闭: mark-seen 失败也正常关 + toast.
  *
@@ -71,7 +71,7 @@ function WizardInner({ payload }) {
 
   // 翻到最后一页点【完成】时调.
   // auto 入口 → 弹确认 (收到=写 mark-seen / 稍后=不写).
-  // manual 入口 (Header 📖 手动重看) → 不弹确认, 直接关 (不写 mark-seen).
+  // manual 入口 (Header IconBook 手动重看) → 不弹确认, 直接关 (不写 mark-seen).
   const handleComplete = useCallback(async () => {
     if (releaseNotesEntryPath.value === 'manual') {
       handleClose(false);

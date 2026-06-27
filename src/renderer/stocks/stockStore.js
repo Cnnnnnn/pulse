@@ -167,7 +167,7 @@ export async function requestAiAdvise(api, payload) {
 
 /**
  * 把 AI 推荐的 criteria + sortConfig 应用到 store.
- * ponytail: 不自动点 runScreen (避免 token 烧光后跑 40s); 用户手动点 🔍.
+ * ponytail: 不自动点 runScreen (避免 token 烧光后跑 40s); 用户手动点筛选.
  *          sortConfig 写到 sortKey + sortDir signal, 立即本地重排 results.
  */
 export function applyAiAdvise() {
@@ -189,7 +189,7 @@ export function applyAiAdvise() {
   closeAdvise();
 }
 
-/** 是否在自选 (表格 ⭐ 用) */
+/** 是否在自选 (表格 IconStar 用) */
 export function isInWatchlist(code) {
   return (watchlist.value || []).some((w) => w.code === code);
 }

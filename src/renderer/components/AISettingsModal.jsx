@@ -33,6 +33,7 @@ import {
 import { DailyDigestSettings } from './DailyDigestSettings.jsx';
 import { AISettingsScene } from './AISettingsScene.jsx';
 import { ModalShell } from './ModalShell.jsx';
+import { IconCheck, IconX } from './icons.jsx';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.
 // - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
@@ -69,25 +70,25 @@ function buildConfigPayload(providerId, model, baseUrl) {
 
 function getSaveStatusMeta(saveStatus) {
  if (typeof saveStatus === 'object' && saveStatus && saveStatus.error) {
- return { text: `✗ ${saveStatus.error}`, tone: 'error' };
+ return { text: saveStatus.error, tone: 'error', icon: 'x' };
  }
  switch (saveStatus) {
  case 'saving':
  return { text: '保存中...', tone: 'info' };
  case 'saved':
- return { text: '✓ 配置已保存', tone: 'success' };
+ return { text: '配置已保存', tone: 'success', icon: 'check' };
  case 'saving-key':
  return { text: '正在写入 Keychain...', tone: 'info' };
  case 'key-saved':
- return { text: '✓ key 已存储，配置已同步', tone: 'success' };
+ return { text: 'key 已存储，配置已同步', tone: 'success', icon: 'check' };
  case 'clearing-key':
  return { text: '正在清空 key...', tone: 'info' };
  case 'key-cleared':
- return { text: '✓ key 已清空', tone: 'success' };
+ return { text: 'key 已清空', tone: 'success', icon: 'check' };
  case 'testing':
  return { text: '测试连接中...', tone: 'info' };
  case 'test-ok':
- return { text: '✓ 测试通过', tone: 'success' };
+ return { text: '测试通过', tone: 'success', icon: 'check' };
  default:
  return null;
  }
@@ -197,7 +198,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  const statusMeta = getSaveStatusMeta(saveStatus);
  const providerDescriptor = cloudProviderId === 'deepseek' ? '推理稳定，适合通用总结' : '中文表现更强，适合高频日更';
  const keyStatusText = keyStatus.available
- ? (keyStatus.hasKey ? `✓ ${cloudProviderId} 已存 key` : `${cloudProviderId} 尚未存 key`)
+ ? (keyStatus.hasKey ? { icon: 'check', text: `${cloudProviderId} 已存 key` } : { text: `${cloudProviderId} 尚未存 key` })
  : 'safeStorage 不可用，可临时改用环境变量';
 
  return (
@@ -286,7 +287,11 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  <h4 class="ai-config-section-title">API Key</h4>
  <p class="ai-config-section-desc">密钥只写入系统 Keychain，不会明文保存在配置文件里。</p>
  </div>
- <span class={`ai-config-inline-status ${keyStatus.hasKey ? 'ok' : 'idle'}`}>{keyStatusText}</span>
+ <span class={`ai-config-inline-status ${keyStatus.hasKey ? 'ok' : 'idle'}`}>
+ {typeof keyStatusText === 'string'
+ ? keyStatusText
+ : (<>{keyStatusText.icon === 'check' && <IconCheck size={12} />} {keyStatusText.text}</>)}
+ </span>
  </div>
  <div class="ai-settings-row ai-settings-key-row">
  <div class="ai-settings-key-controls">
@@ -344,20 +349,23 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  {lastTest && (
  <span class={`ai-settings-test-result ${lastTest.ok ? 'ok' : 'fail'}`}>
  {lastTest.ok
- ? `✓ 连接正常 (${lastTest.latencyMs ||0}ms)`
- : `✗ ${lastTest.error || '失败'}`}
+ ? (<><IconCheck size={12} /> 连接正常 ({lastTest.latencyMs ||0}ms)</>)
+ : (<><IconX size={12} /> {lastTest.error || '失败'}</>)}
  </span>
  )}
  </div>
  </section>
 
- {statusMeta && (
+{statusMeta && (
  <div class="ai-settings-row ai-settings-status-row">
  <span class={`ai-settings-save-status ${statusMeta.tone}`}>
+ {statusMeta.icon === 'check' && <IconCheck size={12} />}
+ {statusMeta.icon === 'x' && <IconX size={12} />}
+ {' '}
  {statusMeta.text}
  </span>
  </div>
- )}
+)}
 
  {/*底部按钮区 */}
  <div class="ai-config-form-actions">

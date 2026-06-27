@@ -4,10 +4,10 @@
  * v2.9.0 — 左侧导航 (180↔40 可折叠, 你拍 shell_collapsible_leftnav)
  *
  * 2 nav item:
- *   - 🏆 世界杯
+ *   - 世界杯 (WorldcupTabIcon)
  *   - IconRefresh 版本检查
  *
- * 顶部 ☰ 汉堡切换折叠
+ * 顶部 IconMenu 汉堡切换折叠
  * store.activeNav (signal) 驱动 WorldcupView / ResultsView 切换
  * store.navCollapsed 驱动 180↔40 宽度
  *

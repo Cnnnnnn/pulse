@@ -1,7 +1,7 @@
 /**
  * src/renderer/stocks/ResultTable.jsx
  *
- * 结果表格 — 列头可排序, 每行右侧 ⭐ 存自选.
+ * 结果表格 — 列头可排序, 每行右侧 IconStar 存自选.
  * 对照 spec §6.4. 涨跌用红绿 (A 股惯例: 红涨绿跌; 这里用项目既有 up/down 语义).
  */
 import {
@@ -17,6 +17,7 @@ import {
   runScreen,
 } from "./stockStore.js";
 import { PanelEmpty } from "../components/EmptyState.jsx";
+import { IconStar } from "../components/icons.jsx";
 
 const COLUMNS = [
   { key: "name", label: "名称/代码", align: "left" },
@@ -44,7 +45,7 @@ export function ResultTable({ api }) {
     //          避免"切策略 → loading 40s (sina fallback 翻页) → 用户看不到任何变化" 的体验断.
     return (
       <PanelEmpty className="stock-empty-state">
-        <div class="stock-empty-title">📡 行情拉取失败</div>
+        <div class="stock-empty-title">行情拉取失败</div>
         <div class="stock-empty-sub">{err}</div>
         <button
           type="button"
@@ -60,7 +61,7 @@ export function ResultTable({ api }) {
     // ponytail: 首次拉取 (无旧数据) + loading → 友好占位, 不闪空.
     return (
       <PanelEmpty className="stock-empty-state">
-        <div class="stock-empty-title">⏳ 正在拉取全市场行情…</div>
+        <div class="stock-empty-title">正在拉取全市场行情…</div>
         <div class="stock-empty-sub">首次加载约 30-40s (sina 备用源翻页), 请稍候</div>
       </PanelEmpty>
     );
@@ -97,7 +98,7 @@ export function ResultTable({ api }) {
             {sk === col.key ? (sd === "desc" ? " ▼" : " ▲") : ""}
           </span>
         ))}
-        <span class="stock-th stock-th-center">⭐</span>
+        <span class="stock-th stock-th-center"><IconStar size={12} /></span>
       </div>
       {rows.map((r) => (
         <div key={r.code} class="stock-table-row">
@@ -133,7 +134,7 @@ export function ResultTable({ api }) {
               onClick={() => toggleStar(r.code)}
               aria-label="存自选"
             >
-              {isInWatchlist(r.code) ? "★" : "☆"}
+              {isInWatchlist(r.code) ? <IconStar size={14} filled /> : <IconStar size={14} />}
             </button>
           </span>
         </div>

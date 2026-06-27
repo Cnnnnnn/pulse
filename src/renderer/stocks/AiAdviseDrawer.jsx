@@ -16,6 +16,7 @@ import {
   applyAiAdvise,
 } from "./stockStore.js";
 import { AIDrawerShell } from "../components/AIDrawerShell.jsx";
+import { IconSparkles, IconBarChart, IconAlert } from "../components/icons.jsx";
 
 // ponytail: 6 个预设 chip 跟 strategies.js 同级硬编码 (不开新 store 模块).
 //   label 给用户看, id 是 LLM prompt 里的"意图标识".
@@ -60,7 +61,7 @@ export function AiAdviseDrawer({ api }) {
     <AIDrawerShell
       open={open}
       onClose={closeAdvise}
-      title="🧠 AI 推荐"
+      title="AI 推荐"
       subtitle="根据偏好 + 市场现状给出筛选条件"
     >
       <div class="stock-advise-subtitle">
@@ -110,13 +111,13 @@ export function AiAdviseDrawer({ api }) {
           disabled={state.status === "loading"}
           onClick={handleGenerate}
         >
-          {state.status === "loading" ? "⏳ 生成中…" : "🚀 生成推荐"}
+          {state.status === "loading" ? "生成中…" : "生成推荐"}
         </button>
 
         {/* 错误态 */}
         {state.status === "error" && (
           <div class="stock-advise-error">
-            <div class="stock-advise-error-title">⚠️ 出错了</div>
+            <div class="stock-advise-error-title"><IconAlert size={14} /> 出错了</div>
             <div class="stock-advise-error-sub">
               {ERROR_REASON_TEXT[state.reason] || state.error || state.reason || "未知错误"}
             </div>
@@ -151,7 +152,7 @@ export function AiAdviseDrawer({ api }) {
               </button>
             </div>
             <div class="stock-advise-apply-hint">
-              应用后会填到条件区, 请手动点「🔍 筛选」确认.
+              应用后会填到条件区, 请手动点「筛选」确认.
             </div>
           </div>
         )}
@@ -190,7 +191,7 @@ function PreviewBlock({ result, fromCache }) {
   return (
     <>
       <div class="stock-advise-section-title">
-        📊 推荐条件
+        <IconBarChart size={14} /> 推荐条件
         {fromCache && <span class="stock-advise-cache-tag">缓存命中</span>}
       </div>
       <ul class="stock-advise-list">
@@ -201,7 +202,7 @@ function PreviewBlock({ result, fromCache }) {
         )}
         {sortText && <li class="stock-advise-sort">排序: {sortText}</li>}
       </ul>
-      <div class="stock-advise-section-title">💡 当前市场总结</div>
+      <div class="stock-advise-section-title"><IconSparkles size={14} /> 当前市场总结</div>
       <div class="stock-advise-summary">{result.summary || "—"}</div>
     </>
   );

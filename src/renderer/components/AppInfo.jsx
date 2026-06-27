@@ -159,7 +159,7 @@ export function AppInfo({
     }
   }
 
-  // Phase 27: mute badge. muted=true → 显示 "🔇 静音至 6/14" 或 "🔇 静音 (永远)"
+  // Phase 27: mute badge. muted=true → 显示 "静音至 6/14" 或 "静音 (永远)" (IconVolumeOff)
   // muted=false → 不显示. 通过 .muted CSS class 让 AppInfo 整体灰显 (opacity).
   const muteBadge = muted ? (
     <span class="mute-badge" title={`已静音, 跳过通知 / bulk upgrade. 到期: ${muteUntil ? muteUntilLabel(muteUntil) : '永远'}`}>

@@ -1,7 +1,7 @@
 /**
  * src/renderer/stocks/CriteriaPanel.jsx
  *
- * 精简条件区 — 默认露 PE/ROE/市值, ⚙ 高级折叠 PB/股息/换手/动量.
+ * 精简条件区 — 默认露 PE/ROE/市值, 高级折叠 PB/股息/换手/动量.
  * 改任何条件 → setCriteria → 自动切 custom.
  */
 import {
@@ -11,6 +11,7 @@ import {
   toggleAdvanced,
 } from "./stockStore.js";
 import { MARKET_CAP_TIERS } from "../../stocks/stock-constants";
+import { IconSettings } from "../components/icons.jsx";
 
 function RangeInput({ label, minKey, maxKey, suffix }) {
   const c = criteria.value;
@@ -101,7 +102,7 @@ export function CriteriaPanel() {
           class="stock-criteria-advanced-toggle"
           onClick={toggleAdvanced}
         >
-          {adv ? "⚙ 收起" : "⚙ 高级"}
+          {adv ? (<><IconSettings size={14} /> 收起</>) : (<><IconSettings size={14} /> 高级</>)}
         </button>
       </div>
       {adv && (

@@ -15,6 +15,7 @@ import {
 } from "./stockStore.js";
 import { AddStockModal } from "./AddStockModal.jsx";
 import { PanelEmpty } from "../components/EmptyState.jsx";
+import { IconStar, IconRefresh, IconX } from "../components/icons.jsx";
 import { api } from "../api.js";
 
 export function WatchlistPanel() {
@@ -48,7 +49,7 @@ export function WatchlistPanel() {
     <div class="stock-layout">
       <div class="stock-header">
         <div class="stock-header-left">
-          <span class="stock-title">⭐ 自选股</span>
+          <span class="stock-title"><IconStar size={14} /> 自选股</span>
           <span class="stock-market-tag">{items.length} 只</span>
         </div>
         <div class="stock-header-right">
@@ -57,7 +58,7 @@ export function WatchlistPanel() {
             class="stock-btn"
             onClick={() => refreshWatchlistQuotes(api)}
           >
-            🔄 刷新
+            <IconRefresh size={14} /> 刷新
           </button>
           <button
             type="button"
@@ -101,7 +102,7 @@ export function WatchlistPanel() {
                 onClick={() => removeWatchlist(api, w.code)}
                 aria-label="删除"
               >
-                ✕
+                <IconX size={12} />
               </button>
             </div>
           );

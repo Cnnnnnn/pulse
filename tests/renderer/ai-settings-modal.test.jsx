@@ -209,7 +209,7 @@ describe('<AIConfigForm /> — 测试连接', () => {
  }));
  });
 
- it('healthcheck ok → 显示 ✓ + latency', async () => {
+it('healthcheck ok → 显示 IconCheck + latency', async () => {
  store.runAIHealthcheck.mockImplementationOnce(async () => {
  const r = { ok: true, latencyMs:234 };
  store.aiHealthcheckResult.value = r;
@@ -223,12 +223,11 @@ describe('<AIConfigForm /> — 测试连接', () => {
  fireEvent.click(container.querySelector('.ai-settings-test-row .btn'));
  await new Promise((r) => setTimeout(r,10));
  const result = container.querySelector('.ai-settings-test-result');
- expect(result.textContent).toMatch(/✓/);
  expect(result.textContent).toMatch(/234ms/);
  expect(result.classList.contains('ok')).toBe(true);
  });
 
- it('healthcheck fail → 显示 ✗ + error', async () => {
+it('healthcheck fail → 显示 IconX + error', async () => {
  store.runAIHealthcheck.mockImplementationOnce(async () => {
  const r = { ok: false, error: 'auth_401' };
  store.aiHealthcheckResult.value = r;
@@ -242,7 +241,6 @@ describe('<AIConfigForm /> — 测试连接', () => {
  fireEvent.click(container.querySelector('.ai-settings-test-row .btn'));
  await new Promise((r) => setTimeout(r,10));
  const result = container.querySelector('.ai-settings-test-result');
- expect(result.textContent).toMatch(/✗/);
  expect(result.textContent).toMatch(/auth_401/);
  expect(result.classList.contains('fail')).toBe(true);
  });

@@ -22,7 +22,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { displayTeam } from "./teams-data.js";
-import { TeamFlag, IconLock } from "../components/icons.jsx";
+import { TeamFlag, IconLock, IconCheck } from "../components/icons.jsx";
 
 const STAGE_LABELS = {
   r32: "1/16 决赛",
@@ -76,7 +76,7 @@ function statusBadge(status) {
   if (status === "pending") return <span class="bracket-badge">未赛</span>;
   if (status === "projected") return <span class="bracket-badge bracket-badge--lock"><IconLock size={12} /> 待定</span>;
   if (status === "live") return <span class="bracket-badge bracket-badge--live">● 进行中</span>;
-  if (status === "final") return <span class="bracket-badge bracket-badge--done">✓ 已完赛</span>;
+  if (status === "final") return <span class="bracket-badge bracket-badge--done"><IconCheck size={12} /> 已完赛</span>;
   return null;
 }
 
@@ -344,7 +344,7 @@ function FallbackMatchCard({ match, onClick }) {
         {status === "pending" && <span class="bracket-badge">未赛</span>}
         {status === "projected" && <span class="bracket-badge bracket-badge--lock"><IconLock size={12} /> 待定</span>}
         {status === "live" && <span class="bracket-badge bracket-badge--live">● 进行中</span>}
-        {status === "final" && <span class="bracket-badge bracket-badge--done">✓ 已完赛</span>}
+        {status === "final" && <span class="bracket-badge bracket-badge--done"><IconCheck size={12} /> 已完赛</span>}
       </div>
     </div>
   );

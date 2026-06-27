@@ -25,7 +25,7 @@ import { openConfirm } from "../confirmStore.js";
 import { Badge } from "../components/Badge.jsx";
 import { ModalShell, ModalHeader } from "../components/ModalShell.jsx";
 import { PanelEmpty } from "../components/EmptyState.jsx";
-import { IconBell } from "../components/icons.jsx";
+import { IconBell, IconCheck, IconX } from "../components/icons.jsx";
 
 const REPEATS = [
   { id: "once", label: "一次" },
@@ -126,7 +126,7 @@ function ReminderRow({ r, now, onEdit }) {
               onClick={() => markReminderDone(r.id)}
               title="标记为完成 (重复规则会算下次时间)"
             >
-              ✓ 完成
+              <IconCheck size={12} /> 完成
             </button>
             <button
               class="btn btn-ghost btn-sm"
@@ -381,7 +381,7 @@ export function RemindersModal() {
           onClick={close}
           aria-label="关闭"
         >
-          ✕
+          <IconX size={14} />
         </button>
       </div>
     </ModalHeader>

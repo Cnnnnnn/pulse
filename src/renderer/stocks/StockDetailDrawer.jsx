@@ -6,7 +6,7 @@
  * 交互状态机 (按 design-system "Data-Dense Dashboard" 风格):
  *   1. 空状态: 只显示股票代码搜索框 + 提示 "先选 1 只股票"
  *   2. 已选股票: chips 解禁, 默认勾选的 2 个 angle 立即 lazy 拉数据 (chip 上 spinner)
- *   3. 全 ready 或部分 ready: 显示 "🚀 开始 AI 分析" 按钮
+ *   3. 全 ready 或部分 ready: 显示 "开始 AI 分析" 按钮
  *   4. AI 分析中/完成/失败: 显示对应 block
  *
  * ponytail:
@@ -15,6 +15,7 @@
  */
 import { useState, useEffect, useRef } from "preact/hooks";
 import { AIDrawerShell } from "../components/AIDrawerShell.jsx";
+import { IconSparkles, IconBarChart, IconAlert, IconCheck } from "../components/icons.jsx";
 import { ANGLE_DEFS, getAngle } from "../../stocks/stock-detail-angles.js";
 import {
   codeInput,
@@ -160,7 +161,7 @@ function AngleChip({ angle, selected, status, onToggle, disabled }) {
       <span class="stock-detail-chip-label">{angle.label}</span>
       {loading && <span class="stock-detail-chip-spinner" aria-hidden="true" />}
       {failed && <span class="stock-detail-chip-mark" aria-hidden="true">!</span>}
-      {ready && <span class="stock-detail-chip-check" aria-hidden="true">✓</span>}
+      {ready && <span class="stock-detail-chip-check" aria-hidden="true"><IconCheck size={12} /></span>}
     </button>
   );
 }
@@ -209,7 +210,7 @@ function AiResultBlock() {
   if (state.status === "error") {
     return (
       <div class="stock-detail-ai-error" role="alert">
-        <div class="stock-detail-ai-error-title">⚠️ 出错了</div>
+        <div class="stock-detail-ai-error-title"><IconAlert size={14} /> 出错了</div>
         <div class="stock-detail-ai-error-sub">
           {ERROR_REASON_TEXT[state.reason] || state.error || state.reason || "未知错误"}
         </div>
@@ -221,11 +222,11 @@ function AiResultBlock() {
     return (
       <div class="stock-detail-ai-result">
         {state.fromCache && <div class="stock-detail-cache-tag">缓存命中 (24h)</div>}
-        <div class="stock-detail-section-title">💡 总结</div>
+        <div class="stock-detail-section-title"><IconSparkles size={14} /> 总结</div>
         <div class="stock-detail-summary">{r.summary}</div>
         {r.perAngle && Object.keys(r.perAngle).length > 0 && (
           <>
-            <div class="stock-detail-section-title">📊 各角度解读</div>
+            <div class="stock-detail-section-title"><IconBarChart size={14} /> 各角度解读</div>
             <ul class="stock-detail-per-angle">
               {Object.entries(r.perAngle).map(([k, v]) => {
                 const ang = getAngle(k);
@@ -240,7 +241,7 @@ function AiResultBlock() {
         )}
         {r.risks && r.risks.length > 0 && (
           <>
-            <div class="stock-detail-section-title">⚠️ 关注点</div>
+            <div class="stock-detail-section-title"><IconAlert size={14} /> 关注点</div>
             <ul class="stock-detail-risks">
               {r.risks.map((s, i) => (
                 <li key={i}>{s}</li>
@@ -301,7 +302,7 @@ export function StockDetailDrawer({ api }) {
     <AIDrawerShell
       open={open}
       onClose={() => { detailOpen.value = false; }}
-      title="🔍 个股 AI 分析"
+      title="个股 AI 分析"
       subtitle={stock ? `${stock.name} · ${stock.code}` : ""}
     >
       <div class="stock-detail-body">
@@ -347,8 +348,8 @@ export function StockDetailDrawer({ api }) {
           onClick={handleGenerate}
         >
           {aiResult.value.status === "loading"
-            ? "⏳ 生成中…"
-            : `🚀 开始 AI 分析 (${totalCount} 个角度)`}
+            ? "生成中…"
+            : `开始 AI 分析 (${totalCount} 个角度)`}
         </button>
 
         <AiResultBlock />
