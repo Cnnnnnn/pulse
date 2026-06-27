@@ -323,6 +323,14 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("stocks:watchlist:quotes", handler);
     return () => ipcRenderer.removeListener("stocks:watchlist:quotes", handler);
   },
+
+  // v2.49 Overview + Command Palette (T5/T18): 6 个新 IPC bridge
+  versionsCommandSearch: (q) => ipcRenderer.invoke("versions:command-search", { q }),
+  versionsOverviewKpis: () => ipcRenderer.invoke("versions:overview-kpis"),
+  versionsOverviewTrend: () => ipcRenderer.invoke("versions:overview-trend"),
+  versionsOverviewWatchlist: () => ipcRenderer.invoke("versions:overview-watchlist"),
+  versionsOverviewRecent: () => ipcRenderer.invoke("versions:overview-recent"),
+  versionsOverviewAiInsights: () => ipcRenderer.invoke("versions:overview-ai-insights"),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)
