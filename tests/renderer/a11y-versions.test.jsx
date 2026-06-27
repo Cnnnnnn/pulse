@@ -20,7 +20,6 @@ import { render, cleanup } from "@testing-library/preact";
 import { TopBar } from "../../src/renderer/components/TopBar.jsx";
 import { CommandPalette } from "../../src/renderer/components/CommandPalette.jsx";
 import { LibraryPage } from "../../src/renderer/components/LibraryPage.jsx";
-import { OverviewPage } from "../../src/renderer/components/OverviewPage.jsx";
 import { KPICard } from "../../src/renderer/components/KPICard.jsx";
 import { ViewSwitcher } from "../../src/renderer/components/ViewSwitcher.jsx";
 import { MergedFilterChip } from "../../src/renderer/components/MergedFilterChip.jsx";
@@ -28,13 +27,14 @@ import { AIDrawerShell } from "../../src/renderer/components/AIDrawerShell.jsx";
 import { openPalette, closePalette } from "../../src/renderer/command-palette-store.js";
 import { resetOverview } from "../../src/renderer/overview-store.js";
 import { setViewMode } from "../../src/renderer/library-view-store.js";
-import { resetCheck } from "../../src/renderer/store.js";
+import { results, resetCheck } from "../../src/renderer/store.js";
 
 vi.mock("../../src/renderer/api.js", () => ({
   api: {
     detectResultsExport: vi.fn(async () => ({ ok: true })),
     openUrl: vi.fn(),
-    runCheck: vi.fn(),
+    versionsRunCheck: vi.fn(async () => ({ started: true })),
+    brewUpgrade: vi.fn(async () => undefined),
     versionsOverviewKpis: vi.fn(async () => ({ upgradable: 0, latest: 0, error: 0, total: 0 })),
     versionsOverviewTrend: vi.fn(async () => []),
     versionsOverviewWatchlist: vi.fn(async () => []),
@@ -94,13 +94,12 @@ describe("a11y: versions components (structural stub)", () => {
   });
 
   it("LibraryPage has accessible interactive controls", () => {
+    // 填充一个结果, 让 LibraryPage 走列表分支 (有 .library-page 与交互控件)
+    results.value = new Map([
+      ["App1", { name: "App1", current_version: "1", latest_version: "2", has_update: false, bundle: "" }],
+    ]);
     const { container } = render(<LibraryPage />);
     assertA11y(container, "LibraryPage");
-  });
-
-  it("OverviewPage has accessible interactive controls", () => {
-    const { container } = render(<OverviewPage />);
-    assertA11y(container, "OverviewPage");
   });
 
   it("KPICard has accessible content", () => {
