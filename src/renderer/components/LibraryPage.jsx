@@ -5,13 +5,14 @@
  * + MergedFilterChip + TableView (ResultsView) 或 CardView (AppCard 网格).
  *
  * ponytail: 复用现有 ResultsView 当 TableView. Card 视图 < 100 行直接渲染,
- *          > 100 行用 VirtualCardGrid (Task 13 实现) — 本任务先放 placeholder.
+ *          > 100 行用 VirtualCardGrid (Task 13).
  */
 import { PageHeader } from "./PageHeader.jsx";
 import { ViewSwitcher } from "./ViewSwitcher.jsx";
 import { MergedFilterChip } from "./MergedFilterChip.jsx";
 import { ResultsView } from "./ResultsView.jsx";
 import { AppCard } from "./AppCard.jsx";
+import { VirtualCardGrid } from "./VirtualCardGrid.jsx";
 import { viewMode } from "../library-view-store.js";
 import { results } from "../store.js";
 
@@ -40,9 +41,6 @@ export function LibraryPage() {
   );
 }
 
-// placeholder, Task 13 实现真正的窗口化渲染
-function VirtualCardGrid() {
-  return <div class="app-card-grid">virtual TODO</div>;
-}
+// VirtualCardGrid: imported from ./VirtualCardGrid.jsx (Task 13)
 
 export default LibraryPage;
