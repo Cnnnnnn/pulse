@@ -45,6 +45,7 @@ export function AppAction({ result, onUpgrade, isUpgrading }) {
         class="btn-upgrade-row"
         onClick={() => onUpgrade(result.brew_cask, result.name)}
         disabled={isUpgrading}
+        aria-label={`升级 ${result.name}`}
       >
         {isUpgrading ? '升级中...' : '升级'}
       </button>

@@ -42,7 +42,7 @@ import {
   removeWatchlist,
   isAppPinned,
 } from '../watchlist/watchlist-store.js';
-import { PinIcon, IconClock, IconRotateCcw } from './icons.jsx';
+import { IconMoreHorizontal } from './icons.jsx';
 
 export function AppRow({ name }) {
   // 订阅 per-row signals (本组件的订阅点)
@@ -151,7 +151,8 @@ export function AppRow({ name }) {
         || e.target.closest('.status-badge')
         || e.target.closest('.app-info-btn')
         || e.target.closest('.changelog-panel')
-        || e.target.closest('.mute-menu')) return;
+        || e.target.closest('.mute-menu')
+        || e.target.closest('.row-overflow-menu')) return;
     e.preventDefault();
     setMuteMenuAt({ x: e.clientX, y: e.clientY });
   }
@@ -168,7 +169,8 @@ export function AppRow({ name }) {
         if (e.target.closest('.btn-upgrade-row')
             || e.target.closest('.status-badge')
             || e.target.closest('.app-info-btn')
-            || e.target.closest('.changelog-panel')) return;
+            || e.target.closest('.changelog-panel')
+            || e.target.closest('.row-overflow-menu')) return;
         const cfg = lookupConfig(result.name);
         if (cfg && cfg.download_url) api.openUrl(cfg.download_url);
       }}
@@ -189,38 +191,16 @@ export function AppRow({ name }) {
         onUpgrade={handleUpgrade}
         isUpgrading={upgrading}
       />
-      {result.has_update && (
-        <button
-          class="row-action-snooze"
-          onClick={(e) => { e.stopPropagation(); setSnoozeMenuAt({ x: e.clientX, y: e.clientY }); }}
-          title="等下次再升"
-          aria-label="等下次再升"
-        >
-          <IconClock size={14} />
-        </button>
-      )}
-      <button
-        class="row-action-rollback"
-        onClick={(e) => { e.stopPropagation(); openVersionHistory(result.name); }}
-        title="查看回滚历史"
-        aria-label="查看回滚历史"
-      >
-        <IconRotateCcw size={14} />
-        {versionHistoryCounts.value.get(result.name) > 0 ? (
-          <span class="row-action-rollback__badge">
-            {versionHistoryCounts.value.get(result.name)}
-          </span>
-        ) : null}
-      </button>
-      <button
-        class={`row-action-pin ${pinned ? 'is-pinned' : ''}`}
-        onClick={togglePin}
-        title={pinned ? '取消关注' : '加入关注列表'}
-        aria-label={pinned ? '取消关注' : '加入关注列表'}
-        aria-pressed={pinned}
-      >
-        <PinIcon filled={pinned} size={14} />
-      </button>
+      <RowOverflowMenu
+        name={result.name}
+        hasUpdate={result.has_update}
+        pinned={pinned}
+        onPin={togglePin}
+        onSnooze={(e) => setSnoozeMenuAt({ x: e.clientX, y: e.clientY })}
+        onRollback={() => openVersionHistory(result.name)}
+        onShowChangelog={() => setChangelogOpen((v) => !v)}
+        rollbackCount={versionHistoryCounts.value.get(result.name) || 0}
+      />
       {changelogOpen && <ChangelogPanel result={result} />}
       {muteMenuAt && (
         <MuteMenu
@@ -243,6 +223,54 @@ export function AppRow({ name }) {
           skippedVersion={result.skippedVersion}
           onClose={() => setSnoozeMenuAt(null)}
         />
+      )}
+    </div>
+  );
+}
+
+// ─── RowOverflowMenu (snooze / rollback / pin / changelog) ──────────
+export function RowOverflowMenu({
+  name, hasUpdate, pinned,
+  onPin, onSnooze, onRollback, onShowChangelog, rollbackCount,
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div class="row-overflow-menu">
+      <button
+        type="button"
+        class="row-overflow-trigger"
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        aria-label={`${name} 行的更多操作`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <IconMoreHorizontal size={14} />
+      </button>
+      {open && (
+        <ul class="row-overflow-dropdown" role="menu" onClick={(e) => e.stopPropagation()}>
+          {hasUpdate && (
+            <li>
+              <button role="menuitem" onClick={(e) => { onSnooze(e); setOpen(false); }}>
+                等下次再升
+              </button>
+            </li>
+          )}
+          <li>
+            <button role="menuitem" onClick={() => { onRollback(); setOpen(false); }}>
+              回滚历史{rollbackCount > 0 ? ` (${rollbackCount})` : ''}
+            </button>
+          </li>
+          <li>
+            <button role="menuitem" onClick={() => { onPin(); setOpen(false); }}>
+              {pinned ? '取消关注' : '加入关注列表'}
+            </button>
+          </li>
+          <li>
+            <button role="menuitem" onClick={() => { onShowChangelog(); setOpen(false); }}>
+              Changelog
+            </button>
+          </li>
+        </ul>
       )}
     </div>
   );
