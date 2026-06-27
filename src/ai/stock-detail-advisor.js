@@ -45,7 +45,7 @@ function buildAnalyzeMessages(opts) {
   const { code, angles, perAngleData, freeText } = opts || {};
   if (!code) throw new Error("buildAnalyzeMessages: code 必填");
   const def = resolvePrompt(PROMPT_KEY);
-  const system = [def.system, def.rules].filter(Boolean).join("\n\n");
+  const system = [def.system, def.rules, def.fewShot].filter(Boolean).join("\n\n");
   const lines = [];
   lines.push(`股票: ${code}`);
   if (Array.isArray(angles) && angles.length > 0) {

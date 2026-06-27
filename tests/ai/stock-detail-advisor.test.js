@@ -16,6 +16,10 @@ const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
 const stockAnglesPath = require.resolve("../../src/stocks/stock-detail-angles.js");
 const advisorPath = require.resolve("../../src/ai/stock-detail-advisor.js");
 
+// ponytail: 加载真 prompt-registry 仅供 mock 取 fewShot 用 — 单测不修改它,
+// 但 buildAnalyzeMessages 的拼接逻辑需要真 fewShot 才能验证 system 段内容.
+const _realPrompts = require(promptRegistryPath).DEFAULT_PROMPTS;
+
 const mockChat = vi.fn();
 const _mockState = { stockDetailCache: {}, apps: {} };
 
@@ -33,11 +37,14 @@ function reloadAdvisor() {
     filename: promptRegistryPath,
     loaded: true,
     exports: {
-      resolvePrompt: (key) => ({
-        system: `MOCK-SYS-${key}`,
-        rules: `MOCK-RULES-${key}`,
-        fewShot: "",
-      }),
+      resolvePrompt: (key) => {
+        const def = _realPrompts[key];
+        return {
+          system: `MOCK-SYS-${key}`,
+          rules: `MOCK-RULES-${key}`,
+          fewShot: def ? def.fewShot : "",
+        };
+      },
     },
   };
   require.cache[stateStorePath] = {
@@ -225,5 +232,21 @@ describe("buildAnalyzeMessages", () => {
     const pad = mkPerAngleData({ capital_flow: { status: "failed", reason: "fetch_failed" } });
     const msgs = advisor.buildAnalyzeMessages({ code: "600519", angles: ["price_trend", "capital_flow"], perAngleData: pad });
     expect(msgs[1].content).toMatch(/capital_flow.*数据缺失/);
+  });
+
+  it("buildAnalyzeMessages 把 fewShot 拼到 system 段", () => {
+    // ponytail: T2 评审发现原 advisor 忽略 fewShot. 此 it 锁定新契约.
+    const messages = advisor.buildAnalyzeMessages({
+      code: "600519",
+      angles: ["price_trend"],
+      perAngleData: { price_trend: { status: "ok", data: { closes: [1, 2, 3] } } },
+    });
+    expect(messages).toHaveLength(2);
+    const system = messages[0].content;
+    // 包含 fewShot 的关键字符串 (来自 T1 测试同款关键字)
+    expect(system).toContain("价格趋势");
+    expect(system).toContain("暂无数据");
+    expect(system).toContain("输入:");
+    expect(system).toContain("输出:");
   });
 });
