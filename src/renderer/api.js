@@ -210,6 +210,8 @@ export function createApi(overrides = {}) {
     stocksWatchlistRemove: pick(overrides, "stocksWatchlistRemove"),
     stocksWatchlistQuotes: pick(overrides, "stocksWatchlistQuotes"),
     onStocksWatchlistQuotes: pick(overrides, "onStocksWatchlistQuotes"),
+    // Cmd+K command palette 全局搜索
+    versionsCommandSearch: pick(overrides, "versionsCommandSearch"),
   };
 }
 
