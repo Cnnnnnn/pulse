@@ -15,6 +15,7 @@
  */
 import { useState, useEffect, useRef } from "preact/hooks";
 import { AIDrawerShell } from "../components/AIDrawerShell.jsx";
+import { Sparkline } from "../components/Sparkline.jsx";
 import { IconSparkles, IconBarChart, IconAlert, IconCheck } from "../components/icons.jsx";
 import { ANGLE_DEFS, getAngle } from "../../stocks/stock-detail-angles.js";
 import {
@@ -135,7 +136,7 @@ function StockSearchInput({ api }) {
   );
 }
 
-function AngleChip({ angle, selected, status, onToggle, disabled }) {
+function AngleChip({ angle, selected, status, onToggle, disabled, sparkData }) {
   const failed = status === "failed";
   const loading = status === "loading" || status === "ok-loading";
   const ready = status === "ok" || status === "ready";
@@ -159,6 +160,13 @@ function AngleChip({ angle, selected, status, onToggle, disabled }) {
       aria-pressed={selected}
     >
       <span class="stock-detail-chip-label">{angle.label}</span>
+      {sparkData && (
+        <Sparkline
+          closes={sparkData.closes}
+          width={60}
+          height={16}
+        />
+      )}
       {loading && <span class="stock-detail-chip-spinner" aria-hidden="true" />}
       {failed && <span class="stock-detail-chip-mark" aria-hidden="true">!</span>}
       {ready && <span class="stock-detail-chip-check" aria-hidden="true"><IconCheck size={12} /></span>}
@@ -186,9 +194,13 @@ function PerAnglePreview() {
               : status === "failed"
                 ? `失败: ${FETCH_REASON_TEXT[entry.reason] || entry.reason || ""}`
                 : "等待中";
+        const sparkData = (status === "ok" || status === "ready") && ang && typeof ang.sparkline === "function"
+          ? ang.sparkline(entry.data)
+          : null;
         return (
           <li key={k} class={klass}>
             <span class="stock-detail-preview-label">{ang ? ang.label : k}</span>
+            {sparkData && <Sparkline closes={sparkData.closes} width={120} height={24} />}
             <span class="stock-detail-preview-status">{text}</span>
           </li>
         );
@@ -325,6 +337,9 @@ export function StockDetailDrawer({ api }) {
           <div class="stock-detail-chips" role="group" aria-label="分析角度多选">
             {ANGLE_DEFS.map((angle) => {
               const entry = perAngleData.value[angle.key];
+              const sparkData = angle.sparkline
+                ? angle.sparkline(entry && entry.status === "ok" ? entry.data : null)
+                : null;
               return (
                 <AngleChip
                   key={angle.key}
@@ -332,6 +347,7 @@ export function StockDetailDrawer({ api }) {
                   selected={selectedAngles.value.has(angle.key)}
                   status={entry ? entry.status : "idle"}
                   disabled={!stock}
+                  sparkData={sparkData}
                   onToggle={() => handleAngleToggle(angle.key)}
                 />
               );

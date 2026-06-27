@@ -41,4 +41,28 @@ describe("StockDetailDrawer", () => {
     await new Promise((r) => setTimeout(r, 10));
     expect(mockApi.stocksDetailAnalyze).toHaveBeenCalled();
   });
+
+  it("price_trend chip ready 状态下含 .stock-sparkline", () => {
+    detailOpen.value = true;
+    selectedStock.value = { code: "002463", name: "沪电股份", industry: "PCB" };
+    selectedAngles.value = new Set(["price_trend"]);
+    perAngleData.value = {
+      price_trend: { status: "ok", data: { closes: [80, 85, 90, 95, 100] } },
+    };
+    const { container } = render(<StockDetailDrawer api={{}} />);
+    const chip = container.querySelector(".stock-detail-chip");
+    expect(chip.querySelector("svg.stock-sparkline")).not.toBeNull();
+  });
+
+  it("price_trend preview ready row 含 .stock-sparkline (在文字上方)", () => {
+    detailOpen.value = true;
+    selectedStock.value = { code: "002463", name: "沪电股份", industry: "PCB" };
+    selectedAngles.value = new Set(["price_trend"]);
+    perAngleData.value = {
+      price_trend: { status: "ok", data: { closes: [80, 85, 90, 95, 100] } },
+    };
+    const { container } = render(<StockDetailDrawer api={{}} />);
+    const previewRow = container.querySelector(".stock-detail-preview-row.status-ok");
+    expect(previewRow.querySelector("svg.stock-sparkline")).not.toBeNull();
+  });
 });

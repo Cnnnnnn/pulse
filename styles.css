@@ -10148,6 +10148,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .stock-detail-preview-row.status-loading .stock-detail-preview-status { color: var(--accent-primary, #007aff); }
 .stock-detail-preview-row.status-failed .stock-detail-preview-status { color: #ff3b30; }
 .stock-detail-preview-row.status-ready .stock-detail-preview-status { color: #34c759; }
+.stock-sparkline { display: block; }
+.stock-sparkline polyline { fill: none; stroke-width: 1.5; }
+.stock-detail-chip .stock-sparkline { margin-top: 2px; }
+.stock-detail-preview-row.status-ok .stock-sparkline { margin-bottom: 4px; }
 .stock-detail-footer-hint {
   margin-top: 12px; padding: 8px 10px;
   background: var(--bg-elevated, #f5f5f7); border-radius: 6px;
