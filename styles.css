@@ -10361,3 +10361,66 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .trend-sparkline {
   display: inline-block; color: var(--accent-primary, #007aff);
 }
+
+/* Task 17: WatchlistQuick + RecentTimeline + AIInsightsBlock */
+.watchlist-quick, .recent-timeline, .ai-insights {
+  padding: 16px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.watchlist-quick-title, .recent-timeline-title, .ai-insights-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+  margin: 0 0 10px;
+}
+.watchlist-quick-list, .recent-timeline-list {
+  list-style: none; margin: 0; padding: 0;
+}
+.watchlist-quick-item, .recent-timeline-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--text-primary, #1d1d1f);
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.04));
+}
+.watchlist-quick-item:last-child, .recent-timeline-item:last-child { border-bottom: 0; }
+.watchlist-quick-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 8px;
+  background: #ff9500; color: #fff;
+}
+.watchlist-quick-view-all {
+  margin-top: 8px; padding: 4px 0;
+  background: transparent; border: 0;
+  color: var(--accent-primary, #007aff);
+  font-size: 11px; cursor: pointer;
+}
+.recent-timeline-text { flex: 1; }
+.recent-timeline-ts { font-size: 10px; color: var(--text-tertiary, #8e8e93); }
+.recent-timeline-empty, .watchlist-quick-empty, .ai-insights-idle {
+  font-size: 12px; color: var(--text-tertiary, #8e8e93); padding: 12px 0;
+}
+.ai-insights-loading {
+  font-size: 12px; color: var(--text-secondary, #6e6e73); padding: 12px 0;
+}
+.ai-insights-text {
+  font-size: 12px; color: var(--text-primary, #1d1d1f);
+  line-height: 1.6; padding: 8px 12px;
+  background: var(--bg-elevated, #f5f5f7); border-radius: 6px;
+}
+.ai-insights-cache {
+  display: inline-block; font-size: 9px; padding: 1px 5px;
+  border-radius: 6px; background: var(--bg-card, #fff); margin-right: 6px;
+  color: var(--text-tertiary, #8e8e93);
+}
+.ai-insights-error {
+  font-size: 12px; color: #ff3b30;
+  display: flex; align-items: center; gap: 8px;
+}
+.ai-insights-error button {
+  background: transparent; border: 1px solid #ff3b30;
+  color: #ff3b30; padding: 2px 8px; border-radius: 4px;
+  cursor: pointer; font-size: 11px;
+}
