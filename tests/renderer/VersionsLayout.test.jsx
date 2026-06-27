@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/preact";
 
 // mock 掉 CommandPalette 和 TopBar 避免拉真实 IPC
@@ -9,6 +9,17 @@ vi.mock("../../src/renderer/components/CommandPalette.jsx", () => ({
 
 import { VersionsLayout } from "../../src/renderer/components/VersionsLayout.jsx";
 import { navigateTo, currentRoute } from "../../src/renderer/route-store.js";
+import { results, resetCheck } from "../../src/renderer/store.js";
+
+// 填充一个结果, 让 LibraryPage 走列表分支 (而非空态 CTA), 这样才有 .library-page
+const NON_EMPTY = new Map([
+  ["App1", { name: "App1", current_version: "1", latest_version: "2", has_update: false, bundle: "" }],
+]);
+
+beforeEach(() => {
+  resetCheck();
+  results.value = NON_EMPTY;
+});
 
 describe("VersionsLayout", () => {
   it("默认渲染 library 而非 overview", () => {
@@ -25,8 +36,8 @@ describe("VersionsLayout", () => {
   });
 
   it("不再有 overview 专属渲染分支 (即便强制设 overview 也走 library)", () => {
-    // 即便绕过 navigateTo 重定向, 强行写 currentRoute="overview",
-    // 也不应渲染 dashboard overview (overview-grid / kpi-wall 等) — 因为该分支已删.
+    // 绕过 navigateTo 重定向, 强行写 currentRoute="overview",
+    // 也不应渲染 dashboard overview (overview-grid / kpi-wall) — 该分支已删.
     currentRoute.value = "overview";
     const { container } = render(<VersionsLayout />);
     expect(container.querySelector(".overview-grid")).toBeNull();
@@ -35,4 +46,5 @@ describe("VersionsLayout", () => {
     navigateTo("library");
   });
 });
+
 
