@@ -10333,3 +10333,31 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .virtual-card-spacer { position: relative; }
 .virtual-card-spacer .app-card-grid { padding: 0; }
+
+/* KPICard + TrendSparkline — Task 16 Overview 顶部 4 列指标 */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  padding: 20px;
+}
+.kpi-card {
+  padding: 16px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 10px;
+  border-left: 4px solid var(--text-tertiary, #8e8e93);
+}
+.kpi-card--warning { border-left-color: #ff9500; }
+.kpi-card--success { border-left-color: #34c759; }
+.kpi-card--danger  { border-left-color: #ff3b30; }
+.kpi-card--default { border-left-color: var(--accent-primary, #007aff); }
+.kpi-card-value {
+  font-size: 28px; font-weight: 700;
+  color: var(--text-primary, #1d1d1f);
+  line-height: 1; margin-bottom: 6px;
+}
+.kpi-card-label {
+  font-size: 12px; color: var(--text-secondary, #6e6e73);
+}
+.trend-sparkline {
+  display: inline-block; color: var(--accent-primary, #007aff);
+}
