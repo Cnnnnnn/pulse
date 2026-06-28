@@ -44,7 +44,8 @@ const FETCH_REASON_TEXT = {
 // ===== Tab 配置 =====
 const TABS = [
   { key: "market",  label: "行情", angleKey: "price_trend" },
-  { key: "finance", label: "财务", angleKey: "fundamentals" },
+  // ponytail: 财务 tab 合并 2 个 angle (估值 + 盈利能力), ANGLE_DEFS 没"fundamentals"这一档.
+  { key: "finance", label: "财务", angleKey: ["valuation", "profitability"] },
   { key: "fund",    label: "资金", angleKey: "capital_flow" },
   { key: "tech",    label: "技术", angleKey: "tech_indicators" },
   { key: "news",    label: "舆情", angleKey: "news_buzz" },
@@ -201,14 +202,24 @@ function MarketPanel({ hidden }) {
 }
 
 function FinancePanel({ hidden }) {
-  const data = angleEntry("fundamentals");
-  if (!data) return <div class="stock-tab-panel-empty">财务数据加载中…</div>;
-  const items = [
-    { label: "PE", value: data.pe },
-    { label: "PB", value: data.pb },
-    { label: "ROE", value: data.roe, suffix: "%" },
-    { label: "市值", value: data.marketCap },
-  ];
+  // ponytail: 财务 tab 拼 2 个 angle (估值 + 盈利能力), 各 angle 独立加载, 单边缺失时
+  // 仍渲染另一边 (graceful partial loading). 字段名照搬 detail-fetchers/{valuation,profitability}.js.
+  const val = angleEntry("valuation");
+  const prof = angleEntry("profitability");
+  if (!val && !prof) return <div class="stock-tab-panel-empty">财务数据加载中…</div>;
+  const items = [];
+  if (val) {
+    items.push({ label: "动态 PE", value: val.pe });
+    items.push({ label: "PB", value: val.pb });
+    if (val.pePercentile3y != null) {
+      items.push({ label: "近 3 年分位", value: val.pePercentile3y, suffix: "%" });
+    }
+  }
+  if (prof) {
+    items.push({ label: "ROE", value: prof.roe, suffix: "%" });
+    items.push({ label: "毛利率", value: prof.grossMargin, suffix: "%" });
+    items.push({ label: "净利率", value: prof.netMargin, suffix: "%" });
+  }
   return (
     <div role="tabpanel" id="stock-tabpanel-finance" aria-hidden={hidden} hidden={hidden} class="stock-tab-panel stock-metric-grid">
       {items.map((it) => (

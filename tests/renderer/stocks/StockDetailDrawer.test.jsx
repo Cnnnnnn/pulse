@@ -118,7 +118,10 @@ describe("StockDetailDrawer — 新结构", () => {
           change5d: 5.2, change20d: 28.0, amplitude: 2.5,
         },
       },
-      fundamentals: { status: "ok", data: { pe: 25.3, pb: 8.1, roe: 30.5, marketCap: "2.1万亿" } },
+      // ponytail: 财务 tab 现在消费 2 个 angle (valuation + profitability), 不是 "fundamentals".
+      // 字段名照搬 detail-fetchers/{valuation,profitability}.js.
+      valuation: { status: "ok", data: { pe: 25.3, pb: 8.1, pePercentile3y: null } },
+      profitability: { status: "ok", data: { roe: 30.5, grossMargin: 88.2, netMargin: 52.1, reportDate: "2026-03-31" } },
       capital_flow: { status: "ok", data: { mainNetInflow: 1.2e8, sparkline: [100, 102, 105, 110, 108] } },
       tech_indicators: { status: "ok", data: { macdHist: 0.15, rsi: 65, kdj: { k: 70, d: 65, j: 75 } } },
       news_buzz: { status: "ok", data: { items: [{ title: "利好 A", url: "https://example.com/a", date: "2026-06-27" }] } },
