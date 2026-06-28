@@ -21,7 +21,7 @@
 
 - 0 新增第三方依赖 (图表全部 SVG 自写)
 - imports 放文件顶部, 不内联
-- ESM imports + CommonJS exports (per vitest 1.6 ESM-only 项目约定; 后端 main 进程代码用 CommonJS require)
+- **测试文件必须 ESM `import` (vitest 跑在 ESM 模式, CJS `require("vitest")` 会报 "Vitest cannot be imported in a CommonJS module using require()"). 后端 main 进程源码仍用 CommonJS `require`/`module.exports`. Task 2/3/4 计划里的 CJS 测试代码执行时需改 ESM.**
 - 复用 `state-store.patchState` 持久化, 不绕过 `preserveExtraFields` (这是 v2.22 metal-ipc 关键约束)
 - 复用现有 `metal-scheduler` 的 httpGet 抽象 + 错误隔离 (Promise.allSettled)
 - 复用现有 `Sparkline.jsx` 的 SVG 习惯 (viewBox / polyline / NaN 过滤), 不破坏现有 4 处 Sparkline 使用方
