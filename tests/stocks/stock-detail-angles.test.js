@@ -60,25 +60,16 @@ describe("stock-detail-angles", () => {
       expect(ang.sparkline({ closes: [NaN, NaN] })).toBeNull();
     });
 
-    it("上涨: 返 closes + color='up'", () => {
-      expect(ang.sparkline({ closes: [80, 90, 100] })).toEqual({
-        closes: [80, 90, 100],
-        color: "up",
-      });
+    it("上涨: 返 closes 数组", () => {
+      expect(ang.sparkline({ closes: [80, 90, 100] })).toEqual([80, 90, 100]);
     });
 
-    it("下跌: 返 closes + color='down'", () => {
-      expect(ang.sparkline({ closes: [100, 90, 80] })).toEqual({
-        closes: [100, 90, 80],
-        color: "down",
-      });
+    it("下跌: 返 closes 数组", () => {
+      expect(ang.sparkline({ closes: [100, 90, 80] })).toEqual([100, 90, 80]);
     });
 
-    it("平: 返 closes + color='flat'", () => {
-      expect(ang.sparkline({ closes: [100, 100] })).toEqual({
-        closes: [100, 100],
-        color: "flat",
-      });
+    it("平: 返 closes 数组", () => {
+      expect(ang.sparkline({ closes: [100, 100] })).toEqual([100, 100]);
     });
   });
 });

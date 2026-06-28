@@ -73,8 +73,7 @@ function getSparklineData(d) {
   const first = Number(d.closes[0]);
   const last = Number(d.closes[d.closes.length - 1]);
   if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
-  const color = last > first ? "up" : last < first ? "down" : "flat";
-  return { closes: d.closes, color };
+  return d.closes;
 }
 
 module.exports = { ANGLE_DEFS, getAngle };

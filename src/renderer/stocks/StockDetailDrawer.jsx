@@ -162,7 +162,7 @@ function AngleChip({ angle, selected, status, onToggle, disabled, sparkData }) {
       <span class="stock-detail-chip-label">{angle.label}</span>
       {sparkData && (
         <Sparkline
-          closes={sparkData.closes}
+          closes={sparkData}
           width={60}
           height={16}
         />
@@ -200,7 +200,7 @@ function PerAnglePreview() {
         return (
           <li key={k} class={klass}>
             <span class="stock-detail-preview-label">{ang ? ang.label : k}</span>
-            {sparkData && <Sparkline closes={sparkData.closes} width={120} height={24} />}
+            {sparkData && <Sparkline closes={sparkData} width={120} height={24} />}
             <span class="stock-detail-preview-status">{text}</span>
           </li>
         );
@@ -338,7 +338,11 @@ export function StockDetailDrawer({ api }) {
             {ANGLE_DEFS.map((angle) => {
               const entry = perAngleData.value[angle.key];
               const sparkData = angle.sparkline
-                ? angle.sparkline(entry && entry.status === "ok" ? entry.data : null)
+                ? angle.sparkline(
+                    entry && (entry.status === "ok" || entry.status === "ready")
+                      ? entry.data
+                      : null
+                  )
                 : null;
               return (
                 <AngleChip
