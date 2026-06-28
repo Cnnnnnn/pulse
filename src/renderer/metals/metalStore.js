@@ -91,6 +91,19 @@ export async function initMetalStore() {
     console.warn('[metals] getHistory failed:', err && err.message);
   }
 
+  // 冷启动兜底: 刚装/刚升级后 quoteCache 还没首次 fetch, 立即拉一次避免 tab 进去空白.
+  // scheduler.start() 虽然 fire-and-forget 调 fetchNow, 但 fetch 失败时 cache 仍是空,
+  // 用户不点刷新就永远空白. 这里串行 await: 失败时让 refresh 按钮处理.
+  if (!quoteCache.value || !quoteCache.value.fetchedAt) {
+    try {
+      const r = await window.metalsApi.fetchNow();
+      if (r && r.quotes) quoteCache.value = r.quotes;
+      if (r && r.fx) fxCache.value = r.fx;
+    } catch (err) {
+      console.warn('[metals] cold-start fetchNow failed:', err && err.message);
+    }
+  }
+
   // Subscribe to live updates (preload 返回 unsubscribe 函数)
   _unsubQuote = window.metalsApi.onQuoteChanged((data) => {
     if (data.quotes) quoteCache.value = data.quotes;

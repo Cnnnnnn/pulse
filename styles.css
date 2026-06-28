@@ -10609,23 +10609,28 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 /* 金属卡片加载骨架屏已被 v2.50 表格重构移除 (Task 1) */
 
 /* ============================================================
- * v2.50 metals-tab-refactor: dark Bloomberg CN 主题
- * 全部 token 以 --metals-* 前缀, 仅 .metals-layout 子树生效
+ * metals-tab: 跟随应用主题 (light/dark + Win11), 不引入独立色板
+ *
+ * ponytail: 之前 v2.50 重构用了独立的 --metals-* dark token (GitHub Dark 配色),
+ *         跟全应用的 stock/funds/reminders 不一致, 切到 light 主题时 metals 仍黑.
+ *         现在所有 token 都映射到应用全局 token, 双主题 (含 Win11) 自动协调.
+ *         唯一保留的 "Bloomberg 密集表格" 视觉 = row-height / padding / 字号,
+ *         不靠颜色, 切光暗主题不破.
  * ============================================================ */
 :root {
-  --metals-bg-page: #0d1117;
-  --metals-bg-card: #161b22;
-  --metals-bg-card-hover: #1c2230;
-  --metals-bg-header: #0d1117;
-  --metals-border: #30363d;
-  --metals-border-strong: #484f58;
-  --metals-text-primary: #e6edf3;
-  --metals-text-secondary: #8b949e;
-  --metals-text-tertiary: #6e7681;
-  --metals-accent: #58a6ff;
-  --metals-up: #ef4444;        /* 红涨 A 股 */
-  --metals-down: #22c55e;      /* 绿跌 */
-  --metals-flat: #6e7681;
+  --metals-bg-page: var(--content-bg);
+  --metals-bg-card: var(--bg-card);
+  --metals-bg-card-hover: var(--bg-hover);
+  --metals-bg-header: var(--bg-card);
+  --metals-border: var(--border);
+  --metals-border-strong: var(--border-subtle);
+  --metals-text-primary: var(--text-primary);
+  --metals-text-secondary: var(--text-secondary);
+  --metals-text-tertiary: var(--text-tertiary);
+  --metals-accent: var(--accent-primary);
+  --metals-up: var(--color-up);     /* A 股红涨 */
+  --metals-down: var(--color-down); /* 绿跌 */
+  --metals-flat: var(--text-tertiary);
   --metals-row-height: 44px;
 }
 
