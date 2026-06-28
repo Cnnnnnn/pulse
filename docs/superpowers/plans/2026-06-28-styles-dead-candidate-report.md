@@ -596,3 +596,52 @@
 - `preload.js` (已有未提交修改, 不动)
 - `index.js` (主进程入口, 跨 IPC 影响面)
 - `styles.css` 内的 `@keyframes` / `@media` / `@container` / `[lang=zh]` 等非 class 规则 (绝不能按 class 扫描判定死).
+
+---
+
+## 二次更严筛选尝试 (2026-06-28 第二轮)
+
+ponytail 第二轮加了**三个过滤条件**, 想从 390 候选里切出"100% 确定死":
+
+1. **测试断言排除**: `tests/**/*.js(x)` 里 `querySelector` / 显式期望值的 class 不算死
+2. **BEM 链排除**: 如果候选的 `--modifier` 或 `__element` 任何一个被引用, 整个父级链不算死
+3. **src 字符串字面量排除**: 包括常量映射 (`Badge.jsx:9 dot: 'release-notes-trigger-badge'`) 和模板字符串 (`UpgradeAdvice.jsx:138 \`upgrade-advice-confidence--${conf}\``)
+
+### 结果
+
+**288 条被认定为"准死"**, 但**立即发现静态扫描本身的盲区**:
+
+- `upgrade-advice-confidence--medium` 被判定为死, 但 `UpgradeAdvice.jsx:138` 用模板字符串拼, 测试 `tests/renderer/upgrade-advice.test.jsx:71-72` 显式断言 `--low`. 这是脚本 bug, **意味着脚本判的 288 条里有相当一部分实际是活的**.
+- `release-notes-trigger-badge` 同样: `Badge.jsx:9` 是常量映射, 不在 `class="..."` 字面量里, 但实际生效.
+
+### ponytail 决策
+
+**styles.css 真死代码删除不能用静态扫描批量做**. 任何批量删除都会引入回归. 正确做法:
+
+- **A 计划 (推荐, 低成本)**: 把候选清单按"组件名"分组 (本报告已分), 由对应组件 owner 人工逐条核 (`grep -rn 'component-name' src/` 在每个候选名上跑一次, 10 秒/条).
+- **B 计划 (高成本, 高 ROI)**: dev 模式注入 hit counter — `<head>` 里加载一段 dev-only JS, 遍历 `document.styleSheets` 所有规则, 30 天后导出未命中列表. 真实运行时证据.
+- **C 计划 (本次选择)**: **不删**. 报告只作为决策输入, 不作为删除依据.
+
+### 准死清单的复核起点 (288 条)
+
+按"看起来最可能死"的优先级 (含明确历史退役信号 + 无任何 BEM 兄弟):
+
+- **`drawer-legacy-summary`** ← 名字含 `legacy`, 几乎肯定是死
+- **`diagnostics-drawer*` (9 条)** ← v2.50 commit `0957f4f` 把 diagnostics 改成 page, drawer 已退役 (需对照 commit 确认)
+- **`version-history-drawer*` (9 条)** ← 同 version_history 字段一起退役 (354c31a commit)
+- **`watchlist-drawer*` (10 条)** ← v2.50 commit `578d260` 移除股票「自选股」tab, watchlist 周边重做 (需对照 commit 确认)
+- **`snooze-menu*` (5 条) + `row-action-snooze` + `row-action-rollback` + `row-overflow-*` (5 条)** ← snooze/rollback 退役, 跟 354c31a 一起
+- **`fund-pnl-history--page` / `fund-pnl-summary--page`** ← 历史 fund 页面命名 (需对照 commit)
+- **`topbar*` (10 条)** ← v2.49 commit `35b5fa7` 把 TopBar 改成 PageActionsBar, 整批命名迁移
+- **`release-notes-wizard-dot`** ← wizard 进度点 (我之前 ON 测试断言过 `'.release-notes-trigger-badge'` 但没断言 `.dot`, 实际可能活)
+
+其它 200+ 条都需要逐条核对. **不要批量删**.
+
+### 复核工具
+
+```bash
+# 对每个候选跑一次这个 (10 秒/条)
+rg "candidate-name" src/ tests/ docs/
+# + 看 git log 是否有组件退役 commit
+git log --all --oneline -S "candidate-name"
+```

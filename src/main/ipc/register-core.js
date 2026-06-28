@@ -42,9 +42,16 @@ function registerCoreHandlers(ctx) {
   });
 
   ipcMain.handle("check-updates", async () => {
-    const r = await runCheckQueued(buildRunCheckDeps({
-      getConfig, pool, getWindow, onCheckComplete, stateStore,
-    }), { silent: false });
+    const r = await runCheckQueued(
+      buildRunCheckDeps({
+        getConfig,
+        pool,
+        getWindow,
+        onCheckComplete,
+        stateStore,
+      }),
+      { silent: false },
+    );
     // (C3 version history 已退役, 不再 broadcast counts)
     // I2 v1: pinned app 独立通知 (走 electron.Notification + inQuietHours)
     try {
@@ -665,12 +672,6 @@ function registerCoreHandlers(ctx) {
       });
     }
   });
-
-  // Phase C3: app rollback IPC handlers (C3 功能已退役, 移除)
-  // get-version-history / rollback-app / delete-backup handlers 已删除
-
-  // Phase C2: per-app snooze IPC handlers (C2 功能已退役, 移除)
-  // snooze:set / snooze:clear handlers 已删除
 
   // C7 v2.35.0: 检测结果导出 (JSON / CSV → 桌面)
   safeHandle("detect-results:export", async (_event, opts) => {

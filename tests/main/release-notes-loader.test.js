@@ -1,8 +1,9 @@
 /**
  * tests/main/release-notes-loader.test.js
  *
- * ON: loader 纯函数测试. 用 __setTestOverrides 注入 repoRoot + contentRoot,
- * 在 tmpDir 里造 fixture 文件, 测 readReleaseNotes / readSlides 的所有路径.
+ * ON: loader 纯函数测试. 用 __setTestRepoRoot 注入 repoRoot,
+ * 在 tmpDir 里造 fixture 文件 (versions/<ver>.md + src/release-notes-content/<ver>/slides.json),
+ * 测 readReleaseNotes / readSlides 的所有路径.
  *
  * 不走 vi.mock('fs') — 真实 fs 行为更可靠, 跟现有 state-store 测试风格一致.
  */
@@ -13,8 +14,8 @@ import fs from "fs";
 import {
   readReleaseNotes,
   readSlides,
-  __setTestOverrides,
-  __resetTestOverrides,
+  __setTestRepoRoot,
+  __resetTestRepoRoot,
 } from "../../src/release-notes/loader.js";
 
 let tmpDir;
@@ -26,11 +27,11 @@ beforeEach(() => {
   repoRoot = tmpDir;
   contentRoot = path.join(tmpDir, "src", "release-notes-content");
   fs.mkdirSync(contentRoot, { recursive: true });
-  __setTestOverrides({ repoRoot, contentRoot });
+  __setTestRepoRoot(repoRoot);
 });
 
 afterEach(() => {
-  __resetTestOverrides();
+  __resetTestRepoRoot();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
@@ -51,7 +52,7 @@ describe("readReleaseNotes", () => {
   });
 
   it("returns null on read error (does not throw)", () => {
-    // 写一个目录占位 .release-notes-2.32.0.md → readFileSync 会 EISDIR
+    // 目录占位 versions/2.32.0.md → readFileSync 会 EISDIR
     fs.mkdirSync(path.join(repoRoot, "versions"), { recursive: true });
     fs.mkdirSync(path.join(repoRoot, "versions", "2.32.0.md"));
     expect(readReleaseNotes("2.32.0")).toBeNull();

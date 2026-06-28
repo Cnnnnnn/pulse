@@ -9,7 +9,7 @@
  *   versions/<version>.md                        (仓库根 versions/ 文件夹, v2.50 起)
  *   src/release-notes-content/<version>/slides.json
  *
- * __testOverrides 让测试可以注入 mock path (主进程测试时, 仓库根可能不是 cwd).
+ * __setTestOverrides 让测试可以注入 mock repoRoot (主进程测试时, 仓库根可能不是 __dirname 解析的目标).
  */
 
 const fs = require("fs");
@@ -18,26 +18,23 @@ const { createLogger } = require("../main/log.js");
 
 const log = createLogger("release-notes-loader");
 
-let __testOverrides = null;
+let __testRepoRoot = null;
 
-function __setTestOverrides(overrides) {
-  __testOverrides = overrides;
+function __setTestRepoRoot(repoRoot) {
+  __testRepoRoot = repoRoot;
 }
 
-function __resetTestOverrides() {
-  __testOverrides = null;
+function __resetTestRepoRoot() {
+  __testRepoRoot = null;
 }
 
 function resolveRepoRoot() {
-  return __testOverrides && __testOverrides.repoRoot
-    ? __testOverrides.repoRoot
-    : process.cwd();
-}
-
-function resolveContentRoot() {
-  return __testOverrides && __testOverrides.contentRoot
-    ? __testOverrides.contentRoot
-    : path.join(resolveRepoRoot(), "src", "release-notes-content");
+  if (__testRepoRoot) return __testRepoRoot;
+  // ponytail: dev 走 __dirname 解析更可靠 (cwd 在 prod asar 启动时是用户家目录).
+  // 找不到时回退 cwd — prod asar 仍会找不到, 留给打包脚本专门处理 (e.g. process.resourcesPath).
+  const fromDirname = path.resolve(__dirname, "..", "..");
+  if (fs.existsSync(path.join(fromDirname, "versions"))) return fromDirname;
+  return process.cwd();
 }
 
 /**
@@ -62,7 +59,13 @@ function readReleaseNotes(version) {
  */
 function readSlides(version) {
   if (typeof version !== "string" || !version) return null;
-  const file = path.join(resolveContentRoot(), version, "slides.json");
+  const file = path.join(
+    resolveRepoRoot(),
+    "src",
+    "release-notes-content",
+    version,
+    "slides.json",
+  );
   try {
     if (!fs.existsSync(file)) return null;
     const raw = fs.readFileSync(file, "utf8");
@@ -81,6 +84,6 @@ function readSlides(version) {
 module.exports = {
   readReleaseNotes,
   readSlides,
-  __setTestOverrides,
-  __resetTestOverrides,
+  __setTestRepoRoot,
+  __resetTestRepoRoot,
 };

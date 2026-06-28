@@ -150,7 +150,6 @@ async function runCheck(deps, opts = {}) {
     freshestTs,
   };
 
-  // (C2 snooze 已退役, 不再过滤; 变量名沿用 filteredResults 减少下游改动)
   const state = typeof getState === "function" ? getState() : null;
   const filteredResults = results;
 
