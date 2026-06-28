@@ -7715,6 +7715,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: flex;
   flex-direction: column;
   gap: var(--space-4, 16px);
+  /* ponytail: v2.60 bracket 强制 dark scheme — 即使系统是 light mode, 对阵图内部也用深色背景+白字保证对比度 */
+  color-scheme: dark;
+  --content-bg: #141416;
+  color: #e5e7eb;
+  background: #141416;
+  border-radius: 8px;
+}
 }
 .bracket-view--empty,
 .bracket-view--error {
@@ -7897,7 +7904,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: var(--space-6, 24px);
   padding: 16px 0;
   overflow-x: auto;
-  min-height: 600px;
+  /* ponytail: v2.61 加 max-height + overflow-y, 让 R32 16 张卡超出 viewport 时 column 内滚动而不是被截断.
+     计算: viewport - 顶 toolbar (~60) - tabs (~50) - padding (32) - column title (~30) - 余量 (40) ≈ viewport - 212. */
+  max-height: calc(100vh - 212px);
+  overflow-y: auto;
+  min-height: 400px;
   position: relative;
 }
 .bracket-tree-column {
@@ -8002,22 +8013,311 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   text-align: center;
   margin-top: 2px;
 }
+
+/* === v2.55 wide tree card: 三层视觉层级 (ESPN 风格) ===
+   - 主层: 队名(中) + 比分(大, 金黄) — 卡片中心
+   - 次层: 时间+场地(小, 灰) — 卡片底部一行
+   - 元层: M# (极小灰) 顶部 + status badge 右上角浮层
+   关键: 3 层间距明显, 队名 ellipsis 但有 max-width 保护 */
+.bracket-tree .bracket-card {
+  position: relative;
+  padding: 8px 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bracket-tree .bracket-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  color: #6b7280;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.bracket-tree .bracket-card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  min-width: 0;
+}
+.bracket-tree .bracket-card-team--left { flex: 1; min-width: 0; justify-content: flex-end; }
+.bracket-tree .bracket-card-team--right { flex: 1; min-width: 0; justify-content: flex-start; }
+/* ponytail: 队名 11px, 中等字重, ellipsis 受 max-width 控制, 不溢出 */
+.bracket-tree .bracket-card-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.bracket-tree .bracket-card-team--left .bracket-card-name { text-align: right; }
+.bracket-tree .bracket-card-team--right .bracket-card-name { text-align: left; }
+/* ponytail: 比分 ESPN 风 — 大字 + tabular-nums + 金黄, 占卡片视觉中心 */
+.bracket-tree .bracket-card-score--inline {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: #fbbf24;
+  flex: 0 0 auto;
+  padding: 0 6px;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+.bracket-tree .bracket-card-vs {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: #6b7280;
+  font-weight: 400;
+  padding: 0 4px;
+  font-style: italic;
+}
+/* ponytail: meta 极小灰字, 一行紧凑, 与队名之间留白 4px */
+.bracket-tree .bracket-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.bracket-tree .bracket-card-meta-time,
+.bracket-tree .bracket-card-meta-venue {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bracket-tree .bracket-card-meta-venue {
+  flex: 1;
+  min-width: 0;
+}
+/* ponytail: status badge 浮在 card 右上角, 不再占独立行 */
+.bracket-tree .bracket-card-status {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
+  z-index: 2;
+}
+.bracket-tree .bracket-card-head { padding-right: 50px; } /* 给右侧 badge 让位 */
+
+/* === v2.60 单 stage 视图 (小红书风 polish): column 固定宽度, 卡固定 220px, 强制 dark token === */
+.bracket-tree-single-cols {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 32px;             /* ponytail: v2.62 column 之间留 32px 给 SVG connector 折线空间 */
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  padding: 4px 0;
+  overflow-x: auto;
+}
+/* ponytail: v2.60 强制 dark scheme — 在 light mode 系统主题下, app 整体是浅色,
+   但 bracket 卡内容需要高对比度 (深色背景 + 白字), 否则字都灰蒙蒙混在一起. */
+.bracket-tree--single {
+  color-scheme: dark;
+  --content-bg: #141416;   /* ponytail: 覆盖 app 的浅色 --content-bg, 让 card 用深色 token */
+  color: #e5e7eb;
+}
+.bracket-tree--single .bracket-tree-column {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;          /* ponytail: 不让 column 拉伸占满屏, 宽度由内容 (card) 决定 */
+  width: 244px;            /* ponytail: card 220 + padding 12*2 + gap 余量 */
+  gap: var(--space-2, 8px);
+  background: #1c1c1f;     /* ponytail: 显式深色背景 (因为 light mode 下原本的 rgba(255,255,255,.04) 几乎透明) */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px;
+  /* ponytail: v2.61 column 自己限高 + overflow-y, 让 R32 16 张卡在 column 内滚动而不是被截断.
+     高度 = bracket-tree 内部高度 = viewport - 220 (顶部 toolbar+tabs+paddings). */
+  max-height: calc(100vh - 220px);
+  min-height: 300px;
+  overflow-y: auto;        /* ponytail: column 自己滚, 不依赖 column-cards 容器 — 避免 ResizeObserver 死循环 */
+  overflow-x: hidden;
+}
+.bracket-tree--single .bracket-tree-column-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e5e7eb;
+  text-align: center;
+  letter-spacing: 0.8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 4px;
+}
+.bracket-tree--single .bracket-tree-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+.bracket-tree--single .bracket-card {
+  min-width: 220px;
+  max-width: 220px;        /* ponytail: 固定卡宽, 避免 column 拉伸时卡变宽 */
+  width: 220px;
+  align-self: center;      /* ponytail: column 内居中 */
+  background: #242428;     /* ponytail: v2.60 显式深色, 跟 column 背景 #1c1c1f 区分开 */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;          /* ponytail: 浅色基础文字 */
+}
+/* ponytail: v2.60 — 队名真的能看见了.
+   之前 v2.59 加了 display: block !important 把 name 变成 block, 脱离 flex 流 = 0 宽不可见.
+   现在: name 保持 inline (默认), flex: 1 + min-width: 0 让它能 ellipsis,
+   team 容器也 min-width: 0 让 name 有收缩空间. */
+.bracket-tree--single .bracket-card-name {
+  font-size: 13px !important;
+  font-weight: 500;
+  color: #f9fafb;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bracket-tree--single .bracket-card-team--left { justify-content: flex-end; }
+.bracket-tree--single .bracket-card-team--right { justify-content: flex-start; }
+.bracket-tree--single .bracket-card-team--left,
+.bracket-tree--single .bracket-card-team--right { min-width: 0; flex: 1; }
+.bracket-tree--single .bracket-card-team--left .bracket-card-name { text-align: right; }
+.bracket-tree--single .bracket-card-team--right .bracket-card-name { text-align: left; }
+/* ponytail: vs 字号放大 + 加粗, 让队名紧贴 vs 两侧 */
+.bracket-tree--single .bracket-card-vs {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 0 4px;
+  flex: 0 0 auto;
+}
+.bracket-tree--single .bracket-card-score--inline {
+  font-size: 15px;
+  padding: 0 6px;
+}
+/* ponytail: v2.60 meta/head/placeholder/badge 全部用深色友好色 (在 light mode 系统下也保持高对比) */
+.bracket-tree--single .bracket-card-meta {
+  font-size: 10px;
+  gap: 2px 6px;            /* ponytail: v2.62 time 和 venue 垂直堆叠 (行距 2, 列距 6), 让 Los Angeles (Inglewood) 完整展示 */
+  color: #9ca3af;
+  border-top-color: rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;         /* ponytail: 超长 venue 自动换行, 不被 nowrap 截断 */
+  white-space: normal;     /* ponytail: 覆盖父级 nowrap, 让 venue 完整显示 */
+  overflow: visible;       /* ponytail: 不裁剪 */
+  text-overflow: clip;
+}
+.bracket-tree--single .bracket-card-meta-time,
+.bracket-tree--single .bracket-card-meta-venue {
+  flex: 0 1 auto;          /* ponytail: 两个 span 不强制均分, 时间占一行, 场地占下一行 */
+  white-space: nowrap;
+}
+.bracket-tree--single .bracket-card-meta-venue { width: 100%; }   /* ponytail: 场地独占一行, 永远不被截 */
+.bracket-tree--single .bracket-card-head { color: #d1d5db !important; font-weight: 600; }
+.bracket-tree--single .bracket-card-placeholder { color: #9ca3af !important; font-style: italic; }
+.bracket-tree--single .bracket-badge {
+  background: rgba(74, 222, 128, 0.2) !important;
+  color: #4ade80 !important;
+}
+
+/* === v2.56 stage tabs (小红书风: 大圆角胶囊 tab) === */
+.bracket-stage-tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  padding: 4px 4px 4px 0;
+  margin-bottom: 12px;
+  overflow-x: auto;
+}
+.bracket-stage-tab {
+  flex: 0 0 auto;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.bracket-stage-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+}
+.bracket-stage-tab--active {
+  background: rgba(74, 222, 128, 0.18);
+  border-color: rgba(74, 222, 128, 0.5);
+  color: #4ade80;
+  font-weight: 600;
+}
 .bracket-tree-connectors {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 2;              /* ponytail: v2.62 提到 column 之上, 否则连线被 column 背景盖住看不见 */
+  overflow: visible;
+}
+  height: 100%;
+  pointer-events: none;
   z-index: 0;
 }
 .bracket-tree-connector {
-  stroke: rgba(255, 255, 255, 0.18);
-  stroke-width: 1;
+  stroke: rgba(255, 255, 255, 0.35);  /* ponytail: v2.62 提高透明度, 让连线在 column 之上能看清 */
+  stroke-width: 1.5;
   fill: none;
 }
 .bracket-tree-connector--highlighted {
-  stroke: rgba(74, 222, 128, 0.55);
-  stroke-width: 1.5;
+  stroke: rgba(74, 222, 128, 0.7);
+  stroke-width: 2;
+}
+/* ponytail: v2.62 全景模式 — 5 列横排, 卡片缩小, 水平滚动. */
+.bracket-tree--overview {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+}
+.bracket-tree-overview-cols {
+  display: flex;
+  gap: 12px;
+  min-width: max-content;       /* ponytail: 5 列总宽 > 容器, 触发水平滚动 */
+  padding: 4px 8px;
+}
+.bracket-tree--overview .bracket-tree-column {
+  flex: 0 0 auto;
+  width: 168px;                 /* ponytail: 比 single 模式 (244px) 窄, 5 列能塞进窄屏 */
+  background: #1c1c1f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
+.bracket-tree--overview .bracket-card {
+  min-width: 152px !important;
+  max-width: 152px !important;
+  width: 152px !important;
+  font-size: 11px;
+  padding: 6px 8px;
+}
+.bracket-tree--overview .bracket-card-name { font-size: 11px !important; }
+.bracket-tree--overview .bracket-card-meta { font-size: 9px; }
+.bracket-tree--overview .bracket-tree-column-empty {
+  font-size: 11px;
+  color: #6b7280;
+  text-align: center;
+  padding: 8px 0;
 }
 .bracket-tree-columns {
   position: relative;
@@ -8048,24 +8348,29 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   width: 240px;
   min-height: 100px;
   border: 1.5px solid #fbbf24;
-  background: rgba(251, 191, 36, 0.06);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(251, 191, 36, 0.02) 100%);
   box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
   align-self: center;
+  padding: 12px 12px 8px !important;
 }
 .bracket-card--final-prominent .bracket-card-head {
-  font-size: var(--font-size-xs, 11px);
+  font-size: 11px !important;
   font-weight: 700;
   color: #fbbf24;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-align: center;
   margin-bottom: 6px;
+  padding-right: 0 !important;
+  justify-content: center !important;
 }
 .bracket-card--final-prominent .bracket-card-name {
-  font-size: var(--font-size-md, 13px);
+  font-size: 13px !important;
   font-weight: 600;
 }
-.bracket-card--final-prominent .bracket-card-score {
-  font-size: var(--font-size-2xl, 16px);
+.bracket-card--final-prominent .bracket-card-score--inline {
+  font-size: 18px !important;
+  padding: 0 8px !important;
+}
   color: #fbbf24;
 }
 .bracket-card--third-prominent {
@@ -10182,6 +10487,77 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .page-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+/* PageActionsBar icon button (Phase 32 重构后漏的样式, 2026-06-28 补回).
+   跟检查更新主按钮同行右侧, 透明背景 + 0 边框 + hover 加浅背景.
+   没有这条样式时浏览器 default <button> border 会露出灰边框. */
+.page-action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-secondary, #6e6e73);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.page-action-icon-btn:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
+  color: var(--text-primary, #1d1d1f);
+}
+.page-action-icon-btn:active { transform: scale(0.94); }
+.page-action-icon-btn:focus-visible {
+  outline: 2px solid var(--accent-blue, #007aff);
+  outline-offset: 1px;
+}
+
+/* PageActionsBar overflow menu (Phase 32 重构后漏的样式, 2026-06-28 补回).
+   portal 渲染到 document.body, 用 fixed 定位 (top/right 由 inline style 注入).
+   没有这条样式时 ul 是默认 position:static, inline top/right 失效, 菜单
+   落到 document.body 流末尾看不见 → 用户以为点了没反应. */
+.page-action-overflow { position: relative; }
+.page-action-menu {
+  position: fixed;       /* 配合 portal 到 body 的渲染, fixed 才能让 inline top/right 生效 */
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  min-width: 180px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+}
+.page-action-menu li { margin: 0; padding: 0; }
+.page-action-menu button[role="menuitem"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-primary, #1d1d1f);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-system);
+  transition: background 0.1s;
+}
+.page-action-menu button[role="menuitem"]:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
+}
+.page-action-menu-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border, rgba(0, 0, 0, 0.08));
+  list-style: none;
+}
+
 .command-palette-overlay {
   position: fixed; inset: 0; z-index: 9000;
   background: rgba(0, 0, 0, 0.4);
@@ -10540,3 +10916,72 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-drawer-close:hover { background: var(--bg-elevated, #f5f5f7); color: var(--text-primary, #1d1d1f); }
 .ai-drawer-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+
+/* v2.50 polish: text-link add holding */
+.metal-add-holding-text {
+  background: none;
+  border: none;
+  color: var(--accent, #6366f1);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+  font: inherit;
+}
+.metal-add-holding-text:hover {
+  text-decoration: underline;
+}
+
+/* v2.50 polish: ghost empty state */
+.metal-empty-state {
+  padding: 24px 16px;
+  text-align: center;
+}
+.metal-empty-state-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+.metal-empty-state-header p {
+  font-size: 12px;
+  color: var(--text-tertiary, #6b7280);
+  margin-bottom: 16px;
+}
+.metal-empty-state-icon {
+  display: flex;
+  justify-content: center;
+  color: var(--text-tertiary, #6b7280);
+}
+.metal-empty-ghost-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.metal-empty-ghost-card {
+  background: var(--surface-1);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: border-color 120ms ease;
+}
+.metal-empty-ghost-card:hover {
+  border-color: var(--accent, #6366f1);
+  border-style: solid;
+}
+.metal-empty-ghost-name { font-size: 14px; font-weight: 600; }
+.metal-empty-ghost-meta { font-size: 11px; color: var(--text-tertiary, #6b7280); margin: 4px 0; }
+.metal-empty-ghost-action {
+  font-size: 12px;
+  color: var(--accent, #6366f1);
+  font-weight: 500;
+}
+
+@media (max-width: 800px) {
+  .metal-empty-ghost-grid { grid-template-columns: 1fr 1fr; }
+}

@@ -212,7 +212,7 @@ export function MetalCard({ metal, onEdit }) {
             )}
           </>
         ) : (
-          <button class="metal-add-holding-btn" onClick={() => onEdit(metal.id)}>
+          <button class="metal-add-holding-text" onClick={() => onEdit(metal.id)}>
             + 录入持仓
           </button>
         )}

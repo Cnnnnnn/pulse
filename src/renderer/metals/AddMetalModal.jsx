@@ -91,11 +91,11 @@ export function AddMetalModal() {
     const qty = parseFloat(quantity);
     const price = parseFloat(costPrice);
     if (isNaN(qty) || qty <= 0) {
-      setErrorMsg('请输入有效的数量');
+      setErrorMsg('数量必须大于 0');
       return;
     }
     if (isNaN(price) || price <= 0) {
-      setErrorMsg('请输入有效的成本价');
+      setErrorMsg('成本价必须大于 0');
       return;
     }
 
@@ -106,7 +106,7 @@ export function AddMetalModal() {
     } else if (fx) {
       costPriceCNY = (price * fx) / (selectedMetal.unit === 'oz' ? GRAM_PER_OZ : 1);
     } else {
-      setErrorMsg('汇率未就绪，请稍后重试');
+      setErrorMsg('汇率未就绪，请稍后 5 分钟后再试');
       return;
     }
 
@@ -146,7 +146,7 @@ export function AddMetalModal() {
       overlayClass="metal-modal-overlay"
       cardClass="metal-modal"
       usePortal
-      ariaLabel={editingMetal ? '编辑持仓' : '添加关注'}
+      ariaLabel={editingMetal ? `编辑 ${editingMetal.name} 持仓` : '添加贵金属关注'}
     >
       <div class="metal-modal-header">
           <h3>{editingMetal ? '编辑持仓' : '添加关注'}</h3>
