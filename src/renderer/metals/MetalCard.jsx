@@ -103,7 +103,7 @@ export function MetalCard({ metal, onEdit }) {
 
   if (!quote) {
     return (
-      <div class="metal-card">
+      <div class="metal-card metal-card-loading-card">
         <div class="metal-card-header">
           <h3>{metal.name}</h3>
           <div class="metal-card-actions">
@@ -118,7 +118,10 @@ export function MetalCard({ metal, onEdit }) {
             <button class="btn-icon" onClick={() => onEdit(metal.id)} aria-label="编辑"><IconMoreHorizontal size={14} /></button>
           </div>
         </div>
-        <div class="metal-card-loading">加载中...</div>
+        <div class="metal-card-skeleton" aria-busy="true" aria-label="加载中">
+          <div class="skeleton-bar skeleton-price" />
+          <div class="skeleton-bar skeleton-change" />
+        </div>
       </div>
     );
   }
@@ -134,6 +137,7 @@ export function MetalCard({ metal, onEdit }) {
       <div class="metal-card-header">
         <h3>{metal.name}</h3>
         <div class="metal-card-actions">
+          <span class="metal-card-time" title="行情时间">{formatTime(quote.quoteTime)}</span>
           <button
             type="button"
             class={`fund-row-action-btn${pinned ? ' fund-row-action-btn--active' : ''}`}
@@ -167,12 +171,7 @@ export function MetalCard({ metal, onEdit }) {
       </div>
 
       <div class="metal-card-ref-row">
-        {isCNY ? (
-          <span>上海黄金交易所</span>
-        ) : (
-          <span>现货 {formatUSD(quote.price)}/oz</span>
-        )}
-        <span class="ref-time">{formatTime(quote.quoteTime)}</span>
+        <span class="metal-card-source">{isCNY ? '国内' : '国际'}</span>
       </div>
 
       <div class="metal-card-divider" />

@@ -7,12 +7,12 @@ import {
   selectedMetalId, resetMetalStore,
 } from "../../../src/renderer/metals/metalStore.js";
 
-describe("MetalHeader 4 列布局", () => {
+describe("MetalHeader 3 总览 + 4 tab", () => {
   beforeEach(() => {
     resetMetalStore();
   });
 
-  it("渲染 4 个 .overview-card (3 总览 + 1 trend)", () => {
+  it("渲染 3 张总览卡 (trend 不再占位 card)", () => {
     config.value = { watchedIds: ["XAU"], holdings: {}, deletedIds: [] };
     quoteCache.value = { data: {}, errors: {}, fetchedAt: Date.now() };
     fxCache.value = { rate: 7.18, fetchedAt: Date.now() };
@@ -20,34 +20,31 @@ describe("MetalHeader 4 列布局", () => {
 
     const { container } = render(<MetalHeader />);
     const cards = container.querySelectorAll(".overview-card");
-    expect(cards.length).toBe(4);
+    expect(cards.length).toBe(3);
   });
 
-  it("TrendStrip cell 含 4 个", () => {
+  it("4 个品种 tab + 选中 tab 高亮", () => {
     config.value = { watchedIds: ["XAU"], holdings: {}, deletedIds: [] };
     quoteCache.value = { data: {}, errors: {}, fetchedAt: Date.now() };
     fxCache.value = { rate: 7.18, fetchedAt: Date.now() };
     schedulerState.value = { status: "idle", lastFetch: Date.now() };
 
     const { container } = render(<MetalHeader />);
-    const cells = container.querySelectorAll(".metals-trend-cell");
-    expect(cells.length).toBe(4);
+    const tabs = container.querySelectorAll(".metals-metal-tab");
+    expect(tabs.length).toBe(4);
+    // selectedMetalId default 'XAU' → tab 0 高亮
+    expect(tabs[0].className).toMatch(/is-selected/);
+    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
   });
 
-  it("selectedMetalId 改变 → DetailTrend 内容同步切换", () => {
+  it("点击 tab → DetailTrend 内容切换", () => {
     config.value = { watchedIds: ["XAU", "AU9999"], holdings: {}, deletedIds: [] };
     quoteCache.value = { data: {}, errors: {}, fetchedAt: Date.now() };
     fxCache.value = { rate: 7.18, fetchedAt: Date.now() };
     schedulerState.value = { status: "idle", lastFetch: Date.now() };
     historyMap.value = {
-      XAU: [
-        { date: "2026-05-01", close: 100 },
-        { date: "2026-05-30", close: 120 },
-      ],
-      AU9999: [
-        { date: "2026-05-01", close: 200 },
-        { date: "2026-05-30", close: 220 },
-      ],
+      XAU: [{ date: "2026-05-01", close: 100 }, { date: "2026-05-30", close: 120 }],
+      AU9999: [{ date: "2026-05-01", close: 200 }, { date: "2026-05-30", close: 220 }],
     };
 
     selectedMetalId.value = "XAU";

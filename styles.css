@@ -8458,8 +8458,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .metals-overview-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.6fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3, 12px);
+  margin-top: 16px;
 }
 
 .overview-card-trend {
@@ -8510,13 +8511,14 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 @media (max-width: 720px) {
   .metal-grid { grid-template-columns: minmax(0, 1fr); }
   .metals-overview-cards { grid-template-columns: minmax(0, 1fr); }
+  .metals-metal-tabs { overflow-x: auto; }
 }
 
 .metal-card {
   background: var(--bg-modal, #fff);
   border: 1px solid var(--border-subtle, #e5e5e7);
   border-radius: var(--radius-md, 10px);
-  padding: var(--space-4, 16px) 18px;
+  padding: var(--space-3, 12px) 14px;
   display: flex;
   flex-direction: column;
   gap: var(--space-2h, 10px);
@@ -8614,15 +8616,27 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   opacity: 0.85;
 }
 
-/* 参考信息行 (原始报价 / 交易所 / 时间) */
+/* 参考信息行 (来源标签 国内/国际) */
 .metal-card-ref-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   font-size: var(--font-size-xs, 11px);
   color: var(--text-tertiary, #aeaeb2);
   font-variant-numeric: tabular-nums;
-  padding-top: 2px;
+  margin-top: 2px;
+}
+
+.metal-card-time {
+  font-size: 10px;
+  color: var(--text-tertiary, #6b7280);
+  padding: 0 4px;
+}
+
+.metal-card-source {
+  font-size: 10px;
+  color: var(--text-tertiary, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .ref-time {
@@ -11050,11 +11064,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .metals-detail-trend {
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  margin: 12px 0;
+  margin: 10px 0 12px;
 }
 .metals-detail-trend-up { border-left: 3px solid var(--color-up, #e11d48); }
 .metals-detail-trend-down { border-left: 3px solid var(--color-down, #059669); }
@@ -11072,7 +11086,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: flex;
   gap: 12px;
   align-items: baseline;
-  margin: 8px 0;
+  margin: 4px 0;
   flex-wrap: wrap;
 }
 .metals-detail-trend-last { font-size: 24px; font-weight: 700; }
@@ -11080,13 +11094,18 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .metals-detail-trend-pct.pct-down { color: var(--color-down, #059669); font-weight: 600; }
 .metals-detail-trend-pct.pct-flat { color: var(--text-tertiary, #6b7280); }
 .metals-detail-trend-meta { font-size: 12px; color: var(--text-secondary, #6b7280); }
-.metals-detail-trend-chart { margin: 8px 0; }
+.metals-detail-trend-chart { margin: 4px 0; }
+.metals-detail-trend-chart svg {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
 .metals-detail-trend-stats {
   display: flex;
   gap: 16px;
   font-size: 12px;
   color: var(--text-secondary, #6b7280);
-  margin-top: 6px;
+  margin-top: 4px;
   flex-wrap: wrap;
 }
 .metals-detail-trend-stats b { color: var(--text-primary); font-weight: 600; }
@@ -11102,3 +11121,73 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   .metals-overview-cards { grid-template-columns: 1fr 1fr; }
   .metals-trend-strip { grid-template-columns: 1fr 1fr; }
 }
+
+/* ─── Phase 2: 4 品种 tab bar + 骨架屏 ─── */
+.metals-metal-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
+  padding-bottom: 0;
+}
+.metals-metal-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  color: inherit;
+  font: inherit;
+  transition: border-color 120ms ease;
+  margin-bottom: -1px;
+}
+.metals-metal-tab:hover {
+  border-bottom-color: var(--border-subtle);
+}
+.metals-metal-tab.is-selected {
+  border-bottom-color: var(--accent, #6366f1);
+}
+.metals-metal-tab-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.metals-metal-tab-proxy {
+  font-size: 10px;
+  color: var(--text-tertiary, #6b7280);
+}
+.metals-metal-tab-change {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.metals-metal-tab-change.up   { color: var(--color-up, #e11d48); }
+.metals-metal-tab-change.down { color: var(--color-down, #059669); }
+.metals-metal-tab-change.flat { color: var(--text-tertiary, #6b7280); }
+.metals-metal-tab-loading {
+  font-size: 10px;
+  color: var(--text-tertiary, #6b7280);
+  margin-top: 2px;
+}
+
+/* 金属卡片加载骨架屏 */
+.metal-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+.skeleton-bar {
+  background: linear-gradient(90deg,
+    var(--bg-hover, #f3f4f6) 0%,
+    var(--bg-elevated, #e5e7eb) 50%,
+    var(--bg-hover, #f3f4f6) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+}
+.skeleton-price  { height: 28px; width: 60%; }
+.skeleton-change { height: 14px; width: 40%; }

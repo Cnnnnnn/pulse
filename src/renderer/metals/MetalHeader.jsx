@@ -1,14 +1,14 @@
 /**
  * src/renderer/metals/MetalHeader.jsx
  *
- * 横向 4 列栅格: 3 张总览卡 (总市值/总盈亏/今日预估) + 1 列 TrendStrip.
- * 下方有 DetailTrend (选中品种的 30 天大图).
+ * Phase 2 layout: 3 overview cards (总市值/总盈亏/今日预估) + 4 品种 tab bar
+ * + 单品种 DetailTrend. selectedMetalId 驱动 tab 高亮 + Detail 内容.
  */
 import {
-  overview, schedulerState, fxCache, refreshNow, selectedMetalId,
+  overview, schedulerState, fxCache, refreshNow, selectedMetalId, historyMap,
 } from './metalStore.js';
+import { METALS } from '../../metals/metal-config.js';
 import { IconMedal, IconRefresh } from '../components/icons.jsx';
-import { MetalTrendStrip } from './MetalTrendStrip.jsx';
 import { MetalDetailTrend } from './MetalDetailTrend.jsx';
 
 function formatCNY(value) {
@@ -21,10 +21,23 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 
+function tabChangeFor(metalId) {
+  const arr = historyMap.value[metalId] || [];
+  if (arr.length < 2) return null;
+  const metal = METALS.find((m) => m.id === metalId);
+  const divisor = metal && metal.unitDivisor ? metal.unitDivisor : 1;
+  const closes = arr.map((p) => p.close / divisor);
+  const first = closes[0];
+  const last = closes[closes.length - 1];
+  if (!Number.isFinite(first) || !Number.isFinite(last) || first === 0) return null;
+  return ((last - first) / first) * 100;
+}
+
 export function MetalHeader() {
   const ov = overview.value;
   const state = schedulerState.value;
   const fx = fxCache.value.rate;
+  const selId = selectedMetalId.value;
 
   return (
     <div class="metals-header">
@@ -72,14 +85,39 @@ export function MetalHeader() {
           </div>
           <div class="overview-meta">↑ 较昨收</div>
         </div>
-
-        <div class="overview-card overview-card-trend">
-          <div class="overview-label">30 天走势</div>
-          <MetalTrendStrip />
-        </div>
       </div>
 
-      {selectedMetalId.value && <MetalDetailTrend />}
+      <div class="metals-metal-tabs" role="tablist" aria-label="切换品种趋势图">
+        {METALS.map((m) => {
+          const change = tabChangeFor(m.id);
+          const isSelected = m.id === selId;
+          const changeClass = change == null
+            ? ''
+            : change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+          return (
+            <button
+              key={m.id}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              class={`metals-metal-tab${isSelected ? ' is-selected' : ''}`}
+              onClick={() => { selectedMetalId.value = m.id; }}
+            >
+              <span class="metals-metal-tab-name">{m.shortName}</span>
+              {m.proxyLabel && <span class="metals-metal-tab-proxy">{m.proxyLabel}</span>}
+              {change != null ? (
+                <span class={`metals-metal-tab-change ${changeClass}`}>
+                  {change >= 0 ? '+' : ''}{change.toFixed(2)}%
+                </span>
+              ) : (
+                <span class="metals-metal-tab-loading">30 天加载中</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {selId && <MetalDetailTrend />}
     </div>
   );
 }
