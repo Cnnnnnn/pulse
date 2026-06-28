@@ -17,7 +17,10 @@
 const { ipcMain, webContents } = require("electron");
 const { HttpClient } = require("./http-client.js");
 const { MetalScheduler } = require("../metals/metal-scheduler.js");
-const { fetchMetalKline, pointsToHistoryMap } = require("../metals/metal-kline-fetcher.js");
+const {
+  fetchMetalKline,
+  pointsToHistoryMap,
+} = require("../metals/metal-kline-fetcher.js");
 const { METALS } = require("../metals/metal-config.js");
 const { mainLog } = require("./log");
 const stateStore = require("./state-store.js");
@@ -83,16 +86,14 @@ function saveConfig(patch) {
 
 function saveHistoryMap(historyMap) {
   stateStore.patchState((next) => {
-    if (!next.metals) next.metals = {};
-    next.metals.historyMap = historyMap;
+    next.metals = { ...(next.metals || {}), historyMap };
   });
   return historyMap;
 }
 
 function markBackfilled(atMs) {
   stateStore.patchState((next) => {
-    if (!next.metals) next.metals = {};
-    next.metals.lastBackfillAt = atMs;
+    next.metals = { ...(next.metals || {}), lastBackfillAt: atMs };
   });
 }
 
@@ -131,43 +132,45 @@ async function triggerBackfill(opts = {}) {
     return { skipped: true, reason: "cooldown" };
   }
   const sched = opts.scheduler || scheduler || new MetalScheduler({ httpGet });
-  const gate = opts.skipInflightGate ? null : (backfillInflight = (async () => {
-    try {
-      const gap = sched.detectHistoryGap(cfg.historyMap, METALS);
-      if (gap.need.length === 0) {
-        markBackfilled(now());
-        return { skipped: true, reason: "no_gap" };
-      }
-      try {
-        const items = gap.need.map((n) => ({
-          id: n.id,
-          secid: n.secid,
-          unitDivisor: n.unitDivisor,
-        }));
-        const fetched = await fetchMetalKline(items, httpGet);
-        const newHistory = pointsToHistoryMap(fetched, items);
-        const merged = { ...cfg.historyMap };
-        for (const [id, arr] of Object.entries(newHistory)) {
-          const map = new Map();
-          for (const p of [...(merged[id] || []), ...arr]) {
-            map.set(p.date, p);
+  const gate = opts.skipInflightGate
+    ? null
+    : (backfillInflight = (async () => {
+        try {
+          const gap = sched.detectHistoryGap(cfg.historyMap, METALS);
+          if (gap.need.length === 0) {
+            markBackfilled(now());
+            return { skipped: true, reason: "no_gap" };
           }
-          merged[id] = Array.from(map.values())
-            .sort((a, b) => (a.date < b.date ? -1 : 1))
-            .slice(-30);
+          try {
+            const items = gap.need.map((n) => ({
+              id: n.id,
+              secid: n.secid,
+              unitDivisor: n.unitDivisor,
+            }));
+            const fetched = await fetchMetalKline(items, httpGet);
+            const newHistory = pointsToHistoryMap(fetched, items);
+            const merged = { ...cfg.historyMap };
+            for (const [id, arr] of Object.entries(newHistory)) {
+              const map = new Map();
+              for (const p of [...(merged[id] || []), ...arr]) {
+                map.set(p.date, p);
+              }
+              merged[id] = Array.from(map.values())
+                .sort((a, b) => (a.date < b.date ? -1 : 1))
+                .slice(-30);
+            }
+            saveHistoryMap(merged);
+            markBackfilled(now());
+            broadcast("metals:history:changed", { historyMap: merged });
+            return { ok: true, backfilled: Object.keys(newHistory).length };
+          } catch (err) {
+            mainLog.warn(`[metals] backfill failed: ${err && err.message}`);
+            return { ok: false, error: err && err.message };
+          }
+        } finally {
+          if (!opts.skipInflightGate) backfillInflight = null;
         }
-        saveHistoryMap(merged);
-        markBackfilled(now());
-        broadcast("metals:history:changed", { historyMap: merged });
-        return { ok: true, backfilled: Object.keys(newHistory).length };
-      } catch (err) {
-        mainLog.warn(`[metals] backfill failed: ${err && err.message}`);
-        return { ok: false, error: err && err.message };
-      }
-    } finally {
-      if (!opts.skipInflightGate) backfillInflight = null;
-    }
-  })());
+      })());
   return gate;
 }
 
@@ -308,10 +311,13 @@ function startMetalScheduler(opts = {}) {
           }
         }
         const cfg = loadConfig();
-        if (!cfg.historyMap || typeof cfg.historyMap !== "object") cfg.historyMap = {};
+        if (!cfg.historyMap || typeof cfg.historyMap !== "object")
+          cfg.historyMap = {};
         scheduler.snapshotDailyClose(quoteCache.data, cfg.historyMap);
         saveHistoryMap(cfg.historyMap);
-        triggerBackfill().catch(() => { /* noop */ });
+        triggerBackfill().catch(() => {
+          /* noop */
+        });
       }
       if (update.state) {
         broadcast("metals:quote:state-changed", update.state);
@@ -319,7 +325,9 @@ function startMetalScheduler(opts = {}) {
     },
   });
   scheduler.start();
-  triggerBackfill().catch(() => { /* noop */ });
+  triggerBackfill().catch(() => {
+    /* noop */
+  });
 }
 
 function stopMetalScheduler() {

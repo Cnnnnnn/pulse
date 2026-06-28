@@ -263,6 +263,7 @@ const PRESERVE_FIELDS = [
   { key: "aiStockAdviseCache", kind: "object", notArray: true }, // 选股 AI 推荐缓存: { "v1::<sha1>": {result, fetchedAt} }
   { key: "stockDetailCache", kind: "object", notArray: true }, // 个股 AI 分析缓存: { "v1::<sha1>": {result, fetchedAt} }
   { key: "overviewCache", kind: "object", notArray: true }, // Task 15: overview AI summary cache { text, fetchedAt }
+  { key: "metals", kind: "object", notArray: true }, // 贵金属: watchedIds / holdings / historyMap / lastBackfillAt (metal-ipc 写入)
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -322,10 +323,14 @@ function patchState(updater, statePath = defaultPath(), opts = {}) {
   if (!opts.dropAiSessionsConfig && existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
   }
+  // preserve 先跑, updater 后跑: updater 拿到的 next 字段已是 existing 副本 (例如 metals),
+  // 用 spread `next.metals = { ...next.metals, lastBackfillAt: x }` 不会丢其它子字段.
+  // 老实现是 updater 先 preserve 后, updater 看到的 metals 是 undefined → spread 起点是 {}
+  // → lastBackfillAt 把 historyMap 整个覆盖掉. 修 #贵金属首次进 tab historyMap 空的 bug.
+  preserveExtraFields(existing, next);
   if (typeof updater === "function") {
     updater(next, existing, now);
   }
-  preserveExtraFields(existing, next);
   writeAtomic(statePath, next);
   return next;
 }
@@ -559,8 +564,6 @@ function clearMute(name, statePath = defaultPath()) {
     next.mutes = mutes;
   }, statePath);
 }
-
-// ─── Phase C2/C3 已退役: per-app snooze + rollback 全部移除 ─────
 
 // ─── Phase 29: Last-opened ───────────────────────────────────
 
