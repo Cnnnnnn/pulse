@@ -9978,7 +9978,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .stock-detail-drawer {
   position: fixed;
   top: 0; right: 0; bottom: 0;
-  width: min(560px, 90vw);
+  width: min(720px, 90vw);
   background: var(--bg-card, #ffffff);
   border-left: 1px solid var(--border, rgba(0,0,0,0.08));
   box-shadow: -4px 0 24px rgba(0,0,0,0.08);
@@ -9986,7 +9986,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   animation: stock-detail-fade 0.15s ease-out;
 }
 @keyframes stock-detail-fade { from { opacity: 0; } to { opacity: 1; } }
-.stock-detail-pad-drawer { padding-right: calc(min(560px, 90vw) + 16px); }
+.stock-detail-pad-drawer { padding-right: calc(min(720px, 90vw) + 16px); }
 
 .stock-detail-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border, rgba(0,0,0,0.08)); }
 .stock-detail-title { font-size: 15px; font-weight: 600; color: var(--text-primary, #1d1d1f); }
@@ -10933,3 +10933,185 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   }
 }
 /* ===== end Stock Detail visual tokens ===== */
+
+/* ===== Stock Detail — layout & components (Task 6) ===== */
+
+/* drawer body 内 padding 收紧, 720px 留更多横向空间给 K 线 */
+.stock-detail-body { padding: 12px 16px; }
+
+/* ----- Hero bar ----- */
+.stock-hero {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px;
+  background: var(--stock-hero-bg);
+  color: var(--stock-hero-text);
+  border-radius: 8px;
+  margin: 0 0 12px 0;
+}
+.stock-hero-left { display: flex; flex-direction: column; gap: 2px; }
+.stock-hero-name { font-size: 16px; font-weight: 600; }
+.stock-hero-code { font-size: 11px; color: var(--stock-hero-muted); }
+.stock-hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.stock-hero-price { font-size: 22px; font-weight: 700; line-height: 1; }
+.stock-hero-change { font-size: 12px; }
+
+/* ----- Tab list ----- */
+.stock-detail-tablist {
+  display: flex; gap: 4px;
+  border-bottom: 1px solid var(--stock-divider);
+  margin-bottom: 12px;
+  overflow-x: auto;
+}
+.stock-detail-tab {
+  background: var(--stock-tab-inactive-bg);
+  border: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--stock-hero-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.stock-detail-tab:hover { color: var(--stock-hero-text); }
+.stock-detail-tab.active {
+  color: var(--stock-hero-text);
+  background: var(--stock-tab-active-bg);
+  border-bottom-color: var(--accent-primary, #007aff);
+}
+
+/* ----- Tab panels ----- */
+.stock-tab-panels { margin-bottom: 16px; min-height: 200px; }
+.stock-tab-panel { padding: 8px 0; }
+.stock-tab-panel-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--stock-hero-muted);
+  font-size: 13px;
+}
+
+/* ----- K 线图容器 ----- */
+.stock-candle-chart {
+  width: 100%;
+  overflow-x: auto;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--stock-divider);
+  border-radius: 6px;
+  padding: 4px;
+  margin-bottom: 12px;
+}
+.stock-candle-empty { fill: var(--stock-hero-muted); font-size: 14px; }
+
+/* ----- K 线 SVG 配色 (A 股红涨绿跌) ----- */
+.stock-candle-up { fill: var(--stock-up); stroke: var(--stock-up); }
+.stock-candle-down { fill: var(--stock-down); stroke: var(--stock-down); }
+.stock-candle-wick { stroke-width: 1; }
+.stock-candle-ma-5 { fill: none; stroke: var(--stock-ma-5); stroke-width: 1.4; }
+.stock-candle-ma-10 { fill: none; stroke: var(--stock-ma-10); stroke-width: 1.4; }
+.stock-candle-ma-20 { fill: none; stroke: var(--stock-ma-20); stroke-width: 1.4; }
+.stock-candle-volume { stroke-width: 0; }
+.stock-candle-volume-up { fill: var(--stock-up); opacity: 0.6; }
+.stock-candle-volume-down { fill: var(--stock-down); opacity: 0.6; }
+.stock-candle-macd-zero { stroke: var(--stock-grid); stroke-width: 1; stroke-dasharray: 2 2; }
+.stock-candle-macd-hist { stroke-width: 0; }
+.stock-candle-macd-up { fill: var(--stock-up); }
+.stock-candle-macd-down { fill: var(--stock-down); }
+.stock-candle-macd-dif { fill: none; stroke: var(--stock-macd-dif); stroke-width: 1.2; }
+.stock-candle-macd-dea { fill: none; stroke: var(--stock-macd-dea); stroke-width: 1.2; }
+
+/* ----- 行情 panel metrics (5日/20日/振幅) ----- */
+.stock-market-metrics { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 0; }
+.stock-metric-chip {
+  display: inline-flex; flex-direction: column;
+  padding: 6px 10px;
+  background: var(--bg-elevated, #f5f5f7);
+  border-radius: 6px;
+  min-width: 64px;
+}
+.stock-metric-chip-label { font-size: 11px; color: var(--stock-hero-muted); }
+.stock-metric-chip-value { font-size: 14px; font-weight: 600; }
+
+/* ----- 财务/技术 metric card 网格 ----- */
+.stock-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.stock-metric-card {
+  background: var(--bg-elevated, #f5f5f7);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.stock-metric-card.large { grid-column: span 3; }
+.stock-metric-card-label { font-size: 11px; color: var(--stock-hero-muted); margin-bottom: 2px; }
+.stock-metric-card-value { font-size: 16px; font-weight: 600; color: var(--stock-hero-text); }
+
+/* ----- 资金 sparkline ----- */
+.stock-sparkline-wrap {
+  margin-top: 12px;
+  padding: 8px;
+  background: var(--bg-elevated, #f5f5f7);
+  border-radius: 8px;
+}
+
+/* ----- 舆情新闻 ----- */
+.stock-news-list { list-style: none; padding: 0; margin: 0; }
+.stock-news-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--stock-divider);
+  font-size: 13px;
+}
+.stock-news-item:last-child { border-bottom: 0; }
+.stock-news-item a { color: var(--stock-hero-text); text-decoration: none; }
+.stock-news-item a:hover { color: var(--accent-primary, #007aff); text-decoration: underline; }
+.stock-news-date { font-size: 11px; color: var(--stock-hero-muted); margin-left: 8px; flex-shrink: 0; }
+
+/* ----- 折叠 AI ----- */
+.stock-ai-foldable {
+  border: 1px solid var(--stock-divider);
+  border-radius: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+.stock-ai-foldable-header {
+  width: 100%;
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg-elevated, #f5f5f7);
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--stock-hero-text);
+}
+.stock-ai-foldable-header:hover { background: var(--bg-card, #ffffff); }
+.stock-ai-foldable-summary {
+  flex: 1;
+  color: var(--stock-hero-muted);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stock-ai-foldable-meta { font-size: 11px; color: var(--stock-hero-muted); margin-left: 4px; }
+.stock-ai-foldable-body {
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--stock-hero-text);
+  border-top: 1px solid var(--stock-divider);
+}
+
+/* signal 标签色 */
+.signal-buy { color: var(--stock-up); font-weight: 600; }
+.signal-sell { color: var(--stock-down); font-weight: 600; }
+.signal-hold { color: var(--stock-hero-muted); font-weight: 600; }
+
+/* A 股惯例: 文字色也用 --stock-up / --stock-down */
+.stock-up { color: var(--stock-up); }
+.stock-down { color: var(--stock-down); }
+
+/* ===== end Stock Detail — layout & components ===== */
