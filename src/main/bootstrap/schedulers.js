@@ -10,6 +10,7 @@ const { mainLog } = require("../log");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
 const { inQuietHours } = require("../notification-policy");
 const stateStore = require("../state-store");
+const { buildRunCheckDeps } = require("../run-check-deps");
 const { setManagedInterval, clearManaged } = require("../timer-registry");
 
 // C4: 模块级 timer handle (跟 daily-summary-job 的 _handle 同构), 便于 __resetForTest 清理.
@@ -227,7 +228,6 @@ function startFundScheduler(deps) {
   }
 }
 
-
 /**
  * @param {object} deps
  * @param {object} deps.reminders
@@ -319,7 +319,10 @@ function wireRecentActivityListener(deps) {
  */
 function makeSelfUpdateController(deps) {
   const { autoUpdater } = deps || {};
-  const { INITIAL_UPDATE_STATE, reduceUpdateState } = require("../self-updater");
+  const {
+    INITIAL_UPDATE_STATE,
+    reduceUpdateState,
+  } = require("../self-updater");
   let state = { ...INITIAL_UPDATE_STATE };
 
   function dispatch(action) {
@@ -385,7 +388,10 @@ function makeSelfUpdateController(deps) {
         await autoUpdater.checkForUpdates();
         return { ok: true };
       } catch (err) {
-        dispatch({ type: "ERROR", message: (err && err.message) || String(err) });
+        dispatch({
+          type: "ERROR",
+          message: (err && err.message) || String(err),
+        });
         return { ok: false, reason: "threw", error: err && err.message };
       }
     },
@@ -452,8 +458,7 @@ function startSelfUpdateTimer(deps = {}) {
   let logSkip =
     typeof deps.logSkip === "function"
       ? deps.logSkip
-      : (reason) =>
-          mainLog.info(`self-update tick skipped (${reason})`);
+      : (reason) => mainLog.info(`self-update tick skipped (${reason})`);
   const { decideSelfUpdateTick } = require("../self-update-idle");
 
   // 幂等 powerMonitor 查询: 接线层提供 getPowerIdleState fn,
@@ -500,9 +505,13 @@ function startSelfUpdateTimer(deps = {}) {
         line: 0,
       },
     );
-    mainLog.info(`self-update timer set: every ${Math.round(intervalMs / 60000)}min (idle-gated)`);
+    mainLog.info(
+      `self-update timer set: every ${Math.round(intervalMs / 60000)}min (idle-gated)`,
+    );
   } catch (err) {
-    mainLog.warn(`[self-update] setManagedInterval failed: ${err && err.message}`);
+    mainLog.warn(
+      `[self-update] setManagedInterval failed: ${err && err.message}`,
+    );
   }
 
   // 启动时延迟 30s 检测一次 (避免跟启动 check 抢资源)
