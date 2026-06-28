@@ -1,0 +1,11 @@
+version: 1.0.7
+files:
+  - url: MiniMax Hub-1.0.7-mac.zip
+    sha512: D+9u9lUskVs8yiW53APNx6C74mUcHjbD/fQ2IB7aiw7h0KalfrT9Ez9dEuDdOTFdY1mz4CbpPTxC8ESRsBm4cg==
+    size: 226475205
+  - url: MiniMax Hub-1.0.7-arm64-mac.zip
+    sha512: PhsigSuxlvmR/OU78xAAIUeU0qR4q5WSjw2ehWb3S9yREIQaG4+g0Ew7Mor430QsM6ZJDIsXne/5DsDpxEVlcQ==
+    size: 201445949
+path: MiniMax Hub-1.0.7-mac.zip
+sha512: D+9u9lUskVs8yiW53APNx6C74mUcHjbD/fQ2IB7aiw7h0KalfrT9Ez9dEuDdOTFdY1mz4CbpPTxC8ESRsBm4cg==
+releaseDate: '2026-06-27T09:24:30.532Z'

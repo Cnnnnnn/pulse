@@ -40,9 +40,13 @@ describe("BracketTree", () => {
   });
   afterEach(() => { delete global.window; vi.doUnmock("../../../src/renderer/worldcup/teams-data.js"); });
 
-  test("renders 5 stage columns (r32, r16, qf, sf, final)", () => {
-    const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} />);
-    expect(container.querySelectorAll(".bracket-tree-column")).toHaveLength(5);
+  test("v2.56 single-stage view: renders current + next stage columns (2 total)", () => {
+    // ponytail: v2.56 — tab 切换 stage, 当前 stage 1 列 + 下一 stage 1 列 (final 时 1 列).
+    const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} currentStage="r32" />);
+    // sampleSnapshot.r32=[M73,M74] (2 张), r16=[M90] (1 张) — 所以左 R32 右 R16, 共 2 列
+    expect(container.querySelectorAll(".bracket-tree-column")).toHaveLength(2);
+    expect(container.querySelector(".bracket-tree--single")).toBeTruthy();
+    expect(container.querySelector(".bracket-tree-single-cols")).toBeTruthy();
   });
 
   test("renders MatchCards within R32 column", () => {
@@ -51,14 +55,16 @@ describe("BracketTree", () => {
     expect(r32Col.querySelectorAll(".bracket-card")).toHaveLength(2);
   });
 
-  test("MatchCard displays team1 above team2 (vertical layout)", () => {
+  test("MatchCard displays team1 left + team2 right (single-row layout)", () => {
+    // ponytail: v2.51 单行布局, 队1 在左, 队2 在右, 比分/vs 居中.
     const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} />);
     const card = container.querySelector(".bracket-card");
     const teams = card.querySelectorAll(".bracket-card-team");
     expect(teams).toHaveLength(2);
-    // team1 (top) should come before team2 (bottom) in document order
-    expect(teams[0].classList.contains("bracket-card-team--top")).toBe(true);
-    expect(teams[1].classList.contains("bracket-card-team--bottom")).toBe(true);
+    expect(teams[0].classList.contains("bracket-card-team--left")).toBe(true);
+    expect(teams[1].classList.contains("bracket-card-team--right")).toBe(true);
+    // 居中是 vs 或比分 span
+    expect(card.querySelector(".bracket-card-vs, .bracket-card-score--inline")).toBeTruthy();
   });
 });
 
@@ -87,7 +93,9 @@ describe("BracketConnectors", () => {
     vi.doUnmock("../../../src/renderer/worldcup/teams-data.js");
   });
 
-  test("renders 32 SVG paths (16 R32→R16 + 8 R16→QF + 4 QF→SF + 2 SF→Final + 2 SF→Third)", () => {
+  test("v2.56 single-stage view: connector only renders current→next pair", () => {
+    // ponytail: 单 stage 视图 — connector 只画 current→next 一对.
+    // r32 (16 张) → r16 (8 张) fanIn=2 = 16 条 path
     const fullSnapshot = {
       ...sampleSnapshot,
       r32: Array.from({ length: 16 }, (_, i) => ({ matchNum: 73 + i, slot1: { team: null, source: `r32:${73+i}` }, slot2: { team: null, source: `r32:${73+i}` }, status: "projected" })),
@@ -97,14 +105,18 @@ describe("BracketConnectors", () => {
       final: { matchNum: 104, slot1: { team: null, source: "sf:101" }, slot2: { team: null, source: "sf:102" }, status: "projected" },
       third: { matchNum: 103, slot1: { team: null, source: "sf:101-loser" }, slot2: { team: null, source: "sf:102-loser" }, status: "projected" },
     };
-    const { container } = render(<BracketTree snapshot={fullSnapshot} onMatchClick={() => {}} />);
+    const { container } = render(<BracketTree snapshot={fullSnapshot} onMatchClick={() => {}} currentStage="r32" />);
     return new Promise((resolve) => setTimeout(resolve, 50)).then(() => {
-      const svg = container.querySelector(".bracket-tree-connectors");
-      expect(svg).toBeTruthy();
       const paths = container.querySelectorAll(".bracket-tree-connectors path");
-      // 16+8+4+2+2 = 32
-      expect(paths.length).toBe(32);
+      // r32 (16 张) fanIn 2 → r16 (8 张) = 16 paths
+      expect(paths.length).toBe(16);
     });
+  });
+
+  test("v2.56 final stage: renders only final column (no next column)", () => {
+    const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} currentStage="final" />);
+    // final 是终局, 只有 1 列
+    expect(container.querySelectorAll(".bracket-tree-column")).toHaveLength(1);
   });
 });
 
@@ -129,37 +141,35 @@ describe("FinalColumn styling", () => {
     vi.doUnmock("../../../src/renderer/worldcup/teams-data.js");
   });
 
-  test("FinalColumn renders a Final card with .bracket-card--final-prominent class", () => {
+  test("v2.56 Final stage tab renders Final card with --final-prominent class", () => {
     const snapshot = {
       ...sampleSnapshot,
       final: { matchNum: 104, slot1: { team: { name: "Brazil" }, source: "sf:101" }, slot2: { team: { name: "France" }, source: "sf:102" }, status: "pending" },
       third: { matchNum: 103, slot1: { team: null, source: "sf:101-loser" }, slot2: { team: null, source: "sf:102-loser" }, status: "projected" },
     };
-    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} />);
-    const finalCard = container.querySelector(".bracket-card--final-prominent");
-    expect(finalCard).toBeTruthy();
+    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} currentStage="final" />);
+    expect(container.querySelector(".bracket-card--final-prominent")).toBeTruthy();
   });
 
-  test("FinalColumn renders a Third card with .bracket-card--third-prominent class", () => {
+  test("v2.56 Third stage tab renders Third card with --third-prominent class", () => {
     const snapshot = {
       ...sampleSnapshot,
       final: { matchNum: 104, slot1: { team: null, source: "sf:101" }, slot2: { team: null, source: "sf:102" }, status: "projected" },
       third: { matchNum: 103, slot1: { team: null, source: "sf:101-loser" }, slot2: { team: null, source: "sf:102-loser" }, status: "projected" },
     };
-    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} />);
-    const thirdCard = container.querySelector(".bracket-card--third-prominent");
-    expect(thirdCard).toBeTruthy();
+    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} currentStage="third" />);
+    expect(container.querySelector(".bracket-card--third-prominent")).toBeTruthy();
   });
 
-  test("Final card shows FINAL badge in its head", () => {
+  test("v2.56 Final card head shows 决赛", () => {
     const snapshot = {
       ...sampleSnapshot,
       final: { matchNum: 104, slot1: { team: { name: "Brazil" }, source: "sf:101" }, slot2: { team: { name: "France" }, source: "sf:102" }, status: "pending" },
       third: null,
     };
-    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} />);
+    const { container } = render(<BracketTree snapshot={snapshot} onMatchClick={() => {}} currentStage="final" />);
     const finalCard = container.querySelector(".bracket-card--final-prominent");
-    expect(finalCard.textContent).toContain("FINAL");
+    expect(finalCard && finalCard.textContent).toContain("决赛");
   });
 });
 

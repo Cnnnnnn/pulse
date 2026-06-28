@@ -131,6 +131,61 @@ Thu June 11
     expect(r.matches).toHaveLength(1);
     expect(r.matches[0].stage).toBe("Group A");
   });
+
+  it("解析 cup_finals.txt '(N) ' 前缀 + '## note' 注释 (R32 行)", () => {
+    const r = parseWorldcupTxt(`
+= World Cup 2026
+
+▪ Round of 32
+Sun Jun 28
+  (73) 12:00 UTC-7  South Africa v Canada   @ Los Angeles (Inglewood)   ## 2A / 2B
+Mon Jun 29
+  (74) 16:30 UTC-4  Germany v 3A/B/C/D/F  @ Boston (Foxborough)        ## 1E
+`);
+    expect(r.matches).toHaveLength(2);
+    const m73 = r.matches[0];
+    expect(m73.matchNum).toBe(73);
+    expect(m73.stage).toBe("Round of 32");
+    expect(m73.team1).toBe("South Africa");
+    expect(m73.team2).toBe("Canada");
+    expect(m73.venue).toBe("Los Angeles (Inglewood)");
+    expect(m73.date).toBe("2026-06-28");
+    expect(m73.time).toBe("12:00");
+    expect(m73.timezone).toBe("UTC-7");
+    const m74 = r.matches[1];
+    expect(m74.matchNum).toBe(74);
+    expect(m74.team1).toBe("Germany");
+    expect(m74.team2).toBe("3A/B/C/D/F"); // placeholder, 不 strip
+    expect(m74.date).toBe("2026-06-29");
+  });
+
+  it("无 (N) 前缀时 matchNum=null (group-stage 行)", () => {
+    const r = parseWorldcupTxt(`
+= World Cup 2026
+▪ Group A
+Thu June 11
+  13:00 UTC-6  Mexico v South Africa  @ Mexico City
+`);
+    expect(r.matches).toHaveLength(1);
+    expect(r.matches[0].matchNum).toBeNull();
+  });
+
+  it("R16 行 placeholder (W74, L101) 也正确解析", () => {
+    const r = parseWorldcupTxt(`
+= World Cup 2026
+▪ Round of 16
+Sat Jul 4
+  (89) 17:00 UTC-4  W74 v W77  @ Philadelphia
+  (103) 17:00 UTC-4  L101 v L102  @ Miami
+`);
+    expect(r.matches).toHaveLength(2);
+    expect(r.matches[0].matchNum).toBe(89);
+    expect(r.matches[0].team1).toBe("W74");
+    expect(r.matches[0].team2).toBe("W77");
+    expect(r.matches[1].matchNum).toBe(103);
+    expect(r.matches[1].stage).toBe("Round of 16");
+    expect(r.matches[1].team1).toBe("L101");
+  });
 });
 
 describe("groupMatchesByDate", () => {

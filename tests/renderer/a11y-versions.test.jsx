@@ -17,7 +17,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
-import { TopBar } from "../../src/renderer/components/TopBar.jsx";
+import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.jsx";
 import { CommandPalette } from "../../src/renderer/components/CommandPalette.jsx";
 import { LibraryPage } from "../../src/renderer/components/LibraryPage.jsx";
 import { KPICard } from "../../src/renderer/components/KPICard.jsx";
@@ -40,7 +40,23 @@ vi.mock("../../src/renderer/api.js", () => ({
     versionsOverviewWatchlist: vi.fn(async () => []),
     versionsOverviewRecent: vi.fn(async () => []),
     versionsOverviewAiInsights: vi.fn(async () => ({ ok: true, text: "", fromCache: false })),
+    releaseNotesGetCurrent: vi.fn(async () => null),
   },
+}));
+vi.mock("../../src/renderer/store/ai-store.js", () => ({
+  toggleDigestDrawer: () => {},
+}));
+vi.mock("../../src/renderer/watchlist/watchlist-store.js", () => ({
+  toggleWatchlistDrawer: () => {},
+}));
+vi.mock("../../src/renderer/reminders/remindersStore.js", () => ({
+  toggleRemindersOpen: () => {},
+}));
+vi.mock("../../src/renderer/recent/recentStore.js", () => ({
+  toggleRecentOpen: () => {},
+}));
+vi.mock("../../src/renderer/release-notes-store.js", () => ({
+  openReleaseNotes: () => {},
 }));
 
 beforeEach(() => {
@@ -82,9 +98,9 @@ function assertA11y(container, label) {
 }
 
 describe("a11y: versions components (structural stub)", () => {
-  it("TopBar has accessible interactive controls", () => {
-    const { container } = render(<TopBar />);
-    assertA11y(container, "TopBar");
+  it("PageActionsBar has accessible interactive controls", () => {
+    const { container } = render(<PageActionsBar />);
+    assertA11y(container, "PageActionsBar");
   });
 
   it("CommandPalette (open) has accessible controls", () => {

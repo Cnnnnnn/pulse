@@ -273,7 +273,6 @@ const PRESERVE_FIELDS = [
   { key: "aiFeedback", kind: "array" }, // A8: AI 反馈样本 cap-500
   { key: "tokenSpend", kind: "object" }, // P71: 每日 token 消耗
   { key: "tokenBudgetConfig", kind: "object" }, // P71: 预算配置 { dailyLimit, mode }
-  { key: "stockWatchlist", kind: "array" }, // 股票筛选器: 自选股 [{code,name,industry,addedAt}]
   { key: "stockScreener", kind: "object", notArray: true }, // 股票筛选器: 上次条件 + 策略 + 排序
   { key: "aiStockAdviseCache", kind: "object", notArray: true }, // 选股 AI 推荐缓存: { "v1::<sha1>": {result, fetchedAt} }
   { key: "stockDetailCache", kind: "object", notArray: true }, // 个股 AI 分析缓存: { "v1::<sha1>": {result, fetchedAt} }
@@ -452,36 +451,8 @@ function saveAll(results, statePath = defaultPath()) {
         ts: now,
         last_notified: prev.last_notified,
         changelog_history: history.length > 0 ? history : undefined,
-        // Phase C2: preserve snooze fields across saves
-        snoozeUntil:
-          typeof prev.snoozeUntil === "number" ? prev.snoozeUntil : undefined,
-        skippedVersion:
-          typeof prev.skippedVersion === "string" &&
-          prev.skippedVersion.length > 0
-            ? prev.skippedVersion
-            : undefined,
+        // (C2 snooze 字段已退役, 不再 preserve)
       };
-
-      // Phase C2: clear skippedVersion when user upgrades past the skipped version.
-      // 当 latest_version 变化 (新版本上线) → 自动清除 app.skippedVersion,
-      // 这样 "跳过该版本" 的 snooze 不再黏在新版本上, 用户升到新版本或新版
-      // 再次出现时, 通知/UI 会正常显示.
-      const newLatest = r.latest_version;
-      if (
-        prev.skippedVersion &&
-        typeof newLatest === "string" &&
-        newLatest.length > 0 &&
-        prev.skippedVersion !== newLatest
-      ) {
-        delete apps[r.name].skippedVersion;
-      }
-      // snoozeUntil 不再是未来时也清掉(避免无限期 stale 状态)
-      if (
-        typeof apps[r.name].snoozeUntil === "number" &&
-        apps[r.name].snoozeUntil <= now
-      ) {
-        delete apps[r.name].snoozeUntil;
-      }
     }
     next.apps = apps;
   }, statePath);
@@ -603,96 +574,7 @@ function clearMute(name, statePath = defaultPath()) {
   }, statePath);
 }
 
-// ─── Phase C2: Per-app snooze (等下次再升) ─────────────────────
-
-/**
- * Phase C2: write app snooze (until ms or skippedVersion). Atomic write, preserves other fields.
- * @param {string} name
- * @param {{until?: number, version?: string}} opts
- * @param {string} [statePath]
- * @returns {object} 写完后的完整 state
- */
-function setAppSnooze(name, opts, statePath = defaultPath()) {
-  if (!name || typeof name !== "string") {
-    throw new TypeError("setAppSnooze: name must be non-empty string");
-  }
-  if (!opts || typeof opts !== "object" || Array.isArray(opts)) {
-    throw new TypeError("setAppSnooze: opts must be plain object");
-  }
-  return patchState((next, existing) => {
-    const prev = (existing.apps && existing.apps[name]) || {};
-    const updated = { ...prev };
-    if (typeof opts.until === "number") {
-      updated.snoozeUntil = opts.until;
-    }
-    if (typeof opts.version === "string" && opts.version.length > 0) {
-      updated.skippedVersion = opts.version;
-    }
-    next.apps = { ...(existing.apps || {}), [name]: updated };
-  }, statePath);
-}
-
-/**
- * Phase C2: clear all snooze for an app.
- * @param {string} name
- * @param {string} [statePath]
- * @returns {object} 写完后的完整 state
- */
-function clearAppSnooze(name, statePath = defaultPath()) {
-  if (!name || typeof name !== "string") {
-    throw new TypeError("clearAppSnooze: name must be non-empty string");
-  }
-  return patchState((next, existing) => {
-    const prev = existing.apps && existing.apps[name];
-    if (!prev) return;
-    const { snoozeUntil: _u, skippedVersion: _v, ...rest } = prev;
-    next.apps = { ...(existing.apps || {}), [name]: rest };
-  }, statePath);
-}
-
-/**
- * Phase C2: read snooze sub-state for one app.
- * @param {string} name
- * @param {string} [statePath]
- * @returns {{snoozeUntil: number|null, skippedVersion: string|null}}
- */
-function loadAppSnooze(name, statePath = defaultPath()) {
-  const s = load(statePath);
-  const app = s && s.apps && s.apps[name];
-  return {
-    snoozeUntil:
-      app && typeof app.snoozeUntil === "number" ? app.snoozeUntil : null,
-    skippedVersion:
-      app && typeof app.skippedVersion === "string" ? app.skippedVersion : null,
-  };
-}
-
-// ─── Phase C3: App rollback helpers ────────────────────────
-
-/**
- * Phase C3: write installed_version for one app (called by rollback IPC).
- * Lightweight patch: 不动 latest_version / has_update / changelog — 那些要等下次
- * detect-run 自然更新; rollback 只把"我现在装的版本"这一行的事实同步到 state.
- * @param {string} name
- * @param {string} version
- * @param {string} [statePath]
- * @returns {object|null} 写完后的完整 state; null on 失败
- */
-function saveAppInstalledVersion(name, version, statePath = defaultPath()) {
-  if (!name || typeof name !== "string") return null;
-  if (typeof version !== "string" || version.length === 0) return null;
-  try {
-    return patchState((next, existing) => {
-      const prev = (existing.apps && existing.apps[name]) || {};
-      next.apps = {
-        ...(existing.apps || {}),
-        [name]: { ...prev, installed_version: version, ts: Date.now() },
-      };
-    }, statePath);
-  } catch {
-    return null;
-  }
-}
+// ─── Phase C2/C3 已退役: per-app snooze + rollback 全部移除 ─────
 
 // ─── Phase 29: Last-opened ───────────────────────────────────
 
@@ -1751,50 +1633,7 @@ function getLastRecoveryEvent() {
   return evt;
 }
 
-// ─── App rollback · version_history ─────────────────────────────
-//
-// 用途: 记录每次 brew 升级前的旧版本 + 备份路径. 给"一键回滚"用.
-// Schema: { [appName]: [VersionEntry, ...] } (倒序, 0 是当前装的版本)
-// VersionEntry: { from, to, at, backupPath, source, sizeBytes }
-//
-// 设计: 跟 mutes / last_opened / task_summaries 平级, 走 patchState 保留.
-// 读 / 写都通过 helper; load() 保持纯读 (不 mutate 老 state.json).
-
-/**
- * 读 version_history. 老 state.json (无 version_history 字段) / 损坏 → {} (兜底).
- * @param {string} [statePath]
- * @returns {object} { [appName]: VersionEntry[] }
- */
-function getVersionHistory(statePath = defaultPath()) {
-  try {
-    const s = load(statePath);
-    if (!s) return {};
-    if (
-      !s.version_history ||
-      typeof s.version_history !== "object" ||
-      Array.isArray(s.version_history)
-    )
-      return {};
-    return s.version_history;
-  } catch {
-    return {};
-  }
-}
-
-/**
- * 写 version_history. atomic write, 保留 apps / mutes / last_opened / active_category 等.
- * map 必须是 plain object; null/undefined → {} 兜底.
- * @param {object} map  { [appName]: VersionEntry[] }
- * @param {string} [statePath]
- * @returns {object} 写完后的完整 state
- */
-function saveVersionHistory(map, statePath = defaultPath()) {
-  const safeMap =
-    map != null && typeof map === "object" && !Array.isArray(map) ? map : {};
-  return patchState((next) => {
-    next.version_history = { ...safeMap };
-  }, statePath);
-}
+// ─── C3 app rollback 退役, version_history 读写全部移除 ─────────
 
 // ─── ON: release notes onboarding — last_seen_release ──────────
 //
@@ -1939,8 +1778,7 @@ function loadTokenBudgetConfig(statePath = defaultPath()) {
   try {
     const s = load(statePath);
     const c = s && s.tokenBudgetConfig;
-    const dailyLimit =
-      c && typeof c.dailyLimit === "number" ? c.dailyLimit : 0;
+    const dailyLimit = c && typeof c.dailyLimit === "number" ? c.dailyLimit : 0;
     const mode =
       c && (c.mode === "warn" || c.mode === "block") ? c.mode : "warn";
     return { dailyLimit, mode };
@@ -2160,18 +1998,9 @@ module.exports = {
   // Phase I5: daily digest sub-state
   saveDailyDigest,
   loadDailyDigest,
-  // Phase C2: per-app snooze
-  setAppSnooze,
-  clearAppSnooze,
-  loadAppSnooze,
   // Phase v1: tray menu prefs
   loadTrayMenuPrefs,
   saveTrayMenuPrefs,
-  // 2026-06-14: app rollback — 升级历史 (倒序, cap 2)
-  getVersionHistory,
-  saveVersionHistory,
-  // 2026-06-14: app rollback — 写单条 installed_version (rollback IPC 用)
-  saveAppInstalledVersion,
   // 2026-06-23: Phase Q1 v2 — 启动耗时历史 (cap 20)
   loadStartupSamples,
   saveStartupSamples,

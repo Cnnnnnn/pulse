@@ -12,19 +12,19 @@
       "release_notes_url": "https://www.cursor.com/changelog",
       "detectors": [
         {
+          "type": "html_changelog",
+          "url": "https://www.cursor.com/changelog",
+          "section_pattern": "<article>",
+          "section_end": "</article>",
+          "version_pattern": "<span class=\"label\">([0-9.]+)</span>"
+        },
+        {
           "type": "cursor_redirect",
           "url": "https://api2.cursor.sh/updates/download/golden/darwin-{arch_short}/cursor/3.6"
         },
         {
           "type": "brew_formulae",
           "cask": "cursor"
-        },
-        {
-          "type": "html_changelog",
-          "url": "https://www.cursor.com/changelog",
-          "section_pattern": "<article>",
-          "section_end": "</article>",
-          "version_pattern": "<span class=\"label\">([0-9.]+)</span>"
         },
         {
           "type": "winget_show",
@@ -41,6 +41,12 @@
       "download_url": "https://kimi.moonshot.cn",
       "release_notes_url": "https://kimi.moonshot.cn/docs/changelog",
       "detectors": [
+        {
+          "type": "html_changelog",
+          "url": "https://kimi.moonshot.cn/docs/changelog",
+          "section_pattern": "<section",
+          "section_end": "</section>"
+        },
         {
           "type": "redirect_filename",
           "url": "https://appsupport.moonshot.cn/api/app/pkg/latest/macos/download"
@@ -90,6 +96,13 @@
       "release_notes_url": "https://www.minimaxi.com/changelog",
       "detectors": [
         {
+          "type": "html_changelog",
+          "url": "https://agent.minimaxi.com/docs/changelog",
+          "section_pattern": "<h2 ",
+          "section_end": "<h2 ",
+          "version_pattern": "<span class=\"cursor-pointer\">v([0-9.]+)</span>"
+        },
+        {
           "type": "electron_yml",
           "url": "https://filecdn.minimax.chat/public/minimax-agent-prod/release/latest-mac.yml"
         },
@@ -102,13 +115,6 @@
           "type": "winget_show",
           "id": "MiniMax.MiniMaxCode",
           "platform": "win"
-        },
-        {
-          "type": "html_changelog",
-          "url": "https://agent.minimaxi.com/docs/changelog",
-          "section_pattern": "<h2 ",
-          "section_end": "</h2>",
-          "version_pattern": "<span class=\"cursor-pointer\">v([0-9.]+)</span>"
         }
       ],
       "winget_id": "MiniMax.MiniMaxCode"
@@ -121,13 +127,12 @@
       "release_notes_url": "https://hub.minimax.io/",
       "detectors": [
         {
-          "type": "electron_yml",
-          "url": "https://filecdn.minimax.chat/public/minimax-hub/release/domestic/latest-mac.yml"
-        },
-        {
-          "type": "electron_zip_probe",
-          "baseUrl": "https://filecdn.minimax.chat/public/minimax-hub/release/domestic",
-          "product": "MiniMax Hub"
+          "type": "hilo_changelog_manifest",
+          "urls": [
+            "https://file.cdn.minimax.io/public/minimax-hub/release/overseas/changelog.json",
+            "https://filecdn.minimax.chat/public/minimax-hub/release/domestic/changelog.json"
+          ],
+          "timeout": 4000
         },
         {
           "type": "winget_show",
@@ -145,6 +150,13 @@
       "release_notes_url": "https://www.codebuddy.cn/docs/workbuddy/Changelog",
       "detectors": [
         {
+          "type": "html_changelog",
+          "url": "https://www.codebuddy.cn/docs/workbuddy/Changelog",
+          "section_pattern": "<h2 id=\"_",
+          "section_end": "<h2 id=\"_",
+          "version_pattern": ">([0-9.]+) 版本发布"
+        },
+        {
           "type": "api_json",
           "url": "https://www.codebuddy.cn/v2/update?platform=workbuddy-darwin-{arch}"
         },
@@ -152,13 +164,6 @@
           "type": "winget_show",
           "id": "Tencent.WorkBuddy",
           "platform": "win"
-        },
-        {
-          "type": "html_changelog",
-          "url": "https://www.codebuddy.cn/docs/workbuddy/Changelog",
-          "section_pattern": "<h2 id=\"_",
-          "section_end": "</h2>",
-          "version_pattern": ">([0-9.]+) 版本发布"
         }
       ],
       "winget_id": "Tencent.WorkBuddy"
@@ -188,6 +193,7 @@
       "win_bundle": "Marvis",
       "download_url": "https://marvis.qq.com",
       "release_notes_url": "https://marvis.qq.com",
+      "bundle_changelog": true,
       "detectors": [
         {
           "type": "redirect_filename",
@@ -246,7 +252,13 @@
       "bundle": "Codex.app",
       "win_bundle": "Codex",
       "download_url": "https://openai.com/codex/download",
+      "release_notes_url": "https://developers.openai.com/codex/changelog",
       "detectors": [
+        {
+          "type": "rss_changelog",
+          "url": "https://developers.openai.com/codex/changelog/rss.xml",
+          "enrich_only": true
+        },
         {
           "type": "sparkle_appcast",
           "url": "https://persistent.oaistatic.com/codex-app-prod/appcast.xml"
@@ -286,9 +298,13 @@
       "name": "CC Switch",
       "bundle": "CC Switch.app",
       "win_bundle": "CC Switch",
-      "download_url": "https://github.com/johnhomides/cc-switch",
-      "release_notes_url": "https://github.com/johnhomides/cc-switch/releases",
+      "download_url": "https://ccswitch.io",
+      "release_notes_url": "https://ccswitch.io/zh/changelog",
       "detectors": [
+        {
+          "type": "github_release",
+          "url": "https://api.github.com/repos/farion1231/cc-switch/releases/latest"
+        },
         {
           "type": "brew_formulae",
           "cask": "cc-switch"

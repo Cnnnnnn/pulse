@@ -2,9 +2,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/preact";
 
-// mock 掉 CommandPalette 和 TopBar 避免拉真实 IPC
+// mock 掉 CommandPalette 和 AITasksDrawer 避免拉真实 IPC
 vi.mock("../../src/renderer/components/CommandPalette.jsx", () => ({
   CommandPalette: () => null,
+}));
+vi.mock("../../src/renderer/components/AITasksDrawer.jsx", () => ({
+  AITasksDrawer: () => null,
 }));
 
 import { VersionsLayout } from "../../src/renderer/components/VersionsLayout.jsx";

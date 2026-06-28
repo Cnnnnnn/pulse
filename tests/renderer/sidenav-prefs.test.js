@@ -27,7 +27,11 @@ describe("sidenav-prefs", () => {
   });
 
   it("savePrefs → loadPrefs 还原 (round-trip)", () => {
-    const original = { version: 1, order: ["funds", "ithome", "versions"], hidden: ["metals"] };
+    const original = {
+      version: 1,
+      order: ["funds", "ithome", "versions"],
+      hidden: ["metals"],
+    };
     savePrefs(original);
     const got = loadPrefs();
     expect(got).toEqual(original);
@@ -41,17 +45,23 @@ describe("sidenav-prefs", () => {
   });
 
   it("loadPrefs: version 不匹配 → 返 DEFAULTS", () => {
-    localStorage.setItem(STORAGE_KEY_FOR_TESTS, JSON.stringify({ version: 99, order: [], hidden: [] }));
+    localStorage.setItem(
+      STORAGE_KEY_FOR_TESTS,
+      JSON.stringify({ version: 99, order: [], hidden: [] }),
+    );
     const p = loadPrefs();
     expect(p.order).toEqual(NAV_KEYS_LIST);
   });
 
   it("loadPrefs: 过滤未知 key (防御)", () => {
-    localStorage.setItem(STORAGE_KEY_FOR_TESTS, JSON.stringify({
-      version: 1,
-      order: ["funds", "evil-key", "versions"],
-      hidden: ["another-evil"],
-    }));
+    localStorage.setItem(
+      STORAGE_KEY_FOR_TESTS,
+      JSON.stringify({
+        version: 1,
+        order: ["funds", "evil-key", "versions"],
+        hidden: ["another-evil"],
+      }),
+    );
     const p = loadPrefs();
     expect(p.order).toEqual(["funds", "versions"]);
     expect(p.hidden).toEqual([]);
@@ -88,7 +98,11 @@ describe("sidenav-prefs", () => {
   });
 
   it("listVisible: 按 order 排, 排除 hidden", () => {
-    const p = { version: 1, order: ["funds", "ithome", "versions", "metals"], hidden: ["metals"] };
+    const p = {
+      version: 1,
+      order: ["funds", "ithome", "versions", "metals"],
+      hidden: ["metals"],
+    };
     expect(listVisible(p)).toEqual(["funds", "ithome", "versions"]);
   });
 
@@ -97,7 +111,11 @@ describe("sidenav-prefs", () => {
   });
 
   it("listHidden: NAV_KEYS_LIST - visible (按 NAV_KEYS_LIST 顺序)", () => {
-    const p = { version: 1, order: NAV_KEYS_LIST, hidden: ["metals", "worldcup"] };
+    const p = {
+      version: 1,
+      order: NAV_KEYS_LIST,
+      hidden: ["metals", "worldcup"],
+    };
     // 顺序按 NAV_KEYS_LIST 排, 不是按 hidden 数组
     expect(new Set(listHidden(p))).toEqual(new Set(["metals", "worldcup"]));
     expect(listHidden(p)).toEqual(["worldcup", "metals"]);
@@ -107,9 +125,13 @@ describe("sidenav-prefs", () => {
     // happy-dom 的 localStorage.setItem 不抛 quota — 测试 savePrefs 内部错误兜底
     let warned = false;
     const origWarn = console.warn;
-    console.warn = () => { warned = true; };
+    console.warn = () => {
+      warned = true;
+    };
     const origJSON = JSON.stringify;
-    JSON.stringify = () => { throw new Error("circular reference"); };
+    JSON.stringify = () => {
+      throw new Error("circular reference");
+    };
     let ok;
     try {
       ok = savePrefs(resetPrefs());
@@ -126,10 +148,17 @@ describe("sidenav-prefs: reorderItems", () => {
   beforeEach(() => localStorage.clear());
 
   it("reorderItems: from → to 'before'", () => {
-    const p0 = resetPrefs(); // [ithome, wechat-hot, worldcup, funds, metals, stocks, stock-watchlist, stock-detail, ai-usage, versions]
+    const p0 = resetPrefs(); // [ithome, wechat-hot, worldcup, funds, metals, stocks, ai-usage, versions] (Phase 32 stock-detail 合并到选股)
     const p1 = reorderItems(p0, "ithome", "funds", "before");
     expect(p1.order).toEqual([
-      "wechat-hot", "worldcup", "ithome", "funds", "metals", "stocks", "stock-watchlist", "stock-detail", "ai-usage", "versions",
+      "wechat-hot",
+      "worldcup",
+      "ithome",
+      "funds",
+      "metals",
+      "stocks",
+      "ai-usage",
+      "versions",
     ]);
   });
 
@@ -137,7 +166,14 @@ describe("sidenav-prefs: reorderItems", () => {
     const p0 = resetPrefs();
     const p1 = reorderItems(p0, "ithome", "funds", "after");
     expect(p1.order).toEqual([
-      "wechat-hot", "worldcup", "funds", "ithome", "metals", "stocks", "stock-watchlist", "stock-detail", "ai-usage", "versions",
+      "wechat-hot",
+      "worldcup",
+      "funds",
+      "ithome",
+      "metals",
+      "stocks",
+      "ai-usage",
+      "versions",
     ]);
   });
 
@@ -172,8 +208,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 10 个 nav key", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(10);
+  it("DEFAULTS_FOR_TESTS: 8 个 nav key (Phase 32 stock-detail 合并到选股)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(8);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

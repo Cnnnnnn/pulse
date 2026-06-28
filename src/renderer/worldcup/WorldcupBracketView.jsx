@@ -30,12 +30,34 @@ function formatRelativeTime(ts) {
   return new Date(ts).toLocaleString("zh-CN");
 }
 
+// ponytail: v2.61 — 过滤掉 informational warnings.
+// bracket_partial / annexC_* / simplified_* 是预期状态提示, 不应该当警告.
+// 真正的警告只有 finals_fetch_* (网络拉取失败) 和 group_*_incomplete (小组赛数据缺失).
+function isRealWarning(w, snapshot) {
+  if (w.startsWith("finals_fetch_")) return true;
+  // ponytail: group_X_incomplete 只有当 snapshot.projected=true (R32 没踢) 时才有 — 这时是预期.
+  // 等 R32 踢完, projected=false, 此时若有 group_X_incomplete 才是真警告.
+  if (w.startsWith("group_") && w.endsWith("_incomplete") && snapshot.projected === false) return true;
+  return false;
+}
+
 export function WorldcupBracketView() {
   const snapshot = worldcupBracket.value;
   const computing = bracketComputing.value;
   const error = bracketError.value;
   const lastComputedAt = bracketLastComputedAt.value;
   const [squadMatch, setSquadMatch] = useState(null);
+  // ponytail: v2.56 stage tab — 默认 R32 (最丰富阶段), 用户点 tab 切换.
+  const [currentStage, setCurrentStage] = useState("r32");
+
+  const STAGE_TABS = [
+    { id: "r32", label: "1/16" },
+    { id: "r16", label: "1/8" },
+    { id: "qf", label: "1/4" },
+    { id: "sf", label: "半决赛" },
+    { id: "final", label: "决赛" },
+    { id: "overview", label: "全景" },  // ponytail: v2.62 — 一屏看 5 个 stage 的小卡全景
+  ];
 
   useEffect(() => {
     // 进入 tab: 先同步拉 cache 让用户立刻看到上次结果,
@@ -115,17 +137,31 @@ export function WorldcupBracketView() {
         <div class="bracket-meta">
           <span>上次计算: {formatRelativeTime(lastComputedAt)}</span>
           <span> · {projectedBanner}</span>
-          {snapshot.warnings && snapshot.warnings.length > 0 && (
-            <span class="bracket-warnings"> · <IconAlert size={12} /> {snapshot.warnings.length} 个警告</span>
+          {snapshot.warnings && snapshot.warnings.filter((w) => isRealWarning(w, snapshot)).length > 0 && (
+            <span class="bracket-warnings"> · <IconAlert size={12} /> {snapshot.warnings.filter((w) => isRealWarning(w, snapshot)).length} 个警告</span>
           )}
         </div>
+      </div>
+      {/* ponytail: v2.56 stage tab 切换 — 参考小红书 2026 世界杯 UI */}
+      <div class="bracket-stage-tabs" role="tablist">
+        {STAGE_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={currentStage === tab.id}
+            class={`bracket-stage-tab ${currentStage === tab.id ? "bracket-stage-tab--active" : ""}`}
+            onClick={() => setCurrentStage(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
       {noGroupData ? (
         <div class="bracket-view bracket-view--empty">
           <p class="bracket-empty-msg">小组赛尚未开始，待 6/11 揭幕战后再计算淘汰赛对阵</p>
         </div>
       ) : (
-        <BracketTree snapshot={snapshot} onMatchClick={handleMatchClick} />
+        <BracketTree snapshot={snapshot} onMatchClick={handleMatchClick} currentStage={currentStage} />
       )}
     </div>
   );

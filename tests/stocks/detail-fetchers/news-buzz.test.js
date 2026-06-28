@@ -29,27 +29,50 @@ describe("fetchNewsBuzz", () => {
     expect(r.data.items[2].sentiment).toBe("negative");
   });
 
-  it("parse_failed when list missing", async () => {
-    const http = makeClient([{ ok: true, status: 200, body: { data: {} } }]);
+  it("em returns empty data → falls through to sina with empty items", async () => {
+    // ponytail: em 接口 2026 改版常返 data:null/{}; fetcher 视为"该源无数据",
+    // 不再报 parse_failed, 而是继续走 sina. sina 也空 → ok with empty items.
+    const http = makeClient([
+      {
+        ok: true,
+        status: 200,
+        body: { code: 1, message: "success", data: null },
+      },
+      {
+        ok: true,
+        status: 200,
+        body: { result: { status: { code: 11 }, data: [] } },
+      },
+    ]);
     const r = await fetchNewsBuzz(http, { code: "600519" });
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe("parse_failed");
+    expect(r.ok).toBe(true);
+    expect(r.data.items).toEqual([]);
   });
 
-  it("falls back to sina on primary failure", async () => {
+  it("falls back to sina on primary network failure", async () => {
     const http = makeClient([
       fail(),
-      { ok: true, status: 200, body: { result: { data: [{ title: "利好公告", ctime: "2026-06-25" }] } } },
+      {
+        ok: true,
+        status: 200,
+        body: {
+          result: { data: [{ title: "利好公告", ctime: "2026-06-25" }] },
+        },
+      },
     ]);
     const r = await fetchNewsBuzz(http, { code: "600519" });
     expect(r.ok).toBe(true);
     expect(r.data.items[0].sentiment).toBe("positive");
   });
 
-  it("fetch_failed when both fail", async () => {
-    const http = makeClient([fail(), fail()]);
+  it("both sources empty 200 → ok with empty items (no fetch_failed)", async () => {
+    // ponytail: 舆情数据缺失是合理结果, 不算 fetch 失败.
+    const http = makeClient([
+      { ok: true, status: 200, body: { data: null } },
+      { ok: true, status: 200, body: { result: { data: [] } } },
+    ]);
     const r = await fetchNewsBuzz(http, { code: "600519" });
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe("fetch_failed");
+    expect(r.ok).toBe(true);
+    expect(r.data.items).toEqual([]);
   });
 });

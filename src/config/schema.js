@@ -39,6 +39,7 @@ const VALID_DETECTOR_TYPES = new Set([
   "html_changelog",
   "winget_show",
   "github_release",
+  "hilo_changelog_manifest",
 ]);
 
 function isNonEmptyString(v) {
@@ -214,6 +215,8 @@ function sanitizeConfig(input) {
         if (isNonEmptyString(d.field)) out.field = d.field;
         if (isNonEmptyString(d.id)) out.id = d.id;
         if (isNonEmptyString(d.platform)) out.platform = d.platform;
+        if (isNonEmptyString(d.baseUrl)) out.baseUrl = d.baseUrl;
+        if (isNonEmptyString(d.product)) out.product = d.product;
         if (typeof d.timeout === "number" && d.timeout > 0)
           out.timeout = d.timeout;
         if (isNonEmptyString(d.section_pattern))
@@ -221,6 +224,14 @@ function sanitizeConfig(input) {
         if (isNonEmptyString(d.section_end)) out.section_end = d.section_end;
         if (isNonEmptyString(d.version_pattern))
           out.version_pattern = d.version_pattern;
+        // 数组字段: 透传非空字符串数组 (hilo_changelog_manifest.urls 等).
+        // 仅过滤字符串项, 非字符串项静默丢弃 — 避免脏数据传进 detector.
+        if (Array.isArray(d.urls) && d.urls.length > 0) {
+          const cleanUrls = d.urls
+            .filter((u) => isNonEmptyString(u))
+            .map((u) => String(u));
+          if (cleanUrls.length > 0) out.urls = cleanUrls;
+        }
         return out;
       }),
       version_sources: cleanVS.length > 0 ? cleanVS : undefined,

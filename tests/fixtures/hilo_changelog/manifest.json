@@ -1,0 +1,26 @@
+{
+  "app": "MiniMax Hub",
+  "appBundle": "MiniMax Hub.app",
+  "detector": "hilo_changelog_manifest",
+  "url": "https://file.cdn.minimax.io/public/minimax-hub/release/overseas/changelog.json",
+  "request": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "follow": true,
+  "recordedAt": "2026-06-27T11:30:00.000Z",
+  "elapsedMs": 263,
+  "ok": true,
+  "note": "hilo changelog manifest (overseas); detector parses items[0] for version + changelog",
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": "{\n  \"schemaVersion\": 1,\n  \"updatedAt\": \"2026-06-27T11:22:48.397Z\",\n  \"en\": {\n    \"badge\": \"UPDATE\",\n    \"title\": \"What's New\",\n    \"items\": [\n      {\n        \"version\": \"1.0.7\",\n        \"date\": \"June 27, 2026\",\n        \"subtitle\": \"macOS signing updated; Windows version synced\",\n        \"changelog\": [\n          \"macOS signing certificate has been updated\",\n          \"Windows version is synced to 1.0.7\",\n          \"If macOS auto-update fails, download the installer from the website\"\n        ],\n        \"featured\": true\n      },\n      {\n        \"version\": \"0.1.57\",\n        \"date\": \"June 7, 2026\",\n        \"subtitle\": \"Upgraded canvas organization experience, refined chat and generation flow\",\n        \"changelog\": [\n          \"Smarter canvas auto-grouping for more accurate node categorization and smoother batch operations\",\n          \"Generated images automatically reflow into a new column when exceeding 5, for a clearer browsing experience\"\n        ],\n        \"branch\": \"release-20260607\"\n      },\n      {\n        \"version\": \"0.1.56\",\n        \"date\": \"June 7, 2026\",\n        \"subtitle\": \"Canvas Interaction and Generation Reliability\",\n        \"changelog\": [\n          \"Canvas reference images/videos can no longer reference themselves, avoiding invalid references\",\n          \"Loading nodes can be deleted properly and won't reappear unexpectedly\"\n        ]\n      }\n    ]\n  },\n  \"zh\": {\n    \"badge\": \"更新\",\n    \"title\": \"更新日志\",\n    \"items\": [\n      {\n        \"version\": \"1.0.7\",\n        \"date\": \"2026年6月27日\",\n        \"subtitle\": \"macOS 签名证书更新；Windows 版本同步\",\n        \"changelog\": [\n          \"macOS 签名证书已更新\",\n          \"Windows 版本已同步至 1.0.7\",\n          \"若 macOS 自动更新失败, 请从官网下载安装包\"\n        ],\n        \"featured\": true\n      }\n    ]\n  }\n}\n",
+    "bodyBytes": 1842
+  }
+}

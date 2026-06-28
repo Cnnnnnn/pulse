@@ -19,7 +19,10 @@ const { mainLog } = require("../log");
 
 const FIXTURES_URL =
   "https://raw.githubusercontent.com/openfootball/worldcup/master/2026--usa/cup.txt";
+const FINALS_URL =
+  "https://raw.githubusercontent.com/openfootball/worldcup/master/2026--usa/cup_finals.txt";
 const CACHE_KEY = "worldcup:fixtures:txt";
+const FINALS_CACHE_KEY = "worldcup:finals:txt"; // 当前未启用 (see loadFinalsTxt)
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const MIN_MATCH_COUNT = 70; // 当前 cup.txt 约 72 场; 旧解析仅识别 v 格式约 68 场
 const FETCH_TIMEOUT_MS = 8000;
@@ -93,6 +96,49 @@ async function loadFixturesTxt(opts = {}) {
   }
 }
 
+function _cacheFinalsLooksComplete(txt) {
+  // ponytail: 暂未启用 (loadFinalsTxt 不持久化). 留作未来世界赛 store.
+  try {
+    const data = parseWorldcupTxt(txt);
+    const withNum = (data.matches || []).filter(
+      (m) => typeof m.matchNum === "number",
+    );
+    return withNum.length >= 28; // 16 R32 + 8 R16 + 4 QF + 2 SF + 1 季军 + 1 Final = 32
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Load knockout-stage TXT (cup_finals.txt) — independent URL from group-stage.
+ *
+ * ponytail: 不引入新 cache 层. 24h 进程内 cache 由 caller 控制 (e.g. bracket IPC 调
+ * 时被上层 30s 节流). state-store 不动. 后续若需持久化再加 worldcup_finals_txt key.
+ *
+ * @param {{ force?: boolean, http?: object }} [opts]
+ * @returns {Promise<{ok: boolean, txt?: string, reason?: string}>}
+ */
+async function loadFinalsTxt(opts = {}) {
+  try {
+    const http = (opts && opts.http) || _getHttp();
+    const r = await http.get(FINALS_URL, { timeout: FETCH_TIMEOUT_MS });
+    if (!r || r.error) {
+      const reason = r && r.error ? r.error : "unknown";
+      return { ok: false, reason };
+    }
+    const txt = r.body || (typeof r === "string" ? r : null);
+    if (!txt || typeof txt !== "string") {
+      return { ok: false, reason: "empty_body" };
+    }
+    return { ok: true, txt };
+  } catch (err) {
+    mainLog.warn("[worldcup/fetcher] finals fetch threw", {
+      msg: err && err.message,
+    });
+    return { ok: false, reason: "threw", error: err && err.message };
+  }
+}
+
 /**
  * Top-level helper: load + parse.
  *
@@ -115,7 +161,10 @@ async function fetchWorldcupFixtures(opts = {}) {
 module.exports = {
   fetchWorldcupFixtures,
   loadFixturesTxt,
+  loadFinalsTxt,
   FIXTURES_URL,
+  FINALS_URL,
+  FINALS_CACHE_KEY,
   CACHE_TTL_MS,
   MIN_MATCH_COUNT,
 };

@@ -18,7 +18,6 @@
 const { Notification: ElectronNotification } = require("electron");
 const { inQuietHours, suppressedByCooldown } = require("./notification-policy");
 const { isMuteActive } = require("./state-store");
-const { applySnoozeFilter } = require("./snooze");
 const recentActivity = require("./recent-activity");
 const { detectStaleApps } = require("../utils/stale-detect");
 
@@ -151,14 +150,9 @@ async function runCheck(deps, opts = {}) {
     freshestTs,
   };
 
-  // Phase C2: load state + apply snooze filter up front, so both silent / non-silent
-  // branches (and the final return) see consistent filtered results.
+  // (C2 snooze 已退役, 不再过滤; 变量名沿用 filteredResults 减少下游改动)
   const state = typeof getState === "function" ? getState() : null;
-  // Phase C2: snoozed apps lose has_update (badge / tray / notification skip).
-  // applySnoozeFilter returns a NEW array, so the original `results` is preserved
-  // for callers that may inspect raw detection output; downstream consumers here
-  // all use `filteredResults`.
-  const filteredResults = applySnoozeFilter(results, state, Date.now());
+  const filteredResults = results;
 
   // 系统通知: silent 时不发
   if (!silent) {
@@ -191,7 +185,11 @@ async function runCheck(deps, opts = {}) {
     notifyable = notifyable.filter((r) => !isMuteActive(mutes[r.name], now));
 
     sendToRenderer("check-finished", finishPayload);
-    scheduleOnCheckComplete(onCheckComplete, filteredResults, finishPayload.stale);
+    scheduleOnCheckComplete(
+      onCheckComplete,
+      filteredResults,
+      finishPayload.stale,
+    );
 
     if (notifyable.length > 0) {
       const names = notifyable.map((r) => r.name).join("、");
@@ -213,7 +211,11 @@ async function runCheck(deps, opts = {}) {
       }
     }
   } else {
-    scheduleOnCheckComplete(onCheckComplete, filteredResults, finishPayload.stale);
+    scheduleOnCheckComplete(
+      onCheckComplete,
+      filteredResults,
+      finishPayload.stale,
+    );
     sendToRenderer("auto-check-finished", finishPayload);
   }
 

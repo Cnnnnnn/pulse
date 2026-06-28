@@ -5,9 +5,9 @@
  * Phase v1: SideNav 根据 tray menu prefs 过滤 4 个动态 nav tab.
  *
  * 覆盖:
- *  - 默认 prefs (全开): 9 个 nav 都显示
+ *  - 默认 prefs (全开): 8 个 nav 都显示 (Phase 32 stock-detail 合并到选股)
  *  - 关 updates (versions): versions 隐藏,其他还在
- *  - 4 个动态全关: 只剩 5 个固定 nav (ithome/wechat-hot/funds/stocks/stock-watchlist)
+ *  - 4 个动态全关: 只剩 4 个固定 nav (ithome/wechat-hot/funds/stocks)
  *  - 关非动态 prefs (e.g. check_action 不影响 nav): 全部 nav 仍显示
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -83,7 +83,7 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 10 个 nav 全显示", () => {
+  it("默认 prefs 全开 → 8 个 nav 全显示 (Phase 32 stock-detail 合并到选股)", () => {
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
       "ithome",
@@ -92,8 +92,6 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "funds",
       "metals",
       "stocks",
-      "stock-watchlist",
-      "stock-detail",
       "ai-usage",
       "versions",
     ]);
@@ -124,7 +122,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("4 个动态全关 → 只剩 6 个固定 nav (ithome/wechat-hot/funds/stocks/stock-watchlist/stock-detail)", () => {
+  it("4 个动态全关 → 只剩 4 个固定 nav (ithome/wechat-hot/funds/stocks)", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -142,8 +140,6 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "wechat-hot",
       "funds",
       "stocks",
-      "stock-watchlist",
-      "stock-detail",
     ]);
   });
 
@@ -167,8 +163,6 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "funds",
       "metals",
       "stocks",
-      "stock-watchlist",
-      "stock-detail",
       "ai-usage",
       "versions",
     ]);

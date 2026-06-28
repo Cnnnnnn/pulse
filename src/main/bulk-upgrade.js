@@ -16,52 +16,18 @@
  *              renderer 关闭 modal → abort, 不影响其他 IPC
  */
 
-const childProcess = require('child_process');
-const { shell, app } = require('electron');
-const { getActionForApp } = require('./bulk-upgrade-actions');
-const backup = require('./backup');
-const versionHistory = require('./version-history');
-const { resolveAppBundlePath } = require('../utils/app-paths');
+const childProcess = require("child_process");
+const { shell } = require("electron");
+const { getActionForApp } = require("./bulk-upgrade-actions");
+// (C3 app rollback 已退役, 不再 backup / recordUpgrade)
 
-// Testability hook: 让 vitest 直接注入 userDataDir, 跳过 `app.getPath('userData')`
-// (在 node 测试环境下 `require('electron')` 拿到的是 binary path string, 没有 app).
-let _testUserDataDirOverride = null;
-function _setUserDataDirForTest(dir) {
-  _testUserDataDirOverride = dir;
+// Testability hook (vitest only): 空 noop, 保留以兼容现有测试 import
+// (原功能: 让测试注入 userDataDir 跳过 electron.app.getPath; 已退役, 但保留符号)
+function _setUserDataDirForTest(_dir) {
+  /* noop — bulk-upgrade 不再需要 userDataDir */
 }
 
 const DEFAULT_PER_ITEM_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
-
-/**
- * 升级 brew app 前 backup 当前版本. best-effort: 任何失败都不抛, 只在 onProgress
- * 透出 warning. caller 据此决定是否 recordUpgrade.
- *
- * @returns {Promise<{backupPath: string, sizeBytes: number} | null>}
- *          null = 没 backup (跳过了 / 失败了).
- */
-async function backupBeforeBrew(item, userDataDir, onProgress) {
-  if (!item || !item.bundleName || !userDataDir) return null;
-  const emitWarning = (reason) => {
-    try { onProgress({ id: item.id, status: 'running', warning: reason || 'backup_skipped' }); } catch { /* noop */ }
-  };
-  try {
-    const appPath = resolveAppBundlePath(item.bundleName);
-    const installedVer = (item.current && String(item.current)) || 'unknown';
-    const raw = await backup.backupBundleVersion(item.bundleName, installedVer, {
-      userDataDir,
-      sourceAppPath: appPath,
-    });
-    if (raw && raw.ok) {
-      backup.pruneOldBackups(item.bundleName, { userDataDir, keep: 2 });
-      return { backupPath: raw.backupPath, sizeBytes: raw.sizeBytes };
-    }
-    emitWarning((raw && raw.reason) || 'backup_skipped');
-    return null;
-  } catch (err) {
-    emitWarning((err && err.message) || 'backup_failed');
-    return null;
-  }
-}
 
 /**
  * @param {object} opts
@@ -102,58 +68,57 @@ async function runBulkUpgrade(opts) {
     const action = getActionForApp(item);
 
     // none: 没法升级, 跳过
-    if (!action || action.type === 'none') {
-      const reason = (action && action.reason) || 'no action';
+    if (!action || action.type === "none") {
+      const reason = (action && action.reason) || "no action";
       skipped.push({ id: item.id, reason });
-      try { onProgress({ id: item.id, status: 'skipped', reason }); } catch { /* noop */ }
+      try {
+        onProgress({ id: item.id, status: "skipped", reason });
+      } catch {
+        /* noop */
+      }
       continue;
     }
 
     // 跑这个 item
-    try { onProgress({ id: item.id, status: 'running', action: action.type }); } catch { /* noop */ }
-    const t0 = Date.now();
-
-    // 1. backup (only for brew with bundleName + resolvable userData, best-effort)
-    let backupInfo = null;
-    if (action.type === 'brew' && item.bundleName) {
-      const userDataDir = _testUserDataDirOverride
-        || ((app && typeof app.getPath === 'function') ? app.getPath('userData') : null);
-      if (userDataDir) {
-        backupInfo = await backupBeforeBrew(item, userDataDir, onProgress);
-      }
+    try {
+      onProgress({ id: item.id, status: "running", action: action.type });
+    } catch {
+      /* noop */
     }
+    const t0 = Date.now();
 
     try {
       const result = await runOne(action, exec, perItemTimeoutMs, signal);
       const durationMs = Date.now() - t0;
       succeeded.push({ id: item.id, durationMs, action: action.type });
-      try { onProgress({ id: item.id, status: 'done', durationMs, action: action.type, output: result.output || '' }); }
-      catch { /* noop */ }
-
-      // 2. recordUpgrade (only for brew with successful backup)
-      // 注: to 用 item.latest (renderer 透传的升级意图) 作为 best-effort 锚点;
-      //    升级失败的 case recordUpgrade 不会被调, 不污染历史.
-      if (action.type === 'brew' && backupInfo && item.name && item.latest && backupInfo.backupPath) {
-        try {
-          versionHistory.recordUpgrade(item.name, {
-            from: String(item.current || 'unknown'),
-            to: String(item.latest),
-            at: Date.now(),
-            backupPath: backupInfo.backupPath,
-            source: String(item.source || 'brew_formulae'),
-            sizeBytes: backupInfo.sizeBytes || 0,
-          });
-        } catch {
-          /* noop */
-        }
+      try {
+        onProgress({
+          id: item.id,
+          status: "done",
+          durationMs,
+          action: action.type,
+          output: result.output || "",
+        });
+      } catch {
+        /* noop */
       }
     } catch (err) {
       const durationMs = Date.now() - t0;
-      const error = (err && err.message) || 'unknown error';
-      const output = (err && err.output) || '';
+      const error = (err && err.message) || "unknown error";
+      const output = (err && err.output) || "";
       failed.push({ id: item.id, error, output, action: action.type });
-      try { onProgress({ id: item.id, status: 'failed', error, output, durationMs, action: action.type }); }
-      catch { /* noop */ }
+      try {
+        onProgress({
+          id: item.id,
+          status: "failed",
+          error,
+          output,
+          durationMs,
+          action: action.type,
+        });
+      } catch {
+        /* noop */
+      }
     }
   }
 
@@ -173,12 +138,12 @@ function runOne(action, exec, perItemTimeoutMs, signal) {
     };
 
     const timer = setTimeout(() => {
-      finish(reject, makeError(`timeout after ${perItemTimeoutMs}ms`, ''));
+      finish(reject, makeError(`timeout after ${perItemTimeoutMs}ms`, ""));
     }, perItemTimeoutMs);
 
     // signal 监听
     const onAbort = () => {
-      finish(reject, makeError('cancelled', ''));
+      finish(reject, makeError("cancelled", ""));
     };
     if (signal) {
       if (signal.aborted) {
@@ -186,29 +151,29 @@ function runOne(action, exec, perItemTimeoutMs, signal) {
         onAbort();
         return;
       }
-      signal.addEventListener('abort', onAbort, { once: true });
+      signal.addEventListener("abort", onAbort, { once: true });
     }
 
     exec(action).then(
       (result) => {
-        if (signal) signal.removeEventListener('abort', onAbort);
+        if (signal) signal.removeEventListener("abort", onAbort);
         clearTimeout(timer);
-        finish(resolve, result || { output: '' });
+        finish(resolve, result || { output: "" });
       },
       (err) => {
-        if (signal) signal.removeEventListener('abort', onAbort);
+        if (signal) signal.removeEventListener("abort", onAbort);
         clearTimeout(timer);
-        const msg = (err && err.message) || 'exec failed';
-        const out = (err && err.output) || (err && err.stderr) || '';
+        const msg = (err && err.message) || "exec failed";
+        const out = (err && err.output) || (err && err.stderr) || "";
         finish(reject, makeError(msg, out));
-      }
+      },
     );
   });
 }
 
 function makeError(message, output) {
   const e = new Error(message);
-  e.output = output || '';
+  e.output = output || "";
   return e;
 }
 
@@ -223,19 +188,19 @@ function makeError(message, output) {
  * winget 用 child-process event 形式以便测试能 mock; brew 沿用 callback 形式.
  */
 async function defaultExec(action) {
-  if (action.type === 'brew') {
+  if (action.type === "brew") {
     return execBrew(action.cmd, action.args);
   }
-  if (action.type === 'open') {
+  if (action.type === "open") {
     return execOpen(action.path);
   }
-  if (action.type === 'open_url') {
+  if (action.type === "open_url") {
     return execOpenUrl(action.url);
   }
-  if (action.type === 'mas') {
+  if (action.type === "mas") {
     return execMas(action.trackId, action.fallbackUrl);
   }
-  if (action.type === 'winget') {
+  if (action.type === "winget") {
     return execWinget(action.id);
   }
   throw new Error(`unknown action type: ${action && action.type}`);
@@ -243,13 +208,13 @@ async function defaultExec(action) {
 
 function execBrew(cmd, args) {
   return new Promise((resolve, reject) => {
-      execFile(cmd, args, { timeout: 0 }, (err, stdout, stderr) => {
-      const out = (stdout || '') + (stderr ? '\n[stderr]\n' + stderr : '');
+    execFile(cmd, args, { timeout: 0 }, (err, stdout, stderr) => {
+      const out = (stdout || "") + (stderr ? "\n[stderr]\n" + stderr : "");
       // brew upgrade 退出码:
       //   0 = 成功升级
       //   1 = 一般错误 (cask not installed / network 等)
       if (err) {
-        const e = new Error((stderr || err.message || 'brew failed').trim());
+        const e = new Error((stderr || err.message || "brew failed").trim());
         e.output = out;
         e.exitCode = err.code;
         reject(e);
@@ -276,27 +241,36 @@ function execBrew(cmd, args) {
  */
 function execWinget(id) {
   return new Promise((resolve) => {
-    if (!id || typeof id !== 'string' || !id.trim()) {
-      return resolve({ ok: false, reason: 'winget: missing id' });
+    if (!id || typeof id !== "string" || !id.trim()) {
+      return resolve({ ok: false, reason: "winget: missing id" });
     }
     const args = [
-      'upgrade',
-      '--id', id.trim(),
-      '--accept-package-agreements',
-      '--accept-source-agreements',
+      "upgrade",
+      "--id",
+      id.trim(),
+      "--accept-package-agreements",
+      "--accept-source-agreements",
     ];
     // No callback: rely on child-process events so tests can mock execFile
     // by returning a stub EventEmitter. In production, execFile without a
     // callback also returns a ChildProcess with the same events.
-    const child = childProcess.execFile('winget', args);
-    let stdout = '';
-    let stderr = '';
-    child.stdout?.on('data', (d) => { stdout += d.toString(); });
-    child.stderr?.on('data', (d) => { stderr += d.toString(); });
-    child.on('error', (err) => {
-      resolve({ ok: false, reason: 'winget: spawn failed', error: err && err.message });
+    const child = childProcess.execFile("winget", args);
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", (d) => {
+      stdout += d.toString();
     });
-    child.on('close', (code) => {
+    child.stderr?.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child.on("error", (err) => {
+      resolve({
+        ok: false,
+        reason: "winget: spawn failed",
+        error: err && err.message,
+      });
+    });
+    child.on("close", (code) => {
       if (code === 0) {
         resolve({ ok: true, exitCode: 0, stdout, stderr });
       } else {
@@ -319,16 +293,18 @@ async function execOpen(appPath) {
 
 async function execOpenUrl(url) {
   // shell.openExternal: 打开 URL (浏览器). 失败 → throw.
-  if (!url || typeof url !== 'string') {
-    const e = new Error('open_url: missing url');
-    e.output = '';
+  if (!url || typeof url !== "string") {
+    const e = new Error("open_url: missing url");
+    e.output = "";
     throw e;
   }
   try {
     await shell.openExternal(url);
     return { output: `opened ${url}` };
   } catch (err) {
-    const e = new Error(`openExternal failed: ${(err && err.message) || 'unknown'}`);
+    const e = new Error(
+      `openExternal failed: ${(err && err.message) || "unknown"}`,
+    );
     e.output = url;
     throw e;
   }
@@ -345,7 +321,9 @@ async function execMas(trackId, fallbackUrl) {
       await shell.openExternal(fallbackUrl);
       return { output: `opened fallback ${fallbackUrl}` };
     } catch (err2) {
-      const e = new Error(`mas open failed: ${(err2 && err2.message) || 'unknown'}`);
+      const e = new Error(
+        `mas open failed: ${(err2 && err2.message) || "unknown"}`,
+      );
       e.output = deepLink;
       throw e;
     }
@@ -355,8 +333,8 @@ async function execMas(trackId, fallbackUrl) {
 module.exports = {
   runBulkUpgrade,
   defaultExec, // exported for tests
-  execBrew,    // exported for tests
-  execWinget,  // exported for tests
+  execBrew, // exported for tests
+  execWinget, // exported for tests
   // Testability hook (vitest only)
   _setUserDataDirForTest,
 };

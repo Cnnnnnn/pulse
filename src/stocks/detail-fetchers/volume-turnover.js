@@ -8,16 +8,23 @@ const sinaKline = require("./_shared-sina-kline");
 
 async function fetchVolumeTurnover(httpClient, { code }) {
   const primary = await emKline.fetchEastmoneyKline(httpClient, code, 30);
-  if (primary.ok) {
+  if (primary && primary.status === 200 && primary.body) {
     const parsed = emKline.parseEastmoneyKlines(primary.body);
-    if (parsed && parsed.length > 0) return { ok: true, data: summarize(parsed) };
+    if (parsed && parsed.length > 0)
+      return { ok: true, data: summarize(parsed) };
   }
   const fallback = await sinaKline.fetchSinaKline(httpClient, code, 30);
-  if (fallback.ok) {
+  if (fallback && fallback.status === 200 && fallback.body) {
     const parsed = sinaKline.parseSinaKlines(fallback.body);
-    if (parsed && parsed.length > 0) return { ok: true, data: summarize(parsed) };
+    if (parsed && parsed.length > 0)
+      return { ok: true, data: summarize(parsed) };
   }
-  return { ok: false, reason: primary.ok ? "parse_failed" : "fetch_failed", error: "fetch error" };
+  const primaryOk = primary && primary.status === 200 && primary.body;
+  return {
+    ok: false,
+    reason: primaryOk ? "parse_failed" : "fetch_failed",
+    error: "fetch error",
+  };
 }
 
 function summarize(klines) {

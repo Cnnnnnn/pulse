@@ -68,7 +68,6 @@ const { auditTimers, clearAllManaged } = require("./timer-registry");
 const { markBootstrapDone } = require("./diagnostics");
 const fundStore = require("./fund-store");
 const { FundScheduler } = require("./fund-scheduler");
-const { StockQuoteScheduler } = require("./stocks-scheduler");
 const {
   registerMetalIpc,
   startMetalScheduler,
@@ -92,7 +91,6 @@ const {
 const { initAiTasksWiring } = require("./bootstrap/ai-tasks.js");
 const {
   startFundScheduler,
-  startStockScheduler,
   startRemindersScheduler,
   startWorldcupGoalWatcher,
   wireRecentActivityListener,
@@ -697,7 +695,7 @@ async function bootstrap() {
     );
   });
 
-  // 8) fund + stock + reminders + recent listeners + auto-check timer
+  // 8) fund + reminders + recent listeners + auto-check timer
   fundScheduler = startFundScheduler({
     httpClient,
     fundStore,
@@ -705,7 +703,6 @@ async function bootstrap() {
     sendToRenderer,
     getConfig: () => runtimeConfigRef.current,
   });
-  startStockScheduler({ StockQuoteScheduler, sendToRenderer });
   startRemindersScheduler({ reminders, getWindow, sendToRenderer });
   startWorldcupGoalWatcher({
     getWindow,

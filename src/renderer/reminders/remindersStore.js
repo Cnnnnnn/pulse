@@ -9,6 +9,7 @@
 
 import { signal, computed } from "@preact/signals";
 import { getApi, requireApiMethod, wrapIpc } from "../store-utils.js";
+import { trackReminderUpdate } from "../recent/track.js";
 
 export const reminders = signal([]); // Reminder[]
 export const remindersLoaded = signal(false);
@@ -57,9 +58,7 @@ export async function updateReminder(id, patch) {
       reminders.value = reminders.value.map((x) =>
         x.id === id ? r.reminder : x,
       );
-      import("../recent/track.js").then((m) =>
-        m.trackReminderUpdate(r.reminder),
-      );
+      trackReminderUpdate(r.reminder);
       return { ok: true, reminder: r.reminder };
     }
     return { ok: false, reason: r && r.reason };

@@ -1,11 +1,16 @@
 /**
  * src/renderer/reminders/RemindersModal.jsx
  *
- * v2.11 提醒 modal —— 列表 + 新建表单 + 状态切换.
- * 模式跟 src/renderer/worldcup/DayBetFooter.jsx (行内表单) 接近, 但整体是 modal.
+ * v2.11 提醒 modal — Phase 33 重设计.
+ *
+ * 设计变更:
+ *   - 顶栏: title + KPI pills (待打卡/待办) + 新建按钮 + 关闭
+ *   - 新建/编辑 表单 改"顶部弹出式": 抽屉 + 滑入动画, 不挤列表
+ *   - 列表行: 主操作(完成/忽略) 大按钮, 次要操作(编辑/删除) 收到 row overflow 菜单 `…`
+ *   - 已触发/待办/已忽略 3 个 section 保留, 状态视觉区分
  */
 
-import { useState, useEffect, useRef, useMemo } from "preact/hooks";
+import { useState, useEffect, useRef, useMemo, useCallback } from "preact/hooks";
 import {
   reminders,
   remindersOpen,
@@ -25,7 +30,7 @@ import { openConfirm } from "../confirmStore.js";
 import { Badge } from "../components/Badge.jsx";
 import { ModalShell, ModalHeader } from "../components/ModalShell.jsx";
 import { PanelEmpty } from "../components/EmptyState.jsx";
-import { IconBell, IconCheck, IconX } from "../components/icons.jsx";
+import { IconBell, IconCheck, IconX, IconMoreHorizontal } from "../components/icons.jsx";
 
 const REPEATS = [
   { id: "once", label: "一次" },
@@ -43,7 +48,6 @@ const WEEKDAYS = [
   { id: 6, label: "六" },
 ];
 
-/** 把 epoch ms 渲染成相对时间: "刚刚" / "3 分钟后" / "明早 9:00" */
 function relTime(ts, now) {
   if (typeof ts !== "number") return "";
   const diff = ts - now;
@@ -60,7 +64,6 @@ function relTime(ts, now) {
     const h = Math.round(absDiff / hour);
     return diff > 0 ? `${h} 小时后` : `${h} 小时前`;
   }
-  // 跨天: 用具体时间
   const d = new Date(ts);
   const pad = (n) => String(n).padStart(2, "0");
   const today = new Date(now);
@@ -71,7 +74,6 @@ function relTime(ts, now) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** form 的 triggerAt: datetime-local (YYYY-MM-DDTHH:mm) ↔ epoch ms */
 function toLocalInputValue(ts) {
   const d = new Date(ts);
   const pad = (n) => String(n).padStart(2, "0");
@@ -83,20 +85,94 @@ function fromLocalInputValue(str) {
   return Number.isFinite(ts) ? ts : null;
 }
 
-// ── 单行 ──────────────────────────────────────────────
+function repeatLabel(r) {
+  if (r.repeat === "once") return "一次";
+  if (r.repeat === "daily") return "每天";
+  if (r.repeat === "weekdays") return "工作日";
+  if (r.repeat === "weekly") {
+    const wd = WEEKDAYS.find((w) => w.id === r.weekday);
+    return `每周${wd ? wd.label : "?"}`;
+  }
+  return "";
+}
 
+// ── 行内的 `…` overflow menu ────────────────────────
+function RowOverflowMenu({ onEdit, onDelete, testid }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    function onDoc(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  return (
+    <span class="reminder-overflow" ref={wrapRef}>
+      <button
+        type="button"
+        class="btn btn-ghost btn-icon"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        aria-label="更多操作"
+        aria-expanded={open}
+        data-testid={testid}
+      >
+        <IconMoreHorizontal size={14} />
+      </button>
+      {open && (
+        <ul class="reminder-overflow-menu" role="menu">
+          <li>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onEdit();
+              }}
+            >
+              编辑
+            </button>
+          </li>
+          <li>
+            <button
+              type="button"
+              role="menuitem"
+              class="danger"
+              onClick={() => {
+                setOpen(false);
+                onDelete();
+              }}
+            >
+              删除
+            </button>
+          </li>
+        </ul>
+      )}
+    </span>
+  );
+}
+
+// ── 单行 ──────────────────────────────────────────────
 function ReminderRow({ r, now, onEdit }) {
   const rel = relTime(r.triggerAt, now);
   const isFired = r.status === "fired";
   const isDismissed = r.status === "dismissed";
 
-  let repeatLabel = "";
-  if (r.repeat === "once") repeatLabel = "一次";
-  else if (r.repeat === "daily") repeatLabel = "每天";
-  else if (r.repeat === "weekdays") repeatLabel = "工作日";
-  else if (r.repeat === "weekly") {
-    const wd = WEEKDAYS.find((w) => w.id === r.weekday);
-    repeatLabel = `每周${wd ? wd.label : "?"}`;
+  async function onDelete() {
+    if (
+      await openConfirm({
+        title: "删除提醒",
+        message: `确定删除提醒 "${r.title}"?`,
+        confirmText: "删除",
+        cancelText: "再想想",
+      })
+    ) {
+      removeReminder(r.id);
+    }
   }
 
   return (
@@ -115,59 +191,42 @@ function ReminderRow({ r, now, onEdit }) {
           ) : (
             <span class="reminder-when">{rel}</span>
           )}
-          <span class="reminder-repeat">· {repeatLabel}</span>
+          <span class="reminder-repeat">· {repeatLabel(r)}</span>
         </div>
       </div>
       <div class="reminder-row-actions">
-        {isFired && (
+        {isFired ? (
           <>
             <button
-              class="btn btn-ghost btn-sm"
+              type="button"
+              class="btn btn-primary btn-sm"
               onClick={() => markReminderDone(r.id)}
-              title="标记为完成 (重复规则会算下次时间)"
+              data-testid="reminder-done"
             >
               <IconCheck size={12} /> 完成
             </button>
             <button
+              type="button"
               class="btn btn-ghost btn-sm"
               onClick={() => markReminderDismissed(r.id)}
-              title="忽略, 不再触发"
+              data-testid="reminder-dismiss"
             >
-              × 忽略
+              忽略
             </button>
           </>
-        )}
-        {!isFired && (
-          <>
-            <button class="btn btn-ghost btn-sm" onClick={() => onEdit(r)}>
-              编辑
-            </button>
-            <button
-              class="btn btn-ghost btn-sm"
-              onClick={async () => {
-                if (
-                  await openConfirm({
-                    title: "删除提醒",
-                    message: `确定删除提醒 "${r.title}"?`,
-                    confirmText: "删除",
-                    cancelText: "再想想",
-                  })
-                ) {
-                  removeReminder(r.id);
-                }
-              }}
-            >
-              删除
-            </button>
-          </>
+        ) : (
+          <RowOverflowMenu
+            onEdit={() => onEdit(r)}
+            onDelete={onDelete}
+            testid={`reminder-overflow-${r.id}`}
+          />
         )}
       </div>
     </div>
   );
 }
 
-// ── 新建 / 编辑表单 ──────────────────────────────────
-
+// ── 表单 (topbar 弹出抽屉) ──────────────────────────
 function ReminderForm({ initial, onSave, onCancel, onDelete }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [triggerStr, setTriggerStr] = useState(
@@ -187,7 +246,7 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
     titleRef.current && titleRef.current.focus();
   }, []);
 
-  async function submit(e) {
+  const submit = useCallback(async (e) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
     if (submitting) return;
     const t = (title || "").trim();
@@ -220,9 +279,8 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
     } else {
       setError((r && r.reason) || "保存失败");
     }
-  }
+  }, [title, triggerStr, repeat, weekday, initial, submitting, onSave]);
 
-  // 快捷键: Esc 取消, Cmd/Ctrl+Enter 保存
   function onKey(e) {
     if (e.key === "Escape") {
       e.preventDefault();
@@ -234,7 +292,20 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
   }
 
   return (
-    <div class="reminder-form" onKeyDown={onKey}>
+    <form class="reminder-form" onKeyDown={onKey} onSubmit={submit}>
+      <div class="reminder-form-header">
+        <span class="reminder-form-header__title">
+          {initial && initial.id ? "编辑提醒" : "新建提醒"}
+        </span>
+        <button
+          type="button"
+          class="btn btn-ghost btn-icon"
+          onClick={onCancel}
+          aria-label="关闭表单"
+        >
+          <IconX size={14} />
+        </button>
+      </div>
       <div class="reminder-form-row">
         <label class="reminder-label">标题</label>
         <input
@@ -294,33 +365,42 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
       <div class="reminder-form-actions">
         {initial && initial.id && onDelete && (
           <button
-            class="btn btn-ghost btn-sm"
+            type="button"
+            class="btn btn-ghost"
             onClick={() => onDelete(initial.id)}
             disabled={submitting}
           >
             删除
           </button>
         )}
-        <button class="btn btn-ghost" onClick={onCancel} disabled={submitting}>
+        <button
+          type="button"
+          class="btn btn-ghost"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           取消
         </button>
-        <button class="btn btn-primary" onClick={submit} disabled={submitting}>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          disabled={submitting}
+        >
           {submitting ? "保存中..." : "保存"}
         </button>
       </div>
-    </div>
+    </form>
   );
 }
 
 // ── 主 modal ──────────────────────────────────────────
-
 export function RemindersModal() {
   const open = remindersOpen.value;
   const list = reminders.value;
   const loaded = remindersLoaded.value;
   const now = useNowTick(open);
 
-  const [editing, setEditing] = useState(null); // null = 不在表单; 'new' = 新建; Reminder = 编辑
+  const [editing, setEditing] = useState(null); // null | 'new' | Reminder
   const fired = useMemo(
     () => list.filter((r) => r && r.status === "fired"),
     [list],
@@ -342,7 +422,6 @@ export function RemindersModal() {
     if (open && !loaded) loadReminders();
   }, [open, loaded]);
 
-  // 关 modal 时清掉表单态
   useEffect(() => {
     if (!open) setEditing(null);
   }, [open]);
@@ -358,19 +437,20 @@ export function RemindersModal() {
         提醒
         <span class="reminder-modal-sub">
           {fired.length > 0 && (
-            <span class="reminder-fired-pill">{fired.length} 待打卡</span>
+            <span class="reminder-pill reminder-pill--fired">{fired.length} 待打卡</span>
           )}
           {pending.length > 0 && (
-            <span class="reminder-pending-pill">{pending.length} 待办</span>
+            <span class="reminder-pill reminder-pill--pending">{pending.length} 待办</span>
           )}
         </span>
       </h2>
       <div class="reminder-modal-header-actions">
-        {editing !== "new" && (
+        {editing === null && (
           <button
             type="button"
             class="btn btn-primary btn-sm"
             onClick={() => setEditing("new")}
+            data-testid="reminder-new"
           >
             + 新建
           </button>
@@ -380,6 +460,7 @@ export function RemindersModal() {
           class="btn btn-ghost btn-sm"
           onClick={close}
           aria-label="关闭"
+          data-testid="reminder-close"
         >
           <IconX size={14} />
         </button>
@@ -387,41 +468,32 @@ export function RemindersModal() {
     </ModalHeader>
   );
 
-  const formSlot = editing === "new" ? (
-    <ReminderForm
-      onSave={() => setEditing(null)}
-      onCancel={() => setEditing(null)}
-    />
-  ) : editing ? (
-    <ReminderForm
-      initial={editing}
-      onSave={() => setEditing(null)}
-      onCancel={() => setEditing(null)}
-      onDelete={(id) => {
-        removeReminder(id);
-        setEditing(null);
-      }}
-    />
-  ) : null;
-
   return (
     <ModalShell
       open={open}
       onClose={close}
-      onEscape={() => (editing ? false : undefined)}
       usePortal
       backdropClass="modal-backdrop reminder-modal-backdrop"
       cardClass="reminder-modal"
       ariaLabel="提醒"
       header={header}
-      beforeBody={formSlot}
-      wrapBody={!editing}
       bodyClass="reminder-modal-body"
     >
-      {!editing ? (
-        <>
+      {/* Phase 33: 表单以顶部抽屉式弹出, 不与列表互挤 */}
+      {editing !== null && (
+        <ReminderForm
+          initial={editing === "new" ? null : editing}
+          onSave={() => setEditing(null)}
+          onCancel={() => setEditing(null)}
+          onDelete={(id) => {
+            removeReminder(id);
+            setEditing(null);
+          }}
+        />
+      )}
+
       {!loaded && <PanelEmpty className="reminder-empty">加载中...</PanelEmpty>}
-      {loaded && list.length === 0 && (
+      {loaded && list.length === 0 && editing === null && (
         <PanelEmpty className="reminder-empty">
           <div class="reminder-empty-title">还没有提醒</div>
           <div class="reminder-empty-hint">
@@ -429,41 +501,53 @@ export function RemindersModal() {
           </div>
         </PanelEmpty>
       )}
-      {loaded && fired.length > 0 && (
+
+      {loaded && editing === null && fired.length > 0 && (
         <section class="reminder-section">
-          <h3 class="reminder-section-title">已触发 (待打卡)</h3>
+          <h3 class="reminder-section-title">
+            <span class="reminder-section__dot reminder-section__dot--fired" aria-hidden="true" />
+            已触发 (待打卡)
+          </h3>
           {fired.map((r) => (
             <ReminderRow
               key={r.id}
               r={r}
               now={now}
-              onEdit={() => setEditing(r)}
+              onEdit={(it) => setEditing(it)}
             />
           ))}
         </section>
       )}
-      {loaded && pending.length > 0 && (
+
+      {loaded && editing === null && pending.length > 0 && (
         <section class="reminder-section">
-          <h3 class="reminder-section-title">待办</h3>
+          <h3 class="reminder-section-title">
+            <span class="reminder-section__dot reminder-section__dot--pending" aria-hidden="true" />
+            待办
+          </h3>
           {pending.map((r) => (
             <ReminderRow
               key={r.id}
               r={r}
               now={now}
-              onEdit={() => setEditing(r)}
+              onEdit={(it) => setEditing(it)}
             />
           ))}
         </section>
       )}
-      {loaded && dismissed.length > 0 && (
+
+      {loaded && editing === null && dismissed.length > 0 && (
         <section class="reminder-section reminder-section-dismissed">
-          <h3 class="reminder-section-title">已忽略 ({dismissed.length})</h3>
+          <h3 class="reminder-section-title">
+            <span class="reminder-section__dot reminder-section__dot--dismissed" aria-hidden="true" />
+            已忽略 ({dismissed.length})
+          </h3>
           {dismissed.slice(0, 5).map((r) => (
             <ReminderRow
               key={r.id}
               r={r}
               now={now}
-              onEdit={() => setEditing(r)}
+              onEdit={(it) => setEditing(it)}
             />
           ))}
           {dismissed.length > 5 && (
@@ -473,18 +557,16 @@ export function RemindersModal() {
           )}
         </section>
       )}
-      {loaded && nextDue.value && (
+
+      {loaded && editing === null && nextDue.value && (
         <footer class="reminder-modal-footer">
           下一个: {nextDue.value.title} · {relTime(nextDue.value.triggerAt, now)}
         </footer>
       )}
-        </>
-      ) : null}
     </ModalShell>
   );
 }
 
-/** 每分钟 tick 一次, 让相对时间保持新鲜 */
 function useNowTick(active) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -496,7 +578,6 @@ function useNowTick(active) {
 }
 
 // ── Header 入口按钮 (跟 AITasksButton 同款) ──────────────
-
 export function RemindersButton() {
   const open = remindersOpen.value;
   const fired = firedCount.value;

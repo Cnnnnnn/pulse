@@ -52,6 +52,26 @@ describe("extractFirstSection", () => {
     expect(section).toContain("<p>first release</p>");
     expect(section).not.toContain("second release");
   });
+
+  // 2026-06-28: next-start 模式. sectionEnd 是起始标记 (e.g. "<h2") 而非
+  // 闭合标签, 切到下一个起始出现处. 给 VitePress 类 changelog 用 (h2 + 跟随
+  // 兄弟节点直到下个 h2). 之前用 </h2> 当 balance 闭合会把整个 release 块
+  // 切短, 只剩 h2 标题.
+  it("next-start 模式: sectionEnd 是起始标记, 切到下一个起始", () => {
+    const html =
+      '<h2 id="_5-1-7">5.1.7 release</h2><ul><li>fix A</li><li>fix B</li></ul>' +
+      '<h2 id="_5-1-6">5.1.6 release</h2><ul><li>fix C</li></ul>';
+    const section = extractFirstSection(html, '<h2 id="_', '<h2 id="_');
+    expect(section).toBe(
+      '<h2 id="_5-1-7">5.1.7 release</h2><ul><li>fix A</li><li>fix B</li></ul>',
+    );
+  });
+
+  it("next-start 模式: 文档只有 1 个 section, 切到末尾", () => {
+    const html = '<h2 id="_x">only</h2><p>body</p>';
+    const section = extractFirstSection(html, '<h2 id="_', '<h2 id="_');
+    expect(section).toBe(html);
+  });
 });
 
 describe("stripDangerousTags", () => {
@@ -322,7 +342,8 @@ describe("MiniMax Code changelog (mintlify/next.js)", () => {
   });
 
   it("整页都没有版本 → no_version", async () => {
-    const html = '<html><body><h2 id="v0-0-0"><span>noop</span></h2></body></html>';
+    const html =
+      '<html><body><h2 id="v0-0-0"><span>noop</span></h2></body></html>';
     const http = new MockHttp({ get: [{ status: 200, body: html }] });
     await expect(
       new HtmlChangelogDetector(MINIMAX_CFG).detect(makeCtx({ http })),
@@ -362,6 +383,22 @@ describe("WorkBuddy changelog (VitePress)", () => {
     );
     expect(r.version).toBe("5.1.5");
     expect(r.confidence).toBe("high");
+  });
+
+  // 2026-06-28 回归: section_end = 起始标记 (next-start 模式) → section 包住
+  // 整个 release 块 (h2 + 跟随 ul). 之前用 </h2> balance 切, 只剩 h2 标题,
+  // changelog 内容全丢, 用户看到 panel 只有一行版本号. config.json 同步改.
+  it("section_end = 起始标记 (next-start) → section 包住 h2 + 跟随 ul/li", async () => {
+    const cfg = {
+      ...WORKBUDDY_CFG,
+      section_end: '<h2 id="_', // 切到下一个 h2 id="_" 之前
+    };
+    const http = new MockHttp({ get: [{ status: 200, body: WORKBUDDY_HTML }] });
+    const r = await new HtmlChangelogDetector(cfg).detect(makeCtx({ http }));
+    expect(r.version).toBe("5.1.5");
+    expect(r.changelog).toContain("优化产物面板展示");
+    expect(r.changelog).toContain("修复连接器误恢复");
+    expect(r.changelog).not.toContain("修复 macOS 检查更新后无法自动拉起"); // 5.1.4 的, 不应在第一个 section
   });
 
   it("旧格式 (4.x) 也能抓", async () => {

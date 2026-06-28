@@ -18,7 +18,8 @@ import { clearFundNavBadge } from "../funds/fundStore.js";
 import { clearAiUsageNavBadge } from "../store/ai-usage-store.js";
 import { clearWechatHotUnreadBadge } from "../wechat-hot/store.js";
 
-// activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'stocks' | 'stock-watchlist' | 'ai-usage' | 'versions', 默认 'versions'
+// activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'stocks' | 'ai-usage' | 'versions', 默认 'versions'
+// stock-detail (Phase 32) 已合并到选股 tab 顶栏入口, 不再独立 nav.
 export const activeNav = signal("versions");
 export const navCollapsed = signal(false);
 
@@ -29,8 +30,6 @@ const NAV_KEYS = new Set([
   "funds",
   "metals",
   "stocks",
-  "stock-watchlist",
-  "stock-detail",
   "ai-usage",
   "versions",
 ]);
@@ -43,8 +42,6 @@ export const NAV_KEYS_LIST = [
   "funds",
   "metals",
   "stocks",
-  "stock-watchlist",
-  "stock-detail",
   "ai-usage",
   "versions",
 ];

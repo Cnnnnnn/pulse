@@ -7,34 +7,10 @@ const platform = require("../../platform");
 const { mainLog } = require("../log");
 const lastOpened = require("../last-opened");
 const recentActivity = require("../recent-activity");
-const versionHistory = require("../version-history");
-const backup = require("../backup");
-const rollback = require("../rollback");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
 
 let bulkUpgradeCtrl = null;
 let bulkUpgradeRunning = false;
-
-/**
- * Push current per-app history counts to renderer.
- * 挂在: check-updates 完成 / bulk-upgrade 完成 / rollback / delete 之后.
- * renderer ⏪ 按钮 + 角标靠这个 signal 触发 re-render.
- */
-function broadcastVersionHistoryCounts(sendToRenderer) {
-  if (typeof sendToRenderer !== "function") return;
-  try {
-    const counts = versionHistory.getAllCounts();
-    const totalSizeBytes = versionHistory.getTotalSize();
-    sendToRenderer("version-history-counts-updated", {
-      counts,
-      totalSizeBytes,
-    });
-  } catch (err) {
-    mainLog.warn("[ipc] broadcastVersionHistoryCounts failed", {
-      msg: err && err.message,
-    });
-  }
-}
 
 function registerCoreHandlers(ctx) {
   const {
@@ -88,8 +64,7 @@ function registerCoreHandlers(ctx) {
       },
       { silent: false },
     );
-    // check 完成后, versionHistory counts 不变, 但 broadcast 一下保持 renderer 心跳一致
-    broadcastVersionHistoryCounts(sendToRenderer);
+    // (C3 version history 已退役, 不再 broadcast counts)
     // I2 v1: pinned app 独立通知 (走 electron.Notification + inQuietHours)
     try {
       const { checkWatchlistUpdates } = require("../watchlist");
@@ -170,8 +145,7 @@ function registerCoreHandlers(ctx) {
           /* noop */
         }
         sendToRenderer("bulk-upgrade:done", summary);
-        // bulk-upgrade 里有 brew 类型, 每次会 backup + recordUpgrade → versionHistory 变了
-        broadcastVersionHistoryCounts(sendToRenderer);
+        // (C3 version history 已退役, 不再 broadcast counts)
         if (ctrl === bulkUpgradeCtrl) {
           bulkUpgradeCtrl = null;
           bulkUpgradeRunning = false;
@@ -184,8 +158,7 @@ function registerCoreHandlers(ctx) {
           skipped: [],
           cancelled: false,
         });
-        // catch 路径下 bulk-upgrade 可能已经部分成功, broadcast 一次保证 renderer 同步
-        broadcastVersionHistoryCounts(sendToRenderer);
+        // (C3 version history 已退役, 不再 broadcast counts)
         if (ctrl === bulkUpgradeCtrl) {
           bulkUpgradeCtrl = null;
           bulkUpgradeRunning = false;
@@ -712,171 +685,11 @@ function registerCoreHandlers(ctx) {
     }
   });
 
-  // Phase C3: app rollback IPC handlers
-  safeHandle("get-version-history", (_event, appName) => {
-    if (!appName || typeof appName !== "string") {
-      return { ok: false, reason: "bad_name", entries: [], totalSizeBytes: 0 };
-    }
-    try {
-      const entries = versionHistory.listHistory(appName);
-      const totalSizeBytes = versionHistory.getTotalSize();
-      return { ok: true, entries, totalSizeBytes };
-    } catch (err) {
-      mainLog.warn("[ipc] get-version-history threw", {
-        msg: err && err.message,
-      });
-      return { ok: false, reason: "threw", entries: [], totalSizeBytes: 0 };
-    }
-  });
+  // Phase C3: app rollback IPC handlers (C3 功能已退役, 移除)
+  // get-version-history / rollback-app / delete-backup handlers 已删除
 
-  safeHandle(
-    "rollback-app",
-    async (_event, appName, toVersion) => {
-      if (
-        !appName ||
-        typeof appName !== "string" ||
-        !toVersion ||
-        typeof toVersion !== "string"
-      ) {
-        return { ok: false, reason: "invalid_args" };
-      }
-      const apps = (getConfig() && getConfig().apps) || [];
-      const appCfg = apps.find((a) => a && a.name === appName);
-      if (!appCfg || !appCfg.bundle) {
-        return { ok: false, reason: "app_not_found" };
-      }
-      const entries = versionHistory.listHistory(appName);
-      const entry = entries.find((e) => e.to === toVersion);
-      if (!entry) {
-        return { ok: false, reason: "history_not_found" };
-      }
-      const targetAppPath = resolveAppBundlePath(appCfg.bundle);
-      try {
-        const r = await rollback.doRollback({
-          appName,
-          bundleName: appCfg.bundle,
-          targetAppPath,
-          backupPath: entry.backupPath,
-          rollbackToVersion: toVersion,
-          currentInstalledVersion:
-            (
-              appCfg.installed_version ||
-              appCfg.latest_version ||
-              ""
-            ).toString() || "unknown",
-          onUpdateInstalled: (newVer) => {
-            try {
-              // 写 apps[appName].installed_version — 通过 saveAll 单条模式,
-              // 但更简单是直接调 state-store 的 patch 范式. 这里走 setAppInstalledVersion
-              // helper (在 state-store.js 末尾新增 — 见 Task 6).
-              stateStore.saveAppInstalledVersion(appName, newVer);
-            } catch (err) {
-              mainLog.warn("[ipc] rollback-app: onUpdateInstalled failed", {
-                msg: err && err.message,
-              });
-            }
-          },
-          onActivity: (payload) => {
-            try {
-              recentActivity.push(payload);
-            } catch (err) {
-              mainLog.warn("[ipc] rollback-app: onActivity failed", {
-                msg: err && err.message,
-              });
-            }
-          },
-          onBroadcast: (event, payload) => {
-            try {
-              sendToRenderer(event, payload);
-            } catch (err) {
-              mainLog.warn("[ipc] rollback-app: onBroadcast failed", {
-                msg: err && err.message,
-              });
-            }
-          },
-        });
-        // rollback 成功后: onUpdateInstalled 写 installed_version, doRollback broadcast
-        // version-history-updated. 这里再推一次 counts 兜底 (renderer drawer 也在听).
-        broadcastVersionHistoryCounts(sendToRenderer);
-        return r;
-      } catch (err) {
-        mainLog.warn("[ipc] rollback-app threw", { msg: err && err.message });
-        return { ok: false, reason: "threw", error: err && err.message };
-      }
-    },
-    {
-      logMeta: (_evt, appName, toVersion) => ({ appName, toVersion }),
-      onError: () => ({ ok: false, reason: "threw" }),
-    },
-  );
-
-  safeHandle(
-    "delete-backup",
-    (_event, appName, version) => {
-      if (
-        !appName ||
-        typeof appName !== "string" ||
-        !version ||
-        typeof version !== "string"
-      ) {
-        return { ok: false, reason: "invalid_args" };
-      }
-      try {
-        const { app: electronApp } = require("electron");
-        const userDataDir =
-          electronApp && typeof electronApp.getPath === "function"
-            ? electronApp.getPath("userData")
-            : null;
-        let freed = 0;
-        if (userDataDir) {
-          // 用 appName 作为 bundleName 兜底 (caller 应该传 bundleName)
-          // 这里 entries 里存的 backupPath 是 .../<bundleName>/<version>.app
-          // 我们需要 bundleName 来定位目录 — 从 config 找
-          const apps = (getConfig() && getConfig().apps) || [];
-          const appCfg = apps.find((a) => a && a.name === appName);
-          const bundleName = (appCfg && appCfg.bundle) || appName;
-          freed = backup.deleteBackup(bundleName, version, { userDataDir });
-        }
-        // 再删 state entry
-        const stateFreed = versionHistory.deleteEntry(appName, version);
-        // delete 后 count 会变, broadcast 让 renderer ⏪ 角标立即更新
-        broadcastVersionHistoryCounts(sendToRenderer);
-        return { ok: true, freedBytes: freed + stateFreed };
-      } catch (err) {
-        mainLog.warn("[ipc] delete-backup threw", { msg: err && err.message });
-        return { ok: false, reason: "threw" };
-      }
-    },
-    {
-      logMeta: (_evt, appName, version) => ({ appName, version }),
-      onError: () => ({ ok: false, reason: "threw" }),
-    },
-  );
-
-  // Phase C2: per-app snooze IPC handlers
-  safeHandle("snooze:set", (_event, name, opts) => {
-    if (!name || typeof name !== "string")
-      return { ok: false, reason: "bad_name" };
-    if (!opts || typeof opts !== "object" || Array.isArray(opts))
-      return { ok: false, reason: "bad_opts" };
-    try {
-      stateStore.setAppSnooze(name, opts);
-      return { ok: true, name };
-    } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
-
-  safeHandle("snooze:clear", (_event, name) => {
-    if (!name || typeof name !== "string")
-      return { ok: false, reason: "bad_name" };
-    try {
-      stateStore.clearAppSnooze(name);
-      return { ok: true, name };
-    } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
-    }
-  });
+  // Phase C2: per-app snooze IPC handlers (C2 功能已退役, 移除)
+  // snooze:set / snooze:clear handlers 已删除
 
   // C7 v2.35.0: 检测结果导出 (JSON / CSV → 桌面)
   safeHandle("detect-results:export", async (_event, opts) => {

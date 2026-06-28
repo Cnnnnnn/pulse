@@ -1,22 +1,18 @@
 /**
  * src/main/ipc/register-stocks.js
  *
- * 股票筛选器 6 个 IPC handler. 对照 register-funds.js.
+ * 股票筛选器 3 个 IPC handler (screen / search / ai-advise). 对照 register-funds.js.
  * 内置 60s TTL 内存缓存 (避免短时连点重复打东财接口).
  *
  * ponytail: 走 createStockHttpClient — 在 Electron 环境自动用 Chromium net.fetch
  * (绕开 Node OpenSSL 在 push2.eastmoney.com 被 RST 的反爬). vitest 环境 fallback 到 HttpClient.
  */
 const { createStockHttpClient } = require("../chromium-http-client");
-const {
-  fetchStocks,
-  fetchStocksByCodes,
-} = require("../../stocks/stock-fetcher");
+const { fetchStocks } = require("../../stocks/stock-fetcher");
 const { searchStocks } = require("../../stocks/stock-search");
 const { applyScreen } = require("../../stocks/stock-filter");
 const { computeMarketOverview } = require("../../stocks/market-overview");
 const { aiStockAdvise } = require("../../ai/stock-screener-advisor");
-const stockStore = require("../stock-store");
 
 const CACHE_TTL_MS = 60_000;
 // 内存缓存: { key, rows, total, fetchedAt }. key = criteria+sort 的 JSON.
@@ -168,79 +164,6 @@ function registerStocksHandlers(ctx) {
         error: err && err.message,
       }),
     },
-  );
-
-  safeHandle("stocks:watchlist:list", () => {
-    return { ok: true, items: stockStore.loadStockWatchlist() };
-  });
-
-  safeHandle(
-    "stocks:watchlist:add",
-    async (_event, { code } = {}) => {
-      // 反查 name/industry (用户只输代码, 名字自动填 — 跟基金 applyFundMeta 一个思路)
-      const httpClient = createStockHttpClient({
-        timeout: 6000,
-        maxRetries: 0,
-      });
-      const found = await searchStocks(String(code || ""), httpClient);
-      const meta = found.find((x) => x.code === String(code).trim()) || {};
-      const items = stockStore.addStock({
-        code: String(code || "").trim(),
-        name: meta.name || null,
-        industry: meta.industry || null,
-      });
-      return { ok: true, items };
-    },
-    {
-      logIf: (err) => !(err && err.name === "ValidationError"),
-      onError: (err) => {
-        if (err && err.name === "ValidationError") {
-          return { ok: false, reason: "validation", error: err.message };
-        }
-        return threwResponse(err);
-      },
-    },
-  );
-
-  safeHandle("stocks:watchlist:remove", (_event, { code } = {}) => {
-    const items = stockStore.removeStock(String(code || ""));
-    return { ok: true, items };
-  });
-
-  // 自选股实时行情刷新 (走同一 clist, filter 出自选 code).
-  safeHandle(
-    "stocks:watchlist:quotes",
-    async () => {
-      const items = stockStore.loadStockWatchlist();
-      if (items.length === 0) {
-        return { ok: true, quotes: {}, fetchedAt: Date.now() };
-      }
-      // 自选股行情: 按代码批量拉 (任何代码都能查到, 不限于 top-100).
-      const httpClient = createStockHttpClient({
-        timeout: 10000,
-        maxRetries: 1,
-      });
-      const codes = items.map((i) => i.code);
-      const out = await fetchStocksByCodes(codes, httpClient);
-      if (out.error) {
-        return {
-          ok: false,
-          reason: "fetch_failed",
-          error: friendlyFetchError(out.error),
-        };
-      }
-      const quotes = {};
-      for (const row of out.rows) {
-        quotes[row.code] = {
-          price: row.price,
-          changePct: row.changePct,
-          pe: row.pe,
-          roe: row.roe,
-        };
-      }
-      return { ok: true, quotes, fetchedAt: out.fetchedAt };
-    },
-    { onError: (err) => threwResponse(err, { quotes: {} }) },
   );
 }
 

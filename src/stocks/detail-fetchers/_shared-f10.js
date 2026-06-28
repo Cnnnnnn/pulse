@@ -9,7 +9,15 @@ async function fetchEastmoneyF10(httpClient, code) {
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
   const url = `${F10_URL}?secid=${secid}&fields=f57,f58,f59,f60,f116,f117,f37,f22,f24`;
   try {
-    return await httpClient.get(url);
+    const res = await httpClient.get(url);
+    if (res && typeof res.body === "string") {
+      try {
+        return { ...res, body: JSON.parse(res.body) };
+      } catch (_) {
+        return { ...res, body: null };
+      }
+    }
+    return res;
   } catch (e) {
     return { ok: false, status: 0, error: e.message };
   }

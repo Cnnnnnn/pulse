@@ -54,8 +54,15 @@ class ChromiumHttpClient {
         headers: {},
       };
     } catch (e) {
-      const isAbort = e && (e.name === "AbortError" || /aborted/i.test(String(e && e.message)));
-      return { status: 0, body: "", headers: {}, error: isAbort ? "timeout" : "network" };
+      const isAbort =
+        e &&
+        (e.name === "AbortError" || /aborted/i.test(String(e && e.message)));
+      return {
+        status: 0,
+        body: "",
+        headers: {},
+        error: isAbort ? "timeout" : "network",
+      };
     } finally {
       clearTimeout(timer);
     }
@@ -65,7 +72,9 @@ class ChromiumHttpClient {
     let lastResult;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       lastResult = await fn();
-      const retriable = lastResult && (lastResult.error === "network" || lastResult.error === "timeout");
+      const retriable =
+        lastResult &&
+        (lastResult.error === "network" || lastResult.error === "timeout");
       if (!retriable) return lastResult;
       if (attempt < this.maxRetries) {
         await new Promise((resolve) => setTimeout(resolve, this.retryDelayMs));
@@ -79,7 +88,7 @@ class ChromiumHttpClient {
  * 给 stock IPC 用的工厂 — 在 Electron 环境用 ChromiumHttpClient (绕开 Node OpenSSL RST),
  * 其余环境 (vitest / 离线测试) fallback 到 HttpClient.
  *
- * ponytail: 这样 stock-fetcher.js / stocks-scheduler.js 完全无感,
+ * ponytail: 这样 stock-fetcher.js 完全无感,
  *          调用方只拿一个 `httpClient.get(url, opts)` 接口.
  */
 function createStockHttpClient(opts = {}) {

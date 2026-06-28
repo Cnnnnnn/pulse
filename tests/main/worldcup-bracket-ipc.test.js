@@ -18,35 +18,96 @@ function tmpStatePath() {
 }
 
 const FULL_GROUP_STANDINGS = {
-  A: { winner: "Mexico", runnerUp: "South Africa", third: { name: "South Korea", pts: 3, gd: 0, gf: 2 } },
-  B: { winner: "Canada", runnerUp: "Switzerland", third: { name: "Qatar", pts: 3, gd: 0, gf: 2 } },
-  C: { winner: "Brazil", runnerUp: "Morocco", third: { name: "Scotland", pts: 3, gd: 0, gf: 2 } },
-  D: { winner: "USA", runnerUp: "Paraguay", third: { name: "Australia", pts: 3, gd: 0, gf: 2 } },
-  E: { winner: "Germany", runnerUp: "Curaçao", third: { name: "Ivory Coast", pts: 3, gd: 0, gf: 2 } },
-  F: { winner: "Netherlands", runnerUp: "Japan", third: { name: "Sweden", pts: 3, gd: 0, gf: 2 } },
-  G: { winner: "Belgium", runnerUp: "Egypt", third: { name: "Iran", pts: 3, gd: 0, gf: 2 } },
-  H: { winner: "Spain", runnerUp: "Cape Verde", third: { name: "Saudi Arabia", pts: 3, gd: 0, gf: 2 } },
-  I: { winner: "France", runnerUp: "Senegal", third: { name: "Iraq", pts: 3, gd: 0, gf: 2 } },
-  J: { winner: "Argentina", runnerUp: "Algeria", third: { name: "Austria", pts: 3, gd: 0, gf: 2 } },
-  K: { winner: "Portugal", runnerUp: "DR Congo", third: { name: "Colombia", pts: 3, gd: 0, gf: 2 } },
-  L: { winner: "England", runnerUp: "Croatia", third: { name: "Ghana", pts: 3, gd: 0, gf: 2 } },
+  A: {
+    winner: "Mexico",
+    runnerUp: "South Africa",
+    third: { name: "South Korea", pts: 3, gd: 0, gf: 2 },
+  },
+  B: {
+    winner: "Canada",
+    runnerUp: "Switzerland",
+    third: { name: "Qatar", pts: 3, gd: 0, gf: 2 },
+  },
+  C: {
+    winner: "Brazil",
+    runnerUp: "Morocco",
+    third: { name: "Scotland", pts: 3, gd: 0, gf: 2 },
+  },
+  D: {
+    winner: "USA",
+    runnerUp: "Paraguay",
+    third: { name: "Australia", pts: 3, gd: 0, gf: 2 },
+  },
+  E: {
+    winner: "Germany",
+    runnerUp: "Curaçao",
+    third: { name: "Ivory Coast", pts: 3, gd: 0, gf: 2 },
+  },
+  F: {
+    winner: "Netherlands",
+    runnerUp: "Japan",
+    third: { name: "Sweden", pts: 3, gd: 0, gf: 2 },
+  },
+  G: {
+    winner: "Belgium",
+    runnerUp: "Egypt",
+    third: { name: "Iran", pts: 3, gd: 0, gf: 2 },
+  },
+  H: {
+    winner: "Spain",
+    runnerUp: "Cape Verde",
+    third: { name: "Saudi Arabia", pts: 3, gd: 0, gf: 2 },
+  },
+  I: {
+    winner: "France",
+    runnerUp: "Senegal",
+    third: { name: "Iraq", pts: 3, gd: 0, gf: 2 },
+  },
+  J: {
+    winner: "Argentina",
+    runnerUp: "Algeria",
+    third: { name: "Austria", pts: 3, gd: 0, gf: 2 },
+  },
+  K: {
+    winner: "Portugal",
+    runnerUp: "DR Congo",
+    third: { name: "Colombia", pts: 3, gd: 0, gf: 2 },
+  },
+  L: {
+    winner: "England",
+    runnerUp: "Croatia",
+    third: { name: "Ghana", pts: 3, gd: 0, gf: 2 },
+  },
 };
 
 function stubFetcher() {
-  return { ok: true, data: { name: "World Cup 2026", groups: [], matches: [] } };
+  return {
+    ok: true,
+    data: { name: "World Cup 2026", groups: [], matches: [] },
+  };
 }
-function stubScores() { return {}; }
-function stubTeamsData() { return []; }
+function stubScores() {
+  return {};
+}
+function stubTeamsData() {
+  return [];
+}
 
 describe("worldcup bracket IPC handler", () => {
   let statePath;
-  beforeEach(() => { statePath = tmpStatePath(); });
+  beforeEach(() => {
+    statePath = tmpStatePath();
+  });
   afterEach(() => {
-    try { fs.rmSync(path.dirname(statePath), { recursive: true, force: true }); } catch {}
+    try {
+      fs.rmSync(path.dirname(statePath), { recursive: true, force: true });
+    } catch {}
   });
 
   test("computeWorldcupBracket returns ok+snapshot and writes state", async () => {
-    const { computeWorldcupBracket } = require("../../src/main/worldcup/bracket");
+    const {
+      computeWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
     const r = await computeWorldcupBracket({
       statePath,
       fetcher: stubFetcher,
@@ -64,10 +125,14 @@ describe("worldcup bracket IPC handler", () => {
   });
 
   test("computeWorldcupBracket returns ok:false when fetcher throws", async () => {
-    const { computeWorldcupBracket } = require("../../src/main/worldcup/bracket");
+    const {
+      computeWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
     const r = await computeWorldcupBracket({
       statePath,
-      fetcher: () => { throw new Error("network down"); },
+      fetcher: () => {
+        throw new Error("network down");
+      },
     });
     expect(r.ok).toBe(false);
     expect(r.reason || r.error).toBeDefined();
@@ -76,7 +141,9 @@ describe("worldcup bracket IPC handler", () => {
   });
 
   test("computeWorldcupBracket returns ok:false when fetcher returns ok:false", async () => {
-    const { computeWorldcupBracket } = require("../../src/main/worldcup/bracket");
+    const {
+      computeWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
     const r = await computeWorldcupBracket({
       statePath,
       fetcher: () => ({ ok: false, reason: "fetch_failed" }),
@@ -93,7 +160,10 @@ describe("worldcup bracket IPC handler", () => {
   });
 
   test("loadWorldcupBracket returns saved snapshot after compute", async () => {
-    const { computeWorldcupBracket, loadWorldcupBracket } = require("../../src/main/worldcup/bracket");
+    const {
+      computeWorldcupBracket,
+      loadWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
     await computeWorldcupBracket({
       statePath,
       fetcher: stubFetcher,
@@ -137,7 +207,9 @@ describe("worldcup bracket IPC handler", () => {
   });
 
   test("extractGroupStandings returns all null when no final matches", () => {
-    const { extractGroupStandings } = require("../../src/main/worldcup/bracket");
+    const {
+      extractGroupStandings,
+    } = require("../../src/main/worldcup/bracket");
     const groupsData = [
       { letter: "A", teams: ["Mexico", "South Africa", "South Korea", "USA"] },
       { letter: "B", teams: ["Canada", "Switzerland", "Qatar", "Iran"] },
@@ -148,7 +220,9 @@ describe("worldcup bracket IPC handler", () => {
   });
 
   test("end-to-end: no final matches → snapshot has empty advancing and many warnings", async () => {
-    const { computeWorldcupBracket } = require("../../src/main/worldcup/bracket");
+    const {
+      computeWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
     const groupsData = [
       { letter: "A", teams: ["Mexico", "South Africa", "South Korea", "USA"] },
       { letter: "B", teams: ["Canada", "Switzerland", "Qatar", "Iran"] },
@@ -157,14 +231,23 @@ describe("worldcup bracket IPC handler", () => {
       { letter: "E", teams: ["Germany", "Curaçao", "Ivory Coast", "Ecuador"] },
       { letter: "F", teams: ["Netherlands", "Japan", "Sweden", "Tunisia"] },
       { letter: "G", teams: ["Belgium", "Egypt", "Iran", "New Zealand"] },
-      { letter: "H", teams: ["Spain", "Cape Verde", "Saudi Arabia", "Uruguay"] },
+      {
+        letter: "H",
+        teams: ["Spain", "Cape Verde", "Saudi Arabia", "Uruguay"],
+      },
       { letter: "I", teams: ["France", "Senegal", "Iraq", "Norway"] },
       { letter: "J", teams: ["Argentina", "Algeria", "Austria", "Jordan"] },
-      { letter: "K", teams: ["Portugal", "DR Congo", "Colombia", "Uzbekistan"] },
+      {
+        letter: "K",
+        teams: ["Portugal", "DR Congo", "Colombia", "Uzbekistan"],
+      },
       { letter: "L", teams: ["England", "Croatia", "Ghana", "Panama"] },
     ];
     // fetcher 返 0 场比赛 (小组赛未开赛)
-    const stubFetcherEmpty = () => ({ ok: true, data: { name: "WC 2026", groups: groupsData, matches: [] } });
+    const stubFetcherEmpty = () => ({
+      ok: true,
+      data: { name: "WC 2026", groups: groupsData, matches: [] },
+    });
     const r = await computeWorldcupBracket({
       statePath,
       fetcher: stubFetcherEmpty,
@@ -176,7 +259,423 @@ describe("worldcup bracket IPC handler", () => {
     expect(r.snapshot.thirdPlacedAdvancing).toEqual([]); // 关键: 不应再假装有 8 个晋级
     expect(r.snapshot.completeGroupCount).toBe(0);
     // 12 个 group_X_incomplete 警告
-    const groupIncomplete = r.snapshot.warnings.filter((w) => w.startsWith("group_") && w.endsWith("_incomplete"));
+    const groupIncomplete = r.snapshot.warnings.filter(
+      (w) => w.startsWith("group_") && w.endsWith("_incomplete"),
+    );
     expect(groupIncomplete).toHaveLength(12);
+  });
+});
+
+// ─── v1.3: cup_finals.txt merge 测试 ──────────────────────────────────────
+
+describe("v1.3 isPlaceholderTeamName", () => {
+  const { isPlaceholderTeamName } = require("../../src/main/worldcup/bracket");
+  test.each([
+    ["W74", true],
+    ["L101", true],
+    ["L101-loser", true],
+    ["1A", true],
+    ["2B", true],
+    ["3A/B/C/D/F", true],
+    ["3C/D/F/G/H", true],
+    ["South Africa", false],
+    ["Germany", false],
+    ["Mexico", false],
+  ])("isPlaceholderTeamName(%j) = %j", (name, expected) => {
+    expect(isPlaceholderTeamName(name)).toBe(expected);
+  });
+});
+
+describe("v1.3 mergeFinalsIntoSnapshot", () => {
+  const {
+    mergeFinalsIntoSnapshot,
+  } = require("../../src/main/worldcup/bracket");
+
+  function buildSnapshot() {
+    return {
+      version: 2,
+      r32: [
+        {
+          matchNum: 73,
+          slot1: { team: { name: "South Africa" }, source: "group:A:runnerUp" },
+          slot2: { team: { name: "Switzerland" }, source: "group:B:runnerUp" },
+          status: "pending",
+        },
+        {
+          matchNum: 74,
+          slot1: { team: { name: "Germany" }, source: "group:E:winner" },
+          slot2: { team: { name: "Mexico" }, source: "group:?:third" },
+          status: "pending",
+        },
+      ],
+      r16: [
+        {
+          matchNum: 90,
+          slot1: { team: null, source: "r32:73" },
+          slot2: { team: null, source: "r32:75" },
+          status: "projected",
+        },
+      ],
+      qf: [],
+      sf: [],
+      final: {
+        matchNum: 104,
+        slot1: { team: null, source: "sf:101" },
+        slot2: { team: null, source: "sf:102" },
+        status: "projected",
+      },
+      third: {
+        matchNum: 103,
+        slot1: { team: null, source: "sf:101-loser" },
+        slot2: { team: null, source: "sf:102-loser" },
+        status: "projected",
+      },
+      warnings: [],
+    };
+  }
+
+  test("attaches kickoff + date/time/venue from finals TXT", () => {
+    const snap = buildSnapshot();
+    const finalsMatches = [
+      {
+        matchNum: 73,
+        date: "2026-06-28",
+        time: "12:00",
+        timezone: "UTC-7",
+        venue: "Los Angeles (Inglewood)",
+        team1: "South Africa",
+        team2: "Canada",
+        score: null,
+      },
+    ];
+    mergeFinalsIntoSnapshot(snap, finalsMatches);
+    expect(snap.r32[0].kickoff).toEqual({
+      date: "2026-06-28",
+      time: "12:00",
+      timezone: "UTC-7",
+      venue: "Los Angeles (Inglewood)",
+    });
+  });
+
+  test("overwrites slot.team.name when TXT has real team", () => {
+    const snap = buildSnapshot();
+    // M74 原 slot2 是 Mexico (来自 best-third 池), TXT 给了 Morocco (确认 2C = Morocco)
+    const finalsMatches = [
+      {
+        matchNum: 74,
+        date: "2026-06-29",
+        time: "16:30",
+        timezone: "UTC-4",
+        venue: "Boston (Foxborough)",
+        team1: "Germany",
+        team2: "Morocco",
+        score: null,
+      },
+    ];
+    mergeFinalsIntoSnapshot(snap, finalsMatches);
+    expect(snap.r32[1].slot2.team.name).toBe("Morocco");
+    expect(snap.r32[1].slot2.sourceTxt).toBe(true);
+  });
+
+  test("keeps slot.team.name when TXT team is placeholder (e.g. W74)", () => {
+    const snap = buildSnapshot();
+    const finalsMatches = [
+      {
+        matchNum: 90,
+        date: "2026-07-05",
+        time: "12:00",
+        timezone: "UTC-5",
+        venue: "Houston",
+        team1: "W73",
+        team2: "W75",
+        score: null,
+      },
+    ];
+    mergeFinalsIntoSnapshot(snap, finalsMatches);
+    expect(snap.r16[0].slot1.team).toBeNull();
+    expect(snap.r16[0].slot2.team).toBeNull();
+    expect(snap.r16[0].kickoff.venue).toBe("Houston");
+  });
+
+  test("marks status=final when TXT has played score", () => {
+    const snap = buildSnapshot();
+    const finalsMatches = [
+      {
+        matchNum: 73,
+        date: "2026-06-28",
+        time: "12:00",
+        timezone: "UTC-7",
+        venue: "Los Angeles (Inglewood)",
+        team1: "South Africa",
+        team2: "Canada",
+        score: { ft: [2, 1], status: "final" },
+      },
+    ];
+    mergeFinalsIntoSnapshot(snap, finalsMatches);
+    expect(snap.r32[0].status).toBe("final");
+    expect(snap.r32[0].score).toEqual({ ft: [2, 1], status: "final" });
+  });
+
+  test("does not crash on missing matchNum in snapshot", () => {
+    const snap = {
+      r32: [{ matchNum: 999, slot1: { team: null }, slot2: { team: null } }],
+    };
+    const finalsMatches = [
+      { matchNum: 73, date: "2026-06-28", team1: "A", team2: "B" },
+    ];
+    expect(() => mergeFinalsIntoSnapshot(snap, finalsMatches)).not.toThrow();
+  });
+
+  test("ignores finals matches with no matchNum", () => {
+    const snap = buildSnapshot();
+    const finalsMatches = [{ team1: "X", team2: "Y" }];
+    expect(() => mergeFinalsIntoSnapshot(snap, finalsMatches)).not.toThrow();
+  });
+});
+
+describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
+  const FULL_GROUP_STANDINGS = {
+    A: {
+      winner: "Mexico",
+      runnerUp: "South Africa",
+      third: { name: "South Korea", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    B: {
+      winner: "Canada",
+      runnerUp: "Switzerland",
+      third: { name: "Qatar", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    C: {
+      winner: "Brazil",
+      runnerUp: "Morocco",
+      third: { name: "Scotland", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    D: {
+      winner: "USA",
+      runnerUp: "Paraguay",
+      third: { name: "Australia", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    E: {
+      winner: "Germany",
+      runnerUp: "Curaçao",
+      third: { name: "Ivory Coast", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    F: {
+      winner: "Netherlands",
+      runnerUp: "Japan",
+      third: { name: "Sweden", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    G: {
+      winner: "Belgium",
+      runnerUp: "Egypt",
+      third: { name: "Iran", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    H: {
+      winner: "Spain",
+      runnerUp: "Cape Verde",
+      third: { name: "Saudi Arabia", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    I: {
+      winner: "France",
+      runnerUp: "Senegal",
+      third: { name: "Iraq", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    J: {
+      winner: "Argentina",
+      runnerUp: "Algeria",
+      third: { name: "Austria", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    K: {
+      winner: "Portugal",
+      runnerUp: "DR Congo",
+      third: { name: "Colombia", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+    L: {
+      winner: "England",
+      runnerUp: "Croatia",
+      third: { name: "Ghana", pts: 3, gd: 0, gf: 2 },
+      complete: true,
+    },
+  };
+
+  function tmpStatePath2() {
+    const fs = require("fs");
+    const os = require("os");
+    const path = require("path");
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-finals-"));
+    return path.join(dir, "state.json");
+  }
+
+  let statePath;
+  beforeEach(() => {
+    statePath = tmpStatePath2();
+  });
+  afterEach(() => {
+    const fs = require("fs");
+    try {
+      fs.rmSync(require("path").dirname(statePath), {
+        recursive: true,
+        force: true,
+      });
+    } catch {}
+  });
+
+  test("merges kickoff + venue from injected finalsMatches", async () => {
+    const {
+      computeWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
+    const finalsMatches = [
+      {
+        matchNum: 73,
+        date: "2026-06-28",
+        time: "12:00",
+        timezone: "UTC-7",
+        venue: "Los Angeles (Inglewood)",
+        team1: "South Africa",
+        team2: "Canada",
+      },
+      {
+        matchNum: 74,
+        date: "2026-06-29",
+        time: "16:30",
+        timezone: "UTC-4",
+        venue: "Boston (Foxborough)",
+        team1: "Germany",
+        team2: "Morocco",
+      },
+    ];
+    const r = await computeWorldcupBracket({
+      statePath,
+      fetcher: () => ({
+        ok: true,
+        data: { name: "WC", groups: [], matches: [] },
+      }),
+      finalsMatches,
+      scores: () => ({}),
+      groupStandings: FULL_GROUP_STANDINGS,
+    });
+    expect(r.ok).toBe(true);
+    const m73 = r.snapshot.r32.find((m) => m.matchNum === 73);
+    expect(m73.kickoff.venue).toBe("Los Angeles (Inglewood)");
+    expect(m73.slot2.team.name).toBe("Canada"); // 覆盖了 slot.spec 给的 Switzerland
+    const m74 = r.snapshot.r32.find((m) => m.matchNum === 74);
+    expect(m74.kickoff.time).toBe("16:30");
+    expect(m74.slot2.team.name).toBe("Morocco");
+  });
+
+  test("does not block bracket compute when finals fetcher fails", async () => {
+    const {
+      computeWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
+    const r = await computeWorldcupBracket({
+      statePath,
+      fetcher: () => ({
+        ok: true,
+        data: { name: "WC", groups: [], matches: [] },
+      }),
+      finalsFetcher: () => ({ ok: false, reason: "network_down" }),
+      scores: () => ({}),
+      groupStandings: FULL_GROUP_STANDINGS,
+    });
+    expect(r.ok).toBe(true);
+    expect(r.snapshot.warnings).toContain("finals_fetch_network_down");
+  });
+
+  test("no finals fetch when finalsMatches injected (bypass)", async () => {
+    const {
+      computeWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
+    let finalsFetcherCalled = false;
+    const r = await computeWorldcupBracket({
+      statePath,
+      fetcher: () => ({
+        ok: true,
+        data: { name: "WC", groups: [], matches: [] },
+      }),
+      finalsMatches: [],
+      finalsFetcher: () => {
+        finalsFetcherCalled = true;
+        return { ok: true, txt: "" };
+      },
+      scores: () => ({}),
+      groupStandings: FULL_GROUP_STANDINGS,
+    });
+    expect(r.ok).toBe(true);
+    expect(finalsFetcherCalled).toBe(false);
+  });
+
+  // 真实 cup_finals.txt 内容 (2026-06-28 快照) - 验证 parser + merge 在真实数据上无回归
+  test("real cup_finals.txt (2026-06-28 snapshot) parses + merges correctly", async () => {
+    const { parseWorldcupTxt } = require("../../src/main/worldcup/parser");
+    const {
+      computeWorldcupBracket,
+    } = require("../../src/main/worldcup/bracket");
+    const REAL_FINALS_TXT = `= World Cup 2026 # in Canada, USA, and Mexico
+
+▪ Round of 32
+Sun Jun 28
+  (73) 12:00 UTC-7 South Africa v Canada @ Los Angeles (Inglewood) ## 2A / 2B
+Mon Jun 29
+  (74) 16:30 UTC-4 Germany v 3A/B/C/D/F @ Boston (Foxborough) ## 1E
+  (75) 19:00 UTC-6 Netherlands v Morocco @ Monterrey (Guadalupe) ## 1F / 2C
+  (76) 12:00 UTC-5 Brazil v Japan @ Houston ## 1C / 2F
+Tue Jun 30
+  (77) 17:00 UTC-4 1I v 3C/D/F/G/H @ New York/New Jersey (East Rutherford)
+  (78) 12:00 UTC-5 Ivory Coast v 2I @ Dallas (Arlington) ## 2E
+  (79) 19:00 UTC-6 Mexico v 3C/E/F/H/I @ Mexico City ## 1A
+
+▪ Round of 16
+Sat Jul 4
+  (89) 17:00 UTC-4 W74 v W77 @ Philadelphia
+
+▪ Final
+Sun Jul 19
+  (104) 15:00 UTC-4 W101 v W102 @ New York/New Jersey (East Rutherford)
+`;
+    const finalsData = parseWorldcupTxt(REAL_FINALS_TXT);
+    expect(finalsData.matches.length).toBeGreaterThan(0);
+    // 所有 match 应有 matchNum
+    expect(
+      finalsData.matches.every((m) => typeof m.matchNum === "number"),
+    ).toBe(true);
+
+    const r = await computeWorldcupBracket({
+      statePath,
+      fetcher: () => ({
+        ok: true,
+        data: { name: "WC", groups: [], matches: [] },
+      }),
+      finalsMatches: finalsData.matches,
+      scores: () => ({}),
+      groupStandings: FULL_GROUP_STANDINGS,
+    });
+    expect(r.ok).toBe(true);
+    const m73 = r.snapshot.r32.find((m) => m.matchNum === 73);
+    expect(m73.kickoff).toEqual({
+      date: "2026-06-28",
+      time: "12:00",
+      timezone: "UTC-7",
+      venue: "Los Angeles (Inglewood)",
+    });
+    expect(m73.slot1.team.name).toBe("South Africa");
+    expect(m73.slot2.team.name).toBe("Canada"); // TXT 真名覆盖了 slot.spec 的 runnerUp=B
+    const m74 = r.snapshot.r32.find((m) => m.matchNum === 74);
+    expect(m74.slot1.team.name).toBe("Germany"); // 1E=Germany 已被 TXT 确认
+    // slot2 是 best-third, TXT 留 placeholder "3A/B/C/D/F" → 保留 slot.spec 给的真实名
+    expect(m74.slot2.team.name).not.toBe("3A/B/C/D/F");
+    const m75 = r.snapshot.r32.find((m) => m.matchNum === 75);
+    expect(m75.slot1.team.name).toBe("Netherlands"); // 1F 已确认
+    expect(m75.slot2.team.name).toBe("Morocco"); // 2C 已确认
   });
 });

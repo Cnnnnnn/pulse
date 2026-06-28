@@ -3,12 +3,14 @@
  *
  * I2 v1: app pin
  * I2 v2: + fund / keyword
+ * Phase 33: 抽屉 → 弹窗 (跟 Reminders 形态一致). 保留 watchlistDrawerOpen 兼容旧调用.
  */
 import { signal, computed } from "@preact/signals";
 import { api } from "../api.js";
 
 export const watchlistItems = signal([]);
 export const watchlistDrawerOpen = signal(false);
+export const watchlistModalOpen = signal(false);
 
 export function isAppPinned(appName) {
   return watchlistItems.value.some(
@@ -34,6 +36,21 @@ export function itemKey(w) {
 export async function refreshWatchlist() {
   const r = await api.watchlistList();
   if (r && r.ok) watchlistItems.value = r.items;
+}
+
+export function openWatchlistDrawer(open = true) {
+  watchlistDrawerOpen.value = Boolean(open);
+}
+export function toggleWatchlistDrawer() {
+  watchlistDrawerOpen.value = !watchlistDrawerOpen.value;
+}
+
+// Phase 33: modal 入口
+export function openWatchlistModal(open = true) {
+  watchlistModalOpen.value = Boolean(open);
+}
+export function toggleWatchlistModal() {
+  watchlistModalOpen.value = !watchlistModalOpen.value;
 }
 
 export async function addWatchlistItem({ type, ref }) {

@@ -92,14 +92,27 @@ class QClawApiDetector extends Detector {
     ];
     for (const path of candidates) {
       const v = pluckPath(data, path);
-      if (v != null && v !== "")
+      if (v != null && v !== "") {
+        // QClaw 网关在 update_content 字段直返当前版本的更新日志原文 (含 emoji
+        // + bullet 列表), 跟 app 内嵌"版本日志"窗口内容一致. 提取到 changelog
+        // 字段, 用户点 ⓘ 展开 panel 时能看到具体更新点.
+        const updateContent = pluckPath(data, [
+          "data",
+          "resp",
+          "data",
+          "update_content",
+        ]);
         return new DetectorResult({
           version: String(v),
           raw: data,
           source: this.constructor.name,
           confidence: "high",
           note: `qclaw ${systemType} path=${path.join(".")}`,
+          changelog: typeof updateContent === "string" ? updateContent : "",
+          changelog_url: "https://qclaw.qq.com", // 官方主页作为兜底深链
+          changelog_format: "md",
         });
+      }
     }
 
     throw new DetectorError({

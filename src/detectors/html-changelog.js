@@ -164,9 +164,15 @@ function compareVersionsDesc(a, b) {
  * 从 html 文本里找到 sectionPattern 第一次出现的位置, 然后从该位置起追踪
  * sectionEnd 标签的开闭深度, 切出第一个完整 section.
  *
+ * sectionEndTag 两种模式:
+ *   1. 闭合标签 "</xxx>" — balance 计数到 depth=0 结束 (默认)
+ *   2. 起始标记 "<xxx"   — 切到下一个同标签起始处 (不 balance), 用于
+ *      changelog 页面里每个 release 块是 h2 + 跟随兄弟节点直到下个 h2 的结构
+ *      (e.g. VitePress markdown 渲染: <h2>x.y.z</h2><p>...</p><ul>...</ul><h2>...)
+ *
  * @param {string} html
  * @param {string} sectionStart  起始子串 (e.g. '<div class="...">')
- * @param {string} sectionEndTag 闭合标签 (e.g. '</div>')
+ * @param {string} sectionEndTag 闭合标签 (e.g. '</div>') 或下一个起始 (e.g. '<h2')
  * @returns {string|null}       切出的 section HTML (含起始标记) 或 null
  */
 function extractFirstSection(html, sectionStart, sectionEndTag) {
@@ -180,6 +186,15 @@ function extractFirstSection(html, sectionStart, sectionEndTag) {
   const openTagRe = new RegExp(`<${tagMatch[1]}\\b`, "gi");
   const closeTag = sectionEndTag.toLowerCase(); // e.g. "</div>"
 
+  // 模式 2: sectionEndTag 是起始标记 (e.g. "<h2") → 切到下一个同标签出现处.
+  // 起始处已匹配的 sectionStart 自身要排除, 所以从 startIdx+1 起找.
+  if (!closeTag.startsWith("</")) {
+    const nextStart = html.indexOf(closeTag, startIdx + 1);
+    if (nextStart === -1) return html.slice(startIdx); // 没有下一个 → 一直切到末尾
+    return html.slice(startIdx, nextStart);
+  }
+
+  // 模式 1: balance 计数 (默认)
   // 数 open vs close, balance=1 时遇到第一个 close 就是 section 结束
   const searchFrom = startIdx;
   let depth = 0;

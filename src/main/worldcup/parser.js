@@ -92,11 +92,28 @@ function parseScorePair(raw) {
 }
 
 /**
- * 解析单行比赛: 支持 "A v B" 与 "A 2-0 (1-0) B" 两种 openfootball 格式
+ * 解析单行比赛: 支持 "A v B" 与 "A 2-0 (1-0) B" 两种 openfootball 格式.
+ * 也支持可选 `(N) ` 前缀 (cup_finals.txt 用此标注 Match #), 此时返回的 match 对象带 matchNum.
+ * 末尾 `## note` 注释 (cup_finals.txt 用此记 1A/2B 等 group rank) 被剥离, 不参与 match body.
  * @param {string} line
+ * @returns {{time, timezone, team1, team2, venue, score, matchNum?}|null}
  */
 function parseMatchLine(line) {
-  const head = line.match(/^(\d{1,2}:\d{2})(?:\s+(UTC[+\-]\d{1,2}))?\s+(.+)$/);
+  // 1. 剥离可选 (N) 行号前缀 (cup_finals.txt 风格)
+  let rest = line;
+  let matchNum = null;
+  const numMatch = rest.match(/^\s*\((\d{1,3})\)\s+(.+)$/);
+  if (numMatch) {
+    matchNum = parseInt(numMatch[1], 10);
+    rest = numMatch[2];
+  }
+
+  // 2. 剥离末尾 ## note 注释
+  const noteIdx = rest.indexOf("##");
+  if (noteIdx >= 0) rest = rest.slice(0, noteIdx).trimEnd();
+
+  // 3. 解析时间头
+  const head = rest.match(/^(\d{1,2}:\d{2})(?:\s+(UTC[+\-]\d{1,2}))?\s+(.+)$/);
   if (!head) return null;
 
   const time = head[1];
@@ -114,7 +131,9 @@ function parseMatchLine(line) {
     const team1 = vFmt[1].trim();
     const team2 = vFmt[2].trim();
     if (!team1 || !team2) return null;
-    return { time, timezone, team1, team2, venue, score: null };
+    return matchNum != null
+      ? { time, timezone, team1, team2, venue, score: null, matchNum }
+      : { time, timezone, team1, team2, venue, score: null };
   }
 
   const scoreFmt = mid.match(/^(.+?)\s+(\d+-\d+)\s*(?:\((\d+-\d+)\))?\s+(.+)$/);
@@ -124,18 +143,24 @@ function parseMatchLine(line) {
     const team2 = scoreFmt[4].trim();
     if (!ft || !team1 || !team2) return null;
     const ht = scoreFmt[3] ? parseScorePair(scoreFmt[3]) : undefined;
-    return {
-      time,
-      timezone,
-      team1,
-      team2,
-      venue,
-      score: {
-        ft,
-        ht: ht || undefined,
-        status: "final",
-      },
-    };
+    return matchNum != null
+      ? {
+          time,
+          timezone,
+          team1,
+          team2,
+          venue,
+          score: { ft, ht: ht || undefined, status: "final" },
+          matchNum,
+        }
+      : {
+          time,
+          timezone,
+          team1,
+          team2,
+          venue,
+          score: { ft, ht: ht || undefined, status: "final" },
+        };
   }
 
   return null;
@@ -233,6 +258,7 @@ function parseWorldcupTxt(txt) {
       matches.push({
         stage,
         round: null,
+        matchNum: parsed.matchNum != null ? parsed.matchNum : null,
         date: currentDate,
         time: parsed.time,
         timezone: parsed.timezone,
