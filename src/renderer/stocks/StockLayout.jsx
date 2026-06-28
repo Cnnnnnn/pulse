@@ -2,20 +2,20 @@
  * src/renderer/stocks/StockLayout.jsx
  *
  * 选股 tab 容器 (对照 FundLayout).
- * mount: loadWatchlist + 订阅自选股行情推送 + 初始拉一次行情.
  * 注意: 进 tab 不自动筛选 (避免进 tab 就打接口), 用户手动点筛选.
+ *
+ * Phase 32: 个股 AI 分析抽屉 (StockDetailDrawer) 挂这里, 不再独立 nav.
+ * 顶栏 "AI 个股" 按钮打开抽屉, 抽屉自带搜索输入让用户选股.
  */
-import { useEffect } from "preact/hooks";
 import { StrategyBar } from "./StrategyBar.jsx";
 import { CriteriaPanel } from "./CriteriaPanel.jsx";
 import { ResultTable } from "./ResultTable.jsx";
 import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
+import { StockDetailDrawer } from "./StockDetailDrawer.jsx";
 import { IconSearch, IconSparkles, IconTrendingUp } from "../components/icons.jsx";
+import { detailOpen } from "./stockDetailStore.js";
 import {
   runScreen,
-  loadWatchlist,
-  subscribeWatchlistQuotes,
-  refreshWatchlistQuotes,
   fetchedAt,
   loading,
   openAdvise,
@@ -32,19 +32,6 @@ function fmtTime(ts) {
 }
 
 export function StockLayout() {
-  useEffect(() => {
-    void loadWatchlist(api);
-    const unsub = subscribeWatchlistQuotes(api);
-    void refreshWatchlistQuotes(api);
-    return () => {
-      try {
-        unsub && unsub();
-      } catch {
-        /* noop */
-      }
-    };
-  }, []);
-
   const ts = fetchedAt.value;
 
   return (
@@ -56,6 +43,15 @@ export function StockLayout() {
         </div>
         <div class="stock-header-right">
           <span class="stock-updated">更新于 {fmtTime(ts)}</span>
+          <button
+            type="button"
+            class="stock-btn stock-btn-secondary"
+            onClick={() => { detailOpen.value = true; }}
+            aria-label="AI 个股分析"
+            data-testid="stock-detail-open"
+          >
+            <IconSparkles size={14} /> AI 个股
+          </button>
           <button
             type="button"
             class="stock-btn stock-btn-secondary stock-btn-ai"
@@ -77,10 +73,11 @@ export function StockLayout() {
       </div>
       <StrategyBar />
       <CriteriaPanel />
-      <div class={aiAdviseOpen.value ? "stock-results-pad-drawer" : ""}>
+      <div class={aiAdviseOpen.value || detailOpen.value ? "stock-results-pad-drawer" : ""}>
         <ResultTable api={api} />
       </div>
       <AiAdviseDrawer api={api} />
+      <StockDetailDrawer api={api} />
     </div>
   );
 }

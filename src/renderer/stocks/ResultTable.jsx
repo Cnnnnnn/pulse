@@ -1,7 +1,7 @@
 /**
  * src/renderer/stocks/ResultTable.jsx
  *
- * 结果表格 — 列头可排序, 每行右侧 IconStar 存自选.
+ * 结果表格 — 列头可排序.
  * 对照 spec §6.4. 涨跌用红绿 (A 股惯例: 红涨绿跌; 这里用项目既有 up/down 语义).
  */
 import {
@@ -11,13 +11,9 @@ import {
   sortKey,
   sortDir,
   setSort,
-  addWatchlist,
-  removeWatchlist,
-  isInWatchlist,
   runScreen,
 } from "./stockStore.js";
 import { PanelEmpty } from "../components/EmptyState.jsx";
-import { IconStar } from "../components/icons.jsx";
 
 const COLUMNS = [
   { key: "name", label: "名称/代码", align: "left" },
@@ -34,11 +30,6 @@ export function ResultTable({ api }) {
   const sd = sortDir.value;
   const isLoading = loading.value;
   const err = error.value;
-
-  function toggleStar(code) {
-    if (isInWatchlist(code)) removeWatchlist(api, code);
-    else addWatchlist(api, code);
-  }
 
   if (err && !isLoading) {
     // ponytail: 仅在非 loading 时显示错误页. loading 期间保留旧表格 + loading 角标,
@@ -98,7 +89,6 @@ export function ResultTable({ api }) {
             {sk === col.key ? (sd === "desc" ? " ▼" : " ▲") : ""}
           </span>
         ))}
-        <span class="stock-th stock-th-center"><IconStar size={12} /></span>
       </div>
       {rows.map((r) => (
         <div key={r.code} class="stock-table-row">
@@ -126,16 +116,6 @@ export function ResultTable({ api }) {
           </span>
           <span class="stock-td stock-td-industry">
             {r.industry || "—"}
-          </span>
-          <span class="stock-td stock-td-center">
-            <button
-              type="button"
-              class={`stock-star${isInWatchlist(r.code) ? " active" : ""}`}
-              onClick={() => toggleStar(r.code)}
-              aria-label="存自选"
-            >
-              {isInWatchlist(r.code) ? <IconStar size={14} filled /> : <IconStar size={14} />}
-            </button>
           </span>
         </div>
       ))}

@@ -9,8 +9,6 @@
  *   results: StockRow[]         // 筛选结果
  *   fetchedAt/loading/error     // 状态
  *   sortKey/sortDir             // 排序
- *   watchlist: StockWatchItem[] // 自选股
- *   watchlistQuotes: object     // 自选股行情 {code:{...}}
  *   advancedOpen: boolean       // 高级条件折叠
  *   aiAdviseOpen: boolean       // 阶段二: AI 推荐抽屉是否打开
  *   aiAdvise: {                 // 阶段二: AI 推荐当前状态
@@ -23,7 +21,11 @@
  */
 import { signal, computed } from "@preact/signals";
 import { taggedLog } from "../log.js";
-import { STRATEGIES, buildCriteria, getStrategy } from "../../stocks/strategies";
+import {
+  STRATEGIES,
+  buildCriteria,
+  getStrategy,
+} from "../../stocks/strategies";
 import { DEFAULT_SCREENER_CRITERIA } from "../../stocks/stock-constants";
 import { sortStocks } from "../../stocks/stock-filter";
 
@@ -39,10 +41,7 @@ export const loading = signal(false);
 export const error = signal(null);
 export const sortKey = signal("roe");
 export const sortDir = signal("desc");
-export const watchlist = signal([]);
-export const watchlistQuotes = signal({});
 export const advancedOpen = signal(false);
-export const addModalOpen = signal(false);
 // 阶段二: AI 推荐抽屉
 export const aiAdviseOpen = signal(false);
 export const aiAdvise = signal({
@@ -95,14 +94,6 @@ export function toggleAdvanced() {
   advancedOpen.value = !advancedOpen.value;
 }
 
-export function openAddModal() {
-  addModalOpen.value = true;
-}
-
-export function closeAddModal() {
-  addModalOpen.value = false;
-}
-
 // ── 阶段二: AI 推荐策略抽屉 ──
 
 export function openAdvise() {
@@ -127,10 +118,21 @@ export function closeAdvise() {
  */
 export async function requestAiAdvise(api, payload) {
   if (!api || !api.stocksAiAdvise) {
-    aiAdvise.value = { status: "error", result: null, fromCache: false, reason: "no_api", error: "api 不可用" };
+    aiAdvise.value = {
+      status: "error",
+      result: null,
+      fromCache: false,
+      reason: "no_api",
+      error: "api 不可用",
+    };
     return;
   }
-  aiAdvise.value = { ...aiAdvise.value, status: "loading", reason: null, error: null };
+  aiAdvise.value = {
+    ...aiAdvise.value,
+    status: "loading",
+    reason: null,
+    error: null,
+  };
   try {
     const r = await api.stocksAiAdvise({
       intentChip: payload.intentChip,
@@ -189,11 +191,6 @@ export function applyAiAdvise() {
   closeAdvise();
 }
 
-/** 是否在自选 (表格 IconStar 用) */
-export function isInWatchlist(code) {
-  return (watchlist.value || []).some((w) => w.code === code);
-}
-
 // ── async actions (走 IPC) ──
 
 export async function runScreen(api) {
@@ -218,52 +215,6 @@ export async function runScreen(api) {
   } finally {
     loading.value = false;
   }
-}
-
-export async function loadWatchlist(api) {
-  try {
-    const r = await api.stocksWatchlistList();
-    if (r && r.ok) watchlist.value = r.items || [];
-  } catch (e) {
-    log.warn("loadWatchlist failed:", e && e.message);
-  }
-}
-
-export async function addWatchlist(api, code) {
-  const r = await api.stocksWatchlistAdd({ code });
-  if (r && r.ok) {
-    watchlist.value = r.items || [];
-    return { ok: true };
-  }
-  return { ok: false, error: r && r.error };
-}
-
-export async function removeWatchlist(api, code) {
-  const r = await api.stocksWatchlistRemove({ code });
-  if (r && r.ok) {
-    watchlist.value = r.items || [];
-  }
-  return r;
-}
-
-export async function refreshWatchlistQuotes(api) {
-  const r = await api.stocksWatchlistQuotes();
-  if (r && r.ok) watchlistQuotes.value = r.quotes || {};
-  return r;
-}
-
-/** 订阅主进程自选股行情推送 (StockQuoteScheduler) */
-export function subscribeWatchlistQuotes(api) {
-  const off = api.onStocksWatchlistQuotes((payload) => {
-    if (payload && payload.quotes) watchlistQuotes.value = payload.quotes;
-  });
-  return () => {
-    try {
-      off && off();
-    } catch {
-      /* noop */
-    }
-  };
 }
 
 export { STRATEGIES, getStrategy };
