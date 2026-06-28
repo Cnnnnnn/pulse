@@ -15,6 +15,10 @@
  *   1. Section 传 name[], AppRow 用 key={name} 稳定复用
  *   2. result signal + phase signal 都是 per-row, 只触发本组件重渲染
  *   3. useState (upgrading, changelogOpen, muteMenuAt) 跨渲染保留
+ *
+ * ponytail: 行级 ⓘ info button (AppInfo 渲染) 触发 <ChangelogPanel>; 其他已
+ * 退役的 RowOverflowMenu / SnoozeMenu / VersionHistoryDrawer 在 working tree
+ * 已删, 这里不引. 后续 Phase 35+ 决定是否重建.
  */
 
 import { useState, useCallback } from 'preact/hooks';
@@ -33,16 +37,6 @@ import { AppVersions } from './AppVersions.jsx';
 import { AppAction } from './AppAction.jsx';
 import { ChangelogPanel } from './ChangelogPanel.jsx';
 import { MuteMenu } from './MuteMenu.jsx';
-import { SnoozeMenu } from './SnoozeMenu.jsx';
-import { openVersionHistory } from '../store-version-history.js';
-import { versionHistoryCounts } from '../store-version-history-counts.js';
-import {
-  watchlistItems,
-  addWatchlist,
-  removeWatchlist,
-  isAppPinned,
-} from '../watchlist/watchlist-store.js';
-import { IconMoreHorizontal } from './icons.jsx';
 
 export function AppRow({ name }) {
   // 订阅 per-row signals (本组件的订阅点)
@@ -53,7 +47,6 @@ export function AppRow({ name }) {
   const [upgrading, setUpgrading] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [muteMenuAt, setMuteMenuAt] = useState(null);
-  const [snoozeMenuAt, setSnoozeMenuAt] = useState(null);
 
   const handleUpgrade = useCallback(async (cask, appName) => {
     if (!cask) return;
@@ -138,21 +131,13 @@ export function AppRow({ name }) {
   const muteEntry = mutedApps.value.get(name);
   const muted = isMuted(name);
   const lastOpenedEntry = lastOpenedApps.value.get(name);
-  // I2 v1: pinned state
-  const pinned = isAppPinned(result.name);
-  const togglePin = (e) => {
-    e.stopPropagation();
-    if (pinned) removeWatchlist(result.name);
-    else addWatchlist(result.name);
-  };
 
   function onContextMenu(e) {
     if (e.target.closest('.btn-upgrade-row')
         || e.target.closest('.status-badge')
         || e.target.closest('.app-info-btn')
         || e.target.closest('.changelog-panel')
-        || e.target.closest('.mute-menu')
-        || e.target.closest('.row-overflow-menu')) return;
+        || e.target.closest('.mute-menu')) return;
     e.preventDefault();
     setMuteMenuAt({ x: e.clientX, y: e.clientY });
   }
@@ -164,16 +149,6 @@ export function AppRow({ name }) {
     <div
       class={`app-row${changelogOpen ? ' changelog-open' : ''}${muted ? ' muted' : ''}${phaseClass}`}
       data-name={result.name}
-      style={hasDownloadUrl(result.name) ? 'cursor: pointer' : ''}
-      onClick={(e) => {
-        if (e.target.closest('.btn-upgrade-row')
-            || e.target.closest('.status-badge')
-            || e.target.closest('.app-info-btn')
-            || e.target.closest('.changelog-panel')
-            || e.target.closest('.row-overflow-menu')) return;
-        const cfg = lookupConfig(result.name);
-        if (cfg && cfg.download_url) api.openUrl(cfg.download_url);
-      }}
       onContextMenu={onContextMenu}
     >
       <AppAvatar bundle={bundle} name={result.name} />
@@ -191,16 +166,6 @@ export function AppRow({ name }) {
         onUpgrade={handleUpgrade}
         isUpgrading={upgrading}
       />
-      <RowOverflowMenu
-        name={result.name}
-        hasUpdate={result.has_update}
-        pinned={pinned}
-        onPin={togglePin}
-        onSnooze={(e) => setSnoozeMenuAt({ x: e.clientX, y: e.clientY })}
-        onRollback={() => openVersionHistory(result.name)}
-        onShowChangelog={() => setChangelogOpen((v) => !v)}
-        rollbackCount={versionHistoryCounts.value.get(result.name) || 0}
-      />
       {changelogOpen && <ChangelogPanel result={result} />}
       {muteMenuAt && (
         <MuteMenu
@@ -212,65 +177,6 @@ export function AppRow({ name }) {
           lastOpened={lastOpenedEntry}
           onClose={() => setMuteMenuAt(null)}
         />
-      )}
-      {snoozeMenuAt && (
-        <SnoozeMenu
-          x={snoozeMenuAt.x}
-          y={snoozeMenuAt.y}
-          name={result.name}
-          latestVersion={result.latest_version}
-          snoozeUntil={result.snoozeUntil}
-          skippedVersion={result.skippedVersion}
-          onClose={() => setSnoozeMenuAt(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── RowOverflowMenu (snooze / rollback / pin / changelog) ──────────
-export function RowOverflowMenu({
-  name, hasUpdate, pinned,
-  onPin, onSnooze, onRollback, onShowChangelog, rollbackCount,
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div class="row-overflow-menu">
-      <button
-        type="button"
-        class="row-overflow-trigger"
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        aria-label={`${name} 行的更多操作`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        <IconMoreHorizontal size={14} />
-      </button>
-      {open && (
-        <ul class="row-overflow-dropdown" role="menu" onClick={(e) => e.stopPropagation()}>
-          {hasUpdate && (
-            <li>
-              <button role="menuitem" onClick={(e) => { onSnooze(e); setOpen(false); }}>
-                等下次再升
-              </button>
-            </li>
-          )}
-          <li>
-            <button role="menuitem" onClick={() => { onRollback(); setOpen(false); }}>
-              回滚历史{rollbackCount > 0 ? ` (${rollbackCount})` : ''}
-            </button>
-          </li>
-          <li>
-            <button role="menuitem" onClick={() => { onPin(); setOpen(false); }}>
-              {pinned ? '取消关注' : '加入关注列表'}
-            </button>
-          </li>
-          <li>
-            <button role="menuitem" onClick={() => { onShowChangelog(); setOpen(false); }}>
-              Changelog
-            </button>
-          </li>
-        </ul>
       )}
     </div>
   );
@@ -290,9 +196,4 @@ export function primeConfigCache(cfg) {
 function lookupConfig(appName) {
   const cfg = getConfig();
   return (cfg.apps || []).find(a => a.name === appName) || null;
-}
-
-function hasDownloadUrl(appName) {
-  const cfg = lookupConfig(appName);
-  return !!(cfg && cfg.download_url);
 }

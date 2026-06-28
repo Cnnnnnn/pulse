@@ -14,6 +14,7 @@
  *          > 100 行用 VirtualCardGrid.
  */
 import { PageHeader } from "./PageHeader.jsx";
+import { PageActionsBar } from "./PageActionsBar.jsx";
 import { ViewSwitcher } from "./ViewSwitcher.jsx";
 import { MergedFilterChip } from "./MergedFilterChip.jsx";
 import { ResultsView } from "./ResultsView.jsx";
@@ -55,6 +56,7 @@ export function LibraryPage() {
         >
           {isLoading ? "检查中…" : "检查更新"}
         </button>
+        <PageActionsBar />
         <ViewSwitcher />
       </PageHeader>
       <MergedFilterChip />

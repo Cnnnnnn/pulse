@@ -4,15 +4,14 @@
  * Library Card 视图单卡. ponytail: 跟 AppRow 共用 data source,
  * 但不抽 helper — Card 后续可独立演进 (放更多元数据).
  *
- * ponytail: RowOverflowMenu 的 onPin / onSnooze / onRollback / onShowChangelog
- * 在 Card 视图暂用 no-op; 后续 LibraryPage 接入 watchlist / history store 时再补.
- * 当前 ceiling: 卡片只渲染升级按钮 + 打开菜单, 菜单项点击不触发动作.
+ * 2026-06-28: AppRow 导出列表已删 RowOverflowMenu (依赖的 SnoozeMenu /
+ * VersionHistoryDrawer 等 working tree 已删). Card 视图当前只渲染升级按钮;
+ * 等 Phase 35+ 决定是否重建 watchlist / snooze / rollback 行级菜单再加回来.
  */
 import { useState } from "preact/hooks";
 import { getResultSignal, getAppPhaseSignal } from "../store.js";
 import { api } from "../api.js";
 import { AppAvatar } from "./AppAvatar.jsx";
-import { RowOverflowMenu } from "./AppRow.jsx"; // 复用
 
 export function AppCard({ name }) {
   const result = getResultSignal(name).value;
@@ -36,7 +35,6 @@ export function AppCard({ name }) {
     );
   }
 
-  const noop = () => {};
   return (
     <div class="app-card" data-name={result.name}>
       <AppAvatar bundle={result.bundle} name={result.name} />
@@ -54,16 +52,6 @@ export function AppCard({ name }) {
       >
         {upgrading ? "升级中…" : result.has_update ? "升级" : "最新"}
       </button>
-      <RowOverflowMenu
-        name={result.name}
-        hasUpdate={result.has_update}
-        pinned={false}
-        onPin={noop}
-        onSnooze={noop}
-        onRollback={noop}
-        onShowChangelog={noop}
-        rollbackCount={0}
-      />
     </div>
   );
 }

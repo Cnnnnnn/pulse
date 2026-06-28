@@ -21,8 +21,7 @@ import { AISettingsModal } from './components/AISettingsModal.jsx';
 import { Toast } from './components/Toast.jsx';
 import { StateRecoveredBanner } from './components/StateRecoveredBanner.jsx';
 import { DigestDrawer } from './digest/DigestDrawer.jsx';
-import { DiagnosticsDrawer } from './components/DiagnosticsDrawer.jsx';
-import { WatchlistDrawer } from './components/WatchlistDrawer.jsx';
+import { WatchlistModal } from './components/WatchlistModal.jsx';
 import { ReleaseNotesWizard } from './components/ReleaseNotesWizard.jsx';
 import { ConfirmDialog } from './components/ConfirmDialog.jsx';
 import { AppShell } from './components/AppShell.jsx';
@@ -94,8 +93,7 @@ export function App({ onCheck }) {
       <Toast />
       <StateRecoveredBanner />
       <DigestDrawer />
-      <DiagnosticsDrawer />
-      <WatchlistDrawer />
+      <WatchlistModal />
       <ReleaseNotesWizard />
     </div>
   );

@@ -28,6 +28,9 @@ function openExternal(url) {
 
 /**
  * 根据 source 字段给出 release page 按钮文案. 通用 fallback: "查看发布页".
+ * ponytail: hilo_changelog_manifest 的 releaseUrl 是 zip 相对路径 (用于 bulk upgrade
+ * 下载, 不是给用户看的 release page URL). 这种 source 不显示按钮 — 避免点了
+ * 跳到无效地址. 等 detector 后续拿到真正的 release page URL 再加分支.
  */
 function releasesLinkLabel(source) {
   if (typeof source === 'string' && source.includes('github')) {
@@ -37,6 +40,16 @@ function releasesLinkLabel(source) {
     return '↗ 项目主页';
   }
   return '↗ 查看发布页';
+}
+
+/**
+ * 哪些 source 提供可点击的 release page URL. 不是所有 detector 都给得出 release
+ * page (hilo_changelog_manifest 只给 zip 相对路径, 不显示按钮避免跳到无效地址).
+ */
+function hasReleasesLink(source) {
+  if (typeof source !== 'string') return true; // 未知 source 信任 detector, 显示按钮
+  if (source === 'hilo_changelog_manifest') return false;
+  return true;
 }
 
 export function ChangelogPanel({ result }) {
@@ -92,8 +105,10 @@ export function ChangelogPanel({ result }) {
           <ChangelogSummary appName={result.name} />
         )}
         {/* ↗ Releases 按钮: 跳到该版本的 release page (e.g. GitHub Releases).
-            只在 release_url 存在时显示, 走主进程 open-url IPC → shell.openExternal. */}
-        {isCurrent && releaseUrl && (
+            只在 release_url 存在 + source 提供有效页面 URL 时显示, 走主进程
+            open-url IPC → shell.openExternal. hilo_changelog_manifest 的
+            releaseUrl 是 zip 相对路径 (无效), 通过 hasReleasesLink 过滤. */}
+        {isCurrent && releaseUrl && hasReleasesLink(result.source) && (
           <button
             type="button"
             class="changelog-releases-btn"
