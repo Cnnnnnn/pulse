@@ -87,6 +87,53 @@ class MetalScheduler {
   _emitState() {
     this.onUpdate({ state: this.getState() });
   }
+
+  /**
+   * 把当前 quotes 的 price 当作"当日 close"写入 historyMap.
+   * 同日重复调用不重复写 (按 date 去重). 超过 30 天的条目裁掉.
+   * @param {Object} quotes   metal id → {price, ...}
+   * @param {Object} historyMap  metal id → [{date, close}]
+   * @param {Date}   [now]    可注入当前时间, 测试用
+   */
+  snapshotDailyClose(quotes, historyMap, now = new Date()) {
+    if (!quotes || !historyMap) return;
+    const today = isoDate(now);
+    for (const [id, q] of Object.entries(quotes)) {
+      if (!q || !Number.isFinite(q.price)) continue;
+      const arr = historyMap[id] || (historyMap[id] = []);
+      if (arr.some((p) => p.date === today)) continue;
+      arr.push({ date: today, close: q.price });
+      arr.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      while (arr.length > 30) arr.shift();
+    }
+  }
+
+  /**
+   * 检查 historyMap, 返 { need: [{id, secid, unitDivisor}] }.
+   * @param {Object} historyMap   metal id → array of {date, close}
+   * @param {Array}  configMetals [{id, historySecid, unitDivisor}, ...]
+   */
+  detectHistoryGap(historyMap, configMetals) {
+    const need = [];
+    for (const m of configMetals || []) {
+      const arr = (historyMap && historyMap[m.id]) || [];
+      if (arr.length < 30) {
+        need.push({
+          id: m.id,
+          secid: m.historySecid,
+          unitDivisor: m.unitDivisor,
+        });
+      }
+    }
+    return { need };
+  }
+}
+
+function isoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 module.exports = { MetalScheduler, FIVE_MINUTES_MS };
