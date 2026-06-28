@@ -44,17 +44,17 @@ export function Sparkline({
   const yPad = 2;
   const yH = height - yPad * 2;
 
-  // X 等分: i=0..n-1 → 0..width
-  const points = values
+  // X 等分: 用 valid 的索引重映射, NaN 不会画到 SVG 上.
+  const points = valid
     .map((v, i) => {
-      const x = (i / (values.length - 1)) * width;
+      const x = (i / (valid.length - 1)) * width;
       const y = yPad + yH - ((v - min) / range) * yH;
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     })
     .join(" ");
 
-  const first = values[0];
-  const last = values[values.length - 1];
+  const first = valid[0];
+  const last = valid[valid.length - 1];
   const stroke = last > first ? upColor : last < first ? downColor : flatColor;
 
   return (

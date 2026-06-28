@@ -52,4 +52,10 @@ describe("Sparkline", () => {
     expect(svg.querySelector("polyline")).not.toBeNull();
     expect(svg.querySelectorAll("circle").length).toBe(2);
   });
+
+  it("含 NaN: polyline 不含 'NaN' 字符串", () => {
+    const { container } = render(<Sparkline closes={[100, NaN, 200]} />);
+    const poly = container.querySelector("polyline");
+    expect(poly.getAttribute("points")).not.toMatch(/NaN/);
+  });
 });
