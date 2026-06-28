@@ -11,8 +11,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   quoteCache,
+  historyMap,
   initMetalStore,
   cleanupMetalStore,
+  refreshNow,
   resetMetalStore,
 } from "../../../src/renderer/metals/metalStore.js";
 
@@ -43,6 +45,7 @@ describe("metalStore cold-start fetchNow", () => {
       ok: true,
       quotes: { data: { XAU: { price: 700 } }, errors: {}, fetchedAt: 1234 },
       fx: { rate: 7.18, fetchedAt: 1234 },
+      historyMap: { XAU: [{ date: "2026-06-01", close: 690 }] },
     });
     global.window.metalsApi = {
       ...makeMetalsApi({
@@ -80,5 +83,52 @@ describe("metalStore cold-start fetchNow", () => {
       expect.stringContaining("network down"),
     );
     consoleWarn.mockRestore();
+  });
+
+  it("fetchNow response.historyMap 同步到 historyMap signal (消除 'quote 出了但 30 天还在加载中' 竞态)", async () => {
+    const fetchResult = {
+      ok: true,
+      quotes: { data: { XAU: { price: 700 } }, errors: {}, fetchedAt: 999 },
+      fx: { rate: 7.18, fetchedAt: 999 },
+      historyMap: {
+        XAU: [{ date: "2026-06-01", close: 690 }, { date: "2026-06-02", close: 695 }],
+        AU9999: [{ date: "2026-06-01", close: 880 }, { date: "2026-06-02", close: 885 }],
+      },
+    };
+    global.window.metalsApi = {
+      ...makeMetalsApi({
+        initialState: { quotes: { data: {}, errors: {}, fetchedAt: null }, fx: { rate: null, fetchedAt: null }, scheduler: { status: "idle" } },
+      }),
+      fetchNow: async () => fetchResult,
+    };
+    await initMetalStore();
+    // historyMap 来自 response 同步, 不依赖 onHistoryChanged 事件时序
+    expect(historyMap.value.XAU.length).toBe(2);
+    expect(historyMap.value.XAU[0].close).toBe(690);
+    expect(historyMap.value.AU9999[1].close).toBe(885);
+  });
+
+  it("refreshNow() 也同步 historyMap (手动点刷新)", async () => {
+    // 已有 quoteCache, 不走 cold-start, 走 refreshNow 路径
+    const fetchResult = {
+      ok: true,
+      quotes: { data: {}, errors: {}, fetchedAt: Date.now() },
+      fx: { rate: 7.18, fetchedAt: Date.now() },
+      historyMap: { XAU: [{ date: "2026-06-02", close: 700 }] },
+    };
+    global.window.metalsApi = {
+      ...makeMetalsApi({
+        initialState: {
+          quotes: { data: { XAU: { price: 700 } }, errors: {}, fetchedAt: Date.now() },
+          fx: { rate: 7.18, fetchedAt: Date.now() },
+          scheduler: { status: "idle" },
+        },
+      }),
+      fetchNow: async () => fetchResult,
+    };
+    await initMetalStore();
+    expect(historyMap.value.XAU).toBeUndefined();
+    await refreshNow();
+    expect(historyMap.value.XAU.length).toBe(1);
   });
 });

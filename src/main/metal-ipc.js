@@ -108,12 +108,14 @@ function broadcast(channel, payload) {
  * @param {Function} [opts.httpGet] 注入 http getter; 默认走 module-level httpClient adapter
  * @param {Function} [opts.now]    注入当前时间, 测试用
  * @param {object} [opts.scheduler] 注入 scheduler 实例; 默认用 module-level scheduler
+ * @param {boolean} [opts.force=false] 跳过 1h 冷却. 用于手动 refresh 路径,
+ *        渲染器等 fetchNow 后想立即拿到 historyMap 时绕过冷却.
  */
 async function triggerBackfill(opts = {}) {
   const httpGet = opts.httpGet || httpGetAdapter;
   const now = opts.now || (() => Date.now());
   const cfg = loadConfig();
-  if (now() - (cfg.lastBackfillAt || 0) < 60 * 60 * 1000) {
+  if (!opts.force && now() - (cfg.lastBackfillAt || 0) < 60 * 60 * 1000) {
     return { skipped: true, reason: "cooldown" };
   }
   const sched = opts.scheduler || scheduler || new MetalScheduler({ httpGet });
@@ -206,7 +208,25 @@ function registerMetalIpc() {
   ipcMain.handle("metals:quote:fetch", async () => {
     if (!scheduler) return { ok: false, error: "scheduler not started" };
     await scheduler.fetchNow();
-    return { ok: true, quotes: quoteCache, fx: fxCache };
+    // 串行等 backfill: renderer 拿到 fetchNow response 时 historyMap 已最新,
+    // 避免"quote 出了但 30 天走势还在加载中"的竞态. 绕过 1h 冷却 (cooldown 是为
+    // 防后台 5min tick 频繁打 eastmoney kline, 手动点刷新不受限).
+    const cfg = loadConfig();
+    if (scheduler.detectHistoryGap(cfg.historyMap, METALS).need.length > 0) {
+      const r = await triggerBackfill({ force: true });
+      if (!r.ok && r.reason !== "no_gap") {
+        mainLog.warn(`[metals] fetch→backfill: ${r.error || r.reason}`);
+      }
+    }
+    // 直接把当前 historyMap 拼进 response, 彻底消除"response 先到 broadcast 后到"
+    // 竞态. renderer 拿到 fetchNow return 时 historyMap 字段已是最新.
+    const latestCfg = loadConfig();
+    return {
+      ok: true,
+      quotes: quoteCache,
+      fx: fxCache,
+      historyMap: latestCfg.historyMap || {},
+    };
   });
 
   ipcMain.handle("metals:quote:state", () => ({

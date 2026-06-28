@@ -106,4 +106,24 @@ describe("metal-ipc backfill 1h cooldown", () => {
     await triggerBackfill({ httpGet, now: () => Date.now() });
     expect(called).toBe(true);
   });
+
+  it("triggerBackfill({ force: true }) → 跳过 1h 冷却, httpGet 立即被调", async () => {
+    const { triggerBackfill } = loadMetalIpc();
+    const stateStore = require(stateStorePath);
+    stateStore.patchState((next) => {
+      next.metals = {
+        watchedIds: ["XAU"],
+        holdings: {},
+        historyMap: {},
+        lastBackfillAt: Date.now(), // 刚刚 backfill 过 (冷却内)
+      };
+    });
+    let called = false;
+    const httpGet = async () => {
+      called = true;
+      return '{"rc":100,"data":null}';
+    };
+    await triggerBackfill({ httpGet, force: true, now: () => Date.now() });
+    expect(called).toBe(true);
+  });
 });
