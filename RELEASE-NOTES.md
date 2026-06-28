@@ -4,6 +4,48 @@
 
 ## Unreleased (🔍 全文搜索 Cmd+K — Phase A3)
 
+### Stock Detail UI Redesign (Phase A4)
+
+抽屉宽度 560 → 720px, 7 chip 多选 → 5 tab 分组视图 (行情/财务/资金/技术/舆情), 新增 Hero bar (实时价/涨跌) + K 线图 (蜡烛 + MA5/10/20 + 成交额 + MACD), AI 解读默认折叠 (节省首屏空间).
+
+#### 新增
+- **K 线图 (CandlestickChart)**: pure SVG 组件, 蜡烛 + MA 折线 + 成交额柱 + MACD (hist/DIF/DEA). 30 日数据, 红涨绿跌 A 股惯例, 暗色模式自动适配.
+- **Hero bar**: 抽屉顶部条带, 展示股票名/代码/实时价/日涨跌, 价从 `lastQuote` 取不重打 IPC.
+- **5 tab 分组视图**: 行情 (K 线 + 5日/20日/振幅) / 财务 (估值 + 盈利能力) / 资金 (主力净流入 + sparkline) / 技术 (MACD/RSI/KDJ) / 舆情 (新闻列表).
+- **折叠 AI 解读**: 默认折叠, 展开看 summary + 复制按钮 + 各角度解读 + 关注点 + 信号. 折叠态显示 summary 预览.
+- **price-trend fetcher**: 增 `klines[]` (OHLCV) + `lastQuote` (价/涨/跌) 字段, 老契约 (closes/change5d/change20d/amplitude) 不变.
+- **`indicators.js`** (UI 端 pure function): `maSeries / emaSeries / macdSeries`. K 线主图叠加 + 技术 tab 复用.
+
+#### 变更
+- StockDetailDrawer.jsx 完全重写: 1 搜索区 + 7 chips + 1 AI block → 1 Hero + 5 tab + 5 panel + 折叠 AI. 老契约保留 (chips 多选 / 生成按钮 / 复制 / footer hint).
+- StockLayout.jsx: pad-drawer class 拆分 — `stock-results-pad-drawer` (360px, advise) / `stock-detail-pad-drawer` (720px, stock detail) 各管各的.
+- styles.css: drawer 宽度 560 → 720px; 新增 ~180 行 CSS (Hero/Tab/Panel/Chart/Metric/News/AI foldable); 加 15 个 `--stock-*` CSS 变量 (含暗色适配).
+- 缓存 `CACHE_VERSION` 1 → 2 (price-trend schema 变更).
+
+#### 不变
+- 已有 7 个 angle (price_trend / volume_turnover / valuation / profitability / capital_flow / tech_indicators / news_buzz) 仍由 ANGLE_DEFS 注册, chips 多选行为不变.
+- search / dropdown / generate 按钮 / 复制按钮 / footer hint 全部保留.
+- 不引入新依赖; 老 angle fetcher (除 price-trend 增量字段外) 完全不动.
+
+#### 文件
+- 新增: `src/renderer/stocks/indicators.js` (78 行, 3 个 pure function)
+- 新增: `src/renderer/components/CandlestickChart.jsx` (158 行, pure SVG)
+- 新增: `tests/renderer/stocks/indicators.test.js` (13 case)
+- 新增: `tests/renderer/components/CandlestickChart.test.jsx` (8 case)
+- 修改: `src/stocks/detail-fetchers/price-trend.js` (+15 行: `klines[]` + `lastQuote`)
+- 修改: `src/stocks/stock-detail-cache.js` (+5 行: `CACHE_VERSION` + key 前缀)
+- 修改: `src/renderer/stocks/StockDetailDrawer.jsx` (重写, +473/-209 行)
+- 修改: `src/renderer/stocks/StockLayout.jsx` (1 行: pad class 拆分)
+- 修改: `src/renderer/components/icons.jsx` (+9 行: `IconCopy`)
+- 修改: `styles.css` (+185 行: 15 tokens + 182 selector rules + 2 width edits)
+- 修改: `tests/stocks/detail-fetchers/price-trend.test.js` (+61 行: 4 case 覆盖新字段)
+- 修改: `tests/renderer/stocks/StockDetailDrawer.test.jsx` (+181/-: 10 新 + 2 替换 - 4 删除)
+- 修改: `RELEASE-NOTES.md` (本段)
+
+#### 测试
+- 全量回归: 3400/3400 passing
+- 新增 / 修改 case: 1+13+8+15 = 37 个新 case 涉及股票详情路径
+
 ### 新增
 - **🔍 全文搜索 (Phase A3)**: Cmd+K (macOS) / Ctrl+K (Windows) 唤起全局搜索 modal, 跨本地持久化文本检索
   - 搜索范围: IT之家新闻 (标题/摘要/正文/AI总结 ~3000条) + AI 任务总结 + 提醒 + 基金名 + 受监控 app 名

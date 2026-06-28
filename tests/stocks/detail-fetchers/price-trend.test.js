@@ -13,6 +13,15 @@ function makeClient(responses) {
 
 const kline = (date, c) => `${date},${c + 1},${c},${c - 1},${c + 2},1000,10000,0.5`;
 
+// 30 个 mock 交易日 K 线, 价格从 100 线性涨到 130 (close[i] = 100 + i/(n-1) * 30)
+// open=close-0.5, high=close+1, low=close-1, volume(amount)=1e9+i*1e7
+function makeLinearKlines(n = 30) {
+  return Array.from({ length: n }, (_, i) => {
+    const close = 100 + (i / (n - 1)) * 30;
+    return `2026-05-${String(i + 1).padStart(2, "0")},${close - 0.5},${close},${close + 1},${close - 1},${1e9 + i * 1e7},${1e9 + i * 1e7},0`;
+  });
+}
+
 beforeEach(() => vi.restoreAllMocks());
 
 describe("fetchPriceTrend", () => {
@@ -53,5 +62,57 @@ describe("fetchPriceTrend", () => {
     const r = await fetchPriceTrend(http, { code: "600519" });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("fetch_failed");
+  });
+});
+
+describe("fetchPriceTrend — klines + lastQuote 增量字段", () => {
+  it("summarize 后 data.klines 保留 30 根 OHLC + volume + amplitude", async () => {
+    const http = makeClient([emResponse(makeLinearKlines(30))]);
+    const r = await fetchPriceTrend(http, { code: "600519" });
+    expect(r.ok).toBe(true);
+    expect(r.data.klines).toBeDefined();
+    expect(r.data.klines).toHaveLength(30);
+    expect(r.data.klines[0]).toEqual({
+      date: "2026-05-01",
+      open: expect.any(Number),
+      high: expect.any(Number),
+      low: expect.any(Number),
+      close: expect.any(Number),
+      volume: expect.any(Number), // volume = amount (eastmoney kline field 6)
+      amplitude: expect.any(Number),
+    });
+    expect(r.data.klines[29].close).toBeGreaterThan(r.data.klines[0].close);
+  });
+
+  it("lastQuote 推算最后一根 vs 倒数第二根", async () => {
+    const http = makeClient([emResponse(makeLinearKlines(30))]);
+    const r = await fetchPriceTrend(http, { code: "600519" });
+    expect(r.ok).toBe(true);
+    const last = r.data.klines[r.data.klines.length - 1].close;
+    const prev = r.data.klines[r.data.klines.length - 2].close;
+    const expectedChange = last - prev;
+    const expectedChangePct = (expectedChange / prev) * 100;
+    expect(r.data.lastQuote).toEqual({
+      price: last,
+      change: expectedChange,
+      changePct: expect.closeTo(expectedChangePct, 2),
+    });
+  });
+
+  it("老契约 closes/change5d/change20d/amplitude 字段值不变", async () => {
+    const http = makeClient([emResponse(makeLinearKlines(30))]);
+    const r = await fetchPriceTrend(http, { code: "600519" });
+    expect(r.ok).toBe(true);
+    expect(r.data.closes).toHaveLength(30);
+    expect(typeof r.data.change5d).toBe("number");
+    expect(typeof r.data.change20d).toBe("number");
+    expect(typeof r.data.amplitude).toBe("number");
+  });
+
+  it("K 线 < 2 根时 lastQuote 为 null", async () => {
+    // 空 klines: 走 fetch_failed / parse_failed 路径, ok=false, lastQuote 不存在
+    const http = makeClient([emResponse([])]);
+    const r = await fetchPriceTrend(http, { code: "000001" });
+    expect(r.ok).toBe(false);
   });
 });

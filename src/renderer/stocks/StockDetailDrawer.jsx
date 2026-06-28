@@ -1,35 +1,25 @@
 /**
  * src/renderer/stocks/StockDetailDrawer.jsx
  *
- * 阶段四: 个股 AI 分析抽屉. 共享 AIDrawerShell 外壳 (480px 右侧, fade-only).
- *
- * 交互状态机 (按 design-system "Data-Dense Dashboard" 风格):
- *   1. 空状态: 只显示股票代码搜索框 + 提示 "先选 1 只股票"
- *   2. 已选股票: chips 解禁, 默认勾选的 2 个 angle 立即 lazy 拉数据 (chip 上 spinner)
- *   3. 全 ready 或部分 ready: 显示 "开始 AI 分析" 按钮
- *   4. AI 分析中/完成/失败: 显示对应 block
+ * 阶段五: 个股 AI 分析抽屉 (720px) — Hero + 5 tab + 折叠 AI.
+ * 共享 AIDrawerShell 外壳 (fade-only).
  *
  * ponytail:
- *   - selectStock 自动触发默认 angle 拉取 (用户不必手动点 chip 才能看到数据)
- *   - dropdown 只在用户主动打字时显示, 选中后立刻关闭清空 (避免 "下拉连出两次")
+ *   - 5 tab 取代 7 chips: 行情 (含 K 线) / 财务 / 资金 / 技术 / 舆情. Tab 切换不重拉数据 — 数据已在 perAngleData.
+ *   - AI 块默认折叠, 用户主动展开看 detail. 折叠/展开状态本地 useState, 不入 store (抽屉外不持久).
+ *   - Hero bar 从 perAngleData["price_trend"].data.lastQuote 读, 不重打 IPC.
  */
 import { useState, useEffect, useRef } from "preact/hooks";
 import { AIDrawerShell } from "../components/AIDrawerShell.jsx";
 import { Sparkline } from "../components/Sparkline.jsx";
-import { IconSparkles, IconBarChart, IconAlert, IconCheck } from "../components/icons.jsx";
+import { CandlestickChart } from "../components/CandlestickChart.jsx";
+import {
+  IconSparkles, IconBarChart, IconAlert, IconCheck, IconCopy, IconChevronDown, IconChevronUp,
+} from "../components/icons.jsx";
 import { ANGLE_DEFS, getAngle } from "../../stocks/stock-detail-angles.js";
 import {
-  codeInput,
-  selectedStock,
-  selectedAngles,
-  perAngleData,
-  aiResult,
-  detailOpen,
-  selectStock,
-  toggleAngle,
-  loadAngleData,
-  requestAiDetail,
-  resetDetail,
+  codeInput, selectedStock, selectedAngles, perAngleData, aiResult, detailOpen,
+  selectStock, toggleAngle, loadAngleData, requestAiDetail, resetDetail,
 } from "./stockDetailStore.js";
 import { taggedLog } from "../log.js";
 
@@ -43,7 +33,6 @@ const ERROR_REASON_TEXT = {
   llm_failed: "AI 调用失败, 请稍后重试",
   no_api: "AI 通道未就绪",
 };
-
 const FETCH_REASON_TEXT = {
   fetch_failed: "网络请求失败",
   parse_failed: "数据格式异常",
@@ -52,6 +41,23 @@ const FETCH_REASON_TEXT = {
   invalid_args: "参数错误",
 };
 
+// ===== Tab 配置 =====
+const TABS = [
+  { key: "market",  label: "行情", angleKey: "price_trend" },
+  // ponytail: 财务 tab 合并 2 个 angle (估值 + 盈利能力), ANGLE_DEFS 没"fundamentals"这一档.
+  { key: "finance", label: "财务", angleKey: ["valuation", "profitability"] },
+  { key: "fund",    label: "资金", angleKey: "capital_flow" },
+  { key: "tech",    label: "技术", angleKey: "tech_indicators" },
+  { key: "news",    label: "舆情", angleKey: "news_buzz" },
+];
+
+function angleEntry(angleKey) {
+  const e = perAngleData.value[angleKey];
+  return e && (e.status === "ok" || e.status === "ready") ? e.data : null;
+}
+
+// ===== 子组件 =====
+
 function StockSearchInput({ api }) {
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
@@ -59,8 +65,6 @@ function StockSearchInput({ api }) {
   const wrapRef = useRef(null);
   const reqIdRef = useRef(0);
 
-  // 用户打字 → 拉搜索. query 跟 codeInput 分离: 一旦选中 stock, 立刻清 query 关 dropdown,
-  // 防止选完股票后 dropdown 又被 codeInput 变化触发出第二次.
   useEffect(() => {
     if (!query || query.length < 2) {
       setResults([]);
@@ -71,7 +75,6 @@ function StockSearchInput({ api }) {
     const timer = setTimeout(async () => {
       if (!api || !api.stocksSearch) return;
       const r = await api.stocksSearch(query);
-      // 只接受最近一次请求的结果
       if (myId !== reqIdRef.current) return;
       if (r && r.ok) {
         setResults((r.results || []).slice(0, 8));
@@ -81,7 +84,6 @@ function StockSearchInput({ api }) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // click outside 关闭 dropdown
   useEffect(() => {
     function onDoc(e) {
       if (!wrapRef.current) return;
@@ -92,7 +94,6 @@ function StockSearchInput({ api }) {
   }, []);
 
   function pick(r) {
-    // 先关 dropdown 清 query, 再触发 store (store 内部会异步拉默认 angle 数据)
     setOpen(false);
     setQuery("");
     setResults([]);
@@ -122,7 +123,7 @@ function StockSearchInput({ api }) {
               role="option"
               aria-selected="false"
               class="stock-detail-dropdown-item"
-              onMouseDown={(e) => e.preventDefault() /* 避免 input blur */}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => pick(r)}
             >
               <span class="stock-detail-dropdown-code">{r.code}</span>
@@ -136,158 +137,272 @@ function StockSearchInput({ api }) {
   );
 }
 
-function AngleChip({ angle, selected, status, onToggle, disabled, sparkData }) {
-  const failed = status === "failed";
-  const loading = status === "loading" || status === "ok-loading";
-  const ready = status === "ok" || status === "ready";
-  const klass = `stock-detail-chip${selected ? " active" : ""}${failed ? " failed" : ""}${loading ? " loading" : ""}${ready ? " ready" : ""}${disabled ? " disabled" : ""}`;
-  const title = disabled
-    ? "先选 1 只股票"
-    : failed
-    ? `拉取失败: ${FETCH_REASON_TEXT[angle.error] || angle.error || "未知"}`
-    : loading
-    ? "拉取中…"
-    : ready
-    ? "已加载"
-    : angle.promptHint;
+function HeroBar({ stock, lastQuote }) {
+  if (!stock) return null;
+  const change = lastQuote?.change;
+  const changePct = lastQuote?.changePct;
+  const up = change != null && change >= 0;
   return (
-    <button
-      type="button"
-      class={klass}
-      onClick={onToggle}
-      disabled={disabled}
-      title={title}
-      aria-pressed={selected}
-    >
-      <span class="stock-detail-chip-label">{angle.label}</span>
-      {sparkData && (
-        <Sparkline
-          closes={sparkData}
-          width={60}
-          height={16}
-        />
-      )}
-      {loading && <span class="stock-detail-chip-spinner" aria-hidden="true" />}
-      {failed && <span class="stock-detail-chip-mark" aria-hidden="true">!</span>}
-      {ready && <span class="stock-detail-chip-check" aria-hidden="true"><IconCheck size={12} /></span>}
-    </button>
+    <header class="stock-hero">
+      <div class="stock-hero-left">
+        <div class="stock-hero-name">{stock.name}</div>
+        <div class="stock-hero-code">{stock.code}{stock.industry ? ` · ${stock.industry}` : ""}</div>
+      </div>
+      <div class="stock-hero-right">
+        <div class={`stock-hero-price ${up ? "stock-up" : "stock-down"}`}>
+          {lastQuote?.price?.toFixed(2) ?? "—"}
+        </div>
+        {change != null && (
+          <div class={`stock-hero-change ${up ? "stock-up" : "stock-down"}`}>
+            {up ? "▲" : "▼"} {Math.abs(change).toFixed(2)} ({changePct?.toFixed(2)}%)
+          </div>
+        )}
+      </div>
+    </header>
   );
 }
 
-function PerAnglePreview() {
-  const angles = Array.from(selectedAngles.value);
-  if (angles.length === 0) {
-    return <div class="stock-detail-preview-empty">未选择任何分析角度</div>;
+function TabBar({ activeTab, onChange }) {
+  return (
+    <div role="tablist" class="stock-detail-tablist" aria-label="分析视图">
+      {TABS.map((t) => (
+        <button
+          key={t.key}
+          role="tab"
+          type="button"
+          class={`stock-detail-tab ${activeTab === t.key ? "active" : ""}`}
+          aria-selected={activeTab === t.key}
+          aria-controls={`stock-tabpanel-${t.key}`}
+          onClick={() => onChange(t.key)}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MarketPanel({ hidden }) {
+  const data = angleEntry("price_trend");
+  if (!data) {
+    return <div class="stock-tab-panel-empty">行情数据加载中…</div>;
   }
   return (
-    <ul class="stock-detail-preview">
-      {angles.map((k) => {
-        const ang = getAngle(k);
-        const entry = perAngleData.value[k];
-        const status = entry ? entry.status : "idle";
-        const klass = `stock-detail-preview-row status-${status}`;
-        const ready = status === "ok" || status === "ready";
-        // ponytail: 加载完的 angle 直接渲染 summarizeForAi 短文, 让用户在
-        // 不调 AI 之前就能看到数据观察. summarize 返 null 时 fallback 到 "已加载".
-        const summary = ready && ang && typeof ang.summarizeForAi === "function"
-          ? ang.summarizeForAi(entry.data)
-          : null;
-        const text = ready
-          ? summary || "已加载"
-          : status === "loading"
-            ? "加载中…"
-            : status === "failed"
-              ? `失败: ${FETCH_REASON_TEXT[entry.reason] || entry.reason || ""}`
-              : "等待中";
-        const sparkData = ready && ang && typeof ang.sparkline === "function"
-          ? ang.sparkline(entry.data)
-          : null;
-        return (
-          <li key={k} class={klass}>
-            <span class="stock-detail-preview-label">{ang ? ang.label : k}</span>
-            {sparkData && <Sparkline closes={sparkData} width={120} height={24} />}
-            <span class="stock-detail-preview-status">{text}</span>
-          </li>
-        );
-      })}
-    </ul>
+    <div role="tabpanel" id="stock-tabpanel-market" aria-hidden={hidden} hidden={hidden} class="stock-tab-panel">
+      <div class="stock-candle-chart">
+        <CandlestickChart klines={data.klines || []} closes={data.closes || []} width={680} />
+      </div>
+      <div class="stock-market-metrics">
+        <MetricChip label="5日" value={data.change5d} suffix="%" />
+        <MetricChip label="20日" value={data.change20d} suffix="%" />
+        <MetricChip label="振幅" value={data.amplitude} suffix="%" />
+      </div>
+    </div>
   );
 }
 
-function AiResultBlock() {
-  const state = aiResult.value;
+function FinancePanel({ hidden }) {
+  // ponytail: 财务 tab 拼 2 个 angle (估值 + 盈利能力), 各 angle 独立加载, 单边缺失时
+  // 仍渲染另一边 (graceful partial loading). 字段名照搬 detail-fetchers/{valuation,profitability}.js.
+  const val = angleEntry("valuation");
+  const prof = angleEntry("profitability");
+  if (!val && !prof) return <div class="stock-tab-panel-empty">财务数据加载中…</div>;
+  const items = [];
+  if (val) {
+    items.push({ label: "动态 PE", value: val.pe });
+    items.push({ label: "PB", value: val.pb });
+    if (val.pePercentile3y != null) {
+      items.push({ label: "近 3 年分位", value: val.pePercentile3y, suffix: "%" });
+    }
+  }
+  if (prof) {
+    items.push({ label: "ROE", value: prof.roe, suffix: "%" });
+    items.push({ label: "毛利率", value: prof.grossMargin, suffix: "%" });
+    items.push({ label: "净利率", value: prof.netMargin, suffix: "%" });
+  }
+  return (
+    <div role="tabpanel" id="stock-tabpanel-finance" aria-hidden={hidden} hidden={hidden} class="stock-tab-panel stock-metric-grid">
+      {items.map((it) => (
+        <MetricCard key={it.label} label={it.label} value={it.value} suffix={it.suffix} />
+      ))}
+    </div>
+  );
+}
+
+function FundPanel({ hidden }) {
+  const data = angleEntry("capital_flow");
+  if (!data) return <div class="stock-tab-panel-empty">资金数据加载中…</div>;
+  return (
+    <div role="tabpanel" id="stock-tabpanel-fund" aria-hidden={hidden} hidden={hidden} class="stock-tab-panel">
+      <MetricCard label="主力净流入" value={formatYi(data.mainNetInflow)} large />
+      {data.sparkline && (
+        <div class="stock-sparkline-wrap">
+          <Sparkline closes={data.sparkline} width={680} height={60} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TechPanel({ hidden }) {
+  const data = angleEntry("tech_indicators");
+  if (!data) return <div class="stock-tab-panel-empty">技术指标加载中…</div>;
+  return (
+    <div role="tabpanel" id="stock-tabpanel-tech" aria-hidden={hidden} hidden={hidden} class="stock-tab-panel stock-metric-grid">
+      <MetricCard label="MACD Hist" value={data.macdHist} />
+      <MetricCard label="RSI" value={data.rsi} />
+      <MetricCard label="KDJ-K" value={data.kdj?.k} />
+      <MetricCard label="KDJ-D" value={data.kdj?.d} />
+      <MetricCard label="KDJ-J" value={data.kdj?.j} />
+    </div>
+  );
+}
+
+function NewsPanel({ hidden }) {
+  const data = angleEntry("news_buzz");
+  if (!data) return <div class="stock-tab-panel-empty">舆情加载中…</div>;
+  const items = data.items || [];
+  if (items.length === 0) return <div class="stock-tab-panel-empty">暂无舆情</div>;
+  return (
+    <div role="tabpanel" id="stock-tabpanel-news" aria-hidden={hidden} hidden={hidden} class="stock-tab-panel">
+      <ul class="stock-news-list">
+        {items.map((n, i) => (
+          <li key={i} class="stock-news-item">
+            {n.url ? (
+              <a href={n.url} target="_blank" rel="noopener noreferrer">{n.title}</a>
+            ) : (
+              <span>{n.title}</span>
+            )}
+            <span class="stock-news-date">{n.date || ""}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function MetricChip({ label, value, suffix }) {
+  if (value == null) return <span class="stock-metric-chip empty"><span class="stock-metric-chip-label">{label}</span><span class="stock-metric-chip-value">—</span></span>;
+  const up = value > 0;
+  return (
+    <span class={`stock-metric-chip ${up ? "stock-up" : value < 0 ? "stock-down" : ""}`}>
+      <span class="stock-metric-chip-label">{label}</span>
+      <span class="stock-metric-chip-value">{typeof value === "number" ? value.toFixed(2) : value}{suffix || ""}</span>
+    </span>
+  );
+}
+
+function MetricCard({ label, value, suffix, large }) {
+  return (
+    <div class={`stock-metric-card ${large ? "large" : ""}`}>
+      <div class="stock-metric-card-label">{label}</div>
+      <div class="stock-metric-card-value">
+        {value == null ? "—" : `${typeof value === "number" ? value.toFixed(2) : value}${suffix || ""}`}
+      </div>
+    </div>
+  );
+}
+
+function AiFoldable({ state, onCopy, onGenerate }) {
+  const [expanded, setExpanded] = useState(false);
+  if (state.status === "idle") return null;
   if (state.status === "loading") {
     return (
-      <div class="stock-detail-ai-loading" role="status" aria-live="polite">
-        <span class="stock-detail-chip-spinner" />
-        <span>AI 解读中…</span>
+      <div class="stock-ai-foldable" aria-expanded="false">
+        <div class="stock-ai-foldable-header" role="status" aria-live="polite">
+          <span class="stock-detail-chip-spinner" />
+          <span>AI 解读中…</span>
+        </div>
       </div>
     );
   }
   if (state.status === "error") {
     return (
-      <div class="stock-detail-ai-error" role="alert">
-        <div class="stock-detail-ai-error-title"><IconAlert size={14} /> 出错了</div>
-        <div class="stock-detail-ai-error-sub">
-          {ERROR_REASON_TEXT[state.reason] || state.error || state.reason || "未知错误"}
-        </div>
+      <div class="stock-ai-foldable" aria-expanded="true">
+        <button type="button" class="stock-ai-foldable-header" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
+          <IconAlert size={14} />
+          <span>AI 失败</span>
+          {expanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+        </button>
+        {expanded && (
+          <div class="stock-ai-foldable-body" role="alert">
+            {ERROR_REASON_TEXT[state.reason] || state.error || state.reason || "未知错误"}
+          </div>
+        )}
       </div>
     );
   }
   if (state.status === "ready" && state.result) {
     const r = state.result;
     return (
-      <div class="stock-detail-ai-result">
-        {state.fromCache && <div class="stock-detail-cache-tag">缓存命中 (24h)</div>}
-        <div class="stock-detail-section-title"><IconSparkles size={14} /> 总结</div>
-        <div class="stock-detail-summary">{r.summary}</div>
-        {selectedAngles.value.size > 0 && (
-          <>
-            <div class="stock-detail-section-title"><IconBarChart size={14} /> 各角度解读</div>
-            <ul class="stock-detail-per-angle">
-              {Array.from(selectedAngles.value).map((k) => {
-                const ang = getAngle(k);
-                const label = ang ? ang.label : k;
-                // ponytail: 不依赖 LLM 把 perAngle 填全. UI 遍历用户选中的 angles,
-                // LLM 返的解读缺失/非 string 时显式标 "暂无解读", 不静默丢.
-                const raw = r.perAngle ? r.perAngle[k] : null;
-                const text = typeof raw === "string" && raw.trim() ? raw.trim() : "暂无解读";
-                return (
-                  <li key={k}>
-                    <b>{label}:</b> {text}
-                  </li>
-                );
-              })}
-            </ul>
-          </>
+      <div class="stock-ai-foldable" aria-expanded={expanded}>
+        <button
+          type="button"
+          class="stock-ai-foldable-header"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+        >
+          <IconSparkles size={14} />
+          <span class="stock-ai-foldable-summary">{r.summary}</span>
+          <span class="stock-ai-foldable-meta">
+            {state.fromCache && <small class="stock-detail-cache-tag">(缓存)</small>}
+            {expanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+          </span>
+        </button>
+        {expanded && (
+          <div class="stock-ai-foldable-body">
+            <div class="stock-detail-section-title">总结</div>
+            <div class="stock-detail-summary">{r.summary}</div>
+            <button type="button" class="stock-btn stock-btn-ghost" onClick={() => onCopy(r.summary)}>
+              <IconCopy size={12} /> 复制总结
+            </button>
+            {selectedAngles.value.size > 0 && (
+              <>
+                <div class="stock-detail-section-title"><IconBarChart size={14} /> 各角度解读</div>
+                <ul class="stock-detail-per-angle">
+                  {Array.from(selectedAngles.value).map((k) => {
+                    const ang = getAngle(k);
+                    const label = ang ? ang.label : k;
+                    const raw = r.perAngle ? r.perAngle[k] : null;
+                    const text = typeof raw === "string" && raw.trim() ? raw.trim() : "暂无解读";
+                    return (<li key={k}><b>{label}:</b> {text}</li>);
+                  })}
+                </ul>
+              </>
+            )}
+            {r.risks && r.risks.length > 0 && (
+              <>
+                <div class="stock-detail-section-title"><IconAlert size={14} /> 关注点</div>
+                <ul class="stock-detail-risks">
+                  {r.risks.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </>
+            )}
+            <div class="stock-detail-signal">信号: <b class={`signal-${r.signal}`}>{r.signal}</b></div>
+          </div>
         )}
-        {r.risks && r.risks.length > 0 && (
-          <>
-            <div class="stock-detail-section-title"><IconAlert size={14} /> 关注点</div>
-            <ul class="stock-detail-risks">
-              {r.risks.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
-          </>
-        )}
-        <div class="stock-detail-signal">
-          信号: <b class={`signal-${r.signal}`}>{r.signal}</b>
-        </div>
       </div>
     );
   }
   return null;
 }
 
+function formatYi(n) {
+  if (n == null) return "—";
+  const yi = n / 1e8;
+  if (Math.abs(yi) >= 1) return `${yi.toFixed(2)}亿`;
+  return `${(n / 1e4).toFixed(2)}万`;
+}
+
+// ===== 主组件 =====
+
 export function StockDetailDrawer({ api }) {
   const open = detailOpen.value;
   const stock = selectedStock.value;
+  const [activeTab, setActiveTab] = useState("market");
 
-  // 关闭抽屉时重置状态
   useEffect(() => {
     if (!open) {
-      // 延迟到淡出动画结束后 (CSS 0.15s)
       const t = setTimeout(() => resetDetail(), 200);
       return () => clearTimeout(t);
     }
@@ -297,10 +412,7 @@ export function StockDetailDrawer({ api }) {
   function handleAngleToggle(key) {
     const wasSelected = selectedAngles.value.has(key);
     toggleAngle(key);
-    // 新勾选 → lazy 拉; 已选 → 取消 (下次再勾会重新拉)
-    if (!wasSelected && stock) {
-      void loadAngleData(api, stock.code, key);
-    }
+    if (!wasSelected && stock) void loadAngleData(api, stock.code, key);
   }
 
   function handleGenerate() {
@@ -313,12 +425,19 @@ export function StockDetailDrawer({ api }) {
     });
   }
 
+  function handleCopy(text) {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(text || "");
+    }
+  }
+
   const readyCount = Array.from(selectedAngles.value).filter((k) => {
     const e = perAngleData.value[k];
     return e && (e.status === "ok" || e.status === "ready");
   }).length;
   const totalCount = selectedAngles.value.size;
   const canGenerate = !!stock && totalCount > 0 && aiResult.value.status !== "loading";
+  const lastQuote = angleEntry("price_trend")?.lastQuote ?? null;
 
   return (
     <AIDrawerShell
@@ -329,9 +448,7 @@ export function StockDetailDrawer({ api }) {
     >
       <div class="stock-detail-body">
         <section class="stock-detail-section">
-          <label class="stock-detail-section-title" for="stock-detail-input">
-            股票
-          </label>
+          <label class="stock-detail-section-title" for="stock-detail-input">股票</label>
           <StockSearchInput api={api} />
           {!stock && (
             <div class="stock-detail-hint">
@@ -340,6 +457,24 @@ export function StockDetailDrawer({ api }) {
           )}
         </section>
 
+        {stock && <HeroBar stock={stock} lastQuote={lastQuote} />}
+
+        {stock && (
+          <TabBar activeTab={activeTab} onChange={setActiveTab} />
+        )}
+
+        {stock && (
+          <div class="stock-tab-panels">
+            {/* ponytail: 所有 5 个 panel 都渲染, 通过 aria-hidden / hidden 隐藏非 active. 避免 mount/unmount 切换造成的图表丢失焦点 + 滚动位置.
+                role="tabpanel" + id 放在 Panel 自身, 这样 (a) a11y 树里只有一个 tabpanel / id; (b) outer 容器只是 hidden wrapper. */}
+            <MarketPanel hidden={activeTab !== "market"} />
+            <FinancePanel hidden={activeTab !== "finance"} />
+            <FundPanel hidden={activeTab !== "fund"} />
+            <TechPanel hidden={activeTab !== "tech"} />
+            <NewsPanel hidden={activeTab !== "news"} />
+          </div>
+        )}
+
         <section class="stock-detail-section">
           <div class="stock-detail-section-title">
             分析角度 <span class="stock-detail-section-meta">{readyCount}/{totalCount} 已加载</span>
@@ -347,29 +482,36 @@ export function StockDetailDrawer({ api }) {
           <div class="stock-detail-chips" role="group" aria-label="分析角度多选">
             {ANGLE_DEFS.map((angle) => {
               const entry = perAngleData.value[angle.key];
-              const sparkData = angle.sparkline
-                ? angle.sparkline(
-                    entry && (entry.status === "ok" || entry.status === "ready")
-                      ? entry.data
-                      : null
-                  )
-                : null;
+              const status = entry ? entry.status : "idle";
+              const failed = status === "failed";
+              const loading = status === "loading";
+              const ready = status === "ok" || status === "ready";
+              const klass = `stock-detail-chip${selectedAngles.value.has(angle.key) ? " active" : ""}${failed ? " failed" : ""}${loading ? " loading" : ""}${ready ? " ready" : ""}${!stock ? " disabled" : ""}`;
+              const title = !stock
+                ? "先选 1 只股票"
+                : failed ? `拉取失败: ${FETCH_REASON_TEXT[angle.error] || angle.error || "未知"}`
+                : loading ? "拉取中…"
+                : ready ? "已加载"
+                : angle.promptHint;
               return (
-                <AngleChip
+                <button
                   key={angle.key}
-                  angle={angle}
-                  selected={selectedAngles.value.has(angle.key)}
-                  status={entry ? entry.status : "idle"}
+                  type="button"
+                  class={klass}
+                  onClick={() => handleAngleToggle(angle.key)}
                   disabled={!stock}
-                  sparkData={sparkData}
-                  onToggle={() => handleAngleToggle(angle.key)}
-                />
+                  title={title}
+                  aria-pressed={selectedAngles.value.has(angle.key)}
+                >
+                  <span class="stock-detail-chip-label">{angle.label}</span>
+                  {loading && <span class="stock-detail-chip-spinner" aria-hidden="true" />}
+                  {failed && <span class="stock-detail-chip-mark" aria-hidden="true">!</span>}
+                  {ready && <span class="stock-detail-chip-check" aria-hidden="true"><IconCheck size={12} /></span>}
+                </button>
               );
             })}
           </div>
         </section>
-
-        <PerAnglePreview />
 
         <button
           type="button"
@@ -377,12 +519,10 @@ export function StockDetailDrawer({ api }) {
           disabled={!canGenerate}
           onClick={handleGenerate}
         >
-          {aiResult.value.status === "loading"
-            ? "生成中…"
-            : `开始 AI 分析 (${totalCount} 个角度)`}
+          {aiResult.value.status === "loading" ? "生成中…" : `开始 AI 分析 (${totalCount} 个角度)`}
         </button>
 
-        <AiResultBlock />
+        <AiFoldable state={aiResult.value} onCopy={handleCopy} onGenerate={handleGenerate} />
 
         <div class="stock-detail-footer-hint">
           AI 不出具买入/卖出等投资建议, 仅基于数据描述现状.

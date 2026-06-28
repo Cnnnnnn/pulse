@@ -31,11 +31,26 @@ async function fetchPriceTrend(httpClient, { code }) {
 
 function summarize(klines) {
   const closes = klines.map((k) => k.close);
+  const last = klines[klines.length - 1];
+  const prev = klines[klines.length - 2];
   return {
     closes,
     change5d: pctChange(closes, 5),
     change20d: pctChange(closes, 20),
     amplitude: avg(klines.map((k) => k.amplitude)),
+    // ponytail: amount(成交额元) 当作 volume(成交量) 喂 K 线图 — 用户看的是活跃度, 不区分.
+    klines: klines.map((k) => ({
+      date: k.date,
+      open: k.open, high: k.high, low: k.low, close: k.close,
+      volume: k.amount,
+      amplitude: k.amplitude,
+    })),
+    // ponytail: Hero bar 用, 不重打 IPC. K 线 < 2 根时 lastQuote = null.
+    lastQuote: last && prev ? {
+      price: last.close,
+      change: last.close - prev.close,
+      changePct: ((last.close - prev.close) / prev.close) * 100,
+    } : null,
   };
 }
 
