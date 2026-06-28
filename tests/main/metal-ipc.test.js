@@ -24,6 +24,8 @@ const mockScheduler = {
   stop: vi.fn(),
   fetchNow: vi.fn(async () => ({ ok: true })),
   getState: vi.fn(() => ({ status: "idle", lastFetch: null, nextFetch: null })),
+  snapshotDailyClose: vi.fn(),
+  detectHistoryGap: vi.fn(() => ({ need: [] })),
 };
 const MockMetalSchedulerCtor = vi.fn(function () { return mockScheduler; });
 const metalSchedulerModuleExports = {
@@ -60,6 +62,9 @@ function clearStubs() {
   mockScheduler.stop.mockClear();
   mockScheduler.fetchNow.mockClear();
   mockScheduler.getState.mockClear();
+  mockScheduler.snapshotDailyClose.mockClear();
+  mockScheduler.detectHistoryGap.mockClear();
+  mockScheduler.detectHistoryGap.mockImplementation(() => ({ need: [] }));
   mockScheduler.getState.mockImplementation(() => ({
     status: "idle",
     lastFetch: null,
