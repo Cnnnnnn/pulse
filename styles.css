@@ -10888,3 +10888,48 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
     display: none;
   }
 }
+
+/* ===== Stock Detail — visual tokens (Task 4) ===== */
+:root {
+  /* A 股红涨绿跌 */
+  --stock-up: #e23b3b;
+  --stock-down: #2ea043;
+  /* MA 折线 (5/10/20 由浅到深) */
+  --stock-ma-5: #f0a020;
+  --stock-ma-10: #5b9bd5;
+  --stock-ma-20: #b07cd0;
+  /* MACD 线 */
+  --stock-macd-dif: #f0a020;
+  --stock-macd-dea: #5b9bd5;
+  /* Hero bar 背景与文字 */
+  --stock-hero-bg: linear-gradient(135deg, #f7f7fa 0%, #ededf2 100%);
+  --stock-hero-text: #1d1d1f;
+  --stock-hero-muted: #6e6e73;
+  /* 面板分隔线 + Tab 边框 */
+  --stock-divider: rgba(0, 0, 0, 0.08);
+  --stock-tab-active-bg: #ffffff;
+  --stock-tab-inactive-bg: transparent;
+  /* Sparkline 调色 */
+  --stock-sparkline-line: var(--stock-up);
+  /* K 线网格 */
+  --stock-grid: rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --stock-up: #ff5b5b;
+    --stock-down: #4cc26b;
+    --stock-ma-5: #ffb84d;
+    --stock-ma-10: #7ab8e6;
+    --stock-ma-20: #c89ce0;
+    --stock-macd-dif: #ffb84d;
+    --stock-macd-dea: #7ab8e6;
+    --stock-hero-bg: linear-gradient(135deg, #1f1f23 0%, #2a2a2f 100%);
+    --stock-hero-text: #f2f2f7;
+    --stock-hero-muted: #98989d;
+    --stock-divider: rgba(255, 255, 255, 0.08);
+    --stock-tab-active-bg: #2a2a2f;
+    --stock-grid: rgba(255, 255, 255, 0.06);
+  }
+}
+/* ===== end Stock Detail visual tokens ===== */
