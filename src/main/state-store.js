@@ -41,18 +41,6 @@
  *       "WorkBuddy": { "ms": null,          "source": "unknown" }
  *     },
  *     "active_category": "ai",    // Phase A: 当前选中的顶部 category tab ('all' | categoryId)
- *     "version_history": {        // 2026-06-14: app rollback — 每 app 升级历史 (倒序, cap 2)
- *       "Cursor": [
- *         {
- *           "from": "3.6.31",
- *           "to": "3.6.32",
- *           "at": 1750000000000,
- *           "backupPath": "/Users/x/backups/Cursor.app/3.6.31.app",
- *           "source": "brew_formulae",
- *           "sizeBytes": 482000000
- *         }
- *       ]
- *     },
  *     "tray_menu_prefs": {         // Phase v1: tray 菜单项配置选择展示
  *       "version": 1,
  *       "segments": {
@@ -235,7 +223,6 @@ function migrateLegacyStateIfNeeded(targetPath) {
 //   - ithome_news: { articles, summaries, favorites, ts } (IT之家新闻, news-store 写入)
 //   - reminders: [] (提醒, reminders.js 写入)
 //   - recentActivity: [] (最近活动时间线, recent-activity.js 写入)
-//   - version_history: { appName: [VersionEntry, ...] } (2026-06-14 app rollback, version-history.js 写入)
 //
 // 旧字段 daily_digests / daily_digest_v2 / last_digest_attempts 已废弃 —
 // 不再 preserve, 下次写盘自然消失.
@@ -262,7 +249,6 @@ const PRESERVE_FIELDS = [
   { key: "circuitBreakers", kind: "object", notArray: true }, // Phase C1: per-detector circuit breaker state
   { key: "daily_digest", kind: "object", notArray: true }, // Phase I5: daily digest settings + last_push_date
   { key: "tray_menu_prefs", kind: "object", notArray: true }, // Phase v1: tray menu segment prefs
-  { key: "version_history", kind: "object", notArray: true }, // Phase C3: per-app version history cap-2
   { key: "startup_samples", kind: "array" }, // Phase Q1 v2: cap-20 ready-time history
   { key: "watchlist", kind: "array" }, // I2 v1: pinned apps, [{appName, addedAt, lastNotifiedVersion}]
   { key: "last_seen_release", kind: "object", notArray: true }, // ON: { version, at } — release notes onboarding
@@ -1633,15 +1619,13 @@ function getLastRecoveryEvent() {
   return evt;
 }
 
-// ─── C3 app rollback 退役, version_history 读写全部移除 ─────────
-
 // ─── ON: release notes onboarding — last_seen_release ──────────
 //
 // 用途: 记录用户最近一次看完 release notes 的版本. 启动时 main 比对
 // app.getVersion() 和 last_seen_release.version, 不一致就弹向导.
 // 老 state.json (无 last_seen_release 字段) / 损坏 → null (兜底, 视为未看).
 //
-// 跟 mutes / version_history 平级, 走 patchState 保留 (PRESERVE_FIELDS 登记).
+// 跟 mutes 平级, 走 patchState 保留 (PRESERVE_FIELDS 登记).
 
 /**
  * @param {string} [statePath]
