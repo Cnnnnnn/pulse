@@ -20,6 +20,9 @@ const METALS = [
     unit: 'oz',
     currency: 'USD',
     primary: { kind: 'sina-hf', symbol: 'hf_GC' },
+    historySecid: '113.AU2608',
+    proxyLabel: '沪金2608代理',
+    unitDivisor: 1,
   },
   {
     id: 'XAG',
@@ -28,6 +31,9 @@ const METALS = [
     unit: 'oz',
     currency: 'USD',
     primary: { kind: 'sina-hf', symbol: 'hf_SI' },
+    historySecid: '113.AG2608',
+    proxyLabel: '沪银2608代理',
+    unitDivisor: 1000,
   },
   {
     id: 'AU9999',
@@ -36,6 +42,9 @@ const METALS = [
     unit: 'g',
     currency: 'CNY',
     primary: { kind: 'eastmoney', secid: '118.AU9999', priceDivisor: 100 },
+    historySecid: '118.AU9999',
+    proxyLabel: null,
+    unitDivisor: 1,
   },
   {
     id: 'AG9999',
@@ -44,6 +53,9 @@ const METALS = [
     unit: 'g',
     currency: 'CNY',
     primary: { kind: 'eastmoney', secid: '118.AG9999', priceDivisor: 100000 },
+    historySecid: '118.AG9999',
+    proxyLabel: null,
+    unitDivisor: 1000,
   },
 ];
 
