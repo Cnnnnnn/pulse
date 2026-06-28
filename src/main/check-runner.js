@@ -229,7 +229,11 @@ let manualCheckInflight = null;
 function runCheckQueued(deps, opts = {}) {
   const silent = !!opts.silent;
   if (!silent && manualCheckInflight) {
-    return manualCheckInflight;
+    // 手动并发点击 → 直接告知调用方正在跑, 不要拿同一条 in-flight promise
+    // 让 caller 误以为成功 (会跟真正的 started:true 行为一样, 但其实是复用
+    // 上一次的结果). 2026-06-28 「点了检查更新无反应」 同类问题: 调用方拿到
+    // in-flight promise, 等了 N 秒才发现 UI 没新数据.
+    return Promise.resolve({ started: false, reason: "already_running" });
   }
   const job = checkTail.then(() => {
     const running = runCheck(deps, opts);
