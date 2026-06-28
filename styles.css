@@ -8409,312 +8409,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   100% { background-color: transparent; }
 }
 
-/* ═══════════════════════════════════════════════════
-   贵金属 (Metals Prices Board) — v2.20.0
-   实时金属价格看板: 总览 + 卡片网格 + 添加持仓 Modal
-   跟 funds 同构 (CNY 折算 + 持仓盈亏), 但样式略紧凑 (2 列网格)
-   ═══════════════════════════════════════════════════ */
-
-.metals-layout {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  gap: var(--space-4, 16px);
-  padding: var(--space-4, 16px);
-  background: var(--content-bg, #f5f5f7);
-}
-
-.metals-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3, 12px);
-}
-
-.metals-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3, 12px);
-}
-
-.metals-header-row h2,
-.metals-header-title {
-  margin: 0;
-  font-size: var(--font-size-subtitle, 18px);
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2, 8px);
-}
-
-.metals-header-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2, 8px);
-  font-size: var(--font-size-sm, 12px);
-  color: var(--text-tertiary, #888);
-}
-
-.metals-overview-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3, 12px);
-  margin-top: 16px;
-}
-
-.overview-card-trend {
-  padding: 10px 12px;
-}
-.overview-card-trend .overview-label {
-  font-size: 11px;
-  margin-bottom: 6px;
-}
-
-.overview-card {
-  background: var(--bg-modal, #fff);
-  border: 1px solid var(--border-subtle, #e5e5e7);
-  border-radius: 10px;
-  padding: var(--space-3, 12px);
-  box-shadow: var(--shadow-sm);
-}
-
-.overview-label {
-  font-size: var(--font-size-sm, 12px);
-  color: var(--text-tertiary, #888);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.overview-value {
-  font-size: var(--font-size-3xl, 20px);
-  font-weight: 700;
-  margin: 4px 0;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-
-.overview-value.positive { color: var(--color-up, #d33); }   /* 中国市场: 红涨 */
-.overview-value.negative { color: var(--color-down, #2a7); }
-
-.overview-meta {
-  font-size: var(--font-size-xs, 11px);
-  color: var(--text-tertiary, #888);
-}
-
-.metal-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3, 12px);
-}
-
-@media (max-width: 720px) {
-  .metal-grid { grid-template-columns: minmax(0, 1fr); }
-  .metals-overview-cards { grid-template-columns: minmax(0, 1fr); }
-}
-
-.metal-card {
-  background: var(--bg-modal, #fff);
-  border: 1px solid var(--border-subtle, #e5e5e7);
-  border-radius: var(--radius-md, 10px);
-  padding: var(--space-3, 12px) 14px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2h, 10px);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  transition: box-shadow var(--transition, .18s), transform var(--transition, .18s);
-}
-
-.metal-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.metal-card-up    { border-top: 3px solid var(--color-up, #e11d48); }
-.metal-card-down  { border-top: 3px solid var(--color-down, #059669); }
-.metal-card-flat  { border-top: 3px solid var(--border-subtle, #e5e5e7); }
-.metal-card-error { border-color: var(--accent-red, #ff3b30); }
-
-.metal-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.metal-card-header h3 {
-  margin: 0;
-  font-size: var(--font-size-lg, 14px);
-  font-weight: 600;
-  color: var(--text-primary, #1d1d1f);
-}
-
-.metal-card-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1, 4px);
-}
-
-.metal-card-actions .btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-tertiary, #aeaeb2);
-  font-size: var(--font-size-subtitle, 18px);
-  padding: var(--space-1, 4px) var(--space-2, 8px);
-  border-radius: var(--radius-sm, 6px);
-  line-height: 1;
-}
-
-.metal-card-actions .btn-icon:hover {
-  color: var(--text-primary, #1d1d1f);
-  background: var(--bg-elevated, #f5f5f7);
-}
-
-/* 主价格区: ¥/克 大字 + 涨跌 */
-.metal-card-price-main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1, 4px);
-}
-
-.price-cny {
-  font-size: var(--font-size-4xl, 28px);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary, #1d1d1f);
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-
-.price-cny-pending {
-  font-size: var(--font-size-3xl, 20px);
-  color: var(--text-tertiary, #aeaeb2);
-  font-weight: 600;
-}
-
-.price-unit {
-  font-size: var(--font-size-md, 13px);
-  font-weight: 500;
-  color: var(--text-tertiary, #aeaeb2);
-  margin-left: 3px;
-}
-
-.price-change-cny {
-  font-size: var(--font-size-lg, 14px);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.price-change-cny-up   { color: var(--color-up, #e11d48); }
-.price-change-cny-down { color: var(--color-down, #059669); }
-.price-change-cny-flat { color: var(--text-tertiary, #aeaeb2); }
-
-.change-amount-cny {
-  margin-left: 6px;
-  font-weight: 500;
-  opacity: 0.85;
-}
-
-/* 参考信息行 (来源标签 国内/国际) */
-.metal-card-ref-row {
-  display: flex;
-  align-items: center;
-  font-size: var(--font-size-xs, 11px);
-  color: var(--text-tertiary, #aeaeb2);
-  font-variant-numeric: tabular-nums;
-  margin-top: 2px;
-}
-
-.metal-card-time {
-  font-size: 10px;
-  color: var(--text-tertiary, #6b7280);
-  padding: 0 4px;
-}
-
-.metal-card-source {
-  font-size: 10px;
-  color: var(--text-tertiary, #6b7280);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.ref-time {
-  opacity: 0.8;
-}
-
-.metal-card-divider {
-  height: 1px;
-  background: var(--border-subtle, #e5e5e7);
-  margin: 2px 0;
-}
-
-.metal-card-holding {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1h, 6px);
-  font-size: var(--font-size-sm, 12px);
-  color: var(--text-secondary, #6e6e73);
-}
-
-.holding-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-variant-numeric: tabular-nums;
-}
-
-.holding-label {
-  color: var(--text-tertiary, #aeaeb2);
-}
-
-.holding-value {
-  font-weight: 500;
-  color: var(--text-primary, #1d1d1f);
-}
-
-.holding-row.pnl.positive .holding-value { color: var(--color-up, #e11d48); font-weight: 600; }
-.holding-row.pnl.negative .holding-value { color: var(--color-down, #059669); font-weight: 600; }
-
-.pnl-pct {
-  margin-left: 4px;
-  font-size: var(--font-size-xs, 11px);
-  opacity: 0.8;
-}
-
-.metal-add-holding-btn {
-  width: 100%;
-  padding: var(--space-2, 8px);
-  background: none;
-  border: 1px dashed var(--border-subtle, #e5e5e7);
-  border-radius: var(--radius-sm, 6px);
-  color: var(--text-tertiary, #aeaeb2);
-  font-size: var(--font-size-sm, 12px);
-  cursor: pointer;
-  transition: all var(--transition, .18s);
-}
-
-.metal-add-holding-btn:hover {
-  border-color: var(--accent-primary, #007aff);
-  color: var(--accent-primary, #007aff);
-  background: rgba(0, 122, 255, 0.04);
-}
-
-.metal-card-loading,
-.metal-card-error-body {
-  font-size: var(--font-size-md, 13px);
-  color: var(--text-tertiary, #aeaeb2);
-  text-align: center;
-  padding: 24px 0;
-}
-
-.metal-card-error-body { color: var(--accent-red, #ff3b30); }
-
-.metal-card-error-meta {
-  font-size: var(--font-size-xs, 11px);
-  color: var(--text-tertiary, #aeaeb2);
-  text-align: center;
-}
-
 /* ===== 录入持仓 Modal (v2.21) ===== */
 .metal-modal-overlay {
   position: fixed;
@@ -8913,32 +8607,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .metal-btn-danger:hover {
   background: rgba(255, 59, 48, 0.08);
-}
-
-.metal-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  gap: var(--space-3, 12px);
-  color: var(--text-tertiary, #888);
-  background: var(--bg-modal, #fff);
-  border: 1px dashed var(--border-subtle, #e5e5e7);
-  border-radius: 10px;
-}
-
-.metal-empty-state h3 {
-  margin: 0;
-  color: var(--text-primary, #1d1d1f);
-  font-size: var(--font-size-2xl, 16px);
-  font-weight: 600;
-}
-
-.metal-empty-state p { margin: 0; }
-
-.metal-empty-state .empty-icon {
-  font-size: 48px;
 }
 
 .spinner {
@@ -10938,283 +10606,280 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .ai-drawer-close:hover { background: var(--bg-elevated, #f5f5f7); color: var(--text-primary, #1d1d1f); }
 .ai-drawer-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
 
-/* v2.50 polish: text-link add holding */
-.metal-add-holding-text {
-  background: none;
-  border: none;
-  color: var(--accent, #6366f1);
-  font-size: 12px;
-  cursor: pointer;
-  padding: 4px 0;
-  text-align: left;
-  font: inherit;
-}
-.metal-add-holding-text:hover {
-  text-decoration: underline;
+/* 金属卡片加载骨架屏已被 v2.50 表格重构移除 (Task 1) */
+
+/* ============================================================
+ * v2.50 metals-tab-refactor: dark Bloomberg CN 主题
+ * 全部 token 以 --metals-* 前缀, 仅 .metals-layout 子树生效
+ * ============================================================ */
+:root {
+  --metals-bg-page: #0d1117;
+  --metals-bg-card: #161b22;
+  --metals-bg-card-hover: #1c2230;
+  --metals-bg-header: #0d1117;
+  --metals-border: #30363d;
+  --metals-border-strong: #484f58;
+  --metals-text-primary: #e6edf3;
+  --metals-text-secondary: #8b949e;
+  --metals-text-tertiary: #6e7681;
+  --metals-accent: #58a6ff;
+  --metals-up: #ef4444;        /* 红涨 A 股 */
+  --metals-down: #22c55e;      /* 绿跌 */
+  --metals-flat: #6e7681;
+  --metals-row-height: 44px;
 }
 
-/* v2.50 polish: ghost empty state */
-.metal-empty-state {
-  padding: 24px 16px;
-  text-align: center;
-}
-.metal-empty-state-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 8px 0 4px;
-}
-.metal-empty-state-header p {
-  font-size: 12px;
-  color: var(--text-tertiary, #6b7280);
-  margin-bottom: 16px;
-}
-.metal-empty-state-icon {
-  display: flex;
-  justify-content: center;
-  color: var(--text-tertiary, #6b7280);
-}
-.metal-empty-ghost-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  max-width: 720px;
-  margin: 0 auto;
-}
-.metal-empty-ghost-card {
-  background: var(--surface-1);
-  border: 1px dashed var(--border-subtle);
-  border-radius: 8px;
-  padding: 12px;
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  transition: border-color 120ms ease;
-}
-.metal-empty-ghost-card:hover {
-  border-color: var(--accent, #6366f1);
-  border-style: solid;
-}
-.metal-empty-ghost-name { font-size: 14px; font-weight: 600; }
-.metal-empty-ghost-meta { font-size: 11px; color: var(--text-tertiary, #6b7280); margin: 4px 0; }
-.metal-empty-ghost-action {
-  font-size: 12px;
-  color: var(--accent, #6366f1);
-  font-weight: 500;
+/* 主容器 (应用 dark 背景) */
+.metals-layout {
+  background: var(--metals-bg-page);
+  color: var(--metals-text-primary);
+  min-height: 100%;
 }
 
-@media (max-width: 800px) {
-  .metal-empty-ghost-grid { grid-template-columns: 1fr 1fr; }
-}
-
-.metals-trend-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-top: 4px;
-}
-.metals-trend-cell {
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 6px 8px;
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  transition: opacity 120ms ease;
-  min-height: 88px;
-}
-.metals-trend-cell:hover {
-  border-color: var(--accent);
-}
-.metals-trend-cell.is-selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft, rgba(99, 102, 241, 0.2));
-}
-.metals-trend-cell:not(.is-selected) {
-  opacity: 0.7;
-}
-.metals-trend-cell-name {
-  font-size: 12px;
-  font-weight: 600;
-}
-.metals-trend-cell-proxy {
-  font-size: 10px;
-  color: var(--text-tertiary, #6b7280);
-  margin-left: 4px;
-}
-.metals-trend-cell-chart {
-  margin: 4px 0;
-}
-.metals-trend-cell-skeleton {
-  color: var(--text-tertiary, #6b7280);
-  font-size: 10px;
-  height: 36px;
+/* --- Header (1 行 status bar) --- */
+.metals-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--metals-border);
+  background: var(--metals-bg-header);
+  gap: 24px;
 }
-.metals-trend-cell-stats {
+.metals-header-title {
   display: flex;
-  gap: 6px;
-  font-size: 10px;
-  color: var(--text-secondary, #6b7280);
-  flex-wrap: wrap;
-}
-
-.metals-detail-trend {
-  padding: 10px 14px;
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  margin: 10px 0 12px;
-}
-.metals-detail-trend-up { border-left: 3px solid var(--color-up, #e11d48); }
-.metals-detail-trend-down { border-left: 3px solid var(--color-down, #059669); }
-.metals-detail-trend-flat { border-left: 3px solid var(--border-subtle, #e5e5e7); }
-.metals-detail-trend-head {
-  display: flex;
+  align-items: center;
   gap: 8px;
-  align-items: baseline;
-  flex-wrap: wrap;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--metals-text-primary);
 }
-.metals-detail-trend-name { font-size: 14px; font-weight: 600; }
-.metals-detail-trend-proxy { font-size: 11px; color: var(--text-tertiary, #6b7280); }
-.metals-detail-trend-range { font-size: 11px; color: var(--text-tertiary, #6b7280); margin-left: auto; }
-.metals-detail-trend-figure {
+.metals-header-summary {
   display: flex;
-  gap: 12px;
-  align-items: baseline;
-  margin: 4px 0;
-  flex-wrap: wrap;
-}
-.metals-detail-trend-last { font-size: 24px; font-weight: 700; }
-.metals-detail-trend-pct.pct-up { color: var(--color-up, #e11d48); font-weight: 600; }
-.metals-detail-trend-pct.pct-down { color: var(--color-down, #059669); font-weight: 600; }
-.metals-detail-trend-pct.pct-flat { color: var(--text-tertiary, #6b7280); }
-.metals-detail-trend-meta { font-size: 12px; color: var(--text-secondary, #6b7280); }
-.metals-detail-trend-chart { margin: 4px 0; }
-.metals-detail-trend-chart svg {
-  width: 100%;
-  height: auto;
-  max-width: 100%;
-}
-.metals-detail-trend-stats {
-  display: flex;
-  gap: 16px;
+  gap: 28px;
   font-size: 12px;
-  color: var(--text-secondary, #6b7280);
-  margin-top: 4px;
-  flex-wrap: wrap;
+  flex: 1;
+  margin-left: 24px;
 }
-.metals-detail-trend-stats b { color: var(--text-primary); font-weight: 600; }
-.metals-detail-trend-empty {
-  padding: 16px;
-  text-align: center;
-  color: var(--text-tertiary, #6b7280);
-  font-size: 12px;
-  margin: 12px 0;
-}
-
-@media (max-width: 800px) {
-  .metals-overview-cards { grid-template-columns: 1fr 1fr; }
-  .metals-trend-strip { grid-template-columns: 1fr 1fr; }
-}
-
-/* ─── Phase 3: 4 品种 tab bar (内联 sparkline) ─── */
-.metals-metal-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-top: 14px;
-}
-.metals-metal-tab {
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle, #e5e5e7);
-  border-radius: 8px;
-  padding: 8px 10px;
-  cursor: pointer;
+.metals-header-summary-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  align-items: stretch;
-  color: inherit;
-  font: inherit;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
-  text-align: left;
-  min-width: 0;
+  gap: 2px;
 }
-.metals-metal-tab:hover {
-  border-color: var(--accent, #6366f1);
+.metals-header-summary-label {
+  font-size: 10px;
+  color: var(--metals-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.metals-metal-tab.is-selected {
-  border-color: var(--accent, #6366f1);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
+.metals-header-summary-value {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--metals-text-primary);
 }
-.metals-metal-tab-row {
+.metals-header-summary-value.metals-pos { color: var(--metals-up); }
+.metals-header-summary-value.metals-neg { color: var(--metals-down); }
+.metals-header-status {
   display: flex;
-  gap: 6px;
-  align-items: baseline;
-  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--metals-text-secondary);
 }
-.metals-metal-tab-name {
+.metals-refresh-btn {
+  /* reuse existing .btn .btn-ghost .btn-sm; 仅覆盖颜色 */
+  color: var(--metals-text-secondary);
+}
+.metals-refresh-btn:hover {
+  color: var(--metals-text-primary);
+}
+
+/* --- Table --- */
+.metals-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.metals-table thead th {
+  background: var(--metals-bg-card);
+  color: var(--metals-text-tertiary);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 0 12px;
+  height: 36px;
+  border-bottom: 1px solid var(--metals-border);
+}
+.metals-table thead th.num {
+  text-align: right;
+}
+.metals-table tbody tr {
+  height: var(--metals-row-height);
+  border-bottom: 1px solid var(--metals-border);
+  transition: background 100ms ease;
+}
+.metals-table tbody tr:hover {
+  background: var(--metals-bg-card-hover);
+}
+.metals-table tbody tr.metals-row-error {
+  background: rgba(239, 68, 68, 0.06);
+}
+.metals-table td {
+  padding: 0 12px;
+  vertical-align: middle;
+  color: var(--metals-text-primary);
+}
+.metals-table td.num {
+  text-align: right;
+}
+
+/* Cell: 品种名 */
+.metals-cell-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.metals-cell-name-short {
   font-size: 13px;
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--metals-text-primary);
 }
-.metals-metal-tab-proxy {
+.metals-cell-name-tag {
   font-size: 10px;
-  color: var(--text-tertiary, #6b7280);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex-shrink: 1;
+  color: var(--metals-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.metals-metal-tab-chart {
-  margin: 2px 0;
-  min-height: 24px;
+
+/* Cell: 价格 */
+.metals-cell-price {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.metals-cell-price.metals-pos { color: var(--metals-up); }
+.metals-cell-price.metals-neg { color: var(--metals-down); }
+.metals-cell-price-unit {
+  font-size: 10px;
+  color: var(--metals-text-tertiary);
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+/* Cell: 涨跌 */
+.metals-cell-change {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.metals-cell-change-pct {
+  font-size: 13px;
+  font-weight: 600;
+}
+.metals-cell-change-pct.metals-pos { color: var(--metals-up); }
+.metals-cell-change-pct.metals-neg { color: var(--metals-down); }
+.metals-cell-change-amount {
+  font-size: 10px;
+  color: var(--metals-text-tertiary);
+}
+
+/* Cell: sparkline */
+.metals-cell-sparkline {
+  display: flex;
+  align-items: center;
+  height: var(--metals-row-height);
+}
+.metals-cell-sparkline svg {
+  display: block;
+  max-width: 100%;
+}
+.metals-cell-sparkline-loading {
+  font-size: 10px;
+  color: var(--metals-text-tertiary);
+}
+
+/* Cell: 持仓 */
+.metals-cell-holding {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.metals-cell-holding-qty {
+  font-size: 12px;
+  color: var(--metals-text-primary);
+}
+.metals-cell-holding-pnl {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.metals-cell-holding-pnl.metals-pos { color: var(--metals-up); }
+.metals-cell-holding-pnl.metals-neg { color: var(--metals-down); }
+.metals-add-holding-text {
+  background: none;
+  border: none;
+  color: var(--metals-accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+}
+.metals-add-holding-text:hover { text-decoration: underline; }
+
+/* Cell: 操作 */
+.metals-cell-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.metals-cell-action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--metals-text-tertiary);
+  padding: 4px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
 }
-.metals-metal-tab-chart svg {
-  display: block;
-  width: 100%;
-  height: 24px;
-  max-width: 100%;
+.metals-cell-action-btn:hover {
+  color: var(--metals-text-primary);
+  background: rgba(255, 255, 255, 0.06);
 }
-.metals-metal-tab-loading {
-  font-size: 10px;
-  color: var(--text-tertiary, #6b7280);
-}
-.metals-metal-tab-change {
-  font-size: 11px;
-  font-weight: 600;
-}
-.metals-metal-tab-change.up   { color: var(--color-up, #e11d48); }
-.metals-metal-tab-change.down { color: var(--color-down, #059669); }
-.metals-metal-tab-change.flat { color: var(--text-tertiary, #6b7280); }
-
-@media (max-width: 720px) {
-  .metals-metal-tabs { grid-template-columns: 1fr 1fr; }
+.metals-cell-action-btn.is-active {
+  color: var(--metals-accent);
 }
 
-/* 金属卡片加载骨架屏 */
-.metal-card-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px 0;
+/* Skeleton */
+@keyframes skeleton-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
-.skeleton-bar {
+.metals-cell-skeleton {
+  display: inline-block;
+  width: 60px;
+  height: 14px;
   background: linear-gradient(90deg,
-    var(--bg-hover, #f3f4f6) 0%,
-    var(--bg-elevated, #e5e7eb) 50%,
-    var(--bg-hover, #f3f4f6) 100%);
+    var(--metals-bg-card) 0%,
+    var(--metals-bg-card-hover) 50%,
+    var(--metals-bg-card) 100%);
   background-size: 200% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 4px;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: 3px;
 }
-.skeleton-price  { height: 28px; width: 60%; }
-.skeleton-change { height: 14px; width: 40%; }
+
+/* 移动端 fallback */
+@media (max-width: 800px) {
+  .metals-header { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 12px; }
+  .metals-header-summary { gap: 16px; margin-left: 0; flex-wrap: wrap; }
+  .metals-table th.metals-col-holding,
+  .metals-table td.metals-col-holding {
+    display: none;
+  }
+}
