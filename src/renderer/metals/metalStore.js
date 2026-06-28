@@ -20,6 +20,9 @@ export const schedulerState = signal({ status: 'idle', lastFetch: null, nextFetc
 export const addModalOpen = signal(false);
 export const editingMetalId = signal(null);
 
+export const historyMap = signal({});
+export const selectedMetalId = signal('XAU');
+
 export const overview = computed(() => {
   const cfg = config.value;
   const quotes = quoteCache.value.data;
@@ -61,6 +64,7 @@ export const overview = computed(() => {
 
 let _unsubQuote = null;
 let _unsubState = null;
+let _unsubHist = null;
 
 export async function initMetalStore() {
   if (!window.metalsApi) {
@@ -80,6 +84,13 @@ export async function initMetalStore() {
   if (state && state.fx) fxCache.value = state.fx;
   if (state && state.scheduler) schedulerState.value = state.scheduler;
 
+  try {
+    const hist = await window.metalsApi.getHistory();
+    if (hist && hist.historyMap) historyMap.value = hist.historyMap;
+  } catch (err) {
+    console.warn('[metals] getHistory failed:', err && err.message);
+  }
+
   // Subscribe to live updates (preload 返回 unsubscribe 函数)
   _unsubQuote = window.metalsApi.onQuoteChanged((data) => {
     if (data.quotes) quoteCache.value = data.quotes;
@@ -88,6 +99,10 @@ export async function initMetalStore() {
 
   _unsubState = window.metalsApi.onStateUpdate((data) => {
     schedulerState.value = data;
+  });
+
+  _unsubHist = window.metalsApi.onHistoryChanged((data) => {
+    if (data && data.historyMap) historyMap.value = data.historyMap;
   });
 }
 
@@ -103,6 +118,10 @@ export function cleanupMetalStore() {
   if (_unsubState) {
     try { _unsubState(); } catch { /* noop */ }
     _unsubState = null;
+  }
+  if (_unsubHist) {
+    try { _unsubHist(); } catch { /* noop */ }
+    _unsubHist = null;
   }
 }
 
@@ -127,4 +146,25 @@ export async function removeHolding(id) {
   if (!window.metalsApi) return;
   const next = await window.metalsApi.removeHolding(id);
   config.value = next;
+}
+
+/**
+ * 测试用: 把 signals 重置回 initial value, 解绑 listener.
+ * 幂等. 不调 IPC (假设 window.metalsApi 不存在时也安全).
+ */
+export function resetMetalStore() {
+  cleanupMetalStore();
+  config.value = {
+    watchedIds: ['XAU', 'XAG', 'AU9999', 'AG9999'],
+    holdings: { XAU: null, XAG: null, AU9999: null, AG9999: null },
+    deletedIds: [],
+  };
+  quoteCache.value = { data: {}, errors: {}, fetchedAt: null };
+  fxCache.value = { rate: null, fetchedAt: null };
+  schedulerState.value = { status: 'idle', lastFetch: null, nextFetch: null };
+  historyMap.value = {};
+  selectedMetalId.value = 'XAU';
+  if (typeof window !== 'undefined' && window.metalsApi) {
+    delete window.metalsApi;
+  }
 }
