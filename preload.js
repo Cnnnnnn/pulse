@@ -87,9 +87,11 @@ contextBridge.exposeInMainWorld("api", {
   feedbackExport: () => ipcRenderer.invoke("feedback:export"),
   tokenBudgetGet: () => ipcRenderer.invoke("token-budget:get"),
   tokenBudgetSet: (payload) => ipcRenderer.invoke("token-budget:set", payload),
-  configExport: (pulseVersion) => ipcRenderer.invoke("config:export", pulseVersion),
+  configExport: (pulseVersion) =>
+    ipcRenderer.invoke("config:export", pulseVersion),
   configImportLoad: () => ipcRenderer.invoke("config:import-load"),
-  configImportApply: (payload) => ipcRenderer.invoke("config:import-apply", payload),
+  configImportApply: (payload) =>
+    ipcRenderer.invoke("config:import-apply", payload),
   onAiPromptsUpdated: (cb) => {
     const handler = (_evt) => cb();
     ipcRenderer.on("ai-prompts-updated", handler);
@@ -154,9 +156,8 @@ contextBridge.exposeInMainWorld("api", {
   onErrorAppended: (cb) =>
     ipcRenderer.on("error:appended", (_, data) => cb(data)),
 
-  // Phase C2: per-app snooze
-  setAppSnooze: (name, opts) => ipcRenderer.invoke("snooze:set", name, opts),
-  clearAppSnooze: (name) => ipcRenderer.invoke("snooze:clear", name),
+  // Phase C2: per-app snooze (C2 功能已退役, 移除)
+  // setAppSnooze / clearAppSnooze IPC 已删除
 
   // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
   worldcupFetchFixtures: (payload) =>
@@ -279,58 +280,36 @@ contextBridge.exposeInMainWorld("api", {
   windowToggleMaximize: () => ipcRenderer.invoke("window:toggle-maximize"),
   windowClose: () => ipcRenderer.invoke("window:close"),
 
-  // Phase C3: App rollback bridge
-  getVersionHistory: (appName) =>
-    ipcRenderer.invoke("get-version-history", appName),
-  rollbackApp: (appName, version) =>
-    ipcRenderer.invoke("rollback-app", appName, version),
-  deleteBackup: (appName, version) =>
-    ipcRenderer.invoke("delete-backup", appName, version),
-  onVersionHistoryUpdated: (cb) => {
-    const handler = (_evt, data) => cb(data);
-    ipcRenderer.on("version-history-updated", handler);
-    return () => ipcRenderer.removeListener("version-history-updated", handler);
-  },
-  // per-app history 数量广播 (AppRow ⏪ 按钮的徽章 + 可见性)
-  onVersionHistoryCountsUpdated: (cb) => {
-    const handler = (_evt, data) => cb(data);
-    ipcRenderer.on("version-history-counts-updated", handler);
-    return () =>
-      ipcRenderer.removeListener("version-history-counts-updated", handler);
-  },
+  // Phase C3: App rollback bridge (C3 功能已退役, 移除)
+  // getVersionHistory / rollbackApp / deleteBackup / onVersionHistoryUpdated
+  // / onVersionHistoryCountsUpdated IPC 已删除
 
   // P52: Pulse 自更新 (半自动档: 检测+下载+手动确认安装)
   selfUpdateGetState: () => ipcRenderer.invoke("self-update:get-state"),
   selfUpdateCheck: () => ipcRenderer.invoke("self-update:check"),
   selfUpdateInstall: () => ipcRenderer.invoke("self-update:install"),
 
-  // 选股分析 (阶段一): 筛选 + 搜索 + 自选股 + 行情推送
+  // 选股分析 (阶段一): 筛选 + 搜索
   stocksScreen: (payload) => ipcRenderer.invoke("stocks:screen", payload),
   stocksSearch: (query) => ipcRenderer.invoke("stocks:search", query),
   // 阶段二: AI 推荐筛选条件 (chatCompletion + 24h 缓存)
   stocksAiAdvise: (payload) => ipcRenderer.invoke("stocks:ai-advise", payload),
   // 阶段三: 个股多角度分析 + AI 详情
-  stocksDetailAngles: (payload) => ipcRenderer.invoke("stocks:detail-angles", payload),
-  stocksDetailAnalyze: (payload) => ipcRenderer.invoke("stocks:detail-analyze", payload),
-  stocksWatchlistList: () => ipcRenderer.invoke("stocks:watchlist:list"),
-  stocksWatchlistAdd: (payload) =>
-    ipcRenderer.invoke("stocks:watchlist:add", payload),
-  stocksWatchlistRemove: (payload) =>
-    ipcRenderer.invoke("stocks:watchlist:remove", payload),
-  stocksWatchlistQuotes: () => ipcRenderer.invoke("stocks:watchlist:quotes"),
-  onStocksWatchlistQuotes: (cb) => {
-    const handler = (_evt, data) => cb(data);
-    ipcRenderer.on("stocks:watchlist:quotes", handler);
-    return () => ipcRenderer.removeListener("stocks:watchlist:quotes", handler);
-  },
+  stocksDetailAngles: (payload) =>
+    ipcRenderer.invoke("stocks:detail-angles", payload),
+  stocksDetailAnalyze: (payload) =>
+    ipcRenderer.invoke("stocks:detail-analyze", payload),
 
   // v2.49 Overview + Command Palette (T5/T18): 6 个新 IPC bridge
-  versionsCommandSearch: (q) => ipcRenderer.invoke("versions:command-search", { q }),
+  versionsCommandSearch: (q) =>
+    ipcRenderer.invoke("versions:command-search", { q }),
   versionsOverviewKpis: () => ipcRenderer.invoke("versions:overview-kpis"),
   versionsOverviewTrend: () => ipcRenderer.invoke("versions:overview-trend"),
-  versionsOverviewWatchlist: () => ipcRenderer.invoke("versions:overview-watchlist"),
+  versionsOverviewWatchlist: () =>
+    ipcRenderer.invoke("versions:overview-watchlist"),
   versionsOverviewRecent: () => ipcRenderer.invoke("versions:overview-recent"),
-  versionsOverviewAiInsights: () => ipcRenderer.invoke("versions:overview-ai-insights"),
+  versionsOverviewAiInsights: () =>
+    ipcRenderer.invoke("versions:overview-ai-insights"),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)
@@ -378,5 +357,11 @@ contextBridge.exposeInMainWorld("metalsApi", {
     ipcRenderer.on("metals:quote:state-changed", handler);
     return () =>
       ipcRenderer.removeListener("metals:quote:state-changed", handler);
+  },
+  getHistory: () => ipcRenderer.invoke("metals:history:get"),
+  onHistoryChanged: (cb) => {
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("metals:history:changed", handler);
+    return () => ipcRenderer.removeListener("metals:history:changed", handler);
   },
 });
