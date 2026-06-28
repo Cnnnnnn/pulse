@@ -2,11 +2,15 @@
  * src/renderer/components/ChangelogSummary.jsx
  *
  * A1 — changelog AI 摘要 (按需拉取 + 缓存).
+ *
+ * 2026-06-28: 删除反馈按钮 (✓ / ✕). 用户反馈 "对错icon没啥意义",
+ * A8 反馈链路不再从 UI 触发; api.feedbackRecord 保留 IPC 入口, 等后续
+ * 收集路径 (e.g. digest drawer 顶部 thumbs) 再接.
  */
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
 import { humanizeAiError } from "../../ai/ai-errors.js";
-import { IconSparkles, IconRefresh, IconThumbsUp, IconThumbsDown } from "./icons.jsx";
+import { IconSparkles } from "./icons.jsx";
 
 function ageLabel(generatedAt) {
   if (typeof generatedAt !== "number") return "";
@@ -28,27 +32,8 @@ export function ChangelogSummary({ appName }) {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
-  const [vote, setVote] = useState(null); // A8: null | "up" | "down"
 
   if (!appName) return null;
-
-  async function sendVote(v) {
-    if (vote || !api.feedbackRecord) return;
-    setVote(v);
-    try {
-      await api.feedbackRecord({
-        feature: "summary",
-        appName,
-        version: null,
-        rec: null,
-        confidence: null,
-        vote: v,
-        ts: Date.now(),
-      });
-    } catch {
-      /* noop */
-    }
-  }
 
   async function fetchSummary(force = false) {
     if (loading || !api.changelogSummaryFetch) return;
@@ -77,7 +62,7 @@ export function ChangelogSummary({ appName }) {
         onClick={(e) => { e.stopPropagation(); fetchSummary(false); }}
         title="AI 提炼本版最重要的 3 件事"
       >
-        <IconSparkles size={14} /> 3 件大事
+        <IconSparkles size={14} /> AI 摘要
       </button>
     );
   }
@@ -131,24 +116,6 @@ export function ChangelogSummary({ appName }) {
       {cachedAt && (
         <div class="changelog-summary-cached">{cachedAt}</div>
       )}
-      <span class="changelog-summary-feedback">
-        <button
-          type="button"
-          class={`changelog-summary-feedback-btn ${vote === "up" ? "is-active" : ""}`}
-          aria-label="feedback-up"
-          onClick={(e) => { e.stopPropagation(); sendVote("up"); }}
-          title="有用"
-          disabled={!!vote}
-        ><IconThumbsUp size={14} /></button>
-        <button
-          type="button"
-          class={`changelog-summary-feedback-btn ${vote === "down" ? "is-active" : ""}`}
-          aria-label="feedback-down"
-          onClick={(e) => { e.stopPropagation(); sendVote("down"); }}
-          title="没用"
-          disabled={!!vote}
-        ><IconThumbsDown size={14} /></button>
-      </span>
     </div>
   );
 }

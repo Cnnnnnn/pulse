@@ -10,6 +10,7 @@
 const stateStore = require("../state-store");
 const recentActivity = require("../recent-activity");
 const { runCheckQueued } = require("../check-runner");
+const { buildRunCheckDeps } = require("../run-check-deps");
 const { aiOverviewSummary } = require("../../ai/versions-overview-advisor.js");
 
 const TREND_DEFAULT = [0, 0, 0, 0, 0, 0, 0];
@@ -139,26 +140,13 @@ function registerVersionsOverviewHandlers(ctx) {
   // 和 "真失败".
   safeHandle("versions:run-check", async () =>
     runCheckQueued(
-      {
+      buildRunCheckDeps({
         getConfig: ctx.getConfig,
         pool: ctx.pool,
         getWindow: ctx.getWindow,
         onCheckComplete: ctx.onCheckComplete,
-        getState: () => {
-          try {
-            return stateStore.load();
-          } catch {
-            return null;
-          }
-        },
-        markNotified: (names) => {
-          try {
-            stateStore.markNotified(names);
-          } catch {
-            /* noop */
-          }
-        },
-      },
+        stateStore,
+      }),
       { silent: false },
     )
       .then((r) => {

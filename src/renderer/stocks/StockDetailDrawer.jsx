@@ -186,15 +186,20 @@ function PerAnglePreview() {
         const entry = perAngleData.value[k];
         const status = entry ? entry.status : "idle";
         const klass = `stock-detail-preview-row status-${status}`;
-        const text =
-          status === "ok" || status === "ready"
-            ? "已加载"
-            : status === "loading"
-              ? "加载中…"
-              : status === "failed"
-                ? `失败: ${FETCH_REASON_TEXT[entry.reason] || entry.reason || ""}`
-                : "等待中";
-        const sparkData = (status === "ok" || status === "ready") && ang && typeof ang.sparkline === "function"
+        const ready = status === "ok" || status === "ready";
+        // ponytail: 加载完的 angle 直接渲染 summarizeForAi 短文, 让用户在
+        // 不调 AI 之前就能看到数据观察. summarize 返 null 时 fallback 到 "已加载".
+        const summary = ready && ang && typeof ang.summarizeForAi === "function"
+          ? ang.summarizeForAi(entry.data)
+          : null;
+        const text = ready
+          ? summary || "已加载"
+          : status === "loading"
+            ? "加载中…"
+            : status === "failed"
+              ? `失败: ${FETCH_REASON_TEXT[entry.reason] || entry.reason || ""}`
+              : "等待中";
+        const sparkData = ready && ang && typeof ang.sparkline === "function"
           ? ang.sparkline(entry.data)
           : null;
         return (
@@ -236,15 +241,20 @@ function AiResultBlock() {
         {state.fromCache && <div class="stock-detail-cache-tag">缓存命中 (24h)</div>}
         <div class="stock-detail-section-title"><IconSparkles size={14} /> 总结</div>
         <div class="stock-detail-summary">{r.summary}</div>
-        {r.perAngle && Object.keys(r.perAngle).length > 0 && (
+        {selectedAngles.value.size > 0 && (
           <>
             <div class="stock-detail-section-title"><IconBarChart size={14} /> 各角度解读</div>
             <ul class="stock-detail-per-angle">
-              {Object.entries(r.perAngle).map(([k, v]) => {
+              {Array.from(selectedAngles.value).map((k) => {
                 const ang = getAngle(k);
+                const label = ang ? ang.label : k;
+                // ponytail: 不依赖 LLM 把 perAngle 填全. UI 遍历用户选中的 angles,
+                // LLM 返的解读缺失/非 string 时显式标 "暂无解读", 不静默丢.
+                const raw = r.perAngle ? r.perAngle[k] : null;
+                const text = typeof raw === "string" && raw.trim() ? raw.trim() : "暂无解读";
                 return (
                   <li key={k}>
-                    <b>{ang ? ang.label : k}:</b> {v}
+                    <b>{label}:</b> {text}
                   </li>
                 );
               })}

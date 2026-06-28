@@ -14,11 +14,11 @@ const require = createRequire(import.meta.url);
 
 const stateStorePath = require.resolve("../../src/main/state-store.js");
 const recentPath = require.resolve("../../src/main/recent-activity.js");
-const advisorPath = require.resolve("../../src/ai/versions-overview-advisor.js");
+const advisorPath =
+  require.resolve("../../src/ai/versions-overview-advisor.js");
 const checkRunnerPath = require.resolve("../../src/main/check-runner.js");
-const registerPath = require.resolve(
-  "../../src/main/ipc/register-versions-overview.js",
-);
+const registerPath =
+  require.resolve("../../src/main/ipc/register-versions-overview.js");
 
 const stubAiSummary = vi.fn(async () => "static summary text");
 const stubRunCheckQueued = vi.fn(async () => []);
@@ -162,7 +162,11 @@ describe("register-versions-overview IPC", () => {
   it("getOverviewAiInsights — advisor 成功, 写缓存, fromCache=false", async () => {
     const { getOverviewAiInsights } = require(registerPath);
     const r = await getOverviewAiInsights();
-    expect(r).toMatchObject({ ok: true, text: "static summary text", fromCache: false });
+    expect(r).toMatchObject({
+      ok: true,
+      text: "static summary text",
+      fromCache: false,
+    });
     expect(stubAiSummary).toHaveBeenCalled();
     expect(saveCacheCalled).toBe(1);
     expect(mockOverviewCache.text).toBe("static summary text");
@@ -261,6 +265,11 @@ describe("register-versions-overview IPC", () => {
       onCheckComplete: () => {},
     });
     const r = await handlers["versions:run-check"]();
-    expect(r).toEqual({ started: false, error: "boom" });
+    // 2026-06-28: 加 reason 字段区分 already_running vs 真失败 (P4).
+    expect(r).toEqual({
+      started: false,
+      reason: "check_failed",
+      error: "boom",
+    });
   });
 });

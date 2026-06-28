@@ -16,10 +16,27 @@
 
 const noop = () => {};
 
+// 缺 IPC bridge 时在 dev 模式一次性 warn — 2026-06-28 「检查更新」按钮无反应
+// 根因是 preload 漏暴露 versionsRunCheck, 而 pick() 静默 fallback 到 noop 让人
+// 排查两小时. 现在同一进程同一 key 只 warn 一次, 生产无副作用.
+const IS_DEV =
+  typeof process !== "undefined" &&
+  process.env &&
+  process.env.NODE_ENV !== "production";
+const warnedMissing = new Set();
+
 function pick(overrides, name) {
   if (overrides && name in overrides) return overrides[name];
   if (typeof window !== "undefined" && window.api && window.api[name]) {
     return window.api[name];
+  }
+  if (IS_DEV && !warnedMissing.has(name)) {
+    warnedMissing.add(name);
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[api] IPC bridge "${name}" missing — preload.js 未暴露或 window.api 未注入, ` +
+        `fallback noop. 检查 preload.js contextBridge.exposeInMainWorld("api", { ... }).`,
+    );
   }
   //兜底 (测试或非 Electron 环境)
   return noop;
@@ -150,24 +167,12 @@ export function createApi(overrides = {}) {
     errorOpenFolder: pick(overrides, "errorOpenFolder"),
     errorReport: pick(overrides, "errorReport"),
     onErrorAppended: pick(overrides, "onErrorAppended"),
-    // Phase C2: per-app snooze
-    setAppSnooze: pick(overrides, "setAppSnooze"),
-    clearAppSnooze: pick(overrides, "clearAppSnooze"),
     // Win 窗口控件 (renderer 画的 min/max/close 按钮调这里).
     // 在 mac 上虽然也调, 但 renderer 这边只在 body.platform-win 渲染按钮,
     // 不会触达. 兜底函数保 noop 避免 undefined crash.
     windowMinimize: pick(overrides, "windowMinimize"),
     windowToggleMaximize: pick(overrides, "windowToggleMaximize"),
     windowClose: pick(overrides, "windowClose"),
-    // Phase C3: App rollback bridge
-    getVersionHistory: pick(overrides, "getVersionHistory"),
-    rollbackApp: pick(overrides, "rollbackApp"),
-    deleteBackup: pick(overrides, "deleteBackup"),
-    onVersionHistoryUpdated: pick(overrides, "onVersionHistoryUpdated"),
-    onVersionHistoryCountsUpdated: pick(
-      overrides,
-      "onVersionHistoryCountsUpdated",
-    ),
     // P52: 自更新 (半自动档)
     selfUpdateGetState: pick(overrides, "selfUpdateGetState"),
     selfUpdateCheck: pick(overrides, "selfUpdateCheck"),
@@ -197,7 +202,7 @@ export function createApi(overrides = {}) {
     configImportLoad: pick(overrides, "configImportLoad"),
     configImportApply: pick(overrides, "configImportApply"),
     onAiPromptsUpdated: pick(overrides, "onAiPromptsUpdated"),
-    // 选股分析 (阶段一): 筛选 + 搜索 + 自选股 + 行情推送
+    // 选股分析 (阶段一): 筛选 + 搜索
     stocksScreen: pick(overrides, "stocksScreen"),
     stocksSearch: pick(overrides, "stocksSearch"),
     // 阶段二: AI 推荐筛选条件
@@ -205,11 +210,6 @@ export function createApi(overrides = {}) {
     // 阶段三: 个股多角度分析 + AI 详情
     stocksDetailAngles: pick(overrides, "stocksDetailAngles"),
     stocksDetailAnalyze: pick(overrides, "stocksDetailAnalyze"),
-    stocksWatchlistList: pick(overrides, "stocksWatchlistList"),
-    stocksWatchlistAdd: pick(overrides, "stocksWatchlistAdd"),
-    stocksWatchlistRemove: pick(overrides, "stocksWatchlistRemove"),
-    stocksWatchlistQuotes: pick(overrides, "stocksWatchlistQuotes"),
-    onStocksWatchlistQuotes: pick(overrides, "onStocksWatchlistQuotes"),
     // Cmd+K command palette 全局搜索
     versionsCommandSearch: pick(overrides, "versionsCommandSearch"),
     // Task 18: OverviewPage 5 个数据源 IPC bridge
@@ -218,7 +218,7 @@ export function createApi(overrides = {}) {
     versionsOverviewWatchlist: pick(overrides, "versionsOverviewWatchlist"),
     versionsOverviewRecent: pick(overrides, "versionsOverviewRecent"),
     versionsOverviewAiInsights: pick(overrides, "versionsOverviewAiInsights"),
-    // v2.50 (T5): TopBar / OverviewEmptyState CTA 触发检查
+    // v2.50 (T5): LibraryPage / OverviewEmptyState CTA 触发检查
     versionsRunCheck: pick(overrides, "versionsRunCheck"),
   };
 }

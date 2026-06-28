@@ -310,6 +310,9 @@ contextBridge.exposeInMainWorld("api", {
   versionsOverviewRecent: () => ipcRenderer.invoke("versions:overview-recent"),
   versionsOverviewAiInsights: () =>
     ipcRenderer.invoke("versions:overview-ai-insights"),
+  // v2.50 (T5): LibraryPage / PageHeader / OverviewEmptyState / CommandPalette
+  // "检查更新" 按钮统一走这里 → main 的 versions:run-check (→ check-runner.runCheckQueued)
+  versionsRunCheck: () => ipcRenderer.invoke("versions:run-check"),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

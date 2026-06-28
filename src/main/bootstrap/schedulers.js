@@ -96,20 +96,25 @@ async function checkOnce(ctx) {
   try {
     await runCheck(
       {
-        getConfig: () => deps.runtimeConfigRef.current,
-        pool: deps.pool,
-        getWindow: deps.getWindow,
-        onCheckComplete: (results) => {
-          if (deps.trayMgr) {
-            deps.trayMgr.setResults(results);
-            deps.trayMgr.setBadge(results.filter((r) => r.has_update).length);
-          }
-          try {
-            deps.stateStore.saveAll(results);
-          } catch (err) {
-            log.warn(`state save failed: ${err.message}`);
-          }
-        },
+        ...buildRunCheckDeps({
+          runtimeConfigRef: deps.runtimeConfigRef,
+          pool: deps.pool,
+          getWindow: deps.getWindow,
+          // auto-check 默认 silent, 不需要 onCheckComplete (它由 silent=false
+          // 路径内部 scheduleOnCheckComplete 处理). 但 trayMgr.setResults +
+          // saveAll 还是要在 check 完成后触发, 这里自定义一个组合包.
+          onCheckComplete: (results) => {
+            if (deps.trayMgr) {
+              deps.trayMgr.setResults(results);
+              deps.trayMgr.setBadge(results.filter((r) => r.has_update).length);
+            }
+            try {
+              deps.stateStore.saveAll(results);
+            } catch (err) {
+              log.warn(`state save failed: ${err.message}`);
+            }
+          },
+        }),
       },
       { silent: true },
     );

@@ -392,7 +392,6 @@ const NAV_ICON = {
   worldcup: IconTrophy,
   funds: IconCoin,
   metals: IconMedal,
-  'stock-detail': IconSearch,
   'ai-usage': IconBarChart,
   versions: IconRefresh,
 };
