@@ -8458,8 +8458,16 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .metals-overview-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr 1fr 1.6fr;
   gap: var(--space-3, 12px);
+}
+
+.overview-card-trend {
+  padding: 10px 12px;
+}
+.overview-card-trend .overview-label {
+  font-size: 11px;
+  margin-bottom: 6px;
 }
 
 .overview-card {
@@ -10984,4 +10992,113 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 @media (max-width: 800px) {
   .metal-empty-ghost-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.metals-trend-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+.metals-trend-cell {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: opacity 120ms ease;
+  min-height: 88px;
+}
+.metals-trend-cell:hover {
+  border-color: var(--accent);
+}
+.metals-trend-cell.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft, rgba(99, 102, 241, 0.2));
+}
+.metals-trend-cell:not(.is-selected) {
+  opacity: 0.7;
+}
+.metals-trend-cell-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+.metals-trend-cell-proxy {
+  font-size: 10px;
+  color: var(--text-tertiary, #6b7280);
+  margin-left: 4px;
+}
+.metals-trend-cell-chart {
+  margin: 4px 0;
+}
+.metals-trend-cell-skeleton {
+  color: var(--text-tertiary, #6b7280);
+  font-size: 10px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+}
+.metals-trend-cell-stats {
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-secondary, #6b7280);
+  flex-wrap: wrap;
+}
+
+.metals-detail-trend {
+  padding: 14px 16px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.metals-detail-trend-up { border-left: 3px solid var(--color-up, #e11d48); }
+.metals-detail-trend-down { border-left: 3px solid var(--color-down, #059669); }
+.metals-detail-trend-flat { border-left: 3px solid var(--border-subtle, #e5e5e7); }
+.metals-detail-trend-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.metals-detail-trend-name { font-size: 14px; font-weight: 600; }
+.metals-detail-trend-proxy { font-size: 11px; color: var(--text-tertiary, #6b7280); }
+.metals-detail-trend-range { font-size: 11px; color: var(--text-tertiary, #6b7280); margin-left: auto; }
+.metals-detail-trend-figure {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+.metals-detail-trend-last { font-size: 24px; font-weight: 700; }
+.metals-detail-trend-pct.pct-up { color: var(--color-up, #e11d48); font-weight: 600; }
+.metals-detail-trend-pct.pct-down { color: var(--color-down, #059669); font-weight: 600; }
+.metals-detail-trend-pct.pct-flat { color: var(--text-tertiary, #6b7280); }
+.metals-detail-trend-meta { font-size: 12px; color: var(--text-secondary, #6b7280); }
+.metals-detail-trend-chart { margin: 8px 0; }
+.metals-detail-trend-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.metals-detail-trend-stats b { color: var(--text-primary); font-weight: 600; }
+.metals-detail-trend-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-tertiary, #6b7280);
+  font-size: 12px;
+  margin: 12px 0;
+}
+
+@media (max-width: 800px) {
+  .metals-overview-cards { grid-template-columns: 1fr 1fr; }
+  .metals-trend-strip { grid-template-columns: 1fr 1fr; }
 }

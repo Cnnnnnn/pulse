@@ -1,11 +1,15 @@
 /**
  * src/renderer/metals/MetalHeader.jsx
  *
- * CNY portfolio overview cards + refresh button + last-update timestamp.
+ * 横向 4 列栅格: 3 张总览卡 (总市值/总盈亏/今日预估) + 1 列 TrendStrip.
+ * 下方有 DetailTrend (选中品种的 30 天大图).
  */
-
-import { overview, schedulerState, fxCache, refreshNow } from './metalStore.js';
+import {
+  overview, schedulerState, fxCache, refreshNow, selectedMetalId,
+} from './metalStore.js';
 import { IconMedal, IconRefresh } from '../components/icons.jsx';
+import { MetalTrendStrip } from './MetalTrendStrip.jsx';
+import { MetalDetailTrend } from './MetalDetailTrend.jsx';
 
 function formatCNY(value) {
   if (value == null) return '—';
@@ -68,7 +72,14 @@ export function MetalHeader() {
           </div>
           <div class="overview-meta">↑ 较昨收</div>
         </div>
+
+        <div class="overview-card overview-card-trend">
+          <div class="overview-label">30 天走势</div>
+          <MetalTrendStrip />
+        </div>
       </div>
+
+      {selectedMetalId.value && <MetalDetailTrend />}
     </div>
   );
 }
