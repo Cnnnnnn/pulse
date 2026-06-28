@@ -3,77 +3,51 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { render } from "@testing-library/preact";
 import { MetalHeader } from "../../../src/renderer/metals/MetalHeader.jsx";
 import {
-  config, quoteCache, fxCache, schedulerState, historyMap,
-  selectedMetalId, resetMetalStore,
+  config, quoteCache, fxCache, schedulerState, resetMetalStore,
 } from "../../../src/renderer/metals/metalStore.js";
 
-describe("MetalHeader Phase 3: sparkline tabs", () => {
+describe("MetalHeader Phase 4: status bar", () => {
   beforeEach(() => {
     resetMetalStore();
   });
 
-  it("3 张总览卡 + 4 个 tab", () => {
-    config.value = { watchedIds: ["XAU"], holdings: {}, deletedIds: [] };
+  it("status bar 渲染: 标题 + 3 总览数字 + 刷新按钮", () => {
+    config.value = { watchedIds: ["XAU"], holdings: { XAU: null }, deletedIds: [] };
     quoteCache.value = { data: {}, errors: {}, fetchedAt: Date.now() };
     fxCache.value = { rate: 7.18, fetchedAt: Date.now() };
     schedulerState.value = { status: "idle", lastFetch: Date.now() };
 
     const { container } = render(<MetalHeader />);
-    expect(container.querySelectorAll(".overview-card").length).toBe(3);
-    expect(container.querySelectorAll(".metals-metal-tab").length).toBe(4);
+    expect(container.querySelector(".metals-header-title").textContent).toMatch(/贵金属/);
+    const summary = container.querySelectorAll(".metals-header-summary-item");
+    expect(summary.length).toBe(3);
+    expect(summary[0].textContent).toMatch(/总市值/);
+    expect(summary[1].textContent).toMatch(/总盈亏/);
+    expect(summary[2].textContent).toMatch(/今日预估/);
+    expect(container.querySelector(".metals-refresh-btn")).not.toBeNull();
   });
 
-  it("默认 selectedMetalId='XAU' → 第 1 个 tab 高亮 + aria-selected=true", () => {
-    config.value = { watchedIds: ["XAU"], holdings: {}, deletedIds: [] };
-    quoteCache.value = { data: {}, errors: {}, fetchedAt: Date.now() };
-    fxCache.value = { rate: 7.18, fetchedAt: Date.now() };
-    schedulerState.value = { status: "idle", lastFetch: Date.now() };
-
-    const { container } = render(<MetalHeader />);
-    const tabs = container.querySelectorAll(".metals-metal-tab");
-    expect(tabs[0].className).toMatch(/is-selected/);
-    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
-  });
-
-  it("data 齐全 → tab 内渲染 sparkline svg, change% 显示", () => {
-    config.value = { watchedIds: ["XAU", "AU9999"], holdings: {}, deletedIds: [] };
-    quoteCache.value = { data: {}, errors: {}, fetchedAt: Date.now() };
-    fxCache.value = { rate: 7.18, fetchedAt: Date.now() };
-    schedulerState.value = { status: "idle", lastFetch: Date.now() };
-    historyMap.value = {
-      XAU: Array.from({ length: 30 }, (_, i) => ({
-        date: `2026-05-${String(i + 1).padStart(2, "0")}`,
-        close: 100 + i,
-      })),
-      AU9999: [{ date: "2026-05-01", close: 200 }],
-      XAG: [],
-      AG9999: [],
+  it("总盈亏 / 今日预估 为正 → 加 metals-pos 类 (红)", () => {
+    // 构造 holdings + quote + fx 让 overview computed 算出正盈亏 + 正今日预估.
+    // 公式: totalPnlCNY = MV - cost, todayEst = quote.change * fx * qty
+    config.value = {
+      watchedIds: ["XAU"],
+      holdings: { XAU: { quantity: 10, costPriceCNY: 700 } }, // cost 7000
+      deletedIds: [],
     };
+    quoteCache.value = {
+      data: {
+        XAU: { price: 710, change: 5, currency: "USD" }, // MV=7100, pnl=+100, today=+5*7*10=+350
+      },
+      errors: {},
+      fetchedAt: Date.now(),
+    };
+    fxCache.value = { rate: 7, fetchedAt: Date.now() };
+    schedulerState.value = { status: "idle", lastFetch: null };
 
     const { container } = render(<MetalHeader />);
-    const tabs = container.querySelectorAll(".metals-metal-tab");
-    expect(tabs[0].querySelector("svg")).not.toBeNull();
-    expect(tabs[0].textContent).toMatch(/\+\d+\.\d+%/);
-    expect(tabs[1].textContent).toMatch(/30 天加载中/);
-  });
-
-  it("点击 tab → selectedMetalId 切换, DetailTrend 内容同步", () => {
-    config.value = { watchedIds: ["XAU", "AU9999"], holdings: {}, deletedIds: [] };
-    quoteCache.value = { data: {}, errors: {}, fetchedAt: Date.now() };
-    fxCache.value = { rate: 7.18, fetchedAt: Date.now() };
-    schedulerState.value = { status: "idle", lastFetch: Date.now() };
-    historyMap.value = {
-      XAU: [{ date: "2026-05-01", close: 100 }, { date: "2026-05-30", close: 120 }],
-      AU9999: [{ date: "2026-05-01", close: 200 }, { date: "2026-05-30", close: 220 }],
-    };
-
-    selectedMetalId.value = "XAU";
-    const { container, rerender } = render(<MetalHeader />);
-    expect(container.textContent).toMatch(/现货黄金|黄金/);
-    expect(container.textContent).toMatch(/\+20\.00%/);
-
-    selectedMetalId.value = "AU9999";
-    rerender(<MetalHeader />);
-    expect(container.textContent).toMatch(/AU9999/);
+    const values = container.querySelectorAll(".metals-header-summary-value");
+    expect(values[1].className).toMatch(/metals-pos/);
+    expect(values[2].className).toMatch(/metals-pos/);
   });
 });
