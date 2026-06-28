@@ -110,8 +110,20 @@ function broadcast(channel, payload) {
  * @param {object} [opts.scheduler] 注入 scheduler 实例; 默认用 module-level scheduler
  * @param {boolean} [opts.force=false] 跳过 1h 冷却. 用于手动 refresh 路径,
  *        渲染器等 fetchNow 后想立即拿到 historyMap 时绕过冷却.
+ *
+ * ponytail: 并发保护 — 模块级 backfillInflight Promise. 同时多次调 (fire-and-forget
+ *         那个 + IPC handler force:true 那个并发) 共享同一次 fetch, 避免 eastmoney
+ *         限流/超时双倍. 修 "冷启动 + 刷新同时跑 backfill, 都失败" 这个具体 case.
  */
+let backfillInflight = null;
+
 async function triggerBackfill(opts = {}) {
+  // Concurrency gate: 多个调用方共享同一次 in-flight fetch.
+  // opts 里带 skipInflightGate=true 跳过 (测试用, 防止测试串行态被卡).
+  if (!opts.skipInflightGate && backfillInflight) {
+    return backfillInflight;
+  }
+
   const httpGet = opts.httpGet || httpGetAdapter;
   const now = opts.now || (() => Date.now());
   const cfg = loadConfig();
@@ -119,37 +131,44 @@ async function triggerBackfill(opts = {}) {
     return { skipped: true, reason: "cooldown" };
   }
   const sched = opts.scheduler || scheduler || new MetalScheduler({ httpGet });
-  const gap = sched.detectHistoryGap(cfg.historyMap, METALS);
-  if (gap.need.length === 0) {
-    markBackfilled(now());
-    return { skipped: true, reason: "no_gap" };
-  }
-  try {
-    const items = gap.need.map((n) => ({
-      id: n.id,
-      secid: n.secid,
-      unitDivisor: n.unitDivisor,
-    }));
-    const fetched = await fetchMetalKline(items, httpGet);
-    const newHistory = pointsToHistoryMap(fetched, items);
-    const merged = { ...cfg.historyMap };
-    for (const [id, arr] of Object.entries(newHistory)) {
-      const map = new Map();
-      for (const p of [...(merged[id] || []), ...arr]) {
-        map.set(p.date, p);
+  const gate = opts.skipInflightGate ? null : (backfillInflight = (async () => {
+    try {
+      const gap = sched.detectHistoryGap(cfg.historyMap, METALS);
+      if (gap.need.length === 0) {
+        markBackfilled(now());
+        return { skipped: true, reason: "no_gap" };
       }
-      merged[id] = Array.from(map.values())
-        .sort((a, b) => (a.date < b.date ? -1 : 1))
-        .slice(-30);
+      try {
+        const items = gap.need.map((n) => ({
+          id: n.id,
+          secid: n.secid,
+          unitDivisor: n.unitDivisor,
+        }));
+        const fetched = await fetchMetalKline(items, httpGet);
+        const newHistory = pointsToHistoryMap(fetched, items);
+        const merged = { ...cfg.historyMap };
+        for (const [id, arr] of Object.entries(newHistory)) {
+          const map = new Map();
+          for (const p of [...(merged[id] || []), ...arr]) {
+            map.set(p.date, p);
+          }
+          merged[id] = Array.from(map.values())
+            .sort((a, b) => (a.date < b.date ? -1 : 1))
+            .slice(-30);
+        }
+        saveHistoryMap(merged);
+        markBackfilled(now());
+        broadcast("metals:history:changed", { historyMap: merged });
+        return { ok: true, backfilled: Object.keys(newHistory).length };
+      } catch (err) {
+        mainLog.warn(`[metals] backfill failed: ${err && err.message}`);
+        return { ok: false, error: err && err.message };
+      }
+    } finally {
+      if (!opts.skipInflightGate) backfillInflight = null;
     }
-    saveHistoryMap(merged);
-    markBackfilled(now());
-    broadcast("metals:history:changed", { historyMap: merged });
-    return { ok: true, backfilled: Object.keys(newHistory).length };
-  } catch (err) {
-    mainLog.warn(`[metals] backfill failed: ${err && err.message}`);
-    return { ok: false, error: err && err.message };
-  }
+  })());
+  return gate;
 }
 
 /**

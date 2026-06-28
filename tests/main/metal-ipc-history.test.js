@@ -126,4 +126,32 @@ describe("metal-ipc backfill 1h cooldown", () => {
     await triggerBackfill({ httpGet, force: true, now: () => Date.now() });
     expect(called).toBe(true);
   });
+
+  it("triggerBackfill 并发: 多个调用方共享同一次 fetch (防 eastmoney 限流)", async () => {
+    const { triggerBackfill } = loadMetalIpc();
+    const stateStore = require(stateStorePath);
+    stateStore.patchState((next) => {
+      next.metals = {
+        watchedIds: ["XAU"],
+        holdings: {},
+        historyMap: {},
+        lastBackfillAt: 0, // 强制走 backfill 路径
+      };
+    });
+    let httpCallCount = 0;
+    const httpGet = async () => {
+      httpCallCount++;
+      // 模拟 eastmoney 慢响应 (200ms) — 并发的两个调用应该都拿同一个 in-flight
+      await new Promise((r) => setTimeout(r, 50));
+      return '{"rc":0,"data":{"klines":["2026-06-01,100,101,102,99,10,1000,0.5"]}}';
+    };
+    // 同时调 2 次 (fire-and-forget 那个 + IPC handler force:true 那个)
+    const p1 = triggerBackfill({ httpGet, now: () => Date.now(), skipInflightGate: false });
+    const p2 = triggerBackfill({ httpGet, force: true, now: () => Date.now(), skipInflightGate: false });
+    const [r1, r2] = await Promise.all([p1, p2]);
+    // 关键: httpGet 只被调 METALS.length 次 (并发合并). 修 "冷启动首次 + refresh
+    // 同时跑 backfill, 都失败" — 合并前会是 2×METALS=8, 合并后是 METALS=4.
+    expect(httpCallCount).toBe(4); // METALS=4 (XAU/XAG/AU9999/AG9999)
+    expect(r1).toEqual(r2);
+  });
 });
