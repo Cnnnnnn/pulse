@@ -1,8 +1,9 @@
 /**
  * src/renderer/metals/MetalTrendStrip.jsx
  *
- * Header 4 列里的"30 天走势"列: 4 个 mini sparkline 横排,
- * 点击切换 selectedMetalId.
+ * 已废弃: Phase 3 起 tab bar 直接含 sparkline (MetalHeader.jsx 内联),
+ * 本组件保留导出以避免破坏任何外部 import, 但当前 UI 不再渲染.
+ * 若确认无外部依赖, 可于下个版本删除.
  */
 import { historyMap, selectedMetalId } from "./metalStore.js";
 import { METALS } from "../../metals/metal-config.js";

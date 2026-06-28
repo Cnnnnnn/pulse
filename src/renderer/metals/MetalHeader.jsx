@@ -1,8 +1,9 @@
 /**
  * src/renderer/metals/MetalHeader.jsx
  *
- * Phase 2 layout: 3 overview cards (总市值/总盈亏/今日预估) + 4 品种 tab bar
+ * Phase 3 fusion: 3 总览卡 + 4 品种 tab (内联 sparkline + change%)
  * + 单品种 DetailTrend. selectedMetalId 驱动 tab 高亮 + Detail 内容.
+ * 一个 tab 卡片同时承担 "切换" + "mini 趋势对比" 两职.
  */
 import {
   overview, schedulerState, fxCache, refreshNow, selectedMetalId, historyMap,
@@ -10,6 +11,7 @@ import {
 import { METALS } from '../../metals/metal-config.js';
 import { IconMedal, IconRefresh } from '../components/icons.jsx';
 import { MetalDetailTrend } from './MetalDetailTrend.jsx';
+import { Sparkline } from '../components/Sparkline.jsx';
 
 function formatCNY(value) {
   if (value == null) return '—';
@@ -89,7 +91,10 @@ export function MetalHeader() {
 
       <div class="metals-metal-tabs" role="tablist" aria-label="切换品种趋势图">
         {METALS.map((m) => {
-          const change = tabChangeFor(m.id);
+          const arr = historyMap.value[m.id] || [];
+          const closes = arr.map((p) => p.close / (m.unitDivisor || 1));
+          const hasData = closes.length >= 2;
+          const change = hasData ? tabChangeFor(m.id) : null;
           const isSelected = m.id === selId;
           const changeClass = change == null
             ? ''
@@ -103,15 +108,24 @@ export function MetalHeader() {
               class={`metals-metal-tab${isSelected ? ' is-selected' : ''}`}
               onClick={() => { selectedMetalId.value = m.id; }}
             >
-              <span class="metals-metal-tab-name">{m.shortName}</span>
-              {m.proxyLabel && <span class="metals-metal-tab-proxy">{m.proxyLabel}</span>}
-              {change != null ? (
-                <span class={`metals-metal-tab-change ${changeClass}`}>
-                  {change >= 0 ? '+' : ''}{change.toFixed(2)}%
-                </span>
-              ) : (
-                <span class="metals-metal-tab-loading">30 天加载中</span>
-              )}
+              <div class="metals-metal-tab-row">
+                <span class="metals-metal-tab-name">{m.shortName}</span>
+                {m.proxyLabel && (
+                  <span class="metals-metal-tab-proxy">{m.proxyLabel}</span>
+                )}
+              </div>
+              <div class="metals-metal-tab-chart">
+                {hasData ? (
+                  <Sparkline closes={closes} width={64} height={24} />
+                ) : (
+                  <div class="metals-metal-tab-loading">30 天加载中</div>
+                )}
+              </div>
+              <div class={`metals-metal-tab-change ${changeClass}`}>
+                {change != null
+                  ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`
+                  : '—'}
+              </div>
             </button>
           );
         })}

@@ -8511,7 +8511,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 @media (max-width: 720px) {
   .metal-grid { grid-template-columns: minmax(0, 1fr); }
   .metals-overview-cards { grid-template-columns: minmax(0, 1fr); }
-  .metals-metal-tabs { overflow-x: auto; }
 }
 
 .metal-card {
@@ -11122,55 +11121,83 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   .metals-trend-strip { grid-template-columns: 1fr 1fr; }
 }
 
-/* ─── Phase 2: 4 品种 tab bar + 骨架屏 ─── */
+/* ─── Phase 3: 4 品种 tab bar (内联 sparkline) ─── */
 .metals-metal-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   margin-top: 14px;
-  border-bottom: 1px solid var(--border-subtle, #e5e5e7);
-  padding-bottom: 0;
 }
 .metals-metal-tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle, #e5e5e7);
+  border-radius: 8px;
+  padding: 8px 10px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
+  gap: 4px;
+  align-items: stretch;
   color: inherit;
   font: inherit;
-  transition: border-color 120ms ease;
-  margin-bottom: -1px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  text-align: left;
+  min-width: 0;
 }
 .metals-metal-tab:hover {
-  border-bottom-color: var(--border-subtle);
+  border-color: var(--accent, #6366f1);
 }
 .metals-metal-tab.is-selected {
-  border-bottom-color: var(--accent, #6366f1);
+  border-color: var(--accent, #6366f1);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
+}
+.metals-metal-tab-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
 }
 .metals-metal-tab-name {
   font-size: 13px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .metals-metal-tab-proxy {
+  font-size: 10px;
+  color: var(--text-tertiary, #6b7280);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+}
+.metals-metal-tab-chart {
+  margin: 2px 0;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+.metals-metal-tab-chart svg {
+  display: block;
+  width: 100%;
+  height: 24px;
+  max-width: 100%;
+}
+.metals-metal-tab-loading {
   font-size: 10px;
   color: var(--text-tertiary, #6b7280);
 }
 .metals-metal-tab-change {
   font-size: 11px;
   font-weight: 600;
-  margin-top: 2px;
 }
 .metals-metal-tab-change.up   { color: var(--color-up, #e11d48); }
 .metals-metal-tab-change.down { color: var(--color-down, #059669); }
 .metals-metal-tab-change.flat { color: var(--text-tertiary, #6b7280); }
-.metals-metal-tab-loading {
-  font-size: 10px;
-  color: var(--text-tertiary, #6b7280);
-  margin-top: 2px;
+
+@media (max-width: 720px) {
+  .metals-metal-tabs { grid-template-columns: 1fr 1fr; }
 }
 
 /* 金属卡片加载骨架屏 */
