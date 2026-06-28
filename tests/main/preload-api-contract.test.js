@@ -13,9 +13,13 @@
  *         vi.mock("electron") 对 CJS require 路径不稳, 而 preload 的 IPC bridge 表面
  *         是纯字面量对象, 解析源码更可靠, 加载也快 (零 side-effect).
  *
- *         只测"preload 覆盖 api.js", 不测反向. preload 多出来的 key 多半是 Phase 早
- *         期沉淀的死代码 (ithomeShareCard / onShareData / shareCardReady 等 16 个),
- *         跟 API 表面契约无关, 留着只让白名单漂移, 单独 issue 跟踪清理.
+ *         只测"preload 覆盖 api.js", 不测反向. preload 多出来的 key 是 feature
+ *         store (wechat-hot / ithome / worldcup / share-card) 通过
+ *         `requireApiMethod` 或 `window.api.xxx` 直接消费, 故意绕过 api.js
+ *         wrapper 的设计 — 让 feature store 在 api.js 加载失败时也能 graceful
+ *         degrade. 这种情况在 api.js 那边加 wrapper 是死代码, 留着不动. 真死
+ *         代码 (例: 2026-06-28 删的 getAiKey — preload 暴露但 main handler 没注册,
+ *         renderer 也没调) 应该在 review 时识别 + 删.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";

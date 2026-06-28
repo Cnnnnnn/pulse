@@ -6,17 +6,17 @@
  * 永远不抛错 (main 端 handler 靠 null 判定优雅退化).
  *
  * 路径:
- *   .release-notes-<version>.md                   (仓库根, 跟现有惯例)
+ *   versions/<version>.md                        (仓库根 versions/ 文件夹, v2.50 起)
  *   src/release-notes-content/<version>/slides.json
  *
  * __testOverrides 让测试可以注入 mock path (主进程测试时, 仓库根可能不是 cwd).
  */
 
-const fs = require('fs');
-const path = require('path');
-const { createLogger } = require('../main/log.js');
+const fs = require("fs");
+const path = require("path");
+const { createLogger } = require("../main/log.js");
 
-const log = createLogger('release-notes-loader');
+const log = createLogger("release-notes-loader");
 
 let __testOverrides = null;
 
@@ -37,7 +37,7 @@ function resolveRepoRoot() {
 function resolveContentRoot() {
   return __testOverrides && __testOverrides.contentRoot
     ? __testOverrides.contentRoot
-    : path.join(resolveRepoRoot(), 'src', 'release-notes-content');
+    : path.join(resolveRepoRoot(), "src", "release-notes-content");
 }
 
 /**
@@ -45,11 +45,11 @@ function resolveContentRoot() {
  * @returns {string|null} md 内容, 或 null (缺/错)
  */
 function readReleaseNotes(version) {
-  if (typeof version !== 'string' || !version) return null;
-  const file = path.join(resolveRepoRoot(), `.release-notes-${version}.md`);
+  if (typeof version !== "string" || !version) return null;
+  const file = path.join(resolveRepoRoot(), "versions", `${version}.md`);
   try {
     if (!fs.existsSync(file)) return null;
-    return fs.readFileSync(file, 'utf8');
+    return fs.readFileSync(file, "utf8");
   } catch (err) {
     log.warn(`readReleaseNotes(${version}) failed:`, err.message);
     return null;
@@ -61,14 +61,14 @@ function readReleaseNotes(version) {
  * @returns {{version: string, slides: Array}|null}
  */
 function readSlides(version) {
-  if (typeof version !== 'string' || !version) return null;
-  const file = path.join(resolveContentRoot(), version, 'slides.json');
+  if (typeof version !== "string" || !version) return null;
+  const file = path.join(resolveContentRoot(), version, "slides.json");
   try {
     if (!fs.existsSync(file)) return null;
-    const raw = fs.readFileSync(file, 'utf8');
+    const raw = fs.readFileSync(file, "utf8");
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    if (typeof parsed.version !== 'string') return null;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (typeof parsed.version !== "string") return null;
     if (!Array.isArray(parsed.slides)) return null;
     if (parsed.slides.length === 0) return null;
     return parsed;

@@ -66,8 +66,6 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("ai-sessions:clear-key", providerId),
   hasAiKey: (providerId) =>
     ipcRenderer.invoke("ai-sessions:has-key", providerId),
-  getAiKey: (providerId) =>
-    ipcRenderer.invoke("ai-sessions:get-key", providerId),
   aiHealthcheck: (opts) => ipcRenderer.invoke("ai-sessions:healthcheck", opts),
   getAiSessionsConfig: () => ipcRenderer.invoke("ai-sessions:get-config"),
   saveAiSessionsConfig: (cfg) =>
@@ -210,7 +208,6 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("ithome:summarize-article", payload),
   ithomeToggleFavorite: (payload) =>
     ipcRenderer.invoke("ithome:toggle-favorite", payload),
-  ithomeMarkRead: (id) => ipcRenderer.invoke("ithome:mark-read", id),
   ithomeMarkRead: (id) => ipcRenderer.invoke("ithome:mark-read", id),
   ithomeShareCard: (id) => ipcRenderer.invoke("ithome:share-card", { id }),
 
