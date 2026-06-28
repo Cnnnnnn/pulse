@@ -1,5 +1,6 @@
 const { ipcMain } = require("electron");
 const { runCheckQueued } = require("../check-runner");
+const { buildRunCheckDeps } = require("../run-check-deps");
 const { runBulkUpgrade } = require("../bulk-upgrade");
 const stateStore = require("../state-store");
 const { aggregate } = require("../digest/aggregate");
@@ -41,29 +42,9 @@ function registerCoreHandlers(ctx) {
   });
 
   ipcMain.handle("check-updates", async () => {
-    const r = await runCheckQueued(
-      {
-        getConfig,
-        pool,
-        getWindow,
-        onCheckComplete,
-        getState: () => {
-          try {
-            return stateStore.load();
-          } catch {
-            return null;
-          }
-        },
-        markNotified: (names) => {
-          try {
-            stateStore.markNotified(names);
-          } catch {
-            /* noop */
-          }
-        },
-      },
-      { silent: false },
-    );
+    const r = await runCheckQueued(buildRunCheckDeps({
+      getConfig, pool, getWindow, onCheckComplete, stateStore,
+    }), { silent: false });
     // (C3 version history 已退役, 不再 broadcast counts)
     // I2 v1: pinned app 独立通知 (走 electron.Notification + inQuietHours)
     try {
