@@ -10575,10 +10575,14 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 /* AIDrawerShell — 共享 AI 抽屉外壳 (Task 20) */
+/* ponytail: overlay 半透明黑 (0.35 alpha) 覆盖全视口, 让用户视觉聚焦右侧 drawer,
+   不挤压底层布局 (drawer 是 fixed 浮层). 点击 mask 关闭 (由 AIDrawerShell 的
+   click-outside 处理). */
 .ai-drawer-overlay {
   position: fixed; inset: 0; z-index: 8000;
-  background: transparent; pointer-events: none;
+  background: rgba(0, 0, 0, 0.35);
   display: flex; align-items: stretch; justify-content: flex-end;
+  animation: ai-drawer-overlay-fade 0.15s ease-out;
 }
 .ai-drawer-overlay > .ai-drawer-shell { pointer-events: auto; }
 .ai-drawer-shell {
@@ -10588,9 +10592,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-left: 1px solid var(--border, rgba(0,0,0,0.08));
   box-shadow: -4px 0 24px rgba(0,0,0,0.08);
   display: flex; flex-direction: column;
-  animation: ai-drawer-fade 0.15s ease-out;
+  animation: ai-drawer-slide 0.18s ease-out;
 }
-@keyframes ai-drawer-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ai-drawer-overlay-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ai-drawer-slide {
+  from { transform: translateX(8px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
 .ai-drawer-header {
   display: flex; justify-content: space-between; align-items: center;
   padding: 14px 16px; border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
