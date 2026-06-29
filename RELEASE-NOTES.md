@@ -2,6 +2,27 @@
 
 ---
 
+## v2.50.0 (2026-06-29) — 阶段六: 个股财务深度 (同业对比 + 护城河)
+
+**新增分析角度**:
+- **同业对比 (peer_compare)**: 拉行业 PE / PB 中位数 + 这只的排名, 在财务 tab 内显示 4 个 PE mini metric + 4 个 PB. 一眼看出"这只比同行贵不贵"
+- **护城河 (moat_score)**: 客户端 3 维评分 (毛利率优势 / ROIC 优势 / 营收稳定度), 总分 0-9. 反映"是不是真龙头"
+
+**AI 解读增强**:
+- 财务深度 2 个新 angle 接入 `summarizeForAi` 流水线
+- `stock_detail_analyze` few-shot 加 1 个新示例, 演示 6 angle 全选时的输出格式
+- system rules 加 1 条: "若勾选同业/护城河, summary 必须引用 1 句具体数据"
+
+**UI 改动**:
+- 财务 tab 内加 2 个 `<details>` 折叠子区, 走现有 `angleStatusForTab` 状态机
+- 新增 ~30 行 CSS: `.stock-finance-subblock-*` 浅色 + 暗色双套
+
+**测试**: 24 个新 case (fetcher 16 + UI 4 + parser 1 + angle 3)
+
+**不发版 cache-busting**: 不动 CACHE_VERSION, 老 key 不冲突
+
+完整规格: `docs/superpowers/specs/2026-06-29-stock-detail-financial-depth-design.md`
+
 ## Unreleased (🔍 全文搜索 Cmd+K — Phase A3)
 
 ### Stock Detail UI Redesign (Phase A4)
