@@ -250,6 +250,28 @@ describe("buildAnalyzeMessages", () => {
     expect(system).toContain("输出:");
   });
 
+  it("few-shot 第 3 个示例包含 peer_compare + moat_score angle, parseAndValidate 能正确解析 perAngle", () => {
+    // ponytail: few-shot 加 1 个 6 angle 全选的示例, 让 LLM 学会引用同业/护城河数据
+    const llmText = JSON.stringify({
+      summary: "600519 同业对比 PE 偏贵 30%, 护城河 7/9 强, 综合偏贵但有龙头溢价.",
+      perAngle: {
+        price_trend: "30 日累计涨幅 5%",
+        valuation: "PE 28.5 倍",
+        profitability: "ROE 30%",
+        peer_compare: "PE 28.5 vs 行业中位 22.0, 偏贵 30%",
+        moat_score: "护城河 7/9 (毛利 3 + ROIC 3 + 营收 1)",
+        capital_flow: "暂无数据",
+      },
+      risks: ["PE 偏贵 30% 估值修复空间有限"],
+      signal: "neutral",
+    });
+    const parsed = advisor.parseAndValidateAnalyze(llmText);
+    expect(parsed).not.toBeNull();
+    expect(parsed.perAngle.peer_compare).toContain("偏贵");
+    expect(parsed.perAngle.moat_score).toContain("7/9");
+    expect(parsed.perAngle.capital_flow).toBe("暂无数据");
+  });
+
   it("解析 LLM 模仿 few-shot 示例的输出 (含 '暂无数据' 的 perAngle 项)", () => {
     // ponytail: 模拟 LLM 看到 few-shot 后学到的输出格式, 数据缺失的 angle 填 "暂无数据".
     // parseAndValidate 不区分空字符串 vs 业务串 — "暂无数据" 应作为有效解读保留.

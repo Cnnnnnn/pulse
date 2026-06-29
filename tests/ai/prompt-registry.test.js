@@ -35,11 +35,11 @@ describe("stock_detail_analyze prompt", () => {
     expect(fewShot).toContain("暂无数据");
   });
 
-  it("fewShot 包含 2 个 '输入:' 和 2 个 '输出:' 分隔标记", () => {
+  it("fewShot 包含 3 个 '输入:' 和 3 个 '输出:' 分隔标记 (Task 5 加 1 个 6-angle 示例)", () => {
     const fewShot = DEFAULT_PROMPTS.stock_detail_analyze.fewShot;
     const inputMatches = fewShot.match(/输入:/g) || [];
     const outputMatches = fewShot.match(/输出:/g) || [];
-    expect(inputMatches.length).toBe(2);
-    expect(outputMatches.length).toBe(2);
+    expect(inputMatches.length).toBe(3);
+    expect(outputMatches.length).toBe(3);
   });
 });
