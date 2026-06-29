@@ -56,6 +56,27 @@ function angleEntry(angleKey) {
   return e && (e.status === "ok" || e.status === "ready") ? e.data : null;
 }
 
+// ponytail: 角度未勾选 ≠ "加载中". 区分 4 种状态:
+//   not_selected: 没勾选 → 引导用户去 chip 区勾选
+//   loading:      勾了且在拉 → "加载中…"
+//   failed:       拉取失败 → 显示原因
+//   ready:        数据到位
+// 用 tab 的 angleKey (字符串/数组) 判断, 数组 (财务 tab) 是任一未选都算未选.
+function angleStatusForTab(angleKey) {
+  const keys = Array.isArray(angleKey) ? angleKey : [angleKey];
+  const selected = selectedAngles.value;
+  const anySelected = keys.some((k) => selected.has(k));
+  if (!anySelected) return { state: "not_selected" };
+  const entry = keys
+    .map((k) => perAngleData.value[k])
+    .find((e) => e && (e.status === "ok" || e.status === "ready" || e.status === "loading" || e.status === "failed"));
+  if (!entry || entry.status === "loading") return { state: "loading" };
+  if (entry.status === "failed") {
+    return { state: "failed", reason: entry.reason, error: entry.error };
+  }
+  return { state: "ready" };
+}
+
 // ===== 子组件 =====
 
 function StockSearchInput({ api }) {
@@ -225,6 +246,8 @@ function FinancePanel({ hidden }) {
       {items.map((it) => (
         <MetricCard key={it.label} label={it.label} value={it.value} suffix={it.suffix} />
       ))}
+      <PeerCompareSubblock />
+      <MoatScoreSubblock />
     </div>
   );
 }
@@ -299,6 +322,84 @@ function MetricCard({ label, value, suffix, large }) {
       <div class="stock-metric-card-value">
         {value == null ? "—" : `${typeof value === "number" ? value.toFixed(2) : value}${suffix || ""}`}
       </div>
+    </div>
+  );
+}
+
+// ponytail: 财务 tab 里挂的 2 个折叠子区 — peer_compare / moat_score.
+// 字段名照搬 detail-fetchers/{peer-compare,moat-score}.js. 复用 angleStatusForTab
+// 状态机 (not_selected → null, loading/failed → SubblockSkeleton, ready → 8 个 mini metric).
+function PeerCompareSubblock() {
+  const status = angleStatusForTab("peer_compare");
+  if (status.state === "not_selected") return null;
+  if (status.state === "loading" || status.state === "failed") {
+    return <SubblockSkeleton title="📊 同业对比" status={status} />;
+  }
+  const data = angleEntry("peer_compare");
+  return (
+    <details class="stock-finance-subblock" open>
+      <summary>📊 同业对比 · {data.industry || "—"}</summary>
+      <div class="stock-finance-subblock-grid">
+        <SubblockMetric label="PE 这只" value={data.pe} suffix="倍" />
+        <SubblockMetric label="PE 行业中位" value={data.peIndustryMedian} suffix="倍" />
+        <SubblockMetric label="PE 排名" value={data.peRank != null ? `${data.peRank}/${data.peTotal || "?"}` : "—"} />
+        <SubblockMetric label="PE 偏差" value={data.peDeviationPct} suffix="%" colored />
+        <SubblockMetric label="PB 这只" value={data.pb} suffix="倍" />
+        <SubblockMetric label="PB 行业中位" value={data.pbIndustryMedian} suffix="倍" />
+        <SubblockMetric label="PB 排名" value={data.pbRank != null ? `${data.pbRank}/${data.pbTotal || "?"}` : "—"} />
+        <SubblockMetric label="PB 偏差" value={data.pbDeviationPct} suffix="%" colored />
+      </div>
+    </details>
+  );
+}
+
+function MoatScoreSubblock() {
+  const status = angleStatusForTab("moat_score");
+  if (status.state === "not_selected") return null;
+  if (status.state === "loading" || status.state === "failed") {
+    return <SubblockSkeleton title="🏰 护城河评分" status={status} />;
+  }
+  const data = angleEntry("moat_score");
+  return (
+    <details class="stock-finance-subblock" open>
+      <summary>🏰 护城河评分 · {data.score}/9</summary>
+      <div class="stock-finance-subblock-grid">
+        <SubblockMetric label="毛利优势" value={data.breakdown.marginEdge} suffix="/3" />
+        <SubblockMetric label="ROIC 优势" value={data.breakdown.roicEdge} suffix="/3" />
+        <SubblockMetric label="营收稳定" value={data.breakdown.revenueStability} suffix="/3" />
+        <SubblockMetric label="毛利率" value={data.metrics.grossMargin} suffix="%" />
+        <SubblockMetric label="ROIC" value={data.metrics.roic} suffix="%" />
+        <SubblockMetric label="营收 5y CAGR" value={data.metrics.revenueCagr5y} suffix="%" />
+        <SubblockMetric label="行业排名" value={data.metrics.revenueRankInIndustry != null ? `${data.metrics.revenueRankInIndustry}/${data.metrics.industryTotal || "?"}` : "—"} />
+        <SubblockMetric label="护城河" value={data.score} suffix="/9" colored />
+      </div>
+      {data.note && <div class="stock-finance-subblock-note">{data.note}</div>}
+    </details>
+  );
+}
+
+// ponytail: 折叠子区的骨架/失败态共用组件. loading 显示文案 "拉取中…";
+// failed 用 FETCH_REASON_TEXT 字典翻译 reason (fetch_failed / parse_failed / ...).
+function SubblockSkeleton({ title, status }) {
+  const hint = status.state === "loading"
+    ? "拉取中…"
+    : `拉取失败: ${FETCH_REASON_TEXT[status.reason] || status.reason || "未知"}`;
+  return (
+    <details class="stock-finance-subblock">
+      <summary>{title}</summary>
+      <div class="stock-finance-subblock-skeleton">{hint}</div>
+    </details>
+  );
+}
+
+// ponytail: 8 格 mini metric. colored: 数字 > 0 用红 (overvalued), < 0 用绿 (undervalued) — A 股涨跌色惯例.
+function SubblockMetric({ label, value, suffix, colored }) {
+  const v = value == null ? "—" : (typeof value === "number" ? value.toFixed(1) : value);
+  const klass = `stock-finance-subblock-metric${colored && typeof value === "number" && value > 0 ? " up" : colored && typeof value === "number" && value < 0 ? " down" : ""}`;
+  return (
+    <div class={klass}>
+      <div class="stock-finance-subblock-metric-label">{label}</div>
+      <div class="stock-finance-subblock-metric-value">{v}{suffix || ""}</div>
     </div>
   );
 }

@@ -225,3 +225,88 @@ describe("StockDetailDrawer — 新结构", () => {
     expect(container.textContent).toContain("输入代码或名称");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Task 4: FinancePanel — peer_compare + moat_score 折叠子区
+// render helper: 用现有 perAngleData / selectedAngles 模式 + click 财务 tab.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderFinancePanel(options = {}) {
+  // 默认 setup: stock 已选, valuation + profitability ready (走 FinancePanel "ready + 有数据" 分支).
+  selectedAngles.value = options.selectedAngles || new Set(["valuation", "profitability"]);
+  perAngleData.value = options.perAngleData || {
+    valuation: { status: "ok", data: { pe: 25.3, pb: 8.1 } },
+    profitability: { status: "ok", data: { roe: 30.5, grossMargin: 88.2, netMargin: 52.1 } },
+  };
+  const { container } = render(<StockDetailDrawer api={{}} />);
+  // 切到 财务 tab (默认是 market)
+  const tabs = container.querySelectorAll('[role="tab"]');
+  const financeTab = Array.from(tabs).find((t) => t.textContent.includes("财务"));
+  fireEvent.click(financeTab);
+  return container;
+}
+
+describe("FinancePanel — peer_compare / moat_score 折叠子区", () => {
+  beforeEach(() => {
+    cleanup();
+    resetDetail();
+    detailOpen.value = true;
+    selectedStock.value = makeStock();
+  });
+
+  it("(a) 用户未勾选 peer_compare 时, 财务 tab 内无 stock-finance-subblock 子区", () => {
+    const container = renderFinancePanel();
+    expect(container.querySelector(".stock-finance-subblock")).toBeNull();
+  });
+
+  it("(b) 用户勾选 peer_compare + loading 时, 子区显示 '拉取中…'", () => {
+    const container = renderFinancePanel({
+      selectedAngles: new Set(["valuation", "profitability", "peer_compare"]),
+      perAngleData: {
+        valuation: { status: "ok", data: { pe: 25.3, pb: 8.1 } },
+        profitability: { status: "ok", data: { roe: 30.5, grossMargin: 88.2 } },
+        peer_compare: { status: "loading", data: null },
+      },
+    });
+    const sub = container.querySelector(".stock-finance-subblock");
+    expect(sub).toBeTruthy();
+    expect(sub.textContent).toContain("拉取中");
+  });
+
+  it("(c) 用户勾选 peer_compare + ready 时, 子区显示 8 个 mini metric (4 PE + 4 PB)", () => {
+    const container = renderFinancePanel({
+      selectedAngles: new Set(["valuation", "profitability", "peer_compare"]),
+      perAngleData: {
+        valuation: { status: "ok", data: { pe: 25.3, pb: 8.1 } },
+        profitability: { status: "ok", data: { roe: 30.5, grossMargin: 88.2 } },
+        peer_compare: {
+          status: "ok",
+          data: {
+            industry: "白酒",
+            pe: 25.3, peIndustryMedian: 28.0, peRank: 5, peTotal: 30, peDeviationPct: -9.6,
+            pb: 8.1, pbIndustryMedian: 7.5, pbRank: 10, pbTotal: 30, pbDeviationPct: 8.0,
+          },
+        },
+      },
+    });
+    const sub = container.querySelector(".stock-finance-subblock");
+    expect(sub).toBeTruthy();
+    const metrics = sub.querySelectorAll(".stock-finance-subblock-metric");
+    expect(metrics.length).toBe(8);
+    expect(sub.textContent).toContain("白酒");
+  });
+
+  it("(d) 用户勾选 peer_compare + failed 时, 子区显示 '拉取失败'", () => {
+    const container = renderFinancePanel({
+      selectedAngles: new Set(["valuation", "profitability", "peer_compare"]),
+      perAngleData: {
+        valuation: { status: "ok", data: { pe: 25.3, pb: 8.1 } },
+        profitability: { status: "ok", data: { roe: 30.5, grossMargin: 88.2 } },
+        peer_compare: { status: "failed", reason: "fetch_failed", error: "network down" },
+      },
+    });
+    const sub = container.querySelector(".stock-finance-subblock");
+    expect(sub).toBeTruthy();
+    expect(sub.textContent).toContain("拉取失败");
+  });
+});
