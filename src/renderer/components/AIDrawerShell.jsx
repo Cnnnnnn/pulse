@@ -1,10 +1,12 @@
 /**
  * src/renderer/components/AIDrawerShell.jsx
  *
- * AI 抽屉共享外壳: 480px 右侧 + focus trap + esc + click-outside.
+ * AI 抽屉共享外壳: 右侧 drawer + 半透明 mask + focus trap + esc + click-outside.
  * 替换 AiAdviseDrawer / StockDetailDrawer 的内联 BareModalShell 调用.
  *
- * ponytail: 用原生 focus trap 实现 (简单循环), 不引依赖.
+ * ponytail: mask 半透明黑 (0.35 alpha) 覆盖整个视口, 让用户视觉聚焦抽屉,
+ *   不挤压底层布局 (drawer 是 fixed 浮层). 点击 mask 关闭.
+ *   用原生 focus trap 实现 (简单循环), 不引依赖.
  */
 import { useEffect, useRef } from "preact/hooks";
 

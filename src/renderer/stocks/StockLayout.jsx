@@ -73,7 +73,7 @@ export function StockLayout() {
       </div>
       <StrategyBar />
       <CriteriaPanel />
-      <div class={aiAdviseOpen.value ? "stock-results-pad-drawer" : detailOpen.value ? "stock-detail-pad-drawer" : ""}>
+      <div class={aiAdviseOpen.value ? "stock-results-pad-drawer" : ""}>
         <ResultTable api={api} />
       </div>
       <AiAdviseDrawer api={api} />
