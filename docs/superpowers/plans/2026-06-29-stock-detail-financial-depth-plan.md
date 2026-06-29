@@ -59,8 +59,9 @@
 - Test: `tests/stocks/detail-fetchers/peer-compare.test.js`
 
 **Interfaces:**
-- Consumes: 现有 `fetchValuation(httpClient, { code })` (返 `{ ok, data: { pe, pb, industry } }` 或 `{ ok: false, reason }`)
-- Consumes: 东财 datacenter `https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_PCF10_INDUSTRY_EVALUATION&columns=...&filter=(INDUSTRY_CODE="<code>")&pageNumber=1&pageSize=...&source=F10&client=PC`
+- Consumes: 现有 `fetchValuation(httpClient, { code })` 返 `{ ok, data: { pe, pb } }` (无 `industry`, 已知 — spec 缺陷修正). 复用 PE/PB.
+- Consumes: 东财 datacenter `https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_PCF10_INDUSTRY_EVALUATION&columns=...&filter=(SECUCODE="<code>.<exchange>")&pageNumber=1&pageSize=1&source=F10&client=PC`. 返 row 含 `INDUSTRY_NAME / PE_TTM / PE_TTM_MEDIAN / PE_TTM_RANK / PB_MQR / PB_MQR_MEDIAN / PB_MQR_RANK / TOTAL`.
+- **industry 来源** (重要 — Task 1 reviewer 抓出的 spec 修正): `industry` 字段**从 datacenter response 的 `INDUSTRY_NAME` 拿**, **不是从 `val.data.industry` 拿** (后者不存在). peer-compare + moat-score 走相同 pattern.
 - Produces: `fetchPeerCompare(httpClient, { code })` 返 `{ ok: true, data: { industry, pe, peIndustryMedian, peRank, peTotal, peDeviationPct, pb, pbIndustryMedian, pbRank, pbTotal, pbDeviationPct } }` 或 `{ ok: false, reason, error }`
 
 ### Step 1.1: 写失败测试
@@ -317,8 +318,9 @@ git commit -m "feat(stocks): add peer_compare fetcher (industry median + rank)"
 
 **Interfaces:**
 - Consumes: 东财 datacenter `https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=SECUCODE,REPORT_DATE,ROIC,MGJYXJZZ,XSMLL,NETPROFIT,REPORT_YEAR&filter=...&pageSize=5` (近 5 年财务)
-- Consumes: 东财 datacenter `RPT_PCF10_INDUSTRY_EVALUATION` (行业 ROIC / 毛利率中位数)
-- Produces: `fetchMoatScore(httpClient, { code, industry })` 返 `{ ok, data: { score, breakdown, metrics, note } }` 或 `{ ok: false, reason }`
+- Consumes: 东财 datacenter `RPT_PCF10_INDUSTRY_EVALUATION` (行业 ROIC / 毛利率中位数 **+ INDUSTRY_NAME**)
+- **industry 来源** (同 Task 1): 从 datacenter `RPT_PCF10_INDUSTRY_EVALUATION` 拿 `INDUSTRY_NAME`. fetcher 入参**不需要 `industry`**, 只接 `{ code }` — 跟 peer-compare 一致.
+- Produces: `fetchMoatScore(httpClient, { code })` 返 `{ ok, data: { score, breakdown, metrics, note } }` 或 `{ ok: false, reason }`
 
 ### Step 2.1: 写失败测试
 
