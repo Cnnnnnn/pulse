@@ -39,6 +39,8 @@ const FETCH_REASON_TEXT = {
   exception: "拉取异常",
   all_fetch_failed: "全部数据源失败",
   invalid_args: "参数错误",
+  no_industry_data: "暂无行业数据",
+  no_finance_data: "财务数据缺失",
 };
 
 // ===== Tab 配置 =====

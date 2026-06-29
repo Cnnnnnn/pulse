@@ -55,7 +55,14 @@ function buildAnalyzeMessages(opts) {
       const label = ang ? ang.label : k;
       const entry = (perAngleData || {})[k];
       if (entry && entry.status === "ok" && entry.data) {
-        lines.push(`- ${label} (${k}): ${JSON.stringify(entry.data)}`);
+        let body;
+        if (ang && typeof ang.summarizeForAi === "function") {
+          const summarized = ang.summarizeForAi(entry.data);
+          body = summarized || "数据缺失";
+        } else {
+          body = JSON.stringify(entry.data);
+        }
+        lines.push(`- ${label} (${k}): ${body}`);
       } else {
         lines.push(`- ${label} (${k}): 数据缺失`);
       }

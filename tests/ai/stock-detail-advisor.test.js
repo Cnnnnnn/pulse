@@ -65,12 +65,28 @@ function reloadAdvisor() {
         { key: "price_trend", label: "价格趋势", group: "行情", promptHint: "近 30 日", dataShape: "PriceTrendData" },
         { key: "valuation", label: "估值水位", group: "财务", promptHint: "PE PB", dataShape: "ValuationData" },
         { key: "capital_flow", label: "资金流向", group: "资金", promptHint: "主力净流入", dataShape: "CapitalFlowData" },
+        { key: "peer_compare", label: "同业对比", group: "财务", promptHint: "PE PB vs 行业中位", dataShape: "PeerCompareData" },
+        { key: "moat_score", label: "护城河", group: "财务", promptHint: "3 维评分", dataShape: "MoatScoreData" },
       ],
       getAngle: (k) => {
+        // ponytail: mock 包含 summarizeForAi, 让 buildAnalyzeMessages 走 C1 修复后的真链路
+        // (而不是 JSON.stringify fallback). 真实函数体在 stock-detail-angles.js, 这里只返识别字符串.
+        const summarizePriceTrend = (d) => d && Array.isArray(d.closes) ? `近 ${d.closes.length} 日 close` : null;
+        const summarizeValuation = (d) => d && d.pe != null ? `动态 PE ${d.pe} 倍` : null;
+        const summarizeCapitalFlow = (d) => d && d.mainNetInflow != null ? `主力净流入 ${d.mainNetInflow}` : null;
+        const summarizePeerCompare = (d) => {
+          if (!d || (d.pe == null && d.pb == null)) return null;
+          const industry = d.industry ? `行业: ${d.industry}. ` : "";
+          const pePart = d.pe != null && d.peIndustryMedian != null ? `PE ${d.pe} vs 行业中位 ${d.peIndustryMedian}` : "";
+          return industry + pePart;
+        };
+        const summarizeMoatScore = (d) => d && d.score != null ? `护城河 ${d.score}/9` : null;
         const map = {
-          price_trend: { key: "price_trend", label: "价格趋势" },
-          valuation: { key: "valuation", label: "估值水位" },
-          capital_flow: { key: "capital_flow", label: "资金流向" },
+          price_trend: { key: "price_trend", label: "价格趋势", summarizeForAi: summarizePriceTrend },
+          valuation: { key: "valuation", label: "估值水位", summarizeForAi: summarizeValuation },
+          capital_flow: { key: "capital_flow", label: "资金流向", summarizeForAi: summarizeCapitalFlow },
+          peer_compare: { key: "peer_compare", label: "同业对比", summarizeForAi: summarizePeerCompare },
+          moat_score: { key: "moat_score", label: "护城河", summarizeForAi: summarizeMoatScore },
         };
         return map[k] || null;
       },
@@ -294,5 +310,37 @@ describe("buildAnalyzeMessages", () => {
     expect(parsed.perAngle.news_buzz).toBe("暂无数据");
     expect(parsed.risks).toHaveLength(2);
     expect(parsed.signal).toBe("neutral");
+  });
+
+  it("new angles (peer_compare / moat_score) 走 summarizeForAi 而不是 JSON.stringify", () => {
+    // ponytail: C1 修复锁定 — Stage 6 新增 2 个 angle 必须经 summarizeForAi 渲染到 user 段,
+    //          否则 Task 3 评审修的 industry 前缀 / note 后缀是 dead code.
+    const pad = {
+      peer_compare: {
+        status: "ok",
+        data: {
+          industry: "白酒", pe: 28.5, peIndustryMedian: 22.0, peRank: 18, peTotal: 52, peDeviationPct: 29.5,
+          pb: 8.2, pbIndustryMedian: 6.0, pbRank: 22, pbTotal: 52, pbDeviationPct: 36.7,
+        },
+      },
+      moat_score: {
+        status: "ok",
+        data: {
+          score: 7,
+          breakdown: { marginEdge: 3, roicEdge: 3, revenueStability: 1 },
+          metrics: { grossMargin: 88.2, roic: 28.0, revenueCagr5y: 15.0 },
+          note: "强护城河",
+        },
+      },
+    };
+    const messages = advisor.buildAnalyzeMessages({ code: "600519", angles: ["peer_compare", "moat_score"], perAngleData: pad });
+    const userContent = messages[1].content;
+    // 不应泄漏 raw JSON key (证明没走 JSON.stringify 分支)
+    expect(userContent).not.toContain("peIndustryMedian");
+    expect(userContent).not.toContain("revenueStability");
+    // 应含 summarizeForAi 输出 (mock 里的识别串)
+    expect(userContent).toContain("行业中位");
+    expect(userContent).toContain("护城河");
+    expect(userContent).toContain("7/9");
   });
 });
