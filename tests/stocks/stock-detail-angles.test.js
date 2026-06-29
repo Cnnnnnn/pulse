@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { ANGLE_DEFS, getAngle } from "../../src/stocks/stock-detail-angles";
 
 describe("stock-detail-angles", () => {
-  it("ANGLE_DEFS has exactly 7 angles", () => {
-    expect(ANGLE_DEFS).toHaveLength(7);
+  it("ANGLE_DEFS has exactly 9 angles (7 老 + peer_compare + moat_score)", () => {
+    expect(ANGLE_DEFS).toHaveLength(9);
   });
 
   it("each angle has required fields", () => {
@@ -14,6 +14,7 @@ describe("stock-detail-angles", () => {
       expect(a.promptHint).toBeTruthy();
       expect(a.dataShape).toBeTruthy();
       expect(typeof a.fetcher).toBe("function");
+      expect(typeof a.summarizeForAi).toBe("function");
     }
   });
 
@@ -39,6 +40,47 @@ describe("stock-detail-angles", () => {
 
   it("getAngle returns null for unknown key", () => {
     expect(getAngle("not_a_key")).toBeNull();
+  });
+
+  it("包含 9 个 angle (7 老 + peer_compare + moat_score)", () => {
+    const keys = ANGLE_DEFS.map((a) => a.key);
+    expect(keys).toContain("price_trend");
+    expect(keys).toContain("volume_turnover");
+    expect(keys).toContain("valuation");
+    expect(keys).toContain("profitability");
+    expect(keys).toContain("capital_flow");
+    expect(keys).toContain("tech_indicators");
+    expect(keys).toContain("news_buzz");
+    expect(keys).toContain("peer_compare");
+    expect(keys).toContain("moat_score");
+  });
+
+  it("peer_compare / moat_score group 都是 '财务'", () => {
+    expect(getAngle("peer_compare").group).toBe("财务");
+    expect(getAngle("moat_score").group).toBe("财务");
+  });
+
+  it("peer_compare / moat_score summarizeForAi 可调用, 不抛", () => {
+    const pc = getAngle("peer_compare");
+    const ms = getAngle("moat_score");
+    // 空数据: summarizePeerCompare 返 "暂无同业数据" 或 null
+    expect(() => pc.summarizeForAi(null)).not.toThrow();
+    // 完整数据: 返带 PE / PB 排名的字符串
+    const pcOut = pc.summarizeForAi({
+      pe: 30, peIndustryMedian: 25, peRank: 5, peTotal: 50, peDeviationPct: 20,
+      pb: 4, pbIndustryMedian: 3, pbRank: 10, pbTotal: 50, pbDeviationPct: 33.3,
+    });
+    expect(pcOut).toMatch(/PE 30\.0 倍/);
+    expect(pcOut).toMatch(/排名 5\/50/);
+    // moat_score: 完整 3 维都给的 case
+    const msOut = ms.summarizeForAi({
+      score: 7,
+      breakdown: { marginEdge: 3, roicEdge: 2, revenueStability: 2 },
+    });
+    expect(msOut).toMatch(/护城河 7\/9/);
+    expect(msOut).toMatch(/毛利 3\/3/);
+    expect(msOut).toMatch(/ROIC 2\/3/);
+    expect(msOut).toMatch(/营收 2\/3/);
   });
 
   describe("price_trend.getSparklineData", () => {

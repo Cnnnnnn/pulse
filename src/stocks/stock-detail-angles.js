@@ -69,6 +69,24 @@ const ANGLE_DEFS = [
     fetcher: require("./detail-fetchers/news-buzz").fetchNewsBuzz,
     summarizeForAi: summarizeNewsBuzz,
   },
+  {
+    key: "peer_compare",
+    label: "同业对比",
+    group: "财务",
+    promptHint: "PE / PB 相对行业中位 + 这只的排名",
+    dataShape: "PeerCompareData",
+    fetcher: require("./detail-fetchers/peer-compare").fetchPeerCompare,
+    summarizeForAi: summarizePeerCompare,
+  },
+  {
+    key: "moat_score",
+    label: "护城河",
+    group: "财务",
+    promptHint: "3 维护城河评分 (毛利 / ROIC / 营收稳定度)",
+    dataShape: "MoatScoreData",
+    fetcher: require("./detail-fetchers/moat-score").fetchMoatScore,
+    summarizeForAi: summarizeMoatScore,
+  },
 ];
 
 function getAngle(key) {
@@ -229,6 +247,39 @@ function summarizeNewsBuzz(d) {
     .map((i) => i.title)
     .join(" / ");
   return `共 ${d.items.length} 条 (正 ${pos} / 负 ${neg} / 中 ${neu}); 近期: ${top3}`;
+}
+
+function summarizePeerCompare(d) {
+  if (!d) return null;
+  if (d.pe == null && d.pb == null) return "暂无同业数据";
+  const parts = [];
+  if (d.pe != null && d.peIndustryMedian != null) {
+    const dev = d.peDeviationPct != null ? `, ${d.peDeviationPct >= 0 ? "偏贵" : "偏低"} ${Math.abs(d.peDeviationPct).toFixed(1)}%` : "";
+    parts.push(`PE ${d.pe.toFixed(1)} 倍 vs 行业中位 ${d.peIndustryMedian.toFixed(1)} 倍, 排名 ${d.peRank || "-"}/${d.peTotal || "-"}${dev}`);
+  }
+  if (d.pb != null && d.pbIndustryMedian != null) {
+    const dev = d.pbDeviationPct != null ? `, ${d.pbDeviationPct >= 0 ? "偏贵" : "偏低"} ${Math.abs(d.pbDeviationPct).toFixed(1)}%` : "";
+    parts.push(`PB ${d.pb.toFixed(1)} vs 行业中位 ${d.pbIndustryMedian.toFixed(1)}, 排名 ${d.pbRank || "-"}/${d.pbTotal || "-"}${dev}`);
+  }
+  if (parts.length === 0) return "暂无同业数据";
+  // ponytail: 行业名是 LLM 分析 "同业对比" 时不可缺的高价值上下文, prepend 一段.
+  //          仅当 industry 存在时输出, fetcher 在 datacenter row 缺 INDUSTRY_NAME 时会返 ok=false,
+  //          但本函数仍需对 caller 传的部分数据保持防御 (测试也喂了无 industry 的 fixture).
+  const industryPrefix = d.industry ? `行业: ${d.industry}. ` : "";
+  return industryPrefix + parts.join("; ");
+}
+
+function summarizeMoatScore(d) {
+  if (!d || d.score == null) return null;
+  const breakdown = d.breakdown || {};
+  const dims = [];
+  if (breakdown.marginEdge != null) dims.push(`毛利 ${breakdown.marginEdge}/3`);
+  if (breakdown.roicEdge != null) dims.push(`ROIC ${breakdown.roicEdge}/3`);
+  if (breakdown.revenueStability != null) dims.push(`营收 ${breakdown.revenueStability}/3`);
+  // ponytail: buildNote() 已经把分数翻译成了 "强护城河 / 数据缺失 X 维度" 等 LLM 直读的判断,
+  //          防御性处理 null/空字符串, 避免显示 "— undefined".
+  const noteSuffix = d.note ? ` — ${d.note}` : "";
+  return `护城河 ${d.score}/9 (${dims.join(" + ")})${noteSuffix}`;
 }
 
 module.exports = { ANGLE_DEFS, getAngle };
