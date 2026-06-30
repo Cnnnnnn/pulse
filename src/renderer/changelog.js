@@ -42,6 +42,13 @@ export function renderChangelog(src, format = 'md', changelogUrl = '') {
     ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|#|\/)/i,
   });
 
+  // 纵深防御: happy-dom 20 的 DOMParser 对 <script> 解析行为与真实浏览器
+  // 不一致, 导致 DOMPurify 在测试环境无法剥掉 <script>. 生产环境 (Electron
+  // Chromium) DOMPurify 本就能处理, 这里加一道正则兜底作为第二防护层,
+  // 也让测试在 happy-dom 下能验证 XSS 防护意图. 不处理 <style>/<iframe>:
+  // 它们本就不在 ALLOWED_TAGS 里, 且 DOMPurify 在 happy-dom 下对它们工作正常.
+  safe = safe.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gi, '');
+
   // 末尾追加完整 changelog 链接
   if (changelogUrl && /^https?:\/\//.test(changelogUrl)) {
     safe += `<p class="changelog-full-link"><a href="${changelogUrl}" target="_blank" rel="noopener">查看完整 release notes</a></p>`;

@@ -34,10 +34,10 @@
     "electron": "^35.0.0",
     "electron-builder": "^25.0.0",
     "esbuild": "^0.28.1",
-    "happy-dom": "^15.11.7",
+    "happy-dom": "^20.10.6",
     "jsdom": "^29.1.1",
     "png-to-ico": "^2.1.8",
-    "vitest": "^1.6.0"
+    "vitest": "^3.2.6"
   },
   "build": {
     "appId": "com.appupdatechecker.pulse",
