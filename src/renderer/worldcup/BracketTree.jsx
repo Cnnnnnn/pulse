@@ -40,12 +40,41 @@ function slotPlaceholder(slot) {
 function MatchMeta({ match }) {
   const k = match && match.kickoff;
   if (!k || !k.date) return null;
+  const time = `${k.date}${k.time ? ` ${k.time}` : ""}${k.timezone ? ` ${k.timezone}` : ""}`;
   return (
     <div class="bracket-card-meta">
-      <span class="bracket-card-meta-time"><IconClock size={10} /> {k.date} {k.time}{k.timezone ? ` ${k.timezone}` : ""}</span>
+      {time && <span class="bracket-card-meta-time"><IconClock size={11} /> {time}</span>}
       {k.venue && <span class="bracket-card-meta-venue">@ {k.venue}</span>}
     </div>
   );
+}
+
+// ponytail: v2.64 — 百度/ESPN 风卡片: 头部 Match num + 状态徽章 (右对齐),
+// 主行 队1 vs 队2 (居中比分/vs), 底部 meta 一行 (时间 + 球场).
+// 比分 status=final/live 时显示数字 vs 灰色, status=pending/projected 显示 vs.
+function CardScore({ match }) {
+  const { status, score } = match;
+  if ((status === "final" || status === "live") && score && typeof score === "object") {
+    const { home, away } = score;
+    const leaderIsHome = home != null && away != null && home > away;
+    const leaderIsAway = home != null && away != null && away > home;
+    return (
+      <span class="bracket-card-score">
+        <span class={`bracket-card-score-num ${leaderIsHome ? "is-leader" : ""}`}>{home ?? "-"}</span>
+        <span class="bracket-card-score-dash">:</span>
+        <span class={`bracket-card-score-num ${leaderIsAway ? "is-leader" : ""}`}>{away ?? "-"}</span>
+      </span>
+    );
+  }
+  return <span class="bracket-card-vs">vs</span>;
+}
+
+function StatusBadge({ status }) {
+  if (status === "live") return <span class="bracket-badge bracket-badge--live">● 进行中</span>;
+  if (status === "final") return <span class="bracket-badge bracket-badge--done"><IconCheck size={11} /> 已完赛</span>;
+  if (status === "projected") return <span class="bracket-badge bracket-badge--lock"><IconLock size={11} /> 待定</span>;
+  if (status === "pending") return <span class="bracket-badge">未赛</span>;
+  return null;
 }
 
 function FallbackMatchCard({ match, onClick }) {
@@ -59,23 +88,26 @@ function FallbackMatchCard({ match, onClick }) {
       class={`bracket-card bracket-card--${status}`}
       onClick={() => onClick && onClick(match)}
     >
-      <div class="bracket-card-num">Match {matchNum}</div>
+      <div class="bracket-card-head">
+        <span class="bracket-card-num">Match {matchNum}</span>
+        <StatusBadge status={status} />
+      </div>
       <div class="bracket-card-row">
         <div class="bracket-card-team">
           {t1 ? (
             <>
-              <span class="bracket-card-flag"><TeamFlag code={t1.flag} size={12} /></span>
+              <span class="bracket-card-flag"><TeamFlag code={t1.flag} size={14} /></span>
               <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
             </>
           ) : (
             <span class="bracket-card-placeholder">{slotPlaceholder(slot1)}</span>
           )}
         </div>
-        <div class="bracket-card-vs">vs</div>
+        <CardScore match={match} />
         <div class="bracket-card-team">
           {t2 ? (
             <>
-              <span class="bracket-card-flag"><TeamFlag code={t2.flag} size={12} /></span>
+              <span class="bracket-card-flag"><TeamFlag code={t2.flag} size={14} /></span>
               <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
             </>
           ) : (
@@ -84,12 +116,6 @@ function FallbackMatchCard({ match, onClick }) {
         </div>
       </div>
       <MatchMeta match={match} />
-      <div class="bracket-card-status">
-        {status === "pending" && <span class="bracket-badge">未赛</span>}
-        {status === "projected" && <span class="bracket-badge bracket-badge--lock"><IconLock size={12} /> 待定</span>}
-        {status === "live" && <span class="bracket-badge bracket-badge--live">● 进行中</span>}
-        {status === "final" && <span class="bracket-badge bracket-badge--done"><IconCheck size={12} /> 已完赛</span>}
-      </div>
     </div>
   );
 }

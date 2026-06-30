@@ -7797,91 +7797,167 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   .bracket-grid--8  { grid-template-columns: repeat(2, 1fr); }
 }
 .bracket-card {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: var(--space-2, 8px);
+  /* ponytail: v2.64 — 百度/ESPN 风浅色卡片. 浅灰描边 + 圆角 + hover 微高亮. */
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
   font-size: var(--font-size-xs, 11px);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 .bracket-card:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: #283548;
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
 }
 .bracket-card--projected {
-  opacity: 0.6;
+  opacity: 0.55;
   border-style: dashed;
 }
 .bracket-card--final {
-  border-color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.5);
 }
 .bracket-card--live {
-  border-color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25);
+}
+.bracket-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2, 8px);
 }
 .bracket-card-num {
-  font-size: 9px;
-  color: #6b7280;
-  margin-bottom: 4px;
+  font-size: 10px;
+  color: #9ca3af;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 .bracket-card-row {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: var(--space-1, 4px);
+  gap: var(--space-2, 8px);
+  min-width: 0;
 }
 .bracket-card-team {
   display: flex;
   align-items: center;
-  gap: var(--space-1, 4px);
+  gap: var(--space-1, 6px);
   min-width: 0;
+}
+.bracket-card-team:last-child {
+  justify-content: flex-start;
+}
+.bracket-card-team:first-child {
+  justify-content: flex-end;
+  text-align: right;
 }
 .bracket-card-flag {
   display: inline-flex;
   align-items: center;
-  font-size: var(--font-size-lg, 14px);
+  font-size: 14px;
+  flex-shrink: 0;
 }
 .bracket-card-name {
-  font-size: var(--font-size-xs, 11px);
+  font-size: 12px;
+  font-weight: 500;
+  color: #f3f4f6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 .bracket-card-placeholder {
   color: #6b7280;
   font-style: italic;
-  font-size: var(--font-size-10, 10px);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .bracket-card-vs {
-  font-size: var(--font-size-10, 10px);
+  font-size: 10px;
   color: #6b7280;
   text-align: center;
+  padding: 0 6px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
-.bracket-card-status {
-  margin-top: 4px;
-  text-align: center;
-}
-.bracket-badge {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 9px;
-  background: rgba(107, 114, 128, 0.3);
-  color: #9ca3af;
-}
-.bracket-badge--lock {
+.bracket-card-score {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1, 4px);
-  background: rgba(245, 158, 11, 0.2);
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+}
+.bracket-card-score-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e5e7eb;
+  min-width: 14px;
+  text-align: center;
+}
+.bracket-card-score-num.is-leader {
+  color: #fbbf24;
+}
+.bracket-card-score-dash {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+.bracket-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  font-size: 10px;
+  color: #9ca3af;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.bracket-card-meta-time,
+.bracket-card-meta-venue {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.bracket-card-meta-venue {
+  flex: 1;
+}
+.bracket-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 500;
+  background: rgba(107, 114, 128, 0.25);
+  color: #d1d5db;
+  flex-shrink: 0;
+}
+.bracket-badge--lock {
+  background: rgba(245, 158, 11, 0.18);
   color: #fbbf24;
 }
 .bracket-badge--live {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.25);
   color: #fca5a5;
   animation: bracket-pulse 1.5s infinite;
 }
 .bracket-badge--done {
-  background: rgba(74, 222, 128, 0.2);
+  background: rgba(74, 222, 128, 0.18);
   color: #4ade80;
 }
 @keyframes bracket-pulse {

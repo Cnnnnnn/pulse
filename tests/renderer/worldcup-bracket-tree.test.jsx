@@ -136,6 +136,64 @@ describe("BracketTree (fallback only)", () => {
     expect(onMatchClick).toHaveBeenCalledTimes(1);
     expect(onMatchClick.mock.calls[0][0].matchNum).toBe(73);
   });
+
+  test("v2.64 card shows score (home : away) when status=final and score is set", () => {
+    const finalSnap = {
+      ...sampleSnapshot,
+      r32: [
+        {
+          matchNum: 73,
+          slot1: { team: { name: "South Africa" }, source: "group:A:runnerUp" },
+          slot2: { team: { name: "Switzerland" }, source: "group:B:runnerUp" },
+          status: "final",
+          score: { home: 2, away: 1 },
+        },
+      ],
+    };
+    const { container } = render(<BracketTree snapshot={finalSnap} onMatchClick={() => {}} />);
+    const score = container.querySelector(".bracket-card-score");
+    expect(score).toBeTruthy();
+    expect(score.textContent).toContain("2");
+    expect(score.textContent).toContain("1");
+    // winner (home) gets leader styling
+    const nums = score.querySelectorAll(".bracket-card-score-num");
+    expect(nums[0].classList.contains("is-leader")).toBe(true);
+    expect(nums[1].classList.contains("is-leader")).toBe(false);
+  });
+
+  test("v2.64 card shows 'vs' when no score (status=pending)", () => {
+    const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} />);
+    const card = container.querySelector(".bracket-card");
+    expect(card.querySelector(".bracket-card-vs")).toBeTruthy();
+    expect(card.querySelector(".bracket-card-score")).toBeNull();
+  });
+
+  test("v2.64 card header shows match num + status badge", () => {
+    const { container } = render(<BracketTree snapshot={sampleSnapshot} onMatchClick={() => {}} />);
+    const head = container.querySelector(".bracket-card-head");
+    expect(head).toBeTruthy();
+    expect(head.querySelector(".bracket-card-num").textContent).toContain("Match 73");
+    expect(head.querySelector(".bracket-badge")).toBeTruthy();
+  });
+
+  test("v2.64 kickoff meta line: time + venue (single row)", () => {
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 73,
+        slot1: { team: { name: "South Africa" }, source: "group:A:runnerUp" },
+        slot2: { team: { name: "Switzerland" }, source: "group:B:runnerUp" },
+        status: "pending",
+        kickoff: { date: "06-28", time: "20:00", timezone: "GMT+8", venue: "洛杉矶体育场" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const meta = container.querySelector(".bracket-card-meta");
+    expect(meta).toBeTruthy();
+    expect(meta.textContent).toContain("06-28");
+    expect(meta.textContent).toContain("20:00");
+    expect(meta.textContent).toContain("洛杉矶体育场");
+  });
 });
 
 describe("splitBracketByHalf (保留 API, 不被 fallback 调用)", () => {
