@@ -7722,7 +7722,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   background: #141416;
   border-radius: 8px;
 }
-}
 .bracket-view--empty,
 .bracket-view--error {
   padding: var(--space-6, 24px);
@@ -8462,16 +8461,29 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-bottom: 4px;
 }
 
-/* === Responsive fallback: hide horizontal tree on narrow viewport === */
-/* Defensive media queries in addition to JS detection — suppress either
-   side of the breakpoint even if JS detection is delayed / fails. */
-@media (min-width: 900px) {
-  .bracket-tree-fallback { display: none; }
+/* === Bracket tree v2 fallback layout === */
+/* ponytail: v2.52 大型 stage (R32 16 / R16 8) 拆上下两半并排 (2 列 grid), 整体高度减半. */
+.bracket-tree-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
 }
-@media (max-width: 899px) {
-  .bracket-tree { display: none; }
+.bracket-fallback-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2, 8px);
 }
-
+@media (max-width: 600px) {
+  .bracket-fallback-split {
+    grid-template-columns: 1fr;
+  }
+}
+.bracket-fallback-half {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  min-width: 0;
+}
 /* v2.16.0 世界杯进球通知: 3 秒黄色高亮 */
 .match-row-highlight {
   animation: goal-highlight-pulse 3s ease-out;
