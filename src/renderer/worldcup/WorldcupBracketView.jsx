@@ -1,13 +1,10 @@
 /**
  * src/renderer/worldcup/WorldcupBracketView.jsx
  *
- * v3 淘汰赛对阵容器 — toolbar / 空态 / 错误态 + BracketTree 渲染.
+ * World Cup 淘汰赛对阵 - 容器 (toolbar / 空态 / 错误态) + BracketTree 渲染
  *
- * 视觉逻辑:
- * - 桌面 (>700px): 一张完整 FIFA bracket tree, 上下半区镜像汇聚到中央 Final + Third
- * - 窄屏 (<700px): 自动回退到垂直堆叠 (BracketTreeFallback 内部处理)
- *
- * 设计文档: docs/superpowers/specs/2026-06-30-worldcup-bracket-redesign-design.md
+ * 视觉逻辑: 一整张 v1 fallback (R32 → R16 → QF → SF → 决赛&季军赛 5 段垂直堆叠).
+ * 不再有 stage tab — 一张图看完整个淘汰赛.
  */
 
 import { useState, useEffect } from "preact/hooks";
@@ -33,7 +30,7 @@ function formatRelativeTime(ts) {
   return new Date(ts).toLocaleString("zh-CN");
 }
 
-// ponytail: v2.61 — 过滤掉 informational warnings.
+// ponytail: 过滤掉 informational warnings.
 // bracket_partial / annexC_* / simplified_* 是预期状态提示, 不应该当警告.
 // 真正的警告只有 finals_fetch_* (网络拉取失败) 和 group_*_incomplete (小组赛数据缺失).
 function isRealWarning(w, snapshot) {
