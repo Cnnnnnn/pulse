@@ -199,6 +199,123 @@ function __resetForTest() {
  */
 
 /**
+ * Scan one file's lines, collecting all setInterval / setTimeout call sites.
+ * Skips comment-only lines and 1-shot microtask timeouts (setTimeout ms < 5).
+ *
+ * @param {string[]} lines
+ * @param {string} file
+ * @returns {Array<{file:string,line:number,code:string,var:string|null,ms:number|null,func:string}>}
+ */
+function collectTimerSites(lines, file) {
+  const sites = [];
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const line = raw.trim();
+    if (line.startsWith('//') || line.startsWith('*')) continue; // comments
+
+    const m = line.match(/(setInterval|setTimeout)\s*\(/);
+    if (!m) continue;
+    // ignore 1-shot microtask timeouts (ms arg of 0/1/<5)
+    const msMatch = line.match(/,\s*(\d+)\s*\)/);
+    const ms = msMatch ? Number(msMatch[1]) : null;
+    if (m[1] === 'setTimeout' && ms !== null && ms < 5) continue;
+
+    // try to extract var name: const|let|var X = setInterval(...)
+    const varMatch = line.match(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:setInterval|setTimeout)/);
+    const varName = varMatch ? varMatch[1] : null;
+
+    sites.push({
+      file,
+      line: i + 1,
+      code: raw.trim(),
+      var: varName,
+      ms,
+      func: m[1],
+    });
+  }
+  return sites;
+}
+
+/**
+ * Walk up to 50 lines ahead of `site` looking for clearInterval(var) /
+ * clearTimeout(var). Returns true if a cleanup call is found.
+ *
+ * @param {object} site
+ * @param {string[]} lines
+ * @returns {boolean}
+ */
+function siteHasCleanup(site, lines) {
+  if (!site.var) return false;
+  const searchLimit = Math.min(lines.length, site.line + 50);
+  for (let j = site.line; j < searchLimit; j++) {
+    const look = lines[j];
+    if (
+      (look.includes(`clearInterval(${site.var})`) ||
+        look.includes(`clearTimeout(${site.var})`)) &&
+      !look.trim().startsWith('//')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Decide the kind of a timer site given its cleanup status + sibling sites.
+ *   clean         → has a clearInterval/clearTimeout nearby
+ *   debounce      → setTimeout: same var assigned >= 2 times
+ *   dup-schedule  → setInterval: same var assigned >= 2 times without clear
+ *   orphan        → everything else (incl. anonymous)
+ *
+ * @param {object} site
+ * @param {boolean} hasCleanup
+ * @param {Array<object>} sites — sibling sites in the same file (for dup detection)
+ * @returns {'clean'|'orphan'|'debounce'|'dup-schedule'}
+ */
+function classifySite(site, hasCleanup, sites) {
+  if (hasCleanup) return 'clean';
+  if (site.func === 'setTimeout' && site.var) {
+    const sameVarCount = sites.filter(
+      (s) => s.var === site.var && s.func === 'setTimeout',
+    ).length;
+    return sameVarCount >= 2 ? 'debounce' : 'orphan';
+  }
+  if (site.func === 'setInterval' && site.var) {
+    const sameVarCount = sites.filter(
+      (s) => s.var === site.var && s.func === 'setInterval',
+    ).length;
+    return sameVarCount >= 2 ? 'dup-schedule' : 'orphan';
+  }
+  return 'orphan'; // anonymous (no var)
+}
+
+/**
+ * Emit a per-site log line for non-clean kinds. Clean sites are silent.
+ *
+ * @param {string} kind
+ * @param {object} site
+ * @param {string} file
+ * @param {{info:function,warn:function}|null} logger
+ */
+function logSiteKind(kind, site, file, logger) {
+  if (!logger) return;
+  const msSuffix = site.ms != null ? `${site.ms}ms ` : '';
+  if (kind === 'orphan') {
+    logger.info(
+      `[timer-registry] [orphan] ${file}:${site.line} ${site.func} ${msSuffix}(no clear found in 50 lines)`,
+    );
+  } else if (kind === 'dup-schedule') {
+    logger.info(
+      `[timer-registry] [dup-schedule] ${file}:${site.line} ${site.func} ${msSuffix}(var ${site.var} reassigned without prior clear)`,
+    );
+  } else if (kind === 'debounce') {
+    logger.info(
+      `[timer-registry] [debounce] ${file}:${site.line} ${site.func} ${msSuffix}`,
+    );
+  }
+}
+
+/**
  * Scan .js files under rootDir for setInterval / setTimeout usage and
  * classify each as clean / orphan / debounce / dup-schedule.
  *
@@ -241,78 +358,13 @@ function auditTimers(rootDir, opts) {
       continue;
     }
     const lines = content.split('\n');
+    const sites = collectTimerSites(lines, file);
 
-    // 1) collect all setInterval / setTimeout sites
-    const sites = [];
-    for (let i = 0; i < lines.length; i++) {
-      const raw = lines[i];
-      const line = raw.trim();
-      if (line.startsWith('//') || line.startsWith('*')) continue; // comments
-
-      const m = line.match(/(setInterval|setTimeout)\s*\(/);
-      if (!m) continue;
-      // ignore 1-shot microtask timeouts (ms arg of 0/1/<5)
-      const msMatch = line.match(/,\s*(\d+)\s*\)/);
-      const ms = msMatch ? Number(msMatch[1]) : null;
-      if (m[1] === 'setTimeout' && ms !== null && ms < 5) continue;
-
-      // try to extract var name: const|let|var X = setInterval(...)
-      const varMatch = line.match(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:setInterval|setTimeout)/);
-      const varName = varMatch ? varMatch[1] : null;
-
-      sites.push({
-        file,
-        line: i + 1,
-        code: raw.trim(),
-        var: varName,
-        ms,
-        func: m[1],
-      });
-    }
-
-    // 2) classify each site
     for (const site of sites) {
-      // Look 50 lines ahead for clearInterval(var) or clearTimeout(var)
-      let hasCleanup = false;
-      const searchLimit = Math.min(lines.length, site.line + 50);
-      if (site.var) {
-        for (let j = site.line; j < searchLimit; j++) {
-          const look = lines[j];
-          if (
-            (look.includes(`clearInterval(${site.var})`) ||
-              look.includes(`clearTimeout(${site.var})`)) &&
-            !look.trim().startsWith('//')
-          ) {
-            hasCleanup = true;
-            break;
-          }
-        }
-      }
+      const hasCleanup = siteHasCleanup(site, lines);
+      const kind = classifySite(site, hasCleanup, sites);
 
-      // Determine kind
-      let kind;
-      if (hasCleanup) {
-        kind = 'clean';
-      } else if (site.func === 'setTimeout' && site.var) {
-        // debounce: same var assigned multiple times across the file
-        const sameVarCount = sites.filter(
-          (s) => s.var === site.var && s.func === 'setTimeout',
-        ).length;
-        if (sameVarCount >= 2) kind = 'debounce';
-        else kind = 'orphan';
-      } else if (site.func === 'setInterval' && site.var) {
-        // dup-schedule: same var assigned setInterval >=2 times without clear
-        const sameVarCount = sites.filter(
-          (s) => s.var === site.var && s.func === 'setInterval',
-        ).length;
-        if (sameVarCount >= 2) kind = 'dup-schedule';
-        else kind = 'orphan';
-      } else {
-        // anonymous (no var) → orphan
-        kind = 'orphan';
-      }
-
-      const entry = {
+      summary.entries.push({
         file,
         line: site.line,
         code: site.code,
@@ -320,29 +372,14 @@ function auditTimers(rootDir, opts) {
         ms: site.ms,
         hasCleanup,
         kind,
-      };
-      summary.entries.push(entry);
+      });
       summary.total += 1;
       if (kind === 'clean') summary.clean += 1;
       else if (kind === 'orphan') summary.orphan += 1;
       else if (kind === 'debounce') summary.debounce += 1;
       else if (kind === 'dup-schedule') summary.dupSchedule += 1;
 
-      if (logger) {
-        if (kind === 'orphan') {
-          logger.info(
-            `[timer-registry] [orphan] ${file}:${site.line} ${site.func} ${site.ms != null ? site.ms + 'ms ' : ''}(no clear found in 50 lines)`,
-          );
-        } else if (kind === 'dup-schedule') {
-          logger.info(
-            `[timer-registry] [dup-schedule] ${file}:${site.line} ${site.func} ${site.ms != null ? site.ms + 'ms ' : ''}(var ${site.var} reassigned without prior clear)`,
-          );
-        } else if (kind === 'debounce') {
-          logger.info(
-            `[timer-registry] [debounce] ${file}:${site.line} ${site.func} ${site.ms != null ? site.ms + 'ms ' : ''}`,
-          );
-        }
-      }
+      logSiteKind(kind, site, file, logger);
     }
   }
 

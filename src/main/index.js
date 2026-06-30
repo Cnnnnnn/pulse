@@ -124,13 +124,14 @@ const sendToRenderer = createSender({ getWindow });
 
 installErrorGuardBridge(sendToRenderer);
 
-async function bootstrap() {
-  const t0 = Date.now();
-  const statePath = stateStore.initStateStorePaths();
-  mainLog.info(`state store path: ${statePath}`);
-
-  // P52: 自更新 controller — 必须早于 registerIpcHandlers,
-  // 因为 IPC handler 启动时就读 selfUpdateController().
+/**
+ * Bootstrap 子阶段: 启动自更新 timer + 注册 tray 推送.
+ * 拆出来只为减小 bootstrap() 体量, 逻辑零改动.
+ *
+ * @param {object} ctx - 共享闭包变量: { trayMgr getter, runtimeConfigRef }
+ * @returns {{ handle: object|null }} selfUpdateHandle (IPC handler 需读 controller)
+ */
+function initSelfUpdateTimer(ctx) {
   let selfUpdateHandle = null;
   try {
     selfUpdateHandle = startSelfUpdateTimer({
@@ -162,8 +163,9 @@ async function bootstrap() {
   // P52: 把 controller state 推 tray (avail → 显示 "Pulse 有新版 vX.Y.Z")
   function pushSelfUpdateToTray() {
     try {
-      if (trayMgr && selfUpdateHandle && selfUpdateHandle.controller) {
-        trayMgr.setSelfUpdateState(selfUpdateHandle.controller.getState());
+      const tray = ctx.getTrayMgr();
+      if (tray && selfUpdateHandle && selfUpdateHandle.controller) {
+        tray.setSelfUpdateState(selfUpdateHandle.controller.getState());
       }
     } catch (err) {
       mainLog.warn(`[self-update] push to tray failed: ${err && err.message}`);
@@ -172,42 +174,14 @@ async function bootstrap() {
   // 30s 内 timer 已 dispatch 完一次 (autoUpdater.checking-for-update), 同步拉一次 state.
   setTimeout(pushSelfUpdateToTray, 35000);
   setInterval(pushSelfUpdateToTray, 5 * 60 * 1000); // 5min 兜底轮询, 状态变化时实时性靠 autoUpdater event
-  // Phase Q6: capture uncaught main errors + best-effort cleanup of old logs
-  try {
-    initErrorCapture({ sendToRenderer });
-    mainLog.info("error capture enabled");
-  } catch (err) {
-    mainLog.warn(`[error-init] failed: ${err && err.message}`);
-  }
-  // Phase Q8: run loadOrRecover to back up any corrupt state.json and record
-  // the recovery event for the renderer's banner. Must happen before any other
-  // module reads state, so they see the baseline (not corrupt data).
-  initStateRecovery();
-  try {
-    const st = fs.statSync(statePath);
-    if (st && st.size > 5 * 1024 * 1024) {
-      mainLog.warn(
-        `[db-health] state.json size=${(st.size / 1024 / 1024).toFixed(2)}MB exceeds 5MB threshold. ` +
-          `Consider splitting large collection fields into separate files (see docs/db-migration-assessment.md).`,
-      );
-    }
-  } catch {
-    /* ENOENT 等不阻塞启动 */
-  }
-  mainLog.info(
-    `boot pid=${process.pid} arch=${ARCH} platform=${process.platform}`,
-  );
+  return { handle: selfUpdateHandle };
+}
 
-  const timings = {
-    lock: 0,
-    config: 0,
-    pool: 0,
-    window: 0,
-    tray: 0,
-    ipc: 0,
-    total: 0,
-  };
-
+/**
+ * Bootstrap 子阶段: category config + 历史缓存注入 + LLM 分类 fire-and-forget.
+ * 步骤 0 / 0.4 / 0.5. 顺序敏感 (注释里有 "必须同步" 标注), 不可重排.
+ */
+function initCategoryAndLlm() {
   // 0) Phase A: 加载 category config (早期注入, 后面 IPC 通道要用到)
   loadCategoryConfig();
 
@@ -238,43 +212,32 @@ async function bootstrap() {
       mainLog.warn(`[bootstrap] LLM classify rejected: ${err && err.message}`);
     });
   }
+}
 
-  // 1) 单实例锁
+/**
+ * Bootstrap 子阶段: 单实例锁. 拿不到就 app.quit() 退出.
+ * @returns {boolean} 是否拿到锁 (false 时 caller 应直接 return)
+ */
+function acquireSingleInstanceLock() {
   const tLock = Date.now();
   const gotLock =
     process.env.BENCH === "1" ? true : app.requestSingleInstanceLock();
   if (!gotLock) {
     mainLog.warn("single-instance lock failed, quitting");
     app.quit();
-    return;
+    return { gotLock: false, ms: 0 };
   }
   app.on("second-instance", () => {
     if (winMgr) winMgr.showWindow();
   });
-  timings.lock = Date.now() - tLock;
+  return { gotLock: true, ms: Date.now() - tLock };
+}
 
-  // 2) config (再读一次以保证最新; 早期读是给 LLM 用)
-  const tConfig = Date.now();
-  const runtimeConfig = loadConfig();
-  runtimeConfigRef.current = runtimeConfig;
-  mainLog.info(
-    `config loaded: ${(runtimeConfig.apps || []).length} apps, check_on_launch=${runtimeConfig.check_on_launch}`,
-  );
-  timings.config = Date.now() - tConfig;
-
-  // 2.5) AI 任务总结 wiring
-  initAiTasksWiring({ stateStore });
-
-  // 3) dock 隐藏
-  try {
-    if (process.env.PULSE_HIDE_DOCK === "1") {
-      app.dock.hide();
-    }
-  } catch {
-    /* noop */
-  }
-
-  // 4) worker pool
+/**
+ * Bootstrap 子阶段: 启动 worker pool + onProgress/onLog 钩子.
+ * @returns {{ ms: number }}
+ */
+function initWorkerPool() {
   const tPool = Date.now();
   const workerScript = path.join(
     __dirname,
@@ -305,9 +268,15 @@ async function bootstrap() {
   });
   pool.start();
   mainLog.info(`worker pool started: size=${pool.size}`);
-  timings.pool = Date.now() - tPool;
+  return { ms: Date.now() - tPool };
+}
 
-  // 5) window
+/**
+ * Bootstrap 子阶段: 创建主窗口 + 推 recovery event.
+ * @param {object} runtimeConfig
+ * @returns {{ ms: number }}
+ */
+function createMainWindow(runtimeConfig) {
   const tWindow = Date.now();
   winMgr = createWindowManager({
     config: runtimeConfig,
@@ -326,10 +295,14 @@ async function bootstrap() {
       `state.json recovery pushed to renderer: reason=${evt.reason} backup=${evt.backup || "(none)"}`,
     );
   });
-  mainLog.info(`window created: ${Date.now() - tWindow}ms`);
-  timings.window = Date.now() - tWindow;
+  return { ms: Date.now() - tWindow };
+}
 
-  // 6) tray
+/**
+ * Bootstrap 子阶段: tray 安装. 大量回调闭包 winMgr/getWindow, 必须在 window 之后.
+ * @returns {{ ms: number }}
+ */
+function installTray() {
   const tTrayStart = Date.now();
   try {
     trayMgr = createTrayManager({
@@ -399,13 +372,18 @@ async function bootstrap() {
       mainLog.warn(`tray menu prefs load failed: ${err && err.message}`);
     }
     mainLog.info(`tray installed: ${Date.now() - tTrayStart}ms`);
-    timings.tray = Date.now() - tTrayStart;
   } catch (err) {
     mainLog.error(`tray install failed: ${err.message}`);
-    timings.tray = Date.now() - tTrayStart;
   }
+  return { ms: Date.now() - tTrayStart };
+}
 
-  // 6.5) v2.22 Task B2 + B2.1: AI 用量 cache + 30min 自动刷新
+/**
+ * Bootstrap 子阶段: AI 用量 cache + 30min 自动刷新 scheduler.
+ * 步骤 6.5. 赋值给 module-level aiUsageScheduler (before-quit 要访问).
+ */
+function initAiUsageTray() {
+  // v2.22 Task B2 + B2.1: AI 用量 cache + 30min 自动刷新
   // B2: 启动时从 state.json 读 last-known 推 tray
   // B2.1: 30min setInterval 调 register-ai-usage._internals.fetch (双 provider),
   //       写回 state.json 后重新构造 tray summary 推 tray.
@@ -468,8 +446,15 @@ async function bootstrap() {
   } catch (err) {
     mainLog.warn(`ai-usage tray init failed: ${err && err.message}`);
   }
+}
 
-  // 6.6) v2.22 Task C2: 世界杯 tray cache (从 state.json 读 today/upcoming, 不主动 fetch)
+/**
+ * Bootstrap 子阶段: 世界杯 tray cache (从 state.json 读, 不主动 fetch).
+ * 步骤 6.6. 返回 pushWorldcupToTray (startWorldcupGoalWatcher 的 onScoresChanged 钩要复用).
+ * @returns {() => void}
+ */
+function initWorldcupTray() {
+  // v2.22 Task C2: 世界杯 tray cache (从 state.json 读 today/upcoming, 不主动 fetch)
   // v2.22 Task C2.1: pushWorldcupToTray hoist 到 try 块外, 让后面的 startWorldcupGoalWatcher
   //   能通过 onScoresChanged 钩进来 — 替换之前的 60s setInterval 轮询.
   let pushWorldcupToTray = () => {};
@@ -491,7 +476,14 @@ async function bootstrap() {
   } catch (err) {
     mainLog.warn(`worldcup tray init failed: ${err && err.message}`);
   }
+  return pushWorldcupToTray;
+}
 
+/**
+ * Bootstrap 子阶段: 贵金属 tray (从 metal-ipc 模块级 cache 读 quoteCache).
+ * 步骤 6.7. 60s 兜底轮询 timer, before-quit 清理.
+ */
+function initMetalsTray() {
   // 6.7) v2.22 Task D1: 贵金属 tray (从 metal-ipc 模块级 cache 读 quoteCache)
   try {
     const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc");
@@ -520,8 +512,15 @@ async function bootstrap() {
   } catch (err) {
     mainLog.warn(`metals tray init failed: ${err && err.message}`);
   }
+}
 
-  // 7) ipc
+/**
+ * Bootstrap 子阶段: 注册全部 IPC handler (主 IPC + search + daily digest).
+ * 步骤 7. 含 pushWorldcupToTray 闭包回调 (goal watcher 要用).
+ * @param {object} selfUpdateHandle - self-update controller, IPC handler 读
+ * @returns {{ ms: number }}
+ */
+function registerAllIpc(selfUpdateHandle) {
   const tIpc = Date.now();
   const refreshLastOpenedAfterCheck = makeRefreshLastOpenedAfterCheck({
     runtimeConfigRef,
@@ -648,8 +647,15 @@ async function bootstrap() {
   } catch (err) {
     mainLog.warn(`[digest] job bootstrap failed: ${err && err.message}`);
   }
-  timings.ipc = Date.now() - tIpc;
+  return { ms: Date.now() - tIpc };
+}
 
+/**
+ * Bootstrap 子阶段: 启动 metals IPC + scheduler + ai-usage warmup +
+ * fund/reminders/worldcup/recent/auto-check timer.
+ * 步骤 7.4 / 7.5 / 8. pushWorldcupToTray 由 initWorldcupTray 返回, 钩给 goal-watcher.
+ */
+function startSchedulers(pushWorldcupToTray) {
   // 7.4) Metals IPC handlers + scheduler — must register IPC synchronously
   //      BEFORE the renderer can invoke any metals:* channel. Per the
   //      electron-merge-debug skill: any ipcMain.handle that's added after
@@ -722,6 +728,111 @@ async function bootstrap() {
     trayMgr,
     stateStore,
   });
+}
+
+async function bootstrap() {
+  const t0 = Date.now();
+  const statePath = stateStore.initStateStorePaths();
+  mainLog.info(`state store path: ${statePath}`);
+
+  const ctx = { getTrayMgr: () => trayMgr, runtimeConfigRef };
+
+  // P52: 自更新 controller — 必须早于 registerIpcHandlers,
+  // 因为 IPC handler 启动时就读 selfUpdateController().
+  const { handle: selfUpdateHandle } = initSelfUpdateTimer(ctx);
+
+  // Phase Q6: capture uncaught main errors + best-effort cleanup of old logs
+  try {
+    initErrorCapture({ sendToRenderer });
+    mainLog.info("error capture enabled");
+  } catch (err) {
+    mainLog.warn(`[error-init] failed: ${err && err.message}`);
+  }
+  // Phase Q8: run loadOrRecover to back up any corrupt state.json and record
+  // the recovery event for the renderer's banner. Must happen before any other
+  // module reads state, so they see the baseline (not corrupt data).
+  initStateRecovery();
+  try {
+    const st = fs.statSync(statePath);
+    if (st && st.size > 5 * 1024 * 1024) {
+      mainLog.warn(
+        `[db-health] state.json size=${(st.size / 1024 / 1024).toFixed(2)}MB exceeds 5MB threshold. ` +
+          `Consider splitting large collection fields into separate files (see docs/db-migration-assessment.md).`,
+      );
+    }
+  } catch {
+    /* ENOENT 等不阻塞启动 */
+  }
+  mainLog.info(
+    `boot pid=${process.pid} arch=${ARCH} platform=${process.platform}`,
+  );
+
+  const timings = {
+    lock: 0,
+    config: 0,
+    pool: 0,
+    window: 0,
+    tray: 0,
+    ipc: 0,
+    total: 0,
+  };
+
+  initCategoryAndLlm();
+
+  // 1) 单实例锁
+  const lockResult = acquireSingleInstanceLock();
+  if (!lockResult.gotLock) return;
+  timings.lock = lockResult.ms;
+
+  // 2) config (再读一次以保证最新; 早期读是给 LLM 用)
+  const tConfig = Date.now();
+  const runtimeConfig = loadConfig();
+  runtimeConfigRef.current = runtimeConfig;
+  mainLog.info(
+    `config loaded: ${(runtimeConfig.apps || []).length} apps, check_on_launch=${runtimeConfig.check_on_launch}`,
+  );
+  timings.config = Date.now() - tConfig;
+
+  // 2.5) AI 任务总结 wiring
+  initAiTasksWiring({ stateStore });
+
+  // 3) dock 隐藏
+  try {
+    if (process.env.PULSE_HIDE_DOCK === "1") {
+      app.dock.hide();
+    }
+  } catch {
+    /* noop */
+  }
+
+  // 4) worker pool
+  const poolOut = initWorkerPool();
+  timings.pool = poolOut.ms;
+
+  // 5) window
+  const windowOut = createMainWindow(runtimeConfig);
+  mainLog.info(`window created: ${windowOut.ms}ms`);
+  timings.window = windowOut.ms;
+
+  // 6) tray
+  const trayOut = installTray();
+  timings.tray = trayOut.ms;
+
+  // 6.5) ai-usage tray
+  initAiUsageTray();
+
+  // 6.6) worldcup tray (返回 pushWorldcupToTray 给 goal-watcher 复用)
+  const pushWorldcupToTray = initWorldcupTray();
+
+  // 6.7) metals tray
+  initMetalsTray();
+
+  // 7) ipc
+  const ipcOut = registerAllIpc(selfUpdateHandle);
+  timings.ipc = ipcOut.ms;
+
+  // 7.4 + 7.5 + 8) schedulers
+  startSchedulers(pushWorldcupToTray);
 
   // 启动埋点
   timings.total = Date.now() - t0;

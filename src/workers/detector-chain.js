@@ -105,6 +105,113 @@ function compareVersions(installed, latest) {
   return { hasUpdate: false, note: "" };
 }
 
+/**
+ * C5: 增量模式决策 — app 名在 appCfg 上, ts 在 incremental.appsLastChecked[name].
+ * 返 detectorLimit (跑前 N 个) + isIncremental 标志.
+ */
+function resolveDetectorLimit(detectors, incremental, appCfg) {
+  if (!incremental || typeof incremental !== "object") {
+    return { detectorLimit: detectors.length, isIncremental: false };
+  }
+  const name = (appCfg && appCfg.name) || "";
+  const appTs =
+    incremental.appsLastChecked && name ? incremental.appsLastChecked[name] : null;
+  const decision = decideIncremental({
+    detectors,
+    appTs,
+    recentDays: incremental.recentDays || 7,
+    now: Date.now(),
+  });
+  return { detectorLimit: decision.maxIndex, isIncremental: decision.useIncremental };
+}
+
+/**
+ * 执行单个 detector: detect + breaker 记录 + trace push.
+ *
+ * @param {object} detCfg
+ * @param {object} ctx - 已构造好的 DetectContext
+ * @param {object} stored - 全部 stored breakers (key→snapshot)
+ * @returns {Promise<{detCfg, result, error, ms, traceEntry}>}
+ *   traceEntry 为 push 到 trace 的对象 (可能含 skipped/error/version 信息).
+ *   当 detector 被 circuit_open / unknown type 跳过时, result=null 且按
+ *   traceEntry.skipped 记录; detect 抛错时 error 有值.
+ */
+async function runOneDetector(detCfg, ctx, stored) {
+  // C9 (2026-06-28): enrich_only detector 不参与版本号竞争, 拿到 result
+  // 后**继续**跑后续 detector, 不 stop chain. 仅当 chain 已拿到 version
+  // 时, 用该 detector 返的 changelog/changelog_url/release_url 等字段
+  // 填到 result 上 (若尚为空). 适用: e.g. Codex RSS 拿 markdown 内容但
+  // 拿不到版本号 — 让 sparkle_appcast 先拿 26.623.42026, RSS 后 enrich.
+  // 没有该 flag 时行为不变 (默认 false, 走原 stop 逻辑).
+  const enrichOnly = detCfg.enrich_only === true;
+  const Det = makeDetector(detCfg);
+  if (!Det) {
+    return {
+      result: null,
+      error: null,
+      ms: 0,
+      enrichOnly,
+      traceEntry: { det: detCfg.type, ms: 0, error: "unknown detector type" },
+    };
+  }
+  const key = breakerKey(detCfg);
+  const storedBreaker = stored[key];
+  const breaker = storedBreaker
+    ? cbStorage.hydrate(storedBreaker)
+    : createBreaker({ key });
+  const now = breaker._now();
+  if (!shouldAllow(breaker, now)) {
+    return {
+      result: null,
+      error: null,
+      ms: 0,
+      enrichOnly,
+      traceEntry: {
+        det: detCfg.type,
+        ms: 0,
+        skipped: "circuit_open",
+        breakerState: "open",
+      },
+    };
+  }
+  const probe = transitionAfterProbe(breaker, now);
+  const t0 = Date.now();
+  let result = null;
+  let error = null;
+  try {
+    result = await Det.detect(ctx);
+  } catch (err) {
+    error = err && err.message ? err.message : String(err);
+  }
+  const ms = Date.now() - t0;
+  if (result) {
+    const next = recordSuccess(probe, now);
+    await cbStorage.upsertBreaker(key, cbStorage.snapshot(next));
+    return {
+      result,
+      error: null,
+      ms,
+      enrichOnly,
+      traceEntry: {
+        det: detCfg.type,
+        ms,
+        version: result.version,
+        confidence: result.confidence,
+        note: result.note,
+      },
+    };
+  }
+  const next = recordFailure(probe, now);
+  await cbStorage.upsertBreaker(key, cbStorage.snapshot(next));
+  return {
+    result: null,
+    error,
+    ms,
+    enrichOnly,
+    traceEntry: { det: detCfg.type, ms, error, breakerState: next.state },
+  };
+}
+
 async function runDetectorChain(appCfg, deps) {
   const { arch, http, logger, platform, incremental } = deps;
   const currentPlatform = platform || process.platform;
@@ -113,24 +220,11 @@ async function runDetectorChain(appCfg, deps) {
   let firstHit = null;
   const stored = await cbStorage.loadBreakers();
 
-  // C5: 增量模式决策 — app 名在 appCfg 上, ts 在 incremental.appsLastChecked[name]
-  let detectorLimit = detectors.length;
-  let isIncremental = false;
-  if (incremental && typeof incremental === "object") {
-    const name = (appCfg && appCfg.name) || "";
-    const appTs =
-      incremental.appsLastChecked && name
-        ? incremental.appsLastChecked[name]
-        : null;
-    const decision = decideIncremental({
-      detectors,
-      appTs,
-      recentDays: incremental.recentDays || 7,
-      now: Date.now(),
-    });
-    isIncremental = decision.useIncremental;
-    detectorLimit = decision.maxIndex;
-  }
+  const { detectorLimit, isIncremental } = resolveDetectorLimit(
+    detectors,
+    incremental,
+    appCfg,
+  );
 
   for (let idx = 0; idx < detectors.length; idx++) {
     const detCfg = detectors[idx];
@@ -143,34 +237,7 @@ async function runDetectorChain(appCfg, deps) {
       trace.push({ det: detCfg.type, ms: 0, skipped: "platform" });
       continue;
     }
-    // C9 (2026-06-28): enrich_only detector 不参与版本号竞争, 拿到 result
-    // 后**继续**跑后续 detector, 不 stop chain. 仅当 chain 已拿到 version
-    // 时, 用该 detector 返的 changelog/changelog_url/release_url 等字段
-    // 填到 result 上 (若尚为空). 适用: e.g. Codex RSS 拿 markdown 内容但
-    // 拿不到版本号 — 让 sparkle_appcast 先拿 26.623.42026, RSS 后 enrich.
-    // 没有该 flag 时行为不变 (默认 false, 走原 stop 逻辑).
-    const enrichOnly = detCfg.enrich_only === true;
-    const Det = makeDetector(detCfg);
-    if (!Det) {
-      trace.push({ det: detCfg.type, ms: 0, error: "unknown detector type" });
-      continue;
-    }
-    const key = breakerKey(detCfg);
-    const storedBreaker = stored[key];
-    const breaker = storedBreaker
-      ? cbStorage.hydrate(storedBreaker)
-      : createBreaker({ key });
-    const now = breaker._now();
-    if (!shouldAllow(breaker, now)) {
-      trace.push({
-        det: detCfg.type,
-        ms: 0,
-        skipped: "circuit_open",
-        breakerState: "open",
-      });
-      continue;
-    }
-    const probe = transitionAfterProbe(breaker, now);
+
     const ctx = new DetectContext({
       appCfg,
       arch,
@@ -179,55 +246,36 @@ async function runDetectorChain(appCfg, deps) {
       detCfg,
       platform: currentPlatform,
     });
-    const t0 = Date.now();
-    let result = null;
-    let error = null;
-    try {
-      result = await Det.detect(ctx);
-    } catch (err) {
-      error = err && err.message ? err.message : String(err);
+    const outcome = await runOneDetector(detCfg, ctx, stored);
+    trace.push(outcome.traceEntry);
+    const { result, enrichOnly } = outcome;
+    if (!result) continue;
+
+    // C9 enrich_only: 不参与版本号竞争. 把 result 当作 firstHit "base",
+    // 缓存到 firstHit 占位 (后续 detector 拿到 version 时把版本号 / source
+    // / confidence 覆盖, 但保留这个 base 的 changelog 字段).
+    // 适用场景: e.g. Codex 配 [rss_changelog, sparkle_appcast] —
+    // rss 跑 (拿 markdown) → 缓存到 firstHit; sparkle 跑 (拿版本号)
+    // → 走 stop 路径, 但用 mergeEnrich 把 rss 的 changelog 字段带过去.
+    if (enrichOnly) {
+      if (!firstHit) firstHit = { result, trace };
+      continue;
     }
-    const ms = Date.now() - t0;
-    if (result) {
-      const next = recordSuccess(probe, now);
-      await cbStorage.upsertBreaker(key, cbStorage.snapshot(next));
-      trace.push({
-        det: detCfg.type,
-        ms,
-        version: result.version,
-        confidence: result.confidence,
-        note: result.note,
-      });
-      // C9 enrich_only: 不参与版本号竞争. 把 result 当作 firstHit "base",
-      // 缓存到 firstHit 占位 (后续 detector 拿到 version 时把版本号 / source
-      // / confidence 覆盖, 但保留这个 base 的 changelog 字段).
-      // 适用场景: e.g. Codex 配 [rss_changelog, sparkle_appcast] —
-      // rss 跑 (拿 markdown) → 缓存到 firstHit; sparkle 跑 (拿版本号)
-      // → 走 stop 路径, 但用 mergeFirstHit 把 rss 的 changelog 字段带过去.
-      if (enrichOnly) {
-        if (!firstHit) firstHit = { result, trace };
-        continue;
+    if (result.version && result.confidence !== "low") {
+      const finalResult = firstHit
+        ? mergeEnrich(firstHit.result, result)
+        : result;
+      if (isIncremental) {
+        return {
+          result: finalResult,
+          trace,
+          stoppedAt: detCfg.type,
+          incremental: { skippedCount: detectors.length - detectorLimit },
+        };
       }
-      if (result.version && result.confidence !== "low") {
-        const finalResult = firstHit
-          ? mergeEnrich(firstHit.result, result)
-          : result;
-        if (isIncremental) {
-          return {
-            result: finalResult,
-            trace,
-            stoppedAt: detCfg.type,
-            incremental: { skippedCount: detectors.length - detectorLimit },
-          };
-        }
-        return { result: finalResult, trace, stoppedAt: detCfg.type };
-      }
-      if (!firstHit && result.version) firstHit = { result, trace };
-    } else {
-      const next = recordFailure(probe, now);
-      await cbStorage.upsertBreaker(key, cbStorage.snapshot(next));
-      trace.push({ det: detCfg.type, ms, error, breakerState: next.state });
+      return { result: finalResult, trace, stoppedAt: detCfg.type };
     }
+    if (!firstHit && result.version) firstHit = { result, trace };
   }
   const out = {
     result: firstHit ? firstHit.result : null,
