@@ -53,7 +53,6 @@ let testStartOffset;
 
 describe("WorldcupBracketView smoke", () => {
   beforeEach(() => {
-    // 每个 test 把时间推后 31s, 保证 store 模块级 lastAutoComputeAt 不影响下个 test
     if (testStartOffset === undefined) testStartOffset = Date.now() + 31_000;
     const offset = testStartOffset;
     testStartOffset += 31_000;
@@ -72,11 +71,11 @@ describe("WorldcupBracketView smoke", () => {
         return { ok: true, snapshot: sampleSnapshot };
       },
     };
-    // 初始化 store signals
     worldcupBracket.value = sampleSnapshot;
     bracketComputing.value = false;
     bracketError.value = null;
     bracketLastComputedAt.value = null;
+    Object.defineProperty(window, "innerWidth", { value: 1200, configurable: true, writable: true });
   });
 
   afterEach(() => {
@@ -88,12 +87,13 @@ describe("WorldcupBracketView smoke", () => {
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
     expect(container.querySelector(".bracket-view")).toBeTruthy();
-    // ponytail: v2.54 stage label 改短 ("1/16") 在 half 顶部统一标.
+    // ponytail: v3 — 全屏 bracket tree, 半区列标题显示 "1/16"
     expect(container.textContent).toContain("1/16");
   });
 
   test("renders empty state when compute returns null snapshot", async () => {
     mockComputeImpl = async () => ({ ok: true, snapshot: null });
+    worldcupBracket.value = null;
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
     expect(container.textContent).toMatch(/小组赛尚未开始|暂无数据/);
@@ -101,6 +101,7 @@ describe("WorldcupBracketView smoke", () => {
 
   test("renders no-group-data empty state when no advancing thirds", async () => {
     mockComputeImpl = async () => ({ ok: true, snapshot: { ...sampleSnapshot, thirdPlacedAdvancing: [] } });
+    worldcupBracket.value = { ...sampleSnapshot, thirdPlacedAdvancing: [] };
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
     expect(container.textContent).toContain("小组赛尚未开始");
@@ -109,6 +110,7 @@ describe("WorldcupBracketView smoke", () => {
 
   test("renders error state when compute fails", async () => {
     mockComputeImpl = async () => ({ ok: false, reason: "网络错误" });
+    bracketError.value = "网络错误";
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(container.textContent).toContain("网络错误"));
   });
@@ -148,8 +150,6 @@ describe("WorldcupBracketView + BracketTree integration", () => {
     bracketComputing.value = false;
     bracketError.value = null;
     bracketLastComputedAt.value = null;
-    // happy-dom 的 default innerWidth 在 1024 左右, 这里显式锁定为 wide 模式,
-    // 单个 narrow 测试里再覆盖. defensive restore: 保存原始值.
     originalInnerWidth = (typeof window !== "undefined" && window.innerWidth) || 1024;
     Object.defineProperty(window, "innerWidth", { value: 1200, configurable: true, writable: true });
   });
@@ -162,37 +162,23 @@ describe("WorldcupBracketView + BracketTree integration", () => {
     }
   });
 
-  test("wide viewport delegates to BracketTree overview view (default)", async () => {
-    // ponytail: v2.63 — 默认全景模式, 5 个 stage 全部展示 + 连接线.
+  test("wide viewport renders FIFA bracket tree (no tab)", async () => {
+    // ponytail: v3 — 默认就是一整张 bracket tree, 没有 stage tab 切换.
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    expect(container.querySelector(".bracket-tree--overview")).toBeTruthy();
+    expect(container.querySelector(".bracket-tree--tree")).toBeTruthy();
     expect(container.querySelector(".bracket-tree-fallback")).toBeNull();
-    // 全景模式展示 5 个 stage column (r32/r16/qf/sf/final)
-    expect(container.querySelectorAll(".bracket-tree-column")).toHaveLength(5);
-  });
-
-  test("stage tab switch changes the displayed stage", async () => {
-    const { container } = render(<WorldcupBracketView />);
-    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    // v2.63: 默认 overview, 切到 1/4 决赛后应该有 qf column (single 模式)
-    const qfTab = container.querySelectorAll(".bracket-stage-tab")[3]; // 1/4 (v2.63 tab 顺序)
-    qfTab.click();
-    await waitFor(() => {
-      expect(container.querySelector(".bracket-tree-column--qf")).toBeTruthy();
-    });
+    // 没有 .bracket-stage-tabs (v3 删了 tab)
+    expect(container.querySelector(".bracket-stage-tabs")).toBeNull();
   });
 
   test("match card click opens SquadModal with bracket match data", async () => {
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    // v2.63: 默认 overview, r32 列里的第一张 match card (M73 = South Africa vs Switzerland)
-    const firstCard = container.querySelector(".bracket-tree-column--r32 .bracket-card");
+    // 上半区 R32 列里第一张 match card (M73 = South Africa vs Switzerland)
+    const firstCard = container.querySelector(".bracket-tree-half--upper .bracket-tree-column--r32 .bracket-card");
     expect(firstCard).toBeTruthy();
     firstCard.click();
-    // SquadModal 走 createPortal 渲染到 document.body, 不在 container 里.
-    // WorldcupBracketView.handleMatchClick 构造 stage: `Match ${match.matchNum}`,
-    // 即 "Match 73"; squad 名显示 South Africa / Switzerland
     await waitFor(() => {
       expect(document.body.textContent).toContain("Match 73");
       expect(document.body.textContent).toMatch(/South Africa/);
@@ -201,20 +187,14 @@ describe("WorldcupBracketView + BracketTree integration", () => {
   });
 
   test("narrow viewport falls back to vertical stack", async () => {
-    // 必须在 render 之前修改 innerWidth, useNarrowViewport 在初次 mount
-    // 时同步读 window.innerWidth, 之后才会监听 resize.
-    Object.defineProperty(window, "innerWidth", { value: 800, configurable: true, writable: true });
+    Object.defineProperty(window, "innerWidth", { value: 600, configurable: true, writable: true });
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    // overview 模式在窄屏不渲染 tree, 由 BracketTree 内部 useNarrowViewport 判断.
-    // BracketOverview 没有自己的 narrow 判断, 但 BracketTree 入口先拦:
-    // currentStage=overview 时直接返回 BracketOverview, 不走 narrow 分支.
-    // 所以这里验证: 窄屏下 overview 仍渲染 (它用水平滚动, 不需要 fallback).
-    expect(container.querySelector(".bracket-tree--overview")).toBeTruthy();
+    expect(container.querySelector(".bracket-tree-fallback")).toBeTruthy();
+    expect(container.querySelector(".bracket-tree--tree")).toBeNull();
   });
 });
 
-// ponytail: v2.61 警告过滤 — 独立 describe 用 real timers, 不依赖 fake timer mock 链路.
 describe("WorldcupBracketView v2.61 warning filter", () => {
   beforeEach(() => {
     vi.useRealTimers();
@@ -331,13 +311,11 @@ describe("WorldcupBracketView kickoff meta on cards", () => {
   });
 
   test("each visible bracket card renders kickoff time + venue inline", async () => {
-    // ponytail: v2.63 — 默认全景模式, 显示所有 stage 的卡.
-    // makeSnapshotWithKickoff: r32 有 2 张 (M73/M74, 都有 kickoff), final 有 1 张 (有 kickoff).
-    // r16/qf/sf 为空 → overview 共 3 张卡, 3 个 meta.
+    // ponytail: v3 — 一整张 bracket tree, 上半 R32(2张) + 下半 R32(空) + Final(1张) + Third 占位.
+    // r32 有 2 张 (M73/M74, 都有 kickoff), final 有 1 张 (有 kickoff) = 3 metas.
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(container.querySelectorAll(".bracket-card").length).toBeGreaterThan(0));
     const metas = container.querySelectorAll(".bracket-card-meta");
-    // overview 模式: r32(2) + final(1) = 3 张有 kickoff 的卡
     expect(metas).toHaveLength(3);
     expect(metas[0].textContent).toContain("2026-06-28");
     expect(metas[0].textContent).toContain("12:00");
@@ -345,36 +323,31 @@ describe("WorldcupBracketView kickoff meta on cards", () => {
     expect(metas[0].textContent).toContain("Los Angeles (Inglewood)");
   });
 
-  test("final tab shows final card kickoff meta", async () => {
+  test("final card kickoff meta is visible by default (no tab needed)", async () => {
+    // ponytail: v3 — 一整张 bracket tree 默认就显示 Final (中央奖杯卡).
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(container.querySelectorAll(".bracket-card").length).toBeGreaterThan(0));
-    const finalTab = container.querySelectorAll(".bracket-stage-tab")[5]; // 决赛 (v2.63 tab 顺序)
-    finalTab.click();
+    // Final 奖杯卡包含 kickoff meta
     await waitFor(() => {
-      const metas = container.querySelectorAll(".bracket-card-meta");
-      expect(metas.length).toBeGreaterThanOrEqual(1);
-      expect(metas[0].textContent).toContain("2026-07-19");
-      expect(metas[0].textContent).toContain("New York/New Jersey");
+      const finalCard = container.querySelector(".bracket-final-card");
+      expect(finalCard).toBeTruthy();
+      expect(finalCard.textContent).toContain("2026-07-19");
+      expect(finalCard.textContent).toContain("New York/New Jersey");
     });
   });
 
   test("v2.62 meta row keeps full venue visible (no nowrap truncation)", async () => {
-    // ponytail: v2.62 — meta 行不强制 nowrap, 时间 + 场地分别占一行, 不被截断.
-    // happy-dom 不返回真实 computedStyle (flexWrap=''), 所以只验 JSX 结构 + 文本完整性.
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(container.querySelectorAll(".bracket-card-meta").length).toBeGreaterThan(0));
     const meta = container.querySelector(".bracket-card-meta");
-    // 时间 + 场地是两个独立 span (JSX 结构)
     const timeSpan = meta.querySelector(".bracket-card-meta-time");
     const venueSpan = meta.querySelector(".bracket-card-meta-venue");
     expect(timeSpan).toBeTruthy();
     expect(venueSpan).toBeTruthy();
-    // 时间 + 场地完整文本都存在 (不被 CSS 截断, 因为它们在 DOM 里是完整的)
     expect(timeSpan.textContent).toContain("2026-06-28");
     expect(timeSpan.textContent).toContain("12:00");
     expect(timeSpan.textContent).toContain("UTC-7");
     expect(venueSpan.textContent).toContain("Los Angeles (Inglewood)");
-    // venue span 独占一行 (width: 100% 在 CSS 里)
     expect(venueSpan.getAttribute("class")).toContain("bracket-card-meta-venue");
   });
 
@@ -393,7 +366,7 @@ describe("WorldcupBracketView kickoff meta on cards", () => {
     worldcupBracket.value = noKickoff;
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(container.querySelectorAll(".bracket-card").length).toBeGreaterThan(0));
-    // overview 模式: r32(2张无kickoff) + final(1张有kickoff) = 1 个 meta
+    // R32 无 kickoff + final 有 kickoff = 1 个 meta (final 那张)
     const metas = container.querySelectorAll(".bracket-card-meta");
     expect(metas).toHaveLength(1);
   });
@@ -406,7 +379,7 @@ describe("WorldcupBracketView kickoff meta on cards", () => {
   });
 });
 
-// ─── v2.53 镜像 bracket layout (FIFA 海报排版) ─────────────────────────
+// ─── v3: 镜像 bracket layout (FIFA 海报排版) ─────────────────────────
 
 function makeBigSnapshot() {
   // 16 R32 + 8 R16 + 4 QF + 2 SF + Final = 31 张卡
@@ -456,7 +429,7 @@ function makeBigSnapshot() {
   };
 }
 
-describe("WorldcupBracketView v2.56 single-stage + tabs", () => {
+describe("WorldcupBracketView v3 FIFA bracket tree", () => {
   let originalInnerWidth;
   beforeEach(() => {
     vi.useFakeTimers();
@@ -479,71 +452,26 @@ describe("WorldcupBracketView v2.56 single-stage + tabs", () => {
     Object.defineProperty(window, "innerWidth", { value: originalInnerWidth, configurable: true, writable: true });
   });
 
-  test("renders stage tabs (全景 / 1/16 / 1/8 / 1/4 / 半决赛 / 决赛) above tree", async () => {
+  test("v3 default tree shows all R32 cards split upper + lower half", async () => {
     const { container } = render(<WorldcupBracketView />);
-    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    const tabs = container.querySelectorAll(".bracket-stage-tab");
-    // ponytail: v2.63 — 6 个 tab, 全景在第一位 (默认).
-    expect(tabs).toHaveLength(6);
-    expect(tabs[0].textContent).toContain("全景");
-    expect(tabs[1].textContent).toContain("1/16");
-    expect(tabs[5].textContent).toContain("决赛");
+    await waitFor(() => expect(container.querySelector(".bracket-tree--tree")).toBeTruthy());
+    // 上半 R32 = 8 张 (M73..M80), 下半 R32 = 8 张 (M81..M88)
+    const upperR32Cards = container.querySelectorAll(".bracket-tree-half--upper .bracket-tree-column--r32 .bracket-card");
+    const lowerR32Cards = container.querySelectorAll(".bracket-tree-half--lower .bracket-tree-column--r32 .bracket-card");
+    expect(upperR32Cards).toHaveLength(8);
+    expect(lowerR32Cards).toHaveLength(8);
   });
 
-  test("v2.63 default overview shows all 5 stages in horizontal scroll", async () => {
+  test("v3 default tree shows Final trophy card by default (no tab)", async () => {
     const { container } = render(<WorldcupBracketView />);
-    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    // 默认 tab 是 overview — 直接看 overview
-    expect(container.querySelector(".bracket-tree--overview")).toBeTruthy();
-    // 全景模式展示 5 个 stage column
-    const cols = container.querySelectorAll(".bracket-tree--overview .bracket-tree-column");
-    expect(cols.length).toBe(5);
-    // 每个 stage column 至少有 1 张卡 (R32 16 + R16 8 + QF 4 + SF 2 + Final 1)
-    const allCards = container.querySelectorAll(".bracket-tree--overview .bracket-card");
-    expect(allCards.length).toBeGreaterThanOrEqual(16);
+    await waitFor(() => expect(container.querySelector(".bracket-final-card")).toBeTruthy());
+    expect(container.querySelector(".bracket-final-card").textContent).toContain("决");
   });
 
-  test("click 1/16 tab → shows R32 column (16 cards) + R16 column (8 cards)", async () => {
+  test("v3 default tree has no stage tabs", async () => {
     const { container } = render(<WorldcupBracketView />);
-    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    const r32Tab = container.querySelectorAll(".bracket-stage-tab")[1]; // 1/16 (v2.63 tab 顺序)
-    r32Tab.click();
-    await waitFor(() => {
-      const r32Cards = container.querySelectorAll(".bracket-tree-column--r32 .bracket-card");
-      expect(r32Cards).toHaveLength(16);
-    });
-  });
-
-  test("click 1/4 tab → shows QF (4 cards) + SF (2 cards)", async () => {
-    const { container } = render(<WorldcupBracketView />);
-    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    const qfTab = container.querySelectorAll(".bracket-stage-tab")[3]; // 1/4 (v2.63 tab 顺序)
-    qfTab.click();
-    await waitFor(() => {
-      const qfCards = container.querySelectorAll(".bracket-tree-column--qf .bracket-card");
-      expect(qfCards).toHaveLength(4);
-    });
-  });
-
-  test("click 决赛 tab → shows only Final column (1 card)", async () => {
-    const { container } = render(<WorldcupBracketView />);
-    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    const finalTab = container.querySelectorAll(".bracket-stage-tab")[5]; // 决赛 (v2.63 tab 顺序)
-    finalTab.click();
-    await waitFor(() => {
-      const finalCards = container.querySelectorAll(".bracket-tree-column--final .bracket-card");
-      expect(finalCards).toHaveLength(1);
-      // 终局 stage 没有 nextStage, 只 1 列
-      expect(container.querySelectorAll(".bracket-tree-column")).toHaveLength(1);
-    });
-  });
-
-  test("active tab is highlighted with bracket-stage-tab--active class", async () => {
-    const { container } = render(<WorldcupBracketView />);
-    await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    const tabs = container.querySelectorAll(".bracket-stage-tab");
-    // v2.63: 默认 overview (tabs[0]) 高亮
-    expect(tabs[0].classList.contains("bracket-stage-tab--active")).toBe(true);
-    expect(tabs[2].classList.contains("bracket-stage-tab--active")).toBe(false);
+    await waitFor(() => expect(container.querySelector(".bracket-tree--tree")).toBeTruthy());
+    expect(container.querySelector(".bracket-stage-tabs")).toBeNull();
+    expect(container.querySelectorAll(".bracket-stage-tab").length).toBe(0);
   });
 });

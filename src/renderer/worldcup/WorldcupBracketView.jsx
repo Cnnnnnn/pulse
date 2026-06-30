@@ -1,10 +1,13 @@
 /**
  * src/renderer/worldcup/WorldcupBracketView.jsx
  *
- * v2 淘汰赛对阵 - 容器 (toolbar / 空态 / 错误态) + BracketTree 渲染
+ * v3 淘汰赛对阵容器 — toolbar / 空态 / 错误态 + BracketTree 渲染.
  *
- * 视觉逻辑: 桌面水平 bracket tree (R32 → Final) + SVG 连线
- * 窗口 < 900px 时: 自动回退到垂直堆叠 (BracketTreeFallback 内部处理)
+ * 视觉逻辑:
+ * - 桌面 (>700px): 一张完整 FIFA bracket tree, 上下半区镜像汇聚到中央 Final + Third
+ * - 窄屏 (<700px): 自动回退到垂直堆叠 (BracketTreeFallback 内部处理)
+ *
+ * 设计文档: docs/superpowers/specs/2026-06-30-worldcup-bracket-redesign-design.md
  */
 
 import { useState, useEffect } from "preact/hooks";
@@ -47,18 +50,6 @@ export function WorldcupBracketView() {
   const error = bracketError.value;
   const lastComputedAt = bracketLastComputedAt.value;
   const [squadMatch, setSquadMatch] = useState(null);
-  // ponytail: v2.63 — 默认全景模式, 一屏看完整淘汰赛对阵 + 连接线.
-  // 用户想放大某轮再看细节时点对应 stage tab.
-  const [currentStage, setCurrentStage] = useState("overview");
-
-  const STAGE_TABS = [
-    { id: "overview", label: "全景" },  // ponytail: v2.63 — 默认首选, 一屏看全部 + 连接线
-    { id: "r32", label: "1/16" },
-    { id: "r16", label: "1/8" },
-    { id: "qf", label: "1/4" },
-    { id: "sf", label: "半决赛" },
-    { id: "final", label: "决赛" },
-  ];
 
   useEffect(() => {
     // 进入 tab: 先同步拉 cache 让用户立刻看到上次结果,
@@ -143,26 +134,12 @@ export function WorldcupBracketView() {
           )}
         </div>
       </div>
-      {/* ponytail: v2.56 stage tab 切换 — 参考小红书 2026 世界杯 UI */}
-      <div class="bracket-stage-tabs" role="tablist">
-        {STAGE_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={currentStage === tab.id}
-            class={`bracket-stage-tab ${currentStage === tab.id ? "bracket-stage-tab--active" : ""}`}
-            onClick={() => setCurrentStage(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
       {noGroupData ? (
         <div class="bracket-view bracket-view--empty">
           <p class="bracket-empty-msg">小组赛尚未开始，待 6/11 揭幕战后再计算淘汰赛对阵</p>
         </div>
       ) : (
-        <BracketTree snapshot={snapshot} onMatchClick={handleMatchClick} currentStage={currentStage} />
+        <BracketTree snapshot={snapshot} onMatchClick={handleMatchClick} />
       )}
     </div>
   );

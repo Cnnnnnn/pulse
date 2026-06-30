@@ -1,28 +1,24 @@
 /**
  * src/renderer/worldcup/BracketTree.jsx
  *
- * World Cup 淘汰赛对阵 — v2 水平 bracket tree 渲染
+ * FIFA 标准 bracket tree — 上下半区镜像汇聚到中央 Final + Third.
  *
- * 5 阶段水平 flex 排列 (R32 → R16 → QF → SF → Final/Third)
- * MatchCard 上下两队版式: team1 (上) / 分隔线 / team2 (下), 比分右对齐
- * 占位 slot: 显示「A 组第 1」/「R32 #73 胜者」/「第 3 名 (A/B/C/D/F)」/IconLock 待定
+ * 上半区: R32[0..7] → R16[0..3] → QF[0..1] → SF[0]
+ * 下半区: SF[1] → QF[2..3] → R16[4..7] → R32[8..15]
+ * 中央: 季军赛 + 决赛奖杯卡
  *
- * Task 2 (本次): 在 Task 1 基础上加 SVG 连接器层 (L 型折线 + ResizeObserver)
- * - useConnectors: 测量相邻列卡片 DOM 位置, 画 M-H-V-H 折线
- * - 路径高亮: 上游 status=final 且 下游 slot.team 双侧均已 resolve
- * - ResizeObserver (降级 window resize) 防抖 50ms 重算
- *
- * Task 4 (本次): 响应式 fallback — 当 window.innerWidth < 900px 时,
- * 隐藏水平 tree, 改用 BracketTreeFallback (v1 垂直堆叠 5 段) 渲染.
- * - useNarrowViewport: 监听 resize, 返回是否 < maxWidth
- * - BracketTreeFallback / FallbackStageSection / FallbackMatchCard:
- *   提取自 WorldcupBracketView.jsx v1 代码, 复用 v1 CSS (无 .bracket-tree
- *   前缀的 .bracket-stage / .bracket-grid / .bracket-card)
+ * 设计要点:
+ * - 双行 MatchCard (队1+比分 / 分隔线 / 队2+比分)
+ * - Final 用 .bracket-final-card 金色奖杯 + IconTrophy
+ * - R32→R16→QF→SF 走 CSS ::before 静态折线 (零 JS)
+ * - SF→Final + SF→Third 走 SVG (汇聚到中央, 位置动态)
+ * - 整体 transform: scale() 等比缩放, ResizeObserver 算 --bracket-scale
+ * - 窗口 < 700px 时退回 BracketTreeFallback 垂直堆叠
  */
 
 import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { displayTeam } from "./teams-data.js";
-import { TeamFlag, IconLock, IconCheck, IconClock } from "../components/icons.jsx";
+import { TeamFlag, IconLock, IconCheck, IconClock, IconTrophy } from "../components/icons.jsx";
 
 const STAGE_LABELS = {
   r32: "1/16 决赛",
@@ -33,16 +29,6 @@ const STAGE_LABELS = {
   third: "季军赛",
 };
 
-// ponytail: v2.56 单 stage 视图 — tab 选 stage, 同时展示当前 + 下一 stage.
-// 顺序: r32 → r16 → qf → sf → final (Final 是终局, 下一 stage 显示 third + final 双卡? 用户选了 tab 只看决赛)
-// 这里只显示 2 列: left=currentStage, right=nextStage (末位 stage 则右侧为空).
-const STAGE_ORDER = ["r32", "r16", "qf", "sf", "final"];
-const STAGE_NEXT = { r32: "r16", r16: "qf", qf: "sf", sf: "final", final: null };
-// ponytail: STAGE_PAIRS 重置 — 单 stage 视图只画 1 对 connector (current→next)
-const STAGE_PAIRS_SINGLE = [
-  ["current", "next", 2],
-];
-
 const FALLBACK_STAGE_LABELS = {
   r32: { title: "1/16 决赛 (Round of 32)", count: 16 },
   r16: { title: "1/8 决赛 (Round of 16)", count: 8 },
@@ -52,9 +38,24 @@ const FALLBACK_STAGE_LABELS = {
   third: { title: "季军赛", count: 1 },
 };
 
-// ponytail: v2.56 单 stage 视图 — STAGE_PAIRS 用 current→next 一对.
-// sf→final fanIn=1 (sf 2 张 L/R 收 1 张 final).
-const STAGE_PAIRS = STAGE_PAIRS_SINGLE;
+// ponytail: FIFA 标准 bracket 镜像分割 — 16 场 R32 分上下半区各 8 张,
+// 然后 R16 各 4, QF 各 2, SF 上半 = index 0, 下半 = index 1.
+function splitBracketByHalf(snapshot) {
+  if (!snapshot) return null;
+  const take = (arr, lo, hi) => Array.isArray(arr) ? arr.slice(lo, hi) : [];
+  return {
+    upperR32: take(snapshot.r32, 0, 8),
+    upperR16: take(snapshot.r16, 0, 4),
+    upperQF:  take(snapshot.qf, 0, 2),
+    upperSF:  take(snapshot.sf, 0, 1),
+    lowerSF:  take(snapshot.sf, 1, 2),
+    lowerQF:  take(snapshot.qf, 2, 4),
+    lowerR16: take(snapshot.r16, 4, 8),
+    lowerR32: take(snapshot.r32, 8, 16),
+    final: snapshot.final || null,
+    third: snapshot.third || null,
+  };
+}
 
 function teamCn(slot) {
   if (!slot || !slot.team) return null;
@@ -86,8 +87,6 @@ function statusBadge(status) {
   return null;
 }
 
-// ponytail: 把 cup_finals.txt 拉来的 kickoff (date/time/timezone/venue) 内嵌到每张 card 底部.
-// 没 kickoff → 返回 null (小组赛未完赛时不会破坏现有视觉).
 function MatchMeta({ match }) {
   const k = match && match.kickoff;
   if (!k || !k.date) return null;
@@ -99,181 +98,220 @@ function MatchMeta({ match }) {
   );
 }
 
-function isHighlighted(fromMatch, toMatch) {
-  if (!fromMatch || !toMatch) return false;
-  if (fromMatch.status !== "final") return false;
-  const t1 = toMatch.slot1 && toMatch.slot1.team;
-  const t2 = toMatch.slot2 && toMatch.slot2.team;
-  return !!(t1 && t2);
+// ponytail: 双行布局 — 队1+比分 上行 / 分隔线 / 队2+比分 下行. 胜方加粗金黄.
+function TeamRow({ slot, side, isWinner }) {
+  const t = teamCn(slot);
+  return (
+    <div class={`bracket-card-team bracket-card-team--${side}${isWinner ? " bracket-card-team--winner" : ""}`}>
+      {t ? (
+        <>
+          <span class="bracket-card-flag"><TeamFlag code={t.flag} size={12} /></span>
+          <span class="bracket-card-name">{t.cn || slot.team.name}</span>
+        </>
+      ) : (
+        <span class="bracket-card-placeholder">{slotPlaceholder(slot)}</span>
+      )}
+    </div>
+  );
+}
+
+function ScoreDisplay({ match }) {
+  if (match.score && match.score.ft) {
+    const [s1, s2] = match.score.ft;
+    const winnerIdx = match.slot1 && match.slot2 && s1 !== s2 ? (s1 > s2 ? 1 : 2) : 0;
+    return (
+      <div class={`bracket-card-score bracket-card-score--winner-${winnerIdx}`}>
+        <span class="bracket-card-score-num">{s1}</span>
+        <span class="bracket-card-score-dash">-</span>
+        <span class="bracket-card-score-num">{s2}</span>
+      </div>
+    );
+  }
+  return <span class="bracket-card-vs">vs</span>;
+}
+
+function isCardFinal(match) {
+  return match && match.status === "final" && match.score && match.score.ft
+    && match.score.ft[0] !== match.score.ft[1];
 }
 
 function MatchCard({ match, onClick }) {
   if (!match) return null;
   const { matchNum, slot1, slot2, status } = match;
-  const t1 = teamCn(slot1);
-  const t2 = teamCn(slot2);
-
-  // ponytail: 单行布局 — flag 队1 [比分/待定] flag 队2, meta 一行. 比旧的
-  // head + divider + 2 个 team 行 + meta + status 紧凑一半. R32 列 16 张卡整体高度砍约 40%.
+  const final = isCardFinal(match);
+  const s1 = match.score && match.score.ft ? match.score.ft[0] : null;
+  const s2 = match.score && match.score.ft ? match.score.ft[1] : null;
+  const winnerSide = final ? (s1 > s2 ? "top" : "bottom") : null;
   return (
     <div
       ref={(el) => { if (el) el.__matchData = match; }}
       class={`bracket-card bracket-card--${status}`}
       onClick={() => onClick && onClick(match)}
     >
-      <div class="bracket-card-head">M{matchNum}</div>
-      <div class="bracket-card-row">
-        <div class="bracket-card-team bracket-card-team--left">
-          {t1 ? (
-            <>
-              <span class="bracket-card-flag"><TeamFlag code={t1.flag} size={12} /></span>
-              <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
-            </>
-          ) : (
-            <span class="bracket-card-placeholder">{slotPlaceholder(slot1)}</span>
-          )}
-        </div>
-        {match.score && match.score.ft ? (
-          <span class="bracket-card-score bracket-card-score--inline">{match.score.ft[0]} - {match.score.ft[1]}</span>
-        ) : (
-          <span class="bracket-card-vs">vs</span>
-        )}
-        <div class="bracket-card-team bracket-card-team--right">
-          {t2 ? (
-            <>
-              <span class="bracket-card-flag"><TeamFlag code={t2.flag} size={12} /></span>
-              <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
-            </>
-          ) : (
-            <span class="bracket-card-placeholder">{slotPlaceholder(slot2)}</span>
-          )}
-        </div>
+      <div class="bracket-card-head">
+        <span class="bracket-card-num">M{matchNum}</span>
+        <span class="bracket-card-status">{statusBadge(status)}</span>
+      </div>
+      <div class="bracket-card-row bracket-card-row--double">
+        <TeamRow slot={slot1} side="top" isWinner={winnerSide === "top"} />
+        <ScoreDisplay match={match} />
+        <TeamRow slot={slot2} side="bottom" isWinner={winnerSide === "bottom"} />
       </div>
       <MatchMeta match={match} />
-      <div class="bracket-card-status">{statusBadge(status)}</div>
     </div>
   );
 }
 
-function FinalMatchCard({ match, kind, onClick }) {
+function FinalTrophyCard({ match, onClick }) {
   if (!match) return null;
   const { matchNum, slot1, slot2, status } = match;
-  const t1 = teamCn(slot1);
-  const t2 = teamCn(slot2);
-  const cls = kind === "final" ? "bracket-card--final-prominent" : "bracket-card--third-prominent";
-  const headText = kind === "final" ? `决赛 · M${matchNum}` : `季军 · M${matchNum}`;
+  const final = isCardFinal(match);
+  const s1 = match.score && match.score.ft ? match.score.ft[0] : null;
+  const s2 = match.score && match.score.ft ? match.score.ft[1] : null;
+  const winnerSide = final ? (s1 > s2 ? "top" : "bottom") : null;
   return (
     <div
       ref={(el) => { if (el) el.__matchData = match; }}
-      class={`bracket-card ${cls} bracket-card--${status}`}
+      class={`bracket-card bracket-final-card bracket-card--${status}`}
       onClick={() => onClick && onClick(match)}
     >
-      <div class="bracket-card-head">{headText}</div>
-      <div class="bracket-card-row">
-        <div class="bracket-card-team bracket-card-team--left">
-          {t1 ? (
-            <>
-              <span class="bracket-card-flag"><TeamFlag code={t1.flag} size={12} /></span>
-              <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
-            </>
-          ) : (
-            <span class="bracket-card-placeholder">{slotPlaceholder(slot1)}</span>
-          )}
-        </div>
-        {match.score && match.score.ft ? (
-          <span class="bracket-card-score bracket-card-score--inline">{match.score.ft[0]} - {match.score.ft[1]}</span>
-        ) : (
-          <span class="bracket-card-vs">vs</span>
-        )}
-        <div class="bracket-card-team bracket-card-team--right">
-          {t2 ? (
-            <>
-              <span class="bracket-card-flag"><TeamFlag code={t2.flag} size={12} /></span>
-              <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
-            </>
-          ) : (
-            <span class="bracket-card-placeholder">{slotPlaceholder(slot2)}</span>
-          )}
-        </div>
+      <div class="bracket-final-card-banner">
+        <IconTrophy size={14} /> <span>决 赛</span> <IconTrophy size={14} />
       </div>
-      <MatchMeta match={match} />
-      <div class="bracket-card-status">{statusBadge(status)}</div>
+      <div class="bracket-card-row bracket-card-row--double bracket-card-row--trophy">
+        <TeamRow slot={slot1} side="top" isWinner={winnerSide === "top"} />
+        <ScoreDisplay match={match} />
+        <TeamRow slot={slot2} side="bottom" isWinner={winnerSide === "bottom"} />
+      </div>
+      <div class="bracket-final-card-foot">
+        <span>M{matchNum}</span>
+        <MatchMeta match={match} />
+      </div>
     </div>
   );
 }
 
-function StageColumn({ stage, matches, onMatchClick, columnRef }) {
-  const matchList = Array.isArray(matches) ? matches : (matches ? [matches] : []);
-  // ponytail: v2.56 单 stage 视图 — final/third 用 FinalMatchCard 大样式突出.
-  const renderCard = (m) => {
-    if (stage === "final") return <FinalMatchCard key={m.matchNum} match={m} kind="final" onClick={onMatchClick} />;
-    if (stage === "third") return <FinalMatchCard key={m.matchNum} match={m} kind="third" onClick={onMatchClick} />;
-    return <MatchCard key={m.matchNum} match={m} onClick={onMatchClick} />;
-  };
+function ThirdPlaceCard({ match, onClick }) {
+  if (!match) return null;
+  const { matchNum, slot1, slot2, status } = match;
+  const final = isCardFinal(match);
+  const s1 = match.score && match.score.ft ? match.score.ft[0] : null;
+  const s2 = match.score && match.score.ft ? match.score.ft[1] : null;
+  const winnerSide = final ? (s1 > s2 ? "top" : "bottom") : null;
   return (
     <div
-      ref={columnRef}
-      class={`bracket-tree-column bracket-tree-column--${stage}`}
+      ref={(el) => { if (el) el.__matchData = match; }}
+      class={`bracket-card bracket-third-card bracket-card--${status}`}
+      onClick={() => onClick && onClick(match)}
     >
-      <div class="bracket-tree-column-title">{STAGE_LABELS[stage] || stage}</div>
+      <div class="bracket-third-card-head">
+        <span class="bracket-third-card-medal">🥉</span>
+        <span>季军赛</span>
+        <span class="bracket-third-card-num">M{matchNum}</span>
+      </div>
+      <div class="bracket-card-row bracket-card-row--double">
+        <TeamRow slot={slot1} side="top" isWinner={winnerSide === "top"} />
+        <ScoreDisplay match={match} />
+        <TeamRow slot={slot2} side="bottom" isWinner={winnerSide === "bottom"} />
+      </div>
+      <MatchMeta match={match} />
+    </div>
+  );
+}
+
+// ponytail: 半区列 — 一个 R32/R16/QF/SF 列, 卡片用 justify-content: space-around 等距分布.
+// CSS ::before 在每张非 R32 卡片左侧画一根横线接上游, 零 JS.
+function HalfColumn({ stage, matches, onMatchClick, registerRef, empty }) {
+  const matchList = Array.isArray(matches) ? matches : [];
+  const hasContent = matchList.some(Boolean);
+  return (
+    <div
+      class={`bracket-tree-column bracket-tree-column--${stage}${hasContent ? "" : " bracket-tree-column--empty"}`}
+      ref={(el) => registerRef && registerRef(el)}
+    >
+      <div class="bracket-tree-column-title">{STAGE_LABELS[stage]}</div>
       <div class="bracket-tree-column-cards">
-        {matchList.map((m) => m ? renderCard(m) : null)}
+        {hasContent ? (
+          matchList.map((m) => m ? <MatchCard key={m.matchNum} match={m} onClick={onMatchClick} /> : null)
+        ) : (
+          <div class="bracket-tree-column-empty">{empty || "暂无"}</div>
+        )}
       </div>
     </div>
   );
 }
 
-function useConnectors(columnRefs) {
-  const [paths, setPaths] = useState([]);
-  const [version, setVersion] = useState(0);
+// ponytail: 整体缩放 — ResizeObserver 算 naturalWidth / containerWidth 比例, 写入 --bracket-scale.
+function useBracketScale(containerRef, naturalWidth) {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return undefined;
+    const recalc = () => {
+      const w = el.clientWidth;
+      if (!naturalWidth || !w) return;
+      // ponytail: 下限 0.4, 超过 1 不放大 (按设计文档)
+      const next = Math.min(1, Math.max(0.4, w / naturalWidth));
+      setScale(next);
+      el.style.setProperty("--bracket-scale", String(next));
+    };
+    recalc();
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(recalc);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+    window.addEventListener("resize", recalc);
+    return () => window.removeEventListener("resize", recalc);
+  }, [containerRef, naturalWidth]);
+  return scale;
+}
+
+function FinalCenterConnectors({ containerRef, upperSfRef, lowerSfRef, finalRef, thirdRef, paths }) {
+  // ponytail: SF→Final + SF→Third 的连线用 SVG (因为汇聚到中央奖杯卡, 位置动态).
+  // 简化: 画两条汇聚线 — 上半区 SF 右中 → Final 左中, 下半区 SF 右中 → Final 左中.
+  // 季军赛从两个 SF 左侧引出 (虚线).
+  const [svgPaths, setSvgPaths] = useState([]);
 
   const recalc = useCallback(() => {
-    if (typeof window === "undefined" || !columnRefs.current) return;
-    const refs = columnRefs.current;
-    if (!refs.container) return;
+    const c = containerRef.current;
+    const us = upperSfRef.current;
+    const ls = lowerSfRef.current;
+    const fn = finalRef.current;
+    const td = thirdRef.current;
+    if (!c || !us || !ls || !fn) { setSvgPaths([]); return; }
+    const cRect = c.getBoundingClientRect();
+    const usRect = us.getBoundingClientRect();
+    const lsRect = ls.getBoundingClientRect();
+    const fnRect = fn.getBoundingClientRect();
     const out = [];
-    for (const [fromStage, toStage, fanIn] of STAGE_PAIRS) {
-      const fromCol = refs[`${fromStage}Col`];
-      const toCol = refs[`${toStage}Col`];
-      if (!fromCol || !toCol) continue;
-      const fromCards = fromCol.querySelectorAll(".bracket-card");
-      const toCards = toCol.querySelectorAll(".bracket-card");
-      if (!fromCards.length || !toCards.length) continue;
-      const containerRect = refs.container.getBoundingClientRect();
-      // Iterate by destination: for each to-card, fanIn sources feed it.
-      for (let j = 0; j < toCards.length; j += 1) {
-        const toCard = toCards[j];
-        for (let k = 0; k < fanIn; k += 1) {
-          const fromIdx = j * fanIn + k;
-          const fromCard = fromCards[fromIdx];
-          if (!fromCard) continue;
-          const fromCardRect = fromCard.getBoundingClientRect();
-          const toCardRect = toCard.getBoundingClientRect();
-          const x1 = fromCardRect.right - containerRect.left;
-          const y1 = fromCardRect.top + fromCardRect.height / 2 - containerRect.top;
-          const x2 = toCardRect.left - containerRect.left;
-          const y2 = toCardRect.top + toCardRect.height / 2 - containerRect.top;
-          const mx = (x1 + x2) / 2;
-          const fromData = fromCard.__matchData;
-          const toData = toCard.__matchData;
-          out.push({
-            d: `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`,
-            highlighted: isHighlighted(fromData, toData),
-          });
-        }
-      }
+    const upperX1 = usRect.right - cRect.left;
+    const upperY1 = usRect.top + usRect.height / 2 - cRect.top;
+    const lowerX1 = lsRect.right - cRect.left;
+    const lowerY1 = lsRect.top + lsRect.height / 2 - cRect.top;
+    const finalX2 = fnRect.left - cRect.left;
+    const finalY2 = fnRect.top + fnRect.height / 2 - cRect.top;
+    const upperMidX = (upperX1 + finalX2) / 2;
+    out.push({ d: `M ${upperX1} ${upperY1} H ${upperMidX} V ${finalY2} H ${finalX2}` });
+    out.push({ d: `M ${lowerX1} ${lowerY1} H ${upperMidX} V ${finalY2} H ${finalX2}` });
+    // 季军赛 — 上半 SF 左中 → 第三卡左侧 (虚线), 下半 SF 左中 → 第三卡左侧
+    if (td) {
+      const tdRect = td.getBoundingClientRect();
+      const tdX2 = tdRect.left - cRect.left;
+      const tdY2 = tdRect.top + tdRect.height / 2 - cRect.top;
+      const upperXfX1 = usRect.left - cRect.left;
+      const upperXfY1 = usRect.top + usRect.height / 2 - cRect.top;
+      const lowerXfX1 = lsRect.left - cRect.left;
+      const lowerXfY1 = lsRect.top + lsRect.height / 2 - cRect.top;
+      out.push({ d: `M ${upperXfX1} ${upperXfY1} H ${upperXfX1 - 30} V ${tdY2} H ${tdX2}`, dashed: true });
+      out.push({ d: `M ${lowerXfX1} ${lowerXfY1} H ${lowerXfX1 - 30} V ${tdY2} H ${tdX2}`, dashed: true });
     }
-    setPaths((prev) => {
-      if (prev.length !== out.length) return out;
-      for (let i = 0; i < out.length; i += 1) {
-        if (prev[i].d !== out[i].d || prev[i].highlighted !== out[i].highlighted) return out;
-      }
-      return prev;
-    });
-  }, [columnRefs]);
+    setSvgPaths(out);
+  }, [containerRef, upperSfRef, lowerSfRef, finalRef, thirdRef]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !columnRefs.current || !columnRefs.current.container) return undefined;
+    const c = containerRef.current;
+    if (!c) return undefined;
     recalc();
     let timer = null;
     const onResize = () => {
@@ -282,25 +320,20 @@ function useConnectors(columnRefs) {
     };
     if (typeof ResizeObserver !== "undefined") {
       const ro = new ResizeObserver(onResize);
-      ro.observe(columnRefs.current.container);
+      ro.observe(c);
       return () => { ro.disconnect(); clearTimeout(timer); };
     }
     window.addEventListener("resize", onResize);
     return () => { window.removeEventListener("resize", onResize); clearTimeout(timer); };
-  }, [recalc, version, columnRefs]);
+  }, [recalc, paths]);
 
-  const triggerRecalc = useCallback(() => setVersion((v) => v + 1), []);
-  return { paths, triggerRecalc };
-}
-
-function BracketConnectors({ paths }) {
   return (
-    <svg class="bracket-tree-connectors" xmlns="http://www.w3.org/2000/svg">
-      {paths.map((p, i) => (
+    <svg class="bracket-tree-center-connectors" xmlns="http://www.w3.org/2000/svg">
+      {svgPaths.map((p, i) => (
         <path
           key={i}
           d={p.d}
-          class={p.highlighted ? "bracket-tree-connector bracket-tree-connector--highlighted" : "bracket-tree-connector"}
+          class={p.dashed ? "bracket-tree-center-connector bracket-tree-center-connector--dashed" : "bracket-tree-center-connector"}
           fill="none"
         />
       ))}
@@ -308,7 +341,7 @@ function BracketConnectors({ paths }) {
   );
 }
 
-function useNarrowViewport(maxWidth = 900) {
+function useNarrowViewport(maxWidth = 700) {
   const [narrow, setNarrow] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < maxWidth;
@@ -324,14 +357,12 @@ function useNarrowViewport(maxWidth = 900) {
   return narrow;
 }
 
+// ponytail: Fallback 仍用旧的 5 段垂直堆叠 (旧 .bracket-stage CSS) — 仅窄屏触发 (< 700px).
 function FallbackMatchCard({ match, onClick }) {
   if (!match) return null;
   const { matchNum, slot1, slot2, status } = match;
   const t1 = teamCn(slot1);
   const t2 = teamCn(slot2);
-  const p1 = !t1 ? slotPlaceholder(slot1) : null;
-  const p2 = !t2 ? slotPlaceholder(slot2) : null;
-
   return (
     <div
       class={`bracket-card bracket-card--${status}`}
@@ -346,7 +377,7 @@ function FallbackMatchCard({ match, onClick }) {
               <span class="bracket-card-name">{t1.cn || slot1.team.name}</span>
             </>
           ) : (
-            <span class="bracket-card-placeholder">{p1}</span>
+            <span class="bracket-card-placeholder">{slotPlaceholder(slot1)}</span>
           )}
         </div>
         <div class="bracket-card-vs">vs</div>
@@ -357,7 +388,7 @@ function FallbackMatchCard({ match, onClick }) {
               <span class="bracket-card-name">{t2.cn || slot2.team.name}</span>
             </>
           ) : (
-            <span class="bracket-card-placeholder">{p2}</span>
+            <span class="bracket-card-placeholder">{slotPlaceholder(slot2)}</span>
           )}
         </div>
       </div>
@@ -391,8 +422,6 @@ function FallbackStageSection({ stageKey, matches, onMatchClick }) {
     );
   }
 
-  // ponytail: v2.52 大型 stage (R32 16 / R16 8) 拆上下两半并排 (2 列 grid), 整体高度减半,
-  // 配合 single-row card 实现一屏装下 32 场.
   const splitFallback = label.count >= 8;
   let cards = null;
   if (splitFallback) {
@@ -461,7 +490,6 @@ function BracketTreeFallbackFinals({ finalMatch, thirdMatch, onMatchClick }) {
 
 function BracketTreeFallback({ snapshot, onMatchClick }) {
   if (!snapshot) return null;
-  // Structure: r32 / r16 / qf / sf / finals(= final + third) = 5 .bracket-stage
   return (
     <div class="bracket-tree-fallback">
       <FallbackStageSection stageKey="r32" matches={snapshot.r32} onMatchClick={onMatchClick} />
@@ -477,173 +505,74 @@ function BracketTreeFallback({ snapshot, onMatchClick }) {
   );
 }
 
-export function BracketTree({ snapshot, onMatchClick, currentStage = "r32" }) {
-  const narrow = useNarrowViewport(900);
+// ponytail: 自然宽度 = 4 列宽 (R32,R16,QF,SF) + FinalCenter + 4 个 gap.
+// 每列 168px, gap 32px, FinalCenter 220px → 168*4 + 32*4 + 220 = 1020.
+const BRACKET_NATURAL_WIDTH = 168 * 4 + 32 * 4 + 220;
 
-  // ponytail: v2.62 — 全景模式: 5 个 stage 全部展示, 卡片缩小, 水平滚动.
-  if (currentStage === "overview") {
-    return <BracketOverview snapshot={snapshot} onMatchClick={onMatchClick} />;
-  }
-  // ponytail: v2.56 单 stage 视图 — 2 column refs (current + next), connector 只画这一对.
-  const columnRefs = useRef({
-    container: null,
-    currentCol: null,
-    nextCol: null,
-  });
-  const { paths, triggerRecalc } = useConnectors(columnRefs);
-
-  useEffect(() => { triggerRecalc(); }, [snapshot, currentStage, triggerRecalc]);
+export function BracketTree({ snapshot, onMatchClick }) {
+  const narrow = useNarrowViewport(700);
 
   if (!snapshot) return null;
   if (narrow) {
     return <BracketTreeFallback snapshot={snapshot} onMatchClick={onMatchClick} />;
   }
 
-  // ponytail: v2.56 单 stage 视图 — tab 选 stage 后, 左侧展示当前 stage, 右侧展示下一 stage (若有).
-  // 例如 tab=r16 → 左 r16 (8 张), 右 qf (4 张). tab=final → 左 final, 右空.
-  const stage = currentStage;
-  const nextStage = STAGE_NEXT[stage];
-  const stageMatches = Array.isArray(snapshot[stage]) ? snapshot[stage] : (snapshot[stage] ? [snapshot[stage]] : []);
-  const nextMatches = nextStage
-    ? (Array.isArray(snapshot[nextStage]) ? snapshot[nextStage] : (snapshot[nextStage] ? [snapshot[nextStage]] : []))
-    : [];
+  const halves = splitBracketByHalf(snapshot);
+  if (!halves) return null;
+
+  const containerRef = useRef(null);
+  const upperSfRef = useRef(null);
+  const lowerSfRef = useRef(null);
+  const finalRef = useRef(null);
+  const thirdRef = useRef(null);
+
+  useBracketScale(containerRef, BRACKET_NATURAL_WIDTH);
 
   return (
-    <div class="bracket-tree bracket-tree--single" ref={(el) => { columnRefs.current.container = el; }}>
-      <BracketConnectors paths={paths} />
-      <div class="bracket-tree-single-cols">
-        <StageColumn stage={stage} matches={stageMatches} onMatchClick={onMatchClick}
-          columnRef={(el) => { columnRefs.current.currentCol = el; }} />
-        {nextStage && (
-          <StageColumn stage={nextStage} matches={nextMatches} onMatchClick={onMatchClick}
-            columnRef={(el) => { columnRefs.current.nextCol = el; }} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ponytail: v2.63 — 全景图带连接线: 5 个 stage 横排 + SVG connector 显示晋级关系.
-// 复用 useConnectors, 只是 STAGE_PAIRS 改成全 5 列的 fanIn=2 关系.
-const STAGE_PAIRS_OVERVIEW = [
-  ["r32", "r16", 2],
-  ["r16", "qf", 2],
-  ["qf", "sf", 2],
-  ["sf", "final", 2],
-];
-
-function BracketOverview({ snapshot, onMatchClick }) {
-  const stages = [
-    { id: "r32", label: "1/16 决赛" },
-    { id: "r16", label: "1/8 决赛" },
-    { id: "qf", label: "1/4 决赛" },
-    { id: "sf", label: "半决赛" },
-    { id: "final", label: "决赛" },
-  ];
-  const columnRefs = useRef({ container: null });
-  for (const s of stages) {
-    if (columnRefs.current[`${s.id}Col`] === undefined) {
-      columnRefs.current[`${s.id}Col`] = null;
-    }
-  }
-
-  // 临时覆盖 useConnectors 内部的 STAGE_PAIRS: 用闭包变量传全景的 fanIn 关系.
-  // useConnectors 读的是模块级 STAGE_PAIRS, 所以这里用一个专属的 connector 计算.
-  const [paths, setPaths] = useState([]);
-  const recalc = useCallback(() => {
-    if (typeof window === "undefined") return;
-    const refs = columnRefs.current;
-    if (!refs.container) return;
-    const out = [];
-    for (const [fromStage, toStage, fanIn] of STAGE_PAIRS_OVERVIEW) {
-      const fromCol = refs[`${fromStage}Col`];
-      const toCol = refs[`${toStage}Col`];
-      if (!fromCol || !toCol) continue;
-      const fromCards = fromCol.querySelectorAll(".bracket-card");
-      const toCards = toCol.querySelectorAll(".bracket-card");
-      if (!fromCards.length || !toCards.length) continue;
-      const containerRect = refs.container.getBoundingClientRect();
-      for (let j = 0; j < toCards.length; j += 1) {
-        const toCard = toCards[j];
-        for (let k = 0; k < fanIn; k += 1) {
-          const fromIdx = j * fanIn + k;
-          const fromCard = fromCards[fromIdx];
-          if (!fromCard) continue;
-          const fromCardRect = fromCard.getBoundingClientRect();
-          const toCardRect = toCard.getBoundingClientRect();
-          const x1 = fromCardRect.right - containerRect.left;
-          const y1 = fromCardRect.top + fromCardRect.height / 2 - containerRect.top;
-          const x2 = toCardRect.left - containerRect.left;
-          const y2 = toCardRect.top + toCardRect.height / 2 - containerRect.top;
-          const mx = (x1 + x2) / 2;
-          const fromData = fromCard.__matchData;
-          const toData = toCard.__matchData;
-          out.push({
-            d: `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`,
-            highlighted: isHighlighted(fromData, toData),
-          });
-        }
-      }
-    }
-    setPaths((prev) => {
-      if (prev.length !== out.length) return out;
-      for (let i = 0; i < out.length; i += 1) {
-        if (prev[i].d !== out[i].d || prev[i].highlighted !== out[i].highlighted) return out;
-      }
-      return prev;
-    });
-  }, []);
-
-  useEffect(() => {
-    recalc();
-    let timer = null;
-    const onResize = () => {
-      clearTimeout(timer);
-      timer = setTimeout(recalc, 50);
-    };
-    if (typeof ResizeObserver !== "undefined") {
-      const ro = new ResizeObserver(onResize);
-      ro.observe(columnRefs.current.container);
-      return () => { ro.disconnect(); clearTimeout(timer); };
-    }
-    window.addEventListener("resize", onResize);
-    return () => { window.removeEventListener("resize", onResize); clearTimeout(timer); };
-  }, [recalc, snapshot]);
-
-  return (
-    <div
-      class="bracket-tree bracket-tree--overview"
-      role="region"
-      aria-label="完整对阵全景"
-      ref={(el) => { columnRefs.current.container = el; }}
-    >
-      <BracketConnectors paths={paths} />
-      <div class="bracket-tree-overview-cols">
-        {stages.map((s) => {
-          const raw = snapshot[s.id];
-          const matches = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-          return (
-            <div
-              key={s.id}
-              class={`bracket-tree-column bracket-tree-column--${s.id}`}
-              ref={(el) => { columnRefs.current[`${s.id}Col`] = el; }}
-            >
-              <div class="bracket-tree-column-title">{s.label}</div>
-              <div class="bracket-tree-column-cards">
-                {matches.length === 0 ? (
-                  <div class="bracket-tree-column-empty">暂无</div>
-                ) : matches.map((m) => (
-                  s.id === "final" || s.id === "third"
-                    ? <FinalMatchCard key={m.matchNum} match={m} kind={s.id} onClick={onMatchClick} />
-                    : <MatchCard key={m.matchNum} match={m} onClick={onMatchClick} />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+    <div class="bracket-tree bracket-tree--tree" ref={containerRef}>
+      <FinalCenterConnectors
+        containerRef={containerRef}
+        upperSfRef={upperSfRef}
+        lowerSfRef={lowerSfRef}
+        finalRef={finalRef}
+        thirdRef={thirdRef}
+        paths={snapshot}
+      />
+      <div class="bracket-tree-grid">
+        <div class="bracket-tree-half bracket-tree-half--upper">
+          <HalfColumn stage="sf" matches={halves.upperSF} onMatchClick={onMatchClick} registerRef={(el) => { upperSfRef.current = el; }} />
+          <HalfColumn stage="qf" matches={halves.upperQF} onMatchClick={onMatchClick} />
+          <HalfColumn stage="r16" matches={halves.upperR16} onMatchClick={onMatchClick} />
+          <HalfColumn stage="r32" matches={halves.upperR32} onMatchClick={onMatchClick} />
+        </div>
+        <div class="bracket-tree-center">
+          <div class="bracket-tree-center-final" ref={finalRef}>
+            {halves.final ? (
+              <FinalTrophyCard match={halves.final} onClick={onMatchClick} />
+            ) : (
+              <div class="bracket-tree-center-placeholder">决赛 待定</div>
+            )}
+          </div>
+          <div class="bracket-tree-center-third" ref={thirdRef}>
+            {halves.third ? (
+              <ThirdPlaceCard match={halves.third} onClick={onMatchClick} />
+            ) : (
+              <div class="bracket-tree-center-placeholder bracket-tree-center-placeholder--small">季军赛 待定</div>
+            )}
+          </div>
+        </div>
+        <div class="bracket-tree-half bracket-tree-half--lower">
+          <HalfColumn stage="r32" matches={halves.lowerR32} onMatchClick={onMatchClick} />
+          <HalfColumn stage="r16" matches={halves.lowerR16} onMatchClick={onMatchClick} />
+          <HalfColumn stage="qf" matches={halves.lowerQF} onMatchClick={onMatchClick} />
+          <HalfColumn stage="sf" matches={halves.lowerSF} onMatchClick={onMatchClick} registerRef={(el) => { lowerSfRef.current = el; }} />
+        </div>
       </div>
     </div>
   );
 }
 
 export default BracketTree;
+
+// ponytail: 模块级导出 splitBracketByHalf 供测试直接验证镜像分割逻辑.
+export { splitBracketByHalf };
