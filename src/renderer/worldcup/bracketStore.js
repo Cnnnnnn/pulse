@@ -100,3 +100,16 @@ export async function computeBracket(opts = {}) {
 export function clearBracketError() {
   bracketError.value = null;
 }
+
+/**
+ * v2.51: 比分变化后尝试自动重算 bracket (让对阵图实时反映晋级 + 实时比分).
+ * 复用 computeBracket 的 30s 节流 — 60s 比分 sweep + 30s 节流 = 不会重复算.
+ *
+ * 仅当当前 tab 是 bracket 或用户曾看过 bracket (worldcupBracket 有值) 时才重算,
+ * 避免用户在赛程 tab 时白跑 IPC. force=false 让节流生效.
+ */
+export async function tryAutoRecompute() {
+  // 只在有 cached snapshot (用户进过 bracket tab) 时重算, 否则跳过
+  if (!worldcupBracket.value) return false;
+  return computeBracket({ force: false });
+}

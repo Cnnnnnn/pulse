@@ -241,3 +241,32 @@ export async function bootstrapWorldcupTab() {
   await Promise.all([loadWorldcupInsightsCache(), loadWorldcupBets()]);
   await refreshWorldcupScores();
 }
+
+/**
+ * v2.51: 订阅 main 进程的比分更新推送 (goal-watcher 60s sweep 后 fire).
+ * 收到推送后自动调 refreshWorldcupScores 拉最新比分并合并进 worldcupMatches.
+ *
+ * @param {{ onUpdated?: (data: {ts:number, updatedKeys?: string[]}) => void }} [opts]
+ *   onUpdated: 比分刷新完成后的回调 (bracketStore 用它触发重算).
+ * @returns {() => void} unsubscribe 函数, 组件 unmount 时必须调用.
+ */
+export function subscribeScoresUpdates(opts = {}) {
+  if (
+    typeof window === "undefined" ||
+    !window.api ||
+    typeof window.api.onWorldcupScoresUpdated !== "function"
+  ) {
+    return () => {};
+  }
+  return window.api.onWorldcupScoresUpdated(async (data) => {
+    // 静默刷新 (不闪 loading 态, 避免每 60s 抖动 UI).
+    await refreshWorldcupScores();
+    if (typeof opts.onUpdated === "function") {
+      try {
+        opts.onUpdated(data || {});
+      } catch {
+        /* noop — 回调失败不影响比分刷新 */
+      }
+    }
+  });
+}

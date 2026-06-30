@@ -160,9 +160,17 @@ async function _sweepOnce(now, deps) {
     // 跟 refreshScores 写盘后的状态一致, 所以 cache 必然是 fresh 的.
     if (typeof onScoresChanged === "function") {
       try {
-        onScoresChanged(newScores);
+        // v2.51: 把 updatedKeys 附在 scores 对象上一起传, 让接收方 (renderer push)
+        // 知道哪些 key 实际变了, 用于判断是否需要重算 bracket. 不破坏现有签名
+        // (onScoresChanged 仍可只读 scores entries, 忽略 _updatedKeys).
+        onScoresChanged({
+          ...newScores,
+          _updatedKeys: Array.isArray(refresh.updatedKeys)
+            ? refresh.updatedKeys
+            : [],
+        });
       } catch (err) {
-        log.warn("[goal-watcher] onScoresChanged failed", {
+        log.warn("[worldcup/goal-watcher] onScoresChanged failed", {
           msg: err && err.message,
         });
       }

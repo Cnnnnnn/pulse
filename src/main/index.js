@@ -718,7 +718,26 @@ function startSchedulers(pushWorldcupToTray) {
     // v2.22 Task C2.1: 钩 goal-watcher, 每次 sweep 完 (refreshScores 成功) 推一次 tray.
     // 替换之前的 60s setInterval 兜底轮询 — goal-watcher 跟 scores-fetcher 写盘同源,
     // cache 必然 fresh, sweep fire 的时刻就是 tray 反映比分变化的时刻.
-    onScoresChanged: pushWorldcupToTray,
+    //
+    // v2.51 实时比分: sweep 拉到新比分后同时推 renderer, 让世界杯面板 (含淘汰赛
+    // 对阵 + 进球榜) 自动刷新, 无需用户手动点. updatedKeys 让 renderer 判断
+    // 是否需要重算 bracket. 推送是 best-effort (窗口未打开 / 已销毁时 noop).
+    onScoresChanged: (newScores) => {
+      pushWorldcupToTray();
+      try {
+        const keys = newScores && Array.isArray(newScores._updatedKeys)
+          ? newScores._updatedKeys
+          : null;
+        sendToRenderer("worldcup:scores-updated", {
+          ts: Date.now(),
+          updatedKeys: keys,
+        });
+      } catch (err) {
+        mainLog.warn(
+          `[worldcup] push scores to renderer failed: ${err && err.message}`,
+        );
+      }
+    },
   });
   wireRecentActivityListener({ recentActivity, sendToRenderer });
   startAutoCheckTimer({

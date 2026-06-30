@@ -19,8 +19,10 @@ import SquadModal from './SquadModal.jsx';
 import {
   bootstrapWorldcupTab,
   refreshWorldcupScores,
+  subscribeScoresUpdates,
   worldcupScoresLoading,
 } from './store.js';
+import { tryAutoRecompute } from './bracketStore.js';
 
 export const WC_SUBTABS = [
   { key: 'fixtures', label: '赛程' },
@@ -53,6 +55,24 @@ export function WorldcupLayout() {
       setFocusMatchKey(matchKey);
     });
     return () => { if (typeof off === "function") off(); };
+  }, []);
+
+  // v2.51: 订阅 main 进程比分推送 + 60s 轮询兜底.
+  // 推送: goal-watcher sweep 完立刻 fire (实时性).
+  // 轮询: 防推送丢失 (窗口刚聚焦 / 推送时机错过) 的保底定期拉.
+  // 两者互补, 都调 refreshWorldcupScores (内部幂等, 重复拉无害).
+  // onUpdated: 比分刷新后触发 bracket 自动重算 (30s 节流, 仅在用户进过对阵 tab 时).
+  useEffect(() => {
+    const unsubscribe = subscribeScoresUpdates({
+      onUpdated: () => tryAutoRecompute(),
+    });
+    const pollTimer = setInterval(() => {
+      refreshWorldcupScores();
+    }, 60_000);
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+      clearInterval(pollTimer);
+    };
   }, []);
 
   function handleTeamClick(team) {

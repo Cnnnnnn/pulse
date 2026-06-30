@@ -182,6 +182,14 @@ contextBridge.exposeInMainWorld("api", {
   onWorldcupFocusMatch: (cb) =>
     ipcRenderer.on("worldcup:focus-match", (_, data) => cb(data)),
 
+  // v2.51 世界杯实时比分: goal-watcher sweep 完推 renderer, 触发面板自动刷新.
+  // 返回 unsubscribe 函数, 避免 renderer 重复注册导致内存泄漏.
+  onWorldcupScoresUpdated: (cb) => {
+    const handler = (_, data) => cb(data);
+    ipcRenderer.on("worldcup:scores-updated", handler);
+    return () => ipcRenderer.removeListener("worldcup:scores-updated", handler);
+  },
+
   getAiSharedConfig: () => ipcRenderer.invoke("ai:get-shared-config"),
 
   // Universal "open URL in system browser" bridge (validated http/https in main process).

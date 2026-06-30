@@ -18,6 +18,8 @@ const stateStore = require("../state-store");
 const { computeBracket } = require("./bracket-rules");
 const { mainLog } = require("../log");
 const { fetchWorldcupFixtures, loadFinalsTxt } = require("./fetcher");
+const { teamsPairKey, canonicalTeamName } = require("./team-aliases");
+const { matchKickoffUtcMs } = require("./match-key");
 
 /**
  * Compute full bracket from current group standings + scores.
@@ -85,6 +87,14 @@ async function computeWorldcupBracket(opts = {}) {
     }
     if (Array.isArray(finalsMatches) && finalsMatches.length > 0) {
       mergeFinalsIntoSnapshot(snapshot, finalsMatches);
+
+      // v2.51: 注入实时比分. cup_finals.txt 是静态的 (上游手动更新慢),
+      // 而 state.json.worldcup_scores 里可能有 ESPN 拉到的淘汰赛实时比分
+      // (renderer 主动刷 / bracket compute 时主动刷). 这里按 matchNum + 已确定
+      // 队名匹配, 把实时比分覆盖到 snapshot 上, 让晋级的队伍 + 实时比分立刻显示.
+      // 必须在 mergeFinalsIntoSnapshot 之后跑 (实时 > 静态).
+      const liveScores = opts.scores ? opts.scores() : loadScoresFromState();
+      mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, liveScores);
     }
     if (finalsFetchWarning) {
       snapshot.warnings = snapshot.warnings || [];
@@ -218,6 +228,116 @@ function loadScoresFromState() {
 }
 
 /**
+ * v2.51: 把实时比分 (state.json.worldcup_scores) 注入 bracket snapshot.
+ *
+ * 背景: cup_finals.txt 是静态的 (openfootball 上游手动更新, 延迟可达数小时).
+ * 但 ESPN/worldcup26 实时比分会先被拉到 state.json. 这里按 matchNum + 已确定
+ * 队名匹配, 把实时比分覆盖到 snapshot, 让淘汰赛对阵图能实时反映:
+ *   - 进行中 (live) 比分
+ *   - 刚完赛的 winner (自动 propagate 到下一轮, 见 bracket-rules.propagateWinner)
+ *
+ * 匹配规则 (优先级从高到低):
+ *   1) matchKey 完全匹配 (date|time|team1|team2 — 适用于 scores 用同样 fixture 算 key 的情况)
+ *   2) teamsPairKey + 日期匹配 (队名顺序无关, 适用于 ESPN 返回的队名顺序跟 txt 相反)
+ *
+ * 跳过条件 (不破坏现有显示):
+ *   - fixture 队名是 placeholder (W101/1A/3A...) → 队伍未确定, 无实时比分
+ *   - scores 里没有匹配的 entry → 无数据可注入
+ *   - entry 无 ft 比分 → 比赛未开始/数据不全
+ *
+ * @param {object} snapshot - BracketSnapshot (mutated in-place)
+ * @param {Array} finalsMatches - parsed cup_finals.txt matches (含 matchNum + 真实队名)
+ * @param {Record<string, object>} scoresEntries - state.json.worldcup_scores.entries
+ */
+function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
+  if (!snapshot || !Array.isArray(finalsMatches) || !scoresEntries) return;
+
+  // finalsMatches 按 matchNum 索引, 只保留队名已确定 (非 placeholder) 的
+  const finalsByNum = new Map();
+  for (const fm of finalsMatches) {
+    if (!fm || typeof fm.matchNum !== "number") continue;
+    if (isPlaceholderTeamName(fm.team1) || isPlaceholderTeamName(fm.team2)) continue;
+    finalsByNum.set(fm.matchNum, fm);
+  }
+  if (finalsByNum.size === 0) return;
+
+  // scores entries 建两个索引: matchKey 直查 + (pairKey|date) 模糊查
+  // matchKey 格式: date|time|team1|team2 (跟 scores-fetcher 一致)
+  const byMatchKey = new Map();
+  const byPairDate = new Map(); // value: { entry, team1, team2 } (存原始队名用于顺序判断)
+  for (const [key, entry] of Object.entries(scoresEntries)) {
+    if (!entry) continue;
+    byMatchKey.set(key, entry);
+    const parts = key.split("|");
+    if (parts.length >= 4) {
+      const date = parts[0];
+      const pk = teamsPairKey(parts[2], parts[3]);
+      if (pk) byPairDate.set(`${pk}|${date}`, { entry, team1: parts[2], team2: parts[3] });
+    }
+  }
+
+  const stages = ["r32", "r16", "qf", "sf"];
+  const allMatches = [];
+  for (const stage of stages) {
+    const list = snapshot[stage];
+    if (Array.isArray(list)) allMatches.push(...list);
+  }
+  if (snapshot.final) allMatches.push(snapshot.final);
+  if (snapshot.third) allMatches.push(snapshot.third);
+
+  for (const match of allMatches) {
+    if (!match || typeof match.matchNum !== "number") continue;
+    const fm = finalsByNum.get(match.matchNum);
+    if (!fm) continue;
+
+    // 1) 优先 matchKey 直查 (队名顺序 + 时间完全一致)
+    const mk = `${fm.date || ""}|${fm.time || ""}|${fm.team1 || ""}|${fm.team2 || ""}`;
+    const direct = byMatchKey.get(mk);
+
+    let entry;
+    let needSwap = false;
+    if (direct) {
+      entry = direct;
+    } else if (fm.date) {
+      // 2) 模糊查: pairKey + date (队名顺序无关, 但需判断是否要交换 ft)
+      const pk = teamsPairKey(fm.team1, fm.team2);
+      const fuzzy = pk ? byPairDate.get(`${pk}|${fm.date}`) : null;
+      if (fuzzy) {
+        entry = fuzzy.entry;
+        // entry 的 team1 跟 fm.team1 不同名 → 顺序相反, 需交换 ft + scorers.teamSide
+        needSwap =
+          canonicalTeamName(fuzzy.team1) !== canonicalTeamName(fm.team1);
+      }
+    }
+
+    if (!entry || !Array.isArray(entry.ft)) continue;
+
+    // 实时比分覆盖静态 (cup_finals.txt 的 score). 含 scorers 一并带入
+    // (让对阵卡片能显示进球者, 进球榜也能聚合淘汰赛进球).
+    // needSwap=true 时 ft 顺序交换 (对齐 fm.team1/team2 = snapshot.slot1/slot2),
+    // scorers.teamSide 也跟着翻转 (team1↔team2).
+    const ft = needSwap ? [entry.ft[1], entry.ft[0]] : [...entry.ft];
+    let scorers = Array.isArray(entry.scorers) ? entry.scorers : null;
+    if (scorers && needSwap) {
+      scorers = scorers.map((s) => ({
+        ...s,
+        teamSide: s.teamSide === "team1" ? "team2" : s.teamSide === "team2" ? "team1" : s.teamSide,
+      }));
+    }
+    match.score = {
+      ...(match.score || {}),
+      ft,
+      ht: entry.ht || (match.score && match.score.ht) || null,
+      status: entry.status || "final",
+      updatedAt: entry.updatedAt || Date.now(),
+      source: entry.source || "live",
+      ...(scorers ? { scorers } : {}),
+    };
+    match.status = entry.status === "live" ? "live" : "final";
+  }
+}
+
+/**
  * Extract group standings from group-stage matches.
  * v1 simplification: rank by pts → gd → gf from already-final matches.
  *
@@ -327,5 +447,6 @@ module.exports = {
   extractGroupStandings,
   rankGroup,
   mergeFinalsIntoSnapshot,
+  mergeLiveScoresIntoSnapshot,
   isPlaceholderTeamName,
 };
