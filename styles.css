@@ -8266,17 +8266,15 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   z-index: 2;              /* ponytail: v2.62 提到 column 之上, 否则连线被 column 背景盖住看不见 */
   overflow: visible;
 }
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
 .bracket-tree-connector {
   stroke: rgba(255, 255, 255, 0.35);  /* ponytail: v2.62 提高透明度, 让连线在 column 之上能看清 */
   stroke-width: 1.5;
   fill: none;
+  stroke-linejoin: round;     /* ponytail: v2.63 折线拐角圆滑, 全景多列时不刺眼 */
+  stroke-linecap: round;
 }
 .bracket-tree-connector--highlighted {
-  stroke: rgba(74, 222, 128, 0.7);
+  stroke: rgba(74, 222, 128, 0.75);
   stroke-width: 2;
 }
 /* ponytail: v2.62 全景模式 — 5 列横排, 卡片缩小, 水平滚动. */

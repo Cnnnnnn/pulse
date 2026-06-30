@@ -47,16 +47,17 @@ export function WorldcupBracketView() {
   const error = bracketError.value;
   const lastComputedAt = bracketLastComputedAt.value;
   const [squadMatch, setSquadMatch] = useState(null);
-  // ponytail: v2.56 stage tab — 默认 R32 (最丰富阶段), 用户点 tab 切换.
-  const [currentStage, setCurrentStage] = useState("r32");
+  // ponytail: v2.63 — 默认全景模式, 一屏看完整淘汰赛对阵 + 连接线.
+  // 用户想放大某轮再看细节时点对应 stage tab.
+  const [currentStage, setCurrentStage] = useState("overview");
 
   const STAGE_TABS = [
+    { id: "overview", label: "全景" },  // ponytail: v2.63 — 默认首选, 一屏看全部 + 连接线
     { id: "r32", label: "1/16" },
     { id: "r16", label: "1/8" },
     { id: "qf", label: "1/4" },
     { id: "sf", label: "半决赛" },
     { id: "final", label: "决赛" },
-    { id: "overview", label: "全景" },  // ponytail: v2.62 — 一屏看 5 个 stage 的小卡全景
   ];
 
   useEffect(() => {

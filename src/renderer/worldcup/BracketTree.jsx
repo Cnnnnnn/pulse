@@ -523,8 +523,15 @@ export function BracketTree({ snapshot, onMatchClick, currentStage = "r32" }) {
   );
 }
 
-// ponytail: v2.62 — 全景图: 5 个 stage 横排, 卡片缩小, 一屏看完整淘汰赛对阵.
-// 不画 SVG connector (5 列连线计算量大且视觉混乱), 改用顶部 stage label 标识 stage 顺序.
+// ponytail: v2.63 — 全景图带连接线: 5 个 stage 横排 + SVG connector 显示晋级关系.
+// 复用 useConnectors, 只是 STAGE_PAIRS 改成全 5 列的 fanIn=2 关系.
+const STAGE_PAIRS_OVERVIEW = [
+  ["r32", "r16", 2],
+  ["r16", "qf", 2],
+  ["qf", "sf", 2],
+  ["sf", "final", 2],
+];
+
 function BracketOverview({ snapshot, onMatchClick }) {
   const stages = [
     { id: "r32", label: "1/16 决赛" },
@@ -533,14 +540,94 @@ function BracketOverview({ snapshot, onMatchClick }) {
     { id: "sf", label: "半决赛" },
     { id: "final", label: "决赛" },
   ];
+  const columnRefs = useRef({ container: null });
+  for (const s of stages) {
+    if (columnRefs.current[`${s.id}Col`] === undefined) {
+      columnRefs.current[`${s.id}Col`] = null;
+    }
+  }
+
+  // 临时覆盖 useConnectors 内部的 STAGE_PAIRS: 用闭包变量传全景的 fanIn 关系.
+  // useConnectors 读的是模块级 STAGE_PAIRS, 所以这里用一个专属的 connector 计算.
+  const [paths, setPaths] = useState([]);
+  const recalc = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const refs = columnRefs.current;
+    if (!refs.container) return;
+    const out = [];
+    for (const [fromStage, toStage, fanIn] of STAGE_PAIRS_OVERVIEW) {
+      const fromCol = refs[`${fromStage}Col`];
+      const toCol = refs[`${toStage}Col`];
+      if (!fromCol || !toCol) continue;
+      const fromCards = fromCol.querySelectorAll(".bracket-card");
+      const toCards = toCol.querySelectorAll(".bracket-card");
+      if (!fromCards.length || !toCards.length) continue;
+      const containerRect = refs.container.getBoundingClientRect();
+      for (let j = 0; j < toCards.length; j += 1) {
+        const toCard = toCards[j];
+        for (let k = 0; k < fanIn; k += 1) {
+          const fromIdx = j * fanIn + k;
+          const fromCard = fromCards[fromIdx];
+          if (!fromCard) continue;
+          const fromCardRect = fromCard.getBoundingClientRect();
+          const toCardRect = toCard.getBoundingClientRect();
+          const x1 = fromCardRect.right - containerRect.left;
+          const y1 = fromCardRect.top + fromCardRect.height / 2 - containerRect.top;
+          const x2 = toCardRect.left - containerRect.left;
+          const y2 = toCardRect.top + toCardRect.height / 2 - containerRect.top;
+          const mx = (x1 + x2) / 2;
+          const fromData = fromCard.__matchData;
+          const toData = toCard.__matchData;
+          out.push({
+            d: `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`,
+            highlighted: isHighlighted(fromData, toData),
+          });
+        }
+      }
+    }
+    setPaths((prev) => {
+      if (prev.length !== out.length) return out;
+      for (let i = 0; i < out.length; i += 1) {
+        if (prev[i].d !== out[i].d || prev[i].highlighted !== out[i].highlighted) return out;
+      }
+      return prev;
+    });
+  }, []);
+
+  useEffect(() => {
+    recalc();
+    let timer = null;
+    const onResize = () => {
+      clearTimeout(timer);
+      timer = setTimeout(recalc, 50);
+    };
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(onResize);
+      ro.observe(columnRefs.current.container);
+      return () => { ro.disconnect(); clearTimeout(timer); };
+    }
+    window.addEventListener("resize", onResize);
+    return () => { window.removeEventListener("resize", onResize); clearTimeout(timer); };
+  }, [recalc, snapshot]);
+
   return (
-    <div class="bracket-tree bracket-tree--overview" role="region" aria-label="完整对阵全景">
+    <div
+      class="bracket-tree bracket-tree--overview"
+      role="region"
+      aria-label="完整对阵全景"
+      ref={(el) => { columnRefs.current.container = el; }}
+    >
+      <BracketConnectors paths={paths} />
       <div class="bracket-tree-overview-cols">
         {stages.map((s) => {
           const raw = snapshot[s.id];
           const matches = Array.isArray(raw) ? raw : (raw ? [raw] : []);
           return (
-            <div key={s.id} class={`bracket-tree-column bracket-tree-column--${s.id}`}>
+            <div
+              key={s.id}
+              class={`bracket-tree-column bracket-tree-column--${s.id}`}
+              ref={(el) => { columnRefs.current[`${s.id}Col`] = el; }}
+            >
               <div class="bracket-tree-column-title">{s.label}</div>
               <div class="bracket-tree-column-cards">
                 {matches.length === 0 ? (
