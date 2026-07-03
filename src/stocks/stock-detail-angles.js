@@ -251,16 +251,21 @@ function summarizeNewsBuzz(d) {
 
 function summarizePeerCompare(d) {
   if (!d) return null;
-  if (d.pe == null && d.pb == null) return "暂无同业数据";
   const parts = [];
-  if (d.pe != null && d.peIndustryMedian != null) {
-    const dev = d.peDeviationPct != null ? `, ${d.peDeviationPct >= 0 ? "偏贵" : "偏低"} ${Math.abs(d.peDeviationPct).toFixed(1)}%` : "";
-    parts.push(`PE ${d.pe.toFixed(1)} 倍 vs 行业中位 ${d.peIndustryMedian.toFixed(1)} 倍, 排名 ${d.peRank || "-"}/${d.peTotal || "-"}${dev}`);
+  // PE/PB: 改用历史分位 (INDEX_PERCENTILE) + 估值状态. 旧的行业中位/排名字段已废弃.
+  if (d.pe != null) {
+    const pct = d.pePercentile != null ? `, 历史 ${d.pePercentile.toFixed(0)}% 分位` : "";
+    const st = d.peValuationStatus ? ` (${d.peValuationStatus})` : "";
+    parts.push(`PE ${d.pe.toFixed(1)} 倍${pct}${st}`);
   }
-  if (d.pb != null && d.pbIndustryMedian != null) {
-    const dev = d.pbDeviationPct != null ? `, ${d.pbDeviationPct >= 0 ? "偏贵" : "偏低"} ${Math.abs(d.pbDeviationPct).toFixed(1)}%` : "";
-    parts.push(`PB ${d.pb.toFixed(1)} vs 行业中位 ${d.pbIndustryMedian.toFixed(1)}, 排名 ${d.pbRank || "-"}/${d.pbTotal || "-"}${dev}`);
+  if (d.pb != null) {
+    const pct = d.pbPercentile != null ? `, 历史 ${d.pbPercentile.toFixed(0)}% 分位` : "";
+    const st = d.pbValuationStatus ? ` (${d.pbValuationStatus})` : "";
+    parts.push(`PB ${d.pb.toFixed(2)}${pct}${st}`);
   }
+  // 行业 ROE/毛利率中位 (从 LICO_FN_CPD peers 客户端算)
+  if (d.roeIndustryMedian != null) parts.push(`行业 ROE 中位 ${d.roeIndustryMedian.toFixed(1)}%`);
+  if (d.grossMarginIndustryMedian != null) parts.push(`行业毛利率中位 ${d.grossMarginIndustryMedian.toFixed(1)}%`);
   if (parts.length === 0) return "暂无同业数据";
   // ponytail: 行业名是 LLM 分析 "同业对比" 时不可缺的高价值上下文, prepend 一段.
   //          仅当 industry 存在时输出, fetcher 在 datacenter row 缺 INDUSTRY_NAME 时会返 ok=false,

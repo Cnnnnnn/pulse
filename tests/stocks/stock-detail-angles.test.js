@@ -65,13 +65,17 @@ describe("stock-detail-angles", () => {
     const ms = getAngle("moat_score");
     // 空数据: summarizePeerCompare 返 "暂无同业数据" 或 null
     expect(() => pc.summarizeForAi(null)).not.toThrow();
-    // 完整数据: 返带 PE / PB 排名的字符串
+    // 完整数据: 返带 PE/PB 历史分位的字符串 (新结构, 旧的行业中位/排名字段已废弃)
     const pcOut = pc.summarizeForAi({
-      pe: 30, peIndustryMedian: 25, peRank: 5, peTotal: 50, peDeviationPct: 20,
-      pb: 4, pbIndustryMedian: 3, pbRank: 10, pbTotal: 50, pbDeviationPct: 33.3,
+      industry: "白酒",
+      pe: 30, pePercentile: 75, peValuationStatus: "偏高",
+      pb: 4, pbPercentile: 60, pbValuationStatus: "合理",
+      roeIndustryMedian: 22.5, grossMarginIndustryMedian: 70.0,
     });
+    expect(pcOut).toMatch(/行业: 白酒/);
     expect(pcOut).toMatch(/PE 30\.0 倍/);
-    expect(pcOut).toMatch(/排名 5\/50/);
+    expect(pcOut).toMatch(/历史 75% 分位/);
+    expect(pcOut).toMatch(/行业 ROE 中位 22\.5%/);
     // moat_score: 完整 3 维都给的 case
     const msOut = ms.summarizeForAi({
       score: 7,
