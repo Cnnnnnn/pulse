@@ -31,6 +31,9 @@ function dataHash(perAngleData) {
     .slice(0, 12);
 }
 
+// 注: cache key 不含 scores — scores 由 computeScores(perAngleData) 确定性派生,
+// 同 perAngleData 必同 scores, 故 perAngleData 的 hash 已隐式覆盖 scores.
+// 若 scorer 未来引入非 perAngleData 输入 (如市场状态), 需把 scores 纳入 key 或 bump CACHE_VERSION.
 function adviseCacheKey(opts) {
   if (!opts || !opts.code) return null;
   const angles = (opts.angles || []).slice().sort();

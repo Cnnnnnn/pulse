@@ -375,4 +375,21 @@ describe("buildAnalyzeMessages scores 注入", () => {
     const messages = advisor.buildAnalyzeMessages({ code: "300750", angles: [], perAngleData: {} });
     expect(messages[1].content).toContain("300750");
   });
+
+  it("overall=null + 部分维度缺失 → 渲染「数据不足」", () => {
+    const messages = advisor.buildAnalyzeMessages({
+      code: "300750",
+      angles: [],
+      perAngleData: {},
+      scores: {
+        overall: null,
+        dimensions: { fundamental: 8, valuation: null, capital: null, tech: null, risk: null },
+        rationale: [],
+      },
+    });
+    const userText = messages[1].content;
+    expect(userText).toContain("数据不足"); // overall 显示数据不足
+    expect(userText).toContain("基本面=8");
+    expect(userText).toContain("估值=数据不足");
+  });
 });
