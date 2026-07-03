@@ -52,7 +52,10 @@ export function WorldcupBracketView() {
     // 进入 tab: 先同步拉 cache 让用户立刻看到上次结果,
     // 然后后台触发 compute 拿到最新 (30s 节流避免 tab 切换重复算).
     loadBracket();
-    computeBracket();
+    // v2.74.2: force 重算保证 et/pen 等新字段能落到 in-memory signal.
+    // 30s 节流会让用户看到的是 disk 旧 snapshot (即使 disk 已经写好).
+    // 用 force 让用户每次进 tab 都拿到最新 disk → UI 一致.
+    computeBracket({ force: true });
   }, []);
 
   function handleMatchClick(match) {
