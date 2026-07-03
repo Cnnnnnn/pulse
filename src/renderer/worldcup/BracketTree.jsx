@@ -169,7 +169,9 @@ function CardScore({ match }) {
 // pen=[2,3]. 加时 (score.et) 主页不提供, 等未来 detail 页 scraper
 // (zerozero / 球迷屋, 抓 detail 页成本高 + 反爬, 暂不做).
 // 不显示 etpen tag. 将来 ESL 流 (scores-fetcher) 抓到 et/pen 时自动显示.
-function EtPenTags({ match }) {
+// (ponytail: 注释已过时 — 当前已接 hardcodedR32 fallback + wc-2026 源,
+//  也保留 export 供测试.
+export function EtPenTags({ match }) {
   const { status, score } = match;
   if (status !== "final" && status !== "live") return null;
   const etArr = Array.isArray(score && score.et) && score.et.length === 2 ? score.et : null;
