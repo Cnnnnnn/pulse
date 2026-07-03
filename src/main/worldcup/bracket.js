@@ -693,25 +693,29 @@ function rankGroup(letter, matches, teams) {
  * 在没自动源能给 R32 比赛 pen 数字时, 把已知点球大战结果写死在代码里,
  * 至少 UI 能显示 "点球 3:4" 等标签.
  *
- * 数据来源: openfootball cup_finals.txt (M# 段 + a.e.t. 段格式),
- *   zerozero.asia / 球迷屋 / 7M 公开战报交叉验证.
- *
- * a.e.t. 串格式 "a.e.t. (90min-score, et-score), N-M pen. winner"
- * → score.et = [90min-home, 90min-away] 在 et-score 字段里; 加时比分按
- *   主队在前 (slot1) 记录. 例 "(1-1, 0-1)" = 90分 1-1, 加时 0-1 客胜.
+ * ponytail: 数据来源以 ESPN scorers 为准, **不** 信任 openfootball cup_finals.txt
+ *   的 a.e.t. 段. 那个 TXT 段 (e.g. "(2-2, 0-1)") 多场比赛跟实际 scorers 对不上:
+ *     - M74 TXT 说 et=0-1 但 ESPN scorers 120' 全是 Penalty - Scored (shootout), 加时 0-0
+ *     - M82 TXT 说 et=0-1 但 ESPN scorers 显示 Tielemans 120+5'(p) 是比利时进球, 加时 1-0
+ *     - M88 TXT 说 et=0-1 但 ESPN scorers 完全无加时进球, 加时 0-0
+ *   所以全部按 ESPN 实际进球者推算: et = [slot1 进球数, slot2 进球数].
  *
  * 将来真正上游源能稳定提供 et/pen 时 (例如 ESL 流 score-fetcher 拿到),
  * 这块代码应移除, 走 entry.pen 自动注入路径.
  */
 const HARDCODED_R32_ET_PEN = {
-  // M74: 德国 1-1 巴拉圭 (90分), 加时 0-1, 点球 3-4 巴拉圭胜
-  74: { et: [0, 1], pen: [3, 4] },
+  // M74: 德国 1-1 巴拉圭 (90分), 加时 0-0, 点球 3-4 巴拉圭胜
+  //   scorers: Enciso 42' (巴拉圭), Havertz 54' (德国) + 7 shootout 进球
+  74: { et: [0, 0], pen: [3, 4] },
   // M75: 荷兰 1-1 摩洛哥 (90分), 加时 0-0, 点球 2-3 摩洛哥胜
+  //   scorers: Gakpo 72' (荷兰), Diop 90+1' (摩洛哥) + 5 shootout 进球
   75: { et: [0, 0], pen: [2, 3] },
-  // M82: 比利时 2-2 塞内加尔 (90分), 加时 0-1 塞内加尔胜 (无点球)
-  82: { et: [0, 1] },
-  // M88: 澳大利亚 1-1 埃及 (90分), 加时 0-1, 点球 2-4 埃及胜
-  88: { et: [0, 1], pen: [2, 4] },
+  // M82: 比利时 2-2 塞内加尔 (90分), 加时 1-0 比利时胜 (Tielemans 120+5'(p), 无点球)
+  //   scorers: Diarra 25', Sarr 51' (塞内加尔), Lukaku 86', Tielemans 89' + 120+5'(p) (比利时)
+  82: { et: [1, 0] },
+  // M88: 澳大利亚 1-1 埃及 (90分), 加时 0-0, 点球 2-4 埃及胜
+  //   scorers: Emam Ashour 13' (埃及), Hany 55'(OG 算澳大利亚) + 6 shootout 进球
+  88: { et: [0, 0], pen: [2, 4] },
 };
 
 /**
