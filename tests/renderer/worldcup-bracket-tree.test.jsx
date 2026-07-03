@@ -258,6 +258,49 @@ describe("BracketTree (fallback only)", () => {
     // team 名字区域应只剩 "Paraguay" (displayTeam 找 TEAMS["Paraguay"])
     expect(card.textContent).toContain("Paraguay");
     expect(card.textContent).not.toContain("3-4 pen.");
+    expect(card.textContent).not.toContain("pen. Paraguay");
+  });
+
+  test("v2.67 M74 polluted name → 'Paraguay' + a.e.t./p. tags (rescued from name)", () => {
+    // ponytail: 上游 0 来源, 但污染串本身带 et/pen 比分, 卡片应自救显示.
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 74,
+        slot1: { team: { name: "Germany" }, source: "group:E:winner" },
+        slot2: { team: { name: "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" }, source: "group:D:third" },
+        status: "final",
+        score: { ft: [1, 1], status: "final" }, // 故意没 et/pen
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const card = container.querySelector(".bracket-card");
+    // 卡片头部/主行不应出现 a.e.t. (它是 score tag, 在主行末尾)
+    const tags = container.querySelectorAll(".bracket-card-score-tag");
+    expect(tags).toHaveLength(2);
+    expect(tags[0].textContent).toContain("a.e.t.");
+    expect(tags[1].textContent).toContain("p.");
+    // 队名清洗: 不出现 "pen. Paraguay"
+    expect(card.textContent).not.toContain("pen. Paraguay");
+    expect(card.textContent).toContain("Paraguay");
+  });
+
+  test("v2.67 M75 'a.e.t. (1-1, 0-0), 2-3 pen. Morocco' → 'Morocco' + a.e.t./p.", () => {
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 75,
+        slot1: { team: { name: "Netherlands" }, source: "group:F:winner" },
+        slot2: { team: { name: "a.e.t. (1-1, 0-0), 2-3 pen. Morocco" }, source: "group:F:third" },
+        status: "final",
+        score: { ft: [1, 1], status: "final" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    expect(container.textContent).toContain("Morocco");
+    expect(container.textContent).not.toContain("pen. Morocco");
+    const tags = container.querySelectorAll(".bracket-card-score-tag");
+    expect(tags).toHaveLength(2);
   });
 
   test("v2.66 score renders a.e.t. tag when score.et present", () => {

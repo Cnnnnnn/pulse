@@ -40,13 +40,43 @@ function venueCn(venue) {
 }
 
 // ponytail: 历史 bracket snapshot 里有些 slot.team.name 被 TXT/手工数据污染
-// 成 "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" 这种. 提取最末的真实队名 fallback.
+// 成 "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" 这种. 既要还队名, 也要把
+// 隐藏在污染串里的 et/pen 比分救出来 (上游 0 来源, 自救一次).
+//
+// 已知污染格式 (来自 openfootball cup_finals 历史 fixtures):
+//   "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay"   → 90 分 1-1, 加时 0-1, 点球 3-4 巴拉圭胜
+//   "a.e.t. (1-1, 0-0), 2-3 pen. Morocco"    → 90 分 1-1, 加时 0-0, 点球 2-3 摩洛哥胜
+//   "a.e.t. (2-2, 0-1) Senegal"              → 90 分 2-2, 加时 0-1 塞内加尔胜 (无点球)
+const AET_PEN_RE = /^a\.e\.t\.\s*\(\s*(\d+)-(\d+)\s*(?:,\s*(\d+)-(\d+))?\s*\)\s*(?:,\s*(\d+)-(\d+)\s*pen\.?)?\s+(.+)$/i;
+const AET_ONLY_RE = /^a\.e\.t\.\s*\(\s*(\d+)-(\d+)\s*(?:,\s*(\d+)-(\d+))?\s*\)\s+([A-Za-zÀ-ÿ].+)$/i;
+
 function cleanTeamName(raw) {
   if (!raw || typeof raw !== "string") return raw;
-  // match 任意 "(<num>-<num>, ...), <num>-<num> pen. <NAME>" 或 "a.e.t. (...) ... <NAME>" 形式
-  const m = raw.match(/(?:a\.e\.t\.|pen\.?)[^]*?\s([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]{1,30})$/);
-  if (m) return m[1].trim();
+  // 整段都是污染串
+  const aet = raw.match(AET_PEN_RE);
+  if (aet) return aet[aet.length - 1].trim();
+  const aetOnly = raw.match(AET_ONLY_RE);
+  if (aetOnly) return aetOnly[aetOnly.length - 1].trim();
   return raw;
+}
+
+// ponytail: 从污染串中提取 et/pen 比分. 返回 { et: [h,a], pen: [h,a]|null } 或 null.
+function extractEtPenFromName(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  const m = raw.match(AET_PEN_RE);
+  if (m) {
+    // m[1..2] = 90 分, m[3..4] = 加时, m[5..6] = 点球, m[7] = 队名
+    const et = m[3] != null ? [Number(m[3]), Number(m[4])] : null;
+    const pen = m[5] != null ? [Number(m[5]), Number(m[6])] : null;
+    return { et, pen };
+  }
+  const m2 = raw.match(AET_ONLY_RE);
+  if (m2) {
+    // m2[1..2] = 90 分, m2[3..4] = 加时, m2[5] = 队名 (无点球)
+    const et = m2[3] != null ? [Number(m2[3]), Number(m2[4])] : null;
+    return { et, pen: null };
+  }
+  return null;
 }
 
 function teamCn(slot) {
@@ -103,17 +133,29 @@ function CardScore({ match }) {
     const [home, away] = score.ft;
     const leaderIsHome = home != null && away != null && home > away;
     const leaderIsAway = home != null && away != null && away > home;
-    // ponytail: 加时赛 (a.e.t.) / 点球 (p.) 标记. score.et / score.pen 形如
-    // [home, away]. 当前上游 scores-fetcher 还没拉这俩字段, 但 UI 先准备好,
-    // 将来有了直接显示.
-    const hasEt = Array.isArray(score.et) && score.et.length === 2;
-    const hasPen = Array.isArray(score.pen) && score.pen.length === 2;
+    // ponytail: 加时赛 (a.e.t.) / 点球 (p.) 标记. 优先级:
+    //   1) score.et / score.pen (将来 scores-fetcher 拉到时优先用)
+    //   2) 从 slot.team.name 污染串自救 (历史 bracket snapshot 里
+    //      "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" 这类还能反推)
+    let etArr = Array.isArray(score.et) && score.et.length === 2 ? score.et : null;
+    let penArr = Array.isArray(score.pen) && score.pen.length === 2 ? score.pen : null;
+    if (!etArr || !penArr) {
+      const slot2 = match.slot2 && match.slot2.team && match.slot2.team.name;
+      const slot1 = match.slot1 && match.slot1.team && match.slot1.team.name;
+      const rescued = extractEtPenFromName(slot2) || extractEtPenFromName(slot1);
+      if (rescued) {
+        if (!etArr && rescued.et) etArr = rescued.et;
+        if (!penArr && rescued.pen) penArr = rescued.pen;
+      }
+    }
+    const hasEt = etArr != null;
+    const hasPen = penArr != null;
     return (
       <span class="bracket-card-score">
         <span class={`bracket-card-score-num ${leaderIsHome ? "is-leader" : ""}`}>{home ?? "-"}</span>
         <span class="bracket-card-score-dash">:</span>
         <span class={`bracket-card-score-num ${leaderIsAway ? "is-leader" : ""}`}>{away ?? "-"}</span>
-        {hasEt && <span class="bracket-card-score-tag" title="加时">a.e.t.</span>}
+        {hasEt && <span class="bracket-card-score-tag" title="加时赛结束">a.e.t.</span>}
         {hasPen && <span class="bracket-card-score-tag" title="点球">p.</span>}
       </span>
     );
