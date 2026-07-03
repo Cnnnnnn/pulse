@@ -260,25 +260,36 @@ describe("mergeWc2026EtPen (bracket.js)", () => {
 });
 
 describe("mergeHardcodedR32EtPen (bracket.js fallback)", () => {
-  test("M74 注入 pen=[3,4] + et=[0,0]", () => {
+  test("M74 注入 pen=[3,4] + et=[0,1] (90分 1-1, 加时 0-1)", () => {
     const snap = makeSnapshot();
     const r = mergeHardcodedR32EtPen(snap);
-    expect(r.updated).toBe(2); // M74 + M75 都在 table
+    // M74 + M75 + M82 + M88 都在 table. makeSnapshot 里只有 4 个 R32 (73/74/75/82),
+    // 没有 M88 → updated = 3 (74 + 75 + 82)
+    expect(r.updated).toBe(3);
     const m74 = snap.r32.find((m) => m.matchNum === 74);
     expect(m74.score.pen).toEqual([3, 4]);
-    expect(m74.score.et).toEqual([0, 0]);
+    expect(m74.score.et).toEqual([0, 1]);
     expect(m74.score.source).toBe("hardcoded-r32");
+  });
+
+  test("M82 注入 et=[0,1] (90分 2-2, 加时 0-1 塞内加尔胜, 无点球)", () => {
+    const snap = makeSnapshot();
+    const r = mergeHardcodedR32EtPen(snap);
+    const m82 = snap.r32.find((m) => m.matchNum === 82);
+    expect(m82.score.et).toEqual([0, 1]);
+    expect(m82.score.pen).toBeUndefined();
+    expect(m82.score.source).toBe("hardcoded-r32");
   });
 
   test("不覆盖已有 pen (信任更权威源)", () => {
     const snap = makeSnapshot();
     const m74 = snap.r32.find((m) => m.matchNum === 74);
     m74.score.pen = [4, 3]; // 假设 wc-2026 或 ESL 已写入
-    m74.score.et = [0, 0]; // et 也填了 → hardcoded 整个 match 不注入
+    m74.score.et = [0, 1]; // et 也填了 → hardcoded 整个 match 不注入
     m74.score.source = "wc2026";
     const r = mergeHardcodedR32EtPen(snap);
-    // M74 pen/et 都已存在 → 不动; M75 注入 → updated=1
-    expect(r.updated).toBe(1);
+    // M74 pen/et 都已存在 → 不动; M75 + M82 注入 → updated=2
+    expect(r.updated).toBe(2);
     expect(m74.score.pen).toEqual([4, 3]); // 保留原值
     expect(m74.score.source).toBe("wc2026");
   });
@@ -298,8 +309,12 @@ describe("mergeHardcodedR32EtPen (bracket.js fallback)", () => {
     expect(r.updated).toBe(0);
   });
 
-  test("HARDCODED_R32_ET_PEN 至少包含 M74 + M75 (R32 已踢完点球战)", () => {
-    expect(HARDCODED_R32_ET_PEN[74]).toEqual({ et: [0, 0], pen: [3, 4] });
-    expect(HARDCODED_R32_ET_PEN[75]).toEqual({ et: [0, 0], pen: [2, 3] });
+  test("HARDCODED_R32_ET_PEN 包含 M74/M75/M82/M88 (R32 已踢完需 et/pen 的比赛)", () => {
+    // ponytail: 数据从 cup_finals.txt (openfootball) 抄录 + zerozero/球迷屋交叉验证.
+    // a.e.t. 串 "(X-Y, A-B)" 中 A-B 是加时阶段比分 (主客顺序), pen. 段是点球.
+    expect(HARDCODED_R32_ET_PEN[74]).toEqual({ et: [0, 1], pen: [3, 4] }); // 德国 1-1 巴拉圭, 加时 0-1, 点球 3-4
+    expect(HARDCODED_R32_ET_PEN[75]).toEqual({ et: [0, 0], pen: [2, 3] }); // 荷兰 1-1 摩洛哥, 加时 0-0, 点球 2-3
+    expect(HARDCODED_R32_ET_PEN[82]).toEqual({ et: [0, 1] });              // 比利时 2-2 塞内加尔, 加时 0-1, 无点球
+    expect(HARDCODED_R32_ET_PEN[88]).toEqual({ et: [0, 1], pen: [2, 4] }); // 澳大利亚 1-1 埃及, 加时 0-1, 点球 2-4
   });
 });

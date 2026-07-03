@@ -3,10 +3,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 import { ResultTable } from "../../../src/renderer/stocks/ResultTable.jsx";
 import { results } from "../../../src/renderer/stocks/stockStore.js";
-import { stockDiagnosisCode } from "../../../src/renderer/stocks/diagnosisStore.js";
+import { stockDiagnosisCode, stockActiveTab } from "../../../src/renderer/stocks/diagnosisStore.js";
 
 vi.mock("../../../src/renderer/api.js", () => ({ api: {} }));
-afterEach(() => { cleanup(); results.value = []; stockDiagnosisCode.value = null; });
+afterEach(() => { cleanup(); results.value = []; stockDiagnosisCode.value = null; stockActiveTab.value = "screen"; });
 
 describe("ResultTable 诊断按钮", () => {
   it("每行末尾有「诊断」按钮", () => {

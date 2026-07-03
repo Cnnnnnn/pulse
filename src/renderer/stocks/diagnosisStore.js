@@ -1,6 +1,10 @@
 /**
  * 个股诊断报告页 state. Spec: 2026-07-04-stock-diagnosis-redesign-design.md
- * stockDiagnosisCode = null → 选股表格; 有值 → 全屏诊断页.
+ *
+ * 两个 tab: "screen"(筛选) / "diagnosis"(个股分析) — 照搬世界杯模块 segmented control.
+ * stockActiveTab 决定展示哪个 tab; stockDiagnosisCode 是"当前分析股票"(诊断 tab 内容).
+ * 筛选 tab 的 ResultTable 行内诊断按钮 + 诊断 tab 顶部搜索框 都调 openDiagnosis(code):
+ *   它会同时设 stockDiagnosisCode 并切到 diagnosis tab.
  */
 import { signal, computed } from "@preact/signals";
 import { computeScores } from "../../stocks/diagnosis-scorer.js";
@@ -10,6 +14,9 @@ import { computeScores } from "../../stocks/diagnosis-scorer.js";
 // news_buzz 新闻舆情 / peer_compare 同业对比 / moat_score 护城河)
 export const ALL_ANGLES = ["price_trend","volume_turnover","valuation","profitability","capital_flow","tech_indicators","news_buzz","peer_compare","moat_score"];
 
+// 当前 tab: "screen"=筛选 / "diagnosis"=个股分析
+export const stockActiveTab = signal("screen");
+
 export const stockDiagnosisCode = signal(null);
 
 // 诊断页数据状态: { status, perAngleData, scores, aiResult, error }
@@ -17,10 +24,14 @@ export const diagnosisState = signal({ status: "idle", perAngleData: {}, scores:
 
 export function openDiagnosis(code) {
   stockDiagnosisCode.value = code;
+  // 切到诊断 tab (筛选 tab 内 ResultTable 的诊断按钮被点击时, 自动跳到个股分析 tab).
+  stockActiveTab.value = "diagnosis";
 }
 
 export function closeDiagnosis() {
-  stockDiagnosisCode.value = null;
+  // 只切回筛选 tab, 保留 stockDiagnosisCode 当"最近分析过的股票"语义
+  // (诊断 tab 顶部搜索框可重新选股覆盖它).
+  stockActiveTab.value = "screen";
   diagnosisState.value = { status: "idle", perAngleData: {}, scores: null, aiResult: null, error: null };
 }
 

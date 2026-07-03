@@ -1,21 +1,41 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { signal } from "@preact/signals";
-import { stockDiagnosisCode, openDiagnosis, closeDiagnosis, diagnosisState, loadDiagnosis } from "../../../src/renderer/stocks/diagnosisStore.js";
+import {
+  stockDiagnosisCode,
+  stockActiveTab,
+  openDiagnosis,
+  closeDiagnosis,
+  diagnosisState,
+  loadDiagnosis,
+} from "../../../src/renderer/stocks/diagnosisStore.js";
+
+// closeDiagnosis 不再清 stockDiagnosisCode (保留当"最近分析过的股票"语义),
+// 测试间手动归零避免互相污染.
+beforeEach(() => {
+  stockDiagnosisCode.value = null;
+  stockActiveTab.value = "screen";
+});
 
 describe("diagnosisStore", () => {
   beforeEach(() => { closeDiagnosis(); });
 
-  it("stockDiagnosisCode 默认 null (显示选股表格)", () => {
+  it("stockDiagnosisCode 默认 null", () => {
     expect(stockDiagnosisCode.value).toBeNull();
   });
-  it("openDiagnosis(code) 设 code", () => {
+  it("stockActiveTab 默认 screen", () => {
+    expect(stockActiveTab.value).toBe("screen");
+  });
+  it("openDiagnosis(code) 设 code + 切到 diagnosis tab", () => {
     openDiagnosis("300750");
     expect(stockDiagnosisCode.value).toBe("300750");
+    expect(stockActiveTab.value).toBe("diagnosis");
   });
-  it("closeDiagnosis 清回 null", () => {
+  it("closeDiagnosis 切回 screen tab 且保留 stockDiagnosisCode", () => {
     openDiagnosis("300750");
     closeDiagnosis();
-    expect(stockDiagnosisCode.value).toBeNull();
+    expect(stockActiveTab.value).toBe("screen");
+    // 关键: code 不再被清, 保留当"当前分析股票"语义
+    expect(stockDiagnosisCode.value).toBe("300750");
   });
   it("closeDiagnosis 重置 diagnosisState 回 idle", async () => {
     const api = {

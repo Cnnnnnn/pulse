@@ -48,6 +48,8 @@ describe("v2.74.3 scorers-leaderboard knockout integration", () => {
       slot1: { team: { name: "Germany" } },
       slot2: { team: { name: "Paraguay" } },
       score: {
+        ft: [1, 1],
+        pen: [3, 4],
         scorers: [
           { player: "Kai Havertz", teamSide: "team1", penalty: false },
         ],
@@ -57,6 +59,8 @@ describe("v2.74.3 scorers-leaderboard knockout integration", () => {
     expect(out.team1).toBe("Germany");
     expect(out.team2).toBe("Paraguay");
     expect(out.scorers).toHaveLength(1);
+    // ponytail: score 字段透传, buildScorersLeaderboard 据此判断 shootout
+    expect(out.score).toBe(m.score);
   });
 
   it("normalizeScorersMatch handles group shape (flat team1/team2)", () => {
@@ -133,21 +137,102 @@ describe("v2.74.3 scorers-leaderboard knockout integration", () => {
     expect(out[1].rank).toBe(2);
   });
 
-  it("buildScorersLeaderboard counts penalty goals separately", () => {
+  it("buildScorersLeaderboard counts penalty goals separately (regular penalty kicks)", () => {
+    // ponytail: 常规点球 (90分/加时) 仍计进球 + penalties 字段; 只有 shootout 不计.
     const m = {
       team1: "A",
       team2: "B",
       score: {
+        // score.pen 不存在 → 不会被识别为 shootout
         scorers: [
-          { player: "P1", teamSide: "team1", penalty: true },
-          { player: "P1", teamSide: "team1", penalty: true },
-          { player: "P1", teamSide: "team1", penalty: false },
+          { player: "P1", teamSide: "team1", penalty: true, minute: "67'" },
+          { player: "P1", teamSide: "team1", penalty: true, minute: "120'+5'" }, // 加时常规点球
+          { player: "P1", teamSide: "team1", penalty: false, minute: "30'" },
         ],
       },
     };
     const out = buildScorersLeaderboard([m]);
     expect(out[0].goals).toBe(3);
     expect(out[0].penalties).toBe(2);
+  });
+
+  it("buildScorersLeaderboard excludes penalty shootout goals", () => {
+    // ponytail: shootout 点球 (penalty=true + minute="120'" + score.pen 存在)
+    // 不进射手榜. M74 实战场景: Germany vs Paraguay shootout 6 个 penalty 进球不进榜.
+    const m = {
+      team1: "Germany",
+      team2: "Paraguay",
+      score: {
+        ft: [1, 1],
+        et: [0, 1],
+        pen: [3, 4],
+        status: "final",
+        scorers: [
+          // 90 分 2 个进球 — 应计
+          { player: "Kai Havertz", teamSide: "team1", penalty: false, minute: "54'" },
+          { player: "Julio Enciso", teamSide: "team2", penalty: false, minute: "42'" },
+          // shootout 6 个进球 — 全不计
+          { player: "Maurício", teamSide: "team2", penalty: true, minute: "120'" },
+          { player: "Joshua Kimmich", teamSide: "team1", penalty: true, minute: "120'" },
+          { player: "Gustavo Gómez", teamSide: "team2", penalty: true, minute: "120'" },
+          { player: "Jamal Musiala", teamSide: "team1", penalty: true, minute: "120'" },
+          { player: "Matías Galarza", teamSide: "team2", penalty: true, minute: "120'" },
+          { player: "Nadiem Amiri", teamSide: "team1", penalty: true, minute: "120'" },
+        ],
+      },
+    };
+    const out = buildScorersLeaderboard([m]);
+    // 应该只有 Havertz + Enciso 两人, 各 1 球
+    expect(out).toHaveLength(2);
+    const havertz = out.find((r) => r.player === "Kai Havertz");
+    const enciso = out.find((r) => r.player === "Julio Enciso");
+    expect(havertz.goals).toBe(1);
+    expect(havertz.penalties).toBe(0);
+    expect(enciso.goals).toBe(1);
+    expect(enciso.penalties).toBe(0);
+  });
+
+  it("buildScorersLeaderboard counts ET penalty kick (not shootout) as a regular goal", () => {
+    // ponytail: 加时常规点球 (minute="120'+5'") 不算 shootout, 应计 1 球.
+    // M82 实战场景: Youri Tielemans 120'+5'(p).
+    const m = {
+      matchNum: 82,
+      slot1: { team: { name: "Belgium" } },
+      slot2: { team: { name: "Senegal" } },
+      score: {
+        ft: [3, 2],
+        et: [0, 1],
+        // 没有 score.pen → 没有 shootout
+        status: "final",
+        scorers: [
+          { player: "Habib Diarra", teamSide: "team2", penalty: false, minute: "24'" },
+          { player: "Romelu Lukaku", teamSide: "team1", penalty: false, minute: "86'" },
+          { player: "Youri Tielemans", teamSide: "team1", penalty: true, minute: "120'+5'" },
+        ],
+      },
+    };
+    const out = buildScorersLeaderboard([m]);
+    // Tielemans 加时点球 = 1 球 + 1 penalty
+    const tiel = out.find((r) => r.player === "Youri Tielemans");
+    expect(tiel.goals).toBe(1);
+    expect(tiel.penalties).toBe(1);
+  });
+
+  it("buildScorersLeaderboard treats minute='120' (no apostrophe) without pen as regular goal", () => {
+    // ponytail: score.pen 不存在时, 即便 minute 形态可疑, 不应误判 shootout.
+    const m = {
+      team1: "A",
+      team2: "B",
+      score: {
+        scorers: [
+          // 极端边界: minute 写 "120" 不带 ', penalty=true, 但 score.pen 不存在 → 不算 shootout
+          { player: "P1", teamSide: "team1", penalty: true, minute: "120" },
+        ],
+      },
+    };
+    const out = buildScorersLeaderboard([m]);
+    expect(out[0].goals).toBe(1);
+    expect(out[0].penalties).toBe(1);
   });
 
   it("buildScorersLeaderboard skips own goals", () => {
