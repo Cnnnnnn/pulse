@@ -48,6 +48,34 @@ describe("LibraryPage (Task 12)", () => {
   });
 });
 
+describe("LibraryPage 滚动结构 (2026-07-03 修搜索栏滚动穿透)", () => {
+  // 旧实现: PageHeader + 搜索栏用 position:sticky + top:var(--page-header-h)
+  // 钉顶, 但 --page-header-h 全项目从未定义 → 退回 auto → sticky 失效, 搜索栏
+  // 与标题同钉 top:0 互相覆盖, 滚动时搜索栏"穿透"浮在最上层.
+  // 现改为 flex 布局: 列表区单独包进 .library-list-scroll 滚动容器,
+  // header/搜索栏作为非滚动 flex 项自然钉顶.
+  it("列表区被 .library-list-scroll 包裹 (滚动只发生在列表区)", () => {
+    results.value = new Map([["App1", { name: "App1", current_version: "1", latest_version: "2", has_update: false, bundle: "" }]]);
+    const { container } = render(<LibraryPage />);
+    const scroll = container.querySelector(".library-list-scroll");
+    expect(scroll).toBeTruthy();
+    // 搜索栏不应落在滚动容器内 (否则它跟列表一起滚走)
+    const filter = container.querySelector(".merged-filter");
+    expect(filter).toBeTruthy();
+    expect(scroll.contains(filter)).toBe(false);
+    // .results-container (table 模式列表) 必须在滚动容器内
+    expect(scroll.querySelector(".results-container")).toBeTruthy();
+  });
+
+  it("card 模式列表区同样在滚动容器内", () => {
+    setViewMode("card");
+    results.value = new Map([["App1", { name: "App1", current_version: "1", latest_version: "2", has_update: false, bundle: "" }]]);
+    const { container } = render(<LibraryPage />);
+    const scroll = container.querySelector(".library-list-scroll");
+    expect(scroll.querySelector(".app-card-grid")).toBeTruthy();
+  });
+});
+
 describe("LibraryPage 空态 + 检查更新按钮", () => {
   it("results.size === 0 时显示 OverviewEmptyState CTA, 不显示列表", () => {
     results.value = new Map(); // 空

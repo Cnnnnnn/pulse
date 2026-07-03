@@ -60,12 +60,14 @@ export function LibraryPage() {
         <ViewSwitcher />
       </PageHeader>
       <MergedFilterChip />
-      {mode === "table" && <ResultsView />}
-      {mode === "card" && (
-        useVirtual
-          ? <VirtualCardGrid />
-          : <div class="app-card-grid">{Array.from(results.value.keys()).map((n) => <AppCard key={n} name={n} />)}</div>
-      )}
+      <div class="library-list-scroll">
+        {mode === "table" && <ResultsView />}
+        {mode === "card" && (
+          useVirtual
+            ? <VirtualCardGrid />
+            : <div class="app-card-grid">{Array.from(results.value.keys()).map((n) => <AppCard key={n} name={n} />)}</div>
+        )}
+      </div>
     </div>
   );
 }

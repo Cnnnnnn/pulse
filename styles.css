@@ -682,26 +682,55 @@ body.platform-win .window-control-btn--close:hover {
 .btn-run-check:active { transform: scale(0.96); }
 .btn-run-check:disabled { opacity: 0.5; pointer-events: none; }
 
-/* ─── LibraryPage 滚动容器 (2026-06-27) ───
-   .app-shell-view:has(>.versions-layout) 把父级设成 overflow:hidden + flex 列,
-   旧 dashboard 靠 .versions-layout-body 滚动; LibraryPage 接管该职责:
-   flex:1 + min-height:0 + overflow-y:auto 让列表区成为可滚动主体. */
+/* ─── LibraryPage 布局 (2026-06-27; 2026-07-03 修滚动穿透) ───
+   .app-shell-view:has(>.versions-layout) 把父级设成 overflow:hidden + flex 列.
+   LibraryPage 接管滚动职责:
+     .library-page = flex 列容器 (不自身滚动),
+     PageHeader + MergedFilterChip = flex-shrink:0 自然钉顶,
+     .library-list-scroll = 唯一 overflow-y:auto 的滚动主体.
+
+   ponytail: 旧实现用 position:sticky + top:var(--page-header-h) 把 header/
+   搜索栏钉顶, 但 --page-header-h 全项目从未定义 → 退回 auto → sticky 阈值失效,
+   搜索栏与 PageHeader 同钉 top:0 互相覆盖, 滚动时"穿透"浮在最上层. 改用 flex
+   让 header/搜索栏成为非滚动 flex 项, 彻底消除"量高度"的脆弱性. */
 .library-page {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.library-page > .page-header,
+.library-page > .merged-filter {
+  flex-shrink: 0;
+  background: var(--bg-modal, #fff);
+}
+.library-page .library-list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ─── DiagnosticsPage / InsightsPage / SettingsPage 布局 (2026-07-03) ───
+   这三个 versions-layout 下的路由页此前无任何布局 CSS, 在 flex column 父容器
+   (.versions-layout) 里是默认 flex 项 (flex:0 1 auto), 被内容撑高后顶部对齐
+   但底部被祖先 overflow:hidden 截断 → 看不到底部、无滚动条. 补成跟 .library-page
+   同款的 flex:1 + min-height:0 + overflow-y:auto, 让整页可滚动.
+   (PageHeader 不需 sticky: 这些页 header 简单, 直接随页滚走即可, 不影响交互.) */
+.diagnostics-page,
+.insights-page,
+.settings-page {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
-/* PageHeader / MergedFilterChip 钉在顶部, 只让列表体滚动 */
-.library-page .page-header,
-.library-page .merged-filter {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--bg-modal, #fff);
+.diagnostics-page > .page-header,
+.insights-page > .page-header,
+.settings-page > .page-header {
+  flex-shrink: 0;
 }
-.library-page .merged-filter { top: var(--page-header-h, auto); }
 
 /* ─── Phase 14: Action group (ℹ️ + 升级/badge 并排) ─── */
 .app-action-group {
@@ -3174,6 +3203,162 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: var(--font-size-xs, 11px);
   color: var(--error, #d93b3b);
 }
+
+/* === DiagnosticsPage v2 内部卡片/KPI/网格/工具栏 (2026-07-04 补) ===
+   JSX 用的是 .diag-card / .diag-grid / .diag-kpi* 新名, 此前 CSS 只有旧的
+   .diag-section / .diag-row, 名字对不上导致卡片样式全丢. 这里对齐 .kpi-card
+   (styles.css:10748) + fund-modal 的设计语言补全. */
+.diagnostics-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px) var(--space-5, 20px) var(--space-5, 20px);
+}
+
+.diag-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2h, 10px);
+}
+.diag-kpi {
+  padding: 14px 16px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 10px;
+  border-left: 4px solid var(--text-tertiary, #8e8e93);
+}
+.diag-kpi--ok      { border-left-color: var(--accent-green, #34c759); }
+.diag-kpi--warn    { border-left-color: var(--accent-orange, #ff9500); }
+.diag-kpi--danger  { border-left-color: var(--accent-red, #ff3b30); }
+.diag-kpi--neutral { border-left-color: var(--text-tertiary, #8e8e93); }
+.diag-kpi__value {
+  font-size: 26px; font-weight: 700; line-height: 1;
+  color: var(--text-primary, #1d1d1f); margin-bottom: 4px;
+}
+.diag-kpi__label {
+  font-size: var(--font-size-sm, 12px);
+  color: var(--text-secondary, #6e6e73);
+}
+
+.diag-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3, 12px);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .diag-grid { grid-template-columns: 1fr; }
+  .diag-kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.diag-card {
+  padding: 14px 16px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+.diag-card--update { border-left: 4px solid var(--accent-primary, #007aff); }
+.diag-card--actions { gap: var(--space-2h, 10px); }
+.diag-card__title-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-2, 8px);
+}
+.diag-card__title {
+  font-size: var(--font-size-md, 13px); font-weight: 600;
+  color: var(--text-primary, #1d1d1f);
+}
+.diag-card__meta {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--text-tertiary, #8e8e93);
+}
+.diag-card__body { font-size: var(--font-size-sm, 12px); color: var(--text-secondary, #555); }
+.diag-card__actions {
+  display: flex; gap: var(--space-2, 8px); flex-wrap: wrap; margin-top: 4px;
+}
+.diag-card__empty {
+  font-size: var(--font-size-sm, 12px);
+  color: var(--text-tertiary, #8e8e93);
+  padding: var(--space-2, 8px) 0;
+}
+
+.diag-perf-row {
+  display: flex; gap: var(--space-3, 12px); flex-wrap: wrap;
+}
+.diag-perf-cell {
+  display: flex; flex-direction: column; gap: 2px; min-width: 64px;
+}
+.diag-perf-cell__label {
+  font-size: var(--font-size-xs, 11px); color: var(--text-tertiary, #8e8e93);
+}
+.diag-perf-cell__value {
+  font-size: var(--font-size-sm, 12px); font-weight: 600;
+  color: var(--text-primary, #1d1d1f); font-variant-numeric: tabular-nums;
+}
+.diag-perf-meta {
+  font-size: var(--font-size-xs, 11px); color: var(--text-tertiary, #8e8e93);
+}
+
+.diag-failure-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+/* .diag-failure / __count / __source / __message 已有旧规则 (line 3171+), 保留 */
+
+.diag-entries-toolbar {
+  display: flex; align-items: center; gap: var(--space-2, 8px); flex-wrap: wrap;
+  margin-bottom: var(--space-2, 8px);
+}
+.diag-entries-search {
+  flex: 1; min-width: 160px;
+  padding: 6px 10px;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 8px;
+  background: var(--bg-elevated, #f5f5f7);
+  font-size: var(--font-size-md, 13px);
+  color: var(--text-primary, #1d1d1f);
+}
+.diag-entries-search:focus { outline: none; border-color: var(--accent-primary, #007aff); box-shadow: var(--focus-ring); }
+.diag-entries-filters { display: inline-flex; gap: 4px; }
+.diag-filter-chip {
+  padding: 4px 10px; border-radius: 12px;
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  background: transparent;
+  font-size: var(--font-size-sm, 12px);
+  color: var(--text-secondary, #6e6e73);
+  cursor: pointer; transition: all 0.15s ease;
+}
+.diag-filter-chip:hover { border-color: var(--accent-primary, #007aff); }
+.diag-filter-chip.active { background: var(--accent-primary, #007aff); border-color: var(--accent-primary, #007aff); color: #fff; }
+.diag-entries {
+  list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto;
+}
+
+.diag-update-pill {
+  font-size: var(--font-size-xs, 11px); font-weight: 600;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--bg-elevated, #f0f0f2);
+  color: var(--text-secondary, #6e6e73);
+}
+.diag-update-pill--available, .diag-update-pill--downloaded { background: rgba(48,209,88,0.15); color: #1a7f37; }
+.diag-update-pill--downloading { background: rgba(0,122,255,0.12); color: var(--accent-primary, #007aff); }
+.diag-update-pill--checking { background: rgba(255,149,0,0.12); color: #b25b00; }
+.diag-update-pill--error { background: rgba(255,59,48,0.12); color: var(--accent-red, #ff3b30); }
+
+.diag-action-row {
+  display: flex; align-items: center; gap: var(--space-2, 8px); flex-wrap: wrap;
+}
+.diag-action-hint {
+  font-size: var(--font-size-xs, 11px); color: var(--text-tertiary, #8e8e93);
+}
+.diag-action-hint code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-10, 10px); word-break: break-all;
+}
+.diag-action-hint--err { color: var(--accent-red, #ff3b30); }
+
 .error-entry {
   padding: 8px 0;
   border-bottom: 1px solid var(--bg-secondary, #e5e5ea);
@@ -9786,6 +9971,152 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-secondary, #888);
   margin-top: 2px;
 }
+
+/* === WatchlistModal (Phase 33 弹窗版) — macOS 原生紧凑列表风格 (2026-07-04 重设计) ===
+   参考 macOS 系统偏好 / 提醒事项: 窄卡片 + 紧凑行 + 圆形分组图标 + hover 才显删除.
+   外壳 backdrop/card 复用 ModalShell 的 .modal-* 基础类; bodyClass 覆盖了默认
+   .modal-body, 所以这里 .watchlist-modal-body 自己承担 flex:1 + 滚动职责. */
+.watchlist-modal { width: 440px; max-height: min(680px, calc(100vh - 80px)); overflow: hidden; }
+/* header: WatchlistModal 用 ModalHeader className= 覆盖了默认 modal-header,
+   丢失 .modal-header 的 flex/justify, 这里补回 (标题左 + 关闭按钮右). */
+.watchlist-modal-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.04));
+}
+.watchlist-modal-header h2 {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin: 0; font-size: 15px; font-weight: 600;
+  color: var(--text-primary, #1d1d1f); min-width: 0;
+}
+.watchlist-modal-icon { display: inline-flex; color: var(--accent-amber, #ff9f0a); flex-shrink: 0; }
+.watchlist-modal-sub { font-size: 11px; color: var(--text-tertiary, #aeaeb2); font-weight: 400; }
+.watchlist-modal-header .btn-ghost { flex-shrink: 0; }
+
+/* body: 唯一滚动区, 内部分区为 form / filters / sections 三块 */
+.watchlist-modal-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; padding: 0;
+}
+
+/* —— 顶部: 添加关键词 (一行, 扁平) —— */
+.watchlist-add-form {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.04));
+  flex-shrink: 0;
+}
+.watchlist-add-input {
+  flex: 1; min-width: 0;
+  padding: 5px 10px;
+  border: 1px solid var(--border-subtle, #e5e5e7);
+  border-radius: 6px;
+  background: var(--bg-secondary, #f5f5f7);
+  font-size: 12.5px; color: var(--text-primary, #1d1d1f);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.watchlist-add-input::placeholder { color: var(--text-tertiary, #aeaeb2); }
+.watchlist-add-input:focus {
+  outline: none; background: #fff;
+  border-color: var(--accent-primary, #007aff);
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+}
+
+/* —— 筛选 chips: 分段控件风 (segmented) —— */
+.watchlist-filters {
+  display: flex; gap: 0; padding: 8px 12px;
+  border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.04));
+  flex-shrink: 0; overflow-x: auto;
+}
+.watchlist-filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border: 0; border-radius: 0;
+  background: transparent;
+  font-size: 11.5px; color: var(--text-secondary, #6e6e73);
+  cursor: pointer; white-space: nowrap;
+  transition: color 0.12s, background 0.12s;
+}
+.watchlist-filter-chip + .watchlist-filter-chip { border-left: 1px solid var(--border-light, rgba(0,0,0,0.06)); }
+.watchlist-filter-chip:hover { color: var(--text-primary, #1d1d1f); }
+.watchlist-filter-chip.active { color: var(--accent-primary, #007aff); font-weight: 600; }
+.watchlist-filter-chip__count { font-size: 10px; color: var(--text-tertiary, #aeaeb2); }
+
+/* —— 分组 section (macOS 分组列表: 灰色小标题 + 圆角分组块) —— */
+.watchlist-sections {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 12px 12px;
+}
+.watchlist-section__header {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 6px 4px 4px;
+  background: transparent; border: 0;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--text-tertiary, #aeaeb2);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.watchlist-section__header:hover { color: var(--text-secondary, #6e6e73); }
+.watchlist-section__chevron { display: inline-block; transition: transform 0.18s ease; color: var(--text-tertiary, #aeaeb2); font-size: 9px; }
+.watchlist-section__chevron.is-open { transform: rotate(90deg); }
+.watchlist-section__count {
+  margin-left: auto;
+  font-size: 10px; font-weight: 500;
+  color: var(--text-tertiary, #aeaeb2);
+}
+.watchlist-section__list {
+  list-style: none; margin: 0; padding: 0;
+  background: var(--bg-secondary, #f5f5f7);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.watchlist-section__empty {
+  padding: 8px 12px; font-size: 11.5px; color: var(--text-tertiary, #aeaeb2);
+  background: var(--bg-secondary, #f5f5f7); border-radius: 8px;
+}
+
+/* —— 单行 entry: 紧凑 (32px), 圆形图标, hover 显删除 —— */
+.watchlist-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 0 4px 0 0;
+  height: 34px;
+  position: relative;
+}
+.watchlist-row + .watchlist-row { border-top: 1px solid var(--border-light, rgba(0,0,0,0.05)); }
+.watchlist-row:hover { background: rgba(0,0,0,0.03); }
+.watchlist-row__icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg-elevated, #ebebf0);
+  color: var(--text-secondary, #6e6e73); flex-shrink: 0;
+  margin-left: 2px;
+}
+.watchlist-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.watchlist-row__name { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.watchlist-row__type {
+  font-size: 9.5px; padding: 1px 5px; border-radius: 4px;
+  background: var(--bg-elevated, #ebebf0); color: var(--text-tertiary, #aeaeb2);
+  flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.02em;
+}
+.watchlist-row__type--app { color: #5856d6; } .watchlist-row__type--fund { color: #34c759; }
+.watchlist-row__type--metal { color: #ff9500; } .watchlist-row__type--keyword { color: #8e8e93; }
+.watchlist-row__title {
+  font-size: 12.5px; font-weight: 500; color: var(--text-primary, #1d1d1f);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
+.watchlist-row__meta {
+  font-size: 10.5px; color: var(--text-tertiary, #aeaeb2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.watchlist-row__added { color: var(--text-tertiary, #c7c7cc); }
+/* 删除按钮: 默认 subtle, hover 行时变明显 */
+.watchlist-row .btn-ghost { font-size: 11px; padding: 2px 8px; opacity: 0; transition: opacity 0.12s; }
+.watchlist-row:hover .btn-ghost { opacity: 1; }
+.watchlist-row .btn-ghost:hover { color: var(--accent-red, #ff3b30); }
+
+/* 空态 */
+.watchlist-empty { padding: 40px 24px; text-align: center; }
+.watchlist-empty__title { font-size: 13px; font-weight: 600; color: var(--text-secondary, #6e6e73); margin-bottom: 6px; }
+.watchlist-empty__hint { font-size: 11.5px; color: var(--text-tertiary, #aeaeb2); line-height: 1.6; }
 
 /* === ON: Release Notes Onboarding === */
 
