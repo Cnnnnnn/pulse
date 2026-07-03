@@ -4,16 +4,13 @@
  * 选股 tab 容器 (对照 FundLayout).
  * 注意: 进 tab 不自动筛选 (避免进 tab 就打接口), 用户手动点筛选.
  *
- * Phase 32: 个股 AI 分析抽屉 (StockDetailDrawer) 挂这里, 不再独立 nav.
- * 顶栏 "AI 个股" 按钮打开抽屉, 抽屉自带搜索输入让用户选股.
+ * 个股诊断页 (StockDiagnosisPage) 通过子路由切换显示.
  */
 import { StrategyBar } from "./StrategyBar.jsx";
 import { CriteriaPanel } from "./CriteriaPanel.jsx";
 import { ResultTable } from "./ResultTable.jsx";
 import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
-import { StockDetailDrawer } from "./StockDetailDrawer.jsx";
 import { IconSearch, IconSparkles, IconTrendingUp } from "../components/icons.jsx";
-import { detailOpen } from "./stockDetailStore.js";
 import { stockDiagnosisCode } from "./diagnosisStore.js";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
 import {
@@ -47,15 +44,6 @@ export function StockLayout() {
           <span class="stock-updated">更新于 {fmtTime(ts)}</span>
           <button
             type="button"
-            class="stock-btn stock-btn-secondary"
-            onClick={() => { detailOpen.value = true; }}
-            aria-label="AI 个股分析"
-            data-testid="stock-detail-open"
-          >
-            <IconSparkles size={14} /> AI 个股
-          </button>
-          <button
-            type="button"
             class="stock-btn stock-btn-secondary stock-btn-ai"
             disabled={loading.value}
             onClick={() => openAdvise()}
@@ -85,7 +73,6 @@ export function StockLayout() {
         </>
       )}
       <AiAdviseDrawer api={api} />
-      <StockDetailDrawer api={api} />
     </div>
   );
 }
