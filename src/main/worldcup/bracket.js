@@ -114,6 +114,18 @@ async function computeWorldcupBracket(opts = {}) {
         });
       }
     }
+
+    // v2.74.1: 已知 R32 比赛 et/pen 硬编码 fallback. wc-2026 源对中国大陆
+    // 外 IP 不可达 + wc26 mirror 没 pen 字段, 在没自动源能补 pen 时, 用
+    // 验证过的零星战报数据兜底. 将来 ESL 流能稳定提供时移除.
+    if (opts.hardcodedPen !== false) {
+      const r = mergeHardcodedR32EtPen(snapshot, opts.hardcodedPen || {});
+      if (r.updated > 0) {
+        mainLog.info("[worldcup/bracket] hardcoded pen injected", {
+          count: r.updated,
+        });
+      }
+    }
     if (finalsFetchWarning) {
       snapshot.warnings = snapshot.warnings || [];
       snapshot.warnings.push(`finals_fetch_${finalsFetchWarning}`);
@@ -550,6 +562,65 @@ function rankGroup(letter, matches, teams) {
 }
 
 /**
+ * 已知 R32 加时/点球比分硬编码 fallback.
+ *
+ * ponytail: 当前 wc-2026.com 源对中国大陆外 IP 不可达 (cloudflare 风控),
+ * wc26.ir 主源 502, worldcup26 mirror (wc2026.moothz.win) 没 penalty 字段.
+ * 在没自动源能给 R32 比赛 pen 数字时, 把已知点球大战结果写死在代码里,
+ * 至少 UI 能显示 "点球 3:4" 等标签.
+ *
+ * 数据来源: zerozero.asia / 球迷屋 / 7M 公开战报 (2026-06-30 / 2026-07-02 验证).
+ *
+ * 将来真正上游源能稳定提供 et/pen 时 (例如 ESL 流 score-fetcher 拿到),
+ * 这块代码应移除, 走 entry.pen 自动注入路径.
+ */
+const HARDCODED_R32_ET_PEN = {
+  // M74: 德国 1-1 巴拉圭 (90 分), 加时 0-0, 点球 3-4 巴拉圭胜
+  74: { et: [0, 0], pen: [3, 4] },
+  // M75: 荷兰 1-1 摩洛哥 (90 分), 加时 0-0, 点球 2-3 摩洛哥胜
+  75: { et: [0, 0], pen: [2, 3] },
+};
+
+/**
+ * 把 HARDCODED_R32_ET_PEN 注入到 snapshot. 只在 score.pen / score.et
+ * 字段还没值时才填, 避免覆盖更权威源 (ESL 流 / wc-2026 / 实测 pen).
+ *
+ * @param {object} snapshot
+ * @param {object} [opts]
+ * @param {object} [opts.table] - 测试注入 (默认 HARDCODED_R32_ET_PEN)
+ * @returns {{updated: number}}
+ */
+function mergeHardcodedR32EtPen(snapshot, opts = {}) {
+  if (!snapshot) return { updated: 0 };
+  const table = opts.table || HARDCODED_R32_ET_PEN;
+  if (!table || Object.keys(table).length === 0) return { updated: 0 };
+  let updated = 0;
+  for (const m of _allBracketMatches(snapshot)) {
+    if (!m || typeof m.matchNum !== "number") continue;
+    const data = table[m.matchNum];
+    if (!data) continue;
+    m.score = m.score || {};
+    let changed = false;
+    // ponytail: 只在 pen/et 字段缺失时注入. 已存在的 (任何来源:
+    // ESL 流 / wc-2026 / 用户手动) 都视为权威, hardcoded 不覆盖.
+    if (data.pen && !Array.isArray(m.score.pen)) {
+      m.score.pen = data.pen;
+      m.score.source = m.score.source || "hardcoded-r32";
+      m.score.updatedAt = Date.now();
+      changed = true;
+    }
+    if (data.et && !Array.isArray(m.score.et)) {
+      m.score.et = data.et;
+      m.score.source = m.score.source || "hardcoded-r32";
+      m.score.updatedAt = Date.now();
+      changed = true;
+    }
+    if (changed) updated += 1;
+  }
+  return { updated };
+}
+
+/**
  * Load cached bracket snapshot from state.json.
  *
  * @param {object} [opts]
@@ -575,6 +646,8 @@ module.exports = {
   mergeFinalsIntoSnapshot,
   mergeLiveScoresIntoSnapshot,
   mergeWc2026EtPen,
+  mergeHardcodedR32EtPen,
+  HARDCODED_R32_ET_PEN,
   isPlaceholderTeamName,
   isPollutedTeamName,
 };

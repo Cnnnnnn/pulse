@@ -727,6 +727,10 @@ Sun Jul 19
       finalsMatches: finalsData.matches,
       scores: () => ({}),
       groupStandings: FULL_GROUP_STANDINGS,
+      // ponytail: 测试不要走真 wc-2026.com HTTP (云外 IP 不可达, 会卡 8s+ timeout)
+      wc2026: false,
+      // 也不要硬编码 pen 注入 (测试期望 fixture 是干净的)
+      hardcodedPen: false,
     });
     expect(r.ok).toBe(true);
     const m73 = r.snapshot.r32.find((m) => m.matchNum === 73);

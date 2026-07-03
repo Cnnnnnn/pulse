@@ -16,7 +16,11 @@ const {
   parseScheduleHtml,
   indexWc2026ByMatchNum,
 } = require("../../src/main/worldcup/scores-fetcher-wc2026");
-const { mergeWc2026EtPen } = require("../../src/main/worldcup/bracket");
+const {
+  mergeWc2026EtPen,
+  mergeHardcodedR32EtPen,
+  HARDCODED_R32_ET_PEN,
+} = require("../../src/main/worldcup/bracket");
 
 // 最小 bracket snapshot, 4 个 R32 比赛覆盖主要场景:
 // M73 干净队名 90 分决出, M74 污染串 90 分 + 点球, M75 污染串 90 分 + 点球,
@@ -37,15 +41,26 @@ function makeSnapshot() {
       {
         matchNum: 74,
         slot1: { team: { name: "Germany" }, source: "1E" },
-        slot2: { team: { name: "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" }, source: "3D" },
+        slot2: {
+          team: { name: "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" },
+          source: "3D",
+        },
         score: { ft: [1, 1], status: "final" },
         status: "final",
-        kickoff: { date: "2026-06-29", time: "20:30", timezone: "UTC-4", venue: "Boston" },
+        kickoff: {
+          date: "2026-06-29",
+          time: "20:30",
+          timezone: "UTC-4",
+          venue: "Boston",
+        },
       },
       {
         matchNum: 75,
         slot1: { team: { name: "Netherlands" }, source: "1F" },
-        slot2: { team: { name: "a.e.t. (1-1, 0-0), 2-3 pen. Morocco" }, source: "3C" },
+        slot2: {
+          team: { name: "a.e.t. (1-1, 0-0), 2-3 pen. Morocco" },
+          source: "3C",
+        },
         score: { ft: [1, 1], status: "final" },
         status: "final",
         kickoff: { date: "2026-06-30", time: "01:00", timezone: "UTC-4" },
@@ -92,7 +107,9 @@ describe("parseScheduleHtml", () => {
   });
 
   test("时间跨日: 01:00 BJ → 17:00 UTC 前一天", () => {
-    const r = parseScheduleHtml("07月01日 01:00 · 北京时间 科特迪瓦 1 挪威 2 达拉斯 32强");
+    const r = parseScheduleHtml(
+      "07月01日 01:00 · 北京时间 科特迪瓦 1 挪威 2 达拉斯 32强",
+    );
     expect(r).toHaveLength(1);
     expect(r[0].date).toBe("2026-06-30");
     expect(r[0].time).toBe("17:00");
@@ -119,25 +136,33 @@ describe("parseScheduleHtml", () => {
 
 describe("indexWc2026ByMatchNum", () => {
   test("匹配干净队名: M73 → {ft, pen: null}", () => {
-    const w = parseScheduleHtml("06月29日 03:00 · 北京时间 南非 0 加拿大 1 洛杉矶 32强");
+    const w = parseScheduleHtml(
+      "06月29日 03:00 · 北京时间 南非 0 加拿大 1 洛杉矶 32强",
+    );
     const idx = indexWc2026ByMatchNum(w, makeSnapshot());
     expect(idx.get(73)).toEqual({ ft: [0, 1], pen: null });
   });
 
   test("匹配污染串: M74 提 Paraguay → pen=[3,4]", () => {
-    const w = parseScheduleHtml("06月30日 04:30 · 北京时间 德国 1 (3) 巴拉圭 1 (4) 波士顿 32强");
+    const w = parseScheduleHtml(
+      "06月30日 04:30 · 北京时间 德国 1 (3) 巴拉圭 1 (4) 波士顿 32强",
+    );
     const idx = indexWc2026ByMatchNum(w, makeSnapshot());
     expect(idx.get(74)).toEqual({ ft: [1, 1], pen: [3, 4] });
   });
 
   test("匹配污染串: M75 提 Morocco → pen=[2,3]", () => {
-    const w = parseScheduleHtml("06月30日 09:00 · 北京时间 荷兰 1 (2) 摩洛哥 1 (3) 蒙特雷 32强");
+    const w = parseScheduleHtml(
+      "06月30日 09:00 · 北京时间 荷兰 1 (2) 摩洛哥 1 (3) 蒙特雷 32强",
+    );
     const idx = indexWc2026ByMatchNum(w, makeSnapshot());
     expect(idx.get(75)).toEqual({ ft: [1, 1], pen: [2, 3] });
   });
 
   test("M82 ft 实际 [3,2], wc-2026 解析也是 [3,2] → match (90 分决出, pen=null)", () => {
-    const w = parseScheduleHtml("07月02日 04:00 · 北京时间 比利时 3 塞内加尔 2 西雅图 32强");
+    const w = parseScheduleHtml(
+      "07月02日 04:00 · 北京时间 比利时 3 塞内加尔 2 西雅图 32强",
+    );
     const idx = indexWc2026ByMatchNum(w, makeSnapshot());
     expect(idx.get(82)).toEqual({ ft: [3, 2], pen: null });
   });
@@ -204,7 +229,9 @@ describe("mergeWc2026EtPen (bracket.js)", () => {
     // wc-2026 报 德国 0 巴拉圭 1, 但 bracket ft=[1,1] → ft 不一致
     const fetchSchedule = async () => ({
       ok: true,
-      matches: parseScheduleHtml("06月30日 04:30 · 北京时间 德国 0 巴拉圭 1 波士顿 32强"),
+      matches: parseScheduleHtml(
+        "06月30日 04:30 · 北京时间 德国 0 巴拉圭 1 波士顿 32强",
+      ),
     });
     const r = await mergeWc2026EtPen(snap, { fetchSchedule });
     // ft 校验失败, 候选被排除, updated=0 (不强制盖)
@@ -222,10 +249,57 @@ describe("mergeWc2026EtPen (bracket.js)", () => {
     const snap = makeSnapshot();
     const fetchSchedule = async () => ({
       ok: true,
-      matches: parseScheduleHtml("06月30日 04:30 · 北京时间 德国 1 (3) 巴拉圭 1 (4) 波士顿 32强"),
+      matches: parseScheduleHtml(
+        "06月30日 04:30 · 北京时间 德国 1 (3) 巴拉圭 1 (4) 波士顿 32强",
+      ),
     });
     await mergeWc2026EtPen(snap, { fetchSchedule });
     const r2 = await mergeWc2026EtPen(snap, { fetchSchedule });
     expect(r2.updated).toBe(0);
+  });
+});
+
+describe("mergeHardcodedR32EtPen (bracket.js fallback)", () => {
+  test("M74 注入 pen=[3,4] + et=[0,0]", () => {
+    const snap = makeSnapshot();
+    const r = mergeHardcodedR32EtPen(snap);
+    expect(r.updated).toBe(2); // M74 + M75 都在 table
+    const m74 = snap.r32.find((m) => m.matchNum === 74);
+    expect(m74.score.pen).toEqual([3, 4]);
+    expect(m74.score.et).toEqual([0, 0]);
+    expect(m74.score.source).toBe("hardcoded-r32");
+  });
+
+  test("不覆盖已有 pen (信任更权威源)", () => {
+    const snap = makeSnapshot();
+    const m74 = snap.r32.find((m) => m.matchNum === 74);
+    m74.score.pen = [4, 3]; // 假设 wc-2026 或 ESL 已写入
+    m74.score.et = [0, 0]; // et 也填了 → hardcoded 整个 match 不注入
+    m74.score.source = "wc2026";
+    const r = mergeHardcodedR32EtPen(snap);
+    // M74 pen/et 都已存在 → 不动; M75 注入 → updated=1
+    expect(r.updated).toBe(1);
+    expect(m74.score.pen).toEqual([4, 3]); // 保留原值
+    expect(m74.score.source).toBe("wc2026");
+  });
+
+  test("custom table 注入 (测试可注入)", () => {
+    const snap = makeSnapshot();
+    const r = mergeHardcodedR32EtPen(snap, {
+      table: { 73: { pen: [5, 4] } },
+    });
+    expect(r.updated).toBe(1);
+    const m73 = snap.r32.find((m) => m.matchNum === 73);
+    expect(m73.score.pen).toEqual([5, 4]);
+  });
+
+  test("snapshot 为 null: 返 updated=0", () => {
+    const r = mergeHardcodedR32EtPen(null);
+    expect(r.updated).toBe(0);
+  });
+
+  test("HARDCODED_R32_ET_PEN 至少包含 M74 + M75 (R32 已踢完点球战)", () => {
+    expect(HARDCODED_R32_ET_PEN[74]).toEqual({ et: [0, 0], pen: [3, 4] });
+    expect(HARDCODED_R32_ET_PEN[75]).toEqual({ et: [0, 0], pen: [2, 3] });
   });
 });

@@ -26,92 +26,92 @@ const SCHEDULE_URL = "https://wc-2026.com/schedule/";
 // 英文 / 简体都不同). 这里维护一份粗略映射, 解析不出时再 fallback
 // canonicalTeamName (已经覆盖了 "Ivory Coast" ↔ "Cote d'Ivoire" 等).
 const TEAM_CN_TO_EN = {
-  "南非": "South Africa",
-  "加拿大": "Canada",
-  "巴西": "Brazil",
-  "日本": "Japan",
-  "德国": "Germany",
-  "巴拉圭": "Paraguay",
-  "荷兰": "Netherlands",
-  "摩洛哥": "Morocco",
-  "科特迪瓦": "Côte d'Ivoire",
-  "挪威": "Norway",
-  "法国": "France",
-  "瑞典": "Sweden",
-  "墨西哥": "Mexico",
-  "厄瓜多尔": "Ecuador",
-  "英格兰": "England",
-  "刚果民主共和国": "DR Congo",
-  "比利时": "Belgium",
-  "塞内加尔": "Senegal",
-  "美国": "USA",
-  "波黑": "Bosnia and Herzegovina",
-  "西班牙": "Spain",
-  "奥地利": "Austria",
-  "葡萄牙": "Portugal",
-  "克罗地亚": "Croatia",
-  "瑞士": "Switzerland",
-  "阿尔及利亚": "Algeria",
-  "澳大利亚": "Australia",
-  "埃及": "Egypt",
-  "阿根廷": "Argentina",
-  "佛得角": "Cabo Verde",
-  "哥伦比亚": "Colombia",
-  "加纳": "Ghana",
-  "韩国": "Korea Republic",
-  "捷克": "Czechia",
-  "波黑": "Bosnia and Herzegovina",
-  "瑞士": "Switzerland",
-  "喀麦隆": "Cameroon",
-  "意大利": "Italy",
-  "土耳其": "Türkiye",
-  "新西兰": "New Zealand",
-  "突尼斯": "Tunisia",
-  "沙特阿拉伯": "Saudi Arabia",
-  "乌拉圭": "Uruguay",
-  "伊朗": "IR Iran",
-  "苏格兰": "Scotland",
-  "海地": "Haiti",
-  "巴拿马": "Panama",
-  "加纳": "Ghana",
-  "卡塔尔": "Qatar",
-  "伊拉克": "Iraq",
-  "约旦": "Jordan",
-  "乌兹别克斯坦": "Uzbekistan",
-  "波兰": "Poland",
-  "丹麦": "Denmark",
-  "塞尔维亚": "Serbia",
-  "乌克兰": "Ukraine",
-  "威尔士": "Wales",
-  "斯洛伐克": "Slovakia",
-  "罗马尼亚": "Romania",
-  "阿尔巴尼亚": "Albania",
-  "斯洛文尼亚": "Slovenia",
-  "北马其顿": "North Macedonia",
-  "格鲁吉亚": "Georgia",
-  "希腊": "Greece",
-  "冰岛": "Iceland",
-  "爱尔兰": "Ireland",
-  "北爱尔兰": "Northern Ireland",
+  南非: "South Africa",
+  加拿大: "Canada",
+  巴西: "Brazil",
+  日本: "Japan",
+  德国: "Germany",
+  巴拉圭: "Paraguay",
+  荷兰: "Netherlands",
+  摩洛哥: "Morocco",
+  科特迪瓦: "Côte d'Ivoire",
+  挪威: "Norway",
+  法国: "France",
+  瑞典: "Sweden",
+  墨西哥: "Mexico",
+  厄瓜多尔: "Ecuador",
+  英格兰: "England",
+  刚果民主共和国: "DR Congo",
+  比利时: "Belgium",
+  塞内加尔: "Senegal",
+  美国: "USA",
+  波黑: "Bosnia and Herzegovina",
+  西班牙: "Spain",
+  奥地利: "Austria",
+  葡萄牙: "Portugal",
+  克罗地亚: "Croatia",
+  瑞士: "Switzerland",
+  阿尔及利亚: "Algeria",
+  澳大利亚: "Australia",
+  埃及: "Egypt",
+  阿根廷: "Argentina",
+  佛得角: "Cabo Verde",
+  哥伦比亚: "Colombia",
+  加纳: "Ghana",
+  韩国: "Korea Republic",
+  捷克: "Czechia",
+  波黑: "Bosnia and Herzegovina",
+  瑞士: "Switzerland",
+  喀麦隆: "Cameroon",
+  意大利: "Italy",
+  土耳其: "Türkiye",
+  新西兰: "New Zealand",
+  突尼斯: "Tunisia",
+  沙特阿拉伯: "Saudi Arabia",
+  乌拉圭: "Uruguay",
+  伊朗: "IR Iran",
+  苏格兰: "Scotland",
+  海地: "Haiti",
+  巴拿马: "Panama",
+  加纳: "Ghana",
+  卡塔尔: "Qatar",
+  伊拉克: "Iraq",
+  约旦: "Jordan",
+  乌兹别克斯坦: "Uzbekistan",
+  波兰: "Poland",
+  丹麦: "Denmark",
+  塞尔维亚: "Serbia",
+  乌克兰: "Ukraine",
+  威尔士: "Wales",
+  斯洛伐克: "Slovakia",
+  罗马尼亚: "Romania",
+  阿尔巴尼亚: "Albania",
+  斯洛文尼亚: "Slovenia",
+  北马其顿: "North Macedonia",
+  格鲁吉亚: "Georgia",
+  希腊: "Greece",
+  冰岛: "Iceland",
+  爱尔兰: "Ireland",
+  北爱尔兰: "Northern Ireland",
 };
 
 const VENUE_CN_TO_EN = {
-  "墨西哥城": "Mexico City",
-  "洛杉矶": "Los Angeles (Inglewood)",
-  "波士顿": "Boston (Foxborough)",
-  "蒙特雷": "Monterrey (Guadalupe)",
-  "休斯顿": "Houston",
+  墨西哥城: "Mexico City",
+  洛杉矶: "Los Angeles (Inglewood)",
+  波士顿: "Boston (Foxborough)",
+  蒙特雷: "Monterrey (Guadalupe)",
+  休斯顿: "Houston",
   "纽约/新泽西": "New York/New Jersey (East Rutherford)",
-  "达拉斯": "Dallas (Arlington)",
-  "西雅图": "Seattle",
-  "旧金山湾区": "San Francisco Bay Area (Santa Clara)",
-  "亚特兰大": "Atlanta",
-  "迈阿密": "Miami (Miami Gardens)",
-  "堪萨斯城": "Kansas City",
-  "费城": "Philadelphia",
-  "多伦多": "Toronto",
-  "温哥华": "Vancouver",
-  "瓜达拉哈拉": "Guadalajara (Zapopan)",
+  达拉斯: "Dallas (Arlington)",
+  西雅图: "Seattle",
+  旧金山湾区: "San Francisco Bay Area (Santa Clara)",
+  亚特兰大: "Atlanta",
+  迈阿密: "Miami (Miami Gardens)",
+  堪萨斯城: "Kansas City",
+  费城: "Philadelphia",
+  多伦多: "Toronto",
+  温哥华: "Vancouver",
+  瓜达拉哈拉: "Guadalajara (Zapopan)",
 };
 
 // ponytail: 阶段段 (R32/R16/QF/SF/Final/Third). 主页 schedule 列了所有 104 场,
@@ -120,9 +120,9 @@ const STAGE_SECTION_MAP = {
   "32强": "r32",
   "16强": "r16",
   "1/4决赛": "qf",
-  "半决赛": "sf",
-  "决赛": "final",
-  "季军赛": "third",
+  半决赛: "sf",
+  决赛: "final",
+  季军赛: "third",
 };
 
 // ponytail: 行格式 `MM月DD日 HH:MM · 北京时间 队A 1 (3) 队B 1 (4) 场地 32强`
@@ -197,9 +197,7 @@ function parseScheduleHtml(html) {
     const time = `${String(utcH).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 
     const pen =
-      pen1 != null && pen2 != null && pen1 !== pen2
-        ? [pen1, pen2]
-        : null;
+      pen1 != null && pen2 != null && pen1 !== pen2 ? [pen1, pen2] : null;
     out.push({
       date,
       time,
@@ -257,10 +255,7 @@ function indexWc2026ByMatchNum(wc2026Matches, bracketSnapshot) {
     const scoreFt = m.score && Array.isArray(m.score.ft) ? m.score.ft : null;
     let best = null;
     for (const c of candidates) {
-      if (
-        scoreFt &&
-        (c.ft[0] !== scoreFt[0] || c.ft[1] !== scoreFt[1])
-      )
+      if (scoreFt && (c.ft[0] !== scoreFt[0] || c.ft[1] !== scoreFt[1]))
         continue;
       best = c;
       break;
@@ -315,7 +310,9 @@ function _dateDeltaDays(a, b) {
 
 async function fetchWc2026Schedule(http) {
   try {
-    const r = await http.get(SCHEDULE_URL, { timeout: 15000 });
+    // ponytail: wc-2026.com 服务器对裸 http 返 301 → 必须 follow. http-client 默认
+    // 不 follow, 这里显式传 follow:true (最多 5 跳, 详见 http-client._follow).
+    const r = await http.get(SCHEDULE_URL, { timeout: 15000, follow: true });
     if (!r || r.error || !r.body) {
       mainLog.warn("[worldcup/scores-fetcher-wc2026] fetch failed", {
         error: r && r.error,
