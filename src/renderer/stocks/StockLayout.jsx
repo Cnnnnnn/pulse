@@ -14,6 +14,8 @@ import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
 import { StockDetailDrawer } from "./StockDetailDrawer.jsx";
 import { IconSearch, IconSparkles, IconTrendingUp } from "../components/icons.jsx";
 import { detailOpen } from "./stockDetailStore.js";
+import { stockDiagnosisCode } from "./diagnosisStore.js";
+import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
 import {
   runScreen,
   fetchedAt,
@@ -71,11 +73,17 @@ export function StockLayout() {
           </button>
         </div>
       </div>
-      <StrategyBar />
-      <CriteriaPanel />
-      <div class={aiAdviseOpen.value ? "stock-results-pad-drawer" : ""}>
-        <ResultTable api={api} />
-      </div>
+      {stockDiagnosisCode.value ? (
+        <StockDiagnosisPage api={api} />
+      ) : (
+        <>
+          <StrategyBar />
+          <CriteriaPanel />
+          <div class={aiAdviseOpen.value ? "stock-results-pad-drawer" : ""}>
+            <ResultTable api={api} />
+          </div>
+        </>
+      )}
       <AiAdviseDrawer api={api} />
       <StockDetailDrawer api={api} />
     </div>
