@@ -119,7 +119,7 @@ export function ResultTable({ api }) {
           <span class="stock-td stock-td-industry">
             {r.industry || "—"}
           </span>
-          <span class="stock-td stock-th-right stock-td-actions">
+          <span class="stock-td stock-td-right stock-td-actions">
             <button
               type="button"
               class="btn btn-ghost btn-sm"
