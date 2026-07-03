@@ -7715,12 +7715,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: flex;
   flex-direction: column;
   gap: var(--space-4, 16px);
-  /* ponytail: v2.60 bracket 强制 dark scheme — 即使系统是 light mode, 对阵图内部也用深色背景+白字保证对比度 */
-  color-scheme: dark;
-  --content-bg: #141416;
-  color: #e5e7eb;
-  background: #141416;
-  border-radius: 8px;
+  /* ponytail: v2.65 — 跟随 Pulse 整体浅色主题, 不再 hardcode 暗色. 卡片用浅灰描边 + 白底. */
+  color: #1f2937;
+  background: transparent;
 }
 .bracket-view--empty,
 .bracket-view--error {
@@ -7755,9 +7752,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: #f59e0b;
 }
 .bracket-stage {
-  background: rgba(255, 255, 255, 0.04);
+  /* ponytail: v2.65 — 跟随 Pulse 浅色主题, stage 容器无背景, 只 padding. */
+  background: transparent;
   border-radius: 8px;
-  padding: var(--space-3, 12px);
+  padding: var(--space-2, 8px) 0;
 }
 .bracket-stage--empty {
   opacity: 0.6;
@@ -7769,18 +7767,19 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-bottom: 8px;
 }
 .bracket-stage-title {
-  font-size: var(--font-size-lg, 14px);
+  font-size: var(--font-size-md, 13px);
   font-weight: 600;
-  color: #e5e7eb;
+  color: #1f2937;
 }
 .bracket-stage-count {
   font-size: var(--font-size-xs, 11px);
-  color: #9ca3af;
+  color: #6b7280;
 }
 .bracket-stage-empty-msg {
   margin: 0;
   font-size: var(--font-size-sm, 12px);
-  color: #6b7280;
+  color: #9ca3af;
+  padding: 8px 0;
 }
 .bracket-grid {
   display: grid;
@@ -7796,34 +7795,36 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   .bracket-grid--8  { grid-template-columns: repeat(2, 1fr); }
 }
 .bracket-card {
-  /* ponytail: v2.64 — 百度/ESPN 风浅色卡片. 浅灰描边 + 圆角 + hover 微高亮. */
-  background: #1f2937;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* ponytail: v2.65 — 百度/ESPN 风浅色卡片. 白底 + 浅灰描边 + hover 蓝边高亮. */
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: var(--font-size-xs, 11px);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
 .bracket-card:hover {
-  background: #283548;
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: #93c5fd;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   transform: translateY(-1px);
 }
 .bracket-card--projected {
   opacity: 0.55;
   border-style: dashed;
+  background: #f9fafb;
 }
 .bracket-card--final {
-  border-color: rgba(74, 222, 128, 0.5);
+  border-color: #86efac;
+  background: #f0fdf4;
 }
 .bracket-card--live {
-  border-color: rgba(239, 68, 68, 0.6);
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25);
+  border-color: #fca5a5;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
 }
 .bracket-card-head {
   display: flex;
@@ -7833,7 +7834,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .bracket-card-num {
   font-size: 10px;
-  color: #9ca3af;
+  color: #6b7280;
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -7863,17 +7864,23 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: 14px;
   flex-shrink: 0;
 }
+.bracket-card-num {
+  font-size: 10px;
+  color: #6b7280;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
 .bracket-card-name {
   font-size: 12px;
   font-weight: 500;
-  color: #f3f4f6;
+  color: #1f2937;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
 .bracket-card-placeholder {
-  color: #6b7280;
+  color: #9ca3af;
   font-style: italic;
   font-size: 10px;
   white-space: nowrap;
@@ -7882,7 +7889,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .bracket-card-vs {
   font-size: 10px;
-  color: #6b7280;
+  color: #9ca3af;
   text-align: center;
   padding: 0 6px;
   font-weight: 500;
@@ -7898,16 +7905,16 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .bracket-card-score-num {
   font-size: 14px;
   font-weight: 700;
-  color: #e5e7eb;
+  color: #1f2937;
   min-width: 14px;
   text-align: center;
 }
 .bracket-card-score-num.is-leader {
-  color: #fbbf24;
+  color: #d97706; /* ponytail: 浅色背景胜方, 用深橙替代金黄提高对比度 */
 }
 .bracket-card-score-dash {
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
   font-weight: 500;
 }
 .bracket-card-meta {
@@ -7915,9 +7922,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   align-items: center;
   gap: var(--space-3, 12px);
   font-size: 10px;
-  color: #9ca3af;
+  color: #6b7280;
   padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid #f3f4f6;
   flex-wrap: nowrap;
   overflow: hidden;
 }
@@ -7942,22 +7949,22 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-radius: 4px;
   font-size: 9px;
   font-weight: 500;
-  background: rgba(107, 114, 128, 0.25);
-  color: #d1d5db;
+  background: #f3f4f6;
+  color: #6b7280;
   flex-shrink: 0;
 }
 .bracket-badge--lock {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
+  background: #fef3c7;
+  color: #b45309;
 }
 .bracket-badge--live {
-  background: rgba(239, 68, 68, 0.25);
-  color: #fca5a5;
+  background: #fee2e2;
+  color: #dc2626;
   animation: bracket-pulse 1.5s infinite;
 }
 .bracket-badge--done {
-  background: rgba(74, 222, 128, 0.18);
-  color: #4ade80;
+  background: #d1fae5;
+  color: #047857;
 }
 @keyframes bracket-pulse {
   0%, 100% { opacity: 1; }

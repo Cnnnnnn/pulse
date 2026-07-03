@@ -13,11 +13,14 @@
  */
 
 import { TeamFlag, IconLock, IconCheck, IconClock } from "../components/icons.jsx";
+import { displayTeam } from "./teams-data.js";
 
 function teamCn(slot) {
   if (!slot || !slot.team) return null;
-  // ponytail: 避免引入 teams-data.js 让 fallback 单元测试不需要 mock — 简化: 显示 team.name
-  return { flag: (slot.team.name || "XX").substring(0, 2).toUpperCase(), cn: slot.team.name };
+  // ponytail: 用 displayTeam 拿 ISO-2 code (FLAG_SVGS 的 key), 不要用 .substring(0,2)
+  // 截队名 (那种 "South Africa" → "SO" 是错的, 南非 ISO 是 ZA).
+  const d = displayTeam(slot.team.name);
+  return { flag: d.flag, cn: d.cn };
 }
 
 function slotPlaceholder(slot) {
@@ -52,10 +55,11 @@ function MatchMeta({ match }) {
 // ponytail: v2.64 — 百度/ESPN 风卡片: 头部 Match num + 状态徽章 (右对齐),
 // 主行 队1 vs 队2 (居中比分/vs), 底部 meta 一行 (时间 + 球场).
 // 比分 status=final/live 时显示数字 vs 灰色, status=pending/projected 显示 vs.
+// 实际 score shape: { ft: [home, away], ht: [h, a], status } (来自 cup_finals.txt + state.json)
 function CardScore({ match }) {
   const { status, score } = match;
-  if ((status === "final" || status === "live") && score && typeof score === "object") {
-    const { home, away } = score;
+  if ((status === "final" || status === "live") && score && Array.isArray(score.ft)) {
+    const [home, away] = score.ft;
     const leaderIsHome = home != null && away != null && home > away;
     const leaderIsAway = home != null && away != null && away > home;
     return (

@@ -137,28 +137,28 @@ describe("BracketTree (fallback only)", () => {
     expect(onMatchClick.mock.calls[0][0].matchNum).toBe(73);
   });
 
-  test("v2.64 card shows score (home : away) when status=final and score is set", () => {
+  test("v2.65 card shows score (ft[0] : ft[1]) when status=final and score.ft is set", () => {
     const finalSnap = {
       ...sampleSnapshot,
       r32: [
         {
           matchNum: 73,
           slot1: { team: { name: "South Africa" }, source: "group:A:runnerUp" },
-          slot2: { team: { name: "Switzerland" }, source: "group:B:runnerUp" },
+          slot2: { team: { name: "Canada" }, source: "group:B:runnerUp" },
           status: "final",
-          score: { home: 2, away: 1 },
+          score: { ft: [0, 1], ht: [0, 0], status: "final" },
         },
       ],
     };
     const { container } = render(<BracketTree snapshot={finalSnap} onMatchClick={() => {}} />);
     const score = container.querySelector(".bracket-card-score");
     expect(score).toBeTruthy();
-    expect(score.textContent).toContain("2");
+    expect(score.textContent).toContain("0");
     expect(score.textContent).toContain("1");
-    // winner (home) gets leader styling
+    // winner (away=1) gets leader styling
     const nums = score.querySelectorAll(".bracket-card-score-num");
-    expect(nums[0].classList.contains("is-leader")).toBe(true);
-    expect(nums[1].classList.contains("is-leader")).toBe(false);
+    expect(nums[0].classList.contains("is-leader")).toBe(false);
+    expect(nums[1].classList.contains("is-leader")).toBe(true);
   });
 
   test("v2.64 card shows 'vs' when no score (status=pending)", () => {
