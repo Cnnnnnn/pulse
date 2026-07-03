@@ -32,10 +32,10 @@ async function fetchMoatScore(httpClient, { code }) {
     return { ok: false, reason: "fetch_failed", error: e && e.message };
   }
 
-  if (!financeRes || !financeRes.ok || financeRes.status !== 200 || !financeRes.body) {
+  if (!financeRes || financeRes.status !== 200 || !financeRes.body) {
     return { ok: false, reason: "fetch_failed", error: "finance 接口非 200" };
   }
-  if (!industryRes || !industryRes.ok || industryRes.status !== 200 || !industryRes.body) {
+  if (!industryRes || industryRes.status !== 200 || !industryRes.body) {
     return { ok: false, reason: "fetch_failed", error: "industry 接口非 200" };
   }
 

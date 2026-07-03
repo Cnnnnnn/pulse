@@ -36,7 +36,7 @@ async function fetchPeerCompare(httpClient, { code }) {
   } catch (e) {
     return { ok: false, reason: "fetch_failed", error: e && e.message };
   }
-  if (!res || !res.ok || res.status !== 200 || !res.body) {
+  if (!res || res.status !== 200 || !res.body) {
     return { ok: false, reason: "fetch_failed", error: "datacenter 非 200" };
   }
   const body = typeof res.body === "string" ? safeJson(res.body) : res.body;

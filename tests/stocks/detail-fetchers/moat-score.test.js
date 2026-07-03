@@ -9,13 +9,13 @@ const { fetchMoatScore } = await import("../../../src/stocks/detail-fetchers/moa
 
 // datacenter 自身财务: 5 年 ROIC + 毛利率 + 净利
 function financeResponse(rows) {
-  return { ok: true, status: 200, body: { success: true, result: { data: rows } } };
+  return { status: 200, body: { success: true, result: { data: rows } } };
 }
 // datacenter 行业均值
 function industryResponse(rows) {
-  return { ok: true, status: 200, body: { success: true, result: { data: rows } } };
+  return { status: 200, body: { success: true, result: { data: rows } } };
 }
-const fail = (status = 500) => ({ ok: false, status, error: "http_error" });
+const fail = (status = 500) => ({ status, error: "http_error" });
 
 function makeClient(responses) {
   return { get: vi.fn(async () => responses.shift() || fail()) };
@@ -170,7 +170,7 @@ describe("fetchMoatScore", () => {
 
   it("finance 接口 200 但 body 非 JSON → reason: parse_failed", async () => {
     const http = makeClient([
-      { ok: true, status: 200, body: "not valid json {{{" },
+      { status: 200, body: "not valid json {{{" },
       industryResponse([{ ...DEFAULT_INDUSTRY }]),
     ]);
     const r = await fetchMoatScore(http, { code: "600519" });
@@ -184,7 +184,7 @@ describe("fetchMoatScore", () => {
     ];
     const http = makeClient([
       financeResponse(financeRows),
-      { ok: true, status: 200, body: "<html>oops</html>" },
+      { status: 200, body: "<html>oops</html>" },
     ]);
     const r = await fetchMoatScore(http, { code: "600519" });
     expect(r.ok).toBe(false);

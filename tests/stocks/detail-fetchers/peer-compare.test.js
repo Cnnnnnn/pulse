@@ -32,13 +32,13 @@ const { fetchPeerCompare } = await import("../../../src/stocks/detail-fetchers/p
 
 // datacenter 200 + 完整数据
 function datacenterResponse(rows) {
-  return { ok: true, status: 200, body: { success: true, result: { data: rows } } };
+  return { status: 200, body: { success: true, result: { data: rows } } };
 }
 // datacenter 200 但 data 为空
 function datacenterEmpty() {
-  return { ok: true, status: 200, body: { success: true, result: { data: [] } } };
+  return { status: 200, body: { success: true, result: { data: [] } } };
 }
-const fail = (status = 500) => ({ ok: false, status, error: "http_error" });
+const fail = (status = 500) => ({ status, error: "http_error" });
 
 function makeClient(responses) {
   return { get: vi.fn(async () => responses.shift() || fail()) };
