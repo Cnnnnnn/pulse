@@ -4,96 +4,103 @@
  * moat_score angle fetcher. 客户端算 3 维护城河评分:
  *   - marginEdge (0-3): 毛利率相对行业中位的优势
  *   - roicEdge (0-3): ROIC 相对行业中位的优势
- *   - revenueStability (0-3): 营收 5 年 CAGR + 行业排名稳定性
+ *   - revenueStability (0-3): 净利 CAGR + 行业营收排名
+ *
+ * 数据源 (东财 API 2026 变动后):
+ *   - 本股财务: RPT_F10_FINANCE_MAINFINADATA, 字段 ROIC/XSMLL/PARENT_NETPROFIT/TOTAL_OPERATE_INCOME
+ *     (NETPROFIT/XSMLL_RANK 字段已不存在, 改 PARENTNETPROFIT + 自己算排名)
+ *   - 行业成员: fetchIndustryPeers (RPT_LICO_FN_CPD 两步), 客户端算中位/排名
  *
  * ponytail: 评分规则 hardcode 在这里 (不依赖 LLM 算) — 数字评分要稳定可复现,
  *   不让 LLM 自由发挥. 规则详见 spec §1.1 "3 维评分规则".
+ *
+ * ROIC 近似说明: peers 给的是 WEIGHTAVG_ROE (加权 ROE), 不是 ROIC. 本股 ROIC
+ *   从 MAINFINADATA 拿 (ROIC 字段存在), 行业中位用 peers 的 WEIGHTAVG_ROE 中位
+ *   近似 ROIC 中位 (ROE 与 ROIC 高度相关, 量级接近, 标注近似).
  */
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
-const FINANCE_COLUMNS = "SECUCODE,REPORT_DATE,REPORT_YEAR,ROIC,XSMLL,NETPROFIT,XSMLL_RANK";
-const INDUSTRY_COLUMNS = "INDUSTRY_NAME,TOTAL,ROIC_MEDIAN,XSMLL_MEDIAN";
+const FINANCE_COLUMNS = "SECUCODE,REPORT_DATE,REPORT_YEAR,ROIC,XSMLL,PARENT_NETPROFIT,TOTAL_OPERATE_INCOME";
 const MOAT_TIMEOUT_MS = 8000;
 
+const { fetchIndustryPeers } = require("./_shared-industry");
+
 async function fetchMoatScore(httpClient, { code }) {
-  // 并行拉 2 个 datacenter 接口
   const secucode = `${code}.${code.startsWith("6") ? "SH" : "SZ"}`;
   const financeFilter = encodeURIComponent(`(SECUCODE="${secucode}")`);
-  const financeUrl = `${DATACENTER_URL}?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=${FINANCE_COLUMNS}&filter=${financeFilter}&pageNumber=1&pageSize=5&sortColumns=REPORT_DATE&sortTypes=-1&source=HSF10&client=PC`;
-  const industryFilter = encodeURIComponent(`(SECUCODE="${secucode}")`);
-  const industryUrl = `${DATACENTER_URL}?reportName=RPT_PCF10_INDUSTRY_EVALUATION&columns=${INDUSTRY_COLUMNS}&filter=${industryFilter}&pageNumber=1&pageSize=1&source=F10&client=PC`;
+  const financeUrl =
+    `${DATACENTER_URL}?reportName=RPT_F10_FINANCE_MAINFINADATA` +
+    `&columns=${FINANCE_COLUMNS}&filter=${financeFilter}` +
+    `&pageNumber=1&pageSize=5&sortColumns=REPORT_DATE&sortTypes=-1&source=HSF10&client=PC`;
 
+  // 并行拉: 本股财务 + 行业成员
   let financeRes, industryRes;
   try {
     [financeRes, industryRes] = await Promise.all([
       httpClient.get(financeUrl, { timeout: MOAT_TIMEOUT_MS }),
-      httpClient.get(industryUrl, { timeout: MOAT_TIMEOUT_MS }),
+      fetchIndustryPeers(httpClient, code),
     ]);
   } catch (e) {
     return { ok: false, reason: "fetch_failed", error: e && e.message };
   }
 
+  // industry (fetchIndustryPeers 返回 {ok,data} 不是 HTTP response)
+  if (!industryRes || !industryRes.ok) {
+    return { ok: false, reason: (industryRes && industryRes.reason) || "fetch_failed", error: (industryRes && industryRes.error) || "industry 失败" };
+  }
+  // finance (HTTP response)
   if (!financeRes || financeRes.status !== 200 || !financeRes.body) {
     return { ok: false, reason: "fetch_failed", error: "finance 接口非 200" };
   }
-  if (!industryRes || industryRes.status !== 200 || !industryRes.body) {
-    return { ok: false, reason: "fetch_failed", error: "industry 接口非 200" };
-  }
 
-  // Parse finance: 区分 parse_failed (非 JSON) vs no_finance_data (空数组/缺字段)
   const financeParsed = parseDatacenterBody(financeRes.body);
   if (financeParsed === "parse_failed") {
     return { ok: false, reason: "parse_failed", error: "finance 接口 body 非 JSON" };
   }
   const financeRows = financeParsed;
-
-  // Parse industry: 同上
-  const industryParsed = parseDatacenterBody(industryRes.body);
-  if (industryParsed === "parse_failed") {
-    return { ok: false, reason: "parse_failed", error: "industry 接口 body 非 JSON" };
-  }
-  const industryRows = industryParsed;
-
-  if (industryRows.length === 0) return { ok: false, reason: "no_industry_data", error: "industry 接口 result.data 为空" };
   if (financeRows.length === 0) return { ok: false, reason: "no_finance_data", error: "finance 接口 result.data 为空" };
 
-  const industryRow = industryRows[0];
-  if (!industryRow.INDUSTRY_NAME) return { ok: false, reason: "no_industry_data", error: "industry row 缺 INDUSTRY_NAME" };
-  const industryRoicMedian = num(industryRow.ROIC_MEDIAN);
-  const industryGrossMarginMedian = num(industryRow.XSMLL_MEDIAN);
-  const industryTotal = num(industryRow.TOTAL);
+  const peers = industryRes.data.peers;
+  const industry = industryRes.data.industry;
+  const industryTotal = peers.length;
+
+  // 行业中位: ROIC 用 peers 的 WEIGHTAVG_ROE 近似 (helper 已映射到 peer.roe),
+  // 毛利率用 peer.grossMargin. 客户端算中位.
+  const industryRoeValues = peers.map((p) => p.roe).filter((v) => v != null);
+  const industryGrossValues = peers.map((p) => p.grossMargin).filter((v) => v != null);
+  const industryRoicMedian = median(industryRoeValues); // 近似 ROIC 中位 (实为 ROE 中位)
+  const industryGrossMarginMedian = median(industryGrossValues);
 
   // 最新一年的财务 (sortTypes=-1, 第一条)
   const latest = financeRows[0];
   const roic = num(latest.ROIC);
   const grossMargin = num(latest.XSMLL);
 
-  // ponytail: 用 financeRows 中所有 XSMLL 算自身 70 分位 (datacenter pageSize=5,
-  //   实际返回 3-5 行). 用线性插值 (linear interpolation), 跟 numpy.percentile 默认方法一致.
+  // 自身毛利率 70 分位 (历史门): 用 financeRows 中所有 XSMLL
   const marginHistory = financeRows.map((r) => num(r.XSMLL)).filter((v) => v != null);
   const selfGrossMarginP70 = percentile(marginHistory, 0.7);
 
-  // 营收 5 年 CAGR: 用 NETPROFIT 序列 (NETPROFIT 跟营收高度相关, 简化用一个字段)
-  // 真实生产可换营收 (XSREVENUE), 暂用 NETPROFIT
+  // 净利 CAGR: 用 PARENT_NETPROFIT 序列 (按 REPORT_DATE 倒序, 第一条最新)
   const profits = financeRows
-    .map((r) => num(r.NETPROFIT))
+    .map((r) => num(r.PARENT_NETPROFIT))
     .filter((v) => v != null && v > 0)
     .sort((a, b) => b - a); // 最新在前
   const revenueCagr5y = computeCagr(profits);
 
-  // 排名稳定性: 极差
-  const ranks = financeRows.map((r) => num(r.XSMLL_RANK)).filter((v) => v != null);
-  const rankRange = ranks.length >= 2 ? Math.max(...ranks) - Math.min(...ranks) : 999;
+  // 行业营收排名: peers 里按 TOTAL_OPERATE_INCOME desc, 找本股位置.
+  // 注意: peers 的 revenue 来自 LICO_FN_CPD 的 TOTAL_OPERATE_INCOME; 本股的营收
+  //   也从 MAINFINADATA 的 TOTAL_OPERATE_INCOME 拿, 但 ranking 用 peers 列表算.
+  const revenueRank = rankInPeers(peers, code, "revenue");
 
   // 3 维评分
   const marginEdge = scoreMarginEdge(grossMargin, industryGrossMarginMedian, roic, industryRoicMedian, selfGrossMarginP70);
   const roicEdge = scoreRoicEdge(roic, industryRoicMedian);
-  const revenueStability = scoreRevenueStability(rankRange, revenueCagr5y);
+  const revenueStability = scoreRevenueStability(revenueRank, industryTotal, revenueCagr5y);
 
   const score = marginEdge + roicEdge + revenueStability;
   const missingDims = [];
   if (grossMargin == null || industryGrossMarginMedian == null) missingDims.push("毛利");
   if (roic == null || industryRoicMedian == null) missingDims.push("ROIC");
-  if (ranks.length < 2) missingDims.push("营收稳定度");
+  if (revenueRank == null) missingDims.push("营收稳定度");
   const note = buildNote(score, missingDims);
 
   return {
@@ -107,7 +114,7 @@ async function fetchMoatScore(httpClient, { code }) {
         roic,
         industryRoicMedian,
         revenueCagr5y,
-        revenueRankInIndustry: ranks[0] || null,
+        revenueRankInIndustry: revenueRank,
         industryTotal,
       },
       note,
@@ -137,9 +144,18 @@ function scoreRoicEdge(thisRoic, industryMedian) {
   return 0;
 }
 
-function scoreRevenueStability(rankRange, cagr) {
-  if (cagr == null) return 0;
-  const isStable = rankRange <= 2;
+// 排名稳定性: 极差越小越稳. revenueRank 是绝对排名 (1 = 最大), 用 (total - rank)
+// 衡量"排得靠前". 简化: rank 在前 30% 视为稳定.
+function scoreRevenueStability(rank, total, cagr) {
+  if (rank == null || total == null || total === 0) {
+    // 排名缺失, 退化为只看 cagr
+    if (cagr == null) return 0;
+    if (cagr > 10) return 2;
+    if (cagr > 5) return 1;
+    return 0;
+  }
+  const topFrac = rank / total; // 越小越靠前
+  const isStable = topFrac <= 0.3; // 前 30% 视为稳定
   if (isStable && cagr > 10) return 3;
   if (isStable && cagr > 0) return 2;
   if (cagr > 5) return 1;
@@ -155,8 +171,27 @@ function computeCagr(sortedProfitsDesc) {
   return ((Math.pow(latest / earliest, 1 / years) - 1) * 100);
 }
 
+// 在 peers 里按指定字段 desc 排序, 找本股的排名 (1 = 最大). 找不到返 null.
+function rankInPeers(peers, code, field) {
+  const sorted = peers
+    .filter((p) => p[field] != null)
+    .slice()
+    .sort((a, b) => (b[field] || 0) - (a[field] || 0));
+  const idx = sorted.findIndex((p) => p.code === code);
+  return idx >= 0 ? idx + 1 : null;
+}
+
+// 中位数 (数值数组). 空数组返 null.
+function median(arr) {
+  const sorted = arr.filter((v) => v != null && Number.isFinite(v)).slice().sort((a, b) => a - b);
+  if (sorted.length === 0) return null;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid];
+}
+
 // 线性插值的 percentile (跟 numpy.percentile 默认 linear 方法一致).
-// 对 3 元素数组: idx = 0.7 * 2 = 1.4 → sorted[1] + 0.4*(sorted[2]-sorted[1]).
 function percentile(arr, p) {
   const sorted = arr.filter((v) => v != null && Number.isFinite(v)).slice().sort((a, b) => a - b);
   if (sorted.length === 0) return null;
@@ -169,8 +204,6 @@ function percentile(arr, p) {
 }
 
 // 解析 datacenter 响应 body: 返回 array (rows) 或字符串标记.
-// "parse_failed" = body 是字符串但 JSON.parse 失败.
-// [] = body 解析成功但 result.data 不是数组 / 是空数组 / 没字段.
 function parseDatacenterBody(body) {
   let parsed = body;
   if (typeof body === "string") {
@@ -197,7 +230,11 @@ function num(v) {
 }
 
 function safeJson(s) {
-  try { return JSON.parse(s); } catch { return null; }
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
 }
 
 module.exports = { fetchMoatScore };
