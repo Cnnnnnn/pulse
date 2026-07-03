@@ -13,6 +13,7 @@ import {
   setSort,
   runScreen,
 } from "./stockStore.js";
+import { openDiagnosis } from "./diagnosisStore.js";
 import { PanelEmpty } from "../components/EmptyState.jsx";
 
 const COLUMNS = [
@@ -22,6 +23,7 @@ const COLUMNS = [
   { key: "pe", label: "PE", align: "right" },
   { key: "roe", label: "ROE%", align: "right" },
   { key: "industry", label: "行业", align: "left" },
+  { key: "actions", label: "", align: "right" },
 ];
 
 export function ResultTable({ api }) {
@@ -116,6 +118,16 @@ export function ResultTable({ api }) {
           </span>
           <span class="stock-td stock-td-industry">
             {r.industry || "—"}
+          </span>
+          <span class="stock-td stock-th-right stock-td-actions">
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              data-testid="diagnosis-btn"
+              onClick={() => openDiagnosis(r.code)}
+            >
+              诊断
+            </button>
           </span>
         </div>
       ))}

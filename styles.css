@@ -10282,7 +10282,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .stock-criteria-advanced-toggle { font-size: 11px; color: var(--accent-primary, #007aff); background: none; border: none; cursor: pointer; margin-left: auto; }
 
 .stock-table { flex: 1; overflow-y: auto; }
-.stock-table-head, .stock-table-row { display: grid; grid-template-columns: 1.4fr 0.8fr 0.7fr 0.6fr 0.6fr 1fr 36px; align-items: center; padding: 8px 6px; }
+.stock-table-head, .stock-table-row { display: grid; grid-template-columns: 1.4fr 0.8fr 0.7fr 0.6fr 0.6fr 1fr 64px; align-items: center; padding: 8px 6px; }
 .stock-table-head { font-size: 11px; color: var(--text-secondary, #6e6e73); font-weight: 600; border-bottom: 1px solid var(--border, rgba(0,0,0,0.08)); position: sticky; top: 0; background: var(--bg-card, #ffffff); z-index: 1; }
 .stock-th { cursor: pointer; }
 .stock-th-right { text-align: right; } .stock-th-left { text-align: left; } .stock-th-center { text-align: center; }
