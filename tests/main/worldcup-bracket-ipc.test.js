@@ -114,6 +114,7 @@ describe("worldcup bracket IPC handler", () => {
       scores: stubScores,
       teamsData: stubTeamsData,
       groupStandings: FULL_GROUP_STANDINGS,
+      knockoutEspn: false,
     });
     expect(r.ok).toBe(true);
     expect(r.snapshot).toBeDefined();
@@ -170,6 +171,7 @@ describe("worldcup bracket IPC handler", () => {
       scores: stubScores,
       teamsData: stubTeamsData,
       groupStandings: FULL_GROUP_STANDINGS,
+      knockoutEspn: false,
     });
     const r = loadWorldcupBracket({ statePath });
     expect(r.ok).toBe(true);
@@ -253,6 +255,7 @@ describe("worldcup bracket IPC handler", () => {
       fetcher: stubFetcherEmpty,
       scores: stubScores,
       teamsData: () => groupsData,
+      knockoutEspn: false,
     });
     expect(r.ok).toBe(true);
     expect(r.snapshot).toBeDefined();
@@ -632,6 +635,7 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
       finalsMatches,
       scores: () => ({}),
       groupStandings: FULL_GROUP_STANDINGS,
+      knockoutEspn: false,
     });
     expect(r.ok).toBe(true);
     const m73 = r.snapshot.r32.find((m) => m.matchNum === 73);
@@ -655,6 +659,7 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
       finalsFetcher: () => ({ ok: false, reason: "network_down" }),
       scores: () => ({}),
       groupStandings: FULL_GROUP_STANDINGS,
+      knockoutEspn: false,
     });
     expect(r.ok).toBe(true);
     expect(r.snapshot.warnings).toContain("finals_fetch_network_down");
@@ -678,6 +683,7 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
       },
       scores: () => ({}),
       groupStandings: FULL_GROUP_STANDINGS,
+      knockoutEspn: false,
     });
     expect(r.ok).toBe(true);
     expect(finalsFetcherCalled).toBe(false);
@@ -731,6 +737,8 @@ Sun Jul 19
       wc2026: false,
       // 也不要硬编码 pen 注入 (测试期望 fixture 是干净的)
       hardcodedPen: false,
+      // 也别真拉 ESPN (会卡 12s+)
+      knockoutEspn: false,
     });
     expect(r.ok).toBe(true);
     const m73 = r.snapshot.r32.find((m) => m.matchNum === 73);

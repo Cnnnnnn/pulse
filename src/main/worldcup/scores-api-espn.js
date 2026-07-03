@@ -145,8 +145,13 @@ function orientEspnScore(entry, event, fixture) {
     home.team && (home.team.displayName || home.team.shortDisplayName);
   const aName =
     away.team && (away.team.displayName || away.team.shortDisplayName);
-  const t1 = canonicalTeamName(fixture.team1);
-  const t2 = canonicalTeamName(fixture.team2);
+  // v2.74.3: bracket fixture.team1/2 可能是污染串 — strip 后再 canonical.
+  // canonicalTeamName 把 "a.e.t. (...) Paraguay" 转成 "a e t 1 1 0 1 3 4 pen paraguay"
+  // 跟 espn "paraguay" 对不上, orient 就退出 (返回 null). 先 strip 抽真队名.
+  const fixtureTeam1Clean = stripPollutedTail(fixture.team1);
+  const fixtureTeam2Clean = stripPollutedTail(fixture.team2);
+  const t1 = canonicalTeamName(fixtureTeam1Clean);
+  const t2 = canonicalTeamName(fixtureTeam2Clean);
   const eh = canonicalTeamName(hName);
   const ea = canonicalTeamName(aName);
 
@@ -168,6 +173,25 @@ function orientEspnScore(entry, event, fixture) {
   return null;
 }
 
+/**
+ * v2.74.3: cup_finals.txt 里 M74/M75 的 team2 被污染成
+ * "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay". teamsPairKey 把整段当作字面 key
+ * (含 "a e t 1 1 0 1 3 4 pen paraguay") — 跟 ESPN 返回的 clean "Paraguay" 对不上.
+ *
+ * 抽真正队名: 取最后一段以 [A-Z] 开头的连续词组当作队名 (队名首字母总大写).
+ * 干净字符串原样返回.
+ *
+ * ponytail: 跟 bracket.js 的 cleanPollutedTeamName 重复实现, 因为 cross-file
+ * require 会引入循环依赖风险. 注释里互相 reference 即可.
+ */
+function stripPollutedTail(name) {
+  if (typeof name !== "string") return name;
+  if (!/a\.e\.t\.|pen\.?\s*\d/i.test(name)) return name;
+  const matches = name.match(/[A-Z][a-zA-ZÀ-ÿ' .-]+(?=$)/g);
+  if (matches && matches.length > 0) return matches[matches.length - 1].trim();
+  return name;
+}
+
 function eventMatchesFixture(event, fixture) {
   if (!event || !fixture) return false;
   const comp = event.competitions && event.competitions[0];
@@ -180,7 +204,11 @@ function eventMatchesFixture(event, fixture) {
     home.team && (home.team.displayName || home.team.shortDisplayName);
   const aName =
     away.team && (away.team.displayName || away.team.shortDisplayName);
-  const pairFixture = teamsPairKey(fixture.team1, fixture.team2);
+  // v2.74.3: bracket fixture 可能是污染串 (cup_finals.txt 历史 bug). strip 后再
+  // 算 pairKey 才对得上 ESPN clean 名字.
+  const fixtureTeam1 = stripPollutedTail(fixture.team1);
+  const fixtureTeam2 = stripPollutedTail(fixture.team2);
+  const pairFixture = teamsPairKey(fixtureTeam1, fixtureTeam2);
   const pairEspn = teamsPairKey(hName, aName);
   if (pairFixture !== pairEspn) return false;
 
@@ -198,9 +226,28 @@ function mapEspnEventsToScoreEntries(events, fixtures, matchKeyFn) {
     const raw = scoreEntryFromEspnEvent(event);
     const entry = orientEspnScore(raw, event, fixture);
     if (!entry) continue;
-    out[matchKeyFn(fixture)] = entry;
+    // v2.74.3: matchKeyFn 默认用 fixture.team1/team2 (污染串). 为了让后续
+    // mergeLiveScoresIntoSnapshot 用相同的 clean name 算出相同 key, 这里临时
+    // 把 fixture.team1/team2 替换成 clean, 再调 matchKeyFn.
+    const cleanFixture =
+      isPollutedFixture(fixture)
+        ? {
+            ...fixture,
+            team1: stripPollutedTail(fixture.team1),
+            team2: stripPollutedTail(fixture.team2),
+          }
+        : fixture;
+    out[matchKeyFn(cleanFixture)] = entry;
   }
   return out;
+}
+
+function isPollutedFixture(f) {
+  if (!f) return false;
+  return (
+    (f.team1 && /a\.e\.t\.|pen\.?\s*\d/i.test(f.team1)) ||
+    (f.team2 && /a\.e\.t\.|pen\.?\s*\d/i.test(f.team2))
+  );
 }
 
 async function fetchScoresFromEspn(http, fixtures, matchKeyFn) {

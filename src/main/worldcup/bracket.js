@@ -19,11 +19,12 @@ const { computeBracket } = require("./bracket-rules");
 const { mainLog } = require("../log");
 const { fetchWorldcupFixtures, loadFinalsTxt } = require("./fetcher");
 const { teamsPairKey, canonicalTeamName } = require("./team-aliases");
-const { matchKickoffUtcMs } = require("./match-key");
+const { matchKickoffUtcMs, matchKey } = require("./match-key");
 const {
   fetchWc2026Schedule,
   indexWc2026ByMatchNum,
 } = require("./scores-fetcher-wc2026");
+const { fetchScoresFromEspn } = require("./scores-api-espn");
 const { HttpClient } = require("../http-client");
 
 /**
@@ -93,12 +94,27 @@ async function computeWorldcupBracket(opts = {}) {
     if (Array.isArray(finalsMatches) && finalsMatches.length > 0) {
       mergeFinalsIntoSnapshot(snapshot, finalsMatches);
 
-      // v2.51: 注入实时比分. cup_finals.txt 是静态的 (上游手动更新慢),
-      // 而 state.json.worldcup_scores 里可能有 ESPN 拉到的淘汰赛实时比分
-      // (renderer 主动刷 / bracket compute 时主动刷). 这里按 matchNum + 已确定
-      // 队名匹配, 把实时比分覆盖到 snapshot 上, 让晋级的队伍 + 实时比分立刻显示.
-      // 必须在 mergeFinalsIntoSnapshot 之后跑 (实时 > 静态).
-      const liveScores = opts.scores ? opts.scores() : loadScoresFromState();
+      // v2.74.3: 主动拉一次 ESPN 拉 knockout scorers. 之前只有 group stage 走
+      // refreshWorldcupScores → worldcup_scores.entries, 淘汰赛 entries 永远空 →
+      // 进球榜 + modal scorers 都缺数据. 这里 bracket compute 时直接 fetch ESPN
+      // 用 finalsMatches 做 fixtures, 拿到 entries 后跟现有 entries 合并再 merge.
+      // opts.knockoutEspn=false 可关闭 (测试用).
+      let liveScores = opts.scores ? opts.scores() : loadScoresFromState();
+      if (opts.knockoutEspn !== false) {
+        try {
+          const enriched = await fetchKnockoutEspnEntries(
+            finalsMatches,
+            opts.knockoutEspn || {},
+          );
+          if (enriched && Object.keys(enriched).length > 0) {
+            liveScores = { ...(liveScores || {}), ...enriched };
+          }
+        } catch (err) {
+          mainLog.warn("[worldcup/bracket] knockout espn fetch threw", {
+            msg: err && err.message,
+          });
+        }
+      }
       mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, liveScores);
     }
 
@@ -216,6 +232,24 @@ function isPollutedTeamName(name) {
   return /a\.e\.t\.|pen\.?\s*\d/i.test(name);
 }
 
+/**
+ * v2.74.3: 把污染字符串尾部真实队名抽出来. "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay"
+ * → "Paraguay". 输入干净就原样返回 (用于 attachFinals / mergeLiveScores 做 matchKey 之前).
+ *
+ * 队名首字母通常大写 (e.g. "Paraguay", "Brazil"). "a.e.t." / "pen." 小写开头,
+ * 所以匹配以 [A-Z] 开头最后一段当作队名.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function cleanPollutedTeamName(name) {
+  if (typeof name !== "string") return name;
+  if (!isPollutedTeamName(name)) return name;
+  const matches = name.match(/[A-Z][a-zA-ZÀ-ÿ' .-]+(?=$)/g);
+  if (matches && matches.length > 0) return matches[matches.length - 1].trim();
+  return name;
+}
+
 function attachFinals(match, fm) {
   match.kickoff = {
     date: fm.date || null,
@@ -241,9 +275,15 @@ function attachFinals(match, fm) {
   // TXT 真名 (非 placeholder) 覆盖 slot.team.name.
   // 历史 bug: 某些 slot.team.name 被污染成 "a.e.t. (...) pen. XXX",
   // 这种情况下强制用 fm.team1/team2 真名覆盖, 不管原值.
+  // v2.74.3: cup_finals.txt 里 M74/M75 的 team2 也被污染 (上游手工录入错误),
+  // fm.team2 本身就是 "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay". 这种情况走
+  // cleanTeamName 抽取真名覆盖, 同时 sourceTxt 标 true 避免后续被组算法
+  // (bracket-rules.js) 反复根据 placeholder 表达式 (1F 等) 算 → 覆盖回去.
   const slot1Polluted = isPollutedTeamName(match.slot1 && match.slot1.team && match.slot1.team.name);
   const slot2Polluted = isPollutedTeamName(match.slot2 && match.slot2.team && match.slot2.team.name);
-  if (fm.team1 && match.slot1 && !isPlaceholderTeamName(fm.team1)) {
+  const fmTeam1Clean = fm.team1 ? cleanPollutedTeamName(fm.team1) : null;
+  const fmTeam2Clean = fm.team2 ? cleanPollutedTeamName(fm.team2) : null;
+  if (fmTeam1Clean && match.slot1 && !isPlaceholderTeamName(fmTeam1Clean)) {
     if (
       slot1Polluted ||
       isPlaceholderTeamName(match.slot1.team && match.slot1.team.name) ||
@@ -251,12 +291,12 @@ function attachFinals(match, fm) {
     ) {
       match.slot1 = {
         ...match.slot1,
-        team: { ...(match.slot1.team || {}), name: fm.team1 },
+        team: { ...(match.slot1.team || {}), name: fmTeam1Clean },
         sourceTxt: true,
       };
     }
   }
-  if (fm.team2 && match.slot2 && !isPlaceholderTeamName(fm.team2)) {
+  if (fmTeam2Clean && match.slot2 && !isPlaceholderTeamName(fmTeam2Clean)) {
     if (
       slot2Polluted ||
       isPlaceholderTeamName(match.slot2.team && match.slot2.team.name) ||
@@ -264,7 +304,7 @@ function attachFinals(match, fm) {
     ) {
       match.slot2 = {
         ...match.slot2,
-        team: { ...(match.slot2.team || {}), name: fm.team2 },
+        team: { ...(match.slot2.team || {}), name: fmTeam2Clean },
         sourceTxt: true,
       };
     }
@@ -344,8 +384,12 @@ function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
     const fm = finalsByNum.get(match.matchNum);
     if (!fm) continue;
 
-    // 1) 优先 matchKey 直查 (队名顺序 + 时间完全一致)
-    const mk = `${fm.date || ""}|${fm.time || ""}|${fm.team1 || ""}|${fm.team2 || ""}`;
+    // 1) 优先 matchKey 直查 (队名顺序 + 时间完全一致). 用 cleanPollutedTeamName
+    // 处理杯 finals TXT 自身被污染的 M74/M75 — ESPN 那边返回 clean 名字, 必须
+    // 两边都用 clean 才能匹配上. (v2.74.3 修复: 之前 M74 score.scorers 空.)
+    const fmT1 = cleanPollutedTeamName(fm.team1 || "");
+    const fmT2 = cleanPollutedTeamName(fm.team2 || "");
+    const mk = `${fm.date || ""}|${fm.time || ""}|${fmT1}|${fmT2}`;
     const direct = byMatchKey.get(mk);
 
     let entry;
@@ -354,13 +398,19 @@ function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
       entry = direct;
     } else if (fm.date) {
       // 2) 模糊查: pairKey + date (队名顺序无关, 但需判断是否要交换 ft)
-      const pk = teamsPairKey(fm.team1, fm.team2);
+      // v2.74.3: fm.team1/2 可能被污染, 用 cleanPollutedTeamName 处理才能匹配
+      // 上 entries 里 ESPN clean 队名.
+      const pk = teamsPairKey(
+        cleanPollutedTeamName(fm.team1),
+        cleanPollutedTeamName(fm.team2),
+      );
       const fuzzy = pk ? byPairDate.get(`${pk}|${fm.date}`) : null;
       if (fuzzy) {
         entry = fuzzy.entry;
         // entry 的 team1 跟 fm.team1 不同名 → 顺序相反, 需交换 ft + scorers.teamSide
         needSwap =
-          canonicalTeamName(fuzzy.team1) !== canonicalTeamName(fm.team1);
+          canonicalTeamName(fuzzy.team1) !==
+          canonicalTeamName(cleanPollutedTeamName(fm.team1));
       }
     }
 
@@ -399,6 +449,48 @@ function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
       ...(scorers ? { scorers } : {}),
     };
     match.status = entry.status === "live" ? "live" : "final";
+  }
+}
+
+/**
+ * v2.74.3: bracket compute 时主动拉 ESPN scoreboard 拉 knockout scorers.
+ *
+ * 之前 refreshWorldcupScores 只在 renderer 侧针对 group stage 跑, 导致
+ * worldcup_scores.entries 永远没淘汰赛 matchKey → bracket match.score 没
+ * scorers → modal + 射手榜淘汰赛 tab 空. 这里在 compute 时一次性主动拉
+ * ESPN scoreboard (按 finalsMatches 的 date 范围), 把 scorers 放进
+ * 临时 map 跟现有 entries 合并, 后面的 mergeLiveScoresIntoSnapshot
+ * 就能透传到 snapshot.
+ *
+ * 失败不阻塞 (try/catch + warn), 跟现有 wc-2026 / hardcoded 风格一致.
+ *
+ * @param {Array} finalsMatches - parsed cup_finals.txt matches (含 matchNum + date/time)
+ * @param {object} [opts] - { http, fetchEspn } 测试注入
+ * @returns {Promise<Record<string, object>>} entries keyed by matchKey
+ */
+async function fetchKnockoutEspnEntries(finalsMatches, opts = {}) {
+  if (!Array.isArray(finalsMatches) || finalsMatches.length === 0) return {};
+  const http = opts.http || new HttpClient({ timeout: 12000 });
+  const fetchEspn = opts.fetchEspn || fetchScoresFromEspn;
+  try {
+    const entries = await fetchEspn(http, finalsMatches, matchKey);
+    if (!entries || typeof entries !== "object") return {};
+    let withScorers = 0;
+    for (const e of Object.values(entries)) {
+      if (e && Array.isArray(e.scorers) && e.scorers.length > 0) withScorers++;
+    }
+    if (withScorers > 0) {
+      mainLog.info("[worldcup/bracket] knockout espn scorers fetched", {
+        total: Object.keys(entries).length,
+        withScorers,
+      });
+    }
+    return entries;
+  } catch (err) {
+    mainLog.warn("[worldcup/bracket] knockout espn fetch failed", {
+      msg: err && err.message,
+    });
+    return {};
   }
 }
 
@@ -645,6 +737,7 @@ module.exports = {
   rankGroup,
   mergeFinalsIntoSnapshot,
   mergeLiveScoresIntoSnapshot,
+  fetchKnockoutEspnEntries,
   mergeWc2026EtPen,
   mergeHardcodedR32EtPen,
   HARDCODED_R32_ET_PEN,
