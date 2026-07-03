@@ -31,13 +31,18 @@
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@testing-library/preact": "^3.2.4",
+    "@vitest/expect": "^2.1.9",
+    "@vitest/mocker": "^2.1.9",
+    "@vitest/pretty-format": "^2.1.9",
+    "@vitest/spy": "^2.1.9",
+    "@vitest/utils": "^2.1.9",
     "electron": "^39.8.10",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.1",
     "happy-dom": "^20.10.6",
     "jsdom": "^29.1.1",
     "png-to-ico": "^2.1.8",
-    "vitest": "^3.2.6"
+    "vitest": "^2.1.9"
   },
   "build": {
     "appId": "com.appupdatechecker.pulse",
