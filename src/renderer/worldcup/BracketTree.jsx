@@ -61,11 +61,22 @@ function cleanTeamName(raw) {
 }
 
 // ponytail: 从污染串中提取 et/pen 比分. 返回 { et: [h,a], pen: [h,a]|null } 或 null.
-function extractEtPenFromName(raw) {
+//
+// 重要: 历史污染串可能跟 score.ft 矛盾 (例 M82 ft=[3,2] 但污染串写
+// "a.e.t. (2-2, 0-1)" — 90 分就是 3-2 决出胜负, 实际无加时). 此时污染串
+// 应判为垃圾, 不返. 调用方传 score.ft 做交叉验证.
+function extractEtPenFromName(raw, ft) {
   if (!raw || typeof raw !== "string") return null;
   const m = raw.match(AET_PEN_RE);
   if (m) {
-    // m[1..2] = 90 分, m[3..4] = 加时, m[5..6] = 点球, m[7] = 队名
+    // m[1..2] = 污染串里写的"90 分", m[3..4] = 加时, m[5..6] = 点球, m[7] = 队名
+    const claimedFt = [Number(m[1]), Number(m[2])];
+    // 交叉验证: 污染串里写的"90 分"必须跟 score.ft 一致, 否则是垃圾数据
+    if (Array.isArray(ft) && ft.length === 2) {
+      if (ft[0] !== claimedFt[0] || ft[1] !== claimedFt[1]) {
+        return null;
+      }
+    }
     const et = m[3] != null ? [Number(m[3]), Number(m[4])] : null;
     const pen = m[5] != null ? [Number(m[5]), Number(m[6])] : null;
     return { et, pen };
@@ -73,6 +84,12 @@ function extractEtPenFromName(raw) {
   const m2 = raw.match(AET_ONLY_RE);
   if (m2) {
     // m2[1..2] = 90 分, m2[3..4] = 加时, m2[5] = 队名 (无点球)
+    const claimedFt = [Number(m2[1]), Number(m2[2])];
+    if (Array.isArray(ft) && ft.length === 2) {
+      if (ft[0] !== claimedFt[0] || ft[1] !== claimedFt[1]) {
+        return null;
+      }
+    }
     const et = m2[3] != null ? [Number(m2[3]), Number(m2[4])] : null;
     return { et, pen: null };
   }
@@ -159,7 +176,11 @@ function EtPenTags({ match }) {
   if (!etArr || !penArr) {
     const slot2 = match.slot2 && match.slot2.team && match.slot2.team.name;
     const slot1 = match.slot1 && match.slot1.team && match.slot1.team.name;
-    const rescued = extractEtPenFromName(slot2) || extractEtPenFromName(slot1);
+    // ponytail: v2.70 把 score.ft 传给 extract, 交叉验证污染串里写的"90 分"
+    // 跟实际 score.ft 一致. 不一致时 (例 M82 ft=[3,2] 污染串写 2-2),
+    // 视为垃圾数据, 不自救.
+    const ft = Array.isArray(score && score.ft) ? score.ft : null;
+    const rescued = extractEtPenFromName(slot2, ft) || extractEtPenFromName(slot1, ft);
     if (rescued) {
       rescuedFromName = true;
       if (!etArr && rescued.et) etArr = rescued.et;

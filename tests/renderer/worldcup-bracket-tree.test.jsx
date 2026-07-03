@@ -382,6 +382,45 @@ describe("BracketTree (fallback only)", () => {
     expect(wrapper.getAttribute("title")).toBe("");
   });
 
+  test("v2.70 M82 ft=[3,2] polluted 'a.e.t. (2-2, 0-1)' is rejected as garbage (no etpen tag)", () => {
+    // ponytail: 90 分已经是 3-2 决出胜负, 但历史污染串写"a.e.t. (2-2, 0-1)".
+    // 污染串的"90 分=2-2"跟 score.ft=[3,2] 矛盾 → 视为垃圾, 不显示加时标签.
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 82,
+        slot1: { team: { name: "Belgium" }, source: "group:B:winner" },
+        slot2: { team: { name: "a.e.t. (2-2, 0-1) Senegal" }, source: "group:E:third" },
+        status: "final",
+        score: { ft: [3, 2], status: "final" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    // 队名还是清洗成 Senegal (cleanTeamName 仍能提取真名)
+    expect(container.textContent).toContain("Senegal");
+    // 但 etpen tag 不应出现 (数据矛盾)
+    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
+    expect(tags).toHaveLength(0);
+  });
+
+  test("v2.70 polluted name with ft consistency check passes (M82 ft=[2,2] case)", () => {
+    // ponytail: 当 score.ft 跟污染串里写的"90 分"一致, 数据被认.
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 82,
+        slot1: { team: { name: "Belgium" }, source: "group:B:winner" },
+        slot2: { team: { name: "a.e.t. (2-2, 0-1) Senegal" }, source: "group:E:third" },
+        status: "final",
+        score: { ft: [2, 2], status: "final" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
+    expect(tags).toHaveLength(1);
+    expect(tags[0].textContent).toBe("加时 0:1");
+  });
+
   test("v2.68 etpen tags live in card head (next to Match num), not in middle score cell", () => {
     // ponytail: 标签跟 Match num 同行, 不挤卡片中间.
     const snap = {
