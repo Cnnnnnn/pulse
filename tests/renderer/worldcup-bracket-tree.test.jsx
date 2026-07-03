@@ -184,15 +184,59 @@ describe("BracketTree (fallback only)", () => {
         slot1: { team: { name: "South Africa" }, source: "group:A:runnerUp" },
         slot2: { team: { name: "Switzerland" }, source: "group:B:runnerUp" },
         status: "pending",
-        kickoff: { date: "06-28", time: "20:00", timezone: "GMT+8", venue: "洛杉矶体育场" },
+        kickoff: { date: "2026-06-28", time: "20:00", timezone: "UTC+8", venue: "Boston (Foxborough)" },
       }],
     };
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
     const meta = container.querySelector(".bracket-card-meta");
     expect(meta).toBeTruthy();
-    expect(meta.textContent).toContain("06-28");
+    // 北京时间同日: 20:00 (UTC+8 当地就是北京)
     expect(meta.textContent).toContain("20:00");
-    expect(meta.textContent).toContain("洛杉矶体育场");
+    expect(meta.textContent).toContain("北京时间");
+    // 球场翻译
+    expect(meta.textContent).toContain("波士顿吉列体育场");
+  });
+
+  test("v2.65 kickoff meta converts to Beijing time and translates venue to Chinese", () => {
+    // 2026-06-28 12:00 UTC-7 (洛杉矶) → 北京 2026-06-29 03:00 (跨日)
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 73,
+        slot1: { team: { name: "South Africa" }, source: "group:A:runnerUp" },
+        slot2: { team: { name: "Canada" }, source: "group:B:runnerUp" },
+        status: "pending",
+        kickoff: { date: "2026-06-28", time: "12:00", timezone: "UTC-7", venue: "Los Angeles (Inglewood)" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const meta = container.querySelector(".bracket-card-meta");
+    expect(meta).toBeTruthy();
+    // 北京时间 03:00 (跨日)
+    expect(meta.textContent).toContain("03:00");
+    expect(meta.textContent).toContain("北京时间");
+    // 球场中文
+    expect(meta.textContent).toContain("洛杉矶 SoFi 体育场");
+    expect(meta.textContent).not.toContain("Los Angeles (Inglewood)");
+  });
+
+  test("v2.65 kickoff meta same-day BJ time without (当天) annotation", () => {
+    // 12:00 UTC+8 (北京) → 12:00 北京 (同日)
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 73,
+        slot1: { team: { name: "X" }, source: "group:A:winner" },
+        slot2: { team: { name: "Y" }, source: "group:B:winner" },
+        status: "pending",
+        kickoff: { date: "2026-06-28", time: "12:00", timezone: "UTC+8", venue: "Mexico City" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const meta = container.querySelector(".bracket-card-meta");
+    expect(meta.textContent).toContain("12:00 北京时间");
+    // 球场中文化
+    expect(meta.textContent).toContain("墨西哥城阿兹特克体育场");
   });
 });
 

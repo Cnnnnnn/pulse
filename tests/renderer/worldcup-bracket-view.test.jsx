@@ -184,15 +184,16 @@ describe("WorldcupBracketView + BracketTree integration (v1 fallback)", () => {
           slot1: { team: { name: "South Africa" }, source: "group:A:runnerUp" },
           slot2: { team: { name: "Switzerland" }, source: "group:B:runnerUp" },
           status: "pending",
-          kickoff: { date: "06-28", time: "20:00", timezone: "GMT+8", venue: "洛杉矶体育场" },
+          kickoff: { date: "2026-06-28", time: "20:00", timezone: "UTC+8", venue: "Los Angeles (Inglewood)" },
         },
       ],
     };
     mockComputeImpl = async () => ({ ok: true, snapshot: snapshotWithKickoff });
     const { container } = render(<WorldcupBracketView />);
     await waitFor(() => expect(computeCalls).toBeGreaterThanOrEqual(1));
-    expect(container.textContent).toContain("06-28");
-    expect(container.textContent).toContain("洛杉矶体育场");
+    // 北京时间 + 球场中文翻译
+    expect(container.textContent).toContain("北京时间");
+    expect(container.textContent).toContain("洛杉矶 SoFi 体育场");
   });
 
   test("no kickoff meta row when card has no kickoff data (no regression)", async () => {

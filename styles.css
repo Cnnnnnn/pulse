@@ -5375,6 +5375,35 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: var(--space-4, 16px);
 }
 
+/* ponytail: v2.65 — 阶段过滤 tab (小组赛/淘汰赛/全部), 浅色风格跟 .bracket-stage-tabs 一致 */
+.worldcup-scorers-filters {
+  display: flex;
+  gap: var(--space-1, 4px);
+  border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+  padding-bottom: 0;
+}
+.worldcup-scorers-filter-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 12px;
+  font-size: var(--font-size-sm, 12px);
+  font-weight: 500;
+  color: var(--text-tertiary, #6b7280);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+.worldcup-scorers-filter-tab:hover {
+  color: var(--text-primary, #1f2937);
+}
+.worldcup-scorers-filter-tab.is-active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  font-weight: 600;
+}
+
 .worldcup-scorers-head {
   display: flex;
   align-items: baseline;

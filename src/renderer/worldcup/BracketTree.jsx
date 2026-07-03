@@ -14,6 +14,30 @@
 
 import { TeamFlag, IconLock, IconCheck, IconClock } from "../components/icons.jsx";
 import { displayTeam } from "./teams-data.js";
+import { toBeijingTime } from "./timeUtils.js";
+
+// ponytail: 2026 世界杯 16 主办城市 × 主球场中英映射. cup_finals.txt 给的是英文
+// "Los Angeles (Inglewood)" 这种, 在卡片 meta 行里翻译成中文.
+const VENUE_CN = {
+  "Los Angeles (Inglewood)": "洛杉矶 SoFi 体育场",
+  "Boston (Foxborough)": "波士顿吉列体育场",
+  "Monterrey (Guadalupe)": "蒙特雷 BBVA 体育场",
+  "Houston": "休斯顿 NRG 体育场",
+  "New York/New Jersey (East Rutherford)": "纽约/新泽西大都会人寿体育场",
+  "Dallas (Arlington)": "达拉斯 AT&T 体育场",
+  "Mexico City": "墨西哥城阿兹特克体育场",
+  "Atlanta": "亚特兰大梅赛德斯-奔驰体育场",
+  "San Francisco Bay Area (Santa Clara)": "旧金山湾区李维斯体育场",
+  "Seattle": "西雅图世纪互联体育场",
+  "Toronto": "多伦多 BMO 体育场",
+  "Vancouver": "温哥华 BC Place",
+  "Miami (Miami Gardens)": "迈阿密 Hard Rock 体育场",
+  "Kansas City": "堪萨斯城箭头体育场",
+};
+function venueCn(venue) {
+  if (!venue) return "";
+  return VENUE_CN[venue] || venue;
+}
 
 function teamCn(slot) {
   if (!slot || !slot.team) return null;
@@ -43,11 +67,17 @@ function slotPlaceholder(slot) {
 function MatchMeta({ match }) {
   const k = match && match.kickoff;
   if (!k || !k.date) return null;
-  const time = `${k.date}${k.time ? ` ${k.time}` : ""}${k.timezone ? ` ${k.timezone}` : ""}`;
+  // ponytail: 转北京时间 + 中文球场. bj.time 是 "HH:MM", 当 shift>0 时附 "(+1日)" 等.
+  const bj = toBeijingTime(k.time || "", k.timezone || "", k.date);
+  const shift = bj.date && k.date && bj.date !== k.date;
+  const time = bj.time
+    ? `${bj.time}${shift ? ` (北京时间, 当地 ${bj.date})` : " 北京时间"}`
+    : "";
+  const venue = venueCn(k.venue);
   return (
     <div class="bracket-card-meta">
       {time && <span class="bracket-card-meta-time"><IconClock size={11} /> {time}</span>}
-      {k.venue && <span class="bracket-card-meta-venue">@ {k.venue}</span>}
+      {venue && <span class="bracket-card-meta-venue">@ {venue}</span>}
     </div>
   );
 }
