@@ -162,11 +162,12 @@ function CardScore({ match }) {
 // "a.e.t. (1-1, 0-1), 3-4 pen. XXX" 串反推 et/pen 数字, 但实测这串
 // 是手工脏数据, 跟真实比赛不符 (例 M82 ft=[3,2] 但污染串写 2-2, 表示
 // 90 分根本没加时). 即便 ft 一致时 (M74/M75), 污染串里的 et/pen 数字
-// 也不可验证. 上游数据源:
-//   - cup_finals.txt: 0 条 a.e.t. 行
-//   - worldcup26 / ESPN 流: 0 条 R32 scores
-//   - bracket snapshot: M74/M75/M82 都没 score.et / score.pen 字段
-// 因此: 唯一可信来源是 score.et / score.pen 真字段. 当前 0 来源, 所以
+// 也不可验证. 唯一可信来源是 score.et / score.pen 真字段.
+//
+// v2.74: 加 wc-2026.com 第四层源 (scores-fetcher-wc2026.js), 抓 HTML 后
+// 通过 mergeWc2026EtPen 注入 score.pen. 当前能补: M74 pen=[3,4], M75
+// pen=[2,3]. 加时 (score.et) 主页不提供, 等未来 detail 页 scraper
+// (zerozero / 球迷屋, 抓 detail 页成本高 + 反爬, 暂不做).
 // 不显示 etpen tag. 将来 ESL 流 (scores-fetcher) 抓到 et/pen 时自动显示.
 function EtPenTags({ match }) {
   const { status, score } = match;

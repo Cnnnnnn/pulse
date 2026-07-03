@@ -20,6 +20,11 @@ const { mainLog } = require("../log");
 const { fetchWorldcupFixtures, loadFinalsTxt } = require("./fetcher");
 const { teamsPairKey, canonicalTeamName } = require("./team-aliases");
 const { matchKickoffUtcMs } = require("./match-key");
+const {
+  fetchWc2026Schedule,
+  indexWc2026ByMatchNum,
+} = require("./scores-fetcher-wc2026");
+const { HttpClient } = require("../http-client");
 
 /**
  * Compute full bracket from current group standings + scores.
@@ -95,6 +100,19 @@ async function computeWorldcupBracket(opts = {}) {
       // 必须在 mergeFinalsIntoSnapshot 之后跑 (实时 > 静态).
       const liveScores = opts.scores ? opts.scores() : loadScoresFromState();
       mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, liveScores);
+    }
+
+    // v2.74: 注入 wc-2026.com 的加时/点球比分. 跟 worldcup_scores.entries 独立
+    // (不依赖 matchKey 字符串相等), 用 pair key + 邻近日期模糊匹配. 只补
+    // score.pen / score.et 字段, 不动 ft.
+    if (opts.wc2026 !== false) {
+      try {
+        await mergeWc2026EtPen(snapshot, opts.wc2026 || {});
+      } catch (err) {
+        mainLog.warn("[worldcup/bracket] wc2026 hook threw", {
+          msg: err && err.message,
+        });
+      }
     }
     if (finalsFetchWarning) {
       snapshot.warnings = snapshot.warnings || [];
@@ -348,6 +366,15 @@ function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
         teamSide: s.teamSide === "team1" ? "team2" : s.teamSide === "team2" ? "team1" : s.teamSide,
       }));
     }
+    // ponytail: 透传加时/点球比分. ESPN 流或 wc-2026.com 源补 score.et/pen,
+    // 来自 worldcup_scores.entries 的 et/pen 字段. wc-2026 主走 mergeWc2026EtPen
+    // (见下面), 这里只负责透传 entries 里已有的 et/pen.
+    const et = Array.isArray(entry.et) && entry.et.length === 2
+      ? (needSwap ? [entry.et[1], entry.et[0]] : [...entry.et])
+      : (match.score && Array.isArray(match.score.et) ? match.score.et : null);
+    const pen = Array.isArray(entry.pen) && entry.pen.length === 2
+      ? (needSwap ? [entry.pen[1], entry.pen[0]] : [...entry.pen])
+      : (match.score && Array.isArray(match.score.pen) ? match.score.pen : null);
     match.score = {
       ...(match.score || {}),
       ft,
@@ -355,10 +382,85 @@ function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
       status: entry.status || "final",
       updatedAt: entry.updatedAt || Date.now(),
       source: entry.source || "live",
+      ...(et ? { et } : {}),
+      ...(pen ? { pen } : {}),
       ...(scorers ? { scorers } : {}),
     };
     match.status = entry.status === "live" ? "live" : "final";
   }
+}
+
+/**
+ * 从 wc-2026.com 抓比赛结果 HTML, 把加时/点球比分注入到 snapshot 上.
+ *
+ * 为什么独立函数: wc-2026.com 时间是北京时间 (UTC+8), openfootball fixture 是
+ * 比赛当地时间 (UTC±X). matchKey 字符串比较对不上. 所以 wc-2026 数据**不进**
+ * worldcup_scores.entries, 而是用 pair key + 邻近日期匹配 bracket snapshot 的
+ * matchNum, 只补 score.pen / score.et 字段 (不动 ft, ft 由其他源覆盖).
+ *
+ * 失败不阻塞 bracket 计算 (整个函数 try/catch, 失败只 mainLog.warn).
+ * opts.http / opts.fetchSchedule 注入便于单测.
+ */
+async function mergeWc2026EtPen(snapshot, opts = {}) {
+  if (!snapshot) return { updated: 0, source: null };
+  try {
+    const http =
+      opts.http ||
+      new HttpClient({ timeout: 15000 });
+    const fetchFn = opts.fetchSchedule || fetchWc2026Schedule;
+    const r = await fetchFn(http);
+    if (!r || !r.ok || !Array.isArray(r.matches) || r.matches.length === 0) {
+      return { updated: 0, source: "wc2026" };
+    }
+    const idx = indexWc2026ByMatchNum(r.matches, snapshot);
+    if (idx.size === 0) return { updated: 0, source: "wc2026" };
+
+    let updated = 0;
+    for (const m of _allBracketMatches(snapshot)) {
+      if (!m || typeof m.matchNum !== "number") continue;
+      const w = idx.get(m.matchNum);
+      if (!w) continue;
+      // ponytail: 只补 pen / et. ft 由 mergeLiveScoresIntoSnapshot 覆盖,
+      // 这里不要再动 (避免 wc-2026 解析误差盖掉 ESPN 准数据).
+      const cur = m.score || {};
+      const next = { ...cur };
+      let changed = false;
+      if (w.pen && (!Array.isArray(cur.pen) || cur.pen[0] !== w.pen[0] || cur.pen[1] !== w.pen[1])) {
+        next.pen = w.pen;
+        changed = true;
+      }
+      // et wc-2026.com 主页不提供 (等未来 detail 页 scraper), 这里保留
+      // 透传已有 entry.et 字段的能力.
+      if (Array.isArray(w.et) && w.et.length === 2) {
+        if (!Array.isArray(cur.et) || cur.et[0] !== w.et[0] || cur.et[1] !== w.et[1]) {
+          next.et = w.et;
+          changed = true;
+        }
+      }
+      if (changed) {
+        next.source = cur.source || "wc2026";
+        next.updatedAt = Date.now();
+        m.score = next;
+        updated += 1;
+      }
+    }
+    return { updated, source: "wc2026" };
+  } catch (err) {
+    mainLog.warn("[worldcup/bracket] wc2026 merge threw", {
+      msg: err && err.message,
+    });
+    return { updated: 0, source: "wc2026", error: err && err.message };
+  }
+}
+
+function _allBracketMatches(snapshot) {
+  const out = [];
+  for (const k of ["r32", "r16", "qf", "sf"]) {
+    if (Array.isArray(snapshot[k])) out.push(...snapshot[k]);
+  }
+  if (snapshot.final) out.push(snapshot.final);
+  if (snapshot.third) out.push(snapshot.third);
+  return out;
 }
 
 /**
@@ -472,6 +574,7 @@ module.exports = {
   rankGroup,
   mergeFinalsIntoSnapshot,
   mergeLiveScoresIntoSnapshot,
+  mergeWc2026EtPen,
   isPlaceholderTeamName,
   isPollutedTeamName,
 };
