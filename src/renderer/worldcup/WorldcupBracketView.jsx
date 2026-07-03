@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from "preact/hooks";
-import BracketTree from "./BracketTree.jsx";
+import BracketTree, { cleanTeamName } from "./BracketTree.jsx";
 import SquadModal from "./SquadModal.jsx";
 import {
   worldcupBracket,
@@ -60,15 +60,30 @@ export function WorldcupBracketView() {
 
   function handleMatchClick(match) {
     trackWorldcupMatchView(match);
+    // ponytail: 用 cleanTeamName 把 slot1/slot2.team.name 可能被污染的
+    // "a.e.t. (... ) pen. Paraguay" 还原成 "Paraguay", 否则 lookupTeam 拿不到
+    // 中文映射, modal 右侧只显示英文队名 (issue: 德国 vs Paraguay).
+    // 同时透传 match.score / date / time 让 modal 能显示实际比分 + 加时/点球.
+    const cleanSlotTeam = (slot) => {
+      if (!slot) return "未定";
+      const name = slot.team && slot.team.name;
+      if (!name) return slot.source || "未定";
+      const cleaned = cleanTeamName(name) || name;
+      return cleaned;
+    };
     setSquadMatch({
-      team1: match.slot1?.team?.name || match.slot1?.source || "未定",
-      team2: match.slot2?.team?.name || match.slot2?.source || "未定",
+      team1: cleanSlotTeam(match.slot1),
+      team2: cleanSlotTeam(match.slot2),
       stage: `Match ${match.matchNum}`,
-      venue: "FIFA 2026",
-      time: "",
-      timezone: "",
-      date: "",
+      // bracket.js 把开球信息放在 match.kickoff 子对象 ({date,time,timezone,venue})
+      // 而不是平铺在 match 顶层. 这里读 kickoff 拿真实场地 + 时间, modal 自己转北京.
+      venue: (match.kickoff && match.kickoff.venue) || "",
+      time: (match.kickoff && match.kickoff.time) || "",
+      timezone: (match.kickoff && match.kickoff.timezone) || "UTC",
+      date: (match.kickoff && match.kickoff.date) || "",
+      score: match.score || null, // 透传 ft/et/pen 让 score banner 渲染完整
       _isBracket: true,
+      _rawMatch: match,
     });
   }
 

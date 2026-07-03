@@ -50,7 +50,7 @@ function venueCn(venue) {
 const AET_PEN_RE = /^a\.e\.t\.\s*\(\s*(\d+)-(\d+)\s*(?:,\s*(\d+)-(\d+))?\s*\)\s*(?:,\s*(\d+)-(\d+)\s*pen\.?)?\s+(.+)$/i;
 const AET_ONLY_RE = /^a\.e\.t\.\s*\(\s*(\d+)-(\d+)\s*(?:,\s*(\d+)-(\d+))?\s*\)\s+([A-Za-zÀ-ÿ].+)$/i;
 
-function cleanTeamName(raw) {
+export function cleanTeamName(raw) {
   if (!raw || typeof raw !== "string") return raw;
   // 整段都是污染串
   const aet = raw.match(AET_PEN_RE);
