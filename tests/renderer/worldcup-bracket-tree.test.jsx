@@ -30,7 +30,7 @@ describe("BracketTree (fallback only)", () => {
   let BracketTree;
   beforeEach(async () => {
     vi.resetModules();
-    vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
+    vi.doMock("../../src/renderer/worldcup/teams-data.js", () => ({
       displayTeam: (name) => name ? { flag: 'XX', cn: name } : null,
     }));
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
@@ -40,7 +40,7 @@ describe("BracketTree (fallback only)", () => {
   });
   afterEach(() => {
     delete global.window;
-    vi.doUnmock("../../../src/renderer/worldcup/teams-data.js");
+    vi.doUnmock("../../src/renderer/worldcup/teams-data.js");
   });
 
   test("renders 5 stage sections (r32, r16, qf, sf, finals)", () => {
@@ -238,13 +238,69 @@ describe("BracketTree (fallback only)", () => {
     // 球场中文化
     expect(meta.textContent).toContain("墨西哥城阿兹特克体育场");
   });
+
+  test("v2.66 team name is cleaned when polluted with 'a.e.t. (...) pen. XXX' string", () => {
+    // ponytail: 历史 snapshot 里有些 slot.team.name 被污染. 卡片应只显示真名.
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 74,
+        slot1: { team: { name: "Germany" }, source: "group:E:winner" },
+        slot2: { team: { name: "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" }, source: "group:D:third" },
+        status: "final",
+        score: { ft: [1, 1], status: "final" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const card = container.querySelector(".bracket-card");
+    // 不应出现 "a.e.t." 或 "pen." 文本污染 (除了 a.e.t. score tag, 但 card 头部不含)
+    expect(card.textContent).toContain("Germany");
+    // team 名字区域应只剩 "Paraguay" (displayTeam 找 TEAMS["Paraguay"])
+    expect(card.textContent).toContain("Paraguay");
+    expect(card.textContent).not.toContain("3-4 pen.");
+  });
+
+  test("v2.66 score renders a.e.t. tag when score.et present", () => {
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 74,
+        slot1: { team: { name: "Germany" }, source: "group:E:winner" },
+        slot2: { team: { name: "Paraguay" }, source: "group:D:third" },
+        status: "final",
+        score: { ft: [1, 1], et: [1, 2], status: "final" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const tag = container.querySelector(".bracket-card-score-tag");
+    expect(tag).toBeTruthy();
+    expect(tag.textContent).toContain("a.e.t.");
+  });
+
+  test("v2.66 score renders 'p.' tag when score.pen present", () => {
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 74,
+        slot1: { team: { name: "Germany" }, source: "group:E:winner" },
+        slot2: { team: { name: "Paraguay" }, source: "group:D:third" },
+        status: "final",
+        score: { ft: [1, 1], et: [1, 1], pen: [3, 4], status: "final" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const tags = container.querySelectorAll(".bracket-card-score-tag");
+    expect(tags).toHaveLength(2);
+    expect(tags[0].textContent).toContain("a.e.t.");
+    expect(tags[1].textContent).toContain("p.");
+  });
 });
 
 describe("splitBracketByHalf (保留 API, 不被 fallback 调用)", () => {
   let splitBracketByHalf;
   beforeEach(async () => {
     vi.resetModules();
-    vi.doMock("../../../src/renderer/worldcup/teams-data.js", () => ({
+    vi.doMock("../../src/renderer/worldcup/teams-data.js", () => ({
       displayTeam: (name) => name ? { flag: 'XX', cn: name } : null,
     }));
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
@@ -254,7 +310,7 @@ describe("splitBracketByHalf (保留 API, 不被 fallback 调用)", () => {
   });
   afterEach(() => {
     delete global.window;
-    vi.doUnmock("../../../src/renderer/worldcup/teams-data.js");
+    vi.doUnmock("../../src/renderer/worldcup/teams-data.js");
   });
 
   test("splits R32 into upper[0..7] and lower[8..15]", () => {

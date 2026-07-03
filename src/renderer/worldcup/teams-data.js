@@ -392,6 +392,20 @@ const TEAMS_RAW = [
     },
   },
   {
+    // ponytail: TXT 给 "Ivory Coast" (canonicalTeamName → "cote divoire"),
+    // 但 TEAMS 实际 key 是 "Côte d'Ivoire" (FIFA 官方名). alias 链靠这个 key 兜底.
+    name: "Côte d'Ivoire",
+    cn: "科特迪瓦",
+    code: "CI",
+    group: "E",
+    famous: {
+      number: 10,
+      position: "FW",
+      name: "Nicolas Pépé",
+      club: "Trabzonspor",
+    },
+  },
+  {
     name: "Saudi Arabia",
     cn: "沙特",
     code: "SA",

@@ -38,11 +38,18 @@ export function WorldcupScorersView({ search = '' }) {
   };
 
   if (all.length === 0) {
+    // ponytail: 不同 stage 的空状态给不同提示, 避免用户疑惑 "为什么淘汰赛 0"
+    const emptyHint =
+      stageFilter === 'knockout'
+        ? '淘汰赛实时进球者需等 ESPN 比分源推送. 完赛后再次刷新即可看到进球者.'
+        : stageFilter === 'group'
+        ? '小组赛结束后会汇总各场进球者.'
+        : '完赛或进行中的比赛会在刷新比分后更新射手榜';
     return (
       <div class="worldcup-scorers-view worldcup-empty">
         <ScorersFilterTabs stageFilter={stageFilter} setStageFilter={setStageFilter} counts={counts} />
         <p>暂无进球数据</p>
-        <p class="hint">完赛或进行中的比赛会在刷新比分后更新射手榜</p>
+        <p class="hint">{emptyHint}</p>
       </div>
     );
   }

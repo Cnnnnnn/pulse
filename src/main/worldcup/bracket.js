@@ -178,6 +178,14 @@ function isPlaceholderTeamName(name) {
   );
 }
 
+// ponytail: 历史 TXT/手工数据会把 "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" 这类
+// 加时/点球比分污染字符串塞进 slot.team.name. 视为非法, 触发 attachFinals
+// 重新从 cup_finals.txt 拿真名覆盖.
+function isPollutedTeamName(name) {
+  if (typeof name !== "string") return false;
+  return /a\.e\.t\.|pen\.?\s*\d/i.test(name);
+}
+
 function attachFinals(match, fm) {
   match.kickoff = {
     date: fm.date || null,
@@ -200,20 +208,36 @@ function attachFinals(match, fm) {
       match.status = "pending";
     }
   }
-  // TXT 真名 (非 placeholder) 覆盖 slot.team.name
+  // TXT 真名 (非 placeholder) 覆盖 slot.team.name.
+  // 历史 bug: 某些 slot.team.name 被污染成 "a.e.t. (...) pen. XXX",
+  // 这种情况下强制用 fm.team1/team2 真名覆盖, 不管原值.
+  const slot1Polluted = isPollutedTeamName(match.slot1 && match.slot1.team && match.slot1.team.name);
+  const slot2Polluted = isPollutedTeamName(match.slot2 && match.slot2.team && match.slot2.team.name);
   if (fm.team1 && match.slot1 && !isPlaceholderTeamName(fm.team1)) {
-    match.slot1 = {
-      ...match.slot1,
-      team: { ...(match.slot1.team || {}), name: fm.team1 },
-      sourceTxt: true,
-    };
+    if (
+      slot1Polluted ||
+      isPlaceholderTeamName(match.slot1.team && match.slot1.team.name) ||
+      match.slot1.sourceTxt !== true
+    ) {
+      match.slot1 = {
+        ...match.slot1,
+        team: { ...(match.slot1.team || {}), name: fm.team1 },
+        sourceTxt: true,
+      };
+    }
   }
   if (fm.team2 && match.slot2 && !isPlaceholderTeamName(fm.team2)) {
-    match.slot2 = {
-      ...match.slot2,
-      team: { ...(match.slot2.team || {}), name: fm.team2 },
-      sourceTxt: true,
-    };
+    if (
+      slot2Polluted ||
+      isPlaceholderTeamName(match.slot2.team && match.slot2.team.name) ||
+      match.slot2.sourceTxt !== true
+    ) {
+      match.slot2 = {
+        ...match.slot2,
+        team: { ...(match.slot2.team || {}), name: fm.team2 },
+        sourceTxt: true,
+      };
+    }
   }
 }
 
@@ -449,4 +473,5 @@ module.exports = {
   mergeFinalsIntoSnapshot,
   mergeLiveScoresIntoSnapshot,
   isPlaceholderTeamName,
+  isPollutedTeamName,
 };

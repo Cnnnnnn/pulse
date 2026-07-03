@@ -39,12 +39,23 @@ function venueCn(venue) {
   return VENUE_CN[venue] || venue;
 }
 
+// ponytail: 历史 bracket snapshot 里有些 slot.team.name 被 TXT/手工数据污染
+// 成 "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" 这种. 提取最末的真实队名 fallback.
+function cleanTeamName(raw) {
+  if (!raw || typeof raw !== "string") return raw;
+  // match 任意 "(<num>-<num>, ...), <num>-<num> pen. <NAME>" 或 "a.e.t. (...) ... <NAME>" 形式
+  const m = raw.match(/(?:a\.e\.t\.|pen\.?)[^]*?\s([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s.'-]{1,30})$/);
+  if (m) return m[1].trim();
+  return raw;
+}
+
 function teamCn(slot) {
   if (!slot || !slot.team) return null;
   // ponytail: 用 displayTeam 拿 ISO-2 code (FLAG_SVGS 的 key), 不要用 .substring(0,2)
   // 截队名 (那种 "South Africa" → "SO" 是错的, 南非 ISO 是 ZA).
-  const d = displayTeam(slot.team.name);
-  return { flag: d.flag, cn: d.cn };
+  const cleaned = cleanTeamName(slot.team.name);
+  const d = displayTeam(cleaned);
+  return { flag: d.flag, cn: d.cn, raw: cleaned };
 }
 
 function slotPlaceholder(slot) {
@@ -85,18 +96,25 @@ function MatchMeta({ match }) {
 // ponytail: v2.64 — 百度/ESPN 风卡片: 头部 Match num + 状态徽章 (右对齐),
 // 主行 队1 vs 队2 (居中比分/vs), 底部 meta 一行 (时间 + 球场).
 // 比分 status=final/live 时显示数字 vs 灰色, status=pending/projected 显示 vs.
-// 实际 score shape: { ft: [home, away], ht: [h, a], status } (来自 cup_finals.txt + state.json)
+// 实际 score shape: { ft: [home, away], ht: [h, a], et?, pen? } (来自 cup_finals.txt + state.json)
 function CardScore({ match }) {
   const { status, score } = match;
   if ((status === "final" || status === "live") && score && Array.isArray(score.ft)) {
     const [home, away] = score.ft;
     const leaderIsHome = home != null && away != null && home > away;
     const leaderIsAway = home != null && away != null && away > home;
+    // ponytail: 加时赛 (a.e.t.) / 点球 (p.) 标记. score.et / score.pen 形如
+    // [home, away]. 当前上游 scores-fetcher 还没拉这俩字段, 但 UI 先准备好,
+    // 将来有了直接显示.
+    const hasEt = Array.isArray(score.et) && score.et.length === 2;
+    const hasPen = Array.isArray(score.pen) && score.pen.length === 2;
     return (
       <span class="bracket-card-score">
         <span class={`bracket-card-score-num ${leaderIsHome ? "is-leader" : ""}`}>{home ?? "-"}</span>
         <span class="bracket-card-score-dash">:</span>
         <span class={`bracket-card-score-num ${leaderIsAway ? "is-leader" : ""}`}>{away ?? "-"}</span>
+        {hasEt && <span class="bracket-card-score-tag" title="加时">a.e.t.</span>}
+        {hasPen && <span class="bracket-card-score-tag" title="点球">p.</span>}
       </span>
     );
   }
