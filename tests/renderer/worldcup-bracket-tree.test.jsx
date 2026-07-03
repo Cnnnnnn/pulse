@@ -261,8 +261,10 @@ describe("BracketTree (fallback only)", () => {
     expect(card.textContent).not.toContain("pen. Paraguay");
   });
 
-  test("v2.67 M74 polluted name → 'Paraguay' + a.e.t./p. tags (rescued from name)", () => {
-    // ponytail: 上游 0 来源, 但污染串本身带 et/pen 比分, 卡片应自救显示.
+  test("v2.71 M74 polluted name is cleaned for display, but no etpen tag (上游 0 来源, 不再自救)", () => {
+    // ponytail: v2.66-v2.70 用 slot.team.name 污染串反推 et/pen 比分.
+    // 但实测污染串是手工脏数据, 跟真实比赛不符. v2.71 禁用自救.
+    // 队名清洗仍生效 (cleanTeamName), 但 etpen 标签不再从污染串生成.
     const snap = {
       ...sampleSnapshot,
       r32: [{
@@ -270,22 +272,20 @@ describe("BracketTree (fallback only)", () => {
         slot1: { team: { name: "Germany" }, source: "group:E:winner" },
         slot2: { team: { name: "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" }, source: "group:D:third" },
         status: "final",
-        score: { ft: [1, 1], status: "final" }, // 故意没 et/pen
+        score: { ft: [1, 1], status: "final" },
       }],
     };
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
     const card = container.querySelector(".bracket-card");
-    // 标签在 head 行 (v2.68), 不再在 score 内
-    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
-    expect(tags).toHaveLength(2);
-    expect(tags[0].textContent).toContain("加时");
-    expect(tags[1].textContent).toContain("点球");
-    // 队名清洗: 不出现 "pen. Paraguay"
-    expect(card.textContent).not.toContain("pen. Paraguay");
+    // 队名清洗: 仍显示 "Paraguay", 不再出现 "pen. Paraguay"
     expect(card.textContent).toContain("Paraguay");
+    expect(card.textContent).not.toContain("pen. Paraguay");
+    // etpen 标签不再从污染串生成
+    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
+    expect(tags).toHaveLength(0);
   });
 
-  test("v2.67 M75 'a.e.t. (1-1, 0-0), 2-3 pen. Morocco' → 'Morocco' + a.e.t./p.", () => {
+  test("v2.71 M75 'pen. Morocco' cleaned, no etpen tag (自救禁用)", () => {
     const snap = {
       ...sampleSnapshot,
       r32: [{
@@ -299,14 +299,12 @@ describe("BracketTree (fallback only)", () => {
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
     expect(container.textContent).toContain("Morocco");
     expect(container.textContent).not.toContain("pen. Morocco");
-    // ponytail: v2.69 自救拿到的 etpen 比分应在 tag 里出现具体数字
     const tags = container.querySelectorAll(".bracket-card-etpen-tag");
-    expect(tags).toHaveLength(2);
-    expect(tags[0].textContent).toBe("加时 0:0"); // 90 分 1-1, 加时 0-0
-    expect(tags[1].textContent).toBe("点球 2:3");
+    expect(tags).toHaveLength(0);
   });
 
-  test("v2.66 score renders a.e.t. tag when score.et present", () => {
+  test("v2.66 score renders a.e.t. tag when score.et present (上游真数据)", () => {
+    // ponytail: v2.71 后唯一可信来源就是 score.et / score.pen 真字段.
     const snap = {
       ...sampleSnapshot,
       r32: [{
@@ -342,31 +340,8 @@ describe("BracketTree (fallback only)", () => {
     expect(tags[1].textContent).toBe("点球 3:4");
   });
 
-  test("v2.69 M74 rescued from name: '加时 0:1 点球 3:4'", () => {
-    // ponytail: 历史污染串自救 + 数字显示. raw = "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay"
-    // → 加时 0:1, 点球 3:4
-    const snap = {
-      ...sampleSnapshot,
-      r32: [{
-        matchNum: 74,
-        slot1: { team: { name: "Germany" }, source: "group:E:winner" },
-        slot2: { team: { name: "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" }, source: "group:D:third" },
-        status: "final",
-        score: { ft: [1, 1], status: "final" },
-      }],
-    };
-    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
-    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
-    expect(tags).toHaveLength(2);
-    expect(tags[0].textContent).toBe("加时 0:1");
-    expect(tags[1].textContent).toBe("点球 3:4");
-    // 自救 tooltip 提示
-    const wrapper = container.querySelector(".bracket-card-etpen");
-    expect(wrapper.getAttribute("title")).toMatch(/反推/);
-  });
-
-  test("v2.69 upstream score.et/pen has no 'rescued' tooltip", () => {
-    // ponytail: 真上游数据来的 etpen 没自救 tooltip
+  test("v2.71 no tooltip on etpen tag (上游真数据不再带自救提示)", () => {
+    // ponytail: v2.71 唯一来源 = score.et / score.pen, 不再自救, 无 tooltip
     const snap = {
       ...sampleSnapshot,
       r32: [{
@@ -379,12 +354,13 @@ describe("BracketTree (fallback only)", () => {
     };
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
     const wrapper = container.querySelector(".bracket-card-etpen");
-    expect(wrapper.getAttribute("title")).toBe("");
+    expect(wrapper).toBeTruthy();
+    expect(wrapper.getAttribute("title")).toBeNull();
   });
 
-  test("v2.70 M82 ft=[3,2] polluted 'a.e.t. (2-2, 0-1)' is rejected as garbage (no etpen tag)", () => {
-    // ponytail: 90 分已经是 3-2 决出胜负, 但历史污染串写"a.e.t. (2-2, 0-1)".
-    // 污染串的"90 分=2-2"跟 score.ft=[3,2] 矛盾 → 视为垃圾, 不显示加时标签.
+  test("v2.71 M82 ft=[3,2] polluted 'a.e.t. (2-2, 0-1)' → no etpen tag (自救禁用, 不显示任何标签)", () => {
+    // ponytail: v2.71 不管 score.ft 跟污染串一不一致, 都不再自救.
+    // M82 90 分 ft=[3,2] 决出胜负, 卡片不应显示加时.
     const snap = {
       ...sampleSnapshot,
       r32: [{
@@ -398,27 +374,9 @@ describe("BracketTree (fallback only)", () => {
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
     // 队名还是清洗成 Senegal (cleanTeamName 仍能提取真名)
     expect(container.textContent).toContain("Senegal");
-    // 但 etpen tag 不应出现 (数据矛盾)
+    // v2.71 自救禁用, etpen tag 不出现
     const tags = container.querySelectorAll(".bracket-card-etpen-tag");
     expect(tags).toHaveLength(0);
-  });
-
-  test("v2.70 polluted name with ft consistency check passes (M82 ft=[2,2] case)", () => {
-    // ponytail: 当 score.ft 跟污染串里写的"90 分"一致, 数据被认.
-    const snap = {
-      ...sampleSnapshot,
-      r32: [{
-        matchNum: 82,
-        slot1: { team: { name: "Belgium" }, source: "group:B:winner" },
-        slot2: { team: { name: "a.e.t. (2-2, 0-1) Senegal" }, source: "group:E:third" },
-        status: "final",
-        score: { ft: [2, 2], status: "final" },
-      }],
-    };
-    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
-    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
-    expect(tags).toHaveLength(1);
-    expect(tags[0].textContent).toBe("加时 0:1");
   });
 
   test("v2.68 etpen tags live in card head (next to Match num), not in middle score cell", () => {

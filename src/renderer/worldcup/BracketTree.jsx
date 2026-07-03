@@ -60,22 +60,18 @@ function cleanTeamName(raw) {
   return raw;
 }
 
-// ponytail: 从污染串中提取 et/pen 比分. 返回 { et: [h,a], pen: [h,a]|null } 或 null.
-//
-// 重要: 历史污染串可能跟 score.ft 矛盾 (例 M82 ft=[3,2] 但污染串写
-// "a.e.t. (2-2, 0-1)" — 90 分就是 3-2 决出胜负, 实际无加时). 此时污染串
-// 应判为垃圾, 不返. 调用方传 score.ft 做交叉验证.
+// ponytail: DEPRECATED 自 v2.71. 从污染串 (历史脏数据) 反推 et/pen 比分.
+// v2.66-v2.70 一直用, 但实测污染串是手工脏数据, 跟真实比赛不符 (M82
+// ft=[3,2] 但污染串写"2-2 0-1" → 90 分决胜负, 污染串说不过加时不攻自破).
+// 即便 ft 一致也无法验证 et/pen 数字真伪. 唯一可信来源是 score.et/score.pen
+// 真字段. EtPenTags 已停用本函数. 留代码方便将来 debug / 复用.
 function extractEtPenFromName(raw, ft) {
   if (!raw || typeof raw !== "string") return null;
   const m = raw.match(AET_PEN_RE);
   if (m) {
-    // m[1..2] = 污染串里写的"90 分", m[3..4] = 加时, m[5..6] = 点球, m[7] = 队名
     const claimedFt = [Number(m[1]), Number(m[2])];
-    // 交叉验证: 污染串里写的"90 分"必须跟 score.ft 一致, 否则是垃圾数据
     if (Array.isArray(ft) && ft.length === 2) {
-      if (ft[0] !== claimedFt[0] || ft[1] !== claimedFt[1]) {
-        return null;
-      }
+      if (ft[0] !== claimedFt[0] || ft[1] !== claimedFt[1]) return null;
     }
     const et = m[3] != null ? [Number(m[3]), Number(m[4])] : null;
     const pen = m[5] != null ? [Number(m[5]), Number(m[6])] : null;
@@ -83,12 +79,9 @@ function extractEtPenFromName(raw, ft) {
   }
   const m2 = raw.match(AET_ONLY_RE);
   if (m2) {
-    // m2[1..2] = 90 分, m2[3..4] = 加时, m2[5] = 队名 (无点球)
     const claimedFt = [Number(m2[1]), Number(m2[2])];
     if (Array.isArray(ft) && ft.length === 2) {
-      if (ft[0] !== claimedFt[0] || ft[1] !== claimedFt[1]) {
-        return null;
-      }
+      if (ft[0] !== claimedFt[0] || ft[1] !== claimedFt[1]) return null;
     }
     const et = m2[3] != null ? [Number(m2[3]), Number(m2[4])] : null;
     return { et, pen: null };
@@ -161,45 +154,31 @@ function CardScore({ match }) {
   return <span class="bracket-card-vs">vs</span>;
 }
 
-// ponytail: v2.68 加时/点球标记从比分中拆出, 移到 head 行 (跟 "Match 73" 同行),
-// 不再挤在卡片中间. 数据源优先级: score.et/pen → slot.team.name 污染串自救.
+// ponytail: v2.68 加时/点球标记从比分中拆出, 移到 head 行 (跟 "Match 73" 同行).
 //
-// v2.69: 升级成能显示具体比分. 有 et 数字时显示 "加时 0:1", 有 pen 数字时
-// 显示 "点球 3:4". 没数字时退化到纯文字标签 (虽然现状 et/pen 总是一起
-// 反推出来, 但保持向后兼容: 将来上游只给标记不给数字也能用).
+// v2.69 显示具体比分 "加时 0:1" / "点球 3:4".
+//
+// v2.71: **禁用** slot.team.name 污染串自救. 历史自 v2.66 起在用
+// "a.e.t. (1-1, 0-1), 3-4 pen. XXX" 串反推 et/pen 数字, 但实测这串
+// 是手工脏数据, 跟真实比赛不符 (例 M82 ft=[3,2] 但污染串写 2-2, 表示
+// 90 分根本没加时). 即便 ft 一致时 (M74/M75), 污染串里的 et/pen 数字
+// 也不可验证. 上游数据源:
+//   - cup_finals.txt: 0 条 a.e.t. 行
+//   - worldcup26 / ESPN 流: 0 条 R32 scores
+//   - bracket snapshot: M74/M75/M82 都没 score.et / score.pen 字段
+// 因此: 唯一可信来源是 score.et / score.pen 真字段. 当前 0 来源, 所以
+// 不显示 etpen tag. 将来 ESL 流 (scores-fetcher) 抓到 et/pen 时自动显示.
 function EtPenTags({ match }) {
   const { status, score } = match;
   if (status !== "final" && status !== "live") return null;
-  let etArr = Array.isArray(score && score.et) && score.et.length === 2 ? score.et : null;
-  let penArr = Array.isArray(score && score.pen) && score.pen.length === 2 ? score.pen : null;
-  let rescuedFromName = false;
-  if (!etArr || !penArr) {
-    const slot2 = match.slot2 && match.slot2.team && match.slot2.team.name;
-    const slot1 = match.slot1 && match.slot1.team && match.slot1.team.name;
-    // ponytail: v2.70 把 score.ft 传给 extract, 交叉验证污染串里写的"90 分"
-    // 跟实际 score.ft 一致. 不一致时 (例 M82 ft=[3,2] 污染串写 2-2),
-    // 视为垃圾数据, 不自救.
-    const ft = Array.isArray(score && score.ft) ? score.ft : null;
-    const rescued = extractEtPenFromName(slot2, ft) || extractEtPenFromName(slot1, ft);
-    if (rescued) {
-      rescuedFromName = true;
-      if (!etArr && rescued.et) etArr = rescued.et;
-      if (!penArr && rescued.pen) penArr = rescued.pen;
-    }
-  }
+  const etArr = Array.isArray(score && score.et) && score.et.length === 2 ? score.et : null;
+  const penArr = Array.isArray(score && score.pen) && score.pen.length === 2 ? score.pen : null;
   if (!etArr && !penArr) return null;
-  // ponytail: 比分数字在自救数据下永远会有 (extract 总是返 array). 真上游
-  // 哪天只给 et/pen 标志 (无数字), 降级到无数字文本.
   const fmt = (arr) => (arr && arr.length === 2 ? `${arr[0]}:${arr[1]}` : "");
   const etLabel = etArr ? (fmt(etArr) ? `加时 ${fmt(etArr)}` : "加时") : null;
   const penLabel = penArr ? (fmt(penArr) ? `点球 ${fmt(penArr)}` : "点球") : null;
-  // ponytail: 自救来的数字有微小风险 (污染串 regex 不严谨), 给个 title 提示
-  // "此数据来自历史快照自救, 可能有误差".
-  const tooltip = rescuedFromName
-    ? "加时/点球比分从历史快照反推, 可能有误差"
-    : "";
   return (
-    <span class="bracket-card-etpen" title={tooltip}>
+    <span class="bracket-card-etpen">
       {etLabel && <span class="bracket-card-etpen-tag">{etLabel}</span>}
       {penLabel && <span class="bracket-card-etpen-tag">{penLabel}</span>}
     </span>
