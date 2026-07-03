@@ -1,17 +1,21 @@
 /**
  * src/renderer/stocks/StockLayout.jsx
  *
- * 选股 tab 容器 (对照 FundLayout).
- * 注意: 进 tab 不自动筛选 (避免进 tab 就打接口), 用户手动点筛选.
+ * 选股 tab 容器 (对照 FundLayout). 两个子 tab (照搬世界杯 segmented control):
+ *   - screen      筛选 (StrategyBar + CriteriaPanel + ResultTable)
+ *   - diagnosis   个股分析 (StockSearchInput + StockDiagnosisPage)
  *
- * 个股诊断页 (StockDiagnosisPage) 通过子路由切换显示.
+ * 子 tab 由 stockActiveTab signal 控制; 个股分析 tab 顶部搜索框 + ResultTable 行内
+ * 诊断按钮都调 openDiagnosis(code) (它切到 diagnosis tab 并设 stockDiagnosisCode).
+ *
+ * 注意: 进 tab 不自动筛选 (避免进 tab 就打接口), 用户手动点筛选.
  */
 import { StrategyBar } from "./StrategyBar.jsx";
 import { CriteriaPanel } from "./CriteriaPanel.jsx";
 import { ResultTable } from "./ResultTable.jsx";
 import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
 import { IconSearch, IconSparkles, IconTrendingUp } from "../components/icons.jsx";
-import { stockDiagnosisCode } from "./diagnosisStore.js";
+import { stockActiveTab } from "./diagnosisStore.js";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
 import {
   runScreen,
@@ -21,6 +25,11 @@ import {
   aiAdviseOpen,
 } from "./stockStore.js";
 import { api } from "../api.js";
+
+const STOCK_SUBTABS = [
+  { key: "screen", label: "筛选" },
+  { key: "diagnosis", label: "个股分析" },
+];
 
 function fmtTime(ts) {
   if (!ts) return "—";
@@ -61,7 +70,19 @@ export function StockLayout() {
           </button>
         </div>
       </div>
-      {stockDiagnosisCode.value ? (
+      <div class="stock-subtabs">
+        {STOCK_SUBTABS.map((t) => (
+          <button
+            key={t.key}
+            class={`stock-subtab${stockActiveTab.value === t.key ? " stock-subtab-active" : ""}`}
+            onClick={() => (stockActiveTab.value = t.key)}
+            type="button"
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {stockActiveTab.value === "diagnosis" ? (
         <StockDiagnosisPage api={api} />
       ) : (
         <>

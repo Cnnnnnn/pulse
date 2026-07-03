@@ -6,6 +6,7 @@ import { StockMiniList } from "./diagnosis/StockMiniList.jsx";
 import { VerdictCard } from "./diagnosis/VerdictCard.jsx";
 import { DimensionScores } from "./diagnosis/DimensionScores.jsx";
 import { ModuleGrid } from "./diagnosis/ModuleGrid.jsx";
+import { StockSearchInput } from "./StockSearchInput.jsx";
 
 export function StockDiagnosisPage({ api }) {
   const code = stockDiagnosisCode.value;
@@ -18,6 +19,7 @@ export function StockDiagnosisPage({ api }) {
 
   return (
     <div class="stock-diagnosis-page">
+      <StockSearchInput api={api} />
       <StockDiagnosisHeader stock={stock} scores={state.scores} />
       <div class="stock-diagnosis-body">
         <StockMiniList currentCode={code} />
