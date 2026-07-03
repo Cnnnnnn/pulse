@@ -7,8 +7,8 @@
  *   - revenueStability (0-3): 净利 CAGR + 行业营收排名
  *
  * 数据源 (东财 API 2026 变动后):
- *   - 本股财务: RPT_F10_FINANCE_MAINFINADATA, 字段 ROIC/XSMLL/PARENT_NETPROFIT/TOTAL_OPERATE_INCOME
- *     (NETPROFIT/XSMLL_RANK 字段已不存在, 改 PARENTNETPROFIT + 自己算排名)
+ *   - 本股财务: RPT_F10_FINANCE_MAINFINADATA, 字段 ROIC/XSMLL/PARENTNETPROFIT/TOTALOPERATEREVE
+ *     (NETPROFIT/XSMLL_RANK 字段已不存在, 改 PARENTNETPROFIT + 自己算排名; 注意 MAINFINADATA 用连写命名, LICO_FN_CPD 用下划线命名)
  *   - 行业成员: fetchIndustryPeers (RPT_LICO_FN_CPD 两步), 客户端算中位/排名
  *
  * ponytail: 评分规则 hardcode 在这里 (不依赖 LLM 算) — 数字评分要稳定可复现,
@@ -19,7 +19,7 @@
  *   近似 ROIC 中位 (ROE 与 ROIC 高度相关, 量级接近, 标注近似).
  */
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
-const FINANCE_COLUMNS = "SECUCODE,REPORT_DATE,REPORT_YEAR,ROIC,XSMLL,PARENT_NETPROFIT,TOTAL_OPERATE_INCOME";
+const FINANCE_COLUMNS = "SECUCODE,REPORT_DATE,REPORT_YEAR,ROIC,XSMLL,PARENTNETPROFIT,TOTALOPERATEREVE";
 const MOAT_TIMEOUT_MS = 8000;
 
 const { fetchIndustryPeers } = require("./_shared-industry");
@@ -79,16 +79,16 @@ async function fetchMoatScore(httpClient, { code }) {
   const marginHistory = financeRows.map((r) => num(r.XSMLL)).filter((v) => v != null);
   const selfGrossMarginP70 = percentile(marginHistory, 0.7);
 
-  // 净利 CAGR: 用 PARENT_NETPROFIT 序列 (按 REPORT_DATE 倒序, 第一条最新)
+  // 净利 CAGR: 用 PARENTNETPROFIT 序列 (按 REPORT_DATE 倒序, 第一条最新)
   const profits = financeRows
-    .map((r) => num(r.PARENT_NETPROFIT))
+    .map((r) => num(r.PARENTNETPROFIT))
     .filter((v) => v != null && v > 0)
     .sort((a, b) => b - a); // 最新在前
   const revenueCagr5y = computeCagr(profits);
 
-  // 行业营收排名: peers 里按 TOTAL_OPERATE_INCOME desc, 找本股位置.
-  // 注意: peers 的 revenue 来自 LICO_FN_CPD 的 TOTAL_OPERATE_INCOME; 本股的营收
-  //   也从 MAINFINADATA 的 TOTAL_OPERATE_INCOME 拿, 但 ranking 用 peers 列表算.
+  // 行业营收排名: peers 里按 revenue desc, 找本股位置.
+  // 注意: peers 的 revenue 来自 LICO_FN_CPD 的 TOTAL_OPERATE_INCOME (该表用下划线命名);
+  //   本股净利从 MAINFINADATA 的 PARENTNETPROFIT 拿 (该表无下划线), 字段风格不同勿混.
   const revenueRank = rankInPeers(peers, code, "revenue");
 
   // 3 维评分

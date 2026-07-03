@@ -64,9 +64,9 @@ describe("fetchMoatScore", () => {
   it("3 维都满分 (毛利超行业中位 25pp, ROIC 超 15pp, 营收前 10% + CAGR 15%) → score=9", async () => {
     // 自身 5 年财务: 毛利率 47%, ROIC 23.5%, 净利增长稳定
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 23.5, XSMLL: 47.0, PARENT_NETPROFIT: 1e9, TOTAL_OPERATE_INCOME: 1.2e10 },
-      { REPORT_DATE: "2024-12-31", ROIC: 22.0, XSMLL: 45.0, PARENT_NETPROFIT: 0.9e9, TOTAL_OPERATE_INCOME: 1.1e10 },
-      { REPORT_DATE: "2023-12-31", ROIC: 21.0, XSMLL: 44.0, PARENT_NETPROFIT: 0.8e9, TOTAL_OPERATE_INCOME: 1.0e10 },
+      { REPORT_DATE: "2025-12-31", ROIC: 23.5, XSMLL: 47.0, PARENTNETPROFIT: 1e9, TOTALOPERATEREVE: 1.2e10 },
+      { REPORT_DATE: "2024-12-31", ROIC: 22.0, XSMLL: 45.0, PARENTNETPROFIT: 0.9e9, TOTALOPERATEREVE: 1.1e10 },
+      { REPORT_DATE: "2023-12-31", ROIC: 21.0, XSMLL: 44.0, PARENTNETPROFIT: 0.8e9, TOTALOPERATEREVE: 1.0e10 },
     ];
     // peers: 本股 revenue 最大 → rank 1, total 10 → topFrac 0.1 ≤ 0.3 稳定
     const peers = buildPeers(30.0, 47.0, 10);
@@ -86,9 +86,9 @@ describe("fetchMoatScore", () => {
   it("3 维都 0 (毛利低于行业中位, ROIC 负, 营收靠后) → score=0, note 标无护城河", async () => {
     // 净利持平 (CAGR=0), 本股营收靠后 rank 10/10 不稳定
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: -2.0, XSMLL: 8.0, PARENT_NETPROFIT: 3e6, TOTAL_OPERATE_INCOME: 1e6 },
-      { REPORT_DATE: "2024-12-31", ROIC: -1.0, XSMLL: 9.0, PARENT_NETPROFIT: 3e6, TOTAL_OPERATE_INCOME: 2e6 },
-      { REPORT_DATE: "2023-12-31", ROIC: 1.0, XSMLL: 10.0, PARENT_NETPROFIT: 3e6, TOTAL_OPERATE_INCOME: 3e6 },
+      { REPORT_DATE: "2025-12-31", ROIC: -2.0, XSMLL: 8.0, PARENTNETPROFIT: 3e6, TOTALOPERATEREVE: 1e6 },
+      { REPORT_DATE: "2024-12-31", ROIC: -1.0, XSMLL: 9.0, PARENTNETPROFIT: 3e6, TOTALOPERATEREVE: 2e6 },
+      { REPORT_DATE: "2023-12-31", ROIC: 1.0, XSMLL: 10.0, PARENTNETPROFIT: 3e6, TOTALOPERATEREVE: 3e6 },
     ];
     // 本股 revenue 最小 → rank 10/10, topFrac 1.0 > 0.3 不稳定
     const peers = [];
@@ -106,7 +106,7 @@ describe("fetchMoatScore", () => {
 
   it("毛利率缺失 (单点) → marginEdge=0, note 标数据缺失", async () => {
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 23.5, PARENT_NETPROFIT: 1e9, TOTAL_OPERATE_INCOME: 1e10 /* XSMLL 缺失 */ },
+      { REPORT_DATE: "2025-12-31", ROIC: 23.5, PARENTNETPROFIT: 1e9, TOTALOPERATEREVE: 1e10 /* XSMLL 缺失 */ },
     ];
     const peers = buildPeers(30.0, null, 10);
     _mockIndustry.mockResolvedValue(industryOk(peers));
@@ -120,9 +120,9 @@ describe("fetchMoatScore", () => {
   it("毛利超行业中位 25pp (47-22) → marginEdge=3 (假设 70 分位条件满足)", async () => {
     // 自身毛利率序列 [47, 45, 44], 当前 47 ≥ p70
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 47.0, PARENT_NETPROFIT: 1e8, TOTAL_OPERATE_INCOME: 1e10 },
-      { REPORT_DATE: "2024-12-31", ROIC: 4.0, XSMLL: 45.0, PARENT_NETPROFIT: 0.9e8, TOTAL_OPERATE_INCOME: 9e9 },
-      { REPORT_DATE: "2023-12-31", ROIC: 3.0, XSMLL: 44.0, PARENT_NETPROFIT: 0.8e8, TOTAL_OPERATE_INCOME: 8e9 },
+      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 47.0, PARENTNETPROFIT: 1e8, TOTALOPERATEREVE: 1e10 },
+      { REPORT_DATE: "2024-12-31", ROIC: 4.0, XSMLL: 45.0, PARENTNETPROFIT: 0.9e8, TOTALOPERATEREVE: 9e9 },
+      { REPORT_DATE: "2023-12-31", ROIC: 3.0, XSMLL: 44.0, PARENTNETPROFIT: 0.8e8, TOTALOPERATEREVE: 8e9 },
     ];
     const peers = buildPeers(5.0, 47.0, 10);
     _mockIndustry.mockResolvedValue(industryOk(peers));
@@ -134,9 +134,9 @@ describe("fetchMoatScore", () => {
 
   it("毛利超行业中位 12pp (34-22) → marginEdge=2", async () => {
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 34.0, PARENT_NETPROFIT: 1e8, TOTAL_OPERATE_INCOME: 1e10 },
-      { REPORT_DATE: "2024-12-31", ROIC: 4.0, XSMLL: 32.0, PARENT_NETPROFIT: 0.9e8, TOTAL_OPERATE_INCOME: 9e9 },
-      { REPORT_DATE: "2023-12-31", ROIC: 3.0, XSMLL: 30.0, PARENT_NETPROFIT: 0.8e8, TOTAL_OPERATE_INCOME: 8e9 },
+      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 34.0, PARENTNETPROFIT: 1e8, TOTALOPERATEREVE: 1e10 },
+      { REPORT_DATE: "2024-12-31", ROIC: 4.0, XSMLL: 32.0, PARENTNETPROFIT: 0.9e8, TOTALOPERATEREVE: 9e9 },
+      { REPORT_DATE: "2023-12-31", ROIC: 3.0, XSMLL: 30.0, PARENTNETPROFIT: 0.8e8, TOTALOPERATEREVE: 8e9 },
     ];
     const peers = buildPeers(5.0, 34.0, 10);
     _mockIndustry.mockResolvedValue(industryOk(peers));
@@ -147,9 +147,9 @@ describe("fetchMoatScore", () => {
 
   it("ROIC 超行业中位 12pp (20.5-8.5) → roicEdge=3", async () => {
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 20.5, XSMLL: 22.0, PARENT_NETPROFIT: 1e8, TOTAL_OPERATE_INCOME: 1e10 },
-      { REPORT_DATE: "2024-12-31", ROIC: 19.0, XSMLL: 21.0, PARENT_NETPROFIT: 0.9e8, TOTAL_OPERATE_INCOME: 9e9 },
-      { REPORT_DATE: "2023-12-31", ROIC: 18.0, XSMLL: 20.0, PARENT_NETPROFIT: 0.8e8, TOTAL_OPERATE_INCOME: 8e9 },
+      { REPORT_DATE: "2025-12-31", ROIC: 20.5, XSMLL: 22.0, PARENTNETPROFIT: 1e8, TOTALOPERATEREVE: 1e10 },
+      { REPORT_DATE: "2024-12-31", ROIC: 19.0, XSMLL: 21.0, PARENTNETPROFIT: 0.9e8, TOTALOPERATEREVE: 9e9 },
+      { REPORT_DATE: "2023-12-31", ROIC: 18.0, XSMLL: 20.0, PARENTNETPROFIT: 0.8e8, TOTALOPERATEREVE: 8e9 },
     ];
     const peers = buildPeers(20.5, 22.0, 10);
     _mockIndustry.mockResolvedValue(industryOk(peers));
@@ -161,9 +161,9 @@ describe("fetchMoatScore", () => {
   it("营收前 10% + CAGR 15% → revenueStability=3", async () => {
     // CAGR: 1.5e9 / 1.1e9 ^ (1/2) - 1 ≈ 16.7%
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.5e9, TOTAL_OPERATE_INCOME: 1.5e10 },
-      { REPORT_DATE: "2024-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.3e9, TOTAL_OPERATE_INCOME: 1.4e10 },
-      { REPORT_DATE: "2023-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.1e9, TOTAL_OPERATE_INCOME: 1.3e10 },
+      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.5e9, TOTALOPERATEREVE: 1.5e10 },
+      { REPORT_DATE: "2024-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.3e9, TOTALOPERATEREVE: 1.4e10 },
+      { REPORT_DATE: "2023-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.1e9, TOTALOPERATEREVE: 1.3e10 },
     ];
     // 本股 revenue 最大 → rank 1/10
     const peers = buildPeers(5.0, 22.0, 10);
@@ -176,9 +176,9 @@ describe("fetchMoatScore", () => {
   it("营收靠后 (rank 8/10) + CAGR 3% → revenueStability=0", async () => {
     // CAGR: 1.1e9 / 1.0e9 ^ (1/2) - 1 ≈ 4.88% < 5%
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.1e9, TOTAL_OPERATE_INCOME: 3e9 },
-      { REPORT_DATE: "2024-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.05e9, TOTAL_OPERATE_INCOME: 2.9e9 },
-      { REPORT_DATE: "2023-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.0e9, TOTAL_OPERATE_INCOME: 2.8e9 },
+      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.1e9, TOTALOPERATEREVE: 3e9 },
+      { REPORT_DATE: "2024-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.05e9, TOTALOPERATEREVE: 2.9e9 },
+      { REPORT_DATE: "2023-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.0e9, TOTALOPERATEREVE: 2.8e9 },
     ];
     // 本股 revenue=3e9, 其余 9 只都 5e9 → 本股排最后 rank 10/10
     const peers = [];
@@ -203,7 +203,7 @@ describe("fetchMoatScore", () => {
 
   it("fetchIndustryPeers 失败 → 透传 reason", async () => {
     _mockIndustry.mockResolvedValue({ ok: false, reason: "no_industry_data", error: "board 空" });
-    const http = makeClient([financeResponse([{ ROIC: 5, XSMLL: 22, PARENT_NETPROFIT: 1e8, TOTAL_OPERATE_INCOME: 1e10 }])]);
+    const http = makeClient([financeResponse([{ ROIC: 5, XSMLL: 22, PARENTNETPROFIT: 1e8, TOTALOPERATEREVE: 1e10 }])]);
     const r = await fetchMoatScore(http, { code: "600519" });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("no_industry_data");
@@ -228,9 +228,9 @@ describe("fetchMoatScore", () => {
   it("tier 1 门是 ROIC: 毛利超行业中位但 ROIC ≤ 行业中位 → marginEdge=0 (不命中 tier 1)", async () => {
     // 毛利 23 > 行业中位 22 (diff > 0), 但 ROIC 5 ≤ 行业 ROE 中位 8.5 → tier 1 门不满足
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 23.0, PARENT_NETPROFIT: 1e8, TOTAL_OPERATE_INCOME: 1e10 },
-      { REPORT_DATE: "2024-12-31", ROIC: 4.5, XSMLL: 22.0, PARENT_NETPROFIT: 0.9e8, TOTAL_OPERATE_INCOME: 9e9 },
-      { REPORT_DATE: "2023-12-31", ROIC: 4.0, XSMLL: 21.0, PARENT_NETPROFIT: 0.8e8, TOTAL_OPERATE_INCOME: 8e9 },
+      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 23.0, PARENTNETPROFIT: 1e8, TOTALOPERATEREVE: 1e10 },
+      { REPORT_DATE: "2024-12-31", ROIC: 4.5, XSMLL: 22.0, PARENTNETPROFIT: 0.9e8, TOTALOPERATEREVE: 9e9 },
+      { REPORT_DATE: "2023-12-31", ROIC: 4.0, XSMLL: 21.0, PARENTNETPROFIT: 0.8e8, TOTALOPERATEREVE: 8e9 },
     ];
     const peers = buildPeers(5.0, 23.0, 10);
     _mockIndustry.mockResolvedValue(industryOk(peers));
@@ -245,9 +245,9 @@ describe("fetchMoatScore", () => {
     // p70 = 45 + 0.4*(50-45) = 47, 当前 25 < 47 → tier 2/3 门不满足
     // 但 ROIC 25 > 行业中位 8.5 → tier 1 门满足, diff=25-22=3 不>10/20 → marginEdge=1
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 25.0, XSMLL: 25.0, PARENT_NETPROFIT: 1e9, TOTAL_OPERATE_INCOME: 1e10 },
-      { REPORT_DATE: "2024-12-31", ROIC: 22.0, XSMLL: 45.0, PARENT_NETPROFIT: 0.9e9, TOTAL_OPERATE_INCOME: 9e9 },
-      { REPORT_DATE: "2023-12-31", ROIC: 21.0, XSMLL: 50.0, PARENT_NETPROFIT: 0.8e9, TOTAL_OPERATE_INCOME: 8e9 },
+      { REPORT_DATE: "2025-12-31", ROIC: 25.0, XSMLL: 25.0, PARENTNETPROFIT: 1e9, TOTALOPERATEREVE: 1e10 },
+      { REPORT_DATE: "2024-12-31", ROIC: 22.0, XSMLL: 45.0, PARENTNETPROFIT: 0.9e9, TOTALOPERATEREVE: 9e9 },
+      { REPORT_DATE: "2023-12-31", ROIC: 21.0, XSMLL: 50.0, PARENTNETPROFIT: 0.8e9, TOTALOPERATEREVE: 8e9 },
     ];
     const peers = buildPeers(25.0, 25.0, 10);
     _mockIndustry.mockResolvedValue(industryOk(peers));
@@ -260,9 +260,9 @@ describe("fetchMoatScore", () => {
   it("营收排名在 peers 找不到本股 → revenueRank null, revenueStability 退化只看 cagr", async () => {
     // peers 里本股 code 不匹配 (模拟本股不在 LICO 行业成员列表的边缘 case)
     const financeRows = [
-      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.5e9, TOTAL_OPERATE_INCOME: 1e10 },
-      { REPORT_DATE: "2024-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.3e9, TOTAL_OPERATE_INCOME: 9e9 },
-      { REPORT_DATE: "2023-12-31", ROIC: 5.0, XSMLL: 22.0, PARENT_NETPROFIT: 1.1e9, TOTAL_OPERATE_INCOME: 8e9 },
+      { REPORT_DATE: "2025-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.5e9, TOTALOPERATEREVE: 1e10 },
+      { REPORT_DATE: "2024-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.3e9, TOTALOPERATEREVE: 9e9 },
+      { REPORT_DATE: "2023-12-31", ROIC: 5.0, XSMLL: 22.0, PARENTNETPROFIT: 1.1e9, TOTALOPERATEREVE: 8e9 },
     ];
     // peers 里没有 code=600519
     const peers = [{ code: "999999", name: "x", roe: 8.5, grossMargin: 22.0, revenue: 5e9, netprofit: 5e8 }];
