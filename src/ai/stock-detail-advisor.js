@@ -42,12 +42,26 @@ function adviseCacheKey(opts) {
 }
 
 function buildAnalyzeMessages(opts) {
-  const { code, angles, perAngleData, freeText } = opts || {};
+  const { code, angles, perAngleData, freeText, scores } = opts || {};
   if (!code) throw new Error("buildAnalyzeMessages: code 必填");
   const def = resolvePrompt(PROMPT_KEY);
   const system = [def.system, def.rules, def.fewShot].filter(Boolean).join("\n\n");
   const lines = [];
   lines.push(`股票: ${code}`);
+  // ── scores 块 (规则评分, AI 只解读不打分) ──
+  // Task 2: scores 由规则确定性算出 (diagnosis-scorer), AI 收到后基于此写解读, 不重新打分.
+  // 缺失时整段跳过, 保持向后兼容.
+  if (scores && typeof scores === "object") {
+    const dim = scores.dimensions || {};
+    const dimText = [["fundamental","基本面"],["valuation","估值"],["capital","资金"],["tech","技术"],["risk","风险"]]
+      .map(([k,l]) => `${l}=${dim[k] === null || dim[k] === undefined ? "数据不足" : dim[k]}`)
+      .join("，");
+    lines.push(`综合评级: ${scores.overall == null ? "数据不足" : scores.overall}/10 (${dimText})`);
+    if (Array.isArray(scores.rationale) && scores.rationale.length) {
+      lines.push(`评分依据: ${scores.rationale.join("；")}`);
+    }
+    lines.push(`【重要】以上评级由规则给出, 你的任务是基于此评分写解读, 不要重新打分.`);
+  }
   if (Array.isArray(angles) && angles.length > 0) {
     lines.push("选中的分析角度:");
     for (const k of angles) {
@@ -101,7 +115,7 @@ function parseAndValidateAnalyze(rawText) {
 
 async function aiStockDetailAnalyze(opts) {
   const safeOpts = opts || {};
-  const { code, angles, perAngleData, freeText } = safeOpts;
+  const { code, angles, perAngleData, freeText, scores } = safeOpts;
   if (!code) return { ok: false, reason: "invalid_args" };
 
   const cacheKey = adviseCacheKey({ code, angles, perAngleData, freeText });
@@ -117,7 +131,7 @@ async function aiStockDetailAnalyze(opts) {
 
   let messages;
   try {
-    messages = buildAnalyzeMessages({ code, angles, perAngleData, freeText });
+    messages = buildAnalyzeMessages({ code, angles, perAngleData, freeText, scores });
   } catch (e) {
     return { ok: false, reason: "build_prompt_failed", error: e && e.message };
   }

@@ -344,3 +344,35 @@ describe("buildAnalyzeMessages", () => {
     expect(userContent).toContain("7/9");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// buildAnalyzeMessages scores 注入 (Task 2: AI 解读改造 — 角色转解说员)
+// ponytail: scores 由规则算出 (Task 1 diagnosis-scorer), AI 只解读不打分.
+//           测试沿用本文件 CJS require.cache 注入范式 (advisor.buildAnalyzeMessages).
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("buildAnalyzeMessages scores 注入", () => {
+  it("user 段含 scores 维度分 + rationale", () => {
+    const messages = advisor.buildAnalyzeMessages({
+      code: "300750",
+      angles: ["profitability", "valuation"],
+      perAngleData: {
+        profitability: { status: "ok", data: { roe: 24 } },
+        valuation: { status: "ok", data: { pe: 20 } },
+      },
+      scores: {
+        overall: 7.5,
+        dimensions: { fundamental: 8, valuation: 6, capital: null, tech: null, risk: 7 },
+        rationale: ["PE 20，估值合理", "ROE 24%，盈利能力强"],
+      },
+    });
+    const userText = messages[1].content;
+    expect(userText).toContain("综合评级");
+    expect(userText).toContain("7.5");
+    expect(userText).toContain("PE 20");
+  });
+  it("scores 缺失时不崩 (向后兼容)", () => {
+    const messages = advisor.buildAnalyzeMessages({ code: "300750", angles: [], perAngleData: {} });
+    expect(messages[1].content).toContain("300750");
+  });
+});
