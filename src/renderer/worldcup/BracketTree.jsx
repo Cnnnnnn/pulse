@@ -146,25 +146,41 @@ function CardScore({ match }) {
 
 // ponytail: v2.68 加时/点球标记从比分中拆出, 移到 head 行 (跟 "Match 73" 同行),
 // 不再挤在卡片中间. 数据源优先级: score.et/pen → slot.team.name 污染串自救.
+//
+// v2.69: 升级成能显示具体比分. 有 et 数字时显示 "加时 0:1", 有 pen 数字时
+// 显示 "点球 3:4". 没数字时退化到纯文字标签 (虽然现状 et/pen 总是一起
+// 反推出来, 但保持向后兼容: 将来上游只给标记不给数字也能用).
 function EtPenTags({ match }) {
   const { status, score } = match;
   if (status !== "final" && status !== "live") return null;
   let etArr = Array.isArray(score && score.et) && score.et.length === 2 ? score.et : null;
   let penArr = Array.isArray(score && score.pen) && score.pen.length === 2 ? score.pen : null;
+  let rescuedFromName = false;
   if (!etArr || !penArr) {
     const slot2 = match.slot2 && match.slot2.team && match.slot2.team.name;
     const slot1 = match.slot1 && match.slot1.team && match.slot1.team.name;
     const rescued = extractEtPenFromName(slot2) || extractEtPenFromName(slot1);
     if (rescued) {
+      rescuedFromName = true;
       if (!etArr && rescued.et) etArr = rescued.et;
       if (!penArr && rescued.pen) penArr = rescued.pen;
     }
   }
   if (!etArr && !penArr) return null;
+  // ponytail: 比分数字在自救数据下永远会有 (extract 总是返 array). 真上游
+  // 哪天只给 et/pen 标志 (无数字), 降级到无数字文本.
+  const fmt = (arr) => (arr && arr.length === 2 ? `${arr[0]}:${arr[1]}` : "");
+  const etLabel = etArr ? (fmt(etArr) ? `加时 ${fmt(etArr)}` : "加时") : null;
+  const penLabel = penArr ? (fmt(penArr) ? `点球 ${fmt(penArr)}` : "点球") : null;
+  // ponytail: 自救来的数字有微小风险 (污染串 regex 不严谨), 给个 title 提示
+  // "此数据来自历史快照自救, 可能有误差".
+  const tooltip = rescuedFromName
+    ? "加时/点球比分从历史快照反推, 可能有误差"
+    : "";
   return (
-    <span class="bracket-card-etpen">
-      {etArr && <span class="bracket-card-etpen-tag" title="加时赛结束">加时</span>}
-      {penArr && <span class="bracket-card-etpen-tag" title="点球">点球</span>}
+    <span class="bracket-card-etpen" title={tooltip}>
+      {etLabel && <span class="bracket-card-etpen-tag">{etLabel}</span>}
+      {penLabel && <span class="bracket-card-etpen-tag">{penLabel}</span>}
     </span>
   );
 }

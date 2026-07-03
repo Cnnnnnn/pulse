@@ -7873,15 +7873,18 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: 2px;
 }
 .bracket-card-etpen-tag {
-  /* ponytail: v2.68 加时/点球小标记, 跟在 Match num 旁, 不挤中间 */
+  /* ponytail: v2.68 加时/点球小标记, 跟在 Match num 旁, 不挤中间.
+     v2.69: 也承载具体比分 "加时 0:1" / "点球 3:4". */
   font-size: 9px;
   color: #b45309;        /* 琥珀色 — 强调"该场不止 90 分" */
   background: #fef3c7;   /* 浅琥珀底 */
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 3px;
   font-weight: 600;
   letter-spacing: 0.2px;
   line-height: 1.4;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;  /* 数字等宽, "1:0" 跟 "10:0" 视觉一致 */
 }
 .bracket-card-num {
   font-size: 10px;
