@@ -307,26 +307,39 @@ describe("v2.66 isPollutedTeamName", () => {
 });
 
 describe("v2.66 attachFinals overwrites polluted team name with TXT real name", () => {
-  const { mergeFinalsIntoSnapshot } = require("../../src/main/worldcup/bracket");
+  const {
+    mergeFinalsIntoSnapshot,
+  } = require("../../src/main/worldcup/bracket");
   test("M74 slot2 polluted 'a.e.t. (...) Paraguay' gets restored to 'Paraguay'", () => {
     const snapshot = {
-      r32: [{
-        matchNum: 74,
-        slot1: { team: { name: "Germany" }, source: "group:E:winner", sourceTxt: true },
-        slot2: { team: { name: "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" }, source: "group:D:third" },
-        status: "final",
-      }],
+      r32: [
+        {
+          matchNum: 74,
+          slot1: {
+            team: { name: "Germany" },
+            source: "group:E:winner",
+            sourceTxt: true,
+          },
+          slot2: {
+            team: { name: "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" },
+            source: "group:D:third",
+          },
+          status: "final",
+        },
+      ],
     };
-    const finalsMatches = [{
-      matchNum: 74,
-      team1: "Germany",
-      team2: "Paraguay",
-      date: "2026-06-29",
-      time: "16:30",
-      timezone: "UTC-4",
-      venue: "Boston (Foxborough)",
-      score: { ft: [1, 1], status: "final" },
-    }];
+    const finalsMatches = [
+      {
+        matchNum: 74,
+        team1: "Germany",
+        team2: "Paraguay",
+        date: "2026-06-29",
+        time: "16:30",
+        timezone: "UTC-4",
+        venue: "Boston (Foxborough)",
+        score: { ft: [1, 1], status: "final" },
+      },
+    ];
     mergeFinalsIntoSnapshot(snapshot, finalsMatches);
     expect(snapshot.r32[0].slot2.team.name).toBe("Paraguay");
     expect(snapshot.r32[0].slot2.sourceTxt).toBe(true);
@@ -337,20 +350,32 @@ describe("v2.66 attachFinals overwrites polluted team name with TXT real name", 
     // 否则 attachFinals 反复写 sourceTxt=true 自身也没差, 但要避免污染到
     // 已被人工修过的 case.
     const snapshot = {
-      r32: [{
-        matchNum: 74,
-        slot1: { team: { name: "Germany" }, source: "group:E:winner", sourceTxt: true },
-        slot2: { team: { name: "Custom Edit Paraguay" }, source: "group:D:third", sourceTxt: true },
-        status: "final",
-      }],
+      r32: [
+        {
+          matchNum: 74,
+          slot1: {
+            team: { name: "Germany" },
+            source: "group:E:winner",
+            sourceTxt: true,
+          },
+          slot2: {
+            team: { name: "Custom Edit Paraguay" },
+            source: "group:D:third",
+            sourceTxt: true,
+          },
+          status: "final",
+        },
+      ],
     };
-    const finalsMatches = [{
-      matchNum: 74,
-      team1: "Germany",
-      team2: "Paraguay",
-      date: "2026-06-29",
-      score: { ft: [1, 1], status: "final" },
-    }];
+    const finalsMatches = [
+      {
+        matchNum: 74,
+        team1: "Germany",
+        team2: "Paraguay",
+        date: "2026-06-29",
+        score: { ft: [1, 1], status: "final" },
+      },
+    ];
     mergeFinalsIntoSnapshot(snapshot, finalsMatches);
     // sourceTxt 已经是 true → 不覆盖 → 保留 "Custom Edit Paraguay"
     expect(snapshot.r32[0].slot2.team.name).toBe("Custom Edit Paraguay");

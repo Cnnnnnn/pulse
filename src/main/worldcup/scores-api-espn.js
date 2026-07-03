@@ -229,14 +229,13 @@ function mapEspnEventsToScoreEntries(events, fixtures, matchKeyFn) {
     // v2.74.3: matchKeyFn 默认用 fixture.team1/team2 (污染串). 为了让后续
     // mergeLiveScoresIntoSnapshot 用相同的 clean name 算出相同 key, 这里临时
     // 把 fixture.team1/team2 替换成 clean, 再调 matchKeyFn.
-    const cleanFixture =
-      isPollutedFixture(fixture)
-        ? {
-            ...fixture,
-            team1: stripPollutedTail(fixture.team1),
-            team2: stripPollutedTail(fixture.team2),
-          }
-        : fixture;
+    const cleanFixture = isPollutedFixture(fixture)
+      ? {
+          ...fixture,
+          team1: stripPollutedTail(fixture.team1),
+          team2: stripPollutedTail(fixture.team2),
+        }
+      : fixture;
     out[matchKeyFn(cleanFixture)] = entry;
   }
   return out;

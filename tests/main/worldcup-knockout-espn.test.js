@@ -20,10 +20,10 @@
  * 4) 注入 fetchEspn mock 后, computeWorldcupBracket 把 scorers 进到 snapshot
  */
 import { describe, it, expect } from "vitest";
+const { fetchKnockoutEspnEntries } = require("../../src/main/worldcup/bracket");
 const {
-  fetchKnockoutEspnEntries,
-} = require("../../src/main/worldcup/bracket");
-const { fetchScoresFromEspn } = require("../../src/main/worldcup/scores-api-espn");
+  fetchScoresFromEspn,
+} = require("../../src/main/worldcup/scores-api-espn");
 const { HttpClient } = require("../../src/main/http-client");
 
 describe("v2.74.3 fetchKnockoutEspnEntries", () => {

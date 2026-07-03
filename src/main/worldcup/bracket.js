@@ -279,8 +279,12 @@ function attachFinals(match, fm) {
   // fm.team2 本身就是 "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay". 这种情况走
   // cleanTeamName 抽取真名覆盖, 同时 sourceTxt 标 true 避免后续被组算法
   // (bracket-rules.js) 反复根据 placeholder 表达式 (1F 等) 算 → 覆盖回去.
-  const slot1Polluted = isPollutedTeamName(match.slot1 && match.slot1.team && match.slot1.team.name);
-  const slot2Polluted = isPollutedTeamName(match.slot2 && match.slot2.team && match.slot2.team.name);
+  const slot1Polluted = isPollutedTeamName(
+    match.slot1 && match.slot1.team && match.slot1.team.name,
+  );
+  const slot2Polluted = isPollutedTeamName(
+    match.slot2 && match.slot2.team && match.slot2.team.name,
+  );
   const fmTeam1Clean = fm.team1 ? cleanPollutedTeamName(fm.team1) : null;
   const fmTeam2Clean = fm.team2 ? cleanPollutedTeamName(fm.team2) : null;
   if (fmTeam1Clean && match.slot1 && !isPlaceholderTeamName(fmTeam1Clean)) {
@@ -350,7 +354,8 @@ function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
   const finalsByNum = new Map();
   for (const fm of finalsMatches) {
     if (!fm || typeof fm.matchNum !== "number") continue;
-    if (isPlaceholderTeamName(fm.team1) || isPlaceholderTeamName(fm.team2)) continue;
+    if (isPlaceholderTeamName(fm.team1) || isPlaceholderTeamName(fm.team2))
+      continue;
     finalsByNum.set(fm.matchNum, fm);
   }
   if (finalsByNum.size === 0) return;
@@ -366,7 +371,12 @@ function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
     if (parts.length >= 4) {
       const date = parts[0];
       const pk = teamsPairKey(parts[2], parts[3]);
-      if (pk) byPairDate.set(`${pk}|${date}`, { entry, team1: parts[2], team2: parts[3] });
+      if (pk)
+        byPairDate.set(`${pk}|${date}`, {
+          entry,
+          team1: parts[2],
+          team2: parts[3],
+        });
     }
   }
 
@@ -425,18 +435,33 @@ function mergeLiveScoresIntoSnapshot(snapshot, finalsMatches, scoresEntries) {
     if (scorers && needSwap) {
       scorers = scorers.map((s) => ({
         ...s,
-        teamSide: s.teamSide === "team1" ? "team2" : s.teamSide === "team2" ? "team1" : s.teamSide,
+        teamSide:
+          s.teamSide === "team1"
+            ? "team2"
+            : s.teamSide === "team2"
+              ? "team1"
+              : s.teamSide,
       }));
     }
     // ponytail: 透传加时/点球比分. ESPN 流或 wc-2026.com 源补 score.et/pen,
     // 来自 worldcup_scores.entries 的 et/pen 字段. wc-2026 主走 mergeWc2026EtPen
     // (见下面), 这里只负责透传 entries 里已有的 et/pen.
-    const et = Array.isArray(entry.et) && entry.et.length === 2
-      ? (needSwap ? [entry.et[1], entry.et[0]] : [...entry.et])
-      : (match.score && Array.isArray(match.score.et) ? match.score.et : null);
-    const pen = Array.isArray(entry.pen) && entry.pen.length === 2
-      ? (needSwap ? [entry.pen[1], entry.pen[0]] : [...entry.pen])
-      : (match.score && Array.isArray(match.score.pen) ? match.score.pen : null);
+    const et =
+      Array.isArray(entry.et) && entry.et.length === 2
+        ? needSwap
+          ? [entry.et[1], entry.et[0]]
+          : [...entry.et]
+        : match.score && Array.isArray(match.score.et)
+          ? match.score.et
+          : null;
+    const pen =
+      Array.isArray(entry.pen) && entry.pen.length === 2
+        ? needSwap
+          ? [entry.pen[1], entry.pen[0]]
+          : [...entry.pen]
+        : match.score && Array.isArray(match.score.pen)
+          ? match.score.pen
+          : null;
     match.score = {
       ...(match.score || {}),
       ft,
@@ -508,9 +533,7 @@ async function fetchKnockoutEspnEntries(finalsMatches, opts = {}) {
 async function mergeWc2026EtPen(snapshot, opts = {}) {
   if (!snapshot) return { updated: 0, source: null };
   try {
-    const http =
-      opts.http ||
-      new HttpClient({ timeout: 15000 });
+    const http = opts.http || new HttpClient({ timeout: 15000 });
     const fetchFn = opts.fetchSchedule || fetchWc2026Schedule;
     const r = await fetchFn(http);
     if (!r || !r.ok || !Array.isArray(r.matches) || r.matches.length === 0) {
@@ -529,14 +552,23 @@ async function mergeWc2026EtPen(snapshot, opts = {}) {
       const cur = m.score || {};
       const next = { ...cur };
       let changed = false;
-      if (w.pen && (!Array.isArray(cur.pen) || cur.pen[0] !== w.pen[0] || cur.pen[1] !== w.pen[1])) {
+      if (
+        w.pen &&
+        (!Array.isArray(cur.pen) ||
+          cur.pen[0] !== w.pen[0] ||
+          cur.pen[1] !== w.pen[1])
+      ) {
         next.pen = w.pen;
         changed = true;
       }
       // et wc-2026.com 主页不提供 (等未来 detail 页 scraper), 这里保留
       // 透传已有 entry.et 字段的能力.
       if (Array.isArray(w.et) && w.et.length === 2) {
-        if (!Array.isArray(cur.et) || cur.et[0] !== w.et[0] || cur.et[1] !== w.et[1]) {
+        if (
+          !Array.isArray(cur.et) ||
+          cur.et[0] !== w.et[0] ||
+          cur.et[1] !== w.et[1]
+        ) {
           next.et = w.et;
           changed = true;
         }
