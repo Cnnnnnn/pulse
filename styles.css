@@ -11658,3 +11658,53 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--stock-hero-muted, #8e8e93);
   font-style: italic;
 }
+
+/* === 个股诊断报告页 (2026-07-04) === */
+.stock-diagnosis-page { display: flex; flex-direction: column; height: 100%; background: var(--bg-secondary, #f5f5f7); }
+.diagnosis-header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--bg-modal, #fff); border-bottom: 1px solid var(--border, rgba(0,0,0,0.08)); flex-shrink: 0; }
+.diagnosis-back { background: transparent; border: 0; color: var(--accent-primary, #007aff); cursor: pointer; font-size: 13px; }
+.diagnosis-hero { display: flex; align-items: baseline; gap: 8px; }
+.diagnosis-hero-name { font-size: 16px; font-weight: 600; }
+.diagnosis-hero-code { font-size: 11px; color: var(--text-tertiary, #aeaeb2); }
+.diagnosis-hero-price { font-size: 13px; font-weight: 600; }
+.diagnosis-hero-price.up { color: #ff3b30; }
+.diagnosis-hero-price.down { color: #34c759; }
+.diagnosis-rating-badge { margin-left: auto; background: rgba(0,122,255,0.12); color: var(--accent-primary, #007aff); padding: 3px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; }
+
+.stock-diagnosis-body { display: flex; flex: 1; min-height: 0; }
+.stock-mini-list { width: 240px; border-right: 1px solid var(--border, rgba(0,0,0,0.08)); background: var(--bg-modal, #fff); overflow-y: auto; flex-shrink: 0; }
+.stock-mini-list-head { padding: 8px 12px; font-size: 11px; color: var(--text-tertiary); border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.04)); }
+.stock-mini-item { display: flex; justify-content: space-between; width: 100%; padding: 8px 12px; background: transparent; border: 0; cursor: pointer; font-size: 12px; text-align: left; }
+.stock-mini-item:hover { background: var(--bg-hover, rgba(0,0,0,0.03)); }
+.stock-mini-item.active { background: rgba(0,122,255,0.08); }
+.stock-mini-name { color: var(--text-primary); }
+.stock-mini-price.up { color: #ff3b30; }
+.stock-mini-price.down { color: #34c759; }
+
+.stock-diagnosis-report { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.diagnosis-loading, .diagnosis-error { padding: 40px; text-align: center; color: var(--text-secondary); }
+.diagnosis-disclaimer { text-align: center; font-size: 10px; color: var(--text-tertiary); padding: 12px; }
+
+.verdict-card { background: linear-gradient(135deg, rgba(0,122,255,0.06), #fff); border: 1px solid rgba(0,122,255,0.2); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.verdict-rating { display: flex; align-items: center; gap: 12px; }
+.verdict-label-wrap { display: flex; flex-direction: column; }
+.verdict-score { font-size: 32px; font-weight: 700; color: var(--accent-primary); }
+.verdict-max { font-size: 14px; color: var(--text-tertiary); }
+.verdict-label { font-weight: 600; color: var(--accent-primary); }
+.verdict-sub { font-size: 11px; color: var(--text-tertiary); }
+.verdict-summary { margin-top: 8px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+.dimension-scores { display: flex; gap: 8px; margin-bottom: 14px; }
+.dimension-scores .dim { flex: 1; text-align: center; }
+.dimension-scores .dim-bar { height: 4px; border-radius: 2px; margin-bottom: 4px; min-width: 8px; }
+.dimension-scores .dim-label { font-size: 10px; color: var(--text-secondary); }
+.dimension-scores .dim-score { font-size: 13px; font-weight: 600; }
+
+.module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.module-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--bg-modal, #fff); }
+.module-card-title { font-weight: 600; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.module-card-body { font-size: 12px; line-height: 1.7; }
+.module-card-empty { font-size: 11px; color: var(--text-tertiary); }
+.module-card--risk { border-color: rgba(255,149,0,0.3); background: rgba(255,149,0,0.04); }
+.module-card-risk-list { list-style: none; margin: 0; padding: 0; }
+@media (max-width: 900px) { .module-grid { grid-template-columns: 1fr; } .stock-mini-list { display: none; } }
