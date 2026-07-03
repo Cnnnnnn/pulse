@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { signal } from "@preact/signals";
-import { stockDiagnosisCode, openDiagnosis, closeDiagnosis, diagnosisState } from "../../../src/renderer/stocks/diagnosisStore.js";
+import { stockDiagnosisCode, openDiagnosis, closeDiagnosis, diagnosisState, loadDiagnosis } from "../../../src/renderer/stocks/diagnosisStore.js";
 
 describe("diagnosisStore", () => {
   beforeEach(() => { closeDiagnosis(); });
@@ -17,9 +17,20 @@ describe("diagnosisStore", () => {
     closeDiagnosis();
     expect(stockDiagnosisCode.value).toBeNull();
   });
+  it("closeDiagnosis 重置 diagnosisState 回 idle", async () => {
+    const api = {
+      stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: { profitability: { status: "ok", data: { roe: 24 } } } }),
+      stocksDetailAnalyze: vi.fn().mockResolvedValue({ ok: true, result: { summary: "测试" } }),
+    };
+    await loadDiagnosis(api, "300750");
+    expect(diagnosisState.value.status).toBe("ready");
+    closeDiagnosis();
+    expect(diagnosisState.value.status).toBe("idle");
+    expect(diagnosisState.value.scores).toBeNull();
+    expect(diagnosisState.value.aiResult).toBeNull();
+    expect(diagnosisState.value.error).toBeNull();
+  });
 });
-
-import { loadDiagnosis } from "../../../src/renderer/stocks/diagnosisStore.js";
 
 describe("loadDiagnosis", () => {
   beforeEach(() => { closeDiagnosis(); });
@@ -50,5 +61,15 @@ describe("loadDiagnosis", () => {
     await loadDiagnosis(api, "300750");
     expect(diagnosisState.value.status).toBe("ready");
     expect(diagnosisState.value.error).toBe("ai_failed");
+  });
+  it("AI 返回 {ok:false} → 数据仍 ready, error=ai_failed", async () => {
+    const api = {
+      stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+      stocksDetailAnalyze: vi.fn().mockResolvedValue({ ok: false }),
+    };
+    await loadDiagnosis(api, "300750");
+    expect(diagnosisState.value.status).toBe("ready");
+    expect(diagnosisState.value.error).toBe("ai_failed");
+    expect(diagnosisState.value.aiResult).toBeNull();
   });
 });

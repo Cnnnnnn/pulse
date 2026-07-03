@@ -5,6 +5,11 @@
 import { signal, computed } from "@preact/signals";
 import { computeScores } from "../../stocks/diagnosis-scorer.js";
 
+// 诊断维度 (price_trend 价格趋势 / volume_turnover 量能换手 / valuation 估值 /
+// profitability 盈利能力 / capital_flow 资金流向 / tech_indicators 技术指标 /
+// news_buzz 新闻舆情 / peer_compare 同业对比 / moat_score 护城河)
+export const ALL_ANGLES = ["price_trend","volume_turnover","valuation","profitability","capital_flow","tech_indicators","news_buzz","peer_compare","moat_score"];
+
 export const stockDiagnosisCode = signal(null);
 
 // 诊断页数据状态: { status, perAngleData, scores, aiResult, error }
@@ -23,7 +28,6 @@ export function closeDiagnosis() {
 export async function loadDiagnosis(api, code) {
   diagnosisState.value = { ...diagnosisState.value, status: "loading", error: null };
   try {
-    const ALL_ANGLES = ["price_trend","volume_turnover","valuation","profitability","capital_flow","tech_indicators","news_buzz","peer_compare","moat_score"];
     const resp = await api.stocksDetailAngles({ code, angles: ALL_ANGLES });
     if (!resp || !resp.ok) throw new Error(resp?.reason || "fetch_failed");
     const perAngleData = resp.data || {};
@@ -34,6 +38,8 @@ export async function loadDiagnosis(api, code) {
       const aiResp = await api.stocksDetailAnalyze({ code, perAngleData, scores });
       if (aiResp && aiResp.ok) {
         diagnosisState.value = { ...diagnosisState.value, aiResult: aiResp.result };
+      } else {
+        diagnosisState.value = { ...diagnosisState.value, aiResult: null, error: "ai_failed" };
       }
     } catch (aiErr) {
       diagnosisState.value = { ...diagnosisState.value, aiResult: null, error: "ai_failed" };
