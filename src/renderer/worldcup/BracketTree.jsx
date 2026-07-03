@@ -133,34 +133,40 @@ function CardScore({ match }) {
     const [home, away] = score.ft;
     const leaderIsHome = home != null && away != null && home > away;
     const leaderIsAway = home != null && away != null && away > home;
-    // ponytail: 加时赛 (a.e.t.) / 点球 (p.) 标记. 优先级:
-    //   1) score.et / score.pen (将来 scores-fetcher 拉到时优先用)
-    //   2) 从 slot.team.name 污染串自救 (历史 bracket snapshot 里
-    //      "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" 这类还能反推)
-    let etArr = Array.isArray(score.et) && score.et.length === 2 ? score.et : null;
-    let penArr = Array.isArray(score.pen) && score.pen.length === 2 ? score.pen : null;
-    if (!etArr || !penArr) {
-      const slot2 = match.slot2 && match.slot2.team && match.slot2.team.name;
-      const slot1 = match.slot1 && match.slot1.team && match.slot1.team.name;
-      const rescued = extractEtPenFromName(slot2) || extractEtPenFromName(slot1);
-      if (rescued) {
-        if (!etArr && rescued.et) etArr = rescued.et;
-        if (!penArr && rescued.pen) penArr = rescued.pen;
-      }
-    }
-    const hasEt = etArr != null;
-    const hasPen = penArr != null;
     return (
       <span class="bracket-card-score">
         <span class={`bracket-card-score-num ${leaderIsHome ? "is-leader" : ""}`}>{home ?? "-"}</span>
         <span class="bracket-card-score-dash">:</span>
         <span class={`bracket-card-score-num ${leaderIsAway ? "is-leader" : ""}`}>{away ?? "-"}</span>
-        {hasEt && <span class="bracket-card-score-tag" title="加时赛结束">a.e.t.</span>}
-        {hasPen && <span class="bracket-card-score-tag" title="点球">p.</span>}
       </span>
     );
   }
   return <span class="bracket-card-vs">vs</span>;
+}
+
+// ponytail: v2.68 加时/点球标记从比分中拆出, 移到 head 行 (跟 "Match 73" 同行),
+// 不再挤在卡片中间. 数据源优先级: score.et/pen → slot.team.name 污染串自救.
+function EtPenTags({ match }) {
+  const { status, score } = match;
+  if (status !== "final" && status !== "live") return null;
+  let etArr = Array.isArray(score && score.et) && score.et.length === 2 ? score.et : null;
+  let penArr = Array.isArray(score && score.pen) && score.pen.length === 2 ? score.pen : null;
+  if (!etArr || !penArr) {
+    const slot2 = match.slot2 && match.slot2.team && match.slot2.team.name;
+    const slot1 = match.slot1 && match.slot1.team && match.slot1.team.name;
+    const rescued = extractEtPenFromName(slot2) || extractEtPenFromName(slot1);
+    if (rescued) {
+      if (!etArr && rescued.et) etArr = rescued.et;
+      if (!penArr && rescued.pen) penArr = rescued.pen;
+    }
+  }
+  if (!etArr && !penArr) return null;
+  return (
+    <span class="bracket-card-etpen">
+      {etArr && <span class="bracket-card-etpen-tag" title="加时赛结束">加时</span>}
+      {penArr && <span class="bracket-card-etpen-tag" title="点球">点球</span>}
+    </span>
+  );
 }
 
 function StatusBadge({ status }) {
@@ -184,7 +190,10 @@ function FallbackMatchCard({ match, onClick }) {
     >
       <div class="bracket-card-head">
         <span class="bracket-card-num">Match {matchNum}</span>
-        <StatusBadge status={status} />
+        <span class="bracket-card-head-right">
+          <EtPenTags match={match} />
+          <StatusBadge status={status} />
+        </span>
       </div>
       <div class="bracket-card-row">
         <div class="bracket-card-team">

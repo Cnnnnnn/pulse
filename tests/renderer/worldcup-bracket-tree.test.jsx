@@ -275,11 +275,11 @@ describe("BracketTree (fallback only)", () => {
     };
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
     const card = container.querySelector(".bracket-card");
-    // 卡片头部/主行不应出现 a.e.t. (它是 score tag, 在主行末尾)
-    const tags = container.querySelectorAll(".bracket-card-score-tag");
+    // 标签在 head 行 (v2.68), 不再在 score 内
+    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
     expect(tags).toHaveLength(2);
-    expect(tags[0].textContent).toContain("a.e.t.");
-    expect(tags[1].textContent).toContain("p.");
+    expect(tags[0].textContent).toContain("加时");
+    expect(tags[1].textContent).toContain("点球");
     // 队名清洗: 不出现 "pen. Paraguay"
     expect(card.textContent).not.toContain("pen. Paraguay");
     expect(card.textContent).toContain("Paraguay");
@@ -299,7 +299,7 @@ describe("BracketTree (fallback only)", () => {
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
     expect(container.textContent).toContain("Morocco");
     expect(container.textContent).not.toContain("pen. Morocco");
-    const tags = container.querySelectorAll(".bracket-card-score-tag");
+    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
     expect(tags).toHaveLength(2);
   });
 
@@ -315,9 +315,9 @@ describe("BracketTree (fallback only)", () => {
       }],
     };
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
-    const tag = container.querySelector(".bracket-card-score-tag");
+    const tag = container.querySelector(".bracket-card-etpen-tag");
     expect(tag).toBeTruthy();
-    expect(tag.textContent).toContain("a.e.t.");
+    expect(tag.textContent).toContain("加时");
   });
 
   test("v2.66 score renders 'p.' tag when score.pen present", () => {
@@ -332,10 +332,31 @@ describe("BracketTree (fallback only)", () => {
       }],
     };
     const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
-    const tags = container.querySelectorAll(".bracket-card-score-tag");
+    const tags = container.querySelectorAll(".bracket-card-etpen-tag");
     expect(tags).toHaveLength(2);
-    expect(tags[0].textContent).toContain("a.e.t.");
-    expect(tags[1].textContent).toContain("p.");
+    expect(tags[0].textContent).toContain("加时");
+    expect(tags[1].textContent).toContain("点球");
+  });
+
+  test("v2.68 etpen tags live in card head (next to Match num), not in middle score cell", () => {
+    // ponytail: 标签跟 Match num 同行, 不挤卡片中间.
+    const snap = {
+      ...sampleSnapshot,
+      r32: [{
+        matchNum: 74,
+        slot1: { team: { name: "Germany" }, source: "group:E:winner" },
+        slot2: { team: { name: "Paraguay" }, source: "group:D:third" },
+        status: "final",
+        score: { ft: [1, 1], et: [1, 2], pen: [3, 4], status: "final" },
+      }],
+    };
+    const { container } = render(<BracketTree snapshot={snap} onMatchClick={() => {}} />);
+    const head = container.querySelector(".bracket-card-head");
+    const score = container.querySelector(".bracket-card-score");
+    // 标签在 head 内
+    expect(head.querySelector(".bracket-card-etpen-tag")).toBeTruthy();
+    // 标签不在 score 内 (不再挤中间)
+    expect(score.querySelector(".bracket-card-etpen-tag")).toBeNull();
   });
 });
 
