@@ -7,7 +7,7 @@
 // num: 接受 0 (区别于 profitability fetcher 把 0 当 null 的行为)
 function num0(v) {
   const n = typeof v === "string" ? Number(v) : v;
-  return typeof n === "number" && isFinite(n) ? n : null;
+  return typeof n === "number" && Number.isFinite(n) ? n : null;
 }
 
 function angleData(perAngleData, key) {
@@ -116,7 +116,7 @@ export function computeScores(perAngleData) {
     dimensions[key] = fn(perAngleData);
   }
   // overall: 非 null 维度按权重加权平均 (权重在缺维度的剩余维度间按比例重分配)
-  const present = DIMENSIONS.filter(([, , w], i) => dimensions[DIMENSIONS[i][0]] !== null);
+  const present = DIMENSIONS.filter(([key]) => dimensions[key] !== null);
   let overall = null;
   if (present.length > 0) {
     const wsum = present.reduce((s, d) => s + d[2], 0);

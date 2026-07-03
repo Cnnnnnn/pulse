@@ -126,8 +126,9 @@ describe("diagnosis-scorer", () => {
         tech_indicators: { status: "ok", data: { ma5: 11, ma20: 10, macdHist: 0.3 } },
       };
       const s = computeScores(data);
-      expect(s.overall).toBeGreaterThan(7);
-      expect(s.overall).toBeLessThanOrEqual(10);
+      // fundamental=8(0.25) valuation=8(0.20) capital=7(0.15) tech=8(0.15) risk=8(0.25)
+      // = 7.85 → 保留1位小数 → 7.9
+      expect(s.overall).toBe(7.9);
     });
     it("全部缺失 → overall null", () => {
       expect(computeScores({}).overall).toBeNull();
