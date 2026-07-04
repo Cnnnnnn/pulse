@@ -2,7 +2,6 @@ import { useEffect } from "preact/hooks";
 import { stockDiagnosisCode, diagnosisState, loadDiagnosis } from "./diagnosisStore.js";
 import { results } from "./stockStore.js";
 import { StockDiagnosisHeader } from "./diagnosis/StockDiagnosisHeader.jsx";
-import { StockMiniList } from "./diagnosis/StockMiniList.jsx";
 import { VerdictCard } from "./diagnosis/VerdictCard.jsx";
 import { DimensionScores } from "./diagnosis/DimensionScores.jsx";
 import { ModuleGrid } from "./diagnosis/ModuleGrid.jsx";
@@ -21,25 +20,22 @@ export function StockDiagnosisPage({ api }) {
     <div class="stock-diagnosis-page">
       <StockSearchInput api={api} />
       <StockDiagnosisHeader stock={stock} scores={state.scores} />
-      <div class="stock-diagnosis-body">
-        <StockMiniList currentCode={code} />
-        <div class="stock-diagnosis-report">
-          {state.status === "loading" && <div class="diagnosis-loading">正在生成诊断报告…</div>}
-          {state.status === "error" && (
-            <div class="diagnosis-error">
-              报告生成失败：{state.error}
-              <button onClick={() => loadDiagnosis(api, code)}>重试</button>
-            </div>
-          )}
-          {state.status === "ready" && (
-            <>
-              <VerdictCard scores={state.scores} aiResult={state.aiResult} />
-              <DimensionScores scores={state.scores} />
-              <ModuleGrid perAngleData={state.perAngleData} aiResult={state.aiResult} />
-              <div class="diagnosis-disclaimer">AI 仅供参考，不构成投资建议</div>
-            </>
-          )}
-        </div>
+      <div class="stock-diagnosis-report">
+        {state.status === "loading" && <div class="diagnosis-loading">正在生成诊断报告…</div>}
+        {state.status === "error" && (
+          <div class="diagnosis-error">
+            报告生成失败：{state.error}
+            <button onClick={() => loadDiagnosis(api, code)}>重试</button>
+          </div>
+        )}
+        {state.status === "ready" && (
+          <>
+            <VerdictCard scores={state.scores} aiResult={state.aiResult} />
+            <DimensionScores scores={state.scores} />
+            <ModuleGrid perAngleData={state.perAngleData} aiResult={state.aiResult} />
+            <div class="diagnosis-disclaimer">AI 仅供参考，不构成投资建议</div>
+          </>
+        )}
       </div>
     </div>
   );

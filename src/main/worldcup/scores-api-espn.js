@@ -55,6 +55,8 @@ function scoreEntryFromEspnEvent(event) {
       ? event.status.displayClock
       : null;
 
+  // ponytail: 单 attempt 算 et/pen 不够 (没 fixture 不知道 teamSide 跟 ft 怎么对齐)。
+  // 这里只把 event 字段留给上层 orientEspnScore 调用 deriveEtPenFromScorers。
   return {
     ft: [homeScore, awayScore],
     ht: null,
@@ -80,6 +82,62 @@ function _fixtureTeamSideForEspnHome(homeName, fixture) {
   if (eh === t1) return { home: "team1", away: "team2" };
   if (eh === t2) return { home: "team2", away: "team1" };
   return null;
+}
+
+/**
+ * ponytail: 加时 (et) 和点球大战 (pen) 比分从 scorers 反推.
+ *
+ * 规则 (跟 scorer-leaderboard 的 isShootoutGoal 完全对称):
+ *   - shootout (点球大战) 进球: minute 是纯 "120'" (不跟加时补时 "+N" 形式混淆).
+ *     同理 Yellow Card 在 "120'" 黄牌也表明本场进了 shootout — 但只对进球统计比分.
+ *   - 加时常规进球: minute 在 91'..120'+N (含 Penalty - Scored). 但 minute 是纯
+ *     "120'" → shootout, 不算 et. 所以 etScore 只计 minute 含 "+" 后缀的进球.
+ *
+ * 入参 scorers 必须是已 orient (teamSide=team1/team2 跟 fixture 对齐) 的格式.
+ * 无任何 shootout 进球 → pen = null (光 90 分决出就置 null,别乱标 "点球 0:0").
+ * 有 shootout → pen = [team1ShootoutGoals, team2ShootoutGoals], et = 加时常规进球.
+ *
+ * @param {Array} scorers - orient 后的 scorers 数组
+ * @returns {{et: [number, number] | null, pen: [number, number] | null}}
+ */
+function deriveEtPenFromScorers(scorers) {
+  if (!Array.isArray(scorers) || scorers.length === 0) {
+    return { et: null, pen: null };
+  }
+  let t1Et = 0;
+  let t2Et = 0;
+  let t1Pen = 0;
+  let t2Pen = 0;
+  let hasShootout = false;
+  let hasEtGoal = false;
+  for (const s of scorers) {
+    if (!s || s.ownGoal) continue;
+    const minute = String(s.minute || "").trim();
+    if (!minute) continue;
+    // ponytail: shootout 形式是精确 "120'", ET 末刻进球是 "120'+X'", ET 中段是 "91'".."119'".
+    // minute === "120'" → shootout (不进 et)。任何 "91'".."120'+X" 都算 et (含 ET Point Penalty)。
+    if (minute === "120'") {
+      // shootout 形式:精确 "120'" (无 +N 后缀)
+      hasShootout = true;
+      if (s.teamSide === "team1") t1Pen++;
+      else if (s.teamSide === "team2") t2Pen++;
+      continue;
+    }
+    // 加时段 (91'..120'+N): "数字' [+数字]?" 形式,末尾可能有引号或不 (ESPN 不一致).
+    // examples: "91'", "105'+1'", "120'+5'"
+    const etMatch = minute.match(/^(\d{2,3})'(?:\+(\d+))?'?$/);
+    if (!etMatch) continue;
+    const base = parseInt(etMatch[1], 10);
+    if (base >= 91 && base <= 120) {
+      hasEtGoal = true;
+      if (s.teamSide === "team1") t1Et++;
+      else if (s.teamSide === "team2") t2Et++;
+    }
+  }
+  return {
+    et: hasEtGoal ? [t1Et, t2Et] : null,
+    pen: hasShootout ? [t1Pen, t2Pen] : null,
+  };
 }
 
 function scorersFromEspnEvent(event, fixture) {
@@ -157,8 +215,17 @@ function orientEspnScore(entry, event, fixture) {
 
   const scorers = scorersFromEspnEvent(event, fixture);
 
+  // ponytail: 从 scorers 自动推算 et/pen. 优于 hardcoded 表: API 一次拿, 任何比赛都适用。
+  const derived = deriveEtPenFromScorers(scorers);
+
   if (eh === t1 && ea === t2) {
-    return { ...entry, ft: [...entry.ft], scorers };
+    return {
+      ...entry,
+      ft: [...entry.ft],
+      scorers,
+      ...(derived.et ? { et: [...derived.et] } : {}),
+      ...(derived.pen ? { pen: [...derived.pen] } : {}),
+    };
   }
   if (eh === t2 && ea === t1) {
     return {
@@ -168,6 +235,8 @@ function orientEspnScore(entry, event, fixture) {
         ...s,
         teamSide: s.teamSide === "team1" ? "team2" : "team1",
       })),
+      ...(derived.et ? { et: [derived.et[1], derived.et[0]] } : {}),
+      ...(derived.pen ? { pen: [derived.pen[1], derived.pen[0]] } : {}),
     };
   }
   return null;
@@ -287,4 +356,5 @@ module.exports = {
   mapEspnEventsToScoreEntries,
   fetchScoresFromEspn,
   eventMatchesFixture,
+  deriveEtPenFromScorers,
 };

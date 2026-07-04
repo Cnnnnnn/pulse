@@ -686,22 +686,26 @@ function rankGroup(letter, matches, teams) {
 }
 
 /**
- * 已知 R32 加时/点球比分硬编码 fallback.
+ * 已知 R32 加时/点球比分硬编码 fallback (应急 belt-and-suspenders).
  *
- * ponytail: 当前 wc-2026.com 源对中国大陆外 IP 不可达 (cloudflare 风控),
- * wc26.ir 主源 502, worldcup26 mirror (wc2026.moothz.win) 没 penalty 字段.
- * 在没自动源能给 R32 比赛 pen 数字时, 把已知点球大战结果写死在代码里,
- * 至少 UI 能显示 "点球 3:4" 等标签.
+ * ponytail: scores-api-espn.js 的 orientEspnScore 已经从 ESPN scorers 自动推算
+ *   et / pen (shootout 进球 minute=120' 离散, ET 进球 minute=91'-120'+N; 见
+ *   deriveEtPenFromScorers). 这个文件理论上不需要 — 任何比赛只要 ESPN scorers
+ *   里带信息就能自动给出 et / pen, hardcoded 永不会被触发.
  *
- * ponytail: 数据来源以 ESPN scorers 为准, **不** 信任 openfootball cup_finals.txt
- *   的 a.e.t. 段. 那个 TXT 段 (e.g. "(2-2, 0-1)") 多场比赛跟实际 scorers 对不上:
- *     - M74 TXT 说 et=0-1 但 ESPN scorers 120' 全是 Penalty - Scored (shootout), 加时 0-0
- *     - M82 TXT 说 et=0-1 但 ESPN scorers 显示 Tielemans 120+5'(p) 是比利时进球, 加时 1-0
- *     - M88 TXT 说 et=0-1 但 ESPN scorers 完全无加时进球, 加时 0-0
- *   所以全部按 ESPN 实际进球者推算: et = [slot1 进球数, slot2 进球数].
+ * 那为什么保留: 历史 bug 时段 (ESPN scorers 缺数据, 国内 IP 拉不到 wc-2026.com 等)
+ * 出现过 UI 上 "未知比赛没加时标签" 的回归. 在自动源全部挂掉时, 把已验证的 et/pen
+ * 结果 (用户/ESL 比赛当天交叉核对过的) 当 fallback 走 mergeHardcodedR32EtPen
+ * 注入. 注入路径仍然在 mergeLiveScoresIntoSnapshot 之后跑, 只在 pen/et **未
+ * 填** 时才填 (不会盖掉自动源).
  *
- * 将来真正上游源能稳定提供 et/pen 时 (例如 ESL 流 score-fetcher 拿到),
- * 这块代码应移除, 走 entry.pen 自动注入路径.
+ * 数据来源以 ESPN scorers 为准, 不信任 openfootball cup_finals.txt 的 a.e.t. 段.
+ *   - M74 TXT 说 et=0-1 但 ESPN scorers 120' 全是 Penalty - Scored (shootout), ET 0-0
+ *   - M82 TXT 说 et=0-1 但 ESPN scorers 显示 Tielemans 120+5'(p) 是比利时进球, ET 1-0
+ *   - M88 TXT 说 et=0-1 但 ESPN scorers 完全无加时进球, ET 0-0
+ *
+ * ponytail: ESPN 推导代码已经能覆盖, 这里留下是 ""network down / ESPN scorers 临时
+ * 没返回" 场景的应急. 平时运行不会触发.
  */
 const HARDCODED_R32_ET_PEN = {
   // M74: 德国 1-1 巴拉圭 (90分), 加时 0-0, 点球 3-4 巴拉圭胜
