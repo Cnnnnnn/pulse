@@ -19,8 +19,10 @@ export const stockActiveTab = signal("screen");
 
 export const stockDiagnosisCode = signal(null);
 
-// 诊断页数据状态: { status, perAngleData, scores, aiResult, error }
-export const diagnosisState = signal({ status: "idle", perAngleData: {}, scores: null, aiResult: null, error: null });
+// 诊断页数据状态: { status, perAngleData, scores, aiResult, aiStatus, error }
+//   status: idle|loading|ready|error (数据拉取)
+//   aiStatus: idle|loading|ready|error (AI 解读, 手动触发)
+export const diagnosisState = signal({ status: "idle", perAngleData: {}, scores: null, aiResult: null, aiStatus: "idle", error: null });
 
 // 开启诊断: 设 code + 切 tab + 立即拉数据 (调用方传 api).
 // 不依赖 page 的 useEffect 响应 signal (signal+effect 在某些时序下会漏触发),
@@ -35,32 +37,36 @@ export function closeDiagnosis() {
   // 只切回筛选 tab, 保留 stockDiagnosisCode 当"最近分析过的股票"语义
   // (诊断 tab 顶部搜索框可重新选股覆盖它).
   stockActiveTab.value = "screen";
-  diagnosisState.value = { status: "idle", perAngleData: {}, scores: null, aiResult: null, error: null };
+  diagnosisState.value = { status: "idle", perAngleData: {}, scores: null, aiResult: null, aiStatus: "idle", error: null };
 }
 
-// 拉数据 + 算分 + AI 解读 (进页自动调用)
+// 拉数据 + 算分 (自动). AI 解读改为手动 (requestAiSummary), 不在这里自动触发.
 export async function loadDiagnosis(api, code) {
-  diagnosisState.value = { ...diagnosisState.value, status: "loading", error: null };
+  diagnosisState.value = { ...diagnosisState.value, status: "loading", error: null, aiStatus: "idle" };
   try {
     const resp = await api.stocksDetailAngles({ code, angles: ALL_ANGLES });
     if (!resp || !resp.ok) throw new Error(resp?.reason || "fetch_failed");
-    // resp.data 结构: { perAngle: {angle: {status,data}}, fulfilledCount, totalCount }
-    // computeScores / ModuleGrid 需要的是 perAngle 这个 angle map
     const perAngleData = (resp.data && resp.data.perAngle) || {};
     const scores = computeScores(perAngleData);
-    diagnosisState.value = { status: "ready", perAngleData, scores, aiResult: null, error: null };
-    // AI 解读 (后台, 不阻塞数据展示)
-    try {
-      const aiResp = await api.stocksDetailAnalyze({ code, perAngleData, scores });
-      if (aiResp && aiResp.ok) {
-        diagnosisState.value = { ...diagnosisState.value, aiResult: aiResp.result };
-      } else {
-        diagnosisState.value = { ...diagnosisState.value, aiResult: null, error: "ai_failed" };
-      }
-    } catch (aiErr) {
-      diagnosisState.value = { ...diagnosisState.value, aiResult: null, error: "ai_failed" };
-    }
+    diagnosisState.value = { status: "ready", perAngleData, scores, aiResult: null, aiStatus: "idle", error: null };
   } catch (e) {
-    diagnosisState.value = { status: "error", perAngleData: {}, scores: null, aiResult: null, error: e.message };
+    diagnosisState.value = { status: "error", perAngleData: {}, scores: null, aiResult: null, aiStatus: "idle", error: e.message };
+  }
+}
+
+// 手动触发 AI 解读 (用户点「生成 AI 解读」按钮).
+export async function requestAiSummary(api, code) {
+  const { perAngleData, scores } = diagnosisState.value;
+  if (!perAngleData || !scores) return;
+  diagnosisState.value = { ...diagnosisState.value, aiStatus: "loading", error: null };
+  try {
+    const aiResp = await api.stocksDetailAnalyze({ code, perAngleData, scores });
+    if (aiResp && aiResp.ok) {
+      diagnosisState.value = { ...diagnosisState.value, aiResult: aiResp.result, aiStatus: "ready" };
+    } else {
+      diagnosisState.value = { ...diagnosisState.value, aiResult: null, aiStatus: "error", error: "ai_failed" };
+    }
+  } catch (aiErr) {
+    diagnosisState.value = { ...diagnosisState.value, aiResult: null, aiStatus: "error", error: "ai_failed" };
   }
 }

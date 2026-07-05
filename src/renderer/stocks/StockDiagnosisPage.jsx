@@ -55,7 +55,7 @@ export function StockDiagnosisPage({ api }) {
       {state.status === "ready" && (
         <div class="diagnosis-report-grid">
           <div class="diagnosis-report-left">
-            <VerdictCard scores={state.scores} aiResult={state.aiResult} />
+            <VerdictCard scores={state.scores} aiResult={state.aiResult} aiStatus={state.aiStatus} api={api} code={code} />
             <DimensionScores scores={state.scores} />
           </div>
           <div class="diagnosis-report-right">

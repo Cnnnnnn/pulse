@@ -11248,6 +11248,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .verdict-card { background: var(--bg-modal, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 10px; padding: 14px; }
 .verdict-title { font-weight: 600; font-size: 12px; color: var(--accent-primary, #007aff); margin-bottom: 6px; }
 .verdict-summary { font-size: 12.5px; color: var(--text-secondary, #555); line-height: 1.65; }
+.verdict-generate-btn { background: var(--accent-primary, #007aff); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; font-size: 12.5px; cursor: pointer; margin-top: 4px; }
+.verdict-generate-btn:hover { opacity: 0.9; }
+.verdict-loading-text { color: var(--text-tertiary, #aeaeb2); }
+.verdict-retry { background: transparent; border: 1px solid var(--border, #e5e5e7); border-radius: 6px; padding: 2px 10px; font-size: 11px; color: var(--accent-primary, #007aff); cursor: pointer; margin-left: 8px; }
 
 /* DimensionScores — 五维评分条 (左列) */
 .dimension-scores { display: flex; gap: 6px; background: var(--bg-modal, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 10px; padding: 12px; }
