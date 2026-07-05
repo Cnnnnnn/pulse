@@ -29,7 +29,9 @@ const NEGATIVE_KW = [
 ];
 
 async function fetchNewsBuzz(httpClient, { code }) {
-  const emUrl = `${NEWS_URL}?client=wap&type=1&pageSize=20&pageIndex=1&code=${code}&_=${Date.now()}`;
+  // np-listapi 改版: 必须用 mTypeAndCode (secid 格式 1.600519/0.000001), 旧 code 参数已失效.
+  const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
+  const emUrl = `${NEWS_URL}?client=wap&type=1&pageSize=20&pageIndex=1&mTypeAndCode=${secid}&_=${Date.now()}`;
   let emFetchOk = false;
   let emParseOk = false;
   try {
@@ -82,7 +84,7 @@ function parseEmNews(body) {
     .slice(0, 7)
     .map((it) => ({
       title: it.title || it.Art_Title || "",
-      date: it.date || it.showTime || "",
+      date: it.date || it.showTime || it.Art_ShowTime || "",
       sentiment: classifySentiment(it.title || ""),
     }))
     .filter((it) => it.title);

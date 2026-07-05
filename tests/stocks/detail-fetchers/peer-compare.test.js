@@ -79,8 +79,8 @@ describe("fetchPeerCompare", () => {
     _mockIndustry.mockResolvedValue(industryOk(PEERS));
     const http = makeClient([
       valuationStatusResponse([
-        { TYPE: 1, INDEX_VALUE: 28.5, INDEX_PERCENTILE: 78.5, VALATION_STATUS: "偏高" },
-        { TYPE: 2, INDEX_VALUE: 4.2, INDEX_PERCENTILE: 55.0, VALATION_STATUS: "合理" },
+        { INDICATOR_TYPE: 1, INDEX_VALUE: 28.5, INDEX_PERCENTILE: 78.5, VALATION_STATUS: "偏高" },
+        { INDICATOR_TYPE: 2, INDEX_VALUE: 4.2, INDEX_PERCENTILE: 55.0, VALATION_STATUS: "合理" },
       ]),
     ]);
     const r = await fetchPeerCompare(http, { code: "600519" });
@@ -111,7 +111,7 @@ describe("fetchPeerCompare", () => {
     _mockValuation.mockResolvedValue({ ok: true, data: { pe: 28.5, pb: 4.2 } });
     _mockIndustry.mockResolvedValue({ ok: false, reason: "no_industry_data", error: "board 空" });
     const http = makeClient([
-      valuationStatusResponse([{ TYPE: 1, INDEX_PERCENTILE: 70 }]),
+      valuationStatusResponse([{ INDICATOR_TYPE: 1, INDEX_PERCENTILE: 70 }]),
     ]);
     const r = await fetchPeerCompare(http, { code: "600519" });
     expect(r.ok).toBe(false);
@@ -135,7 +135,7 @@ describe("fetchPeerCompare", () => {
     _mockValuation.mockResolvedValue({ ok: true, data: { pe: 28.5, pb: 4.2 } });
     _mockIndustry.mockResolvedValue(industryOk(PEERS));
     const http = makeClient([
-      valuationStatusResponse([{ TYPE: 1, INDEX_PERCENTILE: 65.0, VALATION_STATUS: "合理" }]),
+      valuationStatusResponse([{ INDICATOR_TYPE: 1, INDEX_PERCENTILE: 65.0, VALATION_STATUS: "合理" }]),
     ]);
     const r = await fetchPeerCompare(http, { code: "600519" });
     expect(r.ok).toBe(true);

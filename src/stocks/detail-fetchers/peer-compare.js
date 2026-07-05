@@ -81,8 +81,9 @@ async function fetchValuationStatus(httpClient, secucode) {
   const rows =
     body && body.result && Array.isArray(body.result.data) ? body.result.data : [];
 
-  const pe = rows.find((r) => Number(r.TYPE) === 1);
-  const pb = rows.find((r) => Number(r.TYPE) === 2);
+  // 字段名是 INDICATOR_TYPE (实测: type=1 PE_TTM, type=2 PB), 不是 TYPE.
+  const pe = rows.find((r) => Number(r.INDICATOR_TYPE) === 1);
+  const pb = rows.find((r) => Number(r.INDICATOR_TYPE) === 2);
   return {
     pe: pe ? { percentile: num(pe.INDEX_PERCENTILE), status: pe.VALATION_STATUS || null } : null,
     pb: pb ? { percentile: num(pb.INDEX_PERCENTILE), status: pb.VALATION_STATUS || null } : null,
