@@ -22,10 +22,13 @@ export const stockDiagnosisCode = signal(null);
 // 诊断页数据状态: { status, perAngleData, scores, aiResult, error }
 export const diagnosisState = signal({ status: "idle", perAngleData: {}, scores: null, aiResult: null, error: null });
 
-export function openDiagnosis(code) {
+// 开启诊断: 设 code + 切 tab + 立即拉数据 (调用方传 api).
+// 不依赖 page 的 useEffect 响应 signal (signal+effect 在某些时序下会漏触发),
+// 改为调用方直接触发 loadDiagnosis, 最可靠.
+export function openDiagnosis(api, code) {
   stockDiagnosisCode.value = code;
-  // 切到诊断 tab (筛选 tab 内 ResultTable 的诊断按钮被点击时, 自动跳到个股分析 tab).
   stockActiveTab.value = "diagnosis";
+  if (api && code) loadDiagnosis(api, code);
 }
 
 export function closeDiagnosis() {
@@ -41,7 +44,9 @@ export async function loadDiagnosis(api, code) {
   try {
     const resp = await api.stocksDetailAngles({ code, angles: ALL_ANGLES });
     if (!resp || !resp.ok) throw new Error(resp?.reason || "fetch_failed");
-    const perAngleData = resp.data || {};
+    // resp.data 结构: { perAngle: {angle: {status,data}}, fulfilledCount, totalCount }
+    // computeScores / ModuleGrid 需要的是 perAngle 这个 angle map
+    const perAngleData = (resp.data && resp.data.perAngle) || {};
     const scores = computeScores(perAngleData);
     diagnosisState.value = { status: "ready", perAngleData, scores, aiResult: null, error: null };
     // AI 解读 (后台, 不阻塞数据展示)

@@ -1,4 +1,3 @@
-import { useEffect } from "preact/hooks";
 import { stockDiagnosisCode, diagnosisState, loadDiagnosis } from "./diagnosisStore.js";
 import { results } from "./stockStore.js";
 import { closeDiagnosis } from "./diagnosisStore.js";
@@ -14,10 +13,6 @@ export function StockDiagnosisPage({ api }) {
   const state = diagnosisState.value;
   const stock = results.value.find((r) => r.code === code) || { code };
   const overall = state.scores?.overall;
-
-  useEffect(() => {
-    if (code) loadDiagnosis(api, code);
-  }, [code]);
 
   return (
     <div class="stock-diagnosis-page">

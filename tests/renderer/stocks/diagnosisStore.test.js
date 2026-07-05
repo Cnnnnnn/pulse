@@ -25,13 +25,13 @@ describe("diagnosisStore", () => {
   it("stockActiveTab 默认 screen", () => {
     expect(stockActiveTab.value).toBe("screen");
   });
-  it("openDiagnosis(code) 设 code + 切到 diagnosis tab", () => {
-    openDiagnosis("300750");
+  it("openDiagnosis(api, code) 设 code + 切到 diagnosis tab", () => {
+    openDiagnosis(null, "300750");
     expect(stockDiagnosisCode.value).toBe("300750");
     expect(stockActiveTab.value).toBe("diagnosis");
   });
   it("closeDiagnosis 切回 screen tab 且保留 stockDiagnosisCode", () => {
-    openDiagnosis("300750");
+    openDiagnosis(null, "300750");
     closeDiagnosis();
     expect(stockActiveTab.value).toBe("screen");
     // 关键: code 不再被清, 保留当"当前分析股票"语义
@@ -39,7 +39,7 @@ describe("diagnosisStore", () => {
   });
   it("closeDiagnosis 重置 diagnosisState 回 idle", async () => {
     const api = {
-      stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: { profitability: { status: "ok", data: { roe: 24 } } } }),
+      stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: { perAngle: { profitability: { status: "ok", data: { roe: 24 } } } } }),
       stocksDetailAnalyze: vi.fn().mockResolvedValue({ ok: true, result: { summary: "测试" } }),
     };
     await loadDiagnosis(api, "300750");
@@ -58,8 +58,10 @@ describe("loadDiagnosis", () => {
   it("成功: 拉 angles → 算分 → (后台) AI", async () => {
     const api = {
       stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: {
-        profitability: { status: "ok", data: { roe: 24 } },
-        valuation: { status: "ok", data: { pe: 12 } },
+        perAngle: {
+          profitability: { status: "ok", data: { roe: 24 } },
+          valuation: { status: "ok", data: { pe: 12 } },
+        },
       }}),
       stocksDetailAnalyze: vi.fn().mockResolvedValue({ ok: true, result: { summary: "测试", signal: "neutral" }}),
     };
@@ -75,7 +77,7 @@ describe("loadDiagnosis", () => {
   });
   it("AI 失败 → 数据仍 ready, error=ai_failed", async () => {
     const api = {
-      stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+      stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: { perAngle: {} } }),
       stocksDetailAnalyze: vi.fn().mockRejectedValue(new Error("ai")),
     };
     await loadDiagnosis(api, "300750");
@@ -84,7 +86,7 @@ describe("loadDiagnosis", () => {
   });
   it("AI 返回 {ok:false} → 数据仍 ready, error=ai_failed", async () => {
     const api = {
-      stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+      stocksDetailAngles: vi.fn().mockResolvedValue({ ok: true, data: { perAngle: {} } }),
       stocksDetailAnalyze: vi.fn().mockResolvedValue({ ok: false }),
     };
     await loadDiagnosis(api, "300750");
