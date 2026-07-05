@@ -7,7 +7,9 @@ const FLOW_URL = "https://push2his.eastmoney.com/api/qt/stock/fflow/kline/get";
 
 async function fetchCapitalFlow(httpClient, { code }) {
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
-  const url = `${FLOW_URL}?secid=${secid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63&klt=1&lmt=15`;
+  // klt=101 日级资金流 (lmt=15 取最近 15 个交易日). 用日级而非分钟级(klt=1),
+  // 因为分钟级在非交易时段/盘后返空 klines, 日级始终有历史数据.
+  const url = `${FLOW_URL}?secid=${secid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63&klt=101&lmt=15`;
   try {
     const primary = await httpClient.get(url);
     if (primary && primary.status === 200 && primary.body) {
