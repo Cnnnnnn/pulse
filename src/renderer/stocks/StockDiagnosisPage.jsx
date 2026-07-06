@@ -1,5 +1,4 @@
-import { stockDiagnosisCode, diagnosisState, loadDiagnosis } from "./diagnosisStore.js";
-import { results } from "./stockStore.js";
+import { stockDiagnosisCode, diagnosisState, diagnosisStock, loadDiagnosis } from "./diagnosisStore.js";
 import { closeDiagnosis } from "./diagnosisStore.js";
 import { VerdictCard } from "./diagnosis/VerdictCard.jsx";
 import { DimensionScores } from "./diagnosis/DimensionScores.jsx";
@@ -11,7 +10,7 @@ const RATING_LABEL = (s) => (s == null ? "数据不足" : s >= 7.5 ? "强烈" : 
 export function StockDiagnosisPage({ api }) {
   const code = stockDiagnosisCode.value;
   const state = diagnosisState.value;
-  const stock = results.value.find((r) => r.code === code) || { code };
+  const stock = diagnosisStock.value || { code };
   const overall = state.scores?.overall;
 
   return (

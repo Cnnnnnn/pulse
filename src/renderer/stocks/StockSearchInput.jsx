@@ -65,7 +65,7 @@ export function StockSearchInput({ api }) {
   }, [query, api]);
 
   const handleSelect = (item) => {
-    openDiagnosis(api, item.code);
+    openDiagnosis(api, item);
     setQuery("");
     setResults([]);
     setOpen(false);

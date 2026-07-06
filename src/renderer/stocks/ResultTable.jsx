@@ -124,7 +124,7 @@ export function ResultTable({ api }) {
               type="button"
               class="btn btn-ghost btn-sm"
               data-testid="diagnosis-btn"
-              onClick={() => openDiagnosis(api, r.code)}
+              onClick={() => openDiagnosis(api, r)}
             >
               诊断
             </button>

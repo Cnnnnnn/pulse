@@ -11252,12 +11252,15 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .verdict-loading-text { color: var(--text-tertiary, #aeaeb2); }
 .verdict-retry { background: transparent; border: 1px solid var(--border, #e5e5e7); border-radius: 6px; padding: 2px 10px; font-size: 11px; color: var(--accent-primary, #007aff); cursor: pointer; margin-left: 8px; }
 
-/* DimensionScores — 五维评分条 (数据面板顶部全宽) */
-.dimension-scores { display: flex; gap: 6px; background: var(--bg-modal, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 10px; padding: 12px; }
-.dimension-scores .dim { flex: 1; text-align: center; }
-.dimension-scores .dim-bar { height: 4px; border-radius: 2px; margin-bottom: 4px; min-width: 8px; }
-.dimension-scores .dim-label { font-size: 10px; color: var(--text-secondary, #6e6e73); }
-.dimension-scores .dim-score { font-size: 14px; font-weight: 700; }
+/* DimensionScores — 五维评分对比柱状图 (数据面板顶部全宽) */
+.dimension-scores { background: var(--bg-modal, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 10px; padding: 14px 16px; }
+.dimension-scores-bars { display: flex; gap: 8px; align-items: flex-end; height: 100px; }
+.dimension-scores .dim-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.dimension-scores .dim-label-top { font-size: 10px; color: var(--text-secondary, #6e6e73); margin-bottom: 6px; }
+.dimension-scores .dim-bar-track { width: 70%; max-width: 36px; flex: 1; display: flex; align-items: flex-end; min-height: 0; }
+.dimension-scores .dim-bar-fill { width: 100%; border-radius: 4px 4px 0 0; min-height: 6px; transition: height 0.3s ease; }
+.dimension-scores .dim-score { font-size: 15px; font-weight: 700; margin-top: 6px; }
+.dimension-scores-scale { display: flex; justify-content: space-between; margin-top: 4px; padding: 0 6%; font-size: 8px; color: var(--text-tertiary, #aeaeb2); }
 
 /* ModuleGrid — 数据模块卡 (右列) */
 .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; }

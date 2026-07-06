@@ -19,18 +19,24 @@ export const stockActiveTab = signal("screen");
 
 export const stockDiagnosisCode = signal(null);
 
+// 当前诊断股票信息 { code, name, industry, price?, changePct? } — 搜索选中时存完整信息,
+// 不依赖筛选结果列表 (搜索诊断时 results 为空, 之前 hero 拿不到 name).
+export const diagnosisStock = signal(null);
+
 // 诊断页数据状态: { status, perAngleData, scores, aiResult, aiStatus, error }
 //   status: idle|loading|ready|error (数据拉取)
 //   aiStatus: idle|loading|ready|error (AI 解读, 手动触发)
 export const diagnosisState = signal({ status: "idle", perAngleData: {}, scores: null, aiResult: null, aiStatus: "idle", error: null });
 
-// 开启诊断: 设 code + 切 tab + 立即拉数据 (调用方传 api).
-// 不依赖 page 的 useEffect 响应 signal (signal+effect 在某些时序下会漏触发),
-// 改为调用方直接触发 loadDiagnosis, 最可靠.
-export function openDiagnosis(api, code) {
+// 开启诊断: 设 stock 信息 + 切 tab + 立即拉数据.
+// stock 是 { code, name, industry? } (搜索联想项) 或 { code, name, price, changePct, ... } (筛选行).
+export function openDiagnosis(api, stock) {
+  const code = typeof stock === "string" ? stock : stock && stock.code;
+  if (!code) return;
+  diagnosisStock.value = typeof stock === "string" ? { code } : stock;
   stockDiagnosisCode.value = code;
   stockActiveTab.value = "diagnosis";
-  if (api && code) loadDiagnosis(api, code);
+  if (api) loadDiagnosis(api, code);
 }
 
 export function closeDiagnosis() {
