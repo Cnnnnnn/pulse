@@ -53,15 +53,13 @@ export function StockDiagnosisPage({ api }) {
         </div>
       )}
       {state.status === "ready" && (
-        <div class="diagnosis-report-grid">
-          <div class="diagnosis-report-left">
-            <VerdictCard scores={state.scores} aiResult={state.aiResult} aiStatus={state.aiStatus} api={api} code={code} />
+        <>
+          <div class="diagnosis-report-grid">
             <DimensionScores scores={state.scores} />
-          </div>
-          <div class="diagnosis-report-right">
             <ModuleGrid perAngleData={state.perAngleData} aiResult={state.aiResult} />
           </div>
-        </div>
+          <VerdictCard scores={state.scores} aiResult={state.aiResult} aiStatus={state.aiStatus} api={api} code={code} />
+        </>
       )}
       <div class="diagnosis-disclaimer">AI 仅供参考，不构成投资建议</div>
     </div>

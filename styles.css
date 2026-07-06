@@ -11238,14 +11238,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .diagnosis-rating-label { font-size: 10px; color: var(--text-tertiary, #8e8e93); }
 
 /* 报告区: 双列 */
-.diagnosis-report-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 12px; padding: 14px 16px; }
-.diagnosis-report-left { display: flex; flex-direction: column; gap: 10px; }
-.diagnosis-report-right { min-width: 0; }
+/* 数据面板: 评分条全宽 + 模块卡网格, 单列垂直堆叠 */
+.diagnosis-report-grid { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
 .diagnosis-loading, .diagnosis-error { padding: 40px; text-align: center; color: var(--text-secondary); }
 .diagnosis-disclaimer { text-align: center; font-size: 10px; color: var(--text-tertiary); padding: 8px 12px 16px; }
 
-/* VerdictCard — AI 解读卡 (左列) */
-.verdict-card { background: var(--bg-modal, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 10px; padding: 14px; }
+/* VerdictCard — AI 解读卡 (底部全宽, 数据面板下方) */
+.verdict-card { background: var(--bg-modal, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 10px; padding: 14px; margin: 0 16px 12px; }
 .verdict-title { font-weight: 600; font-size: 12px; color: var(--accent-primary, #007aff); margin-bottom: 6px; }
 .verdict-summary { font-size: 12.5px; color: var(--text-secondary, #555); line-height: 1.65; }
 .verdict-generate-btn { background: var(--accent-primary, #007aff); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; font-size: 12.5px; cursor: pointer; margin-top: 4px; }
@@ -11253,7 +11252,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .verdict-loading-text { color: var(--text-tertiary, #aeaeb2); }
 .verdict-retry { background: transparent; border: 1px solid var(--border, #e5e5e7); border-radius: 6px; padding: 2px 10px; font-size: 11px; color: var(--accent-primary, #007aff); cursor: pointer; margin-left: 8px; }
 
-/* DimensionScores — 五维评分条 (左列) */
+/* DimensionScores — 五维评分条 (数据面板顶部全宽) */
 .dimension-scores { display: flex; gap: 6px; background: var(--bg-modal, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 10px; padding: 12px; }
 .dimension-scores .dim { flex: 1; text-align: center; }
 .dimension-scores .dim-bar { height: 4px; border-radius: 2px; margin-bottom: 4px; min-width: 8px; }
@@ -11269,7 +11268,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .module-card--risk { border-color: rgba(255,149,0,0.3); background: rgba(255,149,0,0.04); }
 .module-card-risk-list { list-style: none; margin: 0; padding: 0; }
 @media (max-width: 760px) {
-  .diagnosis-report-grid { grid-template-columns: 1fr; }
   .module-grid { grid-template-columns: 1fr; }
 }
 
