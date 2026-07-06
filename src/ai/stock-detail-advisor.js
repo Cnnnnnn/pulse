@@ -13,7 +13,9 @@ const { resolvePrompt } = require("./prompt-registry");
 const { getAngle } = require("../stocks/stock-detail-angles");
 
 const PROMPT_KEY = "stock_detail_analyze";
-const CACHE_VERSION = "v1";
+// bump v1→v2: 之前 requestAiSummary 漏传 angles, 缓存了"数据不足"的垃圾 AI 结果.
+// 修复后需让旧缓存失效.
+const CACHE_VERSION = "v2";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const VALID_SIGNALS = new Set(["positive", "neutral", "cautious"]);

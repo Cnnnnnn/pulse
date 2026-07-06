@@ -46,8 +46,8 @@ function registerStockDetailHandlers(ctx) {
 
   safeHandle(
     "stocks:detail-analyze",
-    async (_event, { code, angles, perAngleData, freeText } = {}) => {
-      return await aiStockDetailAnalyze({ code, angles, perAngleData, freeText });
+    async (_event, { code, angles, perAngleData, freeText, scores } = {}) => {
+      return await aiStockDetailAnalyze({ code, angles, perAngleData, freeText, scores });
     },
     {
       onError: (err) => ({

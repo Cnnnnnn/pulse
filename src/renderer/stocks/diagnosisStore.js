@@ -60,7 +60,7 @@ export async function requestAiSummary(api, code) {
   if (!perAngleData || !scores) return;
   diagnosisState.value = { ...diagnosisState.value, aiStatus: "loading", error: null };
   try {
-    const aiResp = await api.stocksDetailAnalyze({ code, perAngleData, scores });
+    const aiResp = await api.stocksDetailAnalyze({ code, angles: ALL_ANGLES, perAngleData, scores });
     if (aiResp && aiResp.ok) {
       diagnosisState.value = { ...diagnosisState.value, aiResult: aiResp.result, aiStatus: "ready" };
     } else {
