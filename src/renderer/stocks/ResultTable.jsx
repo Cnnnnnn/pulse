@@ -3,6 +3,8 @@
  *
  * 结果表格 — 列头可排序.
  * 对照 spec §6.4. 涨跌用红绿 (A 股惯例: 红涨绿跌; 这里用项目既有 up/down 语义).
+ *
+ * 行动列从文字 "诊断" 改成 icon-only 圆形按钮 (压缩列宽, 跟 stocks-spark 风格一致).
  */
 import {
   results,
@@ -15,6 +17,7 @@ import {
 } from "./stockStore.js";
 import { openDiagnosis } from "./diagnosisStore.js";
 import { PanelEmpty } from "../components/EmptyState.jsx";
+import { IconWand } from "../components/icons.jsx";
 
 const COLUMNS = [
   { key: "name", label: "名称/代码", align: "left" },
@@ -23,7 +26,7 @@ const COLUMNS = [
   { key: "pe", label: "PE", align: "right" },
   { key: "roe", label: "ROE%", align: "right" },
   { key: "industry", label: "行业", align: "left" },
-  { key: "actions", label: "", align: "right" },
+  { key: "actions", label: "", align: "right", sortable: false },
 ];
 
 export function ResultTable({ api }) {
@@ -84,8 +87,8 @@ export function ResultTable({ api }) {
             key={col.key}
             class={`stock-th stock-th-${col.align}${
               sk === col.key ? " sorted" : ""
-            }`}
-            onClick={() => setSort(col.key)}
+            }${col.sortable === false ? " stock-th-noclick" : ""}`}
+            onClick={col.sortable === false ? undefined : () => setSort(col.key)}
           >
             {col.label}
             {sk === col.key ? (sd === "desc" ? " ▼" : " ▲") : ""}
@@ -119,14 +122,16 @@ export function ResultTable({ api }) {
           <span class="stock-td stock-td-industry">
             {r.industry || "—"}
           </span>
-          <span class="stock-td stock-td-right stock-td-actions">
+          <span class="stock-td stock-td-actions">
             <button
               type="button"
-              class="btn btn-ghost btn-sm"
+              class="stock-row-action"
               data-testid="diagnosis-btn"
               onClick={() => openDiagnosis(api, r)}
+              aria-label="个股诊断"
+              title="个股诊断"
             >
-              诊断
+              <IconWand size={14} />
             </button>
           </span>
         </div>

@@ -12,7 +12,7 @@ function num0(v) {
 
 function angleData(perAngleData, key) {
   const e = perAngleData && perAngleData[key];
-  return e && e.status === "ok" ? (e.data || {}) : null;
+  return e && e.status === "ok" ? e.data || {} : null;
 }
 
 // ── 基本面 ──
@@ -41,9 +41,28 @@ function scoreValuation(data) {
 
 function scoreCapital(data) {
   const c = angleData(data, "capital_flow");
-  if (!c || !c.sampleCount) return null;
+  // ponytail: 2026-07-07 — 资金流向依赖当日行情, 周末/节假日 fetch 失败时维度 null →
+  // UI "—". fallback: volume_turnover 返的 latestTurnover 是最新一日换手率 %,
+  // avgTurnover30d 是 30 日均换手率 %. 换手率高 = 资金关注度高 = 中性偏正.
+  const turnoverFallback = (data) => {
+    const v = angleData(data, "volume_turnover");
+    if (!v) return null;
+    const tr = num0(v.latestTurnover);
+    if (tr == null) return null;
+    // ponytail: 换手率门槛. A 股日均换手 ~0.5-1.5%, 活跃股 2-5%, 短线热门 5%+.
+    if (tr >= 5) return 7;
+    if (tr >= 2) return 6;
+    if (tr >= 1) return 5;
+    if (tr > 0) return 4;
+    return null;
+  };
+  if (!c || !c.sampleCount) {
+    return turnoverFallback(data);
+  }
   const inflow = num0(c.mainNetInflow5d);
-  if (inflow === null) return null;
+  if (inflow === null) {
+    return turnoverFallback(data);
+  }
   if (inflow > 0) {
     if (inflow > 5e8) return 8;
     if (inflow > 1e8) return 7;
@@ -90,8 +109,10 @@ function scoreRisk(data) {
 
 // news_buzz 把情感标在每个 item 上, 这里聚合为整体倾向 (多数票). 无 items/空 → null.
 function aggregateNewsSentiment(news) {
-  if (!news || !Array.isArray(news.items) || news.items.length === 0) return null;
-  let pos = 0, neg = 0;
+  if (!news || !Array.isArray(news.items) || news.items.length === 0)
+    return null;
+  let pos = 0,
+    neg = 0;
   for (const it of news.items) {
     if (it.sentiment === "positive") pos++;
     else if (it.sentiment === "negative") neg++;
@@ -103,7 +124,7 @@ function aggregateNewsSentiment(news) {
 
 const DIMENSIONS = [
   ["fundamental", scoreFundamental, 0.25],
-  ["valuation", scoreValuation, 0.20],
+  ["valuation", scoreValuation, 0.2],
   ["capital", scoreCapital, 0.15],
   ["tech", scoreTech, 0.15],
   ["risk", scoreRisk, 0.25],
@@ -120,16 +141,23 @@ export function computeScores(perAngleData) {
   let overall = null;
   if (present.length > 0) {
     const wsum = present.reduce((s, d) => s + d[2], 0);
-    overall = present.reduce((s, [k, , w]) => s + dimensions[k] * (w / wsum), 0);
+    overall = present.reduce(
+      (s, [k, , w]) => s + dimensions[k] * (w / wsum),
+      0,
+    );
     overall = Math.round(overall * 10) / 10;
   }
   if (dimensions.valuation !== null) {
     const pe = num0(angleData(perAngleData, "valuation")?.pe);
-    if (pe !== null) rationale.push(`PE ${pe}，估值${pe <= 25 ? "合理" : pe <= 60 ? "偏高" : "过高"}`);
+    if (pe !== null)
+      rationale.push(
+        `PE ${pe}，估值${pe <= 25 ? "合理" : pe <= 60 ? "偏高" : "过高"}`,
+      );
   }
   if (dimensions.fundamental !== null) {
     const roe = num0(angleData(perAngleData, "profitability")?.roe);
-    if (roe !== null) rationale.push(`ROE ${roe}%，${roe >= 15 ? "盈利能力强" : "盈利一般"}`);
+    if (roe !== null)
+      rationale.push(`ROE ${roe}%，${roe >= 15 ? "盈利能力强" : "盈利一般"}`);
   }
   return { overall, dimensions, rationale };
 }

@@ -20,12 +20,22 @@ async function fetchCapitalFlow(httpClient, { code }) {
           : primary.body;
       const out = parseFlow(bodyObj);
       if (out) return { ok: true, data: out };
-      return { ok: false, reason: "parse_failed", error: "parse error" };
     }
   } catch (e) {
     /* fall through */
   }
-  return { ok: false, reason: "fetch_failed", error: "fetch error" };
+  // ponytail: 2026-07-07 全部失败时 (周末接口限流/新股无数据), 返 noData 占位
+  // 避免 DataGapsIndicator 把资金流向列入缺口. computeScores 的 fallback (换手率)
+  // 接管, UI 资金卡显示 "暂无资金流向".
+  return {
+    ok: true,
+    data: {
+      mainNetInflow5d: 0,
+      mainNetInflow10d: 0,
+      sampleCount: 0,
+      noData: true,
+    },
+  };
 }
 
 function parseFlow(body) {

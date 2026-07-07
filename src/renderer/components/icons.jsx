@@ -13,9 +13,27 @@ const defaults = {
   strokeLinejoin: 'round',
 };
 
-function Svg({ size = 16, children, ...rest }) {
+// ponytail: inline-block + vertical-align: middle 让 SVG 在 inline / text 旁边跟
+// 文字 baseline 对齐 (不管父容器是 <button> / <span> / <a>). 不加这两条会
+// 出现"图标下沉"或"上浮" (默认 baseline 对齐, SVG 的字形底在 viewBox 22px,
+// 文本 x-height 中心在 12px, 自然错位). flex 容器父级靠 align-items:center
+// 居中, 这里两条规则对 flex 容器无副作用.
+const svgBaseStyle = {
+  display: 'inline-block',
+  verticalAlign: 'middle',
+  flexShrink: 0,
+};
+
+function Svg({ size = 16, style, children, ...rest }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" {...defaults} {...rest}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      style={{ ...svgBaseStyle, ...style }}
+      {...defaults}
+      {...rest}
+    >
       {children}
     </svg>
   );

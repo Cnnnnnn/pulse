@@ -43,10 +43,14 @@ describe("fetchCapitalFlow", () => {
     expect(r.data.sampleCount).toBe(0);
   });
 
-  it("fetch_failed when both fail (fallback not implemented)", async () => {
+  it("all fail → graceful noData 占位 (避免 DataGapsIndicator 把它列入缺口)", async () => {
     const http = makeClient([fail(), fail()]);
     const r = await fetchCapitalFlow(http, { code: "600519" });
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe("fetch_failed");
+    // ponytail: 2026-07-07 全部失败时不再返 ok:false, 而是 noData 占位, 让
+    // 资金卡显示 "暂无资金流向" + scoreCapital 走换手率 fallback.
+    expect(r.ok).toBe(true);
+    expect(r.data.noData).toBe(true);
+    expect(r.data.mainNetInflow5d).toBe(0);
+    expect(r.data.sampleCount).toBe(0);
   });
 });

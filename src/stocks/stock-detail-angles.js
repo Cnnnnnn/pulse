@@ -1,8 +1,12 @@
 /**
  * src/stocks/stock-detail-angles.js
  *
- * 7 个分析角度的注册表. UI / prompt / fetcher / 校验都消费同一份.
+ * 12 个分析角度的注册表. UI / prompt / fetcher / 校验都消费同一份.
  * 新增角度: 1 个 fetcher 文件 + 下方 1 行注册 + 1 个 summarizeForAi.
+ *
+ * ponytail: 2026-07-07 — 删 industry_momentum (东方财富 90.BKxxxx K 线周末永远空) +
+ * margin_trading (节假日/小盘股经常无数据), 留 12 个里有数据的: 9 基础 + 3 新 (业绩
+ * 预期 / 股东结构 / 股本事件) 都是季频/静态, 数据节奏稳定.
  */
 const ANGLE_DEFS = [
   {
@@ -87,6 +91,34 @@ const ANGLE_DEFS = [
     fetcher: require("./detail-fetchers/moat-score").fetchMoatScore,
     summarizeForAi: summarizeMoatScore,
   },
+  {
+    key: "earnings_forecast",
+    label: "业绩预期",
+    group: "预期",
+    promptHint: "近 4 次业绩预告/快报 (类型 + 同比变化 + 原因)",
+    dataShape: "EarningsForecastData",
+    fetcher: require("./detail-fetchers/earnings-forecast")
+      .fetchEarningsForecast,
+    summarizeForAi: summarizeEarningsForecast,
+  },
+  {
+    key: "shareholders",
+    label: "股东结构",
+    group: "股东",
+    promptHint: "股东人数季环比 + 机构持仓比例季环比",
+    dataShape: "ShareholdersData",
+    fetcher: require("./detail-fetchers/shareholders").fetchShareholders,
+    summarizeForAi: summarizeShareholders,
+  },
+  {
+    key: "corporate_events",
+    label: "股本事件",
+    group: "股本",
+    promptHint: "近期分红 / 解禁 / 配股 (含下次解禁天数)",
+    dataShape: "CorporateEventsData",
+    fetcher: require("./detail-fetchers/corporate-events").fetchCorporateEvents,
+    summarizeForAi: summarizeCorporateEvents,
+  },
 ];
 
 function getAngle(key) {
@@ -152,7 +184,6 @@ function getSparklineData(d) {
   if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
   return d.closes;
 }
-
 
 function summarizeVolumeTurnover(d) {
   if (!d) return null;
@@ -254,18 +285,22 @@ function summarizePeerCompare(d) {
   const parts = [];
   // PE/PB: 改用历史分位 (INDEX_PERCENTILE) + 估值状态. 旧的行业中位/排名字段已废弃.
   if (d.pe != null) {
-    const pct = d.pePercentile != null ? `, 历史 ${d.pePercentile.toFixed(0)}% 分位` : "";
+    const pct =
+      d.pePercentile != null ? `, 历史 ${d.pePercentile.toFixed(0)}% 分位` : "";
     const st = d.peValuationStatus ? ` (${d.peValuationStatus})` : "";
     parts.push(`PE ${d.pe.toFixed(1)} 倍${pct}${st}`);
   }
   if (d.pb != null) {
-    const pct = d.pbPercentile != null ? `, 历史 ${d.pbPercentile.toFixed(0)}% 分位` : "";
+    const pct =
+      d.pbPercentile != null ? `, 历史 ${d.pbPercentile.toFixed(0)}% 分位` : "";
     const st = d.pbValuationStatus ? ` (${d.pbValuationStatus})` : "";
     parts.push(`PB ${d.pb.toFixed(2)}${pct}${st}`);
   }
   // 行业 ROE/毛利率中位 (从 LICO_FN_CPD peers 客户端算)
-  if (d.roeIndustryMedian != null) parts.push(`行业 ROE 中位 ${d.roeIndustryMedian.toFixed(1)}%`);
-  if (d.grossMarginIndustryMedian != null) parts.push(`行业毛利率中位 ${d.grossMarginIndustryMedian.toFixed(1)}%`);
+  if (d.roeIndustryMedian != null)
+    parts.push(`行业 ROE 中位 ${d.roeIndustryMedian.toFixed(1)}%`);
+  if (d.grossMarginIndustryMedian != null)
+    parts.push(`行业毛利率中位 ${d.grossMarginIndustryMedian.toFixed(1)}%`);
   if (parts.length === 0) return "暂无同业数据";
   // ponytail: 行业名是 LLM 分析 "同业对比" 时不可缺的高价值上下文, prepend 一段.
   //          仅当 industry 存在时输出, fetcher 在 datacenter row 缺 INDUSTRY_NAME 时会返 ok=false,
@@ -280,12 +315,119 @@ function summarizeMoatScore(d) {
   const dims = [];
   if (breakdown.marginEdge != null) dims.push(`毛利 ${breakdown.marginEdge}/3`);
   if (breakdown.roicEdge != null) dims.push(`ROIC ${breakdown.roicEdge}/3`);
-  if (breakdown.revenueStability != null) dims.push(`营收 ${breakdown.revenueStability}/3`);
+  if (breakdown.revenueStability != null)
+    dims.push(`营收 ${breakdown.revenueStability}/3`);
   // ponytail: buildNote() 已经把分数翻译成了 "强护城河 / 数据缺失 X 维度" 等 LLM 直读的判断,
   //          防御性处理 null/空字符串, 避免显示 "— undefined".
   const noteSuffix = d.note ? ` — ${d.note}` : "";
   return `护城河 ${d.score}/9 (${dims.join(" + ")})${noteSuffix}`;
 }
 
-module.exports = { ANGLE_DEFS, getAngle };
+// ── 业绩预期 (earnings_forecast) ──
+function summarizeEarningsForecast(d) {
+  if (!d) return null;
+  if (!d.items || d.items.length === 0) return "近期无业绩预告/快报披露";
+  const latest = d.latest || d.items[0];
+  const type = latest.type || "披露";
+  const change = formatChangeRange(latest.changeMin, latest.changeMax);
+  const latestLine = `最新 (${latest.reportDate || "?"}) ${type}${change}`;
+  // ponytail: 多条时给"趋势": 看最近 4 期类型 (预增→预增→预减 = 趋势转弱).
+  const trendLine = summarizeForecastTrend(d.items);
+  return [latestLine, trendLine].filter(Boolean).join("; ");
+}
 
+function formatChangeRange(min, max) {
+  if (min == null && max == null) return "";
+  if (min != null && max != null) {
+    // ponytail: 同一区间 (预增 50%-80%) vs 不同区间 (扭亏) 都支持.
+    if (min === max) return ` 同比 ${min > 0 ? "+" : ""}${min}%`;
+    return ` 同比 ${min > 0 ? "+" : ""}${min}% ~ ${max > 0 ? "+" : ""}${max}%`;
+  }
+  const v = min != null ? min : max;
+  return ` 同比 ${v > 0 ? "+" : ""}${v}%`;
+}
+
+// ponytail: 把 4 期类型翻译成 LLM 直读的趋势.
+//   全部预增 → "趋势持续向好"; 预增→预减 → "趋势转弱"; 全部预减 → "趋势持续承压".
+function summarizeForecastTrend(items) {
+  if (!items || items.length < 2) return null;
+  const tone = (t) => {
+    if (!t) return 0;
+    if (t.includes("增") || t.includes("扭亏")) return 1;
+    if (t.includes("减") || t.includes("首亏") || t.includes("续亏")) return -1;
+    return 0;
+  };
+  const tones = items.map((it) => tone(it.type));
+  const pos = tones.filter((t) => t > 0).length;
+  const neg = tones.filter((t) => t < 0).length;
+  if (pos === tones.length) return "趋势: 连续向好";
+  if (neg === tones.length) return "趋势: 持续承压";
+  if (pos > 0 && neg > 0) return "趋势: 由好转弱";
+  return null;
+}
+
+// ── 股东结构 (shareholders) ──
+function summarizeShareholders(d) {
+  if (!d) return null;
+  const parts = [];
+  if (d.holderCountLatest != null) {
+    const chg = d.holderCountChangePct;
+    const chgStr =
+      chg != null ? ` (环比 ${chg > 0 ? "+" : ""}${chg.toFixed(2)}%)` : "";
+    parts.push(
+      `股东人数 ${(d.holderCountLatest / 10000).toFixed(2)} 万${chgStr} (${d.reportDate || "?"})`,
+    );
+  }
+  if (d.institutionPctLatest != null) {
+    const chg = d.institutionChangePct;
+    const chgStr =
+      chg != null ? ` (环比 ${chg > 0 ? "+" : ""}${chg.toFixed(2)}pct)` : "";
+    parts.push(
+      `机构持仓 ${d.institutionPctLatest.toFixed(2)}%${chgStr} (${d.institutionReportDate || "?"})`,
+    );
+  }
+  if (parts.length === 0) return "暂无股东结构数据";
+  return parts.join("; ");
+}
+
+// ── 股本事件 (corporate_events) ──
+function summarizeCorporateEvents(d) {
+  if (!d) return null;
+  const parts = [];
+  // 分红: 最近一次 (含 派现 / 送股)
+  if (d.dividends && d.dividends.length > 0) {
+    const latest = d.dividends[0];
+    const divParts = [];
+    if (latest.cashBonus != null)
+      divParts.push(`派现 ${latest.cashBonus}/10 股`);
+    if (latest.shareBonus != null && latest.shareBonus > 0)
+      divParts.push(`送股 ${latest.shareBonus}/10 股`);
+    if (divParts.length > 0)
+      parts.push(
+        `最新分红 (${latest.reportDate || "?"}) ${divParts.join(" + ")}`,
+      );
+  }
+  // 解禁: 距离下次解禁天数 + 比例
+  if (d.nearestUnlockDays != null) {
+    const ratio =
+      d.unlocks && d.unlocks[0] && d.unlocks[0].ratio != null
+        ? ` 占总股本 ${d.unlocks[0].ratio.toFixed(2)}%`
+        : "";
+    const timing =
+      d.nearestUnlockDays >= 0
+        ? `距今 ${d.nearestUnlockDays} 天`
+        : `${Math.abs(d.nearestUnlockDays)} 天前已解禁`;
+    parts.push(`下次解禁 (${d.unlocks[0].limitDate}) ${timing}${ratio}`);
+  }
+  // 配股 / 增发
+  if (d.offerings && d.offerings.length > 0) {
+    const latest = d.offerings[0];
+    parts.push(
+      `最近融资 (${latest.issueDate || "?"}) ${latest.issueType || "增发"}`,
+    );
+  }
+  if (parts.length === 0) return "近期无股本事件";
+  return parts.join("; ");
+}
+
+module.exports = { ANGLE_DEFS, getAngle };
