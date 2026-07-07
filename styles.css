@@ -11532,6 +11532,46 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .diagnosis-rating-max { font-size: 12px; color: var(--text-tertiary, #aeaeb2); font-weight: 400; }
 .diagnosis-rating-label { font-size: 10px; color: var(--text-tertiary, #8e8e93); margin-top: 2px; }
 
+/* 上次诊断徽标 — ponytail: 2026-07-07
+   跨次对比: 时间 + 综合分变化 + 5 维变化 + 价格变化.
+   首次诊断 → 组件返 null, 此处 CSS 不会被命中. */
+.last-dx-badge {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 14px;
+  background: var(--bg-elevated, #f5f5f7);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.last-dx-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: var(--text-secondary, #6e6e73);
+}
+.last-dx-time { font-weight: 500; }
+.last-dx-price { font-variant-numeric: tabular-nums; }
+.last-dx-row {
+  display: flex; align-items: baseline; gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.last-dx-overall-label { font-size: 11px; color: var(--text-secondary, #6e6e73); }
+.last-dx-overall-prev, .last-dx-overall-cur {
+  font-size: 18px; font-weight: 700; color: var(--text-primary, #1d1d1f);
+}
+.last-dx-overall-prev { color: var(--text-tertiary, #8e8e93); }
+.last-dx-arrow { color: var(--text-tertiary, #aeaeb2); font-size: 14px; }
+.last-dx-delta { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.last-dx-dims {
+  display: flex; flex-wrap: wrap; gap: 8px 14px;
+  font-size: 11px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border, rgba(0,0,0,0.08));
+}
+.last-dx-dim { display: inline-flex; align-items: baseline; gap: 4px; }
+.last-dx-dim-label { color: var(--text-secondary, #6e6e73); }
+.last-dx-dim-delta { font-weight: 600; font-variant-numeric: tabular-nums; }
+.last-dx-tone-up { color: #34c759; }
+.last-dx-tone-down { color: #ff9500; }
+.last-dx-tone-neutral { color: var(--text-tertiary, #8e8e93); }
+
 /* 报告区: 双列 */
 /* 数据面板: 评分条全宽 + 模块卡网格, 单列垂直堆叠 */
 .diagnosis-report-grid { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; overflow-y: auto; }
@@ -11727,6 +11767,21 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* ponytail: 2026-07-07 — refreshAngle 失败闪烁: 整条 note 边框 + 按钮红, 2s 自动复原. */
+@keyframes ai-note-fail-flash {
+  0% { background: rgba(255,59,48,0.18); }
+  100% { background: rgba(255,59,48,0.05); }
+}
+.ai-note-line-failed {
+  border-color: rgba(255,59,48,0.5) !important;
+  background: rgba(255,59,48,0.05);
+  animation: ai-note-fail-flash 0.4s ease-out;
+}
+.ai-note-line-failed .ai-note-text { color: #ff3b30; }
+.ai-note-refresh-failed {
+  background: rgba(255,59,48,0.15) !important;
+  color: #ff3b30 !important;
+}
 /* module-card-wrap: 把 AiNoteLine 和下面 module-card 包成一个 grid 单元, 让
    AiNoteLine 跟 card 走同一列宽. gap 收紧保证视觉连贯. */
 .module-card-wrap { display: flex; flex-direction: column; gap: 6px; }
@@ -11803,9 +11858,76 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .module-card-empty { font-size: 11px; color: var(--text-tertiary, #aeaeb2); }
 .module-card--risk { border-color: rgba(255,149,0,0.3); background: rgba(255,149,0,0.04); }
 .module-card-risk-list { list-style: none; margin: 0; padding: 0; }
+/* ponytail: 2026-07-07 — 标题改为 flex, 左边文字 + 右边时间戳角标 */
+.module-card-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.module-card-sub { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border, rgba(0,0,0,0.08)); display: flex; flex-direction: column; gap: 6px; }
+/* 数据时间戳角标 — 小字、灰、靠右; 陈旧 (>30 天) 加灰底 */
+.card-freshness { font-size: 10px; font-weight: 400; color: var(--text-tertiary, #aeaeb2); white-space: nowrap; }
+.card-freshness-stale { background: rgba(142,142,147,0.12); color: var(--text-tertiary, #8e8e93); padding: 1px 6px; border-radius: 4px; }
+/* 行业分位条 */
+.ind-compare { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
+.ind-compare-label { color: var(--text-secondary, #6e6e73); font-weight: 500; }
+.ind-compare-row { display: flex; align-items: center; gap: 6px; }
+.ind-compare-mine { font-variant-numeric: tabular-nums; min-width: 38px; color: var(--text-primary, #1d1d1f); }
+.ind-compare-ind { font-variant-numeric: tabular-nums; color: var(--text-tertiary, #8e8e93); font-size: 10px; white-space: nowrap; }
+.ind-compare-track { position: relative; flex: 1; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: visible; }
+.ind-compare-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: 3px; background: var(--text-tertiary, #8e8e93); transition: width 0.2s; }
+.ind-compare-midmark { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--text-secondary, #6e6e73); }
+.ind-compare-mark { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--accent-primary, #007aff); border-radius: 1px; transform: translateX(-1px); }
+.ind-compare-val { font-size: 10px; color: var(--text-tertiary, #8e8e93); font-variant-numeric: tabular-nums; }
+.ind-compare-delta { font-size: 10px; color: var(--text-tertiary, #8e8e93); }
+.ind-compare-positive .ind-compare-fill { background: #34c759; }
+.ind-compare-cautious .ind-compare-fill { background: #ff9500; }
+.ind-compare-pct.ind-compare-positive .ind-compare-mark { background: #34c759; }
+.ind-compare-pct.ind-compare-cautious .ind-compare-mark { background: #ff9500; }
 @media (max-width: 760px) {
   .module-grid { grid-template-columns: 1fr; }
 }
+
+/* === 诊断页骨架屏 (loading 态) — ponytail: 2026-07-07
+   shimmer 扫描动画替代 .diagnosis-loading 文案. 8 张卡跟 ModuleGrid 1:1 对齐. */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.skel-line {
+  display: block;
+  height: 10px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.10) 50%, rgba(0,0,0,0.06) 100%);
+  background-size: 200px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skel-line-title { width: 50%; height: 12px; }
+.skel-line-body { width: 80%; }
+.skel-line-body-2 { width: 60%; }
+.module-card-skel { position: relative; min-height: 76px; padding-top: 18px; }
+.module-card-skel-label {
+  position: absolute; top: 8px; right: 12px;
+  font-size: 10px; color: var(--text-tertiary, #aeaeb2); font-weight: 500;
+}
+/* 评分柱骨架 — 5 个空柱 */
+.dimension-scores-skel { padding: 16px 12px; }
+.dimension-scores-skel .dimension-scores-bars { gap: 16px; }
+.dim-col-skel .skel-dim-label { width: 32px; height: 10px; margin: 0 auto 6px; }
+.dim-col-skel .skel-dim-score { width: 18px; height: 12px; margin: 6px auto 0; }
+.dim-col-skel .dim-bar-track { background: rgba(0,0,0,0.04); }
+.skel-bar-fill {
+  position: absolute; left: 0; bottom: 0; width: 100%; height: 30%;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.18) 50%, rgba(0,0,0,0.10) 100%);
+  background-size: 200px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+/* AI 解读卡骨架 */
+.verdict-card-skel { padding: 14px; }
+.verdict-card-skel .verdict-title { margin-bottom: 12px; }
+.skel-verdict-title { width: 80px; height: 12px; }
+.verdict-skel-body { padding: 4px 0; }
+.skel-verdict-summary { width: 90%; height: 14px; margin-bottom: 12px; }
+.skel-verdict-line { width: 75%; }
+.skel-verdict-line-2 { width: 60%; }
 
 /* === 选股 tab 切换 (照搬 worldcup-subtabs segmented control, 2026-07-04 redesign) === */
 .stock-subtabs { display: inline-flex; gap: 2px; background: var(--bg-tertiary, var(--bg-secondary, #f0f0f2)); border-radius: 6px; padding: 2px; margin: 0 20px; }
