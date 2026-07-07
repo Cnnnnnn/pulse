@@ -260,14 +260,25 @@ describe("mergeWc2026EtPen (bracket.js)", () => {
 });
 
 describe("mergeHardcodedR32EtPen (bracket.js fallback)", () => {
-  test("M74 注入 pen=[3,4] + et=[0,0]", () => {
+  test("M74 注入 pen=[3,4] + et=[0,0] (90分 1-1, 加时 0-0, 点球决胜)", () => {
     const snap = makeSnapshot();
     const r = mergeHardcodedR32EtPen(snap);
-    expect(r.updated).toBe(2); // M74 + M75 都在 table
+    // M74 + M75 + M82 + M88 都在 table. makeSnapshot 里只有 4 个 R32 (73/74/75/82),
+    // 没有 M88 → updated = 3 (74 + 75 + 82)
+    expect(r.updated).toBe(3);
     const m74 = snap.r32.find((m) => m.matchNum === 74);
     expect(m74.score.pen).toEqual([3, 4]);
     expect(m74.score.et).toEqual([0, 0]);
     expect(m74.score.source).toBe("hardcoded-r32");
+  });
+
+  test("M82 注入 et=[1,0] (90分 2-2, 加时 1-0 比利时胜, 无点球)", () => {
+    const snap = makeSnapshot();
+    const r = mergeHardcodedR32EtPen(snap);
+    const m82 = snap.r32.find((m) => m.matchNum === 82);
+    expect(m82.score.et).toEqual([1, 0]);
+    expect(m82.score.pen).toBeUndefined();
+    expect(m82.score.source).toBe("hardcoded-r32");
   });
 
   test("不覆盖已有 pen (信任更权威源)", () => {
@@ -277,8 +288,8 @@ describe("mergeHardcodedR32EtPen (bracket.js fallback)", () => {
     m74.score.et = [0, 0]; // et 也填了 → hardcoded 整个 match 不注入
     m74.score.source = "wc2026";
     const r = mergeHardcodedR32EtPen(snap);
-    // M74 pen/et 都已存在 → 不动; M75 注入 → updated=1
-    expect(r.updated).toBe(1);
+    // M74 pen/et 都已存在 → 不动; M75 + M82 注入 → updated=2
+    expect(r.updated).toBe(2);
     expect(m74.score.pen).toEqual([4, 3]); // 保留原值
     expect(m74.score.source).toBe("wc2026");
   });
@@ -298,8 +309,15 @@ describe("mergeHardcodedR32EtPen (bracket.js fallback)", () => {
     expect(r.updated).toBe(0);
   });
 
-  test("HARDCODED_R32_ET_PEN 至少包含 M74 + M75 (R32 已踢完点球战)", () => {
+  test("HARDCODED_R32_ET_PEN 以 ESPN scorers 为准 (不信任 openfootball TXT 的 a.e.t. 段)", () => {
+    // ponytail: cup_finals.txt 的 a.e.t. (X-Y, A-B) 段对不上 ESPN scorers, 全部按
+    // scorers 实际进球者推算 et = [slot1 加时进球, slot2 加时进球].
+    //   M74 德国 vs 巴拉圭: scorers 120' 全是 Penalty - Scored (shootout), 加时 0-0
+    //   M82 比利时 vs 塞内加尔: Tielemans 120+5'(p) 比利时进球, 加时 1-0
+    //   M88 澳大利亚 vs 埃及: 无加时进球 (只有 Hany OG + Ashour 90分), 加时 0-0
     expect(HARDCODED_R32_ET_PEN[74]).toEqual({ et: [0, 0], pen: [3, 4] });
     expect(HARDCODED_R32_ET_PEN[75]).toEqual({ et: [0, 0], pen: [2, 3] });
+    expect(HARDCODED_R32_ET_PEN[82]).toEqual({ et: [1, 0] });
+    expect(HARDCODED_R32_ET_PEN[88]).toEqual({ et: [0, 0], pen: [2, 4] });
   });
 });

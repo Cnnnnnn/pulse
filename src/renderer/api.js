@@ -210,6 +210,8 @@ export function createApi(overrides = {}) {
     // 阶段三: 个股多角度分析 + AI 详情
     stocksDetailAngles: pick(overrides, "stocksDetailAngles"),
     stocksDetailAnalyze: pick(overrides, "stocksDetailAnalyze"),
+    // ponytail: 2026-07-07 P1-2 — 单条 angle 本地重解读
+    stocksAngleRefresh: pick(overrides, "stocksAngleRefresh"),
     // Cmd+K command palette 全局搜索
     versionsCommandSearch: pick(overrides, "versionsCommandSearch"),
     // Task 18: OverviewPage 5 个数据源 IPC bridge

@@ -21,16 +21,37 @@ function playerKey(player, teamName) {
 }
 
 /**
+ * 判断一个进球是否属于"点球大战" (penalty shootout, 非 90 分/加时的常规点球).
+ *
+ * ponytail: ESPN 的 d.penaltyKick 同时标记 90 分/加时的常规点球 和 shootout 的点球.
+ * 区分方式: shootout 进球 minute 一定是 "120'" (不带 +, 因为 shootout 是离散的 5+轮,
+ * ESPN 给统一 minute=120'). 加时常规点球 minute 是 "120'+3'" / "120'+5'" 这种
+ * 带 +X 补时形式.
+ *
+ * 同时需要 score.pen 存在 (本场有 shootout) 才视为 shootout 进球. 单独 minute
+ * 形态不带 score.pen 的不算 (防止误判某些边界情况).
+ */
+function isShootoutGoal(scorer, score) {
+  if (!scorer || !scorer.penalty) return false;
+  if (!score || !Array.isArray(score.pen) || score.pen.length !== 2)
+    return false;
+  const minute = String(scorer.minute || "").trim();
+  // shootout 形式: "120'" (exact match, no + suffix). 加时常规点球: "120'+X'" 之类.
+  return /^120'$/.test(minute);
+}
+
+/**
  * 适配 match shape: 小组赛 (扁平 team1/team2) 或 淘汰赛 (嵌套 slot1.team.name).
- * @returns {{ team1: string, team2: string, scorers: Array } | null}
+ * @returns {{ team1: string, team2: string, scorers: Array, score: object } | null}
  */
 export function normalizeScorersMatch(m) {
   if (!m) return null;
   const t1 = m.team1 || (m.slot1 && m.slot1.team && m.slot1.team.name) || null;
   const t2 = m.team2 || (m.slot2 && m.slot2.team && m.slot2.team.name) || null;
-  const scorers = m.score && Array.isArray(m.score.scorers) ? m.score.scorers : [];
+  const score = m.score || null;
+  const scorers = score && Array.isArray(score.scorers) ? score.scorers : [];
   if (!t1 || !t2 || scorers.length === 0) return null;
-  return { team1: t1, team2: t2, scorers };
+  return { team1: t1, team2: t2, scorers, score };
 }
 
 /**
@@ -57,10 +78,15 @@ export function buildScorersLeaderboard(matches) {
   for (const m of matches || []) {
     const norm = normalizeScorersMatch(m);
     if (!norm) continue;
-    const { team1, team2, scorers } = norm;
+    const { team1, team2, scorers, score } = norm;
 
     for (const s of scorers) {
       if (!s || !s.player || s.ownGoal) continue;
+
+      // ponytail: 点球大战进球不进射手榜. ESPN 把 shootout 点球也标 d.penaltyKick=true,
+      // minute 是 "120'" (无 + 后缀, 因为 shootout 离散轮次). 跟加时阶段的常规点球
+      // (minute 是 "120'+X'") 区分. isShootoutGoal 同时要求 score.pen 存在.
+      if (isShootoutGoal(s, score)) continue;
 
       const teamName = s.teamSide === "team1" ? team1 : team2;
       if (!teamName) continue;

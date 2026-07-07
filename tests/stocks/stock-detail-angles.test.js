@@ -2,8 +2,11 @@ import { describe, it, expect } from "vitest";
 import { ANGLE_DEFS, getAngle } from "../../src/stocks/stock-detail-angles";
 
 describe("stock-detail-angles", () => {
-  it("ANGLE_DEFS has exactly 9 angles (7 老 + peer_compare + moat_score)", () => {
-    expect(ANGLE_DEFS).toHaveLength(9);
+  it("ANGLE_DEFS has 12 angles (9 基础 + 3 P1 季频/静态; 删 industry_momentum + margin_trading 周末永远空)", () => {
+    // ponytail: 2026-07-07 — 锁死 12 提醒"加新 angle 必须改这 5 处: ANGLE_DEFS /
+    // ALL_ANGLES / ANGLE_LABELS / ModuleGrid / tests". 删 industry_momentum + margin_trading
+    // 后保持 5 处同步, 见 diagnosisStore.js 注释.
+    expect(ANGLE_DEFS).toHaveLength(12);
   });
 
   it("each angle has required fields", () => {
@@ -23,13 +26,17 @@ describe("stock-detail-angles", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("groups cover 行情/财务/资金/技术/舆情", () => {
+  it("groups cover 行情/财务/资金/技术/舆情/股东/股本/预期", () => {
+    // ponytail: 2026-07-07 加预期/股东/股本 3 个新 group.
     const groups = new Set(ANGLE_DEFS.map((a) => a.group));
     expect(groups.has("行情")).toBe(true);
     expect(groups.has("财务")).toBe(true);
     expect(groups.has("资金")).toBe(true);
     expect(groups.has("技术")).toBe(true);
     expect(groups.has("舆情")).toBe(true);
+    expect(groups.has("股东")).toBe(true);
+    expect(groups.has("股本")).toBe(true);
+    expect(groups.has("预期")).toBe(true);
   });
 
   it("getAngle returns matching entry", () => {
@@ -42,17 +49,24 @@ describe("stock-detail-angles", () => {
     expect(getAngle("not_a_key")).toBeNull();
   });
 
-  it("包含 9 个 angle (7 老 + peer_compare + moat_score)", () => {
+  it("包含 12 个 angle (9 基础 + 3 季频/静态: earnings_forecast, shareholders, corporate_events)", () => {
     const keys = ANGLE_DEFS.map((a) => a.key);
-    expect(keys).toContain("price_trend");
-    expect(keys).toContain("volume_turnover");
-    expect(keys).toContain("valuation");
-    expect(keys).toContain("profitability");
-    expect(keys).toContain("capital_flow");
-    expect(keys).toContain("tech_indicators");
-    expect(keys).toContain("news_buzz");
-    expect(keys).toContain("peer_compare");
-    expect(keys).toContain("moat_score");
+    for (const k of [
+      "price_trend",
+      "volume_turnover",
+      "valuation",
+      "profitability",
+      "capital_flow",
+      "tech_indicators",
+      "news_buzz",
+      "peer_compare",
+      "moat_score",
+      "earnings_forecast",
+      "shareholders",
+      "corporate_events",
+    ]) {
+      expect(keys).toContain(k);
+    }
   });
 
   it("peer_compare / moat_score group 都是 '财务'", () => {
@@ -65,13 +79,22 @@ describe("stock-detail-angles", () => {
     const ms = getAngle("moat_score");
     // 空数据: summarizePeerCompare 返 "暂无同业数据" 或 null
     expect(() => pc.summarizeForAi(null)).not.toThrow();
-    // 完整数据: 返带 PE / PB 排名的字符串
+    // 完整数据: 返带 PE/PB 历史分位的字符串 (新结构, 旧的行业中位/排名字段已废弃)
     const pcOut = pc.summarizeForAi({
-      pe: 30, peIndustryMedian: 25, peRank: 5, peTotal: 50, peDeviationPct: 20,
-      pb: 4, pbIndustryMedian: 3, pbRank: 10, pbTotal: 50, pbDeviationPct: 33.3,
+      industry: "白酒",
+      pe: 30,
+      pePercentile: 75,
+      peValuationStatus: "偏高",
+      pb: 4,
+      pbPercentile: 60,
+      pbValuationStatus: "合理",
+      roeIndustryMedian: 22.5,
+      grossMarginIndustryMedian: 70.0,
     });
+    expect(pcOut).toMatch(/行业: 白酒/);
     expect(pcOut).toMatch(/PE 30\.0 倍/);
-    expect(pcOut).toMatch(/排名 5\/50/);
+    expect(pcOut).toMatch(/历史 75% 分位/);
+    expect(pcOut).toMatch(/行业 ROE 中位 22\.5%/);
     // moat_score: 完整 3 维都给的 case
     const msOut = ms.summarizeForAi({
       score: 7,

@@ -9,7 +9,7 @@
 const { createStockHttpClient } = require("../chromium-http-client");
 const { fetchStockDetailAngles } = require("../../stocks/stock-detail-fetcher");
 const { computeStockCacheKey } = require("../../stocks/stock-detail-cache");
-const { aiStockDetailAnalyze } = require("../../ai/stock-detail-advisor");
+const { aiStockDetailAnalyze, refreshAngleLocally } = require("../../ai/stock-detail-advisor");
 
 const CACHE_TTL_MS = 60_000;
 const _detailCache = new Map();
@@ -46,8 +46,27 @@ function registerStockDetailHandlers(ctx) {
 
   safeHandle(
     "stocks:detail-analyze",
-    async (_event, { code, angles, perAngleData, freeText } = {}) => {
-      return await aiStockDetailAnalyze({ code, angles, perAngleData, freeText });
+    async (_event, { code, angles, perAngleData, freeText, scores } = {}) => {
+      return await aiStockDetailAnalyze({ code, angles, perAngleData, freeText, scores });
+    },
+    {
+      onError: (err) => ({
+        ok: false,
+        reason: "internal_error",
+        error: err && err.message,
+      }),
+    },
+  );
+
+  // ponytail: 2026-07-07 P1-2 — 单条 angle 的本地快速重解读, 不调 LLM.
+  // renderer 拿到 {note} 后合并进 aiResult.perAngle[key]. 缺数据返 {ok:false, reason:'no_data'}.
+  safeHandle(
+    "stocks:angle-refresh",
+    async (_event, { angleKey, perAngleData, scores, seed } = {}) => {
+      if (!angleKey) return { ok: false, reason: "invalid_args" };
+      const note = refreshAngleLocally({ angleKey, perAngleData, scores, seed });
+      if (!note) return { ok: false, reason: "no_data" };
+      return { ok: true, note, angleKey };
     },
     {
       onError: (err) => ({
