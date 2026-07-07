@@ -1,9 +1,11 @@
-import { stockDiagnosisCode, diagnosisState, diagnosisStock, loadDiagnosis, refreshAngle, refreshingAngles } from "./diagnosisStore.js";
+import { stockDiagnosisCode, diagnosisState, diagnosisStock, loadDiagnosis, refreshAngle, refreshingAngles, failedAngles } from "./diagnosisStore.js";
 import { closeDiagnosis } from "./diagnosisStore.js";
 import { VerdictCard } from "./diagnosis/VerdictCard.jsx";
 import { DimensionScores } from "./diagnosis/DimensionScores.jsx";
 import { ModuleGrid } from "./diagnosis/ModuleGrid.jsx";
 import { DataGapsIndicator } from "./diagnosis/DataGapsIndicator.jsx";
+import { LastDiagnosisBadge } from "./diagnosis/LastDiagnosisBadge.jsx";
+import { DiagnosisSkeleton } from "./diagnosis/DiagnosisSkeleton.jsx";
 import { StockSearchInput } from "./StockSearchInput.jsx";
 
 const RATING_LABEL = (s) => (s == null ? "数据不足" : s >= 7.5 ? "强烈" : s >= 6 ? "中性偏强" : s >= 4 ? "中性" : "偏弱");
@@ -43,9 +45,12 @@ export function StockDiagnosisPage({ api }) {
           </div>
         )}
       </div>
+      {state.status === "ready" && (
+        <LastDiagnosisBadge code={code} currentScores={state.scores} currentPrice={stock?.price} />
+      )}
 
       {/* 报告区: 双列 — 左 AI解读+评分, 右 数据模块 */}
-      {state.status === "loading" && <div class="diagnosis-loading">正在生成诊断报告…</div>}
+      {state.status === "loading" && <DiagnosisSkeleton />}
       {state.status === "error" && (
         <div class="diagnosis-error">
           报告生成失败：{state.error}
@@ -67,6 +72,7 @@ export function StockDiagnosisPage({ api }) {
             scores={state.scores}
             onRefreshAngle={(k) => refreshAngle(api, k)}
             refreshing={refreshingAngles.value}
+            failed={failedAngles.value}
           />
           <VerdictCard
             scores={state.scores}

@@ -9,6 +9,7 @@
 import { signal, computed } from "@preact/signals";
 import { computeScores } from "../../stocks/diagnosis-scorer.js";
 import { taggedLog } from "../log.js";
+import { saveSnapshot } from "./diagnosis/diagnosisHistory.js";
 
 const log = taggedLog("[diagnosis]");
 
@@ -51,15 +52,38 @@ export const ANGLE_LABELS = {
   corporate_events: "股本事件",
 };
 
+// ponytail: 2026-07-07 — 缺口条目带 reason / error, DataGapsIndicator 可渲染 tooltip
+//          把"为什么缺"告诉用户 (后端 stock-detail-fetcher.js 已填 reason + error).
+//          reasonText 把 reason 码翻成中文, 缺的字段兜底用 error 串.
+const GAP_REASON_TEXT = {
+  no_industry_data: "该股无行业归属数据, 跳过同业对比",
+  fetch_failed: "数据源请求失败",
+  parse_failed: "数据源返回格式异常",
+  exception: "数据源调用异常",
+  unknown: "未知原因",
+};
+function gapReasonText(gap) {
+  const r = gap.reason || "unknown";
+  return GAP_REASON_TEXT[r] || `${r}${gap.error ? `: ${gap.error}` : ""}`;
+}
+
 function computeDataGaps(perAngleData) {
   const gaps = [];
   for (const k of ALL_ANGLES) {
     const e = perAngleData && perAngleData[k];
-    if (!e || e.status !== "ok")
-      gaps.push({ key: k, label: ANGLE_LABELS[k] || k });
+    if (!e || e.status !== "ok") {
+      gaps.push({
+        key: k,
+        label: ANGLE_LABELS[k] || k,
+        reason: e ? e.reason || "unknown" : "missing",
+        error: e ? e.error || null : null,
+      });
+    }
   }
   return gaps;
 }
+
+export { gapReasonText, GAP_REASON_TEXT };
 
 // 当前 tab: "screen"=筛选 / "diagnosis"=个股分析
 export const stockActiveTab = signal("screen");
@@ -122,6 +146,10 @@ export function closeDiagnosis() {
   // 只切回筛选 tab, 保留 stockDiagnosisCode 当"最近分析过的股票"语义
   // (诊断 tab 顶部搜索框可重新选股覆盖它).
   stockActiveTab.value = "screen";
+  // ponytail: 2026-07-07 — 清失败闪烁 + 排队 timer, 避免退出/重开后旧 timer 误触
+  failedAngles.value = new Set();
+  for (const t of _failedTimers.values()) clearTimeout(t);
+  _failedTimers.clear();
   diagnosisState.value = {
     status: "idle",
     perAngleData: {},
@@ -168,6 +196,14 @@ async function _runDiagnosisFlow(api, code, token) {
     return;
   }
   // 同一 tick: 写回 ready + 启动 AI. AI 不再等用户点.
+  commitReady(code, perAngleData, scores);
+  requestAiSummary(api, code, { perAngleData, scores });
+}
+
+// ponytail: 2026-07-07 — "写 ready + 存历史快照" 抽出来, openDiagnosis / loadDiagnosis
+//          (重试按钮) 都走同一处. 快照存 overall + 5 维 + 价格, 给 hero 徽标跨次对比用.
+//          失败 / 缺 scores → 不存 (避免半成品写进历史).
+function commitReady(code, perAngleData, scores) {
   diagnosisState.value = {
     ...diagnosisState.value,
     status: "ready",
@@ -175,7 +211,15 @@ async function _runDiagnosisFlow(api, code, token) {
     scores,
     dataGaps: computeDataGaps(perAngleData),
   };
-  requestAiSummary(api, code, { perAngleData, scores });
+  if (scores && scores.overall != null) {
+    const stock = diagnosisStock.value;
+    saveSnapshot(code, {
+      overall: scores.overall,
+      dimensions: scores.dimensions || {},
+      price: stock && stock.price != null ? stock.price : null,
+      signal: null,
+    });
+  }
 }
 
 // 拉数据 + 算分 (用于单点重拉, 不触发 AI). AI 由 openDiagnosis 触发.
@@ -190,13 +234,7 @@ export async function loadDiagnosis(api, code) {
     if (!resp || !resp.ok) throw new Error(resp?.reason || "fetch_failed");
     const perAngleData = (resp.data && resp.data.perAngle) || {};
     const scores = computeScores(perAngleData);
-    diagnosisState.value = {
-      ...diagnosisState.value,
-      status: "ready",
-      perAngleData,
-      scores,
-      dataGaps: computeDataGaps(perAngleData),
-    };
+    commitReady(code, perAngleData, scores);
   } catch (e) {
     diagnosisState.value = {
       ...diagnosisState.value,
@@ -277,6 +315,10 @@ export async function requestAiSummary(api, code, override) {
 // 触发整个 diagnosisState 的订阅.
 export const refreshingAngles = signal(new Set());
 
+// ponytail: 2026-07-07 — 失败闪烁: 跟 refreshingAngles 互斥 (失败时才进).
+//          2 秒后自动清, 给按钮闪一下红 + 一行 toast 类提示 (AiNoteLine 内部渲染).
+export const failedAngles = signal(new Set());
+
 export async function refreshAngle(api, angleKey) {
   const { perAngleData, aiResult, scores } = diagnosisState.value;
   if (!api || !angleKey) return;
@@ -297,12 +339,35 @@ export async function refreshAngle(api, angleKey) {
         ...diagnosisState.value,
         aiResult: { ...cur, perAngle: nextPerAngle },
       };
+    } else {
+      // ponytail: 后端返 ok=false 时也算失败 (用户视角: 没拿到新句). reason 透出日志.
+      log.warn(
+        `refreshAngle ${angleKey} no-note: reason=${(resp && resp.reason) || "unknown"}`,
+      );
+      markAngleFailed(angleKey);
     }
   } catch (e) {
     log.warn(`refreshAngle ${angleKey} failed`, e);
+    markAngleFailed(angleKey);
   } finally {
     const done = new Set(refreshingAngles.value);
     done.delete(angleKey);
     refreshingAngles.value = done;
   }
+}
+
+// ponytail: 失败闪烁的 setTimeout 句柄, 切换股票 / 快速重试时清理掉旧 timer
+//          (否则会"已经成功 5 秒了又被旧 timer 改回 failed").
+const _failedTimers = new Map();
+function markAngleFailed(angleKey) {
+  const failed = new Set(failedAngles.value);
+  failed.add(angleKey);
+  failedAngles.value = failed;
+  if (_failedTimers.has(angleKey)) clearTimeout(_failedTimers.get(angleKey));
+  const t = setTimeout(() => {
+    const cur = new Set(failedAngles.value);
+    if (cur.delete(angleKey)) failedAngles.value = cur;
+    _failedTimers.delete(angleKey);
+  }, 2000);
+  _failedTimers.set(angleKey, t);
 }
