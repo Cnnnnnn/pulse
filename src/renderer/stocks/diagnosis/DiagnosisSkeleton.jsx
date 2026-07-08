@@ -56,7 +56,8 @@ function VerdictSkeleton() {
 
 export function DiagnosisSkeleton() {
   return (
-    <div class="diagnosis-report-grid">
+    <div class="diagnosis-report-grid" role="status" aria-live="polite">
+      <div class="diagnosis-skel-banner">正在加载数据…</div>
       <DimensionScoresSkeleton />
       <div class="module-grid">
         {CARD_LABELS.map((label, i) => (

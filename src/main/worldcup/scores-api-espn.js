@@ -111,7 +111,7 @@ function deriveEtPenFromScorers(scorers) {
   let hasShootout = false;
   let hasEtGoal = false;
   for (const s of scorers) {
-    if (!s || s.ownGoal) continue;
+    if (!s) continue;
     const minute = String(s.minute || "").trim();
     if (!minute) continue;
     // ponytail: shootout 形式是精确 "120'", ET 末刻进球是 "120'+X'", ET 中段是 "91'".."119'".
@@ -130,6 +130,10 @@ function deriveEtPenFromScorers(scorers) {
     const base = parseInt(etMatch[1], 10);
     if (base >= 91 && base <= 120) {
       hasEtGoal = true;
+      // ponytail: 2026-07-07 — OG 也要算 et. 之前 `if (s.ownGoal) continue` 跳了
+      // OG, M86 Borges 111' OG 算阿根廷 +1 (FIFA 规则: 进球归对方 = Argentina),
+      // 跳过 → 显示 1:1 错, 应 2:1. ESPN data 里 OG 的 d.team.id 是进球方/胜利方
+      // (Argentina), 跟正常进球 teamSide 一致, 不需翻转.
       if (s.teamSide === "team1") t1Et++;
       else if (s.teamSide === "team2") t2Et++;
     }

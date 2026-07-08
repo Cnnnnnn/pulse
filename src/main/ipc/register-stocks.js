@@ -8,7 +8,7 @@
  * (绕开 Node OpenSSL 在 push2.eastmoney.com 被 RST 的反爬). vitest 环境 fallback 到 HttpClient.
  */
 const { createStockHttpClient } = require("../chromium-http-client");
-const { fetchStocks } = require("../../stocks/stock-fetcher");
+const { fetchStocks, fetchStocksByCodes } = require("../../stocks/stock-fetcher");
 const { searchStocks } = require("../../stocks/stock-search");
 const { applyScreen } = require("../../stocks/stock-filter");
 const { computeMarketOverview } = require("../../stocks/market-overview");
@@ -41,6 +41,30 @@ function searchCacheSet(query, results) {
     for (const k of drop) _searchCache.delete(k);
   }
   _searchCache.set(query, { results, fetchedAt: Date.now() });
+}
+
+// ponytail: 2026-07-07 — 用全市场 rows (StockRow 形态) 补搜索结果的 price/changePct/industry.
+// entries: searchStocks raw 结果. rows: _cache.rows 或 null. 返新数组, 不改 input.
+function enrichSearchResults(entries, rows) {
+  if (!Array.isArray(entries) || !Array.isArray(rows) || rows.length === 0) {
+    return entries;
+  }
+  // 构建 code→row 索引一次. ~5500 entries, 单次 O(N) build + O(M) lookup.
+  const byCode = new Map();
+  for (const r of rows) {
+    if (r && r.code) byCode.set(r.code, r);
+  }
+  return entries.map((e) => {
+    if (!e || !e.code) return e;
+    const r = byCode.get(e.code);
+    if (!r) return e;
+    return {
+      ...e,
+      price: r.price != null ? r.price : null,
+      changePct: r.changePct != null ? r.changePct : null,
+      industry: r.industry || e.industry || null,
+    };
+  });
 }
 
 // ponytail: 东财底层错误 token ('network' / 'timeout' / 'HTTP 5xx') 不能直接漏给 UI.
@@ -122,15 +146,111 @@ function registerStocksHandlers(ctx) {
         .toLowerCase();
       if (!q) return { ok: true, results: [] };
       // ponytail: 同样的 query 5min 内直接返缓存, 避免 250ms debounce 触发后重复打 searchapi.
+      // 但缓存里的 entry 是历史 enrich 后的快照, 当时 _cache.rows 缺 + fetchStocksByCodes 失败
+      // 的话, price/changePct 仍是 null. 现在 _cache.rows 有了, 重跑一次 enrich 补上价再返,
+      // 不再调 searchStocks (省接口).
       const cached = searchCacheGet(q);
-      if (cached) return { ok: true, results: cached, fromCache: true };
+      if (cached) {
+        const stillMissing = cached.filter(
+          (e) => e && e.code && (e.price == null || e.changePct == null),
+        );
+        if (stillMissing.length === 0) {
+          return { ok: true, results: cached, fromCache: true };
+        }
+        // ponytail 2026-07-07: 缓存命中但有缺价 entry → 走两层 fallback 补上, 写回缓存.
+        const httpClient = createStockHttpClient({
+          timeout: 6000,
+          maxRetries: 0,
+        });
+        let reEnriched = enrichSearchResults(cached, _cache && _cache.rows);
+        const reMissing = reEnriched.filter(
+          (e) => e && e.code && (e.price == null || e.changePct == null),
+        );
+        if (reMissing.length > 0) {
+          try {
+            const { rows } = await fetchStocksByCodes(
+              reMissing.map((e) => e.code),
+              httpClient,
+              { timeoutMs: 6000 },
+            );
+            if (Array.isArray(rows) && rows.length > 0) {
+              const byCode = new Map(rows.map((r) => [r.code, r]));
+              reEnriched = reEnriched.map((e) => {
+                if (!e || !e.code) return e;
+                const r = byCode.get(e.code);
+                if (!r) return e;
+                return {
+                  ...e,
+                  price:
+                    e.price != null
+                      ? e.price
+                      : r.price != null
+                        ? r.price
+                        : null,
+                  changePct:
+                    e.changePct != null
+                      ? e.changePct
+                      : r.changePct != null
+                        ? r.changePct
+                        : null,
+                  industry: e.industry || r.industry || null,
+                };
+              });
+            }
+          } catch (_) {
+            // ponytail: 行情拉失败保持原缓存, 不阻塞返结果
+          }
+        }
+        searchCacheSet(q, reEnriched);
+        return { ok: true, results: reEnriched, fromCache: true };
+      }
       const httpClient = createStockHttpClient({
         timeout: 6000,
         maxRetries: 0,
       });
       const results = await searchStocks(q, httpClient);
-      searchCacheSet(q, results);
-      return { ok: true, results };
+      // ponytail 2026-07-07: 搜索建议接口不带实时价/行业. 两层 fallback 补 3 个字段:
+      //   1) _cache.rows (上次 stocks:screen 全市场结果) — O(1) 反查, 命中率高
+      //   2) _cache.rows 缺 (首次启动还没拉过筛选, 或该 code 被全市场筛掉) →
+      //      走 fetchStocksByCodes 一次性按 secid 列表拉 push2 ulist.np, 让从搜索
+      //      直接进诊断 + 加对比池的也能拿到现价/涨跌. 失败静默退化为原 results.
+      let enriched = enrichSearchResults(results, _cache && _cache.rows);
+      const stillMissing = enriched.filter(
+        (e) => e && e.code && (e.price == null || e.changePct == null),
+      );
+      if (stillMissing.length > 0) {
+        try {
+          const { rows } = await fetchStocksByCodes(
+            stillMissing.map((e) => e.code),
+            httpClient,
+            { timeoutMs: 6000 },
+          );
+          if (Array.isArray(rows) && rows.length > 0) {
+            const byCode = new Map(rows.map((r) => [r.code, r]));
+            enriched = enriched.map((e) => {
+              if (!e || !e.code) return e;
+              const r = byCode.get(e.code);
+              if (!r) return e;
+              return {
+                ...e,
+                price:
+                  e.price != null ? e.price : r.price != null ? r.price : null,
+                changePct:
+                  e.changePct != null
+                    ? e.changePct
+                    : r.changePct != null
+                      ? r.changePct
+                      : null,
+                industry: e.industry || r.industry || null,
+              };
+            });
+          }
+        } catch (_) {
+          // ponytail: 行情拉失败不阻塞搜索, 仍返部分结果
+        }
+      }
+      searchCacheSet(q, enriched);
+      return { ok: true, results: enriched };
     },
     { onError: (err) => threwResponse(err, { results: [] }) },
   );
@@ -167,4 +287,4 @@ function registerStocksHandlers(ctx) {
   );
 }
 
-module.exports = { registerStocksHandlers };
+module.exports = { registerStocksHandlers, enrichSearchResults };

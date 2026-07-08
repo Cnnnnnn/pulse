@@ -212,6 +212,8 @@ export function createApi(overrides = {}) {
     stocksDetailAnalyze: pick(overrides, "stocksDetailAnalyze"),
     // ponytail: 2026-07-07 P1-2 — 单条 angle 本地重解读
     stocksAngleRefresh: pick(overrides, "stocksAngleRefresh"),
+    // 2026-07-07 — 诊断报告导出 PNG (主进程 capturePage + showSaveDialog)
+    stocksExportDiagnosisPng: pick(overrides, "stocksExportDiagnosisPng"),
     // Cmd+K command palette 全局搜索
     versionsCommandSearch: pick(overrides, "versionsCommandSearch"),
     // Task 18: OverviewPage 5 个数据源 IPC bridge

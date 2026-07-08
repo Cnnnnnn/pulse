@@ -6,6 +6,8 @@ import { ModuleGrid } from "./diagnosis/ModuleGrid.jsx";
 import { DataGapsIndicator } from "./diagnosis/DataGapsIndicator.jsx";
 import { LastDiagnosisBadge } from "./diagnosis/LastDiagnosisBadge.jsx";
 import { DiagnosisSkeleton } from "./diagnosis/DiagnosisSkeleton.jsx";
+import { ExportDiagnosisButton } from "./diagnosis/ExportDiagnosisButton.jsx";
+import { AddToCompareButton } from "./AddToCompareButton.jsx";
 import { StockSearchInput } from "./StockSearchInput.jsx";
 
 const RATING_LABEL = (s) => (s == null ? "数据不足" : s >= 7.5 ? "强烈" : s >= 6 ? "中性偏强" : s >= 4 ? "中性" : "偏弱");
@@ -44,7 +46,26 @@ export function StockDiagnosisPage({ api }) {
             <div class="diagnosis-rating-label">{RATING_LABEL(overall)}</div>
           </div>
         )}
+        {state.status === "ready" && (
+          <ExportDiagnosisButton api={api} code={code} stockName={stock?.name} />
+        )}
       </div>
+      {state.status === "ready" && (
+        <div class="diagnosis-actions">
+          <AddToCompareButton
+            entry={{
+              code,
+              name: stock?.name,
+              price: stock?.price,
+              changePct: stock?.changePct,
+              industry: stock?.industry,
+              scores: state.scores,
+            }}
+            variant="card"
+            api={api}
+          />
+        </div>
+      )}
       {state.status === "ready" && (
         <LastDiagnosisBadge code={code} currentScores={state.scores} currentPrice={stock?.price} />
       )}

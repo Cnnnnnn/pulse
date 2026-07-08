@@ -41,20 +41,33 @@ function scoreValuation(data) {
 
 function scoreCapital(data) {
   const c = angleData(data, "capital_flow");
-  // ponytail: 2026-07-07 — 资金流向依赖当日行情, 周末/节假日 fetch 失败时维度 null →
-  // UI "—". fallback: volume_turnover 返的 latestTurnover 是最新一日换手率 %,
-  // avgTurnover30d 是 30 日均换手率 %. 换手率高 = 资金关注度高 = 中性偏正.
+  // ponytail: 2026-07-07 — 资金流向 fallback 三级. 主路径用 capital_flow. 限流 / 周末时
+  // fetcher 走 noData 占位 → sampleCount=0 / mainNetInflow5d=null. 这时不能返 null 让资金
+  // 维度消失 (用户报告 19/19 都缺), 退到 volume_turnover.
+  //   1) turnover 有 → 换手率档位 (历史经验: A 股日均 ~0.5-1.5%, 活跃 2-5%, 热门 5%+).
+  //   2) turnover=0 但 amount 有 (sina fallback 只有成交额没换手率) → 用 latestAmount /
+  //      avgAmount30d 做"量比", 量比 >1 = 当日明显放量 = 资金关注. 量比近似换手率, 方向一致.
+  //   3) 全无 → null (确实无成交, 维度不评).
+  // ceiling: 量比不知道分股流通市值, 不能区分"中字头大票放量" vs "小票放量". 够用但不细.
   const turnoverFallback = (data) => {
     const v = angleData(data, "volume_turnover");
     if (!v) return null;
     const tr = num0(v.latestTurnover);
-    if (tr == null) return null;
-    // ponytail: 换手率门槛. A 股日均换手 ~0.5-1.5%, 活跃股 2-5%, 短线热门 5%+.
-    if (tr >= 5) return 7;
-    if (tr >= 2) return 6;
-    if (tr >= 1) return 5;
-    if (tr > 0) return 4;
-    return null;
+    if (tr != null && tr > 0) {
+      if (tr >= 5) return 7;
+      if (tr >= 2) return 6;
+      if (tr >= 1) return 5;
+      return 4;
+    }
+    // turnover=0 / null → 试量比 fallback (sina kline 没 turnover 字段时的主路径)
+    const latest = num0(v.latestAmount);
+    const avg = num0(v.avgAmount30d);
+    if (latest == null || avg == null || avg <= 0) return null;
+    const ratio = latest / avg;
+    if (ratio >= 2) return 6; // 当日 ≥ 2 倍均量, 显著放量
+    if (ratio >= 1) return 5; // 不低于均量, 正常偏活跃
+    if (ratio >= 0.5) return 4; // 半量以下, 偏淡
+    return null; // 接近 0 成交, 不评
   };
   if (!c || !c.sampleCount) {
     return turnoverFallback(data);
@@ -160,4 +173,63 @@ export function computeScores(perAngleData) {
       rationale.push(`ROE ${roe}%，${roe >= 15 ? "盈利能力强" : "盈利一般"}`);
   }
   return { overall, dimensions, rationale };
+}
+
+// ponytail: 2026-07-07 — 基础风险清单 (规则版, 不调 LLM).
+// AI 解读改成手动后, RiskCard 不再依赖 aiResult.risks; 用结构化数据本地出 1-3 条.
+// 阈值跟 scoreValuation / scoreFundamental / scoreRisk 对齐, 跟评分保持一致口径.
+// ceiling: 不覆盖 AI 给的语义化风险 (政策/突发/风格切换), AI 跑了之后 aiResult.risks
+//          会替换 (RiskCard 内部去重). 没数据 / 全无信号 → 空数组 (老行为).
+export function computeBasicRisks(perAngleData) {
+  const out = [];
+  // 1) 估值偏高
+  const v = angleData(perAngleData, "valuation");
+  if (v) {
+    const pe = num0(v.pe);
+    const pePct = num0(
+      perAngleData.peer_compare?.status === "ok"
+        ? perAngleData.peer_compare.data?.pePercentile
+        : null,
+    );
+    if (pe != null && pe > 60) {
+      out.push(`PE ${pe.toFixed(0)} 偏高, 估值天花板受限`);
+    } else if (pePct != null && pePct >= 80) {
+      out.push(`PE 处于历史 ${pePct.toFixed(0)}% 分位, 估值偏高`);
+    }
+  }
+  // 2) 资金净流出 (capital_flow.mainNetInflow5d < 0, 排除 sampleCount=0 / 周末)
+  const c = angleData(perAngleData, "capital_flow");
+  if (c) {
+    const inflow = num0(c.mainNetInflow5d);
+    if (inflow != null && inflow < -1e8) {
+      out.push(`近 5 日主力净流出 ${(inflow / 1e8).toFixed(1)} 亿, 资金面走弱`);
+    }
+  }
+  // 3) 业绩亏损 / 下滑预兆 (earnings_forecast.latest.yoy 严重负)
+  const ef = angleData(perAngleData, "earnings_forecast");
+  if (ef && ef.latest) {
+    const yoy = num0(ef.latest.netProfitYoy);
+    if (yoy != null && yoy < -30) {
+      out.push(`业绩同比下滑 ${Math.abs(yoy).toFixed(0)}%, 基本面承压`);
+    }
+  }
+  // 4) 舆情偏负
+  const nb = angleData(perAngleData, "news_buzz");
+  if (nb && Array.isArray(nb.items) && nb.items.length > 0) {
+    let pos = 0,
+      neg = 0;
+    for (const it of nb.items) {
+      if (it.sentiment === "positive") pos++;
+      else if (it.sentiment === "negative") neg++;
+    }
+    if (neg > pos && neg >= 2) {
+      out.push(`近期舆情偏负面 (${neg} 条负向 vs ${pos} 条正向), 关注情绪面`);
+    }
+  }
+  // 5) 解禁压力 (近 30 天)
+  const ce = angleData(perAngleData, "corporate_events");
+  if (ce && ce.nearestUnlockDays != null && ce.nearestUnlockDays <= 30) {
+    out.push(`${ce.nearestUnlockDays} 天内有解禁, 短期供给压力`);
+  }
+  return out.slice(0, 3);
 }

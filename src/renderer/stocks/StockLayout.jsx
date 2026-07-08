@@ -17,6 +17,8 @@ import { StrategyBar } from "./StrategyBar.jsx";
 import { CriteriaPanel } from "./CriteriaPanel.jsx";
 import { ResultTable } from "./ResultTable.jsx";
 import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
+import { CompareDrawer } from "./CompareDrawer.jsx";
+import { ComparePoolButton } from "./ComparePoolButton.jsx";
 import { IconSearch, IconSparkles, IconTrendingUp } from "../components/icons.jsx";
 import { stockActiveTab } from "./diagnosisStore.js";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
@@ -106,6 +108,8 @@ export function StockLayout() {
         </div>
       )}
       <AiAdviseDrawer api={api} />
+      <CompareDrawer api={api} />
+      <ComparePoolButton />
     </div>
   );
 }

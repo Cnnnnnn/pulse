@@ -10545,6 +10545,182 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: #fff;
 }
 
+/* === 个股对比池 — ponytail: 2026-07-07
+   行级按钮 (ResultTable 行尾) + 卡片按钮 (诊断页 hero 下) + 浮动按钮 (右下) +
+   对比抽屉内容 (表格 + 5 维小柱). 不引图表库. */
+
+/* 行级按钮 — 跟 .stock-row-action 视觉对齐, 默认浅色, 已加入变绿 */
+.add-compare-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  border: 0; cursor: pointer; font: inherit;
+  background: transparent;
+  color: var(--text-tertiary, #8e8e93);
+  transition: all 0.15s;
+}
+.add-compare-row {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  margin-left: 4px;
+}
+.add-compare-row:hover:not(:disabled) {
+  background: rgba(52,199,89,0.15);
+  color: #34c759;
+}
+.add-compare-row:disabled {
+  opacity: 0.4; cursor: not-allowed;
+}
+.add-compare-row.add-compare-in {
+  background: rgba(52,199,89,0.18);
+  color: #34c759;
+}
+.add-compare-row.add-compare-in:hover {
+  background: rgba(255,59,48,0.15);
+  color: #ff3b30;
+}
+.add-compare-row.add-compare-flash-full {
+  animation: add-cmp-full-shake 0.4s ease-out;
+}
+@keyframes add-cmp-full-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* 卡片按钮 — 诊断页 hero 下方的工具栏 */
+.diagnosis-actions {
+  display: flex; gap: 8px; align-items: center;
+  flex-shrink: 0;
+}
+.add-compare-card {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px dashed var(--border, rgba(0,0,0,0.18));
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #6e6e73);
+}
+.add-compare-card:hover:not(:disabled) {
+  background: rgba(52,199,89,0.10);
+  border-color: rgba(52,199,89,0.5);
+  color: #34c759;
+  border-style: solid;
+}
+.add-compare-card:disabled {
+  opacity: 0.4; cursor: not-allowed;
+}
+.add-compare-card.add-compare-in {
+  border-style: solid;
+  background: rgba(52,199,89,0.12);
+  border-color: rgba(52,199,89,0.5);
+  color: #34c759;
+}
+.add-compare-card.add-compare-in:hover {
+  background: rgba(255,59,48,0.10);
+  border-color: rgba(255,59,48,0.5);
+  color: #ff3b30;
+}
+.add-compare-card.add-compare-flash-full {
+  border-color: #ff3b30;
+  color: #ff3b30;
+  animation: add-cmp-full-shake 0.4s ease-out;
+}
+.add-compare-mark { font-weight: 700; font-size: 14px; line-height: 1; }
+.add-compare-card .add-compare-mark { font-size: 12px; }
+
+/* 浮动按钮 */
+.compare-pool-fab {
+  position: fixed; right: 20px; bottom: 20px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 16px;
+  background: var(--accent-primary, #007aff);
+  color: #fff;
+  border: 0; border-radius: 999px;
+  font-size: 13px; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,122,255,0.35);
+  cursor: pointer;
+  z-index: 100;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.compare-pool-fab:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,122,255,0.45); }
+.compare-pool-fab-icon { font-size: 16px; }
+.compare-pool-fab-count {
+  background: rgba(255,255,255,0.25);
+  border-radius: 999px;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 对比抽屉内容 */
+.cmp-empty {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary, #6e6e73);
+  line-height: 1.7;
+}
+.cmp-empty-hint { font-size: 11px; color: var(--text-tertiary, #8e8e93); }
+/* ponytail 2026-07-07: 用 5 列 grid 固定宽度 (name 弹性 1fr) — flex+content 容易被 5 维柱
+   撑爆, 现价列被压成 0 宽, 行/列都对不齐. 现在每列 min-width 锁死, header 跟 row 共用同
+   一份 grid-template-columns, 自动垂直对齐. */
+.cmp-head, .cmp-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 78px 32px 76px 24px;
+  align-items: center;
+  column-gap: 8px;
+}
+.cmp-head {
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.08));
+  font-size: 11px;
+  color: var(--text-tertiary, #8e8e93);
+  font-weight: 500;
+}
+.cmp-list { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; }
+.cmp-row {
+  padding: 10px 8px;
+  background: var(--bg-elevated, #f5f5f7);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.cmp-cell { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.cmp-cell-name { flex-direction: column; align-items: flex-start; }
+.cmp-name { font-weight: 600; color: var(--text-primary, #1d1d1f); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cmp-code { font-size: 10px; color: var(--text-tertiary, #8e8e93); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cmp-cell-price { font-variant-numeric: tabular-nums; white-space: nowrap; flex-direction: column; align-items: flex-end; gap: 1px; }
+.cmp-price-num { font-weight: 600; color: var(--text-primary, #1d1d1f); }
+.cmp-change { font-size: 10px; }
+.cmp-change.up { color: #ff3b30; }
+.cmp-change.down { color: #34c759; }
+.cmp-cell-overall { justify-content: center; }
+.cmp-overall-num { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cmp-overall-missing { color: var(--text-tertiary, #aeaeb2); font-size: 12px; }
+.cmp-cell-dims { display: flex; gap: 3px; justify-content: center; }
+.cmp-dim-label { font-size: 10px; width: 12px; text-align: center; color: var(--text-tertiary, #8e8e93); }
+.cmp-mini-dim { width: 12px; height: 28px; display: flex; align-items: flex-end; }
+.cmp-mini-track { width: 100%; height: 100%; background: rgba(0,0,0,0.06); border-radius: 2px; position: relative; overflow: hidden; }
+.cmp-mini-fill { position: absolute; bottom: 0; left: 0; width: 100%; border-radius: 2px; }
+.cmp-dim-missing { font-size: 10px; color: var(--text-tertiary, #aeaeb2); }
+.cmp-cell-actions { justify-content: center; }
+.cmp-remove {
+  width: 22px; height: 22px;
+  border: 0; border-radius: 50%;
+  background: transparent;
+  color: var(--text-tertiary, #8e8e93);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.cmp-remove:hover { background: rgba(255,59,48,0.12); color: #ff3b30; }
+.cmp-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding-top: 12px;
+  border-top: 1px solid var(--border, rgba(0,0,0,0.08));
+  margin-top: 8px;
+}
+.cmp-foot-hint { font-size: 10px; color: var(--text-tertiary, #8e8e93); flex: 1; text-align: right; }
+
 .stock-table-foot {
   padding: 10px 4px 0;
   font-size: 11px;
@@ -11572,6 +11748,48 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .last-dx-tone-down { color: #ff9500; }
 .last-dx-tone-neutral { color: var(--text-tertiary, #8e8e93); }
 
+/* === 导出 PNG 按钮 + toast + is-exporting 隐藏装饰 — ponytail: 2026-07-07
+   截屏前临时加 .is-exporting 到 .stock-diagnosis-page, 隐藏:
+     - 导出按钮本身 (会被自己截进去)
+     - diagnosis-actions (加入对比池按钮, 不属于报告内容)
+     - skeleton / loading / error 装饰
+   hero / report-grid / verdict 保留 (报告内容). */
+.export-diagnosis-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: var(--bg-modal, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.12));
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-primary, #1d1d1f);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.export-diagnosis-btn:hover:not(:disabled) { background: var(--accent-primary, #007aff); color: #fff; border-color: var(--accent-primary, #007aff); }
+.export-diagnosis-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.export-diagnosis-toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 200;
+  pointer-events: none;
+}
+.export-diagnosis-toast-ok { background: #34c759; color: #fff; }
+.export-diagnosis-toast-err { background: #ff3b30; color: #fff; }
+/* 导出时隐藏按钮 / 工具栏 / skeleton */
+.stock-diagnosis-page.is-exporting .export-diagnosis-btn,
+.stock-diagnosis-page.is-exporting .diagnosis-actions,
+.stock-diagnosis-page.is-exporting .diagnosis-back,
+.stock-diagnosis-page.is-exporting .skel-line,
+.stock-diagnosis-page.is-exporting .skel-bar-fill,
+.stock-diagnosis-page.is-exporting .module-card-skel,
+.stock-diagnosis-page.is-exporting .dimension-scores-skel,
+.stock-diagnosis-page.is-exporting .verdict-card-skel {
+  visibility: hidden !important;
+}
+
 /* 报告区: 双列 */
 /* 数据面板: 评分条全宽 + 模块卡网格, 单列垂直堆叠 */
 .diagnosis-report-grid { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; overflow-y: auto; }
@@ -11866,6 +12084,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .card-freshness-stale { background: rgba(142,142,147,0.12); color: var(--text-tertiary, #8e8e93); padding: 1px 6px; border-radius: 4px; }
 /* 行业分位条 */
 .ind-compare { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
+.peer-compare-industry { font-size: 11px; color: var(--text-tertiary, #8e8e93); font-weight: 400; }
+.peer-compare-status { font-size: 11px; color: var(--text-secondary, #6e6e73); margin-top: 4px; }
+.peer-compare-medians { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--text-secondary, #6e6e73); margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border, rgba(0,0,0,0.08)); }
+.peer-compare-median strong { color: var(--text-primary, #1d1d1f); font-variant-numeric: tabular-nums; }
 .ind-compare-label { color: var(--text-secondary, #6e6e73); font-weight: 500; }
 .ind-compare-row { display: flex; align-items: center; gap: 6px; }
 .ind-compare-mine { font-variant-numeric: tabular-nums; min-width: 38px; color: var(--text-primary, #1d1d1f); }
@@ -11886,6 +12108,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 /* === 诊断页骨架屏 (loading 态) — ponytail: 2026-07-07
    shimmer 扫描动画替代 .diagnosis-loading 文案. 8 张卡跟 ModuleGrid 1:1 对齐. */
+/* 加载提示条 — a11y 友好 (role=status), 用户 + 屏阅器都看得到 */
+.diagnosis-skel-banner { font-size: 11px; color: var(--text-tertiary, #8e8e93); padding: 4px 0 6px; }
 @keyframes skeleton-shimmer {
   0% { background-position: -200px 0; }
   100% { background-position: calc(200px + 100%) 0; }

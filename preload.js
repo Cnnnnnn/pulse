@@ -307,6 +307,9 @@ contextBridge.exposeInMainWorld("api", {
   // ponytail: 2026-07-07 P1-2 — 单条 angle 的本地快速重解读 (不走 LLM)
   stocksAngleRefresh: (payload) =>
     ipcRenderer.invoke("stocks:angle-refresh", payload),
+  // 2026-07-07 — 诊断报告导出 PNG (主进程 capturePage + showSaveDialog)
+  stocksExportDiagnosisPng: (payload) =>
+    ipcRenderer.invoke("stocks:export-diagnosis-png", payload),
 
   // v2.49 Overview + Command Palette (T5/T18): 6 个新 IPC bridge
   versionsCommandSearch: (q) =>

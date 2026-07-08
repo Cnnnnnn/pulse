@@ -29,6 +29,7 @@ const {
 } = require("./register-config-portability");
 const { registerStocksHandlers } = require("./register-stocks");
 const { registerStockDetailHandlers } = require("./register-stock-detail");
+const { registerStockExportHandlers } = require("./register-stock-export");
 const {
   registerVersionsOverviewHandlers,
 } = require("./register-versions-overview");
@@ -64,6 +65,12 @@ function registerIpcHandlers(deps) {
   }); // P52: 自更新 IPC (controller 由 bootstrap 注入, 未注入则不注册任何 handler)
   registerStocksHandlers(ctx); // 股票筛选器 (选股分析阶段一)
   registerStockDetailHandlers(ctx); // 个股 AI 分析 (选股分析阶段四)
+  registerStockExportHandlers({
+    ...ctx,
+    dialog: require("electron").dialog,
+    BrowserWindow: require("electron").BrowserWindow,
+    electronApp: require("electron").app,
+  }); // 诊断报告导出 PNG (需要 dialog + BrowserWindow + app.getPath)
   registerVersionsOverviewHandlers(ctx); // Task 15: overview 5 数据源 + command palette
 }
 

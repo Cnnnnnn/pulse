@@ -18,6 +18,7 @@ import {
 import { openDiagnosis } from "./diagnosisStore.js";
 import { PanelEmpty } from "../components/EmptyState.jsx";
 import { IconWand } from "../components/icons.jsx";
+import { AddToCompareButton } from "./AddToCompareButton.jsx";
 
 const COLUMNS = [
   { key: "name", label: "名称/代码", align: "left" },
@@ -133,6 +134,7 @@ export function ResultTable({ api }) {
             >
               <IconWand size={14} />
             </button>
+            <AddToCompareButton entry={r} variant="row" api={api} />
           </span>
         </div>
       ))}

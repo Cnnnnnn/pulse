@@ -228,19 +228,49 @@ describe("scores-api-espn", () => {
       expect(r.pen).toBeNull();
     });
 
-    it("OG 在 ET 段不计 et (跟射手榜一样, OG 永远是巧合方进球)", () => {
-      // 即使 OG 偶尔在 91'-120' 段, 不应为加分 (跟射手榜 isShootoutGoal 同源),
-      // 这里 satisfy 本函数 for OG 过滤本本身就 skip: 不计入 et。
+    it("OG 在 ET 段应算给进球方 (ESPN d.team.id 是进球方/胜利方)", () => {
+      // ponytail: 2026-07-07 — M86 Borges 111' OG 算阿根廷 +1, 之前 skip 错,
+      // 显示 1:1 → 实际 2:1. ESPN OG 的 teamSide 是进球方/胜利方 (FIFA 规则:
+      // 进球归对方), 直接 +1 不翻转.
       const r = deriveEtPenFromScorers([
         {
           minute: "120'+2'",
-          player: "X",
+          player: "Borges",
           teamSide: "team1",
           ownGoal: true,
           penalty: false,
         },
       ]);
-      expect(r).toEqual({ et: null, pen: null });
+      expect(r.et).toEqual([1, 0]);
+      expect(r.pen).toBeNull();
+    });
+
+    it("M86 实测: 92' 阿根廷 + 103' 佛得角 + 111' 阿根廷 OG → et [2,1]", () => {
+      const r = deriveEtPenFromScorers([
+        {
+          minute: "92'",
+          player: "L. Martinez",
+          teamSide: "team1", // Argentina
+          ownGoal: false,
+          penalty: false,
+        },
+        {
+          minute: "103'",
+          player: "Lopes Cabral",
+          teamSide: "team2", // Cape Verde
+          ownGoal: false,
+          penalty: false,
+        },
+        {
+          minute: "111'",
+          player: "Borges",
+          teamSide: "team1", // Argentina (OG 进球归胜利方)
+          ownGoal: true,
+          penalty: false,
+        },
+      ]);
+      expect(r.et).toEqual([2, 1]);
+      expect(r.pen).toBeNull();
     });
 
     it("己输入是空的数组 → 返回 null 对", () => {

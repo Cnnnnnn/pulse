@@ -115,8 +115,8 @@ export const diagnosisState = signal({
 });
 
 // ponytail: 2026-07-07 P1-1 — 核心数据 (perAngle + scores) 和 AI 解读不再串行.
-// loadDiagnosis 只 fetch 数据 + 算分; AI 解读在 openDiagnosis 里就开 Promise 并行启动.
-// openDiagnosis 自己持有 _aiPromise 引用, 完成后写回 store.
+// loadDiagnosis 只 fetch 数据 + 算分. AI 解读由用户在 VerdictCard 点「生成解读」手动触发,
+// 避免一进诊断页就打 LLM 浪费 token. aiStatus 默认 idle (不主动跑), aiResult 为 null.
 let _aiPromise = null;
 
 // 开启诊断: 设 stock 信息 + 切 tab + 立即拉数据.
@@ -195,9 +195,9 @@ async function _runDiagnosisFlow(api, code, token) {
     };
     return;
   }
-  // 同一 tick: 写回 ready + 启动 AI. AI 不再等用户点.
+  // 同一 tick: 写回 ready. AI 解读不再自动 — 等用户在 VerdictCard 点「生成解读」按钮再触发,
+  // 避免每次进诊断页就先打 LLM 浪费 token.
   commitReady(code, perAngleData, scores);
-  requestAiSummary(api, code, { perAngleData, scores });
 }
 
 // ponytail: 2026-07-07 — "写 ready + 存历史快照" 抽出来, openDiagnosis / loadDiagnosis

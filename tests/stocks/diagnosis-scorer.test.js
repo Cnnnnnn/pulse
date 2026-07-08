@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { computeScores } from "../../src/stocks/diagnosis-scorer.js";
+import {
+  computeScores,
+  computeBasicRisks,
+} from "../../src/stocks/diagnosis-scorer.js";
 
 describe("diagnosis-scorer", () => {
   describe("基本面 fundamental (基于 ROE)", () => {
@@ -120,6 +123,44 @@ describe("diagnosis-scorer", () => {
       // 1.2% ≥ 1 → 中性 5
       expect(computeScores(data).dimensions.capital).toBe(5);
     });
+    it("capital_flow noData + turnover=0 (sina 兜底无 turnover 字段) + amount 量比 ≥2 → 6", () => {
+      // ponytail: 2026-07-07 — 新浪 kline 不返 turnover, 此时用 amount 量比兜底:
+      //   ratio = latestAmount / avgAmount30d. 量比 ≥2 = 当日显著放量 → 6.
+      const data = {
+        capital_flow: { status: "ok", data: { sampleCount: 0, noData: true } },
+        volume_turnover: {
+          status: "ok",
+          data: {
+            latestTurnover: 0,
+            avgTurnover30d: 0,
+            latestAmount: 3e8,
+            avgAmount30d: 1e8,
+          },
+        },
+      };
+      expect(computeScores(data).dimensions.capital).toBe(6);
+    });
+    it("capital_flow noData + amount 半量 (ratio≥0.5) → 4 (偏淡)", () => {
+      // ponytail: 0.5~1 倍均量 → 当日不算活跃, 但仍有交易, 4 分"偏淡".
+      const data = {
+        capital_flow: { status: "ok", data: { sampleCount: 0 } },
+        volume_turnover: {
+          status: "ok",
+          data: { latestAmount: 9e7, avgAmount30d: 1.5e8 }, // ratio 0.6
+        },
+      };
+      expect(computeScores(data).dimensions.capital).toBe(4);
+    });
+    it("capital_flow noData + amount 极低 (ratio < 0.5) → null (确实冷淡)", () => {
+      const data = {
+        capital_flow: { status: "ok", data: { sampleCount: 0 } },
+        volume_turnover: {
+          status: "ok",
+          data: { latestAmount: 1e6, avgAmount30d: 1e8 },
+        },
+      };
+      expect(computeScores(data).dimensions.capital).toBeNull();
+    });
   });
 
   describe("技术 tech (均线排列 + MACD 柱)", () => {
@@ -238,6 +279,107 @@ describe("diagnosis-scorer", () => {
       const r = computeScores(data).rationale;
       expect(r.some((x) => x.includes("PE"))).toBe(true);
       expect(r.some((x) => x.includes("ROE"))).toBe(true);
+    });
+  });
+
+  describe("computeBasicRisks (基础风险规则版)", () => {
+    it("PE > 60 → 估值风险", () => {
+      const data = { valuation: { status: "ok", data: { pe: 80 } } };
+      const r = computeBasicRisks(data);
+      expect(r.some((x) => x.includes("PE"))).toBe(true);
+    });
+    it("PE 适中 + peer_compare pePercentile>=80 → 估值风险 (用历史分位)", () => {
+      const data = {
+        valuation: { status: "ok", data: { pe: 30 } },
+        peer_compare: {
+          status: "ok",
+          data: { pePercentile: 90, peValuationStatus: "估值较高" },
+        },
+      };
+      const r = computeBasicRisks(data);
+      expect(r.some((x) => x.includes("历史"))).toBe(true);
+    });
+    it("资金净流出 5d < -1亿 → 资金风险", () => {
+      const data = {
+        capital_flow: {
+          status: "ok",
+          data: { mainNetInflow5d: -3e8, sampleCount: 5 },
+        },
+      };
+      const r = computeBasicRisks(data);
+      expect(r.some((x) => x.includes("净流出"))).toBe(true);
+    });
+    it("业绩同比下滑 < -30% → 业绩风险", () => {
+      const data = {
+        earnings_forecast: {
+          status: "ok",
+          data: { latest: { netProfitYoy: -45 } },
+        },
+      };
+      const r = computeBasicRisks(data);
+      expect(r.some((x) => x.includes("业绩"))).toBe(true);
+    });
+    it("舆情偏负 (neg>pos 且 neg>=2) → 舆情风险", () => {
+      const data = {
+        news_buzz: {
+          status: "ok",
+          data: {
+            items: [
+              { sentiment: "negative" },
+              { sentiment: "negative" },
+              { sentiment: "positive" },
+            ],
+          },
+        },
+      };
+      const r = computeBasicRisks(data);
+      expect(r.some((x) => x.includes("舆情"))).toBe(true);
+    });
+    it("30 天内有解禁 → 解禁风险", () => {
+      const data = {
+        corporate_events: { status: "ok", data: { nearestUnlockDays: 15 } },
+      };
+      const r = computeBasicRisks(data);
+      expect(r.some((x) => x.includes("解禁"))).toBe(true);
+    });
+    it("全部正常 → 空数组", () => {
+      const data = {
+        valuation: { status: "ok", data: { pe: 12 } },
+        profitability: { status: "ok", data: { roe: 18 } },
+        capital_flow: {
+          status: "ok",
+          data: { mainNetInflow5d: 1e8, sampleCount: 5 },
+        },
+      };
+      expect(computeBasicRisks(data)).toEqual([]);
+    });
+    it("perAngleData 全空 → 空数组 (兜底)", () => {
+      expect(computeBasicRisks({})).toEqual([]);
+    });
+    it("最多 3 条 (超额信号时只取前 3)", () => {
+      const data = {
+        valuation: { status: "ok", data: { pe: 200 } },
+        capital_flow: {
+          status: "ok",
+          data: { mainNetInflow5d: -5e8, sampleCount: 5 },
+        },
+        earnings_forecast: {
+          status: "ok",
+          data: { latest: { netProfitYoy: -50 } },
+        },
+        news_buzz: {
+          status: "ok",
+          data: {
+            items: [
+              { sentiment: "negative" },
+              { sentiment: "negative" },
+              { sentiment: "negative" },
+            ],
+          },
+        },
+        corporate_events: { status: "ok", data: { nearestUnlockDays: 10 } },
+      };
+      expect(computeBasicRisks(data).length).toBeLessThanOrEqual(3);
     });
   });
 });

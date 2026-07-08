@@ -7,19 +7,43 @@ import { RiskCard } from "./RiskCard.jsx";
 import { EarningsForecastCard } from "./EarningsForecastCard.jsx";
 import { ShareholdersCard } from "./ShareholdersCard.jsx";
 import { CorporateEventsCard } from "./CorporateEventsCard.jsx";
+import { PeerCompareCard } from "./PeerCompareCard.jsx";
 import { AiNoteLine } from "./AiNoteLine.jsx";
+import { computeBasicRisks } from "../../../stocks/diagnosis-scorer.js";
 
-// ponytail: 2026-07-07 — peer_compare 没有自己的 card (PE/PB 跟 ValuationCard 重复),
-//          把行业分位条直接注入到 ValuationCard 和 FundamentalsCard.
-//          peerCompare 拿不到时 (failed) 两张 card 退化为现状.
+// ponytail: 2026-07-07 — peer_compare 现在独立成 PeerCompareCard (用户反馈"看不到同业对比").
+// 还在 FundamentalsCard / ValuationCard 留 sub-section (本股 PE/PB / ROE/毛利率 vs 行业中位,
+//  跟具体 card 的上下文相关). peerCompare 拿不到时 (failed) 两张 card 退化为无对比条.
 function extractPeerCompare(perAngleData) {
   const e = perAngleData && perAngleData.peer_compare;
   if (!e || e.status !== "ok") return null;
   return e.data || null;
 }
 
+// ponytail: 2026-07-07 — AI 解读改手动后, RiskCard 不再等 LLM. 基础风险清单由
+// computeBasicRisks 规则版给出 (估值/资金/业绩/舆情/解禁); AI 跑了之后再把 aiResult.risks
+// 合并 (去重), 避免 LLM 重复出基础项. 都没信号 → 空 (走老 "暂无明显风险信号" 兜底).
+function mergeRisks(basic, ai) {
+  const aiRisks = Array.isArray(ai) ? ai : [];
+  if (aiRisks.length === 0) return basic;
+  // 简单去重: 包含子串算重复. LLM 通常用词比规则版长, 包含关系是常见形态.
+  const seen = new Set();
+  const out = [];
+  for (const r of [...basic, ...aiRisks]) {
+    if (!r || typeof r !== "string") continue;
+    const norm = r.replace(/\s+/g, "").toLowerCase();
+    let dup = false;
+    for (const s of seen) {
+      if (s.includes(norm) || norm.includes(s)) { dup = true; break; }
+    }
+    if (!dup) { seen.add(norm); out.push(r); }
+  }
+  return out;
+}
+
 export function ModuleGrid({ perAngleData, aiResult, api, scores, onRefreshAngle, refreshing, failed }) {
-  const risks = aiResult?.risks || [];
+  const basicRisks = computeBasicRisks(perAngleData || {});
+  const risks = mergeRisks(basicRisks, aiResult?.risks);
   const perAngle = (aiResult && aiResult.perAngle) || {};
   const aiReady = !!aiResult;
   const busy = refreshing || new Set();
@@ -39,6 +63,12 @@ export function ModuleGrid({ perAngleData, aiResult, api, scores, onRefreshAngle
           <AiNoteLine note={perAngle.valuation} refreshing={busy.has("valuation")} onRefresh={makeRefresh("valuation")} failed={failedSet.has("valuation")} />
         )}
         <ValuationCard data={perAngleData.valuation} peerCompare={peerCompare} />
+      </div>
+      <div class="module-card-wrap">
+        {aiReady && perAngle.peer_compare && (
+          <AiNoteLine note={perAngle.peer_compare} refreshing={busy.has("peer_compare")} onRefresh={makeRefresh("peer_compare")} failed={failedSet.has("peer_compare")} />
+        )}
+        <PeerCompareCard data={perAngleData.peer_compare} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.capital_flow && (

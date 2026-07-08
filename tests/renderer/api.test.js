@@ -124,4 +124,17 @@ describe("createApi pick() dev warn", () => {
     api.versionsRunCheck();
     expect(native).toHaveBeenCalledTimes(1);
   });
+
+  it("stocksExportDiagnosisPng 在 createApi() 里有声明 (防回归)", async () => {
+    // ponytail: 2026-07-07 — ExportDiagnosisButton 调用 api.stocksExportDiagnosisPng, 但
+    //          createApi() 漏了会回到 noop → 诊断导出报 "is not a function" 静默退化.
+    //          显式断言 key 存在, 后续加 IPC bridge 的人如果改了 createApi 也会看到.
+    const { createApi } = await loadApiFresh("development");
+    const a = createApi();
+    // noop 也是 function — 这条断言防止"漏加 key"的更基础 bug:
+    //   之前 bug: pick() 走的 fallback 是 noop(),调用不报错,所以 ErrorBoundary 后是
+    //   "导出失败" 而不是 "is not a function". 原因: 用户传过来的 `api` 不是 api.js 的
+    //   default export. 这条测试只验 key 存在, errno 还是要走真正的调用链.
+    expect(typeof a.stocksExportDiagnosisPng).toBe("function");
+  });
 });
