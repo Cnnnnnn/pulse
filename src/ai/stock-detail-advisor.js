@@ -255,14 +255,37 @@ function cleanStringField(s) {
   return t;
 }
 
+// ponytail 2026-07-08 — LLM 偶尔输出非纯 JSON (前言/后语/多段/触发截断). 之前用
+// indexOf("{")/lastIndexOf("}") 简单截 — 假如 LLM 写了 "Here's the JSON: {...}"
+// 加前面一段 "Note: ..." 含另一对 {}, 会拿错段 (跨段被吞了).
+// ponytail fix: 用 stack 找**平衡**的 {...} 段, 选最长的 (覆盖嵌套完整 JSON).
+// 仍抓不到 → 返 null, 不强行解析.
+function _extractBalancedJson(text) {
+  if (typeof text !== "string" || !text) return null;
+  let best = null;
+  const stack = [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "{") stack.push(i);
+    else if (ch === "}") {
+      if (stack.length === 0) continue;
+      const start = stack.pop();
+      if (stack.length === 0) {
+        const candidate = text.slice(start, i + 1);
+        if (!best || candidate.length > best.length) best = candidate;
+      }
+    }
+  }
+  return best;
+}
+
 function parseAndValidateAnalyze(rawText) {
   if (typeof rawText !== "string" || !rawText.trim()) return null;
-  const start = rawText.indexOf("{");
-  const end = rawText.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
+  const candidate = _extractBalancedJson(rawText);
+  if (!candidate) return null;
   let parsed;
   try {
-    parsed = JSON.parse(rawText.slice(start, end + 1));
+    parsed = JSON.parse(candidate);
   } catch {
     return null;
   }
@@ -549,12 +572,70 @@ function refreshAngleLocally({ angleKey, perAngleData, scores, seed }) {
 // 缺失尾部 }), 1 次 parse_failed 用户体感差. 这里加 1 次"前向 parse 失败 → 再请一次
 // LLM 重出" 的轻循环. 仅 parse 失败触发 (网络 / llm 错误已由 http-client 层 retry 覆盖),
 // 总重试上限 1 次, 避免 token 浪费 / 死循环.
-const PARSE_RETRY_MAX = 1;
+// ponytail 2026-07-08 — 用户报告所有股票 AI 解读都报 "AI 返回格式异常", 怀疑是 provider/
+// model 行为导致高频 JSON 污染. 升级:
+//   1. retry 总数 1→2 (3 次机会)
+//   2. 每次 parse 失败, 把 LLM 原始输出前 500 字符记日志, 方便贴给开发者排查
+//   3. 全部 retry 后仍失败 → 走 _fallbackProseExtract, 从 LLM 输出里抠 summary 段,
+//      至少展示一段文字, 而不是直接报 parse_failed (让用户至少读到一段 prose).
+const PARSE_RETRY_MAX = 2;
+
+// ponytail 2026-07-08: 解析失败的兜底. 在 LLM 输出里搜 "summary" 字段 (markdown 形式
+//   "summary: <text>" / "**summary**: <text>" / '"summary":"<text>"'), 抠出来
+//   当 summary 展示. 找得到就当 ok=true 但带 degrade 标记 (前端可读 fromCache=false
+//   + attempts>1 走降级渲染). 找不到才返 parse_failed.
+function _fallbackProseExtract(rawText) {
+  if (typeof rawText !== "string" || !rawText.trim()) return null;
+  // 1) 找 "summary" 后面跟的引号内容 (大模型常输出 "summary":"..." 或 'summary':'...')
+  const quoted = rawText.match(
+    /["']summary["']\s*:\s*["']([^"'\n]{10,200})["']/,
+  );
+  if (quoted) {
+    return {
+      summary: quoted[1].trim().replace(PII_REGEX, "[REDACTED]"),
+      highlights: [],
+      blindspots: [],
+      perAngle: {},
+      risks: [],
+      signal: "neutral",
+      _degraded: true,
+    };
+  }
+  // 2) 找 "summary: <text>" (大模型常见 markdown 写法)
+  const md = rawText.match(/(?:^|\n)\s*(?:\*\*)?summary(?:\*\*)?\s*[:：]\s*([^\n#*]{10,200})/i);
+  if (md) {
+    return {
+      summary: md[1].trim().replace(PII_REGEX, "[REDACTED]"),
+      highlights: [],
+      blindspots: [],
+      perAngle: {},
+      risks: [],
+      signal: "neutral",
+      _degraded: true,
+    };
+  }
+  // 3) 找第一段 > 30 字的中文段落当 summary
+  const prose = rawText.match(/[\u4e00-\u9fa5][\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef，。！？、；:0-9A-Za-z]{29,200}/);
+  if (prose) {
+    return {
+      summary: prose[0].trim().replace(PII_REGEX, "[REDACTED]"),
+      highlights: [],
+      blindspots: [],
+      perAngle: {},
+      risks: [],
+      signal: "neutral",
+      _degraded: true,
+    };
+  }
+  return null;
+}
 
 async function aiStockDetailAnalyze(opts) {
   const safeOpts = opts || {};
   const { code, angles, perAngleData, freeText, scores } = safeOpts;
   if (!code) return { ok: false, reason: "invalid_args" };
+  // ponytail 2026-07-08: 整体耗时起点 (parse 失败日志需要 elapsed)
+  const t0 = Date.now();
 
   const cacheKey = adviseCacheKey({ code, angles, perAngleData, freeText });
   if (!cacheKey) return { ok: false, reason: "invalid_cache_key" };
@@ -593,6 +674,9 @@ async function aiStockDetailAnalyze(opts) {
 
   // ponytail: 第一轮正常 prompt. parse 失败时, 临时在 user 段尾追加纠错提示,
   // 让 LLM 知道上轮输错, 重出严格 JSON. 不重 buildAnalyzeMessages (system/rules/fewShot 不变).
+  // ponytail 2026-07-08 — 每次 parse 失败把 LLM 原文前 500 字符记日志 (console.warn → stderr),
+  //   用户跑 "查看日志" 或开发者看 Electron 主进程 stderr 都能看到. 不引新 logger 依赖.
+  let lastRaw = null;
   for (let attempt = 0; attempt <= PARSE_RETRY_MAX; attempt++) {
     const askMessages =
       attempt === 0
@@ -603,7 +687,10 @@ async function aiStockDetailAnalyze(opts) {
               role: "user",
               content:
                 messages[1].content +
-                "\n\n[系统提醒] 上一轮输出无法被解析为 JSON. 请重新输出严格 JSON (无 markdown 围栏, 无前言后语), 只保留一个 JSON 对象.",
+                "\n\n[系统提醒] 上一轮输出无法被解析为 JSON. 请严格按规则: " +
+                "只输出一个 JSON 对象, 不要 markdown 围栏 (```) / 不要 'Here is the JSON:' " +
+                "等前言 / 不要换行后再写第二段. 6 个 key: summary, highlights, blindspots, " +
+                "perAngle, risks, signal. 整段只 1 个 {} 块.",
             },
           ];
 
@@ -616,13 +703,17 @@ async function aiStockDetailAnalyze(opts) {
       };
     }
 
+    lastRaw = llm.text;
     const parsed = parseAndValidateAnalyze(llm.text);
     if (parsed) {
-      const nextCache = { ...cacheMap };
-      nextCache[cacheKey] = { result: parsed, fetchedAt: Date.now() };
-      stateStore.patchState((st) => {
-        st.stockDetailCache = nextCache;
-      });
+      // ponytail 2026-07-08 — 降级抽取的结果 (_degraded=true) 不缓存, 下次换数据再重试严格格式
+      if (!parsed._degraded) {
+        const nextCache = { ...cacheMap };
+        nextCache[cacheKey] = { result: parsed, fetchedAt: Date.now() };
+        stateStore.patchState((st) => {
+          st.stockDetailCache = nextCache;
+        });
+      }
       return {
         ok: true,
         result: { ...parsed, dataGaps },
@@ -630,13 +721,34 @@ async function aiStockDetailAnalyze(opts) {
         attempts: attempt + 1,
       };
     }
-    // parse 失败: 下一轮 if attempt < PARSE_RETRY_MAX, else 跳出返错.
+    // parse 失败: 记录 LLM 原始输出 (前 500 字符) 便于排查
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[stock-detail-advisor] AI parse failed: code=${code} attempt=${attempt + 1}/${PARSE_RETRY_MAX + 1} ` +
+      `elapsed=${Date.now() - t0}ms text_head=${(llm.text || "").slice(0, 500).replace(/\n/g, "⏎")}`,
+    );
+  }
+
+  // 全部 retry 仍失败 → 走 _fallbackProseExtract 兜底, 至少展示一段 prose
+  const fallback = _fallbackProseExtract(lastRaw || "");
+  if (fallback) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[stock-detail-advisor] AI parse degrade: code=${code} 用兜底 prose 提取 (无结构化字段)`,
+    );
+    return {
+      ok: true,
+      result: { ...fallback, dataGaps },
+      fromCache: false,
+      attempts: PARSE_RETRY_MAX + 1,
+      degraded: true,
+    };
   }
 
   return {
     ok: false,
     reason: "parse_failed",
-    error: `LLM 输出连续 ${PARSE_RETRY_MAX + 1} 次解析失败`,
+    error: `LLM 输出连续 ${PARSE_RETRY_MAX + 1} 次解析失败, 且未找到可用 prose`,
   };
 }
 

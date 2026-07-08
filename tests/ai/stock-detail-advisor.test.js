@@ -253,7 +253,8 @@ describe("aiStockDetailAnalyze", () => {
     expect(r.reason).toBe("budget_exceeded");
   });
 
-  it("LLM returns broken JSON: returns parse_failed, does NOT write cache", async () => {
+  it("LLM returns broken JSON (3 attempts): 抠不到 prose → parse_failed, 不写缓存", async () => {
+    // ponytail 2026-07-08 — retry 总数升到 3 (PARSE_RETRY_MAX=2). 全失败 + 无 prose → 报 parse_failed
     mockChat.mockResolvedValue({ ok: true, text: "not json" });
     const r = await advisor.aiStockDetailAnalyze({
       code: "600519",
@@ -262,7 +263,57 @@ describe("aiStockDetailAnalyze", () => {
     });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("parse_failed");
+    expect(mockChat).toHaveBeenCalledTimes(3); // 总 3 次
     expect(Object.keys(_mockState.stockDetailCache)).toHaveLength(0);
+  });
+
+  it("LLM returns broken JSON 但含 'summary: ...' prose → degraded ok=true", async () => {
+    // ponytail 2026-07-08 — 兜底 prose 抽取: 全部 retry 失败后, 从 LLM 输出抠 summary 段
+    //   至少展示一段文字 (degraded=true), 不直接报 parse_failed.
+    mockChat.mockResolvedValue({
+      ok: true,
+      text:
+        "I'm having trouble formatting JSON. Let me try again.\n\n" +
+        "summary: 这只票技术面偏强, 短期有支撑, 中长期估值偏贵需要消化.\n\n" +
+        "（以上是 AI 的分析, 仅供参考）",
+    });
+    const r = await advisor.aiStockDetailAnalyze({
+      code: "600519",
+      angles: ["price_trend"],
+      perAngleData: mkPerAngleData(),
+    });
+    expect(r.ok).toBe(true);
+    expect(r.degraded).toBe(true);
+    expect(r.result.summary).toMatch(/技术面偏强/);
+    // degraded 结果不写缓存 (避免污染下次), 但可以存新结果待 strict 重试
+    expect(Object.keys(_mockState.stockDetailCache)).toHaveLength(0);
+  });
+
+  it("LLM 第 2 次重试成功 → ok=true, attempts=2, 写缓存", async () => {
+    // ponytail 2026-07-08 — retry 链: 第 1 次 broken, 第 2 次正常, 走成功路径
+    const goodResp = {
+      ok: true,
+      text: JSON.stringify({
+        summary: "技术面偏强",
+        highlights: [],
+        blindspots: [],
+        perAngle: {},
+        risks: [],
+        signal: "positive",
+      }),
+    };
+    mockChat
+      .mockResolvedValueOnce({ ok: true, text: "totally broken no json" })
+      .mockResolvedValueOnce(goodResp);
+    const r = await advisor.aiStockDetailAnalyze({
+      code: "600519",
+      angles: ["price_trend"],
+      perAngleData: mkPerAngleData(),
+    });
+    expect(r.ok).toBe(true);
+    expect(r.attempts).toBe(2);
+    expect(mockChat).toHaveBeenCalledTimes(2);
+    expect(Object.keys(_mockState.stockDetailCache)).toHaveLength(1);
   });
 });
 
