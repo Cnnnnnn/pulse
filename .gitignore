@@ -72,5 +72,9 @@ app.asar
 
 .cursor/
 
+# Local AI agent scratch (debug test, 临时记的笔记, 不入库)
+.workbuddy/
+tests/_scratch/
+
 # Code analysis tool output (本地工具产物, 不入库)
 fuck-u-code-report.md
