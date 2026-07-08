@@ -1,3 +1,5 @@
+import { ModuleCard } from "./ModuleCard.jsx";
+
 // shareholders.data (见 src/stocks/detail-fetchers/shareholders.js):
 //   { holderCountLatest, holderCountChangePct, reportDate,
 //     institutionPctLatest, institutionChangePct, institutionReportDate }
@@ -13,39 +15,38 @@ function fmtPct(v) {
 export function ShareholdersCard({ data }) {
   const d = data?.status === "ok" ? data.data : null;
   if (!d) {
-    return (
-      <div class="module-card module-card--shareholders">
-        <div class="module-card-title">👥 股东结构</div>
-        <div class="module-card-empty">数据不足</div>
-      </div>
-    );
+    return <ModuleCard variant="shareholders" title="👥 股东结构" empty="数据不足" />;
   }
   const hasHolder = d.holderCountLatest != null;
   const hasInst = d.institutionPctLatest != null;
   if (!hasHolder && !hasInst) {
     return (
-      <div class="module-card module-card--shareholders">
-        <div class="module-card-title">👥 股东结构</div>
-        <div class="module-card-empty">{d.noData ? "周末/非披露期暂无更新" : "暂无股东结构数据"}</div>
-      </div>
+      <ModuleCard
+        variant="shareholders"
+        title="👥 股东结构"
+        empty={d.noData ? "周末/非披露期暂无更新" : "暂无股东结构数据"}
+      />
     );
   }
   return (
-    <div class="module-card module-card--shareholders">
-      <div class="module-card-title">👥 股东结构</div>
-      <div class="module-card-body">
-        {hasHolder && (
-          <div>
-            股东人数 {(d.holderCountLatest / 10000).toFixed(2)} 万 (环比 {fmtPct(d.holderCountChangePct)})
-          </div>
-        )}
-        {hasInst && (
-          <div>
-            机构持仓 {d.institutionPctLatest.toFixed(2)}% (环比 {fmtPct(d.institutionChangePct)})
-          </div>
-        )}
-      </div>
-    </div>
+    <ModuleCard
+      variant="shareholders"
+      title="👥 股东结构"
+      body={
+        <div class="module-card-body">
+          {hasHolder && (
+            <div>
+              股东人数 {(d.holderCountLatest / 10000).toFixed(2)} 万 (环比 {fmtPct(d.holderCountChangePct)})
+            </div>
+          )}
+          {hasInst && (
+            <div>
+              机构持仓 {d.institutionPctLatest.toFixed(2)}% (环比 {fmtPct(d.institutionChangePct)})
+            </div>
+          )}
+        </div>
+      }
+    />
   );
 }
 

@@ -1,3 +1,5 @@
+import { ModuleCard } from "./ModuleCard.jsx";
+
 // news_buzz.data 结构 (见 src/stocks/detail-fetchers/news-buzz.js):
 //   { items: [{ title, date, sentiment }] }   sentiment ∈ {positive,neutral,negative}
 // 没有 count/total/顶层 sentiment 字段, 数量取 items.length, 情感倾向按多数票聚合
@@ -20,17 +22,17 @@ export function NewsCard({ data }) {
   const d = data?.status === "ok" ? data.data : null;
   const items = Array.isArray(d?.items) ? d.items : null;
   return (
-    <div class="module-card module-card--news">
-      <div class="module-card-title">📰 舆情</div>
-      {items && items.length > 0 ? (
+    <ModuleCard
+      variant="news"
+      title="📰 舆情"
+      body={items && items.length > 0 ? (
         <div class="module-card-body">
           <div>本周 {items.length} 条</div>
           <div>情感倾向: {aggregateSentiment(items)}</div>
         </div>
-      ) : (
-        <div class="module-card-empty">{items ? "暂无舆情" : "数据不足"}</div>
-      )}
-    </div>
+      ) : null}
+      empty={items ? "暂无舆情" : "数据不足"}
+    />
   );
 }
 

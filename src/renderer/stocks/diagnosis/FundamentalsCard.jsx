@@ -1,8 +1,9 @@
-// ponytail: 2026-07-07 — 标题区右侧加 CardFreshness; 主体加 IndustryCompareBar:
+import { ModuleCard } from "./ModuleCard.jsx";
+import { IndustryCompareBar } from "./IndustryCompareBar.jsx";
+
+// ponytail: 2026-07-07 — 主体加 IndustryCompareBar:
 //   ROE / 毛利率 vs 行业中位 (peer_compare.data.roeIndustryMedian /
 //   grossMarginIndustryMedian). peerCompare 缺数据时整段隐藏.
-import { CardFreshness } from "./CardFreshness.jsx";
-import { IndustryCompareBar } from "./IndustryCompareBar.jsx";
 
 export function FundamentalsCard({ data, peerCompare }) {
   const d = data?.status === "ok" ? data.data : null;
@@ -10,12 +11,11 @@ export function FundamentalsCard({ data, peerCompare }) {
   const showRoe = peerCompare && peerCompare.roeIndustryMedian != null && d?.roe != null;
   const showMargin = peerCompare && peerCompare.grossMarginIndustryMedian != null && d?.grossMargin != null;
   return (
-    <div class="module-card module-card--fundamentals">
-      <div class="module-card-title">
-        <span>📊 基本面</span>
-        <CardFreshness fetchedAt={fetchedAt} />
-      </div>
-      {d ? (
+    <ModuleCard
+      variant="fundamentals"
+      title="📊 基本面"
+      fetchedAt={fetchedAt}
+      body={d ? (
         <div class="module-card-body">
           <div>ROE {d.roe ?? "—"}%</div>
           <div>毛利率 {d.grossMargin ?? "—"}%</div>
@@ -41,10 +41,9 @@ export function FundamentalsCard({ data, peerCompare }) {
             </div>
           )}
         </div>
-      ) : (
-        <div class="module-card-empty">数据不足</div>
-      )}
-    </div>
+      ) : null}
+      empty="数据不足"
+    />
   );
 }
 
