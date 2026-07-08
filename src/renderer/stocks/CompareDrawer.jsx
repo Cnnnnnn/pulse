@@ -21,12 +21,28 @@ import {
   removeFromCompare,
   clearCompare,
   updateComparePrice,
+  updateCompareFields,
   DIM_LABELS,
   DIM_KEYS,
 } from "./comparePool.js";
 
 const COLOR = (s) =>
   s == null ? "#d8d8de" : s >= 7 ? "#34c759" : s >= 5 ? "#007aff" : s >= 3 ? "#ff9500" : "#ff3b30";
+
+// ponytail 2026-07-08 D-5: 市值 (元) 紧凑展示 — 大额 → 亿元, 小额 → 千万.
+function formatMarketCap(yuan) {
+  if (yuan == null || !Number.isFinite(yuan)) return null;
+  if (yuan >= 1e11) return `${(yuan / 1e8).toFixed(0)}亿`; // 100 亿起, 取整
+  if (yuan >= 1e9) return `${(yuan / 1e8).toFixed(1)}亿`; // 1-100 亿, 1 位小数
+  if (yuan >= 1e7) return `${(yuan / 1e4).toFixed(0)}万`;
+  return `${yuan}`;
+}
+
+// 复用 PE/PB/ROE 数字 render — null → "—", 否则 to 1 位小数.
+function fmtNum(v) {
+  if (v == null || !Number.isFinite(v)) return null;
+  return Number(v).toFixed(1);
+}
 
 function MiniDim({ value }) {
   if (value == null) return <span class="cmp-dim-missing">—</span>;
@@ -40,6 +56,16 @@ function MiniDim({ value }) {
   );
 }
 
+function FinCell({ value, format }) {
+  const v = value == null || value === "" ? null : value;
+  const text = v == null ? "—" : (format ? format(v) : fmtNum(v));
+  return (
+    <div class="cmp-cell cmp-cell-fin">
+      <span class={v == null ? "cmp-fin-missing" : "cmp-fin-num"}>{text}</span>
+    </div>
+  );
+}
+
 function PoolRow({ entry }) {
   const s = entry.scores;
   return (
@@ -48,6 +74,7 @@ function PoolRow({ entry }) {
         <div class="cmp-name">{entry.name}</div>
         <div class="cmp-code">{entry.code}{entry.industry ? ` · ${entry.industry}` : ""}</div>
       </div>
+      {/* ponytail 2026-07-08 D-5: 现价/PE/PB/ROE/市值 5 列. 市值用 formatMarketCap 压缩显示. */}
       <div class="cmp-cell cmp-cell-price">
         {entry.price != null && entry.price !== "" ? (
           <>
@@ -62,6 +89,10 @@ function PoolRow({ entry }) {
           <span class="cmp-overall-missing">—</span>
         )}
       </div>
+      <FinCell value={entry.pe} />
+      <FinCell value={entry.pb} />
+      <FinCell value={entry.roe} />
+      <FinCell value={entry.marketCap} format={formatMarketCap} />
       <div class="cmp-cell cmp-cell-overall">
         {s && s.overall != null ? (
           <span class="cmp-overall-num" style={{ color: COLOR(s.overall) }}>{s.overall.toFixed(1)}</span>
@@ -93,6 +124,9 @@ function PoolRow({ entry }) {
  * ponytail: drawer 打开时, 缺价的 entry 一次性反查 api.stocksSearch(code) 补价.
  * 不缺的不重查. 写回 pool (updateComparePrice) 让 ResultTable 的"已在对比池"角标
  * 同步看到最新价. 请求 inflight 时不重复发.
+ *
+ * ponytail 2026-07-08 D-5: 同时补 4 个财务字段 (PE/PB/ROE/市值). stocksSearch 结果带全字段,
+ *   一并 merge 进 pool. 比单独再发一次 IPC 省一次 round-trip.
  */
 function useEnrichMissingPrices(api, pool) {
   const inflight = useRef(new Set());
@@ -110,9 +144,15 @@ function useEnrichMissingPrices(api, pool) {
           try {
             const resp = await api.stocksSearch(code);
             const r = resp && resp.results ? resp.results.find((x) => x && x.code === code) : null;
-            if (r && r.price != null) {
+            if (!r) return;
+            // ponytail: 价/涨跌幅走 updateComparePrice, 4 财务走 updateCompareFields.
+            //   各自判定: 没拿到 (= null) 不写, 让原有数据保留.
+            if (r.price != null) {
               updateComparePrice(code, { price: r.price, changePct: r.changePct ?? null });
             }
+            updateCompareFields(code, {
+              pe: r.pe, pb: r.pb, roe: r.roe, marketCap: r.marketCap,
+            });
           } catch (_) {
             // ponytail: 查询失败保持 "—", 不弹错 (drawer 是辅助视图, 静默降级)
           } finally {
@@ -145,7 +185,11 @@ export function CompareDrawer({ api }) {
           <div class="cmp-head">
             <span class="cmp-cell cmp-cell-name">名称/代码</span>
             <span class="cmp-cell cmp-cell-price">现价</span>
-            <span class="cmp-cell cmp-cell-overall">综合分</span>
+            <span class="cmp-cell cmp-cell-fin">PE</span>
+            <span class="cmp-cell cmp-cell-fin">PB</span>
+            <span class="cmp-cell cmp-cell-fin">ROE%</span>
+            <span class="cmp-cell cmp-cell-fin">市值</span>
+            <span class="cmp-cell cmp-cell-overall">综合</span>
             <span class="cmp-cell cmp-cell-dims">
               {DIM_KEYS.map((k) => (
                 <span class="cmp-dim-label" key={k}>{DIM_LABELS[k]}</span>

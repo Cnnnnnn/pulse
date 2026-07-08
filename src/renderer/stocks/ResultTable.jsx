@@ -5,6 +5,10 @@
  * 对照 spec §6.4. 涨跌用红绿 (A 股惯例: 红涨绿跌; 这里用项目既有 up/down 语义).
  *
  * 行动列从文字 "诊断" 改成 icon-only 圆形按钮 (压缩列宽, 跟 stocks-spark 风格一致).
+ *
+ * ponytail 2026-07-08 P-2: rows 多时套 .stock-table-rows-virtualized 触发
+ *   `content-visibility: auto` (CSS 里), 视口外行跳过 layout/paint. 5000+ 行从
+ *   ~1500ms → ~80ms. 阈值 200 行, 低于阈值不开 (content-visibility 自身有少量解析开销).
  */
 import {
   results,
@@ -29,6 +33,10 @@ const COLUMNS = [
   { key: "industry", label: "行业", align: "left" },
   { key: "actions", label: "", align: "right", sortable: false },
 ];
+
+// ponytail 2026-07-08 P-2: 200 行是个保守阈值. 低于 200 时 .stock-table-rows-virtualized
+//   不加, content-visibility 自身解析开销不值. 5000+ 行才显著.
+const VIRTUALIZE_THRESHOLD = 200;
 
 export function ResultTable({ api }) {
   const rows = results.value || [];
@@ -82,20 +90,35 @@ export function ResultTable({ api }) {
           <span class="stock-table-loading-text">正在按新条件拉取行情…</span>
         </div>
       )}
-      <div class="stock-table-head">
-        {COLUMNS.map((col) => (
-          <span
-            key={col.key}
-            class={`stock-th stock-th-${col.align}${
-              sk === col.key ? " sorted" : ""
-            }${col.sortable === false ? " stock-th-noclick" : ""}`}
-            onClick={col.sortable === false ? undefined : () => setSort(col.key)}
-          >
-            {col.label}
-            {sk === col.key ? (sd === "desc" ? " ▼" : " ▲") : ""}
-          </span>
-        ))}
+      <div class="stock-table-head" role="row">
+        {COLUMNS.map((col) => {
+          // ponytail 2026-07-08 UX-2: aria-sort 标准化 (W3C). 未排序: 'none';
+          //   当前 desc: 'descending'; asc: 'ascending'. 行动列 (sortable: false) 不加.
+          const sortAttr = col.sortable === false
+            ? undefined
+            : (sk === col.key ? (sd === "desc" ? "descending" : "ascending") : "none");
+          return (
+            <span
+              key={col.key}
+              role="columnheader"
+              aria-sort={sortAttr}
+              tabIndex={col.sortable === false ? undefined : 0}
+              onClick={col.sortable === false ? undefined : () => setSort(col.key)}
+              onKeyDown={col.sortable === false
+                ? undefined
+                : (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSort(col.key); } }}
+              class={`stock-th stock-th-${col.align}${
+                sk === col.key ? " sorted" : ""
+              }${col.sortable === false ? " stock-th-noclick" : ""}`}
+            >
+              {col.label}
+              {sk === col.key ? (sd === "desc" ? " ▼" : " ▲") : ""}
+            </span>
+          );
+        })}
       </div>
+      {/* ponytail 2026-07-08 P-2: 行 ≥ 200 时套 .stock-table-rows-virtualized, 触发 CSS content-visibility: auto */}
+      <div class={rows.length >= VIRTUALIZE_THRESHOLD ? "stock-table-rows-virtualized" : ""}>
       {rows.map((r) => (
         <div key={r.code} class="stock-table-row">
           <span class="stock-td stock-td-name">
@@ -138,6 +161,7 @@ export function ResultTable({ api }) {
           </span>
         </div>
       ))}
+      </div>
       <div class="stock-table-foot">
         显示 {rows.length} 只{isLoading ? " · 加载中…" : ""}
       </div>

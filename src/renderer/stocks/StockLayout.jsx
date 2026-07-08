@@ -12,6 +12,10 @@
  * 收纳到表格栏的工具位, 不抢顶部视线. subtab segmented control 跟工具栏同行.
  *
  * 注意: 进 tab 不自动筛选 (避免进 tab 就打接口), 用户手动点筛选.
+ *
+ * ponytail 2026-07-08 UX-2: subtab 加 WAI-ARIA tablist 模式 — role=tablist/tab, aria-selected,
+ *   aria-controls 指向 panel; 键盘 ← / → / Home / End 切换. 列头(在 ResultTable 里) 加
+ *   aria-sort. 不引依赖 (HTML5 原生语义).
  */
 import { useEffect } from "preact/hooks";
 import { StrategyBar } from "./StrategyBar.jsx";
@@ -38,9 +42,31 @@ import {
 import { api } from "../api.js";
 
 const STOCK_SUBTABS = [
-  { key: "screen", label: "筛选" },
-  { key: "diagnosis", label: "个股分析" },
+  { key: "screen", label: "筛选", panelId: "stock-panel-screen" },
+  { key: "diagnosis", label: "个股分析", panelId: "stock-panel-diagnosis" },
 ];
+
+// ponytail 2026-07-08 UX-2: subtab 键盘导航 (WAI-ARIA tablist pattern). ←→ 切相邻,
+//   Home/End 跳首尾. 只在 tablist 内的 tab 元素上接收.
+//   测试兼容: happy-dom 的 fireEvent.keyDown 不一定带 currentTarget, 用 closest 兜底.
+function onSubtabKeyDown(e, currentIdx) {
+  const tab = e.currentTarget || e.target;
+  const list = (tab && tab.closest) ? tab.closest('[role="tablist"]') : null;
+  if (!list) return;
+  const tabs = list.querySelectorAll('[role="tab"]');
+  let next = currentIdx;
+  if (e.key === "ArrowRight") next = (currentIdx + 1) % tabs.length;
+  else if (e.key === "ArrowLeft") next = (currentIdx - 1 + tabs.length) % tabs.length;
+  else if (e.key === "Home") next = 0;
+  else if (e.key === "End") next = tabs.length - 1;
+  else return;
+  e.preventDefault();
+  if (next === currentIdx) return; // 当前已是目标, 不重复触发 click
+  if (tabs[next]) {
+    tabs[next].focus();
+    tabs[next].click();
+  }
+}
 
 function fmtTime(ts) {
   if (!ts) return "—";
@@ -106,24 +132,40 @@ export function StockLayout() {
       </header>
 
       <div class="stock-toolbar">
-        <div class="stock-subtabs">
-          {STOCK_SUBTABS.map((t) => (
-            <button
-              key={t.key}
-              class={`stock-subtab${stockActiveTab.value === t.key ? " stock-subtab-active" : ""}`}
-              onClick={() => (stockActiveTab.value = t.key)}
-              type="button"
-            >
-              {t.label}
-            </button>
-          ))}
+        <div class="stock-subtabs" role="tablist" aria-label="选股视图切换">
+          {STOCK_SUBTABS.map((t, idx) => {
+            const active = stockActiveTab.value === t.key;
+            return (
+              <button
+                key={t.key}
+                id={`stock-tab-${t.key}`}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                aria-controls={t.panelId}
+                tabIndex={active ? 0 : -1}
+                class={`stock-subtab${active ? " stock-subtab-active" : ""}`}
+                onClick={() => (stockActiveTab.value = t.key)}
+                onKeyDown={(e) => onSubtabKeyDown(e, idx)}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {stockActiveTab.value === "diagnosis" ? (
-        <StockDiagnosisPage api={api} />
+        <div id="stock-panel-diagnosis" role="tabpanel" aria-labelledby="stock-tab-diagnosis">
+          <StockDiagnosisPage api={api} />
+        </div>
       ) : (
-        <div class="stock-body">
+        <div
+          id="stock-panel-screen"
+          role="tabpanel"
+          aria-labelledby="stock-tab-screen"
+          class="stock-body"
+        >
           <div class="stock-filters">
             <StrategyBar />
             <CriteriaPanel />

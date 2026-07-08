@@ -9,6 +9,10 @@
  *   price?        最近一次见到价 (ResultTable / diagnosisStock)
  *   changePct?
  *   industry?
+ *   pe?           ponytail 2026-07-08 D-5: 加 4 个核心财务字段. 加 pool 时透传; drawer 端 enrichment
+ *   pb?             补价时可一并补这 4 个 (从 stocksSearch/fetchStocksByCodes 返的 row 拿).
+ *   roe?
+ *   marketCap?
  *   scores?       可选, 从诊断页加 pool 时附带. 没诊断过就 null, 对比表显示 "—".
  *
  * ponytail:
@@ -108,6 +112,13 @@ function normalize(entry) {
     price: entry.price ?? null,
     changePct: entry.changePct ?? null,
     industry: entry.industry ?? null,
+    // ponytail 2026-07-08 D-5: 透传 4 核心财务字段. 加 pool 时一次性给齐,
+    //   不要求 entry 有 (缺则 null 显示 "—"). 数据源: ResultTable row (pe/pb/roe/marketCap 都有)
+    //   / diagnosisStock. 后续 enrichment 通过 updateCompareFields 补.
+    pe: entry.pe ?? null,
+    pb: entry.pb ?? null,
+    roe: entry.roe ?? null,
+    marketCap: entry.marketCap ?? null,
     scores: entry.scores
       ? {
           overall: entry.scores.overall ?? null,
@@ -116,4 +127,27 @@ function normalize(entry) {
       : null,
     addedAt: Date.now(),
   };
+}
+
+// ponytail 2026-07-08 D-5: 跟 updateComparePrice 同型的"财务字段补全" merge. 给 useEnrichMissingPrices
+//   拉到的 row 同时把 pe/pb/roe/marketCap 也合并进 pool. 不存在/非数组时安全 noop.
+export function updateCompareFields(code, patch = {}) {
+  if (!code) return;
+  const pool = comparePool.value;
+  if (!Array.isArray(pool) || pool.length === 0) return;
+  const keys = ["pe", "pb", "roe", "marketCap"];
+  let changed = false;
+  const next = pool.map((e) => {
+    if (!e || e.code !== code) return e;
+    const merged = { ...e };
+    for (const k of keys) {
+      const v = patch[k];
+      if (v != null && merged[k] !== v) {
+        merged[k] = v;
+        changed = true;
+      }
+    }
+    return merged;
+  });
+  if (changed) comparePool.value = next;
 }

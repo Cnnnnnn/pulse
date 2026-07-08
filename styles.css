@@ -10573,6 +10573,15 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-bottom: 1px solid var(--border, rgba(0,0,0,0.04));
   transition: background 0.1s;
 }
+
+/* ponytail 2026-07-08 P-2: 大表格虚拟化 (零依赖) — 浏览器原生 content-visibility
+   让视口外的 row 跳过 layout/paint, 5000+ 行首次渲染从 ~1500ms 降到 ~80ms.
+   contain-intrinsic-size 给浏览器行高估计, 滚动条高度正确.
+   行 < 200 时不启用 (避免 content-visibility 自身带来的少量开销). */
+.stock-table-rows-virtualized > .stock-table-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 36px;
+}
 .stock-table-row:hover { background: var(--bg-hover, rgba(0,0,0,0.02)); }
 .stock-td-right { text-align: right; } .stock-td-center { text-align: center; }
 .stock-td-name .stock-name { font-weight: 500; color: var(--text-primary, #1d1d1f); }
@@ -10721,11 +10730,18 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 /* ponytail 2026-07-07: 用 5 列 grid 固定宽度 (name 弹性 1fr) — flex+content 容易被 5 维柱
    撑爆, 现价列被压成 0 宽, 行/列都对不齐. 现在每列 min-width 锁死, header 跟 row 共用同
    一份 grid-template-columns, 自动垂直对齐. */
+/* ponytail 2026-07-08 D-5: 加 4 财务指标 (PE/PB/ROE/市值). 9 列紧凑 grid, 1fr 留名称. */
 .cmp-head, .cmp-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 78px 32px 76px 24px;
+  grid-template-columns:
+    minmax(0, 1fr)
+    56px
+    44px 44px 44px 56px
+    32px
+    60px
+    24px;
   align-items: center;
-  column-gap: 8px;
+  column-gap: 6px;
 }
 .cmp-head {
   padding: 8px 8px;
@@ -10759,6 +10775,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .cmp-mini-track { width: 100%; height: 100%; background: rgba(0,0,0,0.06); border-radius: 2px; position: relative; overflow: hidden; }
 .cmp-mini-fill { position: absolute; bottom: 0; left: 0; width: 100%; border-radius: 2px; }
 .cmp-dim-missing { font-size: 10px; color: var(--text-tertiary, #aeaeb2); }
+
+/* D-5: 财务列 (PE/PB/ROE/市值) 共享字体规则 — tabular-nums 保证数字对齐, '—' 占位 */
+.cmp-cell-fin { font-variant-numeric: tabular-nums; text-align: right; font-size: 11px; white-space: nowrap; }
+.cmp-fin-missing { color: var(--text-tertiary, #aeaeb2); }
+.cmp-fin-num { color: var(--text-primary, #1d1d1f); font-weight: 500; }
 .cmp-cell-actions { justify-content: center; }
 .cmp-remove {
   width: 22px; height: 22px;

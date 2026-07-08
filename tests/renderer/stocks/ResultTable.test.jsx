@@ -91,4 +91,70 @@ describe("ResultTable 诊断按钮", () => {
     expect(n4).toBeGreaterThanOrEqual(1);
     expect(n6).toBeGreaterThanOrEqual(1);
   });
+
+  it("P-2: rows < 200 → 不加 .stock-table-rows-virtualized (避免开销)", () => {
+    // ponytail: 阈值内 套 wrapper 是浪费 — content-visibility 自身有少量解析成本.
+    results.value = Array.from({ length: 100 }, (_, i) => ({
+      code: `c${i}`, name: `n${i}`, price: 10, changePct: 0, pe: 10, roe: 10, industry: "x",
+    }));
+    const { container } = render(<ResultTable api={{}} />);
+    expect(container.querySelector(".stock-table-rows-virtualized")).toBeNull();
+  });
+
+  it("P-2: rows >= 200 → 套 .stock-table-rows-virtualized, CSS 触发 content-visibility: auto", () => {
+    // ponytail: 套 wrapper, 视口外 row 跳过 layout/paint. 浏览器原生, 零依赖.
+    results.value = Array.from({ length: 200 }, (_, i) => ({
+      code: `c${i}`, name: `n${i}`, price: 10, changePct: 0, pe: 10, roe: 10, industry: "x",
+    }));
+    const { container } = render(<ResultTable api={{}} />);
+    const wrapper = container.querySelector(".stock-table-rows-virtualized");
+    expect(wrapper).toBeTruthy();
+    // CSS 规则确实给了 content-visibility: auto
+    const fs = require("fs");
+    const path = require("path");
+    const css = fs.readFileSync(
+      path.resolve(__dirname, "../../../styles.css"),
+      "utf8",
+    );
+    const m = css.match(/\.stock-table-rows-virtualized\s*>\s*\.stock-table-row\s*\{([^}]+)\}/);
+    expect(m).toBeTruthy();
+    expect(/content-visibility:\s*auto/.test(m[1])).toBe(true);
+    // 顺带断言 contain-intrinsic-size 行高估计, 滚动条不抖
+    expect(/contain-intrinsic-size:\s*auto\s+\d+px/.test(m[1])).toBe(true);
+  });
+
+  it("UX-2: 列头 role=columnheader + aria-sort (none/ascending/descending)", () => {
+    // ponytail: 当前 sortKey=roe desc → 那列 aria-sort=descending, 其余=none.
+    // 行动列 (sortable: false) 不带 aria-sort.
+    results.value = [{ code: "x", name: "x", price: 10, changePct: 0, pe: 10, roe: 10, industry: "x" }];
+    const { container } = render(<ResultTable api={{}} />);
+    const ths = container.querySelectorAll('[role="columnheader"]');
+    // 7 列: 名称/现价/涨跌/PE/ROE/行业/行动
+    expect(ths.length).toBe(7);
+    // 当前 sortKey 默认 = 'roe' desc (stockStore 默认)
+    const roeTh = Array.from(ths).find((el) => /ROE/.test(el.textContent));
+    expect(roeTh.getAttribute("aria-sort")).toBe("descending");
+    // 其余 (除 actions) 应该是 none
+    const nameTh = Array.from(ths).find((el) => /名称/.test(el.textContent));
+    expect(nameTh.getAttribute("aria-sort")).toBe("none");
+    // 行动列: 无 aria-sort
+    const actionTh = Array.from(ths).find((el) => el.textContent.trim() === "");
+    expect(actionTh.hasAttribute("aria-sort")).toBe(false);
+  });
+
+  it("UX-2: 点击可排序列头 → aria-sort 切到 ascending/descending", () => {
+    // ponytail: 列头 click → setSort 触发 sortKey/sortDir 切换, aria-sort 跟随.
+    results.value = [{ code: "x", name: "x", price: 10, changePct: 0, pe: 10, roe: 10, industry: "x" }];
+    const { container } = render(<ResultTable api={{}} />);
+    const ths = container.querySelectorAll('[role="columnheader"]');
+    const roeTh = Array.from(ths).find((el) => /ROE/.test(el.textContent));
+    // 当前是 roe desc
+    expect(roeTh.getAttribute("aria-sort")).toBe("descending");
+    fireEvent.click(roeTh);
+    // 点 ROE 一次 → toggle 到 asc
+    expect(roeTh.getAttribute("aria-sort")).toBe("ascending");
+    fireEvent.click(roeTh);
+    // 再点 → desc
+    expect(roeTh.getAttribute("aria-sort")).toBe("descending");
+  });
 });

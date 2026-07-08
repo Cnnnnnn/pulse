@@ -133,7 +133,15 @@ function registerStocksHandlers(ctx) {
       const numericDescFastSort =
         sortKey &&
         typeof sortKey === "string" &&
-        ["roe", "pe", "pb", "revenueGrowthYoY", "netIncomeGrowthYoY", "turnover", "changePct"].includes(sortKey) &&
+        [
+          "roe",
+          "pe",
+          "pb",
+          "revenueGrowthYoY",
+          "netIncomeGrowthYoY",
+          "turnover",
+          "changePct",
+        ].includes(sortKey) &&
         sort.dir === "desc";
       const fetchOpts = { sortKey };
       if (numericDescFastSort) {
