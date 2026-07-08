@@ -277,6 +277,37 @@ describe("register-stocks IPC", () => {
     expect(mockFetchStocks).toHaveBeenCalledTimes(1); // 仍然只 1 次
   });
 
+  it("stocks:screen P-1: numeric desc sortKey 传 minResults 给 fetchStocks", async () => {
+    // ponytail 2026-07-08 P-1: ROE/PE/增速 desc → 高命中截断 (1500 条 ≈ 9s vs 30-40s).
+    const handlers = loadHandlers();
+    await handlers["stocks:screen"](
+      {},
+      {
+        criteria: { marketCapTier: "all", industries: [] },
+        sort: { key: "roe", dir: "desc" },
+      },
+    );
+    expect(mockFetchStocks).toHaveBeenCalledTimes(1);
+    const opts = mockFetchStocks.mock.calls[0][1];
+    expect(opts.minResults).toBe(1500);
+    expect(opts.maxPages).toBe(25);
+  });
+
+  it("stocks:screen P-1: 字符串列 / 升序 / 未传 sort → 不截断, minResults 不传", async () => {
+    // name 列必须翻全量, asc 排序也需全量 (后期票可能在后 4000 名).
+    const handlers = loadHandlers();
+    await handlers["stocks:screen"](
+      {},
+      {
+        criteria: { marketCapTier: "all", industries: [] },
+        sort: { key: "roe", dir: "asc" }, // asc 不截断
+      },
+    );
+    const opts = mockFetchStocks.mock.calls[0][1];
+    expect(opts.minResults).toBeUndefined();
+    expect(opts.maxPages).toBeUndefined();
+  });
+
   it("stocks:search returns results", async () => {
     const handlers = loadHandlers();
     const r = await handlers["stocks:search"]({}, "600519");
@@ -511,13 +542,19 @@ describe("register-stocks IPC", () => {
     // 补上价再返, 不再调 searchStocks. 补上的结果同时写回缓存.
     const stub = vi.fn();
     // 第一次: 走 searchStocks 路径, fetchStocksByCodes 失败 (price 进 null 进 cache)
-    stub.mockResolvedValueOnce({ rows: [], fetchedAt: Date.now(), error: "timeout" });
+    stub.mockResolvedValueOnce({
+      rows: [],
+      fetchedAt: Date.now(),
+      error: "timeout",
+    });
     // 第二次: cache 命中 + 有缺价, 走 reEnrich, _cache.rows 命中直接补上价
     // (不需要调 fetchStocksByCodes)
     stubModules({ fetchStocksByCodesStub: stub });
     const handlers = loadHandlers();
     // 改 mockSearch 让 002463 进 cache
-    mockSearch.mockImplementationOnce(async (q) => [{ code: "002463", name: "沪电股份", industry: "" }]);
+    mockSearch.mockImplementationOnce(async (q) => [
+      { code: "002463", name: "沪电股份", industry: "" },
+    ]);
     // 第一次: 没缓存, 走 searchStocks → fetchStocksByCodes timeout → price null → 入 cache
     const r1 = await handlers["stocks:search"]({}, "002463");
     expect(r1.results[0].code).toBe("002463");
@@ -532,14 +569,25 @@ describe("register-stocks IPC", () => {
     // 但我们想测 _cache.rows 命中补价 → 加一个 mock 让 screen 后 _cache.rows 有 002463.
     // 简化: 直接 stub 第二个 mockFetchStocks 调用返含 002463 的 rows.
     mockFetchStocks.mockImplementationOnce(async () => ({
-      rows: [{ code: "002463", name: "沪电股份", price: 129.72, changePct: 0.69, industry: "元件" }],
+      rows: [
+        {
+          code: "002463",
+          name: "沪电股份",
+          price: 129.72,
+          changePct: 0.69,
+          industry: "元件",
+        },
+      ],
       total: 1,
       fetchedAt: Date.now(),
     }));
     // 触发 screen 重新拉 (把 _cache.rows 重置成含 002463)
     await handlers["stocks:screen"](
       {},
-      { criteria: { peMax: 999, marketCapTier: "all", industries: [] }, sort: null },
+      {
+        criteria: { peMax: 999, marketCapTier: "all", industries: [] },
+        sort: null,
+      },
     );
     // 第三次: cache 命中 + 有缺价, 走 reEnrich, _cache.rows 命中补上价
     const r3 = await handlers["stocks:search"]({}, "002463");

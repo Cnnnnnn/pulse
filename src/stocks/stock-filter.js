@@ -19,10 +19,13 @@ const RANGE_FILTERS = [
   ["turnover", "turnoverMin", "turnoverMax"],
 ];
 // 下限过滤项: [rowKey, minCriteriaKey]
+// ponytail 2026-07-08 D-1: 加营收 / 净利同比增速. 行业筛增速>0 是 A 股最常见"基本面 OK"门槛.
 const MIN_FILTERS = [
   ["roe", "roeMin"],
   ["dividendYield", "dividendYieldMin"],
   ["change5d", "change5dMin"],
+  ["revenueGrowthYoY", "revenueGrowthYoYMin"],
+  ["netIncomeGrowthYoY", "netIncomeGrowthYoYMin"],
 ];
 
 function isNum(v) {

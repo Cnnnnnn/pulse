@@ -50,12 +50,15 @@ describe("mapRow", () => {
     const raw = {
       f12: "600519", f14: "贵州茅台", f2: 1685.2, f3: 1.23, f8: 0.5,
       f9: 18.5, f23: 6.8, f173: 28.4, f100: "食品饮料", f20: 2100000000000,
+      f57: 15.4, f58: 18.2,
     };
     const row = mapRow(raw);
     expect(row).toEqual({
       code: "600519", name: "贵州茅台", price: 1685.2, changePct: 1.23,
       turnover: 0.5, pe: 18.5, pb: 6.8, roe: 28.4, industry: "食品饮料",
       marketCap: 2100000000000,
+      revenueGrowthYoY: 15.4,
+      netIncomeGrowthYoY: 18.2,
     });
   });
 
@@ -200,6 +203,48 @@ describe("fetchStocks", () => {
   it("caps pz at 100 (east-money page limit)", () => {
     const url = buildUrl();
     expect(url).toMatch(/pz=100/);
+  });
+
+  // ponytail 2026-07-08 P-1: 高命中 sortKey desc 截断 minResults 条. 节省 30-40s → 6s.
+  it("P-1: minResults 截断 — 拉到 N 条就停, 标 truncated: true", async () => {
+    let callCount = 0;
+    const client = {
+      get: async (url) => {
+        callCount++;
+        // 用 startCode=(callCount-1)*100 保证第 1 页不被 mkPage 误剪 (startCode=100 时砍一半).
+        // 让每页返满 100 条 + total=5534. 期望拉 1 页 = 100 条就停 (minResults=80).
+        return {
+          status: 200,
+          body: callCount === 1
+            ? mkPage(5534, 0) // 100 条
+            : mkPage(5534, 200), // 100 条 (不会再走到, 但万一走死循环兜底)
+          headers: {},
+          error: null,
+        };
+      },
+    };
+    const out = await fetchStocks(client, { minResults: 80 });
+    expect(callCount).toBe(1); // 1 页就够
+    expect(out.rows.length).toBe(100); // 第 1 页返满 100, 触发 all.length >= minResults(80) → 停
+    expect(out.truncated).toBe(true);
+    expect(out.total).toBe(5534);
+  });
+
+  it("P-1: 不传 minResults → 翻到末页 (default 行为)", async () => {
+    let callCount = 0;
+    const client = {
+      get: async (url) => {
+        callCount++;
+        return {
+          status: 200,
+          body: callCount === 1 ? mkPage(200, 0) : JSON.stringify({ data: { total: 200, diff: mkPage(200, 100).slice(0, 40).concat([]) } }),
+          headers: {},
+          error: null,
+        };
+      },
+    };
+    const out = await fetchStocks(client); // 不传 minResults
+    expect(out.truncated).toBeUndefined(); // 不带 truncated 字段
   });
 });
 

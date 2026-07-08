@@ -26,6 +26,9 @@ describe("stock-constants", () => {
     expect(FIELD_MAP.roe).toBe("f173");
     expect(FIELD_MAP.industry).toBe("f100");
     expect(FIELD_MAP.marketCap).toBe("f20");
+    // ponytail 2026-07-08 D-1: 营收/净利同比增速 = f57/f58.
+    expect(FIELD_MAP.revenueGrowthYoY).toBe("f57");
+    expect(FIELD_MAP.netIncomeGrowthYoY).toBe("f58");
   });
 
   it("FIELDS_PARAM is comma-joined field values", () => {
@@ -40,6 +43,9 @@ describe("stock-constants", () => {
     expect(SORT_KEY_TO_FID.pb).toBe("f23");
     expect(SORT_KEY_TO_FID.changePct).toBe("f3");
     expect(SORT_KEY_TO_FID.marketCap).toBe("f20");
+    // ponytail 2026-07-08 D-1: 营收/净利同比增速给 P-1 sortKey 命中率高的排序维度.
+    expect(SORT_KEY_TO_FID.revenueGrowthYoY).toBe("f57");
+    expect(SORT_KEY_TO_FID.netIncomeGrowthYoY).toBe("f58");
   });
 
   it("DEFAULT_FID is f173 (ROE)", () => {
@@ -65,5 +71,8 @@ describe("stock-constants", () => {
     expect(DEFAULT_SCREENER_CRITERIA.marketCapTier).toBe("all");
     expect(DEFAULT_SCREENER_CRITERIA.industries).toEqual([]);
     expect(DEFAULT_SCREENER_CRITERIA.peMin).toBe(null);
+    // ponytail 2026-07-08 D-1: 营收/净利同比下限默认不限.
+    expect(DEFAULT_SCREENER_CRITERIA.revenueGrowthYoYMin).toBe(null);
+    expect(DEFAULT_SCREENER_CRITERIA.netIncomeGrowthYoYMin).toBe(null);
   });
 });

@@ -8,7 +8,10 @@
  * (绕开 Node OpenSSL 在 push2.eastmoney.com 被 RST 的反爬). vitest 环境 fallback 到 HttpClient.
  */
 const { createStockHttpClient } = require("../chromium-http-client");
-const { fetchStocks, fetchStocksByCodes } = require("../../stocks/stock-fetcher");
+const {
+  fetchStocks,
+  fetchStocksByCodes,
+} = require("../../stocks/stock-fetcher");
 const { searchStocks } = require("../../stocks/stock-search");
 const { applyScreen, filterStocks } = require("../../stocks/stock-filter");
 const { computeMarketOverview } = require("../../stocks/market-overview");
@@ -17,6 +20,13 @@ const { aiStockAdvise } = require("../../ai/stock-screener-advisor");
 const CACHE_TTL_MS = 60_000;
 // 内存缓存: { key, rows, total, fetchedAt }. key = criteria+sort 的 JSON.
 let _cache = null;
+
+// ponytail 2026-07-08 P-1: sortKey 高命中维度 (ROE/PE/增速 desc) 时只拉前 1500 条, 兜底 25 页.
+//   A 股 5534 只, 高 ROE/PE desc 通常集中在前 1000-1500 名, 覆盖筛选命中区间; 余下 4000+
+//   多是低 ROE 噪点. EARLY_RESULTS=1500 → 15 页 → 1500*600ms ≈ 9s, 节省翻全量 56 页 (30-40s) 70%+.
+//   EARLY_PAGES=25 兜底: 防止极端窄筛 (高 PB 高价业绩小盘等) 早期命中不足, 有个冗余.
+const EARLY_RESULTS = 1500;
+const EARLY_PAGES = 25;
 
 // ponytail: 搜索结果也加缓存 — 用户连续输入 "贵州茅台" / "贵州" 每次微调都打接口没意义.
 // TTL 5min, key = query (trim+lowercase). 命中即返, 不再调 searchStocks.
@@ -117,8 +127,20 @@ function registerStocksHandlers(ctx) {
       });
       // 把排序意图下推给东财 (fid), 让东财先按该维度排好, 翻页拉全量后前端再二次过滤.
       // 注意: sortKey 只影响拉取顺序, 不影响 cache 命中 (cache 只按 criteria).
+      // ponytail 2026-07-08 P-1: 高命中数值 sortKey + desc → 只拉前 EARLY_RESULTS 条 (1500)
+      //   覆盖 A 股筛活跃区间, 30-40s → ~9s. 字符串列 / asc / 未传 sortKey → 全量.
       const sortKey = sort && sort.key;
-      const out = await fetchStocks(httpClient, { sortKey });
+      const numericDescFastSort =
+        sortKey &&
+        typeof sortKey === "string" &&
+        ["roe", "pe", "pb", "revenueGrowthYoY", "netIncomeGrowthYoY", "turnover", "changePct"].includes(sortKey) &&
+        sort.dir === "desc";
+      const fetchOpts = { sortKey };
+      if (numericDescFastSort) {
+        fetchOpts.minResults = EARLY_RESULTS;
+        fetchOpts.maxPages = EARLY_PAGES; // 兜底: 极端窄筛也能拉到 25 页
+      }
+      const out = await fetchStocks(httpClient, fetchOpts);
       if (out.error) {
         return {
           ok: false,

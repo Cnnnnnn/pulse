@@ -28,6 +28,47 @@ describe("filterStocks", () => {
     expect(out[0].roe).toBe(20);
   });
 
+  it("D-1: 营收同比下限 (revenueGrowthYoY >= revenueGrowthYoYMin)", () => {
+    // ponytail: -10/5 不达标被剔除, 35 达标, null 跳过该条件保留. 期望保留 35 + null = 2 只.
+    const rows = [
+      mk({ code: "000001", revenueGrowthYoY: -10 }),
+      mk({ code: "000002", revenueGrowthYoY: 5 }),
+      mk({ code: "000003", revenueGrowthYoY: 35 }),
+      mk({ code: "000004", revenueGrowthYoY: null }),
+    ];
+    const out = filterStocks(rows, {
+      revenueGrowthYoYMin: 10,
+      marketCapTier: "all",
+      industries: [],
+    });
+    expect(out.map((r) => r.code).sort()).toEqual(["000003", "000004"]);
+  });
+
+  it("D-1: 净利同比下限 (netIncomeGrowthYoY >= netIncomeGrowthYoYMin)", () => {
+    const rows = [
+      mk({ code: "000001", netIncomeGrowthYoY: -5 }),
+      mk({ code: "000002", netIncomeGrowthYoY: 12 }),
+      mk({ code: "000003", netIncomeGrowthYoY: 50 }),
+    ];
+    const out = filterStocks(rows, {
+      netIncomeGrowthYoYMin: 10,
+      marketCapTier: "all",
+      industries: [],
+    });
+    expect(out).toHaveLength(2);
+    expect(out.map((r) => r.code).sort()).toEqual(["000002", "000003"]);
+  });
+
+  it("D-1: revenueGrowthYoYMin null → 不限", () => {
+    const rows = [mk({ revenueGrowthYoY: -100 }), mk({ revenueGrowthYoY: 100 })];
+    const out = filterStocks(rows, {
+      revenueGrowthYoYMin: null,
+      marketCapTier: "all",
+      industries: [],
+    });
+    expect(out).toHaveLength(2);
+  });
+
   it("skips a criterion when the row's field is null (not excluded)", () => {
     // pe=null 的票不应因 peMax=20 被排除 (数据缺失跳过该条件)
     const rows = [mk({ pe: null }), mk({ pe: 50 })];

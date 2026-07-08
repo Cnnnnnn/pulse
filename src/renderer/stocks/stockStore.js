@@ -57,6 +57,35 @@ export const sortConfig = computed(() => ({
   dir: sortDir.value,
 }));
 
+// ponytail 2026-07-08 D-6: 静默刷新 tick 计数器. signal 暴露给 UI (副标题 "X 秒前已刷新").
+//   +1 触发响应, 实际 fetch 由 StockLayout useEffect 监听.
+export const silentRefreshTick = signal(0);
+
+// ponytail 2026-07-08 D-6: 静默刷新定时器模块级管理, 不放 signal (避免订阅抖动).
+let _refreshTimerId = null;
+// ponytail: 60s 刷新间隔. 主进程 cache TTL 60s, 刷一次即 cache miss → 重拉 (P-1 后 ~9s).
+//   价值: 用户盯盘场景下"15 分钟没看 tab, 数据是几分钟前的" → 始终 ≤ 1 分钟旧.
+const REFRESH_INTERVAL_MS = 60_000;
+
+/**
+ * 启动静默刷新定时器. tick 时不发请求, 只 +1 silentRefreshTick 让订阅者去拉 —
+ * 让 StockLayout/ResultTable 决定具体怎么 fetch. 这样 stockStore 不依赖 IPC.
+ */
+export function startRefreshTimer() {
+  stopRefreshTimer(); // 防重叠
+  _refreshTimerId = setInterval(() => {
+    silentRefreshTick.value += 1;
+  }, REFRESH_INTERVAL_MS);
+}
+
+/** 停止定时器. 测试 + 离开页面时调. */
+export function stopRefreshTimer() {
+  if (_refreshTimerId != null) {
+    clearInterval(_refreshTimerId);
+    _refreshTimerId = null;
+  }
+}
+
 // ── mutations (renderer-side) ──
 
 /** 选中预设策略: 用 buildCriteria 填充条件区 */
@@ -214,6 +243,28 @@ export async function runScreen(api) {
     results.value = [];
   } finally {
     loading.value = false;
+  }
+}
+
+/**
+ * ponytail 2026-07-08 D-6: 静默版拉一次 stocksScreen, 不闪 loading 角标.
+ *   失败静默 (只 log.warn), 不重置 results. 给 60s 自动 refresh 用.
+ *   等价于"refresh 按钮但默默按了一次".
+ */
+export async function runScreenSilent(api) {
+  if (!api || !api.stocksScreen) return;
+  try {
+    const r = await api.stocksScreen({
+      criteria: criteria.value,
+      sort: sortConfig.value,
+    });
+    if (r && r.ok && Array.isArray(r.results)) {
+      results.value = r.results;
+      fetchedAt.value = r.fetchedAt || Date.now();
+    }
+  } catch (e) {
+    log.warn("silent refresh failed:", e && e.message);
+    // 静默 — 不动 results, 不报错
   }
 }
 

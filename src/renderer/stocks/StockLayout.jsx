@@ -13,6 +13,7 @@
  *
  * 注意: 进 tab 不自动筛选 (避免进 tab 就打接口), 用户手动点筛选.
  */
+import { useEffect } from "preact/hooks";
 import { StrategyBar } from "./StrategyBar.jsx";
 import { CriteriaPanel } from "./CriteriaPanel.jsx";
 import { ResultTable } from "./ResultTable.jsx";
@@ -24,10 +25,15 @@ import { stockActiveTab } from "./diagnosisStore.js";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
 import {
   runScreen,
+  runScreenSilent,
   fetchedAt,
   loading,
   openAdvise,
   aiAdviseOpen,
+  results,
+  silentRefreshTick,
+  startRefreshTimer,
+  stopRefreshTimer,
 } from "./stockStore.js";
 import { api } from "../api.js";
 
@@ -46,6 +52,26 @@ function fmtTime(ts) {
 
 export function StockLayout() {
   const ts = fetchedAt.value;
+  // ponytail 2026-07-08 D-6: 静默刷新 — 监听 stockStore.silentRefreshTick (60s +1).
+  //   触发就调 runScreen (主进程 60s cache TTL 命中 → 0 网络 / cache miss → P-1 后 9s 重拉).
+  //   失败仍由 runScreen 内部 try/catch 静默处理. 不闪 loading bar, 不清空 results.
+  useEffect(() => {
+    if (!api || !api.stocksScreen) return undefined;
+    startRefreshTimer();
+    const _tick = silentRefreshTick.value; // 订阅
+    void _tick;
+    return () => stopRefreshTimer();
+  }, [api]);
+
+  // ponytail 2026-07-08 D-6: 静默 refresh tick 触发 — 调 runScreenSilent, 不闪 loading 角标.
+  //   用 results 非空作判断 (没结果时调没意义); criteria/sort 直接用 store 当前值.
+  useEffect(() => {
+    const tick = silentRefreshTick.value;
+    if (!tick) return; // 首次 mount 时跳过 (tick=0 默认)
+    if (!api || !api.stocksScreen) return;
+    if (!Array.isArray(results.value) || results.value.length === 0) return;
+    runScreenSilent(api);
+  }, [silentRefreshTick.value]);
 
   return (
     <div class="stock-layout">

@@ -91,7 +91,7 @@ function toStr(v) {
 
 /**
  * 把东财一条 diff 映射成 StockRow.
- * @returns {{code,name,price,changePct,turnover,pe,pb,roe,industry,marketCap}|null}
+ * @returns {{code,name,price,changePct,turnover,pe,pb,roe,industry,marketCap,revenueGrowthYoY,netIncomeGrowthYoY}|null}
  */
 function mapRow(raw) {
   if (!raw || typeof raw !== "object") return null;
@@ -107,6 +107,8 @@ function mapRow(raw) {
     roe: toNum(g(FIELD_MAP.roe)),
     industry: toStr(g(FIELD_MAP.industry)),
     marketCap: toNum(g(FIELD_MAP.marketCap)),
+    revenueGrowthYoY: toNum(g(FIELD_MAP.revenueGrowthYoY)),
+    netIncomeGrowthYoY: toNum(g(FIELD_MAP.netIncomeGrowthYoY)),
   };
 }
 
@@ -115,9 +117,12 @@ function mapRow(raw) {
  * 按当前排序维度 (sortKey) 让东财排好返回, 翻页取全 (避免 top-100 选股失真).
  * 东财失败时自动 fallback 到 sina-fetcher (无 ROE 字段, 但有 PE/PB/市值).
  *
+ * ponytail 2026-07-08 P-1: 加 minResults 截断 — 当 sortKey 高命中维度 (ROE/PE desc) 时,
+ *   拉到 N 条就停, 节省 30-40s → 6s. 字符串列 / asc / 未传 sortKey 不截断.
+ *
  * @param {{get:(url,opts)=>Promise<{status:number,body:string,headers:object,error?:string}>}} httpClient
- * @param {{timeoutMs?:number, sortKey?:string, maxPages?:number, fallbackToSina?:boolean}} [opts]
- * @returns {Promise<{rows:object[], total:number, fetchedAt:number, error?:string, source?:string}>}
+ * @param {{timeoutMs?:number, sortKey?:string, maxPages?:number, minResults?:number, fallbackToSina?:boolean}} [opts]
+ * @returns {Promise<{rows:object[], total:number, fetchedAt:number, error?:string, source?:string, truncated?:boolean}>}
  */
 async function fetchStocks(httpClient, opts = {}) {
   const fallbackToSina = opts.fallbackToSina !== false; // 默认开启
@@ -126,7 +131,12 @@ async function fetchStocks(httpClient, opts = {}) {
   let total = 0;
   // ponytail: 东财硬限制单页 ≤100, 拉全市场必须翻页. maxPages 上限防接口"total"异常导致死循环.
   const maxPages = opts.maxPages ?? 60; // 60*100=6000, 覆盖全市场 5534 + 缓冲
+  // P-1: minResults — 拉到足够条数就停, 用于高命中维度快速截断. 默认无 (= 翻全量).
+  const minResults = typeof opts.minResults === "number" && opts.minResults > 0
+    ? opts.minResults
+    : 0;
   let primaryError = null;
+  let truncated = false; // P-1: 是否因 minResults 提前 stop
   try {
     for (let pn = 1; pn <= maxPages; pn++) {
       const r = await httpClient.get(buildUrl(opts.sortKey, pn), {
@@ -147,6 +157,12 @@ async function fetchStocks(httpClient, opts = {}) {
       all.push(...pageRows);
       // 翻页停止条件: 当页返空, 或已覆盖 total
       if (pageRows.length === 0 || all.length >= total) break;
+      // ponytail 2026-07-08 P-1: minResults 截断 (高命中维度提前停). 当前页满 (100 条)
+      // 时进位比较, 即 all.length 跨过 minResults 就停. 配合 maxPages 兜底防止死循环.
+      if (minResults > 0 && all.length >= minResults) {
+        truncated = true;
+        break;
+      }
       // 兜底: 当页不足 100 (末页), 再翻一次确认空, 然后停
       if (pageRows.length < PAGE_SIZE) break;
     }
@@ -167,7 +183,8 @@ async function fetchStocks(httpClient, opts = {}) {
     if (primaryError) {
       return { rows: all, total, fetchedAt, error: primaryError };
     }
-    return { rows: all, total, fetchedAt };
+    // ponytail 2026-07-08 P-1: truncated 标记让调用方 (IPC handler) 知道这是"快速截断"而非"全量".
+    return { rows: all, total, fetchedAt, ...(truncated && { truncated: true }) };
   } catch (e) {
     return {
       rows: all,

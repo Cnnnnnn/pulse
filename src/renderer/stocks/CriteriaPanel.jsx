@@ -214,6 +214,12 @@ export function CriteriaPanel() {
             />
             <MinInput label="近5日" minKey="change5dMin" suffix="%" />
           </div>
+          {/* ponytail 2026-07-08 D-1: 加营收/净利同比增速. A 股基本面筛的核心 2 维度, 放高级区.
+              注意: 仅输入"下限", 默认不限. 行业惯例是 ≥0 或 ≥30 (>30% 高增长). */}
+          <div class="stock-criteria-row">
+            <MinInput label="营收同比" minKey="revenueGrowthYoYMin" suffix="%" />
+            <MinInput label="净利同比" minKey="netIncomeGrowthYoYMin" suffix="%" />
+          </div>
           <IndustryChips />
         </>
       )}
