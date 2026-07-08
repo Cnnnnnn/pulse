@@ -10,7 +10,7 @@
 const { createStockHttpClient } = require("../chromium-http-client");
 const { fetchStocks, fetchStocksByCodes } = require("../../stocks/stock-fetcher");
 const { searchStocks } = require("../../stocks/stock-search");
-const { applyScreen } = require("../../stocks/stock-filter");
+const { applyScreen, filterStocks } = require("../../stocks/stock-filter");
 const { computeMarketOverview } = require("../../stocks/market-overview");
 const { aiStockAdvise } = require("../../ai/stock-screener-advisor");
 
@@ -82,8 +82,10 @@ function friendlyFetchError(raw) {
   return `${raw} (请稍后重试)`;
 }
 
-function criteriaKey(criteria, sort) {
-  return JSON.stringify({ c: criteria || {}, s: sort || null });
+// ponytail 2026-07-08 P-4: cache key 只用 criteria. sort 切列头时前端 stockStore.setSort
+// 已本地 sortStocks 重排, 主进程不需要为排序单开缓存槽. 这样切列头不重打 IPC.
+function criteriaKey(criteria) {
+  return JSON.stringify({ c: criteria || {} });
 }
 
 function registerStocksHandlers(ctx) {
@@ -92,7 +94,7 @@ function registerStocksHandlers(ctx) {
   safeHandle(
     "stocks:screen",
     async (_event, { criteria, sort } = {}) => {
-      const key = criteriaKey(criteria, sort);
+      const key = criteriaKey(criteria);
       const now = Date.now();
       if (
         _cache &&
@@ -101,7 +103,9 @@ function registerStocksHandlers(ctx) {
       ) {
         return {
           ok: true,
-          results: applyScreen(_cache.rows, criteria, sort),
+          // ponytail: sort 走前端 sortStocks, 主进程只 filter. 同份 raw rows 命中 cache 时
+          // 不重算排序 (前端自己排), 避免 sort 维度变化触发的无效重打.
+          results: filterStocks(_cache.rows, criteria),
           total: _cache.total,
           fetchedAt: _cache.fetchedAt,
           fromCache: true,
@@ -112,6 +116,7 @@ function registerStocksHandlers(ctx) {
         maxRetries: 1,
       });
       // 把排序意图下推给东财 (fid), 让东财先按该维度排好, 翻页拉全量后前端再二次过滤.
+      // 注意: sortKey 只影响拉取顺序, 不影响 cache 命中 (cache 只按 criteria).
       const sortKey = sort && sort.key;
       const out = await fetchStocks(httpClient, { sortKey });
       if (out.error) {
@@ -129,7 +134,7 @@ function registerStocksHandlers(ctx) {
       };
       return {
         ok: true,
-        results: applyScreen(out.rows, criteria, sort),
+        results: filterStocks(out.rows, criteria),
         total: out.total,
         fetchedAt: out.fetchedAt,
         fromCache: false,

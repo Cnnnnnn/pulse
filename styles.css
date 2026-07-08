@@ -10485,6 +10485,63 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .stock-criteria-advanced-toggle:hover { background: rgba(0,122,255,0.08); }
 
+/* D-2 行业 chip 多选器 (默认折叠在高级区下) */
+.stock-criteria-industries {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 0 6px;
+  flex-wrap: wrap;
+}
+.stock-criteria-industries-label {
+  font-size: 12px;
+  color: var(--text-secondary, #6e6e73);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+  padding-top: 4px;
+}
+.stock-criteria-industries-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.stock-criteria-industry-chip {
+  font-size: 12px;
+  padding: 3px 9px;
+  border: 1px solid var(--border-color, rgba(0,0,0,0.1));
+  border-radius: 10px;
+  background: var(--bg-card, rgba(255,255,255,0.6));
+  color: var(--text-primary, #1d1d1f);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.stock-criteria-industry-chip:hover { background: rgba(0,122,255,0.06); }
+.stock-criteria-industry-chip-active {
+  background: rgba(0,122,255,0.14);
+  border-color: var(--accent-primary, #007aff);
+  color: var(--accent-primary, #007aff);
+  font-weight: 500;
+}
+.stock-criteria-industries-clear {
+  font-size: 11px;
+  color: var(--text-secondary, #6e6e73);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  flex: 0 0 auto;
+}
+.stock-criteria-industries-clear:hover { color: var(--accent-primary, #007aff); }
+.stock-criteria-industries-empty {
+  font-size: 12px;
+  color: var(--text-secondary, #6e6e73);
+  padding: 6px 0;
+}
+
 /* 表格 — 列分布: 名称 1.4 / 现价 0.7 / 涨跌 0.7 / PE 0.5 / ROE 0.5 / 行业 1 / 操作 36px */
 .stock-table { flex: 1; min-height: 0; overflow-y: auto; }
 .stock-table-head, .stock-table-row {
@@ -10759,6 +10816,28 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .stock-empty-state { text-align: center; padding: 60px 20px; }
 .stock-empty-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; color: var(--text-primary, #1d1d1f); }
 .stock-empty-sub { font-size: 12px; color: var(--text-secondary, #6e6e73); }
+
+/* ponytail 2026-07-08 UX-1: 小屏断点. 菜单栏 app 拖窄窗口是最常见操作.
+   ponytail: 列隐藏 ↔ grid 列数同步, 让 auto-placement 把后面的 cell 顶上来 (不留白列).
+     <1100px: 隐藏"行业"列 (1fr → 占空间) → grid 从 7 列变 6 列.
+     <800px: 进一步藏 PE → grid 从 6 列变 5 列. */
+@media (max-width: 1100px) {
+  .stock-table-head, .stock-table-row {
+    grid-template-columns: minmax(0, 1.4fr) 64px 56px 56px 56px 36px;
+  }
+  .stock-table-head > :nth-child(6),
+  .stock-table-row > :nth-child(6) { display: none; } /* 行业 */
+}
+@media (max-width: 800px) {
+  .stock-table-head, .stock-table-row {
+    grid-template-columns: minmax(0, 1.6fr) 60px 52px 52px 36px;
+  }
+  .stock-table-head > :nth-child(4),
+  .stock-table-row > :nth-child(4),
+  .stock-table-head > :nth-child(6),
+  .stock-table-row > :nth-child(6) { display: none; } /* PE + 行业 (800px = 1100px 也藏) */
+}
+
 
 /* 阶段二: AI 推荐抽屉 + AI 按钮 — 复用 stock-* 主题变量, light/dark 一致.
   ponytail: .stock-btn-ai 是历史 class, 当前 AI 推荐改用 .stock-btn-icon (透明方形 +

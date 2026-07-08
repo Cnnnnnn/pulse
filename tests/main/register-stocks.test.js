@@ -253,6 +253,30 @@ describe("register-stocks IPC", () => {
     expect(mockFetchStocks).toHaveBeenCalledTimes(1); // 只真拉一次
   });
 
+  it("stocks:screen 切 sort 不重打 IPC (P-4 修)", async () => {
+    // ponytail 2026-07-08 P-4: 切列头排序时, 前端 stockStore.setSort 走 sortStocks 本地重排.
+    // 主进程 cache key 只用 criteria, sort 变化不会让 cache miss → 不重打 30-40s.
+    const handlers = loadHandlers();
+    await handlers["stocks:screen"](
+      {},
+      {
+        criteria: { marketCapTier: "all", industries: [] },
+        sort: { key: "roe", dir: "desc" },
+      },
+    );
+    expect(mockFetchStocks).toHaveBeenCalledTimes(1);
+    // 切列头到 price desc — 同一份 cache 应命中, 不重打
+    const r2 = await handlers["stocks:screen"](
+      {},
+      {
+        criteria: { marketCapTier: "all", industries: [] },
+        sort: { key: "price", dir: "desc" },
+      },
+    );
+    expect(r2.fromCache).toBe(true);
+    expect(mockFetchStocks).toHaveBeenCalledTimes(1); // 仍然只 1 次
+  });
+
   it("stocks:search returns results", async () => {
     const handlers = loadHandlers();
     const r = await handlers["stocks:search"]({}, "600519");
