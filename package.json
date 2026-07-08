@@ -16,6 +16,7 @@
     "build:all": "npm run build:mac:all && npm run build:win",
     "dev": "npm run build:renderer && NODE_ENV=development electron .",
     "test": "vitest",
+    "lint:css": "stylelint \"src/renderer/components/**/*.css\"",
     "baseline:q4": "node scripts/q4-baseline.js"
   },
   "author": "Pulse",
@@ -42,6 +43,8 @@
     "happy-dom": "^20.10.6",
     "jsdom": "^29.1.1",
     "png-to-ico": "^2.1.8",
+    "stylelint": "^15.11.0",
+    "stylelint-config-standard": "^34.0.0",
     "vitest": "^2.1.9"
   },
   "overrides": {

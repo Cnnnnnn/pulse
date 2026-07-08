@@ -67,6 +67,11 @@ jobs:
       - name: Run unit tests
         run: pnpm exec vitest --run
 
+      # ponytail: 2026-07-08 — 新 CSS stylelint 严格 (仅 src/renderer/components/**).
+      # 老 styles.css 与全局暂未强约束 (设计系统文档规范), 避免爆历史债.
+      - name: Lint component CSS
+        run: pnpm exec stylelint "src/renderer/components/**/*.css"
+
       - name: Build renderer bundle
         run: npm run build:renderer
 

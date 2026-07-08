@@ -1,0 +1,38 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "selector-class-pattern": null,
+    "no-descending-specificity": null,
+    "media-feature-range-notation": null,
+    "selector-not-notation": null,
+    "alpha-value-notation": null,
+    "color-function-notation": null,
+    "custom-property-empty-line-before": null,
+    "declaration-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "comment-empty-line-before": null,
+    "value-keyword-case": null,
+    "shorthand-property-no-redundant-values": null,
+    "no-duplicate-selectors": null,
+    "color-no-invalid-hex": true,
+    "color-named": "never"
+  },
+  "overrides": [
+    {
+      "files": ["src/renderer/components/**/*.css"],
+      "rules": {
+        "color-no-hex": true
+      }
+    },
+    {
+      "files": ["styles.css"],
+      "rules": {
+        "color-no-hex": null
+      }
+    }
+  ],
+  "ignoreFiles": [
+    "renderer-dist/**",
+    "node_modules/**"
+  ]
+}

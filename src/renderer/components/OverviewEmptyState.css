@@ -1,5 +1,8 @@
 /* src/renderer/components/OverviewEmptyState.css
- * v2.50 (T4): 首次启动 CTA. token 化颜色, 暗色兼容, reduced-motion.
+ * v2.50 (T4): 首次启动 CTA. 全 token 化, 暗色兼容, reduced-motion.
+ * ponytail: 2026-07-08 — stylelint 开启 color-no-hex, 这里 5 处 hex 全清:
+ *   - 4 处 var(--xxx, #fallback) 死 fallback (与 styles.css 同步)
+ *   - cta-button 文字用 var(--text-inverse) 取代 #fff
  */
 .overview-empty-state {
   display: flex;
@@ -18,19 +21,19 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: var(--text-primary, #1d1d1f);
+  color: var(--text-primary);
 }
 
 .empty-content p {
   font-size: 14px;
-  color: var(--text-secondary, #6e6e73);
+  color: var(--text-secondary);
   margin: 0 0 24px;
 }
 
 .cta-button {
   padding: 12px 32px;
-  background: var(--accent-primary, #007aff);
-  color: #fff;
+  background: var(--accent-primary);
+  color: var(--text-inverse);
   border: 0;
   border-radius: 8px;
   font-size: 14px;
@@ -40,7 +43,7 @@
 }
 
 .cta-button:hover {
-  background: var(--accent-primary-hover, #0066d6);
+  background: var(--accent-primary-hover);
 }
 
 .cta-button:disabled {
