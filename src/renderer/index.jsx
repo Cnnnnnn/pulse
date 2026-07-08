@@ -42,6 +42,7 @@ import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upg
 import { createAutoRecheck } from './auto-recheck.js';
 import { taggedLog } from './log.js';
 import { applyPlatformBodyClass } from './platform-body-class.js';
+import { initTheme } from './theme/theme-manager.js';
 
 const log = taggedLog("[index]");
 
@@ -240,6 +241,7 @@ function scheduleDeferredBootstrap(cfg) {
 
 async function bootstrap() {
   applyPlatformBodyClass();
+  initTheme();
 
   let cfg = { apps: [], check_on_launch: true };
   try {

@@ -109,8 +109,8 @@ svg:not([role="img"]) {
   --ease-ui: 0.18s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* 深色令牌: 由 theme-manager.js 写入 <html data-theme="dark"> 驱动 (支持手动切换) */
+:root[data-theme="dark"] {
     --bg-primary: rgba(30, 30, 30, 0.88);
     --bg-secondary: rgba(40, 40, 40, 0.9);
     --bg-elevated: #2c2c2e;
@@ -139,7 +139,6 @@ svg:not([role="img"]) {
     --chrome-bg: rgba(28, 28, 30, 0.94);
     --content-bg: #141416;
     --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.35);
-  }
 }
 
 /* ─── Platform: Windows (P4) ─── */
@@ -1217,16 +1216,15 @@ body.platform-win .window-control-btn--close:hover {
 .source-tag.source-redirect_filename,
 .source-tag.source-cursor_redirect  { background: var(--bg-hover); color: var(--text-tertiary); }
 
-@media (prefers-color-scheme: dark) {
-  .source-tag.source-brew_formulae,
-  .source-tag.source-brew_local_cask { background: rgba(255, 159, 10, 0.18); color: #ffb340; }
-  .source-tag.source-sparkle_appcast  { background: rgba(255, 69, 100, 0.18); color: #ff7a8a; }
-  .source-tag.source-app_store_lookup { background: rgba(10, 132, 255, 0.18); color: #4ea3ff; }
-  .source-tag.source-electron_yml     { background: rgba(48, 209, 88, 0.18); color: #5fdb7c; }
-  .source-tag.source-qclaw_api        { background: rgba(191, 90, 242, 0.18); color: #b56cff; }
-  .source-tag.source-app_update_yml   { background: rgba(48, 209, 88, 0.18); color: #5fdb7c; }
-  .source-tag.source-api_json         { background: rgba(100, 210, 255, 0.18); color: #7ccfff; }
-}
+/* 深色主题由 :root[data-theme="dark"] 驱动 (手动切换), .source-tag 组件深色配色 */
+:root[data-theme="dark"] .source-tag.source-brew_formulae,
+:root[data-theme="dark"] .source-tag.source-brew_local_cask { background: rgba(255, 159, 10, 0.18); color: #ffb340; }
+:root[data-theme="dark"] .source-tag.source-sparkle_appcast  { background: rgba(255, 69, 100, 0.18); color: #ff7a8a; }
+:root[data-theme="dark"] .source-tag.source-app_store_lookup { background: rgba(10, 132, 255, 0.18); color: #4ea3ff; }
+:root[data-theme="dark"] .source-tag.source-electron_yml     { background: rgba(48, 209, 88, 0.18); color: #5fdb7c; }
+:root[data-theme="dark"] .source-tag.source-qclaw_api        { background: rgba(191, 90, 242, 0.18); color: #b56cff; }
+:root[data-theme="dark"] .source-tag.source-app_update_yml   { background: rgba(48, 209, 88, 0.18); color: #5fdb7c; }
+:root[data-theme="dark"] .source-tag.source-api_json         { background: rgba(100, 210, 255, 0.18); color: #7ccfff; }
 
 .bulk-group-count {
   font-size: var(--font-size-xs, 11px);
@@ -3030,6 +3028,58 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-left: 8px;
 }
 
+/* ── 主题切换分段控件 (2026-07-08 UI 统一 + 深浅色手动切换) ── */
+.settings-row__label {
+  font-size: var(--font-size-md, 13px);
+  font-weight: 500;
+  color: var(--text-primary, #1d1d1f);
+  min-width: 56px;
+}
+.theme-segmented {
+  display: inline-flex;
+  padding: 2px;
+  gap: var(--space-2, 8px);
+  background: var(--bg-elevated, #e4e4e7);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+  border-radius: var(--radius-sm, 8px);
+}
+.theme-segmented-item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #555);
+  font-family: var(--font-family-primary, var(--font-system, -apple-system, system-ui, sans-serif));
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 500;
+  line-height: 1;
+  padding: 7px 16px;
+  border-radius: calc(var(--radius-sm, 8px) - 2px);
+  cursor: pointer;
+  transition: color var(--ease-ui, 0.18s ease), background var(--ease-ui, 0.18s ease),
+    box-shadow var(--ease-ui, 0.18s ease);
+}
+.theme-segmented-item:hover { color: var(--text-primary, #1d1d1f); }
+.theme-segmented-item:focus-visible {
+  outline: 2px solid var(--accent-primary, #007aff);
+  outline-offset: 2px;
+}
+.theme-segmented-item.is-active {
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1d1d1f);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.12));
+}
+:root[data-theme="dark"] .theme-segmented {
+  background: var(--bg-tertiary, #3a3a3c);
+  border-color: var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+:root[data-theme="dark"] .theme-segmented-item.is-active {
+  background: var(--bg-card, #48484a);
+  color: var(--text-primary, #f5f5f7);
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-segmented-item { transition: none; }
+}
+
 /* ── Phase Q6: Diagnostics drawer + ErrorBoundary ── */
 .diagnostics-overlay {
   position: fixed;
@@ -3187,7 +3237,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .diag-failure__count {
   font-weight: 700;
-  color: var(--accent, #4a90e2);
+  color: var(--accent-primary);
   min-width: 24px;
 }
 .diag-failure__source {
@@ -3201,7 +3251,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .diag-export__ok {
   margin-top: 6px;
   font-size: var(--font-size-xs, 11px);
-  color: var(--accent, #4a90e2);
+  color: var(--accent-primary);
 }
 .diag-export__ok code {
   font-family: var(--font-mono, monospace);
@@ -3947,10 +3997,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   transition: transform 200ms ease;
 }
 .side-nav-item-drop-before {
-  box-shadow: inset 0 2px 0 0 var(--accent, #4a90e2);
+  box-shadow: inset 0 2px 0 0 var(--accent-primary);
 }
 .side-nav-item-drop-after {
-  box-shadow: inset 0 -2px 0 0 var(--accent, #4a90e2);
+  box-shadow: inset 0 -2px 0 0 var(--accent-primary);
 }
 .sidenav-context-menu {
   border: 1px solid var(--bg-secondary, #e5e5ea);
@@ -4060,15 +4110,15 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .sidenav-hidden-row__restore {
   padding: 4px 10px;
-  border: 1px solid var(--accent, #4a90e2);
+  border: 1px solid var(--accent-primary);
   background: transparent;
-  color: var(--accent, #4a90e2);
+  color: var(--accent-primary);
   border-radius: 4px;
   cursor: pointer;
   font-size: var(--font-size-sm, 12px);
 }
 .sidenav-hidden-row__restore:hover {
-  background: var(--accent, #4a90e2);
+  background: var(--accent-primary);
   color: #fff;
 }
 .side-nav-hidden-toggle {
@@ -5002,7 +5052,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: var(--space-6, 24px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
   margin: 12px 0;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-elevated, #fafafa);
 }
@@ -5013,7 +5063,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .worldcup-bets-stat-label {
   font-size: var(--font-size-xs, 11px);
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -5034,8 +5084,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: var(--space-2, 8px) var(--space-3, 12px);
   margin-top: 8px;
   font-size: var(--font-size-md, 13px);
-  color: var(--text-secondary, #6b7280);
-  border-top: 1px dashed var(--border, #e5e7eb);
+  color: var(--text-secondary);
+  border-top: 1px dashed var(--border);
 }
 .day-bet-label {
   font-weight: 500;
@@ -5058,19 +5108,19 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .day-bet-actions button {
   font-size: var(--font-size-xs, 11px);
   padding: 2px 8px;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: transparent;
   cursor: pointer;
 }
-.day-bet-footer-empty { color: var(--text-tertiary, #9ca3af); }
+.day-bet-footer-empty { color: var(--text-tertiary); }
 .day-bet-unfilled-btn {
   font-size: var(--font-size-sm, 12px);
   padding: 4px 12px;
   border: 1px dashed var(--border, #d1d5db);
   border-radius: 4px;
   background: transparent;
-  color: var(--text-tertiary, #9ca3af);
+  color: var(--text-tertiary);
   cursor: pointer;
 }
 .day-bet-unfilled-btn:hover { color: var(--text-primary, #111); }
@@ -5078,7 +5128,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .day-bet-form {
   padding: var(--space-3, 12px);
   margin-top: 8px;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg-elevated, #fafafa);
 }
@@ -5091,7 +5141,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: flex;
   flex-direction: column;
   font-size: var(--font-size-xs, 11px);
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   gap: var(--space-1, 4px);
   flex: 1;
 }
@@ -5128,9 +5178,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   cursor: pointer;
 }
 .day-bet-form-actions button:first-child {
-  background: var(--accent, #3b82f6);
+  background: var(--accent-primary);
   color: #fff;
-  border-color: var(--accent, #3b82f6);
+  border-color: var(--accent-primary);
 }
 
 /* v2.10.1 Fix 8: 保存成功后整行闪绿 1s */
@@ -5942,8 +5992,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .fund-btn-ghost { background: transparent; }
 
 .fund-btn-active {
-  border-color: var(--accent, #007aff);
-  color: var(--accent, #007aff);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
   background: rgba(0, 122, 255, 0.08);
 }
 
@@ -7158,7 +7208,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: var(--accent, #ff3b30);
+  background: var(--accent-red);
   color: #fff;
   font-size: var(--font-size-10, 10px);
   font-weight: 600;
@@ -7166,7 +7216,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   text-align: center;
   box-sizing: border-box;
 }
-#btn-reminders.has-content svg { color: var(--accent, #ff3b30); }
+#btn-reminders.has-content svg { color: var(--accent-red); }
 
 /* ── RemindersModal / RecentActivityModal backdrop (portal → body) ── */
 .reminder-modal-backdrop,
@@ -7222,7 +7272,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .reminder-fired-pill {
   background: var(--accent-soft, #ffebea);
-  color: var(--accent, #ff3b30);
+  color: var(--accent-red);
 }
 .reminder-pending-pill {
   background: var(--bg-soft, #f0f0f3);
@@ -7318,7 +7368,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-top: 2px;
 }
 .reminder-fired-label {
-  color: var(--accent, #ff3b30);
+  color: var(--accent-red);
   font-weight: 500;
 }
 .reminder-row-actions {
@@ -7359,7 +7409,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .reminder-form input[type="text"]:focus,
 .reminder-form input[type="datetime-local"]:focus {
-  outline: 2px solid var(--accent, #ff3b30);
+  outline: 2px solid var(--accent-red);
   outline-offset: -1px;
   border-color: transparent;
 }
@@ -7382,7 +7432,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .reminder-radio input { margin: 0; }
 .reminder-form-error {
-  color: var(--accent, #ff3b30);
+  color: var(--accent-red);
   font-size: var(--font-size-sm, 12px);
   padding: 4px 0;
 }
@@ -7454,9 +7504,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   background: var(--bg-soft, #f7f7fa);
 }
 .recent-filter-pill.is-active {
-  background: var(--accent, #ff3b30);
+  background: var(--accent-red);
   color: #fff;
-  border-color: var(--accent, #ff3b30);
+  border-color: var(--accent-red);
 }
 .recent-modal-body {
   flex: 1;
@@ -7516,7 +7566,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .recent-count {
   font-weight: 500;
-  color: var(--accent, #ff3b30);
+  color: var(--accent-red);
 }
 .recent-time {
   font-size: var(--font-size-xs, 11px);
@@ -9940,7 +9990,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .fund-row-action-btn--active {
-  color: var(--accent, #007aff);
+  color: var(--accent-primary);
 }
 .watchlist-drawer__body {
   flex: 1;
@@ -10208,7 +10258,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .release-notes-wizard-dot.active {
   opacity: 1;
-  background: var(--accent, #007aff);
+  background: var(--accent-primary);
 }
 
 .release-notes-wizard-body {
@@ -10239,7 +10289,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   overflow-x: auto;
 }
 .release-notes-wizard-body a {
-  color: var(--accent, #007aff);
+  color: var(--accent-primary);
   text-decoration: none;
 }
 .release-notes-wizard-body a:hover { text-decoration: underline; }
@@ -11702,8 +11752,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   --stock-grid: rgba(0, 0, 0, 0.06);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* 深色令牌 (股票面板): 同上, 由 data-theme="dark" 驱动 */
+:root[data-theme="dark"] {
     --stock-up: #ff5b5b;
     --stock-down: #4cc26b;
     --stock-ma-5: #ffb84d;
@@ -11717,7 +11767,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
     --stock-divider: rgba(255, 255, 255, 0.08);
     --stock-tab-active-bg: #2a2a2f;
     --stock-grid: rgba(255, 255, 255, 0.06);
-  }
 }
 /* ===== end Stock Detail visual tokens ===== */
 
@@ -12192,16 +12241,20 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .ind-compare-row { display: flex; align-items: center; gap: 6px; }
 .ind-compare-mine { font-variant-numeric: tabular-nums; min-width: 38px; color: var(--text-primary, #1d1d1f); }
 .ind-compare-ind { font-variant-numeric: tabular-nums; color: var(--text-tertiary, #8e8e93); font-size: 10px; white-space: nowrap; }
-.ind-compare-track { position: relative; flex: 1; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: visible; }
-.ind-compare-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: 3px; background: var(--text-tertiary, #8e8e93); transition: width 0.2s; }
-.ind-compare-midmark { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--text-secondary, #6e6e73); }
-.ind-compare-mark { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--accent-primary, #007aff); border-radius: 1px; transform: translateX(-1px); }
+.ind-compare-track { position: relative; flex: 1; height: 8px; background: rgba(0,0,0,0.06); border-radius: 4px; overflow: visible; }
+.ind-compare-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: 4px; background: var(--text-tertiary, #8e8e93); transition: width 0.2s; }
+.ind-compare-midmark { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--text-secondary, #6e6e73); }
+/* ponytail 2026-07-08 — mark 从 2px 竖线改成 10x10 圆点 + 白边, 强对比
+   让 0% / 100% 一眼能看出当前位置. 圆点用 50% translate 居中, 跟 left=pct 配合. */
+.ind-compare-mark { position: absolute; top: -1px; width: 10px; height: 10px; background: var(--accent-primary, #007aff); border: 1.5px solid #fff; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.18); transform: translateX(-50%); }
 .ind-compare-val { font-size: 10px; color: var(--text-tertiary, #8e8e93); font-variant-numeric: tabular-nums; }
 .ind-compare-delta { font-size: 10px; color: var(--text-tertiary, #8e8e93); }
 .ind-compare-positive .ind-compare-fill { background: #34c759; }
 .ind-compare-cautious .ind-compare-fill { background: #ff9500; }
-.ind-compare-pct.ind-compare-positive .ind-compare-mark { background: #34c759; }
-.ind-compare-pct.ind-compare-cautious .ind-compare-mark { background: #ff9500; }
+/* ponytail 2026-07-08 — mark 配色跟 fill 同色 + 深一阶, 跟 track 对比强. 0% / 100% 一眼看出 */
+.ind-compare-pct.ind-compare-positive .ind-compare-mark { background: #2aa84a; }
+.ind-compare-pct.ind-compare-cautious .ind-compare-mark { background: #e08400; }
+.ind-compare-pct.ind-compare-neutral .ind-compare-mark { background: #5b5b62; }
 @media (max-width: 760px) {
   .module-grid { grid-template-columns: 1fr; }
 }
