@@ -10,6 +10,7 @@
 
 import { useEffect, useRef } from 'preact/hooks';
 import { IconFootball, IconRefresh, WorldcupTabIcon } from '../components/icons.jsx';
+import { SubtabList } from '../components/SubtabList.jsx';
 
 export function WorldcupHeader({
   subTab,
@@ -50,20 +51,22 @@ export function WorldcupHeader({
         </button>
       </div>
       <div class="worldcup-header-controls">
-        <div class="worldcup-subtabs">
-          {subTabs.map((t) => (
-            <button
-              key={t.key}
-              class={`worldcup-subtab${subTab === t.key ? ' worldcup-subtab-active' : ''}`}
-              onClick={() => onSubTabChange(t.key)}
-            >
+        <SubtabList
+          prefix="worldcup"
+          tabs={subTabs}
+          activeKey={subTab}
+          onChange={onSubTabChange}
+          ariaLabel="世界杯视图切换"
+        >
+          {(t) => (
+            <>
               <span class="worldcup-subtab-icon" aria-hidden="true">
                 <WorldcupTabIcon tabKey={t.key} />
               </span>
               <span class="worldcup-subtab-label">{t.label}</span>
-            </button>
-          ))}
-        </div>
+            </>
+          )}
+        </SubtabList>
         <input
           ref={inputRef}
           id="worldcup-search-input"

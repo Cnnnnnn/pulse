@@ -11,6 +11,7 @@ import {
 } from "./store.js";
 import { currentMonthLabel, favoriteCount } from "./news-utils.js";
 import { IconNews, IconRefresh, IconCalendar, IconStar } from "../components/icons.jsx";
+import { SubtabList } from "../components/SubtabList.jsx";
 
 const SUBTABS = [
   { key: "news", label: "本月新闻", Icon: IconCalendar },
@@ -68,28 +69,24 @@ export function NewsHeader({
         )}
       </div>
       <div class="ithome-header-controls">
-        <div class="ithome-subtabs">
-          {SUBTABS.map((t) => {
-            const active =
-              (t.key === "news" && !isFavorites) ||
-              (t.key === "favorites" && isFavorites);
+        <SubtabList
+          prefix="ithome"
+          tabs={SUBTABS}
+          activeKey={isFavorites ? "favorites" : "news"}
+          onChange={(k) => setIthomeViewMode(k)}
+          ariaLabel="IT 新闻视图切换"
+        >
+          {(t) => {
             const label =
-              t.key === "favorites" && favTotal > 0
-                ? `${t.label} (${favTotal})`
-                : t.label;
+              t.key === "favorites" && favTotal > 0 ? `${t.label} (${favTotal})` : t.label;
             return (
-              <button
-                key={t.key}
-                type="button"
-                class={`ithome-subtab${active ? " ithome-subtab-active" : ""}`}
-                onClick={() => setIthomeViewMode(t.key)}
-              >
+              <>
                 <span class="ithome-subtab-icon"><t.Icon size={14} /></span>
                 <span class="ithome-subtab-label">{label}</span>
-              </button>
+              </>
             );
-          })}
-        </div>
+          }}
+        </SubtabList>
         <input
           id="ithome-search-input"
           class="ithome-search-input"

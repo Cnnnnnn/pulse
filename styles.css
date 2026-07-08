@@ -152,7 +152,6 @@ svg:not([role="img"]) {
     --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.35);
 }
 
-/* ─── Platform: Windows (P4) ─── */
 /* Win11: Electron backgroundMaterial='acrylic' 在 main 端处理, 透明背景. */
 /* Win10: backgroundMaterial 被忽略, 走 fallback 纯色. */
 /* v2.27: 重新设计配色 — 纯中性石墨灰 (去紫调) + 天青蓝强调, 贴合 Win11 Mica 原生质感.
@@ -162,7 +161,6 @@ body.platform-win {
   /* Windows 用系统原生字体 (Segoe UI / 微软雅黑), 不用 mac 的 -apple-system */
   --font-system: var(--font-windows);
 
-  /* ── 层次结构: 由暗到亮, 卡片浮起 (alpha 给 Win11 acrylic 透出) ── */
   /* 内容区: 最深中性石墨灰 (无紫无蓝, 纯灰) */
   --content-bg: #202020;
   /* chrome (侧栏/titlebar): 亮一档, 跟内容区拉开层次 */
@@ -181,13 +179,11 @@ body.platform-win {
   --bg-section: rgba(255, 255, 255, 0.04);
   --hover-soft: rgba(255, 255, 255, 0.06);
 
-  /* ── 边框: 中性, 不带紫蓝调 ── */
   --border: rgba(255, 255, 255, 0.10);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-light: rgba(255, 255, 255, 0.05);
   --border-soft: rgba(255, 255, 255, 0.08);
 
-  /* ── 文字: 高对比中性, 旧值太灰看不清 ── */
   --text-primary: #ededed;
   --text-secondary: #b8b8b8;
   --text-tertiary: #8a8a8a;
@@ -196,8 +192,6 @@ body.platform-win {
      Win 上调成浅色透明白, 跟 --text-secondary 同档对比度. */
   --text-soft: rgba(255, 255, 255, 0.72);
 
-  /* ── 强调色: Win11 天青蓝, 在中性灰底上更通透统一 ──
-     (链接 / 图标 / focus / 选中态边框) */
   --accent-primary: #4cc2ff;
   --accent-blue: #4cc2ff;
   --accent-fund: #4cc2ff;
@@ -245,7 +239,6 @@ body.platform-win .ithome-panel-empty-hint {
   font-size: var(--font-size-sm);
 }
 
-/* ─── Reset ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 /* 全局关掉浏览器默认的键盘 focus outline, 鼠标点击流程会留下黑色框
    影响视觉. 键盘可达性靠按钮 hover 颜色 + tabindex 顺序保持. */
@@ -259,7 +252,6 @@ body {
   user-select: none;
 }
 
-/* ─── Title Bar (拖拽区域) ─── */
 #titlebar {
   height: 28px;
   -webkit-app-region: drag;
@@ -300,7 +292,6 @@ body.platform-win .window-control-btn--close:hover {
   color: #ffffff;
 }
 
-/* ─── App 容器 ─── */
 #app {
   display: flex;
   flex-direction: column;
@@ -308,7 +299,6 @@ body.platform-win .window-control-btn--close:hover {
   padding-top: 28px;
 }
 
-/* ─── Header ─── */
 #header {
   position: relative;
   z-index: 1;
@@ -339,7 +329,6 @@ body.platform-win .window-control-btn--close:hover {
   align-items: center;
 }
 
-/* ─── 按钮 ─── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -385,7 +374,6 @@ body.platform-win .window-control-btn--close:hover {
   pointer-events: none;
 }
 
-/* ─── Content ─── */
 #content {
   flex: 1;
   overflow: hidden;
@@ -402,7 +390,6 @@ body.platform-win .window-control-btn--close:hover {
 }
 #content::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
 
-/* ─── Section 分组 ─── */
 .section {
   animation: fadeSlideIn 0.3s ease;
 }
@@ -436,7 +423,6 @@ body.platform-win .window-control-btn--close:hover {
   margin-left: auto;
 }
 
-/* ─── App Row ─── */
 .app-row {
   display: flex;
   align-items: center;
@@ -623,7 +609,6 @@ body.platform-win .window-control-btn--close:hover {
   flex-shrink: 0;
 }
 
-/* ─── Status Badge ─── */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -662,7 +647,6 @@ body.platform-win .window-control-btn--close:hover {
   color: var(--accent-blue);
 }
 
-/* ─── Upgrade Button (行内) ─── */
 .btn-upgrade-row {
   padding: var(--space-1q) 12px;
   font-size: var(--font-size-sm);
@@ -681,7 +665,6 @@ body.platform-win .window-control-btn--close:hover {
 .btn-upgrade-row:active { transform: scale(0.95); }
 .btn-upgrade-row:disabled { opacity: 0.4; pointer-events: none; }
 
-/* ─── LibraryPage 检查更新主按钮 (2026-06-27) ─── 比 upgrade-row 更醒目, 作页面主操作 */
 .btn-run-check {
   display: inline-flex;
   align-items: center;
@@ -702,17 +685,6 @@ body.platform-win .window-control-btn--close:hover {
 .btn-run-check:active { transform: scale(0.96); }
 .btn-run-check:disabled { opacity: 0.5; pointer-events: none; }
 
-/* ─── LibraryPage 布局 (2026-06-27; 2026-07-03 修滚动穿透) ───
-   .app-shell-view:has(>.versions-layout) 把父级设成 overflow:hidden + flex 列.
-   LibraryPage 接管滚动职责:
-     .library-page = flex 列容器 (不自身滚动),
-     PageHeader + MergedFilterChip = flex-shrink:0 自然钉顶,
-     .library-list-scroll = 唯一 overflow-y:auto 的滚动主体.
-
-   ponytail: 旧实现用 position:sticky + top:var(--page-header-h) 把 header/
-   搜索栏钉顶, 但 --page-header-h 全项目从未定义 → 退回 auto → sticky 阈值失效,
-   搜索栏与 PageHeader 同钉 top:0 互相覆盖, 滚动时"穿透"浮在最上层. 改用 flex
-   让 header/搜索栏成为非滚动 flex 项, 彻底消除"量高度"的脆弱性. */
 .library-page {
   flex: 1;
   min-height: 0;
@@ -731,12 +703,6 @@ body.platform-win .window-control-btn--close:hover {
   overflow-y: auto;
 }
 
-/* ─── DiagnosticsPage / InsightsPage / SettingsPage 布局 (2026-07-03) ───
-   这三个 versions-layout 下的路由页此前无任何布局 CSS, 在 flex column 父容器
-   (.versions-layout) 里是默认 flex 项 (flex:0 1 auto), 被内容撑高后顶部对齐
-   但底部被祖先 overflow:hidden 截断 → 看不到底部、无滚动条. 补成跟 .library-page
-   同款的 flex:1 + min-height:0 + overflow-y:auto, 让整页可滚动.
-   (PageHeader 不需 sticky: 这些页 header 简单, 直接随页滚走即可, 不影响交互.) */
 .diagnostics-page,
 .insights-page,
 .settings-page {
@@ -752,7 +718,6 @@ body.platform-win .window-control-btn--close:hover {
   flex-shrink: 0;
 }
 
-/* ─── Phase 14: Action group (ℹ️ + 升级/badge 并排) ─── */
 .app-action-group {
   display: flex;
   align-items: center;
@@ -760,7 +725,6 @@ body.platform-win .window-control-btn--close:hover {
   flex-shrink: 0;
 }
 
-/* ─── Phase 14: Changelog inline panel ─── */
 .changelog-panel {
   flex-basis: 100%;          /* 跨整行 */
   margin-top: 8px;
@@ -832,7 +796,6 @@ body.platform-win .window-control-btn--close:hover {
   font-style: normal;
 }
 
-/* ─── Phase 18: 版本标签 + 历史 tab ─── */
 .changelog-version-label {
   font-size: var(--font-size-xs);
   font-weight: 600;
@@ -880,7 +843,6 @@ body.platform-win .window-control-btn--close:hover {
   border-color: var(--accent-blue);
 }
 
-/* ─── Phase 19: Weekly Banner (周报) ─── */
 .weekly-banner {
   display: flex;
   align-items: center;
@@ -905,7 +867,6 @@ body.platform-win .window-control-btn--close:hover {
   font-weight: 600;
 }
 
-/* ─── Skeleton Loading ─── */
 .skeleton-container { padding: 16px 24px; }
 
 .skeleton-section { margin-bottom: 20px; }
@@ -960,7 +921,6 @@ body.platform-win .window-control-btn--close:hover {
   100% { opacity: 0.5; }
 }
 
-/* ─── Empty State ─── */
 .empty-state .empty-title,
 .empty-state p.empty-title {
   margin: 0 0 4px;
@@ -982,7 +942,6 @@ body.platform-win .window-control-btn--close:hover {
 
 .empty-icon { font-size: 48px; margin-bottom: 12px; }
 
-/* ─── Footer ─── */
 #footer {
   display: flex;
   justify-content: space-between;
@@ -997,7 +956,6 @@ body.platform-win .window-control-btn--close:hover {
 
 .footer-right { display: flex; gap: var(--space-1); }
 
-/* ─── Checking Spinner ─── */
 .spinner {
   display: inline-block;
   width: 14px;
@@ -1012,7 +970,6 @@ body.platform-win .window-control-btn--close:hover {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─── Error Banner (整轮 check 失败) ─── */
 .error-banner {
   display: flex;
   align-items: center;
@@ -1044,10 +1001,8 @@ body.platform-win .window-control-btn--close:hover {
   margin-top: 4px !important;
 }
 
-/* ─── Results container ─── */
 .results-container { padding-bottom: 8px; }
 
-/* ─── 启动前白屏兜底 (Preact 接管前的临时占位) ─── */
 .boot-skeleton {
   display: flex;
   flex-direction: column;
@@ -1072,7 +1027,6 @@ body.platform-win .window-control-btn--close:hover {
 }
 .boot-skeleton-line.short { width: 60%; }
 
-/* ─── 响应式 ─── */
 @media (max-width: 640px) {
   #header { flex-direction: column; gap: var(--space-3); }
   .header-right { width: 100%; }
@@ -1186,8 +1140,6 @@ body.platform-win .window-control-btn--close:hover {
   flex-shrink: 0;
 }
 
-/* ─── Group (per source) ─── */
-
 .bulk-group {
   padding: 4px 20px 12px;
 }
@@ -1249,8 +1201,6 @@ body.platform-win .window-control-btn--close:hover {
   gap: 2px;
 }
 
-/* ─── Row ─── */
-
 .bulk-row {
   display: grid;
   grid-template-columns: 20px 1fr auto 24px auto;
@@ -1305,8 +1255,6 @@ body.platform-win .window-control-btn--close:hover {
   min-width: 80px;
   text-align: right;
 }
-
-/* ─── Status colors ─── */
 
 .bulk-row.status-running .bulk-status-icon { color: var(--accent-blue); animation: pulse 1.2s ease-in-out infinite; }
 .bulk-row.status-running .bulk-status-text { color: var(--accent-blue); }
@@ -1491,8 +1439,6 @@ body.platform-win .window-control-btn--close:hover {
   font-size: var(--font-size-lg);
   margin: 0;
 }
-
-/* ─── Phase 27: Per-app Mute ─────────────────────────── */
 
 /* Muted app row: 整体灰显, 但保持可读 (opacity 不是 0)
    用户右键 → "取消静音" 还能操作 */
@@ -2042,8 +1988,6 @@ body.platform-win .window-control-btn--close:hover {
 .drawer-footer-text-link:hover {
   color: #0a84ff;
 }
-/* ── SessionCard (drawer 里的核心单元) ── */
-
 .digest-workbench-hero {
   display: flex;
   flex-direction: column;
@@ -2465,8 +2409,6 @@ body.platform-win .window-control-btn--close:hover {
     linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.96));
 }
 
-/* ── Phase B6d: AI Sessions Settings (modal + ⚙️ button) ── */
-
 /* ⚙️按钮 (Header右侧,BulkUpgradeButton后) */
 .btn-icon {
  padding: 6px 8px;
@@ -2841,7 +2783,6 @@ body.platform-win .window-control-btn--close:hover {
  }
 }
 
-/* ── Phase B7a: Backfill progress ── */
 .backfill-progress {
  display: inline-flex;
  align-items: center;
@@ -2866,7 +2807,6 @@ body.platform-win .window-control-btn--close:hover {
  to { transform: rotate(360deg); }
 }
 
-/* ── Phase B7b.1: Toast notifications ── */
 .toast-container {
  position: fixed;
  top:60px;
@@ -2914,7 +2854,6 @@ body.platform-win .window-control-btn--close:hover {
 body.platform-win .toast-warn { background: rgba(245, 158, 11, 0.14); }
 body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
-/* ── Phase Q8: state.json corruption self-recovery banner ── */
 .state-recovered-banner {
   position: fixed;
   top: 12px;
@@ -2940,7 +2879,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   opacity: 0.85;
 }
 
-/* ── Phase I1+I5: Daily Digest drawer + settings ── */
 .digest-drawer {
   position: fixed;
   top: 0;
@@ -3039,7 +2977,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-left: 8px;
 }
 
-/* ── 主题切换分段控件 (2026-07-08 UI 统一 + 深浅色手动切换) ── */
 .settings-row__label {
   font-size: var(--font-size-md);
   font-weight: 500;
@@ -3091,76 +3028,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   .theme-segmented-item { transition: none; }
 }
 
-/* ── Phase Q6: Diagnostics drawer + ErrorBoundary ── */
-.diagnostics-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0);
-  pointer-events: none;
-  transition: background 200ms ease;
-  z-index: var(--z-index-drawer-overlay);
-}
-.diagnostics-overlay.visible {
-  background: rgba(0, 0, 0, 0.18);
-  pointer-events: auto;
-}
 
-.diagnostics-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 480px;
-  max-width: 90vw;
-  background: var(--bg-primary);
-  border-left: 1px solid var(--bg-secondary);
-  box-shadow: -4px 0 12px rgba(0,0,0,0.08);
-  z-index: var(--z-index-drawer);
-  display: flex;
-  flex-direction: column;
-  font-size: var(--font-size-md);
-  color: var(--text-primary);
-}
-.diagnostics-drawer__header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1h);
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--bg-secondary);
-  min-height: 44px;
-}
-.diagnostics-drawer__header .btn-sm {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-}
-.diagnostics-drawer__title {
-  font-weight: 600;
-  font-size: var(--font-size-lg);
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.diagnostics-drawer__close {
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  font-size: var(--font-size-3xl);
-  line-height: 1;
-  color: var(--text-tertiary);
-  padding: 0;
-  margin-left: 6px;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-}
-.diagnostics-drawer__close:hover { color: var(--text-primary); background: var(--bg-hover); }
 .diag-self-update {
   display: flex; align-items: center; gap: var(--space-2);
   flex-wrap: wrap;
@@ -3172,27 +3040,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: var(--font-size-sm);
 }
 .diag-self-update-info { flex: 1 1 160px; min-width: 0; }
-.diagnostics-drawer__stats {
-  padding: var(--space-1h) var(--space-3);
-  font-size: var(--font-size-sm);
-  color: var(--text-tertiary);
-  border-bottom: 1px solid var(--bg-secondary);
-}
-.diagnostics-drawer__body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-1h) var(--space-3);
-}
-.diagnostics-drawer__loading,
-.diagnostics-drawer__empty {
-  color: var(--text-tertiary);
-  padding: 24px 0;
-  text-align: center;
-}
-.diagnostics-drawer__footer {
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--bg-secondary);
-}
 
 /* Phase Q1 v2: diagnostics sections (startup / metrics / top-5 / exports) */
 .diag-section {
@@ -3471,7 +3318,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-bottom: 12px;
 }
 
-/* ── Phase C2: Snooze menu (per-app "等下次再升") ── */
 .snooze-menu {
   position: absolute;
   z-index: 50;
@@ -3600,8 +3446,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .row-overflow-dropdown button:hover { background: var(--bg-elevated); }
 
-/* ── v2: Per-app Phase 状态样式 ── */
-
 /* 等待检测: 轻微透明, 灰色文字 */
 .app-row--pending {
   opacity: 0.55;
@@ -3645,8 +3489,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-width: 1.5px;
   margin-right: 0;
 }
-
-/* ─── AI 任务抽屉 (重做版: 日期切换 + 按应用分组 + 任务卡) ─────────── */
 
 .ai-tasks-date-row {
   display: flex;
@@ -3791,8 +3633,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: var(--space-2h);
   margin-top: 8px;
 }
-
-/* ─── v2.9.0 AppShell + SideNav (180↔40 折叠) ─────────────────────────── */
 
 #content {
   display: flex;
@@ -4174,8 +4014,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: var(--space-4) var(--space-5);
 }
 
-/* ─── v2.9.0 WorldcupView (section by day) ─────────────────────────── */
-
 .worldcup-view {
   display: flex;
   flex-direction: column;
@@ -4405,8 +4243,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-secondary);
 }
 
-/* ─── v2.9.1 WorldcupHeader (独立顶部, 品牌 + 子 tab + 搜索) ─────────────────────────── */
-
 .worldcup-layout {
   display: flex;
   flex-direction: column;
@@ -4531,8 +4367,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 16px var(--page-padding) 24px;
   background: var(--content-bg);
 }
-
-/* ─── v2.9.2 WorldcupTeamsView (球队列表) ─────────────────────────── */
 
 .worldcup-teams-view {
   display: flex;
@@ -4699,8 +4533,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* ─── SquadModal (v2.9.7 修) ─── */
 
 .modal-squad {
   width: min(1180px, calc(100vw - 56px));
@@ -5213,7 +5045,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .positive { color: var(--color-up); }
 .negative { color: var(--color-down); }
 
-/* ─── 侧栏 AI 配置 ─── */
 .side-nav-footer {
   flex-shrink: 0;
   padding: 8px 0 12px;
@@ -5237,7 +5068,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .side-nav-collapsed .side-nav-setup-dot { top: 4px; right: 4px; }
 
-/* ─── I6: SideNav 未读角标 (ithome) ─── */
 .side-nav-badge {
   position: absolute;
   top: 50%;
@@ -5260,7 +5090,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   right: 2px;             /* 折叠态: 40px 窄栏, 锚定 button 右上 */
 }
 
-/* ─── App shell: 基金全宽 ─── */
 .app-shell-view:has(> .fund-layout),
 .app-shell-view:has(> .versions-layout),
 .app-shell-view:has(> .worldcup-layout),
@@ -5271,7 +5100,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   flex-direction: column;
 }
 
-/* ─── 版本检查 layout ─── */
 .versions-layout {
   display: flex;
   flex-direction: column;
@@ -5340,7 +5168,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-secondary);
 }
 
-/* ─── WorldcupHeader 刷新 ─── */
 .worldcup-header-brand {
   display: flex;
   align-items: center;
@@ -5379,7 +5206,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   animation: spin 0.8s linear infinite;
 }
 
-/* ─── MatchCard 增强 ─── */
 .match-card--live {
   border-color: rgba(229, 57, 53, 0.4);
   background: rgba(229, 57, 53, 0.05);
@@ -5624,7 +5450,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .match-ai-error { margin: 8px 0 0; font-size: var(--font-size-sm); color: #e53935; }
 
-/* ─── 射手榜 ─── */
 .worldcup-scorers-view {
   display: flex;
   flex-direction: column;
@@ -5762,7 +5587,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .worldcup-scorers-pen { margin-left: 4px; font-size: var(--font-size-xs); color: var(--text-tertiary); }
 
-/* ─── 基金管理 ─── */
 .fund-layout {
   display: flex;
   flex-direction: column;
@@ -6586,7 +6410,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .fund-pnl-summary-value.negative,
 .fund-row-stat-value.negative { color: var(--color-down); }
 
-/* ─── IT 新闻 (IT之家) — 侧栏日期 + 列表 ─── */
 .ithome-layout {
   display: flex;
   flex-direction: column;
@@ -7229,13 +7052,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 #btn-reminders.has-content svg { color: var(--accent-red); }
 
-/* ── RemindersModal / RecentActivityModal backdrop (portal → body) ── */
 .reminder-modal-backdrop,
 .recent-modal-backdrop {
   z-index: var(--z-index-modal-stack);
 }
 
-/* ── RemindersModal ── */
 .reminder-modal {
   width: 480px;
   max-width: calc(100vw - 48px);
@@ -7454,7 +7275,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-top: 4px;
 }
 
-/* ── RecentActivityModal ── */
 .recent-modal {
   width: 520px;
   max-width: calc(100vw - 48px);
@@ -7586,7 +7406,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   white-space: nowrap;
 }
 
-/* ── ConfirmDialog (portal → body) ── */
 .confirm-dialog-backdrop {
   z-index: var(--z-index-confirm); /* 比 reminder/recent modal 高一档 */
 }
@@ -7619,8 +7438,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 
-
-/* ─── AI 用量页面 ──────────────────────────────────────────── */
 
 .ai-usage-layout {
   display: flex;
@@ -9277,7 +9094,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   opacity: 0.5;
 }
 
-/* ─── A7: Prompt 模板设置 ─── */
 .prompt-settings { padding: 12px 0; }
 .prompt-settings-title { font-size: var(--font-size-lg); font-weight: 600; margin: 0 0 4px; }
 .prompt-settings-hint { font-size: var(--font-size-xs); color: var(--text-soft, rgba(0,0,0,.5)); margin: 0 0 12px; }
@@ -9672,7 +9488,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: rgb(185, 28, 28);
 }
 
-/* ─── Tray 菜单配置 modal (Phase v1) ────────────────────────────── */
 .tray-config-modal {
   width: 440px;
   max-width: 92vw;
@@ -9732,7 +9547,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-top: 20px;
 }
 
-/* ─── A3: 全文搜索 Cmd+K ─── */
 .search-modal-overlay {
   position: fixed; inset: 0; z-index: var(--z-index-search);
   background: rgba(0, 0, 0, 0.4);
@@ -9833,100 +9647,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   50% { background-color: rgba(255, 214, 10, 0.2); }
 }
 
-/* ── I2 v1: Watchlist drawer (mirrors DiagnosticsDrawer) ── */
-.watchlist-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0);
-  pointer-events: none;
-  transition: background 0.15s ease;
-  z-index: var(--z-index-drawer-overlay);
-}
-.watchlist-overlay.visible {
-  background: rgba(0, 0, 0, 0.18);
-  pointer-events: auto;
-}
 
-/* Version history drawer (rollback) */
-.version-history-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0);
-  pointer-events: none;
-  transition: background 0.15s ease;
-  z-index: var(--z-index-drawer-overlay);
-}
-.version-history-overlay.visible {
-  background: rgba(0, 0, 0, 0.18);
-  pointer-events: auto;
-}
-.version-history-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 480px;
-  max-width: 90vw;
-  background: var(--bg-primary);
-  border-left: 1px solid var(--bg-secondary);
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
-  z-index: var(--z-index-drawer);
-  display: flex;
-  flex-direction: column;
-  font-size: var(--font-size-md);
-  color: var(--text-primary);
-}
-.version-history-drawer__header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1h);
-  padding: 10px var(--space-3);
-  border-bottom: 1px solid var(--bg-secondary);
-  min-height: 44px;
-}
-.version-history-drawer__title {
-  font-weight: 600;
-  font-size: var(--font-size-lg);
-  flex: 1;
-}
-.version-history-drawer__close {
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  font-size: var(--font-size-3xl);
-  line-height: 1;
-  color: var(--text-tertiary);
-  padding: 0;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-}
-.version-history-drawer__stats {
-  padding: 6px var(--space-3);
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--bg-secondary);
-}
-.version-history-drawer__body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-2) var(--space-3);
-}
-.version-history-drawer__empty,
-.version-history-drawer__loading {
-  color: var(--text-tertiary);
-  padding: 24px 0;
-  text-align: center;
-}
-.version-history-drawer__footer {
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--bg-secondary);
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
 
 .watchlist-drawer {
   position: fixed;
@@ -10319,7 +10040,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: var(--space-2);
 }
 
-/* ── 选股分析 (阶段一) ── */
 /* ponytail: 整个 stock 区之前用 --surface-2 / --surface 当 fallback, 这些是深色主题 token,
   浅色主题下 fallback 走 #2c2c2e / #1c1c1e 显示成黑块. 改用 --bg-card / --bg-elevated / --bg-tertiary
   (浅色主题是白/浅灰, 深色主题是 44/46/47), 双主题下都协调.

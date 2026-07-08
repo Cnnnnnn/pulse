@@ -128,7 +128,11 @@ dotColor: '#c7c7cc' // ❌ 偏离 --text-tertiary(#aeaeb2)，自成一套浅灰
 ### 🟡 P2 · 次要级（下一轮修复）
 
 - **P2-1 间距散落奇值**：主流为 4px 栅格（含 6/10/14 半步），但仍有 `7px(16次)/5px(14次)/9px(4次)/26px/22px/34px/30px` 等越界值 → 统一到 `--space-*` 阶梯。
-- **P2-2 组件重复实现**：11 个股票诊断 Card（`stocks/diagnosis/` 下 VerdictCard/CapitalFlowCard/...）、多套 feature Header（News/Fund/Metal/Worldcup/WechatHot）、多套 Layout（App/Fund/Metal/News/Worldcup/Stock）、多个 Tabs 实现（`CategoryTabs` 同名重复、`FundMainTabs`、`TabList`、`ViewSwitcher`）→ 收敛为共享 `Card`/`PageHeader`/`FeatureLayout`/`Tabs`。
+- **P2-2 组件重复实现**：11 个股票诊断 Card（`stocks/diagnosis/` 下 VerdictCard/CapitalFlowCard/...）、多套 feature Header（News/Fund/Metal/Worldcup/WechatHot）、多套 Layout（App/Fund/Metal/News/Worldcup/Stock）、多个 Tabs 实现（`FundMainTabs`、`TabList`、`ViewSwitcher`）→ 收敛为共享 `Card`/`PageHeader`/`FeatureLayout`/`Tabs`。
+
+  > 勘误：原文中"`CategoryTabs` 同名重复"有误。仓库内仅 `funds/CategoryTabs.jsx` 一份 `CategoryTabs` 实现，无重复。
+
+- **P2-2a ModuleCard 抽取**（已落地，P2）：新建 `src/renderer/stocks/diagnosis/ModuleCard.jsx`，统一 9 张诊断卡（CapitalFlow/CorporateEvents/EarningsForecast/Fundamentals/News/PeerCompare/Risk/Shareholders/Tech/Valuation）的外壳；`VerdictCard` 语义独立保留不统一。预计消 ~110 行重复。
 - **P2-3 `useIcon.js` 彩虹渐变**：10+ 条 `linear-gradient` 用于生成 App 图标，合法但建议集中为 `ICON_GRADIENTS` 常量表，避免未来漂移。
 - **P2-4 行高单位混杂**：`1/1.5/1.6/1.4/1.2` 与个别 `18px` 像素行高并存 → 统一为无单位比例令牌。
 
