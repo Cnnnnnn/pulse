@@ -7,13 +7,14 @@
  * ponytail: 不引图表库. 30 点以内 path 性能可忽略.
  *          ceiling: 上 50 点仍 OK, 超 1000 改 canvas.
  */
+// P5: 默认颜色走 CSS 变量, 三主题感知一致.
 export function SparklineArea({
   closes,
   width = 280,
   height = 80,
-  upColor = "#34c759",
-  downColor = "#ff3b30",
-  flatColor = "#8e8e93",
+  upColor = "var(--accent-green)",
+  downColor = "var(--accent-red)",
+  flatColor = "var(--accent-gray)",
   showEndpoints = true,
 }) {
   if (!Array.isArray(closes) || closes.length < 2) return null;

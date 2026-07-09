@@ -100,7 +100,7 @@ function groupTasksByApp(tasks) {
     groups.push({
       appName: app,
       label: APP_LABEL[app] || app,
-      color: APP_COLOR[app] || '#6b7280',
+      color: APP_COLOR[app] || 'var(--gray-500)',
       tasks: list,
     });
   }

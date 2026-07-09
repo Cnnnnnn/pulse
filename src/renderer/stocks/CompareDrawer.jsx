@@ -26,8 +26,17 @@ import {
   DIM_KEYS,
 } from "./comparePool.js";
 
+// P5: 返回 CSS 变量字符串 (而非 hex), 让三主题下颜色随 --accent-* 走.
 const COLOR = (s) =>
-  s == null ? "#d8d8de" : s >= 7 ? "#34c759" : s >= 5 ? "#007aff" : s >= 3 ? "#ff9500" : "#ff3b30";
+  s == null
+    ? "var(--gray-200)"
+    : s >= 7
+      ? "var(--accent-green)"
+      : s >= 5
+        ? "var(--accent-primary)"
+        : s >= 3
+          ? "var(--accent-orange)"
+          : "var(--accent-red)";
 
 // ponytail 2026-07-08 D-5: 市值 (元) 紧凑展示 — 大额 → 亿元, 小额 → 千万.
 function formatMarketCap(yuan) {

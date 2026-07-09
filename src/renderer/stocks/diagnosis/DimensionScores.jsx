@@ -14,7 +14,17 @@ const DIMS = [
   ["tech", "技术"],
   ["risk", "风险"],
 ];
-const COLOR = (s) => (s == null ? "#d8d8de" : s >= 7 ? "#34c759" : s >= 5 ? "#007aff" : s >= 3 ? "#ff9500" : "#ff3b30");
+// P5: 返回 CSS 变量, 走 token 体系 (--gray-200 / --accent-*).
+const COLOR = (s) =>
+  s == null
+    ? "var(--gray-200)"
+    : s >= 7
+      ? "var(--accent-green)"
+      : s >= 5
+        ? "var(--accent-primary)"
+        : s >= 3
+          ? "var(--accent-orange)"
+          : "var(--accent-red)";
 
 export function DimensionScores({ scores }) {
   const dims = scores?.dimensions || {};

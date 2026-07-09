@@ -7,13 +7,15 @@
  * ponytail: 不引图表库. 30 点以内 polyline 性能可忽略.
  *          不做 hover/tooltip/animation/平滑曲线 — sparkline 的价值是一眼.
  */
+// P5: 默认颜色走 CSS 变量 (--accent-green / --accent-red / --accent-gray),
+// 让 sparkline 颜色随主题切换. SVG 接受 var() 作 fill/stroke.
 export function Sparkline({
   closes,
   width = 100,
   height = 30,
-  upColor = "#34c759",
-  downColor = "#ff3b30",
-  flatColor = "#8e8e93",
+  upColor = "var(--accent-green)",
+  downColor = "var(--accent-red)",
+  flatColor = "var(--accent-gray)",
 }) {
   if (!Array.isArray(closes) || closes.length === 0) return null;
 
