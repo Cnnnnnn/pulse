@@ -18,7 +18,8 @@ const VALID = ["system", "light", "dark"];
 let lastThemeMode = "system"; // 主进程内存, 重启时重置为 system.
 
 function resolveTheme(mode) {
-  if (mode === "system") return nativeTheme.shouldUseDarkColors ? "dark" : "light";
+  if (mode === "system")
+    return nativeTheme.shouldUseDarkColors ? "dark" : "light";
   return mode === "dark" ? "dark" : "light";
 }
 
@@ -30,7 +31,9 @@ function registerThemeHandlers(ctx) {
   nativeTheme.on("updated", () => {
     if (lastThemeMode === "system") {
       const resolved = resolveTheme("system");
-      mainLog.info(`[theme] nativeTheme updated → system mode resolved = ${resolved}`);
+      mainLog.info(
+        `[theme] nativeTheme updated → system mode resolved = ${resolved}`,
+      );
       if (typeof sendToRenderer === "function") {
         sendToRenderer("theme:changed", { mode: "system", resolved });
       }

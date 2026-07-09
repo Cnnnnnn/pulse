@@ -734,9 +734,10 @@ function startSchedulers(pushWorldcupToTray) {
     onScoresChanged: (newScores) => {
       pushWorldcupToTray();
       try {
-        const keys = newScores && Array.isArray(newScores._updatedKeys)
-          ? newScores._updatedKeys
-          : null;
+        const keys =
+          newScores && Array.isArray(newScores._updatedKeys)
+            ? newScores._updatedKeys
+            : null;
         sendToRenderer("worldcup:scores-updated", {
           ts: Date.now(),
           updatedKeys: keys,
