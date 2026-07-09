@@ -25,7 +25,6 @@ import {
   toggleNavCollapsed,
   effectiveVisibleItems,
 } from '../worldcup/navStore.js';
-import { openAISettings, needsConfig, aiSessionsConfig, aiKeyStatus } from '../store.js';
 import { ithomeUnreadBadge } from '../ithome/store.js';
 import { wechatHotUnreadBadge } from '../wechat-hot/store.js';
 import { fundUnreadBadge } from '../funds/fundStore.js';
@@ -44,7 +43,7 @@ import {
 } from './sidenav-prefs.js';
 import { SideNavItem } from './SideNavItem.jsx';
 import { HiddenItemsDrawer } from './HiddenItemsDrawer.jsx';
-import { IconBot, IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.jsx';
+import { IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.jsx';
 import { navigateTo } from '../route-store.js';
 
 // Phase v1: 4 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).
@@ -71,10 +70,6 @@ export function SideNav() {
   const collapsed = navCollapsed.value;
   const current = activeNav.value;
   const trayPrefs = trayMenuPrefs.value;
-  // 显式订阅 config / key 信号, 避免 needsConfig 误判后 UI 不刷新
-  void aiSessionsConfig.value;
-  void aiKeyStatus.value;
-  const aiNeedsSetup = needsConfig();
 
   // I6: 未读角标 — 显式订阅确保 UI 刷新 (ithome + wechat-hot)
   void ithomeUnreadBadge.value;
@@ -200,18 +195,8 @@ export function SideNav() {
         })}
       </ul>
       <div class="side-nav-footer">
-        <button
-          type="button"
-          class={`side-nav-button side-nav-ai-btn${aiNeedsSetup ? ' side-nav-ai-btn-needs-setup' : ''}`}
-          onClick={() => openAISettings(true)}
-          title={collapsed ? 'Pulse 共享 AI 配置' : ''}
-          aria-label="Pulse 共享 AI 配置"
-        >
-          <span class="side-nav-icon" aria-hidden="true"><IconBot size={18} /></span>
-          {!collapsed && <span class="side-nav-label">AI 配置</span>}
-          {aiNeedsSetup && <span class="side-nav-setup-dot" aria-hidden="true" />}
-        </button>
-        {/* P11: 设置入口 (VersionsLayout → settings 路由) — 之前只能 Cmd+K 搜, 用户找不到 */}
+        {/* P11: 设置入口 (VersionsLayout → settings 路由) — 之前只能 Cmd+K 搜, 用户找不到.
+            P15: AI 配置统一在设置页「AI 配置」tab, 不再有独立 SideNav AI 按钮. */}
         <button
           type="button"
           class="side-nav-button side-nav-settings-btn"

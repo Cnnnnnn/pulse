@@ -1,19 +1,17 @@
 /**
  * src/renderer/components/AISettingsModal.jsx
  *
+ * P15: AISettingsModal 函数已废弃删除 — AI 配置现在统一在 SettingsPage 'ai' tab.
+ *      本文件保留 AIConfigForm / PROVIDERS / DEFAULT_BASE_URL 给 AISettingsScene 复用.
+ *
  * Phase B7g (Drawer-Integrated Config): 配置表单不再单独 modal.
  *
  *拆出 <AIConfigForm /> —共享组件, AISettingsModal (legacy) + AIDigestDrawer 都用.
- *
- * 设计:
- * - AIConfigForm:纯表单 (provider/model/baseUrl/api-key/test/backfill/save).
- * 不管外面的容器, 受控 open=false → 自动切回 drawer列表 view.
- * - AISettingsModal: SideNav「AI 配置」入口 + 兼容 openAISettings() 调用.
+ *  P15 之后: AISettingsScene 在 SettingsPage 内嵌, AITasksDrawer 也指向 SettingsPage.
  *
  * Phase B7e简化:
- * - 只支持 cloud provider (deepseek / minimax).
+ * - 只支持 cloud provider (deepseek / minimax / glm).
  * - 没有 "enabled" toggle (B7f 起 enabled 从 cfg 自动派生: 有 provider 即 enabled).
- * - 没有 ollama / openai / anthropic 分支.
  */
 
 import { useState, useEffect } from 'preact/hooks';
@@ -22,17 +20,12 @@ import {
   aiKeyStatus,
   aiHealthcheckBusy,
   aiHealthcheckResult,
-  aiSettingsOpen,
   probeAIKeyStatuses,
   setAIKey,
   clearAIKey,
   runAIHealthcheck,
   saveAISessionsConfig,
-  openAISettings,
 } from '../store.js';
-import { DailyDigestSettings } from './DailyDigestSettings.jsx';
-import { AISettingsScene } from './AISettingsScene.jsx';
-import { ModalShell } from './ModalShell.jsx';
 import { IconCheck, IconX } from './icons.jsx';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.
@@ -392,23 +385,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
 }
 
 /**
- * SideNav「AI 配置」弹窗 — 连接设置 + Prompt 模板 + 早报设置.
+ * P15: AISettingsModal 已废弃 — AI 配置现在统一在 SettingsPage 'ai' tab.
+ *       本文件保留 AIConfigForm / PROVIDERS / DEFAULT_BASE_URL 给 AISettingsScene 复用,
+ *       AISettingsModal 函数已删除.
  */
-export function AISettingsModal() {
- const open = aiSettingsOpen.value;
-
- return (
- <ModalShell
-   open={open}
-   onClose={() => openAISettings(false)}
-   title="AI 设置"
-   cardClass="ai-settings-modal"
- >
-      <AISettingsScene
-        onSaved={() => openAISettings(false)}
-        onCancel={() => openAISettings(false)}
-      />
-      <DailyDigestSettings />
- </ModalShell>
-  );
-}

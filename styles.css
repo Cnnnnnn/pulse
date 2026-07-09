@@ -3078,6 +3078,46 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   box-shadow: var(--shadow-sm);
   padding: var(--space-3) var(--space-4);
 }
+.settings-card--padded {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ── P15: 设置页内部 subtab (常规 / AI 配置) ──────── */
+.settings-subtabs {
+  flex-shrink: 0;
+  padding: 8px var(--page-padding, 16px) 0;
+}
+.settings-subtabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  padding: 2px;
+}
+.settings-subtab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1h);
+  padding: 4px 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.settings-subtab:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.settings-subtab-active {
+  background: var(--chrome-bg, var(--bg-modal));
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
 .settings-card__title {
   font-size: var(--font-size-lg, 15px);
   font-weight: 600;
@@ -6623,6 +6663,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .fund-view-tab,
 .worldcup-subtab,
 .versions-subtab, /* P12 */
+.settings-subtab, /* P15 */
 .fund-source-btn,
 .fund-btn,
 .fund-pnl-month-btn,
@@ -6649,6 +6690,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .fund-view-tab:focus-visible,
 .worldcup-subtab:focus-visible,
 .versions-subtab:focus-visible, /* P12 */
+.settings-subtab:focus-visible, /* P15 */
 .fund-btn:focus-visible,
 .provider-card:focus-visible,
 .worldcup-team-card:focus-visible,

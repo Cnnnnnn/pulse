@@ -269,3 +269,40 @@ test("settings page — P13 4-section 卡片化 baseline", async ({ page }) => {
     fullPage: false,
   });
 });
+
+test("settings page — P15 AI 配置 tab baseline", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+      const orig = window.api;
+      const patched = new Proxy(orig || {}, {
+        get(_, key) {
+          if (key === "recentList" || key === "remindersList") {
+            return async () => ({ ok: true, entries: [], reminders: [] });
+          }
+          return orig && orig[key];
+        },
+      });
+      window.api = patched;
+    } catch {}
+  });
+  await page.goto("/");
+  await waitForShell(page);
+  // 切到 settings subtab → AI 配置 subtab
+  await page
+    .locator(".versions-subtab")
+    .filter({ hasText: "设置" })
+    .first()
+    .click();
+  await page.waitForTimeout(200);
+  await page
+    .locator(".settings-subtab")
+    .filter({ hasText: "AI 配置" })
+    .first()
+    .click();
+  await page.waitForTimeout(300);
+  await expect(page).toHaveScreenshot("settings-ai-light.png", {
+    fullPage: false,
+  });
+});

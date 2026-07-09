@@ -1,33 +1,39 @@
 /**
  * src/renderer/components/SettingsPage.jsx
  *
- * v2.79 — P13 设置页重做: 4 段卡片化
- *   - 外观: 主题切换 (segmented, 已有)
- *   - 最近活动: 实时时间线, 来自 main process recentActivity
- *   - 提醒: 当前 reminders 列表, 可标完成 / 撤销 / 删除
- *   - AI 配置: provider/model 状态卡 + 跳转 openAISettings() (P14)
- *   - 数据: 配置导出 / 导入 (走 config:export / config:import-load + apply)
+ * v2.79 — P15 设置页 AI 配置深度融入
+ *   - 顶部 2-tab 切换: 「常规」(外观 / 最近活动 / 提醒 / 数据) | 「AI 配置」
+ *   - 「AI 配置」tab 内嵌完整 AISettingsScene (连接设置 + Prompt 模板)
+ *   - 取消 AI 配置弹窗入口: SideNav AI 齿轮 / AITasksDrawer config mode 都改为
+ *     navigateTo('settings') + 切到 'ai-config' 子 tab
+ *   - 取消 AISettingsModal 调用, App.jsx 不再挂载 modal 组件
  *
- * ponytail: AI 配置段不进 form, 只展示状态 + 跳转 Modal. 避免与 AISettingsModal / AITasksDrawer
- *          三处配置 UI 重复, 维持 single source of truth.
+ * ponytail: single source of truth — 所有 AI 配置修改只在 SettingsPage 'ai-config'
+ *          tab 内进行, 移除 Modal 减少状态分裂.
  */
 import { useEffect } from "preact/hooks";
 import { signal } from "@preact/signals";
 import { PageHeader } from "./PageHeader.jsx";
+import { SubtabList } from "./SubtabList.jsx";
+import { AISettingsScene } from "./AISettingsScene.jsx";
+import { routeTab } from "../route-store.js";
 import {
   getThemePreference,
   setThemePreference,
 } from "../theme/theme-manager.js";
 import { showToast } from "../store.js";
-import {
-  aiSessionsConfig,
-  aiKeyStatus,
-  openAISettings,
-} from "../store/ai-store.js";
-import { PROVIDERS } from "./AISettingsModal.jsx";
 
 /* ─── theme signal (与 localStorage 同步) ─────────────────────── */
 const themeMode = signal(getThemePreference());
+
+/* ─── 设置页内部 subtab (常规 / AI 配置) ──────────────────────── */
+// ponytail: 初始值用 routeTab (跨组件跳转时由 navigateTo 写入);
+//           进入 SettingsPage 后用户手动切换, 不再被 routeTab 覆盖.
+const settingsTab = signal(routeTab.value === "ai" ? "ai" : "general");
+const SETTINGS_TABS = [
+  { key: "general", label: "常规" },
+  { key: "ai", label: "AI 配置" },
+];
 
 const THEME_OPTIONS = [
   { value: "system", label: "跟随系统" },
@@ -170,207 +176,160 @@ export function SettingsPage() {
 
   const recent = recentEntries.value;
   const activeReminders = reminders.value.filter((r) => r.status !== "dismissed");
+  const tab = settingsTab.value;
 
   return (
     <div class="settings-page">
-      <PageHeader title="设置" subtitle="外观 / 最近活动 / 提醒 / AI 配置 / 数据" />
+      <PageHeader title="设置" subtitle="常规设置 · AI 配置" />
+      <div class="settings-subtabs">
+        <SubtabList
+          prefix="settings"
+          tabs={SETTINGS_TABS}
+          activeKey={tab}
+          onChange={(key) => (settingsTab.value = key)}
+          ariaLabel="设置分类"
+        />
+      </div>
       <div class="settings-content">
-        {/* ── 外观 ── */}
-        <section class="settings-card">
-          <h3 class="settings-card__title">外观</h3>
-          <div class="settings-row">
-            <div class="settings-row__label-block">
-              <span class="settings-row__label">主题</span>
-              <span class="settings-row__hint">选择「跟随系统」自动匹配 macOS / Windows 外观。</span>
-            </div>
-            <div class="theme-segmented" role="radiogroup" aria-label="主题模式">
-              {THEME_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={themeMode.value === opt.value}
-                  class={"theme-segmented-item" + (themeMode.value === opt.value ? " is-active" : "")}
-                  onClick={() => {
-                    themeMode.value = opt.value;
-                    setThemePreference(opt.value);
-                    showToast(`主题已切换为「${THEME_TOAST[opt.value] || opt.value}」`, "success", 1800);
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── 最近活动 ── */}
-        <section class="settings-card">
-          <h3 class="settings-card__title">最近活动</h3>
-          {recent.length === 0 ? (
-            <p class="settings-empty">暂无最近活动。检查更新或操作基金 / 提醒后将自动记录。</p>
-          ) : (
-            <ul class="settings-list">
-              {recent.map((e, i) => (
-                <li key={`${e.ts}-${i}`} class="settings-list__item">
-                  <span class="settings-list__kind">{RECENT_KIND_LABEL[e.kind] || e.kind}</span>
-                  <span class="settings-list__label">{e.label}</span>
-                  {typeof e.count === "number" && e.count > 1 && (
-                    <span class="settings-list__count">×{e.count}</span>
-                  )}
-                  <span class="settings-list__time">{_humanizeTs(e.ts)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* ── 提醒 ── */}
-        <section class="settings-card">
-          <h3 class="settings-card__title">
-            提醒
-            <span class="settings-card__count">{activeReminders.length}</span>
-          </h3>
-          {activeReminders.length === 0 ? (
-            <p class="settings-empty">当前无活动提醒。在主面板添加提醒后会在此显示。</p>
-          ) : (
-            <ul class="settings-list">
-              {activeReminders.map((r) => (
-                <li key={r.id} class="settings-list__item">
-                  <span class={`settings-list__badge settings-list__badge--${r.status}`}>
-                    {r.status === "fired" ? "已触发" : REPEAT_LABEL[r.repeat] || r.repeat}
-                  </span>
-                  <span class="settings-list__label">{r.title || "(无标题)"}</span>
-                  <span class="settings-list__time">
-                    {new Date(r.triggerAt).toLocaleString("zh-CN", {
-                      month: "numeric",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  <div class="settings-list__actions">
-                    {r.status === "fired" && (
-                      <button
-                        type="button"
-                        class="settings-btn settings-btn--ghost"
-                        onClick={() => handleMarkDone(r.id)}
-                      >
-                        完成
-                      </button>
-                    )}
+        {tab === "general" ? (
+          <>
+            {/* ── 外观 ── */}
+            <section class="settings-card">
+              <h3 class="settings-card__title">外观</h3>
+              <div class="settings-row">
+                <div class="settings-row__label-block">
+                  <span class="settings-row__label">主题</span>
+                  <span class="settings-row__hint">选择「跟随系统」自动匹配 macOS / Windows 外观。</span>
+                </div>
+                <div class="theme-segmented" role="radiogroup" aria-label="主题模式">
+                  {THEME_OPTIONS.map((opt) => (
                     <button
+                      key={opt.value}
                       type="button"
-                      class="settings-btn settings-btn--danger-ghost"
-                      onClick={() => handleRemove(r.id)}
-                      aria-label={`删除提醒 ${r.title}`}
+                      role="radio"
+                      aria-checked={themeMode.value === opt.value}
+                      class={"theme-segmented-item" + (themeMode.value === opt.value ? " is-active" : "")}
+                      onClick={() => {
+                        themeMode.value = opt.value;
+                        setThemePreference(opt.value);
+                        showToast(`主题已切换为「${THEME_TOAST[opt.value] || opt.value}」`, "success", 1800);
+                      }}
                     >
-                      删除
+                      {opt.label}
                     </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                  ))}
+                </div>
+              </div>
+            </section>
 
-        {/* ── AI 配置 (P14) ── */}
-        <section class="settings-card">
-          <h3 class="settings-card__title">AI 配置</h3>
-          <div class="settings-row">
-            <div class="settings-row__label-block">
-              <span class="settings-row__label">
-                {(() => {
-                  const cfg = aiSessionsConfig.value;
-                  const providerId = cfg && (cfg.provider || (cfg.cloud && cfg.cloud.providerId));
-                  const providerLabel =
-                    PROVIDERS.find((p) => p.id === providerId)?.label || "未配置";
-                  return providerId ? `当前: ${providerLabel}` : "未配置";
-                })()}
-              </span>
-              <span class="settings-row__hint">
-                {(() => {
-                  const cfg = aiSessionsConfig.value;
-                  const providerId = cfg && (cfg.provider || (cfg.cloud && cfg.cloud.providerId));
-                  const cloud = cfg && cfg.cloud;
-                  const model = (cloud && cloud.model) || (providerId ? null : null);
-                  const st = providerId ? aiKeyStatus.value[providerId] : null;
-                  const hasKey = !!(st && st.hasKey);
-                  if (!providerId) return "AI 摘要 / 新闻早报 / 选股分析等模块依赖此配置。";
-                  if (!hasKey) return "已选 Provider, 尚未配置 API Key。";
-                  return `模型: ${model || "(默认)"} · API Key 已就绪`;
-                })()}
-              </span>
-            </div>
-            <div class="settings-row__buttons">
-              <span
-                class={
-                  "settings-ai-badge " +
-                  (aiSessionsConfig.value &&
-                  (aiSessionsConfig.value.provider ||
-                    (aiSessionsConfig.value.cloud &&
-                      aiSessionsConfig.value.cloud.providerId))
-                    ? "settings-ai-badge--ready"
-                    : "settings-ai-badge--missing")
-                }
-              >
-                {aiSessionsConfig.value &&
-                (aiSessionsConfig.value.provider ||
-                  (aiSessionsConfig.value.cloud &&
-                    aiSessionsConfig.value.cloud.providerId))
-                  ? "已配置"
-                  : "待配置"}
-              </span>
-              <button
-                type="button"
-                class="settings-btn settings-btn--primary"
-                onClick={() => {
-                  openAISettings(true);
-                  showToast("已打开 AI 配置", "info", 1500);
-                }}
-              >
-                {aiSessionsConfig.value &&
-                (aiSessionsConfig.value.provider ||
-                  (aiSessionsConfig.value.cloud &&
-                    aiSessionsConfig.value.cloud.providerId))
-                  ? "管理 AI"
-                  : "配置 AI"}
-              </button>
-            </div>
-          </div>
-        </section>
+            {/* ── 最近活动 ── */}
+            <section class="settings-card">
+              <h3 class="settings-card__title">最近活动</h3>
+              {recent.length === 0 ? (
+                <p class="settings-empty">暂无最近活动。检查更新或操作基金 / 提醒后将自动记录。</p>
+              ) : (
+                <ul class="settings-list">
+                  {recent.map((e, i) => (
+                    <li key={`${e.ts}-${i}`} class="settings-list__item">
+                      <span class="settings-list__kind">{RECENT_KIND_LABEL[e.kind] || e.kind}</span>
+                      <span class="settings-list__label">{e.label}</span>
+                      {typeof e.count === "number" && e.count > 1 && (
+                        <span class="settings-list__count">×{e.count}</span>
+                      )}
+                      <span class="settings-list__time">{_humanizeTs(e.ts)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
-        {/* ── 数据 ── */}
-        <section class="settings-card">
-          <h3 class="settings-card__title">数据</h3>
-          <div class="settings-row">
-            <div class="settings-row__label-block">
-              <span class="settings-row__label">配置导出 / 导入</span>
-              <span class="settings-row__hint">
-                导出含监控列表、提醒、基金、AI 提示词 → 桌面
-                <code>pulse-config-{`{时间戳}`}.json</code>。
-              </span>
-            </div>
-            <div class="settings-row__buttons">
-              <button
-                type="button"
-                class="settings-btn settings-btn--primary"
-                onClick={handleExport}
-                disabled={dataBusy.value}
-              >
-                导出配置
-              </button>
-              <button
-                type="button"
-                class="settings-btn settings-btn--ghost"
-                onClick={handleImport}
-                disabled={dataBusy.value}
-              >
-                导入配置…
-              </button>
-            </div>
-          </div>
-        </section>
+            {/* ── 提醒 ── */}
+            <section class="settings-card">
+              <h3 class="settings-card__title">
+                提醒
+                <span class="settings-card__count">{activeReminders.length}</span>
+              </h3>
+              {activeReminders.length === 0 ? (
+                <p class="settings-empty">当前无活动提醒。在主面板添加提醒后会在此显示。</p>
+              ) : (
+                <ul class="settings-list">
+                  {activeReminders.map((r) => (
+                    <li key={r.id} class="settings-list__item">
+                      <span class={`settings-list__badge settings-list__badge--${r.status}`}>
+                        {r.status === "fired" ? "已触发" : REPEAT_LABEL[r.repeat] || r.repeat}
+                      </span>
+                      <span class="settings-list__label">{r.title || "(无标题)"}</span>
+                      <span class="settings-list__time">
+                        {new Date(r.triggerAt).toLocaleString("zh-CN", {
+                          month: "numeric",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      <div class="settings-list__actions">
+                        {r.status === "fired" && (
+                          <button
+                            type="button"
+                            class="settings-btn settings-btn--ghost"
+                            onClick={() => handleMarkDone(r.id)}
+                          >
+                            完成
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          class="settings-btn settings-btn--danger-ghost"
+                          onClick={() => handleRemove(r.id)}
+                          aria-label={`删除提醒 ${r.title}`}
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* ── 数据 ── */}
+            <section class="settings-card">
+              <h3 class="settings-card__title">数据</h3>
+              <div class="settings-row">
+                <div class="settings-row__label-block">
+                  <span class="settings-row__label">配置导出 / 导入</span>
+                  <span class="settings-row__hint">
+                    导出含监控列表、提醒、基金、AI 提示词 → 桌面
+                    <code>pulse-config-{`{时间戳}`}.json</code>。
+                  </span>
+                </div>
+                <div class="settings-row__buttons">
+                  <button
+                    type="button"
+                    class="settings-btn settings-btn--primary"
+                    onClick={handleExport}
+                    disabled={dataBusy.value}
+                  >
+                    导出配置
+                  </button>
+                  <button
+                    type="button"
+                    class="settings-btn settings-btn--ghost"
+                    onClick={handleImport}
+                    disabled={dataBusy.value}
+                  >
+                    导入配置…
+                  </button>
+                </div>
+              </div>
+            </section>
+          </>
+        ) : (
+          /* ── AI 配置 (P15 内嵌完整 scene, 取代 Modal) ── */
+          <section class="settings-card settings-card--padded">
+            <AISettingsScene compact={false} initialTab="connection" />
+          </section>
+        )}
       </div>
     </div>
   );

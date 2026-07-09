@@ -16,7 +16,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { render, fireEvent, cleanup } from '@testing-library/preact';
 import * as store from '../../src/renderer/store.js';
-import { AISettingsModal, AIConfigForm } from '../../src/renderer/components/AISettingsModal.jsx';
+import { AIConfigForm } from '../../src/renderer/components/AISettingsModal.jsx';
 
 // mock store — 直接控制 signal, 不真走 IPC
 vi.spyOn(store, 'setAIKey').mockImplementation(async () => ({ ok: true }));
@@ -287,31 +287,5 @@ describe('<AIConfigForm /> — compact mode (drawer 用)', () => {
  });
 });
 
-// ── AISettingsModal (legacy兜底, 不挂载但 import还在) ────────────
-
-describe('<AISettingsModal /> —兼容兜底 (Phase B7g)', () => {
- it('aiSettingsOpen.value=false → 不渲染 modal', () => {
- store.aiSettingsOpen.value = false;
- const { container } = render(<AISettingsModal />);
- expect(container.querySelector('.ai-settings-modal')).toBeNull();
- });
-
- it('open=true 时渲染 modal + header', () => {
- const { container } = render(<AISettingsModal />);
- const card = container.querySelector('.ai-settings-modal');
- expect(card).not.toBeNull();
- expect(card.querySelector('.modal-header h2').textContent).toContain('AI');
- });
-
- it('点 close按钮 → openAISettings(false) 被调', () => {
- store.openAISettings.mockClear();
- const { container } = render(<AISettingsModal />);
- fireEvent.click(container.querySelector('.btn-close'));
- expect(store.openAISettings).toHaveBeenCalledWith(false);
- });
-
- it('modal 内嵌 <AIConfigForm /> (form 而不是裸字段)', () => {
- const { container } = render(<AISettingsModal />);
- expect(container.querySelector('.ai-config-form')).not.toBeNull();
- });
-});
+// ── P15: AISettingsModal 已废弃 — AI 配置统一在 SettingsPage 'ai' tab,
+//         Modal 测试块已删除. AIConfigForm 测试保留.

@@ -17,7 +17,6 @@
 import { checkSession } from './store.js';
 import { api } from './api.js';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
-import { AISettingsModal } from './components/AISettingsModal.jsx';
 import { Toast } from './components/Toast.jsx';
 import { StateRecoveredBanner } from './components/StateRecoveredBanner.jsx';
 import { DigestDrawer } from './digest/DigestDrawer.jsx';
@@ -85,7 +84,7 @@ export function App({ onCheck }) {
         </div>
       </footer>
       <BulkUpgradeModal />
-      <AISettingsModal />
+      {/* P15: AI 配置统一在 SettingsPage 'ai-config' tab, 不再用 Modal 弹窗 */}
       <RemindersModal />
       <RecentActivityModal />
       <TrayMenuConfigModal />
