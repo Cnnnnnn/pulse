@@ -43,14 +43,14 @@ svg:not([role="img"]) {
   --surface: #ffffff;
   --surface-soft: var(--gray-50);
   --hover-soft: rgba(0, 0, 0, 0.04);
-  --accent-primary: #007aff;
+  --accent-primary: oklch(60.28% 0.2178 257.4);   /* was #007aff */
   --text-primary: var(--gray-800);
   --text-secondary: var(--gray-500);
   --text-tertiary: var(--gray-300);
-  --accent-orange: #ff9500;
-  --accent-green: #34c759;
-  --accent-blue: #007aff;
-  --accent-red: #ff3b30;
+  --accent-orange: oklch(76.52% 0.1751 62.6);    /* was #ff9500 */
+  --accent-green: oklch(73.03% 0.1944 147.5);    /* was #34c759 */
+  --accent-blue: oklch(60.28% 0.2178 257.4);     /* was #007aff (alias of primary) */
+  --accent-red: oklch(65.42% 0.2321 28.7);      /* was #ff3b30 */
   --accent-gray: var(--gray-400);
 
   /* 中性阶梯 primitive (P3 · OKLCH 化基础)
@@ -131,8 +131,8 @@ svg:not([role="img"]) {
   --accent-fund: var(--accent-primary);
   --accent-worldcup: var(--accent-primary);
   --accent-versions: var(--accent-primary);
-  --color-up: #e11d48;
-  --color-down: #059669;
+  --color-up: oklch(58.58% 0.2220 17.6);        /* was #e11d48 (金融涨 A 股红) */
+  --color-down: oklch(59.60% 0.1274 163.3);      /* was #059669 (金融跌 A 股绿) */
   --focus-ring: 0 0 0 3px rgba(0, 122, 255, 0.22);
   --ease-ui: 0.18s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
@@ -155,14 +155,14 @@ svg:not([role="img"]) {
     --surface: #1c1c1e;
     --surface-soft: var(--gray-700);
     --hover-soft: rgba(255, 255, 255, 0.06);
-    --accent-primary: #0a84ff;
+    --accent-primary: oklch(62.43% 0.2057 255.5); /* was #0a84ff */
     --text-primary: var(--gray-50);
     --text-secondary: #a1a1a6;
     --text-tertiary: #636366;
-    --accent-orange: #ff9f0a;
-    --accent-green: #30d158;
+    --accent-orange: oklch(78.24% 0.1710 67.2);  /* was #ff9f0a */
+    --accent-green: oklch(75.56% 0.2082 147.0);  /* was #30d158 */
     --accent-blue: #0a84ff;
-    --accent-red: #ff453a;
+    --accent-red: oklch(66.33% 0.2236 28.3);    /* was #ff453a */
     --accent-gray: var(--gray-400);
     --chrome-bg: rgba(28, 28, 30, 0.94);
     --content-bg: #141416;
@@ -209,17 +209,17 @@ body.platform-win {
      Win 上调成浅色透明白, 跟 --text-secondary 同档对比度. */
   --text-soft: rgba(255, 255, 255, 0.72);
 
-  --accent-primary: #4cc2ff;
+  --accent-primary: oklch(77.30% 0.1358 235.2); /* was #4cc2ff */
   --accent-blue: #4cc2ff;
   --accent-fund: #4cc2ff;
   --accent-worldcup: #4cc2ff;
   --accent-versions: #4cc2ff;
-  --accent-orange: #ff9f0a;
-  --accent-green: #3fb950;
-  --accent-red: #ff6b6b;
+  --accent-orange: oklch(78.24% 0.1710 67.2);  /* was #ff9f0a (同 dark) */
+  --accent-green: oklch(69.51% 0.1809 145.6);  /* was #3fb950 */
+  --accent-red: oklch(71.16% 0.1812 22.8);    /* was #ff6b6b */
   /* 上涨/下跌 (金融面板) 在深色 bg 上微调 */
-  --color-up: #ff6b6b;
-  --color-down: #3fb950;
+  --color-up: oklch(71.16% 0.1812 22.8);       /* was #ff6b6b (金融涨 A 股红) */
+  --color-down: oklch(69.51% 0.1809 145.6);   /* was #3fb950 (金融跌 A 股绿) */
 
   /* focus ring 提亮, 不然深色 bg 看不到 */
   --focus-ring: 0 0 0 3px rgba(76, 194, 255, 0.40);

@@ -22,13 +22,15 @@ import {
 } from './store.js';
 
 // ─── 分组定义 ──────────────────────────────────────
+// dotColor 跟随对应 accent token (P4 OKLCH 化后保持视觉一致).
+// 未在 token 系统的细微变体 (如 #aeaeb2 ≈ gray-300 / #c7c7cc ≈ gray-200) 用对应 gray 阶.
 export const SECTION_DEFS = [
-  { key: 'update_available', label: '有待更新',   color: 'var(--accent-orange)', dotColor: '#ff9500' },
-  { key: 'up_to_date',       label: '已是最新',   color: 'var(--accent-green)',  dotColor: '#34c759' },
-  { key: 'installed_newer',  label: '预发布版本', color: 'var(--accent-blue)',   dotColor: '#007aff' },
-  { key: 'incompatible',     label: '格式不兼容', color: 'var(--accent-gray)',   dotColor: '#8e8e93' },
-  { key: 'no_auto_check',    label: '无法检测',   color: 'var(--accent-gray)',   dotColor: '#aeaeb2' },
-  { key: 'not_installed',    label: '未安装',     color: 'var(--text-tertiary)', dotColor: '#c7c7cc' },
+  { key: 'update_available', label: '有待更新',   color: 'var(--accent-orange)', dotColor: 'var(--accent-orange)' },
+  { key: 'up_to_date',       label: '已是最新',   color: 'var(--accent-green)',  dotColor: 'var(--accent-green)' },
+  { key: 'installed_newer',  label: '预发布版本', color: 'var(--accent-blue)',   dotColor: 'var(--accent-blue)' },
+  { key: 'incompatible',     label: '格式不兼容', color: 'var(--accent-gray)',   dotColor: 'var(--accent-gray)' },
+  { key: 'no_auto_check',    label: '无法检测',   color: 'var(--accent-gray)',   dotColor: 'var(--gray-300)' },
+  { key: 'not_installed',    label: '未安装',     color: 'var(--text-tertiary)', dotColor: 'var(--gray-200)' },
 ];
 
 /**
