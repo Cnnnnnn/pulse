@@ -58,26 +58,37 @@ test.beforeEach(async ({ context }) => {
 });
 
 async function waitForShell(page) {
-  await page.waitForSelector(".app-shell", { state: "visible", timeout: 15_000 });
-  await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+  await page.waitForSelector(".app-shell", {
+    state: "visible",
+    timeout: 15_000,
+  });
+  await page
+    .waitForLoadState("networkidle", { timeout: 15_000 })
+    .catch(() => {});
   await page.waitForTimeout(500);
 }
 
 test("overview (Library page) — light theme baseline", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.addInitScript(() => {
-    try { localStorage.setItem("app-theme-preference", "light"); } catch {}
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+    } catch {}
   });
   await page.goto("/");
   await waitForShell(page);
   // ponytail: 用 page (而非 .app-shell) 截整页 — 覆盖 body 背景, 不漏 viewport 周围
-  await expect(page).toHaveScreenshot("overview-light.png", { fullPage: false });
+  await expect(page).toHaveScreenshot("overview-light.png", {
+    fullPage: false,
+  });
 });
 
 test("overview (Library page) — dark theme baseline", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await page.addInitScript(() => {
-    try { localStorage.setItem("app-theme-preference", "dark"); } catch {}
+    try {
+      localStorage.setItem("app-theme-preference", "dark");
+    } catch {}
   });
   await page.goto("/");
   await waitForShell(page);
@@ -87,7 +98,9 @@ test("overview (Library page) — dark theme baseline", async ({ page }) => {
 test("side nav collapsed — light theme baseline", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.addInitScript(() => {
-    try { localStorage.setItem("app-theme-preference", "light"); } catch {}
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+    } catch {}
   });
   await page.goto("/");
   await waitForShell(page);
@@ -96,5 +109,71 @@ test("side nav collapsed — light theme baseline", async ({ page }) => {
     await toggle.click();
     await page.waitForTimeout(300);
   }
-  await expect(page).toHaveScreenshot("sidenav-collapsed-light.png", { fullPage: false });
+  await expect(page).toHaveScreenshot("sidenav-collapsed-light.png", {
+    fullPage: false,
+  });
+});
+
+test("worldcup tab — light theme baseline (FeatureHeader 壳)", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+    } catch {}
+  });
+  await page.goto("/");
+  await waitForShell(page);
+  const worldcupNav = page.locator('li[data-nav="worldcup"]').first();
+  if (await worldcupNav.count()) {
+    await worldcupNav.click();
+    await page.waitForTimeout(800);
+  }
+  await expect(page).toHaveScreenshot("worldcup-light.png", { fullPage: false });
+});
+
+test("funds tab — light theme baseline (FundHeader 5 张空 summary)", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+    } catch {}
+  });
+  await page.goto("/");
+  await waitForShell(page);
+  const fundsNav = page.locator('li[data-nav="funds"]').first();
+  if (await fundsNav.count()) {
+    await fundsNav.click();
+    await page.waitForTimeout(800);
+  }
+  await expect(page).toHaveScreenshot("funds-light.png", { fullPage: false });
+});
+
+test("wechat-hot tab — light theme baseline (cooldown 倒计时 UI)", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+    } catch {}
+    // stub Date.now 让 cooldown 倒计时稳定 (WechatHotHeader useNowTick(1000) 每秒刷)
+    const fixed = new Date("2026-07-09T10:00:00Z").getTime();
+    const _Date = window.Date;
+    // eslint-disable-next-line no-global-assign
+    window.Date = class extends _Date {
+      constructor(...args) {
+        if (args.length === 0) super(fixed);
+        else super(...args);
+      }
+      static now() {
+        return fixed;
+      }
+    };
+  });
+  await page.goto("/");
+  await waitForShell(page);
+  const wechatNav = page.locator('li[data-nav="wechat-hot"]').first();
+  if (await wechatNav.count()) {
+    await wechatNav.click();
+    await page.waitForTimeout(800);
+  }
+  await expect(page).toHaveScreenshot("wechat-hot-light.png", { fullPage: false });
 });
