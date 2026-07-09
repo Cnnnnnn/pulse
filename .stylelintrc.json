@@ -31,8 +31,5 @@
       }
     }
   ],
-  "ignoreFiles": [
-    "renderer-dist/**",
-    "node_modules/**"
-  ]
+  "ignoreFiles": ["renderer-dist/**", "node_modules/**"]
 }

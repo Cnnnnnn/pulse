@@ -16,6 +16,8 @@
     "build:all": "npm run build:mac:all && npm run build:win",
     "dev": "npm run build:renderer && NODE_ENV=development electron .",
     "test": "vitest",
+    "test:visual": "playwright test --config=playwright.config.js",
+    "test:visual:update": "playwright test --config=playwright.config.js --update-snapshots",
     "lint:css": "stylelint \"src/renderer/components/**/*.css\"",
     "baseline:q4": "node scripts/q4-baseline.js"
   },
@@ -30,6 +32,7 @@
     "preact": "^10.22.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@resvg/resvg-js": "^2.6.2",
     "@testing-library/preact": "^3.2.4",
     "@vitest/expect": "^2.1.9",

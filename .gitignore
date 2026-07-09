@@ -78,3 +78,7 @@ tests/_scratch/
 
 # Code analysis tool output (本地工具产物, 不入库)
 fuck-u-code-report.md
+
+# Playwright visual regression (P3) — baseline 入库, 临时失败产物忽略
+test-results/
+playwright-report/
