@@ -81,15 +81,32 @@ jobs:
           echo "entry size: $(du -h renderer-dist/index.js | cut -f1)"
           echo "chunks: $(ls renderer-dist/chunk-*.js 2>/dev/null | wc -l | tr -d ' ')"
 
-      # ponytail: 2026-07-09 — 视觉回归仅 workflow_dispatch 跑 + manual trigger,
-      # 每 PR 自动跑太贵 (~150MB chromium + 30s). 默认 PR 不强制.
-      - name: Visual regression (manual trigger)
-        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[visual]')
+      # ponytail: 2026-07-09 — P5 默认跑视觉回归 (8 张 baseline).
+      # chromium cache 30 天 (避免每次 PR 下 ~150MB); baseline 是 dev 本机
+      # mac 拍的, ubuntu runner 跑会有 font subpixel / 抗锯齿差异, threshold
+      # 放宽到 0.3 (见 playwright.config.js) 兜底, 真回归 dev 本机会先 fail.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-chromium-${{ runner.os }}-
+
+      - name: Visual regression
         run: |
-          pnpm exec playwright install chromium
+          pnpm exec playwright install chromium --with-deps
           pnpm exec playwright test --config=playwright.config.js
           # 失败时把 diff 图 archive 出来, 方便本地 debug
           if [ -d test-results ]; then
             echo "test-results/ contents:"
             find test-results -name "*.png" | head -20
           fi
+
+      - name: Upload visual diff on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff
+          path: test-results/
+          retention-days: 7
