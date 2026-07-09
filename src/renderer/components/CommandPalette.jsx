@@ -11,9 +11,24 @@ import {
 } from "../command-palette-store.js";
 import { navigateTo } from "../route-store.js";
 import { api } from "../api.js";
+import { setThemePreference } from "../theme/theme-manager.js";
+import { showToast } from "../store.js";
 import { IconSearch } from "./icons.jsx";
 
 const KIND_LABEL = { app: "应用", action: "操作", view: "页面" };
+
+// P12: 主题切换静态命令 (renderer-local, 不走 IPC).
+// 匹配关键词: "主题" / "theme" / "浅色" / "深色" / "跟随系统" / "切换".
+const THEME_COMMANDS = [
+  { id: "theme-light",  label: "切换为浅色",  kind: "action", theme: "light",  match: ["浅色", "light", "亮色"] },
+  { id: "theme-dark",   label: "切换为深色",  kind: "action", theme: "dark",   match: ["深色", "dark"] },
+  { id: "theme-system", label: "跟随系统主题", kind: "action", theme: "system", match: ["跟随系统", "系统", "自动", "system", "auto"] },
+];
+const THEME_TOAST = { light: "浅色", dark: "深色", system: "跟随系统" };
+function matchThemeCommands(q) {
+  const lower = q.toLowerCase();
+  return THEME_COMMANDS.filter((c) => c.match.some((m) => lower.includes(m.toLowerCase())));
+}
 
 export function CommandPalette() {
   const open = paletteOpen.value;
@@ -69,13 +84,16 @@ export function CommandPalette() {
       setPaletteResults([]);
       return undefined;
     }
+    // P12: 主题切换命令放在最前 (renderer-local, 无延迟).
+    const themeHits = matchThemeCommands(query);
     const timer = setTimeout(async () => {
-      if (!api.versionsCommandSearch) return;
-      const r = await api.versionsCommandSearch(query);
-      if (r && r.ok) {
-        setPaletteResults(r.results || []);
-        setPaletteSelectedIndex(0);
+      let ipcHits = [];
+      if (api.versionsCommandSearch) {
+        const r = await api.versionsCommandSearch(query);
+        if (r && r.ok) ipcHits = r.results || [];
       }
+      setPaletteResults([...themeHits, ...ipcHits].slice(0, 10));
+      setPaletteSelectedIndex(0);
     }, 250);
     return () => clearTimeout(timer);
   }, [query, open]);
@@ -84,6 +102,11 @@ export function CommandPalette() {
     if (item.kind === "view") navigateTo(item.id);
     else if (item.kind === "action" && item.id === "action-check") {
       api.versionsRunCheck && api.versionsRunCheck();
+    }
+    else if (item.kind === "action" && typeof item.theme === "string") {
+      // P12: Cmd+K 主题切换 + toast 反馈
+      setThemePreference(item.theme);
+      showToast(`主题已切换为「${THEME_TOAST[item.theme] || item.theme}」`, "success", 1800);
     }
     else if (item.kind === "app") navigateTo("library");
     closePalette();

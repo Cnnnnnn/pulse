@@ -1,6 +1,7 @@
 import { PageHeader } from "./PageHeader.jsx";
 import { signal } from "@preact/signals";
 import { getThemePreference, setThemePreference } from "../theme/theme-manager.js";
+import { showToast } from "../store.js";
 
 /* 当前偏好以 signal 维护, 与 theme-manager 的 localStorage 持久化保持同步 */
 const themeMode = signal(getThemePreference());
@@ -10,6 +11,8 @@ const OPTIONS = [
   { value: "light", label: "浅色" },
   { value: "dark", label: "深色" },
 ];
+
+const TOAST_LABEL = { system: "跟随系统", light: "浅色", dark: "深色" };
 
 export function SettingsPage() {
   return (
@@ -30,6 +33,8 @@ export function SettingsPage() {
                   onClick={() => {
                     themeMode.value = opt.value;
                     setThemePreference(opt.value);
+                    // P12: 主题切换 toast 反馈 (设置页 + 托盘广播 + Cmd+K 都走这条路径)
+                    showToast(`主题已切换为「${TOAST_LABEL[opt.value] || opt.value}」`, "success", 1800);
                   }}
                 >
                   {opt.label}

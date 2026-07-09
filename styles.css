@@ -5153,6 +5153,40 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding-bottom: 16px;
 }
 
+/* P12: VersionsLayout 4-tab subtab (library/diagnostics/insights/settings).
+   与 worldcup-subtab 同形态 — 独立命名空间避免复用耦合. */
+.versions-subtabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  padding: 2px;
+  margin: 8px var(--page-padding) 0;
+}
+.versions-subtab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1h);
+  padding: 4px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.versions-subtab:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.versions-subtab-active {
+  background: var(--chrome-bg, var(--bg-modal));
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
 .versions-layout-body > .weekly-banner {
   margin: 12px var(--page-padding) 0;
 }
@@ -6363,6 +6397,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .category-tab,
 .fund-view-tab,
 .worldcup-subtab,
+.versions-subtab, /* P12 */
 .fund-source-btn,
 .fund-btn,
 .fund-pnl-month-btn,
@@ -6388,6 +6423,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .category-tab:focus-visible,
 .fund-view-tab:focus-visible,
 .worldcup-subtab:focus-visible,
+.versions-subtab:focus-visible, /* P12 */
 .fund-btn:focus-visible,
 .provider-card:focus-visible,
 .worldcup-team-card:focus-visible,
@@ -8605,7 +8641,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .bracket-card--final-prominent .bracket-card-score--inline {
   font-size: 18px !important;
   padding: 0 8px !important;
-}
   color: var(--accent-amber-400);
 }
 .bracket-card--third-prominent {

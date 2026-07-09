@@ -343,9 +343,10 @@ function installTray() {
       // P10: 托盘主题切换 → IPC 通知 renderer 应用主题
       onThemeChange: (mode) => {
         // 直接广播 theme:changed (renderer 端 theme-manager 监听)
+        // P12: source='tray' 让 renderer 弹 toast (system 模式自动跟随不 toast)
         const w = getWindow();
         if (w && !w.isDestroyed()) {
-          w.webContents.send("theme:changed", { mode });
+          w.webContents.send("theme:changed", { mode, source: "tray" });
         }
         // 主进程自己已通过 buildMenu rebuild 标记了选中, 不需要再 setThemeMode.
       },

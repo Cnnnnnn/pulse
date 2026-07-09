@@ -268,9 +268,15 @@ async function bootstrap() {
   }
   // P10: 监听主进程广播 (托盘切换或 nativeTheme 变化)
   if (typeof api.onThemeChanged === 'function') {
-    api.onThemeChanged(({ mode }) => {
+    const { showToast } = await import('./store.js');
+    const TOAST_LABEL = { system: '跟随系统', light: '浅色', dark: '深色' };
+    api.onThemeChanged(({ mode, source }) => {
       if (mode && ['system', 'light', 'dark'].includes(mode)) {
+        // 仅当来自托盘 (source='tray') 时 toast — system 模式自动跟随不 toast (避免噪音)
         setThemePreference(mode);
+        if (source === 'tray') {
+          showToast(`主题已切换为「${TOAST_LABEL[mode] || mode}」`, 'success', 1800);
+        }
       }
     });
   }
