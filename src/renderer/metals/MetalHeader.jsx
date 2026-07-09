@@ -33,7 +33,7 @@ export function MetalHeader() {
   const state = schedulerState.value;
 
   return (
-    <header class="metals-header">
+    <header class="metals-header feature-header">
       <div class="metals-header-title">
         <IconMedal size={18} />
         <span>贵金属</span>

@@ -31,7 +31,7 @@ export function WechatHotHeader({ search = "", onSearchChange = () => {} } = {})
     : 0;
 
   return (
-    <header class="wechat-hot-header">
+    <header class="wechat-hot-header feature-header">
       <div class="wechat-hot-header-row">
         <h1 class="wechat-hot-header-title"><IconFlame size={18} /> 微博热搜</h1>
       </div>

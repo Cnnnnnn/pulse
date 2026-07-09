@@ -58,7 +58,7 @@ export function FundHeader({ onRefresh }) {
         : '等待首次拉取净值';
 
   return (
-    <div class="fund-header">
+    <div class="fund-header feature-header">
       <div class="fund-header-toolbar">
         <div class="fund-header-brand">
           <span class="fund-header-icon" aria-hidden="true"><IconCoin size={20} /></span>
