@@ -2399,46 +2399,93 @@ body.platform-win .window-control-btn--close:hover {
 .digest-setup-scene {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  /* P16.2: gap 收紧 — subtab 紧贴第一张 card, 4 张 card 之间留出呼吸感. */
+  gap: var(--space-3h);
+}
+.digest-setup-scene > .settings-subtabs {
+  /* subtab 容器: 上下不挤压, 离下方第一张 card 留一个标准 gap (gap 接管) */
+  margin: 0;
 }
 
-/* P16: AI 配置改用 settings-card 体系, 删除独立 hero / section / provider-card 样式.
-   仅保留 settings-card / settings-row 适配 AI 场景的小补丁. */
+/* P16.2: AI Provider 选择改用 settings-list 竖向 radio 列表,
+   与设置页 reminders 列表视觉统一 (name 左 / hint 描述 / radio dot 右). */
 
-/* provider 选择卡 (settings-card 内嵌) — 沿用 settings-card 的圆角风格,
-   selected 态加 accent 边框. */
-.settings-provider-card {
+/* settings-list 已定义基础布局 (flex column, list-style none),
+   --radiogroup 让 li 之间无 padding, 适合"选项列表"形态. */
+.settings-list--radiogroup {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 10px 14px;
-  background: var(--bg-primary, rgba(255, 255, 255, 0.82));
-  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
-  border-radius: var(--radius-sm, 6px);
-  cursor: pointer;
-  text-align: left;
-  min-width: 140px;
-  flex: 1 1 140px;
-  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.settings-provider-card:hover {
-  border-color: color-mix(in oklch, var(--accent-primary) 30%, transparent);
+.settings-list--radiogroup > .settings-list__row {
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+}
+.settings-list--radiogroup > .settings-list__row:last-child {
+  border-bottom: none;
+}
+.settings-list__row-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 10px 4px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  border-radius: 4px;
+  transition: background 0.12s ease;
+}
+.settings-list__row-btn:hover {
   background: var(--bg-hover);
 }
-.settings-provider-card.is-selected {
-  border-color: var(--accent-primary);
-  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
+.settings-list__row-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
-.settings-provider-card__name {
+.settings-list__row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.settings-list__row-name {
   font-size: var(--font-size-base, 14px);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary);
 }
-.settings-provider-card__hint {
+.settings-list__row-hint {
   font-size: var(--font-size-xs, 11px);
   color: var(--text-tertiary);
-  line-height: 1.4;
+  line-height: 1.45;
+}
+/* radio dot: 圆环 + 选中时填实心 */
+.settings-list__radio {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border, rgba(0, 0, 0, 0.18));
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary, rgba(255, 255, 255, 0.82));
+  transition: border-color 0.12s ease;
+}
+.settings-list__row.is-selected .settings-list__radio {
+  border-color: var(--accent-primary);
+}
+.settings-list__radio.is-checked::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
 }
 
 /* settings-row__buttons 内的 input (Model / Base URL / Key / token) — 与 settings-btn 同高. */
@@ -2488,11 +2535,6 @@ body.platform-win .window-control-btn--close:hover {
   flex-direction: column;
   gap: var(--space-3);
 }
-.ai-settings-provider-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
 
 /* 保存状态条 — 复用 settings-card 体系下的 alert 风 */
 .ai-settings-save-status {
@@ -2529,6 +2571,49 @@ body.platform-win .window-control-btn--close:hover {
 }
 .ai-config-form-actions .settings-btn--ghost {
   color: var(--text-secondary);
+}
+
+/* P16.2: API Key input 占满宽度 + 单独一行 (不跟按钮挤) */
+.settings-input--block {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+.ai-settings-key-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-3);
+}
+.ai-settings-key-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* P16.2: 验证连接: 按钮 + 结果 badge 同行右对齐, badge 跟按钮 baseline 平齐 */
+.ai-settings-test {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.ai-settings-test-result {
+  font-size: var(--font-size-sm, 12px);
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.ai-settings-test-result.is-ok {
+  background: color-mix(in oklch, var(--accent-green) 14%, transparent);
+  color: var(--accent-green);
+}
+.ai-settings-test-result.is-fail {
+  background: color-mix(in oklch, var(--accent-red) 14%, transparent);
+  color: var(--accent-red);
 }
 
 
@@ -2876,6 +2961,14 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   background: var(--bg-tertiary);
   padding: 1px 8px;
   border-radius: 10px;
+}
+/* P16.2: card 标题下的简介/描述块, 统一 margin, 替代 inline style. */
+.settings-card__intro {
+  margin: -4px 0 var(--space-3h);
+  font-size: var(--font-size-sm, 12px);
+  line-height: 1.55;
+  color: var(--text-tertiary);
+  max-width: 64ch;
 }
 
 /* ── 行 (label-block + 控件) ────────────────────────── */

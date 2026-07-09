@@ -204,32 +204,44 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  Provider
  <span class="settings-ai-badge settings-ai-badge--ready">{prov.label}</span>
  </h3>
- <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+ <p class="settings-card__intro">
  先确定模型提供方，下面的默认参数会自动同步。当前方案偏向 {providerDescriptor}。
  </p>
- <div class="ai-settings-provider-grid">
- {PROVIDERS.map((p) => (
- <button
+ <ul class="settings-list settings-list--radiogroup" role="radiogroup" aria-label="AI Provider 选择">
+ {PROVIDERS.map((p) => {
+ const selected = cloudProviderId === p.id;
+ return (
+ <li
  key={p.id}
+ class={`settings-list__row ${selected ? 'is-selected' : ''}`}
+ >
+ <button
  type="button"
- class={`settings-provider-card ${cloudProviderId === p.id ? 'is-selected' : ''}`}
+ role="radio"
+ aria-checked={selected}
+ class="settings-list__row-btn"
  onClick={() => {
  setCloudProviderId(p.id);
  setCloudModel(p.defaultModel);
  setCloudBaseUrl(DEFAULT_BASE_URL[p.id] || '');
  }}
  >
- <span class="settings-provider-card__name">{p.label}</span>
- <span class="settings-provider-card__hint">{p.hint}</span>
+ <span class="settings-list__row-main">
+ <span class="settings-list__row-name">{p.label}</span>
+ <span class="settings-list__row-hint">{p.hint}</span>
+ </span>
+ <span class={`settings-list__radio ${selected ? 'is-checked' : ''}`} aria-hidden="true" />
  </button>
- ))}
- </div>
+ </li>
+ );
+ })}
+ </ul>
  </section>
 
  {/* ── 连接参数段 ── */}
  <section class="settings-card">
  <h3 class="settings-card__title">连接参数</h3>
- <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+ <p class="settings-card__intro">
  保留自动填好的默认值即可，只有自建代理时才需要改 Base URL。
  </p>
  <div class="ai-settings-field-grid">
@@ -272,21 +284,17 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  : keyStatusText.text}
  </span>
  </h3>
- <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+ <p class="settings-card__intro">
  密钥只写入系统 Keychain，不会明文保存在配置文件里。
- </p>
- <div class="settings-row">
- <div class="settings-row__label-block">
- <label class="settings-row__label">新 Key</label>
- <span class="settings-row__hint">
  {keyStatus.available
  ? '修改 key 后可以直接点"测试连接"验证，再保存最终配置。'
  : '当前系统不支持 safeStorage，可改用环境变量提供 key。'}
- </span>
- </div>
- <div class="settings-row__buttons">
+ </p>
+ <div class="ai-settings-key-input">
+ <label class="settings-row__label" for="ai-api-key-input">新 Key</label>
  <input
- class="settings-input"
+ id="ai-api-key-input"
+ class="settings-input settings-input--block"
  type="password"
  value={keyInput}
  onInput={(e) => setKeyInput(e.currentTarget.value)}
@@ -294,6 +302,8 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  autocomplete="off"
  spellcheck={false}
  />
+ </div>
+ <div class="ai-settings-key-actions">
  <button
  type="button"
  class="settings-btn settings-btn--primary"
@@ -313,21 +323,15 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  清空
  </button>
  </div>
- </div>
  </section>
 
  {/* ── 验证连接段 ── */}
  <section class="settings-card">
  <h3 class="settings-card__title">验证连接</h3>
- <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
- 保存前先测试连接，确认 key 和模型可用。
+ <p class="settings-card__intro">
+ 保存前先测试连接，确认 key 和模型可用。用当前 Provider + Model + API Key 发一次轻量请求。
  </p>
- <div class="settings-row">
- <div class="settings-row__label-block">
- <span class="settings-row__label">连通性</span>
- <span class="settings-row__hint">用当前 Provider + Model + API Key 发一次轻量请求。</span>
- </div>
- <div class="settings-row__buttons">
+ <div class="ai-settings-test">
  <button
  type="button"
  class="settings-btn settings-btn--primary"
@@ -337,13 +341,12 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  {busy ? '测试中…' : '测试连接'}
  </button>
  {lastTest && (
- <span class={`settings-ai-badge ${lastTest.ok ? 'settings-ai-badge--ready' : 'settings-ai-badge--missing'}`}>
+ <span class={`ai-settings-test-result ${lastTest.ok ? 'is-ok' : 'is-fail'}`}>
  {lastTest.ok
- ? `连接正常 (${lastTest.latencyMs || 0}ms)`
- : `失败: ${lastTest.error || '未知'}`}
+ ? `✓ 连接正常 · ${lastTest.latencyMs || 0}ms`
+ : `✗ 失败: ${lastTest.error || '未知'}`}
  </span>
  )}
- </div>
  </div>
  </section>
 

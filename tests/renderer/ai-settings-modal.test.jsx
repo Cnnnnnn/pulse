@@ -60,9 +60,9 @@ describe('<AIConfigForm /> — Phase B7e: 只 deepseek + minimax', () => {
  it('渲染 provider-card (deepseek + minimax + glm), 没有 ollama/openai/anthropic', () => {
  const onSaved = vi.fn();
  const { container } = render(<AIConfigForm onSaved={onSaved} />);
- const cards = container.querySelectorAll('.settings-provider-card');
+ const cards = container.querySelectorAll('.settings-list--radiogroup .settings-list__row');
  expect(cards.length).toBe(3);
- const labels = Array.from(cards).map((c) => c.querySelector('.settings-provider-card__name').textContent);
+ const labels = Array.from(cards).map((c) => c.querySelector('.settings-list__row-name').textContent);
  expect(labels.some((text) => text.includes('DeepSeek'))).toBe(true);
  expect(labels.some((text) => text.includes('MiniMax'))).toBe(true);
  expect(labels.some((text) => text.includes('GLM'))).toBe(true);
@@ -73,19 +73,21 @@ describe('<AIConfigForm /> — Phase B7e: 只 deepseek + minimax', () => {
 
  it('默认选中 deepseek (没 cfg 时)', () => {
  const { container } = render(<AIConfigForm />);
- const cards = container.querySelectorAll('.settings-provider-card');
+ const cards = container.querySelectorAll('.settings-list--radiogroup .settings-list__row');
  const selected = Array.from(cards).find((c) => c.classList.contains('is-selected'));
- expect(selected.querySelector('.settings-provider-card__name').textContent).toBe('DeepSeek');
+ expect(selected.querySelector('.settings-list__row-name').textContent).toBe('DeepSeek');
  });
 
  it('点 MiniMax card →切换 provider, model input跟 minimax走', () => {
  const { container } = render(<AIConfigForm />);
- const cards = container.querySelectorAll('.settings-provider-card');
+ const cards = container.querySelectorAll('.settings-list--radiogroup .settings-list__row');
  const minimaxCard = Array.from(cards).find((c) =>
- c.querySelector('.settings-provider-card__name').textContent.includes('MiniMax'));
- fireEvent.click(minimaxCard);
+ c.querySelector('.settings-list__row-name').textContent.includes('MiniMax'));
+ // P16.2: 点内部 button (radio role 行为) 触发 onClick, li 重新渲染加 is-selected.
+ const minimaxBtn = minimaxCard.querySelector('.settings-list__row-btn');
+ fireEvent.click(minimaxBtn);
  expect(minimaxCard.classList.contains('is-selected')).toBe(true);
- expect(minimaxCard.querySelector('.settings-provider-card__name').textContent).toBe('MiniMax');
+ expect(minimaxCard.querySelector('.settings-list__row-name').textContent).toBe('MiniMax');
  const inputs = container.querySelectorAll('input[type="text"]');
  //第一个是 model,第二个是 baseUrl
  expect(inputs[0].value).toBe('MiniMax-M3');
@@ -97,9 +99,9 @@ describe('<AIConfigForm /> — Phase B7e: 只 deepseek + minimax', () => {
  cloud: { providerId: 'minimax', model: 'm1', baseUrl: 'https://x' },
  };
  const { container } = render(<AIConfigForm />);
- const cards = container.querySelectorAll('.settings-provider-card');
+ const cards = container.querySelectorAll('.settings-list--radiogroup .settings-list__row');
  const selected = Array.from(cards).find((c) => c.classList.contains('is-selected'));
- expect(selected.querySelector('.settings-provider-card__name').textContent).toBe('MiniMax');
+ expect(selected.querySelector('.settings-list__row-name').textContent).toBe('MiniMax');
  });
 });
 
@@ -222,9 +224,9 @@ it('healthcheck ok → 显示 IconCheck + latency', async () => {
  const { container } = render(<AIConfigForm />);
  fireEvent.click(Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('测试连接')));
  await new Promise((r) => setTimeout(r,10));
- const result = container.querySelectorAll('.settings-card')[3].querySelector('.settings-ai-badge');
+ const result = container.querySelectorAll('.settings-card')[3].querySelector('.ai-settings-test-result');
  expect(result.textContent).toMatch(/234ms/);
- expect(result.classList.contains('settings-ai-badge--ready')).toBe(true);
+ expect(result.classList.contains('is-ok')).toBe(true);
  });
 
 it('healthcheck fail → 显示 IconX + error', async () => {
@@ -240,9 +242,9 @@ it('healthcheck fail → 显示 IconX + error', async () => {
  const { container } = render(<AIConfigForm />);
  fireEvent.click(Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('测试连接')));
  await new Promise((r) => setTimeout(r,10));
- const result = container.querySelectorAll('.settings-card')[3].querySelector('.settings-ai-badge');
+ const result = container.querySelectorAll('.settings-card')[3].querySelector('.ai-settings-test-result');
  expect(result.textContent).toMatch(/auth_401/);
- expect(result.classList.contains('settings-ai-badge--missing')).toBe(true);
+ expect(result.classList.contains('is-fail')).toBe(true);
  });
 });
 
