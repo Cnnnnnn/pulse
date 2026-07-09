@@ -49,9 +49,9 @@ const APP_LABEL = {
   'minimax-code': 'MiniMax Code',
 };
 const APP_COLOR = {
-  'cursor':       '#7C3AED',
-  'codex':        '#10A981',
-  'minimax-code': '#F59E0B',
+  'cursor':       'var(--app-cursor)',
+  'codex':        'var(--app-codex)',
+  'minimax-code': 'var(--app-minimax-code)',
 };
 
 function pad(n) { return String(n).padStart(2, '0'); }
