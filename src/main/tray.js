@@ -103,6 +103,7 @@ function buildMenu(opts) {
     staleNames = [],
     selfUpdateState = null,
     trayPrefs = require("./tray-menu-prefs").DEFAULT_PREFS,
+    themeMode = "system", // P10: 当前主题偏好 (用于 submenu 选中标记)
     onOpenPanel = () => {},
     onCheck = () => {},
     onOpenConfig = () => {},
@@ -110,6 +111,7 @@ function buildMenu(opts) {
     onQuit = () => {},
     onFocusUpdate = () => {},
     onFocusWorldcup = () => {},
+    onThemeChange = () => {}, // P10: 用户在托盘切换主题
     getConfigPath = () => "",
     getConfig = () => ({ apps: [] }),
   } = opts;
@@ -226,6 +228,32 @@ function buildMenu(opts) {
     template.push({ type: "separator" });
   }
   template.push({ label: "打开面板", click: () => onOpenPanel() });
+  // P10: 主题切换 (submenu: 跟随系统 / 浅色 / 深色)
+  template.push({ type: "separator" });
+  template.push({
+    label: "主题",
+    submenu: [
+      {
+        label: "跟随系统",
+        type: "radio",
+        checked: themeMode === "system",
+        click: () => onThemeChange("system"),
+      },
+      {
+        label: "浅色",
+        type: "radio",
+        checked: themeMode === "light",
+        click: () => onThemeChange("light"),
+      },
+      {
+        label: "深色",
+        type: "radio",
+        checked: themeMode === "dark",
+        click: () => onThemeChange("dark"),
+      },
+    ],
+  });
+  template.push({ type: "separator" });
   if (seg.check_action) {
     template.push({ label: "检查更新", click: () => onCheck() });
   }
@@ -453,12 +481,14 @@ function createTrayManager(opts) {
   const onQuit = opts.onQuit || (() => {});
   const onFocusUpdate = opts.onFocusUpdate || (() => {});
   const onFocusWorldcup = opts.onFocusWorldcup || (() => {});
+  const onThemeChange = opts.onThemeChange || (() => {}); // P10
 
   let tray = null;
   let lastResults = [];
   let lastStaleNames = [];
   let lastSelfUpdateState = null;
   let lastTrayMenuPrefs = require("./tray-menu-prefs").DEFAULT_PREFS;
+  let lastThemeMode = "system"; // P10: 主进程内存, 由 renderer 同步
 
   function install() {
     let icon = loadTrayIcon();
@@ -488,10 +518,12 @@ function createTrayManager(opts) {
       trayPrefs: lastTrayMenuPrefs,
       staleNames: lastStaleNames,
       selfUpdateState: lastSelfUpdateState,
+      themeMode: lastThemeMode, // P10
       getConfig: getConfig,
       onOpenPanel,
       onCheck,
       onOpenConfig,
+      onThemeChange, // P10
       onOpenTrayConfig,
       onQuit,
       onFocusUpdate,
@@ -562,6 +594,14 @@ function createTrayManager(opts) {
     scheduleRebuild();
   }
 
+  // P10: 同步 renderer 端的主题偏好到主进程 (用于 submenu 选中标记).
+  function setThemeMode(mode) {
+    const m = ["system", "light", "dark"].includes(mode) ? mode : "system";
+    if (m === lastThemeMode) return;
+    lastThemeMode = m;
+    scheduleRebuild();
+  }
+
   function setBadge(updateCount) {
     if (!tray) return;
     if (updateCount > 0) {
@@ -596,6 +636,7 @@ function createTrayManager(opts) {
     setMetals,
     setSelfUpdateState,
     setTrayMenuPrefs,
+    setThemeMode, // P10
     dispose,
   };
 }

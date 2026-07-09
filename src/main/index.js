@@ -340,6 +340,15 @@ function installTray() {
           });
         }
       },
+      // P10: 托盘主题切换 → IPC 通知 renderer 应用主题
+      onThemeChange: (mode) => {
+        // 直接广播 theme:changed (renderer 端 theme-manager 监听)
+        const w = getWindow();
+        if (w && !w.isDestroyed()) {
+          w.webContents.send("theme:changed", { mode });
+        }
+        // 主进程自己已通过 buildMenu rebuild 标记了选中, 不需要再 setThemeMode.
+      },
       // Phase v1: 「菜单栏配置...」点击 → 主面板 + 推 tray:open-config (renderer 挂 modal)
       onOpenTrayConfig: () => {
         if (winMgr) winMgr.showWindow();

@@ -15,7 +15,7 @@ import { _internal } from "../../src/main/tray.js";
 const { buildMenu } = _internal;
 
 describe("tray.buildMenu — 基础结构 (Task A1 refactor)", () => {
-  it("results=[] 时: 显示 I7 summary (尚未检测) + 检查更新段头 + 4 个底部 action", () => {
+  it("results=[] 时: 显示 I7 summary (尚未检测) + 检查更新段头 + 底部 action + P10 主题 submenu", () => {
     const m = buildMenu({
       results: [],
       aiUsage: null,
@@ -23,11 +23,13 @@ describe("tray.buildMenu — 基础结构 (Task A1 refactor)", () => {
       metals: null,
     });
     const labels = m.map((i) => i.label).filter(Boolean);
-    // I7: 顶部 summary 行 → separator → 检查更新段头 → 底部 actions
+    // I7: 顶部 summary → separator → 检查更新段头 → 底部 actions.
+    // P10: 在打开面板后插入「主题」submenu (跟随系统/浅色/深色).
     expect(labels).toEqual([
       "🔔 Pulse · 尚未检测",
       "── 🔄 检查更新 · 尚未检查 ──",
       "打开面板",
+      "主题",
       "检查更新",
       "打开配置文件",
       "退出",
@@ -120,6 +122,7 @@ describe("tray.buildMenu — 基础结构 (Task A1 refactor)", () => {
       "── 🔄 检查更新 · 全部最新 (2) ──",
       '  点击"检查更新"手动刷新',
       "打开面板",
+      "主题",
       "检查更新",
       "打开配置文件",
       "退出",
@@ -413,5 +416,38 @@ describe("tray.buildMenu — 💎 贵金属段 (Task D1)", () => {
     const m = buildMenu({ results: [] });
     const metalRows = m.filter((i) => i.label && i.label.includes("💎"));
     expect(metalRows).toHaveLength(0);
+  });
+});
+
+describe("tray.buildMenu — 主题切换 submenu (P10)", () => {
+  it("themeMode=system → 跟随系统 radio 选中, 浅色/深色未选", () => {
+    const m = buildMenu({ results: [], themeMode: "system" });
+    const themeEntry = m.find((i) => i.label === "主题");
+    expect(themeEntry).toBeDefined();
+    expect(themeEntry.submenu).toHaveLength(3);
+    expect(themeEntry.submenu[0]).toMatchObject({ label: "跟随系统", type: "radio", checked: true });
+    expect(themeEntry.submenu[1]).toMatchObject({ label: "浅色", type: "radio", checked: false });
+    expect(themeEntry.submenu[2]).toMatchObject({ label: "深色", type: "radio", checked: false });
+  });
+
+  it("themeMode=dark → 深色 radio 选中", () => {
+    const m = buildMenu({ results: [], themeMode: "dark" });
+    const themeEntry = m.find((i) => i.label === "主题");
+    expect(themeEntry.submenu[2].checked).toBe(true);
+    expect(themeEntry.submenu[0].checked).toBe(false);
+  });
+
+  it("点击 submenu → 触发 onThemeChange callback", () => {
+    const onThemeChange = vi.fn();
+    const m = buildMenu({ results: [], themeMode: "light", onThemeChange });
+    const themeEntry = m.find((i) => i.label === "主题");
+    themeEntry.submenu[2].click(); // 点深色
+    expect(onThemeChange).toHaveBeenCalledWith("dark");
+  });
+
+  it("themeMode 缺省默认 'system'", () => {
+    const m = buildMenu({ results: [] });
+    const themeEntry = m.find((i) => i.label === "主题");
+    expect(themeEntry.submenu[0].checked).toBe(true);
   });
 });

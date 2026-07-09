@@ -378,4 +378,13 @@ contextBridge.exposeInMainWorld("metalsApi", {
     ipcRenderer.on("metals:history:changed", handler);
     return () => ipcRenderer.removeListener("metals:history:changed", handler);
   },
+
+  // P10: 主题切换 IPC 桥接
+  themeGet: () => ipcRenderer.invoke("theme:get"),
+  themeSet: (mode) => ipcRenderer.invoke("theme:set", mode),
+  onThemeChanged: (cb) => {
+    const handler = (_evt, data) => cb(data);
+    ipcRenderer.on("theme:changed", handler);
+    return () => ipcRenderer.removeListener("theme:changed", handler);
+  },
 });

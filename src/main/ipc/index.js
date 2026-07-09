@@ -33,6 +33,7 @@ const { registerStockExportHandlers } = require("./register-stock-export");
 const {
   registerVersionsOverviewHandlers,
 } = require("./register-versions-overview");
+const { registerThemeHandlers } = require("./register-theme");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -72,6 +73,7 @@ function registerIpcHandlers(deps) {
     electronApp: require("electron").app,
   }); // 诊断报告导出 PNG (需要 dialog + BrowserWindow + app.getPath)
   registerVersionsOverviewHandlers(ctx); // Task 15: overview 5 数据源 + command palette
+  registerThemeHandlers(ctx); // P10: 主进程 ↔ renderer 主题桥接 (托盘切换 + system 同步)
 }
 
 module.exports = { registerIpcHandlers };

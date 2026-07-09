@@ -42,7 +42,7 @@ import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upg
 import { createAutoRecheck } from './auto-recheck.js';
 import { taggedLog } from './log.js';
 import { applyPlatformBodyClass } from './platform-body-class.js';
-import { initTheme } from './theme/theme-manager.js';
+import { initTheme, getThemePreference, setThemePreference } from './theme/theme-manager.js';
 
 const log = taggedLog("[index]");
 
@@ -262,6 +262,18 @@ async function bootstrap() {
   );
 
   wireRendererListeners();
+  // P10: 主题同步给主进程 (tray submenu 选中标记用)
+  if (typeof api.themeSet === 'function') {
+    api.themeSet(getThemePreference()).catch(() => {});
+  }
+  // P10: 监听主进程广播 (托盘切换或 nativeTheme 变化)
+  if (typeof api.onThemeChanged === 'function') {
+    api.onThemeChanged(({ mode }) => {
+      if (mode && ['system', 'light', 'dark'].includes(mode)) {
+        setThemePreference(mode);
+      }
+    });
+  }
   scheduleDeferredBootstrap(cfg);
 }
 
