@@ -44,7 +44,8 @@ import {
 } from './sidenav-prefs.js';
 import { SideNavItem } from './SideNavItem.jsx';
 import { HiddenItemsDrawer } from './HiddenItemsDrawer.jsx';
-import { IconBot, IconChevronDown, IconMenu, IconRefresh } from './icons.jsx';
+import { IconBot, IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.jsx';
+import { navigateTo } from '../route-store.js';
 
 // Phase v1: 4 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).
 // nav key → prefs segment key. 不在 map 里的 nav 始终显示 (spec 明确不动).
@@ -209,6 +210,18 @@ export function SideNav() {
           <span class="side-nav-icon" aria-hidden="true"><IconBot size={18} /></span>
           {!collapsed && <span class="side-nav-label">AI 配置</span>}
           {aiNeedsSetup && <span class="side-nav-setup-dot" aria-hidden="true" />}
+        </button>
+        {/* P11: 设置入口 (VersionsLayout → settings 路由) — 之前只能 Cmd+K 搜, 用户找不到 */}
+        <button
+          type="button"
+          class="side-nav-button side-nav-settings-btn"
+          onClick={() => { setActiveNav('versions'); navigateTo('settings'); }}
+          title={collapsed ? '设置 (主题 / 跟随系统)' : ''}
+          aria-label="设置"
+          data-testid="side-nav-settings-btn"
+        >
+          <span class="side-nav-icon" aria-hidden="true"><IconSettings size={18} /></span>
+          {!collapsed && <span class="side-nav-label">设置</span>}
         </button>
         {!collapsed && hiddenNavItems.length > 0 && (
           <button
