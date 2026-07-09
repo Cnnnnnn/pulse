@@ -52,6 +52,11 @@ svg:not([role="img"]) {
   --accent-blue: oklch(60.28% 0.2178 257.4);     /* was #007aff (alias of primary) */
   --accent-red: oklch(65.42% 0.2321 28.7);      /* was #ff3b30 */
   --accent-gray: var(--gray-400);
+  /* 警示色阶 (P9) — Tailwind amber 4/5/7, 用于 warn/info 浅底文字.
+     与 --accent-orange(#ff9500) 是不同概念: orange=警告/注意; amber=提示/温和警示. */
+  --accent-amber-400: #fbbf24;
+  --accent-amber-500: #f59e0b;
+  --accent-amber-700: #b45309;
 
   /* AI 工具品牌色 (P7) — Cursor 紫 / Codex 翠绿 / MiniMax Code 琥珀.
      非状态色, 走 brand 体系不进 --accent-*; dark 主题保持一致 (品牌跨主题). */
@@ -167,7 +172,7 @@ svg:not([role="img"]) {
     --text-tertiary: #636366;
     --accent-orange: oklch(78.24% 0.1710 67.2);  /* was #ff9f0a */
     --accent-green: oklch(75.56% 0.2082 147.0);  /* was #30d158 */
-    --accent-blue: #0a84ff;
+    --accent-blue: var(--accent-primary);   /* P9: was #0a84ff */
     --accent-red: oklch(66.33% 0.2236 28.3);    /* was #ff453a */
     --accent-gray: var(--gray-400);
     --chrome-bg: rgba(28, 28, 30, 0.94);
@@ -312,7 +317,7 @@ body.platform-win .window-control-btn:hover {
 }
 body.platform-win .window-control-btn--close:hover {
   background: #c42b1c;
-  color: #ffffff;
+  color: var(--surface);
 }
 
 #app {
@@ -1195,9 +1200,9 @@ body.platform-win .window-control-btn--close:hover {
 .source-tag.source-brew_local_cask { background: rgba(255, 149, 0, 0.12); color: #b65a00; }
 .source-tag.source-sparkle_appcast  { background: rgba(255, 45, 85, 0.12); color: #c2185b; }
 .source-tag.source-app_store_lookup { background: color-mix(in oklch, var(--accent-primary) 12%, transparent); color: #0051a8; }
-.source-tag.source-electron_yml     { background: rgba(52, 199, 89, 0.12); color: #1f7a3a; }
+.source-tag.source-electron_yml     { background: rgba(52, 199, 89, 0.12); color: var(--accent-green); }
 .source-tag.source-qclaw_api        { background: rgba(175, 82, 222, 0.12); color: #6a2d8c; }
-.source-tag.source-app_update_yml   { background: rgba(52, 199, 89, 0.12); color: #1f7a3a; }
+.source-tag.source-app_update_yml   { background: rgba(52, 199, 89, 0.12); color: var(--accent-green); }
 .source-tag.source-api_json         { background: rgba(90, 200, 255, 0.12); color: #0066a3; }
 .source-tag.source-redirect_filename,
 .source-tag.source-cursor_redirect  { background: var(--bg-hover); color: var(--text-tertiary); }
@@ -1707,7 +1712,7 @@ body.platform-win .window-control-btn--close:hover {
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: #007aff;
+  background: var(--accent-primary);
   color: #fff;
   font-size: var(--font-size-10);
   font-weight: 600;
@@ -1722,14 +1727,14 @@ body.platform-win .window-control-btn--close:hover {
 }
 #btn-ai-digest.has-content.is-active {
   background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
-  color: #007aff;
+  color: var(--accent-primary);
 }
 /* Phase B7e.2: 未配置时红色提示点 (跟 "has-content" 互斥) */
 #btn-ai-digest.needs-setup .setup-badge {
   background: #ff3b30;  /* macOS 系统红 */
 }
 #btn-ai-digest.needs-setup:hover {
-  color: #ff3b30;
+  color: var(--accent-red);
 }
 
 .digest-spinner {
@@ -1737,7 +1742,7 @@ body.platform-win .window-control-btn--close:hover {
   width: 14px;
   height: 14px;
   border: 2px solid var(--bg-secondary);
-  border-top-color: #007aff;
+  border-top-color: var(--accent-primary);
   border-radius: 50%;
   animation: digest-spin 800ms linear infinite;
 }
@@ -1803,7 +1808,7 @@ body.platform-win .window-control-btn--close:hover {
   background:
     radial-gradient(circle at top right, color-mix(in oklch, var(--accent-primary) 18%, transparent), transparent 38%),
     linear-gradient(180deg, rgba(240, 247, 255, 0.98), rgba(226, 239, 255, 0.92));
-  color: #007aff;
+  color: var(--accent-primary);
   border-radius: 10px;
   flex-shrink: 0;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
@@ -1866,7 +1871,7 @@ body.platform-win .window-control-btn--close:hover {
   align-items: center;
   padding: 0 16px;
   gap: var(--space-2);
-  color: #007aff;
+  color: var(--accent-primary);
   font-size: var(--font-size-sm);
   flex-shrink: 0;
 }
@@ -1976,8 +1981,8 @@ body.platform-win .window-control-btn--close:hover {
   flex-shrink: 0;
 }
 .drawer-footer-btn-primary {
-  background: #007aff;
-  border: 1px solid #007aff;
+  background: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
   color: #fff;
   padding: 6px 14px;
   border-radius: 6px;
@@ -1987,8 +1992,8 @@ body.platform-win .window-control-btn--close:hover {
   transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
 .drawer-footer-btn-primary:hover {
-  background: #0a84ff;
-  border-color: #0a84ff;
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
 }
 .drawer-footer-btn-primary:active {
   transform: translateY(1px);
@@ -2000,7 +2005,7 @@ body.platform-win .window-control-btn--close:hover {
   box-shadow: none;
 }
 .drawer-footer-text-link {
-  color: #007aff;
+  color: var(--accent-primary);
   text-decoration: underline;
   font-size: var(--font-size-sm);
   background: transparent;
@@ -2009,7 +2014,7 @@ body.platform-win .window-control-btn--close:hover {
   padding: 6px 0;
 }
 .drawer-footer-text-link:hover {
-  color: #0a84ff;
+  color: var(--accent-primary);
 }
 .digest-workbench-hero {
   display: flex;
@@ -2028,7 +2033,7 @@ body.platform-win .window-control-btn--close:hover {
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #007aff;
+  color: var(--accent-primary);
   text-transform: uppercase;
 }
 .digest-workbench-title {
@@ -2095,7 +2100,7 @@ body.platform-win .window-control-btn--close:hover {
   padding: 2px 0;
   border-radius: 999px;
   background: transparent;
-  color: #007aff;
+  color: var(--accent-primary);
   font-size: var(--font-size-xs);
   font-weight: 700;
   white-space: nowrap;
@@ -2195,7 +2200,7 @@ body.platform-win .window-control-btn--close:hover {
 }
 .work-item-status-badge.generated {
   background: rgba(52, 199, 89, 0.12);
-  color: #229a45;
+  color: var(--accent-green);
 }
 .work-item-status-badge.partial {
   background: rgba(255, 159, 10, 0.12);
@@ -2267,7 +2272,7 @@ body.platform-win .window-control-btn--close:hover {
 }
 .work-item-action-btn.primary {
   background: rgba(0,122,255,0.10);
-  color: #007aff;
+  color: var(--accent-primary);
 }
 .work-item-action-btn.primary:hover {
   background: rgba(0,122,255,0.16);
@@ -2298,7 +2303,7 @@ body.platform-win .window-control-btn--close:hover {
   gap: var(--space-1);
   margin-top: 8px;
   font-size: var(--font-size-xs);
-  color: #007aff;
+  color: var(--accent-primary);
   text-decoration: none;
   font-weight: 500;
 }
@@ -2343,7 +2348,7 @@ body.platform-win .window-control-btn--close:hover {
   margin: 0 0 6px;
   font-size: var(--font-size-xs);
   line-height: 1;
-  color: #007aff;
+  color: var(--accent-primary);
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -2379,8 +2384,8 @@ body.platform-win .window-control-btn--close:hover {
   transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 .session-select input:checked + .session-select-indicator {
-  border-color: #007aff;
-  background: #007aff;
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
   box-shadow: 0 6px 14px rgba(0,122,255,0.18);
 }
 .session-select input:checked + .session-select-indicator::after {
@@ -2481,7 +2486,7 @@ body.platform-win .window-control-btn--close:hover {
  align-items: center;
  justify-content: center;
  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
- color: #007aff;
+ color: var(--accent-primary);
  flex-shrink: 0;
 }
 .ai-config-hero-copy {
@@ -2524,7 +2529,7 @@ body.platform-win .window-control-btn--close:hover {
 }
 .ai-config-provider-pill.provider-minimax {
  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
- color: #007aff;
+ color: var(--accent-primary);
 }
 .ai-config-section {
  display: flex;
@@ -2571,7 +2576,7 @@ body.platform-win .window-control-btn--close:hover {
 }
 .ai-config-inline-status.ok {
  background: rgba(52, 199, 89, 0.12);
- color: #229a45;
+ color: var(--accent-green);
 }
 .ai-config-inline-status.idle {
  background: rgba(255, 159, 10, 0.12);
@@ -2747,11 +2752,11 @@ body.platform-win .window-control-btn--close:hover {
 }
 .ai-settings-save-status.info {
  background: rgba(0,122,255,0.1);
- color: #007aff;
+ color: var(--accent-primary);
 }
 .ai-settings-save-status.success {
  background: rgba(52,199,89,0.12);
- color: #229a45;
+ color: var(--accent-green);
 }
 .ai-settings-save-status.error {
  background: rgba(255,59,48,0.1);
@@ -2869,7 +2874,7 @@ body.platform-win .window-control-btn--close:hover {
 }
 .toast-close:hover { color: var(--text-primary); }
 .toast-info { border-left:3px solid var(--accent-blue); }
-.toast-warn { border-left:3px solid #f59e0b; background: #fffbeb; }
+.toast-warn { border-left:3px solid var(--accent-amber-500); background: #fffbeb; }
 .toast-error { border-left:3px solid var(--accent-red); background: #fef2f2; }
 .toast-success { border-left:3px solid var(--accent-green); }
 
@@ -3317,7 +3322,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-secondary);
 }
 .error-entry--unhandled .error-entry__level { color: var(--accent-red); }
-.error-entry--warn .error-entry__level { color: #f59e0b; }
+.error-entry--warn .error-entry__level { color: var(--accent-amber-500); }
 .error-entry__message {
   font-size: var(--font-size-sm);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -3432,10 +3437,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   /* 同基底 */
 }
 .row-action-pin:hover {
-  color: #f5a623;
+  color: var(--accent-orange);
 }
 .row-action-pin.is-pinned {
-  color: #f5a623;
+  color: var(--accent-orange);
   background: rgba(245, 166, 35, 0.08);
 }
 .row-action-pin.is-pinned:hover {
@@ -3531,11 +3536,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-tasks-date-chip:hover {
   border-color: color-mix(in oklch, var(--accent-primary) 35%, transparent);
-  color: #007aff;
+  color: var(--accent-primary);
 }
 .ai-tasks-date-chip.active {
-  background: #007aff;
-  border-color: #007aff;
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: #fff;
   font-weight: 500;
 }
@@ -3551,13 +3556,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-tasks-group-count {
   font-size: var(--font-size-sm);
-  color: #64748b;
+  color: var(--gray-500);
 }
 .ai-tasks-group-select {
   margin-left: auto;
   border: none;
   background: none;
-  color: #007aff;
+  color: var(--accent-primary);
   font-size: var(--font-size-sm);
   cursor: pointer;
   padding: 2px 6px;
@@ -3627,7 +3632,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-task-status-badge.stale {
   background: rgba(245, 158, 11, 0.14);
-  color: #b45309;
+  color: var(--accent-amber-700);
 }
 .ai-task-status-badge.generating {
   background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
@@ -3648,7 +3653,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .ai-task-card-project {
   margin: 0 0 4px;
   font-size: var(--font-size-sm);
-  color: #64748b;
+  color: var(--gray-500);
 }
 .ai-task-card-actions {
   display: flex;
@@ -4514,8 +4519,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-variant-numeric: tabular-nums;
 }
 
-.worldcup-team-gd--pos { color: #d33; }
-.worldcup-team-gd--neg { color: #2a7; }
+.worldcup-team-gd--pos { color: var(--accent-red); }
+.worldcup-team-gd--neg { color: var(--accent-green); }
 
 .worldcup-team-cn {
   flex: 1;
@@ -4669,7 +4674,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .squad-score-badge--final {
-  color: #2a7;
+  color: var(--accent-green);
   background: rgba(42, 119, 85, 0.12);
 }
 
@@ -4941,7 +4946,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .worldcup-bets-stat-pnl.positive,
 .worldcup-bets-stat-value.positive { color: #10b981; }
 .worldcup-bets-stat-pnl.negative,
-.worldcup-bets-stat-value.negative { color: #ef4444; }
+.worldcup-bets-stat-value.negative { color: var(--accent-red); }
 
 .day-bet-footer {
   display: flex;
@@ -4960,7 +4965,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .day-bet-stake { color: var(--text-primary); }
 .day-bet-sep { opacity: 0.5; }
 .day-bet-pnl.positive { color: #10b981; font-weight: 500; }
-.day-bet-pnl.negative { color: #ef4444; font-weight: 500; }
+.day-bet-pnl.negative { color: var(--accent-red); font-weight: 500; }
 .day-bet-note {
   margin-left: 8px;
   font-style: italic;
@@ -5027,7 +5032,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   resize: vertical;
 }
 .day-bet-form-err {
-  color: #ef4444;
+  color: var(--accent-red);
   font-size: var(--font-size-sm);
   margin-top: 4px;
 }
@@ -5085,7 +5090,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #ff9500;
+  background: var(--accent-orange);
   box-shadow: 0 0 0 2px var(--bg-secondary);
 }
 
@@ -5100,7 +5105,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: #ff3b30;
+  background: var(--accent-red);
   color: #fff;
   font-size: var(--font-size-10);
   line-height: 16px;
@@ -5372,7 +5377,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   flex: 1;
   border: 1px solid color-mix(in oklch, var(--accent-primary) 28%, transparent);
   background: rgba(255, 255, 255, 0.92);
-  color: #007aff;
+  color: var(--accent-primary);
   border-radius: 8px;
   padding: 6px 10px;
   font-size: var(--font-size-sm);
@@ -5397,7 +5402,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   flex-shrink: 0;
 }
 
-.match-card-ai-regen:hover:not(:disabled) { color: #007aff; }
+.match-card-ai-regen:hover:not(:disabled) { color: var(--accent-primary); }
 
 .match-card-ai-regen:disabled { opacity: 0.65; cursor: wait; }
 
@@ -5503,8 +5508,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-primary);
 }
 .worldcup-scorers-filter-tab.is-active {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
   font-weight: 600;
 }
 
@@ -5803,7 +5808,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .fund-search-input:focus {
   outline: none;
-  border-color: #3a7afe;
+  border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px rgba(58, 122, 254, 0.15);
 }
 
@@ -6039,12 +6044,12 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .fund-row-stat-value { font-size: var(--font-size-lg); font-weight: 600; white-space: nowrap; }
 
-.fund-row-stat-value.positive { color: #d33; }
-.fund-row-stat-value.negative { color: #2a7; }
+.fund-row-stat-value.positive { color: var(--accent-red); }
+.fund-row-stat-value.negative { color: var(--accent-green); }
 
 .fund-row-stat-nav { min-width: 148px; }
 
-.fund-row-est-tag { margin-left: 4px; font-size: var(--font-size-10); color: #ff9500; }
+.fund-row-est-tag { margin-left: 4px; font-size: var(--font-size-10); color: var(--accent-orange); }
 
 .fund-row-toggle {
   position: absolute;
@@ -6154,7 +6159,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   cursor: pointer;
 }
 
-.fund-mode-toggle-btn.active { background: #3a7afe; color: #fff; }
+.fund-mode-toggle-btn.active { background: var(--accent-primary); color: #fff; }
 
 .fund-search-dropdown {
   position: absolute;
@@ -6300,8 +6305,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-primary);
 }
 
-.fund-pnl-summary-value.positive { color: #d33; }
-.fund-pnl-summary-value.negative { color: #2a7; }
+.fund-pnl-summary-value.positive { color: var(--accent-red); }
+.fund-pnl-summary-value.negative { color: var(--accent-green); }
 
 .fund-pnl-empty {
   padding: 32px 16px;
@@ -6343,8 +6348,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .fund-pnl-table th { color: var(--text-tertiary); font-weight: 500; }
 
-.fund-pnl-table td.positive { color: #d33; }
-.fund-pnl-table td.negative { color: #2a7; }
+.fund-pnl-table td.positive { color: var(--accent-red); }
+.fund-pnl-table td.negative { color: var(--accent-green); }
 
 .fund-pnl-table tbody tr:last-child td { border-bottom: none; }
 
@@ -6835,9 +6840,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 2px 4px;
 }
 
-.ithome-row-star:hover { color: #f5a623; }
+.ithome-row-star:hover { color: var(--accent-orange); }
 
-.ithome-row-star.is-on { color: #f5a623; }
+.ithome-row-star.is-on { color: var(--accent-orange); }
 
 .ithome-row-title {
   display: block;
@@ -7502,8 +7507,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .ai-usage-tab--active {
-  color: #007aff;
-  border-bottom-color: #007aff;
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
 }
 
 .ai-usage-page {
@@ -7874,7 +7879,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-tertiary);
 }
 .bracket-warnings {
-  color: #f59e0b;
+  color: var(--accent-amber-500);
 }
 .bracket-stage {
   /* ponytail: v2.65 — 跟随 Pulse 浅色主题, stage 容器无背景, 只 padding. */
@@ -7921,7 +7926,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .bracket-card {
   /* ponytail: v2.65 — 百度/ESPN 风浅色卡片. 白底 + 浅灰描边 + hover 蓝边高亮. */
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid var(--bracket-card-border);
   border-radius: 8px;
   padding: 10px 12px;
@@ -8105,7 +8110,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .bracket-badge--lock {
   background: #fef3c7;
-  color: #b45309;
+  color: var(--accent-amber-700);
 }
 .bracket-badge--live {
   background: #fee2e2;
@@ -8191,7 +8196,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-color: #4ade80;
 }
 .bracket-tree .bracket-card--live {
-  border-color: #ef4444;
+  border-color: var(--accent-red);
 }
 .bracket-tree .bracket-card-head {
   font-size: 9px;
@@ -8291,7 +8296,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .bracket-tree .bracket-card-score--inline {
   font-variant-numeric: tabular-nums;
   font-weight: 800;
-  color: #fbbf24;
+  color: var(--accent-amber-400);
   flex: 0 0 auto;
   padding: 0 6px;
   font-size: 14px;
@@ -8577,7 +8582,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .bracket-card--final-prominent {
   width: 240px;
   min-height: 100px;
-  border: 1.5px solid #fbbf24;
+  border: 1.5px solid var(--accent-amber-400);
   background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(251, 191, 36, 0.02) 100%);
   box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
   align-self: center;
@@ -8586,7 +8591,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .bracket-card--final-prominent .bracket-card-head {
   font-size: 11px !important;
   font-weight: 700;
-  color: #fbbf24;
+  color: var(--accent-amber-400);
   letter-spacing: 1.5px;
   text-align: center;
   margin-bottom: 6px;
@@ -8601,7 +8606,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: 18px !important;
   padding: 0 8px !important;
 }
-  color: #fbbf24;
+  color: var(--accent-amber-400);
 }
 .bracket-card--third-prominent {
   width: 200px;
@@ -8876,8 +8881,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 40px;
   position: relative; /* 水印 absolute 钉死底部 */
   overflow: hidden;
-  background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, #1e1b4b 0%, var(--app-cursor) 100%);
+  color: var(--surface);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
@@ -8941,8 +8946,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .share-card-keyword {
-  background: #7c3aed;
-  color: #ffffff;
+  background: var(--app-cursor);
+  color: var(--surface);
   border-radius: 999px;
   padding: var(--space-1q) 14px;
   font-size: var(--font-size-subtitle);
@@ -9231,7 +9236,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: var(--font-size-10);
 }
 .upgrade-advice--upgrade .upgrade-advice-badge { background: rgba(52, 199, 89, 0.15); color: var(--accent-green); }
-.upgrade-advice--wait .upgrade-advice-badge { background: rgba(255, 149, 0, 0.15); color: #ff9500; }
+.upgrade-advice--wait .upgrade-advice-badge { background: rgba(255, 149, 0, 0.15); color: var(--accent-orange); }
 .upgrade-advice--skip .upgrade-advice-badge { background: rgba(142, 142, 147, 0.15); color: var(--gray-400); }
 .upgrade-advice-summary { color: var(--text-secondary, rgba(0,0,0,.65)); }
 .upgrade-advice--loading { color: var(--text-soft, rgba(0,0,0,.45)); font-style: italic; }
@@ -9289,7 +9294,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-left: -2px;
 }
 .upgrade-advice-confidence--high   { color: var(--accent-green); }
-.upgrade-advice-confidence--medium { color: #ff9500; opacity: 0.7; }
+.upgrade-advice-confidence--medium { color: var(--accent-orange); opacity: 0.7; }
 .upgrade-advice-confidence--low    { color: var(--gray-400); opacity: 0.5; }
 
 .changelog-panel-head {
@@ -9912,8 +9917,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   background: var(--bg-elevated); color: var(--text-tertiary);
   flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.02em;
 }
-.watchlist-row__type--app { color: #5856d6; } .watchlist-row__type--fund { color: #34c759; }
-.watchlist-row__type--metal { color: #ff9500; } .watchlist-row__type--keyword { color: var(--gray-400); }
+.watchlist-row__type--app { color: #5856d6; } .watchlist-row__type--fund { color: var(--accent-green); }
+.watchlist-row__type--metal { color: var(--accent-orange); } .watchlist-row__type--keyword { color: var(--gray-400); }
 .watchlist-row__title {
   font-size: var(--font-size-md); font-weight: 500; color: var(--text-primary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
@@ -9946,7 +9951,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   right: 3px;
   width: 7px;
   height: 7px;
-  background: #ff3b30;
+  background: var(--accent-red);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -10392,7 +10397,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .stock-td-name .stock-code { color: var(--text-tertiary); font-size: 10px; font-variant-numeric: tabular-nums; }
 .stock-td-industry { color: var(--text-secondary); font-size: 11px; }
 .stock-td { font-variant-numeric: tabular-nums; }
-.stock-td.up { color: #ff3b30; } .stock-td.down { color: #34c759; }
+.stock-td.up { color: var(--accent-red); } .stock-td.down { color: var(--accent-green); }
 
 /* 行内 action — icon 圆形按钮 */
 .stock-td-actions { display: flex; justify-content: flex-end; }
@@ -10434,18 +10439,18 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .add-compare-row:hover:not(:disabled) {
   background: rgba(52,199,89,0.15);
-  color: #34c759;
+  color: var(--accent-green);
 }
 .add-compare-row:disabled {
   opacity: 0.4; cursor: not-allowed;
 }
 .add-compare-row.add-compare-in {
   background: rgba(52,199,89,0.18);
-  color: #34c759;
+  color: var(--accent-green);
 }
 .add-compare-row.add-compare-in:hover {
   background: rgba(255,59,48,0.15);
-  color: #ff3b30;
+  color: var(--accent-red);
 }
 .add-compare-row.add-compare-flash-full {
   animation: add-cmp-full-shake 0.4s ease-out;
@@ -10472,7 +10477,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .add-compare-card:hover:not(:disabled) {
   background: rgba(52,199,89,0.10);
   border-color: rgba(52,199,89,0.5);
-  color: #34c759;
+  color: var(--accent-green);
   border-style: solid;
 }
 .add-compare-card:disabled {
@@ -10482,16 +10487,16 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-style: solid;
   background: rgba(52,199,89,0.12);
   border-color: rgba(52,199,89,0.5);
-  color: #34c759;
+  color: var(--accent-green);
 }
 .add-compare-card.add-compare-in:hover {
   background: rgba(255,59,48,0.10);
   border-color: rgba(255,59,48,0.5);
-  color: #ff3b30;
+  color: var(--accent-red);
 }
 .add-compare-card.add-compare-flash-full {
-  border-color: #ff3b30;
-  color: #ff3b30;
+  border-color: var(--accent-red);
+  color: var(--accent-red);
   animation: add-cmp-full-shake 0.4s ease-out;
 }
 .add-compare-mark { font-weight: 700; font-size: 14px; line-height: 1; }
@@ -10568,8 +10573,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .cmp-cell-price { font-variant-numeric: tabular-nums; white-space: nowrap; flex-direction: column; align-items: flex-end; gap: 1px; }
 .cmp-price-num { font-weight: 600; color: var(--text-primary); }
 .cmp-change { font-size: 10px; }
-.cmp-change.up { color: #ff3b30; }
-.cmp-change.down { color: #34c759; }
+.cmp-change.up { color: var(--accent-red); }
+.cmp-change.down { color: var(--accent-green); }
 .cmp-cell-overall { justify-content: center; }
 .cmp-overall-num { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .cmp-overall-missing { color: var(--text-tertiary); font-size: 12px; }
@@ -10594,7 +10599,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: 16px;
   line-height: 1;
 }
-.cmp-remove:hover { background: rgba(255,59,48,0.12); color: #ff3b30; }
+.cmp-remove:hover { background: rgba(255,59,48,0.12); color: var(--accent-red); }
 .cmp-foot {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; padding-top: 12px;
@@ -10705,7 +10710,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin-top: 14px; padding: 12px;
   background: rgba(255,59,48,0.08); border: 1px solid rgba(255,59,48,0.3); border-radius: 8px;
 }
-.stock-advise-error-title { font-size: 13px; font-weight: 600; color: #ff3b30; margin-bottom: 4px; }
+.stock-advise-error-title { font-size: 13px; font-weight: 600; color: var(--accent-red); margin-bottom: 4px; }
 .stock-advise-error-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.5; }
 .stock-advise-preview {
   margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border, rgba(0,0,0,0.08));
@@ -11597,8 +11602,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .diagnosis-hero-title { font-size: 17px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
 .diagnosis-hero-code { font-size: 11px; font-weight: 400; color: var(--text-tertiary); margin-left: 6px; font-variant-numeric: tabular-nums; }
 .diagnosis-hero-price { font-size: 13px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.diagnosis-hero-price.up { color: #ff3b30; }
-.diagnosis-hero-price.down { color: #34c759; }
+.diagnosis-hero-price.up { color: var(--accent-red); }
+.diagnosis-hero-price.down { color: var(--accent-green); }
 .diagnosis-rating-box {
   text-align: center;
   background: var(--bg-modal);
@@ -11648,8 +11653,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .last-dx-dim { display: inline-flex; align-items: baseline; gap: 4px; }
 .last-dx-dim-label { color: var(--text-secondary); }
 .last-dx-dim-delta { font-weight: 600; font-variant-numeric: tabular-nums; }
-.last-dx-tone-up { color: #34c759; }
-.last-dx-tone-down { color: #ff9500; }
+.last-dx-tone-up { color: var(--accent-green); }
+.last-dx-tone-down { color: var(--accent-orange); }
 .last-dx-tone-neutral { color: var(--text-tertiary); }
 
 /* === 导出 PNG 按钮 + toast + is-exporting 隐藏装饰 — ponytail: 2026-07-07
@@ -11680,8 +11685,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   z-index: 200;
   pointer-events: none;
 }
-.export-diagnosis-toast-ok { background: #34c759; color: #fff; }
-.export-diagnosis-toast-err { background: #ff3b30; color: #fff; }
+.export-diagnosis-toast-ok { background: var(--accent-green); color: #fff; }
+.export-diagnosis-toast-err { background: var(--accent-red); color: #fff; }
 /* 导出时隐藏按钮 / 工具栏 / skeleton */
 .stock-diagnosis-page.is-exporting .export-diagnosis-btn,
 .stock-diagnosis-page.is-exporting .diagnosis-actions,
@@ -11761,8 +11766,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-secondary);
 }
 .verdict-section li > span { flex: 1; min-width: 0; }
-.verdict-icon-positive { color: #34c759; flex-shrink: 0; margin-top: 4px; }
-.verdict-icon-cautious { color: #ff9500; flex-shrink: 0; margin-top: 4px; }
+.verdict-icon-positive { color: var(--accent-green); flex-shrink: 0; margin-top: 4px; }
+.verdict-icon-cautious { color: var(--accent-orange); flex-shrink: 0; margin-top: 4px; }
 .verdict-empty { font-size: 12px; color: var(--text-tertiary); font-style: italic; }
 .verdict-generate-btn {
   display: inline-flex;
@@ -11899,10 +11904,10 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   background: rgba(255,59,48,0.05);
   animation: ai-note-fail-flash 0.4s ease-out;
 }
-.ai-note-line-failed .ai-note-text { color: #ff3b30; }
+.ai-note-line-failed .ai-note-text { color: var(--accent-red); }
 .ai-note-refresh-failed {
   background: rgba(255,59,48,0.15) !important;
-  color: #ff3b30 !important;
+  color: var(--accent-red) !important;
 }
 /* module-card-wrap: 把 AiNoteLine 和下面 module-card 包成一个 grid 单元, 让
    AiNoteLine 跟 card 走同一列宽. gap 收紧保证视觉连贯. */
@@ -12004,8 +12009,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .ind-compare-mark { position: absolute; top: -1px; width: 10px; height: 10px; background: var(--accent-primary); border: 1.5px solid #fff; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.18); transform: translateX(-50%); }
 .ind-compare-val { font-size: 10px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 .ind-compare-delta { font-size: 10px; color: var(--text-tertiary); }
-.ind-compare-positive .ind-compare-fill { background: #34c759; }
-.ind-compare-cautious .ind-compare-fill { background: #ff9500; }
+.ind-compare-positive .ind-compare-fill { background: var(--accent-green); }
+.ind-compare-cautious .ind-compare-fill { background: var(--accent-orange); }
 /* ponytail 2026-07-08 — mark 配色跟 fill 同色 + 深一阶, 跟 track 对比强. 0% / 100% 一眼看出 */
 .ind-compare-pct.ind-compare-positive .ind-compare-mark { background: #2aa84a; }
 .ind-compare-pct.ind-compare-cautious .ind-compare-mark { background: #e08400; }
