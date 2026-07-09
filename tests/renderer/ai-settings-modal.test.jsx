@@ -60,9 +60,9 @@ describe('<AIConfigForm /> — Phase B7e: 只 deepseek + minimax', () => {
  it('渲染 provider-card (deepseek + minimax + glm), 没有 ollama/openai/anthropic', () => {
  const onSaved = vi.fn();
  const { container } = render(<AIConfigForm onSaved={onSaved} />);
- const cards = container.querySelectorAll('.provider-card');
+ const cards = container.querySelectorAll('.settings-provider-card');
  expect(cards.length).toBe(3);
- const labels = Array.from(cards).map((c) => c.querySelector('.provider-card-name').textContent);
+ const labels = Array.from(cards).map((c) => c.querySelector('.settings-provider-card__name').textContent);
  expect(labels.some((text) => text.includes('DeepSeek'))).toBe(true);
  expect(labels.some((text) => text.includes('MiniMax'))).toBe(true);
  expect(labels.some((text) => text.includes('GLM'))).toBe(true);
@@ -73,19 +73,19 @@ describe('<AIConfigForm /> — Phase B7e: 只 deepseek + minimax', () => {
 
  it('默认选中 deepseek (没 cfg 时)', () => {
  const { container } = render(<AIConfigForm />);
- const cards = container.querySelectorAll('.provider-card');
- const selected = Array.from(cards).find((c) => c.classList.contains('selected'));
- expect(selected.querySelector('.provider-card-name').textContent).toBe('DeepSeek');
+ const cards = container.querySelectorAll('.settings-provider-card');
+ const selected = Array.from(cards).find((c) => c.classList.contains('is-selected'));
+ expect(selected.querySelector('.settings-provider-card__name').textContent).toBe('DeepSeek');
  });
 
  it('点 MiniMax card →切换 provider, model input跟 minimax走', () => {
  const { container } = render(<AIConfigForm />);
- const cards = container.querySelectorAll('.provider-card');
+ const cards = container.querySelectorAll('.settings-provider-card');
  const minimaxCard = Array.from(cards).find((c) =>
- c.querySelector('.provider-card-name').textContent.includes('MiniMax'));
+ c.querySelector('.settings-provider-card__name').textContent.includes('MiniMax'));
  fireEvent.click(minimaxCard);
- expect(minimaxCard.classList.contains('selected')).toBe(true);
- expect(minimaxCard.querySelector('.provider-card-name').textContent).toBe('MiniMax');
+ expect(minimaxCard.classList.contains('is-selected')).toBe(true);
+ expect(minimaxCard.querySelector('.settings-provider-card__name').textContent).toBe('MiniMax');
  const inputs = container.querySelectorAll('input[type="text"]');
  //第一个是 model,第二个是 baseUrl
  expect(inputs[0].value).toBe('MiniMax-M3');
@@ -97,9 +97,9 @@ describe('<AIConfigForm /> — Phase B7e: 只 deepseek + minimax', () => {
  cloud: { providerId: 'minimax', model: 'm1', baseUrl: 'https://x' },
  };
  const { container } = render(<AIConfigForm />);
- const cards = container.querySelectorAll('.provider-card');
- const selected = Array.from(cards).find((c) => c.classList.contains('selected'));
- expect(selected.querySelector('.provider-card-name').textContent).toBe('MiniMax');
+ const cards = container.querySelectorAll('.settings-provider-card');
+ const selected = Array.from(cards).find((c) => c.classList.contains('is-selected'));
+ expect(selected.querySelector('.settings-provider-card__name').textContent).toBe('MiniMax');
  });
 });
 
@@ -115,7 +115,7 @@ describe('<AIConfigForm /> — Phase B7f: 没有 enabled toggle', () => {
  cloud: { providerId: 'deepseek', model: 'deepseek-chat' },
  };
  const { container } = render(<AIConfigForm />);
- const saveBtn = container.querySelector('.ai-config-form-actions .btn-primary');
+ const saveBtn = Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('保存配置'));
  fireEvent.click(saveBtn);
  await new Promise((r) => setTimeout(r,10));
  const call = store.saveAISessionsConfig.mock.calls[0][0];
@@ -129,7 +129,7 @@ describe('<AIConfigForm /> — Phase B7f: 没有 enabled toggle', () => {
  };
  const onSaved = vi.fn();
  const { container } = render(<AIConfigForm onSaved={onSaved} />);
- fireEvent.click(container.querySelector('.ai-config-form-actions .btn-primary'));
+ fireEvent.click(Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('保存配置')));
  await new Promise((r) => setTimeout(r,10));
  expect(onSaved).toHaveBeenCalledOnce();
  });
@@ -138,7 +138,7 @@ describe('<AIConfigForm /> — Phase B7f: 没有 enabled toggle', () => {
  const onCancel = vi.fn();
  const { container } = render(<AIConfigForm compact onCancel={onCancel} />);
  // compact=true 时按钮文案是 "返回"
- const cancelBtn = Array.from(container.querySelectorAll('.ai-config-form-actions .btn'))
+ const cancelBtn = Array.from(container.querySelectorAll('.ai-config-form-actions .settings-btn'))
  .find((b) => b.textContent.includes('返回'));
  fireEvent.click(cancelBtn);
  expect(onCancel).toHaveBeenCalledOnce();
@@ -154,7 +154,7 @@ describe('<AIConfigForm /> — API key 操作', () => {
  const { container } = render(<AIConfigForm />);
  const keyInput = container.querySelector('input[type="password"]');
  fireEvent.input(keyInput, { target: { value: 'sk-test-123' } });
- const saveKeyBtn = container.querySelector('.ai-settings-key-controls .btn-primary');
+ const saveKeyBtn = Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('保存 key'));
  fireEvent.click(saveKeyBtn);
  await new Promise((r) => setTimeout(r,10));
  expect(store.setAIKey).toHaveBeenCalledWith('deepseek', 'sk-test-123');
@@ -176,7 +176,7 @@ describe('<AIConfigForm /> — API key 操作', () => {
  };
  store.aiKeyStatus.value = { deepseek: { hasKey: true, available: true } };
  const { container } = render(<AIConfigForm />);
- const clearBtn = container.querySelectorAll('.ai-settings-key-controls .btn')[1];
+ const clearBtn = Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('清空'));
  fireEvent.click(clearBtn);
  await new Promise((r) => setTimeout(r,10));
  expect(store.clearAIKey).toHaveBeenCalledWith('deepseek');
@@ -201,7 +201,7 @@ describe('<AIConfigForm /> — 测试连接', () => {
  cloud: { providerId: 'deepseek', model: 'deepseek-chat' },
  };
  const { container } = render(<AIConfigForm />);
- const testBtn = container.querySelector('.ai-settings-test-row .btn');
+ const testBtn = Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('测试连接'));
  fireEvent.click(testBtn);
  await new Promise((r) => setTimeout(r,10));
  expect(store.runAIHealthcheck).toHaveBeenCalledWith(expect.objectContaining({
@@ -220,11 +220,11 @@ it('healthcheck ok → 显示 IconCheck + latency', async () => {
  cloud: { providerId: 'deepseek', model: 'deepseek-chat' },
  };
  const { container } = render(<AIConfigForm />);
- fireEvent.click(container.querySelector('.ai-settings-test-row .btn'));
+ fireEvent.click(Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('测试连接')));
  await new Promise((r) => setTimeout(r,10));
- const result = container.querySelector('.ai-settings-test-result');
+ const result = container.querySelectorAll('.settings-card')[3].querySelector('.settings-ai-badge');
  expect(result.textContent).toMatch(/234ms/);
- expect(result.classList.contains('ok')).toBe(true);
+ expect(result.classList.contains('settings-ai-badge--ready')).toBe(true);
  });
 
 it('healthcheck fail → 显示 IconX + error', async () => {
@@ -238,11 +238,11 @@ it('healthcheck fail → 显示 IconX + error', async () => {
  cloud: { providerId: 'deepseek', model: 'deepseek-chat' },
  };
  const { container } = render(<AIConfigForm />);
- fireEvent.click(container.querySelector('.ai-settings-test-row .btn'));
+ fireEvent.click(Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('测试连接')));
  await new Promise((r) => setTimeout(r,10));
- const result = container.querySelector('.ai-settings-test-result');
+ const result = container.querySelectorAll('.settings-card')[3].querySelector('.settings-ai-badge');
  expect(result.textContent).toMatch(/auth_401/);
- expect(result.classList.contains('fail')).toBe(true);
+ expect(result.classList.contains('settings-ai-badge--missing')).toBe(true);
  });
 });
 
@@ -253,7 +253,7 @@ describe('<AIConfigForm /> — 保存配置 (Phase B7g schema: 无 enabled)', ()
  cloud: { providerId: 'deepseek', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com' },
  };
  const { container } = render(<AIConfigForm />);
- const saveBtn = container.querySelector('.ai-config-form-actions .btn-primary');
+ const saveBtn = Array.from(container.querySelectorAll('button')).find(b => b.textContent.includes('保存配置'));
  fireEvent.click(saveBtn);
  await new Promise((r) => setTimeout(r,10));
  expect(store.saveAISessionsConfig).toHaveBeenCalledWith(expect.objectContaining({
@@ -272,14 +272,14 @@ describe('<AIConfigForm /> — 保存配置 (Phase B7g schema: 无 enabled)', ()
 describe('<AIConfigForm /> — compact mode (drawer 用)', () => {
  it('compact=true → 不渲染回填按钮 (重做版: 回填已删除)', () => {
  const { container } = render(<AIConfigForm compact />);
- const btns = container.querySelectorAll('.ai-settings-test-row .btn');
+ const btns = Array.from(container.querySelectorAll('button')).filter(b => b.textContent.includes('测试连接') || b.textContent.includes('回填'));
  const labels = Array.from(btns).map((b) => b.textContent);
  expect(labels.some((l) => l.includes('回填'))).toBe(false);
  });
 
  it('compact=false → 也不渲染回填按钮 (重做版: 按需生成, 无回填)', () => {
  const { container } = render(<AIConfigForm />);
- const btns = container.querySelectorAll('.ai-settings-test-row .btn');
+ const btns = Array.from(container.querySelectorAll('button')).filter(b => b.textContent.includes('测试连接') || b.textContent.includes('回填'));
  const labels = Array.from(btns).map((b) => b.textContent);
  expect(labels.some((l) => l.includes('回填'))).toBe(false);
  // 测试连接按钮仍在

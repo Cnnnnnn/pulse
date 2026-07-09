@@ -1,12 +1,18 @@
 /**
  * src/renderer/components/AISettingsScene.jsx
  *
- * 共享 AI 设置区: 连接设置 + Prompt 模板 (AITasksDrawer / AISettingsModal 共用).
+ * P16: AI 设置分类切换 — 改用 SubtabList (与 settings-subtab 同形态),
+ *      弃用 TabList variant="config" (依赖的 ai-config-tabs CSS 已删除).
  */
 import { useState } from 'preact/hooks';
 import { AIConfigForm } from './AISettingsModal.jsx';
 import { PromptSettings } from './PromptSettings.jsx';
-import { TabList, Tab } from './TabList.jsx';
+import { SubtabList } from './SubtabList.jsx';
+
+const AI_TABS = [
+  { key: 'connection', label: '连接设置' },
+  { key: 'prompts', label: 'Prompt 模板' },
+];
 
 /**
  * @param {object} props
@@ -25,14 +31,13 @@ export function AISettingsScene({
 
   return (
     <div class="digest-setup-scene">
-      <TabList variant="config" ariaLabel="AI 设置分类">
-        <Tab variant="config" active={tab === 'connection'} onClick={() => setTab('connection')}>
-          连接设置
-        </Tab>
-        <Tab variant="config" active={tab === 'prompts'} onClick={() => setTab('prompts')}>
-          Prompt 模板
-        </Tab>
-      </TabList>
+      <SubtabList
+        prefix="settings"
+        tabs={AI_TABS}
+        activeKey={tab}
+        onChange={setTab}
+        ariaLabel="AI 设置分类"
+      />
       {tab === 'connection' ? (
         <AIConfigForm compact={compact} onSaved={onSaved} onCancel={onCancel} />
       ) : (

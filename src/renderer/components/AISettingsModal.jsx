@@ -196,99 +196,97 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
 
  return (
  <div class="ai-config-form">
- <section class="ai-config-hero">
- <div class="ai-config-hero-icon" aria-hidden="true">
- <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
- <path d="M12 3l7 4v5c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V7l7-4z" />
- <path d="M9.5 12.5l1.8 1.8 3.2-4.3" />
- </svg>
- </div>
- <div class="ai-config-hero-copy">
- <div class="ai-config-hero-head">
- <h3 class="ai-config-hero-title">配置 AI 总结引擎</h3>
- <span class={`ai-config-provider-pill provider-${cloudProviderId}`}>{prov.label}</span>
- </div>
- <p class="ai-config-hero-desc">
- 选择提供方、模型和密钥后，Pulse 会为你勾选的 AI 任务生成总结。当前方案偏向 {providerDescriptor}。
- </p>
- </div>
- </section>
+ {/* P16: 改用 settings-card 体系, 去掉独立 hero/section 包装, 与设置页 4 段卡片视觉统一. */}
 
- <section class="ai-config-section ai-config-section-provider">
- <div class="ai-config-section-head">
- <div>
- <h4 class="ai-config-section-title">Provider</h4>
- <p class="ai-config-section-desc">先确定模型提供方，下面的默认参数会自动同步。</p>
- </div>
- </div>
+ {/* ── Provider 段 ── */}
+ <section class="settings-card">
+ <h3 class="settings-card__title">
+ Provider
+ <span class="settings-ai-badge settings-ai-badge--ready">{prov.label}</span>
+ </h3>
+ <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+ 先确定模型提供方，下面的默认参数会自动同步。当前方案偏向 {providerDescriptor}。
+ </p>
  <div class="ai-settings-provider-grid">
  {PROVIDERS.map((p) => (
  <button
  key={p.id}
  type="button"
- class={`provider-card ${cloudProviderId === p.id ? 'selected' : ''}`}
+ class={`settings-provider-card ${cloudProviderId === p.id ? 'is-selected' : ''}`}
  onClick={() => {
  setCloudProviderId(p.id);
  setCloudModel(p.defaultModel);
  setCloudBaseUrl(DEFAULT_BASE_URL[p.id] || '');
  }}
  >
- <span class="provider-card-topline">
- <span class="provider-card-name">{p.label}</span>
- <span class="provider-card-tag">{p.id === 'deepseek' ? 'Balanced' : 'CN-first'}</span>
- </span>
- <span class="provider-card-hint">{p.hint}</span>
+ <span class="settings-provider-card__name">{p.label}</span>
+ <span class="settings-provider-card__hint">{p.hint}</span>
  </button>
  ))}
  </div>
  </section>
 
- <section class="ai-config-section ai-config-section-compact">
- <div class="ai-config-section-head">
- <div>
- <h4 class="ai-config-section-title">连接参数</h4>
- <p class="ai-config-section-desc">保留自动填好的默认值即可，只有自建代理时才需要改 Base URL。</p>
- </div>
- </div>
+ {/* ── 连接参数段 ── */}
+ <section class="settings-card">
+ <h3 class="settings-card__title">连接参数</h3>
+ <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+ 保留自动填好的默认值即可，只有自建代理时才需要改 Base URL。
+ </p>
  <div class="ai-settings-field-grid">
- <div class="ai-settings-row">
- <label class="ai-settings-label">Model</label>
+ <div class="settings-row">
+ <div class="settings-row__label-block">
+ <label class="settings-row__label">Model</label>
+ <span class="settings-row__hint">建议先用默认模型，确认可用后再细调。</span>
+ </div>
  <input
+ class="settings-input"
  type="text"
  value={cloudModel}
  onInput={(e) => setCloudModel(e.currentTarget.value)}
  placeholder={prov.defaultModel}
  />
- <small class="ai-settings-hint">建议先用默认模型，确认可用后再细调。</small>
  </div>
- <div class="ai-settings-row">
- <label class="ai-settings-label">Base URL (可选)</label>
+ <div class="settings-row">
+ <div class="settings-row__label-block">
+ <label class="settings-row__label">Base URL (可选)</label>
+ <span class="settings-row__hint">留空使用官方地址，末尾的 /v1 会自动兼容。</span>
+ </div>
  <input
+ class="settings-input"
  type="text"
  value={cloudBaseUrl}
  onInput={(e) => setCloudBaseUrl(e.currentTarget.value)}
  placeholder={DEFAULT_BASE_URL[cloudProviderId] || 'https://...'}
  />
- <small class="ai-settings-hint">留空使用官方地址，末尾的 /v1 会自动兼容。</small>
  </div>
  </div>
  </section>
 
- <section class="ai-config-section ai-config-section-compact ai-config-key-section">
- <div class="ai-config-section-head">
- <div>
- <h4 class="ai-config-section-title">API Key</h4>
- <p class="ai-config-section-desc">密钥只写入系统 Keychain，不会明文保存在配置文件里。</p>
- </div>
- <span class={`ai-config-inline-status ${keyStatus.hasKey ? 'ok' : 'idle'}`}>
+ {/* ── API Key 段 ── */}
+ <section class="settings-card">
+ <h3 class="settings-card__title">
+ API Key
+ <span class={`settings-ai-badge ${keyStatus.hasKey ? 'settings-ai-badge--ready' : 'settings-ai-badge--missing'}`}>
  {typeof keyStatusText === 'string'
  ? keyStatusText
- : (<>{keyStatusText.icon === 'check' && <IconCheck size={12} />} {keyStatusText.text}</>)}
+ : keyStatusText.text}
+ </span>
+ </h3>
+ <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+ 密钥只写入系统 Keychain，不会明文保存在配置文件里。
+ </p>
+ <div class="settings-row">
+ <div class="settings-row__label-block">
+ <label class="settings-row__label">新 Key</label>
+ <span class="settings-row__hint">
+ {keyStatus.available
+ ? '修改 key 后可以直接点"测试连接"验证，再保存最终配置。'
+ : '当前系统不支持 safeStorage，可改用环境变量提供 key。'}
  </span>
  </div>
- <div class="ai-settings-row ai-settings-key-row">
- <div class="ai-settings-key-controls">
+ <div class="settings-row__buttons">
  <input
+ class="settings-input"
  type="password"
  value={keyInput}
  onInput={(e) => setKeyInput(e.currentTarget.value)}
@@ -298,16 +296,16 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  />
  <button
  type="button"
- class="btn btn-primary btn-sm"
+ class="settings-btn settings-btn--primary"
  onClick={handleSaveKey}
  disabled={!keyInput || busy}
- title="把当前输入的 key存到 OS keychain"
+ title="把当前输入的 key 存到 OS keychain"
  >
  保存 key
  </button>
  <button
  type="button"
- class="btn btn-ghost btn-sm"
+ class="settings-btn settings-btn--danger-ghost"
  onClick={handleClearKey}
  disabled={!keyStatus.hasKey || busy}
  title="从 OS keychain 删除已存的 key"
@@ -315,70 +313,70 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  清空
  </button>
  </div>
- <small class="ai-settings-hint">
- {keyStatus.available
- ? '修改 key 后可以直接点“测试连接”验证，再保存最终配置。'
- : '当前系统不支持 safeStorage，可改用环境变量提供 key。'}
- </small>
  </div>
  </section>
 
- <section class="ai-config-section ai-config-tools">
- <div class="ai-config-section-head">
- <div>
- <h4 class="ai-config-section-title">验证连接</h4>
- <p class="ai-config-section-desc">保存前先测试连接，确认 key 和模型可用。</p>
+ {/* ── 验证连接段 ── */}
+ <section class="settings-card">
+ <h3 class="settings-card__title">验证连接</h3>
+ <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+ 保存前先测试连接，确认 key 和模型可用。
+ </p>
+ <div class="settings-row">
+ <div class="settings-row__label-block">
+ <span class="settings-row__label">连通性</span>
+ <span class="settings-row__hint">用当前 Provider + Model + API Key 发一次轻量请求。</span>
  </div>
- </div>
- <div class="ai-settings-row ai-settings-test-row">
+ <div class="settings-row__buttons">
  <button
  type="button"
- class="btn btn-secondary"
+ class="settings-btn settings-btn--primary"
  onClick={handleTestConnection}
  disabled={busy}
  >
  {busy ? '测试中…' : '测试连接'}
  </button>
  {lastTest && (
- <span class={`ai-settings-test-result ${lastTest.ok ? 'ok' : 'fail'}`}>
+ <span class={`settings-ai-badge ${lastTest.ok ? 'settings-ai-badge--ready' : 'settings-ai-badge--missing'}`}>
  {lastTest.ok
- ? (<><IconCheck size={12} /> 连接正常 ({lastTest.latencyMs ||0}ms)</>)
- : (<><IconX size={12} /> {lastTest.error || '失败'}</>)}
+ ? `连接正常 (${lastTest.latencyMs || 0}ms)`
+ : `失败: ${lastTest.error || '未知'}`}
  </span>
  )}
  </div>
+ </div>
  </section>
 
-{statusMeta && (
- <div class="ai-settings-row ai-settings-status-row">
- <span class={`ai-settings-save-status ${statusMeta.tone}`}>
+ {/* ── 状态消息 ── */}
+ {statusMeta && (
+ <div class={`ai-settings-save-status ${statusMeta.tone}`}>
  {statusMeta.icon === 'check' && <IconCheck size={12} />}
  {statusMeta.icon === 'x' && <IconX size={12} />}
- {' '}
- {statusMeta.text}
- </span>
+ <span>{statusMeta.text}</span>
  </div>
-)}
+ )}
 
- {/*底部按钮区 */}
+ {/* ── 底部按钮区 ── */}
  <div class="ai-config-form-actions">
  <button
  type="button"
- class="btn btn-ghost"
+ class="settings-btn settings-btn--ghost"
  onClick={() => {
  if (typeof onCancel === 'function') onCancel();
  }}
  >
  {compact ? '返回' : '关闭'}
  </button>
+ {!compact && (
  <button
  type="button"
- class="btn btn-primary"
+ class="settings-btn settings-btn--primary"
  onClick={handleSaveConfig}
  disabled={busy}
  >
  保存配置
  </button>
+ )}
  </div>
  </div>
  );

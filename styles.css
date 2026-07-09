@@ -2401,390 +2401,137 @@ body.platform-win .window-control-btn--close:hover {
   flex-direction: column;
   gap: var(--space-3);
 }
-.ai-config-tabs {
-  display: flex;
-  gap: var(--space-1h);
-  padding: 0 2px;
-}
-.ai-config-tab {
-  flex: 1;
-  padding: 6px 10px;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  border: 1px solid var(--border-subtle, rgba(0,0,0,.08));
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-soft, rgba(0,0,0,.55));
-  cursor: pointer;
-}
-.ai-config-tab.active {
-  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
-  border-color: color-mix(in oklch, var(--accent-primary) 35%, transparent);
-  color: var(--accent-blue);
-}
-.ai-config-tab:hover:not(.active) {
-  background: rgba(0, 0, 0, 0.04);
-}
-.digest-setup-intro {
+
+/* P16: AI 配置改用 settings-card 体系, 删除独立 hero / section / provider-card 样式.
+   仅保留 settings-card / settings-row 适配 AI 场景的小补丁. */
+
+/* provider 选择卡 (settings-card 内嵌) — 沿用 settings-card 的圆角风格,
+   selected 态加 accent 边框. */
+.settings-provider-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3h) var(--space-4);
-  border-radius: 18px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  background:
-    radial-gradient(circle at top right, rgba(0,122,255,0.10), transparent 30%),
-    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.96));
-}
-
-/* ⚙️按钮 (Header右侧,BulkUpgradeButton后) */
-.btn-icon {
- padding: 6px 8px;
- min-width:30px;
- display: inline-flex;
- align-items: center;
- justify-content: center;
-}
-.btn-icon svg { display: block; }
-.btn-icon.is-active {
- color: var(--accent-blue);
- background: rgba(0,122,255,0.08);
-}
-.btn-icon.is-active:hover {
- background: rgba(0,122,255,0.15);
-}
-
-/* AISettingsModal复用 modal-backdrop + modal-card (跟 BulkUpgradeModal 一致) */
-.ai-settings-modal {
- width:480px;
- max-width:92vw;
-}
-.ai-settings-modal .modal-body {
- padding:16px;
-}
-.ai-config-form {
- display: flex;
- flex-direction: column;
- gap: 14px;
- color: var(--text-primary);
-}
-.ai-config-hero {
- display: flex;
- gap: var(--space-3);
- align-items: center;
- padding: 0 0 12px;
- border-radius: 0;
- background: transparent;
- border: 0;
- border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-}
-.ai-config-hero-icon {
- width: 32px;
- height: 32px;
- border-radius: 8px;
- display: inline-flex;
- align-items: center;
- justify-content: center;
- background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
- color: var(--accent-primary);
- flex-shrink: 0;
-}
-.ai-config-hero-copy {
- min-width: 0;
- flex: 1;
-}
-.ai-config-hero-head {
- display: flex;
- align-items: center;
- gap: var(--space-2h);
- flex-wrap: wrap;
- margin-bottom: 6px;
-}
-.ai-config-hero-title {
- margin: 0;
- font-size: var(--font-size-xl);
- font-weight: 700;
- letter-spacing: -0.02em;
-}
-.ai-config-hero-desc {
- margin: 0;
- font-size: var(--font-size-xs);
- line-height: 1.5;
- color: var(--text-secondary);
- max-width: 48ch;
-}
-.ai-config-provider-pill {
- display: inline-flex;
- align-items: center;
- gap: var(--space-1);
- padding: 4px 10px;
- border-radius: 999px;
- font-size: var(--font-size-xs);
- font-weight: 700;
- letter-spacing: 0.02em;
-}
-.ai-config-provider-pill.provider-deepseek {
- background: rgba(16, 185, 129, 0.1);
- color: #0f9f6e;
-}
-.ai-config-provider-pill.provider-minimax {
- background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
- color: var(--accent-primary);
-}
-.ai-config-section {
- display: flex;
- flex-direction: column;
- gap: var(--space-2h);
- padding: 10px 0 12px;
- border-radius: 0;
- background: transparent;
- border: 0;
- border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-}
-.ai-config-section-head {
-  display: flex;
   align-items: flex-start;
-  justify-content: space-between;
- gap: var(--space-3);
+  gap: 4px;
+  padding: 10px 14px;
+  background: var(--bg-primary, rgba(255, 255, 255, 0.82));
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  text-align: left;
+  min-width: 140px;
+  flex: 1 1 140px;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.ai-config-section-title {
- margin: 0 0 2px;
- font-size: var(--font-size-md);
- font-weight: 700;
- letter-spacing: -0.01em;
+.settings-provider-card:hover {
+  border-color: color-mix(in oklch, var(--accent-primary) 30%, transparent);
+  background: var(--bg-hover);
 }
-.ai-config-section-desc {
-  margin: 0;
-  font-size: var(--font-size-xs);
+.settings-provider-card.is-selected {
+  border-color: var(--accent-primary);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
+}
+.settings-provider-card__name {
+  font-size: var(--font-size-base, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.settings-provider-card__hint {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+/* settings-row__buttons 内的 input (Model / Base URL / Key / token) — 与 settings-btn 同高. */
+.settings-input {
+  appearance: none;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  background: var(--bg-primary, rgba(255, 255, 255, 0.82));
+  color: var(--text-primary);
+  font-size: var(--font-size-sm, 12px);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm, 6px);
+  min-width: 200px;
+  font-family: var(--font-system);
+}
+.settings-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: var(--focus-ring);
+}
+.settings-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.settings-input[type="password"] {
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+/* P16: settings-row 上下铺变体 — 默认横排 (label-block 左 / 控件 右),
+   --stack 让控件换到下一行, label 单独占一行 (textarea / 多行输入场景). */
+.settings-row--stack {
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.settings-row--stack .settings-input {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm, 12px);
   line-height: 1.5;
-  color: var(--text-secondary);
 }
-.ai-config-section-provider {
-  gap: var(--space-2);
+
+/* AI config field 网格 — 上下字段间距 */
+.ai-settings-field-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
-.ai-config-section-compact {
-  gap: var(--space-2);
-}
-.ai-config-inline-status {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-1q) 10px;
- border-radius: 999px;
- font-size: var(--font-size-xs);
- font-weight: 600;
- white-space: nowrap;
-}
-.ai-config-inline-status.ok {
- background: rgba(52, 199, 89, 0.12);
- color: var(--accent-green);
-}
-.ai-config-inline-status.idle {
- background: rgba(255, 159, 10, 0.12);
- color: #b36c00;
-}
-.ai-settings-row {
- display: flex;
- flex-direction: column;
- gap:6px;
- margin: 0;
-}
-/* Phase B7e: provider 选择改成卡片网格, 不再是 select. */
 .ai-settings-provider-grid {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
 }
-.provider-card {
- display: inline-flex;
- flex-direction: row;
- align-items: center;
- gap: var(--space-2h);
- padding: var(--space-2) var(--space-3);
- background: rgba(246,247,249,0.98);
- border:1px solid rgba(0,0,0,0.09);
- border-radius:999px;
- cursor: pointer;
- text-align: left;
- transition: border-color 140ms ease, background 140ms ease;
- position: relative;
- min-height: 0;
-}
-.provider-card:hover {
- border-color: rgba(0,122,255,0.22);
- background: rgba(250,252,255,1);
-}
-.provider-card.selected {
- border-color: color-mix(in oklch, var(--accent-primary) 35%, transparent);
- background: color-mix(in oklch, var(--accent-primary) 6%, transparent);
- box-shadow: var(--shadow-sm);
-}
-.provider-card.selected::before {
- display: none;
-}
-.provider-card-topline {
- display: flex;
- align-items: center;
- justify-content: flex-start;
-  gap: var(--space-2h);
-}
-.provider-card-name {
-  font-size: var(--font-size-md);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.provider-card-tag {
- padding: 2px 6px;
- border-radius: 999px;
- background: rgba(15, 23, 42, 0.05);
- color: rgba(15, 23, 42, 0.68);
- font-size: 9px;
- font-weight: 700;
- text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.provider-card-hint {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  line-height: 1.3;
-}
-.ai-settings-label {
- font-size:11px;
- font-weight:700;
- letter-spacing: 0.02em;
- text-transform: uppercase;
- color: var(--text-primary);
-}
-.ai-settings-hint {
- font-size:10px;
- color: var(--text-tertiary);
- line-height:1.4;
-}
-.ai-settings-field-grid {
- display: flex;
- flex-direction: column;
- gap: var(--space-2h);
-}
-.ai-settings-toggle {
- display: flex;
- align-items: center;
- gap:8px;
- font-size:13px;
- font-weight:500;
- color: var(--text-primary);
- cursor: pointer;
-}
-.ai-settings-toggle input {
- margin:0;
- cursor: pointer;
-}
-.ai-settings-modal select,
-.ai-settings-modal input[type="text"],
-.ai-settings-modal input[type="password"] {
- min-height: 34px;
- padding: 8px 10px;
- border:1px solid rgba(15,23,42,0.12);
- border-radius:8px;
- font-size:13px;
- background: rgba(255,255,255,1);
- color: var(--text-primary);
- transition: border-color120ms ease, box-shadow120ms ease, background120ms ease;
-}
-.ai-settings-modal select:disabled,
-.ai-settings-modal input:disabled {
- opacity:0.5;
- cursor: not-allowed;
-}
-.ai-settings-modal select:focus,
-.ai-settings-modal input:focus {
- outline: none;
- border-color: var(--accent-blue);
- box-shadow: 0 0 0 2px rgba(0,122,255,0.1);
- background: var(--surface);
-}
-.ai-settings-key-controls {
- display: flex;
-  gap:8px;
-  align-items: center;
- padding: 0;
- border-radius: 0;
- background: transparent;
- border: 0;
-}
-.ai-settings-key-controls input[type="password"] {
- flex:1;
- font-family: var(--font-mono, monospace);
- letter-spacing:0.5px;
-}
-.ai-config-key-section .btn-sm {
- min-width: 96px;
-}
-.ai-settings-test-row {
- flex-direction: row;
- flex-wrap: wrap;
- align-items: center;
- gap:12px;
-}
-.ai-settings-test-result {
- font-size:11px;
- font-family: var(--font-mono, monospace);
- padding: var(--space-1q) 8px;
- border-radius: 999px;
- background: rgba(15,23,42,0.04);
-}
-.ai-settings-test-result.ok {
- color: var(--accent-green);
- background: rgba(52,199,89,0.1);
-}
-.ai-settings-test-result.fail {
- color: var(--accent-red);
- background: rgba(255,59,48,0.1);
-}
+
+/* 保存状态条 — 复用 settings-card 体系下的 alert 风 */
 .ai-settings-save-status {
- display: inline-flex;
- align-items: center;
- width: fit-content;
- font-size: var(--font-size-sm);
- padding: var(--space-2) var(--space-3);
- border-radius: 999px;
- background: var(--bg-hover, rgba(0,0,0,0.04));
- color: var(--text-secondary);
- font-weight: 600;
-}
-.ai-settings-save-status.info {
- background: rgba(0,122,255,0.1);
- color: var(--accent-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: var(--font-size-sm, 12px);
+  font-weight: 500;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
 }
 .ai-settings-save-status.success {
- background: rgba(52,199,89,0.12);
- color: var(--accent-green);
+  background: color-mix(in oklch, var(--accent-green) 12%, transparent);
+  color: var(--accent-green);
 }
 .ai-settings-save-status.error {
- background: rgba(255,59,48,0.1);
- color: var(--accent-red);
+  background: color-mix(in oklch, var(--accent-red) 12%, transparent);
+  color: var(--accent-red);
 }
-.ai-settings-status-row {
- margin-top: -2px;
+.ai-settings-save-status.info {
+  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
 }
+
+/* AI config 底部按钮 — 卡片之间贴边 */
 .ai-config-form-actions {
- display: flex;
- justify-content: space-between;
- align-items: center;
- gap: var(--space-2h);
- margin-top: 2px;
- padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
-.ai-config-form-actions .btn {
- min-height: 36px;
- padding: 8px 14px;
- border-radius: 8px;
- font-size: var(--font-size-md);
+.ai-config-form-actions .settings-btn--ghost {
+  color: var(--text-secondary);
 }
-.ai-config-form-actions .btn-primary {
- box-shadow: none;
-}
-.ai-config-form-actions .btn-ghost {
- color: var(--text-secondary);
-}
+
+
 @media (max-width: 1380px) {
  .digest-scope-head {
   flex-direction: column;
@@ -9424,42 +9171,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   opacity: 0.5;
 }
 
-.prompt-settings { padding: 12px 0; }
-.prompt-settings-title { font-size: var(--font-size-lg); font-weight: 600; margin: 0 0 4px; }
-.prompt-settings-hint { font-size: var(--font-size-xs); color: var(--text-soft, rgba(0,0,0,.5)); margin: 0 0 12px; }
-/* A8: 反馈样本导出按钮 */
-.prompt-settings-feedback-row { margin-bottom: 12px; }
-.prompt-settings-export-feedback { font-size: var(--font-size-xs); }
-/* P71: token 预算行 */
-.token-budget-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  margin: 0 0 14px;
-  padding: 8px 10px;
-  background: var(--bg-soft, rgba(0,0,0,.03));
-  border-radius: 6px;
-  font-size: var(--font-size-sm);
-}
-.token-budget-label { font-weight: 600; }
-.token-budget-limit-input {
-  width: 90px;
-  padding: 3px 6px;
-  font-size: var(--font-size-sm);
-  border: 1px solid var(--border, rgba(0,0,0,.15));
-  border-radius: 4px;
-}
-.token-budget-mode-select {
-  padding: 3px 6px;
-  font-size: var(--font-size-sm);
-  border: 1px solid var(--border, rgba(0,0,0,.15));
-  border-radius: 4px;
-}
-.token-budget-spend {
-  font-size: var(--font-size-xs);
-  color: var(--text-soft, rgba(0,0,0,.5));
-}
+/* P16: 旧的 .prompt-settings* / .token-budget-* 样式已删除, 改用 settings-card / settings-row 体系. */
 /* P61: 配置导入 modal */
 .config-import-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,.4);
@@ -9498,16 +9210,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .config-import-actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: 12px; }
 /* P61: DiagnosticsDrawer 配置备份区 */
 .diag-config-portability-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-.prompt-settings-item { margin-bottom: 16px; padding: var(--space-3); background: var(--bg-tertiary); border-radius: 8px; }
-.prompt-settings-item-head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: 8px; }
-.prompt-settings-item-label { display: inline-flex; align-items: center; gap: var(--space-1h); font-size: var(--font-size-md); font-weight: 600; }
-.prompt-settings-default-tag { font-size: var(--font-size-10); padding: 1px 6px; border-radius: 4px; background: var(--border-subtle); color: var(--text-soft, rgba(0,0,0,.5)); }
-.prompt-settings-field { display: block; margin-bottom: 8px; }
-.prompt-settings-field-label { display: block; font-size: var(--font-size-xs); color: var(--text-soft, rgba(0,0,0,.5)); margin-bottom: 3px; }
-.prompt-settings-textarea { width: 100%; font: inherit; font-size: var(--font-size-sm); padding: 6px 8px; border: 1px solid var(--border-subtle); border-radius: 6px; resize: vertical; box-sizing: border-box; }
-.prompt-settings-textarea--rules { font-family: ui-monospace, monospace; font-size: var(--font-size-xs); }
-.prompt-settings-loading { padding: var(--space-5); text-align: center; color: var(--text-soft, rgba(0,0,0,.5)); font-size: var(--font-size-sm); }
-.prompt-settings-reset { margin-left: auto; font-size: var(--font-size-xs); }
 
 /* A2: 升级建议 */
 .upgrade-advice-trigger {

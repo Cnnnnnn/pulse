@@ -39,20 +39,22 @@ describe("PromptSettings token 预算", () => {
     await waitFor(() => {
       expect(container.textContent).toContain("今日已用 300");
     });
-    expect(container.querySelector(".token-budget-limit-input").value).toBe(
-      "5000",
-    );
-    expect(container.querySelector(".token-budget-mode-select").value).toBe(
-      "warn",
-    );
+    // P16: token 预算段的 input 改用 .settings-input, 第一个是 number (limit), 第二个是 select (mode)
+    const inputs = container.querySelectorAll(".settings-input");
+    const limitInput = Array.from(inputs).find((el) => el.type === "number");
+    const modeSelect = Array.from(inputs).find((el) => el.tagName === "SELECT");
+    expect(limitInput.value).toBe("5000");
+    expect(modeSelect.value).toBe("warn");
   });
 
   it("改预算限额 → 调用 tokenBudgetSet", async () => {
     const { container } = render(<PromptSettings />);
     await waitFor(() => {
-      expect(container.querySelector(".token-budget-limit-input")).toBeTruthy();
+      const inputs = container.querySelectorAll(".settings-input");
+      expect(Array.from(inputs).some((el) => el.type === "number")).toBe(true);
     });
-    const input = container.querySelector(".token-budget-limit-input");
+    const inputs = container.querySelectorAll(".settings-input");
+    const input = Array.from(inputs).find((el) => el.type === "number");
     fireEvent.input(input, { target: { value: "9999" } });
     fireEvent.blur(input); // 失焦提交
     await waitFor(() => expect(api.tokenBudgetSet).toHaveBeenCalled());
@@ -64,9 +66,11 @@ describe("PromptSettings token 预算", () => {
   it("切模式为 block → 调用 tokenBudgetSet", async () => {
     const { container } = render(<PromptSettings />);
     await waitFor(() => {
-      expect(container.querySelector(".token-budget-mode-select")).toBeTruthy();
+      const inputs = container.querySelectorAll(".settings-input");
+      expect(Array.from(inputs).some((el) => el.tagName === "SELECT")).toBe(true);
     });
-    const select = container.querySelector(".token-budget-mode-select");
+    const inputs = container.querySelectorAll(".settings-input");
+    const select = Array.from(inputs).find((el) => el.tagName === "SELECT");
     fireEvent.change(select, { target: { value: "block" } });
     await waitFor(() => expect(api.tokenBudgetSet).toHaveBeenCalled());
     const arg = api.tokenBudgetSet.mock.calls[0][0];

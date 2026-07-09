@@ -142,111 +142,131 @@ export function PromptSettings() {
   }, []);
 
   if (!prompts || !draft) {
-    return <div class="prompt-settings-loading">加载 Prompt 配置…</div>;
+    return (
+      <div class="settings-empty">加载 Prompt 配置…</div>
+    );
   }
 
+  // P16: 改用 settings-card / settings-row 体系, 与设置页 4 段卡片视觉统一.
   return (
-    <section class="prompt-settings">
-      <h3 class="prompt-settings-title">AI Prompt 模板</h3>
-      <p class="prompt-settings-hint">
-        自定义 AI 摘要/预测/升级建议的 prompt。few-shot 为可选参考示例。
-      </p>
+    <>
+      {/* ── Prompt 模板说明 + 反馈导出 ── */}
+      <section class="settings-card">
+        <h3 class="settings-card__title">AI Prompt 模板</h3>
+        <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+          自定义 AI 摘要/预测/升级建议的 prompt。few-shot 为可选参考示例。
+        </p>
+        <div class="settings-row">
+          <div class="settings-row__label-block">
+            <span class="settings-row__label">反馈样本导出</span>
+            <span class="settings-row__hint">导出 IconThumbsUp/IconThumbsDown 反馈样本为 JSON，可作为 few-shot 调优的数据源。</span>
+          </div>
+          <div class="settings-row__buttons">
+            <button
+              type="button"
+              class="settings-btn settings-btn--ghost"
+              onClick={exportFeedback}
+              title="导出 AI 反馈样本 JSON"
+            >
+              导出 AI 反馈样本{feedbackCount != null ? ` (${feedbackCount})` : ""}
+            </button>
+          </div>
+        </div>
+      </section>
 
-      {/* A8: 反馈样本导出 (few-shot 调优数据源) */}
-      <div class="prompt-settings-feedback-row">
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm prompt-settings-export-feedback"
-          onClick={exportFeedback}
-          title="导出 IconThumbsUp/IconThumbsDown 反馈样本为 JSON, 可作为 few-shot 调优的数据源"
-        >
-          导出 AI 反馈样本{feedbackCount != null ? ` (${feedbackCount})` : ""}
-        </button>
-      </div>
+      {/* ── Token 预算 (成本治理 / 防漏钱) ── */}
+      <section class="settings-card">
+        <h3 class="settings-card__title">每日 Token 预算</h3>
+        <p class="settings-row__hint" style="margin: 0 0 var(--space-3);">
+          控制 AI 调用的成本上限。0 = 不限制。
+        </p>
+        <div class="settings-row">
+          <div class="settings-row__label-block">
+            <label class="settings-row__label">每日上限</label>
+            <span class="settings-row__hint">今日已用 {todaySpend} token</span>
+          </div>
+          <div class="settings-row__buttons">
+            <input
+              class="settings-input"
+              type="number"
+              min="0"
+              step="1000"
+              value={budget.dailyLimit}
+              disabled={!budgetLoaded}
+              onInput={(e) => {
+                setBudget({ ...budget, dailyLimit: Number(e.target.value) });
+              }}
+              onBlur={(e) => saveBudget({ dailyLimit: Number(e.target.value) || 0 })}
+              title="0 = 不限制"
+            />
+            <select
+              class="settings-input"
+              value={budget.mode}
+              disabled={!budgetLoaded}
+              onChange={(e) => saveBudget({ mode: e.target.value })}
+              title="超限处理策略"
+            >
+              <option value="warn">超限仅警告</option>
+              <option value="block">超限拦截</option>
+            </select>
+          </div>
+        </div>
+      </section>
 
-      {/* P71: token 预算 (成本治理 / 防漏钱) */}
-      <div class="token-budget-row">
-        <label class="token-budget-label">每日 AI token 预算</label>
-        <input
-          type="number"
-          min="0"
-          step="1000"
-          class="token-budget-limit-input"
-          value={budget.dailyLimit}
-          disabled={!budgetLoaded}
-          onInput={(e) => {
-            setBudget({ ...budget, dailyLimit: Number(e.target.value) });
-          }}
-          onBlur={(e) => saveBudget({ dailyLimit: Number(e.target.value) || 0 })}
-          title="0 = 不限制"
-        />
-        <select
-          class="token-budget-mode-select"
-          value={budget.mode}
-          disabled={!budgetLoaded}
-          onChange={(e) => saveBudget({ mode: e.target.value })}
-        >
-          <option value="warn">超限仅警告</option>
-          <option value="block">超限拦截</option>
-        </select>
-        <span class="token-budget-spend">
-          {budget.dailyLimit === 0
-            ? "当前: 不限制"
-            : `今日已用 ${todaySpend}`}
-        </span>
-      </div>
+      {/* ── 每个 prompt 段独立卡片 ── */}
       {Object.keys(prompts).map((key) => (
-        <div class="prompt-settings-item" key={key}>
-          <div class="prompt-settings-item-head">
-            <span class="prompt-settings-item-label">
-              <PromptSectionIcon promptKey={key} size={14} /> {promptLabel(key)}
-            </span>
-            {prompts[key].isDefault && (
-              <span class="prompt-settings-default-tag">默认</span>
-            )}
-            {!prompts[key].isDefault && (
+        <section class="settings-card" key={key}>
+          <h3 class="settings-card__title">
+            <PromptSectionIcon promptKey={key} size={14} />
+            <span style="margin-left: 6px;">{promptLabel(key)}</span>
+            {prompts[key].isDefault ? (
+              <span class="settings-ai-badge settings-ai-badge--ready">默认</span>
+            ) : (
               <button
                 type="button"
-                class="btn btn-ghost btn-sm prompt-settings-reset"
+                class="settings-btn settings-btn--ghost"
+                style="margin-left: auto;"
                 onClick={() => handleReset(key)}
               >
                 恢复默认
               </button>
             )}
+          </h3>
+          <div class="ai-settings-field-grid">
+            <div class="settings-row settings-row--stack">
+              <label class="settings-row__label">角色设定 (system)</label>
+              <textarea
+                class="settings-input"
+                rows="2"
+                value={draft[key]?.system || ""}
+                onInput={(e) => updateField(key, "system", e.target.value)}
+                placeholder={prompts[key].system}
+              />
+            </div>
+            <div class="settings-row settings-row--stack">
+              <label class="settings-row__label">输出规则 (rules)</label>
+              <textarea
+                class="settings-input"
+                rows="6"
+                value={draft[key]?.rules || ""}
+                onInput={(e) => updateField(key, "rules", e.target.value)}
+                placeholder={prompts[key].rules}
+              />
+            </div>
+            <div class="settings-row settings-row--stack">
+              <label class="settings-row__label">Few-shot 示例 (可选)</label>
+              <textarea
+                class="settings-input"
+                rows="3"
+                value={draft[key]?.fewShot || ""}
+                onInput={(e) => updateField(key, "fewShot", e.target.value)}
+                placeholder="留空则不用示例"
+              />
+            </div>
           </div>
-          <label class="prompt-settings-field">
-            <span class="prompt-settings-field-label">角色设定 (system)</span>
-            <textarea
-              class="prompt-settings-textarea"
-              rows="2"
-              value={draft[key]?.system || ""}
-              onInput={(e) => updateField(key, "system", e.target.value)}
-              placeholder={prompts[key].system}
-            />
-          </label>
-          <label class="prompt-settings-field">
-            <span class="prompt-settings-field-label">输出规则 (rules)</span>
-            <textarea
-              class="prompt-settings-textarea prompt-settings-textarea--rules"
-              rows="6"
-              value={draft[key]?.rules || ""}
-              onInput={(e) => updateField(key, "rules", e.target.value)}
-              placeholder={prompts[key].rules}
-            />
-          </label>
-          <label class="prompt-settings-field">
-            <span class="prompt-settings-field-label">Few-shot 示例 (可选)</span>
-            <textarea
-              class="prompt-settings-textarea prompt-settings-textarea--rules"
-              rows="3"
-              value={draft[key]?.fewShot || ""}
-              onInput={(e) => updateField(key, "fewShot", e.target.value)}
-              placeholder="留空则不用示例"
-            />
-          </label>
-        </div>
+        </section>
       ))}
-    </section>
+    </>
   );
 }
 

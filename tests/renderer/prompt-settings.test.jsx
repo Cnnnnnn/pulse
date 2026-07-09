@@ -50,31 +50,41 @@ beforeEach(() => {
 describe("PromptSettings (A7)", () => {
   it("渲染 3 个 prompt section", () => {
     render(<PromptSettings />);
-    expect(document.body.querySelectorAll(".prompt-settings-item")).toHaveLength(3);
+    // P16: 改用 settings-card 段落, 包含 1 个「Prompt 模板说明」+ 1 个「Token 预算」+ 3 个 prompt 段 = 5 张卡片
+    const cards = document.body.querySelectorAll(".settings-card");
+    // 反馈导出 + token 预算 + 3 prompt 卡片 = 5 卡片
+    expect(cards.length).toBe(5);
   });
 
   it("isDefault=true 显示 3 个「默认」标记", () => {
     render(<PromptSettings />);
-    expect(document.body.querySelectorAll(".prompt-settings-default-tag")).toHaveLength(3);
+    // P16: 「默认」badge 改用 settings-ai-badge--ready, 文本 "默认"
+    expect(document.body.querySelectorAll(".settings-ai-badge--ready")).toHaveLength(3);
   });
 
   it("编辑 system textarea 触发保存 (debounce 500ms)", async () => {
     render(<PromptSettings />);
-    const textareas = document.body.querySelectorAll(".prompt-settings-textarea");
-    expect(textareas).toHaveLength(9); // 3 prompts × (system + rules + fewShot)
+    // P16: textarea 复用 .settings-input, 3 prompts × 3 = 9 个 textarea
+    const textareas = Array.from(document.body.querySelectorAll(".settings-input")).filter(
+      (el) => el.tagName === "TEXTAREA"
+    );
+    expect(textareas).toHaveLength(9);
     fireEvent.input(textareas[0], { target: { value: "新角色" } });
     await new Promise((r) => setTimeout(r, 600));
     expect(store.saveAiPrompts).toHaveBeenCalled();
   });
 
   // A7 v3: daily_digest_summary key 加入后 PromptSettings 自动渲染
-  it("daily_digest_summary prompt 出现 → 多渲染一个 item + 9 个 textarea", () => {
+  it("daily_digest_summary prompt 出现 → 多渲染一个 prompt 段 + 9 个 textarea", () => {
     store.aiPrompts.value = {
       ...SAMPLE,
       daily_digest_summary: { system: "编辑", rules: "1. 简洁", isDefault: false },
     };
     render(<PromptSettings />);
-    expect(document.body.querySelectorAll(".prompt-settings-item")).toHaveLength(4);
-    expect(document.body.querySelectorAll(".prompt-settings-textarea")).toHaveLength(12);
+    // 1 反馈导出 + 1 token 预算 + 4 prompt 段 = 6 卡片
+    const textareas = Array.from(document.body.querySelectorAll(".settings-input")).filter(
+      (el) => el.tagName === "TEXTAREA"
+    );
+    expect(textareas).toHaveLength(12); // 4 prompts × 3
   });
 });
