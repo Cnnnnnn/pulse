@@ -12,6 +12,7 @@ import {
 import { currentMonthLabel, favoriteCount } from "./news-utils.js";
 import { IconNews, IconRefresh, IconCalendar, IconStar } from "../components/icons.jsx";
 import { SubtabList } from "../components/SubtabList.jsx";
+import { FeatureHeader } from "../components/FeatureHeader.jsx";
 
 const SUBTABS = [
   { key: "news", label: "本月新闻", Icon: IconCalendar },
@@ -44,59 +45,61 @@ export function NewsHeader({
   const isFavorites = mode === "favorites";
 
   return (
-    <div class="ithome-header">
-      <div class="ithome-header-brand">
-        <span class="ithome-header-icon"><IconNews size={18} /></span>
-        <h2 class="ithome-header-title">IT 新闻</h2>
-        <span class="ithome-header-sub">
-          {isFavorites
-            ? `收藏 ${favTotal} 篇 · 永久保留`
-            : `IT之家 · ${currentMonthLabel()} · 更新于 ${formatTs(ts)}`}
-        </span>
-        {!isFavorites && (
-          <button
-            type="button"
-            class={`ithome-refresh-btn${loading ? " is-loading" : ""}`}
-            onClick={() => onRefresh && onRefresh()}
-            disabled={loading}
-            title="拉取当前日期新闻"
-            aria-label="拉取当前日期新闻"
-          >
-            <span class="ithome-refresh-icon" aria-hidden="true">
-              <IconRefresh size={14} />
-            </span>
-          </button>
-        )}
-      </div>
-      <div class="ithome-header-controls">
-        <SubtabList
-          prefix="ithome"
-          tabs={SUBTABS}
-          activeKey={isFavorites ? "favorites" : "news"}
-          onChange={(k) => setIthomeViewMode(k)}
-          ariaLabel="IT 新闻视图切换"
-        >
-          {(t) => {
-            const label =
-              t.key === "favorites" && favTotal > 0 ? `${t.label} (${favTotal})` : t.label;
-            return (
-              <>
-                <span class="ithome-subtab-icon"><t.Icon size={14} /></span>
-                <span class="ithome-subtab-label">{label}</span>
-              </>
-            );
-          }}
-        </SubtabList>
-        <input
-          id="ithome-search-input"
-          class="ithome-search-input"
-          type="search"
-          placeholder="搜索标题、分类…"
-          value={search}
-          onInput={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
-    </div>
+    <FeatureHeader
+      className="ithome-header"
+      brand={
+        <>
+          <span class="ithome-header-icon"><IconNews size={18} /></span>
+          <h2 class="ithome-header-title">IT 新闻</h2>
+          <span class="ithome-header-sub">
+            {isFavorites
+              ? `收藏 ${favTotal} 篇 · 永久保留`
+              : `IT之家 · ${currentMonthLabel()} · 更新于 ${formatTs(ts)}`}
+          </span>
+          {!isFavorites && (
+            <button
+              type="button"
+              class={`ithome-refresh-btn${loading ? " is-loading" : ""}`}
+              onClick={() => onRefresh && onRefresh()}
+              disabled={loading}
+              title="拉取当前日期新闻"
+              aria-label="拉取当前日期新闻"
+            >
+              <span class="ithome-refresh-icon" aria-hidden="true">
+                <IconRefresh size={14} />
+              </span>
+            </button>
+          )}
+        </>
+      }
+    >
+      <SubtabList
+        prefix="ithome"
+        tabs={SUBTABS}
+        activeKey={isFavorites ? "favorites" : "news"}
+        onChange={(k) => setIthomeViewMode(k)}
+        ariaLabel="IT 新闻视图切换"
+      >
+        {(t) => {
+          const label =
+            t.key === "favorites" && favTotal > 0 ? `${t.label} (${favTotal})` : t.label;
+          return (
+            <>
+              <span class="ithome-subtab-icon"><t.Icon size={14} /></span>
+              <span class="ithome-subtab-label">{label}</span>
+            </>
+          );
+        }}
+      </SubtabList>
+      <input
+        id="ithome-search-input"
+        class="ithome-search-input"
+        type="search"
+        placeholder="搜索标题、分类…"
+        value={search}
+        onInput={(e) => onSearchChange(e.target.value)}
+      />
+    </FeatureHeader>
   );
 }
 

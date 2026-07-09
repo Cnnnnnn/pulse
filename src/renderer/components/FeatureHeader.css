@@ -1,45 +1,8 @@
-/* src/renderer/components/FeatureHeader.css — P3 共享 header 壳
+/* src/renderer/components/FeatureHeader.css
  *
- * ponytail: 这是 5 个 feature header 真正可共享的最小公共样式.
- * 各 feature header 调用 <FeatureHeader className="worldcup-header" /> 时,
- * 双 class 让 feature 特有 CSS 仍生效, 同时本壳提供一致的 padding / border / flex.
+ * 壳默认无视觉样式 — 视觉由调用方的 .X-header 控制, 避免优先级冲突.
+ * 保留 .feature-header / .feature-header-brand / .feature-header-controls 类名仅作
+ * "标记这是个 FeatureHeader 实例" 的语义钩子, 供未来统一改动 / 测试 selector 使用.
  *
- * 设计: 与 PageHeader (lib/pageHeader.jsx) 风格一致, 但内层 brand/controls 分栏.
+ * ponytail: 这个 CSS 文件可以为空, 但保留 import 以确保未来加全局默认样式时挂载点稳定.
  */
-
-/* 外层: 顶部分隔条 + 横向 flex */
-.feature-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-section);
-}
-
-/* 左: brand 区 (icon + 标题 + 副标题 + 关联动作) */
-.feature-header-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0; /* 允许子元素 shrink 换行 */
-}
-
-/* 右: controls 区 (search / refresh / tabs / radiogroup) */
-.feature-header-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-shrink: 0;
-}
-
-/* 暗色 + 深色平台: 底色略抬升, 边线更弱 */
-:root[data-theme="dark"] .feature-header {
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom-color: rgba(255, 255, 255, 0.06);
-}
-
-body.platform-win .feature-header {
-  background: rgba(255, 255, 255, 0.04);
-}

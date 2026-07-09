@@ -1,41 +1,38 @@
 /**
- * src/renderer/components/FeatureHeader.jsx — P3 共享 header 壳
+ * src/renderer/components/FeatureHeader.jsx — 共享 header 壳 (P3 创建, P4 迁移 Worldcup + News)
  *
- * ponytail: 5 个 feature header (Fund/Metal/News/Worldcup/WechatHot) 的真正同构部分:
- *   - 外层 .X-header 容器: padding + flex + border-bottom + background
- *   - 内部分两栏: brand (左, 1fr) + controls (右, auto)
- * 内部 title 元素 / 控件类型 / 字号 完全不动 — 各 feature 保留自己的语义.
+ * ponytail: 提供一个语义化 shell, 强制 brand + controls 两栏结构.
+ * 默认无任何样式 (壳本身透明), 视觉由调用方的 className + styles.css 中的 .X-header 控制.
+ * 这避免了"壳 CSS 与 feature 特有 CSS 抢优先级"的问题.
  *
  * 用法 (WorldcupHeader 改造示例):
- *   <FeatureHeader className="worldcup-header" brand={...}>
+ *   <FeatureHeader className="worldcup-header" brand={<><IconFootball/>世界杯 2026</>}>
  *     <SubtabList .../>
  *     <input .../>
  *   </FeatureHeader>
  *
- * CSS 设计 (P3 新增 .feature-header 类, 5 个 feature header 可选地复用到自己类):
- *   .feature-header { display: flex; justify-content: space-between;
- *                      padding: var(--space-4) var(--space-5);
- *                      border-bottom: 1px solid var(--border);
- *                      background: var(--bg-section); }
- *   .feature-header-brand { display: flex; align-items: center; gap: var(--space-3); }
- *   .feature-header-controls { display: flex; align-items: center; gap: var(--space-3); }
+ * 渲染结果: <div class="worldcup-header feature-header">
+ *            <div class="worldcup-header-brand feature-header-brand">{brand}</div>
+ *            <div class="worldcup-header-controls feature-header-controls">{children}</div>
+ *          </div>
  *
- * P3 决策: 仅创建壳 + CSS, 5 个 feature header 不强制迁移 (避免大改).
- * 由各 feature 维护者按需选用, 后续 P4 可选统一.
+ * P4 决策: 迁移 WorldcupHeader + NewsHeader, FundHeader/MetalHeader/WechatHotHeader 因结构差异
+ * (3 栏 / 2 段 / 倒计时) 暂不迁.
  */
 import "./FeatureHeader.css";
 
 export function FeatureHeader({ className = "", brand, children }) {
   // ponytail: 默认 className = "feature-header". 调用方传自己的类会追加.
-  // 保留双 class: 'feature-header X-header' — 让 feature 特有 CSS 仍生效.
+  // 双 class 'feature-header X-header' 让 feature 特有 CSS 与壳 CSS 协同
+  // (feature-header 后载入, 但 feature 特有样式用更高特异性覆写, 见 CSS 注释).
   const cls = className
     ? `feature-header ${className}`
     : "feature-header";
   const brandCls = className
-    ? `feature-header-brand ${className}-brand`
+    ? `${className}-brand feature-header-brand`
     : "feature-header-brand";
   const controlsCls = className
-    ? `feature-header-controls ${className}-controls`
+    ? `${className}-controls feature-header-controls`
     : "feature-header-controls";
   return (
     <div class={cls}>
