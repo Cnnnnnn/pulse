@@ -29,7 +29,7 @@ svg:not([role="img"]) {
 :root {
   --bg-primary: rgba(255, 255, 255, 0.82);
   --bg-secondary: rgba(246, 246, 246, 0.9);
-  --bg-elevated: #f5f5f7;
+  --bg-elevated: var(--gray-50);
   --bg-tertiary: #ebebed;
   --bg-card: rgba(255, 255, 255, 0.95);
   --bg-modal: #ffffff;
@@ -41,17 +41,34 @@ svg:not([role="img"]) {
   --border-soft: rgba(0, 0, 0, 0.08);
   --text-soft: rgba(0, 0, 0, 0.55);
   --surface: #ffffff;
-  --surface-soft: #f5f5f7;
+  --surface-soft: var(--gray-50);
   --hover-soft: rgba(0, 0, 0, 0.04);
   --accent-primary: #007aff;
-  --text-primary: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --text-tertiary: #aeaeb2;
+  --text-primary: var(--gray-800);
+  --text-secondary: var(--gray-500);
+  --text-tertiary: var(--gray-300);
   --accent-orange: #ff9500;
   --accent-green: #34c759;
   --accent-blue: #007aff;
   --accent-red: #ff3b30;
-  --accent-gray: #8e8e93;
+  --accent-gray: var(--gray-400);
+
+  /* 中性阶梯 primitive (P3 · OKLCH 化基础)
+     值与 ui-design-system.md §2.1 一致, 现已迁 OKLCH, 真正的感知均匀阶梯
+     (L 97→23% 均匀降, chroma ≈ 0 保持中性, hue ≈ 285° 极浅冷蓝).
+     ponytail: hex → OKLCH 转换通过 sRGB→linear→XYZ-D65→OKLab→OKLCH 标准流程
+     (Björn Ottosson, 见 CSS Color 4), 由本地 Python 计算生成, 与原 hex 等色.
+     视觉差异 < 1%, 浏览器 (Chromium 111+ / Electron 39 内核 Chromium 142) 全支持.
+     --gray-200/600 为补缺: 之前散落在多处 (#d1d1d6 / #48484a), 现收口. */
+  --gray-50:  oklch(97.07% 0.0028 285.2);   /* was #f5f5f7 */
+  --gray-100: oklch(92.33% 0.0068 285.8);   /* was #e5e5ea */
+  --gray-200: oklch(86.22% 0.0069 285.9);   /* was #d1d1d6 (新) */
+  --gray-300: oklch(75.20% 0.0057 285.8);   /* was #aeaeb2 */
+  --gray-400: oklch(64.83% 0.0074 285.9);   /* was #8e8e93 */
+  --gray-500: oklch(53.99% 0.0078 285.9);   /* was #6e6e73 */
+  --gray-600: oklch(40.24% 0.0034 285.9);   /* was #48484a (新) */
+  --gray-700: oklch(29.39% 0.0036 285.9);   /* was #2c2c2e */
+  --gray-800: oklch(23.16% 0.0038 285.9);   /* was #1d1d1f */
 
   /* 半基线 (5/7px 整编专用) — 4px 基线的 1/4 与 1/2 档 */
   --space-1q: 4px;
@@ -124,7 +141,7 @@ svg:not([role="img"]) {
 :root[data-theme="dark"] {
     --bg-primary: rgba(30, 30, 30, 0.88);
     --bg-secondary: rgba(40, 40, 40, 0.9);
-    --bg-elevated: #2c2c2e;
+    --bg-elevated: var(--gray-700);
     --bg-tertiary: #3a3a3c;
     --bg-card: rgba(44, 44, 46, 0.95);
     --bg-modal: #1c1c1e;
@@ -136,17 +153,17 @@ svg:not([role="img"]) {
     --border-soft: rgba(255, 255, 255, 0.08);
     --text-soft: rgba(255, 255, 255, 0.55);
     --surface: #1c1c1e;
-    --surface-soft: #2c2c2e;
+    --surface-soft: var(--gray-700);
     --hover-soft: rgba(255, 255, 255, 0.06);
     --accent-primary: #0a84ff;
-    --text-primary: #f5f5f7;
+    --text-primary: var(--gray-50);
     --text-secondary: #a1a1a6;
     --text-tertiary: #636366;
     --accent-orange: #ff9f0a;
     --accent-green: #30d158;
     --accent-blue: #0a84ff;
     --accent-red: #ff453a;
-    --accent-gray: #8e8e93;
+    --accent-gray: var(--gray-400);
     --chrome-bg: rgba(28, 28, 30, 0.94);
     --content-bg: #141416;
     --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.35);
@@ -9209,7 +9226,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .upgrade-advice--upgrade .upgrade-advice-badge { background: rgba(52, 199, 89, 0.15); color: var(--accent-green); }
 .upgrade-advice--wait .upgrade-advice-badge { background: rgba(255, 149, 0, 0.15); color: #ff9500; }
-.upgrade-advice--skip .upgrade-advice-badge { background: rgba(142, 142, 147, 0.15); color: #8e8e93; }
+.upgrade-advice--skip .upgrade-advice-badge { background: rgba(142, 142, 147, 0.15); color: var(--gray-400); }
 .upgrade-advice-summary { color: var(--text-secondary, rgba(0,0,0,.65)); }
 .upgrade-advice--loading { color: var(--text-soft, rgba(0,0,0,.45)); font-style: italic; }
 .upgrade-advice--error { color: var(--accent-red); }
@@ -9267,7 +9284,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .upgrade-advice-confidence--high   { color: var(--accent-green); }
 .upgrade-advice-confidence--medium { color: #ff9500; opacity: 0.7; }
-.upgrade-advice-confidence--low    { color: #8e8e93; opacity: 0.5; }
+.upgrade-advice-confidence--low    { color: var(--gray-400); opacity: 0.5; }
 
 .changelog-panel-head {
   display: flex;
@@ -9890,7 +9907,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.02em;
 }
 .watchlist-row__type--app { color: #5856d6; } .watchlist-row__type--fund { color: #34c759; }
-.watchlist-row__type--metal { color: #ff9500; } .watchlist-row__type--keyword { color: #8e8e93; }
+.watchlist-row__type--metal { color: #ff9500; } .watchlist-row__type--keyword { color: var(--gray-400); }
 .watchlist-row__title {
   font-size: 12.5px; font-weight: 500; color: var(--text-primary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;

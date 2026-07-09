@@ -16,13 +16,22 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
 const TOKEN_CSS = `
   :root {
-    --text-primary: #1d1d1f;
-    --text-secondary: #6e6e73;
-    --text-tertiary: #aeaeb2;
+    --text-primary: var(--gray-800);
+    --text-secondary: var(--gray-500);
+    --text-tertiary: var(--gray-300);
     --accent-primary: #007aff;
+    --gray-50:  oklch(97.07% 0.0028 285.2);
+    --gray-100: oklch(92.33% 0.0068 285.8);
+    --gray-200: oklch(86.22% 0.0069 285.9);
+    --gray-300: oklch(75.20% 0.0057 285.8);
+    --gray-400: oklch(64.83% 0.0074 285.9);
+    --gray-500: oklch(53.99% 0.0078 285.9);
+    --gray-600: oklch(40.24% 0.0034 285.9);
+    --gray-700: oklch(29.39% 0.0036 285.9);
+    --gray-800: oklch(23.16% 0.0038 285.9);
   }
   :root[data-theme="dark"] {
-    --text-primary: #f5f5f7;
+    --text-primary: var(--gray-50);
     --text-secondary: #a1a1a6;
     --text-tertiary: #636366;
     --accent-primary: #0a84ff;
@@ -51,18 +60,28 @@ describe("theme tokens (light/dark)", () => {
   }
 
   it("light tokens read correctly (default root)", () => {
-    // 没有 data-theme → 浅色
+    // 没有 data-theme → 浅色 (gray-800 OKLCH)
     const html = document.documentElement;
     html.removeAttribute("data-theme");
-    expect(getRootToken("--text-primary")).toBe("#1d1d1f");
-    expect(getRootToken("--text-secondary")).toBe("#6e6e73");
-    expect(getRootToken("--text-tertiary")).toBe("#aeaeb2");
+    expect(getRootToken("--text-primary")).toBe("oklch(23.16% 0.0038 285.9)");
+    expect(getRootToken("--text-secondary")).toBe("oklch(53.99% 0.0078 285.9)");
+    expect(getRootToken("--text-tertiary")).toBe("oklch(75.20% 0.0057 285.8)");
     expect(getRootToken("--accent-primary")).toBe("#007aff");
+  });
+
+  it("OKLCH primitive values resolve to CSS oklch() strings", () => {
+    const html = document.documentElement;
+    html.removeAttribute("data-theme");
+    // 验证 primitive token 也直接读得到
+    expect(getRootToken("--gray-50")).toMatch(/^oklch\(/);
+    expect(getRootToken("--gray-800")).toMatch(/^oklch\(/);
+    // hex 形态不存在(已迁 OKLCH)
+    expect(getRootToken("--gray-50")).not.toMatch(/^#/);
   });
 
   it("dark tokens override when <html data-theme=dark>", () => {
     document.documentElement.setAttribute("data-theme", "dark");
-    expect(getRootToken("--text-primary")).toBe("#f5f5f7");
+    expect(getRootToken("--text-primary")).toBe("oklch(97.07% 0.0028 285.2)");  // = gray-50
     expect(getRootToken("--text-secondary")).toBe("#a1a1a6");
     expect(getRootToken("--text-tertiary")).toBe("#636366");
     expect(getRootToken("--accent-primary")).toBe("#0a84ff");
