@@ -84,8 +84,8 @@ svg:not([role="img"]) {
   --bracket-text-meta:        var(--gray-500);   /* P7: was #6b7280 */
   --bracket-card-placeholder: var(--gray-400);   /* P7: was #9ca3af */
   --bracket-card-border:      var(--gray-200);   /* P7: was #e5e7eb */
-  --bracket-card-bg:          #f3f4f6;          /* Tailwind gray-100, 未 OKLCH 化暂留 */
-  --bracket-title:            #1f2937;          /* Tailwind gray-800, 未 OKLCH 化暂留 */
+  --bracket-card-bg:          var(--gray-100);   /* P8: was #f3f4f6 (Tailwind gray-100) */
+  --bracket-title:            var(--gray-800);   /* P8: was #1f2937 (Tailwind gray-800) */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
