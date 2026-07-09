@@ -215,3 +215,30 @@ test("overview (Library page) — win32 platform baseline (浅底 accent 验证)
   await page.waitForTimeout(500);
   await expect(page).toHaveScreenshot("overview-win32.png", { fullPage: false });
 });
+
+test("settings page — P13 4-section 卡片化 baseline", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+      // P13: recent/reminders 都给空数组 (与 stubIpc 默认行为一致, 但显式给空 entries
+      // 让 SettingsPage 渲染空态而不是 "暂无最近活动" 默认 fallback).
+      const orig = window.api;
+      const patched = new Proxy(orig || {}, {
+        get(_, key) {
+          if (key === "recentList" || key === "remindersList") {
+            return async () => ({ ok: true, entries: [], reminders: [] });
+          }
+          return orig && orig[key];
+        },
+      });
+      window.api = patched;
+    } catch {}
+  });
+  await page.goto("/");
+  await waitForShell(page);
+  // 切到 settings subtab
+  await page.locator('.versions-subtab').filter({ hasText: "设置" }).first().click();
+  await page.waitForTimeout(300);
+  await expect(page).toHaveScreenshot("settings-light.png", { fullPage: false });
+});

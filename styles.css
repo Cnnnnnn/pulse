@@ -3056,6 +3056,214 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   .theme-segmented-item { transition: none; }
 }
 
+/* ═══════════════════════════════════════════════════
+   Pulse UI v2.79 — SettingsPage P13 卡片化重做
+   ═══════════════════════════════════════════════════ */
+
+.settings-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3) var(--page-padding, 16px) 32px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ── 卡片 ──────────────────────────────────────────── */
+.settings-card {
+  background: var(--chrome-bg, var(--bg-modal));
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+  border-radius: var(--radius-md, 10px);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3) var(--space-4);
+}
+.settings-card__title {
+  font-size: var(--font-size-lg, 15px);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.settings-card__count {
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+/* ── 行 (label-block + 控件) ────────────────────────── */
+.settings-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.settings-row__label-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.settings-row__label {
+  font-size: var(--font-size-base, 14px);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.settings-row__hint {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--text-tertiary);
+  line-height: 1.45;
+}
+.settings-row__hint code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--bg-tertiary);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.settings-row__buttons {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ── 列表 ──────────────────────────────────────────── */
+.settings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.settings-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+  font-size: var(--font-size-md, 13px);
+}
+.settings-list__item:last-child {
+  border-bottom: none;
+}
+.settings-list__kind {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  min-width: 56px;
+  text-align: center;
+}
+.settings-list__badge {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+.settings-list__badge--fired {
+  background: var(--color-warning-bg, color-mix(in oklch, var(--accent-orange) 15%, transparent));
+  color: var(--accent-orange);
+}
+.settings-list__badge--pending {
+  background: var(--color-info-bg, color-mix(in oklch, var(--accent-primary) 12%, transparent));
+  color: var(--accent-primary);
+}
+.settings-list__label {
+  flex: 1;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-list__count {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--text-tertiary);
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.settings-list__time {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs, 11px);
+  color: var(--text-tertiary);
+  min-width: 64px;
+  text-align: right;
+}
+.settings-list__actions {
+  display: flex;
+  gap: var(--space-1h);
+  flex-shrink: 0;
+}
+
+/* ── 按钮 ──────────────────────────────────────────── */
+.settings-btn {
+  appearance: none;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  background: var(--bg-primary, rgba(255, 255, 255, 0.82));
+  color: var(--text-primary);
+  font-size: var(--font-size-sm, 12px);
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.settings-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+.settings-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.settings-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.settings-btn--primary {
+  background: var(--accent-primary);
+  color: white;
+  border-color: transparent;
+}
+.settings-btn--primary:hover:not(:disabled) {
+  background: var(--accent-primary-hover, color-mix(in oklch, var(--accent-primary) 88%, black));
+}
+.settings-btn--ghost {
+  background: transparent;
+  border-color: var(--border-subtle);
+}
+.settings-btn--danger-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-tertiary);
+}
+.settings-btn--danger-ghost:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--accent-red) 12%, transparent);
+  color: var(--accent-red);
+}
+
+/* ── 空态 ──────────────────────────────────────────── */
+.settings-empty {
+  font-size: var(--font-size-sm, 12px);
+  color: var(--text-tertiary);
+  margin: 0;
+  padding: var(--space-3) 0;
+  line-height: 1.5;
+}
+
 
 .diag-self-update {
   display: flex; align-items: center; gap: var(--space-2);
