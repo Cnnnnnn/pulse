@@ -133,7 +133,7 @@ svg:not([role="img"]) {
   --accent-versions: var(--accent-primary);
   --color-up: oklch(58.58% 0.2220 17.6);        /* was #e11d48 (金融涨 A 股红) */
   --color-down: oklch(59.60% 0.1274 163.3);      /* was #059669 (金融跌 A 股绿) */
-  --focus-ring: 0 0 0 3px rgba(0, 122, 255, 0.22);
+  --focus-ring: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 22%, transparent);
   --ease-ui: 0.18s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -660,7 +660,7 @@ body.platform-win .window-control-btn--close:hover {
 }
 
 .status-badge.info {
-  background: rgba(0, 122, 255, 0.12);
+  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
   color: var(--accent-blue);
 }
 
@@ -1188,7 +1188,7 @@ body.platform-win .window-control-btn--close:hover {
 .source-tag.source-brew_formulae,
 .source-tag.source-brew_local_cask { background: rgba(255, 149, 0, 0.12); color: #b65a00; }
 .source-tag.source-sparkle_appcast  { background: rgba(255, 45, 85, 0.12); color: #c2185b; }
-.source-tag.source-app_store_lookup { background: rgba(0, 122, 255, 0.12); color: #0051a8; }
+.source-tag.source-app_store_lookup { background: color-mix(in oklch, var(--accent-primary) 12%, transparent); color: #0051a8; }
 .source-tag.source-electron_yml     { background: rgba(52, 199, 89, 0.12); color: #1f7a3a; }
 .source-tag.source-qclaw_api        { background: rgba(175, 82, 222, 0.12); color: #6a2d8c; }
 .source-tag.source-app_update_yml   { background: rgba(52, 199, 89, 0.12); color: #1f7a3a; }
@@ -1518,8 +1518,8 @@ body.platform-win .window-control-btn--close:hover {
   transition: all 120ms ease;
 }
 .app-info-btn:hover {
-  background: rgba(0, 122, 255, 0.1);
-  border-color: rgba(0, 122, 255, 0.3);
+  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
+  border-color: color-mix(in oklch, var(--accent-primary) 30%, transparent);
   color: var(--accent-blue);
 }
 .app-info-btn.active {
@@ -1715,7 +1715,7 @@ body.platform-win .window-control-btn--close:hover {
   color: var(--text-primary);
 }
 #btn-ai-digest.has-content.is-active {
-  background: rgba(0, 122, 255, 0.12);
+  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
   color: #007aff;
 }
 /* Phase B7e.2: 未配置时红色提示点 (跟 "has-content" 互斥) */
@@ -1795,7 +1795,7 @@ body.platform-win .window-control-btn--close:hover {
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(circle at top right, rgba(0, 122, 255, 0.18), transparent 38%),
+    radial-gradient(circle at top right, color-mix(in oklch, var(--accent-primary) 18%, transparent), transparent 38%),
     linear-gradient(180deg, rgba(240, 247, 255, 0.98), rgba(226, 239, 255, 0.92));
   color: #007aff;
   border-radius: 10px;
@@ -1845,7 +1845,7 @@ body.platform-win .window-control-btn--close:hover {
   cursor: not-allowed;
 }
 .drawer-icon-btn.is-active {
-  background: rgba(0, 122, 255, 0.12);
+  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
   color: var(--accent-blue);
 }
 .drawer-icon-btn-rerun svg.is-spin {
@@ -1854,7 +1854,7 @@ body.platform-win .window-control-btn--close:hover {
 
 .ai-digest-drawer-banner {
   min-height: 32px;
-  background: rgba(0, 122, 255, 0.08);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
@@ -1904,7 +1904,7 @@ body.platform-win .window-control-btn--close:hover {
   gap: var(--space-3);
 }
 .drawer-needs-setup .needs-setup-icon {
-  color: rgba(0, 122, 255, 0.5);
+  color: color-mix(in oklch, var(--accent-primary) 50%, transparent);
   margin-bottom: 4px;
 }
 .drawer-needs-setup .needs-setup-title {
@@ -2407,8 +2407,8 @@ body.platform-win .window-control-btn--close:hover {
   cursor: pointer;
 }
 .ai-config-tab.active {
-  background: rgba(0, 122, 255, 0.1);
-  border-color: rgba(0, 122, 255, 0.35);
+  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
+  border-color: color-mix(in oklch, var(--accent-primary) 35%, transparent);
   color: var(--accent-blue);
 }
 .ai-config-tab:hover:not(.active) {
@@ -2474,7 +2474,7 @@ body.platform-win .window-control-btn--close:hover {
  display: inline-flex;
  align-items: center;
  justify-content: center;
- background: rgba(0, 122, 255, 0.1);
+ background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
  color: #007aff;
  flex-shrink: 0;
 }
@@ -2517,7 +2517,7 @@ body.platform-win .window-control-btn--close:hover {
  color: #0f9f6e;
 }
 .ai-config-provider-pill.provider-minimax {
- background: rgba(0, 122, 255, 0.1);
+ background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
  color: #007aff;
 }
 .ai-config-section {
@@ -2603,8 +2603,8 @@ body.platform-win .window-control-btn--close:hover {
  background: rgba(250,252,255,1);
 }
 .provider-card.selected {
- border-color: rgba(0, 122, 255, 0.35);
- background: rgba(0, 122, 255, 0.06);
+ border-color: color-mix(in oklch, var(--accent-primary) 35%, transparent);
+ background: color-mix(in oklch, var(--accent-primary) 6%, transparent);
  box-shadow: var(--shadow-sm);
 }
 .provider-card.selected::before {
@@ -3474,7 +3474,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 @keyframes row-pulse {
   0%, 100% { background: transparent; }
-  50% { background: rgba(0, 122, 255, 0.04); }
+  50% { background: color-mix(in oklch, var(--accent-primary) 4%, transparent); }
 }
 
 /* 错误行: 红色左边框 */
@@ -3524,7 +3524,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 .ai-tasks-date-chip:hover {
-  border-color: rgba(0, 122, 255, 0.35);
+  border-color: color-mix(in oklch, var(--accent-primary) 35%, transparent);
   color: #007aff;
 }
 .ai-tasks-date-chip.active {
@@ -3558,7 +3558,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-radius: 6px;
 }
 .ai-tasks-group-select:hover {
-  background: rgba(0, 122, 255, 0.08);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
 }
 .ai-tasks-group-list {
   display: flex;
@@ -3579,13 +3579,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 .ai-task-card:hover {
-  border-color: rgba(0, 122, 255, 0.18);
+  border-color: color-mix(in oklch, var(--accent-primary) 18%, transparent);
   transform: translateY(-1px);
 }
 .ai-task-card.selected {
-  border-color: rgba(0, 122, 255, 0.34);
+  border-color: color-mix(in oklch, var(--accent-primary) 34%, transparent);
   background:
-    radial-gradient(circle at top right, rgba(0, 122, 255, 0.10), transparent 30%),
+    radial-gradient(circle at top right, color-mix(in oklch, var(--accent-primary) 10%, transparent), transparent 30%),
     linear-gradient(180deg, rgba(247, 250, 255, 1), rgba(242, 247, 255, 0.96));
 }
 .ai-task-card.status-generated {
@@ -3624,7 +3624,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: #b45309;
 }
 .ai-task-status-badge.generating {
-  background: rgba(0, 122, 255, 0.10);
+  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
   color: #0a6cff;
 }
 .ai-task-card-title {
@@ -4140,7 +4140,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--accent-primary);
-  background: rgba(0, 122, 255, 0.08);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
   border-radius: 4px;
   padding: 2px 8px;
   letter-spacing: 0.02em;
@@ -4601,7 +4601,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .squad-score-banner--final {
-  background: linear-gradient(180deg, rgba(0, 122, 255, 0.06), rgba(0, 122, 255, 0.02));
+  background: linear-gradient(180deg, color-mix(in oklch, var(--accent-primary) 6%, transparent), color-mix(in oklch, var(--accent-primary) 2%, transparent));
 }
 
 .squad-score-side {
@@ -5357,14 +5357,14 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .match-card-ai {
   padding: 8px 12px 10px;
   border-top: 1px solid rgba(15, 23, 42, 0.06);
-  background: rgba(0, 122, 255, 0.04);
+  background: color-mix(in oklch, var(--accent-primary) 4%, transparent);
 }
 
 .match-card-ai-row { display: flex; align-items: center; gap: var(--space-2); }
 
 .match-card-ai-btn {
   flex: 1;
-  border: 1px solid rgba(0, 122, 255, 0.28);
+  border: 1px solid color-mix(in oklch, var(--accent-primary) 28%, transparent);
   background: rgba(255, 255, 255, 0.92);
   color: #007aff;
   border-radius: 8px;
@@ -5376,7 +5376,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .match-card-ai-btn:hover:not(:disabled) {
   background: var(--surface);
-  border-color: rgba(0, 122, 255, 0.5);
+  border-color: color-mix(in oklch, var(--accent-primary) 50%, transparent);
 }
 
 .match-card-ai-btn:disabled { opacity: 0.65; cursor: wait; }
@@ -5427,7 +5427,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   margin: 12px 20px 16px;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(0, 122, 255, 0.15);
+  border: 1px solid color-mix(in oklch, var(--accent-primary) 15%, transparent);
   background: linear-gradient(180deg, rgba(247, 250, 255, 0.95), rgba(242, 247, 255, 0.9));
 }
 
@@ -5454,7 +5454,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .match-ai-block + .match-ai-block {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed rgba(0, 122, 255, 0.15);
+  border-top: 1px dashed color-mix(in oklch, var(--accent-primary) 15%, transparent);
 }
 
 .match-ai-content {
@@ -5846,7 +5846,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .fund-btn-active {
   border-color: var(--accent-primary);
   color: var(--accent-primary);
-  background: rgba(0, 122, 255, 0.08);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
 }
 
 .fund-alert-hint {
@@ -5939,11 +5939,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .fund-layout-main .category-tab.active {
-  background: rgba(0, 122, 255, 0.1);
-  border-color: rgba(0, 122, 255, 0.22);
+  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
+  border-color: color-mix(in oklch, var(--accent-primary) 22%, transparent);
   color: var(--accent-primary);
   font-weight: 600;
-  border-bottom-color: rgba(0, 122, 255, 0.22);
+  border-bottom-color: color-mix(in oklch, var(--accent-primary) 22%, transparent);
 }
 
 .fund-layout-main .category-tab-count { font-size: var(--font-size-xs); opacity: 0.85; }
@@ -6273,7 +6273,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .fund-pnl-summary-item-primary {
-  border-color: rgba(0, 122, 255, 0.22);
+  border-color: color-mix(in oklch, var(--accent-primary) 22%, transparent);
   background: var(--bg-modal);
 }
 
@@ -6631,12 +6631,12 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .ithome-sidebar-item.is-active {
-  background: rgba(0, 122, 255, 0.1);
+  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
   color: var(--accent-primary);
 }
 
 .ithome-sidebar-item.is-today:not(.is-active) {
-  background: rgba(0, 122, 255, 0.04);
+  background: color-mix(in oklch, var(--accent-primary) 4%, transparent);
 }
 
 .ithome-sidebar-item-main {
@@ -6748,7 +6748,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .ithome-row:hover {
-  border-color: rgba(0, 122, 255, 0.2);
+  border-color: color-mix(in oklch, var(--accent-primary) 20%, transparent);
   box-shadow: var(--shadow-md);
 }
 
@@ -6815,7 +6815,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: var(--font-size-10);
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(0, 122, 255, 0.08);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
   color: var(--accent-primary);
 }
 
@@ -6958,7 +6958,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 2px 8px;
   font-size: var(--font-size-xs);
   border-radius: 999px;
-  background: rgba(0, 122, 255, 0.08);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
   color: var(--text-secondary);
 }
 
@@ -9345,8 +9345,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-size: var(--font-size-sm);
   padding: 10px 12px;
   border-radius: 8px;
-  background: rgba(0, 122, 255, 0.06);
-  border: 1px solid rgba(0, 122, 255, 0.15);
+  background: color-mix(in oklch, var(--accent-primary) 6%, transparent);
+  border: 1px solid color-mix(in oklch, var(--accent-primary) 15%, transparent);
   box-sizing: border-box;
 }
 
