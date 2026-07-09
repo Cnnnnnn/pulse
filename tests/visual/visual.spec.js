@@ -177,3 +177,41 @@ test("wechat-hot tab — light theme baseline (cooldown 倒计时 UI)", async ({
   }
   await expect(page).toHaveScreenshot("wechat-hot-light.png", { fullPage: false });
 });
+
+test("worldcup tab — dark theme baseline (跨主题 OKLCH 一致性)", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "dark");
+    } catch {}
+  });
+  await page.goto("/");
+  await waitForShell(page);
+  const worldcupNav = page.locator('li[data-nav="worldcup"]').first();
+  if (await worldcupNav.count()) {
+    await worldcupNav.click();
+    await page.waitForTimeout(800);
+  }
+  await expect(page).toHaveScreenshot("worldcup-dark.png", { fullPage: false });
+});
+
+test("overview (Library page) — win32 platform baseline (浅底 accent 验证)", async ({ page }) => {
+  // ponytail: 切平台 stub 到 win32, 触发 body.platform-win CSS 分支
+  // (--accent-primary 浅蓝, 字体走 --font-windows, 字号全局 +1px).
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+      window.platformInfo = { platform: "win32" };
+    } catch {}
+  });
+  await page.goto("/");
+  // 等 addInitScript 注入 + body class 切换
+  await page.waitForSelector(".app-shell", { state: "visible", timeout: 15_000 });
+  await page.evaluate(() => {
+    document.body.classList.add("platform-win");
+  });
+  await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+  await page.waitForTimeout(500);
+  await expect(page).toHaveScreenshot("overview-win32.png", { fullPage: false });
+});
