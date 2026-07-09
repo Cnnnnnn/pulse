@@ -736,9 +736,9 @@ body.platform-win .window-control-btn--close:hover {
 .settings-page {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  /* P16 fix: 滚动下沉到 .settings-content (紧贴卡片), 这里只管 flex layout. */
 }
 .diagnostics-page > .page-header,
 .insights-page > .page-header,
@@ -2825,11 +2825,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   box-shadow: var(--shadow-sm);
   padding: var(--space-3) var(--space-4);
 }
-.settings-card--padded {
-  padding: 0;
-  overflow: hidden;
-}
-
 /* ── P15: 设置页内部 subtab (常规 / AI 配置) ──────── */
 .settings-subtabs {
   flex-shrink: 0;

@@ -325,10 +325,9 @@ export function SettingsPage() {
             </section>
           </>
         ) : (
-          /* ── AI 配置 (P15 内嵌完整 scene, 取代 Modal) ── */
-          <section class="settings-card settings-card--padded">
-            <AISettingsScene compact={false} initialTab="connection" />
-          </section>
+          /* ── AI 配置 (P16: 不再用 settings-card 包裹, 让外层 .settings-content 滚动接管;
+              AISettingsScene 内部已是 settings-card 段, 多包一层会触发 overflow:hidden 把内容切掉.) ── */
+          <AISettingsScene compact={false} initialTab="connection" />
         )}
       </div>
     </div>
