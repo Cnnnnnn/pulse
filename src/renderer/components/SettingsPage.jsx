@@ -5,9 +5,11 @@
  *   - 外观: 主题切换 (segmented, 已有)
  *   - 最近活动: 实时时间线, 来自 main process recentActivity
  *   - 提醒: 当前 reminders 列表, 可标完成 / 撤销 / 删除
+ *   - AI 配置: provider/model 状态卡 + 跳转 openAISettings() (P14)
  *   - 数据: 配置导出 / 导入 (走 config:export / config:import-load + apply)
  *
- * ponytail: 信号 + IPC 同步, 最小化 store 交互. 列表空态直接渲染提示, 不依赖额外 UI.
+ * ponytail: AI 配置段不进 form, 只展示状态 + 跳转 Modal. 避免与 AISettingsModal / AITasksDrawer
+ *          三处配置 UI 重复, 维持 single source of truth.
  */
 import { useEffect } from "preact/hooks";
 import { signal } from "@preact/signals";
@@ -17,6 +19,12 @@ import {
   setThemePreference,
 } from "../theme/theme-manager.js";
 import { showToast } from "../store.js";
+import {
+  aiSessionsConfig,
+  aiKeyStatus,
+  openAISettings,
+} from "../store/ai-store.js";
+import { PROVIDERS } from "./AISettingsModal.jsx";
 
 /* ─── theme signal (与 localStorage 同步) ─────────────────────── */
 const themeMode = signal(getThemePreference());
@@ -165,7 +173,7 @@ export function SettingsPage() {
 
   return (
     <div class="settings-page">
-      <PageHeader title="设置" subtitle="外观 / 最近活动 / 提醒 / 数据" />
+      <PageHeader title="设置" subtitle="外观 / 最近活动 / 提醒 / AI 配置 / 数据" />
       <div class="settings-content">
         {/* ── 外观 ── */}
         <section class="settings-card">
@@ -264,6 +272,72 @@ export function SettingsPage() {
               ))}
             </ul>
           )}
+        </section>
+
+        {/* ── AI 配置 (P14) ── */}
+        <section class="settings-card">
+          <h3 class="settings-card__title">AI 配置</h3>
+          <div class="settings-row">
+            <div class="settings-row__label-block">
+              <span class="settings-row__label">
+                {(() => {
+                  const cfg = aiSessionsConfig.value;
+                  const providerId = cfg && (cfg.provider || (cfg.cloud && cfg.cloud.providerId));
+                  const providerLabel =
+                    PROVIDERS.find((p) => p.id === providerId)?.label || "未配置";
+                  return providerId ? `当前: ${providerLabel}` : "未配置";
+                })()}
+              </span>
+              <span class="settings-row__hint">
+                {(() => {
+                  const cfg = aiSessionsConfig.value;
+                  const providerId = cfg && (cfg.provider || (cfg.cloud && cfg.cloud.providerId));
+                  const cloud = cfg && cfg.cloud;
+                  const model = (cloud && cloud.model) || (providerId ? null : null);
+                  const st = providerId ? aiKeyStatus.value[providerId] : null;
+                  const hasKey = !!(st && st.hasKey);
+                  if (!providerId) return "AI 摘要 / 新闻早报 / 选股分析等模块依赖此配置。";
+                  if (!hasKey) return "已选 Provider, 尚未配置 API Key。";
+                  return `模型: ${model || "(默认)"} · API Key 已就绪`;
+                })()}
+              </span>
+            </div>
+            <div class="settings-row__buttons">
+              <span
+                class={
+                  "settings-ai-badge " +
+                  (aiSessionsConfig.value &&
+                  (aiSessionsConfig.value.provider ||
+                    (aiSessionsConfig.value.cloud &&
+                      aiSessionsConfig.value.cloud.providerId))
+                    ? "settings-ai-badge--ready"
+                    : "settings-ai-badge--missing")
+                }
+              >
+                {aiSessionsConfig.value &&
+                (aiSessionsConfig.value.provider ||
+                  (aiSessionsConfig.value.cloud &&
+                    aiSessionsConfig.value.cloud.providerId))
+                  ? "已配置"
+                  : "待配置"}
+              </span>
+              <button
+                type="button"
+                class="settings-btn settings-btn--primary"
+                onClick={() => {
+                  openAISettings(true);
+                  showToast("已打开 AI 配置", "info", 1500);
+                }}
+              >
+                {aiSessionsConfig.value &&
+                (aiSessionsConfig.value.provider ||
+                  (aiSessionsConfig.value.cloud &&
+                    aiSessionsConfig.value.cloud.providerId))
+                  ? "管理 AI"
+                  : "配置 AI"}
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* ── 数据 ── */}

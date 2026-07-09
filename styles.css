@@ -3264,6 +3264,23 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   line-height: 1.5;
 }
 
+/* ── AI 配置 badge (P14) ───────────────────────────── */
+.settings-ai-badge {
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  align-self: center;
+}
+.settings-ai-badge--ready {
+  background: color-mix(in oklch, var(--accent-green) 18%, transparent);
+  color: var(--accent-green);
+}
+.settings-ai-badge--missing {
+  background: color-mix(in oklch, var(--accent-orange) 18%, transparent);
+  color: var(--accent-orange);
+}
+
 
 .diag-self-update {
   display: flex; align-items: center; gap: var(--space-2);

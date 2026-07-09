@@ -114,7 +114,9 @@ test("side nav collapsed — light theme baseline", async ({ page }) => {
   });
 });
 
-test("worldcup tab — light theme baseline (FeatureHeader 壳)", async ({ page }) => {
+test("worldcup tab — light theme baseline (FeatureHeader 壳)", async ({
+  page,
+}) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.addInitScript(() => {
     try {
@@ -128,10 +130,14 @@ test("worldcup tab — light theme baseline (FeatureHeader 壳)", async ({ page 
     await worldcupNav.click();
     await page.waitForTimeout(800);
   }
-  await expect(page).toHaveScreenshot("worldcup-light.png", { fullPage: false });
+  await expect(page).toHaveScreenshot("worldcup-light.png", {
+    fullPage: false,
+  });
 });
 
-test("funds tab — light theme baseline (FundHeader 5 张空 summary)", async ({ page }) => {
+test("funds tab — light theme baseline (FundHeader 5 张空 summary)", async ({
+  page,
+}) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.addInitScript(() => {
     try {
@@ -148,7 +154,9 @@ test("funds tab — light theme baseline (FundHeader 5 张空 summary)", async (
   await expect(page).toHaveScreenshot("funds-light.png", { fullPage: false });
 });
 
-test("wechat-hot tab — light theme baseline (cooldown 倒计时 UI)", async ({ page }) => {
+test("wechat-hot tab — light theme baseline (cooldown 倒计时 UI)", async ({
+  page,
+}) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.addInitScript(() => {
     try {
@@ -175,10 +183,14 @@ test("wechat-hot tab — light theme baseline (cooldown 倒计时 UI)", async ({
     await wechatNav.click();
     await page.waitForTimeout(800);
   }
-  await expect(page).toHaveScreenshot("wechat-hot-light.png", { fullPage: false });
+  await expect(page).toHaveScreenshot("wechat-hot-light.png", {
+    fullPage: false,
+  });
 });
 
-test("worldcup tab — dark theme baseline (跨主题 OKLCH 一致性)", async ({ page }) => {
+test("worldcup tab — dark theme baseline (跨主题 OKLCH 一致性)", async ({
+  page,
+}) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await page.addInitScript(() => {
     try {
@@ -195,7 +207,9 @@ test("worldcup tab — dark theme baseline (跨主题 OKLCH 一致性)", async (
   await expect(page).toHaveScreenshot("worldcup-dark.png", { fullPage: false });
 });
 
-test("overview (Library page) — win32 platform baseline (浅底 accent 验证)", async ({ page }) => {
+test("overview (Library page) — win32 platform baseline (浅底 accent 验证)", async ({
+  page,
+}) => {
   // ponytail: 切平台 stub 到 win32, 触发 body.platform-win CSS 分支
   // (--accent-primary 浅蓝, 字体走 --font-windows, 字号全局 +1px).
   await page.emulateMedia({ colorScheme: "light" });
@@ -207,13 +221,20 @@ test("overview (Library page) — win32 platform baseline (浅底 accent 验证)
   });
   await page.goto("/");
   // 等 addInitScript 注入 + body class 切换
-  await page.waitForSelector(".app-shell", { state: "visible", timeout: 15_000 });
+  await page.waitForSelector(".app-shell", {
+    state: "visible",
+    timeout: 15_000,
+  });
   await page.evaluate(() => {
     document.body.classList.add("platform-win");
   });
-  await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+  await page
+    .waitForLoadState("networkidle", { timeout: 15_000 })
+    .catch(() => {});
   await page.waitForTimeout(500);
-  await expect(page).toHaveScreenshot("overview-win32.png", { fullPage: false });
+  await expect(page).toHaveScreenshot("overview-win32.png", {
+    fullPage: false,
+  });
 });
 
 test("settings page — P13 4-section 卡片化 baseline", async ({ page }) => {
@@ -238,7 +259,13 @@ test("settings page — P13 4-section 卡片化 baseline", async ({ page }) => {
   await page.goto("/");
   await waitForShell(page);
   // 切到 settings subtab
-  await page.locator('.versions-subtab').filter({ hasText: "设置" }).first().click();
+  await page
+    .locator(".versions-subtab")
+    .filter({ hasText: "设置" })
+    .first()
+    .click();
   await page.waitForTimeout(300);
-  await expect(page).toHaveScreenshot("settings-light.png", { fullPage: false });
+  await expect(page).toHaveScreenshot("settings-light.png", {
+    fullPage: false,
+  });
 });
