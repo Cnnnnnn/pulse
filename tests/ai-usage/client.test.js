@@ -9,12 +9,12 @@ const {
 describe("_resolveEndpoint", () => {
   test("returns CN endpoint by default", () => {
     expect(_resolveEndpoint({ region: "cn" })).toBe(
-      "https://www.minimaxi.com/v1/token_plan/remains",
+      "https://www.minimaxi.com/backend/account/token_plan/remains_percent",
     );
   });
   test("returns Global endpoint when region=global", () => {
     expect(_resolveEndpoint({ region: "global" })).toBe(
-      "https://www.minimax.io/v1/token_plan/remains",
+      "https://api.minimax.io/backend/account/token_plan/remains_percent",
     );
   });
   test("opts.endpoint overrides", () => {
@@ -69,7 +69,7 @@ function fixture(name) {
   return fs.readFileSync(path.join(__dirname, "..", "fixtures", name), "utf8");
 }
 
-const CN_URL = "https://www.minimaxi.com/v1/token_plan/remains";
+const CN_URL = "https://www.minimaxi.com/backend/account/token_plan/remains_percent";
 const OK_BODY = fixture("minimax-token-plan-ok.json");
 const ERROR_BODY = fixture("minimax-token-plan-error.json");
 

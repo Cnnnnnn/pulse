@@ -94,6 +94,25 @@ const _internals = {
       return { ...r, provider: providerId };
     }
 
+    // Minimax 同时拉 usage_summary (90 天 token 用量 + 模型分布 + 排名百分位).
+    // 失败不阻塞主流程 (snapshot 已经成功), 仅记 warn + snapshot.usageSummary=null.
+    let usageSummary = null;
+    if (providerId === "minimax" && typeof client.fetchUsageSummaryOnce === "function") {
+      try {
+        const us = await client.fetchUsageSummaryOnce();
+        if (us && us.ok && us.usageStats) {
+          usageSummary = us.usageStats;
+        } else {
+          log_warn_history(`usage_summary fetch failed: ${us && us.reason}`);
+        }
+      } catch (e) {
+        log_warn_history(`usage_summary fetch threw: ${e && e.message}`);
+      }
+    }
+    if (usageSummary) {
+      r.snapshot.usageSummary = usageSummary;
+    }
+
     // 写该 provider 的 snapshot (atomic, 不影响其它 provider)
     deps.stateStore.saveSnapshotProvider(providerId, r.snapshot);
 

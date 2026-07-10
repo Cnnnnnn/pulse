@@ -2,9 +2,14 @@
   "base_resp": { "status_code": 0, "status_msg": "success" },
   "model_remains": [
     {
+      "model_name": "general",
       "current_weekly_total_count": 50000,
-      "current_weekly_usage_count": 38000,
-      "weekly_remains_time": "05:22:00:00"
+      "current_weekly_used_count": 38000,
+      "current_weekly_remains_count": 12000,
+      "current_weekly_used_percent": "76%",
+      "current_weekly_total_percent": "100%",
+      "current_weekly_status": 1,
+      "weekly_remains_time": 432000000
     }
   ]
 }

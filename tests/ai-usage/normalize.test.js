@@ -31,8 +31,10 @@ describe('_pickTotal', () => {
   test('returns positive numbers as-is', () => {
     expect(_pickTotal({ x: 6000 }, ['x'])).toBe(6000);
   });
-  test('returns null for 0 (zero total = API field absent)', () => {
-    expect(_pickTotal({ x: 0 }, ['x'])).toBe(null);
+  test('returns 0 as-is (preserve API semantics; UI uses hasFraction to decide display)', () => {
+    // 行为变更: 之前把 0 当 null, 现在保留 0 让 UI 决定怎么显示.
+    // 原因: API 真返 0 时仍可能提供 percent; UI 通过 hasFraction 兜底.
+    expect(_pickTotal({ x: 0 }, ['x'])).toBe(0);
   });
   test('returns null for negative or missing', () => {
     expect(_pickTotal({ x: -1 }, ['x'])).toBe(null);
@@ -207,10 +209,12 @@ describe('normalize', () => {
       ],
     };
     const r2 = normalize(zeroTotal, { fetchedAt: 1000 });
-    expect(r2.snapshot.windows['5h'].total).toBe(null);
-    expect(r2.snapshot.windows['5h'].remaining).toBe(0); // remaining=0 真实保留
+    // v2: 保留 total=0 (实际 API 字段值), 让 UI 通过 hasFraction 兜底
+    expect(r2.snapshot.windows['5h'].total).toBe(0);
+    expect(r2.snapshot.windows['5h'].remaining).toBe(0);
     expect(r2.snapshot.windows['5h'].usedPercent).toBe(21); // 100-79
-    expect(r2.snapshot.windows.weekly.total).toBe(null);
+    expect(r2.snapshot.windows['5h'].remainingPercent).toBe(79);
+    expect(r2.snapshot.windows.weekly.total).toBe(0);
     expect(r2.snapshot.windows.weekly.usedPercent).toBe(19); // 100-81
   });
 
@@ -303,5 +307,183 @@ describe('normalize', () => {
   test('returns ok=false when input is not an object', () => {
     expect(normalize(null, {}).ok).toBe(false);
     expect(normalize('string', {}).ok).toBe(false);
+  });
+
+  // ─── v2 字段扩展 (真实 API 数据) ────────────────────────────
+
+  test('captures weekly_boost_permille at snapshot top level (周配额加成)', () => {
+    const r = normalize(
+      {
+        base_resp: { status_code: 0 },
+        model_remains: [
+          {
+            model_name: 'general',
+            current_interval_total_count: 6000,
+            current_interval_usage_count: 4200,
+            current_interval_remaining_percent: 30,
+            current_weekly_total_count: 50000,
+            current_weekly_usage_count: 21000,
+            current_weekly_remaining_percent: 58,
+            weekly_boost_permille: 1500,
+          },
+        ],
+      },
+      { fetchedAt: 1000 },
+    );
+    expect(r.ok).toBe(true);
+    expect(r.snapshot.weeklyBoostPermille).toBe(1500); // 1.5x 加成
+  });
+
+  test('weekly_boost_permille=null 当 API 不返该字段', () => {
+    const r = normalize(
+      {
+        base_resp: { status_code: 0 },
+        model_remains: [
+          {
+            model_name: 'general',
+            current_interval_remaining_percent: 30,
+            current_weekly_remaining_percent: 58,
+            // 无 weekly_boost_permille
+          },
+        ],
+      },
+      { fetchedAt: 1000 },
+    );
+    expect(r.snapshot.weeklyBoostPermille).toBe(null);
+  });
+
+  test('captures remainingPercent (API 原始 remaining%) 在 window 上', () => {
+    const r = normalize(
+      {
+        base_resp: { status_code: 0 },
+        model_remains: [
+          {
+            model_name: 'general',
+            current_interval_remaining_percent: 86,
+            current_weekly_remaining_percent: 42,
+          },
+        ],
+      },
+      { fetchedAt: 1000 },
+    );
+    // remainingPercent 是 API 原始值 (0-100, "剩余%")
+    expect(r.snapshot.windows['5h'].remainingPercent).toBe(86);
+    expect(r.snapshot.windows['5h'].usedPercent).toBe(14); // 100-86
+    expect(r.snapshot.windows.weekly.remainingPercent).toBe(42);
+    expect(r.snapshot.windows.weekly.usedPercent).toBe(58);
+  });
+
+  test('captures base_resp 到 snapshot.baseResp (调试用)', () => {
+    const r = normalize(
+      {
+        base_resp: { status_code: 0, status_msg: 'success' },
+        model_remains: [{ model_name: 'general', current_interval_remaining_percent: 30 }],
+      },
+      { fetchedAt: 1000 },
+    );
+    expect(r.snapshot.baseResp).toEqual({ status_code: 0, status_msg: 'success' });
+  });
+
+  test('5h 和 weekly 各自有独立 status (current_interval_status vs current_weekly_status)', () => {
+    const r = normalize(
+      {
+        base_resp: { status_code: 0 },
+        model_remains: [
+          {
+            model_name: 'general',
+            current_interval_total_count: 100,
+            current_interval_usage_count: 80,
+            current_interval_remaining_percent: 20,
+            current_interval_status: 1,
+            current_weekly_total_count: 1000,
+            current_weekly_usage_count: 1000,
+            current_weekly_remaining_percent: 0,
+            current_weekly_status: 0, // 周限流, 5h 正常
+          },
+        ],
+      },
+      { fetchedAt: 1000 },
+    );
+    expect(r.snapshot.windows['5h'].status).toBe(1);
+    expect(r.snapshot.windows.weekly.status).toBe(0);
+  });
+
+  test('video 块也有 remainingPercent (提升到顶层 API 字段)', () => {
+    const r = normalize(
+      {
+        base_resp: { status_code: 0 },
+        model_remains: [
+          { model_name: 'general', current_interval_remaining_percent: 30 },
+          {
+            model_name: 'video',
+            current_interval_total_count: 3,
+            current_interval_usage_count: 1,
+            current_interval_remaining_percent: 67,
+          },
+        ],
+      },
+      { fetchedAt: 1000 },
+    );
+    expect(r.snapshot.windows.video.remainingPercent).toBe(67);
+    expect(r.snapshot.windows.video.usedPercent).toBe(33);
+  });
+
+  test('真实数据 case (来自 ~/Library/Logs/Pulse/minimax-raw.json): total=0 但 percent 仍生效', () => {
+    // 模拟你最近一次 fetch 的真实场景: total=0, percent=86/58, weekly_boost=1500
+    const real = {
+      base_resp: { status_code: 0, status_msg: 'success' },
+      model_remains: [
+        {
+          model_name: 'general',
+          start_time: 1783684800000,
+          end_time: 1783699200000,
+          remains_time: 1895136,
+          current_interval_total_count: 0,
+          current_interval_usage_count: 0,
+          current_interval_remaining_percent: 86,
+          current_interval_status: 1,
+          current_weekly_total_count: 0,
+          current_weekly_usage_count: 0,
+          weekly_start_time: 1783267200000,
+          weekly_end_time: 1783872000000,
+          weekly_remains_time: 174695136,
+          current_weekly_status: 1,
+          current_weekly_remaining_percent: 58,
+          weekly_boost_permille: 1500,
+        },
+        {
+          model_name: 'video',
+          start_time: 1783612800000,
+          end_time: 1783699200000,
+          remains_time: 1895136,
+          current_interval_total_count: 3,
+          current_interval_usage_count: 0,
+          current_interval_remaining_percent: 100,
+          current_interval_status: 1,
+          current_weekly_total_count: 21,
+          current_weekly_usage_count: 0,
+          current_weekly_status: 1,
+          current_weekly_remaining_percent: 100,
+        },
+      ],
+    };
+    const r = normalize(real, { fetchedAt: 1000 });
+    expect(r.ok).toBe(true);
+
+    // 5h: 14% 已用, 86% 剩 (API 真实)
+    expect(r.snapshot.windows['5h'].usedPercent).toBe(14);
+    expect(r.snapshot.windows['5h'].remainingPercent).toBe(86);
+    expect(r.snapshot.windows['5h'].status).toBe(1);
+    expect(r.snapshot.windows['5h'].total).toBe(0);
+
+    // weekly: 42% 已用, 58% 剩, 加成 1.5x
+    expect(r.snapshot.windows.weekly.usedPercent).toBe(42);
+    expect(r.snapshot.windows.weekly.remainingPercent).toBe(58);
+    expect(r.snapshot.weeklyBoostPermille).toBe(1500);
+
+    // video: 0% 已用 (3 个还没用), total=3
+    expect(r.snapshot.windows.video.usedPercent).toBe(0);
+    expect(r.snapshot.windows.video.remainingPercent).toBe(100);
+    expect(r.snapshot.windows.video.total).toBe(3);
   });
 });
