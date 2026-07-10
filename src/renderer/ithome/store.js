@@ -272,3 +272,13 @@ export async function shareIthomeArticle(id) {
     ithomeSharingIds.value = next;
   }
 }
+
+/**
+ * P-N+ (2026-07-10): 切到 'news' tab 时清 IT 新闻子 tab 未读角标 (跟 clearWechatHotUnreadBadge 等价).
+ * 不动 ithomeReadIds (持久化已读文章), 只清 session 级 newIds.
+ * ponytail: 跟原 ithome 独立 nav 的 setIthomeViewMode / setIthomeFavoriteSelectedDate 行为一致 — 切走即清.
+ */
+export function clearIthomeUnreadBadge() {
+  if (Object.keys(ithomeNewIds.value).length === 0) return;
+  ithomeNewIds.value = {};
+}

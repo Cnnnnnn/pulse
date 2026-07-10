@@ -6,8 +6,8 @@
  * 覆盖:
  *  - 默认 prefs 全开: activeNav 不变
  *  - 关 activeNav 对应 segment: 自动切到第一个可见 nav
- *  - activeNav 是固定 nav (ithome/funds/wechat-hot): 不动
- *  - 多个动态 nav 全关: 切到第一个固定 nav (ithome)
+ *  - activeNav 是固定 nav (news/funds/stocks): 不动 (P-N: ithome 合并到 news)
+ *  - 多个动态 nav 全关: 切到第一个固定 nav (news)
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { signal } from "@preact/signals";
@@ -70,7 +70,7 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
     expect(activeNav.value).toBe("versions");
   });
 
-  it("关 activeNav (versions) → 自动切到第一个可见 nav (ithome)", async () => {
+  it("关 activeNav (versions) → 自动切到第一个可见 nav (news)", async () => {
     activeNav.value = "versions";
     await new Promise((r) => setTimeout(r, 0));
     await applyPrefs({
@@ -78,7 +78,7 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
       segments: { ...ALL_ON.segments, updates: false },
     });
     await new Promise((r) => setTimeout(r, 0));
-    expect(activeNav.value).toBe("ithome");
+    expect(activeNav.value).toBe("news");
   });
 
   it("关 ai-usage → 当前是 ai-usage 时切到第一个可见 nav", async () => {
@@ -89,8 +89,8 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
       segments: { ...ALL_ON.segments, ai_usage: false },
     });
     await new Promise((r) => setTimeout(r, 0));
-    // 第一个可见的是 ithome (固定 nav)
-    expect(activeNav.value).toBe("ithome");
+    // 第一个可见的是 news (固定 nav)
+    expect(activeNav.value).toBe("news");
   });
 
   it("activeNav 是固定 nav (funds) → 关任何动态 prefs 都不动", async () => {
@@ -104,12 +104,12 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
     expect(activeNav.value).toBe("funds");
   });
 
-  it("4 个动态全关,activeNav=versions → 切到 ithome", async () => {
+  it("4 个动态全关,activeNav=versions → 切到 news", async () => {
     activeNav.value = "versions";
     await new Promise((r) => setTimeout(r, 0));
     await applyPrefs(ALL_OFF);
     await new Promise((r) => setTimeout(r, 0));
-    expect(activeNav.value).toBe("ithome");
+    expect(activeNav.value).toBe("news");
   });
 
   it("手动 setActiveNav 到一个被关的 nav 也会被 effect 弹回", async () => {

@@ -3,6 +3,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render } from "@testing-library/preact";
 import { signal } from "@preact/signals";
 
+/**
+ * P-N+ news 合并: news badge = ithomeUnreadBadge + wechatHotUnreadBadge.
+ * 旧的 wechat-hot 独立 badge 已不存在, 改为验证合并行为.
+ */
+
 const ithomeUnreadBadge = signal(0);
 const wechatHotUnreadBadge = signal(0);
 
@@ -11,7 +16,7 @@ vi.mock("../../src/renderer/worldcup/navStore.js", async (importOriginal) => {
   return {
     NAV_KEYS_LIST: actual.NAV_KEYS_LIST,
     effectiveVisibleItems: actual.effectiveVisibleItems,
-    activeNav: { value: "wechat-hot" },
+    activeNav: { value: "news" },
     navCollapsed: { value: false },
     setActiveNav: vi.fn(),
     toggleNavCollapsed: vi.fn(),
@@ -59,23 +64,28 @@ function badgeText(navKey) {
   return badge ? badge.textContent : null;
 }
 
-describe("SideNav — wechat-hot badge (I6 v2)", () => {
-  it("wechatHotUnreadBadge=0 → 无 badge", () => {
+describe("SideNav — news badge (P-N+ 合并 ithome + wechat-hot)", () => {
+  it("两个 unread 都是 0 → news item 无 badge", () => {
     render(<SideNav />);
-    expect(badgeText("wechat-hot")).toBeNull();
+    expect(badgeText("news")).toBeNull();
   });
 
-  it("wechatHotUnreadBadge=7 → wechat-hot item badge 显示 7", () => {
-    wechatHotUnreadBadge.value = 7;
-    render(<SideNav />);
-    expect(badgeText("wechat-hot")).toBe("7");
-  });
-
-  it("两个面板同时有未读 → 各自 badge 独立", () => {
+  it("ithomeUnreadBadge=3, wechatHotUnreadBadge=5 → news item badge 显示 8", () => {
     ithomeUnreadBadge.value = 3;
     wechatHotUnreadBadge.value = 5;
     render(<SideNav />);
-    expect(badgeText("ithome")).toBe("3");
-    expect(badgeText("wechat-hot")).toBe("5");
+    expect(badgeText("news")).toBe("8");
+  });
+
+  it("只有 wechatHotUnreadBadge=7 → news item badge 显示 7", () => {
+    wechatHotUnreadBadge.value = 7;
+    render(<SideNav />);
+    expect(badgeText("news")).toBe("7");
+  });
+
+  it("只有 ithomeUnreadBadge=4 → news item badge 显示 4", () => {
+    ithomeUnreadBadge.value = 4;
+    render(<SideNav />);
+    expect(badgeText("news")).toBe("4");
   });
 });

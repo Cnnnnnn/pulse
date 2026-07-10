@@ -11,6 +11,9 @@
  *   - ai-usage / versions 暂不入 registry (它们是配置/状态类页面,
  *     "刷新"语义不同;后续若用户要求再加)
  *   - 单测覆盖: registry 完整性 + dispatch 分发
+ *
+ * 2026-07-10 P-N+: 'news' 单 nav 合并 IT 新闻 + 微博热搜, 刷新按当前
+ *   sub-tab 派发 (data-subtab 属性读 DOM, 不引信号 — registry 是纯模块).
  */
 
 import { refreshWechatHot } from "./wechat-hot/store.js";
@@ -25,10 +28,24 @@ import { api } from "./api.js";
  * @property {string} label — 用于 aria-label / tooltip
  */
 
+/** ponytail: 'news' 的 refresh 看当前 sub-tab (DOM data-subtab), 派给对应 store. */
+function refreshNews() {
+  // ponytail: 不在 store 内 import preact, 用 DOM 读 sub-tab 状态.
+  // 默认 ithome — 绝大多数时候用户先看 IT 新闻, 切走时再切回来.
+  let subtab = "ithome";
+  if (typeof document !== "undefined") {
+    const el = document.querySelector(".news-layout");
+    if (el && el.getAttribute("data-subtab") === "wechat-hot") {
+      subtab = "wechat-hot";
+    }
+  }
+  if (subtab === "wechat-hot") return refreshWechatHot();
+  return refreshIthomeNews();
+}
+
 /** nav key → refresh 函数 + label */
 const REGISTRY = {
-  "wechat-hot": { fn: () => refreshWechatHot(), label: "刷新微博热搜" },
-  ithome: { fn: () => refreshIthomeNews(), label: "刷新 IT 新闻" },
+  news: { fn: () => refreshNews(), label: "刷新当前新闻子 tab" },
   worldcup: { fn: () => refreshWorldcupScores(), label: "刷新世界杯比分" },
   funds: { fn: () => fetchNavNow(api), label: "刷新基金净值" },
   metals: { fn: () => refreshMetals(), label: "刷新贵金属" },

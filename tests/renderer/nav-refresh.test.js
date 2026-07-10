@@ -1,11 +1,15 @@
+// @vitest-environment happy-dom
 /**
  * tests/renderer/nav-refresh.test.js
  *
  * v2.24.2 — 单测全局刷新 registry:
- *   - REFRESHABLE_NAV_KEYS 包含 wechat-hot / ithome / worldcup / funds / metals
+ *   - REFRESHABLE_NAV_KEYS 包含 news (合并 IT 新闻 + 微博热搜) / worldcup / funds / metals
  *   - 不包含 ai-usage / versions (后续按需扩展)
+ *   - news 看 DOM sub-tab 派发到对应 fn
  *   - refreshActiveNav 派发到对应 fn
  *   - 未注册的 nav key 返 false 不抛错
+ *
+ * 2026-07-10 P-N+: IT 新闻 + 微博热搜 合并 → 'news'.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -47,28 +51,31 @@ beforeEach(() => {
   refreshWorldcupScores.mockResolvedValue(undefined);
   fetchNavNow.mockResolvedValue(undefined);
   refreshMetals.mockResolvedValue(undefined);
+  // 清掉 news-layout DOM 状态 (上一 test 可能设过 sub-tab)
+  document.querySelector(".news-layout")?.removeAttribute("data-subtab");
 });
 
 describe("nav-refresh REFRESHABLE_NAV_KEYS", () => {
-  it("contains wechat-hot, ithome, worldcup, funds, metals", () => {
-    expect(REFRESHABLE_NAV_KEYS.has("wechat-hot")).toBe(true);
-    expect(REFRESHABLE_NAV_KEYS.has("ithome")).toBe(true);
+  it("contains news, worldcup, funds, metals (P-N+ news 合并 ithome + wechat-hot)", () => {
+    expect(REFRESHABLE_NAV_KEYS.has("news")).toBe(true);
     expect(REFRESHABLE_NAV_KEYS.has("worldcup")).toBe(true);
     expect(REFRESHABLE_NAV_KEYS.has("funds")).toBe(true);
     expect(REFRESHABLE_NAV_KEYS.has("metals")).toBe(true);
   });
 
-  it("does NOT contain ai-usage / versions (out of scope for global refresh)", () => {
+  it("does NOT contain ithome / wechat-hot / ai-usage / versions", () => {
+    expect(REFRESHABLE_NAV_KEYS.has("ithome")).toBe(false);
+    expect(REFRESHABLE_NAV_KEYS.has("wechat-hot")).toBe(false);
     expect(REFRESHABLE_NAV_KEYS.has("ai-usage")).toBe(false);
     expect(REFRESHABLE_NAV_KEYS.has("versions")).toBe(false);
   });
 });
 
 describe("getRefreshEntry", () => {
-  it("returns entry for registered nav key", () => {
-    const e = getRefreshEntry("wechat-hot");
+  it("returns entry for news (P-N+ 合并)", () => {
+    const e = getRefreshEntry("news");
     expect(e).toBeTruthy();
-    expect(e.label).toContain("微博");
+    expect(e.label).toContain("新闻");
     expect(typeof e.fn).toBe("function");
   });
 
@@ -79,16 +86,41 @@ describe("getRefreshEntry", () => {
 });
 
 describe("refreshActiveNav dispatch", () => {
-  it("wechat-hot → calls refreshWechatHot", async () => {
-    const ok = await refreshActiveNav("wechat-hot");
-    expect(ok).toBe(true);
-    expect(refreshWechatHot).toHaveBeenCalledTimes(1);
-  });
-
-  it("ithome → calls refreshIthomeNews", async () => {
-    const ok = await refreshActiveNav("ithome");
+  it("news 默认 (无 DOM data-subtab) → refreshIthomeNews", async () => {
+    const ok = await refreshActiveNav("news");
     expect(ok).toBe(true);
     expect(refreshIthomeNews).toHaveBeenCalledTimes(1);
+    expect(refreshWechatHot).not.toHaveBeenCalled();
+  });
+
+  it("news + DOM data-subtab=wechat-hot → refreshWechatHot", async () => {
+    const el = document.createElement("div");
+    el.className = "news-layout";
+    el.setAttribute("data-subtab", "wechat-hot");
+    document.body.appendChild(el);
+    try {
+      const ok = await refreshActiveNav("news");
+      expect(ok).toBe(true);
+      expect(refreshWechatHot).toHaveBeenCalledTimes(1);
+      expect(refreshIthomeNews).not.toHaveBeenCalled();
+    } finally {
+      el.remove();
+    }
+  });
+
+  it("news + DOM data-subtab=ithome → refreshIthomeNews", async () => {
+    const el = document.createElement("div");
+    el.className = "news-layout";
+    el.setAttribute("data-subtab", "ithome");
+    document.body.appendChild(el);
+    try {
+      const ok = await refreshActiveNav("news");
+      expect(ok).toBe(true);
+      expect(refreshIthomeNews).toHaveBeenCalledTimes(1);
+      expect(refreshWechatHot).not.toHaveBeenCalled();
+    } finally {
+      el.remove();
+    }
   });
 
   it("worldcup → calls refreshWorldcupScores", async () => {
@@ -118,9 +150,9 @@ describe("refreshActiveNav dispatch", () => {
   });
 
   it("swallows thrown errors from refresh fn (UI surfaces errors via tab signals)", async () => {
-    refreshWechatHot.mockRejectedValueOnce(new Error("upstream down"));
-    const ok = await refreshActiveNav("wechat-hot");
+    refreshIthomeNews.mockRejectedValueOnce(new Error("upstream down"));
+    const ok = await refreshActiveNav("news");
     expect(ok).toBe(true); // dispatched, error swallowed
-    expect(refreshWechatHot).toHaveBeenCalledTimes(1);
+    expect(refreshIthomeNews).toHaveBeenCalledTimes(1);
   });
 });

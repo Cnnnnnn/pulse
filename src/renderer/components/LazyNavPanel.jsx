@@ -7,12 +7,9 @@ import { useState, useEffect } from 'preact/hooks';
 import { VersionsLayout } from './VersionsLayout.jsx';
 
 const LOADERS = {
-  ithome: () =>
-    import('../ithome/NewsLayout.jsx').then((m) => m.NewsLayout),
-  'wechat-hot': () =>
-    import('../wechat-hot/components/WechatHotLayout.jsx').then(
-      (m) => m.WechatHotLayout,
-    ),
+  // P-N+: 'news' 单 nav 合并 IT 新闻 + 微博热搜, 容器做 sub-tab 切换.
+  // 子 layout (ithome / wechat-hot) 仍走独立 chunk, 这里不再单独暴露.
+  news: () => import('../news/NewsLayout.jsx').then((m) => m.NewsLayout),
   worldcup: () =>
     import('../worldcup/WorldcupLayout.jsx').then((m) => m.WorldcupLayout),
   funds: () => import('../funds/FundLayout.jsx').then((m) => m.FundLayout),

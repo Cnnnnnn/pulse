@@ -21,7 +21,7 @@ const { SideNav } = await import('../../src/renderer/components/SideNav.jsx');
 describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
   beforeEach(async () => {
     const { activeNav, navCollapsed } = await import('../../src/renderer/worldcup/navStore.js');
-    activeNav.value = 'ithome';
+    activeNav.value = 'news';
     navCollapsed.value = false;
     // sidenav-prefs 默认 prefs — 一次性重置, 避免跨测试污染
     const sp = await import('../../src/renderer/components/sidenav-prefs.js');
@@ -71,16 +71,16 @@ describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
 
-    setActiveNav('ithome');
-    expect(activeNav.value).toBe('ithome');
+    setActiveNav('news');
+    expect(activeNav.value).toBe('news');
 
     const { container } = render(<SideNav />);
-    // 点 ithome SideNavItem (验证基线不被守卫误伤)
-    const ithomeItem = container.querySelector('[data-testid="side-nav-item-ithome"]')
-      || container.querySelector('button[aria-label*="IT 新闻"]');
-    if (ithomeItem) {
-      fireEvent.click(ithomeItem);
-      expect(activeNav.value).toBe('ithome');
+    // 点 news SideNavItem (验证基线不被守卫误伤; P-N ithome 合并到 news)
+    const newsItem = container.querySelector('[data-testid="side-nav-item-news"]')
+      || container.querySelector('button[aria-label*="新闻"]');
+    if (newsItem) {
+      fireEvent.click(newsItem);
+      expect(activeNav.value).toBe('news');
     }
   });
 });

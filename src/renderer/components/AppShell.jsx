@@ -69,7 +69,12 @@ export function AppShell({ onCheck }) {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
         let inputId = 'filter-search-input';
-        if (nav === 'ithome') inputId = 'ithome-search-input';
+        // P-N+ 「新闻」tab: sub-tab 决定 focus 哪个搜索框
+        // (ithome 跟 wechat-hot 各自独立搜索框, 都在 DOM 里)
+        if (nav === 'news') {
+          const activeSubtab = document.querySelector('.news-layout')?.getAttribute('data-subtab');
+          inputId = activeSubtab === 'wechat-hot' ? 'wechat-hot-search-input' : 'ithome-search-input';
+        } else if (nav === 'ithome') inputId = 'ithome-search-input';
         else if (nav === 'wechat-hot') inputId = 'wechat-hot-search-input';
         else if (nav === 'worldcup') inputId = 'worldcup-search-input';
         else if (nav === 'funds') inputId = 'fund-search-input';

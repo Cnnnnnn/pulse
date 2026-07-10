@@ -3885,6 +3885,14 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: var(--space-2);
   min-width: 0;
   padding-left: 4px;
+  flex: 1 1 auto;
+}
+
+.side-nav-brand-name {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .side-nav-brand-mark {
@@ -3933,8 +3941,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
-  /* 折叠态 (40px) 下两个按钮总宽超容器, 允许 wrap 避免第一个被 overflow:hidden 裁切 */
-  flex-wrap: wrap;
+  /* ponytail: 不 wrap — brand 用 truncate 让位, 保证 3 个图标按钮永远在第一行. */
+  flex-wrap: nowrap;
   justify-content: flex-end;
 }
 
@@ -7969,6 +7977,28 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: #c62828;
 }
 
+/* v2 状态分级: 健康 / 紧张 / 告急 / 限流 / 未知
+   旧的 --ok/--throttled 保留兼容 tray 引用. */
+.ai-usage-status--healthy {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.ai-usage-status--tense {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.ai-usage-status--critical {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.ai-usage-status--unknown {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
 .ai-usage-card-countdown {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--font-size-sm);
@@ -8048,6 +8078,501 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   background: var(--bg-hover);
   padding: 1px 4px;
   border-radius: 3px;
+}
+
+/* === v2 详情卡: 按 model_remains[] 块渲染 === */
+
+.ai-usage-block-title {
+  font-weight: 600;
+}
+
+.ai-usage-block-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ai-usage-block-meta-sep {
+  color: var(--text-tertiary);
+}
+
+.ai-usage-block-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--space-1h) var(--space-3);
+  padding: var(--space-1h) 0;
+  border-top: 1px dashed var(--border-color);
+  margin-top: var(--space-1h);
+}
+
+.ai-usage-block-grid-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ai-usage-block-grid-label {
+  font-size: var(--font-size-10);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ai-usage-block-grid-value {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+}
+
+/* 周配额加成 badge (weekly_boost_permille / 1000) */
+.ai-usage-boost {
+  display: inline-block;
+  font-size: var(--font-size-10);
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ai-usage-boost--up {
+  background: #fff3e0;
+  color: #e65100;
+  box-shadow: 0 0 0 1px rgba(230, 81, 0, 0.25);
+}
+
+.ai-usage-boost--down {
+  background: #ffebee;
+  color: #c62828;
+  box-shadow: 0 0 0 1px rgba(198, 40, 40, 0.25);
+}
+
+/* 详情卡 meta grid (API 原始字段展示) */
+.ai-usage-block-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--fund-card-border, #e2e8f0);
+  font-size: 11px;
+}
+.ai-usage-block-meta-item {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+}
+.ai-usage-block-meta-label {
+  color: var(--fund-text-tertiary, #94a3b8);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.ai-usage-block-meta-value {
+  color: var(--fund-text-secondary, #64748b);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* === Usage Dashboard (Minimax) — dark modern === */
+
+.ai-usage-dashboard {
+  /* ponytail: 强制 dark scheme 跟 bracket-view 一致, 不依赖外层主题 */
+  color-scheme: dark;
+  /* 6 色 palette: 用于模型分布 + overview 重点色. 顺序按视觉权重排 */
+  --ai-color-1: #6366f1; /* indigo — 主品牌 */
+  --ai-color-2: #a855f7; /* purple — 排名高亮 */
+  --ai-color-3: #06b6d4; /* cyan — 统计周期 */
+  --ai-color-4: #10b981; /* emerald — 连续使用 */
+  --ai-color-5: #f59e0b; /* amber — 备用 */
+  --ai-color-6: #ec4899; /* pink — 备用 */
+  --ai-bg: #0b0b10;
+  --ai-card-bg: #14141a;
+  --ai-card-border: #23232d;
+  --ai-card-hover: #1c1c26;
+  --ai-text-primary: #f5f5f7;
+  --ai-text-secondary: #a1a1aa;
+  --ai-text-tertiary: #6b6b75;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px;
+  background: linear-gradient(180deg, var(--ai-bg) 0%, #08080c 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* 通用 section header (eyebrow + title) — 4 块都共用 */
+.ai-usage-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ai-usage-section-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ai-text-tertiary);
+}
+.ai-usage-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ai-text-primary);
+  letter-spacing: -0.01em;
+}
+
+/* 顶部概览条: 4 格等宽数据 */
+.ai-usage-overview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .ai-usage-overview { grid-template-columns: repeat(2, 1fr); }
+}
+.ai-usage-overview-cell {
+  --accent: var(--ai-color-1);
+  position: relative;
+  overflow: hidden;
+  background: var(--ai-card-bg);
+  border: 1px solid var(--ai-card-border);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.ai-usage-overview-cell::before {
+  /* 重点色微光晕 — 极轻, 不喧宾夺主 */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, var(--cell-accent, var(--accent)) 0%, transparent 60%);
+  opacity: 0.08;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.ai-usage-overview-cell:hover {
+  transform: translateY(-2px);
+  border-color: var(--cell-accent, var(--ai-color-1));
+  background: var(--ai-card-hover);
+}
+.ai-usage-overview-cell:hover::before {
+  opacity: 0.16;
+}
+.ai-usage-overview-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-usage-overview-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--cell-accent, var(--accent)) 20%, transparent);
+  color: var(--cell-accent, var(--accent));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+.ai-usage-overview-label {
+  font-size: 11px;
+  color: var(--ai-text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.ai-usage-overview-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ai-text-primary);
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.ai-usage-overview-sub {
+  font-size: 11px;
+  color: var(--ai-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.ai-usage-overview-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cell-accent, var(--ai-color-1)), transparent);
+  opacity: 0.5;
+}
+.ai-usage-overview-cell--highlight .ai-usage-overview-value {
+  background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 50%, #6366f1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 24px rgba(139, 92, 246, 0.4);
+}
+.ai-usage-overview-cell--highlight .ai-usage-overview-icon {
+  background: linear-gradient(135deg, #c4b5fd, #6366f1);
+  color: #0b0b10;
+}
+
+/* dashboard row: 最活跃日 + 90 天趋势并排 */
+.ai-usage-dashboard-row {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .ai-usage-dashboard-row { grid-template-columns: 1fr; }
+}
+
+/* 通用卡片背景 (most-active / trend / model-breakdown) */
+.ai-usage-most-active,
+.ai-usage-trend,
+.ai-usage-model-breakdown {
+  background: var(--ai-card-bg);
+  border: 1px solid var(--ai-card-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.18s ease;
+}
+.ai-usage-most-active:hover,
+.ai-usage-trend:hover,
+.ai-usage-model-breakdown:hover {
+  border-color: #2e2e3a;
+}
+
+/* 最活跃日卡 */
+.ai-usage-most-active-date-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ai-color-4) 18%, transparent);
+  color: #34d399;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  border: 1px solid color-mix(in srgb, var(--ai-color-4) 35%, transparent);
+}
+.ai-usage-most-active-token {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--ai-text-primary);
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ai-usage-most-active-unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ai-text-tertiary);
+  margin-left: 6px;
+  letter-spacing: 0.02em;
+  background: none;
+  -webkit-text-fill-color: var(--ai-text-tertiary);
+}
+.ai-usage-most-active-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ai-usage-most-active-meta-empty {
+  font-size: 11px;
+  color: var(--ai-text-tertiary);
+  font-style: italic;
+}
+.ai-usage-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ai-card-border);
+  color: var(--ai-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 90 天趋势 */
+.ai-usage-trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.ai-usage-trend-averages {
+  display: flex;
+  gap: 16px;
+}
+.ai-usage-trend-avg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.ai-usage-trend-avg-label {
+  font-size: 9px;
+  color: var(--ai-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+.ai-usage-trend-avg-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ai-text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.ai-usage-trend-chart {
+  height: 96px;
+  padding: 8px 0 4px;
+  position: relative;
+}
+.ai-usage-daily-bars-wrap {
+  position: relative;
+  height: 100%;
+}
+.ai-usage-daily-tooltip {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(20, 20, 26, 0.95);
+  border: 1px solid var(--ai-card-border);
+  color: var(--ai-text-primary);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+.ai-usage-daily-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 100%;
+  width: 100%;
+}
+.ai-usage-daily-bar {
+  flex: 1 1 0;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  transition: background 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+  cursor: pointer;
+}
+.ai-usage-daily-bar:hover,
+.ai-usage-daily-bar--hovered {
+  background: var(--ai-color-1);
+  transform: scaleY(1.04);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ai-color-1) 70%, transparent);
+}
+.ai-usage-daily-bar--recent {
+  background: linear-gradient(180deg, var(--ai-color-1) 0%, color-mix(in srgb, var(--ai-color-1) 55%, #1e1b4b) 100%);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--ai-color-1) 30%, transparent);
+}
+.ai-usage-daily-bar--recent:hover,
+.ai-usage-daily-bar--recent.ai-usage-daily-bar--hovered {
+  background: linear-gradient(180deg, #818cf8 0%, var(--ai-color-1) 100%);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ai-color-1) 70%, transparent);
+}
+
+/* 模型分布 */
+.ai-usage-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-usage-model-row {
+  --model-color: var(--ai-color-1);
+  display: grid;
+  grid-template-columns: 190px 1fr 56px 76px;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  padding: 4px 0;
+}
+@media (max-width: 720px) {
+  .ai-usage-model-row {
+    grid-template-columns: 110px 1fr 44px 60px;
+    gap: 8px;
+  }
+}
+.ai-usage-model-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ai-text-primary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-usage-model-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--model-color);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--model-color) 60%, transparent);
+  flex-shrink: 0;
+}
+.ai-usage-model-bar-wrap {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.ai-usage-model-bar {
+  height: 100%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--model-color) 70%, transparent), var(--model-color));
+  border-radius: 4px;
+  transition: filter 0.15s ease;
+  min-width: 4px;
+}
+.ai-usage-model-row:hover .ai-usage-model-bar {
+  filter: brightness(1.2) saturate(1.2);
+}
+.ai-usage-model-share {
+  color: var(--ai-text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.ai-usage-model-total {
+  color: var(--ai-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 /* === Bracket view (v1 淘汰赛对阵) === */

@@ -20,9 +20,9 @@ describe('navigateToResult', () => {
     vi.clearAllMocks();
   });
 
-  it('news result: sets nav to ithome', () => {
+  it('news result: sets nav to news (P-N 合并 ithome + wechat-hot)', () => {
     navigateToResult({ source: 'news', nativeId: 'u1', payload: {} });
-    expect(setActiveNav).toHaveBeenCalledWith('ithome');
+    expect(setActiveNav).toHaveBeenCalledWith('news');
   });
 
   it('reminder result: sets nav to reminders', () => {

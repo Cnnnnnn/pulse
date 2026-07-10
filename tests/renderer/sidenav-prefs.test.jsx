@@ -83,11 +83,10 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 8 个 nav 全显示 (Phase 32 stock-detail 合并到选股)", () => {
+  it("默认 prefs 全开 → 7 个 nav 全显示 (P-N news 合并 ithome + wechat-hot)", () => {
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
-      "ithome",
-      "wechat-hot",
+      "news",
       "worldcup",
       "funds",
       "metals",
@@ -105,8 +104,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     render(<SideNav />);
     const keys = visibleNavKeys();
     expect(keys).not.toContain("versions");
-    expect(keys).toContain("ithome");
-    expect(keys).toContain("wechat-hot");
+    expect(keys).toContain("news");
     expect(keys).toContain("worldcup");
     expect(keys).toContain("funds");
     expect(keys).toContain("metals");
@@ -122,7 +120,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("4 个动态全关 → 只剩 4 个固定 nav (ithome/wechat-hot/funds/stocks)", () => {
+  it("4 个动态全关 → 只剩 4 个固定 nav (news/funds/stocks)", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -135,12 +133,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual([
-      "ithome",
-      "wechat-hot",
-      "funds",
-      "stocks",
-    ]);
+    expect(visibleNavKeys()).toEqual(["news", "funds", "stocks"]);
   });
 
   it("只关非动态 prefs (check_action/config_action) → 全部 nav 仍显示", () => {
@@ -157,8 +150,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     };
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
-      "ithome",
-      "wechat-hot",
+      "news",
       "worldcup",
       "funds",
       "metals",

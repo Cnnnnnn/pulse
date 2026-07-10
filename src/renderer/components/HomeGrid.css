@@ -369,3 +369,85 @@ body.theme-dark .home-grid-tile {
   opacity: 1;
   transform: none;
 }
+
+/* ============================================================
+ * v4 — B11 收藏星标
+ * 右上角 (在未读角标左下, 12px 缩进), 默认空心, 收藏后实心 + accent 色.
+ * pointer-events: auto (子元素独立) + 阻止冒泡 — 不触发 tile click.
+ * ============================================================ */
+.home-grid-tile-fav-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color 120ms ease, transform 120ms ease, background 120ms ease;
+  user-select: none;
+  z-index: 2;
+}
+.home-grid-tile-fav-btn:hover {
+  background: color-mix(in oklch, var(--tile-accent, var(--accent-primary)) 14%, transparent);
+  color: var(--tile-accent, var(--accent-primary));
+  transform: scale(1.15);
+}
+.home-grid-tile-fav-btn.is-fav {
+  color: oklch(72% 0.18 80); /* amber/gold */
+  text-shadow: 0 0 6px oklch(72% 0.18 80 / 0.4);
+}
+.home-grid-tile-fav-btn.is-fav:hover {
+  color: oklch(65% 0.18 50);
+}
+
+/* 收藏 tile 整体加淡 accent 边框, 视觉上"置顶" */
+.home-grid-tile-fav {
+  border-color: color-mix(in oklch, var(--tile-accent, var(--accent-primary)) 30%, transparent);
+}
+
+/* ============================================================
+ * v4 — B10 实时 status
+ * 副标题: status 文本替代原 static subtitle, 加 accent 色 + tabular-nums.
+ * 静默 / 空态: 仍 fallback 显示原 subtitle.
+ * ============================================================ */
+.home-grid-tile-status {
+  color: var(--tile-accent, var(--accent-primary));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+
+/* ============================================================
+ * v4 — A8 拖拽视觉
+ * dragging 中: 半透明 + 0.96 scale
+ * dragover 目标: 边框变 accent 色 (左侧插入指示器用 border-left 加粗 3px)
+ * ============================================================ */
+.home-grid-tile-dragging {
+  opacity: 0.5;
+  transform: scale(0.96);
+}
+.home-grid-tile-fav-btn {
+  /* 拖拽星标时仍可点 (不拖) */
+  pointer-events: auto;
+}
+.home-grid-tile[draggable] {
+  cursor: grab;
+}
+.home-grid-tile[draggable]:active {
+  cursor: grabbing;
+}
+
+/* ============================================================
+ * v4 — hero fav count
+ * 收藏数提示 (★ 3)
+ * ============================================================ */
+.home-hero-fav {
+  margin-left: 4px;
+  color: oklch(72% 0.18 80);
+}

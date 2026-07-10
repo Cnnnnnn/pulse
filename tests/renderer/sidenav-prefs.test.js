@@ -21,16 +21,18 @@ describe("sidenav-prefs", () => {
 
   it("loadPrefs: 默认值 (无 localStorage)", () => {
     const p = loadPrefs();
-    expect(p.version).toBe(1);
+    expect(p.version).toBe(2);
     expect(p.order).toEqual(NAV_KEYS_LIST);
     expect(p.hidden).toEqual([]);
+    expect(p.favorites).toEqual([]);
   });
 
   it("savePrefs → loadPrefs 还原 (round-trip)", () => {
     const original = {
-      version: 1,
-      order: ["funds", "ithome", "versions"],
+      version: 2,
+      order: ["funds", "news", "versions"],
       hidden: ["metals"],
+      favorites: ["news"],
     };
     savePrefs(original);
     const got = loadPrefs();
@@ -42,12 +44,13 @@ describe("sidenav-prefs", () => {
     const p = loadPrefs();
     expect(p.order).toEqual(NAV_KEYS_LIST);
     expect(p.hidden).toEqual([]);
+    expect(p.favorites).toEqual([]);
   });
 
   it("loadPrefs: version 不匹配 → 返 DEFAULTS", () => {
     localStorage.setItem(
       STORAGE_KEY_FOR_TESTS,
-      JSON.stringify({ version: 99, order: [], hidden: [] }),
+      JSON.stringify({ version: 99, order: [], hidden: [], favorites: [] }),
     );
     const p = loadPrefs();
     expect(p.order).toEqual(NAV_KEYS_LIST);
@@ -57,14 +60,16 @@ describe("sidenav-prefs", () => {
     localStorage.setItem(
       STORAGE_KEY_FOR_TESTS,
       JSON.stringify({
-        version: 1,
+        version: 2,
         order: ["funds", "evil-key", "versions"],
         hidden: ["another-evil"],
+        favorites: ["metals", "evil-fav"],
       }),
     );
     const p = loadPrefs();
     expect(p.order).toEqual(["funds", "versions"]);
     expect(p.hidden).toEqual([]);
+    expect(p.favorites).toEqual(["metals"]);
   });
 
   it("hideItem: 加 key 到 hidden", () => {
@@ -99,11 +104,12 @@ describe("sidenav-prefs", () => {
 
   it("listVisible: 按 order 排, 排除 hidden", () => {
     const p = {
-      version: 1,
-      order: ["funds", "ithome", "versions", "metals"],
+      version: 2,
+      order: ["funds", "news", "versions", "metals"],
       hidden: ["metals"],
+      favorites: [],
     };
-    expect(listVisible(p)).toEqual(["funds", "ithome", "versions"]);
+    expect(listVisible(p)).toEqual(["funds", "news", "versions"]);
   });
 
   it("listVisible: prefs 为 null → 返 NAV_KEYS_LIST", () => {
@@ -112,9 +118,10 @@ describe("sidenav-prefs", () => {
 
   it("listHidden: NAV_KEYS_LIST - visible (按 NAV_KEYS_LIST 顺序)", () => {
     const p = {
-      version: 1,
+      version: 2,
       order: NAV_KEYS_LIST,
       hidden: ["metals", "worldcup"],
+      favorites: [],
     };
     // 顺序按 NAV_KEYS_LIST 排, 不是按 hidden 数组
     expect(new Set(listHidden(p))).toEqual(new Set(["metals", "worldcup"]));
@@ -142,18 +149,49 @@ describe("sidenav-prefs", () => {
     expect(ok).toBe(false);
     expect(warned).toBe(true);
   });
+
+  // P-N+ 2026-07-10: 旧 'ithome' / 'wechat-hot' 归一到 'news'.
+  // round-trip 保留顺序, 旧 key 写盘后被 alias → 'news' 替换.
+  it("v3 迁移: loadPrefs 把旧 'ithome'/'wechat-hot' alias 到 'news'", () => {
+    localStorage.setItem(
+      STORAGE_KEY_FOR_TESTS,
+      JSON.stringify({
+        version: 2,
+        order: ["ithome", "worldcup", "wechat-hot", "funds"],
+        hidden: ["ithome"],
+        favorites: ["wechat-hot"],
+      }),
+    );
+    const p = loadPrefs();
+    expect(p.order).toEqual(["news", "worldcup", "funds"]);
+    expect(p.hidden).toEqual(["news"]); // dedupe 后
+    expect(p.favorites).toEqual(["news"]);
+  });
+
+  it("v3 迁移: savePrefs alias 旧 key → 'news' 写盘", () => {
+    savePrefs({
+      version: 2,
+      order: ["ithome", "worldcup"],
+      hidden: [],
+      favorites: ["wechat-hot"],
+    });
+    const raw = localStorage.getItem(STORAGE_KEY_FOR_TESTS);
+    const parsed = JSON.parse(raw);
+    expect(parsed.order).toEqual(["news", "worldcup"]);
+    expect(parsed.favorites).toEqual(["news"]);
+  });
 });
 
 describe("sidenav-prefs: reorderItems", () => {
   beforeEach(() => localStorage.clear());
 
   it("reorderItems: from → to 'before'", () => {
-    const p0 = resetPrefs(); // [ithome, wechat-hot, worldcup, funds, metals, stocks, ai-usage, versions] (Phase 32 stock-detail 合并到选股)
-    const p1 = reorderItems(p0, "ithome", "funds", "before");
+    // v3 2026-07-10: IT 新闻 + 微博热搜 合并成 'news', 7 个 nav.
+    const p0 = resetPrefs(); // [news, worldcup, funds, metals, stocks, ai-usage, versions]
+    const p1 = reorderItems(p0, "news", "funds", "before");
     expect(p1.order).toEqual([
-      "wechat-hot",
       "worldcup",
-      "ithome",
+      "news",
       "funds",
       "metals",
       "stocks",
@@ -164,12 +202,11 @@ describe("sidenav-prefs: reorderItems", () => {
 
   it("reorderItems: from → to 'after'", () => {
     const p0 = resetPrefs();
-    const p1 = reorderItems(p0, "ithome", "funds", "after");
+    const p1 = reorderItems(p0, "news", "funds", "after");
     expect(p1.order).toEqual([
-      "wechat-hot",
       "worldcup",
       "funds",
-      "ithome",
+      "news",
       "metals",
       "stocks",
       "ai-usage",
@@ -179,37 +216,37 @@ describe("sidenav-prefs: reorderItems", () => {
 
   it("reorderItems: from === to → noop (同一 ref)", () => {
     const p0 = resetPrefs();
-    const p1 = reorderItems(p0, "ithome", "ithome", "before");
+    const p1 = reorderItems(p0, "news", "news", "before");
     expect(p1).toBe(p0);
   });
 
   it("reorderItems: from 在 to 之后 → 'after' 正确", () => {
     const p0 = resetPrefs();
-    const p1 = reorderItems(p0, "versions", "ithome", "after");
-    expect(p1.order[1]).toBe("versions"); // versions 应当到 ithome 之后
+    const p1 = reorderItems(p0, "versions", "news", "after");
+    expect(p1.order[1]).toBe("versions"); // versions 应当到 news 之后
   });
 
   it("reorderItems: from 未知 key → 返新 prefs 但 order 不变", () => {
     const p0 = resetPrefs();
-    const p1 = reorderItems(p0, "evil", "ithome", "before");
+    const p1 = reorderItems(p0, "evil", "news", "before");
     expect(p1.order).toEqual(p0.order);
   });
 
   it("reorderItems: to 未知 key → 返新 prefs 但 order 不变", () => {
     const p0 = resetPrefs();
-    const p1 = reorderItems(p0, "ithome", "evil", "before");
+    const p1 = reorderItems(p0, "news", "evil", "before");
     expect(p1.order).toEqual(p0.order);
   });
 
   it("reorderItems: 不修改原 prefs", () => {
     const p0 = resetPrefs();
     const before = p0.order.slice();
-    reorderItems(p0, "ithome", "funds", "before");
+    reorderItems(p0, "news", "funds", "before");
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 8 个 nav key (Phase 32 stock-detail 合并到选股)", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(8);
+  it("DEFAULTS_FOR_TESTS: 7 个 nav key (Phase I3v3 IT 新闻 + 微博热搜 → news 合并)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(7);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

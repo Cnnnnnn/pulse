@@ -13,9 +13,19 @@ describe("navStore", () => {
     activeNav.value = "versions";
   });
 
-  it("setActiveNav accepts ithome", () => {
+  it("setActiveNav accepts news (P-N 合并 ithome + wechat-hot)", () => {
+    setActiveNav("news");
+    expect(activeNav.value).toBe("news");
+  });
+
+  it("setActiveNav aliases wechat-hot → news (向后兼容)", () => {
+    setActiveNav("wechat-hot");
+    expect(activeNav.value).toBe("news");
+  });
+
+  it("setActiveNav aliases ithome → news (向后兼容)", () => {
     setActiveNav("ithome");
-    expect(activeNav.value).toBe("ithome");
+    expect(activeNav.value).toBe("news");
   });
 
   it("setActiveNav ignores unknown keys", () => {

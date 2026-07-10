@@ -8,7 +8,7 @@
  *
  * 跑: npx vitest run tests/renderer/home-grid.integration.test.js
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('HomeGrid navStore 集成路径', () => {
   it('activeNav 默认值为 "home"', async () => {
@@ -33,14 +33,16 @@ describe('HomeGrid navStore 集成路径', () => {
     const { PERSISTABLE_NAV_KEYS } = await import('../../src/renderer/worldcup/navStore.js');
     expect(PERSISTABLE_NAV_KEYS.has('home')).toBe(false);
     expect(PERSISTABLE_NAV_KEYS.has('versions')).toBe(true);
-    expect(PERSISTABLE_NAV_KEYS.size).toBe(8);
+    // P-N+ 2026-07-10: 合并 IT 新闻 + 微博热搜 → 'news', 7 顶级 nav.
+    expect(PERSISTABLE_NAV_KEYS.size).toBe(7);
   });
 });
 
 // v2 (2026-07-10): HomeGrid 视觉重做后, 加真渲染测试覆盖视觉契约.
-// 验证 hero / 8 tile / SVG icon / accent class / aria-label 都在.
+// 验证 hero / 7 tile / SVG icon / accent class / aria-label 都在.
+// v5 (2026-07-10): 合并 IT 新闻 + 微博热搜 → 'news', 7 tile.
 describe('HomeGrid v2 — 渲染契约', () => {
-  it('渲染出 hero (品牌 mark + greeting + 时间 + 8 模块 meta)', async () => {
+  it('渲染出 hero (品牌 mark + greeting + 时间 + 7 模块 meta)', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
@@ -50,24 +52,24 @@ describe('HomeGrid v2 — 渲染契约', () => {
     expect(container.querySelector('.home-hero-greeting')).toBeTruthy();
     expect(container.querySelector('.home-hero-time')).toBeTruthy();
     expect(container.querySelector('.home-hero-date')).toBeTruthy();
-    expect(container.querySelector('.home-hero-meta')?.textContent).toContain('8');
+    expect(container.querySelector('.home-hero-meta')?.textContent).toContain('7');
   });
 
-  it('渲染 8 个 tile, 全部带 home-grid-tile-accent class', async () => {
+  it('渲染 7 个 tile, 全部带 home-grid-tile-accent class', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
 
     const tiles = container.querySelectorAll('.home-grid-tile');
-    expect(tiles.length).toBe(8);
-    // 8 个不同 accent class
+    expect(tiles.length).toBe(7);
+    // 7 个不同 accent class
     const accents = new Set();
     tiles.forEach((t) => {
       const m = t.className.match(/home-grid-tile-(\w+)/);
       if (m) accents.add(m[1]);
     });
     accents.delete('tile'); // base class 名字
-    expect(accents.size).toBe(8);
+    expect(accents.size).toBe(7);
   });
 
   it('每个 tile 都有 SVG icon (不再用 emoji)', async () => {
@@ -89,10 +91,11 @@ describe('HomeGrid v2 — 渲染契约', () => {
     const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
 
     const { container } = render(<HomeGrid />);
-    const ithomeTile = container.querySelector('button[aria-label="进入 IT 新闻"]');
-    expect(ithomeTile).toBeTruthy();
-    fireEvent.click(ithomeTile);
-    expect(activeNav.value).toBe('ithome');
+    // v5: IT 新闻 + 微博热搜 合并成 '新闻', aria-label 用 starts-with 选择.
+    const newsTile = container.querySelector('button[aria-label^="进入 新闻"]');
+    expect(newsTile).toBeTruthy();
+    fireEvent.click(newsTile);
+    expect(activeNav.value).toBe('news');
   });
 
   it('tile aria-label 包含中文标题 (无障碍)', async () => {
@@ -100,32 +103,33 @@ describe('HomeGrid v2 — 渲染契约', () => {
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
 
+    // v5: IT 新闻 + 微博热搜 合并 → '新闻'. 8 标签减为 7.
     const expected = [
-      '进入 IT 新闻',
-      '进入 微博热搜',
-      '进入 世界杯',
-      '进入 基金管理',
-      '进入 贵金属',
-      '进入 选股',
-      '进入 AI 用量',
-      '进入 版本检查',
+      '新闻',
+      '世界杯',
+      '基金管理',
+      '贵金属',
+      '选股',
+      'AI 用量',
+      '版本检查',
     ];
     expected.forEach((label) => {
-      expect(container.querySelector(`button[aria-label="${label}"]`)).toBeTruthy();
+      expect(container.querySelector(`button[aria-label^="进入 ${label}"]`)).toBeTruthy();
     });
   });
 });
 
 // v3 (2026-07-10): 6 项完善. 每个加 1-2 个真测试.
 describe('HomeGrid v3 — 视觉/交互完善', () => {
-  it('A2: 副标题尾部有 ⌘1-8 快捷键提示', async () => {
+  it('A2: 副标题尾部有 ⌘1-7 快捷键提示', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
     const kbdHints = container.querySelectorAll('.home-grid-tile-kbd');
-    expect(kbdHints.length).toBe(8);
+    // v5: IT 新闻 + 微博热搜 合并, 7 tile.
+    expect(kbdHints.length).toBe(7);
     expect(kbdHints[0].textContent).toBe('⌘1');
-    expect(kbdHints[7].textContent).toBe('⌘8');
+    expect(kbdHints[6].textContent).toBe('⌘7');
   });
 
   it('A14: 挂载后 root 加 home-grid-mounted class (cascade 触发)', async () => {
@@ -138,7 +142,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     expect(root.classList.contains('home-grid-mounted')).toBe(true);
   });
 
-  it('A3: ⌘1 直接切到 ithome', async () => {
+  it('A3: ⌘1 直接切到 news (P-N+ IT 新闻 + 微博热搜 合并)', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
@@ -146,7 +150,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 
     render(<HomeGrid />);
     fireEvent.keyDown(window, { key: '1', metaKey: true });
-    expect(activeNav.value).toBe('ithome');
+    expect(activeNav.value).toBe('news');
   });
 
   it('A3: ArrowRight 在 grid 里移动焦点', async () => {
@@ -167,19 +171,33 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     expect(tiles[1].getAttribute('tabindex')).toBe('0');
   });
 
-  it('A1: ithomeUnreadBadge > 0 时 tile 渲染 badge', async () => {
+  it('A1: ithomeUnreadBadge > 0 时 news tile 渲染 badge (P-N+ 合并)', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     // ithomeUnreadBadge 是 computed, 派生自 ithomeNewIds.
-    // 写 3 个 key 进 ithomeNewIds → computed 重算 → badge = 3.
+    // 写 3 个 key 进 ithomeNewIds → computed 重算 → news badge = 3 (ithome+wechat=3+0).
     const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
     ithomeNewIds.value = { a: 1, b: 1, c: 1 };
 
     const { container } = render(<HomeGrid />);
-    // ithome 是第一个 tile
-    const ithomeBadge = container.querySelectorAll('.home-grid-tile-badge')[0];
-    expect(ithomeBadge).toBeTruthy();
-    expect(ithomeBadge.textContent).toBe('3');
+    // news 是第一个 tile
+    const newsBadge = container.querySelectorAll('.home-grid-tile-badge')[0];
+    expect(newsBadge).toBeTruthy();
+    expect(newsBadge.textContent).toBe('3');
+  });
+
+  it('A1: news tile 合并 ithome + wechat 角标', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    // ithome 3 + wechat 5 = news badge 8
+    const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
+    const { wechatHotNewIds } = await import('../../src/renderer/wechat-hot/store.js');
+    ithomeNewIds.value = { a: 1, b: 1, c: 1 };
+    wechatHotNewIds.value = { d: 1, e: 1, f: 1, g: 1, h: 1 };
+
+    const { container } = render(<HomeGrid />);
+    const newsBadge = container.querySelectorAll('.home-grid-tile-badge')[0];
+    expect(newsBadge.textContent).toBe('8');
   });
 
   it('A1: 100+ 显示 99+', async () => {
@@ -199,13 +217,13 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
   it('A1: badge = 0 时不渲染 .home-grid-tile-badge', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
-    // 重置 4 个 source signal 到 0
+    // v5: news = ithome + wechat. 重置全部 source signal 到 0.
     const ithome = await import('../../src/renderer/ithome/store.js');
     const wechat = await import('../../src/renderer/wechat-hot/store.js');
     const funds = await import('../../src/renderer/funds/fundStore.js');
     const ai = await import('../../src/renderer/store/ai-usage-store.js');
     ithome.ithomeNewIds.value = {};
-    if (wechat.wechatHotUnreadIds) wechat.wechatHotUnreadIds.value = {};
+    wechat.wechatHotNewIds.value = {};
     if (funds.fundUnreadIds) funds.fundUnreadIds.value = {};
     if (ai.aiUsageNavBadge) ai.aiUsageNavBadge.value = 0; // writable signal
 
@@ -234,5 +252,283 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     } finally {
       window.matchMedia = origMM;
     }
+  });
+});
+
+// v4 (2026-07-10): 3 项功能完善. B10 status / B11 favorites / A8 drag.
+describe('HomeGrid v4 — 功能完善', () => {
+  beforeEach(async () => {
+    // 重置 prefs + 4 个数据源.
+    const sp = await import('../../src/renderer/components/sidenav-prefs.js');
+    sp.resetPrefs();
+    localStorage.clear();
+    sp.resetPrefs();
+    const ithome = await import('../../src/renderer/ithome/store.js');
+    const wechat = await import('../../src/renderer/wechat-hot/store.js');
+    const funds = await import('../../src/renderer/funds/fundStore.js');
+    const ai = await import('../../src/renderer/store/ai-usage-store.js');
+    ithome.ithomeNewIds.value = {};
+    if (wechat.wechatHotUnreadIds) wechat.wechatHotUnreadIds.value = {};
+    if (funds.fundUnreadBadge) funds.fundUnreadBadge.value = 0;
+    ai.aiUsageNavBadge.value = 0;
+  });
+
+  it('B10: 7 个 tile 都渲染 status 文本 (冷启动时多数为 "—")', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { container } = render(<HomeGrid />);
+    const statuses = container.querySelectorAll('.home-grid-tile-status');
+    // v5: IT 新闻 + 微博热搜 合并 → 7 tile. 7 个 tile 都有 .home-grid-tile-status (哪怕是 "—")
+    expect(statuses.length).toBe(7);
+  });
+
+  it('B10: news 有今日文章 → status 显示 "今日 N 条 · M 热搜" 合并态', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { ithomeDayStats } = await import('../../src/renderer/ithome/store.js');
+    const { wechatHotItems } = await import('../../src/renderer/wechat-hot/store.js');
+    const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.js');
+    const today = todayShanghaiDateKey();
+    ithomeDayStats.value = { [today]: { count: 23, fetchedAt: Date.now() } };
+    wechatHotItems.value = Array.from({ length: 12 }, (_, i) => ({
+      title: `热搜 ${i}`, rank: i + 1, url: '#', heat: '100万',
+    }));
+
+    const { container } = render(<HomeGrid />);
+    // news tile 是第一个, 它的 status 是合并态
+    const status = container.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toContain('今日');
+    expect(status.textContent).toContain('23');
+    expect(status.textContent).toContain('12');
+    expect(status.textContent).toContain('热搜');
+  });
+
+  it('B10: metals 有 AU9999 报价 → status 显示金价', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { quoteCache } = await import('../../src/renderer/metals/metalStore.js');
+    quoteCache.value = {
+      data: { AU9999: { price: 768.5 } },
+      errors: {},
+      fetchedAt: Date.now(),
+    };
+
+    const { container } = render(<HomeGrid />);
+    const statuses = Array.from(container.querySelectorAll('.home-grid-tile-status'));
+    const metalStatus = statuses.find((s) => s.textContent.includes('¥'));
+    expect(metalStatus).toBeTruthy();
+    expect(metalStatus.textContent).toContain('768');
+  });
+
+  it('B11: 点击星标 toggle 收藏 (不会切 nav)', async () => {
+    const { render, fireEvent } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { isFavorite } = await import('../../src/renderer/components/sidenav-prefs.js');
+
+    const { container } = render(<HomeGrid />);
+    // 第一个 tile (ithome) 的收藏按钮
+    const favBtn = container.querySelectorAll('.home-grid-tile-fav-btn')[0];
+    expect(favBtn).toBeTruthy();
+    // 初始未收藏 — class 不含 is-fav
+    expect(favBtn.classList.contains('is-fav')).toBe(false);
+
+    fireEvent.click(favBtn);
+    expect(activeNav.value).toBe('home'); // ★ 关键: 没切 nav
+    expect(favBtn.classList.contains('is-fav')).toBe(true);
+    expect(favBtn.textContent).toBe('★');
+
+    fireEvent.click(favBtn);
+    expect(favBtn.classList.contains('is-fav')).toBe(false);
+    expect(favBtn.textContent).toBe('☆');
+  });
+
+  it('B11: 收藏的 tile 排前面', async () => {
+    const { render, fireEvent } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { setActiveNav } = await import('../../src/renderer/worldcup/navStore.js');
+
+    const { container } = render(<HomeGrid />);
+    // v5: news=0, worldcup=1, funds=2. 收藏 idx=1 (worldcup)
+    const favBtns = container.querySelectorAll('.home-grid-tile-fav-btn');
+    fireEvent.click(favBtns[1]);
+
+    // 重渲染拿到新顺序
+    const { container: c2 } = render(<HomeGrid />);
+    const titles = Array.from(c2.querySelectorAll('.home-grid-tile-title')).map((t) => t.textContent);
+    expect(titles[0]).toBe('世界杯'); // 排第一
+  });
+
+  it('A8: tile 渲染 draggable 属性 + dragstart 触发 setDraggingKey', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { container } = render(<HomeGrid />);
+    const tiles = container.querySelectorAll('.home-grid-tile');
+    expect(tiles[0].getAttribute('draggable')).toBe('true');
+  });
+
+  it('A8: drop 到目标 tile → order 变化 (用 prefs.order 验证)', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { loadPrefs, savePrefs, resetPrefs } = await import('../../src/renderer/components/sidenav-prefs.js');
+    // v5: 7 个 tile (合并 news)
+    savePrefs({ ...resetPrefs(), order: ['news', 'worldcup', 'funds', 'metals', 'stocks', 'ai-usage', 'versions'] });
+
+    const { container } = render(<HomeGrid />);
+    const tiles = container.querySelectorAll('.home-grid-tile');
+
+    // ponytail: happy-dom 提供真 DataTransfer; fireEvent.dragX 触发 Preact onDragX.
+    const { fireEvent } = await import('@testing-library/preact');
+    const dt = new DataTransfer();
+    fireEvent.dragStart(tiles[0], { dataTransfer: dt });
+    fireEvent.dragOver(tiles[2], { dataTransfer: dt });
+    fireEvent.drop(tiles[2], { dataTransfer: dt });
+
+    // prefs.order 应包含 worldcup, funds, news, ... (news 拖到 funds 之后)
+    const p = loadPrefs();
+    const idxNews = p.order.indexOf('news');
+    const idxFunds = p.order.indexOf('funds');
+    expect(idxNews).toBeGreaterThan(idxFunds);
+  });
+
+  // ── worldcup status 4 级 fallback ────────────────────────────────────
+  it('B10+: worldcup 进行中 → "live <t1> 1-0 <t2> 67\'"', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
+    worldcupMatches.value = {
+      name: 'WC 2026', groups: [], matches: [
+        { date: '2026-07-10', time: '14:00', timezone: 'UTC+8', team1: 'Brazil', team2: 'Argentina',
+          score: { ft: [1, 0], status: 'live', clock: "67'" } },
+      ],
+    };
+    const { container } = render(<HomeGrid />);
+    // worldcup tile 在 7 个里的 idx=1
+    const tile = container.querySelectorAll('.home-grid-tile')[1];
+    const status = tile.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toContain('live');
+    expect(status.textContent).toContain('Brazil');
+    expect(status.textContent).toContain('1-0');
+    expect(status.textContent).toContain('Argentina');
+    expect(status.textContent).toContain('67');
+  });
+
+  it('B10+: worldcup 今天有 upcoming → "今日 N 场 · HH:MM t1 vs t2"', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
+    const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.js');
+    const today = todayShanghaiDateKey();
+    // 2 场今天, 1 场明天.
+    const tomorrow = new Date(Date.now() + 86400_000);
+    const tomKey = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+    // ponytail: 用 timezone='UTC' 让 happy-dom 时区一致, 避开 host TZ 漂移.
+    worldcupMatches.value = {
+      name: 'WC', groups: [], matches: [
+        { date: today, time: '18:00', timezone: 'UTC', team1: 'France', team2: 'Spain', score: null },
+        { date: today, time: '22:00', timezone: 'UTC', team1: 'Germany', team2: 'Italy', score: null },
+        { date: tomKey, time: '18:00', timezone: 'UTC', team1: 'A', team2: 'B', score: null },
+      ],
+    };
+    const { container } = render(<HomeGrid />);
+    const tile = container.querySelectorAll('.home-grid-tile')[1];
+    const status = tile.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toContain('今日');
+    expect(status.textContent).toContain('2');
+    expect(status.textContent).toMatch(/\d{2}:\d{2}/);
+    expect(status.textContent).toContain('France');
+    expect(status.textContent).toContain('Spain');
+  });
+
+  it('B10+: worldcup 跨日 upcoming → "下一场 MM-DD HH:MM t1 vs t2"', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
+    const future = new Date(Date.now() + 7 * 86400_000);
+    const key = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
+    worldcupMatches.value = {
+      name: 'WC', groups: [], matches: [
+        { date: key, time: '03:00', timezone: 'UTC+8', team1: 'Japan', team2: 'Korea', score: null },
+      ],
+    };
+    const { container } = render(<HomeGrid />);
+    const tile = container.querySelectorAll('.home-grid-tile')[1];
+    const status = tile.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toContain('下一场');
+    expect(status.textContent).toContain('Japan');
+  });
+
+  it('B10+: worldcup 全结束 → "已结束 · <t1> 2:1 <t2>"', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
+    worldcupMatches.value = {
+      name: 'WC', groups: [], matches: [
+        { date: '2025-01-01', time: '00:00', timezone: 'UTC+8', team1: 'Sweden', team2: 'Norway',
+          score: { ft: [2, 1], status: 'final' } },
+      ],
+    };
+    const { container } = render(<HomeGrid />);
+    const tile = container.querySelectorAll('.home-grid-tile')[1];
+    const status = tile.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toContain('已结束');
+    expect(status.textContent).toContain('Sweden');
+    expect(status.textContent).toContain('2:1');
+    expect(status.textContent).toContain('Norway');
+  });
+
+  // ── ai-usage 简略 ─────────────────────────────────────────────────
+  it('B10+: ai-usage 有 usedPercent → "已用 N%"', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
+    aiUsageSnapshot.value = {
+      minimax: { windows: { weekly: { usedPercent: 42 } } },
+      glm: null,
+    };
+    const { container } = render(<HomeGrid />);
+    // ai-usage 排 idx=5 (v5 合并 news 后从 6 移到 5)
+    const tile = container.querySelectorAll('.home-grid-tile')[5];
+    const status = tile.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toBe('已用 42%');
+  });
+
+  it('B10+: ai-usage 0% 用完 → 显示 "已用 0%"', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
+    aiUsageSnapshot.value = {
+      minimax: { windows: { weekly: { usedPercent: 0 } } },
+      glm: null,
+    };
+    const { container } = render(<HomeGrid />);
+    const tile = container.querySelectorAll('.home-grid-tile')[5];
+    const status = tile.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toBe('已用 0%');
+  });
+
+  it('B10+: ai-usage 有 remaining 但无 usedPercent → 算百分比', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
+    aiUsageSnapshot.value = {
+      minimax: { windows: { weekly: { remaining: 25, total: 100 } } },
+      glm: null,
+    };
+    const { container } = render(<HomeGrid />);
+    const tile = container.querySelectorAll('.home-grid-tile')[5];
+    const status = tile.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toBe('已用 75%');
+  });
+
+  it('B10+: ai-usage 无数据 → "—"', async () => {
+    const { render } = await import('@testing-library/preact');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
+    aiUsageSnapshot.value = { minimax: null, glm: null };
+    const { container } = render(<HomeGrid />);
+    const tile = container.querySelectorAll('.home-grid-tile')[5];
+    const status = tile.querySelector('.home-grid-tile-status');
+    expect(status.textContent).toBe('—');
   });
 });

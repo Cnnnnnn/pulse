@@ -39,7 +39,7 @@ export function navigateToResult(result) {
   const { source, nativeId, payload } = result;
   switch (source) {
     case 'news':
-      setActiveNav('ithome');
+      setActiveNav('news'); // P-N+ 合并: 单 nav "news" 包裹 IT + 微博热搜
       scrollAndHighlight(`[data-article-id="${cssEscape(nativeId)}"]`);
       break;
     case 'ai-task':

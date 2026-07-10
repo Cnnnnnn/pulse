@@ -56,12 +56,12 @@ const NAV_TO_PREFS_SEGMENT = {
 };
 
 const NAV_ITEMS = [
-  { key: 'ithome',    label: 'IT 新闻', tooltip: 'IT之家资讯 + AI 摘要' },
-  { key: 'wechat-hot',label: '微博热搜', tooltip: '微博实时热搜 · 手动刷新' },
-  { key: 'worldcup',  label: '世界杯', tooltip: '2026 世界杯赛程' },
+  // P-N+ 2026-07-10: IT 新闻 + 微博热搜 合并成单 'news' nav.
+  { key: 'news',      label: '新闻',     tooltip: 'IT 资讯 + 微博热搜 (合并 tab)' },
+  { key: 'worldcup',  label: '世界杯',   tooltip: '2026 世界杯赛程' },
   { key: 'funds',     label: '基金管理', tooltip: '基金持仓 + 实时盈亏 (v2.10+)' },
-  { key: 'metals',    label: '贵金属', tooltip: '黄金白银实时价格 + 持仓盈亏' },
-  { key: 'stocks',    label: '选股', tooltip: 'A股条件选股 + 个股 AI 分析 (Phase 32 合并)' },
+  { key: 'metals',    label: '贵金属',   tooltip: '黄金白银实时价格 + 持仓盈亏' },
+  { key: 'stocks',    label: '选股',     tooltip: 'A股条件选股 + 个股 AI 分析 (Phase 32 合并)' },
   { key: 'ai-usage',  label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
   { key: 'versions',  label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
 ];
@@ -71,14 +71,15 @@ export function SideNav() {
   const current = activeNav.value;
   const trayPrefs = trayMenuPrefs.value;
 
-  // I6: 未读角标 — 显式订阅确保 UI 刷新 (ithome + wechat-hot)
+  // I6: 未读角标 — 显式订阅确保 UI 刷新 (news = ithome + wechat-hot 之和, funds, ai-usage)
   void ithomeUnreadBadge.value;
   void wechatHotUnreadBadge.value;
   void fundUnreadBadge.value;
   void aiUsageNavBadge.value;
+  // ponytail: 'news' nav 角标 = IT 新闻未读 + 微博热搜未读 (P-N+ 合并).
+  const newsBadge = (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0);
   const navBadges = {
-    ithome: ithomeUnreadBadge.value,
-    'wechat-hot': wechatHotUnreadBadge.value,
+    news: newsBadge,
     funds: fundUnreadBadge.value,
     'ai-usage': aiUsageNavBadge.value,
   };
