@@ -103,7 +103,7 @@ describe("DiagnosticsPage 数据展示", () => {
     });
     const { container } = render(<DiagnosticsPage />);
     await waitFor(() => {
-      expect(container.textContent).toMatch(/暂无错误/);
+      expect(container.textContent).toMatch(/一切正常/);
     });
   });
 
@@ -239,7 +239,7 @@ describe("DiagnosticsPage 操作按钮", () => {
       fileCount: 4,
     });
     const { container } = render(<DiagnosticsPage />);
-    const btn = Array.from(container.querySelectorAll("button")).find((b) => /导出诊断包/.test(b.textContent));
+    const btn = Array.from(container.querySelectorAll("button")).find((b) => /导出 \.tar\.gz/.test(b.textContent));
     fireEvent.click(btn);
     await waitFor(() => expect(api.errorExportZip).toHaveBeenCalled());
     await waitFor(() => expect(diagnosticsLastExport.value).toMatchObject({
@@ -253,7 +253,7 @@ describe("DiagnosticsPage 操作按钮", () => {
   it("导出失败显示错误", async () => {
     api.errorExportZip.mockResolvedValue({ ok: false, reason: "mkdir_failed" });
     const { container } = render(<DiagnosticsPage />);
-    const btn = Array.from(container.querySelectorAll("button")).find((b) => /导出诊断包/.test(b.textContent));
+    const btn = Array.from(container.querySelectorAll("button")).find((b) => /导出 \.tar\.gz/.test(b.textContent));
     fireEvent.click(btn);
     await waitFor(() => expect(diagnosticsLastExport.value).toMatchObject({ error: "mkdir_failed" }));
     await waitFor(() => {
@@ -264,7 +264,7 @@ describe("DiagnosticsPage 操作按钮", () => {
   it("导出配置按钮调 api.configExport", async () => {
     api.configExport.mockResolvedValue({ ok: true, path: "/Users/me/Desktop/pulse-config-test.json" });
     const { container } = render(<DiagnosticsPage />);
-    const btn = Array.from(container.querySelectorAll("button")).find((b) => /导出配置/.test(b.textContent));
+    const btn = Array.from(container.querySelectorAll("button")).find((b) => /导出 \.json/.test(b.textContent));
     fireEvent.click(btn);
     await waitFor(() => expect(api.configExport).toHaveBeenCalled());
     await waitFor(() => {
@@ -340,7 +340,7 @@ describe("DiagnosticsPage Phase 32 UI", () => {
     });
     const { container } = render(<DiagnosticsPage />);
     await waitFor(() => {
-      expect(container.querySelector("[data-testid='diag-kpi-error']").classList.contains("diag-kpi--danger")).toBe(true);
+      expect(container.querySelector("[data-testid='diag-kpi-error']").classList.contains("kpi-card--danger")).toBe(true);
     });
   });
 

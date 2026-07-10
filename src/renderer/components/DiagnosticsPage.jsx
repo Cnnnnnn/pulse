@@ -29,7 +29,10 @@ import {
 import { api } from "../api.js";
 import { PageHeader } from "./PageHeader.jsx";
 import { ConfigImportModal } from "./ConfigImportModal.jsx";
-import { DrawerEmpty } from "./EmptyState.jsx";
+import { PanelEmpty } from "./EmptyState.jsx";
+import { KPICard } from "./KPICard.jsx";
+import { StatusBadge } from "./Badge.jsx";
+import { IconCheck } from "./icons.jsx";
 import { navigateTo } from "../route-store.js";
 
 function fmtTs(ts) {
@@ -283,219 +286,235 @@ export function DiagnosticsPage() {
           </section>
         )}
 
-        <div class="diag-kpi-row" data-testid="diag-kpi-row">
-          <KpiCard label="总数" value={stats.total} tone="neutral" />
-          <KpiCard label="error" value={errorCount} tone={errorCount > 0 ? "danger" : "ok"} />
-          <KpiCard label="warn" value={warnCount} tone={warnCount > 0 ? "warn" : "ok"} />
-          <KpiCard label="unhandled" value={unhandledCount} tone={unhandledCount > 0 ? "danger" : "ok"} />
-        </div>
-
-        <div class="diag-grid">
-          <section class="diag-card">
-            <div class="diag-card__title-row">
-              <span class="diag-card__title">启动 + 性能</span>
-              {metrics.count > 0 && (
-                <span class="diag-card__meta">近 {metrics.count} 个采样</span>
-              )}
-            </div>
-            {diagLoading && !startup && <div class="diag-card__empty">加载中…</div>}
-            {startup && (
-              <div class="diag-perf-row">
-                <div class="diag-perf-cell">
-                  <span class="diag-perf-cell__label">bootstrap</span>
-                  <span class="diag-perf-cell__value">
-                    {startup.bootstrapMs == null ? "—" : `${startup.bootstrapMs} ms`}
-                  </span>
-                </div>
-                <div class="diag-perf-cell">
-                  <span class="diag-perf-cell__label">renderer ready</span>
-                  <span class="diag-perf-cell__value">
-                    {startup.readyMs == null ? "—" : `${startup.readyMs} ms`}
-                  </span>
-                </div>
-              </div>
-            )}
-            {metrics.latest && (
-              <div class="diag-perf-row">
-                <div class="diag-perf-cell">
-                  <span class="diag-perf-cell__label">heap</span>
-                  <span class="diag-perf-cell__value">{fmtBytes(metrics.latest.heapUsed)}</span>
-                </div>
-                <div class="diag-perf-cell">
-                  <span class="diag-perf-cell__label">rss</span>
-                  <span class="diag-perf-cell__value">{fmtBytes(metrics.latest.rss)}</span>
-                </div>
-                <div class="diag-perf-cell">
-                  <span class="diag-perf-cell__label">cpu</span>
-                  <span class="diag-perf-cell__value">{metrics.latest.cpuUser} µs</span>
-                </div>
-              </div>
-            )}
-            {metrics.peak && (
-              <div class="diag-perf-meta">
-                peak heap {fmtBytes(metrics.peak.heapUsed)} · rss {fmtBytes(metrics.peak.rss)}
-              </div>
-            )}
-            {samples.length > 1 && (
-              <div class="diag-trend" title="heap trend (近 60 帧)">
-                {samples.map((s, i) => (
-                  <span
-                    key={i}
-                    class="diag-trend__bar"
-                    style={{ height: `${samplesMax > 0 ? Math.max(2, Math.round(((s.heapUsed || 0) / samplesMax) * 32)) : 2}px` }}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section class="diag-card">
-            <div class="diag-card__title-row">
-              <span class="diag-card__title">Top 5 失败</span>
-              {topFailures.length > 0 && (
-                <span class="diag-card__meta">{topFailures.length} 类</span>
-              )}
-            </div>
-            {topFailures.length === 0 && (
-              <div class="diag-card__empty">暂无反复出现的失败</div>
-            )}
-            <ul class="diag-failure-list">
-              {topFailures.map((t, i) => (
-                <li key={i} class="diag-failure">
-                  <span class="diag-failure__count">{t.count}×</span>
-                  <span class="diag-failure__source">[{t.source}]</span>
-                  <span class="diag-failure__message">{t.message}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-
-        <section class="diag-card">
-          <div class="diag-card__title-row">
-            <span class="diag-card__title">错误记录</span>
-            <span class="diag-card__meta">
-              显示 {filteredEntries.length} / {entries.length} 条
-            </span>
-          </div>
-          <div class="diag-entries-toolbar">
-            <input
-              type="search"
-              class="diag-entries-search"
-              placeholder="搜索 message / source…"
-              value={query}
-              onInput={(e) => setQuery(e.currentTarget.value)}
-              data-testid="diag-entries-search"
-            />
-            <div class="diag-entries-filters" role="tablist" aria-label="按 level 筛选">
-              {LEVEL_FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={levelFilter === f.key}
-                  class={`diag-filter-chip${levelFilter === f.key ? " active" : ""}`}
-                  onClick={() => setLevelFilter(f.key)}
-                  data-testid={`diag-filter-${f.key}`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {loading && <div class="diag-card__empty">加载中…</div>}
-          {!loading && entries.length === 0 && (
-            <DrawerEmpty message="暂无错误" className="diagnostics-page__empty" />
-          )}
-          {!loading && entries.length > 0 && filteredEntries.length === 0 && (
-            <div class="diag-card__empty">没有匹配当前筛选的错误</div>
-          )}
-          {!loading && filteredEntries.length > 0 && (
-            <ul class="diag-entries">
-              {filteredEntries.map((e) => (
-                <li
-                  key={e.id}
-                  class={`error-entry error-entry--${e.source || "main"} error-entry--${e.level || "error"}`}
-                >
-                  <div class="error-entry__meta">
-                    <span class="error-entry__time">{fmtTs(e.ts)}</span>
-                    <span class="error-entry__source">[{e.source}]</span>
-                    <span class="error-entry__level">{e.level}</span>
+        {/* ── 双栏: 左侧错误记录 (主) + 右侧 KPI/性能/Top5 (侧) ── */}
+        <div class="diag-body">
+          {/* 左侧: 错误记录 (核心, 可滚动) */}
+          <div class="diag-main">
+            <section class={`diag-card diag-card--entries${!loading && entries.length === 0 ? " diag-card--empty" : ""}`}>
+              {(!loading && entries.length === 0) ? (
+                <PanelEmpty
+                  icon={<IconCheck size={28} />}
+                  variant="success"
+                  title="一切正常"
+                  hint="当前没有记录到任何错误"
+                  className="diagnostics-page__empty"
+                />
+              ) : (
+                <>
+                  <div class="diag-card__title-row">
+                    <span class="diag-card__title">错误记录</span>
+                    <span class="diag-card__meta">
+                      显示 {filteredEntries.length} / {entries.length} 条
+                    </span>
                   </div>
-                  <div class="error-entry__message">{e.message}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                  <div class="diag-entries-toolbar">
+                    <input
+                      type="search"
+                      class="diag-entries-search"
+                      placeholder="搜索 message / source…"
+                      value={query}
+                      onInput={(e) => setQuery(e.currentTarget.value)}
+                      data-testid="diag-entries-search"
+                    />
+                    <div class="diag-entries-filters" role="tablist" aria-label="按 level 筛选">
+                      {LEVEL_FILTERS.map((f) => (
+                        <button
+                          key={f.key}
+                          type="button"
+                          role="tab"
+                          aria-selected={levelFilter === f.key}
+                          class={`diag-filter-chip${levelFilter === f.key ? " active" : ""}`}
+                          onClick={() => setLevelFilter(f.key)}
+                          data-testid={`diag-filter-${f.key}`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {loading && <div class="diag-card__empty">加载中…</div>}
+                  {!loading && entries.length > 0 && filteredEntries.length === 0 && (
+                    <div class="diag-card__empty">没有匹配当前筛选的错误</div>
+                  )}
+                  {!loading && filteredEntries.length > 0 && (
+                    <ul class="diag-entries">
+                      {filteredEntries.map((e) => (
+                        <li
+                          key={e.id}
+                          class={`error-entry error-entry--${e.source || "main"} error-entry--${e.level || "error"}`}
+                        >
+                          <div class="error-entry__meta">
+                            <span class="error-entry__time">{fmtTs(e.ts)}</span>
+                            <span class="error-entry__source">[{e.source}]</span>
+                            <StatusBadge status={e.level === "warn" ? "warning" : "error"}>
+                              {e.level}
+                            </StatusBadge>
+                          </div>
+                          <div class="error-entry__message">{e.message}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </section>
+          </div>
+
+          {/* 右侧: KPI + 性能 + Top5 (侧边栏) */}
+          <aside class="diag-sidebar">
+            <div class="diag-kpi-row" data-testid="diag-kpi-row">
+              <KPICard label="总数" value={stats.total} variant="neutral" testId="diag-kpi-总数" />
+              <KPICard label="error" value={errorCount} variant={errorCount > 0 ? "danger" : "success"} testId="diag-kpi-error" />
+              <KPICard label="warn" value={warnCount} variant={warnCount > 0 ? "warning" : "success"} testId="diag-kpi-warn" />
+              <KPICard label="unhandled" value={unhandledCount} variant={unhandledCount > 0 ? "danger" : "success"} testId="diag-kpi-unhandled" />
+            </div>
+
+            <section class="diag-card">
+              <div class="diag-card__title-row">
+                <span class="diag-card__title">启动 + 性能</span>
+                {metrics.count > 0 && (
+                  <span class="diag-card__meta">近 {metrics.count} 个采样</span>
+                )}
+              </div>
+              {diagLoading && !startup && <div class="diag-card__empty">加载中…</div>}
+              {startup && (
+                <div class="diag-perf-row">
+                  <div class="diag-perf-cell">
+                    <span class="diag-perf-cell__label">bootstrap</span>
+                    <span class="diag-perf-cell__value">
+                      {startup.bootstrapMs == null ? "—" : `${startup.bootstrapMs} ms`}
+                    </span>
+                  </div>
+                  <div class="diag-perf-cell">
+                    <span class="diag-perf-cell__label">renderer ready</span>
+                    <span class="diag-perf-cell__value">
+                      {startup.readyMs == null ? "—" : `${startup.readyMs} ms`}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {metrics.latest && (
+                <div class="diag-perf-row">
+                  <div class="diag-perf-cell">
+                    <span class="diag-perf-cell__label">heap</span>
+                    <span class="diag-perf-cell__value">{fmtBytes(metrics.latest.heapUsed)}</span>
+                  </div>
+                  <div class="diag-perf-cell">
+                    <span class="diag-perf-cell__label">rss</span>
+                    <span class="diag-perf-cell__value">{fmtBytes(metrics.latest.rss)}</span>
+                  </div>
+                  <div class="diag-perf-cell">
+                    <span class="diag-perf-cell__label">cpu</span>
+                    <span class="diag-perf-cell__value">{metrics.latest.cpuUser} µs</span>
+                  </div>
+                </div>
+              )}
+              {metrics.peak && (
+                <div class="diag-perf-meta">
+                  peak heap {fmtBytes(metrics.peak.heapUsed)} · rss {fmtBytes(metrics.peak.rss)}
+                </div>
+              )}
+              {samples.length > 1 && (
+                <div class="diag-trend" title="heap trend (近 60 帧)">
+                  {samples.map((s, i) => (
+                    <span
+                      key={i}
+                      class="diag-trend__bar"
+                      style={{ height: `${samplesMax > 0 ? Math.max(2, Math.round(((s.heapUsed || 0) / samplesMax) * 32)) : 2}px` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section class="diag-card">
+              <div class="diag-card__title-row">
+                <span class="diag-card__title">Top 5 失败</span>
+                {topFailures.length > 0 && (
+                  <span class="diag-card__meta">{topFailures.length} 类</span>
+                )}
+              </div>
+              {topFailures.length === 0 && (
+                <div class="diag-card__empty">暂无反复出现的失败</div>
+              )}
+              <ul class="diag-failure-list">
+                {topFailures.map((t, i) => (
+                  <li key={i} class="diag-failure">
+                    <span class="diag-failure__count">{t.count}×</span>
+                    <span class="diag-failure__source">[{t.source}]</span>
+                    <span class="diag-failure__message">{t.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </aside>
+        </div>
 
         <section class="diag-card diag-card--actions">
           <div class="diag-card__title-row">
             <span class="diag-card__title">操作</span>
           </div>
-          <div class="diag-action-row">
-            <button
-              type="button"
-              class="btn btn-sm"
-              onClick={exportZip}
-              disabled={exporting}
-              data-testid="diag-export-zip"
-            >
-              {exporting ? "导出中…" : "导出诊断包 (.tar.gz → 桌面)"}
-            </button>
-            {lastExport && !lastExport.error && (
-              <span class="diag-action-hint">
-                已导出 → <code>{lastExport.path}</code> ({fmtBytes(lastExport.sizeBytes)}, {lastExport.fileCount} 个文件)
-              </span>
-            )}
-            {lastExport && lastExport.error && (
-              <span class="diag-action-hint diag-action-hint--err">导出失败: {lastExport.error}</span>
-            )}
-          </div>
-          <div class="diag-action-row">
-            <button
-              type="button"
-              class="btn btn-sm"
-              onClick={exportConfig}
-              disabled={configExporting}
-              data-testid="diag-export-config"
-            >
-              {configExporting ? "导出中…" : "导出配置 (.json → 桌面)"}
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm"
-              onClick={() => setImportOpen(true)}
-            >
-              导入配置
-            </button>
-            {configExportState && !configExportState.error && (
-              <span class="diag-action-hint">
-                已导出 → <code>{configExportState.path}</code>
-              </span>
-            )}
-            {configExportState && configExportState.error && (
-              <span class="diag-action-hint diag-action-hint--err">导出失败: {configExportState.error}</span>
-            )}
-            {importOpen && <ConfigImportModal onClose={() => setImportOpen(false)} />}
-          </div>
-          <div class="diag-action-row">
-            <button type="button" class="btn btn-sm" onClick={openFolder}>打开文件夹</button>
-            <button type="button" class="btn btn-sm" onClick={clearOld} data-testid="diag-clear-old">
-              清理 &gt; 30 天
-            </button>
+          <div class="diag-action-grid">
+            <div class="diag-action-group">
+              <div class="diag-action-group__label">诊断包</div>
+              <button
+                type="button"
+                class="btn btn-sm"
+                onClick={exportZip}
+                disabled={exporting}
+                data-testid="diag-export-zip"
+              >
+                {exporting ? "导出中…" : "导出 .tar.gz → 桌面"}
+              </button>
+              {lastExport && !lastExport.error && (
+                <span class="diag-action-hint">
+                  已导出 → <code>{lastExport.path}</code> ({fmtBytes(lastExport.sizeBytes)}, {lastExport.fileCount} 个文件)
+                </span>
+              )}
+              {lastExport && lastExport.error && (
+                <span class="diag-action-hint diag-action-hint--err">导出失败: {lastExport.error}</span>
+              )}
+            </div>
+
+            <div class="diag-action-group">
+              <div class="diag-action-group__label">配置</div>
+              <button
+                type="button"
+                class="btn btn-sm"
+                onClick={exportConfig}
+                disabled={configExporting}
+                data-testid="diag-export-config"
+              >
+                {configExporting ? "导出中…" : "导出 .json"}
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                onClick={() => setImportOpen(true)}
+              >
+                导入配置
+              </button>
+              {configExportState && !configExportState.error && (
+                <span class="diag-action-hint">
+                  已导出 → <code>{configExportState.path}</code>
+                </span>
+              )}
+              {configExportState && configExportState.error && (
+                <span class="diag-action-hint diag-action-hint--err">导出失败: {configExportState.error}</span>
+              )}
+              {importOpen && <ConfigImportModal onClose={() => setImportOpen(false)} />}
+            </div>
+
+            <div class="diag-action-group">
+              <div class="diag-action-group__label">日志</div>
+              <button type="button" class="btn btn-sm" onClick={openFolder}>打开文件夹</button>
+              <button type="button" class="btn btn-sm" onClick={clearOld} data-testid="diag-clear-old">
+                清理 &gt; 30 天
+              </button>
+            </div>
           </div>
         </section>
       </div>
-    </div>
-  );
-}
-
-function KpiCard({ label, value, tone }) {
-  return (
-    <div class={`diag-kpi diag-kpi--${tone}`} data-testid={`diag-kpi-${label}`}>
-      <div class="diag-kpi__value">{value}</div>
-      <div class="diag-kpi__label">{label}</div>
     </div>
   );
 }

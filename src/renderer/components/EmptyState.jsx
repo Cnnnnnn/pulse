@@ -33,21 +33,23 @@ export function EmptyState({ filtered = false }) {
   );
 }
 
-/** 面板级空态 (基金/金属/提醒等) */
+/** 面板级空态 (基金/金属/提醒等). variant 给图标加圆形彩色背景. */
 export function PanelEmpty({
   icon = null,
   title,
   hint = null,
   action = null,
+  variant = null,
   className = 'empty-state',
   children,
 }) {
   if (children) {
     return <div class={className}>{children}</div>;
   }
+  const variantCls = variant ? ` empty-state--${variant}` : '';
   return (
-    <div class={className}>
-      {icon && <div class="empty-icon">{icon}</div>}
+    <div class={`${className}${variantCls}`}>
+      {icon && <div class={`empty-icon${variant ? ` empty-icon--${variant}` : ''}`}>{icon}</div>}
       {title && <p class="empty-title">{title}</p>}
       {hint && <p class="empty-hint">{hint}</p>}
       {action}
