@@ -14,7 +14,9 @@
  * 任一块数据缺失 → 整块不渲染 (防御性). GLM provider 没有 usageSummary, 整块不渲染.
  */
 
-import { useMemo, useState } from "preact/hooks";
+import { useMemo } from "preact/hooks";
+import { UsageTrendChart } from "./UsageTrendChart.jsx";
+import { useUsageSeries } from "../hooks/useUsageSeries.js";
 
 // ─── 工具: 数字格式化 (token 数) ────────────────────────────
 
@@ -190,61 +192,16 @@ function MostActiveDayCard({ usageSummary }) {
 }
 
 /**
- * 90 天 token 用量柱状图 (CSS 渲染, hover 时显示数值).
- */
-function DailyTokenBarChart({ daily }) {
-  const [hovered, setHovered] = useState(null);
-  if (!Array.isArray(daily) || daily.length === 0) return null;
-  const max = Math.max(...daily, 1);
-  const hoveredDay = hovered != null ? daily[hovered] : null;
-  const hoveredLabel = hovered != null
-    ? `${formatDateShort(_shiftDate(-hovered))} · ${formatFull(hoveredDay)}`
-    : null;
-
-  return (
-    <div class="ai-usage-daily-bars-wrap">
-      {hovered != null && (
-        <div class="ai-usage-daily-tooltip" aria-hidden="true">{hoveredLabel}</div>
-      )}
-      <div class="ai-usage-daily-bars" role="img" aria-label={`近 ${daily.length} 天 token 用量柱状图`}>
-        {daily.map((v, i) => {
-          const heightPct = max > 0 ? Math.max(2, Math.round((v / max) * 100)) : 0;
-          const isRecent = i >= daily.length - 7; // 最近 7 天高亮
-          const isHovered = hovered === i;
-          return (
-            <div
-              key={i}
-              class={`ai-usage-daily-bar${isRecent ? " ai-usage-daily-bar--recent" : ""}${isHovered ? " ai-usage-daily-bar--hovered" : ""}`}
-              style={{ height: `${heightPct}%` }}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered((h) => (h === i ? null : h))}
-              title={`${i + 1} 天前 · ${formatFull(v)} tokens`}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/**
- * 把 "N 天前" 换算成 ISO date 字符串 (本地日期). 给 tooltip 用.
- */
-function _shiftDate(daysAgo) {
-  if (typeof daysAgo !== "number" || daysAgo < 0) return null;
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-/**
- * 90 天趋势区 — 包含 daily token bar chart + 7/30 天均值 + 最活跃日.
+ * 90 天趋势区 — 包含 UsageTrendChart (SVG + brush + a11y) + 7/30 天均值.
+ *
+ * 使用规范: docs/usage-trend-chart-spec.md
+ * 数据流: snapshot.usageSummary.dailyTokenUsage (扁平 90 天数组)
+ *         → useUsageSeries hook (派生 SeriesPoint[] + lastWeek 对照线)
+ *         → UsageTrendChart (渲染 SVG 面积图 + 刷选 + 十字游标).
  */
 function UsageTrendSection({ usageSummary }) {
   const { dailyTokenUsage, recent7Avg, recent30Avg } = usageSummary;
+  const { points, status } = useUsageSeries(dailyTokenUsage);
   if (!Array.isArray(dailyTokenUsage) || dailyTokenUsage.length === 0) return null;
   return (
     <div class="ai-usage-trend">
@@ -269,7 +226,11 @@ function UsageTrendSection({ usageSummary }) {
         </div>
       </div>
       <div class="ai-usage-trend-chart">
-        <DailyTokenBarChart daily={dailyTokenUsage} />
+        <UsageTrendChart
+          data={points}
+          loading={status === "loading"}
+          title="近 90 天 token 用量"
+        />
       </div>
     </div>
   );

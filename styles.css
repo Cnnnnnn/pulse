@@ -8506,6 +8506,339 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   box-shadow: 0 0 12px color-mix(in srgb, var(--ai-color-1) 70%, transparent);
 }
 
+/* ───────────────────────────────────────────────────────────
+   UsageTrendChart 作用域 (src/renderer/components/UsageTrendChart.jsx)
+   规范: docs/usage-trend-chart-spec.md — BEM 命名空间, 全部引用主站系统令牌.
+   在 .ai-usage-dashboard 暗色作用域下通过重定义图表域令牌做适配.
+   ─────────────────────────────────────────────────────────── */
+
+/* ponytail: 暗色 dashboard 作用域下重定义 chart 域 token, 让网格/边框/游标/选区可读.
+   系列色 (--chart-series-*) 默认引用主站 --app-minimax-code / --accent-*,
+   这些是品牌色跨主题不变, 无需重写. */
+.ai-usage-dashboard .usage-trend {
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-tick: rgba(255, 255, 255, 0.04);
+  --chart-axis: var(--ai-text-secondary);
+  --chart-baseline: var(--ai-color-1);
+  --chart-target: var(--accent-red);
+  --chart-cursor: var(--ai-text-primary);
+  --chart-brush: color-mix(in srgb, var(--accent-primary) 18%, transparent);
+  --chart-brush-edge: var(--accent-primary);
+  --chart-tooltip-bg: rgba(20, 20, 28, 0.94);
+  --chart-tooltip-bd: var(--ai-card-border);
+}
+
+.usage-trend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.usage-trend__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.usage-trend__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.usage-trend__controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.usage-trend__chip,
+.usage-trend__mode,
+.usage-trend__reset {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.usage-trend__chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip, var(--accent-primary));
+  opacity: 0.4;
+  transition: opacity 0.12s ease;
+}
+
+.usage-trend__chip.is-on {
+  color: var(--text-primary);
+  border-color: var(--chip, var(--accent-primary));
+  background: color-mix(in srgb, var(--chip, var(--accent-primary)) 8%, var(--surface));
+}
+.usage-trend__chip.is-on::before { opacity: 1; }
+
+.usage-trend__chip:hover,
+.usage-trend__mode:hover,
+.usage-trend__reset:hover {
+  background: color-mix(in srgb, var(--accent-primary) 6%, var(--surface));
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.usage-trend__reset {
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, var(--border-subtle));
+}
+
+.usage-trend__skeleton {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 16px 24px;
+  width: 100%;
+}
+.usage-trend__skeleton-bar {
+  flex: 1;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-primary) 18%, transparent) 0%,
+    color-mix(in srgb, var(--accent-primary) 6%, transparent) 100%
+  );
+  border-radius: 3px;
+  animation: usage-trend-pulse 1.2s ease-in-out infinite;
+}
+@keyframes usage-trend-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.usage-trend__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.usage-trend__state-icon {
+  width: 48px;
+  height: 48px;
+  opacity: 0.6;
+}
+.usage-trend__state-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.usage-trend__state-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+  cursor: pointer;
+}
+.usage-trend__state-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
+
+.usage-trend__plot-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.usage-trend__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  outline: none;
+}
+.usage-trend__svg:focus-visible {
+  box-shadow: var(--focus-ring);
+  border-radius: 6px;
+}
+
+.usage-trend__grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.usage-trend__ylabel,
+.usage-trend__xlabel {
+  fill: var(--chart-axis);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-anchor: end;
+}
+.usage-trend__xlabel { text-anchor: middle; }
+
+.usage-trend__area {
+  /* gradient via url() — see inline stop-color */
+}
+
+.usage-trend__line-total {
+  fill: none;
+  stroke: var(--chart-series-total);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.usage-trend__line-input {
+  fill: none;
+  stroke: var(--chart-series-input);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+}
+.usage-trend__line-output {
+  fill: none;
+  stroke: var(--chart-series-output);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+}
+.usage-trend__line-lastweek {
+  fill: none;
+  stroke: var(--chart-series-lastweek);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+  opacity: 0.7;
+}
+
+.usage-trend__baseline {
+  stroke: var(--chart-baseline);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.5;
+}
+.usage-trend__baseline-label,
+.usage-trend__target-label {
+  fill: var(--chart-axis);
+  font-size: 10px;
+  font-weight: 600;
+  text-anchor: end;
+}
+.usage-trend__target {
+  stroke: var(--chart-target);
+  stroke-width: 1;
+  stroke-dasharray: 6 3;
+}
+
+.usage-trend__cursor-line {
+  stroke: var(--chart-cursor);
+  stroke-width: 1;
+  opacity: 0.4;
+  pointer-events: none;
+}
+.usage-trend__cursor-dot {
+  pointer-events: none;
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+.usage-trend__cursor-dot--total { fill: var(--chart-series-total); }
+.usage-trend__cursor-dot--lastweek { fill: var(--chart-series-lastweek); }
+.usage-trend__cursor-dot--input { fill: var(--chart-series-input); }
+.usage-trend__cursor-dot--output { fill: var(--chart-series-output); }
+
+.usage-trend__minimap-track {
+  fill: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  stroke: var(--border-subtle);
+  stroke-width: 0.5;
+}
+
+.usage-trend__brush {
+  fill: var(--chart-brush);
+  stroke: var(--chart-brush-edge);
+  stroke-width: 1;
+  cursor: grab;
+}
+.usage-trend__brush-handle {
+  fill: var(--chart-brush-edge);
+  cursor: ew-resize;
+}
+.usage-trend__brush-handle:hover { opacity: 0.8; }
+
+.usage-trend__tooltip {
+  position: absolute;
+  top: 12px;
+  transform: translateX(-50%);
+  background: var(--chart-tooltip-bg);
+  border: 1px solid var(--chart-tooltip-bd);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  z-index: 2;
+  min-width: 140px;
+}
+.usage-trend__tooltip--start { transform: translateX(0); }
+.usage-trend__tooltip--end { transform: translateX(-100%); }
+.usage-trend__tooltip-date {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.usage-trend__tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 0;
+}
+.usage-trend__tooltip-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+.usage-trend__tooltip-key i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.usage-trend__tooltip-val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-trend__skeleton-bar { animation: none; opacity: 0.6; }
+  .usage-trend__chip,
+  .usage-trend__mode,
+  .usage-trend__reset { transition: none; }
+}
+
 /* 模型分布 */
 .ai-usage-model-list {
   display: flex;

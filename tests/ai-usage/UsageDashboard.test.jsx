@@ -99,12 +99,19 @@ describe("UsageDashboard", () => {
     expect(container.textContent).toContain("🎬 3");
   });
 
-  test("90 天柱状图: 渲染 90 根柱, 最近 7 根高亮", () => {
+  test("90 天趋势图: UsageTrendChart SVG 主线 + 7/30 天均值同时显示", () => {
     const { container } = render(<UsageDashboard snapshot={{ usageSummary: SAMPLE }} />);
-    const bars = container.querySelectorAll(".ai-usage-daily-bar");
-    expect(bars).toHaveLength(90);
-    const recent = container.querySelectorAll(".ai-usage-daily-bar--recent");
-    expect(recent).toHaveLength(7);
+    // UsageTrendChart 接入后: CSS div 柱状图不再存在, 改为 SVG path
+    expect(container.querySelectorAll(".ai-usage-daily-bar")).toHaveLength(0);
+    // SVG 主线 (总用量序列) 存在
+    expect(container.querySelector(".usage-trend__line-total")).toBeTruthy();
+    // 趋势区容器 (ai-usage-trend) 仍渲染, 内含 SVG + 平均值
+    const trend = container.querySelector(".ai-usage-trend");
+    expect(trend).toBeTruthy();
+    expect(trend.querySelector(".usage-trend__svg")).toBeTruthy();
+    // 均值 chip 仍在头部
+    expect(trend.querySelector(".ai-usage-trend-avg-label").textContent).toContain("7 天日均");
+    expect(trend.querySelectorAll(".ai-usage-trend-avg-label")).toHaveLength(2);
   });
 
   test("7 天/30 天均值显示", () => {
