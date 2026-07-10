@@ -5,10 +5,10 @@
  *   - snapshot.windows["5h"/"weekly"/"video"]: 来自 /remains_percent (窗口配额)
  *   - snapshot.usageSummary:                  来自 /usage_summary (90 天用量统计)
  *
- * 渲染四块 (深色现代仪表盘风格):
+ * 渲染四块 (主站系统集成 — 跟随 data-theme 切换浅/暗, 引用主站 token):
  *   1. 顶部概览条 — 累计 / 已用天数 / 连续 / 排名 (带 icon)
  *   2. 最活跃日卡 — 单日峰值 + 模型/媒体分布
- *   3. 90 天 token 用量柱状图 (大图, hover 高亮 + 发光)
+ *   3. 90 天 token 用量趋势 (UsageTrendChart SVG + brush + a11y)
  *   4. 模型分布表 — 按 token 占比降序, 多色横条 + dot indicator
  *
  * 任一块数据缺失 → 整块不渲染 (防御性). GLM provider 没有 usageSummary, 整块不渲染.
@@ -60,7 +60,7 @@ function formatDateShort(isoDate) {
   return `${m[1]}-${m[2]}`;
 }
 
-// ─── 模型配色 (CSS 用 var(--ai-color-N)) ──────────────────────
+// ─── 模型配色 (CSS 用 var(--model-color-N), 全部引用主站 token) ──────────────────────
 
 /**
  * 模型名 → 颜色索引. 用稳定的 hash 避免重复颜色, 但优先给已知模型固定色.
@@ -100,7 +100,7 @@ function UsageOverviewStrip({ usageSummary }) {
       sub: usageSummary.totalTokenConsumed != null
         ? `${formatFull(usageSummary.totalTokenConsumed)} tokens`
         : null,
-      accent: "var(--ai-color-1)",
+      accent: "var(--model-color-1)",
     });
     out.push({
       key: "totalDays",
@@ -110,7 +110,7 @@ function UsageOverviewStrip({ usageSummary }) {
         ? `${usageSummary.totalDays} 天`
         : "—",
       sub: null,
-      accent: "var(--ai-color-3)",
+      accent: "var(--model-color-3)",
     });
     out.push({
       key: "consecutive",
@@ -122,7 +122,7 @@ function UsageOverviewStrip({ usageSummary }) {
       sub: typeof usageSummary.activeDays === "number"
         ? `活跃 ${usageSummary.activeDays} 天`
         : null,
-      accent: "var(--ai-color-4)",
+      accent: "var(--model-color-4)",
     });
     out.push({
       key: "ranking",
@@ -130,7 +130,7 @@ function UsageOverviewStrip({ usageSummary }) {
       label: "使用排名",
       value: formatRankingLabel(rank) ?? "—",
       sub: typeof rank === "number" && rank <= 5 ? "顶尖用户" : null,
-      accent: "var(--ai-color-2)",
+      accent: "var(--model-color-2)",
       highlight: typeof rank === "number" && rank <= 5,
     });
     return out;
@@ -252,7 +252,7 @@ function ModelBreakdownTable({ usageSummary }) {
         {breakdown.map((m, i) => {
           const colorIdx = modelColorIndex(m.model, i);
           return (
-            <div key={m.model} class="ai-usage-model-row" style={{ "--model-color": `var(--ai-color-${colorIdx + 1})` }}>
+            <div key={m.model} class="ai-usage-model-row" style={{ "--model-color": `var(--model-color-${colorIdx + 1})` }}>
               <div class="ai-usage-model-name">
                 <span class="ai-usage-model-dot" aria-hidden="true" />
                 {m.model}

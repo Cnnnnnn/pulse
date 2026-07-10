@@ -8183,31 +8183,26 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 /* === Usage Dashboard (Minimax) — dark modern === */
 
 .ai-usage-dashboard {
-  /* ponytail: 强制 dark scheme 跟 bracket-view 一致, 不依赖外层主题 */
-  color-scheme: dark;
-  /* 6 色 palette: 用于模型分布 + overview 重点色. 顺序按视觉权重排 */
-  --ai-color-1: #6366f1; /* indigo — 主品牌 */
-  --ai-color-2: #a855f7; /* purple — 排名高亮 */
-  --ai-color-3: #06b6d4; /* cyan — 统计周期 */
-  --ai-color-4: #10b981; /* emerald — 连续使用 */
-  --ai-color-5: #f59e0b; /* amber — 备用 */
-  --ai-color-6: #ec4899; /* pink — 备用 */
-  --ai-bg: #0b0b10;
-  --ai-card-bg: #14141a;
-  --ai-card-border: #23232d;
-  --ai-card-hover: #1c1c26;
-  --ai-text-primary: #f5f5f7;
-  --ai-text-secondary: #a1a1aa;
-  --ai-text-tertiary: #6b6b75;
+  /* ponytail: 不再强制 dark scheme — dashboard 跟随主站 data-theme. */
+  /* ponytail: 模型分布 + overview 重点色 6 槽位, 全部引用主站 token.
+     跨主题一致 (Apple 蓝 / Cursor 紫 / 系统蓝 / 系统绿 / MiniMax 琥珀 / 系统红). */
+  --model-color-1: var(--accent-primary);
+  --model-color-2: var(--app-cursor);
+  --model-color-3: var(--accent-blue);
+  --model-color-4: var(--accent-green);
+  --model-color-5: var(--app-minimax-code);
+  --model-color-6: var(--accent-red);
 
   display: flex;
   flex-direction: column;
   gap: 14px;
   margin-top: 16px;
   padding: 18px;
-  background: linear-gradient(180deg, var(--ai-bg) 0%, #08080c 100%);
+  background: var(--bg-primary);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 /* 通用 section header (eyebrow + title) — 4 块都共用 */
@@ -8221,12 +8216,12 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ai-text-tertiary);
+  color: var(--text-tertiary);
 }
 .ai-usage-section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--ai-text-primary);
+  color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -8240,11 +8235,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   .ai-usage-overview { grid-template-columns: repeat(2, 1fr); }
 }
 .ai-usage-overview-cell {
-  --accent: var(--ai-color-1);
+  --accent: var(--model-color-1);
   position: relative;
   overflow: hidden;
-  background: var(--ai-card-bg);
-  border: 1px solid var(--ai-card-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px 16px 12px;
   display: flex;
@@ -8264,8 +8259,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-usage-overview-cell:hover {
   transform: translateY(-2px);
-  border-color: var(--cell-accent, var(--ai-color-1));
-  background: var(--ai-card-hover);
+  border-color: var(--cell-accent, var(--model-color-1));
+  background: var(--hover-soft);
 }
 .ai-usage-overview-cell:hover::before {
   opacity: 0.16;
@@ -8290,21 +8285,21 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-usage-overview-label {
   font-size: 11px;
-  color: var(--ai-text-secondary);
+  color: var(--text-secondary);
   font-weight: 500;
   letter-spacing: 0.01em;
 }
 .ai-usage-overview-value {
   font-size: 26px;
   font-weight: 700;
-  color: var(--ai-text-primary);
+  color: var(--text-primary);
   letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 .ai-usage-overview-sub {
   font-size: 11px;
-  color: var(--ai-text-tertiary);
+  color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 .ai-usage-overview-bar {
@@ -8313,19 +8308,15 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   bottom: 0;
   width: 100%;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--cell-accent, var(--ai-color-1)), transparent);
+  background: linear-gradient(90deg, transparent, var(--cell-accent, var(--model-color-1)), transparent);
   opacity: 0.5;
 }
 .ai-usage-overview-cell--highlight .ai-usage-overview-value {
-  background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 50%, #6366f1 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 24px rgba(139, 92, 246, 0.4);
+  color: var(--accent-primary);
 }
 .ai-usage-overview-cell--highlight .ai-usage-overview-icon {
-  background: linear-gradient(135deg, #c4b5fd, #6366f1);
-  color: #0b0b10;
+  background: var(--accent-primary);
+  color: var(--text-inverse, #ffffff);
 }
 
 /* dashboard row: 最活跃日 + 90 天趋势并排 */
@@ -8342,8 +8333,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .ai-usage-most-active,
 .ai-usage-trend,
 .ai-usage-model-breakdown {
-  background: var(--ai-card-bg);
-  border: 1px solid var(--ai-card-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -8354,7 +8345,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .ai-usage-most-active:hover,
 .ai-usage-trend:hover,
 .ai-usage-model-breakdown:hover {
-  border-color: #2e2e3a;
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border));
 }
 
 /* 最活跃日卡 */
@@ -8364,34 +8355,30 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   align-self: flex-start;
   padding: 4px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ai-color-4) 18%, transparent);
-  color: #34d399;
+  background: color-mix(in srgb, var(--model-color-4) 16%, transparent);
+  color: var(--model-color-4);
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-  border: 1px solid color-mix(in srgb, var(--ai-color-4) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--model-color-4) 30%, transparent);
 }
 .ai-usage-most-active-token {
   font-size: 34px;
   font-weight: 800;
-  color: var(--ai-text-primary);
+  color: var(--text-primary);
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
-  background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 .ai-usage-most-active-unit {
   font-size: 12px;
   font-weight: 500;
-  color: var(--ai-text-tertiary);
+  color: var(--text-tertiary);
   margin-left: 6px;
   letter-spacing: 0.02em;
   background: none;
-  -webkit-text-fill-color: var(--ai-text-tertiary);
+  -webkit-text-fill-color: var(--text-tertiary);
 }
 .ai-usage-most-active-meta {
   display: flex;
@@ -8400,7 +8387,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-usage-most-active-meta-empty {
   font-size: 11px;
-  color: var(--ai-text-tertiary);
+  color: var(--text-tertiary);
   font-style: italic;
 }
 .ai-usage-chip {
@@ -8409,8 +8396,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 3px 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--ai-card-border);
-  color: var(--ai-text-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -8436,7 +8423,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-usage-trend-avg-label {
   font-size: 9px;
-  color: var(--ai-text-tertiary);
+  color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 600;
@@ -8444,13 +8431,12 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .ai-usage-trend-avg-value {
   font-size: 15px;
   font-weight: 700;
-  color: var(--ai-text-primary);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 .ai-usage-trend-chart {
-  height: 96px;
-  padding: 8px 0 4px;
+  /* UsageTrendChart 自适应高度 (默认 320px), 不再 hardcode 96px. */
   position: relative;
 }
 .ai-usage-daily-bars-wrap {
@@ -8465,8 +8451,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 4px 10px;
   border-radius: 6px;
   background: rgba(20, 20, 26, 0.95);
-  border: 1px solid var(--ai-card-border);
-  color: var(--ai-text-primary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -8492,18 +8478,18 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-usage-daily-bar:hover,
 .ai-usage-daily-bar--hovered {
-  background: var(--ai-color-1);
+  background: var(--model-color-1);
   transform: scaleY(1.04);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ai-color-1) 70%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--model-color-1) 70%, transparent);
 }
 .ai-usage-daily-bar--recent {
-  background: linear-gradient(180deg, var(--ai-color-1) 0%, color-mix(in srgb, var(--ai-color-1) 55%, #1e1b4b) 100%);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--ai-color-1) 30%, transparent);
+  background: linear-gradient(180deg, var(--model-color-1) 0%, color-mix(in srgb, var(--model-color-1) 55%, #1e1b4b) 100%);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--model-color-1) 30%, transparent);
 }
 .ai-usage-daily-bar--recent:hover,
 .ai-usage-daily-bar--recent.ai-usage-daily-bar--hovered {
-  background: linear-gradient(180deg, #818cf8 0%, var(--ai-color-1) 100%);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--ai-color-1) 70%, transparent);
+  background: linear-gradient(180deg, #818cf8 0%, var(--model-color-1) 100%);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--model-color-1) 70%, transparent);
 }
 
 /* ───────────────────────────────────────────────────────────
@@ -8512,21 +8498,9 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
    在 .ai-usage-dashboard 暗色作用域下通过重定义图表域令牌做适配.
    ─────────────────────────────────────────────────────────── */
 
-/* ponytail: 暗色 dashboard 作用域下重定义 chart 域 token, 让网格/边框/游标/选区可读.
-   系列色 (--chart-series-*) 默认引用主站 --app-minimax-code / --accent-*,
-   这些是品牌色跨主题不变, 无需重写. */
-.ai-usage-dashboard .usage-trend {
-  --chart-grid: rgba(255, 255, 255, 0.06);
-  --chart-tick: rgba(255, 255, 255, 0.04);
-  --chart-axis: var(--ai-text-secondary);
-  --chart-baseline: var(--ai-color-1);
-  --chart-target: var(--accent-red);
-  --chart-cursor: var(--ai-text-primary);
-  --chart-brush: color-mix(in srgb, var(--accent-primary) 18%, transparent);
-  --chart-brush-edge: var(--accent-primary);
-  --chart-tooltip-bg: rgba(20, 20, 28, 0.94);
-  --chart-tooltip-bd: var(--ai-card-border);
-}
+/* ponytail: dashboard 不再重定义 --chart-* 域 token.
+   UsageTrendChart 默认引用主站 token (--app-minimax-code / --accent-* / --text-* / --border-*),
+   跨主题一致, 跟随 data-theme 自动切换. */
 
 .usage-trend {
   display: flex;
@@ -8846,7 +8820,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   gap: 8px;
 }
 .ai-usage-model-row {
-  --model-color: var(--ai-color-1);
+  --model-color: var(--model-color-1);
   display: grid;
   grid-template-columns: 190px 1fr 56px 76px;
   align-items: center;
@@ -8864,7 +8838,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--ai-text-primary);
+  color: var(--text-primary);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   overflow: hidden;
@@ -8881,7 +8855,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .ai-usage-model-bar-wrap {
   height: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--border-subtle);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
@@ -8897,13 +8871,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   filter: brightness(1.2) saturate(1.2);
 }
 .ai-usage-model-share {
-  color: var(--ai-text-primary);
+  color: var(--text-primary);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 .ai-usage-model-total {
-  color: var(--ai-text-tertiary);
+  color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
