@@ -133,9 +133,12 @@ export function SideNav() {
   }
 
   const allHidden = visibleNavItems.length === 0;
+  // P-N: HomeGrid 模式 SideNav 只保留顶部 brand + icons 一行, 隐藏列表/底部/抽屉 —
+  // HomeGrid 本身就是 8 个模块入口, SideNav 列表重复, footer 设置/隐藏抽屉也用不上.
+  const isHome = current === 'home';
 
   return (
-    <nav class={`side-nav${collapsed ? ' side-nav-collapsed' : ''}`}>
+    <nav class={`side-nav${collapsed ? ' side-nav-collapsed' : ''}${isHome ? ' side-nav-home-mode' : ''}`}>
       <div class="side-nav-header">
         {!collapsed && (
           <div class="side-nav-brand" aria-hidden="true">
@@ -144,7 +147,7 @@ export function SideNav() {
           </div>
         )}
         <div class="side-nav-header-actions">
-          {REFRESHABLE_NAV_KEYS.has(activeNav.value) && (
+          {!isHome && REFRESHABLE_NAV_KEYS.has(activeNav.value) && (
             <button
               type="button"
               class="side-nav-refresh-btn"
@@ -174,7 +177,7 @@ export function SideNav() {
           </button>
         </div>
       </div>
-      {allHidden && !collapsed && (
+      {!isHome && allHidden && !collapsed && (
         <div class="side-nav-empty-banner">
           已隐藏全部 nav 项 ·{' '}
           <button
@@ -186,52 +189,56 @@ export function SideNav() {
           </button>
         </div>
       )}
-      <ul class="side-nav-list">
-        {visibleNavItems.map((item) => {
-          const isActive = current === item.key;
-          return (
-            <SideNavItem
-              key={item.key}
-              item={item}
-              active={isActive}
-              collapsed={collapsed}
-              badge={navBadges[item.key] || 0}
-              draggable={!collapsed}
-              onSelect={setActiveNav}
-              onReorder={handleReorder}
-              onHide={handleHide}
-              onMoveTop={handleMoveTop}
-              onMoveBottom={handleMoveBottom}
-            />
-          );
-        })}
-      </ul>
-      <div class="side-nav-footer">
-        {/* P11: 设置入口 (VersionsLayout → settings 路由) — 之前只能 Cmd+K 搜, 用户找不到.
-            P15: AI 配置统一在设置页「AI 配置」tab, 不再有独立 SideNav AI 按钮. */}
-        <button
-          type="button"
-          class="side-nav-button side-nav-settings-btn"
-          onClick={() => { setActiveNav('versions'); navigateTo('settings'); }}
-          title={collapsed ? '设置 (主题 / 跟随系统)' : ''}
-          aria-label="设置"
-          data-testid="side-nav-settings-btn"
-        >
-          <span class="side-nav-icon" aria-hidden="true"><IconSettings size={18} /></span>
-          {!collapsed && <span class="side-nav-label">设置</span>}
-        </button>
-        {!collapsed && hiddenNavItems.length > 0 && (
+      {!isHome && (
+        <ul class="side-nav-list">
+          {visibleNavItems.map((item) => {
+            const isActive = current === item.key;
+            return (
+              <SideNavItem
+                key={item.key}
+                item={item}
+                active={isActive}
+                collapsed={collapsed}
+                badge={navBadges[item.key] || 0}
+                draggable={!collapsed}
+                onSelect={setActiveNav}
+                onReorder={handleReorder}
+                onHide={handleHide}
+                onMoveTop={handleMoveTop}
+                onMoveBottom={handleMoveBottom}
+              />
+            );
+          })}
+        </ul>
+      )}
+      {!isHome && (
+        <div class="side-nav-footer">
+          {/* P11: 设置入口 (VersionsLayout → settings 路由) — 之前只能 Cmd+K 搜, 用户找不到.
+              P15: AI 配置统一在设置页「AI 配置」tab, 不再有独立 SideNav AI 按钮. */}
           <button
             type="button"
-            class="side-nav-hidden-toggle"
-            onClick={() => setHiddenDrawerOpen(true)}
-            data-testid="side-nav-hidden-toggle"
+            class="side-nav-button side-nav-settings-btn"
+            onClick={() => { setActiveNav('versions'); navigateTo('settings'); }}
+            title={collapsed ? '设置 (主题 / 跟随系统)' : ''}
+            aria-label="设置"
+            data-testid="side-nav-settings-btn"
           >
-            <span class="side-nav-icon" aria-hidden="true"><IconChevronDown size={14} /></span>
-            <span class="side-nav-label">已隐藏 ({hiddenNavItems.length})</span>
+            <span class="side-nav-icon" aria-hidden="true"><IconSettings size={18} /></span>
+            {!collapsed && <span class="side-nav-label">设置</span>}
           </button>
-        )}
-      </div>
+          {!collapsed && hiddenNavItems.length > 0 && (
+            <button
+              type="button"
+              class="side-nav-hidden-toggle"
+              onClick={() => setHiddenDrawerOpen(true)}
+              data-testid="side-nav-hidden-toggle"
+            >
+              <span class="side-nav-icon" aria-hidden="true"><IconChevronDown size={14} /></span>
+              <span class="side-nav-label">已隐藏 ({hiddenNavItems.length})</span>
+            </button>
+          )}
+        </div>
+      )}
       <HiddenItemsDrawer
         open={hiddenDrawerOpen}
         hiddenItems={hiddenNavItems}
