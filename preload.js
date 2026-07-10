@@ -50,6 +50,10 @@ contextBridge.exposeInMainWorld("api", {
   getActiveCategory: () => ipcRenderer.invoke("get-active-category"),
   saveActiveCategory: (id) => ipcRenderer.invoke("save-active-category", id),
 
+  // P-N: HomeGrid 落点
+  getLastActiveNav: () => ipcRenderer.invoke("get-last-active-nav"),
+  saveLastActiveNav: (key) => ipcRenderer.invoke("save-last-active-nav", key),
+
   // AI 任务总结 (重做版): 按需扫描 + 按需生成
   listAiTasks: (opts) => ipcRenderer.invoke("ai-tasks:list", opts),
   summarizeAiTasks: (opts) => ipcRenderer.invoke("ai-tasks:summarize", opts),
