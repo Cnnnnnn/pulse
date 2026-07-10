@@ -43,6 +43,7 @@ import { createAutoRecheck } from './auto-recheck.js';
 import { taggedLog } from './log.js';
 import { applyPlatformBodyClass } from './platform-body-class.js';
 import { initTheme, getThemePreference, setThemePreference } from './theme/theme-manager.js';
+import { setActiveNav, PERSISTABLE_NAV_KEYS } from './worldcup/navStore.js';
 
 const log = taggedLog("[index]");
 
@@ -252,6 +253,20 @@ async function bootstrap() {
   }
   apps.value = cfg.apps;
   primeConfigCache(cfg);
+
+  // P-N: HomeGrid 落点 — 拿到上次停留的 nav, 在 render 之前覆盖 activeNav,
+  // 避免首帧闪 HomeGrid 再切到目标 (视觉撕裂).
+  // 非法值 / 失败 → 静默, 留在默认 activeNav="home".
+  if (typeof api.getLastActiveNav === 'function') {
+    try {
+      const { lastActiveNav } = await api.getLastActiveNav();
+      if (lastActiveNav && PERSISTABLE_NAV_KEYS.has(lastActiveNav)) {
+        setActiveNav(lastActiveNav);
+      }
+    } catch (err) {
+      log.error("getLastActiveNav failed:", err);
+    }
+  }
 
   const mount = document.getElementById('app') || document.body;
   render(
