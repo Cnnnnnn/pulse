@@ -160,6 +160,15 @@ export function SideNav() {
           >
             <IconMenu size={16} />
           </button>
+          <button
+            type="button"
+            class="side-nav-toggle"
+            onClick={() => setActiveNav('home')}
+            title="首页"
+            aria-label="首页"
+          >
+            🏠
+          </button>
         </div>
       </div>
       {allHidden && !collapsed && (
