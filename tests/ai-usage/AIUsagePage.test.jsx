@@ -377,4 +377,115 @@ describe("AIUsagePage", () => {
     const empties = container.querySelectorAll(".ai-usage-card--empty");
     expect(empties.length).toBe(3);
   });
+
+  // ─── v2: 真实 API 数据展示 ────────────────────────────
+
+  test("v2: total=0 + percent 有值 → 不显示 '剩 0/0', 显示 '已用 X% · 剩 Y%'", () => {
+    // 模拟真实场景: API 返 total=0 (未提供总额) 但 remaining_percent=86
+    mockSnapshot = {
+      provider: "minimax",
+      region: "cn",
+      fetchedAt: NOW,
+      endpoint: "https://www.minimaxi.com/v1/token_plan/remains",
+      windows: {
+        "5h": {
+          total: 0,
+          remaining: 0,
+          used: null,
+          usedPercent: 14,
+          remainingPercent: 86,
+          resetInSec: 3600,
+          label: "5 小时滚动窗口",
+          status: 1,
+        },
+        weekly: {
+          total: 0,
+          remaining: 0,
+          used: null,
+          usedPercent: 42,
+          remainingPercent: 58,
+          resetInSec: 174695,
+          label: "周窗口",
+          status: 1,
+        },
+        video: {
+          total: 3,
+          remaining: 3,
+          used: 0,
+          usedPercent: 0,
+          remainingPercent: 100,
+          label: "视频赠送",
+          status: 1,
+        },
+      },
+      weeklyBoostPermille: 1500,
+    };
+    const { container } = render(<AIUsagePage />);
+    // total=0 时不显示 "剩 X / Y"
+    expect(container.textContent).not.toMatch(/剩\s*0\s*\/\s*0/);
+    // 显示剩余百分比 (原始 API 字段)
+    expect(container.textContent).toContain("剩 86%");
+    expect(container.textContent).toContain("剩 58%");
+  });
+
+  test("v2: weekly_boost_permille=1500 → 显示 '↑1.5x' boost badge", () => {
+    mockSnapshot = {
+      ...FAKE_SNAPSHOT,
+      weeklyBoostPermille: 1500,
+    };
+    const { container } = render(<AIUsagePage />);
+    const badge = container.querySelector(".ai-usage-boost--up");
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain("1.5x");
+  });
+
+  test("v2: weekly_boost_permille=1000 (基线) → 不显示 boost badge", () => {
+    mockSnapshot = {
+      ...FAKE_SNAPSHOT,
+      weeklyBoostPermille: 1000,
+    };
+    const { container } = render(<AIUsagePage />);
+    expect(container.querySelector(".ai-usage-boost")).toBe(null);
+  });
+
+  test("v2: weekly_boost_permille=500 → 显示 '↓0.5x' (减半) badge", () => {
+    mockSnapshot = {
+      ...FAKE_SNAPSHOT,
+      weeklyBoostPermille: 500,
+    };
+    const { container } = render(<AIUsagePage />);
+    const badge = container.querySelector(".ai-usage-boost--down");
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain("0.5x");
+  });
+
+  test("v2: 无 weeklyBoostPermille → 不显示 boost badge (无副作用)", () => {
+    mockSnapshot = FAKE_SNAPSHOT; // 默认无 weeklyBoostPermille
+    const { container } = render(<AIUsagePage />);
+    expect(container.querySelector(".ai-usage-boost")).toBe(null);
+  });
+
+  test("v2: 详情卡显示 API 原始 status 字段 (current_interval_status 等)", () => {
+    mockSnapshot = {
+      ...FAKE_SNAPSHOT,
+      windows: {
+        ...FAKE_SNAPSHOT.windows,
+        "5h": { ...FAKE_SNAPSHOT.windows["5h"], status: 0 },
+      },
+    };
+    const { container } = render(<AIUsagePage />);
+    // status=0 → throttled
+    expect(container.textContent).toContain("已限流");
+    expect(container.querySelector(".ai-usage-status--throttled")).toBeTruthy();
+    // 详情卡 grid 展示原始 status 字段
+    expect(container.textContent).toContain("status");
+  });
+
+  test("v2: 详情卡 grid 显示 model_name", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    const { container } = render(<AIUsagePage />);
+    // general 块 + video 块都展示 model 名
+    expect(container.textContent).toContain("general");
+    expect(container.textContent).toContain("video");
+  });
 });

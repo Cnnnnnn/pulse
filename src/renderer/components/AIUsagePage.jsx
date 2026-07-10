@@ -37,6 +37,7 @@ import { computeBlowUpAt, formatBlowUpIn } from "../../ai-usage/derive.js";
 import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
 import { todayKey } from "../../ai-usage/history-series.js";
 import { UsageSparkline } from "./UsageSparkline.jsx";
+import { UsageDashboard } from "./UsageDashboard.jsx";
 import { taggedLog } from "../log.js";
 import { IconBell } from "./icons.jsx";
 
@@ -69,6 +70,15 @@ function formatClockTime(epochMs) {
 }
 
 /**
+ * epoch ms → "MM-DD HH:mm"  (本地时区) — 详情卡用, 显示完整起止时间.
+ */
+function formatDateTime(epochMs) {
+  if (typeof epochMs !== "number" || epochMs <= 0) return null;
+  const d = new Date(epochMs);
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
  * status code → { label, className }
  * API 返 1=正常, 0=受限. 保守按这个二元处理.
  */
@@ -94,15 +104,97 @@ function formatPercent(used, total) {
   return Math.min(100, Math.round((used / total) * 100));
 }
 
+// ─── model 块展开 (Minimax 新 schema) ─────────────────────────────────
+
+/**
+ * 把 model_remains[] 的一块展开成多张卡. 一个块在新 schema 里同时含
+ * interval + weekly 两个窗口, 所以可能展开成 2 个 entry.
+ * 返回 entry[] 或 [] (该块无有效数据).
+ */
+function _expandBlockToCards(block) {
+  if (!block || typeof block !== "object") return [];
+  const name = typeof block.model_name === "string" ? block.model_name : "";
+  const out = [];
+  if (name === "general") {
+    out.push({ block, windowKey: "5h", modelName: "general", label: "通用模型" });
+    // 块含 weekly_* 字段才推 weekly 卡, 避免空块多出一张占位卡
+    if (block.current_weekly_used_percent !== undefined || block.current_weekly_total_count !== undefined || block.weekly_start_time !== undefined) {
+      out.push({ block, windowKey: "weekly", modelName: "general", label: "周窗口" });
+    }
+  } else if (name === "video") {
+    out.push({ block, windowKey: "video", modelName: "video", label: "视频赠送" });
+    if (block.current_weekly_used_percent !== undefined || block.current_weekly_total_count !== undefined || block.weekly_start_time !== undefined) {
+      out.push({ block, windowKey: "videoWeekly", modelName: "video", label: "视频周额度" });
+    }
+  } else if (name === "voice" || name === "tts") {
+    out.push({ block, windowKey: name, modelName: name, label: name === "voice" ? "语音模型" : "TTS 模型" });
+  } else if (name.length > 0) {
+    // 未知 model_name 也兜底渲染 (避免 schema 演进丢失展示)
+    out.push({ block, windowKey: name, modelName: name, label: name });
+  }
+  return out;
+}
+
+/**
+ * 从 snapshot 取出要循环渲染的 card 列表.
+ * Minimax 用 _rawBlocks (新 schema 一个 model 一块, 展开为 1-2 张卡).
+ * Fallback 到从 windows 推断 (旧 fixture / 缺数据场景).
+ */
+function _pickBlocksForDisplay(snapshot) {
+  const out = [];
+  if (snapshot && Array.isArray(snapshot._rawBlocks) && snapshot._rawBlocks.length > 0) {
+    for (const b of snapshot._rawBlocks) {
+      for (const meta of _expandBlockToCards(b)) {
+        out.push({ ...meta, isFallback: false });
+      }
+    }
+    if (out.length > 0) return out;
+  }
+  // Fallback: 用 windows 反推 (测试 / 旧数据 / 脏数据场景).
+  // 已知 window key → 模板化 label/modelName
+  const knownTemplates = {
+    "5h": { windowKey: "5h", modelName: "general", label: "5 小时滚动窗口" },
+    weekly: { windowKey: "weekly", modelName: "general", label: "周窗口" },
+    video: { windowKey: "video", modelName: "video", label: "视频赠送" },
+    videoWeekly: { windowKey: "videoWeekly", modelName: "video", label: "视频周额度" },
+    mcp: { windowKey: "mcp", modelName: "mcp", label: "MCP 调用" },
+  };
+  const wins = (snapshot && snapshot.windows) || {};
+  const keys = Object.keys(wins);
+  if (keys.length === 0) {
+    // windows 整个缺失: 给 3 张默认 empty card (保 fixture 兼容: 5h + weekly + video)
+    for (const k of ["5h", "weekly", "video"]) {
+      out.push({
+        block: { model_name: knownTemplates[k].modelName },
+        ...knownTemplates[k],
+        isFallback: true,
+      });
+    }
+    return out;
+  }
+  for (const k of keys) {
+    const tpl = knownTemplates[k] || { windowKey: k, modelName: k, label: k };
+    out.push({
+      block: { model_name: tpl.modelName },
+      ...tpl,
+      isFallback: true,
+    });
+  }
+  return out;
+}
+
 // ─── 窗口卡 ──────────────────────────────────────────────
 
 /**
  * @param {object} props
- * @param {{label: string, total: number, remaining: number, used: number, usedPercent: number, resetAt: number, resetInSec: number, fetchedAt: number} | null} props.window
+ * @param {{label: string, total: number, remaining: number, used: number, usedPercent: number, remainingPercent: number, resetAt: number, resetInSec: number, fetchedAt: number} | null} props.window
  * @param {object|null} [props.prevWindow]  上一轮同 key 窗口, 用于算 burn rate
  * @param {number} props.now  用于倒计时
+ * @param {string} [props.modelName]  API 返的 model_name, 详情卡 grid 展示
+ * @param {number|null} [props.boostPermille]  周配额加成千分比 (1500 = 1.5x). 仅 weekly 卡显示.
+ * @param {boolean} [props.showRawFields]  是否在卡底部显示 API 原始字段 (status / model_name 等). 调试用.
  */
-function WindowCard({ window: w, prevWindow = null, now }) {
+function WindowCard({ window: w, prevWindow = null, now, modelName = null, boostPermille = null, showRawFields = false }) {
   if (!w) {
     return (
       <div class="ai-usage-card ai-usage-card--empty">
@@ -147,11 +239,27 @@ function WindowCard({ window: w, prevWindow = null, now }) {
   );
   const blowUpIn = formatBlowUpIn(blowUpAt, now);
 
+  // 剩余百分比 (API 原始 remainingPercent 字段, 跟 usedPercent 互补)
+  const remainingPct = typeof w.remainingPercent === "number" ? w.remainingPercent : null;
+
+  // 周配额加成 badge (千分比 → 倍率, 1500 = 1.5x)
+  let boostBadge = null;
+  if (typeof boostPermille === "number" && boostPermille !== 1000) {
+    const ratio = (boostPermille / 1000).toFixed(1).replace(/\.0$/, "");
+    const isUp = boostPermille > 1000;
+    boostBadge = (
+      <span class={`ai-usage-boost ai-usage-boost--${isUp ? "up" : "down"}`}>
+        {isUp ? "↑" : "↓"}{ratio}x
+      </span>
+    );
+  }
+
   return (
     <div class="ai-usage-card">
       <div class="ai-usage-card-header">
         <div class="ai-usage-card-label">
           {w.label}
+          {boostBadge}
           {statusBadge && (
             <span class={`ai-usage-status ${statusBadge.className}`}>
               {statusBadge.label}
@@ -168,6 +276,8 @@ function WindowCard({ window: w, prevWindow = null, now }) {
             <span class="ai-usage-card-divider">/</span>
             <span class="ai-usage-card-total">{w.total}</span>
           </>
+        ) : remainingPct !== null ? (
+          <span class="ai-usage-card-remaining">剩 {remainingPct}%</span>
         ) : (
           <span class="ai-usage-card-remaining">已用 {pct ?? "—"}%</span>
         )}
@@ -196,6 +306,24 @@ function WindowCard({ window: w, prevWindow = null, now }) {
       {blowUpIn && (
         <div class="ai-usage-card-burn-hint">
           按当前速度 {blowUpIn} 用完
+        </div>
+      )}
+
+      {/* 详情卡 meta grid — 展示 API 原始字段 (status, model_name) */}
+      {(modelName || typeof w.status === "number" || showRawFields) && (
+        <div class="ai-usage-block-meta">
+          {modelName && (
+            <div class="ai-usage-block-meta-item">
+              <span class="ai-usage-block-meta-label">model</span>
+              <span class="ai-usage-block-meta-value">{modelName}</span>
+            </div>
+          )}
+          {typeof w.status === "number" && (
+            <div class="ai-usage-block-meta-item">
+              <span class="ai-usage-block-meta-label">status</span>
+              <span class="ai-usage-block-meta-value">{w.status}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -367,26 +495,33 @@ function ProviderUsageView({ provider }) {
 
       {snapshot && (
         <div class="ai-usage-cards">
-          <WindowCard
-            window={snapshot?.windows?.["5h"] ?? null}
-            prevWindow={prevSnapshot?.windows?.["5h"] ?? null}
-            now={now}
-          />
-          <WindowCard
-            window={snapshot?.windows?.weekly ?? null}
-            prevWindow={prevSnapshot?.windows?.weekly ?? null}
-            now={now}
-          />
-          <WindowCard
-            window={provider === "glm" ? (snapshot?.windows?.mcp ?? null) : (snapshot?.windows?.video ?? null)}
-            prevWindow={
-              provider === "glm"
-                ? (prevSnapshot?.windows?.mcp ?? null)
-                : (prevSnapshot?.windows?.video ?? null)
-            }
-            now={now}
-          />
+          {_pickBlocksForDisplay(snapshot).map((card) => {
+            // GLM 仍走 mcp key, 其他 provider 走 card.windowKey
+            const windowKey = card.windowKey;
+            const wins = snapshot?.windows ?? {};
+            const prevWins = prevSnapshot?.windows ?? {};
+            const win = wins[windowKey] ?? null;
+            const prevWin = prevWins[windowKey] ?? null;
+            // weekly 卡传 boost badge (周配额加成)
+            const isWeekly = windowKey === "weekly";
+            const boost = isWeekly ? (snapshot?.weeklyBoostPermille ?? null) : null;
+            return (
+              <WindowCard
+                key={windowKey}
+                window={win}
+                prevWindow={prevWin}
+                now={now}
+                modelName={card.modelName}
+                boostPermille={boost}
+                showRawFields
+              />
+            );
+          })}
         </div>
+      )}
+
+      {snapshot && provider === "minimax" && snapshot.usageSummary && (
+        <UsageDashboard snapshot={snapshot} />
       )}
 
       {snapshot && (
