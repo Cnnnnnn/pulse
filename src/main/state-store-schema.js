@@ -19,6 +19,7 @@ const FIELD_SPECS = {
   mutes:             { kind: 'object' },
   last_opened:       { kind: 'object' },
   active_category:   { kind: 'string' },
+  last_active_nav:   { kind: 'string' },  // P-N: HomeGrid 落点 ('funds'|'metals'|'worldcup'|...)
   ai_sessions_config: { kind: 'object' },
   classify_llm_cache: { kind: 'object' },
   task_summaries:    { kind: 'object' },

@@ -264,6 +264,7 @@ const PRESERVE_FIELDS = [
   { key: "stockDetailCache", kind: "object", notArray: true }, // 个股 AI 分析缓存: { "v1::<sha1>": {result, fetchedAt} }
   { key: "overviewCache", kind: "object", notArray: true }, // Task 15: overview AI summary cache { text, fetchedAt }
   { key: "metals", kind: "object", notArray: true }, // 贵金属: watchedIds / holdings / historyMap / lastBackfillAt (metal-ipc 写入)
+  { key: "last_active_nav", kind: "string" },  // P-N: HomeGrid 落点
 ];
 
 function shouldPreserveValue(val, spec) {
@@ -1095,6 +1096,47 @@ function saveActiveCategory(id, statePath = defaultPath()) {
   // bug 修复: 老实现没 preserve ai_sessions_config, 走 patchState 自动补上.
   return patchState((next) => {
     next.active_category = id;
+  }, statePath);
+}
+
+// ─── P-N HomeGrid 落点: last_active_nav ──────────
+
+const PERSISTABLE_NAV_VALUES = new Set([
+  'ithome', 'wechat-hot', 'worldcup', 'funds',
+  'metals', 'stocks', 'ai-usage', 'versions',
+]);
+
+/**
+ * P-N HomeGrid 落点: 读 last_active_nav.
+ * 缺字段 / 非法值 → null (区别于 active_category 'all' 兜底,
+ * renderer 需要明确"无历史"信号以决定是否显示首页).
+ *
+ * @param {string} [statePath]
+ * @returns {string|null}
+ */
+function loadLastActiveNav(statePath = defaultPath()) {
+  const s = load(statePath);
+  if (!s) return null;
+  const v = s.last_active_nav;
+  if (typeof v !== 'string' || !PERSISTABLE_NAV_VALUES.has(v)) return null;
+  return v;
+}
+
+/**
+ * P-N HomeGrid 落点: 写 last_active_nav. atomic write,
+ * 自动 preserve apps / mutes / last_opened / active_category / ...
+ *
+ * @param {string} key             'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'stocks' | 'ai-usage' | 'versions'
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ * @throws {TypeError} 非合法 key
+ */
+function saveLastActiveNav(key, statePath = defaultPath()) {
+  if (typeof key !== 'string' || !PERSISTABLE_NAV_VALUES.has(key)) {
+    throw new TypeError('saveLastActiveNav: key must be a persistable nav key');
+  }
+  return patchState((next) => {
+    next.last_active_nav = key;
   }, statePath);
 }
 
@@ -2026,4 +2068,7 @@ module.exports = {
   saveAiUsageAlertPrefs,
   // A3: 搜索索引注入
   setSearchIndex,
+  // P-N: HomeGrid 落点 (active_nav)
+  loadLastActiveNav,
+  saveLastActiveNav,
 };
