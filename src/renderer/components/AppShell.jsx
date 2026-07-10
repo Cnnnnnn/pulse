@@ -85,8 +85,8 @@ export function AppShell({ onCheck }) {
   }, [nav]);
 
   return (
-    <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
-      <SideNav />
+    <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}${nav === 'home' ? ' app-shell-home' : ''}`}>
+      {nav !== 'home' && <SideNav />}
       <div class="app-shell-view">
         {nav === 'home'
           ? <HomeGrid />
