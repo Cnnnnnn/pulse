@@ -306,3 +306,141 @@ test("settings page — P15 AI 配置 tab baseline", async ({ page }) => {
     fullPage: false,
   });
 });
+
+/* ───────────────────────────────────────────────────────────
+   AI Coding 用量 dashboard — 浅/暗双主题 baseline
+   (UsageDashboard 接入 UsageTrendChart + 主站系统迁移后)
+
+   ponytail: visual-serve 不接 main 进程, snapshot 永远 null.
+   必须 patch api.onAiUsageUpdated 在订阅时立刻 push fixture, 让
+   aiUsageSnapshot signal 拿到完整 usageSummary, 这样 UsageDashboard 才会渲染.
+   ─────────────────────────────────────────────────────────── */
+
+const AI_USAGE_FIXTURE_SNAPSHOT = {
+  fetchedAt: Date.parse("2026-07-10T12:00:00Z"),
+  endpoint: "https://api.minimaxi.com/v1/usage",
+  windows: {
+    "5h": { used: 120_000, total: 1_000_000, usedPercent: 12, resetAt: "今天 18:00" },
+    weekly: { used: 4_500, total: 10_000, usedPercent: 45, resetAt: "下周一" },
+  },
+  usageSummary: {
+    totalDays: 90,
+    totalTokenConsumed: 7_450_000_000,
+    usageRankingPercent: 1,
+    activeDays: 90,
+    currentConsecutiveDays: 90,
+    lastUpdateTime: "07-10 12:00",
+    mostActiveDay: {
+      date: "2026-06-07",
+      tokenCount: 452_780_000,
+      imageCount: 0,
+      videoCount: 0,
+      musicCount: 0,
+      voiceCharacterCount: 0,
+    },
+    dailyTokenUsage: Array.from({ length: 90 }, (_, i) => 10_000_000 + i * 1_000_000),
+    dateModelUsage: [
+      { date: "2026-07-10", models: [
+        { model: "MiniMax-M3-512k", totalToken: 879_600_096, cacheHitPercent: 96.33 },
+        { model: "MiniMax-M2.7", totalToken: 6_787_710, cacheHitPercent: 67.13 },
+      ], totals: { totalToken: 886_387_806 } },
+    ],
+    modelBreakdown: [
+      { model: "MiniMax-M3-512k", totalToken: 879_600_096, sharePercent: 99.2 },
+      { model: "MiniMax-M2.7", totalToken: 6_787_710, sharePercent: 0.8 },
+    ],
+    grandTotal: 886_387_806,
+    recent7Avg: 123_456_789,
+    recent30Avg: 87_654_321,
+  },
+};
+
+const AI_USAGE_FIXTURE_HISTORY = {
+  days: Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { date: iso, percent: 12 + i * 5, used: 5_000 + i * 1_200 };
+  }),
+};
+
+const pushAiUsageFixture = `
+  (function pushAiUsageFixture() {
+    if (typeof window.api === 'undefined') return;
+    // ponytail: Proxy 的 get trap 永远返 empty — 直接 set 不影响下次 get.
+    // 解决方案: 用 Object.assign 包一层, get 先查 explicit overrides 再 fallback 到 proxy.
+    const origApi = window.api;
+    const overrides = {};
+    overrides.onAiUsageUpdated = function (cb) {
+      window.__aiUsageSubscribed = (window.__aiUsageSubscribed || 0) + 1;
+      // 推迟 100ms (等 AIUsageLayout mount + useEffect 跑完)
+      setTimeout(function () {
+        if (typeof cb === 'function') {
+          window.__aiUsagePushed = (window.__aiUsagePushed || 0) + 1;
+          try {
+            cb({ provider: 'minimax', snapshot: ${JSON.stringify(AI_USAGE_FIXTURE_SNAPSHOT)}, history: ${JSON.stringify(AI_USAGE_FIXTURE_HISTORY)} });
+          } catch (e) {
+            window.__pushError = e.message;
+          }
+        }
+      }, 100);
+    };
+    window.api = new Proxy(origApi, {
+      get(target, key) {
+        if (key in overrides) return overrides[key];
+        return target[key];
+      },
+      set(target, key, value) {
+        overrides[key] = value;
+        return true;
+      },
+    });
+  })();
+`;
+
+test("ai-usage tab — light theme baseline (UsageDashboard + UsageTrendChart)", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+    } catch {}
+  });
+  await page.addInitScript(pushAiUsageFixture);
+  await page.goto("/");
+  await waitForShell(page);
+  const aiTile = page.locator('[aria-label*="AI 用量"]').first();
+  if (await aiTile.count()) {
+    await aiTile.click();
+  }
+  await page.waitForSelector(".ai-usage-dashboard", { timeout: 15_000 });
+  // 等 SVG path + brush + tooltip 状态稳定
+  await page.waitForTimeout(1200);
+  await expect(page).toHaveScreenshot("ai-usage-tab-light.png", {
+    fullPage: false,
+  });
+});
+
+test("ai-usage tab — dark theme baseline (跟随主站 data-theme=dark)", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "dark");
+    } catch {}
+  });
+  await page.addInitScript(pushAiUsageFixture);
+  await page.goto("/");
+  await waitForShell(page);
+  const aiTile = page.locator('[aria-label*="AI 用量"]').first();
+  if (await aiTile.count()) {
+    await aiTile.click();
+  }
+  await page.waitForSelector(".ai-usage-dashboard", { timeout: 15_000 });
+  await page.waitForTimeout(1200);
+  await expect(page).toHaveScreenshot("ai-usage-tab-dark.png", {
+    fullPage: false,
+  });
+});
