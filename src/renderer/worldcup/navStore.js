@@ -102,11 +102,13 @@ function isNavVisible(key, prefs) {
 }
 
 /**
- * 当前 activeNav 被关掉时, 切到第一个可见 nav.
+ * 当前 activeNav 被关掉时, 切到第一个可见 panel.
+ * 注意: 只考虑 PERSISTABLE_NAV_KEYS (8 顶级 panel), 跳过 "home" —
+ * HomeGrid 是显示态而不是 panel, tray prefs 不应该把用户弹到 HomeGrid.
  * 不可见列表 (activeNav 不可见 + 没有其他可见 nav) 时不动 (极端兜底, 不会发生因为有 3 个固定 tab).
  */
 function firstVisibleNav(prefs) {
-  for (const k of NAV_KEYS) {
+  for (const k of PERSISTABLE_NAV_KEYS) {
     if (isNavVisible(k, prefs)) return k;
   }
   return activeNav.value; // 兜底: 全部不可见时停留
