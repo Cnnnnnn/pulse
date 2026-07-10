@@ -101,8 +101,11 @@ export function SideNav() {
     .map((key) => NAV_ITEMS.find((item) => item.key === key))
     .filter(Boolean);
 
-  // activeNav 隐藏后: 自动切第一个可见 (避免"点不出来"的死锁)
+  // activeNav 隐藏后: 自动切第一个可见 (避免"点不出来"的死锁).
+  // 跳过 'home' — HomeGrid 是显示态而不是 panel, 不在 NAV_KEYS_LIST,
+  // 用户主动点 🏠 去的, 不应该被 effect 弹回.
   useEffect(() => {
+    if (current === 'home') return;
     if (visibleKeys.length > 0 && !visibleKeys.includes(current)) {
       setActiveNav(visibleKeys[0]);
     }
