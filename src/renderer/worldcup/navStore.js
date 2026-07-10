@@ -17,13 +17,17 @@ import { trayMenuPrefs } from "../trayConfigStore.js";
 import { clearFundNavBadge } from "../funds/fundStore.js";
 import { clearAiUsageNavBadge } from "../store/ai-usage-store.js";
 import { clearWechatHotUnreadBadge } from "../wechat-hot/store.js";
+import { api } from "../api.js";
 
-// activeNav: 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'stocks' | 'ai-usage' | 'versions', 默认 'versions'
+// activeNav: 'home' | 'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'stocks' | 'ai-usage' | 'versions'
+// 默认 'home' — 无历史 → 显示 HomeGrid. bootstrap 拿到上次落点后会在 render 前覆盖.
 // stock-detail (Phase 32) 已合并到选股 tab 顶栏入口, 不再独立 nav.
-export const activeNav = signal("versions");
+// P-N: 无历史 → 显示 HomeGrid. bootstrap 拿到上次落点后会在 render 前覆盖.
+export const activeNav = signal("home");
 export const navCollapsed = signal(false);
 
 const NAV_KEYS = new Set([
+  "home",            // P-N: Home 首屏 (grid)
   "ithome",
   "wechat-hot",
   "worldcup",
@@ -45,6 +49,13 @@ export const NAV_KEYS_LIST = [
   "ai-usage",
   "versions",
 ];
+
+// P-N: HomeGrid 落点白名单 — "home" 是显示态, 不落盘.
+// 跟 NAV_KEYS 的区别: NAV_KEYS 是 activeNav 全部合法值, 这里只挑出可持久化的 8 顶级 nav.
+export const PERSISTABLE_NAV_KEYS = new Set([
+  "ithome", "wechat-hot", "worldcup", "funds",
+  "metals", "stocks", "ai-usage", "versions",
+]);
 
 /**
  * Phase I3: 计算"实际可见"nav 列表
@@ -133,6 +144,14 @@ export function setActiveNav(key) {
   // I6 v2: wechat-hot 切到该 tab 时清未读角标 (对标 funds/ai-usage)
   if (key === "wechat-hot" && prev !== "wechat-hot") {
     clearWechatHotUnreadBadge();
+  }
+  // P-N HomeGrid 落点: 仅持久化 8 顶级 nav, "home" 不写盘.
+  // ponytail: 同步路径做过白名单过滤, home 是显示态, 不写盘.
+  // 写盘失败仅 console.warn, 不阻断 UI.
+  if (key !== "home" && PERSISTABLE_NAV_KEYS.has(key)) {
+    if (typeof api?.saveLastActiveNav === "function") {
+      api.saveLastActiveNav(key).catch(() => { /* noop */ });
+    }
   }
 }
 
