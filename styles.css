@@ -3255,11 +3255,117 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
    .diag-section / .diag-row, 名字对不上导致卡片样式全丢. 这里对齐 .kpi-card
    (styles.css:10748) + fund-modal 的设计语言补全. */
 .diagnostics-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5) var(--space-5);
 }
+
+/* === InsightsPage (洞察页) — 2026-07-10 ===========================
+   滚动下沉到 .insights-content (跟 .settings-content / .diagnostics-content
+   同一模式), 外层 .insights-page 只管 flex layout. */
+.insights-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5) var(--space-5);
+}
+.insights-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2h);
+}
+.insights-kpi {
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 10px;
+  border-left: 4px solid var(--text-tertiary);
+}
+.insights-kpi--ok      { border-left-color: var(--accent-green); }
+.insights-kpi--warn    { border-left-color: var(--accent-orange); }
+.insights-kpi--danger  { border-left-color: var(--accent-red); }
+.insights-kpi--neutral { border-left-color: var(--text-tertiary); }
+.insights-kpi__value {
+  font-size: 22px; font-weight: 700; line-height: 1.1;
+  color: var(--text-primary);
+}
+.insights-kpi__label {
+  font-size: 11px; color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.insights-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.insights-card__title-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.insights-card__title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+}
+/* AI 总览 */
+.insights-ai-text {
+  font-size: 13px; color: var(--text-primary);
+  line-height: 1.6; padding: 8px 12px;
+  background: var(--bg-elevated); border-radius: 6px;
+}
+.insights-ai-cache {
+  display: inline-block; font-size: 9px; padding: 1px 5px;
+  border-radius: 6px; background: var(--bg-card); margin-right: 6px;
+  color: var(--text-tertiary);
+}
+.insights-ai-loading {
+  font-size: 12px; color: var(--text-secondary); padding: 8px 12px;
+}
+.insights-ai-idle {
+  font-size: 12px; color: var(--text-tertiary); padding: 8px 12px;
+}
+.insights-ai-error {
+  font-size: 12px; color: var(--accent-red);
+  display: flex; align-items: center; gap: 8px;
+}
+/* 可升级列表 */
+.insights-update-list { list-style: none; margin: 0; padding: 0; }
+.insight-update-row {
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
+}
+.insight-update-row:last-child { border-bottom: 0; }
+.insight-update-head {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 8px 0;
+  background: transparent; border: 0; cursor: pointer;
+  text-align: left;
+}
+.insight-update-name {
+  flex: 1; font-size: 13px; font-weight: 600;
+  color: var(--text-primary);
+}
+.insight-update-versions {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-secondary);
+}
+.insight-update-latest { color: var(--accent-primary); font-weight: 600; }
+.insight-update-arrow { color: var(--text-tertiary); }
+.insight-update-link {
+  font-size: 11px; color: var(--accent-primary);
+  text-decoration: none;
+}
+.insight-update-link:hover { text-decoration: underline; }
+.insight-update-detail {
+  padding: 4px 0 12px 30px;
+}
+.insights-empty { padding: 20px 0; }
 
 .diag-kpi-row {
   display: grid;
