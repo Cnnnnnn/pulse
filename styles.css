@@ -732,16 +732,13 @@ body.platform-win .window-control-btn--close:hover {
 }
 
 .diagnostics-page,
-.insights-page,
 .settings-page {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  /* P16 fix: 滚动下沉到 .settings-content (紧贴卡片), 这里只管 flex layout. */
 }
 .diagnostics-page > .page-header,
-.insights-page > .page-header,
 .settings-page > .page-header {
   flex-shrink: 0;
 }
@@ -969,6 +966,36 @@ body.platform-win .window-control-btn--close:hover {
 }
 
 .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+/* variant: 圆形彩色背景图标 (诊断/洞察页空态用) */
+.empty-icon--success, .empty-icon--info, .empty-icon--error {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 50%;
+  margin-bottom: 16px;
+}
+.empty-icon--success {
+  background: color-mix(in oklch, var(--accent-green) 14%, transparent);
+  color: var(--accent-green);
+}
+.empty-icon--info {
+  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+}
+.empty-icon--error {
+  background: color-mix(in oklch, var(--accent-red) 12%, transparent);
+  color: var(--accent-red);
+}
+.empty-state--success .empty-title,
+.empty-state--info .empty-title,
+.empty-state--error .empty-title {
+  font-size: var(--font-size-xl); font-weight: 700;
+  color: var(--text-primary);
+}
+.empty-state--success .empty-hint,
+.empty-state--info .empty-hint,
+.empty-state--error .empty-hint {
+  max-width: 240px; text-align: center;
+}
 
 #footer {
   display: flex;
@@ -3205,15 +3232,21 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: flex;
   align-items: flex-end;
   gap: 1px;
-  height: 26px;
-  margin-top: 4px;
+  height: 48px;
+  margin-top: 6px;
+  padding: 4px 0;
+  border-top: 1px dashed var(--border, rgba(0,0,0,0.06));
+  background: linear-gradient(180deg, transparent 60%, color-mix(in oklch, var(--accent-primary) 3%, transparent));
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 .diag-trend__bar {
   flex: 1;
-  background: linear-gradient(180deg, #4a90e2 0%, #357abd 100%);
+  background: linear-gradient(180deg, var(--accent-primary) 0%, color-mix(in oklch, var(--accent-primary) 60%, transparent));
   border-radius: 1px;
   min-width: 2px;
+  transition: opacity var(--transition);
 }
+.diag-trend__bar:hover { opacity: 0.7; }
 .diag-failure {
   display: flex;
   gap: var(--space-1h);
@@ -3257,139 +3290,51 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .diagnostics-content {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5) var(--space-5);
 }
-
-/* === InsightsPage (洞察页) — 2026-07-10 ===========================
-   滚动下沉到 .insights-content (跟 .settings-content / .diagnostics-content
-   同一模式), 外层 .insights-page 只管 flex layout. */
-.insights-content {
+/* 双栏: 左侧错误记录 (主, 可滚动) + 右侧 KPI/性能/Top5 (侧) */
+.diag-body {
   flex: 1;
   min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--space-3);
+}
+.diag-main {
+  min-height: 0;
   overflow-y: auto;
+}
+/* 卡片撑满主区域 */
+.diag-main .diag-card { height: 100%; }
+/* 空态时内容居中 */
+.diag-main .diag-card--empty {
+  justify-content: center;
+  align-items: center;
+}
+.diag-sidebar {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-5) var(--space-5);
+  min-height: 0;
+  overflow-y: auto;
 }
-.insights-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-2h);
+/* 侧边栏 KPI 改 2x2 */
+.diag-sidebar .diag-kpi-row {
+  grid-template-columns: repeat(2, 1fr);
 }
-.insights-kpi {
-  padding: 14px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border, rgba(0,0,0,0.08));
-  border-radius: 10px;
-  border-left: 4px solid var(--text-tertiary);
+@media (max-width: 900px) {
+  .diag-body {
+    grid-template-columns: 1fr;
+  }
+  .diag-main, .diag-sidebar { overflow-y: visible; }
 }
-.insights-kpi--ok      { border-left-color: var(--accent-green); }
-.insights-kpi--warn    { border-left-color: var(--accent-orange); }
-.insights-kpi--danger  { border-left-color: var(--accent-red); }
-.insights-kpi--neutral { border-left-color: var(--text-tertiary); }
-.insights-kpi__value {
-  font-size: 22px; font-weight: 700; line-height: 1.1;
-  color: var(--text-primary);
-}
-.insights-kpi__label {
-  font-size: 11px; color: var(--text-tertiary);
-  margin-top: 2px;
-}
-.insights-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border, rgba(0,0,0,0.08));
-  border-radius: 10px;
-  padding: 14px 16px;
-}
-.insights-card__title-row {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 10px;
-}
-.insights-card__title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 600; color: var(--text-primary);
-}
-/* AI 总览 */
-.insights-ai-text {
-  font-size: 13px; color: var(--text-primary);
-  line-height: 1.6; padding: 8px 12px;
-  background: var(--bg-elevated); border-radius: 6px;
-}
-.insights-ai-cache {
-  display: inline-block; font-size: 9px; padding: 1px 5px;
-  border-radius: 6px; background: var(--bg-card); margin-right: 6px;
-  color: var(--text-tertiary);
-}
-.insights-ai-loading {
-  font-size: 12px; color: var(--text-secondary); padding: 8px 12px;
-}
-.insights-ai-idle {
-  font-size: 12px; color: var(--text-tertiary); padding: 8px 12px;
-}
-.insights-ai-error {
-  font-size: 12px; color: var(--accent-red);
-  display: flex; align-items: center; gap: 8px;
-}
-/* 可升级列表 */
-.insights-update-list { list-style: none; margin: 0; padding: 0; }
-.insight-update-row {
-  border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
-}
-.insight-update-row:last-child { border-bottom: 0; }
-.insight-update-head {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; padding: 8px 0;
-  background: transparent; border: 0; cursor: pointer;
-  text-align: left;
-}
-.insight-update-name {
-  flex: 1; font-size: 13px; font-weight: 600;
-  color: var(--text-primary);
-}
-.insight-update-versions {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--text-secondary);
-}
-.insight-update-latest { color: var(--accent-primary); font-weight: 600; }
-.insight-update-arrow { color: var(--text-tertiary); }
-.insight-update-link {
-  font-size: 11px; color: var(--accent-primary);
-  text-decoration: none;
-}
-.insight-update-link:hover { text-decoration: underline; }
-.insight-update-detail {
-  padding: 4px 0 12px 30px;
-}
-.insights-empty { padding: 20px 0; }
-
 .diag-kpi-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-2h);
-}
-.diag-kpi {
-  padding: 14px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border, rgba(0,0,0,0.08));
-  border-radius: 10px;
-  border-left: 4px solid var(--text-tertiary);
-}
-.diag-kpi--ok      { border-left-color: var(--accent-green); }
-.diag-kpi--warn    { border-left-color: var(--accent-orange); }
-.diag-kpi--danger  { border-left-color: var(--accent-red); }
-.diag-kpi--neutral { border-left-color: var(--text-tertiary); }
-.diag-kpi__value {
-  font-size: 26px; font-weight: 700; line-height: 1;
-  color: var(--text-primary); margin-bottom: 4px;
-}
-.diag-kpi__label {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
 }
 
 .diag-grid {
@@ -3485,7 +3430,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .diag-filter-chip:hover { border-color: var(--accent-primary); }
 .diag-filter-chip.active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
 .diag-entries {
-  list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto;
+  list-style: none; margin: 0; padding: 0;
 }
 
 .diag-update-pill {
@@ -3499,8 +3444,24 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .diag-update-pill--checking { background: rgba(255,149,0,0.12); color: #b25b00; }
 .diag-update-pill--error { background: rgba(255,59,48,0.12); color: var(--accent-red); }
 
-.diag-action-row {
-  display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+.diag-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+@media (max-width: 900px) {
+  .diag-action-grid { grid-template-columns: 1fr; }
+}
+.diag-action-group {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+}
+.diag-action-group__label {
+  font-size: var(--font-size-xs); font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.04em;
 }
 .diag-action-hint {
   font-size: var(--font-size-xs); color: var(--text-tertiary);
@@ -3529,6 +3490,12 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .error-entry--unhandled .error-entry__level { color: var(--accent-red); }
 .error-entry--warn .error-entry__level { color: var(--accent-amber-500); }
+/* StatusBadge 在错误记录行内紧凑化 (默认 min-width 80px 太宽) */
+.error-entry__meta .status-badge {
+  min-width: auto;
+  padding: 1px 8px;
+  font-size: var(--font-size-xs);
+}
 .error-entry__message {
   font-size: var(--font-size-sm);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -5359,7 +5326,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding-bottom: 16px;
 }
 
-/* P12: VersionsLayout 4-tab subtab (library/diagnostics/insights/settings).
+/* P12: VersionsLayout 3-tab subtab (library/diagnostics/settings).
    与 worldcup-subtab 同形态 — 独立命名空间避免复用耦合. */
 .versions-subtabs {
   display: flex;
@@ -11272,6 +11239,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .kpi-card--success { border-left-color: var(--accent-green); }
 .kpi-card--danger  { border-left-color: var(--accent-red); }
 .kpi-card--default { border-left-color: var(--accent-primary); }
+.kpi-card--neutral { border-left-color: var(--text-tertiary); }
 .kpi-card-value {
   font-size: 28px; font-weight: 700;
   color: var(--text-primary);
@@ -11282,69 +11250,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .trend-sparkline {
   display: inline-block; color: var(--accent-primary);
-}
-
-/* Task 17: WatchlistQuick + RecentTimeline + AIInsightsBlock */
-.watchlist-quick, .recent-timeline, .ai-insights {
-  padding: 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border, rgba(0,0,0,0.08));
-  border-radius: 10px;
-  margin-bottom: 12px;
-}
-.watchlist-quick-title, .recent-timeline-title, .ai-insights-title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 10px;
-}
-.watchlist-quick-list, .recent-timeline-list {
-  list-style: none; margin: 0; padding: 0;
-}
-.watchlist-quick-item, .recent-timeline-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 0;
-  font-size: 12px;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border, rgba(0,0,0,0.04));
-}
-.watchlist-quick-item:last-child, .recent-timeline-item:last-child { border-bottom: 0; }
-.watchlist-quick-badge {
-  font-size: 10px; padding: 1px 6px; border-radius: 8px;
-  background: var(--accent-orange); color: #fff;
-}
-.watchlist-quick-view-all {
-  margin-top: 8px; padding: 4px 0;
-  background: transparent; border: 0;
-  color: var(--accent-primary);
-  font-size: 11px; cursor: pointer;
-}
-.recent-timeline-text { flex: 1; }
-.recent-timeline-ts { font-size: 10px; color: var(--text-tertiary); }
-.recent-timeline-empty, .watchlist-quick-empty, .ai-insights-idle {
-  font-size: 12px; color: var(--text-tertiary); padding: 12px 0;
-}
-.ai-insights-loading {
-  font-size: 12px; color: var(--text-secondary); padding: 12px 0;
-}
-.ai-insights-text {
-  font-size: 12px; color: var(--text-primary);
-  line-height: 1.6; padding: 8px 12px;
-  background: var(--bg-elevated); border-radius: 6px;
-}
-.ai-insights-cache {
-  display: inline-block; font-size: 9px; padding: 1px 5px;
-  border-radius: 6px; background: var(--bg-card); margin-right: 6px;
-  color: var(--text-tertiary);
-}
-.ai-insights-error {
-  font-size: 12px; color: var(--accent-red);
-  display: flex; align-items: center; gap: 8px;
-}
-.ai-insights-error button {
-  background: transparent; border: 1px solid var(--accent-red);
-  color: var(--accent-red); padding: 2px 8px; border-radius: 4px;
-  cursor: pointer; font-size: 11px;
 }
 
 /* OverviewPage — Task 18 整合 layout */

@@ -15,14 +15,14 @@
  */
 import { signal } from "@preact/signals";
 
-export const ROUTES = ["library", "diagnostics", "insights", "settings"];
+export const ROUTES = ["library", "diagnostics", "settings"];
 
 export const currentRoute = signal("library");
 export const routeTab = signal("general"); // 'general' | 'ai'
 
 export function navigateTo(route, tab) {
-  // 容错: 旧 overview 路由重定向到 library (应用列表)
-  if (route === "overview") route = "library";
+  // 容错: 已废弃的旧路由重定向到 library (应用列表)
+  if (route === "overview" || route === "insights") route = "library";
   if (!ROUTES.includes(route)) return;
   currentRoute.value = route;
   if (route === "settings" && (tab === "ai" || tab === "general")) {

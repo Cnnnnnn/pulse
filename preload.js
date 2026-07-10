@@ -311,16 +311,9 @@ contextBridge.exposeInMainWorld("api", {
   stocksExportDiagnosisPng: (payload) =>
     ipcRenderer.invoke("stocks:export-diagnosis-png", payload),
 
-  // v2.49 Overview + Command Palette (T5/T18): 6 个新 IPC bridge
+  // v2.49 Overview + Command Palette (T5/T18): IPC bridge
   versionsCommandSearch: (q) =>
     ipcRenderer.invoke("versions:command-search", { q }),
-  versionsOverviewKpis: () => ipcRenderer.invoke("versions:overview-kpis"),
-  versionsOverviewTrend: () => ipcRenderer.invoke("versions:overview-trend"),
-  versionsOverviewWatchlist: () =>
-    ipcRenderer.invoke("versions:overview-watchlist"),
-  versionsOverviewRecent: () => ipcRenderer.invoke("versions:overview-recent"),
-  versionsOverviewAiInsights: () =>
-    ipcRenderer.invoke("versions:overview-ai-insights"),
   // v2.50 (T5): LibraryPage / PageHeader / OverviewEmptyState / CommandPalette
   // "检查更新" 按钮统一走这里 → main 的 versions:run-check (→ check-runner.runCheckQueued)
   versionsRunCheck: () => ipcRenderer.invoke("versions:run-check"),

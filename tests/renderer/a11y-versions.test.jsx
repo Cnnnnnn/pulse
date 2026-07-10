@@ -25,7 +25,6 @@ import { ViewSwitcher } from "../../src/renderer/components/ViewSwitcher.jsx";
 import { MergedFilterChip } from "../../src/renderer/components/MergedFilterChip.jsx";
 import { AIDrawerShell } from "../../src/renderer/components/AIDrawerShell.jsx";
 import { openPalette, closePalette } from "../../src/renderer/command-palette-store.js";
-import { resetOverview } from "../../src/renderer/overview-store.js";
 import { setViewMode } from "../../src/renderer/library-view-store.js";
 import { results, resetCheck } from "../../src/renderer/store.js";
 
@@ -35,11 +34,6 @@ vi.mock("../../src/renderer/api.js", () => ({
     openUrl: vi.fn(),
     versionsRunCheck: vi.fn(async () => ({ started: true })),
     brewUpgrade: vi.fn(async () => undefined),
-    versionsOverviewKpis: vi.fn(async () => ({ upgradable: 0, latest: 0, error: 0, total: 0 })),
-    versionsOverviewTrend: vi.fn(async () => []),
-    versionsOverviewWatchlist: vi.fn(async () => []),
-    versionsOverviewRecent: vi.fn(async () => []),
-    versionsOverviewAiInsights: vi.fn(async () => ({ ok: true, text: "", fromCache: false })),
     releaseNotesGetCurrent: vi.fn(async () => null),
   },
 }));
@@ -62,7 +56,6 @@ vi.mock("../../src/renderer/release-notes-store.js", () => ({
 beforeEach(() => {
   cleanup();
   closePalette();
-  resetOverview();
   setViewMode("table");
   resetCheck();
 });
