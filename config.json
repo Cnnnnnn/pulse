@@ -154,7 +154,8 @@
           "url": "https://www.codebuddy.cn/docs/workbuddy/Changelog",
           "section_pattern": "<h2 id=\"_",
           "section_end": "<h2 id=\"_",
-          "version_pattern": ">([0-9.]+) 版本发布"
+          "version_pattern": ">([0-9.]+) 版本发布",
+          "enrich_only": true
         },
         {
           "type": "api_json",
@@ -248,10 +249,10 @@
       "winget_id": "Qoder.QoderWork"
     },
     {
-      "name": "Codex",
-      "bundle": "Codex.app",
-      "win_bundle": "Codex",
-      "download_url": "https://openai.com/codex/download",
+      "name": "ChatGPT",
+      "bundle": "ChatGPT.app",
+      "win_bundle": "ChatGPT",
+      "download_url": "https://openai.com/chatgpt/download",
       "release_notes_url": "https://developers.openai.com/codex/changelog",
       "detectors": [
         {

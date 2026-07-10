@@ -5,8 +5,9 @@
  *   1. MiniMax Code: html_changelog section_end 改 next-start 模式 +
  *      detector 排第一 (避开 chain 在 electron_yml 处 stop, 让 html_changelog
  *      跑通拿 markdown 内容).
- *   2. Codex: 加 rss_changelog detector (enrich_only) 排第一, sparkle_appcast
- *      排后拿版本号; 两者通过 enrich_only 合并, 拿 version + markdown.
+ *   2. ChatGPT (原 Codex, OpenAI 改名): 加 rss_changelog detector (enrich_only)
+ *      排第一, sparkle_appcast 排后拿版本号; 两者通过 enrich_only 合并,
+ *      拿 version + markdown.
  *   3. Marvis: 移除坏 html_changelog detector (指向主页, 不是 changelog 页),
  *      release_notes_url 改为主页, 加 bundle_changelog=true 拿 app bundle 内
  *      嵌 release notes (跟 QoderWork 同款).
@@ -35,8 +36,8 @@ describe("MiniMax Code detector order (config.json)", () => {
   });
 });
 
-describe("Codex detector (config.json)", () => {
-  const cx = cfg.apps.find((a) => a.name === "Codex");
+describe("ChatGPT (原 Codex) detector (config.json)", () => {
+  const cx = cfg.apps.find((a) => a.name === "ChatGPT");
   const rss = cx && cx.detectors.find((d) => d.type === "rss_changelog");
   const sparkle = cx && cx.detectors.find((d) => d.type === "sparkle_appcast");
 
@@ -56,6 +57,14 @@ describe("Codex detector (config.json)", () => {
   it("release_notes_url 指向 developers.openai.com/codex/changelog", () => {
     expect(cx.release_notes_url).toBe(
       "https://developers.openai.com/codex/changelog",
+    );
+  });
+
+  it("bundle 改为 ChatGPT.app (OpenAI 改名 Codex→ChatGPT, sparkle feed URL 不变)", () => {
+    expect(cx.bundle).toBe("ChatGPT.app");
+    // sparkle feed 仍是旧 codex-app-prod URL (OpenAI 没换, 仍 200 可用)
+    expect(sparkle.url).toBe(
+      "https://persistent.oaistatic.com/codex-app-prod/appcast.xml",
     );
   });
 });
