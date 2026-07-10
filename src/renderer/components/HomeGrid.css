@@ -1,7 +1,14 @@
 /**
  * src/renderer/components/HomeGrid.css
  *
- * v2 — Hero + 8 个 macOS 玻璃质感 tile.
+ * v3 — Hero + 8 个 macOS 玻璃质感 tile + 6 项完善:
+ *  - A1 未读角标 (.home-grid-tile-badge, 右上角小红点 + 数字)
+ *  - A2 快捷键提示 (.home-grid-tile-kbd, 副标题尾 ⌘1-8)
+ *  - A3 焦点环 (.home-grid-tile-focused, 跟 :focus-visible 一致)
+ *  - A4 last-active 提示 (.home-hero-last)
+ *  - A14 cascade 动画 (8 tile 错峰 40ms 淡入, --tile-cascade-delay 控延迟)
+ *  - A17 prefers-reduced-motion (.home-grid-reduced 关闭 transition/animation)
+ *
  *  - token-first, 全部走 var(--xxx, fallback)
  *  - 暗色 / 亮色自适应 (--bg-modal / --surface / --text-primary 自动切)
  *  - backdrop-filter 在不支持的 webview 上回退到半透明色
@@ -149,10 +156,13 @@
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, white 8%, transparent),
     var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+  /* transition 延迟用 --tile-cascade-delay: 挂载阶段错峰淡入,
+     挂载后 .home-grid-mounted 把它 reset 到 0, hover/focus 即时反应. */
   transition:
-    transform var(--ease-ui, 180ms cubic-bezier(0.25, 0.1, 0.25, 1)),
-    box-shadow var(--ease-ui, 180ms cubic-bezier(0.25, 0.1, 0.25, 1)),
-    background-color 120ms ease;
+    transform var(--ease-ui, 180ms cubic-bezier(0.25, 0.1, 0.25, 1)) var(--tile-cascade-delay, 0ms),
+    box-shadow var(--ease-ui, 180ms cubic-bezier(0.25, 0.1, 0.25, 1)) var(--tile-cascade-delay, 0ms),
+    background-color 120ms ease var(--tile-cascade-delay, 0ms),
+    opacity 280ms cubic-bezier(0.25, 0.1, 0.25, 1) var(--tile-cascade-delay, 0ms);
   overflow: hidden;
 }
 
@@ -255,4 +265,107 @@ body.theme-dark .home-grid-tile {
   .home-hero { padding: 12px 14px; gap: 10px; }
   .home-hero-mark { width: 30px; height: 30px; font-size: 14px; }
   .home-grid-tile { min-height: 80px; padding: 10px; }
+}
+
+/* ============================================================
+ * v3 — A1 未读角标
+ * 右上角红点 + 数字, macOS 通知角标风格.
+ * ============================================================ */
+.home-grid-tile-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: oklch(62% 0.22 25);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* ============================================================
+ * v3 — A2 快捷键提示 (副标题尾)
+ * 默认淡灰, hover/focus 时加深.
+ * ============================================================ */
+.home-grid-tile-kbd {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-family: var(--font-system);
+  color: var(--text-secondary);
+  background: color-mix(in oklch, var(--text-primary) 4%, transparent);
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 1px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.home-grid-tile:hover .home-grid-tile-kbd,
+.home-grid-tile:focus-visible .home-grid-tile-kbd,
+.home-grid-tile-focused .home-grid-tile-kbd {
+  background: color-mix(in oklch, var(--tile-accent, var(--accent-primary)) 14%, transparent);
+  color: var(--tile-accent, var(--accent-primary));
+}
+
+/* ============================================================
+ * v3 — A3 焦点环 (键盘焦点时显示, 跟 :focus-visible 一致)
+ * ============================================================ */
+.home-grid-tile-focused {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 10%, transparent),
+    var(--focus-ring, 0 0 0 3px rgba(10, 132, 255, 0.35)),
+    0 0 0 1px var(--accent-primary, #007aff) inset;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+ * v3 — A4 最近访问提示
+ * ============================================================ */
+.home-hero-last {
+  margin-left: 6px;
+  color: var(--text-secondary);
+}
+.home-hero-last-sep {
+  margin-right: 6px;
+  opacity: 0.5;
+}
+
+/* ============================================================
+ * v3 — A14 cascade 动画 (8 tile 错峰 40ms 淡入)
+ * 未挂载阶段 tile opacity 0 + translateY(8px), 挂载后 1 帧自然态.
+ * 基础 .home-grid-tile 的 transition 已带 var(--tile-cascade-delay) (默认 0);
+ * 挂载后 .home-grid-mounted 重置 cascade-delay 到 0, 让 hover 反应即时.
+ * --tile-cascade-delay 由 JSX 内联 style 设置 (idx * 40ms).
+ * ============================================================ */
+.home-grid-root:not(.home-grid-mounted) .home-grid-tile {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.home-grid-mounted .home-grid-tile {
+  --tile-cascade-delay: 0ms;
+}
+
+/* ============================================================
+ * v3 — A17 prefers-reduced-motion
+ * 系统设置减少动效时, 关闭所有 transition/animation.
+ * ============================================================ */
+.home-grid-reduced *,
+.home-grid-reduced *::before,
+.home-grid-reduced *::after {
+  transition-duration: 0.001ms !important;
+  animation-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+.home-grid-reduced .home-grid-tile {
+  /* 直接到自然状态, 跳过 cascade 起点 */
+  opacity: 1;
+  transform: none;
 }
