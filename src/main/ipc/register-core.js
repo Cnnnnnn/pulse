@@ -348,6 +348,52 @@ function registerCoreHandlers(ctx) {
     },
   );
 
+  // P-N: HomeGrid 落点
+  ipcMain.handle("get-last-active-nav", () => {
+    try {
+      return { lastActiveNav: stateStore.loadLastActiveNav() };
+    } catch (err) {
+      mainLog.warn("[ipc] get-last-active-nav threw", {
+        msg: err && err.message,
+      });
+      return { lastActiveNav: null };
+    }
+  });
+
+  safeHandle(
+    "save-last-active-nav",
+    (_event, key) => {
+      if (typeof key !== "string" || key.length === 0) {
+        return {
+          ok: false,
+          reason: "invalid_key",
+          lastActiveNav: stateStore.loadLastActiveNav(),
+        };
+      }
+      try {
+        const next = stateStore.saveLastActiveNav(key);
+        return { ok: true, lastActiveNav: next.last_active_nav };
+      } catch (err) {
+        if (err && err.name === "TypeError") {
+          return {
+            ok: false,
+            reason: "invalid_key",
+            lastActiveNav: stateStore.loadLastActiveNav(),
+          };
+        }
+        throw err;
+      }
+    },
+    {
+      logMeta: (_evt, key) => ({ key }),
+      onError: () => ({
+        ok: false,
+        reason: "threw",
+        lastActiveNav: stateStore.loadLastActiveNav(),
+      }),
+    },
+  );
+
   // Phase I5: digest IPC handlers
   safeHandle("digest:fetch-sections", () => {
     try {
