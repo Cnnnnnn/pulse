@@ -82,3 +82,6 @@ fuck-u-code-report.md
 # Playwright visual regression (P3) — baseline 入库, 临时失败产物忽略
 test-results/
 playwright-report/
+
+# ZCode CLI 本地会话/计划 (不入库)
+.zcode/
