@@ -173,4 +173,9 @@ describe("suppressedByCooldown", () => {
     const state = { apps: { A: { last_notified: "yesterday" } } };
     expect(suppressedByCooldown(results, state, 24 * HOUR, now)).toEqual([]);
   });
+
+  it("不传 now → 用 Date.now() (不会因为 NOW 巧合失败)", () => {
+    const state = { apps: { A: { last_notified: Date.now() - 1000 } } };
+    expect(suppressedByCooldown([APP_A], state, 60000)).toEqual(["A"]);
+  });
 });

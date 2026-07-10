@@ -5,6 +5,7 @@ node_modules/
 
 # codegraph local cache (index db + daemon socket)
 .codegraph/
+.code-review-graph/
 
 # Build output
 dist/
@@ -25,11 +26,17 @@ lerna-debug.log*
 
 # Editor / OS
 .DS_Store
+Thumbs.db
+desktop.ini
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+
+# Temp files
+*.tmp
+*.local
 
 # Test coverage
 coverage/
