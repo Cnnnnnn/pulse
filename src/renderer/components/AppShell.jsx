@@ -26,6 +26,7 @@ import { useEffect } from 'preact/hooks';
 import { activeNav, navCollapsed, setActiveNav } from '../worldcup/navStore.js';
 import { SideNav } from './SideNav.jsx';
 import { LazyNavPanel } from './LazyNavPanel.jsx';
+import { HomeGrid } from './HomeGrid.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 import { SearchModal } from '../search/SearchModal.jsx';
 import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
@@ -87,7 +88,9 @@ export function AppShell({ onCheck }) {
     <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
       <SideNav />
       <div class="app-shell-view">
-        <LazyNavPanel nav={nav} onCheck={onCheck} />
+        {nav === 'home'
+          ? <HomeGrid />
+          : <LazyNavPanel nav={nav} onCheck={onCheck} />}
       </div>
       <SearchModal />
     </div>
