@@ -1,0 +1,274 @@
+/**
+ * src/renderer/news/NewsLayout.css
+ *
+ * P-N+ 「新闻」tab 容器样式 — 单层 header + sub-tab body.
+ *
+ * 设计: 一个 header, 一行 brand+actions, 一行 tab strips, 错误 banner 内联,
+ * body 跟着 header 流. 不嵌套子 layout, 所以再也不需要 .display:none 隐藏子 header.
+ */
+
+.news-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-secondary);
+}
+
+.news-layout-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ============================================================
+ * Header — 1 行 brand+actions, 1 行 sub-tab strips
+ * ============================================================ */
+.news-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px var(--page-padding) 12px;
+  background: var(--chrome-bg, var(--bg-modal));
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.news-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* 第二行 (sub-tab strip 区) — 主 sub-tab 在左, 二级 sub-tab (IT 本月/收藏) 在右 */
+.news-header-row-tabs {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.news-header-brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.news-header-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-primary);
+  align-self: center;
+}
+
+.news-header-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.news-header-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.news-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+ * Refresh button — 跟左右源 (ithome-refresh-btn / wechat-hot-header-refresh) 一致形态
+ * ============================================================ */
+.news-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.news-refresh-btn:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
+  border-color: color-mix(in oklch, var(--accent-primary) 22%, transparent);
+  color: var(--accent-primary);
+}
+.news-refresh-btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.news-refresh-btn.is-loading .news-refresh-icon {
+  animation: news-refresh-spin 0.9s linear infinite;
+}
+.news-refresh-btn.is-cooling {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+@keyframes news-refresh-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+ * Search input — 复用 .feature-header input 形态
+ * ============================================================ */
+.news-search-input {
+  width: 220px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.news-search-input:focus {
+  outline: none;
+  border-color: color-mix(in oklch, var(--accent-primary) 50%, transparent);
+  background: var(--bg-modal);
+}
+.news-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+ * Error banner — 跨 sub-tab 共用一行, 跟 wechat-hot-header-error 同形态
+ * ============================================================ */
+.news-header-error {
+  font-size: 12.5px;
+  color: #c0392b;
+  background: color-mix(in oklch, #ff7e5f 12%, transparent);
+  border: 1px solid color-mix(in oklch, #c0392b 30%, transparent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+ * Main sub-tabs (IT / 微博)
+ * ============================================================ */
+.news-subtabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--accent-primary) 14%, transparent);
+}
+
+.news-subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.news-subtab:hover {
+  color: var(--text-primary);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
+}
+
+.news-subtab-active {
+  background: var(--bg-modal);
+  color: var(--accent-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.news-subtab-active:hover {
+  background: var(--bg-modal);
+  color: var(--accent-primary);
+}
+
+/* ============================================================
+ * IT 二级 sub-tabs (本月新闻 / 收藏) — 复用 ithome-subtabs 形态
+ * ============================================================ */
+.ithome-subtabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.ithome-subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.ithome-subtab:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.ithome-subtab-active {
+  background: var(--chrome-bg);
+  color: var(--accent-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ============================================================
+ * Wechat body 调整 — 单组件直挂 .news-layout-body, ul 需要接管 scroll
+ * ============================================================ */
+.news-layout[data-subtab="wechat-hot"] .news-layout-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.news-layout[data-subtab="wechat-hot"] .wechat-hot-list {
+  /* 让 ul 撑满父容器, 内部滚动交给父 .news-layout-body */
+  min-height: 0;
+}
+
+/* ponytail: prefers-reduced-motion 关 transition / animation */
+@media (prefers-reduced-motion: reduce) {
+  .news-subtab,
+  .ithome-subtab,
+  .news-refresh-btn,
+  .news-search-input {
+    transition: none;
+  }
+  .news-refresh-btn.is-loading .news-refresh-icon {
+    animation: none;
+  }
+}
