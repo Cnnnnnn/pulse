@@ -8303,13 +8303,19 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-variant-numeric: tabular-nums;
 }
 .ai-usage-overview-bar {
-  position: absolute;
-  left: 0;
-  bottom: 0;
+  position: relative;
+  margin-top: 8px;
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--cell-accent, var(--model-color-1)), transparent);
-  opacity: 0.5;
+  height: 4px;
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ai-usage-overview-bar-fill {
+  height: 100%;
+  background: var(--cell-accent, var(--model-color-1));
+  border-radius: 2px;
+  transition: width 200ms ease-out;
 }
 .ai-usage-overview-cell--highlight .ai-usage-overview-value {
   color: var(--accent-primary);
@@ -8317,6 +8323,59 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .ai-usage-overview-cell--highlight .ai-usage-overview-icon {
   background: var(--accent-primary);
   color: var(--text-inverse, #ffffff);
+}
+.ai-usage-overview-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cell-accent, var(--accent-primary)) 14%, transparent);
+  color: var(--cell-accent, var(--accent-primary));
+  letter-spacing: 0.04em;
+}
+.ai-usage-overview-sub-time {
+  margin-left: 6px;
+  color: var(--text-tertiary);
+}
+.ai-usage-overview-status {
+  font-size: 10px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  color: var(--text-tertiary);
+  letter-spacing: 0.06em;
+}
+
+/* ▸ Dashboard 顶部数据边界 banner */
+.ai-usage-dashboard-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-primary) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 18%, var(--border));
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ai-usage-dashboard-banner-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--accent-primary);
+  color: var(--text-inverse, #ffffff);
+  margin-top: 1px;
+}
+.ai-usage-dashboard-banner-text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 /* ▸ 分析网格层: 模型分布 + 峰值日 + 近期迷你趋势 (响应式多栏) */

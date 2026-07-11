@@ -1,20 +1,19 @@
 /**
  * src/renderer/components/UsageDashboard.jsx
  *
- * Minimax 用量仪表盘 — 依赖合并 snapshot:
- *   - snapshot.usageSummary:                  来自 /usage_summary (minimax 未对订阅 key
- *                                             公开的内部端点; 拿不到时本组件 return null,
- *                                             AIUsagePage 回退到老 WindowCard 4 张)
+ * Minimax 用量仪表盘 — 4 分区布局, 主站系统集成 (跟随 data-theme 切换浅/暗):
+ *   1. 概览 — KPI 卡 (来自 windows: 5h / weekly / video / videoWeekly / credit)
+ *   2. 趋势 — 90 天 token 走势 (UsageTrendChart, 需要 usageSummary.dailyTokenUsage)
+ *   3. 分析 — 模型分布 + 最活跃日 + 近期 sparkline
+ *   4. 明细 — 每日用量表 (UsageDetailList, 需要 usageSummary.dateModelUsage)
  *
- * 渲染四块 (主站系统集成 — 跟随 data-theme 切换浅/暗, 引用主站 token):
- *   1. 顶部概览条 — 累计 / 已用天数 / 连续 / 排名 (带 icon)
- *   2. 最活跃日卡 — 单日峰值 + 模型/媒体分布
- *   3. 90 天 token 用量趋势 (UsageTrendChart SVG + brush + a11y)
- *   4. 模型分布表 — 按 token 占比降序, 多色横条 + dot indicator
+ * 数据源策略 (用户: "基于新 UI 不断完善, 调用老的 api 去完善"):
+ *   - 概览区 始终渲染 — 来自公开 remains_percent 端点 (windows + credits), 拿不到就 return null
+ *   - 趋势 / 分析 / 明细区 仅在 usageSummary 拿到时渲染, 缺数据不渲染 (符合"拿不到数据的,
+ *     不用展示"). usageSummary 来自 minimax 内部 usage_summary 端点, 当前订阅 key
+ *     拿不到 (401 not login), 但将来开放后这些分区会自动出现.
  *
- * ponytail: 拿不到 usageSummary → return null (不渲染 dashboard, 也不渲染空 KPI 兜底).
- *   AIUsagePage 顶部的老 WindowCard 4 张继续展示 (它们来自公开 remains_percent, 数据真实).
- *   这样新 UI (4 分区 dashboard) 跟老 UI (WindowCard) 不会重复出现, 也不会展示"无数据占位".
+ * 顶部 banner 解释数据边界.
  */
 
 import { useMemo } from "preact/hooks";
@@ -71,7 +70,132 @@ function formatDateShort(isoDate) {
 // ─── 子组件 ──────────────────────────────────────────────
 
 /**
- * 顶部概览条 — 4 个等宽数据格 (每格带 icon + 重点色 + 微动画).
+ * 概览 KPI 卡 — 用 windows 数据填充.
+ *
+ * 数据源: snapshot.windows (公开 remains_percent 端点).
+ * 优先级: 5h / weekly / video / videoWeekly / credit — 有多少展示多少.
+ * 信息量 >= 老 WindowCard 4 张: 已用% / 进度条 / 倒计时 / status / modelName.
+ */
+function UsageWindowOverview({ snapshot }) {
+  const windows = (snapshot && snapshot.windows) || {};
+  const credit = snapshot && snapshot.credits;
+  const entries = useMemo(() => {
+    const out = [];
+    const order = [
+      ["5h", { icon: "⏱", label: "5 小时窗口", accent: "var(--model-color-1)" }],
+      ["weekly", { icon: "📅", label: "周窗口", accent: "var(--model-color-3)", isWeekly: true }],
+      ["video", { icon: "🎬", label: "视频赠送", accent: "var(--model-color-4)" }],
+      ["videoWeekly", { icon: "🎞", label: "视频周额度", accent: "var(--model-color-6)" }],
+    ];
+    for (const [key, meta] of order) {
+      const w = windows[key];
+      if (!w || typeof w !== "object") continue;
+      const usedPct = typeof w.usedPercent === "number" ? w.usedPercent : null;
+      const resetInSec = typeof w.resetInSec === "number" ? w.resetInSec : null;
+      const total = typeof w.total === "number" ? w.total : null;
+      const remaining = typeof w.remaining === "number" ? w.remaining : null;
+      const used = typeof w.used === "number" ? w.used : null;
+      const status = typeof w.status === "number" ? w.status : null;
+      out.push({
+        key,
+        ...meta,
+        usedPct,
+        resetInSec,
+        total,
+        remaining,
+        used,
+        status,
+        highlight: usedPct != null && usedPct >= 50,
+      });
+    }
+    if (credit && typeof credit === "object") {
+      const remaining = typeof credit.remaining === "number" ? credit.remaining : null;
+      const total = typeof credit.total === "number" ? credit.total : null;
+      out.push({
+        key: "credit",
+        icon: "💎",
+        label: "积分余额",
+        usedPct: (remaining != null && total != null && total > 0)
+          ? Math.round(((total - remaining) / total) * 100)
+          : null,
+        total,
+        remaining,
+        used: (total != null && remaining != null) ? total - remaining : null,
+        resetInSec: null,
+        status: null,
+        accent: "var(--model-color-2)",
+      });
+    }
+    return out;
+  }, [windows, credit]);
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div class="ai-usage-overview">
+      {entries.map((c) => (
+        <div
+          key={c.key}
+          class={`ai-usage-overview-cell${c.highlight ? " ai-usage-overview-cell--highlight" : ""}`}
+          style={{ "--cell-accent": c.accent }}
+        >
+          <div class="ai-usage-overview-top">
+            <span class="ai-usage-overview-icon" aria-hidden="true">{c.icon}</span>
+            <span class="ai-usage-overview-label">{c.label}</span>
+            {c.isWeekly && snapshot && typeof snapshot.weeklyBoostPermille === "number" && (
+              <span class="ai-usage-overview-badge">
+                {snapshot.weeklyBoostPermille >= 1000
+                  ? `+${((snapshot.weeklyBoostPermille / 1000 - 1) * 100).toFixed(0)}%`
+                  : null}
+              </span>
+            )}
+          </div>
+          <div class="ai-usage-overview-value">
+            {c.usedPct != null ? `${c.usedPct}%` : "—"}
+          </div>
+          <div class="ai-usage-overview-sub">
+            {c.remaining != null ? `剩 ${formatCompact(c.remaining)}` : null}
+            {c.resetInSec != null && (
+              <span class="ai-usage-overview-sub-time">
+                重置 {formatResetIn(c.resetInSec)}
+              </span>
+            )}
+          </div>
+          {typeof c.status === "number" && (
+            <div class="ai-usage-overview-status">status {c.status}</div>
+          )}
+          <div class="ai-usage-overview-bar" aria-hidden="true">
+            <div
+              class="ai-usage-overview-bar-fill"
+              style={{ width: `${Math.max(0, Math.min(100, c.usedPct ?? 0))}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 把秒数倒计时格式化成简短中文: 3600 → "1h 0m", 90 → "1m 30s".
+ */
+function formatResetIn(sec) {
+  if (!Number.isFinite(sec) || sec < 0) return "—";
+  if (sec < 60) return `${Math.round(sec)}s`;
+  if (sec < 3600) return `${Math.round(sec / 60)}m`;
+  if (sec < 86400) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.round((sec % 3600) / 60);
+    return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  }
+  const d = Math.floor(sec / 86400);
+  const h = Math.round((sec % 86400) / 3600);
+  return h === 0 ? `${d}d` : `${d}d ${h}h`;
+}
+
+/**
+ * 顶部概览条 — 用 usageSummary 数据的 4 KPI 卡 (累计 / 周期 / 连续 / 排名).
+ * 仅当 usageSummary 拿到时渲染 (深度统计).
  */
 function UsageOverviewStrip({ usageSummary }) {
   const cells = useMemo(() => {
@@ -263,42 +387,67 @@ function ModelBreakdownTable({ usageSummary }) {
 
 export function UsageDashboard({ snapshot, history }) {
   const usageSummary = snapshot && snapshot.usageSummary;
-  if (!usageSummary || typeof usageSummary !== "object") return null;
+  const hasUsageSummary = usageSummary && typeof usageSummary === "object";
+  const hasWindows = snapshot && snapshot.windows && Object.keys(snapshot.windows).length > 0;
+
+  // 任何分区都没有数据 → 不渲染 dashboard
+  if (!hasWindows && !hasUsageSummary) return null;
 
   const hasDetail =
-    Array.isArray(usageSummary.dateModelUsage) && usageSummary.dateModelUsage.length > 0;
+    hasUsageSummary && Array.isArray(usageSummary.dateModelUsage) && usageSummary.dateModelUsage.length > 0;
+  const hasTrend =
+    hasUsageSummary && Array.isArray(usageSummary.dailyTokenUsage) && usageSummary.dailyTokenUsage.length > 0;
+  const hasBreakdown =
+    hasUsageSummary && Array.isArray(usageSummary.modelBreakdown) && usageSummary.modelBreakdown.length > 0;
+  const hasMostActive = hasUsageSummary && usageSummary.mostActiveDay && usageSummary.mostActiveDay.date;
 
   return (
     <div class="ai-usage-dashboard">
-      {/* ▸ 分区: 概览 — KPI 四格 */}
+      {/* ▸ 数据边界 banner — 只有当深度统计拿不到时提示 */}
+      {!hasUsageSummary && hasWindows && (
+        <div class="ai-usage-dashboard-banner" role="status">
+          <span class="ai-usage-dashboard-banner-icon" aria-hidden="true">ⓘ</span>
+          <span class="ai-usage-dashboard-banner-text">
+            <strong>仅展示公开数据</strong>
+            — 累计消耗 / 模型分布 / 每日明细 来自 minimax usage_summary 端点, 当前订阅 key 拿不到.
+          </span>
+        </div>
+      )}
+
+      {/* ▸ 分区: 概览 — windows KPI (公开 API) + 可选 usageSummary KPI */}
       <section class="ai-usage-zone">
         <div class="ai-usage-zone-label">
           <span class="ai-usage-zone-eyebrow">概览</span>
         </div>
-        <UsageOverviewStrip usageSummary={usageSummary} />
+        <UsageWindowOverview snapshot={snapshot} />
+        {hasUsageSummary && <UsageOverviewStrip usageSummary={usageSummary} />}
       </section>
 
-      {/* ▸ 分区: 趋势 — 90 天 token 用量 (独占主区) */}
-      <section class="ai-usage-zone">
-        <div class="ai-usage-zone-label">
-          <span class="ai-usage-zone-eyebrow">趋势</span>
-        </div>
-        <UsageTrendSection usageSummary={usageSummary} />
-      </section>
+      {/* ▸ 分区: 趋势 — 90 天 token 用量 (需要 usageSummary) */}
+      {hasTrend && (
+        <section class="ai-usage-zone">
+          <div class="ai-usage-zone-label">
+            <span class="ai-usage-zone-eyebrow">趋势</span>
+          </div>
+          <UsageTrendSection usageSummary={usageSummary} />
+        </section>
+      )}
 
-      {/* ▸ 分区: 分析 — 模型分布 + 峰值日 + 近期迷你趋势 (响应式多栏) */}
-      <section class="ai-usage-zone">
-        <div class="ai-usage-zone-label">
-          <span class="ai-usage-zone-eyebrow">分析</span>
-        </div>
-        <div class="ai-usage-analytics-grid">
-          <ModelBreakdownTable usageSummary={usageSummary} />
-          <MostActiveDayCard usageSummary={usageSummary} />
-          {history && <UsageHistoryCard history={history} />}
-        </div>
-      </section>
+      {/* ▸ 分区: 分析 — 模型分布 + 峰值日 + 近期迷你趋势 */}
+      {(hasBreakdown || hasMostActive || history) && (
+        <section class="ai-usage-zone">
+          <div class="ai-usage-zone-label">
+            <span class="ai-usage-zone-eyebrow">分析</span>
+          </div>
+          <div class="ai-usage-analytics-grid">
+            {hasBreakdown && <ModelBreakdownTable usageSummary={usageSummary} />}
+            {hasMostActive && <MostActiveDayCard usageSummary={usageSummary} />}
+            {history && <UsageHistoryCard history={history} />}
+          </div>
+        </section>
+      )}
 
-      {/* ▸ 分区: 明细 — 每日用量明细表 (dateModelUsage 真实数据) */}
+      {/* ▸ 分区: 明细 — 每日用量明细表 */}
       {hasDetail && (
         <section class="ai-usage-zone">
           <div class="ai-usage-zone-label">

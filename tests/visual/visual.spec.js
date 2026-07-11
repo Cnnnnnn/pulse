@@ -320,9 +320,31 @@ const AI_USAGE_FIXTURE_SNAPSHOT = {
   fetchedAt: Date.parse("2026-07-10T12:00:00Z"),
   endpoint: "https://api.minimaxi.com/v1/usage",
   windows: {
-    "5h": { used: 120_000, total: 1_000_000, usedPercent: 12, resetAt: "今天 18:00" },
-    weekly: { used: 4_500, total: 10_000, usedPercent: 45, resetAt: "下周一" },
+    "5h": {
+      used: 120_000, total: 1_000_000, usedPercent: 12, remaining: 880_000,
+      resetAt: Date.parse("2026-07-10T14:00:00Z"), resetInSec: 7200,
+      label: "5 小时滚动窗口", modelName: "general", status: 1,
+      startTime: Date.parse("2026-07-10T12:00:00Z"), endTime: Date.parse("2026-07-10T14:00:00Z"),
+    },
+    weekly: {
+      used: 4_500_000, total: 10_000_000, usedPercent: 45, remaining: 5_500_000,
+      resetAt: Date.parse("2026-07-15T00:00:00Z"), resetInSec: 4 * 86400,
+      label: "周窗口", modelName: "general", status: 1,
+      startTime: Date.parse("2026-07-08T00:00:00Z"), endTime: Date.parse("2026-07-15T00:00:00Z"),
+    },
+    video: {
+      used: 0, total: 3, usedPercent: 0, remaining: 3,
+      resetAt: Date.parse("2026-07-11T00:00:00Z"), resetInSec: 86400,
+      label: "视频赠送", modelName: "video", status: 1,
+    },
+    videoWeekly: {
+      used: 0, total: 21, usedPercent: 0, remaining: 21,
+      resetAt: Date.parse("2026-07-15T00:00:00Z"), resetInSec: 4 * 86400,
+      label: "视频周额度", modelName: "video", status: 1,
+    },
   },
+  credits: { used: 0, total: 5000, remaining: 5000, label: "积分" },
+  weeklyBoostPermille: 1500,
   usageSummary: {
     totalDays: 90,
     totalTokenConsumed: 7_450_000_000,
@@ -441,6 +463,117 @@ test("ai-usage tab — dark theme baseline (跟随主站 data-theme=dark)", asyn
   await page.waitForSelector(".ai-usage-dashboard", { timeout: 15_000 });
   await page.waitForTimeout(1200);
   await expect(page).toHaveScreenshot("ai-usage-tab-dark.png", {
+    fullPage: false,
+  });
+});
+
+/* ───────────────────────────────────────────────────────────
+   AI Coding 用量 dashboard — Fallback (公开 API only, 401 fallback)
+
+   真实运行时 minimax usage_summary 端点对订阅 key 返回 401. dashboard
+   应该用 windows 数据填充概览 KPI, 顶部 banner 说明数据边界, 趋势/分析/
+   明细区缺数据不渲染. 验证浅/暗双主题下视觉无破绽.
+   ─────────────────────────────────────────────────────────── */
+
+const AI_USAGE_FALLBACK_FIXTURE = {
+  fetchedAt: Date.parse("2026-07-10T12:00:00Z"),
+  endpoint: "https://www.minimaxi.com/backend/account/token_plan/remains_percent",
+  windows: {
+    "5h": {
+      used: 120_000, total: 1_000_000, usedPercent: 12, remaining: 880_000,
+      resetAt: Date.parse("2026-07-10T14:00:00Z"), resetInSec: 7200,
+      label: "5 小时滚动窗口", modelName: "general", status: 1,
+    },
+    weekly: {
+      used: 4_500_000, total: 10_000_000, usedPercent: 45, remaining: 5_500_000,
+      resetAt: Date.parse("2026-07-15T00:00:00Z"), resetInSec: 4 * 86400,
+      label: "周窗口", modelName: "general", status: 1,
+    },
+    video: {
+      used: 0, total: 3, usedPercent: 0, remaining: 3,
+      resetAt: Date.parse("2026-07-11T00:00:00Z"), resetInSec: 86400,
+      label: "视频赠送", modelName: "video", status: 1,
+    },
+    videoWeekly: {
+      used: 0, total: 21, usedPercent: 0, remaining: 21,
+      resetAt: Date.parse("2026-07-15T00:00:00Z"), resetInSec: 4 * 86400,
+      label: "视频周额度", modelName: "video", status: 1,
+    },
+  },
+  credits: { used: 0, total: 5000, remaining: 5000, label: "积分" },
+  weeklyBoostPermille: 1500,
+  // 关键: 故意不带 usageSummary, 触发 fallback (banner + 概览 KPI)
+};
+
+const pushAiUsageFallbackFixture = `
+  (function pushAiUsageFallbackFixture() {
+    if (typeof window.api === 'undefined') return;
+    const origApi = window.api;
+    const overrides = {};
+    overrides.onAiUsageUpdated = function (cb) {
+      window.__aiUsageSubscribed = (window.__aiUsageSubscribed || 0) + 1;
+      setTimeout(function () {
+        if (typeof cb === 'function') {
+          window.__aiUsagePushed = (window.__aiUsagePushed || 0) + 1;
+          cb({ provider: 'minimax', snapshot: ${JSON.stringify(AI_USAGE_FALLBACK_FIXTURE)}, history: { days: [] } });
+        }
+      }, 100);
+    };
+    window.api = new Proxy(origApi, {
+      get(target, key) {
+        if (key in overrides) return overrides[key];
+        return target[key];
+      },
+      set(target, key, value) {
+        overrides[key] = value;
+        return true;
+      },
+    });
+  })();
+`;
+
+test("ai-usage tab — fallback (公开 API only) light baseline", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+    } catch {}
+  });
+  await page.addInitScript(pushAiUsageFallbackFixture);
+  await page.goto("/");
+  await waitForShell(page);
+  const aiTile = page.locator('[aria-label*="AI 用量"]').first();
+  if (await aiTile.count()) {
+    await aiTile.click();
+  }
+  await page.waitForSelector(".ai-usage-dashboard-banner", { timeout: 15_000 });
+  await page.waitForTimeout(1000);
+  await expect(page).toHaveScreenshot("ai-usage-tab-fallback-light.png", {
+    fullPage: false,
+  });
+});
+
+test("ai-usage tab — fallback (公开 API only) dark baseline", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "dark");
+    } catch {}
+  });
+  await page.addInitScript(pushAiUsageFallbackFixture);
+  await page.goto("/");
+  await waitForShell(page);
+  const aiTile = page.locator('[aria-label*="AI 用量"]').first();
+  if (await aiTile.count()) {
+    await aiTile.click();
+  }
+  await page.waitForSelector(".ai-usage-dashboard-banner", { timeout: 15_000 });
+  await page.waitForTimeout(1000);
+  await expect(page).toHaveScreenshot("ai-usage-tab-fallback-dark.png", {
     fullPage: false,
   });
 });

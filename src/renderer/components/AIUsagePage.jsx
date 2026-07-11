@@ -493,34 +493,7 @@ function ProviderUsageView({ provider }) {
         </div>
       )}
 
-      {snapshot && (
-        <div class="ai-usage-cards">
-          {_pickBlocksForDisplay(snapshot).map((card) => {
-            // GLM 仍走 mcp key, 其他 provider 走 card.windowKey
-            const windowKey = card.windowKey;
-            const wins = snapshot?.windows ?? {};
-            const prevWins = prevSnapshot?.windows ?? {};
-            const win = wins[windowKey] ?? null;
-            const prevWin = prevWins[windowKey] ?? null;
-            // weekly 卡传 boost badge (周配额加成)
-            const isWeekly = windowKey === "weekly";
-            const boost = isWeekly ? (snapshot?.weeklyBoostPermille ?? null) : null;
-            return (
-              <WindowCard
-                key={windowKey}
-                window={win}
-                prevWindow={prevWin}
-                now={now}
-                modelName={card.modelName}
-                boostPermille={boost}
-                showRawFields
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {snapshot && provider === "minimax" && snapshot.usageSummary && (
+      {snapshot && provider === "minimax" && (
         <UsageDashboard snapshot={snapshot} history={history} />
       )}
 
