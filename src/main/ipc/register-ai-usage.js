@@ -103,9 +103,33 @@ const _internals = {
         if (us && us.ok && us.usageStats) {
           usageSummary = us.usageStats;
         } else {
+          // ponytail: 写 fail log 到 ~/Library/Logs/Pulse/, 跟 minimax-raw.json 配对,
+          // 方便诊断"为什么 UsageDashboard 没渲染" — 真实 fetch 失败原因直接 cat 文件即可.
+          try {
+            const path = require("path");
+            const fs = require("fs");
+            const os = require("os");
+            const logDir = path.join(os.homedir(), "Library", "Logs", "Pulse");
+            fs.mkdirSync(logDir, { recursive: true });
+            fs.writeFileSync(
+              path.join(logDir, "minimax-usage-summary-fail.log"),
+              `${new Date().toISOString()} reason=${us && us.reason} status=${us && us.status} error=${us && us.error}\n`,
+            );
+          } catch { /* ignore */ }
           log_warn_history(`usage_summary fetch failed: ${us && us.reason}`);
         }
       } catch (e) {
+        try {
+          const path = require("path");
+          const fs = require("fs");
+          const os = require("os");
+          const logDir = path.join(os.homedir(), "Library", "Logs", "Pulse");
+          fs.mkdirSync(logDir, { recursive: true });
+          fs.writeFileSync(
+            path.join(logDir, "minimax-usage-summary-fail.log"),
+            `${new Date().toISOString()} threw=${e && e.message}\n${e && e.stack}\n`,
+          );
+        } catch { /* ignore */ }
         log_warn_history(`usage_summary fetch threw: ${e && e.message}`);
       }
     }

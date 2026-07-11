@@ -178,6 +178,18 @@ class MiniMaxQuotaClient {
   }
 
   async _doFetchUsageSummary(opts = {}) {
+    // ponytail: 写"开始调用"log, 方便验证 _doFetchUsageSummary 是否被触达
+    try {
+      const path = require("path");
+      const fs = require("fs");
+      const os = require("os");
+      const logDir = path.join(os.homedir(), "Library", "Logs", "Pulse");
+      fs.mkdirSync(logDir, { recursive: true });
+      fs.appendFileSync(
+        path.join(logDir, "minimax-usage-summary-trace.log"),
+        `${new Date().toISOString()} _doFetchUsageSummary enter region=${opts.region || this.region}\n`,
+      );
+    } catch { /* ignore */ }
     if (typeof this.apiKey !== "string" || this.apiKey.length === 0) {
       return { ok: false, reason: "api_key_missing" };
     }
