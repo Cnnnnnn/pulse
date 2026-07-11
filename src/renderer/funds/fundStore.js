@@ -433,3 +433,39 @@ export function subscribeNavUpdates(api) {
     }
   };
 }
+
+// ── NAV history cache (新接口 funds:nav:history) ──
+export const navHistoryCache = signal({}); // { [code]: { series, loadedAt } }
+
+export const categoryAllocation = computed(() => {
+  const rows = rowsWithMetrics.value || [];
+  const acc = { stock: 0, bond: 0, money: 0, qdii: 0, other: 0 };
+  let total = 0;
+  for (const r of rows) {
+    const cat = (r.holding && r.holding.category) || "other";
+    const mv = (r.metrics && r.metrics.marketValue) || 0;
+    acc[cat] = (acc[cat] || 0) + mv;
+    total += mv;
+  }
+  return { byCategory: acc, total };
+});
+
+export async function loadFundNavHistory(api, code) {
+  if (!code) return { ok: false };
+  const cached = navHistoryCache.value[code];
+  if (cached && cached.series && cached.series.length) {
+    return { ok: true, series: cached.series, cached: true };
+  }
+  try {
+    const r = await api.fundsNavHistory(code, { days: 30 });
+    if (r && r.ok && r.series) {
+      navHistoryCache.value = Object.assign({}, navHistoryCache.value, {
+        [code]: { series: r.series, loadedAt: Date.now() },
+      });
+      return { ok: true, series: r.series };
+    }
+    return { ok: false, reason: r && r.reason };
+  } catch (err) {
+    return { ok: false, reason: err && err.message };
+  }
+}
