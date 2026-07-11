@@ -6630,7 +6630,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .match-card-main:focus-visible,
 .fund-search-input:focus-visible,
 .worldcup-search-input:focus-visible,
-.filter-search-input:focus-visible {
+.filter-search-input:focus-visible,
+.fund-card-toggle:focus-visible,
+.fund-pnl-month-btn:focus-visible,
+.fund-pnl-collapse-btn:focus-visible,
+.fund-source-btn:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
