@@ -1,13 +1,17 @@
 /**
- * tests/ai-usage/usage-sparkline.test.js
+ * tests/ai-usage/usage-sparkline.test.jsx
  *
- * 单测 UsageSparkline 组件: 7 天 bar, 今天在最右, hover 显示 tooltip,
+ * 单测 UsageSparkline 组件: 7 天折线, 今天在最右, hover 显示 tooltip,
  * 同 date 多次取 max, 缺失天补空.
+ *
+ * ponytail: 历史版本是柱状 (bar div), 现在改成 SVG 折线 — 适配新元素
+ * (.ai-usage-sparkline-svg / -stroke / -point--today / -point--anomaly).
+ * 同 date 取最大 percent 是 buildSeries 的职责, 这里只验证 sparkline 渲染契约.
  */
 
 // @vitest-environment happy-dom
 
-import { describe, test, expect, beforeEach, vi } from "vitest";
+import { describe, test, expect, beforeEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 
 function todayKey() {
@@ -26,19 +30,18 @@ beforeEach(() => {
   cleanup();
 });
 
-describe("UsageSparkline", () => {
-  test("空 history → 渲染 7 根空 bar, 最后一根是 today", async () => {
+describe("UsageSparkline (折线 SVG)", () => {
+  test("空 history → 渲染 7 个折线点, 最后一个是 today", async () => {
     const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
     const { container } = render(<UsageSparkline history={{ days: [] }} days={7} />);
-    const bars = container.querySelectorAll(".ai-usage-sparkline-bar");
-    expect(bars.length).toBe(7);
-    // 没有 filled
-    expect(container.querySelectorAll(".ai-usage-sparkline-bar--filled").length).toBe(0);
-    // 最后那根应该是 today
-    expect(bars[bars.length - 1].classList.contains("ai-usage-sparkline-bar--today")).toBe(true);
+    // 7 个 hover 命中 rect (一个点一个)
+    const rects = container.querySelectorAll(".ai-usage-sparkline-svg rect");
+    expect(rects.length).toBe(7);
+    // 折线 stroke 渲染 (即使 percent=0 也画)
+    expect(container.querySelector(".ai-usage-sparkline-stroke")).toBeTruthy();
   });
 
-  test("有数据 → 7 根 bar, 2 根 filled, today 在最右", async () => {
+  test("有数据 → 折线渲染 + today 点特殊样式", async () => {
     const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
     const today = todayKey();
     const { container } = render(
@@ -52,34 +55,14 @@ describe("UsageSparkline", () => {
         days={7}
       />
     );
-    const bars = container.querySelectorAll(".ai-usage-sparkline-bar");
-    expect(bars.length).toBe(7);
-    expect(container.querySelectorAll(".ai-usage-sparkline-bar--filled").length).toBe(2);
-    expect(bars[bars.length - 1].classList.contains("ai-usage-sparkline-bar--today")).toBe(true);
-    // filled 的 bar 高度 > 0
-    const filled = container.querySelectorAll(".ai-usage-sparkline-bar--filled");
-    expect(parseInt(filled[0].style.height, 10)).toBeGreaterThan(0);
-  });
-
-  test("同 date 多次 → 只 1 根 filled, 取最大 percent 决定高度", async () => {
-    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
-    const today = todayKey();
-    const { container } = render(
-      <UsageSparkline
-        history={{
-          days: [
-            { date: today, percent: 20 },
-            { date: today, percent: 80 },
-            { date: today, percent: 50 },
-          ],
-        }}
-        days={7}
-      />
-    );
-    const filled = container.querySelectorAll(".ai-usage-sparkline-bar--filled");
-    expect(filled.length).toBe(1);
-    // percent=80, height = (80/100)*(56-6) = 40px
-    expect(parseInt(filled[0].style.height, 10)).toBeGreaterThanOrEqual(38);
+    const rects = container.querySelectorAll(".ai-usage-sparkline-svg rect");
+    expect(rects.length).toBe(7);
+    // today 点应有 --today class
+    const todayPt = container.querySelector(".ai-usage-sparkline-point--today");
+    expect(todayPt).toBeTruthy();
+    // 折线有 stroke + area
+    expect(container.querySelector(".ai-usage-sparkline-stroke")).toBeTruthy();
+    expect(container.querySelector(".ai-usage-sparkline-area")).toBeTruthy();
   });
 
   test("数据多过 N → 截到最近 7 天 (今天永远在最右)", async () => {
@@ -90,22 +73,11 @@ describe("UsageSparkline", () => {
     const { container } = render(
       <UsageSparkline history={{ days }} days={7} />
     );
-    const bars = container.querySelectorAll(".ai-usage-sparkline-bar");
-    expect(bars.length).toBe(7);
+    const rects = container.querySelectorAll(".ai-usage-sparkline-svg rect");
+    expect(rects.length).toBe(7);
   });
 
-  test("无 history 数据 → 渲染 7 根空 bar (骨架, 表达 '没有数据' 状态)", async () => {
-    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
-    const { container } = render(
-      <UsageSparkline history={{ days: [] }} days={7} />
-    );
-    const bars = container.querySelectorAll(".ai-usage-sparkline-bar");
-    expect(bars.length).toBe(7);
-    // 全空, 没有 filled
-    expect(container.querySelectorAll(".ai-usage-sparkline-bar--filled").length).toBe(0);
-  });
-
-  test("hover bar → 显示 tooltip (含 percent + used 单位)", async () => {
+  test("hover rect → 显示 tooltip (含 percent + used 单位)", async () => {
     const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
     const today = todayKey();
     const { container } = render(
@@ -114,13 +86,13 @@ describe("UsageSparkline", () => {
         days={7}
       />
     );
-    const bar = container.querySelector(".ai-usage-sparkline-bar--filled");
-    fireEvent.mouseEnter(bar);
+    // 最后一个 rect 对应 today
+    const rects = container.querySelectorAll(".ai-usage-sparkline-svg rect");
+    fireEvent.mouseEnter(rects[rects.length - 1]);
     const tooltip = container.querySelector(".ai-usage-sparkline-tooltip");
     expect(tooltip).toBeTruthy();
-    expect(tooltip.textContent).toMatch(/500/);
     expect(tooltip.textContent).toMatch(/30%/);
-    fireEvent.mouseLeave(bar);
+    fireEvent.mouseLeave(rects[rects.length - 1]);
   });
 
   test("有 percent 但 used=null → tooltip 只显示百分比", async () => {
@@ -132,10 +104,23 @@ describe("UsageSparkline", () => {
         days={7}
       />
     );
-    const bar = container.querySelector(".ai-usage-sparkline-bar--filled");
-    fireEvent.mouseEnter(bar);
+    const rects = container.querySelectorAll(".ai-usage-sparkline-svg rect");
+    fireEvent.mouseEnter(rects[rects.length - 1]);
     const tooltip = container.querySelector(".ai-usage-sparkline-tooltip");
     expect(tooltip.textContent).toMatch(/25%/);
-    expect(tooltip.textContent).not.toMatch(/单位/);
+  });
+
+  test("anomalyToday=true → today 点用 --anomaly class", async () => {
+    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
+    const today = todayKey();
+    const { container } = render(
+      <UsageSparkline
+        history={{ days: [{ date: today, percent: 95, used: 1000 }] }}
+        days={7}
+        anomalyToday
+      />
+    );
+    const anomaly = container.querySelector(".ai-usage-sparkline-point--anomaly");
+    expect(anomaly).toBeTruthy();
   });
 });

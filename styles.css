@@ -7811,37 +7811,46 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 20px 0;
 }
 
-.ai-usage-sparkline-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-1);
+.ai-usage-sparkline-empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: 20px 0;
 }
 
-.ai-usage-sparkline-bar {
-  flex: 1;
-  min-width: 8px;
-  background: var(--border-color);
-  border-radius: 2px 2px 0 0;
-  transition: background-color 0.15s ease, transform 0.15s ease;
-  cursor: default;
+.ai-usage-sparkline-svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
 }
-
-.ai-usage-sparkline-bar--filled {
-  background: linear-gradient(180deg, #5a9cf8 0%, #3a7adf 100%);
+.ai-usage-sparkline-stroke {
+  fill: none;
+  stroke: var(--accent-primary);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
-
-.ai-usage-sparkline-bar--today {
-  background: linear-gradient(180deg, #ff9544 0%, #f37735 100%);
+.ai-usage-sparkline-area {
+  fill: var(--accent-primary);
+  opacity: 0.14;
+  stroke: none;
 }
-
-.ai-usage-sparkline-bar--anomaly {
-  background: linear-gradient(180deg, #ff6b6b 0%, #e03131 100%);
-  box-shadow: 0 0 0 1px rgba(224, 49, 49, 0.35);
+.ai-usage-sparkline-point {
+  fill: var(--accent-primary);
+  stroke: var(--surface);
+  stroke-width: 1;
 }
-
-.ai-usage-sparkline-bar--hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.ai-usage-sparkline-point--today {
+  fill: #ff9544;
+}
+.ai-usage-sparkline-point--anomaly {
+  fill: #e03131;
+  stroke: rgba(224, 49, 49, 0.35);
+}
+.ai-usage-sparkline-point--hover {
+  fill: var(--accent-primary);
+  opacity: 0.85;
 }
 
 .ai-usage-sparkline-x-labels {
@@ -7869,6 +7878,18 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-radius: 4px;
   pointer-events: none;
   white-space: nowrap;
+}
+
+.ai-usage-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .ai-usage-refresh-btn {
