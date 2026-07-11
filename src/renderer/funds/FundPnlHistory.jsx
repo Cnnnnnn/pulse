@@ -4,6 +4,7 @@
  * 每日 / 月度盈亏记录面板.
  */
 
+import { useState } from 'preact/hooks';
 import {
   dailySnapshots,
   selectedHistoryMonth,
@@ -39,6 +40,7 @@ function fmtDateLabel(ymd) {
 
 export function FundPnlHistory({ layout = 'sidebar' }) {
   const isPage = layout === 'page';
+  const [collapsed, setCollapsed] = useState(false);
   const ym = selectedHistoryMonth.value;
   const rollups = pnlRollups.value;
   const monthProfitVal = selectedMonthProfit.value;
@@ -81,10 +83,21 @@ export function FundPnlHistory({ layout = 'sidebar' }) {
           >
             ›
           </button>
+          <button
+            type="button"
+            class="fund-pnl-collapse-btn"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? '展开盈亏记录' : '收起盈亏记录'}
+          >
+            {collapsed ? '▸' : '▾'}
+          </button>
         </div>
       </div>
 
-      <div class={`fund-pnl-summary${isPage ? ' fund-pnl-summary--page' : ''}`}>
+      {!collapsed && (
+        <>
+          <div class={`fund-pnl-summary${isPage ? ' fund-pnl-summary--page' : ''}`}>
         <div class="fund-pnl-summary-item fund-pnl-summary-item-primary">
           <span class="fund-pnl-summary-label">
             {isCurrentMonth ? '本月累计盈亏' : `${formatMonthLabel(ym)} 盈亏`}
@@ -142,6 +155,8 @@ export function FundPnlHistory({ layout = 'sidebar' }) {
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
     </section>
   );
