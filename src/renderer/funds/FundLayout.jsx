@@ -19,7 +19,7 @@ import { FundHeader } from './FundHeader.jsx';
 import { FundMainTabs } from './FundMainTabs.jsx';
 import { FundPnlHistory } from './FundPnlHistory.jsx';
 import { CategoryTabs } from './CategoryTabs.jsx';
-import { FundList } from './FundList.jsx';
+import { FundCardGrid } from './FundCardGrid.jsx';
 import { AddFundModal } from './AddFundModal.jsx';
 import { FundAlertModal } from './FundAlertModal.jsx';
 import {
@@ -55,7 +55,7 @@ export function FundLayout() {
         {mainTab === 'holdings' ? (
           <>
             <CategoryTabs />
-            <FundList />
+            <FundCardGrid />
           </>
         ) : (
           <FundPnlHistory layout="page" />
