@@ -249,30 +249,6 @@
       "winget_id": "Qoder.QoderWork"
     },
     {
-      "name": "ChatGPT",
-      "bundle": "ChatGPT.app",
-      "win_bundle": "ChatGPT",
-      "download_url": "https://openai.com/chatgpt/download",
-      "release_notes_url": "https://developers.openai.com/codex/changelog",
-      "detectors": [
-        {
-          "type": "rss_changelog",
-          "url": "https://developers.openai.com/codex/changelog/rss.xml",
-          "enrich_only": true
-        },
-        {
-          "type": "sparkle_appcast",
-          "url": "https://persistent.oaistatic.com/codex-app-prod/appcast.xml"
-        },
-        {
-          "type": "winget_show",
-          "id": "OpenAI.Codex",
-          "platform": "win"
-        }
-      ],
-      "winget_id": "OpenAI.Codex"
-    },
-    {
       "name": "CodexBar",
       "bundle": "CodexBar.app",
       "win_bundle": "CodexBar",
