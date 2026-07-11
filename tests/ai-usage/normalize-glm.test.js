@@ -256,3 +256,110 @@ describe("_buildWindow — 边界", () => {
     expect(w.usedPercent).toBe(100);
   });
 });
+
+describe("normalizeGlm — 套餐档位 + 工具调用细分 (UsageDashboard 新 UI 用)", () => {
+  test("data.level → snapshot.level 透传", () => {
+    const raw = {
+      code: 200,
+      success: true,
+      data: {
+        level: "max",
+        limits: [],
+      },
+    };
+    const { ok, snapshot } = normalizeGlm(raw);
+    expect(ok).toBe(true);
+    expect(snapshot.level).toBe("max");
+    expect(snapshot.toolUsageDetails).toEqual([]);
+  });
+
+  test("TIME_LIMIT.usageDetails → snapshot.toolUsageDetails[]", () => {
+    const raw = {
+      code: 200,
+      success: true,
+      data: {
+        level: "pro",
+        limits: [
+          {
+            type: "TIME_LIMIT",
+            unit: 5,
+            number: 1,
+            usage: 4000,
+            currentValue: 1828,
+            remaining: 2172,
+            percentage: 45,
+            usageDetails: [
+              { modelCode: "search-prime", usage: 1433 },
+              { modelCode: "web-reader", usage: 462 },
+              { modelCode: "zread", usage: 0 },
+            ],
+          },
+        ],
+      },
+    };
+    const { ok, snapshot } = normalizeGlm(raw);
+    expect(ok).toBe(true);
+    expect(snapshot.toolUsageDetails).toEqual([
+      { modelCode: "search-prime", usage: 1433 },
+      { modelCode: "web-reader", usage: 462 },
+      { modelCode: "zread", usage: 0 },
+    ]);
+  });
+
+  test("usageDetails 缺字段 → 过滤, 不崩", () => {
+    const raw = {
+      code: 200,
+      success: true,
+      data: {
+        level: "lite",
+        limits: [
+          {
+            type: "TIME_LIMIT",
+            unit: 5,
+            number: 1,
+            usage: 1000,
+            currentValue: 0,
+            remaining: 1000,
+            percentage: 0,
+            usageDetails: [
+              null,
+              { modelCode: "search-prime", usage: 5 },
+              { usage: 10 }, // 没 modelCode
+              { modelCode: "", usage: 99 }, // 空 modelCode
+            ],
+          },
+        ],
+      },
+    };
+    const { ok, snapshot } = normalizeGlm(raw);
+    expect(ok).toBe(true);
+    expect(snapshot.toolUsageDetails).toEqual([
+      { modelCode: "search-prime", usage: 5 },
+    ]);
+  });
+
+  test("usageDetails 不存在 → snapshot.toolUsageDetails = []", () => {
+    const raw = {
+      code: 200,
+      success: true,
+      data: {
+        level: "pro",
+        limits: [
+          {
+            type: "TIME_LIMIT",
+            unit: 5,
+            number: 1,
+            usage: 1000,
+            currentValue: 0,
+            remaining: 1000,
+            percentage: 0,
+            // 无 usageDetails
+          },
+        ],
+      },
+    };
+    const { ok, snapshot } = normalizeGlm(raw);
+    expect(ok).toBe(true);
+    expect(snapshot.toolUsageDetails).toEqual([]);
+  });
+});

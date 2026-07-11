@@ -494,40 +494,11 @@ function ProviderUsageView({ provider }) {
       )}
 
       {snapshot && provider === "minimax" && (
-        <UsageDashboard snapshot={snapshot} history={history} />
+        <UsageDashboard snapshot={snapshot} history={history} provider="minimax" />
       )}
 
-      {snapshot && provider !== "minimax" && (
-        <>
-          <div class="ai-usage-cards">
-            {_pickBlocksForDisplay(snapshot).map((card) => {
-              const windowKey = card.windowKey;
-              const wins = snapshot?.windows ?? {};
-              const prevWins = prevSnapshot?.windows ?? {};
-              const win = wins[windowKey] ?? null;
-              const prevWin = prevWins[windowKey] ?? null;
-              return (
-                <WindowCard
-                  key={windowKey}
-                  window={win}
-                  prevWindow={prevWin}
-                  now={now}
-                  modelName={card.modelName}
-                  showRawFields
-                />
-              );
-            })}
-          </div>
-          <div class="ai-usage-history">
-            <div class="ai-usage-history-title">最近 7 天用量趋势 (5h 窗口已用%)</div>
-            <UsageSparkline
-              history={history}
-              days={7}
-              height={56}
-              anomalyToday={anomaly.anomaly}
-            />
-          </div>
-        </>
+      {snapshot && provider === "glm" && (
+        <UsageDashboard snapshot={snapshot} history={history} provider="glm" />
       )}
 
       {snapshot && snapshot.endpoint && (

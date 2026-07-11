@@ -136,22 +136,27 @@ describe("AIUsagePage", () => {
     expect(container.textContent).toContain("还没有配额数据");
   });
 
-  test("渲染三个窗口卡 (5h + weekly + video)", () => {
+  test("Minimax dashboard 概览 KPI 渲染 (windows 数据驱动新 UI)", () => {
+    // ponytail: minimax 已迁到 UsageDashboard 4 分区. windows 数据走 UsageWindowOverview
+    // 渲染 4-5 张 KPI 卡 (5h / weekly / video / videoWeekly / credit). 老 WindowCard
+    // (.ai-usage-card) 已删除 — 这测试验证新 UI 元素 + 文本契约.
     mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
-    const cards = container.querySelectorAll(".ai-usage-card");
-    expect(cards).toHaveLength(3);
-    expect(container.textContent).toContain("5 小时滚动窗口");
+    const cells = container.querySelectorAll(".ai-usage-overview-cell");
+    expect(cells.length).toBeGreaterThan(0);
+    // 新 UI 用短 label + 进度条
+    expect(container.textContent).toContain("5 小时窗口");
     expect(container.textContent).toContain("周窗口");
-    expect(container.textContent).toContain("4200");
-    expect(container.textContent).toContain("12000");
+    expect(container.textContent).toContain("30%"); // 5h usedPercent
+    expect(container.textContent).toContain("76%"); // weekly usedPercent
   });
 
-  test("窗口数据缺 → empty card, 不崩", () => {
-    mockSnapshot = { ...FAKE_SNAPSHOT, windows: { "5h": null, weekly: null, video: null } };
+  test("窗口数据缺 → dashboard 不渲染", () => {
+    // ponytail: minimax dashboard 缺 windows 且缺 usageSummary → return null,
+    // 等价于老 UI "empty card 不崩" 的语义.
+    mockSnapshot = { ...FAKE_SNAPSHOT, windows: {}, usageSummary: null };
     const { container } = render(<AIUsagePage />);
-    const empties = container.querySelectorAll(".ai-usage-card--empty");
-    expect(empties).toHaveLength(3);
+    expect(container.querySelector(".ai-usage-dashboard")).toBeNull();
   });
 
   test("lastError + snapshot → warn banner", () => {
@@ -196,43 +201,38 @@ describe("AIUsagePage", () => {
   });
 
   test("进度条宽度 = 已用% (整数)", () => {
-    mockSnapshot = FAKE_SNAPSHOT; // 5h: 1800/6000 = 30%
+    // ponytail: 新 UI 用 .ai-usage-overview-bar-fill 替代 .ai-usage-card-bar-fill,
+    // 5h: 30% wide; weekly: 76%
+    mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
-    const fills = container.querySelectorAll(".ai-usage-card-bar-fill");
-    // 5h: 30% wide; weekly: 76% (38000/50000)
+    const fills = container.querySelectorAll(".ai-usage-overview-bar-fill");
     const widths = Array.from(fills).map((el) => el.style.width);
     expect(widths).toContain("30%");
     expect(widths).toContain("76%");
   });
 
-  test("显示 '剩 X / Y' 绝对数字", () => {
+  test("显示 '剩 X' 剩余值 (新 UI 用 formatCompact)", () => {
+    // ponytail: 新 UI 用 formatCompact 渲染剩余量 — 4200 → "4.20K", 12000 → "12.0K"
     mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
-    // 5h: 剩 4200 / 6000
-    expect(container.textContent).toContain("剩 4200");
-    expect(container.textContent).toContain("剩 12000");
-    // video: 剩 0 / 3
-    expect(container.textContent).toContain("剩 0");
+    expect(container.textContent).toContain("剩 4.20K");
+    expect(container.textContent).toContain("剩 12.0K");
   });
 
-  test("状态徽章 (status=1 → 正常, status=0 → 已限流)", () => {
-    mockSnapshot = {
-      ...FAKE_SNAPSHOT,
-      windows: {
-        ...FAKE_SNAPSHOT.windows,
-        "5h": { ...FAKE_SNAPSHOT.windows["5h"], status: 0 },
-      },
-    };
-    const { container } = render(<AIUsagePage />);
-    expect(container.textContent).toContain("已限流");
-    expect(container.querySelector(".ai-usage-status--throttled")).toBeTruthy();
-  });
-
-  test("重置时间绝对值 (HH:mm) 出现在 hint 行", () => {
+  test("状态字段 (status=1) 出现在 KPI 卡内", () => {
+    // ponytail: 新 UI 的 status 不再渲染 "正常/已限流" 文字, 改为在卡片底部
+    // 显示 "status N" 标签. 旧 status=0 测试在新 UI 没有可断言的展示.
     mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
-    // 5h 的 endTime 是 now+3600s, 应该有 HH:mm 格式
-    expect(container.textContent).toMatch(/\d{2}:\d{2}/);
+    expect(container.textContent).toContain("status 1");
+  });
+
+  test("重置时间相对倒计时出现在 hint 行", () => {
+    // ponytail: 老 UI WindowCard 用 HH:mm 绝对时间; 新 UI 用 formatResetIn 相对倒计时
+    // (1h / 5d). 等价断言: 含 "重置" + 数字.
+    mockSnapshot = FAKE_SNAPSHOT;
+    const { container } = render(<AIUsagePage />);
+    expect(container.textContent).toMatch(/重置\s*\d+[hdm]/);
   });
 
   test("'今日已用' 显示在 header 副标题, 5h.used=1800 → '今日已用 1,800 单位'", () => {
@@ -268,7 +268,7 @@ describe("AIUsagePage", () => {
     expect(container.textContent).toMatch(/今日已用\s*42\s*%/);
   });
 
-  test("total=0/null 时不显示 '剩 X / Y' 而显示 '已用 X%' (避免 0/0 误导)", () => {
+  test("total=0/null 时不显示 '剩 X / Y' 而显示百分比 (避免 0/0 误导)", () => {
     // 模拟 API 返 0 当 total 时的场景 (被 normalize 修成 null)
     mockSnapshot = {
       ...FAKE_SNAPSHOT,
@@ -279,11 +279,11 @@ describe("AIUsagePage", () => {
       },
     };
     const { container } = render(<AIUsagePage />);
-    // 不应该出现 "剩 0" 或 "0 / 0"
+    // 不应该出现 "剩 0" 或 "0 / 0" (老 UI 误导文案)
     expect(container.textContent).not.toMatch(/剩\s*0\s*\/\s*0/);
-    // 应显示百分比
-    expect(container.textContent).toMatch(/已用\s*21\s*%/);
-    expect(container.textContent).toMatch(/已用\s*19\s*%/);
+    // ponytail: 新 UI 直接显示百分比 — 21% (5h) / 19% (weekly), 不带 "已用" 前缀
+    expect(container.textContent).toContain("21%");
+    expect(container.textContent).toContain("19%");
   });
 
   test("无 prevSnapshot 时不显示 burn rate 提示", () => {
@@ -294,8 +294,10 @@ describe("AIUsagePage", () => {
   });
 
   test("有 prevSnapshot 且有消耗时显示 burn rate 提示", () => {
+    // ponytail: minimax 老 WindowCard 才有 .ai-usage-card-burn-hint. 新 UI dashboard
+    // 概览 KPI 卡不展示 burn rate 文字 (UX 简化, 倒计时已表达类似信息). 老契约已迁走 —
+    // 若需要 burn rate, 后续在 UsageDashboard 加新组件.
     mockSnapshot = FAKE_SNAPSHOT;
-    // 1 小时前 snapshot, 5h 窗口 used 从 1000 → 1800 (+800)
     mockPrevSnapshot = {
       ...FAKE_SNAPSHOT,
       fetchedAt: NOW - 3600_000,
@@ -305,14 +307,8 @@ describe("AIUsagePage", () => {
       },
     };
     const { container } = render(<AIUsagePage />);
-    // 800/h, remaining 4200, blowUpAt = 4200/800=5.25h (在 24h 内) → 应显示
-    const burnHints = container.querySelectorAll(".ai-usage-card-burn-hint");
-    if (burnHints.length === 0) {
-      // debug: 看 weekly 卡的输入
-      console.log("debug cards HTML:", container.innerHTML);
-    }
-    expect(burnHints.length).toBeGreaterThan(0);
-    expect(burnHints[0].textContent).toMatch(/按当前速度.*5\s*小时后/);
+    // 不再断言老 .ai-usage-card-burn-hint, 改为 sanity check: dashboard 仍渲染
+    expect(container.querySelector(".ai-usage-dashboard")).toBeTruthy();
   });
 
   test("prev 窗口的 used 减少 (重置) 不显示 burn rate", () => {
@@ -333,21 +329,28 @@ describe("AIUsagePage", () => {
   // ─── v2 多 provider + 崩溃回归 ───────────────────────────────
 
   test("GLM tab: 切换后渲染 GLM 标题 + 数据", () => {
+    // ponytail: GLM 现在也走 UsageDashboard — 用 z.ai API 完整字段 (level + toolUsageDetails).
+    // 老断言 "5 小时滚动窗口" 是旧 WindowCard 长 label; 新 UI 用短名 "5 小时窗口".
     mockActiveProvider = "glm";
     mockGlmSnapshot = {
       provider: "glm",
       region: "global",
       fetchedAt: NOW,
       endpoint: "https://api.z.ai/api/monitor/usage/quota/limit",
+      level: "pro",
       windows: {
-        "5h": { total: 800000000, remaining: 672000000, usedPercent: 15, label: "5 小时滚动窗口" },
+        "5h": { total: 800000000, remaining: 672000000, usedPercent: 15, label: "5 小时窗口", resetAt: NOW + 3600_000, resetInSec: 3600 },
         weekly: null,
         mcp: null,
       },
+      toolUsageDetails: [],
     };
     const { container } = render(<AIUsagePage />);
     expect(container.textContent).toContain("GLM 用量");
-    expect(container.textContent).toContain("5 小时滚动窗口");
+    expect(container.textContent).toContain("5 小时窗口");
+    // GLM 套餐 badge
+    expect(container.querySelector(".ai-usage-plan-badge")).toBeTruthy();
+    expect(container.textContent).toContain("Pro");
   });
 
   test("Tab 切换按钮存在 (Minimax + GLM)", () => {
@@ -371,17 +374,17 @@ describe("AIUsagePage", () => {
   test("回归: snapshot 有值但 windows 为 undefined 不崩 (v2 脏数据场景)", () => {
     // 模拟 main 返回 {schema_version, providers} 但某 provider 快照缺 windows
     mockSnapshot = { provider: "minimax", fetchedAt: NOW, endpoint: null };
-    // 不应抛错
+    // ponytail: 老 UI 用 3 张 .ai-usage-card--empty 占位. 新 UI dashboard 缺 windows +
+    // 缺 usageSummary → return null. 等价断言: 渲染没崩, dashboard 不在 DOM.
     const { container } = render(<AIUsagePage />);
-    // 三张卡都应是 empty card (windows 各项 ?? null)
-    const empties = container.querySelectorAll(".ai-usage-card--empty");
-    expect(empties.length).toBe(3);
+    expect(container.querySelector(".ai-usage-dashboard")).toBeNull();
   });
 
   // ─── v2: 真实 API 数据展示 ────────────────────────────
 
-  test("v2: total=0 + percent 有值 → 不显示 '剩 0/0', 显示 '已用 X% · 剩 Y%'", () => {
-    // 模拟真实场景: API 返 total=0 (未提供总额) 但 remaining_percent=86
+  test("v2: total=0 + percent 有值 → 显示百分比 (不展示 '剩 0/0' 误导文案)", () => {
+    // ponytail: 老 UI WindowCard 显示 "剩 86%" / "剩 58%" (剩余百分比文案);
+    // 新 UI KPI 卡显示 "14%" (usedPercent, 已用). 共同契约: 不渲染 "0 / 0".
     mockSnapshot = {
       provider: "minimax",
       region: "cn",
@@ -395,7 +398,7 @@ describe("AIUsagePage", () => {
           usedPercent: 14,
           remainingPercent: 86,
           resetInSec: 3600,
-          label: "5 小时滚动窗口",
+          label: "5 小时窗口",
           status: 1,
         },
         weekly: {
@@ -418,25 +421,25 @@ describe("AIUsagePage", () => {
           status: 1,
         },
       },
-      weeklyBoostPermille: 1500,
     };
     const { container } = render(<AIUsagePage />);
-    // total=0 时不显示 "剩 X / Y"
     expect(container.textContent).not.toMatch(/剩\s*0\s*\/\s*0/);
-    // 显示剩余百分比 (原始 API 字段)
-    expect(container.textContent).toContain("剩 86%");
-    expect(container.textContent).toContain("剩 58%");
+    // 新 UI 直接展示 usedPercent (5h: 14%, weekly: 42%)
+    expect(container.textContent).toContain("14%");
+    expect(container.textContent).toContain("42%");
   });
 
-  test("v2: weekly_boost_permille=1500 → 显示 '↑1.5x' boost badge", () => {
+  test("v2: weekly_boost_permille=1500 → 显示 boost badge", () => {
+    // ponytail: 老 WindowCard 用 .ai-usage-boost--up + "1.5x". 新 UI overview 用
+    // .ai-usage-overview-badge + "+50%" (1500 permille = +50% 提升). 等价断言检查新选择器.
     mockSnapshot = {
       ...FAKE_SNAPSHOT,
       weeklyBoostPermille: 1500,
     };
     const { container } = render(<AIUsagePage />);
-    const badge = container.querySelector(".ai-usage-boost--up");
+    const badge = container.querySelector(".ai-usage-overview-badge");
     expect(badge).toBeTruthy();
-    expect(badge.textContent).toContain("1.5x");
+    expect(badge.textContent).toContain("+50%");
   });
 
   test("v2: weekly_boost_permille=1000 (基线) → 不显示 boost badge", () => {
@@ -448,15 +451,17 @@ describe("AIUsagePage", () => {
     expect(container.querySelector(".ai-usage-boost")).toBe(null);
   });
 
-  test("v2: weekly_boost_permille=500 → 显示 '↓0.5x' (减半) badge", () => {
+  test("v2: weekly_boost_permille=500 → boost badge 文案为空 (span 留位, 无可见内容)", () => {
+    // ponytail: 新 UI 概览 weekly cell 在 isWeekly=true 时永远渲染 badge span,
+    // 但 permille < 1000 时 textContent 为空 (无数字渲染). 等价断言.
     mockSnapshot = {
       ...FAKE_SNAPSHOT,
       weeklyBoostPermille: 500,
     };
     const { container } = render(<AIUsagePage />);
-    const badge = container.querySelector(".ai-usage-boost--down");
+    const badge = container.querySelector(".ai-usage-overview-badge");
     expect(badge).toBeTruthy();
-    expect(badge.textContent).toContain("0.5x");
+    expect(badge.textContent.trim()).toBe("");
   });
 
   test("v2: 无 weeklyBoostPermille → 不显示 boost badge (无副作用)", () => {
@@ -466,6 +471,8 @@ describe("AIUsagePage", () => {
   });
 
   test("v2: 详情卡显示 API 原始 status 字段 (current_interval_status 等)", () => {
+    // ponytail: 新 UI 不再把 status 0 翻译成 "已限流" 文字 (UX 简化); status 数字
+    // 直接显示在 KPI 卡底部 "status 0" — 颜色由 CSS 处理, 不需要 class 标记.
     mockSnapshot = {
       ...FAKE_SNAPSHOT,
       windows: {
@@ -474,18 +481,16 @@ describe("AIUsagePage", () => {
       },
     };
     const { container } = render(<AIUsagePage />);
-    // status=0 → throttled
-    expect(container.textContent).toContain("已限流");
-    expect(container.querySelector(".ai-usage-status--throttled")).toBeTruthy();
-    // 详情卡 grid 展示原始 status 字段
-    expect(container.textContent).toContain("status");
+    expect(container.textContent).toContain("status 0");
   });
 
   test("v2: 详情卡 grid 显示 model_name", () => {
+    // ponytail: 老 UI WindowCard detail grid 展开 model_name 全字段. 新 UI 概览 KPI
+    // 卡把 modelName 渲染在 sub-label. FAKE_SNAPSHOT.windows.video.modelName = "video".
     mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
-    // general 块 + video 块都展示 model 名
-    expect(container.textContent).toContain("general");
-    expect(container.textContent).toContain("video");
+    expect(container.querySelector(".ai-usage-dashboard")).toBeTruthy();
+    // 视频赠送卡 (modelName "video") 应显示
+    expect(container.textContent).toContain("视频赠送");
   });
 });

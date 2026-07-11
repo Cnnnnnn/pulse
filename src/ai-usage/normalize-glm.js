@@ -138,6 +138,7 @@ function normalizeGlm(rawResponse, opts = {}) {
     level: typeof data.level === "string" ? data.level : null,
     windows: {},
     credits: null,
+    toolUsageDetails: [],
     _rawLimits: limits,
   };
 
@@ -201,6 +202,17 @@ function normalizeGlm(rawResponse, opts = {}) {
       label: "MCP 时长",
       fetchedAt: snapshot.fetchedAt,
     });
+    // 4a) 工具调用细分 — search-prime / web-reader / zread 各自 usage
+    // 仅当 API 真正给了 usageDetails 才挂载, 缺数据时保持空数组
+    if (Array.isArray(limitMcp.usageDetails)) {
+      snapshot.toolUsageDetails = limitMcp.usageDetails
+        .filter((d) => d && typeof d === "object")
+        .map((d) => ({
+          modelCode: typeof d.modelCode === "string" ? d.modelCode : "",
+          usage: typeof d.usage === "number" ? d.usage : 0,
+        }))
+        .filter((d) => d.modelCode.length > 0);
+    }
   }
 
   return { ok: true, snapshot };

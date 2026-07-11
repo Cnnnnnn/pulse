@@ -385,10 +385,14 @@ function ModelBreakdownTable({ usageSummary }) {
 
 // ─── 主组件 ──────────────────────────────────────────────
 
-export function UsageDashboard({ snapshot, history }) {
+export function UsageDashboard({ snapshot, history, provider }) {
   const usageSummary = snapshot && snapshot.usageSummary;
   const hasUsageSummary = usageSummary && typeof usageSummary === "object";
   const hasWindows = snapshot && snapshot.windows && Object.keys(snapshot.windows).length > 0;
+  const toolUsageDetails =
+    snapshot && Array.isArray(snapshot.toolUsageDetails) ? snapshot.toolUsageDetails : null;
+  const level = snapshot && typeof snapshot.level === "string" ? snapshot.level : null;
+  const isGlm = provider === "glm" || (snapshot && snapshot.provider === "glm");
 
   // 任何分区都没有数据 → 不渲染 dashboard
   if (!hasWindows && !hasUsageSummary) return null;
@@ -457,6 +461,91 @@ export function UsageDashboard({ snapshot, history }) {
           <UsageDetailList dateModelUsage={usageSummary.dateModelUsage} />
         </section>
       )}
+
+      {/* ▸ 分区: GLM 专属 — 套餐 + 工具调用细分 (GLM 数据独有) */}
+      {isGlm && (level || (toolUsageDetails && toolUsageDetails.length > 0)) && (
+        <section class="ai-usage-zone">
+          <div class="ai-usage-zone-label">
+            <span class="ai-usage-zone-eyebrow">套餐</span>
+          </div>
+          <div class="ai-usage-glm-extras">
+            {level && <UsagePlanBadge level={level} />}
+            {toolUsageDetails && toolUsageDetails.length > 0 && (
+              <UsageToolBreakdown items={toolUsageDetails} />
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/**
+ * GLM 套餐档 badge — 把 lite / pro / max 显示成可读 badge.
+ */
+function UsagePlanBadge({ level }) {
+  const meta = useMemo(() => {
+    const key = (level || "").toLowerCase();
+    if (key === "lite") return { label: "Lite", accent: "var(--model-color-3)" };
+    if (key === "pro") return { label: "Pro", accent: "var(--accent-primary)" };
+    if (key === "max") return { label: "Max", accent: "var(--model-color-4)" };
+    return { label: level, accent: "var(--text-tertiary)" };
+  }, [level]);
+  return (
+    <div class="ai-usage-plan-badge" style={{ "--plan-accent": meta.accent }}>
+      <span class="ai-usage-plan-eyebrow">套餐档位</span>
+      <span class="ai-usage-plan-value">{meta.label}</span>
+    </div>
+  );
+}
+
+/**
+ * GLM 工具调用细分 — search-prime / web-reader / zread 的 usage.
+ * 数据形状: [{ modelCode, usage }]
+ * 按 usage 降序, 每条一个 chip + 调用次数.
+ */
+function UsageToolBreakdown({ items }) {
+  const sorted = useMemo(
+    () => items.slice().sort((a, b) => (b.usage || 0) - (a.usage || 0)),
+    [items],
+  );
+  const total = useMemo(
+    () => sorted.reduce((sum, it) => sum + (it.usage || 0), 0),
+    [sorted],
+  );
+  return (
+    <div class="ai-usage-tool-breakdown">
+      <div class="ai-usage-section-header">
+        <span class="ai-usage-section-eyebrow">工具</span>
+        <span class="ai-usage-section-title">调用细分 · 当月</span>
+      </div>
+      <div class="ai-usage-tool-list">
+        {sorted.map((it, i) => {
+          const colorIdx = modelColorIndex(it.modelCode, i);
+          const pct = total > 0 ? Math.round(((it.usage || 0) / total) * 100) : 0;
+          return (
+            <div
+              key={it.modelCode}
+              class="ai-usage-tool-row"
+              style={{ "--model-color": `var(--model-color-${colorIdx + 1})` }}
+            >
+              <div class="ai-usage-tool-name">
+                <span class="ai-usage-model-dot" aria-hidden="true" />
+                <span class="ai-usage-tool-code">{it.modelCode}</span>
+              </div>
+              <div class="ai-usage-tool-bar-wrap">
+                <div
+                  class="ai-usage-tool-bar"
+                  style={{ width: `${Math.max(2, pct)}%` }}
+                  title={`${it.usage} 次 · ${pct}%`}
+                />
+              </div>
+              <div class="ai-usage-tool-usage">{it.usage}</div>
+              <div class="ai-usage-tool-pct">{pct}%</div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

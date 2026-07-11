@@ -577,3 +577,116 @@ test("ai-usage tab — fallback (公开 API only) dark baseline", async ({
     fullPage: false,
   });
 });
+
+/* ───────────────────────────────────────────────────────────
+   AI Coding 用量 dashboard — GLM provider (z.ai 新 UI)
+
+   z.ai /api/monitor/usage/quota/limit 响应驱动: 5h token + 周 token +
+   月度 MCP 调用 (TIME_LIMIT) + usageDetails 工具细分 + level 套餐档位.
+   验证 GLM 走新 UI dashboard + 套餐 badge + 工具细分列表.
+   ─────────────────────────────────────────────────────────── */
+
+const AI_USAGE_GLM_FIXTURE = {
+  provider: "glm",
+  fetchedAt: Date.parse("2026-07-10T12:00:00Z"),
+  endpoint: "https://api.z.ai/api/monitor/usage/quota/limit",
+  level: "pro",
+  windows: {
+    "5h": {
+      used: 127_694_464, total: 800_000_000, usedPercent: 15, remaining: 672_305_536,
+      resetAt: Date.parse("2026-07-10T15:00:00Z"), resetInSec: 10800,
+      label: "5 小时滚动窗口", modelName: null, status: null,
+    },
+    weekly: {
+      used: 890_000_000, total: 5_600_000_000, usedPercent: 16, remaining: 4_710_000_000,
+      resetAt: Date.parse("2026-07-15T00:00:00Z"), resetInSec: 4 * 86400,
+      label: "周窗口", modelName: null, status: null,
+    },
+    mcp: {
+      used: 1828, total: 4000, usedPercent: 46, remaining: 2172,
+      resetAt: null, resetInSec: null,
+      label: "MCP 时长", modelName: null, status: null,
+    },
+  },
+  toolUsageDetails: [
+    { modelCode: "search-prime", usage: 1433 },
+    { modelCode: "web-reader", usage: 462 },
+    { modelCode: "zread", usage: 0 },
+  ],
+};
+
+const pushAiUsageGlmFixture = `
+  (function pushAiUsageGlmFixture() {
+    if (typeof window.api === 'undefined') return;
+    const origApi = window.api;
+    const overrides = {};
+    overrides.onAiUsageUpdated = function (cb) {
+      setTimeout(function () {
+        if (typeof cb === 'function') {
+          cb({ provider: 'glm', snapshot: ${JSON.stringify(AI_USAGE_GLM_FIXTURE)}, history: { days: [] } });
+        }
+      }, 100);
+    };
+    window.api = new Proxy(origApi, {
+      get(target, key) {
+        if (key in overrides) return overrides[key];
+        return target[key];
+      },
+      set(target, key, value) {
+        overrides[key] = value;
+        return true;
+      },
+    });
+  })();
+`;
+
+test("ai-usage tab — GLM (z.ai) light baseline", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+    } catch {}
+  });
+  await page.addInitScript(pushAiUsageGlmFixture);
+  await page.goto("/");
+  await waitForShell(page);
+  const aiTile = page.locator('[aria-label*="AI 用量"]').first();
+  if (await aiTile.count()) {
+    await aiTile.click();
+  }
+  // 切到 GLM tab (默认 minimax, GLM 数据不会渲染)
+  await page.waitForSelector(".ai-usage-tab", { timeout: 5_000 });
+  const glmTab = page.locator(".ai-usage-tab", { hasText: "GLM" }).first();
+  await glmTab.click();
+  // ponytail: 等 plan-badge 出现 (dashboard 跟着), 不等 .ai-usage-dashboard 单独 — 切 tab 时
+  // Preact 可能短暂 unmount, visible 检测会重置计时
+  await page.waitForSelector(".ai-usage-plan-badge", { timeout: 15_000 });
+  await page.waitForTimeout(1000);
+  await expect(page).toHaveScreenshot("ai-usage-tab-glm-light.png", {
+    fullPage: false,
+  });
+});
+
+test("ai-usage tab — GLM (z.ai) dark baseline", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "dark");
+    } catch {}
+  });
+  await page.addInitScript(pushAiUsageGlmFixture);
+  await page.goto("/");
+  await waitForShell(page);
+  const aiTile = page.locator('[aria-label*="AI 用量"]').first();
+  if (await aiTile.count()) {
+    await aiTile.click();
+  }
+  await page.waitForSelector(".ai-usage-tab", { timeout: 5_000 });
+  const glmTab = page.locator(".ai-usage-tab", { hasText: "GLM" }).first();
+  await glmTab.click();
+  await page.waitForSelector(".ai-usage-plan-badge", { timeout: 15_000 });
+  await page.waitForTimeout(1000);
+  await expect(page).toHaveScreenshot("ai-usage-tab-glm-dark.png", {
+    fullPage: false,
+  });
+});
