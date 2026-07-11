@@ -56,3 +56,14 @@ describe("recordFromNavMap", () => {
     expect(snaps[0].todayProfit).toBe(50);
   });
 });
+
+describe("navHistory persistence", () => {
+  it("navHistory round-trip by code", () => {
+    const series = [{ date: "2026-07-10", nav: 1.23 }];
+    fundHistoryStore.saveNavHistory("000001", series, tmpPath);
+    expect(fundHistoryStore.loadNavHistory("000001", tmpPath)).toEqual(series);
+  });
+  it("missing code returns empty array", () => {
+    expect(fundHistoryStore.loadNavHistory("999999", tmpPath)).toEqual([]);
+  });
+});

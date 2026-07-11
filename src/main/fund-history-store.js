@@ -83,8 +83,28 @@ function recordFromNavMap(navMap, now = new Date(), statePath) {
   return { ok: true, entry, dailySnapshots: saved };
 }
 
+function loadNavHistory(code, statePath) {
+  const s = stateStore.load(statePath);
+  const map = s && s.funds && s.funds.navHistory;
+  return map && Array.isArray(map[code]) ? map[code] : [];
+}
+
+function saveNavHistory(code, series, statePath) {
+  const s = stateStore.load(statePath) || {};
+  s.funds = s.funds && typeof s.funds === "object" ? s.funds : {};
+  s.funds.navHistory =
+    s.funds.navHistory && typeof s.funds.navHistory === "object"
+      ? s.funds.navHistory
+      : {};
+  s.funds.navHistory[code] = Array.isArray(series) ? series : [];
+  stateStore.writeAtomic(statePath || stateStore.defaultPath(), s);
+  return true;
+}
+
 module.exports = {
   loadSnapshots,
   saveSnapshots,
   recordFromNavMap,
+  loadNavHistory,
+  saveNavHistory,
 };
