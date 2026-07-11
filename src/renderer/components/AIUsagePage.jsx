@@ -520,11 +520,11 @@ function ProviderUsageView({ provider }) {
         </div>
       )}
 
-      {snapshot && provider === "minimax" && snapshot.usageSummary && (
-        <UsageDashboard snapshot={snapshot} />
+      {snapshot && provider === "minimax" && (
+        <UsageDashboard snapshot={snapshot} history={history} />
       )}
 
-      {snapshot && (
+      {snapshot && provider !== "minimax" && (
         <div class="ai-usage-history">
           <div class="ai-usage-history-title">最近 7 天用量趋势 (5h 窗口已用%)</div>
           <UsageSparkline

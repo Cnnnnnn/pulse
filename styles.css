@@ -8319,14 +8319,27 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-inverse, #ffffff);
 }
 
-/* dashboard row: 最活跃日 + 90 天趋势并排 */
-.ai-usage-dashboard-row {
+/* ▸ 分析网格层: 模型分布 + 峰值日 + 近期迷你趋势 (响应式多栏) */
+.ai-usage-analytics-grid {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 10px;
+  align-items: start;
 }
-@media (max-width: 720px) {
-  .ai-usage-dashboard-row { grid-template-columns: 1fr; }
+
+/* 分析网格第三格: 近 7 天迷你趋势卡片 */
+.ai-usage-history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.18s ease;
+}
+.ai-usage-history-card:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border));
 }
 
 /* 通用卡片背景 (most-active / trend / model-breakdown) */
@@ -13019,3 +13032,299 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .stock-search-item-name { font-size: 13px; color: var(--text-primary); }
 .stock-search-item-code { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono, monospace); }
 .stock-search-empty { padding: 16px 12px; text-align: center; font-size: 12px; color: var(--text-tertiary); }
+
+/* === AI 用量 — 分区层 (zone): 概览 / 趋势 / 分析 / 明细 宏观标签 + 分隔 === */
+
+.ai-usage-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-usage-zone + .ai-usage-zone {
+  margin-top: 2px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.ai-usage-zone-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ai-usage-zone-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+.ai-usage-zone-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.ai-usage-zone-tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, transparent);
+}
+
+/* === AI 用量 — Fallback (usageSummary 401 时的 4 分区骨架) === */
+
+.ai-usage-dashboard--fallback {
+  /* 跟正常 dashboard 视觉一致, 不做特殊处理 */
+}
+.ai-usage-fallback-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent-primary) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 18%, var(--border));
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.ai-usage-fallback-banner-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--accent-primary);
+  color: var(--surface);
+  margin-top: 1px;
+}
+.ai-usage-fallback-banner-text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-right: 4px;
+}
+.ai-usage-fallback-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.ai-usage-fallback-empty {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 140px;
+  justify-content: space-between;
+}
+.ai-usage-fallback-empty-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-tertiary);
+}
+.ai-usage-fallback-empty-icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  background: color-mix(in srgb, var(--text-tertiary) 12%, var(--surface-2));
+  color: var(--text-tertiary);
+}
+.ai-usage-fallback-empty-hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* === AI 用量 — 每日用量明细表 (UsageDetailList) === */
+
+.ai-usage-detail {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ai-usage-detail-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ai-usage-detail-search-wrap {
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+.ai-usage-detail-search {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: var(--font-system);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-usage-detail-search::placeholder { color: var(--text-tertiary); }
+.ai-usage-detail-search:focus {
+  border-color: var(--accent-primary);
+  box-shadow: var(--focus-ring);
+}
+.ai-usage-detail-seg {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.ai-usage-detail-seg-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-system);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ai-usage-detail-seg-btn:hover { color: var(--text-primary); }
+.ai-usage-detail-seg-btn.is-active {
+  background: var(--accent-primary);
+  color: var(--text-inverse, #ffffff);
+}
+.ai-usage-detail-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.ai-usage-detail-toggle input { accent-color: var(--accent-primary); }
+.ai-usage-detail-export {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--font-system);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ai-usage-detail-export:hover {
+  border-color: var(--accent-primary);
+  background: var(--hover-soft);
+}
+.ai-usage-detail-export:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+.ai-usage-detail-scroll {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.ai-usage-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ai-usage-detail-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  color: var(--text-tertiary);
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+.ai-usage-detail-th.is-num { text-align: right; }
+.ai-usage-detail-sort {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.ai-usage-detail-sort:hover { color: var(--text-primary); }
+.ai-usage-detail-sort:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.ai-usage-detail-table tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.ai-usage-detail-table tbody tr:last-child td { border-bottom: none; }
+.ai-usage-detail-row:hover td { background: var(--hover-soft); }
+.ai-usage-detail-table td.is-num { text-align: right; }
+.ai-usage-detail-total {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.ai-usage-detail-date {
+  color: var(--text-primary);
+}
+.ai-usage-detail-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+}
+.ai-usage-detail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot, var(--accent-primary));
+  flex: none;
+}
+.ai-usage-detail-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-usage-detail-search,
+  .ai-usage-detail-seg-btn,
+  .ai-usage-detail-export,
+  .ai-usage-detail-sort,
+  .ai-usage-detail-row td { transition: none; }
+}
