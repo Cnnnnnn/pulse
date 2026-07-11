@@ -13449,6 +13449,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   max-width: 1180px;
   margin: 0 auto;
   padding: var(--space-5) var(--page-padding) var(--space-6);
+  overflow-y: auto;
 }
 
 /* ── Hero (glass card) ── */
