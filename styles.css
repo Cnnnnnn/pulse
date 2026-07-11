@@ -146,10 +146,27 @@ svg:not([role="img"]) {
   --color-down: oklch(59.60% 0.1274 163.3);      /* was #059669 (金融跌 A 股绿) */
   --focus-ring: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 22%, transparent);
   --ease-ui: 0.18s cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* ── Funds redesign (2026-07-11): category + chart series ── */
+  --cat-stock:  oklch(58% 0.16 255);   /* 股票 蓝 */
+  --cat-bond:   oklch(56% 0.13 155);   /* 债券 绿 */
+  --cat-money:  oklch(72% 0.15 70);    /* 货币 橙 */
+  --cat-qdii:   oklch(56% 0.17 295);   /* QDII 紫 */
+  --cat-other:  oklch(62% 0.02 270);   /* 其他 灰 */
+  --fund-trend: var(--accent-primary);
+  --fund-trend-area: oklch(60% 0.16 255 / 0.16); /* 主色透明填充 */
+  --fund-grid-line: oklch(60% 0.02 270 / 0.12);
 }
 
 /* 深色令牌: 由 theme-manager.js 写入 <html data-theme="dark"> 驱动 (支持手动切换) */
 :root[data-theme="dark"] {
+  /* ── Funds redesign (2026-07-11): category + chart series (dark overrides) ── */
+  --cat-stock:  oklch(68% 0.16 255);
+  --cat-bond:   oklch(66% 0.13 155);
+  --cat-money:  oklch(78% 0.15 70);
+  --cat-qdii:   oklch(68% 0.17 295);
+  --cat-other:  oklch(72% 0.02 270);
+  --fund-trend-area: oklch(70% 0.16 255 / 0.22);
+  --fund-grid-line: oklch(80% 0.02 270 / 0.16);
     --bg-primary: rgba(30, 30, 30, 0.88);
     --bg-secondary: rgba(40, 40, 40, 0.9);
     --bg-elevated: var(--gray-700);
@@ -8376,6 +8393,116 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-primary);
   font-weight: 600;
   margin-right: 4px;
+}
+
+/* ▸ GLM 专属: 套餐 badge + 工具调用细分 */
+.ai-usage-glm-extras {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+@media (max-width: 720px) {
+  .ai-usage-glm-extras {
+    grid-template-columns: 1fr;
+  }
+}
+.ai-usage-plan-badge {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--plan-accent) 24%, var(--border));
+  position: relative;
+  overflow: hidden;
+}
+.ai-usage-plan-badge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--plan-accent) 10%, transparent),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+.ai-usage-plan-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--plan-accent);
+  position: relative;
+}
+.ai-usage-plan-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  position: relative;
+  letter-spacing: 0.02em;
+}
+
+.ai-usage-tool-breakdown {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-usage-tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ai-usage-tool-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 56px 40px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  padding: 4px 0;
+}
+.ai-usage-tool-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.ai-usage-tool-code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+.ai-usage-tool-bar-wrap {
+  height: 6px;
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ai-usage-tool-bar {
+  height: 100%;
+  background: var(--model-color, var(--model-color-1));
+  border-radius: 3px;
+  transition: width 200ms ease-out;
+}
+.ai-usage-tool-usage {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ai-usage-tool-pct {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-tertiary);
 }
 
 /* ▸ 分析网格层: 模型分布 + 峰值日 + 近期迷你趋势 (响应式多栏) */
