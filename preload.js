@@ -248,6 +248,7 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("funds:nav:fetch-codes", codes),
   fundsNavState: () => ipcRenderer.invoke("funds:nav:state"),
   fundsHistoryList: () => ipcRenderer.invoke("funds:history:list"),
+  fundsNavHistory: (code, opts) => ipcRenderer.invoke("funds:nav:history", code, opts),
   fundsSetNavSource: (source) =>
     ipcRenderer.invoke("funds:set-nav-source", source),
   fundsAlertPrefsGet: () => ipcRenderer.invoke("funds:alert-prefs:get"),

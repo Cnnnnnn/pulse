@@ -5,6 +5,8 @@ const fundHistoryStore = require("../fund-history-store");
 const { searchFunds } = require("../../funds/fund-search");
 const { fetchFundNavBatch } = require("../../funds/fund-fetcher");
 const { pickEffectiveNavNumber } = require("../../funds/fund-nav-merge");
+const { fetchFundNavHistory } = require("../../funds/fund-nav-history");
+const fundNavHistoryStore = require("../fund-history-store");
 
 function registerFundsHandlers(ctx) {
   const { safeHandle, threwResponse, fundScheduler } = ctx;
@@ -123,6 +125,15 @@ function registerFundsHandlers(ctx) {
     },
     { onError: (err) => threwResponse(err, { dailySnapshots: [] }) },
   );
+
+  safeHandle("funds:nav:history", async (_event, code, opts) => {
+    const cached = fundNavHistoryStore.loadNavHistory(code);
+    if (cached && cached.length) return { ok: true, series: cached, cached: true };
+    const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
+    const out = await fetchFundNavHistory(code, httpClient, opts || { days: 30 });
+    if (out.ok) fundNavHistoryStore.saveNavHistory(code, out.series);
+    return out;
+  });
 
   safeHandle("funds:set-nav-source", (_event, source) => {
     const all = fundStore.setNavSource(source);
