@@ -520,7 +520,7 @@ function ProviderUsageView({ provider }) {
         </div>
       )}
 
-      {snapshot && provider === "minimax" && (
+      {snapshot && provider === "minimax" && snapshot.usageSummary && (
         <UsageDashboard snapshot={snapshot} history={history} />
       )}
 

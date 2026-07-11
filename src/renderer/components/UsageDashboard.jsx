@@ -1,10 +1,10 @@
 /**
  * src/renderer/components/UsageDashboard.jsx
  *
- * Minimax 用量仪表盘 — 依赖两个接口的合并 snapshot:
- *   - snapshot.windows["5h"/"weekly"/"video"]: 来自 /remains_percent (公开 API, 必到)
+ * Minimax 用量仪表盘 — 依赖合并 snapshot:
  *   - snapshot.usageSummary:                  来自 /usage_summary (minimax 未对订阅 key
- *                                             公开的内部端点, 当前订阅 key 拿不到)
+ *                                             公开的内部端点; 拿不到时本组件 return null,
+ *                                             AIUsagePage 回退到老 WindowCard 4 张)
  *
  * 渲染四块 (主站系统集成 — 跟随 data-theme 切换浅/暗, 引用主站 token):
  *   1. 顶部概览条 — 累计 / 已用天数 / 连续 / 排名 (带 icon)
@@ -12,15 +12,9 @@
  *   3. 90 天 token 用量趋势 (UsageTrendChart SVG + brush + a11y)
  *   4. 模型分布表 — 按 token 占比降序, 多色横条 + dot indicator
  *
- * 任一块数据缺失 → 整块不渲染 (防御性). GLM provider 没有 usageSummary, 整块不渲染.
- *
- * ponytail: 当 usageSummary 拿不到时 (minimax usage_summary 端点对 Subscription Key
- *   返回 401 not login — 这是 minimax 用户控制台的内部 endpoint, 官方未对 API 用户
- *   公开, 只有 Bearer Session Token 才能调), 渲染 4 分区骨架的 fallback:
- *     - 顶部 banner 说明"深度统计 minimax 未对 API key 公开"
- *     - 4 个 KPI 用公开 API 的 windows (5h / weekly / video) 填充
- *     - 趋势/明细区显示"数据未提供"占位, 保持视觉节奏
- *   这样既给了用户"按设计稿"的新 UI, 也明确告知数据边界.
+ * ponytail: 拿不到 usageSummary → return null (不渲染 dashboard, 也不渲染空 KPI 兜底).
+ *   AIUsagePage 顶部的老 WindowCard 4 张继续展示 (它们来自公开 remains_percent, 数据真实).
+ *   这样新 UI (4 分区 dashboard) 跟老 UI (WindowCard) 不会重复出现, 也不会展示"无数据占位".
  */
 
 import { useMemo } from "preact/hooks";
@@ -269,13 +263,7 @@ function ModelBreakdownTable({ usageSummary }) {
 
 export function UsageDashboard({ snapshot, history }) {
   const usageSummary = snapshot && snapshot.usageSummary;
-  const hasUsageSummary = usageSummary && typeof usageSummary === "object";
-
-  // ponytail: usageSummary 缺失时 (minimax usage_summary 端点 401) 渲染 fallback —
-  // 4 分区骨架 + 公开 API windows 打包成 KPI + banner 说明. 不再 silent 不渲染.
-  if (!hasUsageSummary) {
-    return <UsageDashboardFallback snapshot={snapshot} history={history} />;
-  }
+  if (!usageSummary || typeof usageSummary !== "object") return null;
 
   const hasDetail =
     Array.isArray(usageSummary.dateModelUsage) && usageSummary.dateModelUsage.length > 0;
@@ -335,166 +323,6 @@ function UsageHistoryCard({ history }) {
         <span class="ai-usage-section-title">近 7 天用量</span>
       </div>
       <UsageSparkline history={history} days={7} height={56} />
-    </div>
-  );
-}
-
-// ─── Fallback: usageSummary 拿不到时的 4 分区骨架 ──────────────────────
-//
-// minimax usage_summary 端点对订阅 key 返回 401 not login, 是 minimax 用户
-// 控制台内部 endpoint. 这里用公开 API 拿到的 windows (5h / weekly / video)
-// 重新打包成 4 KPI, 趋势/明细区显示占位 + 引导文案, 保持视觉节奏.
-
-/**
- * 把公开 API 的 window 拆成 4 个 KPI 卡片 (5h / weekly / video / 总配额).
- * 跟 UsageOverviewStrip 视觉一致, 但内容来自 windows.
- */
-function UsageFallbackOverview({ windows }) {
-  const cells = useMemo(() => {
-    const w5h = windows && windows["5h"];
-    const wWeek = windows && windows.weekly;
-    const wVideo = windows && windows.video;
-    const wCredit = windows && windows.credit;
-    const out = [];
-    if (w5h && typeof w5h.usedPercent === "number") {
-      out.push({
-        key: "5h",
-        icon: "⏱",
-        label: "5 小时窗口",
-        value: `${w5h.usedPercent}%`,
-        sub: typeof w5h.used === "number" ? `${formatFull(w5h.used)} tokens` : null,
-        accent: "var(--model-color-1)",
-      });
-    }
-    if (wWeek && typeof wWeek.usedPercent === "number") {
-      out.push({
-        key: "weekly",
-        icon: "📅",
-        label: "周窗口",
-        value: `${wWeek.usedPercent}%`,
-        sub: typeof wWeek.used === "number" ? `${formatFull(wWeek.used)} tokens` : null,
-        accent: "var(--model-color-3)",
-        highlight: wWeek.usedPercent >= 50,
-      });
-    }
-    if (wVideo && typeof wVideo.usedPercent === "number") {
-      out.push({
-        key: "video",
-        icon: "🎬",
-        label: "视频赠送",
-        value: `${wVideo.usedPercent}%`,
-        sub: typeof wVideo.remaining === "number" ? `剩 ${wVideo.remaining} 次` : null,
-        accent: "var(--model-color-4)",
-      });
-    }
-    if (wCredit) {
-      out.push({
-        key: "credit",
-        icon: "💎",
-        label: "积分",
-        value: typeof wCredit.remaining === "number" ? String(wCredit.remaining) : "—",
-        sub: typeof wCredit.total === "number" ? `总 ${formatFull(wCredit.total)}` : null,
-        accent: "var(--model-color-2)",
-      });
-    }
-    return out;
-  }, [windows]);
-  if (cells.length === 0) return null;
-  return (
-    <div class="ai-usage-overview">
-      {cells.map((c) => (
-        <div
-          key={c.key}
-          class={`ai-usage-overview-cell${c.highlight ? " ai-usage-overview-cell--highlight" : ""}`}
-          style={{ "--cell-accent": c.accent }}
-        >
-          <div class="ai-usage-overview-top">
-            <span class="ai-usage-overview-icon" aria-hidden="true">{c.icon}</span>
-            <span class="ai-usage-overview-label">{c.label}</span>
-          </div>
-          <div class="ai-usage-overview-value">{c.value}</div>
-          {c.sub && <div class="ai-usage-overview-sub">{c.sub}</div>}
-          <div class="ai-usage-overview-bar" aria-hidden="true" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/**
- * 单个空数据占位区 — 跟主 dashboard 的子卡视觉一致.
- */
-function UsageFallbackEmpty({ eyebrow, title, hint }) {
-  return (
-    <div class="ai-usage-fallback-empty">
-      <div class="ai-usage-section-header">
-        <span class="ai-usage-section-eyebrow">{eyebrow}</span>
-        <span class="ai-usage-section-title">{title}</span>
-      </div>
-      <div class="ai-usage-fallback-empty-body">
-        <span class="ai-usage-fallback-empty-icon" aria-hidden="true">∅</span>
-        <p class="ai-usage-fallback-empty-hint">{hint}</p>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Fallback 整体: 4 分区骨架 + banner + 公开 API windows 打包成 KPI.
- * 给用户"按设计稿"的新 UI, 同时明确告知数据边界.
- */
-function UsageDashboardFallback({ snapshot, history }) {
-  const windows = (snapshot && snapshot.windows) || null;
-
-  return (
-    <div class="ai-usage-dashboard ai-usage-dashboard--fallback">
-      <div class="ai-usage-fallback-banner" role="status">
-        <span class="ai-usage-fallback-banner-icon" aria-hidden="true">ⓘ</span>
-        <div class="ai-usage-fallback-banner-text">
-          <strong>深度统计 minimax 暂未对 API key 公开</strong>
-          <span>— 累计消耗 / 模型分布 / 每日明细 来自 usage_summary 端点, 当前 Subscription Key 拿不到 (401). 下方 KPI 用公开 remains_percent 端点数据.</span>
-        </div>
-      </div>
-
-      <section class="ai-usage-zone">
-        <div class="ai-usage-zone-label">
-          <span class="ai-usage-zone-eyebrow">概览</span>
-          <span class="ai-usage-zone-tag">公开 API</span>
-        </div>
-        <UsageFallbackOverview windows={windows} />
-      </section>
-
-      <section class="ai-usage-zone">
-        <div class="ai-usage-zone-label">
-          <span class="ai-usage-zone-eyebrow">趋势</span>
-        </div>
-        <div class="ai-usage-fallback-grid">
-          <UsageFallbackEmpty
-            eyebrow="90 天"
-            title="Token 用量走势"
-            hint="需要 usage_summary 端点, minimax 当前未对 API 用户开放."
-          />
-        </div>
-      </section>
-
-      <section class="ai-usage-zone">
-        <div class="ai-usage-zone-label">
-          <span class="ai-usage-zone-eyebrow">分析</span>
-        </div>
-        <div class="ai-usage-analytics-grid">
-          <UsageFallbackEmpty
-            eyebrow="模型"
-            title="分布 · 近 90 天"
-            hint="需要 modelBreakdown 字段, 来源 usage_summary."
-          />
-          <UsageFallbackEmpty
-            eyebrow="峰值"
-            title="最活跃一天"
-            hint="需要 mostActiveDay 字段, 来源 usage_summary."
-          />
-          {history && <UsageHistoryCard history={history} />}
-        </div>
-      </section>
     </div>
   );
 }
