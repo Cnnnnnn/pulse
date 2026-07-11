@@ -148,4 +148,40 @@ describe("UsageDashboard", () => {
     const { container } = render(<UsageDashboard snapshot={{ usageSummary: { ...SAMPLE, modelBreakdown: [] } }} />);
     expect(container.querySelector(".ai-usage-model-breakdown")).toBe(null);
   });
+
+  // ─── 用量 KPI 卡 mini 折线 sparkline ───────────────────────────────
+
+  test("累计消耗 + 连续使用 两张卡渲染 mini line sparkline", () => {
+    // ponytail: 用 dailyTokenUsage 表达两个用量指标的趋势 — 累计消耗画每日 token 折线,
+    // 连续使用画每日活跃度二值化折线. 其他两张 (统计周期 / 使用排名) 保持占位空 bar.
+    const { container } = render(<UsageDashboard snapshot={{ usageSummary: SAMPLE }} />);
+    // 总共应渲染 2 条 mini 折线 (累计 + 连续) — 其他 2 张没有 lineMode
+    const lines = container.querySelectorAll(".ai-usage-overview-line");
+    expect(lines).toHaveLength(2);
+    // 每条 line 至少一个 path (area + stroke 共 2 个, 但 stroke 即可识别折线存在)
+    const strokes = container.querySelectorAll(".ai-usage-overview-line-stroke");
+    expect(strokes).toHaveLength(2);
+    // 其他 2 张 (统计周期 / 使用排名) 仍然渲染占位空 bar
+    const bars = container.querySelectorAll(".ai-usage-overview-bar");
+    expect(bars).toHaveLength(2);
+  });
+
+  test("dailyTokenUsage 为空 → 折线渲染占位横线, 不崩", () => {
+    const { container } = render(<UsageDashboard snapshot={{
+      usageSummary: { ...SAMPLE, dailyTokenUsage: [] },
+    }} />);
+    const lines = container.querySelectorAll(".ai-usage-overview-line");
+    expect(lines).toHaveLength(2);
+    // 空数据时只有 empty line, 没有 stroke path
+    const empties = container.querySelectorAll(".ai-usage-overview-line-empty");
+    expect(empties).toHaveLength(2);
+    expect(container.querySelector(".ai-usage-overview-line-stroke")).toBe(null);
+  });
+
+  test("dailyTokenUsage 缺失 → 折线仍渲染 (空态), 不崩", () => {
+    const { container } = render(<UsageDashboard snapshot={{
+      usageSummary: { ...SAMPLE, dailyTokenUsage: undefined },
+    }} />);
+    expect(container.querySelectorAll(".ai-usage-overview-line")).toHaveLength(2);
+  });
 });

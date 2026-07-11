@@ -8338,6 +8338,34 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-radius: 2px;
   transition: width 200ms ease-out;
 }
+
+/* ▸ KPI 卡内嵌 mini 折线 sparkline (累计消耗 / 连续使用两张用量卡的占位空 bar 替代) */
+.ai-usage-overview-line {
+  display: block;
+  margin-top: 8px;
+  width: 100%;
+  height: 36px;
+  overflow: visible;
+}
+.ai-usage-overview-line-stroke {
+  fill: none;
+  stroke: var(--cell-accent, var(--model-color-1));
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.ai-usage-overview-line-area {
+  fill: var(--cell-accent, var(--model-color-1));
+  opacity: 0.14;
+  stroke: none;
+}
+.ai-usage-overview-line-empty {
+  stroke: var(--surface-2, rgba(0, 0, 0, 0.08));
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
 .ai-usage-overview-cell--highlight .ai-usage-overview-value {
   color: var(--accent-primary);
 }

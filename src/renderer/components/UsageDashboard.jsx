@@ -198,6 +198,7 @@ function formatResetIn(sec) {
  * 仅当 usageSummary 拿到时渲染 (深度统计).
  */
 function UsageOverviewStrip({ usageSummary }) {
+  const daily = Array.isArray(usageSummary.dailyTokenUsage) ? usageSummary.dailyTokenUsage : [];
   const cells = useMemo(() => {
     const out = [];
     const rank = usageSummary.usageRankingPercent;
@@ -210,6 +211,8 @@ function UsageOverviewStrip({ usageSummary }) {
         ? `${formatFull(usageSummary.totalTokenConsumed)} tokens`
         : null,
       accent: "var(--model-color-1)",
+      lineMode: "total",
+      lineValues: daily,
     });
     out.push({
       key: "totalDays",
@@ -232,6 +235,8 @@ function UsageOverviewStrip({ usageSummary }) {
         ? `活跃 ${usageSummary.activeDays} 天`
         : null,
       accent: "var(--model-color-4)",
+      lineMode: "consecutive",
+      lineValues: daily,
     });
     out.push({
       key: "ranking",
@@ -243,7 +248,7 @@ function UsageOverviewStrip({ usageSummary }) {
       highlight: typeof rank === "number" && rank <= 5,
     });
     return out;
-  }, [usageSummary]);
+  }, [usageSummary, daily]);
 
   return (
     <div class="ai-usage-overview">
@@ -259,10 +264,67 @@ function UsageOverviewStrip({ usageSummary }) {
           </div>
           <div class="ai-usage-overview-value">{c.value}</div>
           {c.sub && <div class="ai-usage-overview-sub">{c.sub}</div>}
-          <div class="ai-usage-overview-bar" aria-hidden="true" />
+          {c.lineMode
+            ? <MiniLineChart values={c.lineValues} mode={c.lineMode} />
+            : <div class="ai-usage-overview-bar" aria-hidden="true" />}
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * MiniLineChart — 用量 KPI 卡内嵌的 mini 折线 sparkline (纯 SVG, 无依赖).
+ *
+ *  - mode="total": 渲染每日 token 数 (近 90 天趋势)
+ *  - mode="consecutive": 把每日 token 二值化 (>0 → 1, =0 → 0), 渲染活跃度节奏
+ *
+ * 数据缺失 (values 为空 / 全为 null) → 渲染占位横线, 不崩.
+ * ponytail: 复用 UsageTrendChart 的 buildLinePath 思想, 但简化为单序列 mini SVG.
+ */
+function MiniLineChart({ values, mode }) {
+  const W = 220;
+  const H = 36;
+  const PAD = 2;
+
+  const series = useMemo(() => {
+    if (!Array.isArray(values) || values.length === 0) return [];
+    if (mode === "consecutive") {
+      // 二值化: 有数据=1, 无数据=0 — 表达活跃度节奏
+      return values.map((v) => (typeof v === "number" && v > 0 ? 1 : 0));
+    }
+    return values.map((v) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0));
+  }, [values, mode]);
+
+  if (series.length === 0) {
+    return (
+      <svg class="ai-usage-overview-line" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+        <line x1={PAD} x2={W - PAD} y1={H / 2} y2={H / 2} class="ai-usage-overview-line-empty" />
+      </svg>
+    );
+  }
+
+  const max = mode === "consecutive" ? 1 : series.reduce((m, v) => (v > m ? v : m), 0);
+  const xAt = (i) => PAD + (i * (W - 2 * PAD)) / Math.max(1, series.length - 1);
+  const yAt = (v) => {
+    const norm = max > 0 ? v / max : 0;
+    return H - PAD - norm * (H - 2 * PAD);
+  };
+
+  const path = (() => {
+    let d = "";
+    for (let i = 0; i < series.length; i++) {
+      d += `${i === 0 ? "M" : "L"} ${xAt(i).toFixed(2)} ${yAt(series[i]).toFixed(2)} `;
+    }
+    return d.trim();
+  })();
+  const areaPath = `${path} L ${xAt(series.length - 1).toFixed(2)} ${H - PAD} L ${xAt(0).toFixed(2)} ${H - PAD} Z`;
+
+  return (
+    <svg class="ai-usage-overview-line" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+      <path d={areaPath} class="ai-usage-overview-line-area" />
+      <path d={path} class="ai-usage-overview-line-stroke" />
+    </svg>
   );
 }
 
