@@ -11,6 +11,7 @@ import {
   loadFundHistory,
   subscribeNavUpdates,
   fetchNavNow,
+  prefetchAllNavHistory,
   addModalOpen,
   alertModalOpen,
 } from './fundStore.js';
@@ -23,6 +24,7 @@ export function FundLayout() {
     void loadNavState(api);
     void loadFundHistory(api);
     void fetchNavNow(api);
+    void prefetchAllNavHistory(api);
     return () => {
       try { unsub && unsub(); } catch { /* noop */ }
     };
