@@ -1,8 +1,23 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, afterEach } from "vitest";
-import { render, cleanup, screen } from "@testing-library/preact";
+import { describe, it, expect, afterEach, vi } from "vitest";
+
+const mockApi = vi.hoisted(() => ({
+  fundsNavFetch: vi.fn(async () => ({ ok: true })),
+  fundsNavState: vi.fn(async () => ({ ok: true })),
+  fundsList: vi.fn(async () => ({ ok: true, holdings: [] })),
+}));
+vi.mock("../../src/renderer/api.js", () => ({ api: mockApi }));
+
+import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/preact";
 import { FundHero } from "../../src/renderer/funds/FundHero.jsx";
-import { holdings, navCache, navSource, searchQuery } from "../../src/renderer/funds/fundStore.js";
+import {
+  holdings,
+  navCache,
+  navSource,
+  searchQuery,
+  fundsRefreshing,
+  fundsRefreshError,
+} from "../../src/renderer/funds/fundStore.js";
 
 afterEach(() => {
   cleanup();
@@ -11,11 +26,12 @@ afterEach(() => {
   navCache.value = { fetchedAt: null, data: {}, errors: {} };
   navSource.value = "tiantian";
   searchQuery.value = "";
+  fundsRefreshing.value = false;
+  fundsRefreshError.value = null;
 });
 
-describe("FundHero (Task 11)", () => {
+describe("FundHero (Task 11 + A)", () => {
   it("renders the portfolio hero with total value + charts", () => {
-    // 确定性 store 状态: 让 totalMetrics 算出真实数字
     holdings.value = [
       {
         id: "h1",
@@ -43,10 +59,42 @@ describe("FundHero (Task 11)", () => {
 
     render(<FundHero />);
 
-    // 总市值大数字 (¥ + 金额) — 多处含 ¥, 用 getAllByText
     expect(screen.getAllByText(/¥/).length).toBeGreaterThan(0);
-    // 右侧可视化列
     expect(document.querySelector(".fund-donut")).toBeTruthy();
     expect(document.querySelector(".fund-trend")).toBeTruthy();
+  });
+
+  it("刷新状态行默认显示『尚未同步』", () => {
+    render(<FundHero />);
+    const status = document.querySelector(".fund-hero-status");
+    expect(status).toBeTruthy();
+    expect(status.textContent).toContain("尚未同步");
+  });
+
+  it("navCache 带 fetchedAt 时显示『最后同步』", () => {
+    navCache.value = { fetchedAt: Date.now() - 60 * 1000, data: {}, errors: {} };
+    render(<FundHero />);
+    expect(document.querySelector(".fund-hero-status").textContent).toContain("最后同步");
+  });
+
+  it("fundsRefreshing=true 时显示『刷新中…』", () => {
+    fundsRefreshing.value = true;
+    render(<FundHero />);
+    expect(document.querySelector(".fund-hero-status").textContent).toContain("刷新中…");
+  });
+
+  it("fundsRefreshError 时显示重试按钮, 点击触发 fetchNavNow", async () => {
+    fundsRefreshError.value = "x";
+    mockApi.fundsNavFetch.mockClear();
+    render(<FundHero />);
+    const status = document.querySelector(".fund-hero-status");
+    expect(status.textContent).toContain("刷新失败");
+    const retry = status.querySelector(".fund-status-retry");
+    expect(retry).toBeTruthy();
+    expect(retry.getAttribute("aria-label")).toBe("重试刷新");
+    await fireEvent.click(retry);
+    await waitFor(() => expect(mockApi.fundsNavFetch).toHaveBeenCalled());
+    // 成功后错误被清空
+    await waitFor(() => expect(fundsRefreshError.value).toBeNull());
   });
 });

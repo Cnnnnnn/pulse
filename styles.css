@@ -13963,6 +13963,89 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--text-tertiary);
 }
 
+/* ── P0: 刷新状态行 (FundHero) ── */
+.fund-hero-status {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  min-height: 1.2em;
+}
+.fund-hero-status--error {
+  color: var(--color-down);
+}
+.fund-status-retry {
+  display: inline;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--accent-primary);
+  font-size: inherit;
+  cursor: pointer;
+}
+.fund-status-retry:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ── P0: 空态三态 — loading / error / empty ── */
+.fund-empty-state--loading {
+  flex-direction: row;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+}
+.fund-empty-state--error {
+  color: var(--color-down);
+  gap: var(--space-3);
+}
+.fund-empty-cta {
+  display: inline;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--accent-primary);
+  font-size: inherit;
+  cursor: pointer;
+}
+.fund-empty-cta:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.fund-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--bg-secondary);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: fund-spin 800ms linear infinite;
+}
+@keyframes fund-spin { to { transform: rotate(360deg); } }
+
+/* ── P0: sparkline 失败重试按钮 (FundCardSparkline) ── */
+.fund-card-spark-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent-primary);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.fund-card-spark-retry:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-spinner { animation: none; }
+}
+
 /* ── Responsive: hero main + charts stack on narrow ── */
 @media (max-width: 860px) {
   .fund-hero-main { flex-direction: column; }

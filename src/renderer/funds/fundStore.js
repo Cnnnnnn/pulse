@@ -62,6 +62,18 @@ export const alertPrefs = signal({
 });
 export const alertModalOpen = signal(false);
 
+// ── 刷新 / 加载 状态信号 (P0 体验增强) ──
+
+/** 净值即时刷新中 */
+export const fundsRefreshing = signal(false);
+/** 净值即时刷新错误 (string | null) */
+export const fundsRefreshError = signal(null);
+
+/** 持仓列表加载中 */
+export const fundsLoading = signal(false);
+/** 持仓列表加载错误 (string | null) */
+export const fundsLoadError = signal(null);
+
 /** I6 v3: 盈亏提醒未读角标 */
 export const fundUnreadBadge = signal(0);
 
@@ -174,6 +186,8 @@ export function closeAlertModal() {
 // ── async actions (走 IPC) ──
 
 export async function loadFunds(api) {
+  fundsLoading.value = true;
+  fundsLoadError.value = null;
   try {
     const r = await api.fundsList();
     if (r && r.ok) {
@@ -188,10 +202,14 @@ export async function loadFunds(api) {
       }
     } else {
       holdings.value = [];
+      fundsLoadError.value = (r && r.reason) || '加载失败';
     }
   } catch (err) {
     log.warn("loadFunds failed:", err && err.message);
     holdings.value = [];
+    fundsLoadError.value = (err && err.message) || '加载失败';
+  } finally {
+    fundsLoading.value = false;
   }
 }
 
@@ -254,30 +272,41 @@ export async function backfillFund(api, code) {
 }
 
 export async function fetchNavNow(api) {
-  const r = await api.fundsNavFetch();
-  if (r && r.ok) {
-    if (r.results || r.errors) {
-      navCache.value = {
-        fetchedAt: Date.now(),
-        data: Object.assign(
-          {},
-          (navCache.value && navCache.value.data) || {},
-          r.results || {},
-        ),
-        errors: Object.assign(
-          {},
-          (navCache.value && navCache.value.errors) || {},
-          r.errors || {},
-        ),
-      };
+  fundsRefreshing.value = true;
+  fundsRefreshError.value = null;
+  try {
+    const r = await api.fundsNavFetch();
+    if (r && r.ok) {
+      if (r.results || r.errors) {
+        navCache.value = {
+          fetchedAt: Date.now(),
+          data: Object.assign(
+            {},
+            (navCache.value && navCache.value.data) || {},
+            r.results || {},
+          ),
+          errors: Object.assign(
+            {},
+            (navCache.value && navCache.value.errors) || {},
+            r.errors || {},
+          ),
+        };
+      }
+      const count = r.results ? Object.keys(r.results).length : 0;
+      import("../recent/track.js").then((m) => m.trackFundNavFetch(count));
+      // 不阻塞 UI: 状态/持仓后台同步
+      void loadNavState(api);
+      void loadFunds(api);
+    } else {
+      fundsRefreshError.value = (r && r.reason) || '刷新失败';
     }
-    const count = r.results ? Object.keys(r.results).length : 0;
-    import("../recent/track.js").then((m) => m.trackFundNavFetch(count));
-    // 不阻塞 UI: 状态/持仓后台同步
-    void loadNavState(api);
-    void loadFunds(api);
+    return r;
+  } catch (err) {
+    fundsRefreshError.value = (err && err.message) || '刷新失败';
+    return { ok: false, reason: err && err.message };
+  } finally {
+    fundsRefreshing.value = false;
   }
-  return r;
 }
 
 /** 拉单只/少量基金净值, 合并进 navCache (弹窗填码用) */
@@ -467,5 +496,35 @@ export async function loadFundNavHistory(api, code) {
     return { ok: false, reason: r && r.reason };
   } catch (err) {
     return { ok: false, reason: err && err.message };
+  }
+}
+
+// ── 批量 NAV history 预拉 (并发限流, 仅未缓存) ──
+const NAV_PREFETCH_CONCURRENCY = 3;
+let navPrefetchRunning = false;
+
+export async function prefetchAllNavHistory(api, { concurrency = NAV_PREFETCH_CONCURRENCY } = {}) {
+  if (navPrefetchRunning) return;
+  const codes = (holdings.value || [])
+    .map((h) => h && h.code)
+    .filter(Boolean)
+    .filter((code) => {
+      const c = navHistoryCache.value[code];
+      return !(c && c.series && c.series.length);
+    });
+  if (!codes.length) return;
+  navPrefetchRunning = true;
+  try {
+    let idx = 0;
+    const worker = async () => {
+      while (idx < codes.length) {
+        const code = codes[idx++];
+        await loadFundNavHistory(api, code);
+      }
+    };
+    const poolSize = Math.min(concurrency, codes.length);
+    await Promise.all(Array.from({ length: poolSize }, worker));
+  } finally {
+    navPrefetchRunning = false;
   }
 }

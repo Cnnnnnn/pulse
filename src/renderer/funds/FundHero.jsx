@@ -20,6 +20,9 @@ import {
   setNavSource,
   fetchNavNow,
   NAV_SOURCE_LABELS,
+  fundsRefreshing,
+  fundsRefreshError,
+  navCache,
 } from './fundStore.js';
 import { api } from '../api.js';
 import { IconBell, IconCoin, IconRefresh } from '../components/icons.jsx';
@@ -30,6 +33,16 @@ function fmtCurrency(n) {
   if (!Number.isFinite(n)) return '¥0.00';
   const sign = n < 0 ? '-' : '';
   return `${sign}¥${Math.abs(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function fmtAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return '刚刚';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + ' 分钟前';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' 小时前';
+  return Math.floor(h / 24) + ' 天前';
 }
 
 function fmtPct(p) {
@@ -45,6 +58,10 @@ function arrow(n) {
 export function FundHero() {
   const m = totalMetrics.value;
   const source = navSource.value;
+
+  async function handleRefresh() {
+    await fetchNavNow(api);
+  }
 
   const totalMarketValue = Number(m.totalMarketValue) || 0;
   const todayProfit = Number(m.todayProfit) || 0;
@@ -94,13 +111,23 @@ export function FundHero() {
           <button
             type="button"
             class="fund-btn fund-btn-ghost"
-            onClick={() => fetchNavNow(api)}
+            onClick={() => void handleRefresh()}
             title="立即刷新净值"
             aria-label="立即刷新净值"
           >
             <IconRefresh size={16} />
           </button>
         </div>
+      </div>
+
+      <div class="fund-hero-status" aria-live="polite">
+        {fundsRefreshing.value
+          ? '刷新中…'
+          : fundsRefreshError.value
+            ? <span class="fund-hero-status--error">刷新失败：{fundsRefreshError.value} <button type="button" class="fund-status-retry" onClick={() => void handleRefresh()} aria-label="重试刷新">重试</button></span>
+            : navCache.value.fetchedAt
+              ? `最后同步 ${fmtAgo(navCache.value.fetchedAt)}`
+              : '尚未同步'}
       </div>
 
       {/* 2. 搜索 + 添加持仓 */}
