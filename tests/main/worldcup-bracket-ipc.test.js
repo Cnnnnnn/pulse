@@ -115,6 +115,9 @@ describe("worldcup bracket IPC handler", () => {
       teamsData: stubTeamsData,
       groupStandings: FULL_GROUP_STANDINGS,
       knockoutEspn: false,
+      // ponytail: 测试不要走真 wc-2026.com HTTP (云外 IP 不可达, 会卡 8s+ timeout)
+      wc2026: false,
+      hardcodedPen: false,
     });
     expect(r.ok).toBe(true);
     expect(r.snapshot).toBeDefined();
@@ -172,6 +175,9 @@ describe("worldcup bracket IPC handler", () => {
       teamsData: stubTeamsData,
       groupStandings: FULL_GROUP_STANDINGS,
       knockoutEspn: false,
+      // ponytail: 测试不要走真 wc-2026.com HTTP (云外 IP 不可达, 会卡 8s+ timeout)
+      wc2026: false,
+      hardcodedPen: false,
     });
     const r = loadWorldcupBracket({ statePath });
     expect(r.ok).toBe(true);
@@ -256,6 +262,9 @@ describe("worldcup bracket IPC handler", () => {
       scores: stubScores,
       teamsData: () => groupsData,
       knockoutEspn: false,
+      // ponytail: 测试不要走真 wc-2026.com HTTP (云外 IP 不可达, 会卡 8s+ timeout)
+      wc2026: false,
+      hardcodedPen: false,
     });
     expect(r.ok).toBe(true);
     expect(r.snapshot).toBeDefined();
@@ -661,6 +670,9 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
       scores: () => ({}),
       groupStandings: FULL_GROUP_STANDINGS,
       knockoutEspn: false,
+      // ponytail: 不要走真 wc-2026.com HTTP (云外 IP 不可达)
+      wc2026: false,
+      hardcodedPen: false,
     });
     expect(r.ok).toBe(true);
     const m73 = r.snapshot.r32.find((m) => m.matchNum === 73);
@@ -685,6 +697,9 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
       scores: () => ({}),
       groupStandings: FULL_GROUP_STANDINGS,
       knockoutEspn: false,
+      // ponytail: 不要走真 wc-2026.com HTTP (云外 IP 不可达)
+      wc2026: false,
+      hardcodedPen: false,
     });
     expect(r.ok).toBe(true);
     expect(r.snapshot.warnings).toContain("finals_fetch_network_down");
@@ -709,6 +724,9 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
       scores: () => ({}),
       groupStandings: FULL_GROUP_STANDINGS,
       knockoutEspn: false,
+      // ponytail: 不要走真 wc-2026.com HTTP (云外 IP 不可达)
+      wc2026: false,
+      hardcodedPen: false,
     });
     expect(r.ok).toBe(true);
     expect(finalsFetcherCalled).toBe(false);
