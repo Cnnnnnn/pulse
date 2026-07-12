@@ -36,14 +36,10 @@ function calcFundMetrics(holding, navSnap) {
 
   // navSnap 缺失/异常 -> 市场侧全部按 0
   if (!navSnap) {
-    return {
-      marketValue: 0,
-      costValue,
-      profit: costValue === 0 ? 0 : -costValue,  // 拿不到当前净值, 视作全亏 (UI 标灰). 0 化 -0.
-      profitPct: 0,
-      todayProfit: 0,
-      usingEstimate: false,
-    };
+    return Object.assign(
+      baseMetricsZeroMarket(costValue),
+      derivedMetrics(0, costValue, holding),
+    );
   }
 
   const confirmedNav = numOrZero(navSnap.nav);
@@ -55,14 +51,10 @@ function calcFundMetrics(holding, navSnap) {
 
   // 数据异常 (净值 <= 0) 不参与市值/盈亏/今日预估
   if (effectiveNav <= 0) {
-    return {
-      marketValue: 0,
-      costValue,
-      profit: costValue === 0 ? 0 : -costValue,  // 0 化 -0
-      profitPct: 0,
-      todayProfit: 0,
-      usingEstimate: false,
-    };
+    return Object.assign(
+      baseMetricsZeroMarket(costValue),
+      derivedMetrics(0, costValue, holding),
+    );
   }
 
   const marketValue = round2(shares * effectiveNav);
@@ -70,14 +62,58 @@ function calcFundMetrics(holding, navSnap) {
   const profitPct = costValue > 0 ? round4((profit / costValue) * 100) : 0;
   const todayProfit = round2(shares * numOrZero(navSnap.dayChange));
 
+  return Object.assign(
+    {
+      marketValue,
+      costValue,
+      profit,
+      profitPct,
+      todayProfit,
+      usingEstimate,
+    },
+    derivedMetrics(marketValue, costValue, holding),
+  );
+}
+
+// 市场侧按 0 时共用基础字段
+function baseMetricsZeroMarket(costValue) {
   return {
-    marketValue,
+    marketValue: 0,
     costValue,
-    profit,
-    profitPct,
-    todayProfit,
-    usingEstimate,
+    profit: costValue === 0 ? 0 : -costValue,  // 拿不到当前净值, 视作全亏 (UI 标灰). 0 化 -0.
+    profitPct: 0,
+    todayProfit: 0,
+    usingEstimate: false,
   };
+}
+
+/**
+ * T-A1 / T-A2 派生字段: 累计收益额 / 持有期天数 / 年化收益率.
+ * 这些只依赖 marketValue / costValue / holding.addedAt, 与市场侧取数方式无关,
+ * 所以无论正常/异常分支都统一追加上来.
+ *
+ * @param {number} marketValue
+ * @param {number} costValue
+ * @param {{ addedAt?: any }} holding
+ */
+function derivedMetrics(marketValue, costValue, holding) {
+  // 累计收益额 = 市值 - 成本 (手算口径, 与 profit 等同但语义是"持有至今累计")
+  const cumulativeProfit = round2(marketValue - costValue);
+
+  // 持有期天数: addedAt 必须是有限数才计; 否则按 0 (无建仓日信息)
+  const addedAt = holding && holding.addedAt;
+  const holdingDays =
+    typeof addedAt === "number" && Number.isFinite(addedAt)
+      ? Math.max(0, Math.floor((Date.now() - addedAt) / 86400000))
+      : 0;
+
+  // 年化收益率 (百分数, 与 profitPct 同形态): 仅当 持有>=1天 且 成本/市值都>0
+  let annualizedPct = null;
+  if (holdingDays >= 1 && costValue > 0 && marketValue > 0) {
+    annualizedPct = round4((Math.pow(marketValue / costValue, 365 / holdingDays) - 1) * 100);
+  }
+
+  return { cumulativeProfit, holdingDays, annualizedPct };
 }
 
 /**
@@ -150,11 +186,46 @@ function zipHoldingsWithNav(holdings, navMap) {
 
 /**
  * 给一行加 metrics, 返回 UI 直接用的对象.
+ * 在 calcFundMetrics 结果基础上追加派生字段 (阶段 A):
+ *   - holdingDays:     今天 - addedAt 折算的自然天数 (addedAt 缺失/非法 → 0)
+ *   - cumulativeProfit:简单口径 当前市值 - costValue (marketValue - costValue)
+ *   - annualizedPct:   简单年化 (市值/成本)^(365/持有天数) - 1, 百分比数值;
+ *                      成本<=0 或 持有天数<=0 → null (UI 显示 "--")
+ * 容错沿用 calcFundMetrics: 字段缺失/null/0 按 0, 不抛错, 不产出 -0.
  * @param {{ holding: any, navSnap: any }} row
- * @returns {{ holding: any, navSnap: any, metrics: ReturnType<typeof calcFundMetrics> }}
+ * @returns {{ holding: any, navSnap: any, metrics: ReturnType<typeof calcFundMetrics> & { holdingDays: number, cumulativeProfit: number, annualizedPct: number|null } }}
  */
 function rowWithMetrics(row) {
-  return { ...row, metrics: calcFundMetrics(row.holding, row.navSnap) };
+  const metrics = calcFundMetrics(row.holding, row.navSnap);
+
+  // 持有天数: 按自然日截断, 不四舍五入
+  let holdingDays = 0;
+  const addedAt = row.holding && row.holding.addedAt;
+  if (addedAt) {
+    const t = typeof addedAt === "number" ? addedAt : Date.parse(addedAt);
+    if (Number.isFinite(t)) {
+      const diff = Date.now() - t;
+      holdingDays = diff > 0 ? Math.floor(diff / 86400000) : 0;
+    }
+  }
+
+  const marketValue = metrics.marketValue;
+  const costValue = metrics.costValue;
+  const cumulativeProfit = round2(marketValue - costValue);
+
+  // 简单年化: 成本<=0 或 持有<=0 天 → null (UI 显示 "--")
+  let annualizedPct = null;
+  if (costValue > 0 && holdingDays > 0) {
+    const ratio = marketValue / costValue;
+    if (ratio > 0) {
+      annualizedPct = round4((Math.pow(ratio, 365 / holdingDays) - 1) * 100);
+    }
+  }
+
+  return {
+    ...row,
+    metrics: Object.assign({}, metrics, { holdingDays, cumulativeProfit, annualizedPct }),
+  };
 }
 
 // ── helpers ──

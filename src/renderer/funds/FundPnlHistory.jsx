@@ -18,25 +18,8 @@ import {
   formatMonthLabel,
   ymShanghai,
 } from '../../funds/fund-history.js';
-
-function fmtCurrency(n) {
-  if (!Number.isFinite(n)) return '¥0.00';
-  const sign = n < 0 ? '-' : '';
-  return `${sign}¥${Math.abs(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function fmtPct(p) {
-  if (!Number.isFinite(p)) return '0.00%';
-  const sign = p >= 0 ? '+' : '';
-  return `${sign}${p.toFixed(2)}%`;
-}
-
-function fmtDateLabel(ymd) {
-  if (!ymd) return '--';
-  const parts = ymd.split('-');
-  if (parts.length < 3) return ymd;
-  return `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
-}
+import { exportPnlCsv } from '../../funds/pnlCsv.js';
+import { fmtCurrency, fmtPct, fmtDateLabel } from '../../funds/format.js';
 
 export function FundPnlHistory({ layout = 'sidebar' }) {
   const isPage = layout === 'page';
@@ -55,6 +38,11 @@ export function FundPnlHistory({ layout = 'sidebar' }) {
   function goNextMonth() {
     if (isCurrentMonth) return;
     setSelectedHistoryMonth(shiftMonth(ym, 1));
+  }
+
+  function handleExport() {
+    if (days.length === 0) return;
+    exportPnlCsv(days, ym);
   }
 
   return (
@@ -91,6 +79,16 @@ export function FundPnlHistory({ layout = 'sidebar' }) {
             aria-label={collapsed ? '展开盈亏记录' : '收起盈亏记录'}
           >
             {collapsed ? '▸' : '▾'}
+          </button>
+          <button
+            type="button"
+            class="fund-pnl-month-btn fund-pnl-export-btn"
+            onClick={handleExport}
+            disabled={days.length === 0}
+            title={days.length === 0 ? '本月暂无记录' : '导出 CSV'}
+            aria-label="导出 CSV"
+          >
+            导出
           </button>
         </div>
       </div>

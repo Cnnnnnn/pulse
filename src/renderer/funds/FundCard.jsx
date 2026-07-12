@@ -14,6 +14,7 @@ import { api } from '../api.js';
 import { openConfirm } from '../confirmStore.js';
 import { taggedLog } from '../log.js';
 import { FundCardSparkline } from './FundCardSparkline.jsx';
+import { fmtCurrency, fmtPct, fmtNum } from '../../funds/format.js';
 
 const log = taggedLog("[funds]");
 
@@ -25,29 +26,34 @@ const CATEGORY_LABEL = {
   other: { label: '其他' },
 };
 
-function fmtNum(n, digits = 4) {
-  if (!Number.isFinite(n)) return '--';
-  return n.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-}
-
-function fmtCurrency(n) {
-  if (!Number.isFinite(n)) return '¥0.00';
-  const sign = n < 0 ? '-' : '';
-  return `${sign}¥${Math.abs(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function fmtPct(p) {
-  if (!Number.isFinite(p)) return '0.00%';
-  const sign = p >= 0 ? '+' : '';
-  return `${sign}${p.toFixed(2)}%`;
-}
-
 export function FundCard({ row }) {
   const [expanded, setExpanded] = useState(false);
 
   const holding = row.holding;
   const metrics = row.metrics;
   const navSnap = row.navSnap;
+
+  // 阶段 A 派生展示: 容错取字段, 缺失时回退计算, 不抛错.
+  const cumProfit = Number.isFinite(metrics && metrics.cumulativeProfit)
+    ? metrics.cumulativeProfit
+    : (metrics.marketValue || 0) - (metrics.costValue || 0);
+  const annualized = metrics && metrics.annualizedPct;
+  const annClass =
+    annualized == null ? '' : annualized >= 0 ? 'positive' : 'negative';
+  const holdingPeriodLabel = (() => {
+    if (!holding || !holding.addedAt) return '--';
+    const hd =
+      metrics && Number.isFinite(metrics.holdingDays)
+        ? metrics.holdingDays
+        : null;
+    if (hd != null) {
+      return hd < 1 ? '今日建仓' : `${hd} 天`;
+    }
+    const t = Date.parse(holding.addedAt);
+    if (!Number.isFinite(t)) return '--';
+    const d = Math.floor((Date.now() - t) / 86400000);
+    return d < 1 ? '今日建仓' : `${d} 天`;
+  })();
   const rawNavSnap = row.rawNavSnap;
   const cat = CATEGORY_LABEL[holding.category] || CATEGORY_LABEL.other;
   const errors = (navCache.value && navCache.value.errors) || {};
@@ -202,6 +208,22 @@ export function FundCard({ row }) {
           <div class="fund-card-detail-row">
             <span class="fund-card-detail-label">成本总值</span>
             <span class="fund-card-detail-value">{fmtCurrency(metrics.costValue)}</span>
+          </div>
+          <div class="fund-card-detail-row">
+            <span class="fund-card-detail-label">累计收益</span>
+            <span class={`fund-card-detail-value ${cumProfit >= 0 ? 'positive' : 'negative'}`}>
+              {fmtCurrency(cumProfit)}
+            </span>
+          </div>
+          <div class="fund-card-detail-row">
+            <span class="fund-card-detail-label">持有期</span>
+            <span class="fund-card-detail-value">{holdingPeriodLabel}</span>
+          </div>
+          <div class="fund-card-detail-row">
+            <span class="fund-card-detail-label">年化</span>
+            <span class={`fund-card-detail-value ${annClass}`}>
+              {annualized == null ? '--' : fmtPct(annualized)}
+            </span>
           </div>
           {holding.note && (
             <div class="fund-card-detail-row">
