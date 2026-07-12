@@ -1,4 +1,5 @@
-import { categoryAllocation } from './fundStore.js';
+import { categoryAllocation, rowsWithMetrics } from './fundStore.js';
+import { computeConcentration } from '../../funds/concentration.js';
 
 export const CATEGORY_ORDER = ['stock', 'bond', 'money', 'qdii', 'other'];
 const CAT_LABEL = { stock: '股票', bond: '债券', money: '货币', qdii: 'QDII', other: '其他' };
@@ -28,6 +29,9 @@ export function buildSegments(byCat, total) {
 
 export function FundAllocationDonut() {
   const { byCategory, total } = categoryAllocation.value;
+  // 阶段 D (蓝图 §3.4 / §D-2): 直接调用 computeConcentration (纯函数单一来源),
+  // 由 rowsWithMetrics 的 marketValue 计算前三大 / 最大权重 / HHI, warn 时整区转警示色.
+  const risk = computeConcentration(rowsWithMetrics.value);
   const segs = buildSegments(byCategory, total);
   return (
     <div class="fund-donut" role="img" aria-label={`配置占比 donut, 总市值 ${total}`}>
@@ -69,6 +73,17 @@ export function FundAllocationDonut() {
           );
         })}
       </ul>
+      <div
+        class={`fund-donut-risk${risk.warn ? ' fund-donut-risk-warn' : ''}`}
+        role="status"
+        aria-live="polite"
+      >
+        <span class="fund-donut-risk-item">前三大 {risk.top3Pct}%</span>
+        <span class="fund-donut-risk-sep">·</span>
+        <span class="fund-donut-risk-item">最大 {risk.maxWeight}%</span>
+        <span class="fund-donut-risk-sep">·</span>
+        <span class="fund-donut-risk-item">HHI {risk.hhi}</span>
+      </div>
     </div>
   );
 }
