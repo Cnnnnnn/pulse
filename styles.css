@@ -57,6 +57,7 @@ svg:not([role="img"]) {
   --accent-amber-400: #fbbf24;
   --accent-amber-500: #f59e0b;
   --accent-amber-700: #b45309;
+  --accent-amber: var(--accent-amber-500);
 
   /* AI 工具品牌色 (P7) — Cursor 紫 / Codex 翠绿 / MiniMax Code 琥珀.
      非状态色, 走 brand 体系不进 --accent-*; dark 主题保持一致 (品牌跨主题). */
@@ -6051,6 +6052,23 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   width: 32px;
   height: 32px;
   padding: 0;
+  /* ponytail: 不显式 color 时 SVG stroke 继承 body 在某些场景(如父级
+     嵌套暗色卡片)会变得过暗. 显式锁到 --text-primary 让 dark 主题自动切亮色. */
+  color: var(--text-primary);
+}
+
+.ai-usage-bell-btn svg {
+  /* ponytail: 默认 strokeWidth:2 在 18px icon 上 deep 卡片底色偏暗,
+     加粗到 2.2 让 icon 在深色背景下边缘更明显. */
+  stroke-width: 2.2;
+}
+
+/* ponytail: deep 主题铃铛额外提亮, 防嵌入深底卡片时跟底色接近看不清楚. */
+:root[data-theme="dark"] .ai-usage-bell-btn {
+  color: oklch(92% 0.01 285.2);
+}
+:root[data-theme="dark"] .ai-usage-bell-btn:hover {
+  color: var(--gray-50);
 }
 
 .ai-usage-header-actions {
@@ -6481,6 +6499,14 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .fund-pnl-month-btn:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+.fund-pnl-export-btn {
+  width: auto;
+  min-width: 32px;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
 .fund-pnl-month-label {
@@ -13692,6 +13718,29 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   /* background is set inline per category via var(--cat-*) */
 }
 
+.fund-donut-risk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1h);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.fund-donut-risk-item {
+  font-variant-numeric: tabular-nums;
+}
+
+.fund-donut-risk-sep {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.fund-donut-risk-warn {
+  color: var(--accent-amber);
+  font-weight: 600;
+}
+
 /* ── Trend ── */
 .fund-trend {
   display: block;
@@ -13713,6 +13762,71 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   text-align: center;
   color: var(--text-tertiary);
   font-size: var(--font-size-sm);
+}
+
+.fund-trend-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1h);
+}
+
+.fund-trend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1h);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-modal);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.fund-trend-toggle[aria-pressed="true"] {
+  color: var(--text-primary);
+  border-color: color-mix(in oklch, var(--accent-primary) 30%, transparent);
+  background: color-mix(in oklch, var(--accent-primary) 10%, var(--bg-modal));
+}
+
+.fund-trend-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--accent-amber);
+}
+
+.fund-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-1h);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.fund-trend-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1h);
+}
+
+.fund-trend-legend-swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.fund-trend-legend-swatch-combo {
+  background: var(--fund-trend);
+}
+
+.fund-trend-legend-swatch-bench {
+  background: var(--text-tertiary);
+  opacity: 0.6;
 }
 
 /* ── Card grid: 1 → 2 → 3 columns ── */
