@@ -20,11 +20,20 @@ import { routeTab } from "../route-store.js";
 import {
   getThemePreference,
   setThemePreference,
+  subscribeTheme,
 } from "../theme/theme-manager.js";
 import { showToast } from "../store.js";
 
 /* ─── theme signal (与 localStorage 同步) ─────────────────────── */
+// ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
+//           变化, 防止 main 进程 / 其它 renderer 改主题时 signal 跟 UI 脱节.
 const themeMode = signal(getThemePreference());
+/* 当前 system 模式的解析值 (light/dark), 用于设置页提示用户 */
+const themeResolved = signal(
+  typeof document !== "undefined"
+    ? document.documentElement.getAttribute("data-theme") || "light"
+    : "light",
+);
 
 /* ─── 设置页内部 subtab (常规 / AI 配置) ──────────────────────── */
 // ponytail: 初始值用 routeTab (跨组件跳转时由 navigateTo 写入);
@@ -41,6 +50,7 @@ const THEME_OPTIONS = [
   { value: "dark", label: "深色" },
 ];
 const THEME_TOAST = { system: "跟随系统", light: "浅色", dark: "深色" };
+const VALID_THEME = new Set(["system", "light", "dark"]);
 
 /* ─── 最近活动 + 提醒 (异步加载) ──────────────────────────────── */
 const recentEntries = signal([]); // RecentActivityEntry[]
@@ -168,9 +178,29 @@ export function SettingsPage() {
       typeof window.api.onRemindersFired === "function"
         ? window.api.onRemindersFired(() => reloadReminders())
         : null;
+    // ponytail: 同步 themeMode + themeResolved 跟实际 data-theme 走.
+    // 进入设置页时如果 data-theme-source 已经被 init 写过, 用最新值覆盖初始 signal.
+    const root =
+      typeof document !== "undefined" ? document.documentElement : null;
+    if (root) {
+      const source = root.getAttribute("data-theme-source");
+      if (source && VALID_THEME.has(source)) themeMode.value = source;
+      const resolved = root.getAttribute("data-theme");
+      if (resolved === "dark" || resolved === "light")
+        themeResolved.value = resolved;
+    }
+    const offTheme = subscribeTheme((mode) => {
+      themeMode.value = mode;
+      if (root) {
+        const resolved = root.getAttribute("data-theme");
+        if (resolved === "dark" || resolved === "light")
+          themeResolved.value = resolved;
+      }
+    });
     return () => {
       if (typeof offRecent === "function") offRecent();
       if (typeof offReminder === "function") offReminder();
+      if (typeof offTheme === "function") offTheme();
     };
   }, []);
 
@@ -212,7 +242,29 @@ export function SettingsPage() {
                       onClick={() => {
                         themeMode.value = opt.value;
                         setThemePreference(opt.value);
-                        showToast(`主题已切换为「${THEME_TOAST[opt.value] || opt.value}」`, "success", 1800);
+                        // ponytail: system 模式额外提示当前解析值, 让用户清楚
+                        //   "跟随系统" 是按 OS 实时状态走的 (含 macOS Auto 时段切换).
+                        if (opt.value === "system") {
+                          const root =
+                            typeof document !== "undefined"
+                              ? document.documentElement
+                              : null;
+                          const resolved =
+                            (root && root.getAttribute("data-theme")) || "light";
+                          showToast(
+                            `主题已切换为「跟随系统」（当前解析为${
+                              resolved === "dark" ? "深色" : "浅色"
+                            }）`,
+                            "success",
+                            2200,
+                          );
+                        } else {
+                          showToast(
+                            `主题已切换为「${THEME_TOAST[opt.value] || opt.value}」`,
+                            "success",
+                            1800,
+                          );
+                        }
                       }}
                     >
                       {opt.label}
