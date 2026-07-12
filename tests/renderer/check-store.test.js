@@ -152,4 +152,21 @@ describe("check-store stale phase signal cleanup", () => {
     expect(getAppPhaseSignal("X").value).toBe("done");
     expect(getResultSignal("Y").value.version).toBe("2.0");
   });
+
+  it("applyCachedResults 过滤掉 configApps 中不存在的 app (P82: 用户从 config 移除 app 后, state.json 残留不应继续显示)", async () => {
+    const m = await freshModule();
+    const { applyCachedResults, getResultSignal } = m;
+    applyCachedResults(
+      {
+        apps: {
+          X: { name: "X", status: "ok", version: "1.0" },
+          Ghost: { name: "Ghost", status: "ok", version: "9.9" },
+        },
+      },
+      [{ name: "X" }, { name: "Z" }], // config 只有 X 和 Z, Ghost 不在
+    );
+    expect(getResultSignal("X").value.version).toBe("1.0");
+    // Ghost 不在 config → 必须丢弃 (signal 未被 set 时 value 是 undefined)
+    expect(getResultSignal("Ghost").value).toBeUndefined();
+  });
 });

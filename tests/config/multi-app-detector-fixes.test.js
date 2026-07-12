@@ -5,8 +5,9 @@
  *   1. MiniMax Code: html_changelog section_end 改 next-start 模式 +
  *      detector 排第一 (避开 chain 在 electron_yml 处 stop, 让 html_changelog
  *      跑通拿 markdown 内容).
- *   2. ChatGPT/Codex: 已从 apps 列表移除 (2026-07-12 用户决定取消 Codex 检查),
- *      守护块一并删除 — 不再需要验证它的 detector 顺序.
+ *   2. ChatGPT: 重新加回 config (2026-07-12, 之前误用 Codex URL 一直检测失败;
+ *      改用 sidekick/public/sparkle_public_appcast.xml). Codex (跟 ChatGPT 命名
+ *      无关的独立 entry) 已从 apps 移除 — 用户只要 CodexBar, 不要 Codex.
  *   3. Marvis: 移除坏 html_changelog detector (指向主页, 不是 changelog 页),
  *      release_notes_url 改为主页, 加 bundle_changelog=true 拿 app bundle 内
  *      嵌 release notes (跟 QoderWork 同款).
@@ -35,9 +36,18 @@ describe("MiniMax Code detector order (config.json)", () => {
   });
 });
 
-describe("ChatGPT/Codex 已从 apps 移除 (2026-07-12 用户取消 Codex 检查)", () => {
-  it("config.json 中没有 name='ChatGPT' 或 name='Codex' 的 entry", () => {
-    expect(cfg.apps.some((a) => a.name === "ChatGPT")).toBe(false);
+describe("ChatGPT detector (config.json) — 2026-07-12 改用真正的 sidekick sparkle URL", () => {
+  const cg = cfg.apps.find((a) => a.name === "ChatGPT");
+  const sp = cg && cg.detectors.find((d) => d.type === "sparkle_appcast");
+
+  it("ChatGPT entry 存在 (用真正的 sparkle URL, 不用 Codex 的 codex-app-prod/appcast.xml)", () => {
+    expect(cg).toBeTruthy();
+    expect(sp && sp.url).toBe(
+      "https://persistent.oaistatic.com/sidekick/public/sparkle_public_appcast.xml",
+    );
+  });
+
+  it("没有 name='Codex' 的 entry (CodexBar 是独立 app, Codex 已取消)", () => {
     expect(cfg.apps.some((a) => a.name === "Codex")).toBe(false);
   });
 });

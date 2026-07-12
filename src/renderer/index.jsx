@@ -118,10 +118,11 @@ function wireRendererListeners() {
     api.onCheckFinished(async () => {
       if (isCheckRunning()) finishCheck();
       try {
-        const { applyCachedResults, results: resultsSig } = await import('./store.js');
+        const { applyCachedResults, results: resultsSig, apps: appsSig } = await import('./store.js');
         if (resultsSig.value.size === 0) {
           const cached = await api.getCachedState();
-          if (cached && cached.apps) applyCachedResults(cached);
+          if (cached && cached.apps)
+            applyCachedResults(cached, appsSig.value);
         }
       } catch { /* noop */ }
     });
@@ -190,7 +191,7 @@ async function bootstrapDeferred(cfg) {
     const cached = await api.getCachedState();
     if (cached && cached.apps) {
       const { applyCachedResults } = await import('./store.js');
-      applyCachedResults(cached);
+      applyCachedResults(cached, (cfg && cfg.apps) || []);
     }
   } catch { /* noop */ }
 

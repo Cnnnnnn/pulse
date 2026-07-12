@@ -178,17 +178,37 @@ export function isCheckRunning() {
   return checkSession.value.phase === "running";
 }
 
-export function applyCachedResults(cached) {
+export function applyCachedResults(cached, configApps) {
   if (!cached || !cached.apps) return;
+  // ponytail: 用户从 config.json 移除某个 app (比如 Codex/ChatGPT) 后, state.json
+  //   里还残留着历史检测结果; applyCachedResults 直接 set 会让 UI 继续显示"幽灵
+  //   app". 过滤掉 configApps 中不存在的 name, 让"取消检查"立即生效 (不需要
+  //   等 state 里的 ts 老化或手清 state.json).
+  const allowed = configApps
+    ? new Set(configApps.map((a) => a && a.name).filter(Boolean))
+    : null;
   const nextResults = new Map(results.value);
   const nextPhases = new Map(appPhases.value);
 
   for (const [name, r] of Object.entries(cached.apps)) {
     if (!r || !r.name) continue;
+    if (allowed && !allowed.has(name)) continue; // 不在当前 config → 丢弃历史
     nextResults.set(name, r);
     getResultSignal(name).value = r;
     nextPhases.set(name, "done");
     getAppPhaseSignal(name).value = "done";
+  }
+
+  // ponytail: 清理 results 里也不在 config 的残留 (兜底, 比如外部状态改动后).
+  if (allowed) {
+    for (const name of [...nextResults.keys()]) {
+      if (!allowed.has(name)) {
+        nextResults.delete(name);
+        nextPhases.delete(name);
+        getResultSignal(name).value = null;
+        getAppPhaseSignal(name).value = null;
+      }
+    }
   }
 
   results.value = nextResults;

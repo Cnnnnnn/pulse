@@ -272,6 +272,23 @@
       "winget_id": "Steipeteme.CodexBar"
     },
     {
+      "name": "ChatGPT",
+      "bundle": "ChatGPT.app",
+      "win_bundle": "ChatGPT",
+      "download_url": "https://chatgpt.com/",
+      "release_notes_url": "https://help.openai.com/en/articles/9703738-chatgpt-macos-app-release-notes",
+      "detectors": [
+        {
+          "type": "sparkle_appcast",
+          "url": "https://persistent.oaistatic.com/sidekick/public/sparkle_public_appcast.xml"
+        },
+        {
+          "type": "brew_formulae",
+          "cask": "chatgpt"
+        }
+      ]
+    },
+    {
       "name": "CC Switch",
       "bundle": "CC Switch.app",
       "win_bundle": "CC Switch",
