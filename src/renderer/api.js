@@ -111,6 +111,7 @@ export function createApi(overrides = {}) {
     fundsNavState: pick(overrides, "fundsNavState"),
     fundsHistoryList: pick(overrides, "fundsHistoryList"),
     fundsNavHistory: pick(overrides, "fundsNavHistory"),
+    fundsIndexHistory: pick(overrides, "fundsIndexHistory"),
     fundsSetNavSource: pick(overrides, "fundsSetNavSource"),
     fundsAlertPrefsGet: pick(overrides, "fundsAlertPrefsGet"),
     fundsAlertPrefsSet: pick(overrides, "fundsAlertPrefsSet"),

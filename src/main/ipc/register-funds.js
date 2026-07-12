@@ -5,7 +5,7 @@ const fundHistoryStore = require("../fund-history-store");
 const { searchFunds } = require("../../funds/fund-search");
 const { fetchFundNavBatch } = require("../../funds/fund-fetcher");
 const { pickEffectiveNavNumber } = require("../../funds/fund-nav-merge");
-const { fetchFundNavHistory } = require("../../funds/fund-nav-history");
+const { fetchFundNavHistory, fetchIndexHistory } = require("../../funds/fund-nav-history");
 const fundNavHistoryStore = require("../fund-history-store");
 
 function registerFundsHandlers(ctx) {
@@ -132,6 +132,16 @@ function registerFundsHandlers(ctx) {
     const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
     const out = await fetchFundNavHistory(code, httpClient, opts || { days: 30 });
     if (out.ok) fundNavHistoryStore.saveNavHistory(code, out.series);
+    return out;
+  });
+
+  // T-C1a: 基准指数历史 (沪深300 等). 先读缓存, miss 再拉取并写回.
+  safeHandle("funds:index:history", async (_event, symbol, opts) => {
+    const cached = fundNavHistoryStore.loadIndexHistory(symbol);
+    if (cached && cached.length) return { ok: true, series: cached, cached: true };
+    const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
+    const out = await fetchIndexHistory(symbol, httpClient, opts || { days: 365 });
+    if (out.ok) fundNavHistoryStore.saveIndexHistory(symbol, out.series);
     return out;
   });
 

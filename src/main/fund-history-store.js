@@ -101,10 +101,32 @@ function saveNavHistory(code, series, statePath) {
   return true;
 }
 
+// ── T-C1a: 基准指数历史缓存 (独立 key indexHistory[symbol], 平级于 navHistory) ──
+
+function loadIndexHistory(symbol, statePath) {
+  const s = stateStore.load(statePath);
+  const map = s && s.funds && s.funds.indexHistory;
+  return map && Array.isArray(map[symbol]) ? map[symbol] : [];
+}
+
+function saveIndexHistory(symbol, series, statePath) {
+  const s = stateStore.load(statePath) || {};
+  s.funds = s.funds && typeof s.funds === "object" ? s.funds : {};
+  s.funds.indexHistory =
+    s.funds.indexHistory && typeof s.funds.indexHistory === "object"
+      ? s.funds.indexHistory
+      : {};
+  s.funds.indexHistory[symbol] = Array.isArray(series) ? series : [];
+  stateStore.writeAtomic(statePath || stateStore.defaultPath(), s);
+  return true;
+}
+
 module.exports = {
   loadSnapshots,
   saveSnapshots,
   recordFromNavMap,
   loadNavHistory,
   saveNavHistory,
+  loadIndexHistory,
+  saveIndexHistory,
 };

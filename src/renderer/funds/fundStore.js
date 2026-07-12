@@ -479,6 +479,41 @@ export const categoryAllocation = computed(() => {
   return { byCategory: acc, total };
 });
 
+// ── T-C1c: 基准指数叠加 (沪深300 默认) ──
+export const DEFAULT_BENCHMARK = "000300";
+export const benchmarkEnabled = signal(true);
+export const indexHistoryCache = signal({}); // { [symbol]: [{ date, value }] }
+export const benchmarkError = signal(null);
+
+let indexHistoryLoading = false; // 并发保护
+
+export async function loadIndexHistory(api, symbol) {
+  const sym = symbol || DEFAULT_BENCHMARK;
+  if (indexHistoryLoading) return { ok: false, reason: "in_flight" };
+  const cached = indexHistoryCache.value[sym];
+  if (cached && cached.length) return { ok: true, series: cached, cached: true };
+  indexHistoryLoading = true;
+  benchmarkError.value = null;
+  try {
+    const r = await api.fundsIndexHistory(sym, { days: 365 });
+    if (r && r.ok && Array.isArray(r.series) && r.series.length) {
+      indexHistoryCache.value = Object.assign({}, indexHistoryCache.value, {
+        [sym]: r.series,
+      });
+      return { ok: true, series: r.series };
+    }
+    const reason = (r && r.reason) || "unknown";
+    benchmarkError.value = reason;
+    return { ok: false, reason };
+  } catch (err) {
+    const reason = (err && err.message) ? err.message : String(err);
+    benchmarkError.value = reason;
+    return { ok: false, reason };
+  } finally {
+    indexHistoryLoading = false;
+  }
+}
+
 export async function loadFundNavHistory(api, code) {
   if (!code) return { ok: false };
   const cached = navHistoryCache.value[code];
