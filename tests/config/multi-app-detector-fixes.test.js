@@ -5,9 +5,11 @@
  *   1. MiniMax Code: html_changelog section_end 改 next-start 模式 +
  *      detector 排第一 (避开 chain 在 electron_yml 处 stop, 让 html_changelog
  *      跑通拿 markdown 内容).
- *   2. ChatGPT: 重新加回 config (2026-07-12, 之前误用 Codex URL 一直检测失败;
- *      改用 sidekick/public/sparkle_public_appcast.xml). Codex (跟 ChatGPT 命名
- *      无关的独立 entry) 已从 apps 移除 — 用户只要 CodexBar, 不要 Codex.
+ *   2. Codex: 用户本地 /Applications/ChatGPT.app 实际是 Codex 二进制
+ *      (CFBundleIdentifier=com.openai.codex, 版本 26.707.XXXX 格式).
+ *      不是真正的 ChatGPT (那种是 1.2026.XXX 格式). 重新加回 Codex entry,
+ *      用 codex-app-prod/appcast.xml feed; bundle 字段保留 "ChatGPT.app"
+ *      因为用户本地 .app 目录就叫 ChatGPT.app. CodexBar 仍保留.
  *   3. Marvis: 移除坏 html_changelog detector (指向主页, 不是 changelog 页),
  *      release_notes_url 改为主页, 加 bundle_changelog=true 拿 app bundle 内
  *      嵌 release notes (跟 QoderWork 同款).
@@ -36,19 +38,27 @@ describe("MiniMax Code detector order (config.json)", () => {
   });
 });
 
-describe("ChatGPT detector (config.json) — 2026-07-12 改用真正的 sidekick sparkle URL", () => {
-  const cg = cfg.apps.find((a) => a.name === "ChatGPT");
-  const sp = cg && cg.detectors.find((d) => d.type === "sparkle_appcast");
+describe("Codex detector (config.json) — 用户本地 ChatGPT.app 实为 Codex 二进制", () => {
+  const cx = cfg.apps.find((a) => a.name === "Codex");
+  const sp = cx && cx.detectors.find((d) => d.type === "sparkle_appcast");
 
-  it("ChatGPT entry 存在 (用真正的 sparkle URL, 不用 Codex 的 codex-app-prod/appcast.xml)", () => {
-    expect(cg).toBeTruthy();
+  it("Codex entry 存在, 用 codex-app-prod/appcast.xml (Codex 真正的 sparkle feed)", () => {
+    expect(cx).toBeTruthy();
     expect(sp && sp.url).toBe(
-      "https://persistent.oaistatic.com/sidekick/public/sparkle_public_appcast.xml",
+      "https://persistent.oaistatic.com/codex-app-prod/appcast.xml",
     );
   });
 
-  it("没有 name='Codex' 的 entry (CodexBar 是独立 app, Codex 已取消)", () => {
-    expect(cfg.apps.some((a) => a.name === "Codex")).toBe(false);
+  it("bundle 字段保留 'ChatGPT.app' (用户本地 .app 目录就叫 ChatGPT.app)", () => {
+    expect(cx && cx.bundle).toBe("ChatGPT.app");
+  });
+
+  it("winget_id 是 OpenAI.Codex (Windows 同步)", () => {
+    expect(cx && cx.winget_id).toBe("OpenAI.Codex");
+  });
+
+  it("没有 name='ChatGPT' 的 entry (那才是真正的 sidekick sparkle, 但用户没装)", () => {
+    expect(cfg.apps.some((a) => a.name === "ChatGPT")).toBe(false);
   });
 });
 
