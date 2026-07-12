@@ -7,9 +7,8 @@
  *  - exportPnlCsv(rows, month): 触发浏览器下载 (Blob + URL.createObjectURL
  *    + 临时 <a download>), 测试环境 (无 document) 安全 no-op.
  *
- * 数值口径 (主理人决策 #2 — 零依赖; 裸数值便于 Excel 直接计算):
- *  - 当日盈亏 / 市值: 2 位小数带符号 (+/-).
- *  - 收益率: 带符号不带 %.
+ * 数值口径 (PRD B1-4): 与 UI 表头一致, 金额走 fmtCurrency ("+¥123.45"),
+ *                     收益率走 fmtPct ("+1.23%"). format.js 单一来源, 不漂移.
  * 表头与 FundPnlHistory 完全一致: 日期,当日盈亏,收益率,市值.
  * 日期用原始 YYYY-MM-DD 字符串, 便于 Excel 解析.
  *
@@ -19,20 +18,9 @@
  * @module
  */
 
+const { fmtCurrency, fmtPct } = require("./format.js");
+
 const CSV_HEADER = "日期,当日盈亏,收益率,市值";
-
-function signed2(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0.00";
-  return `${v >= 0 ? "+" : ""}${v.toFixed(2)}`;
-}
-
-function signedPct(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "0.00";
-  // 收益率: 带符号, 不带 %.
-  return `${v >= 0 ? "+" : ""}${v.toFixed(2)}`;
-}
 
 /**
  * 生成 CSV 字符串 (首字节 UTF-8 BOM).
@@ -45,9 +33,9 @@ function buildPnlCsv(rows) {
   const body = data.map((r) =>
     [
       r && r.date != null ? String(r.date) : "",
-      signed2(r && r.todayProfit),
-      signedPct(r && r.dayReturnPct),
-      signed2(r && r.totalMarketValue),
+      fmtCurrency(r && r.todayProfit),
+      fmtPct(r && r.dayReturnPct),
+      fmtCurrency(r && r.totalMarketValue),
     ].join(","),
   );
   // UTF-8 BOM: 让 Excel 正确识别中文列头 (蓝图 §7).

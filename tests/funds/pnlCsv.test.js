@@ -1,5 +1,6 @@
 // tests/funds/pnlCsv.test.js
-// T-B1: 盈亏记录导出 CSV — buildPnlCsv 纯函数单测 (BOM / 列头 / 行数 / 裸数值).
+// T-B1: 盈亏记录导出 CSV — buildPnlCsv 纯函数单测 (BOM / 列头 / 行数 / 数值格式).
+// 数值口径与 UI 表头一致 (PRD B1-4): 金额走 fmtCurrency (含 ¥), 收益率走 fmtPct (含 %).
 import { describe, it, expect } from "vitest";
 import { buildPnlCsv } from "../../src/funds/pnlCsv.js";
 
@@ -27,13 +28,17 @@ describe("buildPnlCsv (T-B1)", () => {
     expect(lines.length).toBe(ROWS.length + 1);
   });
 
-  it("数值为裸数值 (带符号, 不含 ¥/%): 当日盈亏/市值 2 位, 收益率不带 %)", () => {
+  it("数值与 UI 同口径: fmtCurrency 含 ¥, fmtPct 含 %", () => {
     const csv = buildPnlCsv(ROWS);
     const lines = csv.replace(/^\uFEFF/, "").split("\n").filter((l) => l.length > 0);
-    // 第一行数据 (2026-07-10)
-    expect(lines[1]).toBe("2026-07-10,+123.45,+1.23,+10000.00");
+    // fmtCurrency: 正数无前缀, 负数 - 前缀; toLocaleString zh-CN 加千分位.
+    // fmtPct: 正数 + 前缀, 负数 - 前缀.
+    // 第一行 (2026-07-10): 正数
+    expect(lines[1]).toBe("2026-07-10,¥123.45,+1.23%,¥10,000.00");
     // 第二行 (负数)
-    expect(lines[2]).toBe("2026-07-09,-10.00,-0.50,+9876.50");
+    expect(lines[2]).toBe("2026-07-09,-¥10.00,-0.50%,¥9,876.50");
+    // 第三行 (零): fmtCurrency(0) → "¥0.00" (无 + 号), fmtPct(0) → "+0.00%"
+    expect(lines[3]).toBe("2026-07-08,¥0.00,+0.00%,¥0.00");
   });
 
   it("空数组 → 仅列头 + BOM", () => {

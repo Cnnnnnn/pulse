@@ -55,7 +55,7 @@ afterEach(() => {
 });
 
 describe("FundAllocationDonut 风险行 (T-D1)", () => {
-  it("4 只等市值: 超阈 → 渲染警示色 (top3=75%, max=25%, HHI=0.25), 整区带 warn 类", () => {
+  it("4 只等市值: 超阈 → 渲染警示色 (top3=75%, max=25%, HHI=0.25), 整区带 warn + negative 类 (PRD D1-2 字面)", () => {
     seedEqualFunds(4);
     const { container } = render(<FundAllocationDonut />);
     const risk = container.querySelector(".fund-donut-risk");
@@ -69,14 +69,17 @@ describe("FundAllocationDonut 风险行 (T-D1)", () => {
     expect(risk.textContent).toContain("25");
     expect(risk.textContent).toContain("0.25");
     expect(risk.classList.contains("fund-donut-risk-warn")).toBe(true);
+    // PRD D1-2: 超阈值叠加全站 .negative 类 (--color-down 红)
+    expect(risk.classList.contains("negative")).toBe(true);
   });
 
-  it("6 只等市值: 未超阈 → 无 warn 类", () => {
+  it("6 只等市值: 未超阈 → 无 warn / 无 negative 类", () => {
     seedEqualFunds(6);
     const { container } = render(<FundAllocationDonut />);
     const risk = container.querySelector(".fund-donut-risk");
     expect(risk).toBeTruthy();
     expect(risk.classList.contains("fund-donut-risk-warn")).toBe(false);
+    expect(risk.classList.contains("negative")).toBe(false);
     expect(risk.textContent).toContain("50"); // top3 约 50%
   });
 });

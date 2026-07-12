@@ -13737,7 +13737,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .fund-donut-risk-warn {
-  color: var(--accent-amber);
+  /* PRD D1-2 字面: 超阈值用 .negative / 警示色, 复用全站 .negative (--color-down) */
   font-weight: 600;
 }
 

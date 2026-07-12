@@ -74,7 +74,7 @@ export function FundAllocationDonut() {
         })}
       </ul>
       <div
-        class={`fund-donut-risk${risk.warn ? ' fund-donut-risk-warn' : ''}`}
+        class={`fund-donut-risk${risk.warn ? ' fund-donut-risk-warn negative' : ''}`}
         role="status"
         aria-live="polite"
       >

@@ -16,7 +16,8 @@
  *
  * 容错: total<=0 → 全 0, warn=false, 不抛错, 不产出 -0.
  *
- * 警示色走 --accent-amber (蓝图 §7), 不用 --color-down.
+ * 警示色走全站 .negative 类 (--color-down), 由调用方 (FundAllocationDonut) 决定.
+ * (设计文档曾考虑 --accent-amber, 最终按 PRD D1-2 字面采用 .negative.)
  */
 
 function round4(n) {
