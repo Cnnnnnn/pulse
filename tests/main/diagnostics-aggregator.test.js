@@ -183,12 +183,16 @@ describe("buildTarGz", () => {
 
 describe("bundleDiagnostics", () => {
   let tmpDir, outDir;
+  let todayErrorsName;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-bundle-"));
     outDir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-bundle-out-"));
-    // 写一个 errors-YYYY-MM-DD.jsonl
+    // ponytail: 用今日日期生成 errors-YYYY-MM-DD.jsonl — bundleDiagnostics 按
+    // sinceMs-1d 过滤, 写死日期 (如 2026-06-23) 跨年/跨周后会被静默丢弃, tar 缺文件.
+    const d = new Date();
+    todayErrorsName = `errors-${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}.jsonl`;
     fs.writeFileSync(
-      path.join(tmpDir, "errors-2026-06-23.jsonl"),
+      path.join(tmpDir, todayErrorsName),
       [
         JSON.stringify({ ts: Date.now() - 86400_000, source: "main", level: "error", message: "boom A" }),
         JSON.stringify({ ts: Date.now(), source: "main", level: "error", message: "boom A" }),
@@ -245,7 +249,7 @@ describe("bundleDiagnostics", () => {
     }
     const namesList = names.map((n) => n.name);
     expect(namesList).toContain("manifest.txt");
-    expect(namesList).toContain("errors/errors-2026-06-23.jsonl");
+    expect(namesList).toContain(`errors/${todayErrorsName}`);
     expect(namesList).toContain("errors-aggregated.json");
     expect(namesList).toContain("logs/startup.log");
     expect(namesList).toContain("diagnostics.json");
