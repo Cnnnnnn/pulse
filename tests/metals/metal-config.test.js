@@ -34,3 +34,34 @@ describe("metal-config METALS history fields", () => {
     expect(getMetalById("AG9999").unitDivisor).toBe(1000);
   });
 });
+
+describe("metal-config METALS compare mapping (2026-07-13 投资 nav 合并)", () => {
+  it("每个品种都有 compareCode 或显式 noCompare", () => {
+    for (const m of METALS) {
+      const has = typeof m.compareCode === "string" && m.compareCode.length > 0;
+      expect(has || m.noCompare === true).toBe(true);
+    }
+  });
+
+  it("compareName 与 compareCode 同时存在 (非 noCompare)", () => {
+    for (const m of METALS) {
+      if (m.noCompare === true) continue;
+      expect(typeof m.compareCode).toBe("string");
+      expect(m.compareCode.length).toBe(6);
+      expect(typeof m.compareName).toBe("string");
+      expect(m.compareName.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("XAU/AU9999 共用 518880 (华安黄金ETF, 同标的), XAG/AG9999 共用 161226 (国投白银LOF)", () => {
+    // ponytail: 这是有意为之 —— 现货黄金/国内黄金本是同一标的的不同报价口径,
+    //   映射到同一只 ETF 后, 加入对比池会互相 toggle (comparePool 以 code 为唯一键).
+    const byCode = {};
+    for (const m of METALS) {
+      if (!m.compareCode) continue;
+      (byCode[m.compareCode] ||= []).push(m.id);
+    }
+    expect(byCode["518880"].sort()).toEqual(["AU9999", "XAU"]);
+    expect(byCode["161226"].sort()).toEqual(["AG9999", "XAG"]);
+  });
+});

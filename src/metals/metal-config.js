@@ -12,6 +12,10 @@
 //     东方财富 f43 是整数, 不同品种除数不同 (见 metal-eastmoney-fetcher.js):
 //       AU9999 (黄金, 元/克报价): priceDivisor = 100
 //       AG9999 (白银, 元/千克报价): priceDivisor = 100000
+// 2026-07-13 投资 nav 合并: 金属本身没有股票 ticker, 通过 compareCode 映射到可交易场内 ETF/LOF,
+//   才能入对比池 (comparePool 以 code 为唯一键). 默认值待产品/数据同学拍板.
+//   同 compareCode 去重约定: XAU 和 AU9999 都映射到 518880 (华安黄金ETF, 同一标的),
+//   加第二个会被 toggle 移除而非新增 —— 这是预期行为, UX 上 AddToCompareButton 用 isInCompare 判断.
 const METALS = [
   {
     id: 'XAU',
@@ -23,6 +27,8 @@ const METALS = [
     historySecid: '113.AU2608',
     proxyLabel: '沪金2608代理',
     unitDivisor: 1,
+    compareCode: '518880',
+    compareName: '华安黄金ETF',
   },
   {
     id: 'XAG',
@@ -34,6 +40,8 @@ const METALS = [
     historySecid: '113.AG2608',
     proxyLabel: '沪银2608代理',
     unitDivisor: 1000,
+    compareCode: '161226',
+    compareName: '国投白银LOF',
   },
   {
     id: 'AU9999',
@@ -45,6 +53,8 @@ const METALS = [
     historySecid: '118.AU9999',
     proxyLabel: null,
     unitDivisor: 1,
+    compareCode: '518880',
+    compareName: '华安黄金ETF',
   },
   {
     id: 'AG9999',
@@ -56,6 +66,8 @@ const METALS = [
     historySecid: '118.AG9999',
     proxyLabel: null,
     unitDivisor: 1000,
+    compareCode: '161226',
+    compareName: '国投白银LOF',
   },
 ];
 
