@@ -24,6 +24,13 @@ export const schedulerState = signal({ status: 'idle', lastFetch: null, nextFetc
 export const historyMap = signal({});
 
 /**
+ * 投资 nav 合并 (2026-07-13) N2: refreshNow loading 态.
+ *   进 refreshNow 设 true, finally 设 false —— 失败也归零.
+ *   供 InvestLayout 读 metalsRefreshing 让 Header 刷新按钮转圈.
+ */
+export const metalsRefreshing = signal(false);
+
+/**
  * 当前选中品种 (驱动详情面板). 复活原 dead signal —
  * MetalWatchlist 点选 → 写; MetalDetail 读.
  */
@@ -110,12 +117,17 @@ export function cleanupMetalStore() {
 
 export async function refreshNow() {
   if (!window.metalsApi) return;
-  const r = await window.metalsApi.fetchNow();
-  if (r && r.quotes) quoteCache.value = r.quotes;
-  if (r && r.fx) fxCache.value = r.fx;
-  // fetchNow 现在串行等 backfill, response 里直接带最新 historyMap,
-  // 同步到 signal 避免依赖 onHistoryChanged 事件时序.
-  if (r && r.historyMap) historyMap.value = r.historyMap;
+  metalsRefreshing.value = true;
+  try {
+    const r = await window.metalsApi.fetchNow();
+    if (r && r.quotes) quoteCache.value = r.quotes;
+    if (r && r.fx) fxCache.value = r.fx;
+    // fetchNow 现在串行等 backfill, response 里直接带最新 historyMap,
+    // 同步到 signal 避免依赖 onHistoryChanged 事件时序.
+    if (r && r.historyMap) historyMap.value = r.historyMap;
+  } finally {
+    metalsRefreshing.value = false;
+  }
 }
 
 export async function updateConfig(patch) {
@@ -139,6 +151,7 @@ export function resetMetalStore() {
   fxCache.value = { rate: null, fetchedAt: null };
   schedulerState.value = { status: 'idle', lastFetch: null, nextFetch: null };
   historyMap.value = {};
+  metalsRefreshing.value = false;
   selectedMetalId.value = 'XAU';
   if (typeof window !== 'undefined' && window.metalsApi) {
     delete window.metalsApi;

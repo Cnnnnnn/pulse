@@ -5,6 +5,9 @@
  * 点某行 → ModalShell 弹窗展示该品种详情 (K线/指标). 不再常驻双栏.
  *
  * 纯行情数据看板 — 不含交易下单 / 持仓记账.
+ *
+ * 投资 nav 合并 (2026-07-13): 拆出 MetalContent (无副作用) 给 InvestLayout 用,
+ * MetalLayout 保留为 (init effect + MetalContent) 复合 wrapper.
  */
 import { useEffect, useState } from "preact/hooks";
 import { MetalHeader } from "./MetalHeader.jsx";
@@ -24,12 +27,11 @@ function DataBanner() {
   );
 }
 
-export function MetalLayout() {
-  useEffect(() => {
-    initMetalStore();
-    return () => cleanupMetalStore();
-  }, []);
-
+/**
+ * 投资 nav 合并 (2026-07-13): MetalContent 不再触发 init/cleanup,
+ * 由 InvestLayout 统一负责. 保留 local state (openMetalId) 给 Modal 弹窗用.
+ */
+export function MetalContent() {
   // 点行 → 打开详情弹窗 (openMetalId = 选中的品种 id, null = 关闭)
   const [openMetalId, setOpenMetalId] = useState(null);
 
@@ -45,6 +47,15 @@ export function MetalLayout() {
       )}
     </div>
   );
+}
+
+export function MetalLayout() {
+  useEffect(() => {
+    initMetalStore();
+    return () => cleanupMetalStore();
+  }, []);
+
+  return <MetalContent />;
 }
 
 export default MetalLayout;
