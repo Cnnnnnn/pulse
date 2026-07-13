@@ -16,10 +16,11 @@ describe('HomeGrid navStore 集成路径', () => {
     expect(activeNav.value).toBe('home');
   });
 
-  it('setActiveNav("funds") 后 activeNav.value === "funds"', async () => {
+  it('setActiveNav("funds") alias → "invest" (投资 nav 合并)', async () => {
     const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
     setActiveNav('funds');
-    expect(activeNav.value).toBe('funds');
+    // ponytail 2026-07-13: funds/metals/stocks 合并为 'invest' nav, legacy key alias.
+    expect(activeNav.value).toBe('invest');
   });
 
   it('setActiveNav("home") 后 activeNav.value === "home"', async () => {
@@ -33,16 +34,16 @@ describe('HomeGrid navStore 集成路径', () => {
     const { PERSISTABLE_NAV_KEYS } = await import('../../src/renderer/worldcup/navStore.js');
     expect(PERSISTABLE_NAV_KEYS.has('home')).toBe(false);
     expect(PERSISTABLE_NAV_KEYS.has('versions')).toBe(true);
-    // P-N+ 2026-07-10: 合并 IT 新闻 + 微博热搜 → 'news', 7 顶级 nav.
-    expect(PERSISTABLE_NAV_KEYS.size).toBe(7);
+    // v6 (2026-07-13): funds + metals + stocks 合并 → 'invest', 5 顶级 nav.
+    expect(PERSISTABLE_NAV_KEYS.size).toBe(5);
   });
 });
 
 // v2 (2026-07-10): HomeGrid 视觉重做后, 加真渲染测试覆盖视觉契约.
-// 验证 hero / 7 tile / SVG icon / accent class / aria-label 都在.
-// v5 (2026-07-10): 合并 IT 新闻 + 微博热搜 → 'news', 7 tile.
+// 验证 hero / 5 tile / SVG icon / accent class / aria-label 都在.
+// v6 (2026-07-13): 合并 funds + metals + stocks → 'invest' tile, 5 tile.
 describe('HomeGrid v2 — 渲染契约', () => {
-  it('渲染出 hero (品牌 mark + greeting + 时间 + 7 模块 meta)', async () => {
+  it('渲染出 hero (品牌 mark + greeting + 时间 + 5 模块 meta)', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
@@ -52,24 +53,25 @@ describe('HomeGrid v2 — 渲染契约', () => {
     expect(container.querySelector('.home-hero-greeting')).toBeTruthy();
     expect(container.querySelector('.home-hero-time')).toBeTruthy();
     expect(container.querySelector('.home-hero-date')).toBeTruthy();
-    expect(container.querySelector('.home-hero-meta')?.textContent).toContain('7');
+    // v6: 5 模块 (新闻/世界杯/投资/AI/版本).
+    expect(container.querySelector('.home-hero-meta')?.textContent).toContain('5');
   });
 
-  it('渲染 7 个 tile, 全部带 home-grid-tile-accent class', async () => {
+  it('渲染 5 个 tile, 全部带 home-grid-tile-accent class', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
 
     const tiles = container.querySelectorAll('.home-grid-tile');
-    expect(tiles.length).toBe(7);
-    // 7 个不同 accent class
+    expect(tiles.length).toBe(5);
+    // 5 个不同 accent class
     const accents = new Set();
     tiles.forEach((t) => {
       const m = t.className.match(/home-grid-tile-(\w+)/);
       if (m) accents.add(m[1]);
     });
     accents.delete('tile'); // base class 名字
-    expect(accents.size).toBe(7);
+    expect(accents.size).toBe(5);
   });
 
   it('每个 tile 都有 SVG icon (不再用 emoji)', async () => {
@@ -103,13 +105,11 @@ describe('HomeGrid v2 — 渲染契约', () => {
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
 
-    // v5: IT 新闻 + 微博热搜 合并 → '新闻'. 8 标签减为 7.
+    // v6: funds + metals + stocks 合并 → '投资'. 7 标签减为 5.
     const expected = [
       '新闻',
       '世界杯',
-      '基金管理',
-      '贵金属',
-      '选股',
+      '投资',
       'AI 用量',
       '版本检查',
     ];
@@ -121,15 +121,15 @@ describe('HomeGrid v2 — 渲染契约', () => {
 
 // v3 (2026-07-10): 6 项完善. 每个加 1-2 个真测试.
 describe('HomeGrid v3 — 视觉/交互完善', () => {
-  it('A2: 副标题尾部有 ⌘1-7 快捷键提示', async () => {
+  it('A2: 副标题尾部有 ⌘1-5 快捷键提示', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
     const kbdHints = container.querySelectorAll('.home-grid-tile-kbd');
-    // v5: IT 新闻 + 微博热搜 合并, 7 tile.
-    expect(kbdHints.length).toBe(7);
+    // v6: 投资 nav 合并, 5 tile.
+    expect(kbdHints.length).toBe(5);
     expect(kbdHints[0].textContent).toBe('⌘1');
-    expect(kbdHints[6].textContent).toBe('⌘7');
+    expect(kbdHints[4].textContent).toBe('⌘5');
   });
 
   it('A14: 挂载后 root 加 home-grid-mounted class (cascade 触发)', async () => {
@@ -273,13 +273,13 @@ describe('HomeGrid v4 — 功能完善', () => {
     ai.aiUsageNavBadge.value = 0;
   });
 
-  it('B10: 7 个 tile 都渲染 status 文本 (冷启动时多数为 "—")', async () => {
+  it('B10: 5 个 tile 都渲染 status 文本 (冷启动时多数为 "—")', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
     const statuses = container.querySelectorAll('.home-grid-tile-status');
-    // v5: IT 新闻 + 微博热搜 合并 → 7 tile. 7 个 tile 都有 .home-grid-tile-status (哪怕是 "—")
-    expect(statuses.length).toBe(7);
+    // v6: 投资 nav 合并 → 5 tile. 5 个 tile 都有 .home-grid-tile-status (哪怕是 "—")
+    expect(statuses.length).toBe(5);
   });
 
   it('B10: news 有今日文章 → status 显示 "今日 N 条 · M 热搜" 合并态', async () => {
@@ -371,8 +371,8 @@ describe('HomeGrid v4 — 功能完善', () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { loadPrefs, savePrefs, resetPrefs } = await import('../../src/renderer/components/sidenav-prefs.js');
-    // v5: 7 个 tile (合并 news)
-    savePrefs({ ...resetPrefs(), order: ['news', 'worldcup', 'funds', 'metals', 'stocks', 'ai-usage', 'versions'] });
+    // v6: 5 个 tile (合并 news + 投资 nav 合并)
+    savePrefs({ ...resetPrefs(), order: ['news', 'worldcup', 'invest', 'ai-usage', 'versions'] });
 
     const { container } = render(<HomeGrid />);
     const tiles = container.querySelectorAll('.home-grid-tile');
@@ -384,11 +384,11 @@ describe('HomeGrid v4 — 功能完善', () => {
     fireEvent.dragOver(tiles[2], { dataTransfer: dt });
     fireEvent.drop(tiles[2], { dataTransfer: dt });
 
-    // prefs.order 应包含 worldcup, funds, news, ... (news 拖到 funds 之后)
+    // prefs.order 应包含 invest, news, ... (news 拖到 invest 之后)
     const p = loadPrefs();
     const idxNews = p.order.indexOf('news');
-    const idxFunds = p.order.indexOf('funds');
-    expect(idxNews).toBeGreaterThan(idxFunds);
+    const idxInvest = p.order.indexOf('invest');
+    expect(idxNews).toBeGreaterThan(idxInvest);
   });
 
   // ── worldcup status 4 级 fallback ────────────────────────────────────
@@ -487,8 +487,8 @@ describe('HomeGrid v4 — 功能完善', () => {
       glm: null,
     };
     const { container } = render(<HomeGrid />);
-    // ai-usage 排 idx=5 (v5 合并 news 后从 6 移到 5)
-    const tile = container.querySelectorAll('.home-grid-tile')[5];
+    // v6 (2026-07-13): 投资 nav 合并 → 5 tile, ai-usage 排 idx=3.
+    const tile = container.querySelectorAll('.home-grid-tile')[3];
     const status = tile.querySelector('.home-grid-tile-status');
     expect(status.textContent).toBe('已用 42%');
   });
@@ -502,7 +502,7 @@ describe('HomeGrid v4 — 功能完善', () => {
       glm: null,
     };
     const { container } = render(<HomeGrid />);
-    const tile = container.querySelectorAll('.home-grid-tile')[5];
+    const tile = container.querySelectorAll('.home-grid-tile')[3];
     const status = tile.querySelector('.home-grid-tile-status');
     expect(status.textContent).toBe('已用 0%');
   });
@@ -516,7 +516,7 @@ describe('HomeGrid v4 — 功能完善', () => {
       glm: null,
     };
     const { container } = render(<HomeGrid />);
-    const tile = container.querySelectorAll('.home-grid-tile')[5];
+    const tile = container.querySelectorAll('.home-grid-tile')[3];
     const status = tile.querySelector('.home-grid-tile-status');
     expect(status.textContent).toBe('已用 75%');
   });
@@ -527,7 +527,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
     aiUsageSnapshot.value = { minimax: null, glm: null };
     const { container } = render(<HomeGrid />);
-    const tile = container.querySelectorAll('.home-grid-tile')[5];
+    const tile = container.querySelectorAll('.home-grid-tile')[3];
     const status = tile.querySelector('.home-grid-tile-status');
     expect(status.textContent).toBe('—');
   });

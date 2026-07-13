@@ -63,25 +63,14 @@ function TileIcon({ kind }) {
           <path {...c} d="M4 12h16M12 4c2.5 2.5 2.5 13 0 16M12 4c-2.5 2.5-2.5 13 0 16" />
         </svg>
       );
-    case "funds":
+    case "invest":
+      // ponytail 2026-07-13: 投资 nav 合并 funds/metals/stocks → 单 icon.
+      //   复用原 funds 柱状图风格, 加 stocks 趋势叠加 → 表达"综合投资看板"语义.
       return (
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
           <path {...c} d="M4 20h16" />
-          <path {...c} d="M7 17v-4M11 17V9M15 17v-6M19 17v-3" />
-        </svg>
-      );
-    case "metals":
-      return (
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-          <path {...c} d="M12 3l9 9-9 9-9-9 9-9z" />
-          <path {...c} d="M7 12h10M12 7v10" />
-        </svg>
-      );
-    case "stocks":
-      return (
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-          <path {...c} d="M3 17l5-6 4 3 8-9" />
-          <path {...c} d="M15 5h5v5" />
+          <path {...c} d="M7 17v-4M11 17V9M15 17v-6" />
+          <path {...c} d="M3 13l4-2 3 1 5-4 5 3" />
         </svg>
       );
     case "ai-usage":
@@ -109,13 +98,11 @@ function TileIcon({ kind }) {
 
 // ponytail: HOME_TILES 现在作为 "tile 元数据 lookup" — 渲染顺序由
 // prefs.order + favorites 决定 (computeOrderedTiles).
-// v5: 7 个 tile — IT 新闻 + 微博热搜 合并成单 'news' tile.
+// v6 (2026-07-13): funds + metals + stocks 合并成单 'invest' tile, 5 个 tile.
 const HOME_TILES = [
   { key: 'news',      title: '新闻',     subtitle: 'IT 资讯 + 微博热搜',         accent: 'blue'   },
   { key: 'worldcup',  title: '世界杯',   subtitle: '2026 世界杯赛程',            accent: 'green'  },
-  { key: 'funds',     title: '基金管理', subtitle: '基金持仓 + 实时盈亏',         accent: 'orange' },
-  { key: 'metals',    title: '贵金属',   subtitle: '黄金白银实时 + 持仓',         accent: 'amber'  },
-  { key: 'stocks',    title: '选股',     subtitle: 'A股条件选股 + AI 分析',      accent: 'purple' },
+  { key: 'invest',    title: '投资',     subtitle: '基金 + 贵金属 + 选股',       accent: 'orange' },
   { key: 'ai-usage',  title: 'AI 用量',  subtitle: 'Minimax coding plan 配额',  accent: 'pink'   },
   { key: 'versions',  title: '版本检查', subtitle: 'App 版本监控',              accent: 'indigo' },
 ];
@@ -157,7 +144,7 @@ function getBadge(key) {
   switch (key) {
     case 'news':
       return (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0) || null;
-    case 'funds':    return fundUnreadBadge.value || null;
+    case 'invest':   return fundUnreadBadge.value || null;
     case 'ai-usage': return aiUsageNavBadge.value || null;
     default:         return null;
   }
@@ -219,22 +206,17 @@ function getStatus(key) {
       }
       return '—';
     }
-    case 'funds': {
-      if (!holdings.value || holdings.value.length === 0) return '未添加持仓';
-      const pnl = totalMetrics.value?.todayProfit ?? 0;
-      const sign = pnl >= 0 ? '+' : '−';
-      return `今日 ${sign}¥${Math.abs(pnl).toFixed(2)}`;
-    }
-    case 'metals': {
+    case 'invest': {
+      // ponytail 2026-07-13: 投资 nav 合并 — status 按 investPrimary 切.
+      //   优先 funds (用户最常看); 没数据时降级到 metals (现价); 最后 '—'.
+      if (holdings.value && holdings.value.length > 0) {
+        const pnl = totalMetrics.value?.todayProfit ?? 0;
+        const sign = pnl >= 0 ? '+' : '−';
+        return `基金 今日 ${sign}¥${Math.abs(pnl).toFixed(2)}`;
+      }
       const q = quoteCache.value?.data?.AU9999;
-      return q ? `¥${q.price.toFixed(2)}/克` : '—';
-    }
-    case 'stocks': {
-      const picked = comparePoolCount.value ?? 0;
-      const screened = stocksResults.value?.length ?? 0;
-      return picked > 0
-        ? `对比池 ${picked}/4 · 筛选 ${screened}`
-        : `筛选 ${screened} 条`;
+      if (q) return `黄金 ¥${q.price.toFixed(2)}/克`;
+      return '—';
     }
     case 'ai-usage': {
       const provider = aiUsageActiveProvider.value;
@@ -323,7 +305,7 @@ export function HomeGrid() {
     return () => { clearInterval(tick); cancelAnimationFrame(raf); };
   }, []);
 
-  // v5: 订阅 3 个 badge 源 (news=ithome+wechat, funds, ai-usage).
+  // v6: 订阅 3 个 badge 源 (news=ithome+wechat, invest=原 funds, ai-usage).
   // 显式 read 让 Preact 知道依赖.
   void ithomeUnreadBadge.value;
   void wechatHotUnreadBadge.value;
@@ -332,7 +314,7 @@ export function HomeGrid() {
   const newsBadge = (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0);
   const badges = {
     news: newsBadge,
-    funds: fundUnreadBadge.value,
+    invest: fundUnreadBadge.value,
     'ai-usage': aiUsageNavBadge.value,
   };
 
