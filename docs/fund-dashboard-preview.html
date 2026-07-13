@@ -3,300 +3,274 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>基金模块 · 仪表盘总览排版预览</title>
+<title>基金模块 · 仪表盘总览（链接 styles.css 实时预览）</title>
+<!-- 关键：本页现在直接链接项目真实样式表，所有 fund-* 类均来自 styles.css，
+     且 DOM 结构与 FundHero / FundAllocationDonut / FundPortfolioTrend / FundCard 完全一致。
+     因此本页 == Electron 内渲染效果（需 build:renderer + 重启）。 -->
+<link rel="stylesheet" href="../styles.css" />
 <style>
-  :root{
-    --bg-primary: rgba(255,255,255,0.82);
-    --bg-card: rgba(255,255,255,0.95);
-    --bg-modal:#ffffff;
-    --bg-hover: rgba(0,0,0,0.03);
-    --bg-section: rgba(0,0,0,0.02);
-    --border: rgba(0,0,0,0.08);
-    --border-subtle:#e5e5e7;
-    --surface:#ffffff;
-    --accent-primary: oklch(60.28% 0.2178 257.4);
-    --text-primary:#1d1d1f;
-    --text-secondary:#6e6e73;
-    --text-tertiary:#aeaeb2;
-    --color-up: oklch(58.58% 0.2220 17.6);
-    --color-down: oklch(59.60% 0.1274 163.3);
-    --focus-ring:0 0 0 3px color-mix(in oklch,var(--accent-primary) 22%, transparent);
-    --cat-stock: oklch(58% 0.16 255);
-    --cat-bond: oklch(56% 0.13 155);
-    --cat-money: oklch(72% 0.15 70);
-    --cat-qdii: oklch(56% 0.17 295);
-    --cat-other: oklch(62% 0.02 270);
-    --fund-trend:var(--accent-primary);
-    --fund-trend-area: oklch(60% 0.16 255 / 0.16);
-    --radius-sm:6px; --radius-md:10px; --radius-lg:14px;
-    --shadow-sm:0 1px 2px rgba(0,0,0,0.04); --shadow-md:0 2px 8px rgba(0,0,0,0.06);
-    --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-1h:6px;
-    --font-size-10:10px;--font-size-xs:11px;--font-size-sm:12px;--font-size-md:13px;--font-size-lg:14px;
-    --font-size-xl:15px;--font-size-subtitle:18px;--font-size-3xl:20px;--font-size-4xl:28px;
-    --font-system:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
-    --ease-ui:0.18s cubic-bezier(0.25,0.1,0.25,1);
+  /* 仅页面级外壳样式（caption / 顶栏占位 / 主题切换），不定义任何 fund-* 组件类 */
+  .preview-wrap { padding-top: 28px; }
+  .preview-note {
+    max-width: 1180px; margin: 0 auto; padding: var(--space-3) var(--space-4);
+    border: 1px dashed var(--border-subtle); border-radius: var(--radius-md);
+    font-size: var(--font-size-sm); color: var(--text-secondary);
+    display: flex; align-items: center; gap: var(--space-3);
   }
-  :root[data-theme="dark"]{
-    --bg-primary: rgba(30,30,30,0.88);
-    --bg-card: rgba(44,44,46,0.95);
-    --bg-modal:#1c1c1e;
-    --bg-hover: rgba(255,255,255,0.05);
-    --bg-section: rgba(255,255,255,0.03);
-    --border: rgba(255,255,255,0.1);
-    --border-subtle: rgba(255,255,255,0.1);
-    --surface:#1c1c1e;
-    --accent-primary: oklch(62.43% 0.2057 255.5);
-    --text-primary:#f5f5f7;
-    --text-secondary:#a1a1a6;
-    --text-tertiary:#636366;
-    --color-up: oklch(66.33% 0.2236 28.3);
-    --color-down: oklch(75.56% 0.2082 147.0);
-    --cat-stock: oklch(68% 0.16 255);
-    --cat-bond: oklch(66% 0.13 155);
-    --cat-money: oklch(78% 0.15 70);
-    --cat-qdii: oklch(68% 0.17 295);
+  .preview-note b { color: var(--text-primary); }
+  .preview-note .spacer { flex: 1; }
+  .theme-toggle {
+    min-height: 36px; padding: 0 14px; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); background: var(--bg-modal); color: var(--text-secondary);
+    font-size: var(--font-size-md); cursor: pointer; user-select: none;
   }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; background:var(--bg-primary); color:var(--text-primary);
-    font-family:var(--font-system); -webkit-font-smoothing:antialiased;
-    padding:var(--space-5);
-  }
-  .preview-note{
-    max-width:1180px; margin:0 auto var(--space-4); padding:var(--space-3) var(--space-4);
-    border:1px dashed var(--border-subtle); border-radius:var(--radius-md);
-    font-size:var(--font-size-sm); color:var(--text-secondary);
-  }
-  .preview-note b{color:var(--text-primary);}
-  .theme-toggle{
-    float:right; min-height:36px; padding:0 14px; border:1px solid var(--border-subtle);
-    border-radius:var(--radius-sm); background:var(--bg-modal); color:var(--text-secondary);
-    font-size:var(--font-size-md); cursor:pointer;
-  }
-  .fund-layout--dashboard{
-    max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:var(--space-5);
-  }
-  /* ── Hero (glass card) ── */
-  .fund-hero{
-    display:flex; flex-direction:column; gap:var(--space-4); padding:var(--space-5);
-    border:1px solid var(--border-subtle); border-radius:var(--radius-lg);
-    background:color-mix(in oklch,var(--surface) 82%, transparent);
-    backdrop-filter:blur(20px) saturate(160%); box-shadow:var(--shadow-sm);
-  }
-  .fund-hero-toolbar{display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); flex-wrap:wrap;}
-  .fund-hero-brand{display:flex; align-items:center; gap:var(--space-2); min-width:0;}
-  .fund-hero-icon{display:inline-flex; font-size:20px; line-height:1;}
-  .fund-hero-title{margin:0; font-size:var(--font-size-3xl); font-weight:700; line-height:1.2; color:var(--text-primary);}
-  .fund-hero-actions{display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; justify-content:flex-end;}
-  .fund-source-toggle{display:inline-flex; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); overflow:hidden;}
-  .fund-source-btn{padding:6px 12px; border:0; background:transparent; color:var(--text-secondary); font-size:var(--font-size-md); cursor:pointer;}
-  .fund-source-btn.active{background:color-mix(in oklch,var(--accent-primary) 12%, transparent); color:var(--accent-primary); font-weight:600;}
-  .fund-btn-ghost{display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); color:var(--text-secondary); background:transparent; cursor:pointer;}
-  .fund-btn-ghost:hover{color:var(--text-primary); background:var(--bg-hover);}
-  .fund-hero-status{margin-top:var(--space-2); font-size:var(--font-size-sm); color:var(--text-secondary);}
-  /* ── KPI strip ── */
-  .fund-hero-kpi{
-    display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:1px;
-    padding:var(--space-4) 0; border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle);
-  }
-  .fund-hero-kpi-primary{display:flex; flex-direction:column; justify-content:center; gap:var(--space-1); padding-right:var(--space-5);}
-  .fund-hero-kpi-tile{display:flex; flex-direction:column; justify-content:center; gap:var(--space-1); padding:0 var(--space-4); border-left:1px solid var(--border-subtle);}
-  .fund-hero-kpi-label{font-size:var(--font-size-xs); font-weight:500; letter-spacing:0.02em; color:var(--text-tertiary);}
-  .fund-hero-total{font-size:clamp(34px,6vw,52px); font-weight:700; line-height:1.05; letter-spacing:-0.02em; color:var(--text-primary); font-variant-numeric:tabular-nums;}
-  .fund-hero-kpi-hint{font-size:var(--font-size-xs); color:var(--text-tertiary);}
-  .fund-hero-kpi-value{display:inline-flex; align-items:baseline; gap:var(--space-1); font-size:var(--font-size-subtitle); font-weight:700; line-height:1.2; color:var(--text-primary); font-variant-numeric:tabular-nums;}
-  .fund-hero-kpi-value.positive{color:var(--color-up);}
-  .fund-hero-kpi-value.negative{color:var(--color-down);}
-  .fund-hero-kpi-arrow{font-size:var(--font-size-md); line-height:1;}
-  .fund-hero-kpi-sub{font-size:var(--font-size-sm); font-variant-numeric:tabular-nums; color:var(--text-secondary);}
-  .fund-hero-kpi-sub.positive{color:var(--color-up);}
-  .fund-hero-kpi-sub.negative{color:var(--color-down);}
-  /* ── panels band ── */
-  .fund-hero-panels{display:grid; grid-template-columns:minmax(0,320px) 1fr; gap:var(--space-4);}
-  .fund-hero-panel{display:flex; flex-direction:column; justify-content:center; padding:var(--space-4); border:1px solid var(--border-subtle); border-radius:var(--radius-md); background:var(--bg-section); min-width:0;}
-  .panel-title{font-size:var(--font-size-xs); font-weight:600; color:var(--text-tertiary); margin:0 0 var(--space-3);}
-  .donut-row{display:flex; align-items:center; gap:var(--space-3);}
-  .donut{width:104px; height:104px; border-radius:50%; flex:0 0 auto;
-    background:conic-gradient(var(--cat-stock) 0 50%, var(--cat-bond) 50% 75%, var(--cat-money) 75% 90%, var(--cat-qdii) 90% 100%);
-    position:relative;}
-  .donut::after{content:""; position:absolute; inset:26px; border-radius:50%; background:var(--bg-section);}
-  .legend{display:flex; flex-direction:column; gap:var(--space-1h); font-size:var(--font-size-sm); color:var(--text-secondary);}
-  .legend i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle;}
-  .trend-svg{display:block; width:100%; height:120px;}
-  /* ── search row ── */
-  .fund-hero-search{display:flex; flex-direction:row; align-items:center; gap:var(--space-2); margin-top:var(--space-1); padding-top:var(--space-4); border-top:1px solid var(--border-subtle);}
-  .fund-search-input{flex:1; min-width:0; height:44px; border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:0 var(--space-3); font-size:var(--font-size-md); background:var(--surface); color:var(--text-primary);}
-  .fund-search-input:focus{outline:none; border-color:var(--accent-primary); box-shadow:var(--focus-ring);}
-  .fund-btn-primary{display:inline-flex; align-items:center; justify-content:center; gap:var(--space-1h); min-height:44px; padding:0 18px; font-weight:600; border:0; border-radius:var(--radius-md); background:var(--accent-primary); color:#fff; cursor:pointer;}
-  /* ── card grid ── */
-  .fund-card-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--space-4);}
-  .fund-card{display:flex; flex-direction:column; gap:var(--space-3); padding:var(--space-4); border:1px solid var(--border-subtle); border-radius:var(--radius-md); background:color-mix(in oklch,var(--surface) 82%, transparent); box-shadow:var(--shadow-sm);}
-  .fund-card-header{display:flex; align-items:center; gap:var(--space-2);}
-  .fund-card-dot{width:10px; height:10px; border-radius:50%; flex:0 0 auto;}
-  .fund-card-code{font-size:var(--font-size-sm); color:var(--text-tertiary); font-variant-numeric:tabular-nums;}
-  .fund-card-name{flex:1 1 auto; min-width:0; font-size:var(--font-size-lg); font-weight:600; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .fund-card-menu-btn{display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; padding:0 10px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); background:transparent; color:var(--text-secondary); font-size:var(--font-size-md); cursor:pointer;}
-  .fund-card-metrics{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--space-2) var(--space-3); padding-top:var(--space-3); border-top:1px solid var(--border-subtle);}
-  .fund-card-stat{display:flex; flex-direction:column; gap:2px; min-width:0;}
-  .fund-card-stat-label{font-size:var(--font-size-xs); color:var(--text-tertiary);}
-  .fund-card-stat-value{font-size:var(--font-size-lg); font-weight:600; line-height:1.2; color:var(--text-primary); font-variant-numeric:tabular-nums;}
-  .fund-card-stat-value.positive{color:var(--color-up);}
-  .fund-card-stat-value.negative{color:var(--color-down);}
-  .fund-card-spark{width:100%; height:32px;}
-  .fund-card-toggle{display:inline-flex; align-items:center; justify-content:center; align-self:center; min-width:44px; min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); background:transparent; color:var(--text-secondary); font-size:var(--font-size-sm); cursor:pointer;}
-
-  @media (max-width:900px){
-    .fund-hero-kpi{grid-template-columns:1fr 1fr;}
-    .fund-hero-kpi-primary{grid-column:1 / -1; padding-right:0; padding-bottom:var(--space-3);}
-    .fund-card-grid{grid-template-columns:repeat(2,1fr);}
-  }
-  @media (max-width:760px){ .fund-hero-panels{grid-template-columns:1fr;} }
-  @media (max-width:520px){
-    .fund-hero-kpi{grid-template-columns:1fr; gap:0;}
-    .fund-hero-kpi-primary{padding-bottom:var(--space-3); border-bottom:1px solid var(--border-subtle);}
-    .fund-hero-kpi-tile{padding:var(--space-3) 0 0; border-left:none;}
-    .fund-card-grid{grid-template-columns:1fr;}
-  }
+  .theme-toggle:hover { color: var(--text-primary); background: var(--bg-hover); }
 </style>
 </head>
 <body>
-  <div class="preview-note">
-    <button class="theme-toggle" onclick="document.documentElement.toggleAttribute('data-theme')">🌓 切换深/浅色</button>
-    <b>基金模块 · 仪表盘总览排版预览</b> — 令牌与 <code>styles.css</code> 真实值一致，结构与改后 <code>FundHero.jsx</code> 对齐。Electron 内实际渲染等同此页（需 <code>build:renderer</code> + 重启）。
-  </div>
+  <div class="preview-wrap">
+    <div class="preview-note">
+      <b>基金模块 · 仪表盘总览（实时预览）</b>
+      <span class="spacer"></span>
+      <span>本页直接链接 <code>styles.css</code>，DOM 与真实组件一致 → 等同 Electron 渲染</span>
+      <button class="theme-toggle" id="theme-toggle" type="button">🌓 切换深 / 浅色</button>
+    </div>
 
-  <div class="fund-layout--dashboard">
-    <!-- HERO -->
-    <section class="fund-hero">
-      <div class="fund-hero-toolbar">
-        <div class="fund-hero-brand">
-          <span class="fund-hero-icon" aria-hidden="true">🪙</span>
-          <h2 class="fund-hero-title">基金管理</h2>
-        </div>
-        <div class="fund-hero-actions">
-          <div class="fund-source-toggle" role="radiogroup" aria-label="净值数据源">
-            <button class="fund-source-btn active" role="radio" aria-checked="true">天天</button>
-            <button class="fund-source-btn" role="radio" aria-checked="false">新浪</button>
+    <div class="fund-layout--dashboard">
+      <!-- HERO（结构 1:1 对应 FundHero.jsx） -->
+      <section class="fund-hero">
+        <div class="fund-hero-toolbar">
+          <div class="fund-hero-brand">
+            <span class="fund-hero-icon" aria-hidden="true">🪙</span>
+            <h2 class="fund-hero-title">基金管理</h2>
           </div>
-          <button class="fund-btn-ghost" title="盈亏阈值提醒" aria-label="盈亏阈值提醒">🔔</button>
-          <button class="fund-btn-ghost" title="立即刷新净值" aria-label="立即刷新净值">⟳</button>
-        </div>
-      </div>
-
-      <div class="fund-hero-status">最后同步 3 分钟前</div>
-
-      <!-- KPI strip -->
-      <div class="fund-hero-kpi">
-        <div class="fund-hero-kpi-primary">
-          <span class="fund-hero-kpi-label">总市值</span>
-          <span class="fund-hero-total tabular-nums">¥1,286,420.50</span>
-          <span class="fund-hero-kpi-hint">持仓市值汇总</span>
-        </div>
-        <div class="fund-hero-kpi-tile">
-          <span class="fund-hero-kpi-label">今日预估</span>
-          <span class="fund-hero-kpi-value positive"><span class="fund-hero-kpi-arrow" aria-hidden="true">↑</span>¥1,240.30</span>
-          <span class="fund-hero-kpi-sub positive">+0.10%</span>
-        </div>
-        <div class="fund-hero-kpi-tile">
-          <span class="fund-hero-kpi-label">总盈亏</span>
-          <span class="fund-hero-kpi-value positive"><span class="fund-hero-kpi-arrow" aria-hidden="true">↑</span>¥86,420.50</span>
-          <span class="fund-hero-kpi-sub positive">+7.20%</span>
-        </div>
-        <div class="fund-hero-kpi-tile">
-          <span class="fund-hero-kpi-label">收益率</span>
-          <span class="fund-hero-kpi-value positive">+7.20%</span>
-        </div>
-      </div>
-
-      <!-- panels band -->
-      <div class="fund-hero-panels">
-        <div class="fund-hero-panel">
-          <p class="panel-title">配置占比</p>
-          <div class="donut-row">
-            <div class="donut" aria-hidden="true"></div>
-            <div class="legend">
-              <span><i style="background:var(--cat-stock)"></i>股票 50%</span>
-              <span><i style="background:var(--cat-bond)"></i>债券 25%</span>
-              <span><i style="background:var(--cat-money)"></i>货币 15%</span>
-              <span><i style="background:var(--cat-qdii)"></i>QDII 10%</span>
+          <div class="fund-hero-actions">
+            <div class="fund-source-toggle" role="radiogroup" aria-label="净值数据源">
+              <button type="button" class="fund-source-btn active" role="radio" aria-checked="true">天天</button>
+              <button type="button" class="fund-source-btn" role="radio" aria-checked="false">新浪</button>
             </div>
+            <button type="button" class="fund-btn fund-btn-ghost" title="盈亏阈值提醒" aria-label="盈亏阈值提醒">🔔</button>
+            <button type="button" class="fund-btn fund-btn-ghost" title="立即刷新净值" aria-label="立即刷新净值">⟳</button>
           </div>
         </div>
-        <div class="fund-hero-panel">
-          <p class="panel-title">近 30 天组合净值</p>
-          <svg class="trend-svg" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--fund-trend-area)"/>
-                <stop offset="100%" stop-color="transparent"/>
-              </linearGradient>
-            </defs>
-            <path d="M0,90 C60,80 100,60 160,66 C220,72 260,40 320,46 C380,52 420,28 480,34 C540,40 580,18 600,22 L600,120 L0,120 Z" fill="url(#g)"/>
-            <path d="M0,90 C60,80 100,60 160,66 C220,72 260,40 320,46 C380,52 420,28 480,34 C540,40 580,18 600,22" fill="none" stroke="var(--fund-trend)" stroke-width="2"/>
-          </svg>
+
+        <div class="fund-hero-status">最后同步 3 分钟前</div>
+
+        <!-- KPI 条 -->
+        <div class="fund-hero-kpi">
+          <div class="fund-hero-kpi-primary">
+            <span class="fund-hero-kpi-label">总市值</span>
+            <span class="fund-hero-total tabular-nums">¥1,286,420.50</span>
+            <span class="fund-hero-kpi-hint">持仓市值汇总</span>
+          </div>
+          <div class="fund-hero-kpi-tile">
+            <span class="fund-hero-kpi-label">今日预估</span>
+            <span class="fund-hero-kpi-value positive"><span class="fund-hero-kpi-arrow" aria-hidden="true">↑</span>¥1,240.30</span>
+            <span class="fund-hero-kpi-sub positive">+0.10%</span>
+          </div>
+          <div class="fund-hero-kpi-tile">
+            <span class="fund-hero-kpi-label">总盈亏</span>
+            <span class="fund-hero-kpi-value positive"><span class="fund-hero-kpi-arrow" aria-hidden="true">↑</span>¥86,420.50</span>
+            <span class="fund-hero-kpi-sub positive">+7.20%</span>
+          </div>
+          <div class="fund-hero-kpi-tile">
+            <span class="fund-hero-kpi-label">收益率</span>
+            <span class="fund-hero-kpi-value positive">+7.20%</span>
+          </div>
         </div>
+
+        <!-- 可视化带：配置 donut + 近 30 天走势（由下方脚本按真实组件数学渲染） -->
+        <div class="fund-hero-panels">
+          <div class="fund-hero-panel" id="donut-mount"></div>
+          <div class="fund-hero-panel" id="trend-mount"></div>
+        </div>
+
+        <!-- 搜索 + 添加持仓 -->
+        <div class="fund-hero-search">
+          <input id="fund-search-input" type="text" class="fund-search-input" placeholder="搜索代码 / 名称" aria-label="搜索持仓" />
+          <button type="button" class="fund-btn fund-btn-primary">＋ 添加持仓</button>
+        </div>
+      </section>
+
+      <!-- 卡片网格（结构对应 FundCard.jsx；首卡展开 kebab 演示菜单） -->
+      <div class="fund-card-grid">
+        <article class="fund-card" data-fund-code="110011">
+          <div class="fund-card-header">
+            <span class="fund-card-dot" style="background:var(--cat-stock)" title="股票" aria-hidden="true"></span>
+            <span class="fund-card-code">110011</span>
+            <span class="fund-card-name">易方达优质精选混合</span>
+            <span class="fund-card-tools">
+              <span class="fund-card-menu">
+                <button type="button" class="fund-card-menu-btn" aria-haspopup="menu" aria-expanded="true" aria-label="更多操作" title="更多操作">更多</button>
+                <span class="fund-card-menu-panel" role="menu">
+                  <button type="button" role="menuitem" class="fund-card-menu-item">关注净值</button>
+                  <button type="button" role="menuitem" class="fund-card-menu-item">编辑持仓</button>
+                  <button type="button" role="menuitem" class="fund-card-menu-item fund-card-menu-item--danger">删除</button>
+                </span>
+              </span>
+            </span>
+          </div>
+          <div class="fund-card-metrics">
+            <span class="fund-card-stat"><span class="fund-card-stat-label">净值 (天天)</span><span class="fund-card-stat-value">3.4210</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">市值</span><span class="fund-card-stat-value">¥512,300.00</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">盈亏</span><span class="fund-card-stat-value positive">+¥42,300.00 (+9.00%)</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">今日</span><span class="fund-card-stat-value positive">+¥640.00 (+0.13%)</span></span>
+          </div>
+          <div class="fund-card-spark"><svg viewBox="0 0 200 32" preserveAspectRatio="none"><path d="M0,24 L20,22 L40,25 L60,18 L80,20 L100,14 L120,16 L140,10 L160,12 L180,7 L200,9" fill="none" stroke="var(--color-up)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg></div>
+          <button type="button" class="fund-card-toggle" title="展开" aria-label="展开">▼</button>
+        </article>
+
+        <article class="fund-card" data-fund-code="000509">
+          <div class="fund-card-header">
+            <span class="fund-card-dot" style="background:var(--cat-money)" title="货币" aria-hidden="true"></span>
+            <span class="fund-card-code">000509</span>
+            <span class="fund-card-name">广发钱袋子货币</span>
+            <span class="fund-card-tools">
+              <span class="fund-card-menu">
+                <button type="button" class="fund-card-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-label="更多操作" title="更多操作">更多</button>
+              </span>
+            </span>
+          </div>
+          <div class="fund-card-metrics">
+            <span class="fund-card-stat"><span class="fund-card-stat-label">净值 (天天)</span><span class="fund-card-stat-value">0.5820</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">市值</span><span class="fund-card-stat-value">¥320,120.00</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">盈亏</span><span class="fund-card-stat-value positive">+¥3,120.00 (+0.98%)</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">今日</span><span class="fund-card-stat-value positive">+¥15.20 (+0.005%)</span></span>
+          </div>
+          <div class="fund-card-spark"><svg viewBox="0 0 200 32" preserveAspectRatio="none"><path d="M0,28 L20,27 L40,27 L60,26 L80,26 L100,25 L120,25 L140,24 L160,24 L180,23 L200,23" fill="none" stroke="var(--color-up)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg></div>
+          <button type="button" class="fund-card-toggle" title="展开" aria-label="展开">▼</button>
+        </article>
+
+        <article class="fund-card" data-fund-code="164824">
+          <div class="fund-card-header">
+            <span class="fund-card-dot" style="background:var(--cat-qdii)" title="QDII" aria-hidden="true"></span>
+            <span class="fund-card-code">164824</span>
+            <span class="fund-card-name">工银瑞信全球美元债</span>
+            <span class="fund-card-tools">
+              <span class="fund-card-menu">
+                <button type="button" class="fund-card-menu-btn" aria-haspopup="menu" aria-expanded="false" aria-label="更多操作" title="更多操作">更多</button>
+              </span>
+            </span>
+          </div>
+          <div class="fund-card-metrics">
+            <span class="fund-card-stat"><span class="fund-card-stat-label">净值 (天天)</span><span class="fund-card-stat-value">1.1180</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">市值</span><span class="fund-card-stat-value">¥454,000.00</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">盈亏</span><span class="fund-card-stat-value negative">-¥1,200.00 (-0.26%)</span></span>
+            <span class="fund-card-stat"><span class="fund-card-stat-label">今日</span><span class="fund-card-stat-value negative">-¥585.10 (-0.13%)</span></span>
+          </div>
+          <div class="fund-card-spark"><svg viewBox="0 0 200 32" preserveAspectRatio="none"><path d="M0,12 L20,14 L40,11 L60,16 L80,15 L100,19 L120,18 L140,22 L160,21 L180,25 L200,24" fill="none" stroke="var(--color-down)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg></div>
+          <button type="button" class="fund-card-toggle" title="展开" aria-label="展开">▼</button>
+        </article>
       </div>
-
-      <!-- search row -->
-      <div class="fund-hero-search">
-        <input class="fund-search-input" type="text" placeholder="搜索代码 / 名称" aria-label="搜索持仓" />
-        <button class="fund-btn-primary">＋ 添加持仓</button>
-      </div>
-    </section>
-
-    <!-- CARD GRID -->
-    <div class="fund-card-grid">
-      <article class="fund-card">
-        <div class="fund-card-header">
-          <span class="fund-card-dot" style="background:var(--cat-stock)"></span>
-          <span class="fund-card-code">110011</span>
-          <span class="fund-card-name">易方达优质精选混合</span>
-          <button class="fund-card-menu-btn" aria-label="更多操作">更多</button>
-        </div>
-        <div class="fund-card-metrics">
-          <span class="fund-card-stat"><span class="fund-card-stat-label">净值 (天天)</span><span class="fund-card-stat-value">3.4210</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">市值</span><span class="fund-card-stat-value">¥512,300.00</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">盈亏</span><span class="fund-card-stat-value positive">+¥42,300.00 (+9.0%)</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">今日</span><span class="fund-card-stat-value positive">+¥640.00 (+0.13%)</span></span>
-        </div>
-        <svg class="fund-card-spark" viewBox="0 0 200 32" preserveAspectRatio="none"><path d="M0,24 L20,22 L40,25 L60,18 L80,20 L100,14 L120,16 L140,10 L160,12 L180,7 L200,9" fill="none" stroke="var(--color-up)" stroke-width="2"/></svg>
-        <button class="fund-card-toggle" aria-label="展开">▼</button>
-      </article>
-
-      <article class="fund-card">
-        <div class="fund-card-header">
-          <span class="fund-card-dot" style="background:var(--cat-money)"></span>
-          <span class="fund-card-code">000509</span>
-          <span class="fund-card-name">广发钱袋子货币</span>
-          <button class="fund-card-menu-btn" aria-label="更多操作">更多</button>
-        </div>
-        <div class="fund-card-metrics">
-          <span class="fund-card-stat"><span class="fund-card-stat-label">万份收益</span><span class="fund-card-stat-value">0.5820</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">市值</span><span class="fund-card-stat-value">¥320,120.00</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">盈亏</span><span class="fund-card-stat-value positive">+¥3,120.00 (+0.98%)</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">今日</span><span class="fund-card-stat-value positive">+¥15.20 (+0.005%)</span></span>
-        </div>
-        <svg class="fund-card-spark" viewBox="0 0 200 32" preserveAspectRatio="none"><path d="M0,28 L20,27 L40,27 L60,26 L80,26 L100,25 L120,25 L140,24 L160,24 L180,23 L200,23" fill="none" stroke="var(--color-up)" stroke-width="2"/></svg>
-        <button class="fund-card-toggle" aria-label="展开">▼</button>
-      </article>
-
-      <article class="fund-card">
-        <div class="fund-card-header">
-          <span class="fund-card-dot" style="background:var(--cat-qdii)"></span>
-          <span class="fund-card-code">164824</span>
-          <span class="fund-card-name">工银瑞信全球美元债</span>
-          <button class="fund-card-menu-btn" aria-label="更多操作">更多</button>
-        </div>
-        <div class="fund-card-metrics">
-          <span class="fund-card-stat"><span class="fund-card-stat-label">净值 (天天)</span><span class="fund-card-stat-value">1.1180</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">市值</span><span class="fund-card-stat-value">¥454,000.00</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">盈亏</span><span class="fund-card-stat-value negative">-¥1,200.00 (-0.26%)</span></span>
-          <span class="fund-card-stat"><span class="fund-card-stat-label">今日</span><span class="fund-card-stat-value negative">-¥585.10 (-0.13%)</span></span>
-        </div>
-        <svg class="fund-card-spark" viewBox="0 0 200 32" preserveAspectRatio="none"><path d="M0,12 L20,14 L40,11 L60,16 L80,15 L100,19 L120,18 L140,22 L160,21 L180,25 L200,24" fill="none" stroke="var(--color-down)" stroke-width="2"/></svg>
-        <button class="fund-card-toggle" aria-label="展开">▼</button>
-      </article>
     </div>
   </div>
+
+<script>
+  // ── 以下函数与真实组件 FundAllocationDonut.jsx / FundPortfolioTrend.jsx 完全一致 ──
+  const CATEGORY_ORDER = ['stock', 'bond', 'money', 'qdii', 'other'];
+  const CAT_LABEL = { stock: '股票', bond: '债券', money: '货币', qdii: 'QDII', other: '其他' };
+
+  function polar(cx, cy, r, deg) {
+    const a = (deg - 90) * Math.PI / 180;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  }
+  function describeArc(cx, cy, r, start, end) {
+    const [sx, sy] = polar(cx, cy, r, end);
+    const [ex, ey] = polar(cx, cy, r, start);
+    const large = end - start <= 180 ? 0 : 1;
+    return `M ${sx.toFixed(3)} ${sy.toFixed(3)} A ${r} ${r} 0 ${large} 0 ${ex.toFixed(3)} ${ey.toFixed(3)}`;
+  }
+  function buildSegments(byCat, total) {
+    const segs = []; let cursor = 0;
+    for (const cat of CATEGORY_ORDER) {
+      const val = byCat[cat] || 0;
+      if (val <= 0) continue;
+      const sweep = total > 0 ? (val / total) * 360 : 0;
+      segs.push({ cat, value: val, start: cursor, sweep });
+      cursor += sweep;
+    }
+    return segs;
+  }
+  function toPoints(values, W, H, PAD) {
+    if (!values || !values.length) return [];
+    const vals = values.map((v) => (Number.isFinite(v) ? v : 0));
+    const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1, n = vals.length;
+    return vals.map((v, i) => ({
+      x: PAD + (n === 1 ? 0 : (i / (n - 1)) * (W - PAD * 2)),
+      y: H - PAD - ((v - min) / span) * (H - PAD * 2),
+    }));
+  }
+  const buildLinePath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+  function buildAreaPath(pts, h) {
+    if (!pts.length) return '';
+    const first = pts[0], last = pts[pts.length - 1];
+    return `${buildLinePath(pts)} L ${last.x.toFixed(2)} ${h} L ${first.x.toFixed(2)} ${h} Z`;
+  }
+
+  // ── mock 数据（与 KPI 总市值 1,286,420.50 一致）──
+  const total = 1286420.50;
+  const byCategory = { stock: 643210.25, bond: 321605.13, money: 192963.08, qdii: 128642.04 };
+  const risk = { top3: '90.0', max: '50.0', hhi: '0.35' };
+
+  // ── 渲染配置 donut（对应 FundAllocationDonut.jsx）──
+  (function renderDonut() {
+    const segs = buildSegments(byCategory, total);
+    const paths = segs.map((s) =>
+      `<path d="${describeArc(50, 50, 40, s.start, s.start + s.sweep)}" fill="none" stroke="var(--cat-${s.cat})" stroke-width="16" />`
+    ).join('');
+    const legend = CATEGORY_ORDER.filter((c) => byCategory[c] > 0).map((c) => {
+      const pct = ((byCategory[c] / total) * 100).toFixed(1);
+      return `<li><span class="fund-donut-dot" style="background:var(--cat-${c})"></span>${CAT_LABEL[c]} ${pct}%</li>`;
+    }).join('');
+    document.getElementById('donut-mount').innerHTML = `
+      <div class="fund-donut" role="img" aria-label="配置占比 donut, 总市值 ${total}">
+        <svg viewBox="0 0 100 100" class="fund-donut-svg" aria-hidden="true">${paths}</svg>
+        <ul class="fund-donut-legend">${legend}</ul>
+        <div class="fund-donut-risk" role="status" aria-live="polite">
+          <span class="fund-donut-risk-item">前三大 ${risk.top3}%</span>
+          <span class="fund-donut-risk-sep">·</span>
+          <span class="fund-donut-risk-item">最大 ${risk.max}%</span>
+          <span class="fund-donut-risk-sep">·</span>
+          <span class="fund-donut-risk-item">HHI ${risk.hhi}</span>
+        </div>
+      </div>`;
+  })();
+
+  // ── 渲染近 30 天组合净值走势（对应 FundPortfolioTrend.jsx，基准默认关）──
+  (function renderTrend() {
+    const W = 300, H = 90, PAD = 6;
+    const N = 30, start = 1150000, end = total;
+    const snaps = [];
+    for (let i = 0; i < N; i++) {
+      const t = i / (N - 1);
+      const base = start + t * (end - start);
+      const wig = Math.sin(i * 0.9) * 16000 + Math.cos(i * 0.5) * 9000;
+      snaps.push(base + wig);
+    }
+    const pts = toPoints(snaps, W, H, PAD);
+    const line = buildLinePath(pts);
+    const area = buildAreaPath(pts, H);
+    document.getElementById('trend-mount').innerHTML = `
+      <div class="fund-trend" role="img" aria-label="近30天组合净值走势">
+        <div class="fund-trend-toolbar">
+          <button type="button" class="fund-trend-toggle" aria-pressed="false" title="显示基准">基准</button>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" class="fund-trend-svg" preserveAspectRatio="none" aria-hidden="true">
+          <path d="${area}" fill="var(--fund-trend-area)" />
+          <path d="${line}" fill="none" stroke="var(--fund-trend)" stroke-width="2" vector-effect="non-scaling-stroke" />
+        </svg>
+        <div class="fund-trend-legend">
+          <span class="fund-trend-legend-item"><span class="fund-trend-legend-swatch fund-trend-legend-swatch-combo"></span>组合</span>
+          <span class="fund-trend-legend-item"><span class="fund-trend-legend-swatch fund-trend-legend-swatch-bench"></span>沪深300</span>
+        </div>
+      </div>`;
+  })();
+
+  // ── 主题切换：写 <html data-theme>，驱动 styles.css :root[data-theme="dark"] ──
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  });
+</script>
 </body>
 </html>

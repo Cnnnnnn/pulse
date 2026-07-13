@@ -13129,6 +13129,46 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-weight: 600;
 }
 
+/* ── Hero control appearance (was missing: 旧预览用内联样式伪造, 真实 app 无对应规则) ── */
+/* segmented source toggle (radiogroup) */
+.fund-source-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.fund-source-btn {
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+.fund-source-btn.active {
+  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+/* primary action — accent fill (mirrors global .btn-primary) */
+.fund-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1h);
+  min-height: 44px;
+  padding: 0 18px;
+  font-weight: 600;
+  background: var(--accent-primary);
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.fund-btn-primary:hover { filter: brightness(1.06); }
+.fund-btn-primary:active { transform: scale(0.97); }
+
 /* search row */
 .fund-hero-search {
   display: flex;
@@ -13855,15 +13895,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   .fund-spinner { animation: none; }
 }
 
-/* ── Responsive: hero main + charts stack on narrow ── */
-@media (max-width: 860px) {
-  .fund-hero-main { flex-direction: column; }
-}
-
-@media (max-width: 560px) {
-  .fund-hero-charts { grid-template-columns: 1fr; }
-}
-
+/* ── Responsive: narrow screens ── */
 @media (max-width: 420px) {
   .fund-card-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
