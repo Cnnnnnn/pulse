@@ -109,6 +109,9 @@ function normalize(entry) {
   return {
     code: entry.code,
     name: entry.name || entry.code,
+    // ponytail 2026-07-13 投资 nav 合并: kind 标识来源 ('stock' | 'fund' | 'metal'),
+    //   兼容旧 entry (无 kind → 默认 'stock'). drawer 用此渲染 source badge.
+    kind: entry.kind || "stock",
     price: entry.price ?? null,
     changePct: entry.changePct ?? null,
     industry: entry.industry ?? null,

@@ -47,6 +47,11 @@ function formatMarketCap(yuan) {
   return `${yuan}`;
 }
 
+// ponytail 2026-07-13 投资 nav 合并: 抽屉行渲染来源 badge (股票/基金/金属).
+//   旧 entry 无 kind → 视作 stock (向后兼容).
+const KIND_BADGE = { fund: "基金", metal: "金属", stock: "股票" };
+const KIND_CLS = { fund: "kind-fund", metal: "kind-metal", stock: "kind-stock" };
+
 // 复用 PE/PB/ROE 数字 render — null → "—", 否则 to 1 位小数.
 function fmtNum(v) {
   if (v == null || !Number.isFinite(v)) return null;
@@ -77,10 +82,14 @@ function FinCell({ value, format }) {
 
 function PoolRow({ entry }) {
   const s = entry.scores;
+  const kind = entry.kind || "stock"; // 旧 entry 向后兼容
   return (
     <div class="cmp-row">
       <div class="cmp-cell cmp-cell-name">
-        <div class="cmp-name">{entry.name}</div>
+        <div class="cmp-name">
+          <span class={`kind-badge ${KIND_CLS[kind] || ""}`}>{KIND_BADGE[kind] || "股票"}</span>
+          <span>{entry.name}</span>
+        </div>
         <div class="cmp-code">{entry.code}{entry.industry ? ` · ${entry.industry}` : ""}</div>
       </div>
       {/* ponytail 2026-07-08 D-5: 现价/PE/PB/ROE/市值 5 列. 市值用 formatMarketCap 压缩显示. */}
