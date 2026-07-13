@@ -43,6 +43,7 @@ import { refreshIthomeNews } from "../../src/renderer/ithome/store.js";
 import { refreshWorldcupScores } from "../../src/renderer/worldcup/store.js";
 import { fetchNavNow } from "../../src/renderer/funds/fundStore.js";
 import { refreshNow as refreshMetals } from "../../src/renderer/metals/metalStore.js";
+import { investPrimary } from "../../src/renderer/worldcup/navStore.js";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -51,19 +52,23 @@ beforeEach(() => {
   refreshWorldcupScores.mockResolvedValue(undefined);
   fetchNavNow.mockResolvedValue(undefined);
   refreshMetals.mockResolvedValue(undefined);
+  // 重置 investPrimary 到默认值 funds (避免跨测试污染)
+  investPrimary.value = "funds";
   // 清掉 news-layout DOM 状态 (上一 test 可能设过 sub-tab)
   document.querySelector(".news-layout")?.removeAttribute("data-subtab");
 });
 
 describe("nav-refresh REFRESHABLE_NAV_KEYS", () => {
-  it("contains news, worldcup, funds, metals (P-N+ news 合并 ithome + wechat-hot)", () => {
+  it("contains news, worldcup, invest (2026-07-13 投资 nav 合并)", () => {
     expect(REFRESHABLE_NAV_KEYS.has("news")).toBe(true);
     expect(REFRESHABLE_NAV_KEYS.has("worldcup")).toBe(true);
-    expect(REFRESHABLE_NAV_KEYS.has("funds")).toBe(true);
-    expect(REFRESHABLE_NAV_KEYS.has("metals")).toBe(true);
+    expect(REFRESHABLE_NAV_KEYS.has("invest")).toBe(true);
   });
 
-  it("does NOT contain ithome / wechat-hot / ai-usage / versions", () => {
+  it("does NOT contain legacy funds/metals/stocks/ithome/wechat-hot/ai-usage/versions", () => {
+    expect(REFRESHABLE_NAV_KEYS.has("funds")).toBe(false);
+    expect(REFRESHABLE_NAV_KEYS.has("metals")).toBe(false);
+    expect(REFRESHABLE_NAV_KEYS.has("stocks")).toBe(false);
     expect(REFRESHABLE_NAV_KEYS.has("ithome")).toBe(false);
     expect(REFRESHABLE_NAV_KEYS.has("wechat-hot")).toBe(false);
     expect(REFRESHABLE_NAV_KEYS.has("ai-usage")).toBe(false);
@@ -131,15 +136,38 @@ describe("refreshActiveNav dispatch", () => {
 
   it("funds → calls fetchNavNow with api instance", async () => {
     const ok = await refreshActiveNav("funds");
-    expect(ok).toBe(true);
-    expect(fetchNavNow).toHaveBeenCalledTimes(1);
-    expect(fetchNavNow.mock.calls[0][0]).toEqual({ __mock: true });
+    expect(ok).toBe(false); // legacy key 不在 registry
+    expect(fetchNavNow).not.toHaveBeenCalled();
   });
 
   it("metals → calls refreshNow (alias refreshMetals)", async () => {
     const ok = await refreshActiveNav("metals");
+    expect(ok).toBe(false); // legacy key 不在 registry
+    expect(refreshMetals).not.toHaveBeenCalled();
+  });
+
+  it("invest + investPrimary=funds → fetchNavNow", async () => {
+    investPrimary.value = "funds";
+    const ok = await refreshActiveNav("invest");
+    expect(ok).toBe(true);
+    expect(fetchNavNow).toHaveBeenCalledTimes(1);
+    expect(refreshMetals).not.toHaveBeenCalled();
+  });
+
+  it("invest + investPrimary=metals → refreshMetals", async () => {
+    investPrimary.value = "metals";
+    const ok = await refreshActiveNav("invest");
     expect(ok).toBe(true);
     expect(refreshMetals).toHaveBeenCalledTimes(1);
+    expect(fetchNavNow).not.toHaveBeenCalled();
+  });
+
+  it("invest + investPrimary=stocks → resolves true (选股静默刷新, 无显式 action)", async () => {
+    investPrimary.value = "stocks";
+    const ok = await refreshActiveNav("invest");
+    expect(ok).toBe(true);
+    expect(fetchNavNow).not.toHaveBeenCalled();
+    expect(refreshMetals).not.toHaveBeenCalled();
   });
 
   it("returns false (does not throw) for unknown nav key", async () => {

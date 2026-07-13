@@ -21,6 +21,7 @@ import { refreshIthomeNews } from "./ithome/store.js";
 import { refreshWorldcupScores } from "./worldcup/store.js";
 import { fetchNavNow } from "./funds/fundStore.js";
 import { refreshNow as refreshMetals } from "./metals/metalStore.js";
+import { investPrimary } from "./worldcup/navStore.js";
 import { api } from "./api.js";
 
 /**
@@ -43,12 +44,23 @@ function refreshNews() {
   return refreshIthomeNews();
 }
 
+/**
+ * 投资 nav 刷新: 按 investPrimary signal 派发到当前主级子模块.
+ * ponytail: 'news' refresh 用 DOM 读 sub-tab; 'invest' refresh 用 signal 读 investPrimary.
+ *   选股无显式 refresh (stockStore 内部 60s tick 静默刷新), 返回 resolved 不报错.
+ */
+function refreshInvest() {
+  const primary = investPrimary.value;
+  if (primary === "funds") return fetchNavNow(api);
+  if (primary === "metals") return refreshMetals();
+  return Promise.resolve(true);
+}
+
 /** nav key → refresh 函数 + label */
 const REGISTRY = {
   news: { fn: () => refreshNews(), label: "刷新当前新闻子 tab" },
   worldcup: { fn: () => refreshWorldcupScores(), label: "刷新世界杯比分" },
-  funds: { fn: () => fetchNavNow(api), label: "刷新基金净值" },
-  metals: { fn: () => refreshMetals(), label: "刷新贵金属" },
+  invest: { fn: () => refreshInvest(), label: "刷新当前投资子模块" },
 };
 
 /** 注册表里存在的 nav key 集合 — 给 SideNav 判断按钮要不要显示 */
