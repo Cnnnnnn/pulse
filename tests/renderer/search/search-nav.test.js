@@ -5,11 +5,12 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// mock setActiveNav (navStore)
-import { setActiveNav } from '../../../src/renderer/worldcup/navStore.js';
+// mock setActiveNav + goInvest (navStore)
+import { setActiveNav, goInvest } from '../../../src/renderer/worldcup/navStore.js';
 
 vi.mock('../../../src/renderer/worldcup/navStore.js', () => ({
   setActiveNav: vi.fn(),
+  goInvest: vi.fn(),
 }));
 
 import { navigateToResult } from '../../../src/renderer/search/search-nav.js';
@@ -35,9 +36,9 @@ describe('navigateToResult', () => {
     expect(setActiveNav).toHaveBeenCalledWith('versions');
   });
 
-  it('fund result: sets nav to funds', () => {
+  it('fund result: sets nav to invest (via goInvest funds)', () => {
     navigateToResult({ source: 'fund', nativeId: 'f1', payload: { code: '001234' } });
-    expect(setActiveNav).toHaveBeenCalledWith('funds');
+    expect(goInvest).toHaveBeenCalledWith('funds');
   });
 
   it('highlights matching element when present', () => {

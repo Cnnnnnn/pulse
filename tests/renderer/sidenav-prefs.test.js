@@ -27,16 +27,28 @@ describe("sidenav-prefs", () => {
     expect(p.favorites).toEqual([]);
   });
 
-  it("savePrefs → loadPrefs 还原 (round-trip)", () => {
+  it("savePrefs → loadPrefs 还原 (round-trip, legacy funds alias → invest)", () => {
     const original = {
       version: 2,
-      order: ["funds", "news", "versions"],
-      hidden: ["metals"],
+      order: ["invest", "news", "versions"],
+      hidden: ["invest"],
       favorites: ["news"],
     };
     savePrefs(original);
     const got = loadPrefs();
     expect(got).toEqual(original);
+  });
+
+  it("savePrefs: legacy key 'funds'/'metals' → alias 为 'invest' (v4 迁移)", () => {
+    savePrefs({
+      version: 2,
+      order: ["funds", "news", "metals"],
+      hidden: ["metals"],
+      favorites: [],
+    });
+    const got = loadPrefs();
+    expect(got.order).toEqual(["invest", "news"]);
+    expect(got.hidden).toEqual(["invest"]);
   });
 
   it("loadPrefs: localStorage 损坏 (JSON parse fail) → 返 DEFAULTS", () => {
@@ -56,7 +68,7 @@ describe("sidenav-prefs", () => {
     expect(p.order).toEqual(NAV_KEYS_LIST);
   });
 
-  it("loadPrefs: 过滤未知 key (防御)", () => {
+  it("loadPrefs: 过滤未知 key + legacy alias (防御)", () => {
     localStorage.setItem(
       STORAGE_KEY_FOR_TESTS,
       JSON.stringify({
@@ -67,21 +79,21 @@ describe("sidenav-prefs", () => {
       }),
     );
     const p = loadPrefs();
-    expect(p.order).toEqual(["funds", "versions"]);
+    expect(p.order).toEqual(["invest", "versions"]);
     expect(p.hidden).toEqual([]);
-    expect(p.favorites).toEqual(["metals"]);
+    expect(p.favorites).toEqual(["invest"]);
   });
 
   it("hideItem: 加 key 到 hidden", () => {
     const p0 = resetPrefs();
-    const p1 = hideItem(p0, "metals");
-    expect(p1.hidden).toEqual(["metals"]);
+    const p1 = hideItem(p0, "invest");
+    expect(p1.hidden).toEqual(["invest"]);
     expect(p0.hidden).toEqual([]); // 不修改原 prefs
   });
 
   it("hideItem: 幂等 (重复加不重复)", () => {
-    const p = hideItem(hideItem(resetPrefs(), "metals"), "metals");
-    expect(p.hidden).toEqual(["metals"]);
+    const p = hideItem(hideItem(resetPrefs(), "invest"), "invest");
+    expect(p.hidden).toEqual(["invest"]);
   });
 
   it("hideItem: 未知 key 忽略", () => {
@@ -90,16 +102,16 @@ describe("sidenav-prefs", () => {
   });
 
   it("restoreItem: 从 hidden 移除", () => {
-    const p0 = hideItem(resetPrefs(), "metals");
-    const p1 = restoreItem(p0, "metals");
+    const p0 = hideItem(resetPrefs(), "invest");
+    const p1 = restoreItem(p0, "invest");
     expect(p1.hidden).toEqual([]);
-    expect(p0.hidden).toEqual(["metals"]); // 不修改原 prefs
+    expect(p0.hidden).toEqual(["invest"]); // 不修改原 prefs
   });
 
   it("restoreItem: key 不在 hidden → noop", () => {
-    const p0 = hideItem(resetPrefs(), "metals");
+    const p0 = hideItem(resetPrefs(), "invest");
     const p1 = restoreItem(p0, "worldcup");
-    expect(p1.hidden).toEqual(["metals"]);
+    expect(p1.hidden).toEqual(["invest"]);
   });
 
   it("listVisible: 按 order 排, 排除 hidden", () => {
@@ -120,12 +132,12 @@ describe("sidenav-prefs", () => {
     const p = {
       version: 2,
       order: NAV_KEYS_LIST,
-      hidden: ["metals", "worldcup"],
+      hidden: ["invest", "worldcup"],
       favorites: [],
     };
     // 顺序按 NAV_KEYS_LIST 排, 不是按 hidden 数组
-    expect(new Set(listHidden(p))).toEqual(new Set(["metals", "worldcup"]));
-    expect(listHidden(p)).toEqual(["worldcup", "metals"]);
+    expect(new Set(listHidden(p))).toEqual(new Set(["invest", "worldcup"]));
+    expect(listHidden(p)).toEqual(["worldcup", "invest"]);
   });
 
   it("savePrefs: JSON.stringify 抛错 → console.warn + 返 false, 不抛", () => {
@@ -150,9 +162,10 @@ describe("sidenav-prefs", () => {
     expect(warned).toBe(true);
   });
 
-  // P-N+ 2026-07-10: 旧 'ithome' / 'wechat-hot' 归一到 'news'.
-  // round-trip 保留顺序, 旧 key 写盘后被 alias → 'news' 替换.
-  it("v3 迁移: loadPrefs 把旧 'ithome'/'wechat-hot' alias 到 'news'", () => {
+  // P-N+ v3 (2026-07-10): 'ithome' / 'wechat-hot' 归一到 'news'.
+  // v4 (2026-07-13): 'funds' / 'metals' / 'stocks' 归一到 'invest'.
+  // round-trip 保留顺序, 旧 key 写盘后被 alias 替换.
+  it("v3+v4 迁移: loadPrefs alias 'ithome'/'wechat-hot' → 'news', 'funds' → 'invest'", () => {
     localStorage.setItem(
       STORAGE_KEY_FOR_TESTS,
       JSON.stringify({
@@ -163,7 +176,7 @@ describe("sidenav-prefs", () => {
       }),
     );
     const p = loadPrefs();
-    expect(p.order).toEqual(["news", "worldcup", "funds"]);
+    expect(p.order).toEqual(["news", "worldcup", "invest"]);
     expect(p.hidden).toEqual(["news"]); // dedupe 后
     expect(p.favorites).toEqual(["news"]);
   });
@@ -186,15 +199,13 @@ describe("sidenav-prefs: reorderItems", () => {
   beforeEach(() => localStorage.clear());
 
   it("reorderItems: from → to 'before'", () => {
-    // v3 2026-07-10: IT 新闻 + 微博热搜 合并成 'news', 7 个 nav.
-    const p0 = resetPrefs(); // [news, worldcup, funds, metals, stocks, ai-usage, versions]
-    const p1 = reorderItems(p0, "news", "funds", "before");
+    // v4 2026-07-13: funds + metals + stocks 合并成 'invest', 5 个 nav.
+    const p0 = resetPrefs(); // [news, worldcup, invest, ai-usage, versions]
+    const p1 = reorderItems(p0, "news", "invest", "before");
     expect(p1.order).toEqual([
       "worldcup",
       "news",
-      "funds",
-      "metals",
-      "stocks",
+      "invest",
       "ai-usage",
       "versions",
     ]);
@@ -202,13 +213,11 @@ describe("sidenav-prefs: reorderItems", () => {
 
   it("reorderItems: from → to 'after'", () => {
     const p0 = resetPrefs();
-    const p1 = reorderItems(p0, "news", "funds", "after");
+    const p1 = reorderItems(p0, "news", "invest", "after");
     expect(p1.order).toEqual([
       "worldcup",
-      "funds",
+      "invest",
       "news",
-      "metals",
-      "stocks",
       "ai-usage",
       "versions",
     ]);
@@ -245,8 +254,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 7 个 nav key (Phase I3v3 IT 新闻 + 微博热搜 → news 合并)", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(7);
+  it("DEFAULTS_FOR_TESTS: 5 个 nav key (Phase I3v3 → I3v4 投资 nav 合并)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(5);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

@@ -21,10 +21,14 @@ const SCHEMA_VERSION = 2;
 const NAV_KEYS = NAV_KEYS_LIST;
 
 // ponytail: v3 迁移 — 旧 'ithome' / 'wechat-hot' 归一到 'news'.
-// navStore.setActiveNav 也有同名 alias (运行时兼容), 这里负责 prefs 持久化层.
+// v4 (2026-07-13): funds + metals + stocks 合并为 'invest' nav, 旧 key 归一到 'invest'.
+//   navStore.setActiveNav 也有同名 alias (运行时兼容), 这里负责 prefs 持久化层.
 const LEGACY_KEY_ALIAS = {
   ithome: "news",
   "wechat-hot": "news",
+  funds: "invest",
+  metals: "invest",
+  stocks: "invest",
 };
 
 /**

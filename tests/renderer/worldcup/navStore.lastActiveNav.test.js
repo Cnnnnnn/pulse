@@ -35,20 +35,20 @@ describe('setActiveNav 落盘白名单', () => {
     expect(saveCalls).toEqual([]);
   });
 
-  it('setActiveNav("funds") 调 saveLastActiveNav("funds")', async () => {
+  it('setActiveNav("funds") alias → "invest" → saveLastActiveNav("invest")', async () => {
     const { setActiveNav } = await import('../../../src/renderer/worldcup/navStore.js');
     setActiveNav('funds');
     await Promise.resolve();
     await Promise.resolve();
-    expect(saveCalls).toEqual(['funds']);
+    expect(saveCalls).toEqual(['invest']);
   });
 
-  it('setActiveNav("metals") 调 saveLastActiveNav("metals")', async () => {
+  it('setActiveNav("metals") alias → "invest" → saveLastActiveNav("invest")', async () => {
     const { setActiveNav } = await import('../../../src/renderer/worldcup/navStore.js');
     setActiveNav('metals');
     await Promise.resolve();
     await Promise.resolve();
-    expect(saveCalls).toEqual(['metals']);
+    expect(saveCalls).toEqual(['invest']);
   });
 
   it('saveLastActiveNav reject 不影响 activeNav (fire-and-forget 语义)', async () => {

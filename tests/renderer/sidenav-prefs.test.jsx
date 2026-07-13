@@ -2,12 +2,13 @@
 /**
  * tests/renderer/sidenav-prefs.test.jsx
  *
- * Phase v1: SideNav 根据 tray menu prefs 过滤 4 个动态 nav tab.
+ * Phase v1: SideNav 根据 tray menu prefs 过滤动态 nav tab.
+ * Phase 32 (2026-07-13): funds/metals/stocks 合并为 'invest', 总 nav 从 7 减到 5.
  *
  * 覆盖:
- *  - 默认 prefs (全开): 8 个 nav 都显示 (Phase 32 stock-detail 合并到选股)
+ *  - 默认 prefs (全开): 5 个 nav 都显示
  *  - 关 updates (versions): versions 隐藏,其他还在
- *  - 4 个动态全关: 只剩 4 个固定 nav (ithome/wechat-hot/funds/stocks)
+ *  - 4 个动态全关: 只剩 2 个固定 nav (news/invest)
  *  - 关非动态 prefs (e.g. check_action 不影响 nav): 全部 nav 仍显示
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -83,14 +84,12 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 7 个 nav 全显示 (P-N news 合并 ithome + wechat-hot)", () => {
+  it("默认 prefs 全开 → 5 个 nav 全显示 (P-N news 合并 + 投资 nav 合并)", () => {
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
       "news",
       "worldcup",
-      "funds",
-      "metals",
-      "stocks",
+      "invest",
       "ai-usage",
       "versions",
     ]);
@@ -106,8 +105,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(keys).not.toContain("versions");
     expect(keys).toContain("news");
     expect(keys).toContain("worldcup");
-    expect(keys).toContain("funds");
-    expect(keys).toContain("metals");
+    expect(keys).toContain("invest");
     expect(keys).toContain("ai-usage");
   });
 
@@ -120,7 +118,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("4 个动态全关 → 只剩 4 个固定 nav (news/funds/stocks)", () => {
+  it("4 个动态全关 → 只剩 2 个固定 nav (news/invest)", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -133,7 +131,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual(["news", "funds", "stocks"]);
+    expect(visibleNavKeys()).toEqual(["news", "invest"]);
   });
 
   it("只关非动态 prefs (check_action/config_action) → 全部 nav 仍显示", () => {
@@ -152,9 +150,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).toEqual([
       "news",
       "worldcup",
-      "funds",
-      "metals",
-      "stocks",
+      "invest",
       "ai-usage",
       "versions",
     ]);

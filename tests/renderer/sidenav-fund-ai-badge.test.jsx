@@ -79,11 +79,11 @@ function badgeText(navKey) {
   return badge ? badge.textContent : null;
 }
 
-describe("SideNav — funds / ai-usage badge (I6 v3)", () => {
-  it("fundUnreadBadge=3 → funds item 显示 3", () => {
+describe("SideNav — invest / ai-usage badge (I6 v3 + 投资 nav 合并)", () => {
+  it("fundUnreadBadge=3 → invest item 显示 3 (原 funds 角标迁到投资)", () => {
     fundUnreadBadge.value = 3;
     render(<SideNav />);
-    expect(badgeText("funds")).toBe("3");
+    expect(badgeText("invest")).toBe("3");
   });
 
   it("aiUsageNavBadge=2 → ai-usage item 显示 2", () => {
@@ -94,7 +94,7 @@ describe("SideNav — funds / ai-usage badge (I6 v3)", () => {
 
   it("角标为 0 时不显示", () => {
     render(<SideNav />);
-    expect(badgeText("funds")).toBeNull();
+    expect(badgeText("invest")).toBeNull();
     expect(badgeText("ai-usage")).toBeNull();
   });
 });

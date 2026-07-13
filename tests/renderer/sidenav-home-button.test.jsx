@@ -47,8 +47,8 @@ describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
 
-    setActiveNav('metals');
-    expect(activeNav.value).toBe('metals');
+    setActiveNav('invest');
+    expect(activeNav.value).toBe('invest');
 
     const { container, rerender } = render(<SideNav />);
     const homeBtn = container.querySelector('button[aria-label="首页"]');
