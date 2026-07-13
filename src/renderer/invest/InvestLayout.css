@@ -1,0 +1,290 @@
+/**
+ * src/renderer/invest/InvestLayout.css
+ *
+ * 2026-07-13 投资 nav 合并 — 投资 tab 容器样式, 镜像 NewsLayout.css 风格.
+ *
+ * 设计: 一个 header (brand + refresh), 一行主级 sub-tab (基金/贵金属/选股),
+ *   二级 sub-tab (基金: 全部/自选; 选股: 筛选/个股分析) 跟主级同行 (右侧偏移).
+ *   body 跟着 header 流. 不嵌套子 layout 的 nav-level header.
+ */
+
+.invest-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-secondary);
+}
+
+.invest-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+/* ============================================================
+ * Header — 1 行 brand+refresh, 1 行主级+二级 sub-tab strips
+ * ============================================================ */
+.invest-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px var(--page-padding) 12px;
+  background: var(--chrome-bg, var(--bg-modal));
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.invest-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.invest-header-row-tabs {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.invest-header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.invest-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+}
+
+.invest-header-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.invest-header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.invest-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.invest-refresh-btn:hover:not(:disabled) {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.invest-refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.invest-refresh-btn.is-loading .invest-refresh-icon {
+  animation: invest-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes invest-refresh-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invest-refresh-btn,
+  .invest-refresh-btn.is-loading .invest-refresh-icon {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+ * 主级 sub-tabs: 分段胶囊 (重)
+ * ============================================================ */
+.invest-subtabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+}
+
+.invest-subtab {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.invest-subtab:hover:not(.invest-subtab-active) {
+  color: var(--text-primary);
+}
+
+.invest-subtab-active {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  font-weight: 600;
+}
+
+/* ============================================================
+ * 二级 sub-tabs: 下划线 tab (轻) — 视觉权重低于主级
+ * ============================================================ */
+.invest-subsubtabs {
+  display: inline-flex;
+  gap: 14px;
+  margin-left: var(--space-3);
+}
+
+.invest-subsubtab {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--text-tertiary);
+  border-bottom: 2px solid transparent;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.invest-subsubtab:hover:not(.invest-subsubtab-active) {
+  color: var(--text-primary);
+}
+
+.invest-subsubtab-active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+/* ============================================================
+ * 选股工具位 (2026-07-13 R2): stock-header 拆掉后筛选/AI 按钮下移
+ * ============================================================ */
+.stock-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px var(--page-padding);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.stock-toolbar-ts {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+ * 金属/基金操作行 (2026-07-13 投资 nav 合并)
+ * ============================================================ */
+.metals-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 0 var(--space-3);
+}
+
+.metals-detail-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.metals-detail-pin:hover {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.metals-detail-pin.is-on {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  background: color-mix(in oklab, var(--accent-primary) 12%, var(--bg-elevated));
+}
+
+.metals-detail-nocmp {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+ * FundCard '加入对比' 行 (Task 11): listed 禁用态
+ * ============================================================ */
+.fund-card-action-btn--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+ * CompareDrawer 来源 badge (Task 12)
+ * ============================================================ */
+.kind-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
+
+.kind-stock {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.kind-fund {
+  background: var(--cat-stock);
+  color: var(--bg-primary);
+}
+
+.kind-metal {
+  background: var(--metals-gold, #d4a017);
+  color: var(--bg-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invest-header,
+  .invest-subtab,
+  .invest-subsubtab,
+  .metals-detail-pin {
+    transition: none !important;
+  }
+}

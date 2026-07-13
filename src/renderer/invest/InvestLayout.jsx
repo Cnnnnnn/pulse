@@ -21,6 +21,7 @@
  *     - stocks → false (stockStore 内部 60s tick 静默刷新, 不闪按钮)
  */
 import { useEffect } from "preact/hooks";
+import "./InvestLayout.css";
 import { investPrimary } from "../worldcup/navStore.js";
 import { refreshActiveNav } from "../nav-refresh.js";
 import { fundView, fundsLoading } from "../funds/fundStore.js";
