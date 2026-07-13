@@ -1,17 +1,28 @@
 /**
  * src/renderer/metals/MetalLayout.jsx
  *
- * Phase 4 装配: 单 status bar Header + 表格 Table + 添加/编辑 Modal.
- * 删除 MetalGrid / MetalCard / MetalTrendStrip / MetalDetailTrend 的引用.
+ * 纯行情看板: Header + DataBanner + 单栏行情榜 (占满宽).
+ * 点某行 → ModalShell 弹窗展示该品种详情 (K线/指标). 不再常驻双栏.
+ *
+ * 纯行情数据看板 — 不含交易下单 / 持仓记账.
  */
-import { useEffect } from 'preact/hooks';
-import { MetalHeader } from './MetalHeader.jsx';
-import { MetalTable } from './MetalTable.jsx';
-import { AddMetalModal } from './AddMetalModal.jsx';
+import { useEffect, useState } from "preact/hooks";
+import { MetalHeader } from "./MetalHeader.jsx";
+import { MetalWatchlist } from "./MetalWatchlist.jsx";
+import { MetalDetail } from "./MetalDetail.jsx";
 import {
-  addModalOpen, editingMetalId,
   initMetalStore, cleanupMetalStore,
-} from './metalStore.js';
+} from "./metalStore.js";
+
+/** 示例数据中性提示 (常驻, 非交易向沙箱横幅). */
+function DataBanner() {
+  return (
+    <div class="metals-databanner" role="note">
+      <span class="metals-databanner-pill">示例数据</span>
+      <span>行情为演示/抓取数据, 仅用于界面展示, 不构成任何交易建议</span>
+    </div>
+  );
+}
 
 export function MetalLayout() {
   useEffect(() => {
@@ -19,16 +30,21 @@ export function MetalLayout() {
     return () => cleanupMetalStore();
   }, []);
 
-  const handleEdit = (metalId) => {
-    editingMetalId.value = metalId;
-    addModalOpen.value = true;
-  };
+  // 点行 → 打开详情弹窗 (openMetalId = 选中的品种 id, null = 关闭)
+  const [openMetalId, setOpenMetalId] = useState(null);
 
   return (
     <div class="metals-layout">
+      <DataBanner />
       <MetalHeader />
-      <MetalTable onEdit={handleEdit} />
-      {addModalOpen.value && <AddMetalModal />}
+      <main class="metals-main">
+        <MetalWatchlist onSelect={setOpenMetalId} />
+      </main>
+      {openMetalId && (
+        <MetalDetail metalId={openMetalId} onClose={() => setOpenMetalId(null)} />
+      )}
     </div>
   );
 }
+
+export default MetalLayout;

@@ -3,9 +3,13 @@
  *
  * Renderer-side signals for metals: config / quoteCache / fxCache / schedulerState.
  * Subscribes to main-process events via window.metalsApi.
+ *
+ * 纯行情数据看板: 不含持仓/交易信号 (addModalOpen / editingMetalId / upsertHolding /
+ * removeHolding / overview 已移除 — 模块不再展示持仓记账). 详情弹窗由 MetalLayout
+ * 用 openMetalId 本地 state 控制, selectedMetalId 保留供旧测试, 组件不再直接消费.
  */
 
-import { signal, computed } from '@preact/signals';
+import { signal } from '@preact/signals';
 
 export const config = signal({
   watchedIds: ['XAU', 'XAG', 'AU9999', 'AG9999'],
@@ -17,50 +21,13 @@ export const quoteCache = signal({ data: {}, errors: {}, fetchedAt: null });
 export const fxCache = signal({ rate: null, fetchedAt: null });
 export const schedulerState = signal({ status: 'idle', lastFetch: null, nextFetch: null });
 
-export const addModalOpen = signal(false);
-export const editingMetalId = signal(null);
-
 export const historyMap = signal({});
+
+/**
+ * 当前选中品种 (驱动详情面板). 复活原 dead signal —
+ * MetalWatchlist 点选 → 写; MetalDetail 读.
+ */
 export const selectedMetalId = signal('XAU');
-
-export const overview = computed(() => {
-  const cfg = config.value;
-  const quotes = quoteCache.value.data;
-  const fx = fxCache.value.rate;
-
-  let totalMV = 0;
-  let totalCost = 0;
-  let todayEst = 0;
-  let hasFxMissing = false;
-
-  for (const [id, holding] of Object.entries(cfg.holdings)) {
-    if (!holding) continue;
-    const quote = quotes[id];
-    if (!quote) continue;
-
-    let currentCNY;
-    if (quote.currency === 'CNY') currentCNY = quote.price;
-    else if (fx == null) {
-      hasFxMissing = true;
-      continue;
-    } else currentCNY = quote.price * fx;
-
-    totalMV += currentCNY * holding.quantity;
-    totalCost += holding.costPriceCNY * holding.quantity;
-
-    let todayCNY;
-    if (quote.currency === 'CNY') todayCNY = quote.change;
-    else if (fx == null) todayCNY = 0;
-    else todayCNY = quote.change * fx;
-    todayEst += todayCNY * holding.quantity;
-  }
-
-  return {
-    totalMarketValueCNY: hasFxMissing && totalMV === 0 ? null : totalMV,
-    totalPnlCNY: hasFxMissing && totalMV === 0 ? null : totalMV - totalCost,
-    todayEstimatedCNY: hasFxMissing && totalMV === 0 ? null : todayEst,
-  };
-});
 
 let _unsubQuote = null;
 let _unsubState = null;
@@ -154,18 +121,6 @@ export async function refreshNow() {
 export async function updateConfig(patch) {
   if (!window.metalsApi) return;
   const next = await window.metalsApi.updateConfig(patch);
-  config.value = next;
-}
-
-export async function upsertHolding(id, holding) {
-  if (!window.metalsApi) return;
-  const next = await window.metalsApi.upsertHolding(id, holding);
-  config.value = next;
-}
-
-export async function removeHolding(id) {
-  if (!window.metalsApi) return;
-  const next = await window.metalsApi.removeHolding(id);
   config.value = next;
 }
 

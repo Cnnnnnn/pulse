@@ -9977,206 +9977,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   100% { background-color: transparent; }
 }
 
-/* ===== 录入持仓 Modal (v2.21) ===== */
-.metal-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.32);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-index-modal);
-  animation: metal-modal-fade-in 0.16s ease-out;
-}
-
-.metal-modal {
-  width: 420px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 64px);
-  overflow-y: auto;
-  background: var(--bg-modal);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.08));
-  display: flex;
-  flex-direction: column;
-  animation: metal-modal-scale-in 0.18s ease-out;
-}
-
-@keyframes metal-modal-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes metal-modal-scale-in {
-  from { opacity: 0; transform: scale(0.96) translateY(8px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.metal-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.metal-modal-header h3 {
-  margin: 0;
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.metal-modal-close {
-  background: none;
-  border: none;
-  font-size: var(--font-size-display-sm);
-  line-height: 1;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-}
-
-.metal-modal-close:hover {
-  color: var(--text-primary);
-  background: var(--bg-elevated);
-}
-
-.metal-modal-body {
-  padding: var(--space-4) var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.metal-modal-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1n);
-}
-
-.metal-modal-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2h);
-}
-
-.metal-modal-label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.metal-modal-label-optional {
-  font-weight: 400;
-  color: var(--text-tertiary);
-}
-
-.metal-modal-field input,
-.metal-modal-field select {
-  padding: 8px 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-modal);
-  color: var(--text-primary);
-  font-size: var(--font-size-md);
-  font-family: var(--font-system, inherit);
-  outline: none;
-  transition: border-color var(--transition, .18s), box-shadow var(--transition, .18s);
-}
-
-.metal-modal-field input:focus,
-.metal-modal-field select:focus {
-  border-color: var(--accent-primary);
-  box-shadow: var(--focus-ring, 0 0 0 3px rgba(0,122,255,.22));
-}
-
-.metal-modal-field input:disabled,
-.metal-modal-field select:disabled {
-  background: var(--bg-elevated);
-  color: var(--text-tertiary);
-  cursor: not-allowed;
-}
-
-.metal-modal-computed {
-  padding: 8px 10px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.metal-modal-computed-warn {
-  color: var(--accent-orange);
-}
-
-.metal-modal-error {
-  padding: 8px 10px;
-  background: rgba(255, 59, 48, 0.08);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  color: var(--accent-red);
-}
-
-.metal-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.metal-modal-footer-right {
-  display: flex;
-  gap: var(--space-2);
-  margin-left: auto;
-}
-
-.metal-btn {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all var(--transition, .18s);
-  font-family: var(--font-system, inherit);
-}
-
-.metal-btn-primary {
-  background: var(--accent-primary);
-  color: #fff;
-  box-shadow: var(--shadow-sm);
-}
-
-.metal-btn-primary:hover {
-  background: #0066d6;
-}
-
-.metal-btn-ghost {
-  background: none;
-  color: var(--text-secondary);
-  border-color: var(--border-subtle);
-}
-
-.metal-btn-ghost:hover {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-}
-
-.metal-btn-danger {
-  background: none;
-  color: var(--accent-red);
-  border-color: transparent;
-}
-
-.metal-btn-danger:hover {
-  background: rgba(255, 59, 48, 0.08);
-}
-
 .spinner {
   display: inline-block;
   animation: spin 1s linear infinite;
@@ -12440,7 +12240,16 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   --metals-up: var(--color-up);     /* A 股红涨 */
   --metals-down: var(--color-down); /* 绿跌 */
   --metals-flat: var(--text-tertiary);
-  --metals-row-height: 44px;
+  --metals-row-height: 48px;        /* ≥44 触控目标 */
+  /* 模块品牌点缀: 香槟金 (浅底深字 ≥4.5:1). 仅作用于 .metals-layout 子树, 用量<5%. */
+  --metals-gold: #b8893b;
+  --metals-gold-soft: rgba(184, 137, 59, 0.12);
+  --metals-gold-line: rgba(184, 137, 59, 0.45);
+}
+:root[data-theme="dark"] {
+  --metals-gold: #e2c275;          /* 暗底亮金 (UI 元素 ≥3:1) */
+  --metals-gold-soft: rgba(226, 194, 117, 0.14);
+  --metals-gold-line: rgba(226, 194, 117, 0.5);
 }
 
 /* 主容器 (应用 dark 背景) */
@@ -12450,228 +12259,264 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   min-height: 100%;
 }
 
-/* --- Header (1 行 status bar) --- */
+/* --- 示例数据提示条 (中性, 非交易向沙箱) --- */
+.metals-databanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--metals-gold-soft);
+  border-bottom: 1px solid var(--metals-gold-line);
+  color: var(--metals-gold);
+  font-size: 11px;
+  font-weight: 600;
+}
+.metals-databanner-pill {
+  background: var(--metals-gold);
+  color: #1d1d1f;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* --- Header: 标题块 + 市场状态徽标 + 刷新 --- */
 .metals-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 56px;
-  padding: 0 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--metals-border);
   background: var(--metals-bg-header);
-  gap: 24px;
 }
 .metals-header-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+}
+.metals-header-medal {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--metals-gold-soft), transparent);
+  border: 1px solid var(--metals-gold-line);
+  color: var(--metals-gold);
+}
+.metals-header-title h1 {
+  font-size: 20px;
+  margin: 0;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--metals-text-primary);
 }
-.metals-header-summary {
-  display: flex;
-  gap: 28px;
-  font-size: 12px;
-  flex: 1;
-  margin-left: 24px;
-}
-.metals-header-summary-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.metals-header-summary-label {
-  font-size: 10px;
+.metals-header-sub {
+  font-size: 11px;
   color: var(--metals-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
-.metals-header-summary-value {
-  font-size: 14px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--metals-text-primary);
-}
-.metals-header-summary-value.metals-pos { color: var(--metals-up); }
-.metals-header-summary-value.metals-neg { color: var(--metals-down); }
-.metals-header-status {
+.metals-header-right {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 11px;
-  color: var(--metals-text-secondary);
+  gap: 8px;
 }
+
+/* 市场状态徽标 */
+.metals-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--metals-border);
+}
+.metals-badge-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.metals-badge.open {
+  color: var(--color-success, var(--metals-up));
+  border-color: color-mix(in srgb, var(--metals-up) 40%, transparent);
+  background: color-mix(in srgb, var(--metals-up) 10%, transparent);
+}
+.metals-badge.open .metals-badge-led {
+  background: var(--metals-up);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--metals-up) 25%, transparent);
+  animation: metals-led-pulse 2s ease-in-out infinite;
+}
+@keyframes metals-led-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
 .metals-refresh-btn {
-  /* reuse existing .btn .btn-ghost .btn-sm; 仅覆盖颜色 */
   color: var(--metals-text-secondary);
 }
 .metals-refresh-btn:hover {
   color: var(--metals-text-primary);
 }
-
-/* --- Table --- */
-.metals-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
+.metals-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
-.metals-table thead th {
+
+/* --- 主区: 单栏行情榜 (占满宽, 详情走弹窗) --- */
+.metals-main {
+  padding: 16px 24px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* 卡片面板 */
+.metals-panel {
   background: var(--metals-bg-card);
-  color: var(--metals-text-tertiary);
-  font-weight: 500;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-align: left;
-  padding: 0 12px;
-  height: 36px;
-  border-bottom: 1px solid var(--metals-border);
+  border: 1px solid var(--metals-border);
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
-.metals-table thead th.num {
-  text-align: right;
-}
-.metals-table tbody tr {
-  height: var(--metals-row-height);
-  border-bottom: 1px solid var(--metals-border);
-  transition: background 100ms ease;
-}
-.metals-table tbody tr:hover {
-  background: var(--metals-bg-card-hover);
-}
-.metals-table tbody tr.metals-row-error {
-  background: rgba(239, 68, 68, 0.06);
-}
-.metals-table td {
-  padding: 0 12px;
-  vertical-align: middle;
-  color: var(--metals-text-primary);
-}
-.metals-table td.num {
-  text-align: right;
-}
-
-/* Cell: 品种名 */
-.metals-cell-name {
+.metals-panel-head {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--metals-border);
 }
-.metals-cell-name-short {
-  font-size: 13px;
+.metals-panel-head h2 {
+  font-size: 15px;
+  margin: 0;
   font-weight: 600;
   color: var(--metals-text-primary);
 }
-.metals-cell-name-tag {
+.metals-panel-tag {
   font-size: 10px;
   color: var(--metals-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  border: 1px solid var(--metals-border);
+  padding: 1px 7px;
+  border-radius: 999px;
 }
 
-/* Cell: 价格 */
-.metals-cell-price {
-  font-size: 14px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+/* --- 行情榜行 --- */
+.metals-watch-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.4fr) minmax(110px, 1fr) minmax(120px, 1.1fr) 100px 36px;
+  align-items: center;
+  gap: 16px;
+  height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--metals-border);
+  cursor: pointer;
+  position: relative;
+  transition: background 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.metals-cell-price.metals-pos { color: var(--metals-up); }
-.metals-cell-price.metals-neg { color: var(--metals-down); }
-.metals-cell-price-unit {
+.metals-watch-row:last-child {
+  border-bottom: none;
+}
+.metals-watch-row:hover {
+  background: var(--metals-bg-card-hover);
+}
+.metals-watch-row.is-selected {
+  background: var(--metals-gold-soft);
+}
+.metals-watch-row.is-selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--metals-gold);
+}
+.metals-watch-row.is-error {
+  background: color-mix(in srgb, var(--metals-up) 5%, transparent);
+}
+.metals-wr-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.metals-wr-name-short {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--metals-text-primary);
+}
+.metals-wr-name-tag {
+  font-size: 10px;
+  color: var(--metals-text-tertiary);
+}
+.metals-wr-price {
+  text-align: right;
+  font-weight: 600;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--metals-text-primary);
+}
+.metals-wr-price-unit {
   font-size: 10px;
   color: var(--metals-text-tertiary);
   font-weight: 400;
   margin-left: 2px;
 }
-
-/* Cell: 涨跌 */
-.metals-cell-change {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  font-variant-numeric: tabular-nums;
-}
-.metals-cell-change-pct {
-  font-size: 13px;
+.metals-wr-chg {
+  text-align: right;
+  font-size: 12px;
   font-weight: 600;
-}
-.metals-cell-change-pct.metals-pos { color: var(--metals-up); }
-.metals-cell-change-pct.metals-neg { color: var(--metals-down); }
-.metals-cell-change-amount {
-  font-size: 10px;
-  color: var(--metals-text-tertiary);
-}
-
-/* Cell: sparkline */
-.metals-cell-sparkline {
-  display: flex;
-  align-items: center;
-  height: var(--metals-row-height);
-}
-.metals-cell-sparkline svg {
-  display: block;
-  max-width: 100%;
-}
-.metals-cell-sparkline-loading {
-  font-size: 10px;
-  color: var(--metals-text-tertiary);
-}
-
-/* Cell: 持仓 */
-.metals-cell-holding {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 1px;
-}
-.metals-cell-holding-qty {
-  font-size: 12px;
-  color: var(--metals-text-primary);
-}
-.metals-cell-holding-pnl {
-  font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
-.metals-cell-holding-pnl.metals-pos { color: var(--metals-up); }
-.metals-cell-holding-pnl.metals-neg { color: var(--metals-down); }
-.metals-add-holding-text {
-  background: none;
-  border: none;
-  color: var(--metals-accent);
-  font-size: 12px;
-  cursor: pointer;
-  padding: 0;
-  text-align: left;
-  font: inherit;
+.metals-wr-chg-amt {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.78; /* 继承父级涨跌色, 仅降不透明度区分主次 */
 }
-.metals-add-holding-text:hover { text-decoration: underline; }
-
-/* Cell: 操作 */
-.metals-cell-actions {
-  display: flex;
-  gap: 4px;
-  justify-content: flex-end;
-}
-.metals-cell-action-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--metals-text-tertiary);
-  padding: 4px;
-  border-radius: 4px;
+.metals-wr-spark {
   display: flex;
   align-items: center;
 }
-.metals-cell-action-btn:hover {
-  color: var(--metals-text-primary);
-  background: rgba(255, 255, 255, 0.06);
+.metals-wr-spark svg {
+  display: block;
 }
-.metals-cell-action-btn.is-active {
-  color: var(--metals-accent);
+.metals-wr-spark-loading {
+  font-size: 10px;
+  color: var(--metals-text-tertiary);
+}
+.metals-pin {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--metals-text-tertiary);
+  cursor: pointer;
+  transition: color 160ms, background 160ms;
+}
+.metals-pin:hover {
+  background: var(--metals-bg-card-hover);
+  color: var(--metals-text-primary);
+}
+.metals-pin.is-active {
+  color: var(--metals-gold);
 }
 
-/* Skeleton */
-@keyframes skeleton-shimmer {
+/* 涨跌色 (红涨绿跌, 沿用 --color-up/down; 叠 ▲▼ 字形双编码) */
+.metals-up { color: var(--metals-up); }
+.metals-down { color: var(--metals-down); }
+
+/* Skeleton (冷启动占位) */
+@keyframes metals-skeleton-shimmer {
   0%   { background-position: 100% 0; }
   100% { background-position: -100% 0; }
 }
@@ -12684,17 +12529,279 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
     var(--metals-bg-card-hover) 50%,
     var(--metals-bg-card) 100%);
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  animation: metals-skeleton-shimmer 1.4s ease-in-out infinite;
   border-radius: 3px;
 }
 
-/* 移动端 fallback */
-@media (max-width: 800px) {
-  .metals-header { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 12px; }
-  .metals-header-summary { gap: 16px; margin-left: 0; flex-wrap: wrap; }
-  .metals-table th.metals-col-holding,
-  .metals-table td.metals-col-holding {
-    display: none;
+/* --- 详情面板 --- */
+/* ===== 详情弹窗 (ModalShell card) ===== */
+.metals-detail-modal {
+  width: min(680px, calc(100vw - 48px));
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  background: var(--metals-bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--metals-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  animation: metals-modal-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes metals-modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.metals-detail-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--metals-border);
+  position: sticky;
+  top: 0;
+  background: var(--metals-bg-card);
+  z-index: 2;
+}
+.metals-detail-modal-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.metals-detail-modal-short {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--metals-text-primary);
+}
+.metals-detail-modal-full {
+  font-size: 13px;
+  color: var(--metals-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.metals-detail-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--metals-text-tertiary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.metals-detail-modal-close:hover {
+  color: var(--metals-text-primary);
+  background: var(--metals-bg-card-hover);
+}
+.metals-detail-modal-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 现价 + 涨跌 区 */
+.metals-detail-quote {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.metals-detail-quote-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.metals-detail-quote-label {
+  font-size: 11px;
+  color: var(--metals-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.metals-detail-quote-px {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--metals-text-primary);
+  letter-spacing: -0.01em;
+}
+.metals-detail-quote-chg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.metals-detail-chg-pct {
+  font-size: 18px;
+  font-weight: 700;
+}
+.metals-detail-chg-pct.muted {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--metals-text-tertiary);
+}
+.metals-detail-chg-amt {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+.metals-fx-warn {
+  padding: 10px 14px;
+  background: var(--metals-gold-soft);
+  border: 1px solid var(--metals-gold-line);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--metals-gold);
+  font-weight: 500;
+}
+
+/* 周期 segmented control */
+.metals-seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  background: var(--metals-bg-page);
+  border-radius: 10px;
+  border: 1px solid var(--metals-border);
+}
+.metals-seg button {
+  border: none;
+  background: transparent;
+  color: var(--metals-text-secondary);
+  height: 30px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 160ms, color 160ms;
+}
+.metals-seg button:hover {
+  color: var(--metals-text-primary);
+}
+.metals-seg button.is-on {
+  background: var(--metals-bg-card);
+  color: var(--metals-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 图表卡片 */
+.metals-chart-card {
+  background: var(--metals-bg-page);
+  border: 1px solid var(--metals-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.metals-chart-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.metals-chart-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--metals-text-secondary);
+}
+.metals-chart-area {
+  background: var(--metals-bg-card);
+  border-radius: 8px;
+  padding: 8px;
+}
+.metals-chart-area svg {
+  width: 100%;
+  height: 240px;
+  display: block;
+}
+.metals-chart-foot {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--metals-text-tertiary);
+}
+.metals-chart-empty {
+  font-size: 13px;
+  color: var(--metals-text-tertiary);
+  text-align: center;
+  padding: 80px 0;
+}
+
+/* 指标区 */
+.metals-ind-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.metals-ind-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--metals-text-secondary);
+}
+.metals-ind-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.metals-ind {
+  background: var(--metals-bg-page);
+  border: 1px solid var(--metals-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.metals-ind-k {
+  font-size: 11px;
+  color: var(--metals-text-tertiary);
+}
+.metals-ind-v {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+  color: var(--metals-text-primary);
+}
+.metals-ind-note {
+  font-size: 11px;
+  color: var(--metals-text-tertiary);
+  line-height: 1.5;
+}
+
+/* 响应式: 弹窗内指标窄屏 3→2 列 */
+@media (max-width: 520px) {
+  .metals-ind-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .metals-watch-row {
+    grid-template-columns: 1fr auto 36px;
+    grid-template-areas:
+      "name price pin"
+      "name chg pin";
+    height: auto;
+    padding: 12px 16px;
+    gap: 4px 12px;
+  }
+  .metals-wr-name { grid-area: name; }
+  .metals-wr-price { grid-area: price; }
+  .metals-wr-chg { grid-area: chg; }
+  .metals-wr-spark { display: none; }
+  .metals-pin { grid-area: pin; align-self: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metals-watch-row,
+  .metals-pin,
+  .metals-seg button,
+  .metals-detail-modal {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  .metals-badge.open .metals-badge-led,
+  .metals-cell-skeleton {
+    animation: none;
   }
 }
 

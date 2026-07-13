@@ -163,13 +163,13 @@ describe("metal-kline-fetcher: fetchMetalKline (集成)", () => {
 });
 
 describe("metal-kline-fetcher: pointsToHistoryMap", () => {
-  it("取每个 points 的 close 字段, 转成 historyMap 形态", () => {
+  it("保留完整 OHLC (open/high/low/close), 供详情面板 K 线主图使用", () => {
     const fetched = {
       XAU: [
-        { date: "2026-05-30", close: 100 },
-        { date: "2026-05-31", close: 105 },
+        { date: "2026-05-30", open: 98, high: 102, low: 97, close: 100 },
+        { date: "2026-05-31", open: 100, high: 107, low: 99, close: 105 },
       ],
-      AU9999: [{ date: "2026-05-30", close: 200 }],
+      AU9999: [{ date: "2026-05-30", open: 195, high: 205, low: 193, close: 200 }],
     };
     const items = [
       { id: "XAU", secid: "113.AU2608" },
@@ -177,10 +177,22 @@ describe("metal-kline-fetcher: pointsToHistoryMap", () => {
     ];
     expect(pointsToHistoryMap(fetched, items)).toEqual({
       XAU: [
-        { date: "2026-05-30", close: 100 },
-        { date: "2026-05-31", close: 105 },
+        { date: "2026-05-30", open: 98, high: 102, low: 97, close: 100 },
+        { date: "2026-05-31", open: 100, high: 107, low: 99, close: 105 },
       ],
-      AU9999: [{ date: "2026-05-30", close: 200 }],
+      AU9999: [{ date: "2026-05-30", open: 195, high: 205, low: 193, close: 200 }],
+    });
+  });
+
+  it("snapshotDailyClose 推的点只有 close (无 OHLC) → 透传, 不补字段", () => {
+    // scheduler.snapshotDailyClose 推 {date, close} 当日未收盘价, 无 open/high/low.
+    // pointsToHistoryMap 不虚构 OHLC — 直接透传实际存在的字段.
+    const fetched = {
+      XAU: [{ date: "2026-06-12", close: 555 }],
+    };
+    const items = [{ id: "XAU", secid: "113.AU2608" }];
+    expect(pointsToHistoryMap(fetched, items)).toEqual({
+      XAU: [{ date: "2026-06-12", close: 555 }],
     });
   });
 
