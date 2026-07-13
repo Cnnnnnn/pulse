@@ -306,9 +306,9 @@ export function WorldcupTabIcon({ tabKey, size = 14 }) {
   return <Icon size={size} />;
 }
 
-export function IconRefresh({ size = 16 }) {
+export function IconRefresh({ size = 16, ...rest }) {
   return (
-    <Svg size={size}>
+    <Svg size={size} {...rest}>
       <path d="M23 4v6h-6" />
       <path d="M1 20v-6h6" />
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />

@@ -16,6 +16,7 @@ const { registerIthomeHandlers } = require("./register-ithome");
 const { registerIthomeShareHandlers } = require("./register-ithome-share");
 const { registerFundsHandlers } = require("./register-funds");
 const { registerWechatHotHandlers } = require("./register-wechat-hot");
+const { registerNewCarHandlers } = require("./register-newcar");
 const { registerAiPromptsHandlers } = require("./register-ai-prompts");
 const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice");
 const {
@@ -51,6 +52,7 @@ function registerIpcHandlers(deps) {
   registerIthomeShareHandlers(ctx);
   registerFundsHandlers(ctx);
   registerWechatHotHandlers(ctx); // ← 新增
+  registerNewCarHandlers(ctx); // 新车发布: 手动刷新远程真源 (newcar:refresh)
   registerAiPromptsHandlers(ctx); // A7: AI prompt 模板化
   registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
   registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要
