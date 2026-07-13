@@ -36,6 +36,7 @@ import {
   DEFAULT_NAV_SOURCE,
   normalizeNavSource,
 } from "../../funds/fund-nav-merge.js";
+import { isFundPinned } from "../watchlist/watchlist-store.js";
 
 const log = taggedLog("[funds]");
 
@@ -50,6 +51,10 @@ export const schedulerState = signal({
 });
 export const activeCategory = signal("all");
 export const searchQuery = signal("");
+// ponytail: 投资 nav 合并 (2026-07-13) — 基金二级 tab 'all' / 'watch' 单一真相,
+// InvestLayout / InvestLayoutHeader / FundContent 三处共用, 不在 InvestLayout 本地另建.
+// 默认 'all' — 跟用户老习惯一致, 自选是增强入口.
+export const fundView = signal("all");
 export const addModalOpen = signal(false);
 export const editingHolding = signal(null);
 export const dailySnapshots = signal([]);
@@ -114,7 +119,10 @@ export const totalMetrics = computed(() => {
 });
 
 /**
- * 按 category 过滤 + 搜索过滤 — 给 FundList 用
+ * 按 category 过滤 + 搜索过滤 + 自选过滤 — 给 FundList / FundCardGrid 用
+ *
+ * 投资 nav 合并 (2026-07-13) N4: 'watch' 视图叠 isFundPinned 过滤.
+ * ponytail: fundView 是 signal, computed 自动响应; FundCardGrid 无需感知 fundView 存在.
  */
 export const filteredRows = computed(() => {
   let rows = rowsWithMetrics.value;
@@ -130,6 +138,10 @@ export const filteredRows = computed(() => {
       const c = h.code || "";
       return n.includes(q) || c.includes(q);
     });
+  }
+  // N4: watch 视图叠一层 isFundPinned 过滤
+  if (fundView.value === "watch") {
+    rows = rows.filter((r) => isFundPinned(r.holding && r.holding.code));
   }
   return rows;
 });
