@@ -1,75 +1,72 @@
 /**
  * src/renderer/metals/MetalHeader.jsx
  *
- * 单行 status bar: 标题 + 总览数字 (总市值/总盈亏/今日预估) + 刷新按钮.
- * Phase 4 移除 3 总览卡 grid + sparkline tab bar (改由 MetalTable 行内嵌 sparkline).
+ * 模块头: 标题块 (medal + 贵金属 + 副标) + 市场状态徽标 (实时行情) + 刷新按钮.
+ *
+ * 纯行情看板: 不再展示总市值/总盈亏/今日预估 (持仓语义, 已移除).
+ * 刷新: 内联 loading (更新中… 禁用) + 完成后 toast「行情已更新 HH:MM」.
  */
-import {
-  overview, schedulerState, refreshNow,
-} from "./metalStore.js";
+import { useState } from "preact/hooks";
+import { schedulerState, refreshNow } from "./metalStore.js";
 import { IconMedal, IconRefresh } from "../components/icons.jsx";
-
-function formatCNY(value) {
-  if (value == null) return "—";
-  return `¥${value.toLocaleString("zh-CN", { maximumFractionDigits: 2 })}`;
-}
+import { showToast } from "../store.js";
 
 function formatTime(ts) {
-  if (!ts) return "—";
+  if (!ts) return null;
   return new Date(ts).toLocaleTimeString("zh-CN", {
     hour: "2-digit", minute: "2-digit",
   });
 }
 
-function pnlClass(value) {
-  if (value == null) return "";
-  if (value > 0) return "metals-pos";
-  if (value < 0) return "metals-neg";
-  return "";
-}
-
 export function MetalHeader() {
-  const ov = overview.value;
   const state = schedulerState.value;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await refreshNow();
+      const hhmm = formatTime(Date.now());
+      showToast(`行情已更新 ${hhmm}`, "info", 2600);
+    } catch {
+      showToast("刷新失败, 请重试", "warn", 2600);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const running = state.status === "running" || refreshing;
 
   return (
     <header class="metals-header feature-header">
       <div class="metals-header-title">
-        <IconMedal size={18} />
-        <span>贵金属</span>
-      </div>
-
-      <div class="metals-header-summary">
-        <div class="metals-header-summary-item">
-          <span class="metals-header-summary-label">总市值</span>
-          <span class="metals-header-summary-value">
-            {formatCNY(ov.totalMarketValueCNY)}
-          </span>
-        </div>
-        <div class="metals-header-summary-item">
-          <span class="metals-header-summary-label">总盈亏</span>
-          <span class={`metals-header-summary-value ${pnlClass(ov.totalPnlCNY)}`}>
-            {formatCNY(ov.totalPnlCNY)}
-          </span>
-        </div>
-        <div class="metals-header-summary-item">
-          <span class="metals-header-summary-label">今日预估</span>
-          <span class={`metals-header-summary-value ${pnlClass(ov.todayEstimatedCNY)}`}>
-            {formatCNY(ov.todayEstimatedCNY)}
-          </span>
+        <span class="metals-header-medal">
+          <IconMedal size={20} />
+        </span>
+        <div>
+          <h1>贵金属</h1>
+          <div class="metals-header-sub">国内积存金 · 国际贵金属行情</div>
         </div>
       </div>
 
-      <div class="metals-header-status">
-        {state.lastFetch && <span>更新 {formatTime(state.lastFetch)}</span>}
-        {state.status === "running" && <span class="spinner">⟳</span>}
+      <div class="metals-header-right">
+        <span class="metals-badge open" aria-label="实时行情">
+          <span class="metals-badge-led" />
+          实时行情
+        </span>
         <button
           class="btn btn-ghost btn-sm metals-refresh-btn"
-          onClick={refreshNow}
+          onClick={handleRefresh}
+          disabled={running}
+          aria-label={running ? "更新中" : "刷新行情"}
         >
-          <IconRefresh size={14} /> 刷新
+          <IconRefresh size={14} />
+          {running ? "更新中…" : "刷新"}
         </button>
       </div>
     </header>
   );
 }
+
+export default MetalHeader;

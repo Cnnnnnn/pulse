@@ -1,53 +1,55 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from "vitest";
-import { render } from "@testing-library/preact";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, fireEvent } from "@testing-library/preact";
 import { MetalHeader } from "../../../src/renderer/metals/MetalHeader.jsx";
 import {
-  config, quoteCache, fxCache, schedulerState, resetMetalStore,
+  schedulerState, resetMetalStore,
 } from "../../../src/renderer/metals/metalStore.js";
 
-describe("MetalHeader Phase 4: status bar", () => {
+describe("MetalHeader: 标题块 + 市场状态徽标 + 刷新 (纯行情看板)", () => {
   beforeEach(() => {
     resetMetalStore();
   });
 
-  it("status bar 渲染: 标题 + 3 总览数字 + 刷新按钮", () => {
-    config.value = { watchedIds: ["XAU"], holdings: { XAU: null }, deletedIds: [] };
-    quoteCache.value = { data: {}, errors: {}, fetchedAt: Date.now() };
-    fxCache.value = { rate: 7.18, fetchedAt: Date.now() };
+  it("渲染标题块 (medal + 贵金属 + 副标) + 实时行情徽标 + 刷新按钮", () => {
     schedulerState.value = { status: "idle", lastFetch: Date.now() };
-
     const { container } = render(<MetalHeader />);
-    expect(container.querySelector(".metals-header-title").textContent).toMatch(/贵金属/);
-    const summary = container.querySelectorAll(".metals-header-summary-item");
-    expect(summary.length).toBe(3);
-    expect(summary[0].textContent).toMatch(/总市值/);
-    expect(summary[1].textContent).toMatch(/总盈亏/);
-    expect(summary[2].textContent).toMatch(/今日预估/);
-    expect(container.querySelector(".metals-refresh-btn")).not.toBeNull();
+    // 标题
+    const h1 = container.querySelector(".metals-header-title h1");
+    expect(h1.textContent).toMatch(/贵金属/);
+    expect(container.querySelector(".metals-header-medal")).not.toBeNull();
+    // 市场状态徽标
+    const badge = container.querySelector(".metals-badge.open");
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toMatch(/实时行情/);
+    // 刷新按钮
+    const refresh = container.querySelector(".metals-refresh-btn");
+    expect(refresh).not.toBeNull();
   });
 
-  it("总盈亏 / 今日预估 为正 → 加 metals-pos 类 (红)", () => {
-    // 构造 holdings + quote + fx 让 overview computed 算出正盈亏 + 正今日预估.
-    // 公式: totalPnlCNY = MV - cost, todayEst = quote.change * fx * qty
-    config.value = {
-      watchedIds: ["XAU"],
-      holdings: { XAU: { quantity: 10, costPriceCNY: 700 } }, // cost 7000
-      deletedIds: [],
-    };
-    quoteCache.value = {
-      data: {
-        XAU: { price: 710, change: 5, currency: "USD" }, // MV=7100, pnl=+100, today=+5*7*10=+350
-      },
-      errors: {},
-      fetchedAt: Date.now(),
-    };
-    fxCache.value = { rate: 7, fetchedAt: Date.now() };
+  it("不再渲染总览三数 (总市值/总盈亏/今日预估 — 持仓语义已移除)", () => {
     schedulerState.value = { status: "idle", lastFetch: null };
-
     const { container } = render(<MetalHeader />);
-    const values = container.querySelectorAll(".metals-header-summary-value");
-    expect(values[1].className).toMatch(/metals-pos/);
-    expect(values[2].className).toMatch(/metals-pos/);
+    expect(container.querySelector(".metals-header-summary")).toBeNull();
+    expect(container.textContent).not.toMatch(/总市值/);
+    expect(container.textContent).not.toMatch(/总盈亏/);
+  });
+
+  it("scheduler running → 刷新按钮显示更新中并禁用", () => {
+    schedulerState.value = { status: "running", lastFetch: null };
+    const { container } = render(<MetalHeader />);
+    const refresh = container.querySelector(".metals-refresh-btn");
+    expect(refresh.disabled).toBe(true);
+    expect(refresh.textContent).toMatch(/更新中/);
+  });
+
+  it("点击刷新 → 调 refreshNow + 显示更新中态", async () => {
+    schedulerState.value = { status: "idle", lastFetch: null };
+    const { container } = render(<MetalHeader />);
+    const refresh = container.querySelector(".metals-refresh-btn");
+    // fetchNow 在 resetMetalStore 后 window.metalsApi 被 delete, refreshNow 直接 return.
+    fireEvent.click(refresh);
+    // 点击后进入 refreshing 态 (disabled)
+    expect(refresh.disabled).toBe(true);
   });
 });

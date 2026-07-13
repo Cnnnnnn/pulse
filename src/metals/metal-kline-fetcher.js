@@ -104,7 +104,16 @@ function pointsToHistoryMap(fetched, items) {
   const out = {};
   for (const item of items) {
     if (!fetched[item.id]) continue;
-    out[item.id] = fetched[item.id].map((p) => ({ date: p.date, close: p.close }));
+    // 保留完整 OHLC (open/high/low/close): 详情面板的 K 线主图需要 candlestick 形态.
+    // 只读 .close 的旧消费者 (MetalWatchlist sparkline / scheduler 检测) 不受影响 —
+    // 多出的字段是纯加法.
+    out[item.id] = fetched[item.id].map((p) => ({
+      date: p.date,
+      open: p.open,
+      high: p.high,
+      low: p.low,
+      close: p.close,
+    }));
   }
   return out;
 }
