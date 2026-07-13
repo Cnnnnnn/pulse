@@ -46,22 +46,20 @@ import { HiddenItemsDrawer } from './HiddenItemsDrawer.jsx';
 import { IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.jsx';
 import { navigateTo } from '../route-store.js';
 
-// Phase v1: 4 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).
-// nav key → prefs segment key. 不在 map 里的 nav 始终显示 (spec 明确不动).
+// Phase v1: 3 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).
+// 投资 nav 合并: metals 段不再控制 nav 可见性 —— 投资固定可见.
 const NAV_TO_PREFS_SEGMENT = {
   'versions': 'updates',
   'ai-usage': 'ai_usage',
   'worldcup': 'worldcup',
-  'metals': 'metals',
 };
 
 const NAV_ITEMS = [
   // P-N+ 2026-07-10: IT 新闻 + 微博热搜 合并成单 'news' nav.
+  // 2026-07-13: funds / metals / stocks 三 nav 合并成单 'invest' nav (基金 + 贵金属 + 选股).
   { key: 'news',      label: '新闻',     tooltip: 'IT 资讯 + 微博热搜 (合并 tab)' },
   { key: 'worldcup',  label: '世界杯',   tooltip: '2026 世界杯赛程' },
-  { key: 'funds',     label: '基金管理', tooltip: '基金持仓 + 实时盈亏 (v2.10+)' },
-  { key: 'metals',    label: '贵金属',   tooltip: '黄金白银实时价格 + 持仓盈亏' },
-  { key: 'stocks',    label: '选股',     tooltip: 'A股条件选股 + 个股 AI 分析 (Phase 32 合并)' },
+  { key: 'invest',    label: '投资',     tooltip: '基金 + 贵金属 + 选股 (合并 tab)' },
   { key: 'ai-usage',  label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
   { key: 'versions',  label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
 ];
@@ -80,7 +78,7 @@ export function SideNav() {
   const newsBadge = (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0);
   const navBadges = {
     news: newsBadge,
-    funds: fundUnreadBadge.value,
+    invest: fundUnreadBadge.value,   // 原 funds 角标迁到投资入口
     'ai-usage': aiUsageNavBadge.value,
   };
 
