@@ -19,31 +19,74 @@
  *     - funds → fundsLoading
  *     - metals → metalsRefreshing (N2 新增)
  *     - stocks → false (stockStore 内部 60s tick 静默刷新, 不闪按钮)
+ *
+ * ponytail: 基金 + 金属的数据加载 effect 之前分散在各自 Layout wrapper,
+ *   Content 拆分后没有 mount/unmount 触发的副作用入口; 上版本在 FundContent 注释里
+ *   谎称 "InvestLayout 接管",但实际漏了基金的 effect —— 切到基金 tab 全是空白.
+ *   这里统一搬到 InvestLayout,cleanup 也绑到外层 useEffect 的返回.
+ *   选股不需要 (StockContent 内部 start/stopRefreshTimer)。
  */
 import { useEffect } from "preact/hooks";
 import "./InvestLayout.css";
 import { investPrimary } from "../worldcup/navStore.js";
 import { refreshActiveNav } from "../nav-refresh.js";
-import { fundView, fundsLoading } from "../funds/fundStore.js";
+import {
+  fundView,
+  fundsLoading,
+  loadFunds,
+  loadNavState,
+  loadFundHistory,
+  fetchNavNow,
+  subscribeNavUpdates,
+  prefetchAllNavHistory,
+} from "../funds/fundStore.js";
 import { metalsRefreshing } from "../metals/metalStore.js";
+import { api } from "../api.js";
 import { FundContent } from "../funds/FundLayout.jsx";
 import { MetalContent } from "../metals/MetalLayout.jsx";
 import { StockContent } from "../stocks/StockLayout.jsx";
 import { InvestLayoutHeader } from "./InvestLayoutHeader.jsx";
 
 export function InvestLayout() {
-  // 投资 nav 合并: 基金数据加载由 FundContent 进入时自然触发 (已含在 FundLayout 复合 wrapper 内),
-  // 这里不重复 effect —— 切到子模块时由各 Content 自己的 store 初始化.
-  // 但 metals 需要 initMetalStore/cleanupMetalStore, 抽到 InvestLayout 顶层统一管理 (因 MetalContent 不含).
-  // ponytail: LazyNavPanel 已对 nav='invest' 做 dynamic import, 此 effect 只跑一次 (InvestLayout mount).
+  // 基金数据加载 — 一次 mount, 写 cleanup 到 useEffect return.
+  // 之前依赖 FundLayout wrapper; 现在 InvestLayout 是顶级 mount, 在这里订阅主进程推送 + 预拉.
+  useEffect(() => {
+    const unsub = subscribeNavUpdates(api);
+    void loadFunds(api);
+    void loadNavState(api);
+    void loadFundHistory(api);
+    void fetchNavNow(api);
+    void prefetchAllNavHistory(api);
+    return () => {
+      try {
+        unsub && unsub();
+      } catch {
+        /* noop */
+      }
+    };
+  }, []);
+
+  // 金属数据加载 — 动态 import 拿到 init/cleanup,接到外层 useEffect return.
+  // metalStore 内部 cleanup 幂等 (listener null 检查), 所以即使 cleanup 跑多次也是安全的.
   useEffect(() => {
     if (typeof window === "undefined" || !window.metalsApi) return undefined;
-    // 动态 import 避免 metals 入口与 funds/stocks 解耦
-    import("../metals/metalStore.js").then(({ initMetalStore, cleanupMetalStore }) => {
-      initMetalStore();
-      return () => cleanupMetalStore();
+    let cancelled = false;
+    let cleanupStore = null;
+    import("../metals/metalStore.js").then((mod) => {
+      if (cancelled) return;
+      cleanupStore = () => mod.cleanupMetalStore();
+      void mod.initMetalStore();
     });
-    return undefined;
+    return () => {
+      cancelled = true;
+      if (cleanupStore) {
+        try {
+          cleanupStore();
+        } catch {
+          /* noop */
+        }
+      }
+    };
   }, []);
 
   const primary = investPrimary.value;
