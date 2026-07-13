@@ -15,7 +15,7 @@
  * 启动期 assert: PERSISTABLE_NAV_KEYS.size === 7 防顺序漂移.
  */
 import { useEffect, useRef, useState } from "preact/hooks";
-import { setActiveNav, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
+import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
 import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/store.js";
 import { wechatHotUnreadBadge, wechatHotItems, wechatHotLastFetched } from "../wechat-hot/store.js";
 import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.js";
@@ -357,7 +357,14 @@ export function HomeGrid() {
         const idx = Number(e.key) - 1;
         if (idx < orderedTiles.length) {
           e.preventDefault();
-          setActiveNav(orderedTiles[idx].key);
+          // ponytail 2026-07-13 投资 nav 合并: funds/metals/stocks tile 落到正确子模块
+          //   (非默认的 'funds'), 通过 goInvest 设 investPrimary. 其他 tile 走原 setActiveNav.
+          const tileKey = orderedTiles[idx].key;
+          if (tileKey === "funds" || tileKey === "metals" || tileKey === "stocks") {
+            goInvest(tileKey);
+          } else {
+            setActiveNav(tileKey);
+          }
           setFocusIdx(idx);
         }
         return;
@@ -469,7 +476,14 @@ export function HomeGrid() {
               tabIndex={isFocused ? 0 : -1}
               draggable
               aria-label={`进入 ${tile.title}${badge > 0 ? `, 未读 ${badge}` : ''}${status ? `, ${status}` : ''}${isFav ? ', 已收藏' : ''}`}
-              onClick={() => setActiveNav(tile.key)}
+              onClick={() => {
+                // ponytail 2026-07-13: 投资 tile 走 goInvest (设 primary + active).
+                if (tile.key === "funds" || tile.key === "metals" || tile.key === "stocks") {
+                  goInvest(tile.key);
+                } else {
+                  setActiveNav(tile.key);
+                }
+              }}
               onFocus={() => setFocusIdx(idx)}
               onDragStart={(e) => handleDragStart(tile.key, e)}
               onDragOver={handleDragOver}

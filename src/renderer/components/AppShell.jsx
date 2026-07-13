@@ -23,7 +23,7 @@
  */
 
 import { useEffect } from 'preact/hooks';
-import { activeNav, navCollapsed, setActiveNav } from '../worldcup/navStore.js';
+import { activeNav, navCollapsed, setActiveNav, goInvest } from '../worldcup/navStore.js';
 import { SideNav } from './SideNav.jsx';
 import { LazyNavPanel } from './LazyNavPanel.jsx';
 import { HomeGrid } from './HomeGrid.jsx';
@@ -51,12 +51,14 @@ export function AppShell({ onCheck }) {
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
-        setActiveNav('funds');
+        // ponytail 2026-07-13 投资 nav 合并: ⌘⇧F 跳到投资 nav 基金子模块
+        goInvest('funds');
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'm' || e.key === 'M')) {
         e.preventDefault();
-        setActiveNav('metals');
+        // ponytail 2026-07-13: ⌘⇧M 跳到投资 nav 贵金属子模块
+        goInvest('metals');
         return;
       }
       // A3: Cmd+K / Ctrl+K 全文搜索
@@ -77,7 +79,9 @@ export function AppShell({ onCheck }) {
         } else if (nav === 'ithome') inputId = 'ithome-search-input';
         else if (nav === 'wechat-hot') inputId = 'wechat-hot-search-input';
         else if (nav === 'worldcup') inputId = 'worldcup-search-input';
-        else if (nav === 'funds') inputId = 'fund-search-input';
+        // ponytail 2026-07-13 投资 nav 合并: 合并后 nav 永远 'invest',
+        //   一期简化为 focus 基金搜索框 (最常用), 二期按 investPrimary 细分.
+        else if (nav === 'invest') inputId = 'fund-search-input';
         const input = document.getElementById(inputId);
         if (input) {
           input.focus();

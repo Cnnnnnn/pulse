@@ -38,6 +38,46 @@ export const STOCK_VIEW_TABS = [
 
 // ponytail: 投资三模块搜索维度不同 (基金搜代码/名称、金属无搜索、选股有独立搜索框),
 //   不强行合并, 各模块内部搜索框保留, Header 不渲染 search. 副标题「更新于 xxx」二期再接.
+//
+// ponytail 2026-07-13: 主级 sub-tab 接 ←/→ 键盘导航 (WAI-ARIA tablist pattern).
+//   header 容器 onKeyDown 捕获, 根据当前 primary 找下/上一个 tab 写 investPrimary.
+//   SubtabList 内部 button 自带 focus, 切完 primary 后用 querySelector 找到新 active button 并 focus.
+function onHeaderKeyDown(e) {
+  const target = e.currentTarget;
+  const isInTablist =
+    e.target && e.target.closest && e.target.closest('[role="tablist"]');
+  if (!isInTablist) return;
+  // 只在主级 (前缀 invest, 非 invest-sub) 上响应 — 二级 sub-tab 由它自己的 button onKeyDown 处理.
+  const primaryList = target.querySelector('.invest-subtabs');
+  if (!primaryList || !primaryList.contains(e.target)) return;
+  const tabs = Array.from(primaryList.querySelectorAll('[role="tab"]'));
+  const currentIdx = tabs.findIndex((b) => b === e.target);
+  if (currentIdx === -1) return;
+  let next = currentIdx;
+  if (e.key === "ArrowRight") next = (currentIdx + 1) % tabs.length;
+  else if (e.key === "ArrowLeft") next = (currentIdx - 1 + tabs.length) % tabs.length;
+  else if (e.key === "Home") next = 0;
+  else if (e.key === "End") next = tabs.length - 1;
+  else return;
+  e.preventDefault();
+  if (next === currentIdx) return;
+  const nextTab = tabs[next];
+  if (nextTab) {
+    setInvestPrimary(INVEST_PRIMARY_TABS[next].key);
+    // 等 React/Preact 提交完 DOM 再 focus
+    requestAnimationFrame(() => {
+      const newActive = primaryList.querySelector('[role="tab"]');
+      // 找 index=next 的那个 (setInvestPrimary 后 active 重渲染)
+      const refreshed = Array.from(
+        primaryList.querySelectorAll('[role="tab"]'),
+      );
+      const targetBtn = refreshed[next];
+      if (targetBtn) targetBtn.focus();
+      else void newActive;
+    });
+  }
+}
+
 export function InvestLayoutHeader({
   fundView,
   onFundViewChange,
@@ -46,7 +86,7 @@ export function InvestLayoutHeader({
 }) {
   const primary = investPrimary.value;
   return (
-    <header class="invest-header">
+    <header class="invest-header" onKeyDown={onHeaderKeyDown}>
       <div class="invest-header-row">
         <div class="invest-header-brand">
           <span class="invest-header-icon" aria-hidden="true">

@@ -4,7 +4,7 @@
  * A3: 搜索结果跳转. 切面板 + 滚动 + 高亮 (复用 .search-highlight class).
  * 找不到目标元素时只切面板, console.warn.
  */
-import { setActiveNav } from '../worldcup/navStore.js';
+import { setActiveNav, goInvest } from '../worldcup/navStore.js';
 import { closeSearch } from './searchStore.js';
 
 const HIGHLIGHT_CLASS = 'search-highlight';
@@ -51,7 +51,7 @@ export function navigateToResult(result) {
       scrollAndHighlight(`[data-reminder-id="${cssEscape(nativeId)}"]`);
       break;
     case 'fund':
-      setActiveNav('funds');
+      goInvest('funds'); // ponytail 2026-07-13: 切到投资 nav 的基金子模块
       scrollAndHighlight(`[data-fund-code="${cssEscape((payload && payload.code) || '')}"]`);
       break;
     case 'app':
