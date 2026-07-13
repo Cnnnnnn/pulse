@@ -1,0 +1,34 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant Page as NewCarReleasePage
+    participant Store as newcar-store.refresh
+    participant Api as api.newcarRefresh
+    participant Pre as preload.newcarRefresh
+    participant Main as registerNewCarHandlers(newcar:refresh)
+    participant HC as HttpClient
+    participant Toast as toast-store
+
+    User->>Page: 点击「刷新」
+    Page->>Store: onRefresh() → refresh()
+    Store->>Store: newCarLoading = true
+    Store->>Api: await api.newcarRefresh()
+    Api->>Pre: ipcRenderer.invoke("newcar:refresh")
+    Pre->>Main: ipcMain.handle → safeHandle 包裹
+    Main->>HC: get(DEFAULT_NEWCAR_REMOTE_URL,{follow:true,timeout:10000})
+    HC-->>Main: {status, body, error}
+    Main->>Main: shape 校验 + 内联 normalizeReleases
+    Main-->>Pre: RefreshResult
+    Pre-->>Api: 同结果
+    Api-->>Store: 同结果
+    alt ok:true
+        Store->>Store: merged = mergeByRemoteFirst(builtinBaseline, releases)
+        Store->>Store: newCarReleases = merged; newCarLastUpdate = fetchedAt; newCarError = null
+        Store->>Toast: showToast("已同步最新发布日历（N 条）","success")
+    else ok:false
+        Store->>Store: 保留当前数据; newCarError = reason
+        Store->>Toast: showToast(reasonToast(reason),"error")
+    end
+    Store->>Store: newCarLoading = false
+    Store-->>Page: {ok, reason?}
+    Page-->>User: 按钮恢复可用 / 错误提示

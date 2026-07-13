@@ -17,6 +17,8 @@ const LOADERS = {
     import('../invest/InvestLayout.jsx').then((m) => m.InvestLayout),
   'ai-usage': () =>
     import('./AIUsageLayout.jsx').then((m) => m.AIUsageLayout),
+  'newcar': () =>
+    import('./NewCarReleaseLayout.jsx').then((m) => m.NewCarReleaseLayout),
 };
 
 export function LazyNavPanel({ nav, onCheck }) {

@@ -202,6 +202,8 @@ contextBridge.exposeInMainWorld("api", {
   // 微信热搜 (v2.24)
   wechatHotLoad: () => ipcRenderer.invoke("wechat-hot:load"),
   wechatHotRefresh: () => ipcRenderer.invoke("wechat-hot:refresh"),
+  // 新车发布 (v2.x): 手动刷新远程真源
+  newcarRefresh: () => ipcRenderer.invoke("newcar:refresh"),
   wechatHotLoadRead: () => ipcRenderer.invoke("wechat-hot:load-read"),
   wechatHotMarkRead: (title) =>
     ipcRenderer.invoke("wechat-hot:mark-read", title),

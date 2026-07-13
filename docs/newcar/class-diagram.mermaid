@@ -1,0 +1,101 @@
+classDiagram
+    class ReleaseRecord {
+        +string id
+        +string name
+        +string brand
+        +string releaseDate
+        +CarType type
+        +EnergyType energyType
+        +number priceMin
+        +number priceMax
+        +string thumbnailUrl
+        +string sourceUrl
+        +ReleaseStatus status
+    }
+    class DatasetMeta {
+        +number year
+        +string version
+        +string updatedAt
+        +string source
+    }
+    class CalendarDataset {
+        +DatasetMeta meta
+        +ReleaseRecord[] releases
+    }
+    class CarType {
+        <<enum>>
+        轿车 SUV MPV 跑车 皮卡 其他
+    }
+    class EnergyType {
+        <<enum>>
+        燃油 混动 纯电 增程
+    }
+    class ReleaseStatus {
+        <<enum>>
+        预售 上市 首发 改款
+    }
+    class CarDetails {
+        +string id
+        +object specs
+        +string[] gallery
+        +object priceRange
+        +number fetchedAt
+    }
+    class NewCarDataset {
+        +loadBuiltinCalendar() CalendarDataset
+        +normalize(raw) ReleaseRecord[]
+        +filterReleases(list, f) ReleaseRecord[]
+        +groupByMonth(list) Map
+        +computeKpis(list, now) Kpis
+        +fetchCarDetails(id) CarDetails
+    }
+    class NewCarStore {
+        +signal releases
+        +signal filters
+        +signal loading
+        +signal lastUpdatedAt
+        +signal error
+        +signal navBadge
+        +loadCached()
+        +refresh()
+        +setFilters(f)
+        +applyEvent(e)
+        +clearNavBadge()
+        +bumpNavBadge(n)
+    }
+    class NewCarReleaseLayout
+    class NewCarReleasePage
+    class NewCarReleaseKPIs
+    class NewCarReleaseList
+    class NewCarReleaseCalendar
+    class NewCarReleaseFilters
+    class NewCarReleaseDetail
+    class KPICard
+    class useNewCarData
+    class NewCarRefreshScheduler
+    class SubscriptionPrefs
+    class NewCarReleaseSubscribeModal
+
+    CalendarDataset *-- ReleaseRecord
+    CalendarDataset *-- DatasetMeta
+    ReleaseRecord ..> CarType
+    ReleaseRecord ..> EnergyType
+    ReleaseRecord ..> ReleaseStatus
+    NewCarDataset ..> CalendarDataset
+    NewCarDataset ..> CarDetails : fetches(P1)
+    NewCarStore ..> CalendarDataset
+    NewCarReleaseLayout --> NewCarReleasePage
+    NewCarReleasePage --> NewCarReleaseKPIs
+    NewCarReleasePage --> NewCarReleaseList
+    NewCarReleasePage --> NewCarReleaseCalendar
+    NewCarReleasePage --> NewCarReleaseDetail
+    NewCarReleasePage --> NewCarReleaseFilters
+    NewCarReleaseKPIs ..> KPICard : reuse
+    NewCarReleaseList ..> ReleaseRecord : renders
+    NewCarReleaseCalendar ..> ReleaseRecord : renders
+    NewCarReleaseDetail ..> ReleaseRecord : renders
+    NewCarReleaseDetail ..> CarDetails : P1 fetch
+    useNewCarData ..> NewCarStore
+    NewCarReleaseSubscribeModal ..> SubscriptionPrefs
+    NewCarRefreshScheduler ..> SubscriptionPrefs : reads
+    NewCarRefreshScheduler ..> NewCarStore : sidenav:badge

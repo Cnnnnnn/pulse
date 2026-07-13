@@ -1,0 +1,55 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant Lazy as LazyNavPanel
+    participant Layout as NewCarReleaseLayout
+    participant Store as NewCarStore
+    participant Data as NewCarDataset
+    participant Page as NewCarReleasePage
+    participant List as NewCarReleaseList
+    participant Cal as NewCarReleaseCalendar
+    participant Detail as NewCarReleaseDetail
+    participant Main as NewCarRefreshScheduler (P1 main)
+    participant SideNav as SideNav
+
+    Note over Lazy: 启动期 LOADERS 注册 'newcar'
+    User->>Lazy: 点击导航 "新车发布"
+    Lazy->>Layout: dynamic import + mount
+    Layout->>Store: subscribeNewCarUpdates()
+    Layout->>Store: loadCached()
+    Store->>Data: loadBuiltinCalendar()
+    Data-->>Store: CalendarDataset (内置 JSON, 离线)
+    Store->>Store: releases = normalize(dataset.releases)
+    Store->>Store: lastUpdatedAt = now
+    Page->>Store: 订阅 releases / filters
+    Page->>Page: 渲染 header + KPIs + Tabs
+    Page->>List: releases (默认 主列表视图)
+    List-->>User: 车型名/品牌/日期/类型/能源 + 价格
+
+    Note over User,Detail: 切到日历视图
+    User->>Page: 切 Tab = 日历
+    Page->>Cal: releases
+    Cal-->>User: 月历圆点 + 纵向时间轴
+
+    Note over User,Detail: 打开详情
+    User->>List: 点击某行
+    List->>Detail: open(record)
+    Detail->>Data: fetchCarDetails(id) [P1 预留, MVP 返 null]
+    Data-->>Detail: CarDetails | null
+    Detail-->>User: 大图册占位 + 参数 + 价格 + 来源链接
+
+    Note over User,Store: 手动刷新 (MVP)
+    User->>Page: 点击刷新
+    Page->>Store: refresh()
+    Store->>Data: loadBuiltinCalendar() (重读内置)
+    Store->>Store: lastUpdatedAt = now
+    Page-->>User: "上次更新: 刚刚"
+
+    Note over Main,SideNav: P1 主进程定时 (仿 ai-usage-refresh-scheduler)
+    Main->>Main: 定时 checkMatches(subscriptions)
+    Main-->>SideNav: sendToRenderer("sidenav:badge",{key:"newcar",count})
+    SideNav->>Store: onSidenavBadge -> bumpNavBadge(count)
+    Store-->>SideNav: navBadge 信号
+    SideNav-->>User: 导航角标 N 未读
+    User->>Page: 进入新车发布
+    Page->>Store: clearNavBadge()
