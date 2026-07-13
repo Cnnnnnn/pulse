@@ -12,6 +12,7 @@ const { inQuietHours } = require("../notification-policy");
 const stateStore = require("../state-store");
 const { buildRunCheckDeps } = require("../run-check-deps");
 const { setManagedInterval, clearManaged } = require("../timer-registry");
+const { createNewCarRefreshScheduler } = require("../newcar-refresh-scheduler");
 
 // C4: 模块级 timer handle (跟 daily-summary-job 的 _handle 同构), 便于 __resetForTest 清理.
 const _autoCheckHandle = { interval: null };
@@ -785,4 +786,49 @@ module.exports = {
   makeRefreshLastOpenedAfterCheck,
   startSelfUpdateTimer,
   makeSelfUpdateController,
+  startNewCarScheduler,
 };
+
+/**
+ * P1: 新车发布角标定时调度 (接线点).
+ * 订阅来自 renderer (经 IPC 写入 main state); 未提供 getNewCarSubscriptions 时
+ * 默认空订阅 → 不推送角标 (MVP 安全 no-op). 数据集经 loadBuiltin 注入 (P1 由
+ * renderer 经 IPC 推送 releases).
+ *
+ * @param {object} deps
+ * @param {function} deps.sendToRenderer
+ * @param {function} [deps.getNewCarSubscriptions]  () => { brands: string[], energyTypes: string[] }
+ * @param {function} [deps.loadNewCarBuiltin]       () => { releases: Array }
+ * @returns {object|null}
+ */
+function startNewCarScheduler(deps) {
+  const sendToRenderer = deps && deps.sendToRenderer;
+  const getSubscriptions =
+    deps && typeof deps.getNewCarSubscriptions === 'function'
+      ? deps.getNewCarSubscriptions
+      : () => ({ brands: [], energyTypes: [] });
+  const loadBuiltin =
+    deps && typeof deps.loadNewCarBuiltin === 'function'
+      ? deps.loadNewCarBuiltin
+      : () => ({ releases: [] });
+  try {
+    const sched = createNewCarRefreshScheduler({
+      sendToRenderer,
+      getSubscriptions,
+      loadBuiltin,
+    });
+    sched.start({ intervalMs: 30 * 60 * 1000 });
+    mainLog.info("newcar scheduler started");
+    app.once("before-quit", () => {
+      try {
+        sched.stop();
+      } catch {
+        /* noop */
+      }
+    });
+    return sched;
+  } catch (err) {
+    mainLog.warn(`newcar scheduler init failed: ${err && err.message}`);
+    return null;
+  }
+}
