@@ -130,7 +130,46 @@ export function FundHero() {
               : '尚未同步'}
       </div>
 
-      {/* 2. 搜索 + 添加持仓 */}
+      {/* 2. 总览 KPI 条: 总市值巨号 + 今日/总盈亏/收益率三块磁贴 */}
+      <div class="fund-hero-kpi">
+        <div class="fund-hero-kpi-primary">
+          <span class="fund-hero-kpi-label">总市值</span>
+          <span class="fund-hero-total tabular-nums">{fmtCurrency(totalMarketValue)}</span>
+          <span class="fund-hero-kpi-hint">持仓市值汇总</span>
+        </div>
+        <div class="fund-hero-kpi-tile">
+          <span class="fund-hero-kpi-label">今日预估</span>
+          <span class={`fund-hero-kpi-value ${signClass(todayProfit)}`}>
+            <span class="fund-hero-kpi-arrow" aria-hidden="true">{arrow(todayProfit)}</span>
+            {fmtCurrency(todayProfit)}
+          </span>
+          <span class={`fund-hero-kpi-sub ${signClass(todayProfitPct)}`}>{fmtPct(todayProfitPct)}</span>
+        </div>
+        <div class="fund-hero-kpi-tile">
+          <span class="fund-hero-kpi-label">总盈亏</span>
+          <span class={`fund-hero-kpi-value ${signClass(totalProfit)}`}>
+            <span class="fund-hero-kpi-arrow" aria-hidden="true">{arrow(totalProfit)}</span>
+            {fmtCurrency(totalProfit)}
+          </span>
+          <span class={`fund-hero-kpi-sub ${signClass(totalProfit)}`}>{fmtPct(m.totalProfitPct || 0)}</span>
+        </div>
+        <div class="fund-hero-kpi-tile">
+          <span class="fund-hero-kpi-label">收益率</span>
+          <span class={`fund-hero-kpi-value ${signClass(returnRate)}`}>{fmtPct(returnRate)}</span>
+        </div>
+      </div>
+
+      {/* 3. 可视化带: 配置环 + 近 30 天走势 */}
+      <div class="fund-hero-panels">
+        <div class="fund-hero-panel">
+          <FundAllocationDonut />
+        </div>
+        <div class="fund-hero-panel">
+          <FundPortfolioTrend />
+        </div>
+      </div>
+
+      {/* 3. 搜索 + 添加持仓 (工具行置于底部, 不抢占视觉焦点) */}
       <div class="fund-hero-search">
         <input
           id="fund-search-input"
@@ -147,29 +186,6 @@ export function FundHero() {
         >
           ＋ 添加持仓
         </button>
-      </div>
-
-      {/* 3 + 4. 总市值大数字 (左) + 右侧可视化列 (右) */}
-      <div class="fund-hero-main">
-        <div class="fund-hero-number">
-          <div class="fund-hero-total tabular-nums">{fmtCurrency(totalMarketValue)}</div>
-          <div class="fund-hero-subs">
-            <span class={`fund-hero-sub ${signClass(todayProfit)}`}>
-              今日预估 {arrow(todayProfit)} {fmtCurrency(todayProfit)} ({fmtPct(todayProfitPct)})
-            </span>
-            <span class={`fund-hero-sub ${signClass(totalProfit)}`}>
-              总盈亏 {arrow(totalProfit)} {fmtCurrency(totalProfit)} ({fmtPct(m.totalProfitPct || 0)})
-            </span>
-            <span class={`fund-hero-sub ${signClass(returnRate)}`}>
-              收益率 {fmtPct(returnRate)}
-            </span>
-          </div>
-        </div>
-
-        <div class="fund-hero-charts">
-          <FundAllocationDonut />
-          <FundPortfolioTrend />
-        </div>
       </div>
     </div>
   );

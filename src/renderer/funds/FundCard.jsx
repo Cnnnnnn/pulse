@@ -7,7 +7,7 @@
  * 错误态 (单只拉取失败): 显示错误信息.
  */
 
-import { useState } from 'preact/hooks';
+import { useState, useRef, useEffect } from 'preact/hooks';
 import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund, isListedFundCode } from './fundStore.js';
 import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.js';
 import { api } from '../api.js';
@@ -29,6 +29,24 @@ const CATEGORY_LABEL = {
 
 export function FundCard({ row }) {
   const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    function onDocPointer(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', onDocPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   const holding = row.holding;
   const metrics = row.metrics;
@@ -118,45 +136,51 @@ export function FundCard({ row }) {
         />
         <span class="fund-card-code">{holding.code}</span>
         <span class="fund-card-name">{holding.name}</span>
-        <span class="fund-card-actions">
-          <button
-            type="button"
-            class={`fund-card-action-btn${pinned ? ' fund-card-action-btn--active' : ''}`}
-            title={pinned ? '取消关注' : '关注净值'}
-            onClick={togglePin}
-          >
-            关注
-          </button>
-          <button
-            type="button"
-            class="fund-card-action-btn"
-            title="编辑"
-            onClick={(e) => { e.stopPropagation(); openEditModal(holding); }}
-          >
-            编辑
-          </button>
-          <button
-            type="button"
-            class="fund-card-action-btn"
-            title="删除"
-            onClick={confirmRemove}
-          >
-            删除
-          </button>
-          {/* ponytail 2026-07-13: 加入对比池 — 仅 listed (场内 ETF/LOF) 启用 */}
+        <span class="fund-card-tools">
           {listed && compareEntry ? (
             <AddToCompareButton entry={compareEntry} variant="row" api={api} />
-          ) : (
+          ) : null}
+          <span class="fund-card-menu" ref={menuRef}>
             <button
               type="button"
-              class="fund-card-action-btn fund-card-action-btn--disabled"
-              disabled
-              title="场外开放式基金无场内可比标的"
-              aria-label="场外开放式基金无场内可比标的"
+              class="fund-card-menu-btn"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="更多操作"
+              title="更多操作"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
             >
-              对比
+              更多
             </button>
-          )}
+            {menuOpen && (
+              <span class="fund-card-menu-panel" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  class={`fund-card-menu-item${pinned ? ' fund-card-menu-item--active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); togglePin(e); setMenuOpen(false); }}
+                >
+                  关注净值
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="fund-card-menu-item"
+                  onClick={(e) => { e.stopPropagation(); openEditModal(holding); setMenuOpen(false); }}
+                >
+                  编辑持仓
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="fund-card-menu-item fund-card-menu-item--danger"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); confirmRemove(e); }}
+                >
+                  删除
+                </button>
+              </span>
+            )}
+          </span>
         </span>
       </div>
 
