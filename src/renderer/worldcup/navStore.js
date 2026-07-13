@@ -22,49 +22,55 @@ import { clearWechatHotUnreadBadge } from "../wechat-hot/store.js";
 import { clearIthomeUnreadBadge } from "../ithome/store.js";
 import { api } from "../api.js";
 
-// activeNav: 'home' | 'news' | 'worldcup' | 'funds' | 'metals' | 'stocks' | 'ai-usage' | 'versions'
+// activeNav: 'home' | 'news' | 'worldcup' | 'invest' | 'ai-usage' | 'versions'
 // 默认 'home' — 无历史 → 显示 HomeGrid. bootstrap 拿到上次落点后会在 render 前覆盖.
 // stock-detail (Phase 32) 已合并到选股 tab 顶栏入口, 不再独立 nav.
 // P-N: 无历史 → 显示 HomeGrid. bootstrap 拿到上次落点后会在 render 前覆盖.
 // P-N+: 'news' 单 nav 合并 IT 新闻 + 微博热搜, 页面内 sub-tab 切.
-// 旧 key 'ithome' / 'wechat-hot' 仍接受 (兼容落盘数据), 切到 'news'.
+// 投资 nav 合并: 'funds' / 'metals' / 'stocks' 合并为 'invest', investPrimary signal 驱动主级子 tab.
+// 旧 key 'ithome' / 'wechat-hot' / 'funds' / 'metals' / 'stocks' 仍接受 (兼容落盘数据),
+// 切到 'news' / 'invest'.
 export const activeNav = signal("home");
 export const navCollapsed = signal(false);
+
+// 投资 nav 主级子 tab: 'funds' | 'metals' | 'stocks'.
+// ponytail: 用 signal 而非 useState —— Layout/Header/Content 三处都要订阅, signal 单一真相.
+export const investPrimary = signal("funds");
+export const INVEST_MODULES = ["funds", "metals", "stocks"];
 
 const NAV_KEYS = new Set([
   "home",            // P-N: Home 首屏 (grid)
   "news",
   "worldcup",
-  "funds",
-  "metals",
-  "stocks",
+  "invest",          // 投资 nav 合并 (funds + metals + stocks)
   "ai-usage",
   "versions",
 ]);
 
-// ponytail: 兼容旧落盘 — 旧数据可能含 'ithome' / 'wechat-hot', 收到 setActiveNav 时归一到 'news'.
+// ponytail: 兼容旧落盘 — 旧数据可能含 'ithome' / 'wechat-hot' / 'funds' / 'metals' / 'stocks',
+// 收到 setActiveNav 时归一到 'news' 或 'invest'.
 const LEGACY_NAV_ALIAS = {
   ithome: "news",
   "wechat-hot": "news",
+  funds: "invest",
+  metals: "invest",
+  stocks: "invest",
 };
 
 // Phase I3: 数组版 (供 sidenav-prefs 持久化 order 用)
-// 7 个顶级 panel (合并 IT 新闻 + 微博热搜 → 'news' 后从 8 减到 7).
+// 6 个顶级 panel (合并 IT 新闻 + 微博热搜 → 'news' 后从 8 减到 7, 再合并 funds/metals/stocks → 'invest' 后减到 6).
 export const NAV_KEYS_LIST = [
   "news",
   "worldcup",
-  "funds",
-  "metals",
-  "stocks",
+  "invest",
   "ai-usage",
   "versions",
 ];
 
 // P-N: HomeGrid 落点白名单 — "home" 是显示态, 不落盘.
-// 跟 NAV_KEYS 的区别: NAV_KEYS 是 activeNav 全部合法值, 这里只挑出可持久化的 7 顶级 nav.
+// 跟 NAV_KEYS 的区别: NAV_KEYS 是 activeNav 全部合法值, 这里只挑出可持久化的 6 顶级 nav.
 export const PERSISTABLE_NAV_KEYS = new Set([
-  "news", "worldcup", "funds",
-  "metals", "stocks", "ai-usage", "versions",
+  "news", "worldcup", "invest", "ai-usage", "versions",
 ]);
 /**
  * Phase I3: 计算"实际可见"nav 列表
@@ -96,11 +102,11 @@ export function effectiveVisibleItems(prefs) {
 
 // 跟 src/renderer/components/SideNav.jsx 的 NAV_TO_PREFS_SEGMENT 保持一致.
 // nav key → prefs segment key. 不在 map 里的 nav 始终可见.
+// 投资 nav 合并: metals 段不再控制 nav 可见性 —— 投资固定可见.
 const NAV_TO_PREFS_SEGMENT = {
   versions: "updates",
   "ai-usage": "ai_usage",
   worldcup: "worldcup",
-  metals: "metals",
 };
 
 function isNavVisible(key, prefs) {
@@ -139,14 +145,16 @@ export function installNavWatch() {
 }
 
 export function setActiveNav(key) {
-  // ponytail: 兼容旧 key — 旧落盘 / 命令行可能仍传 'ithome' 或 'wechat-hot',
-  // 在白名单校验之前归一到 'news', 让旧调用点不报错 (boot lastActiveNav 路径尤其常见).
+  // ponytail: 兼容旧 key — 旧落盘 / 命令行可能仍传 'ithome' 或 'wechat-hot' / 'funds' / 'metals' / 'stocks',
+  // 在白名单校验之前归一到 'news' 或 'invest', 让旧调用点不报错 (boot lastActiveNav 路径尤其常见).
   const aliased = LEGACY_NAV_ALIAS[key] || key;
   if (!NAV_KEYS.has(aliased)) return;
   const target = aliased;
   const prev = activeNav.value;
   activeNav.value = target;
-  if (target === "funds" && prev !== "funds") {
+  // ponytail: 投资 nav 合并后, 切到 'invest' 等价于原切 'funds' 的语义
+  // (recent 模块依赖 trackFundView 记录最近查看基金时间).
+  if (target === "invest" && prev !== "invest") {
     trackFundView();
     clearFundNavBadge();
   }
@@ -159,7 +167,7 @@ export function setActiveNav(key) {
     clearIthomeUnreadBadge();
     clearWechatHotUnreadBadge();
   }
-  // P-N HomeGrid 落点: 仅持久化 7 顶级 nav, "home" 不写盘.
+  // P-N HomeGrid 落点: 仅持久化 6 顶级 nav, "home" 不写盘.
   // ponytail: 同步路径做过白名单过滤, home 是显示态, 不写盘.
   // 写盘失败仅 console.warn, 不阻断 UI.
   if (target !== "home" && PERSISTABLE_NAV_KEYS.has(target)) {
@@ -167,6 +175,18 @@ export function setActiveNav(key) {
       api.saveLastActiveNav(target).catch(() => { /* noop */ });
     }
   }
+}
+
+// ponytail: 投资 nav 主级子 tab 切换 — 仅接受 INVEST_MODULES 内的值, 未知 key 忽略.
+export function setInvestPrimary(mod) {
+  if (INVEST_MODULES.includes(mod)) investPrimary.value = mod;
+}
+
+// ponytail: 跳到投资 nav 并设主级子 tab. 默认 'funds' (从 LEGACY_NAV_ALIAS 落到 invest 的入口,
+// 用户没指定子模块时按习惯先看基金).
+export function goInvest(module) {
+  setInvestPrimary(module || "funds");
+  setActiveNav("invest");
 }
 
 export function toggleNavCollapsed() {
