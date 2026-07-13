@@ -20,6 +20,13 @@ import {
 import { METALS, getMetalById } from "../../metals/metal-config.js";
 import { calcChange } from "../../metals/metal-calc.js";
 import { ModalShell } from "../components/ModalShell.jsx";
+import { api } from "../api.js";
+import {
+  isMetalPinned,
+  addWatchlistItem,
+  removeWatchlistItem,
+} from "../watchlist/watchlist-store.js";
+import { AddToCompareButton } from "../stocks/AddToCompareButton.jsx";
 
 const GRAM_PER_OZ = 31.1035;
 
@@ -242,6 +249,24 @@ export function MetalDetail({ metalId, onClose }) {
   const fxMissing = quote && quote.currency !== "CNY" && fx == null;
   const proxyLabel = metal.proxyLabel || (metal.currency === "CNY" ? "国内现货" : "国际现货");
 
+  // ponytail 2026-07-13 投资 nav 合并 — 操作行: 加入自选 + 加入对比.
+  //   自选 toggle (用现有 watchlist-store, kind=metal)
+  //   对比池走 metal.compareCode (Task 9 映射到场内 ETF/LOF ticker)
+  const pinned = isMetalPinned(metal.id);
+  const onPinToggle = () => {
+    if (pinned) removeWatchlistItem({ type: "metal", ref: metal.id });
+    else addWatchlistItem({ type: "metal", ref: metal.id });
+  };
+  const compareEntry = metal.compareCode
+    ? {
+        kind: "metal",
+        code: metal.compareCode,
+        name: metal.compareName || metal.name,
+        price: refCNY ?? null,
+        changePct: quote ? changePct : null,
+      }
+    : null;
+
   return (
     <ModalShell
       open
@@ -260,6 +285,25 @@ export function MetalDetail({ metalId, onClose }) {
       </div>
 
       <div class="metals-detail-modal-body">
+        {/* 操作行 (2026-07-13 投资 nav 合并): 自选 + 加入对比池 */}
+        <div class="metals-detail-actions">
+          <button
+            type="button"
+            class={`metals-detail-pin${pinned ? " is-on" : ""}`}
+            onClick={onPinToggle}
+            aria-pressed={pinned}
+            title={pinned ? "已在自选, 点击移除" : "加入自选"}
+          >
+            <span class="metals-detail-pin-mark" aria-hidden="true">{pinned ? "★" : "☆"}</span>
+            <span>{pinned ? "已自选" : "加入自选"}</span>
+          </button>
+          {compareEntry ? (
+            <AddToCompareButton entry={compareEntry} variant="card" api={api} />
+          ) : (
+            <span class="metals-detail-nocmp" title="无对应场内 ETF">不可比</span>
+          )}
+        </div>
+
         {/* 现价 + 涨跌 */}
         <div class="metals-detail-quote">
           <div class="metals-detail-quote-left">
