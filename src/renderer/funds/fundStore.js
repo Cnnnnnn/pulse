@@ -162,6 +162,22 @@ export const selectedMonthProfit = computed(() =>
   monthProfit(dailySnapshots.value || [], selectedHistoryMonth.value),
 );
 
+// ── 2026-07-13 投资 nav 合并: listed 判定 (N5) ──
+// ponytail: holding 模型无 `listed` 字段 (历史负债, 改不动). 用 6 位代码前缀白名单兜底.
+//   沪深 ETF/LOF = 51/56/58 (沪) + 15/16/18 (深) 开头.
+//   场外开放式 = 0/1 开头但不在上述区间 (000xxx/001xxx/110xxx).
+//   新增场内代码段需更新 LISTED_PREFIXES.
+const LISTED_PREFIXES = ["51", "56", "58", "15", "16", "18"];
+
+/**
+ * @param {unknown} code — 6 位字符串基金代码
+ * @returns {boolean} true = 场内 ETF/LOF (可入对比池)
+ */
+export function isListedFundCode(code) {
+  if (typeof code !== "string" || code.length !== 6) return false;
+  return LISTED_PREFIXES.some((p) => code.startsWith(p));
+}
+
 // ── mutations (renderer-side, 不走 IPC) ──
 
 export function setActiveCategory(id) {

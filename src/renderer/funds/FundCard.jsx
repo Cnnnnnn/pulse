@@ -8,12 +8,13 @@
  */
 
 import { useState } from 'preact/hooks';
-import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund } from './fundStore.js';
+import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund, isListedFundCode } from './fundStore.js';
 import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.js';
 import { api } from '../api.js';
 import { openConfirm } from '../confirmStore.js';
 import { taggedLog } from '../log.js';
 import { FundCardSparkline } from './FundCardSparkline.jsx';
+import { AddToCompareButton } from '../stocks/AddToCompareButton.jsx';
 import { fmtCurrency, fmtPct, fmtNum } from '../../funds/format.js';
 
 const log = taggedLog("[funds]");
@@ -69,6 +70,19 @@ export function FundCard({ row }) {
     if (pinned) removeWatchlistItem({ type: 'fund', ref: holding.code });
     else addWatchlistItem({ type: 'fund', ref: holding.code });
   };
+
+  // ponytail 2026-07-13 投资 nav 合并 (N5): 仅 listed 基金可入对比池.
+  //   场外开放式 (000xxx 等) 禁用 + tooltip, 避免点击后无场内 ETF 可映射.
+  const listed = isListedFundCode(holding.code);
+  const compareEntry = listed
+    ? {
+        kind: 'fund',
+        code: holding.code,
+        name: holding.name,
+        marketValue: metrics && metrics.marketValue,
+        profitPct: metrics && metrics.profitPct,
+      }
+    : null;
 
   async function handleBackfill() {
     if (!holding.code) return;
@@ -129,6 +143,20 @@ export function FundCard({ row }) {
           >
             删除
           </button>
+          {/* ponytail 2026-07-13: 加入对比池 — 仅 listed (场内 ETF/LOF) 启用 */}
+          {listed && compareEntry ? (
+            <AddToCompareButton entry={compareEntry} variant="row" api={api} />
+          ) : (
+            <button
+              type="button"
+              class="fund-card-action-btn fund-card-action-btn--disabled"
+              disabled
+              title="场外开放式基金无场内可比标的"
+              aria-label="场外开放式基金无场内可比标的"
+            >
+              对比
+            </button>
+          )}
         </span>
       </div>
 
