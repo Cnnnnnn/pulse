@@ -99,8 +99,8 @@ async function handleDetectApp(appCfg, deps) {
     http,
     logger,
     incremental: deps.incremental || null,
+    forceRefresh: !!deps.forceRefresh,
   });
-
   if (chainResult.trace.length) {
     for (const t of chainResult.trace) {
       const meta = { app: name, det: t.det, ms: t.ms };

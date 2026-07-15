@@ -277,3 +277,54 @@ describe('AppInfo last-opened tier color (Phase 30)', () => {
     expect(el.classList.contains('tier-hot')).toBe(true);
   });
 });
+
+describe('AppInfo enrich_fallback 副标题 (#3 权威源上次成功时间透出)', () => {
+  it('enrich_fallback 且有权威源历史成功时间 → 追加 "权威源上次成功 X 前"', () => {
+    const authTs = Date.now() - 2 * 60 * 60 * 1000; // 2 小时前
+    const { container } = render(
+      <AppInfo
+        result={makeResult({
+          note: 'enrich_fallback',
+          source: 'html_changelog',
+          authoritative_last_success_at: authTs,
+          changelog: '',
+        })}
+      />
+    );
+    const el = container.querySelector('.app-subtitle');
+    expect(el).toBeTruthy();
+    expect(el.textContent).toContain('更新源异常');
+    expect(el.textContent).toContain('版本仅供参考');
+    expect(el.textContent).toContain('权威源上次成功 2 小时前');
+  });
+
+  it('enrich_fallback 但无历史成功时间 (字段缺失) → 不追加时间后缀', () => {
+    const { container } = render(
+      <AppInfo
+        result={makeResult({
+          note: 'enrich_fallback',
+          source: 'html_changelog',
+          changelog: '',
+        })}
+      />
+    );
+    const el = container.querySelector('.app-subtitle');
+    expect(el.textContent).toContain('更新源异常');
+    expect(el.textContent).not.toContain('权威源上次成功');
+  });
+
+  it('enrich_fallback 时间戳为 0 → 不追加时间后缀 (0 无意义)', () => {
+    const { container } = render(
+      <AppInfo
+        result={makeResult({
+          note: 'enrich_fallback',
+          source: 'html_changelog',
+          authoritative_last_success_at: 0,
+          changelog: '',
+        })}
+      />
+    );
+    const el = container.querySelector('.app-subtitle');
+    expect(el.textContent).not.toContain('权威源上次成功');
+  });
+});

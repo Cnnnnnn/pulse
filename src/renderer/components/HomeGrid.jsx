@@ -12,9 +12,9 @@
  *  - v6 (2026-07-13): funds + metals + stocks 合并成 1 个 'invest' tile, 5 个 tile.
  *      'invest' tile 副标题按 investPrimary 切, 优先基金今日盈亏, 降级金属价, 兜底 "—".
  *
- * 6 个 tile 顺序受 prefs.order 控制; ⌘1-6 按用户视角的"前 6 个"对应
+ * 5 个 tile 顺序受 prefs.order 控制; ⌘1-5 按用户视角的"前 5 个"对应
  * (favorites 优先 + 余下按 prefs.order).
- * 启动期 assert: PERSISTABLE_NAV_KEYS.size === 6 防顺序漂移.
+ * 启动期 assert: PERSISTABLE_NAV_KEYS.size === 5 防顺序漂移.
  */
 import { useEffect, useRef, useState } from "preact/hooks";
 import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
@@ -22,7 +22,6 @@ import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/sto
 import { wechatHotUnreadBadge, wechatHotItems, wechatHotLastFetched } from "../wechat-hot/store.js";
 import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.js";
 import { aiUsageNavBadge, aiUsageSnapshot, aiUsageActiveProvider } from "../store/ai-usage-store.js";
-import { newCarReleases, newCarNavBadge } from "../store/newcar-store.js";
 import { worldcupMatches } from "../worldcup/store.js";
 import { matchKickoffUtcMs } from "../worldcup/match-utils.js";
 import { quoteCache, fxCache } from "../metals/metalStore.js";
@@ -94,16 +93,6 @@ function TileIcon({ kind }) {
           <path {...c} d="M20 4v4h-4" />
         </svg>
       );
-    case "newcar":
-      // 2026-07-13: 新车发布 — 简笔汽车 (车身 + 双轮).
-      return (
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-          <path {...c} d="M3 13l2-5h14l2 5" />
-          <path {...c} d="M3 13h18v4H3z" />
-          <circle {...c} cx="7.5" cy="17.5" r="1.4" />
-          <circle {...c} cx="16.5" cy="17.5" r="1.4" />
-        </svg>
-      );
     default:
       return null;
   }
@@ -112,13 +101,11 @@ function TileIcon({ kind }) {
 // ponytail: HOME_TILES 现在作为 "tile 元数据 lookup" — 渲染顺序由
 // prefs.order + favorites 决定 (computeOrderedTiles).
 // v6 (2026-07-13): funds + metals + stocks 合并成单 'invest' tile, 5 个 tile.
-// 2026-07-13 + newcar: 加新车发布 tile, 6 个 tile.
 const HOME_TILES = [
   { key: 'news',      title: '新闻',     subtitle: 'IT 资讯 + 微博热搜',         accent: 'blue'   },
   { key: 'worldcup',  title: '世界杯',   subtitle: '2026 世界杯赛程',            accent: 'green'  },
   { key: 'invest',    title: '投资',     subtitle: '基金 + 贵金属 + 选股',       accent: 'orange' },
   { key: 'ai-usage',  title: 'AI 用量',  subtitle: 'Minimax coding plan 配额',  accent: 'pink'   },
-  { key: 'newcar',    title: '新车发布', subtitle: '2026 上市 / 预售 / 首发',   accent: 'red'    },
   { key: 'versions',  title: '版本检查', subtitle: 'App 版本监控',              accent: 'indigo' },
 ];
 const TILE_BY_KEY = Object.fromEntries(HOME_TILES.map((t) => [t.key, t]));
@@ -161,7 +148,6 @@ function getBadge(key) {
       return (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0) || null;
     case 'invest':   return fundUnreadBadge.value || null;
     case 'ai-usage': return aiUsageNavBadge.value || null;
-    case 'newcar':   return newCarNavBadge.value || null;
     default:         return null;
   }
 }
@@ -263,22 +249,6 @@ function getStatus(key) {
       if (total === 0 && appsCount === 0) return '未配置应用';
       return `${updatable}/${total} 可更新`;
     }
-    case 'newcar': {
-      // 2026-07-13: 新车发布 tile status — 离线内置日历驱动.
-      //   有即将发布 → "下一场 MM/DD 品牌"; 全部已过期 → "全年 N 款"; 空 → "—".
-      const releases = newCarReleases.value;
-      if (!releases || releases.length === 0) return '—';
-      const today = todayShanghaiDateKey();
-      const upcoming = releases
-        .filter((r) => r && r.releaseDate && r.releaseDate >= today)
-        .sort((a, b) => (a.releaseDate < b.releaseDate ? -1 : 1));
-      if (upcoming.length > 0) {
-        const first = upcoming[0];
-        const md = (first.releaseDate || '').slice(5).replace('-', '/');
-        return `下一场 ${md} ${first.brand || ''}`.trim();
-      }
-      return `全年 ${releases.length} 款`;
-    }
     default:
       return null;
   }
@@ -347,7 +317,6 @@ export function HomeGrid() {
   void wechatHotUnreadBadge.value;
   void fundUnreadBadge.value;
   void aiUsageNavBadge.value;
-  void newCarReleases.value;
   const newsBadge = (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0);
   const badges = {
     news: newsBadge,
@@ -368,7 +337,7 @@ export function HomeGrid() {
   }, []);
   const lastActiveTile = lastActive ? TILE_BY_KEY[lastActive] : null;
 
-  // A3: 全局键盘监听. v6: ⌘1-6 直接触发 (6 tile). 上下左右在 grid 里移动焦点.
+  // A3: 全局键盘监听. v6: ⌘1-5 直接触发 (5 tile). 上下左右在 grid 里移动焦点.
   const orderedTiles = computeOrderedTiles(prefs);
   useEffect(() => {
     function onKey(e) {
@@ -472,7 +441,7 @@ export function HomeGrid() {
         <div class="home-hero-meta" aria-hidden="true">
           <span class="home-hero-dot" />
           <span>
-            {orderedTiles.length} 个模块 · ⌘1-6
+            {orderedTiles.length} 个模块 · ⌘1-5
             {favCount > 0 && <span class="home-hero-fav">· ★ {favCount}</span>}
           </span>
         </div>
@@ -541,8 +510,8 @@ export function HomeGrid() {
   );
 }
 
-// ponytail: tile 顺序受 HOME_TILES 控制, 跟 PERSISTABLE_NAV_KEYS 一致 (2026-07-13 共 6 个).
-// 这条 assert 触发编译期 (import time) 失败, 顺序漂移就崩 — 防 ⌘1-6 错位.
+// ponytail: tile 顺序受 HOME_TILES 控制, 跟 PERSISTABLE_NAV_KEYS 一致.
+// 这条 assert 触发编译期 (import time) 失败, 顺序漂移就崩 — 防 ⌘1-5 错位.
 if (HOME_TILES.length !== PERSISTABLE_NAV_KEYS.size) {
   throw new Error(`HOME_TILES (${HOME_TILES.length}) != PERSISTABLE_NAV_KEYS (${PERSISTABLE_NAV_KEYS.size})`);
 }

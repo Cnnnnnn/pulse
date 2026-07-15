@@ -138,8 +138,6 @@ export function createApi(overrides = {}) {
     // 微博热搜 (v2.24.1, 原微信热搜 v2.24.0)
     wechatHotLoad: pick(overrides, "wechatHotLoad"),
     wechatHotRefresh: pick(overrides, "wechatHotRefresh"),
-    // 新车发布 (v2.x): 手动刷新远程真源
-    newcarRefresh: pick(overrides, "newcarRefresh"),
     onWechatHotUpdated: pick(overrides, "onWechatHotUpdated"),
     // v2.13 AI 用量 (Minimax coding plan)
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),

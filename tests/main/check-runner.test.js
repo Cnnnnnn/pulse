@@ -307,3 +307,48 @@ describe("runCheck incremental payload (C5)", () => {
     expect(seen[0].incremental).toEqual({ appsLastChecked: {}, recentDays: 7 });
   });
 });
+
+// ── 手动刷新绕过熔断 (forceRefresh 透传) ─────────────────
+
+describe("runCheck forceRefresh payload (manual bypass)", () => {
+  it("silent=false (manual) → enqueue payload.forceRefresh=true", async () => {
+    const seen = [];
+    const pool = {
+      enqueue: (task) => {
+        if (task.type === "detect-app") seen.push(task.payload.forceRefresh);
+        return Promise.resolve({
+          name: task.payload.appCfg.name,
+          status: "up_to_date",
+          has_update: false,
+        });
+      },
+    };
+    const results = [makeResult("Cursor")];
+    const deps = makeDeps({ results, state: { apps: {} }, poolOverride: pool });
+
+    await runCheck(deps, { silent: false });
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(true);
+  });
+
+  it("silent=true (auto) → enqueue payload.forceRefresh=false", async () => {
+    const seen = [];
+    const pool = {
+      enqueue: (task) => {
+        if (task.type === "detect-app") seen.push(task.payload.forceRefresh);
+        return Promise.resolve({
+          name: task.payload.appCfg.name,
+          status: "up_to_date",
+          has_update: false,
+        });
+      },
+    };
+    const results = [makeResult("Cursor")];
+    const deps = makeDeps({ results, state: { apps: {} }, poolOverride: pool });
+
+    await runCheck(deps, { silent: true });
+
+    expect(seen[0]).toBe(false);
+  });
+});

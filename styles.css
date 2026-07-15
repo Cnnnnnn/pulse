@@ -156,6 +156,16 @@ svg:not([role="img"]) {
   --fund-trend: var(--accent-primary);
   --fund-trend-area: oklch(60% 0.16 255 / 0.16); /* 主色透明填充 */
   --fund-grid-line: oklch(60% 0.02 270 / 0.12);
+
+  /* ── 基金蓝绿作用域 (2026-07-14, 计划 §4.1)
+     仅在 fund 模块作用域内使用, 不外溢全局.
+     深浅两套: dark 提亮 L 保持 hue. OKLCH, 零裸 hex. */
+  --fund-brand:       oklch(58% 0.085 195);   /* 主色 teal */
+  --fund-brand-2:     oklch(52% 0.100 210);   /* 渐变次色 偏蓝 */
+  --fund-accent:      oklch(55% 0.120 250);   /* 强调蓝 (链接/CTA) */
+  --fund-brand-soft:  oklch(95.5% 0.028 195); /* 浅底徽章/选中态 */
+  --fund-line:        oklch(86% 0.05 195);    /* 描边 */
+  --fund-ink:         oklch(45% 0.090 215);   /* 文字 */
 }
 
 /* 深色令牌: 由 theme-manager.js 写入 <html data-theme="dark"> 驱动 (支持手动切换) */
@@ -168,6 +178,14 @@ svg:not([role="img"]) {
   --cat-other:  oklch(72% 0.02 270);
   --fund-trend-area: oklch(70% 0.16 255 / 0.22);
   --fund-grid-line: oklch(80% 0.02 270 / 0.16);
+
+  /* ── 基金蓝绿作用域 dark 覆盖 (2026-07-14, 计划 §4.1) */
+  --fund-brand:       oklch(72% 0.10 195);
+  --fund-brand-2:     oklch(68% 0.11 210);
+  --fund-accent:      oklch(70% 0.12 250);
+  --fund-brand-soft:  oklch(30% 0.045 195);
+  --fund-line:        oklch(40% 0.06 195);
+  --fund-ink:         oklch(64% 0.10 215);
     --bg-primary: rgba(30, 30, 30, 0.88);
     --bg-secondary: rgba(40, 40, 40, 0.9);
     --bg-elevated: var(--gray-700);
@@ -560,6 +578,19 @@ body.platform-win .window-control-btn--close:hover {
   max-width: 100%;
 }
 
+/* 更新日志归属版本滞后于展示版本时的内联标注 (e.g. 展示 5.2.6, 日志是 5.2.3) */
+.app-changelog-lag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 /* Phase 29: last-opened sub-line. 副标题下, 浅色, 不抢眼 */
 .app-last-opened {
   font-size: var(--font-size-xs);
@@ -846,6 +877,19 @@ body.platform-win .window-control-btn--close:hover {
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* 同一面板内: 更新日志归属版本落后于展示版本时的醒目提示 */
+.changelog-lag-badge {
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--accent-amber-700);
+  background: color-mix(in srgb, var(--accent-amber) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-amber) 32%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 .changelog-history {
@@ -5849,6 +5893,318 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   border-top: 1px solid var(--border);
 }
 
+/* ── 基金管理 AddFundModal ── (2026-07-14 补完)
+   此前只有 .fund-modal-footer 有样式, 其他 class 都是裸 DOM,
+   导致弹窗布局错乱 (没有 overlay/card) + 完全无 UI.
+   这里按 modal-backdrop/modal-card 的设计语言补全. */
+.fund-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-index-modal);
+  animation: fadeIn 0.15s ease;
+  padding: 40px 20px 20px;
+}
+:root[data-theme="dark"] .fund-modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.fund-modal {
+  position: relative;
+  z-index: var(--z-index-modal-card);
+  background: var(--bg-modal);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+  width: 480px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleIn 0.18s ease-out;
+}
+
+.fund-modal-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.fund-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.fund-modal-title {
+  font-size: var(--font-size-title);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fund-modal-close {
+  background: transparent;
+  border: 0;
+  font-size: var(--font-size-3xl);
+  line-height: 1;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+.fund-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.fund-modal-close:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.fund-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fund-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  position: relative;
+}
+
+.fund-modal-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.fund-modal-label-optional {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+}
+
+.fund-modal-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-3);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.fund-modal-input:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 20%, transparent);
+}
+.fund-modal-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--bg-secondary);
+}
+.fund-modal-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.fund-modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.fund-modal-error {
+  font-size: var(--font-size-sm);
+  color: var(--accent-negative, #d73a49);
+  background: color-mix(in oklch, #d73a49 8%, transparent);
+  border: 1px solid color-mix(in oklch, #d73a49 30%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+
+.fund-modal-resolved {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1h) var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.fund-modal-computed {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+.fund-modal-computed b {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.fund-modal-computed-tag {
+  display: inline-block;
+  margin-left: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.fund-modal-computed-hint {
+  color: var(--text-tertiary);
+}
+
+.fund-modal-field-with-dropdown {
+  /* 让 dropdown 绝对定位时相对 anchor 的 field */
+}
+
+/* ── 搜索下拉 ── */
+.fund-search-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: calc(var(--z-index-modal-card) + 2);
+  background: var(--bg-modal);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  max-height: 280px;
+  overflow-y: auto;
+}
+.fund-search-dropdown-loading,
+.fund-search-dropdown-err,
+.fund-search-dropdown-empty {
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+.fund-search-dropdown-err {
+  color: var(--accent-negative, #d73a49);
+}
+.fund-search-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+}
+.fund-search-dropdown-item {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+.fund-search-dropdown-item:hover,
+.fund-search-dropdown-item:focus-visible {
+  background: var(--bg-hover);
+}
+.fund-search-item-code {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.fund-search-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fund-search-item-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.fund-search-item-ftype {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+.fund-mode-toggle {
+  width: 100%;
+}
+.fund-mode-toggle-btn {
+  flex: 1;
+}
+
+/* ── 录入方式 segmented (金额 / 份额) ── (2026-07-14)
+   复用 TabList variant='config' 的 class ai-config-tabs/ai-config-tab
+   (那个 variant 原本给 AI 配置用, 这里局部给 fund modal 用, 不动全局样式).
+   fund-mode-toggle 提供 scoped 容器, 优先匹配这里. */
+.fund-modal .ai-config-tabs.fund-mode-toggle {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.fund-modal .ai-config-tab.fund-mode-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1h);
+  flex: 1;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.fund-modal .ai-config-tab.fund-mode-toggle-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.fund-modal .ai-config-tab.fund-mode-toggle-btn.active {
+  background: var(--bg-modal);
+  color: var(--accent-primary);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+}
+.fund-modal .ai-config-tab.fund-mode-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .fund-modal-overlay,
+  .fund-modal {
+    animation: none !important;
+  }
+}
+@media (max-width: 480px) {
+  .fund-modal-row {
+    grid-template-columns: 1fr;
+  }
+  .fund-modal {
+    width: 100%;
+    max-width: calc(100vw - 24px);
+  }
+}
+
 .fund-pnl-history {
   display: flex;
   flex-direction: column;
@@ -6064,6 +6420,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .versions-subtab:focus-visible, /* P12 */
 .settings-subtab:focus-visible, /* P15 */
 .fund-btn:focus-visible,
+.fund-btn-primary:focus-visible,
+.fund-btn-ghost:focus-visible,
 .provider-card:focus-visible,
 .worldcup-team-card:focus-visible,
 .match-card-main:focus-visible,
@@ -13151,6 +13509,27 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-weight: 600;
 }
 /* primary action — accent fill (mirrors global .btn-primary) */
+.fund-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1h);
+  min-height: 32px;
+  padding: 0 14px;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  line-height: 1;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fund-btn:hover { background: var(--bg-hover); border-color: var(--fund-line); }
+.fund-btn:active { transform: scale(0.98); }
+.fund-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
 .fund-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -13168,6 +13547,59 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 .fund-btn-primary:hover { filter: brightness(1.06); }
 .fund-btn-primary:active { transform: scale(0.97); }
+.fund-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ghost — transparent bg, hover 时浮起; 用于同步数据/重置/通知等次级按钮 */
+.fund-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1h);
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 1;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fund-btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.fund-btn-ghost:active { transform: scale(0.98); }
+.fund-btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* 2026-07-15: danger — 危险按钮, 红色描边/底, 用于删除持仓
+   ponytail: 沿用 brand/danger 的 oklch 色 + color-mix, 不引入新令牌 */
+.fund-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1h);
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 1;
+  background: transparent;
+  color: oklch(0.5 0.18 25);
+  border: 1px solid color-mix(in oklch, oklch(0.65 0.18 25) 35%, transparent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.fund-btn-danger:hover {
+  background: color-mix(in oklch, oklch(0.65 0.18 25) 14%, transparent);
+  border-color: color-mix(in oklch, oklch(0.65 0.18 25) 60%, transparent);
+}
+.fund-btn-danger:active { transform: scale(0.98); }
+.fund-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 /* search row */
 .fund-hero-search {
@@ -13336,6 +13768,44 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   min-width: 0;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fund-donut-legend li {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.fund-donut-legend li:hover { background: var(--bg-section); }
+/* 2026-07-15: hover 高亮 — 未选中的扇区/legend 半透明 */
+.fund-donut-dim { opacity: 0.25; }
+.fund-donut-svg path:focus-visible,
+.fund-donut-svg circle:focus-visible {
+  outline: 2px solid var(--fund-brand);
+  outline-offset: 2px;
+}
+/* 2026-07-15: 占比最高项加底色 + 加粗 — "看一眼就知道大头在哪里"
+   ponytail: 用 mix 而非硬编码, 兼容深/浅主题 */
+.fund-donut-legend-top {
+  background: color-mix(in oklch, var(--fund-brand) 10%, transparent);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.fund-donut-legend-top .fund-donut-dot {
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--fund-brand) 35%, transparent);
+}
+.fund-donut-label-text { min-width: 0; }
+.fund-donut-label-pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .fund-donut-dot {
@@ -13920,560 +14390,1463 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 /* ───────────────────────────────────────────────────────────
-   New Car Release (新车发布) — 仅引用现有设计令牌, 无裸 hex
+   Fund Dashboard / List / Detail / Trade (2026-07-14, 计划 §2)
+   作用域蓝绿 (--fund-*), 与现有 fund-* 命名一致. 引用令牌, 零裸 hex.
    ─────────────────────────────────────────────────────────── */
-.newcar-page {
+
+/* Layout wrapper for any fund page */
+/* ── 净值拉取状态 banner (2026-07-14) ──
+   dashboard 顶部 banner: 加载中或失败时显示, 给用户即时反馈.
+   失败时显式提供「重试」按钮, 不再让人猜. */
+.fund-fetch-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+.fund-fetch-banner.error {
+  background: color-mix(in oklch, var(--accent-orange, #ff9500) 12%, transparent);
+  border-color: color-mix(in oklch, var(--accent-orange, #ff9500) 35%, transparent);
+}
+.fund-fetch-banner-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+.fund-fetch-banner-reason {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fund-fetch-banner .fund-fetch-retry {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-sm);
+}
+.fund-fetch-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid color-mix(in oklch, var(--accent-primary) 25%, transparent);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: fund-fetch-spin 0.8s linear infinite;
+}
+/* 2026-07-15: 行内「加载中」小徽章 — FundDetail 净值序列 sub 文本用
+   ponytail: 比 banner 更轻量, 跟 sub 文字同行, 不抢主内容 */
+.fund-fetch-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--fund-brand) 12%, transparent);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.fund-fetch-tag .fund-fetch-spinner {
+  width: 9px;
+  height: 9px;
+  border-width: 1.5px;
+}
+@keyframes fund-fetch-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fund-fetch-spinner { animation: none; }
+}
+
+/* 2026-07-14: 概览页 head 下方「上次刷新 / 下次」时间线 */
+.fund-refresh-time {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 6px;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--text-tertiary);
+  flex-wrap: wrap;
+}
+.fund-refresh-time-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fund-refresh-time-label { color: var(--text-tertiary); }
+.fund-refresh-time-value {
+  color: var(--fund-ink);
+  font-variant-numeric: tabular-nums;
+}
+.fund-refresh-time-sep { color: var(--text-tertiary); opacity: 0.6; }
+.fund-refresh-time-retry {
+  margin-left: var(--space-2);
+  padding: 2px 10px;
+  min-height: 26px;
+  font-size: var(--font-size-xs, 12px);
+}
+
+.fund-page {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: 18px var(--page-padding) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
-  color: var(--text-primary);
+  padding: var(--space-4) var(--page-padding) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   max-width: 1100px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
 }
 
-/* header */
-.newcar-header {
+.fund-page-head {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.fund-page-head h1 {
+  margin: 0;
+  font-size: var(--font-size-subtitle);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.fund-page-head p {
+  margin: 4px 0 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+.fund-page-head .head-tools {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Card primitive used by dashboard/list/detail/trade */
+.fund-card-flat {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+.fund-card-flat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.fund-card-flat-head h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.fund-card-flat-head .sub {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+/* ── KPI strip (FundDashboard 顶部) ── */
+.fund-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.fund-kpi {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fund-kpi-label {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* 2026-07-15: ⓘ 标记 + 自定义 hover tooltip — 解释 KPI 含义
+   ponytail: 不用 JS, 纯 CSS :hover 触发; tooltip 用 absolute 定位避免影响 grid 布局 */
+.fund-kpi { position: relative; }
+.fund-kpi-info {
+  font-size: 11px;
+  opacity: 0.4;
+  font-weight: 400;
+  transition: opacity 0.15s ease;
+  cursor: help;
+}
+.fund-kpi:hover .fund-kpi-info { opacity: 0.9; }
+.fund-kpi-hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--bg-modal);
+  color: var(--text-primary);
+  border: 1px solid var(--bg-section);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.18);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  white-space: normal;
+  word-wrap: break-word;
+}
+.fund-kpi:hover .fund-kpi-hint,
+.fund-kpi:focus-within .fund-kpi-hint {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.fund-kpi-value {
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  word-break: break-all;
+}
+.fund-kpi-value.positive { color: var(--color-up); }
+.fund-kpi-value.negative { color: var(--color-down); }
+/* 2026-07-14: KPI 主值 magnitude — 与 sub 同步, 让 "今日盈亏 ¥5,000" vs "¥50" 视觉权重不同 */
+.fund-kpi-value.mag-low { opacity: 0.85; }
+.fund-kpi-value.mag-high {
+  font-weight: 700;
+  text-shadow: 0 0 1px color-mix(in oklch, currentColor 35%, transparent);
+}
+.fund-kpi-sub {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.fund-kpi-sub.positive { color: var(--color-up); }
+.fund-kpi-sub.negative { color: var(--color-down); }
+/* 2026-07-14: KPI sub magnitude — 与表格共用语义, 浅中深 3 档 */
+.fund-kpi-sub.mag-low { opacity: 0.85; font-weight: 500; }
+.fund-kpi-sub.mag-mid { font-weight: 600; }
+.fund-kpi-sub.mag-high { font-weight: 700; }
+.fund-kpi-spark {
+  height: 32px;
+  width: 100%;
+  display: block;
+}
+/* 2026-07-14: sparkline 缺数据占位 — 显示 "—", 用户立刻知道是数据未到, 不是渲染坏 */
+.fund-kpi-spark-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  background: var(--bg-section);
+  border-radius: 4px;
+  font-size: var(--font-size-xs, 12px);
+}
+.fund-kpi-spark-empty-text {
+  opacity: 0.6;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 900px) {
+  .fund-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .fund-kpi-strip { grid-template-columns: 1fr; }
+}
+
+/* ── Dashboard: chart rows ── */
+.fund-dash-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: var(--space-3);
+}
+.fund-dash-row-3 {
+  display: grid;
+  /* 2026-07-14: 重排三列比例, 「实时持仓」表格天然比另外两张卡宽, 给它多分.
+     之前 1fr 1fr 1fr 等宽时表格被等宽列挤压, 内部列撑爆卡边界. */
+  grid-template-columns: 1fr 1.7fr 1fr;
+  gap: var(--space-3);
+}
+@media (max-width: 1180px) {
+  /* 中等宽度塌成 2 列: 收益对比 + 实时持仓 一行, 风险概览下一行 */
+  .fund-dash-row-3 {
+    grid-template-columns: 1fr 1.7fr;
+  }
+  .fund-dash-row-3 > .fund-card-flat:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 980px) {
+  .fund-dash-row { grid-template-columns: 1fr; }
+  .fund-dash-row-3 { grid-template-columns: 1fr; }
+}
+
+/* Grid children 显式 min-width:0 — 不加这个 grid item 会拒绝 shrink,
+   内部宽内容 (table / svg) 会撑爆列宽, 把右邻卡片挤出 viewport. */
+.fund-dash-row > .fund-card-flat,
+.fund-dash-row-3 > .fund-card-flat {
+  min-width: 0;
+}
+
+/* Range tab strip (1M/3M/6M/1Y) */
+.fund-range {
+  display: inline-flex;
+  background: var(--bg-section);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+.fund-range button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 28px;
+}
+.fund-range button:hover { color: var(--text-primary); }
+.fund-range button.active {
+  background: var(--bg-card);
+  color: var(--fund-ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Area chart container */
+.fund-area-wrap {
+  position: relative;
+  width: 100%;
+  height: 220px;
+}
+.fund-area-wrap svg { width: 100%; height: 100%; display: block; }
+.fund-area-tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg-modal);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  white-space: nowrap;
+  transform: translate(-50%, -120%);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 2;
+}
+.fund-area-tip.show { opacity: 1; }
+/* 2026-07-15: tooltip 多行布局 — 日期 + 数值, 下方一行日变化 (▲/▼ + 值 + %) */
+.fund-area-tip-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  white-space: nowrap;
+}
+.fund-area-tip-date {
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.fund-area-tip-val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.fund-area-tip-delta {
+  font-size: 10.5px;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.fund-area-tip-delta.up { color: oklch(0.55 0.13 150); }
+.fund-area-tip-delta.down { color: oklch(0.55 0.18 25); }
+.fund-area-tip-delta-pct {
+  margin-left: 4px;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+/* ── Comparison bars (dashboard) ──
+   2026-07-14: 重写布局, 不再用 absolute label.
+   之前 .fund-bars-wrap 一行水平排列 pairs, 每 pair 内两根柱子,
+   label 用 absolute 浮在柱顶居中 — 在窄列下 label 文本会横向重叠.
+   现在每列是一个垂直 flex (track + 数字行 + axis), label 之间不共享坐标. */
+.fund-bars-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-evenly;
+  gap: var(--space-3);
+  padding: 4px 0;
+}
+.fund-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.fund-bar-track {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 160px;
+  width: 100%;
+}
+.fund-bar {
+  width: 18px;
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  position: relative;
+}
+.fund-bar.brand { background: var(--fund-brand); }
+.fund-bar.accent { background: var(--fund-accent); }
+.fund-bar-pct {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.fund-bar-pct .brand { color: var(--fund-brand); }
+.fund-bar-pct .accent { color: var(--fund-accent); }
+/* 2026-07-14: 收益对比数字 — 大幅度加背景色块, 让「本组合涨 8%」一眼从「涨 1%」里跳出来
+   ponytail: bg 用 color-mix, 跟随 brand/accent 主色, 跟主题切换 */
+.fund-bar-pct .mag-mid { font-weight: 600; }
+.fund-bar-pct .mag-high {
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in oklch, currentColor 12%, transparent);
+}
+.fund-bar-pct .mag-low { opacity: 0.7; }
+.fund-bar-axis {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  text-align: center;
+}
+/* 2026-07-15: 比较柱状图「差值徽章」 — 跑赢/跑输沪深 300 多少
+   ponytail: 沿用项目 oklch 调色板 + color-mix, 跟 mag-high/mid 同语言
+   整列 win/loss tint 用 :has 选择器从子元素反向影响 column */
+.fund-bar-col.win .fund-bar-axis {
+  color: oklch(0.55 0.14 150);
+  font-weight: 600;
+}
+.fund-bar-col.loss .fund-bar-axis {
+  color: oklch(0.55 0.18 25);
+  font-weight: 600;
+}
+.fund-bar-diff {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 1px 6px 2px;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  background: var(--bg-section);
+  color: var(--text-secondary);
+}
+.fund-bar-diff-label { font-weight: 600; letter-spacing: 0.04em; }
+.fund-bar-diff-val { font-weight: 700; }
+/* 跑赢沪深 300 — 绿色系; 跑输 — 红色系; 持平 — 中性
+   ponytail: 走 oklch 主色 + color-mix, 跟主题切换; 不用 magnitudeClass 的
+   mag-high/mid/low (那套是按绝对值, 没法区分赢/输) */
+.fund-bar-col.win .fund-bar-diff {
+  background: color-mix(in oklch, oklch(0.72 0.13 150) 22%, var(--bg-modal));
+  color: oklch(0.45 0.13 150);
+}
+.fund-bar-col.loss .fund-bar-diff {
+  background: color-mix(in oklch, oklch(0.65 0.18 25) 22%, var(--bg-modal));
+  color: oklch(0.45 0.18 25);
+}
+.fund-bar-col.even .fund-bar-diff { opacity: 0.7; }
+
+/* ── 数据新鲜度状态条 ── */
+.fund-freshness {
+  position: relative;
+  margin: 0 0 var(--space-3);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--bg-section);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fund-freshness-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: transparent;
+  overflow: hidden;
+}
+.fund-freshness-fill {
+  height: 100%;
+  background: var(--fund-brand);
+  transition: width 1s linear;
+}
+/* 新鲜度三档颜色 — 跟风险三色同语言 */
+.fund-freshness.fresh .fund-freshness-fill { background: oklch(0.72 0.13 150); }
+.fund-freshness.aging .fund-freshness-fill { background: oklch(0.78 0.14 75); }
+.fund-freshness.stale .fund-freshness-fill { background: oklch(0.65 0.18 25); }
+.fund-freshness.unknown .fund-freshness-fill { background: var(--text-tertiary); }
+.fund-freshness.in-flight .fund-freshness-fill {
+  background: linear-gradient(
+    90deg,
+    oklch(0.7 0.13 220) 0%,
+    oklch(0.75 0.12 200) 50%,
+    oklch(0.7 0.13 220) 100%
+  );
+  background-size: 200% 100%;
+  animation: fund-freshness-pulse 1.5s linear infinite;
+}
+@keyframes fund-freshness-pulse {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.fund-freshness-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.fund-freshness-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.fund-freshness-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg-section);
+  color: var(--text-secondary);
+}
+.fund-freshness-tag.fresh {
+  background: color-mix(in oklch, oklch(0.72 0.13 150) 22%, var(--bg-modal));
+  color: oklch(0.4 0.13 150);
+}
+.fund-freshness-tag.aging {
+  background: color-mix(in oklch, oklch(0.78 0.14 75) 26%, var(--bg-modal));
+  color: oklch(0.45 0.14 75);
+}
+.fund-freshness-tag.stale {
+  background: color-mix(in oklch, oklch(0.65 0.18 25) 26%, var(--bg-modal));
+  color: oklch(0.4 0.18 25);
+}
+.fund-freshness-meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.fund-freshness-sep { margin: 0 4px; color: var(--text-tertiary); }
+.fund-freshness-retry {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+}
+.fund-bars-axis {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-top: 6px;
+}
+.fund-bars-legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+}
+.fund-bars-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.fund-bars-legend-swatch.brand { background: var(--fund-brand); }
+.fund-bars-legend-swatch.accent { background: var(--fund-accent); }
+
+/* Risk meters (dashboard + detail) */
+.fund-meter-row {
+  display: grid;
+  grid-template-columns: 1fr 60px;
+  gap: var(--space-2);
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-subtle);
+  position: relative;
+}
+.fund-meter-row:last-child { border-bottom: none; }
+.fund-meter-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* 2026-07-15: ⓘ 提示符 — 与 KPI 卡 hover tooltip 同一模式 */
+.fund-meter-info {
+  font-size: 10.5px;
+  opacity: 0.4;
+  cursor: help;
+  transition: opacity 0.15s ease;
+}
+.fund-meter-row:hover .fund-meter-info { opacity: 0.9; }
+.fund-meter-hint {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-modal);
+  color: var(--text-primary);
+  border: 1px solid var(--bg-section);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.18);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  white-space: normal;
+  word-wrap: break-word;
+}
+.fund-meter-row:hover .fund-meter-hint,
+.fund-meter-row:focus-within .fund-meter-hint {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.fund-meter-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+.fund-meter-track {
+  grid-column: 1 / -1;
+  height: 4px;
+  background: var(--bg-section);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.fund-meter-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--fund-brand);
+  transition: width 0.25s ease;
+}
+.fund-meter-fill.neg { background: var(--color-up); }
+.fund-meter-fill.warn { background: var(--accent-orange); }
+/* 2026-07-15: 风险档三色 — ok/mid/warn 替换单一 brand, 让数字含义"看一眼就懂"
+   ponytail: 沿用项目 oklch + color-mix, 不引入新令牌 */
+.fund-meter-fill.level-ok { background: oklch(0.72 0.13 150); }
+.fund-meter-fill.level-mid { background: oklch(0.78 0.14 75); }
+.fund-meter-fill.level-warn { background: oklch(0.65 0.18 25); }
+.fund-meter-val.level-ok { color: oklch(0.55 0.13 150); }
+.fund-meter-val.level-mid { color: oklch(0.55 0.14 75); }
+.fund-meter-val.level-warn { color: oklch(0.5 0.18 25); }
+.fund-meter-band {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg-section);
+  color: var(--text-secondary);
+  vertical-align: 1px;
+}
+.fund-meter-val.level-ok .fund-meter-band { background: color-mix(in oklch, oklch(0.72 0.13 150) 22%, var(--bg-modal)); color: oklch(0.4 0.13 150); }
+.fund-meter-val.level-mid .fund-meter-band { background: color-mix(in oklch, oklch(0.78 0.14 75) 26%, var(--bg-modal)); color: oklch(0.45 0.14 75); }
+.fund-meter-val.level-warn .fund-meter-band { background: color-mix(in oklch, oklch(0.65 0.18 25) 26%, var(--bg-modal)); color: oklch(0.4 0.18 25); }
+
+/* Dashboard 三列布局里收益对比那张卡特别窄, bars 不要换行也不要溢出 */
+.fund-dash-row-3 .fund-bars-wrap {
+  flex-wrap: wrap;
+}
+/* ── Fund List ── */
+.fund-list-filterbar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.fund-list-filterbar input,
+.fund-list-filterbar select {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  min-height: 36px;
+}
+.fund-list-filterbar input:focus,
+.fund-list-filterbar select:focus {
+  outline: none;
+  border-color: var(--fund-line);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--fund-brand) 22%, transparent);
+}
+.fund-list-filterbar input.grow { flex: 1 1 200px; min-width: 160px; }
+
+/* ── FundList 表格 ── (2026-07-14: 补 width:100% 与空态样式,
+   之前表格内容靠自身宽度收缩, 在卡片里出现大片左侧留白,
+   空状态下整行 tr 没有背景, 跟卡片底色融为一体看着 "塌掉了") */
+.fund-list-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+}
+.fund-list-table th,
+.fund-list-table td {
+  text-align: right;
+  padding: 10px 12px;
+  font-size: var(--font-size-md);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  background: transparent;
+  transition: background 0.12s ease;
+}
+.fund-list-table th:first-child,
+.fund-list-table td:first-child,
+.fund-list-table th:nth-child(2),
+.fund-list-table td:nth-child(2) {
+  text-align: left;
+}
+
+/* 实时持仓 sub-cell: 在当日/累计两格里叠加一行小额副文字 (例如 +0.5%)
+   主显示百分比, 子显示金额; 不要让它的行高撑破单元格 */
+.fund-list-table .sub-cell {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+/* 表格放在 dashboard 三列小卡片里时要更紧凑:
+   (a) th/td padding 8px,
+   (b) table-layout: fixed + nth-child 各列定宽, 给基金名留大头,
+       三列数字 (估值 / 当日 / 累计) 平分, 不会被无 nowrap 撑爆. */
+.fund-dash-row-3 .fund-list-table {
+  table-layout: fixed;
+}
+.fund-dash-row-3 .fund-list-table th,
+.fund-dash-row-3 .fund-list-table td {
+  padding: 8px 8px;
+  font-size: var(--font-size-sm);
+}
+/* 列宽: 基金 40% / 估值 20% / 当日 20% / 累计 20% */
+.fund-dash-row-3 .fund-list-table th:nth-child(1),
+.fund-dash-row-3 .fund-list-table td:nth-child(1) { width: 32%; }
+.fund-dash-row-3 .fund-list-table th:nth-child(2),
+.fund-dash-row-3 .fund-list-table td:nth-child(2) { width: 17%; }
+.fund-dash-row-3 .fund-list-table th:nth-child(3),
+.fund-dash-row-3 .fund-list-table td:nth-child(3) { width: 17%; }
+.fund-dash-row-3 .fund-list-table th:nth-child(4),
+.fund-dash-row-3 .fund-list-table td:nth-child(4) { width: 17%; }
+.fund-dash-row-3 .fund-list-table th:nth-child(5),
+.fund-dash-row-3 .fund-list-table td:nth-child(5) { width: 17%; }
+/* 2026-07-14: 行内 sparkline 单元格 — 让 svg 居中且能缩到 0, 防 nowrap 撑破 */
+.fund-list-table .fund-row-spark {
+  padding: 4px 6px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.fund-list-table .fund-row-spark .fund-kpi-spark {
+  display: inline-block;
+  width: 64px;
+  height: 22px;
+  vertical-align: middle;
+}
+.fund-list-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  color: var(--text-tertiary);
+  font-weight: 700;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  user-select: none;
+  z-index: 1;
+}
+.fund-list-table thead th.sorted { color: var(--fund-ink); }
+.fund-list-table thead th .sort-caret {
+  margin-left: 4px;
+  color: var(--fund-brand);
+}
+.fund-list-table tbody tr {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.fund-list-table tbody tr:hover { background: var(--bg-hover); }
+/* 2026-07-14: 行级 tint — R5 高风险 / 深度亏损 (-30%) 触发, 整行浅红底
+   ponytail: 用 data-attr 选择器, 跟主题 + 暗色模式自动适配; 叠加时 R5 描边优先 */
+.fund-list-table tbody tr[data-risk-row="R5"] {
+  background: color-mix(in oklch, var(--color-up) 8%, transparent);
+}
+.fund-list-table tbody tr[data-risk-row="R5"]:hover {
+  background: color-mix(in oklch, var(--color-up) 14%, var(--bg-hover));
+}
+.fund-list-table tbody tr[data-deep-loss="1"] {
+  background: color-mix(in oklch, var(--color-down) 10%, transparent);
+}
+.fund-list-table tbody tr[data-deep-loss="1"]:hover {
+  background: color-mix(in oklch, var(--color-down) 16%, var(--bg-hover));
+}
+/* R5 + 深亏叠加: 浅红 + 浅绿, 取 R5 优先 (高风险比深亏更值得警惕) */
+.fund-list-table tbody tr[data-risk-row="R5"][data-deep-loss="1"] {
+  background: color-mix(in oklch, var(--color-up) 8%, transparent);
+}
+/* 2026-07-14: 持仓集中度 — 单只基金占组合 >= 30% 整行 tint
+   ponytail: 用 brand 主色当「集中度」色, 与「红涨/绿跌/警告」区分
+   三档叠加时: R5 浅红 > 深亏 浅绿 > 高集中度 浅主色, 优先级由选择器特异性 + 顺序控制 */
+.fund-list-table tbody tr[data-high-weight="1"] {
+  background: color-mix(in oklch, var(--accent-primary) 10%, transparent);
+}
+.fund-list-table tbody tr[data-high-weight="1"]:hover {
+  background: color-mix(in oklch, var(--accent-primary) 16%, var(--bg-hover));
+}
+/* R5 + 高集中度叠加: 浅红 (R5 更紧要) */
+.fund-list-table tbody tr[data-risk-row="R5"][data-high-weight="1"] {
+  background: color-mix(in oklch, var(--color-up) 8%, transparent);
+}
+.fund-list-table .fund-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.fund-list-table .fund-code {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.fund-list-table td.positive { color: var(--color-up); font-weight: 600; }
+.fund-list-table td.negative { color: var(--color-down); font-weight: 600; }
+.fund-list-table td.num { font-variant-numeric: tabular-nums; }
+/* 2026-07-14: 涨跌幅度 3 档 — 浅/中/深, mag-high 加重字重到 700, 让大涨跌一眼可辨
+   ponytail: 颜色用 color-mix 调色, 跟随主题 + 全局 up/down 变量; 字重 500/600/700 三档 */
+.fund-list-table td.mag-low { color: color-mix(in oklch, currentColor 60%, var(--text-secondary)); font-weight: 500; }
+.fund-list-table td.mag-mid { font-weight: 600; }
+.fund-list-table td.mag-high {
+  font-weight: 700;
+  text-shadow: 0 0 1px color-mix(in oklch, currentColor 35%, transparent);
+}
+.fund-list-table .risk-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--fund-brand-soft);
+  color: var(--fund-ink);
+}
+/* 2026-07-14: 风险 R1-R5 颜色编码 — 绿→黄→红, 监控场景下风险一眼可读
+   ponytail: 用 color-mix 调色, 跟随 --color-up / --color-down 主题, 暗色模式自动适配 */
+.risk-pill[data-risk="R1"] {
+  background: color-mix(in oklch, var(--color-down) 18%, var(--bg-modal));
+  color: color-mix(in oklch, var(--color-down) 75%, black);
+}
+.risk-pill[data-risk="R2"] {
+  background: color-mix(in oklch, var(--accent-orange) 22%, var(--bg-modal));
+  color: color-mix(in oklch, var(--accent-orange) 60%, black);
+}
+.risk-pill[data-risk="R3"] {
+  background: color-mix(in oklch, var(--accent-orange) 28%, var(--bg-modal));
+  color: color-mix(in oklch, var(--accent-orange) 70%, var(--text-primary));
+}
+.risk-pill[data-risk="R4"] {
+  background: color-mix(in oklch, var(--color-up) 22%, var(--bg-modal));
+  color: color-mix(in oklch, var(--color-up) 75%, black);
+}
+.risk-pill[data-risk="R5"] {
+  background: color-mix(in oklch, var(--color-up) 28%, var(--bg-modal));
+  color: color-mix(in oklch, var(--color-up) 80%, black);
+}
+/* 2026-07-14: R5 高风险 — 加描边 + ⚠ 前缀, 视觉权重拉满
+   ponytail: 用 box-shadow 模拟 outline, 不影响布局; 颜色绑 --color-up, 暗色模式自动适配 */
+.risk-pill[data-risk="R5"] {
+  font-weight: 700;
+  box-shadow:
+    0 0 0 1.5px color-mix(in oklch, var(--color-up) 65%, transparent),
+    0 0 8px -2px color-mix(in oklch, var(--color-up) 50%, transparent);
+}
+.risk-pill[data-risk="R5"]::before {
+  content: "⚠ ";
+  margin-right: 1px;
+  font-size: 0.9em;
+}
+.fund-list-table .actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.fund-list-table .actions button {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+  min-height: 28px;
+}
+.fund-list-table .actions button:hover {
+  border-color: var(--fund-line);
+  color: var(--fund-ink);
+}
+.fund-list-table .actions button.primary {
+  background: var(--fund-brand);
+  border-color: var(--fund-brand);
+  color: var(--bg-modal);
+}
+
+/* 2026-07-14: 切换 全部/自选 视图时, 整张表 fade-in — key 变化触发 remount, 跑一遍 keyframe */
+.fund-list-fade {
+  animation: fund-list-fade-in 0.18s ease-out;
+}
+@keyframes fund-list-fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fund-list-fade { animation: none; }
+}
+
+/* 2026-07-14: 自选 ⭐ 列 — 窄列, 按钮小, hover 不影响整行 hover */
+.fund-list-table th.col-star,
+.fund-list-table td.col-star {
+  width: 36px;
+  text-align: center;
+  padding-left: 8px;
+  padding-right: 4px;
+}
+.fund-star {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm, 4px);
+  transition: color 0.15s, transform 0.15s;
+}
+.fund-star:hover { color: var(--fund-amber, oklch(0.78 0.16 80)); }
+.fund-star:active { transform: scale(0.9); }
+.fund-star:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+.fund-star.pinned { color: var(--fund-amber, oklch(0.78 0.16 80)); }
+.fund-list-table tbody tr:hover .fund-star { color: var(--fund-amber, oklch(0.78 0.16 80)); }
+.fund-list-table tbody tr:hover .fund-star.pinned { color: oklch(0.7 0.17 60); }
+
+/* 2026-07-14: 详情页大号自选按钮 — 复用 .fund-star 基础色, 加 "加自选/已自选" 文案 */
+.fund-star.fund-star-md {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: var(--font-size-sm, 13px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.fund-star.fund-star-md:hover {
+  border-color: var(--fund-amber, oklch(0.78 0.16 80));
+  color: var(--fund-amber, oklch(0.78 0.16 80));
+}
+.fund-star.fund-star-md.pinned {
+  background: oklch(0.97 0.05 80);
+  border-color: oklch(0.85 0.13 80);
+  color: oklch(0.55 0.18 60);
+}
+.fund-star.fund-star-md:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+.fund-star.fund-star-md .fund-star-label {
+  font-size: var(--font-size-xs, 12px);
+  letter-spacing: 0.02em;
+}
+
+/* 2026-07-14: List 头部 「全部 / 自选」 segmented tab */
+.fund-view-toggle {
+  display: inline-flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 6px);
+  padding: 2px;
+  gap: 2px;
+}
+.fund-view-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 5px 14px;
+  font-size: var(--font-size-sm, 13px);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.fund-view-btn:hover { color: var(--fund-ink); }
+.fund-view-btn.active {
+  background: var(--bg-modal);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+}
+.fund-view-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+/* 空态行: 让 colspan td 撑满表格 + 居中 + 给一定高度, 别塌成一字行 */
+.fund-list-table tbody tr.empty-row > td {
+  text-align: center;
+  padding: 48px 20px;
+  white-space: normal;
+}
+.fund-list-table tbody tr.empty-row:hover {
+  background: transparent;
+  cursor: default;
+}
+
+/* Pager */
+.fund-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+.fund-pager-info {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+.fund-pager-btns {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.fund-pager-btns button {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: var(--font-size-sm);
+  min-height: 32px;
+  min-width: 32px;
+  cursor: pointer;
+}
+.fund-pager-btns button:hover:not(:disabled) {
+  border-color: var(--fund-line);
+  color: var(--fund-ink);
+}
+.fund-pager-btns button.active {
+  background: var(--fund-brand);
+  border-color: var(--fund-brand);
+  color: var(--bg-modal);
+  font-weight: 600;
+}
+.fund-pager-btns button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* card-mode (<=560px) 表格转卡片态 */
+.fund-list-table.card-mode thead { display: none; }
+.fund-list-table.card-mode,
+.fund-list-table.card-mode tbody,
+.fund-list-table.card-mode tr,
+.fund-list-table.card-mode td { display: block; width: 100%; }
+.fund-list-table.card-mode tr {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  padding: var(--space-2);
+  background: var(--bg-card);
+}
+.fund-list-table.card-mode td {
+  text-align: left;
+  border-bottom: 1px dashed var(--border-light);
+  padding: 4px 0;
+}
+.fund-list-table.card-mode td::before {
+  content: attr(data-label);
+  display: inline-block;
+  width: 90px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  margin-right: 6px;
+}
+.fund-list-table.card-mode td.actions { text-align: right; padding-top: 6px; }
+.fund-list-table.card-mode .actions { justify-content: flex-end; }
+.fund-list-table.card-mode td.col-star { display: inline-block; width: auto; padding: 0 0 4px 0; border: none; }
+.fund-list-table.card-mode td.col-star::before { content: none; }
+
+/* Skeleton row */
+.fund-skel-row td .sk-line {
+  background: linear-gradient(90deg, var(--bg-section) 0%, var(--bg-hover) 50%, var(--bg-section) 100%);
+  background-size: 200% 100%;
+  animation: fundSkel 1.4s linear infinite;
+  border-radius: 4px;
+  height: 14px;
+}
+@keyframes fundSkel {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Fund Detail ── */
+.fund-detail-head {
+  display: flex;
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
 }
-.newcar-header-titles { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-.newcar-title { margin: 0; font-size: var(--font-size-2xl); font-weight: 600; line-height: 1.2; }
-.newcar-subtitle { margin: 0; font-size: var(--font-size-sm); color: var(--text-secondary); }
-.newcar-header-actions { display: flex; align-items: center; gap: var(--space-2); }
-
-.newcar-bell,
-.newcar-refresh {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  height: 34px;
-  min-width: 34px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-.newcar-bell:hover,
-.newcar-refresh:hover { background: var(--bg-hover); color: var(--text-primary); }
-.newcar-refresh:disabled { opacity: 0.6; cursor: default; }
-.newcar-bell:focus-visible,
-.newcar-refresh:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-/* 刷新中: 图标旋转 (复用全局 @keyframes spin, 不新造动画) */
-.newcar-refresh svg.is-spin { animation: spin 0.8s linear infinite; }
-
-/* KPI row */
-.newcar-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--space-3);
-}
-
-/* tabs */
-.newcar-tabs {
-  display: flex;
-  gap: var(--space-1);
-  border-bottom: 1px solid var(--border);
-  margin-top: var(--space-1);
-}
-.newcar-tab {
-  appearance: none;
-  border: none;
-  background: transparent;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-.newcar-tab:hover { color: var(--text-primary); }
-.newcar-tab.is-active {
-  color: var(--accent-primary);
-  border-bottom-color: var(--accent-primary);
-  font-weight: 600;
-}
-.newcar-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-/* ── Filters ─────────────────────────────────────────────── */
-.newcar-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--space-3);
-}
-.newcar-filter-group { display: flex; flex-direction: column; gap: var(--space-1); }
-.newcar-filter-group--range { min-width: 220px; }
-.newcar-filter-label {
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  letter-spacing: 0.02em;
-}
-.newcar-select {
-  height: 34px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-primary);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-}
-.newcar-select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-.newcar-range { display: flex; align-items: center; gap: var(--space-2); }
-.newcar-range-input {
-  width: 96px;
-  accent-color: var(--accent-primary);
-  cursor: pointer;
-}
-.newcar-range-val {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-.newcar-clear {
-  align-self: flex-start;
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--accent-primary);
-  font-size: var(--font-size-xs);
-  cursor: pointer;
-  padding: 0;
-}
-.newcar-clear:hover { text-decoration: underline; }
-
-.newcar-chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
-.newcar-chip {
-  appearance: none;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-secondary);
-  border-radius: 999px;
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-.newcar-chip:hover { background: var(--bg-hover); color: var(--text-primary); }
-.newcar-chip.is-active {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: var(--text-inverse, #ffffff);
-  font-weight: 600;
-}
-.newcar-chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.newcar-chip--date { background: color-mix(in oklch, var(--accent-primary) 12%, transparent); color: var(--accent-primary); border-color: transparent; }
-
-/* ── List ────────────────────────────────────────────────── */
-.newcar-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.newcar-list--empty {
-  padding: var(--space-6) var(--space-4);
-  text-align: center;
-  color: var(--text-tertiary);
-  font-size: var(--font-size-sm);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-lg);
-}
-.newcar-row {
+.fund-detail-title {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 44px;
-  padding: var(--space-2) var(--space-2);
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: background 0.12s ease;
 }
-.newcar-row:hover { background: var(--bg-hover); }
-.newcar-row:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-.newcar-thumb {
-  flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-inverse, #ffffff);
-  font-size: var(--font-size-md);
-  font-weight: 700;
-  user-select: none;
-}
-.newcar-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
-.newcar-row-name {
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.newcar-row-meta { display: flex; flex-wrap: wrap; gap: var(--space-1); }
-
-.newcar-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--font-size-xs);
-  padding: 1px var(--space-2);
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg-hover);
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-.newcar-badge--status { font-weight: 600; border-color: transparent; }
-
-.newcar-row-side {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  text-align: right;
-}
-.newcar-row-date {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-.newcar-row-price {
-  font-size: var(--font-size-sm);
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Detail ──────────────────────────────────────────────── */
-.newcar-detail { display: flex; flex-direction: column; gap: var(--space-4); }
-.newcar-back {
-  align-self: flex-start;
-  appearance: none;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-}
-.newcar-back:hover { background: var(--bg-hover); color: var(--text-primary); }
-.newcar-back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-.newcar-detail-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-.newcar-detail-titles { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
-.newcar-detail-title { margin: 0; font-size: var(--font-size-xl); font-weight: 600; }
-.newcar-detail-date {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.newcar-gallery {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
-}
-.newcar-gallery-cell {
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-md);
-  background: color-mix(in oklch, var(--accent-primary) 10%, var(--bg-hover));
-  border: 1px solid var(--border);
-}
-
-.newcar-spec {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.newcar-spec-row {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-light);
-}
-.newcar-spec-row:last-child { border-bottom: none; }
-.newcar-spec-k { color: var(--text-tertiary); font-size: var(--font-size-sm); }
-.newcar-spec-v { color: var(--text-primary); font-size: var(--font-size-sm); font-weight: 500; }
-
-.newcar-price { display: flex; flex-direction: column; gap: var(--space-1); }
-.newcar-price-label { font-size: var(--font-size-xs); color: var(--text-tertiary); }
-.newcar-price-bar {
-  position: relative;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--bg-hover);
-  overflow: hidden;
-}
-.newcar-price-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: var(--accent-primary);
-  border-radius: 999px;
-}
-.newcar-price-range {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.newcar-detail-hint {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-tertiary);
-}
-.newcar-source {
-  align-self: flex-start;
-  appearance: none;
-  border: 1px solid var(--accent-primary);
-  background: transparent;
-  color: var(--accent-primary);
-  border-radius: var(--radius-md);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-}
-.newcar-source:hover { background: color-mix(in oklch, var(--accent-primary) 10%, transparent); }
-.newcar-source:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-/* ── Calendar & Timeline ─────────────────────────────────── */
-.newcar-calendar { display: flex; flex-direction: column; gap: var(--space-4); }
-.newcar-spark-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-}
-.newcar-spark-title { font-size: var(--font-size-xs); color: var(--text-tertiary); }
-
-.newcar-cal-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  padding: var(--space-3);
-}
-.newcar-cal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
-}
-.newcar-cal-title { font-size: var(--font-size-md); font-weight: 600; }
-.newcar-cal-nav {
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: var(--font-size-md);
-  line-height: 1;
-}
-.newcar-cal-nav:hover { background: var(--bg-hover); color: var(--text-primary); }
-.newcar-cal-nav:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-.newcar-cal-dow,
-.newcar-cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: var(--space-1);
-}
-.newcar-cal-dow { margin-bottom: var(--space-1); }
-.newcar-cal-dow-cell {
-  text-align: center;
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  padding: var(--space-1) 0;
-}
-.newcar-cal-cell {
-  aspect-ratio: 1 / 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border: 1px solid var(--border-light);
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  cursor: default;
-}
-.newcar-cal-cell--empty { border: none; background: transparent; }
-.newcar-cal-cell.is-has {
-  cursor: pointer;
-  border-color: color-mix(in oklch, var(--accent-primary) 40%, transparent);
-  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
-}
-.newcar-cal-cell.is-has:hover { background: color-mix(in oklch, var(--accent-primary) 16%, transparent); }
-.newcar-cal-cell.is-has:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.newcar-cal-day { line-height: 1; }
-.newcar-cal-count {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--accent-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.newcar-timeline { display: flex; flex-direction: column; gap: var(--space-4); }
-.newcar-tl-month { display: flex; flex-direction: column; gap: var(--space-2); }
-.newcar-tl-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: var(--space-1);
-}
-.newcar-tl-month { font-size: var(--font-size-md); font-weight: 600; }
-.newcar-tl-count { font-size: var(--font-size-xs); color: var(--text-tertiary); }
-.newcar-tl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.newcar-tl-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.12s ease;
-}
-.newcar-tl-row:hover { background: var(--bg-hover); }
-.newcar-tl-row:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.newcar-tl-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 999px; }
-.newcar-tl-date {
-  flex: 0 0 auto;
-  font-size: var(--font-size-sm);
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
+.fund-detail-emblem {
   width: 48px;
-}
-.newcar-tl-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.newcar-tl-energy {
-  flex: 0 0 auto;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  background: var(--bg-hover);
-  border-radius: 999px;
-  padding: 1px var(--space-2);
-}
-
-/* ── Subscribe Modal (P1) ───────────────────────────────── */
-.newcar-modal-backdrop {
-  position: fixed;
-  inset: 0;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-4);
-  background: color-mix(in oklch, var(--text-primary) 45%, transparent);
-  z-index: 1000;
+  color: var(--bg-modal);
+  font-weight: 700;
+  font-size: 22px;
+  background: linear-gradient(140deg, var(--fund-brand), var(--fund-brand-2));
+  flex: 0 0 auto;
 }
-.newcar-modal {
-  width: 100%;
-  max-width: 480px;
-  max-height: 86vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+.fund-detail-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
-.newcar-modal-head {
+.fund-detail-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.fund-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(60px, 1fr));
+  gap: var(--space-4);
+}
+.fund-detail-stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.fund-detail-stat-val {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.fund-detail-stat-val.positive { color: var(--color-up); font-weight: 600; }
+.fund-detail-stat-val.negative { color: var(--color-down); font-weight: 600; }
+
+/* Detail split layout */
+.fund-detail-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: var(--space-3);
+}
+@media (max-width: 980px) { .fund-detail-grid { grid-template-columns: 1fr; } }
+.fund-detail-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+@media (max-width: 760px) { .fund-detail-grid-2 { grid-template-columns: 1fr; } }
+
+/* 净值序列卡 head 工具区 — range tabs + export 按钮并排 */
+.fund-detail-grid-2 .head-tools {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border);
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
-.newcar-modal-title { margin: 0; font-size: var(--font-size-md); font-weight: 600; }
-.newcar-modal-close {
-  width: 30px;
-  height: 30px;
+.fund-detail-csv-export {
+  font-size: var(--font-size-sm);
+  padding: 0 10px;
+  min-height: 28px;
+}
+
+/* Radar */
+.fund-radar-wrap {
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+}
+.fund-radar-wrap svg { width: 100%; height: auto; display: block; }
+
+/* ── Fund Trade ── */
+.fund-trade-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: var(--space-3);
+}
+@media (max-width: 900px) { .fund-trade-layout { grid-template-columns: 1fr; } }
+
+.fund-trade-tabs {
+  display: inline-flex;
+  background: var(--bg-section);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+  margin-bottom: var(--space-3);
+}
+.fund-trade-tabs button {
+  appearance: none;
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
   font-size: var(--font-size-md);
-  line-height: 1;
-}
-.newcar-modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
-.newcar-modal-close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.newcar-modal-body { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); overflow-y: auto; }
-.newcar-modal-section { display: flex; flex-direction: column; gap: var(--space-2); }
-.newcar-modal-label { font-size: var(--font-size-xs); color: var(--text-tertiary); }
-.newcar-modal-brands { display: flex; flex-wrap: wrap; gap: var(--space-1); }
-.newcar-modal-hint { margin: 0; font-size: var(--font-size-sm); color: var(--text-tertiary); }
-.newcar-modal-foot {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border-top: 1px solid var(--border);
-}
-.newcar-modal-cancel,
-.newcar-modal-save {
-  appearance: none;
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 6px;
   cursor: pointer;
+  min-height: 32px;
 }
-.newcar-modal-cancel {
-  border: 1px solid var(--border);
-  background: var(--surface);
+.fund-trade-tabs button.active {
+  background: var(--bg-card);
+  color: var(--fund-ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.fund-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-3);
+}
+.fund-field label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.fund-field input,
+.fund-field select {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  min-height: 42px;
+  font-variant-numeric: tabular-nums;
+}
+.fund-field input:focus,
+.fund-field select:focus {
+  outline: none;
+  border-color: var(--fund-line);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--fund-brand) 22%, transparent);
+}
+.fund-field input.invalid {
+  border-color: var(--accent-red);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-red) 22%, transparent);
+}
+.fund-field .hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  min-height: 16px;
+}
+.fund-field .hint.error { color: var(--accent-red); }
+
+.fund-quick-chips {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.fund-quick-chips button {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  min-height: 28px;
+}
+.fund-quick-chips button:hover {
+  border-color: var(--fund-line);
+  color: var(--fund-ink);
+}
+
+.fund-summary-box {
+  background: var(--bg-section);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+}
+.fund-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
-.newcar-modal-cancel:hover { background: var(--bg-hover); color: var(--text-primary); }
-.newcar-modal-save {
-  border: 1px solid var(--accent-primary);
-  background: var(--accent-primary);
-  color: var(--text-inverse, #ffffff);
+.fund-summary-row .s-val {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fund-trade-submit {
+  appearance: none;
+  border: none;
+  background: var(--fund-brand);
+  color: var(--bg-modal);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  width: 100%;
+  min-height: 44px;
+  cursor: pointer;
+  margin-top: var(--space-4);
+  transition: opacity 0.15s ease;
+}
+.fund-trade-submit:hover { opacity: 0.92; }
+.fund-trade-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.fund-trade-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 }
-.newcar-modal-save:focus-visible,
-.newcar-modal-cancel:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.fund-trade-status.success { background: color-mix(in oklch, var(--color-down) 22%, transparent); color: var(--color-down); }
+.fund-trade-status.pending { background: color-mix(in oklch, var(--accent-orange) 22%, transparent); color: var(--accent-orange); }
+.fund-trade-status.failed { background: color-mix(in oklch, var(--accent-red) 22%, transparent); color: var(--accent-red); }
 
-@media (max-width: 560px) {
-  .newcar-gallery { grid-template-columns: repeat(2, 1fr); }
-  .newcar-row-side { align-items: flex-start; }
+/* Back link in detail */
+.fund-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fund-ink);
+  font-size: var(--font-size-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
 }
+.fund-back-link:hover { color: var(--fund-brand); }
+
+/* Dashboard / Detail / Trade empty states */
+.fund-empty-card {
+  text-align: center;
+  padding: var(--space-6);
+  color: var(--text-tertiary);
+}
+
+/* ── Touch (hover: none) — 触控目标 ≥44px (计划 §5 / §7 验收) ── */
+@media (hover: none) {
+  .fund-range button,
+  .fund-quick-chips button,
+  .fund-pager-btns button,
+  .fund-trade-tabs button,
+  .fund-list-table .actions button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .fund-list-filterbar input,
+  .fund-list-filterbar select {
+    min-height: 44px;
+  }
+}
+
+/* ── Reduced motion — kill hover/transition for new components (计划 §5) ── */
+@media (prefers-reduced-motion: reduce) {
+  .fund-area-tip,
+  .fund-list-table tbody tr,
+  .fund-trade-submit {
+    transition: none !important;
+  }
+  .fund-skel-row td .sk-line {
+    animation: none !important;
+  }
+}
+
+/* ── Focus visible — 新组件聚焦环 (计划 §7) ── */
+.fund-range button:focus-visible,
+.fund-trade-tabs button:focus-visible,
+.fund-quick-chips button:focus-visible,
+.fund-pager-btns button:focus-visible,
+.fund-list-table .actions button:focus-visible,
+.fund-trade-submit:focus-visible,
+.fund-back-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+

@@ -17,17 +17,66 @@ function parseLsjzResponse(json) {
 
 async function fetchFundNavHistory(code, httpClient, opts = {}) {
   if (!/^\d{6}$/.test(String(code || ""))) return { ok: false, series: [], reason: "invalid_code" };
-  const days = opts.days || 30;
-  const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=${days}`;
+  // 2026-07-15: 东财 lsjz 硬上限 pageSize=20; pageSize≥250 直接 Data:null
+  //   实测: pageSize=30..200 也只回 20 条; 必须 pageIndex 分页才能拿 3M/1Y
+  //   ponytail: 之前把 days 当 pageSize 传, 切 1Y 反而拿空再回退到 20 条短缓存
+  const days = Math.max(1, Number(opts.days) || 365);
+  const PAGE = 20;
+  const maxPages = Math.min(Math.ceil(days / PAGE), 100); // 上限 2000 交易日
+  const byDate = new Map();
+  let totalCount = null;
+
   try {
-    const r = await httpClient.get(url, {
-      headers: { "User-Agent": UA, Referer: REF },
-      timeout: opts.timeoutMs ?? 8000,
-    });
-    if (r.error === "network" || r.error === "timeout") return { ok: false, series: [], reason: r.error };
-    if (r.status !== 200) return { ok: false, series: [], reason: `HTTP ${r.status}` };
-    const series = parseLsjzResponse(JSON.parse(r.body || "{}"));
-    return { ok: true, series, reason: null };
+    for (let page = 1; page <= maxPages; page++) {
+      const url = `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=${page}&pageSize=${PAGE}`;
+      const r = await httpClient.get(url, {
+        headers: { "User-Agent": UA, Referer: REF },
+        timeout: opts.timeoutMs ?? 8000,
+      });
+      if (r.error === "network" || r.error === "timeout") {
+        if (byDate.size) break;
+        return { ok: false, series: [], reason: r.error };
+      }
+      if (r.status !== 200) {
+        if (byDate.size) break;
+        return { ok: false, series: [], reason: `HTTP ${r.status}` };
+      }
+      let json;
+      try {
+        json = JSON.parse(r.body || "{}");
+      } catch (e) {
+        if (byDate.size) break;
+        return {
+          ok: false,
+          series: [],
+          reason: e && e.message ? e.message : String(e),
+        };
+      }
+      if (typeof json.TotalCount === "number" && json.TotalCount > 0) {
+        totalCount = json.TotalCount;
+      }
+      const list =
+        json && json.Data && Array.isArray(json.Data.LSJZList)
+          ? json.Data.LSJZList
+          : null;
+      if (!list || !list.length) {
+        if (page === 1) return { ok: false, series: [], reason: "empty_response" };
+        break;
+      }
+      for (const row of list) {
+        const nav = parseFloat(row.DWJZ);
+        if (!row.FSRQ || !Number.isFinite(nav)) continue;
+        byDate.set(String(row.FSRQ), nav);
+      }
+      if (byDate.size >= days) break;
+      if (totalCount != null && page * PAGE >= totalCount) break;
+      if (list.length < PAGE) break;
+    }
+    const series = [...byDate.entries()]
+      .map(([date, nav]) => ({ date, nav }))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const trimmed = series.length > days ? series.slice(-days) : series;
+    return { ok: true, series: trimmed, reason: null };
   } catch (e) {
     return { ok: false, series: [], reason: e && e.message ? e.message : String(e) };
   }

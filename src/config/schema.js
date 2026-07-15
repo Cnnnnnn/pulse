@@ -224,6 +224,11 @@ function sanitizeConfig(input) {
         if (isNonEmptyString(d.section_end)) out.section_end = d.section_end;
         if (isNonEmptyString(d.version_pattern))
           out.version_pattern = d.version_pattern;
+        // C9 (2026-06-28): enrich_only 透传. detector-chain 用它把 changelog
+        // 类 detector 标记为"只富集不竞争版本号". 之前这一行缺失 → sanitize
+        // 把它静默丢弃 → 运行期 enrich_only 永远为 false → 多源聚合 / enrich
+        // fallback 整条链路不生效 (html_changelog 当普通 detector 抢先 stop chain).
+        if (d.enrich_only === true) out.enrich_only = true;
         // 数组字段: 透传非空字符串数组 (hilo_changelog_manifest.urls 等).
         // 仅过滤字符串项, 非字符串项静默丢弃 — 避免脏数据传进 detector.
         if (Array.isArray(d.urls) && d.urls.length > 0) {

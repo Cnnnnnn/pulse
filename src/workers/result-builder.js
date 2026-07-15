@@ -53,6 +53,9 @@ function isChromiumVersion(ver) {
 function statusOf(versionUnknown, latest, hasUpdate, note) {
   if (versionUnknown && latest) return "no_auto_check";
   if (!latest) return "no_auto_check";
+  // enrich_fallback: 唯一可用版本来自 enrich_only (changelog 等), 权威源
+  // 全部失败 → 版本不可靠, 归入"无法检测"而非误导性的"已是最新/预发布".
+  if (note === "enrich_fallback") return "no_auto_check";
   if (hasUpdate) return "update_available";
   if (note === "incompatible") return "no_auto_check";
   return "up_to_date";
@@ -77,6 +80,9 @@ function buildDetectResult({
   let hasUpdate = false;
   if (versionUnknown) {
     note = "version_unknown";
+  } else if (result && result.note === "enrich_fallback") {
+    // 唯一可用版本来自 enrich_only (changelog 等), 权威源全部失败 → 不可靠
+    note = "enrich_fallback";
   } else if (latest && installed && installed !== "未知") {
     const cmp = require("./detector-chain").compareVersions(installed, latest);
     hasUpdate = cmp.hasUpdate;
@@ -98,10 +104,17 @@ function buildDetectResult({
     changelog: (result && result.changelog) || "",
     changelog_url: (result && result.changelog_url) || "",
     changelog_format: (result && result.changelog_format) || "md",
+    // changelog 实际归属的版本 (enrich_only 源可能滞后于权威源). UI 据此标注,
+    // 避免把 5.2.3 的更新日志误认为 5.2.6 的. 普通情况 == latest_version.
+    changelog_source_version: (result && result.changelog_source_version) || "",
     changelog_history: changelogHistory,
     release_notes_url: appCfg.release_notes_url || "",
     track_id: (result && result.track_id) || 0,
     release_url: (result && result.release_url) || "",
+    // enrich_fallback 时: 权威源上次成功拿到版本的时间 (epoch ms). 用于 UI
+    // 透出"权威源上次成功 · X 前". 非 fallback 或从未成功过时为 0.
+    authoritative_last_success_at:
+      (result && result.authoritative_last_success_at) || 0,
     error_message: extractErrorMessage(trace, latest, versionUnknown),
     trace,
     // I7: 写盘时间戳, 用于 tray 顶部摘要显示 "5m 前检测"

@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import {
   navHistoryCache,
+  navHistoryLoading,
   loadFundNavHistory,
   prefetchAllNavHistory,
   loadFunds,
@@ -11,6 +12,7 @@ import {
 
 afterEach(() => {
   navHistoryCache.value = {};
+  navHistoryLoading.value = {};
   holdings.value = [];
   fundsLoadError.value = null;
   fundsLoading.value = false;
@@ -28,6 +30,162 @@ describe("loadFundNavHistory (renderer cache)", () => {
   it("empty code returns not ok", async () => {
     const r = await loadFundNavHistory({}, "");
     expect(r.ok).toBe(false);
+  });
+  // 2026-07-15: 用户反馈 1M/3M/6M/1Y 切换但只能拿到 1 个月数据
+  //   ponytail: 验证 (1) 默认拉 90 条 (高频区间 1M/3M 的甜点) (2) 缓存足够时不再拉
+  //             (3) 显式 days 走对应 pageSize (4) 加载期间 navHistoryLoading 标记
+  it("默认拉 90 条 (覆盖 1M/3M 高频区间, 6M/1Y/ALL 按需补拉)", async () => {
+    let requestedDays = 0;
+    const fakeApi = {
+      fundsNavHistory: async (_code, opts) => {
+        requestedDays = (opts && opts.days) || 0;
+        return { ok: true, series: Array.from({ length: requestedDays }, (_, i) => ({ date: `2026-07-${i + 1}`, nav: 1 + i * 0.001 })) };
+      },
+    };
+    await loadFundNavHistory(fakeApi, "000001");
+    expect(requestedDays).toBe(90);
+  });
+  it("缓存行数 >= 需求时不再发起请求", async () => {
+    navHistoryCache.value = {
+      "000001": { series: Array.from({ length: 365 }, (_, i) => ({ date: `d${i}`, nav: 1 })), loadedAt: Date.now() },
+    };
+    let called = false;
+    const fakeApi = {
+      fundsNavHistory: async () => {
+        called = true;
+        return { ok: true, series: [] };
+      },
+    };
+    const r = await loadFundNavHistory(fakeApi, "000001", { days: 90 });
+    expect(called).toBe(false);
+    expect(r.cached).toBe(true);
+  });
+  it("缓存不够时按需求 days 重新拉取 (且不少于默认 90)", async () => {
+    navHistoryCache.value = {
+      "000001": { series: Array.from({ length: 30 }, (_, i) => ({ date: `d${i}`, nav: 1 })), loadedAt: Date.now() },
+    };
+    let requestedDays = 0;
+    const fakeApi = {
+      fundsNavHistory: async (_code, opts) => {
+        requestedDays = (opts && opts.days) || 0;
+        return { ok: true, series: Array.from({ length: 365 }, (_, i) => ({ date: `d${i}`, nav: 1 })) };
+      },
+    };
+    await loadFundNavHistory(fakeApi, "000001", { days: 180 });
+    // 180 > 90 默认下限, 所以请求 180 (用户明确要 6M, 直接满足)
+    expect(requestedDays).toBe(180);
+  });
+  it("需求 days 小于默认 90 时, 仍请求 90 (免去后续 3M 再次拉取)", async () => {
+    let requestedDays = 0;
+    const fakeApi = {
+      fundsNavHistory: async (_code, opts) => {
+        requestedDays = (opts && opts.days) || 0;
+        return { ok: true, series: Array.from({ length: requestedDays }, (_, i) => ({ date: `d${i}`, nav: 1 })) };
+      },
+    };
+    await loadFundNavHistory(fakeApi, "000002", { days: 30 });
+    expect(requestedDays).toBe(90);
+  });
+  it("pageSize 上限 9999, 即使传 99999 也只请求 9999", async () => {
+    let requestedDays = 0;
+    const fakeApi = {
+      fundsNavHistory: async (_code, opts) => {
+        requestedDays = (opts && opts.days) || 0;
+        return { ok: true, series: Array.from({ length: 9999 }, (_, i) => ({ date: `d${i}`, nav: 1 })) };
+      },
+    };
+    await loadFundNavHistory(fakeApi, "000001", { days: 99999 });
+    expect(requestedDays).toBe(9999);
+  });
+  // 2026-07-15: 加载状态 — FundDetail 用这个信号显示「加载更长历史」徽章
+  it("拉取期间 navHistoryLoading 标记该 code, 完成后清除", async () => {
+    let resolveApi;
+    const fakeApi = {
+      fundsNavHistory: () => new Promise((res) => { resolveApi = () => res({ ok: true, series: [{ date: "d", nav: 1 }] }); }),
+    };
+    const p = loadFundNavHistory(fakeApi, "000001");
+    // 微任务: await 已执行, loading 标记已设
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(navHistoryLoading.value["000001"]).toBe(true);
+    resolveApi();
+    await p;
+    expect(navHistoryLoading.value["000001"]).toBeUndefined();
+  });
+  it("失败也清除 loading 标记", async () => {
+    const fakeApi = {
+      fundsNavHistory: async () => ({ ok: false, reason: "net" }),
+    };
+    await loadFundNavHistory(fakeApi, "000001");
+    expect(navHistoryLoading.value["000001"]).toBeUndefined();
+  });
+  // 2026-07-15: 主进程曾把 30 天短缓存永久返回 — 渲染层必须在缓存不足时再次请求
+  it("短缓存 (30) 切到 1Y (365) 会重新请求并写入更长 series", async () => {
+    navHistoryCache.value = {
+      "000001": {
+        series: Array.from({ length: 30 }, (_, i) => ({ date: `d${i}`, nav: 1 })),
+        loadedAt: Date.now(),
+        fetchedDays: 30,
+      },
+    };
+    let requestedDays = 0;
+    const fakeApi = {
+      fundsNavHistory: async (_code, opts) => {
+        requestedDays = (opts && opts.days) || 0;
+        return {
+          ok: true,
+          series: Array.from({ length: 365 }, (_, i) => ({ date: `d${i}`, nav: 1 })),
+        };
+      },
+    };
+    const r = await loadFundNavHistory(fakeApi, "000001", { days: 365 });
+    expect(requestedDays).toBe(365);
+    expect(r.series.length).toBe(365);
+    expect(navHistoryCache.value["000001"].series.length).toBe(365);
+    expect(navHistoryCache.value["000001"].fetchedDays).toBe(365);
+  });
+  it("基金上市不足: 已按 365 拉过但只有 100 条 → 不再重复请求", async () => {
+    navHistoryCache.value = {
+      "000001": {
+        series: Array.from({ length: 100 }, (_, i) => ({ date: `d${i}`, nav: 1 })),
+        loadedAt: Date.now(),
+        fetchedDays: 365,
+      },
+    };
+    let called = false;
+    const fakeApi = {
+      fundsNavHistory: async () => {
+        called = true;
+        return { ok: true, series: [] };
+      },
+    };
+    const r = await loadFundNavHistory(fakeApi, "000001", { days: 365 });
+    expect(called).toBe(false);
+    expect(r.cached).toBe(true);
+    expect(r.series.length).toBe(100);
+  });
+  // 2026-07-15: 东财单页=20 脏标记自愈 — 即使 fetchedDays 被误标成 365 也要重拉
+  it("series 恰为 20 且 fetchedDays>20 → 视为脏缓存, 允许重拉", async () => {
+    navHistoryCache.value = {
+      "000001": {
+        series: Array.from({ length: 20 }, (_, i) => ({ date: `d${i}`, nav: 1 })),
+        loadedAt: Date.now(),
+        fetchedDays: 365,
+      },
+    };
+    let called = false;
+    const fakeApi = {
+      fundsNavHistory: async () => {
+        called = true;
+        return {
+          ok: true,
+          series: Array.from({ length: 365 }, (_, i) => ({ date: `n${i}`, nav: 1 })),
+        };
+      },
+    };
+    const r = await loadFundNavHistory(fakeApi, "000001", { days: 365 });
+    expect(called).toBe(true);
+    expect(r.series.length).toBe(365);
   });
 });
 

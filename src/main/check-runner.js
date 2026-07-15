@@ -34,7 +34,7 @@ function scheduleOnCheckComplete(fn, results, staleNames) {
   });
 }
 
-function enqueueDetectApp(pool, appCfg, history, incremental) {
+function enqueueDetectApp(pool, appCfg, history, incremental, forceRefresh) {
   const job = pool.enqueue({
     type: "detect-app",
     payload: {
@@ -43,6 +43,9 @@ function enqueueDetectApp(pool, appCfg, history, incremental) {
         changelog_history: Array.isArray(history) ? history : [],
       },
       incremental: incremental || null,
+      // 手动刷新 (silent=false) 时 forceRefresh=true → 下游绕过熔断冷却,
+      // 强制重试权威源. 后台自动 check 不强制, 仍走熔断保护.
+      forceRefresh: !!forceRefresh,
     },
   });
   return Promise.race([
@@ -115,12 +118,20 @@ async function runCheck(deps, opts = {}) {
     if (app && typeof app.ts === "number") appsLastChecked[name] = app.ts;
   }
   const incrementalPayload = silent ? { appsLastChecked, recentDays: 7 } : null;
+  // 手动刷新 (silent=false) 强制绕过熔断冷却重试权威源; 后台自动 check 不强制.
+  const forceRefreshPayload = !silent;
   const tasks = apps.map((appCfg) => {
     const history =
       appCfg && appCfg.name && stateApps[appCfg.name]
         ? stateApps[appCfg.name].changelog_history
         : undefined;
-    return enqueueDetectApp(pool, appCfg, history, incrementalPayload);
+    return enqueueDetectApp(
+      pool,
+      appCfg,
+      history,
+      incrementalPayload,
+      forceRefreshPayload,
+    );
   });
   const settled = await Promise.allSettled(tasks);
   const results = settled.map((s, i) => {

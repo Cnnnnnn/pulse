@@ -385,11 +385,24 @@ export function setSelectedHistoryMonth(ym) {
 
 export async function setNavSource(api, source) {
   const next = normalizeNavSource(source);
+  const prev = navSource.value;
+  if (next === prev) return { ok: true, reason: "same" };
   navSource.value = next;
   try {
     await api.fundsSetNavSource(next);
   } catch (err) {
     log.warn("setNavSource failed:", err && err.message);
+    return { ok: false, reason: "save_failed" };
+  }
+  // 2026-07-14 改进: 切换源后立刻主动拉一次, 让 UI 上的估值/涨跌立刻反映新源
+  //   不再等下一个 scheduler tick (那样用户看不出切换生效了).
+  //   fetchNavNow 已被设计为幂等且不会覆盖 navCache 中已有的跨源合并字段.
+  try {
+    const r = await fetchNavNow(api);
+    return r && r.ok ? { ok: true } : { ok: false, reason: r && r.reason };
+  } catch (err) {
+    log.warn("setNavSource post-refresh failed:", err && err.message);
+    return { ok: false, reason: "refresh_failed" };
   }
 }
 
@@ -493,6 +506,9 @@ export function subscribeNavUpdates(api) {
 
 // ── NAV history cache (新接口 funds:nav:history) ──
 export const navHistoryCache = signal({}); // { [code]: { series, loadedAt } }
+// 2026-07-15: per-code 加载状态 — 给 FundDetail 完整度指示用
+//   ponytail: 不用全局 loading (会误报别的基金在拉), 用 Map[code] = bool
+export const navHistoryLoading = signal({}); // { [code]: true }
 
 export const categoryAllocation = computed(() => {
   const rows = rowsWithMetrics.value || [];
@@ -505,6 +521,27 @@ export const categoryAllocation = computed(() => {
     total += mv;
   }
   return { byCategory: acc, total };
+});
+// 2026-07-14: 持仓权重 map — 给 List / Dashboard 行 tint 用
+//   ponytail: 行 tint 需要"这只基金占整个组合多少 %", total=0 时 map 为空
+export const holdingWeights = computed(() => {
+  const rows = rowsWithMetrics.value || [];
+  const m = {};
+  let total = 0;
+  for (const r of rows) {
+    const mv = (r.metrics && r.metrics.marketValue) || 0;
+    const code = r.holding && r.holding.code;
+    if (code) m[code] = mv;
+    total += mv;
+  }
+  if (total <= 0) return { byCode: {}, total: 0, maxWeight: 0 };
+  // 第二遍: 算百分比 + 找最大
+  let maxWeight = 0;
+  for (const code in m) {
+    m[code] = m[code] / total;
+    if (m[code] > maxWeight) maxWeight = m[code];
+  }
+  return { byCode: m, total, maxWeight };
 });
 
 // ── T-C1c: 基准指数叠加 (沪深300 默认) ──
@@ -542,23 +579,71 @@ export async function loadIndexHistory(api, symbol) {
   }
 }
 
-export async function loadFundNavHistory(api, code) {
+// 2026-07-15: 默认拉取窗口 = 90 天, 覆盖 1M/3M (用户高频区间)
+//   ponytail: 用户反馈「切 3M 数据不足」— 30 天不够, 但 365 全量又太重 (10s+),
+//             选 90 天作为 90% 场景的甜点; 切 6M/1Y/ALL 时再补拉
+//             备选: 365 (慢) / 90 (快, 缺数据时补拉) — 这里选后者
+const NAV_HISTORY_DEFAULT_DAYS = 90;
+// 单次请求上限, eastmoney 实际允许更大 (5000/10000), 用 9999 保险
+const NAV_HISTORY_MAX_PAGE_SIZE = 9999;
+
+export async function loadFundNavHistory(api, code, opts = {}) {
   if (!code) return { ok: false };
   const cached = navHistoryCache.value[code];
-  if (cached && cached.series && cached.series.length) {
-    return { ok: true, series: cached.series, cached: true };
+  // 2026-07-15: 缓存够用 / 已按同样天数拉过 → 直接返回
+  //   ponytail: fetchedDays 防「基金上市不足一年」时反复补拉同一窗口
+  const requestedDays = Math.max(
+    Number(opts.days) || NAV_HISTORY_DEFAULT_DAYS,
+    NAV_HISTORY_DEFAULT_DAYS,
+  );
+  const haveRows = cached && cached.series && cached.series.length >= requestedDays;
+  // 2026-07-15: series===20 且 fetchedDays>20 → 脏标记 (东财单页上限陷阱), 允许重拉
+  const looksLikeStalePageCap =
+    cached &&
+    cached.series &&
+    cached.series.length === 20 &&
+    (cached.fetchedDays || 0) > 20;
+  const alreadyTried =
+    !looksLikeStalePageCap &&
+    cached &&
+    (cached.fetchedDays || 0) >= requestedDays;
+  if (haveRows || alreadyTried) {
+    return { ok: true, series: (cached && cached.series) || [], cached: true };
   }
+  navHistoryLoading.value = Object.assign({}, navHistoryLoading.value, {
+    [code]: true,
+  });
   try {
-    const r = await api.fundsNavHistory(code, { days: 30 });
+    const pageSize = Math.min(
+      Math.max(requestedDays, NAV_HISTORY_DEFAULT_DAYS),
+      NAV_HISTORY_MAX_PAGE_SIZE,
+    );
+    const r = await api.fundsNavHistory(code, { days: pageSize });
     if (r && r.ok && r.series) {
+      const prev = (cached && cached.series) || [];
+      // 主进程可能仍吐旧短缓存; 取较长那份
+      const series = r.series.length >= prev.length ? r.series : prev;
+      // 2026-07-15: 只有真正网络拉取成功才抬 fetchedDays
+      //   ponytail: 旧逻辑在 cached 短回退时也写成 pageSize, 导致 1Y 被「已试过」钉死
+      const nextFetched = r.cached
+        ? (cached && cached.fetchedDays) || 0
+        : Math.max((cached && cached.fetchedDays) || 0, pageSize);
       navHistoryCache.value = Object.assign({}, navHistoryCache.value, {
-        [code]: { series: r.series, loadedAt: Date.now() },
+        [code]: {
+          series,
+          loadedAt: Date.now(),
+          fetchedDays: nextFetched,
+        },
       });
-      return { ok: true, series: r.series };
+      return { ok: true, series };
     }
     return { ok: false, reason: r && r.reason };
   } catch (err) {
     return { ok: false, reason: err && err.message };
+  } finally {
+    const next = Object.assign({}, navHistoryLoading.value);
+    delete next[code];
+    navHistoryLoading.value = next;
   }
 }
 

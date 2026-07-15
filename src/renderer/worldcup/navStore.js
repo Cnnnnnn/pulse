@@ -44,7 +44,6 @@ const NAV_KEYS = new Set([
   "worldcup",
   "invest",          // 投资 nav 合并 (funds + metals + stocks)
   "ai-usage",
-  "newcar",          // 2026-07-13: 新车发布 (2026 全年上市/预售/首发/改款日历)
   "versions",
 ]);
 
@@ -59,20 +58,19 @@ const LEGACY_NAV_ALIAS = {
 };
 
 // Phase I3: 数组版 (供 sidenav-prefs 持久化 order 用)
-// 7 个顶级 panel (合并 IT 新闻 + 微博热搜 → 'news' 后从 8 减到 7, 再合并 funds/metals/stocks → 'invest' 后减到 6, 2026-07-13 新增 'newcar' → 7).
+// 7 个顶级 panel (合并 IT 新闻 + 微博热搜 → 'news' 后从 8 减到 7, 再合并 funds/metals/stocks → 'invest' 后减到 6).
 export const NAV_KEYS_LIST = [
   "news",
   "worldcup",
   "invest",
   "ai-usage",
-  "newcar",          // 2026-07-13: 新车发布
   "versions",
 ];
 
 // P-N: HomeGrid 落点白名单 — "home" 是显示态, 不落盘.
-// 跟 NAV_KEYS 的区别: NAV_KEYS 是 activeNav 全部合法值, 这里只挑出可持久化的 6 顶级 nav.
+// 跟 NAV_KEYS 的区别: NAV_KEYS 是 activeNav 全部合法值, 这里只挑出可持久化的 5 顶级 nav.
 export const PERSISTABLE_NAV_KEYS = new Set([
-  "news", "worldcup", "invest", "ai-usage", "newcar", "versions",
+  "news", "worldcup", "invest", "ai-usage", "versions",
 ]);
 /**
  * Phase I3: 计算"实际可见"nav 列表
@@ -120,7 +118,7 @@ function isNavVisible(key, prefs) {
 
 /**
  * 当前 activeNav 被关掉时, 切到第一个可见 panel.
- * 注意: 只考虑 PERSISTABLE_NAV_KEYS (7 顶级 panel), 跳过 "home" —
+ * 注意: 只考虑 PERSISTABLE_NAV_KEYS (5 顶级 panel), 跳过 "home" —
  * HomeGrid 是显示态而不是 panel, tray prefs 不应该把用户弹到 HomeGrid.
  * 不可见列表 (activeNav 不可见 + 没有其他可见 nav) 时不动 (极端兜底, 不会发生因为有固定 tab).
  */

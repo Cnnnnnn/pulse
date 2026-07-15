@@ -46,6 +46,7 @@ if (parentPort) {
             http,
             logger,
             incremental: task.payload && task.payload.incremental,
+            forceRefresh: !!(task.payload && task.payload.forceRefresh),
           }),
           DETECT_APP_TIMEOUT_MS,
           "detect-app",

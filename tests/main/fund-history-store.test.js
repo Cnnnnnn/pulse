@@ -67,3 +67,20 @@ describe("navHistory persistence", () => {
     expect(fundHistoryStore.loadNavHistory("999999", tmpPath)).toEqual([]);
   });
 });
+
+// 2026-07-15: 修复「切 1M/3M/1Y 全显示 1 个月」— 短缓存不得命中长窗口请求
+describe("isNavCacheSufficient", () => {
+  it("30 条不够撑 365 天请求", () => {
+    const short = Array.from({ length: 30 }, (_, i) => ({ date: `d${i}`, nav: 1 }));
+    expect(fundHistoryStore.isNavCacheSufficient(short, 365)).toBe(false);
+  });
+  it("365 条够撑 90 / 365", () => {
+    const long = Array.from({ length: 365 }, (_, i) => ({ date: `d${i}`, nav: 1 }));
+    expect(fundHistoryStore.isNavCacheSufficient(long, 90)).toBe(true);
+    expect(fundHistoryStore.isNavCacheSufficient(long, 365)).toBe(true);
+  });
+  it("空 / 非数组不够", () => {
+    expect(fundHistoryStore.isNavCacheSufficient([], 30)).toBe(false);
+    expect(fundHistoryStore.isNavCacheSufficient(null, 30)).toBe(false);
+  });
+});

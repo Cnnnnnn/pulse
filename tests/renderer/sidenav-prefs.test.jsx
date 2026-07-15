@@ -4,12 +4,11 @@
  *
  * Phase v1: SideNav 根据 tray menu prefs 过滤动态 nav tab.
  * Phase 32 (2026-07-13): funds/metals/stocks 合并为 'invest', 总 nav 从 7 减到 5.
- * 2026-07-13 + newcar: 总 nav 6.
  *
  * 覆盖:
- *  - 默认 prefs (全开): 6 个 nav 都显示
+ *  - 默认 prefs (全开): 5 个 nav 都显示
  *  - 关 updates (versions): versions 隐藏,其他还在
- *  - 4 个动态全关: 只剩 3 个固定 nav (news/invest/newcar)
+ *  - 3 个动态全关: 只剩 2 个固定 nav (news/invest)
  *  - 关非动态 prefs (e.g. check_action 不影响 nav): 全部 nav 仍显示
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -85,14 +84,13 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 6 个 nav 全显示 (P-N + 投资 + newcar)", () => {
+  it("默认 prefs 全开 → 5 个 nav 全显示 (新闻 + 世界杯 + 投资 + AI 用量 + 更新)", () => {
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
       "news",
       "worldcup",
       "invest",
       "ai-usage",
-      "newcar",
       "versions",
     ]);
   });
@@ -109,7 +107,6 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(keys).toContain("worldcup");
     expect(keys).toContain("invest");
     expect(keys).toContain("ai-usage");
-    expect(keys).toContain("newcar");
   });
 
   it("关 ai_usage → ai-usage 隐藏", () => {
@@ -121,7 +118,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("4 个动态全关 → 只剩 3 个固定 nav (news/invest/newcar)", () => {
+  it("3 个动态全关 → 只剩 2 个固定 nav (news/invest)", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -134,7 +131,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual(["news", "invest", "newcar"]);
+    expect(visibleNavKeys()).toEqual(["news", "invest"]);
   });
 
   it("只关非动态 prefs (check_action/config_action) → 全部 nav 仍显示", () => {
@@ -155,7 +152,6 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "worldcup",
       "invest",
       "ai-usage",
-      "newcar",
       "versions",
     ]);
   });

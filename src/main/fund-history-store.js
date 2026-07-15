@@ -89,6 +89,15 @@ function loadNavHistory(code, statePath) {
   return map && Array.isArray(map[code]) ? map[code] : [];
 }
 
+/**
+ * 磁盘缓存是否够撑本次请求窗口.
+ * 2026-07-15: 旧逻辑「有数组就命中」导致 30 天短缓存永久挡住 3M/1Y.
+ */
+function isNavCacheSufficient(cached, requestedDays) {
+  const need = Math.max(1, Number(requestedDays) || 0);
+  return Array.isArray(cached) && cached.length >= need;
+}
+
 function saveNavHistory(code, series, statePath) {
   const s = stateStore.load(statePath) || {};
   s.funds = s.funds && typeof s.funds === "object" ? s.funds : {};
@@ -127,6 +136,7 @@ module.exports = {
   recordFromNavMap,
   loadNavHistory,
   saveNavHistory,
+  isNavCacheSufficient,
   loadIndexHistory,
   saveIndexHistory,
 };

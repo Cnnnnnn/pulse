@@ -27,6 +27,7 @@ const SOURCE_LABELS = {
   'cursor_redirect': 'CDN',
   'qclaw_api': 'API',
   'app_update_yml': '内置更新',
+  'html_changelog': 'Changelog',
 };
 
 function sourceLabel(s) {
@@ -107,6 +108,13 @@ export function AppInfo({
 
   let subtitle = source;
   if (note === 'installed_newer')   subtitle = `预发布${source ? ' · ' + source : ''}`;
+  else if (note === 'enrich_fallback') {
+    subtitle = `更新源异常${source ? ' · ' + source : ''} · 版本仅供参考`;
+    // 权威源上次成功拿到版本的时间 (若曾成功过) — 让用户判断当前 fallback 版本
+    // 有多"陈旧".
+    const authTs = result.authoritative_last_success_at;
+    if (authTs) subtitle += ` · 权威源上次成功 ${relativeTime(authTs)}`;
+  }
   else if (note === 'incompatible') subtitle = `版本格式不同${source ? ' · ' + source : ''} · 请在应用内检查更新`;
   else if (note === 'version_unknown') subtitle = `已安装版本无法读取${source ? ' · ' + source : ''} · 最新版本见右侧`;
 
@@ -124,6 +132,11 @@ export function AppInfo({
 
   // Phase 26: changelog inline preview (点 IconInfo 看完整 panel)
   const preview = changelogPreview(result.changelog);
+  // 更新日志归属版本滞后于展示版本时的内联提示 (避免 "5.2.6 显示 5.2.3 日志").
+  const changelogLagging =
+    !!result.changelog_source_version &&
+    !!result.latest_version &&
+    result.changelog_source_version !== result.latest_version;
 
   // Phase 29: last-opened sub-line. 三种态 + 按 tier 颜色区分 (Phase 30).
   //   - { ms, source: 'spotlight' } → "上次打开 · 2 天前" — hot/warm/cold
@@ -190,7 +203,21 @@ export function AppInfo({
         {muteBadge}
       </div>
       <div class={`app-subtitle${stale ? ' stale' : ''}${errMsg ? ' has-error' : ''}`}>{subtitle}</div>
-      {preview && <div class="app-changelog-preview" title={result.changelog}>{preview}</div>}
+      {preview && (
+        <div
+          class="app-changelog-preview"
+          title={
+            changelogLagging
+              ? `更新日志对应 ${result.changelog_source_version}（页面可能未同步到最新版 ${result.latest_version}）`
+              : result.changelog
+          }
+        >
+          {preview}
+          {changelogLagging && (
+            <span class="app-changelog-lag">更新日志对应 {result.changelog_source_version}</span>
+          )}
+        </div>
+      )}
       {result.has_update && (
         <UpgradeAdvice appName={result.name} hasUpdate={result.has_update} />
       )}

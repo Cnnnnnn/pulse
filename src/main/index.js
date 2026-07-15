@@ -97,7 +97,6 @@ const {
   startAutoCheckTimer,
   makeRefreshLastOpenedAfterCheck,
   startSelfUpdateTimer,
-  startNewCarScheduler,
 } = require("./bootstrap/schedulers.js");
 const {
   createSender,
@@ -751,8 +750,6 @@ function startSchedulers(pushWorldcupToTray) {
       }
     },
   });
-  // P1: 新车发布角标定时调度 (无订阅时 no-op, 不影响其他 scheduler)
-  startNewCarScheduler({ sendToRenderer });
   wireRecentActivityListener({ recentActivity, sendToRenderer });
   startAutoCheckTimer({
     runtimeConfigRef,

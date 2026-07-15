@@ -79,8 +79,18 @@ export function ChangelogPanel({ result }) {
   const activeSrc = isCurrent ? src : (history[view] && history[view].changelog) || '';
   const activeUrl = isCurrent ? url : (history[view] && history[view].changelog_url) || '';
   const activeLabel = isCurrent
-    ? ((result && result.latest_version) || 'latest')
+    ? ((result && result.changelog_source_version) ||
+        (result && result.latest_version) ||
+        'latest')
     : ((history[view] && history[view].version) || 'older');
+  // 更新日志归属版本滞后于展示版本 (官方 changelog 页未同步最新版) 时的提醒.
+  // e.g. 展示 5.2.6 但 changelog 实际是 5.2.3 的 → 标注避免误读.
+  const changelogLagging =
+    isCurrent &&
+    result &&
+    result.changelog_source_version &&
+    result.latest_version &&
+    result.changelog_source_version !== result.latest_version;
 
   // 没源没 changelog_url → 空状态 (仅版本标签 + 历史 tab, 不再展示 fallback 链接)
   if (!activeSrc && !activeUrl) {
@@ -101,6 +111,14 @@ export function ChangelogPanel({ result }) {
     <div class="changelog-panel">
       <div class="changelog-panel-head">
         <div class="changelog-version-label">{activeLabel}</div>
+        {changelogLagging && (
+          <span
+            class="changelog-lag-badge"
+            title={`更新日志页面尚未同步到最新版 ${result.latest_version}，以下为 ${result.changelog_source_version} 的更新日志`}
+          >
+            更新日志对应 {result.changelog_source_version}
+          </span>
+        )}
         {isCurrent && result && result.name && (
           <ChangelogSummary appName={result.name} />
         )}

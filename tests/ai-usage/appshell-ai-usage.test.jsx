@@ -11,12 +11,18 @@ import { render, cleanup, waitFor } from "@testing-library/preact";
 
 let mockActiveNav = "versions";
 
-vi.mock("../../src/renderer/worldcup/navStore.js", () => ({
-  get activeNav() { return { get value() { return mockActiveNav; } }; },
-  get navCollapsed() { return { value: false }; },
-  setActiveNav: (k) => { mockActiveNav = k; },
-  toggleNavCollapsed: () => {},
-}));
+vi.mock("../../src/renderer/worldcup/navStore.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  // 复用真实导出 (含 NAV_KEYS_LIST / PERSISTABLE_NAV_KEYS / effectiveVisibleItems),
+  // 只覆盖测试需要控制的 activeNav / navCollapsed 两个 signal 与导航动作.
+  return {
+    ...actual,
+    get activeNav() { return { get value() { return mockActiveNav; } }; },
+    get navCollapsed() { return { value: false }; },
+    setActiveNav: (k) => { mockActiveNav = k; },
+    toggleNavCollapsed: () => {},
+  };
+});
 
 vi.mock("../../src/renderer/reminders/remindersStore.js", () => ({
   get remindersOpen() { return { value: false }; },

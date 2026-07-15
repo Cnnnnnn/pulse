@@ -75,6 +75,20 @@ describe('circuit-breaker state machine', () => {
     expect(b.state).toBe(STATE.CLOSED);
   });
 
+  it('force=true bypasses an open breaker; force=false behaves as default', () => {
+    let b = createBreaker({ key: 'x', now: () => FIXED_NOW });
+    for (let i = 0; i < 3; i++) {
+      b = recordFailure(b, FIXED_NOW + i, { failureThreshold: 3 });
+    }
+    expect(b.state).toBe(STATE.OPEN);
+    // 冷却期内默认不放行
+    expect(shouldAllow(b, FIXED_NOW + 1000)).toBe(false);
+    // 手动刷新 (force) 绕过冷却, 强制放行
+    expect(shouldAllow(b, FIXED_NOW + 1000, true)).toBe(true);
+    // 显式 force=false 仍不放行
+    expect(shouldAllow(b, FIXED_NOW + 1000, false)).toBe(false);
+  });
+
   it('uses per-breaker configuration', () => {
     let b = createBreaker({ key: 'x', now: () => FIXED_NOW });
     b = recordFailure(b, FIXED_NOW, { failureThreshold: 5, cooldownMs: 1000 });

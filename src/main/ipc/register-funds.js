@@ -126,22 +126,43 @@ function registerFundsHandlers(ctx) {
     { onError: (err) => threwResponse(err, { dailySnapshots: [] }) },
   );
 
+  // 2026-07-15: 缓存命中必须「条数 >= 请求天数」
+  //   ponytail: 旧逻辑「有缓存就返回」会把历史上 30 天短缓存永久钉死, 用户切 3M/1Y 无效
   safeHandle("funds:nav:history", async (_event, code, opts) => {
+    const requestedDays = Math.max(1, Number(opts && opts.days) || 365);
     const cached = fundNavHistoryStore.loadNavHistory(code);
-    if (cached && cached.length) return { ok: true, series: cached, cached: true };
+    if (fundNavHistoryStore.isNavCacheSufficient(cached, requestedDays)) {
+      return { ok: true, series: cached, cached: true };
+    }
     const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
-    const out = await fetchFundNavHistory(code, httpClient, opts || { days: 30 });
-    if (out.ok) fundNavHistoryStore.saveNavHistory(code, out.series);
+    const out = await fetchFundNavHistory(code, httpClient, { days: requestedDays });
+    if (out.ok) {
+      // 新拉的更长才覆盖; 基金上市不足时接口可能返回更短, 保留较长的那份
+      const series =
+        out.series.length >= cached.length ? out.series : cached;
+      fundNavHistoryStore.saveNavHistory(code, series);
+      return { ok: true, series, reason: null, cached: false };
+    }
+    if (cached.length) return { ok: true, series: cached, cached: true, reason: out.reason };
     return out;
   });
 
   // T-C1a: 基准指数历史 (沪深300 等). 先读缓存, miss 再拉取并写回.
   safeHandle("funds:index:history", async (_event, symbol, opts) => {
+    const requestedDays = Math.max(1, Number(opts && opts.days) || 365);
     const cached = fundNavHistoryStore.loadIndexHistory(symbol);
-    if (cached && cached.length) return { ok: true, series: cached, cached: true };
+    if (fundNavHistoryStore.isNavCacheSufficient(cached, requestedDays)) {
+      return { ok: true, series: cached, cached: true };
+    }
     const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
-    const out = await fetchIndexHistory(symbol, httpClient, opts || { days: 365 });
-    if (out.ok) fundNavHistoryStore.saveIndexHistory(symbol, out.series);
+    const out = await fetchIndexHistory(symbol, httpClient, { days: requestedDays });
+    if (out.ok) {
+      const series =
+        out.series.length >= cached.length ? out.series : cached;
+      fundNavHistoryStore.saveIndexHistory(symbol, series);
+      return { ok: true, series, reason: null, cached: false };
+    }
+    if (cached.length) return { ok: true, series: cached, cached: true, reason: out.reason };
     return out;
   });
 

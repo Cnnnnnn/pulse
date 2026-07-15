@@ -137,4 +137,25 @@ describe('detector-chain with circuit breaker', () => {
     // NOT called for this case.
     expect(mockRecordFailure).not.toHaveBeenCalled();
   });
+
+  it('forceRefresh threads into shouldAllow and bypasses an open breaker', async () => {
+    // shouldAllow 默认 false (熔断 open, 跳过), 仅当 force=true 放行.
+    mockShouldAllow.mockImplementation((b, now, force) => !!force);
+    const { runDetectorChain } = reloadChain();
+    const appCfg = {
+      name: 'X',
+      detectors: [{ type: 'api_json', url: 'https://x.example.com' }],
+    };
+
+    // 无 force → 被跳过 (skipped: circuit_open)
+    const r1 = await runDetectorChain(appCfg, deps);
+    expect(r1.trace[0]).toMatchObject({ det: 'api_json', skipped: 'circuit_open' });
+
+    // 有 forceRefresh → shouldAllow 收到 force=true, detector 实际执行 (不再 skipped)
+    const r2 = await runDetectorChain(appCfg, { ...deps, forceRefresh: true });
+    expect(
+      mockShouldAllow.mock.calls.some((c) => c[2] === true),
+    ).toBe(true);
+    expect(r2.trace[0].skipped).not.toBe('circuit_open');
+  });
 });

@@ -29,7 +29,6 @@ import { ithomeUnreadBadge } from '../ithome/store.js';
 import { wechatHotUnreadBadge } from '../wechat-hot/store.js';
 import { fundUnreadBadge } from '../funds/fundStore.js';
 import { aiUsageNavBadge } from '../store/ai-usage-store.js';
-import { newCarNavBadge } from '../store/newcar-store.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
 import { trayMenuPrefs } from '../trayConfigStore.js';
 import {
@@ -62,7 +61,6 @@ const NAV_ITEMS = [
   { key: 'worldcup',  label: '世界杯',   tooltip: '2026 世界杯赛程' },
   { key: 'invest',    label: '投资',     tooltip: '基金 + 贵金属 + 选股 (合并 tab)' },
   { key: 'ai-usage',  label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
-  { key: 'newcar',    label: '新车发布', tooltip: '2026 全年上市 / 预售 / 首发 / 改款日历' },
   { key: 'versions',  label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
 ];
 
@@ -76,14 +74,12 @@ export function SideNav() {
   void wechatHotUnreadBadge.value;
   void fundUnreadBadge.value;
   void aiUsageNavBadge.value;
-  void newCarNavBadge.value;
   // ponytail: 'news' nav 角标 = IT 新闻未读 + 微博热搜未读 (P-N+ 合并).
   const newsBadge = (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0);
   const navBadges = {
     news: newsBadge,
     invest: fundUnreadBadge.value,   // 原 funds 角标迁到投资入口
     'ai-usage': aiUsageNavBadge.value,
-    'newcar': newCarNavBadge.value,
   };
 
   // Phase I3: nav 重排 + 隐藏 (localStorage 持久化)

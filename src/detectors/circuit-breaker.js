@@ -43,7 +43,16 @@ function createBreaker({ key, now = Date.now, config } = {}) {
   };
 }
 
-function shouldAllow(breaker, now) {
+/**
+ * 是否允许本次探测.
+ * @param {object} breaker
+ * @param {number} now
+ * @param {boolean} [force=false]  手动刷新路径置 true: 即便处于 open 冷却期
+ *   也强制放行一次 (绕过熔断冷却, 重试权威源). 成功后仍会 recordSuccess 自愈,
+ *   失败则 recordFailure 维持/重置冷却 — 跟正常路径一致.
+ */
+function shouldAllow(breaker, now, force = false) {
+  if (force) return true;
   if (breaker.state === STATE.CLOSED) return true;
   if (breaker.state === STATE.OPEN) {
     if (now >= breaker.openUntil) {

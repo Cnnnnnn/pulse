@@ -5,6 +5,9 @@ import { FundCardGrid } from './FundCardGrid.jsx';
 import { FundPnlHistory } from './FundPnlHistory.jsx';
 import { AddFundModal } from './AddFundModal.jsx';
 import { FundAlertModal } from './FundAlertModal.jsx';
+import { FundDashboard } from './FundDashboard.jsx';
+import { FundList } from './FundList.jsx';
+import { FundDetail } from './FundDetail.jsx';
 import {
   loadFunds,
   loadNavState,
@@ -15,14 +18,37 @@ import {
   addModalOpen,
   alertModalOpen,
 } from './fundStore.js';
+import { fundPage, selectedFundCode } from './fundRoute.js';
 import { api } from '../api.js';
 
 // ponytail: 投资 nav 合并 (2026-07-13) — 原 FundLayout 改为 FundContent,
 //   nav-level 数据加载 effect 抽到 InvestLayout 统一触发 (避免 Content 卸载重 mount 重复加载).
 //   保留 FundLayout export 以兼容旧 LazyNavPanel 引用 (Phase A 已删除, 但保留无害).
+//
+// 2026-07-14 (计划 §2): 按 fundPage 信号路由 概览 / 列表 两个 view,
+//   selectedFundCode 非空时优先渲染 FundDetail (列表下钻).
+//   fallback 保持旧 Hero+Grid+PnlHistory 渲染 — 给 fundPage=undefined 或未知值的旧调用.
 export function FundContent() {
-  // Content 自身不再触发数据加载 — InvestLayout 接管.
-  // CategoryTabs / FundCardGrid / FundPnlHistory / Modal 全在 FundContent 渲染.
+  const page = fundPage.value;
+  const code = selectedFundCode.value;
+  if (page === 'dashboard') {
+    return (
+      <>
+        <FundDashboard />
+        {addModalOpen.value && <AddFundModal />}
+        {alertModalOpen.value && <FundAlertModal />}
+      </>
+    );
+  }
+  if (page === 'list') {
+    return (
+      <>
+        {code ? <FundDetail code={code} /> : <FundList />}
+        {addModalOpen.value && <AddFundModal />}
+        {alertModalOpen.value && <FundAlertModal />}
+      </>
+    );
+  }
   return (
     <div class="fund-layout fund-layout--dashboard">
       <FundHero />

@@ -1,6 +1,6 @@
 {
   "name": "pulse",
-  "version": "2.79.1",
+  "version": "2.79.2",
   "description": "macOS 菜单栏更新监测器 — Pulse",
   "main": "src/main/index.js",
   "scripts": {
@@ -42,6 +42,7 @@
     "png-to-ico": "^2.1.8",
     "stylelint": "^15.11.0",
     "stylelint-config-standard": "^34.0.0",
+    "typescript": "^5.6.3",
     "vitest": "^2.1.9"
   },
   "overrides": {

@@ -4,13 +4,17 @@
  * 2026-07-13 投资 nav 合并 — 顶部统一两级 sub-tab header (镜像 NewsLayoutHeader):
  *   - 品牌: 投资 + IconCoin
  *   - 主级 sub-tabs: 基金 / 贵金属 / 选股 (写 investPrimary signal)
- *   - 二级 sub-tabs: 基金 (全部/自选) + 选股 (筛选/个股分析, 写 stockActiveTab)
+ *   - 二级 sub-tabs: 基金 (概览/列表/交易) + 选股 (筛选/个股分析, 写 stockActiveTab)
  *   - 刷新按钮 (派发到当前子模块, 由 caller 传 onRefresh + refreshing)
  *
  * 单一真相约定 (跨组件状态避免双向 props):
- *   - 基金二级 tab: fundView 信号由 InvestLayout 持有, Header 通过 props 接 (避免 Header 内 import fundStore)
+ *   - 基金二级 tab: fundPage 信号由 fundRoute 持有, Header 通过 props 接 (避免 Header 内 import fundRoute)
  *   - 选股二级 tab: stockActiveTab 信号由 diagnosisStore 持有, Header 直接读写 (Task 8 单源)
  *   - 主级 investPrimary: navStore 信号, Header 直接读写
+ *
+ * 2026-07-14 (计划 §3 Phase 1): 基金二级 tab 由 全部/自选 改为 概览/列表/交易.
+ *   fundView (全部/自选) 仍保留, 由列表页内部作为次级筛选呈现 (FundCategoryTabs),
+ *   Header 不再渲染, 避免与 fundPage 双 tab 重叠.
  */
 import {
   investPrimary,
@@ -26,9 +30,11 @@ export const INVEST_PRIMARY_TABS = [
   { key: "stocks", label: "选股" },
 ];
 
+// 计划 §1.2 / Phase 1: 二级 tab 改为 概览 / 列表
+// 2026-07-14: 第三项「交易 / 记账」已移除 (无下单/记账需求), 保留两个 tab.
 export const FUND_VIEW_TABS = [
-  { key: "all", label: "全部" },
-  { key: "watch", label: "自选" },
+  { key: "dashboard", label: "概览" },
+  { key: "list", label: "列表" },
 ];
 
 export const STOCK_VIEW_TABS = [
@@ -79,8 +85,8 @@ function onHeaderKeyDown(e) {
 }
 
 export function InvestLayoutHeader({
-  fundView,
-  onFundViewChange,
+  fundPage,
+  onFundPageChange,
   onRefresh,
   refreshing,
 }) {
@@ -123,8 +129,8 @@ export function InvestLayoutHeader({
           <SubtabList
             prefix="invest-sub"
             tabs={FUND_VIEW_TABS}
-            activeKey={fundView}
-            onChange={onFundViewChange}
+            activeKey={fundPage}
+            onChange={onFundPageChange}
             ariaLabel="基金视图切换"
           >
             {(t) => <span>{t.label}</span>}

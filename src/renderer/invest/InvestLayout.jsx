@@ -40,6 +40,7 @@ import {
   subscribeNavUpdates,
   prefetchAllNavHistory,
 } from "../funds/fundStore.js";
+import { fundPage, setFundPage } from "../funds/fundRoute.js";
 import { metalsRefreshing } from "../metals/metalStore.js";
 import { api } from "../api.js";
 import { FundContent } from "../funds/FundLayout.jsx";
@@ -100,10 +101,8 @@ export function InvestLayout() {
   return (
     <div class="invest-layout">
       <InvestLayoutHeader
-        fundView={fundView.value}
-        onFundViewChange={(k) => {
-          fundView.value = k;
-        }}
+        fundPage={fundPage.value}
+        onFundPageChange={(k) => setFundPage(k)}
         onRefresh={() => {
           void refreshActiveNav("invest");
         }}
