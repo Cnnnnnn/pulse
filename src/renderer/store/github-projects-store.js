@@ -79,6 +79,15 @@ export function formatStars(n) {
   return `${(num / 10000).toFixed(1)}w`;
 }
 
+/** 把收录时间格式化为 MM-DD（如 07-16）。 */
+export function formatAddedDate(ts) {
+  const d = typeof ts === "number" && ts > 0 ? new Date(ts) : null;
+  if (!d || Number.isNaN(d.getTime())) return "";
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${m}-${day}`;
+}
+
 /** 把错误 reason 映射成中文提示。 */
 export function githubReasonText(reason) {
   switch (reason) {
