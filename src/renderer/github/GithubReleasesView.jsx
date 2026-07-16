@@ -19,6 +19,7 @@ import {
   IconAlert,
 } from "../components/icons.jsx";
 import {
+  githubDensity,
   fetchGithubRelease,
   hasGithubUpdate,
   markGithubSeen,
@@ -30,6 +31,20 @@ function absoluteDate(ts) {
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** 月份分组键（YYYY-M），无日期归为 unknown 单独成组。 */
+function monthKeyOf(ts) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime()) || !(ts > 0)) return "unknown";
+  return `${d.getFullYear()}-${d.getMonth() + 1}`;
+}
+
+/** 月份分组标题（中文「YYYY 年 M 月」）。 */
+function monthLabelOf(ts) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime()) || !(ts > 0)) return "日期不明";
+  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`;
 }
 
 function ReleasesSkeleton() {
@@ -129,6 +144,30 @@ export function GithubReleasesView({ project, onMarkSeen }) {
     );
   }
 
+  const density = githubDensity.value;
+  const timelineItems = releases.map((r, i) => ({
+    r,
+    originalIndex: i,
+    isLatest: i === 0,
+  }));
+  const groups = [];
+  const groupIndex = new Map();
+  for (const it of timelineItems) {
+    const key = monthKeyOf(it.r.publishedAt);
+    let g = groupIndex.get(key);
+    if (!g) {
+      g = { key, label: monthLabelOf(it.r.publishedAt), items: [] };
+      groupIndex.set(key, g);
+      groups.push(g);
+    }
+    g.items.push(it);
+  }
+  // 默认展开条数由密度决定：紧凑仅展开最新，舒适展开全部
+  function isOpen(i) {
+    const def = density === "compact" ? i === 0 : true;
+    return expanded[i] ?? def;
+  }
+
   return (
     <div class="github-rel">
       <div class={`github-rel-bar ${hasUpdate ? "is-update" : ""}`}>
@@ -155,61 +194,66 @@ export function GithubReleasesView({ project, onMarkSeen }) {
         )}
       </div>
 
-      <div class="github-rel-timeline">
-        {releases.map((r, i) => (
-          <div
-            class={`github-rel-item ${i === 0 ? "is-latest" : ""}`}
-            key={r.tagName || r.version || i}
-          >
-            <span class="github-rel-node" aria-hidden="true" />
-            <div class="github-rel-item__body">
-              <div class="github-rel-item__head">
-                <span class="github-rel-ver">v{r.version}</span>
-                {r.publishedAt > 0 && (
-                  <span
-                    class="github-rel-item__date"
-                    title={absoluteDate(r.publishedAt)}
-                  >
-                    {formatRelativeTime(r.publishedAt)}
-                  </span>
-                )}
-                {r.notesUrl && (
-                  <a
-                    class="github-rel-link"
-                    href={r.notesUrl}
-                    title="打开 Release 页面"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      api.openUrl(r.notesUrl);
-                    }}
-                  >
-                    <IconExternalLink size={13} /> Release
-                  </a>
-                )}
-              </div>
-              {r.body && r.body.trim() && (
-                <>
-                  <p
-                    class={`github-rel-notes ${expanded[i] ? "is-open" : ""}`}
-                  >
-                    {r.body.trim()}
-                  </p>
-                  <button
-                    type="button"
-                    class="github-rel-toggle"
-                    aria-expanded={!!expanded[i]}
-                    onClick={() => toggleNotes(i)}
-                  >
-                    {expanded[i] ? "收起说明" : "展开说明"}
-                    {expanded[i] ? (
-                      <IconChevronUp size={13} />
-                    ) : (
-                      <IconChevronDown size={13} />
+      <div class={`github-rel-timeline ${density === "compact" ? "github-rel-timeline--compact" : ""}`}>
+        {groups.map((g) => (
+          <div class="github-rel-group" key={g.key}>
+            <div class="github-rel-month">{g.label}</div>
+            {g.items.map(({ r, originalIndex, isLatest }) => (
+              <div
+                class={`github-rel-item ${isLatest ? "is-latest" : ""}`}
+                key={r.tagName || r.version || originalIndex}
+              >
+                <span class="github-rel-node" aria-hidden="true" />
+                <div class="github-rel-item__body">
+                  <div class="github-rel-item__head">
+                    <span class="github-rel-ver">v{r.version}</span>
+                    {r.publishedAt > 0 && (
+                      <span
+                        class="github-rel-item__date"
+                        title={absoluteDate(r.publishedAt)}
+                      >
+                        {formatRelativeTime(r.publishedAt)}
+                      </span>
                     )}
-                  </button>
-                </>
-              )}
-            </div>
+                    {r.notesUrl && (
+                      <a
+                        class="github-rel-link"
+                        href={r.notesUrl}
+                        title="打开 Release 页面"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          api.openUrl(r.notesUrl);
+                        }}
+                      >
+                        <IconExternalLink size={13} /> Release
+                      </a>
+                    )}
+                  </div>
+                  {r.body && r.body.trim() && (
+                    <>
+                      <p
+                        class={`github-rel-notes ${isOpen(originalIndex) ? "is-open" : ""}`}
+                      >
+                        {r.body.trim()}
+                      </p>
+                      <button
+                        type="button"
+                        class="github-rel-toggle"
+                        aria-expanded={!!isOpen(originalIndex)}
+                        onClick={() => toggleNotes(originalIndex)}
+                      >
+                        {isOpen(originalIndex) ? "收起说明" : "展开说明"}
+                        {isOpen(originalIndex) ? (
+                          <IconChevronUp size={13} />
+                        ) : (
+                          <IconChevronDown size={13} />
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         ))}
       </div>

@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
-import { GithubProjectRow, GithubProjectCard } from '../../src/renderer/github/GithubProjectList.jsx';
+import { GithubProjectRow, GithubProjectCard, GithubProjectList } from '../../src/renderer/github/GithubProjectList.jsx';
+import { githubProjects } from '../../src/renderer/store/github-projects-store.js';
 
 function makeProject(overrides = {}) {
   return {
@@ -117,5 +118,62 @@ describe('GitHub 项目列表 · 更新状态徽标', () => {
     const badge = container.querySelector('.github-chip--update');
     expect(badge).toBeTruthy();
     expect(badge.textContent).toContain('新版本 v3.1.0');
+  });
+});
+
+describe('GitHub 项目列表 · 全部已读', () => {
+  beforeEach(() => {
+    githubProjects.value = [];
+  });
+
+  function seedList(items) {
+    githubProjects.value = items.map((x) => ({
+      id: x.id,
+      name: x.id,
+      description: '',
+      language: '',
+      stars: 0,
+      addedAt: Date.now(),
+      aiParse: null,
+      latestVersion: x.latestVersion || '',
+      lastSeenVersion: x.lastSeenVersion || '',
+      releases: x.releases || [],
+      releaseFetchedAt: x.releaseFetchedAt || 0,
+    }));
+  }
+
+  it('存在未读更新时显示「全部已读」按钮，点击调用 onMarkAllSeen', () => {
+    seedList([
+      { id: 'a/b', latestVersion: '2.0.0', lastSeenVersion: '1.0.0' },
+      { id: 'c/d', latestVersion: '1.0.0', lastSeenVersion: '1.0.0' },
+    ]);
+    const onMarkAllSeen = vi.fn();
+    const { container } = render(
+      <GithubProjectList
+        onView={vi.fn()}
+        onParse={vi.fn()}
+        onCheckUpdates={vi.fn()}
+        onMarkAllSeen={onMarkAllSeen}
+      />,
+    );
+    const btn = container.querySelector('.github-markall-btn');
+    expect(btn).toBeTruthy();
+    expect(btn.textContent).toContain('全部已读');
+    expect(btn.textContent).toContain('1'); // 未读计数胶囊
+    fireEvent.click(btn);
+    expect(onMarkAllSeen).toHaveBeenCalledTimes(1);
+  });
+
+  it('无未读更新时不显示「全部已读」按钮', () => {
+    seedList([{ id: 'a/b', latestVersion: '1.0.0', lastSeenVersion: '1.0.0' }]);
+    const { container } = render(
+      <GithubProjectList
+        onView={vi.fn()}
+        onParse={vi.fn()}
+        onCheckUpdates={vi.fn()}
+        onMarkAllSeen={vi.fn()}
+      />,
+    );
+    expect(container.querySelector('.github-markall-btn')).toBeNull();
   });
 });

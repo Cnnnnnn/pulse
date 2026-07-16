@@ -19,6 +19,8 @@ vi.mock('../../src/renderer/store/github-projects-store.js', async () => {
   };
 });
 
+import { githubDensity } from '../../src/renderer/store/github-projects-store.js';
+
 function makeProject(overrides = {}) {
   return {
     id: 'facebook/react',
@@ -38,6 +40,7 @@ beforeEach(() => {
   fetchGithubReleaseMock.mockReset();
   markGithubSeenMock.mockReset();
   fetchGithubReleaseMock.mockReturnValue(Promise.resolve({ ok: true }));
+  githubDensity.value = "comfortable";
 });
 
 describe('GitHub 更新 tab · GithubReleasesView', () => {
@@ -150,5 +153,126 @@ describe('GitHub 更新 tab · GithubReleasesView', () => {
       />,
     );
     expect(container.textContent).toContain('还没有发布 Release');
+  });
+});
+
+describe('GitHub 更新 tab · 月份分组 + 视图密度', () => {
+  it('跨月份 release 渲染月份分组标题，节点总数不变', () => {
+    const { container } = render(
+      <GithubReleasesView
+        project={makeProject({
+          releaseFetchedAt: Date.now(),
+          latestVersion: '3.0.0',
+          latestVersionPublishedAt: Date.parse('2026-06-15T00:00:00Z'),
+          lastSeenVersion: '2.0.0',
+          releases: [
+            {
+              version: '3.0.0',
+              tagName: 'v3.0.0',
+              publishedAt: Date.parse('2026-06-15T00:00:00Z'),
+              notesUrl: '',
+              body: 'jun15',
+            },
+            {
+              version: '2.5.0',
+              tagName: 'v2.5.0',
+              publishedAt: Date.parse('2026-06-02T00:00:00Z'),
+              notesUrl: '',
+              body: 'jun2',
+            },
+            {
+              version: '2.0.0',
+              tagName: 'v2.0.0',
+              publishedAt: Date.parse('2026-04-10T00:00:00Z'),
+              notesUrl: '',
+              body: 'apr10',
+            },
+          ],
+        })}
+      />,
+    );
+    const months = container.querySelectorAll('.github-rel-month');
+    expect(months.length).toBe(2);
+    expect(months[0].textContent).toContain('2026 年 6 月');
+    expect(months[1].textContent).toContain('2026 年 4 月');
+    expect(container.querySelectorAll('.github-rel-item').length).toBe(3);
+    expect(container.querySelector('.github-rel-item.is-latest')).toBeTruthy();
+  });
+
+  it('舒适密度：默认展开全部说明', () => {
+    githubDensity.value = 'comfortable';
+    const { container } = render(
+      <GithubReleasesView
+        project={makeProject({
+          releaseFetchedAt: Date.now(),
+          latestVersion: '1.0.0',
+          latestVersionPublishedAt: Date.parse('2026-06-15T00:00:00Z'),
+          lastSeenVersion: '1.0.0',
+          releases: [
+            {
+              version: '1.0.0',
+              tagName: 'v1.0.0',
+              publishedAt: Date.parse('2026-06-15T00:00:00Z'),
+              notesUrl: '',
+              body: 'a',
+            },
+            {
+              version: '0.9.0',
+              tagName: 'v0.9.0',
+              publishedAt: Date.parse('2026-06-02T00:00:00Z'),
+              notesUrl: '',
+              body: 'b',
+            },
+            {
+              version: '0.8.0',
+              tagName: 'v0.8.0',
+              publishedAt: Date.parse('2026-04-10T00:00:00Z'),
+              notesUrl: '',
+              body: 'c',
+            },
+          ],
+        })}
+      />,
+    );
+    expect(container.querySelectorAll('.github-rel-notes.is-open').length).toBe(3);
+  });
+
+  it('紧凑密度：仅最新默认展开，时间线带 --compact 类', () => {
+    githubDensity.value = 'compact';
+    const { container } = render(
+      <GithubReleasesView
+        project={makeProject({
+          releaseFetchedAt: Date.now(),
+          latestVersion: '1.0.0',
+          latestVersionPublishedAt: Date.parse('2026-06-15T00:00:00Z'),
+          lastSeenVersion: '1.0.0',
+          releases: [
+            {
+              version: '1.0.0',
+              tagName: 'v1.0.0',
+              publishedAt: Date.parse('2026-06-15T00:00:00Z'),
+              notesUrl: '',
+              body: 'a',
+            },
+            {
+              version: '0.9.0',
+              tagName: 'v0.9.0',
+              publishedAt: Date.parse('2026-06-02T00:00:00Z'),
+              notesUrl: '',
+              body: 'b',
+            },
+            {
+              version: '0.8.0',
+              tagName: 'v0.8.0',
+              publishedAt: Date.parse('2026-04-10T00:00:00Z'),
+              notesUrl: '',
+              body: 'c',
+            },
+          ],
+        })}
+      />,
+    );
+    expect(container.querySelector('.github-rel-timeline--compact')).toBeTruthy();
+    expect(container.querySelectorAll('.github-rel-notes.is-open').length).toBe(1);
   });
 });

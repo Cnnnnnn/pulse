@@ -20,6 +20,8 @@ export const githubBusy = signal(false);
 export const githubBusyId = signal(null);
 /** 最近一次错误 reason — 用于顶部提示。 */
 export const githubError = signal(null);
+/** 视图密度偏好（comfortable | compact）— 控制更新时间线默认展开条数与间距。 */
+export const githubDensity = signal("comfortable");
 
 const _mem = new Map();
 
@@ -63,6 +65,59 @@ function persist() {
     writeStore(JSON.stringify(githubProjects.value));
   } catch {
     /* 配额超限等忽略，不阻断 UI */
+  }
+}
+
+const SETTINGS_KEY = "pulse.github.settings.v1";
+
+function readSettings() {
+  try {
+    if (typeof globalThis.localStorage === "undefined") return null;
+    return globalThis.localStorage.getItem(SETTINGS_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeSettings(raw) {
+  try {
+    if (typeof globalThis.localStorage === "undefined") {
+      _mem.set(SETTINGS_KEY, raw);
+      return;
+    }
+    globalThis.localStorage.setItem(SETTINGS_KEY, raw);
+  } catch {
+    _mem.set(SETTINGS_KEY, raw);
+  }
+}
+
+/**
+ * 读取持久化的模块设置（当前仅 density）。损坏数据忽略，回退默认。
+ */
+export function loadGithubSettings() {
+  const raw = readSettings() ?? _mem.get(SETTINGS_KEY) ?? null;
+  if (!raw) return;
+  try {
+    const o = JSON.parse(raw);
+    if (o && (o.density === "compact" || o.density === "comfortable")) {
+      githubDensity.value = o.density;
+    }
+  } catch {
+    /* 损坏数据忽略 */
+  }
+}
+
+/**
+ * 设置并更新持久化视图密度。
+ * @param {"comfortable"|"compact"} d
+ */
+export function setGithubDensity(d) {
+  if (d !== "compact" && d !== "comfortable") return;
+  githubDensity.value = d;
+  try {
+    writeSettings(JSON.stringify({ density: d }));
+  } catch {
+    /* 配额超限等忽略 */
   }
 }
 
@@ -381,6 +436,26 @@ export function markGithubSeen(id) {
     x.id === id ? { ...x, lastSeenVersion: x.latestVersion } : x,
   );
   persist();
+}
+
+/**
+ * 批量标记所有「有更新」的项目为已读（把 lastSeenVersion 设为当前 latestVersion）。
+ * @returns {number} 实际标记的项目数（用于 toast 文案）
+ */
+export function markGithubAllSeen() {
+  let count = 0;
+  const next = githubProjects.value.map((x) => {
+    if (x.latestVersion && x.latestVersion !== x.lastSeenVersion) {
+      count += 1;
+      return { ...x, lastSeenVersion: x.latestVersion };
+    }
+    return x;
+  });
+  if (count > 0) {
+    githubProjects.value = next;
+    persist();
+  }
+  return count;
 }
 
 /**

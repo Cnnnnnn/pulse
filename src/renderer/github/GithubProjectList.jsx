@@ -24,11 +24,14 @@ import {
   IconList,
   IconGrid,
   IconRefresh,
+  IconCheck,
   IconGithub,
 } from "../components/icons.jsx";
 import {
   githubProjects,
   githubBusyId,
+  githubDensity,
+  setGithubDensity,
   removeGithubProject,
   togglePinGithubProject,
   formatStars,
@@ -101,7 +104,7 @@ function GithubUpdateBadge({ project, onView }) {
   );
 }
 
-export function GithubProjectList({ onView, onParse, onCheckUpdates }) {
+export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSeen }) {
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("added");
@@ -111,6 +114,8 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates }) {
   const [progress, setProgress] = useState({ done: 0, total: 0 });
 
   const projects = githubProjects.value;
+  const density = githubDensity.value;
+  const unseen = projects.filter(hasGithubUpdate).length;
 
   /* 从收录库派生去重、排序的语言集合，用于筛选胶囊 */
   const allLanguages = useMemo(() => {
@@ -268,6 +273,37 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates }) {
             onClick={() => setView("card")}
           >
             <IconGrid size={16} />
+          </button>
+        </div>
+        {unseen > 0 && (
+          <button
+            type="button"
+            class="github-btn github-btn--ghost github-markall-btn"
+            onClick={() => onMarkAllSeen && onMarkAllSeen()}
+            title={`将 ${unseen} 个未读项目标记为已读`}
+          >
+            <IconCheck size={14} /> 全部已读
+            <span class="github-markall-btn__count">{unseen}</span>
+          </button>
+        )}
+        <div class="github-density" role="group" aria-label="更新时间线密度">
+          <button
+            type="button"
+            class={`github-density__btn ${density === "comfortable" ? "is-active" : ""}`}
+            aria-pressed={density === "comfortable"}
+            title="舒适：更新时间线展开更多说明"
+            onClick={() => setGithubDensity("comfortable")}
+          >
+            舒适
+          </button>
+          <button
+            type="button"
+            class={`github-density__btn ${density === "compact" ? "is-active" : ""}`}
+            aria-pressed={density === "compact"}
+            title="紧凑：更新时间线仅展开最新，间距更密"
+            onClick={() => setGithubDensity("compact")}
+          >
+            紧凑
           </button>
         </div>
         <button

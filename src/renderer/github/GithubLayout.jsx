@@ -9,6 +9,7 @@ import { useEffect } from "preact/hooks";
 import "./github.css";
 import {
   loadGithubProjects,
+  loadGithubSettings,
   githubProjects,
   checkGithubUpdates,
 } from "../store/github-projects-store.js";
@@ -17,6 +18,7 @@ import { GithubPage } from "./GithubPage.jsx";
 export function GithubLayout() {
   useEffect(() => {
     loadGithubProjects();
+    loadGithubSettings();
     // 首次进入：静默检查一次（仅从未拉过 release 的项目），写入版本字段但不弹 toast
     const t = setTimeout(() => {
       const projs = githubProjects.value;

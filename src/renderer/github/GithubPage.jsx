@@ -12,6 +12,7 @@ import {
   githubError,
   checkGithubUpdates,
   markGithubSeen,
+  markGithubAllSeen,
 } from "../store/github-projects-store.js";
 import { showToast } from "../store/toast-store.js";
 import { GithubAddForm } from "./GithubAddForm.jsx";
@@ -64,6 +65,12 @@ export function GithubPage() {
     return r;
   }
 
+  function handleMarkAllSeen() {
+    const n = markGithubAllSeen();
+    if (n > 0) showToast(`已将 ${n} 个项目标记为已读`, "info");
+    return n;
+  }
+
   const count = githubProjects.value.length;
 
   return (
@@ -95,6 +102,7 @@ export function GithubPage() {
           onView={handleView}
           onParse={handleParse}
           onCheckUpdates={handleCheckUpdates}
+          onMarkAllSeen={handleMarkAllSeen}
         />
       </div>
 
