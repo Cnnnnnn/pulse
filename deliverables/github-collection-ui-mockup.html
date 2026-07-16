@@ -207,6 +207,21 @@ input, select { font-family: inherit; }
 .seg button svg { width: 15px; height: 15px; }
 .seg button.on { background: var(--surface); color: var(--text-primary); box-shadow: var(--shadow-sm); }
 
+/* ── 语言筛选胶囊栏（增强） ── */
+.filterbar { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+.fpill {
+  height: 28px; padding: 0 12px; font-size: var(--fs-12); font-weight: 500;
+  color: var(--text-secondary); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-pill, 999px);
+  cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+}
+.fpill:hover { color: var(--text-primary); border-color: var(--accent-primary); }
+.fpill.on {
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent);
+}
+
 /* ── 列表 ── */
 .list { display: flex; flex-direction: column; gap: var(--space-3); }
 .row {
@@ -472,10 +487,18 @@ input, select { font-family: inherit; }
           </div>
         </div>
 
+        <!-- 语言筛选胶囊栏（增强；示例数据 3 种语言，故展示） -->
+        <div class="filterbar" role="group" aria-label="按语言筛选">
+          <button class="fpill on" data-lang="" onclick="setLang('')">全部</button>
+          <button class="fpill" data-lang="C++" onclick="setLang('C++')">C++</button>
+          <button class="fpill" data-lang="JavaScript" onclick="setLang('JavaScript')">JavaScript</button>
+          <button class="fpill" data-lang="TypeScript" onclick="setLang('TypeScript')">TypeScript</button>
+        </div>
+
         <!-- 列表 -->
         <div class="list" id="list">
           <!-- 行 1：已 AI 解析 -->
-          <div class="row" data-name="facebook/react" data-stars="228000" data-added="3">
+          <div class="row" data-name="facebook/react" data-stars="228000" data-added="3" data-lang="JavaScript">
             <div class="head">
               <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
               <div style="flex:1;min-width:0">
@@ -501,7 +524,7 @@ input, select { font-family: inherit; }
           </div>
 
           <!-- 行 2：已 AI 解析 -->
-          <div class="row" data-name="apple/swift" data-stars="67000" data-added="2">
+          <div class="row" data-name="apple/swift" data-stars="67000" data-added="2" data-lang="C++">
             <div class="head">
               <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
               <div style="flex:1;min-width:0">
@@ -527,7 +550,7 @@ input, select { font-family: inherit; }
           </div>
 
           <!-- 行 3：待解析 -->
-          <div class="row" data-name="tailwindlabs/tailwindcss" data-stars="82000" data-added="1">
+          <div class="row" data-name="tailwindlabs/tailwindcss" data-stars="82000" data-added="1" data-lang="TypeScript">
             <div class="head">
               <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
               <div style="flex:1;min-width:0">
@@ -552,7 +575,7 @@ input, select { font-family: inherit; }
         <!-- 卡片视图（与列表同源数据；默认隐藏，由 setView 切换） -->
         <div class="cards" id="cards" style="display:none">
           <!-- 卡片 1：已 AI 解析 -->
-          <div class="card" data-name="facebook/react" data-stars="228000" data-added="3">
+          <div class="card" data-name="facebook/react" data-stars="228000" data-added="3" data-lang="JavaScript">
             <div class="c-head">
               <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
               <div style="flex:1;min-width:0">
@@ -578,7 +601,7 @@ input, select { font-family: inherit; }
           </div>
 
           <!-- 卡片 2：已 AI 解析 -->
-          <div class="card" data-name="apple/swift" data-stars="67000" data-added="2">
+          <div class="card" data-name="apple/swift" data-stars="67000" data-added="2" data-lang="C++">
             <div class="c-head">
               <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
               <div style="flex:1;min-width:0">
@@ -604,7 +627,7 @@ input, select { font-family: inherit; }
           </div>
 
           <!-- 卡片 3：待解析 -->
-          <div class="card" data-name="tailwindlabs/tailwindcss" data-stars="82000" data-added="1">
+          <div class="card" data-name="tailwindlabs/tailwindcss" data-stars="82000" data-added="1" data-lang="TypeScript">
             <div class="c-head">
               <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
               <div style="flex:1;min-width:0">
@@ -737,7 +760,17 @@ function closeModal(){ document.getElementById('modalOverlay').classList.remove(
 function doDelete(){ closeModal(); }
 function toggleTheme(){ const html=document.documentElement; const dark=html.getAttribute('data-theme')==='dark'; html.setAttribute('data-theme', dark?'light':'dark'); document.getElementById('themeLabel').textContent = dark?'深色':'浅色'; }
 function addProject(e){ e.preventDefault(); const i=document.getElementById('addInput'); const h=document.getElementById('addHint'); const v=i.value.trim(); const ok=/^(https?:\/\/)?(www\.)?github\.com\/[\w.-]+\/[\w.-]+/i.test(v)||/^[\w.-]+\/[\w.-]+$/.test(v); if(!ok){ i.classList.add('invalid'); h.classList.add('err'); h.textContent='地址格式不正确，应为 github.com/owner/repo 或 owner/repo'; return false; } i.classList.remove('invalid'); h.classList.remove('err'); h.textContent='已收录 '+v.replace(/^https?:\/\/(www\.)?github\.com\//,''); i.value=''; return false; }
-function filterList(q){ q=q.toLowerCase(); document.querySelectorAll('#list .row, #cards .card').forEach(r=>{ const n=r.dataset.name.toLowerCase(); r.style.display = n.includes(q)?'':'none'; }); }
+let currentQuery='', currentLang='';
+function applyFilter(){
+  document.querySelectorAll('#list .row, #cards .card').forEach(r=>{
+    const n=(r.dataset.name||'').toLowerCase();
+    const okQ = !currentQuery || n.includes(currentQuery);
+    const okL = !currentLang || (r.dataset.lang||'')===currentLang;
+    r.style.display = (okQ && okL) ? '' : 'none';
+  });
+}
+function filterList(q){ currentQuery=q.toLowerCase(); applyFilter(); }
+function setLang(l){ currentLang=l; document.querySelectorAll('.fpill').forEach(b=>b.classList.toggle('on', b.dataset.lang===l)); applyFilter(); }
 function sortList(mode){ ['list','cards'].forEach(cid=>{ const c=document.getElementById(cid); const items=[...c.children]; items.sort((a,b)=>{ if(mode==='stars') return +b.dataset.stars-+a.dataset.stars; if(mode==='name') return a.dataset.name.localeCompare(b.dataset.name); return +b.dataset.added-+a.dataset.added; }); items.forEach(r=>c.appendChild(r)); }); }
 function setView(v){ const list=document.getElementById('segList'), card=document.getElementById('segCard'); const on=v==='list'; list.classList.toggle('on',on); card.classList.toggle('on',!on); document.getElementById('list').style.display = on ? '' : 'none'; document.getElementById('cards').style.display = on ? 'none' : ''; }
 </script>

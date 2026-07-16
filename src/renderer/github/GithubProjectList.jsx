@@ -10,6 +10,7 @@
  * P1 增强 (2026-07-16):
  *  - 列表 / 卡片视图切换；卡片以网格呈现并露 AI 摘要封面
  *  - 抽出 GithubActions 供行与卡片复用（含窄屏「⋯」溢出菜单）
+ *  - 语言筛选胶囊栏（从收录库派生语言集合，仅多语言时显示）
  */
 
 import { useState, useMemo } from "preact/hooks";
@@ -39,8 +40,18 @@ export function GithubProjectList({ onView, onParse }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("added");
   const [view, setView] = useState("list");
+  const [lang, setLang] = useState("");
 
   const projects = githubProjects.value;
+
+  /* 从收录库派生去重、排序的语言集合，用于筛选胶囊 */
+  const allLanguages = useMemo(() => {
+    const set = new Set();
+    projects.forEach((p) => {
+      if (p.language) set.add(p.language);
+    });
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [projects]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -52,6 +63,9 @@ export function GithubProjectList({ onView, onParse }) {
           (p.description && p.description.toLowerCase().includes(q)),
       );
     }
+    if (lang) {
+      list = list.filter((p) => p.language === lang);
+    }
     const sorted = [...list];
     if (sort === "stars") {
       sorted.sort((a, b) => (b.stars || 0) - (a.stars || 0));
@@ -61,7 +75,7 @@ export function GithubProjectList({ onView, onParse }) {
       sorted.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
     }
     return sorted;
-  }, [projects, query, sort]);
+  }, [projects, query, lang, sort]);
 
   const total = visible.length;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -74,6 +88,10 @@ export function GithubProjectList({ onView, onParse }) {
   }
   function handleSort(e) {
     setSort(e.currentTarget.value);
+    setPage(1);
+  }
+  function handleLang(next) {
+    setLang(next);
     setPage(1);
   }
   async function handleRemove(project) {
@@ -169,6 +187,30 @@ export function GithubProjectList({ onView, onParse }) {
           </button>
         </div>
       </div>
+
+      {allLanguages.length >= 2 && (
+        <div class="github-filterbar" role="group" aria-label="按语言筛选">
+          <button
+            type="button"
+            class={`github-chip-pill ${lang === "" ? "is-active" : ""}`}
+            aria-pressed={lang === ""}
+            onClick={() => handleLang("")}
+          >
+            全部
+          </button>
+          {allLanguages.map((l) => (
+            <button
+              type="button"
+              key={l}
+              class={`github-chip-pill ${lang === l ? "is-active" : ""}`}
+              aria-pressed={lang === l}
+              onClick={() => handleLang(l)}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      )}
 
       {total === 0 ? (
         <div class="github-empty">
