@@ -10,8 +10,10 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   githubProjects,
   githubDensity,
+  githubToken,
   markGithubAllSeen,
   setGithubDensity,
+  setGithubToken,
   loadGithubSettings,
 } from "../../src/renderer/store/github-projects-store.js";
 
@@ -30,6 +32,7 @@ describe("github store · 批量已读 + 视图密度", () => {
   beforeEach(() => {
     githubProjects.value = [];
     githubDensity.value = "comfortable";
+    githubToken.value = "";
     try {
       globalThis.localStorage.clear();
     } catch {
@@ -76,5 +79,42 @@ describe("github store · 批量已读 + 视图密度", () => {
     setGithubDensity("compact");
     setGithubDensity("weird");
     expect(githubDensity.value).toBe("compact");
+  });
+
+  it("setGithubToken 写信号并持久化（token 不被提交到版本库）", () => {
+    setGithubToken("github_pat_demo123");
+    expect(githubToken.value).toBe("github_pat_demo123");
+    const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
+    expect(raw).toContain("github_pat_demo123");
+    expect(raw).toContain("comfortable"); // 密度也一并保留
+  });
+
+  it("setGithubToken 去除首尾空白", () => {
+    setGithubToken("  github_pat_x  ");
+    expect(githubToken.value).toBe("github_pat_x");
+  });
+
+  it("loadGithubSettings 从持久化恢复 token", () => {
+    setGithubToken("github_pat_restore");
+    githubToken.value = "";
+    loadGithubSettings();
+    expect(githubToken.value).toBe("github_pat_restore");
+  });
+
+  it("setGithubDensity 不会清掉已保存的 token", () => {
+    setGithubToken("github_pat_keep");
+    setGithubDensity("compact");
+    expect(githubToken.value).toBe("github_pat_keep");
+    const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
+    expect(raw).toContain("github_pat_keep");
+    expect(raw).toContain("compact");
+  });
+
+  it("setGithubToken('') 清除令牌", () => {
+    setGithubToken("github_pat_tmp");
+    setGithubToken("");
+    expect(githubToken.value).toBe("");
+    const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
+    expect(raw).not.toContain("github_pat_tmp");
   });
 });

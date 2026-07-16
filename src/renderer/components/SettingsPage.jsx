@@ -11,7 +11,7 @@
  * ponytail: single source of truth — 所有 AI 配置修改只在 SettingsPage 'ai-config'
  *          tab 内进行, 移除 Modal 减少状态分裂.
  */
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { signal } from "@preact/signals";
 import { PageHeader } from "./PageHeader.jsx";
 import { SubtabList } from "./SubtabList.jsx";
@@ -23,6 +23,7 @@ import {
   subscribeTheme,
 } from "../theme/theme-manager.js";
 import { showToast } from "../store.js";
+import { githubToken, setGithubToken } from "../store/github-projects-store.js";
 
 /* ─── theme signal (与 localStorage 同步) ─────────────────────── */
 // ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
@@ -41,6 +42,7 @@ const themeResolved = signal(
 const settingsTab = signal(routeTab.value === "ai" ? "ai" : "general");
 const SETTINGS_TABS = [
   { key: "general", label: "常规" },
+  { key: "github", label: "GitHub" },
   { key: "ai", label: "AI 配置" },
 ];
 
@@ -161,6 +163,103 @@ async function handleImport() {
   } finally {
     dataBusy.value = false;
   }
+}
+
+/**
+ * GitHub 收录 — 访问令牌配置。
+ * 令牌仅存于本机 localStorage（pulse.github.settings.v1），不会上传服务器。
+ * 用于解除 GitHub API 未登录 60 次/小时限流。
+ */
+function GithubSettingsSection() {
+  const [draft, setDraft] = useState(githubToken.value);
+  const [reveal, setReveal] = useState(false);
+  const hasSaved = githubToken.value.length > 0;
+
+  const onSave = () => {
+    const v = draft.trim();
+    if (!v) return;
+    setGithubToken(v);
+    showToast("GitHub Token 已保存（仅存于本机）", "success", 2000);
+  };
+  const onClear = () => {
+    setDraft("");
+    setGithubToken("");
+    showToast("已清除 GitHub Token", "info", 2000);
+  };
+  const openTokens = (e) => {
+    e.preventDefault();
+    if (typeof window !== "undefined" && window.api && window.api.openUrl) {
+      window.api.openUrl("https://github.com/settings/tokens");
+    }
+  };
+
+  return (
+    <section class="settings-card">
+      <h3 class="settings-card__title">GitHub 访问令牌</h3>
+      <p class="settings-row__hint" style="margin:0 0 12px">
+        用于解除 GitHub API 未登录 <b>60 次/小时</b> 的限流，认证后提升至{" "}
+        <b>5000 次/小时</b>。令牌<b>只保存在本机浏览器</b>，不会上传到任何服务器。
+      </p>
+      <div class="settings-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">Personal Access Token</span>
+          <span class="settings-row__hint">
+            {hasSaved
+              ? "当前已保存令牌（已遮挡）。"
+              : "尚未配置，使用未登录限流额度。"}
+          </span>
+        </div>
+        <div class="settings-row__buttons github-token-actions">
+          <div class="github-token-input-wrap">
+            <input
+              class="github-token-input"
+              type={reveal ? "text" : "password"}
+              value={draft}
+              placeholder="github_pat_..."
+              autocomplete="off"
+              spellcheck={false}
+              onInput={(e) => setDraft(e.currentTarget.value)}
+            />
+            <button
+              type="button"
+              class="settings-btn settings-btn--ghost github-token-reveal"
+              onClick={() => setReveal(!reveal)}
+              aria-label={reveal ? "隐藏令牌" : "显示令牌"}
+            >
+              {reveal ? "隐藏" : "显示"}
+            </button>
+          </div>
+          <button
+            type="button"
+            class="settings-btn settings-btn--primary"
+            onClick={onSave}
+            disabled={draft.trim().length === 0}
+          >
+            保存
+          </button>
+          <button
+            type="button"
+            class="settings-btn settings-btn--danger-ghost"
+            onClick={onClear}
+            disabled={!hasSaved}
+          >
+            清除
+          </button>
+        </div>
+      </div>
+      <p class="settings-row__hint" style="margin-top:8px">
+        没有令牌？在{" "}
+        <a
+          href="https://github.com/settings/tokens"
+          class="settings-link"
+          onClick={openTokens}
+        >
+          GitHub Token 设置页
+        </a>{" "}
+        创建一个（读取公开仓库信息无需勾选任何 scope）。
+      </p>
+    </section>
+  );
 }
 
 export function SettingsPage() {
@@ -377,9 +476,14 @@ export function SettingsPage() {
             </section>
           </>
         ) : (
-          /* ── AI 配置 (P16: 不再用 settings-card 包裹, 让外层 .settings-content 滚动接管;
-              AISettingsScene 内部已是 settings-card 段, 多包一层会触发 overflow:hidden 把内容切掉.) ── */
-          <AISettingsScene compact={false} initialTab="connection" />
+          /* ── GitHub 收录 (token 配置) ── */
+          tab === "github" ? (
+            <GithubSettingsSection />
+          ) : (
+            /* ── AI 配置 (P16: 不再用 settings-card 包裹, 让外层 .settings-content 滚动接管;
+                AISettingsScene 内部已是 settings-card 段, 多包一层会触发 overflow:hidden 把内容切掉.) ── */
+            <AISettingsScene compact={false} initialTab="connection" />
+          )
         )}
       </div>
     </div>

@@ -22,6 +22,8 @@ export const githubBusyId = signal(null);
 export const githubError = signal(null);
 /** 视图密度偏好（comfortable | compact）— 控制更新时间线默认展开条数与间距。 */
 export const githubDensity = signal("comfortable");
+/** GitHub Personal Access Token（仅本机 localStorage，不发往任何服务器）。用于解除未登录 60 次/小时限流。 */
+export const githubToken = signal("");
 
 const _mem = new Map();
 
@@ -92,7 +94,7 @@ function writeSettings(raw) {
 }
 
 /**
- * 读取持久化的模块设置（当前仅 density）。损坏数据忽略，回退默认。
+ * 读取持久化的模块设置（density + token）。损坏数据忽略，回退默认。
  */
 export function loadGithubSettings() {
   const raw = readSettings() ?? _mem.get(SETTINGS_KEY) ?? null;
@@ -102,8 +104,25 @@ export function loadGithubSettings() {
     if (o && (o.density === "compact" || o.density === "comfortable")) {
       githubDensity.value = o.density;
     }
+    if (o && typeof o.token === "string") {
+      githubToken.value = o.token;
+    }
   } catch {
     /* 损坏数据忽略 */
+  }
+}
+
+/** 把 density + token 一起写回，避免任一设置覆盖另一设置。 */
+function persistSettings() {
+  try {
+    writeSettings(
+      JSON.stringify({
+        density: githubDensity.value,
+        token: githubToken.value,
+      }),
+    );
+  } catch {
+    /* 配额超限等忽略 */
   }
 }
 
@@ -114,11 +133,16 @@ export function loadGithubSettings() {
 export function setGithubDensity(d) {
   if (d !== "compact" && d !== "comfortable") return;
   githubDensity.value = d;
-  try {
-    writeSettings(JSON.stringify({ density: d }));
-  } catch {
-    /* 配额超限等忽略 */
-  }
+  persistSettings();
+}
+
+/**
+ * 设置并更新持久化 GitHub Token（空串 = 清除）。
+ * @param {string} t
+ */
+export function setGithubToken(t) {
+  githubToken.value = typeof t === "string" ? t.trim() : "";
+  persistSettings();
 }
 
 function makeId(owner, repo) {
@@ -252,7 +276,7 @@ export async function addGithubProject(input) {
   githubBusy.value = true;
   githubError.value = null;
   try {
-    const res = await api.githubFetch(input);
+    const res = await api.githubFetch(input, githubToken.value);
     if (!res || !res.ok) {
       const reason = (res && res.reason) || "fetch_failed";
       githubError.value = reason;
@@ -319,7 +343,10 @@ export async function refreshGithubReadme(id) {
   if (!p) return { ok: false, reason: "not_found" };
   githubBusyId.value = id;
   try {
-    const res = await api.githubFetch(`https://github.com/${p.owner}/${p.repo}`);
+    const res = await api.githubFetch(
+      `https://github.com/${p.owner}/${p.repo}`,
+      githubToken.value,
+    );
     if (!res || !res.ok) {
       return { ok: false, reason: (res && res.reason) || "fetch_failed" };
     }
@@ -400,6 +427,7 @@ export async function fetchGithubRelease(id, opts = {}) {
   try {
     const res = await api.githubFetchRelease(
       `https://github.com/${p.owner}/${p.repo}`,
+      githubToken.value,
     );
     if (!res || !res.ok) {
       return { ok: false, reason: (res && res.reason) || "fetch_failed" };

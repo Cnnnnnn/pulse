@@ -14,6 +14,55 @@ const UA = "Pulse-AppUpdateChecker/2.79";
 const API_BASE = "https://api.github.com";
 const RAW_BASE = "https://raw.githubusercontent.com";
 
+/**
+ * 读取 .env 里的 GITHUB_TOKEN 作为兜底。仅当用户未在「设置 → GitHub」里填写 token 时、
+ * 主进程才会回退到 .env。.env 已被 .gitignore 忽略，不会进版本库。
+ * 解析极简：只认 `GITHUB_TOKEN=...`（忽略 # 注释、支持单/双引号包裹）。
+ */
+let _envLoaded = false;
+function loadEnvGithubToken() {
+  if (_envLoaded) return;
+  _envLoaded = true;
+  if (process.env.GITHUB_TOKEN) return;
+  try {
+    // eslint-disable-next-line global-require
+    const fs = require("fs");
+    // eslint-disable-next-line global-require
+    const path = require("path");
+    const envPath = path.join(process.cwd(), ".env");
+    if (!fs.existsSync(envPath)) return;
+    const txt = fs.readFileSync(envPath, "utf8");
+    for (const line of txt.split("\n")) {
+      const m = line.match(/^\s*GITHUB_TOKEN\s*=\s*(.+?)\s*$/);
+      if (m) {
+        let v = m[1].trim();
+        if (
+          (v.startsWith('"') && v.endsWith('"')) ||
+          (v.startsWith("'") && v.endsWith("'"))
+        ) {
+          v = v.slice(1, -1);
+        }
+        if (v) process.env.GITHUB_TOKEN = v;
+        break;
+      }
+    }
+  } catch {
+    /* .env 读取失败忽略，不影响未认证路径 */
+  }
+}
+
+/** 返回兜底 token（来自 .env / 进程环境变量），无则空串。 */
+function getEnvGithubToken() {
+  loadEnvGithubToken();
+  return process.env.GITHUB_TOKEN || "";
+}
+
+/** 有 token 才返回 Authorization 头，避免污染未认证请求。导出供单测验证。 */
+function authHeader(token) {
+  const t = typeof token === "string" ? token.trim() : "";
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
 let _http = null;
 function http() {
   if (!_http) {
@@ -71,11 +120,12 @@ function parseGithubUrl(input) {
  * 抓取仓库元数据 (描述 / star / 语言 / 主页 / 默认分支等)。
  * @returns {Promise<{ok:boolean, reason?:string, meta?:object, status?:number}>}
  */
-async function fetchRepoMeta(owner, repo) {
+async function fetchRepoMeta(owner, repo, token = "") {
   const res = await http().get(`${API_BASE}/repos/${owner}/${repo}`, {
     headers: {
       "User-Agent": UA,
       Accept: "application/vnd.github+json",
+      ...authHeader(token),
     },
     timeout: 20000,
   });
@@ -119,7 +169,7 @@ async function fetchRepoMeta(owner, repo) {
  * 抓取 README 原始 markdown。优先 GitHub API raw 端点，失败回退 raw.githubusercontent.com 多候选路径。
  * @returns {Promise<string|null>}
  */
-async function fetchReadmeRaw(owner, repo, branch) {
+async function fetchReadmeRaw(owner, repo, branch, token = "") {
   const candidates = [
     {
       url: `${API_BASE}/repos/${owner}/${repo}/readme`,
@@ -135,8 +185,12 @@ async function fetchReadmeRaw(owner, repo, branch) {
     try {
       const res = await http().get(c.url, {
         headers: c.api
-          ? { "User-Agent": UA, Accept: "application/vnd.github.raw+json" }
-          : { "User-Agent": UA },
+          ? {
+              "User-Agent": UA,
+              Accept: "application/vnd.github.raw+json",
+              ...authHeader(token),
+            }
+          : { "User-Agent": UA, ...authHeader(token) },
         timeout: 20000,
         maxBodyBytes: 2 * 1024 * 1024,
       });
@@ -155,13 +209,14 @@ async function fetchReadmeRaw(owner, repo, branch) {
  * GitHub API 返回数组按发布时间倒序，[0] 即最新版。
  * @returns {Promise<{ok:boolean, reason?:string, release?:object|null, releases?:Array}>}
  */
-async function fetchRepoRelease(owner, repo) {
+async function fetchRepoRelease(owner, repo, token = "") {
   let res;
   try {
     res = await http().get(`${API_BASE}/repos/${owner}/${repo}/releases`, {
       headers: {
         "User-Agent": UA,
         Accept: "application/vnd.github+json",
+        ...authHeader(token),
       },
       timeout: 20000,
     });
@@ -216,16 +271,21 @@ async function fetchRepoRelease(owner, repo) {
  * @param {string} input
  * @returns {Promise<{ok:boolean, reason?:string, owner?:string, repo?:string, meta?:object, readme?:string}>}
  */
-async function fetchGithubProject(input) {
+async function fetchGithubProject(input, token = "") {
   const parsed = parseGithubUrl(input);
   if (!parsed) return { ok: false, reason: "invalid_url" };
   const { owner, repo } = parsed;
   try {
-    const metaRes = await fetchRepoMeta(owner, repo);
+    const metaRes = await fetchRepoMeta(owner, repo, token);
     if (!metaRes.ok) {
       return { ok: false, reason: metaRes.reason, status: metaRes.status };
     }
-    const readme = await fetchReadmeRaw(owner, repo, metaRes.meta.defaultBranch);
+    const readme = await fetchReadmeRaw(
+      owner,
+      repo,
+      metaRes.meta.defaultBranch,
+      token,
+    );
     return {
       ok: true,
       owner,
@@ -249,4 +309,6 @@ module.exports = {
   fetchRepoMeta,
   fetchReadmeRaw,
   fetchRepoRelease,
+  getEnvGithubToken,
+  authHeader,
 };

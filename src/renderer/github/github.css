@@ -1564,6 +1564,45 @@
   border-radius: 4px;
 }
 
+/* ── 设置页 GitHub Token 输入 ── */
+.github-token-actions {
+  align-items: center;
+}
+.github-token-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 220px;
+}
+.github-token-input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.github-token-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 18%, transparent);
+}
+.github-token-reveal {
+  flex-shrink: 0;
+}
+.settings-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+.settings-link:hover {
+  text-decoration: underline;
+}
+
 /* ── 响应式：窄屏（移动端 / 窄窗口） ── */
 @media (max-width: 760px) {
   /* 列表行：行内操作隐藏，改用「⋯」溢出菜单，避免按钮挤压正文 */

@@ -325,11 +325,13 @@ contextBridge.exposeInMainWorld("api", {
   versionsRunCheck: () => ipcRenderer.invoke("versions:run-check"),
 
   // v2.80 GitHub 优秀项目收录
-  githubFetch: (input) => ipcRenderer.invoke("github:fetch", input),
+  // 第二个参数 token 透传给主进程，用于解除未登录 60 次/小时限流。
+  githubFetch: (input, token) =>
+    ipcRenderer.invoke("github:fetch", { input, token }),
   aiParseReadme: (payload) => ipcRenderer.invoke("ai:parse-readme", payload),
   // Release 更新追踪：抓取某仓库 recent releases
-  githubFetchRelease: (input) =>
-    ipcRenderer.invoke("github:fetch-release", input),
+  githubFetchRelease: (input, token) =>
+    ipcRenderer.invoke("github:fetch-release", { input, token }),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)
