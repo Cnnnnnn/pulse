@@ -7,6 +7,9 @@
  *  - 顶部搜索框（按名称 + 简介实时过滤）+ 排序下拉（收录时间 / Star / 名称）
  *  - 行内露出「收录于 MM-DD」与 AI 摘要速览（已解析项目）
  *  - 删除改走全局 ConfirmDialog 二次确认，防误触
+ * P1 增强 (2026-07-16):
+ *  - 列表 / 卡片视图切换；卡片以网格呈现并露 AI 摘要封面
+ *  - 抽出 GithubActions 供行与卡片复用（含窄屏「⋯」溢出菜单）
  */
 
 import { useState, useMemo } from "preact/hooks";
@@ -16,6 +19,8 @@ import {
   IconTrash,
   IconPackage,
   IconMoreHorizontal,
+  IconList,
+  IconGrid,
 } from "../components/icons.jsx";
 import {
   githubProjects,
@@ -33,6 +38,7 @@ export function GithubProjectList({ onView, onParse }) {
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("added");
+  const [view, setView] = useState("list");
 
   const projects = githubProjects.value;
 
@@ -142,12 +148,44 @@ export function GithubProjectList({ onView, onParse }) {
             <option value="name">排序：名称</option>
           </select>
         </div>
+        <div class="github-view-toggle" role="group" aria-label="视图模式">
+          <button
+            type="button"
+            class={`github-view-toggle__btn ${view === "list" ? "is-active" : ""}`}
+            aria-pressed={view === "list"}
+            title="列表视图"
+            onClick={() => setView("list")}
+          >
+            <IconList size={16} />
+          </button>
+          <button
+            type="button"
+            class={`github-view-toggle__btn ${view === "card" ? "is-active" : ""}`}
+            aria-pressed={view === "card"}
+            title="卡片视图"
+            onClick={() => setView("card")}
+          >
+            <IconGrid size={16} />
+          </button>
+        </div>
       </div>
 
       {total === 0 ? (
         <div class="github-empty">
           <p class="github-empty__title">没有匹配的项目</p>
           <p class="github-empty__hint">试试调整搜索关键词。</p>
+        </div>
+      ) : view === "card" ? (
+        <div class="github-cards">
+          {slice.map((p) => (
+            <GithubProjectCard
+              key={p.id}
+              project={p}
+              onView={onView}
+              onParse={onParse}
+              onRemove={handleRemove}
+            />
+          ))}
         </div>
       ) : (
         <ul class="github-list__ul">
@@ -191,37 +229,11 @@ export function GithubProjectList({ onView, onParse }) {
 }
 
 function GithubProjectRow({ project, onView, onParse, onRemove }) {
-  const busy = githubBusyId.value === project.id;
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
-  const [menuOpen, setMenuOpen] = useState(false);
 
   function openExternal() {
     if (project.url) api.openUrl(project.url);
-  }
-
-  function handleParse() {
-    if (busy) return;
-    onParse(project.id);
-  }
-
-  function closeMenu() {
-    setMenuOpen(false);
-  }
-
-  function handleViewMenu() {
-    closeMenu();
-    onView(project.id);
-  }
-
-  function handleParseMenu() {
-    closeMenu();
-    handleParse();
-  }
-
-  function handleRemoveMenu() {
-    closeMenu();
-    if (onRemove) onRemove(project);
   }
 
   return (
@@ -259,6 +271,43 @@ function GithubProjectRow({ project, onView, onParse, onRemove }) {
           </div>
         )}
       </div>
+      <GithubActions
+        project={project}
+        onView={onView}
+        onParse={onParse}
+        onRemove={onRemove}
+      />
+    </li>
+  );
+}
+
+/* 行 / 卡片共用的操作区：桌面内联按钮 + 窄屏「⋯」溢出菜单 */
+function GithubActions({ project, onView, onParse, onRemove }) {
+  const busy = githubBusyId.value === project.id;
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  function handleParse() {
+    if (busy) return;
+    onParse(project.id);
+  }
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+  function handleViewMenu() {
+    closeMenu();
+    onView(project.id);
+  }
+  function handleParseMenu() {
+    closeMenu();
+    handleParse();
+  }
+  function handleRemoveMenu() {
+    closeMenu();
+    if (onRemove) onRemove(project);
+  }
+
+  return (
+    <>
       <div class="github-row__actions">
         <button
           type="button"
@@ -333,6 +382,59 @@ function GithubProjectRow({ project, onView, onParse, onRemove }) {
           </>
         )}
       </div>
-    </li>
+    </>
+  );
+}
+
+function GithubProjectCard({ project, onView, onParse, onRemove }) {
+  const added = formatAddedDate(project.addedAt);
+  const summary = project.aiParse && project.aiParse.summary;
+
+  function openExternal() {
+    if (project.url) api.openUrl(project.url);
+  }
+
+  return (
+    <div class="github-card">
+      <div class="github-card__main">
+        <button
+          type="button"
+          class="github-card__name"
+          onClick={openExternal}
+          title="在 GitHub 打开"
+        >
+          {project.name}
+        </button>
+        <p class="github-card__desc">{project.description || "（无简介）"}</p>
+        <div class="github-card__meta">
+          {project.language && (
+            <span class="github-chip">{project.language}</span>
+          )}
+          {typeof project.stars === "number" && project.stars > 0 && (
+            <span class="github-chip github-chip--star">
+              ★ {formatStars(project.stars)}
+            </span>
+          )}
+          {added && <span class="github-chip">收录于 {added}</span>}
+          {project.aiParse && (
+            <span class="github-chip github-chip--ok">已解析</span>
+          )}
+        </div>
+        {summary && (
+          <div class="github-card__ai">
+            <IconSparkles size={16} />
+            <span class="github-card__ai-text">
+              <b>AI 摘要 ·</b> {summary}
+            </span>
+          </div>
+        )}
+      </div>
+      <GithubActions
+        project={project}
+        onView={onView}
+        onParse={onParse}
+        onRemove={onRemove}
+      />
+    </div>
   );
 }
