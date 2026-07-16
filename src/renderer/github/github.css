@@ -169,6 +169,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  position: relative;
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 .github-row:hover {
@@ -292,6 +293,35 @@
 .github-chip--ok {
   color: var(--color-success);
   background: color-mix(in srgb, var(--color-success) 14%, transparent);
+}
+.github-chip--pin {
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+
+/* 置顶 (P2)：pin 切换按钮 + 置顶态强调 */
+.github-icon-btn--pin.is-active {
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+.github-icon-btn--pin:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.github-row.is-pinned,
+.github-card.is-pinned {
+  background: color-mix(in srgb, var(--accent-primary) 5%, var(--surface));
+}
+.github-row.is-pinned::before,
+.github-card.is-pinned::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: -1px;
+  width: 3px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--accent-primary);
 }
 
 /* ── 分页 ── */
@@ -880,6 +910,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  position: relative;
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 .github-card:hover {

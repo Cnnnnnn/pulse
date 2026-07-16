@@ -18,6 +18,7 @@ import {
   IconBook,
   IconSparkles,
   IconTrash,
+  IconPin,
   IconPackage,
   IconMoreHorizontal,
   IconList,
@@ -27,6 +28,7 @@ import {
   githubProjects,
   githubBusyId,
   removeGithubProject,
+  togglePinGithubProject,
   formatStars,
   formatAddedDate,
 } from "../store/github-projects-store.js";
@@ -67,13 +69,15 @@ export function GithubProjectList({ onView, onParse }) {
       list = list.filter((p) => p.language === lang);
     }
     const sorted = [...list];
-    if (sort === "stars") {
-      sorted.sort((a, b) => (b.stars || 0) - (a.stars || 0));
-    } else if (sort === "name") {
-      sorted.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    } else {
-      sorted.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-    }
+    sorted.sort((a, b) => {
+      // 置顶项始终排在最前（与当前排序无关）
+      const pa = a.pinned ? 1 : 0;
+      const pb = b.pinned ? 1 : 0;
+      if (pa !== pb) return pb - pa;
+      if (sort === "stars") return (b.stars || 0) - (a.stars || 0);
+      if (sort === "name") return String(a.name).localeCompare(String(b.name));
+      return (b.addedAt || 0) - (a.addedAt || 0);
+    });
     return sorted;
   }, [projects, query, lang, sort]);
 
@@ -102,6 +106,9 @@ export function GithubProjectList({ onView, onParse }) {
       cancelText: "取消",
     });
     if (ok) removeGithubProject(project.id);
+  }
+  function handleTogglePin(project) {
+    togglePinGithubProject(project.id);
   }
 
   if (projects.length === 0) {
@@ -226,6 +233,7 @@ export function GithubProjectList({ onView, onParse }) {
               onView={onView}
               onParse={onParse}
               onRemove={handleRemove}
+              onTogglePin={handleTogglePin}
             />
           ))}
         </div>
@@ -238,6 +246,7 @@ export function GithubProjectList({ onView, onParse }) {
               onView={onView}
               onParse={onParse}
               onRemove={handleRemove}
+              onTogglePin={handleTogglePin}
             />
           ))}
         </ul>
@@ -270,7 +279,7 @@ export function GithubProjectList({ onView, onParse }) {
   );
 }
 
-function GithubProjectRow({ project, onView, onParse, onRemove }) {
+function GithubProjectRow({ project, onView, onParse, onRemove, onTogglePin }) {
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
 
@@ -279,7 +288,7 @@ function GithubProjectRow({ project, onView, onParse, onRemove }) {
   }
 
   return (
-    <li class="github-row">
+    <li class={`github-row ${project.pinned ? "is-pinned" : ""}`}>
       <div class="github-row__main">
         <button
           type="button"
@@ -291,6 +300,9 @@ function GithubProjectRow({ project, onView, onParse, onRemove }) {
         </button>
         <p class="github-row__desc">{project.description || "（无简介）"}</p>
         <div class="github-row__meta">
+          {project.pinned && (
+            <span class="github-chip github-chip--pin">已置顶</span>
+          )}
           {project.language && (
             <span class="github-chip">{project.language}</span>
           )}
@@ -318,14 +330,16 @@ function GithubProjectRow({ project, onView, onParse, onRemove }) {
         onView={onView}
         onParse={onParse}
         onRemove={onRemove}
+        onTogglePin={onTogglePin}
       />
     </li>
   );
 }
 
 /* 行 / 卡片共用的操作区：桌面内联按钮 + 窄屏「⋯」溢出菜单 */
-function GithubActions({ project, onView, onParse, onRemove }) {
+function GithubActions({ project, onView, onParse, onRemove, onTogglePin }) {
   const busy = githubBusyId.value === project.id;
+  const pinned = !!project.pinned;
   const [menuOpen, setMenuOpen] = useState(false);
 
   function handleParse() {
@@ -335,6 +349,9 @@ function GithubActions({ project, onView, onParse, onRemove }) {
   function closeMenu() {
     setMenuOpen(false);
   }
+  function handlePin() {
+    if (onTogglePin) onTogglePin(project);
+  }
   function handleViewMenu() {
     closeMenu();
     onView(project.id);
@@ -342,6 +359,10 @@ function GithubActions({ project, onView, onParse, onRemove }) {
   function handleParseMenu() {
     closeMenu();
     handleParse();
+  }
+  function handlePinMenu() {
+    closeMenu();
+    handlePin();
   }
   function handleRemoveMenu() {
     closeMenu();
@@ -351,6 +372,15 @@ function GithubActions({ project, onView, onParse, onRemove }) {
   return (
     <>
       <div class="github-row__actions">
+        <button
+          type="button"
+          class={`github-icon-btn github-icon-btn--pin ${pinned ? "is-active" : ""}`}
+          title={pinned ? "取消置顶" : "置顶"}
+          aria-pressed={pinned}
+          onClick={handlePin}
+        >
+          <IconPin size={14} />
+        </button>
         <button
           type="button"
           class="github-btn github-btn--ghost"
@@ -398,6 +428,15 @@ function GithubActions({ project, onView, onParse, onRemove }) {
                 type="button"
                 class="github-row__menu-item"
                 role="menuitem"
+                aria-pressed={pinned}
+                onClick={handlePinMenu}
+              >
+                <IconPin size={15} /> {pinned ? "取消置顶" : "置顶"}
+              </button>
+              <button
+                type="button"
+                class="github-row__menu-item"
+                role="menuitem"
                 onClick={handleViewMenu}
               >
                 <IconBook size={15} /> 查看介绍
@@ -428,7 +467,7 @@ function GithubActions({ project, onView, onParse, onRemove }) {
   );
 }
 
-function GithubProjectCard({ project, onView, onParse, onRemove }) {
+function GithubProjectCard({ project, onView, onParse, onRemove, onTogglePin }) {
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
 
@@ -437,7 +476,7 @@ function GithubProjectCard({ project, onView, onParse, onRemove }) {
   }
 
   return (
-    <div class="github-card">
+    <div class={`github-card ${project.pinned ? "is-pinned" : ""}`}>
       <div class="github-card__main">
         <button
           type="button"
@@ -449,6 +488,9 @@ function GithubProjectCard({ project, onView, onParse, onRemove }) {
         </button>
         <p class="github-card__desc">{project.description || "（无简介）"}</p>
         <div class="github-card__meta">
+          {project.pinned && (
+            <span class="github-chip github-chip--pin">已置顶</span>
+          )}
           {project.language && (
             <span class="github-chip">{project.language}</span>
           )}
@@ -476,6 +518,7 @@ function GithubProjectCard({ project, onView, onParse, onRemove }) {
         onView={onView}
         onParse={onParse}
         onRemove={onRemove}
+        onTogglePin={onTogglePin}
       />
     </div>
   );

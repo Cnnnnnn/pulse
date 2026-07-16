@@ -184,6 +184,7 @@ export async function addGithubProject(input) {
       license: meta.license || "",
       topics: Array.isArray(meta.topics) ? meta.topics : [],
       addedAt: Date.now(),
+      pinned: false,
       readme: res.readme || "",
       readmeFetchedAt: res.readme ? Date.now() : 0,
       aiParse: null,
@@ -199,6 +200,18 @@ export async function addGithubProject(input) {
 
 export function removeGithubProject(id) {
   githubProjects.value = githubProjects.value.filter((p) => p.id !== id);
+  persist();
+}
+
+/**
+ * 切换某项目的置顶状态（钉在列表顶部）。
+ * 旧数据可能无 pinned 字段，按 falsy 处理，翻转后写入 true。
+ * @param {string} id
+ */
+export function togglePinGithubProject(id) {
+  githubProjects.value = githubProjects.value.map((x) =>
+    x.id === id ? { ...x, pinned: !x.pinned } : x,
+  );
   persist();
 }
 
