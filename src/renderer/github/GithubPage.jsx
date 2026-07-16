@@ -73,14 +73,18 @@ export function GithubPage() {
           })
           .join("、");
         const hint = r.failedProjects?.some(
-          (f) => f.reason === "rate_limited",
+          (f) => f.reason === "auth_invalid",
         )
-          ? " · 未登录时 GitHub API 限制 60 次/小时，可在设置中配置 Token"
+          ? " · 请在 设置 → GitHub 中重新生成 Token"
           : r.failedProjects?.some(
-              (f) => f.reason === "network_error" || f.reason === "fetch_failed",
+              (f) => f.reason === "rate_limited",
             )
-            ? " · 请检查网络连接"
-            : "";
+            ? " · 未登录时 GitHub API 限制 60 次/小时，可在设置中配置 Token"
+            : r.failedProjects?.some(
+                (f) => f.reason === "network_error" || f.reason === "fetch_failed",
+              )
+              ? " · 请检查网络连接"
+              : "";
         showToast(
           `检查完成，${r.errorCount} 个失败：${details}${hint}`,
           "warn",

@@ -23,7 +23,7 @@ import {
   subscribeTheme,
 } from "../theme/theme-manager.js";
 import { showToast } from "../store.js";
-import { githubToken, setGithubToken } from "../store/github-projects-store.js";
+import { githubToken, setGithubToken, loadGithubSettings } from "../store/github-projects-store.js";
 
 /* ─── theme signal (与 localStorage 同步) ─────────────────────── */
 // ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
@@ -174,6 +174,13 @@ function GithubSettingsSection() {
   const [draft, setDraft] = useState(githubToken.value);
   const [reveal, setReveal] = useState(false);
   const hasSaved = githubToken.value.length > 0;
+
+  // 打开设置时确保从 localStorage 恢复已保存的 Token 并回填输入框，
+  // 避免「已保存过 Token、但未访问 GitHub 视图时 githubToken 信号仍为空」导致字段显示空白。
+  useEffect(() => {
+    loadGithubSettings();
+    setDraft(githubToken.value);
+  }, []);
 
   const onSave = () => {
     const v = draft.trim();

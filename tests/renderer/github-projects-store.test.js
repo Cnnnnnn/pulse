@@ -15,6 +15,7 @@ import {
   setGithubDensity,
   setGithubToken,
   loadGithubSettings,
+  githubReasonText,
 } from "../../src/renderer/store/github-projects-store.js";
 
 function seed(items) {
@@ -116,5 +117,11 @@ describe("github store · 批量已读 + 视图密度", () => {
     expect(githubToken.value).toBe("");
     const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
     expect(raw).not.toContain("github_pat_tmp");
+  });
+
+  it("githubReasonText: auth_invalid 指引重新生成 Token", () => {
+    const t = githubReasonText("auth_invalid");
+    expect(t).toContain("Token");
+    expect(t).toContain("重新生成");
   });
 });

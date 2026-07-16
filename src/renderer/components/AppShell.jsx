@@ -30,7 +30,7 @@ import { HomeGrid } from './HomeGrid.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 import { SearchModal } from '../search/SearchModal.jsx';
 import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
-import { loadGithubProjects } from '../store/github-projects-store.js';
+import { loadGithubProjects, loadGithubSettings } from '../store/github-projects-store.js';
 
 export function AppShell({ onCheck }) {
   const nav = activeNav.value;
@@ -96,8 +96,11 @@ export function AppShell({ onCheck }) {
 
   // 提前加载 GitHub 收录数据（确保 HomeGrid 首次渲染时 githubProjects 已从 localStorage 恢复，
   // 避免 GitHub 卡片短暂闪现"尚未收录"再跳为"已收录 N 个"的竞态）。
+  // 同时加载模块设置（density + token）：在应用启动即把保存的 Token 读入信号，
+  // 避免「保存了 Token 但 GitHub 视图尚未挂载时 githubToken 仍为空」导致鉴权不生效。
   useEffect(() => {
     loadGithubProjects();
+    loadGithubSettings();
   }, []);
 
   return (

@@ -196,6 +196,8 @@ export function githubReasonText(reason) {
       return "该项目已收录";
     case "not_found":
       return "仓库不存在或地址错误";
+    case "auth_invalid":
+      return "GitHub Token 无效或已失效，请在设置 → GitHub 中重新生成";
     case "rate_limited":
       return "GitHub API 频率受限（未登录 60 次/小时），请稍后再试";
     case "network_error":

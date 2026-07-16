@@ -129,11 +129,16 @@ async function fetchRepoMeta(owner, repo, token = "") {
     },
     timeout: 20000,
   });
-  if (!res || res.status === 403 || res.status === 429) {
-    return { ok: false, reason: "rate_limited", status: res && res.status };
+  if (!res) return { ok: false, reason: "not_found", status: 0 };
+  // 401 = Token 无效/已失效/被吊销：必须单独分类，否则会被误报成"仓库不存在"
+  if (res.status === 401) {
+    return { ok: false, reason: "auth_invalid", status: 401 };
   }
-  if (!res || res.status !== 200) {
-    return { ok: false, reason: "not_found", status: res && res.status };
+  if (res.status === 403 || res.status === 429) {
+    return { ok: false, reason: "rate_limited", status: res.status };
+  }
+  if (res.status !== 200) {
+    return { ok: false, reason: "not_found", status: res.status };
   }
   let data;
   try {
@@ -228,11 +233,15 @@ async function fetchRepoRelease(owner, repo, token = "") {
     });
     return { ok: false, reason: "network_error", error: err && err.message };
   }
-  // HttpClient 保证不抛：网络错误 → {status:0, error:'network'}；超时 → {status:0, error:'timeout'}
-  if (!res || res.status === 403 || res.status === 429) {
-    return { ok: false, reason: "rate_limited", status: res && res.status };
+  if (!res) return { ok: false, reason: "not_found", status: 0 };
+  // 401 = Token 无效/已失效/被吊销：单独分类，避免误报"仓库不存在"
+  if (res.status === 401) {
+    return { ok: false, reason: "auth_invalid", status: 401 };
   }
-  if (!res || res.error === "network" || res.error === "timeout") {
+  if (res.status === 403 || res.status === 429) {
+    return { ok: false, reason: "rate_limited", status: res.status };
+  }
+  if (res.error === "network" || res.error === "timeout") {
     return {
       ok: false,
       reason: res.error === "timeout" ? "timeout" : "network_error",
@@ -240,7 +249,7 @@ async function fetchRepoRelease(owner, repo, token = "") {
     };
   }
   if (res.status !== 200) {
-    return { ok: false, reason: "not_found", status: res && res.status };
+    return { ok: false, reason: "not_found", status: res.status };
   }
   let list;
   try {
