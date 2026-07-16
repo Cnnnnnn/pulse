@@ -152,6 +152,35 @@
   color: var(--color-danger);
 }
 
+/* ── 行 / 卡片操作区按钮：对齐视觉稿 .act ── */
+/* 文本按钮：12px 字号、6px 11px 内边距（≈28px 高）、灰底圆角，与 .act 一致 */
+.github-row__actions .github-btn {
+  height: auto;
+  padding: 6px 11px;
+  font-size: var(--font-size-sm);
+  gap: 5px;
+  border-radius: var(--radius-md);
+}
+/* 图标按钮（置顶 / 删除）：对齐 .act 的灰底填充，而非透明方块 */
+.github-row__actions .github-icon-btn {
+  width: 28px;
+  height: 28px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+.github-row__actions .github-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.github-row__actions .github-icon-btn--pin.is-active {
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+.github-row__actions .github-icon-btn--danger:hover {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
 /* ── 列表 ── */
 .github-list__ul {
   list-style: none;
@@ -308,12 +337,12 @@
 .github-chip {
   display: inline-flex;
   align-items: center;
-  height: 22px;
-  padding: 0 var(--space-2);
+  gap: var(--space-1);
+  padding: 3px var(--space-2);
   font-size: var(--font-size-xs);
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-secondary);
-  background: var(--bg-secondary);
+  background: var(--bg-section);
   border-radius: var(--radius-pill);
 }
 
@@ -323,7 +352,6 @@
   height: 9px;
   flex-shrink: 0;
   border-radius: 50%;
-  margin-right: var(--space-1);
 }
 .github-chip--star {
   color: var(--text-secondary);
