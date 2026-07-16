@@ -60,15 +60,32 @@ export function GithubPage() {
             : "";
         showToast(`发现 ${r.newCount} 个项目有新版本${extra}`, "success");
       } else if (r.errorCount > 0) {
-        // 展示具体失败项目与原因（限流 / 仓库不存在等）
+        // 展示具体失败项目与原因（限流 / 网络 / 仓库不存在等）
         const details = (r.failedProjects || [])
-          .map((f) => `${f.name}(${githubReasonText(f.reason)})`)
+          .map((f) => {
+            const text = githubReasonText(f.reason);
+            // 对 fetch_failed 附加原始错误信息（IPC 异常等）
+            const extra =
+              f.reason === "fetch_failed" && f.detail
+                ? ` [${f.detail}]`
+                : "";
+            return `${f.name}(${text}${extra})`;
+          })
           .join("、");
-        const hint =
-          r.failedProjects?.some((f) => f.reason === "rate_limited")
-            ? " · 未登录时 GitHub API 限制 60 次/小时"
+        const hint = r.failedProjects?.some(
+          (f) => f.reason === "rate_limited",
+        )
+          ? " · 未登录时 GitHub API 限制 60 次/小时，可在设置中配置 Token"
+          : r.failedProjects?.some(
+              (f) => f.reason === "network_error" || f.reason === "fetch_failed",
+            )
+            ? " · 请检查网络连接"
             : "";
-        showToast(`检查完成，${r.errorCount} 个失败：${details}${hint}`, "warn", 6000);
+        showToast(
+          `检查完成，${r.errorCount} 个失败：${details}${hint}`,
+          "warn",
+          6000,
+        );
       } else {
         showToast("已是最新版本", "info");
       }

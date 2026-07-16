@@ -174,6 +174,10 @@ export function githubReasonText(reason) {
       return "仓库不存在或地址错误";
     case "rate_limited":
       return "GitHub API 频率受限（未登录 60 次/小时），请稍后再试";
+    case "network_error":
+      return "网络连接失败，请检查网络";
+    case "timeout":
+      return "请求超时，请稍后重试";
     case "parse_error":
       return "返回数据解析失败";
     case "no_readme":
@@ -419,6 +423,12 @@ export async function fetchGithubRelease(id, opts = {}) {
     );
     persist();
     return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "fetch_failed",
+      detail: err && (err.message || err.toString()),
+    };
   } finally {
     if (!silent) githubBusyId.value = null;
   }
@@ -484,6 +494,7 @@ export async function checkGithubUpdates(opts = {}) {
           id: p.id,
           name: p.name || p.id,
           reason: r.reason || "fetch_failed",
+          detail: r.detail || "",
         });
         continue;
       }

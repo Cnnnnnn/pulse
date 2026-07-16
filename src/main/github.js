@@ -156,17 +156,35 @@ async function fetchReadmeRaw(owner, repo, branch) {
  * @returns {Promise<{ok:boolean, reason?:string, release?:object|null, releases?:Array}>}
  */
 async function fetchRepoRelease(owner, repo) {
-  const res = await http().get(`${API_BASE}/repos/${owner}/${repo}/releases`, {
-    headers: {
-      "User-Agent": UA,
-      Accept: "application/vnd.github+json",
-    },
-    timeout: 20000,
-  });
+  let res;
+  try {
+    res = await http().get(`${API_BASE}/repos/${owner}/${repo}/releases`, {
+      headers: {
+        "User-Agent": UA,
+        Accept: "application/vnd.github+json",
+      },
+      timeout: 20000,
+    });
+  } catch (err) {
+    mainLog.warn("[github] fetchRepoRelease network error", {
+      owner,
+      repo,
+      msg: err && err.message,
+    });
+    return { ok: false, reason: "network_error", error: err && err.message };
+  }
+  // HttpClient 保证不抛：网络错误 → {status:0, error:'network'}；超时 → {status:0, error:'timeout'}
   if (!res || res.status === 403 || res.status === 429) {
     return { ok: false, reason: "rate_limited", status: res && res.status };
   }
-  if (!res || res.status !== 200) {
+  if (!res || res.error === "network" || res.error === "timeout") {
+    return {
+      ok: false,
+      reason: res.error === "timeout" ? "timeout" : "network_error",
+      error: res && res.error,
+    };
+  }
+  if (res.status !== 200) {
     return { ok: false, reason: "not_found", status: res && res.status };
   }
   let list;
