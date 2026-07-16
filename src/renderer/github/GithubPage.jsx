@@ -13,6 +13,7 @@ import {
   checkGithubUpdates,
   markGithubSeen,
   markGithubAllSeen,
+  githubReasonText,
 } from "../store/github-projects-store.js";
 import { showToast } from "../store/toast-store.js";
 import { GithubAddForm } from "./GithubAddForm.jsx";
@@ -54,10 +55,20 @@ export function GithubPage() {
     if (r && r.ok) {
       if (r.newCount > 0) {
         const extra =
-          r.errorCount > 0 ? `（${r.errorCount} 个检查失败）` : "";
+          r.errorCount > 0
+            ? `（${r.errorCount} 个失败）`
+            : "";
         showToast(`发现 ${r.newCount} 个项目有新版本${extra}`, "success");
       } else if (r.errorCount > 0) {
-        showToast(`检查完成，但 ${r.errorCount} 个检查失败`, "warn");
+        // 展示具体失败项目与原因（限流 / 仓库不存在等）
+        const details = (r.failedProjects || [])
+          .map((f) => `${f.name}(${githubReasonText(f.reason)})`)
+          .join("、");
+        const hint =
+          r.failedProjects?.some((f) => f.reason === "rate_limited")
+            ? " · 未登录时 GitHub API 限制 60 次/小时"
+            : "";
+        showToast(`检查完成，${r.errorCount} 个失败：${details}${hint}`, "warn", 6000);
       } else {
         showToast("已是最新版本", "info");
       }

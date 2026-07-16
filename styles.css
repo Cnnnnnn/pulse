@@ -4049,12 +4049,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .side-nav-list {
   list-style: none;
   margin: 0;
-  padding: 4px 0;
+  padding: 4px 0 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .side-nav-item {
@@ -5308,6 +5309,11 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   flex-shrink: 0;
   padding: 8px 0 12px;
   border-top: 1px solid var(--border-subtle);
+  background: color-mix(
+    in oklch,
+    var(--bg-secondary) 60%,
+    transparent
+  );
 }
 
 .side-nav-ai-btn { position: relative; }

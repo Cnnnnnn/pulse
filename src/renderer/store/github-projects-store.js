@@ -462,16 +462,17 @@ export function markGithubAllSeen() {
  * 批量检查所有项目的更新。
  * @param {{onProgress?:(done:number,total:number)=>void, onlyStale?:boolean}} [opts]
  *   onProgress 用于 UI 进度（检查中 N/M）；onlyStale 仅检查从未拉过 release 的项目。
- * @returns {Promise<{ok:boolean, newCount:number, errorCount:number}>}
+ * @returns {Promise<{ok:boolean, newCount:number, errorCount:number, failedProjects:Array<{id:string, name:string, reason:string}>}>}
  */
 export async function checkGithubUpdates(opts = {}) {
   const { onProgress, onlyStale } = opts;
   let list = githubProjects.value;
   if (onlyStale) list = list.filter((p) => !p.releaseFetchedAt);
-  if (list.length === 0) return { ok: true, newCount: 0, errorCount: 0 };
+  if (list.length === 0) return { ok: true, newCount: 0, errorCount: 0, failedProjects: [] };
   githubBusy.value = true;
   let newCount = 0;
   let errorCount = 0;
+  const failedProjects = [];
   try {
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
@@ -479,12 +480,17 @@ export async function checkGithubUpdates(opts = {}) {
       const r = await fetchGithubRelease(p.id, { silent: true });
       if (!r.ok) {
         errorCount += 1;
+        failedProjects.push({
+          id: p.id,
+          name: p.name || p.id,
+          reason: r.reason || "fetch_failed",
+        });
         continue;
       }
       const updated = githubProjects.value.find((x) => x.id === p.id);
       if (updated && hasGithubUpdate(updated)) newCount += 1;
     }
-    return { ok: true, newCount, errorCount };
+    return { ok: true, newCount, errorCount, failedProjects };
   } finally {
     githubBusy.value = false;
   }

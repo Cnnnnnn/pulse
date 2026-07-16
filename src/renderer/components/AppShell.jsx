@@ -30,6 +30,7 @@ import { HomeGrid } from './HomeGrid.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
 import { SearchModal } from '../search/SearchModal.jsx';
 import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
+import { loadGithubProjects } from '../store/github-projects-store.js';
 
 export function AppShell({ onCheck }) {
   const nav = activeNav.value;
@@ -92,6 +93,12 @@ export function AppShell({ onCheck }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [nav]);
+
+  // 提前加载 GitHub 收录数据（确保 HomeGrid 首次渲染时 githubProjects 已从 localStorage 恢复，
+  // 避免 GitHub 卡片短暂闪现"尚未收录"再跳为"已收录 N 个"的竞态）。
+  useEffect(() => {
+    loadGithubProjects();
+  }, []);
 
   return (
     <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}${nav === 'home' ? ' app-shell-home' : ''}`}>
