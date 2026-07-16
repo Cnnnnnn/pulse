@@ -70,9 +70,9 @@ export const NAV_KEYS_LIST = [
 ];
 
 // P-N: HomeGrid 落点白名单 — "home" 是显示态, 不落盘.
-// 跟 NAV_KEYS 的区别: NAV_KEYS 是 activeNav 全部合法值, 这里只挑出可持久化的 5 顶级 nav.
+// 跟 NAV_KEYS 的区别: NAV_KEYS 是 activeNav 全部合法值, 这里只挑出可持久化的顶级 nav.
 export const PERSISTABLE_NAV_KEYS = new Set([
-  "news", "worldcup", "invest", "ai-usage", "versions",
+  "news", "worldcup", "invest", "ai-usage", "versions", "github",
 ]);
 /**
  * Phase I3: 计算"实际可见"nav 列表
@@ -120,7 +120,7 @@ function isNavVisible(key, prefs) {
 
 /**
  * 当前 activeNav 被关掉时, 切到第一个可见 panel.
- * 注意: 只考虑 PERSISTABLE_NAV_KEYS (5 顶级 panel), 跳过 "home" —
+ * 注意: 只考虑 PERSISTABLE_NAV_KEYS (顶级 panel), 跳过 "home" —
  * HomeGrid 是显示态而不是 panel, tray prefs 不应该把用户弹到 HomeGrid.
  * 不可见列表 (activeNav 不可见 + 没有其他可见 nav) 时不动 (极端兜底, 不会发生因为有固定 tab).
  */
@@ -169,7 +169,7 @@ export function setActiveNav(key) {
     clearIthomeUnreadBadge();
     clearWechatHotUnreadBadge();
   }
-  // P-N HomeGrid 落点: 仅持久化 6 顶级 nav, "home" 不写盘.
+  // P-N HomeGrid 落点: 仅持久化顶级 nav, "home" 不写盘.
   // ponytail: 同步路径做过白名单过滤, home 是显示态, 不写盘.
   // 写盘失败仅 console.warn, 不阻断 UI.
   if (target !== "home" && PERSISTABLE_NAV_KEYS.has(target)) {

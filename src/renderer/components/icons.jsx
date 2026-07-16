@@ -406,12 +406,15 @@ export function IconLoader({ size = 14 }) {
 
 const NAV_ICON = {
   ithome: IconNews,
+  news: IconNews,
   'wechat-hot': IconFlame,
   worldcup: IconTrophy,
   funds: IconCoin,
+  invest: IconCoin,
   metals: IconMedal,
   'ai-usage': IconBarChart,
   versions: IconRefresh,
+  github: IconLayers,
 };
 
 export function NavIcon({ navKey, size = 18 }) {

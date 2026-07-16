@@ -11,10 +11,11 @@
  *      角标为两源之和.
  *  - v6 (2026-07-13): funds + metals + stocks 合并成 1 个 'invest' tile, 5 个 tile.
  *      'invest' tile 副标题按 investPrimary 切, 优先基金今日盈亏, 降级金属价, 兜底 "—".
+ *  - v7 (2026-07-16): 加 'github' tile (GitHub 优秀项目收录).
  *
- * 5 个 tile 顺序受 prefs.order 控制; ⌘1-5 按用户视角的"前 5 个"对应
+ * tile 顺序受 prefs.order 控制; ⌘1-N 按用户视角顺序对应
  * (favorites 优先 + 余下按 prefs.order).
- * 启动期 assert: PERSISTABLE_NAV_KEYS.size === 5 防顺序漂移.
+ * 启动期 assert: HOME_TILES.length === PERSISTABLE_NAV_KEYS.size 防顺序漂移.
  */
 import { useEffect, useRef, useState } from "preact/hooks";
 import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
@@ -22,6 +23,7 @@ import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/sto
 import { wechatHotUnreadBadge, wechatHotItems, wechatHotLastFetched } from "../wechat-hot/store.js";
 import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.js";
 import { aiUsageNavBadge, aiUsageSnapshot, aiUsageActiveProvider } from "../store/ai-usage-store.js";
+import { githubProjects } from "../store/github-projects-store.js";
 import { worldcupMatches } from "../worldcup/store.js";
 import { matchKickoffUtcMs } from "../worldcup/match-utils.js";
 import { quoteCache, fxCache } from "../metals/metalStore.js";
@@ -93,6 +95,12 @@ function TileIcon({ kind }) {
           <path {...c} d="M20 4v4h-4" />
         </svg>
       );
+    case "github":
+      return (
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path {...c} d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12 12 0 0 0-6 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -100,13 +108,14 @@ function TileIcon({ kind }) {
 
 // ponytail: HOME_TILES 现在作为 "tile 元数据 lookup" — 渲染顺序由
 // prefs.order + favorites 决定 (computeOrderedTiles).
-// v6 (2026-07-13): funds + metals + stocks 合并成单 'invest' tile, 5 个 tile.
+// v7 (2026-07-16): 加 github tile → 6 个.
 const HOME_TILES = [
   { key: 'news',      title: '新闻',     subtitle: 'IT 资讯 + 微博热搜',         accent: 'blue'   },
   { key: 'worldcup',  title: '世界杯',   subtitle: '2026 世界杯赛程',            accent: 'green'  },
   { key: 'invest',    title: '投资',     subtitle: '基金 + 贵金属 + 选股',       accent: 'orange' },
   { key: 'ai-usage',  title: 'AI 用量',  subtitle: 'Minimax coding plan 配额',  accent: 'pink'   },
   { key: 'versions',  title: '版本检查', subtitle: 'App 版本监控',              accent: 'indigo' },
+  { key: 'github',    title: 'GitHub 收录', subtitle: '优秀开源项目收录与管理',   accent: 'purple' },
 ];
 const TILE_BY_KEY = Object.fromEntries(HOME_TILES.map((t) => [t.key, t]));
 
@@ -249,6 +258,10 @@ function getStatus(key) {
       if (total === 0 && appsCount === 0) return '未配置应用';
       return `${updatable}/${total} 可更新`;
     }
+    case 'github': {
+      const n = githubProjects.value?.length ?? 0;
+      return n > 0 ? `已收录 ${n} 个` : '尚未收录';
+    }
     default:
       return null;
   }
@@ -311,12 +324,12 @@ export function HomeGrid() {
     return () => { clearInterval(tick); cancelAnimationFrame(raf); };
   }, []);
 
-  // v6: 订阅 3 个 badge 源 (news=ithome+wechat, invest=原 funds, ai-usage).
-  // 显式 read 让 Preact 知道依赖.
+  // v6: 订阅 badge / status 源. 显式 read 让 Preact 知道依赖.
   void ithomeUnreadBadge.value;
   void wechatHotUnreadBadge.value;
   void fundUnreadBadge.value;
   void aiUsageNavBadge.value;
+  void githubProjects.value;
   const newsBadge = (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0);
   const badges = {
     news: newsBadge,
@@ -337,7 +350,7 @@ export function HomeGrid() {
   }, []);
   const lastActiveTile = lastActive ? TILE_BY_KEY[lastActive] : null;
 
-  // A3: 全局键盘监听. v6: ⌘1-5 直接触发 (5 tile). 上下左右在 grid 里移动焦点.
+  // A3: 全局键盘监听. ⌘1-N 直接触发. 上下左右在 grid 里移动焦点.
   const orderedTiles = computeOrderedTiles(prefs);
   useEffect(() => {
     function onKey(e) {
@@ -441,7 +454,7 @@ export function HomeGrid() {
         <div class="home-hero-meta" aria-hidden="true">
           <span class="home-hero-dot" />
           <span>
-            {orderedTiles.length} 个模块 · ⌘1-5
+            {orderedTiles.length} 个模块 · ⌘1-{orderedTiles.length}
             {favCount > 0 && <span class="home-hero-fav">· ★ {favCount}</span>}
           </span>
         </div>

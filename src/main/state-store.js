@@ -1102,8 +1102,10 @@ function saveActiveCategory(id, statePath = defaultPath()) {
 // ─── P-N HomeGrid 落点: last_active_nav ──────────
 
 const PERSISTABLE_NAV_VALUES = new Set([
-  'ithome', 'wechat-hot', 'worldcup', 'funds',
-  'metals', 'stocks', 'ai-usage', 'versions',
+  // current
+  'news', 'worldcup', 'invest', 'ai-usage', 'versions', 'github',
+  // legacy (load 旧落盘仍合法; renderer setActiveNav 会 alias)
+  'ithome', 'wechat-hot', 'funds', 'metals', 'stocks',
 ]);
 
 /**
@@ -1126,7 +1128,7 @@ function loadLastActiveNav(statePath = defaultPath()) {
  * P-N HomeGrid 落点: 写 last_active_nav. atomic write,
  * 自动 preserve apps / mutes / last_opened / active_category / ...
  *
- * @param {string} key             'ithome' | 'wechat-hot' | 'worldcup' | 'funds' | 'metals' | 'stocks' | 'ai-usage' | 'versions'
+ * @param {string} key             persistable nav key (news/worldcup/invest/ai-usage/versions/github; legacy keys also accepted)
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  * @throws {TypeError} 非合法 key
