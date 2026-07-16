@@ -38,6 +38,41 @@ import { api } from "../api.js";
 
 const PAGE_SIZE = 8;
 
+/**
+ * 语言 → 圆点示意色（示意配色，非官方 GitHub 语言色）。
+ * 全部引用设计令牌，不写裸 hex；未知语言回退中性灰 --accent-gray。
+ * 映射为产品级示意，刻意与视觉稿对齐：JavaScript=橙、TypeScript=蓝；
+ * C++ 取红以与 JavaScript 区分（视觉稿中 C++ 误复用橙，此处修正）。
+ */
+const LANGUAGE_DOT_COLORS = {
+  JavaScript: "var(--accent-orange)",
+  TypeScript: "var(--accent-blue)",
+  Python: "var(--app-codex)",
+  "C++": "var(--accent-red)",
+  "C#": "var(--accent-green)",
+  Go: "var(--accent-amber)",
+  Rust: "var(--accent-orange)",
+  Swift: "var(--accent-orange)",
+  Kotlin: "var(--accent-orange)",
+  Java: "var(--accent-red)",
+  Ruby: "var(--accent-red)",
+  PHP: "var(--accent-blue)",
+  Shell: "var(--accent-green)",
+  Vue: "var(--accent-green)",
+  Dart: "var(--accent-blue)",
+  HTML: "var(--accent-orange)",
+  CSS: "var(--accent-blue)",
+  "C": "var(--accent-gray)",
+  "Objective-C": "var(--accent-gray)",
+  Scala: "var(--accent-red)",
+  Svelte: "var(--accent-red)",
+  "Jupyter Notebook": "var(--app-cursor)",
+};
+
+function langDotColor(lang) {
+  return LANGUAGE_DOT_COLORS[lang] || "var(--accent-gray)";
+}
+
 export function GithubProjectList({ onView, onParse }) {
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -280,7 +315,7 @@ export function GithubProjectList({ onView, onParse }) {
   );
 }
 
-function GithubProjectRow({ project, onView, onParse, onRemove, onTogglePin }) {
+export function GithubProjectRow({ project, onView, onParse, onRemove, onTogglePin }) {
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
 
@@ -312,7 +347,14 @@ function GithubProjectRow({ project, onView, onParse, onRemove, onTogglePin }) {
             <span class="github-chip github-chip--pin">已置顶</span>
           )}
           {project.language && (
-            <span class="github-chip">{project.language}</span>
+            <span class="github-chip">
+              <span
+                class="github-lang-dot"
+                style={{ background: langDotColor(project.language) }}
+                aria-hidden="true"
+              />
+              {project.language}
+            </span>
           )}
           {typeof project.stars === "number" && project.stars > 0 && (
             <span class="github-chip github-chip--star">
@@ -477,7 +519,7 @@ function GithubActions({ project, onView, onParse, onRemove, onTogglePin }) {
   );
 }
 
-function GithubProjectCard({ project, onView, onParse, onRemove, onTogglePin }) {
+export function GithubProjectCard({ project, onView, onParse, onRemove, onTogglePin }) {
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
 
@@ -509,7 +551,14 @@ function GithubProjectCard({ project, onView, onParse, onRemove, onTogglePin }) 
             <span class="github-chip github-chip--pin">已置顶</span>
           )}
           {project.language && (
-            <span class="github-chip">{project.language}</span>
+            <span class="github-chip">
+              <span
+                class="github-lang-dot"
+                style={{ background: langDotColor(project.language) }}
+                aria-hidden="true"
+              />
+              {project.language}
+            </span>
           )}
           {typeof project.stars === "number" && project.stars > 0 && (
             <span class="github-chip github-chip--star">
