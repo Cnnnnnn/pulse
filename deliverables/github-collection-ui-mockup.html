@@ -378,6 +378,19 @@ input, select { font-family: inherit; }
 .readme ul { padding-left: 20px; margin-bottom: var(--space-3); color: var(--text-secondary); }
 .readme a { color: var(--accent-primary); }
 
+/* README 骨架屏（加载态） —— 用主题令牌做 shimmer，深/浅主题均可见 */
+.skel { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1) 0; }
+.skel .b { background: linear-gradient(90deg, var(--bg-section) 0%, var(--bg-secondary) 50%, var(--bg-section) 100%); background-size: 200% 100%; animation: skel-shimmer 1.5s ease-in-out infinite; border-radius: 4px; }
+.skel .t { width: 55%; height: 26px; border-radius: var(--radius-sm); }
+.skel .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--space-1); }
+.skel .badge { width: 62px; height: 20px; border-radius: var(--radius-pill); }
+.skel .ln { height: 12px; }
+.skel .short { width: 70%; }
+.skel .mid { width: 85%; }
+.skel .code { width: 100%; height: 96px; border-radius: var(--radius-md); margin: var(--space-1) 0; }
+@keyframes skel-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skel .b { animation: none; } }
+
 /* AI 解析布局 */
 .ai-block { margin-bottom: var(--space-5); }
 .ai-block .lbl {
@@ -687,6 +700,7 @@ input, select { font-family: inherit; }
     <span class="spacer"></span>
     <button class="icon-btn" title="刷新 README" onclick="refreshReadme()"><svg viewBox="0 0 24 24" width="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
     <button class="icon-btn" title="在 GitHub 打开" onclick="window.open('https://github.com/'+document.getElementById('drawerTitle').textContent)"><svg viewBox="0 0 24 24" width="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg></button>
+    <button class="icon-btn" title="模拟 README 加载态" onclick="toggleReadmeLoading()"><svg viewBox="0 0 24 24" width="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.6"/><path d="M21 3v6h-6"/></svg></button>
     <button class="icon-btn" title="关闭" onclick="closeDrawer()"><svg viewBox="0 0 24 24" width="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="drawer-tabs">
@@ -696,20 +710,35 @@ input, select { font-family: inherit; }
   <div class="drawer-body">
     <!-- README pane -->
     <div class="tabpane on readme" id="paneReadme">
-      <h1>React</h1>
-      <p>React is a JavaScript library for building user interfaces. It lets you compose complex UIs from small, isolated pieces of code called "components".</p>
-      <h2>Installation</h2>
-      <pre><code>npm install react react-dom</code></pre>
-      <h3>Quick Start</h3>
-      <pre><code>import { createRoot } from 'react-dom/client';
+      <div class="readme-real" id="readmeReal">
+        <h1>React</h1>
+        <p>React is a JavaScript library for building user interfaces. It lets you compose complex UIs from small, isolated pieces of code called "components".</p>
+        <h2>Installation</h2>
+        <pre><code>npm install react react-dom</code></pre>
+        <h3>Quick Start</h3>
+        <pre><code>import { createRoot } from 'react-dom/client';
 createRoot(document.getElementById('root')).render(&lt;App /&gt;);</code></pre>
-      <h2>Key Features</h2>
-      <ul>
-        <li><b>Declarative:</b> design simple views for each state.</li>
-        <li><b>Component-Based:</b> build encapsulated components that manage their own state.</li>
-        <li><b>Learn Once, Write Anywhere:</b> develop for web, native, and VR.</li>
-      </ul>
-      <p>See the official <a href="#">documentation</a> for the full guide.</p>
+        <h2>Key Features</h2>
+        <ul>
+          <li><b>Declarative:</b> design simple views for each state.</li>
+          <li><b>Component-Based:</b> build encapsulated components that manage their own state.</li>
+          <li><b>Learn Once, Write Anywhere:</b> develop for web, native, and VR.</li>
+        </ul>
+        <p>See the official <a href="#">documentation</a> for the full guide.</p>
+      </div>
+      <div class="skel" id="readmeSkel" hidden role="status" aria-live="polite">
+        <span class="github-skel__sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">README 加载中…</span>
+        <div class="b t"></div>
+        <div class="badges"><span class="b badge"></span><span class="b badge"></span><span class="b badge"></span><span class="b badge"></span></div>
+        <div class="b ln"></div>
+        <div class="b ln"></div>
+        <div class="b ln short"></div>
+        <div class="b code"></div>
+        <div class="b ln"></div>
+        <div class="b ln mid"></div>
+        <div class="b ln"></div>
+        <div class="b ln short"></div>
+      </div>
     </div>
     <!-- AI pane -->
     <div class="tabpane" id="paneAi">
@@ -770,6 +799,7 @@ createRoot(document.getElementById('root')).render(&lt;App /&gt;);</code></pre>
 function openDrawer(name, tab){ document.getElementById('drawerTitle').textContent = name; document.getElementById('overlay').classList.add('show'); document.getElementById('drawer').classList.add('show'); switchTab(tab || 'readme'); }
 function closeDrawer(){ document.getElementById('overlay').classList.remove('show'); document.getElementById('drawer').classList.remove('show'); }
 function switchTab(t){ const r = t==='readme'; document.getElementById('paneReadme').classList.toggle('on', r); document.getElementById('paneAi').classList.toggle('on', !r); document.getElementById('tabReadme').classList.toggle('on', r); document.getElementById('tabAi').classList.toggle('on', !r); }
+function toggleReadmeLoading(){ var real = document.getElementById('readmeReal'); var skel = document.getElementById('readmeSkel'); var on = skel.hasAttribute('hidden'); skel.toggleAttribute('hidden', !on); real.style.display = on ? 'none' : ''; }
 function refreshReadme(){ const btn = event.currentTarget; btn.style.transform='rotate(360deg)'; btn.style.transition='transform .5s'; setTimeout(()=>{btn.style.transform='';btn.style.transition='';},500); }
 function confirmDelete(name){ document.getElementById('modalText').textContent = '将从你的 GitHub 收录库中移除 '+name+'，此操作不可撤销。'; document.getElementById('modalOverlay').classList.add('show'); }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
