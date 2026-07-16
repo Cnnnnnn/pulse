@@ -220,6 +220,9 @@ export function createApi(overrides = {}) {
     versionsCommandSearch: pick(overrides, "versionsCommandSearch"),
     // v2.50 (T5): LibraryPage / OverviewEmptyState CTA 触发检查
     versionsRunCheck: pick(overrides, "versionsRunCheck"),
+    // v2.80 GitHub 优秀项目收录
+    githubFetch: pick(overrides, "githubFetch"),
+    aiParseReadme: pick(overrides, "aiParseReadme"),
   };
 }
 

@@ -208,6 +208,7 @@ describe("sidenav-prefs: reorderItems", () => {
       "invest",
       "ai-usage",
       "versions",
+      "github",
     ]);
   });
 
@@ -220,6 +221,7 @@ describe("sidenav-prefs: reorderItems", () => {
       "news",
       "ai-usage",
       "versions",
+      "github",
     ]);
   });
 
@@ -254,8 +256,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 5 个 nav key (投资 nav 合并, 无新车发布)", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(5);
+  it("DEFAULTS_FOR_TESTS: 6 个 nav key (投资 nav 合并 + GitHub 收录)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(6);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

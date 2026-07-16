@@ -62,6 +62,7 @@ const NAV_ITEMS = [
   { key: 'invest',    label: '投资',     tooltip: '基金 + 贵金属 + 选股 (合并 tab)' },
   { key: 'ai-usage',  label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
   { key: 'versions',  label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
+  { key: 'github',    label: 'GitHub 收录', tooltip: 'GitHub 优秀项目收录与管理 (v2.80)' },
 ];
 
 export function SideNav() {

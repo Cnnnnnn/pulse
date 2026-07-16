@@ -323,6 +323,10 @@ contextBridge.exposeInMainWorld("api", {
   // v2.50 (T5): LibraryPage / PageHeader / OverviewEmptyState / CommandPalette
   // "检查更新" 按钮统一走这里 → main 的 versions:run-check (→ check-runner.runCheckQueued)
   versionsRunCheck: () => ipcRenderer.invoke("versions:run-check"),
+
+  // v2.80 GitHub 优秀项目收录
+  githubFetch: (input) => ipcRenderer.invoke("github:fetch", input),
+  aiParseReadme: (payload) => ipcRenderer.invoke("ai:parse-readme", payload),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

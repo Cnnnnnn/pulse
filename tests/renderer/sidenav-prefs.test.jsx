@@ -6,9 +6,9 @@
  * Phase 32 (2026-07-13): funds/metals/stocks 合并为 'invest', 总 nav 从 7 减到 5.
  *
  * 覆盖:
- *  - 默认 prefs (全开): 5 个 nav 都显示
+ *  - 默认 prefs (全开): 6 个 nav 都显示
  *  - 关 updates (versions): versions 隐藏,其他还在
- *  - 3 个动态全关: 只剩 2 个固定 nav (news/invest)
+ *  - 3 个动态全关: 只剩 3 个固定 nav (news/invest/github)
  *  - 关非动态 prefs (e.g. check_action 不影响 nav): 全部 nav 仍显示
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -84,7 +84,7 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 5 个 nav 全显示 (新闻 + 世界杯 + 投资 + AI 用量 + 更新)", () => {
+  it("默认 prefs 全开 → 6 个 nav 全显示 (新闻 + 世界杯 + 投资 + AI 用量 + 更新 + GitHub)", () => {
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
       "news",
@@ -92,6 +92,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "invest",
       "ai-usage",
       "versions",
+      "github",
     ]);
   });
 
@@ -118,7 +119,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("3 个动态全关 → 只剩 2 个固定 nav (news/invest)", () => {
+  it("3 个动态全关 → 只剩 3 个固定 nav (news/invest/github)", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -131,7 +132,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual(["news", "invest"]);
+    expect(visibleNavKeys()).toEqual(["news", "invest", "github"]);
   });
 
   it("只关非动态 prefs (check_action/config_action) → 全部 nav 仍显示", () => {
@@ -153,6 +154,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "invest",
       "ai-usage",
       "versions",
+      "github",
     ]);
   });
 });

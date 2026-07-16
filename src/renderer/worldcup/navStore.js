@@ -45,6 +45,7 @@ const NAV_KEYS = new Set([
   "invest",          // 投资 nav 合并 (funds + metals + stocks)
   "ai-usage",
   "versions",
+  "github",          // GitHub 优秀项目收录 (v2.80)
 ]);
 
 // ponytail: 兼容旧落盘 — 旧数据可能含 'ithome' / 'wechat-hot' / 'funds' / 'metals' / 'stocks',
@@ -65,6 +66,7 @@ export const NAV_KEYS_LIST = [
   "invest",
   "ai-usage",
   "versions",
+  "github",
 ];
 
 // P-N: HomeGrid 落点白名单 — "home" 是显示态, 不落盘.
