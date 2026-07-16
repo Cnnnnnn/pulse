@@ -29,12 +29,7 @@ function renderUsage(text) {
 
 export function GithubAiParseView({ result, loading, error, onRetry }) {
   if (loading) {
-    return (
-      <div class="github-ai-loading">
-        <div class="github-spinner" />
-        <p>AI 正在解析项目价值…</p>
-      </div>
-    );
+    return <GithubAiParseSkeleton />;
   }
 
   if (error) {
@@ -122,3 +117,34 @@ export function GithubAiParseView({ result, loading, error, onRetry }) {
 }
 
 export default GithubAiParseView;
+
+/**
+ * AI 解析加载态骨架屏 —— 结构镜像真实 AI 解析（摘要块 / 用法区 / 列表区 / 标签行），
+ * 复用 README 骨架屏同款主题安全 shimmer，保证两个 tab 加载体验一致。
+ * role=status + 视觉隐藏文案，屏幕阅读器可播报。
+ */
+function GithubAiParseSkeleton() {
+  return (
+    <div class="github-ai-skel" role="status" aria-live="polite">
+      <span class="github-skel__sr">AI 解析中…</span>
+      <div class="github-skel__block github-ai-skel__summary" />
+      <div class="github-ai-skel__section">
+        <div class="github-skel__block github-ai-skel__label" />
+        <div class="github-skel__block github-ai-skel__line" />
+        <div class="github-skel__block github-ai-skel__line github-skel__short" />
+      </div>
+      <div class="github-ai-skel__section">
+        <div class="github-skel__block github-ai-skel__label" />
+        <div class="github-skel__block github-ai-skel__line" />
+        <div class="github-skel__block github-ai-skel__line" />
+        <div class="github-skel__block github-ai-skel__line github-skel__mid" />
+      </div>
+      <div class="github-ai-skel__tags">
+        <span class="github-skel__block github-ai-skel__tag" />
+        <span class="github-skel__block github-ai-skel__tag" />
+        <span class="github-skel__block github-ai-skel__tag" />
+        <span class="github-skel__block github-ai-skel__tag" />
+      </div>
+    </div>
+  );
+}

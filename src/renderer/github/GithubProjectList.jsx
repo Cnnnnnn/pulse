@@ -23,6 +23,7 @@ import {
   IconMoreHorizontal,
   IconList,
   IconGrid,
+  IconGithub,
 } from "../components/icons.jsx";
 import {
   githubProjects,
@@ -290,15 +291,22 @@ function GithubProjectRow({ project, onView, onParse, onRemove, onTogglePin }) {
   return (
     <li class={`github-row ${project.pinned ? "is-pinned" : ""}`}>
       <div class="github-row__main">
-        <button
-          type="button"
-          class="github-row__name"
-          onClick={openExternal}
-          title="在 GitHub 打开"
-        >
-          {project.name}
-        </button>
-        <p class="github-row__desc">{project.description || "（无简介）"}</p>
+        <div class="github-row__head">
+          <span class="github-repo-icon">
+            <IconGithub size={18} />
+          </span>
+          <div class="github-row__headtext">
+            <button
+              type="button"
+              class="github-row__name"
+              onClick={openExternal}
+              title="在 GitHub 打开"
+            >
+              {project.name}
+            </button>
+            <p class="github-row__desc">{project.description || "（无简介）"}</p>
+          </div>
+        </div>
         <div class="github-row__meta">
           {project.pinned && (
             <span class="github-chip github-chip--pin">已置顶</span>
@@ -312,8 +320,10 @@ function GithubProjectRow({ project, onView, onParse, onRemove, onTogglePin }) {
             </span>
           )}
           {added && <span class="github-chip">收录于 {added}</span>}
-          {project.aiParse && (
+          {project.aiParse ? (
             <span class="github-chip github-chip--ok">已解析</span>
+          ) : (
+            <span class="github-chip github-chip--parsable">待解析</span>
           )}
         </div>
         {summary && (
@@ -478,15 +488,22 @@ function GithubProjectCard({ project, onView, onParse, onRemove, onTogglePin }) 
   return (
     <div class={`github-card ${project.pinned ? "is-pinned" : ""}`}>
       <div class="github-card__main">
-        <button
-          type="button"
-          class="github-card__name"
-          onClick={openExternal}
-          title="在 GitHub 打开"
-        >
-          {project.name}
-        </button>
-        <p class="github-card__desc">{project.description || "（无简介）"}</p>
+        <div class="github-card__head">
+          <span class="github-repo-icon">
+            <IconGithub size={18} />
+          </span>
+          <div class="github-card__headtext">
+            <button
+              type="button"
+              class="github-card__name"
+              onClick={openExternal}
+              title="在 GitHub 打开"
+            >
+              {project.name}
+            </button>
+            <p class="github-card__desc">{project.description || "（无简介）"}</p>
+          </div>
+        </div>
         <div class="github-card__meta">
           {project.pinned && (
             <span class="github-chip github-chip--pin">已置顶</span>
@@ -500,8 +517,10 @@ function GithubProjectCard({ project, onView, onParse, onRemove, onTogglePin }) 
             </span>
           )}
           {added && <span class="github-chip">收录于 {added}</span>}
-          {project.aiParse && (
+          {project.aiParse ? (
             <span class="github-chip github-chip--ok">已解析</span>
+          ) : (
+            <span class="github-chip github-chip--parsable">待解析</span>
           )}
         </div>
         {summary && (
