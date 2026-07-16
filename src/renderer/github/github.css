@@ -207,6 +207,31 @@
   box-shadow: var(--shadow-md);
   border-color: var(--border-strong);
 }
+
+/* 视图密度：紧凑 — 列表行更密，AI 摘要间距收紧 */
+.github-list--compact .github-list__ul {
+  gap: var(--space-2);
+}
+.github-list--compact .github-row {
+  padding: var(--space-3);
+}
+.github-list--compact .github-row__desc {
+  margin: var(--space-1) 0 var(--space-1);
+}
+.github-list--compact .github-row__ai {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+}
+.github-list--compact .github-cards {
+  gap: var(--space-3);
+}
+.github-list--compact .github-card {
+  padding: var(--space-3);
+  gap: var(--space-2);
+}
+.github-list--compact .github-card__meta {
+  margin-top: var(--space-2);
+}
 .github-row__main {
   min-width: 0;
   flex: 1;
@@ -1474,17 +1499,31 @@
 }
 
 /* 紧凑密度：间距更密、默认仅展开最新 */
-.github-rel-timeline--compact .github-rel-item {
-  padding-bottom: var(--space-3);
+.github-rel-timeline--compact {
+  gap: var(--space-2);
 }
-.github-rel-timeline--compact .github-rel-node {
-  margin-top: 4px;
+.github-rel-timeline--compact .github-rel-item {
+  padding-bottom: var(--space-2);
 }
 .github-rel-timeline--compact .github-rel-item:not(:last-child)::before {
-  top: 11px;
+  top: 10px;
+}
+.github-rel-timeline--compact .github-rel-node {
+  width: 8px;
+  height: 8px;
+  margin-top: 4px;
+}
+.github-rel-timeline--compact .github-rel-month {
+  font-size: var(--font-size-xs);
+  margin: var(--space-3) 0 var(--space-2);
+  padding: 1px 8px;
+  opacity: 0.72;
+}
+.github-rel-timeline--compact .github-rel-item__head {
+  gap: var(--space-1);
 }
 .github-rel-timeline--compact .github-rel-notes {
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 
 /* 更新 tab 加载骨架屏（复用 .github-skel__block 主题安全 shimmer） */

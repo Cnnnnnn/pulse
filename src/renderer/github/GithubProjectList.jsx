@@ -208,7 +208,9 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
   }
 
   return (
-    <div class="github-list">
+    <div
+      class={`github-list ${density === "compact" ? "github-list--compact" : "github-list--comfortable"}`}
+    >
       <div class="github-toolbar">
         <div class="github-search">
           <svg
@@ -291,7 +293,7 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
             type="button"
             class={`github-density__btn ${density === "comfortable" ? "is-active" : ""}`}
             aria-pressed={density === "comfortable"}
-            title="舒适：更新时间线展开更多说明"
+            title="舒适：列表与更新时间线更宽松"
             onClick={() => setGithubDensity("comfortable")}
           >
             舒适
@@ -300,7 +302,7 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
             type="button"
             class={`github-density__btn ${density === "compact" ? "is-active" : ""}`}
             aria-pressed={density === "compact"}
-            title="紧凑：更新时间线仅展开最新，间距更密"
+            title="紧凑：列表与更新时间线更密集，时间线仅展开最新"
             onClick={() => setGithubDensity("compact")}
           >
             紧凑

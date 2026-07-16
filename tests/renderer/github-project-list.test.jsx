@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
 import { GithubProjectRow, GithubProjectCard, GithubProjectList } from '../../src/renderer/github/GithubProjectList.jsx';
-import { githubProjects } from '../../src/renderer/store/github-projects-store.js';
+import { githubProjects, githubDensity } from '../../src/renderer/store/github-projects-store.js';
 
 function makeProject(overrides = {}) {
   return {
@@ -175,5 +175,60 @@ describe('GitHub 项目列表 · 全部已读', () => {
       />,
     );
     expect(container.querySelector('.github-markall-btn')).toBeNull();
+  });
+});
+
+describe('GitHub 项目列表 · 视图密度', () => {
+  beforeEach(() => {
+    githubProjects.value = [];
+    githubDensity.value = 'comfortable';
+  });
+
+  function seedList(items) {
+    githubProjects.value = items.map((x) => ({
+      id: x.id,
+      name: x.id,
+      description: '',
+      language: '',
+      stars: 0,
+      addedAt: Date.now(),
+      aiParse: null,
+      latestVersion: x.latestVersion || '',
+      lastSeenVersion: x.lastSeenVersion || '',
+      releases: x.releases || [],
+      releaseFetchedAt: x.releaseFetchedAt || 0,
+    }));
+  }
+
+  it('默认舒适：列表根节点带 github-list--comfortable 类', () => {
+    seedList([{ id: 'a/b' }]);
+    const { container } = render(
+      <GithubProjectList
+        onView={vi.fn()}
+        onParse={vi.fn()}
+        onCheckUpdates={vi.fn()}
+        onMarkAllSeen={vi.fn()}
+      />,
+    );
+    const root = container.querySelector('.github-list');
+    expect(root.className).toContain('github-list--comfortable');
+  });
+
+  it('点击「紧凑」后根节点切换为 github-list--compact（密度反馈在列表页可见）', () => {
+    seedList([{ id: 'a/b' }]);
+    const { container } = render(
+      <GithubProjectList
+        onView={vi.fn()}
+        onParse={vi.fn()}
+        onCheckUpdates={vi.fn()}
+        onMarkAllSeen={vi.fn()}
+      />,
+    );
+    const densityBtns = container.querySelectorAll('.github-density__btn');
+    expect(densityBtns.length).toBe(2);
+    fireEvent.click(densityBtns[1]); // 第二个按钮 = 紧凑
+    const root = container.querySelector('.github-list');
+    expect(root.className).toContain('github-list--compact');
+    expect(githubDensity.value).toBe('compact');
   });
 });
