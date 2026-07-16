@@ -7,7 +7,13 @@
 
 import { useState } from "preact/hooks";
 import { FeatureHeader } from "../components/FeatureHeader.jsx";
-import { githubProjects, githubError } from "../store/github-projects-store.js";
+import {
+  githubProjects,
+  githubError,
+  checkGithubUpdates,
+  markGithubSeen,
+} from "../store/github-projects-store.js";
+import { showToast } from "../store/toast-store.js";
 import { GithubAddForm } from "./GithubAddForm.jsx";
 import { GithubProjectList } from "./GithubProjectList.jsx";
 import { GithubProjectDrawer } from "./GithubProjectDrawer.jsx";
@@ -30,14 +36,32 @@ export function GithubPage() {
   const [drawerId, setDrawerId] = useState(null);
   const [drawerTab, setDrawerTab] = useState("readme");
 
-  function handleView(id) {
-    setDrawerTab("readme");
+  function handleView(id, tab = "readme") {
+    setDrawerTab(tab);
     setDrawerId(id);
+    // 通过「新版本」徽标进入更新 tab 时，主动标记为已读（徽标随即消失）
+    if (tab === "update") markGithubSeen(id);
   }
 
   function handleParse(id) {
     setDrawerTab("ai");
     setDrawerId(id);
+  }
+
+  async function handleCheckUpdates(onProgress) {
+    const r = await checkGithubUpdates({ onProgress });
+    if (r && r.ok) {
+      if (r.newCount > 0) {
+        const extra =
+          r.errorCount > 0 ? `（${r.errorCount} 个检查失败）` : "";
+        showToast(`发现 ${r.newCount} 个项目有新版本${extra}`, "success");
+      } else if (r.errorCount > 0) {
+        showToast(`检查完成，但 ${r.errorCount} 个检查失败`, "warn");
+      } else {
+        showToast("已是最新版本", "info");
+      }
+    }
+    return r;
   }
 
   const count = githubProjects.value.length;
@@ -67,7 +91,11 @@ export function GithubPage() {
             操作失败：{githubError.value}
           </p>
         )}
-        <GithubProjectList onView={handleView} onParse={handleParse} />
+        <GithubProjectList
+          onView={handleView}
+          onParse={handleParse}
+          onCheckUpdates={handleCheckUpdates}
+        />
       </div>
 
       {drawerId && (

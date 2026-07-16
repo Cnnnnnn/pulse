@@ -11,6 +11,7 @@ import {
   IconRefresh,
   IconSparkles,
   IconBook,
+  IconTag,
 } from "../components/icons.jsx";
 import {
   githubProjects,
@@ -22,9 +23,12 @@ import {
 import { api } from "../api.js";
 import { GithubReadmeView } from "./GithubReadmeView.jsx";
 import { GithubAiParseView } from "./GithubAiParseView.jsx";
+import { GithubReleasesView } from "./GithubReleasesView.jsx";
 
 export function GithubProjectDrawer({ projectId, initialTab = "readme", onClose }) {
-  const [tab, setTab] = useState(initialTab === "ai" ? "ai" : "readme");
+  const [tab, setTab] = useState(
+    initialTab === "ai" || initialTab === "update" ? initialTab : "readme",
+  );
   const [parseLoading, setParseLoading] = useState(false);
   const [parseError, setParseError] = useState(null);
 
@@ -130,6 +134,13 @@ export function GithubProjectDrawer({ projectId, initialTab = "readme", onClose 
       >
         <IconSparkles size={14} /> AI 解析
       </button>
+      <button
+        type="button"
+        class={`github-tab${tab === "update" ? " is-active" : ""}`}
+        onClick={() => setTab("update")}
+      >
+        <IconTag size={14} /> 更新
+      </button>
     </div>
   );
 
@@ -146,13 +157,15 @@ export function GithubProjectDrawer({ projectId, initialTab = "readme", onClose 
       <div class="github-drawer__content">
         {tab === "readme" ? (
           <GithubReadmeView markdown={project.readme} loading={busy} />
-        ) : (
+        ) : tab === "ai" ? (
           <GithubAiParseView
             result={project.aiParse}
             loading={parseLoading || (busy && !project.aiParse)}
             error={parseError}
             onRetry={handleRetryParse}
           />
+        ) : (
+          <GithubReleasesView project={project} />
         )}
       </div>
     </DrawerShell>

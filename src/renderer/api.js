@@ -223,6 +223,8 @@ export function createApi(overrides = {}) {
     // v2.80 GitHub 优秀项目收录
     githubFetch: pick(overrides, "githubFetch"),
     aiParseReadme: pick(overrides, "aiParseReadme"),
+    // Release 更新追踪：抓取某仓库 recent releases
+    githubFetchRelease: pick(overrides, "githubFetchRelease"),
   };
 }
 

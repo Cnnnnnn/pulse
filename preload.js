@@ -327,6 +327,9 @@ contextBridge.exposeInMainWorld("api", {
   // v2.80 GitHub 优秀项目收录
   githubFetch: (input) => ipcRenderer.invoke("github:fetch", input),
   aiParseReadme: (payload) => ipcRenderer.invoke("ai:parse-readme", payload),
+  // Release 更新追踪：抓取某仓库 recent releases
+  githubFetchRelease: (input) =>
+    ipcRenderer.invoke("github:fetch-release", input),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

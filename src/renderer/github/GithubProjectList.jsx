@@ -23,6 +23,7 @@ import {
   IconMoreHorizontal,
   IconList,
   IconGrid,
+  IconRefresh,
   IconGithub,
 } from "../components/icons.jsx";
 import {
@@ -32,6 +33,7 @@ import {
   togglePinGithubProject,
   formatStars,
   formatAddedDate,
+  hasGithubUpdate,
 } from "../store/github-projects-store.js";
 import { openConfirm } from "../confirmStore.js";
 import { api } from "../api.js";
@@ -73,12 +75,40 @@ function langDotColor(lang) {
   return LANGUAGE_DOT_COLORS[lang] || "var(--accent-gray)";
 }
 
-export function GithubProjectList({ onView, onParse }) {
+/**
+ * 更新状态徽标（行/卡片共用）。
+ * - hasUpdate：蓝色脉冲「● 新版本 vX」，点击开抽屉「更新」tab。
+ * - 已最新：低调静态「vX」。
+ * - 无 release：不渲染。
+ */
+function GithubUpdateBadge({ project, onView }) {
+  if (!project.latestVersion) return null;
+  if (hasGithubUpdate(project)) {
+    return (
+      <button
+        type="button"
+        class="github-chip github-chip--update"
+        onClick={() => onView && onView(project.id, "update")}
+        title="查看更新"
+      >
+        <span class="github-chip--update-dot" aria-hidden="true" />
+        新版本 v{project.latestVersion}
+      </button>
+    );
+  }
+  return (
+    <span class="github-chip github-chip--version">v{project.latestVersion}</span>
+  );
+}
+
+export function GithubProjectList({ onView, onParse, onCheckUpdates }) {
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("added");
   const [view, setView] = useState("list");
   const [lang, setLang] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
 
   const projects = githubProjects.value;
 
@@ -145,6 +175,17 @@ export function GithubProjectList({ onView, onParse }) {
   }
   function handleTogglePin(project) {
     togglePinGithubProject(project.id);
+  }
+  async function handleCheckUpdates() {
+    if (checking || !onCheckUpdates) return;
+    setChecking(true);
+    setProgress({ done: 0, total: githubProjects.value.length });
+    try {
+      await onCheckUpdates((done, total) => setProgress({ done, total }));
+    } finally {
+      setChecking(false);
+      setProgress({ done: 0, total: 0 });
+    }
   }
 
   if (projects.length === 0) {
@@ -229,6 +270,26 @@ export function GithubProjectList({ onView, onParse }) {
             <IconGrid size={16} />
           </button>
         </div>
+        <button
+          type="button"
+          class="github-btn github-btn--ghost github-check-btn"
+          onClick={handleCheckUpdates}
+          disabled={checking || githubProjects.value.length === 0}
+          title="检查所有收录项目是否有新版本"
+        >
+          {checking ? (
+            <>
+              <span class="github-spinner github-check-btn__spin" aria-hidden="true" />
+              {progress.total > 0
+                ? `检查中 ${progress.done}/${progress.total}`
+                : "检查中…"}
+            </>
+          ) : (
+            <>
+              <IconRefresh size={14} /> 检查更新
+            </>
+          )}
+        </button>
       </div>
 
       {allLanguages.length >= 2 && (
@@ -367,6 +428,7 @@ export function GithubProjectRow({ project, onView, onParse, onRemove, onToggleP
           ) : (
             <span class="github-chip github-chip--parsable">待解析</span>
           )}
+          <GithubUpdateBadge project={project} onView={onView} />
         </div>
         {summary && (
           <div class="github-row__ai">
@@ -571,6 +633,7 @@ export function GithubProjectCard({ project, onView, onParse, onRemove, onToggle
           ) : (
             <span class="github-chip github-chip--parsable">待解析</span>
           )}
+          <GithubUpdateBadge project={project} onView={onView} />
         </div>
         {summary && (
           <div class="github-card__ai">

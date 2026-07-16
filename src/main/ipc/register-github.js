@@ -8,7 +8,7 @@
  * 2026-07-15 v2.80: 新增。
  */
 
-const { fetchGithubProject } = require("../github");
+const { fetchGithubProject, fetchRepoRelease } = require("../github");
 const { parseReadme } = require("../../ai/readme-parse");
 
 function registerGithubHandlers(ctx) {
@@ -51,6 +51,27 @@ function registerGithubHandlers(ctx) {
     },
     {
       logMeta: (_evt, p) => ({ project: p && p.projectName }),
+    },
+  );
+
+  safeHandle(
+    "github:fetch-release",
+    async (_event, input) => {
+      if (typeof input !== "string" || input.trim().length === 0) {
+        return { ok: false, reason: "invalid_input" };
+      }
+      const parsed = parseGithubUrl(input);
+      if (!parsed) return { ok: false, reason: "invalid_url" };
+      try {
+        return await fetchRepoRelease(parsed.owner, parsed.repo);
+      } catch (err) {
+        return { ok: false, reason: "fetch_failed", error: err && err.message };
+      }
+    },
+    {
+      logMeta: (_evt, input) => ({
+        input: typeof input === "string" ? input.slice(0, 80) : null,
+      }),
     },
   );
 }

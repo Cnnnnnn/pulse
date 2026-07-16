@@ -88,6 +88,24 @@ export function formatAddedDate(ts) {
   return `${m}-${day}`;
 }
 
+/** 把时间戳格式化为「N 天前 / N 个月前」等人读相对时间。 */
+export function formatRelativeTime(ts) {
+  const d = typeof ts === "number" && ts > 0 ? new Date(ts) : null;
+  if (!d || Number.isNaN(d.getTime())) return "";
+  const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (sec < 60) return "刚刚";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} 分钟前`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} 小时前`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day} 天前`;
+  const mon = Math.floor(day / 30);
+  if (mon < 12) return `${mon} 个月前`;
+  const yr = Math.floor(day / 365);
+  return `${yr} 年前`;
+}
+
 /** 把错误 reason 映射成中文提示。 */
 export function githubReasonText(reason) {
   switch (reason) {
@@ -119,6 +137,17 @@ export function githubReasonText(reason) {
     default:
       return "操作失败，请重试";
   }
+}
+
+/**
+ * 派生：该项目是否有「未读的新版本」。
+ * 首次收录时 lastSeenVersion 被种子为 latestVersion，故不会误报。
+ * @param {object} p
+ * @returns {boolean}
+ */
+export function hasGithubUpdate(p) {
+  if (!p || !p.latestVersion) return false;
+  return p.latestVersion !== p.lastSeenVersion;
 }
 
 /**
@@ -189,9 +218,17 @@ export async function addGithubProject(input) {
       readmeFetchedAt: res.readme ? Date.now() : 0,
       aiParse: null,
       aiParsedAt: 0,
+      // Release 更新追踪：初值空，下面静默拉一次填充（首次收录即 lastSeen=latest，不误报）
+      latestVersion: "",
+      latestVersionPublishedAt: 0,
+      lastSeenVersion: "",
+      releases: [],
+      releaseFetchedAt: 0,
     };
     githubProjects.value = [proj, ...githubProjects.value];
     persist();
+    // 静默抓取 release（失败不影响收录成功），填充版本字段
+    fetchGithubRelease(id, { silent: true }).catch(() => {});
     return { ok: true, project: proj };
   } finally {
     githubBusy.value = false;
@@ -285,5 +322,95 @@ export async function parseGithubProjectAi(id, force = false) {
     return { ok: true, result: res.result };
   } finally {
     githubBusyId.value = null;
+  }
+}
+
+/**
+ * 抓取某项目最新 release 并写回数据模型。
+ * 首次拉取（lastSeenVersion 为空）时把 lastSeenVersion 种子为 latestVersion，
+ * 避免把「刚收录时的最新版」误报成「有更新」。
+ * @param {string} id
+ * @param {{silent?:boolean}} [opts] silent=true 时不显示行级 loading 态
+ * @returns {Promise<{ok:boolean, reason?:string}>}
+ */
+export async function fetchGithubRelease(id, opts = {}) {
+  const silent = !!opts.silent;
+  const p = githubProjects.value.find((x) => x.id === id);
+  if (!p) return { ok: false, reason: "not_found" };
+  if (!silent) githubBusyId.value = id;
+  try {
+    const res = await api.githubFetchRelease(
+      `https://github.com/${p.owner}/${p.repo}`,
+    );
+    if (!res || !res.ok) {
+      return { ok: false, reason: (res && res.reason) || "fetch_failed" };
+    }
+    const rel = res.release || {};
+    const releases = Array.isArray(res.releases) ? res.releases : [];
+    githubProjects.value = githubProjects.value.map((x) =>
+      x.id === id
+        ? {
+            ...x,
+            latestVersion: rel.version || x.latestVersion || "",
+            latestVersionPublishedAt: rel.publishedAt || 0,
+            releases,
+            releaseFetchedAt: Date.now(),
+            lastSeenVersion:
+              x.lastSeenVersion === "" || x.lastSeenVersion == null
+                ? rel.version || x.latestVersion || ""
+                : x.lastSeenVersion,
+          }
+        : x,
+    );
+    persist();
+    return { ok: true };
+  } finally {
+    if (!silent) githubBusyId.value = null;
+  }
+}
+
+/**
+ * 标记某项目「已读」：把 lastSeenVersion 设为当前 latestVersion，
+ * 消除「新版本」徽标（用户已通过徽标或更新 tab 内的按钮主动查看）。
+ * @param {string} id
+ */
+export function markGithubSeen(id) {
+  const p = githubProjects.value.find((x) => x.id === id);
+  if (!p || !p.latestVersion) return;
+  githubProjects.value = githubProjects.value.map((x) =>
+    x.id === id ? { ...x, lastSeenVersion: x.latestVersion } : x,
+  );
+  persist();
+}
+
+/**
+ * 批量检查所有项目的更新。
+ * @param {{onProgress?:(done:number,total:number)=>void, onlyStale?:boolean}} [opts]
+ *   onProgress 用于 UI 进度（检查中 N/M）；onlyStale 仅检查从未拉过 release 的项目。
+ * @returns {Promise<{ok:boolean, newCount:number, errorCount:number}>}
+ */
+export async function checkGithubUpdates(opts = {}) {
+  const { onProgress, onlyStale } = opts;
+  let list = githubProjects.value;
+  if (onlyStale) list = list.filter((p) => !p.releaseFetchedAt);
+  if (list.length === 0) return { ok: true, newCount: 0, errorCount: 0 };
+  githubBusy.value = true;
+  let newCount = 0;
+  let errorCount = 0;
+  try {
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (onProgress) onProgress(i + 1, list.length);
+      const r = await fetchGithubRelease(p.id, { silent: true });
+      if (!r.ok) {
+        errorCount += 1;
+        continue;
+      }
+      const updated = githubProjects.value.find((x) => x.id === p.id);
+      if (updated && hasGithubUpdate(updated)) newCount += 1;
+    }
+    return { ok: true, newCount, errorCount };
+  } finally {
+    githubBusy.value = false;
   }
 }

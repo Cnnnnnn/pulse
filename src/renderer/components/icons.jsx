@@ -815,3 +815,24 @@ export function IconGithub({ size = 18 }) {
     </svg>
   );
 }
+
+/* 「更新」tab 图标 — 标签/版本标记语义 */
+export function IconTag({ size = 14 }) {
+  return (
+    <Svg size={size}>
+      <path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.29H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.54 11l9.58 9.59a2 2 0 0 0 2.83 0l4.64-4.64a2 2 0 0 0 0-2.54z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
+    </Svg>
+  );
+}
+
+/* 外部链接箭头 — 跳转 release 页 */
+export function IconExternalLink({ size = 14 }) {
+  return (
+    <Svg size={size}>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </Svg>
+  );
+}

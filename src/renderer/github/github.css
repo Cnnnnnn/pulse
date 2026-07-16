@@ -894,6 +894,18 @@
   }
 }
 
+@keyframes github-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
 /* ── AI 解析 ── */
 .github-ai {
   display: flex;
@@ -1179,6 +1191,247 @@
   .github-skel__block {
     animation: none;
   }
+  .github-chip--update-dot {
+    animation: none;
+  }
+}
+
+/* ── 更新状态徽标（Release 更新追踪） ── */
+/* 三语义轴：更新=蓝（--accent-primary），与收录灰 / 解析绿区分 */
+.github-chip--update {
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  cursor: pointer;
+  border: none;
+  font: inherit;
+  font-weight: 500;
+}
+.github-chip--update:hover {
+  background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
+.github-chip--update-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  animation: github-pulse 1.4s ease-in-out infinite;
+}
+.github-chip--version {
+  color: var(--text-tertiary);
+  background: transparent;
+}
+
+/* 顶部「检查更新」按钮（复用 ghost 样式，内嵌 spinner） */
+.github-check-btn {
+  flex: 0 0 auto;
+}
+.github-check-btn__spin {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
+/* ── 抽屉「更新」tab：版本对比条 + Release 时间线 ── */
+.github-rel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.github-rel-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.github-rel-bar.is-update {
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+}
+.github-rel-bar__ver {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.github-rel-bar__tag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  border-radius: var(--radius-pill);
+}
+.github-rel-ver {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.github-rel-bar__date {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+.github-rel-markseen {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--accent-primary);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.github-rel-markseen:hover {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+
+.github-rel-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.github-rel-item {
+  position: relative;
+  display: flex;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+}
+.github-rel-item:last-child {
+  padding-bottom: 0;
+}
+.github-rel-item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 14px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.github-rel-node {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  border: 2px solid var(--surface);
+}
+.github-rel-item.is-latest .github-rel-node {
+  background: var(--accent-primary);
+}
+.github-rel-item__body {
+  min-width: 0;
+  flex: 1;
+}
+.github-rel-item__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.github-rel-item__date {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.github-rel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+.github-rel-link:hover {
+  text-decoration: underline;
+}
+.github-rel-notes {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.github-rel-notes.is-open {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+.github-rel-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--space-2);
+  padding: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.github-rel-toggle:hover {
+  color: var(--text-primary);
+}
+
+/* 更新 tab 加载骨架屏（复用 .github-skel__block 主题安全 shimmer） */
+.github-rel-skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.github-rel-skel__bar {
+  width: 100%;
+  height: 52px;
+  border-radius: var(--radius-md);
+}
+.github-rel-skel__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.github-rel-skel__item {
+  display: flex;
+  gap: var(--space-3);
+}
+.github-rel-skel__node {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.github-rel-skel__lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+.github-rel-skel__line {
+  height: 12px;
+  border-radius: 4px;
 }
 
 /* ── 响应式：窄屏（移动端 / 窄窗口） ── */

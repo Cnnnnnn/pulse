@@ -42,9 +42,9 @@ const isStale   = !p.latestVersion; // 从未成功拉到 release（无 release 
 
 ### 2.3 后端扩展点
 
-- **`api.githubFetch` 的 main handler**：抓 README/元数据后，额外请求 `releases?per_page=5`（未登录 60 次/小时限制，收录量小可接受），把 `latestVersion` / `latestVersionPublishedAt` / `releases` 塞入 `meta`。
-- **新增 `api.githubReleases(owner, repo)`**（按需 + 手动刷新抽屉时间线用），与 `githubFetch` 共用同一 HTTP 工具与 UA 头。
-- 字段加入 store 的 `sanitizeConfig` 等价「项目对象白名单」（参考既有 `enrich_only` 教训：新增字段必须同步进持久化白名单，否则 `loadGithubProjects` 后丢失）。
+- **新增 `api.githubReleases(input)`（即 `github:fetch-release` IPC）**：独立 handler 调 `repos/{owner}/{repo}/releases`，返回 `{ ok, release, releases[] }`，与 `githubFetch` 共用同一 HttpClient + UA 头。**未复用 `api.githubFetch` 内联**，避免抓 README 时强耦合 release 列表。
+- **`githubFetchRelease` 在收录时静默调用**：`addGithubProject` 写入项目后立即 `fetchGithubRelease(id, { silent:true })` 填充版本字段；`checkGithubUpdates` 批量刷新；首次进入模块 `GithubLayout` 静默 `onlyStale` 检查一次。
+- **持久化白名单说明（重要修正）**：本模块项目存于渲染端 `localStorage`（`pulse.github.projects.v1`），保存是裸 `JSON.stringify`、加载是裸 `JSON.parse`，**没有** `sanitizeConfig` 这类字段白名单（那个只作用于 `config.json` 的 detector 配置，与本模块无关）。因此新增的 5 个 release 字段直接进 `project` 对象即可持久化，**无需补任何白名单**——这也是比预期简单的地方。
 
 ---
 

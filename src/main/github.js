@@ -151,6 +151,49 @@ async function fetchReadmeRaw(owner, repo, branch) {
 }
 
 /**
+ * 抓取仓库 Releases（最新若干条，用于「更新追踪」）。
+ * GitHub API 返回数组按发布时间倒序，[0] 即最新版。
+ * @returns {Promise<{ok:boolean, reason?:string, release?:object|null, releases?:Array}>}
+ */
+async function fetchRepoRelease(owner, repo) {
+  const res = await http().get(`${API_BASE}/repos/${owner}/${repo}/releases`, {
+    headers: {
+      "User-Agent": UA,
+      Accept: "application/vnd.github+json",
+    },
+    timeout: 20000,
+  });
+  if (!res || res.status === 403 || res.status === 429) {
+    return { ok: false, reason: "rate_limited", status: res && res.status };
+  }
+  if (!res || res.status !== 200) {
+    return { ok: false, reason: "not_found", status: res && res.status };
+  }
+  let list;
+  try {
+    list = JSON.parse(res.body || "[]");
+  } catch {
+    return { ok: false, reason: "parse_error" };
+  }
+  if (!Array.isArray(list) || list.length === 0) {
+    return { ok: true, release: null, releases: [] };
+  }
+  const stripV = (t) => (typeof t === "string" ? t.replace(/^[vV]/, "") : "");
+  const map = (r) => ({
+    version: stripV(r.tag_name),
+    tagName: typeof r.tag_name === "string" ? r.tag_name : "",
+    publishedAt: r.published_at ? Date.parse(r.published_at) : 0,
+    notesUrl: typeof r.html_url === "string" ? r.html_url : "",
+    body: typeof r.body === "string" ? r.body : "",
+  });
+  return {
+    ok: true,
+    release: map(list[0]),
+    releases: list.slice(0, 5).map(map),
+  };
+}
+
+/**
  * 统一入口：解析地址 → 抓元数据 + README。
  * @param {string} input
  * @returns {Promise<{ok:boolean, reason?:string, owner?:string, repo?:string, meta?:object, readme?:string}>}
@@ -187,4 +230,5 @@ module.exports = {
   fetchGithubProject,
   fetchRepoMeta,
   fetchReadmeRaw,
+  fetchRepoRelease,
 };
