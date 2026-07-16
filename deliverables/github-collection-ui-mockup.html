@@ -254,6 +254,23 @@ input, select { font-family: inherit; }
 .ai-preview .txt { font-size: var(--fs-12); color: var(--text-primary); line-height: 1.5; }
 .ai-preview .txt b { color: var(--app-codex); font-weight: 600; }
 
+/* ── 卡片视图 ── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-4); }
+.card {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--space-4); box-shadow: var(--shadow-sm);
+  transition: box-shadow .18s ease;
+}
+.card:hover { box-shadow: var(--shadow-md); }
+.card .c-head { display: flex; align-items: flex-start; gap: var(--space-3); }
+.card .repo-icon { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; background: var(--bg-secondary); display: grid; place-items: center; }
+.card .repo-icon svg { width: 18px; height: 18px; fill: var(--text-primary); }
+.card .name { font-size: var(--fs-15); font-weight: 600; color: var(--accent-primary); text-decoration: none; }
+.card .name:hover { text-decoration: underline; }
+.card .desc { font-size: var(--fs-13); color: var(--text-secondary); margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card .actions { display: flex; gap: var(--space-1); flex-wrap: wrap; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+
 /* ── 分页 ── */
 .pager { display: flex; align-items: center; justify-content: center; gap: var(--space-2); margin-top: var(--space-5); }
 .pager button {
@@ -532,6 +549,83 @@ input, select { font-family: inherit; }
           </div>
         </div>
 
+        <!-- 卡片视图（与列表同源数据；默认隐藏，由 setView 切换） -->
+        <div class="cards" id="cards" style="display:none">
+          <!-- 卡片 1：已 AI 解析 -->
+          <div class="card" data-name="facebook/react" data-stars="228000" data-added="3">
+            <div class="c-head">
+              <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
+              <div style="flex:1;min-width:0">
+                <a class="name" href="#">facebook/react</a>
+                <div class="desc">用于构建用户界面的 JavaScript 库（声明式、组件化、一次学习随处编写）。</div>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip"><span class="dot" style="background:var(--accent-orange)"></span>JavaScript</span>
+              <span class="chip"><svg viewBox="0 0 24 24" fill="#f5b301"><path d="M12 2l3 7h7l-5.5 4 2 7L12 17l-6.5 4 2-7L2 9h7z"/></svg><span class="tabular">228k</span></span>
+              <span class="chip">收录于 07-16</span>
+              <span class="chip parsed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>已解析</span>
+            </div>
+            <div class="ai-preview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5h5l-4 4 1 6-4-3-4 3 1-6-4-4h5z"/></svg>
+              <div class="txt"><b>AI 摘要 ·</b> 业界主流的 UI 构建库，适合中大型 Web 应用；声明式写法降低状态同步成本，生态（Next.js、React Native）覆盖全平台。</div>
+            </div>
+            <div class="actions">
+              <button class="act" onclick="openDrawer('facebook/react')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5z"/><path d="M17 8h3v9a2 2 0 0 1-2 2"/></svg>查看介绍</button>
+              <button class="act" onclick="openDrawer('facebook/react','ai')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5h5l-4 4 1 6-4-3-4 3 1-6-4-4h5z"/></svg>AI 解析</button>
+              <button class="act danger" onclick="confirmDelete('facebook/react')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+            </div>
+          </div>
+
+          <!-- 卡片 2：已 AI 解析 -->
+          <div class="card" data-name="apple/swift" data-stars="67000" data-added="2">
+            <div class="c-head">
+              <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
+              <div style="flex:1;min-width:0">
+                <a class="name" href="#">apple/swift</a>
+                <div class="desc">Apple 推出的通用编程语言，强调安全、快速与现代语法，覆盖服务端到客户端。</div>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip"><span class="dot" style="background:var(--accent-orange)"></span>C++</span>
+              <span class="chip"><svg viewBox="0 0 24 24" fill="#f5b301"><path d="M12 2l3 7h7l-5.5 4 2 7L12 17l-6.5 4 2-7L2 9h7z"/></svg><span class="tabular">67k</span></span>
+              <span class="chip">收录于 07-15</span>
+              <span class="chip parsed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>已解析</span>
+            </div>
+            <div class="ai-preview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5h5l-4 4 1 6-4-3-4 3 1-6-4-4h5z"/></svg>
+              <div class="txt"><b>AI 摘要 ·</b> 适合开发 Apple 平台（iOS/macOS）原生应用与高性能服务端；类型推断与内存安全减少崩溃，学习曲线略陡于脚本语言。</div>
+            </div>
+            <div class="actions">
+              <button class="act" onclick="openDrawer('apple/swift')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5z"/><path d="M17 8h3v9a2 2 0 0 1-2 2"/></svg>查看介绍</button>
+              <button class="act" onclick="openDrawer('apple/swift','ai')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5h5l-4 4 1 6-4-3-4 3 1-6-4-4h5z"/></svg>AI 解析</button>
+              <button class="act danger" onclick="confirmDelete('apple/swift')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+            </div>
+          </div>
+
+          <!-- 卡片 3：待解析 -->
+          <div class="card" data-name="tailwindlabs/tailwindcss" data-stars="82000" data-added="1">
+            <div class="c-head">
+              <div class="repo-icon"><svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></div>
+              <div style="flex:1;min-width:0">
+                <a class="name" href="#">tailwindlabs/tailwindcss</a>
+                <div class="desc"> utility-first CSS 框架，用原子类快速构建自定义设计，无需离开 HTML。</div>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip"><span class="dot" style="background:var(--accent-blue, #007aff)"></span>TypeScript</span>
+              <span class="chip"><svg viewBox="0 0 24 24" fill="#f5b301"><path d="M12 2l3 7h7l-5.5 4 2 7L12 17l-6.5 4 2-7L2 9h7z"/></svg><span class="tabular">82k</span></span>
+              <span class="chip">收录于 07-14</span>
+              <span class="chip parsable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>待解析</span>
+            </div>
+            <div class="actions">
+              <button class="act" onclick="openDrawer('tailwindlabs/tailwindcss')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5z"/><path d="M17 8h3v9a2 2 0 0 1-2 2"/></svg>查看介绍</button>
+              <button class="act" onclick="openDrawer('tailwindlabs/tailwindcss','ai')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5h5l-4 4 1 6-4-3-4 3 1-6-4-4h5z"/></svg>AI 解析</button>
+              <button class="act danger" onclick="confirmDelete('tailwindlabs/tailwindcss')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+            </div>
+          </div>
+        </div>
+
         <!-- 分页 -->
         <div class="pager">
           <button disabled>‹</button>
@@ -643,9 +737,9 @@ function closeModal(){ document.getElementById('modalOverlay').classList.remove(
 function doDelete(){ closeModal(); }
 function toggleTheme(){ const html=document.documentElement; const dark=html.getAttribute('data-theme')==='dark'; html.setAttribute('data-theme', dark?'light':'dark'); document.getElementById('themeLabel').textContent = dark?'深色':'浅色'; }
 function addProject(e){ e.preventDefault(); const i=document.getElementById('addInput'); const h=document.getElementById('addHint'); const v=i.value.trim(); const ok=/^(https?:\/\/)?(www\.)?github\.com\/[\w.-]+\/[\w.-]+/i.test(v)||/^[\w.-]+\/[\w.-]+$/.test(v); if(!ok){ i.classList.add('invalid'); h.classList.add('err'); h.textContent='地址格式不正确，应为 github.com/owner/repo 或 owner/repo'; return false; } i.classList.remove('invalid'); h.classList.remove('err'); h.textContent='已收录 '+v.replace(/^https?:\/\/(www\.)?github\.com\//,''); i.value=''; return false; }
-function filterList(q){ q=q.toLowerCase(); document.querySelectorAll('#list .row').forEach(r=>{ const n=r.dataset.name.toLowerCase(); r.style.display = n.includes(q)?'':'none'; }); }
-function sortList(mode){ const list=document.getElementById('list'); const rows=[...list.children]; rows.sort((a,b)=>{ if(mode==='stars') return +b.dataset.stars-+a.dataset.stars; if(mode==='name') return a.dataset.name.localeCompare(b.dataset.name); return +b.dataset.added-+a.dataset.added; }); rows.forEach(r=>list.appendChild(r)); }
-function setView(v){ const list=document.getElementById('segList'), card=document.getElementById('segCard'); const on=v==='list'; list.classList.toggle('on',on); card.classList.toggle('on',!on); }
+function filterList(q){ q=q.toLowerCase(); document.querySelectorAll('#list .row, #cards .card').forEach(r=>{ const n=r.dataset.name.toLowerCase(); r.style.display = n.includes(q)?'':'none'; }); }
+function sortList(mode){ ['list','cards'].forEach(cid=>{ const c=document.getElementById(cid); const items=[...c.children]; items.sort((a,b)=>{ if(mode==='stars') return +b.dataset.stars-+a.dataset.stars; if(mode==='name') return a.dataset.name.localeCompare(b.dataset.name); return +b.dataset.added-+a.dataset.added; }); items.forEach(r=>c.appendChild(r)); }); }
+function setView(v){ const list=document.getElementById('segList'), card=document.getElementById('segCard'); const on=v==='list'; list.classList.toggle('on',on); card.classList.toggle('on',!on); document.getElementById('list').style.display = on ? '' : 'none'; document.getElementById('cards').style.display = on ? 'none' : ''; }
 </script>
 </body>
 </html>
