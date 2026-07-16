@@ -218,6 +218,63 @@
   flex: 0 0 auto;
 }
 
+/* 「⋯ 更多」溢出菜单（窄屏显示，桌面隐藏） */
+.github-row__more-wrap {
+  display: none;
+  position: relative;
+  flex: 0 0 auto;
+}
+.github-row__more {
+  width: 36px;
+  height: 36px;
+}
+.github-row__menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 28;
+}
+.github-row__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 29;
+  min-width: 168px;
+  padding: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+.github-row__menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+}
+.github-row__menu-item:hover {
+  background: var(--bg-secondary);
+}
+.github-row__menu-item.is-danger {
+  color: var(--color-danger);
+}
+.github-row__menu-item:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+.github-row__menu-item:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .github-chip {
   display: inline-flex;
   align-items: center;
@@ -741,5 +798,43 @@
 @media (prefers-reduced-motion: reduce) {
   .github-spinner {
     animation: none;
+  }
+}
+
+/* ── 响应式：窄屏（移动端 / 窄窗口） ── */
+@media (max-width: 760px) {
+  /* 列表行：行内操作隐藏，改用「⋯」溢出菜单，避免按钮挤压正文 */
+  .github-row {
+    align-items: flex-start;
+  }
+  .github-row__actions {
+    display: none;
+  }
+  .github-row__more-wrap {
+    display: block;
+  }
+  /* 详情抽屉转全屏 sheet */
+  .github-drawer {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  .github-drawer__header {
+    padding: var(--space-3) var(--space-4);
+  }
+  .github-drawer__tabs {
+    padding: 0 var(--space-4);
+  }
+  .github-drawer__content {
+    padding: var(--space-4);
+  }
+  /* 工具栏：搜索占满一行，排序换行自适应 */
+  .github-toolbar {
+    gap: var(--space-2);
+  }
+  .github-search {
+    flex: 1 1 100%;
+  }
+  .github-select {
+    flex: 1 1 auto;
   }
 }

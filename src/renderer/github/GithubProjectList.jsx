@@ -15,6 +15,7 @@ import {
   IconSparkles,
   IconTrash,
   IconPackage,
+  IconMoreHorizontal,
 } from "../components/icons.jsx";
 import {
   githubProjects,
@@ -193,6 +194,7 @@ function GithubProjectRow({ project, onView, onParse, onRemove }) {
   const busy = githubBusyId.value === project.id;
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
+  const [menuOpen, setMenuOpen] = useState(false);
 
   function openExternal() {
     if (project.url) api.openUrl(project.url);
@@ -201,6 +203,25 @@ function GithubProjectRow({ project, onView, onParse, onRemove }) {
   function handleParse() {
     if (busy) return;
     onParse(project.id);
+  }
+
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
+  function handleViewMenu() {
+    closeMenu();
+    onView(project.id);
+  }
+
+  function handleParseMenu() {
+    closeMenu();
+    handleParse();
+  }
+
+  function handleRemoveMenu() {
+    closeMenu();
+    if (onRemove) onRemove(project);
   }
 
   return (
@@ -262,6 +283,55 @@ function GithubProjectRow({ project, onView, onParse, onRemove }) {
         >
           <IconTrash size={14} />
         </button>
+      </div>
+      <div class="github-row__more-wrap">
+        <button
+          type="button"
+          class="github-icon-btn github-row__more"
+          aria-label="更多操作"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <IconMoreHorizontal size={18} />
+        </button>
+        {menuOpen && (
+          <>
+            <div
+              class="github-row__menu-backdrop"
+              onClick={closeMenu}
+              aria-hidden="true"
+            />
+            <div class="github-row__menu" role="menu">
+              <button
+                type="button"
+                class="github-row__menu-item"
+                role="menuitem"
+                onClick={handleViewMenu}
+              >
+                <IconBook size={15} /> 查看介绍
+              </button>
+              <button
+                type="button"
+                class="github-row__menu-item"
+                role="menuitem"
+                onClick={handleParseMenu}
+                disabled={busy}
+              >
+                <IconSparkles size={15} />
+                {project.aiParse ? "查看解析" : "AI 解析"}
+              </button>
+              <button
+                type="button"
+                class="github-row__menu-item is-danger"
+                role="menuitem"
+                onClick={handleRemoveMenu}
+              >
+                <IconTrash size={15} /> 删除
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </li>
   );
