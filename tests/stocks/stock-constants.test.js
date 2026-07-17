@@ -26,9 +26,10 @@ describe("stock-constants", () => {
     expect(FIELD_MAP.roe).toBe("f173");
     expect(FIELD_MAP.industry).toBe("f100");
     expect(FIELD_MAP.marketCap).toBe("f20");
-    // ponytail 2026-07-08 D-1: 营收/净利同比增速 = f57/f58.
-    expect(FIELD_MAP.revenueGrowthYoY).toBe("f57");
-    expect(FIELD_MAP.netIncomeGrowthYoY).toBe("f58");
+    // ponytail 2026-07-18 P0-0: 修正 f57/f58 → f41/f46. 之前 f57 实际是资产负债比率, f58 是股东权益.
+    // 正确: f41=营业收入同比(%), f46=净利润同比(%). web search 验证 3 个独立来源.
+    expect(FIELD_MAP.revenueGrowthYoY).toBe("f41");
+    expect(FIELD_MAP.netIncomeGrowthYoY).toBe("f46");
   });
 
   it("FIELDS_PARAM is comma-joined field values", () => {
@@ -43,9 +44,9 @@ describe("stock-constants", () => {
     expect(SORT_KEY_TO_FID.pb).toBe("f23");
     expect(SORT_KEY_TO_FID.changePct).toBe("f3");
     expect(SORT_KEY_TO_FID.marketCap).toBe("f20");
-    // ponytail 2026-07-08 D-1: 营收/净利同比增速给 P-1 sortKey 命中率高的排序维度.
-    expect(SORT_KEY_TO_FID.revenueGrowthYoY).toBe("f57");
-    expect(SORT_KEY_TO_FID.netIncomeGrowthYoY).toBe("f58");
+    // ponytail 2026-07-18 P0-0: 同步 f57/f58 → f41/f46.
+    expect(SORT_KEY_TO_FID.revenueGrowthYoY).toBe("f41");
+    expect(SORT_KEY_TO_FID.netIncomeGrowthYoY).toBe("f46");
   });
 
   it("DEFAULT_FID is f173 (ROE)", () => {

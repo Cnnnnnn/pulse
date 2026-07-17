@@ -16,8 +16,13 @@
 const MARKET_PARAM = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23";
 
 // 东财 clist 字段 → 我们的 key. 见 spec §5.2 映射表.
-// ponytail 2026-07-08 D-1: 加 revenueGrowthYoY (f57, 主营收入同比%) + netIncomeGrowthYoY (f58, 净利润同比%).
+// ponytail 2026-07-08 D-1: 加 revenueGrowthYoY (f41, 营业收入同比%) + netIncomeGrowthYoY (f46, 净利润同比%).
+// ponytail 2026-07-18 P0-0: 修正 f57→f41 / f58→f46 (见 FIELD_MAP 上方注释).
 //   东财 clist 标准字段, 跟现有 PE/ROE 同套接口 1 次拉, 零额外请求. 量比/MA20 偏离不做 (后者需新接口, YAGNI).
+// ponytail 2026-07-18 P0-0 修复: 之前 f57/f58 错位 (f57=资产负债比率, f58=股东权益,
+// 跟营收/净利同比无关). 正确字段: f41=营业收入同比(%), f46=净利润同比(%). web search
+// 验证 3 个独立来源. 修后所有依赖营收/净利同比的下游代码 (筛选 / 排序 / AI 摘要 / 预设策略)
+// 立刻拿到真实数据, 零 API 兼容性问题 (数值范围恰好同是 0-100% 区间).
 const FIELD_MAP = {
   code: "f12",
   name: "f14",
@@ -29,8 +34,8 @@ const FIELD_MAP = {
   roe: "f173", // ROE (净资产收益率 %) — 注: f21 是流通市值, 非 ROE
   industry: "f100",
   marketCap: "f20", // 总市值 (元)
-  revenueGrowthYoY: "f57", // 主营收入同比增速 %
-  netIncomeGrowthYoY: "f58", // 净利润同比增速 %
+  revenueGrowthYoY: "f41", // 营业收入同比 % (P0-0 修复: 之前 f57 错位)
+  netIncomeGrowthYoY: "f46", // 净利润同比 % (P0-0 修复: 之前 f58 错位)
 };
 
 // 请求 fields 参数 (逗号拼接所有东财字段)
@@ -39,7 +44,9 @@ const FIELDS_PARAM = Object.values(FIELD_MAP).join(",");
 // 东财 clist 强制单页 ≤100 条 (pz 再大也只返 100).
 // 策略: 把"排序意图"下推给东财 (fid=排序字段), 翻页拉该维度全量, 前端再二次过滤.
 // sortKey (我们的 key) → 东财 fid (排序字段).
-// ponytail 2026-07-08 D-1: 加 revenueGrowth + netIncomeGrowth (f57/f58) 给 P-1 命中率高的排序维度.
+// ponytail 2026-07-08 D-1: 加营收/净利同比给 P-1 命中率高的排序维度.
+// ponytail 2026-07-18 P0-0: 同步 f57/f58 → f41/f46.
+// ponytail 2026-07-18 P0-0: 同步 f57→f41 / f58→f46.
 const SORT_KEY_TO_FID = {
   roe: "f173",
   pe: "f9",
@@ -48,8 +55,8 @@ const SORT_KEY_TO_FID = {
   marketCap: "f20",
   turnover: "f8",
   price: "f2",
-  revenueGrowthYoY: "f57",
-  netIncomeGrowthYoY: "f58",
+  revenueGrowthYoY: "f41",
+  netIncomeGrowthYoY: "f46",
 };
 
 /** 默认排序字段 (东财 fid), 当 sortKey 未知时用. */
