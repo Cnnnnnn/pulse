@@ -19,6 +19,8 @@ import {
   parseGithubProjectAi,
   refreshGithubReadme,
   formatStars,
+  hostnameOf,
+  hasDistinctHomepage,
 } from "../store/github-projects-store.js";
 import { api } from "../api.js";
 import { GithubReadmeView } from "./GithubReadmeView.jsx";
@@ -87,7 +89,28 @@ export function GithubProjectDrawer({ projectId, initialTab = "readme", onClose 
             ★ {formatStars(project.stars)}
           </span>
         )}
+        {project.license && (
+          <span class="github-drawer__license" title="开源协议">
+            {project.license}
+          </span>
+        )}
+        {hasDistinctHomepage(project) && (
+          <a
+            class="github-drawer__homepage"
+            href={project.homepage}
+            title={project.homepage}
+            onClick={(e) => {
+              e.preventDefault();
+              api.openUrl(project.homepage);
+            }}
+          >
+            <IconGlobe size={12} /> {hostnameOf(project.homepage)}
+          </a>
+        )}
       </div>
+      {project.description && (
+        <p class="github-drawer__desc">{project.description}</p>
+      )}
       <div class="github-drawer__actions">
         <button
           type="button"

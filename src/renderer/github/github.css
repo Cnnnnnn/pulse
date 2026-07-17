@@ -381,6 +381,27 @@
 .github-chip--star {
   color: var(--text-secondary);
 }
+.github-chip--license {
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.github-chip--link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--accent-blue);
+  text-decoration: none;
+  cursor: pointer;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.github-chip--link:hover {
+  text-decoration: underline;
+}
 .github-chip--ok {
   color: var(--app-codex);
   background: color-mix(in srgb, var(--app-codex) 14%, transparent);
@@ -633,6 +654,36 @@
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
+}
+.github-drawer__license {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+}
+.github-drawer__homepage {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--font-size-xs);
+  color: var(--accent-blue);
+  text-decoration: none;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.github-drawer__homepage:hover {
+  text-decoration: underline;
+}
+.github-drawer__desc {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 .github-drawer__actions {
   display: flex;
@@ -1459,6 +1510,42 @@
   -webkit-line-clamp: unset;
   display: block;
   overflow: visible;
+}
+/* release notes 用 markdown 渲染后，内部含 h/ul/pre 等块级元素。
+   -webkit-line-clamp 只对纯文本生效，富文本需改用 max-height 截断。
+   readme-content 是 GithubMarkdown 的固定 class。 */
+.github-rel-notes.readme-content {
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: initial;
+  max-height: 6.2em; /* 约 4 行 line-height 1.55 */
+  overflow: hidden;
+}
+.github-rel-notes.readme-content.is-open {
+  max-height: none;
+  overflow: visible;
+}
+/* release notes 内的 markdown 元素收敛字号，避免 h1/h2 撑爆时间线 */
+.github-rel-notes.readme-content :is(h1, h2, h3, h4) {
+  margin: 0.5em 0 0.25em;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.github-rel-notes.readme-content :is(ul, ol) {
+  margin: 0.25em 0;
+  padding-left: 1.2em;
+}
+.github-rel-notes.readme-content :is(p, li) {
+  margin: 0.25em 0;
+}
+.github-rel-notes.readme-content pre {
+  margin: 0.25em 0;
+  padding: 0.5em;
+  font-size: 0.8em;
+  overflow-x: auto;
+}
+.github-rel-notes.readme-content code {
+  font-size: 0.85em;
 }
 .github-rel-toggle {
   display: inline-flex;

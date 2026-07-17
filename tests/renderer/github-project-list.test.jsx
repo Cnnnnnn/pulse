@@ -178,6 +178,134 @@ describe('GitHub 项目列表 · 全部已读', () => {
   });
 });
 
+describe('GitHub 项目列表 · 排序（最近发布 / 最近检查）', () => {
+  beforeEach(() => {
+    githubProjects.value = [];
+  });
+
+  function seedForSort(items) {
+    githubProjects.value = items.map((x) => ({
+      id: x.id,
+      name: x.id,
+      description: '',
+      language: '',
+      stars: 0,
+      addedAt: 1000, // 固定，排除 addedAt 干扰
+      aiParse: null,
+      pinned: !!x.pinned,
+      latestVersion: x.latestVersion || '',
+      latestVersionPublishedAt: x.latestVersionPublishedAt || 0,
+      lastSeenVersion: x.lastSeenVersion || '',
+      releases: x.releases || [],
+      releaseFetchedAt: x.releaseFetchedAt || 0,
+    }));
+  }
+
+  /** 从渲染的列表里提取项目 name 的顺序。 */
+  function rowOrder(container) {
+    return [...container.querySelectorAll('.github-row__name')]
+      .map((el) => el.textContent.trim());
+  }
+
+  it('排序：最近发布 → 按 latestVersionPublishedAt 降序，无 release 的排最后', () => {
+    seedForSort([
+      { id: 'a/old', latestVersion: '1.0.0', latestVersionPublishedAt: 1000, lastSeenVersion: '1.0.0' },
+      { id: 'b/new', latestVersion: '2.0.0', latestVersionPublishedAt: 9000, lastSeenVersion: '2.0.0' },
+      { id: 'c/mid', latestVersion: '1.5.0', latestVersionPublishedAt: 5000, lastSeenVersion: '1.5.0' },
+      { id: 'd/norel', latestVersion: '', latestVersionPublishedAt: 0 },
+    ]);
+    const { container } = render(<GithubProjectList />);
+    fireEvent.change(container.querySelector('.github-select__el'), { target: { value: 'published' } });
+    expect(rowOrder(container)).toEqual(['b/new', 'c/mid', 'a/old', 'd/norel']);
+  });
+
+  it('排序：最近检查 → 按 releaseFetchedAt 降序，从未检查的排最后', () => {
+    seedForSort([
+      { id: 'a/never', releaseFetchedAt: 0 },
+      { id: 'b/recent', releaseFetchedAt: 9000 },
+      { id: 'c/stale', releaseFetchedAt: 1000 },
+    ]);
+    const { container } = render(<GithubProjectList />);
+    fireEvent.change(container.querySelector('.github-select__el'), { target: { value: 'checked' } });
+    expect(rowOrder(container)).toEqual(['b/recent', 'c/stale', 'a/never']);
+  });
+
+  it('置顶项始终优先，与排序方式无关（最近发布）', () => {
+    seedForSort([
+      { id: 'a/pinned', latestVersion: '1.0.0', latestVersionPublishedAt: 1000, lastSeenVersion: '1.0.0', pinned: true },
+      { id: 'b/new', latestVersion: '2.0.0', latestVersionPublishedAt: 9000, lastSeenVersion: '2.0.0' },
+    ]);
+    const { container } = render(<GithubProjectList />);
+    fireEvent.change(container.querySelector('.github-select__el'), { target: { value: 'published' } });
+    // pinned 优先，即便它的发布时间更早
+    expect(rowOrder(container)).toEqual(['a/pinned', 'b/new']);
+  });
+
+  it('排序下拉含「最近发布」和「最近检查」选项', () => {
+    githubProjects.value = [{
+      id: 'a/a', name: 'a/a', description: '', language: '', stars: 0, addedAt: 1000,
+    }];
+    const { container } = render(<GithubProjectList />);
+    const options = [...container.querySelectorAll('.github-select__el option')].map((o) => o.value);
+    expect(options).toContain('published');
+    expect(options).toContain('checked');
+  });
+});
+
+describe('GitHub 项目列表 · license + homepage 展示', () => {
+  it('卡片：有 license → 渲染 license chip', () => {
+    const { container } = render(
+      <GithubProjectCard project={makeProject({ license: 'MIT' })} />,
+    );
+    const chips = [...container.querySelectorAll('.github-chip')].map((c) => c.textContent);
+    expect(chips).toContain('MIT');
+  });
+
+  it('卡片：无 license → 不渲染 license chip', () => {
+    const { container } = render(
+      <GithubProjectCard project={makeProject({ license: '' })} />,
+    );
+    const chips = [...container.querySelectorAll('.github-chip--license')];
+    expect(chips.length).toBe(0);
+  });
+
+  it('行视图：有 license → 渲染 license chip', () => {
+    const { container } = render(
+      <GithubProjectRow project={makeProject({ license: 'Apache-2.0' })} />,
+    );
+    const chips = [...container.querySelectorAll('.github-chip')].map((c) => c.textContent);
+    expect(chips).toContain('Apache-2.0');
+  });
+
+  it('卡片：有 homepage → 渲染域名链接（点击走 api.openUrl）', () => {
+    const { container } = render(
+      <GithubProjectCard project={makeProject({ homepage: 'https://example.com/path' })} />,
+    );
+    const link = container.querySelector('.github-chip--link');
+    expect(link).toBeTruthy();
+    expect(link.textContent).toContain('example.com');
+  });
+
+  it('卡片：homepage 等于 GitHub 仓库地址 → 不渲染（避免冗余）', () => {
+    const { container } = render(
+      <GithubProjectCard
+        project={makeProject({
+          url: 'https://github.com/facebook/react',
+          homepage: 'https://github.com/facebook/react',
+        })} />,
+    );
+    const link = container.querySelector('.github-chip--link');
+    expect(link).toBeNull();
+  });
+
+  it('卡片：homepage 为空 → 不渲染链接', () => {
+    const { container } = render(
+      <GithubProjectCard project={makeProject({ homepage: '' })} />,
+    );
+    expect(container.querySelector('.github-chip--link')).toBeNull();
+  });
+});
+
 describe('GitHub 项目列表 · 视图密度', () => {
   beforeEach(() => {
     githubProjects.value = [];

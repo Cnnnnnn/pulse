@@ -37,6 +37,8 @@ import {
   formatStars,
   formatAddedDate,
   hasGithubUpdate,
+  hostnameOf,
+  hasDistinctHomepage,
 } from "../store/github-projects-store.js";
 import { openConfirm } from "../confirmStore.js";
 import { api } from "../api.js";
@@ -147,6 +149,10 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
       if (pa !== pb) return pb - pa;
       if (sort === "stars") return (b.stars || 0) - (a.stars || 0);
       if (sort === "name") return String(a.name).localeCompare(String(b.name));
+      // 最近发布：按 latestVersionPublishedAt 降序，无 release 的（0）排最后
+      if (sort === "published") return (b.latestVersionPublishedAt || 0) - (a.latestVersionPublishedAt || 0);
+      // 最近检查：按 releaseFetchedAt 降序，从未检查的（0）排最后
+      if (sort === "checked") return (b.releaseFetchedAt || 0) - (a.releaseFetchedAt || 0);
       return (b.addedAt || 0) - (a.addedAt || 0);
     });
     return sorted;
@@ -255,6 +261,8 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
             <option value="added">排序：收录时间</option>
             <option value="stars">排序：Star 数</option>
             <option value="name">排序：名称</option>
+            <option value="published">排序：最近发布</option>
+            <option value="checked">排序：最近检查</option>
           </select>
         </div>
         <div class="github-view-toggle" role="group" aria-label="视图模式">
@@ -460,6 +468,24 @@ export function GithubProjectRow({ project, onView, onParse, onRemove, onToggleP
               ★ {formatStars(project.stars)}
             </span>
           )}
+          {project.license && (
+            <span class="github-chip github-chip--license" title="开源协议">
+              {project.license}
+            </span>
+          )}
+          {hasDistinctHomepage(project) && (
+            <a
+              class="github-chip github-chip--link"
+              href={project.homepage}
+              title={project.homepage}
+              onClick={(e) => {
+                e.preventDefault();
+                api.openUrl(project.homepage);
+              }}
+            >
+              {hostnameOf(project.homepage)}
+            </a>
+          )}
           {added && <span class="github-chip">收录于 {added}</span>}
           {project.aiParse ? (
             <span class="github-chip github-chip--ok">已解析</span>
@@ -664,6 +690,24 @@ export function GithubProjectCard({ project, onView, onParse, onRemove, onToggle
             <span class="github-chip github-chip--star">
               ★ {formatStars(project.stars)}
             </span>
+          )}
+          {project.license && (
+            <span class="github-chip github-chip--license" title="开源协议">
+              {project.license}
+            </span>
+          )}
+          {hasDistinctHomepage(project) && (
+            <a
+              class="github-chip github-chip--link"
+              href={project.homepage}
+              title={project.homepage}
+              onClick={(e) => {
+                e.preventDefault();
+                api.openUrl(project.homepage);
+              }}
+            >
+              {hostnameOf(project.homepage)}
+            </a>
           )}
           {added && <span class="github-chip">收录于 {added}</span>}
           {project.aiParse ? (

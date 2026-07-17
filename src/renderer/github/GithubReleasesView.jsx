@@ -25,6 +25,7 @@ import {
   markGithubSeen,
   formatRelativeTime,
 } from "../store/github-projects-store.js";
+import { GithubMarkdown } from "./GithubMarkdown.jsx";
 
 function absoluteDate(ts) {
   const d = new Date(ts);
@@ -231,11 +232,10 @@ export function GithubReleasesView({ project, onMarkSeen }) {
                   </div>
                   {r.body && r.body.trim() && (
                     <>
-                      <p
-                        class={`github-rel-notes ${isOpen(originalIndex) ? "is-open" : ""}`}
-                      >
-                        {r.body.trim()}
-                      </p>
+                      <GithubMarkdown
+                        markdown={r.body}
+                        className={`github-rel-notes ${isOpen(originalIndex) ? "is-open" : ""}`}
+                      />
                       <button
                         type="button"
                         class="github-rel-toggle"
