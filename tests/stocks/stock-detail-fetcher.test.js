@@ -112,3 +112,32 @@ describe("fetchStockDetailAngles", () => {
     expect(out.perAngle.throws_angle.error).toContain("boom");
   });
 });
+
+describe("fetchStockDetailAngles — lastSuccessAt / failureStreakCount", () => {
+  // ponytail 2026-07-18 P0-1: 后端在 perAngle[k] 上挂 lastSuccessAt / failureStreakCount,
+  //   让前端能区分"这次是 30 天没更新" vs "本接口真挂了".
+  it("records lastSuccessAt and zero failureStreakCount on success", async () => {
+    const out = await fetchStockDetailAngles(httpClient, "600519", ["price_trend"]);
+    expect(out.perAngle.price_trend.status).toBe("ok");
+    expect(typeof out.perAngle.price_trend.lastSuccessAt).toBe("number");
+    expect(typeof out.perAngle.price_trend.failureStreakCount).toBe("number");
+    expect(out.perAngle.price_trend.failureStreakCount).toBe(0);
+  });
+
+  it("accumulates failureStreakCount on repeated failures", async () => {
+    // 每个 test 用独立 code 隔离 module 级 _angleHealth 状态
+    const out1 = await fetchStockDetailAngles(httpClient, "300001", ["valuation"]);
+    expect(out1.perAngle.valuation.status).toBe("failed");
+    expect(out1.perAngle.valuation.failureStreakCount).toBe(1);
+    expect(out1.perAngle.valuation.lastSuccessAt).toBeNull();
+
+    const out2 = await fetchStockDetailAngles(httpClient, "300001", ["valuation"]);
+    expect(out2.perAngle.valuation.failureStreakCount).toBe(2);
+
+    // 成功后归零
+    const out3 = await fetchStockDetailAngles(httpClient, "300001", ["price_trend"]);
+    expect(out3.perAngle.price_trend.status).toBe("ok");
+    expect(out3.perAngle.price_trend.failureStreakCount).toBe(0);
+    expect(typeof out3.perAngle.price_trend.lastSuccessAt).toBe("number");
+  });
+});
