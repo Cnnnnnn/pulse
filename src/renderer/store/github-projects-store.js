@@ -28,6 +28,12 @@ export const lastFailedIds = signal([]);
 export const githubDensity = signal("comfortable");
 /** GitHub Personal Access Token（仅本机 localStorage，不发往任何服务器）。用于解除未登录 60 次/小时限流。 */
 export const githubToken = signal("");
+/** 自动检查新版本（默认开，仅在应用运行时检查）。 */
+export const githubAutoCheck = signal(true);
+/** 自动检查间隔（分钟，默认 360 = 6 小时）。 */
+export const githubAutoCheckIntervalMin = signal(360);
+/** 发现新版本时发桌面通知（默认开）。 */
+export const githubNotifyOnNew = signal(true);
 
 const _mem = new Map();
 
@@ -136,7 +142,8 @@ function writeSettings(raw) {
 }
 
 /**
- * 读取持久化的模块设置（density + token）。损坏数据忽略，回退默认。
+ * 读取持久化的模块设置（density + token + autoCheck/interval/notify）。
+ * 损坏数据忽略，回退默认。
  */
 export function loadGithubSettings() {
   const raw = readSettings() ?? _mem.get(SETTINGS_KEY) ?? null;
@@ -149,18 +156,30 @@ export function loadGithubSettings() {
     if (o && typeof o.token === "string") {
       githubToken.value = o.token;
     }
+    if (o && typeof o.autoCheck === "boolean") {
+      githubAutoCheck.value = o.autoCheck;
+    }
+    if (o && typeof o.autoCheckIntervalMin === "number" && o.autoCheckIntervalMin > 0) {
+      githubAutoCheckIntervalMin.value = o.autoCheckIntervalMin;
+    }
+    if (o && typeof o.notifyOnNew === "boolean") {
+      githubNotifyOnNew.value = o.notifyOnNew;
+    }
   } catch {
     /* 损坏数据忽略 */
   }
 }
 
-/** 把 density + token 一起写回，避免任一设置覆盖另一设置。 */
+/** 把所有设置一起写回，避免任一设置覆盖另一设置。 */
 function persistSettings() {
   try {
     writeSettings(
       JSON.stringify({
         density: githubDensity.value,
         token: githubToken.value,
+        autoCheck: githubAutoCheck.value,
+        autoCheckIntervalMin: githubAutoCheckIntervalMin.value,
+        notifyOnNew: githubNotifyOnNew.value,
       }),
     );
   } catch {
@@ -185,6 +204,49 @@ export function setGithubDensity(d) {
 export function setGithubToken(t) {
   githubToken.value = typeof t === "string" ? t.trim() : "";
   persistSettings();
+  emitSettingsChanged();
+}
+
+/**
+ * 设置自动检查开关。变更后通知调度器重启（通过 github-settings-changed 事件）。
+ * @param {boolean} v
+ */
+export function setGithubAutoCheck(v) {
+  githubAutoCheck.value = !!v;
+  persistSettings();
+  emitSettingsChanged();
+}
+
+/**
+ * 设置自动检查间隔（分钟）。下限 10 分钟，避免过于频繁打 GitHub API。
+ * @param {number} min
+ */
+export function setGithubAutoCheckInterval(min) {
+  const n = Math.max(10, Math.floor(Number(min) || 360));
+  githubAutoCheckIntervalMin.value = n;
+  persistSettings();
+  emitSettingsChanged();
+}
+
+/** 设置是否桌面通知新版本。 */
+export function setGithubNotifyOnNew(v) {
+  githubNotifyOnNew.value = !!v;
+  persistSettings();
+  // notifyOnNew 变更不需要重启调度器（下次 checkOnce 时读最新值）
+}
+
+/**
+ * 广播设置变更事件（解耦：store 不直接依赖调度器）。
+ * GithubLayout 监听此事件并 restart 调度器。
+ */
+function emitSettingsChanged() {
+  try {
+    if (typeof globalThis.dispatchEvent === "function") {
+      globalThis.dispatchEvent(new CustomEvent("github-settings-changed"));
+    }
+  } catch {
+    /* 非浏览器环境忽略 */
+  }
 }
 
 function makeId(owner, repo) {
@@ -412,6 +474,31 @@ export async function addGithubProject(input) {
   } finally {
     githubBusy.value = false;
   }
+}
+
+/**
+ * 批量添加项目（textarea 多行粘贴用）。串行执行避免并发打爆 GitHub 限流。
+ * @param {string[]} inputs 地址数组
+ * @returns {Promise<{ok:boolean, added:number, duplicates:number, failed:Array<{input:string, reason:string}>}>}
+ */
+export async function addGithubProjectsBatch(inputs) {
+  if (!Array.isArray(inputs) || inputs.length === 0) {
+    return { ok: true, added: 0, duplicates: 0, failed: [] };
+  }
+  let added = 0;
+  let duplicates = 0;
+  const failed = [];
+  for (const input of inputs) {
+    const r = await addGithubProject(input);
+    if (r.ok) {
+      added += 1;
+    } else if (r.reason === "duplicate") {
+      duplicates += 1;
+    } else {
+      failed.push({ input, reason: r.reason || "fetch_failed" });
+    }
+  }
+  return { ok: true, added, duplicates, failed };
 }
 
 export function removeGithubProject(id) {

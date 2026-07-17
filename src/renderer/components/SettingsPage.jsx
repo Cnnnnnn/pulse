@@ -23,7 +23,13 @@ import {
   subscribeTheme,
 } from "../theme/theme-manager.js";
 import { showToast } from "../store.js";
-import { githubToken, setGithubToken, loadGithubSettings, downloadGithubBackup, pickGithubBackupFile, exportGithubData, githubProjects } from "../store/github-projects-store.js";
+import {
+  githubToken, setGithubToken, loadGithubSettings,
+  downloadGithubBackup, pickGithubBackupFile, githubProjects,
+  githubAutoCheck, setGithubAutoCheck,
+  githubAutoCheckIntervalMin, setGithubAutoCheckInterval,
+  githubNotifyOnNew, setGithubNotifyOnNew,
+} from "../store/github-projects-store.js";
 
 /* ─── theme signal (与 localStorage 同步) ─────────────────────── */
 // ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
@@ -320,6 +326,68 @@ function GithubSettingsSection() {
             onClick={handleImport}
           >
             导入备份
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <h3 class="settings-card__title">自动检查</h3>
+      <p class="settings-row__hint" style="margin:0 0 12px">
+        在应用运行时定时检查新版本，发现更新时弹桌面通知。
+        <b>仅在应用开着时检查</b>，关闭应用不会后台运行。
+      </p>
+      <div class="settings-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">自动检查新版本</span>
+          <span class="settings-row__hint">
+            {githubAutoCheck.value ? "已开启" : "已关闭"}
+          </span>
+        </div>
+        <div class="settings-row__buttons">
+          <button
+            type="button"
+            class={`settings-btn ${githubAutoCheck.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
+            onClick={() => setGithubAutoCheck(!githubAutoCheck.value)}
+          >
+            {githubAutoCheck.value ? "已开启" : "已关闭"}
+          </button>
+        </div>
+      </div>
+      {githubAutoCheck.value && (
+        <div class="settings-row">
+          <div class="settings-row__label-block">
+            <span class="settings-row__label">检查频率</span>
+            <span class="settings-row__hint">过于频繁可能触发 GitHub 限流。</span>
+          </div>
+          <div class="settings-select">
+            <select
+              class="settings-select__el"
+              value={String(githubAutoCheckIntervalMin.value)}
+              onChange={(e) => setGithubAutoCheckInterval(Number(e.currentTarget.value))}
+            >
+              <option value="60">每 1 小时</option>
+              <option value="180">每 3 小时</option>
+              <option value="360">每 6 小时（默认）</option>
+              <option value="720">每 12 小时</option>
+            </select>
+          </div>
+        </div>
+      )}
+      <div class="settings-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">发现新版本时桌面通知</span>
+          <span class="settings-row__hint">
+            首次发通知时会请求系统通知权限，拒绝后只更新徽标。
+          </span>
+        </div>
+        <div class="settings-row__buttons">
+          <button
+            type="button"
+            class={`settings-btn ${githubNotifyOnNew.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
+            onClick={() => setGithubNotifyOnNew(!githubNotifyOnNew.value)}
+          >
+            {githubNotifyOnNew.value ? "已开启" : "已关闭"}
           </button>
         </div>
       </div>

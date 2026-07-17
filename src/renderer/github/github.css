@@ -86,6 +86,56 @@
   font-size: var(--font-size-sm);
   color: var(--color-danger);
 }
+.github-add__textarea {
+  flex: 1;
+  min-height: 96px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-base);
+  font-family: var(--font-mono, monospace);
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.github-add__textarea::placeholder {
+  color: var(--text-tertiary);
+}
+.github-add__textarea:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.github-add__toggle {
+  flex: 0 0 auto;
+}
+.github-add__batcherr {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  border-radius: var(--radius-sm);
+}
+.github-add__batcherr-title {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+  color: var(--color-danger);
+}
+.github-add__batcherr ul {
+  margin: 0;
+  padding-left: var(--space-4);
+}
+.github-add__batcherr li {
+  margin: 2px 0;
+  word-break: break-all;
+}
+.github-add__batcherr code {
+  font-size: 0.85em;
+  color: var(--accent-primary);
+}
 
 /* ── 按钮 ── */
 .github-btn {
