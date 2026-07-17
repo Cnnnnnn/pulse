@@ -16,6 +16,8 @@ import {
   githubToken,
   checkGithubUpdates,
   fetchGithubRelease,
+  retryFailedGithubUpdates,
+  lastFailedIds,
 } from "../../src/renderer/store/github-projects-store.js";
 
 function seed(items) {
@@ -152,5 +154,75 @@ describe("fetchGithubRelease · 透传元信息", () => {
     expect(r.ok).toBe(false);
     expect(r.reason).toBe("not_found");
     expect(r.permanent).toBe(true);
+  });
+});
+
+describe("checkGithubUpdates · 记录失败项 + retryFailedGithubUpdates", () => {
+  beforeEach(() => {
+    githubProjects.value = [];
+    githubToken.value = "";
+    lastFailedIds.value = [];
+  });
+
+  it("检查结束 → lastFailedIds === 本轮失败项的 id 列表", async () => {
+    seed([{ id: "a/ok" }, { id: "b/fail" }, { id: "c/fail" }]);
+    api.githubFetchRelease = async (input) => {
+      if (input.includes("/fail")) {
+        return { ok: false, reason: "rate_limited", status: 403 };
+      }
+      return { ok: true, release: { version: "1.0.0" }, releases: [] };
+    };
+    await checkGithubUpdates();
+    expect(lastFailedIds.value).toEqual(["b/fail", "c/fail"]);
+  });
+
+  it("全部成功 → lastFailedIds 清空为 []", async () => {
+    lastFailedIds.value = ["stale/x"];
+    seed([{ id: "a/ok" }, { id: "b/ok" }]);
+    api.githubFetchRelease = async () => ({ ok: true, release: { version: "1.0.0" }, releases: [] });
+    await checkGithubUpdates();
+    expect(lastFailedIds.value).toEqual([]);
+  });
+
+  it("retryFailedGithubUpdates 只重试 lastFailedIds 里的项目，不碰其他", async () => {
+    seed([{ id: "a/ok" }, { id: "b/fail" }, { id: "c/fail" }]);
+    lastFailedIds.value = ["b/fail", "c/fail"];
+    const called = [];
+    api.githubFetchRelease = async (input) => {
+      called.push(input);
+      return { ok: true, release: { version: "1.0.0" }, releases: [] };
+    };
+    const r = await retryFailedGithubUpdates();
+    // 只调了 b/fail 和 c/fail，没碰 a/ok
+    expect(called.length).toBe(2);
+    expect(called.some((u) => u.includes("a/ok"))).toBe(false);
+    expect(r.errorCount).toBe(0);
+    expect(r.ok).toBe(true);
+    // 全部重试成功 → 清空
+    expect(lastFailedIds.value).toEqual([]);
+  });
+
+  it("重试后仍失败的 → lastFailedIds 更新为本次仍失败的", async () => {
+    seed([{ id: "b/recovered" }, { id: "c/stillbad" }]);
+    lastFailedIds.value = ["b/recovered", "c/stillbad"];
+    api.githubFetchRelease = async (input) => {
+      if (input.includes("stillbad")) {
+        return { ok: false, reason: "rate_limited", status: 403 };
+      }
+      return { ok: true, release: { version: "2.0.0" }, releases: [] };
+    };
+    const r = await retryFailedGithubUpdates();
+    expect(r.errorCount).toBe(1);
+    expect(lastFailedIds.value).toEqual(["c/stillbad"]);
+  });
+
+  it("lastFailedIds 为空 → retry 立即返回 ok 不调 api", async () => {
+    lastFailedIds.value = [];
+    let called = false;
+    api.githubFetchRelease = async () => { called = true; return { ok: true }; };
+    const r = await retryFailedGithubUpdates();
+    expect(called).toBe(false);
+    expect(r.ok).toBe(true);
+    expect(r.errorCount).toBe(0);
   });
 });
