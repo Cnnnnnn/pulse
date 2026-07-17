@@ -34,6 +34,7 @@ import {
   gamesAutoCheck, setGamesAutoCheck,
   gamesAutoCheckIntervalMin, setGamesAutoCheckInterval,
   gamesNotifyOnFree, setGamesNotifyOnFree,
+  gamesNotifyOnDrop, setGamesNotifyOnDrop,
   loadGamesSettings,
 } from "../games/gamesStore.js";
 
@@ -467,6 +468,23 @@ function GamesSettingsSection() {
             onClick={() => setGamesNotifyOnFree(!gamesNotifyOnFree.value)}
           >
             {gamesNotifyOnFree.value ? "已开启" : "已关闭"}
+          </button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">关注游戏降价时桌面通知</span>
+          <span class="settings-row__hint">
+            心愿单里的游戏降价时弹桌面通知。先在游戏页点 ♥ 关注。
+          </span>
+        </div>
+        <div class="settings-row__buttons">
+          <button
+            type="button"
+            class={`settings-btn ${gamesNotifyOnDrop.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
+            onClick={() => setGamesNotifyOnDrop(!gamesNotifyOnDrop.value)}
+          >
+            {gamesNotifyOnDrop.value ? "已开启" : "已关闭"}
           </button>
         </div>
       </div>

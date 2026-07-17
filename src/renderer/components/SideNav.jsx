@@ -29,7 +29,7 @@ import { ithomeUnreadBadge } from '../ithome/store.js';
 import { wechatHotUnreadBadge } from '../wechat-hot/store.js';
 import { fundUnreadBadge } from '../funds/fundStore.js';
 import { aiUsageNavBadge } from '../store/ai-usage-store.js';
-import { gamesHasNewFree } from '../games/gamesStore.js';
+import { gamesHasNewFree, gamesHasNewDrop } from '../games/gamesStore.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
 import { trayMenuPrefs } from '../trayConfigStore.js';
 import {
@@ -64,7 +64,7 @@ const NAV_ITEMS = [
   { key: 'ai-usage',  label: 'AI coding plan 用量', tooltip: 'Minimax coding plan 配额 (v2.13)' },
   { key: 'versions',  label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
   { key: 'github',    label: 'GitHub 收录', tooltip: 'GitHub 优秀项目收录与管理 (v2.80)' },
-  { key: 'games',     label: '游戏优惠',   tooltip: '各平台折扣 / 免费活动 / 热门榜 (v2.81)' },
+  { key: 'games',     label: '游戏优惠',   tooltip: '各平台折扣 / 免费活动 / 心愿单' },
 ];
 
 export function SideNav() {
@@ -78,13 +78,14 @@ export function SideNav() {
   void fundUnreadBadge.value;
   void aiUsageNavBadge.value;
   void gamesHasNewFree.value;
+  void gamesHasNewDrop.value;
   // ponytail: 'news' nav 角标 = IT 新闻未读 + 微博热搜未读 (P-N+ 合并).
   const newsBadge = (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0);
   const navBadges = {
     news: newsBadge,
     invest: fundUnreadBadge.value,   // 原 funds 角标迁到投资入口
     'ai-usage': aiUsageNavBadge.value,
-    games: gamesHasNewFree.value ? 1 : 0, // 后台发现新免费活动时红点
+    games: (gamesHasNewFree.value || gamesHasNewDrop.value) ? 1 : 0, // 后台发现新免费活动 / 心愿单降价时红点
   };
 
   // Phase I3: nav 重排 + 隐藏 (localStorage 持久化)
