@@ -243,7 +243,8 @@ describe("bundleDiagnostics", () => {
       const name = header.slice(0, 100).toString("ascii").replace(/\0+$/, "");
       const sizeOct = header.slice(124, 136).toString("ascii").replace(/\0+$/, "");
       const size = parseInt(sizeOct, 8) || 0;
-      names.push({ name, size });
+      const content = tar.slice(i + 512, i + 512 + size).toString("utf-8");
+      names.push({ name, size, content });
       const padded = Math.ceil(size / 512) * 512;
       i += 512 + padded;
     }
@@ -253,6 +254,10 @@ describe("bundleDiagnostics", () => {
     expect(namesList).toContain("errors-aggregated.json");
     expect(namesList).toContain("logs/startup.log");
     expect(namesList).toContain("diagnostics.json");
+    expect(r.fileCount).toBe(names.length);
+    expect(names.find((n) => n.name === "manifest.txt").content).toContain(
+      `fileCount: ${names.length - 1}`,
+    );
   });
 
   it("aggregator missing → 跳过 aggregated 但 manifest 仍在", async () => {

@@ -172,12 +172,11 @@ function buildTarGz(parts) {
 /**
  * Stage 1: 复制 errors-*.jsonl 文件 (不在内存里聚合, 避免大文件吃 heap).
  * 仅取 sinceMs 范围内的日期文件 (粗筛, 精确筛选在 entries.jsonl 里做).
- * @returns {{parts: Array, count: number}}
+ * @returns {Array<object>}
  */
 function collectErrorLogs(logsDir, sinceMs) {
-  if (!logsDir) return { parts: [], count: 0 };
+  if (!logsDir) return [];
   const parts = [];
-  let count = 0;
   try {
     const files = fs.readdirSync(logsDir).filter((f) => /^errors-\d{4}-\d{2}-\d{2}\.jsonl$/.test(f));
     for (const f of files) {
@@ -190,19 +189,18 @@ function collectErrorLogs(logsDir, sinceMs) {
         if (fileMs < sinceMs - 86400_000) continue; // 留一天余量
       }
       parts.push({ name: `errors/${f}`, content: fs.readFileSync(full) });
-      count += 1;
     }
   } catch { /* noop */ }
-  return { parts, count };
+  return parts;
 }
 
 /**
  * Stage 2: 拉 entries + 算 top failures + 写一份 errors-aggregated.json 索引.
- * @returns {Promise<{parts: Array, count: number}>}
+ * @returns {Promise<Array<object>>}
  */
 async function collectAggregated(aggregator, sinceMs) {
   if (!aggregator || typeof aggregator.query !== "function") {
-    return { parts: [], count: 0 };
+    return [];
   }
   try {
     const r = await aggregator.query({ since: sinceMs, limit: 5000 });
@@ -213,18 +211,20 @@ async function collectAggregated(aggregator, sinceMs) {
       topFailures: top,
       entryCount: (r.entries || []).length,
     };
-    return {
-      parts: [{ name: "errors-aggregated.json", content: JSON.stringify(summary, null, 2) }],
-      count: 1,
-    };
+    return [
+      {
+        name: "errors-aggregated.json",
+        content: JSON.stringify(summary, null, 2),
+      },
+    ];
   } catch {
-    return { parts: [], count: 0 };
+    return [];
   }
 }
 
 /**
  * Stage 3: 复制 raw 日志 (startup.log / detect.log). 同名文件冲突时第一个目录胜出.
- * @returns {{parts: Array, count: number}}
+ * @returns {Array<object>}
  */
 function collectRawLogs(logsDir, extraLogsDirs, seenNames) {
   const rawLogDirs = [];
@@ -233,7 +233,6 @@ function collectRawLogs(logsDir, extraLogsDirs, seenNames) {
     if (d && !rawLogDirs.includes(d)) rawLogDirs.push(d);
   }
   const parts = [];
-  let count = 0;
   for (const dir of rawLogDirs) {
     for (const fname of ["startup.log", "detect.log"]) {
       const full = path.join(dir, fname);
@@ -244,31 +243,30 @@ function collectRawLogs(logsDir, extraLogsDirs, seenNames) {
           if (!seenNames.has(tarName)) {
             parts.push({ name: tarName, content: fs.readFileSync(full) });
             seenNames.add(tarName);
-            count += 1;
           }
         }
       } catch { /* noop */ }
     }
   }
-  return { parts, count };
+  return parts;
 }
 
 /**
  * Stage 4: extras (metrics summary / startup / etc.). 防御循环引用导致
  * JSON.stringify 抛错 — extras 是调用方拼的对象, 源不可控.
- * @returns {{parts: Array, count: number}}
+ * @returns {Array<object>}
  */
 function collectExtras(extras) {
   if (!extras || typeof extras !== "object" || Object.keys(extras).length === 0) {
-    return { parts: [], count: 0 };
+    return [];
   }
   let content;
   try {
     content = JSON.stringify(extras, null, 2);
   } catch {
-    return { parts: [], count: 0 };
+    return [];
   }
-  return { parts: [{ name: "diagnostics.json", content }], count: 1 };
+  return [{ name: "diagnostics.json", content }];
 }
 
 /**
@@ -298,32 +296,23 @@ async function bundleDiagnostics(opts) {
   } = opts || {};
 
   const parts = [];
-  let fileCount = 0;
   const seenNames = new Set(); // for collectRawLogs 去重
 
   // 1. errors-*.jsonl — 直接复制文件
-  const errorsOut = collectErrorLogs(logsDir, sinceMs);
-  parts.push(...errorsOut.parts);
-  fileCount += errorsOut.count;
+  parts.push(...collectErrorLogs(logsDir, sinceMs));
 
   // 2. errors-aggregated.json — 拉 entries + 算 top failures
-  const aggOut = await collectAggregated(aggregator, sinceMs);
-  parts.push(...aggOut.parts);
-  fileCount += aggOut.count;
+  parts.push(...await collectAggregated(aggregator, sinceMs));
 
   // 3. raw 日志: startup.log / detect.log
-  const rawOut = collectRawLogs(logsDir, extraLogsDirs, seenNames);
-  parts.push(...rawOut.parts);
-  fileCount += rawOut.count;
+  parts.push(...collectRawLogs(logsDir, extraLogsDirs, seenNames));
 
   // 4. extras (metrics summary / startup / etc.)
-  const extrasOut = collectExtras(extras);
-  parts.push(...extrasOut.parts);
-  fileCount += extrasOut.count;
+  parts.push(...collectExtras(extras));
 
   // 5. manifest.txt — 文件清单
-  parts.push(buildManifestPart(parts, fileCount));
-  fileCount += 1;
+  parts.push(buildManifestPart(parts, parts.length));
+  const fileCount = parts.length;
 
   const buf = buildTarGz(parts);
 

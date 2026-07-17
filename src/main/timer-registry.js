@@ -106,36 +106,12 @@ function clearManaged(handleOrId) {
  *   label starts with this string. When undefined, clears ALL managed timers.
  */
 function clearAllManaged(labelPrefix) {
-  if (typeof labelPrefix !== 'string') {
-    const snapshot = _entries.slice();
-    _entries.length = 0;
-    for (const entry of snapshot) {
-      try {
-        if (entry.type === 'interval') timers.clearInterval(entry.handle);
-        else timers.clearTimeout(entry.handle);
-      } catch {
-        /* swallow */
-      }
-    }
-    return snapshot.length;
-  }
-  const kept = [];
-  const cleared = [];
-  for (const entry of _entries) {
-    if (entry.label.startsWith(labelPrefix)) cleared.push(entry);
-    else kept.push(entry);
-  }
-  _entries.length = 0;
-  _entries.push(...kept);
-  for (const entry of cleared) {
-    try {
-      if (entry.type === 'interval') timers.clearInterval(entry.handle);
-      else timers.clearTimeout(entry.handle);
-    } catch {
-      /* swallow */
-    }
-  }
-  return cleared.length;
+  const targets =
+    typeof labelPrefix === 'string'
+      ? _entries.filter((entry) => entry.label.startsWith(labelPrefix))
+      : _entries.slice();
+  for (const entry of targets) clearManaged(entry);
+  return targets.length;
 }
 
 /**
@@ -163,16 +139,7 @@ function listManaged() {
 
 /** @internal — used by tests to reset between cases. */
 function __resetForTest() {
-  // Clear any active native timers first to avoid leakage across tests.
-  for (const entry of _entries) {
-    try {
-      if (entry.type === 'interval') timers.clearInterval(entry.handle);
-      else timers.clearTimeout(entry.handle);
-    } catch {
-      /* noop */
-    }
-  }
-  _entries.length = 0;
+  clearAllManaged();
   _nextId = 1;
 }
 

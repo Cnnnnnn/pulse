@@ -89,6 +89,17 @@ describe('clearAllManaged', () => {
     expect(remaining).toHaveLength(1);
     expect(remaining[0].label).toBe('worldcup.tick');
   });
+
+  it('清理后原生 timer 不再执行回调', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+    registry.setManagedInterval(callback, 10, { label: 'tick' });
+    registry.setManagedTimeout(callback, 10, { label: 'once' });
+    expect(registry.clearAllManaged()).toBe(2);
+    vi.advanceTimersByTime(20);
+    expect(callback).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
 });
 
 describe('getStats', () => {

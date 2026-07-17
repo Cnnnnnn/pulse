@@ -66,20 +66,17 @@ function getActionForApp(item) {
   // Sparkle: 优先用 release_url (enclosure url, 指向该版本 .zip 下载).
   //   这是 Phase 22 加的: 之前只 shell.openPath 启动 app, 实际不触发 Sparkle
   //   updater, 用户反馈 "升级提示还在". 现在直接开下载页让用户手动装.
-  if (src === 'sparkle_appcast') {
-    if (item.releaseUrl && typeof item.releaseUrl === 'string') {
-      return { type: 'open_url', url: item.releaseUrl, reason: 'sparkle download' };
-    }
-    // 没 release_url → fallback 到 open app (碰运气)
-    const bn = item.bundleName || item.name;
-    if (!bn || typeof bn !== 'string') {
-      return { type: 'none', reason: 'sparkle: missing bundleName and no release_url' };
-    }
-    return { type: 'open', path: buildAppPath(bn) };
+  if (
+    src === 'sparkle_appcast' &&
+    item.releaseUrl &&
+    typeof item.releaseUrl === 'string'
+  ) {
+    return { type: 'open_url', url: item.releaseUrl, reason: 'sparkle download' };
   }
 
-  // Electron auto-updater: open the app, let its built-in updater fire
+  // Sparkle fallback / Electron auto-updater: open the app.
   if (
+    src === 'sparkle_appcast' ||
     src === 'electron_yml' ||
     src === 'qclaw_api' ||
     src === 'app_update_yml' ||
@@ -87,12 +84,13 @@ function getActionForApp(item) {
   ) {
     const bn = item.bundleName || item.name;
     if (!bn || typeof bn !== 'string') {
-      return { type: 'none', reason: `${src}: missing bundleName` };
+      const reason =
+        src === 'sparkle_appcast'
+          ? 'sparkle: missing bundleName and no release_url'
+          : `${src}: missing bundleName`;
+      return { type: 'none', reason };
     }
-    return {
-      type: 'open',
-      path: buildAppPath(bn),
-    };
+    return { type: 'open', path: buildAppPath(bn) };
   }
 
   // Windows: winget_show → `winget upgrade --id <id>` (spec §3)

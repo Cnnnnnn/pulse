@@ -127,6 +127,19 @@ describe('getActionForApp', () => {
       });
       expect(r.type).toBe('open');
     });
+
+    it('qclaw_api → open', () => {
+      expect(
+        getActionForApp({ id: 'qclaw', name: 'QClaw', source: 'qclaw_api' }),
+      ).toEqual({ type: 'open', path: '/Applications/QClaw.app' });
+    });
+
+    it('非 Sparkle open source 缺名称时保留 source 错误文案', () => {
+      expect(getActionForApp({ id: 'x', source: 'electron_yml' })).toEqual({
+        type: 'none',
+        reason: 'electron_yml: missing bundleName',
+      });
+    });
   });
 
   describe('无 auto-upgrade 源', () => {
