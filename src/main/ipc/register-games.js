@@ -2,7 +2,7 @@
  * src/main/ipc/register-games.js
  *
  * 游戏优惠聚合 — IPC 注册。
- *   games:getDeals → 聚合各平台折扣 / 喜+1 / 热门榜 (src/main/games/aggregator.js)
+ *   games:getDeals → 聚合各平台折扣 / 免费活动 (src/main/games/aggregator.js)
  *
  * 2026-07-16 新增。主机平台 (Xbox/PS/Switch) 如需真实数据，可配置 IsThereAnyDeal
  * 免费 key：通过 payload.itadKey 传入，或读取环境变量 ITAD_API_KEY。
@@ -12,6 +12,10 @@ const { getGameDeals } = require("../games/aggregator");
 const { exchangeRateService, isValidCurrency } = require("../games/exchange-rates");
 
 const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
+
+// games:getDeals 接受的 mode 白名单（Task 2 清理：删除已废弃的 'top'，
+// TopRanking.jsx 已无引用）。提升为模块级常量便于测试与跨文件复用。
+const ALLOWED_MODES = ["deals", "free"];
 
 // ── 请求级缓存（Map + TTL，照搬 register-stocks.js 范式）──────────────
 // 按 (platform, mode, sort, minSavings) 维度缓存聚合结果，切 Tab 来回切时
@@ -44,6 +48,10 @@ function dealsCacheSet(key, result) {
     for (const k of drop) _dealsCache.delete(k);
   }
   _dealsCache.set(key, { result, fetchedAt: Date.now() });
+}
+
+function resetDealsCache() {
+  _dealsCache.clear();
 }
 
 function resolveItadKey(payload) {
@@ -92,12 +100,11 @@ function registerGamesHandlers(ctx) {
         "playstation",
         "switch",
       ];
-      const allowedModes = ["deals", "free", "top"];
       const allowedSorts = ["savings", "price", "rating"];
       const platform = allowedPlatforms.includes(opts.platform)
         ? opts.platform
         : "all";
-      const mode = allowedModes.includes(opts.mode) ? opts.mode : "deals";
+      const mode = ALLOWED_MODES.includes(opts.mode) ? opts.mode : "deals";
       const sort = allowedSorts.includes(opts.sort) ? opts.sort : "savings";
       const minSavings =
         Number(opts.minSavings) > 0 && Number(opts.minSavings) <= 100
@@ -144,4 +151,15 @@ function registerGamesHandlers(ctx) {
   );
 }
 
-module.exports = { registerGamesHandlers, attachFx, EMPTY_FX };
+module.exports = {
+  registerGamesHandlers,
+  attachFx,
+  EMPTY_FX,
+  dealsCacheKey,
+  dealsCacheGet,
+  dealsCacheSet,
+  DEALS_CACHE_TTL_MS,
+  DEALS_CACHE_MAX,
+  resetDealsCache,
+  ALLOWED_MODES,
+};
