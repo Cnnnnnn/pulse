@@ -7,7 +7,7 @@
  *   - 按 mode 过滤/排序：'deals'(折扣) | 'free'(喜+1) | 'top'(热门 Top10)
  *   - 返回统一结构 + 各平台数据源标记 (sources)，供 UI 显示"示例"徽标
  *
- * 单平台 fetch 失败不影响其它平台（Promise.allSettled + 兜底）。
+ * 单平台 fetch 失败不影响其它平台（Promise.all + fetchPlatform 内部 try/catch 兜底）。
  */
 
 const { PLATFORM_KEYS, toGameDeal } = require("./normalize");
@@ -103,6 +103,62 @@ function sortDeals(items, sort) {
 }
 
 /**
+ * 标题归一化：小写 + 去标点/版本后缀 + 压空格。
+ * 仅用于跨平台去重的 key 生成，不做同义词合并（避免把不同游戏误判为同一款）。
+ * 例："GTA V: Premium Edition" → "gta v premium edition"
+ */
+function normalizeTitle(t) {
+  return String(t || "")
+    .toLowerCase()
+    .replace(/[™®©]/g, "")
+    .replace(/[:：\-—–_·,.()（）#!?？]/g, " ")
+    .replace(/\b(deluxe|premium|ultimate|goty|standard|complete|edition|version|版|豪华版|年度版)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * 跨平台去重的择优函数：savings 高者优先；savings 相同看 salePrice 低者优先；
+ * 都相同保留原顺序（返回 false 表示 a 不比 prev 更好）。
+ */
+function betterDeal(a, b) {
+  if (a.savings !== b.savings) return a.savings > b.savings;
+  const pa = a.salePrice ?? Infinity;
+  const pb = b.salePrice ?? Infinity;
+  if (pa !== pb) return pa < pb;
+  return false; // 稳定：不替换
+}
+
+/**
+ * 热门 Top10 — 分平台配额（round-robin）。
+ * 各平台 popular 量纲不同（Steam 评分 / PS 美元折扣额 / Switch 折扣%），
+ * 跨平台直接 sort 无意义；改为每平台组内按 popular 降序，再轮询取头部，
+ * 保证平台多样性与公平曝光。语义：「各平台热门精选」。
+ */
+function pickTopByPlatformQuota(allItems, total) {
+  const groups = new Map(); // platform -> items[]
+  for (const it of allItems) {
+    if (!groups.has(it.platform)) groups.set(it.platform, []);
+    groups.get(it.platform).push(it);
+  }
+  for (const arr of groups.values()) {
+    arr.sort((a, b) => (b.popular || 0) - (a.popular || 0));
+  }
+  // 按「各平台 popular 榜首」降序排列队列，让头部最强的平台先取
+  const queues = [...groups.values()].sort(
+    (qa, qb) => (qb[0]?.popular || 0) - (qa[0]?.popular || 0),
+  );
+  const result = [];
+  let idx = 0;
+  while (result.length < total && queues.some((q) => q.length > 0)) {
+    const q = queues[idx % queues.length];
+    if (q.length > 0) result.push(q.shift());
+    idx++;
+  }
+  return result;
+}
+
+/**
  * @param {{platform?:string, mode?:string, sort?:string, minSavings?:number, country?:string, itadKey?:string}} opts
  * @returns {Promise<object>}
  */
@@ -136,18 +192,28 @@ async function getGameDeals(opts = {}) {
     items = items.concat(r.items);
   }
 
-  // 去重（按 id）
-  const seen = new Set();
-  items = items.filter((it) => {
-    if (seen.has(it.id)) return false;
-    seen.add(it.id);
+  // 第一层去重：按 id（同平台内重复，如分页拉到同一条）
+  const seenId = new Set();
+  let deduped = items.filter((it) => {
+    if (seenId.has(it.id)) return false;
+    seenId.add(it.id);
     return true;
   });
+
+  // 第二层去重：按归一化标题跨平台合并，保留优惠最大的一条
+  // （同款游戏在 Steam/Epic 都上架时，id 带不同平台前缀不会命中第一层）
+  const byTitle = new Map();
+  for (const it of deduped) {
+    const key = normalizeTitle(it.title);
+    const prev = byTitle.get(key);
+    if (!prev || betterDeal(it, prev)) byTitle.set(key, it);
+  }
+  items = [...byTitle.values()];
 
   if (mode === "free") {
     items = items.filter((it) => it.isFree);
   } else if (mode === "top") {
-    items = items.slice().sort((a, b) => b.popular - a.popular).slice(0, 10);
+    items = pickTopByPlatformQuota(items, 10);
   } else {
     // deals / all：按折扣门槛过滤 + 排序
     if (minSavings > 0) {

@@ -45,6 +45,13 @@ export const loading = signal(false);
 export const error = signal(null);
 export const fetchedAt = signal(null);
 
+// ── 后台检查设置（scheduler 用，镜像 github-projects-store.js 范式）──
+export const gamesAutoCheck = signal(true); // 自动检查 Epic 喜+1 开关，默认开
+export const gamesAutoCheckIntervalMin = signal(360); // 间隔分钟，默认 360=6h
+export const gamesNotifyOnFree = signal(true); // 桌面通知开关，默认开
+// 后台发现新喜+1 但用户尚未查看 → SideNav 红点
+export const gamesHasNewFree = signal(false);
+
 let _reqToken = 0;
 
 /**
@@ -127,4 +134,120 @@ export function hasPspricesAttribution() {
 /** PSGameSpider 数据来源署名（MIT 许可，非强制但透明起见展示）。 */
 export function hasPsgamespiderAttribution() {
   return psDriver.value === "psgamespider";
+}
+
+// ── 后台检查设置持久化（localStorage，照搬 github-projects-store.js）──
+const SETTINGS_KEY = "pulse.games.settings.v1";
+const SEEN_FREE_KEY = "pulse.games.seen.v1";
+
+function readStorage(key) {
+  try {
+    if (typeof globalThis.localStorage === "undefined") return null;
+    return globalThis.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key, val) {
+  try {
+    globalThis.localStorage.setItem(key, val);
+  } catch {
+    /* 配额超限或 localStorage 不可用，忽略 */
+  }
+}
+
+/** 读取持久化的模块设置（自动检查 / 间隔 / 通知）。损坏数据忽略，回退默认。 */
+export function loadGamesSettings() {
+  const raw = readStorage(SETTINGS_KEY);
+  if (!raw) return;
+  try {
+    const o = JSON.parse(raw);
+    if (o && typeof o.autoCheck === "boolean") {
+      gamesAutoCheck.value = o.autoCheck;
+    }
+    if (o && typeof o.autoCheckIntervalMin === "number" && o.autoCheckIntervalMin > 0) {
+      gamesAutoCheckIntervalMin.value = o.autoCheckIntervalMin;
+    }
+    if (o && typeof o.notifyOnFree === "boolean") {
+      gamesNotifyOnFree.value = o.notifyOnFree;
+    }
+  } catch {
+    /* 损坏数据忽略 */
+  }
+}
+
+function persistSettings() {
+  try {
+    writeStorage(
+      SETTINGS_KEY,
+      JSON.stringify({
+        autoCheck: gamesAutoCheck.value,
+        autoCheckIntervalMin: gamesAutoCheckIntervalMin.value,
+        notifyOnFree: gamesNotifyOnFree.value,
+      }),
+    );
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/** 设置自动检查开关。变更后通知调度器重启。 */
+export function setGamesAutoCheck(v) {
+  gamesAutoCheck.value = !!v;
+  persistSettings();
+  emitSettingsChanged();
+}
+
+/** 设置自动检查间隔（分钟）。下限 60 分钟（Epic 喜+1 周级更新，无需更频繁）。 */
+export function setGamesAutoCheckInterval(min) {
+  const n = Math.max(60, Math.floor(Number(min) || 360));
+  gamesAutoCheckIntervalMin.value = n;
+  persistSettings();
+  emitSettingsChanged();
+}
+
+/** 设置是否桌面通知新喜+1。不重启调度器（下次 checkOnce 读最新值）。 */
+export function setGamesNotifyOnFree(v) {
+  gamesNotifyOnFree.value = !!v;
+  persistSettings();
+}
+
+/** 用户查看喜+1 后清除未读红点。 */
+export function clearGamesNewFree() {
+  gamesHasNewFree.value = false;
+}
+
+/** 读取已通知过的喜+1 id 集合（scheduler 用于 diff 新条目）。 */
+export function loadSeenFreeIds() {
+  const raw = readStorage(SEEN_FREE_KEY);
+  try {
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? new Set(arr) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+/** 持久化已通知过的喜+1 id 集合。 */
+export function saveSeenFreeIds(ids) {
+  try {
+    writeStorage(SEEN_FREE_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/**
+ * 广播设置变更事件（解耦：store 不直接依赖调度器）。
+ * GamesLayout 监听此事件并 restart 调度器。
+ */
+function emitSettingsChanged() {
+  try {
+    if (typeof globalThis.dispatchEvent === "function") {
+      globalThis.dispatchEvent(new CustomEvent("games-settings-changed"));
+    }
+  } catch {
+    /* 非浏览器环境忽略 */
+  }
 }

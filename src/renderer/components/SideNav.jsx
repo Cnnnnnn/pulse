@@ -29,6 +29,7 @@ import { ithomeUnreadBadge } from '../ithome/store.js';
 import { wechatHotUnreadBadge } from '../wechat-hot/store.js';
 import { fundUnreadBadge } from '../funds/fundStore.js';
 import { aiUsageNavBadge } from '../store/ai-usage-store.js';
+import { gamesHasNewFree } from '../games/gamesStore.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
 import { trayMenuPrefs } from '../trayConfigStore.js';
 import {
@@ -76,12 +77,14 @@ export function SideNav() {
   void wechatHotUnreadBadge.value;
   void fundUnreadBadge.value;
   void aiUsageNavBadge.value;
+  void gamesHasNewFree.value;
   // ponytail: 'news' nav 角标 = IT 新闻未读 + 微博热搜未读 (P-N+ 合并).
   const newsBadge = (ithomeUnreadBadge.value || 0) + (wechatHotUnreadBadge.value || 0);
   const navBadges = {
     news: newsBadge,
     invest: fundUnreadBadge.value,   // 原 funds 角标迁到投资入口
     'ai-usage': aiUsageNavBadge.value,
+    games: gamesHasNewFree.value ? 1 : 0, // 后台发现新 Epic 喜+1 时红点
   };
 
   // Phase I3: nav 重排 + 隐藏 (localStorage 持久化)

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>游戏优惠聚合 · 增强预览 v2</title>
+<style>
+  :root {
+    --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+    /* —— 浅色 (默认) —— */
+    --bg-app: linear-gradient(160deg, #eef2f7 0%, #e6ebf3 45%, #e9e4f0 100%);
+    --bg-primary: rgba(255, 255, 255, 0.82);
+    --bg-secondary: rgba(255, 255, 255, 0.60);
+    --surface-elevated: rgba(255, 255, 255, 0.94);
+    --text-primary: #1d1d1f;
+    --text-secondary: #515159;
+    --text-tertiary: #86868b;
+    --border-soft: 1px solid rgba(0, 0, 0, 0.07);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+    --shadow-md: 0 6px 18px rgba(0,0,0,.10);
+
+    --accent-primary: #007aff;
+    --accent-primary-hover: #0a6ae0;
+    --text-inverse: #ffffff;
+
+    /* P0 语义令牌 (此前缺失) */
+    --color-success: #34c759;
+    --color-warning: #ff9f0a;
+    --color-danger: #ff3b30;
+    --success-tint-bg: rgba(52,199,89,.14);
+    --success-tint-fg: #157a36;
+    --warning-tint-bg: rgba(255,159,10,.16);
+    --warning-tint-fg: #9a6200;
+    --danger-tint-bg: rgba(255,59,48,.12);
+    --danger-tint-fg: #c0341d;
+
+    /* 平台品牌色 */
+    --plat-steam: #1a9fff;  --plat-steam-bg: rgba(26,159,255,.12);
+    --plat-epic: #2a2a2e;   --plat-epic-bg: rgba(42,42,46,.10);
+    --plat-xbox: #107c10;   --plat-xbox-bg: rgba(16,124,16,.12);
+    --plat-ps: #0070d1;     --plat-ps-bg: rgba(0,112,209,.12);
+    --plat-switch: #e60012; --plat-switch-bg: rgba(230,0,18,.10);
+
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-pill: 999px;
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
+    --focus-ring: 0 0 0 3px rgba(0,122,255,.35);
+  }
+
+  /* —— 深色主题 parity —— */
+  [data-theme="dark"] {
+    --bg-app: linear-gradient(160deg, #1c1c1e 0%, #161618 50%, #1e1a24 100%);
+    --bg-primary: rgba(44,44,48,0.66);
+    --bg-secondary: rgba(58,58,62,0.50);
+    --surface-elevated: rgba(60,60,66,0.85);
+    --text-primary: #f5f5f7;
+    --text-secondary: #b8b8be;
+    --text-tertiary: #8a8a90;
+    --border-soft: 1px solid rgba(255,255,255,.10);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+    --shadow-md: 0 8px 22px rgba(0,0,0,.45);
+    --accent-primary: #0a84ff;
+    --accent-primary-hover: #3b9bff;
+    --success-tint-fg: #4cd964;   /* 深底上提亮以达 AA */
+    --success-tint-bg: rgba(48,209,88,.18);
+    --warning-tint-fg: #ffc14d;
+    --warning-tint-bg: rgba(255,159,10,.20);
+    --danger-tint-fg: #ff6a5e;
+    --danger-tint-bg: rgba(255,59,48,.20);
+    --plat-steam-bg: rgba(26,159,255,.20);
+    --plat-epic-bg: rgba(220,220,225,.16);
+    --plat-xbox-bg: rgba(60,200,60,.18);
+    --plat-ps-bg: rgba(60,160,255,.20);
+    --plat-switch-bg: rgba(255,80,90,.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: var(--font-system); background: var(--bg-app); color: var(--text-primary);
+    min-height: 100vh; padding: var(--space-6) var(--space-4) 80px; line-height: 1.5;
+    transition: background .3s ease, color .3s ease;
+  }
+  .app { max-width: 1120px; margin: 0 auto; }
+
+  /* 顶部栏 */
+  .topbar {
+    display: flex; align-items: center; gap: var(--space-4);
+    padding: var(--space-4) var(--space-5); background: var(--bg-primary);
+    backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  }
+  .traffic { display: flex; gap: 8px; } .traffic i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .traffic .r { background:#ff5f57; } .traffic .y { background:#febc2e; } .traffic .g { background:#28c840; }
+  .topbar h1 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .topbar .sub { font-size: 13px; color: var(--text-secondary); font-weight: 400; }
+  .topbar .spacer { flex: 1; }
+  .sample-flag { font-size: 11px; font-weight: 600; color: var(--warning-tint-fg); background: var(--warning-tint-bg); padding: 4px 10px; border-radius: var(--radius-pill); }
+  .theme-toggle {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--text-secondary);
+    background: var(--bg-secondary); border: var(--border-soft); border-radius: var(--radius-pill); padding: 6px 12px;
+  }
+  .theme-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  /* 粘性工具栏 */
+  .sticky-bar { position: sticky; top: 8px; z-index: 20; padding: var(--space-3) 0; margin-bottom: var(--space-2);
+    background: linear-gradient(var(--bg-app) 70%, transparent); }
+
+  /* 平台胶囊 (品牌色) */
+  .platform-tabs { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .ptab {
+    display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: var(--radius-pill);
+    font-size: 13.5px; font-weight: 500; cursor: pointer; border: var(--border-soft);
+    background: var(--bg-secondary); color: var(--text-secondary); transition: all .15s ease;
+  }
+  .ptab:hover { background: var(--surface-elevated); color: var(--text-primary); }
+  .ptab.active { background: var(--accent-primary); color: var(--text-inverse); border-color: transparent; box-shadow: 0 2px 8px rgba(0,122,255,.3); }
+  .ptab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  .pdot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+  /* 筛选工具条 */
+  .filterbar { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); flex-wrap: wrap; }
+  .segment { display: inline-flex; background: var(--bg-secondary); border: var(--border-soft); border-radius: var(--radius-pill); padding: 3px; }
+  .seg { border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500;
+    padding: 7px 14px; border-radius: var(--radius-pill); color: var(--text-secondary); transition: all .15s ease; }
+  .seg.active { background: var(--surface-elevated); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+  .seg:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  .sort { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+  .sort select { font-family: inherit; font-size: 13px; color: var(--text-primary); background: var(--bg-secondary);
+    border: var(--border-soft); border-radius: var(--radius-sm); padding: 7px 10px; cursor: pointer; }
+  .sort select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  .section-head { display: flex; align-items: baseline; gap: var(--space-2); margin: var(--space-8) 0 var(--space-4); }
+  .section-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .section-head .count { font-size: 12.5px; color: var(--text-secondary); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: var(--space-4); }
+  .card {
+    background: var(--bg-primary); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease; display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+  .thumb { height: 132px; background: linear-gradient(135deg, #c9d6e8, #d8cce8); position: relative;
+    display: flex; align-items: center; justify-content: center; }
+  [data-theme="dark"] .thumb { background: linear-gradient(135deg, #3a3f4a, #4a3f55); }
+  .thumb .ph { font-size: 40px; opacity: .55; }
+
+  /* 平台胶囊 (卡片右上) */
+  .pchip { position: absolute; top: 10px; right: 10px; font-size: 11px; font-weight: 700;
+    padding: 4px 9px; border-radius: var(--radius-pill); letter-spacing: .01em; }
+  .pchip.steam { color: var(--plat-steam); background: var(--plat-steam-bg); }
+  .pchip.epic { color: var(--plat-epic); background: var(--plat-epic-bg); }
+  .pchip.xbox { color: var(--plat-xbox); background: var(--plat-xbox-bg); }
+  .pchip.ps { color: var(--plat-ps); background: var(--plat-ps-bg); }
+  .pchip.switch { color: var(--plat-switch); background: var(--plat-switch-bg); }
+
+  /* 折扣徽标 (淡底深字, AA) */
+  .badge-disc { position: absolute; top: 10px; left: 10px; font-size: 13px; font-weight: 700;
+    color: var(--success-tint-fg); background: var(--success-tint-bg); padding: 4px 9px; border-radius: var(--radius-pill);
+    animation: pop .25s ease; }
+  .badge-free { position: absolute; top: 10px; left: 10px; font-size: 11.5px; font-weight: 700;
+    color: var(--success-tint-fg); background: var(--success-tint-bg); padding: 4px 9px; border-radius: var(--radius-pill); }
+  .card.free { border-left: 3px solid var(--color-success); }
+  @keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .card-body { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); flex: 1; }
+  .game-title { font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--text-primary); }
+  .meta { font-size: 12px; color: var(--text-secondary); }
+  .price-row { display: flex; align-items: baseline; gap: var(--space-2); margin-top: 2px; }
+  .price-now { font-size: 17px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .price-old { font-size: 13px; color: var(--text-tertiary); text-decoration: line-through; font-variant-numeric: tabular-nums; }
+  .saved { font-size: 12px; font-weight: 600; color: var(--success-tint-fg); }
+  .rating { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-secondary); }
+  .stars { color: var(--color-warning); letter-spacing: 1px; font-size: 12px; }
+  .card-foot { margin-top: auto; padding-top: var(--space-2); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit;
+    font-weight: 500; font-size: 13px; padding: 7px 14px; border-radius: var(--radius-sm); border: none; cursor: pointer;
+    transition: all .15s ease; text-decoration: none; user-select: none; }
+  .btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  .btn-primary { background: var(--accent-primary); color: var(--text-inverse); }
+  .btn-primary:hover { background: var(--accent-primary-hover); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,122,255,.3); }
+  .btn-sm { padding: 5px 12px; font-size: 12.5px; }
+  .link-more { font-size: 12.5px; color: var(--accent-primary); text-decoration: none; font-weight: 500; }
+  .link-more:hover { text-decoration: underline; }
+
+  /* Top10 */
+  .rank-list { display: flex; flex-direction: column; gap: var(--space-2); }
+  .rank-row { display: flex; align-items: center; gap: var(--space-4); background: var(--bg-primary);
+    border: var(--border-soft); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); transition: background .15s ease; }
+  .rank-row:hover { background: var(--surface-elevated); }
+  .rank-no { width: 28px; height: 28px; flex: none; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--bg-secondary); color: var(--text-secondary); }
+  .rank-row.top1 .rank-no { background: #ffd700; color: #5a4500; }
+  .rank-row.top2 .rank-no { background: #d8d8dd; color: #404045; }
+  .rank-row.top3 .rank-no { background: #e0a96d; color: #4a2e00; }
+  .rank-thumb { width: 40px; height: 40px; flex: none; border-radius: 8px; background: linear-gradient(135deg,#c9d6e8,#d8cce8);
+    display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  [data-theme="dark"] .rank-thumb { background: linear-gradient(135deg,#3a3f4a,#4a3f55); }
+  .rank-main { flex: 1; min-width: 0; }
+  .rank-title { font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-sub { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .rank-pop { font-size: 13px; font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rank-pop small { font-size: 11px; font-weight: 400; color: var(--text-tertiary); }
+
+  /* 状态展示 */
+  .states { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+  .state-card { background: var(--bg-primary); border: var(--border-soft); border-radius: var(--radius-lg); padding: var(--space-4); }
+  .state-card h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary); margin-bottom: var(--space-3); }
+  .skeleton { height: 96px; border-radius: var(--radius-md); background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--surface-elevated) 37%, var(--bg-secondary) 63%);
+    background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
+  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+  .empty { text-align: center; color: var(--text-secondary); padding: var(--space-5) 0; }
+  .empty .ico { font-size: 32px; opacity: .5; }
+  .empty p { font-size: 13px; margin-top: var(--space-2); }
+  .error-box { text-align: center; padding: var(--space-4) 0; }
+  .error-box .ico { font-size: 30px; }
+  .error-box p { font-size: 13px; color: var(--danger-tint-fg); margin: var(--space-2) 0 var(--space-3); font-weight: 500; }
+
+  .hint { font-size: 12px; color: var(--text-tertiary); margin-top: var(--space-3); }
+  .legend { display: flex; gap: var(--space-6); flex-wrap: wrap; margin-top: var(--space-6); padding: var(--space-4);
+    background: var(--bg-secondary); border: var(--border-soft); border-radius: var(--radius-md); }
+  .legend h3 { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .legend p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.7; } .legend b { color: var(--text-primary); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="traffic"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+    <h1>游戏优惠</h1><span class="sub">聚合折扣 · 喜+1 · 热门榜</span>
+    <div class="spacer"></div>
+    <span class="sample-flag">Xbox / PS / Switch 为示例数据</span>
+    <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙 深色</button>
+  </div>
+
+  <div class="sticky-bar">
+    <div class="platform-tabs" role="tablist">
+      <button class="ptab active" role="tab"><span class="pdot" style="background:#9aa0aa"></span>全部</button>
+      <button class="ptab" role="tab"><span class="pdot" style="background:var(--plat-steam)"></span>Steam</button>
+      <button class="ptab" role="tab"><span class="pdot" style="background:var(--plat-epic)"></span>Epic</button>
+      <button class="ptab" role="tab"><span class="pdot" style="background:var(--plat-xbox)"></span>Xbox</button>
+      <button class="ptab" role="tab"><span class="pdot" style="background:var(--plat-ps)"></span>PlayStation</button>
+      <button class="ptab" role="tab"><span class="pdot" style="background:var(--plat-switch)"></span>Switch</button>
+    </div>
+    <div class="filterbar">
+      <div class="segment" role="tablist">
+        <button class="seg active" role="tab">折扣力度</button>
+        <button class="seg" role="tab">喜+1 免费领</button>
+        <button class="seg" role="tab">热门 Top10</button>
+      </div>
+      <div class="sort"><span>最低折扣</span>
+        <select><option>≥ 50%</option><option selected>≥ 75%</option><option>≥ 90%</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 喜+1 -->
+  <div class="section-head"><h2>限时免费领取 · 喜+1</h2><span class="count">7 款可领</span></div>
+  <div class="grid">
+    <div class="card free">
+      <div class="thumb"><span class="ph">🎁</span><span class="badge-free">免费领取</span><span class="pchip epic">Epic</span></div>
+      <div class="card-body">
+        <div class="game-title">无主之地 3</div>
+        <div class="meta">原价 ¥198 · 截止 07-24</div>
+        <div class="rating"><span class="stars">★★★★★</span> 4.6</div>
+        <div class="card-foot"><a class="btn btn-primary btn-sm" href="#">领取</a><a class="link-more" href="#">详情 ›</a></div>
+      </div>
+    </div>
+    <div class="card free">
+      <div class="thumb"><span class="ph">🎁</span><span class="badge-free">免费领取</span><span class="pchip epic">Epic</span></div>
+      <div class="card-body">
+        <div class="game-title">星露谷物语</div>
+        <div class="meta">原价 ¥36 · 截止 07-21</div>
+        <div class="rating"><span class="stars">★★★★★</span> 4.8</div>
+        <div class="card-foot"><a class="btn btn-primary btn-sm" href="#">领取</a><a class="link-more" href="#">详情 ›</a></div>
+      </div>
+    </div>
+    <div class="card free">
+      <div class="thumb"><span class="ph">🎁</span><span class="badge-free">免费领取</span><span class="pchip epic">Epic</span></div>
+      <div class="card-body">
+        <div class="game-title">DAEMON X MACHINA</div>
+        <div class="meta">原价 ¥298 · 截止 07-18</div>
+        <div class="rating"><span class="stars">★★★★☆</span> 4.1</div>
+        <div class="card-foot"><a class="btn btn-primary btn-sm" href="#">领取</a><a class="link-more" href="#">详情 ›</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Steam 折扣 (含平台胶囊 + 省¥) -->
+  <div class="section-head"><h2>Steam 热门折扣</h2><span class="count">实时数据 · 40 款</span></div>
+  <div class="grid">
+    <div class="card">
+      <div class="thumb"><span class="ph">🎮</span><span class="badge-disc">-75%</span><span class="pchip steam">Steam</span></div>
+      <div class="card-body">
+        <div class="game-title">赛博朋克 2077</div>
+        <div class="meta">RPG · 动作</div>
+        <div class="price-row"><span class="price-now">¥59</span><span class="price-old">¥298</span><span class="saved">省 ¥239</span></div>
+        <div class="rating"><span class="stars">★★★★★</span> 4.4</div>
+        <div class="card-foot"><a class="btn btn-primary btn-sm" href="#">查看</a><a class="link-more" href="#">商店 ›</a></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="thumb"><span class="ph">🎮</span><span class="badge-disc">-90%</span><span class="pchip steam">Steam</span></div>
+      <div class="card-body">
+        <div class="game-title">巫师 3：狂猎 年度版</div>
+        <div class="meta">RPG · 开放世界</div>
+        <div class="price-row"><span class="price-now">¥19</span><span class="price-old">¥198</span><span class="saved">省 ¥179</span></div>
+        <div class="rating"><span class="stars">★★★★★</span> 4.9</div>
+        <div class="card-foot"><a class="btn btn-primary btn-sm" href="#">查看</a><a class="link-more" href="#">商店 ›</a></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="thumb"><span class="ph">🎮</span><span class="badge-disc">-67%</span><span class="pchip steam">Steam</span></div>
+      <div class="card-body">
+        <div class="game-title">艾尔登法环</div>
+        <div class="meta">动作 · 魂类</div>
+        <div class="price-row"><span class="price-now">¥98</span><span class="price-old">¥298</span><span class="saved">省 ¥200</span></div>
+        <div class="rating"><span class="stars">★★★★★</span> 4.7</div>
+        <div class="card-foot"><a class="btn btn-primary btn-sm" href="#">查看</a><a class="link-more" href="#">商店 ›</a></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="thumb"><span class="ph">🎮</span><span class="badge-disc">-80%</span><span class="pchip steam">Steam</span></div>
+      <div class="card-body">
+        <div class="game-title">只狼：影逝二度</div>
+        <div class="meta">动作 · 忍者</div>
+        <div class="price-row"><span class="price-now">¥63</span><span class="price-old">¥318</span><span class="saved">省 ¥255</span></div>
+        <div class="rating"><span class="stars">★★★★★</span> 4.8</div>
+        <div class="card-foot"><a class="btn btn-primary btn-sm" href="#">查看</a><a class="link-more" href="#">商店 ›</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top10 -->
+  <div class="section-head"><h2>热门游戏 Top 10</h2><span class="count">跨平台热度</span></div>
+  <div class="rank-list">
+    <div class="rank-row top1"><div class="rank-no">1</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">黑神话：悟空</div><div class="rank-sub"><span class="pchip steam">Steam</span> 动作冒险</div></div><div class="rank-pop">98.2<small> 热度</small></div></div>
+    <div class="rank-row top2"><div class="rank-no">2</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">艾尔登法环</div><div class="rank-sub"><span class="pchip steam">Steam</span><span class="pchip ps">PS5</span> 魂类</div></div><div class="rank-pop">95.7<small> 热度</small></div></div>
+    <div class="rank-row top3"><div class="rank-no">3</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">赛博朋克 2077</div><div class="rank-sub"><span class="pchip steam">Steam</span><span class="pchip ps">PS5</span><span class="pchip xbox">Xbox</span></div></div><div class="rank-pop">94.1<small> 热度</small></div></div>
+    <div class="rank-row"><div class="rank-no">4</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">巫师 3：狂猎</div><div class="rank-sub">全平台 · RPG</div></div><div class="rank-pop">91.3<small> 热度</small></div></div>
+    <div class="rank-row"><div class="rank-no">5</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">只狼：影逝二度</div><div class="rank-sub"><span class="pchip steam">Steam</span><span class="pchip ps">PS4</span></div></div><div class="rank-pop">89.6<small> 热度</small></div></div>
+    <div class="rank-row"><div class="rank-no">6</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">空洞骑士：丝之歌</div><div class="rank-sub"><span class="pchip switch">Switch</span> PC · 类银河</div></div><div class="rank-pop">88.0<small> 热度</small></div></div>
+    <div class="rank-row"><div class="rank-no">7</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">塞尔达传说：王国之泪</div><div class="rank-sub"><span class="pchip switch">Switch</span> 独占</div></div><div class="rank-pop">87.2<small> 热度</small></div></div>
+    <div class="rank-row"><div class="rank-no">8</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">极限竞速：地平线 5</div><div class="rank-sub"><span class="pchip xbox">Xbox</span> PC · 竞速</div></div><div class="rank-pop">85.4<small> 热度</small></div></div>
+    <div class="rank-row"><div class="rank-no">9</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">战神：诸神黄昏</div><div class="rank-sub"><span class="pchip ps">PS5</span> 独占</div></div><div class="rank-pop">84.1<small> 热度</small></div></div>
+    <div class="rank-row"><div class="rank-no">10</div><div class="rank-thumb">🎮</div><div class="rank-main"><div class="rank-title">Hades II</div><div class="rank-sub"><span class="pchip steam">Steam</span><span class="pchip switch">Switch</span> Roguelike</div></div><div class="rank-pop">82.8<small> 热度</small></div></div>
+  </div>
+  <p class="hint">* 榜单热度为跨平台综合估算值，真实口径接入方案见设计纪要。</p>
+
+  <!-- 状态展示 -->
+  <div class="section-head"><h2>加载 / 空 / 错误 状态</h2><span class="count">联网功能必备</span></div>
+  <div class="states">
+    <div class="state-card"><h3>加载中 · 骨架屏</h3><div class="skeleton"></div><div class="skeleton" style="margin-top:12px;height:60px"></div></div>
+    <div class="state-card"><h3>空状态</h3><div class="empty"><div class="ico">🎯</div><p>该平台暂无匹配的折扣</p><p style="color:var(--text-tertiary)">试试降低折扣门槛</p></div></div>
+    <div class="state-card"><h3>错误 · 可重试</h3><div class="error-box"><div class="ico">⚠️</div><p>Steam 数据获取失败</p><a class="btn btn-primary btn-sm" href="#">重试</a></div></div>
+  </div>
+
+  <div class="legend">
+    <div><h3>v2 新增</h3><p>平台<b>品牌色胶囊</b>（Tab + 卡片右上 + 榜单行内）；折扣卡加<b>省 ¥X</b>实省金额；<b>浅/深双主题</b>一键切换且均达 AA。</p></div>
+    <div><h3>粘性 & 微交互</h3><p>平台 Tab + 筛选条<b>滚动吸顶</b>；徽标入场轻弹；<b>prefers-reduced-motion</b> 下自动关闭动效。</p></div>
+    <div><h3>状态完备</h3><p>补充<b>骨架屏 / 空状态 / 错误重试</b>，联网功能不再「白屏卡死」。</p></div>
+  </div>
+
+</div>
+<script>
+  function toggleTheme() {
+    var h = document.documentElement;
+    var cur = h.getAttribute('data-theme');
+    var next = cur === 'light' ? 'dark' : 'light';
+    h.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'light' ? '🌙 深色' : '☀️ 浅色';
+  }
+</script>
+</body>
+</html>

@@ -30,6 +30,12 @@ import {
   githubAutoCheckIntervalMin, setGithubAutoCheckInterval,
   githubNotifyOnNew, setGithubNotifyOnNew,
 } from "../store/github-projects-store.js";
+import {
+  gamesAutoCheck, setGamesAutoCheck,
+  gamesAutoCheckIntervalMin, setGamesAutoCheckInterval,
+  gamesNotifyOnFree, setGamesNotifyOnFree,
+  loadGamesSettings,
+} from "../games/gamesStore.js";
 
 /* ─── theme signal (与 localStorage 同步) ─────────────────────── */
 // ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
@@ -49,6 +55,7 @@ const settingsTab = signal(routeTab.value === "ai" ? "ai" : "general");
 const SETTINGS_TABS = [
   { key: "general", label: "常规" },
   { key: "github", label: "GitHub" },
+  { key: "games", label: "游戏" },
   { key: "ai", label: "AI 配置" },
 ];
 
@@ -396,6 +403,78 @@ function GithubSettingsSection() {
   );
 }
 
+/* ─── 游戏优惠 (Epic 喜+1 后台检查) ──────────────────────────── */
+function GamesSettingsSection() {
+  useEffect(() => {
+    loadGamesSettings();
+  }, []);
+  return (
+    <>
+    <section class="settings-card">
+      <h3 class="settings-card__title">喜+1 自动检查</h3>
+      <p class="settings-row__hint" style="margin:0 0 12px">
+        在应用运行时定时检查 Epic 限时免费游戏，发现新喜+1 时弹桌面通知。
+        <b>仅在应用开着时检查</b>，关闭应用不会后台运行。
+      </p>
+      <div class="settings-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">自动检查 Epic 喜+1</span>
+          <span class="settings-row__hint">
+            {gamesAutoCheck.value ? "已开启" : "已关闭"}
+          </span>
+        </div>
+        <div class="settings-row__buttons">
+          <button
+            type="button"
+            class={`settings-btn ${gamesAutoCheck.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
+            onClick={() => setGamesAutoCheck(!gamesAutoCheck.value)}
+          >
+            {gamesAutoCheck.value ? "已开启" : "已关闭"}
+          </button>
+        </div>
+      </div>
+      {gamesAutoCheck.value && (
+        <div class="settings-row">
+          <div class="settings-row__label-block">
+            <span class="settings-row__label">检查频率</span>
+            <span class="settings-row__hint">Epic 喜+1 通常每周更新一次。</span>
+          </div>
+          <div class="settings-select">
+            <select
+              class="settings-select__el"
+              value={String(gamesAutoCheckIntervalMin.value)}
+              onChange={(e) => setGamesAutoCheckInterval(Number(e.currentTarget.value))}
+            >
+              <option value="60">每 1 小时</option>
+              <option value="180">每 3 小时</option>
+              <option value="360">每 6 小时（默认）</option>
+              <option value="720">每 12 小时</option>
+            </select>
+          </div>
+        </div>
+      )}
+      <div class="settings-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">发现新喜+1 时桌面通知</span>
+          <span class="settings-row__hint">
+            首次发通知时会请求系统通知权限，拒绝后只更新侧栏红点。
+          </span>
+        </div>
+        <div class="settings-row__buttons">
+          <button
+            type="button"
+            class={`settings-btn ${gamesNotifyOnFree.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
+            onClick={() => setGamesNotifyOnFree(!gamesNotifyOnFree.value)}
+          >
+            {gamesNotifyOnFree.value ? "已开启" : "已关闭"}
+          </button>
+        </div>
+      </div>
+    </section>
+    </>
+  );
+}
+
 export function SettingsPage() {
   // 进入页面时拉数据, 监听主进程推送
   useEffect(() => {
@@ -614,9 +693,14 @@ export function SettingsPage() {
           tab === "github" ? (
             <GithubSettingsSection />
           ) : (
+          /* ── 游戏优惠 (Epic 喜+1 自动检查) ── */
+          tab === "games" ? (
+            <GamesSettingsSection />
+          ) : (
             /* ── AI 配置 (P16: 不再用 settings-card 包裹, 让外层 .settings-content 滚动接管;
                 AISettingsScene 内部已是 settings-card 段, 多包一层会触发 overflow:hidden 把内容切掉.) ── */
             <AISettingsScene compact={false} initialTab="connection" />
+          )
           )
         )}
       </div>

@@ -1,16 +1,45 @@
 /**
  * src/renderer/games/GamesLayout.jsx — 游戏优惠聚合顶级 nav panel 容器。
  * 进入时拉一次数据（按当前筛选条件）；后续切换由 store 内部触发。
+ *
+ * v3 后台定时检查 Epic 喜+1：mount 时启动调度器（autoCheck=true 才跑），
+ * unmount 时停止。监听 games-settings-changed 事件，设置变更时 restart。
  */
 import { useEffect } from "preact/hooks";
-import { loadGameDeals } from "./gamesStore.js";
+import {
+  loadGameDeals,
+  loadGamesSettings,
+  activeMode,
+  clearGamesNewFree,
+} from "./gamesStore.js";
 import { GamesPage } from "./GamesPage.jsx";
+import { createGamesCheckScheduler } from "./games-check-scheduler.js";
 import "./games.css";
 
 export function GamesLayout() {
   useEffect(() => {
     loadGameDeals();
+    loadGamesSettings();
+
+    // 后台定时检查 Epic 喜+1 + 桌面通知调度器
+    const scheduler = createGamesCheckScheduler();
+    scheduler.start();
+
+    // 设置变更（autoCheck/interval）时重启调度器
+    const onSettingsChanged = () => scheduler.restart();
+    globalThis.addEventListener("games-settings-changed", onSettingsChanged);
+
+    return () => {
+      globalThis.removeEventListener("games-settings-changed", onSettingsChanged);
+      scheduler.stop();
+    };
   }, []);
+
+  // 用户切到「喜+1」tab 时清除未读红点
+  useEffect(() => {
+    if (activeMode.value === "free") clearGamesNewFree();
+  }, [activeMode.value]);
+
   return (
     <div class="games-layout">
       <GamesPage />
