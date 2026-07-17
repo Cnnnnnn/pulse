@@ -8,7 +8,7 @@
  * 2026-07-15 v2.80: 新增。
  */
 
-const { fetchGithubProject, fetchRepoRelease, getEnvGithubToken } = require("../github");
+const { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl } = require("../github");
 const { parseReadme } = require("../../ai/readme-parse");
 
 /** 优先用 renderer 传入的 token；为空则回退 .env / 进程环境变量。 */

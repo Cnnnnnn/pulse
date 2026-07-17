@@ -206,6 +206,8 @@ export function githubReasonText(reason) {
       return "请求超时，请稍后重试";
     case "parse_error":
       return "返回数据解析失败";
+    case "server_error":
+      return "GitHub 服务暂时异常，请稍后重试";
     case "no_readme":
       return "该项目没有可用的 README 内容";
     case "api_key_missing":
@@ -432,7 +434,19 @@ export async function fetchGithubRelease(id, opts = {}) {
       githubToken.value,
     );
     if (!res || !res.ok) {
-      return { ok: false, reason: (res && res.reason) || "fetch_failed" };
+      // 透出主进程附加的元信息，让上层 toast 能显示「剩余 N 次 / 约 X 分钟后重置」
+      // 以及区分永久失败 (permanent) 与瞬时失败。
+      // IPC 层 safeHandle 把任何异常包成 {reason:"threw", error: msg}，
+      // 这种未预期错误没有 reason 映射，必须把原始 error 透出为 detail，
+      // 否则用户只看到笼统的「操作失败，请重试」无从排查。
+      return {
+        ok: false,
+        reason: (res && res.reason) || "fetch_failed",
+        retryAfter: res && res.retryAfter,
+        rateLimitRemaining: res && res.rateLimitRemaining,
+        permanent: !!(res && res.permanent),
+        detail: res && res.error ? String(res.error) : (res && res.detail) || "",
+      };
     }
     const rel = res.release || {};
     const releases = Array.isArray(res.releases) ? res.releases : [];
@@ -502,36 +516,57 @@ export function markGithubAllSeen() {
  * 批量检查所有项目的更新。
  * @param {{onProgress?:(done:number,total:number)=>void, onlyStale?:boolean}} [opts]
  *   onProgress 用于 UI 进度（检查中 N/M）；onlyStale 仅检查从未拉过 release 的项目。
- * @returns {Promise<{ok:boolean, newCount:number, errorCount:number, failedProjects:Array<{id:string, name:string, reason:string}>}>}
+ * @returns {Promise<{ok:boolean, newCount:number, errorCount:number, skippedCount:number,
+ *   failedProjects:Array<{id:string,name:string,reason:string,detail?:string,retryAfter?:number,rateLimitRemaining?:number}>,
+ *   skippedProjects:Array<{id:string,name:string,reason:string}>}>}
+ *
+ *   permanent 失败 (404 仓库不存在/已删除/私有) 归到 skippedProjects/skippedCount，
+ *   不再每轮把整批拖成「失败」。瞬时失败 (限流/网络/5xx) 计入 errorCount。
  */
 export async function checkGithubUpdates(opts = {}) {
   const { onProgress, onlyStale } = opts;
   let list = githubProjects.value;
   if (onlyStale) list = list.filter((p) => !p.releaseFetchedAt);
-  if (list.length === 0) return { ok: true, newCount: 0, errorCount: 0, failedProjects: [] };
+  if (list.length === 0) {
+    return { ok: true, newCount: 0, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] };
+  }
   githubBusy.value = true;
   let newCount = 0;
   let errorCount = 0;
+  let skippedCount = 0;
   const failedProjects = [];
+  const skippedProjects = [];
   try {
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
       if (onProgress) onProgress(i + 1, list.length);
       const r = await fetchGithubRelease(p.id, { silent: true });
       if (!r.ok) {
-        errorCount += 1;
-        failedProjects.push({
-          id: p.id,
-          name: p.name || p.id,
-          reason: r.reason || "fetch_failed",
-          detail: r.detail || "",
-        });
+        // 永久失败：仓库不存在/已删除/私有 → 单独归档，不拖累整批 toast
+        if (r.permanent) {
+          skippedCount += 1;
+          skippedProjects.push({
+            id: p.id,
+            name: p.name || p.id,
+            reason: r.reason || "not_found",
+          });
+        } else {
+          errorCount += 1;
+          failedProjects.push({
+            id: p.id,
+            name: p.name || p.id,
+            reason: r.reason || "fetch_failed",
+            detail: r.detail || "",
+            retryAfter: r.retryAfter,
+            rateLimitRemaining: r.rateLimitRemaining,
+          });
+        }
         continue;
       }
       const updated = githubProjects.value.find((x) => x.id === p.id);
       if (updated && hasGithubUpdate(updated)) newCount += 1;
     }
-    return { ok: true, newCount, errorCount, failedProjects };
+    return { ok: true, newCount, errorCount, skippedCount, failedProjects, skippedProjects };
   } finally {
     githubBusy.value = false;
   }
