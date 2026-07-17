@@ -6,7 +6,11 @@
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 
-const { toGameDeal, fetchJson, PLATFORM_KEYS } = require("../../../src/main/games/normalize.js");
+const {
+  toGameDeal,
+  fetchJson,
+  PLATFORM_KEYS,
+} = require("../../../src/main/games/normalize.js");
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -96,6 +100,36 @@ describe("toGameDeal — 字段映射", () => {
     expect(d.normalPrice).toBeCloseTo(39.99);
     expect(toGameDeal({}).thumb).toBeNull();
     expect(toGameDeal({}).dealUrl).toBeNull();
+  });
+  it("保留合法免费活动元数据", () => {
+    const deal = toGameDeal({
+      promotionType: "key",
+      requirements: "领取后激活",
+      provider: "gamerpower",
+    });
+
+    for (const promotionType of [
+      "giveaway",
+      "key",
+      "free-weekend",
+      "free-play-days",
+    ]) {
+      expect(toGameDeal({ promotionType }).promotionType).toBe(promotionType);
+    }
+    expect(deal.requirements).toBe("领取后激活");
+    expect(deal.provider).toBe("gamerpower");
+  });
+  it("非法免费活动类型回退 null", () => {
+    for (const promotionType of ["unknown", undefined, 123]) {
+      expect(toGameDeal({ promotionType }).promotionType).toBeNull();
+    }
+  });
+  it("requirements/provider 非有效字符串时回退 null", () => {
+    for (const value of ["", "   ", null, 123]) {
+      const deal = toGameDeal({ requirements: value, provider: value });
+      expect(deal.requirements).toBeNull();
+      expect(deal.provider).toBeNull();
+    }
   });
 });
 

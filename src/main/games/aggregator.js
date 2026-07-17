@@ -4,15 +4,17 @@
  * 聚合层 — 对外唯一入口 getGameDeals()。
  * renderer 传 { platform, mode, sort, minSavings }，这里负责：
  *   - 按平台分派到对应 fetcher (Steam/Epic 真实；主机 ITAD 或示例兜底)
- *   - 按 mode 过滤/排序：'deals'(折扣) | 'free'(喜+1) | 'top'(热门 Top10)
+ *   - 按 mode 过滤/排序：'deals'(折扣) | 'free'(免费活动)
  *   - 返回统一结构 + 各平台数据源标记 (sources)，供 UI 显示"示例"徽标
  *
  * 单平台 fetch 失败不影响其它平台（Promise.all + fetchPlatform 内部 try/catch 兜底）。
  */
 
-const { PLATFORM_KEYS, toGameDeal } = require("./normalize");
+const { PLATFORM_KEYS } = require("./normalize");
 const { fetchSteamDeals } = require("./steam");
+const { fetchSteamFree } = require("./steam-free");
 const { fetchEpicDeals, fetchEpicFree } = require("./epic");
+const { fetchXboxFree } = require("./xbox-free");
 const { fetchItadDeals } = require("./itad");
 const { fetchSwitchDeals } = require("./switch");
 // playstation.js 主入口：PSGameSpider（每日全量价格历史）→ 官方商店 SSR 兜底
@@ -30,17 +32,23 @@ const CONSOLE_PLATFORMS = ["xbox", "playstation", "switch"];
 async function fetchPlatform(platform, { mode, sort, minSavings, country, itadKey }) {
   try {
     if (platform === "steam") {
-      const items = await fetchSteamDeals({ sort, pageSize: 40, minSavings });
+      const items = mode === "free"
+        ? await fetchSteamFree()
+        : await fetchSteamDeals({ sort, pageSize: 40, minSavings });
       return { items, source: "live" };
     }
     if (platform === "epic") {
-      const [deals, free] = await Promise.all([
-        fetchEpicDeals({ sort, pageSize: 40, minSavings }),
-        mode === "free" || mode === "all" || mode === "top"
-          ? fetchEpicFree({ country })
-          : Promise.resolve([]),
-      ]);
-      return { items: deals.concat(free), source: "live" };
+      const items = mode === "free"
+        ? await fetchEpicFree({ country })
+        : await fetchEpicDeals({ sort, pageSize: 40, minSavings });
+      return { items, source: "live" };
+    }
+    if (platform === "xbox" && mode === "free") {
+      const items = await fetchXboxFree({ market: "US", language: "en-US" });
+      return { items, source: "live" };
+    }
+    if (mode === "free" && (platform === "playstation" || platform === "switch")) {
+      return { items: [], source: "live" };
     }
     // 主机平台数据源分派：
     //   - switch: Nintendo 官方 Algolia（免密直连，真实折扣）优先，失败回退示例
@@ -81,6 +89,7 @@ async function fetchPlatform(platform, { mode, sort, minSavings, country, itadKe
     if (live && live.length > 0) return { items: live, source: "live" };
     return { items: getSampleDeals(platform), source: "sample" };
   } catch (err) {
+    if (mode === "free") return { items: [], source: "live" };
     // 任何异常：主机用示例兜底，PC 平台返回空（不至于整页崩）
     if (CONSOLE_PLATFORMS.includes(platform)) {
       return { items: getSampleDeals(platform), source: "sample" };
@@ -127,35 +136,6 @@ function betterDeal(a, b) {
   const pb = b.salePrice ?? Infinity;
   if (pa !== pb) return pa < pb;
   return false; // 稳定：不替换
-}
-
-/**
- * 热门 Top10 — 分平台配额（round-robin）。
- * 各平台 popular 量纲不同（Steam 评分 / PS 美元折扣额 / Switch 折扣%），
- * 跨平台直接 sort 无意义；改为每平台组内按 popular 降序，再轮询取头部，
- * 保证平台多样性与公平曝光。语义：「各平台热门精选」。
- */
-function pickTopByPlatformQuota(allItems, total) {
-  const groups = new Map(); // platform -> items[]
-  for (const it of allItems) {
-    if (!groups.has(it.platform)) groups.set(it.platform, []);
-    groups.get(it.platform).push(it);
-  }
-  for (const arr of groups.values()) {
-    arr.sort((a, b) => (b.popular || 0) - (a.popular || 0));
-  }
-  // 按「各平台 popular 榜首」降序排列队列，让头部最强的平台先取
-  const queues = [...groups.values()].sort(
-    (qa, qb) => (qb[0]?.popular || 0) - (qa[0]?.popular || 0),
-  );
-  const result = [];
-  let idx = 0;
-  while (result.length < total && queues.some((q) => q.length > 0)) {
-    const q = queues[idx % queues.length];
-    if (q.length > 0) result.push(q.shift());
-    idx++;
-  }
-  return result;
 }
 
 /**
@@ -207,18 +187,28 @@ async function getGameDeals(opts = {}) {
 
   // 第二层去重：按归一化标题跨平台合并，保留优惠最大的一条
   // （同款游戏在 Steam/Epic 都上架时，id 带不同平台前缀不会命中第一层）
-  const byTitle = new Map();
-  for (const it of deduped) {
-    const key = normalizeTitle(it.title);
-    const prev = byTitle.get(key);
-    if (!prev || betterDeal(it, prev)) byTitle.set(key, it);
+  if (mode === "free") {
+    items = deduped;
+  } else {
+    const byTitle = new Map();
+    for (const it of deduped) {
+      const key = normalizeTitle(it.title);
+      const prev = byTitle.get(key);
+      if (!prev || betterDeal(it, prev)) byTitle.set(key, it);
+    }
+    items = [...byTitle.values()];
   }
-  items = [...byTitle.values()];
 
   if (mode === "free") {
-    items = items.filter((it) => it.isFree);
-  } else if (mode === "top") {
-    items = pickTopByPlatformQuota(items, 10);
+    items = items
+      .filter((it) => it.isFree)
+      .sort((a, b) => {
+        const parsedAEnd = a.freeUntil ? Date.parse(a.freeUntil) : NaN;
+        const parsedBEnd = b.freeUntil ? Date.parse(b.freeUntil) : NaN;
+        const aEnd = Number.isFinite(parsedAEnd) ? parsedAEnd : Infinity;
+        const bEnd = Number.isFinite(parsedBEnd) ? parsedBEnd : Infinity;
+        return aEnd - bEnd;
+      });
   } else {
     // deals / all：按折扣门槛过滤 + 排序
     if (minSavings > 0) {

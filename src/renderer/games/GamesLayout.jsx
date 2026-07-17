@@ -2,7 +2,7 @@
  * src/renderer/games/GamesLayout.jsx — 游戏优惠聚合顶级 nav panel 容器。
  * 进入时拉一次数据（按当前筛选条件）；后续切换由 store 内部触发。
  *
- * v3 后台定时检查 Epic 喜+1：mount 时启动调度器（autoCheck=true 才跑），
+ * v3 后台定时检查免费活动：mount 时启动调度器（autoCheck=true 才跑），
  * unmount 时停止。监听 games-settings-changed 事件，设置变更时 restart。
  */
 import { useEffect } from "preact/hooks";
@@ -21,7 +21,7 @@ export function GamesLayout() {
     loadGameDeals();
     loadGamesSettings();
 
-    // 后台定时检查 Epic 喜+1 + 桌面通知调度器
+    // 后台定时检查免费活动 + 桌面通知调度器
     const scheduler = createGamesCheckScheduler();
     scheduler.start();
 
@@ -35,7 +35,7 @@ export function GamesLayout() {
     };
   }, []);
 
-  // 用户切到「喜+1」tab 时清除未读红点
+  // 用户切到「免费活动」tab 时清除未读红点
   useEffect(() => {
     if (activeMode.value === "free") clearGamesNewFree();
   }, [activeMode.value]);

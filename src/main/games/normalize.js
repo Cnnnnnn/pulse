@@ -21,6 +21,19 @@ const PLATFORM_META = {
 
 const PLATFORM_KEYS = Object.keys(PLATFORM_META);
 
+const PROMOTION_TYPES = new Set([
+  "giveaway",
+  "key",
+  "free-weekend",
+  "free-play-days",
+]);
+
+function toTrimmedString(raw) {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed ? trimmed : null;
+}
+
 /**
  * 构造一条规范化的 GameDeal。缺字段给安全默认值，避免 renderer 解构炸。
  * @param {object} raw
@@ -53,6 +66,17 @@ function toGameDeal(raw) {
     store: raw.store || PLATFORM_META[platform].label,
     source: raw.source === "live" ? "live" : "sample",
     popular: raw.popular == null ? 0 : Number(raw.popular),
+    promotionType: PROMOTION_TYPES.has(raw.promotionType)
+      ? raw.promotionType
+      : null,
+    requirements:
+      typeof raw.requirements === "string" && raw.requirements.trim()
+        ? raw.requirements.trim()
+        : null,
+    provider:
+      typeof raw.provider === "string" && raw.provider.trim()
+        ? raw.provider.trim()
+        : null,
   };
 }
 

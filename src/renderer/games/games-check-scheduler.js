@@ -1,16 +1,16 @@
 /**
  * src/renderer/games/games-check-scheduler.js
  *
- * 后台定时检查 Epic 喜+1（限时免费领取）+ 桌面通知。
+ * 后台定时检查各平台免费活动 + 桌面通知。
  *
  * 架构决策：完全镜像 github-check-scheduler.js —— games 数据走 IPC 拉取，
- * 但调度状态（已通知过的喜+1 id 集合）存在 renderer localStorage，主进程读不到，
+ * 但调度状态（已通知过的免费活动 id 集合）存在 renderer localStorage，主进程读不到，
  * 故调度器放 renderer（应用开着才跑——合理预期）。通知用 HTML5 Notification API。
  *
  * 设计：
  *   - createGamesCheckScheduler() 工厂
  *   - start()：autoCheck=true 时启 setInterval，首次延迟 60s 避免启动即打扰
- *   - checkOnce()：拉 Epic free 列表，与已通知集合 diff，有新条目时通知 + 置红点
+ *   - checkOnce()：拉全平台 free 列表，与已通知集合 diff，有新条目时通知 + 置红点
  *   - stop()/restart()：幂等
  *   - 幂等 start（重复调不启多个 interval）
  */
@@ -23,7 +23,9 @@ import {
   gamesHasNewFree,
   loadSeenFreeIds,
   saveSeenFreeIds,
+  setPlatformAndMode,
 } from "./gamesStore.js";
+import { PLATFORM_LABEL, promotionTypeLabel } from "./format.js";
 import { setActiveNav } from "../worldcup/navStore.js";
 
 const INITIAL_DELAY_MS = 60 * 1000; // 首次延迟 60s，避免启动即检查打扰
@@ -36,7 +38,7 @@ export function createGamesCheckScheduler() {
 
   async function checkOnce() {
     try {
-      const res = await api.getGameDeals({ platform: "epic", mode: "free" });
+      const res = await api.getGameDeals({ platform: "all", mode: "free" });
       if (!res || !res.ok || !Array.isArray(res.items)) return;
 
       const seen = loadSeenFreeIds();
@@ -102,8 +104,8 @@ export function createGamesCheckScheduler() {
 }
 
 /**
- * 发系统通知：发现新喜+1。首次请求权限；权限被拒或不支持则静默回退。
- * 点击通知 → 聚焦窗口 + 跳转到游戏优惠的「喜+1」tab。
+ * 发系统通知：发现新免费活动。首次请求权限；权限被拒或不支持则静默回退。
+ * 点击通知 → 聚焦窗口 + 跳转到游戏优惠的「免费活动」tab。
  */
 function _notifyNewFreeGames(fresh) {
   try {
@@ -113,13 +115,13 @@ function _notifyNewFreeGames(fresh) {
     const titles = fresh.slice(0, 2).map((g) => g.title);
     const body =
       count === 1
-        ? `${titles[0]} 现在免费领取，点击查看`
-        : `发现 ${count} 款游戏限时免费${
-            titles.length > 0 ? `（${titles.join("、")} 等）` : ""
-          }`;
+        ? `${PLATFORM_LABEL[fresh[0].platform] || fresh[0].platform} · ${
+            promotionTypeLabel(fresh[0].promotionType)
+          }：${fresh[0].title}`
+        : `发现 ${count} 个游戏免费活动（${titles.join("、")} 等）`;
     const send = () => {
       try {
-        const n = new Notification("Epic 喜+1 · 新增免费游戏", {
+        const n = new Notification("游戏免费活动 · 发现新活动", {
           body,
           silent: false,
         });
@@ -127,6 +129,7 @@ function _notifyNewFreeGames(fresh) {
           try {
             window.focus();
             setActiveNav("games");
+            setPlatformAndMode(fresh[0].platform, "free");
           } catch {
             /* noop */
           }

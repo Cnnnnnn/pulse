@@ -403,7 +403,7 @@ function GithubSettingsSection() {
   );
 }
 
-/* ─── 游戏优惠 (Epic 喜+1 后台检查) ──────────────────────────── */
+/* ─── 游戏优惠 (免费活动后台检查) ─────────────────────────────── */
 function GamesSettingsSection() {
   useEffect(() => {
     loadGamesSettings();
@@ -411,14 +411,14 @@ function GamesSettingsSection() {
   return (
     <>
     <section class="settings-card">
-      <h3 class="settings-card__title">喜+1 自动检查</h3>
+      <h3 class="settings-card__title">免费活动自动检查</h3>
       <p class="settings-row__hint" style="margin:0 0 12px">
-        在应用运行时定时检查 Epic 限时免费游戏，发现新喜+1 时弹桌面通知。
+        在应用运行时定时检查 Epic、Steam 和 Xbox 免费活动，发现新活动时弹桌面通知。
         <b>仅在应用开着时检查</b>，关闭应用不会后台运行。
       </p>
       <div class="settings-row">
         <div class="settings-row__label-block">
-          <span class="settings-row__label">自动检查 Epic 喜+1</span>
+          <span class="settings-row__label">自动检查免费活动</span>
           <span class="settings-row__hint">
             {gamesAutoCheck.value ? "已开启" : "已关闭"}
           </span>
@@ -437,7 +437,7 @@ function GamesSettingsSection() {
         <div class="settings-row">
           <div class="settings-row__label-block">
             <span class="settings-row__label">检查频率</span>
-            <span class="settings-row__hint">Epic 喜+1 通常每周更新一次。</span>
+            <span class="settings-row__hint">各平台活动更新时间不同。</span>
           </div>
           <div class="settings-select">
             <select
@@ -455,7 +455,7 @@ function GamesSettingsSection() {
       )}
       <div class="settings-row">
         <div class="settings-row__label-block">
-          <span class="settings-row__label">发现新喜+1 时桌面通知</span>
+          <span class="settings-row__label">发现新免费活动时桌面通知</span>
           <span class="settings-row__hint">
             首次发通知时会请求系统通知权限，拒绝后只更新侧栏红点。
           </span>
@@ -693,7 +693,7 @@ export function SettingsPage() {
           tab === "github" ? (
             <GithubSettingsSection />
           ) : (
-          /* ── 游戏优惠 (Epic 喜+1 自动检查) ── */
+          /* ── 游戏优惠 (免费活动自动检查) ── */
           tab === "games" ? (
             <GamesSettingsSection />
           ) : (

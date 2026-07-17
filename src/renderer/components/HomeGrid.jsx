@@ -124,7 +124,7 @@ const HOME_TILES = [
   { key: 'ai-usage',  title: 'AI 用量',  subtitle: 'Minimax coding plan 配额',  accent: 'pink'   },
   { key: 'versions',  title: '版本检查', subtitle: 'App 版本监控',              accent: 'indigo' },
   { key: 'github',    title: 'GitHub 收录', subtitle: '优秀开源项目收录与管理',   accent: 'purple' },
-  { key: 'games',     title: '游戏优惠',  subtitle: '各平台折扣 / 喜+1 / 热门榜', accent: 'red'   },
+  { key: 'games',     title: '游戏优惠',  subtitle: '各平台折扣 / 免费活动 / 热门榜', accent: 'red'   },
 ];
 const TILE_BY_KEY = Object.fromEntries(HOME_TILES.map((t) => [t.key, t]));
 

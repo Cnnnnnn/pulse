@@ -225,7 +225,7 @@ export function createApi(overrides = {}) {
     aiParseReadme: pick(overrides, "aiParseReadme"),
     // Release 更新追踪：抓取某仓库 recent releases
     githubFetchRelease: pick(overrides, "githubFetchRelease"),
-    // 游戏优惠聚合 (v2.81): 各平台折扣 / 喜+1 / 热门榜
+    // 游戏优惠聚合 (v2.81): 各平台折扣 / 免费活动 / 热门榜
     getGameDeals: pick(overrides, "getGameDeals"),
   };
 }

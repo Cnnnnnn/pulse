@@ -9,6 +9,9 @@
  */
 
 const { getGameDeals } = require("../games/aggregator");
+const { exchangeRateService, isValidCurrency } = require("../games/exchange-rates");
+
+const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 
 // ── 请求级缓存（Map + TTL，照搬 register-stocks.js 范式）──────────────
 // 按 (platform, mode, sort, minSavings) 维度缓存聚合结果，切 Tab 来回切时
@@ -48,6 +51,29 @@ function resolveItadKey(payload) {
     return payload.itadKey.trim();
   }
   return process.env.ITAD_API_KEY || null;
+}
+
+function extractFxCurrencies(items) {
+  const set = new Set();
+  for (const item of items || []) {
+    const cur = item && item.currency;
+    if (typeof cur !== "string") continue;
+    const normalized = cur.trim().toUpperCase();
+    if (isValidCurrency(normalized)) set.add(normalized);
+  }
+  return [...set];
+}
+
+async function attachFx(result, service = exchangeRateService) {
+  if (!result || result.ok === false) {
+    return { ...result, fx: EMPTY_FX };
+  }
+  try {
+    const fx = await service.getRates(extractFxCurrencies(result.items));
+    return { ...result, fx };
+  } catch {
+    return { ...result, fx: EMPTY_FX };
+  }
 }
 
 function registerGamesHandlers(ctx) {
@@ -94,8 +120,9 @@ function registerGamesHandlers(ctx) {
           country: opts.country || "CN",
           itadKey: resolveItadKey(opts),
         });
-        dealsCacheSet(cacheKey, result); // 仅缓存成功结果
-        return result;
+        const withFx = await attachFx(result);
+        dealsCacheSet(cacheKey, withFx);
+        return withFx;
       } catch (err) {
         return {
           ok: false,
@@ -104,6 +131,7 @@ function registerGamesHandlers(ctx) {
           items: [],
           sources: {},
           count: 0,
+          fx: EMPTY_FX,
         };
       }
     },
@@ -116,4 +144,4 @@ function registerGamesHandlers(ctx) {
   );
 }
 
-module.exports = { registerGamesHandlers };
+module.exports = { registerGamesHandlers, attachFx, EMPTY_FX };

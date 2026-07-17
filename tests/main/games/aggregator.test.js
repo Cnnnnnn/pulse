@@ -1,8 +1,7 @@
 /**
  * tests/main/games/aggregator.test.js
  *
- * 覆盖 getGameDeals() 的聚合逻辑：去重（id + 跨平台标题）、
- * Top10 分平台配额、兜底分支、sort 三分支。
+ * 覆盖 getGameDeals() 的聚合逻辑：去重（id + 跨平台标题）、兜底分支、sort 三分支。
  *
  * 策略：vi.stubGlobal("fetch") 拦截所有外部 API（CheapShark / Epic /
  * Algolia / ITAD / raw.githubusercontent），按 URL 返回固定假数据，
@@ -26,12 +25,62 @@ const cheapsharkEpic = [
   { dealID: "e2", storeID: "25", title: "Control", salePrice: 9.99, normalPrice: 39.99, savings: 75, dealRating: 85 },
 ];
 
+// GamerPower Steam 免费活动
+const gamerPowerSteam = [
+  {
+    id: 101,
+    title: "Death Stranding",
+    worth: "$39.99",
+    thumbnail: "https://img/steam-ds.jpg",
+    open_giveaway_url: "https://example.test/steam-ds",
+    end_date: "2026-07-20 12:00:00",
+    users: 500,
+  },
+];
+
+// Xbox Free Play Days 列表 + Catalog
+const xboxFreeList = { Items: [{ Id: "XBOX-FP" }, { Id: "XBOX-NO-END" }] };
+const xboxFreeCatalog = {
+  Products: [
+    {
+      ProductId: "XBOX-FP",
+      LocalizedProperties: [{
+        ProductTitle: "Forza Horizon 5",
+        Images: [{ ImagePurpose: "Poster", Uri: "//img/forza.jpg" }],
+      }],
+      DisplaySkuAvailabilities: [{
+        Availabilities: [{
+          Conditions: { EndDate: "2026-07-25T00:00:00Z" },
+          OrderManagementData: { Price: { MSRP: 59.99, CurrencyCode: "USD" } },
+        }],
+      }],
+    },
+    {
+      ProductId: "XBOX-NO-END",
+      LocalizedProperties: [{ ProductTitle: "Xbox No End Date" }],
+      DisplaySkuAvailabilities: [{
+        Availabilities: [{
+          Conditions: {},
+          OrderManagementData: { Price: { MSRP: 19.99, CurrencyCode: "USD" } },
+        }],
+      }],
+    },
+  ],
+};
+
 // Epic freeGamesPromotions 返回结构
 const epicFree = {
   data: {
     Catalog: {
       searchStore: {
         elements: [
+          {
+            title: "Epic Invalid End Date",
+            id: "invalid-end",
+            catalogNs: { mappings: [{ pageSlug: "invalid-end" }] },
+            promotions: { promotionalOffers: [{ promotionalOffers: [{ endDate: "not-a-date" }] }] },
+            price: { totalPrice: { originalPrice: 999, discountPrice: 0, currencyCode: "USD" } },
+          },
           {
             title: "Death Stranding",
             id: "ds1",
@@ -92,6 +141,18 @@ function makeFetchStub() {
     if (u.includes("cheapshark.com")) {
       const isEpic = u.includes("storeID=25");
       return jsonOk(isEpic ? cheapsharkEpic : cheapsharkSteam);
+    }
+    // GamerPower Steam 免费活动
+    if (u.includes("gamerpower.com")) {
+      return jsonOk(gamerPowerSteam);
+    }
+    // Xbox Free Play Days 列表
+    if (u.includes("reco-public.rec.mp.microsoft.com")) {
+      return jsonOk(xboxFreeList);
+    }
+    // Xbox Display Catalog
+    if (u.includes("displaycatalog.mp.microsoft.com")) {
+      return jsonOk(xboxFreeCatalog);
     }
     // Epic freeGamesPromotions
     if (u.includes("epicgames.com/freeGamesPromotions")) {
@@ -181,35 +242,88 @@ describe("getGameDeals — 跨平台标题去重", () => {
   });
 });
 
-describe("getGameDeals — Top10 分平台配额", () => {
-  it("返回最多 10 条", async () => {
-    const res = await getGameDeals({ platform: "all", mode: "top" });
-    expect(res.items.length).toBeLessThanOrEqual(10);
-  });
-
-  it("各平台都有曝光（round-robin 保证多样性）", async () => {
-    const res = await getGameDeals({ platform: "all", mode: "top" });
-    const platforms = new Set(res.items.map((it) => it.platform));
-    // 至少覆盖 steam/epic/switch/playstation 四个有真实数据的平台
-    expect(platforms.has("steam")).toBe(true);
-    expect(platforms.has("epic")).toBe(true);
-    expect(platforms.has("switch")).toBe(true);
-    expect(platforms.has("playstation")).toBe(true);
-  });
-
-  it("单平台 Top 仍正常返回", async () => {
-    const res = await getGameDeals({ platform: "steam", mode: "top" });
-    expect(res.items.length).toBeGreaterThan(0);
-    expect(res.items.every((it) => it.platform === "steam")).toBe(true);
-  });
-});
-
-describe("getGameDeals — mode=free 喜+1", () => {
+describe("getGameDeals — mode=free 免费活动", () => {
   it("只返回 isFree 的条目", async () => {
     const res = await getGameDeals({ platform: "all", mode: "free" });
     expect(res.items.length).toBeGreaterThan(0);
     expect(res.items.every((it) => it.isFree)).toBe(true);
     expect(res.items.some((it) => it.title === "Death Stranding")).toBe(true);
+  });
+  it("Epic 免费活动包含统一活动元数据", async () => {
+    const res = await getGameDeals({ platform: "epic", mode: "free" });
+    const deathStranding = res.items.find((it) => it.title === "Death Stranding");
+    expect(deathStranding).toMatchObject({
+      promotionType: "giveaway",
+      requirements: "活动期间可免费入库",
+      provider: "epic",
+    });
+    const fetchCalls = globalThis.fetch.mock.calls.map(([url]) => String(url));
+    expect(fetchCalls.some((url) => url.includes("cheapshark.com") && url.includes("storeID=25"))).toBe(false);
+  });
+
+  it("聚合 Epic、Steam、Xbox，且 PS/Switch 不返回示例活动", async () => {
+    const all = await getGameDeals({ platform: "all", mode: "free" });
+    expect(new Set(all.items.map((item) => item.platform))).toEqual(
+      new Set(["steam", "epic", "xbox"]),
+    );
+    expect(all.items.every((item) => item.source === "live")).toBe(true);
+    expect(all.sources.switch).toBe("live");
+    expect(all.sources.playstation).toBe("live");
+    expect(all.sources.xbox).toBe("live");
+    expect(all.sources.steam).toBe("live");
+    expect(Object.values(all.sources)).not.toContain("sample");
+  });
+
+  it("同名跨平台免费活动分别保留，非法或无结束日期均排在有效日期后", async () => {
+    const all = await getGameDeals({ platform: "all", mode: "free" });
+    const sameTitle = all.items.filter((item) => item.title === "Death Stranding");
+    expect(sameTitle).toHaveLength(2);
+    const sortTimes = all.items.map((item) => {
+      const parsed = item.freeUntil ? Date.parse(item.freeUntil) : NaN;
+      return Number.isFinite(parsed) ? parsed : Infinity;
+    });
+    expect(sortTimes).toEqual([...sortTimes].sort((a, b) => a - b));
+    expect(all.items.slice(-2).map((item) => item.title)).toEqual(
+      expect.arrayContaining(["Epic Invalid End Date", "Xbox No End Date"]),
+    );
+  });
+
+  it("Steam 单源失败时不触发 sample 且其它平台仍可用", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url, opts) => {
+      const u = String(url);
+      if (u.includes("gamerpower.com")) throw new Error("offline");
+      return makeFetchStub()(url, opts);
+    }));
+
+    const all = await getGameDeals({ platform: "all", mode: "free" });
+    expect(all.sources.steam).toBe("live");
+    expect(all.sources.switch).toBe("live");
+    expect(all.sources.playstation).toBe("live");
+    expect(all.items.filter((it) => it.platform === "steam")).toHaveLength(0);
+    expect(all.items.some((it) => it.platform === "epic")).toBe(true);
+    expect(all.items.some((it) => it.platform === "xbox")).toBe(true);
+    expect(all.items.every((it) => it.source === "live")).toBe(true);
+    expect(Object.values(all.sources)).not.toContain("sample");
+  });
+
+  it("Xbox 单源失败时不触发 sample 且其它平台仍可用", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url, opts) => {
+      const u = String(url);
+      if (u.includes("reco-public.rec.mp.microsoft.com")) {
+        throw new Error("offline");
+      }
+      return makeFetchStub()(url, opts);
+    }));
+
+    const all = await getGameDeals({ platform: "all", mode: "free" });
+    expect(all.sources.xbox).toBe("live");
+    expect(all.sources.switch).toBe("live");
+    expect(all.sources.playstation).toBe("live");
+    expect(all.items.filter((it) => it.platform === "xbox")).toHaveLength(0);
+    expect(all.items.some((it) => it.platform === "steam")).toBe(true);
+    expect(all.items.some((it) => it.platform === "epic")).toBe(true);
+    expect(all.items.every((it) => it.source === "live")).toBe(true);
+    expect(Object.values(all.sources)).not.toContain("sample");
   });
 });
 
@@ -238,7 +352,7 @@ describe("getGameDeals — mode=deals sort 三分支", () => {
     }
   });
 
-  it("排除 isFree 的喜+1条目", async () => {
+  it("排除 isFree 的免费活动条目", async () => {
     const res = await getGameDeals({
       platform: "switch",
       mode: "deals",

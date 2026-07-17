@@ -20,8 +20,7 @@ export const PLATFORMS = [
 /** 浏览维度（筛选模式）。 */
 export const MODES = [
   { key: "deals", label: "折扣力度" },
-  { key: "free", label: "喜 +1 免费领" },
-  { key: "top", label: "热门 Top10" },
+  { key: "free", label: "免费活动" },
 ];
 
 /** 折扣力度阈值（仅 deals 模式用）。 */
@@ -44,11 +43,28 @@ export const loading = signal(false);
 export const error = signal(null);
 export const fetchedAt = signal(null);
 
+export const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
+export const fx = signal({ ...EMPTY_FX });
+
+function normalizeFx(raw) {
+  if (!raw || typeof raw !== "object") return { ...EMPTY_FX };
+  const rates =
+    raw.rates && typeof raw.rates === "object" && !Array.isArray(raw.rates)
+      ? { ...raw.rates }
+      : {};
+  return {
+    rates,
+    date: typeof raw.date === "string" ? raw.date : null,
+    fetchedAt: typeof raw.fetchedAt === "string" ? raw.fetchedAt : null,
+    stale: !!raw.stale,
+  };
+}
+
 // ── 后台检查设置（scheduler 用，镜像 github-projects-store.js 范式）──
-export const gamesAutoCheck = signal(true); // 自动检查 Epic 喜+1 开关，默认开
+export const gamesAutoCheck = signal(true); // 自动检查免费活动开关，默认开
 export const gamesAutoCheckIntervalMin = signal(360); // 间隔分钟，默认 360=6h
 export const gamesNotifyOnFree = signal(true); // 桌面通知开关，默认开
-// 后台发现新喜+1 但用户尚未查看 → SideNav 红点
+// 后台发现新免费活动但用户尚未查看 → SideNav 红点
 export const gamesHasNewFree = signal(false);
 
 let _reqToken = 0;
@@ -73,11 +89,13 @@ export async function loadGameDeals() {
       sources.value = res.sources || {};
       psDriver.value = res.psDriver || null;
       fetchedAt.value = res.fetchedAt || null;
+      fx.value = normalizeFx(res.fx);
     } else {
       error.value = (res && res.error) || "加载失败";
       items.value = [];
       sources.value = {};
       psDriver.value = null;
+      fx.value = { ...EMPTY_FX };
     }
   } catch (e) {
     if (token !== _reqToken) return;
@@ -85,6 +103,7 @@ export async function loadGameDeals() {
     items.value = [];
     sources.value = {};
     psDriver.value = null;
+    fx.value = { ...EMPTY_FX };
   } finally {
     if (token === _reqToken) loading.value = false;
   }
@@ -99,6 +118,22 @@ export function setPlatform(p) {
 export function setMode(m) {
   if (activeMode.value === m) return;
   activeMode.value = m;
+  loadGameDeals();
+}
+
+export function setPlatformAndMode(platform, mode) {
+  const nextPlatform = PLATFORMS.some(({ key }) => key === platform)
+    ? platform
+    : activePlatform.value;
+  const nextMode = MODES.some(({ key }) => key === mode)
+    ? mode
+    : activeMode.value;
+  if (
+    activePlatform.value === nextPlatform
+    && activeMode.value === nextMode
+  ) return;
+  activePlatform.value = nextPlatform;
+  activeMode.value = nextMode;
   loadGameDeals();
 }
 
@@ -133,6 +168,11 @@ export function hasPspricesAttribution() {
 /** PSGameSpider 数据来源署名（MIT 许可，非强制但透明起见展示）。 */
 export function hasPsgamespiderAttribution() {
   return psDriver.value === "psgamespider";
+}
+
+/** GamerPower 数据来源署名（Steam 免费活动）。 */
+export function hasGamerPowerAttribution() {
+  return items.value.some((item) => item.provider === "gamerpower");
 }
 
 // ── 后台检查设置持久化（localStorage，照搬 github-projects-store.js）──
@@ -198,7 +238,7 @@ export function setGamesAutoCheck(v) {
   emitSettingsChanged();
 }
 
-/** 设置自动检查间隔（分钟）。下限 60 分钟（Epic 喜+1 周级更新，无需更频繁）。 */
+/** 设置自动检查间隔（分钟）。下限 60 分钟（各平台活动更新节奏不同，无需更频繁）。 */
 export function setGamesAutoCheckInterval(min) {
   const n = Math.max(60, Math.floor(Number(min) || 360));
   gamesAutoCheckIntervalMin.value = n;
@@ -206,18 +246,18 @@ export function setGamesAutoCheckInterval(min) {
   emitSettingsChanged();
 }
 
-/** 设置是否桌面通知新喜+1。不重启调度器（下次 checkOnce 读最新值）。 */
+/** 设置是否桌面通知新免费活动。不重启调度器（下次 checkOnce 读最新值）。 */
 export function setGamesNotifyOnFree(v) {
   gamesNotifyOnFree.value = !!v;
   persistSettings();
 }
 
-/** 用户查看喜+1 后清除未读红点。 */
+/** 用户查看免费活动后清除未读红点。 */
 export function clearGamesNewFree() {
   gamesHasNewFree.value = false;
 }
 
-/** 读取已通知过的喜+1 id 集合（scheduler 用于 diff 新条目）。 */
+/** 读取已通知过的免费活动 id 集合（scheduler 用于 diff 新条目）。 */
 export function loadSeenFreeIds() {
   const raw = readStorage(SEEN_FREE_KEY);
   try {
@@ -228,7 +268,7 @@ export function loadSeenFreeIds() {
   }
 }
 
-/** 持久化已通知过的喜+1 id 集合。 */
+/** 持久化已通知过的免费活动 id 集合。 */
 export function saveSeenFreeIds(ids) {
   try {
     writeStorage(SEEN_FREE_KEY, JSON.stringify([...ids]));

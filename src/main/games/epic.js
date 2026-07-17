@@ -113,6 +113,9 @@ async function fetchEpicFree(opts = {}) {
         store: "Epic Games Store",
         source: "live",
         popular: 95, // 喜+1 默认高热度
+        promotionType: "giveaway",
+        requirements: "活动期间可免费入库",
+        provider: "epic",
       }),
     );
   }

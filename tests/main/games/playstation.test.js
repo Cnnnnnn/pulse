@@ -79,7 +79,18 @@ describe("buildDealsFromPsGameSpider — sanity check 过滤", () => {
     expect(best.store).toBe("PlayStation Store");
     expect(best.rating).toBe(90);
     expect(best.dealUrl).toBe("/product/best");
-    expect(best.thumb).toMatch(/\/best\.jpg$/);
+    expect(best.thumb).toBe(
+      "https://raw.githubusercontent.com/RavelloH/PSGameSpider/main/origin/images/best.jpg",
+    );
+  });
+
+  it("PSGameSpider thumb 保留 images/ 并去掉前导斜杠", () => {
+    const hist = { slashy: [["2026-01-01", 60], ["2026-07-01", 20]] };
+    const meta = [{ name: "slashy", fullname: "Slashy", img: "/images/slashy.jpg" }];
+    const deals = buildDealsFromPsGameSpider(hist, meta, { limit: 5 });
+    expect(deals[0].thumb).toBe(
+      "https://raw.githubusercontent.com/RavelloH/PSGameSpider/main/origin/images/slashy.jpg",
+    );
   });
 
   it("limit 钳位到 [1,100] 且截断结果", () => {

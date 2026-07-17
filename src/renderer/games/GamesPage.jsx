@@ -1,26 +1,26 @@
 /**
  * src/renderer/games/GamesPage.jsx — 游戏优惠聚合主页面。
- * 结构：FeatureHeader + 平台分类 Tab + 维度筛选栏 + 内容区（网格 / Top10 榜单）。
+ * 结构：FeatureHeader + 平台分类 Tab + 维度筛选栏 + 内容区（折扣网格 / 免费活动网格）。
  */
 import { FeatureHeader } from "../components/FeatureHeader.jsx";
 import {
   items,
   loading,
   error,
-  activeMode,
   hasSampleSource,
   hasPspricesAttribution,
   hasPsgamespiderAttribution,
+  hasGamerPowerAttribution,
   loadGameDeals,
+  fx,
 } from "./gamesStore.js";
 import { PlatformTabs } from "./PlatformTabs.jsx";
 import { GamesFilterBar } from "./GamesFilterBar.jsx";
 import { GameCard } from "./GameCard.jsx";
-import { TopRanking } from "./TopRanking.jsx";
 
 export function GamesPage() {
-  const mode = activeMode.value;
   const list = items.value;
+  const fxSnap = fx.value;
   const isEmpty = !loading.value && !error.value && list.length === 0;
 
   return (
@@ -36,7 +36,7 @@ export function GamesPage() {
           </>
         }
       >
-        <span class="games-header__hint">各平台折扣 · 喜+1 · 热门榜</span>
+        <span class="games-header__hint">各平台折扣 · 免费活动</span>
         {hasSampleSource() && (
           <span class="games-header__badge" title="部分平台为示例数据，非实时价格">
             含示例数据
@@ -77,17 +77,11 @@ export function GamesPage() {
           </div>
         )}
         {!loading.value && !error.value && list.length > 0 && (
-          <>
-            {mode === "top" ? (
-              <TopRanking games={list} />
-            ) : (
-              <div class="games-grid">
-                {list.map((g) => (
-                  <GameCard key={g.id} game={g} />
-                ))}
-              </div>
-            )}
-          </>
+          <div class="games-grid">
+            {list.map((g) => (
+              <GameCard key={g.id} game={g} fx={fxSnap} />
+            ))}
+          </div>
         )}
       </div>
 
@@ -115,6 +109,25 @@ export function GamesPage() {
             PSGameSpider
           </a>{" "}
           开源项目提供（每日更新）
+        </footer>
+      )}
+      {hasGamerPowerAttribution() && (
+        <footer class="games-attrib">
+          Steam 活动数据由{" "}
+          <a
+            href="https://www.gamerpower.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GamerPower
+          </a>{" "}
+          提供
+        </footer>
+      )}
+      {fxSnap.date && (
+        <footer class="games-fx-footer">
+          汇率日期：{fxSnap.date}
+          {fxSnap.stale && "（缓存汇率）"}
         </footer>
       )}
     </div>

@@ -9,7 +9,7 @@
  * 编排层 — 业务拆到 ./bootstrap/*.js.
  */
 
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -97,6 +97,7 @@ const {
 const {
   setTrayManager: registerTrayManager,
 } = require("./bootstrap/tray-init.js");
+const { installNintendoImageHeaders } = require("./games/nintendo-image-headers.js");
 
 const httpClient = new HttpClient();
 
@@ -756,6 +757,13 @@ async function bootstrap() {
     }
   } catch {
     /* noop */
+  }
+
+  // 3.5) Nintendo 封面 UA 改写（须在创建窗口前）
+  try {
+    installNintendoImageHeaders(session && session.defaultSession);
+  } catch {
+    /* noop — vitest load-smoke 环境里 session 可能不可用 */
   }
 
   // 4) worker pool

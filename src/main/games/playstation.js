@@ -182,7 +182,7 @@ function buildDealsFromPsGameSpider(priceHistory, metaData, opts = {}) {
     const fullname = meta.fullname || name;
     const dealUrl = meta.path || null;
     const thumb = meta.img
-      ? `${PSGS_IMG_BASE}/${meta.img.replace(/^images?\//, "")}`
+      ? `${PSGS_IMG_BASE}/${String(meta.img).replace(/^\/+/, "")}`
       : null;
     const platform = "playstation";
     const store = "PlayStation Store";
