@@ -17,6 +17,7 @@
  */
 
 const { toGameDeal } = require("./normalize");
+const { logFetchError } = require("./log");
 
 // Algolia 凭据提取自 Nintendo 美国官网公开请求（只读 search key，无写入权限）。
 const ALGOLIA_APP_ID = "U3B6GR4UA3";
@@ -128,7 +129,8 @@ async function fetchSwitchDeals(opts = {}) {
       })
       .filter((it) => it.normalPrice > 0 || it.isFree);
     return items;
-  } catch {
+  } catch (err) {
+    logFetchError("switch:algolia", err);
     return [];
   }
 }

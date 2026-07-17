@@ -19,6 +19,7 @@
  */
 
 const { toGameDeal, fetchJson } = require("./normalize");
+const { logFetchError } = require("./log");
 
 const PSPRICES_BASE = "https://psprices.com/api/b2b";
 const DEFAULT_REGION = "us"; // 生产用 USD，匹配 renderer fmtPrice 的 $ 符号
@@ -52,7 +53,8 @@ function loadEnvPspricesKey() {
         break;
       }
     }
-  } catch {
+  } catch (err) {
+    logFetchError("psprices:env", err);
     /* .env 读取失败忽略，不影响未认证路径 */
   }
 }
@@ -112,7 +114,8 @@ async function fetchPlayStationDeals(opts = {}) {
           : it.savings > 0 && it.normalPrice > 0,
       );
     return items;
-  } catch {
+  } catch (err) {
+    logFetchError("psprices", err);
     return null;
   }
 }
@@ -128,8 +131,9 @@ async function fetchPlayStationDealsDemo() {
     const data = await fetchJson(url, { timeoutMs: 9000 });
     const list = Array.isArray(data?.data) ? data.data : [];
     return list.map(mapItem);
-  } catch (e) {
-    throw e;
+  } catch (err) {
+    logFetchError("psprices:demo", err);
+    throw err;
   }
 }
 

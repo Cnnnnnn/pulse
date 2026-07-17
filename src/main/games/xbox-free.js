@@ -1,4 +1,5 @@
 const { fetchJson, toGameDeal } = require("./normalize");
+const { logFetchError } = require("./log");
 
 const LIST_BASE =
   "https://reco-public.rec.mp.microsoft.com/channels/Reco/V8.0/Lists/collection/FreePlayDays";
@@ -84,7 +85,8 @@ async function fetchXboxFree(opts = {}) {
         provider: "microsoft",
       });
     }).filter(Boolean);
-  } catch {
+  } catch (err) {
+    logFetchError("xbox:free-play-days", err);
     return [];
   }
 }
