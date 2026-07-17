@@ -14,6 +14,8 @@ import {
   fx,
   activePlatform,
   activeMode,
+  wishlist,
+  loadWishlist,
 } from "../../src/renderer/games/gamesStore.js";
 
 afterEach(cleanup);
@@ -140,5 +142,54 @@ describe("GamesPage 空态文案", () => {
     expect(
       screen.queryByText("该平台暂无公开免费活动数据源"),
     ).toBeNull();
+  });
+});
+
+describe("GamesPage 心愿单视图", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    loadWishlist();
+  });
+
+  it("wishlist 模式隐藏平台 tab 和筛选栏", () => {
+    activeMode.value = "wishlist";
+    items.value = [];
+    loading.value = false;
+    error.value = null;
+
+    const { container } = render(<GamesPage />);
+
+    expect(container.querySelector(".games-toolbar")).toBeNull();
+  });
+
+  it("心愿单为空时显示引导文案", () => {
+    activeMode.value = "wishlist";
+    items.value = [];
+    loading.value = false;
+    error.value = null;
+
+    render(<GamesPage />);
+
+    expect(screen.getByText(/还没有关注任何游戏/)).toBeTruthy();
+  });
+
+  it("心愿单有条目时渲染卡片", () => {
+    activeMode.value = "wishlist";
+    wishlist.value = [{
+      key: "steam:s1",
+      platform: "steam",
+      id: "s1",
+      title: "Wishlisted Game",
+      thumb: null,
+      addedPrice: 19.99,
+      currency: "USD",
+      addedAt: "2026-07-18T00:00:00.000Z",
+    }];
+    loading.value = false;
+    error.value = null;
+
+    render(<GamesPage />);
+
+    expect(screen.getByText("Wishlisted Game")).toBeTruthy();
   });
 });

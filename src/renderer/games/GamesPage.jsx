@@ -15,6 +15,7 @@ import {
   fx,
   activePlatform,
   activeMode,
+  wishlist,
 } from "./gamesStore.js";
 import { PlatformTabs } from "./PlatformTabs.jsx";
 import { GamesFilterBar } from "./GamesFilterBar.jsx";
@@ -23,7 +24,12 @@ import { GameCard } from "./GameCard.jsx";
 export function GamesPage() {
   const list = items.value;
   const fxSnap = fx.value;
-  const isEmpty = !loading.value && !error.value && list.length === 0;
+  const isWishlist = activeMode.value === "wishlist";
+  const wishList = wishlist.value;
+  const isEmpty =
+    !loading.value &&
+    !error.value &&
+    (isWishlist ? wishList.length === 0 : list.length === 0);
 
   return (
     <div class="games-page">
@@ -46,10 +52,12 @@ export function GamesPage() {
         )}
       </FeatureHeader>
 
-      <div class="games-toolbar">
-        <PlatformTabs />
-        <GamesFilterBar />
-      </div>
+      {!isWishlist && (
+        <div class="games-toolbar">
+          <PlatformTabs />
+          <GamesFilterBar />
+        </div>
+      )}
 
       <div class="games-body">
         {loading.value && (
@@ -73,6 +81,14 @@ export function GamesPage() {
           </div>
         )}
         {isEmpty && (() => {
+          if (isWishlist) {
+            return (
+              <div class="games-state">
+                <span class="games-state__icon" aria-hidden="true">💝</span>
+                <span>还没有关注任何游戏，去折扣列表点 ♥ 收藏吧</span>
+              </div>
+            );
+          }
           const noFreeSource =
             activeMode.value === "free" &&
             (activePlatform.value === "playstation" ||
@@ -93,7 +109,18 @@ export function GamesPage() {
             </div>
           );
         })()}
-        {!loading.value && !error.value && list.length > 0 && (
+        {isWishlist && !isEmpty && (
+          <div class="games-grid">
+            {wishList.map((g) => (
+              <GameCard
+                key={g.key}
+                game={{ ...g, salePrice: g.addedPrice }}
+                fx={fxSnap}
+              />
+            ))}
+          </div>
+        )}
+        {!isWishlist && !loading.value && !error.value && list.length > 0 && (
           <div class="games-grid">
             {list.map((g) => (
               <GameCard key={g.id} game={g} fx={fxSnap} />

@@ -108,7 +108,9 @@ export function GameCard({ game, fx }) {
                   {fmtPrice(game.normalPrice, game.currency)}
                 </span>
               )}
-              <span class="game-card__save">-{game.savings}%</span>
+              {game.savings != null && (
+                <span class="game-card__save">-{game.savings}%</span>
+              )}
             </>
           )}
         </div>

@@ -9,8 +9,10 @@ import { useEffect } from "preact/hooks";
 import {
   loadGameDeals,
   loadGamesSettings,
+  loadWishlist,
   activeMode,
   clearGamesNewFree,
+  clearGamesNewDrop,
 } from "./gamesStore.js";
 import { GamesPage } from "./GamesPage.jsx";
 import { createGamesCheckScheduler } from "./games-check-scheduler.js";
@@ -20,6 +22,7 @@ export function GamesLayout() {
   useEffect(() => {
     loadGameDeals();
     loadGamesSettings();
+    loadWishlist();
 
     // 后台定时检查免费活动 + 桌面通知调度器
     const scheduler = createGamesCheckScheduler();
@@ -35,9 +38,10 @@ export function GamesLayout() {
     };
   }, []);
 
-  // 用户切到「免费活动」tab 时清除未读红点
+  // 用户切到「免费活动」/「心愿单」tab 时清除未读红点
   useEffect(() => {
     if (activeMode.value === "free") clearGamesNewFree();
+    if (activeMode.value === "wishlist") clearGamesNewDrop();
   }, [activeMode.value]);
 
   return (
