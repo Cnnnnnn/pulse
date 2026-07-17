@@ -31,7 +31,6 @@
  * @param {number} args.now                  当前 epoch ms
  * @param {string|null} args.powerIdleState  'active' | 'idle' | 'locked' | 'unknown' | null
  * @param {number} [args.minBootAgeMs]       默认 5 * 60 * 1000
- * @param {number} [args.idleThresholdSec]   默认 120 (仅用于记录, 不参与决策)
  * @returns {{action: 'run'} | {action: 'skip', reason: 'too_soon' | 'system_active'}}
  */
 function decideSelfUpdateTick({
@@ -39,27 +38,21 @@ function decideSelfUpdateTick({
   now,
   powerIdleState,
   minBootAgeMs = 5 * 60 * 1000,
-  // eslint-disable-next-line no-unused-vars
-  idleThresholdSec = 120, // 接线层用, 纯函数记下意图便于文档/调试
 }) {
   // 1. 启动期拦截 (避免一开机就抢 IO)
-  if (typeof bootStartedAt !== "number" || !Number.isFinite(bootStartedAt)) {
-    return { action: "skip", reason: "too_soon" };
-  }
-  if (typeof now !== "number" || !Number.isFinite(now)) {
-    return { action: "skip", reason: "too_soon" };
-  }
-  if (now - bootStartedAt < minBootAgeMs) {
+  if (
+    !Number.isFinite(bootStartedAt) ||
+    !Number.isFinite(now) ||
+    now - bootStartedAt < minBootAgeMs
+  ) {
     return { action: "skip", reason: "too_soon" };
   }
 
   // 2. 系统空闲拦截 (避免用户正在用时打断)
   // active = 正在用; idle / locked / unknown = 没人用
-  if (powerIdleState === "active") {
-    return { action: "skip", reason: "system_active" };
-  }
-
-  return { action: "run" };
+  return powerIdleState === "active"
+    ? { action: "skip", reason: "system_active" }
+    : { action: "run" };
 }
 
 module.exports = { decideSelfUpdateTick };

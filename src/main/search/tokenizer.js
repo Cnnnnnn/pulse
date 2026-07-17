@@ -70,14 +70,7 @@ function tokenize(text) {
   }
   flushBuf();
 
-  // bigram 不会等于停用词 (停用词都是 1 字或英文单词), 这步主要滤英文残留
-  // (上面 flushBuf 已滤英文停用词, 这里防御性再滤一次, 无副作用)
-  const result = [];
-  for (const t of tokens) {
-    if (STOPWORDS.has(t)) continue;
-    result.push(t);
-  }
-  return result;
+  return [...tokens];
 }
 
 module.exports = { tokenize, STOPWORDS, bigramCjk };

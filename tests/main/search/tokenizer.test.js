@@ -37,6 +37,15 @@ describe('tokenizer', () => {
     expect(tokens).toEqual(expect.arrayContaining(['cursor', '性能', '能优', '优化']));
   });
 
+  it('preserves first-seen order while filtering and deduplicating', () => {
+    expect(tokenize('the Cursor and 性能优化 Cursor')).toEqual([
+      'cursor',
+      '性能',
+      '能优',
+      '优化',
+    ]);
+  });
+
   it('returns empty array for empty/whitespace input', () => {
     expect(tokenize('')).toEqual([]);
     expect(tokenize('   ')).toEqual([]);

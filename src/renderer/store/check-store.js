@@ -71,22 +71,15 @@ function resultToPhase(result) {
 export function startCheck(appNames = []) {
   const sessionId = generateSessionId();
 
-  const nameSet = new Set(appNames);
-  const phases = new Map();
+  const phases = new Map(appNames.map((name) => [name, "pending"]));
   // 重置所有 phase signals: 在新 appNames 里的 → pending, 否则 → idle.
   // 避免 stale app (上次 check 中存在, 这次不在) 留在 "pending" 状态, 导致
   // AppRow 显示 loading 永远不结束.
   for (const [name, sig] of appPhaseSignals.entries()) {
-    if (nameSet.has(name)) {
-      sig.value = "pending";
-      phases.set(name, "pending");
-    } else {
-      sig.value = "idle";
-    }
+    sig.value = phases.has(name) ? "pending" : "idle";
   }
-  for (const name of appNames) {
-    if (!phases.has(name)) {
-      phases.set(name, "pending");
+  for (const name of phases.keys()) {
+    if (!appPhaseSignals.has(name)) {
       getAppPhaseSignal(name).value = "pending";
     }
   }

@@ -84,6 +84,15 @@ describe("check-store stale phase signal cleanup", () => {
     expect(checkSession.value.appOrder).toEqual(["A", "B"]);
   });
 
+  it("startCheck 保留 appOrder 重复项但 phases 只保留唯一名称", async () => {
+    const m = await freshModule();
+    const { startCheck, checkSession, appPhases, getAppPhaseSignal } = m;
+    startCheck(["A", "A", "B"]);
+    expect(checkSession.value.appOrder).toEqual(["A", "A", "B"]);
+    expect([...appPhases.value.keys()]).toEqual(["A", "B"]);
+    expect(getAppPhaseSignal("A").value).toBe("pending");
+  });
+
   it("applyProgress with stale sessionId is ignored", async () => {
     const m = await freshModule();
     const { startCheck, applyProgress, getAppPhaseSignal } = m;

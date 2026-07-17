@@ -60,6 +60,19 @@ describe("decideSelfUpdateTick", () => {
       expect(r.action).toBe("skip");
       expect(r.reason).toBe("too_soon");
     });
+
+    it.each([
+      [Infinity, BASE_BOOT + FIVE_MIN, "bootStartedAt"],
+      [BASE_BOOT, "1700000300000", "now"],
+    ])("%s/%s 中 %s 非有限数字 → too_soon", (bootStartedAt, now) => {
+      expect(
+        decideSelfUpdateTick({
+          bootStartedAt,
+          now,
+          powerIdleState: "active",
+        }),
+      ).toEqual({ action: "skip", reason: "too_soon" });
+    });
   });
 
   describe("system activity gate", () => {
