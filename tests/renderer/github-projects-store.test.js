@@ -17,6 +17,7 @@ import {
   loadGithubSettings,
   githubReasonText,
   addGithubProject,
+  addGithubProjectsBatch,
   __resetQuotaWarnForTest,
 } from "../../src/renderer/store/github-projects-store.js";
 import { api } from "../../src/renderer/api.js";
@@ -206,5 +207,92 @@ describe("github store · 配额超限感知", () => {
     const r = await addGithubProject("https://github.com/o/r2");
     expect(r.ok).toBe(true);
     expect(r.persistFailed).toBeUndefined();
+  });
+});
+
+describe("github store · 批量导入 addGithubProjectsBatch", () => {
+  beforeEach(() => {
+    githubProjects.value = [];
+    githubToken.value = "";
+    __resetQuotaWarnForTest();
+    try {
+      globalThis.localStorage.clear();
+    } catch {
+      /* happy-dom 无 localStorage 时忽略 */
+    }
+  });
+
+  /** mock api.githubFetch：按 owner 区分成功/重复/失败 */
+  function mockFetchScenarios() {
+    api.githubFetch = async (input) => {
+      // 已存在的会在 addGithubProject 里被 duplicate 拦截，不会到 api
+      return {
+        ok: true,
+        owner: input.split("/")[3],
+        repo: input.split("/")[4],
+        meta: { name: input, htmlUrl: input },
+        readme: "",
+      };
+    };
+  }
+
+  it("3 个新地址 → added=3, duplicates=0, failed=0", async () => {
+    mockFetchScenarios();
+    const r = await addGithubProjectsBatch([
+      "https://github.com/a/a1",
+      "https://github.com/b/b2",
+      "https://github.com/c/c3",
+    ]);
+    expect(r.ok).toBe(true);
+    expect(r.added).toBe(3);
+    expect(r.duplicates).toBe(0);
+    expect(r.failed.length).toBe(0);
+    expect(githubProjects.value.length).toBe(3);
+  });
+
+  it("含 1 个已存在 → duplicates=1, added=2", async () => {
+    mockFetchScenarios();
+    // 先单独添加一个
+    await addGithubProject("https://github.com/a/exist");
+    const r = await addGithubProjectsBatch([
+      "https://github.com/a/exist", // 已存在
+      "https://github.com/b/new1",
+      "https://github.com/c/new2",
+    ]);
+    expect(r.added).toBe(2);
+    expect(r.duplicates).toBe(1);
+    expect(r.failed.length).toBe(0);
+    expect(githubProjects.value.length).toBe(3);
+  });
+
+  it("空数组 → added=0 不报错", async () => {
+    const r = await addGithubProjectsBatch([]);
+    expect(r.ok).toBe(true);
+    expect(r.added).toBe(0);
+  });
+
+  it("串行执行（按顺序，不并发）", async () => {
+    const calls = [];
+    api.githubFetch = async (input) => {
+      calls.push(input);
+      return {
+        ok: true,
+        owner: input.split("/")[3],
+        repo: input.split("/")[4],
+        meta: { name: input, htmlUrl: input },
+        readme: "",
+      };
+    };
+    await addGithubProjectsBatch([
+      "https://github.com/a/first",
+      "https://github.com/b/second",
+      "https://github.com/c/third",
+    ]);
+    // 串行 → 调用顺序严格等于输入顺序
+    expect(calls).toEqual([
+      "https://github.com/a/first",
+      "https://github.com/b/second",
+      "https://github.com/c/third",
+    ]);
   });
 });
