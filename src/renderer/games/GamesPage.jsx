@@ -13,6 +13,8 @@ import {
   hasGamerPowerAttribution,
   loadGameDeals,
   fx,
+  activePlatform,
+  activeMode,
 } from "./gamesStore.js";
 import { PlatformTabs } from "./PlatformTabs.jsx";
 import { GamesFilterBar } from "./GamesFilterBar.jsx";
@@ -70,12 +72,27 @@ export function GamesPage() {
             </button>
           </div>
         )}
-        {isEmpty && (
-          <div class="games-state">
-            <span class="games-state__icon" aria-hidden="true">🎯</span>
-            <span>该筛选条件下暂无优惠数据</span>
-          </div>
-        )}
+        {isEmpty && (() => {
+          const noFreeSource =
+            activeMode.value === "free" &&
+            (activePlatform.value === "playstation" ||
+              activePlatform.value === "switch");
+          return (
+            <div class="games-state">
+              <span class="games-state__icon" aria-hidden="true">🎯</span>
+              {noFreeSource ? (
+                <span>
+                  该平台暂无公开免费活动数据源
+                  <span class="games-state__hint">
+                    Epic / Steam / Xbox 的免费活动更稳定，可切换平台查看
+                  </span>
+                </span>
+              ) : (
+                <span>该筛选条件下暂无优惠数据</span>
+              )}
+            </div>
+          );
+        })()}
         {!loading.value && !error.value && list.length > 0 && (
           <div class="games-grid">
             {list.map((g) => (

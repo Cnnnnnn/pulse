@@ -12,6 +12,8 @@ import {
   loading,
   error,
   fx,
+  activePlatform,
+  activeMode,
 } from "../../src/renderer/games/gamesStore.js";
 
 afterEach(cleanup);
@@ -21,6 +23,8 @@ beforeEach(() => {
   error.value = null;
   items.value = [];
   fx.value = { rates: {}, date: null, fetchedAt: null, stale: true };
+  activePlatform.value = "steam";
+  activeMode.value = "deals";
 });
 
 describe("GamesPage fx footer", () => {
@@ -88,5 +92,53 @@ describe("GamesPage fx footer", () => {
     render(<GamesPage />);
 
     expect(screen.queryByText(/汇率日期/)).toBeNull();
+  });
+});
+
+describe("GamesPage 空态文案", () => {
+  it("PS + free 模式 + 空列表显示平台差异化文案", () => {
+    activePlatform.value = "playstation";
+    activeMode.value = "free";
+    items.value = [];
+    loading.value = false;
+    error.value = null;
+
+    render(<GamesPage />);
+
+    expect(
+      screen.getByText("该平台暂无公开免费活动数据源"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Epic \/ Steam \/ Xbox 的免费活动更稳定/),
+    ).toBeTruthy();
+  });
+
+  it("Switch + free 模式与 PS 对称，也显示差异化文案", () => {
+    activePlatform.value = "switch";
+    activeMode.value = "free";
+    items.value = [];
+    loading.value = false;
+    error.value = null;
+
+    render(<GamesPage />);
+
+    expect(
+      screen.getByText("该平台暂无公开免费活动数据源"),
+    ).toBeTruthy();
+  });
+
+  it("Steam + free 模式 + 空列表显示通用空态文案", () => {
+    activePlatform.value = "steam";
+    activeMode.value = "free";
+    items.value = [];
+    loading.value = false;
+    error.value = null;
+
+    render(<GamesPage />);
+
+    expect(screen.getByText("该筛选条件下暂无优惠数据")).toBeTruthy();
+    expect(
+      screen.queryByText("该平台暂无公开免费活动数据源"),
+    ).toBeNull();
   });
 });
