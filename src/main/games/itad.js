@@ -17,6 +17,7 @@
  */
 
 const { toGameDeal, fetchJson } = require("./normalize");
+const { logFetchError } = require("./log");
 
 // ITAD 数字 shop ID（仅收录得到的主机平台填这里）。
 const SHOP_BY_PLATFORM = {
@@ -54,7 +55,8 @@ function loadEnvItadKey() {
         break;
       }
     }
-  } catch {
+  } catch (err) {
+    logFetchError("itad:env", err);
     /* .env 读取失败忽略，不影响未认证路径 */
   }
 }
@@ -108,7 +110,8 @@ async function fetchItadDeals(platform, opts = {}) {
       })
       .filter((it) => it.normalPrice > 0);
     return items;
-  } catch {
+  } catch (err) {
+    logFetchError(`itad:${platform}`, err);
     return null;
   }
 }

@@ -22,6 +22,7 @@
  */
 
 const { toGameDeal } = require("./normalize");
+const { logFetchError } = require("./log");
 const os = require("os");
 const fs = require("fs");
 const path = require("path");
@@ -91,7 +92,8 @@ function readCache(region, kind) {
     const stat = fs.statSync(p);
     if (Date.now() - stat.mtimeMs > PSGS_CACHE_TTL_MS) return null;
     return JSON.parse(fs.readFileSync(p, "utf8"));
-  } catch {
+  } catch (err) {
+    logFetchError("playstation:cache:read", err);
     return null;
   }
 }
@@ -100,7 +102,8 @@ function writeCache(region, kind, data) {
   try {
     if (!fs.existsSync(PSGS_CACHE_DIR)) fs.mkdirSync(PSGS_CACHE_DIR, { recursive: true });
     fs.writeFileSync(cachePath(region, kind), JSON.stringify(data), "utf8");
-  } catch {
+  } catch (err) {
+    logFetchError("playstation:cache:write", err);
     /* 缓存写入失败不影响主流程 */
   }
 }
@@ -131,7 +134,8 @@ async function loadPsGameSpiderData(region) {
       );
       writeCache(reg, "metaData", metaData);
     }
-  } catch {
+  } catch (err) {
+    logFetchError("playstation:psgamespider", err);
     return null;
   }
 
@@ -233,7 +237,8 @@ async function fetchPlayStationDeals(opts = {}) {
       );
       if (deals.length > 0) return deals;
     }
-  } catch {
+  } catch (err) {
+    logFetchError("playstation:psgamespider:main", err);
     /* 落到 SSR 兜底 */
   }
 
@@ -241,7 +246,8 @@ async function fetchPlayStationDeals(opts = {}) {
   try {
     const deals = await fetchPlayStationStoreDeals(opts);
     if (deals && deals.length > 0) return deals;
-  } catch {
+  } catch (err) {
+    logFetchError("playstation:ssr", err);
     /* 落到聚合层兜底 */
   }
 
