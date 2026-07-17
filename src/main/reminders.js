@@ -102,93 +102,77 @@ function _withStateShell(raw) {
   return base;
 }
 
-function _validateCreateInput(input) {
-  if (!input || typeof input !== "object") {
-    const err = new Error("invalid_input");
-    err.code = "invalid_input";
-    throw err;
-  }
-  const { title, triggerAt, repeat } = input;
+function _validationError(code) {
+  const err = new Error(code);
+  err.code = code;
+  return err;
+}
+
+function _validateTitle(title) {
   if (typeof title !== "string" || title.length === 0) {
-    const err = new Error("invalid_title");
-    err.code = "invalid_title";
-    throw err;
+    throw _validationError("invalid_title");
   }
   if (title.length > MAX_TITLE_LEN) {
-    const err = new Error("title_too_long");
-    err.code = "title_too_long";
-    throw err;
+    throw _validationError("title_too_long");
   }
+}
+
+function _validateTriggerAt(triggerAt) {
   if (
     typeof triggerAt !== "number" ||
     !Number.isFinite(triggerAt) ||
     triggerAt <= 0 ||
     triggerAt > MAX_TRIGGER_AT
   ) {
-    const err = new Error("invalid_triggerAt");
-    err.code = "invalid_triggerAt";
-    throw err;
+    throw _validationError("invalid_triggerAt");
   }
+}
+
+function _validateRepeat(repeat) {
   if (!VALID_REPEATS.includes(repeat)) {
-    const err = new Error("invalid_repeat");
-    err.code = "invalid_repeat";
-    throw err;
+    throw _validationError("invalid_repeat");
   }
+}
+
+function _validateWeekday(weekday) {
+  if (
+    typeof weekday !== "number" ||
+    !Number.isInteger(weekday) ||
+    weekday < 0 ||
+    weekday > 6
+  ) {
+    throw _validationError("invalid_weekday");
+  }
+}
+
+function _validateCreateInput(input) {
+  if (!input || typeof input !== "object") {
+    throw _validationError("invalid_input");
+  }
+  const { title, triggerAt, repeat } = input;
+  _validateTitle(title);
+  _validateTriggerAt(triggerAt);
+  _validateRepeat(repeat);
   if (repeat === "weekly") {
-    const w = input.weekday;
-    if (typeof w !== "number" || !Number.isInteger(w) || w < 0 || w > 6) {
-      const err = new Error("invalid_weekday");
-      err.code = "invalid_weekday";
-      throw err;
-    }
+    _validateWeekday(input.weekday);
   }
 }
 
 function _validatePatch(patch) {
   if (!patch || typeof patch !== "object") {
-    const err = new Error("invalid_patch");
-    err.code = "invalid_patch";
-    throw err;
+    throw _validationError("invalid_patch");
   }
   if ("title" in patch) {
-    if (typeof patch.title !== "string" || patch.title.length === 0) {
-      const err = new Error("invalid_title");
-      err.code = "invalid_title";
-      throw err;
-    }
-    if (patch.title.length > MAX_TITLE_LEN) {
-      const err = new Error("title_too_long");
-      err.code = "title_too_long";
-      throw err;
-    }
+    _validateTitle(patch.title);
   }
   if ("triggerAt" in patch) {
-    if (
-      typeof patch.triggerAt !== "number" ||
-      !Number.isFinite(patch.triggerAt) ||
-      patch.triggerAt <= 0 ||
-      patch.triggerAt > MAX_TRIGGER_AT
-    ) {
-      const err = new Error("invalid_triggerAt");
-      err.code = "invalid_triggerAt";
-      throw err;
-    }
+    _validateTriggerAt(patch.triggerAt);
   }
   if ("repeat" in patch) {
-    if (!VALID_REPEATS.includes(patch.repeat)) {
-      const err = new Error("invalid_repeat");
-      err.code = "invalid_repeat";
-      throw err;
-    }
+    _validateRepeat(patch.repeat);
   }
-  // weekday 合法 (跟 repeat 配套)
   if ("weekday" in patch && patch.weekday != null) {
-    const w = patch.weekday;
-    if (typeof w !== "number" || !Number.isInteger(w) || w < 0 || w > 6) {
-      const err = new Error("invalid_weekday");
-      err.code = "invalid_weekday";
-      throw err;
-    }
+    _validateWeekday(patch.weekday);
   }
 }
 
@@ -568,22 +552,24 @@ function _computeNextFireTime(r, now) {
   const minute = d.getMinutes();
   const second = d.getSeconds();
   const ms = d.getMilliseconds();
+  const current = new Date(now);
+  const candidateForToday = () =>
+    new Date(
+      current.getFullYear(),
+      current.getMonth(),
+      current.getDate(),
+      hour,
+      minute,
+      second,
+      ms,
+    );
 
   if (r.repeat === "once") {
     return r.triggerAt;
   }
 
   if (r.repeat === "daily") {
-    const today = new Date(now);
-    const candidate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      hour,
-      minute,
-      second,
-      ms,
-    );
+    const candidate = candidateForToday();
     if (candidate.getTime() <= now) {
       candidate.setDate(candidate.getDate() + 1);
     }
@@ -592,15 +578,7 @@ function _computeNextFireTime(r, now) {
 
   if (r.repeat === "weekdays") {
     // Mon-Fri (1-5); 跳过周末
-    let candidate = new Date(
-      new Date(now).getFullYear(),
-      new Date(now).getMonth(),
-      new Date(now).getDate(),
-      hour,
-      minute,
-      second,
-      ms,
-    );
+    const candidate = candidateForToday();
     if (candidate.getTime() <= now) {
       candidate.setDate(candidate.getDate() + 1);
     }
@@ -616,15 +594,7 @@ function _computeNextFireTime(r, now) {
 
   if (r.repeat === "weekly") {
     const targetWd = r.weekday; // 0=Sun..6=Sat
-    let candidate = new Date(
-      new Date(now).getFullYear(),
-      new Date(now).getMonth(),
-      new Date(now).getDate(),
-      hour,
-      minute,
-      second,
-      ms,
-    );
+    const candidate = candidateForToday();
     if (candidate.getTime() <= now) {
       candidate.setDate(candidate.getDate() + 1);
     }

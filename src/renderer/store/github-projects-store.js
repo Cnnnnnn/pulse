@@ -37,10 +37,10 @@ export const githubNotifyOnNew = signal(true);
 
 const _mem = new Map();
 
-function readStore() {
+function readStorage(key) {
   try {
     if (typeof globalThis.localStorage === "undefined") return null;
-    return globalThis.localStorage.getItem(STORAGE_KEY);
+    return globalThis.localStorage.getItem(key);
   } catch {
     return null;
   }
@@ -51,24 +51,25 @@ function readStore() {
  * localStorage 完全不可用时走 _mem 内存兜底，算「兜底成功」返回 true
  * （因为本来就没有持久层可言，不应误报配额错误）。
  */
-function writeStore(raw) {
+function writeStorage(key, raw, reportFailure = false) {
   if (typeof globalThis.localStorage === "undefined") {
-    _mem.set(STORAGE_KEY, raw);
+    _mem.set(key, raw);
     return true;
   }
   try {
-    globalThis.localStorage.setItem(STORAGE_KEY, raw);
+    globalThis.localStorage.setItem(key, raw);
     return true;
   } catch (err) {
-    // 配额超限等：内存兜底保证当次会话可见，但必须让上层知道没真正落盘
-    _mem.set(STORAGE_KEY, raw);
-    console.warn("[github] localStorage.setItem failed:", err && err.message);
+    _mem.set(key, raw);
+    if (reportFailure) {
+      console.warn("[github] localStorage.setItem failed:", err && err.message);
+    }
     return false;
   }
 }
 
 export function loadGithubProjects() {
-  const raw = readStore() ?? _mem.get(STORAGE_KEY) ?? null;
+  const raw = readStorage(STORAGE_KEY) ?? _mem.get(STORAGE_KEY) ?? null;
   if (!raw) {
     githubProjects.value = [];
     return;
@@ -110,7 +111,11 @@ export function __resetQuotaWarnForTest() {
 }
 
 function persist() {
-  const ok = writeStore(JSON.stringify(githubProjects.value));
+  const ok = writeStorage(
+    STORAGE_KEY,
+    JSON.stringify(githubProjects.value),
+    true,
+  );
   if (!ok) {
     // 配额超限等：不阻断 UI，但必须告知用户
     warnQuotaOnce();
@@ -120,33 +125,12 @@ function persist() {
 
 const SETTINGS_KEY = "pulse.github.settings.v1";
 
-function readSettings() {
-  try {
-    if (typeof globalThis.localStorage === "undefined") return null;
-    return globalThis.localStorage.getItem(SETTINGS_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeSettings(raw) {
-  try {
-    if (typeof globalThis.localStorage === "undefined") {
-      _mem.set(SETTINGS_KEY, raw);
-      return;
-    }
-    globalThis.localStorage.setItem(SETTINGS_KEY, raw);
-  } catch {
-    _mem.set(SETTINGS_KEY, raw);
-  }
-}
-
 /**
  * 读取持久化的模块设置（density + token + autoCheck/interval/notify）。
  * 损坏数据忽略，回退默认。
  */
 export function loadGithubSettings() {
-  const raw = readSettings() ?? _mem.get(SETTINGS_KEY) ?? null;
+  const raw = readStorage(SETTINGS_KEY) ?? _mem.get(SETTINGS_KEY) ?? null;
   if (!raw) return;
   try {
     const o = JSON.parse(raw);
@@ -173,7 +157,8 @@ export function loadGithubSettings() {
 /** 把所有设置一起写回，避免任一设置覆盖另一设置。 */
 function persistSettings() {
   try {
-    writeSettings(
+    writeStorage(
+      SETTINGS_KEY,
       JSON.stringify({
         density: githubDensity.value,
         token: githubToken.value,

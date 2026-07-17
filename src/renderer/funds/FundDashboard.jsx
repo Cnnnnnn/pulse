@@ -43,6 +43,7 @@ import { FundAreaChart } from "./FundAreaChart.jsx";
 import { FundSparkline } from "./FundSparkline.jsx";
 import { FundAllocationDonut } from "./FundAllocationDonut.jsx";
 import { computeConcentration } from "../../funds/concentration.js";
+import { fmtCurrency, fmtPct } from "../../funds/format.js";
 import { IconRefresh } from "../components/icons.jsx";
 import { openAddModal } from "./fundStore.js";
 import { openFundDetail } from "./fundRoute.js";
@@ -97,19 +98,6 @@ function pickLast30DayValues(code) {
     .filter(Number.isFinite);
 }
 
-function fmtCurrency(n) {
-  if (!Number.isFinite(n)) return "¥0.00";
-  const sign = n < 0 ? "-" : "";
-  return `${sign}¥${Math.abs(n).toLocaleString("zh-CN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-function fmtPct(p) {
-  if (!Number.isFinite(p)) return "0.00%";
-  const sign = p >= 0 ? "+" : "";
-  return `${sign}${p.toFixed(2)}%`;
-}
 function fmtSignedPct(p) {
   if (!Number.isFinite(p)) return "—";
   if (p === 0) return "0.00%";

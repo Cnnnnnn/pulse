@@ -28,12 +28,7 @@ import { api } from '../api.js';
 import { IconBell, IconCoin, IconRefresh } from '../components/icons.jsx';
 import { FundAllocationDonut } from './FundAllocationDonut.jsx';
 import { FundPortfolioTrend } from './FundPortfolioTrend.jsx';
-
-function fmtCurrency(n) {
-  if (!Number.isFinite(n)) return '¥0.00';
-  const sign = n < 0 ? '-' : '';
-  return `${sign}¥${Math.abs(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { fmtCurrency, fmtPct } from '../../funds/format.js';
 
 function fmtAgo(ts) {
   const s = Math.floor((Date.now() - ts) / 1000);
@@ -43,12 +38,6 @@ function fmtAgo(ts) {
   const h = Math.floor(m / 60);
   if (h < 24) return h + ' 小时前';
   return Math.floor(h / 24) + ' 天前';
-}
-
-function fmtPct(p) {
-  if (!Number.isFinite(p)) return '0.00%';
-  const sign = p >= 0 ? '+' : '';
-  return `${sign}${p.toFixed(2)}%`;
 }
 
 function arrow(n) {
