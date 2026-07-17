@@ -20,16 +20,23 @@ import {
   gamesAutoCheck,
   gamesAutoCheckIntervalMin,
   gamesNotifyOnFree,
+  gamesNotifyOnDrop,
   gamesHasNewFree,
+  gamesHasNewDrop,
+  wishlist,
   loadSeenFreeIds,
   saveSeenFreeIds,
+  loadSeenDropKeys,
+  saveSeenDropKeys,
   setPlatformAndMode,
+  setMode,
 } from "./gamesStore.js";
-import { PLATFORM_LABEL, promotionTypeLabel } from "./format.js";
+import { PLATFORM_LABEL, promotionTypeLabel, fmtPrice } from "./format.js";
 import { setActiveNav } from "../worldcup/navStore.js";
 
 const INITIAL_DELAY_MS = 60 * 1000; // 首次延迟 60s，避免启动即检查打扰
-const MAX_SEEN_IDS = 200; // 已通知集合上限，防止无限增长
+const MAX_SEEN_IDS = 200; // 已通知免费活动集合上限，防止无限增长
+const MAX_SEEN_DROPS = 200; // 已通知降价集合上限，防止无限增长
 
 export function createGamesCheckScheduler() {
   let intervalHandle = null;
@@ -38,30 +45,87 @@ export function createGamesCheckScheduler() {
 
   async function checkOnce() {
     try {
-      const res = await api.getGameDeals({ platform: "all", mode: "free" });
-      if (!res || !res.ok || !Array.isArray(res.items)) return;
-
-      const seen = loadSeenFreeIds();
-      const fresh = res.items.filter((it) => !seen.has(it.id));
-      if (fresh.length === 0) return;
-
-      // 更新已通知集合（合并新旧，超出上限截断旧的）
-      const merged = new Set([...seen, ...res.items.map((it) => it.id)]);
-      if (merged.size > MAX_SEEN_IDS) {
-        const arr = [...merged].slice(merged.size - MAX_SEEN_IDS);
-        saveSeenFreeIds(new Set(arr));
-      } else {
-        saveSeenFreeIds(merged);
-      }
-
-      // 标记未读红点
-      gamesHasNewFree.value = true;
-
-      if (gamesNotifyOnFree.value) {
-        _notifyNewFreeGames(fresh);
-      }
+      await _checkFreeEvents();
     } catch {
-      /* 静默失败不打扰用户 */
+      /* 免费检查失败不影响降价检查 */
+    }
+    try {
+      await checkWishlistDrops();
+    } catch {
+      /* 降价检查失败不打扰 */
+    }
+  }
+
+  async function _checkFreeEvents() {
+    const res = await api.getGameDeals({ platform: "all", mode: "free" });
+    if (!res || !res.ok || !Array.isArray(res.items)) return;
+
+    const seen = loadSeenFreeIds();
+    const fresh = res.items.filter((it) => !seen.has(it.id));
+    if (fresh.length === 0) return;
+
+    // 更新已通知集合（合并新旧，超出上限截断旧的）
+    const merged = new Set([...seen, ...res.items.map((it) => it.id)]);
+    if (merged.size > MAX_SEEN_IDS) {
+      const arr = [...merged].slice(merged.size - MAX_SEEN_IDS);
+      saveSeenFreeIds(new Set(arr));
+    } else {
+      saveSeenFreeIds(merged);
+    }
+
+    // 标记未读红点
+    gamesHasNewFree.value = true;
+
+    if (gamesNotifyOnFree.value) {
+      _notifyNewFreeGames(fresh);
+    }
+  }
+
+  /**
+   * 心愿单降价检查：拉全平台 deals，按 ${platform}:${id} 精确匹配，
+   * currentPrice < addedPrice 即降价，seenDrop 去重后置红点 + 通知。
+   */
+  async function checkWishlistDrops() {
+    const list = wishlist.value;
+    if (!Array.isArray(list) || list.length === 0) return;
+
+    const res = await api.getGameDeals({ platform: "all", mode: "deals" });
+    if (!res || !res.ok || !Array.isArray(res.items)) return;
+
+    const currents = new Map();
+    for (const item of res.items) {
+      currents.set(`${item.platform}:${item.id}`, item);
+    }
+
+    const seen = loadSeenDropKeys();
+    const drops = [];
+    for (const wish of list) {
+      const matched = currents.get(wish.key);
+      if (!matched) continue; // 不在当前 deals 中，保留心愿单不动
+      const currentPrice = Number(matched.salePrice);
+      const addedPrice = Number(wish.addedPrice);
+      if (!Number.isFinite(currentPrice) || !Number.isFinite(addedPrice)) continue;
+      if (currentPrice < addedPrice) {
+        const seenKey = `${wish.key}:${currentPrice}`;
+        if (!seen.has(seenKey)) {
+          drops.push({ wish, current: matched, seenKey });
+        }
+      }
+    }
+
+    if (drops.length === 0) return;
+
+    const merged = new Set([...seen, ...drops.map((d) => d.seenKey)]);
+    if (merged.size > MAX_SEEN_DROPS) {
+      const arr = [...merged].slice(merged.size - MAX_SEEN_DROPS);
+      saveSeenDropKeys(new Set(arr));
+    } else {
+      saveSeenDropKeys(merged);
+    }
+
+    gamesHasNewDrop.value = true;
+    if (gamesNotifyOnDrop.value) {
+      _notifyDrops(drops);
     }
   }
 
@@ -130,6 +194,55 @@ function _notifyNewFreeGames(fresh) {
             window.focus();
             setActiveNav("games");
             setPlatformAndMode(fresh[0].platform, "free");
+          } catch {
+            /* noop */
+          }
+        };
+      } catch {
+        /* Notification 不可用时静默 */
+      }
+    };
+    if (Notification.permission === "granted") {
+      send();
+    } else if (Notification.permission === "default") {
+      Notification.requestPermission().then((perm) => {
+        if (perm === "granted") send();
+      });
+    }
+  } catch {
+    /* 整个通知链路失败不打扰 */
+  }
+}
+
+/**
+ * 发系统通知：心愿单游戏降价。权限处理模式同 _notifyNewFreeGames。
+ * 点击通知 → 聚焦窗口 + 跳转到游戏优惠的「心愿单」tab。
+ */
+function _notifyDrops(drops) {
+  try {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "denied") return;
+    const count = drops.length;
+    const titles = drops.slice(0, 2).map((d) => d.wish.title);
+    const body =
+      count === 1
+        ? `${PLATFORM_LABEL[drops[0].wish.platform] || drops[0].wish.platform} · ${
+            drops[0].wish.title
+          }：${fmtPrice(Number(drops[0].wish.addedPrice), drops[0].wish.currency)} → ${
+            fmtPrice(Number(drops[0].current.salePrice), drops[0].current.currency)
+          }`
+        : `发现 ${count} 款关注游戏降价（${titles.join("、")} 等）`;
+    const send = () => {
+      try {
+        const n = new Notification(`游戏降价 · 发现 ${count} 款关注游戏降价`, {
+          body,
+          silent: false,
+        });
+        n.onclick = () => {
+          try {
+            window.focus();
+            setActiveNav("games");
+            setMode("wishlist");
           } catch {
             /* noop */
           }
