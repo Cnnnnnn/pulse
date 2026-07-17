@@ -19,6 +19,7 @@ const cheapsharkSteam = [
   { dealID: "s1", storeID: "1", title: "Hollow Knight", salePrice: 7.49, normalPrice: 14.99, savings: 50, dealRating: 90, steamAppID: "367520", steamRatingPercent: 90 },
   { dealID: "s2", storeID: "1", title: "Hollow Knight", salePrice: 9.99, normalPrice: 14.99, savings: 33, dealRating: 80, steamAppID: "367520" }, // 同名同平台，测 id 去重（dealID 不同但 steamAppID 同 → id 同）
   { dealID: "s3", storeID: "1", title: "Celeste", salePrice: 4.99, normalPrice: 19.99, savings: 75, dealRating: 95, steamAppID: "504230", steamRatingPercent: 95 },
+  { dealID: "s4", storeID: "1", title: "Death Stranding", salePrice: 19.99, normalPrice: 39.99, savings: 50, dealRating: 88, steamAppID: "1190460" },
 ];
 const cheapsharkEpic = [
   { dealID: "e1", storeID: "25", title: "Hollow Knight", salePrice: 7.49, normalPrice: 14.99, savings: 50, dealRating: 70 }, // 跨平台同名，测标题去重
@@ -50,6 +51,22 @@ const switchAlgolia = {
   hits: [
     { nsuid: "70010000001", objectID: "1", title: "Zelda", price: { finalPrice: 40, regPrice: 60, percentOff: 33 }, productImageSquare: "https://img/zelda.jpg", url: "/games/zelda" },
     { nsuid: "70010000002", objectID: "2", title: "Mario", price: { finalPrice: 30, regPrice: 60, percentOff: 50 }, productImageSquare: "https://img/mario.jpg", url: "/games/mario" },
+    {
+      nsuid: "70010000003",
+      objectID: "3",
+      title: "Free Weekend Game",
+      price: { finalPrice: 0, regPrice: 20, percentOff: 100 },
+      productImageSquare: "https://img/free.jpg",
+      url: "/games/free-weekend-game",
+    },
+    {
+      nsuid: "70010000004",
+      objectID: "4",
+      title: "Death Stranding",
+      price: { finalPrice: 0, regPrice: 40, percentOff: 100 },
+      productImageSquare: "https://img/death-stranding-free.jpg",
+      url: "/games/death-stranding",
+    },
   ],
   nbPages: 1,
 };
@@ -125,6 +142,15 @@ describe("getGameDeals — 跨平台标题去重", () => {
     const hollows = res.items.filter((it) => it.title === "Hollow Knight");
     // Steam 50% + Epic 50%，savings 相同看 price，都是 7.49 → 合并成 1 条
     expect(hollows).toHaveLength(1);
+  });
+
+  it("同名免费项不应在去重时吞掉付费折扣", async () => {
+    const res = await getGameDeals({ platform: "all", mode: "deals" });
+    const items = res.items.filter((it) => it.title === "Death Stranding");
+
+    expect(items).toHaveLength(1);
+    expect(items[0].platform).toBe("steam");
+    expect(items[0].isFree).toBe(false);
   });
 
   it("同平台内重复（相同 steamAppID 不同 dealID）也被去重", async () => {
@@ -210,6 +236,16 @@ describe("getGameDeals — mode=deals sort 三分支", () => {
     for (let i = 1; i < ratings.length; i++) {
       expect(ratings[i - 1]).toBeGreaterThanOrEqual(ratings[i]);
     }
+  });
+
+  it("排除 isFree 的喜+1条目", async () => {
+    const res = await getGameDeals({
+      platform: "switch",
+      mode: "deals",
+    });
+
+    expect(res.items.some((item) => item.title === "Free Weekend Game")).toBe(false);
+    expect(res.items.every((item) => item.isFree === false)).toBe(true);
   });
 });
 

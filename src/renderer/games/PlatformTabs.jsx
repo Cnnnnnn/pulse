@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/PlatformTabs.jsx — 平台分类切换 (全部 / Steam / Epic / …)。
+ * src/renderer/games/PlatformTabs.jsx — 平台分类切换 (Steam / Epic / …)。
  */
 import { PLATFORMS, activePlatform, setPlatform } from "./gamesStore.js";
 

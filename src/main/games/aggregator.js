@@ -200,6 +200,11 @@ async function getGameDeals(opts = {}) {
     return true;
   });
 
+  // 折扣模式先排除喜+1，避免免费项在标题去重时吞掉同名付费折扣
+  if (mode === "deals") {
+    deduped = deduped.filter((it) => !it.isFree);
+  }
+
   // 第二层去重：按归一化标题跨平台合并，保留优惠最大的一条
   // （同款游戏在 Steam/Epic 都上架时，id 带不同平台前缀不会命中第一层）
   const byTitle = new Map();

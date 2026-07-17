@@ -10,7 +10,6 @@ import { api } from "../api.js";
 
 /** 平台元信息（renderer 展示用）。key 与 main 端 PLATFORM_KEYS 对齐。 */
 export const PLATFORMS = [
-  { key: "all", label: "全部", emoji: "🎮" },
   { key: "steam", label: "Steam", emoji: "🎮" },
   { key: "epic", label: "Epic", emoji: "🎁" },
   { key: "xbox", label: "Xbox", emoji: "🟢" },
@@ -33,7 +32,7 @@ export const SAVINGS_TIERS = [
   { key: 90, label: "≥ 90%" },
 ];
 
-export const activePlatform = signal("all");
+export const activePlatform = signal("steam");
 export const activeMode = signal("deals");
 export const activeSort = signal("savings");
 export const minSavings = signal(0);
