@@ -52,6 +52,18 @@ svg:not([role="img"]) {
   --accent-blue: oklch(60.28% 0.2178 257.4);     /* was #007aff (alias of primary) */
   --accent-red: oklch(65.42% 0.2321 28.7);      /* was #ff3b30 */
   --accent-gray: var(--gray-400);
+  /* 语义色别名 (UI Designer P0: 修复 games/全局潜在未定义引用) */
+  --color-success: var(--accent-green);
+  --color-warning: var(--accent-orange);
+  --color-danger: var(--accent-red);
+  --color-error: var(--accent-red);
+  --color-info: var(--accent-primary);
+  /* 平台品牌色 (仅作装饰底色/圆点；文字均经 color-mix 提亮以达 AA) */
+  --brand-steam: oklch(78% 0.09 230);
+  --brand-epic: oklch(24% 0 0);
+  --brand-xbox: oklch(52% 0.15 145);
+  --brand-playstation: oklch(55% 0.17 255);
+  --brand-switch: oklch(55% 0.21 27);
   /* 警示色阶 (P9) — Tailwind amber 4/5/7, 用于 warn/info 浅底文字.
      与 --accent-orange(#ff9500) 是不同概念: orange=警告/注意; amber=提示/温和警示. */
   --accent-amber-400: #fbbf24;
@@ -211,6 +223,18 @@ svg:not([role="img"]) {
     --accent-blue: var(--accent-primary);   /* P9: was #0a84ff */
     --accent-red: oklch(66.33% 0.2236 28.3);    /* was #ff453a */
     --accent-gray: var(--gray-400);
+    /* 语义色别名 (UI Designer P0: 深浅主题同步补齐) */
+    --color-success: var(--accent-green);
+    --color-warning: var(--accent-orange);
+    --color-danger: var(--accent-red);
+    --color-error: var(--accent-red);
+    --color-info: var(--accent-primary);
+    /* 平台品牌色 (深色主题提亮以保可见度) */
+    --brand-steam: oklch(80% 0.09 230);
+    --brand-epic: oklch(80% 0 0);
+    --brand-xbox: oklch(64% 0.16 145);
+    --brand-playstation: oklch(68% 0.17 255);
+    --brand-switch: oklch(66% 0.21 27);
     --chrome-bg: rgba(28, 28, 30, 0.94);
     --content-bg: #141416;
     --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.35);
@@ -264,6 +288,18 @@ body.platform-win {
   --accent-orange: oklch(78.24% 0.1710 67.2);  /* was #ff9f0a (同 dark) */
   --accent-green: oklch(69.51% 0.1809 145.6);  /* was #3fb950 */
   --accent-red: oklch(71.16% 0.1812 22.8);    /* was #ff6b6b */
+  /* 语义色别名 (UI Designer P0: win 深色同步补齐) */
+  --color-success: var(--accent-green);
+  --color-warning: var(--accent-orange);
+  --color-danger: var(--accent-red);
+  --color-error: var(--accent-red);
+  --color-info: var(--accent-primary);
+  /* 平台品牌色 (win 同深色提亮) */
+  --brand-steam: oklch(80% 0.09 230);
+  --brand-epic: oklch(80% 0 0);
+  --brand-xbox: oklch(64% 0.16 145);
+  --brand-playstation: oklch(68% 0.17 255);
+  --brand-switch: oklch(66% 0.21 27);
   /* 上涨/下跌 (金融面板) 在深色 bg 上微调 */
   --color-up: oklch(71.16% 0.1812 22.8);       /* was #ff6b6b (金融涨 A 股红) */
   --color-down: oklch(69.51% 0.1809 145.6);   /* was #3fb950 (金融跌 A 股绿) */

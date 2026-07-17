@@ -19,6 +19,8 @@ const LOADERS = {
     import('./AIUsageLayout.jsx').then((m) => m.AIUsageLayout),
   github: () =>
     import('../github/GithubLayout.jsx').then((m) => m.GithubLayout),
+  games: () =>
+    import('../games/GamesLayout.jsx').then((m) => m.GamesLayout),
 };
 
 export function LazyNavPanel({ nav, onCheck }) {

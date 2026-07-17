@@ -22,6 +22,7 @@ import { refreshWorldcupScores } from "./worldcup/store.js";
 import { fetchNavNow } from "./funds/fundStore.js";
 import { refreshNow as refreshMetals } from "./metals/metalStore.js";
 import { investPrimary } from "./worldcup/navStore.js";
+import { loadGameDeals } from "./games/gamesStore.js";
 import { api } from "./api.js";
 
 /**
@@ -61,6 +62,7 @@ const REGISTRY = {
   news: { fn: () => refreshNews(), label: "刷新当前新闻子 tab" },
   worldcup: { fn: () => refreshWorldcupScores(), label: "刷新世界杯比分" },
   invest: { fn: () => refreshInvest(), label: "刷新当前投资子模块" },
+  games: { fn: () => loadGameDeals(), label: "刷新游戏优惠" },
 };
 
 /** 注册表里存在的 nav key 集合 — 给 SideNav 判断按钮要不要显示 */

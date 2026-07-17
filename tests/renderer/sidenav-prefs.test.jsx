@@ -84,7 +84,7 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 6 个 nav 全显示 (新闻 + 世界杯 + 投资 + AI 用量 + 更新 + GitHub)", () => {
+  it("默认 prefs 全开 → 7 个 nav 全显示 (新闻 + 世界杯 + 投资 + AI 用量 + 更新 + GitHub + 游戏优惠)", () => {
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
       "news",
@@ -93,6 +93,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "ai-usage",
       "versions",
       "github",
+      "games",
     ]);
   });
 
@@ -119,7 +120,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("3 个动态全关 → 只剩 3 个固定 nav (news/invest/github)", () => {
+  it("3 个动态全关 → 只剩固定 nav (news/invest/github/games)", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -132,7 +133,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual(["news", "invest", "github"]);
+    expect(visibleNavKeys()).toEqual(["news", "invest", "github", "games"]);
   });
 
   it("只关非动态 prefs (check_action/config_action) → 全部 nav 仍显示", () => {
@@ -155,6 +156,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "ai-usage",
       "versions",
       "github",
+      "games",
     ]);
   });
 });
