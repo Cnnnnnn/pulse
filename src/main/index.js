@@ -14,15 +14,8 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
-// safeStorage 兼容性: 早期版本 Pulse (npm 包的 name="pulse") 用小写
-// "pulse Safe Storage" 作为 keychain service name, 老用户 .bin 加密文件绑了
-// 那个 service 下的 master key. 现在 productName="Pulse" → Electron 默认走
-// 大写 "Pulse Safe Storage" → 拿到的 master key 跟老文件不兼容, decrypt
-// 失败, 看起来 "deepseek/minimax 正常, GLM 异常" 其实是全部都 decrypt 失败
-// (UI 走 hasFile 兜底让状态栏误显 "已存 key").
-//
-// 强制设回小写 "pulse" 保持兼容, 必须在 app.whenReady() 之前调才能影响
-// safeStorage 用的 service name (Electron 内部 cache).
+// 旧版 safeStorage 使用 "pulse Safe Storage"；必须在 app.whenReady() 前
+// 保持小写 service name，否则旧用户的加密 key 无法解密。
 // 详见 https://github.com/electron/electron/issues/45328
 if (app && typeof app.setName === "function") {
   try {
@@ -32,8 +25,7 @@ if (app && typeof app.setName === "function") {
   }
 }
 
-// Phase B2b: ai-sessions CursorDetector 读 vscdb 用 Node 22.5+ 内置的 node:sqlite.
-// 在 app.whenReady() 之前启 flag.
+// CursorDetector 读取 vscdb 依赖 node:sqlite，必须在 app.whenReady() 前启用。
 try {
   if (
     app &&
@@ -126,18 +118,15 @@ installErrorGuardBridge(sendToRenderer);
 
 /**
  * Bootstrap 子阶段: 启动自更新 timer + 注册 tray 推送.
- * 拆出来只为减小 bootstrap() 体量, 逻辑零改动.
  *
- * @param {object} ctx - 共享闭包变量: { trayMgr getter, runtimeConfigRef }
+ * @param {{getTrayMgr: () => object|null}} ctx
  * @returns {{ handle: object|null }} selfUpdateHandle (IPC handler 需读 controller)
  */
 function initSelfUpdateTimer(ctx) {
   let selfUpdateHandle = null;
   try {
     selfUpdateHandle = startSelfUpdateTimer({
-      getCurrentVersion: () => app.getVersion(),
-      // P52 §增量自更新: 6h 周期 tick 用 Electron powerMonitor 判 idle.
-      // 启动 5min 内 + 系统非 idle → skip; 用户手动 triggerNow 不受限.
+      // 周期检查仅在系统空闲时运行；手动检查不受限。
       getPowerIdleState: () => {
         try {
           const { powerMonitor } = require("electron");
@@ -145,7 +134,6 @@ function initSelfUpdateTimer(ctx) {
             powerMonitor &&
             typeof powerMonitor.getSystemIdleState === "function"
           ) {
-            // threshold 120s: 用户 2 分钟无操作算 idle; 锁屏/屏保也算.
             return powerMonitor.getSystemIdleState(120);
           }
           return null;
@@ -160,7 +148,6 @@ function initSelfUpdateTimer(ctx) {
     mainLog.warn(`[self-update] bootstrap failed: ${err && err.message}`);
   }
 
-  // P52: 把 controller state 推 tray (avail → 显示 "Pulse 有新版 vX.Y.Z")
   function pushSelfUpdateToTray() {
     try {
       const tray = ctx.getTrayMgr();
@@ -171,34 +158,21 @@ function initSelfUpdateTimer(ctx) {
       mainLog.warn(`[self-update] push to tray failed: ${err && err.message}`);
     }
   }
-  // 30s 内 timer 已 dispatch 完一次 (autoUpdater.checking-for-update), 同步拉一次 state.
   setTimeout(pushSelfUpdateToTray, 35000);
-  setInterval(pushSelfUpdateToTray, 5 * 60 * 1000); // 5min 兜底轮询, 状态变化时实时性靠 autoUpdater event
+  setInterval(pushSelfUpdateToTray, 5 * 60 * 1000);
   return { handle: selfUpdateHandle };
 }
 
 /**
  * Bootstrap 子阶段: category config + 历史缓存注入 + LLM 分类 fire-and-forget.
- * 步骤 0 / 0.4 / 0.5. 顺序敏感 (注释里有 "必须同步" 标注), 不可重排.
  */
 function initCategoryAndLlm() {
-  // 0) Phase A: 加载 category config (早期注入, 后面 IPC 通道要用到)
   loadCategoryConfig();
 
-  // 0.4) Step B-prime (v2.16): 同步从 disk 注入历史 LLM cache.
-  //       关键: 这步必须同步, 跟 fire-and-forget 的 LLM 推理分开.
-  //       否则 fire-and-forget 会让旧 cache 也延后注入, 回归.
-  //       (历史分类 < 100ms 同步读盘, 用户感知不到, 但能让首屏 tabs 立即看到正确分类)
+  // 历史 cache 必须同步注入，保证首屏分类可用。
   primeLLMCacheFromDisk({ stateStore });
 
-  // 0.5) Step B (LLM classify): 启动期 fire-and-forget 后台跑.
-  // 之前: await — 阻塞 bootstrap, 最坏 28s 等 ollama qwen2.5-coder:7b.
-  // 修法: 立即返, 后台跑; 完成时调 setLLMCache + save, 之后所有 getCategory 调用
-  //      立即看到正确分类 (LLM_CLASSIFY_CACHE 是 module-level Map, 写入即生效).
-  // 权衡: 用户启动后立即切 category tab 时, 未分类 app 会落 'other' (兜底);
-  //       0-28s 后 LLM 跑完, 下次 IPC (get-config / check-updates / 切 tab) 触发的
-  //       getCategory 会拿到正确分类. 用户感知: 不再"卡 28s 才看到首屏".
-  //       (后续可增强: LLM 完成时推 'category:updated' IPC 让 renderer 主动重算 tabs)
+  // LLM 分类保持 fire-and-forget，避免阻塞启动。
   const earlyConfig = (() => {
     try {
       return loadConfig();
@@ -245,9 +219,6 @@ function initWorkerPool() {
     "workers",
     "detect-worker.js",
   );
-  // [v2.16] pool size 走 cap=4 (抽到 src/main/pool-size.js 测)
-  // 8 核机器上 cpus-1=7 浪费, 13 个 app 跑 detect 链 (app 间并行) 用不到 7 个 worker.
-  // 实测启动节省 ~50-100ms (少 spawn 3 个 worker, 每个 init V8 + require chain ~20ms).
   const poolSize = computePoolSize();
   pool = new WorkerPool({
     size: poolSize,
@@ -285,8 +256,7 @@ function createMainWindow(runtimeConfig) {
     indexPath: path.join(PROJECT_ROOT, "index.html"),
   });
   winMgr.createWindow();
-  // Phase Q8: if a recovery event was recorded, push it to the renderer once
-  // the window is alive. Use setImmediate to let the renderer load before push.
+  // 等 renderer 开始加载后再推送一次恢复事件。
   setImmediate(() => {
     const evt = takeRecoveryEvent();
     if (!evt) return;
@@ -317,7 +287,6 @@ function installTray() {
         isQuitting = true;
         app.quit();
       },
-      // v2.22 Task A3: 菜单栏升级行点击 → 显示面板 + 推 tray:focus 事件
       onFocusUpdate: (data) => {
         if (winMgr) winMgr.showWindow();
         const w = getWindow();
@@ -329,8 +298,6 @@ function installTray() {
           });
         }
       },
-      // v2.22 Task C3: 菜单栏世界杯行点击 → 显示面板 + 推 worldcup:focus-match
-      // 复用现有 WorldcupLayout 监听的 worldcup:focus-match IPC, 不新增通道.
       onFocusWorldcup: (data) => {
         if (winMgr) winMgr.showWindow();
         const w = getWindow();
@@ -340,17 +307,12 @@ function installTray() {
           });
         }
       },
-      // P10: 托盘主题切换 → IPC 通知 renderer 应用主题
       onThemeChange: (mode) => {
-        // 直接广播 theme:changed (renderer 端 theme-manager 监听)
-        // P12: source='tray' 让 renderer 弹 toast (system 模式自动跟随不 toast)
         const w = getWindow();
         if (w && !w.isDestroyed()) {
           w.webContents.send("theme:changed", { mode, source: "tray" });
         }
-        // 主进程自己已通过 buildMenu rebuild 标记了选中, 不需要再 setThemeMode.
       },
-      // Phase v1: 「菜单栏配置...」点击 → 主面板 + 推 tray:open-config (renderer 挂 modal)
       onOpenTrayConfig: () => {
         if (winMgr) winMgr.showWindow();
         const w = getWindow();
@@ -375,7 +337,6 @@ function installTray() {
     });
     trayMgr.install();
     registerTrayManager(trayMgr);
-    // Phase v1: bootstrap 时把 prefs 注入 trayMgr (覆盖默认全开)
     try {
       trayMgr.setTrayMenuPrefs(stateStore.loadTrayMenuPrefs());
     } catch (err) {
@@ -390,15 +351,8 @@ function installTray() {
 
 /**
  * Bootstrap 子阶段: AI 用量 cache + 30min 自动刷新 scheduler.
- * 步骤 6.5. 赋值给 module-level aiUsageScheduler (before-quit 要访问).
  */
 function initAiUsageTray() {
-  // v2.22 Task B2 + B2.1: AI 用量 cache + 30min 自动刷新
-  // B2: 启动时从 state.json 读 last-known 推 tray
-  // B2.1: 30min setInterval 调 register-ai-usage._internals.fetch (双 provider),
-  //       写回 state.json 后重新构造 tray summary 推 tray.
-  // Tray 不依赖 IPC 通道 — 走模块级 state.json + ai-usage-cache.
-  // aiUsageScheduler 已在 module-level 声明 (line ~110), before-quit handler 需访问.
   aiUsageScheduler = null;
   try {
     const { createAiUsageCache } = require("./ai-usage-cache");
@@ -414,7 +368,6 @@ function initAiUsageTray() {
     }
     mainLog.info("ai-usage tray initialized (read-only from state.json)");
 
-    // B2.1: 30min 自动刷新 — 复用 register-ai-usage 的 deps (跟 IPC 通道同源)
     aiUsageScheduler = createAiUsageRefreshScheduler({
       trayMgr,
       getConfig: () => runtimeConfigRef.current,
@@ -460,13 +413,9 @@ function initAiUsageTray() {
 
 /**
  * Bootstrap 子阶段: 世界杯 tray cache (从 state.json 读, 不主动 fetch).
- * 步骤 6.6. 返回 pushWorldcupToTray (startWorldcupGoalWatcher 的 onScoresChanged 钩要复用).
  * @returns {() => void}
  */
 function initWorldcupTray() {
-  // v2.22 Task C2: 世界杯 tray cache (从 state.json 读 today/upcoming, 不主动 fetch)
-  // v2.22 Task C2.1: pushWorldcupToTray hoist 到 try 块外, 让后面的 startWorldcupGoalWatcher
-  //   能通过 onScoresChanged 钩进来 — 替换之前的 60s setInterval 轮询.
   let pushWorldcupToTray = () => {};
   try {
     const { createWorldcupTrayCache } = require("./worldcup-tray-cache");
@@ -491,10 +440,8 @@ function initWorldcupTray() {
 
 /**
  * Bootstrap 子阶段: 贵金属 tray (从 metal-ipc 模块级 cache 读 quoteCache).
- * 步骤 6.7. 60s 兜底轮询 timer, before-quit 清理.
  */
 function initMetalsTray() {
-  // 6.7) v2.22 Task D1: 贵金属 tray (从 metal-ipc 模块级 cache 读 quoteCache)
   try {
     const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc");
     function pushMetalsToTray() {
@@ -505,8 +452,6 @@ function initMetalsTray() {
     pushMetalsToTray();
     mainLog.info("metals tray initialized (live quoteCache)");
 
-    // 60s 轮询作为 fallback (防止 scheduler 没推过来时 tray 仍能反映最新).
-    // 主推送路径仍是 registerMetalIpc({onUpdateTray}) 钩点.
     const METALS_TRAY_REFRESH_MS = 60 * 1000;
     const metalsTrayTimer = setInterval(
       pushMetalsToTray,
@@ -526,7 +471,6 @@ function initMetalsTray() {
 
 /**
  * Bootstrap 子阶段: 注册全部 IPC handler (主 IPC + search + daily digest).
- * 步骤 7. 含 pushWorldcupToTray 闭包回调 (goal watcher 要用).
  * @param {object} selfUpdateHandle - self-update controller, IPC handler 读
  * @returns {{ ms: number }}
  */
@@ -666,16 +610,7 @@ function registerAllIpc(selfUpdateHandle) {
  * 步骤 7.4 / 7.5 / 8. pushWorldcupToTray 由 initWorldcupTray 返回, 钩给 goal-watcher.
  */
 function startSchedulers(pushWorldcupToTray) {
-  // 7.4) Metals IPC handlers + scheduler — must register IPC synchronously
-  //      BEFORE the renderer can invoke any metals:* channel. Per the
-  //      electron-merge-debug skill: any ipcMain.handle that's added after
-  //      a renderer invoke would resolve the promise but lose the response.
-  //      Scheduler also starts here so initial 5-min tick is on the same
-  //      lifecycle as other schedulers (stopped on before-quit below).
-  //      v2.22 Task D1 + D1-refactor: register/start are split for clean
-  //      lifecycle. onUpdateTray hook goes to startMetalScheduler, NOT to
-  //      registerMetalIpc. Tray reads module-level quoteCache (live only)
-  //      via getTraySnapshot — no IPC channel for tray updates.
+  // 必须在 renderer 可能 invoke metals:* 前同步注册 IPC。
   registerMetalIpc();
   startMetalScheduler({
     getConfig: () => runtimeConfigRef.current,
@@ -692,7 +627,7 @@ function startSchedulers(pushWorldcupToTray) {
     },
   });
 
-  // 7.5) AI usage warmup — Q4 v3: 延后到 setImmediate, 不阻塞 bootstrap 同步段
+  // 延后 AI usage warmup，避免阻塞 bootstrap 同步段。
   setImmediate(() => {
     bootstrapAiUsage(
       {
@@ -711,7 +646,6 @@ function startSchedulers(pushWorldcupToTray) {
     );
   });
 
-  // 8) fund + reminders + recent listeners + auto-check timer
   fundScheduler = startFundScheduler({
     httpClient,
     fundStore,
@@ -725,13 +659,6 @@ function startSchedulers(pushWorldcupToTray) {
     sendToRenderer,
     getConfig: () => runtimeConfigRef.current,
     goalWatcher,
-    // v2.22 Task C2.1: 钩 goal-watcher, 每次 sweep 完 (refreshScores 成功) 推一次 tray.
-    // 替换之前的 60s setInterval 兜底轮询 — goal-watcher 跟 scores-fetcher 写盘同源,
-    // cache 必然 fresh, sweep fire 的时刻就是 tray 反映比分变化的时刻.
-    //
-    // v2.51 实时比分: sweep 拉到新比分后同时推 renderer, 让世界杯面板 (含淘汰赛
-    // 对阵 + 进球榜) 自动刷新, 无需用户手动点. updatedKeys 让 renderer 判断
-    // 是否需要重算 bracket. 推送是 best-effort (窗口未打开 / 已销毁时 noop).
     onScoresChanged: (newScores) => {
       pushWorldcupToTray();
       try {
@@ -765,22 +692,18 @@ async function bootstrap() {
   const statePath = stateStore.initStateStorePaths();
   mainLog.info(`state store path: ${statePath}`);
 
-  const ctx = { getTrayMgr: () => trayMgr, runtimeConfigRef };
+  const ctx = { getTrayMgr: () => trayMgr };
 
-  // P52: 自更新 controller — 必须早于 registerIpcHandlers,
-  // 因为 IPC handler 启动时就读 selfUpdateController().
+  // IPC 注册时读取 self-update controller，因此必须先初始化。
   const { handle: selfUpdateHandle } = initSelfUpdateTimer(ctx);
 
-  // Phase Q6: capture uncaught main errors + best-effort cleanup of old logs
   try {
     initErrorCapture({ sendToRenderer });
     mainLog.info("error capture enabled");
   } catch (err) {
     mainLog.warn(`[error-init] failed: ${err && err.message}`);
   }
-  // Phase Q8: run loadOrRecover to back up any corrupt state.json and record
-  // the recovery event for the renderer's banner. Must happen before any other
-  // module reads state, so they see the baseline (not corrupt data).
+  // 必须先恢复 state，后续模块才能读取可靠基线。
   initStateRecovery();
   try {
     const st = fs.statSync(statePath);
@@ -876,8 +799,6 @@ async function bootstrap() {
 
 if (app && typeof app.whenReady === "function") {
   app.whenReady().then(() => {
-    // Phase Q5 v1: scan audit fixtures for timer cleanup patterns.
-    // 必须在 bootstrap() 之前跑 — timer-audit 读 fixture 只读, 不依赖 runtime state.
     try {
       const audit = auditTimers(
         path.join(__dirname, "..", "tests", "fixtures", "timer-audit"),
@@ -892,12 +813,9 @@ if (app && typeof app.whenReady === "function") {
       );
     }
 
-    // 启动主流程 (window/tray/IPC/schedulers). 必须 await, 否则后续 lifecycle handler
-    // (activate / before-quit) 引用闭包变量 (pool/trayMgr/aiUsageScheduler) 会拿到 undefined.
+    // lifecycle handler 依赖 bootstrap 初始化的闭包状态。
     bootstrap()
       .then(() => {
-        // Phase Q4 v1: bootstrap done — tray / window / pool / ipc 全部就绪.
-        // 后续 markRendererReady 在 window.js did-finish-load 触发.
         markBootstrapDone();
       })
       .catch((err) => {
@@ -909,7 +827,6 @@ if (app && typeof app.whenReady === "function") {
         }
       });
 
-    // Phase Q5 v1: clear any remaining managed timers on quit.
     app.once("before-quit", () => {
       try {
         const cleared = clearAllManaged();

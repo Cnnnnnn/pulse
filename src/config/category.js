@@ -43,17 +43,6 @@ const DEFAULT_CATEGORIES = Object.freeze([
   Object.freeze({ id: 'other',   name: '其他',    order: 99 }),
 ]);
 
-const DEFAULT_MAPPING = Object.freeze({
-  cursor: 'ai', claude: 'ai', chatgpt: 'ai',
-  raycast: 'system',
-  iterm2: 'dev', vscode: 'dev', docker: 'dev', postman: 'dev',
-  chrome: 'browser', firefox: 'browser', arc: 'browser',
-  slack: 'comms', discord: 'comms', wechat: 'comms',
-  figma: 'media', sketch: 'media', spotify: 'media', iina: 'media',
-  obsidian: 'notes', notion: 'notes', things: 'notes',
-  alfred: 'system', '1password': 'system', bartender: 'system',
-});
-
 // ── Step B (LLM classify): heuristic 关键词 → 分类 id ──
 // 顺序敏感: 先匹配先赢. 每个 entry: { pattern, cat }
 // pattern 走 String.prototype.test (regex) — 简单 + 容易单测.
@@ -84,7 +73,6 @@ let CATEGORIES_SORTED = [...DEFAULT_CATEGORIES];
 let _LOAD_STATUS = { ok: true, usedFallback: true, errors: [], warnings: ['module not yet initialized via setData'] };
 // Step B: LLM classify 结果缓存 (异步注入, getCategory 走 fallback 时查这里)
 let LLM_CLASSIFY_CACHE = new Map();
-let LLM_CLASSIFY_TS = new Map();  // 每个 appName 一次分类的 ts (debug/统计用)
 
 function _isCategoryShape(c) {
   return (
@@ -158,7 +146,7 @@ function setData({ cats, map, source } = {}) {
 /**
  * 查 app 的分类. 找不到 → 'other' (兜底, 永不崩).
  * Step B: 三层查找 —
- *   1) 静态 map (setData 注入 / DEFAULT_MAPPING)
+ *   1) setData 注入的静态 map
  *   2) LLM classify cache (setLLMCache 注入, main 进程启动时填)
  *   3) 'other' 兜底
  * 注: heuristic **不**在这里跑 — heuristic 是给 main 进程"启动时给 LLM 提示"用,
@@ -211,12 +199,10 @@ function classifyByHeuristic(app) {
  */
 function setLLMCache(map) {
   if (!map || typeof map !== 'object') return;
-  const now = Date.now();
   for (const [k, v] of Object.entries(map)) {
     if (typeof k !== 'string' || k.length === 0) continue;
     if (typeof v !== 'string' || !CATEGORIES_BY_ID.has(v)) continue;
     LLM_CLASSIFY_CACHE.set(k.toLowerCase(), v);
-    LLM_CLASSIFY_TS.set(k.toLowerCase(), now);
   }
 }
 
@@ -238,7 +224,6 @@ function getLLMCache() {
  */
 function _clearLLMCache() {
   LLM_CLASSIFY_CACHE.clear();
-  LLM_CLASSIFY_TS.clear();
 }
 
 /**
@@ -378,17 +363,10 @@ function validateCategoryMap() {
 function getCategoryTabsWithCount(results) {
   const counts = new Map();
   let total = 0;
-  if (results && typeof results.keys === 'function') {
-    // Map
-    for (const name of results.keys()) {
-      const n = typeof name === 'string' ? name : '';
-      const cat = getCategory(n);
-      counts.set(cat, (counts.get(cat) || 0) + 1);
-      total += 1;
-    }
-  } else if (results && typeof results[Symbol.iterator] === 'function') {
-    // Iterable<string>
-    for (const name of results) {
+  const names =
+    results && typeof results.keys === 'function' ? results.keys() : results;
+  if (names && typeof names[Symbol.iterator] === 'function') {
+    for (const name of names) {
       const n = typeof name === 'string' ? name : '';
       const cat = getCategory(n);
       counts.set(cat, (counts.get(cat) || 0) + 1);
@@ -435,8 +413,6 @@ module.exports = {
   // 测试/调试用 (不应在生产代码调)
   _LOAD_STATUS: () => _LOAD_STATUS,
   _DEFAULT_CATEGORIES: DEFAULT_CATEGORIES,
-  _DEFAULT_MAPPING: DEFAULT_MAPPING,
   _HEURISTIC_RULES: HEURISTIC_RULES,
-  _LLM_CLASSIFY_TS: () => new Map(LLM_CLASSIFY_TS),
   _clearLLMCache,
 };
