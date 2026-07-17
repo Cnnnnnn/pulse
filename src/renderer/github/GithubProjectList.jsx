@@ -39,6 +39,8 @@ import {
   hasGithubUpdate,
   hostnameOf,
   hasDistinctHomepage,
+  lastFailedIds,
+  collectGithubTags,
 } from "../store/github-projects-store.js";
 import { openConfirm } from "../confirmStore.js";
 import { api } from "../api.js";
@@ -106,12 +108,13 @@ function GithubUpdateBadge({ project, onView }) {
   );
 }
 
-export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSeen }) {
+export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFailed, onMarkAllSeen }) {
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("added");
   const [view, setView] = useState("list");
   const [lang, setLang] = useState("");
+  const [topic, setTopic] = useState("");
   const [checking, setChecking] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
 
@@ -128,6 +131,9 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [projects]);
 
+  // 合并 GitHub topics + AI tags 作为标签筛选源（覆盖更广）
+  const allTags = useMemo(() => collectGithubTags(projects), [projects]);
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = projects;
@@ -140,6 +146,13 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
     }
     if (lang) {
       list = list.filter((p) => p.language === lang);
+    }
+    if (topic) {
+      list = list.filter(
+        (p) =>
+          (Array.isArray(p.topics) && p.topics.includes(topic)) ||
+          (p.aiParse && Array.isArray(p.aiParse.tags) && p.aiParse.tags.includes(topic)),
+      );
     }
     const sorted = [...list];
     sorted.sort((a, b) => {
@@ -156,7 +169,7 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
       return (b.addedAt || 0) - (a.addedAt || 0);
     });
     return sorted;
-  }, [projects, query, lang, sort]);
+  }, [projects, query, lang, topic, sort]);
 
   const total = visible.length;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -173,6 +186,10 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
   }
   function handleLang(next) {
     setLang(next);
+    setPage(1);
+  }
+  function handleTopic(next) {
+    setTopic(next);
     setPage(1);
   }
   async function handleRemove(project) {
@@ -193,6 +210,20 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
     setProgress({ done: 0, total: githubProjects.value.length });
     try {
       await onCheckUpdates((done, total) => setProgress({ done, total }));
+    } finally {
+      setChecking(false);
+      setProgress({ done: 0, total: 0 });
+    }
+  }
+  /** 重试上次检查更新的失败项（不依赖会消失的 toast，工具栏持久入口）。 */
+  async function handleRetryFailed() {
+    if (checking || !onRetryFailed) return;
+    const n = lastFailedIds.value.length;
+    if (!n) return;
+    setChecking(true);
+    setProgress({ done: 0, total: n });
+    try {
+      await onRetryFailed((done, total) => setProgress({ done, total }));
     } finally {
       setChecking(false);
       setProgress({ done: 0, total: 0 });
@@ -285,6 +316,18 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
             <IconGrid size={16} />
           </button>
         </div>
+        {lastFailedIds.value.length > 0 && (
+          <button
+            type="button"
+            class="github-btn github-btn--ghost github-retry-failed-btn"
+            onClick={handleRetryFailed}
+            disabled={checking}
+            title={`重试上次检查更新的 ${lastFailedIds.value.length} 个失败项`}
+          >
+            <IconRefresh size={14} /> 重试失败项
+            <span class="github-markall-btn__count">{lastFailedIds.value.length}</span>
+          </button>
+        )}
         {unseen > 0 && (
           <button
             type="button"
@@ -357,6 +400,29 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onMarkAllSe
               onClick={() => handleLang(l)}
             >
               {l}
+            </button>
+          ))}
+        </div>
+      )}
+      {allTags.length >= 2 && (
+        <div class="github-filterbar" role="group" aria-label="按标签筛选">
+          <button
+            type="button"
+            class={`github-chip-pill ${topic === "" ? "is-active" : ""}`}
+            aria-pressed={topic === ""}
+            onClick={() => handleTopic("")}
+          >
+            全部
+          </button>
+          {allTags.map((t) => (
+            <button
+              type="button"
+              key={t}
+              class={`github-chip-pill ${topic === t ? "is-active" : ""}`}
+              aria-pressed={topic === t}
+              onClick={() => handleTopic(t)}
+            >
+              {t}
             </button>
           ))}
         </div>

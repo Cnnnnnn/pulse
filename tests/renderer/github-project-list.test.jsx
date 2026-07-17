@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
 import { GithubProjectRow, GithubProjectCard, GithubProjectList } from '../../src/renderer/github/GithubProjectList.jsx';
-import { githubProjects, githubDensity } from '../../src/renderer/store/github-projects-store.js';
+import { githubProjects, githubDensity, collectGithubTags } from '../../src/renderer/store/github-projects-store.js';
 
 function makeProject(overrides = {}) {
   return {
@@ -358,5 +358,116 @@ describe('GitHub 项目列表 · 视图密度', () => {
     const root = container.querySelector('.github-list');
     expect(root.className).toContain('github-list--compact');
     expect(githubDensity.value).toBe('compact');
+  });
+});
+
+describe('collectGithubTags · 纯函数（合并 topics + AI tags）', () => {
+  it('合并 topics 与 aiParse.tags，去重排序', () => {
+    const tags = collectGithubTags([
+      { topics: ['react', 'javascript'], aiParse: { tags: ['frontend'] } },
+      { topics: ['vue'], aiParse: { tags: ['javascript', 'spa'] } },
+    ]);
+    expect(tags).toEqual(['frontend', 'javascript', 'react', 'spa', 'vue']);
+  });
+
+  it('无 topics 但有 aiParse.tags → 仍收集', () => {
+    const tags = collectGithubTags([
+      { topics: [], aiParse: { tags: ['cli', 'tool'] } },
+    ]);
+    expect(tags).toEqual(['cli', 'tool']);
+  });
+
+  it('空数组 / 非数组 → 返回空数组', () => {
+    expect(collectGithubTags([])).toEqual([]);
+    expect(collectGithubTags(null)).toEqual([]);
+  });
+
+  it('trim 空白、跳过空串', () => {
+    const tags = collectGithubTags([
+      { topics: ['  react  ', ''], aiParse: { tags: ['  '] } },
+    ]);
+    expect(tags).toEqual(['react']);
+  });
+});
+
+describe('GitHub 项目列表 · topics 标签筛选', () => {
+  beforeEach(() => {
+    githubProjects.value = [];
+  });
+
+  function seedWithTagged(items) {
+    githubProjects.value = items.map((x) => ({
+      id: x.id,
+      name: x.id,
+      description: '',
+      language: '',
+      stars: 0,
+      addedAt: 1000,
+      topics: x.topics || [],
+      aiParse: x.aiParse || null,
+    }));
+  }
+
+  /** 取标签筛选栏里的胶囊文案（排除「全部」）。用 aria-label 精确定位 topics 栏。 */
+  function tagPills(container) {
+    const topicBar = container.querySelector('.github-filterbar[aria-label="按标签筛选"]');
+    if (!topicBar) return [];
+    return [...topicBar.querySelectorAll('.github-chip-pill')]
+      .map((b) => b.textContent.trim())
+      .filter((t) => t !== '全部');
+  }
+
+  function clickTag(container, tag) {
+    const topicBar = container.querySelector('.github-filterbar[aria-label="按标签筛选"]');
+    return [...topicBar.querySelectorAll('.github-chip-pill')]
+      .find((b) => b.textContent.trim() === tag);
+  }
+
+  it('≥2 个标签 → 渲染 topics 筛选栏', () => {
+    seedWithTagged([
+      { id: 'a/a', topics: ['react'] },
+      { id: 'b/b', topics: ['vue'] },
+    ]);
+    const { container } = render(<GithubProjectList />);
+    const tags = tagPills(container);
+    expect(tags).toEqual(expect.arrayContaining(['react', 'vue']));
+  });
+
+  it('点击某标签 → 只显示含该标签的项目（topics 或 aiParse.tags 命中）', () => {
+    seedWithTagged([
+      { id: 'a/r1', topics: ['react'] },
+      { id: 'b/r2', aiParse: { tags: ['react'] } },
+      { id: 'c/v1', topics: ['vue'] },
+    ]);
+    const { container } = render(<GithubProjectList />);
+    fireEvent.click(clickTag(container, 'react'));
+    const names = [...container.querySelectorAll('.github-row__name')].map((e) => e.textContent.trim());
+    expect(names).toEqual(expect.arrayContaining(['a/r1', 'b/r2']));
+    expect(names).not.toContain('c/v1');
+  });
+
+  it('「全部」按钮 → 清除筛选显示所有', () => {
+    seedWithTagged([
+      { id: 'a/r1', topics: ['react'] },
+      { id: 'c/v1', topics: ['vue'] },
+    ]);
+    const { container } = render(<GithubProjectList />);
+    fireEvent.click(clickTag(container, 'react'));
+    const topicBar = container.querySelector('.github-filterbar[aria-label="按标签筛选"]');
+    const allPill = topicBar.querySelectorAll('.github-chip-pill')[0];
+    fireEvent.click(allPill);
+    const names = [...container.querySelectorAll('.github-row__name')].map((e) => e.textContent.trim());
+    expect(names.length).toBe(2);
+  });
+
+  it('项目无任何标签 → 不出现在标签筛选，但「全部」里可见', () => {
+    seedWithTagged([
+      { id: 'a/notag', topics: [] },
+      { id: 'b/has', topics: ['react'] },
+    ]);
+    const { container } = render(<GithubProjectList />);
+    // 全部时两个都在
+    let names = [...container.querySelectorAll('.github-row__name')].map((e) => e.textContent.trim());
+    expect(names).toEqual(expect.arrayContaining(['a/notag', 'b/has']));
   });
 });

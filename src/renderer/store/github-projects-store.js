@@ -21,6 +21,9 @@ export const githubBusy = signal(false);
 export const githubBusyId = signal(null);
 /** 最近一次错误 reason — 用于顶部提示。 */
 export const githubError = signal(null);
+/** 最近一次「检查更新」失败（瞬时，非 permanent）的项目 id 列表。
+ *  供工具栏「重试失败项(N)」按钮消费，不依赖会消失的 toast。 */
+export const lastFailedIds = signal([]);
 /** 视图密度偏好（comfortable | compact）— 控制更新时间线默认展开条数与间距。 */
 export const githubDensity = signal("comfortable");
 /** GitHub Personal Access Token（仅本机 localStorage，不发往任何服务器）。用于解除未登录 60 次/小时限流。 */
@@ -227,6 +230,30 @@ export function hasDistinctHomepage(project) {
   if (project.url && project.homepage === project.url) return false;
   if (/^https?:\/\/github\.com\//i.test(project.homepage)) return false;
   return true;
+}
+
+/**
+ * 从项目集合中收集去重的标签集合（合并 GitHub topics + AI 解析 tags）。
+ * 纯函数，便于单测。返回按字母序排序的字符串数组。
+ * - topics：仓库作者在 GitHub 上标注的（抓元数据时已存）
+ * - aiParse.tags：AI 解析 README 时生成的关键词（可能为没填 topics 的仓库补充）
+ * 合并两者覆盖更广：有 topics 用 topics，没 topics 但解析过的用 AI tags。
+ */
+export function collectGithubTags(projects) {
+  if (!Array.isArray(projects)) return [];
+  const set = new Set();
+  for (const p of projects) {
+    if (Array.isArray(p.topics)) {
+      for (const t of p.topics) {
+        if (typeof t === "string" && t.trim()) set.add(t.trim());
+      }
+    }
+    const aiTags = p.aiParse && Array.isArray(p.aiParse.tags) ? p.aiParse.tags : [];
+    for (const t of aiTags) {
+      if (typeof t === "string" && t.trim()) set.add(t.trim());
+    }
+  }
+  return [...set].sort((a, b) => a.localeCompare(b));
 }
 
 /** 把时间戳格式化为「N 天前 / N 个月前」等人读相对时间。 */
@@ -578,20 +605,10 @@ export function markGithubAllSeen() {
 }
 
 /**
- * 批量检查所有项目的更新。
- * @param {{onProgress?:(done:number,total:number)=>void, onlyStale?:boolean}} [opts]
- *   onProgress 用于 UI 进度（检查中 N/M）；onlyStale 仅检查从未拉过 release 的项目。
- * @returns {Promise<{ok:boolean, newCount:number, errorCount:number, skippedCount:number,
- *   failedProjects:Array<{id:string,name:string,reason:string,detail?:string,retryAfter?:number,rateLimitRemaining?:number}>,
- *   skippedProjects:Array<{id:string,name:string,reason:string}>}>}
- *
- *   permanent 失败 (404 仓库不存在/已删除/私有) 归到 skippedProjects/skippedCount，
- *   不再每轮把整批拖成「失败」。瞬时失败 (限流/网络/5xx) 计入 errorCount。
+ * 批量检查的核心循环（内部 helper）。checkGithubUpdates 和 retryFailedGithubUpdates 共用。
+ * 不直接操作 lastFailedIds —— 由调用方在结束后据返回的 failedProjects 决定。
  */
-export async function checkGithubUpdates(opts = {}) {
-  const { onProgress, onlyStale } = opts;
-  let list = githubProjects.value;
-  if (onlyStale) list = list.filter((p) => !p.releaseFetchedAt);
+async function _runCheckLoop(list, onProgress) {
   if (list.length === 0) {
     return { ok: true, newCount: 0, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] };
   }
@@ -635,4 +652,163 @@ export async function checkGithubUpdates(opts = {}) {
   } finally {
     githubBusy.value = false;
   }
+}
+
+/**
+ * 批量检查所有项目的更新。
+ * @param {{onProgress?:(done:number,total:number)=>void, onlyStale?:boolean}} [opts]
+ *   onProgress 用于 UI 进度（检查中 N/M）；onlyStale 仅检查从未拉过 release 的项目。
+ * @returns {Promise<{ok:boolean, newCount:number, errorCount:number, skippedCount:number,
+ *   failedProjects:Array<{id:string,name:string,reason:string,detail?:string,retryAfter?:number,rateLimitRemaining?:number}>,
+ *   skippedProjects:Array<{id:string,name:string,reason:string}>}>}
+ *
+ *   permanent 失败 (404 仓库不存在/已删除/私有) 归到 skippedProjects/skippedCount，
+ *   不再每轮把整批拖成「失败」。瞬时失败 (限流/网络/5xx) 计入 errorCount，并记录到
+ *   lastFailedIds 供「重试失败项」按钮消费。
+ */
+export async function checkGithubUpdates(opts = {}) {
+  const { onProgress, onlyStale } = opts;
+  let list = githubProjects.value;
+  if (onlyStale) list = list.filter((p) => !p.releaseFetchedAt);
+  const r = await _runCheckLoop(list, onProgress);
+  lastFailedIds.value = (r.failedProjects || []).map((f) => f.id);
+  return r;
+}
+
+/**
+ * 只重试上次「检查更新」失败的项目（lastFailedIds）。
+ * 用于工具栏「重试失败项(N)」按钮 —— 不依赖会消失的 toast。
+ * 重试后 lastFailedIds 更新为本次仍失败的 id（全部成功则清空）。
+ */
+export async function retryFailedGithubUpdates(opts = {}) {
+  const { onProgress } = opts;
+  const ids = lastFailedIds.value;
+  if (!ids.length) {
+    return { ok: true, newCount: 0, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] };
+  }
+  const idSet = new Set(ids);
+  const list = githubProjects.value.filter((p) => idSet.has(p.id));
+  const r = await _runCheckLoop(list, onProgress);
+  lastFailedIds.value = (r.failedProjects || []).map((f) => f.id);
+  return r;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 数据导出 / 导入（纯 renderer，不走主进程）
+//
+// 收录库全在 localStorage，换电脑/清缓存/配额撞墙 = 全丢。导出/导入让数据可
+// 备份可迁移。导出走 Blob 下载，导入走 file input，数据不经过主进程文件系统。
+// ──────────────────────────────────────────────────────────────────────────
+
+const EXPORT_SCHEMA = "pulse.github.export.v1";
+
+/**
+ * 导出全部数据为 JSON 字符串。含 schema 标记便于后续版本迁移。
+ * @returns {string}
+ */
+export function exportGithubData() {
+  return JSON.stringify({
+    schema: EXPORT_SCHEMA,
+    exportedAt: Date.now(),
+    projects: githubProjects.value,
+    settings: {
+      density: githubDensity.value,
+      token: githubToken.value,
+    },
+  });
+}
+
+/**
+ * 导入备份 JSON。按 id 去重合并：本地已存在的跳过（保留本地最新），不存在的添加。
+ * settings：density 采用导入值（若合法）；token 本地已有非空则保留本地。
+ * @param {string} jsonString
+ * @returns {{ok:boolean, imported?:number, skipped?:number, reason?:string}}
+ */
+export function importGithubData(jsonString) {
+  let o;
+  try {
+    o = JSON.parse(jsonString);
+  } catch {
+    return { ok: false, reason: "invalid_format" };
+  }
+  if (!o || o.schema !== EXPORT_SCHEMA || !Array.isArray(o.projects)) {
+    return { ok: false, reason: "invalid_format" };
+  }
+  const existingIds = new Set(githubProjects.value.map((p) => p.id));
+  let imported = 0;
+  let skipped = 0;
+  const incoming = [];
+  for (const p of o.projects) {
+    if (!p || typeof p.id !== "string") continue;
+    if (existingIds.has(p.id)) {
+      skipped += 1; // 本地已有 → 保留本地，跳过
+    } else {
+      incoming.push(p);
+      imported += 1;
+    }
+  }
+  // 新项目插到最前面（保持「最近添加在前」的视觉）
+  if (incoming.length) {
+    githubProjects.value = [...incoming, ...githubProjects.value];
+  }
+  // settings 合并
+  const s = o.settings || {};
+  if (s.density === "compact" || s.density === "comfortable") {
+    setGithubDensity(s.density);
+  }
+  // token：本地空才采用导入值（避免覆盖用户已在本地配置的 token）
+  if (!githubToken.value && typeof s.token === "string" && s.token) {
+    setGithubToken(s.token);
+  }
+  persist();
+  return { ok: true, imported, skipped };
+}
+
+/**
+ * 触发浏览器下载备份 JSON。文件名 github-backup-YYYYMMDD.json。
+ * 依赖 DOM API（Blob/URL），生产 Electron 环境可用，单测不覆盖。
+ */
+export function downloadGithubBackup() {
+  const json = exportGithubData();
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `github-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // 释放 blob URL，避免内存泄漏
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * 弹出文件选择器，读取用户选的备份 JSON 并导入。
+ * @returns {Promise<{ok:boolean, imported?:number, skipped?:number, reason?:string}|null>}
+ *   用户取消选择时 resolve null。
+ */
+export function pickGithubBackupFile() {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (!file) return resolve(null);
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const text = typeof reader.result === "string" ? reader.result : "";
+          resolve(importGithubData(text));
+        } catch (err) {
+          resolve({ ok: false, reason: "invalid_format" });
+        }
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsText(file);
+    };
+    input.click();
+  });
 }

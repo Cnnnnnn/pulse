@@ -11,6 +11,7 @@ import {
   githubProjects,
   githubError,
   checkGithubUpdates,
+  retryFailedGithubUpdates,
   markGithubSeen,
   markGithubAllSeen,
   githubReasonText,
@@ -34,6 +35,88 @@ function GithubMark({ size = 18 }) {
   );
 }
 
+/**
+ * 把 checkGithubUpdates / retryFailedGithubUpdates 的结果翻译成 toast。
+ * 两个入口共用此 helper，保证门控逻辑一致。
+ * 分支：newCount>0 成功 / 仅永久失败 info「已失效」/ 瞬时失败 warn / 全成功 info。
+ */
+const KNOWN_REASONS = new Set([
+  "invalid_url", "invalid_input", "duplicate", "not_found",
+  "auth_invalid", "rate_limited", "network_error", "timeout",
+  "parse_error", "no_readme", "server_error",
+]);
+
+function _reportCheckResult(r) {
+  if (!r || !r.ok) return;
+  const errorCount = r.errorCount || 0;
+  const skippedCount = r.skippedCount || 0;
+  if (r.newCount > 0) {
+    const extras = [];
+    if (errorCount > 0) extras.push(`${errorCount} 个失败`);
+    if (skippedCount > 0) extras.push(`${skippedCount} 个已失效`);
+    const extra = extras.length ? `（${extras.join(" / ")}）` : "";
+    showToast(`发现 ${r.newCount} 个项目有新版本${extra}`, "success");
+    return;
+  }
+  if (errorCount === 0 && skippedCount > 0) {
+    const names = (r.skippedProjects || [])
+      .map((f) => f.name)
+      .slice(0, 3)
+      .join("、");
+    const more = skippedCount > 3 ? ` 等 ${skippedCount} 个` : "";
+    showToast(
+      `${skippedCount} 个项目已失效（仓库不存在或已删除）：${names}${more}`,
+      "info",
+      6000,
+    );
+    return;
+  }
+  if (errorCount > 0) {
+    const details = (r.failedProjects || [])
+      .map((f) => {
+        const text = githubReasonText(f.reason);
+        const rlBits = [];
+        if (f.reason === "rate_limited") {
+          if (typeof f.rateLimitRemaining === "number") {
+            rlBits.push(`剩余 ${f.rateLimitRemaining} 次`);
+          }
+          if (typeof f.retryAfter === "number" && f.retryAfter > 0) {
+            const mins = Math.max(1, Math.round(f.retryAfter / 60));
+            rlBits.push(`约 ${mins} 分钟后重置`);
+          }
+        }
+        const rl = rlBits.length ? ` · ${rlBits.join(" · ")}` : "";
+        const detail =
+          f.detail && !KNOWN_REASONS.has(f.reason) ? ` [${f.detail}]` : "";
+        return `${f.name}(${text}${rl}${detail})`;
+      })
+      .join("、");
+    const fps = r.failedProjects || [];
+    const hint = fps.some((f) => f.reason === "auth_invalid")
+      ? " · 请在 设置 → GitHub 中重新生成 Token"
+      : fps.some((f) => f.reason === "rate_limited")
+        ? " · 可在 设置 → GitHub 配置 Token 解除 60 次/小时限制"
+        : fps.some(
+            (f) =>
+              f.reason === "network_error" ||
+              f.reason === "fetch_failed" ||
+              f.reason === "timeout",
+          )
+          ? " · 请检查网络连接"
+          : fps.some((f) => f.reason === "server_error")
+            ? " · GitHub 服务暂时异常，请稍后重试"
+            : "";
+    const skipNote = skippedCount > 0 ? `（另有 ${skippedCount} 个已失效）` : "";
+    showToast(
+      `检查完成，${errorCount} 个失败：${details}${hint}${skipNote}`,
+      "warn",
+      6000,
+    );
+    return;
+  }
+  showToast("已是最新版本", "info");
+}
+
 export function GithubPage() {
   const [drawerId, setDrawerId] = useState(null);
   const [drawerTab, setDrawerTab] = useState("readme");
@@ -52,88 +135,14 @@ export function GithubPage() {
 
   async function handleCheckUpdates(onProgress) {
     const r = await checkGithubUpdates({ onProgress });
-    if (r && r.ok) {
-      const errorCount = r.errorCount || 0;
-      const skippedCount = r.skippedCount || 0;
-      // 成功发现新版本：哪怕有部分失败/失效，也优先正向反馈，附带次要计数
-      if (r.newCount > 0) {
-        const extras = [];
-        if (errorCount > 0) extras.push(`${errorCount} 个失败`);
-        if (skippedCount > 0) extras.push(`${skippedCount} 个已失效`);
-        const extra = extras.length ? `（${extras.join(" / ")}）` : "";
-        showToast(`发现 ${r.newCount} 个项目有新版本${extra}`, "success");
-        return r;
-      }
-      // 只有永久失败（仓库不存在/已删除/私有）→ 不算「失败」，归为 info「已失效」
-      if (errorCount === 0 && skippedCount > 0) {
-        const names = (r.skippedProjects || [])
-          .map((f) => f.name)
-          .slice(0, 3)
-          .join("、");
-        const more = skippedCount > 3 ? ` 等 ${skippedCount} 个` : "";
-        showToast(
-          `${skippedCount} 个项目已失效（仓库不存在或已删除）：${names}${more}`,
-          "info",
-          6000,
-        );
-        return r;
-      }
-      // 瞬时失败（限流/网络/5xx）→ warn，带可操作的具体信息
-      if (errorCount > 0) {
-        const details = (r.failedProjects || [])
-          .map((f) => {
-            const text = githubReasonText(f.reason);
-            // 限流：附加剩余次数与重置时间（来自 x-ratelimit-* 头）
-            const rlBits = [];
-            if (f.reason === "rate_limited") {
-              if (typeof f.rateLimitRemaining === "number") {
-                rlBits.push(`剩余 ${f.rateLimitRemaining} 次`);
-              }
-              if (typeof f.retryAfter === "number" && f.retryAfter > 0) {
-                const mins = Math.max(1, Math.round(f.retryAfter / 60));
-                rlBits.push(`约 ${mins} 分钟后重置`);
-              }
-            }
-            const rl = rlBits.length ? ` · ${rlBits.join(" · ")}` : "";
-            // 对「没有专属中文文案的 reason」（如 threw / 未来的未知分类）
-            // 附加原始错误信息，让用户能看到根因而非笼统的「操作失败」。
-            // 已知专属文案的 reason（rate_limited 等）不重复附加 detail。
-            const knownReasons = new Set([
-              "invalid_url", "invalid_input", "duplicate", "not_found",
-              "auth_invalid", "rate_limited", "network_error", "timeout",
-              "parse_error", "no_readme", "server_error",
-            ]);
-            const detail =
-              f.detail && !knownReasons.has(f.reason) ? ` [${f.detail}]` : "";
-            return `${f.name}(${text}${rl}${detail})`;
-          })
-          .join("、");
-        const fps = r.failedProjects || [];
-        const hint = fps.some((f) => f.reason === "auth_invalid")
-          ? " · 请在 设置 → GitHub 中重新生成 Token"
-          : fps.some((f) => f.reason === "rate_limited")
-            ? " · 可在 设置 → GitHub 配置 Token 解除 60 次/小时限制"
-            : fps.some(
-                (f) =>
-                  f.reason === "network_error" ||
-                  f.reason === "fetch_failed" ||
-                  f.reason === "timeout",
-              )
-              ? " · 请检查网络连接"
-              : fps.some((f) => f.reason === "server_error")
-                ? " · GitHub 服务暂时异常，请稍后重试"
-                : "";
-        const skipNote = skippedCount > 0 ? `（另有 ${skippedCount} 个已失效）` : "";
-        showToast(
-          `检查完成，${errorCount} 个失败：${details}${hint}${skipNote}`,
-          "warn",
-          6000,
-        );
-        return r;
-      }
-      // 全部成功且无新版
-      showToast("已是最新版本", "info");
-    }
+    _reportCheckResult(r);
+    return r;
+  }
+
+  /** 只重试上次失败的项目（工具栏「重试失败项」按钮触发）。 */
+  async function handleRetryFailed(onProgress) {
+    const r = await retryFailedGithubUpdates({ onProgress });
+    _reportCheckResult(r);
     return r;
   }
 
@@ -174,6 +183,7 @@ export function GithubPage() {
           onView={handleView}
           onParse={handleParse}
           onCheckUpdates={handleCheckUpdates}
+          onRetryFailed={handleRetryFailed}
           onMarkAllSeen={handleMarkAllSeen}
         />
       </div>

@@ -23,7 +23,7 @@ import {
   subscribeTheme,
 } from "../theme/theme-manager.js";
 import { showToast } from "../store.js";
-import { githubToken, setGithubToken, loadGithubSettings } from "../store/github-projects-store.js";
+import { githubToken, setGithubToken, loadGithubSettings, downloadGithubBackup, pickGithubBackupFile, exportGithubData, githubProjects } from "../store/github-projects-store.js";
 
 /* ─── theme signal (与 localStorage 同步) ─────────────────────── */
 // ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
@@ -200,7 +200,31 @@ function GithubSettingsSection() {
     }
   };
 
+  const handleExport = () => {
+    try {
+      downloadGithubBackup();
+      const n = githubProjects.value.length;
+      showToast(`已导出 ${n} 个项目到备份文件`, "success", 3000);
+    } catch (err) {
+      showToast(`导出失败: ${err && err.message}`, "error", 3000);
+    }
+  };
+  const handleImport = async () => {
+    try {
+      const r = await pickGithubBackupFile();
+      if (!r) return; // 用户取消
+      if (!r.ok) {
+        showToast(`导入失败：备份文件格式不正确`, "error", 3000);
+        return;
+      }
+      showToast(`已导入 ${r.imported} 个，跳过 ${r.skipped} 个已存在`, "success", 4000);
+    } catch (err) {
+      showToast(`导入失败: ${err && err.message}`, "error", 3000);
+    }
+  };
+
   return (
+    <>
     <section class="settings-card">
       <h3 class="settings-card__title">GitHub 访问令牌</h3>
       <p class="settings-row__hint" style="margin:0 0 12px">
@@ -266,6 +290,41 @@ function GithubSettingsSection() {
         创建一个（读取公开仓库信息无需勾选任何 scope）。
       </p>
     </section>
+
+    <section class="settings-card">
+      <h3 class="settings-card__title">数据备份</h3>
+      <p class="settings-row__hint" style="margin:0 0 12px">
+        收录的项目、README、Release、AI 解析结果与 Token 都只存在本机浏览器，
+        换电脑或清理缓存会丢失。建议定期<b>导出备份</b>。
+      </p>
+      <div class="settings-row">
+        <div class="settings-row__label-block">
+          <span class="settings-row__label">备份与迁移</span>
+          <span class="settings-row__hint">
+            当前已收录 {githubProjects.value.length} 个项目。
+            导出包含全部数据；导入时已存在的项目会跳过（保留本地）。
+          </span>
+        </div>
+        <div class="settings-row__buttons">
+          <button
+            type="button"
+            class="settings-btn settings-btn--ghost"
+            onClick={handleExport}
+            disabled={githubProjects.value.length === 0}
+          >
+            导出备份
+          </button>
+          <button
+            type="button"
+            class="settings-btn settings-btn--primary"
+            onClick={handleImport}
+          >
+            导入备份
+          </button>
+        </div>
+      </div>
+    </section>
+    </>
   );
 }
 
