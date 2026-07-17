@@ -21,6 +21,7 @@ export const PLATFORMS = [
 export const MODES = [
   { key: "deals", label: "折扣力度" },
   { key: "free", label: "免费活动" },
+  { key: "wishlist", label: "心愿单" },
 ];
 
 /** 折扣力度阈值（仅 deals 模式用）。 */
@@ -66,6 +67,11 @@ export const gamesAutoCheckIntervalMin = signal(360); // 间隔分钟，默认 3
 export const gamesNotifyOnFree = signal(true); // 桌面通知开关，默认开
 // 后台发现新免费活动但用户尚未查看 → SideNav 红点
 export const gamesHasNewFree = signal(false);
+
+// 心愿单 + 降价通知
+export const wishlist = signal([]);
+export const gamesHasNewDrop = signal(false);
+export const gamesNotifyOnDrop = signal(true);
 
 let _reqToken = 0;
 
@@ -178,6 +184,8 @@ export function hasGamerPowerAttribution() {
 // ── 后台检查设置持久化（localStorage，照搬 github-projects-store.js）──
 const SETTINGS_KEY = "pulse.games.settings.v1";
 const SEEN_FREE_KEY = "pulse.games.seen.v1";
+const WISHLIST_KEY = "pulse.games.wishlist.v1";
+const SEEN_DROP_KEY = "pulse.games.seenDrop.v1";
 
 function readStorage(key) {
   try {
@@ -211,6 +219,9 @@ export function loadGamesSettings() {
     if (o && typeof o.notifyOnFree === "boolean") {
       gamesNotifyOnFree.value = o.notifyOnFree;
     }
+    if (o && typeof o.notifyOnDrop === "boolean") {
+      gamesNotifyOnDrop.value = o.notifyOnDrop;
+    }
   } catch {
     /* 损坏数据忽略 */
   }
@@ -224,6 +235,7 @@ function persistSettings() {
         autoCheck: gamesAutoCheck.value,
         autoCheckIntervalMin: gamesAutoCheckIntervalMin.value,
         notifyOnFree: gamesNotifyOnFree.value,
+        notifyOnDrop: gamesNotifyOnDrop.value,
       }),
     );
   } catch {
@@ -275,6 +287,92 @@ export function saveSeenFreeIds(ids) {
   } catch {
     /* 忽略 */
   }
+}
+
+// ── 心愿单 + 降价通知 ──────────────────────────────────────────────
+
+/** 生成心愿单条目主键。 */
+export function getWishlistKey(game) {
+  return `${game.platform}:${game.id}`;
+}
+
+/** 从 localStorage 读取心愿单并填充 signal。损坏数据静默回退空数组。 */
+export function loadWishlist() {
+  const raw = readStorage(WISHLIST_KEY);
+  try {
+    const arr = raw ? JSON.parse(raw) : [];
+    wishlist.value = Array.isArray(arr) ? arr : [];
+  } catch {
+    wishlist.value = [];
+  }
+}
+
+/** 关注一款游戏（加入心愿单）。同 key 去重。 */
+export function addToWishlist(game) {
+  const key = getWishlistKey(game);
+  if (isInWishlist(key)) return;
+  const entry = {
+    key,
+    platform: game.platform,
+    id: game.id,
+    title: game.title,
+    thumb: game.thumb || null,
+    addedPrice: Number(game.salePrice) || 0,
+    currency: game.currency || "USD",
+    addedAt: new Date().toISOString(),
+  };
+  wishlist.value = [...wishlist.value, entry];
+  _persistWishlist();
+}
+
+/** 取消关注（移除心愿单条目）。 */
+export function removeFromWishlist(key) {
+  wishlist.value = wishlist.value.filter((w) => w.key !== key);
+  _persistWishlist();
+}
+
+/** 判断是否已关注。 */
+export function isInWishlist(key) {
+  return wishlist.value.some((w) => w.key === key);
+}
+
+function _persistWishlist() {
+  try {
+    writeStorage(WISHLIST_KEY, JSON.stringify(wishlist.value));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/** 读取已通知降价集合（scheduler 用于 diff）。 */
+export function loadSeenDropKeys() {
+  const raw = readStorage(SEEN_DROP_KEY);
+  try {
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? new Set(arr) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+/** 持久化已通知降价集合。 */
+export function saveSeenDropKeys(set) {
+  try {
+    writeStorage(SEEN_DROP_KEY, JSON.stringify([...set]));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/** 用户查看心愿单后清除降价红点。 */
+export function clearGamesNewDrop() {
+  gamesHasNewDrop.value = false;
+}
+
+/** 设置降价通知开关。 */
+export function setGamesNotifyOnDrop(v) {
+  gamesNotifyOnDrop.value = !!v;
+  persistSettings();
 }
 
 /**
