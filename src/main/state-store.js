@@ -363,8 +363,8 @@ function _loadOrThrow(statePath) {
       { path: statePath, raw: raw.slice(0, 1024), parseError: e },
     );
   }
-  if (!_getSchema().isStateValid(parsed)) {
-    const { errors } = _getSchema().validateState(parsed);
+  const { ok, errors } = _getSchema().validateState(parsed);
+  if (!ok) {
     throw new StateCorruptedError("state.json failed schema validation", {
       path: statePath,
       raw: raw.slice(0, 1024),
@@ -1679,15 +1679,11 @@ function getLastRecoveryEvent() {
  * @returns {{version: string, at: number} | null}
  */
 function getLastSeenRelease(statePath = defaultPath()) {
-  try {
-    const s = load(statePath);
-    if (!s || !s.last_seen_release) return null;
-    const { version, at } = s.last_seen_release;
-    if (typeof version !== "string" || typeof at !== "number") return null;
-    return { version, at };
-  } catch {
-    return null;
-  }
+  const s = load(statePath);
+  if (!s || !s.last_seen_release) return null;
+  const { version, at } = s.last_seen_release;
+  if (typeof version !== "string" || typeof at !== "number") return null;
+  return { version, at };
 }
 
 /**
@@ -1751,13 +1747,9 @@ function saveStartupSamples(samples, statePath = defaultPath()) {
  * @returns {Array<object>}
  */
 function loadAiFeedback(statePath = defaultPath()) {
-  try {
-    const s = load(statePath);
-    const arr = s && s.aiFeedback;
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
+  const s = load(statePath);
+  const arr = s && s.aiFeedback;
+  return Array.isArray(arr) ? arr : [];
 }
 
 /**
@@ -1779,13 +1771,9 @@ function saveAiFeedback(samples, statePath = defaultPath()) {
  * @returns {Record<string, number>}
  */
 function loadTokenSpend(statePath = defaultPath()) {
-  try {
-    const s = load(statePath);
-    const m = s && s.tokenSpend;
-    return m && typeof m === "object" ? m : {};
-  } catch {
-    return {};
-  }
+  const s = load(statePath);
+  const m = s && s.tokenSpend;
+  return m && typeof m === "object" ? m : {};
 }
 
 /**
@@ -1806,16 +1794,12 @@ function saveTokenSpend(spendMap, statePath = defaultPath()) {
  * @returns {{dailyLimit: number, mode: "warn"|"block"}}
  */
 function loadTokenBudgetConfig(statePath = defaultPath()) {
-  try {
-    const s = load(statePath);
-    const c = s && s.tokenBudgetConfig;
-    const dailyLimit = c && typeof c.dailyLimit === "number" ? c.dailyLimit : 0;
-    const mode =
-      c && (c.mode === "warn" || c.mode === "block") ? c.mode : "warn";
-    return { dailyLimit, mode };
-  } catch {
-    return { dailyLimit: 0, mode: "warn" };
-  }
+  const s = load(statePath);
+  const c = s && s.tokenBudgetConfig;
+  const dailyLimit = c && typeof c.dailyLimit === "number" ? c.dailyLimit : 0;
+  const mode =
+    c && (c.mode === "warn" || c.mode === "block") ? c.mode : "warn";
+  return { dailyLimit, mode };
 }
 
 /**
@@ -1919,17 +1903,13 @@ function loadWatchlist(statePath = defaultPath()) {
 // 走 PRESERVE_FIELDS 自动保留.
 
 function loadOverviewCache(statePath = defaultPath()) {
-  try {
-    const s = load(statePath);
-    const c = s && s.overviewCache;
-    if (!c || typeof c !== "object" || Array.isArray(c)) return null;
-    if (typeof c.text !== "string" || typeof c.fetchedAt !== "number") {
-      return null;
-    }
-    return { text: c.text, fetchedAt: c.fetchedAt };
-  } catch {
+  const s = load(statePath);
+  const c = s && s.overviewCache;
+  if (!c || typeof c !== "object" || Array.isArray(c)) return null;
+  if (typeof c.text !== "string" || typeof c.fetchedAt !== "number") {
     return null;
   }
+  return { text: c.text, fetchedAt: c.fetchedAt };
 }
 
 function saveOverviewCache(entry, statePath = defaultPath()) {

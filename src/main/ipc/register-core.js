@@ -568,8 +568,7 @@ function registerCoreHandlers(ctx) {
   // Phase I2 v1: watchlist IPC (pinned apps)
   safeHandle("watchlist:list", () => {
     try {
-      const { loadWatchlist } = require("../state-store");
-      return { ok: true, items: loadWatchlist() };
+      return { ok: true, items: stateStore.loadWatchlist() };
     } catch (err) {
       return { ok: false, reason: "load_failed", error: err && err.message };
     }
@@ -577,7 +576,6 @@ function registerCoreHandlers(ctx) {
 
   safeHandle("watchlist:add", (_e, payload) => {
     try {
-      const { loadWatchlist, saveWatchlist } = require("../state-store");
       const legacyName = payload && payload.appName;
       const type =
         payload && typeof payload.type === "string"
@@ -609,7 +607,7 @@ function registerCoreHandlers(ctx) {
           return { ok: false, reason: "invalid_metal_id" };
         }
       }
-      const list = loadWatchlist();
+      const list = stateStore.loadWatchlist();
       if (list.some((w) => w.type === type && w.ref === ref)) {
         return { ok: true, items: list };
       }
@@ -619,7 +617,7 @@ function registerCoreHandlers(ctx) {
       if (type === "keyword") entry.lastMatchKey = null;
       if (type === "metal") entry.lastNotifiedPrice = null;
       const next = [...list, entry];
-      saveWatchlist(next);
+      stateStore.saveWatchlist(next);
       return { ok: true, items: next };
     } catch (err) {
       return { ok: false, reason: "save_failed", error: err && err.message };
@@ -628,11 +626,6 @@ function registerCoreHandlers(ctx) {
 
   safeHandle("watchlist:remove", (_e, payload) => {
     try {
-      const {
-        loadWatchlist,
-        saveWatchlist,
-        watchlistItemKey,
-      } = require("../state-store");
       const legacyName = payload && payload.appName;
       const type =
         payload && typeof payload.type === "string"
@@ -650,9 +643,9 @@ function registerCoreHandlers(ctx) {
         return { ok: false, reason: "invalid_payload" };
       }
       const key = `${type}:${ref}`;
-      const list = loadWatchlist();
-      const next = list.filter((w) => watchlistItemKey(w) !== key);
-      saveWatchlist(next);
+      const list = stateStore.loadWatchlist();
+      const next = list.filter((w) => stateStore.watchlistItemKey(w) !== key);
+      stateStore.saveWatchlist(next);
       return { ok: true, items: next };
     } catch (err) {
       return { ok: false, reason: "save_failed", error: err && err.message };

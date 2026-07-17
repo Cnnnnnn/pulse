@@ -38,6 +38,11 @@ import {
   TASK_SUMMARIES_GC_DAYS,
   loadLLMClassifyCache,
   saveLLMClassifyCache,
+  getLastSeenRelease,
+  loadAiFeedback,
+  loadTokenSpend,
+  loadTokenBudgetConfig,
+  loadOverviewCache,
 } from "../../src/main/state-store.js";
 
 let tmpDir;
@@ -945,3 +950,16 @@ describe("loadLLMClassifyCache / saveLLMClassifyCache (Step B LLM classify)", ()
 });
 
 // (C3 version_history 测试已退役, 全部移除)
+
+describe("损坏 JSON 的加载器默认值", () => {
+  it.each([
+    ["getLastSeenRelease", getLastSeenRelease, null],
+    ["loadAiFeedback", loadAiFeedback, []],
+    ["loadTokenSpend", loadTokenSpend, {}],
+    ["loadTokenBudgetConfig", loadTokenBudgetConfig, { dailyLimit: 0, mode: "warn" }],
+    ["loadOverviewCache", loadOverviewCache, null],
+  ])("%s 不抛异常并返回默认值", (_name, loader, expected) => {
+    fs.writeFileSync(statePath, "{ invalid json", "utf-8");
+    expect(loader(statePath)).toEqual(expected);
+  });
+});
