@@ -76,6 +76,41 @@ function http() {
 }
 
 /**
+ * 从 GitHub 限流响应头里解析「还剩多少次」与「多少秒后重置」。
+ * - rateLimitRemaining: x-ratelimit-remaining 头（整数次），无则 undefined
+ * - retryAfter: 优先 retry-after 头（秒）；否则 x-ratelimit-reset(绝对秒) 减 now；都无则 undefined
+ *
+ * 用于让前端 toast 能显示「剩余 N 次 / 约 X 分钟后重置」，
+ * 而不是笼统的「频率受限」。HttpClient 已全量透传 headers (http-client.js:207)。
+ * @param {object} headers
+ * @returns {{rateLimitRemaining?:number, retryAfter?:number}}
+ */
+function parseRateLimitHeaders(headers) {
+  if (!headers) return {};
+  const out = {};
+  const remaining = headers["x-ratelimit-remaining"];
+  if (remaining != null) {
+    const n = parseInt(remaining, 10);
+    if (Number.isFinite(n)) out.rateLimitRemaining = n;
+  }
+  const retryAfter = headers["retry-after"];
+  if (retryAfter != null) {
+    const s = parseInt(retryAfter, 10);
+    if (Number.isFinite(s)) out.retryAfter = s;
+  } else {
+    const reset = headers["x-ratelimit-reset"];
+    if (reset != null) {
+      const t = parseInt(reset, 10);
+      if (Number.isFinite(t)) {
+        const diff = t - Math.floor(Date.now() / 1000);
+        if (diff > 0) out.retryAfter = diff;
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * 解析常见 GitHub 项目地址，提取 owner / repo。
  * 支持：
  *   https://github.com/owner/repo
@@ -129,16 +164,25 @@ async function fetchRepoMeta(owner, repo, token = "") {
     },
     timeout: 20000,
   });
-  if (!res) return { ok: false, reason: "not_found", status: 0 };
+  if (!res) return { ok: false, reason: "not_found", status: 0, permanent: true };
   // 401 = Token 无效/已失效/被吊销：必须单独分类，否则会被误报成"仓库不存在"
   if (res.status === 401) {
     return { ok: false, reason: "auth_invalid", status: 401 };
   }
   if (res.status === 403 || res.status === 429) {
-    return { ok: false, reason: "rate_limited", status: res.status };
+    return {
+      ok: false,
+      reason: "rate_limited",
+      status: res.status,
+      ...parseRateLimitHeaders(res.headers),
+    };
+  }
+  if (res.status === 404) {
+    return { ok: false, reason: "not_found", status: 404, permanent: true };
   }
   if (res.status !== 200) {
-    return { ok: false, reason: "not_found", status: res.status };
+    // 5xx 等瞬时服务端错误：不标 permanent，下一轮可重试
+    return { ok: false, reason: "server_error", status: res.status };
   }
   let data;
   try {
@@ -233,13 +277,18 @@ async function fetchRepoRelease(owner, repo, token = "") {
     });
     return { ok: false, reason: "network_error", error: err && err.message };
   }
-  if (!res) return { ok: false, reason: "not_found", status: 0 };
+  if (!res) return { ok: false, reason: "not_found", status: 0, permanent: true };
   // 401 = Token 无效/已失效/被吊销：单独分类，避免误报"仓库不存在"
   if (res.status === 401) {
     return { ok: false, reason: "auth_invalid", status: 401 };
   }
   if (res.status === 403 || res.status === 429) {
-    return { ok: false, reason: "rate_limited", status: res.status };
+    return {
+      ok: false,
+      reason: "rate_limited",
+      status: res.status,
+      ...parseRateLimitHeaders(res.headers),
+    };
   }
   if (res.error === "network" || res.error === "timeout") {
     return {
@@ -248,8 +297,12 @@ async function fetchRepoRelease(owner, repo, token = "") {
       error: res && res.error,
     };
   }
+  if (res.status === 404) {
+    return { ok: false, reason: "not_found", status: 404, permanent: true };
+  }
   if (res.status !== 200) {
-    return { ok: false, reason: "not_found", status: res.status };
+    // 5xx 等瞬时服务端错误：不标 permanent，下一轮可重试
+    return { ok: false, reason: "server_error", status: res.status };
   }
   let list;
   try {
@@ -320,4 +373,14 @@ module.exports = {
   fetchRepoRelease,
   getEnvGithubToken,
   authHeader,
+  parseRateLimitHeaders,
+  /**
+   * 仅测试用：注入一个 stub 替换内部 http() 单例。
+   * 传 null/undefined 复位回真实 HttpClient。
+   * 生产代码不要调用。CJS require 下 vi.mock 不稳（见 github-auth.test.js 注释），
+   * 故用显式钩子而非模块替换。
+   */
+  __setHttpForTest(stub) {
+    _http = stub || null;
+  },
 };
