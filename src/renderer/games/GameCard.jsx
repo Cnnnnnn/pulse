@@ -4,6 +4,12 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api.js";
 import { PLATFORM_LABEL, PLATFORM_EMOJI, fmtPrice, fmtCnyReference, fmtDate, promotionTypeLabel } from "./format.js";
+import {
+  isInWishlist,
+  addToWishlist,
+  removeFromWishlist,
+  getWishlistKey,
+} from "./gamesStore.js";
 
 function GameThumb({ thumb, platform, gameId }) {
   const [imgError, setImgError] = useState(false);
@@ -32,6 +38,13 @@ function GameThumb({ thumb, platform, gameId }) {
 
 export function GameCard({ game, fx }) {
   const isFree = game.isFree;
+  const favKey = getWishlistKey(game);
+  const fav = isInWishlist(favKey);
+  function toggleFav(e) {
+    e.stopPropagation();
+    if (fav) removeFromWishlist(favKey);
+    else addToWishlist(game);
+  }
   const platClass = `game-card__platform is-${game.platform}`;
   const cnyRef = !isFree ? fmtCnyReference(game.salePrice, game.currency, fx) : "";
   const saved =
@@ -45,6 +58,17 @@ export function GameCard({ game, fx }) {
     <article class={`game-card${isFree ? " game-card--free" : ""}`}>
       <div class="game-card__thumb">
         <GameThumb thumb={game.thumb} platform={game.platform} gameId={game.id} />
+        {!isFree && (
+          <button
+            type="button"
+            class={`game-card__fav${fav ? " game-card__fav--on" : ""}`}
+            aria-label={fav ? "取消关注" : "关注降价"}
+            aria-pressed={fav}
+            onClick={toggleFav}
+          >
+            {fav ? "♥" : "♡"}
+          </button>
+        )}
         {game.source === "sample" && (
           <span class="game-card__src" title="示例数据（非实时）">
             示例

@@ -307,6 +307,41 @@
   background: color-mix(in oklch, var(--text-primary) 70%, transparent);
 }
 
+/* 心形关注按钮（右上角 toggle；免费游戏不渲染） */
+.game-card__fav {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--text-primary) 50%, transparent);
+  color: var(--games-text-inverse);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.1s ease;
+  padding: 0;
+}
+.game-card__fav:hover {
+  background: color-mix(in oklch, var(--text-primary) 70%, transparent);
+  transform: scale(1.1);
+}
+.game-card__fav--on {
+  background: color-mix(in oklch, var(--color-danger) 92%, transparent);
+}
+.game-card__fav--on:hover {
+  background: var(--color-danger);
+}
+.game-card__fav:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 .game-card__body {
   display: flex;
   flex-direction: column;
@@ -496,7 +531,8 @@
     animation: none;
   }
   .game-card,
-  .game-card__cta {
+  .game-card__cta,
+  .game-card__fav {
     transition: none;
   }
 }
