@@ -32,7 +32,6 @@ describe('main process module load smoke (Phase 28+ regression)', () => {
     'ipc.js',
     'last-opened.js',
     'state-store.js',
-    'tier.js',
     'tray.js',
   ];
   for (const e of expected) {
