@@ -1,20 +1,12 @@
 /**
  * src/renderer/github/GithubReadmeView.jsx
  *
- * GitHub 优秀项目收录 — README 渲染 (marked + DOMPurify 安全消毒)。
+ * GitHub 优秀项目收录 — README 渲染。
+ * 渲染逻辑抽到公共组件 GithubMarkdown（marked + DOMPurify），
+ * 与 release notes 复用。本组件只保留骨架屏 + 空态。
  */
 
-import { marked } from "marked";
-import DOMPurify from "dompurify";
-
-marked.setOptions({ gfm: true, breaks: false });
-
-function escapeHtml(s) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+import { GithubMarkdown } from "./GithubMarkdown.jsx";
 
 export function GithubReadmeView({ markdown, loading }) {
   if (loading) {
@@ -25,20 +17,7 @@ export function GithubReadmeView({ markdown, loading }) {
       <div class="github-readme-empty">该项目没有可用的 README 内容。</div>
     );
   }
-  let html;
-  try {
-    const parsed = marked.parse(markdown);
-    html = typeof parsed === "string" ? parsed : String(parsed);
-  } catch {
-    html = `<pre>${escapeHtml(markdown)}</pre>`;
-  }
-  const safe = DOMPurify.sanitize(html);
-  return (
-    <div
-      class="readme-content"
-      dangerouslySetInnerHTML={{ __html: safe }}
-    />
-  );
+  return <GithubMarkdown markdown={markdown} />;
 }
 
 export default GithubReadmeView;

@@ -9,6 +9,7 @@
 
 import { signal } from "@preact/signals";
 import { api } from "../api.js";
+import { showToast } from "./toast-store.js";
 
 const STORAGE_KEY = "pulse.github.projects.v1";
 
@@ -36,15 +37,24 @@ function readStore() {
   }
 }
 
+/**
+ * 写入持久层。返回 true=落盘成功；false=localStorage 可用但写入失败（配额超限等）。
+ * localStorage 完全不可用时走 _mem 内存兜底，算「兜底成功」返回 true
+ * （因为本来就没有持久层可言，不应误报配额错误）。
+ */
 function writeStore(raw) {
-  try {
-    if (typeof globalThis.localStorage === "undefined") {
-      _mem.set(STORAGE_KEY, raw);
-      return;
-    }
-    globalThis.localStorage.setItem(STORAGE_KEY, raw);
-  } catch {
+  if (typeof globalThis.localStorage === "undefined") {
     _mem.set(STORAGE_KEY, raw);
+    return true;
+  }
+  try {
+    globalThis.localStorage.setItem(STORAGE_KEY, raw);
+    return true;
+  } catch (err) {
+    // 配额超限等：内存兜底保证当次会话可见，但必须让上层知道没真正落盘
+    _mem.set(STORAGE_KEY, raw);
+    console.warn("[github] localStorage.setItem failed:", err && err.message);
+    return false;
   }
 }
 
@@ -62,12 +72,41 @@ export function loadGithubProjects() {
   }
 }
 
+/**
+ * 写回项目数组到 localStorage。返回 true 表示落盘成功，false 表示失败（配额超限等）。
+ *
+ * 不抛异常（保留「不阻断 UI」原则），但调用方可据返回值决定是否提示用户。
+ * 配额超限是真实风险：README 原文 + 5 条 release body 全塞 localStorage，
+ * 几十个项目就可能撞 5-10MB 上限。此时必须告知用户，而不是静默吞掉让数据消失。
+ */
+let _lastQuotaWarnTs = 0;
+function warnQuotaOnce() {
+  const now = Date.now();
+  // 60 秒内只 warn 一次，避免批量检查更新时连续弹一堆 toast
+  if (now - _lastQuotaWarnTs < 60000) return;
+  _lastQuotaWarnTs = now;
+  showToast(
+    "本地存储已满，改动刷新后会丢失。建议导出备份后清理旧项目",
+    "warn",
+    8000,
+  );
+}
+
+/**
+ * 仅测试用：重置配额警告的 debounce 计时器。
+ * 生产代码不要调用。测试间隔离用。
+ */
+export function __resetQuotaWarnForTest() {
+  _lastQuotaWarnTs = 0;
+}
+
 function persist() {
-  try {
-    writeStore(JSON.stringify(githubProjects.value));
-  } catch {
-    /* 配额超限等忽略，不阻断 UI */
+  const ok = writeStore(JSON.stringify(githubProjects.value));
+  if (!ok) {
+    // 配额超限等：不阻断 UI，但必须告知用户
+    warnQuotaOnce();
   }
+  return ok;
 }
 
 const SETTINGS_KEY = "pulse.github.settings.v1";
@@ -165,6 +204,29 @@ export function formatAddedDate(ts) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${m}-${day}`;
+}
+
+/**
+ * 从 homepage URL 提取显示用的域名（去掉 www. 前缀）。解析失败原样返回。
+ * 仅用于 chip 文案展示，不影响点击跳转（点击用原始 URL）。
+ */
+export function hostnameOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, "");
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * 判断 homepage 是否值得展示：非空，且不等于仓库自身 GitHub 地址（避免冗余）。
+ * 形如 https://github.com/owner/repo 的 homepage 也视为冗余。
+ */
+export function hasDistinctHomepage(project) {
+  if (!project || !project.homepage || !project.homepage.trim()) return false;
+  if (project.url && project.homepage === project.url) return false;
+  if (/^https?:\/\/github\.com\//i.test(project.homepage)) return false;
+  return true;
 }
 
 /** 把时间戳格式化为「N 天前 / N 个月前」等人读相对时间。 */
@@ -313,10 +375,13 @@ export async function addGithubProject(input) {
       releaseFetchedAt: 0,
     };
     githubProjects.value = [proj, ...githubProjects.value];
-    persist();
+    const persisted = persist();
     // 静默抓取 release（失败不影响收录成功），填充版本字段
     fetchGithubRelease(id, { silent: true }).catch(() => {});
-    return { ok: true, project: proj };
+    // 仅在落盘失败时才带 persistFailed 标志，避免成功时多一个 falsy 字段
+    return persisted
+      ? { ok: true, project: proj }
+      : { ok: true, project: proj, persistFailed: true };
   } finally {
     githubBusy.value = false;
   }

@@ -154,6 +154,34 @@ describe('GitHub 更新 tab · GithubReleasesView', () => {
     );
     expect(container.textContent).toContain('还没有发布 Release');
   });
+
+  it('release body 含 markdown → 经 GithubMarkdown 渲染（容器带 readme-content class）', () => {
+    const { container } = render(
+      <GithubReleasesView
+        project={makeProject({
+          releaseFetchedAt: Date.now(),
+          latestVersion: '1.0.0',
+          latestVersionPublishedAt: Date.now(),
+          lastSeenVersion: '1.0.0',
+          releases: [
+            {
+              version: '1.0.0',
+              tagName: 'v1.0.0',
+              publishedAt: Date.now(),
+              notesUrl: '',
+              body: '## What changed\n\n- fix a\n- add b',
+            },
+          ],
+        })}
+      />,
+    );
+    // body 走 GithubMarkdown，容器是 readme-content（不再是纯 <p>）
+    const md = container.querySelector('.github-rel-notes.readme-content');
+    expect(md).toBeTruthy();
+    // 文本内容仍在（不管 markdown 标签如何转换）
+    expect(container.textContent).toContain('What changed');
+    expect(container.textContent).toContain('fix a');
+  });
 });
 
 describe('GitHub 更新 tab · 月份分组 + 视图密度', () => {
