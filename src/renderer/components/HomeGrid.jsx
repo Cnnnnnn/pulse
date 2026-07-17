@@ -101,6 +101,14 @@ function TileIcon({ kind }) {
           <path {...c} d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12 12 0 0 0-6 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21" />
         </svg>
       );
+    case "games":
+      // 手柄/控制器图标 — 表达"游戏优惠聚合"语义.
+      return (
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path {...c} d="M7 8h10a4 4 0 0 1 4 4v1a3 3 0 0 1-5.2 2L14 18H10l-1.8-3A3 3 0 0 1 3 13v-1a4 4 0 0 1 4-4z" />
+          <path {...c} d="M7.5 11v2.5M6.25 12.25h2.5M15.5 11.5h.01M17.5 13.5h.01" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -116,6 +124,7 @@ const HOME_TILES = [
   { key: 'ai-usage',  title: 'AI 用量',  subtitle: 'Minimax coding plan 配额',  accent: 'pink'   },
   { key: 'versions',  title: '版本检查', subtitle: 'App 版本监控',              accent: 'indigo' },
   { key: 'github',    title: 'GitHub 收录', subtitle: '优秀开源项目收录与管理',   accent: 'purple' },
+  { key: 'games',     title: '游戏优惠',  subtitle: '各平台折扣 / 喜+1 / 热门榜', accent: 'red'   },
 ];
 const TILE_BY_KEY = Object.fromEntries(HOME_TILES.map((t) => [t.key, t]));
 
@@ -262,6 +271,8 @@ function getStatus(key) {
       const n = githubProjects.value?.length ?? 0;
       return n > 0 ? `已收录 ${n} 个` : '尚未收录';
     }
+    case 'games':
+      return 'Steam / Epic 实时 · 主机示例';
     default:
       return null;
   }

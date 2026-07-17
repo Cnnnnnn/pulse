@@ -36,7 +36,7 @@ describe('HomeGrid navStore 集成路径', () => {
     expect(PERSISTABLE_NAV_KEYS.has('versions')).toBe(true);
     expect(PERSISTABLE_NAV_KEYS.has('github')).toBe(true);
     // v7 (2026-07-16): + github → 6 顶级 nav.
-    expect(PERSISTABLE_NAV_KEYS.size).toBe(6);
+    expect(PERSISTABLE_NAV_KEYS.size).toBe(7);
   });
 });
 
@@ -45,7 +45,7 @@ describe('HomeGrid navStore 集成路径', () => {
 // v6 (2026-07-13): 合并 funds + metals + stocks → 'invest' tile.
 // v7 (2026-07-16): + github tile → 6.
 describe('HomeGrid v2 — 渲染契约', () => {
-  it('渲染出 hero (品牌 mark + greeting + 时间 + 6 模块 meta)', async () => {
+  it('渲染出 hero (品牌 mark + greeting + 时间 + 7 模块 meta)', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
@@ -55,23 +55,23 @@ describe('HomeGrid v2 — 渲染契约', () => {
     expect(container.querySelector('.home-hero-greeting')).toBeTruthy();
     expect(container.querySelector('.home-hero-time')).toBeTruthy();
     expect(container.querySelector('.home-hero-date')).toBeTruthy();
-    expect(container.querySelector('.home-hero-meta')?.textContent).toContain('6');
+    expect(container.querySelector('.home-hero-meta')?.textContent).toContain('7');
   });
 
-  it('渲染 6 个 tile, 全部带 home-grid-tile-accent class', async () => {
+  it('渲染 7 个 tile, 全部带 home-grid-tile-accent class', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
 
     const tiles = container.querySelectorAll('.home-grid-tile');
-    expect(tiles.length).toBe(6);
+    expect(tiles.length).toBe(7);
     const accents = new Set();
     tiles.forEach((t) => {
       const m = t.className.match(/home-grid-tile-(\w+)/);
       if (m) accents.add(m[1]);
     });
     accents.delete('tile'); // base class 名字
-    expect(accents.size).toBe(6);
+    expect(accents.size).toBe(7);
   });
 
   it('每个 tile 都有 SVG icon (不再用 emoji)', async () => {
@@ -126,7 +126,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
     const kbdHints = container.querySelectorAll('.home-grid-tile-kbd');
-    expect(kbdHints.length).toBe(6);
+    expect(kbdHints.length).toBe(7);
     expect(kbdHints[0].textContent).toBe('⌘1');
     expect(kbdHints[5].textContent).toBe('⌘6');
   });
@@ -272,13 +272,13 @@ describe('HomeGrid v4 — 功能完善', () => {
     ai.aiUsageNavBadge.value = 0;
   });
 
-  it('B10: 6 个 tile 都渲染 status 文本 (冷启动时多数为 "—")', async () => {
+  it('B10: 7 个 tile 都渲染 status 文本 (冷启动时多数为 "—")', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { container } = render(<HomeGrid />);
     const statuses = container.querySelectorAll('.home-grid-tile-status');
     // v7: 6 tile 都有 .home-grid-tile-status (哪怕是 "—" / "尚未收录")
-    expect(statuses.length).toBe(6);
+    expect(statuses.length).toBe(7);
   });
 
   it('B10: news 有今日文章 → status 显示 "今日 N 条 · M 热搜" 合并态', async () => {
@@ -370,7 +370,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { loadPrefs, savePrefs, resetPrefs } = await import('../../src/renderer/components/sidenav-prefs.js');
-    // v7: 6 个 tile; 本测只固定前 5 的 order, github 由 computeOrderedTiles 兜底追加
+    // v7: 7 个 tile; 本测只固定前 5 的 order, github 由 computeOrderedTiles 兜底追加
     savePrefs({ ...resetPrefs(), order: ['news', 'worldcup', 'invest', 'ai-usage', 'versions'] });
 
     const { container } = render(<HomeGrid />);

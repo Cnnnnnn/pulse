@@ -200,7 +200,7 @@ describe("sidenav-prefs: reorderItems", () => {
 
   it("reorderItems: from → to 'before'", () => {
     // v4 2026-07-13: funds + metals + stocks 合并成 'invest' (5 顶级 nav).
-    const p0 = resetPrefs(); // [news, worldcup, invest, ai-usage, versions]
+    const p0 = resetPrefs(); // [news, worldcup, invest, ai-usage, versions, github, games]
     const p1 = reorderItems(p0, "news", "invest", "before");
     expect(p1.order).toEqual([
       "worldcup",
@@ -209,6 +209,7 @@ describe("sidenav-prefs: reorderItems", () => {
       "ai-usage",
       "versions",
       "github",
+      "games",
     ]);
   });
 
@@ -222,6 +223,7 @@ describe("sidenav-prefs: reorderItems", () => {
       "ai-usage",
       "versions",
       "github",
+      "games",
     ]);
   });
 
@@ -256,8 +258,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 6 个 nav key (投资 nav 合并 + GitHub 收录)", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(6);
+  it("DEFAULTS_FOR_TESTS: 7 个 nav key (投资 nav 合并 + GitHub 收录 + 游戏优惠)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(7);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

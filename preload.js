@@ -332,6 +332,9 @@ contextBridge.exposeInMainWorld("api", {
   // Release 更新追踪：抓取某仓库 recent releases
   githubFetchRelease: (input, token) =>
     ipcRenderer.invoke("github:fetch-release", { input, token }),
+
+  // 游戏优惠聚合 (v2.81): 各平台折扣 / 喜+1 / 热门榜
+  getGameDeals: (opts) => ipcRenderer.invoke("games:getDeals", opts || {}),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)
