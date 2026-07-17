@@ -1,209 +1,136 @@
 # Pulse
 
-macOS / Windows 菜单栏小工具 — 盯着你装的那批 app 的版本，一旦有新版就提醒。
+面向 macOS 与 Windows 的个人桌面信息中心：以应用版本检查与升级为核心，同时整合新闻、投资行情、世界杯、AI 用量、GitHub 项目和游戏优惠。
 
-> tray icon 常驻，点开看 13 个 app 的"已装 → 最新"对比，一键升级（macOS 走 `brew upgrade` / Windows 走 `winget upgrade`）。右击任一行可临时静音（按使用频率智能排序）。
+Pulse 常驻系统托盘，把分散在不同应用和网站里的日常信息集中到一个桌面窗口中。主要数据保存在本机；需要联网的模块只在获取对应内容时访问外部服务。
 
-## 下载安装
+## 核心能力
 
-从 [GitHub Releases](https://github.com/Cnnnnnn/pulse/releases/latest) 下载对应平台的安装包：
+| 模块 | 能力 |
+| --- | --- |
+| 首页 | 汇总模块状态、未读角标、收藏和快捷入口 |
+| 新闻 | 整合 IT 新闻与微博热搜 |
+| 世界杯 | 查看赛程、球队、进球榜和淘汰赛对阵 |
+| 投资 | 管理基金，查看贵金属行情，并进行选股分析 |
+| AI 用量 | 监控 MiniMax 与 GLM 编程套餐配额和趋势 |
+| 版本检查 | 检测应用更新，并通过支持的升级路径执行升级 |
+| GitHub 收录 | 建立本地开源项目库，跟踪 README 与 Release |
+| 游戏优惠 | 聚合多个平台的折扣、免费活动和热门榜 |
+
+跨模块能力包括：
+
+- 全局搜索。
+- 本地提醒和最近活动。
+- 基金、贵金属、关键词等内容的统一关注列表。
+- 本地 AI 编程会话摘要。
+- 每日早报与系统通知。
+- 跟随系统、浅色和深色主题。
+- Release Notes、诊断和 Pulse 自更新。
+
+完整操作说明见 [Pulse 用户功能手册](docs/user-features-guide.md)。
+
+## 下载与安装
+
+从 [GitHub Releases](https://github.com/Cnnnnnn/pulse/releases/latest) 下载最新安装包。
 
 ### macOS
 
-1. 根据你的 CPU 架构下载：
-   - **Apple Silicon** (M1/M2/M3/M4): `Pulse-2.46.0-arm64.dmg`
-   - **Intel** (2017 前机型): `Pulse-2.46.0-x64.dmg`
-2. 打开 dmg，把 Pulse 拖进 `/Applications/`
-3. 首次运行授权：
-   - "Pulse 想要访问 .../Applications" — 允许
-   - 通知权限（macOS 13+）— 允许，否则收不到更新横幅
+发布包同时覆盖：
 
-> 不确定架构？点左上角  → 关于本机，看"芯片"或"处理器"那一行。
+- **Apple Silicon**：文件名包含 `arm64`，适用于 M 系列芯片。
+- **Intel**：文件名包含 `x64`，适用于 Intel Mac。
+
+安装步骤：
+
+1. 下载对应架构的 DMG。
+2. 打开 DMG，将 Pulse 拖入“应用程序”。
+3. 首次启动时按系统提示授予应用目录访问和通知权限。
+
+如果不确定架构，请打开“关于本机”查看“芯片”或“处理器”。
 
 ### Windows
 
-1. 根据你的 CPU 架构下载：
-   - **x64**（Intel / AMD）：`Pulse-Setup-2.19.0-x64.exe`
-   - **arm64**（Snapdragon X 等）：`Pulse-Setup-2.19.0-arm64.exe`
-2. 双击运行安装包
-3. 升级走 `winget`（Windows 10 1709+ 自带，需在系统设置里开启）
+当前发布流程提供 **x64** NSIS 安装包，适用于主流 Intel 与 AMD Windows 设备。暂不提供原生 Windows arm64 构建。
 
-> 不确定架构？任务管理器 → 性能 → CPU，看右上角"机率"或"体系结构"。
+安装步骤：
 
-## 截图一览
+1. 下载文件名包含 `x64` 的 EXE。
+2. 双击安装包，并按向导选择安装目录。
+3. 如需自动升级已安装应用，请确认系统可使用 winget。
 
-> 完整采集流程见 `docs/screenshots/CAPTURE.md`. 重新截图触发条件: major version bump / 改主面板 / 加新 AI 板块.
+## 快速开始
 
-| 主窗口 | 菜单栏 | AI 摘要 | 每日 digest |
-|---|---|---|---|
-| ![主窗口](docs/screenshots/main-window.png) | ![tray 菜单](docs/screenshots/tray-menu.png) | ![AI 摘要](docs/screenshots/ai-summary.png) | ![digest](docs/screenshots/digest-drawer.png) |
+1. 启动 Pulse，从首页进入需要的模块。
+2. 打开“版本检查”，首次使用时点击“运行首次检查”。
+3. 在“版本检查 → 设置”中调整主题、GitHub、游戏和 AI 配置。
+4. 使用 `⌘/Ctrl+K` 搜索新闻、AI 任务、提醒、基金和应用。
 
-## 它做什么
+首页支持收藏、拖拽排序和 `⌘/Ctrl+1–6` 快速打开前六张卡片。更多快捷键和模块操作见 [用户功能手册](docs/user-features-guide.md)。
 
-打开后是个 floating window，列着你配的每个 app：
+## 应用升级
 
-```
-[全部 13] [🤖 AI 工具 3] [🛠 开发者 4] [💬 沟通 2] [📦 其他 0]   ← 顶部 category tab
-─────────────────────────────────────────────────────────
-已安装   2.5.3        →   2.5.3          已是最新
-已安装   3.6.31       →   3.6.31         已是最新
-已安装   1.0.0.10155  →   1.0.10051      [升级]   ← 一键升级
-已安装   5.0.2        →   5.0.2          已是最新
-...
-```
+Pulse 会区分“检测到新版本”和“存在自动升级路径”：
 
-- **tray icon 红色 badge** = 有 N 个 app 待升级
-- **顶部 category tab** (v2.4+) — 按 8 个分类过滤 (AI 工具 / 开发者 / 浏览器 / 沟通 / 媒体 / 笔记 / 系统 / 其他)，按 `0-9` 数字键快速切
-- **每行可点**（行 → 打开 app 官方下载页；按钮 → 升级）
-- **检测失败/版本读不准** = 标红，但**上次成功结果**仍在（last-known 缓存）
-- **平台原生 UI** — macOS 磨砂玻璃窗口（vibrancy），Windows acrylic 半透明
-- **检测源**：
-  - macOS：plist → `installed.json` → MMKV/自定义 regex_file → system_profiler（兜底链）
-  - Windows：注册表（3 个 Uninstall 根键）→ winget → electron-builder yml
+- macOS 的自动升级通常使用 Homebrew。
+- Windows 的自动升级通常使用 winget。
+- 没有自动升级路径的应用仍可显示版本状态，但需要通过官方渠道安装。
 
-## 提醒 (v2.11+)
+Pulse 自身支持检查和下载更新。发现新版本后，可在“版本检查 → 诊断”中查看状态，并在下载完成后选择退出安装。
 
-**opt-in** — 装上就能用, 0 配置. Header ⏰ 按钮 + 弹 RemindersModal.
+## 隐私与本地数据
 
-- **新建**: `⌘⇧R` 一键打开新建表单 / 标题 + 触发时间 + 4 种重复 (一次 / 每天 / 工作日 / 每周某天)
-- **触发**: 到时间系统通知 + Header 红 badge, 状态切 `fired` (待 ✓ 打卡, 避免通知一划就忘)
-- **完成**: 一次性 → 自动删; 重复规则 → 算下次时间, 自动切回 pending
-- **持久化**: `state.json.reminders[]`, 重启不丢
-- **快捷键**: `⌘⇧R` 打开新建 / `Esc` 取消 / `Cmd+Enter` 保存
+Pulse 不提供云端账户，主要状态保存在本机应用数据目录：
 
-不跟系统 Reminders.app 同步, 不联动其他模块, 纯本地小工具.
+- macOS：`~/Library/Application Support/pulse/`
+- Windows：`%APPDATA%\pulse\`
 
-## 最近活动 (v2.11+)
+其中 `state.json` 保存提醒、最近活动、关注列表、检测缓存和部分模块状态。删除该文件会重置对应本地状态，请先导出需要保留的数据。
 
-Header 🕒 按钮 — 跨 5 个 tab 统一时间线, 倒序展示"最近我做了什么". 容量走 `config.json.recentActivity.maxEntries` (默认 200).
+AI API Key 使用 Electron `safeStorage` 加密：
 
-## AI 编程会话每日总结 (v2.5+)
+- macOS 使用系统 Keychain。
+- Windows 使用 DPAPI。
+- 加密文件保存在应用数据目录的 `ai-keys` 文件夹。
 
-**opt-in** (默认关闭，不影响老用户)。打开 Header **⚙️** → Settings → 启用。
+GitHub Token 保存在本机应用的浏览器存储中，不使用 `safeStorage`。不要在共享系统账户中保存敏感 Token。
 
-支持的 LLM provider:
-
-| Provider | 类型 | Auth | 默认 model |
-|----------|------|------|-----------|
-| OpenAI | 云端 | Bearer | `gpt-4o-mini` |
-| Anthropic | 云端 | `x-api-key` | `claude-sonnet-4-5` |
-| DeepSeek | 云端 | Bearer (OpenAI 兼容) | `deepseek-chat` |
-| MiniMax | 云端 | Bearer (OpenAI 兼容) | `MiniMax-M3` |
-| GLM (智谱) | 云端 | Bearer (OpenAI 兼容) | `glm-4.6` |
-
-- **API key 安全**: 走 Electron `safeStorage` (macOS Keychain / Windows DPAPI)
-  - 文件位置: `~/Library/Application Support/pulse/ai-keys/<provider>.bin` (mode `0o600`)
-  - key 不入 `state.json` (只 safeStorage ref)
-- **错误处理**:
-  - API key 错 (401/403) → toast "API key 无效,请在设置里更新"
-  - LLM 超时 → log warn + skip 当天 banner
-  - safeStorage 不可用 → digest 自动 skip
-
-## AI 用量监控 (v2.13+)
-
-Minimax coding plan / GLM 编程套餐的配额实时监控 — Header 切到"AI 用量"tab：
-
-- **双 provider Tab** — Minimax / GLM 各自独立的 5h 滚动窗口 + 周窗口 + 视频/MCP 配额卡
-- **进度条 + 倒计时** — 每个窗口的已用百分比 + 距重置时间
-- **预计耗尽** — 基于上一轮 snapshot 算 burn rate，预估"按当前速度 N 小时用完"
-- **7 天趋势** — sparkline 折线图展示历史用量
-- **后台预热** — 启动时自动拉一次（fire-and-forget），进页面就有数据
-
-## 加/改 app
-
-编辑 `config.json`（应用关闭后改，下次启动自动重读）：
-
-```json
-{
-  "apps": [
-    {
-      "name": "MyApp",
-      "bundle": "MyApp.app",
-      "win_bundle": "MyApp",
-      "download_url": "https://example.com/download",
-      "version_sources": [
-        { "type": "installed_json" },
-        { "type": "plist" }
-      ],
-      "detectors": [
-        { "type": "brew_formulae", "cask": "myapp" },
-        { "type": "electron_yml",  "url": "https://example.com/latest.yml" },
-        { "type": "github_release", "url": "https://api.github.com/repos/owner/myapp/releases/latest" },
-        { "type": "winget_show",   "id": "Publisher.MyApp", "platform": "win" }
-      ],
-      "winget_id": "Publisher.MyApp"
-    }
-  ]
-}
-```
-
-`version_sources` 决定"已装版本"从哪里读（按顺序尝试，第一个非空 wins）。`detectors` 决定"最新版本"从哪里查（high confidence 命中即停，否则 fallback）。详见 [docs/](docs/) 里的 detector 文档。
-
-## 它支持哪些检测方式（detector）
-
-| Type | 用法 | 例 |
-|------|------|----|
-| `brew_formulae` | Homebrew cask API | Cursor / Kimi / CodexBar |
-| `sparkle_appcast` | macOS Sparkle feed | Codex / QClaw |
-| `electron_yml` | electron-builder latest-mac.yml | MiniMax Code / Marvis |
-| `app_store_lookup` | iTunes lookup API | IMA (从 app id 查) |
-| `api_json` | 通用 JSON API (顶层 `version` 字段) | WorkBuddy |
-| `redirect_filename` | 跟 HEAD 重定向，从文件名提取 | Kimi |
-| `cursor_redirect` | Cursor 专用（major track → brew 覆盖）| Cursor |
-| `qclaw_api` | QClaw 私有 API | QClaw |
-| `html_changelog` | 解析 changelog HTML 页面 | ZCode |
-| `winget_show` | Windows winget show --versions | Windows 端通用 |
-| `github_release` | GitHub Releases API `releases/latest` (取 `tag_name`，自动去 `v` 前缀) | 通用（mac/win 都能用，发布在 GitHub 的 Electron app 开箱即用） |
+新闻、行情、比赛、版本、GitHub、游戏和 AI 模块会访问各自的外部服务。具体数据来源和降级行为见 [用户功能手册](docs/user-features-guide.md)。
 
 ## 开发
 
+需要 Node.js 和 npm。
+
 ```bash
 npm install
-npm run dev          # 起 electron + 自动 rebuild renderer
-npm test             # 跑 vitest
-npm run build:mac    # 出 .dmg 到 dist/ (Apple Silicon)
-npm run build:win    # 出 .exe 到 dist/ (x64 + arm64)
+npm run dev
+npm test
+npm run build:mac
+npm run build:win
 ```
 
-`scripts/` 里有几个一次性工具：
-- `record-fixtures.js` — 把真实 API 响应 dump 到 `tests/fixtures/`，给 unit test 当 fixture
-- `startup-bench.js` — 跑 N 次启动，量 startup median
-- `brew-lock-bench.js` — brew upgrade 并发 2 vs 3 vs 4 实测
+- `npm run dev`：构建 renderer 并以开发模式启动 Electron。
+- `npm test`：运行 Vitest。
+- `npm run build:mac`：构建 macOS arm64 与 x64 安装包。
+- `npm run build:win`：构建 Windows x64 安装包。
 
-## 架构（粗略）
+主要技术栈：Electron、Preact、`@preact/signals`、esbuild、Vitest、Playwright。
 
-```
-┌─────────────┐
-│  Renderer   │  Preact + signals
-│ (App.jsx)   │  bootstrap → getCachedState → render
-└──────┬──────┘
-       │ IPC (preload.js 桥)
-┌──────▼──────────────────────────────┐
-│           Main Process                │
-│  index.js → ipc.js → window/tray     │
-│  platform/ (macos | windows)          │
-│  WorkerPool (4 worker threads)        │
-│  state-store (last-known 持久化)       │
-└──────┬───────────────────────────────┘
-       │ worker_threads
-┌──────▼──────────────────────────────┐
-│  detect-worker.js × N                  │
-│  → getInstalledVersion (plist/注册表) │
-│  → runDetectorChain                   │
-│  → compareVersions                    │
-│  → result { installed, latest, ... }  │
-└───────────────────────────────────────┘
-```
+更多项目文档：
 
-详见 [docs/superpowers/specs/](docs/superpowers/specs/)。
+- [用户功能手册](docs/user-features-guide.md)
+- [UI 设计系统](docs/ui-design-system.md)
+- [主题切换说明](docs/ui-theme-switching.md)
+- [Release Notes 维护说明](docs/release-notes-howto.md)
+- [历史设计规格](docs/superpowers/specs/)
+- [版本记录](RELEASE-NOTES.md)
 
-## 已知问题 / 限制
+## 已知限制
 
-- **Linux 不支持** — 用了 macOS / Windows 专属 API
-- **CJK 显示依赖系统字体** — 在某些环境跑可能方块字
-- **首次跑会并发打多个外部 API** — 没事，但有些公司内网限流可能挂
-- **state 文件位置**：`~/Library/Application Support/pulse/state.json` (macOS) / `%APPDATA%/pulse/state.json` (Windows)，删掉等于清缓存
-- **升级依赖** — macOS 需 Homebrew (`brew`)；Windows 需 winget (Win10 1709+ 自带)
+- Linux 不受支持。
+- Windows 当前只发布 x64 安装包，原生 arm64 设备需通过兼容层运行 x64 版本。
+- 自动升级能力取决于 Homebrew、winget 和各应用的数据源。
+- 外部服务不可用、公司网络限流或代理配置可能导致部分模块刷新失败。
+- 部分游戏平台或浏览模式可能暂时没有数据；标记为示例的内容不是实时价格。
 
 ## License
 
