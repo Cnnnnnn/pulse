@@ -92,3 +92,7 @@ playwright-report/
 
 # ZCode CLI 本地会话/计划 (不入库)
 .zcode/
+
+# esbuild 抽出来的 CSS 在 renderer-dist/ 下面, 根目录 index.css 是 4bce47e
+# 误提交的旧 build 产物 (现在引用都在 renderer-dist/), 防止再次误加
+/index.css
