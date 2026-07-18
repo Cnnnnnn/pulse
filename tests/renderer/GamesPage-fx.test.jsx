@@ -193,3 +193,23 @@ describe("GamesPage 心愿单视图", () => {
     expect(screen.getByText("Wishlisted Game")).toBeTruthy();
   });
 });
+
+describe("GamesPage 比价视图", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    loadWishlist();
+  });
+
+  it("compare 模式隐藏 PlatformTabs 但保留 GamesFilterBar", () => {
+    activeMode.value = "compare";
+    activePlatform.value = "all";
+    items.value = [];
+    loading.value = false;
+    error.value = null;
+
+    const { container } = render(<GamesPage />);
+
+    expect(container.querySelector(".games-platform-tabs")).toBeNull();
+    expect(container.querySelector(".games-filter-bar")).toBeTruthy();
+  });
+});
