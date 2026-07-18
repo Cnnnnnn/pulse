@@ -25,6 +25,7 @@ export function GamesPage() {
   const list = items.value;
   const fxSnap = fx.value;
   const isWishlist = activeMode.value === "wishlist";
+  const isCompare = activeMode.value === "compare";
   const wishList = wishlist.value;
   const isEmpty =
     !loading.value &&
@@ -54,7 +55,7 @@ export function GamesPage() {
 
       {!isWishlist && (
         <div class="games-toolbar">
-          <PlatformTabs />
+          {!isCompare && <PlatformTabs />}
           <GamesFilterBar />
         </div>
       )}

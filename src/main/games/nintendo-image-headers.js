@@ -5,8 +5,7 @@
  * 在 session webRequest 层把 Nintendo 封面请求 UA 改成普通 Chrome。
  */
 
-const CHROME_UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const { BROWSER_UA: CHROME_UA } = require("./normalize");
 
 const NINTENDO_WEBREQUEST_FILTER = {
   urls: ["https://assets.nintendo.com/*"],

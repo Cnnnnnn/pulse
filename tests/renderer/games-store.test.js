@@ -9,6 +9,7 @@ import {
   PLATFORMS,
   MODES,
   activePlatform,
+  activeMode,
   items,
   fx,
   wishlist,
@@ -25,6 +26,7 @@ import {
   saveSeenDropKeys,
   clearGamesNewDrop,
   setGamesNotifyOnDrop,
+  setMode,
   loadGamesSettings,
 } from "../../src/renderer/games/gamesStore.js";
 import { api } from "../../src/renderer/api.js";
@@ -189,6 +191,24 @@ describe("gamesStore 心愿单", () => {
     localStorage.setItem("pulse.games.wishlist.v1", "{not json");
     loadWishlist();
     expect(wishlist.value).toHaveLength(0);
+  });
+});
+
+describe("gamesStore 比价 mode", () => {
+  beforeEach(() => {
+    activePlatform.value = "steam";
+    api.getGameDeals.mockResolvedValue({ ok: true, items: [], sources: {} });
+  });
+
+  it("MODES 含比价 tab", () => {
+    expect(MODES.find((m) => m.key === "compare")?.label).toBe("比价");
+  });
+
+  it("setMode('compare') 强制 platform=all", () => {
+    activePlatform.value = "steam";
+    setMode("compare");
+    expect(activePlatform.value).toBe("all");
+    expect(activeMode.value).toBe("compare");
   });
 });
 

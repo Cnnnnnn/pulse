@@ -10,6 +10,8 @@ const {
   toGameDeal,
   fetchJson,
   PLATFORM_KEYS,
+  BROWSER_UA,
+  BROWSER_UA_SAFARI,
 } = require("../../../src/main/games/normalize.js");
 
 afterEach(() => {
@@ -169,5 +171,19 @@ describe("fetchJson — 超时与错误", () => {
       json: async () => ({ hello: "world" }),
     })));
     await expect(fetchJson("http://x")).resolves.toEqual({ hello: "world" });
+  });
+});
+
+describe("User-Agent 常量", () => {
+  it("BROWSER_UA 是 Chrome 桌面 UA", () => {
+    expect(typeof BROWSER_UA).toBe("string");
+    expect(BROWSER_UA).toContain("Chrome/124");
+    expect(BROWSER_UA).toContain("Macintosh");
+  });
+
+  it("BROWSER_UA_SAFARI 是 Safari 桌面 UA", () => {
+    expect(typeof BROWSER_UA_SAFARI).toBe("string");
+    expect(BROWSER_UA_SAFARI).toContain("Safari/605.1.15");
+    expect(BROWSER_UA_SAFARI).not.toContain("Chrome");
   });
 });

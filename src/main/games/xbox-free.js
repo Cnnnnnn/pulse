@@ -1,4 +1,4 @@
-const { fetchJson, toGameDeal } = require("./normalize");
+const { fetchJson, toGameDeal, BROWSER_UA } = require("./normalize");
 const { logFetchError } = require("./log");
 
 const LIST_BASE =
@@ -34,7 +34,7 @@ async function fetchXboxFree(opts = {}) {
     });
     const list = await fetchJson(listUrl.toString(), {
       timeoutMs: 9000,
-      headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
+      headers: { Accept: "application/json", "User-Agent": BROWSER_UA },
     });
     const ids = Array.isArray(list && list.Items)
       ? list.Items.map((item) => item && normalizeId(item.Id)).filter(Boolean)
@@ -49,7 +49,7 @@ async function fetchXboxFree(opts = {}) {
     });
     const catalog = await fetchJson(catalogUrl.toString(), {
       timeoutMs: 9000,
-      headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
+      headers: { Accept: "application/json", "User-Agent": BROWSER_UA },
     });
     const products = Array.isArray(catalog && catalog.Products)
       ? catalog.Products

@@ -62,8 +62,8 @@ describe("dealsCacheGet/Set 往返", () => {
 });
 
 describe("ALLOWED_MODES 白名单（Task 2 清理验证）", () => {
-  it("只含 deals 和 free，不含 top", () => {
-    expect(ALLOWED_MODES).toEqual(["deals", "free"]);
+  it("含 deals、free、compare，不含 top", () => {
+    expect(ALLOWED_MODES).toEqual(["deals", "free", "compare"]);
     expect(ALLOWED_MODES).not.toContain("top");
   });
 });

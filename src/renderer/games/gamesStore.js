@@ -22,6 +22,7 @@ export const MODES = [
   { key: "deals", label: "折扣力度" },
   { key: "free", label: "免费活动" },
   { key: "wishlist", label: "心愿单" },
+  { key: "compare", label: "比价" },
 ];
 
 /** 折扣力度阈值（仅 deals 模式用）。 */
@@ -124,6 +125,8 @@ export function setPlatform(p) {
 export function setMode(m) {
   if (activeMode.value === m) return;
   activeMode.value = m;
+  // 比价视图需跨平台对比同一款游戏价格，单平台无意义 → 强制 platform=all
+  if (m === "compare") activePlatform.value = "all";
   loadGameDeals();
 }
 

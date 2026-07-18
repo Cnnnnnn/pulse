@@ -15,7 +15,8 @@ const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 
 // games:getDeals 接受的 mode 白名单（Task 2 清理：删除已废弃的 'top'，
 // TopRanking.jsx 已无引用）。提升为模块级常量便于测试与跨文件复用。
-const ALLOWED_MODES = ["deals", "free"];
+// Task 3 新增 'compare'：比价视图（跨平台同款价格对比）。
+const ALLOWED_MODES = ["deals", "free", "compare"];
 
 // ── 请求级缓存（Map + TTL，照搬 register-stocks.js 范式）──────────────
 // 按 (platform, mode, sort, minSavings) 维度缓存聚合结果，切 Tab 来回切时

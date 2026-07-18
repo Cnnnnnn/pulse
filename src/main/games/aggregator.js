@@ -187,7 +187,7 @@ async function getGameDeals(opts = {}) {
 
   // 第二层去重：按归一化标题跨平台合并，保留优惠最大的一条
   // （同款游戏在 Steam/Epic 都上架时，id 带不同平台前缀不会命中第一层）
-  if (mode === "free") {
+  if (mode === "free" || mode === "compare") {
     items = deduped;
   } else {
     const byTitle = new Map();
@@ -208,6 +208,16 @@ async function getGameDeals(opts = {}) {
         const aEnd = Number.isFinite(parsedAEnd) ? parsedAEnd : Infinity;
         const bEnd = Number.isFinite(parsedBEnd) ? parsedBEnd : Infinity;
         return aEnd - bEnd;
+      });
+  } else if (mode === "compare") {
+    // 比价：排除免费项，同标题相邻（normalizeTitle 字典序），组内 salePrice 升序
+    items = items
+      .filter((it) => !it.isFree)
+      .sort((a, b) => {
+        const ta = normalizeTitle(a.title);
+        const tb = normalizeTitle(b.title);
+        if (ta !== tb) return ta < tb ? -1 : 1;
+        return (a.salePrice ?? Infinity) - (b.salePrice ?? Infinity);
       });
   } else {
     // deals / all：按折扣门槛过滤 + 排序

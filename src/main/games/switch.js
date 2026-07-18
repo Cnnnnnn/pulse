@@ -16,7 +16,7 @@
  * 返回规范化的 GameDeal 数组 (source:'live')；失败/无数据返回 []，由聚合层回退示例。
  */
 
-const { toGameDeal } = require("./normalize");
+const { toGameDeal, BROWSER_UA_SAFARI: UA } = require("./normalize");
 const { logFetchError } = require("./log");
 
 // Algolia 凭据提取自 Nintendo 美国官网公开请求（只读 search key，无写入权限）。
@@ -37,9 +37,6 @@ const ATTRS = [
   "releaseDateDisplay",
   "objectID",
 ];
-
-const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
 
 /** 带超时 + 错误捕获的 POST 封装。 */
 async function postJson(url, body, { timeoutMs = 9000, headers = {} } = {}) {

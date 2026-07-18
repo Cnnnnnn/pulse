@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/GamesFilterBar.jsx — 浏览维度 (折扣力度 / 喜+1 / 热门Top10) + 折扣门槛/排序 + 刷新。
+ * src/renderer/games/GamesFilterBar.jsx — 浏览维度 (折扣力度 / 免费活动 / 心愿单 / 比价) + 折扣门槛/排序 + 刷新。
  */
 import {
   MODES,
