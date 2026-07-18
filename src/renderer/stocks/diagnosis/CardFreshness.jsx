@@ -3,9 +3,12 @@
  *
  * ponytail: 2026-07-07 — 后端 stock-detail-fetcher.js 已在 perAngle[k].fetchedAt
  * 写入拉取时间戳, 这里只做格式化展示. 不引第三方日期库 (原生 Date 够用).
- * 陈旧阈值 30 天 — 季报披露后的窗口期, 超过一般意味着数据源/行业节奏断了.
+ *
+ * ponytail 2026-07-18 P0-1: STALE_MS 改为 import 自 dataHealth.js 单一来源,
+ * 避免跟 DataHealthPill 阈值两份. 陈旧阈值 30 天 — 季报披露后的窗口期,
+ * 超过一般意味着数据源/行业节奏断了.
  */
-const STALE_MS = 30 * 24 * 60 * 60 * 1000;
+import { STALE_MS } from "./dataHealth.js";
 
 function formatRelative(ts, now) {
   const diff = now - ts;
@@ -27,7 +30,6 @@ export function CardFreshness({ fetchedAt }) {
   return (
     <span
       class={`card-freshness${stale ? " card-freshness-stale" : ""}`}
-      title={new Date(ts).toLocaleString("zh-CN")}
     >
       数据更新于 {formatRelative(ts, Date.now())}
     </span>
