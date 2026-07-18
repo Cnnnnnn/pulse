@@ -10,6 +10,9 @@ import {
   loadGameDeals,
   loadGamesSettings,
   loadWishlist,
+  fetchedAt,
+  enrichSteamLowest,
+  enrichXboxLowest,
   activeMode,
   clearGamesNewFree,
   clearGamesNewDrop,
@@ -43,6 +46,15 @@ export function GamesLayout() {
     if (activeMode.value === "free") clearGamesNewFree();
     if (activeMode.value === "wishlist") clearGamesNewDrop();
   }, [activeMode.value]);
+
+  // 数据加载完成后，后台异步查 Steam/Xbox 史低价（渐进更新徽标）
+  useEffect(() => {
+    if (!fetchedAt.value) return;
+    if (activeMode.value === "deals" || activeMode.value === "compare") {
+      enrichSteamLowest();
+      enrichXboxLowest();
+    }
+  }, [fetchedAt.value]);
 
   return (
     <div class="games-layout">

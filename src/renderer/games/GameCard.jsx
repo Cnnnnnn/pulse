@@ -9,6 +9,7 @@ import {
   addToWishlist,
   removeFromWishlist,
   getWishlistKey,
+  lowPriceMap,
 } from "./gamesStore.js";
 
 function GameThumb({ thumb, platform, gameId }) {
@@ -38,6 +39,16 @@ function GameThumb({ thumb, platform, gameId }) {
 
 export function GameCard({ game, fx }) {
   const isFree = game.isFree;
+  // 史低判定：deal 自带 lowestPrice（PS 同步路径）优先，否则读 lowPriceMap（Steam/Xbox 异步增强）。
+  // 严格 salePrice <= lowest；sample 数据排除（与示例徽标互斥）。
+  const lowestFromDeal = game.lowestPrice;
+  const lowestFromMap = lowPriceMap.value[game.id];
+  const lowest = lowestFromDeal != null ? lowestFromDeal : lowestFromMap;
+  const showLowest =
+    lowest != null &&
+    game.salePrice != null &&
+    Number(game.salePrice) <= Number(lowest) &&
+    game.source !== "sample";
   const favKey = getWishlistKey(game);
   const fav = isInWishlist(favKey);
   function toggleFav(e) {
@@ -72,6 +83,14 @@ export function GameCard({ game, fx }) {
         {game.source === "sample" && (
           <span class="game-card__src" title="示例数据（非实时）">
             示例
+          </span>
+        )}
+        {showLowest && (
+          <span
+            class="game-card__lowest"
+            title={`史低价 ${fmtPrice(lowest, game.currency)}`}
+          >
+            史低
           </span>
         )}
       </div>
