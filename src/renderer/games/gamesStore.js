@@ -77,7 +77,9 @@ export const gamesNotifyOnDrop = signal(true);
 // 史低价映射：key=game.id，value=历史最低价（number）。
 // 由 enrichSteamLowest / enrichXboxLowest 渐进填充，GameCard 读 map 判定徽标。
 export const lowPriceMap = signal({});
-let _lowReqToken = 0;
+// Steam/Xbox 各自独立的竞态 token（共享会导致并发调用时互相取消）
+let _steamLowToken = 0;
+let _xboxLowToken = 0;
 
 let _reqToken = 0;
 
@@ -412,7 +414,7 @@ export function extractSteamAppId(id) {
  * 结果渐进写入 lowPriceMap，GameCard 读 map 判定徽标。
  */
 export async function enrichSteamLowest() {
-  const token = ++_lowReqToken;
+  const token = ++_steamLowToken;
   const steamGames = (items.value || []).filter(
     (it) => it && it.platform === "steam" && extractSteamAppId(it.id),
   );
@@ -421,7 +423,7 @@ export async function enrichSteamLowest() {
 
   const BATCH = 5;
   for (let i = 0; i < pending.length; i += BATCH) {
-    if (token !== _lowReqToken) return; // 已被新任务取代
+    if (token !== _steamLowToken) return; // 已被新任务取代
     const batch = pending.slice(i, i + BATCH);
     const results = await Promise.allSettled(
       batch.map(async (g) => {
@@ -437,7 +439,7 @@ export async function enrichSteamLowest() {
         batchMap[r.value[0]] = r.value[1];
       }
     }
-    if (token === _lowReqToken && Object.keys(batchMap).length > 0) {
+    if (token === _steamLowToken && Object.keys(batchMap).length > 0) {
       lowPriceMap.value = { ...lowPriceMap.value, ...batchMap };
     }
     if (i + BATCH < pending.length) {
@@ -450,7 +452,7 @@ export async function enrichSteamLowest() {
  * 后台异步查 Xbox 游戏的史低价（ITAD /prices 批量）。
  */
 export async function enrichXboxLowest() {
-  const token = ++_lowReqToken;
+  const token = ++_xboxLowToken;
   const xboxGames = (items.value || []).filter((it) => it && it.platform === "xbox");
   const pending = xboxGames.filter((it) => lowPriceMap.value[it.id] == null);
   if (pending.length === 0) return;
@@ -462,7 +464,7 @@ export async function enrichXboxLowest() {
 
   try {
     const res = await api.getItadLowest({ slugs });
-    if (token !== _lowReqToken) return;
+    if (token !== _xboxLowToken) return;
     const batchMap = {};
     if (res && res.lowestMap) {
       for (const g of pending) {
