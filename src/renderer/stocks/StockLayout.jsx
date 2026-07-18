@@ -29,8 +29,9 @@ import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
 import { CompareDrawer } from "./CompareDrawer.jsx";
 import { ComparePoolButton } from "./ComparePoolButton.jsx";
 import { IconSearch, IconSparkles } from "../components/icons.jsx";
-import { stockActiveTab } from "./diagnosisStore.js";
+import { stockActiveTab, diagnosisState } from "./diagnosisStore.js";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
+import { DataHealthBadge } from "./diagnosis/DataHealthBadge.jsx";
 import {
   runScreen,
   runScreenSilent,
@@ -132,6 +133,11 @@ export function StockContent() {
         >
           {loading.value ? "筛选中…" : (<><IconSearch size={14} /> 筛选</>)}
         </button>
+        {/* ponytail 2026-07-18 P0-1 T7: 诊断 tab 内汇总数据健康度, hover 列出 9 张卡
+             各自状态. 仅 diagnosis tab 显示 (screen tab 不依赖诊断数据). */}
+        {stockActiveTab.value === "diagnosis" ? (
+          <DataHealthBadge perAngleData={diagnosisState.value.perAngleData || {}} />
+        ) : null}
         {ts && (
           <span class="stock-toolbar-ts" aria-label="最后更新时间">
             更新于 {fmtTime(ts)}
