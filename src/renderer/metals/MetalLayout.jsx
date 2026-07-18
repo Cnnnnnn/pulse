@@ -10,6 +10,9 @@
  * MetalLayout 保留为 (init effect + MetalContent) 复合 wrapper.
  */
 import { useEffect, useState } from "preact/hooks";
+// ponytail 2026-07-18 P7-audit-fix: metals 模块专属 CSS (T7 fixup 误进 stocks.css
+//   的 580 行 + 补 3 个缺失 class). import 模式同 src/renderer/stocks/stocks.css.
+import "./metals.css";
 import { MetalHeader } from "./MetalHeader.jsx";
 import { MetalWatchlist } from "./MetalWatchlist.jsx";
 import { MetalDetail } from "./MetalDetail.jsx";
