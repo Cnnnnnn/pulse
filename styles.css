@@ -6519,8 +6519,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .ithome-row-comments-status {
   margin: 0;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .ithome-row-comments-status.is-error {

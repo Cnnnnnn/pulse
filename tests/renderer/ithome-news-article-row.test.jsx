@@ -227,7 +227,7 @@ describe("NewsArticleRow 评论按钮", () => {
     await act(async () => {
       fireEvent.click(getByRole("button", { name: /查看评论/ }));
     });
-    expect(getByText("评论暂时无法加载")).toBeTruthy();
+    expect(getByText(/评论暂时无法加载/)).toBeTruthy();
 
     await act(async () => {
       fireEvent.click(getByRole("button", { name: /重试/ }));
@@ -259,6 +259,16 @@ describe("NewsArticleRow 评论按钮", () => {
     await act(async () => {
       resolveResult();
     });
+  });
+
+  it("展开态一定有可见状态文案（兜底 正在准备评论…）", () => {
+    const article = makeArticle({ excerpt: "摘要" });
+    const { container } = render(<NewsArticleRow article={article} />);
+    const trigger = container.querySelector(".ithome-row-comments-trigger");
+    fireEvent.click(trigger);
+    const status = container.querySelector(".ithome-row-comments .ithome-row-comments-status");
+    expect(status).not.toBeNull();
+    expect(status.textContent).not.toBe("");
   });
 });
 

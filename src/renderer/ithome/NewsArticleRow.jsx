@@ -300,38 +300,47 @@ async function handleShare(e) {
           <NewsArticleSummary summary={summary} compact />
         </button>
       )}
-      {commentsExpanded && (
-        <div class="ithome-row-comments" aria-live="polite">
-          {commentsLoading && (
-            <p class="ithome-row-comments-status">正在加载评论…</p>
-          )}
-          {!commentsLoading && commentError && (
+      {commentsExpanded && (() => {
+        let body;
+        if (commentsLoading) {
+          body = <p class="ithome-row-comments-status">正在加载评论…</p>;
+        } else if (commentError) {
+          body = (
             <div class="ithome-row-comments-status is-error">
-              <span>评论暂时无法加载</span>
+              <span>{commentError}</span>
               <button type="button" onClick={handleComments}>
                 重试
               </button>
             </div>
-          )}
-          {!commentsLoading && !commentError && hasCachedComments &&
-            (cachedComments.length === 0 ? (
-              <p class="ithome-row-comments-status">暂无热门评论</p>
-            ) : (
-              <ol class="ithome-comment-list">
-                {cachedComments.map((comment) => (
-                  <li key={comment.id} class="ithome-comment-item">
-                    <div class="ithome-comment-meta">
-                      <strong>{comment.author}</strong>
-                      {comment.createdAt && <time>{comment.createdAt}</time>}
-                      {comment.likes > 0 && <span>支持 {comment.likes}</span>}
-                    </div>
-                    <p>{comment.content}</p>
-                  </li>
-                ))}
-              </ol>
-            ))}
-        </div>
-      )}
+          );
+        } else if (hasCachedComments && cachedComments.length === 0) {
+          body = <p class="ithome-row-comments-status">暂无热门评论</p>;
+        } else if (hasCachedComments) {
+          body = (
+            <ol class="ithome-comment-list">
+              {cachedComments.map((comment) => (
+                <li key={comment.id} class="ithome-comment-item">
+                  <div class="ithome-comment-meta">
+                    <strong>{comment.author}</strong>
+                    {comment.createdAt && <time>{comment.createdAt}</time>}
+                    {comment.likes > 0 && <span>支持 {comment.likes}</span>}
+                  </div>
+                  <p>{comment.content}</p>
+                </li>
+              ))}
+            </ol>
+          );
+        } else {
+          body = (
+            <p class="ithome-row-comments-status">正在准备评论…</p>
+          );
+        }
+        return (
+          <div class="ithome-row-comments" aria-live="polite">
+            {body}
+          </div>
+        );
+      })()}
     </article>
   );
 }
