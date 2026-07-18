@@ -11,21 +11,24 @@ function fmtDays(days) {
   return `${Math.abs(days)} 天前已解禁`;
 }
 
-export function CorporateEventsCard({ data }) {
+// ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard (2 个早 return 也要带).
+export function CorporateEventsCard({ data, angle = null, onRefresh = null }) {
   const d = data?.status === "ok" ? data.data : null;
   if (!d) {
-    return <ModuleCard variant="events" title="📅 股本事件" empty="数据不足" />;
+    return <ModuleCard variant="events" title="📅 股本事件" angle={angle} onRefresh={onRefresh} empty="数据不足" />;
   }
   const hasDiv = d.dividends && d.dividends.length > 0;
   const hasUnlock = d.nearestUnlockDays != null;
   const hasOffer = d.offerings && d.offerings.length > 0;
   if (!hasDiv && !hasUnlock && !hasOffer) {
-    return <ModuleCard variant="events" title="📅 股本事件" empty="近期无股本事件" />;
+    return <ModuleCard variant="events" title="📅 股本事件" angle={angle} onRefresh={onRefresh} empty="近期无股本事件" />;
   }
   return (
     <ModuleCard
       variant="events"
       title="📅 股本事件"
+      angle={angle}
+      onRefresh={onRefresh}
       body={
         <div class="module-card-body">
           {hasDiv && d.dividends[0].cashBonus != null && (

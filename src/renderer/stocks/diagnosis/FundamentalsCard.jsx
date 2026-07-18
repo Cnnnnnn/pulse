@@ -5,7 +5,9 @@ import { IndustryCompareBar } from "./IndustryCompareBar.jsx";
 //   ROE / 毛利率 vs 行业中位 (peer_compare.data.roeIndustryMedian /
 //   grossMarginIndustryMedian). peerCompare 缺数据时整段隐藏.
 
-export function FundamentalsCard({ data, peerCompare }) {
+// ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard,
+//   ModuleCard 自动渲 DataHealthPill (4 态 + failed 重试按钮).
+export function FundamentalsCard({ data, peerCompare, angle = null, onRefresh = null }) {
   const d = data?.status === "ok" ? data.data : null;
   const fetchedAt = data?.status === "ok" ? data.fetchedAt : null;
   const showRoe = peerCompare && peerCompare.roeIndustryMedian != null && d?.roe != null;
@@ -14,6 +16,8 @@ export function FundamentalsCard({ data, peerCompare }) {
     <ModuleCard
       variant="fundamentals"
       title="📊 基本面"
+      angle={angle}
+      onRefresh={onRefresh}
       fetchedAt={fetchedAt}
       body={d ? (
         <div class="module-card-body">

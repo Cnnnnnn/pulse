@@ -41,6 +41,9 @@ function mergeRisks(basic, ai) {
   return out;
 }
 
+// ponytail 2026-07-18 P0-1 T8: 9 张诊断卡统一传 angle (= perAngleData[k]) +
+//   onRefresh (= () => onRefreshAngle(k)). ModuleCard 已经接这两 prop,
+//   DataHealthPill 会自动渲 4 态 + failed retry 按钮. 改 keep 不新增 prop 总数.
 export function ModuleGrid({ perAngleData, aiResult, api, scores, onRefreshAngle, refreshing, failed }) {
   const basicRisks = computeBasicRisks(perAngleData || {});
   const risks = mergeRisks(basicRisks, aiResult?.risks);
@@ -56,55 +59,55 @@ export function ModuleGrid({ perAngleData, aiResult, api, scores, onRefreshAngle
         {aiReady && perAngle.profitability && (
           <AiNoteLine note={perAngle.profitability} refreshing={busy.has("profitability")} onRefresh={makeRefresh("profitability")} failed={failedSet.has("profitability")} />
         )}
-        <FundamentalsCard data={perAngleData.profitability} peerCompare={peerCompare} />
+        <FundamentalsCard data={perAngleData.profitability} angle={perAngleData.profitability} onRefresh={makeRefresh("profitability")} peerCompare={peerCompare} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.valuation && (
           <AiNoteLine note={perAngle.valuation} refreshing={busy.has("valuation")} onRefresh={makeRefresh("valuation")} failed={failedSet.has("valuation")} />
         )}
-        <ValuationCard data={perAngleData.valuation} peerCompare={peerCompare} />
+        <ValuationCard data={perAngleData.valuation} angle={perAngleData.valuation} onRefresh={makeRefresh("valuation")} peerCompare={peerCompare} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.peer_compare && (
           <AiNoteLine note={perAngle.peer_compare} refreshing={busy.has("peer_compare")} onRefresh={makeRefresh("peer_compare")} failed={failedSet.has("peer_compare")} />
         )}
-        <PeerCompareCard data={perAngleData.peer_compare} />
+        <PeerCompareCard data={perAngleData.peer_compare} angle={perAngleData.peer_compare} onRefresh={makeRefresh("peer_compare")} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.capital_flow && (
           <AiNoteLine note={perAngle.capital_flow} refreshing={busy.has("capital_flow")} onRefresh={makeRefresh("capital_flow")} failed={failedSet.has("capital_flow")} />
         )}
-        <CapitalFlowCard data={perAngleData.capital_flow} />
+        <CapitalFlowCard data={perAngleData.capital_flow} angle={perAngleData.capital_flow} onRefresh={makeRefresh("capital_flow")} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.tech_indicators && (
           <AiNoteLine note={perAngle.tech_indicators} refreshing={busy.has("tech_indicators")} onRefresh={makeRefresh("tech_indicators")} failed={failedSet.has("tech_indicators")} />
         )}
-        <TechCard data={perAngleData.tech_indicators} />
+        <TechCard data={perAngleData.tech_indicators} angle={perAngleData.tech_indicators} onRefresh={makeRefresh("tech_indicators")} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.news_buzz && (
           <AiNoteLine note={perAngle.news_buzz} refreshing={busy.has("news_buzz")} onRefresh={makeRefresh("news_buzz")} failed={failedSet.has("news_buzz")} />
         )}
-        <NewsCard data={perAngleData.news_buzz} />
+        <NewsCard data={perAngleData.news_buzz} angle={perAngleData.news_buzz} onRefresh={makeRefresh("news_buzz")} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.earnings_forecast && (
           <AiNoteLine note={perAngle.earnings_forecast} refreshing={busy.has("earnings_forecast")} onRefresh={makeRefresh("earnings_forecast")} failed={failedSet.has("earnings_forecast")} />
         )}
-        <EarningsForecastCard data={perAngleData.earnings_forecast} />
+        <EarningsForecastCard data={perAngleData.earnings_forecast} angle={perAngleData.earnings_forecast} onRefresh={makeRefresh("earnings_forecast")} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.shareholders && (
           <AiNoteLine note={perAngle.shareholders} refreshing={busy.has("shareholders")} onRefresh={makeRefresh("shareholders")} failed={failedSet.has("shareholders")} />
         )}
-        <ShareholdersCard data={perAngleData.shareholders} />
+        <ShareholdersCard data={perAngleData.shareholders} angle={perAngleData.shareholders} onRefresh={makeRefresh("shareholders")} />
       </div>
       <div class="module-card-wrap">
         {aiReady && perAngle.corporate_events && (
           <AiNoteLine note={perAngle.corporate_events} refreshing={busy.has("corporate_events")} onRefresh={makeRefresh("corporate_events")} failed={failedSet.has("corporate_events")} />
         )}
-        <CorporateEventsCard data={perAngleData.corporate_events} />
+        <CorporateEventsCard data={perAngleData.corporate_events} angle={perAngleData.corporate_events} onRefresh={makeRefresh("corporate_events")} />
       </div>
       <RiskCard risks={risks} />
     </div>

@@ -32,3 +32,54 @@
   background: var(--warn-bg, rgba(255, 149, 0, 0.14));
   color: var(--warn-fg, #b25e00);
 }
+
+/* ponytail 2026-07-18 P0-1 T8: 单卡数据健康度徽标 4 态样式.
+   跟 .data-health-badge 同族: 字号 10px, padding 2-4px, border-radius 4px.
+   ok 用 --ok-* (绿), partial 用 --warn-* (黄), stale 用 --text-tertiary 灰,
+   failed 用 --accent-red.
+   inline .data-health-pill-retry 按钮跟 module-card 标题区齐平, hover 染色. */
+.data-health-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: default;
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  color: var(--text-2, var(--text-secondary, #6e6e73));
+}
+.data-health-pill-ok {
+  background: var(--ok-bg, rgba(52, 199, 89, 0.14));
+  color: var(--ok-fg, #1f7a3a);
+}
+.data-health-pill-partial {
+  background: var(--warn-bg, rgba(255, 149, 0, 0.14));
+  color: var(--warn-fg, #b25e00);
+}
+.data-health-pill-stale {
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  color: var(--text-tertiary, #909090);
+}
+.data-health-pill-failed {
+  background: var(--accent-red-bg, rgba(255, 59, 48, 0.12));
+  color: var(--accent-red, #d70015);
+}
+.data-health-pill-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+  padding: 0 4px;
+  font-size: 10px;
+  border: none;
+  background: transparent;
+  color: var(--accent-red, #d70015);
+  cursor: pointer;
+  border-radius: 3px;
+}
+.data-health-pill-retry:hover {
+  background: rgba(255, 59, 48, 0.18);
+}

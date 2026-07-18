@@ -1,11 +1,14 @@
 import { ModuleCard } from "./ModuleCard.jsx";
 
-export function TechCard({ data }) {
+// ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard.
+export function TechCard({ data, angle = null, onRefresh = null }) {
   const d = data?.status === "ok" ? data.data : null;
   return (
     <ModuleCard
       variant="tech"
       title="📈 技术面"
+      angle={angle}
+      onRefresh={onRefresh}
       body={d ? (
         <div class="module-card-body">
           <div>MA5 {d.ma5?.toFixed(2) ?? "—"}</div>

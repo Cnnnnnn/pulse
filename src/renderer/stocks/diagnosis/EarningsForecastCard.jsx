@@ -23,21 +23,25 @@ function formatChange(min, max) {
   return `${v > 0 ? "+" : ""}${v}%`;
 }
 
-export function EarningsForecastCard({ data }) {
+// ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard
+//   (2 个早 return 也要带, 否则 failed 时 pill 不显示).
+export function EarningsForecastCard({ data, angle = null, onRefresh = null }) {
   const d = data?.status === "ok" ? data.data : null;
   const items = Array.isArray(d?.items) ? d.items : null;
   if (items && items.length === 0) {
-    return <ModuleCard variant="earnings" title="📈 业绩预期" empty="近期无业绩预告" />;
+    return <ModuleCard variant="earnings" title="📈 业绩预期" angle={angle} onRefresh={onRefresh} empty="近期无业绩预告" />;
   }
   const latest = d && d.latest;
   if (!latest) {
-    return <ModuleCard variant="earnings" title="📈 业绩预期" empty="数据不足" />;
+    return <ModuleCard variant="earnings" title="📈 业绩预期" angle={angle} onRefresh={onRefresh} empty="数据不足" />;
   }
   const tone = TYPE_TONE[latest.type] || "neutral";
   return (
     <ModuleCard
       variant="earnings"
       title="📈 业绩预期"
+      angle={angle}
+      onRefresh={onRefresh}
       body={
         <div class="module-card-body">
           <div>最新 ({(latest.reportDate || "?").slice(0, 7)})</div>

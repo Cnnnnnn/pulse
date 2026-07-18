@@ -6,8 +6,12 @@ import { DataHealthPill } from "./DataHealthPill.jsx";
  *
  * ponytail 2026-07-08 — 形态同构: 外壳 + 标题区 (emoji+文字 + 可选 freshness)
  *          + 主体/空态.
- * ponytail 2026-07-18 P0-1 — 标题区右侧加 <DataHealthPill>, 把"数据新不新"
+ * ponytail 2026-07-18 P0-1 T7 — 标题区右侧加 <DataHealthPill>, 把"数据新不新"
  *          变成主信号; CardFreshness 保留为辅助时间戳.
+ * ponytail 2026-07-18 P0-1 T8 — DataHealthPill failed → retry 按钮回调 onRefresh:
+ *          当前走 diagnosisStore.refreshAngle (= 重新 LLM 解读, 不重拉数据).
+ *          数据 failed 时 retry LLM 通常返 no_data, pill 状态不变;
+ *          真正的"数据重拉"留给后续 task 加 stocks:angle-reload 协议.
  *
  * 用法:
  *   <ModuleCard

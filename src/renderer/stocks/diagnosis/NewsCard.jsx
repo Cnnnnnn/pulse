@@ -18,13 +18,16 @@ function aggregateSentiment(items) {
   return SENTIMENT_LABEL.neutral;
 }
 
-export function NewsCard({ data }) {
+// ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard.
+export function NewsCard({ data, angle = null, onRefresh = null }) {
   const d = data?.status === "ok" ? data.data : null;
   const items = Array.isArray(d?.items) ? d.items : null;
   return (
     <ModuleCard
       variant="news"
       title="📰 舆情"
+      angle={angle}
+      onRefresh={onRefresh}
       body={items && items.length > 0 ? (
         <div class="module-card-body">
           <div>本周 {items.length} 条</div>

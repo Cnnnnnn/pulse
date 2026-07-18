@@ -11,7 +11,8 @@ import { IndustryCompareBar } from "./IndustryCompareBar.jsx";
  * 数据缺失 (peer_compare failed) → 整 card 折叠到"数据不足", 不渲染空骨架.
  */
 
-export function PeerCompareCard({ data }) {
+// ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard.
+export function PeerCompareCard({ data, angle = null, onRefresh = null }) {
   const d = data?.status === "ok" ? data.data : null;
   const fetchedAt = data?.status === "ok" ? data.fetchedAt : null;
   const hasAny =
@@ -29,6 +30,8 @@ export function PeerCompareCard({ data }) {
       variant="peer-compare"
       title="🔍 同业对比"
       titleExtra={titleExtra}
+      angle={angle}
+      onRefresh={onRefresh}
       fetchedAt={fetchedAt}
       body={!d ? null : (!hasAny ? null : (
         <div class="module-card-body">
