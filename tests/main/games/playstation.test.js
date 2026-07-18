@@ -119,6 +119,21 @@ describe("buildDealsFromPsGameSpider — sanity check 过滤", () => {
   it("priceHistory 为 null 时抛错（源码不防御，由调用方 loadPsGameSpiderData 兜底）", () => {
     expect(() => buildDealsFromPsGameSpider(null, [], { limit: 5 })).toThrow();
   });
+
+  it("PSGameSpider deal 含 lowestPrice（价格历史的 min，区别于 latest）", () => {
+    // latest=50, min=30（中间点），证明 min 是 Math.min 而非复用 latest
+    const priceHistory = {
+      game1: [
+        ["2026-01-01", 60],
+        ["2026-03-01", 30],
+        ["2026-07-01", 50],
+      ],
+    };
+    const deals = buildDealsFromPsGameSpider(priceHistory, [], { limit: 10 });
+    expect(deals.length).toBeGreaterThan(0);
+    expect(deals[0].salePrice).toBe(50);
+    expect(deals[0].lowestPrice).toBe(30);
+  });
 });
 
 // ── parseDealsHtml ─────────────────────────────────────────────────

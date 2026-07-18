@@ -75,6 +75,10 @@ function toGameDeal(raw) {
     store: raw.store || PLATFORM_META[platform].label,
     source: raw.source === "live" ? "live" : "sample",
     popular: raw.popular == null ? 0 : Number(raw.popular),
+    lowestPrice:
+      raw.lowestPrice != null && Number.isFinite(Number(raw.lowestPrice))
+        ? Number(raw.lowestPrice)
+        : null,
     promotionType: PROMOTION_TYPES.has(raw.promotionType)
       ? raw.promotionType
       : null,

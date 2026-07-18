@@ -172,6 +172,7 @@ function buildDealsFromPsGameSpider(priceHistory, metaData, opts = {}) {
 
     const latest = pts[pts.length - 1].price;
     const max = Math.max(...pts.map((p) => p.price));
+    const min = Math.min(...pts.map((p) => p.price));
 
     // sanity check
     if (latest <= 0 || max <= 0 || max > 300) continue;
@@ -207,6 +208,7 @@ function buildDealsFromPsGameSpider(priceHistory, metaData, opts = {}) {
       source: "live",
       rating: !isNaN(rating) ? rating : null,
       popular: Math.round((max - latest) * 100) / 100, // 折扣绝对值（USD），用于排序
+      lowestPrice: min,
     });
   }
 
