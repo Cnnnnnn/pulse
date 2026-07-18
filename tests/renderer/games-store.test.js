@@ -2,7 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/renderer/api.js", () => ({
-  api: { getGameDeals: vi.fn() },
+  api: {
+    getGameDeals: vi.fn(),
+    getSteamLowest: vi.fn(),
+    getItadLowest: vi.fn(),
+  },
 }));
 
 import {
@@ -28,6 +32,11 @@ import {
   setGamesNotifyOnDrop,
   setMode,
   loadGamesSettings,
+  lowPriceMap,
+  enrichSteamLowest,
+  enrichXboxLowest,
+  extractSteamAppId,
+  fetchedAt,
 } from "../../src/renderer/games/gamesStore.js";
 import { api } from "../../src/renderer/api.js";
 
@@ -259,5 +268,71 @@ describe("gamesStore 降价设置", () => {
     }));
     loadGamesSettings();
     expect(gamesNotifyOnDrop.value).toBe(true);
+  });
+});
+
+describe("gamesStore 史低增强", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    lowPriceMap.value = {};
+    items.value = [];
+    fetchedAt.value = null;
+    activeMode.value = "deals";
+  });
+
+  it("extractSteamAppId 从 'steam-367520' 提取 '367520'", () => {
+    expect(extractSteamAppId("steam-367520")).toBe("367520");
+    expect(extractSteamAppId("steam-")).toBeNull();
+    expect(extractSteamAppId("epic-123")).toBeNull();
+  });
+
+  it("enrichSteamLowest 把 cheapshark 结果写入 lowPriceMap", async () => {
+    api.getSteamLowest = vi.fn(async () => ({ lowestPrice: 3.49 }));
+    items.value = [
+      { id: "steam-100", platform: "steam", salePrice: 5 },
+      { id: "steam-200", platform: "steam", salePrice: 10 },
+      { id: "epic-300", platform: "epic", salePrice: 7 },
+    ];
+
+    await enrichSteamLowest();
+
+    expect(lowPriceMap.value["steam-100"]).toBe(3.49);
+    expect(lowPriceMap.value["steam-200"]).toBe(3.49);
+    expect(lowPriceMap.value["epic-300"]).toBeUndefined();
+  });
+
+  it("enrichSteamLowest 跳过已在 lowPriceMap 的游戏", async () => {
+    lowPriceMap.value = { "steam-100": 3.49 };
+    api.getSteamLowest = vi.fn(async () => ({ lowestPrice: 9.99 }));
+    items.value = [{ id: "steam-100", platform: "steam", salePrice: 5 }];
+
+    await enrichSteamLowest();
+
+    expect(api.getSteamLowest).not.toHaveBeenCalled();
+    expect(lowPriceMap.value["steam-100"]).toBe(3.49);
+  });
+
+  it("enrichSteamLowest 忽略 lowestPrice 为 null 的结果", async () => {
+    api.getSteamLowest = vi.fn(async () => ({ lowestPrice: null }));
+    items.value = [{ id: "steam-100", platform: "steam", salePrice: 5 }];
+
+    await enrichSteamLowest();
+
+    expect(lowPriceMap.value["steam-100"]).toBeUndefined();
+  });
+
+  it("enrichXboxLowest 把 ITAD 批量结果写入 lowPriceMap（按 game.id）", async () => {
+    api.getItadLowest = vi.fn(async () => ({
+      lowestMap: { "xbox-game-a": 19.99 },
+    }));
+    items.value = [
+      { id: "xbox-xbox-game-a", platform: "xbox", salePrice: 25 },
+      { id: "xbox-xbox-game-b", platform: "xbox", salePrice: 30 },
+    ];
+
+    await enrichXboxLowest();
+
+    expect(lowPriceMap.value["xbox-xbox-game-a"]).toBe(19.99);
+    expect(lowPriceMap.value["xbox-xbox-game-b"]).toBeUndefined();
   });
 });

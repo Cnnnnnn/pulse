@@ -74,6 +74,11 @@ export const wishlist = signal([]);
 export const gamesHasNewDrop = signal(false);
 export const gamesNotifyOnDrop = signal(true);
 
+// 史低价映射：key=game.id，value=历史最低价（number）。
+// 由 enrichSteamLowest / enrichXboxLowest 渐进填充，GameCard 读 map 判定徽标。
+export const lowPriceMap = signal({});
+let _lowReqToken = 0;
+
 let _reqToken = 0;
 
 /**
@@ -82,6 +87,7 @@ let _reqToken = 0;
 export async function loadGameDeals() {
   const token = ++_reqToken;
   loading.value = true;
+  lowPriceMap.value = {};
   error.value = null;
   try {
     const res = await api.getGameDeals({
@@ -389,5 +395,87 @@ function emitSettingsChanged() {
     }
   } catch {
     /* 非浏览器环境忽略 */
+  }
+}
+
+// ── 史低增强（lowPriceMap 渐进填充）─────────────────────────────────
+
+/** 从 game.id 提取 steamAppID（"steam-367520" → "367520"）。非 steam 返回 null。 */
+export function extractSteamAppId(id) {
+  if (typeof id !== "string") return null;
+  const m = id.match(/^steam-(.+)$/);
+  return m && m[1] ? m[1] : null;
+}
+
+/**
+ * 后台异步查 Steam 游戏的史低价（cheapshark /games，每批 5 并发）。
+ * 结果渐进写入 lowPriceMap，GameCard 读 map 判定徽标。
+ */
+export async function enrichSteamLowest() {
+  const token = ++_lowReqToken;
+  const steamGames = (items.value || []).filter(
+    (it) => it && it.platform === "steam" && extractSteamAppId(it.id),
+  );
+  const pending = steamGames.filter((it) => lowPriceMap.value[it.id] == null);
+  if (pending.length === 0) return;
+
+  const BATCH = 5;
+  for (let i = 0; i < pending.length; i += BATCH) {
+    if (token !== _lowReqToken) return; // 已被新任务取代
+    const batch = pending.slice(i, i + BATCH);
+    const results = await Promise.allSettled(
+      batch.map(async (g) => {
+        const appId = extractSteamAppId(g.id);
+        const res = await api.getSteamLowest({ steamAppId: appId });
+        if (res && res.lowestPrice != null) return [g.id, res.lowestPrice];
+        return null;
+      }),
+    );
+    const batchMap = {};
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value) {
+        batchMap[r.value[0]] = r.value[1];
+      }
+    }
+    if (token === _lowReqToken && Object.keys(batchMap).length > 0) {
+      lowPriceMap.value = { ...lowPriceMap.value, ...batchMap };
+    }
+    if (i + BATCH < pending.length) {
+      await new Promise((r) => setTimeout(r, 0)); // 让出主线程
+    }
+  }
+}
+
+/**
+ * 后台异步查 Xbox 游戏的史低价（ITAD /prices 批量）。
+ */
+export async function enrichXboxLowest() {
+  const token = ++_lowReqToken;
+  const xboxGames = (items.value || []).filter((it) => it && it.platform === "xbox");
+  const pending = xboxGames.filter((it) => lowPriceMap.value[it.id] == null);
+  if (pending.length === 0) return;
+
+  const slugs = pending
+    .map((g) => (g.id && g.id.startsWith("xbox-") ? g.id.slice(5) : null))
+    .filter(Boolean);
+  if (slugs.length === 0) return;
+
+  try {
+    const res = await api.getItadLowest({ slugs });
+    if (token !== _lowReqToken) return;
+    const batchMap = {};
+    if (res && res.lowestMap) {
+      for (const g of pending) {
+        const slug = g.id.startsWith("xbox-") ? g.id.slice(5) : null;
+        if (slug && res.lowestMap[slug] != null) {
+          batchMap[g.id] = res.lowestMap[slug];
+        }
+      }
+    }
+    if (Object.keys(batchMap).length > 0) {
+      lowPriceMap.value = { ...lowPriceMap.value, ...batchMap };
+    }
+  } catch {
+    /* ITAD 失败静默，不显示徽标 */
   }
 }
