@@ -48,7 +48,7 @@ describe("CompareDrawer", () => {
     const fs = require("fs");
     const path = require("path");
     const css = fs.readFileSync(
-      path.resolve(__dirname, "../../../styles.css"),
+      path.resolve(__dirname, "../../../src/renderer/stocks/stocks.css"),
       "utf8",
     );
     // ponytail: 用 stack-based 解析 .cmp-head, .cmp-row { ... } 这条规则.

@@ -26,11 +26,15 @@ describe("ResultTable 诊断按钮", () => {
   });
 
   it("UX-1: <1100px 隐藏行业列, <800px 进一步藏 PE, 列数同步 grid (CSS rule)", () => {
-    // ponytail: 列隐藏必须跟 grid 列数同步, 否则 hidden 后 grid 留白列. 直接读 styles.css
+    // ponytail: 列隐藏必须跟 grid 列数同步, 否则 hidden 后 grid 留白列. 直接读 stocks.css
+    //   (P0-1 polish 后 stocks 样式已从 styles.css 迁到 src/renderer/stocks/stocks.css,
     //   验证 stocks 那段 (避免抓错同名 @media, 比如 metals 也有 800px media).
     const fs = require("fs");
     const path = require("path");
     const css = fs.readFileSync(
+      path.resolve(__dirname, "../../../src/renderer/stocks/stocks.css"),
+      "utf8",
+    ) + fs.readFileSync(
       path.resolve(__dirname, "../../../styles.css"),
       "utf8",
     );
@@ -113,6 +117,9 @@ describe("ResultTable 诊断按钮", () => {
     const fs = require("fs");
     const path = require("path");
     const css = fs.readFileSync(
+      path.resolve(__dirname, "../../../src/renderer/stocks/stocks.css"),
+      "utf8",
+    ) + fs.readFileSync(
       path.resolve(__dirname, "../../../styles.css"),
       "utf8",
     );
