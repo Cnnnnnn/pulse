@@ -68,6 +68,41 @@ describe("ithome comment-parser", () => {
     ).toEqual({ ok: true, comments: [] });
   });
 
+  it("falls back to content.comments when hotComments is empty", () => {
+    const fallbackComments = [
+      makeComment(101, { postTime: "2026-07-19T00:11:22.987", support: 0 }),
+      makeComment(102, { postTime: "2026-07-19T00:05:11.001", support: 2 }),
+    ];
+    const result = parseCommentResponse(
+      JSON.stringify({
+        success: true,
+        content: { hotComments: [], comments: fallbackComments },
+      }),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.comments).toHaveLength(2);
+    expect(result.comments[0]).toEqual({
+      id: "101",
+      author: "用户101",
+      content: "评论内容 101",
+      createdAt: "2026-07-19T00:11:22.987",
+      likes: 0,
+    });
+  });
+
+  it("prefers hotComments when both arrays are present", () => {
+    const hot = [makeComment(1)];
+    const all = [makeComment(99)];
+    const result = parseCommentResponse(
+      JSON.stringify({
+        success: true,
+        content: { hotComments: hot, comments: all },
+      }),
+    );
+    expect(result.comments).toHaveLength(1);
+    expect(result.comments[0].id).toBe("1");
+  });
+
   it("rejects malformed or changed responses", () => {
     expect(parseCommentResponse("not json")).toEqual({
       ok: false,

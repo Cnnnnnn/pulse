@@ -37,10 +37,19 @@ function parseCommentResponse(raw) {
   } catch {
     return { ok: false, reason: "parse_failed" };
   }
-  const hotComments = payload?.success && payload.content?.hotComments;
-  if (!Array.isArray(hotComments)) return { ok: false, reason: "parse_failed" };
+  if (!payload?.success) return { ok: false, reason: "parse_failed" };
+  // IT之家把高赞评论放在 content.hotComments；其余评论放在 content.comments。
+  // 多数文章（特别是发布一段时间后）hotComments 为空，但 comments 里有内容。
+  // 为避免 UI 一直 暂无热门评论，先读 hotComments，再 fallback 到 comments。
+  const hotComments = payload.content?.hotComments;
+  const allComments = payload.content?.comments;
+  let source;
+  if (Array.isArray(hotComments) && hotComments.length > 0) source = hotComments;
+  else if (Array.isArray(allComments)) source = allComments;
+  else if (Array.isArray(hotComments)) source = hotComments; // 显式空数组，UI 走 空态
+  else return { ok: false, reason: "parse_failed" };
   const comments = [];
-  for (const item of hotComments) {
+  for (const item of source) {
     if (!item || Number(item.parentCommentId || 0) !== 0) continue;
     const author = String(item.userInfo?.userNick || "").trim();
     const content = _plainCommentText(item.elements);
