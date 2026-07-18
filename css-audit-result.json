@@ -1,0 +1,73 @@
+{
+  "reminders": [
+    "btn-icon",
+    "danger",
+    "reminder-dismissed-label",
+    "reminder-form-header",
+    "reminder-form-header__title",
+    "reminder-overflow",
+    "reminder-overflow-menu",
+    "reminder-pill",
+    "reminder-pill--fired",
+    "reminder-pill--pending",
+    "reminder-repeat",
+    "reminder-section__dot",
+    "reminder-section__dot--dismissed",
+    "reminder-section__dot--fired",
+    "reminder-section__dot--pending",
+    "reminder-when"
+  ],
+  "funds": [
+    "fund-alert-hint",
+    "fund-alert-toggle",
+    "fund-dashboard",
+    "fund-detail",
+    "fund-list",
+    "fund-modal-title-row",
+    "fund-page-section",
+    "fund-page-section-tools",
+    "fund-trend-bench",
+    "mt-5",
+    "tabular-nums"
+  ],
+  "worldcup": [
+    "bracket-error-card",
+    "bracket-stage--finals",
+    "match-ai-block-actions",
+    "match-ai-btn",
+    "match-team-left",
+    "match-team-name",
+    "wizard-footer-hint",
+    "worldcup-scorers-col-rank",
+    "worldcup-subtab-label"
+  ],
+  "stocks": [
+    "add-compare-text",
+    "compare-pool-fab-label",
+    "diagnosis-data-gaps-icon",
+    "module-card-meta",
+    "module-card-title-extras",
+    "stock-table-loading-text",
+    "verdict-section-blindspots",
+    "verdict-section-highlights"
+  ],
+  "github": [
+    "github-page",
+    "github-rel-reparse",
+    "github-retry-failed-btn"
+  ],
+  "games": [
+    "games-select__label",
+    "games-state__hint"
+  ],
+  "ithome": [
+    "ithome-row-link--share",
+    "ithome-subtab-label"
+  ],
+  "digest": [
+    "digest-section__title"
+  ],
+  "news": [
+    "news-refresh-text"
+  ]
+}
