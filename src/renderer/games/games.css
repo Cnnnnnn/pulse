@@ -2734,3 +2734,413 @@ a.game-card__title::after {
     transition: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   P1c（C 成就 / D 限时活动）样式 — 仅用令牌 / oklch，禁止裸 hex。
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 成就面板（AchievementsPanel）── */
+.achievements {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.achievements__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.achievements__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.achievements__count {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.achievements__add {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-primary);
+  background: color-mix(in oklch, var(--accent-primary) 14%, transparent);
+  color: color-mix(in oklch, var(--accent-primary) 42%, black);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.achievements__add:hover {
+  background: color-mix(in oklch, var(--accent-primary) 24%, transparent);
+}
+.achievements__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-2);
+}
+.achievements__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.achievements__item.is-unlocked {
+  border-color: color-mix(in oklch, var(--color-success) 40%, transparent);
+  background: color-mix(in oklch, var(--color-success) 14%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+.achievements__item.is-locked {
+  opacity: 0.66;
+  filter: grayscale(0.35);
+}
+.achievements__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+.achievements__name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.achievements__badge {
+  flex: 0 0 auto;
+  padding: 1px var(--space-1);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: color-mix(in oklch, var(--text-tertiary) 16%, transparent);
+}
+.achievements__goal {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  line-height: 1.35;
+}
+.achievements__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin-top: auto;
+}
+.achievements__progress-num {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.achievements__date {
+  font-size: var(--font-size-xs);
+  color: color-mix(in oklch, var(--color-success) 34%, black);
+  font-variant-numeric: tabular-nums;
+}
+.achievements__actions {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+.achievements__edit,
+.achievements__del {
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+.achievements__edit:hover {
+  color: var(--accent-primary);
+  border-color: color-mix(in oklch, var(--accent-primary) 40%, transparent);
+}
+.achievements__del:hover {
+  color: var(--color-danger);
+  border-color: color-mix(in oklch, var(--color-danger) 40%, transparent);
+}
+.achievements__empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── 限时活动横幅（EventBanner）── */
+.event-banner-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.event-banner__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.event-banner__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.event-banner__add {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-primary);
+  background: color-mix(in oklch, var(--accent-primary) 14%, transparent);
+  color: color-mix(in oklch, var(--accent-primary) 42%, black);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.event-banner__add:hover {
+  background: color-mix(in oklch, var(--accent-primary) 24%, transparent);
+}
+.event-banner__empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+.event-banner__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.event-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklch, var(--accent-primary) 40%, transparent);
+  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+.event-banner__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.event-banner__name {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.event-banner__status {
+  flex: 0 0 auto;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+.event-banner__status--active {
+  color: color-mix(in oklch, var(--color-success) 36%, black);
+  background: color-mix(in oklch, var(--color-success) 22%, transparent);
+  border: 1px solid color-mix(in oklch, var(--color-success) 44%, transparent);
+}
+.event-banner__window {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.event-banner__foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.event-banner__progress-num {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.event-banner__claimed {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: color-mix(in oklch, var(--color-success) 34%, black);
+}
+.event-banner__hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-left: auto;
+}
+.event-banner__claim {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--games-text-inverse);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: auto;
+  transition: filter 0.15s ease;
+}
+.event-banner__claim:hover {
+  filter: brightness(1.06);
+}
+
+/* ── 历史活动（EventBanner 折叠区）── */
+.event-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.event-history__title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+}
+.event-history__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.event-history__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  opacity: 0.86;
+}
+.event-history__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.event-history__name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.event-history__status {
+  flex: 0 0 auto;
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: color-mix(in oklch, var(--text-tertiary) 16%, transparent);
+}
+.event-history__foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+.event-history__progress-num {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.event-history__done {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: color-mix(in oklch, var(--color-success) 34%, black);
+}
+.event-history__claim {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--games-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+/* ── 成就 / 活动 自建设弹窗表单 ── */
+.ach-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ach-form__label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.ach-form__input {
+  min-height: 40px;
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+}
+.ach-form__select {
+  min-height: 40px;
+  padding: 4px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+}
+
+/* ── 焦点环统一（P1c 新增可交互元素）── */
+.achievements__add:focus-visible,
+.achievements__edit:focus-visible,
+.achievements__del:focus-visible,
+.achievements__item:focus-visible,
+.event-banner__add:focus-visible,
+.event-banner__claim:focus-visible,
+.event-history__claim:focus-visible,
+.ach-form__input:focus-visible,
+.ach-form__select:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .achievements__add,
+  .event-banner__claim {
+    transition: none;
+  }
+}

@@ -41,6 +41,8 @@ import { MergeConfirmModal } from "./MergeConfirmModal.jsx";
 import { UsageMetricsPanel } from "./UsageMetricsPanel.jsx";
 import { BadgeWall } from "./BadgeWall.jsx";
 import { ShareImageModal } from "./ShareImageModal.jsx";
+import { AchievementsPanel } from "./AchievementsPanel.jsx";
+import { EventBanner } from "./EventBanner.jsx";
 import { rarityTiers } from "./gamesStore.js";
 
 const MODE_HINTS = {
@@ -300,6 +302,8 @@ export function GamesPage() {
               <StatsOverview />
               <UsageMetricsPanel />
               <BadgeWall />
+              <AchievementsPanel />
+              <EventBanner />
               <div class="games-grid">
                 {collectionList.map((g) => (
                   <GameCard

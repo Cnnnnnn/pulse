@@ -17,6 +17,9 @@ import {
   loadRarityTiers,
   loadMetrics,
   loadBadges,
+  loadAchDef,
+  loadAchProgress,
+  loadEvents,
   initCollectionEngines,
   fetchedAt,
   enrichSteamLowest,
@@ -44,6 +47,11 @@ export function GamesLayout() {
     loadRarityTiers();
     loadMetrics();
     loadBadges();
+
+    // P1c 装配补齐：成就定义 / 成就进度 / 活动配置+进度 载入
+    loadAchDef();
+    loadAchProgress();
+    loadEvents();
 
     // 启动收藏引擎（徽章等），订阅 wishlist 自动重算；卸载时停止避免 effect 泄漏
     const stopEngines = initCollectionEngines();

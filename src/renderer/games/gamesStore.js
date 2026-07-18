@@ -37,6 +37,8 @@ import {
 } from "./rarityTiers.js";
 import { bumpMetric as bumpMetricPure, mergeMetrics } from "./metrics.js";
 import { evaluateBadges, buildBadgeCtx } from "./badges.js";
+import { evaluateAchievements, DEFAULT_ACHIEVEMENTS, countMatches } from "./achievementsEngine.js";
+import { evaluateEvents, DEFAULT_EVENTS, isEventActive } from "./eventsEngine.js";
 
 /** 平台元信息（renderer 展示用）。key 与 main 端 PLATFORM_KEYS 对齐。 */
 export const PLATFORMS = [
@@ -300,6 +302,12 @@ const METRICS_KEY = "pulse.games.metrics.v1"; // E 本地埋点计数
 // P1b 新增 key（与既有同域，v1 版本）
 const BADGES_KEY = "pulse.games.badges.earned.v1"; // B 已点亮徽章集合
 
+// P1c 新增 key（与既有同域，v1 版本）
+const ACH_DEF_KEY = "pulse.games.achievements.def.v1"; // C 用户成就定义
+const ACH_PROGRESS_KEY = "pulse.games.achievements.progress.v1"; // C 成就进度（解锁态）
+const EVENTS_CONFIG_KEY = "pulse.games.events.config.v1"; // D 用户活动配置
+const EVENTS_PROGRESS_KEY = "pulse.games.events.progress.v1"; // D 活动进度（完成/领取态）
+
 export function readStorage(key) {
   try {
     if (typeof globalThis.localStorage === "undefined") return null;
@@ -487,6 +495,15 @@ export const metrics = signal({});
 
 /** 已点亮徽章集合（signal）。结构 { [badgeId]: { earnedAt } }（B 组合徽章，P1b）。 */
 export const badgesEarned = signal({});
+
+/** 用户成就定义（signal）。结构 AchievementDef[]（C 成就系统，P1c）。 */
+export const achievementsDef = signal([]);
+/** 成就进度（signal）。结构 { [achId]: { unlocked, unlockedAt, current } }（P1c）。 */
+export const achievementsProgress = signal({});
+/** 用户活动配置（signal）。结构 EventConfig[]（D 限时活动，P1c）。 */
+export const eventsConfig = signal([]);
+/** 活动进度（signal）。结构 { [eventId]: { claimed, completed, progress } }（P1c）。 */
+export const eventsProgress = signal({});
 
 /** 读取文件夹列表。 */
 export function loadFolders() {
@@ -1147,6 +1164,240 @@ export function loadBadges() {
   }
 }
 
+// ── 成就系统（P1c · C）──
+
+/** 读取用户成就定义；缺失回退空数组，损坏数据静默回退空。 */
+export function loadAchDef() {
+  const raw = readStorage(ACH_DEF_KEY);
+  if (!raw) {
+    achievementsDef.value = [];
+    return;
+  }
+  try {
+    const arr = JSON.parse(raw);
+    achievementsDef.value = Array.isArray(arr) ? arr : [];
+  } catch {
+    achievementsDef.value = [];
+  }
+}
+
+/** 读取成就进度；缺失回退空对象，损坏数据静默回退空。 */
+export function loadAchProgress() {
+  const raw = readStorage(ACH_PROGRESS_KEY);
+  if (!raw) {
+    achievementsProgress.value = {};
+    return;
+  }
+  try {
+    const o = JSON.parse(raw);
+    achievementsProgress.value =
+      o && typeof o === "object" && !Array.isArray(o) ? o : {};
+  } catch {
+    achievementsProgress.value = {};
+  }
+}
+
+/** 规范化用户成就定义（补全字段 / 校验维度；非法返回 null）。 */
+function normalizeAchDef(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const id = typeof raw.id === "string" && raw.id ? raw.id : genId();
+  const name = typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : null;
+  if (!name) return null;
+  const dimension = ["tag", "folder", "platform", "rarity", "merged"].includes(raw.dimension)
+    ? raw.dimension
+    : null;
+  if (!dimension) return null;
+  const target = dimension === "merged" ? null : (raw.target == null ? null : raw.target);
+  const threshold = Math.max(1, Math.floor(Number(raw.threshold) || 1));
+  return { id, name, dimension, target, threshold };
+}
+
+function _persistAchDef() {
+  try {
+    writeStorage(ACH_DEF_KEY, JSON.stringify(achievementsDef.value));
+  } catch {
+    /* 忽略 */
+  }
+}
+function _persistAchProgress() {
+  try {
+    writeStorage(ACH_PROGRESS_KEY, JSON.stringify(achievementsProgress.value));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/** 立即重算成就进度（基于当前 wishlist + 合并定义），并落盘。 */
+function recomputeAchievements() {
+  try {
+    const next = evaluateAchievements(
+      wishlist.peek(),
+      [...DEFAULT_ACHIEVEMENTS, ...achievementsDef.value],
+      achievementsProgress.peek(),
+    );
+    achievementsProgress.value = next;
+    _persistAchProgress();
+  } catch {
+    /* 任何异常吞掉，绝不破坏主流程 */
+  }
+}
+
+/** 新增用户成就，返回新 id。 */
+export function addAchievement(def) {
+  const clean = normalizeAchDef(def);
+  if (!clean) return null;
+  achievementsDef.value = [...achievementsDef.value, clean];
+  _persistAchDef();
+  recomputeAchievements();
+  return clean.id;
+}
+
+/** 更新用户成就（id 不变），重算进度并落盘。 */
+export function updateAchievement(id, patch) {
+  if (!id) return;
+  let found = false;
+  achievementsDef.value = achievementsDef.value.map((d) => {
+    if (d.id !== id) return d;
+    found = true;
+    return normalizeAchDef({ ...d, ...patch, id });
+  });
+  if (!found) return;
+  _persistAchDef();
+  recomputeAchievements();
+}
+
+/** 删除用户成就，重算进度并落盘。 */
+export function deleteAchievement(id) {
+  if (!id) return;
+  achievementsDef.value = achievementsDef.value.filter((d) => d.id !== id);
+  _persistAchDef();
+  recomputeAchievements();
+}
+
+// ── 限时活动（P1c · D）──
+
+/** 读取活动配置 + 进度；缺失回退空，损坏数据静默回退空。 */
+export function loadEvents() {
+  const rawCfg = readStorage(EVENTS_CONFIG_KEY);
+  if (rawCfg) {
+    try {
+      const arr = JSON.parse(rawCfg);
+      eventsConfig.value = Array.isArray(arr) ? arr : [];
+    } catch {
+      eventsConfig.value = [];
+    }
+  } else {
+    eventsConfig.value = [];
+  }
+
+  const rawProg = readStorage(EVENTS_PROGRESS_KEY);
+  if (rawProg) {
+    try {
+      const o = JSON.parse(rawProg);
+      eventsProgress.value =
+        o && typeof o === "object" && !Array.isArray(o) ? o : {};
+    } catch {
+      eventsProgress.value = {};
+    }
+  } else {
+    eventsProgress.value = {};
+  }
+}
+
+/** 规范化用户活动配置（补全字段 / 校验时间窗 + 维度；非法返回 null）。 */
+function normalizeEventDef(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const id = typeof raw.id === "string" && raw.id ? raw.id : genId();
+  const title = typeof raw.title === "string" && raw.title.trim() ? raw.title.trim() : null;
+  if (!title) return null;
+  if (typeof raw.startAt !== "string" || isNaN(new Date(raw.startAt).getTime())) return null;
+  if (typeof raw.endAt !== "string" || isNaN(new Date(raw.endAt).getTime())) return null;
+  const dimension = ["tag", "folder", "platform", "rarity", "merged"].includes(raw.dimension)
+    ? raw.dimension
+    : null;
+  if (!dimension) return null;
+  const target = dimension === "merged" ? null : (raw.target == null ? null : raw.target);
+  const threshold = Math.max(1, Math.floor(Number(raw.threshold) || 1));
+  return { id, title, startAt: raw.startAt, endAt: raw.endAt, dimension, target, threshold };
+}
+
+function _persistEventsConfig() {
+  try {
+    writeStorage(EVENTS_CONFIG_KEY, JSON.stringify(eventsConfig.value));
+  } catch {
+    /* 忽略 */
+  }
+}
+function _persistEventsProgress() {
+  try {
+    writeStorage(EVENTS_PROGRESS_KEY, JSON.stringify(eventsProgress.value));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/** 立即重算活动进度（基于当前 wishlist + 合并配置），并落盘。 */
+function recomputeEvents() {
+  try {
+    const next = evaluateEvents(
+      wishlist.peek(),
+      [...DEFAULT_EVENTS, ...eventsConfig.value],
+      eventsProgress.peek(),
+    );
+    eventsProgress.value = next;
+    _persistEventsProgress();
+  } catch {
+    /* 任何异常吞掉，绝不破坏主流程 */
+  }
+}
+
+/** 新增用户活动，返回新 id。 */
+export function addEvent(cfg) {
+  const clean = normalizeEventDef(cfg);
+  if (!clean) return null;
+  eventsConfig.value = [...eventsConfig.value, clean];
+  _persistEventsConfig();
+  recomputeEvents();
+  return clean.id;
+}
+
+/** 更新用户活动（id 不变），重算进度并落盘。 */
+export function updateEvent(id, patch) {
+  if (!id) return;
+  let found = false;
+  eventsConfig.value = eventsConfig.value.map((c) => {
+    if (c.id !== id) return c;
+    found = true;
+    return normalizeEventDef({ ...c, ...patch, id });
+  });
+  if (!found) return;
+  _persistEventsConfig();
+  recomputeEvents();
+}
+
+/** 删除用户活动，重算进度并落盘。 */
+export function deleteEvent(id) {
+  if (!id) return;
+  eventsConfig.value = eventsConfig.value.filter((c) => c.id !== id);
+  _persistEventsConfig();
+  recomputeEvents();
+}
+
+/**
+ * 领取活动奖励：仅在已完成（completed）时生效，置 claimed=true 并落盘。
+ * @param {string} id
+ * @returns {boolean} 是否成功领取
+ */
+export function claimEvent(id) {
+  if (!id) return false;
+  const prog = eventsProgress.value[id];
+  if (!prog || !prog.completed) return false;
+  const next = { ...eventsProgress.value, [id]: { ...prog, claimed: true } };
+  eventsProgress.value = next;
+  _persistEventsProgress();
+  return true;
+}
+
 /**
  * 启动收藏引擎：订阅 wishlist signal，自动重算各派生集合并落盘。
  * 当前批次（P1b）注册「徽章」引擎；P1c 将在此追加成就 / 活动引擎 effect。
@@ -1177,7 +1428,43 @@ export function initCollectionEngines() {
     }),
   );
 
-  // P1c：在此追加 achievements / events 引擎 effect（本次仅徽章）
+  // 成就引擎（P1c · C）：订阅 wishlist，合并 DEFAULT + 用户成就重算解锁态并落盘。
+  // 读取自身进度用 .peek() 避免自订阅死循环；读取 achievementsDef.value 以纳入用户成就。
+  stops.push(
+    effect(() => {
+      const entries = wishlist.value;
+      const next = evaluateAchievements(
+        entries,
+        [...DEFAULT_ACHIEVEMENTS, ...achievementsDef.value],
+        achievementsProgress.peek(),
+      );
+      achievementsProgress.value = next;
+      try {
+        writeStorage(ACH_PROGRESS_KEY, JSON.stringify(next));
+      } catch {
+        /* 落盘失败不抛，信号已更新 */
+      }
+    }),
+  );
+
+  // 限时活动引擎（P1c · D）：订阅 wishlist，合并 DEFAULT + 用户活动重算进度并落盘。
+  // 窗口外锁存历史（claimed/completed/progress 保留）；窗口内重算进度与完成态。
+  stops.push(
+    effect(() => {
+      const entries = wishlist.value;
+      const next = evaluateEvents(
+        entries,
+        [...DEFAULT_EVENTS, ...eventsConfig.value],
+        eventsProgress.peek(),
+      );
+      eventsProgress.value = next;
+      try {
+        writeStorage(EVENTS_PROGRESS_KEY, JSON.stringify(next));
+      } catch {
+        /* 落盘失败不抛，信号已更新 */
+      }
+    }),
+  );
 
   return () => {
     for (const stop of stops) {
@@ -1349,4 +1636,11 @@ export {
   // P1b（B 组合徽章）纯函数
   evaluateBadges,
   buildBadgeCtx,
+  // P1c（C 成就 / D 活动）纯函数与常量
+  evaluateAchievements,
+  DEFAULT_ACHIEVEMENTS,
+  countMatches,
+  evaluateEvents,
+  DEFAULT_EVENTS,
+  isEventActive,
 };
