@@ -67,3 +67,25 @@ describe("ALLOWED_MODES 白名单（Task 2 清理验证）", () => {
     expect(ALLOWED_MODES).not.toContain("top");
   });
 });
+
+const { extractLowestFromCheapshark } = require("../../../src/main/ipc/register-games.js");
+
+describe("extractLowestFromCheapshark", () => {
+  it("取多个商店报价的最小值", () => {
+    expect(extractLowestFromCheapshark([
+      { cheapest: "4.99" }, { cheapest: "3.49" },
+    ])).toBe(3.49);
+  });
+  it("单个商店", () => {
+    expect(extractLowestFromCheapshark([{ cheapest: "9.99" }])).toBe(9.99);
+  });
+  it("空数组或非数组返回 null", () => {
+    expect(extractLowestFromCheapshark([])).toBeNull();
+    expect(extractLowestFromCheapshark(null)).toBeNull();
+  });
+  it("无效 cheapest 被忽略", () => {
+    expect(extractLowestFromCheapshark([
+      { cheapest: "abc" }, { cheapest: "5.00" },
+    ])).toBe(5.0);
+  });
+});
