@@ -21,14 +21,11 @@
  *     我们只消费它发布在 GitHub 的 JSON，不自己爬。
  */
 
-const { toGameDeal } = require("./normalize");
+const { toGameDeal, BROWSER_UA: UA } = require("./normalize");
 const { logFetchError } = require("./log");
 const os = require("os");
 const fs = require("fs");
 const path = require("path");
-
-const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
 // ── PSGameSpider 数据源 ────────────────────────────────────────────
 const PSGS_RAW_BASE =

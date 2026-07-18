@@ -21,6 +21,15 @@ const PLATFORM_META = {
 
 const PLATFORM_KEYS = Object.keys(PLATFORM_META);
 
+// ── 共享 User-Agent（避免各 fetcher 散落硬编码、版本漂移）──
+// 主流桌面 Chrome UA，已被 playstation / nintendo-image-headers 验证可用。
+const BROWSER_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+// Safari UA：Nintendo Algolia 已验证可用，保留避免换 Chrome 后被 403。
+const BROWSER_UA_SAFARI =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
+
 const PROMOTION_TYPES = new Set([
   "giveaway",
   "key",
@@ -98,6 +107,8 @@ async function fetchJson(url, { timeoutMs = 8000, headers = {} } = {}) {
 module.exports = {
   PLATFORM_META,
   PLATFORM_KEYS,
+  BROWSER_UA,
+  BROWSER_UA_SAFARI,
   toGameDeal,
   fetchJson,
 };
