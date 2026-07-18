@@ -9,7 +9,7 @@
  * 全部纯本地（localStorage），无后端、无账号、无网络出口。
  */
 
-import { signal, batch } from "@preact/signals";
+import { signal, batch, effect } from "@preact/signals";
 import { api } from "../api.js";
 import {
   normalizeEntry,
@@ -36,6 +36,7 @@ import {
   tierColorOf,
 } from "./rarityTiers.js";
 import { bumpMetric as bumpMetricPure, mergeMetrics } from "./metrics.js";
+import { evaluateBadges, buildBadgeCtx } from "./badges.js";
 
 /** 平台元信息（renderer 展示用）。key 与 main 端 PLATFORM_KEYS 对齐。 */
 export const PLATFORMS = [
@@ -296,7 +297,10 @@ const FILTER_KEY = "pulse.games.collectionFilter.v1";
 const RARITY_TIERS_KEY = "pulse.games.rarity.tiers.v1"; // A 稀有度档位
 const METRICS_KEY = "pulse.games.metrics.v1"; // E 本地埋点计数
 
-function readStorage(key) {
+// P1b 新增 key（与既有同域，v1 版本）
+const BADGES_KEY = "pulse.games.badges.earned.v1"; // B 已点亮徽章集合
+
+export function readStorage(key) {
   try {
     if (typeof globalThis.localStorage === "undefined") return null;
     return globalThis.localStorage.getItem(key);
@@ -305,7 +309,7 @@ function readStorage(key) {
   }
 }
 
-function writeStorage(key, val) {
+export function writeStorage(key, val) {
   try {
     globalThis.localStorage.setItem(key, val);
   } catch {
@@ -480,6 +484,9 @@ export const expandedMergeKey = signal(null);
 export const rarityTiers = signal([]);
 /** 本地埋点计数（signal）。结构 { [event]: { count, firstSeen, lastSeen } }。 */
 export const metrics = signal({});
+
+/** 已点亮徽章集合（signal）。结构 { [badgeId]: { earnedAt } }（B 组合徽章，P1b）。 */
+export const badgesEarned = signal({});
 
 /** 读取文件夹列表。 */
 export function loadFolders() {
@@ -1122,6 +1129,67 @@ export function bumpMetric(name) {
   }
 }
 
+// ── 组合徽章（P1b · B）──
+
+/** 读取已点亮徽章集合；缺失回退空对象，损坏数据静默回退空。 */
+export function loadBadges() {
+  const raw = readStorage(BADGES_KEY);
+  if (!raw) {
+    badgesEarned.value = {};
+    return;
+  }
+  try {
+    const o = JSON.parse(raw);
+    badgesEarned.value =
+      o && typeof o === "object" && !Array.isArray(o) ? o : {};
+  } catch {
+    badgesEarned.value = {};
+  }
+}
+
+/**
+ * 启动收藏引擎：订阅 wishlist signal，自动重算各派生集合并落盘。
+ * 当前批次（P1b）注册「徽章」引擎；P1c 将在此追加成就 / 活动引擎 effect。
+ *
+ * 约定（见架构 §4.2 / §7 共享知识）：
+ *  - 仅订阅 wishlist.value（作为 effect 依赖），读取自身 signal 用 .peek() 避免自订阅死循环；
+ *  - 返回 stop() 句柄，供 GamesLayout 的 useEffect cleanup 调用，避免 effect 泄漏 / 重复订阅。
+ *
+ * @returns {() => void} 停止所有已注册引擎 effect 的句柄
+ */
+export function initCollectionEngines() {
+  const stops = [];
+
+  // 徽章引擎：订阅 wishlist，重算已点亮徽章并落盘（徽章无历史进度，仅当前命中集）
+  stops.push(
+    effect(() => {
+      const entries = wishlist.value;
+      // evaluateBadges 返回 [{id, earnedAt}]；信号/存储统一为 {[id]: {earnedAt}}
+      const earnedArr = evaluateBadges(entries, buildBadgeCtx(entries));
+      const earned = {};
+      for (const b of earnedArr) earned[b.id] = { earnedAt: b.earnedAt };
+      badgesEarned.value = earned;
+      try {
+        writeStorage(BADGES_KEY, JSON.stringify(earned));
+      } catch {
+        /* 落盘失败不抛，信号已更新 */
+      }
+    }),
+  );
+
+  // P1c：在此追加 achievements / events 引擎 effect（本次仅徽章）
+
+  return () => {
+    for (const stop of stops) {
+      try {
+        stop();
+      } catch {
+        /* 忽略 */
+      }
+    }
+  };
+}
+
 function _persistWishlist() {
   try {
     writeStorage(WISHLIST_KEY, JSON.stringify(wishlist.value));
@@ -1278,4 +1346,7 @@ export {
   tierColorOf,
   // P1a（E 埋点）纯函数
   mergeMetrics,
+  // P1b（B 组合徽章）纯函数
+  evaluateBadges,
+  buildBadgeCtx,
 };

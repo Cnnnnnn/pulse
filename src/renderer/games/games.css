@@ -2561,3 +2561,176 @@ a.game-card__title::after {
     width: 100%;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   P1b（B 徽章墙 / F 分享图）样式 — 仅用令牌 / oklch，禁止裸 hex。
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 分享图按钮（页头工具条，wishlist 模式显示）── */
+.games-share-btn {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-primary);
+  background: color-mix(in oklch, var(--accent-primary) 14%, transparent);
+  color: color-mix(in oklch, var(--accent-primary) 42%, black);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, filter 0.15s ease;
+}
+.games-share-btn:hover {
+  background: color-mix(in oklch, var(--accent-primary) 24%, transparent);
+}
+.games-share-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ── 徽章墙（BadgeWall）── */
+.badge-wall {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.badge-wall__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.badge-wall__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.badge-wall__count {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.badge-wall__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-2);
+}
+.badge-wall__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  text-align: center;
+}
+.badge-wall__item.is-earned {
+  border-color: color-mix(in oklch, var(--color-warning) 40%, transparent);
+  background: color-mix(in oklch, var(--color-warning) 14%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+.badge-wall__item.is-locked {
+  opacity: 0.62;
+  filter: grayscale(0.4);
+}
+.badge-wall__icon {
+  font-size: 28px;
+  line-height: 1.1;
+}
+.badge-wall__name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.badge-wall__date {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.badge-wall__goal {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.badge-wall__empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+.badge-wall__item:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ── 分享图弹窗（ShareImageModal）── */
+.share-image {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.share-image__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.share-image__label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+.share-image__select {
+  min-height: 36px;
+  padding: 4px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+}
+.share-image__select:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+  border-color: var(--accent-primary);
+}
+.share-image__canvas-wrap {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+.share-image__canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1200 / 630;
+}
+.share-image__hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.share-image__status {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: color-mix(in oklch, var(--color-success) 34%, black);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .games-share-btn {
+    transition: none;
+  }
+}

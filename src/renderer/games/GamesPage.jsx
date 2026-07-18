@@ -39,6 +39,8 @@ import { StatsOverview } from "./StatsOverview.jsx";
 import { NoteRatingModal } from "./NoteRatingModal.jsx";
 import { MergeConfirmModal } from "./MergeConfirmModal.jsx";
 import { UsageMetricsPanel } from "./UsageMetricsPanel.jsx";
+import { BadgeWall } from "./BadgeWall.jsx";
+import { ShareImageModal } from "./ShareImageModal.jsx";
 import { rarityTiers } from "./gamesStore.js";
 
 const MODE_HINTS = {
@@ -77,6 +79,9 @@ export function GamesPage() {
     const t = setTimeout(() => setAnimate(false), 450);
     return () => clearTimeout(t);
   }, []);
+
+  // 「生成分享图」弹窗开关（P1b · F）
+  const [shareOpen, setShareOpen] = useState(false);
 
   // 全局 `/` 快捷键聚焦搜索
   useEffect(() => {
@@ -187,6 +192,16 @@ export function GamesPage() {
       <div class="games-toolbar">
         {!isWishlist && <PlatformTabs />}
         <GamesFilterBar />
+        {isWishlist && (
+          <button
+            type="button"
+            class="games-share-btn"
+            aria-haspopup="dialog"
+            onClick={() => setShareOpen(true)}
+          >
+            🖼 生成分享图
+          </button>
+        )}
       </div>
 
       <div class="games-context">
@@ -284,6 +299,7 @@ export function GamesPage() {
             <div class="collection-main">
               <StatsOverview />
               <UsageMetricsPanel />
+              <BadgeWall />
               <div class="games-grid">
                 {collectionList.map((g) => (
                   <GameCard
@@ -357,6 +373,7 @@ export function GamesPage() {
       {/* 收藏模块弹窗（纯本地） */}
       <NoteRatingModal />
       <MergeConfirmModal />
+      <ShareImageModal open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   );
 }

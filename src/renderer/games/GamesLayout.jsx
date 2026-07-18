@@ -14,6 +14,10 @@ import {
   loadTags,
   loadCollectionFilter,
   loadFx,
+  loadRarityTiers,
+  loadMetrics,
+  loadBadges,
+  initCollectionEngines,
   fetchedAt,
   enrichSteamLowest,
   enrichXboxLowest,
@@ -36,6 +40,14 @@ export function GamesLayout() {
     loadCollectionFilter();
     loadFx(); // 独立汇率：wishlist 模式短路了 loadGameDeals，需单独保证 fx 可用
 
+    // P1a / P1b 装配缺口补齐：稀有度档位 / 埋点计数 / 徽章集合载入
+    loadRarityTiers();
+    loadMetrics();
+    loadBadges();
+
+    // 启动收藏引擎（徽章等），订阅 wishlist 自动重算；卸载时停止避免 effect 泄漏
+    const stopEngines = initCollectionEngines();
+
     // 后台定时检查免费活动 + 桌面通知调度器
     const scheduler = createGamesCheckScheduler();
     scheduler.start();
@@ -47,6 +59,7 @@ export function GamesLayout() {
     return () => {
       globalThis.removeEventListener("games-settings-changed", onSettingsChanged);
       scheduler.stop();
+      if (typeof stopEngines === "function") stopEngines();
     };
   }, []);
 
