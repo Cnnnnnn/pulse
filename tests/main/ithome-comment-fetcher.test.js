@@ -123,4 +123,61 @@ describe("ithome comment-fetcher", () => {
     ).toBe("parse_failed");
     expect(newsStore.getArticle(id, p).commentsFetchedAt).toBeUndefined();
   });
+
+  it("still fetches when the article is not yet in state (renderer-only id)", async () => {
+    // renderer 持有内存信号但 main 进程 state 还没写入 (用户首次点评论)
+    const freshPath = statePath();
+    writeFileSync(
+      freshPath,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: { ts: 1, articles: {}, summaries: {}, favorites: {} },
+      }),
+    );
+    const http = httpStub();
+    const result = await fetcher.fetchAndAttachComments({
+      id,
+      statePath: freshPath,
+      http,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.reason).toBe("fetched");
+    expect(result.comments).toHaveLength(1);
+    const stored = newsStore.getArticle(id, freshPath);
+    expect(stored.commentsFetchedAt).toBeGreaterThan(0);
+    // stub article 也写进了 articles 字典
+    const all = newsStore.loadAll(freshPath);
+    expect(all.articles[id]).toBeTruthy();
+  });
+
+  it("does not treat commentsFetchedAt=0 stub as already loaded", async () => {
+    const freshPath = statePath();
+    writeFileSync(
+      freshPath,
+      JSON.stringify({
+        v: 1,
+        apps: {},
+        mutes: {},
+        ithome_news: {
+          ts: 1,
+          articles: {
+            [id]: { ...article, comments: [], commentsFetchedAt: 0 },
+          },
+          summaries: {},
+          favorites: {},
+        },
+      }),
+    );
+    const http = httpStub();
+    const result = await fetcher.fetchAndAttachComments({
+      id,
+      statePath: freshPath,
+      http,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.reason).toBe("fetched");
+    expect(http.calls.length).toBeGreaterThan(0);
+  });
 });

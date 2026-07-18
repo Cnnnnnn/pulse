@@ -17,7 +17,7 @@ function _defaultHttp() {
 }
 
 function _isLoaded(article) {
-  return article && Number.isFinite(article.commentsFetchedAt);
+  return article && Number.isFinite(article.commentsFetchedAt) && article.commentsFetchedAt > 0;
 }
 
 async function fetchAndAttachComments(opts) {
@@ -26,8 +26,29 @@ async function fetchAndAttachComments(opts) {
     return { ok: false, reason: "invalid_args" };
   }
   const statePath = opts.statePath;
-  const article = newsStore.getArticle(id, statePath);
-  if (!article) return { ok: false, reason: "article_not_found" };
+  // renderer 传进来的是完整 URL（id 即 link），fetcher 不再依赖 state 中是否
+  // 已缓存该文章；只有当 state 已有缓存时短路返回，避免重复请求。
+  const stateArticle = newsStore.getArticle(id, statePath);
+  let article = stateArticle;
+  if (!article) {
+    // renderer signal 里有这个 id 但 main 进程 state 没有（renderer 没触发过
+    // fetchDay 落盘、或用户首次点评论）。创建一个 minimal article stub 让后续
+    // attachArticleComments 可以写入。
+    article = {
+      id,
+      link: id,
+      title: "",
+      dateKey: "",
+      fetchedAt: 0,
+      updatedAt: 0,
+      excerpt: "",
+      body: "",
+      bodyFetchedAt: 0,
+      comments: [],
+      commentsFetchedAt: 0,
+      readAt: 0,
+    };
+  }
   if (_isLoaded(article)) {
     return {
       ok: true,
@@ -37,9 +58,10 @@ async function fetchAndAttachComments(opts) {
   }
 
   const http = opts.http || _defaultHttp();
+  const articleUrl = (article && article.link) || id;
   let page;
   try {
-    page = await http.get(article.link || id, {
+    page = await http.get(articleUrl, {
       timeout: FETCH_TIMEOUT_MS,
       headers: {
         Accept: "text/html",

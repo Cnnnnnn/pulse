@@ -443,22 +443,38 @@ function attachArticleComments(id, comments, statePath) {
     return { ok: false, reason: "invalid_args" };
   }
   const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
-  if (!cur.articles[id] && !(cur.favorites && cur.favorites[id])) {
-    return { ok: false, reason: "article_not_found" };
-  }
+  const inArticles = !!cur.articles[id];
+  const inFavorites = !!(cur.favorites && cur.favorites[id]);
   const nextComments = Array.isArray(comments) ? comments : [];
   const fetchedAt = Date.now();
   const articles = { ...cur.articles };
-  if (articles[id]) {
+  if (inArticles) {
     articles[id] = {
       ...articles[id],
       comments: nextComments,
       commentsFetchedAt: fetchedAt,
       updatedAt: fetchedAt,
     };
+  } else {
+    // renderer 只持有内存信号、main 进程 state 还没这个 article 时，主动 stub
+    // 一个最小 article，让评论缓存能落盘。
+    articles[id] = {
+      id,
+      link: id,
+      title: "",
+      dateKey: "",
+      fetchedAt: fetchedAt,
+      updatedAt: fetchedAt,
+      excerpt: "",
+      body: "",
+      bodyFetchedAt: 0,
+      comments: nextComments,
+      commentsFetchedAt: fetchedAt,
+      readAt: 0,
+    };
   }
   const favorites = { ...(cur.favorites || {}) };
-  if (favorites[id]) {
+  if (inFavorites) {
     favorites[id] = {
       ...favorites[id],
       article: {
