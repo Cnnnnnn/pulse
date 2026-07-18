@@ -1,6 +1,8 @@
 /**
  * src/renderer/games/GamesPage.jsx — 游戏优惠聚合主页面。
- * 结构：FeatureHeader(动态语境) + 平台分类 Tab + 维度筛选栏 + 筛选上下文条 + 内容区（折扣/免费/比价网格）。
+ * 结构：FeatureHeader(动态语境) + 平台分类 Tab + 维度筛选栏 + 筛选上下文条 + 内容区。
+ *
+ * 收藏(wishlist)模式：渲染「侧栏 + 顶部统计 + 网格」布局，并按 activeCollectionFilter 过滤。
  */
 import { useEffect, useRef, useState } from "preact/hooks";
 import { FeatureHeader } from "../components/FeatureHeader.jsx";
@@ -26,11 +28,16 @@ import {
   searchQuery,
   matchesSearch,
   clearSearchQuery,
+  activeCollectionFilter,
   PLATFORMS,
 } from "./gamesStore.js";
 import { PlatformTabs } from "./PlatformTabs.jsx";
 import { GamesFilterBar } from "./GamesFilterBar.jsx";
 import { GameCard } from "./GameCard.jsx";
+import { CollectionSidebar } from "./CollectionSidebar.jsx";
+import { StatsOverview } from "./StatsOverview.jsx";
+import { NoteRatingModal } from "./NoteRatingModal.jsx";
+import { MergeConfirmModal } from "./MergeConfirmModal.jsx";
 
 const MODE_HINTS = {
   deals: "各平台折扣 · 限时特惠",
@@ -61,16 +68,15 @@ export function GamesPage() {
   const mode = activeMode.value;
   const isWishlist = mode === "wishlist";
   const isCompare = mode === "compare";
-  const wishList = wishlist.value;
 
-  // 入场动画仅首屏播放一次：刷新/切换模式时本组件不卸载，animate 已为 false，徽标不再整片重放
+  // 入场动画仅首屏播放一次
   const [animate, setAnimate] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setAnimate(false), 450);
     return () => clearTimeout(t);
   }, []);
 
-  // 全局 `/` 快捷键聚焦搜索（焦点不在输入类元素时）
+  // 全局 `/` 快捷键聚焦搜索
   useEffect(() => {
     function onKey(e) {
       if (e.key !== "/") return;
@@ -88,9 +94,7 @@ export function GamesPage() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // 滚动性能优化：内容区滚动时给 .games-body 挂 is-scrolling，
-  // 临时关闭徽标 backdrop-filter（避免 40 卡全开 blur 滚动掉帧）；
-  // 停止滚动 ~120ms 后移除，平滑恢复毛玻璃。passive 监听不阻塞滚动。
+  // 滚动性能优化
   const bodyRef = useRef(null);
   useEffect(() => {
     const el = bodyRef.current;
@@ -108,8 +112,7 @@ export function GamesPage() {
     };
   }, []);
 
-  // 比价模式：API 已返回全平台，这里按已选平台本地过滤
-  // deals 模式：sort / minSavings 本地派生（不发 IPC，避免闪烁）
+  // 比价模式：API 已返回全平台，本地过滤；deals：本地排序/阈值
   let shown = list;
   if (isCompare) {
     shown = list.filter((g) => comparePlatforms.value.includes(g.platform));
@@ -117,16 +120,25 @@ export function GamesPage() {
     shown = sortItems(filterBySavings(list, minSavings.value), activeSort.value);
   }
 
-  // 标题搜索：本地过滤（不发 IPC），wishlist / 普通列表都生效
+  // 标题搜索：本地过滤（wishlist / 普通列表都生效）
   const q = (searchQuery.value || "").trim();
   const matches = (g) => matchesSearch(g, q);
   if (q) shown = shown.filter(matches);
-  const wishFiltered = q ? wishList.filter(matches) : wishList;
+
+  // ── 收藏(wishlist)视图：按 activeCollectionFilter + 搜索过滤 ──
+  const filter = activeCollectionFilter.value;
+  let collectionList = wishlist.value;
+  if (filter && filter.type === "folder") {
+    collectionList = collectionList.filter((e) => e.folderId === filter.id);
+  } else if (filter && filter.type === "tag") {
+    collectionList = collectionList.filter((e) => e.tags.includes(filter.id));
+  }
+  if (q) collectionList = collectionList.filter(matches);
 
   const isEmpty =
     !loading.value &&
     !error.value &&
-    (isWishlist ? wishFiltered.length === 0 : shown.length === 0);
+    (isWishlist ? collectionList.length === 0 : shown.length === 0);
 
   const crumb = (() => {
     const plat = isCompare
@@ -136,7 +148,7 @@ export function GamesPage() {
     if (mode === "deals" && minSavings.value > 0) c += ` · ≥${minSavings.value}%`;
     return c;
   })();
-  const count = isWishlist ? wishFiltered.length : shown.length;
+  const count = isWishlist ? collectionList.length : shown.length;
   const clock = fmtClock(fetchedAt.value);
 
   return (
@@ -161,7 +173,6 @@ export function GamesPage() {
       </FeatureHeader>
 
       <div class="games-toolbar">
-        {/* 心愿单为跨平台本地收藏，无需平台切换；其余模式（含比价）均展示平台 Tab */}
         {!isWishlist && <PlatformTabs />}
         <GamesFilterBar />
       </div>
@@ -218,6 +229,14 @@ export function GamesPage() {
             );
           }
           if (isWishlist) {
+            if (filter && filter.type) {
+              return (
+                <div class="games-state">
+                  <span class="games-state__icon" aria-hidden="true">📁</span>
+                  <span>该分类下还没有收藏，去其它平台点 ♥ 收藏吧</span>
+                </div>
+              );
+            }
             return (
               <div class="games-state">
                 <span class="games-state__icon" aria-hidden="true">💝</span>
@@ -245,17 +264,28 @@ export function GamesPage() {
             </div>
           );
         })()}
+
+        {/* 收藏(wishlist)模式：侧栏 + 顶部统计 + 网格 */}
         {isWishlist && !isEmpty && (
-          <div class="games-grid">
-            {wishFiltered.map((g) => (
-              <GameCard
-                key={g.key}
-                game={{ ...g, salePrice: g.addedPrice }}
-                animate={animate}
-              />
-            ))}
+          <div class="collection-layout">
+            <CollectionSidebar />
+            <div class="collection-main">
+              <StatsOverview />
+              <div class="games-grid">
+                {collectionList.map((g) => (
+                  <GameCard
+                    key={g.key}
+                    game={{ ...g, salePrice: g.addedPrice }}
+                    context="wishlist"
+                    animate={animate}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
+
+        {/* 非收藏模式：普通网格 */}
         {!isWishlist && !loading.value && !error.value && shown.length > 0 && (
           <div class="games-grid" id="games-grid">
             {shown.map((g) => (
@@ -310,6 +340,12 @@ export function GamesPage() {
           {fxSnap.stale && "（缓存汇率）"}
         </footer>
       )}
+
+      {/* 收藏模块弹窗（纯本地） */}
+      <NoteRatingModal />
+      <MergeConfirmModal />
     </div>
   );
 }
+
+export default GamesPage;

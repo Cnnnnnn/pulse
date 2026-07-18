@@ -10,6 +10,9 @@ import {
   loadGameDeals,
   loadGamesSettings,
   loadWishlist,
+  loadFolders,
+  loadTags,
+  loadCollectionFilter,
   loadFx,
   fetchedAt,
   enrichSteamLowest,
@@ -27,6 +30,10 @@ export function GamesLayout() {
     loadGameDeals();
     loadGamesSettings();
     loadWishlist();
+    // 收集模块：挂载即载入文件夹 / 标签 / 收藏筛选（纯本地）
+    loadFolders();
+    loadTags();
+    loadCollectionFilter();
     loadFx(); // 独立汇率：wishlist 模式短路了 loadGameDeals，需单独保证 fx 可用
 
     // 后台定时检查免费活动 + 桌面通知调度器
