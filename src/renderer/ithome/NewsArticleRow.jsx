@@ -135,9 +135,20 @@ export function NewsArticleRow({ article }) {
     setCommentsLoading(true);
     try {
       const result = await fetchIthomeComments(article.id);
-      if (!result || !result.ok) {
-        setCommentError("评论暂时无法加载");
+      if (typeof console !== "undefined" && console.debug) {
+        console.debug("[ithome] fetchComments", article.id, result);
       }
+      if (!result || !result.ok) {
+        setCommentError(
+          result && result.reason
+            ? `评论暂时无法加载（${result.reason}）`
+            : "评论暂时无法加载",
+        );
+      }
+    } catch (err) {
+      setCommentError(
+        err && err.message ? `评论暂时无法加载（${err.message}）` : "评论暂时无法加载",
+      );
     } finally {
       setCommentsLoading(false);
     }

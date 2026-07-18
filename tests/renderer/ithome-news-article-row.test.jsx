@@ -244,6 +244,22 @@ describe("NewsArticleRow 评论按钮", () => {
     });
     expect(getByText("暂无热门评论")).toBeTruthy();
   });
+
+  it("按钮在加载中显示 评论加载中 文案", async () => {
+    const article = makeArticle({ excerpt: "摘要" });
+    let resolveResult;
+    mockFetchComments.mockImplementationOnce(
+      () => new Promise((resolve) => { resolveResult = () => resolve({ ok: true, comments: [] }); }),
+    );
+    const { getByRole } = render(<NewsArticleRow article={article} />);
+    await act(async () => {
+      fireEvent.click(getByRole("button", { name: /查看评论/ }));
+    });
+    expect(getByRole("button", { name: /评论加载中/ })).toBeTruthy();
+    await act(async () => {
+      resolveResult();
+    });
+  });
 });
 
 describe("NewsArticleRow 分享按钮", () => {
