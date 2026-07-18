@@ -151,7 +151,7 @@ describe("GamesPage 心愿单视图", () => {
     loadWishlist();
   });
 
-  it("wishlist 模式隐藏平台 tab 和筛选栏", () => {
+  it("wishlist 模式隐藏平台 tab 但保留筛选栏（mode chips 可切回）", () => {
     activeMode.value = "wishlist";
     items.value = [];
     loading.value = false;
@@ -159,7 +159,10 @@ describe("GamesPage 心愿单视图", () => {
 
     const { container } = render(<GamesPage />);
 
-    expect(container.querySelector(".games-toolbar")).toBeNull();
+    // PlatformTabs 隐藏（心愿单不分平台）
+    expect(container.querySelector(".games-platform-tabs")).toBeNull();
+    // GamesFilterBar 保留（含 mode chips，用户能切回 deals/free/compare）
+    expect(container.querySelector(".games-filter-bar")).toBeTruthy();
   });
 
   it("心愿单为空时显示引导文案", () => {

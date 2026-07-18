@@ -53,12 +53,10 @@ export function GamesPage() {
         )}
       </FeatureHeader>
 
-      {!isWishlist && (
-        <div class="games-toolbar">
-          {!isCompare && <PlatformTabs />}
-          <GamesFilterBar />
-        </div>
-      )}
+      <div class="games-toolbar">
+        {!isCompare && !isWishlist && <PlatformTabs />}
+        <GamesFilterBar />
+      </div>
 
       <div class="games-body">
         {loading.value && (
