@@ -124,6 +124,13 @@ export function NewsArticleRow({ article }) {
   }
 
   async function handleComments() {
+    if (typeof console !== "undefined" && console.debug) {
+      console.debug("[ithome] handleComments enter", article.id, {
+        commentsLoading,
+        commentsExpanded,
+        hasCachedComments,
+      });
+    }
     if (commentsLoading) return;
     if (commentsExpanded && hasCachedComments) {
       setCommentsExpanded(false);
@@ -146,6 +153,9 @@ export function NewsArticleRow({ article }) {
         );
       }
     } catch (err) {
+      if (typeof console !== "undefined" && console.error) {
+        console.error("[ithome] fetchComments threw", article.id, err);
+      }
       setCommentError(
         err && err.message ? `评论暂时无法加载（${err.message}）` : "评论暂时无法加载",
       );

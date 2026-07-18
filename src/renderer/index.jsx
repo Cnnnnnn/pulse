@@ -13,6 +13,8 @@
 import { render } from 'preact';
 import { App } from './App.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+
+console.info("[pulse] renderer bundle", "ithome-comments-fix-2026-07-18-23:50");
 import {
   openReleaseNotes,
   releaseNotesPayload,
