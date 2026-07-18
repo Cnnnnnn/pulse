@@ -32,6 +32,9 @@ import { IconSearch, IconSparkles } from "../components/icons.jsx";
 import { stockActiveTab, diagnosisState } from "./diagnosisStore.js";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
 import { DataHealthBadge } from "./diagnosis/DataHealthBadge.jsx";
+// ponytail 2026-07-18 P0-1 T7 fixup: 加载 stock 模块专属样式 (.data-health-badge 等).
+//   跟 src/renderer/games/games.css 模式一致.
+import "./stocks.css";
 import {
   runScreen,
   runScreenSilent,

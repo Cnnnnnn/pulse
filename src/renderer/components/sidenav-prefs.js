@@ -165,20 +165,33 @@ export function savePrefs(prefs) {
 
 /**
  * 可见顺序: 按 prefs.order, 排除 hidden.
+ * 兜底: order 漏掉的 known key 也视为可见 — 跟 effectiveVisibleItems (navStore.js) 口径一致,
+ * 否则老版本升级后 (新增 nav 项) prefs.order 仍是旧 subset, listVisible 会把它算成隐藏,
+ * 但 effectiveVisibleItems 兜底追加让它可见, 两侧矛盾 → SideNav 底部 "已隐藏 (N)" 误报.
  */
 export function listVisible(prefs) {
-  const order = (prefs && prefs.order) || NAV_KEYS.slice();
+  const order =
+    prefs && Array.isArray(prefs.order) && prefs.order.length > 0
+      ? prefs.order
+      : NAV_KEYS.slice();
   const hidden = new Set((prefs && prefs.hidden) || []);
-  return order.filter((k) => !hidden.has(k));
+  const visible = new Set(order.filter((k) => !hidden.has(k)));
+  for (const k of NAV_KEYS) {
+    if (!visible.has(k) && !hidden.has(k)) visible.add(k);
+  }
+  return Array.from(visible);
 }
 
 /**
- * 隐藏列表: NAV_KEYS 里不在 listVisible 里的项. 按 NAV_KEYS 默认顺序, 不按 prefs.order.
+ * 隐藏列表: NAV_KEYS 中 prefs.hidden 标记的项. 按 NAV_KEYS 默认顺序, 不按 prefs.order.
  * (隐藏抽屉应当稳定顺序, 不被用户对可见项的拖拽影响.)
+ *
+ * ponytail: 这里只看 prefs.hidden, 不看 listVisible — 跟 effectiveVisibleItems 兜底逻辑一致,
+ * 老版本升级产生的 order 缺项不算"被隐藏".
  */
 export function listHidden(prefs) {
-  const visible = new Set(listVisible(prefs));
-  return NAV_KEYS.filter((k) => !visible.has(k));
+  const hidden = new Set((prefs && prefs.hidden) || []);
+  return NAV_KEYS.filter((k) => hidden.has(k));
 }
 
 /**

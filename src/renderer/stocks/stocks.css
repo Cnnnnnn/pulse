@@ -1,0 +1,34 @@
+/**
+ * src/renderer/stocks/stocks.css
+ *
+ * ponytail 2026-07-18 P0-1 T7 fixup: 股票模块专属样式. 跟 src/renderer/games/games.css
+ * 模式一致 (per-feature CSS file + import by layout).
+ *
+ * 起步阶段只放 .data-health-badge 三条 (原 commit 9379bc2 误放全局 styles.css).
+ * 后续 stock 子样式可陆续从 styles.css 提取到这里, 收敛到 module 边界.
+ */
+
+/* 工具位数据健康度汇总徽标 — 跟 .card-freshness 同族,
+   字号/留白一致 (10-11px, padding 2-4px), 但带语义色. 全部 ok → ok 绿; 部分缺 →
+   warn 黄. CSS 变量 --surface-2/--text-2/--ok-bg 等未在项目里定义, 这里仅 var() 形式
+   表达意图, 实际渲染走 fallback. 不引外部 UI 库. */
+.data-health-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  color: var(--text-2, var(--text-secondary, #6e6e73));
+  white-space: nowrap;
+  cursor: default;
+}
+.data-health-badge-ok {
+  background: var(--ok-bg, rgba(52, 199, 89, 0.14));
+  color: var(--ok-fg, #1f7a3a);
+}
+.data-health-badge-warn {
+  background: var(--warn-bg, rgba(255, 149, 0, 0.14));
+  color: var(--warn-fg, #b25e00);
+}

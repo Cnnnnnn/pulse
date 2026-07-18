@@ -121,14 +121,39 @@ describe("sidenav-prefs", () => {
       hidden: ["metals"],
       favorites: [],
     };
-    expect(listVisible(p)).toEqual(["funds", "news", "versions"]);
+    // 注: listVisible 不做 legacy alias/filter, 直接用 prefs.order/hidden.
+    // order filter hidden → ["funds", "news", "versions"]
+    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 worldcup/invest/ai-usage/github/games
+    //   (metals 在 hidden 不加, funds 不在 NAV_KEYS 也不加 — 但已经在 order 保留)
+    // 最终 Set: funds, news, versions, worldcup, invest, ai-usage, github, games
+    expect(new Set(listVisible(p))).toEqual(
+      new Set(["funds", "news", "versions", "worldcup", "invest", "ai-usage", "github", "games"]),
+    );
   });
 
   it("listVisible: prefs 为 null → 返 NAV_KEYS_LIST", () => {
     expect(listVisible(null)).toEqual(NAV_KEYS_LIST);
   });
 
-  it("listHidden: NAV_KEYS_LIST - visible (按 NAV_KEYS_LIST 顺序)", () => {
+  // ponytail: bug 回归 — 老版本升级后 prefs.order 短于 NAV_KEYS_LIST (如 v2.79 → v2.80+ 加 github/games),
+  // listVisible 必须把漏掉的 known key 兜底视为可见, 跟 effectiveVisibleItems (navStore.js) 口径一致.
+  // 修前 listVisible 返 5 项, listHidden 误报 "已隐藏 (2)" 与侧边栏显示矛盾.
+  it("listVisible: prefs.order 短于 NAV_KEYS_LIST → 兜底追加漏掉的 known key (regression: 升级后已隐藏误报)", () => {
+    const p = {
+      version: 2,
+      order: ["news", "worldcup", "invest", "ai-usage", "versions"], // 老版本 order, 缺 github/games
+      hidden: [],
+      favorites: [],
+    };
+    const visible = listVisible(p);
+    // 5 个老 order 项 + 兜底 2 个 (github, games) = 全部 7 个
+    expect(visible).toHaveLength(NAV_KEYS_LIST.length);
+    expect(new Set(visible)).toEqual(new Set(NAV_KEYS_LIST));
+    // 兜底项必须在末尾
+    expect(visible).toEqual(["news", "worldcup", "invest", "ai-usage", "versions", "github", "games"]);
+  });
+
+  it("listHidden: NAV_KEYS 中 prefs.hidden 标记的项 (按 NAV_KEYS 默认顺序)", () => {
     const p = {
       version: 2,
       order: NAV_KEYS_LIST,
@@ -138,6 +163,18 @@ describe("sidenav-prefs", () => {
     // 顺序按 NAV_KEYS_LIST 排, 不是按 hidden 数组
     expect(new Set(listHidden(p))).toEqual(new Set(["invest", "worldcup"]));
     expect(listHidden(p)).toEqual(["worldcup", "invest"]);
+  });
+
+  // ponytail: bug 回归 — 升级后 prefs.order 短, 但 prefs.hidden = [] → listHidden 必须返 [],
+  // 不能误报 "已隐藏".
+  it("listHidden: prefs.order 短但 prefs.hidden 空 → 返 [] (regression: 已隐藏误报)", () => {
+    const p = {
+      version: 2,
+      order: ["news", "worldcup", "invest", "ai-usage", "versions"],
+      hidden: [],
+      favorites: [],
+    };
+    expect(listHidden(p)).toEqual([]);
   });
 
   it("savePrefs: JSON.stringify 抛错 → console.warn + 返 false, 不抛", () => {
