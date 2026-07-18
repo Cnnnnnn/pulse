@@ -1,0 +1,78 @@
+%% Pulse 游戏收集模块 P1 — 模块 / 类依赖（classDiagram）
+%% 标注关系：..> 表示依赖/调用；<<uses>> 标注使用范式
+
+classDiagram
+  class WishlistEntry {
+    +string platform
+    +string id
+    +string title
+    +string rarity
+    +string[] tags
+    +string folderId
+    +number rating
+    +number currentPrice
+    +MergedMember[] mergedMembers
+  }
+  class types_js {
+    +ENTRY_DEFAULTS
+    +normalizeEntry(raw) WishlistEntry
+    +RARITY_MIN / RARITY_MAX
+  }
+  class rarityTiers_js {
+    +DEFAULT_RARITY_TIERS
+    +normalizeRarityTier(t)
+    +sortByWeight(tiers)
+    +tierColorOf(tiers, id)
+  }
+  class metrics_js {
+    +EMPTY_METRICS
+    +bumpMetric(m, name) Object
+  }
+  class badges_js {
+    +BUILTIN_BADGE_RULES
+    +evaluateBadges(entries, ctx) Object[]
+  }
+  class achievementsEngine_js {
+    +DEFAULT_ACHIEVEMENTS
+    +evaluateAchievements(entries, defs, prev) Object
+  }
+  class eventsEngine_js {
+    +DEFAULT_EVENTS
+    +isEventActive(ev, now) bool
+    +evaluateEvents(entries, configs, prev, now) Object
+  }
+  class shareImage_js {
+    +renderShareImage(canvas, payload)
+    +exportShareImage(canvas, prefs)
+  }
+  class gamesStore_js {
+    +signal wishlist
+    +signal rarityTiers
+    +signal badgesEarned
+    +signal achievementsDef
+    +signal achievementsProgress
+    +signal eventsConfig
+    +signal eventsProgress
+    +signal metrics
+    +setEntryRarity(key, tierId)
+    +batchSetCommonRarity(keys)
+    +bumpMetric(name)
+    +initCollectionEngines() Function
+  }
+
+  gamesStore_js ..> types_js : 扩展字段(加法补全)
+  gamesStore_js ..> rarityTiers_js : load/persist tiers
+  gamesStore_js ..> metrics_js : 副作用自增(N1)
+  gamesStore_js ..> badges_js : effect 重算(N2)
+  gamesStore_js ..> achievementsEngine_js : effect 重算(N2)
+  gamesStore_js ..> eventsEngine_js : effect 重算(N2)
+  shareImage_js ..> gamesStore_js : 读 payload(entries/stats)
+
+  GameCard_jsx ..> gamesStore_js : 读/写
+  NoteRatingModal_jsx ..> rarityTiers_js : 选稀有度
+  BadgeWall_jsx ..> gamesStore_js : badgesEarned
+  AchievementsPanel_jsx ..> gamesStore_js : def/progress
+  EventBanner_jsx ..> gamesStore_js : events*
+  UsageMetricsPanel_jsx ..> gamesStore_js : metrics
+  ShareImageModal_jsx ..> shareImage_js : 渲染/导出
+  ShareImageModal_jsx ..> gamesStore_js : 取 payload

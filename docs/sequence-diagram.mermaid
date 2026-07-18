@@ -1,0 +1,72 @@
+%% Pulse 游戏收集模块 P1 — 程序调用流程（时序图）
+%% N1 埋点钩子 / N2 引擎订阅 / N3 分享图 / N4 启动装配
+
+sequenceDiagram
+  participant U as 用户/调用方
+  participant A as store action(addToWishlist)
+  participant M as bumpMetric()(metrics.js)
+  participant S as metrics signal
+  participant LS as localStorage(pulse.games.metrics.v1)
+
+  Note over U,LS: ── N1 埋点钩子（action 副作用，不破坏语义）──
+  U->>A: addToWishlist(game)
+  A->>A: 既有语义: normalizeEntry → wishlist.value=[…,entry] → _persistWishlist()
+  A->>M: bumpMetric("addToWishlist")
+  M->>S: 读 metrics.value（.peek，不订阅）
+  M->>M: count+1 / 首见 firstSeen / lastSeen=now
+  M->>S: metrics.value = next
+  M->>LS: writeStorage(METRICS_KEY, next)
+  Note over A,M: 整个 bump 包 try/catch，失败不影响主 action 返回值
+
+  participant GL as GamesLayout(mount)
+  participant E as effect() 订阅
+  participant W as wishlist signal
+  participant ENG as 引擎(badges/ach/events)
+  participant SIG as 各 progress signal
+
+  Note over GL,SIG: ── N2 引擎订阅 wishlist 自动重算 ──
+  GL->>E: initCollectionEngines()
+  E->>W: 订阅 wishlist.value（依赖）
+  E->>W: 立即执行一次（=应用打开重算）
+  W-->>E: 当前 entries
+  E->>ENG: evaluateBadges(entries, ctx)
+  ENG-->>E: [{id,earnedAt}]
+  E->>SIG: badgesEarned.value = next
+  E->>LS: writeStorage(BADGES_KEY)
+  E->>ENG: evaluateAchievements(entries, defs, achievementsProgress.peek())
+  ENG-->>E: {id:{unlocked,unlockedAt,current}}
+  E->>SIG: achievementsProgress.value = next
+  E->>LS: writeStorage(ACH_PROGRESS_KEY)
+  E->>ENG: evaluateEvents(entries, configs, eventsProgress.peek(), Date.now())
+  ENG-->>E: {id:{claimed,completed,progress}}
+  E->>SIG: eventsProgress.value = next
+  E->>LS: writeStorage(EVENT_PROGRESS_KEY)
+  Note over W,E: 收藏变更 → wishlist.value 变 → effect 重跑三引擎全量重算并落盘
+
+  participant SM as ShareImageModal
+  participant SI as shareImage.js
+  participant CV as <canvas>
+  participant API as window.api(可选/既有)
+
+  Note over SM,API: ── N3 分享图生成与导出（P1 零/IPC 基线）──
+  U->>SM: 点「生成分享图」
+  SM->>SM: 组装 payload(entries, stats, badges, ach, tiers, template)
+  SM->>SI: renderShareImage(canvas, payload)
+  SI->>CV: 清屏→背景(oklch)→色块(按 rarity 聚合)→标题→统计→徽章/成就计数
+  Note over SI: 远程缩略图: P1 仅安全模式，不绘远程图(避免 canvas 跨域污染)
+  SM->>SI: exportShareImage(canvas, prefs)
+  alt window.api.exportPng 存在(复用既有桥)
+    SI->>API: exportPng({defaultName, buffer})
+    API-->>SI: {ok, path}
+  else 否则(P1 基线, 零 IPC)
+    SI->>CV: canvas.toBlob()
+    SI->>U: 创建 <a download> 触发锚点下载
+  end
+  SM->>LS: 持久化 lastTemplate / prefs
+
+  Note over GL,LS: ── N4 启动装配（GamesLayout mount）──
+  GL->>S: loadWishlist()/loadFolders()/loadTags()/loadCollectionFilter()
+  GL->>S: loadRarityTiers()/loadBadges()/loadAchDef()/loadAchProgress()/loadEvents()/loadMetrics()
+  GL->>E: initCollectionEngines()
+  E-->>GL: stop() 句柄
+  GL->>GL: useEffect cleanup → stop() 取消订阅
