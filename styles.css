@@ -58,6 +58,12 @@ svg:not([role="img"]) {
   --color-danger: var(--accent-red);
   --color-error: var(--accent-red);
   --color-info: var(--accent-primary);
+  /* ponytail 2026-07-18 P6-audit-fix: metals 模块用 var(--metals-up/down) 画 K线/折线图涨跌色,
+     SVG stop-color fallback. 中国股市惯例: 红涨绿跌 (跟 stocks.css 同源).
+     之前 metals-up/down 变量未定义 → SVG 颜色 fallback 到默认 → 涨跌不分.
+     stocks.css 也已 fallback 到 var(--metals-up), 这里跟它对齐. */
+  --metals-up: var(--accent-red);
+  --metals-down: var(--accent-green);
   /* 平台品牌色 (仅作装饰底色/圆点；文字均经 color-mix 提亮以达 AA) */
   --brand-steam: oklch(78% 0.09 230);
   --brand-epic: oklch(24% 0 0);
@@ -10778,6 +10784,13 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .stock-td-industry { color: var(--text-secondary); font-size: 11px; }
 .stock-td { font-variant-numeric: tabular-nums; }
 .stock-td.up { color: var(--accent-red); } .stock-td.down { color: var(--accent-green); }
+
+/* ponytail 2026-07-18 P6-audit-fix: metals 模块用 .metals-up / .metals-down 标涨跌
+     (MetalWatchlist.jsx:127 <span class="metals-up">▲</span> 等).
+     之前没 CSS → fallback 到默认色 → 涨跌红绿不分. 跟 .stock-td.up/.stock-td.down 同源
+     (中国股市: 红涨绿跌). 跟 --metals-up / --metals-down 变量对齐. */
+.metals-up { color: var(--accent-red); }
+.metals-down { color: var(--accent-green); }
 
 /* 行内 action — icon 圆形按钮 */
 .stock-td-actions { display: flex; justify-content: flex-end; }
