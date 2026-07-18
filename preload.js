@@ -335,6 +335,8 @@ contextBridge.exposeInMainWorld("api", {
 
   // 游戏优惠聚合 (v2.81): 各平台折扣 / 喜+1 / 热门榜
   getGameDeals: (opts) => ipcRenderer.invoke("games:getDeals", opts || {}),
+  getSteamLowest: (opts) => ipcRenderer.invoke("games:getSteamLowest", opts || {}),
+  getItadLowest: (opts) => ipcRenderer.invoke("games:getItadLowest", opts || {}),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

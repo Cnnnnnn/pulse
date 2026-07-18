@@ -227,6 +227,8 @@ export function createApi(overrides = {}) {
     githubFetchRelease: pick(overrides, "githubFetchRelease"),
     // 游戏优惠聚合 (v2.81): 各平台折扣 / 免费活动 / 热门榜
     getGameDeals: pick(overrides, "getGameDeals"),
+    getSteamLowest: pick(overrides, "getSteamLowest"),
+    getItadLowest: pick(overrides, "getItadLowest"),
   };
 }
 

@@ -25,6 +25,7 @@ const SHOP_BY_PLATFORM = {
 };
 
 const ITAD_DEALS = "https://api.isthereanydeal.com/deals/v2";
+const ITAD_PRICES = "https://api.isthereanydeal.com/v01/prices/";
 
 // ── 极简 .env 加载器（与 src/main/github.js 同款模式）──
 // 仅当进程尚未有 ITAD_API_KEY 时，从 process.cwd()/.env 读取，避免污染其它路径。
@@ -116,4 +117,38 @@ async function fetchItadDeals(platform, opts = {}) {
   }
 }
 
-module.exports = { fetchItadDeals, SHOP_BY_PLATFORM };
+/**
+ * 批量查询游戏的史低价（ITAD /prices 接口）。
+ * @param {string[]} slugs ITAD plain（游戏 slug）
+ * @param {{key?:string}} opts
+ * @returns {Promise<{[slug:string]: number}>} slug → 最低价映射
+ */
+async function fetchItadLowest(slugs, opts = {}) {
+  const key = opts.key;
+  if (!key || !Array.isArray(slugs) || slugs.length === 0) return {};
+  const result = {};
+  const BATCH = 30;
+  try {
+    for (let i = 0; i < slugs.length; i += BATCH) {
+      const batch = slugs.slice(i, i + BATCH);
+      const params = new URLSearchParams({ key, plains: batch.join(",") });
+      const data = await fetchJson(`${ITAD_PRICES}?${params.toString()}`, {
+        timeoutMs: 9000,
+      });
+      if (data && typeof data === "object") {
+        for (const slug of batch) {
+          const entry = data[slug];
+          const amount = entry && entry.historyLow && entry.historyLow.amount;
+          if (amount != null && Number.isFinite(Number(amount))) {
+            result[slug] = Number(amount);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logFetchError("itad:prices", err);
+  }
+  return result;
+}
+
+module.exports = { fetchItadDeals, fetchItadLowest, SHOP_BY_PLATFORM };

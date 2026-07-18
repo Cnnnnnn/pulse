@@ -133,6 +133,16 @@ describe("toGameDeal — 字段映射", () => {
       expect(deal.provider).toBeNull();
     }
   });
+  it("保留 lowestPrice 数值字段", () => {
+    const deal = toGameDeal({ lowestPrice: 4.99 });
+    expect(deal.lowestPrice).toBe(4.99);
+  });
+
+  it("lowestPrice 非数值时为 null", () => {
+    expect(toGameDeal({ lowestPrice: "abc" }).lowestPrice).toBeNull();
+    expect(toGameDeal({ lowestPrice: null }).lowestPrice).toBeNull();
+    expect(toGameDeal({}).lowestPrice).toBeNull();
+  });
 });
 
 describe("fetchJson — 超时与错误", () => {

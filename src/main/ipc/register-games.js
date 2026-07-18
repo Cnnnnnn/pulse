@@ -10,6 +10,7 @@
 
 const { getGameDeals } = require("../games/aggregator");
 const { exchangeRateService, isValidCurrency } = require("../games/exchange-rates");
+const { fetchJson } = require("../games/normalize");
 
 const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 
@@ -85,6 +86,17 @@ async function attachFx(result, service = exchangeRateService) {
   }
 }
 
+/** 从 cheapshark /games?steamAppID= 响应提取历史最低价。 */
+function extractLowestFromCheapshark(games) {
+  if (!Array.isArray(games) || games.length === 0) return null;
+  let min = Infinity;
+  for (const g of games) {
+    const price = Number(g && g.cheapest);
+    if (Number.isFinite(price) && price < min) min = price;
+  }
+  return Number.isFinite(min) ? min : null;
+}
+
 function registerGamesHandlers(ctx) {
   const { safeHandle } = ctx;
 
@@ -150,11 +162,38 @@ function registerGamesHandlers(ctx) {
       }),
     },
   );
+
+  safeHandle(
+    "games:getSteamLowest",
+    async (_event, payload) => {
+      const appId = payload && payload.steamAppId;
+      if (!appId) return { lowestPrice: null };
+      try {
+        const url = `https://www.cheapshark.com/api/1.0/games?steamAppID=${encodeURIComponent(appId)}`;
+        const data = await fetchJson(url, { timeoutMs: 9000 });
+        return { lowestPrice: extractLowestFromCheapshark(data) };
+      } catch (err) {
+        return { lowestPrice: null };
+      }
+    },
+  );
+
+  safeHandle(
+    "games:getItadLowest",
+    async (_event, payload) => {
+      const slugs = Array.isArray(payload && payload.slugs) ? payload.slugs : [];
+      const key = (payload && payload.itadKey) || process.env.ITAD_API_KEY || null;
+      const { fetchItadLowest } = require("../games/itad");
+      const lowestMap = await fetchItadLowest(slugs, { key });
+      return { lowestMap };
+    },
+  );
 }
 
 module.exports = {
   registerGamesHandlers,
   attachFx,
+  extractLowestFromCheapshark,
   EMPTY_FX,
   dealsCacheKey,
   dealsCacheGet,

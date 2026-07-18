@@ -306,6 +306,20 @@
   color: var(--games-text-inverse);
   background: color-mix(in oklch, var(--text-primary) 70%, transparent);
 }
+/* 史低徽标（左上角，与示例徽标互斥——showLowest 已排除 sample） */
+.game-card__lowest {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--color-warning) 92%, transparent);
+  color: var(--games-text-inverse);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
 
 /* 心形关注按钮（右上角 toggle；免费游戏不渲染） */
 .game-card__fav {
