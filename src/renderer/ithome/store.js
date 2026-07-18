@@ -37,7 +37,6 @@ export const ithomeUnreadBadge = computed(
   () => Object.keys(ithomeNewIds.value).length
 );
 export const ithomeSharingIds = signal({});
-export const ithomeComments = signal({});
 
 function _applyPayload(data) {
   if (!data) return;
@@ -46,23 +45,6 @@ function _applyPayload(data) {
   ithomeDayStats.value = data.dayStats || {};
   ithomeSummaries.value = data.summaries || {};
   ithomeFavorites.value = data.favorites || {};
-  const nextComments = {};
-  for (const [id, article] of Object.entries(articles)) {
-    if (article && Number.isFinite(article.commentsFetchedAt)) {
-      nextComments[id] = Array.isArray(article.comments) ? article.comments : [];
-    }
-  }
-  for (const [id, favorite] of Object.entries(data.favorites || {})) {
-    const article = favorite && favorite.article;
-    if (
-      !Object.prototype.hasOwnProperty.call(nextComments, id) &&
-      article &&
-      Number.isFinite(article.commentsFetchedAt)
-    ) {
-      nextComments[id] = Array.isArray(article.comments) ? article.comments : [];
-    }
-  }
-  ithomeComments.value = nextComments;
   ithomeNewsTs.value = data.ts || 0;
   ithomeNewsLoaded.value = true;
   // 派生 readIds (从 articles 的 readAt 字段)
@@ -170,33 +152,6 @@ export async function setIthomeSelectedDate(dateKey) {
   const cached = articlesForDate(ithomeArticles.value, dateKey);
   if (cached.length === 0) {
     await fetchDayNews(dateKey);
-  }
-}
-
-export async function fetchIthomeComments(id) {
-  if (!id || typeof id !== "string") {
-    return { ok: false, reason: "invalid_args" };
-  }
-  if (Object.prototype.hasOwnProperty.call(ithomeComments.value, id)) {
-    return {
-      ok: true,
-      reason: "already_loaded",
-      comments: ithomeComments.value[id],
-    };
-  }
-  const fetchComments = requireApiMethod("ithomeFetchComments");
-  if (!fetchComments) return { ok: false, reason: "ipc_unavailable" };
-  try {
-    const result = await fetchComments({ id });
-    if (result && result.ok) {
-      ithomeComments.value = {
-        ...ithomeComments.value,
-        [id]: Array.isArray(result.comments) ? result.comments : [],
-      };
-    }
-    return result || { ok: false, reason: "fetch_failed" };
-  } catch {
-    return { ok: false, reason: "fetch_failed" };
   }
 }
 

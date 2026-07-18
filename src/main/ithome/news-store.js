@@ -224,10 +224,6 @@ function _mergeArticles(cur, parsed, now) {
     articles[item.id] = {
       ...item,
       excerpt: prev?.excerpt || item.excerpt || "",
-      body: prev?.body || "",
-      bodyFetchedAt: prev?.bodyFetchedAt || 0,
-      comments: prev?.comments || [],
-      commentsFetchedAt: prev?.commentsFetchedAt || 0,
       fetchedAt: prev?.fetchedAt || now,
       updatedAt: now,
       readAt: prev?.readAt || item.readAt || 0,
@@ -352,10 +348,6 @@ async function refresh(statePath) {
     articles[item.id] = {
       ...item,
       category: prev?.category || "",
-      body: prev?.body || "",
-      bodyFetchedAt: prev?.bodyFetchedAt || 0,
-      comments: prev?.comments || [],
-      commentsFetchedAt: prev?.commentsFetchedAt || 0,
       fetchedAt: prev?.fetchedAt || now,
       updatedAt: now,
       excerpt: item.excerpt || prev?.excerpt || "",
@@ -438,58 +430,6 @@ function attachArticleBody(id, body, statePath) {
   return { ok: true };
 }
 
-function attachArticleComments(id, comments, statePath) {
-  if (!id || typeof id !== "string") {
-    return { ok: false, reason: "invalid_args" };
-  }
-  const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
-  const inArticles = !!cur.articles[id];
-  const inFavorites = !!(cur.favorites && cur.favorites[id]);
-  const nextComments = Array.isArray(comments) ? comments : [];
-  const fetchedAt = Date.now();
-  const articles = { ...cur.articles };
-  if (inArticles) {
-    articles[id] = {
-      ...articles[id],
-      comments: nextComments,
-      commentsFetchedAt: fetchedAt,
-      updatedAt: fetchedAt,
-    };
-  } else {
-    // renderer 只持有内存信号、main 进程 state 还没这个 article 时，主动 stub
-    // 一个最小 article，让评论缓存能落盘。
-    articles[id] = {
-      id,
-      link: id,
-      title: "",
-      dateKey: "",
-      fetchedAt: fetchedAt,
-      updatedAt: fetchedAt,
-      excerpt: "",
-      body: "",
-      bodyFetchedAt: 0,
-      comments: nextComments,
-      commentsFetchedAt: fetchedAt,
-      readAt: 0,
-    };
-  }
-  const favorites = { ...(cur.favorites || {}) };
-  if (inFavorites) {
-    favorites[id] = {
-      ...favorites[id],
-      article: {
-        ...(favorites[id].article || {}),
-        comments: nextComments,
-        commentsFetchedAt: fetchedAt,
-      },
-    };
-  }
-  const news = { ...cur, articles, favorites, ts: fetchedAt };
-  _writeNews(news, statePath);
-  _upsertNewsDoc(id, news);
-  return { ok: true, comments: nextComments, commentsFetchedAt: fetchedAt };
-}
-
 function saveSummary(id, entry, statePath) {
   const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
   const inArticles = !!cur.articles[id];
@@ -553,7 +493,6 @@ module.exports = {
   toggleFavorite,
   isFavorited,
   attachArticleBody,
-  attachArticleComments,
   markArticleRead,
   setSearchIndex,
   _pruneArticles,

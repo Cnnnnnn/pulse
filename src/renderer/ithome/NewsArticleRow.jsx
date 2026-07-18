@@ -9,9 +9,7 @@ import {
   ithomeReadIds,
   ithomeNewIds,
   ithomeSharingIds,
-  ithomeComments,
   summarizeIthomeArticle,
-  fetchIthomeComments,
   toggleIthomeFavorite,
   markIthomeRead,
   shareIthomeArticle,
@@ -51,9 +49,6 @@ export function NewsArticleRow({ article }) {
   const [favBusy, setFavBusy] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
-  const [commentsExpanded, setCommentsExpanded] = useState(false);
-  const [commentsLoading, setCommentsLoading] = useState(false);
-  const [commentError, setCommentError] = useState(null);
   const [toast, setToast] = useState(null);
 
   if (!article) return null;
@@ -64,11 +59,6 @@ export function NewsArticleRow({ article }) {
   const isRead = !!ithomeReadIds.value[article.id];
   const isNew = !!ithomeNewIds.value[article.id];
   const sharing = !!ithomeSharingIds.value[article.id];
-  const cachedComments = ithomeComments.value[article.id];
-  const hasCachedComments = Object.prototype.hasOwnProperty.call(
-    ithomeComments.value,
-    article.id,
-  );
   const timeLabel = formatArticleTime(article.pubDate);
   const excerptPreview = formatExcerptPreview(article.excerpt);
 
@@ -120,47 +110,6 @@ export function NewsArticleRow({ article }) {
     } finally {
       setFetchingBody(false);
       setBusy(false);
-    }
-  }
-
-  async function handleComments() {
-    if (typeof console !== "undefined" && console.debug) {
-      console.debug("[ithome] handleComments enter", article.id, {
-        commentsLoading,
-        commentsExpanded,
-        hasCachedComments,
-      });
-    }
-    if (commentsLoading) return;
-    if (commentsExpanded && hasCachedComments) {
-      setCommentsExpanded(false);
-      return;
-    }
-    setCommentsExpanded(true);
-    if (hasCachedComments) return;
-    setCommentError(null);
-    setCommentsLoading(true);
-    try {
-      const result = await fetchIthomeComments(article.id);
-      if (typeof console !== "undefined" && console.debug) {
-        console.debug("[ithome] fetchComments", article.id, result);
-      }
-      if (!result || !result.ok) {
-        setCommentError(
-          result && result.reason
-            ? `评论暂时无法加载（${result.reason}）`
-            : "评论暂时无法加载",
-        );
-      }
-    } catch (err) {
-      if (typeof console !== "undefined" && console.error) {
-        console.error("[ithome] fetchComments threw", article.id, err);
-      }
-      setCommentError(
-        err && err.message ? `评论暂时无法加载（${err.message}）` : "评论暂时无法加载",
-      );
-    } finally {
-      setCommentsLoading(false);
     }
   }
 
@@ -260,19 +209,6 @@ async function handleShare(e) {
             {sharing ? "生成图片中…" : <><IconShare size={14} /> 分享</>}
           </button>
         )}
-        <button
-          type="button"
-          class="ithome-row-link ithome-row-link--muted ithome-row-comments-trigger"
-          onClick={handleComments}
-          disabled={commentsLoading}
-          aria-expanded={commentsExpanded}
-        >
-          {commentsLoading
-            ? "评论加载中…"
-            : commentsExpanded
-              ? "收起评论"
-              : "查看评论"}
-        </button>
         {hasSummary && (
           <button
             type="button"
@@ -310,47 +246,6 @@ async function handleShare(e) {
           <NewsArticleSummary summary={summary} compact />
         </button>
       )}
-      {commentsExpanded && (() => {
-        let body;
-        if (commentsLoading) {
-          body = <p class="ithome-row-comments-status">正在加载评论…</p>;
-        } else if (commentError) {
-          body = (
-            <div class="ithome-row-comments-status is-error">
-              <span>{commentError}</span>
-              <button type="button" onClick={handleComments}>
-                重试
-              </button>
-            </div>
-          );
-        } else if (hasCachedComments && cachedComments.length === 0) {
-          body = <p class="ithome-row-comments-status">暂无热门评论</p>;
-        } else if (hasCachedComments) {
-          body = (
-            <ol class="ithome-comment-list">
-              {cachedComments.map((comment) => (
-                <li key={comment.id} class="ithome-comment-item">
-                  <div class="ithome-comment-meta">
-                    <strong>{comment.author}</strong>
-                    {comment.createdAt && <time>{comment.createdAt}</time>}
-                    {comment.likes > 0 && <span>支持 {comment.likes}</span>}
-                  </div>
-                  <p>{comment.content}</p>
-                </li>
-              ))}
-            </ol>
-          );
-        } else {
-          body = (
-            <p class="ithome-row-comments-status">正在准备评论…</p>
-          );
-        }
-        return (
-          <div class="ithome-row-comments" aria-live="polite">
-            {body}
-          </div>
-        );
-      })()}
     </article>
   );
 }
