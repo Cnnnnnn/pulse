@@ -10,6 +10,7 @@ import {
   loadGameDeals,
   loadGamesSettings,
   loadWishlist,
+  loadFx,
   fetchedAt,
   enrichSteamLowest,
   enrichXboxLowest,
@@ -26,6 +27,7 @@ export function GamesLayout() {
     loadGameDeals();
     loadGamesSettings();
     loadWishlist();
+    loadFx(); // 独立汇率：wishlist 模式短路了 loadGameDeals，需单独保证 fx 可用
 
     // 后台定时检查免费活动 + 桌面通知调度器
     const scheduler = createGamesCheckScheduler();

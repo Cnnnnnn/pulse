@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>游戏优惠聚合 · UI 改进原型</title>
+<style>
+/* ============================================================
+   设计令牌（对齐 docs/ui-design-system.md，oklch + Apple 原生美学）
+   ============================================================ */
+:root{
+  --blue-500:#007aff;  --blue-500-d:#0a84ff;
+  --green-500:#34c759; --green-500-d:#30d158;
+  --orange-500:#ff9500; --orange-500-d:#ff9f0a;
+  --red-500:#ff3b30;   --red-500-d:#ff453a;
+  --gray-50:#f5f5f7; --gray-100:#e5e5ea; --gray-200:#d1d1d6;
+  --gray-300:#aeaeb2; --gray-400:#8e8e93; --gray-500:#6e6e73;
+  --gray-600:#48484a; --gray-700:#2c2c2e; --gray-800:#1d1d1f;
+
+  --accent-primary:var(--blue-500);
+  --accent-primary-hover:#0066d6;
+  --color-success:var(--green-500);
+  --color-warning:var(--orange-500);
+  --color-danger:var(--red-500);
+
+  --text-primary:var(--gray-800);
+  --text-secondary:var(--gray-500);
+  --text-tertiary:var(--gray-400);
+  --text-inverse:#ffffff;
+
+  --bg-primary:rgba(255,255,255,0.82);
+  --bg-secondary:#f5f5f7;
+  --surface:#ffffff;
+  --surface-elevated:#ffffff;
+  --border:rgba(0,0,0,0.08);
+  --border-strong:rgba(0,0,0,0.16);
+  --focus-ring:rgba(0,122,255,0.45);
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.10);
+  --shadow-lg:0 12px 32px rgba(0,0,0,0.18);
+
+  --brand-steam:oklch(70% 0.12 230);
+  --brand-epic:oklch(35% 0 0);
+  --brand-xbox:oklch(52% 0.15 145);
+  --brand-playstation:oklch(55% 0.17 255);
+  --brand-switch:oklch(55% 0.21 27);
+
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+  --space-5:20px; --space-6:24px; --space-8:32px;
+  --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-pill:999px;
+
+  --font-system:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  --font-size-2xs:10px; --font-size-xs:11px; --font-size-sm:12px; --font-size-md:13px;
+  --font-size-base:14px; --font-size-lg:15px; --font-size-xl:17px;
+  --font-size-2xl:18px; --font-size-3xl:20px; --font-size-4xl:28px;
+}
+[data-theme="dark"]{
+  --accent-primary:var(--blue-500-d);
+  --accent-primary-hover:#409cff;
+  --color-success:var(--green-500-d);
+  --color-warning:var(--orange-500-d);
+  --color-danger:var(--red-500-d);
+  --text-primary:#f5f5f7;
+  --text-secondary:#aeaeb2;
+  --text-tertiary:#8e8e93;
+  --bg-primary:rgba(28,28,30,0.88);
+  --bg-secondary:#2c2c2e;
+  --surface:#1c1c1e;
+  --surface-elevated:#2c2c2e;
+  --border:rgba(255,255,255,0.10);
+  --border-strong:rgba(255,255,255,0.20);
+  --focus-ring:rgba(10,132,255,0.55);
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.5);
+  --brand-steam:oklch(80% 0.09 230);
+  --brand-epic:oklch(82% 0 0);
+  --brand-xbox:oklch(64% 0.16 145);
+  --brand-playstation:oklch(68% 0.17 255);
+  --brand-switch:oklch(66% 0.21 27);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;}
+body{
+  font-family:var(--font-system);
+  color:var(--text-primary);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, color-mix(in oklch,var(--accent-primary) 10%, transparent), transparent 60%),
+    var(--bg-primary);
+  -webkit-font-smoothing:antialiased;
+  font-size:var(--font-size-base);
+}
+
+/* ============================================================
+   P0 修复：.games-page 必须是 flex 列容器，toolbar 才吸顶、body 才内部滚动
+   ============================================================ */
+.app{height:100vh;display:flex;justify-content:center;}
+.games-page{
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  min-height:0;                 /* 关键：允许内部滚动 */
+  width:100%;
+  max-width:1180px;
+  background:var(--bg-primary);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-left:1px solid var(--border);
+  border-right:1px solid var(--border);
+}
+
+/* ── Header（吸顶）── */
+.games-header{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:var(--space-3);
+  padding:var(--space-5) var(--space-5) var(--space-4);
+  border-bottom:1px solid var(--border);
+}
+.games-header__brand{display:flex;align-items:center;gap:var(--space-3);min-width:0;}
+.games-header__mark{
+  width:32px;height:32px;flex:0 0 auto;border-radius:var(--radius-md);
+  background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;
+  font-size:var(--font-size-xl);
+}
+.games-header__title{font-size:var(--font-size-2xl);font-weight:600;line-height:1.2;letter-spacing:-0.01em;}
+.games-header__hint{font-size:var(--font-size-sm);color:var(--text-secondary);margin-top:1px;}
+.games-header__badge{
+  margin-left:auto;
+  padding:3px var(--space-3);border-radius:var(--radius-pill);
+  font-size:var(--font-size-sm);font-weight:600;
+  color:color-mix(in oklch,var(--color-warning) 45%, black);
+  background:color-mix(in oklch,var(--color-warning) 16%, transparent);
+  border:1px solid color-mix(in oklch,var(--color-warning) 32%, transparent);
+}
+.theme-toggle{
+  width:34px;height:34px;flex:0 0 auto;border-radius:var(--radius-md);
+  border:1px solid var(--border);background:var(--surface);color:var(--text-primary);
+  font-size:var(--font-size-lg);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s ease,transform .15s ease;
+}
+.theme-toggle:hover{background:var(--bg-secondary);transform:translateY(-1px);}
+.theme-toggle:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;}
+
+/* ── Toolbar（吸顶）── */
+.games-toolbar{
+  flex:0 0 auto;
+  display:flex;flex-direction:column;gap:var(--space-3);
+  padding:var(--space-4) var(--space-5) 0;
+}
+
+/* P1 统一选中隐喻：平台 Tab 与 模式 Chip 共用 .games-pill */
+.games-platform-tabs{display:flex;flex-wrap:wrap;gap:var(--space-2);}
+.games-filter-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);}
+.games-mode-chips{display:flex;flex-wrap:wrap;gap:var(--space-2);}
+.games-filter-extra{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);}
+
+.games-pill{
+  display:inline-flex;align-items:center;gap:var(--space-2);
+  padding:6px var(--space-3);border-radius:var(--radius-pill);
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--text-secondary);font-size:var(--font-size-md);
+  cursor:pointer;white-space:nowrap;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+.games-pill:hover{background:var(--bg-secondary);color:var(--text-primary);}
+.games-pill.is-active{
+  background:var(--accent-primary);border-color:var(--accent-primary);
+  color:var(--text-inverse);font-weight:600;
+}
+.games-pill:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;}
+.games-pill__dot{width:8px;height:8px;border-radius:50%;background:var(--text-tertiary);flex:0 0 auto;}
+
+.games-select{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-sm);color:var(--text-secondary);}
+.games-select__input{
+  padding:5px var(--space-2);border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--surface);color:var(--text-primary);font-size:var(--font-size-sm);font-family:inherit;
+}
+.games-select__input:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;}
+.games-refresh{
+  padding:6px var(--space-3);border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--surface);color:var(--text-primary);font-size:var(--font-size-md);cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;transition:background .15s ease;
+}
+.games-refresh:hover{background:var(--bg-secondary);}
+.games-refresh:disabled{opacity:.55;cursor:default;}
+.games-refresh:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;}
+.games-refresh .spinner{width:13px;height:13px;border:2px solid var(--text-tertiary);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.games-refresh.is-loading .spinner{display:inline-block;}
+
+/* ── P1 筛选上下文条（新增）── */
+.games-context{
+  flex:0 0 auto;
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);
+  padding:var(--space-2) var(--space-5);
+  border-bottom:1px solid var(--border);
+  font-size:var(--font-size-sm);color:var(--text-tertiary);
+}
+.games-context__crumb{color:var(--text-secondary);font-weight:500;}
+.games-context__count{color:var(--text-primary);font-weight:600;font-variant-numeric:tabular-nums;}
+.games-context__time{margin-left:auto;}
+
+/* ── Body（唯一滚动区）── */
+.games-body{
+  flex:1;min-height:0;overflow:auto;
+  padding:var(--space-5);
+}
+.games-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(clamp(160px,22vw,220px),1fr));
+  gap:var(--space-4);
+}
+
+/* ── Card ── */
+.game-card{
+  display:flex;flex-direction:column;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-sm);overflow:hidden;cursor:pointer;
+  transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s ease;
+}
+.game-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);}
+.game-card:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;}
+.game-card--free{border-color:color-mix(in oklch,var(--color-success) 40%,var(--border));}
+
+.game-card__thumb{position:relative;aspect-ratio:16/9;background:var(--bg-secondary);overflow:hidden;}
+.game-card__thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.game-card__thumb-ph{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:32px;
+  background:radial-gradient(120% 120% at 30% 20%, color-mix(in oklch,var(--_brand,var(--text-tertiary)) 22%, var(--bg-secondary)), var(--bg-secondary));
+}
+/* P2 徽标毛玻璃背板：任意缩略图背景上都可读 */
+.game-card__badge{
+  position:absolute;top:var(--space-2);left:var(--space-2);
+  padding:2px var(--space-2);border-radius:var(--radius-sm);
+  font-size:var(--font-size-sm);font-weight:600;line-height:1.4;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.22);
+}
+.game-card__badge--sample{background:rgba(20,20,22,.55);color:#fff;}
+.game-card__badge--lowest{background:color-mix(in oklch,var(--color-warning) 85%,transparent);color:#fff;}
+
+.game-card__fav{
+  position:absolute;top:var(--space-2);right:var(--space-2);
+  width:32px;height:32px;border:none;border-radius:50%;
+  background:rgba(20,20,22,.5);color:#fff;font-size:var(--font-size-md);line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:background .15s ease,transform .12s ease;padding:0;
+}
+.game-card__fav:hover{background:rgba(20,20,22,.7);transform:scale(1.08);}
+.game-card__fav.is-on{background:color-mix(in oklch,var(--color-danger) 92%,transparent);}
+.game-card__fav.is-on:hover{background:var(--color-danger);}
+.game-card__fav.pop{animation:pop .28s cubic-bezier(.22,1,.36,1) both;}
+.game-card__fav:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;}
+
+.game-card__body{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) var(--space-4) var(--space-4);flex:1;}
+.game-card__title{
+  font-size:var(--font-size-md);font-weight:600;color:var(--text-primary);
+  line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.game-card__meta{display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-sm);color:var(--text-secondary);}
+.game-card__platform{
+  padding:1px var(--space-2);border-radius:var(--radius-pill);
+  background:color-mix(in oklch,var(--_brand,var(--text-tertiary)) 16%,transparent);
+  color:color-mix(in oklch,var(--_brand,var(--text-secondary)) 30%,black);
+  font-weight:600;
+}
+.game-card__rating{color:color-mix(in oklch,var(--color-warning) 35%,black);font-weight:600;}
+
+.game-card__price-row{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap;margin-top:auto;}
+.game-card__sale{font-size:var(--font-size-lg);font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums;}
+.game-card__cny-ref{margin-left:var(--space-1);font-size:var(--font-size-sm);font-weight:500;color:var(--text-secondary);font-variant-numeric:tabular-nums;}
+.game-card__normal{font-size:var(--font-size-sm);color:var(--text-secondary);text-decoration:line-through;font-variant-numeric:tabular-nums;}
+.game-card__save{
+  margin-left:auto;padding:2px var(--space-2);border-radius:var(--radius-pill);
+  font-size:var(--font-size-sm);font-weight:700;
+  color:color-mix(in oklch,var(--color-success) 35%,black);
+  background:color-mix(in oklch,var(--color-success) 16%,transparent);
+}
+.game-card__save-amt{font-size:var(--font-size-sm);color:var(--text-secondary);margin-top:calc(-1*var(--space-1));font-variant-numeric:tabular-nums;}
+.game-card__free-tag{
+  display:inline-block;padding:2px var(--space-2);border-radius:var(--radius-pill);
+  font-size:var(--font-size-sm);font-weight:700;
+  color:color-mix(in oklch,var(--color-success) 38%,black);
+  background:color-mix(in oklch,var(--color-success) 14%,transparent);
+}
+.game-card__free-until{font-size:var(--font-size-sm);color:var(--text-secondary);}
+.game-card__cta{
+  margin-top:var(--space-1);padding:7px var(--space-3);border-radius:var(--radius-sm);
+  border:1px solid var(--accent-primary);background:var(--accent-primary);color:var(--text-inverse);
+  font-size:var(--font-size-sm);font-weight:600;cursor:pointer;
+  transition:background .15s ease,transform .15s ease,box-shadow .15s ease;
+}
+.game-card__cta:hover{background:var(--accent-primary-hover);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+.game-card__cta:active{transform:translateY(0);}
+.game-card__cta:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;}
+
+/* ── 状态 ── */
+.games-state{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);padding:var(--space-8) var(--space-5);text-align:center;color:var(--text-secondary);font-size:var(--font-size-md);}
+.games-state__icon{font-size:34px;line-height:1;}
+
+/* ── Footer ── */
+.games-attrib{flex:0 0 auto;padding:var(--space-3) var(--space-5);border-top:1px solid var(--border);font-size:var(--font-size-sm);color:var(--text-tertiary);text-align:right;}
+.games-attrib a{color:var(--text-secondary);text-decoration:none;font-weight:600;}
+.games-attrib a:hover{color:var(--accent-primary);text-decoration:underline;}
+.games-fx-footer{flex:0 0 auto;padding:var(--space-2) var(--space-5);border-top:1px solid var(--border);font-size:var(--font-size-sm);color:var(--text-tertiary);text-align:right;}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);
+  background:var(--gray-800);color:#fff;padding:10px var(--space-4);border-radius:var(--radius-md);
+  font-size:var(--font-size-sm);box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;
+  transition:opacity .25s ease,transform .25s cubic-bezier(.22,1,.36,1);z-index:50;max-width:80vw;
+}
+[data-theme="dark"] .toast{background:#000;}
+.toast.show{opacity:1;transform:translate(-50%,0);}
+
+/* ── 原型说明卡 ── */
+.legend-btn{
+  position:fixed;right:18px;bottom:18px;width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--border);background:var(--surface);color:var(--accent-primary);
+  font-size:18px;cursor:pointer;box-shadow:var(--shadow-md);z-index:40;
+  display:flex;align-items:center;justify-content:center;
+}
+.legend-btn:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px;}
+.legend{
+  position:fixed;right:18px;bottom:66px;width:300px;max-width:calc(100vw - 36px);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);padding:var(--space-4);z-index:40;
+  font-size:var(--font-size-sm);color:var(--text-secondary);line-height:1.6;
+  transform:translateY(8px);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;
+}
+.legend.show{transform:translateY(0);opacity:1;pointer-events:auto;}
+.legend h4{margin:0 0 var(--space-2);font-size:var(--font-size-md);color:var(--text-primary);}
+.legend li{margin-bottom:4px;list-style:none;}
+.legend ul{margin:0;padding:0;}
+
+/* ── 动画 ── */
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pop{from{transform:scale(.8);}to{transform:scale(1);}}
+
+/* ── 响应式 ── */
+@media (max-width:640px){
+  .games-header{padding:var(--space-4) var(--space-4) var(--space-3);flex-wrap:wrap;}
+  .games-header__badge{margin-left:0;}
+  .games-toolbar{padding:var(--space-3) var(--space-4) 0;}
+  .games-filter-bar{flex-direction:column;align-items:stretch;}
+  .games-filter-extra{justify-content:space-between;}
+  .games-context{padding:var(--space-2) var(--space-4);}
+  .games-body{padding:var(--space-4);}
+  .games-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--space-3);}
+  .games-attrib,.games-fx-footer{text-align:left;padding-left:var(--space-4);padding-right:var(--space-4);}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="games-page">
+    <header class="games-header">
+      <div class="games-header__brand">
+        <span class="games-header__mark" aria-hidden="true">🎮</span>
+        <div>
+          <div class="games-header__title">游戏优惠聚合</div>
+          <div class="games-header__hint" id="headerHint">各平台折扣 · 限时特惠</div>
+        </div>
+      </div>
+      <span class="games-header__badge" id="sampleBadge" style="display:none">含示例数据</span>
+      <button class="theme-toggle" id="themeToggle" aria-label="切换明暗主题" title="切换明暗主题">🌙</button>
+    </header>
+
+    <div class="games-toolbar">
+      <div class="games-platform-tabs" id="platformTabs" role="tablist" aria-label="平台分类"></div>
+      <div class="games-filter-bar">
+        <div class="games-mode-chips" id="modeChips" role="group" aria-label="浏览维度"></div>
+        <div class="games-filter-extra" id="filterExtra"></div>
+      </div>
+    </div>
+
+    <div class="games-context" id="contextBar"></div>
+
+    <main class="games-body" id="grid"></main>
+
+    <footer class="games-attrib">价格数据由 <a href="https://www.gamerpower.com" target="_blank" rel="noopener">GamerPower</a> 等数据源提供</footer>
+    <footer class="games-fx-footer" id="fxFooter">汇率日期：2026-07-18（缓存汇率）</footer>
+  </div>
+</div>
+
+<button class="legend-btn" id="legendBtn" aria-label="查看原型说明">?</button>
+<div class="legend" id="legend">
+  <h4>本原型演示的改进</h4>
+  <ul>
+    <li>✅ <b>P0</b> 吸顶布局：滚动时筛选栏/平台 Tab 常驻</li>
+    <li>✅ <b>P1</b> 统一选中隐喻：平台 Tab 与模式 Chip 同款胶囊</li>
+    <li>✅ <b>P1</b> 筛选上下文条：平台·模式·计数·更新时间</li>
+    <li>✅ <b>P1</b> 动态头部语境（随模式变化）</li>
+    <li>✅ <b>P2</b> 卡片徽标毛玻璃背板（任意缩略图可读）</li>
+    <li>✅ <b>P2</b> 价格 tabular-nums 等宽数字</li>
+    <li>✅ <b>P2</b> 整卡可点 + 键盘可达（Enter/Space）</li>
+    <li>✅ <b>P1</b> 比价模式保留平台多选（不再吞掉平台）</li>
+    <li>✅ 明暗主题 + 响应式断点</li>
+  </ul>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====================== 数据层（mock） ====================== */
+const PLATFORMS=[
+  {key:"steam",label:"Steam",emoji:"🎮"},
+  {key:"epic",label:"Epic",emoji:"🎁"},
+  {key:"xbox",label:"Xbox",emoji:"🟢"},
+  {key:"playstation",label:"PlayStation",emoji:"🔵"},
+  {key:"switch",label:"Switch",emoji:"🔴"},
+];
+const MODES=[
+  {key:"deals",label:"折扣力度",hint:"各平台折扣 · 限时特惠"},
+  {key:"free",label:"免费活动",hint:"限时免费 · 试玩 · 赠送"},
+  {key:"wishlist",label:"心愿单",hint:"我关注的降价提醒"},
+  {key:"compare",label:"比价",hint:"跨平台价格对比"},
+];
+const FREE_SUPPORTED=new Set(["steam","epic","xbox"]);
+const PROMO={giveaway:"免费入库",key:"Key 赠送","free-weekend":"免费周末","free-play-days":"限时试玩"};
+
+const GAMES=[];
+let _id=0;
+function pushDeal(platform,title,normal,sale,rating,sample=false,lowest=false){
+  const savings=Math.round((1-sale/normal)*100);
+  GAMES.push({key:platform+":d"+_id,id:"d"+_id,platform,title,currency:"USD",
+    normalPrice:normal,salePrice:sale,savings,saved:normal-sale,rating,
+    source:sample?"sample":"live",lowest,isFree:false});
+  _id++;
+}
+function pushFree(platform,title,promo,until){
+  GAMES.push({key:platform+":f"+_id,id:"f"+_id,platform,title,currency:"USD",
+    isFree:true,promotionType:promo,freeUntil:until,rating:null,source:"live"});
+  _id++;
+}
+// Steam
+[["Hollow Knight",15,4.49,4.9],["Stardew Valley",14.99,7.49,4.8],["Sekiro",59.99,39.99,4.7],
+ ["Cyberpunk 2077",59.99,29.99,4.3,false,true],["Elden Ring",59.99,44.99,4.8],["Hades",24.99,12.49,4.9],
+ ["Celeste",19.99,4.99,4.8],["Dead Cells",24.99,9.99,4.7]].forEach(d=>pushDeal("steam",...d));
+// Epic
+[["Alan Wake 2",59.99,29.99,4.4],["Horizon Zero Dawn",49.99,12.49,4.6],["Control",49.99,9.99,4.5],
+ ["Borderlands 3",59.99,9.99,4.4],["The Outer Worlds",59.99,11.99,4.3]].forEach(d=>pushDeal("epic",...d));
+// Xbox
+[["Forza Horizon 5",59.99,29.99,4.8],["Halo Infinite",59.99,19.99,4.2],["Gears 5",39.99,9.99,4.4],
+ ["Sea of Thieves",39.99,14.99,4.5],["Flight Simulator",59.99,29.99,4.6]].forEach(d=>pushDeal("xbox",...d));
+// PlayStation（含示例数据源）
+[["God of War",49.99,19.99,4.8,true],["Spider-Man",59.99,29.99,4.7,true],["The Last of Us",39.99,14.99,4.9,true],
+ ["Bloodborne",19.99,9.99,4.6],["Ghost of Tsushima",59.99,34.99,4.8],["Demon’s Souls",69.99,49.99,4.7]].forEach(d=>pushDeal("playstation",...d));
+// Switch
+[["Zelda BOTW",59.99,44.99,4.9],["Mario Odyssey",59.99,39.99,4.8],["Animal Crossing",59.99,49.99,4.7],
+ ["Smash Bros",59.99,39.99,4.8],["Pokémon Scarlet",59.99,49.99,3.9]].forEach(d=>pushDeal("switch",...d));
+// Free
+pushFree("steam","Death Stranding Director’s Cut","free-weekend","7月25日");
+pushFree("epic","Civilization VI","giveaway","7月31日");
+pushFree("xbox","Fallout 76","free-play-days","7月28日");
+pushFree("steam","Nioh 2","free-weekend","7月26日");
+
+/* ====================== 状态 ====================== */
+const state={
+  platform:"steam",
+  mode:"deals",
+  minSavings:0,
+  sort:"savings",
+  theme:"light",
+  favs:new Set(),
+  comparePlatforms:new Set(["steam","epic"]),
+  fetchedAt:"14:20",
+};
+// 预置心愿单
+state.favs.add("steam:d0"); state.favs.add("epic:d8");
+
+/* ====================== 工具 ====================== */
+const $=(id)=>document.getElementById(id);
+const label=(k)=>(PLATFORMS.find(p=>p.key===k)||{}).label||k;
+const brandVar=(k)=>`var(--brand-${k})`;
+const emoji=(k)=>(PLATFORMS.find(p=>p.key===k)||{}).emoji||"🎮";
+function fmtPrice(v,c){ if(v==null)return "—"; const n=Number(v); return c==="CNY"?`¥${n.toFixed(2)}`:`$${n.toFixed(2)}`; }
+function fmtCny(g){ if(g.currency==="CNY")return ""; const rate=7.2; return "约 ¥"+(g.salePrice*rate).toFixed(2); }
+function promoLabel(t){ return PROMO[t]||"免费活动"; }
+
+function matchesPlatformScope(g){
+  if(state.mode==="compare") return state.comparePlatforms.has(g.platform);
+  if(state.mode==="free") return g.platform===state.platform;
+  return g.platform===state.platform;
+}
+
+/* ====================== 过滤 ====================== */
+function computeList(){
+  let list;
+  if(state.mode==="wishlist") list=GAMES.filter(g=>state.favs.has(g.key));
+  else if(state.mode==="free"){
+    if(!FREE_SUPPORTED.has(state.platform)) return {empty:"noFree"};
+    list=GAMES.filter(g=>g.isFree && g.platform===state.platform);
+  }
+  else if(state.mode==="compare") list=GAMES.filter(g=>!g.isFree && state.comparePlatforms.has(g.platform));
+  else list=GAMES.filter(g=>!g.isFree && g.platform===state.platform && g.savings>=state.minSavings);
+
+  if(state.mode==="deals"||state.mode==="compare"){
+    if(state.sort==="price") list.sort((a,b)=>a.salePrice-b.salePrice);
+    else if(state.sort==="rating") list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+    else list.sort((a,b)=>b.savings-a.savings);
+  }
+  if(state.mode==="wishlist" && list.length===0) return {empty:"wishlist"};
+  if(list.length===0) return {empty:"none"};
+  return {list};
+}
+
+/* ====================== 渲染 ====================== */
+function renderPlatformTabs(){
+  const wrap=$("platformTabs"); wrap.innerHTML="";
+  const multi=state.mode==="compare";
+  PLATFORMS.forEach(p=>{
+    const active=multi?state.comparePlatforms.has(p.key):state.platform===p.key;
+    const btn=document.createElement("button");
+    btn.className="games-pill"+(active?" is-active":"");
+    btn.setAttribute("role",multi?"button":"tab");
+    btn.setAttribute("aria-pressed",active);
+    btn.dataset.platform=p.key;
+    btn.innerHTML=`<span class="games-pill__dot" style="background:${brandVar(p.key)}"></span><span>${p.label}</span>`;
+    btn.addEventListener("click",()=>{
+      if(multi){
+        if(state.comparePlatforms.has(p.key)){ if(state.comparePlatforms.size>1) state.comparePlatforms.delete(p.key); }
+        else state.comparePlatforms.add(p.key);
+      } else state.platform=p.key;
+      renderAll();
+    });
+    wrap.appendChild(btn);
+  });
+}
+function renderModeChips(){
+  const wrap=$("modeChips"); wrap.innerHTML="";
+  MODES.forEach(m=>{
+    const active=state.mode===m.key;
+    const btn=document.createElement("button");
+    btn.className="games-pill"+(active?" is-active":"");
+    btn.setAttribute("aria-pressed",active);
+    btn.textContent=m.label;
+    btn.addEventListener("click",()=>{
+      if(state.mode===m.key) return;
+      state.mode=m.key;
+      if(m.key==="compare") state.platform="all"; // 仅内部标记，UI 用 comparePlatforms
+      renderAll();
+    });
+    wrap.appendChild(btn);
+  });
+}
+function renderFilterExtra(){
+  const wrap=$("filterExtra"); wrap.innerHTML="";
+  if(state.mode==="deals"){
+    const lab=document.createElement("label"); lab.className="games-select";
+    lab.innerHTML=`<span>折扣门槛</span>`;
+    const sel=document.createElement("select"); sel.className="games-select__input";
+    [[0,"全部折扣"],[50,"≥ 50%"],[75,"≥ 75%"],[90,"≥ 90%"]].forEach(([v,t])=>{
+      const o=document.createElement("option"); o.value=v; o.textContent=t; if(state.minSavings===v)o.selected=true; sel.appendChild(o);
+    });
+    sel.addEventListener("change",()=>{ state.minSavings=Number(sel.value); renderAll(); });
+    lab.appendChild(sel); wrap.appendChild(lab);
+
+    const lab2=document.createElement("label"); lab2.className="games-select";
+    lab2.innerHTML=`<span>排序</span>`;
+    const sel2=document.createElement("select"); sel2.className="games-select__input";
+    [["savings","折扣力度"],["price","价格最低"],["rating","评分最高"]].forEach(([v,t])=>{
+      const o=document.createElement("option"); o.value=v; o.textContent=t; if(state.sort===v)o.selected=true; sel2.appendChild(o);
+    });
+    sel2.addEventListener("change",()=>{ state.sort=sel2.value; renderAll(); });
+    lab2.appendChild(sel2); wrap.appendChild(lab2);
+  }
+  if(state.mode!=="wishlist"){
+    const btn=document.createElement("button"); btn.className="games-refresh"; btn.id="refreshBtn";
+    btn.innerHTML=`<span class="spinner"></span><span class="label">刷新</span>`;
+    btn.addEventListener("click",doRefresh);
+    wrap.appendChild(btn);
+  }
+}
+function renderContext(){
+  const mode=MODES.find(m=>m.key===state.mode);
+  let platLabel = state.mode==="compare"
+    ? "跨平台比价（"+[...state.comparePlatforms].map(label).join(" / ")+"）"
+    : label(state.platform);
+  let crumb=`${platLabel} · ${mode.label}`;
+  if(state.mode==="deals"&&state.minSavings>0) crumb+=` · ≥${state.minSavings}%`;
+  const res=computeList();
+  const count=res.list?res.list.length:0;
+  $("contextBar").innerHTML=
+    `<span class="games-context__crumb">${crumb}</span>`+
+    `<span class="games-context__count">共 ${count} 款</span>`+
+    `<span class="games-context__time">更新于 ${state.fetchedAt}</span>`;
+}
+function cardHTML(g){
+  const lowest=g.lowest && g.source!=="sample";
+  const fav=state.favs.has(g.key);
+  return `<article class="game-card${g.isFree?" game-card--free":""}" data-key="${g.key}" role="button" tabindex="0" aria-label="${g.title}">
+    <div class="game-card__thumb">
+      ${g.isFree?`<div class="game-card__thumb-ph" style="--_brand:${brandVar(g.platform)}">${emoji(g.platform)}</div>`:`<div class="game-card__thumb-ph" style="--_brand:${brandVar(g.platform)}">${emoji(g.platform)}</div>`}
+      ${!g.isFree?`<button class="game-card__fav${fav?" is-on":""}" data-act="fav" aria-label="${fav?"取消关注":"关注降价"}" aria-pressed="${fav}">${fav?"♥":"♡"}</button>`:""}
+      ${g.source==="sample"?`<span class="game-card__badge game-card__badge--sample" title="示例数据（非实时）">示例</span>`:(lowest?`<span class="game-card__badge game-card__badge--lowest" title="史低价">史低</span>`:"")}
+    </div>
+    <div class="game-card__body">
+      <div class="game-card__title">${g.title}</div>
+      <div class="game-card__meta">
+        <span class="game-card__platform" style="--_brand:${brandVar(g.platform)}">${label(g.platform)}</span>
+        ${g.rating!=null?`<span class="game-card__rating">★ ${g.rating}</span>`:""}
+      </div>
+      <div class="game-card__price-row">
+        ${g.isFree?`<span class="game-card__free-tag">${promoLabel(g.promotionType)}</span>`:
+          `<span class="game-card__sale">${fmtPrice(g.salePrice,g.currency)}<span class="game-card__cny-ref">${fmtCny(g)}</span></span>`+
+          (g.normalPrice!=null?`<span class="game-card__normal">${fmtPrice(g.normalPrice,g.currency)}</span>`:"")+
+          (g.savings!=null?`<span class="game-card__save">-${g.savings}%</span>`:"")}
+      </div>
+      ${!g.isFree && g.saved>0?`<div class="game-card__save-amt">省 ${fmtPrice(g.saved,g.currency)}</div>`:""}
+      ${g.isFree && g.freeUntil?`<div class="game-card__free-until">限时免费至 ${g.freeUntil}</div>`:""}
+      <button class="game-card__cta" data-act="open">查看优惠</button>
+    </div>
+  </article>`;
+}
+function emptyHTML(kind){
+  if(kind==="wishlist") return `<div class="games-state"><span class="games-state__icon">💝</span><span>还没有关注任何游戏，去折扣列表点 ♥ 收藏吧</span></div>`;
+  if(kind==="noFree") return `<div class="games-state"><span class="games-state__icon">🎯</span><span>该平台暂无公开免费活动数据源<br><span style="font-size:var(--font-size-sm)">Epic / Steam / Xbox 的免费活动更稳定，可切换平台查看</span></span></div>`;
+  return `<div class="games-state"><span class="games-state__icon">🎯</span><span>该筛选条件下暂无优惠数据</span></div>`;
+}
+function renderGrid(){
+  const grid=$("grid");
+  const res=computeList();
+  let html="";
+  if(res.empty) html=emptyHTML(res.empty);
+  else html=`<div class="games-grid">${res.list.map(cardHTML).join("")}</div>`;
+  grid.innerHTML=html;
+}
+function renderHeader(){
+  const mode=MODES.find(m=>m.key===state.mode);
+  $("headerHint").textContent=mode.hint;
+  const hasSample=GAMES.some(g=>g.source==="sample" && matchesPlatformScope(g) && !g.isFree);
+  const badge=$("sampleBadge");
+  badge.style.display=hasSample?"inline-block":"none";
+}
+
+function renderAll(){
+  renderPlatformTabs();
+  renderModeChips();
+  renderFilterExtra();
+  renderHeader();
+  renderContext();
+  renderGrid();
+}
+
+/* ====================== 交互 ====================== */
+const grid=$("grid");
+grid.addEventListener("click",(e)=>{
+  const card=e.target.closest(".game-card"); if(!card) return;
+  const key=card.dataset.key;
+  const actBtn=e.target.closest("[data-act]");
+  const act=actBtn&&actBtn.dataset.act;
+  const g=GAMES.find(x=>x.key===key);
+  if(act==="fav"){
+    if(state.favs.has(key)){ state.favs.delete(key); if(state.mode==="wishlist"){ renderAll(); return; } }
+    else state.favs.add(key);
+    // 就地更新按钮，保留 pop 微交互
+    actBtn.classList.toggle("is-on",state.favs.has(key));
+    actBtn.textContent=state.favs.has(key)?"♥":"♡";
+    actBtn.setAttribute("aria-pressed",state.favs.has(key));
+    actBtn.setAttribute("aria-label",state.favs.has(key)?"取消关注":"关注降价");
+    actBtn.classList.remove("pop"); void actBtn.offsetWidth; actBtn.classList.add("pop");
+    renderContext();
+    return;
+  }
+  // 整卡点击 / CTA
+  toast(`打开「${g.title}」优惠链接`);
+});
+grid.addEventListener("keydown",(e)=>{
+  if(e.target.classList&&e.target.classList.contains("game-card")&&(e.key==="Enter"||e.key===" ")){
+    e.preventDefault();
+    const g=GAMES.find(x=>x.key===e.target.dataset.key);
+    toast(`打开「${g.title}」优惠链接`);
+  }
+});
+
+function doRefresh(){
+  const btn=$("refreshBtn"); if(!btn||btn.classList.contains("is-loading")) return;
+  btn.classList.add("is-loading"); btn.querySelector(".label").textContent="刷新中…"; btn.disabled=true;
+  setTimeout(()=>{
+    const now=new Date();
+    state.fetchedAt=`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    btn.classList.remove("is-loading"); btn.querySelector(".label").textContent="刷新"; btn.disabled=false;
+    renderContext();
+    toast("已刷新最新优惠");
+  },750);
+}
+
+let toastTimer;
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),1900);
+}
+
+$("themeToggle").addEventListener("click",()=>{
+  state.theme=state.theme==="light"?"dark":"light";
+  document.documentElement.dataset.theme=state.theme;
+  $("themeToggle").textContent=state.theme==="light"?"🌙":"☀️";
+});
+$("legendBtn").addEventListener("click",()=>$("legend").classList.toggle("show"));
+
+/* 初始化 */
+renderAll();
+</script>
+</body>
+</html>

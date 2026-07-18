@@ -5,7 +5,7 @@
  * 单一真相：当前 (platform, mode, sort, minSavings) → 一次 getGameDeals 请求。
  */
 
-import { signal } from "@preact/signals";
+import { signal, batch } from "@preact/signals";
 import { api } from "../api.js";
 
 /** 平台元信息（renderer 展示用）。key 与 main 端 PLATFORM_KEYS 对齐。 */
@@ -37,6 +37,11 @@ export const activePlatform = signal("steam");
 export const activeMode = signal("deals");
 export const activeSort = signal("savings");
 export const minSavings = signal(0);
+/** 比价模式下参与对比的平台集合（多选，至少保留 1 个）。 */
+export const comparePlatforms = signal(PLATFORMS.map((p) => p.key));
+
+/** 标题搜索关键词（本地派生，不发 IPC）。由 setSearchQuery 200ms 防抖写入。 */
+export const searchQuery = signal("");
 
 export const items = signal([]);
 export const sources = signal({});
@@ -87,40 +92,66 @@ let _reqToken = 0;
  * 按当前筛选条件拉取数据。并发请求用 token 防止竞态（旧响应覆盖新状态）。
  */
 export async function loadGameDeals() {
+  // wishlist 数据来自 localStorage（loadWishlist），不需要上游聚合；
+  // IPC 白名单不含 'wishlist'，传过去会被归一成 deals 跑一次无用的全平台拉取。
+  if (activeMode.value === "wishlist") return;
   const token = ++_reqToken;
   loading.value = true;
   lowPriceMap.value = {};
   error.value = null;
   try {
     const res = await api.getGameDeals({
-      platform: activePlatform.value,
+      // 比价视图跨平台对比，单平台无意义 → 传 'all'；其余模式用当前选中平台
+      platform: activeMode.value === "compare" ? "all" : activePlatform.value,
       mode: activeMode.value,
       sort: activeSort.value,
       minSavings: minSavings.value,
     });
     if (token !== _reqToken) return; // 已被更新的请求取代
+    // batch：5 个 signal 写入合并成一次通知，避免 GamesPage 连续重渲染 5 次
     if (res && res.ok) {
-      items.value = res.items || [];
-      sources.value = res.sources || {};
-      psDriver.value = res.psDriver || null;
-      fetchedAt.value = res.fetchedAt || null;
-      fx.value = normalizeFx(res.fx);
+      batch(() => {
+        items.value = res.items || [];
+        sources.value = res.sources || {};
+        psDriver.value = res.psDriver || null;
+        fetchedAt.value = res.fetchedAt || null;
+        fx.value = normalizeFx(res.fx);
+      });
     } else {
-      error.value = (res && res.error) || "加载失败";
+      batch(() => {
+        error.value = (res && res.error) || "加载失败";
+        items.value = [];
+        sources.value = {};
+        psDriver.value = null;
+        fx.value = { ...EMPTY_FX };
+      });
+    }
+  } catch (e) {
+    if (token !== _reqToken) return;
+    batch(() => {
+      error.value = e && e.message ? e.message : "网络错误";
       items.value = [];
       sources.value = {};
       psDriver.value = null;
       fx.value = { ...EMPTY_FX };
-    }
-  } catch (e) {
-    if (token !== _reqToken) return;
-    error.value = e && e.message ? e.message : "网络错误";
-    items.value = [];
-    sources.value = {};
-    psDriver.value = null;
-    fx.value = { ...EMPTY_FX };
+    });
   } finally {
     if (token === _reqToken) loading.value = false;
+  }
+}
+
+/**
+ * 独立加载汇率快照（固定 USD → CNY）。
+ * wishlist 模式短路了 loadGameDeals，不会顺带拉 fx；
+ * 本函数在 GamesLayout mount 时无条件调一次，保证 wishlist 也有人民币参考价。
+ * exchangeRateService 有 24h 进程缓存，重复调零成本。
+ */
+export async function loadFx() {
+  try {
+    const res = await api.getFx(["USD"]);
+    fx.value = normalizeFx(res);
+  } catch (e) {
+    // 失败不清空：保留上一次的 fx（若有），wishlist 不至于完全丢失参考价
   }
 }
 
@@ -133,9 +164,17 @@ export function setPlatform(p) {
 export function setMode(m) {
   if (activeMode.value === m) return;
   activeMode.value = m;
-  // 比价视图需跨平台对比同一款游戏价格，单平台无意义 → 强制 platform=all
-  if (m === "compare") activePlatform.value = "all";
   loadGameDeals();
+}
+
+/** 比价模式：切换某平台是否参与对比（至少保留 1 个）。 */
+export function toggleComparePlatform(key) {
+  const cur = comparePlatforms.value;
+  if (cur.includes(key)) {
+    if (cur.length > 1) comparePlatforms.value = cur.filter((k) => k !== key);
+  } else {
+    comparePlatforms.value = [...cur, key];
+  }
 }
 
 export function setPlatformAndMode(platform, mode) {
@@ -154,16 +193,37 @@ export function setPlatformAndMode(platform, mode) {
   loadGameDeals();
 }
 
+// sort / minSavings 改为纯本地派生（GamesPage 用 sortItems/filterBySavings 计算 shown），
+// 不再触发 loadGameDeals —— 避免 skeleton 闪烁 + 史低徽标清空 + IPC 往返。
 export function setSort(s) {
-  if (activeSort.value === s) return;
   activeSort.value = s;
-  loadGameDeals();
 }
 
 export function setMinSavings(v) {
-  if (minSavings.value === v) return;
   minSavings.value = v;
-  loadGameDeals();
+}
+
+/**
+ * deals 模式本地排序（与 IPC 层 applySortAndFilter 的 sortDeals 逻辑一致）。
+ * 改下拉框时只更新 activeSort signal → GamesPage 派生重排，不发 IPC、不闪 skeleton。
+ */
+export function sortItems(items, sort) {
+  const arr = items.slice();
+  if (sort === "price") {
+    arr.sort((a, b) => (a.salePrice ?? Infinity) - (b.salePrice ?? Infinity));
+  } else if (sort === "rating") {
+    arr.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+  } else {
+    // 'savings' 默认：折扣力度降序
+    arr.sort((a, b) => b.savings - a.savings);
+  }
+  return arr;
+}
+
+/** deals 模式本地 minSavings 过滤。 */
+export function filterBySavings(items, min) {
+  if (!min || min <= 0) return items;
+  return items.filter((it) => it && it.savings >= min);
 }
 
 /** 数据源是否含 'sample'（用于页头提示）。 */
@@ -345,6 +405,54 @@ export function removeFromWishlist(key) {
 /** 判断是否已关注。 */
 export function isInWishlist(key) {
   return wishlist.value.some((w) => w.key === key);
+}
+
+// ── 标题搜索（本地派生，不发 IPC）──────────────────────────────────
+
+/**
+ * 标题搜索匹配（不区分大小写）。
+ * 命中维度：游戏标题 + 平台 label（便于「steam / 蒸汽」等别名检索）。
+ */
+export function matchesSearch(game, q) {
+  const needle = (q || "").trim().toLowerCase();
+  if (!needle) return true;
+  const platLabel =
+    (PLATFORMS.find((p) => p.key === game.platform) || {}).label ||
+    game.platform ||
+    "";
+  const hay = [game.title, platLabel].filter(Boolean).join(" ").toLowerCase();
+  return hay.includes(needle);
+}
+
+let _searchTimer = null;
+/** 200ms 防抖写入 searchQuery，避免逐字重渲整网格。 */
+export function setSearchQuery(v) {
+  if (_searchTimer) clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => {
+    searchQuery.value = v || "";
+  }, 200);
+}
+/** 立即清空搜索（清除按钮 / Esc）。 */
+export function clearSearchQuery() {
+  if (_searchTimer) clearTimeout(_searchTimer);
+  searchQuery.value = "";
+}
+
+/**
+ * 计算「我关注的游戏是否降价」信息。
+ * 规则与 games-check-scheduler 一致：当前 salePrice < 关注时 addedPrice。
+ * 命中返回 { dropped, delta, pct, currency }，否则 null。
+ * GameCard 仅 deals/free 模式渲染（wishlist 模式 card.salePrice 已被覆写为 addedPrice → 自然返回 null）。
+ */
+export function getDropInfo(game) {
+  const entry = wishlist.value.find((w) => w.key === getWishlistKey(game));
+  if (!entry) return null;
+  const added = Number(entry.addedPrice) || 0;
+  const cur = Number(game.salePrice) || 0;
+  if (added <= 0 || cur >= added) return null;
+  const delta = added - cur;
+  const pct = delta / added;
+  return { dropped: true, delta, pct, currency: entry.currency || game.currency || "USD" };
 }
 
 function _persistWishlist() {

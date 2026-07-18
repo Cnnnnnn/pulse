@@ -229,6 +229,7 @@ export function createApi(overrides = {}) {
     getGameDeals: pick(overrides, "getGameDeals"),
     getSteamLowest: pick(overrides, "getSteamLowest"),
     getItadLowest: pick(overrides, "getItadLowest"),
+    getFx: pick(overrides, "getFx"),
   };
 }
 

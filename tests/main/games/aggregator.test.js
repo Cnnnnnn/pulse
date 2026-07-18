@@ -9,20 +9,16 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-const { getGameDeals } = require("../../../src/main/games/aggregator.js");
+const { getGameDeals, sortDeals } = require("../../../src/main/games/aggregator.js");
 
 // ── 假数据：各平台 fetcher 期望的原始返回形状 ──────────────────────
 
-// CheapShark /deals（Steam storeID=1 / Epic storeID=25）返回数组
+// CheapShark /deals（Steam storeID=1）返回数组。Epic 不再走 CheapShark，改用官方 freeGamesPromotions。
 const cheapsharkSteam = [
   { dealID: "s1", storeID: "1", title: "Hollow Knight", salePrice: 7.49, normalPrice: 14.99, savings: 50, dealRating: 90, steamAppID: "367520", steamRatingPercent: 90 },
   { dealID: "s2", storeID: "1", title: "Hollow Knight", salePrice: 9.99, normalPrice: 14.99, savings: 33, dealRating: 80, steamAppID: "367520" }, // 同名同平台，测 id 去重（dealID 不同但 steamAppID 同 → id 同）
   { dealID: "s3", storeID: "1", title: "Celeste", salePrice: 4.99, normalPrice: 19.99, savings: 75, dealRating: 95, steamAppID: "504230", steamRatingPercent: 95 },
   { dealID: "s4", storeID: "1", title: "Death Stranding", salePrice: 19.99, normalPrice: 39.99, savings: 50, dealRating: 88, steamAppID: "1190460" },
-];
-const cheapsharkEpic = [
-  { dealID: "e1", storeID: "25", title: "Hollow Knight", salePrice: 7.49, normalPrice: 14.99, savings: 50, dealRating: 70 }, // 跨平台同名，测标题去重
-  { dealID: "e2", storeID: "25", title: "Control", salePrice: 9.99, normalPrice: 39.99, savings: 75, dealRating: 85 },
 ];
 
 // GamerPower Steam 免费活动
@@ -38,12 +34,25 @@ const gamerPowerSteam = [
   },
 ];
 
-// Xbox Free Play Days 列表 + Catalog
-const xboxFreeList = { Items: [{ Id: "XBOX-FP" }, { Id: "XBOX-NO-END" }] };
+// Xbox Free Play Days：news.xbox.com RSS（XML）+ displaycatalog（JSON）
+//   RSS 首篇 item 正文里嵌 store 链接，URL 末段为 12 位 productId
+const xboxFpdRss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <item>
+      <title><![CDATA[Free Play Days – Forza, No End Game]]></title>
+      <pubDate>Thu, 16 Jul 2026 15:00:00 +0000</pubDate>
+      <content:encoded><![CDATA[
+        <a href="https://www.xbox.com/en-US/games/store/forza-horizon-5/XBOXFP000001">Forza</a>
+        <a href="https://www.xbox.com/en-US/games/store/xbox-no-end-date/XBOXNOEND001">No End</a>
+      ]]></content:encoded>
+    </item>
+  </channel>
+</rss>`;
 const xboxFreeCatalog = {
   Products: [
     {
-      ProductId: "XBOX-FP",
+      ProductId: "XBOXFP000001",
       LocalizedProperties: [{
         ProductTitle: "Forza Horizon 5",
         Images: [{ ImagePurpose: "Poster", Uri: "//img/forza.jpg" }],
@@ -56,7 +65,7 @@ const xboxFreeCatalog = {
       }],
     },
     {
-      ProductId: "XBOX-NO-END",
+      ProductId: "XBOXNOEND001",
       LocalizedProperties: [{ ProductTitle: "Xbox No End Date" }],
       DisplaySkuAvailabilities: [{
         Availabilities: [{
@@ -68,12 +77,33 @@ const xboxFreeCatalog = {
   ],
 };
 
-// Epic freeGamesPromotions 返回结构
-const epicFree = {
+// Epic freeGamesPromotions 返回结构（同一端点同时提供 deals + free）
+//   - discountPrice>0 && <originalPrice  → fetchEpicDeals
+//   - discountPrice===0 && originalPrice>0 → fetchEpicFree
+const epicPromotions = {
   data: {
     Catalog: {
       searchStore: {
         elements: [
+          // 折扣项：跨平台同名，测 deals 模式标题去重
+          {
+            title: "Hollow Knight",
+            id: "epic-hk",
+            keyImages: [{ type: "Thumbnail", url: "https://img/epic-hk.jpg" }],
+            catalogNs: { mappings: [{ pageSlug: "hollow-knight" }] },
+            promotions: { promotionalOffers: [{ promotionalOffers: [{ endDate: "2026-07-30T00:00:00Z", discountSetting: { discountType: "PERCENTAGE", discountPercentage: 50 } }] }] },
+            price: { totalPrice: { originalPrice: 1499, discountPrice: 749, currencyCode: "USD" } },
+          },
+          // 折扣项：Epic 独有，验证不被跨平台合并误吞
+          {
+            title: "Control",
+            id: "epic-ctrl",
+            keyImages: [{ type: "Thumbnail", url: "https://img/control.jpg" }],
+            catalogNs: { mappings: [{ pageSlug: "control" }] },
+            promotions: { promotionalOffers: [{ promotionalOffers: [{ endDate: "2026-07-30T00:00:00Z", discountSetting: { discountType: "PERCENTAGE", discountPercentage: 75 } }] }] },
+            price: { totalPrice: { originalPrice: 3999, discountPrice: 999, currencyCode: "USD" } },
+          },
+          // 免费项：非法结束日期，测排序兜底
           {
             title: "Epic Invalid End Date",
             id: "invalid-end",
@@ -81,6 +111,7 @@ const epicFree = {
             promotions: { promotionalOffers: [{ promotionalOffers: [{ endDate: "not-a-date" }] }] },
             price: { totalPrice: { originalPrice: 999, discountPrice: 0, currencyCode: "USD" } },
           },
+          // 免费项：有效结束日期
           {
             title: "Death Stranding",
             id: "ds1",
@@ -137,26 +168,25 @@ function makeFetchStub() {
     const u = String(url);
     const method = opts && opts.method ? opts.method : "GET";
 
-    // CheapShark：按 storeID 区分 Steam(1)/Epic(25)
+    // CheapShark：仅 Steam（storeID=1）使用
     if (u.includes("cheapshark.com")) {
-      const isEpic = u.includes("storeID=25");
-      return jsonOk(isEpic ? cheapsharkEpic : cheapsharkSteam);
+      return jsonOk(cheapsharkSteam);
     }
     // GamerPower Steam 免费活动
     if (u.includes("gamerpower.com")) {
       return jsonOk(gamerPowerSteam);
     }
-    // Xbox Free Play Days 列表
-    if (u.includes("reco-public.rec.mp.microsoft.com")) {
-      return jsonOk(xboxFreeList);
+    // Xbox Free Play Days RSS（news.xbox.com，返回 XML）
+    if (u.includes("news.xbox.com")) {
+      return textOk(xboxFpdRss);
     }
     // Xbox Display Catalog
     if (u.includes("displaycatalog.mp.microsoft.com")) {
       return jsonOk(xboxFreeCatalog);
     }
-    // Epic freeGamesPromotions
+    // Epic freeGamesPromotions（同时服务 deals + free）
     if (u.includes("epicgames.com/freeGamesPromotions")) {
-      return jsonOk(epicFree);
+      return jsonOk(epicPromotions);
     }
     // Switch Algolia（POST）
     if (u.includes("algolia.net") && method === "POST") {
@@ -289,6 +319,7 @@ describe("getGameDeals — mode=free 免费活动", () => {
   });
 
   it("Steam 单源失败时不触发 sample 且其它平台仍可用", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn(async (url, opts) => {
       const u = String(url);
       if (u.includes("gamerpower.com")) throw new Error("offline");
@@ -304,12 +335,17 @@ describe("getGameDeals — mode=free 免费活动", () => {
     expect(all.items.some((it) => it.platform === "xbox")).toBe(true);
     expect(all.items.every((it) => it.source === "live")).toBe(true);
     expect(Object.values(all.sources)).not.toContain("sample");
+    // 失败应记日志（可观测性），否则跟"今天没数据"无法区分
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("aggregator:steam"),
+    );
+    warnSpy.mockRestore();
   });
 
   it("Xbox 单源失败时不触发 sample 且其它平台仍可用", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url, opts) => {
       const u = String(url);
-      if (u.includes("reco-public.rec.mp.microsoft.com")) {
+      if (u.includes("news.xbox.com")) {
         throw new Error("offline");
       }
       return makeFetchStub()(url, opts);
@@ -358,13 +394,31 @@ describe("getGameDeals — mode=compare 跨平台比价", () => {
       { dealID: "tg-s", storeID: "1", title: "TestGame", salePrice: 15, normalPrice: 30, savings: 50, dealRating: 80, steamAppID: "1000001" },
       { dealID: "tg2-s", storeID: "1", title: "TestGame2", salePrice: 20, normalPrice: 40, savings: 50, dealRating: 80, steamAppID: "1000002" },
     ];
-    const localEpic = [
-      { dealID: "tg-e", storeID: "25", title: "TestGame", salePrice: 10, normalPrice: 30, savings: 66, dealRating: 80 },
-    ];
+    // Epic TestGame 折扣（salePrice 10），通过 freeGamesPromotions 返回
+    const localEpicPromotions = {
+      data: {
+        Catalog: {
+          searchStore: {
+            elements: [
+              {
+                title: "TestGame",
+                id: "epic-tg",
+                catalogNs: { mappings: [{ pageSlug: "testgame" }] },
+                promotions: { promotionalOffers: [{ promotionalOffers: [{ endDate: "2026-07-30T00:00:00Z", discountSetting: { discountType: "PERCENTAGE", discountPercentage: 66 } }] }] },
+                price: { totalPrice: { originalPrice: 3000, discountPrice: 1000, currencyCode: "USD" } },
+              },
+            ],
+          },
+        },
+      },
+    };
     vi.stubGlobal("fetch", vi.fn(async (url, opts) => {
       const u = String(url);
       if (u.includes("cheapshark.com")) {
-        return jsonOk(u.includes("storeID=25") ? localEpic : localSteam);
+        return jsonOk(localSteam);
+      }
+      if (u.includes("epicgames.com/freeGamesPromotions")) {
+        return jsonOk(localEpicPromotions);
       }
       // 其它平台返回空，专注 TestGame 排序验证
       return jsonOk({});
@@ -391,29 +445,21 @@ describe("getGameDeals — mode=compare 跨平台比价", () => {
   });
 });
 
-describe("getGameDeals — mode=deals sort 三分支", () => {
-  it("sort=savings 按折扣力度降序", async () => {
-    const res = await getGameDeals({ platform: "steam", mode: "deals", sort: "savings" });
+describe("getGameDeals — mode=deals 返回全量（sort/minSavings 由 IPC 层应用）", () => {
+  it("deals 模式返回全量条目，不按 sort 排序（IPC 层本地排）", async () => {
+    const res = await getGameDeals({ platform: "steam", mode: "deals" });
+    // 应返回多条（含 Celeste/Hollow Knight/Death Stranding 等）
+    expect(res.items.length).toBeGreaterThan(0);
+    // 不应预先排序：原始数据按上游返回顺序，savings 非降序
     const savings = res.items.map((it) => it.savings);
-    for (let i = 1; i < savings.length; i++) {
-      expect(savings[i - 1]).toBeGreaterThanOrEqual(savings[i]);
-    }
+    const isSortedDesc = savings.every((s, i) => i === 0 || savings[i - 1] >= s);
+    expect(isSortedDesc).toBe(false);
   });
 
-  it("sort=price 按售价升序", async () => {
-    const res = await getGameDeals({ platform: "steam", mode: "deals", sort: "price" });
-    const prices = res.items.map((it) => it.salePrice);
-    for (let i = 1; i < prices.length; i++) {
-      expect(prices[i - 1]).toBeLessThanOrEqual(prices[i]);
-    }
-  });
-
-  it("sort=rating 按评分降序", async () => {
-    const res = await getGameDeals({ platform: "steam", mode: "deals", sort: "rating" });
-    const ratings = res.items.map((it) => it.rating ?? -1);
-    for (let i = 1; i < ratings.length; i++) {
-      expect(ratings[i - 1]).toBeGreaterThanOrEqual(ratings[i]);
-    }
+  it("不应用 minSavings 过滤（IPC 层本地过滤）", async () => {
+    const res = await getGameDeals({ platform: "steam", mode: "deals", minSavings: 60 });
+    // 全量返回，含 savings < 60 的条目（过滤交给 IPC 层）
+    expect(res.items.some((it) => it.savings < 60)).toBe(true);
   });
 
   it("排除 isFree 的免费活动条目", async () => {
@@ -427,11 +473,32 @@ describe("getGameDeals — mode=deals sort 三分支", () => {
   });
 });
 
-describe("getGameDeals — minSavings 门槛", () => {
-  it("只保留 savings >= minSavings 的条目", async () => {
-    const res = await getGameDeals({ platform: "steam", mode: "deals", minSavings: 60 });
-    expect(res.items.length).toBeGreaterThan(0);
-    expect(res.items.every((it) => it.savings >= 60)).toBe(true);
+describe("sortDeals（导出的纯函数，供 IPC 层复用）", () => {
+  const items = [
+    { id: "a", salePrice: 30, savings: 20, rating: 80 },
+    { id: "b", salePrice: 10, savings: 60, rating: 95 },
+    { id: "c", salePrice: 20, savings: 40, rating: 70 },
+  ];
+
+  it("sort=savings 按折扣力度降序", () => {
+    const out = sortDeals(items, "savings");
+    expect(out.map((i) => i.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("sort=price 按售价升序", () => {
+    const out = sortDeals(items, "price");
+    expect(out.map((i) => i.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("sort=rating 按评分降序", () => {
+    const out = sortDeals(items, "rating");
+    expect(out.map((i) => i.id)).toEqual(["b", "a", "c"]);
+  });
+
+  it("不修改原数组", () => {
+    const copy = items.slice();
+    sortDeals(items, "savings");
+    expect(items.map((i) => i.id)).toEqual(copy.map((i) => i.id));
   });
 });
 

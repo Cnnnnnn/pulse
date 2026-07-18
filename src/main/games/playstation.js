@@ -63,7 +63,10 @@ function decodeEntities(s) {
     .replace(/&gt;/g, ">");
 }
 
-async function fetchText(url, timeoutMs = 20000) {
+// 超时对齐其他 fetcher（epic/steam/xbox 均 9s）。
+// loadPsGameSpiderData 串行拉 priceHistory(4.5MB)+metaData，各 9s + SSR 9s 兜底，
+// 最坏 ~27s（之前 20s+20s+12s=52s）。慢网络会超时但有 try/catch → SSR/sample 兜底。
+async function fetchText(url, timeoutMs = 9000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -95,10 +98,12 @@ function readCache(region, kind) {
   }
 }
 
-function writeCache(region, kind, data) {
+// 异步写盘：priceHistory 4.5MB，同步 fs.writeFileSync 会阻塞主进程事件循环（UI 卡顿）。
+// 调用方用 fire-and-forget（writeCache(...).catch(() => {})），不阻塞数据返回。
+async function writeCache(region, kind, data) {
   try {
-    if (!fs.existsSync(PSGS_CACHE_DIR)) fs.mkdirSync(PSGS_CACHE_DIR, { recursive: true });
-    fs.writeFileSync(cachePath(region, kind), JSON.stringify(data), "utf8");
+    await fs.promises.mkdir(PSGS_CACHE_DIR, { recursive: true });
+    await fs.promises.writeFile(cachePath(region, kind), JSON.stringify(data), "utf8");
   } catch (err) {
     logFetchError("playstation:cache:write", err);
     /* 缓存写入失败不影响主流程 */
@@ -122,14 +127,14 @@ async function loadPsGameSpiderData(region) {
       priceHistory = JSON.parse(
         await fetchText(`${PSGS_RAW_BASE}/${reg}-priceHistory.json`),
       );
-      writeCache(reg, "priceHistory", priceHistory);
+      writeCache(reg, "priceHistory", priceHistory).catch(() => {});
     }
     if (!metaData) {
       // metaData 是数组
       metaData = JSON.parse(
         await fetchText(`${PSGS_RAW_BASE}/${reg}-metaData.json`),
       );
-      writeCache(reg, "metaData", metaData);
+      writeCache(reg, "metaData", metaData).catch(() => {});
     }
   } catch (err) {
     logFetchError("playstation:psgamespider", err);
@@ -260,7 +265,7 @@ async function fetchPlayStationStoreDeals(opts = {}) {
   const limit = Math.min(Math.max(opts.limit || 40, 1), 60);
   try {
     const url = `${STORE_BASE}/${locale}/deals`;
-    const html = await fetchText(url, 12000);
+    const html = await fetchText(url, 9000);
     const raw = parseDealsHtml(html);
     const items = raw
       .slice(0, limit)

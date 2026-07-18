@@ -22,6 +22,7 @@ const { fetchPlayStationDeals: fetchPsMain } = require("./playstation");
 // psprices.js 备选：PSPrices B2B（需 key，许可强制署名）
 const { fetchPlayStationDeals: fetchPsPsprices } = require("./psprices");
 const { getSampleDeals } = require("./sample");
+const { logFetchError } = require("./log");
 
 const CONSOLE_PLATFORMS = ["xbox", "playstation", "switch"];
 
@@ -89,6 +90,7 @@ async function fetchPlatform(platform, { mode, sort, minSavings, country, itadKe
     if (live && live.length > 0) return { items: live, source: "live" };
     return { items: getSampleDeals(platform), source: "sample" };
   } catch (err) {
+    logFetchError(`aggregator:${platform}`, err);
     if (mode === "free") return { items: [], source: "live" };
     // 任何异常：主机用示例兜底，PC 平台返回空（不至于整页崩）
     if (CONSOLE_PLATFORMS.includes(platform)) {
@@ -220,11 +222,8 @@ async function getGameDeals(opts = {}) {
         return (a.salePrice ?? Infinity) - (b.salePrice ?? Infinity);
       });
   } else {
-    // deals / all：按折扣门槛过滤 + 排序
-    if (minSavings > 0) {
-      items = items.filter((it) => it.savings >= minSavings);
-    }
-    items = sortDeals(items, sort);
+    // deals / all：sort / minSavings 已上移到 IPC 层（register-games.js）本地应用，
+    // 这里返回全量未过滤/未排序的 dedup 结果，便于 IPC 缓存复用同一份原始数据。
   }
 
   return {
@@ -239,4 +238,4 @@ async function getGameDeals(opts = {}) {
   };
 }
 
-module.exports = { getGameDeals };
+module.exports = { getGameDeals, sortDeals };

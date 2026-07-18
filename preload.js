@@ -340,6 +340,7 @@ contextBridge.exposeInMainWorld("api", {
   getGameDeals: (opts) => ipcRenderer.invoke("games:getDeals", opts || {}),
   getSteamLowest: (opts) => ipcRenderer.invoke("games:getSteamLowest", opts || {}),
   getItadLowest: (opts) => ipcRenderer.invoke("games:getItadLowest", opts || {}),
+  getFx: (opts) => ipcRenderer.invoke("games:getFx", opts || {}),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

@@ -14,23 +14,22 @@ const { toGameDeal, fetchJson } = require("./normalize");
 const STORE_ID = "1";
 const BASE = "https://www.cheapshark.com/api/1.0/deals";
 
-function buildUrl({ sort = "Deal Rating", pageSize = 30, minSavings = 0 }) {
+function buildUrl({ sort = "Deal Rating", pageSize = 30 }) {
   const params = new URLSearchParams({
     storeID: STORE_ID,
     pageSize: String(pageSize),
     sortBy: sort,
   });
-  if (minSavings > 0) params.set("lowerPrice", "0"); // 占位，savings 在聚合层再筛
   return `${BASE}?${params.toString()}`;
 }
 
 /**
- * @param {{sort?:string, pageSize?:number, minSavings?:number}} opts
+ * @param {{sort?:string, pageSize?:number}} opts
  * @returns {Promise<object[]>} 规范化 GameDeal 数组 (source:'live')
  */
 async function fetchSteamDeals(opts = {}) {
-  const { sort = "Deal Rating", pageSize = 30, minSavings = 0 } = opts;
-  const data = await fetchJson(buildUrl({ sort, pageSize, minSavings }), {
+  const { sort = "Deal Rating", pageSize = 30 } = opts;
+  const data = await fetchJson(buildUrl({ sort, pageSize }), {
     timeoutMs: 9000,
   });
   if (!Array.isArray(data)) return [];

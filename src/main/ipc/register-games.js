@@ -8,7 +8,7 @@
  * 免费 key：通过 payload.itadKey 传入，或读取环境变量 ITAD_API_KEY。
  */
 
-const { getGameDeals } = require("../games/aggregator");
+const { getGameDeals, sortDeals } = require("../games/aggregator");
 const { exchangeRateService, isValidCurrency } = require("../games/exchange-rates");
 const { fetchJson } = require("../games/normalize");
 
@@ -20,17 +20,19 @@ const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 const ALLOWED_MODES = ["deals", "free", "compare"];
 
 // ── 请求级缓存（Map + TTL，照搬 register-stocks.js 范式）──────────────
-// 按 (platform, mode, sort, minSavings) 维度缓存聚合结果，切 Tab 来回切时
-// 5 分钟内命中缓存，避免重复打 5+ 个外部 API（CheapShark 有 rate limit）。
+// 按 (platform, mode) 维度缓存聚合结果，切 Tab 来回切时 5 分钟内命中缓存，
+// 避免重复打 5+ 个外部 API（CheapShark 有 rate limit）。
+// sort / minSavings 是纯函数（sortDeals + filter），在缓存命中后本地应用，
+// 不进缓存 key —— 改下拉框不再触发上游重拉。
 const DEALS_CACHE_TTL_MS = 5 * 60_000; // 5 分钟
-const DEALS_CACHE_MAX = 64; // (platform×mode×sort×minSavings) 组合有限，64 足够
+const DEALS_CACHE_MAX = 64; // (platform×mode) 组合有限，64 足够
 /** @type {Map<string, {result:object, fetchedAt:number}>} */
 const _dealsCache = new Map();
 
-function dealsCacheKey({ platform, mode, sort, minSavings }) {
-  // sort 必须进 key：games 的 sort 在 main 侧 aggregator 做，不进 key 会串味
+function dealsCacheKey({ platform, mode }) {
+  // sort/minSavings 不进 key：本地应用，避免改下拉框触发重拉
   // country/itadKey 不进 key：聚合内只影响主机平台且基本恒定
-  return JSON.stringify({ platform, mode, sort, minSavings });
+  return JSON.stringify({ platform, mode });
 }
 
 function dealsCacheGet(key) {
@@ -97,6 +99,20 @@ function extractLowestFromCheapshark(games) {
   return Number.isFinite(min) ? min : null;
 }
 
+/**
+ * 对 deals 模式的结果本地应用 sort / minSavings（纯函数，不触发上游重拉）。
+ * free / compare 模式由 aggregator 内部已排序，这里原样返回。
+ */
+function applySortAndFilter(result, { mode, sort, minSavings }) {
+  if (!result || result.ok === false || mode !== "deals") return result;
+  let items = result.items || [];
+  if (minSavings > 0) {
+    items = items.filter((it) => it && it.savings >= minSavings);
+  }
+  items = sortDeals(items, sort);
+  return { ...result, items, count: items.length };
+}
+
 function registerGamesHandlers(ctx) {
   const { safeHandle } = ctx;
 
@@ -125,24 +141,24 @@ function registerGamesHandlers(ctx) {
           : 0;
 
       // 命中缓存直接返回（附 fromCache 标记，renderer 可显示"N 分钟前"）
-      const cacheKey = dealsCacheKey({ platform, mode, sort, minSavings });
+      const cacheKey = dealsCacheKey({ platform, mode });
       const cached = dealsCacheGet(cacheKey);
       if (cached) {
-        return { ...cached, fromCache: true };
+        // 缓存存的是全量未排序结果，这里本地应用 sort/minSavings
+        return { ...applySortAndFilter(cached, { mode, sort, minSavings }), fromCache: true };
       }
 
       try {
+        // aggregator 不再对 deals 应用 sort/minSavings（返回全量），由 IPC 层本地过滤
         const result = await getGameDeals({
           platform,
           mode,
-          sort,
-          minSavings,
           country: opts.country || "CN",
           itadKey: resolveItadKey(opts),
         });
         const withFx = await attachFx(result);
-        dealsCacheSet(cacheKey, withFx);
-        return withFx;
+        dealsCacheSet(cacheKey, withFx); // 缓存全量原始结果
+        return applySortAndFilter(withFx, { mode, sort, minSavings });
       } catch (err) {
         return {
           ok: false,
@@ -188,6 +204,23 @@ function registerGamesHandlers(ctx) {
       return { lowestMap };
     },
   );
+
+  // 独立汇率查询：wishlist 模式短路了 loadGameDeals，不会顺带拉 fx。
+  // 本端点供 GamesLayout mount 时无条件调一次，保证 wishlist 也有人民币参考价。
+  safeHandle(
+    "games:getFx",
+    async (_event, payload) => {
+      const raw = (payload && Array.isArray(payload.currencies)) ? payload.currencies : [];
+      const currencies = extractFxCurrencies(
+        raw.map((c) => ({ currency: c })),
+      );
+      try {
+        return await exchangeRateService.getRates(currencies);
+      } catch {
+        return EMPTY_FX;
+      }
+    },
+  );
 }
 
 module.exports = {
@@ -202,4 +235,5 @@ module.exports = {
   DEALS_CACHE_MAX,
   resetDealsCache,
   ALLOWED_MODES,
+  applySortAndFilter,
 };

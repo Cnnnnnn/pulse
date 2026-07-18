@@ -58,4 +58,17 @@ describe("GameCard 史低徽标", () => {
     render(<GameCard game={discountGame({ salePrice: 5, source: "sample" })} />);
     expect(screen.queryByText("史低")).toBeNull();
   });
+
+  it("史低徽标 title 固定 USD（数据源 CheapShark/ITAD 永远是美元）", () => {
+    // 即便 game.currency 是 JPY，史低数字也应显示 USD 符号，避免 ¥1999 误导
+    lowPriceMap.value = { "steam-100": 5 };
+    const { container } = render(
+      <GameCard game={discountGame({ salePrice: 5, currency: "JPY" })} />,
+    );
+    const badge = container.querySelector(".game-card__lowest");
+    expect(badge).toBeTruthy();
+    // title 应含 USD 符号（$），不含 JPY 符号（¥）
+    expect(badge.getAttribute("title")).toContain("$");
+    expect(badge.getAttribute("title")).not.toMatch(/¥|JPY/);
+  });
 });

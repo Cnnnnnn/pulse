@@ -1,7 +1,8 @@
 /**
  * src/renderer/games/GamesPage.jsx — 游戏优惠聚合主页面。
- * 结构：FeatureHeader + 平台分类 Tab + 维度筛选栏 + 内容区（折扣网格 / 免费活动网格）。
+ * 结构：FeatureHeader(动态语境) + 平台分类 Tab + 维度筛选栏 + 筛选上下文条 + 内容区（折扣/免费/比价网格）。
  */
+import { useEffect, useRef, useState } from "preact/hooks";
 import { FeatureHeader } from "../components/FeatureHeader.jsx";
 import {
   items,
@@ -15,22 +16,128 @@ import {
   fx,
   activePlatform,
   activeMode,
+  activeSort,
   wishlist,
+  minSavings,
+  comparePlatforms,
+  fetchedAt,
+  sortItems,
+  filterBySavings,
+  searchQuery,
+  matchesSearch,
+  clearSearchQuery,
+  PLATFORMS,
 } from "./gamesStore.js";
 import { PlatformTabs } from "./PlatformTabs.jsx";
 import { GamesFilterBar } from "./GamesFilterBar.jsx";
 import { GameCard } from "./GameCard.jsx";
 
+const MODE_HINTS = {
+  deals: "各平台折扣 · 限时特惠",
+  free: "限时免费 · 试玩 · 赠送",
+  wishlist: "我关注的降价提醒",
+  compare: "跨平台价格对比",
+};
+const MODE_LABELS = {
+  deals: "折扣力度",
+  free: "免费活动",
+  wishlist: "心愿单",
+  compare: "比价",
+};
+
+function platformLabel(k) {
+  return (PLATFORMS.find((p) => p.key === k) || {}).label || k;
+}
+function fmtClock(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+}
+
 export function GamesPage() {
   const list = items.value;
   const fxSnap = fx.value;
-  const isWishlist = activeMode.value === "wishlist";
-  const isCompare = activeMode.value === "compare";
+  const mode = activeMode.value;
+  const isWishlist = mode === "wishlist";
+  const isCompare = mode === "compare";
   const wishList = wishlist.value;
+
+  // 入场动画仅首屏播放一次：刷新/切换模式时本组件不卸载，animate 已为 false，徽标不再整片重放
+  const [animate, setAnimate] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setAnimate(false), 450);
+    return () => clearTimeout(t);
+  }, []);
+
+  // 全局 `/` 快捷键聚焦搜索（焦点不在输入类元素时）
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== "/") return;
+      const el = document.activeElement;
+      const tag = el && el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (el && el.isContentEditable) return;
+      const input = document.getElementById("games-search-input");
+      if (input) {
+        e.preventDefault();
+        input.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  // 滚动性能优化：内容区滚动时给 .games-body 挂 is-scrolling，
+  // 临时关闭徽标 backdrop-filter（避免 40 卡全开 blur 滚动掉帧）；
+  // 停止滚动 ~120ms 后移除，平滑恢复毛玻璃。passive 监听不阻塞滚动。
+  const bodyRef = useRef(null);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return undefined;
+    let t = 0;
+    function onScroll() {
+      el.classList.add("is-scrolling");
+      clearTimeout(t);
+      t = setTimeout(() => el.classList.remove("is-scrolling"), 120);
+    }
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      clearTimeout(t);
+    };
+  }, []);
+
+  // 比价模式：API 已返回全平台，这里按已选平台本地过滤
+  // deals 模式：sort / minSavings 本地派生（不发 IPC，避免闪烁）
+  let shown = list;
+  if (isCompare) {
+    shown = list.filter((g) => comparePlatforms.value.includes(g.platform));
+  } else if (!isWishlist) {
+    shown = sortItems(filterBySavings(list, minSavings.value), activeSort.value);
+  }
+
+  // 标题搜索：本地过滤（不发 IPC），wishlist / 普通列表都生效
+  const q = (searchQuery.value || "").trim();
+  const matches = (g) => matchesSearch(g, q);
+  if (q) shown = shown.filter(matches);
+  const wishFiltered = q ? wishList.filter(matches) : wishList;
+
   const isEmpty =
     !loading.value &&
     !error.value &&
-    (isWishlist ? wishList.length === 0 : list.length === 0);
+    (isWishlist ? wishFiltered.length === 0 : shown.length === 0);
+
+  const crumb = (() => {
+    const plat = isCompare
+      ? `跨平台比价（${[...comparePlatforms.value].map(platformLabel).join(" / ")}）`
+      : platformLabel(activePlatform.value);
+    let c = `${plat} · ${MODE_LABELS[mode]}`;
+    if (mode === "deals" && minSavings.value > 0) c += ` · ≥${minSavings.value}%`;
+    return c;
+  })();
+  const count = isWishlist ? wishFiltered.length : shown.length;
+  const clock = fmtClock(fetchedAt.value);
 
   return (
     <div class="games-page">
@@ -45,7 +152,7 @@ export function GamesPage() {
           </>
         }
       >
-        <span class="games-header__hint">各平台折扣 · 免费活动</span>
+        <span class="games-header__hint">{MODE_HINTS[mode]}</span>
         {hasSampleSource() && (
           <span class="games-header__badge" title="部分平台为示例数据，非实时价格">
             含示例数据
@@ -54,15 +161,30 @@ export function GamesPage() {
       </FeatureHeader>
 
       <div class="games-toolbar">
-        {!isCompare && !isWishlist && <PlatformTabs />}
+        {/* 心愿单为跨平台本地收藏，无需平台切换；其余模式（含比价）均展示平台 Tab */}
+        {!isWishlist && <PlatformTabs />}
         <GamesFilterBar />
       </div>
 
-      <div class="games-body">
+      <div class="games-context">
+        <span class="games-context__crumb">{crumb}</span>
+        <span class="games-context__count" aria-live="polite">共 {count} 款</span>
+        {clock && <span class="games-context__time">更新于 {clock}</span>}
+      </div>
+
+      <div class="games-body" ref={bodyRef}>
         {loading.value && (
           <div class="games-skeleton-grid" aria-hidden="true">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div class="games-skeleton-card" key={i} />
+              <div class="games-skeleton-card" key={i}>
+                <div class="games-skeleton-card__thumb" />
+                <div class="games-skeleton-card__body">
+                  <div class="games-skeleton-line games-skeleton-line--title" />
+                  <div class="games-skeleton-line games-skeleton-line--title2" />
+                  <div class="games-skeleton-line games-skeleton-line--meta" />
+                  <div class="games-skeleton-line games-skeleton-line--price" />
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -80,6 +202,21 @@ export function GamesPage() {
           </div>
         )}
         {isEmpty && (() => {
+          if (q) {
+            return (
+              <div class="games-state">
+                <span class="games-state__icon" aria-hidden="true">🔍</span>
+                <span>没有匹配「{q}」的游戏</span>
+                <button
+                  type="button"
+                  class="games-state__retry"
+                  onClick={() => clearSearchQuery()}
+                >
+                  清除搜索
+                </button>
+              </div>
+            );
+          }
           if (isWishlist) {
             return (
               <div class="games-state">
@@ -110,19 +247,19 @@ export function GamesPage() {
         })()}
         {isWishlist && !isEmpty && (
           <div class="games-grid">
-            {wishList.map((g) => (
+            {wishFiltered.map((g) => (
               <GameCard
                 key={g.key}
                 game={{ ...g, salePrice: g.addedPrice }}
-                fx={fxSnap}
+                animate={animate}
               />
             ))}
           </div>
         )}
-        {!isWishlist && !loading.value && !error.value && list.length > 0 && (
-          <div class="games-grid">
-            {list.map((g) => (
-              <GameCard key={g.id} game={g} fx={fxSnap} />
+        {!isWishlist && !loading.value && !error.value && shown.length > 0 && (
+          <div class="games-grid" id="games-grid">
+            {shown.map((g) => (
+              <GameCard key={g.id} game={g} animate={animate} />
             ))}
           </div>
         )}

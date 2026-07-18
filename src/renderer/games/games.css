@@ -15,6 +15,17 @@
     color-mix(in oklch, var(--accent-primary) 88%, black)
   );
   --games-text-inverse: var(--text-inverse, white);
+
+  /* 压暗语义色：浅色主题用「令牌+黑」压暗以保证浅底可读；
+     深色主题改用语义色直引（更亮），避免「暗压暗」跌破对比阈值。
+     数值经 WCAG 对比度脚本核算（见审计 §5.3 复核记录）。 */
+  --games-rating: color-mix(in oklch, var(--color-warning) 38%, black);
+  --games-save: color-mix(in oklch, var(--color-success) 38%, black);
+}
+/* 深色主题：评分/省¥改用更亮的语义色直引，确保深色表面对比 ≥ 3:1 */
+:root[data-theme="dark"] {
+  --games-rating: var(--color-warning);
+  --games-save: var(--color-success);
 }
 
 /* ── 布局 ── */
@@ -22,6 +33,14 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+/* P0 修复：本容器必须是 flex 列，toolbar / 平台 Tab 才能吸顶、body 才能内部滚动 */
+.games-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-height: 0;
 }
 
@@ -70,6 +89,31 @@
   min-height: 0;
   overflow: auto;
   padding: var(--space-5);
+}
+
+/* ── 筛选上下文条（P1：平台 · 模式 · 计数 · 更新时间）── */
+.games-context {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+.games-context__crumb {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.games-context__count {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.games-context__time {
+  margin-left: auto;
 }
 
 /* ── 平台分类 Tab（品牌圆点 + 选中实心）── */
@@ -122,9 +166,18 @@
 .games-platform-tab[data-platform="switch"] .games-platform-tab__dot {
   background: var(--brand-switch);
 }
-.games-platform-tab:focus-visible {
+/* ── 公共 focus 样式（所有可聚焦元素统一）── */
+.games-platform-tab:focus-visible,
+.games-chip:focus-visible,
+.games-select__input:focus-visible,
+.games-refresh:focus-visible,
+.games-state__retry:focus-visible,
+.game-card:focus-visible,
+.game-card__fav:focus-visible,
+.games-attrib a:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* ── 维度筛选栏 ── */
@@ -155,14 +208,10 @@
   color: var(--text-primary);
 }
 .games-chip.is-active {
-  background: color-mix(in oklch, var(--accent-primary) 18%, transparent);
+  background: var(--accent-primary);
   border-color: var(--accent-primary);
-  color: var(--text-primary);
-  font-weight: 700;
-}
-.games-chip:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
+  color: var(--games-text-inverse);
+  font-weight: 600;
 }
 
 .games-filter-extra {
@@ -186,10 +235,6 @@
   color: var(--text-primary);
   font-size: var(--font-size-sm);
 }
-.games-select__input:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
 .games-refresh {
   padding: 6px var(--space-3);
   border-radius: var(--radius-sm);
@@ -207,7 +252,60 @@
   opacity: 0.5;
   cursor: default;
 }
-.games-refresh:focus-visible {
+
+/* ── 标题搜索 ── */
+.games-search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  min-width: 200px;
+  flex: 0 1 auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.games-search:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 18%, transparent);
+}
+.games-search__icon {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+  flex: 0 0 auto;
+}
+.games-search__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  padding: 6px 0;
+}
+.games-search__input::placeholder {
+  color: var(--text-tertiary);
+}
+.games-search__input::-webkit-search-cancel-button {
+  display: none;
+}
+.games-search__clear {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.games-search__clear:hover {
+  color: var(--text-primary);
+}
+.games-search__clear:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
@@ -244,35 +342,44 @@
 .games-state__retry:hover {
   background: var(--games-accent-hover);
 }
-.games-state__retry:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
 
 /* ── 折扣网格 ── */
 .games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(clamp(160px, 22vw, 220px), 1fr));
   gap: var(--space-4);
 }
 
 .game-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--card-accent, transparent);
+  --card-accent: transparent;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
 }
 .game-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-md);
 }
 .game-card--free {
   border-color: color-mix(in oklch, var(--color-success) 40%, var(--border));
 }
+
+/* 平台品牌色左条：复用全局 --brand-* 令牌（明暗双值已主题感知）；
+   border-left 因 box-sizing:border-box 不改变外宽，零布局偏移。
+   与卡内平台胶囊互为呼应，扫一眼即可按商店归类。 */
+.game-card.is-steam { --card-accent: var(--brand-steam); }
+.game-card.is-epic { --card-accent: var(--brand-epic); }
+.game-card.is-xbox { --card-accent: var(--brand-xbox); }
+.game-card.is-playstation { --card-accent: var(--brand-playstation); }
+.game-card.is-switch { --card-accent: var(--brand-switch); }
 
 .game-card__thumb {
   position: relative;
@@ -304,7 +411,13 @@
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--games-text-inverse);
-  background: color-mix(in oklch, var(--text-primary) 70%, transparent);
+  z-index: 2;
+  pointer-events: none;
+  /* 固定暗色背板（不随主题翻转），保证缩略图上任意背景下白字可读（≥3:1，已核算） */
+  background: color-mix(in oklch, black 72%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in oklch, var(--games-text-inverse) 22%, transparent);
 }
 /* 史低徽标（左上角，与示例徽标互斥——showLowest 已排除 sample） */
 .game-card__lowest {
@@ -313,8 +426,14 @@
   left: var(--space-2);
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  background: color-mix(in oklch, var(--color-warning) 92%, transparent);
-  color: var(--games-text-inverse);
+  background: color-mix(in oklch, var(--color-warning) 88%, transparent);
+  /* 暗琥珀文字（非白字）：琥珀底色偏亮，白字在两主题均跌破阈值；深色文字两主题均 ≥3:1（已核算 8.88:1） */
+  color: color-mix(in oklch, var(--color-warning) 30%, black);
+  z-index: 2;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in oklch, var(--games-text-inverse) 22%, transparent);
   font-size: var(--font-size-sm);
   font-weight: 600;
   line-height: 1.4;
@@ -329,8 +448,9 @@
   width: 30px;
   height: 30px;
   border: none;
+  z-index: 2;
   border-radius: 50%;
-  background: color-mix(in oklch, var(--text-primary) 50%, transparent);
+  background: color-mix(in oklch, black 70%, transparent);
   color: var(--games-text-inverse);
   font-size: var(--font-size-md);
   line-height: 1;
@@ -346,21 +466,37 @@
   transform: scale(1.1);
 }
 .game-card__fav--on {
-  background: color-mix(in oklch, var(--color-danger) 92%, transparent);
+  /* 不透明深红 + 白心：半透明红叠缩略图在浅底会跌破阈值；改用 danger 75%+黑保证白字 ≥3:1（已核算 6.83:1） */
+  background: color-mix(in oklch, var(--color-danger) 75%, black);
 }
 .game-card__fav--on:hover {
   background: var(--color-danger);
 }
-.game-card__fav:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
+
+/* 降价角标（右上角，fav 下方；仅 deals/free 模式命中关注降价时渲染） */
+.game-card__drop {
+  position: absolute;
+  top: calc(var(--space-2) + 38px);
+  right: var(--space-2);
+  z-index: 2;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  /* accent 88%黑：保证白字在两主题下 ≥4.5:1（普通字级别 AA） */
+  background: color-mix(in oklch, var(--accent-primary) 88%, black);
+  color: var(--games-text-inverse);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .game-card__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-4);
   flex: 1;
 }
 .game-card__title {
@@ -372,6 +508,26 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+/* 整卡可点：标题是真链接，::after 拉伸覆盖整卡；fav/徽标 z-index 提升浮于其上 */
+a.game-card__title {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+a.game-card__title:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+a.game-card__title:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+a.game-card__title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 .game-card__meta {
   display: flex;
@@ -393,7 +549,7 @@
 .game-card__platform.is-playstation { --_brand: var(--brand-playstation); }
 .game-card__platform.is-switch { --_brand: var(--brand-switch); }
 .game-card__rating {
-  color: color-mix(in oklch, var(--color-warning) 35%, black);
+  color: var(--games-rating);
   font-weight: 600;
 }
 
@@ -407,17 +563,20 @@
   font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 .game-card__cny-ref {
   margin-left: var(--space-1);
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 .game-card__normal {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
 }
 .game-card__save {
   margin-left: auto;
@@ -425,14 +584,18 @@
   border-radius: 999px;
   font-size: var(--font-size-sm);
   font-weight: 700;
-  color: color-mix(in oklch, var(--color-success) 35%, black);
+  color: var(--games-save);
   background: color-mix(in oklch, var(--color-success) 16%, transparent);
+}
+/* 入场动画仅首屏播放（由 GameCard 的 animate 属性控制 class），刷新/切模式不再整片重放 */
+.game-card__save--pop {
   animation: games-pop 0.28s ease both;
 }
 .game-card__save-amt {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   margin-top: calc(-1 * var(--space-1));
+  font-variant-numeric: tabular-nums;
 }
 .game-card__free-tag {
   display: inline-block;
@@ -440,49 +603,33 @@
   border-radius: 999px;
   font-size: var(--font-size-sm);
   font-weight: 700;
-  color: color-mix(in oklch, var(--color-success) 38%, black);
+  color: var(--games-save);
   background: color-mix(in oklch, var(--color-success) 14%, transparent);
 }
 .game-card__free-until {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
-.game-card__cta {
-  margin-top: var(--space-1);
-  padding: 7px var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--accent-primary);
-  background: var(--accent-primary);
-  color: var(--games-text-inverse);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-}
-.game-card__cta:hover {
-  background: var(--games-accent-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-.game-card__cta:active {
-  transform: translateY(0);
-}
-.game-card__cta:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
 
 /* ── 骨架屏（加载态）── */
 .games-skeleton-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(clamp(160px, 22vw, 220px), 1fr));
   gap: var(--space-4);
 }
 .games-skeleton-card {
-  height: 220px;
-  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border);
-  background: linear-gradient(
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+}
+/* 结构镜像真实 .game-card（thumb 16/9 + body padding/gap），骨架→内容高度一致，CLS≈0 */
+.games-skeleton-card__thumb {
+  aspect-ratio: 16 / 9;
+  background: var(--bg-secondary);
+  background-image: linear-gradient(
     100deg,
     var(--bg-secondary) 30%,
     color-mix(in oklch, var(--bg-secondary) 60%, var(--surface)) 50%,
@@ -491,6 +638,30 @@
   background-size: 200% 100%;
   animation: games-shimmer 1.2s ease-in-out infinite;
 }
+.games-skeleton-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  flex: 1;
+}
+.games-skeleton-line {
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  background-image: linear-gradient(
+    100deg,
+    var(--bg-secondary) 30%,
+    color-mix(in oklch, var(--bg-secondary) 60%, var(--surface)) 50%,
+    var(--bg-secondary) 70%
+  );
+  background-size: 200% 100%;
+  animation: games-shimmer 1.2s ease-in-out infinite;
+}
+.games-skeleton-line--title { height: 15px; width: 92%; }
+.games-skeleton-line--title2 { width: 58%; }
+.games-skeleton-line--meta { height: 14px; width: 42%; margin-top: 2px; }
+.games-skeleton-line--price { height: 18px; width: 55%; margin-top: auto; }
 
 /* ── 第三方数据源署名（PSPrices 许可要求）── */
 .games-attrib {
@@ -509,11 +680,6 @@
 .games-attrib a:hover {
   color: var(--accent-primary);
   text-decoration: underline;
-}
-.games-attrib a:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-  border-radius: 2px;
 }
 
 .games-fx-footer {
@@ -540,13 +706,66 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .game-card__save,
-  .games-skeleton-card {
+  .game-card__save--pop,
+  .games-skeleton-card__thumb,
+  .games-skeleton-line {
     animation: none;
   }
   .game-card,
-  .game-card__cta,
-  .game-card__fav {
+  .game-card__fav,
+  .game-card__src,
+  .game-card__lowest {
     transition: none;
   }
+}
+
+/* ── 响应式（P3：窄屏适配）── */
+@media (max-width: 640px) {
+  .games-header {
+    padding: var(--space-4) var(--space-4) var(--space-3);
+  }
+  .games-toolbar {
+    padding: var(--space-3) var(--space-4) 0;
+  }
+  .games-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .games-search {
+    flex: 1 0 100%;
+  }
+  .games-filter-extra {
+    justify-content: space-between;
+  }
+  .games-context {
+    padding: var(--space-2) var(--space-4);
+  }
+  .games-body {
+    padding: var(--space-4);
+  }
+  .games-grid,
+  .games-skeleton-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-3);
+  }
+  .games-attrib,
+  .games-fx-footer {
+    text-align: left;
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
+
+/* ── 滚动性能优化：毛玻璃徽标在滚动时临时去 blur，停止 ~120ms 后恢复 ── */
+/* 40 张卡全开 backdrop-filter 在滚动时会触发大量合成层重绘；滚动中关掉 blur
+   可显著降低 GPU 压力、消除掉帧，静止后平滑恢复玻璃质感（0.2s 过渡）。 */
+.game-card__src,
+.game-card__lowest {
+  transition: backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;
+}
+.games-body.is-scrolling .game-card__src,
+.games-body.is-scrolling .game-card__lowest {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: none;
 }

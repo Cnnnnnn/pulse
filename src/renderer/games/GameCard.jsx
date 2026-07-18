@@ -2,14 +2,15 @@
  * src/renderer/games/GameCard.jsx — 单条游戏优惠卡（折扣 / 喜+1 自适应）。
  */
 import { useEffect, useState } from "preact/hooks";
-import { api } from "../api.js";
 import { PLATFORM_LABEL, PLATFORM_EMOJI, fmtPrice, fmtCnyReference, fmtDate, promotionTypeLabel } from "./format.js";
 import {
   isInWishlist,
   addToWishlist,
   removeFromWishlist,
   getWishlistKey,
+  getDropInfo,
   lowPriceMap,
+  fx,
 } from "./gamesStore.js";
 
 function GameThumb({ thumb, platform, gameId }) {
@@ -37,7 +38,7 @@ function GameThumb({ thumb, platform, gameId }) {
   );
 }
 
-export function GameCard({ game, fx }) {
+export function GameCard({ game, animate }) {
   const isFree = game.isFree;
   // 史低判定：deal 自带 lowestPrice（PS 同步路径）优先，否则读 lowPriceMap（Steam/Xbox 异步增强）。
   // 严格 salePrice <= lowest；sample 数据排除（与示例徽标互斥）。
@@ -57,16 +58,15 @@ export function GameCard({ game, fx }) {
     else addToWishlist(game);
   }
   const platClass = `game-card__platform is-${game.platform}`;
-  const cnyRef = !isFree ? fmtCnyReference(game.salePrice, game.currency, fx) : "";
+  const cnyRef = !isFree ? fmtCnyReference(game.salePrice, game.currency, fx.value) : "";
   const saved =
     game.normalPrice != null && game.salePrice != null
       ? game.normalPrice - game.salePrice
       : null;
-  function open() {
-    if (game.dealUrl) api.openUrl(game.dealUrl);
-  }
+  // 降价信号：www 关注且当前价低于关注价（仅 deals/free 模式自然命中；wishlist 模式 salePrice 已覆写 addedPrice → 返回 null）
+  const drop = getDropInfo(game);
   return (
-    <article class={`game-card${isFree ? " game-card--free" : ""}`}>
+    <article class={`game-card is-${game.platform}${isFree ? " game-card--free" : ""}`}>
       <div class="game-card__thumb">
         <GameThumb thumb={game.thumb} platform={game.platform} gameId={game.id} />
         {!isFree && (
@@ -80,6 +80,15 @@ export function GameCard({ game, fx }) {
             {fav ? "♥" : "♡"}
           </button>
         )}
+        {drop && (
+          <span
+            class="game-card__drop"
+            role="status"
+            aria-label={`你关注的 · 降 ${fmtPrice(drop.delta, drop.currency)}（${Math.round(drop.pct * 100)}%）`}
+          >
+            🎯 降 {fmtPrice(drop.delta, drop.currency)}
+          </span>
+        )}
         {game.source === "sample" && (
           <span class="game-card__src" title="示例数据（非实时）">
             示例
@@ -88,7 +97,7 @@ export function GameCard({ game, fx }) {
         {showLowest && (
           <span
             class="game-card__lowest"
-            title={`史低价 ${fmtPrice(lowest, game.currency)}`}
+            title={`史低价 ${fmtPrice(lowest, "USD")}`}
           >
             史低
           </span>
@@ -96,9 +105,21 @@ export function GameCard({ game, fx }) {
       </div>
 
       <div class="game-card__body">
-        <div class="game-card__title" title={game.title}>
-          {game.title}
-        </div>
+        {game.dealUrl ? (
+          <a
+            class="game-card__title"
+            href={game.dealUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={game.title}
+          >
+            {game.title}
+          </a>
+        ) : (
+          <span class="game-card__title" title={game.title}>
+            {game.title}
+          </span>
+        )}
 
         <div class="game-card__meta">
           <span class={platClass}>
@@ -128,7 +149,9 @@ export function GameCard({ game, fx }) {
                 </span>
               )}
               {game.savings != null && (
-                <span class="game-card__save">-{game.savings}%</span>
+                <span class={`game-card__save${animate ? " game-card__save--pop" : ""}`}>
+                  -{game.savings}%
+                </span>
               )}
             </>
           )}
@@ -149,10 +172,6 @@ export function GameCard({ game, fx }) {
         {isFree && game.requirements && (
           <div class="game-card__free-until">{game.requirements}</div>
         )}
-
-        <button type="button" class="game-card__cta" onClick={open}>
-          查看优惠
-        </button>
       </div>
     </article>
   );
