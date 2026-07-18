@@ -4,7 +4,9 @@
  * ponytail 2026-07-18 P0-1: 嵌在 ModuleCard 标题区右侧 (替换现有 CardFreshness
  * 在 ModuleCard 里的位置). 4 态: ok / partial / stale / failed.
  * 失败时显示 "重试" 按钮, 沿用 AiNoteLine 风格的极简 inline button.
- * 不引外部图标库, 用纯文本 + 1 个 unicode 符号 (⏵).
+ * ponytail 2026-07-18 P0-1 T8 review MI: 去掉 ⏵ unicode 符号, 改用纯文字 "重试".
+ *   ⏵ (U+23F5) 在系统字体里渲染未必稳定 (字体降级时可能出方块), 纯文字 + 同族 btn
+ *   视觉更一致, 不引 icon 库.
  */
 import { deriveAngleStatus, failureReasonText } from "./dataHealth.js";
 
@@ -50,7 +52,7 @@ export function DataHealthPill({ angle, onRefresh, now = Date.now() }) {
           onClick={(e) => { e.stopPropagation(); onRefresh(); }}
           aria-label="重试本卡"
         >
-          ⏵ 重试
+          重试
         </button>
       ) : null}
     </span>
