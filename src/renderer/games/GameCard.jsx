@@ -31,7 +31,12 @@ import {
   folders,
   tags,
   wishlist,
+  rarityTiers,
+  setEntryRarity,
+  addRarityTier,
 } from "./gamesStore.js";
+import { tierColorOf } from "./rarityTiers.js";
+import { RarityPicker } from "./RarityPicker.jsx";
 
 function GameThumb({ thumb, platform, gameId }) {
   const [imgError, setImgError] = useState(false);
@@ -110,6 +115,19 @@ function CardMenu({ game, onClose }) {
       >
         📝 备注 / 评分
       </button>
+
+      <div class="card-menu__group">
+        <span class="card-menu__group-label">稀有度</span>
+        <RarityPicker
+          value={entry.rarity}
+          tiers={rarityTiers.value}
+          onSelect={(tierId) => setEntryRarity(key, tierId)}
+          onAddTier={(name) => {
+            const id = addRarityTier(name);
+            if (id) setEntryRarity(key, id);
+          }}
+        />
+      </div>
 
       <div class="card-menu__group">
         <span class="card-menu__group-label">收藏夹</span>
@@ -226,6 +244,15 @@ export function GameCard({ game, animate, context }) {
   const showNoteFlag = isWishlistCard && game.note && game.note.trim().length > 0;
   const showRatingFlag = isWishlistCard && game.rating > 0;
 
+  // ── P1a（A 稀有度）：未分级不显示角标 ──
+  const entryRarity = isWishlistCard ? game.rarity : null;
+  const showRarityBadge = !!entryRarity;
+  const rarityTier = entryRarity
+    ? rarityTiers.value.find((t) => t.id === entryRarity)
+    : null;
+  const rarityTierName = rarityTier ? rarityTier.name : entryRarity;
+  const rarityColor = tierColorOf(rarityTiers.value, entryRarity);
+
   return (
     <article class={`game-card is-${game.platform}${isFree ? " game-card--free" : ""}${(game.mergedMembers && game.mergedMembers.length) ? " game-card--merged" : ""}${menuOpen ? " game-card--menu-open" : ""}`}>
       <div class="game-card__thumb">
@@ -278,6 +305,17 @@ export function GameCard({ game, animate, context }) {
         {game.source === "sample" && (
           <span class="game-card__src" title="示例数据（非实时）">
             示例
+          </span>
+        )}
+        {showRarityBadge && (
+          <span
+            class="game-card__rarity"
+            style={{ "--rarity-color": rarityColor }}
+            title={`稀有度：${rarityTierName}`}
+            aria-label={`稀有度：${rarityTierName}`}
+          >
+            <span class="game-card__rarity-dot" aria-hidden="true" />
+            {rarityTierName}
           </span>
         )}
         {showLowest && (

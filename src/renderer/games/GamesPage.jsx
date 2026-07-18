@@ -38,6 +38,8 @@ import { CollectionSidebar } from "./CollectionSidebar.jsx";
 import { StatsOverview } from "./StatsOverview.jsx";
 import { NoteRatingModal } from "./NoteRatingModal.jsx";
 import { MergeConfirmModal } from "./MergeConfirmModal.jsx";
+import { UsageMetricsPanel } from "./UsageMetricsPanel.jsx";
+import { rarityTiers } from "./gamesStore.js";
 
 const MODE_HINTS = {
   deals: "各平台折扣 · 限时特惠",
@@ -132,6 +134,16 @@ export function GamesPage() {
     collectionList = collectionList.filter((e) => e.folderId === filter.id);
   } else if (filter && filter.type === "tag") {
     collectionList = collectionList.filter((e) => e.tags.includes(filter.id));
+  }
+  // ── P1a（A）：收藏网格按稀有度降序排列；unranked 恒排末尾 ──
+  if (isWishlist) {
+    const weightOf = {};
+    for (const t of rarityTiers.value) weightOf[t.id] = t.weight;
+    collectionList = [...collectionList].sort((a, b) => {
+      const wa = a.rarity != null && weightOf[a.rarity] != null ? weightOf[a.rarity] : -1;
+      const wb = b.rarity != null && weightOf[b.rarity] != null ? weightOf[b.rarity] : -1;
+      return wb - wa; // 降序；unranked(-1) 自然落至末尾
+    });
   }
   if (q) collectionList = collectionList.filter(matches);
 
@@ -271,6 +283,7 @@ export function GamesPage() {
             <CollectionSidebar />
             <div class="collection-main">
               <StatsOverview />
+              <UsageMetricsPanel />
               <div class="games-grid">
                 {collectionList.map((g) => (
                   <GameCard

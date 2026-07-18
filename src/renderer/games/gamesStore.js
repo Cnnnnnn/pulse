@@ -22,11 +22,20 @@ import {
   computeCollectionStats,
   RATING_MIN,
   RATING_MAX,
+  RARITY_MIN,
+  RARITY_MAX,
 } from "./types.js";
 import {
   findMergeCandidates as mapFindMergeCandidates,
   areCandidatesKnown,
 } from "./gameIdMap.js";
+import {
+  DEFAULT_RARITY_TIERS,
+  normalizeRarityTier,
+  sortByWeight,
+  tierColorOf,
+} from "./rarityTiers.js";
+import { bumpMetric as bumpMetricPure, mergeMetrics } from "./metrics.js";
 
 /** 平台元信息（renderer 展示用）。key 与 main 端 PLATFORM_KEYS 对齐。 */
 export const PLATFORMS = [
@@ -283,6 +292,10 @@ const FOLDERS_KEY = "pulse.games.folders.v1";
 const TAGS_KEY = "pulse.games.tags.v1";
 const FILTER_KEY = "pulse.games.collectionFilter.v1";
 
+// P1a 新增 key（与既有同域，v1 版本）
+const RARITY_TIERS_KEY = "pulse.games.rarity.tiers.v1"; // A 稀有度档位
+const METRICS_KEY = "pulse.games.metrics.v1"; // E 本地埋点计数
+
 function readStorage(key) {
   try {
     if (typeof globalThis.localStorage === "undefined") return null;
@@ -429,6 +442,7 @@ export function addToWishlist(game) {
   const entry = normalizeEntry(base);
   wishlist.value = [...wishlist.value, entry];
   _persistWishlist();
+  bumpMetric("wishlist.add");
 }
 
 /** 取消关注（移除心愿单条目）。 */
@@ -437,6 +451,7 @@ export function removeFromWishlist(key) {
   // 若移除的是正在展开的合并主记录，清掉展开态
   if (expandedMergeKey.value === key) expandedMergeKey.value = null;
   _persistWishlist();
+  bumpMetric("wishlist.remove");
 }
 
 /** 判断是否已关注。 */
@@ -460,6 +475,11 @@ export const mergeCandidateKeys = signal([]);
 export const mergeIsUnknown = signal(false);
 /** 当前展开的合并主记录 key（null = 无）。 */
 export const expandedMergeKey = signal(null);
+
+/** 稀有度档位（signal）。默认空，由 loadRarityTiers 填充为 4 档或用户自定义。 */
+export const rarityTiers = signal([]);
+/** 本地埋点计数（signal）。结构 { [event]: { count, firstSeen, lastSeen } }。 */
+export const metrics = signal({});
 
 /** 读取文件夹列表。 */
 export function loadFolders() {
@@ -516,6 +536,72 @@ export function loadCollectionFilter() {
   } catch {
     activeCollectionFilter.value = { type: null, id: null };
   }
+}
+
+// ── 稀有度档位（P1a · A）──
+
+/** 读取稀有度档位；缺失/损坏静默回退默认 4 档并落盘。 */
+export function loadRarityTiers() {
+  const raw = readStorage(RARITY_TIERS_KEY);
+  if (!raw) {
+    // 首次使用：写入默认 4 档
+    rarityTiers.value = DEFAULT_RARITY_TIERS.map((t) => ({ ...t }));
+    _persistRarityTiers();
+    return;
+  }
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr) || arr.length === 0) throw new Error("empty");
+    const normalized = arr.map(normalizeRarityTier).filter(Boolean);
+    if (normalized.length === 0) throw new Error("empty");
+    rarityTiers.value = normalized;
+  } catch {
+    // 损坏数据：回退默认 4 档并覆盖落盘
+    rarityTiers.value = DEFAULT_RARITY_TIERS.map((t) => ({ ...t }));
+    _persistRarityTiers();
+  }
+}
+
+function _persistRarityTiers() {
+  try {
+    writeStorage(RARITY_TIERS_KEY, JSON.stringify(rarityTiers.value));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/** 新增自定义档位，返回新 id（已存在同名不重复，复用其 id）。 */
+export function addRarityTier(name, opts = {}) {
+  const clean = String(name || "").trim();
+  if (!clean) return null;
+  const existing = rarityTiers.value.find((t) => t.name === clean);
+  if (existing) return existing.id;
+  const id = typeof opts.id === "string" && opts.id ? opts.id : genId();
+  const weight = Number.isFinite(Number(opts.weight)) ? Number(opts.weight) : rarityTiers.value.length + 1;
+  const color =
+    typeof opts.color === "string" && opts.color ? opts.color : "var(--text-secondary)";
+  const tier = normalizeRarityTier({ id, name: clean, weight, color });
+  if (!tier) return null;
+  rarityTiers.value = [...rarityTiers.value, tier];
+  _persistRarityTiers();
+  return tier.id;
+}
+
+/** 重命名档位（id 不变，条目 rarity 引用按 id 自然跟随）。 */
+export function renameRarityTier(id, name) {
+  const clean = String(name || "").trim();
+  if (!clean || !id) return;
+  rarityTiers.value = rarityTiers.value.map((t) =>
+    t.id === id ? { ...t, name: clean } : t,
+  );
+  _persistRarityTiers();
+}
+
+/** 删除档位（被删档位 id 仍留在旧条目 rarity 上，渲染时按未知处理为中性色）。 */
+export function deleteRarityTier(id) {
+  if (!id) return;
+  rarityTiers.value = rarityTiers.value.filter((t) => t.id !== id);
+  _persistRarityTiers();
 }
 
 function _persistCollectionFilter() {
@@ -640,6 +726,7 @@ export function createFolder(name) {
   });
   folders.value = [...folders.value, folder];
   _persistFolders();
+  bumpMetric("folder.create");
   return folder.id;
 }
 
@@ -724,6 +811,7 @@ export function setEntryTags(key, names) {
     }
   }
   updateEntry(key, (e) => ({ ...e, tags: list }));
+  bumpMetric("tag.set");
 }
 
 /** 设置条目所属文件夹（folderId 或 null）。 */
@@ -735,11 +823,41 @@ export function setEntryFolder(key, folderId) {
 /** 设置条目备注（本地，不上报）。 */
 export function setNote(key, note) {
   updateEntry(key, (e) => ({ ...e, note: String(note == null ? "" : note) }));
+  bumpMetric("note.set");
 }
 
 /** 设置条目评分（1–5，0=未评；自动裁剪）。 */
 export function setRating(key, rating) {
   updateEntry(key, (e) => ({ ...e, rating: clampRating(rating) }));
+  bumpMetric("rating.set");
+}
+
+// ── 稀有度（P1a · A）──
+
+/**
+ * 设置条目稀有度（覆盖式单选）。
+ * @param {string} key 条目主键
+ * @param {string|null} tierId 档位 id；null = 清除为 unranked
+ */
+export function setEntryRarity(key, tierId) {
+  const id = typeof tierId === "string" && tierId ? tierId : null;
+  updateEntry(key, (e) => ({ ...e, rarity: id }));
+  bumpMetric("rarity.set");
+}
+
+/**
+ * 批量设 common（Q1「批量设为 common」入口）。
+ * @param {string[]} keys
+ */
+export function batchSetCommonRarity(keys) {
+  const list = Array.isArray(keys) ? keys.filter(Boolean) : [];
+  if (!list.length) return;
+  const next = wishlist.value.map((e) =>
+    list.includes(e.key) ? normalizeEntry({ ...e, rarity: "common" }) : e,
+  );
+  wishlist.value = next;
+  _persistWishlist();
+  bumpMetric("rarity.set");
 }
 
 // ── 快捷收集（P0-3）──
@@ -823,6 +941,7 @@ export function mergeEntries(keys, primaryKey) {
     expandedMergeKey.value = primaryKeyResolved;
     _persistWishlist();
   });
+  bumpMetric("merge");
   return primaryKeyResolved;
 }
 
@@ -861,6 +980,7 @@ export function splitEntry(key) {
     expandedMergeKey.value = null;
     _persistWishlist();
   });
+  bumpMetric("split");
   return true;
 }
 
@@ -963,6 +1083,43 @@ export function getDropInfo(game) {
   const delta = added - cur;
   const pct = delta / added;
   return { dropped: true, delta, pct, currency: entry.currency || game.currency || "USD" };
+}
+
+// ── 本地埋点（P1a · E）──
+
+/** 读取埋点计数；缺失回退空对象。损坏数据静默回退空。 */
+export function loadMetrics() {
+  const raw = readStorage(METRICS_KEY);
+  if (!raw) {
+    metrics.value = {};
+    return;
+  }
+  try {
+    const o = JSON.parse(raw);
+    metrics.value =
+      o && typeof o === "object" && !Array.isArray(o) ? o : {};
+  } catch {
+    metrics.value = {};
+  }
+}
+
+/**
+ * 自增某事件计数（作为 action 副作用调用）。
+ * 全程 try/catch + peek() 读取，任何异常不影响主 action 语义与返回值。
+ * @param {string} name
+ */
+export function bumpMetric(name) {
+  try {
+    const next = bumpMetricPure(metrics.peek(), name);
+    metrics.value = next;
+    try {
+      writeStorage(METRICS_KEY, JSON.stringify(next));
+    } catch {
+      /* 落盘失败不抛，信号已更新 */
+    }
+  } catch {
+    /* 任何异常吞掉，绝不破坏主流程 */
+  }
 }
 
 function _persistWishlist() {
@@ -1107,9 +1264,18 @@ export {
   clampRating,
   RATING_MIN,
   RATING_MAX,
+  RARITY_MIN,
+  RARITY_MAX,
   computeCollectionStats,
   normalizeEntry,
   normalizeFolder,
   normalizeTag,
   areCandidatesKnown,
+  // P1a（A 稀有度）纯函数与常量
+  DEFAULT_RARITY_TIERS,
+  normalizeRarityTier,
+  sortByWeight,
+  tierColorOf,
+  // P1a（E 埋点）纯函数
+  mergeMetrics,
 };

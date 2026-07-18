@@ -11,9 +11,13 @@ import {
   closeNoteRating,
   setNote,
   setRating,
+  setEntryRarity,
+  addRarityTier,
+  rarityTiers,
   wishlist,
 } from "./gamesStore.js";
 import { StarRating } from "./StarRating.jsx";
+import { RarityPicker } from "./RarityPicker.jsx";
 
 export function NoteRatingModal() {
   const target = noteRatingTarget.value;
@@ -77,6 +81,22 @@ export function NoteRatingModal() {
         <div class="note-rating__rating">
           <span class="note-rating__label">私人评分</span>
           <StarRating value={rating} onChange={setLocalRating} />
+        </div>
+        <div class="note-rating__rarity">
+          <span class="note-rating__label">稀有度</span>
+          <RarityPicker
+            value={entry ? entry.rarity : null}
+            tiers={rarityTiers.value}
+            onSelect={(tierId) => {
+              if (target) setEntryRarity(target, tierId);
+            }}
+            onAddTier={(name) => {
+              if (target) {
+                const id = addRarityTier(name);
+                if (id) setEntryRarity(target, id);
+              }
+            }}
+          />
         </div>
       </div>
     </ModalShell>

@@ -25,6 +25,8 @@ export const ENTRY_DEFAULTS = {
   currentCurrency: /** @type {string|null} */ (null),
   mergedIds: /** @type {string[]} */ ([]),
   mergedMembers: /** @type {import("./types.js").MergedMember[]|null} */ (null),
+  // P1a（A 稀有度）：单选、互斥；缺省 null（unranked），旧条目无缝升级
+  rarity: /** @type {string|null} */ (null),
 };
 
 /**
@@ -93,6 +95,8 @@ export function normalizeEntry(raw) {
       typeof raw.currentCurrency === "string" ? raw.currentCurrency : null,
     mergedIds,
     mergedMembers: Array.isArray(raw.mergedMembers) ? raw.mergedMembers : null,
+    // P1a（A 稀有度）：仅接受 string，其余（含缺失/数字/对象）统一归 null
+    rarity: typeof raw.rarity === "string" ? raw.rarity : null,
   };
 }
 
@@ -180,6 +184,16 @@ export function normalizeCollectionFilter(raw) {
 export const RATING_MIN = 0;
 /** 评分上限（5 = 满分）。 */
 export const RATING_MAX = 5;
+
+/* ── 稀有度（P1a · A）────────────────────────────────────────────────
+ * 稀有度是「枚举档位 id」语义（如 "common" / "rare" / "epic" / "legendary"），
+ * 不是数值刻度。以下常量仅作语义占位：unranked(null) 永远排在任意已设档位之后，
+ * 实际排序权重由 rarityTiers 的 weight 驱动（见 rarityTiers.js）。
+ */
+/** unranked（null）相对任意已设档位的语义下限。 */
+export const RARITY_MIN = 0;
+/** 相对任意已设档位的语义上限占位（实际档位无数值上限，由 weight 决定）。 */
+export const RARITY_MAX = 1;
 
 /**
  * 将评分裁剪到 [RATING_MIN, RATING_MAX]（非法值归零）。

@@ -1628,6 +1628,233 @@ a.game-card__title::after {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   P1a（A 稀有度 / E 埋点）样式 — 仅用令牌 / oklch，禁止裸 hex。
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 稀有度角标（卡片缩略图右下角；unranked 不显示）── */
+.game-card__rarity {
+  position: absolute;
+  bottom: var(--space-2);
+  right: var(--space-2);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  /* --rarity-color 由组件内联注入（档位 color）；默认中性灰回退 */
+  --rarity-color: var(--text-secondary);
+  color: color-mix(in oklch, var(--rarity-color) 30%, black);
+  background: color-mix(in oklch, var(--rarity-color) 88%, transparent);
+  border: 1px solid color-mix(in oklch, var(--games-text-inverse) 22%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+.game-card__rarity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rarity-color);
+}
+
+/* ── 稀有度单选（RarityPicker，用于更多菜单 / 备注评分弹窗）── */
+.rarity-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.rarity-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 4px var(--space-2);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.rarity-picker__chip:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.rarity-picker__chip.is-on {
+  --rarity-color: var(--text-secondary);
+  background: color-mix(in oklch, var(--rarity-color) 16%, transparent);
+  border-color: color-mix(in oklch, var(--rarity-color) 40%, transparent);
+  color: color-mix(in oklch, var(--rarity-color) 32%, black);
+  font-weight: 600;
+}
+.rarity-picker__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--rarity-color, var(--text-secondary));
+  flex: 0 0 auto;
+}
+.rarity-picker__chip--new {
+  border-style: dashed;
+  color: var(--text-tertiary);
+}
+.rarity-picker__add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.rarity-picker__input {
+  min-height: 32px;
+  padding: 4px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+}
+.rarity-picker__input:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+  border-color: var(--accent-primary);
+}
+.rarity-picker__add-btn {
+  min-height: 32px;
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--games-text-inverse);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.rarity-picker__add-btn:hover {
+  background: var(--games-accent-hover);
+}
+
+/* ── 稀有度分布（StatsOverview 内）── */
+.stats-rarity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  grid-column: 1 / -1; /* 跨满统计概览整行 */
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.stats-rarity__title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.stats-rarity__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+.stats-rarity__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--rarity-color, var(--text-secondary));
+  flex: 0 0 auto;
+}
+.stats-rarity__name {
+  color: var(--text-primary);
+}
+.stats-rarity__count {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 使用回顾面板（P1a · E）── */
+.usage-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.usage-metrics__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.usage-metrics__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.usage-metrics__local {
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: color-mix(in oklch, var(--color-success) 32%, black);
+  background: color-mix(in oklch, var(--color-success) 16%, transparent);
+  border: 1px solid color-mix(in oklch, var(--color-success) 36%, transparent);
+}
+.usage-metrics__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.usage-metrics__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+.usage-metrics__name {
+  color: var(--text-secondary);
+}
+.usage-metrics__count {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.usage-metrics__empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── 焦点环统一（P1a 新增可交互元素）── */
+.rarity-picker__chip:focus-visible,
+.rarity-picker__add-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rarity-picker__chip {
+    transition: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
    收集模块（阶段 1）样式 — 仅用令牌 / oklch，禁止裸 hex。
    ════════════════════════════════════════════════════════════════ */
 
