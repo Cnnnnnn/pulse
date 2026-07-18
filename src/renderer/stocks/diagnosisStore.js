@@ -356,6 +356,45 @@ export async function refreshAngle(api, angleKey) {
   }
 }
 
+// ponytail 2026-07-18 P0-1 polish #2: 单条 angle 数据重拉, 走 stocks:angle-reload
+//   (后端 fetchSingleAngle). DataHealthPill failed → retry 调这个, 替换
+//   perAngleData[angleKey], 触发 dataHealth.js 重新 derive 状态 → pill 自动
+//   failed → ok. 失败仍 failed (failureStreakCount++), 但接口问题暴露在 reason.
+//
+//   跟 refreshAngle 区别: refreshAngle 调 stocks:angle-refresh (LLM 重解读, 不重拉数据),
+//   数据本身失败时永远 no_data. reloadAngle 真拉数据, 才是 retry 按钮应有的语义.
+//   取代 ModuleGrid 传给 DataHealthPill 的 onRefresh.
+export async function reloadAngle(api, angleKey) {
+  const code = diagnosisState.value.code || stockDiagnosisCode.value;
+  if (!api || !angleKey || !code) return;
+  const next = new Set(refreshingAngles.value);
+  next.add(angleKey);
+  refreshingAngles.value = next;
+  try {
+    const resp = await api.stocksAngleReload({ code, angleKey });
+    if (resp && resp.ok && resp.perAngle) {
+      const pa = resp.perAngle;
+      const cur = diagnosisState.value.perAngleData || {};
+      diagnosisState.value = {
+        ...diagnosisState.value,
+        perAngleData: { ...cur, [angleKey]: pa },
+      };
+    } else {
+      log.warn(
+        `reloadAngle ${angleKey} failed: reason=${(resp && resp.reason) || "unknown"}`,
+      );
+      markAngleFailed(angleKey);
+    }
+  } catch (e) {
+    log.warn(`reloadAngle ${angleKey} exception`, e);
+    markAngleFailed(angleKey);
+  } finally {
+    const done = new Set(refreshingAngles.value);
+    done.delete(angleKey);
+    refreshingAngles.value = done;
+  }
+}
+
 // ponytail: 失败闪烁的 setTimeout 句柄, 切换股票 / 快速重试时清理掉旧 timer
 //          (否则会"已经成功 5 秒了又被旧 timer 改回 failed").
 const _failedTimers = new Map();

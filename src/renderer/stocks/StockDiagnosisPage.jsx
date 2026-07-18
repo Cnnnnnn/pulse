@@ -1,4 +1,4 @@
-import { stockDiagnosisCode, diagnosisState, diagnosisStock, loadDiagnosis, refreshAngle, refreshingAngles, failedAngles } from "./diagnosisStore.js";
+import { stockDiagnosisCode, diagnosisState, diagnosisStock, loadDiagnosis, refreshAngle, reloadAngle, refreshingAngles, failedAngles } from "./diagnosisStore.js";
 import { closeDiagnosis } from "./diagnosisStore.js";
 import { VerdictCard } from "./diagnosis/VerdictCard.jsx";
 import { DimensionScores } from "./diagnosis/DimensionScores.jsx";
@@ -91,7 +91,12 @@ export function StockDiagnosisPage({ api }) {
             aiResult={state.aiResult}
             api={api}
             scores={state.scores}
-            onRefreshAngle={(k) => refreshAngle(api, k)}
+            // ponytail 2026-07-18 P0-1 polish #2: DataHealthPill retry 走 reloadAngle
+            //   (真数据重拉), 不是 refreshAngle (LLM 重解读). 数据本来 failed 时
+            //   refreshAngle 返 no_data, pill 永远 failed. reloadAngle 替换 perAngleData,
+            //   pill 自动 failed → ok. ModuleCard 的 onRefresh (= makeRefresh(k))
+            //   也是这个语义.
+            onRefreshAngle={(k) => reloadAngle(api, k)}
             refreshing={refreshingAngles.value}
             failed={failedAngles.value}
           />

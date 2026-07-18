@@ -9,16 +9,18 @@ import { DataHealthPill } from "./DataHealthPill.jsx";
  * ponytail 2026-07-18 P0-1 T7 — 标题区右侧加 <DataHealthPill>, 把"数据新不新"
  *          变成主信号; CardFreshness 保留为辅助时间戳.
  * ponytail 2026-07-18 P0-1 T8 — DataHealthPill failed → retry 按钮回调 onRefresh:
- *          当前走 diagnosisStore.refreshAngle (= 重新 LLM 解读, 不重拉数据).
- *          数据 failed 时 retry LLM 通常返 no_data, pill 状态不变;
- *          真正的"数据重拉"留给后续 task 加 stocks:angle-reload 协议.
+ *          最初走 diagnosisStore.refreshAngle (= 重新 LLM 解读, 不重拉数据),
+ *          数据 failed 时 retry LLM 通常返 no_data, pill 状态不变.
+ * ponytail 2026-07-18 P0-1 polish #2 — onRefresh 改为走 reloadAngle (单条 angle
+ *          数据重拉, 走 stocks:angle-reload). 数据成功 → perAngleData 替换,
+ *          pill 自动 failed → ok. 这才是用户视角 retry 按钮应有的语义.
  *
  * 用法:
  *   <ModuleCard
  *     variant="capital"
  *     title="🌊 资金面"
  *     angle={perAngleData.capital_flow}
- *     onRefresh={() => refreshAngle("capital_flow")}
+ *     onRefresh={() => reloadAngle("capital_flow")}
  *     body={<div>5日主力 ...</div>}
  *   />
  *

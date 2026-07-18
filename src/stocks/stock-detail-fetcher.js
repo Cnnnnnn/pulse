@@ -103,4 +103,63 @@ async function fetchStockDetailAngles(httpClient, code, angles) {
   return { perAngle, fulfilledCount, totalCount: valid.length };
 }
 
-module.exports = { fetchStockDetailAngles };
+// ponytail 2026-07-18 P0-1 polish #2: 单条 angle 数据重拉, 走 stocks:angle-reload.
+//   用于 DataHealthPill retry 按钮 — 之前 retry 调的是 stocks:angle-refresh (LLM 重解读),
+//   数据本身失败时 LLM 解读返回 no_data, pill 永远 failed. 现改成真拉数据, 替换
+//   perAngleData[angleKey] 后 pill 自动从 failed → ok (dataHealth.js deriveAngleStatus).
+//   失败时 (接口仍然挂) 走 recordFailure, failureStreakCount 递增, pill 仍 failed.
+/**
+ * @returns {Promise<{
+ *   angleKey: string,
+ *   status: "ok"|"failed",
+ *   data?: any,
+ *   reason?: string,
+ *   error?: string,
+ *   fetchedAt: number,
+ *   lastSuccessAt: number|null,
+ *   failureStreakCount: number,
+ * }|null>}
+ */
+async function fetchSingleAngle(httpClient, code, angleKey) {
+  if (!code || !angleKey) return null;
+  const angleDef = getAngle(angleKey);
+  if (!angleDef) return null;
+  const now = Date.now();
+  try {
+    const res = await angleDef.fetcher(httpClient, { code });
+    if (res && res.ok) {
+      const h = recordSuccess(code, angleKey);
+      return {
+        angleKey,
+        status: "ok",
+        data: res.data,
+        fetchedAt: now,
+        lastSuccessAt: h.lastSuccessAt,
+        failureStreakCount: 0,
+      };
+    }
+    const h = recordFailure(code, angleKey);
+    return {
+      angleKey,
+      status: "failed",
+      reason: (res && res.reason) || "unknown",
+      error: (res && res.error) || null,
+      fetchedAt: now,
+      lastSuccessAt: h.lastSuccessAt || null,
+      failureStreakCount: h.failureStreakCount,
+    };
+  } catch (err) {
+    const h = recordFailure(code, angleKey);
+    return {
+      angleKey,
+      status: "failed",
+      reason: "exception",
+      error: err && err.message ? err.message : String(err),
+      fetchedAt: now,
+      lastSuccessAt: h.lastSuccessAt || null,
+      failureStreakCount: h.failureStreakCount,
+    };
+  }
+}
+
+module.exports = { fetchStockDetailAngles, fetchSingleAngle };

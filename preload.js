@@ -313,6 +313,9 @@ contextBridge.exposeInMainWorld("api", {
   // ponytail: 2026-07-07 P1-2 — 单条 angle 的本地快速重解读 (不走 LLM)
   stocksAngleRefresh: (payload) =>
     ipcRenderer.invoke("stocks:angle-refresh", payload),
+  // ponytail 2026-07-18 P0-1 polish #2 — 单条 angle 数据重拉 (走 fetcher, 不是 LLM)
+  stocksAngleReload: (payload) =>
+    ipcRenderer.invoke("stocks:angle-reload", payload),
   // 2026-07-07 — 诊断报告导出 PNG (主进程 capturePage + showSaveDialog)
   stocksExportDiagnosisPng: (payload) =>
     ipcRenderer.invoke("stocks:export-diagnosis-png", payload),

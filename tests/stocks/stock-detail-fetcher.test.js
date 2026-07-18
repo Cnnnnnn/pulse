@@ -67,7 +67,7 @@ function injectMockAngles() {
 }
 
 injectMockAngles();
-const { fetchStockDetailAngles } = require("../../src/stocks/stock-detail-fetcher.js");
+const { fetchStockDetailAngles, fetchSingleAngle } = require("../../src/stocks/stock-detail-fetcher.js");
 
 const httpClient = { get: vi.fn() };
 
@@ -139,5 +139,63 @@ describe("fetchStockDetailAngles — lastSuccessAt / failureStreakCount", () => 
     expect(out3.perAngle.price_trend.status).toBe("ok");
     expect(out3.perAngle.price_trend.failureStreakCount).toBe(0);
     expect(typeof out3.perAngle.price_trend.lastSuccessAt).toBe("number");
+  });
+});
+
+describe("fetchSingleAngle — 单条数据重拉 (P0-1 polish #2, DataHealthPill retry)", () => {
+  // ponytail: 跟 fetchStockDetailAngles 同 _angleHealth 状态机, 但只跑 1 条 angle.
+  //   用于 stocks:angle-reload IPC handler. code/angleKey 缺失返 null (前端 catch 走 markAngleFailed).
+  //   成功 / 失败 / exception 行为跟 fetchStockDetailAngles 一致 (复用 recordSuccess/recordFailure).
+
+  it("ok 时: 返 {status:'ok', data, fetchedAt, lastSuccessAt, failureStreakCount:0}", async () => {
+    const out = await fetchSingleAngle(httpClient, "600001", "price_trend");
+    expect(out.status).toBe("ok");
+    expect(out.angleKey).toBe("price_trend");
+    expect(out.data.code).toBe("600001");
+    expect(out.failureStreakCount).toBe(0);
+    expect(typeof out.fetchedAt).toBe("number");
+    expect(typeof out.lastSuccessAt).toBe("number");
+  });
+
+  it("failed 时 (ok=false from fetcher): 返 status='failed' + reason + error", async () => {
+    const out = await fetchSingleAngle(httpClient, "600002", "valuation");
+    expect(out.status).toBe("failed");
+    expect(out.angleKey).toBe("valuation");
+    expect(out.reason).toBe("fetch_failed");
+    expect(out.error).toBe("network");
+    expect(out.failureStreakCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it("fetcher throw: 走 exception 路径, 失败计入 streak", async () => {
+    const out = await fetchSingleAngle(httpClient, "600003", "throws_angle");
+    expect(out.status).toBe("failed");
+    expect(out.reason).toBe("exception");
+    expect(out.error).toContain("boom");
+  });
+
+  it("code 缺失: 返 null (前端 silent return)", async () => {
+    expect(await fetchSingleAngle(httpClient, null, "price_trend")).toBeNull();
+    expect(await fetchSingleAngle(httpClient, "", "price_trend")).toBeNull();
+  });
+
+  it("angleKey 不在 ANGLE_DEFS: 返 null", async () => {
+    expect(await fetchSingleAngle(httpClient, "600004", "unknown_key")).toBeNull();
+  });
+
+  it("连续失败后成功: failureStreakCount 归零, lastSuccessAt 重置", async () => {
+    // 第一次失败 (新 code 避免跟之前 test 串状态)
+    const fail = await fetchSingleAngle(httpClient, "600010", "valuation");
+    expect(fail.status).toBe("failed");
+    expect(fail.failureStreakCount).toBeGreaterThanOrEqual(1);
+
+    // 第二次还是失败
+    const fail2 = await fetchSingleAngle(httpClient, "600010", "valuation");
+    expect(fail2.failureStreakCount).toBeGreaterThanOrEqual(2);
+
+    // 成功后归零 + lastSuccessAt 存在
+    const ok = await fetchSingleAngle(httpClient, "600010", "price_trend");
+    expect(ok.status).toBe("ok");
+    expect(ok.failureStreakCount).toBe(0);
+    expect(typeof ok.lastSuccessAt).toBe("number");
   });
 });
