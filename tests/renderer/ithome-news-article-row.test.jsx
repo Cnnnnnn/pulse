@@ -18,6 +18,8 @@ const {
   mockMarkRead,
   mockShareArticle,
   mockSharingIds,
+  mockComments,
+  mockFetchComments,
 } = vi.hoisted(() => ({
   mockSummarize: vi.fn(),
   mockSummaries: { value: {} },
@@ -27,6 +29,8 @@ const {
   mockMarkRead: vi.fn().mockResolvedValue({ ok: true }),
   mockShareArticle: vi.fn().mockResolvedValue({ ok: true, bytes: 1234 }),
   mockSharingIds: { value: {} },
+  mockComments: { value: {} },
+  mockFetchComments: vi.fn(),
 }));
 
 vi.mock("../../src/renderer/ithome/store.js", () => ({
@@ -35,7 +39,9 @@ vi.mock("../../src/renderer/ithome/store.js", () => ({
   ithomeReadIds: mockReadIds,
   ithomeNewIds: mockNewIds,
   ithomeSharingIds: mockSharingIds,
+  ithomeComments: mockComments,
   summarizeIthomeArticle: mockSummarize,
+  fetchIthomeComments: mockFetchComments,
   toggleIthomeFavorite: vi.fn(),
   markIthomeRead: mockMarkRead,
   shareIthomeArticle: mockShareArticle,
@@ -60,6 +66,18 @@ function makeArticle({ excerpt = "", body = "" } = {}) {
     body,
     dateKey: "2026-06-12",
   };
+}
+
+function queueCommentResult(result) {
+  mockFetchComments.mockImplementationOnce(async (id) => {
+    if (result && result.ok) {
+      mockComments.value = {
+        ...mockComments.value,
+        [id]: Array.isArray(result.comments) ? result.comments : [],
+      };
+    }
+    return result;
+  });
 }
 
 describe("NewsArticleRow AI 总结按钮", () => {
@@ -159,6 +177,72 @@ describe("NewsArticleRow 已读/新 视觉", () => {
       fireEvent.click(getByText("测试标题"));
     });
     expect(mockMarkRead).toHaveBeenCalledWith(ARTICLE_ID);
+  });
+});
+
+describe("NewsArticleRow 评论按钮", () => {
+  beforeEach(() => {
+    mockComments.value = {};
+    mockFetchComments.mockReset();
+  });
+  afterEach(() => cleanup());
+
+  it("点击查看评论后加载并展示热门评论", async () => {
+    const article = makeArticle({ excerpt: "摘要" });
+    queueCommentResult({
+      ok: true,
+      comments: [
+        {
+          id: "1",
+          author: "用户 A",
+          content: "这是一条热门评论",
+          createdAt: "2026-07-18T10:00:00+08:00",
+          likes: 8,
+        },
+      ],
+    });
+    const { getByRole, getByText } = render(<NewsArticleRow article={article} />);
+
+    await act(async () => {
+      fireEvent.click(getByRole("button", { name: /查看评论/ }));
+    });
+
+    expect(mockFetchComments).toHaveBeenCalledWith(article.id);
+    expect(getByText("用户 A")).toBeTruthy();
+    expect(getByText("这是一条热门评论")).toBeTruthy();
+    expect(getByText(/支持 8/)).toBeTruthy();
+  });
+
+  it("评论失败后显示重试，重试成功后渲染评论", async () => {
+    const article = makeArticle({ excerpt: "摘要" });
+    queueCommentResult({ ok: false, reason: "fetch_failed" });
+    queueCommentResult({
+      ok: true,
+      comments: [
+        { id: "2", author: "用户 B", content: "重试成功", createdAt: "", likes: 0 },
+      ],
+    });
+    const { getByRole, getByText } = render(<NewsArticleRow article={article} />);
+
+    await act(async () => {
+      fireEvent.click(getByRole("button", { name: /查看评论/ }));
+    });
+    expect(getByText("评论暂时无法加载")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(getByRole("button", { name: /重试/ }));
+    });
+    expect(getByText("重试成功")).toBeTruthy();
+  });
+
+  it("没有评论时显示明确的空状态", async () => {
+    const article = makeArticle({ excerpt: "摘要" });
+    queueCommentResult({ ok: true, comments: [] });
+    const { getByRole, getByText } = render(<NewsArticleRow article={article} />);
+    await act(async () => {
+      fireEvent.click(getByRole("button", { name: /查看评论/ }));
+    });
+    expect(getByText("暂无热门评论")).toBeTruthy();
   });
 });
 

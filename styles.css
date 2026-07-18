@@ -6505,6 +6505,80 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   color: var(--accent-red);
 }
 
+.ithome-row-foot .ithome-row-comments-trigger {
+  margin-left: 0.25rem;
+}
+
+.ithome-row-comments {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ithome-row-comments-status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ithome-row-comments-status.is-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #ffb4b4;
+}
+
+.ithome-row-comments-status button {
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ithome-comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ithome-comment-item {
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.5rem;
+}
+
+.ithome-comment-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ithome-comment-meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-bottom: 0.25rem;
+}
+
+.ithome-comment-meta strong {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ithome-comment-item p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.5;
+}
+
 .ithome-row-summary {
   margin-top: 12px;
   padding-top: 12px;

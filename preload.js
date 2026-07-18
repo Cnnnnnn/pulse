@@ -216,6 +216,8 @@ contextBridge.exposeInMainWorld("api", {
   ithomeRefreshNews: (dateKey) =>
     ipcRenderer.invoke("ithome:refresh-news", dateKey),
   ithomeFetchDay: (dateKey) => ipcRenderer.invoke("ithome:fetch-day", dateKey),
+  ithomeFetchComments: (payload) =>
+    ipcRenderer.invoke("ithome:fetch-comments", payload),
   ithomeSummarizeArticle: (payload) =>
     ipcRenderer.invoke("ithome:summarize-article", payload),
   ithomeToggleFavorite: (payload) =>

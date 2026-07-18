@@ -1,4 +1,5 @@
 const ithomeNewsStore = require("../ithome/news-store");
+const { fetchAndAttachComments } = require("../ithome/comment-fetcher");
 const { summarizeArticle } = require("../ithome/article-ai");
 
 function registerIthomeHandlers(ctx) {
@@ -41,6 +42,10 @@ function registerIthomeHandlers(ctx) {
 
   safeHandle("ithome:fetch-day", async (_evt, dateKey) =>
     ithomeNewsStore.fetchDay(dateKey),
+  );
+
+  safeHandle("ithome:fetch-comments", async (_evt, payload) =>
+    fetchAndAttachComments({ id: payload && payload.id }),
   );
 
   safeHandle("ithome:summarize-article", async (_evt, payload) =>

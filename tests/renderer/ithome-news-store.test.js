@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoadNewsMock } = vi.hoisted(() => {
+const { mockMarkRead, mockLoadNews, mockShareCard, mockFetchComments, setLoadNewsPayload, resetLoadNewsMock } = vi.hoisted(() => {
   const mockMarkRead = vi.fn().mockResolvedValue({ ok: true });
   const queue = [];
   const mockLoadNews = vi.fn(() => {
@@ -19,14 +19,16 @@ const { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoad
     return Promise.resolve(queue.shift());
   });
   const mockShareCard = vi.fn().mockResolvedValue({ ok: true, bytes: 1234 });
+  const mockFetchComments = vi.fn();
   const setLoadNewsPayload = (payload) => queue.push(payload);
   const resetLoadNewsMock = () => {
     mockMarkRead.mockClear();
     mockLoadNews.mockClear();
     mockShareCard.mockClear();
+    mockFetchComments.mockClear();
     queue.length = 0;
   };
-  return { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoadNewsMock };
+  return { mockMarkRead, mockLoadNews, mockShareCard, mockFetchComments, setLoadNewsPayload, resetLoadNewsMock };
 });
 
 vi.mock("../../src/renderer/store-utils.js", () => ({
@@ -34,6 +36,7 @@ vi.mock("../../src/renderer/store-utils.js", () => ({
     if (name === "ithomeMarkRead") return mockMarkRead;
     if (name === "ithomeLoadNews") return mockLoadNews;
     if (name === "ithomeShareCard") return mockShareCard;
+    if (name === "ithomeFetchComments") return mockFetchComments;
     return undefined;
   },
 }));
@@ -56,6 +59,8 @@ import {
   setIthomeSelectedDate,
   setIthomeFavoriteSelectedDate,
   shareIthomeArticle,
+  ithomeComments,
+  fetchIthomeComments,
 } from "../../src/renderer/ithome/store.js";
 
 const ARTICLES_BEFORE = {
@@ -126,6 +131,44 @@ describe("ithome store read/new flags", () => {
     ithomeNewIds.value = { a: 1 };
     setIthomeFavoriteSelectedDate("2026-06-11");
     expect(ithomeNewIds.value).toEqual({});
+  });
+});
+
+describe("ithome comments", () => {
+  beforeEach(() => {
+    mockFetchComments.mockReset();
+    ithomeComments.value = {};
+  });
+
+  it("calls IPC once and caches returned comments", async () => {
+    const comments = [
+      { id: "1", author: "用户", content: "内容", createdAt: "时间", likes: 3 },
+    ];
+    mockFetchComments.mockResolvedValue({ ok: true, comments });
+
+    const result = await fetchIthomeComments("article-1");
+
+    expect(result.comments).toEqual(comments);
+    expect(mockFetchComments).toHaveBeenCalledWith({ id: "article-1" });
+    expect(ithomeComments.value["article-1"]).toEqual(comments);
+  });
+
+  it("does not call IPC again after a successful empty result", async () => {
+    mockFetchComments.mockResolvedValue({ ok: true, comments: [] });
+    await fetchIthomeComments("article-empty");
+    await fetchIthomeComments("article-empty");
+    expect(mockFetchComments).toHaveBeenCalledTimes(1);
+    expect(ithomeComments.value["article-empty"]).toEqual([]);
+  });
+
+  it("returns failure without changing cached comments", async () => {
+    ithomeComments.value = { "article-1": [{ id: "old" }] };
+    mockFetchComments.mockResolvedValue({ ok: false, reason: "fetch_failed" });
+
+    const result = await fetchIthomeComments("article-2");
+
+    expect(result.ok).toBe(false);
+    expect(ithomeComments.value["article-1"]).toEqual([{ id: "old" }]);
   });
 });
 
