@@ -327,6 +327,70 @@ describe("getGameDeals — mode=free 免费活动", () => {
   });
 });
 
+describe("getGameDeals — mode=compare 跨平台比价", () => {
+  it("保留同名跨平台条目（不合并）", async () => {
+    const res = await getGameDeals({ platform: "all", mode: "compare" });
+    const hk = res.items.filter((it) => it.title === "Hollow Knight");
+    expect(hk.length).toBe(2);
+  });
+
+  it("排除免费项（比价针对付费游戏）", async () => {
+    const res = await getGameDeals({ platform: "all", mode: "compare" });
+    expect(res.items.every((it) => !it.isFree)).toBe(true);
+  });
+
+  it("同标题条目相邻，组内按 salePrice 升序", async () => {
+    const res = await getGameDeals({ platform: "all", mode: "compare" });
+    const titles = res.items.map((it) => it.title);
+    const firstHkIdx = titles.indexOf("Hollow Knight");
+    expect(titles[firstHkIdx + 1]).toBe("Hollow Knight");
+    const priceA = res.items[firstHkIdx].salePrice;
+    const priceB = res.items[firstHkIdx + 1].salePrice;
+    expect(priceA).toBeLessThanOrEqual(priceB);
+  });
+
+  it("组内按 salePrice 升序（用不同价格真正验证 tiebreaker）", async () => {
+    // 专用比价 mock：同一标题在不同平台有不同价格，避免污染共享 mock
+    //   Steam: "TestGame" salePrice 15  /  "TestGame2" salePrice 20
+    //   Epic:   "TestGame" salePrice 10
+    // 期望：TestGame 组在 TestGame2 组前（字典序），组内 Epic(10) 先于 Steam(15)
+    const localSteam = [
+      { dealID: "tg-s", storeID: "1", title: "TestGame", salePrice: 15, normalPrice: 30, savings: 50, dealRating: 80, steamAppID: "1000001" },
+      { dealID: "tg2-s", storeID: "1", title: "TestGame2", salePrice: 20, normalPrice: 40, savings: 50, dealRating: 80, steamAppID: "1000002" },
+    ];
+    const localEpic = [
+      { dealID: "tg-e", storeID: "25", title: "TestGame", salePrice: 10, normalPrice: 30, savings: 66, dealRating: 80 },
+    ];
+    vi.stubGlobal("fetch", vi.fn(async (url, opts) => {
+      const u = String(url);
+      if (u.includes("cheapshark.com")) {
+        return jsonOk(u.includes("storeID=25") ? localEpic : localSteam);
+      }
+      // 其它平台返回空，专注 TestGame 排序验证
+      return jsonOk({});
+    }));
+
+    const res = await getGameDeals({ platform: "all", mode: "compare" });
+    const testGame = res.items.filter((it) => it.title === "TestGame");
+    expect(testGame.length).toBe(2);
+    // 字典序：TestGame 组在 TestGame2 前
+    const firstTgIdx = res.items.findIndex((it) => it.title === "TestGame");
+    const firstTg2Idx = res.items.findIndex((it) => it.title === "TestGame2");
+    expect(firstTgIdx).toBeLessThan(firstTg2Idx);
+    // 组内：Epic(10) 在 Steam(15) 前，严格升序
+    expect(testGame[0].salePrice).toBe(10);
+    expect(testGame[0].platform).toBe("epic");
+    expect(testGame[1].salePrice).toBe(15);
+    expect(testGame[1].platform).toBe("steam");
+  });
+
+  it("deals 模式仍合并同名（回归保护）", async () => {
+    const res = await getGameDeals({ platform: "all", mode: "deals" });
+    const hk = res.items.filter((it) => it.title === "Hollow Knight");
+    expect(hk.length).toBe(1);
+  });
+});
+
 describe("getGameDeals — mode=deals sort 三分支", () => {
   it("sort=savings 按折扣力度降序", async () => {
     const res = await getGameDeals({ platform: "steam", mode: "deals", sort: "savings" });
