@@ -1661,6 +1661,34 @@ a.game-card__title::after {
   background: var(--rarity-color);
 }
 
+/* 卡片徽章角标（P1b 可选增强）：底部居中悬浮奖章条，避开四角既有角标 */
+.game-card__badges {
+  position: absolute;
+  bottom: var(--space-2);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: inline-flex;
+  gap: 4px;
+  pointer-events: none;
+}
+.game-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+  /* 固定暗色背板（不随主题翻转），保证缩略图上任意背景下可读（与 .game-card__src 同源） */
+  background: color-mix(in oklch, black 64%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in oklch, var(--games-text-inverse) 22%, transparent);
+}
+
 /* ── 稀有度单选（RarityPicker，用于更多菜单 / 备注评分弹窗）── */
 .rarity-picker {
   display: flex;

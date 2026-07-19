@@ -37,6 +37,7 @@ import {
 } from "./gamesStore.js";
 import { tierColorOf } from "./rarityTiers.js";
 import { RarityPicker } from "./RarityPicker.jsx";
+import { evaluateBadges, getBadgeRule } from "./badges.js";
 
 function GameThumb({ thumb, platform, gameId }) {
   const [imgError, setImgError] = useState(false);
@@ -253,6 +254,17 @@ export function GameCard({ game, animate, context }) {
   const rarityTierName = rarityTier ? rarityTier.name : entryRarity;
   const rarityColor = tierColorOf(rarityTiers.value, entryRarity);
 
+  // ── P1b（可选增强）：单卡徽章角标 ──
+  // 复用 badges 引擎：对「单条条目」求值，仅命中可由该卡归因的徽章
+  // （传说稀有度 / 合并记录 / ≥3 平台合并 / 已评分）；
+  // 全局计数类（收藏满 N、用满 N 标签等）对单卡不会误触，故不显示。
+  const cardBadges = isWishlistCard
+    ? evaluateBadges([game])
+        .map((b) => getBadgeRule(b.id))
+        .filter(Boolean)
+    : [];
+  const showCardBadges = cardBadges.length > 0;
+
   return (
     <article class={`game-card is-${game.platform}${isFree ? " game-card--free" : ""}${(game.mergedMembers && game.mergedMembers.length) ? " game-card--merged" : ""}${menuOpen ? " game-card--menu-open" : ""}`}>
       <div class="game-card__thumb">
@@ -325,6 +337,19 @@ export function GameCard({ game, animate, context }) {
           >
             史低
           </span>
+        )}
+
+        {showCardBadges && (
+          <div
+            class="game-card__badges"
+            aria-label={`已获徽章：${cardBadges.map((b) => b.name).join("、")}`}
+          >
+            {cardBadges.map((b) => (
+              <span class="game-card__badge" key={b.id} title={b.name} aria-hidden="true">
+                {b.icon}
+              </span>
+            ))}
+          </div>
         )}
 
         {menuOpen && isWishlistCard && <CardMenu game={game} onClose={() => setMenuOpen(false)} />}
