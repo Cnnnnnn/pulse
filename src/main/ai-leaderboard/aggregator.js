@@ -21,6 +21,7 @@ const { getSampleModels } = require("./sample");
 const { sortModels, filterByVendor, filterBySearch } = require("./ranking");
 const { cacheKey, readCache, writeCache, isStale } = require("./cache");
 const { acquire } = require("./rate-limiter");
+const { getPreviousArenaRanks, computeRankDelta } = require("./history");
 const { logFetchError } = require("../games/log");
 
 const ARENA_TTL = 24 * 60 * 60 * 1000;
@@ -146,6 +147,19 @@ async function getLeaderboard(opts = {}) {
   shown = sortModels(shown, dimension, sortDir, category);
   shown = filterByVendor(shown, vendor);
   shown = filterBySearch(shown, search);
+
+  // v3.0: 排名变动（仅 Arena 维度有意义）
+  if (dimension === "elo") {
+    const board = (CATEGORY_META[category] && CATEGORY_META[category].board) || "text";
+    const prevRanks = getPreviousArenaRanks();
+    shown = shown.map((it, idx) => {
+      const arenaSlice = it.arena && it.arena[board];
+      if (!arenaSlice || typeof arenaSlice.score !== "number") return it;
+      const currentRank = idx + 1;
+      const { delta, isNew } = computeRankDelta(it.id, board, currentRank, prevRanks);
+      return { ...it, rankDelta: delta, isNew };
+    });
+  }
 
   // v2.83: 每源切片覆盖率 — 数据健康看板用
   // (基于筛选后, 用户当前看到的列表计算)

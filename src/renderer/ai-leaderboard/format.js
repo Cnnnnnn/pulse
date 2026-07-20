@@ -1,11 +1,11 @@
 /**
  * src/renderer/ai-leaderboard/format.js
  *
- * 数字格式化辅助（tabular-nums 友好：分数 / 指数 / 价格 / 速度 / 百分比）。
- * 价格仅识别 USD（团队拍板），统一 `$` 展示。
+ * 数字格式化辅助（tabular-nums 友好）。
+ * v3.0: 适配双视角结构，primaryValue 使用 CATEGORY_BOARD 映射。
  */
 
-import { VENDOR_META, CATEGORY_META, DIMENSION_META } from "./types.js";
+import { VENDOR_META, CATEGORY_BOARD } from "./types.js";
 
 /** ELO 分数：取整。 */
 export function fmtScore(v) {
@@ -17,18 +17,6 @@ export function fmtScore(v) {
 export function fmtIndex(v) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   return Number(v).toFixed(1);
-}
-
-/** 百分比（0-100 量级，如 MMLU-Pro / GPQA / HLE）。 */
-export function fmtPercent(v) {
-  if (v == null || !Number.isFinite(Number(v))) return "—";
-  return `${Math.round(Number(v) * 100)}%`;
-}
-
-/** 价格（USD）：两位小数，前置 `$`。 */
-export function fmtPrice(v) {
-  if (v == null || !Number.isFinite(Number(v))) return "—";
-  return `$${Number(v).toFixed(2)}`;
 }
 
 /** 每百万 token 价格（USD）：`$x.xx /1M`。 */
@@ -43,16 +31,10 @@ export function fmtSpeed(v) {
   return `${Math.round(Number(v))} tok/s`;
 }
 
-/** 厂商展示名（VENDOR_META label 兜底原始值）。 */
+/** 厂商展示名。 */
 export function fmtVendor(vendor) {
   if (!vendor) return "—";
   return (VENDOR_META[vendor] && VENDOR_META[vendor].label) || vendor;
-}
-
-/** 排名序号。 */
-export function fmtRank(rank) {
-  if (rank == null || !Number.isFinite(Number(rank))) return "—";
-  return String(rank);
 }
 
 /** 更新时间（HH:mm）。 */
@@ -63,18 +45,25 @@ export function fmtClock(iso) {
   return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
 }
 
+/** 性价比 = 智能指数 / 输出价格（越高越划算）。 */
+export function fmtValueRatio(aa) {
+  if (!aa) return "—";
+  const idx = aa.intelligenceIndex;
+  const price = aa.priceOutputPer1M;
+  if (idx == null || price == null || price <= 0) return "—";
+  return (idx / price).toFixed(1);
+}
+
 /**
- * 取模型在指定维度下的排序/展示原始值（与 store.sortValue 同口径，单一真源）。
- * v2.83: 维度表按 AA Free tier 实际字段重做 (math/reasoning/price_perf 删除,
- * 新增 agentic/speed/price). price 走 priceOutputPer1M 真实值 (不再用 II/价 公式).
+ * 取模型在指定维度下的排序/展示原始值。
  * @param {object} model AiModel
  * @param {string} dimension elo|intelligence|coding|agentic|speed|price
- * @param {string} category llm|multimodal|code|image|video
+ * @param {string} category llm|multimodal|code（决定 Arena board）
  * @returns {number|null}
  */
 export function primaryValue(model, dimension, category) {
   if (dimension === "elo") {
-    const board = (CATEGORY_META[category] || {}).board || "text";
+    const board = CATEGORY_BOARD[category] || "text";
     const slice = model && model.arena && model.arena[board];
     return slice && typeof slice.score === "number" ? slice.score : null;
   }
@@ -97,7 +86,7 @@ export function primaryValue(model, dimension, category) {
 }
 
 /**
- * 按维度种类格式化主维度值（与 LeaderboardTable 主分列对齐）。
+ * 按维度种类格式化主维度值。
  * @param {number|null} value
  * @param {string} dimension
  * @returns {string}

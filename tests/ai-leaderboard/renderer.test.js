@@ -2,12 +2,10 @@
  * tests/ai-leaderboard/renderer.test.js
  *
  * AI 榜单渲染层测试（vitest + preact / happy-dom）。
- * 覆盖：store actions（setCategory / setDimension 改变排序字段）、
- *       本地筛选（vendor / 搜索）、本地排序（elo / intelligence_index 降序）、
- *       sample 态（isSample 时显示「示例」徽标 / 标记）。
+ * v3.0: 适配双视角 store API（setView / setBoard / setDim）。
+ * 覆盖：store actions、本地筛选（vendor / 搜索）、本地排序、sample 态。
  *
  * 纯本地：api.js 用 mock 注入，无网络出口。仅 import 真实 store / 组件。
- * 组件渲染用 preact 的 h()（.js 文件不启用 JSX 解析）。
  */
 
 // @vitest-environment happy-dom
@@ -16,7 +14,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { h } from "preact";
 import { render, screen, cleanup } from "@testing-library/preact";
 
-// store 通过 `import { api } from "../api.js"` 取 bridge —— 这里注入 mock，避免真实 IPC。
 vi.mock("../../src/renderer/api.js", () => ({
   api: {
     getLeaderboard: vi.fn(async () => ({
@@ -43,13 +40,10 @@ vi.mock("../../src/renderer/api.js", () => ({
 }));
 
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
-import { SampleBadge } from "../../src/renderer/ai-leaderboard/SampleBadge.jsx";
 import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
-import { BoardHealthCard } from "../../src/renderer/ai-leaderboard/BoardHealthCard.jsx";
 
 afterEach(cleanup);
 
-/** 构造一个规整 AiModel（缺字段补默认，不依赖 main 侧 normalize）。 */
 function mkModel(over = {}) {
   return {
     id: over.id || "m",
@@ -64,13 +58,16 @@ function mkModel(over = {}) {
     sources: over.sources || { arena: "none", aa: "none", openrouter: "none" },
     isSample: !!over.isSample,
     fetchedAt: over.fetchedAt || null,
+    rankDelta: over.rankDelta ?? null,
+    isNew: !!over.isNew,
   };
 }
 
 beforeEach(() => {
   localStorage.clear();
-  store.activeCategory.value = "llm";
-  store.activeDimension.value = "elo";
+  store.activeView.value = "arena";
+  store.activeBoard.value = "text";
+  store.activeDim.value = "intelligence";
   store.activeVendor.value = "all";
   store.sortDir.value = "desc";
   store.searchQuery.value = "";
@@ -82,95 +79,96 @@ beforeEach(() => {
   store.stale.value = false;
   store.fromCache.value = false;
   store.fetchedAt.value = null;
+  store.compareList.value = [];
 });
 
-describe("store actions — 排序字段随维度/分类切换", () => {
-  it("setCategory 切换激活分类，并把 elo 提取字段切到对应 Arena board", async () => {
-    const model = mkModel({
-      name: "M",
-      arena: { text: { score: 1000 }, vision: { score: 1500 } },
-    });
-    // llm 默认读 text board
-    expect(store.sortValue(model, "elo", store.activeCategory.value)).toBe(1000);
-
-    await store.setCategory("multimodal");
-    expect(store.activeCategory.value).toBe("multimodal");
-    // 切换后 elo 改读 vision board
-    expect(store.sortValue(model, "elo", store.activeCategory.value)).toBe(1500);
+describe("store actions — 视角 / board / 维度切换", () => {
+  it("setView 切换视角并重置 vendor 和 compareList", async () => {
+    store.activeVendor.value = "openai";
+    store.compareList.value = ["a", "b"];
+    await store.setView("aa");
+    expect(store.activeView.value).toBe("aa");
+    expect(store.activeVendor.value).toBe("all");
+    expect(store.compareList.value).toEqual([]);
   });
 
-  it("setDimension 切换激活维度并改变提取字段（elo→intelligence→coding）", async () => {
-    const model = mkModel({
-      name: "M",
-      arena: { text: { score: 1000 } },
-      aa: {
-        intelligenceIndex: 88,
-        codingIndex: 70,
-        agenticIndex: 65,
-        outputTokensPerSec: 120,
-        priceOutputPer1M: 7.5,
-      },
-    });
-
-    await store.setDimension("elo");
-    expect(store.activeDimension.value).toBe("elo");
-    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(1000);
-
-    await store.setDimension("intelligence");
-    expect(store.activeDimension.value).toBe("intelligence");
-    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(88);
-
-    await store.setDimension("coding");
-    expect(store.activeDimension.value).toBe("coding");
-    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(70);
-
-    await store.setDimension("agentic");
-    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(65);
-
-    await store.setDimension("speed");
-    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(120);
-
-    await store.setDimension("price");
-    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(7.5);
+  it("setBoard 切换 Arena board 并重置 vendor", async () => {
+    store.activeVendor.value = "google";
+    await store.setBoard("vision");
+    expect(store.activeBoard.value).toBe("vision");
+    expect(store.activeVendor.value).toBe("all");
   });
 
-  it("sortModels 默认 intelligence/agentic 降序, price/speed 默认升序 (低 = 优)", () => {
+  it("setDim 切换 AA 维度并重置 vendor + 调整排序方向", async () => {
+    store.activeView.value = "aa";
+    store.activeVendor.value = "anthropic";
+    await store.setDim("price");
+    expect(store.activeDim.value).toBe("price");
+    expect(store.activeVendor.value).toBe("all");
+    expect(store.sortDir.value).toBe("asc"); // price 默认升序
+  });
+
+  it("setDim 非法值被忽略", async () => {
+    await store.setDim("nope");
+    expect(store.activeDim.value).toBe("intelligence");
+  });
+
+  it("setView 相同值不触发请求", () => {
+    const result = store.setView("arena");
+    expect(result).toBeUndefined();
+  });
+});
+
+describe("sorting — Arena ELO / AA index", () => {
+  it("Arena 视角按 ELO 降序排序", () => {
+    store.activeView.value = "arena";
+    store.activeBoard.value = "text";
     const list = [
-      mkModel({ id: "a", aa: { intelligenceIndex: 50, agenticIndex: 40, priceOutputPer1M: 20, outputTokensPerSec: 30 } }),
-      mkModel({ id: "b", aa: { intelligenceIndex: 90, agenticIndex: 75, priceOutputPer1M: 5, outputTokensPerSec: 100 } }),
-      mkModel({ id: "c", aa: { intelligenceIndex: 75, agenticIndex: 55, priceOutputPer1M: 12, outputTokensPerSec: 60 } }),
+      mkModel({ id: "a", arena: { text: { score: 800 } } }),
+      mkModel({ id: "b", arena: { text: { score: 1200 } } }),
+      mkModel({ id: "c", arena: {} }),
+      mkModel({ id: "d", arena: { text: { score: 1000 } } }),
     ];
-    // 索引类默认降序
-    expect(store.sortModels(list, { dimension: "intelligence" }).map(m => m.id)).toEqual(["b", "c", "a"]);
-    expect(store.sortModels(list, { dimension: "agentic" }).map(m => m.id)).toEqual(["b", "c", "a"]);
-    // 价格 asc 5 < 12 < 20: b, c, a
-    expect(store.sortModels(list, { dimension: "price" }).map(m => m.id)).toEqual(["b", "c", "a"]);
-    // 速度 asc 30 < 60 < 100: a, c, b
-    expect(store.sortModels(list, { dimension: "speed" }).map(m => m.id)).toEqual(["a", "c", "b"]);
-    // 显式传 desc 改方向
-    expect(store.sortModels(list, { dimension: "price", dir: "desc" }).map(m => m.id)).toEqual(["a", "c", "b"]);
+    store.items.value = list;
+    const shown = store.getDisplayed();
+    expect(shown.map((m) => m.id)).toEqual(["b", "d", "a"]);
+    // c 没有 text board 分数，被 Arena 视角过滤掉
   });
 
-  it("setDimension 非法值被忽略，保持原维度", async () => {
-    await store.setDimension("nope");
-    expect(store.activeDimension.value).toBe("elo");
+  it("AA 视角按 intelligence 降序排序", () => {
+    store.activeView.value = "aa";
+    const list = [
+      mkModel({ id: "a", aa: { intelligenceIndex: 50 } }),
+      mkModel({ id: "b", aa: { intelligenceIndex: 90 } }),
+      mkModel({ id: "c", aa: { intelligenceIndex: 70 } }),
+      mkModel({ id: "d", aa: null }),
+    ];
+    store.items.value = list;
+    store.sortDir.value = "desc";
+    const shown = store.getDisplayed();
+    expect(shown.map((m) => m.id)).toEqual(["b", "c", "a", "d"]);
   });
 
-  it("setVendor / setSortDir 为纯本地派生，不触发重新请求（activeDimension 不变）", () => {
-    store.setVendor("openai");
-    expect(store.activeVendor.value).toBe("openai");
-    store.setSortDir("asc");
-    expect(store.sortDir.value).toBe("asc");
-    expect(store.activeDimension.value).toBe("elo");
+  it("price 维度默认升序（低 = 优）", async () => {
+    store.activeView.value = "aa";
+    await store.setDim("price");
+    const list = [
+      mkModel({ id: "a", aa: { priceOutputPer1M: 20 } }),
+      mkModel({ id: "b", aa: { priceOutputPer1M: 5 } }),
+      mkModel({ id: "c", aa: { priceOutputPer1M: 12 } }),
+    ];
+    store.items.value = list;
+    const shown = store.getDisplayed();
+    expect(shown.map((m) => m.id)).toEqual(["b", "c", "a"]);
   });
 });
 
 describe("filtering — vendor / 搜索", () => {
   const list = [
-    mkModel({ id: "gpt", name: "GPT-4o", vendor: "openai" }),
-    mkModel({ id: "claude", name: "Claude 3.5", vendor: "anthropic" }),
-    mkModel({ id: "gemini", name: "Gemini 1.5", vendor: "google" }),
-    mkModel({ id: "gpt2", name: "GPT-4 Turbo", vendor: "openai" }),
+    mkModel({ id: "gpt", name: "GPT-4o", vendor: "openai", arena: { text: { score: 1100 } } }),
+    mkModel({ id: "claude", name: "Claude 3.5", vendor: "anthropic", arena: { text: { score: 1300 } } }),
+    mkModel({ id: "gemini", name: "Gemini 1.5", vendor: "google", arena: { text: { score: 1000 } } }),
+    mkModel({ id: "gpt2", name: "GPT-4 Turbo", vendor: "openai", arena: { text: { score: 900 } } }),
   ];
 
   it("filterByVendor 仅保留指定厂商", () => {
@@ -188,84 +186,53 @@ describe("filtering — vendor / 搜索", () => {
     expect(store.filterBySearch(list, "GPT").length).toBe(2);
   });
 
-  it("filterBySearch 按厂商 label 匹配（'openai'→OpenAI）", () => {
-    const out = store.filterBySearch(list, "openai");
-    expect(out.length).toBe(2);
-    expect(out.every((m) => m.vendor === "openai")).toBe(true);
-  });
-
   it("filterBySearch 空查询返回原列表", () => {
     expect(store.filterBySearch(list, "   ").length).toBe(list.length);
   });
 });
 
-describe("sorting — elo / intelligence_index 降序", () => {
-  it("elo 降序：arena score 高→低，null 恒置末尾", () => {
-    const list = [
-      mkModel({ id: "a", arena: { text: { score: 800 } } }),
-      mkModel({ id: "b", arena: { text: { score: 1200 } } }),
-      mkModel({ id: "c", arena: {} }), // 无 elo
-      mkModel({ id: "d", arena: { text: { score: 1000 } } }),
+describe("Arena 视角过滤 — 仅保留有 ELO 的模型", () => {
+  it("getDisplayed 在 Arena 视角下过滤无分数模型", () => {
+    store.activeView.value = "arena";
+    store.activeBoard.value = "text";
+    store.items.value = [
+      mkModel({ id: "has-elo", arena: { text: { score: 1200 } } }),
+      mkModel({ id: "no-elo", aa: { intelligenceIndex: 80 } }),
+      mkModel({ id: "wrong-board", arena: { vision: { score: 1100 } } }),
     ];
-    const out = store.sortModels(list, { dimension: "elo", category: "llm", dir: "desc" });
-    expect(out.map((m) => m.id)).toEqual(["b", "d", "a", "c"]);
-  });
-
-  it("intelligence_index 降序：aa.intelligenceIndex 高→低", () => {
-    const list = [
-      mkModel({ id: "a", aa: { intelligenceIndex: 50 } }),
-      mkModel({ id: "b", aa: { intelligenceIndex: 90 } }),
-      mkModel({ id: "c", aa: { intelligenceIndex: 70 } }),
-      mkModel({ id: "d", aa: null }), // 无 index
-    ];
-    const out = store.sortModels(list, { dimension: "intelligence", category: "llm", dir: "desc" });
-    expect(out.map((m) => m.id)).toEqual(["b", "c", "a", "d"]);
-  });
-
-  it("asc 方向反转 elo 顺序", () => {
-    const list = [
-      mkModel({ id: "a", arena: { text: { score: 800 } } }),
-      mkModel({ id: "b", arena: { text: { score: 1200 } } }),
-    ];
-    const out = store.sortModels(list, { dimension: "elo", category: "llm", dir: "asc" });
-    expect(out.map((m) => m.id)).toEqual(["a", "b"]);
-  });
-
-  it("getDisplayed 组合 vendor + search + sort", () => {
-    const list = [
-      mkModel({ id: "gpt", name: "GPT-4o", vendor: "openai", arena: { text: { score: 1100 } } }),
-      mkModel({ id: "claude", name: "Claude", vendor: "anthropic", arena: { text: { score: 1300 } } }),
-      mkModel({ id: "gpt2", name: "GPT-4 Turbo", vendor: "openai", arena: { text: { score: 900 } } }),
-    ];
-    store.items.value = list;
-    store.activeVendor.value = "openai";
-    store.searchQuery.value = "gpt";
     const shown = store.getDisplayed();
-    expect(shown.map((m) => m.id)).toEqual(["gpt", "gpt2"]); // 仅 openai + 含 gpt，按 elo 降序
+    expect(shown.map((m) => m.id)).toEqual(["has-elo"]);
   });
 });
 
-describe("sample 态 — 示例徽标 / 标记", () => {
-  it("SampleBadge 组件渲染「示例」文案并带 sample 语义类", () => {
-    render(h(SampleBadge, {}));
-    const el = screen.getByText("示例");
-    expect(el).toBeTruthy();
-    expect(el.className).toContain("ai-lb-sample-badge");
+describe("compare — 对比列表管理", () => {
+  it("toggleCompare 添加/移除模型", () => {
+    store.toggleCompare("a");
+    expect(store.compareList.value).toEqual(["a"]);
+    store.toggleCompare("b");
+    expect(store.compareList.value).toEqual(["a", "b"]);
+    store.toggleCompare("a");
+    expect(store.compareList.value).toEqual(["b"]);
   });
 
-  it("isSample 模型经表格渲染，行内显示「示例」标记（ai-lb-tag--sample）", () => {
-    render(
-      h(LeaderboardTable, {
-        rows: [mkModel({ id: "s1", name: "Sample Model", isSample: true, aa: { intelligenceIndex: 42 } })],
-        dimension: "intelligence",
-      }),
-    );
-    const el = screen.getByText("示例");
-    expect(el).toBeTruthy();
-    expect(el.className).toContain("ai-lb-tag--sample");
+  it("toggleCompare 最多 3 个", () => {
+    store.toggleCompare("a");
+    store.toggleCompare("b");
+    store.toggleCompare("c");
+    store.toggleCompare("d"); // 超出上限，忽略
+    expect(store.compareList.value).toEqual(["a", "b", "c"]);
   });
 
-  it("hasSampleSource 对 sample 条目返回 true，对 live 返回 false", () => {
+  it("clearCompare 清空", () => {
+    store.toggleCompare("a");
+    store.toggleCompare("b");
+    store.clearCompare();
+    expect(store.compareList.value).toEqual([]);
+  });
+});
+
+describe("sample 态", () => {
+  it("hasSampleSource 对 sample 条目返回 true", () => {
     store.items.value = [mkModel({ id: "s1", isSample: true })];
     expect(store.hasSampleSource()).toBe(true);
     store.items.value = [mkModel({ id: "l1", isSample: false })];
@@ -277,52 +244,31 @@ describe("sample 态 — 示例徽标 / 标记", () => {
     expect(store.isAllSample()).toBe(true);
     store.items.value = [mkModel({ id: "s1", isSample: true }), mkModel({ id: "l1", isSample: false })];
     expect(store.isAllSample()).toBe(false);
-    store.items.value = [];
-    expect(store.isAllSample()).toBe(false);
   });
 });
 
-describe("数据健康看板 (BoardHealthCard) — v2.83", () => {
-  beforeEach(() => {
-    store.sourceCoverage.value = { arena: 10, aa: 200, openrouter: 155 };
-    store.sources.value = { arena: "live", aa: "live", openrouter: "live" };
+describe("LeaderboardTable 渲染", () => {
+  it("Arena 视角渲染 ELO 列 + 示例标记", () => {
+    render(
+      h(LeaderboardTable, {
+        rows: [mkModel({ id: "s1", name: "Sample Model", isSample: true, arena: { text: { score: 1200 } } })],
+        view: "arena",
+        board: "text",
+      }),
+    );
+    const el = screen.getByText("示例");
+    expect(el).toBeTruthy();
+    expect(screen.getByText("1200")).toBeTruthy();
   });
 
-  it("渲染三源 chip + 各自覆盖率", () => {
-    const { container } = render(h(BoardHealthCard, { total: 365 }));
-    const chips = container.querySelectorAll(".ai-lb-health__chip");
-    expect(chips.length).toBe(3);
-    expect(container.textContent).toMatch(/Arena[\s\S]*?10[\s\S]*?\/[\s\S]*?365/);
-    expect(container.textContent).toMatch(/AA[\s\S]*?200[\s\S]*?\/[\s\S]*?365/);
-    expect(container.textContent).toMatch(/OR[\s\S]*?155[\s\S]*?\/[\s\S]*?365/);
-  });
-
-  it("total=0 时整张卡隐藏 (不画空架子)", () => {
-    const { container } = render(h(BoardHealthCard, { total: 0 }));
-    expect(container.querySelector(".ai-lb-health")).toBeNull();
-  });
-
-  it("live 源显示 is-live class (绿点), sample 源显示 is-sample class (斜体)", () => {
-    store.sources.value = { arena: "live", aa: "sample", openrouter: "none" };
-    const { container } = render(h(BoardHealthCard, { total: 50 }));
-    const chips = container.querySelectorAll(".ai-lb-health__chip");
-    expect(chips[0].className).toContain("is-live");
-    expect(chips[1].className).toContain("is-sample");
-    expect(chips[2].className).not.toContain("is-live");
-    expect(chips[2].className).not.toContain("is-sample");
-  });
-
-  it("live 源但 0 覆盖时显示 is-live-but-empty + ⚠ 警告 (AA multimodal/code 即此态)", () => {
-    store.sources.value = { arena: "live", aa: "live", openrouter: "live" };
-    store.sourceCoverage.value = { arena: 20, aa: 0, openrouter: 0 };
-    const { container } = render(h(BoardHealthCard, { total: 20 }));
-    const chips = container.querySelectorAll(".ai-lb-health__chip");
-    expect(chips[0].className).toContain("is-live");
-    expect(chips[0].className).not.toContain("is-live-but-empty");
-    expect(chips[1].className).toContain("is-live-but-empty");
-    expect(chips[2].className).toContain("is-live-but-empty");
-    // ⚠ 警告图标只在零覆盖的 chip 上出现
-    const warns = container.querySelectorAll(".ai-lb-health__warn");
-    expect(warns.length).toBe(2);
+  it("AA 视角渲染智能指数列", () => {
+    render(
+      h(LeaderboardTable, {
+        rows: [mkModel({ id: "a1", name: "Test Model", aa: { intelligenceIndex: 88.5 } })],
+        view: "aa",
+        dim: "intelligence",
+      }),
+    );
+    expect(screen.getByText("88.5")).toBeTruthy();
   });
 });

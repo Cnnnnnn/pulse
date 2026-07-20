@@ -41,7 +41,7 @@ function inferVendor(name) {
   if (n.includes("gpt") || n.includes("o1") || n.includes("o3")) return "openai";
   if (n.includes("claude")) return "anthropic";
   if (n.includes("gemini")) return "google";
-  if (n.includes("llama")) return "meta";
+  if (n.includes("llama") || n.includes("muse")) return "meta";
   if (n.includes("mistral")) return "mistral";
   if (n.includes("grok")) return "xai";
   if (n.includes("deepseek")) return "deepseek";
@@ -49,7 +49,12 @@ function inferVendor(name) {
   if (n.includes("glm")) return "zhipu";
   if (n.includes("command")) return "cohere";
   if (n.includes("hunyuan")) return "tencent";
-  if (n.includes("yi-")) return "other";
+  if (n.includes("doubao") || n.includes("seed")) return "bytedance";
+  if (n.includes("abab") || n.includes("minimax")) return "minimax";
+  if (n.includes("mimo")) return "xiaomi";
+  if (n.includes("yi-") || n.includes("yi.")) return "zero-one";
+  if (n.includes("step-") || n.includes("stepfun")) return "stepfun";
+  if (n.includes("kimi") || n.includes("moonshot")) return "moonshot";
   return "";
 }
 

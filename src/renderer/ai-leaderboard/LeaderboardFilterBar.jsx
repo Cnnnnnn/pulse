@@ -1,30 +1,31 @@
 /**
  * src/renderer/ai-leaderboard/LeaderboardFilterBar.jsx
  *
- * 分类 Tabs（LLM / 多模态 / 代码 / 图像 / 视频）→ setCategory
- * + 维度 Select → setDimension
- * + 厂商 Select → setVendor
- * + 排序方向 → setSortDir（本地派生）
- * + 搜索框 → setSearchQuery（200ms 防抖，本地派生）
- * + 刷新按钮 → refresh()
+ * v3.0 双视角筛选栏：
+ *  - 视角切换 tabs（Arena 排名 / 深度分析）
+ *  - Arena 视角：board chips（文本 / 多模态 / 代码）
+ *  - AA 视角：维度 select（智能指数 / 代码 / Agent / 速度 / 价格）
+ *  - 通用：厂商 select + 排序方向 + 搜索 + 刷新
  */
 import { useState } from "preact/hooks";
 import {
-  activeCategory,
-  activeDimension,
+  activeView,
+  activeBoard,
+  activeDim,
   activeVendor,
   sortDir,
   searchQuery,
   loading,
-  setCategory,
-  setDimension,
+  setView,
+  setBoard,
+  setDim,
   setVendor,
   setSortDir,
   setSearchQuery,
   clearSearchQuery,
   refresh,
 } from "./aiLeaderboardStore.js";
-import { CATEGORIES, CATEGORY_META, DIMENSIONS, DIMENSION_META, VENDOR_OPTIONS, isCategoryComingSoon } from "./types.js";
+import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, AA_DIMENSION_KEYS, AA_DIMENSIONS, VENDOR_OPTIONS } from "./types.js";
 
 export function LeaderboardFilterBar() {
   const [q, setQ] = useState(searchQuery.value);
@@ -45,54 +46,66 @@ export function LeaderboardFilterBar() {
     }
   }
 
+  const view = activeView.value;
+
   return (
     <div class="ai-leaderboard-filter-bar">
-      <div class="ai-leaderboard-tabs" role="tablist" aria-label="模型分类">
-        {CATEGORIES.map((key) => {
-          const meta = CATEGORY_META[key];
-          const active = activeCategory.value === key;
-          const comingSoon = isCategoryComingSoon(key);
+      {/* 视角切换 */}
+      <div class="ai-leaderboard-tabs" role="tablist" aria-label="数据视角">
+        {VIEW_KEYS.map((key) => {
+          const meta = VIEWS[key];
+          const active = view === key;
           return (
             <button
               key={key}
               type="button"
               role="tab"
               aria-selected={active}
-              aria-disabled={comingSoon ? "true" : undefined}
-              title={comingSoon ? "该分类榜单暂未上线，敬请期待" : undefined}
-              class={`ai-leaderboard-tab${active ? " is-active" : ""}${comingSoon ? " is-coming-soon" : ""}`}
-              disabled={comingSoon}
-              onClick={() => {
-                if (comingSoon) return;
-                setCategory(key);
-              }}
+              class={`ai-leaderboard-tab${active ? " is-active" : ""}`}
+              onClick={() => setView(key)}
             >
               <span class="ai-leaderboard-tab__emoji" aria-hidden="true">{meta.emoji}</span>
               <span class="ai-leaderboard-tab__label">{meta.label}</span>
-              {comingSoon && (
-                <span class="ai-leaderboard-tab__badge" aria-label="即将上线">
-                  即将上线
-                </span>
-              )}
             </button>
           );
         })}
       </div>
 
       <div class="ai-leaderboard-filter-extra">
-        <label class="ai-leaderboard-select">
-          <span class="ai-leaderboard-select__label">维度</span>
-          <select
-            class="ai-leaderboard-select__input"
-            value={activeDimension.value}
-            onChange={(e) => setDimension(e.currentTarget.value)}
-          >
-            {DIMENSIONS.map((key) => (
-              <option key={key} value={key}>{DIMENSION_META[key].label}</option>
+        {/* Arena 视角：board chips */}
+        {view === "arena" && (
+          <div class="ai-leaderboard-chips" role="group" aria-label="Arena 分类">
+            {ARENA_BOARD_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                class={`ai-leaderboard-chip${activeBoard.value === key ? " is-active" : ""}`}
+                aria-pressed={activeBoard.value === key}
+                onClick={() => setBoard(key)}
+              >
+                {ARENA_BOARDS[key].label}
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        )}
 
+        {/* AA 视角：维度选择 */}
+        {view === "aa" && (
+          <label class="ai-leaderboard-select">
+            <span class="ai-leaderboard-select__label">排序</span>
+            <select
+              class="ai-leaderboard-select__input"
+              value={activeDim.value}
+              onChange={(e) => setDim(e.currentTarget.value)}
+            >
+              {AA_DIMENSION_KEYS.map((key) => (
+                <option key={key} value={key}>{AA_DIMENSIONS[key].label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {/* 厂商筛选 */}
         <label class="ai-leaderboard-select">
           <span class="ai-leaderboard-select__label">厂商</span>
           <select
@@ -106,6 +119,7 @@ export function LeaderboardFilterBar() {
           </select>
         </label>
 
+        {/* 排序方向 */}
         <button
           type="button"
           class={`ai-leaderboard-sortdir${sortDir.value === "asc" ? " is-asc" : ""}`}
@@ -116,6 +130,7 @@ export function LeaderboardFilterBar() {
           {sortDir.value === "asc" ? "↑ 升序" : "↓ 降序"}
         </button>
 
+        {/* 搜索 */}
         <div class="ai-leaderboard-search" role="search">
           <span class="ai-leaderboard-search__icon" aria-hidden="true">🔍</span>
           <input
@@ -142,6 +157,7 @@ export function LeaderboardFilterBar() {
           )}
         </div>
 
+        {/* 刷新 */}
         <button
           type="button"
           class="ai-leaderboard-refresh"

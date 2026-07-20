@@ -34,7 +34,7 @@ const DIMENSION_META = {
   price: { label: "输出价格", field: "aa", sortKey: "priceOutputPer1M" },
 };
 
-/** Top 15 主流厂商 + other 兜底（归一化见 normalizeVendor）。 */
+/** Top 20 主流厂商 + other 兜底（归一化见 normalizeVendor）。 */
 const VENDOR_META = {
   openai: { label: "OpenAI" },
   anthropic: { label: "Anthropic" },
@@ -51,13 +51,17 @@ const VENDOR_META = {
   tencent: { label: "腾讯" },
   baichuan: { label: "百川" },
   moonshot: { label: "月之暗面" },
+  bytedance: { label: "字节跳动" },
+  minimax: { label: "MiniMax" },
+  xiaomi: { label: "小米" },
+  "zero-one": { label: "零一万物" },
+  stepfun: { label: "阶跃星辰" },
   other: { label: "其他" },
 };
 
-/** vendor 别名 → 归一键（首期覆盖常见写法 + 中英文）。
- *  v2.83: 增加 AA 2026 数据归一 (SpaceXAI→xai, Z AI→zhipu 等)
- *  长尾单源小厂商 (StepFun / Inception / Nous Research / OpenBMB / 字节系 等)
- *  暂留 other 兜底, 待产品决策再扩 VENDOR_META. */
+/** vendor 别名 → 归一键（覆盖常见写法 + 中英文）。
+ *  v3.0: 补齐 Arena 实际出现的国产厂商 (Bytedance/MiniMax/Xiaomi/Z.ai)
+ *  + 常见变体 (doubao/abab/mimo/yi-/step 等). */
 const VENDOR_ALIASES = {
   "open ai": "openai",
   gpt: "openai",
@@ -79,6 +83,7 @@ const VENDOR_ALIASES = {
   chatglm: "zhipu",
   glm: "zhipu",
   "z ai": "zhipu",
+  "z.ai": "zhipu",
   zai: "zhipu",
   aws: "amazon",
   "microsoft research": "microsoft",
@@ -86,6 +91,32 @@ const VENDOR_ALIASES = {
   "baichuan intelligent": "baichuan",
   "moonshot ai": "moonshot",
   kimi: "moonshot",
+  // 字节跳动
+  bytedance: "bytedance",
+  "byte dance": "bytedance",
+  doubao: "bytedance",
+  "豆包": "bytedance",
+  字节: "bytedance",
+  "字节跳动": "bytedance",
+  // MiniMax
+  "minimax ai": "minimax",
+  "稀宇": "minimax",
+  "稀宇科技": "minimax",
+  abab: "minimax",
+  // 小米
+  "xiaomi ai": "xiaomi",
+  "小米": "xiaomi",
+  mimo: "xiaomi",
+  // 零一万物
+  "01.ai": "zero-one",
+  "01 ai": "zero-one",
+  "零一万物": "zero-one",
+  "yi-": "zero-one",
+  // 阶跃星辰
+  "step fun": "stepfun",
+  "stepfun ai": "stepfun",
+  "阶跃星辰": "stepfun",
+  "阶跃": "stepfun",
 };
 
 /**

@@ -1,71 +1,83 @@
 /**
  * src/renderer/ai-leaderboard/types.js
  *
- * 渲染端纯类型 + 常量（单一真源，对齐 main/ai-leaderboard/types.js 形状）。
+ * v3.0 重设计：双视角信息架构。
+ *
+ * 视角一「Arena 社区排名」— 数据源 Arena ELO，覆盖 text/vision/code 三 board，
+ *   每行必有 ELO 分数，不会出现空列。
+ * 视角二「AA 深度分析」— 数据源 Artificial Analysis (Free tier)，仅覆盖 LLM 端点，
+ *   提供 intelligence/coding/agentic index + speed + price。
  *
  * 约束（见架构 §4 / §5.6）：
  *  - 不依赖任何外部模块（不引入 api / store），保证纯函数可单测、绝不产生网络出口。
  *  - 所有字段默认值集中在此补全；组件与 store 严禁散落默认值。
  */
 
-/** 数据来源标记（同 games 的 'live'/'sample' 语义）。 */
+/** 数据来源标记。 */
 export const SOURCE = { LIVE: "live", SAMPLE: "sample", NONE: "none" };
 
-/**
- * 模型大类 → Arena board 映射 + 展示元数据。
- * 分类 Tabs 首期开启 5 个（团队拍板）：LLM / 多模态 / 代码 / 图像生成 / 视频。
- * 对应 Arena board: text / vision / code / text-to-image / video。
- */
-export const CATEGORY_META = {
-  llm: { key: "llm", label: "大语言模型", short: "LLM", emoji: "🧠", board: "text" },
-  multimodal: { key: "multimodal", label: "多模态", short: "多模态", emoji: "👁", board: "vision" },
-  code: { key: "code", label: "代码", short: "代码", emoji: "💻", board: "code" },
-  image: { key: "image", label: "图像生成", short: "图像", emoji: "🎨", board: "text-to-image" },
-  video: { key: "video", label: "视频", short: "视频", emoji: "🎬", board: "video" },
+/* ── 双视角定义 ── */
+
+export const VIEWS = {
+  arena: {
+    key: "arena",
+    label: "Arena 排名",
+    emoji: "🏆",
+    description: "社区盲测 ELO 排名",
+  },
+  aa: {
+    key: "aa",
+    label: "深度分析",
+    emoji: "📊",
+    description: "Artificial Analysis 客观评测（仅 LLM）",
+  },
 };
 
-/** 分类 Tab 展示顺序（固定）。 */
-export const CATEGORIES = ["llm", "multimodal", "code", "image", "video"];
+export const VIEW_KEYS = ["arena", "aa"];
 
-/**
- * 暂未上线的分类（架构 §13 Q4：图像 / 视频榜单数据稀疏，首期占位）。
- * Tab 仍可见以保留路线图，但禁用点击、不触发请求。
- */
-export const CATEGORIES_COMING_SOON = new Set(["image", "video"]);
+/* ── Arena 视角：board 子筛选 ── */
 
-/** 判断分类是否处于「即将上线」态。 */
-export function isCategoryComingSoon(key) {
-  return CATEGORIES_COMING_SOON.has(key);
-}
-
-/**
- * 评测维度元数据。
- * - kind: 决定 ModelRow 主分列如何格式化（elo 取整 / index 1 位小数 / pricePerf 代理）。
- * - sortKey: 本地 sortModels 提取排序值的字段（与 main ranking 通用处理一致）。
- */
-// v2.83: 维度按 AA Free tier 实际可填充字段重做.
-// 删除 math/reasoning (Free 0 覆盖), price_perf (公式藏了真实价格) → 拆 price.
-// 新增 agentic/speed/price (AA 真有的字段, 23%+/大部分/大部分 覆盖).
-// kind 决定 ModelRow 主分列如何格式化 + 是否升序 (价格/速度越低越优 → asc 合理).
-export const DIMENSION_META = {
-  elo: { key: "elo", label: "综合能力 ELO", field: "arena", sortKey: "score", kind: "elo" },
-  intelligence: { key: "intelligence", label: "智能指数", field: "aa", sortKey: "intelligenceIndex", kind: "index" },
-  coding: { key: "coding", label: "代码", field: "aa", sortKey: "codingIndex", kind: "index" },
-  agentic: { key: "agentic", label: "Agent 能力", field: "aa", sortKey: "agenticIndex", kind: "index" },
-  speed: { key: "speed", label: "生成速度", field: "aa", sortKey: "outputTokensPerSec", kind: "speed" },
-  price: { key: "price", label: "输出价格", field: "aa", sortKey: "priceOutputPer1M", kind: "price" },
+export const ARENA_BOARDS = {
+  text: { key: "text", label: "文本", category: "llm" },
+  vision: { key: "vision", label: "多模态", category: "multimodal" },
+  code: { key: "code", label: "代码", category: "code" },
 };
 
-/** 维度下拉顺序。价格/速度默认升序 (越低越优), 索引类默认降序. */
-export const DIMENSIONS = ["elo", "intelligence", "coding", "agentic", "speed", "price"];
+export const ARENA_BOARD_KEYS = ["text", "vision", "code"];
+
+/* ── AA 视角：可选排序维度 ── */
+
+export const AA_DIMENSIONS = {
+  intelligence: { key: "intelligence", label: "智能指数", kind: "index" },
+  coding: { key: "coding", label: "代码指数", kind: "index" },
+  agentic: { key: "agentic", label: "Agent 能力", kind: "index" },
+  speed: { key: "speed", label: "生成速度", kind: "speed" },
+  price: { key: "price", label: "输出价格", kind: "price" },
+};
+
+export const AA_DIMENSION_KEYS = ["intelligence", "coding", "agentic", "speed", "price"];
 
 /** 升序默认的维度 (低 = 优). */
 export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);
 
+/* ── 兼容旧主进程 IPC：category/dimension 映射 ── */
+
 /**
- * 厂商归一化元数据（Top 15 + other 兜底）。
- * 未知 vendor 归 'other'（筛选下拉可见）。
+ * 将视角 + 子筛选映射为主进程 IPC 需要的 {category, dimension}。
+ * Arena 视角：category 由 board 决定，dimension 固定 "elo"。
+ * AA 视角：category 固定 "llm"，dimension 由用户选择。
  */
+export function toIpcParams(view, boardOrDim) {
+  if (view === "arena") {
+    const board = ARENA_BOARDS[boardOrDim] || ARENA_BOARDS.text;
+    return { category: board.category, dimension: "elo" };
+  }
+  const dim = AA_DIMENSIONS[boardOrDim] ? boardOrDim : "intelligence";
+  return { category: "llm", dimension: dim };
+}
+
+/* ── 厂商 ── */
+
 export const VENDOR_META = {
   openai: { key: "openai", label: "OpenAI" },
   anthropic: { key: "anthropic", label: "Anthropic" },
@@ -82,37 +94,22 @@ export const VENDOR_META = {
   alibaba: { key: "alibaba", label: "阿里" },
   tencent: { key: "tencent", label: "腾讯" },
   baidu: { key: "baidu", label: "百度" },
+  bytedance: { key: "bytedance", label: "字节跳动" },
+  minimax: { key: "minimax", label: "MiniMax" },
+  xiaomi: { key: "xiaomi", label: "小米" },
+  "zero-one": { key: "zero-one", label: "零一万物" },
+  stepfun: { key: "stepfun", label: "阶跃星辰" },
+  moonshot: { key: "moonshot", label: "月之暗面" },
   other: { key: "other", label: "其他" },
 };
 
-/** 厂商筛选下拉选项（全部 + Top 15 + 其他）。 */
 export const VENDOR_OPTIONS = [
   { key: "all", label: "全部厂商" },
   ...Object.values(VENDOR_META).map((v) => ({ key: v.key, label: v.label })),
 ];
 
-/** 分类 Tab 列表（{key,label} 形态，供 FilterBar 直接 map）。 */
-export const CATEGORY_LIST = CATEGORIES.map((k) => ({
-  key: k,
-  label: (CATEGORY_META[k] || {}).label || k,
-}));
+/* ── 署名（AA 强制） ── */
 
-/** 维度下拉列表（{key,label} 形态）。 */
-export const DIMENSION_LIST = DIMENSIONS.map((k) => ({
-  key: k,
-  label: (DIMENSION_META[k] || {}).label || k,
-}));
-
-/** 厂商下拉列表（不含 'all'，FilterBar 自行加「全部厂商」）。 */
-export const VENDOR_LIST = Object.values(VENDOR_META).map((v) => ({
-  key: v.key,
-  label: v.label,
-}));
-
-/**
- * 署名清单（AA 强制，见架构 §12）。
- * 渲染层 Footer 无条件渲染 required=true 的 AA 署名（含可点击链接）。
- */
 export const ATTRIBUTION = {
   "artificial-analysis": {
     id: "artificial-analysis",
@@ -126,13 +123,13 @@ export const ATTRIBUTION = {
     url: "https://api.wulong.dev",
     required: false,
   },
-  "openrouter": {
+  openrouter: {
     id: "openrouter",
     text: "目录骨架：OpenRouter",
     url: "https://openrouter.ai",
     required: false,
   },
-  "sample": {
+  sample: {
     id: "sample",
     text: "示例数据（离线快照，非实时）",
     url: null,
@@ -140,7 +137,8 @@ export const ATTRIBUTION = {
   },
 };
 
-/** 常见厂商别名归一（raw 中文/带空格 → VENDOR_META key）。 */
+/* ── 归一化 ── */
+
 const VENDOR_ALIAS = {
   "阿里": "alibaba",
   "阿里通义": "qwen",
@@ -156,11 +154,6 @@ const VENDOR_ALIAS = {
   "google deepmind": "google",
 };
 
-/**
- * 归一化 vendor（raw → VENDOR_META key）。
- * @param {any} raw
- * @returns {string} VENDOR_META key 或 'other'
- */
 export function normalizeVendor(raw) {
   if (typeof raw !== "string" || !raw.trim()) return "other";
   const key = raw.trim().toLowerCase();
@@ -169,16 +162,21 @@ export function normalizeVendor(raw) {
   return "other";
 }
 
-/** slugifyVendor 与 normalizeVendor 语义一致（命名对齐 main）。 */
 export function slugifyVendor(raw) {
   return normalizeVendor(raw);
 }
 
-/**
- * 将任意 raw 对象规整为完整 AiModel（缺字段补默认值）。
- * @param {any} raw
- * @returns {object} AiModel
- */
+/** board key → Arena board name（兼容 format.js primaryValue 的 category→board 查找）。 */
+const CATEGORY_BOARD = {
+  llm: "text",
+  multimodal: "vision",
+  code: "code",
+  image: "text-to-image",
+  video: "video",
+};
+
+export { CATEGORY_BOARD };
+
 export function normalizeAiModel(raw) {
   if (!raw || typeof raw !== "object") {
     return {
@@ -198,17 +196,17 @@ export function normalizeAiModel(raw) {
   }
   const sources = raw.sources && typeof raw.sources === "object"
     ? {
-      arena: raw.sources.arena || "none",
-      aa: raw.sources.aa || "none",
-      openrouter: raw.sources.openrouter || "none",
-    }
+        arena: raw.sources.arena || "none",
+        aa: raw.sources.aa || "none",
+        openrouter: raw.sources.openrouter || "none",
+      }
     : { arena: "none", aa: "none", openrouter: "none" };
   return {
     id: typeof raw.id === "string" ? raw.id : "",
     name: typeof raw.name === "string" ? raw.name : "",
     vendor: normalizeVendor(raw.vendor),
     vendorRaw: typeof raw.vendorRaw === "string" ? raw.vendorRaw : null,
-    category: CATEGORY_META[raw.category] ? raw.category : "llm",
+    category: raw.category || "llm",
     license: typeof raw.license === "string" ? raw.license : null,
     arena: raw.arena && typeof raw.arena === "object" ? raw.arena : {},
     aa: raw.aa && typeof raw.aa === "object" ? raw.aa : null,
@@ -216,14 +214,11 @@ export function normalizeAiModel(raw) {
     sources,
     isSample: !!raw.isSample,
     fetchedAt: typeof raw.fetchedAt === "string" ? raw.fetchedAt : null,
+    rankDelta: typeof raw.rankDelta === "number" ? raw.rankDelta : null,
+    isNew: !!raw.isNew,
   };
 }
 
-/**
- * 规整 IPC 返回的 BoardResult（防御脏数据 / 缺字段）。
- * @param {any} res
- * @returns {object} BoardResult
- */
 export function normalizeBoardResult(res) {
   if (!res || typeof res !== "object") {
     return {

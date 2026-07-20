@@ -9,6 +9,7 @@
 
 const { setManagedInterval, clearManaged } = require("../timer-registry");
 const { getLeaderboard } = require("./aggregator");
+const { pruneOldCache } = require("./history");
 const { mainLog } = require("../log");
 
 const DAILY_MS = 24 * 60 * 60 * 1000;
@@ -30,6 +31,7 @@ function registerLeaderboardScheduler(deps = {}) {
   async function triggerNow() {
     try {
       await getLeaderboard({ force: false });
+      pruneOldCache(30);
       mainLog.info("[ai-leaderboard] daily sync ok");
     } catch (err) {
       mainLog.warn(`[ai-leaderboard] daily sync failed: ${err && err.message}`);
