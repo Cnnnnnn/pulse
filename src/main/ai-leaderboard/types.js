@@ -49,7 +49,10 @@ const VENDOR_META = {
   other: { label: "其他" },
 };
 
-/** vendor 别名 → 归一键（首期覆盖常见写法 + 中英文）。 */
+/** vendor 别名 → 归一键（首期覆盖常见写法 + 中英文）。
+ *  v2.83: 增加 AA 2026 数据归一 (SpaceXAI→xai, Z AI→zhipu 等)
+ *  长尾单源小厂商 (StepFun / Inception / Nous Research / OpenBMB / 字节系 等)
+ *  暂留 other 兜底, 待产品决策再扩 VENDOR_META. */
 const VENDOR_ALIASES = {
   "open ai": "openai",
   gpt: "openai",
@@ -61,12 +64,17 @@ const VENDOR_ALIASES = {
   "mistral ai": "mistral",
   "x.ai": "xai",
   grok: "xai",
+  "xai corp": "xai",
+  spacexai: "xai",
   "deepseek ai": "deepseek",
   alibaba: "qwen",
   "alibaba qwen": "qwen",
   tongyi: "qwen",
   "zhipu ai": "zhipu",
   chatglm: "zhipu",
+  glm: "zhipu",
+  "z ai": "zhipu",
+  zai: "zhipu",
   aws: "amazon",
   "microsoft research": "microsoft",
   hunyuan: "tencent",
