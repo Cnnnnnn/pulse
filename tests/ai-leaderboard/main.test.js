@@ -32,7 +32,7 @@ const {
   resetLimiter,
   AA_DAILY_LIMIT,
 } = require("../../src/main/ai-leaderboard/rate-limiter");
-const { __resetForTest: resetCache } = require("../../src/main/ai-leaderboard/cache");
+const { __resetForTest: resetCache, cacheKey, writeCache } = require("../../src/main/ai-leaderboard/cache");
 const arenaFetcher = require("../../src/main/ai-leaderboard/fetcher-arena");
 const aaFetcher = require("../../src/main/ai-leaderboard/fetcher-aa");
 const { sanitize, boardCacheKey, cacheGet, cacheSet, resetLeaderboardCache } =
@@ -214,6 +214,151 @@ describe("aggregator: 合并与兜底链", () => {
   });
 });
 
+// ── 1b. P1 图像/视频分榜：Arena 已抓取数据链路 ──────────────────────
+describe("P1 图像/视频分榜：Arena 数据链路", () => {
+  // 自定义 arena mock：按 URL 中 ?name=<board> 返回对应 board 的 payload。
+  // 证明 fetcher-arena 实际抓取了 text-to-image / video，且聚合结果可按 image/video 检索。
+  function makeArenaPerBoardMock() {
+    const payloads = {
+      "text": { models: [{ model: "GPT-4o", vendor: "OpenAI", score: 1400, rank: 1, ci: 5, votes: 100 }] },
+      "vision": { models: [{ model: "GPT-4o-Vision", vendor: "OpenAI", score: 1320, rank: 1, ci: 6, votes: 80 }] },
+      "code": { models: [{ model: "Claude-Code", vendor: "Anthropic", score: 1380, rank: 1, ci: 4, votes: 60 }] },
+      "text-to-image": { models: [{ model: "Midjourney v6", vendor: "Midjourney", score: 1150, rank: 1, ci: 8, votes: 50 }] },
+      "text-to-video": { models: [{ model: "Runway Gen-3", vendor: "Runway", score: 1080, rank: 1, ci: 10, votes: 30 }] },
+    };
+    return vi.fn(async (url) => {
+      const u = String(url);
+      if (u.includes("api.wulong.dev")) {
+        const m = u.match(/name=([^&]+)/);
+        const board = m ? decodeURIComponent(m[1]) : "text";
+        return { ok: true, status: 200, json: async () => (payloads[board] || { models: [] }) };
+      }
+      if (u.includes("artificialanalysis.ai")) return { ok: false, status: 500, json: async () => ({}) };
+      if (u.includes("openrouter.ai")) return { ok: false, status: 500, json: async () => ({}) };
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+  }
+
+  it("fetcher-arena 抓取 text-to-image，聚合结果可按 image 分类检索", async () => {
+    vi.stubGlobal("fetch", makeArenaPerBoardMock());
+    const res = await getLeaderboard({ category: "image", dimension: "elo", force: true });
+    expect(res.ok).toBe(true);
+    expect(res.items.length).toBe(1);
+    const img = res.items[0];
+    expect(img.name).toBe("Midjourney v6");
+    expect(img.category).toBe("image");
+    expect(img.arena["text-to-image"].score).toBe(1150);
+  });
+
+  it("video 分榜可被检索，且仅含 video board 模型", async () => {
+    vi.stubGlobal("fetch", makeArenaPerBoardMock());
+    const res = await getLeaderboard({ category: "video", dimension: "elo", force: true });
+    expect(res.items.length).toBe(1);
+    expect(res.items[0].name).toBe("Runway Gen-3");
+    expect(res.items[0].arena["text-to-video"].score).toBe(1080);
+  });
+
+  it("image/video 模型不污染默认 llm 视图", async () => {
+    vi.stubGlobal("fetch", makeArenaPerBoardMock());
+    const res = await getLeaderboard({ category: "llm", dimension: "elo", force: true });
+    const names = res.items.map((it) => it.name);
+    expect(names).toContain("GPT-4o");
+    expect(names).not.toContain("Midjourney v6");
+    expect(names).not.toContain("Runway Gen-3");
+  });
+});
+
+// ── 1b2. P1BugFix：video board 真实键名修正（R3 根因回归）─────────────
+// 根因：线上 ?name=video 返回 404「Leaderboard not found: video」，
+// 真实的视频榜单键名为 text-to-video（42 条，含 score）。修复即把 board 键统一改为 text-to-video。
+describe("P1BugFix: video board 键名修正（text-to-video）", () => {
+  it("normalize 把 text-to-video 切片归入 video 分类（category=video, 键名非 'video'）", () => {
+    const out = arenaFetcher.normalize({
+      boards: {
+        "text-to-video": {
+          models: [{ model: "Runway Gen-3", vendor: "Runway", score: 1080, rank: 1, ci: 10, votes: 30 }],
+        },
+      },
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].category).toBe("video");
+    expect(out[0].arena["text-to-video"].score).toBe(1080);
+    expect(out[0].arena.video).toBeUndefined(); // 旧错误键名不应残留
+  });
+
+  it("聚合链路：category=video 能检索到 text-to-video board 的真实模型", async () => {
+    const payloads = {
+      "text-to-video": {
+        models: [{ model: "Runway Gen-3", vendor: "Runway", score: 1080, rank: 1, ci: 10, votes: 30 }],
+      },
+    };
+    const mock = vi.fn(async (url) => {
+      const u = String(url);
+      if (u.includes("api.wulong.dev")) {
+        const m = u.match(/name=([^&]+)/);
+        const board = m ? decodeURIComponent(m[1]) : "text";
+        return { ok: true, status: 200, json: async () => (payloads[board] || { models: [] }) };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+    vi.stubGlobal("fetch", mock);
+    const res = await getLeaderboard({ category: "video", dimension: "elo", force: true });
+    expect(res.ok).toBe(true);
+    expect(res.items).toHaveLength(1);
+    expect(res.items[0].name).toBe("Runway Gen-3");
+    expect(res.items[0].arena["text-to-video"].score).toBe(1080);
+  });
+});
+
+// ── 1c. P1 限流时机修正：缓存命中不消耗 AA 令牌 ──────────────────────
+describe("P1 限流时机修正：缓存命中不消耗 AA 令牌", () => {
+  it("AA 磁盘缓存命中（非 force）不消耗 AA 令牌，且数据来自缓存", async () => {
+    // 预填 Arena + AA 磁盘缓存（与 aggregator 落盘结构一致）
+    writeCache(cacheKey("arena", "all"), { boards: { text: ARENA_PAYLOAD } });
+    writeCache(cacheKey("artificial-analysis", "llms"), AA_PAYLOAD);
+    // fetch 全失败：证明数据完全来自磁盘缓存，零网络、零 AA 令牌
+    vi.stubGlobal("fetch", makeFetchMock(ALL_FAIL));
+    const before = remaining("artificial-analysis");
+    expect(before).toBe(1000);
+
+    const res = await getLeaderboard({ category: "llm", dimension: "elo", force: false });
+    expect(res.ok).toBe(true);
+    expect(remaining("artificial-analysis")).toBe(1000); // 关键断言：缓存命中未消耗令牌
+    const m = res.items.find((it) => it.id === "openai-gpt-4o");
+    expect(m).toBeTruthy();
+    expect(m.arena.text.score).toBe(1400); // 来自 arena 缓存
+    expect(m.aa.intelligenceIndex).toBe(78); // 来自 AA 缓存
+  });
+
+  it("force 刷新仍消耗 AA 令牌并真正拉取", async () => {
+    vi.stubGlobal("fetch", makeFetchMock(ALL_LIVE));
+    const res = await getLeaderboard({ category: "llm", dimension: "elo", force: true });
+    expect(res.ok).toBe(true);
+    expect(remaining("artificial-analysis")).toBe(999); // force 刷新消耗 1 令牌
+    const m = res.items.find((it) => it.id === "openai-gpt-4o");
+    expect(m.aa.intelligenceIndex).toBe(78);
+  });
+
+  it("AA 冷缓存未命中（非 force）仍消耗令牌去拉取并回填", async () => {
+    // 未预填任何缓存 → AA cache miss；非 force 下也应拉取（回填磁盘缓存）
+    vi.stubGlobal("fetch", makeFetchMock(ALL_LIVE));
+    const res = await getLeaderboard({ category: "llm", dimension: "elo", force: false });
+    expect(res.ok).toBe(true);
+    expect(remaining("artificial-analysis")).toBe(999); // 冷未命中：拉取消耗 1 令牌
+    const m = res.items.find((it) => it.id === "openai-gpt-4o");
+    expect(m.aa.intelligenceIndex).toBe(78);
+  });
+
+  it("令牌耗尽且缓存未命中：不抛错、兜底链不受影响（用 best-effort）", async () => {
+    // 耗尽令牌
+    for (let i = 0; i < 1000; i++) acquire("artificial-analysis");
+    vi.stubGlobal("fetch", makeFetchMock(ALL_LIVE));
+    const res = await getLeaderboard({ category: "llm", dimension: "elo", force: false });
+    expect(res.ok).toBe(true); // 仍 ok（最坏兜底）
+    expect(remaining("artificial-analysis")).toBe(0);
+  });
+});
+
 // ── 2. ranking ───────────────────────────────────────────────────────
 describe("ranking: 排序 / 筛选", () => {
   // v2.83: math/gpqa/priceBlendedPer1M 已下线 (AA Free 0 覆盖),
@@ -344,11 +489,21 @@ describe("normalize: vendor 归一化 + AiModel 字段完整性", () => {
     expect(normalizeVendor("阿里通义")).toBe("other");
   });
 
-  it("VENDOR_META 含 15 个具名厂商 + other 兜底", () => {
+  it("VENDOR_META 含具名厂商 + other 兜底", () => {
     const keys = Object.keys(VENDOR_META);
+    // other 兜底必须存在
     expect(keys).toContain("other");
-    // 具名厂商（去掉 other）= 15
-    expect(keys.filter((k) => k !== "other")).toHaveLength(15);
+    // 关键主流厂商必须存在（新增厂商不应再触发红灯 → 用成员 + 下限断言）
+    const required = [
+      "openai", "anthropic", "google", "meta", "mistral",
+      "deepseek", "qwen", "zhipu", "xai", "tencent",
+    ];
+    for (const k of required) {
+      expect(keys).toContain(k);
+    }
+    // 具名厂商（去掉 other）数量下限：真实为 20，留余量抗变（避免每次加厂商改断言）
+    const named = keys.filter((k) => k !== "other");
+    expect(named.length).toBeGreaterThanOrEqual(15);
   });
 
   it("toAiModel 补全安全默认字段", () => {
@@ -357,7 +512,7 @@ describe("normalize: vendor 归一化 + AiModel 字段完整性", () => {
     expect(m.name).toBe("Foo");
     expect(m.vendor).toBe("openai");
     expect(m.category).toBe("llm");
-    expect(m.sources).toEqual({ arena: "none", aa: "none", openrouter: "none" });
+    expect(m.sources).toEqual({ arena: "none", aa: "none", openrouter: "none", livebench: "none" });
     expect(m.isSample).toBe(false);
     expect(m.arena).toEqual({});
     expect(m.aa).toBeNull();

@@ -20,6 +20,18 @@ function sortValue(item, dimension, board) {
     const b = item.arena && item.arena[board];
     return b && Number.isFinite(b.score) ? b.score : -Infinity;
   }
+  // lb_* 维度走 livebench 切片, sortKey 支持 dot path (e.g. "byCategory.Coding")
+  if (dimension && dimension.startsWith("lb_")) {
+    const lb = item.livebench;
+    if (!lb) return -Infinity;
+    const meta = DIMENSION_META[dimension];
+    const key = meta && meta.sortKey;
+    if (!key) return -Infinity;
+    const v = key.includes(".")
+      ? key.split(".").reduce((o, p) => (o ? o[p] : null), lb)
+      : lb[key];
+    return typeof v === "number" && Number.isFinite(v) ? v : -Infinity;
+  }
   const aa = item.aa;
   if (!aa) return -Infinity;
   // v2.83: 删除 price_perf 公式, 直接读 priceOutputPer1M (升序 = 越低越优)

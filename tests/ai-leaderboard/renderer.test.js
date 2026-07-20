@@ -40,7 +40,10 @@ vi.mock("../../src/renderer/api.js", () => ({
 }));
 
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, toIpcParams } from "../../src/renderer/ai-leaderboard/types.js";
+import { tableToMarkdown } from "../../src/renderer/ai-leaderboard/exportMarkdown.js";
 import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
+import { BoardHealthCard } from "../../src/renderer/ai-leaderboard/BoardHealthCard.jsx";
 
 afterEach(cleanup);
 
@@ -270,5 +273,111 @@ describe("LeaderboardTable 渲染", () => {
       }),
     );
     expect(screen.getByText("88.5")).toBeTruthy();
+  });
+});
+
+// ── P0 回归：BoardHealthCard 接线性（AiLeaderboardPage 现渲染 <BoardHealthCard total={count} />）──
+describe("BoardHealthCard 渲染（P0 回归）", () => {
+  it("total>0 且信号有值时渲染三源覆盖信息（证明读取 sourceCoverage/sources 信号）", () => {
+    store.sources.value = { arena: "live", aa: "sample", openrouter: "live", livebench: "live" };
+    store.sourceCoverage.value = { arena: 5, aa: 2, openrouter: 5, livebench: 3 };
+    render(h(BoardHealthCard, { total: 5 }));
+    const el = document.querySelector(".ai-lb-health");
+    expect(el).toBeTruthy();
+    // 四源 chip 全部渲染 (Arena + AA + OpenRouter + LiveBench)
+    expect(el.querySelectorAll(".ai-lb-health__chip").length).toBe(4);
+    // arena 为 live → 带 is-live（证明 sources 信号被读取且值正确）
+    expect(el.querySelector(".ai-lb-health__chip--blue.is-live")).toBeTruthy();
+    // aa 为 sample → 带 is-sample（证明 sources 信号被读取且值正确）
+    expect(el.querySelector(".ai-lb-health__chip--purple.is-sample")).toBeTruthy();
+    // 解释文字出现（数据源覆盖说明）
+    expect(el.querySelector(".ai-lb-health__note")).toBeTruthy();
+  });
+
+  it("total===0 时不渲染（return null，无空架子/断链）", () => {
+    store.sources.value = { arena: "live", aa: "live", openrouter: "live", livebench: "live" };
+    store.sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0 };
+    const { container } = render(h(BoardHealthCard, { total: 0 }));
+    expect(container.querySelector(".ai-lb-health")).toBeNull();
+  });
+});
+
+// ── P1 回归：图像/视频分榜（复用 Arena 已抓取数据，零 AA 成本）────────
+describe("P1 图像/视频分榜（Arena 视角）", () => {
+  it("ARENA_BOARDS 含 image/video，key 为 Arena board 名（text-to-image / video）", () => {
+    expect(ARENA_BOARDS.image).toEqual({ key: "text-to-image", label: "图像生成", category: "image" });
+    expect(ARENA_BOARDS.video).toEqual({ key: "text-to-video", label: "视频", category: "video" });
+    expect(ARENA_BOARD_KEYS).toContain("image");
+    expect(ARENA_BOARD_KEYS).toContain("video");
+    // 索引仍含原三 board，顺序在前（不改变现有默认）
+    expect(ARENA_BOARD_KEYS.indexOf("text")).toBe(0);
+    expect(ARENA_BOARD_KEYS.indexOf("image")).toBeGreaterThan(ARENA_BOARD_KEYS.indexOf("code"));
+  });
+
+  it("toIpcParams('arena','image') 映射为 {category:'image', dimension:'elo'}，交给主进程按 board 检索", () => {
+    expect(toIpcParams("arena", "image")).toEqual({ category: "image", dimension: "elo" });
+    expect(toIpcParams("arena", "video")).toEqual({ category: "video", dimension: "elo" });
+  });
+
+  it("Arena 视角按 board.key 过滤：image board 仅保留 text-to-image 切片模型", () => {
+    store.activeView.value = "arena";
+    store.activeBoard.value = "image";
+    store.items.value = [
+      mkModel({ id: "img", name: "Midjourney v6", arena: { "text-to-image": { score: 1150 } } }),
+      mkModel({ id: "txt", name: "GPT-4o", arena: { text: { score: 1400 } } }),
+      mkModel({ id: "vid", name: "Runway Gen-3", arena: { video: { score: 1080 } } }),
+    ];
+    const shown = store.getDisplayed();
+    expect(shown.map((m) => m.id)).toEqual(["img"]);
+  });
+
+  it("video board 过滤仅保留 video 切片模型", () => {
+    store.activeView.value = "arena";
+    store.activeBoard.value = "video";
+    store.items.value = [
+      mkModel({ id: "img", arena: { "text-to-image": { score: 1150 } } }),
+      mkModel({ id: "vid", arena: { "text-to-video": { score: 1080 } } }),
+    ];
+    const shown = store.getDisplayed();
+    expect(shown.map((m) => m.id)).toEqual(["vid"]);
+  });
+
+  it("setBoard('image') 合法且触发请求（image 已进入白名单）", async () => {
+    store.activeBoard.value = "text";
+    const p = store.setBoard("image");
+    expect(store.activeBoard.value).toBe("image");
+    expect(p).toBeDefined(); // 返回 _run promise
+  });
+});
+
+// ── P1 回归：exportMarkdown image/video 修正（直接断言 board 键正确，ELO 不再显示 «—»）──
+describe("P1 文本导出（exportMarkdown）image/video 修正", () => {
+  it("tableToMarkdown image board 用 ARENA_BOARDS['image'].key='text-to-image' 取数，ELO 正确显示", () => {
+    const rows = [
+      mkModel({ id: "img", name: "Midjourney v6", arena: { "text-to-image": { score: 1150, ci: 8, votes: 50 } } }),
+    ];
+    const md = tableToMarkdown({ rows, view: "arena", board: "image" });
+    expect(md).toContain("| Midjourney v6 |");
+    expect(md).toContain("| 1150 |"); // 正确取 text-to-image 切片分数
+    expect(md).not.toContain("—"); // 不再是空列（修复前的 bug）
+  });
+
+  it("tableToMarkdown video board 同理，用 board 键 'video' 取数", () => {
+    const rows = [
+      mkModel({ id: "vid", name: "Runway Gen-3", arena: { "text-to-video": { score: 1080, ci: 10, votes: 30 } } }),
+    ];
+    const md = tableToMarkdown({ rows, view: "arena", board: "video" });
+    expect(md).toContain("| Runway Gen-3 |");
+    expect(md).toContain("| 1080 |");
+    expect(md).not.toContain("—");
+  });
+
+  it("导出 text board 行为不被破坏（仍用 key 'text'）", () => {
+    const rows = [
+      mkModel({ id: "txt", name: "GPT-4o", arena: { text: { score: 1400, ci: 5, votes: 100 } } }),
+    ];
+    const md = tableToMarkdown({ rows, view: "arena", board: "text" });
+    expect(md).toContain("| 1400 |");
+    expect(md).not.toContain("—");
   });
 });

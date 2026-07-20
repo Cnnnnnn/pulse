@@ -38,7 +38,14 @@ function mergeModelSlices(slicesList) {
       if (!existing) {
         byKey.set(m.id, {
           ...m,
-          sources: { ...(m.sources || { arena: SOURCE.NONE, aa: SOURCE.NONE, openrouter: SOURCE.NONE }) },
+          sources: {
+            ...(m.sources || {
+              arena: SOURCE.NONE,
+              aa: SOURCE.NONE,
+              openrouter: SOURCE.NONE,
+              livebench: SOURCE.NONE,
+            }),
+          },
         });
         continue;
       }
@@ -49,11 +56,18 @@ function mergeModelSlices(slicesList) {
       if (m.openrouter) {
         existing.openrouter = { ...(existing.openrouter || {}), ...m.openrouter };
       }
+      if (m.livebench) {
+        existing.livebench = { ...(existing.livebench || {}), ...m.livebench };
+      }
       existing.sources.arena = _bestSource(existing.sources.arena, m.sources ? m.sources.arena : SOURCE.NONE);
       existing.sources.aa = _bestSource(existing.sources.aa, m.sources ? m.sources.aa : SOURCE.NONE);
       existing.sources.openrouter = _bestSource(
         existing.sources.openrouter,
         m.sources ? m.sources.openrouter : SOURCE.NONE,
+      );
+      existing.sources.livebench = _bestSource(
+        existing.sources.livebench,
+        m.sources ? m.sources.livebench : SOURCE.NONE,
       );
       if (!existing.vendorRaw && m.vendorRaw) existing.vendorRaw = m.vendorRaw;
       // 用 live 切片覆盖 sample 的展示名/vendor（sample 只是兜底占位）

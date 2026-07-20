@@ -16,7 +16,7 @@ const CATEGORY_META = {
   multimodal: { label: "多模态", board: "vision" },
   code: { label: "代码", board: "code" },
   image: { label: "图像生成", board: "text-to-image" },
-  video: { label: "视频", board: "video" },
+  video: { label: "视频", board: "text-to-video" },
 };
 
 /** 渲染层可排序的评测维度。field 决定读哪个切片，sortKey 决定具体字段。 */
@@ -26,12 +26,34 @@ const CATEGORY_META = {
  *  / price (AA 价, 大部分覆盖).
  *  Pro/Commercial 维 (math / gpqa) 后续如需复活, 在 this 顶部加 flag 控制可见性. */
 const DIMENSION_META = {
-  elo: { label: "综合能力 ELO", field: "arena", sortKey: "score" },
-  intelligence: { label: "智能指数", field: "aa", sortKey: "intelligenceIndex" },
-  coding: { label: "代码", field: "aa", sortKey: "codingIndex" },
-  agentic: { label: "Agent 能力", field: "aa", sortKey: "agenticIndex" },
-  speed: { label: "生成速度", field: "aa", sortKey: "outputTokensPerSec" },
-  price: { label: "输出价格", field: "aa", sortKey: "priceOutputPer1M" },
+  elo: { label: "Arena ELO", field: "arena", sortKey: "score" },
+  intelligence: { label: "Intelligence Index", field: "aa", sortKey: "intelligenceIndex" },
+  coding: { label: "Coding Index", field: "aa", sortKey: "codingIndex" },
+  agentic: { label: "Agentic Coding", field: "aa", sortKey: "agenticIndex" },
+  speed: { label: "Output Speed (tok/s)", field: "aa", sortKey: "outputTokensPerSec" },
+  price: { label: "Output Price ($/1M)", field: "aa", sortKey: "priceOutputPer1M" },
+  // LiveBench 抗污染客观榜 (livebench.ai GitHub Pages 静态 CSV, 月更新).
+  // aggregator.fetch 拿到后此维度展示; ranking.sortValue 走 livebench 切片.
+  lb_overall: {
+    label: "LiveBench Overall",
+    field: "livebench",
+    sortKey: "overall",
+  },
+  lb_coding: {
+    label: "LiveBench Coding",
+    field: "livebench",
+    sortKey: "byCategory.Coding",
+  },
+  lb_language: {
+    label: "LiveBench Language",
+    field: "livebench",
+    sortKey: "byCategory.Language",
+  },
+  lb_instfollow: {
+    label: "LiveBench Instruction Following",
+    field: "livebench",
+    sortKey: "byCategory.IF",
+  },
 };
 
 /** Top 20 主流厂商 + other 兜底（归一化见 normalizeVendor）。 */
@@ -66,8 +88,10 @@ const VENDOR_ALIASES = {
   "open ai": "openai",
   gpt: "openai",
   "anthropic pbc": "anthropic",
+  claude: "anthropic",
   "google deepmind": "google",
   "google llc": "google",
+  gemini: "google",
   "meta ai": "meta",
   facebook: "meta",
   "mistral ai": "mistral",
@@ -78,6 +102,7 @@ const VENDOR_ALIASES = {
   "deepseek ai": "deepseek",
   alibaba: "qwen",
   "alibaba qwen": "qwen",
+  qwen: "qwen",
   tongyi: "qwen",
   "zhipu ai": "zhipu",
   chatglm: "zhipu",
@@ -117,6 +142,13 @@ const VENDOR_ALIASES = {
   "stepfun ai": "stepfun",
   "阶跃星辰": "stepfun",
   "阶跃": "stepfun",
+  // LiveBench CSV 厂商 (livebench.ai/data 2026-06-25 release):
+  // minimax / anthropic / openai / google / xai / deepseek / moonshot / z-ai / alibaba / thinking machines / meta
+  // 上面别名已覆盖大多数; 这里补 LB 特有:
+  "thinking machines": "other",
+  "minimax ai": "minimax",
+  "z-ai": "zhipu",
+  "z.ai": "zhipu",
 };
 
 /**
@@ -136,6 +168,17 @@ function normalizeVendor(raw) {
     .trim();
   if (stripped && VENDOR_META[stripped]) return stripped;
   if (stripped && VENDOR_ALIASES[stripped]) return VENDOR_ALIASES[stripped];
+  // ponytail: 模型名前缀兜底 — LiveBench 等来源的 model 名直接以厂商起头 (gpt-5.6-sol-max / claude-4-7-xhigh / qwen3.7-max).
+  // 接受: key/alias 紧接分隔符 (- 或 空格) 或直接接数字 (qwen3 / gpt5) — 后者只对厂商名 + 数字 + 非字母场景.
+  // 升级路径: 想严格? 让 fetcher 自己存 vendorRaw, 此处只兜底.
+  for (const key of Object.keys(VENDOR_META)) {
+    if (s.startsWith(key + "-") || s.startsWith(key + " ")) return key;
+    if (s.startsWith(key) && /[0-9._]/.test(s[key.length])) return key;
+  }
+  for (const [alias, target] of Object.entries(VENDOR_ALIASES)) {
+    if (s.startsWith(alias + "-") || s.startsWith(alias + " ")) return target;
+    if (s.startsWith(alias) && /[0-9._]/.test(s[alias.length])) return target;
+  }
   return "other";
 }
 
@@ -191,6 +234,12 @@ const ATTRIBUTION = {
     url: "https://openrouter.ai/",
     required: false,
   },
+  livebench: {
+    id: "livebench",
+    text: "客观基准：LiveBench (https://livebench.ai), 数据来源：官方 GitHub Pages 静态 CSV",
+    url: "https://livebench.ai/",
+    required: false,
+  },
   sample: {
     id: "sample",
     text: "示例数据（离线快照，非实时）",
@@ -217,8 +266,14 @@ function toAiModel(raw) {
         arena: _sourceNorm(r.sources.arena),
         aa: _sourceNorm(r.sources.aa),
         openrouter: _sourceNorm(r.sources.openrouter),
+        livebench: _sourceNorm(r.sources.livebench),
       }
-    : { arena: SOURCE.NONE, aa: SOURCE.NONE, openrouter: SOURCE.NONE };
+    : {
+        arena: SOURCE.NONE,
+        aa: SOURCE.NONE,
+        openrouter: SOURCE.NONE,
+        livebench: SOURCE.NONE,
+      };
   return {
     id,
     name: String(r.name || "未知模型"),
@@ -230,6 +285,8 @@ function toAiModel(raw) {
     aa: r.aa && typeof r.aa === "object" ? r.aa : null,
     openrouter:
       r.openrouter && typeof r.openrouter === "object" ? r.openrouter : null,
+    livebench:
+      r.livebench && typeof r.livebench === "object" ? r.livebench : null,
     sources,
     isSample: Boolean(r.isSample),
     fetchedAt: r.fetchedAt || null,

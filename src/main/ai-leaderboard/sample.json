@@ -7,9 +7,24 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 3, "score": 1400, "ci": 6, "votes": 8500 },
-      "vision": { "rank": 2, "score": 1310, "ci": 8, "votes": 4200 },
-      "code": { "rank": 4, "score": 1280, "ci": 9, "votes": 3100 }
+      "text": {
+        "rank": 3,
+        "score": 1400,
+        "ci": 6,
+        "votes": 8500
+      },
+      "vision": {
+        "rank": 2,
+        "score": 1310,
+        "ci": 8,
+        "votes": 4200
+      },
+      "code": {
+        "rank": 4,
+        "score": 1280,
+        "ci": 9,
+        "votes": 3100
+      }
     },
     "aa": {
       "intelligenceIndex": 78,
@@ -34,8 +49,18 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 12, "score": 1310, "ci": 7, "votes": 6100 },
-      "vision": { "rank": 10, "score": 1220, "ci": 9, "votes": 2800 }
+      "text": {
+        "rank": 12,
+        "score": 1310,
+        "ci": 7,
+        "votes": 6100
+      },
+      "vision": {
+        "rank": 10,
+        "score": 1220,
+        "ci": 9,
+        "votes": 2800
+      }
     },
     "aa": {
       "intelligenceIndex": 65,
@@ -60,7 +85,12 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 1, "score": 1450, "ci": 8, "votes": 9000 }
+      "text": {
+        "rank": 1,
+        "score": 1450,
+        "ci": 8,
+        "votes": 9000
+      }
     },
     "aa": {
       "intelligenceIndex": 85,
@@ -85,9 +115,24 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 2, "score": 1420, "ci": 5, "votes": 9200 },
-      "vision": { "rank": 1, "score": 1330, "ci": 7, "votes": 4500 },
-      "code": { "rank": 1, "score": 1350, "ci": 8, "votes": 3400 }
+      "text": {
+        "rank": 2,
+        "score": 1420,
+        "ci": 5,
+        "votes": 9200
+      },
+      "vision": {
+        "rank": 1,
+        "score": 1330,
+        "ci": 7,
+        "votes": 4500
+      },
+      "code": {
+        "rank": 1,
+        "score": 1350,
+        "ci": 8,
+        "votes": 3400
+      }
     },
     "aa": {
       "intelligenceIndex": 82,
@@ -112,7 +157,12 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 6, "score": 1370, "ci": 6, "votes": 7800 }
+      "text": {
+        "rank": 6,
+        "score": 1370,
+        "ci": 6,
+        "votes": 7800
+      }
     },
     "aa": {
       "intelligenceIndex": 80,
@@ -137,8 +187,18 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 5, "score": 1380, "ci": 6, "votes": 8000 },
-      "vision": { "rank": 4, "score": 1280, "ci": 8, "votes": 3600 }
+      "text": {
+        "rank": 5,
+        "score": 1380,
+        "ci": 6,
+        "votes": 8000
+      },
+      "vision": {
+        "rank": 4,
+        "score": 1280,
+        "ci": 8,
+        "votes": 3600
+      }
     },
     "aa": {
       "intelligenceIndex": 76,
@@ -163,7 +223,12 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 9, "score": 1320, "ci": 7, "votes": 5200 }
+      "text": {
+        "rank": 9,
+        "score": 1320,
+        "ci": 7,
+        "votes": 5200
+      }
     },
     "aa": {
       "intelligenceIndex": 70,
@@ -188,8 +253,18 @@
     "category": "llm",
     "license": "Llama 3.1 Community",
     "arena": {
-      "text": { "rank": 8, "score": 1330, "ci": 6, "votes": 7000 },
-      "code": { "rank": 8, "score": 1230, "ci": 10, "votes": 2500 }
+      "text": {
+        "rank": 8,
+        "score": 1330,
+        "ci": 6,
+        "votes": 7000
+      },
+      "code": {
+        "rank": 8,
+        "score": 1230,
+        "ci": 10,
+        "votes": 2500
+      }
     },
     "aa": {
       "intelligenceIndex": 73,
@@ -214,7 +289,12 @@
     "category": "llm",
     "license": "Llama 3.1 Community",
     "arena": {
-      "text": { "rank": 15, "score": 1280, "ci": 7, "votes": 6600 }
+      "text": {
+        "rank": 15,
+        "score": 1280,
+        "ci": 7,
+        "votes": 6600
+      }
     },
     "aa": {
       "intelligenceIndex": 64,
@@ -239,7 +319,12 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 18, "score": 1260, "ci": 8, "votes": 4800 }
+      "text": {
+        "rank": 18,
+        "score": 1260,
+        "ci": 8,
+        "votes": 4800
+      }
     },
     "aa": {
       "intelligenceIndex": 68,
@@ -264,8 +349,18 @@
     "category": "llm",
     "license": "MIT",
     "arena": {
-      "text": { "rank": 7, "score": 1340, "ci": 7, "votes": 5600 },
-      "code": { "rank": 5, "score": 1280, "ci": 11, "votes": 2200 }
+      "text": {
+        "rank": 7,
+        "score": 1340,
+        "ci": 7,
+        "votes": 5600
+      },
+      "code": {
+        "rank": 5,
+        "score": 1280,
+        "ci": 11,
+        "votes": 2200
+      }
     },
     "aa": {
       "intelligenceIndex": 74,
@@ -290,8 +385,18 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 11, "score": 1315, "ci": 7, "votes": 5000 },
-      "vision": { "rank": 12, "score": 1200, "ci": 10, "votes": 2000 }
+      "text": {
+        "rank": 11,
+        "score": 1315,
+        "ci": 7,
+        "votes": 5000
+      },
+      "vision": {
+        "rank": 12,
+        "score": 1200,
+        "ci": 10,
+        "votes": 2000
+      }
     },
     "aa": {
       "intelligenceIndex": 71,
@@ -316,7 +421,12 @@
     "category": "llm",
     "license": "Qwen License",
     "arena": {
-      "text": { "rank": 22, "score": 1240, "ci": 9, "votes": 4200 }
+      "text": {
+        "rank": 22,
+        "score": 1240,
+        "ci": 9,
+        "votes": 4200
+      }
     },
     "aa": {
       "intelligenceIndex": 62,
@@ -341,7 +451,12 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 28, "score": 1210, "ci": 10, "votes": 2200 }
+      "text": {
+        "rank": 28,
+        "score": 1210,
+        "ci": 10,
+        "votes": 2200
+      }
     },
     "aa": {
       "intelligenceIndex": 58,
@@ -366,7 +481,12 @@
     "category": "llm",
     "license": "Proprietary",
     "arena": {
-      "text": { "rank": 35, "score": 1180, "ci": 11, "votes": 1800 }
+      "text": {
+        "rank": 35,
+        "score": 1180,
+        "ci": 11,
+        "votes": 1800
+      }
     },
     "aa": {
       "intelligenceIndex": 55,
