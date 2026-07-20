@@ -13,7 +13,7 @@ const { fetchJson, BROWSER_UA } = require("./normalize");
 const { SOURCE, toAiModel, slugifyModel, normalizeVendor } = require("./types");
 const { logFetchError } = require("../games/log");
 
-const AA_API = "https://artificialanalysis.ai/api/v2/language/models";
+const AA_API = "https://artificialanalysis.ai/api/v2/language/models/free";
 // 注: AA 不存在可信的 GitHub raw 镜像仓库, 主源失败直接走 aggregator 兜底链
 const AA_GITHUB_RAW = null;
 
@@ -77,6 +77,14 @@ function pickEval(ev, keys, d = 0) {
   return d;
 }
 
+/** 从 model_creator 提取 vendor string（兼容 {name} / string / 旧字段）。 */
+function pickCreatorName(d) {
+  const mc = d && d.model_creator;
+  if (mc && typeof mc === "object" && mc.name) return String(mc.name);
+  if (typeof mc === "string") return mc;
+  return d && (d.creator || d.org) ? String(d.creator || d.org) : "";
+}
+
 async function fetch(opts = {}) {
   const timeoutMs = opts && opts.timeoutMs;
   const key = loadAaKey();
@@ -106,7 +114,16 @@ async function fetch(opts = {}) {
 
 /**
  * 把 AA 原始 payload 归一化为 AiModel[]（仅填 aa 切片）。
- * @param {object} raw { data: [...] }
+ *
+ * AA Free tier 实际 schema (2026-07):
+ *   { data: [{ id, name, slug, release_date, model_creator:{id,name},
+ *              evaluations:{artificial_analysis_intelligence_index, ...coding_index, ...agentic_index},
+ *              pricing:{price_1m_input_tokens, price_1m_output_tokens, ...},
+ *              performance:{median_output_tokens_per_second, median_time_to_first_token_seconds, ...}
+ *            }] }
+ * 数学 / gpqa / hle 等字段 Free tier 不返回 → 0 (UI "暂无")。
+ * blended 价 Free tier 不返回 → 用 (input + output)/2 估算。
+ * @param {object} raw
  * @returns {object[]}
  */
 function normalize(raw) {
@@ -114,31 +131,54 @@ function normalize(raw) {
   const out = [];
   for (const d of list) {
     if (!d || !d.name) continue;
-    const creator = d.model_creator || d.creator || d.org || "";
-    const vendor = normalizeVendor(creator);
-    const id = slugifyModel(vendor, d.name);
+    const creatorName = pickCreatorName(d);
+    const vendor = normalizeVendor(creatorName);
+    const id = d.slug || slugifyModel(vendor, d.name);
     const ev = d.evaluations || d.eval || {};
     const pricing = d.pricing || {};
+    const perf = d.performance || {};
+    const priceIn = num(pricing.price_1m_input_tokens || pricing.input || pricing.input_per_1m);
+    const priceOut = num(pricing.price_1m_output_tokens || pricing.output || pricing.output_per_1m);
+    // Free tier 不给 blended — 用 (in+out)/2 兜底供 ranking.price_perf 用
+    const priceBlended = num(pricing.blended) || (priceIn + priceOut > 0 ? (priceIn + priceOut) / 2 : 0);
     const aa = {
-      intelligenceIndex: pickEval(ev, ["intelligence_index", "intelligenceIndex", "intelligence", "index"]),
-      codingIndex: pickEval(ev, ["coding_index", "codingIndex", "coding", "swe_bench", "swebench"]),
-      mathIndex: pickEval(ev, ["math_index", "mathIndex", "math", "aime", "math_500"]),
-      mmluPro: pickEval(ev, ["mmlu_pro", "mmluPro", "mmlu", "mmlu_5_shot"]),
-      gpqa: pickEval(ev, ["gpqa", "gpqa_diamond", "gpqa_0_shot"]),
-      hle: pickEval(ev, ["hle", "humanitys_last_exam"]),
-      liveCodeBench: pickEval(ev, ["live_code_bench", "liveCodeBench", "lcb"]),
-      priceInputPer1M: num(pricing.input || pricing.input_per_1m || pricing.price_input),
-      priceOutputPer1M: num(pricing.output || pricing.output_per_1m || pricing.price_output),
-      priceBlendedPer1M: num(pricing.blended || pricing.blended_per_1m || pricing.price_blended),
-      outputTokensPerSec: num(d.med_speed || d.output_tokens_per_sec || d.speed),
-      timeToFirstTokenSec: num(ev.time_to_first_token || ev.ttft || d.ttft),
+      intelligenceIndex: pickEval(ev, [
+        "artificial_analysis_intelligence_index",
+        "intelligence_index",
+        "intelligenceIndex",
+        "intelligence",
+      ]),
+      codingIndex: pickEval(ev, [
+        "artificial_analysis_coding_index",
+        "coding_index",
+        "codingIndex",
+        "coding",
+        "swe_bench",
+      ]),
+      agenticIndex: pickEval(ev, [
+        "artificial_analysis_agentic_index",
+        "agentic_index",
+        "agenticIndex",
+      ]),
+      // Free tier 不返回: math / gpqa / mmlu / hle / lcb — 保留 0
+      mathIndex: pickEval(ev, ["math_index", "mathIndex", "math"]),
+      gpqa: pickEval(ev, ["gpqa", "gpqa_diamond"]),
+      mmluPro: pickEval(ev, ["mmlu_pro", "mmlu"]),
+      hle: pickEval(ev, ["hle"]),
+      liveCodeBench: pickEval(ev, ["live_code_bench"]),
+      priceInputPer1M: priceIn,
+      priceOutputPer1M: priceOut,
+      priceBlendedPer1M: priceBlended,
+      outputTokensPerSec: num(perf.median_output_tokens_per_second || d.med_speed || d.output_tokens_per_sec),
+      timeToFirstTokenSec: num(perf.median_time_to_first_token_seconds || d.ttft),
+      endToEndSec: num(perf.median_end_to_end_response_time_seconds),
     };
     out.push(
       toAiModel({
         id,
         name: String(d.name),
         vendor,
-        vendorRaw: creator || null,
+        vendorRaw: creatorName || null,
         category: "llm",
         aa,
         sources: { arena: SOURCE.NONE, aa: SOURCE.LIVE, openrouter: SOURCE.NONE },

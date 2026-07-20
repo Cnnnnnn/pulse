@@ -119,7 +119,7 @@ npm run build:win
 | --- | --- | --- |
 | `GITHUB_TOKEN` | GitHub 收录 / Release 追踪：解除未登录 60 次/小时限流 | 仍可浏览，但频繁调用可能被 GitHub 限流 |
 | `ITAD_API_KEY` | 游戏优惠：Xbox（Microsoft Store）实时折扣 | Xbox 走示例数据；PlayStation / Switch 始终走示例数据 |
-| `ARTIFICIAL_ANALYSIS_API_KEY` | AI 榜单：客观分 / 价格 / 速度维度（每日 1000 次） | AA 维度回退 GitHub 社区快照；Arena 主源与 OpenRouter 仍可用 |
+| `ARTIFICIAL_ANALYSIS_API_KEY` | AI 榜单：客观分 / 价格 / 速度维度（Free tier 每日 100 次） | AA 维度回退 GitHub 社区快照；Arena 主源与 OpenRouter 仍可用 |
 
 ### AI 榜单模块
 
