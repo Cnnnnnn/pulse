@@ -970,54 +970,6 @@ body.platform-win .window-control-btn--close:hover {
   font-weight: 600;
 }
 
-.skeleton-container { padding: 16px 24px; }
-
-.skeleton-section { margin-bottom: 20px; }
-
-.skeleton-title {
-  width: 120px;
-  height: 12px;
-  background: var(--bg-hover);
-  border-radius: 4px;
-  margin-bottom: 16px;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 0;
-}
-
-.skeleton-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-hover);
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-text { flex: 1; }
-
-.skeleton-line {
-  height: 12px;
-  background: var(--bg-hover);
-  border-radius: 4px;
-  margin-bottom: 6px;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-line.short { width: 60%; }
-
-.skeleton-badge {
-  width: 80px;
-  height: 28px;
-  border-radius: 14px;
-  background: var(--bg-hover);
-  animation: shimmer 1.5s infinite;
-}
-
 @keyframes shimmer {
   0% { opacity: 0.5; }
   50% { opacity: 1; }

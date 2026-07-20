@@ -93,7 +93,7 @@ const WORD = {
   salah: '萨拉赫', kane: '凯恩', debruyne: '德布劳内', vinicius: '维尼修斯',
   bellingham: '贝林厄姆', rodri: '罗德里', pedri: '佩德里', gavi: '加维',
   casemiro: '卡塞米罗', alisson: '阿利松', ederson: '埃德森', neuer: '诺伊尔',
-  courtois: '库尔图瓦', van: '范', dijk: '迪克', hakimi: '阿什拉夫',
+  courtois: '库尔图瓦', hakimi: '阿什拉夫',
   son: '孙', kimmich: '基米希', musiala: '穆西亚拉', wirtz: '维尔茨',
   saka: '萨卡', rice: '赖斯', foden: '福登', grealish: '格拉利什',
   rashford: '拉什福德', sancho: '桑乔', mount: '芒特', sterling: '斯特林',
@@ -101,7 +101,7 @@ const WORD = {
   davies: '戴维斯', david2: '戴维', larin: '拉林', buchanan: '布坎南',
   chavez: '查韦斯', lozano: '洛萨诺', jimenez: '希门尼斯', ochoa: '奥乔亚',
   alvarez: '阿尔瓦雷斯', fernandez: '费尔南德斯', martinez: '马丁内斯',
-  romero: '罗梅罗', otamendi: '奥塔门迪', di: '迪', maria: '马里亚',
+  romero: '罗梅罗', otamendi: '奥塔门迪', maria: '马里亚',
   dybala: '迪巴拉', dybala2: '迪巴拉', acuna: '阿库尼亚', paredes: '帕雷德斯',
   depaul: '德保罗', macallister: '麦卡利斯特', alvarez2: '阿尔瓦雷斯',
   fernandez2: '恩佐', messi2: '梅西', dimaria: '迪马利亚',
@@ -224,11 +224,7 @@ function transliterateKorean(name) {
   if (KNOWN[name]) return KNOWN[name];
   const parts = name.split(/[\s-]+/);
   const sur = KR_SUR[parts[0]] || transliterateToken(parts[0]);
-  const given = parts.slice(1).map((p) => {
-    const k = `${parts[0]} ${name.includes('-') ? name.split('-').slice(1).join('-') : p}`;
-    if (KNOWN[name]) return '';
-    return transliterateToken(p);
-  }).join('');
+  const given = parts.slice(1).map((p) => transliterateToken(p)).join('');
   return sur + given;
 }
 

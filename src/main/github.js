@@ -25,9 +25,9 @@ function loadEnvGithubToken() {
   _envLoaded = true;
   if (process.env.GITHUB_TOKEN) return;
   try {
-    // eslint-disable-next-line global-require
+     
     const fs = require("fs");
-    // eslint-disable-next-line global-require
+     
     const path = require("path");
     const envPath = path.join(process.cwd(), ".env");
     if (!fs.existsSync(envPath)) return;

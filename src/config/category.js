@@ -136,7 +136,7 @@ function setData({ cats, map, source } = {}) {
   // 启动期 console 报告 (main + renderer 都会看到)
   const status = _LOAD_STATUS;
   if (status.warnings.length > 0) {
-    // eslint-disable-next-line no-console
+     
     console.warn('[category] load warnings:', status.warnings);
   }
 }

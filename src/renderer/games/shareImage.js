@@ -47,7 +47,8 @@ const ACCENT_COLOR = "oklch(80% 0.14 80)";
  * @param {Array<{rarity?:string|null}>} entries 收藏条目（用于稀有度分布）
  * @param {{total?:number,totalValue?:number,totalSaved?:number}} stats 收藏统计
  * @param {object} badgesEarned 已点亮徽章集合 { [id]: { earnedAt } }
- * @param {{tiers?:Array<{id:string,name:string,color:string}>,title?:string,template?:string}} [opts]
+ * @param {{tiers?:Array<{id:string,name:string,color:string}>,title?:string,template?:string,achievementsProgress?:object}} [opts]
+ *   opts.achievementsProgress 成就进度 { [id]: { unlocked, unlockedAt, current } }
  * @returns {{title:string,total:number,totalValue:number,totalSaved:number,rarityBreakdown:Array<{id:string,name:string,color:string,count:number}>,badgeCount:number,achievementCount:number,template:string}}
  */
 export function buildSharePayload(entries, stats, badgesEarned, opts = {}) {
@@ -78,6 +79,15 @@ export function buildSharePayload(entries, stats, badgesEarned, opts = {}) {
       ? Object.keys(badgesEarned).filter((k) => badgesEarned[k])
       : [];
 
+  // 成就解锁数：从 achievementsProgress 数 unlocked === true
+  const progress =
+    opts.achievementsProgress && typeof opts.achievementsProgress === "object"
+      ? opts.achievementsProgress
+      : {};
+  const achievementCount = Object.values(progress).filter(
+    (p) => p && p.unlocked === true,
+  ).length;
+
   return {
     title: opts.title || "我的游戏收藏墙",
     total: stats && typeof stats.total === "number" ? stats.total : 0,
@@ -85,7 +95,7 @@ export function buildSharePayload(entries, stats, badgesEarned, opts = {}) {
     totalSaved: stats && typeof stats.totalSaved === "number" ? stats.totalSaved : 0,
     rarityBreakdown,
     badgeCount: earnedKeys.length,
-    achievementCount: 0, // P1c 成就引擎接入后填充；P1b 仅徽章
+    achievementCount,
     template: opts.template || DEFAULT_SHARE_TEMPLATE,
   };
 }

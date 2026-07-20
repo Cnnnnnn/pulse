@@ -1,0 +1,86 @@
+classDiagram
+    class AiModel {
+        +string id
+        +string name
+        +string vendor
+        +ModelCategory category
+        +string license
+        +ArenaBoardScore arena
+        +AASlice aa
+        +OpenRouterSlice openrouter
+        +Sources sources
+        +boolean isSample
+        +string fetchedAt
+    }
+    class BoardResult {
+        +boolean ok
+        +items: AiModel[]
+        +sources
+        +Attribution[] attribution
+        +boolean stale
+        +boolean fromCache
+    }
+    class LeaderboardFetcher {
+        <<interface>>
+        +string id
+        +boolean requiresKey
+        +fetch(opts) RawFetchResult
+        +normalize(raw, ctx) AiModel[]
+    }
+    class ArenaFetcher
+    class AAFetcher
+    class OpenRouterFetcher
+    class SampleFetcher
+    class Aggregator {
+        +getLeaderboard(opts) BoardResult
+        -mergeModelSlices()
+    }
+    class Ranking {
+        +sortModels(items, dim, dir) AiModel[]
+        +filterByVendor(items, v) AiModel[]
+        +normalizeVendor(raw) string
+    }
+    class Cache {
+        +readCache(key) object
+        +writeCache(key, data) void
+        +isStale(ts, ttl) boolean
+    }
+    class RateLimiter {
+        +acquire(source) boolean
+        +remaining(source) number
+    }
+    class Scheduler {
+        +registerLeaderboardScheduler() handle
+    }
+    class LeaderboardStore {
+        +signals: activeCategory/dimension/vendor/items/...
+        +loadLeaderboard() void
+        +refresh() void
+        +setCategory/setDimension/setVendor() void
+        +hasSampleSource() boolean
+    }
+    class AiLeaderboardPage {
+        +render() VNode
+    }
+    class LeaderboardFilterBar
+    class LeaderboardTable
+    class ModelRow
+    class AttributionFooter
+
+    LeaderboardFetcher <|.. ArenaFetcher
+    LeaderboardFetcher <|.. AAFetcher
+    LeaderboardFetcher <|.. OpenRouterFetcher
+    LeaderboardFetcher <|.. SampleFetcher
+    Aggregator --> LeaderboardFetcher : 分派
+    Aggregator --> Cache : 读写
+    Aggregator --> RateLimiter : 节流
+    Aggregator --> Ranking : 排序
+    Aggregator ..> BoardResult
+    BoardResult o-- AiModel
+    Scheduler --> Aggregator : 每日触发
+    AiLeaderboardPage --> LeaderboardFilterBar
+    AiLeaderboardPage --> LeaderboardTable
+    AiLeaderboardPage --> AttributionFooter
+    LeaderboardTable --> ModelRow
+    LeaderboardStore ..> AiLeaderboardPage : 响应式
+    Aggregator ..> LeaderboardStore : IPC 回传

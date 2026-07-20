@@ -30,8 +30,6 @@ function pnlSign(n) {
 }
 
 export function DayBetFooter({ date, search = "" }) {
-  // 搜索态下不渲染 footer (专注比赛卡片, 不打扰)
-  if (search) return null;
   const entry = worldcupBets.value[date];
   const [editing, setEditing] = useState(false);
   const [stake, setStake] = useState("");
@@ -54,6 +52,10 @@ export function DayBetFooter({ date, search = "" }) {
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     };
   }, []);
+
+  // 搜索态下不渲染 footer (专注比赛卡片, 不打扰). early-return 必须在所有 hook 之后,
+  // 否则 hook 数量在不同渲染间不一致, 触发 react-hooks/rules-of-hooks runtime 错误.
+  if (search) return null;
 
   function openEdit() {
     setStake(entry ? String(entry.stake) : "");

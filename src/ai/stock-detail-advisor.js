@@ -722,7 +722,7 @@ async function aiStockDetailAnalyze(opts) {
       };
     }
     // parse 失败: 记录 LLM 原始输出 (前 500 字符) 便于排查
-    // eslint-disable-next-line no-console
+     
     console.warn(
       `[stock-detail-advisor] AI parse failed: code=${code} attempt=${attempt + 1}/${PARSE_RETRY_MAX + 1} ` +
       `elapsed=${Date.now() - t0}ms text_head=${(llm.text || "").slice(0, 500).replace(/\n/g, "⏎")}`,
@@ -732,7 +732,7 @@ async function aiStockDetailAnalyze(opts) {
   // 全部 retry 仍失败 → 走 _fallbackProseExtract 兜底, 至少展示一段 prose
   const fallback = _fallbackProseExtract(lastRaw || "");
   if (fallback) {
-    // eslint-disable-next-line no-console
+     
     console.warn(
       `[stock-detail-advisor] AI parse degrade: code=${code} 用兜底 prose 提取 (无结构化字段)`,
     );

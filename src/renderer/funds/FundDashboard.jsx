@@ -411,7 +411,6 @@ export function FundDashboard() {
             : ageMs < 30 * 60 * 1000
             ? "aging"
             : "stale";
-        const countdownMs = st.nextFetch ? st.nextFetch - nowTick.value : null;
         const totalMs = st.intervalMs || 5 * 60 * 1000;
         // 进度条: 已用 / 总间隔. 当数据正在拉取时, 显示"拉取中"满条.
         const inFlight = !!fundsRefreshing.value;

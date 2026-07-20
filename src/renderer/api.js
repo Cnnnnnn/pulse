@@ -32,7 +32,7 @@ function pick(overrides, name) {
   }
   if (IS_DEV && !warnedMissing.has(name)) {
     warnedMissing.add(name);
-    // eslint-disable-next-line no-console
+     
     console.warn(
       `[api] IPC bridge "${name}" missing — preload.js 未暴露或 window.api 未注入, ` +
         `fallback noop. 检查 preload.js contextBridge.exposeInMainWorld("api", { ... }).`,
@@ -230,6 +230,9 @@ export function createApi(overrides = {}) {
     getSteamLowest: pick(overrides, "getSteamLowest"),
     getItadLowest: pick(overrides, "getItadLowest"),
     getFx: pick(overrides, "getFx"),
+  // AI 榜单排名模块 (v2.82): 仅两个白名单通道
+  getLeaderboard: pick(overrides, "getLeaderboard"),
+  refreshLeaderboard: pick(overrides, "refreshLeaderboard"),
   };
 }
 

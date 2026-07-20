@@ -996,6 +996,7 @@ function saveTaskSummary(entry, statePath = defaultPath()) {
       "saveTaskSummary: entry.taskKey must be non-empty string",
     );
   }
+  _upsertAiTaskDoc(entry);
   return patchState((next, existing, now) => {
     const map = cleanExpiredTaskSummaries(existing.task_summaries || {}, now);
     map[entry.taskKey] = {
@@ -1005,7 +1006,6 @@ function saveTaskSummary(entry, statePath = defaultPath()) {
     };
     next.task_summaries = map;
   }, statePath);
-  _upsertAiTaskDoc(entry);
 }
 
 /**

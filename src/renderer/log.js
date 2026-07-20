@@ -15,6 +15,8 @@ const IS_DEV =
 function noop() {}
 
 function consoleBackend(prefix) {
+  // ponytail: log 库的核心就是薄包装 console[level], 这里集中调用无法避免
+  /* eslint-disable no-console */
   const fmt = (level) => (msg, ...rest) => {
     if (typeof console === "undefined" || !console[level]) return;
     const tag = prefix ? `${prefix} ` : "";
@@ -22,6 +24,7 @@ function consoleBackend(prefix) {
     else console[level](`${tag}${msg}`);
   };
   return { info: fmt("log"), warn: fmt("warn"), error: fmt("error") };
+  /* eslint-enable no-console */
 }
 
 const SILENT = { info: noop, warn: noop, error: noop };

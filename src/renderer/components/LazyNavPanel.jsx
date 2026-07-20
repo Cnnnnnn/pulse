@@ -21,6 +21,8 @@ const LOADERS = {
     import('../github/GithubLayout.jsx').then((m) => m.GithubLayout),
   games: () =>
     import('../games/GamesLayout.jsx').then((m) => m.GamesLayout),
+  'ai-leaderboard': () =>
+    import('../ai-leaderboard/AiLeaderboardLayout.jsx').then((m) => m.AiLeaderboardLayout),
 };
 
 export function LazyNavPanel({ nav, onCheck }) {

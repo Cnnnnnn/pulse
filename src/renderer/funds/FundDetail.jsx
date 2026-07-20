@@ -82,12 +82,6 @@ function fmtNum(v, dp = 4) {
     maximumFractionDigits: dp,
   });
 }
-function fmtPct(p) {
-  const v = Number(p);
-  if (!Number.isFinite(v)) return "—";
-  const sign = v > 0 ? "+" : "";
-  return `${sign}${v.toFixed(2)}%`;
-}
 function fmtSignedPct(p) {
   const v = Number(p);
   if (!Number.isFinite(v)) return "—";
@@ -95,14 +89,6 @@ function fmtSignedPct(p) {
   const arrow = v > 0 ? "▲" : "▼";
   const sign = v > 0 ? "+" : "";
   return `${arrow}${sign}${v.toFixed(2)}%`;
-}
-function fmtMarket(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return v.toLocaleString("zh-CN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 // 2026-07-14: 与 Dashboard fmtCurrency 对齐 — ¥ + 千分位 + 2 位小数 + 负号前缀
 //   ponytail: 复用同样的 localeZh / dp=2 习惯, 跨模块读数一致
@@ -306,7 +292,7 @@ export function FundDetail({ code }) {
     if (!haveRows && !alreadyTried) {
       void loadFundNavHistory(api, code, { days: requestedDays });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [code, range.value, navRange.value]);
 
   const fullSeries = useMemo(() => pickNavSeries(code), [code, navHistoryCache.value]);

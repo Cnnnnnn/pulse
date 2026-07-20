@@ -297,13 +297,21 @@ describe("buildSharePayload", () => {
       { id: "legendary", name: "传说", color: "var(--color-warning)" },
       { id: "epic", name: "史诗", color: "var(--color-info)" },
     ];
-    const p = shareImage.buildSharePayload(entries, stats, badges, { tiers, title: "我的墙" });
+    const p = shareImage.buildSharePayload(entries, stats, badges, {
+      tiers,
+      title: "我的墙",
+      achievementsProgress: {
+        ach1: { unlocked: true, unlockedAt: "2026-07-01", current: 5 },
+        ach2: { unlocked: false, unlockedAt: null, current: 2 },
+        ach3: { unlocked: true, unlockedAt: "2026-07-02", current: 10 },
+      },
+    });
     expect(p.title).toBe("我的墙");
     expect(p.total).toBe(4);
     expect(p.totalValue).toBe(500);
     expect(p.totalSaved).toBe(120);
     expect(p.badgeCount).toBe(2);
-    expect(p.achievementCount).toBe(0);
+    expect(p.achievementCount).toBe(2); // ach1 + ach3 unlocked
     const ids = p.rarityBreakdown.map((r) => r.id);
     expect(ids).toEqual(["epic", "legendary", "unranked"]);
     const epic = p.rarityBreakdown.find((r) => r.id === "epic");

@@ -413,6 +413,7 @@ const NAV_ICON = {
   invest: IconCoin,
   metals: IconMedal,
   'ai-usage': IconBarChart,
+  'ai-leaderboard': IconBarChart,
   versions: IconRefresh,
   github: IconLayers,
 };

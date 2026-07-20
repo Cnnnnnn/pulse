@@ -193,12 +193,20 @@
       "bundle": "Marvis.app",
       "win_bundle": "Marvis",
       "download_url": "https://marvis.qq.com",
-      "release_notes_url": "https://marvis.qq.com",
+      "release_notes_url": "https://marvis.qq.com/changelog",
       "bundle_changelog": true,
       "detectors": [
         {
           "type": "redirect_filename",
           "url": "https://marvis.qq.com/download/dmg"
+        },
+        {
+          "type": "html_changelog",
+          "url": "https://marvis.qq.com/changelog",
+          "section_pattern": "<section",
+          "section_end": "</section>",
+          "version_pattern": "v?(1\\.60\\.\\d+)",
+          "enrich_only": true
         },
         {
           "type": "winget_show",

@@ -12,6 +12,7 @@ const { inQuietHours } = require("../notification-policy");
 const stateStore = require("../state-store");
 const { buildRunCheckDeps } = require("../run-check-deps");
 const { setManagedInterval, clearManaged } = require("../timer-registry");
+const aiLeaderboard = require("../ai-leaderboard");
 
 // C4: 模块级 timer handle (跟 daily-summary-job 的 _handle 同构), 便于 __resetForTest 清理.
 const _autoCheckHandle = { interval: null };
@@ -429,7 +430,7 @@ function startSelfUpdateTimer(deps = {}) {
   let autoUpdater = deps.autoUpdater;
   if (!autoUpdater) {
     try {
-      // eslint-disable-next-line global-require
+       
       const mod = require("electron-updater");
       autoUpdater = mod.autoUpdater;
     } catch (err) {
@@ -571,7 +572,11 @@ function startSelfUpdateTimer(deps = {}) {
  *   (refreshScores 成功) fire, 跟 onGoal 独立. 透传给 goalWatcher.startGoalWatcher.
  *   tray pushWorldcupToTray 走这里, 替换之前的 60s setInterval 兜底轮询.
  */
+// 2026 世界杯已于 2026-07-19 结束。赛事结束后不再轮询外部 API（tray/digest
+// 的数据源已有日期过滤，不会显示过期比赛）。如需支持下届赛事，更新此日期。
+const WORLDCUP_2026_END_MS = Date.UTC(2026, 6, 20); // 7月20日 00:00 UTC（决赛次日）
 function startWorldcupGoalWatcher(deps) {
+  if (Date.now() >= WORLDCUP_2026_END_MS) return; // 赛事已结束，不启动后台轮询
   const { getWindow, sendToRenderer, getConfig, goalWatcher, onScoresChanged } =
     deps;
   try {
@@ -785,4 +790,32 @@ module.exports = {
   makeRefreshLastOpenedAfterCheck,
   startSelfUpdateTimer,
   makeSelfUpdateController,
+  startLeaderboardScheduler,
 };
+
+/**
+ * AI 榜单每日同步调度（graceful；失败不阻断启动）。
+ * 复用 ai-leaderboard 模块导出的 registerLeaderboardScheduler（封装 setManagedInterval），
+ * 启动延迟预暖 + before-quit 清理。
+ * @param {object} [deps]
+ * @returns {{start:function, stop:function, triggerNow:function}|null}
+ */
+function startLeaderboardScheduler(deps) {
+  try {
+    const handle = aiLeaderboard.registerLeaderboardScheduler(deps || {});
+    handle.start();
+    if (app && typeof app.once === "function") {
+      app.once("before-quit", () => {
+        try {
+          handle.stop();
+        } catch {
+          /* noop */
+        }
+      });
+    }
+    return handle;
+  } catch (err) {
+    mainLog.warn(`[ai-leaderboard] scheduler init failed: ${err && err.message}`);
+    return null;
+  }
+}

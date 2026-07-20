@@ -89,6 +89,7 @@ const {
   startAutoCheckTimer,
   makeRefreshLastOpenedAfterCheck,
   startSelfUpdateTimer,
+  startLeaderboardScheduler,
 } = require("./bootstrap/schedulers.js");
 const {
   createSender,
@@ -686,6 +687,8 @@ function startSchedulers(pushWorldcupToTray) {
     trayMgr,
     stateStore,
   });
+  // AI 榜单每日同步（启动延迟预暖 + 每日拉取；graceful）
+  startLeaderboardScheduler({});
 }
 
 async function bootstrap() {

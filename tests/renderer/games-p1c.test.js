@@ -492,6 +492,7 @@ describe("gamesStore：引擎重算 + 持久化 + stop", () => {
   });
 
   it("claimEvent 仅在 completed 时置 claimed（并持久化）", () => {
+    const stop = store.initCollectionEngines();
     let evId;
     act(() => {
       for (let i = 0; i < 3; i += 1) addEntry(`steam:c${i}`);
@@ -510,5 +511,6 @@ describe("gamesStore：引擎重算 + 持久化 + stop", () => {
     expect(store.eventsProgress.value[evId].claimed).toBe(true);
     const stored = JSON.parse(localStorage.getItem("pulse.games.events.progress.v1"));
     expect(stored[evId].claimed).toBe(true);
+    stop();
   });
 });

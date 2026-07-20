@@ -73,7 +73,7 @@ function buildSections(list) {
  */
 export const resultsBySection = computed(() => {
   // 显式订阅 results Map
-  // eslint-disable-next-line no-unused-expressions
+   
   results.value;
 
   const all = [];
@@ -204,7 +204,7 @@ export const tabCounts = computed(() => {
  */
 export const filteredResultsBySection = computed(() => {
   // 显式订阅
-  // eslint-disable-next-line no-unused-expressions
+   
   filteredResults.value;
   return buildSections(Array.from(filteredResults.value.values()));
 });

@@ -24,9 +24,11 @@ const path = require("path");
 
 function sanitize(name) {
   // ponytail: 文件名去掉路径分隔符 / 控制字符, 防用户输入奇怪的 defaultName.
-  return String(name || "诊断报告")
-    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_")
-    .slice(0, 80);
+  return String(name || "诊断报告").replace(
+    // eslint-disable-next-line no-control-regex
+    /[\\/:*?"<>|\u0000-\u001f]/g,
+    "_",
+  ).slice(0, 80);
 }
 
 function resolveDownloadsDir(electronApp) {

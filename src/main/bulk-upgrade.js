@@ -207,7 +207,7 @@ async function defaultExec(action) {
 
 function execBrew(cmd, args) {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { timeout: 0 }, (err, stdout, stderr) => {
+    childProcess.execFile(cmd, args, { timeout: 0 }, (err, stdout, stderr) => {
       const out = (stdout || "") + (stderr ? "\n[stderr]\n" + stderr : "");
       // brew upgrade 退出码:
       //   0 = 成功升级

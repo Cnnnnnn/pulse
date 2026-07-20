@@ -2147,201 +2147,6 @@ a.game-card__title::after {
   margin: 0;
 }
 
-/* ── 侧栏：文件夹 / 标签（P0-1/2）── */
-.coll-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.coll-section__title {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--text-tertiary);
-  letter-spacing: 0.04em;
-  margin: 0;
-}
-.coll-empty {
-  font-size: var(--font-size-sm);
-  color: var(--text-tertiary);
-  margin: 0;
-}
-.coll-all {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-primary);
-  font-size: var(--font-size-md);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-.coll-all.is-active {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: var(--games-text-inverse);
-}
-.coll-count {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-.coll-all.is-active .coll-count {
-  color: var(--games-text-inverse);
-}
-.coll-folders,
-.coll-tags {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.coll-folder {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-}
-.coll-folder.is-active {
-  border-color: var(--accent-primary);
-}
-.coll-folder__main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: var(--font-size-md);
-  cursor: pointer;
-  padding: 0;
-}
-.coll-folder__name {
-  font-weight: 500;
-}
-.coll-folder__edit {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.coll-input {
-  width: 100%;
-  padding: 6px var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-primary);
-  font-size: var(--font-size-md);
-}
-.coll-input--num {
-  width: 72px;
-}
-.coll-folder__target-label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-.coll-folder__edit-actions,
-.coll-folder__confirm-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-.coll-folder__actions {
-  display: flex;
-  justify-content: flex-end;
-}
-.coll-icon-btn {
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: var(--font-size-lg);
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-}
-.coll-icon-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-.coll-folder__confirm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm);
-}
-.coll-folder__confirm-text {
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  margin: 0;
-}
-.coll-folder__danger {
-  padding-top: var(--space-1);
-}
-.coll-new {
-  display: flex;
-  gap: var(--space-2);
-}
-.coll-tag {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-}
-.coll-tag.is-active {
-  background: color-mix(in oklch, var(--accent-primary) 14%, transparent);
-  border-color: var(--accent-primary);
-}
-.coll-tag__main {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: var(--font-size-md);
-  cursor: pointer;
-  padding: 0;
-}
-.coll-tag__name {
-  font-weight: 500;
-}
-.coll-tag__del {
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  font-size: var(--font-size-lg);
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-}
-.coll-tag__del:hover {
-  color: var(--color-danger);
-  background: var(--bg-hover);
-}
-.coll-mergeable {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  margin: 0;
-}
-
 /* ── 收藏卡扩展（P0-2/3/4/6）── */
 .game-card__fav {
   width: 44px;
@@ -2545,11 +2350,6 @@ a.game-card__title::after {
 }
 
 /* 收集模块焦点环（统一 a11y） */
-.coll-all:focus-visible,
-.coll-folder__main:focus-visible,
-.coll-icon-btn:focus-visible,
-.coll-tag__main:focus-visible,
-.coll-tag__del:focus-visible,
 .game-card__more:focus-visible,
 .game-card__menu-item:focus-visible,
 .game-card__tag-chip:focus-visible,
@@ -2558,8 +2358,7 @@ a.game-card__title::after {
 .game-card__split:focus-visible,
 .star-rating__star:focus-visible,
 .note-rating__textarea:focus-visible,
-.merge-modal__select:focus-visible,
-.coll-input:focus-visible {
+  .merge-modal__select:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
   border-radius: 2px;
@@ -2568,11 +2367,7 @@ a.game-card__title::after {
 @media (prefers-reduced-motion: reduce) {
   .game-card__fav,
   .game-card__more,
-  .game-card__merge-badge,
-  .coll-icon-btn,
-  .coll-all,
-  .coll-tag,
-  .coll-folder__main {
+  .game-card__merge-badge {
     transition: none;
   }
 }

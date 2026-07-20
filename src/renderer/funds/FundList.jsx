@@ -30,7 +30,7 @@ import {
   refreshWatchlist,
   watchlistItems,
 } from "../watchlist/watchlist-store.js";
-import { downloadCsv, safeFilename } from "../utils/csv.js";
+import { downloadCsv } from "../utils/csv.js";
 import { showToast } from "../store/toast-store.js";
 
 const TYPE_OPTIONS = ["全部", "股票", "债券", "货币", "QDII", "其他"];
@@ -61,12 +61,6 @@ function fmtMoney(n) {
   });
 }
 
-function fmtPct(p) {
-  const v = Number(p);
-  if (!Number.isFinite(v)) return "—";
-  const sign = v > 0 ? "+" : "";
-  return `${sign}${v.toFixed(2)}%`;
-}
 // 2026-07-14: 涨跌用 ▲▼ 前缀 — A 股习惯, 扫视时比单纯看颜色 + 符号更快
 //   ponytail: 0 不加箭头 (灰色), 正加 ▲, 负加 ▼, 后跟原值
 function fmtSignedPct(p) {
@@ -90,14 +84,6 @@ function fmtSignedCurrency(n) {
   })}`;
 }
 
-function fmtMarket(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return v.toLocaleString("zh-CN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 // 2026-07-14: ¥ + 千分位 + 2dp, 与 Dashboard / FundDetail fmtCurrency 一致
 //   ponytail: 同一个函数签名, 三处实现收敛, 视觉读数统一
 function fmtCurrency(n) {

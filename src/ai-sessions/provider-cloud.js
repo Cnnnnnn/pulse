@@ -121,7 +121,7 @@ class CloudSummarizer {
  * @param {object} opts.httpClient
  * @returns {Promise<{ok: boolean, error?: string, latencyMs?: number, status?: number}>}
  */
- async healthcheck({ provider, model, config, httpClient } = {}) {
+ async healthcheck({ config, httpClient } = {}) {
  if (!httpClient) return { ok: false, error: 'httpClient not provided' };
  const providerId = config && config.providerId;
  if (!providerId) return { ok: false, error: 'config.providerId required' };
@@ -192,7 +192,7 @@ class CloudSummarizer {
  * @param {object} [opts.meta]  透传 (dateKey / locale / sessionCount)
  * @returns {Promise<string>} markdown summary
  */
- async summarize({ messages, provider, model, config, httpClient, meta } = {}) {
+ async summarize({ messages, model, config, httpClient } = {}) {
  if (!httpClient) throw new TypeError('CloudSummarizer.summarize: httpClient not provided');
  if (!Array.isArray(messages) || messages.length ===0) {
  throw new TypeError('CloudSummarizer.summarize: messages must be non-empty array');

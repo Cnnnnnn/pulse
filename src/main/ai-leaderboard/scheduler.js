@@ -1,0 +1,77 @@
+/**
+ * src/main/ai-leaderboard/scheduler.js
+ *
+ * 主进程每日同步调度（封装 setManagedInterval）。
+ * 每日拉取一次（预暖缓存），失败 graceful（不阻断启动 / 不抛）。
+ *
+ * 与 bootstrap/schedulers.js 的其它调度器同构；由 main/index.js 在启动期注册。
+ */
+
+const { setManagedInterval, clearManaged } = require("../timer-registry");
+const { getLeaderboard } = require("./aggregator");
+const { mainLog } = require("../log");
+
+const DAILY_MS = 24 * 60 * 60 * 1000;
+
+let _handle = null;
+
+/**
+ * 注册 AI 榜单每日同步调度器。
+ * @param {object} [deps]
+ * @param {number} [deps.intervalMs] 默认 24h
+ * @returns {{start:function, stop:function, triggerNow:function}}
+ */
+function registerLeaderboardScheduler(deps = {}) {
+  const intervalMs =
+    typeof deps.intervalMs === "number" && deps.intervalMs > 0
+      ? deps.intervalMs
+      : DAILY_MS;
+
+  async function triggerNow() {
+    try {
+      await getLeaderboard({ force: false });
+      mainLog.info("[ai-leaderboard] daily sync ok");
+    } catch (err) {
+      mainLog.warn(`[ai-leaderboard] daily sync failed: ${err && err.message}`);
+    }
+  }
+
+  function start() {
+    if (_handle) return;
+    try {
+      _handle = setManagedInterval(
+        () => {
+          triggerNow().catch(() => {});
+        },
+        intervalMs,
+        {
+          label: "ai-leaderboard",
+          file: "src/main/ai-leaderboard/scheduler.js",
+          line: 0,
+        },
+      );
+      mainLog.info(
+        `[ai-leaderboard] scheduler started (every ${Math.round(intervalMs / 60000)}min)`,
+      );
+      // 启动延迟 60s 预暖（避免与启动 check 抢资源）
+      setTimeout(() => triggerNow().catch(() => {}), 60000);
+    } catch (err) {
+      mainLog.warn(`[ai-leaderboard] scheduler init failed: ${err && err.message}`);
+    }
+  }
+
+  function stop() {
+    if (_handle) {
+      try {
+        clearManaged(_handle);
+      } catch {
+        /* noop */
+      }
+      _handle = null;
+    }
+  }
+
+  return { start, stop, triggerNow };
+}
+
+module.exports = { registerLeaderboardScheduler, DAILY_MS };

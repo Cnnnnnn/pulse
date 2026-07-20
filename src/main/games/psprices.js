@@ -32,9 +32,9 @@ function loadEnvPspricesKey() {
   _envLoaded = true;
   if (process.env.PSPRICES_API_KEY) return;
   try {
-    // eslint-disable-next-line global-require
+     
     const fs = require("fs");
-    // eslint-disable-next-line global-require
+     
     const path = require("path");
     const envPath = path.join(process.cwd(), ".env");
     if (!fs.existsSync(envPath)) return;
@@ -120,25 +120,7 @@ async function fetchPlayStationDeals(opts = {}) {
   }
 }
 
-/**
- * 联调验证用（无 key）：拉 demo 端点，确认字段映射正确。
- * 绝不进入生产聚合路径。
- * @returns {Promise<object[]>}
- */
-async function fetchPlayStationDealsDemo() {
-  try {
-    const url = `${PSPRICES_BASE}/demo/?region=tr&collection=most-wanted-deals`;
-    const data = await fetchJson(url, { timeoutMs: 9000 });
-    const list = Array.isArray(data?.data) ? data.data : [];
-    return list.map(mapItem);
-  } catch (err) {
-    logFetchError("psprices:demo", err);
-    throw err;
-  }
-}
-
 module.exports = {
   fetchPlayStationDeals,
-  fetchPlayStationDealsDemo,
   PSPRICES_BASE,
 };

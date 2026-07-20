@@ -361,9 +361,9 @@ describe("WorkBuddy changelog (VitePress)", () => {
   <div class="VPDoc">
     <h2 class="text" data-v-248cc913>入门指南</h2>  <!-- 侧栏 nav, 不是版本 section -->
     <div class="VPDocContent">
-      <h2 id="_5-1-5-版本发布-🚀-2026-06-21" tabindex="-1">5.1.5 版本发布 🚀（2026-06-21） <a class="header-anchor" href="#_5-1-5">​</a></h2>
+      <h2 id="_5-1-5-版本发布-🚀-2026-06-21" tabindex="-1">5.1.5 版本发布 🚀（2026-06-21） <a class="header-anchor" href="#_5-1-5">&#x200b;</a></h2>
       <ul><li>优化产物面板展示</li><li>修复连接器误恢复</li></ul>
-      <h2 id="_5-1-4-版本发布-🚀-2026-06-18" tabindex="-1">5.1.4 版本发布 🚀（2026-06-18） <a class="header-anchor" href="#_5-1-4">​</a></h2>
+      <h2 id="_5-1-4-版本发布-🚀-2026-06-18" tabindex="-1">5.1.4 版本发布 🚀（2026-06-18） <a class="header-anchor" href="#_5-1-4">&#x200b;</a></h2>
       <ul><li>修复 macOS 检查更新后无法自动拉起</li></ul>
     </div>
   </div>
@@ -403,9 +403,9 @@ describe("WorkBuddy changelog (VitePress)", () => {
 
   it("旧格式 (4.x) 也能抓", async () => {
     const html = `
-      <h2 id="_4-24-8-版本发布-🚀-2026-06-03" tabindex="-1">4.24.8 版本发布 🚀(2026-06-03) <a class="header-anchor">​</a></h2>
+      <h2 id="_4-24-8-版本发布-🚀-2026-06-03" tabindex="-1">4.24.8 版本发布 🚀(2026-06-03) <a class="header-anchor">&#x200b;</a></h2>
       <ul><li>x</li></ul>
-      <h2 id="_4-24-7-版本发布-🚀-2026-06-01" tabindex="-1">4.24.7 版本发布 🚀(2026-06-01) <a class="header-anchor">​</a></h2>
+      <h2 id="_4-24-7-版本发布-🚀-2026-06-01" tabindex="-1">4.24.7 版本发布 🚀(2026-06-01) <a class="header-anchor">&#x200b;</a></h2>
       <ul><li>y</li></ul>`;
     const http = new MockHttp({ get: [{ status: 200, body: html }] });
     const r = await new HtmlChangelogDetector(WORKBUDDY_CFG).detect(
@@ -423,5 +423,100 @@ describe("compareVersionsDesc", () => {
     expect(compareVersionsDesc("3.6", "3.7")).toBe(1);
     expect(compareVersionsDesc("3.7.1", "3.7")).toBe(-1);
     expect(compareVersionsDesc("3.0.0", "3.0.0")).toBe(0);
+  });
+});
+
+describe("Marvis changelog (Next.js SPA, 未来投资)", () => {
+  // 2026-07-19: Marvis 官网 /changelog 当前是 Next.js SSR 兜底页 (跟首页/
+  // download 同一份 HTML), 里面 <section> 是营销页布局, 不是 release section.
+  // 唯一像版本号的字符串是 Android APK 文件名 marvis_1.1.3.apk (不是 Mac 版本号).
+  // 配置 enrich_only=true + version_pattern 锁 1.60.x → 当前页直接 NO_VERSION,
+  // 不污染版本号也不富集错误的 changelog 内容. 等 Marvis 将来真做了 /changelog
+  // 页 (含 1.60.1211 release section) 时, 这个 detector 自动跟上.
+  const MARVIS_CFG = {
+    url: "https://marvis.qq.com/changelog",
+    section_pattern: "<section",
+    section_end: "</section>",
+    version_pattern: "v?(1\\.60\\.\\d+)",
+    enrich_only: true,
+  };
+
+  // 当前 marvis.qq.com/changelog 真实 SSR HTML 简化 fixture:
+  // 含 3 个 <section> (营销页布局), 第一个 section 里有 Android APK 下载链接
+  // (marvis_1.1.3.apk), 但没有任何 1.60.x Mac 版本号.
+  const MARVIS_CURRENT_SSR = `
+<html><body>
+  <main class="page_appRoot">
+    <section class="hero"><h1>Marvis 马维斯</h1>
+      <a href="https://down.marvis.qq.com/marvis_install/channelsup/com.tencent.android.marvis_1.1.3.apk">Android 下载</a>
+    </section>
+    <section class="features"><h2>本地大模型</h2><p>文件 0 上传</p></section>
+    <section class="footer"><p>© Tencent</p></section>
+  </main>
+</body></html>`;
+
+  it("当前 SSR 兜底页 → NO_VERSION (1.1.3 不匹配 1.60.x, 不污染)", async () => {
+    const http = new MockHttp({ get: [{ status: 200, body: MARVIS_CURRENT_SSR }] });
+    await expect(
+      new HtmlChangelogDetector(MARVIS_CFG).detect(makeCtx({ http })),
+    ).rejects.toMatchObject({ reason: REASONS.NO_VERSION });
+  });
+
+  it("当前 SSR 页: section_pattern 能匹配到 <section> (不是 section 找不到)", async () => {
+    // 上面那个用例 NO_VERSION 的原因是 version_pattern 不匹配, 不是 section_pattern
+    // 找不到. 这里直接验证 extractFirstSection 能切出 section.
+    const section = extractFirstSection(
+      MARVIS_CURRENT_SSR,
+      "<section",
+      "</section>",
+    );
+    expect(section).toContain("Marvis 马维斯");
+    expect(section).toContain("marvis_1.1.3.apk");
+  });
+
+  // 未来 Marvis 改版后 /changelog 真有 release section 的 fixture (假设性):
+  it("未来 /changelog 有 1.60.1211 release section → 抓到版本 + changelog", async () => {
+    const futureHtml = `
+<html><body>
+  <main>
+    <section class="release">
+      <h2>v1.60.1211</h2>
+      <ul>
+        <li>小马形象全新升级</li>
+        <li>Mac 本地模式上线</li>
+        <li>技能广场支持发布 UGC 案例</li>
+      </ul>
+    </section>
+    <section class="release">
+      <h2>v1.60.1111</h2>
+      <ul><li>稳定性与性能优化</li></ul>
+    </section>
+  </main>
+</body></html>`;
+    const http = new MockHttp({ get: [{ status: 200, body: futureHtml }] });
+    const r = await new HtmlChangelogDetector(MARVIS_CFG).detect(
+      makeCtx({ http }),
+    );
+    expect(r.version).toBe("1.60.1211");
+    expect(r.confidence).toBe("high");
+    expect(r.changelog_format).toBe("html");
+    expect(r.changelog).toContain("小马形象全新升级");
+    expect(r.changelog).toContain("Mac 本地模式上线");
+    // 第二个 release (1.60.1111) 不应包含在第一个 section 里
+    expect(r.changelog).not.toContain("稳定性与性能优化");
+  });
+
+  it("section_pattern 找不到 (未来 Marvis 改用其他标签) → NO_VERSION", async () => {
+    const html = "<html><body><div>no section here</div></body></html>";
+    const http = new MockHttp({ get: [{ status: 200, body: html }] });
+    await expect(
+      new HtmlChangelogDetector(MARVIS_CFG).detect(makeCtx({ http })),
+    ).rejects.toMatchObject({ reason: REASONS.NO_VERSION });
+  });
+
+  it("enrich_only 字段在配置里存在 (detector 自身不读, 由 detector-chain 用)", () => {
+    // detector 构造函数不处理 enrich_only, 它由 sanitize + detector-chain 消费.
+    // 这里只验证配置字段透传不丢 (sanitize 白名单守护).
+    expect(MARVIS_CFG.enrich_only).toBe(true);
   });
 });

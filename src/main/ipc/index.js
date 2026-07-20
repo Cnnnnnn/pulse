@@ -36,6 +36,7 @@ const {
 } = require("./register-versions-overview");
 const { registerThemeHandlers } = require("./register-theme");
 const { registerGamesHandlers } = require("./register-games");
+const { registerLeaderboardHandlers } = require("./register-leaderboard");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -78,6 +79,7 @@ function registerIpcHandlers(deps) {
   registerVersionsOverviewHandlers(ctx); // Task 15: overview 5 数据源 + command palette
   registerThemeHandlers(ctx); // P10: 主进程 ↔ renderer 主题桥接 (托盘切换 + system 同步)
   registerGamesHandlers(ctx); // 游戏优惠聚合 (Steam/Epic 真实 + 主机示例兜底)
+  registerLeaderboardHandlers(ctx); // AI 榜单排名 (Arena + Artificial Analysis + 兜底链)
 }
 
 module.exports = { registerIpcHandlers };

@@ -35,9 +35,9 @@ function loadEnvItadKey() {
   _envLoaded = true;
   if (process.env.ITAD_API_KEY) return;
   try {
-    // eslint-disable-next-line global-require
+     
     const fs = require("fs");
-    // eslint-disable-next-line global-require
+     
     const path = require("path");
     const envPath = path.join(process.cwd(), ".env");
     if (!fs.existsSync(envPath)) return;

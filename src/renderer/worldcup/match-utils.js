@@ -6,7 +6,7 @@
 
 export function parseUtcOffsetHours(tz) {
   if (!tz || typeof tz !== "string") return 0;
-  const m = tz.match(/^UTC([+\-])(\d{1,2})$/);
+  const m = tz.match(/^UTC([+-])(\d{1,2})$/);
   if (!m) return 0;
   return m[1] === "+" ? -parseInt(m[2], 10) : parseInt(m[2], 10);
 }

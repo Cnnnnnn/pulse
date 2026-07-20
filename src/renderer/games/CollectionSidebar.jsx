@@ -6,7 +6,7 @@
  *
  * 可访问性：按钮均有焦点环；状态辅以文字；数值 tabular-nums；≥44px 触控热区。
  */
-import { useState } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import {
   folders,
   tags,
@@ -23,19 +23,9 @@ import {
 } from "./gamesStore.js";
 import { ProgressBar } from "./ProgressBar.jsx";
 
-/** 计算某文件夹下的条目数。 */
-function folderCount(id) {
-  return wishlist.value.filter((e) => e.folderId === id).length;
-}
-/** 计算含某标签的条目数。 */
-function tagCount(name) {
-  return wishlist.value.filter((e) => e.tags.includes(name)).length;
-}
-
-function FolderRow({ folder, active, onSelect }) {
+function FolderRow({ folder, count, active, onSelect }) {
   const [menu, setMenu] = useState(null); // 'name' | 'target' | 'delete' | null
   const [draft, setDraft] = useState("");
-  const count = folderCount(folder.id);
   const hasTarget = typeof folder.target === "number" && folder.target > 0;
   const percent = hasTarget ? Math.round((count / folder.target) * 100) : null;
 
@@ -191,10 +181,9 @@ function FolderRow({ folder, active, onSelect }) {
   );
 }
 
-function TagRow({ tag, active, onSelect }) {
+function TagRow({ tag, count, active, onSelect }) {
   const [menu, setMenu] = useState(null);
   const [draft, setDraft] = useState("");
-  const count = tagCount(tag.name);
 
   function commitName() {
     const v = draft.trim();
@@ -288,6 +277,19 @@ export function CollectionSidebar() {
 
   const filter = activeCollectionFilter.value;
 
+  // 单遍扫描：一次遍历 wishlist 同时算 folder + tag 计数（替代每行 .filter() 的 O(F×N + T×N)）
+  const tally = useMemo(() => {
+    const fc = {}; // folderId → count
+    const tc = {}; // tagName → count
+    for (const e of wishlist.value) {
+      if (e && e.folderId) fc[e.folderId] = (fc[e.folderId] || 0) + 1;
+      if (e && Array.isArray(e.tags)) {
+        for (const t of e.tags) tc[t] = (tc[t] || 0) + 1;
+      }
+    }
+    return { fc, tc };
+  }, [wishlist.value]);
+
   function selectFolder(id) {
     if (filter.type === "folder" && filter.id === id) {
       setCollectionFilter(null, null); // 再次点击取消筛选
@@ -373,6 +375,7 @@ export function CollectionSidebar() {
             <FolderRow
               key={f.id}
               folder={f}
+              count={tally.fc[f.id] || 0}
               active={filter.type === "folder" && filter.id === f.id}
               onSelect={selectFolder}
             />
@@ -425,6 +428,7 @@ export function CollectionSidebar() {
             <TagRow
               key={t.id}
               tag={t}
+              count={tally.tc[t.name] || 0}
               active={filter.type === "tag" && filter.id === t.name}
               onSelect={selectTag}
             />

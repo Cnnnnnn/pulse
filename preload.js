@@ -341,6 +341,9 @@ contextBridge.exposeInMainWorld("api", {
   getSteamLowest: (opts) => ipcRenderer.invoke("games:getSteamLowest", opts || {}),
   getItadLowest: (opts) => ipcRenderer.invoke("games:getItadLowest", opts || {}),
   getFx: (opts) => ipcRenderer.invoke("games:getFx", opts || {}),
+  // AI 榜单排名模块 (v2.82): 白名单双通道
+  getLeaderboard: (opts) => ipcRenderer.invoke("leaderboard:get", opts || {}),
+  refreshLeaderboard: (opts) => ipcRenderer.invoke("leaderboard:refresh", opts || {}),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

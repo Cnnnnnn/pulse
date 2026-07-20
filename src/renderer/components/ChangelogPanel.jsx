@@ -71,13 +71,19 @@ export function ChangelogPanel({ result }) {
     }
   }, [result && result.latest_version]);
 
-  // 源/url/历史都没有 → 整个 panel 都不渲染
-  if (!src && !url && history.length === 0 && !releaseUrl) return null;
-
-  // 当前选中显示的内容
+  // 当前选中显示的内容 (在 hook 之前计算, 避免 rules-of-hooks 违规)
   const isCurrent = view === 'current';
   const activeSrc = isCurrent ? src : (history[view] && history[view].changelog) || '';
   const activeUrl = isCurrent ? url : (history[view] && history[view].changelog_url) || '';
+  // 渲染好的 HTML 提前 memo (useMemo 必须在所有 early-return 之前调用)
+  const html = useMemo(
+    () => renderChangelog(activeSrc, format, activeUrl),
+    [activeSrc, format, activeUrl]
+  );
+
+  // 源/url/历史都没有 → 整个 panel 都不渲染
+  if (!src && !url && history.length === 0 && !releaseUrl) return null;
+
   const activeLabel = isCurrent
     ? ((result && result.changelog_source_version) ||
         (result && result.latest_version) ||
@@ -101,11 +107,6 @@ export function ChangelogPanel({ result }) {
       </div>
     );
   }
-
-  const html = useMemo(
-    () => renderChangelog(activeSrc, format, activeUrl),
-    [activeSrc, format, activeUrl]
-  );
 
   return (
     <div class="changelog-panel">

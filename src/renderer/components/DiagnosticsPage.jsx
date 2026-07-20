@@ -139,7 +139,7 @@ export function DiagnosticsPage() {
     if (!api.selfUpdateInstall) return;
     const r = await api.selfUpdateInstall();
     if (r && !r.ok) {
-      // eslint-disable-next-line no-alert
+       
       window.alert(`退出并安装失败: ${r.error || r.reason || "未知错误"}`);
     }
   };

@@ -165,7 +165,7 @@ test("wechat-hot tab — light theme baseline (cooldown 倒计时 UI)", async ({
     // stub Date.now 让 cooldown 倒计时稳定 (WechatHotHeader useNowTick(1000) 每秒刷)
     const fixed = new Date("2026-07-09T10:00:00Z").getTime();
     const _Date = window.Date;
-    // eslint-disable-next-line no-global-assign
+     
     window.Date = class extends _Date {
       constructor(...args) {
         if (args.length === 0) super(fixed);

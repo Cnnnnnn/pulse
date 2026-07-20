@@ -12,7 +12,6 @@
  *
  * ceiling: 腾讯 PE/PB 是动态值, 跟历史分位口径不同, 阈值保持一致但显示文字要留意.
  */
-const f10 = require("./_shared-f10");
 
 const PUSH2_URL = "https://push2.eastmoney.com/api/qt/stock/get";
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
@@ -42,7 +41,7 @@ async function fetchValuation(httpClient, { code }) {
         if (Number.isFinite(pbRaw) && pbRaw > 0) pbDirect = pbRaw;
       }
     }
-  } catch (_) {
+  } catch {
     /* fall through */
   }
 
@@ -82,7 +81,7 @@ async function fetchValuation(httpClient, { code }) {
           }
         }
       }
-    } catch (_) {
+    } catch {
       /* fall through */
     }
   }
@@ -111,7 +110,7 @@ async function fetchValuation(httpClient, { code }) {
           }
         }
       }
-    } catch (_) {
+    } catch {
       /* fall through */
     }
   }
@@ -147,7 +146,7 @@ function round2(v) {
 function safeJsonParse(s) {
   try {
     return JSON.parse(s);
-  } catch (_) {
+  } catch {
     return null;
   }
 }

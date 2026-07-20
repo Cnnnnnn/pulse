@@ -72,4 +72,4 @@ function getSampleDeals(platform) {
   return SAMPLE_BY_PLATFORM[platform] ? SAMPLE_BY_PLATFORM[platform].slice() : [];
 }
 
-module.exports = { getSampleDeals, XBOX, PLAYSTATION, SWITCH };
+module.exports = { getSampleDeals };

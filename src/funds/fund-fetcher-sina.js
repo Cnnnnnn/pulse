@@ -15,7 +15,7 @@ const SINA_REFERER = "https://finance.sina.com.cn";
  */
 function parseSinaFundLine(body) {
   if (typeof body !== "string" || !body.length) return null;
-  const m = body.match(/=\"([^\"]*)\"/);
+  const m = body.match(/="([^"]*)"/);
   if (!m || !m[1]) return null;
   const parts = m[1].split(",");
   if (parts.length < 6) return null;

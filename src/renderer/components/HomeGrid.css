@@ -249,6 +249,7 @@
 .home-grid-tile-purple { --tile-accent: oklch(60% 0.18 300); }
 .home-grid-tile-pink   { --tile-accent: oklch(66% 0.19 350); }
 .home-grid-tile-indigo { --tile-accent: oklch(58% 0.18 270); }
+.home-grid-tile-teal   { --tile-accent: oklch(64% 0.14 195); }
 
 /* ============================================================
  * 暗色模式微调 (背景 fallback 透明度适配)

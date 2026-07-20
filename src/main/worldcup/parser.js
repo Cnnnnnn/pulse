@@ -113,7 +113,7 @@ function parseMatchLine(line) {
   if (noteIdx >= 0) rest = rest.slice(0, noteIdx).trimEnd();
 
   // 3. 解析时间头
-  const head = rest.match(/^(\d{1,2}:\d{2})(?:\s+(UTC[+\-]\d{1,2}))?\s+(.+)$/);
+  const head = rest.match(/^(\d{1,2}:\d{2})(?:\s+(UTC[+-]\d{1,2}))?\s+(.+)$/);
   if (!head) return null;
 
   const time = head[1];

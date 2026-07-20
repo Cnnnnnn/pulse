@@ -1136,11 +1136,8 @@ export function bumpMetric(name) {
   try {
     const next = bumpMetricPure(metrics.peek(), name);
     metrics.value = next;
-    try {
-      writeStorage(METRICS_KEY, JSON.stringify(next));
-    } catch {
-      /* 落盘失败不抛，信号已更新 */
-    }
+    // 持久化由 initCollectionEngines 的 debounced effect 处理（500ms 静默后写盘），
+    // 避免连续微操作（连续打标签/评分）时每次都同步写 localStorage。
   } catch {
     /* 任何异常吞掉，绝不破坏主流程 */
   }
@@ -1227,32 +1224,16 @@ function _persistAchProgress() {
   }
 }
 
-/** 立即重算成就进度（基于当前 wishlist + 合并定义），并落盘。 */
-function recomputeAchievements() {
-  try {
-    const next = evaluateAchievements(
-      wishlist.peek(),
-      [...DEFAULT_ACHIEVEMENTS, ...achievementsDef.value],
-      achievementsProgress.peek(),
-    );
-    achievementsProgress.value = next;
-    _persistAchProgress();
-  } catch {
-    /* 任何异常吞掉，绝不破坏主流程 */
-  }
-}
-
-/** 新增用户成就，返回新 id。 */
+/** 新增用户成就，返回新 id。进度重算由 initCollectionEngines 的 effect 自动处理。 */
 export function addAchievement(def) {
   const clean = normalizeAchDef(def);
   if (!clean) return null;
   achievementsDef.value = [...achievementsDef.value, clean];
   _persistAchDef();
-  recomputeAchievements();
   return clean.id;
 }
 
-/** 更新用户成就（id 不变），重算进度并落盘。 */
+/** 更新用户成就（id 不变）。进度重算由 effect 自动处理。 */
 export function updateAchievement(id, patch) {
   if (!id) return;
   let found = false;
@@ -1263,15 +1244,13 @@ export function updateAchievement(id, patch) {
   });
   if (!found) return;
   _persistAchDef();
-  recomputeAchievements();
 }
 
-/** 删除用户成就，重算进度并落盘。 */
+/** 删除用户成就。进度重算由 effect 自动处理。 */
 export function deleteAchievement(id) {
   if (!id) return;
   achievementsDef.value = achievementsDef.value.filter((d) => d.id !== id);
   _persistAchDef();
-  recomputeAchievements();
 }
 
 // ── 限时活动（P1c · D）──
@@ -1336,32 +1315,16 @@ function _persistEventsProgress() {
   }
 }
 
-/** 立即重算活动进度（基于当前 wishlist + 合并配置），并落盘。 */
-function recomputeEvents() {
-  try {
-    const next = evaluateEvents(
-      wishlist.peek(),
-      [...DEFAULT_EVENTS, ...eventsConfig.value],
-      eventsProgress.peek(),
-    );
-    eventsProgress.value = next;
-    _persistEventsProgress();
-  } catch {
-    /* 任何异常吞掉，绝不破坏主流程 */
-  }
-}
-
-/** 新增用户活动，返回新 id。 */
+/** 新增用户活动，返回新 id。进度重算由 initCollectionEngines 的 effect 自动处理。 */
 export function addEvent(cfg) {
   const clean = normalizeEventDef(cfg);
   if (!clean) return null;
   eventsConfig.value = [...eventsConfig.value, clean];
   _persistEventsConfig();
-  recomputeEvents();
   return clean.id;
 }
 
-/** 更新用户活动（id 不变），重算进度并落盘。 */
+/** 更新用户活动（id 不变）。进度重算由 effect 自动处理。 */
 export function updateEvent(id, patch) {
   if (!id) return;
   let found = false;
@@ -1372,15 +1335,13 @@ export function updateEvent(id, patch) {
   });
   if (!found) return;
   _persistEventsConfig();
-  recomputeEvents();
 }
 
-/** 删除用户活动，重算进度并落盘。 */
+/** 删除用户活动。进度重算由 effect 自动处理。 */
 export function deleteEvent(id) {
   if (!id) return;
   eventsConfig.value = eventsConfig.value.filter((c) => c.id !== id);
   _persistEventsConfig();
-  recomputeEvents();
 }
 
 /**
@@ -1463,6 +1424,23 @@ export function initCollectionEngines() {
       } catch {
         /* 落盘失败不抛，信号已更新 */
       }
+    }),
+  );
+
+  // 本地埋点持久化（debounce 500ms）：bumpMetric 只更新 signal，
+  // 连续微操作静默 500ms 后统一写一次 localStorage。
+  let _metricsTimer = null;
+  stops.push(
+    effect(() => {
+      const m = metrics.value;
+      if (_metricsTimer) clearTimeout(_metricsTimer);
+      _metricsTimer = setTimeout(() => {
+        try {
+          writeStorage(METRICS_KEY, JSON.stringify(m));
+        } catch {
+          /* 落盘失败不抛 */
+        }
+      }, 500);
     }),
   );
 

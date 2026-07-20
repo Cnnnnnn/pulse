@@ -9,7 +9,7 @@
  *    （title / startAt / endAt / dimension / target / threshold），领取经 claimEvent 持久化。
  *  - a11y：横幅/历史项带中文 aria-label；按钮可聚焦、≥44px 触控；弹窗 role=dialog。
  */
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { ModalShell } from "../components/ModalShell.jsx";
 import { ProgressBar } from "./ProgressBar.jsx";
 import { DEFAULT_EVENTS, isEventActive } from "./eventsEngine.js";
@@ -52,7 +52,14 @@ function windowText(cfg, now) {
 }
 
 export function EventBanner() {
-  const now = Date.now();
+  // 定期刷新 now，让活动窗口到期后自动从"进行中"切到"已结束"
+  // （否则 now 只在 render 时算一次，过期后仍显示"进行中"直到下次无关重渲染）
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const configs = [...DEFAULT_EVENTS, ...eventsConfig.value];
   const progress = eventsProgress.value || {};
 

@@ -49,7 +49,7 @@ function __resetForTest() {
 function _tryGetSafeStorage() {
  if (_safeStorageOverride) return _safeStorageOverride;
  try {
- // eslint-disable-next-line global-require
+  
  return require('electron').safeStorage;
  } catch {
  return null;
@@ -59,7 +59,7 @@ function _tryGetSafeStorage() {
 function _tryGetUserDataDir() {
  if (_userDataDirOverride) return _userDataDirOverride;
  try {
- // eslint-disable-next-line global-require
+  
  const { app } = require('electron');
  return app.getPath('userData');
  } catch {

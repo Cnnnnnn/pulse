@@ -33,7 +33,6 @@ async function fetchNewsBuzz(httpClient, { code }) {
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
   const emUrl = `${NEWS_URL}?client=wap&type=1&pageSize=20&pageIndex=1&mTypeAndCode=${secid}&_=${Date.now()}`;
   let emFetchOk = false;
-  let emParseOk = false;
   try {
     const primary = await httpClient.get(emUrl);
     emFetchOk = primary && primary.status === 200 && primary.body;
@@ -45,9 +44,8 @@ async function fetchNewsBuzz(httpClient, { code }) {
           : primary.body;
       const out = parseEmNews(bodyObj);
       if (out) return { ok: true, data: out };
-      emParseOk = false;
     }
-  } catch (e) {
+  } catch {
     /* fall through */
   }
 
@@ -69,7 +67,7 @@ async function fetchNewsBuzz(httpClient, { code }) {
       const out = parseSinaNews(bodyObj) || { items: [] };
       return { ok: true, data: out };
     }
-  } catch (e) {
+  } catch {
     /* fall through */
   }
 
@@ -115,7 +113,7 @@ function classifySentiment(title) {
 function safeParse(s) {
   try {
     return JSON.parse(s);
-  } catch (_) {
+  } catch {
     return null;
   }
 }

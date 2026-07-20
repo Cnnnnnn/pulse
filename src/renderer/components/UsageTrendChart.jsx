@@ -234,7 +234,8 @@ export function UsageTrendChart(props) {
     e.stopPropagation();
     const svg = svgRef.current;
     if (svg && e.pointerId != null && svg.setPointerCapture) {
-      try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+      // ponytail: setPointerCapture 在某些浏览器对 SVG 元素不抛即可忽略
+      try { svg.setPointerCapture(e.pointerId); } catch (_) { /* noop: setPointerCapture 兼容性 */ }
     }
     dragRef.current = {
       mode: handle,

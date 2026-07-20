@@ -13,6 +13,7 @@ import { ModalShell } from "../components/ModalShell.jsx";
 import {
   collectionStats,
   badgesEarned,
+  achievementsProgress,
   rarityTiers,
   wishlist,
   readStorage,
@@ -69,6 +70,7 @@ export function ShareImageModal({ open, onClose }) {
       tiers: rarityTiers.value,
       title: "我的游戏收藏墙",
       template,
+      achievementsProgress: achievementsProgress.value,
     });
     try {
       const ok = renderShareImage(canvas, payload);

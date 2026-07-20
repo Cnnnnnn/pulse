@@ -21,7 +21,11 @@ export function AppCard({ name }) {
   async function onUpgrade() {
     if (!result || !result.bundle) return;
     setUpgrading(true);
-    try { await api.brewUpgrade(result.bundle); } catch {}
+    try {
+      await api.brewUpgrade(result.bundle);
+    } catch (err) {
+      console.warn(`brewUpgrade ${name} failed:`, err);
+    }
     setUpgrading(false);
   }
 

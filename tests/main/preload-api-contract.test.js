@@ -71,7 +71,7 @@ function extractApiKeysFromPreload(src) {
 /** 从对象字面量源码里抽取顶层 key. `  name:` 算, `    name:` 嵌套不算. */
 function parseTopLevelKeys(body) {
   const keys = [];
-  const re = /^  ([a-zA-Z_$][\w$]*)\s*:/gm;
+  const re = /^ {2}([a-zA-Z_$][\w$]*)\s*:/gm;
   let m;
   while ((m = re.exec(body)) !== null) {
     keys.push(m[1]);

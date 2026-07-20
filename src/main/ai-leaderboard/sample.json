@@ -1,0 +1,386 @@
+[
+  {
+    "id": "openai-gpt-4o",
+    "name": "GPT-4o",
+    "vendor": "openai",
+    "vendorRaw": "OpenAI",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 3, "score": 1400, "ci": 6, "votes": 8500 },
+      "vision": { "rank": 2, "score": 1310, "ci": 8, "votes": 4200 },
+      "code": { "rank": 4, "score": 1280, "ci": 9, "votes": 3100 }
+    },
+    "aa": {
+      "intelligenceIndex": 78,
+      "codingIndex": 72,
+      "mathIndex": 70,
+      "mmluPro": 72,
+      "gpqa": 51,
+      "hle": 32,
+      "liveCodeBench": 45,
+      "priceInputPer1M": 2.5,
+      "priceOutputPer1M": 10,
+      "priceBlendedPer1M": 6.25,
+      "outputTokensPerSec": 110,
+      "timeToFirstTokenSec": 0.4
+    }
+  },
+  {
+    "id": "openai-gpt-4o-mini",
+    "name": "GPT-4o mini",
+    "vendor": "openai",
+    "vendorRaw": "OpenAI",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 12, "score": 1310, "ci": 7, "votes": 6100 },
+      "vision": { "rank": 10, "score": 1220, "ci": 9, "votes": 2800 }
+    },
+    "aa": {
+      "intelligenceIndex": 65,
+      "codingIndex": 60,
+      "mathIndex": 58,
+      "mmluPro": 60,
+      "gpqa": 40,
+      "hle": 18,
+      "liveCodeBench": 32,
+      "priceInputPer1M": 0.15,
+      "priceOutputPer1M": 0.6,
+      "priceBlendedPer1M": 0.375,
+      "outputTokensPerSec": 180,
+      "timeToFirstTokenSec": 0.3
+    }
+  },
+  {
+    "id": "openai-o1",
+    "name": "OpenAI o1",
+    "vendor": "openai",
+    "vendorRaw": "OpenAI",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 1, "score": 1450, "ci": 8, "votes": 9000 }
+    },
+    "aa": {
+      "intelligenceIndex": 85,
+      "codingIndex": 80,
+      "mathIndex": 88,
+      "mmluPro": 83,
+      "gpqa": 78,
+      "hle": 55,
+      "liveCodeBench": 67,
+      "priceInputPer1M": 15,
+      "priceOutputPer1M": 60,
+      "priceBlendedPer1M": 37.5,
+      "outputTokensPerSec": 55,
+      "timeToFirstTokenSec": 1.8
+    }
+  },
+  {
+    "id": "anthropic-claude-3-5-sonnet",
+    "name": "Claude 3.5 Sonnet",
+    "vendor": "anthropic",
+    "vendorRaw": "Anthropic",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 2, "score": 1420, "ci": 5, "votes": 9200 },
+      "vision": { "rank": 1, "score": 1330, "ci": 7, "votes": 4500 },
+      "code": { "rank": 1, "score": 1350, "ci": 8, "votes": 3400 }
+    },
+    "aa": {
+      "intelligenceIndex": 82,
+      "codingIndex": 85,
+      "mathIndex": 75,
+      "mmluPro": 79,
+      "gpqa": 65,
+      "hle": 41,
+      "liveCodeBench": 58,
+      "priceInputPer1M": 3,
+      "priceOutputPer1M": 15,
+      "priceBlendedPer1M": 9,
+      "outputTokensPerSec": 75,
+      "timeToFirstTokenSec": 0.5
+    }
+  },
+  {
+    "id": "anthropic-claude-3-opus",
+    "name": "Claude 3 Opus",
+    "vendor": "anthropic",
+    "vendorRaw": "Anthropic",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 6, "score": 1370, "ci": 6, "votes": 7800 }
+    },
+    "aa": {
+      "intelligenceIndex": 80,
+      "codingIndex": 78,
+      "mathIndex": 73,
+      "mmluPro": 76,
+      "gpqa": 60,
+      "hle": 38,
+      "liveCodeBench": 50,
+      "priceInputPer1M": 15,
+      "priceOutputPer1M": 75,
+      "priceBlendedPer1M": 45,
+      "outputTokensPerSec": 50,
+      "timeToFirstTokenSec": 0.8
+    }
+  },
+  {
+    "id": "google-gemini-1-5-pro",
+    "name": "Gemini 1.5 Pro",
+    "vendor": "google",
+    "vendorRaw": "Google",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 5, "score": 1380, "ci": 6, "votes": 8000 },
+      "vision": { "rank": 4, "score": 1280, "ci": 8, "votes": 3600 }
+    },
+    "aa": {
+      "intelligenceIndex": 76,
+      "codingIndex": 70,
+      "mathIndex": 72,
+      "mmluPro": 74,
+      "gpqa": 55,
+      "hle": 35,
+      "liveCodeBench": 44,
+      "priceInputPer1M": 1.25,
+      "priceOutputPer1M": 5,
+      "priceBlendedPer1M": 3.125,
+      "outputTokensPerSec": 130,
+      "timeToFirstTokenSec": 0.4
+    }
+  },
+  {
+    "id": "google-gemini-2-0-flash",
+    "name": "Gemini 2.0 Flash",
+    "vendor": "google",
+    "vendorRaw": "Google",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 9, "score": 1320, "ci": 7, "votes": 5200 }
+    },
+    "aa": {
+      "intelligenceIndex": 70,
+      "codingIndex": 66,
+      "mathIndex": 64,
+      "mmluPro": 68,
+      "gpqa": 48,
+      "hle": 25,
+      "liveCodeBench": 40,
+      "priceInputPer1M": 0.1,
+      "priceOutputPer1M": 0.4,
+      "priceBlendedPer1M": 0.25,
+      "outputTokensPerSec": 250,
+      "timeToFirstTokenSec": 0.2
+    }
+  },
+  {
+    "id": "meta-llama-3-1-405b",
+    "name": "Llama 3.1 405B",
+    "vendor": "meta",
+    "vendorRaw": "Meta",
+    "category": "llm",
+    "license": "Llama 3.1 Community",
+    "arena": {
+      "text": { "rank": 8, "score": 1330, "ci": 6, "votes": 7000 },
+      "code": { "rank": 8, "score": 1230, "ci": 10, "votes": 2500 }
+    },
+    "aa": {
+      "intelligenceIndex": 73,
+      "codingIndex": 68,
+      "mathIndex": 71,
+      "mmluPro": 73,
+      "gpqa": 52,
+      "hle": 28,
+      "liveCodeBench": 42,
+      "priceInputPer1M": 2.7,
+      "priceOutputPer1M": 2.7,
+      "priceBlendedPer1M": 2.7,
+      "outputTokensPerSec": 40,
+      "timeToFirstTokenSec": 0.6
+    }
+  },
+  {
+    "id": "meta-llama-3-1-70b",
+    "name": "Llama 3.1 70B",
+    "vendor": "meta",
+    "vendorRaw": "Meta",
+    "category": "llm",
+    "license": "Llama 3.1 Community",
+    "arena": {
+      "text": { "rank": 15, "score": 1280, "ci": 7, "votes": 6600 }
+    },
+    "aa": {
+      "intelligenceIndex": 64,
+      "codingIndex": 58,
+      "mathIndex": 60,
+      "mmluPro": 62,
+      "gpqa": 40,
+      "hle": 16,
+      "liveCodeBench": 30,
+      "priceInputPer1M": 0.6,
+      "priceOutputPer1M": 0.6,
+      "priceBlendedPer1M": 0.6,
+      "outputTokensPerSec": 90,
+      "timeToFirstTokenSec": 0.4
+    }
+  },
+  {
+    "id": "mistral-mistral-large",
+    "name": "Mistral Large",
+    "vendor": "mistral",
+    "vendorRaw": "Mistral AI",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 18, "score": 1260, "ci": 8, "votes": 4800 }
+    },
+    "aa": {
+      "intelligenceIndex": 68,
+      "codingIndex": 64,
+      "mathIndex": 63,
+      "mmluPro": 65,
+      "gpqa": 46,
+      "hle": 22,
+      "liveCodeBench": 38,
+      "priceInputPer1M": 2,
+      "priceOutputPer1M": 6,
+      "priceBlendedPer1M": 4,
+      "outputTokensPerSec": 80,
+      "timeToFirstTokenSec": 0.5
+    }
+  },
+  {
+    "id": "deepseek-deepseek-v3",
+    "name": "DeepSeek V3",
+    "vendor": "deepseek",
+    "vendorRaw": "DeepSeek",
+    "category": "llm",
+    "license": "MIT",
+    "arena": {
+      "text": { "rank": 7, "score": 1340, "ci": 7, "votes": 5600 },
+      "code": { "rank": 5, "score": 1280, "ci": 11, "votes": 2200 }
+    },
+    "aa": {
+      "intelligenceIndex": 74,
+      "codingIndex": 76,
+      "mathIndex": 78,
+      "mmluPro": 76,
+      "gpqa": 59,
+      "hle": 30,
+      "liveCodeBench": 51,
+      "priceInputPer1M": 0.27,
+      "priceOutputPer1M": 1.1,
+      "priceBlendedPer1M": 0.685,
+      "outputTokensPerSec": 60,
+      "timeToFirstTokenSec": 0.7
+    }
+  },
+  {
+    "id": "xai-grok-2",
+    "name": "Grok-2",
+    "vendor": "xai",
+    "vendorRaw": "xAI",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 11, "score": 1315, "ci": 7, "votes": 5000 },
+      "vision": { "rank": 12, "score": 1200, "ci": 10, "votes": 2000 }
+    },
+    "aa": {
+      "intelligenceIndex": 71,
+      "codingIndex": 67,
+      "mathIndex": 69,
+      "mmluPro": 70,
+      "gpqa": 54,
+      "hle": 26,
+      "liveCodeBench": 41,
+      "priceInputPer1M": 2,
+      "priceOutputPer1M": 10,
+      "priceBlendedPer1M": 6,
+      "outputTokensPerSec": 70,
+      "timeToFirstTokenSec": 0.5
+    }
+  },
+  {
+    "id": "qwen-qwen2-5-72b",
+    "name": "Qwen2.5-72B",
+    "vendor": "qwen",
+    "vendorRaw": "阿里通义",
+    "category": "llm",
+    "license": "Qwen License",
+    "arena": {
+      "text": { "rank": 22, "score": 1240, "ci": 9, "votes": 4200 }
+    },
+    "aa": {
+      "intelligenceIndex": 62,
+      "codingIndex": 60,
+      "mathIndex": 66,
+      "mmluPro": 64,
+      "gpqa": 42,
+      "hle": 17,
+      "liveCodeBench": 33,
+      "priceInputPer1M": 0.35,
+      "priceOutputPer1M": 0.4,
+      "priceBlendedPer1M": 0.375,
+      "outputTokensPerSec": 65,
+      "timeToFirstTokenSec": 0.5
+    }
+  },
+  {
+    "id": "zhipu-glm-4-plus",
+    "name": "GLM-4-Plus",
+    "vendor": "zhipu",
+    "vendorRaw": "智谱 GLM",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 28, "score": 1210, "ci": 10, "votes": 2200 }
+    },
+    "aa": {
+      "intelligenceIndex": 58,
+      "codingIndex": 55,
+      "mathIndex": 57,
+      "mmluPro": 60,
+      "gpqa": 38,
+      "hle": 14,
+      "liveCodeBench": 28,
+      "priceInputPer1M": 0.5,
+      "priceOutputPer1M": 0.5,
+      "priceBlendedPer1M": 0.5,
+      "outputTokensPerSec": 55,
+      "timeToFirstTokenSec": 0.6
+    }
+  },
+  {
+    "id": "cohere-command-r-plus",
+    "name": "Command R+",
+    "vendor": "cohere",
+    "vendorRaw": "Cohere",
+    "category": "llm",
+    "license": "Proprietary",
+    "arena": {
+      "text": { "rank": 35, "score": 1180, "ci": 11, "votes": 1800 }
+    },
+    "aa": {
+      "intelligenceIndex": 55,
+      "codingIndex": 50,
+      "mathIndex": 52,
+      "mmluPro": 56,
+      "gpqa": 33,
+      "hle": 11,
+      "liveCodeBench": 24,
+      "priceInputPer1M": 2.5,
+      "priceOutputPer1M": 10,
+      "priceBlendedPer1M": 6.25,
+      "outputTokensPerSec": 45,
+      "timeToFirstTokenSec": 0.7
+    }
+  }
+]

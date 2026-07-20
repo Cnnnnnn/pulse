@@ -1,0 +1,44 @@
+sequenceDiagram
+    autonumber
+    actor U as 用户
+    participant P as AiLeaderboardPage (renderer)
+    participant S as aiLeaderboardStore (signals)
+    participant A as api.js (preload bridge)
+    participant I as register-leaderboard (IPC)
+    participant AG as aggregator.js (main)
+    participant C as cache.js (disk)
+    participant F as fetcher-* (arena/aa/openrouter)
+    participant R as renderer store write
+
+    U->>P: 切到「AI 榜单」/ 选维度/厂商
+    P->>S: setDimension / setVendor
+    S->>S: loadLeaderboard() (竞态 token++)
+    S->>A: api.getLeaderboard({category,dimension,vendor})
+    A->>I: ipcRenderer.invoke("leaderboard:get", opts)
+    I->>I: 白名单 sanitize + 请求级缓存查
+    alt 命中缓存(<5min)
+        I-->>A: BoardResult (fromCache:true)
+    else 未命中
+        I->>AG: getLeaderboard(opts)
+        AG->>C: readCache(key=ai-lb:arena:<board>:<date>)
+        alt 磁盘命中且未过期
+            C-->>AG: raw payload
+        else 缺失/过期
+            AG->>F: fetcher-arena.fetch() (限流 acquire)
+            F-->>AG: RawFetchResult / 失败回退 GitHub raw / sample
+            AG->>C: writeCache(key, data)
+        end
+        AG->>F: fetcher-aa.fetch() (AA 限流 1000/天)
+        AG->>F: fetcher-openrouter.fetch() (兜底骨架)
+        AG->>AG: normalize + mergeModelSlices + 兜底链
+        AG->>AG: ranking.sortModels(dimension)
+        AG-->>I: BoardResult {items,sources,attribution}
+        I->>I: boardCacheSet(result)
+    end
+    I-->>A: BoardResult
+    A-->>S: 响应
+    S->>R: batch(items/sources/attribution/loading=false)
+    R-->>P: 响应式重渲 Table + AttribFooter + SampleBadge
+
+    Note over U,R: 手动刷新 → api.refreshLeaderboard(force) → I 置 force → AG 绕过缓存重拉
+    Note over AG,F: 单源失败不影响其它源；全失败 → sample.json → isSample=true 徽标

@@ -125,7 +125,7 @@ function flattenMeta(meta) {
     if (typeof v === 'number' || typeof v === 'boolean') {
       out.push(`${k}=${v}`);
     } else if (typeof v === 'string') {
-      if (/^[A-Za-z0-9_.\-]+$/.test(v)) {
+      if (/^[A-Za-z0-9_.-]+$/.test(v)) {
         // 简单 token: 直接拼
         out.push(`${k}=${v}`);
       } else {

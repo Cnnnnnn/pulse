@@ -107,7 +107,7 @@ describe('AppRow 局部更新', () => {
     let renderCount = 0;
     function SpiedRow({ name }) {
       const sig = getResultSignal(name);
-      // eslint-disable-next-line no-unused-vars
+       
       const r = sig.value;
       renderCount++;
       return <div class="app-row" data-name={name}>{(r && r.status) || 'empty'}</div>;

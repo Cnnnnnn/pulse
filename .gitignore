@@ -37,6 +37,12 @@ desktop.ini
 # Temp files
 *.tmp
 *.local
+# Agent scratch scripts (linter / 单文件扫描 / 临时 helper, 不入库)
+.lint-warn.cjs
+.list.cjs
+.one.cjs
+# 交付物 / 给外包的包 (独立于代码库)
+deliverables/
 
 # Test coverage
 coverage/

@@ -20,18 +20,17 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
 import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/store.js";
-import { wechatHotUnreadBadge, wechatHotItems, wechatHotLastFetched } from "../wechat-hot/store.js";
+import { wechatHotUnreadBadge, wechatHotItems } from "../wechat-hot/store.js";
 import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.js";
 import { aiUsageNavBadge, aiUsageSnapshot, aiUsageActiveProvider } from "../store/ai-usage-store.js";
 import { githubProjects } from "../store/github-projects-store.js";
 import { worldcupMatches } from "../worldcup/store.js";
 import { matchKickoffUtcMs } from "../worldcup/match-utils.js";
-import { quoteCache, fxCache } from "../metals/metalStore.js";
+import { quoteCache } from "../metals/metalStore.js";
 import { comparePoolCount } from "../stocks/comparePool.js";
 import { results as stocksResults } from "../stocks/stockStore.js";
 import { results as checkResults, apps as checkApps } from "../store.js";
 import { todayShanghaiDateKey, articlesForDate } from "../ithome/news-utils.js";
-import { formatTime } from "../wechat-hot/utils.js";
 import {
   loadPrefs,
   savePrefs,
@@ -109,6 +108,14 @@ function TileIcon({ kind }) {
           <path {...c} d="M7.5 11v2.5M6.25 12.25h2.5M15.5 11.5h.01M17.5 13.5h.01" />
         </svg>
       );
+    case "ai-leaderboard":
+      // 排行/条形图图标 — 表达"AI 模型排名"语义.
+      return (
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path {...c} d="M4 20h16" />
+          <path {...c} d="M6 16V9M11 16V6M16 16v-7" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -125,6 +132,7 @@ const HOME_TILES = [
   { key: 'versions',  title: '版本检查', subtitle: 'App 版本监控',              accent: 'indigo' },
   { key: 'github',    title: 'GitHub 收录', subtitle: '优秀开源项目收录与管理',   accent: 'purple' },
   { key: 'games',     title: '游戏优惠',  subtitle: '各平台折扣 / 免费活动 / 热门榜', accent: 'red'   },
+  { key: 'ai-leaderboard', title: 'AI 榜单', subtitle: '大模型排名 / 性价比 / 速度', accent: 'teal' },
 ];
 const TILE_BY_KEY = Object.fromEntries(HOME_TILES.map((t) => [t.key, t]));
 
@@ -273,6 +281,9 @@ function getStatus(key) {
     }
     case 'games':
       return 'Steam / Epic 实时 · 主机示例';
+    case 'ai-leaderboard':
+      // v2.82: AI 榜单 (Arena + AA + OpenRouter), 冷启动空数据时显示 "—".
+      return '—';
     default:
       return null;
   }
@@ -365,7 +376,7 @@ export function HomeGrid() {
   const orderedTiles = computeOrderedTiles(prefs);
   useEffect(() => {
     function onKey(e) {
-      if ((e.metaKey || e.ctrlKey) && /^[1-6]$/.test(e.key)) {
+      if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) {
         const idx = Number(e.key) - 1;
         if (idx < orderedTiles.length) {
           e.preventDefault();
@@ -536,6 +547,7 @@ export function HomeGrid() {
 
 // ponytail: tile 顺序受 HOME_TILES 控制, 跟 PERSISTABLE_NAV_KEYS 一致.
 // 这条 assert 触发编译期 (import time) 失败, 顺序漂移就崩 — 防 ⌘1-5 错位.
+// 2026-07-19: 已同步 ai-leaderboard tile (v2.82 nav), 8 == 8.
 if (HOME_TILES.length !== PERSISTABLE_NAV_KEYS.size) {
   throw new Error(`HOME_TILES (${HOME_TILES.length}) != PERSISTABLE_NAV_KEYS (${PERSISTABLE_NAV_KEYS.size})`);
 }

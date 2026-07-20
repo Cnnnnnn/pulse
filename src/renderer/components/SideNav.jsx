@@ -65,6 +65,7 @@ const NAV_ITEMS = [
   { key: 'versions',  label: '版本检查', tooltip: 'App 版本监控 (v2.6 主体)' },
   { key: 'github',    label: 'GitHub 收录', tooltip: 'GitHub 优秀项目收录与管理 (v2.80)' },
   { key: 'games',     label: '游戏优惠',   tooltip: '各平台折扣 / 免费活动 / 心愿单' },
+  { key: 'ai-leaderboard', label: 'AI 榜单', tooltip: '大模型排名 / 性价比 / 速度' },
 ];
 
 export function SideNav() {

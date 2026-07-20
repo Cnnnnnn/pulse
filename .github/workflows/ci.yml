@@ -72,6 +72,12 @@ jobs:
       - name: Lint component CSS
         run: pnpm exec stylelint "src/renderer/components/**/*.css"
 
+      # ESLint: warn 为主，CI 当前不阻断（|| true），仅报告问题。
+      # 31 个历史 error + 212 个 warning 待逐步清理；清理完后可移除 || true 让 CI 阻断。
+      # 开发者本地 npm run lint 可看到全部问题。
+      - name: Lint JS
+        run: pnpm exec eslint . --max-warnings=9999 || true
+
       - name: Build renderer bundle
         run: npm run build:renderer
 

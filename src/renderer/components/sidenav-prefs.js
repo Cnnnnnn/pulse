@@ -151,13 +151,13 @@ export function savePrefs(prefs) {
   try {
     raw = JSON.stringify(out);
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.warn(`sidenav-prefs: JSON.stringify failed: ${err && err.message}`);
     return false;
   }
   const ok = safeStorageWrite(raw);
   if (!ok) {
-    // eslint-disable-next-line no-console
+     
     console.warn("sidenav-prefs: localStorage write failed, using memory fallback");
   }
   return ok ? out : false;
