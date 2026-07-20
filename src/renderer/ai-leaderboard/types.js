@@ -43,17 +43,24 @@ export function isCategoryComingSoon(key) {
  * - kind: 决定 ModelRow 主分列如何格式化（elo 取整 / index 1 位小数 / pricePerf 代理）。
  * - sortKey: 本地 sortModels 提取排序值的字段（与 main ranking 通用处理一致）。
  */
+// v2.83: 维度按 AA Free tier 实际可填充字段重做.
+// 删除 math/reasoning (Free 0 覆盖), price_perf (公式藏了真实价格) → 拆 price.
+// 新增 agentic/speed/price (AA 真有的字段, 23%+/大部分/大部分 覆盖).
+// kind 决定 ModelRow 主分列如何格式化 + 是否升序 (价格/速度越低越优 → asc 合理).
 export const DIMENSION_META = {
   elo: { key: "elo", label: "综合能力 ELO", field: "arena", sortKey: "score", kind: "elo" },
   intelligence: { key: "intelligence", label: "智能指数", field: "aa", sortKey: "intelligenceIndex", kind: "index" },
   coding: { key: "coding", label: "代码", field: "aa", sortKey: "codingIndex", kind: "index" },
-  math: { key: "math", label: "数学", field: "aa", sortKey: "mathIndex", kind: "index" },
-  reasoning: { key: "reasoning", label: "推理", field: "aa", sortKey: "gpqa", kind: "index" },
-  price_perf: { key: "price_perf", label: "性价比", field: "aa", sortKey: "pricePerfProxy", kind: "pricePerf" },
+  agentic: { key: "agentic", label: "Agent 能力", field: "aa", sortKey: "agenticIndex", kind: "index" },
+  speed: { key: "speed", label: "生成速度", field: "aa", sortKey: "outputTokensPerSec", kind: "speed" },
+  price: { key: "price", label: "输出价格", field: "aa", sortKey: "priceOutputPer1M", kind: "price" },
 };
 
-/** 维度下拉顺序。 */
-export const DIMENSIONS = ["elo", "intelligence", "coding", "math", "reasoning", "price_perf"];
+/** 维度下拉顺序。价格/速度默认升序 (越低越优), 索引类默认降序. */
+export const DIMENSIONS = ["elo", "intelligence", "coding", "agentic", "speed", "price"];
+
+/** 升序默认的维度 (低 = 优). */
+export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);
 
 /**
  * 厂商归一化元数据（Top 15 + other 兜底）。

@@ -12,20 +12,22 @@
 import { activeDimension, activeCategory } from "./aiLeaderboardStore.js";
 import { ModelRow } from "./ModelRow.jsx";
 
+// v2.83: 维度按 AA Free tier 实字段重做, 表头同步.
+// 删除 math/reasoning/price_perf (公式藏了真实价), 新增 agentic/speed/price.
 const DIM_HEADER = {
   elo: "综合 ELO",
   intelligence: "智能指数",
   coding: "代码",
-  math: "数学",
-  reasoning: "推理 (GPQA)",
-  price_perf: "性价比",
+  agentic: "Agent",
+  speed: "速度 (tok/s)",
+  price: "输出价 /1M",
 };
 
-// 维度 → 需要高亮的次要列（仅 intelligence/coding/math 有对应次要列）
+// 维度 → 需要高亮的次要列 (intelligence / coding / agentic 都有对应次要列)
 const SECONDARY_ACTIVE = {
   intelligence: "intelligence",
   coding: "coding",
-  math: "math",
+  agentic: "agentic",
 };
 
 export function LeaderboardTable({ models, rows, dimension, category }) {
@@ -61,13 +63,13 @@ export function LeaderboardTable({ models, rows, dimension, category }) {
               代码
             </th>
             <th
-              class={`ai-lb-th ai-lb-col-num${secActive === "math" ? " ai-lb-col--active" : ""}`}
+              class={`ai-lb-th ai-lb-col-num${secActive === "agentic" ? " ai-lb-col--active" : ""}`}
               scope="col"
             >
-              数学
+              Agent
             </th>
             <th class="ai-lb-th ai-lb-col-num" scope="col">速度</th>
-            <th class="ai-lb-th ai-lb-col-num" scope="col">$ / 1M</th>
+            <th class="ai-lb-th ai-lb-col-num" scope="col">输出价</th>
           </tr>
         </thead>
         <tbody>

@@ -216,21 +216,23 @@ describe("aggregator: 合并与兜底链", () => {
 
 // ── 2. ranking ───────────────────────────────────────────────────────
 describe("ranking: 排序 / 筛选", () => {
+  // v2.83: math/gpqa/priceBlendedPer1M 已下线 (AA Free 0 覆盖),
+  //        替换为 agenticIndex / outputTokensPerSec / priceOutputPer1M
   const items = [
     toAiModel({
       id: "a", name: "A", vendor: "openai", category: "llm",
       arena: { text: { rank: 1, score: 1300, ci: 5, votes: 10 } },
-      aa: { intelligenceIndex: 60, codingIndex: 50, mathIndex: 55, gpqa: 30, priceBlendedPer1M: 10 },
+      aa: { intelligenceIndex: 60, codingIndex: 50, agenticIndex: 40, outputTokensPerSec: 50, priceOutputPer1M: 10 },
     }),
     toAiModel({
       id: "b", name: "B", vendor: "anthropic", category: "llm",
       arena: { text: { rank: 2, score: 1450, ci: 5, votes: 10 } },
-      aa: { intelligenceIndex: 90, codingIndex: 85, mathIndex: 80, gpqa: 70, priceBlendedPer1M: 5 },
+      aa: { intelligenceIndex: 90, codingIndex: 85, agenticIndex: 75, outputTokensPerSec: 100, priceOutputPer1M: 5 },
     }),
     toAiModel({
       id: "c", name: "C", vendor: "google", category: "llm",
       arena: { text: { rank: 3, score: 1200, ci: 5, votes: 10 } },
-      aa: { intelligenceIndex: 75, codingIndex: 60, mathIndex: 65, gpqa: 45, priceBlendedPer1M: 20 },
+      aa: { intelligenceIndex: 75, codingIndex: 60, agenticIndex: 55, outputTokensPerSec: 80, priceOutputPer1M: 20 },
     }),
   ];
 
@@ -255,19 +257,21 @@ describe("ranking: 排序 / 筛选", () => {
     expect(sorted.map((m) => m.id)).toEqual(["b", "c", "a"]);
   });
 
-  it("按 math_index 降序", () => {
-    const sorted = sortModels(items, "math", "desc", "llm");
+  it("按 agentic 降序 (aa.agenticIndex)", () => {
+    // b=75, c=55, a=40
+    const sorted = sortModels(items, "agentic", "desc", "llm");
     expect(sorted.map((m) => m.id)).toEqual(["b", "c", "a"]);
   });
 
-  it("按 reasoning(gpqa) 降序", () => {
-    const sorted = sortModels(items, "reasoning", "desc", "llm");
+  it("按 speed 降序 (aa.outputTokensPerSec)", () => {
+    // b=100, c=80, a=50
+    const sorted = sortModels(items, "speed", "desc", "llm");
     expect(sorted.map((m) => m.id)).toEqual(["b", "c", "a"]);
   });
 
-  it("按 price_perf（intelligenceIndex / priceBlendedPer1M）降序", () => {
-    // b: 90/5=18, c: 75/20=3.75, a: 60/10=6 → 期望 b, a, c
-    const sorted = sortModels(items, "price_perf", "desc", "llm");
+  it("按 price 升序 (低 = 优, aa.priceOutputPer1M)", () => {
+    // b=5, a=10, c=20
+    const sorted = sortModels(items, "price", "asc", "llm");
     expect(sorted.map((m) => m.id)).toEqual(["b", "a", "c"]);
   });
 

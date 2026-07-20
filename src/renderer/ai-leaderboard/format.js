@@ -65,8 +65,10 @@ export function fmtClock(iso) {
 
 /**
  * 取模型在指定维度下的排序/展示原始值（与 store.sortValue 同口径，单一真源）。
+ * v2.83: 维度表按 AA Free tier 实际字段重做 (math/reasoning/price_perf 删除,
+ * 新增 agentic/speed/price). price 走 priceOutputPer1M 真实值 (不再用 II/价 公式).
  * @param {object} model AiModel
- * @param {string} dimension elo|intelligence|coding|math|reasoning|price_perf
+ * @param {string} dimension elo|intelligence|coding|agentic|speed|price
  * @param {string} category llm|multimodal|code|image|video
  * @returns {number|null}
  */
@@ -83,16 +85,12 @@ export function primaryValue(model, dimension, category) {
       return aa.intelligenceIndex ?? null;
     case "coding":
       return aa.codingIndex ?? null;
-    case "math":
-      return aa.mathIndex ?? null;
-    case "reasoning":
-      return aa.gpqa ?? null;
-    case "price_perf": {
-      const intel = aa.intelligenceIndex;
-      const price = aa.priceBlendedPer1M;
-      if (intel == null || price == null || Number(price) <= 0) return null;
-      return Number(intel) / Number(price);
-    }
+    case "agentic":
+      return aa.agenticIndex ?? null;
+    case "speed":
+      return aa.outputTokensPerSec ?? null;
+    case "price":
+      return aa.priceOutputPer1M ?? null;
     default:
       return null;
   }
@@ -107,6 +105,7 @@ export function primaryValue(model, dimension, category) {
 export function formatPrimary(value, dimension) {
   if (value == null || !Number.isFinite(Number(value))) return "—";
   if (dimension === "elo") return fmtScore(value);
-  if (dimension === "price_perf") return Number(value).toFixed(1);
+  if (dimension === "price") return fmtPricePer1M(value);
+  if (dimension === "speed") return fmtSpeed(value);
   return fmtIndex(value);
 }

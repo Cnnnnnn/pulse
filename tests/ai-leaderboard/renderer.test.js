@@ -103,7 +103,13 @@ describe("store actions — 排序字段随维度/分类切换", () => {
     const model = mkModel({
       name: "M",
       arena: { text: { score: 1000 } },
-      aa: { intelligenceIndex: 88, codingIndex: 70, mathIndex: 60 },
+      aa: {
+        intelligenceIndex: 88,
+        codingIndex: 70,
+        agenticIndex: 65,
+        outputTokensPerSec: 120,
+        priceOutputPer1M: 7.5,
+      },
     });
 
     await store.setDimension("elo");
@@ -115,7 +121,34 @@ describe("store actions — 排序字段随维度/分类切换", () => {
     expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(88);
 
     await store.setDimension("coding");
+    expect(store.activeDimension.value).toBe("coding");
     expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(70);
+
+    await store.setDimension("agentic");
+    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(65);
+
+    await store.setDimension("speed");
+    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(120);
+
+    await store.setDimension("price");
+    expect(store.sortValue(model, store.activeDimension.value, "llm")).toBe(7.5);
+  });
+
+  it("sortModels 默认 intelligence/agentic 降序, price/speed 默认升序 (低 = 优)", () => {
+    const list = [
+      mkModel({ id: "a", aa: { intelligenceIndex: 50, agenticIndex: 40, priceOutputPer1M: 20, outputTokensPerSec: 30 } }),
+      mkModel({ id: "b", aa: { intelligenceIndex: 90, agenticIndex: 75, priceOutputPer1M: 5, outputTokensPerSec: 100 } }),
+      mkModel({ id: "c", aa: { intelligenceIndex: 75, agenticIndex: 55, priceOutputPer1M: 12, outputTokensPerSec: 60 } }),
+    ];
+    // 索引类默认降序
+    expect(store.sortModels(list, { dimension: "intelligence" }).map(m => m.id)).toEqual(["b", "c", "a"]);
+    expect(store.sortModels(list, { dimension: "agentic" }).map(m => m.id)).toEqual(["b", "c", "a"]);
+    // 价格 asc 5 < 12 < 20: b, c, a
+    expect(store.sortModels(list, { dimension: "price" }).map(m => m.id)).toEqual(["b", "c", "a"]);
+    // 速度 asc 30 < 60 < 100: a, c, b
+    expect(store.sortModels(list, { dimension: "speed" }).map(m => m.id)).toEqual(["a", "c", "b"]);
+    // 显式传 desc 改方向
+    expect(store.sortModels(list, { dimension: "price", dir: "desc" }).map(m => m.id)).toEqual(["a", "c", "b"]);
   });
 
   it("setDimension 非法值被忽略，保持原维度", async () => {

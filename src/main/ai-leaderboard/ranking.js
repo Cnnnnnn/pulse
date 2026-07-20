@@ -22,14 +22,10 @@ function sortValue(item, dimension, board) {
   }
   const aa = item.aa;
   if (!aa) return -Infinity;
-  if (dimension === "price_perf") {
-    const price = aa.priceBlendedPer1M;
-    if (!price || price <= 0) return -Infinity;
-    return aa.intelligenceIndex / price;
-  }
+  // v2.83: 删除 price_perf 公式, 直接读 priceOutputPer1M (升序 = 越低越优)
   const meta = DIMENSION_META[dimension];
   const key = meta && meta.sortKey;
-  if (!key || key === "pricePerfProxy") return -Infinity;
+  if (!key) return -Infinity;
   const v = aa[key];
   return typeof v === "number" ? v : -Infinity;
 }

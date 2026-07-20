@@ -84,7 +84,7 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 7 个 nav 全显示 (新闻 + 世界杯 + 投资 + AI 用量 + 更新 + GitHub + 游戏优惠)", () => {
+  it("默认 prefs 全开 → 8 个 nav 全显示 (新闻 + 世界杯 + 投资 + AI 用量 + 更新 + GitHub + 游戏优惠 + AI 榜单 v2.83)", () => {
     render(<SideNav />);
     expect(visibleNavKeys()).toEqual([
       "news",
@@ -94,6 +94,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "versions",
       "github",
       "games",
+      "ai-leaderboard",
     ]);
   });
 
@@ -120,7 +121,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("3 个动态全关 → 只剩固定 nav (news/invest/github/games)", () => {
+  it("3 个动态全关 → 只剩固定 nav (news/invest/github/games/ai-leaderboard)", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -130,10 +131,11 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
         metals: false,
         check_action: true,
         config_action: true,
+        leaderboard: true, // v2.83: AI 榜单独立 segment
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual(["news", "invest", "github", "games"]);
+    expect(visibleNavKeys()).toEqual(["news", "invest", "github", "games", "ai-leaderboard"]);
   });
 
   it("只关非动态 prefs (check_action/config_action) → 全部 nav 仍显示", () => {
@@ -146,6 +148,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
         metals: true,
         check_action: false,
         config_action: false,
+        leaderboard: true, // v2.83: AI 榜单
       },
     };
     render(<SideNav />);
@@ -157,6 +160,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       "versions",
       "github",
       "games",
+      "ai-leaderboard",
     ]);
   });
 });

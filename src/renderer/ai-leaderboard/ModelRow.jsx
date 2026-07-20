@@ -16,10 +16,11 @@ import {
 } from "./format.js";
 
 // 维度 → 需高亮的次要列（与 LeaderboardTable.SECONDARY_ACTIVE 保持一致）
+// v2.83: math → agentic (实际有数据)
 const SECONDARY = {
   intelligence: "intelligence",
   coding: "coding",
-  math: "math",
+  agentic: "agentic",
 };
 
 export function ModelRow({ model, rank, dimension, category }) {
@@ -60,12 +61,12 @@ export function ModelRow({ model, rank, dimension, category }) {
         {fmtIndex(aa.codingIndex)}
       </td>
       <td
-        class={`ai-lb-td ai-lb-col-num${sec === "math" ? " ai-lb-col--active" : ""}`}
+        class={`ai-lb-td ai-lb-col-num${sec === "agentic" ? " ai-lb-col--active" : ""}`}
       >
-        {fmtIndex(aa.mathIndex)}
+        {fmtIndex(aa.agenticIndex)}
       </td>
       <td class="ai-lb-td ai-lb-col-num">{fmtSpeed(aa.outputTokensPerSec)}</td>
-      <td class="ai-lb-td ai-lb-col-num">{fmtPricePer1M(aa.priceBlendedPer1M)}</td>
+      <td class="ai-lb-td ai-lb-col-num">{fmtPricePer1M(aa.priceOutputPer1M)}</td>
     </tr>
   );
 }

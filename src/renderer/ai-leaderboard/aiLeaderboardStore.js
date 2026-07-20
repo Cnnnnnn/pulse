@@ -22,6 +22,7 @@ import {
   CATEGORY_META,
   DIMENSION_META,
   VENDOR_META,
+  ASC_DEFAULT_DIMS,
   normalizeBoardResult,
 } from "./types.js";
 import { primaryValue } from "./format.js";
@@ -225,6 +226,7 @@ export function sortValue(model, dimension, category) {
 
 /**
  * 按维度 + 方向本地排序（不依赖主进程返回顺序）。
+ * v2.83: 价格/速度维度默认升序 (低 = 优), 索引类默认降序.
  * @param {Array} list
  * @param {{dimension?:string, category?:string, dir?:string}} [opts]
  * @returns {Array}
@@ -232,7 +234,9 @@ export function sortValue(model, dimension, category) {
 export function sortModels(list, opts = {}) {
   const dimension = opts.dimension || "elo";
   const category = opts.category || "llm";
-  const dir = opts.dir === "asc" ? "asc" : "desc";
+  let dir = opts.dir === "asc" ? "asc" : "desc";
+  // 升序维 (price/speed) 默认就是 asc
+  if (opts.dir == null && ASC_DEFAULT_DIMS.has(dimension)) dir = "asc";
   const arr = Array.isArray(list) ? list.slice() : [];
   const mult = dir === "asc" ? 1 : -1;
   arr.sort((a, b) => {

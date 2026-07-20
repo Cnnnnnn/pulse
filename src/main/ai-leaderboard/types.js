@@ -20,13 +20,18 @@ const CATEGORY_META = {
 };
 
 /** 渲染层可排序的评测维度。field 决定读哪个切片，sortKey 决定具体字段。 */
+/** v2.83: 维度表按 AA Free tier 实际可填充的字段重做.
+ *  之前 6 个维度 (math/reasoning/price_perf) 在 Free tier 0 覆盖, 删除.
+ *  新增 agentic (AA coding 子项, 23% 覆盖) / speed (AA 性能, 大部分覆盖)
+ *  / price (AA 价, 大部分覆盖).
+ *  Pro/Commercial 维 (math / gpqa) 后续如需复活, 在 this 顶部加 flag 控制可见性. */
 const DIMENSION_META = {
   elo: { label: "综合能力 ELO", field: "arena", sortKey: "score" },
   intelligence: { label: "智能指数", field: "aa", sortKey: "intelligenceIndex" },
   coding: { label: "代码", field: "aa", sortKey: "codingIndex" },
-  math: { label: "数学", field: "aa", sortKey: "mathIndex" },
-  reasoning: { label: "推理", field: "aa", sortKey: "gpqa" },
-  price_perf: { label: "性价比", field: "aa", sortKey: "pricePerfProxy" },
+  agentic: { label: "Agent 能力", field: "aa", sortKey: "agenticIndex" },
+  speed: { label: "生成速度", field: "aa", sortKey: "outputTokensPerSec" },
+  price: { label: "输出价格", field: "aa", sortKey: "priceOutputPer1M" },
 };
 
 /** Top 15 主流厂商 + other 兜底（归一化见 normalizeVendor）。 */
