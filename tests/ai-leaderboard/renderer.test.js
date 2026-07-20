@@ -278,4 +278,18 @@ describe("数据健康看板 (BoardHealthCard) — v2.83", () => {
     expect(chips[2].className).not.toContain("is-live");
     expect(chips[2].className).not.toContain("is-sample");
   });
+
+  it("live 源但 0 覆盖时显示 is-live-but-empty + ⚠ 警告 (AA multimodal/code 即此态)", () => {
+    store.sources.value = { arena: "live", aa: "live", openrouter: "live" };
+    store.sourceCoverage.value = { arena: 20, aa: 0, openrouter: 0 };
+    const { container } = render(h(BoardHealthCard, { total: 20 }));
+    const chips = container.querySelectorAll(".ai-lb-health__chip");
+    expect(chips[0].className).toContain("is-live");
+    expect(chips[0].className).not.toContain("is-live-but-empty");
+    expect(chips[1].className).toContain("is-live-but-empty");
+    expect(chips[2].className).toContain("is-live-but-empty");
+    // ⚠ 警告图标只在零覆盖的 chip 上出现
+    const warns = container.querySelectorAll(".ai-lb-health__warn");
+    expect(warns.length).toBe(2);
+  });
 });

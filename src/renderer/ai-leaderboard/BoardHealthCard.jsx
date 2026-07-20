@@ -33,23 +33,34 @@ export function BoardHealthCard({ total }) {
           const live = src[m.key] === "live";
           const sample = src[m.key] === "sample";
           const count = cov[m.key] || 0;
+          // 活源但当前 category 下 0 覆盖 → 警告 (该源端点活, 但未收录此分类)
+          const liveButEmpty = live && count === 0;
           return (
             <span
               key={m.key}
-              class={`ai-lb-health__chip ai-lb-health__chip--${m.color}${live ? " is-live" : ""}${sample ? " is-sample" : ""}`}
-              title={`${m.label} — ${m.desc}`}
+              class={`ai-lb-health__chip ai-lb-health__chip--${m.color}${live ? " is-live" : ""}${sample ? " is-sample" : ""}${liveButEmpty ? " is-live-but-empty" : ""}`}
+              title={
+                liveButEmpty
+                  ? `${m.label} 端点可用但本分类无收录 (例如 AA 仅 LLM)`
+                  : `${m.label} — ${m.desc}`
+              }
             >
               <span class="ai-lb-health__dot" aria-hidden="true" />
               <span class="ai-lb-health__name">{m.label}</span>
               <span class="ai-lb-health__count">{count}</span>
               <span class="ai-lb-health__of">/{totalN}</span>
+              {liveButEmpty && (
+                <span class="ai-lb-health__warn" aria-label="本分类无收录">
+                  ⚠
+                </span>
+              )}
             </span>
           );
         })}
       </div>
       <p class="ai-lb-health__note">
-        行数 = 当前筛选后模型数；覆盖率 = 该源切片填了多少行。空缺表示该模型未被对应源收录（Arena
-        用内部代号、AA 收录滞后），非 bug。
+        行数 = 当前筛选后模型数；覆盖率 = 该源切片填了多少行。空缺 = 该源未收录本分类
+        （Arena 用内部代号、AA 仅 LLM 端点），非 bug。⚠ 标表示端点可用但本分类零覆盖。
       </p>
     </div>
   );
