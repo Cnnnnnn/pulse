@@ -72,7 +72,12 @@ function sanitize(payload) {
   const sortDir = p.sortDir === "asc" ? "asc" : "desc";
   const search = typeof p.search === "string" ? p.search : "";
   const force = Boolean(p.force);
-  return { category, dimension, vendor, sortDir, search, force };
+  // ponytail: 透传 sources 白名单 — renderer 按 view 决定拉哪些源, sanitize 不能丢.
+  // 老版本默认 {arena,aa,openrouter,livebench 全 true} 在 IPC 端补默认, 保持向后兼容.
+  const sources = p.sources && typeof p.sources === "object"
+    ? p.sources
+    : { arena: true, aa: true, openrouter: true, livebench: true };
+  return { category, dimension, vendor, sortDir, search, force, sources };
 }
 
 function registerLeaderboardHandlers(ctx) {

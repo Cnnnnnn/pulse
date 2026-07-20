@@ -62,7 +62,7 @@ export function EmptyState({ onRetry }) {
         ∅
       </div>
       <p class="ai-lb-state-text">暂无数据</p>
-      <p class="ai-lb-state-sub">当前筛选条件下没有匹配的模型</p>
+      <p class="ai-lb-state-sub">当前筛选条件下没有匹配的模型（试试点刷新重拉）</p>
       {onRetry && (
         <button type="button" class="ai-lb-btn ai-lb-btn--ghost" onClick={onRetry}>
           刷新试试
