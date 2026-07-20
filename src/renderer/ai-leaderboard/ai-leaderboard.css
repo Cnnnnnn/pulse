@@ -628,3 +628,83 @@
     grid-template-columns: 40px 2fr 1fr repeat(3, 1fr);
   }
 }
+
+/* ── 数据健康看板 (v2.83) ─────────────────────────────────────── */
+.ai-lb-health {
+  margin: var(--space-2) 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-2, var(--surface));
+  border: 1px solid var(--border, var(--surface-3));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.ai-lb-health__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.ai-lb-health__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 500;
+  line-height: 1.4;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.ai-lb-health__chip.is-sample {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.ai-lb-health__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.ai-lb-health__chip.is-live .ai-lb-health__dot {
+  background: oklch(60% 0.18 150);
+  opacity: 1;
+}
+
+.ai-lb-health__chip--blue   { color: oklch(58% 0.16 245); }
+.ai-lb-health__chip--purple { color: oklch(60% 0.18 295); }
+.ai-lb-health__chip--teal   { color: oklch(60% 0.12 195); }
+
+.ai-lb-health__name {
+  font-weight: 600;
+}
+
+.ai-lb-health__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-lb-health__of {
+  color: var(--text-tertiary, var(--text-secondary));
+  font-size: var(--font-size-xs, 11px);
+}
+
+.ai-lb-health__note {
+  margin: 0;
+  font-size: var(--font-size-xs, 11px);
+  line-height: 1.45;
+  color: var(--text-tertiary, var(--text-secondary));
+  font-weight: 400;
+}

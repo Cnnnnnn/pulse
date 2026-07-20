@@ -233,6 +233,7 @@ export function normalizeBoardResult(res) {
   }
   const items = Array.isArray(res.items) ? res.items.map(normalizeAiModel) : [];
   const attribution = Array.isArray(res.attribution) ? res.attribution : [];
+  const sc = res.sourceCoverage && typeof res.sourceCoverage === "object" ? res.sourceCoverage : {};
   return {
     ok: res.ok !== false,
     category: res.category || "llm",
@@ -240,6 +241,11 @@ export function normalizeBoardResult(res) {
     vendor: res.vendor || "all",
     items,
     sources: res.sources && typeof res.sources === "object" ? res.sources : {},
+    sourceCoverage: {
+      arena: Number.isFinite(sc.arena) ? sc.arena : 0,
+      aa: Number.isFinite(sc.aa) ? sc.aa : 0,
+      openrouter: Number.isFinite(sc.openrouter) ? sc.openrouter : 0,
+    },
     attribution,
     stale: !!res.stale,
     fromCache: !!res.fromCache,

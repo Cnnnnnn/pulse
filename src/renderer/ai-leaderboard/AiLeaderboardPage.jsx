@@ -26,6 +26,7 @@ import { fmtClock } from "./format.js";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.jsx";
 import { LeaderboardTable } from "./LeaderboardTable.jsx";
 import { AttributionFooter } from "./AttributionFooter.jsx";
+import { BoardHealthCard } from "./BoardHealthCard.jsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
 
 export function AiLeaderboardPage() {
@@ -77,6 +78,10 @@ export function AiLeaderboardPage() {
         <span class="ai-leaderboard-context__count" aria-live="polite">共 {count} 个模型</span>
         {clock && <span class="ai-leaderboard-context__time">更新于 {clock}</span>}
       </div>
+
+      {!loading.value && !error.value && rows.length > 0 && (
+        <BoardHealthCard total={rows.length} />
+      )}
 
       <div class={`ai-leaderboard-body${animate ? " is-entering" : ""}`}>
         {loading.value && <LoadingState />}

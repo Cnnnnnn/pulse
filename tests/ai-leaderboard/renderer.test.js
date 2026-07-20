@@ -45,6 +45,7 @@ vi.mock("../../src/renderer/api.js", () => ({
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
 import { SampleBadge } from "../../src/renderer/ai-leaderboard/SampleBadge.jsx";
 import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
+import { BoardHealthCard } from "../../src/renderer/ai-leaderboard/BoardHealthCard.jsx";
 
 afterEach(cleanup);
 
@@ -245,5 +246,36 @@ describe("sample 态 — 示例徽标 / 标记", () => {
     expect(store.isAllSample()).toBe(false);
     store.items.value = [];
     expect(store.isAllSample()).toBe(false);
+  });
+});
+
+describe("数据健康看板 (BoardHealthCard) — v2.83", () => {
+  beforeEach(() => {
+    store.sourceCoverage.value = { arena: 10, aa: 200, openrouter: 155 };
+    store.sources.value = { arena: "live", aa: "live", openrouter: "live" };
+  });
+
+  it("渲染三源 chip + 各自覆盖率", () => {
+    const { container } = render(h(BoardHealthCard, { total: 365 }));
+    const chips = container.querySelectorAll(".ai-lb-health__chip");
+    expect(chips.length).toBe(3);
+    expect(container.textContent).toMatch(/Arena[\s\S]*?10[\s\S]*?\/[\s\S]*?365/);
+    expect(container.textContent).toMatch(/AA[\s\S]*?200[\s\S]*?\/[\s\S]*?365/);
+    expect(container.textContent).toMatch(/OR[\s\S]*?155[\s\S]*?\/[\s\S]*?365/);
+  });
+
+  it("total=0 时整张卡隐藏 (不画空架子)", () => {
+    const { container } = render(h(BoardHealthCard, { total: 0 }));
+    expect(container.querySelector(".ai-lb-health")).toBeNull();
+  });
+
+  it("live 源显示 is-live class (绿点), sample 源显示 is-sample class (斜体)", () => {
+    store.sources.value = { arena: "live", aa: "sample", openrouter: "none" };
+    const { container } = render(h(BoardHealthCard, { total: 50 }));
+    const chips = container.querySelectorAll(".ai-lb-health__chip");
+    expect(chips[0].className).toContain("is-live");
+    expect(chips[1].className).toContain("is-sample");
+    expect(chips[2].className).not.toContain("is-live");
+    expect(chips[2].className).not.toContain("is-sample");
   });
 });

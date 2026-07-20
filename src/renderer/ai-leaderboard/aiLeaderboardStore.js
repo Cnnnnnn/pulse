@@ -35,6 +35,8 @@ export const searchQuery = signal("");
 
 export const items = signal([]);
 export const sources = signal({});
+/** v2.83: 每源切片覆盖率 (当前筛选后, 多少行有该源切片) */
+export const sourceCoverage = signal({ arena: 0, aa: 0, openrouter: 0 });
 export const attribution = signal([]);
 export const loading = signal(false);
 export const error = signal(null);
@@ -126,6 +128,7 @@ async function _run(force) {
       if (norm.ok) {
         items.value = norm.items;
         sources.value = norm.sources;
+        sourceCoverage.value = norm.sourceCoverage || { arena: 0, aa: 0, openrouter: 0 };
         attribution.value = norm.attribution;
         stale.value = norm.stale;
         fromCache.value = norm.fromCache;
@@ -138,6 +141,7 @@ async function _run(force) {
         error.value = norm.error || "加载失败";
         items.value = [];
         sources.value = {};
+        sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0 };
         attribution.value = [];
       }
     });
@@ -147,6 +151,7 @@ async function _run(force) {
       error.value = e && e.message ? e.message : "网络错误";
       items.value = [];
       sources.value = {};
+      sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0 };
       attribution.value = [];
     });
   } finally {

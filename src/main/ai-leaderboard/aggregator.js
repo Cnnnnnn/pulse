@@ -147,6 +147,14 @@ async function getLeaderboard(opts = {}) {
   shown = filterByVendor(shown, vendor);
   shown = filterBySearch(shown, search);
 
+  // v2.83: 每源切片覆盖率 — 数据健康看板用
+  // (基于筛选后, 用户当前看到的列表计算)
+  const sourceCoverage = {
+    arena: shown.filter((it) => it.arena && Object.keys(it.arena).length > 0).length,
+    aa: shown.filter((it) => it.aa && typeof it.aa === "object").length,
+    openrouter: shown.filter((it) => it.openrouter && typeof it.openrouter === "object").length,
+  };
+
   // 是否整页 sample（决定页头「示例」徽标）
   const isSample =
     dimension === "elo"
@@ -169,6 +177,7 @@ async function getLeaderboard(opts = {}) {
     vendor,
     items: shown,
     sources,
+    sourceCoverage,
     attribution,
     count: shown.length,
     stale: arenaWrap.stale || aaWrap.stale || orWrap.stale,
