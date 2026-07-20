@@ -10,7 +10,7 @@ import {
   openTrayConfig,
   closeTrayConfig,
   applyTrayPrefsFromMain,
-} from "../../src/renderer/trayConfigStore.js";
+} from "../../src/renderer/store/trayConfigStore.js";
 
 const PREFS_ALL_ON = {
   version: 1,

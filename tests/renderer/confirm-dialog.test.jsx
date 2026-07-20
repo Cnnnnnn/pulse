@@ -27,7 +27,7 @@ describe("ConfirmDialog", () => {
 
   it("shows title + message + buttons when confirmDialog set", async () => {
     const { ConfirmDialog } = await freshModule();
-    const store = await import("../../src/renderer/confirmStore.js");
+    const store = await import("../../src/renderer/store/confirmStore.js");
     store.confirmDialog.value = {
       title: "删除提醒",
       message: "确定删除 \"X\"?",
@@ -55,7 +55,7 @@ describe("ConfirmDialog", () => {
 
   it("click confirm button → resolveConfirm(true) → dialog hides", async () => {
     const { ConfirmDialog } = await freshModule();
-    const store = await import("../../src/renderer/confirmStore.js");
+    const store = await import("../../src/renderer/store/confirmStore.js");
     const promise = store.openConfirm({ message: "?" });
     render(<ConfirmDialog />);
     const confirmBtn = document.body.querySelectorAll(".confirm-dialog-actions button")[1];
@@ -68,7 +68,7 @@ describe("ConfirmDialog", () => {
 
   it("click cancel button → resolveConfirm(false)", async () => {
     const { ConfirmDialog } = await freshModule();
-    const store = await import("../../src/renderer/confirmStore.js");
+    const store = await import("../../src/renderer/store/confirmStore.js");
     const promise = store.openConfirm({ message: "?" });
     render(<ConfirmDialog />);
     const cancelBtn = document.body.querySelectorAll(".confirm-dialog-actions button")[0];
@@ -80,7 +80,7 @@ describe("ConfirmDialog", () => {
 
   it("click backdrop closes with false", async () => {
     const { ConfirmDialog } = await freshModule();
-    const store = await import("../../src/renderer/confirmStore.js");
+    const store = await import("../../src/renderer/store/confirmStore.js");
     const promise = store.openConfirm({ message: "?" });
     render(<ConfirmDialog />);
     const backdrop = document.body.querySelector(".confirm-dialog-backdrop");

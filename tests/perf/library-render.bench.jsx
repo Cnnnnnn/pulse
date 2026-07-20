@@ -13,7 +13,7 @@ import { results, resetCheck } from "../../src/renderer/store.js";
 import {
   setViewMode,
   resetLibraryFilters,
-} from "../../src/renderer/library-view-store.js";
+} from "../../src/renderer/store/library-view-store.js";
 
 function makeResults(n) {
   const map = new Map();

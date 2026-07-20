@@ -57,7 +57,7 @@ describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
 
     // 模拟外部 prefs 变化导致 SideNav 重渲染 (useEffect 再跑)
     // 改 trayMenuPrefs 触发 effect
-    const { trayMenuPrefs } = await import('../../src/renderer/trayConfigStore.js');
+    const { trayMenuPrefs } = await import('../../src/renderer/store/trayConfigStore.js');
     trayMenuPrefs.value = {
       ...trayMenuPrefs.value,
       segments: { ...trayMenuPrefs.value.segments, updates: false },

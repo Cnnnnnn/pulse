@@ -18,7 +18,7 @@ const SQUAD_FILES = [
 
 /** @type {Record<string, string>} CCTV / 新华 / FIFA 常用译名 */
 const KNOWN = JSON.parse(
-  readFileSync(join(__dir, 'player-cn-known.json'), 'utf8'),
+  readFileSync(join(root, 'src', 'config', 'data', 'player-cn-known.json'), 'utf8'),
 );
 
 const KR_SUR = {

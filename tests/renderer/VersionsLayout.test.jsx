@@ -11,7 +11,7 @@ vi.mock("../../src/renderer/components/AITasksDrawer.jsx", () => ({
 }));
 
 import { VersionsLayout } from "../../src/renderer/components/VersionsLayout.jsx";
-import { navigateTo, currentRoute } from "../../src/renderer/route-store.js";
+import { navigateTo, currentRoute } from "../../src/renderer/store/route-store.js";
 import { results, resetCheck } from "../../src/renderer/store.js";
 
 // 填充一个结果, 让 LibraryPage 走列表分支 (而非空态 CTA), 这样才有 .library-page

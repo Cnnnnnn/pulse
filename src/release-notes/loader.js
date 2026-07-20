@@ -7,7 +7,7 @@
  *
  * 路径:
  *   versions/<version>.md                        (仓库根 versions/ 文件夹, v2.50 起)
- *   src/release-notes-content/<version>/slides.json
+ *   versions/<version>/slides.json               (v2.31.1 起, 统一归入 versions/)
  *
  * __setTestOverrides 让测试可以注入 mock repoRoot (主进程测试时, 仓库根可能不是 __dirname 解析的目标).
  */
@@ -61,8 +61,7 @@ function readSlides(version) {
   if (typeof version !== "string" || !version) return null;
   const file = path.join(
     resolveRepoRoot(),
-    "src",
-    "release-notes-content",
+    "versions",
     version,
     "slides.json",
   );

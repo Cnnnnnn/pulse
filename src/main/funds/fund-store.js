@@ -25,17 +25,17 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
-const stateStore = require("./state-store");
+const stateStore = require("../state-store");
 
 const FUNDS_DELETED_GC_DAYS = 7;
 const FUNDS_DELETED_GC_MS = FUNDS_DELETED_GC_DAYS * 24 * 60 * 60 * 1000;
 
 const VALID_CATEGORIES = ["stock", "bond", "money", "qdii", "other"];
-const { isValidSnapshot } = require("../funds/fund-history");
+const { isValidSnapshot } = require("../../funds/fund-history");
 const {
   normalizeNavSource,
   DEFAULT_NAV_SOURCE,
-} = require("../funds/fund-nav-merge");
+} = require("../../funds/fund-nav-merge");
 const { normalizeAlertPrefs } = require("./fund-alerts");
 
 /**

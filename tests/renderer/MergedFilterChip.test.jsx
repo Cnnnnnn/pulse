@@ -5,7 +5,7 @@ import { MergedFilterChip } from "../../src/renderer/components/MergedFilterChip
 import {
   filterStatus, filterCategory, searchQuery,
   setFilterStatus, setFilterCategory, setSearchQuery, resetLibraryFilters,
-} from "../../src/renderer/library-view-store.js";
+} from "../../src/renderer/store/library-view-store.js";
 
 beforeEach(() => {
   cleanup();

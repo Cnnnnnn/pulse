@@ -26,7 +26,7 @@ import {
   firedCount,
   toggleRemindersOpen,
 } from "./remindersStore.js";
-import { openConfirm } from "../confirmStore.js";
+import { openConfirm } from "../store/confirmStore.js";
 import { Badge } from "../components/Badge.jsx";
 import { ModalShell, ModalHeader } from "../components/ModalShell.jsx";
 import { PanelEmpty } from "../components/EmptyState.jsx";

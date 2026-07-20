@@ -20,15 +20,15 @@
  */
 
 const EventEmitter = require("events");
-const { fetchFundNavBatch } = require("../funds/fund-fetcher");
-const { pickEffectiveNavNumber } = require("../funds/fund-nav-merge");
-const { NavSourceHealth } = require("../funds/nav-source-health");
+const { fetchFundNavBatch } = require("../../funds/fund-fetcher");
+const { pickEffectiveNavNumber } = require("../../funds/fund-nav-merge");
+const { NavSourceHealth } = require("../../funds/nav-source-health");
 const {
   getTradingStatus,
   msUntilNextFetch,
   msUntilNextOpen,
-} = require("../funds/trading-hours");
-const { mainLog } = require("./log");
+} = require("../../funds/trading-hours");
+const { mainLog } = require("../log");
 const fundStore = require("./fund-store");
 const fundHistoryStore = require("./fund-history-store");
 

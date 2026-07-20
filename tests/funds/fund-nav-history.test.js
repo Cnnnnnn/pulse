@@ -8,7 +8,7 @@ import {
 import {
   loadIndexHistory,
   saveIndexHistory,
-} from "../../src/main/fund-history-store.js";
+} from "../../src/main/funds/fund-history-store.js";
 import { stateStore } from "../../src/main/state-store.js";
 import os from "os";
 import path from "path";

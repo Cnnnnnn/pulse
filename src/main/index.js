@@ -58,8 +58,8 @@ const { HttpClient } = require("./http-client");
 const { computePoolSize } = require("./pool-size");
 const { auditTimers, clearAllManaged } = require("./timer-registry");
 const { markBootstrapDone } = require("./diagnostics");
-const fundStore = require("./fund-store");
-const { FundScheduler } = require("./fund-scheduler");
+const fundStore = require("./funds/fund-store");
+const { FundScheduler } = require("./funds/fund-scheduler");
 const {
   registerMetalIpc,
   startMetalScheduler,

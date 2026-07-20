@@ -21,7 +21,7 @@ import {
 let trayMenuPrefsRef = null;
 async function getTrayMenuPrefs() {
   if (!trayMenuPrefsRef) {
-    const mod = await import("../../src/renderer/trayConfigStore.js");
+    const mod = await import("../../src/renderer/store/trayConfigStore.js");
     trayMenuPrefsRef = mod.trayMenuPrefs;
   }
   return trayMenuPrefsRef;

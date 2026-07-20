@@ -24,8 +24,8 @@ import { KPICard } from "../../src/renderer/components/KPICard.jsx";
 import { ViewSwitcher } from "../../src/renderer/components/ViewSwitcher.jsx";
 import { MergedFilterChip } from "../../src/renderer/components/MergedFilterChip.jsx";
 import { AIDrawerShell } from "../../src/renderer/components/AIDrawerShell.jsx";
-import { openPalette, closePalette } from "../../src/renderer/command-palette-store.js";
-import { setViewMode } from "../../src/renderer/library-view-store.js";
+import { openPalette, closePalette } from "../../src/renderer/store/command-palette-store.js";
+import { setViewMode } from "../../src/renderer/store/library-view-store.js";
 import { results, resetCheck } from "../../src/renderer/store.js";
 
 vi.mock("../../src/renderer/api.js", () => ({
@@ -49,7 +49,7 @@ vi.mock("../../src/renderer/reminders/remindersStore.js", () => ({
 vi.mock("../../src/renderer/recent/recentStore.js", () => ({
   toggleRecentOpen: () => {},
 }));
-vi.mock("../../src/renderer/release-notes-store.js", () => ({
+vi.mock("../../src/renderer/store/release-notes-store.js", () => ({
   openReleaseNotes: () => {},
 }));
 

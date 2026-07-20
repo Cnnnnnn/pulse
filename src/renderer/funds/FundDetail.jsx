@@ -33,7 +33,7 @@ import { closeFundDetail } from "./fundRoute.js";
 import { api } from "../api.js";
 import { FundAreaChart } from "./FundAreaChart.jsx";
 import { FundRadar } from "./FundRadar.jsx";
-import { openConfirm } from "../confirmStore.js";
+import { openConfirm } from "../store/confirmStore.js";
 import {
   isFundPinned,
   addWatchlistItem,

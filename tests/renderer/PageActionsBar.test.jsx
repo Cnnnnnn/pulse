@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
 import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.jsx";
-import { closePalette } from "../../src/renderer/command-palette-store.js";
+import { closePalette } from "../../src/renderer/store/command-palette-store.js";
 
 vi.mock("../../src/renderer/api.js", () => ({
   api: {
@@ -13,7 +13,7 @@ vi.mock("../../src/renderer/api.js", () => ({
   },
 }));
 
-vi.mock("../../src/renderer/route-store.js", () => ({
+vi.mock("../../src/renderer/store/route-store.js", () => ({
   navigateTo: vi.fn(),
 }));
 
@@ -32,7 +32,7 @@ vi.mock("../../src/renderer/reminders/remindersStore.js", () => ({
 vi.mock("../../src/renderer/recent/recentStore.js", () => ({
   toggleRecentOpen: () => {},
 }));
-vi.mock("../../src/renderer/release-notes-store.js", () => ({
+vi.mock("../../src/renderer/store/release-notes-store.js", () => ({
   openReleaseNotes: () => {},
 }));
 

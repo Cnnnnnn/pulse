@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/preact";
 import { LibraryPage } from "../../src/renderer/components/LibraryPage.jsx";
-import { viewMode, setViewMode, resetLibraryFilters } from "../../src/renderer/library-view-store.js";
+import { viewMode, setViewMode, resetLibraryFilters } from "../../src/renderer/store/library-view-store.js";
 import { results, resetCheck } from "../../src/renderer/store.js";
 
 const mockRunCheck = vi.fn();

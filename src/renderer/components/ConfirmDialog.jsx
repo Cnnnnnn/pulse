@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useRef } from "preact/hooks";
-import { confirmDialog, confirmVisible, resolveConfirm } from "../confirmStore.js";
+import { confirmDialog, confirmVisible, resolveConfirm } from "../store/confirmStore.js";
 import { ModalShell } from "./ModalShell.jsx";
 
 export function ConfirmDialog() {

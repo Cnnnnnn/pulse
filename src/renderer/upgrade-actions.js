@@ -6,7 +6,7 @@
  */
 import { taggedLog } from "./log.js";
 import { results } from "./store.js";
-import { openBulkUpgrade } from "./store-bulk-upgrade.js";
+import { openBulkUpgrade } from "./store/store-bulk-upgrade.js";
 
 const log = taggedLog("[upgrade-actions]");
 

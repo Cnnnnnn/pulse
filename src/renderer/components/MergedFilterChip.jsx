@@ -9,7 +9,7 @@ import {
   filterStatus, setFilterStatus,
   filterCategory, setFilterCategory,
   resetLibraryFilters,
-} from "../library-view-store.js";
+} from "../store/library-view-store.js";
 import { tabCounts } from "../selectors.js";
 import { results } from "../store.js";
 import { getCategoryTabsWithCount } from "../../config/category.js";

@@ -55,7 +55,7 @@ vi.mock("../../src/renderer/nav-refresh.js", () => ({
   REFRESHABLE_NAV_KEYS: new Set(),
 }));
 
-vi.mock("../../src/renderer/trayConfigStore.js", () => ({
+vi.mock("../../src/renderer/store/trayConfigStore.js", () => ({
   get trayMenuPrefs() { return mockTrayMenuPrefs; },
 }));
 

@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor, act } from "@testing-library/preact";
 import { CommandPalette } from "../../src/renderer/components/CommandPalette.jsx";
-import { paletteOpen, openPalette, closePalette, setPaletteSelectedIndex, setPaletteQuery } from "../../src/renderer/command-palette-store.js";
+import { paletteOpen, openPalette, closePalette, setPaletteSelectedIndex, setPaletteQuery } from "../../src/renderer/store/command-palette-store.js";
 
 // vi.mock 会被 hoist, 用 vi.hoisted 让 mock fn 也能被测试代码引用
 const { mockVersionsRunCheck } = vi.hoisted(() => ({

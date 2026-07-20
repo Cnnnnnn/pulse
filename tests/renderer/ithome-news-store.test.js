@@ -29,7 +29,7 @@ const { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoad
   return { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoadNewsMock };
 });
 
-vi.mock("../../src/renderer/store-utils.js", () => ({
+vi.mock("../../src/renderer/store/store-utils.js", () => ({
   requireApiMethod: (name) => {
     if (name === "ithomeMarkRead") return mockMarkRead;
     if (name === "ithomeLoadNews") return mockLoadNews;

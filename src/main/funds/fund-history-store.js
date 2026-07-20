@@ -4,7 +4,7 @@
  * 基金每日盈亏快照持久化 (state.json.funds.dailySnapshots).
  */
 
-const stateStore = require("./state-store");
+const stateStore = require("../state-store");
 const fundStore = require("./fund-store");
 const {
   ymdShanghai,
@@ -12,13 +12,13 @@ const {
   buildSnapshotFromMetrics,
   upsertDailySnapshot,
   pruneSnapshots,
-} = require("../funds/fund-history");
+} = require("../../funds/fund-history");
 const {
   calcPortfolioTotal,
   zipHoldingsWithNav,
   rowWithMetrics,
-} = require("../funds/fundCalc");
-const { resolveNavSnapshot } = require("../funds/fund-nav-merge");
+} = require("../../funds/fundCalc");
+const { resolveNavSnapshot } = require("../../funds/fund-nav-merge");
 
 function loadSnapshots(statePath) {
   const s = stateStore.load(statePath);

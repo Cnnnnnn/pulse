@@ -8,13 +8,13 @@
  * category.* 都有数据.
  *
  * 跟 main 进程的区别:
- *   - main: 用 fs.readFileSync 读 config/*.json (Node 跑)
+ *   - main: 用 fs.readFileSync 读 src/config/data/*.json (Node 跑)
  *   - renderer: 用 esbuild static import 把 JSON inline 进 bundle (browser 跑)
  */
 
 import * as category from '../config/category.js';
-import catsData from '../../config/categories.json';
-import mapData from '../../config/app-category.json';
+import catsData from '../config/data/categories.json';
+import mapData from '../config/data/app-category.json';
 
 // 顶层副作用: require 这个模块时立刻跑 setData
 category.setData({

@@ -9,7 +9,7 @@
  * 2026-07-08 P12: 加 subtab (library/diagnostics/settings).
  * 2026-07-10: 删除洞察 (insights) tab — 功能价值不足.
  */
-import { currentRoute, navigateTo } from "../route-store.js";
+import { currentRoute, navigateTo } from "../store/route-store.js";
 import { CommandPalette } from "./CommandPalette.jsx";
 import { SubtabList } from "./SubtabList.jsx";
 import { LibraryPage } from "./LibraryPage.jsx";

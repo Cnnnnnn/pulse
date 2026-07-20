@@ -38,11 +38,11 @@ vi.mock('../../src/renderer/store.js', () => ({
   showToast: (...args) => mockToast(...args),
 }));
 
-vi.mock('../../src/renderer/confirmStore.js', () => ({
+vi.mock('../../src/renderer/store/confirmStore.js', () => ({
   openConfirm: (...args) => mockOpenConfirm(...args),
 }));
 
-const store = await import('../../src/renderer/release-notes-store.js');
+const store = await import('../../src/renderer/store/release-notes-store.js');
 const { ReleaseNotesWizard } = await import('../../src/renderer/components/ReleaseNotesWizard.jsx');
 
 function openAsAuto(payload) {

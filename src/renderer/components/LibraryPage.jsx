@@ -22,7 +22,7 @@ import { AppCard } from "./AppCard.jsx";
 import { VirtualCardGrid } from "./VirtualCardGrid.jsx";
 import { OverviewEmptyState } from "./OverviewEmptyState.jsx";
 import { useRunCheck } from "../hooks/useRunCheck.js";
-import { viewMode } from "../library-view-store.js";
+import { viewMode } from "../store/library-view-store.js";
 import { results } from "../store.js";
 
 export function LibraryPage() {

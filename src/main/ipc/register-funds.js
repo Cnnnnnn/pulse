@@ -1,12 +1,12 @@
 const { ipcMain } = require("electron");
 const { HttpClient } = require("../http-client");
-const fundStore = require("../fund-store");
-const fundHistoryStore = require("../fund-history-store");
+const fundStore = require("../funds/fund-store");
+const fundHistoryStore = require("../funds/fund-history-store");
 const { searchFunds } = require("../../funds/fund-search");
 const { fetchFundNavBatch } = require("../../funds/fund-fetcher");
 const { pickEffectiveNavNumber } = require("../../funds/fund-nav-merge");
 const { fetchFundNavHistory, fetchIndexHistory } = require("../../funds/fund-nav-history");
-const fundNavHistoryStore = require("../fund-history-store");
+const fundNavHistoryStore = require("../funds/fund-history-store");
 
 function registerFundsHandlers(ctx) {
   const { safeHandle, threwResponse, fundScheduler } = ctx;

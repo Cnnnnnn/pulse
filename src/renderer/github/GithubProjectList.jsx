@@ -42,7 +42,7 @@ import {
   lastFailedIds,
   collectGithubTags,
 } from "../store/github-projects-store.js";
-import { openConfirm } from "../confirmStore.js";
+import { openConfirm } from "../store/confirmStore.js";
 import { api } from "../api.js";
 
 const PAGE_SIZE = 8;

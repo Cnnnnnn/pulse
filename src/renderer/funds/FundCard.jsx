@@ -11,7 +11,7 @@ import { useState, useRef, useEffect } from 'preact/hooks';
 import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund, isListedFundCode } from './fundStore.js';
 import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.js';
 import { api } from '../api.js';
-import { openConfirm } from '../confirmStore.js';
+import { openConfirm } from '../store/confirmStore.js';
 import { taggedLog } from '../log.js';
 import { FundCardSparkline } from './FundCardSparkline.jsx';
 import { AddToCompareButton } from '../stocks/AddToCompareButton.jsx';

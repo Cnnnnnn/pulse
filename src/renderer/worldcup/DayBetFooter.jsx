@@ -10,7 +10,7 @@
  *   - Fix 10: 盈亏符号 (PnlSignIcon 盈 / IconX 亏 / — 0)
  */
 import { useState, useRef, useEffect } from "preact/hooks";
-import { openConfirm } from "../confirmStore.js";
+import { openConfirm } from "../store/confirmStore.js";
 import { PnlSignIcon } from "../components/icons.jsx";
 import {
   worldcupBets,

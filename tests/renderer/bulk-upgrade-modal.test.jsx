@@ -23,7 +23,7 @@ import {
   applyBulkUpgradeProgress,
   applyBulkUpgradeDone,
   resetBulkUpgrade,
-} from '../../src/renderer/store-bulk-upgrade.js';
+} from '../../src/renderer/store/store-bulk-upgrade.js';
 import { BulkUpgradeModal } from '../../src/renderer/components/BulkUpgradeModal.jsx';
 
 function makeItem(over) {

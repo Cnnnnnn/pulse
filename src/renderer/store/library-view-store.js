@@ -12,8 +12,8 @@
  *          新 MergedFilterChip / 后续 LibraryPage 子组件走本 store (同一 signal).
  */
 import { signal } from "@preact/signals";
-import { activeFilter as filterStatus, searchQuery } from "./store/ui-store.js";
-import { activeCategory as filterCategory } from "./store/category-mute-store.js";
+import { activeFilter as filterStatus, searchQuery } from "./ui-store.js";
+import { activeCategory as filterCategory } from "./category-mute-store.js";
 
 export { filterStatus, filterCategory, searchQuery };
 export const viewMode = signal("table");

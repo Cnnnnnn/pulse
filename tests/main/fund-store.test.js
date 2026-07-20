@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const fundStore = require("../../src/main/fund-store.js");
+const fundStore = require("../../src/main/funds/fund-store.js");
 
 let tmpPath;
 

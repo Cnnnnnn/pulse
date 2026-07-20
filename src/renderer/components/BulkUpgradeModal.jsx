@@ -27,7 +27,7 @@ import {
   bulkUpgradeOutput,
   bulkUpgradeErrors,
   closeBulkUpgrade,
-} from '../store-bulk-upgrade.js';
+} from '../store/store-bulk-upgrade.js';
 import { taggedLog } from '../log.js';
 import { ModalShell } from './ModalShell.jsx';
 import { BulkStatusIcon, IconRotateCcw } from './icons.jsx';

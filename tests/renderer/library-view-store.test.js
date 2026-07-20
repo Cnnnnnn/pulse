@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   viewMode, filterStatus, filterCategory, searchQuery,
   setViewMode, setFilterStatus, setFilterCategory, setSearchQuery, resetLibraryFilters,
-} from "../../src/renderer/library-view-store.js";
+} from "../../src/renderer/store/library-view-store.js";
 
 beforeEach(() => {
   setViewMode("table");

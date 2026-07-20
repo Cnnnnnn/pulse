@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/preact";
 import { ViewSwitcher } from "../../src/renderer/components/ViewSwitcher.jsx";
-import { viewMode, setViewMode } from "../../src/renderer/library-view-store.js";
+import { viewMode, setViewMode } from "../../src/renderer/store/library-view-store.js";
 
 beforeEach(() => {
   cleanup();

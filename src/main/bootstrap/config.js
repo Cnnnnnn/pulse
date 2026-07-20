@@ -16,12 +16,16 @@ const PROJECT_ROOT = path.join(__dirname, "..", "..", "..");
 const CONFIG_PATH = path.join(PROJECT_ROOT, "config.json");
 const CATEGORIES_JSON_PATH = path.join(
   PROJECT_ROOT,
+  "src",
   "config",
+  "data",
   "categories.json",
 );
 const APP_CATEGORY_JSON_PATH = path.join(
   PROJECT_ROOT,
+  "src",
   "config",
+  "data",
   "app-category.json",
 );
 

@@ -16,7 +16,7 @@ import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import {
   openReleaseNotes,
   releaseNotesPayload,
-} from './release-notes-store.js';
+} from './store/release-notes-store.js';
 import {
   apps,
   applyProgress,
@@ -38,7 +38,7 @@ import {
 } from './store.js';
 import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
-import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store-bulk-upgrade.js';
+import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store/store-bulk-upgrade.js';
 import { createAutoRecheck } from './auto-recheck.js';
 import { taggedLog } from './log.js';
 import { applyPlatformBodyClass } from './platform-body-class.js';
@@ -169,15 +169,15 @@ function wireRendererListeners() {
     const trayApi = window.pulse.tray;
     if (typeof trayApi.onOpenConfig === 'function') {
       trayApi.onOpenConfig(() => {
-        import('./trayConfigStore.js').then(({ openTrayConfig }) => openTrayConfig());
+        import('./store/trayConfigStore.js').then(({ openTrayConfig }) => openTrayConfig());
       });
     }
     if (typeof trayApi.onCloseConfigModal === 'function') {
       trayApi.onCloseConfigModal(() => {
-        import('./trayConfigStore.js').then(({ closeTrayConfig }) => closeTrayConfig());
+        import('./store/trayConfigStore.js').then(({ closeTrayConfig }) => closeTrayConfig());
       });
     }
-    import('./trayConfigStore.js').then(({ applyTrayPrefsFromMain }) => {
+    import('./store/trayConfigStore.js').then(({ applyTrayPrefsFromMain }) => {
       Promise.resolve(trayApi.getPrefs && trayApi.getPrefs()).then((r) => {
         if (r && r.ok && r.prefs) applyTrayPrefsFromMain(r.prefs);
       }).catch(() => {});

@@ -91,7 +91,7 @@
       "src/**",
       "preload.js",
       "config.json",
-      "config/**",
+      "versions/**",
       "index.html",
       "styles.css",
       "share-card.html",

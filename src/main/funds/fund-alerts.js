@@ -11,8 +11,8 @@
  */
 "use strict";
 
-const { calcFundMetrics } = require("../funds/fundCalc");
-const { resolveNavSnapshot } = require("../funds/fund-nav-merge");
+const { calcFundMetrics } = require("../../funds/fundCalc");
+const { resolveNavSnapshot } = require("../../funds/fund-nav-merge");
 
 const DEFAULT_ALERT_PREFS = {
   enabled: false,

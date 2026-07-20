@@ -16,7 +16,7 @@ import { signal } from "@preact/signals";
 import { PageHeader } from "./PageHeader.jsx";
 import { SubtabList } from "./SubtabList.jsx";
 import { AISettingsScene } from "./AISettingsScene.jsx";
-import { routeTab } from "../route-store.js";
+import { routeTab } from "../store/route-store.js";
 import {
   getThemePreference,
   setThemePreference,

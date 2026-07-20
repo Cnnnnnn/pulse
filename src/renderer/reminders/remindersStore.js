@@ -8,7 +8,7 @@
  */
 
 import { signal, computed } from "@preact/signals";
-import { getApi, requireApiMethod, wrapIpc } from "../store-utils.js";
+import { getApi, requireApiMethod, wrapIpc } from "../store/store-utils.js";
 import { trackReminderUpdate } from "../recent/track.js";
 
 export const reminders = signal([]); // Reminder[]

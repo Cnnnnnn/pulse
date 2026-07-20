@@ -41,11 +41,11 @@ vi.mock("../../src/renderer/recent/recentStore.js", () => ({
   toggleRecentOpen: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/release-notes-store.js", () => ({
+vi.mock("../../src/renderer/store/release-notes-store.js", () => ({
   openReleaseNotes: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/route-store.js", () => ({
+vi.mock("../../src/renderer/store/route-store.js", () => ({
   navigateTo: vi.fn(),
 }));
 
@@ -54,8 +54,8 @@ import { toggleDigestDrawer } from "../../src/renderer/store/ai-store.js";
 import { toggleWatchlistModal } from "../../src/renderer/watchlist/watchlist-store.js";
 import { toggleRemindersOpen } from "../../src/renderer/reminders/remindersStore.js";
 import { toggleRecentOpen } from "../../src/renderer/recent/recentStore.js";
-import { openReleaseNotes } from "../../src/renderer/release-notes-store.js";
-import { navigateTo } from "../../src/renderer/route-store.js";
+import { openReleaseNotes } from "../../src/renderer/store/release-notes-store.js";
+import { navigateTo } from "../../src/renderer/store/route-store.js";
 import { api } from "../../src/renderer/api.js";
 
 beforeEach(() => {

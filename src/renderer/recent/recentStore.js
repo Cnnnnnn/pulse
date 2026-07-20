@@ -7,7 +7,7 @@
  */
 
 import { signal } from "@preact/signals";
-import { getApi, requireApiMethod, wrapIpc } from "../store-utils.js";
+import { getApi, requireApiMethod, wrapIpc } from "../store/store-utils.js";
 
 export const recent = signal([]); // RecentActivityEntry[]
 export const recentLoaded = signal(false);

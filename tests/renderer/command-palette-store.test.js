@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   paletteOpen, paletteQuery, paletteResults, paletteSelectedIndex,
   openPalette, closePalette, setPaletteQuery, setPaletteResults, setPaletteSelectedIndex,
-} from "../../src/renderer/command-palette-store.js";
+} from "../../src/renderer/store/command-palette-store.js";
 
 beforeEach(() => {
   closePalette();

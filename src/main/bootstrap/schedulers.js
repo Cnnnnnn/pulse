@@ -152,7 +152,7 @@ function startFundScheduler(deps) {
     sched.on("fetched", (payload) => {
       sendToRenderer("funds:nav:fetched", payload);
       try {
-        const { checkFundAlerts } = require("../fund-alerts");
+        const { checkFundAlerts } = require("../funds/fund-alerts");
         const all = fundStore.loadAll();
         const cfg = typeof getConfig === "function" ? getConfig() || {} : {};
         const notif = cfg.notifications || {};

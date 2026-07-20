@@ -31,7 +31,7 @@ import { fundUnreadBadge } from '../funds/fundStore.js';
 import { aiUsageNavBadge } from '../store/ai-usage-store.js';
 import { gamesHasNewFree, gamesHasNewDrop } from '../games/gamesStore.js';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
-import { trayMenuPrefs } from '../trayConfigStore.js';
+import { trayMenuPrefs } from '../store/trayConfigStore.js';
 import {
   loadPrefs,
   savePrefs,
@@ -45,7 +45,7 @@ import {
 import { SideNavItem } from './SideNavItem.jsx';
 import { HiddenItemsDrawer } from './HiddenItemsDrawer.jsx';
 import { IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.jsx';
-import { navigateTo } from '../route-store.js';
+import { navigateTo } from '../store/route-store.js';
 
 // Phase v1: 3 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).
 // 投资 nav 合并: metals 段不再控制 nav 可见性 —— 投资固定可见.

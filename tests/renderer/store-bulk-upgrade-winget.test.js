@@ -8,7 +8,7 @@
  * 跟未来重构源码不耦合.
  */
 import { describe, it, expect } from 'vitest';
-import { isUpgradableSource } from '../../src/renderer/store-bulk-upgrade.js';
+import { isUpgradableSource } from '../../src/renderer/store/store-bulk-upgrade.js';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

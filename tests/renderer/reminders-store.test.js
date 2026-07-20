@@ -24,7 +24,7 @@ const { apiState, emitFired, emitOpenModal } = vi.hoisted(() => {
   return { apiState, emitFired, emitOpenModal };
 });
 
-vi.mock("../../src/renderer/store-utils.js", () => ({
+vi.mock("../../src/renderer/store/store-utils.js", () => ({
   getApi: () => ({
     onRemindersFired: (cb) => {
       apiState.firedHandlers.push(cb);

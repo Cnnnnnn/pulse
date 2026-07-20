@@ -15,8 +15,8 @@ import { toggleDigestDrawer } from "../store/ai-store.js";
 import { toggleWatchlistModal } from "../watchlist/watchlist-store.js";
 import { toggleRemindersOpen } from "../reminders/remindersStore.js";
 import { toggleRecentOpen } from "../recent/recentStore.js";
-import { openReleaseNotes } from "../release-notes-store.js";
-import { navigateTo } from "../route-store.js";
+import { openReleaseNotes } from "../store/release-notes-store.js";
+import { navigateTo } from "../store/route-store.js";
 import {
   IconBot, IconMoreHorizontal,
   IconStar, IconSettings, IconCalendar, IconNote,

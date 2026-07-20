@@ -21,7 +21,7 @@ import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { renderChangelog } from '../changelog.js';
 import { showToast } from '../store.js';
 import { api } from '../api.js';
-import { openConfirm } from '../confirmStore.js';
+import { openConfirm } from '../store/confirmStore.js';
 import { BareModalShell } from './ModalShell.jsx';
 import {
   releaseNotesOpen,
@@ -29,7 +29,7 @@ import {
   releaseNotesPayload,
   closeReleaseNotes,
   clearReleaseNotes,
-} from '../release-notes-store.js';
+} from '../store/release-notes-store.js';
 
 const TOTAL_PAGE_OFFSET = 1; // page 0 = changelog, page 1..N = slides[0..N-1]
 

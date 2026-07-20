@@ -33,7 +33,7 @@ import { PanelEmpty } from "./EmptyState.jsx";
 import { KPICard } from "./KPICard.jsx";
 import { StatusBadge } from "./Badge.jsx";
 import { IconCheck } from "./icons.jsx";
-import { navigateTo } from "../route-store.js";
+import { navigateTo } from "../store/route-store.js";
 
 function fmtTs(ts) {
   if (!ts) return "";

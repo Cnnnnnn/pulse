@@ -8,8 +8,8 @@ import { useEffect, useRef } from "preact/hooks";
 import {
   paletteOpen, paletteQuery, paletteResults, paletteSelectedIndex,
   closePalette, setPaletteQuery, setPaletteResults, setPaletteSelectedIndex,
-} from "../command-palette-store.js";
-import { navigateTo } from "../route-store.js";
+} from "../store/command-palette-store.js";
+import { navigateTo } from "../store/route-store.js";
 import { api } from "../api.js";
 import { setThemePreference } from "../theme/theme-manager.js";
 import { showToast } from "../store.js";

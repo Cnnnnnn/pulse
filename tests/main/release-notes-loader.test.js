@@ -2,7 +2,7 @@
  * tests/main/release-notes-loader.test.js
  *
  * ON: loader 纯函数测试. 用 __setTestRepoRoot 注入 repoRoot,
- * 在 tmpDir 里造 fixture 文件 (versions/<ver>.md + src/release-notes-content/<ver>/slides.json),
+ * 在 tmpDir 里造 fixture 文件 (versions/<ver>.md + versions/<ver>/slides.json),
  * 测 readReleaseNotes / readSlides 的所有路径.
  *
  * 不走 vi.mock('fs') — 真实 fs 行为更可靠, 跟现有 state-store 测试风格一致.
@@ -20,13 +20,13 @@ import {
 
 let tmpDir;
 let repoRoot;
-let contentRoot;
+let versionsRoot;
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-rn-loader-"));
   repoRoot = tmpDir;
-  contentRoot = path.join(tmpDir, "src", "release-notes-content");
-  fs.mkdirSync(contentRoot, { recursive: true });
+  versionsRoot = path.join(tmpDir, "versions");
+  fs.mkdirSync(versionsRoot, { recursive: true });
   __setTestRepoRoot(repoRoot);
 });
 
@@ -61,7 +61,7 @@ describe("readReleaseNotes", () => {
 
 describe("readSlides", () => {
   it("returns parsed slides when file exists and valid", () => {
-    const dir = path.join(contentRoot, "2.32.0");
+    const dir = path.join(versionsRoot, "2.32.0");
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, "slides.json"),
@@ -88,14 +88,14 @@ describe("readSlides", () => {
   });
 
   it("returns null on JSON parse error", () => {
-    const dir = path.join(contentRoot, "2.32.0");
+    const dir = path.join(versionsRoot, "2.32.0");
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "slides.json"), "{ invalid json");
     expect(readSlides("2.32.0")).toBeNull();
   });
 
   it("returns null on schema failure (missing version)", () => {
-    const dir = path.join(contentRoot, "2.32.0");
+    const dir = path.join(versionsRoot, "2.32.0");
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, "slides.json"),
@@ -105,7 +105,7 @@ describe("readSlides", () => {
   });
 
   it("returns null on schema failure (missing slides)", () => {
-    const dir = path.join(contentRoot, "2.32.0");
+    const dir = path.join(versionsRoot, "2.32.0");
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, "slides.json"),
@@ -115,7 +115,7 @@ describe("readSlides", () => {
   });
 
   it("returns null when slides array is empty", () => {
-    const dir = path.join(contentRoot, "2.32.0");
+    const dir = path.join(versionsRoot, "2.32.0");
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, "slides.json"),

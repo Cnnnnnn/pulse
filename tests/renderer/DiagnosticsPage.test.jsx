@@ -32,10 +32,10 @@ vi.mock("../../src/renderer/api.js", () => ({
 }));
 import { api } from "../../src/renderer/api.js";
 
-vi.mock("../../src/renderer/route-store.js", () => ({
+vi.mock("../../src/renderer/store/route-store.js", () => ({
   navigateTo: vi.fn(),
 }));
-import { navigateTo } from "../../src/renderer/route-store.js";
+import { navigateTo } from "../../src/renderer/store/route-store.js";
 
 beforeEach(() => {
   cleanup();

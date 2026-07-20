@@ -14,7 +14,7 @@ const {
   checkFundAlerts,
   normalizeAlertPrefs,
   RE_ALERT_STEP_PCT,
-} = require("../../src/main/fund-alerts");
+} = require("../../src/main/funds/fund-alerts");
 
 const holding = {
   id: "h1",
