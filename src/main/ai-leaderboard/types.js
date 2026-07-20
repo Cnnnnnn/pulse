@@ -138,7 +138,7 @@ const ATTRIBUTION = {
   "arena-snapshot": {
     id: "arena-snapshot",
     text: "社区排名：Arena AI Snapshot（MIT 许可）",
-    url: "https://api.wulong.dev",
+    url: "https://api.wulong.dev/arena-ai-leaderboards",
     required: false,
   },
   openrouter: {

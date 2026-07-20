@@ -12,10 +12,10 @@ const { fetchJson, BROWSER_UA } = require("./normalize");
 const { SOURCE, toAiModel, slugifyModel, normalizeVendor } = require("./types");
 const { logFetchError } = require("../games/log");
 
-// 主端点（社区维护的 Arena 快照聚合）
-const ARENA_BASE = "https://api.wulong.dev/v1/leaderboard";
-// 失败回退：社区快照的 GitHub raw 指针（按 board 分文件）
-const ARENA_GITHUB_RAW = "https://raw.githubusercontent.com/oolong-tea-2026/arena-snapshot/main";
+// 主端点（社区维护的 Arena 快照聚合，path 前缀是 /arena-ai-leaderboards/）
+const ARENA_BASE = "https://api.wulong.dev/arena-ai-leaderboards/v1/leaderboard";
+// 失败回退：社区快照 GitHub raw（先读 latest.json 拿当日日期，再按 board 拉）
+const ARENA_GITHUB_RAW = "https://raw.githubusercontent.com/oolong-tea-2026/arena-ai-leaderboards/main";
 
 const BOARDS = ["text", "vision", "code", "text-to-image", "video"];
 
@@ -61,10 +61,19 @@ async function fetchOneBoard(board, timeoutMs) {
       headers,
     });
   } catch (err) {
-    // 失败回退 GitHub raw（按 board 分文件）
+    // 失败回退 GitHub raw: 先读 latest.json 拿到当日日期, 再按 board 拉当天的 json
     try {
+      const latest = await fetchJson(`${ARENA_GITHUB_RAW}/data/latest.json`, {
+        timeoutMs: timeoutMs || 9000,
+        headers,
+      });
+      const datePath =
+        (latest && (latest.date || latest.latest || latest.path)) ||
+        new Date().toISOString().slice(0, 10);
+      // datePath 形如 "2026-03-21" 或 "data/2026-03-21" — 兼容两种
+      const cleanDate = String(datePath).replace(/^data\//, "").replace(/\.json$/, "");
       return await fetchJson(
-        `${ARENA_GITHUB_RAW}/${encodeURIComponent(board)}.json`,
+        `${ARENA_GITHUB_RAW}/data/${cleanDate}/${encodeURIComponent(board)}.json`,
         { timeoutMs: timeoutMs || 9000, headers },
       );
     } catch (err2) {

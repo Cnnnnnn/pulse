@@ -13,9 +13,9 @@ const { fetchJson, BROWSER_UA } = require("./normalize");
 const { SOURCE, toAiModel, slugifyModel, normalizeVendor } = require("./types");
 const { logFetchError } = require("../games/log");
 
-const AA_API = "https://artificialanalysis.ai/api/v2/data/llms/models";
-const AA_GITHUB_RAW =
-  "https://raw.githubusercontent.com/oolong-tea-2026/artificial-analysis-leaderboards/main/llms.json";
+const AA_API = "https://artificialanalysis.ai/api/v2/language/models";
+// 注: AA 不存在可信的 GitHub raw 镜像仓库, 主源失败直接走 aggregator 兜底链
+const AA_GITHUB_RAW = null;
 
 let _envLoaded = false;
 let _aaKey = undefined; // undefined = 尚未探测
@@ -92,28 +92,15 @@ async function fetch(opts = {}) {
       fetchedAt: new Date().toISOString(),
     };
   } catch (err) {
-    // 无 key / 401 / 网络失败 → 回退 GitHub raw 社区快照
-    try {
-      const raw = await fetchJson(AA_GITHUB_RAW, {
-        timeoutMs: timeoutMs || 12000,
-        headers: { "User-Agent": BROWSER_UA, Accept: "application/json" },
-      });
-      return {
-        ok: true,
-        source: "artificial-analysis",
-        data: raw,
-        fetchedAt: new Date().toISOString(),
-        fromSnapshot: true,
-      };
-    } catch (err2) {
-      logFetchError("aa", err2);
-      return {
-        ok: false,
-        source: "artificial-analysis",
-        data: null,
-        fetchedAt: new Date().toISOString(),
-      };
-    }
+    // 主源失败 (无 key / 401 / 网络 / quota) → 不存在可信 raw 镜像, 直接返回 ok:false
+    // aggregator 兜底链会处理 (Arena live → OR 骨架 → sample)
+    logFetchError("aa", err);
+    return {
+      ok: false,
+      source: "artificial-analysis",
+      data: null,
+      fetchedAt: new Date().toISOString(),
+    };
   }
 }
 
