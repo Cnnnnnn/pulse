@@ -24,38 +24,63 @@ export const VIEWS = {
     label: "Arena 排名",
     emoji: "🏆",
     description: "社区盲测 ELO 排名",
+    sourceKey: "arena",
   },
   aa: {
     key: "aa",
-    label: "深度分析",
+    label: "Artificial Analysis",
     emoji: "📊",
     description: "Artificial Analysis 客观评测（仅 LLM）",
+    sourceKey: "aa",
+  },
+  livebench: {
+    key: "livebench",
+    label: "LiveBench",
+    emoji: "🛡️",
+    description: "LiveBench 月度抗污染客观评测（仅 LLM）",
+    sourceKey: "livebench",
   },
 };
 
-export const VIEW_KEYS = ["arena", "aa"];
+export const VIEW_KEYS = ["arena", "aa", "livebench"];
 
 /* ── Arena 视角：board 子筛选 ── */
 
+// P1：补 image/video 分榜。key 必须是 Arena board 名（text-to-image / text-to-video），
+// 与 fetcher-arena.js 落盘切片键一致；category 映射到主进程 CATEGORY_META。
+// 数据与 text/vision/code 同源（Arena 社区 ELO），零 AA 成本。
 export const ARENA_BOARDS = {
   text: { key: "text", label: "文本", category: "llm" },
   vision: { key: "vision", label: "多模态", category: "multimodal" },
   code: { key: "code", label: "代码", category: "code" },
+  image: { key: "text-to-image", label: "图像生成", category: "image" },
+  video: { key: "text-to-video", label: "视频", category: "video" },
 };
 
-export const ARENA_BOARD_KEYS = ["text", "vision", "code"];
+export const ARENA_BOARD_KEYS = ["text", "vision", "code", "image", "video"];
 
 /* ── AA 视角：可选排序维度 ── */
 
 export const AA_DIMENSIONS = {
-  intelligence: { key: "intelligence", label: "智能指数", kind: "index" },
-  coding: { key: "coding", label: "代码指数", kind: "index" },
-  agentic: { key: "agentic", label: "Agent 能力", kind: "index" },
-  speed: { key: "speed", label: "生成速度", kind: "speed" },
-  price: { key: "price", label: "输出价格", kind: "price" },
+  intelligence: { key: "intelligence", label: "Intelligence Index", kind: "index" },
+  coding: { key: "coding", label: "Coding Index", kind: "index" },
+  agentic: { key: "agentic", label: "Agentic Coding", kind: "index" },
+  speed: { key: "speed", label: "Output Speed (tok/s)", kind: "speed" },
+  price: { key: "price", label: "Output Price ($/1M)", kind: "price" },
 };
 
 export const AA_DIMENSION_KEYS = ["intelligence", "coding", "agentic", "speed", "price"];
+
+/* ── LiveBench 视角：抗污染子维度（全部 desc 默认）── */
+
+export const LIVE_DIMENSIONS = {
+  lb_overall: { key: "lb_overall", label: "Overall", kind: "livebench" },
+  lb_coding: { key: "lb_coding", label: "Coding", kind: "livebench" },
+  lb_language: { key: "lb_language", label: "Language", kind: "livebench" },
+  lb_instfollow: { key: "lb_instfollow", label: "Instruction Following", kind: "livebench" },
+};
+
+export const LIVE_DIMENSION_KEYS = ["lb_overall", "lb_coding", "lb_language", "lb_instfollow"];
 
 /** 升序默认的维度 (低 = 优). */
 export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);
@@ -66,11 +91,16 @@ export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);
  * 将视角 + 子筛选映射为主进程 IPC 需要的 {category, dimension}。
  * Arena 视角：category 由 board 决定，dimension 固定 "elo"。
  * AA 视角：category 固定 "llm"，dimension 由用户选择。
+ * LiveBench 视角：category 固定 "llm"，dimension 取 lb_* 之一，默认 lb_overall。
  */
 export function toIpcParams(view, boardOrDim) {
   if (view === "arena") {
     const board = ARENA_BOARDS[boardOrDim] || ARENA_BOARDS.text;
     return { category: board.category, dimension: "elo" };
+  }
+  if (view === "livebench") {
+    const dim = LIVE_DIMENSION_KEYS.includes(boardOrDim) ? boardOrDim : "lb_overall";
+    return { category: "llm", dimension: dim };
   }
   const dim = AA_DIMENSIONS[boardOrDim] ? boardOrDim : "intelligence";
   return { category: "llm", dimension: dim };
@@ -152,6 +182,15 @@ const VENDOR_ALIAS = {
   "mistral ai": "mistral",
   "x-ai": "xai",
   "google deepmind": "google",
+  "step fun": "stepfun",
+  "stepfun ai": "stepfun",
+  "moonshot ai": "moonshot",
+  "yandex": "other",
+  "ibm": "other",
+  "ibm research": "other",
+  "ai21": "other",
+  "ai-21": "other",
+  "azure": "other",
 };
 
 export function normalizeVendor(raw) {
@@ -172,7 +211,7 @@ const CATEGORY_BOARD = {
   multimodal: "vision",
   code: "code",
   image: "text-to-image",
-  video: "video",
+  video: "text-to-video",
 };
 
 export { CATEGORY_BOARD };
@@ -189,7 +228,8 @@ export function normalizeAiModel(raw) {
       arena: {},
       aa: null,
       openrouter: null,
-      sources: { arena: "none", aa: "none", openrouter: "none" },
+      livebench: null,
+      sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none" },
       isSample: false,
       fetchedAt: null,
     };
@@ -199,8 +239,9 @@ export function normalizeAiModel(raw) {
         arena: raw.sources.arena || "none",
         aa: raw.sources.aa || "none",
         openrouter: raw.sources.openrouter || "none",
+        livebench: raw.sources.livebench || "none",
       }
-    : { arena: "none", aa: "none", openrouter: "none" };
+    : { arena: "none", aa: "none", openrouter: "none", livebench: "none" };
   return {
     id: typeof raw.id === "string" ? raw.id : "",
     name: typeof raw.name === "string" ? raw.name : "",
@@ -211,6 +252,7 @@ export function normalizeAiModel(raw) {
     arena: raw.arena && typeof raw.arena === "object" ? raw.arena : {},
     aa: raw.aa && typeof raw.aa === "object" ? raw.aa : null,
     openrouter: raw.openrouter && typeof raw.openrouter === "object" ? raw.openrouter : null,
+    livebench: raw.livebench && typeof raw.livebench === "object" ? raw.livebench : null,
     sources,
     isSample: !!raw.isSample,
     fetchedAt: typeof raw.fetchedAt === "string" ? raw.fetchedAt : null,
@@ -247,6 +289,7 @@ export function normalizeBoardResult(res) {
       arena: Number.isFinite(sc.arena) ? sc.arena : 0,
       aa: Number.isFinite(sc.aa) ? sc.aa : 0,
       openrouter: Number.isFinite(sc.openrouter) ? sc.openrouter : 0,
+      livebench: Number.isFinite(sc.livebench) ? sc.livebench : 0,
     },
     attribution,
     stale: !!res.stale,

@@ -4,14 +4,14 @@
  * v3.0 导出工具：将当前表格/对比数据生成 Markdown 表格并复制到剪贴板。
  */
 
-import { VENDOR_META } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio } from "./format.js";
+import { VENDOR_META, ARENA_BOARDS } from "./types.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebench, fmtLbCost } from "./format.js";
 
 /**
  * 生成当前视角表格的 Markdown。
  * @param {object} opts
  * @param {Array} opts.rows - 当前展示的模型列表
- * @param {string} opts.view - "arena" | "aa"
+ * @param {string} opts.view - "arena" | "aa" | "livebench"
  * @param {string} [opts.board] - Arena board key
  * @returns {string} Markdown 表格
  */
@@ -19,13 +19,26 @@ export function tableToMarkdown({ rows, view, board }) {
   const vendorLabel = (m) => (VENDOR_META[m.vendor] || {}).label || m.vendor;
 
   if (view === "arena") {
+    const boardMeta = ARENA_BOARDS[board] || ARENA_BOARDS.text;
+    const boardName = boardMeta.key; // Arena board 名（text / vision / code / text-to-image / text-to-video）
     const header = "| # | 模型 | 厂商 | ELO | 置信区间 |";
     const sep = "|---|------|------|-----|----------|";
     const lines = rows.map((m, i) => {
-      const slice = m.arena && m.arena[board];
+      const slice = m.arena && m.arena[boardName];
       const elo = slice && typeof slice.score === "number" ? Math.round(slice.score) : "—";
       const ci = slice && slice.ci != null ? `±${Math.round(slice.ci)}` : "—";
       return `| ${i + 1} | ${m.name} | ${vendorLabel(m)} | ${elo} | ${ci} |`;
+    });
+    return [header, sep, ...lines].join("\n");
+  }
+
+  if (view === "livebench") {
+    const header = "| # | 模型 | 厂商 | 综合 | Coding | Language | 指令遵循 | $/成功 |";
+    const sep = "|---|------|------|------|--------|----------|----------|--------|";
+    const lines = rows.map((m, i) => {
+      const lb = m.livebench || {};
+      const byCat = lb.byCategory || {};
+      return `| ${i + 1} | ${m.name} | ${vendorLabel(m)} | ${fmtLivebench(lb.overall)} | ${fmtLivebench(byCat.Coding)} | ${fmtLivebench(byCat.Language)} | ${fmtLivebench(byCat.IF)} | ${fmtLbCost(lb.cost && lb.cost.perSuccessfulTask)} |`;
     });
     return [header, sep, ...lines].join("\n");
   }

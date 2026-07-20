@@ -84,7 +84,6 @@
 | `src/renderer/ai-leaderboard/LeaderboardTable.jsx` | 多维度表格（列随维度动态；`tabular-nums`） |
 | `src/renderer/ai-leaderboard/ModelRow.jsx` | 单行/卡片（排名、名称、vendor 徽标、分数、价格/速度、来源态） |
 | `src/renderer/ai-leaderboard/AttributionFooter.jsx` | 来源署名脚注（AA 强制 `https://artificialanalysis.ai/`、Arena MIT+来源） |
-| `src/renderer/ai-leaderboard/SampleBadge.jsx` | 「示例」徽标（sample 态复用 design-system Badge 令牌） |
 | `src/renderer/ai-leaderboard/states.jsx` | 加载骨架 / 错误 / 空 / 全 sample 四态 |
 | `src/renderer/ai-leaderboard/ai-leaderboard.css` | 样式（**全部引用令牌**，禁裸 hex） |
 
@@ -527,7 +526,7 @@ sequenceDiagram
     I-->>A: BoardResult
     A-->>S: 响应
     S->>R: batch(items/sources/attribution/loading=false)
-    R-->>P: 响应式重渲 Table + AttribFooter + SampleBadge
+    R-->>P: 响应式重渲 Table + AttribFooter（行内示例徽标）
 
     Note over U,R: 手动刷新 → api.refreshLeaderboard(force) → I 置 force → AG 绕过缓存重拉
     Note over AG,F: 单源失败不影响其它源；全失败 → sample.json → isSample=true 徽标
@@ -578,7 +577,7 @@ AiLeaderboardLayout
 | 加载 | `loading=true` | 骨架屏（令牌化高度占位） |
 | 错误 | `error` | 错误提示 + 「重试」按钮（调用 refresh） |
 | 空 | `count=0` 且无 sample | 「暂无数据」+ 手动刷新 |
-| 全 sample | `isSample` 整页 | 页头 + 每行「示例」徽标（`SampleBadge`，语义色 `--color-tertiary`） |
+| 全 sample | `isSample` 整页 | 页头 + 每行「示例」徽标（ModelRow 内联渲染） |
 
 ### 7.4 署名脚注（AttributionFooter）
 
@@ -627,7 +626,7 @@ AiLeaderboardLayout
 | **T01** | **模块基座与接入点**（类型/常量/sample/导航与 IPC 骨架） | ◆ `main/ai-leaderboard/types.js`, ◆ `main/ai-leaderboard/sample.js`, ◆ `main/ai-leaderboard/sample.json`, ◆ `renderer/ai-leaderboard/types.js`, ◆ `renderer/ai-leaderboard/format.js`；✎ `main/ipc/index.js`, ✎ `renderer/api.js`, ✎ `preload.js`, ✎ `components/SideNav.jsx`, ✎ `components/LazyNavPanel.jsx` | — | P0 |
 | **T02** | **数据层**：fetcher + normalizer + 缓存 + 限流 | ◆ `main/ai-leaderboard/normalize.js`, ◆ `fetcher-arena.js`, ◆ `fetcher-aa.js`, ◆ `fetcher-openrouter.js`, ◆ `cache.js`, ◆ `rate-limiter.js` | T01 | P0 |
 | **T03** | **服务层**：聚合器 + 排名 + 调度 + IPC 注册 | ◆ `main/ai-leaderboard/aggregator.js`, ◆ `ranking.js`, ◆ `scheduler.js`, ◆ `index.js`, ◆ `ipc/register-leaderboard.js`；✎ `main/bootstrap/schedulers.js` | T01, T02 | P0 |
-| **T04** | **渲染层**：store + 页面 + 表格 + 筛选 + 署名 + 状态 | ◆ `renderer/ai-leaderboard/aiLeaderboardStore.js`, ◆ `AiLeaderboardLayout.jsx`, ◆ `AiLeaderboardPage.jsx`, ◆ `LeaderboardFilterBar.jsx`, ◆ `LeaderboardTable.jsx`, ◆ `ModelRow.jsx`, ◆ `AttributionFooter.jsx`, ◆ `SampleBadge.jsx`, ◆ `states.jsx`, ◆ `ai-leaderboard.css` | T03 | P0 |
+| **T04** | **渲染层**：store + 页面 + 表格 + 筛选 + 署名 + 状态 | ◆ `renderer/ai-leaderboard/aiLeaderboardStore.js`, ◆ `AiLeaderboardLayout.jsx`, ◆ `AiLeaderboardPage.jsx`, ◆ `LeaderboardFilterBar.jsx`, ◆ `LeaderboardTable.jsx`, ◆ `ModelRow.jsx`, ◆ `AttributionFooter.jsx`, ◆ `states.jsx`, ◆ `ai-leaderboard.css` | T03 | P0 |
 | **T05** | **集成与测试**：署名/示例态联调 + 单测 + 边界 | ◆ `tests/ai-leaderboard/*.test.js`（aggregator/ranking/cache/rate-limiter/fetcher 单测）；✎ `.env`（补 `ARTIFICIAL_ANALYSIS_API_KEY`） | T02,T03,T04 | P1 |
 
 ---

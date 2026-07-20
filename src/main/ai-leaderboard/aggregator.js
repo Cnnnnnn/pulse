@@ -17,6 +17,7 @@ const { mergeModelSlices } = require("./normalize");
 const arenaFetcher = require("./fetcher-arena");
 const aaFetcher = require("./fetcher-aa");
 const openrouterFetcher = require("./fetcher-openrouter");
+const livebenchFetcher = require("./fetcher-livebench");
 const { getSampleModels } = require("./sample");
 const { sortModels, filterByVendor, filterBySearch } = require("./ranking");
 const { cacheKey, readCache, writeCache, isStale } = require("./cache");
@@ -27,6 +28,7 @@ const { logFetchError } = require("../games/log");
 const ARENA_TTL = 24 * 60 * 60 * 1000;
 const AA_TTL = 24 * 60 * 60 * 1000;
 const OR_TTL = 6 * 60 * 60 * 1000;
+const LB_TTL = 6 * 60 * 60 * 1000; // LiveBench 静态 CSV, 6h 足够 (官方月度)
 
 function _today() {
   return new Date().toISOString().slice(0, 10);
@@ -95,51 +97,78 @@ async function getLeaderboard(opts = {}) {
   const search = opts.search || "";
   const force = Boolean(opts.force);
 
-  // 限流：AA 无令牌则跳过（走缓存/快照/兜底）
-  let aaForce = force;
-  if (!acquire("artificial-analysis")) {
-    aaForce = false; // 令牌耗尽：本 tick 不真正打 AA，仅用缓存
+  // ponytail: 独立数据源管控 — caller 传 sources 白名单, 默认仍拉 4 源(向后兼容).
+  // 未来 renderer 按 view 决定拉哪些: arena tab 只要 arena+or 兜底, AA tab 只要 aa+or, LB tab 只要 lb+or.
+  // 升级路径: 进一步细分 openrouter 为兜底层 (fetch 频率更低, 长 TTL).
+  const sources = (opts.sources && typeof opts.sources === "object")
+    ? opts.sources
+    : { arena: true, aa: true, openrouter: true, livebench: true };
+  const need = (k) => sources[k] !== false;
+
+  // 先查 AA 磁盘缓存新鲜度（纯读，不消耗 AA 令牌）。
+  const aaKey = cacheKey("artificial-analysis", "llms", _today());
+  const aaCached = readCache(aaKey);
+  const aaCacheFresh = aaCached && !isStale(aaCached.fetchedAt, AA_TTL);
+
+  // 限流（P1 修正）：
+  //   仅当 AA 磁盘缓存「未命中 / 已过期(stale)」或显式 force 刷新时，才消耗令牌去拉 AA；
+  //   命中新鲜缓存的纯浏览路径不消耗 AA 令牌，避免重度用户因切换/浏览烧光 1000/日额度。
+  //   令牌耗尽时本 tick 不真正打 AA（aaForce=false，仅用 stale 缓存），兜底链行为不变。
+  const aaNeedFetch = force || !aaCacheFresh;
+  let aaForce = false;
+  if (aaNeedFetch) {
+    aaForce = acquire("artificial-analysis");
   }
 
-  const [arenaWrap, aaWrap, orWrap] = await Promise.all([
-    getBoardRaw(arenaFetcher, "arena", "all", ARENA_TTL, force),
-    getBoardRaw(aaFetcher, "artificial-analysis", "llms", AA_TTL, aaForce),
-    getBoardRaw(openrouterFetcher, "openrouter", "models", OR_TTL, force),
-  ]);
+  // ponytail: 按 caller 传入的 sources 白名单独立拉取. openrouter 作为通用兜底层, 任何 view 都拉 (便宜).
+  // 主源 = 拉了且能填该 view 的源 (arena 视角: arena; aa 视角: aa; lb 视角: lb).
+  const fetches = [];
+  if (need("arena")) fetches.push(getBoardRaw(arenaFetcher, "arena", "all", ARENA_TTL, force));
+  if (need("aa")) fetches.push(getBoardRaw(aaFetcher, "artificial-analysis", "llms", AA_TTL, aaForce));
+  if (need("openrouter")) fetches.push(getBoardRaw(openrouterFetcher, "openrouter", "models", OR_TTL, force));
+  if (need("livebench")) fetches.push(getBoardRaw(livebenchFetcher, "livebench", "table", LB_TTL, force));
+  const wraps = await Promise.all(fetches);
+  // wraps 顺序对应上面 if 顺序, 解构成命名变量
+  let i = 0;
+  const arenaWrap = need("arena") ? wraps[i++] : { raw: null, stale: false, fromCache: false };
+  const aaWrap    = need("aa")    ? wraps[i++] : { raw: null, stale: false, fromCache: false };
+  const orWrap    = need("openrouter") ? wraps[i++] : { raw: null, stale: false, fromCache: false };
+  const lbWrap    = need("livebench")  ? wraps[i++] : { raw: null, stale: false, fromCache: false };
+
+  // ponytail: 诊断 log — 排查 video board 空数据根因
+  console.warn("[agg-diag]", JSON.stringify({ cat: opts.category, dim: opts.dimension, srcOpts: sources, arenaRaw: !!arenaWrap.raw, arenaStale: arenaWrap.stale, arenaFromCache: arenaWrap.fromCache, orRaw: !!orWrap.raw }));
 
   const arenaModels = arenaWrap.raw ? arenaFetcher.normalize(arenaWrap.raw) : [];
   const aaModels = aaWrap.raw ? aaFetcher.normalize(aaWrap.raw) : [];
   const orModels = orWrap.raw ? openrouterFetcher.normalize(orWrap.raw) : [];
+  const lbModels = lbWrap.raw ? livebenchFetcher.normalize(lbWrap.raw) : [];
 
   const arenaSource = arenaModels.length ? SOURCE.LIVE : SOURCE.NONE;
   const aaSource = aaModels.length ? SOURCE.LIVE : SOURCE.NONE;
+  const orSource = orModels.length ? SOURCE.LIVE : SOURCE.NONE;
+  const lbSource = lbModels.length ? SOURCE.LIVE : SOURCE.NONE;
 
+  // ponytail: 兜底策略 — caller 没要的源永远不拉. 主源全失败时, 用 sample 兜底.
+  // 注意: 拉到的源里只要有数据就够, 不强制要求 caller 列的每个源都活.
+  const sliceList = [arenaModels, aaModels, orModels, lbModels].filter((arr) => arr.length > 0);
   let items;
-  let sources;
-  if (arenaModels.length === 0 && aaModels.length === 0) {
-    // 主源全失败 → 兜底链 L1/L2
-    if (orModels.length > 0) {
-      items = orModels;
-      sources = {
-        arena: SOURCE.NONE,
-        aa: SOURCE.NONE,
-        openrouter: SOURCE.LIVE,
-      };
-    } else {
-      items = getSampleModels();
-      sources = {
-        arena: SOURCE.SAMPLE,
-        aa: SOURCE.SAMPLE,
-        openrouter: SOURCE.SAMPLE,
-      };
-    }
-  } else {
-    items = mergeModelSlices([arenaModels, aaModels, orModels]);
-    sources = {
-      arena: arenaSource,
-      aa: aaSource,
-      openrouter: orModels.length ? SOURCE.LIVE : SOURCE.NONE,
+  let sourcesOut = {
+    arena: arenaSource,
+    aa: aaSource,
+    openrouter: orSource,
+    livebench: lbSource,
+  };
+  if (sliceList.length === 0) {
+    // 所有源都空 (caller 列的 + 兜底) → sample
+    items = getSampleModels();
+    sourcesOut = {
+      arena: SOURCE.SAMPLE,
+      aa: SOURCE.SAMPLE,
+      openrouter: SOURCE.SAMPLE,
+      livebench: SOURCE.SAMPLE,
     };
+  } else {
+    items = mergeModelSlices(sliceList);
   }
 
   // 分类筛选 → 排序 → vendor 筛选 → 搜索
@@ -167,20 +196,29 @@ async function getLeaderboard(opts = {}) {
     arena: shown.filter((it) => it.arena && Object.keys(it.arena).length > 0).length,
     aa: shown.filter((it) => it.aa && typeof it.aa === "object").length,
     openrouter: shown.filter((it) => it.openrouter && typeof it.openrouter === "object").length,
+    livebench: shown.filter((it) => it.livebench && typeof it.livebench === "object").length,
   };
 
   // 是否整页 sample（决定页头「示例」徽标）
-  const isSample =
-    dimension === "elo"
-      ? sources.arena === SOURCE.SAMPLE
-      : sources.aa === SOURCE.SAMPLE;
+  // lb_* 维度看 livebench source, AA 维度看 aa source, ELO 看 arena source
+  const isLbDim = typeof dimension === "string" && dimension.startsWith("lb_");
+  const isSample = isLbDim
+    ? sourcesOut.livebench === SOURCE.SAMPLE
+    : dimension === "elo"
+      ? sourcesOut.arena === SOURCE.SAMPLE
+      : sourcesOut.aa === SOURCE.SAMPLE;
 
   // 署名清单（AA 强制；sample 态显式说明）
   const attribution = [];
-  if (sources.arena === SOURCE.LIVE) attribution.push(ATTRIBUTION["arena-snapshot"]);
-  if (sources.aa === SOURCE.LIVE) attribution.push(ATTRIBUTION["artificial-analysis"]);
-  if (sources.openrouter === SOURCE.LIVE) attribution.push(ATTRIBUTION["openrouter"]);
-  if (sources.arena === SOURCE.SAMPLE || sources.aa === SOURCE.SAMPLE) {
+  if (sourcesOut.arena === SOURCE.LIVE) attribution.push(ATTRIBUTION["arena-snapshot"]);
+  if (sourcesOut.aa === SOURCE.LIVE) attribution.push(ATTRIBUTION["artificial-analysis"]);
+  if (sourcesOut.openrouter === SOURCE.LIVE) attribution.push(ATTRIBUTION["openrouter"]);
+  if (sourcesOut.livebench === SOURCE.LIVE) attribution.push(ATTRIBUTION["livebench"]);
+  if (
+    sourcesOut.arena === SOURCE.SAMPLE ||
+    sourcesOut.aa === SOURCE.SAMPLE ||
+    sourcesOut.livebench === SOURCE.SAMPLE
+  ) {
     attribution.push(ATTRIBUTION["sample"]);
   }
 
@@ -190,12 +228,13 @@ async function getLeaderboard(opts = {}) {
     dimension,
     vendor,
     items: shown,
-    sources,
+    sources: sourcesOut,
     sourceCoverage,
     attribution,
     count: shown.length,
-    stale: arenaWrap.stale || aaWrap.stale || orWrap.stale,
-    fromCache: arenaWrap.fromCache && aaWrap.fromCache && orWrap.fromCache,
+    stale: arenaWrap.stale || aaWrap.stale || orWrap.stale || lbWrap.stale,
+    fromCache:
+      arenaWrap.fromCache && aaWrap.fromCache && orWrap.fromCache && lbWrap.fromCache,
     isSample,
     fetchedAt: new Date().toISOString(),
   };

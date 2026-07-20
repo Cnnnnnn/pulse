@@ -4,15 +4,18 @@
  * v3.0 双视角行渲染：
  *  - Arena 视角：排名 / 模型 / 厂商 / ELO / 置信区间
  *  - AA 视角：排名 / 模型 / 厂商 / 智能 / 代码 / Agent / 速度 / 输出价
+ *  - LiveBench 视角：排名 / 模型 / 厂商 / 综合 / Coding / Language / 指令遵循
  */
 
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebench, fmtLbCost } from "./format.js";
 import { compareList, toggleCompare } from "./aiLeaderboardStore.js";
 
-export function ModelRow({ model, rank, view, board, dim }) {
+export function ModelRow({ model, rank, view, board, dim, lb }) {
   const m = model || {};
   const aa = m.aa || {};
+  const lbData = m.livebench || {};
+  const byCat = lbData.byCategory || {};
   const vendorLabel =
     (VENDOR_META[m.vendor] && VENDOR_META[m.vendor].label) || m.vendor || "—";
 
@@ -30,6 +33,44 @@ export function ModelRow({ model, rank, view, board, dim }) {
       />
     </td>
   );
+
+  if (view === "livebench") {
+    return (
+      <tr class="ai-lb-row">
+        {checkboxCell}
+        <td class="ai-lb-td ai-lb-col-rank" scope="row">{rank}</td>
+        <td class="ai-lb-td ai-lb-col-model">
+          <span class="ai-lb-model-name">{m.name || "—"}</span>
+          {m.isSample && (
+            <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>
+          )}
+        </td>
+        <td class="ai-lb-td ai-lb-col-vendor">
+          <span class="ai-lb-vendor">{vendorLabel}</span>
+        </td>
+        <td class={`ai-lb-td ai-lb-col-num${lb === "lb_overall" ? " ai-lb-col--active" : ""}`}>
+          {fmtLivebench(lbData.overall)}
+        </td>
+        <td class={`ai-lb-td ai-lb-col-num${lb === "lb_coding" ? " ai-lb-col--active" : ""}`}>
+          {fmtLivebench(byCat.Coding)}
+        </td>
+        <td class={`ai-lb-td ai-lb-col-num${lb === "lb_language" ? " ai-lb-col--active" : ""}`}>
+          {fmtLivebench(byCat.Language)}
+        </td>
+        <td class={`ai-lb-td ai-lb-col-num${lb === "lb_instfollow" ? " ai-lb-col--active" : ""}`}>
+          {fmtLivebench(byCat.IF)}
+        </td>
+        <td
+          class="ai-lb-td ai-lb-col-num"
+          title={lbData.cost && lbData.cost.price
+            ? `$${lbData.cost.price.inputPer1M}/1M in · $${lbData.cost.price.outputPer1M}/1M out`
+            : "无成本数据"}
+        >
+          {fmtLbCost(lbData.cost && lbData.cost.perSuccessfulTask)}
+        </td>
+      </tr>
+    );
+  }
 
   if (view === "arena") {
     const boardMeta = ARENA_BOARDS[board] || ARENA_BOARDS.text;

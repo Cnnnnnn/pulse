@@ -22,6 +22,7 @@ import {
   VIEWS,
   ARENA_BOARDS,
   AA_DIMENSIONS,
+  LIVE_DIMENSIONS,
   ASC_DEFAULT_DIMS,
   VENDOR_META,
   toIpcParams,
@@ -33,6 +34,7 @@ import { primaryValue } from "./format.js";
 export const activeView = signal("arena");
 export const activeBoard = signal("text");
 export const activeDim = signal("intelligence");
+export const activeLB = signal("lb_overall");
 export const activeVendor = signal("all");
 export const sortDir = signal("desc");
 export const searchQuery = signal("");
@@ -55,7 +57,7 @@ export function clearCompare() {
 
 export const items = signal([]);
 export const sources = signal({});
-export const sourceCoverage = signal({ arena: 0, aa: 0, openrouter: 0 });
+export const sourceCoverage = signal({ arena: 0, aa: 0, openrouter: 0, livebench: 0 });
 export const attribution = signal([]);
 export const loading = signal(false);
 export const error = signal(null);
@@ -92,6 +94,7 @@ export function loadPrefs() {
     if (o && VIEWS[o.view]) activeView.value = o.view;
     if (o && ARENA_BOARDS[o.board]) activeBoard.value = o.board;
     if (o && AA_DIMENSIONS[o.dim]) activeDim.value = o.dim;
+    if (o && LIVE_DIMENSIONS[o.lb]) activeLB.value = o.lb;
     if (o && typeof o.vendor === "string") activeVendor.value = o.vendor;
     if (o && (o.sortDir === "asc" || o.sortDir === "desc")) sortDir.value = o.sortDir;
   } catch { /* 忽略 */ }
@@ -105,6 +108,7 @@ function persistPrefs() {
         view: activeView.value,
         board: activeBoard.value,
         dim: activeDim.value,
+        lb: activeLB.value,
         vendor: activeVendor.value,
         sortDir: sortDir.value,
       }),
@@ -118,9 +122,23 @@ async function _run(force) {
   loading.value = true;
   error.value = null;
 
-  const subFilter = activeView.value === "arena" ? activeBoard.value : activeDim.value;
+  const subFilter =
+    activeView.value === "arena"
+      ? activeBoard.value
+      : activeView.value === "livebench"
+      ? activeLB.value
+      : activeDim.value;
   const { category, dimension } = toIpcParams(activeView.value, subFilter);
-  const opts = { category, dimension, vendor: activeVendor.value, force: !!force };
+  // ponytail: 独立数据源管控 — 每个 tab 只拉自己主源 + openrouter 兜底.
+  // 升级路径: 用户手动选「同时看 AA+LB」可加 toggle (caller 拼多个 sourceKey).
+  const view = activeView.value;
+  const sources = {
+    arena: view === "arena",
+    aa: view === "aa",
+    livebench: view === "livebench",
+    openrouter: true, // 任何 view 都拉, 用作"目录骨架" / 厂商匹配
+  };
+  const opts = { category, dimension, vendor: activeVendor.value, force: !!force, sources };
 
   try {
     const res = force
@@ -132,7 +150,7 @@ async function _run(force) {
       if (norm.ok) {
         items.value = norm.items;
         sources.value = norm.sources;
-        sourceCoverage.value = norm.sourceCoverage || { arena: 0, aa: 0, openrouter: 0 };
+        sourceCoverage.value = norm.sourceCoverage || { arena: 0, aa: 0, openrouter: 0, livebench: 0 };
         attribution.value = norm.attribution;
         stale.value = norm.stale;
         fromCache.value = norm.fromCache;
@@ -145,7 +163,7 @@ async function _run(force) {
         error.value = norm.error || "加载失败";
         items.value = [];
         sources.value = {};
-        sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0 };
+        sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0 };
         attribution.value = [];
       }
     });
@@ -155,7 +173,7 @@ async function _run(force) {
       error.value = e && e.message ? e.message : "网络错误";
       items.value = [];
       sources.value = {};
-      sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0 };
+      sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0 };
       attribution.value = [];
     });
   } finally {
@@ -203,6 +221,15 @@ export function setDim(d) {
   return loadLeaderboard();
 }
 
+/** LiveBench 视角：切子维度 → 重新请求。全部 desc 默认, 不动 sortDir 现状。 */
+export function setLB(d) {
+  if (!LIVE_DIMENSIONS[d] || d === activeLB.value) return undefined;
+  activeLB.value = d;
+  activeVendor.value = "all";
+  persistPrefs();
+  return loadLeaderboard();
+}
+
 /** 切厂商：纯本地派生。 */
 export function setVendor(v) {
   const allowed = v === "all" || VENDOR_META[v];
@@ -238,6 +265,9 @@ export function sortValue(model) {
   if (activeView.value === "arena") {
     const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
     return primaryValue(model, "elo", board.category);
+  }
+  if (activeView.value === "livebench") {
+    return primaryValue(model, activeLB.value, "llm");
   }
   return primaryValue(model, activeDim.value, "llm");
 }
@@ -281,6 +311,13 @@ export function getDisplayed() {
     rows = rows.filter((it) => {
       const slice = it && it.arena && it.arena[board.key];
       return slice && typeof slice.score === "number";
+    });
+  }
+  // LiveBench 视角：仅保留 overall 有数据的行（其他 lb_* 列允许空）
+  if (activeView.value === "livebench") {
+    rows = rows.filter((it) => {
+      const lb = it && it.livebench;
+      return lb && typeof lb.overall === "number";
     });
   }
   rows = filterByVendor(rows, activeVendor.value);

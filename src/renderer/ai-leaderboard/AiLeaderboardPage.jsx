@@ -23,8 +23,9 @@ import {
   activeView,
   activeBoard,
   activeDim,
+  activeLB,
 } from "./aiLeaderboardStore.js";
-import { VIEWS, ARENA_BOARDS, AA_DIMENSIONS } from "./types.js";
+import { VIEWS, ARENA_BOARDS, AA_DIMENSIONS, LIVE_DIMENSIONS } from "./types.js";
 import { fmtClock } from "./format.js";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.js";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.jsx";
@@ -33,6 +34,7 @@ import { ValueScatter } from "./ValueScatter.jsx";
 import { ComparePanel } from "./ComparePanel.jsx";
 import { AttributionFooter } from "./AttributionFooter.jsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
+import { BoardHealthCard } from "./BoardHealthCard.jsx";
 
 export function AiLeaderboardPage() {
   const rows = getDisplayed();
@@ -55,14 +57,17 @@ export function AiLeaderboardPage() {
     }
   }
 
-  // 上下文面包屑
+  // 上下文面包屑 — Tab 名取自 VIEWS.label, 子筛选名取自对应 META
   let crumb;
   if (view === "arena") {
     const boardMeta = ARENA_BOARDS[activeBoard.value] || {};
-    crumb = `Arena · ${boardMeta.label || "文本"}`;
+    crumb = `${viewMeta.label || "Arena"} · ${boardMeta.label || "文本"}`;
+  } else if (view === "livebench") {
+    const lbMeta = LIVE_DIMENSIONS[activeLB.value] || {};
+    crumb = `${viewMeta.label || "LiveBench"} · ${lbMeta.label || "Overall"}`;
   } else {
     const dimMeta = AA_DIMENSIONS[activeDim.value] || {};
-    crumb = `深度分析 · ${dimMeta.label || "智能指数"}`;
+    crumb = `${viewMeta.label || "Artificial Analysis"} · ${dimMeta.label || "Intelligence Index"}`;
   }
 
   const count = rows.length;
@@ -101,6 +106,11 @@ export function AiLeaderboardPage() {
             仅 LLM
           </span>
         )}
+        {view === "livebench" && (
+          <span class="ai-leaderboard-context__note" title="LiveBench 仅收录 LLM 端点">
+            仅 LLM
+          </span>
+        )}
         {view === "arena" && count > 0 && count <= 15 && (
           <span class="ai-leaderboard-context__note" title="Arena 社区快照仅追踪该 board 的头部模型">
             仅 Top {count}
@@ -113,6 +123,8 @@ export function AiLeaderboardPage() {
         )}
       </div>
 
+      <BoardHealthCard total={count} />
+
       <div class={`ai-leaderboard-body${animate ? " is-entering" : ""}`}>
         {loading.value && <LoadingState />}
 
@@ -121,7 +133,7 @@ export function AiLeaderboardPage() {
         )}
 
         {isEmpty && (
-          <EmptyState onRetry={() => clearSearchQuery()} />
+          <EmptyState onRetry={() => (searchQuery.value ? clearSearchQuery() : refresh())} />
         )}
 
         {!loading.value && !error.value && rows.length > 0 && (

@@ -12,6 +12,7 @@ import { sourceCoverage, sources } from "./aiLeaderboardStore.js";
 const SOURCE_META = [
   { key: "arena", label: "Arena", color: "blue", desc: "社区 ELO 排名" },
   { key: "aa", label: "AA", color: "purple", desc: "客观分 / 价格 / 速度" },
+  { key: "livebench", label: "LB", color: "livebench", desc: "抗污染客观评测 (livebench.ai)" },
   { key: "openrouter", label: "OR", color: "teal", desc: "目录骨架" },
 ];
 

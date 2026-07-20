@@ -12,6 +12,7 @@ import {
   activeView,
   activeBoard,
   activeDim,
+  activeLB,
   activeVendor,
   sortDir,
   searchQuery,
@@ -19,13 +20,14 @@ import {
   setView,
   setBoard,
   setDim,
+  setLB,
   setVendor,
   setSortDir,
   setSearchQuery,
   clearSearchQuery,
   refresh,
 } from "./aiLeaderboardStore.js";
-import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, AA_DIMENSION_KEYS, AA_DIMENSIONS, VENDOR_OPTIONS } from "./types.js";
+import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, AA_DIMENSION_KEYS, AA_DIMENSIONS, LIVE_DIMENSION_KEYS, LIVE_DIMENSIONS, VENDOR_OPTIONS } from "./types.js";
 
 export function LeaderboardFilterBar() {
   const [q, setQ] = useState(searchQuery.value);
@@ -100,6 +102,22 @@ export function LeaderboardFilterBar() {
             >
               {AA_DIMENSION_KEYS.map((key) => (
                 <option key={key} value={key}>{AA_DIMENSIONS[key].label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {/* LiveBench 视角：子维度选择 */}
+        {view === "livebench" && (
+          <label class="ai-leaderboard-select">
+            <span class="ai-leaderboard-select__label">排序</span>
+            <select
+              class="ai-leaderboard-select__input"
+              value={activeLB.value}
+              onChange={(e) => setLB(e.currentTarget.value)}
+            >
+              {LIVE_DIMENSION_KEYS.map((key) => (
+                <option key={key} value={key}>{LIVE_DIMENSIONS[key].label}</option>
               ))}
             </select>
           </label>

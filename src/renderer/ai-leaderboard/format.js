@@ -54,10 +54,25 @@ export function fmtValueRatio(aa) {
   return (idx / price).toFixed(1);
 }
 
+/** LiveBench 0..100 分数 → "xx.x".  (0..1 比例 → "xx.x%"). */
+export function fmtLivebench(v) {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  const n = Number(v);
+  // byCategory/overall 已是 0..100 (百分制). 兼容旧 0..1 输入 (除以 100 后显示 %).
+  return n <= 1 ? `${(n * 100).toFixed(1)}%` : n.toFixed(1);
+}
+
+/** LB 性价比指标 (cost_per_successful_task) — <$1 显 3 位小数, >=$1 显 2 位. */
+export function fmtLbCost(v) {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  const n = Number(v);
+  return n < 1 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`;
+}
+
 /**
  * 取模型在指定维度下的排序/展示原始值。
  * @param {object} model AiModel
- * @param {string} dimension elo|intelligence|coding|agentic|speed|price
+ * @param {string} dimension elo|intelligence|coding|agentic|speed|price|lb_*
  * @param {string} category llm|multimodal|code（决定 Arena board）
  * @returns {number|null}
  */
@@ -66,6 +81,19 @@ export function primaryValue(model, dimension, category) {
     const board = CATEGORY_BOARD[category] || "text";
     const slice = model && model.arena && model.arena[board];
     return slice && typeof slice.score === "number" ? slice.score : null;
+  }
+  // lb_* 维度走 livebench 切片, sortKey 支持 dot path (e.g. "byCategory.Coding")
+  if (typeof dimension === "string" && dimension.startsWith("lb_")) {
+    const lb = model && model.livebench;
+    if (!lb) return null;
+    const meta = (require("./types.js")).DIMENSION_META &&
+      (require("./types.js")).DIMENSION_META[dimension];
+    const key = meta && meta.sortKey;
+    if (!key) return null;
+    const v = key.includes(".")
+      ? key.split(".").reduce((o, p) => (o ? o[p] : null), lb)
+      : lb[key];
+    return typeof v === "number" && Number.isFinite(v) ? v : null;
   }
   const aa = model && model.aa;
   if (!aa) return null;
@@ -96,5 +124,6 @@ export function formatPrimary(value, dimension) {
   if (dimension === "elo") return fmtScore(value);
   if (dimension === "price") return fmtPricePer1M(value);
   if (dimension === "speed") return fmtSpeed(value);
+  if (typeof dimension === "string" && dimension.startsWith("lb_")) return fmtLivebench(value);
   return fmtIndex(value);
 }

@@ -38,7 +38,7 @@ sequenceDiagram
     I-->>A: BoardResult
     A-->>S: 响应
     S->>R: batch(items/sources/attribution/loading=false)
-    R-->>P: 响应式重渲 Table + AttribFooter + SampleBadge
+    R-->>P: 响应式重渲 Table + AttribFooter（行内示例徽标）
 
     Note over U,R: 手动刷新 → api.refreshLeaderboard(force) → I 置 force → AG 绕过缓存重拉
     Note over AG,F: 单源失败不影响其它源；全失败 → sample.json → isSample=true 徽标

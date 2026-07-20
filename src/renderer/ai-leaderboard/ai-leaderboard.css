@@ -431,6 +431,13 @@
   font-weight: 700;
   color: var(--text-primary);
 }
+/* LB 视图：激活列微微紫偏蓝调（与 AA/Hover 不同，强调"抗污染"主题）。 */
+.ai-lb-table[data-view="livebench"] .ai-lb-col--active {
+  color: oklch(48% 0.18 275);
+}
+:root[data-theme="dark"] .ai-lb-table[data-view="livebench"] .ai-lb-col--active {
+  color: oklch(72% 0.16 280);
+}
 .ai-lb-col--sup {
   color: var(--text-tertiary);
   font-size: var(--font-size-sm);
@@ -473,7 +480,7 @@
   color: var(--text-secondary);
 }
 
-/* ── 示例标记（行内，ModelRow 直接渲染）+ SampleBadge 组件 ── */
+/* ── 示例标记（行内，ModelRow 直接渲染）── */
 .ai-lb-tag {
   display: inline-flex;
   align-items: center;
@@ -489,24 +496,6 @@
   background: var(--ai-lb-sample-bg);
   border: 1px solid var(--ai-lb-sample-border);
 }
-.ai-lb-sample-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--space-2);
-  border-radius: 999px;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  line-height: 1.4;
-  white-space: nowrap;
-  color: var(--ai-lb-sample-fg);
-  background: var(--ai-lb-sample-bg);
-  border: 1px solid var(--ai-lb-sample-border);
-}
-.ai-lb-sample-badge--sm {
-  font-size: var(--font-size-xs);
-  padding: 1px var(--space-1);
-}
-
 /* ── 署名脚注（AttributionFooter）── */
 .ai-lb-attribution {
   flex: 0 0 auto;
@@ -1015,6 +1004,8 @@
 .ai-lb-health__chip--blue   { color: oklch(58% 0.16 245); }
 .ai-lb-health__chip--purple { color: oklch(60% 0.18 295); }
 .ai-lb-health__chip--teal   { color: oklch(60% 0.12 195); }
+/* LiveBench: 紫偏蓝调（与 AA 同 palette 但不同 hue，避免与 AA chip 视觉冲突） */
+.ai-lb-health__chip--livebench { color: oklch(58% 0.17 275); }
 
 .ai-lb-health__name {
   font-weight: 600;

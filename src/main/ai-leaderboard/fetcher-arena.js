@@ -1,7 +1,7 @@
 /**
  * src/main/ai-leaderboard/fetcher-arena.js
  *
- * 主源1：Arena 社区快照（text / code / vision / text-to-image / video 多 board）。
+ * 主源1：Arena 社区快照（text / code / vision / text-to-image / text-to-video 多 board）。
  * 免鉴权；优先走 api.wulong.dev，失败回退 GitHub raw 社区快照。
  *
  * 单源失败不影响其它源（aggregator 兜底链）。本 fetcher 内部 try/catch，
@@ -17,7 +17,7 @@ const ARENA_BASE = "https://api.wulong.dev/arena-ai-leaderboards/v1/leaderboard"
 // 失败回退：社区快照 GitHub raw（先读 latest.json 拿当日日期，再按 board 拉）
 const ARENA_GITHUB_RAW = "https://raw.githubusercontent.com/oolong-tea-2026/arena-ai-leaderboards/main";
 
-const BOARDS = ["text", "vision", "code", "text-to-image", "video"];
+const BOARDS = ["text", "vision", "code", "text-to-image", "text-to-video"];
 
 // board → 模型大类（用于给合并后的模型标注 category 提示）
 const BOARD_TO_CATEGORY = {
@@ -25,11 +25,11 @@ const BOARD_TO_CATEGORY = {
   code: "code",
   vision: "multimodal",
   "text-to-image": "image",
-  video: "video",
+  "text-to-video": "video",
 };
 
 // 按优先级决定 category 提示（arena 多 board 共存的模型取主 board）
-const CATEGORY_PRIORITY = ["text", "code", "vision", "text-to-image", "video"];
+const CATEGORY_PRIORITY = ["text", "code", "vision", "text-to-image", "text-to-video"];
 
 /**
  * 从模型名粗猜 vendor（Arena 某些 board 不提供 vendor 字段时的兜底）。
