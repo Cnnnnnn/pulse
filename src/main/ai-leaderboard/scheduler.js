@@ -41,6 +41,12 @@ function registerLeaderboardScheduler(deps = {}) {
   function start() {
     if (_handle) return;
     try {
+      // ponytail: 一次性 30-90 min jiterr, 避免跟所有 Pulse 用户在同一 UTC 时间点叠峰打 AA + 避开启动 check 抢资源
+      const firstDelayMs = 30 * 60 * 1000 + Math.floor(Math.random() * 60 * 60 * 1000);
+      setTimeout(() => triggerNow().catch(() => {}), firstDelayMs);
+      mainLog.info(
+        `[ai-leaderboard] first sync scheduled in ${Math.round(firstDelayMs / 60000)}min`,
+      );
       _handle = setManagedInterval(
         () => {
           triggerNow().catch(() => {});
@@ -55,8 +61,6 @@ function registerLeaderboardScheduler(deps = {}) {
       mainLog.info(
         `[ai-leaderboard] scheduler started (every ${Math.round(intervalMs / 60000)}min)`,
       );
-      // 启动延迟 60s 预暖（避免与启动 check 抢资源）
-      setTimeout(() => triggerNow().catch(() => {}), 60000);
     } catch (err) {
       mainLog.warn(`[ai-leaderboard] scheduler init failed: ${err && err.message}`);
     }
