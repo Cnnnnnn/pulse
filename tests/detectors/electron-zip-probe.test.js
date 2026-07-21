@@ -59,4 +59,26 @@ describe("electron_zip_probe", () => {
     const r = await det.detect(makeCtx({ http, arch: "arm64" }));
     expect(r.version).toBe("3.0.49");
   });
+
+  it("path_template → ZCode 式 CDN 目录布局", async () => {
+    const http = new MockHttp({
+      head: [
+        { status: 200 }, // 3.4.0 seed
+        { status: 200 }, // 3.4.1
+        { status: 404 }, // 3.4.2
+      ],
+    });
+    const det = new electron_zip_probe({
+      baseUrl: "https://cdn-zcode.z.ai/zcode/electron/releases",
+      product: "ZCode",
+      seed_version: "3.4.0",
+      path_template:
+        "{baseUrl}/{version}/macos-{arch}/{product}-{version}-mac-{arch}.zip",
+    });
+    const r = await det.detect(makeCtx({ http, arch: "arm64" }));
+    expect(r.version).toBe("3.4.1");
+    expect(http.headCalls[0].url).toBe(
+      "https://cdn-zcode.z.ai/zcode/electron/releases/3.4.0/macos-arm64/ZCode-3.4.0-mac-arm64.zip",
+    );
+  });
 });

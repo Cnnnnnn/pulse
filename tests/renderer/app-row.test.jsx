@@ -167,7 +167,7 @@ describe('AppRow 渲染细节', () => {
     expect(container.querySelector('.version-value.highlight').textContent).toBe('3.6');
   });
 
-  it('note=installed_newer → 蓝色"预发布"badge', () => {
+  it('note=installed_newer → 蓝色"本机较新"badge', () => {
     applyProgress(makeResult({
       name: 'Cursor',
       bundle: 'Cursor.app',
@@ -177,7 +177,7 @@ describe('AppRow 渲染细节', () => {
     const { container } = render(<List3 names={['Cursor']} />);
     const badge = container.querySelector('.status-badge.info');
     expect(badge).toBeTruthy();
-    expect(badge.textContent).toBe('预发布');
+    expect(badge.textContent).toBe('本机较新');
   });
 
   it('note=incompatible → 灰色"需确认"badge', () => {

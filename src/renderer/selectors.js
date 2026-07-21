@@ -27,7 +27,7 @@ import {
 export const SECTION_DEFS = [
   { key: 'update_available', label: '有待更新',   color: 'var(--accent-orange)', dotColor: 'var(--accent-orange)' },
   { key: 'up_to_date',       label: '已是最新',   color: 'var(--accent-green)',  dotColor: 'var(--accent-green)' },
-  { key: 'installed_newer',  label: '预发布版本', color: 'var(--accent-blue)',   dotColor: 'var(--accent-blue)' },
+  { key: 'installed_newer',  label: '本机较新', color: 'var(--accent-blue)',   dotColor: 'var(--accent-blue)' },
   { key: 'incompatible',     label: '格式不兼容', color: 'var(--accent-gray)',   dotColor: 'var(--accent-gray)' },
   { key: 'no_auto_check',    label: '无法检测',   color: 'var(--accent-gray)',   dotColor: 'var(--gray-300)' },
   { key: 'not_installed',    label: '未安装',     color: 'var(--text-tertiary)', dotColor: 'var(--gray-200)' },

@@ -107,7 +107,7 @@ export function AppInfo({
   const errMsg = result.error_message;
 
   let subtitle = source;
-  if (note === 'installed_newer')   subtitle = `预发布${source ? ' · ' + source : ''}`;
+  if (note === 'installed_newer')   subtitle = `本机较新${source ? ' · ' + source : ''}`;
   else if (note === 'enrich_fallback') {
     subtitle = `更新源异常${source ? ' · ' + source : ''} · 版本仅供参考`;
     // 权威源上次成功拿到版本的时间 (若曾成功过) — 让用户判断当前 fallback 版本

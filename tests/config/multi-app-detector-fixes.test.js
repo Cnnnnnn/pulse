@@ -101,3 +101,14 @@ describe("Marvis detector (config.json)", () => {
     expect(mv.detectors[0].type).toBe("redirect_filename");
   });
 });
+
+describe("ZCode detector (config.json)", () => {
+  const zc = cfg.apps.find((a) => a.name === "ZCode");
+  const zip = zc && zc.detectors.find((d) => d.type === "electron_zip_probe");
+
+  it("electron_zip_probe 优先于 changelog (CDN 常领先官网 changelog 页)", () => {
+    expect(zc.detectors[0].type).toBe("electron_zip_probe");
+    expect(zip.baseUrl).toContain("cdn-zcode.z.ai");
+    expect(zip.path_template).toContain("{version}");
+  });
+});

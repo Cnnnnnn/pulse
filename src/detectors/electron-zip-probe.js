@@ -11,6 +11,8 @@
  *     product: 'MiniMax Code',
  *     arch_suffix: 'arm64-mac'   // 可选；默认 arm64→arm64-mac, x64→mac
  *     seed_version: '3.0.0'       // 可选；缺省从已安装 app 的 plist 读
+ *     path_template: '{baseUrl}/{version}/macos-{arch}/{product}-{version}-mac-{arch}.zip'
+ *       // 可选；默认扁平 {baseUrl}/{product}-{version}-{arch_suffix}.zip (MiniMax CDN)
  *   }
  */
 
@@ -36,6 +38,7 @@ class electron_zip_probe extends Detector {
     this.seedVersion = opts.seed_version || "";
     this.maxProbe =
       typeof opts.max_probe === "number" ? opts.max_probe : DEFAULT_MAX_PROBE;
+    this.pathTemplate = opts.path_template || "";
   }
 
   async detect(ctx) {
@@ -120,7 +123,14 @@ class electron_zip_probe extends Detector {
   }
 
   async _exists(ctx, baseUrl, product, parts, archSuffix) {
-    const url = buildZipUrl(baseUrl, product, formatVersion(parts), archSuffix);
+    const url = buildZipUrl(
+      baseUrl,
+      product,
+      formatVersion(parts),
+      archSuffix,
+      ctx.arch,
+      this.pathTemplate,
+    );
     const r = await ctx.http.head(url, {
       timeout: ctx.timeout || this.timeout,
     });
@@ -146,7 +156,22 @@ function defaultArchSuffix(arch) {
   return arch === "arm64" ? "arm64-mac" : "mac";
 }
 
-function buildZipUrl(baseUrl, product, version, archSuffix) {
+function buildZipUrl(
+  baseUrl,
+  product,
+  version,
+  archSuffix,
+  arch,
+  pathTemplate,
+) {
+  if (pathTemplate) {
+    const archSeg = arch === "x64" ? "x64" : "arm64";
+    return pathTemplate
+      .replace(/\{baseUrl\}/g, baseUrl.replace(/\/+$/, ""))
+      .replace(/\{version\}/g, version)
+      .replace(/\{product\}/g, product)
+      .replace(/\{arch\}/g, archSeg);
+  }
   const file = `${product}-${version}-${archSuffix}.zip`;
   return `${baseUrl}/${encodeURIComponent(file).replace(/%20/g, "%20")}`;
   // encodeURIComponent encodes space as %20 — matches MiniMax CDN layout

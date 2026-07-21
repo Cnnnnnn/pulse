@@ -12,7 +12,7 @@
  *   not_installed    → "未安装" / cls=warning
  *   error            → "出错"   / cls=error
  *
- * `installed_newer` (note) 显式 → "预发布" / cls=info
+ * `installed_newer` (note) 显式 → "本机较新" / cls=info
  * `incompatible`   (note) 显式 → "需确认" / cls=warning
  */
 
@@ -32,7 +32,7 @@ export function AppAction({ result, onUpgrade, isUpgrading }) {
 
   // 特殊 note 显式覆盖
   if (note === 'installed_newer') {
-    return <StatusBadge status="info">预发布</StatusBadge>;
+    return <StatusBadge status="info">本机较新</StatusBadge>;
   }
   if (note === 'incompatible') {
     return <StatusBadge status="warning">需确认</StatusBadge>;
