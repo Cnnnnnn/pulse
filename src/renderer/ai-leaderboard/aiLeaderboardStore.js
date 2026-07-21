@@ -122,6 +122,17 @@ export const fetchedAt = signal(null);
 /** 上游 Arena 快照的真实数据截止日期（boards[*].meta.last_updated），如 "Jul 16, 2026"。 */
 export const sourceDate = signal(null);
 export const isSample = signal(false);
+/** AA 今日速率预算快照（best-effort；失败时保持上次值或默认 0/1000）。 */
+export const rateBudget = signal({ used: 0, limit: 1000, remaining: 1000, dayResetsAt: null, lastAcquireAt: null });
+
+export async function loadRateBudget() {
+  try {
+    const b = await api.rateBudget();
+    rateBudget.value = b || rateBudget.value;
+  } catch {
+    /* best-effort */
+  }
+}
 
 let _reqToken = 0;
 
@@ -219,6 +230,7 @@ async function _run(force) {
           Object.values(norm.sources || {}).includes("sample") ||
           (norm.items || []).some((it) => it && it.isSample);
         error.value = null;
+        loadRateBudget();
       } else {
         error.value = norm.error || "加载失败";
         items.value = [];

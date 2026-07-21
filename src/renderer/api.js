@@ -233,6 +233,7 @@ export function createApi(overrides = {}) {
   // AI 榜单排名模块 (v2.82): 仅两个白名单通道
   getLeaderboard: pick(overrides, "getLeaderboard"),
   refreshLeaderboard: pick(overrides, "refreshLeaderboard"),
+  rateBudget: pick(overrides, "rateBudget"),
   };
 }
 

@@ -1955,3 +1955,16 @@
   .ai-lb-epd__track { height: 6px; }
   .ai-lb-epd__meta { white-space: normal; }
 }
+
+/* ── AA 今日预算 (Task 5) ── */
+.ai-lb-budget {
+  font-size: 11px;
+  color: var(--muted, oklch(60% 0 0));
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.ai-lb-budget strong { color: inherit; font-weight: 500; }
+.ai-lb-budget.is-warn { color: oklch(60% 0.18 30); }
+.ai-lb-budget__warn { font-size: 10px; }

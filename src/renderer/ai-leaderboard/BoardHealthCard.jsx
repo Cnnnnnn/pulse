@@ -9,7 +9,7 @@
  *  - 用户据此理解合并行为 + 跨源命名差异 (无 ground truth 跨源合并)
  */
 
-import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources } from "./aiLeaderboardStore.js";
+import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources, rateBudget } from "./aiLeaderboardStore.js";
 
 const SOURCE_META = [
   { key: "arena", label: "Arena", color: "blue", desc: "社区 ELO 排名" },
@@ -27,6 +27,11 @@ export function BoardHealthCard({ total, compact = false }) {
   const src = sources.value || {};
   const hidden = hiddenHealthSources.value || new Set();
   const totalN = Number.isFinite(total) ? total : 0;
+  const aaBudget = rateBudget.value || {};
+  const aaUsedPct = aaBudget && Number.isFinite(aaBudget.limit) && aaBudget.limit > 0
+    ? Math.round((aaBudget.used / aaBudget.limit) * 100)
+    : 0;
+  const aaWarn = aaUsedPct >= 80;
 
   // 没数据时整张卡隐藏, 不画空架子
   if (totalN === 0) return null;
@@ -85,6 +90,13 @@ export function BoardHealthCard({ total, compact = false }) {
           </button>
         )}
       </div>
+      {aaBudget && Number.isFinite(aaBudget.limit) && (
+        <div class={`ai-lb-budget${aaWarn ? " is-warn" : ""}`} aria-label="AA 今日预算">
+          <span class="ai-lb-budget__label">AA 今日</span>
+          <strong class="ai-lb-budget__num">{aaBudget.used}/{aaBudget.limit}</strong>
+          {aaWarn && <span class="ai-lb-budget__warn" aria-label="预算紧张">⚠</span>}
+        </div>
+      )}
       {!compact && (
         <p class="ai-lb-health__note">
           行数 = 当前筛选后模型数；覆盖率 = 该源切片填了多少行。空缺 = 该源未收录本分类

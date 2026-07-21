@@ -344,6 +344,7 @@ contextBridge.exposeInMainWorld("api", {
   // AI 榜单排名模块 (v2.82): 白名单双通道
   getLeaderboard: (opts) => ipcRenderer.invoke("leaderboard:get", opts || {}),
   refreshLeaderboard: (opts) => ipcRenderer.invoke("leaderboard:refresh", opts || {}),
+  rateBudget: () => ipcRenderer.invoke("leaderboard:rate-budget"),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)
