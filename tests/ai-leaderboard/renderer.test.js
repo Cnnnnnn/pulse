@@ -259,9 +259,9 @@ describe("LeaderboardTable 渲染", () => {
         board: "text",
       }),
     );
-    const el = screen.getByText("示例");
-    expect(el).toBeTruthy();
-    expect(screen.getByText("1200")).toBeTruthy();
+    // LeaderboardTable 同时渲染桌面表格 + 移动端卡片列表，文本节点会出现两次
+    expect(screen.getAllByText("示例").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1200").length).toBeGreaterThan(0);
   });
 
   it("AA 视角渲染智能指数列", () => {
@@ -272,7 +272,7 @@ describe("LeaderboardTable 渲染", () => {
         dim: "intelligence",
       }),
     );
-    expect(screen.getByText("88.5")).toBeTruthy();
+    expect(screen.getAllByText("88.5").length).toBeGreaterThan(0);
   });
 });
 
@@ -354,7 +354,7 @@ describe("P1 图像/视频分榜（Arena 视角）", () => {
 describe("P1 文本导出（exportMarkdown）image/video 修正", () => {
   it("tableToMarkdown image board 用 ARENA_BOARDS['image'].key='text-to-image' 取数，ELO 正确显示", () => {
     const rows = [
-      mkModel({ id: "img", name: "Midjourney v6", arena: { "text-to-image": { score: 1150, ci: 8, votes: 50 } } }),
+      mkModel({ id: "img", name: "Midjourney v6", license: "proprietary", arena: { "text-to-image": { score: 1150, ci: 8, votes: 50 } } }),
     ];
     const md = tableToMarkdown({ rows, view: "arena", board: "image" });
     expect(md).toContain("| Midjourney v6 |");
@@ -364,7 +364,7 @@ describe("P1 文本导出（exportMarkdown）image/video 修正", () => {
 
   it("tableToMarkdown video board 同理，用 board 键 'video' 取数", () => {
     const rows = [
-      mkModel({ id: "vid", name: "Runway Gen-3", arena: { "text-to-video": { score: 1080, ci: 10, votes: 30 } } }),
+      mkModel({ id: "vid", name: "Runway Gen-3", license: "proprietary", arena: { "text-to-video": { score: 1080, ci: 10, votes: 30 } } }),
     ];
     const md = tableToMarkdown({ rows, view: "arena", board: "video" });
     expect(md).toContain("| Runway Gen-3 |");
@@ -374,7 +374,7 @@ describe("P1 文本导出（exportMarkdown）image/video 修正", () => {
 
   it("导出 text board 行为不被破坏（仍用 key 'text'）", () => {
     const rows = [
-      mkModel({ id: "txt", name: "GPT-4o", arena: { text: { score: 1400, ci: 5, votes: 100 } } }),
+      mkModel({ id: "txt", name: "GPT-4o", license: "proprietary", arena: { text: { score: 1400, ci: 5, votes: 100 } } }),
     ];
     const md = tableToMarkdown({ rows, view: "arena", board: "text" });
     expect(md).toContain("| 1400 |");
