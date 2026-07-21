@@ -8,7 +8,7 @@
  */
 
 import { VENDOR_META } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare, columnValue } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.jsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
@@ -18,6 +18,7 @@ const FIELDS = {
     { key: "elo", label: "ELO 分数", fmt: fmtScore },
     { key: "ci", label: "置信区间", fmt: (v) => (v != null ? `±${Math.round(v)}` : "—") },
     { key: "votes", label: "票数", fmt: fmtVotes },
+    { key: "context", label: "上下文", fmt: fmtContext },
   ],
   aa: [
     { key: "intelligence", label: "智能指数", fmt: fmtIndex },
@@ -25,7 +26,9 @@ const FIELDS = {
     { key: "agentic", label: "Agentic", fmt: fmtIndex },
     { key: "speed", label: "速度", fmt: fmtSpeed },
     { key: "price", label: "输出价", fmt: fmtPricePer1M },
+    { key: "inputPrice", label: "输入价", fmt: fmtPricePer1M },
     { key: "valueRatio", label: "性价比", fmt: (v) => (v == null ? "—" : v.toFixed(1)) },
+    { key: "context", label: "上下文", fmt: fmtContext },
   ],
   livebench: [
     { key: "lb_overall", label: "综合", fmt: fmtLivebench },

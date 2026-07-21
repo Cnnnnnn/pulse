@@ -11,12 +11,15 @@ import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.jsx";
 import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.jsx";
 import { CrossSourceRadar } from "../../src/renderer/ai-leaderboard/CrossSourceRadar.jsx";
 import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.js";
-import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, aggregateVendorProfiles, topVendorsByArena } from "../../src/renderer/ai-leaderboard/format.js";
+import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, fmtContext, aggregateVendorProfiles, topVendorsByArena } from "../../src/renderer/ai-leaderboard/format.js";
 import {
   columnValue,
   toggleSort,
   sortModels,
   filterByLicense,
+  toggleHealthSource,
+  resetHealthSources,
+  hiddenHealthSources,
   sortKey,
   sortDir,
   activeView,
@@ -36,6 +39,7 @@ const aaModels = [
       outputTokensPerSec: 120,
       priceOutputPer1M: 2,
     },
+    modelsdev: { contextLength: 128000, inputCostPer1M: 5 },
   },
   {
     id: "b",
@@ -49,6 +53,7 @@ const aaModels = [
       outputTokensPerSec: 50,
       priceOutputPer1M: 8,
     },
+    // b 缺 modelsdev 切片 → context / inputPrice 列显示 "—"
   },
 ];
 
@@ -63,6 +68,7 @@ const arenaModels = [
       vision: { score: 1250, ci: 15, votes: 2100 },
       code: { score: 1280, ci: 10, votes: 3400 },
     },
+    modelsdev: { contextLength: 200000 },
     rankSeries: [
       { date: "2026-07-10", rank: 5 },
       { date: "2026-07-11", rank: 4 },
@@ -120,12 +126,15 @@ const crossSourceModels = [
 describe("LeaderboardTable 渲染", () => {
   afterEach(() => cleanup());
 
-  it("AA 视角：奖牌 + 内联条形 + 6 个可排序列头 + 示例行", () => {
+  it("AA 视角：奖牌 + 内联条形 + 8 个可排序列头（含 context + inputPrice）+ 示例行", () => {
     const { container } = render(<LeaderboardTable rows={aaModels} view="aa" />);
     const table = container.querySelector(".ai-lb-table");
     expect(table.querySelectorAll(".ai-lb-medal.g1").length).toBe(1);
     expect(table.querySelectorAll(".ai-lb-bar").length).toBeGreaterThan(0);
-    expect(table.querySelectorAll(".ai-lb-th--sortable").length).toBe(6);
+    // 6 AA 维度 + context + inputPrice = 8 个可排序头
+    expect(table.querySelectorAll(".ai-lb-th--sortable").length).toBe(8);
+    expect(table.querySelectorAll('[data-sort="context"]').length).toBe(1);
+    expect(table.querySelectorAll('[data-sort="inputPrice"]').length).toBe(1);
     expect(table.querySelectorAll(".ai-lb-row--sample").length).toBe(1);
   });
 
@@ -133,9 +142,10 @@ describe("LeaderboardTable 渲染", () => {
     const r1 = render(<LeaderboardTable rows={arenaModels} view="arena" />);
     const t1 = r1.container.querySelector(".ai-lb-table");
     expect(t1.querySelectorAll(".ai-lb-medal").length).toBe(2);
-    // ELO + 置信区间 + 票数 = 3 个可排序列头
-    expect(t1.querySelectorAll(".ai-lb-th--sortable").length).toBe(3);
+    // ELO + 置信区间 + 票数 + context = 4 个可排序列头
+    expect(t1.querySelectorAll(".ai-lb-th--sortable").length).toBe(4);
     expect(t1.querySelectorAll('[data-sort="votes"]').length).toBe(1);
+    expect(t1.querySelectorAll('[data-sort="context"]').length).toBe(1);
     // 跨 board 迷你条（模型 a 多 board）+ 排名趋势 sparkline（模型 a 有 rankSeries）
     expect(t1.querySelectorAll(".ai-lb-boardbars").length).toBeGreaterThan(0);
     expect(t1.querySelectorAll(".ai-lb-spark").length).toBeGreaterThan(0);
@@ -209,12 +219,18 @@ describe("store 排序逻辑", () => {
     activeBoard.value = "text";
   });
 
-  it("columnValue 覆盖所有可排序列（含 valueRatio）", () => {
+  it("columnValue 覆盖所有可排序列（含 valueRatio + context + inputPrice）", () => {
     expect(columnValue(aaModels[0], "aa", "intelligence")).toBe(80);
     expect(columnValue(aaModels[0], "aa", "valueRatio")).toBeCloseTo(40);
+    expect(columnValue(aaModels[0], "aa", "context")).toBe(128000);
+    expect(columnValue(aaModels[0], "aa", "inputPrice")).toBe(5);
+    expect(columnValue(aaModels[1], "aa", "context")).toBeNull();
+    expect(columnValue(aaModels[1], "aa", "inputPrice")).toBeNull();
     expect(columnValue(arenaModels[0], "arena", "elo")).toBe(1300);
     expect(columnValue(arenaModels[0], "arena", "ci")).toBe(12);
     expect(columnValue(arenaModels[0], "arena", "votes")).toBe(5000);
+    expect(columnValue(arenaModels[0], "arena", "context")).toBe(200000);
+    expect(columnValue(arenaModels[1], "arena", "context")).toBeNull();
     expect(columnValue(lbModels[0], "livebench", "lb_overall")).toBe(50);
     expect(columnValue(lbModels[0], "livebench", "lb_coding")).toBe(55);
     expect(columnValue(lbModels[0], "livebench", "lb_cost")).toBe(0.5);
@@ -251,6 +267,45 @@ describe("store 排序逻辑", () => {
     expect(filterByLicense(list, "all").length).toBe(4);
     expect(filterByLicense(list, "open").map((x) => x.id).sort()).toEqual(["a", "c"]);
     expect(filterByLicense(list, "proprietary").map((x) => x.id)).toEqual(["b"]);
+  });
+});
+
+describe("健康卡 source chip 会话级隐藏", () => {
+  beforeEach(() => {
+    resetHealthSources();
+  });
+  afterEach(() => {
+    resetHealthSources();
+  });
+
+  it("toggleHealthSource 加/移", () => {
+    expect(hiddenHealthSources.value.size).toBe(0);
+    toggleHealthSource("livebench");
+    expect(hiddenHealthSources.value.has("livebench")).toBe(true);
+    expect(hiddenHealthSources.value.size).toBe(1);
+    toggleHealthSource("livebench");
+    expect(hiddenHealthSources.value.has("livebench")).toBe(false);
+    expect(hiddenHealthSources.value.size).toBe(0);
+  });
+
+  it("toggleHealthSource 多源并存独立", () => {
+    toggleHealthSource("livebench");
+    toggleHealthSource("openrouter");
+    expect(hiddenHealthSources.value.size).toBe(2);
+    expect(hiddenHealthSources.value.has("livebench")).toBe(true);
+    expect(hiddenHealthSources.value.has("openrouter")).toBe(true);
+    toggleHealthSource("livebench");
+    expect(hiddenHealthSources.value.size).toBe(1);
+    expect(hiddenHealthSources.value.has("openrouter")).toBe(true);
+  });
+
+  it("resetHealthSources 清空全部隐藏", () => {
+    toggleHealthSource("aa");
+    toggleHealthSource("arena");
+    toggleHealthSource("modelsdev");
+    expect(hiddenHealthSources.value.size).toBe(3);
+    resetHealthSources();
+    expect(hiddenHealthSources.value.size).toBe(0);
   });
 });
 
@@ -323,5 +378,20 @@ describe("跨源雷达（厂商聚合）：aggregateVendorProfiles / topVendorsB
     ];
     const top = topVendorsByArena(profiles, 2);
     expect(top.map((p) => p.vendor)).toEqual(["oa", "g"]);
+  });
+});
+
+describe("fmtContext 上下文窗口紧凑格式", () => {
+  it("K / M 自适应", () => {
+    expect(fmtContext(128000)).toBe("128K");
+    expect(fmtContext(200000)).toBe("200K");
+    expect(fmtContext(1050000)).toBe("1.1M");
+    expect(fmtContext(10000000)).toBe("10M");
+    expect(fmtContext(500)).toBe("500");
+  });
+  it("null/undefined/NaN 返 '—'", () => {
+    expect(fmtContext(null)).toBe("—");
+    expect(fmtContext(undefined)).toBe("—");
+    expect(fmtContext(NaN)).toBe("—");
   });
 });

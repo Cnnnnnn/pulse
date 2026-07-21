@@ -8,7 +8,7 @@
  */
 
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.jsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
@@ -16,6 +16,7 @@ import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
 export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primaryMax, votesMax }) {
   const m = model || {};
   const aa = m.aa || {};
+  const md = m.modelsdev || {};
   const lbData = m.livebench || {};
   const byCat = lbData.byCategory || {};
   const vendorLabel =
@@ -161,6 +162,12 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
         {num("elo", elo, fmtScore)}
         {num("ci", ci, (v) => (v != null ? `±${Math.round(v)}` : "—"))}
         {votesCell}
+        {num(
+          "context",
+          typeof md.contextLength === "number" ? md.contextLength : null,
+          fmtContext,
+          "上下文窗口（来自 models.dev）",
+        )}
       </tr>
     );
   }
@@ -181,7 +188,19 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
       {num("agentic", aa.agenticIndex, fmtIndex)}
       {num("speed", aa.outputTokensPerSec, fmtSpeed)}
       {num("price", aa.priceOutputPer1M, fmtPricePer1M)}
+      {num(
+        "inputPrice",
+        typeof md.inputCostPer1M === "number" ? md.inputCostPer1M : null,
+        fmtPricePer1M,
+        "输入价（来自 models.dev）",
+      )}
       {num("valueRatio", vr, (v) => (v == null ? "—" : v.toFixed(1)))}
+      {num(
+        "context",
+        typeof md.contextLength === "number" ? md.contextLength : null,
+        fmtContext,
+        "上下文窗口（来自 models.dev）",
+      )}
     </tr>
   );
 }

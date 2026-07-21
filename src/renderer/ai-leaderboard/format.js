@@ -25,6 +25,15 @@ export function fmtPricePer1M(v) {
   return `$${Number(v).toFixed(2)} /1M`;
 }
 
+/** 上下文窗口（tokens）紧凑显示：128000 → "128K"，1050000 → "1.0M"。 */
+export function fmtContext(v) {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  const n = Number(v);
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
+}
+
 /** 生成速度（tokens/s）。 */
 export function fmtSpeed(v) {
   if (v == null || !Number.isFinite(Number(v))) return "—";

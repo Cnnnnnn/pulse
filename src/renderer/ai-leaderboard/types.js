@@ -187,6 +187,12 @@ export const ATTRIBUTION = {
     url: "https://openrouter.ai",
     required: false,
   },
+  "models-dev": {
+    id: "models-dev",
+    text: "模型元数据：Models.dev（开放目录聚合）",
+    url: "https://models.dev/",
+    required: false,
+  },
   sample: {
     id: "sample",
     text: "示例数据（离线快照，非实时）",
@@ -246,30 +252,32 @@ export { CATEGORY_BOARD };
 
 export function normalizeAiModel(raw) {
   if (!raw || typeof raw !== "object") {
-    return {
-      id: "",
-      name: "",
-      vendor: "other",
-      vendorRaw: null,
-      category: "llm",
-      license: null,
-      arena: {},
-      aa: null,
-      openrouter: null,
-      livebench: null,
-      sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none" },
-      isSample: false,
-      fetchedAt: null,
-    };
-  }
-  const sources = raw.sources && typeof raw.sources === "object"
+return {
+    id: "",
+    name: "",
+    vendor: "other",
+    vendorRaw: null,
+    category: "llm",
+    license: null,
+    arena: {},
+    aa: null,
+    openrouter: null,
+    livebench: null,
+    modelsdev: null,
+    sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" },
+    isSample: false,
+    fetchedAt: null,
+  };
+}
+const sources = raw.sources && typeof raw.sources === "object"
     ? {
         arena: raw.sources.arena || "none",
         aa: raw.sources.aa || "none",
         openrouter: raw.sources.openrouter || "none",
         livebench: raw.sources.livebench || "none",
+        modelsdev: raw.sources.modelsdev || "none",
       }
-    : { arena: "none", aa: "none", openrouter: "none", livebench: "none" };
+    : { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" };
   return {
     id: typeof raw.id === "string" ? raw.id : "",
     name: typeof raw.name === "string" ? raw.name : "",
@@ -281,6 +289,7 @@ export function normalizeAiModel(raw) {
     aa: raw.aa && typeof raw.aa === "object" ? raw.aa : null,
     openrouter: raw.openrouter && typeof raw.openrouter === "object" ? raw.openrouter : null,
     livebench: raw.livebench && typeof raw.livebench === "object" ? raw.livebench : null,
+    modelsdev: raw.modelsdev && typeof raw.modelsdev === "object" ? raw.modelsdev : null,
     sources,
     isSample: !!raw.isSample,
     fetchedAt: typeof raw.fetchedAt === "string" ? raw.fetchedAt : null,
@@ -319,6 +328,7 @@ export function normalizeBoardResult(res) {
       aa: Number.isFinite(sc.aa) ? sc.aa : 0,
       openrouter: Number.isFinite(sc.openrouter) ? sc.openrouter : 0,
       livebench: Number.isFinite(sc.livebench) ? sc.livebench : 0,
+      modelsdev: Number.isFinite(sc.modelsdev) ? sc.modelsdev : 0,
     },
     attribution,
     stale: !!res.stale,

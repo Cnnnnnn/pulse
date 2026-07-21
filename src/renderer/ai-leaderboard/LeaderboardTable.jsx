@@ -95,6 +95,13 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
                 <SortableTh k="elo" label="ELO 分数" active={aKey} dir={dir} />
                 <SortableTh k="ci" label="置信区间" active={aKey} dir={dir} />
                 <SortableTh k="votes" label="票数" active={aKey} dir={dir} title="该模型在本 board 的参与对战 / 投票数" />
+                <SortableTh
+                  k="context"
+                  label="上下文"
+                  active={aKey}
+                  dir={dir}
+                  title="上下文窗口（models.dev 提供）"
+                />
               </tr>
             ) : v === "livebench" ? (
               <tr>
@@ -125,7 +132,21 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
                 <SortableTh k="agentic" label="Agentic" active={aKey} dir={dir} />
                 <SortableTh k="speed" label="速度" active={aKey} dir={dir} />
                 <SortableTh k="price" label="输出价" active={aKey} dir={dir} />
+                <SortableTh
+                  k="inputPrice"
+                  label="输入价"
+                  active={aKey}
+                  dir={dir}
+                  title="输入 token 价格（models.dev 提供）— AA Free tier 不返回此字段，作为价格兜底"
+                />
                 <SortableTh k="valueRatio" label="性价比" active={aKey} dir={dir} />
+                <SortableTh
+                  k="context"
+                  label="上下文"
+                  active={aKey}
+                  dir={dir}
+                  title="上下文窗口（models.dev 提供）— 列头点选按上下文大小排序"
+                />
               </tr>
             )}
           </thead>

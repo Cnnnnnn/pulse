@@ -1778,6 +1778,35 @@
 .ai-lb-health__chip--teal   { color: oklch(60% 0.12 195); }
 /* LiveBench: 紫偏蓝调（与 AA 同 palette 但不同 hue，避免与 AA chip 视觉冲突） */
 .ai-lb-health__chip--livebench { color: oklch(58% 0.17 275); }
+/* Models.dev: 中性灰绿（目录数据，不抢戏但与四源区分） */
+.ai-lb-health__chip--modelsdev { color: oklch(58% 0.06 165); }
+
+/* ── v3.2: 健康卡 chip 可点击隐藏 + 恢复按钮 ── */
+.ai-lb-health__chip[role="button"] {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  padding-inline: var(--space-2);
+}
+.ai-lb-health__chip[role="button"]:hover {
+  opacity: 0.7;
+}
+.ai-lb-health__chip[role="button"]:focus-visible {
+  outline: 2px solid var(--ai-lb-accent, currentColor);
+  outline-offset: 2px;
+}
+.ai-lb-health__chip--restore {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px dashed color-mix(in oklch, currentColor 35%, transparent);
+  font-size: var(--font-size-sm, 12px);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+}
+.ai-lb-health__chip--restore:hover {
+  background: color-mix(in oklch, var(--text-secondary) 12%, transparent);
+}
 
 .ai-lb-health__name {
   font-weight: 600;

@@ -44,6 +44,10 @@ export const searchQuery = signal("");
 /** 许可筛选：all | open | proprietary（基于 license 字符串粗判）。 */
 export const licenseFilter = signal("all");
 
+/** 数据健康卡会话级偏好：用户隐藏的 source key 集合（如 {"livebench", "openrouter"}）。
+ * 会话内有效，刷新后重置（不持久化）。 */
+export const hiddenHealthSources = signal(new Set());
+
 /** 模型对比列表（最多 3 个 id）。 */
 export const compareList = signal([]);
 
@@ -73,7 +77,7 @@ function _crossSourceOpts(force) {
     dimension: "elo",
     vendor: "all",
     force: !!force,
-    sources: { arena: true, aa: true, livebench: true, openrouter: true },
+    sources: { arena: true, aa: true, livebench: true, openrouter: true, modelsdev: true },
   };
 }
 
@@ -108,7 +112,7 @@ export async function loadCrossSource(force) {
 
 export const items = signal([]);
 export const sources = signal({});
-export const sourceCoverage = signal({ arena: 0, aa: 0, openrouter: 0, livebench: 0 });
+export const sourceCoverage = signal({ arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 });
 export const attribution = signal([]);
 export const loading = signal(false);
 export const error = signal(null);
@@ -205,7 +209,7 @@ async function _run(force) {
       if (norm.ok) {
         items.value = norm.items;
         sources.value = norm.sources;
-        sourceCoverage.value = norm.sourceCoverage || { arena: 0, aa: 0, openrouter: 0, livebench: 0 };
+        sourceCoverage.value = norm.sourceCoverage || { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
         attribution.value = norm.attribution;
         stale.value = norm.stale;
         fromCache.value = norm.fromCache;
@@ -219,7 +223,7 @@ async function _run(force) {
         error.value = norm.error || "加载失败";
         items.value = [];
         sources.value = {};
-        sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0 };
+        sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
         attribution.value = [];
       }
     });
@@ -229,7 +233,7 @@ async function _run(force) {
       error.value = e && e.message ? e.message : "网络错误";
       items.value = [];
       sources.value = {};
-      sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0 };
+      sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
       attribution.value = [];
     });
   } finally {
@@ -303,6 +307,23 @@ export function setLicenseFilter(v) {
   persistPrefs();
 }
 
+/** 切数据健康卡的 source chip 隐藏/显示。不会影响实际数据源是否拉取。
+ * @param {string} key
+ */
+export function toggleHealthSource(key) {
+  if (!key) return;
+  const cur = hiddenHealthSources.value;
+  const next = new Set(cur);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  hiddenHealthSources.value = next;
+}
+
+/** 重置所有隐藏的 source chip（恢复全显）。 */
+export function resetHealthSources() {
+  hiddenHealthSources.value = new Set();
+}
+
 /** 切排序方向：纯本地派生。 */
 export function setSortDir(dir) {
   const d = dir === "asc" ? "asc" : "desc";
@@ -341,6 +362,15 @@ export function columnValue(model, view, key) {
       if (key === "ci") return slice.ci != null ? slice.ci : null;
       return slice.votes != null ? slice.votes : null;
     }
+    if (key === "context") {
+      // Arena 视角没有自己的 context 数据. 优先级: modelsdev > openrouter (OR 也返回 context_length).
+      const md = model && model.modelsdev;
+      if (md && typeof md.contextLength === "number") return md.contextLength;
+      const or = model && model.openrouter;
+      return or && typeof or.contextLength === "number" && or.contextLength > 0
+        ? or.contextLength
+        : null;
+    }
     return null;
   }
   if (view === "livebench") {
@@ -370,6 +400,22 @@ export function columnValue(model, view, key) {
       return aa.intelligenceIndex != null && aa.priceOutputPer1M > 0
         ? aa.intelligenceIndex / aa.priceOutputPer1M
         : null;
+    case "context": {
+      // 优先 AA slice (Free tier 不返回, 0), 回退 modelsdev > openrouter.contextLength
+      const md = model && model.modelsdev;
+      if (md && typeof md.contextLength === "number") return md.contextLength;
+      const or = model && model.openrouter;
+      return or && typeof or.contextLength === "number" && or.contextLength > 0
+        ? or.contextLength
+        : null;
+    }
+    case "inputPrice": {
+      // AA Free tier 不返回 input 价. 优先级: modelsdev > openrouter (OR pricing.prompt ×1M).
+      const md = model && model.modelsdev;
+      if (md && typeof md.inputCostPer1M === "number") return md.inputCostPer1M;
+      const or = model && model.openrouter;
+      return or && typeof or.inputCostPer1M === "number" ? or.inputCostPer1M : null;
+    }
     default: return null;
   }
 }
