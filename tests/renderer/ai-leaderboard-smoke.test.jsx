@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
 import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.jsx";
+import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.jsx";
 import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.js";
 import {
   columnValue,
@@ -128,6 +129,25 @@ describe("LeaderboardTable 渲染", () => {
     const { container } = render(<TopPodium rows={aaModels} view="aa" />);
     expect(container.querySelectorAll(".ai-lb-podium__card").length).toBe(2);
     expect(container.querySelectorAll(".ai-lb-medal").length).toBe(2);
+  });
+
+  it("ArenaBubbleChart：默认 text board 渲染气泡图与数据点", () => {
+    const { container } = render(<ArenaBubbleChart items={arenaModels} board="text" />);
+    expect(container.querySelectorAll(".ai-lb-bubble").length).toBe(1);
+    // 文本榜两模型均有 score/votes/ci → 2 个气泡
+    expect(container.querySelectorAll("circle").length).toBe(2);
+    // 含坐标轴与强势区标记
+    expect(container.querySelector(".ai-lb-bubble__axis")).toBeTruthy();
+    expect(container.querySelector(".ai-lb-bubble__zone")).toBeTruthy();
+  });
+
+  it("ArenaBubbleChart：仅含部分 board 数据的模型会被过滤", () => {
+    // vision board：仅 Alpha 有 vision 切片，Beta 仅 text → 只渲染 1 个气泡
+    const { container } = render(<ArenaBubbleChart items={arenaModels} board="vision" />);
+    expect(container.querySelectorAll("circle").length).toBe(1);
+    // 无任何匹配数据时不渲染容器
+    const empty = render(<ArenaBubbleChart items={lbModels} board="text" />);
+    expect(empty.container.querySelector(".ai-lb-bubble")).toBeNull();
   });
 
   it("点选列头触发排序（sortKey 写入）", () => {

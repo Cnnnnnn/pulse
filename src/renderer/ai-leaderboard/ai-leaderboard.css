@@ -1351,6 +1351,65 @@
   pointer-events: none;
 }
 
+/* ── Arena 气泡图（ELO × 票数，气泡＝CI）── */
+.ai-lb-bubble {
+  margin-bottom: var(--space-3);
+  padding: var(--space-4) var(--space-4);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in oklch, black 6%, transparent),
+    0 4px 12px color-mix(in oklch, black 5%, transparent);
+}
+.ai-lb-bubble__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+.ai-lb-bubble__title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ai-lb-bubble__hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.ai-lb-bubble__svg {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+}
+.ai-lb-bubble__label {
+  font-size: 9px;
+  fill: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.ai-lb-bubble__axis {
+  font-size: 10px;
+  fill: var(--text-secondary);
+  font-weight: 500;
+}
+.ai-lb-bubble__zone {
+  font-size: 9px;
+  fill: var(--text-tertiary);
+  font-weight: 600;
+  pointer-events: none;
+}
+.ai-lb-bubble__tooltip {
+  font-size: 10px;
+  fill: var(--text-primary);
+  font-weight: 500;
+}
+.ai-lb-bubble__top3 {
+  font-size: 8px;
+  fill: var(--text-secondary);
+  font-weight: 600;
+  pointer-events: none;
+}
+
 /* ── 移动端卡片列表（<640px 显示，桌面隐藏；与表格同数据源/同对比态）── */
 .ai-lb-cards { display: none; }
 .ai-lb-card {

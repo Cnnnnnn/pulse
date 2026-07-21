@@ -31,6 +31,7 @@ import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.js";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.jsx";
 import { LeaderboardTable } from "./LeaderboardTable.jsx";
 import { ValueScatter } from "./ValueScatter.jsx";
+import { ArenaBubbleChart } from "./ArenaBubbleChart.jsx";
 import { ComparePanel } from "./ComparePanel.jsx";
 import { AttributionFooter } from "./AttributionFooter.jsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
@@ -213,6 +214,7 @@ export function AiLeaderboardPage() {
         {!loading.value && !error.value && rows.length > 0 && (
           <>
             {view === "aa" && <ValueScatter items={rows} />}
+            {view === "arena" && <ArenaBubbleChart items={rows} board={activeBoard.value} />}
             <TopPodium rows={rows} view={view} />
             <LeaderboardTable rows={rows} view={view} />
           </>
