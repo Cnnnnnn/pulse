@@ -1,7 +1,12 @@
 /**
  * DrawerShell — overlay + fixed aside + header (title / ×) + body (+ optional slots).
+ *
+ * ponytail: usePortal=true 时 render 到 document.body 直接子节点, 跳出任何祖先
+ *   stacking context (transform/filter/backdrop-filter 都会创建). 这是 z-index
+ *   调多高都压不住的"穿透"的根本解法 — 跟 ModalShell 的 usePortal 保持一致.
  */
 import { useEffect, useRef } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 
 export function DrawerShell({
   open,
@@ -21,6 +26,7 @@ export function DrawerShell({
   footer = null,
   bodyClass,
   children,
+  usePortal = false,
 }) {
   const onEscapeRef = useRef(onEscape);
   onEscapeRef.current = onEscape;
@@ -47,7 +53,7 @@ export function DrawerShell({
   const drawerCls = `${drawerClass}${drawerExtraClass ? ` ${drawerExtraClass}` : ''}`;
   const bodyCls = bodyClass || `${drawerClass}__body`;
 
-  return (
+  const node = (
     <>
       {showOverlay ? (
         <div
@@ -78,4 +84,6 @@ export function DrawerShell({
       </aside>
     </>
   );
+
+  return usePortal ? createPortal(node, document.body) : node;
 }

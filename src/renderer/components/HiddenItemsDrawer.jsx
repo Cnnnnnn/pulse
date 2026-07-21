@@ -17,6 +17,7 @@ export function HiddenItemsDrawer({ open, hiddenItems = [], onRestore, onClose }
       overlayClass="sidenav-hidden-drawer-overlay"
       drawerClass="sidenav-hidden-drawer"
       ariaLabel="已隐藏的导航项"
+      usePortal
     >
       {hiddenItems.length === 0 && (
         <DrawerEmpty message="没有隐藏项" className="sidenav-hidden-drawer__empty" />

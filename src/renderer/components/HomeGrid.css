@@ -235,6 +235,14 @@
   color: var(--text-secondary);
   line-height: 1.35;
   margin-top: auto;
+  /* ponytail: 留出右下角 hidden-btn + fav-btn 两个按钮的占地 (right: 8~58, 共 58px),
+     长 status 文本到此截断, 防止跟按钮视觉重叠. */
+  padding-right: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  width: 100%;
 }
 
 /* ============================================================
@@ -292,12 +300,14 @@ body.theme-dark .home-grid-tile {
 }
 
 /* ============================================================
- * v3 — A2 快捷键提示 (副标题尾)
- * 默认淡灰, hover/focus 时加深.
+ * v3 — A2 快捷键提示 (右上角 badge 下方)
+ * ponytail: 原本 inline flow 在 status 之后, 长 status 文本会把它推到右下角跟 hidden-btn 撞.
+ *   改成 absolute 定位右上角 (badge 下方 6px), 跟右下两个按钮 + status 文本都不挨.
  * ============================================================ */
 .home-grid-tile-kbd {
-  display: inline-block;
-  margin-left: 6px;
+  position: absolute;
+  top: 34px; /* badge top:10px + 18px 高度 + 6px 间距 */
+  right: 10px;
   padding: 1px 5px;
   font-size: 10px;
   font-family: var(--font-system);
@@ -305,7 +315,7 @@ body.theme-dark .home-grid-tile {
   background: color-mix(in oklch, var(--text-primary) 4%, transparent);
   border-radius: 4px;
   font-variant-numeric: tabular-nums;
-  vertical-align: 1px;
+  pointer-events: none;
   transition: background-color 120ms ease, color 120ms ease;
 }
 .home-grid-tile:hover .home-grid-tile-kbd,
@@ -407,6 +417,43 @@ body.theme-dark .home-grid-tile {
   color: oklch(65% 0.18 50);
 }
 
+/* ============================================================
+ * v8 — 首页 tile 隐藏按钮 (左下角, 跟收藏星标对称)
+ * 复用 sidenav-prefs.hideItem / restoreItem, 跟 SideNav 右键菜单 / 设置页同步.
+ * 默认浅灰, hover 警示色, 已隐藏变强警示色 + 实心, 提示"再点可恢复".
+ * ============================================================ */
+.home-grid-tile-hidden-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 36px; /* fav-btn 在 right:8px, 这个放左边 28px 间距 */
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color 120ms ease, transform 120ms ease, background 120ms ease;
+  user-select: none;
+  z-index: 2;
+  pointer-events: auto;
+}
+.home-grid-tile-hidden-btn:hover {
+  background: color-mix(in oklch, oklch(60% 0.18 25) 14%, transparent);
+  color: oklch(60% 0.18 25);
+  transform: scale(1.15);
+}
+.home-grid-tile-hidden-btn.is-hidden {
+  color: oklch(60% 0.18 25); /* 警示红 — 已隐藏, 显眼提醒 */
+  background: color-mix(in oklch, oklch(60% 0.18 25) 12%, transparent);
+}
+.home-grid-tile-hidden-btn.is-hidden:hover {
+  color: oklch(50% 0.18 25);
+}
+
 /* 收藏 tile 整体加淡 accent 边框, 视觉上"置顶" */
 .home-grid-tile-fav {
   border-color: color-mix(in oklch, var(--tile-accent, var(--accent-primary)) 30%, transparent);
@@ -451,4 +498,36 @@ body.theme-dark .home-grid-tile {
 .home-hero-fav {
   margin-left: 4px;
   color: oklch(72% 0.18 80);
+}
+
+/* ============================================================
+ * v8 — 已隐藏模块恢复条
+ * 首页底部, 仅当有 hidden 项时显示. 文案 + 内联按钮, 复用 HiddenItemsDrawer.
+ * ============================================================ */
+.home-grid-hidden-bar {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--bg-elevated, var(--bg-primary)) 88%, transparent);
+  border: 1px solid color-mix(in oklch, oklch(60% 0.18 25) 28%, transparent);
+  color: var(--text-secondary);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.home-grid-hidden-bar__btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  font: inherit;
+  color: oklch(60% 0.18 25);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 120ms ease, color 120ms ease;
+}
+.home-grid-hidden-bar__btn:hover {
+  background: color-mix(in oklch, oklch(60% 0.18 25) 14%, transparent);
+  color: oklch(50% 0.18 25);
 }

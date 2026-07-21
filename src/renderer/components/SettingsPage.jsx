@@ -37,8 +37,6 @@ import {
   gamesNotifyOnDrop, setGamesNotifyOnDrop,
   loadGamesSettings,
 } from "../games/gamesStore.js";
-
-/* ─── theme signal (与 localStorage 同步) ─────────────────────── */
 // ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
 //           变化, 防止 main 进程 / 其它 renderer 改主题时 signal 跟 UI 脱节.
 const themeMode = signal(getThemePreference());

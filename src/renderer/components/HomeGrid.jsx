@@ -36,9 +36,12 @@ import {
   savePrefs,
   reorderItems,
   toggleFavorite,
+  hideItem,
+  restoreItem,
   listFavorites,
   isFavorite,
 } from "./sidenav-prefs.js";
+import { HiddenItemsDrawer } from "./HiddenItemsDrawer.jsx";
 import "./HomeGrid.css";
 
 // ponytail: 5 个简单几何 SVG, 24x24 viewBox, 跟 macOS SF Symbols 风格一致.
@@ -134,7 +137,11 @@ const HOME_TILES = [
   { key: 'games',     title: '游戏优惠',  subtitle: '各平台折扣 / 免费活动 / 热门榜', accent: 'red'   },
   { key: 'ai-leaderboard', title: 'AI 榜单', subtitle: '大模型排名 / 性价比 / 速度', accent: 'teal' },
 ];
-const TILE_BY_KEY = Object.fromEntries(HOME_TILES.map((t) => [t.key, t]));
+// ponytail: 给 tile 补 label 别名 → 跟 SideNav NAV_ITEMS 同 schema, HiddenItemsDrawer
+//   不用分支判断两边数据. 也避免两侧重复维护 label/title.
+const TILE_BY_KEY = Object.fromEntries(
+  HOME_TILES.map((t) => [t.key, { ...t, label: t.title }]),
+);
 
 // v4: 派生渲染顺序. 收藏优先 (按 favorites 数组顺序) + 余下按 prefs.order.
 // 不在 prefs.order 的 key 兜底按 HOME_TILES 顺序追加.
@@ -339,6 +346,15 @@ export function HomeGrid() {
   const tileRefs = useRef([]);
   const [prefs, setPrefs] = useState(() => loadPrefs());
   const [draggingKey, setDraggingKey] = useState(null);
+  const [hiddenDrawerOpen, setHiddenDrawerOpen] = useState(false);
+  const hiddenNavItems = (prefs.hidden || [])
+    .map((k) => TILE_BY_KEY[k])
+    .filter(Boolean);
+  function handleRestore(key) {
+    const next = restoreItem(prefs, key);
+    setPrefs(next);
+    savePrefs(next);
+  }
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 30_000);
@@ -426,6 +442,17 @@ export function HomeGrid() {
     savePrefs(next);
   }
 
+  // ponytail: 显隐按钮 — 复用 sidenav-prefs 的 hideItem / restoreItem,
+  //   跟 SideNav 右键菜单 / 设置页「常规」卡片走同一份 prefs, 三处同步.
+  function handleToggleHidden(key, e) {
+    e.stopPropagation();
+    e.preventDefault();
+    const hidden = new Set(prefs.hidden || []);
+    const next = hidden.has(key) ? restoreItem(prefs, key) : hideItem(prefs, key);
+    setPrefs(next);
+    savePrefs(next);
+  }
+
   function handleDragStart(key, e) {
     setDraggingKey(key);
     e.dataTransfer.effectAllowed = 'move';
@@ -487,6 +514,7 @@ export function HomeGrid() {
           const badge = getBadge(tile.key) || badges[tile.key] || 0;
           const isFocused = idx === focusIdx;
           const isFav = isFavorite(prefs, tile.key);
+          const isHidden = (prefs.hidden || []).includes(tile.key);
           const isDragging = draggingKey === tile.key;
           const status = getStatus(tile.key);
           return (
@@ -498,7 +526,7 @@ export function HomeGrid() {
               role="gridcell"
               tabIndex={isFocused ? 0 : -1}
               draggable
-              aria-label={`进入 ${tile.title}${badge > 0 ? `, 未读 ${badge}` : ''}${status ? `, ${status}` : ''}${isFav ? ', 已收藏' : ''}`}
+              aria-label={`进入 ${tile.title}${badge > 0 ? `, 未读 ${badge}` : ''}${status ? `, ${status}` : ''}${isFav ? ', 已收藏' : ''}${isHidden ? ', 已隐藏' : ''}`}
               onClick={() => {
                 // ponytail 2026-07-13: 投资 tile 走 goInvest (设 primary + active).
                 if (tile.key === "funds" || tile.key === "metals" || tile.key === "stocks") {
@@ -514,6 +542,16 @@ export function HomeGrid() {
               onDragEnd={handleDragEnd}
               style={{ '--tile-cascade-delay': `${idx * 40}ms` }}
             >
+              <span
+                class={`home-grid-tile-hidden-btn${isHidden ? ' is-hidden' : ''}`}
+                role="button"
+                tabIndex={-1}
+                aria-hidden="true"
+                onClick={(e) => handleToggleHidden(tile.key, e)}
+                title={isHidden ? '恢复显示' : '从首页与侧边栏隐藏'}
+              >
+                {isHidden ? '⊘' : '⊗'}
+              </span>
               <span
                 class={`home-grid-tile-fav-btn${isFav ? ' is-fav' : ''}`}
                 role="button"
@@ -541,6 +579,25 @@ export function HomeGrid() {
           );
         })}
       </div>
+      {(prefs.hidden || []).length > 0 && (
+        <div class="home-grid-hidden-bar">
+          已隐藏 {(prefs.hidden || []).length} 个模块 ·
+          <button
+            type="button"
+            class="home-grid-hidden-bar__btn"
+            onClick={() => setHiddenDrawerOpen(true)}
+            data-testid="home-grid-hidden-bar-btn"
+          >
+            点这里恢复
+          </button>
+        </div>
+      )}
+      <HiddenItemsDrawer
+        open={hiddenDrawerOpen}
+        hiddenItems={hiddenNavItems}
+        onRestore={handleRestore}
+        onClose={() => setHiddenDrawerOpen(false)}
+      />
     </div>
   );
 }

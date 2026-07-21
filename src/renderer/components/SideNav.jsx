@@ -55,7 +55,9 @@ const NAV_TO_PREFS_SEGMENT = {
   'worldcup': 'worldcup',
 };
 
-const NAV_ITEMS = [
+// ponytail: NAV_ITEMS export 出来给 SettingsPage 「导航」tab 复用, 避免列表两边维护.
+//   tooltip 字段给折叠态用; 设置页不展开, 只用 key + label.
+export const NAV_ITEMS = [
   // P-N+ 2026-07-10: IT 新闻 + 微博热搜 合并成单 'news' nav.
   // 2026-07-13: funds / metals / stocks 三 nav 合并成单 'invest' nav (基金 + 贵金属 + 选股).
   { key: 'news',      label: '新闻',     tooltip: 'IT 资讯 + 微博热搜 (合并 tab)' },

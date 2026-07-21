@@ -3662,8 +3662,12 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .sidenav-hidden-drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 900;
+  /* ponytail: 配合 drawer 改成不透明背景, overlay 加深一点,
+     视觉层次更分明 (浅色 0.4, 深色 0.6).
+     z-index 用项目 --z-index-drawer-overlay (4050), 跟其它 drawer 一档,
+     不被游戏/新闻等页面的 game-card stacking context 穿透. */
+  background: rgba(0, 0, 0, 0.4);
+  z-index: var(--z-index-drawer-overlay);
 }
 .sidenav-hidden-drawer {
   position: fixed;
@@ -3671,9 +3675,14 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   top: 0;
   bottom: 0;
   width: 320px;
-  background: var(--bg-primary);
+  /* ponytail: drawer 是 modal 级别浮层, 背景必须不透明,
+     --bg-primary 带 alpha (浅色 0.82, 深色 0.88~0.92) 会让底层 homegrid 的
+     玻璃 tile 透过来. --bg-modal 是实色 (浅色 #fff, 深色 #1c1c1e / #2b2b2b),
+     跨主题稳定不透明. z-index 用 --z-index-drawer (4100) 跟其它 drawer 一档,
+     保证不被游戏卡片的 backdrop-filter 子元素穿透. */
+  background: var(--bg-modal);
   border-left: 1px solid var(--bg-secondary);
-  z-index: 901;
+  z-index: var(--z-index-drawer);
   display: flex;
   flex-direction: column;
 }
