@@ -5,7 +5,7 @@
  */
 
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebench, fmtLbCost } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.js";
 
 /**
  * 生成当前视角表格的 Markdown。
@@ -21,13 +21,15 @@ export function tableToMarkdown({ rows, view, board }) {
   if (view === "arena") {
     const boardMeta = ARENA_BOARDS[board] || ARENA_BOARDS.text;
     const boardName = boardMeta.key; // Arena board 名（text / vision / code / text-to-image / text-to-video）
-    const header = "| # | 模型 | 厂商 | ELO | 置信区间 |";
-    const sep = "|---|------|------|-----|----------|";
+    const header = "| # | 模型 | 厂商 | 许可 | ELO | 置信区间 | 票数 |";
+    const sep = "|---|------|------|------|-----|----------|------|";
     const lines = rows.map((m, i) => {
       const slice = m.arena && m.arena[boardName];
       const elo = slice && typeof slice.score === "number" ? Math.round(slice.score) : "—";
       const ci = slice && slice.ci != null ? `±${Math.round(slice.ci)}` : "—";
-      return `| ${i + 1} | ${m.name} | ${vendorLabel(m)} | ${elo} | ${ci} |`;
+      const votes = slice && typeof slice.votes === "number" ? slice.votes.toLocaleString() : "—";
+      const lic = licenseShort(licenseKind(m.license));
+      return `| ${i + 1} | ${m.name} | ${vendorLabel(m)} | ${lic} | ${elo} | ${ci} | ${votes} |`;
     });
     return [header, sep, ...lines].join("\n");
   }

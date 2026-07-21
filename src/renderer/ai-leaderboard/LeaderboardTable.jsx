@@ -20,6 +20,7 @@ import {
 } from "./aiLeaderboardStore.js";
 import { ModelRow } from "./ModelRow.jsx";
 import { ModelCardList } from "./ModelCard.jsx";
+import { ARENA_BOARDS } from "./types.js";
 
 /** 可点选排序列头。 */
 function SortableTh({ k, label, active, dir, title }) {
@@ -67,6 +68,16 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
     if (typeof val === "number" && isFinite(val)) primaryMax = Math.max(primaryMax, val);
   }
 
+  // 票数列最大值（内联条形归一化用，独立于主指标，仅 Arena 视角有意义）。
+  let votesMax = 0;
+  if (v === "arena") {
+    const bm = ARENA_BOARDS[b] || ARENA_BOARDS.text;
+    for (const m of list) {
+      const s = m && m.arena && m.arena[bm.key];
+      if (s && typeof s.votes === "number") votesMax = Math.max(votesMax, s.votes);
+    }
+  }
+
   const aKey = primaryKey;
   const dir = sortDir.value;
 
@@ -83,6 +94,7 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
                 <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
                 <SortableTh k="elo" label="ELO 分数" active={aKey} dir={dir} />
                 <SortableTh k="ci" label="置信区间" active={aKey} dir={dir} />
+                <SortableTh k="votes" label="票数" active={aKey} dir={dir} title="该模型在本 board 的参与对战 / 投票数" />
               </tr>
             ) : v === "livebench" ? (
               <tr>
@@ -129,6 +141,7 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
                 lb={lbKey}
                 primaryKey={aKey}
                 primaryMax={primaryMax}
+                votesMax={votesMax}
               />
             ))}
           </tbody>
@@ -143,6 +156,7 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
         lb={lbKey}
         primaryKey={aKey}
         primaryMax={primaryMax}
+        votesMax={votesMax}
       />
     </>
   );

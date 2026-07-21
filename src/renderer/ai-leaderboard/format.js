@@ -45,6 +45,17 @@ export function fmtClock(iso) {
   return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
 }
 
+/** 更新日期（YYYY-MM-DD）。 */
+export function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${da}`;
+}
+
 /** 性价比 = 智能指数 / 输出价格（越高越划算）。 */
 export function fmtValueRatio(aa) {
   if (!aa) return "—";
@@ -67,6 +78,36 @@ export function fmtLbCost(v) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   const n = Number(v);
   return n < 1 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`;
+}
+
+/** 票数紧凑格式化：8500 → "8.5k"，62355 → "62.4k"。 */
+export function fmtVotes(v) {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  const n = Number(v);
+  if (n >= 1000) {
+    const k = n / 1000;
+    return `${k >= 10 ? Math.round(k) : k.toFixed(1)}k`;
+  }
+  return String(n);
+}
+
+/**
+ * 许可分类：open（开源权重）/ proprietary（闭源）/ unknown。
+ * 仅基于 license 字符串关键词粗判，用于"仅开源权重"筛选与徽章着色。
+ */
+export function licenseKind(license) {
+  if (!license) return "unknown";
+  const s = String(license).toLowerCase();
+  if (/(^|[^a-z])proprietary|closed[- ]?source/.test(s)) return "proprietary";
+  if (/mit|apache|bsd|llama|community|open|gpl|mpl|free|creative|qwen|deepseek|mistral|openrail|mrl/.test(s)) {
+    return "open";
+  }
+  return "unknown";
+}
+
+/** 许可短标签。 */
+export function licenseShort(kind) {
+  return kind === "open" ? "开源" : kind === "proprietary" ? "闭源" : "—";
 }
 
 /**

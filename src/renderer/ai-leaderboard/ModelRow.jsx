@@ -8,16 +8,34 @@
  */
 
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare } from "./aiLeaderboardStore.js";
+import { RankSparkline } from "./RankSparkline.jsx";
+import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
 
-export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primaryMax }) {
+export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primaryMax, votesMax }) {
   const m = model || {};
   const aa = m.aa || {};
   const lbData = m.livebench || {};
   const byCat = lbData.byCategory || {};
   const vendorLabel =
     (VENDOR_META[m.vendor] && VENDOR_META[m.vendor].label) || m.vendor || "—";
+
+  // Arena 切片（所有视角复用，避免分支内重复解构）
+  const boardMeta = view === "arena" ? (ARENA_BOARDS[board] || ARENA_BOARDS.text) : null;
+  const arenaSlice = boardMeta && m.arena && m.arena[boardMeta.key] ? m.arena[boardMeta.key] : null;
+  const licKind = licenseKind(m.license);
+  const licBadge =
+    licKind !== "unknown" ? (
+      <span
+        class={`ai-lb-license ai-lb-license--${licKind}`}
+        title={m.license ? `许可：${m.license}` : "许可未知"}
+      >
+        {licenseShort(licKind)}
+      </span>
+    ) : null;
+  const officialRank = arenaSlice && arenaSlice.rank ? arenaSlice.rank : null;
+  const rankTitle = officialRank ? `官方排名 #${officialRank}` : undefined;
 
   const inCompare = compareList.value.includes(m.id);
   const compareDisabled = !inCompare && compareList.value.length >= 3;
@@ -41,11 +59,12 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
       {m.isSample && (
         <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>
       )}
+      {view === "arena" && <ArenaBoardBars model={m} />}
     </td>
   );
   const vendorCell = (
     <td class="ai-lb-td ai-lb-col-vendor">
-      <span class="ai-lb-vendor">{vendorLabel}</span>
+      <span class="ai-lb-vendor">{vendorLabel}{licBadge}</span>
     </td>
   );
 
@@ -62,10 +81,11 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
     );
   }
   const rankCell = (
-    <td class="ai-lb-td ai-lb-col-rank" scope="row">
+    <td class="ai-lb-td ai-lb-col-rank" scope="row" title={rankTitle}>
       {rank <= 3
         ? <span class={`ai-lb-medal g${rank}`} aria-label={`第 ${rank} 名`}>{rank}</span>
         : <>{rank}{deltaEl}</>}
+      <RankSparkline series={m.rankSeries} />
     </td>
   );
 
@@ -119,10 +139,19 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
   }
 
   if (view === "arena") {
-    const boardMeta = ARENA_BOARDS[board] || ARENA_BOARDS.text;
-    const arenaSlice = m.arena && m.arena[boardMeta.key];
     const elo = arenaSlice && typeof arenaSlice.score === "number" ? arenaSlice.score : null;
     const ci = arenaSlice && arenaSlice.ci != null ? arenaSlice.ci : null;
+    const votes = arenaSlice && typeof arenaSlice.votes === "number" ? arenaSlice.votes : null;
+    const votesCell = (
+      <td class="ai-lb-td ai-lb-col-num" title={votes != null ? `${votes.toLocaleString()} 票` : "无票数数据"}>
+        {votes != null ? fmtVotes(votes) : "—"}
+        {votes != null && votesMax ? (
+          <div class="ai-lb-bar" aria-hidden="true">
+            <i style={{ width: Math.max(0, Math.min(100, (votes / votesMax) * 100)) + "%" }} />
+          </div>
+        ) : null}
+      </td>
+    );
     return (
       <tr class={`ai-lb-row${sampleCls}`}>
         {checkboxCell}
@@ -131,6 +160,7 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
         {vendorCell}
         {num("elo", elo, fmtScore)}
         {num("ci", ci, (v) => (v != null ? `±${Math.round(v)}` : "—"))}
+        {votesCell}
       </tr>
     );
   }

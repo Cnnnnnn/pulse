@@ -78,6 +78,7 @@ export const AA_DIMENSION_KEYS = ["intelligence", "coding", "agentic", "speed", 
 export const SORT_COLUMN_LABELS = {
   elo: "ELO 分数",
   ci: "置信区间",
+  votes: "票数",
   intelligence: "智能指数",
   coding: "代码",
   agentic: "Agentic",
@@ -156,6 +157,13 @@ export const VENDOR_META = {
 export const VENDOR_OPTIONS = [
   { key: "all", label: "全部厂商" },
   ...Object.values(VENDOR_META).map((v) => ({ key: v.key, label: v.label })),
+];
+
+/** 许可筛选（基于 license 字符串粗判）。 */
+export const LICENSE_FILTER_OPTIONS = [
+  { key: "all", label: "全部许可" },
+  { key: "open", label: "仅开源权重" },
+  { key: "proprietary", label: "仅闭源" },
 ];
 
 /* ── 署名（AA 强制） ── */
@@ -278,6 +286,7 @@ export function normalizeAiModel(raw) {
     fetchedAt: typeof raw.fetchedAt === "string" ? raw.fetchedAt : null,
     rankDelta: typeof raw.rankDelta === "number" ? raw.rankDelta : null,
     isNew: !!raw.isNew,
+    rankSeries: Array.isArray(raw.rankSeries) ? raw.rankSeries : null,
   };
 }
 
@@ -315,6 +324,7 @@ export function normalizeBoardResult(res) {
     stale: !!res.stale,
     fromCache: !!res.fromCache,
     fetchedAt: typeof res.fetchedAt === "string" ? res.fetchedAt : null,
+    lastUpdated: typeof res.lastUpdated === "string" ? res.lastUpdated : null,
     count: typeof res.count === "number" ? res.count : items.length,
     error: typeof res.error === "string" ? res.error : null,
   };

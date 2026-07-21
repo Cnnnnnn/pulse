@@ -8,16 +8,18 @@ import {
   activeView,
   activeBoard,
   activeVendor,
+  licenseFilter,
   searchQuery,
   loading,
   setView,
   setBoard,
   setVendor,
+  setLicenseFilter,
   setSearchQuery,
   clearSearchQuery,
   refresh,
 } from "./aiLeaderboardStore.js";
-import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, VENDOR_OPTIONS } from "./types.js";
+import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, VENDOR_OPTIONS, LICENSE_FILTER_OPTIONS } from "./types.js";
 
 export function LeaderboardFilterBar() {
   const [q, setQ] = useState(searchQuery.value);
@@ -82,6 +84,20 @@ export function LeaderboardFilterBar() {
               ))}
             </div>
           )}
+
+          <div class="ai-leaderboard-chips" role="group" aria-label="许可筛选">
+            {LICENSE_FILTER_OPTIONS.map((o) => (
+              <button
+                key={o.key}
+                type="button"
+                class={`ai-leaderboard-chip${licenseFilter.value === o.key ? " is-active" : ""}`}
+                aria-pressed={licenseFilter.value === o.key}
+                onClick={() => setLicenseFilter(o.key)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div class="ai-leaderboard-toolbar__right">

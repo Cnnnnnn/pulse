@@ -11,6 +11,7 @@ import {
   attribution,
   hasSampleSource,
   fetchedAt,
+  sourceDate,
   searchQuery,
   clearSearchQuery,
   getDisplayed,
@@ -20,9 +21,12 @@ import {
   activeDim,
   activeLB,
   sortKey,
+  items,
+  licenseFilter,
+  setLicenseFilter,
 } from "./aiLeaderboardStore.js";
-import { ARENA_BOARDS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS } from "./types.js";
-import { fmtClock } from "./format.js";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS } from "./types.js";
+import { fmtClock, fmtDate, licenseKind } from "./format.js";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.js";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.jsx";
 import { LeaderboardTable } from "./LeaderboardTable.jsx";
@@ -32,6 +36,36 @@ import { AttributionFooter } from "./AttributionFooter.jsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
 import { TopPodium } from "./TopPodium.jsx";
 import { BoardHealthCard } from "./BoardHealthCard.jsx";
+
+/**
+ * 按许可筛选却无结果时的空状态提示。
+ * 说明当前榜单无该类模型，并列出具该类模型的其它 Arena board（含数量），避免误以为是故障。
+ */
+function LicenseEmptyHint({ kind, counts, boardLabel, arenaView, onClear }) {
+  const label = kind === "open" ? "开源权重" : "闭源";
+  const boards = ARENA_BOARD_KEYS
+    .map((bk) => ({ meta: ARENA_BOARDS[bk], n: counts[bk] || 0 }))
+    .filter((x) => x.n > 0);
+  const boardText = boards.length
+    ? boards.map((x) => `${x.meta.label}(${x.n})`).join("、")
+    : null;
+  return (
+    <div class="ai-lb-state ai-lb-state--empty" role="status">
+      <div class="ai-lb-state-icon" aria-hidden="true">∅</div>
+      <p class="ai-lb-state-text">
+        {arenaView ? `当前「${boardLabel}」榜无「${label}」模型` : `当前视图下无「${label}」模型`}
+      </p>
+      <p class="ai-lb-state-sub">
+        {boardText
+          ? `「${label}」模型分布在：${boardText}。可切换到对应榜单，或清除筛选查看全部。`
+          : "本快照中暂无该许可类型的模型，可清除筛选查看全部。"}
+      </p>
+      <button type="button" class="ai-lb-btn ai-lb-btn--ghost" onClick={onClear}>
+        清除许可筛选
+      </button>
+    </div>
+  );
+}
 
 export function AiLeaderboardPage() {
   const rows = getDisplayed();
@@ -71,6 +105,22 @@ export function AiLeaderboardPage() {
   const count = rows.length;
   const clock = fmtClock(fetchedAt.value);
   const isEmpty = !loading.value && !error.value && rows.length === 0;
+
+  // 按许可筛选却无结果：说明当前榜单无该类模型，统计哪些 board 有（给提示用）。
+  const licenseActive = licenseFilter.value !== "all";
+  const licenseEmpty = licenseActive && isEmpty && items.value.length > 0;
+  const boardLabel = (ARENA_BOARDS[activeBoard.value] || {}).label || "文本";
+  const licenseCounts = (() => {
+    const counts = {};
+    for (const it of items.value) {
+      if (licenseKind(it.license) !== licenseFilter.value) continue;
+      for (const bk of ARENA_BOARD_KEYS) {
+        const slice = it.arena && it.arena[ARENA_BOARDS[bk].key];
+        if (slice && typeof slice.score === "number") counts[bk] = (counts[bk] || 0) + 1;
+      }
+    }
+    return counts;
+  })();
   const sample = hasSampleSource();
   const scopeNote =
     view === "aa" || view === "livebench"
@@ -118,6 +168,19 @@ export function AiLeaderboardPage() {
               <span class="ai-leaderboard-summary__note">{scopeNote}</span>
             </>
           )}
+          {sourceDate.value ? (
+            <>
+              <span class="ai-leaderboard-summary__sep">·</span>
+              <span class="ai-leaderboard-summary__note" title="Arena 社区快照的数据截止日期">
+                数据截至 {fmtDate(sourceDate.value)}
+              </span>
+            </>
+          ) : fetchedAt.value ? (
+            <>
+              <span class="ai-leaderboard-summary__sep">·</span>
+              <span class="ai-leaderboard-summary__note">数据更新于 {fmtDate(fetchedAt.value)}</span>
+            </>
+          ) : null}
           <span class="ai-leaderboard-summary__fill" />
           <BoardHealthCard total={count} compact />
           {count > 0 && (
@@ -135,9 +198,17 @@ export function AiLeaderboardPage() {
           <ErrorState message={error.value} onRetry={() => refresh()} />
         )}
 
-        {isEmpty && (
+        {isEmpty && licenseEmpty ? (
+          <LicenseEmptyHint
+            kind={licenseFilter.value}
+            counts={licenseCounts}
+            boardLabel={boardLabel}
+            arenaView={view === "arena"}
+            onClear={() => setLicenseFilter("all")}
+          />
+        ) : isEmpty ? (
           <EmptyState onRetry={() => (searchQuery.value ? clearSearchQuery() : refresh())} />
-        )}
+        ) : null}
 
         {!loading.value && !error.value && rows.length > 0 && (
           <>

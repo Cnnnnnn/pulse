@@ -22,7 +22,7 @@ const { getSampleModels } = require("./sample");
 const { sortModels, filterByVendor, filterBySearch } = require("./ranking");
 const { cacheKey, readCache, writeCache, isStale } = require("./cache");
 const { acquire } = require("./rate-limiter");
-const { getPreviousArenaRanks, computeRankDelta } = require("./history");
+const { getPreviousArenaRanks, computeRankDelta, getArenaRankSeriesMap } = require("./history");
 const { logFetchError } = require("../games/log");
 
 const ARENA_TTL = 24 * 60 * 60 * 1000;
@@ -139,6 +139,11 @@ async function getLeaderboard(opts = {}) {
   console.warn("[agg-diag]", JSON.stringify({ cat: opts.category, dim: opts.dimension, srcOpts: sources, arenaRaw: !!arenaWrap.raw, arenaStale: arenaWrap.stale, arenaFromCache: arenaWrap.fromCache, orRaw: !!orWrap.raw }));
 
   const arenaModels = arenaWrap.raw ? arenaFetcher.normalize(arenaWrap.raw) : [];
+  // 上游 Arena 快照的真实数据截止日期（boards[*].meta.last_updated），透传给前端展示。
+  const arenaLastUpdated =
+    arenaWrap.raw && typeof arenaWrap.raw.lastUpdated === "string"
+      ? arenaWrap.raw.lastUpdated
+      : null;
   const aaModels = aaWrap.raw ? aaFetcher.normalize(aaWrap.raw) : [];
   const orModels = orWrap.raw ? openrouterFetcher.normalize(orWrap.raw) : [];
   const lbModels = lbWrap.raw ? livebenchFetcher.normalize(lbWrap.raw) : [];
@@ -177,16 +182,22 @@ async function getLeaderboard(opts = {}) {
   shown = filterByVendor(shown, vendor);
   shown = filterBySearch(shown, search);
 
-  // v3.0: 排名变动（仅 Arena 维度有意义）
+  // v3.0: 排名变动 + 排名趋势序列（仅 Arena 维度有意义）
   if (dimension === "elo") {
     const board = (CATEGORY_META[category] && CATEGORY_META[category].board) || "text";
     const prevRanks = getPreviousArenaRanks();
+    // 一次扫描多日缓存，构建所有模型当前 board 的排名序列（供 sparkline）。
+    const rankSeriesMap = getArenaRankSeriesMap(14);
     shown = shown.map((it, idx) => {
       const arenaSlice = it.arena && it.arena[board];
       if (!arenaSlice || typeof arenaSlice.score !== "number") return it;
       const currentRank = idx + 1;
       const { delta, isNew } = computeRankDelta(it.id, board, currentRank, prevRanks);
-      return { ...it, rankDelta: delta, isNew };
+      const boardSeries =
+        rankSeriesMap.get(it.id) && rankSeriesMap.get(it.id).get(board)
+          ? rankSeriesMap.get(it.id).get(board)
+          : null;
+      return { ...it, rankDelta: delta, isNew, rankSeries: boardSeries };
     });
   }
 
@@ -236,6 +247,7 @@ async function getLeaderboard(opts = {}) {
     fromCache:
       arenaWrap.fromCache && aaWrap.fromCache && orWrap.fromCache && lbWrap.fromCache,
     isSample,
+    lastUpdated: arenaLastUpdated,
     fetchedAt: new Date().toISOString(),
   };
 }

@@ -57,6 +57,58 @@ function getPreviousArenaRanks(lookbackDays = 7) {
 }
 
 /**
+ * 构建最近 N 天每个模型在各 board 的「排名序列」（用于趋势 sparkline）。
+ * 仅扫描有缓存的天（缺天跳过，不补 null），序列按时间升序。
+ * @param {number} [nDays=14]
+ * @returns {Map<string, Map<string, Array<{date:string, rank:number}>>>}
+ *   modelId → (board → [{date, rank}])
+ */
+function getArenaRankSeriesMap(nDays = 14) {
+  const today = new Date();
+  const byDay = []; // [{ date, rankMap: Map<id, {board:rank}> }]，时间升序
+  for (let i = nDays - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const key = cacheKey("arena", "all", dateStr);
+    const entry = readCache(key);
+    if (!entry || !entry.data || !entry.data.boards) continue;
+    const boards = entry.data.boards;
+    const rankMap = new Map();
+    for (const boardName of Object.keys(boards)) {
+      const payload = boards[boardName];
+      const models = Array.isArray(payload && payload.models)
+        ? payload.models
+        : Array.isArray(payload && payload.data)
+          ? payload.data
+          : [];
+      for (const m of models) {
+        if (!m || !m.model) continue;
+        const score = Number(m.score);
+        if (!Number.isFinite(score)) continue;
+        const vendor = normalizeVendor(m.vendor || "");
+        const id = slugifyModel(vendor, m.model);
+        if (!rankMap.has(id)) rankMap.set(id, {});
+        rankMap.get(id)[boardName] = { date: dateStr, rank: Number(m.rank) || 0 };
+      }
+    }
+    byDay.push({ date: dateStr, rankMap });
+  }
+  const seriesMap = new Map();
+  for (const { date, rankMap } of byDay) {
+    for (const [id, boardsObj] of rankMap) {
+      if (!seriesMap.has(id)) seriesMap.set(id, new Map());
+      const perBoard = seriesMap.get(id);
+      for (const [board, info] of Object.entries(boardsObj)) {
+        if (!perBoard.has(board)) perBoard.set(board, []);
+        perBoard.get(board).push({ date: info.date, rank: info.rank });
+      }
+    }
+  }
+  return seriesMap;
+}
+
+/**
  * 计算排名变动。
  * @param {string} modelId
  * @param {string} board Arena board name (text/vision/code)
@@ -96,4 +148,4 @@ function pruneOldCache(keepDays = 30) {
   } catch { /* 目录不可读忽略 */ }
 }
 
-module.exports = { getPreviousArenaRanks, computeRankDelta, pruneOldCache };
+module.exports = { getPreviousArenaRanks, computeRankDelta, getArenaRankSeriesMap, pruneOldCache };

@@ -28,7 +28,7 @@ import {
   toIpcParams,
   normalizeBoardResult,
 } from "./types.js";
-import { primaryValue } from "./format.js";
+import { primaryValue, licenseKind } from "./format.js";
 
 /* ── signals ── */
 export const activeView = signal("arena");
@@ -40,6 +40,9 @@ export const sortDir = signal("desc");
 /** 列头点选排序：null = 按当前视角主维度（active dim/board），否则按指定列 key 排。 */
 export const sortKey = signal(null);
 export const searchQuery = signal("");
+
+/** 许可筛选：all | open | proprietary（基于 license 字符串粗判）。 */
+export const licenseFilter = signal("all");
 
 /** 模型对比列表（最多 3 个 id）。 */
 export const compareList = signal([]);
@@ -66,6 +69,8 @@ export const error = signal(null);
 export const stale = signal(false);
 export const fromCache = signal(false);
 export const fetchedAt = signal(null);
+/** 上游 Arena 快照的真实数据截止日期（boards[*].meta.last_updated），如 "Jul 16, 2026"。 */
+export const sourceDate = signal(null);
 export const isSample = signal(false);
 
 let _reqToken = 0;
@@ -98,6 +103,7 @@ export function loadPrefs() {
     if (o && AA_DIMENSIONS[o.dim]) activeDim.value = o.dim;
     if (o && LIVE_DIMENSIONS[o.lb]) activeLB.value = o.lb;
     if (o && typeof o.vendor === "string") activeVendor.value = o.vendor;
+    if (o && ["all", "open", "proprietary"].includes(o.license)) licenseFilter.value = o.license;
     if (o && (o.sortDir === "asc" || o.sortDir === "desc")) sortDir.value = o.sortDir;
   } catch { /* 忽略 */ }
 }
@@ -112,6 +118,7 @@ function persistPrefs() {
         dim: activeDim.value,
         lb: activeLB.value,
         vendor: activeVendor.value,
+        license: licenseFilter.value,
         sortDir: sortDir.value,
       }),
     );
@@ -157,6 +164,7 @@ async function _run(force) {
         stale.value = norm.stale;
         fromCache.value = norm.fromCache;
         fetchedAt.value = norm.fetchedAt;
+        sourceDate.value = norm.lastUpdated;
         isSample.value =
           Object.values(norm.sources || {}).includes("sample") ||
           (norm.items || []).some((it) => it && it.isSample);
@@ -243,6 +251,12 @@ export function setVendor(v) {
   persistPrefs();
 }
 
+export function setLicenseFilter(v) {
+  const allowed = ["all", "open", "proprietary"].includes(v);
+  licenseFilter.value = allowed ? v : "all";
+  persistPrefs();
+}
+
 /** 切排序方向：纯本地派生。 */
 export function setSortDir(dir) {
   const d = dir === "asc" ? "asc" : "desc";
@@ -273,12 +287,13 @@ export function clearSearchQuery() {
  */
 export function columnValue(model, view, key) {
   if (view === "arena") {
-    if (key === "elo" || key === "ci") {
+    if (key === "elo" || key === "ci" || key === "votes") {
       const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
       const slice = model && model.arena && model.arena[board.key];
       if (!slice) return null;
       if (key === "elo") return typeof slice.score === "number" ? slice.score : null;
-      return slice.ci != null ? slice.ci : null;
+      if (key === "ci") return slice.ci != null ? slice.ci : null;
+      return slice.votes != null ? slice.votes : null;
     }
     return null;
   }
@@ -369,6 +384,11 @@ export function filterByVendor(list, vendor) {
   return (Array.isArray(list) ? list : []).filter((it) => it && it.vendor === vendor);
 }
 
+export function filterByLicense(list, kind) {
+  if (!kind || kind === "all") return list;
+  return (Array.isArray(list) ? list : []).filter((it) => licenseKind(it.license) === kind);
+}
+
 export function filterBySearch(list, q) {
   const needle = (q || "").trim().toLowerCase();
   if (!needle) return list;
@@ -398,6 +418,7 @@ export function getDisplayed() {
     });
   }
   rows = filterByVendor(rows, activeVendor.value);
+  rows = filterByLicense(rows, licenseFilter.value);
   rows = filterBySearch(rows, searchQuery.value);
   rows = sortModels(rows, { dir: sortDir.value });
   return rows;

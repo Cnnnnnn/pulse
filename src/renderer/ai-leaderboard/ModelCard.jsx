@@ -8,13 +8,16 @@
  */
 
 import { VENDOR_META } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare, columnValue } from "./aiLeaderboardStore.js";
+import { RankSparkline } from "./RankSparkline.jsx";
+import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
 
 const FIELDS = {
   arena: [
     { key: "elo", label: "ELO 分数", fmt: fmtScore },
     { key: "ci", label: "置信区间", fmt: (v) => (v != null ? `±${Math.round(v)}` : "—") },
+    { key: "votes", label: "票数", fmt: fmtVotes },
   ],
   aa: [
     { key: "intelligence", label: "智能指数", fmt: fmtIndex },
@@ -42,6 +45,12 @@ function ModelCard({ m, rank, view, primaryKey }) {
   const inCompare = compareList.value.includes(m.id);
   const disabled = !inCompare && compareList.value.length >= 3;
   const vendorLabel = (VENDOR_META[m.vendor] && VENDOR_META[m.vendor].label) || m.vendor || "—";
+  const licKind = licenseKind(m.license);
+  const licBadge = licKind !== "unknown" ? (
+    <span class={`ai-lb-license ai-lb-license--${licKind}`} title={m.license ? `许可：${m.license}` : "许可未知"}>
+      {licenseShort(licKind)}
+    </span>
+  ) : null;
 
   return (
     <div class={`ai-lb-card${m.isSample ? " ai-lb-row--sample" : ""}`}>
@@ -81,7 +90,14 @@ function ModelCard({ m, rank, view, primaryKey }) {
         ))}
       </div>
 
-      <div class="ai-lb-card__vendor">{vendorLabel}</div>
+      <div class="ai-lb-card__vendor">{vendorLabel}{licBadge}</div>
+
+      {view === "arena" && (
+        <div class="ai-lb-card__extra">
+          <ArenaBoardBars model={m} />
+          <RankSparkline series={m.rankSeries} />
+        </div>
+      )}
     </div>
   );
 }

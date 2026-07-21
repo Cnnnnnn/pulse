@@ -998,6 +998,106 @@
   }
 }
 
+/* ── Arena 增强：票数列 + 许可徽章 ── */
+.ai-lb-col-votes { min-width: 92px; }
+
+.ai-lb-license {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  line-height: 1.4;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ai-lb-license--open {
+  color: oklch(52% 0.13 155);
+  background: color-mix(in oklch, oklch(52% 0.13 155) 14%, transparent);
+  border-color: color-mix(in oklch, oklch(52% 0.13 155) 38%, transparent);
+}
+.ai-lb-license--proprietary {
+  color: oklch(55% 0.03 250);
+  background: color-mix(in oklch, oklch(55% 0.03 250) 10%, transparent);
+  border-color: color-mix(in oklch, oklch(55% 0.03 250) 30%, transparent);
+}
+.ai-lb-license--unknown {
+  color: oklch(55% 0 0);
+  background: color-mix(in oklch, oklch(55% 0 0) 8%, transparent);
+  border-color: color-mix(in oklch, oklch(55% 0 0) 22%, transparent);
+}
+
+/* ── 排名趋势 sparkline（B：多日排名序列折线）── */
+.ai-lb-spark {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+  overflow: visible;
+}
+
+/* ── 跨 board ELO 迷你条（C：模型在各 Arena board 的成绩一览）── */
+.ai-lb-boardbars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  max-width: 280px;
+}
+.ai-lb-boardbars__row {
+  display: grid;
+  grid-template-columns: 56px 1fr 38px;
+  align-items: center;
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+.ai-lb-boardbars__label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  text-align: right;
+}
+.ai-lb-boardbars__bar {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--ai-lb-accent) 16%, transparent);
+  overflow: hidden;
+}
+.ai-lb-boardbars__bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ai-lb-accent);
+}
+.ai-lb-boardbars__val {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* 移动端卡片：arena 视图额外的趋势/跨 board 区 */
+.ai-lb-card__extra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.ai-lb-card__extra .ai-lb-boardbars {
+  max-width: none;
+  margin-top: 0;
+}
+
+/* 工具栏内相邻 chips 组之间留白（如 board 组与许可组） */
+.ai-leaderboard-toolbar__left .ai-leaderboard-chips + .ai-leaderboard-chips {
+  margin-left: 12px;
+}
+
 /* ── 对比勾选列 + ComparePanel（v3.0）── */
 .ai-lb-col-check {
   width: var(--ai-lb-check-w);

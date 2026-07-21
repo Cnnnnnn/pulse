@@ -89,8 +89,35 @@ async function fetchOneBoard(board, timeoutMs) {
 }
 
 /**
+ * 从多 board 原始快照里提取「最新的数据截止日期」。
+ * 各 board payload 形如 { meta:{ last_updated:"Jul 16, 2026", fetched_at:"...ISO" }, models:[] }。
+ * 取所有 board 中「日期最靠后」的 last_updated；缺失时退化为 fetched_at；再缺失返回 null。
+ * @param {object} boardsMap { [board]: payload }
+ * @returns {string|null}
+ */
+function extractArenaLastUpdated(boardsMap) {
+  if (!boardsMap || typeof boardsMap !== "object") return null;
+  let latest = null; // { raw, t }
+  for (const board of Object.keys(boardsMap)) {
+    const payload = boardsMap[board];
+    if (!payload || typeof payload !== "object") continue;
+    const meta = payload.meta && typeof payload.meta === "object" ? payload.meta : {};
+    const raw = meta.last_updated || meta.lastUpdated || meta.fetched_at || null;
+    if (!raw || typeof raw !== "string") continue;
+    const t = Date.parse(raw);
+    if (Number.isFinite(t)) {
+      if (latest == null || t > latest.t) latest = { raw, t };
+    } else if (latest == null) {
+      // 无法解析的日期串（如 "Jul 16, 2026" 在个别环境解析失败）先保留
+      latest = { raw, t: -Infinity };
+    }
+  }
+  return latest ? latest.raw : null;
+}
+
+/**
  * 拉取全部 board 的原始快照。
- * @returns {Promise<object>} RawFetchResult：{ ok, source, data:{boards}, fetchedAt }
+ * @returns {Promise<object>} RawFetchResult：{ ok, source, data:{boards, lastUpdated}, fetchedAt }
  */
 async function fetch(opts = {}) {
   const timeoutMs = opts && opts.timeoutMs;
@@ -116,7 +143,7 @@ async function fetch(opts = {}) {
   return {
     ok: true,
     source: "arena-snapshot",
-    data: { boards: boardsMap },
+    data: { boards: boardsMap, lastUpdated: extractArenaLastUpdated(boardsMap) },
     fetchedAt: new Date().toISOString(),
   };
 }
