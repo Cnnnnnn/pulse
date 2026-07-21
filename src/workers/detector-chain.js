@@ -233,6 +233,10 @@ async function runOneDetector(detCfg, ctx, stored, force = false) {
         ms: 0,
         skipped: "circuit_open",
         breakerState: "open",
+        breakerOpenUntil: breaker.openUntil,
+        note: breaker.openUntil
+          ? `circuit_open until ${new Date(breaker.openUntil).toISOString()}`
+          : "circuit_open",
       },
     };
   }
