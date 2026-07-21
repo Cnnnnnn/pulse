@@ -1873,6 +1873,13 @@
 .ai-lb-epd__row:not(.is-focus):hover {
   opacity: 0.85;
 }
+.ai-lb-epd__row.is-clickable {
+  cursor: pointer;
+}
+.ai-lb-epd__row.is-clickable:focus-visible {
+  outline: 2px solid var(--epd-color, oklch(60% 0.16 245));
+  outline-offset: 2px;
+}
 .ai-lb-epd__row.is-focus {
   opacity: 1;
   background: color-mix(in oklch, var(--epd-color, oklch(60% 0.16 245)) 12%, transparent);
@@ -1893,6 +1900,21 @@
   font-size: var(--font-size-xs, 11px);
   color: var(--text-tertiary);
 }
+/* Top-3 奖牌色阶：金/银/铜（oklch，深色字保证对比度） */
+.ai-lb-epd__rank.is-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 999px;
+  font-weight: 700;
+  color: oklch(25% 0.02 0);
+  background: oklch(70% 0.05 0);
+}
+.ai-lb-epd__rank--1 { background: oklch(82% 0.14 85); }
+.ai-lb-epd__rank--2 { background: oklch(82% 0.02 255); }
+.ai-lb-epd__rank--3 { background: oklch(72% 0.09 55); }
 .ai-lb-epd__name {
   flex: 1 1 auto;
   min-width: 0;
@@ -1933,7 +1955,7 @@
   min-width: 2px;
   background: var(--epd-color, oklch(60% 0.16 245));
   transform-origin: left center;
-  animation: ai-lb-epd-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ai-lb-epd-grow 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .ai-lb-epd__meta {
   font-size: var(--font-size-xs, 11px);

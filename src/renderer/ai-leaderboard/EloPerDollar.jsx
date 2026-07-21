@@ -31,6 +31,11 @@ const DEFAULT_COLOR = "oklch(55% 0.05 250)";
 
 const vendorColor = (vendor) => VENDOR_COLORS[vendor] || DEFAULT_COLOR;
 
+// 条形入场动画节奏（错峰生长）：duration 在 CSS 里，delay 在此错峰并封顶，
+// 避免长榜单尾部行等待过久。
+const BAR_STAGGER_MS = 55;
+const BAR_STAGGER_CAP = 14;
+
 function fmtEpd(v) {
   if (v == null || !Number.isFinite(v)) return "—";
   return Math.round(v).toLocaleString("en-US");
@@ -40,7 +45,12 @@ function fmtEpd(v) {
  * @param {Array<{vendor:string, eloPerDollar:number, arena:number, priceOut:number}>} rows 降序排名
  * @param {Set<string>} focusSet 选中模型所属厂商（高亮）
  */
-export function EloPerDollar({ rows = [], focusSet = new Set() }) {
+/**
+ * @param {Array<{vendor:string, eloPerDollar:number, arena:number, priceOut:number}>} rows 降序排名
+ * @param {Set<string>} focusSet 选中模型所属厂商（高亮）
+ * @param {(vendor:string)=>void} [onJump] 点击/回车某行时的跳转回调（如跳转到该厂商在主榜单的详情）
+ */
+export function EloPerDollar({ rows = [], focusSet = new Set(), onJump = null }) {
   if (!rows.length) {
     return (
       <p class="ai-lb-drawer__hint">
@@ -49,6 +59,7 @@ export function EloPerDollar({ rows = [], focusSet = new Set() }) {
     );
   }
   const max = rows[0].eloPerDollar; // 已降序，rows[0] 最大
+  const interactive = typeof onJump === "function";
   return (
     <div class="ai-lb-epd">
       <ol class="ai-lb-epd__list">
@@ -56,14 +67,34 @@ export function EloPerDollar({ rows = [], focusSet = new Set() }) {
           const isFocus = focusSet.has(r.vendor);
           const pct = max > 0 ? Math.max(2, (r.eloPerDollar / max) * 100) : 0;
           const color = vendorColor(r.vendor);
+          const medal = i < 3 ? i + 1 : 0; // Top-3 奖牌色阶
+          const delay = Math.min(i, BAR_STAGGER_CAP) * BAR_STAGGER_MS;
+          const rowProps = interactive
+            ? {
+                role: "button",
+                tabindex: "0",
+                onClick: () => onJump(r.vendor),
+                onKeyDown: (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onJump(r.vendor);
+                  }
+                },
+              }
+            : {};
           return (
             <li
               key={r.vendor}
-              class={`ai-lb-epd__row${isFocus ? " is-focus" : ""}`}
+              class={`ai-lb-epd__row${isFocus ? " is-focus" : ""}${interactive ? " is-clickable" : ""}`}
               style={`--epd-color:${color}`}
+              {...rowProps}
             >
               <div class="ai-lb-epd__head">
-                <span class="ai-lb-epd__rank">{i + 1}</span>
+                <span
+                  class={`ai-lb-epd__rank${medal ? ` is-medal ai-lb-epd__rank--${medal}` : ""}`}
+                >
+                  {i + 1}
+                </span>
                 <span class="ai-lb-epd__name">{fmtVendor(r.vendor)}</span>
                 {isFocus ? <span class="ai-lb-epd__badge">已选</span> : null}
                 <span class="ai-lb-epd__val">{fmtEpd(r.eloPerDollar)}</span>
@@ -71,7 +102,7 @@ export function EloPerDollar({ rows = [], focusSet = new Set() }) {
               <div class="ai-lb-epd__track">
                 <div
                   class="ai-lb-epd__bar"
-                  style={`width:${pct}%;animation-delay:${i * 45}ms`}
+                  style={`width:${pct}%;animation-delay:${delay}ms`}
                 />
               </div>
               <div class="ai-lb-epd__meta">

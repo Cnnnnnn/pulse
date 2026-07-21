@@ -5,7 +5,7 @@
  * 不引入 aiLeaderboardStore（规避与 modelsdev 工作树 hunks 的纠缠与 IPC 噪声）。
  */
 import { describe, it, expect, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/preact";
+import { render, cleanup, fireEvent } from "@testing-library/preact";
 import {
   aggregateVendorProfiles,
   eloPerDollar,
@@ -99,5 +99,61 @@ describe("EloPerDollar 组件渲染", () => {
     const { container } = render(<EloPerDollar rows={[]} focusSet={new Set()} />);
     expect(container.querySelector(".ai-lb-epd__list")).toBeNull();
     expect(container.textContent).toContain("暂无可用数据");
+  });
+});
+
+describe("EloPerDollar：Top-3 奖牌 + 点击跳转 + 动效节奏", () => {
+  afterEach(() => cleanup());
+
+  // 4 行伪数据，足以覆盖奖牌前三与第四名无奖牌
+  const medalRows = [
+    { vendor: "a", eloPerDollar: 1000, arena: 1600, priceOut: 1.6 },
+    { vendor: "b", eloPerDollar: 800, arena: 1500, priceOut: 1.875 },
+    { vendor: "c", eloPerDollar: 500, arena: 1400, priceOut: 2.8 },
+    { vendor: "d", eloPerDollar: 200, arena: 1300, priceOut: 6.5 },
+  ];
+
+  it("Top-3 排名渲染奖牌色阶（is-medal + --1/--2/--3），第四名无奖牌", () => {
+    const { container } = render(<EloPerDollar rows={medalRows} focusSet={new Set()} />);
+    const ranks = container.querySelectorAll(".ai-lb-epd__rank");
+    expect(ranks.length).toBe(4);
+    expect(ranks[0].classList.contains("is-medal")).toBe(true);
+    expect(ranks[0].classList.contains("ai-lb-epd__rank--1")).toBe(true);
+    expect(ranks[1].classList.contains("ai-lb-epd__rank--2")).toBe(true);
+    expect(ranks[2].classList.contains("ai-lb-epd__rank--3")).toBe(true);
+    expect(ranks[3].classList.contains("is-medal")).toBe(false);
+  });
+
+  it("点击/回车/空格行触发 onJump(vendor)，并具备可访问性 role/tabindex", () => {
+    let jumped = null;
+    const { container } = render(
+      <EloPerDollar rows={medalRows} focusSet={new Set()} onJump={(v) => { jumped = v; }} />
+    );
+    const row = container.querySelector(".ai-lb-epd__row");
+    expect(row.getAttribute("role")).toBe("button");
+    expect(row.getAttribute("tabindex")).toBe("0");
+    fireEvent.click(row);
+    expect(jumped).toBe("a");
+    jumped = null;
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(jumped).toBe("a");
+    jumped = null;
+    fireEvent.keyDown(row, { key: " " });
+    expect(jumped).toBe("a");
+  });
+
+  it("未传 onJump 时行不可点击（无 role/tabindex）", () => {
+    const { container } = render(<EloPerDollar rows={medalRows} focusSet={new Set()} />);
+    const row = container.querySelector(".ai-lb-epd__row");
+    expect(row.getAttribute("role")).toBeNull();
+    expect(row.getAttribute("tabindex")).toBeNull();
+  });
+
+  it("条形入场动画延迟错峰（55ms/行）并封顶", () => {
+    const { container } = render(<EloPerDollar rows={medalRows} focusSet={new Set()} />);
+    const bars = container.querySelectorAll(".ai-lb-epd__bar");
+    expect(bars[0].getAttribute("style")).toMatch(/animation-delay:\s*0ms/);
+    expect(bars[1].getAttribute("style")).toMatch(/animation-delay:\s*55ms/);
+    expect(bars[3].getAttribute("style")).toMatch(/animation-delay:\s*165ms/); // min(3,14)*55
   });
 });

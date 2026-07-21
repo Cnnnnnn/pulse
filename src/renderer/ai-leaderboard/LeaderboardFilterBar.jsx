@@ -3,7 +3,7 @@
  *
  * 对齐 ai-leaderboard-redesign-preview：分段视角切换 + 工具栏（左筛选 / 右搜索刷新）
  */
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import {
   activeView,
   activeBoard,
@@ -23,6 +23,11 @@ import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, VENDOR_OPTIONS, LICEN
 
 export function LeaderboardFilterBar() {
   const [q, setQ] = useState(searchQuery.value);
+
+  // 外部（如性价比榜点击跳转）改了搜索时，回灌本地输入态，保持搜索框与过滤一致
+  useEffect(() => {
+    setQ(searchQuery.value);
+  }, [searchQuery.value]);
 
   function onSearch(e) {
     const v = e.currentTarget.value;

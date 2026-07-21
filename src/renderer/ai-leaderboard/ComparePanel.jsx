@@ -12,6 +12,7 @@ import {
   crossSourceLoading,
   crossSourceError,
   loadCrossSource,
+  setSearchQuery,
 } from "./aiLeaderboardStore.js";
 import { VENDOR_META } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena, rankVendorsByEloPerDollar } from "./format.js";
@@ -92,6 +93,12 @@ export function ComparePanel() {
   const epdFocus = epdRanked.filter((r) => focusSet.has(r.vendor));
   const epdOthers = epdRanked.filter((r) => !focusSet.has(r.vendor)).slice(0, 15);
   const epdRows = [...epdFocus, ...epdOthers];
+
+  // 点击性价比榜某厂商行 → 关抽屉并把主榜单搜索设为该厂商，跳转到其模型详情
+  function handleEpdJump(vendor) {
+    setSearchQuery(vendor);
+    setOpen(false);
+  }
 
   const rows = view === "arena"
     ? [
@@ -230,7 +237,7 @@ export function ComparePanel() {
                 onRetry={() => loadCrossSource(true)}
                 empty={epdRows.length === 0 ? "所选厂商暂无「ELO + 输出价」数据，可切换其他模型或稍后重试。" : null}
               >
-                <EloPerDollar rows={epdRows} focusSet={focusSet} />
+                <EloPerDollar rows={epdRows} focusSet={focusSet} onJump={handleEpdJump} />
               </CrossSourceGate>
               <p class="ai-lb-drawer__hint ai-lb-drawer__hint--sub">
                 ELO per $ = 厂商最佳 Arena ELO ÷ 最低 AA 输出价；<b>已选</b>厂商高亮，其余为 Top 15 基准对比。
