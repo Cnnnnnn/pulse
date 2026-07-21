@@ -21,7 +21,8 @@ export const SOURCE = { LIVE: "live", SAMPLE: "sample", NONE: "none" };
 export const VIEWS = {
   arena: {
     key: "arena",
-    label: "Arena 排名",
+    label: "Arena",
+    segSub: "社区 ELO",
     emoji: "🏆",
     description: "社区盲测 ELO 排名",
     sourceKey: "arena",
@@ -29,6 +30,7 @@ export const VIEWS = {
   aa: {
     key: "aa",
     label: "Artificial Analysis",
+    segSub: "客观分 · 价格 · 速度",
     emoji: "📊",
     description: "Artificial Analysis 客观评测（仅 LLM）",
     sourceKey: "aa",
@@ -36,6 +38,7 @@ export const VIEWS = {
   livebench: {
     key: "livebench",
     label: "LiveBench",
+    segSub: "抗污染评测",
     emoji: "🛡️",
     description: "LiveBench 月度抗污染客观评测（仅 LLM）",
     sourceKey: "livebench",
@@ -70,6 +73,23 @@ export const AA_DIMENSIONS = {
 };
 
 export const AA_DIMENSION_KEYS = ["intelligence", "coding", "agentic", "speed", "price"];
+
+/** 表头排序列 → 上下文条展示名（与 LeaderboardTable 列头文案一致） */
+export const SORT_COLUMN_LABELS = {
+  elo: "ELO 分数",
+  ci: "置信区间",
+  intelligence: "智能指数",
+  coding: "代码",
+  agentic: "Agentic",
+  speed: "速度",
+  price: "输出价",
+  valueRatio: "性价比",
+  lb_overall: "综合",
+  lb_coding: "Coding",
+  lb_language: "Language",
+  lb_instfollow: "指令遵循",
+  lb_cost: "$/成功",
+};
 
 /* ── LiveBench 视角：抗污染子维度（全部 desc 默认）── */
 

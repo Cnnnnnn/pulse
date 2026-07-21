@@ -1,14 +1,53 @@
 /**
  * src/renderer/ai-leaderboard/LeaderboardTable.jsx
  *
- * v3.0 双视角表格：
- *  - Arena 视角：# / 模型 / 厂商 / ELO（简洁，每行必有数据）
- *  - AA 视角：# / 模型 / 厂商 / 智能指数 / 代码 / Agent / 速度 / 输出价（全维度）
+ * v3.1 三视角表格（重设计 P0/P1）：
+ *  - 列头可点选排序（data-sort + aria-sort + ▲▼ 指示）
+ *  - sticky 表头 + 首列(对比) / 模型列 横向滚动固定（CSS 配合）
+ *  - 主指标列内联条形（primaryKey + primaryMax 驱动）
+ *  - 桌面表格 / 移动端卡片双渲染（CSS 控制显隐，状态共享 store）
  */
 
-import { activeView, activeBoard, activeDim, activeLB } from "./aiLeaderboardStore.js";
-import { ARENA_BOARDS, AA_DIMENSIONS, LIVE_DIMENSIONS } from "./types.js";
+import {
+  activeView,
+  activeBoard,
+  activeDim,
+  activeLB,
+  sortKey,
+  sortDir,
+  toggleSort,
+  columnValue,
+} from "./aiLeaderboardStore.js";
 import { ModelRow } from "./ModelRow.jsx";
+import { ModelCardList } from "./ModelCard.jsx";
+
+/** 可点选排序列头。 */
+function SortableTh({ k, label, active, dir, title }) {
+  const isActive = active === k;
+  return (
+    <th
+      class={`ai-lb-th ai-lb-col-num${isActive ? " ai-lb-col--active" : ""} ai-lb-th--sortable`}
+      scope="col"
+      data-sort={k}
+      role="columnheader"
+      tabindex="0"
+      title={title || `按${label}排序`}
+      aria-sort={isActive ? (dir === "asc" ? "ascending" : "descending") : "none"}
+      onClick={() => toggleSort(k)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggleSort(k);
+        }
+      }}
+    >
+      <span class="ai-lb-th-label">{label}</span>
+      <span class={`ai-lb-sort-ind${isActive ? " is-on" : ""}`} aria-hidden="true">
+        {isActive ? (dir === "asc" ? "▲" : "▼") : "↕"}
+      </span>
+    </th>
+  );
+}
 
 export function LeaderboardTable({ rows, view, board, dim, lb }) {
   const v = view || activeView.value;
@@ -17,112 +56,95 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
   const lbKey = lb || activeLB.value;
   const list = rows || [];
 
+  // 当前驱动排序/强调的主列：列头点选优先，否则走视角主维度。
+  const primaryKey =
+    sortKey.value || (v === "arena" ? "elo" : v === "livebench" ? lbKey : d);
+
+  // 主指标列最大值（内联条形归一化用）。
+  let primaryMax = 0;
+  for (const m of list) {
+    const val = columnValue(m, v, primaryKey);
+    if (typeof val === "number" && isFinite(val)) primaryMax = Math.max(primaryMax, val);
+  }
+
+  const aKey = primaryKey;
+  const dir = sortDir.value;
+
   return (
-    <div class="ai-lb-table-wrap">
-      <table class="ai-lb-table" id="ai-leaderboard-table" data-view={v}>
-        <thead>
-          {v === "arena" ? (
-            <tr>
-              <th class="ai-lb-th ai-lb-col-check" scope="col" />
-              <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
-              <th class="ai-lb-th" scope="col">模型</th>
-              <th class="ai-lb-th" scope="col">厂商</th>
-              <th class="ai-lb-th ai-lb-col-num ai-lb-col--active" scope="col">
-                ELO 分数
-              </th>
-              <th class="ai-lb-th ai-lb-col-num" scope="col">
-                置信区间
-              </th>
-            </tr>
-          ) : v === "livebench" ? (
-            <tr>
-              <th class="ai-lb-th ai-lb-col-check" scope="col" />
-              <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
-              <th class="ai-lb-th" scope="col">模型</th>
-              <th class="ai-lb-th" scope="col">厂商</th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${lbKey === "lb_overall" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                综合
-              </th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${lbKey === "lb_coding" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                Coding
-              </th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${lbKey === "lb_language" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                Language
-              </th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${lbKey === "lb_instfollow" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                指令遵循
-              </th>
-              <th class="ai-lb-th ai-lb-col-num" scope="col" title="cost_per_successful_task — LiveBench 官网性价比主指标">
-                $/成功
-              </th>
-            </tr>
-          ) : (
-            <tr>
-              <th class="ai-lb-th ai-lb-col-check" scope="col" />
-              <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
-              <th class="ai-lb-th" scope="col">模型</th>
-              <th class="ai-lb-th" scope="col">厂商</th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${d === "intelligence" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                智能指数
-              </th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${d === "coding" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                代码
-              </th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${d === "agentic" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                Agent
-              </th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${d === "speed" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                速度
-              </th>
-              <th
-                class={`ai-lb-th ai-lb-col-num${d === "price" ? " ai-lb-col--active" : ""}`}
-                scope="col"
-              >
-                输出价
-              </th>
-              <th class="ai-lb-th ai-lb-col-num" scope="col">性价比</th>
-            </tr>
-          )}
-        </thead>
-        <tbody>
-          {list.map((m, i) => (
-            <ModelRow
-              key={m.id}
-              model={m}
-              rank={i + 1}
-              view={v}
-              board={b}
-              dim={d}
-              lb={lbKey}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div class="ai-lb-table-wrap">
+        <table class="ai-lb-table" id="ai-leaderboard-table" data-view={v}>
+          <thead>
+            {v === "arena" ? (
+              <tr>
+                <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
+                <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
+                <th class="ai-lb-th" scope="col">模型</th>
+                <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
+                <SortableTh k="elo" label="ELO 分数" active={aKey} dir={dir} />
+                <SortableTh k="ci" label="置信区间" active={aKey} dir={dir} />
+              </tr>
+            ) : v === "livebench" ? (
+              <tr>
+                <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
+                <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
+                <th class="ai-lb-th" scope="col">模型</th>
+                <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
+                <SortableTh k="lb_overall" label="综合" active={aKey} dir={dir} />
+                <SortableTh k="lb_coding" label="Coding" active={aKey} dir={dir} />
+                <SortableTh k="lb_language" label="Language" active={aKey} dir={dir} />
+                <SortableTh k="lb_instfollow" label="指令遵循" active={aKey} dir={dir} />
+                <SortableTh
+                  k="lb_cost"
+                  label="$/成功"
+                  active={aKey}
+                  dir={dir}
+                  title="cost_per_successful_task — LiveBench 官网性价比主指标"
+                />
+              </tr>
+            ) : (
+              <tr>
+                <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
+                <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
+                <th class="ai-lb-th" scope="col">模型</th>
+                <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
+                <SortableTh k="intelligence" label="智能指数" active={aKey} dir={dir} />
+                <SortableTh k="coding" label="代码" active={aKey} dir={dir} />
+                <SortableTh k="agentic" label="Agentic" active={aKey} dir={dir} />
+                <SortableTh k="speed" label="速度" active={aKey} dir={dir} />
+                <SortableTh k="price" label="输出价" active={aKey} dir={dir} />
+                <SortableTh k="valueRatio" label="性价比" active={aKey} dir={dir} />
+              </tr>
+            )}
+          </thead>
+          <tbody>
+            {list.map((m, i) => (
+              <ModelRow
+                key={m.id}
+                model={m}
+                rank={i + 1}
+                view={v}
+                board={b}
+                dim={d}
+                lb={lbKey}
+                primaryKey={aKey}
+                primaryMax={primaryMax}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ModelCardList
+        rows={list}
+        view={v}
+        board={b}
+        dim={d}
+        lb={lbKey}
+        primaryKey={aKey}
+        primaryMax={primaryMax}
+      />
+    </>
   );
 }
 

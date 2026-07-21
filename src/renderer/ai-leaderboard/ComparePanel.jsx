@@ -1,12 +1,7 @@
 /**
- * src/renderer/ai-leaderboard/ComparePanel.jsx
- *
- * v3.0 模型对比 — 复用项目 DrawerShell 组件（右侧抽屉）。
- * 勾选 ≥1 个模型时，右下角显示浮标按钮"对比 N"；
- * 点击打开右侧抽屉展示完整对比表；关闭抽屉可继续勾选。
+ * 模型对比 — FAB + 右侧抽屉（样式对齐 ai-leaderboard-redesign-preview）
  */
-
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { compareList, clearCompare, toggleCompare, items, activeView } from "./aiLeaderboardStore.js";
 import { VENDOR_META } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio } from "./format.js";
@@ -17,6 +12,15 @@ export function ComparePanel() {
   const [copied, setCopied] = useState(false);
   const ids = compareList.value;
   const view = activeView.value;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    function onKey(e) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   if (ids.length === 0) return null;
 
@@ -41,7 +45,6 @@ export function ComparePanel() {
         { label: "性价比", get: (m) => fmtValueRatio(m.aa), raw: (m) => (m.aa && m.aa.intelligenceIndex != null && m.aa.priceOutputPer1M > 0) ? m.aa.intelligenceIndex / m.aa.priceOutputPer1M : null, better: "high" },
       ];
 
-  /** 找每行最优值的 model id。 */
   function bestId(row) {
     if (!row.better || !row.raw || models.length < 2) return null;
     let best = null;
@@ -49,121 +52,126 @@ export function ComparePanel() {
     for (const m of models) {
       const v = row.raw(m);
       if (v == null || !Number.isFinite(v)) continue;
-      if (bestVal == null) { bestVal = v; best = m.id; continue; }
-      if (row.better === "high" ? v > bestVal : v < bestVal) { bestVal = v; best = m.id; }
+      if (bestVal == null) {
+        bestVal = v;
+        best = m.id;
+        continue;
+      }
+      if (row.better === "high" ? v > bestVal : v < bestVal) {
+        bestVal = v;
+        best = m.id;
+      }
     }
     return best;
   }
 
   return (
     <>
-      {/* 浮标按钮 */}
-      {!open && (
-        <button
-          type="button"
-          class="ai-lb-compare-fab"
-          onClick={() => setOpen(true)}
-        >
-          对比 {ids.length}
-        </button>
-      )}
+      <button
+        type="button"
+        class="ai-lb-compare-fab is-visible"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        对比 <span class="ai-lb-compare-fab__count">{ids.length}</span>
+      </button>
 
-      {/* 抽屉 */}
-      {open && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 99998, pointerEvents: "none" }}>
-          <aside
-            style={{
-              position: "fixed",
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: "620px",
-              maxWidth: "88vw",
-              zIndex: 99999,
-              background: "var(--surface, #fff)",
-              borderLeft: "1px solid var(--border, #ddd)",
-              boxShadow: "-4px 0 16px rgba(0,0,0,0.12)",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              pointerEvents: "auto",
+      <div
+        class={`ai-lb-drawer-mask${open ? " is-open" : ""}`}
+        onClick={() => setOpen(false)}
+        aria-hidden={!open}
+      />
+
+      <aside
+        class={`ai-lb-drawer${open ? " is-open" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="模型对比"
+        aria-hidden={!open}
+      >
+        <header class="ai-lb-drawer__header">
+          <span class="ai-lb-drawer__title">
+            模型对比（<span>{models.length}</span>）
+          </span>
+          <button
+            type="button"
+            class="ai-lb-drawer__btn ai-lb-drawer__btn--ghost"
+            onClick={async () => {
+              const md = compareToMarkdown({ models, rows });
+              const ok = await copyToClipboard(md);
+              if (ok) {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }
             }}
-            role="complementary"
-            aria-label="模型对比"
           >
-            <header class="ai-lb-drawer__header">
-              <span class="ai-lb-drawer__title">模型对比（{models.length}）</span>
-              <button
-                type="button"
-                class="ai-lb-drawer__clear"
-                onClick={async () => {
-                  const md = compareToMarkdown({ models, rows });
-                  const ok = await copyToClipboard(md);
-                  if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
-                }}
-              >
-                {copied ? "已复制 ✓" : "复制对比"}
-              </button>
-              <button type="button" class="ai-lb-drawer__clear" onClick={clearCompare}>
-                清除全部
-              </button>
-              <button
-                type="button"
-                class="ai-lb-drawer__close"
-                aria-label="关闭"
-                onClick={() => setOpen(false)}
-              >
-                ×
-              </button>
-            </header>
-            <div class="ai-lb-drawer__body">
-              {models.length < 2 ? (
-                <p class="ai-lb-drawer__hint">再勾选至少 1 个模型即可开始对比</p>
-              ) : (
-                <table class="ai-lb-compare__table">
-                  <thead>
-                    <tr>
-                      <th class="ai-lb-compare__th ai-lb-compare__th--label" />
+            {copied ? "已复制 ✓" : "复制"}
+          </button>
+          <button
+            type="button"
+            class="ai-lb-drawer__btn ai-lb-drawer__btn--ghost"
+            onClick={() => {
+              clearCompare();
+              setOpen(false);
+            }}
+          >
+            清除
+          </button>
+          <button
+            type="button"
+            class="ai-lb-drawer__icon-btn"
+            aria-label="关闭"
+            onClick={() => setOpen(false)}
+          >
+            ✕
+          </button>
+        </header>
+        <div class="ai-lb-drawer__body">
+          {models.length < 2 ? (
+            <p class="ai-lb-drawer__hint">再勾选至少 1 个模型即可开始对比。</p>
+          ) : (
+            <table class="ai-lb-compare__table">
+              <thead>
+                <tr>
+                  <th class="ai-lb-compare__th ai-lb-compare__th--label" scope="col" />
+                  {models.map((m) => (
+                    <th key={m.id} class="ai-lb-compare__th" scope="col">
+                      <span class="ai-lb-compare__name">{m.name}</span>
+                      <button
+                        type="button"
+                        class="ai-lb-compare__remove"
+                        aria-label={`移除 ${m.name}`}
+                        onClick={() => toggleCompare(m.id)}
+                      >
+                        ×
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const best = bestId(row);
+                  return (
+                    <tr key={row.label} class="ai-lb-compare__row">
+                      <td class="ai-lb-compare__td ai-lb-compare__td--label">{row.label}</td>
                       {models.map((m) => (
-                        <th key={m.id} class="ai-lb-compare__th">
-                          <span class="ai-lb-compare__name">{m.name}</span>
-                          <button
-                            type="button"
-                            class="ai-lb-compare__remove"
-                            aria-label={`移除 ${m.name}`}
-                            onClick={() => toggleCompare(m.id)}
-                          >
-                            ×
-                          </button>
-                        </th>
+                        <td
+                          key={m.id}
+                          class={`ai-lb-compare__td${best === m.id ? " is-best" : ""}`}
+                        >
+                          {row.get(m)}
+                        </td>
                       ))}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => {
-                      const best = bestId(row);
-                      return (
-                        <tr key={row.label} class="ai-lb-compare__row">
-                          <td class="ai-lb-compare__td ai-lb-compare__td--label">{row.label}</td>
-                          {models.map((m) => (
-                            <td key={m.id} class={`ai-lb-compare__td${best === m.id ? " is-best" : ""}`}>
-                              {row.get(m)}
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </aside>
-          <div
-            style={{ position: "fixed", inset: 0, zIndex: 99997, background: "rgba(0,0,0,0.22)", pointerEvents: "auto" }}
-            onClick={() => setOpen(false)}
-          />
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
-      )}
+      </aside>
     </>
   );
 }

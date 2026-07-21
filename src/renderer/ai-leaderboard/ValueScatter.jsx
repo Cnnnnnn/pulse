@@ -92,8 +92,8 @@ export function ValueScatter({ items }) {
   return (
     <div class="ai-lb-scatter">
       <div class="ai-lb-scatter__header">
-        <span class="ai-lb-scatter__title">性价比分布</span>
-        <span class="ai-lb-scatter__hint">左上 = 高性价比（智能高 · 价格低）</span>
+        <span class="ai-lb-scatter__title">价值散点 · 智能指数 × 输出价</span>
+        <span class="ai-lb-scatter__hint">气泡大小＝输出速度 · 点击气泡加入对比（最多 3 个）</span>
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}

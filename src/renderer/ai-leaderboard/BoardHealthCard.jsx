@@ -17,9 +17,9 @@ const SOURCE_META = [
 ];
 
 /**
- * @param {{total:number}} props
+ * @param {{total:number, compact?: boolean}} props
  */
-export function BoardHealthCard({ total }) {
+export function BoardHealthCard({ total, compact = false }) {
   const cov = sourceCoverage.value || {};
   const src = sources.value || {};
   const totalN = Number.isFinite(total) ? total : 0;
@@ -28,7 +28,7 @@ export function BoardHealthCard({ total }) {
   if (totalN === 0) return null;
 
   return (
-    <div class="ai-lb-health" aria-label="数据源覆盖">
+    <div class={`ai-lb-health${compact ? " ai-lb-health--compact" : ""}`} aria-label="数据源覆盖">
       <div class="ai-lb-health__row">
         {SOURCE_META.map((m) => {
           const live = src[m.key] === "live";
@@ -59,10 +59,12 @@ export function BoardHealthCard({ total }) {
           );
         })}
       </div>
-      <p class="ai-lb-health__note">
-        行数 = 当前筛选后模型数；覆盖率 = 该源切片填了多少行。空缺 = 该源未收录本分类
-        （Arena 用内部代号、AA 仅 LLM 端点），非 bug。⚠ 标表示端点可用但本分类零覆盖。
-      </p>
+      {!compact && (
+        <p class="ai-lb-health__note">
+          行数 = 当前筛选后模型数；覆盖率 = 该源切片填了多少行。空缺 = 该源未收录本分类
+          （Arena 用内部代号、AA 仅 LLM 端点），非 bug。⚠ 标表示端点可用但本分类零覆盖。
+        </p>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@
  *
  * 2026-07-15: 把所有 chunk-*.css 追加进 index.css, 一次加载覆盖全站.
  *   ponytail: 桌面应用 CSS 总量 ~30KB, 全量预载可接受; 省去 runtime 注入插件.
+ * 2026-07-21: 构建前 scripts/clean-renderer-css-chunks.cjs 清旧 chunk, 此处只 append 本轮产物.
  */
 const fs = require("fs");
 const path = require("path");
@@ -17,19 +18,26 @@ if (!fs.existsSync(indexPath)) {
   process.exit(1);
 }
 
+const MERGE_MARKER = "\n/* --- merged ";
+
 const chunks = fs
   .readdirSync(dir)
   .filter((f) => /^chunk-.*\.css$/.test(f))
   .sort();
 
+let base = fs.readFileSync(indexPath, "utf8");
+const markerIdx = base.indexOf(MERGE_MARKER);
+if (markerIdx !== -1) base = base.slice(0, markerIdx);
+
 if (!chunks.length) {
-  console.log("[merge-renderer-css] no chunk css, skip");
+  fs.writeFileSync(indexPath, base);
+  console.log("[merge-renderer-css] no chunk css, wrote base index.css only");
   process.exit(0);
 }
 
-let out = fs.readFileSync(indexPath, "utf8");
+let out = base;
 for (const f of chunks) {
-  out += "\n/* --- merged " + f + " --- */\n";
+  out += MERGE_MARKER + f + " --- */\n";
   out += fs.readFileSync(path.join(dir, f), "utf8");
   out += "\n";
 }

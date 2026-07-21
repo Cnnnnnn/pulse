@@ -1,12 +1,7 @@
 /**
  * src/renderer/ai-leaderboard/AiLeaderboardPage.jsx
  *
- * v3.0 双视角主页面：
- *  - FeatureHeader + 视角描述
- *  - FilterBar（视角 tabs + 子筛选 + 通用控件）
- *  - 上下文条（视角 · 子筛选 · 计数 · 更新时间）
- *  - 四态内容区（loading / error / empty / table）
- *  - 署名脚注
+ * v3.1 布局对齐 ai-leaderboard-redesign-preview
  */
 import { useEffect, useState } from "preact/hooks";
 import { FeatureHeader } from "../components/FeatureHeader.jsx";
@@ -24,8 +19,9 @@ import {
   activeBoard,
   activeDim,
   activeLB,
+  sortKey,
 } from "./aiLeaderboardStore.js";
-import { VIEWS, ARENA_BOARDS, AA_DIMENSIONS, LIVE_DIMENSIONS } from "./types.js";
+import { ARENA_BOARDS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS } from "./types.js";
 import { fmtClock } from "./format.js";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.js";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.jsx";
@@ -34,12 +30,12 @@ import { ValueScatter } from "./ValueScatter.jsx";
 import { ComparePanel } from "./ComparePanel.jsx";
 import { AttributionFooter } from "./AttributionFooter.jsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
+import { TopPodium } from "./TopPodium.jsx";
 import { BoardHealthCard } from "./BoardHealthCard.jsx";
 
 export function AiLeaderboardPage() {
   const rows = getDisplayed();
   const view = activeView.value;
-  const viewMeta = VIEWS[view] || {};
 
   const [animate, setAnimate] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -57,73 +53,80 @@ export function AiLeaderboardPage() {
     }
   }
 
-  // 上下文面包屑 — Tab 名取自 VIEWS.label, 子筛选名取自对应 META
+  const sortLabel = sortKey.value && SORT_COLUMN_LABELS[sortKey.value];
   let crumb;
   if (view === "arena") {
     const boardMeta = ARENA_BOARDS[activeBoard.value] || {};
-    crumb = `${viewMeta.label || "Arena"} · ${boardMeta.label || "文本"}`;
+    crumb = `${boardMeta.label || "文本"} 榜`;
   } else if (view === "livebench") {
     const lbMeta = LIVE_DIMENSIONS[activeLB.value] || {};
-    crumb = `${viewMeta.label || "LiveBench"} · ${lbMeta.label || "Overall"}`;
+    const sub = sortLabel || lbMeta.label || "Overall";
+    crumb = `LiveBench · ${sub}`;
   } else {
     const dimMeta = AA_DIMENSIONS[activeDim.value] || {};
-    crumb = `${viewMeta.label || "Artificial Analysis"} · ${dimMeta.label || "Intelligence Index"}`;
+    const sub = sortLabel || dimMeta.label || "Intelligence Index";
+    crumb = `AA · ${sub}`;
   }
 
   const count = rows.length;
   const clock = fmtClock(fetchedAt.value);
   const isEmpty = !loading.value && !error.value && rows.length === 0;
+  const sample = hasSampleSource();
+  const scopeNote =
+    view === "aa" || view === "livebench"
+      ? "仅 LLM"
+      : view === "arena" && count > 0 && count <= 15
+        ? `仅 Top ${count}`
+        : null;
 
   return (
-    <div class="ai-leaderboard-page">
+    <div class="ai-leaderboard-page" data-view={view}>
       <FeatureHeader
         className="ai-leaderboard-header"
         brand={
-          <>
-            <span class="ai-leaderboard-header__mark" aria-hidden="true">📊</span>
-            AI 榜单
-          </>
+          <div class="ai-leaderboard-page-header__brand">
+            <h1 class="ai-leaderboard-page-header__title">AI 榜单</h1>
+            <p class="ai-leaderboard-page-header__sub">三个评测源，一个视图</p>
+          </div>
         }
       >
-        <span class="ai-leaderboard-header__hint">{viewMeta.description || ""}</span>
-        {hasSampleSource() && (
-          <span class="ai-leaderboard-header__badge" title="部分数据为示例快照，非实时">
-            含示例数据
-          </span>
-        )}
+        <span
+          class={`ai-leaderboard-status-pill${sample ? " is-sample" : ""}`}
+          title={sample ? "部分数据为示例快照" : "数据来自在线或缓存"}
+        >
+          <span class="ai-leaderboard-status-pill__dot" aria-hidden="true" />
+          {sample ? "含示例" : "实时"}
+          {clock ? ` · ${clock}` : ""}
+        </span>
       </FeatureHeader>
 
       <div class="ai-leaderboard-toolbar">
         <LeaderboardFilterBar />
       </div>
 
-      <div class="ai-leaderboard-context">
-        <span class="ai-leaderboard-context__crumb">{crumb}</span>
-        <span class="ai-leaderboard-context__count" aria-live="polite">共 {count} 个模型</span>
-        {clock && <span class="ai-leaderboard-context__time">更新于 {clock}</span>}
-        {view === "aa" && (
-          <span class="ai-leaderboard-context__note" title="Artificial Analysis Free tier 仅覆盖 LLM 端点">
-            仅 LLM
+      {count > 0 && (
+        <div class="ai-leaderboard-summary" aria-live="polite">
+          <span class="ai-leaderboard-summary__dot" aria-hidden="true" />
+          <span>{crumb}</span>
+          <span class="ai-leaderboard-summary__sep">·</span>
+          <span>
+            共 <strong>{count}</strong> 个模型
           </span>
-        )}
-        {view === "livebench" && (
-          <span class="ai-leaderboard-context__note" title="LiveBench 仅收录 LLM 端点">
-            仅 LLM
-          </span>
-        )}
-        {view === "arena" && count > 0 && count <= 15 && (
-          <span class="ai-leaderboard-context__note" title="Arena 社区快照仅追踪该 board 的头部模型">
-            仅 Top {count}
-          </span>
-        )}
-        {count > 0 && (
-          <button type="button" class="ai-lb-copy-btn" onClick={handleCopyTable}>
-            {copied ? "已复制 ✓" : "复制表格"}
-          </button>
-        )}
-      </div>
-
-      <BoardHealthCard total={count} />
+          {scopeNote && (
+            <>
+              <span class="ai-leaderboard-summary__sep">·</span>
+              <span class="ai-leaderboard-summary__note">{scopeNote}</span>
+            </>
+          )}
+          <span class="ai-leaderboard-summary__fill" />
+          <BoardHealthCard total={count} compact />
+          {count > 0 && (
+            <button type="button" class="ai-lb-copy-btn" onClick={handleCopyTable}>
+              {copied ? "已复制 ✓" : "复制表格"}
+            </button>
+          )}
+        </div>
+      )}
 
       <div class={`ai-leaderboard-body${animate ? " is-entering" : ""}`}>
         {loading.value && <LoadingState />}
@@ -139,6 +142,7 @@ export function AiLeaderboardPage() {
         {!loading.value && !error.value && rows.length > 0 && (
           <>
             {view === "aa" && <ValueScatter items={rows} />}
+            <TopPodium rows={rows} view={view} />
             <LeaderboardTable rows={rows} view={view} />
           </>
         )}

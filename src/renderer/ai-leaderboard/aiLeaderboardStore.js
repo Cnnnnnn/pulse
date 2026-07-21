@@ -37,6 +37,8 @@ export const activeDim = signal("intelligence");
 export const activeLB = signal("lb_overall");
 export const activeVendor = signal("all");
 export const sortDir = signal("desc");
+/** 列头点选排序：null = 按当前视角主维度（active dim/board），否则按指定列 key 排。 */
+export const sortKey = signal(null);
 export const searchQuery = signal("");
 
 /** 模型对比列表（最多 3 个 id）。 */
@@ -197,6 +199,7 @@ export function setView(v) {
   activeView.value = v;
   activeVendor.value = "all";
   compareList.value = [];
+  sortKey.value = null;
   sortDir.value = "desc";
   persistPrefs();
   return loadLeaderboard();
@@ -207,6 +210,7 @@ export function setBoard(b) {
   if (!ARENA_BOARDS[b] || b === activeBoard.value) return undefined;
   activeBoard.value = b;
   activeVendor.value = "all";
+  sortKey.value = null;
   persistPrefs();
   return loadLeaderboard();
 }
@@ -216,6 +220,7 @@ export function setDim(d) {
   if (!AA_DIMENSIONS[d] || d === activeDim.value) return undefined;
   activeDim.value = d;
   activeVendor.value = "all";
+  sortKey.value = null;
   sortDir.value = ASC_DEFAULT_DIMS.has(d) ? "asc" : "desc";
   persistPrefs();
   return loadLeaderboard();
@@ -226,6 +231,7 @@ export function setLB(d) {
   if (!LIVE_DIMENSIONS[d] || d === activeLB.value) return undefined;
   activeLB.value = d;
   activeVendor.value = "all";
+  sortKey.value = null;
   persistPrefs();
   return loadLeaderboard();
 }
@@ -260,8 +266,57 @@ export function clearSearchQuery() {
 
 /* ── 纯函数：排序 / 筛选 ── */
 
-/** 提取模型在当前视角下的排序值。 */
+/**
+ * 取模型在指定视角下「某一列」的原始数值（用于列头点选排序）。
+ * 覆盖所有可排序列，包括 primaryValue 未涵盖的 valueRatio / ci / lb_cost。
+ * @returns {number|null}
+ */
+export function columnValue(model, view, key) {
+  if (view === "arena") {
+    if (key === "elo" || key === "ci") {
+      const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
+      const slice = model && model.arena && model.arena[board.key];
+      if (!slice) return null;
+      if (key === "elo") return typeof slice.score === "number" ? slice.score : null;
+      return slice.ci != null ? slice.ci : null;
+    }
+    return null;
+  }
+  if (view === "livebench") {
+    const lb = model && model.livebench;
+    if (!lb) return null;
+    if (key === "lb_overall") return typeof lb.overall === "number" ? lb.overall : null;
+    if (key === "lb_cost") {
+      const c = lb.cost && lb.cost.perSuccessfulTask;
+      return typeof c === "number" ? c : null;
+    }
+    const cat = { lb_coding: "Coding", lb_language: "Language", lb_instfollow: "IF" }[key];
+    if (cat) {
+      const v = lb.byCategory && lb.byCategory[cat];
+      return typeof v === "number" ? v : null;
+    }
+    return null;
+  }
+  const aa = model && model.aa;
+  if (!aa) return null;
+  switch (key) {
+    case "intelligence": return aa.intelligenceIndex ?? null;
+    case "coding": return aa.codingIndex ?? null;
+    case "agentic": return aa.agenticIndex ?? null;
+    case "speed": return aa.outputTokensPerSec ?? null;
+    case "price": return aa.priceOutputPer1M ?? null;
+    case "valueRatio":
+      return aa.intelligenceIndex != null && aa.priceOutputPer1M > 0
+        ? aa.intelligenceIndex / aa.priceOutputPer1M
+        : null;
+    default: return null;
+  }
+}
+
+/** 提取模型在当前视角下的排序值（sortKey 优先，否则走当前主维度）。 */
 export function sortValue(model) {
+  const key = sortKey.value;
+  if (key) return columnValue(model, activeView.value, key);
   if (activeView.value === "arena") {
     const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
     return primaryValue(model, "elo", board.category);
@@ -270,6 +325,28 @@ export function sortValue(model) {
     return primaryValue(model, activeLB.value, "llm");
   }
   return primaryValue(model, activeDim.value, "llm");
+}
+
+/** 越低越优的列（点选时默认升序）。 */
+const ASC_DEFAULT_COLS = new Set(["price", "speed", "lb_cost"]);
+
+/**
+ * 列头点选排序：
+ *  - 点同一列 → 切换升/降序；
+ *  - 点不同列 → 设为该列，并按 better 方向给默认序（低优列 asc，其余 desc）。
+ */
+export function toggleSort(key) {
+  if (!key) return;
+  if (sortKey.value === key) {
+    setSortDir(sortDir.value === "asc" ? "desc" : "asc");
+  } else {
+    sortKey.value = key;
+    sortDir.value = ASC_DEFAULT_COLS.has(key) ? "asc" : "desc";
+    // ponytail: 与表头排序对齐偏好里的主维度，避免删掉工具栏下拉后刷新又回默认序
+    if (activeView.value === "aa" && AA_DIMENSIONS[key]) activeDim.value = key;
+    if (activeView.value === "livebench" && LIVE_DIMENSIONS[key]) activeLB.value = key;
+    persistPrefs();
+  }
 }
 
 export function sortModels(list, opts = {}) {

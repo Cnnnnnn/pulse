@@ -1,17 +1,17 @@
 /**
  * src/renderer/ai-leaderboard/ModelRow.jsx
  *
- * v3.0 双视角行渲染：
- *  - Arena 视角：排名 / 模型 / 厂商 / ELO / 置信区间
- *  - AA 视角：排名 / 模型 / 厂商 / 智能 / 代码 / Agent / 速度 / 输出价
- *  - LiveBench 视角：排名 / 模型 / 厂商 / 综合 / Coding / Language / 指令遵循
+ * v3.1 三视角行渲染（重设计 P0/P1）：
+ *  - rank<=3 金/银/铜 medal（排名是榜单灵魂）
+ *  - 主指标列内联条形（primaryKey + primaryMax 驱动）
+ *  - 示例行：左侧色条 + 轻微底色（row 级 class，CSS 配合）
  */
 
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebench, fmtLbCost } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost } from "./format.js";
 import { compareList, toggleCompare } from "./aiLeaderboardStore.js";
 
-export function ModelRow({ model, rank, view, board, dim, lb }) {
+export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primaryMax }) {
   const m = model || {};
   const aa = m.aa || {};
   const lbData = m.livebench || {};
@@ -21,6 +21,7 @@ export function ModelRow({ model, rank, view, board, dim, lb }) {
 
   const inCompare = compareList.value.includes(m.id);
   const compareDisabled = !inCompare && compareList.value.length >= 3;
+  const sampleCls = m.isSample ? " ai-lb-row--sample" : "";
   const checkboxCell = (
     <td class="ai-lb-td ai-lb-col-check">
       <input
@@ -34,40 +35,85 @@ export function ModelRow({ model, rank, view, board, dim, lb }) {
     </td>
   );
 
+  const modelCell = (
+    <td class="ai-lb-td ai-lb-col-model">
+      <span class="ai-lb-model-name">{m.name || "—"}</span>
+      {m.isSample && (
+        <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>
+      )}
+    </td>
+  );
+  const vendorCell = (
+    <td class="ai-lb-td ai-lb-col-vendor">
+      <span class="ai-lb-vendor">{vendorLabel}</span>
+    </td>
+  );
+
+  // 排名：前 3 渲染奖牌，其余数字 + 变动标记。
+  let deltaEl = null;
+  if (m.isNew) {
+    deltaEl = <span class="ai-lb-delta ai-lb-delta--new">NEW</span>;
+  } else if (typeof m.rankDelta === "number" && m.rankDelta !== 0) {
+    const up = m.rankDelta > 0;
+    deltaEl = (
+      <span class={`ai-lb-delta ${up ? "ai-lb-delta--up" : "ai-lb-delta--down"}`}>
+        {up ? "↑" : "↓"}{Math.abs(m.rankDelta)}
+      </span>
+    );
+  }
+  const rankCell = (
+    <td class="ai-lb-td ai-lb-col-rank" scope="row">
+      {rank <= 3
+        ? <span class={`ai-lb-medal g${rank}`} aria-label={`第 ${rank} 名`}>{rank}</span>
+        : <>{rank}{deltaEl}</>}
+    </td>
+  );
+
+  // 内联条形：仅主指标列（primaryKey）渲染，width = 值/primaryMax。
+  function bar(key, value) {
+    if (key !== primaryKey || !primaryMax || typeof value !== "number" || !isFinite(value)) {
+      return null;
+    }
+    const pct = Math.max(0, Math.min(100, (value / primaryMax) * 100));
+    return (
+      <div class="ai-lb-bar" aria-hidden="true">
+        <i style={{ width: pct + "%" }} />
+      </div>
+    );
+  }
+  // 数值单元格：按 key 判定是否激活（主指标），并挂条形。
+  function num(key, value, fmt, title) {
+    const active = key === primaryKey;
+    return (
+      <td
+        class={`ai-lb-td ai-lb-col-num${active ? " ai-lb-col--active" : ""}`}
+        title={title}
+      >
+        {fmt(value)}
+        {bar(key, value)}
+      </td>
+    );
+  }
+
   if (view === "livebench") {
     return (
-      <tr class="ai-lb-row">
+      <tr class={`ai-lb-row${sampleCls}`}>
         {checkboxCell}
-        <td class="ai-lb-td ai-lb-col-rank" scope="row">{rank}</td>
-        <td class="ai-lb-td ai-lb-col-model">
-          <span class="ai-lb-model-name">{m.name || "—"}</span>
-          {m.isSample && (
-            <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>
-          )}
-        </td>
-        <td class="ai-lb-td ai-lb-col-vendor">
-          <span class="ai-lb-vendor">{vendorLabel}</span>
-        </td>
-        <td class={`ai-lb-td ai-lb-col-num${lb === "lb_overall" ? " ai-lb-col--active" : ""}`}>
-          {fmtLivebench(lbData.overall)}
-        </td>
-        <td class={`ai-lb-td ai-lb-col-num${lb === "lb_coding" ? " ai-lb-col--active" : ""}`}>
-          {fmtLivebench(byCat.Coding)}
-        </td>
-        <td class={`ai-lb-td ai-lb-col-num${lb === "lb_language" ? " ai-lb-col--active" : ""}`}>
-          {fmtLivebench(byCat.Language)}
-        </td>
-        <td class={`ai-lb-td ai-lb-col-num${lb === "lb_instfollow" ? " ai-lb-col--active" : ""}`}>
-          {fmtLivebench(byCat.IF)}
-        </td>
-        <td
-          class="ai-lb-td ai-lb-col-num"
-          title={lbData.cost && lbData.cost.price
+        {rankCell}
+        {modelCell}
+        {vendorCell}
+        {num("lb_overall", lbData.overall, fmtLivebench)}
+        {num("lb_coding", byCat.Coding, fmtLivebench)}
+        {num("lb_language", byCat.Language, fmtLivebench)}
+        {num("lb_instfollow", byCat.IF, fmtLivebench)}
+        {num(
+          "lb_cost",
+          lbData.cost && lbData.cost.perSuccessfulTask,
+          fmtLbCost,
+          lbData.cost && lbData.cost.price
             ? `$${lbData.cost.price.inputPer1M}/1M in · $${lbData.cost.price.outputPer1M}/1M out`
-            : "无成本数据"}
-        >
-          {fmtLbCost(lbData.cost && lbData.cost.perSuccessfulTask)}
-        </td>
+            : "无成本数据",
+        )}
       </tr>
     );
   }
@@ -77,74 +123,35 @@ export function ModelRow({ model, rank, view, board, dim, lb }) {
     const arenaSlice = m.arena && m.arena[boardMeta.key];
     const elo = arenaSlice && typeof arenaSlice.score === "number" ? arenaSlice.score : null;
     const ci = arenaSlice && arenaSlice.ci != null ? arenaSlice.ci : null;
-
-    // 排名变动标记
-    let deltaEl = null;
-    if (m.isNew) {
-      deltaEl = <span class="ai-lb-delta ai-lb-delta--new">NEW</span>;
-    } else if (typeof m.rankDelta === "number" && m.rankDelta !== 0) {
-      const up = m.rankDelta > 0;
-      deltaEl = (
-        <span class={`ai-lb-delta ${up ? "ai-lb-delta--up" : "ai-lb-delta--down"}`}>
-          {up ? "↑" : "↓"}{Math.abs(m.rankDelta)}
-        </span>
-      );
-    }
-
     return (
-      <tr class="ai-lb-row">
+      <tr class={`ai-lb-row${sampleCls}`}>
         {checkboxCell}
-        <td class="ai-lb-td ai-lb-col-rank" scope="row">
-          {rank}
-          {deltaEl}
-        </td>
-        <td class="ai-lb-td ai-lb-col-model">
-          <span class="ai-lb-model-name">{m.name || "—"}</span>
-          {m.isSample && (
-            <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>
-          )}
-        </td>
-        <td class="ai-lb-td ai-lb-col-vendor">
-          <span class="ai-lb-vendor">{vendorLabel}</span>
-        </td>
-        <td class="ai-lb-td ai-lb-col-num">{fmtScore(elo)}</td>
-        <td class="ai-lb-td ai-lb-col-num">
-          {ci != null ? `±${Math.round(ci)}` : "—"}
-        </td>
+        {rankCell}
+        {modelCell}
+        {vendorCell}
+        {num("elo", elo, fmtScore)}
+        {num("ci", ci, (v) => (v != null ? `±${Math.round(v)}` : "—"))}
       </tr>
     );
   }
 
   // AA 视角
+  const vr =
+    aa.intelligenceIndex != null && aa.priceOutputPer1M > 0
+      ? aa.intelligenceIndex / aa.priceOutputPer1M
+      : null;
   return (
-    <tr class="ai-lb-row">
+    <tr class={`ai-lb-row${sampleCls}`}>
       {checkboxCell}
-      <td class="ai-lb-td ai-lb-col-rank" scope="row">{rank}</td>
-      <td class="ai-lb-td ai-lb-col-model">
-        <span class="ai-lb-model-name">{m.name || "—"}</span>
-        {m.isSample && (
-          <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>
-        )}
-      </td>
-      <td class="ai-lb-td ai-lb-col-vendor">
-        <span class="ai-lb-vendor">{vendorLabel}</span>
-      </td>
-      <td class={`ai-lb-td ai-lb-col-num${dim === "intelligence" ? " ai-lb-col--active" : ""}`}>
-        {fmtIndex(aa.intelligenceIndex)}
-      </td>
-      <td class={`ai-lb-td ai-lb-col-num${dim === "coding" ? " ai-lb-col--active" : ""}`}>
-        {fmtIndex(aa.codingIndex)}
-      </td>
-      <td class={`ai-lb-td ai-lb-col-num${dim === "agentic" ? " ai-lb-col--active" : ""}`}>
-        {fmtIndex(aa.agenticIndex)}
-      </td>
-      <td class={`ai-lb-td ai-lb-col-num${dim === "speed" ? " ai-lb-col--active" : ""}`}>
-        {fmtSpeed(aa.outputTokensPerSec)}
-      </td>
-      <td class={`ai-lb-td ai-lb-col-num${dim === "price" ? " ai-lb-col--active" : ""}`}>
-        {fmtPricePer1M(aa.priceOutputPer1M)}
-      </td>
-      <td class="ai-lb-td ai-lb-col-num">{fmtValueRatio(aa)}</td>
+      {rankCell}
+      {modelCell}
+      {vendorCell}
+      {num("intelligence", aa.intelligenceIndex, fmtIndex)}
+      {num("coding", aa.codingIndex, fmtIndex)}
+      {num("agentic", aa.agenticIndex, fmtIndex)}
+      {num("speed", aa.outputTokensPerSec, fmtSpeed)}
+      {num("price", aa.priceOutputPer1M, fmtPricePer1M)}
+      {num("valueRatio", vr, (v) => (v == null ? "—" : v.toFixed(1)))}
     </tr>
   );
 }
