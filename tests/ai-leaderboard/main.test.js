@@ -37,6 +37,7 @@ const arenaFetcher = require("../../src/main/ai-leaderboard/fetcher-arena");
 const aaFetcher = require("../../src/main/ai-leaderboard/fetcher-aa");
 const { sanitize, boardCacheKey, cacheGet, cacheSet, resetLeaderboardCache } =
   require("../../src/main/ipc/register-leaderboard");
+const { mergeModelSlices } = require("../../src/main/ai-leaderboard/normalize");
 
 // ── 兜底/合并测试用统一 payload（三源同 id，便于验证 merge）─────────────
 const ARENA_PAYLOAD = {
@@ -512,7 +513,7 @@ describe("normalize: vendor 归一化 + AiModel 字段完整性", () => {
     expect(m.name).toBe("Foo");
     expect(m.vendor).toBe("openai");
     expect(m.category).toBe("llm");
-    expect(m.sources).toEqual({ arena: "none", aa: "none", openrouter: "none", livebench: "none" });
+    expect(m.sources).toEqual({ arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" });
     expect(m.isSample).toBe(false);
     expect(m.arena).toEqual({});
     expect(m.aa).toBeNull();
@@ -577,6 +578,149 @@ describe("rate-limiter: AA 令牌桶 1000/天", () => {
 });
 
 // ── 5. IPC 契约（register-leaderboard 纯函数部分）─────────────────────
+describe("mergeModelSlices: name 兜底合并（vendor 命名不一致场景）", () => {
+  it("AA canonical vendor (anthropic) + MD router vendor (other) 同 name → modelsdev slice 被接回", () => {
+    const aa = [
+      {
+        id: "anthropic-claude-3-5-haiku",
+        name: "Claude 3.5 Haiku",
+        vendor: "anthropic",
+        vendorRaw: "Anthropic",
+        category: "llm",
+        aa: { intelligenceIndex: 30 },
+        sources: { arena: "none", aa: "live", openrouter: "none", livebench: "none", modelsdev: "none" },
+        isSample: false,
+      },
+    ];
+    const md = [
+      {
+        id: "other-claude-3-5-haiku",
+        name: "Claude 3.5 Haiku",
+        vendor: "other",
+        vendorRaw: "FrogBot",
+        category: "llm",
+        modelsdev: { contextLength: 200000, inputCostPer1M: 0.8 },
+        sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "live" },
+        isSample: false,
+      },
+    ];
+    const merged = mergeModelSlices([aa, md]);
+    // 按 baseName 合并后, AA 的 canonical 那条接管, MD 的 modelsdev slice 合并进去
+    expect(merged.length).toBe(1);
+    expect(merged[0].id).toBe("anthropic-claude-3-5-haiku");
+    expect(merged[0].vendor).toBe("anthropic");
+    expect(merged[0].aa).toEqual({ intelligenceIndex: 30 });
+    expect(merged[0].modelsdev).toEqual({ contextLength: 200000, inputCostPer1M: 0.8 });
+    expect(merged[0].sources.aa).toBe("live");
+    expect(merged[0].sources.modelsdev).toBe("live");
+  });
+
+  it("AA 变体 (xhigh) + MD 基模 (无后缀) 同 baseName → modelsdev slice 被接回", () => {
+    const aa = [
+      {
+        id: "openai-gpt-5-5",
+        name: "GPT-5.5 (xhigh)",
+        vendor: "openai",
+        category: "llm",
+        aa: { intelligenceIndex: 54.8 },
+        sources: { arena: "none", aa: "live", openrouter: "none", livebench: "none", modelsdev: "none" },
+        isSample: false,
+      },
+    ];
+    const md = [
+      {
+        id: "openai-gpt-5-5",
+        name: "GPT-5.5",
+        vendor: "openai",
+        category: "llm",
+        modelsdev: { contextLength: 1050000 },
+        sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "live" },
+        isSample: false,
+      },
+    ];
+    const merged = mergeModelSlices([aa, md]);
+    expect(merged.length).toBe(1);
+    expect(merged[0].aa).toEqual({ intelligenceIndex: 54.8 });
+    expect(merged[0].modelsdev).toEqual({ contextLength: 1050000 });
+  });
+
+  it("同 baseName 但两边 vendor 都 'other' → 不合并（避免误伤不同 model）", () => {
+    // ponytail: 安全网 — 仅当一侧有 canonical vendor (≠other) 时才按 baseName 兜底合并,
+    // 两边都是 router 时无法判断归属, 保持原 id 不动.
+    const a = [
+      {
+        id: "other-foo",
+        name: "Foo",
+        vendor: "other",
+        category: "llm",
+        arena: { elo: 1000 },
+        sources: { arena: "live", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" },
+        isSample: false,
+      },
+    ];
+    const b = [
+      {
+        id: "other-foo",
+        name: "Foo",
+        vendor: "other",
+        category: "llm",
+        aa: { intelligenceIndex: 20 },
+        sources: { arena: "none", aa: "live", openrouter: "none", livebench: "none", modelsdev: "none" },
+        isSample: false,
+      },
+    ];
+    const merged = mergeModelSlices([a, b]);
+    // id 已相同 → 按 id 合并生效 (aa + arena slice 都进来)
+    expect(merged.length).toBe(1);
+    expect(merged[0].arena).toEqual({ elo: 1000 });
+    expect(merged[0].aa).toEqual({ intelligenceIndex: 20 });
+  });
+
+  it("不同 model 同 id (误撞) → 第二轮 name 兜底不强行合（不互相覆盖）", () => {
+    // ponytail: 真不同 model 但 id 撞了 (极少见) — 按 id 合并优先, 不再用 name 拆开.
+    const a = [
+      { id: "x", name: "Model A", vendor: "openai", category: "llm", aa: { intelligenceIndex: 50 }, sources: { arena: "none", aa: "live", openrouter: "none", livebench: "none", modelsdev: "none" }, isSample: false },
+      { id: "x", name: "Model B", vendor: "anthropic", category: "llm", modelsdev: { contextLength: 100 }, sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "live" }, isSample: false },
+    ];
+    const merged = mergeModelSlices([a]);
+    // id 相同, 后写覆盖前写; 但通过 _mergeInto 安全合并两个 slice.
+    expect(merged.length).toBe(1);
+    expect(merged[0].aa).toEqual({ intelligenceIndex: 50 });
+    expect(merged[0].modelsdev).toEqual({ contextLength: 100 });
+  });
+
+  it("Arena 小写连字符变体名 (gpt-5.6-sol-xhigh) ↔ MD 正常名 (GPT-5.6 Sol) → 第二轮 _normName 兜底合并", () => {
+    // ponytail: Arena 用小写连字符 + 变体后缀命名, MD / AA 用 title case + 空格.
+    // 第一轮 baseName "gpt-5.6-sol-xhigh" vs "GPT-5.6 Sol" 不匹配;
+    // 第二轮 _normName (小写 + 去标点 + 剥末尾 -xhigh) → 都是 "gpt56sol", 命中.
+    const arenaSlice = [
+      { id: "openai-gpt-5-6-sol-xhigh", name: "gpt-5.6-sol-xhigh", vendor: "openai", category: "llm", arena: { text: { score: 1300 } }, sources: { arena: "live", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" }, isSample: false },
+    ];
+    const mdSlice = [
+      { id: "openai-gpt-5-6-sol", name: "GPT-5.6 Sol", vendor: "openai", category: "llm", modelsdev: { contextLength: 1050000, inputCostPer1M: 5 }, sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "live" }, isSample: false },
+    ];
+    const merged = mergeModelSlices([arenaSlice, mdSlice]);
+    expect(merged.length).toBe(1);
+    expect(merged[0].id).toBe("openai-gpt-5-6-sol-xhigh");
+    expect(merged[0].arena.text.score).toBe(1300);
+    expect(merged[0].modelsdev.contextLength).toBe(1050000);
+  });
+
+  it("_normName 不误合并真正不同 model（gemini-3-flash vs gemini-3-5-flash）", () => {
+    // ponytail: _normName 顺序 — 必须确认 baseName (空格 / 括号) 那轮没匹配, 再用 _normName.
+    // 这里两条 baseName 不一致 ("Gemini 3 Flash" vs "Gemini 3.5 Flash") → _normName 也不该合并.
+    const a = [
+      { id: "google-gemini-3-flash", name: "gemini-3-flash", vendor: "google", category: "llm", arena: { score: 1300 }, sources: { arena: "live", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" }, isSample: false },
+    ];
+    const b = [
+      { id: "google-gemini-3-5-flash", name: "Gemini 3.5 Flash", vendor: "google", category: "llm", modelsdev: { contextLength: 1048576 }, sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "live" }, isSample: false },
+    ];
+    const merged = mergeModelSlices([a, b]);
+    // 不同 model — 应当保持 2 条独立
+    expect(merged.length).toBe(2);
+  });
+});
+
 describe("ipc/register-leaderboard: sanitize 与请求级缓存键", () => {
   beforeEach(() => {
     resetLeaderboardCache();

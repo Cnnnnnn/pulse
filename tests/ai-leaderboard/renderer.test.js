@@ -279,24 +279,26 @@ describe("LeaderboardTable 渲染", () => {
 // ── P0 回归：BoardHealthCard 接线性（AiLeaderboardPage 现渲染 <BoardHealthCard total={count} />）──
 describe("BoardHealthCard 渲染（P0 回归）", () => {
   it("total>0 且信号有值时渲染三源覆盖信息（证明读取 sourceCoverage/sources 信号）", () => {
-    store.sources.value = { arena: "live", aa: "sample", openrouter: "live", livebench: "live" };
-    store.sourceCoverage.value = { arena: 5, aa: 2, openrouter: 5, livebench: 3 };
+    store.sources.value = { arena: "live", aa: "sample", openrouter: "live", livebench: "live", modelsdev: "live" };
+    store.sourceCoverage.value = { arena: 5, aa: 2, openrouter: 5, livebench: 3, modelsdev: 5 };
     render(h(BoardHealthCard, { total: 5 }));
     const el = document.querySelector(".ai-lb-health");
     expect(el).toBeTruthy();
-    // 四源 chip 全部渲染 (Arena + AA + OpenRouter + LiveBench)
-    expect(el.querySelectorAll(".ai-lb-health__chip").length).toBe(4);
+    // 五源 chip 全部渲染 (Arena + AA + OpenRouter + LiveBench + Models.dev)
+    expect(el.querySelectorAll(".ai-lb-health__chip").length).toBe(5);
     // arena 为 live → 带 is-live（证明 sources 信号被读取且值正确）
     expect(el.querySelector(".ai-lb-health__chip--blue.is-live")).toBeTruthy();
     // aa 为 sample → 带 is-sample（证明 sources 信号被读取且值正确）
     expect(el.querySelector(".ai-lb-health__chip--purple.is-sample")).toBeTruthy();
+    // modelsdev 为 live → 带 is-live（证明新源接入渲染管线）
+    expect(el.querySelector(".ai-lb-health__chip--modelsdev.is-live")).toBeTruthy();
     // 解释文字出现（数据源覆盖说明）
     expect(el.querySelector(".ai-lb-health__note")).toBeTruthy();
   });
 
   it("total===0 时不渲染（return null，无空架子/断链）", () => {
-    store.sources.value = { arena: "live", aa: "live", openrouter: "live", livebench: "live" };
-    store.sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0 };
+    store.sources.value = { arena: "live", aa: "live", openrouter: "live", livebench: "live", modelsdev: "live" };
+    store.sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
     const { container } = render(h(BoardHealthCard, { total: 0 }));
     expect(container.querySelector(".ai-lb-health")).toBeNull();
   });
