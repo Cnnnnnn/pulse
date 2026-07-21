@@ -4858,7 +4858,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .app-shell-view:has(> .fund-layout),
 .app-shell-view:has(> .versions-layout),
 .app-shell-view:has(> .worldcup-layout),
-.app-shell-view:has(> .ithome-layout) {
+.app-shell-view:has(> .ithome-layout),
+.app-shell-view:has(> .ai-leaderboard-layout) {
   padding: 0;
   overflow: hidden;
   display: flex;

@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 榜单 — 重设计预览</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #f3f4f7;
+    --border: #e6e8ec;
+    --border-strong: #d6d9df;
+    --text-1: #1c2230;
+    --text-2: #5b6472;
+    --text-3: #8a93a3;
+    --accent-arena: #d99a00;
+    --accent-aa: #5b5bd6;
+    --accent-lb: #1f8fb5;
+    --accent: var(--accent-aa);
+    --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+    --gold: #d99a00;
+    --silver: #b4b2a9;
+    --bronze: #c08850;
+    --green: #2f8f4e;
+    --green-soft: #e7f5ec;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 2px rgba(16,22,34,.06), 0 4px 12px rgba(16,22,34,.05);
+    --pad: 24px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+            Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  [data-theme="dark"] {
+    --bg: #0f1115;
+    --surface: #171a21;
+    --surface-2: #1f232c;
+    --border: #2a2f3a;
+    --border-strong: #39404d;
+    --text-1: #eef1f6;
+    --text-2: #a4adbd;
+    --text-3: #717b8c;
+    --accent-arena: #e7b13a;
+    --accent-aa: #8a8af2;
+    --accent-lb: #3fb0d6;
+    --green: #4cc07a;
+    --green-soft: #16341f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text-1);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ── App shell ── */
+  .app-shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px;
+    flex: 0 0 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; font-size: 15px; padding: 6px 10px 14px;
+  }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--accent-aa); color: #fff;
+    display: grid; place-items: center; font-size: 15px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    color: var(--text-2); cursor: pointer; font-weight: 500;
+    transition: background .15s, color .15s;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text-1); }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+  .nav-item .ico { width: 20px; text-align: center; font-size: 16px; }
+  .sidebar-foot { margin-top: auto; font-size: 11px; color: var(--text-3); padding: 10px; }
+
+  .main { flex: 1; min-width: 0; padding: var(--pad); max-width: 1200px; }
+
+  /* ── Page header ── */
+  .page-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+  }
+  .page-header h1 { font-size: 20px; margin: 0; font-weight: 600; }
+  .page-header .sub { color: var(--text-3); font-size: 13px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--green-soft); color: var(--green);
+    border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+  .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .spacer { flex: 1; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-2); cursor: pointer; font-size: 16px;
+    display: grid; place-items: center; transition: background .15s;
+  }
+  .icon-btn:hover { background: var(--surface-2); color: var(--text-1); }
+
+  /* ── View switch (segmented) ── */
+  .view-switch {
+    display: inline-flex; padding: 4px; gap: 4px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 16px;
+  }
+  .seg {
+    display: flex; flex-direction: column; align-items: flex-start;
+    padding: 7px 16px; border-radius: 9px; cursor: pointer;
+    border: none; background: transparent; color: var(--text-2);
+    font-family: var(--font); text-align: left; transition: all .15s;
+  }
+  .seg .seg-main { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+  .seg .seg-sub { font-size: 11px; opacity: .8; }
+  .seg .vdot { width: 7px; height: 7px; border-radius: 50%; }
+  .seg[aria-selected="true"] { background: var(--surface); color: var(--text-1); box-shadow: var(--shadow); }
+  .seg[aria-selected="true"].v-arena { color: var(--accent-arena); }
+  .seg[aria-selected="true"].v-aa { color: var(--accent-aa); }
+  .seg[aria-selected="true"].v-lb { color: var(--accent-lb); }
+
+  /* ── Toolbar ── */
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .chips { display: inline-flex; gap: 4px; padding: 3px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; }
+  .chip {
+    border: none; background: transparent; color: var(--text-2);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    font-family: var(--font); font-size: 13px; font-weight: 500; transition: all .15s;
+  }
+  .chip:hover { color: var(--text-1); }
+  .chip.active { background: var(--surface); color: var(--text-1); font-weight: 600; box-shadow: var(--shadow); }
+
+  .select, .search, .btn {
+    height: 40px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-1); font-family: var(--font); font-size: 13px;
+  }
+  .select {
+    padding: 0 34px 0 12px; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' fill='none' stroke='%238a93a3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; background-size: 12px 12px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .select:hover { border-color: var(--border-strong); }
+  .select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+  .search { display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; flex: 1 1 220px; min-width: 180px; }
+  .search input { border: none; outline: none; background: transparent; color: var(--text-1); font-size: 13px; flex: 1; font-family: var(--font); }
+  .search .ph { color: var(--text-3); }
+  .btn { padding: 0 16px; cursor: pointer; font-weight: 600; transition: background .15s, border-color .15s; }
+  .btn:hover { background: var(--surface-2); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.05); background: var(--accent); }
+  .btn-ghost { background: var(--surface); }
+  .sort-btn { display: inline-flex; align-items: center; gap: 6px; min-width: 84px; justify-content: center; }
+
+  /* ── Summary strip ── */
+  .summary {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 14px; margin-bottom: 14px;
+    font-size: 12.5px; color: var(--text-2); font-weight: 500;
+  }
+  .summary .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .summary b { color: var(--text-1); }
+
+  /* ── Table ── */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow-x: auto; box-shadow: var(--shadow);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: 12px; font-weight: 600; color: var(--text-2);
+    padding: 12px 16px; border-bottom: 1px solid var(--border); white-space: nowrap;
+    position: sticky; top: 0; background: var(--surface); z-index: 2;
+  }
+  th.num, td.num { text-align: right; }
+  tbody td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  .rank { width: 36px; text-align: center; color: var(--text-3); font-weight: 600; }
+  .medal {
+    display: inline-grid; place-items: center; width: 26px; height: 26px;
+    border-radius: 50%; color: #fff; font-weight: 700; font-size: 12px;
+  }
+  .medal.g1 { background: var(--gold); }
+  .medal.g2 { background: var(--silver); }
+  .medal.g3 { background: var(--bronze); }
+  .model { font-weight: 600; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  th.model-col { min-width: 132px; }
+  .vendor { color: var(--text-2); }
+  .primary { font-weight: 700; font-size: 15px; }
+  .bar { height: 5px; border-radius: 3px; background: var(--surface-2); margin-top: 5px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+  .sample-row td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--text-3) 55%, transparent); }
+  .tag-sample {
+    font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+    color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border-strong);
+  }
+  .ck { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  .ck:disabled { opacity: .35; cursor: not-allowed; }
+  .ck-cell { position: sticky; right: 0; text-align: center; width: 48px; background: var(--surface); border-left: 1px solid var(--border); z-index: 3; }
+  tbody tr:hover .ck-cell { background: var(--surface-2); }
+  th.ck-cell { position: sticky; right: 0; font-size: 11px; color: var(--text-2); font-weight: 600; background: var(--surface); z-index: 4; }
+  th[data-sort] { cursor: pointer; user-select: none; }
+  th[data-sort]:hover { color: var(--text-1); }
+  th.th-sorted { color: var(--accent); }
+  .th-arrow { font-size: 10px; margin-left: 2px; }
+
+  /* ── AA Value Scatter ── */
+  .scatter-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  .scatter-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .scatter-title { font-weight: 600; font-size: 14px; }
+  .scatter-hint { font-size: 12px; color: var(--text-2); }
+  .scatter-canvas { position: relative; width: 100%; }
+  .scatter-canvas svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .scatter-canvas .bub .bub-c { transition: fill-opacity .15s; }
+  .scatter-canvas .bub:hover .bub-c { fill-opacity: 1 !important; }
+  .scatter-canvas .bub.dis { opacity: .45; }
+  .scatter-canvas .bub:focus { outline: none; }
+  .scatter-canvas .bub:focus-visible .bub-c { stroke: var(--accent); stroke-width: 3; }
+  .scatter-canvas .bub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  :where(.btn, .icon-btn, .seg, .chip, .fab, .nav-item):focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .scatter-tip {
+    position: absolute; transform: translate(-50%, -110%);
+    background: #1c2230; color: #fff; padding: 7px 10px; border-radius: 8px;
+    font-size: 12px; line-height: 1.45; pointer-events: none; white-space: nowrap;
+    z-index: 12; box-shadow: 0 6px 18px rgba(0,0,0,.3);
+  }
+  .scatter-tip b { color: #fff; }
+  .scatter-tip .tip-row { color: rgba(255,255,255,.72); }
+  .scatter-tip::after { content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #1c2230; }
+  .scatter-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--text-2); }
+  .scatter-legend .li { display: inline-flex; align-items: center; gap: 6px; }
+  .scatter-legend .sw { width: 10px; height: 10px; border-radius: 50%; }
+  .scatter-size-legend { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12px; color: var(--text-2); }
+  .scatter-size-legend .sz-label { color: var(--text-2); }
+  .scatter-size-legend .sz-scale { display: block; }
+
+  /* ── Mobile card list ── */
+  .card-list { display: none; flex-direction: column; gap: 12px; }
+  .mcard {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow);
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .mcard.sample { border-left: 3px solid var(--text-3); }
+  .mcard .mbody { flex: 1; min-width: 0; }
+  .mcard .mtop { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .mcard .mname { font-weight: 600; font-size: 15px; }
+  .mcard .mbig { font-size: 26px; font-weight: 700; }
+  .mcard .mvendor { color: var(--text-2); font-size: 12px; }
+  .mcard .mgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 14px; margin-top: 10px; }
+  .mcard .mgrid div { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); }
+  .mcard .mgrid b { color: var(--text-1); font-variant-numeric: tabular-nums; }
+
+  /* ── Compare FAB + drawer ── */
+  .fab {
+    position: fixed; right: 24px; bottom: 24px; z-index: 30;
+    display: none; align-items: center; gap: 8px;
+    height: 44px; padding: 0 20px; border-radius: 999px; border: none;
+    background: var(--accent); color: #fff; font-weight: 600; font-size: 14px;
+    cursor: pointer; box-shadow: 0 6px 18px rgba(16,22,34,.25);
+  }
+  .fab.show { display: inline-flex; }
+  .drawer-mask { position: fixed; inset: 0; background: rgba(0,0,0,.28); z-index: 40; display: none; }
+  .drawer-mask.show { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 90vw); z-index: 50;
+    background: var(--surface); border-left: 1px solid var(--border);
+    box-shadow: -6px 0 24px rgba(16,22,34,.18);
+    display: flex; flex-direction: column; transform: translateX(100%); transition: transform .25s ease;
+  }
+  .drawer.show { transform: translateX(0); }
+  .drawer header { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .drawer header .title { font-weight: 600; flex: 1; }
+  .drawer .body { padding: 14px 18px; overflow: auto; }
+  .drawer table { font-size: 12.5px; }
+  .drawer th, .drawer td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+  .drawer th:first-child, .drawer td:first-child { text-align: left; color: var(--text-2); }
+  .drawer .best { color: var(--green); font-weight: 700; }
+
+  @media (max-width: 900px) {
+    .sidebar { width: 64px; flex-basis: 64px; padding: 20px 8px; }
+    .nav-item .label, .brand span, .sidebar-foot { display: none; }
+    .nav-item { justify-content: center; }
+  }
+  @media (max-width: 1100px) {
+    .vendor-col { display: none; }
+  }
+  @media (max-width: 640px) {
+    :root { --pad: 16px; }
+    .table-wrap { display: none; }
+    .card-list { display: flex; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .search { flex: 1 1 auto; }
+    .view-switch { width: 100%; }
+    .seg { flex: 1; align-items: center; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">📊</span><span>AppHub</span></div>
+    <div class="nav-item"><span class="ico">🏠</span><span class="label">首页</span></div>
+    <div class="nav-item active"><span class="ico">🏆</span><span class="label">AI 榜单</span></div>
+    <div class="nav-item"><span class="ico">🔥</span><span class="label">热搜</span></div>
+    <div class="nav-item"><span class="ico">🎮</span><span class="label">游戏</span></div>
+    <div class="nav-item"><span class="ico">🛡️</span><span class="label">LiveBench</span></div>
+    <div class="nav-item"><span class="ico">⚙️</span><span class="label">设置</span></div>
+    <div class="sidebar-foot">v3 设计预览 · 仅演示数据</div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>AI 榜单</h1>
+        <div class="sub">三个评测源，一个视图</div>
+      </div>
+      <span class="spacer"></span>
+      <span class="status-pill"><span class="dot"></span> 实时 · 18:05</span>
+      <button class="icon-btn" id="themeBtn" title="切换主题">🌓</button>
+    </div>
+
+    <div class="view-switch" role="tablist" id="viewSwitch">
+      <button class="seg v-arena" role="tab" data-view="arena" aria-selected="false">
+        <span class="seg-main"><span class="vdot" style="background:var(--accent-arena)"></span>Arena</span>
+        <span class="seg-sub">社区 ELO</span>
+      </button>
+      <button class="seg v-aa" role="tab" data-view="aa" aria-selected="true">
+        <span class="seg-main"><span class="vdot" style="background:var(--accent-aa)"></span>Artificial Analysis</span>
+        <span class="seg-sub">客观分·价格·速度</span>
+      </button>
+      <button class="seg v-lb" role="tab" data-view="livebench" aria-selected="false">
+        <span class="seg-main"><span class="vdot" style="background:var(--accent-lb)"></span>LiveBench</span>
+        <span class="seg-sub">抗污染评测</span>
+      </button>
+    </div>
+
+    <div class="toolbar" id="toolbar"></div>
+    <div class="summary" id="summary"></div>
+
+    <div class="scatter-wrap" id="scatterWrap" style="display:none"></div>
+    <div class="table-wrap" id="tableWrap"></div>
+    <div class="card-list" id="cardList"></div>
+  </main>
+</div>
+
+<button class="fab" id="fab">对比 <span id="fabCount">0</span></button>
+<div class="drawer-mask" id="mask"></div>
+<aside class="drawer" id="drawer">
+  <header>
+    <span class="title">模型对比（<span id="drawerCount">0</span>）</span>
+    <button class="btn btn-ghost" id="copyCmp">复制</button>
+    <button class="btn btn-ghost" id="clearCmp">清除</button>
+    <button class="icon-btn" id="closeDrawer">✕</button>
+  </header>
+  <div class="body" id="drawerBody"></div>
+</aside>
+
+<script>
+const DATA = {
+  arena: {
+    accent: "var(--accent-arena)",
+    board: ["text", "vision", "code", "image", "video"],
+    boardLabel: { text: "文本", vision: "多模态", code: "代码", image: "图像", video: "视频" },
+    columns: [
+      { key: "elo", label: "ELO", type: "num", better: "high", primary: true },
+      { key: "ci", label: "置信区间", type: "num" }
+    ],
+    rows: [
+      { model: "GPT-5", vendor: "OpenAI", elo: 1482, ci: 12 },
+      { model: "Claude Opus 4.1", vendor: "Anthropic", elo: 1476, ci: 10 },
+      { model: "Gemini 3", vendor: "Google", elo: 1469, ci: 11 },
+      { model: "DeepSeek V3", vendor: "DeepSeek", elo: 1455, ci: 9 },
+      { model: "Qwen 3 Max", vendor: "Alibaba", elo: 1448, ci: 13, isSample: true }
+    ]
+  },
+  aa: {
+    accent: "var(--accent-aa)",
+    dim: [
+      { key: "intelligence", label: "智能指数" },
+      { key: "coding", label: "代码" },
+      { key: "agentic", label: "Agent" },
+      { key: "speed", label: "速度" },
+      { key: "price", label: "输出价" }
+    ],
+    columns: [
+      { key: "intelligence", label: "智能指数", type: "num", better: "high", primary: true },
+      { key: "coding", label: "代码", type: "num", better: "high" },
+      { key: "agentic", label: "Agent", type: "num", better: "high" },
+      { key: "speed", label: "速度(tok/s)", type: "num", better: "high" },
+      { key: "price", label: "输出价($/1M)", type: "num", better: "low" }
+    ],
+    rows: [
+      { model: "GPT-5", vendor: "OpenAI", intelligence: 78, coding: 82, agentic: 80, speed: 95, price: 12 },
+      { model: "Claude Opus 4.1", vendor: "Anthropic", intelligence: 80, coding: 75, agentic: 74, speed: 60, price: 15 },
+      { model: "Gemini 3", vendor: "Google", intelligence: 76, coding: 78, agentic: 72, speed: 88, price: 10 },
+      { model: "DeepSeek V3", vendor: "DeepSeek", intelligence: 70, coding: 74, agentic: 71, speed: 110, price: 3, isSample: true },
+      { model: "Llama 4", vendor: "Meta", intelligence: 68, coding: 66, agentic: 64, speed: 90, price: 4 }
+    ]
+  },
+  livebench: {
+    accent: "var(--accent-lb)",
+    dim: [
+      { key: "overall", label: "综合" },
+      { key: "coding", label: "Coding" },
+      { key: "language", label: "Language" }
+    ],
+    columns: [
+      { key: "overall", label: "综合", type: "num", better: "high", primary: true },
+      { key: "coding", label: "Coding", type: "num", better: "high" },
+      { key: "language", label: "Language", type: "num", better: "high" },
+      { key: "cost", label: "$/成功", type: "num", better: "low" }
+    ],
+    rows: [
+      { model: "GPT-5", vendor: "OpenAI", overall: 65.2, coding: 68.1, language: 62.4, cost: 0.18 },
+      { model: "Claude Opus 4.1", vendor: "Anthropic", overall: 66.8, coding: 64.0, language: 69.5, cost: 0.24 },
+      { model: "Gemini 3", vendor: "Google", overall: 63.1, coding: 61.2, language: 60.8, cost: 0.15 },
+      { model: "DeepSeek V3", vendor: "DeepSeek", overall: 58.4, coding: 57.0, language: 55.1, cost: 0.04, isSample: true },
+      { model: "Qwen 3 Max", vendor: "Alibaba", overall: 57.0, coding: 55.3, language: 54.0, cost: 0.05 }
+    ]
+  }
+};
+
+const state = { view: "aa", board: "text", dim: "intelligence", vendor: "all", sortDir: "desc", sortKey: "intelligence", search: "", compare: [] };
+
+function vendorsOf(view) {
+  const set = new Set(DATA[view].rows.map(r => r.vendor));
+  return ["all", ...set];
+}
+function displayed() {
+  let rows = DATA[state.view].rows.slice();
+  if (state.vendor !== "all") rows = rows.filter(r => r.vendor === state.vendor);
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    rows = rows.filter(r => (r.model + " " + r.vendor).toLowerCase().includes(q));
+  }
+  const primaryKey = state.view === "arena" ? "elo" : state.dim;
+  const sortCol = DATA[state.view].columns.find(c => c.key === state.sortKey) || DATA[state.view].columns.find(c => c.key === primaryKey);
+  rows.sort((a, b) => state.sortDir === "desc" ? b[sortCol.key] - a[sortCol.key] : a[sortCol.key] - b[sortCol.key]);
+  return rows;
+}
+function barPct(val, key) {
+  const col = DATA[state.view].columns.find(c => c.key === key);
+  const vals = DATA[state.view].rows.map(r => r[key]).filter(v => typeof v === "number");
+  const min = Math.min(...vals), max = Math.max(...vals);
+  if (max === min) return 100;
+  const norm = (val - min) / (max - min);
+  return (col.better === "low" ? 1 - norm : norm) * 100;
+}
+function fmt(v) { return typeof v === "number" ? (Math.round(v * 10) / 10).toLocaleString() : v; }
+
+function renderToolbar() {
+  const d = DATA[state.view];
+  let html = "";
+  if (state.view === "arena") {
+    html += `<div class="chips">` + d.board.map(b =>
+      `<button class="chip ${b === state.board ? "active" : ""}" data-board="${b}">${d.boardLabel[b]}</button>`).join("") + `</div>`;
+  } else {
+    html += `<div class="chips">` + d.dim.map(x =>
+      `<button class="chip ${x.key === state.dim ? "active" : ""}" data-dim="${x.key}">${x.label}</button>`).join("") + `</div>`;
+  }
+  html += `<label class="vendor-field" style="display:inline-flex;align-items:center;gap:8px;color:var(--text-2);font-size:13px;">厂商
+      <select id="vendorSel" class="select">` + vendorsOf(state.view).map(v => `<option value="${v}" ${v === state.vendor ? "selected" : ""}>${v === "all" ? "全部厂商" : v}</option>`).join("") + `</select></label>`;
+  html += `<div class="search"><span class="ph">🔍</span><input id="searchInput" placeholder="搜索模型 / 厂商…" value="${state.search}"></div>`;
+  html += `<button class="btn sort-btn" id="sortBtn">${state.sortDir === "desc" ? "↓ 降序" : "↑ 升序"}</button>`;
+  html += `<button class="btn btn-primary" id="refreshBtn">刷新</button>`;
+  document.getElementById("toolbar").innerHTML = html;
+}
+
+function renderSummary(n) {
+  const d = DATA[state.view];
+  const total = d.rows.length;
+  let label = state.view === "arena" ? d.boardLabel[state.board] + " 榜" : (state.view === "aa" ? "AA" : "LiveBench");
+  const shown = n === total ? `共 <b>${n}</b>` : `展示 <b>${n}</b>/${total}`;
+  document.getElementById("summary").innerHTML =
+    `<span class="sdot"></span> ${label} · ${shown} 个模型 · 数据源 <b>实时</b>`;
+}
+
+function renderTable() {
+  const d = DATA[state.view];
+  const rows = displayed();
+  const cols = d.columns;
+  const primaryKey = state.view === "arena" ? "elo" : state.dim;
+  let thead = `<tr><th class="rank">#</th><th class="model-col">模型</th><th class="vendor-col">厂商</th>` +
+    cols.map(c => {
+      const isSorted = c.key === state.sortKey;
+      const arrow = isSorted ? (state.sortDir === "desc" ? " ↓" : " ↑") : "";
+      return `<th class="num ${c.key === primaryKey ? "primary" : ""}${isSorted ? " th-sorted" : ""}" data-sort="${c.key}">${c.label}<span class="th-arrow">${arrow}</span></th>`;
+    }).join("") +
+    `<th class="ck-cell">对比</th></tr>`;
+  let tbody = rows.map((r, i) => {
+    const rank = i + 1;
+    const medal = rank <= 3 ? `<span class="medal g${rank}">${rank}</span>` : rank;
+    const ck = `<input type="checkbox" class="ck" data-id="${r.model}" ${state.compare.includes(r.model) ? "checked" : ""} ${!state.compare.includes(r.model) && state.compare.length >= 3 ? "disabled" : ""}>`;
+    const cells = cols.map(c => {
+      if (c.key === primaryKey) {
+        return `<td class="num"><div class="primary tnum">${fmt(r[c.key])}</div><div class="bar"><i style="width:${barPct(r[c.key], c.key)}%"></i></div></td>`;
+      }
+      return `<td class="num tnum">${fmt(r[c.key])}</td>`;
+    }).join("");
+    const sample = r.isSample ? `<span class="tag-sample">示例</span>` : "";
+    return `<tr class="${r.isSample ? "sample-row" : ""}">
+      <td class="rank">${medal}</td>
+      <td><div class="model">${r.model} ${sample}</div></td>
+      <td class="vendor vendor-col">${r.vendor}</td>
+      ${cells}<td class="ck-cell">${ck}</td></tr>`;
+  }).join("");
+  document.getElementById("tableWrap").innerHTML = `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+  renderCards(rows, cols, primaryKey);
+  renderSummary(rows.length);
+  renderScatter();
+}
+
+const VENDOR_COLORS = {
+  "OpenAI": "#10a37f",
+  "Anthropic": "#d97757",
+  "Google": "#4285f4",
+  "DeepSeek": "#6c5ce7",
+  "Meta": "#fd79a8"
+};
+function vendorColor(v) { return VENDOR_COLORS[v] || "#8a93a3"; }
+
+function renderScatter() {
+  const wrap = document.getElementById("scatterWrap");
+  if (state.view !== "aa") { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
+  wrap.style.display = "";
+
+  const rows = displayed();
+  const W = 720, H = 360, padL = 52, padR = 20, padT = 16, padB = 42;
+  const x0 = padL, x1 = W - padR, y0 = padT, y1 = H - padB;
+  const pw = x1 - x0, ph = y1 - y0;
+  const xMin = 2, xMax = 20, yMin = 60, yMax = 85;
+  const sx = p => x0 + (Math.log(p) - Math.log(xMin)) / (Math.log(xMax) - Math.log(xMin)) * pw;
+  const sy = i => y0 + (1 - (i - yMin) / (yMax - yMin)) * ph;
+
+  const xticks = [2, 5, 10, 20];
+  const yticks = [60, 65, 70, 75, 80, 85];
+  let grid = "";
+  xticks.forEach(t => { const x = sx(t); grid += `<line x1="${x}" y1="${y0}" x2="${x}" y2="${y1}" stroke="var(--border)" stroke-width="1"/>`; });
+  yticks.forEach(t => { const y = sy(t); grid += `<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`; });
+  let xt = "", yt = "";
+  xticks.forEach(t => { xt += `<text x="${sx(t)}" y="${y1 + 16}" text-anchor="middle" fill="var(--text-2)" font-size="11">$${t}</text>`; });
+  yticks.forEach(t => { yt += `<text x="${x0 - 8}" y="${sy(t) + 4}" text-anchor="end" fill="var(--text-2)" font-size="11">${t}</text>`; });
+  const xTitle = `<text x="${(x0 + x1) / 2}" y="${H - 6}" text-anchor="middle" fill="var(--text-2)" font-size="11.5">输出价 ($/1M) · 对数</text>`;
+  const yTitle = `<text transform="rotate(-90)" x="${-(y0 + y1) / 2}" y="14" text-anchor="middle" fill="var(--text-2)" font-size="11.5">智能指数</text>`;
+  const hint = `<text x="${x0 + 6}" y="${y0 + 14}" fill="var(--text-2)" font-size="11">← 更高性价比</text>`;
+
+  let bubbles = "";
+  rows.forEach(r => {
+    const cx = sx(r.price), cy = sy(r.intelligence);
+    const rad = 8 + (r.speed - 60) / (110 - 60) * 6;
+    const col = vendorColor(r.vendor);
+    const sel = state.compare.includes(r.model);
+    const dis = (!sel && state.compare.length >= 3);
+    bubbles += `<g class="bub${sel ? " sel" : ""}${dis ? " dis" : ""}" data-id="${r.model}" role="button" tabindex="${dis ? -1 : 0}" aria-label="${r.model}，${r.vendor}，智能指数 ${r.intelligence}，输出价 ${r.price} 美元每百万 token，速度 ${r.speed} tok/s${r.isSample ? "，示例模型" : ""}，点击${sel ? "取消" : "加入"}对比" aria-pressed="${sel}" aria-disabled="${dis}" style="cursor:${dis ? "not-allowed" : "pointer"}">
+      ${sel ? `<circle cx="${cx}" cy="${cy}" r="${rad + 4}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>` : ""}
+      <circle class="bub-c" cx="${cx}" cy="${cy}" r="${rad}" fill="${col}" fill-opacity="${sel ? 1 : 0.82}" stroke="${r.isSample ? "var(--surface)" : "none"}" stroke-width="${r.isSample ? 2 : 0}"/>
+      ${r.isSample ? `<circle cx="${cx}" cy="${cy}" r="${rad + 3}" fill="none" stroke="${col}" stroke-width="1.5" stroke-dasharray="3 3"/>` : ""}
+    </g>`;
+  });
+
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="价值散点图：智能指数与输出价">${grid}${xt}${yt}${xTitle}${yTitle}${hint}${bubbles}</svg>`;
+  const vendors = [...new Set(rows.map(r => r.vendor))];
+  const legend = `<div class="scatter-legend">` + vendors.map(v => `<span class="li"><span class="sw" style="background:${vendorColor(v)}"></span>${v}</span>`).join("") + `</div>`;
+  const sizeLegend = `<div class="scatter-size-legend" aria-hidden="true"><span class="sz-label">气泡大小＝输出速度</span><svg class="sz-scale" viewBox="0 0 132 26" width="132" height="26"><circle cx="9" cy="13" r="5" fill="var(--text-3)"/><circle cx="40" cy="13" r="9" fill="var(--text-3)"/><circle cx="78" cy="13" r="13" fill="var(--text-3)"/><text x="98" y="17" font-size="11" fill="var(--text-3)">慢 → 快</text></svg></div>`;
+  wrap.innerHTML = `<div class="scatter-head"><div class="scatter-title">价值散点 · 智能指数 × 输出价</div><div class="scatter-hint">气泡大小＝输出速度 · 点击气泡加入对比（最多 3 个）</div></div><div class="scatter-canvas" id="scatterCanvas">${svg}<div class="scatter-tip" id="scatterTip" hidden></div></div>${sizeLegend}${legend}`;
+
+  const tip = document.getElementById("scatterTip");
+  const canvas = document.getElementById("scatterCanvas");
+  wrap.querySelectorAll(".bub").forEach(g => {
+    const id = g.dataset.id;
+    const r = DATA.aa.rows.find(x => x.model === id);
+    const setTip = () => {
+      const sel = state.compare.includes(id);
+      tip.innerHTML = `<b>${r.model}</b> · ${r.vendor}<br><span class="tip-row">智能指数 ${r.intelligence} · 输出价 $${r.price}/1M</span><br><span class="tip-row">速度 ${r.speed} tok/s${r.isSample ? " · 示例" : ""}</span><br>${sel ? "✓ 已在对比" : "点击加入对比"}`;
+    };
+    const toggle = () => {
+      if (!state.compare.includes(id)) {
+        if (state.compare.length >= 3) return;
+        state.compare.push(id);
+      } else {
+        state.compare = state.compare.filter(x => x !== id);
+      }
+      renderTable(); renderCompare();
+      const ng = wrap.querySelector(`.bub[data-id="${id}"]`);
+      if (ng && ng.getAttribute("tabindex") !== "-1") ng.focus();
+    };
+    g.addEventListener("mouseenter", () => {
+      setTip();
+      const cr = canvas.getBoundingClientRect();
+      const b = g.getBoundingClientRect();
+      tip.style.left = (b.left - cr.left + b.width / 2) + "px";
+      tip.style.top = (b.top - cr.top) + "px";
+      tip.hidden = false;
+    });
+    g.addEventListener("mouseleave", () => { tip.hidden = true; });
+    g.addEventListener("click", () => { if (g.getAttribute("aria-disabled") !== "true") toggle(); });
+    g.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (g.getAttribute("aria-disabled") !== "true") toggle();
+      }
+    });
+  });
+}
+
+function renderCards(rows, cols, primaryKey) {
+  const primary = cols.find(c => c.key === primaryKey);
+  let html = rows.map((r, i) => {
+    const rank = i + 1;
+    const medal = rank <= 3 ? `<span class="medal g${rank}">${rank}</span>` : `<span class="rank" style="width:auto;margin-right:6px">${rank}</span>`;
+    const others = cols.filter(c => c !== primary).map(c =>
+      `<div><span>${c.label}</span><b class="tnum">${fmt(r[c.key])}</b></div>`).join("");
+    const sample = r.isSample ? "sample" : "";
+    const ck = state.compare.includes(r.model) ? "checked" : "";
+    const dis = (!state.compare.includes(r.model) && state.compare.length >= 3) ? "disabled" : "";
+    return `<div class="mcard ${sample}">
+      ${medal}
+      <div class="mbody">
+        <div class="mtop">
+          <div><div class="mname">${r.model}</div><div class="mvendor">${r.vendor}</div></div>
+          <div class="mbig tnum">${fmt(r[primary.key])}</div>
+        </div>
+        <div class="bar"><i style="width:${barPct(r[primary.key], primary.key)}%"></i></div>
+        <div class="mgrid">${others}</div>
+        <label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--text-2)">
+          <input type="checkbox" class="ck" data-id="${r.model}" ${ck} ${dis}> 加入对比</label>
+      </div></div>`;
+  }).join("");
+  document.getElementById("cardList").innerHTML = html;
+}
+
+function renderCompare() {
+  const n = state.compare.length;
+  document.getElementById("fab").classList.toggle("show", n > 0);
+  document.getElementById("fabCount").textContent = n;
+  document.getElementById("drawerCount").textContent = n;
+  const d = DATA[state.view];
+  const models = state.compare.map(id => d.rows.find(r => r.model === id)).filter(Boolean);
+  if (n < 2) {
+    document.getElementById("drawerBody").innerHTML = `<p style="color:var(--text-2)">再勾选至少 1 个模型即可开始对比。</p>`;
+    return;
+  }
+  const cols = d.columns;
+  const head = `<tr><th></th>` + models.map(m => `<th>${m.model}</th>`).join("") + `</tr>`;
+  const body = cols.map(c => {
+    const best = c.better === "high" ? Math.max(...models.map(m => m[c.key])) : Math.min(...models.map(m => m[c.key]));
+    return `<tr><td>${c.label}</td>` + models.map(m =>
+      `<td class="tnum ${m[c.key] === best ? "best" : ""}">${fmt(m[c.key])}</td>`).join("") + `</tr>`;
+  }).join("");
+  document.getElementById("drawerBody").innerHTML = `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+}
+
+function setView(v) {
+  state.view = v;
+  state.board = "text";
+  state.dim = DATA[v].dim ? DATA[v].dim[0].key : "elo";
+  state.sortKey = state.view === "arena" ? "elo" : state.dim;
+  state.vendor = "all"; state.search = "";
+  document.documentElement.style.setProperty("--accent", DATA[v].accent);
+  document.querySelectorAll(".seg").forEach(s => s.setAttribute("aria-selected", s.dataset.view === v));
+  renderToolbar(); renderTable(); renderCompare();
+}
+
+function bind() {
+  document.getElementById("viewSwitch").addEventListener("click", e => {
+    const b = e.target.closest(".seg"); if (b) setView(b.dataset.view);
+  });
+  const toolbar = document.getElementById("toolbar");
+  toolbar.addEventListener("click", e => {
+    const chip = e.target.closest(".chip");
+    if (chip) {
+      if (chip.dataset.board) state.board = chip.dataset.board;
+      else if (chip.dataset.dim) state.dim = chip.dataset.dim;
+      renderToolbar(); renderTable();
+    }
+    if (e.target.id === "sortBtn") { state.sortDir = state.sortDir === "desc" ? "asc" : "desc"; renderToolbar(); renderTable(); }
+    if (e.target.id === "refreshBtn") { const b = e.target; b.textContent = "刷新中…"; setTimeout(() => { b.textContent = "刷新"; }, 600); }
+  });
+  toolbar.addEventListener("change", e => {
+    if (e.target.id === "vendorSel") { state.vendor = e.target.value; renderTable(); }
+  });
+  toolbar.addEventListener("input", e => {
+    if (e.target.id === "searchInput") { state.search = e.target.value; renderTable(); }
+  });
+  const main = document.querySelector(".main");
+  main.addEventListener("change", e => {
+    if (e.target.classList.contains("ck")) {
+      const id = e.target.dataset.id;
+      if (e.target.checked) { if (state.compare.length < 3) state.compare.push(id); }
+      else state.compare = state.compare.filter(x => x !== id);
+      renderTable(); renderCompare();
+    }
+  });
+  const tableWrap = document.getElementById("tableWrap");
+  tableWrap.addEventListener("click", e => {
+    const th = e.target.closest("th[data-sort]");
+    if (!th) return;
+    const key = th.dataset.sort;
+    if (state.sortKey === key) {
+      state.sortDir = state.sortDir === "desc" ? "asc" : "desc";
+    } else {
+      state.sortKey = key;
+      const col = DATA[state.view].columns.find(c => c.key === key);
+      state.sortDir = col && col.better === "low" ? "asc" : "desc";
+    }
+    renderTable();
+  });
+  document.getElementById("fab").addEventListener("click", () => {
+    document.getElementById("mask").classList.add("show");
+    document.getElementById("drawer").classList.add("show");
+  });
+  const close = () => { document.getElementById("mask").classList.remove("show"); document.getElementById("drawer").classList.remove("show"); };
+  document.getElementById("mask").addEventListener("click", close);
+  document.getElementById("closeDrawer").addEventListener("click", close);
+  document.getElementById("clearCmp").addEventListener("click", () => { state.compare = []; renderTable(); renderCompare(); close(); });
+  document.getElementById("copyCmp").addEventListener("click", e => { e.target.textContent = "已复制"; setTimeout(() => e.target.textContent = "复制", 1500); });
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme");
+    document.documentElement.setAttribute("data-theme", cur === "light" ? "dark" : "light");
+  });
+}
+
+setView("aa");
+bind();
+</script>
+</body>
+</html>
