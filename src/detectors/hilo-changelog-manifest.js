@@ -93,23 +93,29 @@ class HiloChangelogManifestDetector extends Detector {
     const changelog = renderChangelog(head);
     const changelogUrl = manifestUrl;
 
-    // 3. 并发拉 yml 取 release_url (失败留空, 不阻断主流程)
+    // 3. 并发拉 yml, 既取 release_url 也取 version (ymlsometimes 比 manifest 新)
     const baseUrl = manifestUrl.replace(/\/[^/]*$/, "");
-    const releaseUrl = await fetchReleaseUrl(
-      baseUrl,
-      ctx.arch,
-      ctx.http,
-      timeout,
-      ctxLog,
-    );
+    const yml = await fetchYml(baseUrl, ctx.http, timeout, ctxLog);
+    const releaseUrl = yml ? extractZipUrl(yml, ctx.arch) : "";
+    const ymlVersion = yml ? extractYmlVersion(yml) : "";
+
+    // 若 yml 报告的版本比 manifest.items[0] 更新, 以 yml 为准 (manifest 漏更新常见)
+    let finalVersion = version;
+    let finalChangelog = changelog;
+    if (ymlVersion && isGreater(ymlVersion, version)) {
+      finalVersion = ymlVersion;
+      finalChangelog = ""; // manifest 没这一版, changelog 留空避免误导
+    }
 
     return new DetectorResult({
-      version,
+      version: finalVersion,
       raw: truncate(JSON.stringify(head), 1024),
       source: this.constructor.name,
-      confidence: "high",
-      note: `hilo changelog (${new URL(manifestUrl).hostname})`,
-      changelog,
+      confidence: ymlVersion && isGreater(ymlVersion, version) ? "medium" : "high",
+      note: ymlVersion && isGreater(ymlVersion, version)
+        ? `hilo changelog+yml (manifest=${version}, yml=${ymlVersion})`
+        : `hilo changelog (${new URL(manifestUrl).hostname})`,
+      changelog: finalChangelog,
       changelog_url: changelogUrl,
       release_url: releaseUrl,
     });
@@ -225,14 +231,14 @@ function renderChangelog(entry) {
  *
  * ponytail: 已知 js-yaml 存在; 失败时 regex 兜底, 跟 electron-yml detector 同款.
  */
-async function fetchReleaseUrl(baseUrl, arch, http, timeout, logger) {
+async function fetchYml(baseUrl, http, timeout, logger) {
   if (!baseUrl) return "";
   const ymlUrl = `${baseUrl.replace(/\/+$/, "")}/latest-mac.yml`;
   try {
     const r = await http.get(ymlUrl, { timeout });
     if (!r || r.error) return "";
     if (r.status >= 400) return "";
-    return extractZipUrl(r.body, arch);
+    return r.body || "";
   } catch (err) {
     if (logger && typeof logger.debug === "function") {
       logger.debug(
@@ -241,6 +247,27 @@ async function fetchReleaseUrl(baseUrl, arch, http, timeout, logger) {
     }
     return "";
   }
+}
+
+function extractYmlVersion(ymlBody) {
+  if (!ymlBody) return "";
+  const m = ymlBody.match(/^version:\s*['"]?([^'"\s#]+)['"]?/m);
+  return m ? m[1].trim() : "";
+}
+
+/**
+ * a > b? 仅当 a 严格高于 b (semver 主体逐段). 解析失败 → false.
+ */
+function isGreater(a, b) {
+  const pa = String(a).split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = String(b).split(".").map((n) => parseInt(n, 10) || 0);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const x = pa[i] || 0;
+    const y = pb[i] || 0;
+    if (x !== y) return x > y;
+  }
+  return false;
 }
 
 /**

@@ -289,6 +289,70 @@ describe("HiloChangelogManifestDetector", () => {
     expect(r.release_url).toBe("");
   });
 
+  it("yml 比 manifest 新 → 以 yml.version 为准 (防 manifest 漏更新)", async () => {
+    const manifestBody = buildManifest({ zhItems: [ZH_ITEM] });
+    const ymlBody =
+      "version: 1.1.3\nfiles:\n  - url: MiniMax Hub-1.1.3-arm64-mac.zip\n";
+    const http = new MockHttp({
+      urlHandlers: [
+        {
+          match: /changelog\.json/,
+          response: { status: 200, body: manifestBody },
+        },
+        { match: /latest-mac\.yml/, response: { status: 200, body: ymlBody } },
+      ],
+    });
+    const det = new HiloChangelogManifestDetector({ urls: [OVERSEAS_URL] });
+    const r = await det.detect(makeCtx({ http, arch: "arm64" }));
+    expect(r.version).toBe("1.1.3");
+    expect(r.confidence).toBe("medium");
+    expect(r.note).toContain("manifest=1.0.7");
+    expect(r.note).toContain("yml=1.1.3");
+    // changelog 留空: manifest 没这一版
+    expect(r.changelog).toBe("");
+    // release_url 仍可拿
+    expect(r.release_url).toBe("MiniMax Hub-1.1.3-arm64-mac.zip");
+  });
+
+  it("yml == manifest → 仍以 manifest 版本为主, confidence=high", async () => {
+    const manifestBody = buildManifest({ zhItems: [ZH_ITEM] });
+    const ymlBody =
+      "version: 1.0.7\nfiles:\n  - url: MiniMax Hub-1.0.7-arm64-mac.zip\n";
+    const http = new MockHttp({
+      urlHandlers: [
+        {
+          match: /changelog\.json/,
+          response: { status: 200, body: manifestBody },
+        },
+        { match: /latest-mac\.yml/, response: { status: 200, body: ymlBody } },
+      ],
+    });
+    const det = new HiloChangelogManifestDetector({ urls: [OVERSEAS_URL] });
+    const r = await det.detect(makeCtx({ http, arch: "arm64" }));
+    expect(r.version).toBe("1.0.7");
+    expect(r.confidence).toBe("high");
+    expect(r.changelog).toContain("### v1.0.7");
+  });
+
+  it("yml 比 manifest 旧 → 以 manifest 版本为主", async () => {
+    const manifestBody = buildManifest({ zhItems: [ZH_ITEM] });
+    const ymlBody =
+      "version: 1.0.6\nfiles:\n  - url: MiniMax Hub-1.0.6-arm64-mac.zip\n";
+    const http = new MockHttp({
+      urlHandlers: [
+        {
+          match: /changelog\.json/,
+          response: { status: 200, body: manifestBody },
+        },
+        { match: /latest-mac\.yml/, response: { status: 200, body: ymlBody } },
+      ],
+    });
+    const det = new HiloChangelogManifestDetector({ urls: [OVERSEAS_URL] });
+    const r = await det.detect(makeCtx({ http, arch: "arm64" }));
+    expect(r.version).toBe("1.0.7");
+    expect(r.changelog).toContain("### v1.0.7");
+  });
+
   it("JSON 解析失败 → 视为无效 URL (走 fallback / NO_VERSION)", async () => {
     const http = new MockHttp({
       urlHandlers: [
