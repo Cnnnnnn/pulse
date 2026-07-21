@@ -214,3 +214,56 @@ export function normalizeToUnit(v, min, max) {
   const t = (v - min) / (max - min);
   return Math.max(0, Math.min(1, t));
 }
+
+/**
+ * 跨源雷达（厂商聚合版）：把合并后的模型列表按厂商聚合，
+ * 取每个厂商在各源的最佳切片（arena 取最高 ELO / aa 取最高智能指数 / lb 取最高 overall）。
+ *
+ * 为何按厂商而非按模型：三源模型 id 命名体系不一致（Arena 用 vendor+版本快照名、
+ * AA 用发行名、LiveBench 用评测原始 id），精确 id 合并后三源几乎零交集
+ * （实测 465 个模型无任何一个同时具备三切片）。而厂商名三源一致
+ * （normalizeVendor 归一），故按厂商可靠对齐，规避模糊匹配的误并风险。
+ *
+ * @param {object[]} items 合并后的模型（含 arena/aa/livebench 切片）
+ * @returns {Map<string,{arena:number|null, aa:number|null, livebench:number|null}>}
+ */
+export function aggregateVendorProfiles(items) {
+  const map = new Map();
+  if (!Array.isArray(items)) return map;
+  const push = (vendor, axis, val) => {
+    if (val == null || !Number.isFinite(val)) return;
+    if (!map.has(vendor)) map.set(vendor, { arena: null, aa: null, livebench: null });
+    const cur = map.get(vendor);
+    if (cur[axis] == null || val > cur[axis]) cur[axis] = val;
+  };
+  for (const m of items) {
+    if (!m || !m.vendor) continue;
+    // arena：该厂商所有 board 的最高 ELO
+    let bestArena = null;
+    const arena = m.arena && typeof m.arena === "object" ? m.arena : {};
+    for (const k of Object.keys(arena)) {
+      const s = arena[k];
+      if (s && typeof s.score === "number") {
+        bestArena = bestArena == null ? s.score : Math.max(bestArena, s.score);
+      }
+    }
+    push(m.vendor, "arena", bestArena);
+    const aa = m.aa;
+    push(m.vendor, "aa", aa && typeof aa.intelligenceIndex === "number" ? aa.intelligenceIndex : null);
+    const lb = m.livebench;
+    push(m.vendor, "livebench", lb && typeof lb.overall === "number" ? lb.overall : null);
+  }
+  return map;
+}
+
+/**
+ * 从厂商 profile 数组里按 Arena ELO 取前 n 个，作为雷达的基准上下文。
+ * @param {Array<{vendor:string, arena:number|null, aa:number|null, livebench:number|null}>} profiles
+ * @param {number} n
+ */
+export function topVendorsByArena(profiles, n = 8) {
+  return [...profiles]
+    .filter((p) => p.arena != null)
+    .sort((a, b) => b.arena - a.arena)
+    .slice(0, n);
+}

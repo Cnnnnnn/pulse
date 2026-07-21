@@ -1517,6 +1517,36 @@
   color: var(--text-tertiary);
   font-style: italic;
 }
+.ai-lb-radar__legend-item.is-focus {
+  background: color-mix(in oklch, var(--ai-lb-accent) 14%, transparent);
+  box-shadow: inset 2px 0 0 var(--ai-lb-accent);
+}
+.ai-lb-radar__legend-item.is-partial {
+  opacity: 0.85;
+}
+.ai-lb-radar__tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ai-lb-accent-text);
+  background: color-mix(in oklch, var(--ai-lb-accent) 22%, transparent);
+  border-radius: 999px;
+  padding: 1px 6px;
+  line-height: 1.6;
+}
+.ai-lb-radar__miss {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  margin-left: 6px;
+}
+.ai-lb-drawer__hint--sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: var(--space-2);
+  line-height: 1.5;
+}
+.ai-lb-drawer__hint--sub b {
+  color: var(--text-secondary);
+}
 .ai-lb-radar__swatch {
   width: 12px;
   height: 12px;

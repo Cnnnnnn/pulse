@@ -11,7 +11,7 @@ import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.jsx";
 import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.jsx";
 import { CrossSourceRadar } from "../../src/renderer/ai-leaderboard/CrossSourceRadar.jsx";
 import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.js";
-import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX } from "../../src/renderer/ai-leaderboard/format.js";
+import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, aggregateVendorProfiles, topVendorsByArena } from "../../src/renderer/ai-leaderboard/format.js";
 import {
   columnValue,
   toggleSort,
@@ -97,7 +97,7 @@ const lbModels = [
   },
 ];
 
-// 跨源雷达：a 三源齐全，b 缺 livebench（应进入「数据不全」）
+// 跨源雷达：Alpha(oa) 三源齐全；Gamma(g) 缺 livebench（部分轴，应进入 is-partial）
 const crossSourceModels = [
   {
     id: "a",
@@ -108,11 +108,11 @@ const crossSourceModels = [
     livebench: { overall: 65, byCategory: { Coding: 70, Language: 60, IF: 55 }, cost: { perSuccessfulTask: 0.5 } },
   },
   {
-    id: "b",
-    name: "Beta",
-    vendor: "oa",
-    arena: { text: { score: 1450, ci: 15, votes: 6000 } },
-    aa: { intelligenceIndex: 55, codingIndex: 40, agenticIndex: 30, outputTokensPerSec: 60, priceOutputPer1M: 5 },
+    id: "g",
+    name: "Gamma",
+    vendor: "g",
+    arena: { text: { score: 1400, ci: 15, votes: 6000 } },
+    aa: { intelligenceIndex: 50, codingIndex: 40, agenticIndex: 30, outputTokensPerSec: 60, priceOutputPer1M: 5 },
     // 缺 livebench 切片
   },
 ];
@@ -179,21 +179,24 @@ describe("LeaderboardTable 渲染", () => {
     expect(sortKey.value).toBe("intelligence");
   });
 
-  it("CrossSourceRadar：三源齐全模型绘制多边形，缺失轴模型进入数据不全", () => {
-    const { container } = render(<CrossSourceRadar models={crossSourceModels} />);
+  it("CrossSourceRadar：厂商聚合后完整厂商绘多边形，部分轴厂商进入 is-partial", () => {
+    // 与线上一致：先用 aggregateVendorProfiles 聚合成厂商 profile，再传入雷达
+    const vendorMap = aggregateVendorProfiles(crossSourceModels);
+    const profiles = [...vendorMap.entries()].map(([vendor, p]) => ({ vendor, ...p }));
+    const { container } = render(<CrossSourceRadar profiles={profiles} />);
     expect(container.querySelectorAll(".ai-lb-radar").length).toBe(1);
-    // 仅 Alpha 三轴齐全 → 1 个多边形 path（网格环另有 4 个 path，故 >1）
+    // 两厂商 → ≥2 个模型多边形 path + 4 个网格环
     const paths = container.querySelectorAll(".ai-lb-radar__svg path");
-    expect(paths.length).toBeGreaterThan(4); // 4 环 + 1 模型
+    expect(paths.length).toBeGreaterThan(4);
     // 三轴标签齐备
     expect(container.querySelector(".ai-lb-radar__axis")).toBeTruthy();
-    // Beta 缺 LiveBench → 图例标记为数据不全
-    expect(container.querySelector(".ai-lb-radar__legend-item.is-missing")).toBeTruthy();
-    expect(container.textContent).toContain("缺");
+    // Gamma 缺 LiveBench → 图例标记为部分轴，并提示缺失源
+    expect(container.querySelector(".ai-lb-radar__legend-item.is-partial")).toBeTruthy();
+    expect(container.textContent).toContain("缺 LiveBench");
   });
 
-  it("CrossSourceRadar：无任何模型时渲染空状态", () => {
-    const { container } = render(<CrossSourceRadar models={[]} />);
+  it("CrossSourceRadar：无任何 profile 时渲染空状态", () => {
+    const { container } = render(<CrossSourceRadar profiles={[]} />);
     expect(container.querySelector(".ai-lb-radar--empty")).toBeTruthy();
   });
 });
@@ -278,8 +281,8 @@ describe("跨源雷达纯函数（E）：crossSourceProfile / normalizeToUnit", 
     expect(p.livebench).toBe(65);
     // 缺 livebench → 该轴 null
     const miss = crossSourceProfile(crossSourceModels[1]);
-    expect(miss.arena).toBe(1450);
-    expect(miss.aa).toBe(55);
+    expect(miss.arena).toBe(1400);
+    expect(miss.aa).toBe(50);
     expect(miss.livebench).toBeNull();
   });
 
@@ -291,5 +294,34 @@ describe("跨源雷达纯函数（E）：crossSourceProfile / normalizeToUnit", 
     // 缺失 / NaN
     expect(normalizeToUnit(null, ELO_MIN, ELO_MAX)).toBeNull();
     expect(normalizeToUnit(NaN, ELO_MIN, ELO_MAX)).toBeNull();
+  });
+});
+
+describe("跨源雷达（厂商聚合）：aggregateVendorProfiles / topVendorsByArena", () => {
+  it("同厂商多模型取各源最佳切片；缺源该轴为 null", () => {
+    const items = [
+      { vendor: "oa", arena: { text: { score: 1500 } }, aa: { intelligenceIndex: 70 }, livebench: { overall: 60 } },
+      { vendor: "oa", arena: { text: { score: 1600 }, vision: { score: 1580 } }, aa: { intelligenceIndex: 80 } }, // 无 livebench
+      { vendor: "g", arena: { text: { score: 1400 } }, aa: { intelligenceIndex: 50 }, livebench: { overall: 40 } },
+    ];
+    const map = aggregateVendorProfiles(items);
+    expect(map.size).toBe(2); // 两个厂商
+    const oa = map.get("oa");
+    expect(oa.arena).toBe(1600); // 取最高 ELO
+    expect(oa.aa).toBe(80); // 取最高智能指数
+    expect(oa.livebench).toBe(60); // 第一个模型有，第二个无 → 取 60
+    const g = map.get("g");
+    expect(g.arena).toBe(1400);
+    expect(g.livebench).toBe(40);
+  });
+
+  it("topVendorsByArena 按 Arena ELO 取前 n 个", () => {
+    const profiles = [
+      { vendor: "g", arena: 1400, aa: 50, livebench: 40 },
+      { vendor: "oa", arena: 1600, aa: 80, livebench: 60 },
+      { vendor: "x", arena: null, aa: 30, livebench: 20 }, // 无 arena → 不参与排序
+    ];
+    const top = topVendorsByArena(profiles, 2);
+    expect(top.map((p) => p.vendor)).toEqual(["oa", "g"]);
   });
 });

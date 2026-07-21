@@ -1,21 +1,25 @@
 /**
  * src/renderer/ai-leaderboard/CrossSourceRadar.jsx
  *
- * 跨源雷达（Cross-Source Radar）：同一批模型在三个独立评测源上的能力叠加对比。
- *   轴 0（顶部）：Arena ELO（社区盲测）
+ * 跨源雷达（Cross-Source Radar）：同一批「厂商（实验室）」在三个独立评测源上的能力叠加对比。
+ *   轴 0（顶部）：Arena ELO（社区盲测，取该厂商最高分）
  *   轴 1（右下）：AA 智能指数（Artificial Analysis 客观）
  *   轴 2（左下）：LiveBench Overall（抗污染客观）
  *
- * 每轴固定量纲域绝对归一（见 format.js 的 ELO_MIN/MAX、AA_IDX_MAX、LB_MAX），
- * 便于跨模型横向比较，而非相对拉伸。任一轴缺失的模型不参与多边形，列入「数据不全」。
+ * 为何按厂商而非按模型：三源模型 id 命名体系不一致，精确 id 合并后三源几乎零交集
+ * （实测 465 个模型无任何一个同时具备三切片）。厂商名三源一致（normalizeVendor 归一），
+ * 故按厂商聚合（每个厂商取各源最佳切片）可靠对齐，规避模糊匹配的误并风险。
  *
- * 纯渲染层：仅依赖 model.arena/aa/livebench 切片与 format.js 纯函数，零 store 依赖。
+ * 每轴固定量纲域绝对归一（见 format.js 的 ELO_MIN/MAX、AA_IDX_MAX、LB_MAX）。
+ * 厂商若仅部分源有数据，则按可用轴绘制（缺轴顶点落在中心，图例标注缺失源）；
+ * 选中模型所属厂商高亮（focus），其余为基准对比上下文。
+ *
+ * 纯渲染层：仅依赖 profiles 数组与 format.js 纯函数，零 store 依赖。
  * 颜色仅 oklch / var / color-mix。
  */
 
 import { useState } from "preact/hooks";
 import {
-  crossSourceProfile,
   normalizeToUnit,
   ELO_MIN,
   ELO_MAX,
@@ -24,7 +28,9 @@ import {
   fmtScore,
   fmtIndex,
   fmtLivebench,
+  fmtVendor,
 } from "./format.js";
+import { VENDOR_META } from "./types.js";
 
 // 厂商 → 雷达颜色（与 ValueScatter / ArenaBubbleChart 同一套色板）
 const VENDOR_COLORS = {
@@ -69,33 +75,33 @@ function fmtAxisVal(key, v) {
   return fmtLivebench(v);
 }
 
-export function CrossSourceRadar({ models = [] }) {
+export function CrossSourceRadar({ profiles = [] }) {
   const [hover, setHover] = useState(null);
 
-  // 计算每模型的归一化轮廓 + 收集缺失轴
+  // 计算每个厂商的归一化轮廓 + 收集可用轴 / 缺失轴
   const plotted = [];
-  const missing = [];
-  for (const m of models) {
-    const raw = crossSourceProfile(m);
+  const nodata = [];
+  for (const p of profiles) {
     const norm = {
-      arena: normalizeToUnit(raw.arena, ELO_MIN, ELO_MAX),
-      aa: normalizeToUnit(raw.aa, 0, AA_IDX_MAX),
-      livebench: normalizeToUnit(raw.livebench, 0, LB_MAX),
+      arena: normalizeToUnit(p.arena, ELO_MIN, ELO_MAX),
+      aa: normalizeToUnit(p.aa, 0, AA_IDX_MAX),
+      livebench: normalizeToUnit(p.livebench, 0, LB_MAX),
     };
-    if (norm.arena == null || norm.aa == null || norm.livebench == null) {
-      const miss = [];
-      if (norm.arena == null) miss.push("Arena");
-      if (norm.aa == null) miss.push("AA");
-      if (norm.livebench == null) miss.push("LiveBench");
-      missing.push({ name: m.name, miss });
+    const avail = AXES.map((ax, i) => (norm[ax.key] != null ? i : -1)).filter((i) => i >= 0);
+    if (avail.length === 0) {
+      nodata.push(fmtVendor(p.vendor));
       continue;
     }
+    const miss = AXES.filter((_, i) => !avail.includes(i)).map((ax) => ax.label);
     plotted.push({
-      id: m.id,
-      name: m.name,
-      raw,
+      vendor: p.vendor,
+      label: fmtVendor(p.vendor),
+      raw: { arena: p.arena, aa: p.aa, livebench: p.livebench },
       norm,
-      color: VENDOR_COLORS[m.vendor] || DEFAULT_COLOR,
+      avail,
+      miss,
+      focus: !!p.focus,
+      color: VENDOR_COLORS[p.vendor] || DEFAULT_COLOR,
     });
   }
 
@@ -103,12 +109,11 @@ export function CrossSourceRadar({ models = [] }) {
     return (
       <div class="ai-lb-radar ai-lb-radar--empty">
         <p class="ai-lb-radar__empty">
-          所选模型缺少跨源数据（需同时具备 Arena / AA / LiveBench 三项）。
-          {missing.length > 0 && (
+          所选/基准厂商均缺少跨源数据（需至少具备 Arena / AA / LiveBench 之一）。
+          {nodata.length > 0 && (
             <span>
               {" "}
-              缺失：
-              {missing.map((x) => `${x.name}（缺${x.miss.join("/")}）`).join("； ")}
+              无数据：{nodata.join("、")}
             </span>
           )}
         </p>
@@ -126,7 +131,7 @@ export function CrossSourceRadar({ models = [] }) {
   return (
     <div class="ai-lb-radar">
       <div class="ai-lb-radar__header">
-        <span class="ai-lb-radar__title">跨源雷达 · Arena / AA / LiveBench</span>
+        <span class="ai-lb-radar__title">跨源雷达 · 同厂商跨 Arena / AA / LiveBench</span>
         <span class="ai-lb-radar__hint">三轴固定量纲归一，外圈＝满分；多边形越外扩＝综合越强</span>
       </div>
 
@@ -135,7 +140,7 @@ export function CrossSourceRadar({ models = [] }) {
           viewBox={`0 0 ${SIZE} ${SIZE}`}
           class="ai-lb-radar__svg"
           role="img"
-          aria-label="跨源能力雷达图"
+          aria-label="跨源能力雷达图（按厂商）"
         >
           {/* 网格环 */}
           {rings.map((t) => (
@@ -163,26 +168,57 @@ export function CrossSourceRadar({ models = [] }) {
             );
           })}
 
-          {/* 模型多边形 */}
+          {/* 厂商多边形（含 spoke 与可用轴顶点） */}
           {plotted.map((p) => {
-            const isHover = hover === p.id;
-            const d = AXES.map((_, i) => {
-              const [x, y] = pt(i, p.norm[AXES[i].key]);
-              return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
-            }).join(" ") + " Z";
+            const isHover = hover === p.vendor;
+            const strokeW = p.focus ? (isHover ? 3 : 2.4) : isHover ? 2 : 1.4;
+            const fillOp = p.focus ? (isHover ? 0.3 : 0.16) : isHover ? 0.18 : 0.07;
+            // 仅当有 ≥2 个可用轴时绘制闭合多边形
+            const d =
+              p.avail.length >= 2
+                ? p.avail
+                    .map((i) => {
+                      const [x, y] = pt(i, p.norm[AXES[i].key]);
+                      return `${p.avail[0] === i ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
+                    })
+                    .join(" ") + " Z"
+                : null;
             return (
-              <g key={p.id} onMouseEnter={() => setHover(p.id)} onMouseLeave={() => setHover(null)}>
-                <path
-                  d={d}
-                  fill={p.color}
-                  fill-opacity={isHover ? 0.28 : 0.14}
-                  stroke={p.color}
-                  stroke-width={isHover ? 2.4 : 1.6}
-                  style={{ cursor: "pointer", transition: "fill-opacity 0.12s ease, stroke-width 0.12s ease" }}
-                />
-                {AXES.map((axis, i) => {
-                  const [x, y] = pt(i, p.norm[axis.key]);
-                  return <circle key={i} cx={x} cy={y} r={isHover ? 3.2 : 2.4} fill={p.color} />;
+              <g
+                key={p.vendor}
+                onMouseEnter={() => setHover(p.vendor)}
+                onMouseLeave={() => setHover(null)}
+                style={{ cursor: "pointer" }}
+              >
+                {/* spoke：从中心到每个可用轴顶点 */}
+                {p.avail.map((i) => {
+                  const [x, y] = pt(i, p.norm[AXES[i].key]);
+                  return (
+                    <line
+                      key={`s${i}`}
+                      x1={CX}
+                      y1={CY}
+                      x2={x}
+                      y2={y}
+                      stroke={p.color}
+                      stroke-width={p.focus ? 1 : 0.6}
+                      stroke-opacity={isHover ? 0.9 : 0.5}
+                    />
+                  );
+                })}
+                {d && (
+                  <path
+                    d={d}
+                    fill={p.color}
+                    fill-opacity={fillOp}
+                    stroke={p.color}
+                    stroke-width={strokeW}
+                    style={{ transition: "fill-opacity 0.12s ease, stroke-width 0.12s ease" }}
+                  />
+                )}
+                {p.avail.map((i) => {
+                  const [x, y] = pt(i, p.norm[AXES[i].key]);
+                  return <circle key={`c${i}`} cx={x} cy={y} r={isHover ? 3.2 : 2.4} fill={p.color} />;
                 })}
               </g>
             );
@@ -193,25 +229,27 @@ export function CrossSourceRadar({ models = [] }) {
         <ul class="ai-lb-radar__legend">
           {plotted.map((p) => (
             <li
-              key={p.id}
-              class={`ai-lb-radar__legend-item${hover === p.id ? " is-hover" : ""}`}
-              onMouseEnter={() => setHover(p.id)}
+              key={p.vendor}
+              class={`ai-lb-radar__legend-item${p.focus ? " is-focus" : ""}${p.miss.length ? " is-partial" : ""}${hover === p.vendor ? " is-hover" : ""}`}
+              onMouseEnter={() => setHover(p.vendor)}
               onMouseLeave={() => setHover(null)}
             >
               <span class="ai-lb-radar__swatch" style={{ background: p.color }} />
-              <span class="ai-lb-radar__name">{p.name}</span>
+              <span class="ai-lb-radar__name">{p.label}</span>
+              {p.focus && <span class="ai-lb-radar__tag">已选</span>}
               <span class="ai-lb-radar__vals">
                 ELO {fmtAxisVal("arena", p.raw.arena)} · AA {fmtAxisVal("aa", p.raw.aa)} · LB{" "}
                 {fmtAxisVal("livebench", p.raw.livebench)}
               </span>
+              {p.miss.length > 0 && <span class="ai-lb-radar__miss">缺 {p.miss.join("/")}</span>}
             </li>
           ))}
-          {missing.map((x) => (
-            <li key={x.name} class="ai-lb-radar__legend-item is-missing">
-              <span class="ai-lb-radar__name">{x.name}</span>
-              <span class="ai-lb-radar__vals">缺 {x.miss.join("/")}</span>
+          {nodata.length > 0 && (
+            <li class="ai-lb-radar__legend-item is-missing">
+              <span class="ai-lb-radar__name">无跨源数据</span>
+              <span class="ai-lb-radar__vals">{nodata.join("、")}</span>
             </li>
-          ))}
+          )}
         </ul>
       </div>
     </div>

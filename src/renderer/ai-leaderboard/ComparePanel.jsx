@@ -14,7 +14,7 @@ import {
   loadCrossSource,
 } from "./aiLeaderboardStore.js";
 import { VENDOR_META } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena } from "./format.js";
 import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.js";
 import { CrossSourceRadar } from "./CrossSourceRadar.jsx";
 
@@ -47,10 +47,19 @@ export function ComparePanel() {
     .map((id) => items.value.find((m) => m.id === id))
     .filter(Boolean);
 
-  // 跨源雷达：从三源合并结果中解析当前选中模型
-  const radarModels = ids
-    .map((id) => (crossSourceItems.value || []).find((m) => m.id === id))
-    .filter(Boolean);
+  // 跨源雷达（厂商聚合版）：从三源合并结果按厂商聚合最佳切片。
+  // focus = 选中模型所属厂商（高亮）；context = 按 Arena ELO 取 Top-N 作为基准对比。
+  const allItems = crossSourceItems.value || [];
+  const vendorMap = aggregateVendorProfiles(allItems);
+  const focusSet = new Set(models.map((m) => m.vendor));
+  const vendorArr = [...vendorMap.entries()].map(([vendor, p]) => ({ vendor, ...p }));
+  const focusProfiles = vendorArr
+    .filter((p) => focusSet.has(p.vendor))
+    .map((p) => ({ ...p, focus: true }));
+  const contextProfiles = topVendorsByArena(vendorArr, 10)
+    .filter((p) => !focusSet.has(p.vendor))
+    .map((p) => ({ ...p, focus: false }));
+  const radarProfiles = [...focusProfiles, ...contextProfiles];
 
   const rows = view === "arena"
     ? [
@@ -187,11 +196,14 @@ export function ComparePanel() {
                     重试
                   </button>
                 </p>
-              ) : radarModels.length === 0 ? (
-                <p class="ai-lb-drawer__hint">所选模型未在三源合并结果中找到，无法绘制雷达。</p>
+              ) : radarProfiles.length === 0 ? (
+                <p class="ai-lb-drawer__hint">所选厂商暂无跨源数据，可切换其他模型或稍后重试。</p>
               ) : (
-                <CrossSourceRadar models={radarModels} />
+                <CrossSourceRadar profiles={radarProfiles} />
               )}
+              <p class="ai-lb-drawer__hint ai-lb-drawer__hint--sub">
+                每个厂商取其模型最佳切片；<b>已选</b>厂商高亮，其余为按 Arena ELO 的基准对比（Top 10）。
+              </p>
             </div>
           ) : models.length < 2 ? (
             <p class="ai-lb-drawer__hint">再勾选至少 1 个模型即可开始对比。</p>
