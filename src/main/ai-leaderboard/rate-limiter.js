@@ -12,6 +12,7 @@ const AA_DAILY_LIMIT = 1000;
 
 let _aaUsed = 0;
 let _aaDay = _utcDay();
+let _aaLastAcquireAt = null;
 const _inflight = new Map(); // source -> Promise（单飞）
 
 function _utcDay(d) {
@@ -24,7 +25,13 @@ function _resetIfNewDay() {
   if (today !== _aaDay) {
     _aaDay = today;
     _aaUsed = 0;
+    _aaLastAcquireAt = null;
   }
+}
+
+function _nextUtcMidnight() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0)).toISOString();
 }
 
 /**
@@ -37,6 +44,7 @@ function acquire(source) {
     _resetIfNewDay();
     if (_aaUsed >= AA_DAILY_LIMIT) return false;
     _aaUsed += 1;
+    _aaLastAcquireAt = new Date().toISOString();
     return true;
   }
   return true;
@@ -53,6 +61,27 @@ function remaining(source) {
     return Math.max(0, AA_DAILY_LIMIT - _aaUsed);
   }
   return Infinity;
+}
+
+function budget(source) {
+  if (source !== "artificial-analysis") {
+    return {
+      used: 0,
+      limit: Infinity,
+      remaining: Infinity,
+      dayResetsAt: null,
+      lastAcquireAt: null,
+    };
+  }
+
+  _resetIfNewDay();
+  return {
+    used: _aaUsed,
+    limit: AA_DAILY_LIMIT,
+    remaining: Math.max(0, AA_DAILY_LIMIT - _aaUsed),
+    dayResetsAt: _nextUtcMidnight(),
+    lastAcquireAt: _aaLastAcquireAt,
+  };
 }
 
 /**
@@ -79,6 +108,7 @@ async function singleFlight(source, fn) {
 function resetLimiter() {
   _aaUsed = 0;
   _aaDay = _utcDay();
+  _aaLastAcquireAt = null;
   _inflight.clear();
 }
 
@@ -86,6 +116,7 @@ module.exports = {
   AA_DAILY_LIMIT,
   acquire,
   remaining,
+  budget,
   singleFlight,
   resetLimiter,
 };
