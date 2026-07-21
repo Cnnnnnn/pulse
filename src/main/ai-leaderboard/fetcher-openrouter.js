@@ -86,6 +86,20 @@ function normalize(raw) {
           architecture: archModality ? String(archModality) : null,
           topProvider:
             d.top_provider && d.top_provider.name ? String(d.top_provider.name) : null,
+          // ponytail: OR pricing.prompt / completion 是 USD per token, ×1M 转 $/1M 才能跟 models.dev slice 语义对齐.
+          // 字段值为 "-1" 表示 router 占位 / 未定价, 视作未知 (null).
+          inputCostPer1M:
+            d.pricing && d.pricing.prompt && Number(d.pricing.prompt) >= 0
+              ? Number(d.pricing.prompt) * 1_000_000
+              : null,
+          outputCostPer1M:
+            d.pricing && d.pricing.completion && Number(d.pricing.completion) >= 0
+              ? Number(d.pricing.completion) * 1_000_000
+              : null,
+          cacheReadCostPer1M:
+            d.pricing && d.pricing.input_cache_read && Number(d.pricing.input_cache_read) >= 0
+              ? Number(d.pricing.input_cache_read) * 1_000_000
+              : null,
         },
         sources: { arena: SOURCE.NONE, aa: SOURCE.NONE, openrouter: SOURCE.LIVE },
       }),

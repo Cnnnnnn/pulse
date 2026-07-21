@@ -133,7 +133,14 @@ function normalize(raw) {
     if (!d || !d.name) continue;
     const creatorName = pickCreatorName(d);
     const vendor = normalizeVendor(creatorName);
-    const id = d.slug || slugifyModel(vendor, d.name);
+    // ponytail: 跨源 merge 主键口径要统一 (其它 fetcher 走 slugifyModel(vendor, name) 带 vendor 前缀).
+    // AA 原本用 d.slug (无前缀) 会导致同 model 在 AA 切片跟其它切片 id 永远不匹配, merge 落空, 上游 metadata (价格/上下文/...) 全丢.
+    // 强制统一到 slugifyModel, 让 d.slug 仅作展示别名 (vendorRaw 里已经存了).
+    // ponytail: AA 列表里 model.name 常带推理强度后缀 "GPT-5.5 (xhigh)" / "Claude Sonnet 5 (Max Effort)" / "Gemini 3.5 Flash (high)".
+    // models.dev / arena / openrouter 的 name 是产品级基模 ("GPT-5.5" / "Claude Sonnet 5" / "Gemini 3.5 Flash").
+    // 不归一化的话, id 主键永远对不上. 这里把末尾括号变体剥掉再算 id, 主键就能跨源合并.
+    const idName = String(d.name).replace(/\s*\([^)]*\)\s*$/, "").trim() || d.name;
+    const id = slugifyModel(vendor, idName);
     const ev = d.evaluations || d.eval || {};
     const pricing = d.pricing || {};
     const perf = d.performance || {};
