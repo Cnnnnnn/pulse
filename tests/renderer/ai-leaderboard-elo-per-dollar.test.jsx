@@ -71,21 +71,28 @@ describe("EloPerDollar 组件渲染", () => {
   const map = aggregateVendorProfiles(items);
   const rows = rankVendorsByEloPerDollar(map);
 
-  it("渲染排名条形列表，选中厂商高亮（is-focus）", () => {
+  it("渲染排名条形列表，选中厂商高亮（is-focus + 已选徽标 + 厂商色）", () => {
     const { container } = render(<EloPerDollar rows={rows} focusSet={new Set(["oa"])} />);
     expect(container.querySelector(".ai-lb-epd")).toBeTruthy();
     expect(container.querySelectorAll(".ai-lb-epd__row").length).toBe(2);
     const focusRow = container.querySelector(".ai-lb-epd__row.is-focus");
     expect(focusRow).toBeTruthy();
     expect(focusRow.querySelector(".ai-lb-epd__name").textContent).toBeTruthy();
-    // 条形内联宽度与厂商色（通过 CSS 自定义属性 --epd-color 注入，规避测试环境 CSSOM 对 oklch 的校验）
+    // 厂商色经 --epd-color 注入到行（供焦点行描边/徽标复用，也驱动条形背景）
+    expect(focusRow.getAttribute("style")).toContain("--epd-color:");
+    // 条形内联宽度 + 入场动画延迟（错峰）
     const bar = focusRow.querySelector(".ai-lb-epd__bar");
     expect(bar.getAttribute("style")).toContain("width:");
-    expect(bar.getAttribute("style")).toContain("--epd-color:");
+    expect(bar.getAttribute("style")).toContain("animation-delay:");
+    // 焦点行带「已选」徽标，非焦点行无徽标
+    expect(focusRow.querySelector(".ai-lb-epd__badge")).toBeTruthy();
+    expect(focusRow.querySelector(".ai-lb-epd__badge").textContent).toBe("已选");
     // 数值格式化（千分位）
     expect(focusRow.querySelector(".ai-lb-epd__val").textContent).toContain("1,067");
-    // 非 focus 行未被标记
-    expect(container.querySelectorAll(".ai-lb-epd__row:not(.is-focus)").length).toBe(1);
+    // 非 focus 行未被标记、无徽标
+    const others = container.querySelectorAll(".ai-lb-epd__row:not(.is-focus)");
+    expect(others.length).toBe(1);
+    expect(others[0].querySelector(".ai-lb-epd__badge")).toBeNull();
   });
 
   it("无数据（空 rows）时渲染提示而非列表", () => {

@@ -996,6 +996,9 @@
     animation: none;
     transition: none;
   }
+  .ai-lb-epd__bar {
+    animation: none;
+  }
 }
 
 /* ── Arena 增强：票数列 + 许可徽章 ── */
@@ -1865,13 +1868,17 @@
   border: 1px solid transparent;
   border-radius: var(--radius, 8px);
   opacity: 0.62;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition: opacity 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.ai-lb-epd__row:not(.is-focus):hover {
+  opacity: 0.85;
 }
 .ai-lb-epd__row.is-focus {
   opacity: 1;
-  background: color-mix(in oklch, var(--text-primary) 6%, transparent);
-  border-color: var(--border);
-  border-left: 3px solid oklch(60% 0.16 245);
+  background: color-mix(in oklch, var(--epd-color, oklch(60% 0.16 245)) 12%, transparent);
+  border-color: color-mix(in oklch, var(--epd-color, oklch(60% 0.16 245)) 30%, var(--border));
+  border-left: 3px solid var(--epd-color, oklch(60% 0.16 245));
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--epd-color, oklch(60% 0.16 245)) 35%, transparent);
 }
 .ai-lb-epd__head {
   display: flex;
@@ -1887,11 +1894,29 @@
   color: var(--text-tertiary);
 }
 .ai-lb-epd__name {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 600;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-lb-epd__badge {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--epd-color, oklch(60% 0.16 245));
+  background: color-mix(in oklch, var(--epd-color, oklch(60% 0.16 245)) 16%, transparent);
+  border: 1px solid color-mix(in oklch, var(--epd-color, oklch(60% 0.16 245)) 38%, transparent);
 }
 .ai-lb-epd__val {
   margin-left: auto;
+  flex: 0 0 auto;
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
@@ -1907,9 +1932,26 @@
   border-radius: 999px;
   min-width: 2px;
   background: var(--epd-color, oklch(60% 0.16 245));
+  transform-origin: left center;
+  animation: ai-lb-epd-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .ai-lb-epd__meta {
   font-size: var(--font-size-xs, 11px);
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
+}
+
+@keyframes ai-lb-epd-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (max-width: 640px) {
+  .ai-lb-epd__row {
+    padding: 6px 10px;
+    gap: 3px;
+  }
+  .ai-lb-epd__list { gap: 6px; }
+  .ai-lb-epd__track { height: 6px; }
+  .ai-lb-epd__meta { white-space: normal; }
 }

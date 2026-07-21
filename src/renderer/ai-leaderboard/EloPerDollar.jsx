@@ -57,16 +57,21 @@ export function EloPerDollar({ rows = [], focusSet = new Set() }) {
           const pct = max > 0 ? Math.max(2, (r.eloPerDollar / max) * 100) : 0;
           const color = vendorColor(r.vendor);
           return (
-            <li key={r.vendor} class={`ai-lb-epd__row${isFocus ? " is-focus" : ""}`}>
+            <li
+              key={r.vendor}
+              class={`ai-lb-epd__row${isFocus ? " is-focus" : ""}`}
+              style={`--epd-color:${color}`}
+            >
               <div class="ai-lb-epd__head">
                 <span class="ai-lb-epd__rank">{i + 1}</span>
                 <span class="ai-lb-epd__name">{fmtVendor(r.vendor)}</span>
+                {isFocus ? <span class="ai-lb-epd__badge">已选</span> : null}
                 <span class="ai-lb-epd__val">{fmtEpd(r.eloPerDollar)}</span>
               </div>
               <div class="ai-lb-epd__track">
                 <div
                   class="ai-lb-epd__bar"
-                  style={`--epd-color:${color};width:${pct}%;`}
+                  style={`width:${pct}%;animation-delay:${i * 45}ms`}
                 />
               </div>
               <div class="ai-lb-epd__meta">
