@@ -757,3 +757,16 @@ describe("ipc/register-leaderboard: sanitize 与请求级缓存键", () => {
     expect(cacheGet(key)).toBeTruthy();
   });
 });
+
+// ── 6. aggregator: rateBudget 透传 ─────────────────────────────────
+describe("aggregator: rateBudget 透传", () => {
+  it("getLeaderboard 返回值顶层含 rateBudget.aa", async () => {
+    const result = await getLeaderboard({ category: "llm", dimension: "elo" });
+    expect(result.rateBudget).toBeDefined();
+    expect(result.rateBudget.aa).toBeDefined();
+    expect(result.rateBudget.aa.used).toBeGreaterThanOrEqual(0);
+    expect(result.rateBudget.aa.limit).toBe(1000);
+    expect(typeof result.rateBudget.aa.dayResetsAt).toBe("string");
+    expect(typeof result.rateBudget.aa.lastAcquireAt === "string" || result.rateBudget.aa.lastAcquireAt === null).toBe(true);
+  });
+});

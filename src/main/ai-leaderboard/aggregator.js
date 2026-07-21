@@ -22,7 +22,7 @@ const modelsDevFetcher = require("./fetcher-models-dev");
 const { getSampleModels } = require("./sample");
 const { sortModels, filterByVendor, filterBySearch } = require("./ranking");
 const { cacheKey, readCache, writeCache, isStale } = require("./cache");
-const { acquire } = require("./rate-limiter");
+const { acquire, budget } = require("./rate-limiter");
 const { getPreviousArenaRanks, computeRankDelta, getArenaRankSeriesMap } = require("./history");
 const { logFetchError } = require("../games/log");
 
@@ -266,6 +266,7 @@ async function getLeaderboard(opts = {}) {
     isSample,
     lastUpdated: arenaLastUpdated,
     fetchedAt: new Date().toISOString(),
+    rateBudget: { aa: budget("artificial-analysis") },
   };
 }
 
