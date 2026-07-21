@@ -1194,6 +1194,32 @@
   font-size: var(--font-size-md);
   color: var(--text-primary);
 }
+.ai-lb-drawer__tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+.ai-lb-drawer__tab {
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ai-lb-drawer__tab.is-active {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px oklch(0% 0% 0% / 0.12);
+}
 .ai-lb-drawer__btn {
   height: 36px;
   padding: 0 12px;
@@ -1232,6 +1258,18 @@
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
   text-align: center;
+}
+.ai-lb-drawer__hint--err {
+  color: oklch(55% 0.2 25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.ai-lb-drawer__radar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .ai-lb-drawer__body {
   flex: 1;
@@ -1408,6 +1446,98 @@
   fill: var(--text-secondary);
   font-weight: 600;
   pointer-events: none;
+}
+
+/* ── 跨源雷达（CrossSourceRadar）── */
+.ai-lb-radar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in oklch, black 6%, transparent),
+    0 4px 12px color-mix(in oklch, black 5%, transparent);
+}
+.ai-lb-radar__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.ai-lb-radar__title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ai-lb-radar__hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+.ai-lb-radar__body {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.ai-lb-radar__svg {
+  width: 300px;
+  height: 300px;
+  flex: 0 0 auto;
+}
+.ai-lb-radar__axis {
+  font-size: 11px;
+  fill: var(--text-secondary);
+  font-weight: 600;
+}
+.ai-lb-radar__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ai-lb-radar__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  cursor: default;
+}
+.ai-lb-radar__legend-item.is-hover {
+  background: var(--bg-secondary);
+}
+.ai-lb-radar__legend-item.is-missing {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+.ai-lb-radar__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.ai-lb-radar__name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ai-lb-radar__vals {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  text-align: right;
+}
+.ai-lb-radar--empty .ai-lb-radar__empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  padding: var(--space-3);
+  line-height: 1.6;
 }
 
 /* ── 移动端卡片列表（<640px 显示，桌面隐藏；与表格同数据源/同对比态）── */

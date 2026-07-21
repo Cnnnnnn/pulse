@@ -2,14 +2,26 @@
  * 模型对比 — FAB + 右侧抽屉（样式对齐 ai-leaderboard-redesign-preview）
  */
 import { useEffect, useState } from "preact/hooks";
-import { compareList, clearCompare, toggleCompare, items, activeView } from "./aiLeaderboardStore.js";
+import {
+  compareList,
+  clearCompare,
+  toggleCompare,
+  items,
+  activeView,
+  crossSourceItems,
+  crossSourceLoading,
+  crossSourceError,
+  loadCrossSource,
+} from "./aiLeaderboardStore.js";
 import { VENDOR_META } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio } from "./format.js";
 import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.js";
+import { CrossSourceRadar } from "./CrossSourceRadar.jsx";
 
 export function ComparePanel() {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [tab, setTab] = useState("table");
   const ids = compareList.value;
   const view = activeView.value;
 
@@ -22,10 +34,22 @@ export function ComparePanel() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // 进入雷达标签且已有选中模型时，触发一次三源联合拉取（store 内幂等）
+  useEffect(() => {
+    if (open && tab === "radar" && ids.length >= 1) {
+      loadCrossSource(false);
+    }
+  }, [open, tab, ids.length]);
+
   if (ids.length === 0) return null;
 
   const models = ids
     .map((id) => items.value.find((m) => m.id === id))
+    .filter(Boolean);
+
+  // 跨源雷达：从三源合并结果中解析当前选中模型
+  const radarModels = ids
+    .map((id) => (crossSourceItems.value || []).find((m) => m.id === id))
     .filter(Boolean);
 
   const rows = view === "arena"
@@ -94,6 +118,26 @@ export function ComparePanel() {
           <span class="ai-lb-drawer__title">
             模型对比（<span>{models.length}</span>）
           </span>
+          <div class="ai-lb-drawer__tabs" role="tablist" aria-label="对比视图">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "table"}
+              class={`ai-lb-drawer__tab${tab === "table" ? " is-active" : ""}`}
+              onClick={() => setTab("table")}
+            >
+              表格
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "radar"}
+              class={`ai-lb-drawer__tab${tab === "radar" ? " is-active" : ""}`}
+              onClick={() => setTab("radar")}
+            >
+              雷达
+            </button>
+          </div>
           <button
             type="button"
             class="ai-lb-drawer__btn ai-lb-drawer__btn--ghost"
@@ -128,7 +172,28 @@ export function ComparePanel() {
           </button>
         </header>
         <div class="ai-lb-drawer__body">
-          {models.length < 2 ? (
+          {tab === "radar" ? (
+            <div class="ai-lb-drawer__radar">
+              {crossSourceLoading.value ? (
+                <p class="ai-lb-drawer__hint">正在加载跨源数据（Arena + AA + LiveBench）…</p>
+              ) : crossSourceError.value ? (
+                <p class="ai-lb-drawer__hint ai-lb-drawer__hint--err">
+                  跨源数据加载失败：{crossSourceError.value}
+                  <button
+                    type="button"
+                    class="ai-lb-drawer__btn ai-lb-drawer__btn--ghost"
+                    onClick={() => loadCrossSource(true)}
+                  >
+                    重试
+                  </button>
+                </p>
+              ) : radarModels.length === 0 ? (
+                <p class="ai-lb-drawer__hint">所选模型未在三源合并结果中找到，无法绘制雷达。</p>
+              ) : (
+                <CrossSourceRadar models={radarModels} />
+              )}
+            </div>
+          ) : models.length < 2 ? (
             <p class="ai-lb-drawer__hint">再勾选至少 1 个模型即可开始对比。</p>
           ) : (
             <table class="ai-lb-compare__table">

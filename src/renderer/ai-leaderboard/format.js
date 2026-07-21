@@ -168,3 +168,49 @@ export function formatPrimary(value, dimension) {
   if (typeof dimension === "string" && dimension.startsWith("lb_")) return fmtLivebench(value);
   return fmtIndex(value);
 }
+
+/* ── 跨源雷达：三维轴取值与归一化 ──
+ * 三轴固定量纲域（绝对归一，便于跨模型横向比较，而非相对拉伸）：
+ *   Arena ELO   [1000, 1700]（与 ArenaBoardBars 同域）
+ *   AA 智能指数 [0, 100]
+ *   LiveBench   [0, 100]（百分制）
+ */
+export const ELO_MIN = 1000;
+export const ELO_MAX = 1700;
+export const AA_IDX_MAX = 100;
+export const LB_MAX = 100;
+
+/**
+ * 取模型在「跨源雷达」三轴的原始分数。
+ * Arena 轴优先用 text board ELO，否则取任一 arena board 的 score（多模态模型也可能有 text 分）。
+ * @param {object|null} model
+ * @returns {{arena:number|null, aa:number|null, livebench:number|null}}
+ */
+export function crossSourceProfile(model) {
+  if (!model) return { arena: null, aa: null, livebench: null };
+  const arena = model.arena && typeof model.arena === "object" ? model.arena : {};
+  let arenaVal = null;
+  if (arena.text && typeof arena.text.score === "number") {
+    arenaVal = arena.text.score;
+  } else {
+    for (const k of Object.keys(arena)) {
+      const s = arena[k];
+      if (s && typeof s.score === "number") {
+        arenaVal = s.score;
+        break;
+      }
+    }
+  }
+  const aa = model.aa;
+  const aaVal = aa && typeof aa.intelligenceIndex === "number" ? aa.intelligenceIndex : null;
+  const lb = model.livebench;
+  const lbVal = lb && typeof lb.overall === "number" ? lb.overall : null;
+  return { arena: arenaVal, aa: aaVal, livebench: lbVal };
+}
+
+/** 将分数映射到 [0,1]（clamp）。null/NaN 或非法域 → null。 */
+export function normalizeToUnit(v, min, max) {
+  if (v == null || !Number.isFinite(v) || !(max > min)) return null;
+  const t = (v - min) / (max - min);
+  return Math.max(0, Math.min(1, t));
+}

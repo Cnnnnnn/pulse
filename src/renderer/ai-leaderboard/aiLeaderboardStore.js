@@ -60,6 +60,52 @@ export function clearCompare() {
   compareList.value = [];
 }
 
+/* ── 跨源雷达：三源联合拉取（arena + aa + livebench 合并）── */
+export const crossSourceItems = signal(null);
+export const crossSourceLoading = signal(false);
+export const crossSourceError = signal(null);
+let _csToken = 0;
+
+/** 跨源雷达请求参数：同时拉 arena + aa + livebench（+ openrouter 兜底骨架）。 */
+function _crossSourceOpts(force) {
+  return {
+    category: "llm",
+    dimension: "elo",
+    vendor: "all",
+    force: !!force,
+    sources: { arena: true, aa: true, livebench: true, openrouter: true },
+  };
+}
+
+/**
+ * 触发一次三源联合拉取（未加载或非 force 时不重复发请求）。
+ * 结果合并进 crossSourceItems，供跨源雷达在 Arena ELO / AA 智能 / LiveBench
+ * 三维叠加同一批模型（mergeModelSlices 已按 id 合并三源切片）。
+ */
+export async function loadCrossSource(force) {
+  if (crossSourceItems.value && !force) return;
+  const token = ++_csToken;
+  crossSourceLoading.value = true;
+  crossSourceError.value = null;
+  try {
+    const res = force
+      ? await api.refreshLeaderboard(_crossSourceOpts(true))
+      : await api.getLeaderboard(_crossSourceOpts(false));
+    if (token !== _csToken) return;
+    const norm = normalizeBoardResult(res);
+    if (norm.ok) {
+      crossSourceItems.value = norm.items;
+    } else {
+      crossSourceError.value = norm.error || "跨源加载失败";
+    }
+  } catch (e) {
+    if (token !== _csToken) return;
+    crossSourceError.value = e && e.message ? e.message : "网络错误";
+  } finally {
+    if (token === _csToken) crossSourceLoading.value = false;
+  }
+}
+
 export const items = signal([]);
 export const sources = signal({});
 export const sourceCoverage = signal({ arena: 0, aa: 0, openrouter: 0, livebench: 0 });

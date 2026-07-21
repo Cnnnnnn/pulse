@@ -9,7 +9,9 @@ import { render, fireEvent, cleanup } from "@testing-library/preact";
 import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
 import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.jsx";
 import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.jsx";
+import { CrossSourceRadar } from "../../src/renderer/ai-leaderboard/CrossSourceRadar.jsx";
 import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.js";
+import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX } from "../../src/renderer/ai-leaderboard/format.js";
 import {
   columnValue,
   toggleSort,
@@ -95,6 +97,26 @@ const lbModels = [
   },
 ];
 
+// 跨源雷达：a 三源齐全，b 缺 livebench（应进入「数据不全」）
+const crossSourceModels = [
+  {
+    id: "a",
+    name: "Alpha",
+    vendor: "oa",
+    arena: { text: { score: 1600, ci: 10, votes: 9000 }, vision: { score: 1550, ci: 12, votes: 3000 } },
+    aa: { intelligenceIndex: 78, codingIndex: 70, agenticIndex: 60, outputTokensPerSec: 120, priceOutputPer1M: 2 },
+    livebench: { overall: 65, byCategory: { Coding: 70, Language: 60, IF: 55 }, cost: { perSuccessfulTask: 0.5 } },
+  },
+  {
+    id: "b",
+    name: "Beta",
+    vendor: "oa",
+    arena: { text: { score: 1450, ci: 15, votes: 6000 } },
+    aa: { intelligenceIndex: 55, codingIndex: 40, agenticIndex: 30, outputTokensPerSec: 60, priceOutputPer1M: 5 },
+    // 缺 livebench 切片
+  },
+];
+
 describe("LeaderboardTable 渲染", () => {
   afterEach(() => cleanup());
 
@@ -155,6 +177,24 @@ describe("LeaderboardTable 渲染", () => {
     const th = container.querySelector(".ai-lb-th--sortable");
     fireEvent.click(th);
     expect(sortKey.value).toBe("intelligence");
+  });
+
+  it("CrossSourceRadar：三源齐全模型绘制多边形，缺失轴模型进入数据不全", () => {
+    const { container } = render(<CrossSourceRadar models={crossSourceModels} />);
+    expect(container.querySelectorAll(".ai-lb-radar").length).toBe(1);
+    // 仅 Alpha 三轴齐全 → 1 个多边形 path（网格环另有 4 个 path，故 >1）
+    const paths = container.querySelectorAll(".ai-lb-radar__svg path");
+    expect(paths.length).toBeGreaterThan(4); // 4 环 + 1 模型
+    // 三轴标签齐备
+    expect(container.querySelector(".ai-lb-radar__axis")).toBeTruthy();
+    // Beta 缺 LiveBench → 图例标记为数据不全
+    expect(container.querySelector(".ai-lb-radar__legend-item.is-missing")).toBeTruthy();
+    expect(container.textContent).toContain("缺");
+  });
+
+  it("CrossSourceRadar：无任何模型时渲染空状态", () => {
+    const { container } = render(<CrossSourceRadar models={[]} />);
+    expect(container.querySelector(".ai-lb-radar--empty")).toBeTruthy();
   });
 });
 
@@ -227,5 +267,29 @@ describe("数据透传（A/B）：lastUpdated 与 rankSeries", () => {
     expect(Array.isArray(withSeries.rankSeries)).toBe(true);
     const without = normalizeAiModel({ id: "b", name: "Beta" });
     expect(without.rankSeries).toBeNull();
+  });
+});
+
+describe("跨源雷达纯函数（E）：crossSourceProfile / normalizeToUnit", () => {
+  it("crossSourceProfile 取三轴原始值（Arena 优先 text board）", () => {
+    const p = crossSourceProfile(crossSourceModels[0]);
+    expect(p.arena).toBe(1600);
+    expect(p.aa).toBe(78);
+    expect(p.livebench).toBe(65);
+    // 缺 livebench → 该轴 null
+    const miss = crossSourceProfile(crossSourceModels[1]);
+    expect(miss.arena).toBe(1450);
+    expect(miss.aa).toBe(55);
+    expect(miss.livebench).toBeNull();
+  });
+
+  it("normalizeToUnit 绝对域归一并 clamp；非法值返回 null", () => {
+    expect(normalizeToUnit(1600, ELO_MIN, ELO_MAX)).toBeCloseTo((1600 - ELO_MIN) / (ELO_MAX - ELO_MIN));
+    // 越界 clamp
+    expect(normalizeToUnit(2000, ELO_MIN, ELO_MAX)).toBe(1);
+    expect(normalizeToUnit(900, ELO_MIN, ELO_MAX)).toBe(0);
+    // 缺失 / NaN
+    expect(normalizeToUnit(null, ELO_MIN, ELO_MAX)).toBeNull();
+    expect(normalizeToUnit(NaN, ELO_MIN, ELO_MAX)).toBeNull();
   });
 });
