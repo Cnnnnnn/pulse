@@ -14,9 +14,35 @@ import {
   loadCrossSource,
 } from "./aiLeaderboardStore.js";
 import { VENDOR_META } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena, rankVendorsByEloPerDollar } from "./format.js";
 import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.js";
 import { CrossSourceRadar } from "./CrossSourceRadar.jsx";
+import { EloPerDollar } from "./EloPerDollar.jsx";
+
+// 跨源加载/错误态门：雷达与性价比两个标签共用同一套三源拉取状态。
+function CrossSourceGate({ loading, error, onRetry, empty, children }) {
+  if (loading) {
+    return <p class="ai-lb-drawer__hint">正在加载跨源数据（Arena + AA + LiveBench）…</p>;
+  }
+  if (error) {
+    return (
+      <p class="ai-lb-drawer__hint ai-lb-drawer__hint--err">
+        跨源数据加载失败：{error}
+        <button
+          type="button"
+          class="ai-lb-drawer__btn ai-lb-drawer__btn--ghost"
+          onClick={onRetry}
+        >
+          重试
+        </button>
+      </p>
+    );
+  }
+  if (empty) {
+    return <p class="ai-lb-drawer__hint">{empty}</p>;
+  }
+  return children;
+}
 
 export function ComparePanel() {
   const [open, setOpen] = useState(false);
@@ -34,9 +60,9 @@ export function ComparePanel() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // 进入雷达标签且已有选中模型时，触发一次三源联合拉取（store 内幂等）
+  // 进入雷达/性价比标签且已有选中模型时，触发一次三源联合拉取（store 内幂等）
   useEffect(() => {
-    if (open && tab === "radar" && ids.length >= 1) {
+    if (open && (tab === "radar" || tab === "value") && ids.length >= 1) {
       loadCrossSource(false);
     }
   }, [open, tab, ids.length]);
@@ -60,6 +86,12 @@ export function ComparePanel() {
     .filter((p) => !focusSet.has(p.vendor))
     .map((p) => ({ ...p, focus: false }));
   const radarProfiles = [...focusProfiles, ...contextProfiles];
+
+  // ELO per $ 排名：选中厂商优先入榜，其余取 Top-N 作基准对比。
+  const epdRanked = rankVendorsByEloPerDollar(vendorMap);
+  const epdFocus = epdRanked.filter((r) => focusSet.has(r.vendor));
+  const epdOthers = epdRanked.filter((r) => !focusSet.has(r.vendor)).slice(0, 15);
+  const epdRows = [...epdFocus, ...epdOthers];
 
   const rows = view === "arena"
     ? [
@@ -146,6 +178,15 @@ export function ComparePanel() {
             >
               雷达
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "value"}
+              class={`ai-lb-drawer__tab${tab === "value" ? " is-active" : ""}`}
+              onClick={() => setTab("value")}
+            >
+              性价比
+            </button>
           </div>
           <button
             type="button"
@@ -181,26 +222,30 @@ export function ComparePanel() {
           </button>
         </header>
         <div class="ai-lb-drawer__body">
-          {tab === "radar" ? (
+          {tab === "value" ? (
+            <div class="ai-lb-drawer__epd">
+              <CrossSourceGate
+                loading={crossSourceLoading.value}
+                error={crossSourceError.value}
+                onRetry={() => loadCrossSource(true)}
+                empty={epdRows.length === 0 ? "所选厂商暂无「ELO + 输出价」数据，可切换其他模型或稍后重试。" : null}
+              >
+                <EloPerDollar rows={epdRows} focusSet={focusSet} />
+              </CrossSourceGate>
+              <p class="ai-lb-drawer__hint ai-lb-drawer__hint--sub">
+                ELO per $ = 厂商最佳 Arena ELO ÷ 最低 AA 输出价；<b>已选</b>厂商高亮，其余为 Top 15 基准对比。
+              </p>
+            </div>
+          ) : tab === "radar" ? (
             <div class="ai-lb-drawer__radar">
-              {crossSourceLoading.value ? (
-                <p class="ai-lb-drawer__hint">正在加载跨源数据（Arena + AA + LiveBench）…</p>
-              ) : crossSourceError.value ? (
-                <p class="ai-lb-drawer__hint ai-lb-drawer__hint--err">
-                  跨源数据加载失败：{crossSourceError.value}
-                  <button
-                    type="button"
-                    class="ai-lb-drawer__btn ai-lb-drawer__btn--ghost"
-                    onClick={() => loadCrossSource(true)}
-                  >
-                    重试
-                  </button>
-                </p>
-              ) : radarProfiles.length === 0 ? (
-                <p class="ai-lb-drawer__hint">所选厂商暂无跨源数据，可切换其他模型或稍后重试。</p>
-              ) : (
+              <CrossSourceGate
+                loading={crossSourceLoading.value}
+                error={crossSourceError.value}
+                onRetry={() => loadCrossSource(true)}
+                empty={radarProfiles.length === 0 ? "所选厂商暂无跨源数据，可切换其他模型或稍后重试。" : null}
+              >
                 <CrossSourceRadar profiles={radarProfiles} />
-              )}
+              </CrossSourceGate>
               <p class="ai-lb-drawer__hint ai-lb-drawer__hint--sub">
                 每个厂商取其模型最佳切片；<b>已选</b>厂商高亮，其余为按 Arena ELO 的基准对比（Top 10）。
               </p>

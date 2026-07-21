@@ -226,7 +226,8 @@ export function normalizeToUnit(v, min, max) {
 
 /**
  * 跨源雷达（厂商聚合版）：把合并后的模型列表按厂商聚合，
- * 取每个厂商在各源的最佳切片（arena 取最高 ELO / aa 取最高智能指数 / lb 取最高 overall）。
+ * 取每个厂商在各源的最佳切片（arena 取最高 ELO / aa 取最高智能指数 / lb 取最高 overall /
+ * priceOut 取最低 AA 输出价）。
  *
  * 为何按厂商而非按模型：三源模型 id 命名体系不一致（Arena 用 vendor+版本快照名、
  * AA 用发行名、LiveBench 用评测原始 id），精确 id 合并后三源几乎零交集
@@ -234,16 +235,20 @@ export function normalizeToUnit(v, min, max) {
  * （normalizeVendor 归一），故按厂商可靠对齐，规避模糊匹配的误并风险。
  *
  * @param {object[]} items 合并后的模型（含 arena/aa/livebench 切片）
- * @returns {Map<string,{arena:number|null, aa:number|null, livebench:number|null}>}
+ * @returns {Map<string,{arena:number|null, aa:number|null, livebench:number|null, priceOut:number|null}>}
  */
 export function aggregateVendorProfiles(items) {
   const map = new Map();
   if (!Array.isArray(items)) return map;
-  const push = (vendor, axis, val) => {
+  const push = (vendor, axis, val, mode = "max") => {
     if (val == null || !Number.isFinite(val)) return;
-    if (!map.has(vendor)) map.set(vendor, { arena: null, aa: null, livebench: null });
+    if (!map.has(vendor)) map.set(vendor, { arena: null, aa: null, livebench: null, priceOut: null });
     const cur = map.get(vendor);
-    if (cur[axis] == null || val > cur[axis]) cur[axis] = val;
+    if (cur[axis] == null) {
+      cur[axis] = val;
+      return;
+    }
+    cur[axis] = mode === "min" ? Math.min(cur[axis], val) : Math.max(cur[axis], val);
   };
   for (const m of items) {
     if (!m || !m.vendor) continue;
@@ -259,6 +264,8 @@ export function aggregateVendorProfiles(items) {
     push(m.vendor, "arena", bestArena);
     const aa = m.aa;
     push(m.vendor, "aa", aa && typeof aa.intelligenceIndex === "number" ? aa.intelligenceIndex : null);
+    // priceOut：该厂商旗下 AA 切片里最低的输出价（更具性价比代表性）
+    push(m.vendor, "priceOut", aa && typeof aa.priceOutputPer1M === "number" ? aa.priceOutputPer1M : null, "min");
     const lb = m.livebench;
     push(m.vendor, "livebench", lb && typeof lb.overall === "number" ? lb.overall : null);
   }
@@ -267,7 +274,7 @@ export function aggregateVendorProfiles(items) {
 
 /**
  * 从厂商 profile 数组里按 Arena ELO 取前 n 个，作为雷达的基准上下文。
- * @param {Array<{vendor:string, arena:number|null, aa:number|null, livebench:number|null}>} profiles
+ * @param {Array<{vendor:string, arena:number|null, aa:number|null, livebench:number|null, priceOut:number|null}>} profiles
  * @param {number} n
  */
 export function topVendorsByArena(profiles, n = 8) {
@@ -275,4 +282,35 @@ export function topVendorsByArena(profiles, n = 8) {
     .filter((p) => p.arena != null)
     .sort((a, b) => b.arena - a.arena)
     .slice(0, n);
+}
+
+/**
+ * ELO per $：厂商「最佳 Arena ELO」除以「最低 AA 输出价」，
+ * 越大代表每花费一美元能买到越高的竞技水平（越划算）。
+ * 守卫：缺 ELO、缺价、价 ≤ 0 均返回 null。
+ * @param {{arena:number|null, priceOut:number|null}} profile
+ * @returns {number|null}
+ */
+export function eloPerDollar(profile) {
+  if (!profile) return null;
+  const elo = profile.arena;
+  const price = profile.priceOut;
+  if (elo == null || price == null || price <= 0) return null;
+  return elo / price;
+}
+
+/**
+ * 从厂商 profile Map 中按 ELO per $ 降序排名。
+ * @param {Map<string,{arena:number|null, aa:number|null, livebench:number|null, priceOut:number|null}>} profiles
+ * @returns {Array<{vendor:string, eloPerDollar:number, arena:number, priceOut:number}>}
+ */
+export function rankVendorsByEloPerDollar(profiles) {
+  const rows = [];
+  for (const [vendor, p] of profiles) {
+    const v = eloPerDollar(p);
+    if (v == null) continue;
+    rows.push({ vendor, eloPerDollar: v, arena: p.arena, priceOut: p.priceOut });
+  }
+  rows.sort((a, b) => b.eloPerDollar - a.eloPerDollar);
+  return rows;
 }
