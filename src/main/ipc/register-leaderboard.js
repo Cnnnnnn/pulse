@@ -11,6 +11,7 @@
 
 const { getLeaderboard } = require("../ai-leaderboard");
 const { CATEGORY_META, DIMENSION_META, VENDOR_META } = require("../ai-leaderboard/types");
+const { budget } = require("../ai-leaderboard/rate-limiter");
 
 // ── 请求级缓存（Map + TTL，与 register-games.js 同构）──────────────
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 分钟
@@ -122,6 +123,8 @@ function registerLeaderboardHandlers(ctx) {
       dimension: payload && payload.dimension,
     }),
   });
+
+  safeHandle("leaderboard:rate-budget", async () => budget("artificial-analysis"));
 
   // refresh = get + force:true；聚合内部绕过磁盘缓存重拉，回写请求级缓存。
   safeHandle("leaderboard:refresh", async (_event, payload) => {
