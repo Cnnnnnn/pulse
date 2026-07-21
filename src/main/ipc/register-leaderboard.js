@@ -76,7 +76,7 @@ function sanitize(payload) {
   // 老版本默认 {arena,aa,openrouter,livebench 全 true} 在 IPC 端补默认, 保持向后兼容.
   const sources = p.sources && typeof p.sources === "object"
     ? p.sources
-    : { arena: true, aa: true, openrouter: true, livebench: true };
+    : { arena: true, aa: true, openrouter: true, livebench: true, modelsdev: true };
   return { category, dimension, vendor, sortDir, search, force, sources };
 }
 

@@ -18,6 +18,7 @@ const arenaFetcher = require("./fetcher-arena");
 const aaFetcher = require("./fetcher-aa");
 const openrouterFetcher = require("./fetcher-openrouter");
 const livebenchFetcher = require("./fetcher-livebench");
+const modelsDevFetcher = require("./fetcher-models-dev");
 const { getSampleModels } = require("./sample");
 const { sortModels, filterByVendor, filterBySearch } = require("./ranking");
 const { cacheKey, readCache, writeCache, isStale } = require("./cache");
@@ -27,6 +28,8 @@ const { logFetchError } = require("../games/log");
 
 const ARENA_TTL = 24 * 60 * 60 * 1000;
 const AA_TTL = 24 * 60 * 60 * 1000;
+// ponytail: MD 数据每日一次 (上游 commit 频率). 与 ARENA / AA 同 TTL 即可, 不需要更短刷新.
+const MD_TTL = 24 * 60 * 60 * 1000;
 const OR_TTL = 6 * 60 * 60 * 1000;
 const LB_TTL = 6 * 60 * 60 * 1000; // LiveBench 静态 CSV, 6h 足够 (官方月度)
 
@@ -127,6 +130,7 @@ async function getLeaderboard(opts = {}) {
   if (need("aa")) fetches.push(getBoardRaw(aaFetcher, "artificial-analysis", "llms", AA_TTL, aaForce));
   if (need("openrouter")) fetches.push(getBoardRaw(openrouterFetcher, "openrouter", "models", OR_TTL, force));
   if (need("livebench")) fetches.push(getBoardRaw(livebenchFetcher, "livebench", "table", LB_TTL, force));
+  if (need("modelsdev")) fetches.push(getBoardRaw(modelsDevFetcher, "models-dev", "directory", MD_TTL, force));
   const wraps = await Promise.all(fetches);
   // wraps 顺序对应上面 if 顺序, 解构成命名变量
   let i = 0;
@@ -134,6 +138,7 @@ async function getLeaderboard(opts = {}) {
   const aaWrap    = need("aa")    ? wraps[i++] : { raw: null, stale: false, fromCache: false };
   const orWrap    = need("openrouter") ? wraps[i++] : { raw: null, stale: false, fromCache: false };
   const lbWrap    = need("livebench")  ? wraps[i++] : { raw: null, stale: false, fromCache: false };
+  const mdWrap    = need("modelsdev")  ? wraps[i++] : { raw: null, stale: false, fromCache: false };
 
   // ponytail: 诊断 log — 排查 video board 空数据根因
   console.warn("[agg-diag]", JSON.stringify({ cat: opts.category, dim: opts.dimension, srcOpts: sources, arenaRaw: !!arenaWrap.raw, arenaStale: arenaWrap.stale, arenaFromCache: arenaWrap.fromCache, orRaw: !!orWrap.raw }));
@@ -147,21 +152,25 @@ async function getLeaderboard(opts = {}) {
   const aaModels = aaWrap.raw ? aaFetcher.normalize(aaWrap.raw) : [];
   const orModels = orWrap.raw ? openrouterFetcher.normalize(orWrap.raw) : [];
   const lbModels = lbWrap.raw ? livebenchFetcher.normalize(lbWrap.raw) : [];
+  const mdModels = mdWrap.raw ? modelsDevFetcher.normalize(mdWrap.raw) : [];
 
   const arenaSource = arenaModels.length ? SOURCE.LIVE : SOURCE.NONE;
   const aaSource = aaModels.length ? SOURCE.LIVE : SOURCE.NONE;
   const orSource = orModels.length ? SOURCE.LIVE : SOURCE.NONE;
   const lbSource = lbModels.length ? SOURCE.LIVE : SOURCE.NONE;
+  // ponytail: MD 是元数据补全层, 没有"主源"概念 — 只要有数据就视作活 (即便 raw 是 stale 缓存, 上游合并也会把 slice 接到其它源模型上)
+  const mdSource = mdModels.length ? SOURCE.LIVE : SOURCE.NONE;
 
   // ponytail: 兜底策略 — caller 没要的源永远不拉. 主源全失败时, 用 sample 兜底.
   // 注意: 拉到的源里只要有数据就够, 不强制要求 caller 列的每个源都活.
-  const sliceList = [arenaModels, aaModels, orModels, lbModels].filter((arr) => arr.length > 0);
+  const sliceList = [arenaModels, aaModels, orModels, lbModels, mdModels].filter((arr) => arr.length > 0);
   let items;
   let sourcesOut = {
     arena: arenaSource,
     aa: aaSource,
     openrouter: orSource,
     livebench: lbSource,
+    modelsdev: mdSource,
   };
   if (sliceList.length === 0) {
     // 所有源都空 (caller 列的 + 兜底) → sample
@@ -171,6 +180,7 @@ async function getLeaderboard(opts = {}) {
       aa: SOURCE.SAMPLE,
       openrouter: SOURCE.SAMPLE,
       livebench: SOURCE.SAMPLE,
+      modelsdev: SOURCE.SAMPLE,
     };
   } else {
     items = mergeModelSlices(sliceList);
@@ -203,11 +213,13 @@ async function getLeaderboard(opts = {}) {
 
   // v2.83: 每源切片覆盖率 — 数据健康看板用
   // (基于筛选后, 用户当前看到的列表计算)
+  // ponytail: modelsdev 是元数据补全层, 不参与"主要评估源"健康判断, 但覆盖率仍要计入 (用户能看到上下文/价格).
   const sourceCoverage = {
     arena: shown.filter((it) => it.arena && Object.keys(it.arena).length > 0).length,
     aa: shown.filter((it) => it.aa && typeof it.aa === "object").length,
     openrouter: shown.filter((it) => it.openrouter && typeof it.openrouter === "object").length,
     livebench: shown.filter((it) => it.livebench && typeof it.livebench === "object").length,
+    modelsdev: shown.filter((it) => it.modelsdev && typeof it.modelsdev === "object").length,
   };
 
   // 是否整页 sample（决定页头「示例」徽标）
@@ -225,6 +237,7 @@ async function getLeaderboard(opts = {}) {
   if (sourcesOut.aa === SOURCE.LIVE) attribution.push(ATTRIBUTION["artificial-analysis"]);
   if (sourcesOut.openrouter === SOURCE.LIVE) attribution.push(ATTRIBUTION["openrouter"]);
   if (sourcesOut.livebench === SOURCE.LIVE) attribution.push(ATTRIBUTION["livebench"]);
+  if (sourcesOut.modelsdev === SOURCE.LIVE) attribution.push(ATTRIBUTION["models-dev"]);
   if (
     sourcesOut.arena === SOURCE.SAMPLE ||
     sourcesOut.aa === SOURCE.SAMPLE ||
@@ -243,9 +256,13 @@ async function getLeaderboard(opts = {}) {
     sourceCoverage,
     attribution,
     count: shown.length,
-    stale: arenaWrap.stale || aaWrap.stale || orWrap.stale || lbWrap.stale,
+    stale: arenaWrap.stale || aaWrap.stale || orWrap.stale || lbWrap.stale || mdWrap.stale,
     fromCache:
-      arenaWrap.fromCache && aaWrap.fromCache && orWrap.fromCache && lbWrap.fromCache,
+      arenaWrap.fromCache &&
+      aaWrap.fromCache &&
+      orWrap.fromCache &&
+      lbWrap.fromCache &&
+      mdWrap.fromCache,
     isSample,
     lastUpdated: arenaLastUpdated,
     fetchedAt: new Date().toISOString(),

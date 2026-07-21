@@ -240,6 +240,12 @@ const ATTRIBUTION = {
     url: "https://livebench.ai/",
     required: false,
   },
+  "models-dev": {
+    id: "models-dev",
+    text: "模型元数据：Models.dev（开放目录聚合）",
+    url: "https://models.dev/",
+    required: false,
+  },
   sample: {
     id: "sample",
     text: "示例数据（离线快照，非实时）",
@@ -267,12 +273,14 @@ function toAiModel(raw) {
         aa: _sourceNorm(r.sources.aa),
         openrouter: _sourceNorm(r.sources.openrouter),
         livebench: _sourceNorm(r.sources.livebench),
+        modelsdev: _sourceNorm(r.sources.modelsdev),
       }
     : {
         arena: SOURCE.NONE,
         aa: SOURCE.NONE,
         openrouter: SOURCE.NONE,
         livebench: SOURCE.NONE,
+        modelsdev: SOURCE.NONE,
       };
   return {
     id,
@@ -287,6 +295,8 @@ function toAiModel(raw) {
       r.openrouter && typeof r.openrouter === "object" ? r.openrouter : null,
     livebench:
       r.livebench && typeof r.livebench === "object" ? r.livebench : null,
+    modelsdev:
+      r.modelsdev && typeof r.modelsdev === "object" ? r.modelsdev : null,
     sources,
     isSample: Boolean(r.isSample),
     fetchedAt: r.fetchedAt || null,
