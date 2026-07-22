@@ -41,7 +41,7 @@ vi.mock("../../src/renderer/api.js", () => ({
 
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
 import { ARENA_BOARDS, ARENA_BOARD_KEYS, toIpcParams } from "../../src/renderer/ai-leaderboard/types.js";
-import { tableToMarkdown } from "../../src/renderer/ai-leaderboard/exportMarkdown.js";
+import { tableToMarkdown, detailToMarkdown } from "../../src/renderer/ai-leaderboard/exportMarkdown.js";
 import { rowsToCsv } from "../../src/renderer/ai-leaderboard/exportCsv.js";
 import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
 import { BoardHealthCard } from "../../src/renderer/ai-leaderboard/BoardHealthCard.jsx";
@@ -482,5 +482,43 @@ describe("exportCsv: rowsToCsv", () => {
     expect(out).toMatch(/M,Z,A/);
     // 数据顺序对应列：m=3, z=1, a=2
     expect(out).toMatch(/3,1,2/);
+  });
+});
+
+describe("exportMarkdown: detailToMarkdown", () => {
+  it("包含 id/名称/厂商和五个 slice 标题", () => {
+    const out = detailToMarkdown({
+      id: "test-1",
+      name: "Test",
+      vendor: "openai",
+      category: "llm",
+      arena: { text: { score: 1500 } },
+      aa: null,
+      openrouter: {},
+      livebench: {},
+      modelsdev: {},
+    });
+    expect(out).toContain("# Test");
+    expect(out).toContain("`test-1`");
+    expect(out).toContain("- 厂商: OpenAI");
+    expect(out).toContain("## arena");
+    expect(out).toContain("## aa");
+    expect(out).toContain("## openrouter");
+    expect(out).toContain("## livebench");
+    expect(out).toContain("## modelsdev");
+  });
+
+  it("null slice 返回无数据占位", () => {
+    const out = detailToMarkdown({
+      id: "x",
+      name: "X",
+      vendor: "openai",
+      arena: null,
+      aa: null,
+      openrouter: null,
+      livebench: null,
+      modelsdev: null,
+    });
+    expect(out).toContain("_无数据_");
   });
 });

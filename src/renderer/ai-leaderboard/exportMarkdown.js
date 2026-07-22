@@ -74,6 +74,40 @@ export function compareToMarkdown({ models, rows }) {
 }
 
 /**
+ * 生成单个模型详情的 Markdown。
+ * @param {object|null} model
+ * @returns {string}
+ */
+export function detailToMarkdown(model) {
+  if (!model) return "";
+  const lines = [
+    `# ${model.name}`,
+    "",
+    `- ID: \`${model.id}\``,
+    `- 厂商: ${(VENDOR_META[model.vendor] || {}).label || model.vendor || "—"}`,
+    `- 分类: ${model.category || "—"}`,
+  ];
+  if (model.isSample) lines.push("- 备注: 示例数据");
+  lines.push("");
+
+  for (const key of ["arena", "aa", "openrouter", "livebench", "modelsdev"]) {
+    const slice = model[key];
+    const source = (model.sources || {})[key] || "none";
+    lines.push(`## ${key} (${source})`);
+    if (!slice || (typeof slice === "object" && Object.keys(slice).length === 0)) {
+      lines.push("_无数据_");
+    } else {
+      for (const [field, value] of Object.entries(slice)) {
+        if (value == null || value === "") continue;
+        lines.push(`- ${field}: ${typeof value === "object" ? JSON.stringify(value) : String(value)}`);
+      }
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+/**
  * 复制文本到剪贴板。
  * @param {string} text
  * @returns {Promise<boolean>} 是否成功
