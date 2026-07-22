@@ -4,6 +4,15 @@ import { describe, expect, it } from "vitest";
 
 const root = path.join(__dirname, "../..");
 const readJson = (name) => JSON.parse(fs.readFileSync(path.join(root, name), "utf8"));
+const IPC_CALL_PATTERN =
+  /\bipcRenderer\.(?:invoke|on|send|removeListener)\(\s*(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`)/g;
+
+const extractIpcChannels = (source) =>
+  [...new Set(
+    [...source.matchAll(IPC_CALL_PATTERN)].map(
+      (match) => match[1] ?? match[2] ?? match[3],
+    ),
+  )].sort();
 
 describe("TypeScript foundation", () => {
   it("has separate app, renderer, and test projects", () => {
@@ -35,5 +44,12 @@ describe("TypeScript foundation", () => {
     expect(preload).toContain('exposeInMainWorld("api", api)');
     expect(preload).not.toContain(": any");
     expect(preload).not.toContain("@ts-ignore");
+  });
+
+  it("keeps the TypeScript and runtime preload IPC channel sets aligned", () => {
+    const preloadJs = fs.readFileSync(path.join(root, "preload.js"), "utf8");
+    const preloadTs = fs.readFileSync(path.join(root, "preload.ts"), "utf8");
+
+    expect(extractIpcChannels(preloadTs)).toEqual(extractIpcChannels(preloadJs));
   });
 });

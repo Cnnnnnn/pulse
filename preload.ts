@@ -113,7 +113,7 @@ export const api = {
   aiUsageAlertPrefsSet: (patch: unknown) =>
     ipcRenderer.invoke("ai-usage:alert-prefs:set", patch),
   onAiUsageUpdated: (cb: Callback) =>
-    ipcRenderer.on("ai-usage:updated", (_, data) => cb(data)),
+    ipcRenderer.on("ai-usage-updated", (_, data) => cb(data)),
   onSidenavBadge: (cb: Callback) =>
     ipcRenderer.on("sidenav:badge", (_, data) => cb(data)),
 
