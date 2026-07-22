@@ -10,7 +10,7 @@ const { defineConfig } = require("vitest/config");
 module.exports = defineConfig({
   test: {
     environment: "node", // 默认 node；renderer 组件测试显式切到 happy-dom
-    include: ["tests/**/*.test.{js,jsx}", "tests/**/*.bench.{js,jsx}"],
+    include: ["tests/**/*.test.{js,jsx,ts,tsx}", "tests/**/*.bench.{js,jsx,ts,tsx}"],
     // 干净 checkout 兜底: dist/preload.js 不存在就同步构建一次, 覆盖
     // pnpm exec vitest --run (CI release job 入口, 不走 npm lifecycle)
     // 与 npm test 两种路径. 见 tests/_setup/build-preload.cjs.

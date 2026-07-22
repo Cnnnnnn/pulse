@@ -1,11 +1,12 @@
 /**
  * ESLint 9 flat config
  *
- * 分 4 个 scope：
+ * 分 5 个 scope：
  *   - 全局忽略（node_modules / renderer-dist / 隐藏目录）
- *   - src 下所有 CJS .js（main + detectors + ai + funds 等，Node globals）
- *   - src/renderer（ESM + JSX + Preact hooks，TS parser）
- *   - tests（宽松，vitest globals）
+ *   - src 下所有 CJS .js/.ts（main + detectors + ai + funds 等，Node globals）
+ *   - src/renderer（ESM + JSX/TSX + Preact hooks，TS parser）
+ *   - src 下少量 ESM .js/.ts 文件
+ *   - tests（宽松，vitest globals，.js/.jsx/.ts/.tsx）
  *
  * 策略：warn 为主，CI 不阻断（--max-warnings=9999）。
  * 让开发者看到问题但不卡构建；逐步清理历史 warning。
@@ -77,10 +78,35 @@ export default [
     },
   },
 
+  // ── TypeScript 主进程 scope（与上面 CJS 块等价 sourceType/parser/rules）──
+  //    Phase 4 仅承载 preload.ts；Phase 5+ 迁移更多 .ts 时继续落在这。
+  //    glob 用根级 "**/*.ts" / "**/*.tsx" 占位声明, 让 ESLint 在 files 字段层面覆盖 TS 后缀,
+  //    即便 Phase 5+ 新增 src/main/foo.ts 也会被本块兜住 (renderer 与 tests 单独覆盖).
+  //    src/shared 是纯类型定义 (.d.ts 风格), 不在本块兜住; NodeJS 命名空间需要 parserOptions.project
+  //    才能识别, Phase 4 不引入这个重量级配置.
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    ignores: ["src/renderer/**", "tests/**", "src/shared/**"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "commonjs",
+      parser: tseslintParser,
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+    rules: {
+      "no-console": "off",
+      "global-require": "off",
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    },
+  },
+
   // ── src/renderer（ESM + JSX + Preact）──
   // 用 @typescript-eslint/parser 解析 JSX（Espree 对 Preact automatic runtime 的 JSX 解析不稳）
   {
-    files: ["src/renderer/**/*.js", "src/renderer/**/*.jsx"],
+    files: ["src/renderer/**/*.js", "src/renderer/**/*.jsx", "src/renderer/**/*.ts", "src/renderer/**/*.tsx"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
@@ -124,7 +150,7 @@ export default [
 
   // ── tests（宽松：vitest globals + 允许 console + 不检查 unused）──
   {
-    files: ["tests/**/*.js", "tests/**/*.jsx"],
+    files: ["tests/**/*.js", "tests/**/*.jsx", "tests/**/*.ts", "tests/**/*.tsx"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",

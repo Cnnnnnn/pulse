@@ -65,4 +65,23 @@ describe("TypeScript foundation", () => {
     expect(packageJson.scripts["build:preload"]).toContain("--outfile=dist/preload.js");
     expect(windowManager).toContain('"dist", "preload.js"');
   });
+
+  it("keeps TypeScript in lint, test, and renderer build paths", () => {
+    const eslint = fs.readFileSync(path.join(root, "eslint.config.mjs"), "utf8");
+    const vitest = fs.readFileSync(path.join(root, "vitest.config.js"), "utf8");
+    const packageJson = readJson("package.json");
+
+    // ESLint must accept .ts and .tsx sources (renderer JSX still parsed by tseslintParser).
+    expect(eslint).toContain('"**/*.ts"');
+    expect(eslint).toContain('"**/*.tsx"');
+
+    // Vitest must include test and bench files for both JS and TS extensions.
+    expect(vitest).toContain("test.{js,jsx,ts,tsx}");
+    expect(vitest).toContain("bench.{js,jsx,ts,tsx}");
+
+    // renderer esbuild must declare loaders for .ts and .tsx so a Phase 5+ migration
+    // can compile .tsx entrypoints without re-plumbing the build:renderer script.
+    expect(packageJson.scripts["build:renderer"]).toContain("--loader:.tsx=tsx");
+    expect(packageJson.scripts["build:renderer"]).toContain("--loader:.ts=ts");
+  });
 });
