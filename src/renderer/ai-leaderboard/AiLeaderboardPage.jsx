@@ -24,10 +24,13 @@ import {
   items,
   licenseFilter,
   setLicenseFilter,
+  columnValue,
 } from "./aiLeaderboardStore.js";
-import { ARENA_BOARDS, ARENA_BOARD_KEYS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS } from "./types.js";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.js";
 import { fmtClock, fmtDate, licenseKind } from "./format.js";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.js";
+import { rowsToCsv } from "./exportCsv.js";
+import { api } from "../api.js";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.jsx";
 import { LeaderboardTable } from "./LeaderboardTable.jsx";
 import { ValueScatter } from "./ValueScatter.jsx";
@@ -37,6 +40,40 @@ import { AttributionFooter } from "./AttributionFooter.jsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
 import { TopPodium } from "./TopPodium.jsx";
 import { BoardHealthCard } from "./BoardHealthCard.jsx";
+
+/**
+ * 当前视图导出 CSV 的列定义（顺序匹配 LeaderboardTable 的列头）。
+ * 2026-07-22 P0：与表格同构，不重写取值逻辑 —— 由 handleExportCsv 用 columnValue() 取数。
+ */
+function csvColumnsForView(view) {
+  if (view === "arena") {
+    return [
+      { key: "elo", header: "ELO" },
+      { key: "ci", header: "CI" },
+      { key: "votes", header: "票数" },
+      { key: "context", header: "上下文" },
+    ];
+  }
+  if (view === "livebench") {
+    return [
+      { key: "lb_overall", header: "Overall" },
+      { key: "lb_coding", header: "Coding" },
+      { key: "lb_language", header: "Language" },
+      { key: "lb_instfollow", header: "指令遵循" },
+      { key: "lb_cost", header: "$/成功" },
+    ];
+  }
+  return [
+    { key: "intelligence", header: "智能" },
+    { key: "coding", header: "代码" },
+    { key: "agentic", header: "Agent" },
+    { key: "speed", header: "速度" },
+    { key: "price", header: "输出价" },
+    { key: "inputPrice", header: "输入价" },
+    { key: "valueRatio", header: "性价比" },
+    { key: "context", header: "上下文" },
+  ];
+}
 
 /**
  * 按许可筛选却无结果时的空状态提示。
@@ -74,6 +111,7 @@ export function AiLeaderboardPage() {
 
   const [animate, setAnimate] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setAnimate(false), 450);
     return () => clearTimeout(t);
@@ -85,6 +123,48 @@ export function AiLeaderboardPage() {
     if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function handleExportCsv() {
+    if (!rows.length || exporting) return;
+    setExporting(true);
+    try {
+      const cols = csvColumnsForView(view);
+      const dataRows = rows.map((m, i) => {
+        const o = {
+          rank: i + 1,
+          model: m.name,
+          vendor: (VENDOR_META[m.vendor] || {}).label || m.vendor,
+        };
+        for (const c of cols) {
+          o[c.key] = columnValue(m, view, c.key);
+        }
+        return o;
+      });
+      const csv = rowsToCsv({
+        rows: dataRows,
+        columns: [
+          { key: "rank", header: "排名" },
+          { key: "model", header: "模型" },
+          { key: "vendor", header: "厂商" },
+          ...cols,
+        ],
+      });
+      const sub =
+        view === "arena"
+          ? activeBoard.value
+          : view === "livebench"
+            ? activeLB.value
+            : activeDim.value;
+      const today = new Date().toISOString().slice(0, 10);
+      const filenameSuggestion = `ai-榜单_${view}_${sub}_${today}.csv`;
+      // ponytail: 失败 / 取消都静默, finally 总会清 exporting.
+      await api.exportLeaderboardCsv({ csv, filenameSuggestion });
+    } catch {
+      /* 静默 — 与现有设计一致 */
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -187,6 +267,17 @@ export function AiLeaderboardPage() {
           {count > 0 && (
             <button type="button" class="ai-lb-copy-btn" onClick={handleCopyTable}>
               {copied ? "已复制 ✓" : "复制表格"}
+            </button>
+          )}
+          {count > 0 && (
+            <button
+              type="button"
+              class="ai-lb-copy-btn"
+              onClick={handleExportCsv}
+              disabled={exporting}
+              title="导出当前视图当前过滤后模型为 CSV"
+            >
+              {exporting ? "导出中…" : "导出 CSV"}
             </button>
           )}
         </div>

@@ -24,7 +24,23 @@ import {
   sortDir,
   activeView,
   activeBoard,
+  activeDim,
+  activeLB,
+  items,
+  sources,
+  attribution,
+  sourceCoverage,
+  loading,
+  error,
+  fetchedAt,
+  sourceDate,
+  stale,
+  fromCache,
+  isSample,
+  searchQuery,
+  licenseFilter,
 } from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
+import { AiLeaderboardPage } from "../../src/renderer/ai-leaderboard/AiLeaderboardPage.jsx";
 
 const aaModels = [
   {
@@ -417,5 +433,64 @@ describe("fmtRelative", () => {
     expect(fmtRelative(null)).toBe("—");
     expect(fmtRelative(NaN)).toBe("—");
     expect(fmtRelative(Date.now() + 10000)).toBe("—");
+  });
+});
+
+// ── 2026-07-22 P0：CSV 导出按钮 — 验证工具栏在 rows>0 时出现「导出 CSV」─────
+describe("AiLeaderboardPage: 导出 CSV 按钮", () => {
+  beforeEach(() => {
+    // 复位 store 状态, 避免前面测试残留
+    activeView.value = "arena";
+    activeBoard.value = "text";
+    activeDim.value = "intelligence";
+    activeLB.value = "lb_overall";
+    items.value = [];
+    sources.value = {};
+    attribution.value = [];
+    sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
+    loading.value = false;
+    error.value = null;
+    fetchedAt.value = null;
+    sourceDate.value = null;
+    stale.value = false;
+    fromCache.value = false;
+    isSample.value = false;
+    searchQuery.value = "";
+    licenseFilter.value = "all";
+  });
+  afterEach(cleanup);
+
+  it("rows.length > 0 时显示「导出 CSV」按钮", () => {
+    // 注：先种入一个能通过 Arena text 视角过滤的模型 (有 ELO score)
+    items.value = [
+      {
+        id: "a",
+        name: "Alpha",
+        vendor: "openai",
+        vendorRaw: null,
+        category: "llm",
+        license: null,
+        arena: { text: { score: 1200, ci: 10, votes: 100 } },
+        aa: null,
+        openrouter: null,
+        sources: { arena: "live", aa: "none", openrouter: "none" },
+        isSample: false,
+        fetchedAt: null,
+      },
+    ];
+    sources.value = { arena: "live", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" };
+    const { container } = render(<AiLeaderboardPage />);
+    // 「复制表格」先存在 (不破坏既有布局)
+    expect(container.textContent).toContain("复制表格");
+    // 「导出 CSV」紧随其后
+    expect(container.textContent).toContain("导出 CSV");
+    // 工具栏里有两个 ai-lb-copy-btn (复制 + 导出)
+    expect(container.querySelectorAll(".ai-lb-copy-btn").length).toBe(2);
+  });
+
+  it("rows.length === 0 时不显示「导出 CSV」按钮（避免空导出）", () => {
+    items.value = [];
+    const { container } = render(<AiLeaderboardPage />);
+    expect(container.textContent).not.toContain("导出 CSV");
   });
 });
