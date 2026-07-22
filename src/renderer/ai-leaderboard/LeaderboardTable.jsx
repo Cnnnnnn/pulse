@@ -1,13 +1,15 @@
 /**
  * src/renderer/ai-leaderboard/LeaderboardTable.jsx
  *
- * v3.1 三视角表格（重设计 P0/P1）：
+ * v3.2 三视角表格（虚拟化 P0）：
  *  - 列头可点选排序（data-sort + aria-sort + ▲▼ 指示）
  *  - sticky 表头 + 首列(对比) / 模型列 横向滚动固定（CSS 配合）
  *  - 主指标列内联条形（primaryKey + primaryMax 驱动）
  *  - 桌面表格 / 移动端卡片双渲染（CSS 控制显隐，状态共享 store）
+ *  - 桌面表格 ≥200 行套 react-virtuoso TableVirtuoso，仅渲染可见行
  */
 
+import { TableVirtuoso } from "react-virtuoso";
 import {
   activeView,
   activeBoard,
@@ -81,92 +83,106 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
   const aKey = primaryKey;
   const dir = sortDir.value;
 
+  // thead `<tr>` 内容：v4 virtuoso 会把它包进 `<thead>`，所以这里只返单行 `<tr>`
+  const headRow =
+    v === "arena" ? (
+      <tr>
+        <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
+        <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
+        <th class="ai-lb-th" scope="col">模型</th>
+        <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
+        <SortableTh k="elo" label="ELO 分数" active={aKey} dir={dir} />
+        <SortableTh k="ci" label="置信区间" active={aKey} dir={dir} />
+        <SortableTh k="votes" label="票数" active={aKey} dir={dir} title="该模型在本 board 的参与对战 / 投票数" />
+        <SortableTh
+          k="context"
+          label="上下文"
+          active={aKey}
+          dir={dir}
+          title="上下文窗口（models.dev 提供）"
+        />
+      </tr>
+    ) : v === "livebench" ? (
+      <tr>
+        <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
+        <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
+        <th class="ai-lb-th" scope="col">模型</th>
+        <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
+        <SortableTh k="lb_overall" label="综合" active={aKey} dir={dir} />
+        <SortableTh k="lb_coding" label="Coding" active={aKey} dir={dir} />
+        <SortableTh k="lb_language" label="Language" active={aKey} dir={dir} />
+        <SortableTh k="lb_instfollow" label="指令遵循" active={aKey} dir={dir} />
+        <SortableTh
+          k="lb_cost"
+          label="$/成功"
+          active={aKey}
+          dir={dir}
+          title="cost_per_successful_task — LiveBench 官网性价比主指标"
+        />
+      </tr>
+    ) : (
+      <tr>
+        <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
+        <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
+        <th class="ai-lb-th" scope="col">模型</th>
+        <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
+        <SortableTh k="intelligence" label="智能指数" active={aKey} dir={dir} />
+        <SortableTh k="coding" label="代码" active={aKey} dir={dir} />
+        <SortableTh k="agentic" label="Agentic" active={aKey} dir={dir} />
+        <SortableTh k="speed" label="速度" active={aKey} dir={dir} />
+        <SortableTh k="price" label="输出价" active={aKey} dir={dir} />
+        <SortableTh
+          k="inputPrice"
+          label="输入价"
+          active={aKey}
+          dir={dir}
+          title="输入 token 价格（models.dev 提供）— AA Free tier 不返回此字段，作为价格兜底"
+        />
+        <SortableTh k="valueRatio" label="性价比" active={aKey} dir={dir} />
+        <SortableTh
+          k="context"
+          label="上下文"
+          active={aKey}
+          dir={dir}
+          title="上下文窗口（models.dev 提供）— 列头点选按上下文大小排序"
+        />
+      </tr>
+    );
+
+  // ponytail: react-virtuoso 默认 TableRow='tr'，会把 itemContent 的结果再包一层 <tr>。
+  // 我们的 ModelRow 已经返回完整 <tr>...</tr>，必须覆盖 TableRow 跳过包层，否则渲染出 <tr><tr>…</tr></tr>。
+  const renderRow = (index, model) => (
+    <ModelRow
+      model={model}
+      rank={index + 1}
+      view={v}
+      board={b}
+      dim={d}
+      lb={lbKey}
+      primaryKey={aKey}
+      primaryMax={primaryMax}
+      votesMax={votesMax}
+    />
+  );
+
   return (
     <>
       <div class="ai-lb-table-wrap">
-        <table class="ai-lb-table" id="ai-leaderboard-table" data-view={v}>
-          <thead>
-            {v === "arena" ? (
-              <tr>
-                <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
-                <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
-                <th class="ai-lb-th" scope="col">模型</th>
-                <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
-                <SortableTh k="elo" label="ELO 分数" active={aKey} dir={dir} />
-                <SortableTh k="ci" label="置信区间" active={aKey} dir={dir} />
-                <SortableTh k="votes" label="票数" active={aKey} dir={dir} title="该模型在本 board 的参与对战 / 投票数" />
-                <SortableTh
-                  k="context"
-                  label="上下文"
-                  active={aKey}
-                  dir={dir}
-                  title="上下文窗口（models.dev 提供）"
-                />
-              </tr>
-            ) : v === "livebench" ? (
-              <tr>
-                <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
-                <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
-                <th class="ai-lb-th" scope="col">模型</th>
-                <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
-                <SortableTh k="lb_overall" label="综合" active={aKey} dir={dir} />
-                <SortableTh k="lb_coding" label="Coding" active={aKey} dir={dir} />
-                <SortableTh k="lb_language" label="Language" active={aKey} dir={dir} />
-                <SortableTh k="lb_instfollow" label="指令遵循" active={aKey} dir={dir} />
-                <SortableTh
-                  k="lb_cost"
-                  label="$/成功"
-                  active={aKey}
-                  dir={dir}
-                  title="cost_per_successful_task — LiveBench 官网性价比主指标"
-                />
-              </tr>
-            ) : (
-              <tr>
-                <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
-                <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
-                <th class="ai-lb-th" scope="col">模型</th>
-                <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
-                <SortableTh k="intelligence" label="智能指数" active={aKey} dir={dir} />
-                <SortableTh k="coding" label="代码" active={aKey} dir={dir} />
-                <SortableTh k="agentic" label="Agentic" active={aKey} dir={dir} />
-                <SortableTh k="speed" label="速度" active={aKey} dir={dir} />
-                <SortableTh k="price" label="输出价" active={aKey} dir={dir} />
-                <SortableTh
-                  k="inputPrice"
-                  label="输入价"
-                  active={aKey}
-                  dir={dir}
-                  title="输入 token 价格（models.dev 提供）— AA Free tier 不返回此字段，作为价格兜底"
-                />
-                <SortableTh k="valueRatio" label="性价比" active={aKey} dir={dir} />
-                <SortableTh
-                  k="context"
-                  label="上下文"
-                  active={aKey}
-                  dir={dir}
-                  title="上下文窗口（models.dev 提供）— 列头点选按上下文大小排序"
-                />
-              </tr>
-            )}
-          </thead>
-          <tbody>
-            {list.map((m, i) => (
-              <ModelRow
-                key={m.id}
-                model={m}
-                rank={i + 1}
-                view={v}
-                board={b}
-                dim={d}
-                lb={lbKey}
-                primaryKey={aKey}
-                primaryMax={primaryMax}
-                votesMax={votesMax}
-              />
-            ))}
-          </tbody>
-        </table>
+        <TableVirtuoso
+          data={list}
+          // ponytail: jsdom / happy-dom 量不到容器高度, 设 initialItemCount 让测试渲染所有行.
+          initialItemCount={list.length}
+          components={{
+            Table: (p) => (
+              <table {...p} class="ai-lb-table" id="ai-leaderboard-table" data-view={v} />
+            ),
+            TableHead: (p) => <thead {...p}>{p.children}</thead>,
+            TableBody: (p) => <tbody {...p}>{p.children}</tbody>,
+            TableRow: (p) => p.children,
+          }}
+          fixedHeaderContent={() => headRow}
+          itemContent={renderRow}
+        />
       </div>
 
       <ModelCardList
