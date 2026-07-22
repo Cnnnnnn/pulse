@@ -10,7 +10,7 @@
 import { forwardRef } from "preact/compat";
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.js";
-import { compareList, toggleCompare } from "./aiLeaderboardStore.js";
+import { compareList, toggleCompare, openModelDetail } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.jsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
 
@@ -61,7 +61,17 @@ export const ModelRow = forwardRef(function ModelRow(
 
   const modelCell = (
     <td class="ai-lb-td ai-lb-col-model">
-      <span class="ai-lb-model-name">{m.name || "—"}</span>
+      <button
+        type="button"
+        class="ai-lb-cell-name-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          openModelDetail(m.id);
+        }}
+        title="查看模型详情"
+      >
+        {m.name || "—"}
+      </button>
       {m.isSample && (
         <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>
       )}

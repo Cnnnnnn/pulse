@@ -9,7 +9,7 @@
 
 import { VENDOR_META } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.js";
-import { compareList, toggleCompare, columnValue } from "./aiLeaderboardStore.js";
+import { compareList, toggleCompare, columnValue, openModelDetail } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.jsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
 
@@ -64,7 +64,17 @@ function ModelCard({ m, rank, view, primaryKey }) {
             : rank}
         </span>
         <span class="ai-lb-card__name">
-          {m.name || "—"}
+          <button
+            type="button"
+            class="ai-lb-cell-name-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              openModelDetail(m.id);
+            }}
+            title="查看模型详情"
+          >
+            {m.name || "—"}
+          </button>
           {m.isSample && <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>}
         </span>
         <label class="ai-lb-card__check">
