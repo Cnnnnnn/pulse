@@ -105,3 +105,5 @@ playwright-report/
 
 .omm/*
 docs/*
+# Superpowers local execution ledger and reports
+.superpowers/
