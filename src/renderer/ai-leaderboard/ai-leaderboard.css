@@ -604,7 +604,10 @@
 /* ── 表格 ── */
 .ai-lb-table-wrap {
   width: 100%;
-  overflow-x: auto;
+  /* ponytail: TableVirtuoso 需要明确高度才能量到 viewport；沿用页面剩余空间 */
+  height: min(70vh, 720px);
+  min-height: 320px;
+  overflow: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg, 12px);

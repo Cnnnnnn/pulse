@@ -7,13 +7,18 @@
  *  - 示例行：左侧色条 + 轻微底色（row 级 class，CSS 配合）
  */
 
+import { forwardRef } from "preact/compat";
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.jsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
 
-export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primaryMax, votesMax }) {
+// ponytail: forwardRef 把 virtuoso TableRow 的测量 ref 落到真实 <tr>，否则 ResizeObserver.observe(null)
+export const ModelRow = forwardRef(function ModelRow(
+  { model, rank, view, board, dim, lb, primaryKey, primaryMax, votesMax },
+  ref,
+) {
   const m = model || {};
   const aa = m.aa || {};
   const md = m.modelsdev || {};
@@ -118,7 +123,7 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
 
   if (view === "livebench") {
     return (
-      <tr class={`ai-lb-row${sampleCls}`}>
+      <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
         {checkboxCell}
         {rankCell}
         {modelCell}
@@ -154,7 +159,7 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
       </td>
     );
     return (
-      <tr class={`ai-lb-row${sampleCls}`}>
+      <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
         {checkboxCell}
         {rankCell}
         {modelCell}
@@ -178,7 +183,7 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
       ? aa.intelligenceIndex / aa.priceOutputPer1M
       : null;
   return (
-    <tr class={`ai-lb-row${sampleCls}`}>
+    <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
       {checkboxCell}
       {rankCell}
       {modelCell}
@@ -203,6 +208,6 @@ export function ModelRow({ model, rank, view, board, dim, lb, primaryKey, primar
       )}
     </tr>
   );
-}
+});
 
 export default ModelRow;

@@ -9,6 +9,8 @@
  *  - 桌面表格 ≥200 行套 react-virtuoso TableVirtuoso，仅渲染可见行
  */
 
+import { cloneElement, toChildArray } from "preact";
+import { forwardRef } from "preact/compat";
 import { TableVirtuoso } from "react-virtuoso";
 import {
   activeView,
@@ -51,6 +53,25 @@ function SortableTh({ k, label, active, dir, title }) {
     </th>
   );
 }
+
+// ponytail: Preact 自定义组件必须 forwardRef，否则 virtuoso 的 ResizeObserver 拿到 null
+const VirtuosoTable = forwardRef((props, ref) => (
+  <table {...props} ref={ref} class="ai-lb-table" id="ai-leaderboard-table" />
+));
+const VirtuosoTableHead = forwardRef((props, ref) => <thead {...props} ref={ref} />);
+const VirtuosoTableBody = forwardRef((props, ref) => <tbody {...props} ref={ref} />);
+// ModelRow 已返回完整 <tr>；把 virtuoso 的测量 ref / style 合并上去，避免 <tr><tr>
+const VirtuosoTableRow = forwardRef(({ children, ...props }, ref) => {
+  const child = toChildArray(children)[0];
+  if (child && typeof child === "object") {
+    return cloneElement(child, { ...props, ref });
+  }
+  return (
+    <tr {...props} ref={ref}>
+      {children}
+    </tr>
+  );
+});
 
 export function LeaderboardTable({ rows, view, board, dim, lb }) {
   const v = view || activeView.value;
@@ -149,8 +170,6 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
       </tr>
     );
 
-  // ponytail: react-virtuoso 默认 TableRow='tr'，会把 itemContent 的结果再包一层 <tr>。
-  // 我们的 ModelRow 已经返回完整 <tr>...</tr>，必须覆盖 TableRow 跳过包层，否则渲染出 <tr><tr>…</tr></tr>。
   const renderRow = (index, model) => (
     <ModelRow
       model={model}
@@ -170,15 +189,14 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
       <div class="ai-lb-table-wrap">
         <TableVirtuoso
           data={list}
-          // ponytail: jsdom / happy-dom 量不到容器高度, 设 initialItemCount 让测试渲染所有行.
-          initialItemCount={list.length}
+          style={{ height: "100%" }}
+          // ponytail: happy-dom 量不到容器高度；生产用合理上限避免首屏建全量 DOM
+          initialItemCount={Math.min(list.length, 40)}
           components={{
-            Table: (p) => (
-              <table {...p} class="ai-lb-table" id="ai-leaderboard-table" data-view={v} />
-            ),
-            TableHead: (p) => <thead {...p}>{p.children}</thead>,
-            TableBody: (p) => <tbody {...p}>{p.children}</tbody>,
-            TableRow: (p) => p.children,
+            Table: VirtuosoTable,
+            TableHead: VirtuosoTableHead,
+            TableBody: VirtuosoTableBody,
+            TableRow: VirtuosoTableRow,
           }}
           fixedHeaderContent={() => headRow}
           itemContent={renderRow}
