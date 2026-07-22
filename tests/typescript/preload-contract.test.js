@@ -22,4 +22,18 @@ describe("TypeScript foundation", () => {
     expect(renderer.compilerOptions.jsxImportSource).toBe("preact");
     expect(tests.compilerOptions.types).toContain("vitest/globals");
   });
+
+  it("uses the TypeScript preload implementation as the bridge contract", () => {
+    const preload = fs.readFileSync(path.join(root, "preload.ts"), "utf8");
+    const types = fs.readFileSync(path.join(root, "src/shared/preload-types.ts"), "utf8");
+
+    expect(types).toContain("export type Callback<T = unknown>");
+    expect(types).toContain("export interface PlatformInfo");
+    expect(preload).toContain("export const api =");
+    expect(preload).toContain("export const pulse =");
+    expect(preload).toContain("export const metalsApi =");
+    expect(preload).toContain('exposeInMainWorld("api", api)');
+    expect(preload).not.toContain(": any");
+    expect(preload).not.toContain("@ts-ignore");
+  });
 });

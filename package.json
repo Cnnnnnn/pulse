@@ -22,7 +22,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "baseline:q4": "node scripts/q4-baseline.js",
-    "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.renderer.json && tsc -p tsconfig.tests.json"
+    "typecheck": "tsc -p tsconfig.preload.json && tsc -p tsconfig.app.json && tsc -p tsconfig.renderer.json && tsc -p tsconfig.tests.json"
   },
   "author": "Pulse",
   "license": "MIT",
