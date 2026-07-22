@@ -337,5 +337,8 @@ export function normalizeBoardResult(res) {
     lastUpdated: typeof res.lastUpdated === "string" ? res.lastUpdated : null,
     count: typeof res.count === "number" ? res.count : items.length,
     error: typeof res.error === "string" ? res.error : null,
+    errors: Array.isArray(res.errors)
+      ? res.errors.filter((e) => e && typeof e === "object")
+      : [],
   };
 }

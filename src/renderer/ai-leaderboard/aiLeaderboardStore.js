@@ -116,6 +116,7 @@ export const sourceCoverage = signal({ arena: 0, aa: 0, openrouter: 0, livebench
 export const attribution = signal([]);
 export const loading = signal(false);
 export const error = signal(null);
+export const lastFetchErrors = signal([]);
 export const stale = signal(false);
 export const fromCache = signal(false);
 export const fetchedAt = signal(null);
@@ -222,6 +223,7 @@ async function _run(force) {
         sources.value = norm.sources;
         sourceCoverage.value = norm.sourceCoverage || { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
         attribution.value = norm.attribution;
+        lastFetchErrors.value = norm.errors || [];
         stale.value = norm.stale;
         fromCache.value = norm.fromCache;
         fetchedAt.value = norm.fetchedAt;
