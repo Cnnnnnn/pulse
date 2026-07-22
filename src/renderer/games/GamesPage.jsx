@@ -30,11 +30,14 @@ import {
   clearSearchQuery,
   activeCollectionFilter,
   PLATFORMS,
+  collectionSidebarOpen,
+  setCollectionSidebarOpen,
 } from "./gamesStore.js";
 import { PlatformTabs } from "./PlatformTabs.jsx";
 import { GamesFilterBar } from "./GamesFilterBar.jsx";
 import { GameCard } from "./GameCard.jsx";
 import { CollectionSidebar } from "./CollectionSidebar.jsx";
+import { CollectionView } from "./CollectionView.jsx";
 import { StatsOverview } from "./StatsOverview.jsx";
 import { NoteRatingModal } from "./NoteRatingModal.jsx";
 import { MergeConfirmModal } from "./MergeConfirmModal.jsx";
@@ -119,6 +122,17 @@ export function GamesPage() {
       el.removeEventListener("scroll", onScroll);
       clearTimeout(t);
     };
+  }, []);
+
+  // 窄屏抽屉：Esc 关闭
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === "Escape" && collectionSidebarOpen.value) {
+        setCollectionSidebarOpen(false);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   // 比价模式：API 已返回全平台，本地过滤；deals：本地排序/阈值
@@ -296,24 +310,32 @@ export function GamesPage() {
 
         {/* 收藏(wishlist)模式：侧栏 + 顶部统计 + 网格 */}
         {isWishlist && !isEmpty && (
-          <div class="collection-layout">
+          <div
+            class={`collection-layout${collectionSidebarOpen.value ? " is-drawer-open" : ""}`}
+          >
+            <button
+              type="button"
+              class="collection-drawer-toggle"
+              aria-label="打开收藏分类"
+              aria-expanded={collectionSidebarOpen.value}
+              aria-controls="collection-sidebar"
+              onClick={() => setCollectionSidebarOpen(true)}
+            >
+              <span aria-hidden="true">☰</span> 分类
+            </button>
             <CollectionSidebar />
+            <div
+              class="collection-drawer-overlay"
+              aria-hidden="true"
+              onClick={() => setCollectionSidebarOpen(false)}
+            />
             <div class="collection-main">
               <StatsOverview />
               <UsageMetricsPanel />
               <BadgeWall />
               <AchievementsPanel />
               <EventBanner />
-              <div class="games-grid">
-                {collectionList.map((g) => (
-                  <GameCard
-                    key={g.key}
-                    game={{ ...g, salePrice: g.addedPrice }}
-                    context="wishlist"
-                    animate={animate}
-                  />
-                ))}
-              </div>
+              <CollectionView />
             </div>
           </div>
         )}

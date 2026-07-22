@@ -20,6 +20,7 @@ import {
   loadAchDef,
   loadAchProgress,
   loadEvents,
+  loadUnlockHistory,
   initCollectionEngines,
   fetchedAt,
   enrichSteamLowest,
@@ -52,6 +53,7 @@ export function GamesLayout() {
     loadAchDef();
     loadAchProgress();
     loadEvents();
+    loadUnlockHistory(); // Phase 2.6：解锁历史（持久化读取，纯本地）
 
     // 启动收藏引擎（徽章等），订阅 wishlist 自动重算；卸载时停止避免 effect 泄漏
     const stopEngines = initCollectionEngines();

@@ -2967,3 +2967,843 @@ a.game-card__title::after {
     transition: none;
   }
 }
+
+/* ───────────────────────────────────────────────────────────────
+   统一游戏收藏（Phase 2）— 类型切换 / 视图切换 / 完成度环 / 卡片
+   令牌来源 styles.css；全 oklch / var / color-mix，禁裸 hex；
+   动效尊重 prefers-reduced-motion。
+   ─────────────────────────────────────────────────────────────── */
+
+/* 仅供屏幕阅读器 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 类型切换条（注册表驱动） */
+.collection-type-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.collection-type-switch__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  min-height: 44px;
+}
+/* 对齐原型 .cl-type.is-active：实心 accent 填充 + 白字 + 600 */
+.collection-type-switch__btn.is-active {
+  border-color: var(--type-accent);
+  background: var(--type-accent);
+  color: oklch(100% 0 0);
+  font-weight: 600;
+}
+.collection-type-switch__btn:hover {
+  border-color: var(--type-accent);
+}
+.collection-type-switch__btn:focus-visible {
+  outline: 2px solid var(--type-accent);
+  outline-offset: 2px;
+}
+.collection-type-switch__icon {
+  font-size: var(--font-size-base);
+}
+
+/* 视图切换 segmented */
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.view-toggle__btn {
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  min-height: 44px;
+}
+.view-toggle__btn.is-active {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+.view-toggle__btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+/* 头部布局 */
+.collection-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.collection-header__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+.collection-header__main {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.collection-header__title {
+  font-size: var(--font-size-2xl);
+  margin: 0;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.collection-header__caption {
+  color: var(--text-secondary);
+  margin: var(--space-1) 0 var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 完成度环 */
+.completion-ring {
+  position: relative;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.completion-ring__svg { display: block; }
+.completion-ring__track { stroke: var(--border); }
+.completion-ring__fill {
+  stroke: var(--ring-accent);
+  /* 对齐原型 .ring__fill：0.5s cubic-bezier(0.22,1,0.36,1) */
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.completion-ring.is-reduced .completion-ring__fill { transition: none; }
+.completion-ring__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.completion-ring__pct {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.completion-ring__sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* 稀有度分布 */
+.collection-dist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.collection-dist__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+.collection-dist__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip-color);
+}
+.collection-dist__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 视图容器 + 网格 / 列表 */
+.collection-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+.collection-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* 收藏物卡片 */
+.collectible-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  contain: layout style paint;
+}
+.collectible-card:hover,
+.collectible-card:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in oklch, var(--card-accent) 60%, var(--border));
+}
+.collectible-card.is-ranked {
+  border-color: color-mix(in oklch, var(--card-accent) 45%, var(--border));
+}
+.collectible-card.is-ranked::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-accent) 35%, transparent);
+}
+/* 传奇档位呼吸微光（对齐原型 rarity-breathe） */
+.collectible-card.is-legendary.is-ranked::before {
+  animation: rarity-breathe 4s ease-in-out infinite;
+}
+@keyframes rarity-breathe {
+  0%, 100% { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-accent) 30%, transparent), 0 0 0 0 transparent; }
+  50% { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-accent) 55%, transparent), 0 0 14px -4px var(--card-accent); }
+}
+.collectible-card.is-unranked {
+  opacity: 0.72;
+  filter: saturate(0.6);
+}
+
+/* 收集动效：对齐原型 .card.is-collecting（collect-pop 弹动 + glow-burst 光爆） */
+.collectible-card.is-collecting {
+  animation: collect-pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes collect-pop {
+  0% { transform: scale(0.92); }
+  55% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.collectible-card.is-collecting::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 5;
+  animation: collect-glow-burst 0.6s ease-out;
+}
+@keyframes collect-glow-burst {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--card-accent) 36%, transparent); }
+  40% { box-shadow: 0 0 0 16px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.collectible-card__thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+/* 平台色渐变（无图兜底时露出，对齐原型 .card__thumb--*） */
+.collectible-card__thumb--steam { background: linear-gradient(135deg, oklch(78% 0.09 230), oklch(55% 0.12 230)); }
+.collectible-card__thumb--epic { background: linear-gradient(135deg, oklch(40% 0 0), oklch(22% 0 0)); }
+.collectible-card__thumb--xbox { background: linear-gradient(135deg, oklch(52% 0.15 145), oklch(38% 0.13 145)); }
+.collectible-card__thumb--playstation { background: linear-gradient(135deg, oklch(55% 0.17 255), oklch(40% 0.17 255)); }
+.collectible-card__thumb--switch { background: linear-gradient(135deg, oklch(55% 0.21 27), oklch(42% 0.18 27)); }
+.collectible-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.collectible-card__emoji { font-size: 2.4rem; }
+/* 对齐原型 .card__rarity：近实心 pill（稀有度色 85% + black）+ 白字 + 白点 + 投影 */
+.collectible-card__rarity {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: oklch(100% 0 0);
+  background: color-mix(in oklch, var(--card-accent) 85%, black);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.collectible-card__rarity::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: oklch(100% 0 0);
+  flex: 0 0 auto;
+}
+.collectible-card__body {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+.collectible-card__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.collectible-card__title {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.collectible-card__menu {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+}
+.collectible-card__menu:hover { background: var(--bg-secondary); }
+.collectible-card__menu:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+.collectible-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+.collectible-card__price {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.collectible-card__stars { color: var(--color-warning); letter-spacing: 1px; }
+.collectible-card__stars-off { color: var(--border); }
+.collectible-card__tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.collectible-card__collect {
+  border: none;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  padding: var(--space-2);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  min-height: 44px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.collectible-card__collect:hover { background: color-mix(in oklch, var(--color-error) 12%, var(--bg-secondary)); }
+.collectible-card__collect.is-on { color: var(--color-error); }
+.collectible-card__collect:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+/* 列表态：横向卡片 */
+.collection-list .collectible-card {
+  flex-direction: row;
+  align-items: stretch;
+}
+.collection-list .collectible-card__thumb {
+  aspect-ratio: auto;
+  width: 72px;
+  flex: 0 0 auto;
+}
+.collection-list .collectible-card__body { flex: 1; }
+.collection-list .collectible-card__collect {
+  border-top: none;
+  border-left: 1px solid var(--border);
+  width: 120px;
+  flex: 0 0 auto;
+}
+
+/* 动效降级：尊重系统偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .completion-ring__fill,
+  .collectible-card,
+  .collectible-card__collect,
+  .collection-type-switch__btn,
+  .view-toggle__btn {
+    transition: none !important;
+  }
+  .collectible-card:hover,
+  .collectible-card:focus-within {
+    transform: none;
+  }
+  .collectible-card.is-legendary.is-ranked::before {
+    animation: none !important;
+  }
+  .collectible-card.is-collecting,
+  .collectible-card.is-collecting::after {
+    animation: none !important;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   统一游戏收藏（Phase 2.5）— 皮肤 / 解锁 toast / 里程碑粒子 / 骨架
+   ─────────────────────────────────────────────────────────────── */
+
+.collection-view { position: relative; }
+
+.collection-header__controls {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* 皮肤切换 segmented */
+.skin-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.skin-toggle__btn {
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  min-height: 44px;
+}
+.skin-toggle__btn.is-active {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+.skin-toggle__btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+/* 缩略图占位（emoji 兜底，底色取稀有度色派生） */
+.collectible-card__emoji {
+  font-size: 2.4rem;
+  color: oklch(100% 0 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 加载骨架 */
+.collectible-card.is-skeleton { pointer-events: none; }
+.collectible-card__thumb--sk { background: var(--bg-secondary); }
+.collectible-card__sk-line {
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    color-mix(in oklch, var(--bg-secondary) 55%, var(--text-secondary)) 37%,
+    var(--bg-secondary) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+.collectible-card__sk-line--title { width: 80%; }
+.collectible-card__sk-line--meta { width: 55%; margin-top: var(--space-2); }
+@keyframes skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* 解锁庆祝 toast 栈 */
+.unlock-toast-stack {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+.unlock-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--color-success);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 220px;
+  max-width: 280px;
+  animation: unlock-toast-in 240ms ease;
+}
+.unlock-toast--badge { border-left-color: var(--color-info); }
+.unlock-toast--event { border-left-color: var(--color-warning); }
+.unlock-toast__icon { font-size: var(--font-size-xl); }
+.unlock-toast__body { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.unlock-toast__kind { font-size: var(--font-size-xs); color: var(--text-secondary); }
+.unlock-toast__title { font-weight: 700; }
+.unlock-toast__desc { font-size: var(--font-size-xs); color: var(--text-secondary); }
+.unlock-toast__close {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  min-width: 28px;
+  min-height: 28px;
+}
+@keyframes unlock-toast-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 里程碑粒子动效 */
+.milestone-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  overflow: hidden;
+}
+.milestone-fx__burst { position: relative; width: 0; height: 0; }
+.milestone-fx__particle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border-radius: 2px;
+  background: var(--accent-primary);
+  animation: milestone-burst 1100ms ease-out forwards;
+}
+.milestone-fx__label {
+  position: absolute;
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  text-shadow: 0 2px 12px var(--bg-primary);
+  animation: milestone-pop 1100ms ease-out forwards;
+}
+.milestone-fx--static .milestone-fx__banner {
+  background: color-mix(in oklch, var(--accent-primary) 16%, var(--bg-primary));
+  border: 1px solid var(--accent-primary);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+}
+@keyframes milestone-burst {
+  from { opacity: 1; transform: translate(0, 0) scale(1); }
+  to { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.4); }
+}
+@keyframes milestone-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  30% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* ── 多皮肤 [data-skin] 气质覆写（仅作用收藏视图子树，对齐原型 [data-skin=*]）── */
+/* 霓虹：magenta 主调 + monospace + 大圆角 + 平台渐变改色 + is-ranked 发光 */
+.collection-view[data-skin="neon"] {
+  --type-accent: oklch(64% 0.23 330);
+  --skin-font: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --border: color-mix(in oklch, var(--type-accent) 28%, oklch(50% 0 0 / 0.2));
+  font-family: var(--skin-font);
+}
+.collection-view[data-skin="neon"] .completion-ring__fill {
+  stroke: var(--type-accent);
+}
+.collection-view[data-skin="neon"] .collectible-card {
+  box-shadow: 0 0 12px color-mix(in oklch, var(--type-accent) 35%, transparent);
+}
+.collection-view[data-skin="neon"] .collectible-card.is-ranked {
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--card-accent) 50%, transparent),
+    0 0 18px -6px var(--card-accent);
+}
+.collection-view[data-skin="neon"] .collectible-card:hover,
+.collection-view[data-skin="neon"] .collectible-card:focus-within {
+  box-shadow: 0 0 22px color-mix(in oklch, var(--type-accent) 55%, transparent);
+}
+.collection-view[data-skin="neon"] .collection-type-switch__btn.is-active {
+  box-shadow: inset 0 0 0 1px var(--type-accent),
+    0 0 12px color-mix(in oklch, var(--type-accent) 30%, transparent);
+}
+.collection-view[data-skin="neon"] .collectible-card__collect.is-on {
+  color: var(--type-accent);
+}
+/* 平台缩略图渐变改色（对齐原型 [data-skin=neon] .card__thumb--*） */
+.collection-view[data-skin="neon"] .collectible-card__thumb--steam { background: linear-gradient(135deg, oklch(72% 0.2 200), oklch(60% 0.26 285)); }
+.collection-view[data-skin="neon"] .collectible-card__thumb--epic { background: linear-gradient(135deg, oklch(45% 0.2 330), oklch(30% 0.18 330)); }
+.collection-view[data-skin="neon"] .collectible-card__thumb--xbox { background: linear-gradient(135deg, oklch(66% 0.2 165), oklch(48% 0.18 165)); }
+.collection-view[data-skin="neon"] .collectible-card__thumb--playstation { background: linear-gradient(135deg, oklch(60% 0.24 285), oklch(45% 0.24 285)); }
+.collection-view[data-skin="neon"] .collectible-card__thumb--switch { background: linear-gradient(135deg, oklch(62% 0.26 25), oklch(48% 0.22 25)); }
+
+/* 复古：green 主调 + monospace + 圆角 0 + 硬阴影 + 单色缩略图 */
+.collection-view[data-skin="retro"] {
+  --type-accent: oklch(58% 0.15 145);
+  --skin-font: "Courier New", ui-monospace, monospace;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --border: oklch(50% 0 0 / 0.45);
+  --shadow-sm: 2px 2px 0 rgba(0, 0, 0, 0.15);
+  --shadow-md: 3px 3px 0 rgba(0, 0, 0, 0.18);
+  font-family: var(--skin-font);
+}
+.collection-view[data-skin="retro"] .completion-ring__fill {
+  stroke: var(--type-accent);
+}
+.collection-view[data-skin="retro"] .collectible-card,
+.collection-view[data-skin="retro"] .collection-type-switch__btn,
+.collection-view[data-skin="retro"] .view-toggle__btn,
+.collection-view[data-skin="retro"] .skin-toggle__btn,
+.collection-view[data-skin="retro"] .collectible-card__collect,
+.collection-view[data-skin="retro"] .collectible-card__menu {
+  border-radius: 0;
+}
+.collection-view[data-skin="retro"] .collectible-card {
+  border-width: 2px;
+}
+.collection-view[data-skin="retro"] .collection-type-switch__btn.is-active {
+  box-shadow: inset 0 0 0 2px var(--type-accent);
+}
+/* 单色缩略图（对齐原型 [data-skin=retro] .card__thumb--*） */
+.collection-view[data-skin="retro"] .collectible-card__thumb { background: var(--type-accent); }
+.collection-view[data-skin="retro"] .collectible-card__thumb--steam { background: oklch(60% 0.1 230); }
+.collection-view[data-skin="retro"] .collectible-card__thumb--epic { background: oklch(35% 0 0); }
+.collection-view[data-skin="retro"] .collectible-card__thumb--xbox { background: oklch(50% 0.14 145); }
+.collection-view[data-skin="retro"] .collectible-card__thumb--playstation { background: oklch(52% 0.16 255); }
+.collection-view[data-skin="retro"] .collectible-card__thumb--switch { background: oklch(52% 0.2 25); }
+
+/* ── 动效降级：尊重系统偏好 ── */
+@media (prefers-reduced-motion: reduce) {
+  .unlock-toast { animation: none !important; }
+  .milestone-fx__particle,
+  .milestone-fx__label { animation: none !important; }
+  .collectible-card__sk-line { animation: none !important; }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   统一游戏收藏（Phase 2.6）— 窄屏抽屉 + 解锁历史面板
+   ─────────────────────────────────────────────────────────────── */
+
+/* 抽屉 toggle / overlay：桌面端默认隐藏（侧栏常显） */
+.collection-drawer-toggle { display: none; }
+.collection-drawer-overlay { display: none; }
+
+.collection-drawer-toggle {
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  min-height: 44px;
+}
+.collection-drawer-toggle:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* 解锁历史按钮（复用 skin-toggle__btn 外观，置首） */
+.collection-history-btn { order: -1; }
+
+/* 窄屏：侧栏变 off-canvas 抽屉（桌面端不进入此媒体查询，侧栏常显） */
+@media (max-width: 720px) {
+  .collection-drawer-toggle { display: inline-flex; }
+  .collection-drawer-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: oklch(20% 0 0 / 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+    z-index: 55;
+  }
+  .collection-layout.is-drawer-open .collection-drawer-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .collection-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(82vw, 320px);
+    max-height: none;
+    height: 100%;
+    z-index: 60;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform var(--transition-normal), visibility var(--transition-normal);
+  }
+  .collection-layout.is-drawer-open .collection-sidebar {
+    transform: translateX(0);
+    visibility: visible;
+  }
+}
+
+/* 解锁历史面板 */
+.unlock-history {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+}
+.unlock-history__backdrop {
+  position: absolute;
+  inset: 0;
+  background: oklch(20% 0 0 / 0.45);
+}
+.unlock-history__panel {
+  position: relative;
+  width: min(440px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.unlock-history__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.unlock-history__title { margin: 0; font-size: var(--font-size-lg); }
+.unlock-history__close {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xl);
+  cursor: pointer;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+}
+.unlock-history__close:hover { background: var(--bg-secondary); }
+.unlock-history__close:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+.unlock-history__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2) var(--space-4) var(--space-4);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.unlock-history__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+.unlock-history__icon { font-size: var(--font-size-xl); line-height: 1; }
+.unlock-history__body { flex: 1; min-width: 0; }
+.unlock-history__row { display: flex; align-items: baseline; gap: var(--space-2); }
+.unlock-history__name { font-weight: 600; }
+.unlock-history__kind {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 999px);
+  padding: 0 var(--space-2);
+}
+.unlock-history__desc {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.unlock-history__time {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.unlock-history__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  color: var(--text-secondary);
+  text-align: center;
+}
+.unlock-history__empty-icon { font-size: 2rem; }
+.unlock-history__empty-hint { font-size: var(--font-size-xs); max-width: 22em; }
+
+/* 动效降级：尊重系统偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .collection-drawer-overlay,
+  .collection-sidebar { transition: none !important; }
+}

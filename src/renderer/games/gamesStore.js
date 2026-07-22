@@ -35,8 +35,21 @@ import {
   sortByWeight,
   tierColorOf,
 } from "./rarityTiers.js";
+// 统一游戏收藏（Phase 2）：数据驱动类型注册表（纯函数，零 store 依赖）
+import {
+  DEFAULT_COLLECTION_TYPES,
+  getCollectionType,
+  listCollectionTypes,
+  catalogOf,
+  progressOf,
+  rarityDistribution,
+  rarityCoverage,
+  targetCoverage,
+  crossedMilestones,
+  clampPct,
+} from "./collectionRegistry.js";
 import { bumpMetric as bumpMetricPure, mergeMetrics } from "./metrics.js";
-import { evaluateBadges, buildBadgeCtx } from "./badges.js";
+import { evaluateBadges, buildBadgeCtx, getBadgeRule } from "./badges.js";
 import { evaluateAchievements, DEFAULT_ACHIEVEMENTS, countMatches } from "./achievementsEngine.js";
 import { evaluateEvents, DEFAULT_EVENTS, isEventActive } from "./eventsEngine.js";
 
@@ -479,6 +492,12 @@ export const folders = signal([]);
 export const tags = signal([]);
 /** 当前收藏筛选 {type:'folder'|'tag'|null, id:string|null}。 */
 export const activeCollectionFilter = signal({ type: null, id: null });
+
+// ── 统一游戏收藏（Phase 2）：类型切换 / 视图切换 ──
+/** 当前收藏类型 id（注册表键，默认 "all"）。 */
+export const activeCollectionType = signal("all");
+/** 收藏展示视图：'grid' | 'list'。 */
+export const collectionView = signal("grid");
 /** 备注/评分弹窗目标 key（null = 关闭）。 */
 export const noteRatingTarget = signal(null);
 /** 合并确认弹窗候选 key 列表。 */
@@ -487,6 +506,24 @@ export const mergeCandidateKeys = signal([]);
 export const mergeIsUnknown = signal(false);
 /** 当前展开的合并主记录 key（null = 无）。 */
 export const expandedMergeKey = signal(null);
+
+// ── 统一游戏收藏（Phase 2.5）：解锁庆祝 / 里程碑 / 皮肤 / 加载态 ──
+/** 解锁庆祝 toast 队列：[{uid, kind:'badge'|'ach'|'event', title, desc}]。 */
+export const unlockToasts = signal([]);
+/** 里程碑粒子动效信号：{pct:number, at:number} | null（null = 无动效）。 */
+export const milestoneFx = signal(null);
+/** 当前皮肤：'minimal' | 'neon' | 'retro'（minimal = 不覆写基础令牌）。 */
+export const collectionSkin = signal("minimal");
+/** 加载骨架态（类型 / 视图切换时短暂为 true）。 */
+export const collectionLoading = signal(false);
+
+// ── 统一游戏收藏（Phase 2.6）：窄屏抽屉 + 解锁历史 ──
+/** 窄屏收藏侧栏抽屉开合态（仅窄屏有效，桌面端常显）。 */
+export const collectionSidebarOpen = signal(false);
+/** 解锁历史面板开合态。 */
+export const unlockHistoryOpen = signal(false);
+/** 解锁历史记录（[{id, kind, title, desc, at}]，最新在前，上限 50）。 */
+export const unlockHistory = signal([]);
 
 /** 稀有度档位（signal）。默认空，由 loadRarityTiers 填充为 4 档或用户自定义。 */
 export const rarityTiers = signal([]);
@@ -656,6 +693,165 @@ export function setCollectionFilter(typeOrObj, id) {
       : { type: null, id: null };
   activeCollectionFilter.value = next;
   _persistCollectionFilter();
+}
+
+// ── 统一游戏收藏（Phase 2）：类型 / 视图 切换 + 派生选择器 ──
+
+/** 设置当前收藏类型（仅接受注册表中存在的 id，非法忽略）。 */
+export function setCollectionType(id) {
+  if (!getCollectionType(id)) return;
+  if (activeCollectionType.value === id) return;
+  activeCollectionType.value = id;
+  triggerCollectionLoading();
+}
+
+/** 设置收藏展示视图（'grid' | 'list'）；非法值回退 'grid'。 */
+export function setCollectionView(v) {
+  const next = v === "list" ? "list" : "grid";
+  if (collectionView.value === next) return;
+  collectionView.value = next;
+  triggerCollectionLoading();
+}
+
+// ── 加载骨架（类型 / 视图切换时短暂为真，制造微交互过渡）──
+let _loadingTimer = null;
+function triggerCollectionLoading() {
+  collectionLoading.value = true;
+  if (_loadingTimer) clearTimeout(_loadingTimer);
+  _loadingTimer = setTimeout(() => {
+    collectionLoading.value = false;
+  }, 280);
+}
+
+/** 设置皮肤（仅接受已知值，非法回退 minimal）。 */
+export function setCollectionSkin(s) {
+  const allowed = ["minimal", "neon", "retro"];
+  collectionSkin.value = allowed.includes(s) ? s : "minimal";
+}
+
+/** 推入一条解锁 toast（上限保留最近 4 条）。 */
+export function pushUnlockToast(kind, title, desc) {
+  const uid = `${kind}-${title}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  unlockToasts.value = [...unlockToasts.value, { uid, kind, title, desc }].slice(-4);
+}
+
+/** 关闭指定 toast。 */
+export function dismissUnlockToast(uid) {
+  unlockToasts.value = unlockToasts.value.filter((t) => t.uid !== uid);
+}
+
+/** 清除里程碑动效信号。 */
+export function clearMilestoneFx() {
+  milestoneFx.value = null;
+}
+
+// ── 窄屏侧栏抽屉 ──
+
+/** 设置抽屉开合态。 */
+export function setCollectionSidebarOpen(v) {
+  collectionSidebarOpen.value = !!v;
+}
+/** 切换抽屉开合态。 */
+export function toggleCollectionSidebar() {
+  collectionSidebarOpen.value = !collectionSidebarOpen.value;
+}
+
+// ── 解锁历史 ──
+
+/** 打开 / 关闭解锁历史面板。 */
+export function setUnlockHistoryOpen(v) {
+  unlockHistoryOpen.value = !!v;
+}
+/** 切换解锁历史面板开合态。 */
+export function toggleUnlockHistory() {
+  unlockHistoryOpen.value = !unlockHistoryOpen.value;
+}
+/** 清空解锁历史。 */
+export function clearUnlockHistory() {
+  unlockHistory.value = [];
+  _persistUnlockHistory();
+}
+
+/** 追加一条解锁历史（最新在前，上限 50）。 */
+export function pushUnlockHistory(kind, title, desc) {
+  const item = {
+    id: `h-${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    kind,
+    title,
+    desc,
+    at: Date.now(),
+  };
+  unlockHistory.value = [item, ...unlockHistory.value].slice(0, 50);
+  _persistUnlockHistory();
+}
+
+/**
+ * 计算当前收藏视图完成度 pct（与 deriveCollectionView 口径一致），供里程碑检测。
+ * 订阅：activeCollectionType / wishlist / activeCollectionFilter / folders。
+ */
+export function currentCompletionPct() {
+  const type = getCollectionType(activeCollectionType.value) || getCollectionType("all");
+  const all = wishlist.value;
+  const f = activeCollectionFilter.value;
+  if (f && f.type === "folder") {
+    const folder = folders.value.find((x) => x.id === f.id);
+    return targetCoverage(
+      all.filter((e) => e && e.folderId === f.id).length,
+      folder ? folder.target : null,
+    ).pct;
+  }
+  return progressOf(type.id, all, {}).pct;
+}
+
+/**
+ * 派生当前收藏视图数据（纯函数，组件据此渲染）。
+ * 串联：registry.catalog（类型视图过滤）→ activeCollectionFilter（文件夹/标签）→ 搜索。
+ * 完成度口径：
+ *   - 文件夹筛选 → targetCoverage(条目数, folder.target)；
+ *   - 其余 → registry 类型自带 progress（默认稀有度分级覆盖）。
+ * @returns {{typeId:string, type:object, entries:object[], progress:object, distribution:object[]}}
+ */
+export function deriveCollectionView() {
+  const type = getCollectionType(activeCollectionType.value) || getCollectionType("all");
+  const all = wishlist.value;
+
+  // 1) 类型视图过滤
+  let entries = catalogOf(type.id, all, {});
+
+  // 2) 文件夹 / 标签过滤
+  const f = activeCollectionFilter.value;
+  let folderTarget = null;
+  if (f && f.type === "folder") {
+    entries = entries.filter((e) => e && e.folderId === f.id);
+    const folder = folders.value.find((x) => x.id === f.id);
+    folderTarget = folder ? folder.target : null;
+  } else if (f && f.type === "tag") {
+    entries = entries.filter((e) => e && Array.isArray(e.tags) && e.tags.includes(f.id));
+  }
+
+  // 3) 标题搜索（本地过滤）
+  const q = (searchQuery.value || "").trim().toLowerCase();
+  if (q) entries = entries.filter((e) => matchesSearch(e, q));
+
+  // 4) 按稀有度降序（unranked 恒末尾），与既有 wishlist 网格排序一致
+  const weightOf = {};
+  for (const t of rarityTiers.value) weightOf[t.id] = t.weight;
+  entries = [...entries].sort((a, b) => {
+    const wa = a.rarity != null && weightOf[a.rarity] != null ? weightOf[a.rarity] : -1;
+    const wb = b.rarity != null && weightOf[b.rarity] != null ? weightOf[b.rarity] : -1;
+    return wb - wa;
+  });
+
+  // 完成度
+  let progress;
+  if (f && f.type === "folder") {
+    progress = targetCoverage(entries.length, folderTarget);
+  } else {
+    progress = progressOf(type.id, all, {});
+  }
+
+  const distribution = rarityDistribution(all, rarityTiers.value);
+  return { typeId: type.id, type, entries, progress, distribution };
 }
 
 // ── 标签 action ──
@@ -1359,6 +1555,59 @@ export function claimEvent(id) {
   return true;
 }
 
+// ── 解锁庆祝检测（Phase 2.5）──
+
+/**
+ * 计算当前「已点亮集合」key 集合（'badge:'+id / 'ach:'+id / 'event:'+id）。
+ * 纯函数，供解锁庆祝 diff 使用。
+ * @param {Array<object>} entries 收藏条目
+ * @returns {Set<string>}
+ */
+export function computeUnlocked(entries) {
+  const set = new Set();
+  for (const b of evaluateBadges(entries, buildBadgeCtx(entries))) set.add("badge:" + b.id);
+  const ach = evaluateAchievements(
+    entries,
+    [...DEFAULT_ACHIEVEMENTS, ...achievementsDef.value],
+    achievementsProgress.peek(),
+  );
+  for (const [id, p] of Object.entries(ach)) if (p.unlocked) set.add("ach:" + id);
+  const ev = evaluateEvents(
+    entries,
+    [...DEFAULT_EVENTS, ...eventsConfig.value],
+    eventsProgress.peek(),
+  );
+  for (const [id, p] of Object.entries(ev)) if (p.completed) set.add("event:" + id);
+  return set;
+}
+
+/**
+ * 基于「上一次已点亮集合」diff，返回本次新解锁项（供解锁庆祝推 toast）。
+ * @param {Set<string>|string[]} prev 上一次已点亮 key 集合
+ * @param {Array<object>} entries 当前收藏条目
+ * @returns {{newOnes:Array<{kind:string,id:string,title:string,desc:string}>, set:Set<string>}}
+ */
+export function detectNewUnlocks(prev, entries) {
+  const prevSet = prev instanceof Set ? prev : new Set(Array.isArray(prev) ? prev : []);
+  const set = computeUnlocked(entries);
+  const newOnes = [];
+  for (const key of set) {
+    if (prevSet.has(key)) continue;
+    const [kind, id] = key.split(":", 2);
+    if (kind === "badge") {
+      const r = getBadgeRule(id);
+      newOnes.push({ kind, id, title: (r && r.name) || "徽章", desc: (r && r.desc) || "" });
+    } else if (kind === "ach") {
+      const d = [...DEFAULT_ACHIEVEMENTS, ...achievementsDef.value].find((x) => x.id === id);
+      newOnes.push({ kind, id, title: (d && d.name) || "成就", desc: "达成目标" });
+    } else {
+      const d = [...DEFAULT_EVENTS, ...eventsConfig.value].find((x) => x.id === id);
+      newOnes.push({ kind, id, title: (d && d.title) || "活动", desc: "达成目标" });
+    }
+  }
+  return { newOnes, set };
+}
+
 /**
  * 启动收藏引擎：订阅 wishlist signal，自动重算各派生集合并落盘。
  * 当前批次（P1b）注册「徽章」引擎；P1c 将在此追加成就 / 活动引擎 effect。
@@ -1444,6 +1693,45 @@ export function initCollectionEngines() {
     }),
   );
 
+  // 解锁庆祝检测（Phase 2.5）：订阅 wishlist，diff 已点亮集合，新解锁则推 toast。
+  // 首次运行仅建立基线（不弹 toast）；读取自身进度用 .peek() 避免自订阅死循环。
+  let _prevUnlocked = null;
+  let _unlockFirst = true;
+  stops.push(
+    effect(() => {
+      const entries = wishlist.value;
+      const { newOnes, set } = detectNewUnlocks(_prevUnlocked, entries);
+      if (!_unlockFirst) {
+        for (const u of newOnes) {
+          pushUnlockToast(u.kind, u.title, u.desc);
+          pushUnlockHistory(u.kind, u.title, u.desc);
+        }
+      }
+      _unlockFirst = false;
+      _prevUnlocked = set;
+    }),
+  );
+
+  // 里程碑粒子检测（Phase 2.5）：订阅收藏完成度，越过阈值触发粒子动效。
+  let _prevPct = 0;
+  let _msFirst = true;
+  stops.push(
+    effect(() => {
+      const pct = currentCompletionPct();
+      if (_msFirst) {
+        _msFirst = false;
+        _prevPct = pct;
+        return;
+      }
+      const type = getCollectionType(activeCollectionType.value) || getCollectionType("all");
+      const crossed = crossedMilestones(_prevPct, pct, type.milestone);
+      if (crossed.length) {
+        milestoneFx.value = { pct: crossed[crossed.length - 1], at: Date.now() };
+      }
+      _prevPct = pct;
+    }),
+  );
+
   return () => {
     for (const stop of stops) {
       try {
@@ -1453,6 +1741,32 @@ export function initCollectionEngines() {
       }
     }
   };
+}
+
+// ── 解锁历史持久化（Phase 2.6）──
+const UNLOCK_HISTORY_KEY = "pulse.games.unlockHistory.v1";
+
+/** 读取解锁历史（最新在前，上限 50）。损坏数据静默回退空。 */
+export function loadUnlockHistory() {
+  const raw = readStorage(UNLOCK_HISTORY_KEY);
+  if (!raw) {
+    unlockHistory.value = [];
+    return;
+  }
+  try {
+    const arr = JSON.parse(raw);
+    unlockHistory.value = Array.isArray(arr) ? arr.slice(0, 50) : [];
+  } catch {
+    unlockHistory.value = [];
+  }
+}
+
+function _persistUnlockHistory() {
+  try {
+    writeStorage(UNLOCK_HISTORY_KEY, JSON.stringify(unlockHistory.value));
+  } catch {
+    /* 忽略 */
+  }
 }
 
 function _persistWishlist() {
@@ -1621,4 +1935,15 @@ export {
   evaluateEvents,
   DEFAULT_EVENTS,
   isEventActive,
+  // Phase 2 统一游戏收藏：类型注册表纯函数
+  DEFAULT_COLLECTION_TYPES,
+  getCollectionType,
+  listCollectionTypes,
+  catalogOf,
+  progressOf,
+  rarityDistribution,
+  rarityCoverage,
+  targetCoverage,
+  crossedMilestones,
+  clampPct,
 };

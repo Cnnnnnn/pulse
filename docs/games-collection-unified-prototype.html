@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-skin="minimal" data-reduced-motion="false">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>游戏收集模块 · 统一游戏风格 UI 原型（Phase 1.5 深化）</title>
+<style>
+/* ════════════════════════════════════════════════
+   设计令牌：严格复用 AppUpdateChecker 真实 oklch 体系
+   （styles.css :root / [data-theme=dark]），收藏专属令牌
+   在 :root 内新增。禁止裸 hex。皮肤仅覆写少量变量。
+   ════════════════════════════════════════════════ */
+:root {
+  --bg-primary: oklch(97.07% 0.0028 285.2);
+  --bg-secondary: rgba(246,246,246,0.9);
+  --bg-elevated: oklch(98.5% 0.002 285.2);
+  --surface: oklch(100% 0 0);
+  --border: rgba(0,0,0,0.08);
+  --border-subtle: oklch(92.33% 0.0068 285.8);
+  --text-primary: oklch(23.16% 0.0038 285.9);
+  --text-secondary: oklch(53.99% 0.0078 285.9);
+  --text-tertiary: oklch(75.20% 0.0057 285.8);
+  --accent-primary: oklch(60.28% 0.2178 257.4);
+  --accent-orange: oklch(76.52% 0.1751 62.6);
+  --accent-green: oklch(73.03% 0.1944 147.5);
+  --accent-red: oklch(65.42% 0.2321 28.7);
+  --color-success: var(--accent-green);
+  --color-warning: var(--accent-orange);
+  --color-danger: var(--accent-red);
+  --brand-steam: oklch(78% 0.09 230);
+  --brand-epic: oklch(40% 0 0);
+  --brand-xbox: oklch(52% 0.15 145);
+  --brand-playstation: oklch(55% 0.17 255);
+  --brand-switch: oklch(55% 0.21 27);
+  --gray-400: oklch(64.83% 0.0074 285.9);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
+  --font-size-xs:11px; --font-size-sm:12px; --font-size-md:13px; --font-size-lg:14px; --font-size-xl:15px; --font-size-2xl:16px; --font-size-3xl:20px;
+  --focus-ring: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 22%, transparent);
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  /* 发光强度（皮肤可覆写） */
+  --glow-intensity: 22%;
+  --skin-font: var(--font-system);
+
+  /* ── 收藏专属令牌（新增；稀有度色对齐真实 rarityTiers.js 的 var 引用）── */
+  --rarity-common: var(--gray-400);
+  --rarity-rare: oklch(62% 0.13 255);
+  --rarity-epic: oklch(56% 0.16 295);
+  --rarity-legendary: oklch(78% 0.15 75);
+  --collect-glow: color-mix(in oklch, var(--rarity-color, var(--accent-primary)) var(--glow-intensity), transparent);
+  --collect-glow-soft: color-mix(in oklch, var(--rarity-color, var(--accent-primary)) calc(var(--glow-intensity) * 0.6), transparent);
+  --ghost-bg: color-mix(in oklch, var(--bg-secondary) 70%, transparent);
+  --ghost-fg: var(--text-tertiary);
+  --ring-track: var(--border);
+  --ring-fill: var(--accent-primary);
+  --toast-bg: var(--surface);
+  --toast-border: color-mix(in oklch, var(--accent-primary) 30%, var(--border));
+  --segment-bg: var(--bg-secondary);
+  --segment-active: var(--surface);
+}
+:root[data-theme="dark"] {
+  --bg-primary: oklch(20% 0.004 285);
+  --bg-secondary: rgba(40,40,40,0.9);
+  --bg-elevated: oklch(29.39% 0.0036 285.9);
+  --surface: rgba(44,44,46,0.95);
+  --border: rgba(255,255,255,0.10);
+  --border-subtle: rgba(255,255,255,0.10);
+  --text-primary: oklch(97.07% 0.0028 285.2);
+  --text-secondary: oklch(65% 0.006 285);
+  --text-tertiary: oklch(43% 0.004 285);
+  --accent-primary: oklch(62.43% 0.2057 255.5);
+  --accent-orange: oklch(78.24% 0.1710 67.2);
+  --accent-green: oklch(75.56% 0.2082 147.0);
+  --accent-red: oklch(66.33% 0.2236 28.3);
+  --color-success: var(--accent-green);
+  --color-warning: var(--accent-orange);
+  --color-danger: var(--accent-red);
+  --brand-steam: oklch(80% 0.09 230);
+  --brand-epic: oklch(80% 0 0);
+  --brand-xbox: oklch(64% 0.16 145);
+  --brand-playstation: oklch(68% 0.17 255);
+  --brand-switch: oklch(66% 0.21 27);
+  --gray-400: oklch(64.83% 0.0074 285.9);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+  --focus-ring: 0 0 0 3px rgba(10,132,255,0.35);
+  --rarity-common: var(--gray-400);
+  --rarity-rare: oklch(64% 0.13 255);
+  --rarity-epic: oklch(60% 0.16 295);
+  --rarity-legendary: oklch(80% 0.15 75);
+  --collect-glow: color-mix(in oklch, var(--rarity-color, var(--accent-primary)) var(--glow-intensity), transparent);
+  --collect-glow-soft: color-mix(in oklch, var(--rarity-color, var(--accent-primary)) calc(var(--glow-intensity) * 0.6), transparent);
+  --ghost-bg: color-mix(in oklch, var(--bg-secondary) 70%, transparent);
+  --toast-bg: oklch(22% 0 0);
+  --toast-border: color-mix(in oklch, var(--accent-primary) 35%, var(--border));
+}
+
+/* ══════════ 皮肤系统：同一套令牌派生，仅覆写少量变量 ══════════ */
+/* 默认 minimal 即上方令牌；以下仅改气质变量，布局/结构不变 */
+[data-skin="neon"] {
+  --accent-primary: oklch(64% 0.23 330);
+  --accent-green: oklch(78% 0.18 165);
+  --accent-orange: oklch(78% 0.16 70);
+  --glow-intensity: 60%;
+  --skin-font: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+  --border: color-mix(in oklch, var(--accent-primary) 28%, oklch(50% 0 0 / 0.2));
+}
+[data-skin="neon"] .card__thumb--steam { background: linear-gradient(135deg, oklch(72% 0.2 200), oklch(60% 0.26 285)); }
+[data-skin="neon"] .card__thumb--epic { background: linear-gradient(135deg, oklch(45% 0.2 330), oklch(30% 0.18 330)); }
+[data-skin="neon"] .card__thumb--xbox { background: linear-gradient(135deg, oklch(66% 0.2 165), oklch(48% 0.18 165)); }
+[data-skin="neon"] .card__thumb--playstation { background: linear-gradient(135deg, oklch(60% 0.24 285), oklch(45% 0.24 285)); }
+[data-skin="neon"] .card__thumb--switch { background: linear-gradient(135deg, oklch(62% 0.26 25), oklch(48% 0.22 25)); }
+[data-skin="neon"] .card.is-collected { box-shadow: 0 0 0 1px color-mix(in oklch, var(--rarity-color) 50%, transparent), 0 0 18px -6px var(--rarity-color); }
+
+[data-skin="retro"] {
+  --accent-primary: oklch(58% 0.15 145);
+  --glow-intensity: 0%;
+  --skin-font: ui-monospace, "Courier New", monospace;
+  --radius-sm: 0; --radius-md: 0; --radius-lg: 0;
+  --border: oklch(50% 0 0 / 0.45);
+  --shadow-sm: 2px 2px 0 rgba(0,0,0,0.15);
+  --shadow-md: 3px 3px 0 rgba(0,0,0,0.18);
+}
+[data-skin="retro"] .card { border-width: 2px; }
+[data-skin="retro"] .card__thumb { background: var(--accent-primary); }
+[data-skin="retro"] .card__thumb--steam { background: oklch(60% 0.1 230); }
+[data-skin="retro"] .card__thumb--epic { background: oklch(35% 0 0); }
+[data-skin="retro"] .card__thumb--xbox { background: oklch(50% 0.14 145); }
+[data-skin="retro"] .card__thumb--playstation { background: oklch(52% 0.16 255); }
+[data-skin="retro"] .card__thumb--switch { background: oklch(52% 0.2 25); }
+[data-skin="retro"] .btn-collect, [data-skin="retro"] .btn-collected,
+[data-skin="retro"] .seg, [data-skin="retro"] .cl-type,
+[data-skin="retro"] .cl-chip, [data-skin="retro"] .cl-icon-btn,
+[data-skin="retro"] .btn-primary { border-radius: 0; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--skin-font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── 顶部说明条（仅原型用，落地时移除）── */
+.proto-note {
+  background: color-mix(in oklch, var(--accent-primary) 12%, var(--bg-secondary));
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+}
+.proto-note b { color: var(--text-primary); }
+
+/* ── Header ── */
+.cl-header {
+  display: flex; align-items: center; gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+.cl-brand { display: flex; align-items: center; gap: var(--space-3); }
+.cl-brand__mark {
+  width: 40px; height: 40px; border-radius: var(--radius-md);
+  background: var(--bg-secondary); display: grid; place-items: center;
+  font-size: 20px;
+}
+.cl-brand__title { font-size: var(--font-size-3xl); font-weight: 700; letter-spacing: -0.02em; }
+.cl-brand__sub { font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+/* 完成度环 */
+.cl-ring-wrap { display: flex; align-items: center; gap: var(--space-3); margin-left: auto; }
+.ring { width: 64px; height: 64px; transform: rotate(-90deg); }
+.ring__track { fill: none; stroke: var(--ring-track); stroke-width: 8; }
+.ring__fill {
+  fill: none; stroke: var(--ring-fill); stroke-width: 8; stroke-linecap: round;
+  transition: stroke-dashoffset .5s cubic-bezier(0.22,1,0.36,1);
+}
+.ring-center { position: relative; width: 64px; height: 64px; flex: 0 0 auto; }
+.ring-center__pct {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: var(--font-size-lg); font-weight: 700; font-variant-numeric: tabular-nums;
+  transform: none;
+}
+.cl-ring-label { font-size: var(--font-size-sm); color: var(--text-secondary); line-height: 1.3; }
+.cl-ring-label b { color: var(--text-primary); font-size: var(--font-size-lg); }
+
+/* 类型切换（registry 演示） */
+.cl-types { display: flex; gap: var(--space-2); }
+.cl-type {
+  padding: 6px var(--space-3); border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-secondary); cursor: pointer;
+  font-size: var(--font-size-md); transition: .15s;
+}
+.cl-type:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.cl-type.is-active { background: var(--accent-primary); border-color: var(--accent-primary); color: oklch(100% 0 0); font-weight: 600; }
+
+/* 主题切换 + 视图切换 */
+.cl-controls { display: flex; align-items: center; gap: var(--space-3); }
+.cl-icon-btn {
+  width: 40px; height: 40px; border-radius: var(--radius-md); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-primary); cursor: pointer; font-size: 18px;
+  display: grid; place-items: center; transition: .15s;
+}
+.cl-icon-btn:hover { background: var(--bg-secondary); }
+.cl-icon-btn:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.cl-icon-btn.is-on { background: var(--accent-primary); color: oklch(100% 0 0); border-color: var(--accent-primary); }
+
+/* segmented ViewToggle */
+.seg { display: inline-flex; background: var(--segment-bg); border-radius: var(--radius-md); padding: 3px; gap: 2px; }
+.seg button {
+  border: none; background: transparent; color: var(--text-secondary); cursor: pointer;
+  padding: 6px 12px; border-radius: 7px; font-size: var(--font-size-md); display: inline-flex; align-items: center; gap: 6px;
+}
+.seg button.is-active { background: var(--segment-active); color: var(--text-primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+.seg button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+
+/* ── 演示工具条（皮肤 / 状态 / 动效降级）── */
+.cl-demo-bar {
+  display: flex; gap: var(--space-6); align-items: center; flex-wrap: wrap;
+  padding: var(--space-3) var(--space-6); background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.cl-demo-group { display: inline-flex; align-items: center; gap: var(--space-2); }
+.cl-demo-label { font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+/* ── Body ── */
+.cl-body { display: flex; gap: var(--space-5); padding: var(--space-5) var(--space-6); align-items: flex-start; }
+
+/* Rail */
+.cl-rail {
+  width: 240px; flex: 0 0 auto; display: flex; flex-direction: column; gap: var(--space-5);
+  position: sticky; top: var(--space-5);
+}
+.cl-rail__title { font-size: var(--font-size-sm); text-transform: uppercase; letter-spacing: .04em; color: var(--text-tertiary); margin: 0 0 var(--space-2); }
+.cl-rail__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.cl-rail__item {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  width: 100%; text-align: left; padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm); border: 1px solid transparent; background: transparent;
+  color: var(--text-secondary); cursor: pointer; font-size: var(--font-size-md); transition: .15s;
+}
+.cl-rail__item:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.cl-rail__item.is-active { background: color-mix(in oklch, var(--accent-primary) 12%, transparent); color: var(--text-primary); font-weight: 600; border-color: color-mix(in oklch, var(--accent-primary) 25%, transparent); }
+.cl-rail__item:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.cl-rail__count { font-variant-numeric: tabular-nums; color: var(--text-tertiary); font-size: var(--font-size-sm); }
+.cl-rail__item.is-active .cl-rail__count { color: var(--accent-primary); }
+.cl-rail__progress { margin-top: 4px; height: 4px; border-radius: 999px; background: var(--ring-track); overflow: hidden; }
+.cl-rail__progress > i { display: block; height: 100%; background: var(--accent-primary); border-radius: 999px; transition: width .4s ease; }
+
+/* Main */
+.cl-main { flex: 1; min-width: 0; }
+.cl-toolbar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-5); }
+.cl-search {
+  display: inline-flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3);
+  min-width: 200px; flex: 0 1 240px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); transition: .15s;
+}
+.cl-search:focus-within { border-color: var(--accent-primary); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent-primary) 18%, transparent); }
+.cl-search input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--text-primary); font-size: var(--font-size-md); padding: 8px 0; }
+.cl-search input::placeholder { color: var(--text-tertiary); }
+
+.cl-chips { display: flex; gap: var(--space-2); }
+.cl-chip {
+  padding: 6px var(--space-3); border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-secondary); cursor: pointer; font-size: var(--font-size-md); transition: .15s;
+}
+.cl-chip:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.cl-chip.is-active { background: var(--accent-primary); border-color: var(--accent-primary); color: oklch(100% 0 0); font-weight: 600; }
+
+/* ── Grid / List ── */
+.cl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(160px, 22vw, 200px), 1fr)); gap: var(--space-4); }
+.cl-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* ── Collectible Card ── */
+.card {
+  position: relative; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;
+  transition: transform .2s cubic-bezier(0.22,1,0.36,1), box-shadow .2s ease;
+  display: flex; flex-direction: column;
+  --rarity-color: var(--rarity-common);
+}
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.card:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.card.is-rare { --rarity-color: var(--rarity-rare); }
+.card.is-epic { --rarity-color: var(--rarity-epic); }
+.card.is-legendary { --rarity-color: var(--rarity-legendary); }
+
+/* 已收集：稀有度细发光描边 */
+.card.is-collected { border-color: color-mix(in oklch, var(--rarity-color) 45%, var(--border)); }
+.card.is-collected::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--rarity-color) 35%, transparent);
+}
+.card.is-legendary.is-collected::before { animation: rarity-breathe 4s ease-in-out infinite; }
+@keyframes rarity-breathe {
+  0%,100% { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--rarity-color) 30%, transparent), 0 0 0 0 transparent; }
+  50% { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--rarity-color) 55%, transparent), 0 0 14px -4px var(--rarity-color); }
+}
+
+.card__thumb {
+  position: relative; aspect-ratio: 16/9; display: grid; place-items: center;
+  color: oklch(100% 0 0); font-size: 26px; font-weight: 700; letter-spacing: .02em; overflow: hidden;
+}
+.card__thumb--steam { background: linear-gradient(135deg, oklch(78% 0.09 230), oklch(55% 0.12 230)); }
+.card__thumb--epic { background: linear-gradient(135deg, oklch(40% 0 0), oklch(22% 0 0)); }
+.card__thumb--xbox { background: linear-gradient(135deg, oklch(52% 0.15 145), oklch(38% 0.13 145)); }
+.card__thumb--playstation { background: linear-gradient(135deg, oklch(55% 0.17 255), oklch(40% 0.17 255)); }
+.card__thumb--switch { background: linear-gradient(135deg, oklch(55% 0.21 27), oklch(42% 0.18 27)); }
+.card__rarity {
+  position: absolute; top: var(--space-2); left: var(--space-2); z-index: 2;
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
+  font-size: var(--font-size-xs); font-weight: 700; color: oklch(100% 0 0);
+  background: color-mix(in oklch, var(--rarity-color) 85%, black);
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.card__rarity-dot { width: 7px; height: 7px; border-radius: 999px; background: oklch(100% 0 0); }
+.card__body { padding: var(--space-3) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; }
+.card__title { font-size: var(--font-size-md); font-weight: 600; line-height: 1.35; color: var(--text-primary); }
+.card__meta { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-sm); color: var(--text-secondary); }
+.card__plat { display: inline-flex; align-items: center; gap: 5px; }
+.card__plat-dot { width: 8px; height: 8px; border-radius: 999px; }
+.card__plat-dot--steam { background: var(--brand-steam); }
+.card__plat-dot--epic { background: var(--brand-epic); }
+.card__plat-dot--xbox { background: var(--brand-xbox); }
+.card__plat-dot--playstation { background: var(--brand-playstation); }
+.card__plat-dot--switch { background: var(--brand-switch); }
+.card__stars { color: var(--color-warning); letter-spacing: 1px; }
+
+/* 收集按钮 / 状态 */
+.card__action { margin-top: auto; }
+.btn-collect {
+  width: 100%; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--accent-primary);
+  background: var(--accent-primary); color: oklch(100% 0 0); font-weight: 600; font-size: var(--font-size-md); cursor: pointer;
+  transition: .15s;
+}
+.btn-collect:hover { background: color-mix(in oklch, var(--accent-primary) 88%, black); }
+.btn-collect:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.btn-collected {
+  width: 100%; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--bg-secondary); color: var(--text-secondary); font-size: var(--font-size-md); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: .15s;
+}
+.btn-collected:hover { background: var(--bg-primary); color: var(--text-primary); }
+.btn-collected .check { color: var(--color-success); font-weight: 700; }
+
+/* 未收集 ghost 态 */
+.card.is-locked { background: var(--ghost-bg); }
+.card.is-locked .card__thumb { filter: grayscale(1) brightness(.8); opacity: .55; }
+.card.is-locked .card__title { color: var(--ghost-fg); }
+.card.is-locked .card__meta { color: var(--ghost-fg); }
+.card__lock {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 3;
+  width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,.45); color: oklch(100% 0 0);
+  display: grid; place-items: center; font-size: 18px; backdrop-filter: blur(4px);
+}
+.card__ghost-tag {
+  position: absolute; top: var(--space-2); right: var(--space-2); z-index: 3;
+  font-size: var(--font-size-xs); font-weight: 700; color: var(--text-tertiary);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px;
+}
+
+/* 收集动画 */
+.card.is-collecting { animation: collect-pop .42s cubic-bezier(.34,1.56,.64,1); }
+@keyframes collect-pop { 0% { transform: scale(.92); } 55% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.card.is-collecting::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 5;
+  animation: glow-burst .6s ease-out;
+}
+@keyframes glow-burst {
+  0% { box-shadow: 0 0 0 0 var(--collect-glow-soft); }
+  40% { box-shadow: 0 0 0 16px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ── List 布局重写 ── */
+.cl-list .card { flex-direction: row; align-items: stretch; }
+.cl-list .card__thumb { aspect-ratio: auto; width: 92px; flex: 0 0 92px; font-size: 20px; }
+.cl-list .card__body { flex: 1; flex-direction: row; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); }
+.cl-list .card__title { flex: 1; min-width: 0; }
+.cl-list .card__action { margin-top: 0; width: 140px; flex: 0 0 140px; }
+.cl-list .card__lock { top: 50%; }
+.cl-list .card.is-collecting { animation: collect-pop .42s cubic-bezier(.34,1.56,.64,1); }
+.cl-list .skeleton { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3); }
+.cl-list .skeleton .sk-thumb { aspect-ratio: auto; width: 92px; flex: 0 0 92px; }
+.cl-list .skeleton .sk-line { flex: 1; margin: 4px 0; }
+
+/* ── 体验状态：骨架 ── */
+.skeleton { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.sk-thumb {
+  aspect-ratio: 16/9; background: linear-gradient(100deg,
+    var(--bg-secondary) 30%,
+    color-mix(in oklch, var(--bg-secondary) 60%, var(--text-tertiary) 8%) 50%,
+    var(--bg-secondary) 70%);
+  background-size: 200% 100%; animation: shimmer 1.2s infinite;
+}
+.sk-line { height: 12px; margin: var(--space-3) var(--space-4); border-radius: 6px; background: var(--bg-secondary); }
+.sk-line.short { width: 50%; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* 空态 / 错误态 */
+.state-block { grid-column: 1 / -1; text-align: center; padding: 64px var(--space-5); color: var(--text-secondary); }
+.state-block__icon { font-size: 44px; margin-bottom: var(--space-3); }
+.state-block__title { font-size: var(--font-size-2xl); font-weight: 700; color: var(--text-primary); margin-bottom: var(--space-2); }
+.state-block__desc { font-size: var(--font-size-md); margin-bottom: var(--space-5); }
+.btn-primary {
+  min-height: 44px; padding: 10px 20px; border-radius: var(--radius-sm); border: 1px solid var(--accent-primary);
+  background: var(--accent-primary); color: oklch(100% 0 0); font-weight: 600; cursor: pointer; font-size: var(--font-size-md);
+}
+.btn-primary:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+
+/* ── 里程碑庆祝 ── */
+.milestone {
+  position: fixed; inset: 0; z-index: 9998; display: grid; place-items: center;
+  background: color-mix(in oklch, var(--bg-primary) 40%, transparent); backdrop-filter: blur(3px);
+  animation: ms-fade .3s ease;
+}
+.milestone__card {
+  position: relative; background: var(--surface); border: 1px solid var(--toast-border);
+  border-radius: var(--radius-lg); padding: var(--space-8); text-align: center;
+  box-shadow: var(--shadow-lg); max-width: 360px; overflow: hidden;
+}
+.milestone__medal { font-size: 56px; }
+.milestone__title { font-size: var(--font-size-2xl); font-weight: 700; margin: var(--space-3) 0 var(--space-2); }
+.milestone__desc { color: var(--text-secondary); font-size: var(--font-size-md); }
+.milestone__close { margin-top: var(--space-5); }
+.milestone .particle {
+  position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; border-radius: 2px;
+  animation: ms-particle 1.1s ease-out forwards;
+}
+@keyframes ms-particle { to { transform: translate(var(--px), var(--py)) rotate(360deg); opacity: 0; } }
+@keyframes ms-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── 解锁 Toast ── */
+.toast-stack { position: fixed; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; max-width: 320px; }
+.toast {
+  display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+  background: var(--toast-bg); border: 1px solid var(--toast-border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg); animation: toast-in .35s cubic-bezier(0.22,1,0.36,1);
+}
+.toast.is-out { animation: toast-out .3s ease forwards; }
+@keyframes toast-in { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes toast-out { to { transform: translateX(20px); opacity: 0; } }
+.toast__icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; background: color-mix(in oklch, var(--accent-primary) 16%, transparent); flex: 0 0 auto; }
+.toast__title { font-weight: 700; font-size: var(--font-size-md); }
+.toast__desc { font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+/* 稀有度分布条 */
+.rarity-bar { display: flex; gap: 4px; margin-top: var(--space-2); }
+.rarity-bar > span { height: 6px; border-radius: 999px; flex: 1 1 0; }
+.rarity-bar .s-common { background: var(--rarity-common); }
+.rarity-bar .s-rare { background: var(--rarity-rare); }
+.rarity-bar .s-epic { background: var(--rarity-epic); }
+.rarity-bar .s-legendary { background: var(--rarity-legendary); }
+.cl-stats { display: flex; gap: var(--space-5); align-items: center; }
+
+/* 屏幕阅读器专用（视觉隐藏） */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* 响应式 */
+@media (max-width: 1023px) {
+  .cl-rail { position: static; width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .cl-rail > div { flex: 1 1 220px; }
+  .cl-body { flex-direction: column; }
+}
+@media (max-width: 640px) {
+  .cl-header { gap: var(--space-3); padding: var(--space-4); }
+  .cl-body { padding: var(--space-4); }
+  .cl-ring-wrap { margin-left: 0; }
+  .cl-toolbar { flex-direction: column; align-items: stretch; }
+  .cl-search { flex: 1 1 auto; }
+  .cl-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .cl-list .card { flex-direction: column; }
+  .cl-list .card__thumb { width: 100%; aspect-ratio: 16/9; }
+  .cl-list .card__body { flex-direction: column; align-items: stretch; }
+  .cl-list .card__action { width: 100%; }
+  .cl-demo-bar { gap: var(--space-4); }
+}
+
+/* 动效降级：系统偏好 或 原型开关双条件 */
+@media (prefers-reduced-motion: reduce), [data-reduced-motion="true"] {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .milestone .particle { display: none !important; }
+  .sk-thumb { animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="proto-note">
+  <b>原型预览</b> · 统一游戏收藏 UI（克制原生风 · Phase 1.5 深化）·
+  可交互：<b>浅/深主题</b>、<b>网格/列表</b>、<b>收集类型</b>（证明可扩展）、
+  点击/Enter/Space <b>收集</b>（动画+解锁 toast+触觉）、
+  顶栏<b>皮肤</b>切换（极简/霓虹/复古，证明「统一游戏类型 UI」）、
+  <b>演示状态</b>（空/加载/错误/里程碑）、<b>动效降级</b>开关实测无障碍。
+</div>
+
+<header class="cl-header">
+  <div class="cl-brand">
+    <span class="cl-brand__mark" aria-hidden="true">🎮</span>
+    <div>
+      <div class="cl-brand__title">游戏收藏图鉴</div>
+      <div class="cl-brand__sub" id="typeSub">全平台图鉴</div>
+    </div>
+  </div>
+
+  <div class="cl-types" id="typeSwitch" role="tablist" aria-label="收藏类型"></div>
+
+  <div class="cl-ring-wrap">
+    <div class="cl-stats">
+      <div class="ring-center">
+        <svg class="ring" viewBox="0 0 64 64" aria-hidden="true">
+          <circle class="ring__track" cx="32" cy="32" r="27"></circle>
+          <circle class="ring__fill" id="ringFill" cx="32" cy="32" r="27"></circle>
+        </svg>
+        <span class="ring-center__pct" id="ringPct">0%</span>
+      </div>
+      <div class="cl-ring-label">
+        <b id="ringCount">0 / 0</b><br>已收集
+        <div class="rarity-bar" id="rarityBar" aria-hidden="true">
+          <span class="s-common"></span><span class="s-rare"></span><span class="s-epic"></span><span class="s-legendary"></span>
+        </div>
+      </div>
+    </div>
+    <div class="cl-controls">
+      <div class="seg" id="viewToggle" role="tablist" aria-label="视图切换">
+        <button data-view="grid" class="is-active" aria-pressed="true">▦ 网格</button>
+        <button data-view="list" aria-pressed="false">☰ 列表</button>
+      </div>
+      <button class="cl-icon-btn" id="themeBtn" aria-label="切换深浅主题" title="切换深浅主题">🌓</button>
+    </div>
+  </div>
+</header>
+
+<div class="cl-demo-bar">
+  <div class="cl-demo-group">
+    <span class="cl-demo-label">皮肤</span>
+    <div class="seg" id="skinToggle" role="group" aria-label="皮肤切换">
+      <button data-skin="minimal" class="is-active">极简</button>
+      <button data-skin="neon">霓虹街机</button>
+      <button data-skin="retro">复古像素</button>
+    </div>
+  </div>
+  <div class="cl-demo-group">
+    <span class="cl-demo-label">演示状态</span>
+    <div class="seg" id="stateToggle" role="group" aria-label="演示状态切换">
+      <button data-state="normal" class="is-active">正常</button>
+      <button data-state="empty">空收藏</button>
+      <button data-state="loading">加载中</button>
+      <button data-state="error">出错</button>
+    </div>
+  </div>
+  <div class="cl-demo-group">
+    <span class="cl-demo-label">动效降级</span>
+    <button class="cl-icon-btn" id="rmBtn" aria-pressed="false" title="切换 reduced-motion 实测">♿</button>
+  </div>
+</div>
+
+<div class="cl-body">
+  <aside class="cl-rail" id="rail" aria-label="分类筛选"></aside>
+
+  <main class="cl-main">
+    <div class="cl-toolbar">
+      <label class="cl-search">
+        <span aria-hidden="true">🔍</span>
+        <input id="search" type="search" placeholder="搜索游戏…" aria-label="搜索游戏" />
+      </label>
+      <div class="cl-chips" id="statusChips" role="group" aria-label="收集状态筛选">
+        <button class="cl-chip is-active" data-status="all">全部</button>
+        <button class="cl-chip" data-status="collected">已收集</button>
+        <button class="cl-chip" data-status="uncollected">未收集</button>
+      </div>
+    </div>
+    <div id="grid" class="cl-grid"></div>
+  </main>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+<!-- 屏幕阅读器专用收集播报区 -->
+<div id="srLive" class="sr-only" aria-live="polite"></div>
+
+<script>
+/* ════════════ 数据：collectionRegistry 驱动（原型版） ════════════
+   真实模型纠正：不存在 `collected` 布尔；`wishlist` 信号本身即已收集集合。
+   本原型用 `collected` 标志作为占位（收集 = 加入 wishlist 的简化表达）。 */
+const RARITY = {
+  common:    { name: "普通", cls: "",            weight: 1 },
+  rare:      { name: "稀有", cls: "is-rare",     weight: 2 },
+  epic:      { name: "史诗", cls: "is-epic",     weight: 3 },
+  legendary: { name: "传说", cls: "is-legendary", weight: 4 },
+};
+const PLAT_LABEL = { steam: "Steam", epic: "Epic", xbox: "Xbox", playstation: "PlayStation", switch: "Switch" };
+
+// 目录（图鉴全集）。collected = 是否在心愿单（已收集）。
+let CATALOG = [
+  { id: "g01", title: "Hades II",          platform: "steam",       rarity: "legendary", collected: true,  rating: 5, group: "indie",    tag: "Roguelike" },
+  { id: "g02", title: "Elden Ring",        platform: "playstation", rarity: "legendary", collected: true,  rating: 5, group: "aaa",      tag: "RPG" },
+  { id: "g03", title: "Hollow Knight",     platform: "switch",      rarity: "epic",      collected: true,  rating: 5, group: "indie",    tag: "平台跳跃" },
+  { id: "g04", title: "Cyberpunk 2077",    platform: "xbox",        rarity: "epic",      collected: false, rating: 4, group: "aaa",      tag: "RPG" },
+  { id: "g05", title: "Stardew Valley",    platform: "switch",      rarity: "rare",      collected: true,  rating: 5, group: "indie",    tag: "模拟经营" },
+  { id: "g06", title: "God of War",        platform: "playstation", rarity: "epic",      collected: false, rating: 5, group: "aaa",      tag: "动作" },
+  { id: "g07", title: "Disco Elysium",     platform: "steam",       rarity: "legendary", collected: false, rating: 5, group: "indie",    tag: "RPG" },
+  { id: "g08", title: "Cuphead",           platform: "xbox",        rarity: "rare",      collected: true,  rating: 4, group: "indie",    tag: "平台跳跃" },
+  { id: "g09", title: "The Witcher 3",     platform: "steam",       rarity: "epic",      collected: true,  rating: 5, group: "aaa",      tag: "RPG" },
+  { id: "g10", title: "Celeste",           platform: "switch",      rarity: "rare",      collected: false, rating: 5, group: "indie",    tag: "平台跳跃" },
+  { id: "g11", title: "Alan Wake 2",       platform: "epic",        rarity: "epic",      collected: false, rating: 4, group: "aaa",      tag: "恐怖" },
+  { id: "g12", title: "Outer Wilds",       platform: "xbox",        rarity: "legendary", collected: true,  rating: 5, group: "indie",    tag: "解谜" },
+  { id: "g13", title: "Persona 5 Royal",   platform: "playstation", rarity: "rare",      collected: false, rating: 5, group: "aaa",      tag: "RPG" },
+  { id: "g14", title: "Dead Cells",        platform: "switch",      rarity: "rare",      collected: true,  rating: 4, group: "indie",    tag: "Roguelike" },
+  { id: "g15", title: "Baldur's Gate 3",   platform: "steam",       rarity: "legendary", collected: false, rating: 5, group: "aaa",      tag: "RPG" },
+  { id: "g16", title: "INSIDE",            platform: "xbox",        rarity: "common",    collected: true,  rating: 5, group: "indie",    tag: "解谜" },
+];
+
+// 类型注册表（registry）—— 新增类型只加一项
+const TYPES = {
+  all:   { label: "全平台图鉴", sub: "全平台图鉴", filter: (c) => c },
+  steam: { label: "Steam 精选", sub: "Steam 平台收集", filter: (c) => c.filter(x => x.platform === "steam") },
+  epic:  { label: "Epic 限免",  sub: "Epic 平台收集", filter: (c) => c.filter(x => x.platform === "epic") },
+};
+
+// 分类（收藏夹 / 标签）注册
+const FOLDERS = [
+  { id: "aaa",    name: "3A 大作", target: 6 },
+  { id: "indie",  name: "独立精品", target: 8 },
+];
+const TAGS = [
+  { id: "RPG", name: "RPG" },
+  { id: "解谜", name: "解谜" },
+];
+
+/* ════════════ 状态 ════════════ */
+let activeType = "all";
+let viewMode = "grid";
+let statusFilter = "all";
+let searchQ = "";
+let railFilter = null; // {type:'folder'|'tag', id}
+let demoState = "normal";   // normal | empty | loading | error
+let reducedMotion = false;  // 原型动效降级开关
+const milestonesHit = new Set();
+const MILESTONES = [25, 50, 75, 100];
+
+const BADGES = [
+  { id: "first_5", name: "初露锋芒", desc: "收藏满 5 款",   test: (c) => c >= 5,  icon: "🌱" },
+  { id: "first_10", name: "收藏大师", desc: "收藏满 10 款", test: (c) => c >= 10, icon: "🏆" },
+  { id: "legendary", name: "传说收藏", desc: "拥有传说稀有度", test: (c, items) => items.some(i => i.collected && i.rarity === "legendary"), icon: "✨" },
+  { id: "multiplat", name: "全平台通", desc: "覆盖 ≥3 个平台", test: (c, items) => new Set(items.filter(i=>i.collected).map(i=>i.platform)).size >= 3, icon: "🌐" },
+];
+let satisfiedBadges = new Set();
+
+/* ════════════ 工具 ════════════ */
+function currentCatalog() {
+  let list = TYPES[activeType].filter(CATALOG);
+  if (railFilter && railFilter.type === "folder") list = list.filter(x => x.group === railFilter.id);
+  if (railFilter && railFilter.type === "tag") list = list.filter(x => x.tag === railFilter.id);
+  if (statusFilter === "collected") list = list.filter(x => x.collected);
+  if (statusFilter === "uncollected") list = list.filter(x => !x.collected);
+  if (searchQ) list = list.filter(x => x.title.toLowerCase().includes(searchQ));
+  const w = { common:1, rare:2, epic:3, legendary:4 };
+  return [...list].sort((a,b) => {
+    const ra = a.collected ? (w[a.rarity]||0) : -1;
+    const rb = b.collected ? (w[b.rarity]||0) : -1;
+    return rb - ra;
+  });
+}
+
+/* ════════════ 渲染 ════════════ */
+const $ = (s) => document.querySelector(s);
+
+function renderHeader() {
+  const cat = TYPES[activeType].filter(CATALOG);
+  const total = cat.length;
+  const collected = cat.filter(x => x.collected).length;
+  const pct = total ? Math.round((collected / total) * 100) : 0;
+  $("#ringPct").textContent = pct + "%";
+  $("#ringCount").textContent = `${collected} / ${total}`;
+  $("#typeSub").textContent = TYPES[activeType].sub;
+  const C = 2 * Math.PI * 27;
+  $("#ringFill").style.strokeDasharray = C;
+  $("#ringFill").style.strokeDashoffset = C * (1 - pct / 100);
+
+  const counts = { common:0, rare:0, epic:0, legendary:0 };
+  cat.filter(x=>x.collected).forEach(x => counts[x.rarity]++);
+  const max = Math.max(1, ...Object.values(counts));
+  const bar = $("#rarityBar").children;
+  ["common","rare","epic","legendary"].forEach((k,i) => {
+    bar[i].style.flex = (counts[k] / max) * 3 + 0.4;
+    bar[i].title = `${RARITY[k].name}: ${counts[k]}`;
+  });
+}
+
+function renderTypes() {
+  const el = $("#typeSwitch");
+  el.innerHTML = "";
+  Object.entries(TYPES).forEach(([id, t]) => {
+    const b = document.createElement("button");
+    b.className = "cl-type" + (id === activeType ? " is-active" : "");
+    b.textContent = t.label;
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", id === activeType);
+    b.onclick = () => { activeType = id; renderAll(); };
+    el.appendChild(b);
+  });
+}
+
+function renderRail() {
+  const el = $("#rail");
+  el.innerHTML = "";
+  const allBtn = railItem("全部收藏", CATALOG.length, null, !railFilter);
+  el.appendChild(section("收藏夹", [allBtn,
+    ...FOLDERS.map(f => {
+      const n = CATALOG.filter(x => x.group === f.id).length;
+      const pct = f.target ? Math.min(100, Math.round((n / f.target) * 100)) : 0;
+      const b = railItem(`${f.name}`, `${n}/${f.target}`, { type:"folder", id:f.id }, railFilter && railFilter.type==="folder" && railFilter.id===f.id, pct);
+      return b;
+    })
+  ]));
+  el.appendChild(section("标签", TAGS.map(t => {
+    const n = CATALOG.filter(x => x.tag === t.id).length;
+    return railItem(`#${t.name}`, n, { type:"tag", id:t.id }, railFilter && railFilter.type==="tag" && railFilter.id===t.id);
+  })));
+}
+function section(title, items) {
+  const d = document.createElement("div");
+  const h = document.createElement("h3"); h.className = "cl-rail__title"; h.textContent = title;
+  const ul = document.createElement("ul"); ul.className = "cl-rail__list";
+  items.forEach(i => ul.appendChild(i));
+  d.appendChild(h); d.appendChild(ul); return d;
+}
+function railItem(name, count, filter, active, progressPct) {
+  const li = document.createElement("li");
+  const b = document.createElement("button");
+  b.className = "cl-rail__item" + (active ? " is-active" : "");
+  b.innerHTML = `<span>${name}</span><span class="cl-rail__count">${count}</span>`;
+  b.onclick = () => { railFilter = (active ? null : filter); renderAll(); };
+  li.appendChild(b);
+  if (progressPct != null) {
+    const p = document.createElement("div"); p.className = "cl-rail__progress";
+    p.innerHTML = `<i style="width:${progressPct}%"></i>`; li.appendChild(p);
+  }
+  return li;
+}
+
+/* ── 列表 / 骨架 / 空态 / 错误态 ── */
+function renderGrid() {
+  const wrap = $("#grid");
+  wrap.className = viewMode === "grid" ? "cl-grid" : "cl-list";
+  if (demoState === "loading") { renderSkeletons(wrap); return; }
+  if (demoState === "error") { renderError(wrap); return; }
+  const list = currentCatalog();
+  if (demoState === "empty" || list.length === 0) { renderEmpty(wrap); return; }
+  wrap.innerHTML = "";
+  list.forEach(g => wrap.appendChild(cardEl(g)));
+}
+function renderSkeletons(wrap) {
+  wrap.innerHTML = "";
+  const n = viewMode === "grid" ? 10 : 6;
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement("div");
+    s.className = "skeleton";
+    s.setAttribute("aria-hidden", "true");
+    s.innerHTML = `<div class="sk-thumb"></div><div class="sk-line"></div><div class="sk-line short"></div>`;
+    wrap.appendChild(s);
+  }
+}
+function renderEmpty(wrap) {
+  wrap.innerHTML = `<div class="state-block" role="status">
+    <div class="state-block__icon">🗂️</div>
+    <div class="state-block__title">这个图鉴还是空的</div>
+    <div class="state-block__desc">去收集你的第一款游戏，开始点亮图鉴吧</div>
+    <button class="btn-primary" id="emptyCta">去添加</button>
+  </div>`;
+  const cta = $("#emptyCta");
+  if (cta) cta.onclick = () => { demoState = "normal"; syncStateToggle(); renderAll(); };
+}
+function renderError(wrap) {
+  wrap.innerHTML = `<div class="state-block" role="alert">
+    <div class="state-block__icon">⚠️</div>
+    <div class="state-block__title">加载失败了</div>
+    <div class="state-block__desc">目录数据获取出错（原型模拟）。已收集的本地内容不受影响。</div>
+    <button class="btn-primary" id="retryBtn">重试</button>
+  </div>`;
+  const r = $("#retryBtn");
+  if (r) { r.onclick = () => { demoState = "normal"; syncStateToggle(); renderAll(); }; r.focus(); }
+}
+
+function cardEl(g) {
+  const r = RARITY[g.rarity];
+  const art = document.createElement("article");
+  art.className = `card ${r.cls} ${g.collected ? "is-collected" : "is-locked"}`;
+  art.tabIndex = 0;
+  art.setAttribute("aria-label", `${g.title}，${PLAT_LABEL[g.platform]}，${r.name}，${g.collected ? "已收集" : "未收集"}`);
+  const stars = "★".repeat(g.rating || 0);
+  const platDot = `<span class="card__plat-dot card__plat-dot--${g.platform}"></span>`;
+
+  if (!g.collected) {
+    art.innerHTML = `
+      <div class="card__thumb card__thumb--${g.platform}">${g.title[0]}</div>
+      <div class="card__lock" aria-hidden="true">🔒</div>
+      <span class="card__ghost-tag">未收集</span>
+      <div class="card__body">
+        <div class="card__title">${g.title}</div>
+        <div class="card__meta"><span class="card__plat">${platDot}${PLAT_LABEL[g.platform]}</span></div>
+        <div class="card__action"><button class="btn-collect" data-id="${g.id}">＋ 收集</button></div>
+      </div>`;
+  } else {
+    art.innerHTML = `
+      <div class="card__thumb card__thumb--${g.platform}">${g.title[0]}
+        <span class="card__rarity"><span class="card__rarity-dot"></span>${r.name}</span>
+      </div>
+      <div class="card__body">
+        <div class="card__title">${g.title}</div>
+        <div class="card__meta">
+          <span class="card__plat">${platDot}${PLAT_LABEL[g.platform]}</span>
+          ${stars ? `<span class="card__stars">${stars}</span>` : ""}
+        </div>
+        <div class="card__action"><button class="btn-collected" data-id="${g.id}"><span class="check">✓</span> 已收集</button></div>
+      </div>`;
+  }
+  const btn = art.querySelector("button");
+  btn.addEventListener("click", (e) => { e.stopPropagation(); toggleCollect(g.id, art); });
+  // 键盘：Enter / Space 触发收集（与鼠标同路径）
+  art.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleCollect(g.id, art); }
+  });
+  return art;
+}
+
+/* ════════════ 收集闭环（真实语义：加入 wishlist） ════════════ */
+function toggleCollect(id, el) {
+  const g = CATALOG.find(x => x.id === id);
+  if (!g) return;
+  const wasCollected = g.collected;
+  g.collected = !g.collected;
+
+  if (!wasCollected) {
+    el.classList.remove("is-locked"); el.classList.add("is-collected", "is-collecting");
+    setTimeout(() => el.classList.remove("is-collecting"), 620);
+    if (navigator.vibrate) navigator.vibrate(12); // 桌面静默无副作用
+    checkUnlocks();
+    checkMilestone();
+    announce(`已收藏《${g.title}》`);
+  } else {
+    announce(`已取消收藏《${g.title}》`);
+  }
+  renderHeader();
+  renderRail();
+  const fresh = cardEl(g);
+  const hadFocus = (document.activeElement === el);
+  el.replaceWith(fresh);
+  if (hadFocus) fresh.focus(); // 键盘操作后焦点不丢失
+}
+
+function checkUnlocks() {
+  const cat = TYPES[activeType].filter(CATALOG);
+  const collectedCount = cat.filter(x => x.collected).length;
+  BADGES.forEach(b => {
+    const ok = b.test(collectedCount, cat);
+    if (ok && !satisfiedBadges.has(b.id)) {
+      satisfiedBadges.add(b.id);
+      showToast(b);
+    } else if (!ok && satisfiedBadges.has(b.id)) {
+      satisfiedBadges.delete(b.id);
+    }
+  });
+}
+
+/* 里程碑：进度跨越 25/50/75/100% 时庆祝（仅向上跨越，去重） */
+function checkMilestone() {
+  const cat = TYPES[activeType].filter(CATALOG);
+  const total = cat.length;
+  const collected = cat.filter(x => x.collected).length;
+  const pct = total ? Math.round(collected / total * 100) : 0;
+  MILESTONES.forEach(m => {
+    if (pct >= m && !milestonesHit.has(m)) { milestonesHit.add(m); showMilestone(m, TYPES[activeType].label); }
+  });
+}
+function showMilestone(pct, label) {
+  const ov = document.createElement("div");
+  ov.className = "milestone"; ov.setAttribute("role", "alert");
+  let particles = "";
+  const sysReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reducedMotion && !sysReduced) {
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      const d = 80 + Math.random() * 60;
+      const px = Math.cos(a) * d, py = Math.sin(a) * d;
+      const col = i % 2 ? "var(--accent-orange)" : "var(--accent-primary)";
+      particles += `<span class="particle" style="--px:${px.toFixed(0)}px;--py:${py.toFixed(0)}px;background:${col};animation-delay:${(i*0.03).toFixed(2)}s"></span>`;
+    }
+  }
+  ov.innerHTML = `<div class="milestone__card">${particles}
+    <div class="milestone__medal">🏅</div>
+    <div class="milestone__title">完成度 ${pct}%！</div>
+    <div class="milestone__desc">《${label}》收集进度达成新里程碑</div>
+    <button class="btn-primary milestone__close">太棒了</button></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector(".milestone__close").onclick = close;
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  setTimeout(close, 2600);
+}
+
+/* 屏幕阅读器播报 */
+function announce(msg) {
+  const live = $("#srLive");
+  if (!live) return;
+  live.textContent = "";
+  setTimeout(() => { live.textContent = msg; }, 30);
+}
+
+function showToast(b) {
+  const stack = $("#toastStack");
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.setAttribute("role", "status");
+  t.innerHTML = `<span class="toast__icon">${b.icon}</span><div><div class="toast__title">解锁：${b.name}</div><div class="toast__desc">${b.desc}</div></div>`;
+  stack.appendChild(t);
+  setTimeout(() => { t.classList.add("is-out"); setTimeout(() => t.remove(), 300); }, 2600);
+}
+
+/* ════════════ 控件 ════════════ */
+$("#viewToggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  viewMode = btn.dataset.view;
+  [...$("#viewToggle").children].forEach(b => {
+    const on = b === btn; b.classList.toggle("is-active", on); b.setAttribute("aria-pressed", on);
+  });
+  renderGrid();
+});
+$("#statusChips").addEventListener("click", (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  statusFilter = btn.dataset.status;
+  [...$("#statusChips").children].forEach(b => b.classList.toggle("is-active", b === btn));
+  renderGrid();
+});
+$("#search").addEventListener("input", (e) => { searchQ = e.target.value.trim().toLowerCase(); renderGrid(); });
+$("#themeBtn").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+});
+
+/* 皮肤切换（同一套令牌派生，证明可扩展） */
+$("#skinToggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  const sk = btn.dataset.skin;
+  document.documentElement.setAttribute("data-skin", sk);
+  [...$("#skinToggle").children].forEach(b => b.classList.toggle("is-active", b === btn));
+});
+
+/* 演示状态切换 */
+$("#stateToggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  demoState = btn.dataset.state;
+  [...$("#stateToggle").children].forEach(b => b.classList.toggle("is-active", b === btn));
+  renderGrid();
+});
+function syncStateToggle() {
+  [...$("#stateToggle").children].forEach(b => b.classList.toggle("is-active", b.dataset.state === demoState));
+}
+
+/* 动效降级开关（实测 reduced-motion） */
+$("#rmBtn").addEventListener("click", () => {
+  reducedMotion = !reducedMotion;
+  document.documentElement.setAttribute("data-reduced-motion", reducedMotion ? "true" : "false");
+  const b = $("#rmBtn");
+  b.setAttribute("aria-pressed", reducedMotion);
+  b.classList.toggle("is-on", reducedMotion);
+});
+
+/* ════════════ 渲染全部 ════════════ */
+function renderAll() { renderHeader(); renderTypes(); renderRail(); renderGrid(); }
+renderAll();
+</script>
+</body>
+</html>

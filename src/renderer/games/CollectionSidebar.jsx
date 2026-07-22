@@ -321,7 +321,7 @@ export function CollectionSidebar() {
   const allActive = filter.type === null;
 
   return (
-    <aside class="collection-sidebar" aria-label="收藏分类">
+    <aside id="collection-sidebar" class="collection-sidebar" aria-label="收藏分类">
       <div class="collection-sidebar__section">
         <div class="collection-sidebar__head">
           <h3 class="collection-sidebar__title">收藏夹</h3>
