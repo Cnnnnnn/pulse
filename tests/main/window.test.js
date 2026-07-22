@@ -13,20 +13,43 @@
  * 注: CI/无头环境 electron BrowserWindow 可能需要 xvfb. 为避免环境依赖,
  * 这里改成源码静态校验 + platform.getWindowOptions 调用验证 (轻量 spy).
  */
-import { describe, it, expect, vi } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import { describe, it, expect } from 'vitest';
+
+const windowSource = fs.readFileSync(
+  path.join(__dirname, '../../src/main/window.js'),
+  'utf-8',
+);
 
 describe('window.js uses platform.getWindowOptions', () => {
   it('window.js 源码 require 了 platform 并调用 getWindowOptions', () => {
-    const src = require('fs').readFileSync(
-      require('path').join(__dirname, '../../src/main/window.js'),
-      'utf-8',
-    );
     // 验证 window.js 已改走平台层
-    expect(src).toContain("require('../platform')");
-    expect(src).toContain('getWindowOptions');
+    expect(windowSource).toContain("require('../platform')");
+    expect(windowSource).toContain('getWindowOptions');
     // 验证视觉选项不再硬编码 (已移到 platform 层)
-    expect(src).not.toMatch(/titleBarStyle:\s*['"]hiddenInset['"]/);
-    expect(src).not.toMatch(/vibrancy:\s*['"]under-window['"]/);
+    expect(windowSource).not.toMatch(/titleBarStyle:\s*['"]hiddenInset['"]/);
+    expect(windowSource).not.toMatch(/vibrancy:\s*['"]under-window['"]/);
+  });
+
+  it('冷启动首次显示前最大化，普通唤醒不强制最大化', () => {
+    const readyToShowBody = windowSource.match(
+      /mainWindow\.once\('ready-to-show',[\s\S]*?\n\s{4}\}\);/,
+    )?.[0];
+    const showWindowBody = windowSource.match(
+      /function showWindow\(\) \{[\s\S]*?\n\s{2}\}/,
+    )?.[0];
+
+    expect(readyToShowBody).toBeTruthy();
+    expect(showWindowBody).toBeTruthy();
+    expect(readyToShowBody.indexOf('mainWindow.maximize()')).toBeGreaterThan(-1);
+    expect(readyToShowBody.indexOf('mainWindow.maximize()')).toBeLessThan(
+      readyToShowBody.indexOf('mainWindow.show()'),
+    );
+    expect(readyToShowBody.indexOf('mainWindow.show()')).toBeLessThan(
+      readyToShowBody.indexOf('mainWindow.focus()'),
+    );
+    expect(showWindowBody).not.toContain('maximize()');
   });
 
   it('platform.getWindowOptions 返回的键会展开进 BrowserWindow 选项', () => {

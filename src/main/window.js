@@ -86,6 +86,7 @@ function createWindowManager(opts = {}) {
 
     mainWindow.once('ready-to-show', () => {
       if (config.check_on_launch) {
+        mainWindow.maximize();
         mainWindow.show();
         mainWindow.focus();
       }
