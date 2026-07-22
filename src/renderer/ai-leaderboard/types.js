@@ -201,6 +201,14 @@ export const ATTRIBUTION = {
   },
 };
 
+export const SOURCE_URLS = {
+  arena: "https://lmarena.ai",
+  aa: "https://artificialanalysis.ai",
+  openrouter: "https://openrouter.ai",
+  livebench: "https://livebench.ai",
+  modelsdev: "https://models.dev",
+};
+
 /* ── 归一化 ── */
 
 const VENDOR_ALIAS = {
