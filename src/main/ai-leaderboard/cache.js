@@ -127,6 +127,11 @@ function __resetForTest() {
   _cacheDir = null;
 }
 
+/** @internal — 测试用：注入缓存目录。truthy → 立即接管；falsy → 复位惰性标志。 */
+function __setCacheDirForTest(dir) {
+  _cacheDir = dir ? String(dir) : null;
+}
+
 module.exports = {
   cacheKey,
   readCache,
@@ -134,4 +139,5 @@ module.exports = {
   isStale,
   getCacheDir,
   __resetForTest,
+  __setCacheDirForTest,
 };
