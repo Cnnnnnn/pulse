@@ -36,6 +36,7 @@ import { LeaderboardTable } from "./LeaderboardTable.jsx";
 import { ValueScatter } from "./ValueScatter.jsx";
 import { ArenaBubbleChart } from "./ArenaBubbleChart.jsx";
 import { ComparePanel } from "./ComparePanel.jsx";
+import { ModelDetailDrawer } from "./ModelDetailDrawer.jsx";
 import { AttributionFooter } from "./AttributionFooter.jsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
 import { TopPodium } from "./TopPodium.jsx";
@@ -312,6 +313,7 @@ export function AiLeaderboardPage() {
         )}
       </div>
 
+      <ModelDetailDrawer />
       <ComparePanel />
 
       <AttributionFooter attribution={attribution.value} />
