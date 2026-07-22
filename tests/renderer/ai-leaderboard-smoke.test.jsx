@@ -11,7 +11,7 @@ import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.jsx";
 import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.jsx";
 import { CrossSourceRadar } from "../../src/renderer/ai-leaderboard/CrossSourceRadar.jsx";
 import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.js";
-import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, fmtContext, aggregateVendorProfiles, topVendorsByArena } from "../../src/renderer/ai-leaderboard/format.js";
+import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, fmtContext, aggregateVendorProfiles, topVendorsByArena, fmtRelative } from "../../src/renderer/ai-leaderboard/format.js";
 import {
   columnValue,
   toggleSort,
@@ -393,5 +393,29 @@ describe("fmtContext 上下文窗口紧凑格式", () => {
     expect(fmtContext(null)).toBe("—");
     expect(fmtContext(undefined)).toBe("—");
     expect(fmtContext(NaN)).toBe("—");
+  });
+});
+
+describe("fmtRelative", () => {
+  it("30 秒前显示「刚刚」", () => {
+    const now = Date.now();
+    expect(fmtRelative(now - 30 * 1000, now)).toBe("刚刚");
+  });
+  it("3 分钟前显示「3 分钟前」", () => {
+    const now = Date.now();
+    expect(fmtRelative(now - 3 * 60 * 1000, now)).toBe("3 分钟前");
+  });
+  it("2 小时前显示「2 小时前」", () => {
+    const now = Date.now();
+    expect(fmtRelative(now - 2 * 60 * 60 * 1000, now)).toBe("2 小时前");
+  });
+  it("3 天前显示「2026-07-19」", () => {
+    const now = Date.UTC(2026, 6, 22);  // 2026-07-22
+    expect(fmtRelative(now - 3 * 24 * 60 * 60 * 1000, now)).toBe("2026-07-19");
+  });
+  it("null / NaN / 未来时间 → 「—」", () => {
+    expect(fmtRelative(null)).toBe("—");
+    expect(fmtRelative(NaN)).toBe("—");
+    expect(fmtRelative(Date.now() + 10000)).toBe("—");
   });
 });

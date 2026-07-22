@@ -314,3 +314,23 @@ export function rankVendorsByEloPerDollar(profiles) {
   rows.sort((a, b) => b.eloPerDollar - a.eloPerDollar);
   return rows;
 }
+
+/**
+ * 相对当前时间的中文短语.
+ * @param {number} ms 上次发生时间 epoch ms
+ * @param {number} [now] 当前时间 (可注入测试用)
+ * @returns {string}
+ */
+export function fmtRelative(ms, now) {
+  if (typeof ms !== "number" || !Number.isFinite(ms)) return "—";
+  const refNow = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
+  const diff = refNow - ms;
+  if (diff < 0) return "—";                   // 未来时间无意义
+  if (diff < 60 * 1000) return "刚刚";         // < 1 min
+  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))} 分钟前`;   // < 1 hour
+  if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))} 小时前`;  // < 1 day
+  // >= 1 day: return ISO date "YYYY-MM-DD" via UTC
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
