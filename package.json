@@ -31,7 +31,8 @@
     "electron-updater": "^6.8.9",
     "js-yaml": "^4.1.0",
     "marked": "^18.0.5",
-    "preact": "^10.22.0"
+    "preact": "^10.22.0",
+    "react-virtuoso": "^4.10.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
