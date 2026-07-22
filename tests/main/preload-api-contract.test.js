@@ -28,13 +28,10 @@
  *         真死代码 (例: 2026-06-28 删的 getAiKey — preload 暴露但 main handler
  *         没注册, renderer 也没调) 应在 review 时识别 + 删, 不靠本测试.
  *
- * 干净 checkout 自包含: beforeAll 检测 dist/preload.js, 缺失时用 esbuild
- * api.buildSync 同步构建 (esbuild 已是 devDependency, 不引入新依赖). 覆盖
- *   - npm test (pretest 钩子先跑, beforeAll 看到 dist 已存在 → 跳过)
- *   - pnpm exec vitest --run (CI direct vitest, pretest 不触发, beforeAll 兜底)
+ * globalSetup 在 worker 启动前生成 dist/preload.js；本测试只消费该产物，
+ * 不再维护第二份构建逻辑。
  */
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
-import { existsSync } from "node:fs";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -42,25 +39,6 @@ import path from "node:path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PRELOAD_PATH = path.resolve(__dirname, "../../dist/preload.js");
-
-/** 干净 checkout 兜底: dist/preload.js 不存在就同步构建一次. */
-function ensurePreloadBuilt() {
-  if (existsSync(PRELOAD_PATH)) return;
-  // ponytail: esbuild 是 devDependency (package.json devDependencies),
-  // 这里不引入新依赖. Node CJS 同步 build, ~10ms 一次.
-  const require = createRequire(path.resolve(__dirname, "../../package.json"));
-  const esbuild = require("esbuild");
-  esbuild.buildSync({
-    entryPoints: [path.resolve(__dirname, "../../preload.ts")],
-    bundle: true,
-    platform: "node",
-    format: "cjs",
-    external: ["electron"],
-    outfile: PRELOAD_PATH,
-    target: "es2020",
-    logLevel: "silent",
-  });
-}
 
 /** 收集每次 stub.exposeInMainWorld 调用的 (name, value) 快照. */
 function makeStubElectron() {
@@ -113,10 +91,6 @@ function requirePreloadFresh() {
   cjsRequire(PRELOAD_PATH);
   return preloadCacheKey;
 }
-
-beforeAll(() => {
-  ensurePreloadBuilt();
-});
 
 describe("dist/preload.js ↔ api.js IPC surface contract", () => {
   let exposed;
