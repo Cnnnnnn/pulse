@@ -37,6 +37,7 @@ import { AttributionFooter } from "./AttributionFooter.jsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
 import { TopPodium } from "./TopPodium.jsx";
 import { BoardHealthCard } from "./BoardHealthCard.jsx";
+import { VendorPieChart } from "./VendorPieChart.jsx";
 
 /**
  * 按许可筛选却无结果时的空状态提示。
@@ -90,7 +91,9 @@ export function AiLeaderboardPage() {
 
   const sortLabel = sortKey.value && SORT_COLUMN_LABELS[sortKey.value];
   let crumb;
-  if (view === "arena") {
+  if (view === "vendor") {
+    crumb = "厂商份额";
+  } else if (view === "arena") {
     const boardMeta = ARENA_BOARDS[activeBoard.value] || {};
     crumb = `${boardMeta.label || "文本"} 榜`;
   } else if (view === "livebench") {
@@ -124,11 +127,13 @@ export function AiLeaderboardPage() {
   })();
   const sample = hasSampleSource();
   const scopeNote =
-    view === "aa" || view === "livebench"
-      ? "仅 LLM"
-      : view === "arena" && count > 0 && count <= 15
-        ? `仅 Top ${count}`
-        : null;
+    view === "vendor"
+      ? null
+      : view === "aa" || view === "livebench"
+        ? "仅 LLM"
+        : view === "arena" && count > 0 && count <= 15
+          ? `仅 Top ${count}`
+          : null;
 
   return (
     <div class="ai-leaderboard-page" data-view={view}>
@@ -212,12 +217,16 @@ export function AiLeaderboardPage() {
         ) : null}
 
         {!loading.value && !error.value && rows.length > 0 && (
-          <>
-            {view === "aa" && <ValueScatter items={rows} />}
-            {view === "arena" && <ArenaBubbleChart items={rows} board={activeBoard.value} />}
-            <TopPodium rows={rows} view={view} />
-            <LeaderboardTable rows={rows} view={view} />
-          </>
+          view === "vendor" ? (
+            <VendorPieChart rows={rows} />
+          ) : (
+            <>
+              {view === "aa" && <ValueScatter items={rows} />}
+              {view === "arena" && <ArenaBubbleChart items={rows} board={activeBoard.value} />}
+              <TopPodium rows={rows} view={view} />
+              <LeaderboardTable rows={rows} view={view} />
+            </>
+          )
         )}
       </div>
 

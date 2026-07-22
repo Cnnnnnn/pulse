@@ -43,9 +43,17 @@ export const VIEWS = {
     description: "LiveBench 月度抗污染客观评测（仅 LLM）",
     sourceKey: "livebench",
   },
+  vendor: {
+    key: "vendor",
+    label: "厂商",
+    segSub: "Arena ELO 份额",
+    emoji: "🏢",
+    description: "按厂商聚合的 Arena ELO 市场份额",
+    sourceKey: "arena",
+  },
 };
 
-export const VIEW_KEYS = ["arena", "aa", "livebench"];
+export const VIEW_KEYS = ["arena", "aa", "livebench", "vendor"];
 
 /* ── Arena 视角：board 子筛选 ── */
 
