@@ -43,17 +43,9 @@ export const VIEWS = {
     description: "LiveBench 月度抗污染客观评测（仅 LLM）",
     sourceKey: "livebench",
   },
-  vendor: {
-    key: "vendor",
-    label: "厂商",
-    segSub: "Arena ELO 份额",
-    emoji: "🏢",
-    description: "按厂商聚合的 Arena ELO 市场份额",
-    sourceKey: "arena",
-  },
 };
 
-export const VIEW_KEYS = ["arena", "aa", "livebench", "vendor"];
+export const VIEW_KEYS = ["arena", "aa", "livebench"];
 
 /* ── Arena 视角：board 子筛选 ── */
 
@@ -130,10 +122,6 @@ export function toIpcParams(view, boardOrDim) {
   if (view === "livebench") {
     const dim = LIVE_DIMENSION_KEYS.includes(boardOrDim) ? boardOrDim : "lb_overall";
     return { category: "llm", dimension: dim };
-  }
-  // ponytail: vendor 视角复用 arena ELO 数据, 跟 VIEWS.vendor.sourceKey 一致
-  if (view === "vendor") {
-    return { category: "llm", dimension: "elo" };
   }
   const dim = AA_DIMENSIONS[boardOrDim] ? boardOrDim : "intelligence";
   return { category: "llm", dimension: dim };

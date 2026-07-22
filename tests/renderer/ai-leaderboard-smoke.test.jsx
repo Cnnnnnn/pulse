@@ -10,7 +10,6 @@ import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardT
 import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.jsx";
 import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.jsx";
 import { CrossSourceRadar } from "../../src/renderer/ai-leaderboard/CrossSourceRadar.jsx";
-import { VendorPieChart } from "../../src/renderer/ai-leaderboard/VendorPieChart.jsx";
 import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.js";
 import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, fmtContext, aggregateVendorProfiles, topVendorsByArena, fmtRelative } from "../../src/renderer/ai-leaderboard/format.js";
 import {
@@ -418,28 +417,5 @@ describe("fmtRelative", () => {
     expect(fmtRelative(null)).toBe("—");
     expect(fmtRelative(NaN)).toBe("—");
     expect(fmtRelative(Date.now() + 10000)).toBe("—");
-  });
-});
-
-describe("VendorPieChart", () => {
-  afterEach(() => cleanup());
-
-  const fakeRows = [
-    { id: "a", vendor: "openai", arena: { text: { score: 1500 } } },
-    { id: "b", vendor: "google", arena: { text: { score: 1400 } } },
-    { id: "c", vendor: "anthropic", arena: { text: { score: 1300 } } },
-  ];
-
-  it("渲染 svg + ≥3 个扇区 path", () => {
-    const { container } = render(<VendorPieChart rows={fakeRows} />);
-    const svg = container.querySelector("svg");
-    expect(svg).toBeTruthy();
-    const paths = container.querySelectorAll("svg path");
-    expect(paths.length).toBeGreaterThanOrEqual(3);
-  });
-
-  it("rows 空时不抛错 + 渲染「暂无数据」文本", () => {
-    const { container } = render(<VendorPieChart rows={[]} />);
-    expect(container.textContent).toContain("暂无数据");
   });
 });
