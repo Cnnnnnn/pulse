@@ -12,6 +12,7 @@
  */
 
 const fs = require("fs");
+const zlib = require("zlib");
 const path = require("path");
 
 let _cacheDir = null;
@@ -63,12 +64,29 @@ function readCache(key) {
   if (mem) return mem;
   const dir = getCacheDir();
   if (!dir) return null;
+  const fileGz = path.join(dir, `${encodeURIComponent(key)}.json.gz`);
+  const filePlain = path.join(dir, `${encodeURIComponent(key)}.json`);
   try {
-    const file = path.join(dir, `${encodeURIComponent(key)}.json`);
-    if (!fs.existsSync(file)) return null;
-    const obj = JSON.parse(fs.readFileSync(file, "utf8"));
-    _memCache.set(key, obj);
-    return obj;
+    let obj;
+    if (fs.existsSync(fileGz)) {
+      const compressed = fs.readFileSync(fileGz);
+      const json = zlib.gunzipSync(compressed).toString("utf8");
+      obj = JSON.parse(json);
+      _memCache.set(key, obj);
+      return obj;
+    }
+    if (fs.existsSync(filePlain)) {
+      // ponytail: 旧格式 .json 兼容 — 一次性 lazy 升级到 .json.gz，下次启动走 .gz.
+      obj = JSON.parse(fs.readFileSync(filePlain, "utf8"));
+      _memCache.set(key, obj);
+      try {
+        const buf = zlib.gzipSync(Buffer.from(JSON.stringify(obj), "utf8"), { level: 6 });
+        fs.writeFileSync(fileGz, buf);
+        fs.unlinkSync(filePlain);
+      } catch { /* 升级失败保留旧文件, 下次再试 */ }
+      return obj;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -85,8 +103,9 @@ function writeCache(key, data) {
   const dir = getCacheDir();
   if (!dir) return;
   try {
-    const file = path.join(dir, `${encodeURIComponent(key)}.json`);
-    fs.writeFileSync(file, JSON.stringify(entry), "utf8");
+    const file = path.join(dir, `${encodeURIComponent(key)}.json.gz`);
+    const buf = zlib.gzipSync(Buffer.from(JSON.stringify(entry), "utf8"), { level: 6 });
+    fs.writeFileSync(file, buf);
   } catch {
     /* 磁盘不可写忽略，内存缓存仍有效 */
   }
