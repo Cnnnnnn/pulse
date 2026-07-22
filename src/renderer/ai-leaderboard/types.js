@@ -131,6 +131,10 @@ export function toIpcParams(view, boardOrDim) {
     const dim = LIVE_DIMENSION_KEYS.includes(boardOrDim) ? boardOrDim : "lb_overall";
     return { category: "llm", dimension: dim };
   }
+  // ponytail: vendor 视角复用 arena ELO 数据, 跟 VIEWS.vendor.sourceKey 一致
+  if (view === "vendor") {
+    return { category: "llm", dimension: "elo" };
+  }
   const dim = AA_DIMENSIONS[boardOrDim] ? boardOrDim : "intelligence";
   return { category: "llm", dimension: dim };
 }

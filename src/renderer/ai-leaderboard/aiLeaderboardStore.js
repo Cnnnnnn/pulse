@@ -204,7 +204,7 @@ async function _run(force) {
   // 升级路径: 用户手动选「同时看 AA+LB」可加 toggle (caller 拼多个 sourceKey).
   const view = activeView.value;
   const sources = {
-    arena: view === "arena",
+    arena: view === "arena" || view === "vendor",
     aa: view === "aa",
     livebench: view === "livebench",
     openrouter: true, // 任何 view 都拉, 用作"目录骨架" / 厂商匹配
