@@ -51,6 +51,9 @@ export const hiddenHealthSources = signal(new Set());
 /** 模型对比列表（最多 3 个 id）。 */
 export const compareList = signal([]);
 
+/** 模型详情抽屉：当前展示的模型 id（null = 关闭）。 */
+export const detailId = signal(null);
+
 export function toggleCompare(id) {
   const list = compareList.value;
   if (list.includes(id)) {
@@ -62,6 +65,15 @@ export function toggleCompare(id) {
 
 export function clearCompare() {
   compareList.value = [];
+}
+
+export function openModelDetail(id) {
+  if (!id) return;
+  detailId.value = id;
+}
+
+export function closeModelDetail() {
+  detailId.value = null;
 }
 
 /* ── 跨源雷达：三源联合拉取（arena + aa + livebench 合并）── */
