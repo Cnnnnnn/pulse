@@ -234,6 +234,8 @@ export function createApi(overrides = {}) {
   getLeaderboard: pick(overrides, "getLeaderboard"),
   refreshLeaderboard: pick(overrides, "refreshLeaderboard"),
   rateBudget: pick(overrides, "rateBudget"),
+  // 2026-07-22: 工具栏「导出 CSV」
+  exportLeaderboardCsv: pick(overrides, "exportLeaderboardCsv"),
   };
 }
 

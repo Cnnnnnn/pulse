@@ -345,6 +345,9 @@ contextBridge.exposeInMainWorld("api", {
   getLeaderboard: (opts) => ipcRenderer.invoke("leaderboard:get", opts || {}),
   refreshLeaderboard: (opts) => ipcRenderer.invoke("leaderboard:refresh", opts || {}),
   rateBudget: () => ipcRenderer.invoke("leaderboard:rate-budget"),
+  // 2026-07-22: 工具栏「导出 CSV」→ 主进程 dialog.showSaveDialog + fs.writeFile
+  exportLeaderboardCsv: (payload) =>
+    ipcRenderer.invoke("leaderboard:export-csv", payload || {}),
 });
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)
