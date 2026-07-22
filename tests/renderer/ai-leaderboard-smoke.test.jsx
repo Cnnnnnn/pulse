@@ -27,6 +27,8 @@ import {
   activeDim,
   activeLB,
   items,
+  detailId,
+  compareList,
   sources,
   attribution,
   sourceCoverage,
@@ -41,6 +43,8 @@ import {
   licenseFilter,
 } from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
 import { AiLeaderboardPage } from "../../src/renderer/ai-leaderboard/AiLeaderboardPage.jsx";
+import { ModelDetailDrawer } from "../../src/renderer/ai-leaderboard/ModelDetailDrawer.jsx";
+import { ModelRow } from "../../src/renderer/ai-leaderboard/ModelRow.jsx";
 
 const aaModels = [
   {
@@ -492,5 +496,82 @@ describe("AiLeaderboardPage: 导出 CSV 按钮", () => {
     items.value = [];
     const { container } = render(<AiLeaderboardPage />);
     expect(container.textContent).not.toContain("导出 CSV");
+  });
+});
+
+describe("ModelDetailDrawer", () => {
+  const detailModel = {
+    id: "test-1",
+    name: "Test Model",
+    vendor: "openai",
+    category: "llm",
+    arena: { text: { score: 1500 } },
+    aa: null,
+    openrouter: null,
+    livebench: null,
+    modelsdev: null,
+    sources: {
+      arena: "live",
+      aa: "none",
+      openrouter: "none",
+      livebench: "none",
+      modelsdev: "none",
+    },
+  };
+
+  beforeEach(() => {
+    detailId.value = null;
+    items.value = [];
+    compareList.value = [];
+  });
+
+  afterEach(() => {
+    detailId.value = null;
+    items.value = [];
+    compareList.value = [];
+    cleanup();
+  });
+
+  it("detailId=null 时不渲染抽屉", () => {
+    const { container } = render(<ModelDetailDrawer />);
+    expect(container.querySelector(".ai-lb-drawer.is-open")).toBeNull();
+  });
+
+  it("设置 detailId 后显示五个 slice 标题", () => {
+    items.value = [detailModel];
+    detailId.value = detailModel.id;
+    const { container } = render(<ModelDetailDrawer />);
+    expect(container.querySelector(".ai-lb-drawer.is-open")).toBeTruthy();
+    expect(container.querySelectorAll(".ai-lb-drawer__slice").length).toBe(5);
+    expect(container.textContent).toContain("Arena");
+    expect(container.textContent).toContain("AA");
+    expect(container.textContent).toContain("OpenRouter");
+    expect(container.textContent).toContain("LiveBench");
+    expect(container.textContent).toContain("Models.dev");
+  });
+
+  it("Escape 关闭抽屉", () => {
+    items.value = [detailModel];
+    detailId.value = detailModel.id;
+    render(<ModelDetailDrawer />);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(detailId.value).toBeNull();
+  });
+
+  it("模型名按钮打开详情但不切换对比复选框", () => {
+    const { container } = render(
+      <ModelRow
+        model={{ ...detailModel, arena: { text: { score: 1500 } } }}
+        rank={1}
+        view="arena"
+        board="text"
+        primaryKey="elo"
+        primaryMax={1500}
+        votesMax={0}
+      />,
+    );
+    fireEvent.click(container.querySelector(".ai-lb-cell-name-btn"));
+    expect(detailId.value).toBe("test-1");
+    expect(compareList.value).toEqual([]);
   });
 });
