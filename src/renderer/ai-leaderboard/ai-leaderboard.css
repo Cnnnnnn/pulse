@@ -2008,3 +2008,40 @@
   border-radius: 50%;
   background: oklch(70% 0.18 70);
 }
+
+/* ── Motion polish (Phase C #11) ─────────────────────────── */
+.ai-lb-row {
+  transition: background-color 120ms ease-out;
+}
+.ai-lb-row:hover {
+  background-color: oklch(96% 0.02 240);
+}
+.ai-lb-btn,
+.ai-lb-tab {
+  transition: box-shadow 100ms ease-out, transform 80ms ease-out;
+}
+.ai-lb-btn:active,
+.ai-lb-tab:active {
+  transform: scale(0.98);
+}
+.ai-lb-btn:focus-visible,
+.ai-lb-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px oklch(60% 0.18 240);
+}
+.ai-lb-drawer {
+  transition: transform 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-lb-row,
+  .ai-lb-btn,
+  .ai-lb-tab,
+  .ai-lb-drawer {
+    transition: none !important;
+  }
+  .ai-lb-btn:active,
+  .ai-lb-tab:active {
+    transform: none;
+  }
+}
