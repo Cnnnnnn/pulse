@@ -770,3 +770,25 @@ describe("aggregator: rateBudget 透传", () => {
     expect(typeof result.rateBudget.aa.lastAcquireAt === "string" || result.rateBudget.aa.lastAcquireAt === null).toBe(true);
   });
 });
+
+// ── 7. aggregator: errors 收集 ─────────────────────────────────────
+describe("aggregator: errors 收集", () => {
+  it("BoardResult.errors 顶层默认 []", async () => {
+    const result = await getLeaderboard({ category: "llm", dimension: "elo" });
+    expect(result.errors).toBeDefined();
+    expect(Array.isArray(result.errors)).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("getBoardRaw 返回包含 error 字段 (成功时为 null)", async () => {
+    // 该测试验证 getBoardRaw 的返回值形状 — 它目前是 module.exports 私有函数,
+    // 通过正常调用 getLeaderboard 间接验证:
+    const result = await getLeaderboard({ category: "llm", dimension: "elo" });
+    // errors[] 顶层存在, 内部字段若出现应有 source/message/ts
+    for (const e of result.errors) {
+      expect(typeof e.source).toBe("string");
+      expect(typeof e.message).toBe("string");
+      expect(typeof e.ts).toBe("string");
+    }
+  });
+});

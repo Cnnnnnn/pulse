@@ -33,20 +33,38 @@ const MD_TTL = 24 * 60 * 60 * 1000;
 const OR_TTL = 6 * 60 * 60 * 1000;
 const LB_TTL = 6 * 60 * 60 * 1000; // LiveBench 静态 CSV, 6h 足够 (官方月度)
 
+// 每 getLeaderboard 顶部重置 — module 级, 跨 source 共享, 同 source 在一次调用内只记一次.
+let _errors = [];
+
+function _resetErrors() {
+  _errors = [];
+}
+
+function _recordError(source, err) {
+  // ponytail: 同 source 在一次 getLeaderboard 调用里只记一次, 避免重复堆叠
+  if (_errors.some((e) => e.source === source)) return;
+  const msg = (err && err.message) || String(err);
+  _errors.push({ source, message: msg, ts: new Date().toISOString() });
+}
+
+function _lastErrorFor(source) {
+  return _errors.find((e) => e.source === source) || null;
+}
+
 function _today() {
   return new Date().toISOString().slice(0, 10);
 }
 
 /**
  * 取某源原始 payload（带磁盘缓存 + 过期 stale 回退）。
- * @returns {{raw:object|null, stale:boolean, fromCache:boolean}}
+ * @returns {{raw:object|null, stale:boolean, fromCache:boolean, error:{message:string,ts:string}|null}}
  */
 async function getBoardRaw(fetcher, cacheSource, cacheBoard, ttl, force) {
   const key = cacheKey(cacheSource, cacheBoard, _today());
   if (!force) {
     const c = readCache(key);
     if (c && !isStale(c.fetchedAt, ttl)) {
-      return { raw: c.data, stale: false, fromCache: true };
+      return { raw: c.data, stale: false, fromCache: true, error: null };
     }
     if (c) {
       // 过期但存在：先作为 stale 回退候选
@@ -58,19 +76,20 @@ async function getBoardRaw(fetcher, cacheSource, cacheBoard, ttl, force) {
     res = await fetcher.fetch({});
   } catch (err) {
     logFetchError(`agg:${cacheSource}`, err);
+    _recordError(cacheSource, err);
     res = { ok: false, data: null };
   }
   if (res && res.ok && res.data) {
     writeCache(key, res.data);
-    return { raw: res.data, stale: false, fromCache: false };
+    return { raw: res.data, stale: false, fromCache: false, error: null };
   }
   // 实时失败：优先用过期缓存（stale），否则 null
   if (typeof staleRaw !== "undefined") {
-    return { raw: staleRaw, stale: true, fromCache: true };
+    return { raw: staleRaw, stale: true, fromCache: true, error: _lastErrorFor(cacheSource) };
   }
   const c2 = readCache(key);
-  if (c2) return { raw: c2.data, stale: true, fromCache: true };
-  return { raw: null, stale: false, fromCache: false };
+  if (c2) return { raw: c2.data, stale: true, fromCache: true, error: _lastErrorFor(cacheSource) };
+  return { raw: null, stale: false, fromCache: false, error: _lastErrorFor(cacheSource) };
 }
 
 /** 模型是否与所选 category 匹配（按 board 存在性或 category 字段）。 */
@@ -93,6 +112,7 @@ function matchesCategory(item, category) {
  * @returns {Promise<object>} BoardResult
  */
 async function getLeaderboard(opts = {}) {
+  _resetErrors();
   const category = CATEGORY_META[opts.category] ? opts.category : "llm";
   const dimension = DIMENSION_META[opts.dimension] ? opts.dimension : "elo";
   const vendor = opts.vendor && opts.vendor !== "all" ? opts.vendor : "all";
@@ -267,6 +287,7 @@ async function getLeaderboard(opts = {}) {
     lastUpdated: arenaLastUpdated,
     fetchedAt: new Date().toISOString(),
     rateBudget: { aa: budget("artificial-analysis") },
+    errors: [..._errors],
   };
 }
 
