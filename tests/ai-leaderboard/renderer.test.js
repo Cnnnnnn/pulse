@@ -302,6 +302,30 @@ describe("BoardHealthCard 渲染（P0 回归）", () => {
     const { container } = render(h(BoardHealthCard, { total: 0 }));
     expect(container.querySelector(".ai-lb-health")).toBeNull();
   });
+
+  it("stale=true 时渲染「数据陈旧」chip", () => {
+    store.sources.value = { arena: "live", aa: "live", openrouter: "live", livebench: "live", modelsdev: "live" };
+    store.sourceCoverage.value = { arena: 1, aa: 1, openrouter: 1, livebench: 1, modelsdev: 1 };
+    store.stale.value = true;
+    store.isSample.value = false;
+    // fetchedAt 设为 2 小时前, fmtRelative 会渲染「2 小时前」
+    store.fetchedAt.value = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { container } = render(h(BoardHealthCard, { total: 1 }));
+    const staleEl = container.querySelector(".ai-lb-health__stale");
+    expect(staleEl).toBeTruthy();
+    expect(staleEl.textContent).toContain("数据陈旧");
+    expect(staleEl.textContent).toContain("2 小时前");
+  });
+
+  it("stale=false 时不渲染 stale chip", () => {
+    store.sources.value = { arena: "live", aa: "live", openrouter: "live", livebench: "live", modelsdev: "live" };
+    store.sourceCoverage.value = { arena: 1, aa: 1, openrouter: 1, livebench: 1, modelsdev: 1 };
+    store.stale.value = false;
+    store.isSample.value = false;
+    store.fetchedAt.value = new Date().toISOString();
+    const { container } = render(h(BoardHealthCard, { total: 1 }));
+    expect(container.querySelector(".ai-lb-health__stale")).toBeNull();
+  });
 });
 
 // ── P1 回归：图像/视频分榜（复用 Arena 已抓取数据，零 AA 成本）────────

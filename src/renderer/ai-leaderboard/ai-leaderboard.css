@@ -1990,3 +1990,21 @@
 .ai-lb-budget strong { color: inherit; font-weight: 500; }
 .ai-lb-budget.is-warn { color: oklch(60% 0.18 30); }
 .ai-lb-budget__warn { font-size: 10px; }
+
+.ai-lb-health__stale {
+  font-size: 11px;
+  color: oklch(70% 0.12 70);
+  background: oklch(96% 0.04 70);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-lb-health__stale-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: oklch(70% 0.18 70);
+}

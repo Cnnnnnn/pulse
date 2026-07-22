@@ -9,7 +9,8 @@
  *  - 用户据此理解合并行为 + 跨源命名差异 (无 ground truth 跨源合并)
  */
 
-import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources, rateBudget } from "./aiLeaderboardStore.js";
+import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources, rateBudget, stale, fetchedAt, isSample } from "./aiLeaderboardStore.js";
+import { fmtRelative } from "./format.js";
 
 const SOURCE_META = [
   { key: "arena", label: "Arena", color: "blue", desc: "社区 ELO 排名" },
@@ -27,6 +28,11 @@ export function BoardHealthCard({ total, compact = false }) {
   const src = sources.value || {};
   const hidden = hiddenHealthSources.value || new Set();
   const totalN = Number.isFinite(total) ? total : 0;
+  const staleValue = stale.value;
+  const staleSinceMs = fetchedAt.value
+    ? Date.parse(fetchedAt.value)
+    : null;
+  const isSampleValue = isSample.value;
   const aaBudget = rateBudget.value || {};
   const aaUsedPct = aaBudget && Number.isFinite(aaBudget.limit) && aaBudget.limit > 0
     ? Math.round((aaBudget.used / aaBudget.limit) * 100)
@@ -41,6 +47,14 @@ export function BoardHealthCard({ total, compact = false }) {
 
   return (
     <div class={`ai-lb-health${compact ? " ai-lb-health--compact" : ""}`} aria-label="数据源覆盖">
+      {Boolean(staleValue) && !isSampleValue && (
+        <div class="ai-lb-health__stale" role="status" aria-label="数据陈旧">
+          <span class="ai-lb-health__stale-dot" aria-hidden="true" />
+          <span>
+            数据陈旧 · 最后拉取 {fmtRelative(staleSinceMs)}
+          </span>
+        </div>
+      )}
       <div class="ai-lb-health__row">
         {visibleMeta.map((m) => {
           const live = src[m.key] === "live";
