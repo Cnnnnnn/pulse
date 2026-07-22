@@ -42,6 +42,7 @@ vi.mock("../../src/renderer/api.js", () => ({
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
 import { ARENA_BOARDS, ARENA_BOARD_KEYS, toIpcParams } from "../../src/renderer/ai-leaderboard/types.js";
 import { tableToMarkdown } from "../../src/renderer/ai-leaderboard/exportMarkdown.js";
+import { rowsToCsv } from "../../src/renderer/ai-leaderboard/exportCsv.js";
 import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
 import { BoardHealthCard } from "../../src/renderer/ai-leaderboard/BoardHealthCard.jsx";
 
@@ -405,5 +406,81 @@ describe("P1 文本导出（exportMarkdown）image/video 修正", () => {
     const md = tableToMarkdown({ rows, view: "arena", board: "text" });
     expect(md).toContain("| 1400 |");
     expect(md).not.toContain("—");
+  });
+});
+
+// ── CSV 导出（exportCsv）：BOM + 字段转义 + 列顺序 ─────────────────
+describe("exportCsv: rowsToCsv", () => {
+  it("空 rows 返 header + BOM", () => {
+    const out = rowsToCsv({
+      rows: [],
+      columns: [{ key: "name", header: "名称" }],
+    });
+    // UTF-8 BOM 是 0xfeff
+    expect(out.charCodeAt(0)).toBe(0xfeff);
+    expect(out).toContain("名称");
+  });
+
+  it("普通行 → 逗号分隔，行尾 CRLF", () => {
+    const out = rowsToCsv({
+      rows: [{ a: "x", b: 1 }, { a: "y", b: 2 }],
+      columns: [{ key: "a", header: "A" }, { key: "b", header: "B" }],
+    });
+    expect(out).toMatch(/A,B/);
+    expect(out).toMatch(/x,1/);
+    expect(out).toMatch(/y,2/);
+    // 末尾有 \r\n
+    expect(out.endsWith("\r\n")).toBe(true);
+  });
+
+  it("含 , 或 \" 的字段 → 自动转义", () => {
+    const out = rowsToCsv({
+      rows: [{ name: 'hello, "world"', q: 'a"b' }],
+      columns: [{ key: "name", header: "名" }, { key: "q", header: "Q" }],
+    });
+    expect(out).toContain(`"hello, ""world"""`);
+    expect(out).toContain(`"a""b"`);
+  });
+
+  it("含换行的字段 → 自动转义", () => {
+    const out = rowsToCsv({
+      rows: [{ desc: "line1\nline2" }],
+      columns: [{ key: "desc", header: "描述" }],
+    });
+    expect(out).toContain(`"line1\nline2"`);
+  });
+
+  it("null/undefined → 空串", () => {
+    const out = rowsToCsv({
+      rows: [{ x: null, y: undefined }],
+      columns: [{ key: "x", header: "X" }, { key: "y", header: "Y" }],
+    });
+    expect(out).toMatch(/X,Y/);
+    // 第 2 段（header 之后第一行）应是一对空串
+    expect(out.split("\r\n")[1]).toBe(",");
+  });
+
+  it("中文 header 不被改写", () => {
+    const out = rowsToCsv({
+      rows: [{ a: "中" }],
+      columns: [{ key: "a", header: "中文" }],
+    });
+    expect(out).toContain("中文");
+    expect(out).toContain("中");
+  });
+
+  it("列顺序与 columns 数组一致", () => {
+    const out = rowsToCsv({
+      rows: [{ z: 1, a: 2, m: 3 }],
+      columns: [
+        { key: "m", header: "M" },
+        { key: "z", header: "Z" },
+        { key: "a", header: "A" },
+      ],
+    });
+    // header 顺序 M,Z,A
+    expect(out).toMatch(/M,Z,A/);
+    // 数据顺序对应列：m=3, z=1, a=2
+    expect(out).toMatch(/3,1,2/);
   });
 });
