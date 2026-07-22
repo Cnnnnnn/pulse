@@ -47,9 +47,22 @@ describe("TypeScript foundation", () => {
   });
 
   it("keeps the TypeScript and runtime preload IPC channel sets aligned", () => {
-    const preloadJs = fs.readFileSync(path.join(root, "preload.js"), "utf8");
+    const preloadJs = fs.readFileSync(path.join(root, "dist", "preload.js"), "utf8");
     const preloadTs = fs.readFileSync(path.join(root, "preload.ts"), "utf8");
 
     expect(extractIpcChannels(preloadTs)).toEqual(extractIpcChannels(preloadJs));
+  });
+
+  it("declares Window from the preload implementation and builds a JS preload", () => {
+    const windowTypes = fs.readFileSync(path.join(root, "src/shared/window.d.ts"), "utf8");
+    const packageJson = readJson("package.json");
+    const windowManager = fs.readFileSync(path.join(root, "src/main/window.js"), "utf8");
+
+    expect(windowTypes).toContain('import type { api, metalsApi, platformInfo, pulse } from "../../preload"');
+    expect(windowTypes).toContain("api: typeof api");
+    expect(windowTypes).toContain("pulse: typeof pulse");
+    expect(windowTypes).toContain("metalsApi: typeof metalsApi");
+    expect(packageJson.scripts["build:preload"]).toContain("--outfile=dist/preload.js");
+    expect(windowManager).toContain('"dist", "preload.js"');
   });
 });

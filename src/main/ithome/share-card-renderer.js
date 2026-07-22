@@ -33,7 +33,7 @@ async function createShareCardPng(payload, opts = {}) {
   if (!summary || !summary.text) throw new Error("summary_required");
 
   const timeoutMs = opts.timeoutMs || DEFAULT_TIMEOUT_MS;
-  const preloadPath = path.join(app.getAppPath(), "preload.js");
+  const preloadPath = path.join(app.getAppPath(), "dist", "preload.js");
   const win = new BrowserWindow({
     show: false,
     width: WINDOW_WIDTH,

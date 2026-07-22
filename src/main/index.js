@@ -254,7 +254,7 @@ function createMainWindow(runtimeConfig) {
   winMgr = createWindowManager({
     config: runtimeConfig,
     getIsQuitting: () => isQuitting,
-    preloadPath: path.join(PROJECT_ROOT, "preload.js"),
+    preloadPath: path.join(PROJECT_ROOT, "dist", "preload.js"),
     indexPath: path.join(PROJECT_ROOT, "index.html"),
   });
   winMgr.createWindow();

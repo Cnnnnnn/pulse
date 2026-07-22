@@ -15,14 +15,14 @@ const platform = require('../platform');
 
 /**
  * @param {object} opts
- * @param {string} [opts.preloadPath]  默认 __dirname/../preload.js
+ * @param {string} [opts.preloadPath]  默认 __dirname/../../dist/preload.js
  * @param {string} [opts.indexPath]    默认项目根 index.html
  * @param {object} [opts.config]       { check_on_launch }
  * @param {Function} [opts.onClosed]   window closed 回调
  * @param {Function} [opts.getIsQuitting]
  */
 function createWindowManager(opts = {}) {
-  const preloadPath = opts.preloadPath || path.join(__dirname, '..', '..', 'preload.js');
+  const preloadPath = opts.preloadPath || path.join(__dirname, "..", "..", "dist", "preload.js");
   const indexPath = opts.indexPath || path.join(__dirname, '..', '..', 'index.html');
   const config = opts.config || { check_on_launch: true };
   const getIsQuitting = opts.getIsQuitting || (() => false);
