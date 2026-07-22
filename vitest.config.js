@@ -11,6 +11,10 @@ module.exports = defineConfig({
   test: {
     environment: "node", // 默认 node；renderer 组件测试显式切到 happy-dom
     include: ["tests/**/*.test.{js,jsx}", "tests/**/*.bench.{js,jsx}"],
+    // 干净 checkout 兜底: dist/preload.js 不存在就同步构建一次, 覆盖
+    // pnpm exec vitest --run (CI release job 入口, 不走 npm lifecycle)
+    // 与 npm test 两种路径. 见 tests/_setup/build-preload.cjs.
+    globalSetup: ["./tests/_setup/build-preload.cjs"],
     testTimeout: 8000, // 多数 detector 自身 timeout 就是 8s
     pool: "forks", // macOS 稳；windows 也兼容
     globals: false, // 显式 import，避免 vitest 1.x 的隐式全局
