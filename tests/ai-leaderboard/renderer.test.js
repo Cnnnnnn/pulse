@@ -345,6 +345,10 @@ describe("P1 图像/视频分榜（Arena 视角）", () => {
     expect(toIpcParams("arena", "video")).toEqual({ category: "video", dimension: "elo" });
   });
 
+  it("toIpcParams('vendor') 复用 arena ELO（category:llm, dimension:elo）", () => {
+    expect(toIpcParams("vendor")).toEqual({ category: "llm", dimension: "elo" });
+  });
+
   it("Arena 视角按 board.key 过滤：image board 仅保留 text-to-image 切片模型", () => {
     store.activeView.value = "arena";
     store.activeBoard.value = "image";
