@@ -34,7 +34,6 @@
  *   - pnpm exec vitest --run (CI direct vitest, pretest 不触发, beforeAll 兜底)
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
-import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";

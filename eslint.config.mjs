@@ -53,7 +53,7 @@ export default [
       "src/stocks/**/*.js",
       "src/utils/**/*.js",
       "src/workers/**/*.js",
-      "preload.js",
+      "preload.ts",
       "scripts/**/*.js",
       "scripts/**/*.cjs",
       "playwright.config.js",
@@ -64,6 +64,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",
+      parser: tseslintParser,
       globals: {
         ...globals.node,
         ...globals.browser, // 少数文件被 renderer import（pnlCsv.js 用 document），Electron 环境两者都有
