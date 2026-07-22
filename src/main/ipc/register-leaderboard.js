@@ -2,13 +2,16 @@
  * src/main/ipc/register-leaderboard.js
  *
  * AI 榜单 — IPC 注册。
- *   leaderboard:get      → 聚合 (命中请求级缓存则直接返回)
- *   leaderboard:refresh  → 强制重拉 (force:true)，清缓存后回写
+ *   leaderboard:get            → 聚合 (命中请求级缓存则直接返回)
+ *   leaderboard:refresh        → 强制重拉 (force:true)，清缓存后回写
+ *   leaderboard:export-csv     → 用户选保存路径 → fs.writeFile
  *
- * 渲染层只通过这两个通道交互（白名单）。请求级缓存 (Map + TTL 5min)
+ * 渲染层只通过这几个通道交互（白名单）。请求级缓存 (Map + TTL 5min)
  * 照搬 games 同款范式，避免重复打外部 API（Arena/AA 有 rate limit）。
  */
 
+const fs = require("fs").promises;
+const path = require("path");
 const { getLeaderboard } = require("../ai-leaderboard");
 const { CATEGORY_META, DIMENSION_META, VENDOR_META } = require("../ai-leaderboard/types");
 const { budget } = require("../ai-leaderboard/rate-limiter");
@@ -83,6 +86,9 @@ function sanitize(payload) {
 
 function registerLeaderboardHandlers(ctx) {
   const { safeHandle } = ctx;
+  // ponytail: 2026-07-22 CSV 导出 — dialog / BrowserWindow / app 从 ctx 注入
+  // (与 register-stock-export 同构), 让测试可 mock.
+  const { dialog, BrowserWindow, electronApp } = ctx;
 
   async function handleGet(_event, payload) {
     const opts = sanitize(payload);
@@ -151,6 +157,56 @@ function registerLeaderboardHandlers(ctx) {
         fetchedAt: new Date().toISOString(),
       };
     }
+  });
+
+  // 2026-07-22: CSV 导出 — renderer 把已序列化好的 CSV 字符串发过来, 主进程
+  // 只负责弹保存对话框 + 写盘. 失败返 {ok:false, error}, 不抛 (safeHandle 兜底).
+  safeHandle("leaderboard:export-csv", async (event, payload) => {
+    const csv = typeof payload?.csv === "string" ? payload.csv : "";
+    const suggested =
+      typeof payload?.filenameSuggestion === "string"
+        ? payload.filenameSuggestion
+        : "ai-leaderboard.csv";
+    if (!csv) return { ok: false, error: "empty_csv" };
+    if (!dialog || !BrowserWindow) return { ok: false, error: "main_not_ready" };
+    let win;
+    try {
+      win = BrowserWindow.fromWebContents(event.sender);
+    } catch {
+      win = undefined;
+    }
+    let defaultPath;
+    try {
+      const downloads = electronApp && typeof electronApp.getPath === "function"
+        ? electronApp.getPath("downloads")
+        : "";
+      defaultPath = downloads ? path.join(downloads, suggested) : suggested;
+    } catch {
+      defaultPath = suggested;
+    }
+    let result;
+    try {
+      result = await dialog.showSaveDialog(win || undefined, {
+        defaultPath,
+        filters: [{ name: "CSV", extensions: ["csv"] }],
+      });
+    } catch (err) {
+      return { ok: false, error: err && err.message };
+    }
+    if (result.canceled || !result.filePath) {
+      return { ok: true, cancelled: true };
+    }
+    try {
+      await fs.writeFile(result.filePath, csv, "utf8");
+      return { ok: true, path: result.filePath };
+    } catch (err) {
+      return { ok: false, error: err && err.message };
+    }
+  }, {
+    logMeta: (_evt, payload) => ({
+      suggested: payload && payload.filenameSuggestion,
+      size: typeof payload?.csv === "string" ? payload.csv.length : 0,
+    }),
   });
 }
 

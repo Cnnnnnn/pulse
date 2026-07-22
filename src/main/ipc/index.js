@@ -79,7 +79,12 @@ function registerIpcHandlers(deps) {
   registerVersionsOverviewHandlers(ctx); // Task 15: overview 5 数据源 + command palette
   registerThemeHandlers(ctx); // P10: 主进程 ↔ renderer 主题桥接 (托盘切换 + system 同步)
   registerGamesHandlers(ctx); // 游戏优惠聚合 (Steam/Epic 真实 + 主机示例兜底)
-  registerLeaderboardHandlers(ctx); // AI 榜单排名 (Arena + Artificial Analysis + 兜底链)
+  registerLeaderboardHandlers({
+    ...ctx,
+    dialog: require("electron").dialog,
+    BrowserWindow: require("electron").BrowserWindow,
+    electronApp: require("electron").app,
+  }); // AI 榜单排名 (Arena + Artificial Analysis + 兜底链 + CSV 导出)
 }
 
 module.exports = { registerIpcHandlers };
