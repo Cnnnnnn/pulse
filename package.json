@@ -103,6 +103,7 @@
       "dist/main/index.js",
       "dist/main/**/*.js",
       "dist/preload.js",
+      "src/workers/detect-worker.js",
       "config.json",
       "versions/**",
       "index.html",

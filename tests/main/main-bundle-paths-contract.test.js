@@ -12,7 +12,7 @@ const MAIN_BUNDLE_PATH = path.join(ROOT_DIR, "dist", "main", "index.js");
 
 // ponytail: contract guard for the post-build literal path rewrite.
 // esbuild bundles src/main/* into dist/main/index.js, so __dirname inside the
-// bundle is dist/main/. Six path.join(__dirname, ...) literals were written
+// bundle is dist/main/. Seven path.join(__dirname, ...) literals were written
 // against each source file's own __dirname (which varies in depth:
 // src/main/, src/main/window/, src/main/tray/, src/main/bootstrap/,
 // src/main/ai-leaderboard/). scripts/build-main.cjs rewrites them post-bundle
@@ -31,6 +31,8 @@ const MAIN_BUNDLE_PATH = path.join(ROOT_DIR, "dist", "main", "index.js");
 //     bundle's 2 `..` already lands at repo, no change needed.
 //   - src/main/ai-leaderboard/sample.js SAMPLE_PATH (0 source `..`): bundle
 //     needs 2 to reach repo, then src/main/ai-leaderboard/ suffix.
+//   - src/main/index.js workerScript (1 source `..`): bundle needs 2,
+//     then src/workers/detect-worker.js.
 //
 // `rewrite` is the literal transform applied by build-main.cjs. For items
 // where the rewrite is a no-op (old === expected), the bundle must still
@@ -92,6 +94,27 @@ const LITERALS = [
     },
     resolved: ["..", "..", "src", "main", "ai-leaderboard", "sample.json"],
   },
+  // #7 workerScript (index.js) → repo/src/workers/detect-worker.js
+  {
+    label: "workerScript",
+    rewrite: {
+      from: `path.join(
+    __dirname,
+    "..",
+    "workers",
+    "detect-worker.js"
+  )`,
+      to: `path.join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "workers",
+    "detect-worker.js"
+  )`,
+    },
+    resolved: ["..", "..", "src", "workers", "detect-worker.js"],
+  },
 ];
 
 // Targets that must exist on disk for runtime sanity. The window.js
@@ -110,6 +133,7 @@ const LITERALS = [
 const MUST_EXIST_PATHS = [
   ["assets"],
   ["src", "main", "ai-leaderboard", "sample.json"],
+  ["src", "workers", "detect-worker.js"],
 ];
 
 function buildBundle() {

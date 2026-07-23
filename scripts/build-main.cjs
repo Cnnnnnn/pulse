@@ -25,7 +25,7 @@ execFileSync(
 
 // ponytail: post-build literal path rewrite.
 // esbuild bundles src/main/* into dist/main/index.js, so __dirname inside
-// the bundle is dist/main/. Six path.join(__dirname, ...) literals were
+// the bundle is dist/main/. Seven path.join(__dirname, ...) literals were
 // written against each source file's own __dirname (which varies in
 // depth: src/main/, src/main/window/, src/main/tray/,
 // src/main/bootstrap/, src/main/ai-leaderboard/). We rewrite each literal
@@ -47,6 +47,8 @@ execFileSync(
 //     so the rewrite is a no-op.
 //   - src/main/ai-leaderboard/ (depth 4 source, 0 source `..`): bundle
 //     needs 2 `..` to reach repo, then src/main/ai-leaderboard/.
+//   - src/main/index.js workerScript (1 source `..`): bundle needs 2
+//     `..` plus src/workers/detect-worker.js.
 //
 // Each rewrite uses .replace (not .replaceAll) so a future second
 // occurrence is not silently mutated; the test guard in
@@ -85,6 +87,23 @@ const rewrites = [
   {
     from: `path2.join(__dirname, "sample.json")`,
     to: `path2.join(__dirname, "..", "..", "src", "main", "ai-leaderboard", "sample.json")`,
+  },
+  // #7 — src/main/index.js workerScript (depth-2 source)
+  {
+    from: `path.join(
+    __dirname,
+    "..",
+    "workers",
+    "detect-worker.js"
+  )`,
+    to: `path.join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "workers",
+    "detect-worker.js"
+  )`,
   },
 ];
 
