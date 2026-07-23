@@ -44,7 +44,7 @@ const electronStub = {
 };
 
 const electronPath = require.resolve('electron');
-const trayModulePath = require.resolve('../../src/main/tray.js');
+const trayModulePath = require.resolve('../../src/main/tray.ts');
 
 let createTrayManager;
 

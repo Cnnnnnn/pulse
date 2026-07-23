@@ -33,7 +33,7 @@ describe('main process module load smoke (Phase 28+ regression)', () => {
     'ipc.js',
     'last-opened.js',
     'state-store.ts',
-    'tray.js',
+    'tray.ts',
   ];
   for (const e of expected) {
     it(`src/main/${e} exists`, () => {

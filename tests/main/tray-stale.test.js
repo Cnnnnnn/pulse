@@ -8,7 +8,7 @@
  *   - 显示在「打开面板」之前 (用户最容易看到的位置)
  */
 import { describe, it, expect, vi } from "vitest";
-import { _internal } from "../../src/main/tray.js";
+import { _internal } from "../../src/main/tray.ts";
 
 const { buildMenu } = _internal;
 

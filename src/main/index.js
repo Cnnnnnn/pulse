@@ -39,8 +39,8 @@ try {
 }
 
 const { WorkerPool } = require("../workers/pool");
-const { createWindowManager } = require("./window");
-const { createTrayManager } = require("./tray");
+const { createWindowManager } = require("./window.ts");
+const { createTrayManager } = require("./tray.ts");
 const { registerIpcHandlers } = require("./ipc");
 const { createSearchIndex } = require("./search/search-index");
 const { registerSearchIpc } = require("./ipc/register-search");

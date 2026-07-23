@@ -18,7 +18,7 @@ import path from 'path';
 import { describe, it, expect } from 'vitest';
 
 const windowSource = fs.readFileSync(
-  path.join(__dirname, '../../src/main/window.js'),
+  path.join(__dirname, '../../src/main/window.ts'),
   'utf-8',
 );
 

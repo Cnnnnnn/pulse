@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { _internal } from "../../src/main/tray.js";
+import { _internal } from "../../src/main/tray.ts";
 import { DEFAULT_PREFS } from "../../src/main/tray-menu-prefs.js";
 
 const { buildMenu } = _internal;

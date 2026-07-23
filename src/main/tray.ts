@@ -1,5 +1,5 @@
 /**
- * src/main/tray.js
+ * src/main/tray.ts
  *
  * Tray icon + menu. Phase 28: 切换到 Pulse 品牌 + assets/ PNG.
  *
@@ -11,8 +11,92 @@
  * 依赖：electron (tray/nativeImage/menu)、detect 状态 (lastResults)。
  */
 
-const { Tray, Menu, nativeImage, nativeTheme, shell } = require("electron");
-const path = require("path");
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type {
+  MenuItemConstructorOptions,
+  NativeImage,
+  Tray as TrayInstance,
+} from "electron";
+import type * as pathType from "node:path";
+
+type ElectronTray = typeof import("electron").Tray;
+type ElectronMenu = typeof import("electron").Menu;
+type ElectronNativeImage = typeof import("electron").nativeImage;
+type ElectronNativeTheme = typeof import("electron").nativeTheme;
+type ElectronShell = typeof import("electron").shell;
+
+type ThemeLike = { shouldUseDarkColors?: boolean };
+
+type DetectResult = {
+  name?: string;
+  has_update?: boolean;
+  status?: string;
+  installed_version?: string;
+  latest_version?: string;
+  ts?: number;
+};
+
+type TrayPrefs = {
+  segments: {
+    updates?: boolean;
+    ai_usage?: boolean;
+    worldcup?: boolean;
+    metals?: boolean;
+    check_action?: boolean;
+    config_action?: boolean;
+  };
+};
+
+type BuildMenuOpts = {
+  results?: DetectResult[];
+  aiUsage?: any;
+  worldcup?: any;
+  metals?: any;
+  trayPrefs?: TrayPrefs;
+  themeMode?: string;
+  onOpenPanel?: () => void;
+  onCheck?: () => void;
+  onOpenConfig?: () => void;
+  onOpenTrayConfig?: () => void;
+  onQuit?: () => void;
+  onFocusUpdate?: (payload: { rowName: string; action: string }) => void;
+  onFocusWorldcup?: (payload: { matchKey: string }) => void;
+  onThemeChange?: (mode: string) => void;
+  getConfigPath?: () => string;
+  getConfig?: () => { apps?: any[] };
+  staleNames?: string[];
+  selfUpdateState?: { available?: boolean; version?: string; status?: string } | null;
+};
+
+type CreateTrayManagerOpts = {
+  getConfig?: () => { apps?: any[] };
+  getConfigPath?: () => string;
+  onCheck?: () => void;
+  onOpenPanel?: () => void;
+  onOpenConfig?: () => void;
+  onOpenTrayConfig?: () => void;
+  onQuit?: () => void;
+  onFocusUpdate?: (payload: any) => void;
+  onFocusWorldcup?: (payload: any) => void;
+  onThemeChange?: (mode: string) => void;
+};
+
+const {
+  Tray,
+  Menu,
+  nativeImage,
+  nativeTheme,
+  shell,
+}: {
+  Tray: ElectronTray;
+  Menu: ElectronMenu;
+  nativeImage: ElectronNativeImage;
+  nativeTheme: ElectronNativeTheme;
+  shell: ElectronShell;
+} = require("electron");
+const path: typeof pathType = require("path");
 
 const ASSETS = path.join(__dirname, "..", "..", "assets");
 
@@ -23,7 +107,7 @@ const ASSETS = path.join(__dirname, "..", "..", "assets");
  *
  * @param {object} [theme] - 注入依赖, 默认走 require('electron').nativeTheme.
  */
-function loadTrayIcon(theme) {
+function loadTrayIcon(theme?: ThemeLike): NativeImage | null {
   if (process.platform === "win32") {
     // P4: Windows 端用 ICO + 深浅色两套.
     // nativeTheme.shouldUseDarkColors 反映 OS 当前主题.
@@ -45,7 +129,7 @@ function loadTrayIcon(theme) {
 }
 
 /** 加载 badge 图标 (count 1-9 → 数字; ≥10 → 9+). */
-function loadBadgeIcon(count) {
+function loadBadgeIcon(count: number): NativeImage | null {
   const n = Math.max(0, Math.min(99, count | 0));
   const variant = n >= 10 ? "9plus" : String(n);
   const png = nativeImage.createFromPath(
@@ -55,7 +139,7 @@ function loadBadgeIcon(count) {
 }
 
 /** 最小 fallback PNG (1x1 灰). 资源文件丢失时使用, 避免 tray 完全空白. */
-function loadFallbackIcon() {
+function loadFallbackIcon(): NativeImage {
   // 1x1 transparent PNG
   const buf = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -94,7 +178,7 @@ function loadFallbackIcon() {
  * @param {object}  [opts.selfUpdateState] - P52: {available, version, status, ...} Pulse 自更新状态
  * @returns {Array} Electron Menu template 数组
  */
-function buildMenu(opts) {
+function buildMenu(opts: BuildMenuOpts): MenuItemConstructorOptions[] {
   const {
     results = [],
     aiUsage = null,
@@ -283,7 +367,7 @@ const PROVIDER_NAME = { minimax: "MiniMax", glm: "GLM" };
  * - 某 provider error → "  ProviderName: 拉取失败"
  * - 全部 unconfigured → 整段只显示一行 "  未配置"
  */
-function buildAiUsageLines(summaryMap) {
+function buildAiUsageLines(summaryMap: any): MenuItemConstructorOptions[] {
   const lines = [];
   let hasAny = false;
   for (const pid of ["minimax", "glm"]) {
@@ -313,7 +397,7 @@ function buildAiUsageLines(summaryMap) {
  * 把毫秒差格式化成 " (Nm 前)" / " (Nh 前)" (v2.22 Task B2).
  * < 60s → "" (不显示)
  */
-function _ageLabel(deltaMs) {
+function _ageLabel(deltaMs: number): string {
   if (deltaMs < 60_000) return "";
   const m = Math.floor(deltaMs / 60_000);
   if (m < 60) return ` (${m}m 前)`;
@@ -333,7 +417,7 @@ function _ageLabel(deltaMs) {
  * 用户左键/右键打开菜单立即可见, 信息密度比 tooltip 高.
  * age 格式与下方 AI 用量段统一 ("Xm 前" / "Xh 前", 无括号), 信息层视觉对齐.
  */
-function buildSummaryLine(results) {
+function buildSummaryLine(results: DetectResult[] | null | undefined): MenuItemConstructorOptions | null {
   if (!Array.isArray(results) || results.length === 0) {
     return { label: "🔔 Pulse · 尚未检测", enabled: false };
   }
@@ -358,7 +442,7 @@ function buildSummaryLine(results) {
  * "3m 前" / "1h 前" (无括号, 无前导空格, 直接拼接到上一行的 "· " 后).
  * < 60s → "" (不显示).
  */
-function _summaryAgeLabel(deltaMs) {
+function _summaryAgeLabel(deltaMs: number): string {
   if (deltaMs < 60_000) return "";
   const m = Math.floor(deltaMs / 60_000);
   if (m < 60) return ` · ${m}m 前`;
@@ -374,7 +458,7 @@ function _summaryAgeLabel(deltaMs) {
  * - 今日未开赛 → "  team1 vs team2  13:00"
  * - 今日无比赛 + 有 upcoming →  "  下一场: team1 vs team2  明天 15:00"
  */
-function buildWorldcupLines(wc, onFocusWorldcup) {
+function buildWorldcupLines(wc: any, onFocusWorldcup?: (payload: { matchKey: string }) => void): MenuItemConstructorOptions[] {
   const lines = [];
   const today = Array.isArray(wc.todayMatches) ? wc.todayMatches : [];
   const cb = typeof onFocusWorldcup === "function" ? onFocusWorldcup : () => {};
@@ -427,7 +511,7 @@ const METAL_NAME = {
  * - 无任何 quote → 整段只显示一行 "  加载中..." (cold start 或 scheduler 未拉)
  * - 有 quote → 每条金属一行 "  名称 (id): price currency/unit ↑/↓"
  */
-function buildMetalsLines(metals) {
+function buildMetalsLines(metals: any): MenuItemConstructorOptions[] {
   const lines = [];
   const quotes =
     metals && metals.quotes && typeof metals.quotes === "object"
@@ -471,7 +555,7 @@ function buildMetalsLines(metals) {
  *   tray.setBadge(updateCount);
  *   tray.dispose();
  */
-function createTrayManager(opts) {
+function createTrayManager(opts: CreateTrayManagerOpts) {
   const getConfig = opts.getConfig || (() => ({ apps: [] }));
   const getConfigPath = opts.getConfigPath || (() => "");
   const onCheck = opts.onCheck || (() => {});
@@ -483,11 +567,11 @@ function createTrayManager(opts) {
   const onFocusWorldcup = opts.onFocusWorldcup || (() => {});
   const onThemeChange = opts.onThemeChange || (() => {}); // P10
 
-  let tray = null;
-  let lastResults = [];
-  let lastStaleNames = [];
-  let lastSelfUpdateState = null;
-  let lastTrayMenuPrefs = require("./tray-menu-prefs").DEFAULT_PREFS;
+  let tray: TrayInstance | null = null;
+  let lastResults: DetectResult[] = [];
+  let lastStaleNames: string[] = [];
+  let lastSelfUpdateState: BuildMenuOpts["selfUpdateState"] = null;
+  let lastTrayMenuPrefs: TrayPrefs = require("./tray-menu-prefs").DEFAULT_PREFS;
   let lastThemeMode = "system"; // P10: 主进程内存, 由 renderer 同步
 
   function install() {
@@ -542,20 +626,20 @@ function createTrayManager(opts) {
     tray.setContextMenu(Menu.buildFromTemplate(template));
   }
 
-  function setResults(results, staleNames) {
+  function setResults(results: any, staleNames?: any) {
     lastResults = Array.isArray(results) ? results : [];
     if (Array.isArray(staleNames)) lastStaleNames = staleNames;
     scheduleRebuild();
   }
 
   // P52: 自更新 state 变化时 rebuild tray menu (e.g. 检测到 v2.47.0)
-  function setSelfUpdateState(state) {
+  function setSelfUpdateState(state: any) {
     lastSelfUpdateState = state || null;
     scheduleRebuild();
   }
 
   // ─── debounce + Windows throttle (v2.22 Task B2) ───
-  let rebuildTimer = null;
+  let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
   let lastRebuildAt = 0;
   function scheduleRebuild() {
     if (rebuildTimer) return;
@@ -569,40 +653,40 @@ function createTrayManager(opts) {
     }, delay);
   }
 
-  let lastAiUsage = null;
-  function setAiUsage(snapshot) {
+  let lastAiUsage: any = null;
+  function setAiUsage(snapshot: any) {
     lastAiUsage = snapshot;
     scheduleRebuild();
   }
 
-  let lastWorldcup = null;
-  function setWorldcup(snapshot) {
+  let lastWorldcup: any = null;
+  function setWorldcup(snapshot: any) {
     lastWorldcup = snapshot;
     scheduleRebuild();
   }
 
-  let lastMetals = null;
-  function setMetals(snapshot) {
+  let lastMetals: any = null;
+  function setMetals(snapshot: any) {
     lastMetals = snapshot;
     scheduleRebuild();
   }
 
   // Phase v1: 注入 prefs,触发 rebuild. trayPrefs 是 normalizePrefs 归一化过的对象.
-  function setTrayMenuPrefs(prefs) {
+  function setTrayMenuPrefs(prefs: any) {
     const { normalizePrefs, DEFAULT_PREFS: DEF } = require("./tray-menu-prefs");
     lastTrayMenuPrefs = normalizePrefs(prefs) || DEF;
     scheduleRebuild();
   }
 
   // P10: 同步 renderer 端的主题偏好到主进程 (用于 submenu 选中标记).
-  function setThemeMode(mode) {
+  function setThemeMode(mode: string) {
     const m = ["system", "light", "dark"].includes(mode) ? mode : "system";
     if (m === lastThemeMode) return;
     lastThemeMode = m;
     scheduleRebuild();
   }
 
-  function setBadge(updateCount) {
+  function setBadge(updateCount: number) {
     if (!tray) return;
     if (updateCount > 0) {
       const icon = loadBadgeIcon(updateCount) || loadTrayIcon();

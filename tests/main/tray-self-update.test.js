@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const trayPath = require.resolve("../../src/main/tray.js");
+const trayPath = require.resolve("../../src/main/tray.ts");
 const {
   createTrayManager,
   _internal,

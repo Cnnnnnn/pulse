@@ -141,7 +141,7 @@ describe("TypeScript foundation", () => {
   it("declares Window from the preload implementation and builds a JS preload", () => {
     const windowTypes = fs.readFileSync(path.join(root, "src/shared/window.d.ts"), "utf8");
     const packageJson = readJson("package.json");
-    const windowManager = fs.readFileSync(path.join(root, "src/main/window.js"), "utf8");
+    const windowManager = fs.readFileSync(path.join(root, "src/main/window.ts"), "utf8");
 
     expect(windowTypes).toContain('import type { api, metalsApi, platformInfo, pulse } from "../../preload"');
     expect(windowTypes).toContain("api: typeof api");

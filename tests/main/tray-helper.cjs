@@ -45,7 +45,7 @@ require.cache[electronPath] = {
   },
 };
 
-const trayModulePath = path.resolve(__dirname, '../../src/main/tray.js');
+const trayModulePath = path.resolve(__dirname, '../../src/main/tray.ts');
 const tray = require(trayModulePath);
 
 const icon = tray._internal.loadTrayIcon();

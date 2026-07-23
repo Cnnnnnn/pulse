@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { _internal } from "../../src/main/tray.js";
+import { _internal } from "../../src/main/tray.ts";
 
 const { buildSummaryLine } = _internal;
 

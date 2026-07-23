@@ -10,7 +10,7 @@
  * 拿到的 electron 是真实 stub, click 不触发 shell 也没事.
  */
 import { describe, it, expect, vi } from "vitest";
-import { _internal } from "../../src/main/tray.js";
+import { _internal } from "../../src/main/tray.ts";
 
 const { buildMenu } = _internal;
 

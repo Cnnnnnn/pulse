@@ -1,5 +1,5 @@
 /**
- * src/main/window.js
+ * src/main/window.ts
  *
  * BrowserWindow 生命周期管理（spec §6 + 旧 main.js 的窗口逻辑）。
  * 跟旧实现行为一致：
@@ -9,9 +9,39 @@
  *   - preload + contextIsolation + nodeIntegration:false
  */
 
-const { BrowserWindow } = require('electron');
-const path = require('path');
-const platform = require('../platform');
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type {
+  BrowserWindow as BrowserWindowInstance,
+  BrowserWindowConstructorOptions,
+} from "electron";
+import type * as pathType from "node:path";
+
+type ElectronBrowserWindowCtor = typeof import("electron").BrowserWindow;
+
+type PlatformModule = {
+  getWindowOptions: () => BrowserWindowConstructorOptions;
+};
+
+type CreateWindowManagerOpts = {
+  preloadPath?: string;
+  indexPath?: string;
+  config?: { check_on_launch?: boolean };
+  onClosed?: () => void;
+  getIsQuitting?: () => boolean;
+};
+
+type WindowManager = {
+  createWindow: () => BrowserWindowInstance;
+  showWindow: () => void;
+  getWindow: () => BrowserWindowInstance | null;
+  isOpen: () => boolean;
+};
+
+const { BrowserWindow }: { BrowserWindow: ElectronBrowserWindowCtor } = require('electron');
+const path: typeof pathType = require('path');
+const platform: PlatformModule = require('../platform');
 
 /**
  * @param {object} opts
@@ -21,14 +51,14 @@ const platform = require('../platform');
  * @param {Function} [opts.onClosed]   window closed 回调
  * @param {Function} [opts.getIsQuitting]
  */
-function createWindowManager(opts = {}) {
+function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager {
   const preloadPath = opts.preloadPath || path.join(__dirname, "..", "..", "dist", "preload.js");
   const indexPath = opts.indexPath || path.join(__dirname, '..', '..', 'index.html');
   const config = opts.config || { check_on_launch: true };
   const getIsQuitting = opts.getIsQuitting || (() => false);
   const onClosed = opts.onClosed || (() => {});
 
-  let mainWindow = null;
+  let mainWindow: BrowserWindowInstance | null = null;
 
   function createWindow() {
     mainWindow = new BrowserWindow({
