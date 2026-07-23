@@ -4,7 +4,10 @@
  * Phase Q5 v1: registry unit tests. Pure node environment, no Electron.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as registry from '../../src/main/timer-registry.ts';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const registry = require('../../src/main/timer-registry.ts');
 
 beforeEach(() => {
   registry.__resetForTest();
