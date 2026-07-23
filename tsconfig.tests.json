@@ -6,6 +6,6 @@
     "types": ["node", "vitest/globals"],
     "strict": false
   },
-  "include": ["src/shared/**/*.d.ts", "tests/**/*.js", "tests/**/*.jsx", "tests/**/*.ts", "tests/**/*.tsx"],
+  "include": ["src/shared/preload-types.ts", "src/shared/window.d.ts", "tests/**/*.js", "tests/**/*.jsx", "tests/**/*.ts", "tests/**/*.tsx"],
   "exclude": ["node_modules", "renderer-dist", "tests/typescript/fixtures/ts-loader-fixture.tsx"]
 }

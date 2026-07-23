@@ -9,7 +9,8 @@
   },
   "include": [
     "preload.ts",
-    "src/shared/**/*.d.ts",
+    "src/shared/preload-types.ts",
+    "src/shared/window.d.ts",
     "src/shared/electron/**/*.d.ts",
     "src/main/**/*.js",
     "src/workers/**/*.js",

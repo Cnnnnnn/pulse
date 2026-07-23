@@ -6,6 +6,6 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "strict": false
   },
-  "include": ["src/shared/**/*.d.ts", "src/renderer/**/*.jsx", "src/renderer/**/*.js", "src/renderer/**/*.tsx", "src/renderer/**/*.ts"],
+  "include": ["src/shared/preload-types.ts", "src/shared/window.d.ts", "src/renderer/**/*.jsx", "src/renderer/**/*.js", "src/renderer/**/*.tsx", "src/renderer/**/*.ts"],
   "exclude": ["node_modules", "renderer-dist"]
 }
