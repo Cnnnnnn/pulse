@@ -47,10 +47,33 @@ describe("fetcher-huggingface: 纯工具函数", () => {
     expect(categoryFromPipelineTag("image-classification")).toBe("image");
     expect(categoryFromPipelineTag("text-to-video")).toBe("video");
     expect(categoryFromPipelineTag("video-classification")).toBe("video");
-    // 缺 / 未知 → 兜底 multimodal（HF 涵盖 CV/audio/tabular 等 10+ 类）
-    expect(categoryFromPipelineTag(null)).toBe("llm");
-    expect(categoryFromPipelineTag("")).toBe("llm");
+    // ponytail: 终极兜底 — 无 pipeline_tag 无 tags → multimodal (不静默归 llm 错)
+    expect(categoryFromPipelineTag(null)).toBe("multimodal");
+    expect(categoryFromPipelineTag("")).toBe("multimodal");
+    // ponytail: reinforcement-learning 走 multimodal (跟之前一致, 是兜底类)
     expect(categoryFromPipelineTag("reinforcement-learning")).toBe("multimodal");
+  });
+
+  it("categoryFromPipelineTag — tags 兜底: (none) pipeline_tag 但 tags 有信息时正确归类 (v2.79.5+ fix)", () => {
+    // ponytail: HF top 200 有 19 条 (none) pipeline_tag, 之前全归 llm 错. 现在按 tags 推断.
+    // 图像: stable-diffusion / diffusion-single-file / comfyui
+    expect(categoryFromPipelineTag(null, ["transformers", "stable-diffusion"])).toBe("image");
+    expect(categoryFromPipelineTag(null, ["comfyui", "diffusion-single-file"])).toBe("image");
+    // 视频: diffusion-single-file + video 信号
+    expect(categoryFromPipelineTag(null, ["diffusion-single-file", "wan", "video"])).toBe("video");
+    // 音频: tts / wav2vec2 / pyannote / vocos / wespeaker / whisper
+    expect(categoryFromPipelineTag(null, ["transformers", "wav2vec2", "speech"])).toBe("multimodal");
+    expect(categoryFromPipelineTag(null, ["pyannote-audio", "pyannote", "audio"])).toBe("multimodal");
+    expect(categoryFromPipelineTag(null, ["transformers", "vocos", "mel"])).toBe("multimodal");
+    // 视觉: ultralytics (yolo) / depth / object-detection
+    expect(categoryFromPipelineTag(null, ["ultralytics", "pytorch", "object-detection"])).toBe("multimodal");
+    expect(categoryFromPipelineTag(null, ["transformers", "depth-estimation", "monocular"])).toBe("multimodal");
+    // 嵌入/LLM: text2text-generation / colbert / electra / t5 / bert
+    expect(categoryFromPipelineTag(null, ["transformers", "t5", "text2text-generation"])).toBe("llm");
+    expect(categoryFromPipelineTag(null, ["transformers", "electra", "pretraining"])).toBe("llm");
+    expect(categoryFromPipelineTag(null, ["transformers", "bert", "ColBERT"])).toBe("llm");
+    // 默认有 transformers tag 但上面没命中 — 大概率 LLM
+    expect(categoryFromPipelineTag(null, ["transformers", "pytorch"])).toBe("llm");
   });
 
   it("summarizeTags — license / base_model / arxiv 提取", () => {

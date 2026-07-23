@@ -142,6 +142,15 @@ export const ModelRow = forwardRef(function ModelRow(
     const hf = m.huggingface || {};
     const downloads = typeof hf.downloads === "number" ? hf.downloads : null;
     const likes = typeof hf.likes === "number" ? hf.likes : null;
+    // ponytail: Library 列 — 库 + 量化标记. HF 数据里 library_name 覆盖广
+    // (transformers/sentence-transformers/timm/diffusers), quantized 来自 base_model:quantized:* tag.
+    const libLabel = hf.libraryName || "—";
+    const libCell = (
+      <td class="ai-lb-td" title={`推理库: ${libLabel}${hf.quantized ? " (量化版: GGUF/AWQ/GPTQ)" : ""}`}>
+        {libLabel}
+        {hf.quantized ? <span class="ai-lb-tag" style={{ marginLeft: "4px" }}>量化</span> : null}
+      </td>
+    );
     return (
       <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
         {checkboxCell}
@@ -156,12 +165,7 @@ export const ModelRow = forwardRef(function ModelRow(
         <td class="ai-lb-td" title={hf.lastModified ? `更新于 ${hf.lastModified}` : "未知更新时间"}>
           {fmtHfDate(hf.lastModified)}
         </td>
-        {num(
-          "context",
-          typeof md.contextLength === "number" ? md.contextLength : null,
-          fmtContext,
-          "上下文窗口（来自 models.dev）",
-        )}
+        {libCell}
       </tr>
     );
   }

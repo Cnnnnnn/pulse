@@ -150,7 +150,9 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
         />
       </tr>
     ) : v === "huggingface" ? (
-      // ponytail: HF 视角 (v2.79.5+) — 主列 Downloads (内联条形), 副 Likes / Pipeline / Last Modified / 上下文.
+      // ponytail: HF 视角 (v2.79.5+) — 主列 Downloads (内联条形), 副 Likes / Pipeline / 最后更新 / Library.
+      // Library 列替换"上下文": HF 数据本身没 context, models.dev 也没收录 HF top 200
+      // (大都是 embedding/ASR/旧模型), 用 libraryName 替代更有信息量.
       <tr>
         <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
         <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
@@ -172,13 +174,7 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
         />
         <th class="ai-lb-th" scope="col" title="HuggingFace Pipeline Tag (text-generation / sentence-similarity 等)">Pipeline</th>
         <th class="ai-lb-th" scope="col" title="HuggingFace 模型最后更新时间">最后更新</th>
-        <SortableTh
-          k="context"
-          label="上下文"
-          active={aKey}
-          dir={dir}
-          title="上下文窗口（models.dev 提供）"
-        />
+        <th class="ai-lb-th" scope="col" title="推理库 (transformers / sentence-transformers / timm / diffusers) + 量化标记 (GGUF/AWQ/GPTQ)">Library</th>
       </tr>
     ) : (
       <tr>

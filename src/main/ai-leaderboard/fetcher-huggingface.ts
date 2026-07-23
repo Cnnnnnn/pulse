@@ -39,31 +39,66 @@ export function num(v: any, d: number = 0): number {
   return Number.isFinite(n) ? n : d;
 }
 
-/** pipeline_tag → CATEGORY_META key（hf 涵盖范围比 models.dev 广, 重点归一）。 */
-export function categoryFromPipelineTag(tag: any): string {
+/**
+ * pipeline_tag + tags 兜底 → CATEGORY_META key (v2.79.5+).
+ *  现状: 19/200 top 模型没 pipeline_tag (仅 tags) — 之前的版本归到 llm 兜底错得离谱
+ *  (electra/t5/colbert 这种 fill-mask/text2text/retrieval 模型被误归 llm, 但 multimodal
+ *  兜底也太宽). 现在分两路: pipeline_tag 优先, 缺时扫 tags 推断.
+ * @param tag pipeline_tag 字符串 (可能 undefined)
+ * @param tags 字符串数组 (HF tags 字段, fallback 推断)
+ * @returns {"llm"|"image"|"video"|"multimodal"} 走 CATEGORY_META 4 个 key
+ */
+export function categoryFromPipelineTag(tag: any, tags: any = []): string {
   const t = String(tag || "").toLowerCase();
-  if (!t) return "llm";
-  if (t.includes("text-to-image") || t === "image-to-image" || t === "image-classification") return "image";
-  if (t.includes("text-to-video") || t === "video-classification") return "video";
-  if (
-    t === "text-generation" ||
-    t === "text2text-generation" ||
-    t === "fill-mask" ||
-    t === "summarization" ||
-    t === "translation" ||
-    t === "conversational" ||
-    t === "feature-extraction" ||
-    t === "sentence-similarity" ||
-    t === "text-classification" ||
-    t === "zero-shot-classification" ||
-    t === "token-classification" ||
-    t === "question-answering" ||
-    t === "table-question-answering" ||
-    t === "text-ranking"
-  ) {
-    return "llm";
+  const ts = Array.isArray(tags) ? tags.filter((x) => typeof x === "string").map((x) => x.toLowerCase()) : [];
+  const has = (needle: string) => ts.some((x) => x === needle || x.includes(needle));
+  // ponytail: 主路径 — pipeline_tag 命中即返回 (与之前完全一致)
+  if (t) {
+    if (t.includes("text-to-image") || t === "image-to-image" || t === "image-classification") return "image";
+    if (t.includes("text-to-video") || t === "video-classification") return "video";
+    if (
+      t === "text-generation" ||
+      t === "text2text-generation" ||
+      t === "fill-mask" ||
+      t === "summarization" ||
+      t === "translation" ||
+      t === "conversational" ||
+      t === "feature-extraction" ||
+      t === "sentence-similarity" ||
+      t === "text-classification" ||
+      t === "zero-shot-classification" ||
+      t === "token-classification" ||
+      t === "question-answering" ||
+      t === "table-question-answering" ||
+      t === "text-ranking"
+    ) {
+      return "llm";
+    }
   }
-  // audio / vision-classification / depth-estimation / object-detection 等暂归 multimodal 兜底
+  // ponytail: tags 兜底 — 19% 的 (none) pipeline_tag 模型按 tags 归类 (实测 19/200 命中)
+  if (ts.length) {
+    // 视频: diffusion-single-file + video 信号 (Wan_2.2 / AnimateDiff)
+    if (has("diffusion-single-file") && (has("video") || has("wan"))) return "video";
+    // 图像: stable-diffusion / diffusion / comfyui 标签
+    if (has("stable-diffusion") || has("diffusion-single-file") || has("comfyui")) return "image";
+    // 音频: tts / asr / pyannote / vocos / wav2vec2 / wespeaker / mel
+    if (
+      has("tts") || has("text-to-speech") || has("pyannote-audio") || has("pyannote") ||
+      has("wav2vec2") || has("wespeaker") || has("vocos") || has("whisper")
+    ) return "multimodal";
+    // 视觉: ultralytics (yolo) / depth / object-detection / focalnet
+    if (has("ultralytics") || has("depth") || has("object-detection") || has("focalnet")) return "multimodal";
+    // 嵌入: sentence-similarity / embedding / 检索 (colbert) — 走 llm bucket (Pulse 没 embedding 桶)
+    if (has("text2text-generation") || has("sentence-similarity") || has("colbert")) return "llm";
+    // masked LM 类: electra / t5 / bert / fill-mask 通常跟 transformers tag 一起出现
+    if (has("electra") || has("t5") || has("bert") || has("fill-mask")) return "llm";
+    // 默认有 "transformers" tag 但上面都没命中 — 大概率是 LLM 类 (HF 平台惯例)
+    if (has("transformers")) return "llm";
+    // ponytail: 知名 LLM 家族 tag 兜底 — Mistral-7B-Instruct 这种没 pipeline_tag
+    // 没 transformers tag 但有 mistral/llama/qwen/gemma 系列名的, 强烈 LLM 信号
+    if (has("mistral") || has("llama") || has("qwen") || has("gemma") || has("deepseek") || has("phi")) return "llm";
+  }
+  // ponytail: 终极兜底 — pipeline_tag 也无, tags 也无, 归 multimodal (不要静默归 llm 错)
   return "multimodal";
 }
 
@@ -184,7 +219,7 @@ export function normalize(raw: any): any[] {
         name: modelName,
         vendor,
         vendorRaw: author,
-        category: categoryFromPipelineTag(m.pipeline_tag),
+        category: categoryFromPipelineTag(m.pipeline_tag, m.tags),
         // ponytail: license 顶层同步 (v2.79.5+ fix) — renderer licenseKind(m.license)
         // 走顶层 license 字段, 不读 m.huggingface.license. 没顶层 license 时 HF 视图
         // 不显示许可徽章 (跟其它 fetcher 走顶层 license 字段的口径一致).
