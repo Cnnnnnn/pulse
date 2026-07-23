@@ -1,6 +1,12 @@
 /**
- * src/main/ipc/index.js — IPC handler 注册入口 (按域拆分).
+ * src/main/ipc/index.ts — IPC handler 注册入口 (按域拆分).
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
 
 const { createIpcContext } = require("./context.ts");
 const { registerCoreHandlers } = require("./register-core.ts");
@@ -41,7 +47,7 @@ const { registerLeaderboardHandlers } = require("./register-leaderboard.ts");
 /**
  * @param {object} deps — 同原 registerIpcHandlers
  */
-function registerIpcHandlers(deps) {
+function registerIpcHandlers(deps: Record<string, unknown>) {
   const ctx = createIpcContext(deps);
   registerCoreHandlers(ctx);
   registerTrayConfigHandlers(ctx); // Phase v1: tray 菜单配置
