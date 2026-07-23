@@ -1,3 +1,5 @@
-// Phase 3 Batch 4 shim: business require "./fund-history-store" 无后缀, shim
-// 跳到 per-file cjs (tests/_setup/build-main-ts.cjs 同步编译).
-module.exports = require("../../../dist-test/main/per-file/funds/fund-history-store.cjs");
+// Phase 3 shim: vitest createRequire → dist-test .cjs; build-main/esbuild → .ts.
+const _fs = require("fs");
+const _path = require("path");
+const _cjs = _path.join(__dirname, "../../../dist-test/main/per-file/funds/fund-history-store.cjs");
+module.exports = _fs.existsSync(_cjs) ? require(_cjs) : require("./fund-history-store.ts");

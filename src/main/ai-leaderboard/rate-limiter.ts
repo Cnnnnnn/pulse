@@ -1,0 +1,123 @@
+/**
+ * src/main/ai-leaderboard/rate-limiter.ts
+ *
+ * 限流层：
+ *   - AA 令牌桶：1000/天（按 UTC 日重置）
+ *   - 通用单飞（single-flight）：避免同 source 并发重复打外部 API
+ *
+ * 纯函数 + 模块级状态，便于单测（resetLimiter 可清状态）。
+ */
+"use strict";
+
+export const AA_DAILY_LIMIT = 1000;
+
+let _aaUsed = 0;
+let _aaDay = _utcDay();
+let _aaLastAcquireAt: string | null = null;
+const _inflight = new Map<string, Promise<any>>(); // source -> Promise（单飞）
+
+export function _utcDay(d?: Date): string {
+  const date = d || new Date();
+  return date.toISOString().slice(0, 10);
+}
+
+export function _resetIfNewDay() {
+  const today = _utcDay();
+  if (today !== _aaDay) {
+    _aaDay = today;
+    _aaUsed = 0;
+    _aaLastAcquireAt = null;
+  }
+}
+
+export function _nextUtcMidnight(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0)).toISOString();
+}
+
+/**
+ * 令牌桶获取（AA 1000/天）。
+ * @param source 'artificial-analysis' | 其它
+ * @returns {boolean} true=放行
+ */
+export function acquire(source: string): boolean {
+  if (source === "artificial-analysis") {
+    _resetIfNewDay();
+    if (_aaUsed >= AA_DAILY_LIMIT) return false;
+    _aaUsed += 1;
+    _aaLastAcquireAt = new Date().toISOString();
+    return true;
+  }
+  return true;
+}
+
+/**
+ * 剩余令牌。
+ * @param source
+ * @returns {number} Infinity 表示不限
+ */
+export function remaining(source: string): number {
+  if (source === "artificial-analysis") {
+    _resetIfNewDay();
+    return Math.max(0, AA_DAILY_LIMIT - _aaUsed);
+  }
+  return Infinity;
+}
+
+export function budget(source: string): any {
+  if (source !== "artificial-analysis") {
+    return {
+      used: 0,
+      limit: Infinity,
+      remaining: Infinity,
+      dayResetsAt: null,
+      lastAcquireAt: null,
+    };
+  }
+
+  _resetIfNewDay();
+  return {
+    used: _aaUsed,
+    limit: AA_DAILY_LIMIT,
+    remaining: Math.max(0, AA_DAILY_LIMIT - _aaUsed),
+    dayResetsAt: _nextUtcMidnight(),
+    lastAcquireAt: _aaLastAcquireAt,
+  };
+}
+
+/**
+ * 单飞包装：同一 source 并发只跑一次底层 fn。
+ * @param source
+ * @param fn
+ * @returns {Promise<any>}
+ */
+export async function singleFlight<T = any>(source: string, fn: () => Promise<T>): Promise<T> {
+  const existing = _inflight.get(source);
+  if (existing) return existing as Promise<T>;
+  const p = (async () => {
+    try {
+      return await fn();
+    } finally {
+      _inflight.delete(source);
+    }
+  })();
+  _inflight.set(source, p);
+  return p;
+}
+
+/** 测试用：清状态。 */
+export function resetLimiter() {
+  _aaUsed = 0;
+  _aaDay = _utcDay();
+  _aaLastAcquireAt = null;
+  _inflight.clear();
+}
+
+module.exports = {
+  AA_DAILY_LIMIT,
+  acquire,
+  remaining,
+  budget,
+  singleFlight,
+  resetLimiter,
+};
