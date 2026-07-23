@@ -80,8 +80,8 @@ function freshRegister() {
     exports: stateStoreStub,
   };
   // 重置 register-core 模块缓存, 让它 fresh require
-  delete require.cache[require.resolve("../../src/main/ipc/register-core.js")];
-  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.js"));
+  delete require.cache[require.resolve("../../src/main/ipc/register-core.ts")];
+  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.ts"));
   // 传 ctx with safeHandle (since register-core reads safeHandle from ctx, not electron)
   const mockSafeHandle = vi.fn((name, fn) => handlers.set(name, fn));
   registerCoreHandlers({ safeHandle: mockSafeHandle });

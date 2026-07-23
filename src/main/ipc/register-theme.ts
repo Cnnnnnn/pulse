@@ -11,7 +11,13 @@
  *       启动时 renderer 主动拉 theme:get → 主进程返回默认值 'system',
  *       renderer 用 localStorage 覆盖 apply, 再 IPC theme:set 同步给主进程.
  */
-const { ipcMain, nativeTheme } = require("electron");
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type { IpcMain, NativeTheme } from "electron";
+const { ipcMain, nativeTheme }: { ipcMain: IpcMain; nativeTheme: NativeTheme } = require("electron");
 const { mainLog } = require("../log.ts");
 
 const VALID = ["system", "light", "dark"];

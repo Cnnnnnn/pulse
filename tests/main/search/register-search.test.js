@@ -3,7 +3,7 @@
  * A3: IPC 薄包装测试
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { registerSearchIpc } from '../../../src/main/ipc/register-search.js';
+import { registerSearchIpc } from '../../../src/main/ipc/register-search.ts';
 
 describe('register-search IPC', () => {
   let ipcMain;

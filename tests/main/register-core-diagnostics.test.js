@@ -65,7 +65,7 @@ function setup() {
   diag = require("../../src/main/diagnostics.ts");
   diagAgg = require("../../src/main/diagnostics-aggregator.js");
   errorInit = require("../../src/main/bootstrap/error-init.js");
-  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.js"));
+  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.ts"));
   ({ bundleDiagnostics } = require("../../src/main/diagnostics-aggregator.js"));
 
   diag._resetForTest();

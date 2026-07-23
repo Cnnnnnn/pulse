@@ -39,7 +39,7 @@ function setup(getCachedState) {
   freshModule();
   tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-c7-ipc-"));
   detectExport = require("../../src/main/detect-results-export.js");
-  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.js"));
+  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.ts"));
 
   registerCoreHandlers({
     getConfig: () => ({ apps: [] }),

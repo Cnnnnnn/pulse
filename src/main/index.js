@@ -43,7 +43,7 @@ const { createWindowManager } = require("./window.ts");
 const { createTrayManager } = require("./tray.ts");
 const { registerIpcHandlers } = require("./ipc");
 const { createSearchIndex } = require("./search/search-index");
-const { registerSearchIpc } = require("./ipc/register-search");
+const { registerSearchIpc } = require("./ipc/register-search.ts");
 const { startDailySummaryJob } = require("./digest/daily-summary-job");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
 const {

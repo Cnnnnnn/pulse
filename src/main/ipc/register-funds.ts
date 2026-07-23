@@ -1,4 +1,9 @@
-const { ipcMain } = require("electron");
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type { IpcMain } from "electron";
+const { ipcMain }: { ipcMain: IpcMain } = require("electron");
 const { HttpClient } = require("../http-client.ts");
 const fundStore = require("../funds/fund-store");
 const fundHistoryStore = require("../funds/fund-history-store");

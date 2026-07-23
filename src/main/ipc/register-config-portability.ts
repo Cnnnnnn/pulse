@@ -10,9 +10,17 @@
  * 直接 patchState 写整个 funds 对象, 保证完整恢复 (含 dailySnapshots/navSource 等).
  * reminders 同理走 patchState, 绕开 reminders.js 的 raw writeAtomic 竞态.
  */
-const os = require("os");
-const path = require("path");
-const fs = require("fs");
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type * as OsType from "node:os";
+import type * as PathType from "node:path";
+import type * as FsType from "node:fs";
+const os: typeof OsType = require("os");
+const path: typeof PathType = require("path");
+const fs: typeof FsType = require("fs");
 const stateStore = require("../state-store.ts");
 const {
   serializeConfig,

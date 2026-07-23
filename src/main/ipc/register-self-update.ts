@@ -9,6 +9,12 @@
  *   self-update:check      → { ok, reason? }
  *   self-update:install    → { ok }  // quitAndInstall
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
 function registerSelfUpdateHandlers(ctx) {
   const { safeHandle, controller } = ctx || {};
   if (typeof safeHandle !== "function") return;

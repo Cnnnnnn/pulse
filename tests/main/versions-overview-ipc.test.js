@@ -13,7 +13,7 @@ const require = createRequire(import.meta.url);
 
 const checkRunnerPath = require.resolve("../../src/main/check-runner.js");
 const registerPath =
-  require.resolve("../../src/main/ipc/register-versions-overview.js");
+  require.resolve("../../src/main/ipc/register-versions-overview.ts");
 
 const stubRunCheckQueued = vi.fn(async () => []);
 

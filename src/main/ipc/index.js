@@ -2,39 +2,39 @@
  * src/main/ipc/index.js — IPC handler 注册入口 (按域拆分).
  */
 
-const { createIpcContext } = require("./context");
-const { registerCoreHandlers } = require("./register-core");
-const { registerTrayConfigHandlers } = require("./register-tray-config");
-const { registerOpenUrlHandlers } = require("./register-open-url");
+const { createIpcContext } = require("./context.ts");
+const { registerCoreHandlers } = require("./register-core.ts");
+const { registerTrayConfigHandlers } = require("./register-tray-config.ts");
+const { registerOpenUrlHandlers } = require("./register-open-url.ts");
 const {
   registerRemindersRecentHandlers,
-} = require("./register-reminders-recent");
+} = require("./register-reminders-recent.ts");
 const { registerAiHandlers } = require("./register-ai");
 const { registerGithubHandlers } = require("./register-github");
 const { registerAiUsageHandlers } = require("./register-ai-usage");
 const { registerWorldcupHandlers } = require("./register-worldcup");
 const { registerIthomeHandlers } = require("./register-ithome");
 const { registerIthomeShareHandlers } = require("./register-ithome-share");
-const { registerFundsHandlers } = require("./register-funds");
+const { registerFundsHandlers } = require("./register-funds.ts");
 const { registerWechatHotHandlers } = require("./register-wechat-hot");
-const { registerAiPromptsHandlers } = require("./register-ai-prompts");
-const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice");
+const { registerAiPromptsHandlers } = require("./register-ai-prompts.ts");
+const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice.ts");
 const {
   registerChangelogSummaryHandlers,
-} = require("./register-changelog-summary");
-const { registerAiFeedbackHandlers } = require("./register-ai-feedback");
-const { registerTokenBudgetHandlers } = require("./register-token-budget");
-const { registerSelfUpdateHandlers } = require("./register-self-update");
+} = require("./register-changelog-summary.ts");
+const { registerAiFeedbackHandlers } = require("./register-ai-feedback.ts");
+const { registerTokenBudgetHandlers } = require("./register-token-budget.ts");
+const { registerSelfUpdateHandlers } = require("./register-self-update.ts");
 const {
   registerConfigPortabilityHandlers,
-} = require("./register-config-portability");
+} = require("./register-config-portability.ts");
 const { registerStocksHandlers } = require("./register-stocks");
 const { registerStockDetailHandlers } = require("./register-stock-detail");
 const { registerStockExportHandlers } = require("./register-stock-export");
 const {
   registerVersionsOverviewHandlers,
-} = require("./register-versions-overview");
-const { registerThemeHandlers } = require("./register-theme");
+} = require("./register-versions-overview.ts");
+const { registerThemeHandlers } = require("./register-theme.ts");
 const { registerGamesHandlers } = require("./register-games");
 const { registerLeaderboardHandlers } = require("./register-leaderboard");
 

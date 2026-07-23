@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const registerPath = require.resolve(
-  "../../src/main/ipc/register-self-update.js",
+  "../../src/main/ipc/register-self-update.ts",
 );
 
 function loadHandlers(controller, safeHandle) {

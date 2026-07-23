@@ -1,7 +1,7 @@
 /**
  * tests/main/ipc/register-open-url.test.js
  *
- * IPC contract for register-open-url.js:
+ * IPC contract for register-open-url.ts:
  *   - registers open-url:open channel via ctx.safeHandle
  *   - opens valid http/https URLs through shell.openExternal → { ok: true }
  *   - rejects unsafe / malformed URLs → { ok: false, reason: "unsafe_url" }
@@ -27,7 +27,7 @@ const mainLogEvent = vi.fn();
 
 const electronPath = require.resolve("electron");
 const logPath = require.resolve("../../../src/main/log.ts");
-const registerPath = require.resolve("../../../src/main/ipc/register-open-url.js");
+const registerPath = require.resolve("../../../src/main/ipc/register-open-url.ts");
 
 let registerMod;
 

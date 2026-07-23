@@ -10,7 +10,7 @@ import * as path from "node:path";
 
 const stateStorePath = require.resolve("../../src/main/state-store.ts");
 const registerPath = require.resolve(
-  "../../src/main/ipc/register-config-portability.js",
+  "../../src/main/ipc/register-config-portability.ts",
 );
 
 const load = vi.fn(() => null);

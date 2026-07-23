@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const stateStorePath = require.resolve("../../src/main/state-store.ts");
 const registerPath = require.resolve(
-  "../../src/main/ipc/register-token-budget.js",
+  "../../src/main/ipc/register-token-budget.ts",
 );
 
 const loadTokenBudgetConfig = vi.fn(() => ({ dailyLimit: 0, mode: "warn" }));

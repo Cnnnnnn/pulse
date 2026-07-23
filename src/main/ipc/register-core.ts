@@ -1,4 +1,9 @@
-const { ipcMain } = require("electron");
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type { IpcMain } from "electron";
+const { ipcMain }: { ipcMain: IpcMain } = require("electron");
 const { runCheckQueued } = require("../check-runner");
 const { buildRunCheckDeps } = require("../run-check-deps");
 const { runBulkUpgrade } = require("../bulk-upgrade");
@@ -611,7 +616,7 @@ function registerCoreHandlers(ctx) {
       if (list.some((w) => w.type === type && w.ref === ref)) {
         return { ok: true, items: list };
       }
-      const entry = { type, ref, addedAt: Date.now() };
+      const entry: Record<string, unknown> = { type, ref, addedAt: Date.now() };
       if (type === "app") entry.lastNotifiedVersion = null;
       if (type === "fund") entry.lastNotifiedNav = null;
       if (type === "keyword") entry.lastMatchKey = null;

@@ -8,7 +8,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const advicePath = require.resolve("../../src/ai/upgrade-advice.js");
 const registerPath =
-  require.resolve("../../src/main/ipc/register-upgrade-advice.js");
+  require.resolve("../../src/main/ipc/register-upgrade-advice.ts");
 
 const fetchUpgradeAdvice = vi.fn();
 

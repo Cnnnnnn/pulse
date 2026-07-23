@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const stateStorePath = require.resolve("../../src/main/state-store.ts");
 const registerPath = require.resolve(
-  "../../src/main/ipc/register-ai-feedback.js",
+  "../../src/main/ipc/register-ai-feedback.ts",
 );
 
 const loadAiFeedback = vi.fn(() => []);

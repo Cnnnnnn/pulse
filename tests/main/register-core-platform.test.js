@@ -11,7 +11,7 @@ import { join } from 'path';
 describe('register-core uses platform layer', () => {
   it('源码 require platform 层', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/main/ipc/register-core.js'),
+      join(__dirname, '../../src/main/ipc/register-core.ts'),
       'utf-8',
     );
     expect(src).toContain('require("../../platform")');
@@ -19,7 +19,7 @@ describe('register-core uses platform layer', () => {
 
   it('get-app-icon handler 调 platform.getAppIcon (不再直接 require app-icon)', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/main/ipc/register-core.js'),
+      join(__dirname, '../../src/main/ipc/register-core.ts'),
       'utf-8',
     );
     expect(src).toContain('platform.getAppIcon');
@@ -29,7 +29,7 @@ describe('register-core uses platform layer', () => {
 
   it('refresh-last-opened handler body 调 platform.resolveAppPath', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/main/ipc/register-core.js'),
+      join(__dirname, '../../src/main/ipc/register-core.ts'),
       'utf-8',
     );
     expect(src).toContain('platform.resolveAppPath');
