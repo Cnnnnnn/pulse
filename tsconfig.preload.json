@@ -6,6 +6,6 @@
     "types": ["node", "electron"],
     "noImplicitAny": true
   },
-  "include": ["preload.ts", "src/shared/**/*.ts", "src/shared/**/*.d.ts"],
+  "include": ["preload.ts", "src/shared/window.d.ts", "src/shared/preload-types.ts"],
   "exclude": ["node_modules", "dist", "renderer-dist"]
 }

@@ -7,6 +7,13 @@
     "strict": false,
     "allowJs": true
   },
-  "include": ["preload.ts", "src/shared/**/*.d.ts", "src/main/**/*.js", "src/workers/**/*.js", "src/**/*.js"],
+  "include": [
+    "preload.ts",
+    "src/shared/**/*.d.ts",
+    "src/shared/electron/**/*.d.ts",
+    "src/main/**/*.js",
+    "src/workers/**/*.js",
+    "src/**/*.js"
+  ],
   "exclude": ["node_modules", "renderer-dist", "tests"]
 }
