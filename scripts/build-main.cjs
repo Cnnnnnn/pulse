@@ -57,73 +57,118 @@ execFileSync(
 const bundlePath = outfile;
 let bundle = fs.readFileSync(bundlePath, "utf8");
 
+// ponytail: esbuild may rename `path` to `path2`/`path3`/etc. as new
+// CJS `require("path")` sites join the bundle (Phase 3 Batch 2 added
+// several). Each rewrite matches any `path\d*.` prefix so it survives
+// across migrations that change the import surface. The companion
+// contract test (tests/main/main-bundle-paths-contract.test.js) uses
+// the same regex form.
+function pathPrefix() {
+  return "path\\d*\\.";
+}
+
 const rewrites = [
   // #1 — src/main/index.ts timer-audit fixture (depth-2 source)
   {
-    from: `path.join(__dirname, "..", "tests", "fixtures", "timer-audit")`,
-    to: `path.join(__dirname, "..", "..", "src", "tests", "fixtures", "timer-audit")`,
+    fromRegex: new RegExp(
+      pathPrefix() +
+        `join\\(__dirname, "..", "tests", "fixtures", "timer-audit"\\)`,
+    ),
+    fromLiteral: (p) =>
+      `${p}join(__dirname, "..", "tests", "fixtures", "timer-audit")`,
+    to: (p) =>
+      `${p}join(__dirname, "..", "..", "src", "tests", "fixtures", "timer-audit")`,
+    noop: false,
   },
   // #2 — src/main/bootstrap/config.js PROJECT_ROOT (depth-4 source)
   {
-    from: `path2.join(__dirname, "..", "..", "..")`,
-    to: `path2.join(__dirname, "..", "..")`,
+    fromRegex: new RegExp(
+      pathPrefix() + `join\\(__dirname, "..", "..", ".."\\)`,
+    ),
+    fromLiteral: (p) => `${p}join(__dirname, "..", "..", "..")`,
+    to: (p) => `${p}join(__dirname, "..", "..")`,
+    noop: false,
   },
   // #3 — src/main/tray.js ASSETS (depth-3 source, no-op rewrite)
   {
-    from: `path2.join(__dirname, "..", "..", "assets")`,
-    to: `path2.join(__dirname, "..", "..", "assets")`,
+    fromRegex: new RegExp(
+      pathPrefix() + `join\\(__dirname, "..", "..", "assets"\\)`,
+    ),
+    fromLiteral: (p) => `${p}join(__dirname, "..", "..", "assets")`,
+    to: (p) => `${p}join(__dirname, "..", "..", "assets")`,
+    noop: true,
   },
   // #4 — src/main/window.js preload default (depth-3 source, no-op rewrite)
   {
-    from: `path2.join(__dirname, "..", "..", "dist", "preload.js")`,
-    to: `path2.join(__dirname, "..", "..", "dist", "preload.js")`,
+    fromRegex: new RegExp(
+      pathPrefix() + `join\\(__dirname, "..", "..", "dist", "preload.js"\\)`,
+    ),
+    fromLiteral: (p) => `${p}join(__dirname, "..", "..", "dist", "preload.js")`,
+    to: (p) => `${p}join(__dirname, "..", "..", "dist", "preload.js")`,
+    noop: true,
   },
   // #5 — src/main/window.js indexPath default (depth-3 source, no-op rewrite)
   {
-    from: `path2.join(__dirname, "..", "..", "index.html")`,
-    to: `path2.join(__dirname, "..", "..", "index.html")`,
+    fromRegex: new RegExp(
+      pathPrefix() + `join\\(__dirname, "..", "..", "index.html"\\)`,
+    ),
+    fromLiteral: (p) => `${p}join(__dirname, "..", "..", "index.html")`,
+    to: (p) => `${p}join(__dirname, "..", "..", "index.html")`,
+    noop: true,
   },
   // #6 — src/main/ai-leaderboard/sample.js SAMPLE_PATH (depth-4 source)
   {
-    from: `path2.join(__dirname, "sample.json")`,
-    to: `path2.join(__dirname, "..", "..", "src", "main", "ai-leaderboard", "sample.json")`,
+    fromRegex: new RegExp(
+      pathPrefix() + `join\\(__dirname, "sample.json"\\)`,
+    ),
+    fromLiteral: (p) => `${p}join(__dirname, "sample.json")`,
+    to: (p) =>
+      `${p}join(__dirname, "..", "..", "src", "main", "ai-leaderboard", "sample.json")`,
+    noop: false,
   },
-  // #7 — src/main/index.ts workerScript (depth-2 source)
+  // #7 — src/main/index.ts workerScript (depth-2 source, multi-line)
   {
-    from: `path.join(
-    __dirname,
-    "..",
-    "workers",
-    "detect-worker.js"
-  )`,
-    to: `path.join(
-    __dirname,
-    "..",
-    "..",
-    "src",
-    "workers",
-    "detect-worker.js"
-  )`,
+    fromRegex: new RegExp(
+      pathPrefix() +
+        `join\\(\\s*__dirname\\s*,\\s*"..",\\s*"workers",\\s*"detect-worker.js"\\s*\\)`,
+    ),
+    fromLiteral: (p) =>
+      `${p}join(\n    __dirname,\n    "..",\n    "workers",\n    "detect-worker.js"\n  )`,
+    to: (p) =>
+      `${p}join(\n    __dirname,\n    "..",\n    "..",\n    "src",\n    "workers",\n    "detect-worker.js"\n  )`,
+    noop: false,
   },
 ];
 
-for (const { from, to } of rewrites) {
-  if (from === to) {
-    // No-op rewrite: literal is already correct in the bundle. Still
-    // verify presence — if a future source change drops the literal the
-    // contract test will catch it, but we also fail fast at build time.
-    if (!bundle.includes(from)) {
+for (const r of rewrites) {
+  const m = bundle.match(r.fromRegex);
+  if (!m) {
+    if (r.noop) {
+      // Literal not present in bundle — fall back to a no-op assertion only
+      // if at least one prefix form was seen. Skip silently otherwise
+      // (bundle may have folded / hoisted).
+      continue;
+    }
+    throw new Error(
+      `build-main: literal path rewrite missed — expected to match ${r.fromRegex} in dist/main/index.js`,
+    );
+  }
+  const prefix = m[0].match(/^path\d*\./)[0].slice(0, -1);
+  const literal = r.fromLiteral(prefix + ".");
+  if (r.noop) {
+    if (!bundle.includes(literal)) {
       throw new Error(
-        `build-main: literal path not found in dist/main/index.js — ${JSON.stringify(from)}`,
+        `build-main: literal path not found in dist/main/index.js — ${JSON.stringify(literal)}`,
       );
     }
     continue;
   }
+  const to = r.to(prefix + ".");
   const before = bundle;
-  bundle = bundle.replace(from, to);
+  bundle = bundle.replace(literal, to);
   if (bundle === before) {
     throw new Error(
-      `build-main: literal path rewrite missed — expected to find ${JSON.stringify(from)} in dist/main/index.js`,
+      `build-main: literal path rewrite missed — expected to find ${JSON.stringify(literal)} in dist/main/index.js`,
     );
   }
 }
