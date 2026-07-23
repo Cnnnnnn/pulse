@@ -185,6 +185,10 @@ export function normalize(raw: any): any[] {
         vendor,
         vendorRaw: author,
         category: categoryFromPipelineTag(m.pipeline_tag),
+        // ponytail: license 顶层同步 (v2.79.5+ fix) — renderer licenseKind(m.license)
+        // 走顶层 license 字段, 不读 m.huggingface.license. 没顶层 license 时 HF 视图
+        // 不显示许可徽章 (跟其它 fetcher 走顶层 license 字段的口径一致).
+        license: tagSummary.license,
         huggingface: {
           downloads: num(m.downloads),
           likes: num(m.likes),
