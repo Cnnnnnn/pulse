@@ -9,7 +9,7 @@
 
 import { forwardRef } from "preact/compat";
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, licenseKind, licenseShort } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, fmtTrending, computeTrendingScore, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare, openModelDetail } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.jsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
@@ -138,10 +138,12 @@ export const ModelRow = forwardRef(function ModelRow(
   }
 
   // ponytail: HF 视角 (v2.79.5+) — 走 huggingface 切片, 主列 Downloads 内联条形.
+  // v2.79.6+: 加 Trending 列 (computeTrendingScore 客户端算, 老模型 > 365 天返回 null).
   if (view === "huggingface") {
     const hf = m.huggingface || {};
     const downloads = typeof hf.downloads === "number" ? hf.downloads : null;
     const likes = typeof hf.likes === "number" ? hf.likes : null;
+    const trending = computeTrendingScore(hf.downloads, hf.lastModified, hf.createdAt);
     // ponytail: Library 列 — 库 + 量化标记. HF 数据里 library_name 覆盖广
     // (transformers/sentence-transformers/timm/diffusers), quantized 来自 base_model:quantized:* tag.
     const libLabel = hf.libraryName || "—";
@@ -158,6 +160,7 @@ export const ModelRow = forwardRef(function ModelRow(
         {modelCell}
         {vendorCell}
         {num("hf_downloads", downloads, fmtDownloads, "HuggingFace 累计下载量（按 downloads 降序）")}
+        {num("hf_trending", trending, fmtTrending, "HF 趋势分数 = log10(downloads+1) / log10(age_days+2) — 新发布爆款优先")}
         {num("hf_likes", likes, fmtVotes, "HuggingFace 点赞数（社区认可）")}
         <td class="ai-lb-td" title={hf.pipelineTag ? `Pipeline: ${hf.pipelineTag}` : "未知 pipeline"}>
           {hf.pipelineTag || "—"}

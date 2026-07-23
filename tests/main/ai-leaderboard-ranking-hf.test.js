@@ -106,7 +106,78 @@ describe("ranking: HF 维度 (v2.79.5+)", () => {
     const meta = require("../../src/main/ai-leaderboard/types").DIMENSION_META;
     expect(meta.hf_downloads).toBeDefined();
     expect(meta.hf_likes).toBeDefined();
+    expect(meta.hf_trending).toBeDefined(); // v2.79.6+
     expect(meta.hf_downloads.field).toBe("huggingface");
     expect(meta.hf_likes.field).toBe("huggingface");
+    expect(meta.hf_trending.field).toBe("huggingface");
+  });
+});
+
+describe("ranking: HF Trending 维度 (v2.79.6+)", () => {
+  // ponytail: hf_trending 走 special case (在 hf_* 通用分支之前), 调 fetcher.computeTrendingScore.
+  // 公式: log10(dl+1) / log10(age_days+2). 守卫 dl>=1000 && age<=365.
+  // 关键场景: 新发布爆款排前, 老累计王排末 (因为 age>365 → null → -Infinity).
+  const NOW = new Date("2026-07-23T00:00:00Z").getTime();
+  const day = (n) => new Date(NOW - n * 86_400_000).toISOString();
+
+  function makeHFWithDates(name, vendor, downloads, likes, lastModified, createdAt) {
+    return toAiModel({
+      id: `${vendor}-${name}`,
+      name,
+      vendor,
+      category: "llm",
+      huggingface: { downloads, likes, lastModified, createdAt },
+    });
+  }
+
+  it("sortValue: hf_trending 调 computeTrendingScore (新发布爆款 > 老累计王)", () => {
+    const fresh = makeHFWithDates("Qwen3-8B", "qwen", 28_000_000, 1200, day(8), null);
+    const old = makeHFWithDates("MiniLM", "other", 254_000_000, 5000, day(934), null);
+    const freshTs = sortValue(fresh, "hf_trending", "text");
+    const oldTs = sortValue(old, "hf_trending", "text");
+    // 新发布应该分数高 (尽管 downloads 少 9 倍)
+    expect(freshTs).toBeGreaterThan(oldTs);
+    expect(oldTs).toBe(-Infinity); // age > 365 → null
+  });
+
+  it("sortValue: hf_trending 缺 HF 切片 → -Infinity", () => {
+    const noHF = toAiModel({ id: "x", name: "X", vendor: "openai", category: "llm" });
+    expect(sortValue(noHF, "hf_trending", "text")).toBe(-Infinity);
+  });
+
+  it("sortValue: hf_trending 缺时间锚点 (lastModified/createdAt 都 null) → -Infinity", () => {
+    const noDate = toAiModel({
+      id: "y",
+      name: "Y",
+      vendor: "openai",
+      category: "llm",
+      huggingface: { downloads: 5000000, likes: 100 }, // 无日期
+    });
+    expect(sortValue(noDate, "hf_trending", "text")).toBe(-Infinity);
+    // 同样不影响 hf_downloads / hf_likes 排序 (走 hf_* 通用分支, 仍能拿到 dl/likes)
+    expect(sortValue(noDate, "hf_downloads", "text")).toBe(5000000);
+  });
+
+  it("sortValue: hf_trending dl < 1000 → -Infinity (新发布小模型不刷榜)", () => {
+    const tiny = toAiModel({
+      id: "z",
+      name: "Z",
+      vendor: "openai",
+      category: "llm",
+      huggingface: { downloads: 500, likes: 5, lastModified: day(2) },
+    });
+    expect(sortValue(tiny, "hf_trending", "text")).toBe(-Infinity);
+  });
+
+  it("sortModels: hf_trending 降序 — 新发布爆款在前, 老累计王在末", () => {
+    const items = [
+      makeHFWithDates("Old", "other", 254_000_000, 5000, day(934), null), // null
+      makeHFWithDates("Fresh", "qwen", 28_000_000, 1200, day(8), null),   // 高分
+      makeHFWithDates("Mid", "google", 50_000_000, 800, day(60), null),    // 中分
+    ];
+    const sorted = sortModels(items, "hf_trending", "desc", "llm");
+    expect(sorted[0].name).toBe("Fresh");
+    expect(sorted[1].name).toBe("Mid");
+    expect(sorted[2].name).toBe("Old"); // age > 365 → 末尾
   });
 });

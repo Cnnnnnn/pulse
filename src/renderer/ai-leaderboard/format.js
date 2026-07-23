@@ -5,7 +5,7 @@
  * v3.0: 适配双视角结构，primaryValue 使用 CATEGORY_BOARD 映射。
  */
 
-import { VENDOR_META, CATEGORY_BOARD } from "./types.js";
+import { VENDOR_META, CATEGORY_BOARD, DIMENSION_META } from "./types.js";
 
 /** ELO 分数：取整。 */
 export function fmtScore(v) {
@@ -122,6 +122,38 @@ export function fmtHfDate(iso) {
 }
 
 /**
+ * ponytail: HF Trending 分数 (v2.79.6+) — renderer 副本 (跟 main 端 fetcher-huggingface.ts
+ *  computeTrendingScore 公式一致, 不能跨进程 require). 公式: log10(dl+1) / log10(age+2).
+ *  守卫: dl < 1000 / 无时间锚点 / age 越界 → null.
+ * @param {number|null|undefined} downloads
+ * @param {string|null|undefined} lastModified
+ * @param {string|null|undefined} createdAt
+ * @param {number} [now] epoch ms
+ * @returns {number|null}
+ */
+export function computeTrendingScore(downloads, lastModified, createdAt, now) {
+  const dl = Number(downloads);
+  if (!Number.isFinite(dl) || dl < 1000) return null;
+  const refNow = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
+  const dateStr =
+    typeof lastModified === "string" && lastModified ? lastModified
+      : typeof createdAt === "string" && createdAt ? createdAt
+        : null;
+  if (!dateStr) return null;
+  const t = Date.parse(dateStr);
+  if (!Number.isFinite(t)) return null;
+  const ageDays = (refNow - t) / 86_400_000;
+  if (ageDays <= 0 || ageDays > 365) return null;
+  return Math.log10(dl + 1) / Math.log10(ageDays + 2);
+}
+
+/** ponytail: Trending 分数紧凑显示 (v2.79.6+) — 7.45 → "7.45", null → "—". */
+export function fmtTrending(v) {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  return Number(v).toFixed(2);
+}
+
+/**
  * 许可分类：open（开源权重）/ proprietary（闭源）/ unknown。
  * 仅基于 license 字符串关键词粗判，用于"仅开源权重"筛选与徽章着色。
  */
@@ -157,8 +189,7 @@ export function primaryValue(model, dimension, category) {
   if (typeof dimension === "string" && dimension.startsWith("lb_")) {
     const lb = model && model.livebench;
     if (!lb) return null;
-    const meta = (require("./types.js")).DIMENSION_META &&
-      (require("./types.js")).DIMENSION_META[dimension];
+    const meta = DIMENSION_META && DIMENSION_META[dimension];
     const key = meta && meta.sortKey;
     if (!key) return null;
     const v = key.includes(".")
@@ -166,12 +197,19 @@ export function primaryValue(model, dimension, category) {
       : lb[key];
     return typeof v === "number" && Number.isFinite(v) ? v : null;
   }
+  // ponytail: hf_trending 走 special case (v2.79.6+) — m.huggingface 没 trendingScore 字段,
+  // 实时调 computeTrendingScore. 必须在 hf_* 通用分支之前, 否则会读 hf["trendingScore"]=undefined.
+  if (dimension === "hf_trending") {
+    const hf = model && model.huggingface;
+    if (!hf) return null;
+    const ts = computeTrendingScore(hf.downloads, hf.lastModified, hf.createdAt);
+    return typeof ts === "number" && Number.isFinite(ts) ? ts : null;
+  }
   // ponytail: hf_* 维度 (v2.79.5+) — 走 huggingface 切片, sortKey 直接读 downloads/likes.
   if (typeof dimension === "string" && dimension.startsWith("hf_")) {
     const hf = model && model.huggingface;
     if (!hf) return null;
-    const meta = (require("./types.js")).DIMENSION_META &&
-      (require("./types.js")).DIMENSION_META[dimension];
+    const meta = DIMENSION_META && DIMENSION_META[dimension];
     const key = meta && meta.sortKey;
     if (!key) return null;
     const v = hf[key];
@@ -207,6 +245,8 @@ export function formatPrimary(value, dimension) {
   if (dimension === "price") return fmtPricePer1M(value);
   if (dimension === "speed") return fmtSpeed(value);
   if (typeof dimension === "string" && dimension.startsWith("lb_")) return fmtLivebench(value);
+  // ponytail: hf_trending (v2.79.6+) — 走 fmtTrending (2 位小数)
+  if (dimension === "hf_trending") return fmtTrending(value);
   // ponytail: hf_* 维度 (v2.79.5+) — 走 fmtVotes 紧凑格式 (254M → "254.0M")
   if (typeof dimension === "string" && dimension.startsWith("hf_")) return fmtDownloads(value);
   return fmtIndex(value);

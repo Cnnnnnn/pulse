@@ -82,6 +82,7 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
 
   // 当前驱动排序/强调的主列：列头点选优先，否则走视角主维度。
   // ponytail: HF 视角 (v2.79.5+) — 主维度走 hf_downloads (renderer store 端 activeDim 兜底 "hf_downloads").
+  // v2.79.6+: hf_trending 不在这里走 (列头点选 sortKey 走它, store 端 columnValue 会调 computeTrendingScore).
   const primaryKey =
     sortKey.value ||
     (v === "arena"
@@ -150,9 +151,10 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
         />
       </tr>
     ) : v === "huggingface" ? (
-      // ponytail: HF 视角 (v2.79.5+) — 主列 Downloads (内联条形), 副 Likes / Pipeline / 最后更新 / Library.
+      // ponytail: HF 视角 (v2.79.5+) — 主列 Downloads (内联条形), 副 Trending / Likes / Pipeline / 最后更新 / Library.
       // Library 列替换"上下文": HF 数据本身没 context, models.dev 也没收录 HF top 200
       // (大都是 embedding/ASR/旧模型), 用 libraryName 替代更有信息量.
+      // v2.79.6+: Trending 列加在 Downloads 和 Likes 之间 — log10(dl)/log10(age+2) 客户端算分, 新发布爆款优先.
       <tr>
         <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
         <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
@@ -164,6 +166,13 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
           active={aKey}
           dir={dir}
           title="HuggingFace Hub 累计下载量（按下载量降序排列 top 5000）"
+        />
+        <SortableTh
+          k="hf_trending"
+          label="Trending"
+          active={aKey}
+          dir={dir}
+          title="HF 趋势分数 = log10(downloads+1) / log10(age_days+2) — 兼顾下载量 + 新近度, 新发布爆款会排前"
         />
         <SortableTh
           k="hf_likes"

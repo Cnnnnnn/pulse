@@ -18,6 +18,25 @@ export const SOURCE = { LIVE: "live", SAMPLE: "sample", NONE: "none" };
 
 /* ── 双视角定义 ── */
 
+/* ── 维度 meta (主进程 types.ts DIMENSION_META 镜像, v2.79.6+ 补 hf_trending) ──
+ * 单一真源在 main 端 types.ts; 这里镜像一份给 renderer format.js 顶部 import
+ * (旧 require 懒加载在 vitest ESM 下炸, 见 format.js 改动). */
+export const DIMENSION_META = {
+  elo: { label: "Arena ELO", field: "arena", sortKey: "score" },
+  intelligence: { label: "Intelligence Index", field: "aa", sortKey: "intelligenceIndex" },
+  coding: { label: "Coding Index", field: "aa", sortKey: "codingIndex" },
+  agentic: { label: "Agentic Coding", field: "aa", sortKey: "agenticIndex" },
+  speed: { label: "Output Speed (tok/s)", field: "aa", sortKey: "outputTokensPerSec" },
+  price: { label: "Output Price ($/1M)", field: "aa", sortKey: "priceOutputPer1M" },
+  lb_overall: { label: "LiveBench Overall", field: "livebench", sortKey: "overall" },
+  lb_coding: { label: "LiveBench Coding", field: "livebench", sortKey: "byCategory.Coding" },
+  lb_language: { label: "LiveBench Language", field: "livebench", sortKey: "byCategory.Language" },
+  lb_instfollow: { label: "LiveBench Instruction Following", field: "livebench", sortKey: "byCategory.IF" },
+  hf_downloads: { label: "HuggingFace Downloads", field: "huggingface", sortKey: "downloads" },
+  hf_likes: { label: "HuggingFace Likes", field: "huggingface", sortKey: "likes" },
+  hf_trending: { label: "HuggingFace Trending", field: "huggingface", sortKey: "trendingScore" },
+};
+
 export const VIEWS = {
   arena: {
     key: "arena",
@@ -102,6 +121,7 @@ export const SORT_COLUMN_LABELS = {
   lb_cost: "$/成功",
   hf_downloads: "Downloads",
   hf_likes: "Likes",
+  hf_trending: "Trending",
 };
 
 /* ── LiveBench 视角：抗污染子维度（全部 desc 默认）── */
@@ -116,13 +136,15 @@ export const LIVE_DIMENSIONS = {
 export const LIVE_DIMENSION_KEYS = ["lb_overall", "lb_coding", "lb_language", "lb_instfollow"];
 
 /* ── HuggingFace 视角：社区信号子维度（全部 desc 默认）── */
+// ponytail: hf_trending (v2.79.6+) — log10(dl)/log10(age+2) 客户端算分, 新发布爆款优先.
 
 export const HF_DIMENSIONS = {
   hf_downloads: { key: "hf_downloads", label: "Downloads", kind: "huggingface" },
   hf_likes: { key: "hf_likes", label: "Likes", kind: "huggingface" },
+  hf_trending: { key: "hf_trending", label: "Trending", kind: "huggingface" },
 };
 
-export const HF_DIMENSION_KEYS = ["hf_downloads", "hf_likes"];
+export const HF_DIMENSION_KEYS = ["hf_downloads", "hf_likes", "hf_trending"];
 
 /** 升序默认的维度 (低 = 优). */
 export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);

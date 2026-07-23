@@ -102,6 +102,50 @@ export function categoryFromPipelineTag(tag: any, tags: any = []): string {
   return "multimodal";
 }
 
+/**
+ * ponytail: HF trending 分数 (v2.79.6+) — 客户端按需算, 不存 m.huggingface
+ * (避免破坏现有 toEqual({ downloads, likes }) 断言).
+ *
+ * 公式: log10(downloads + 1) / log10(max(age_days + 1, 2))
+ *   - 分子 log10(dl+1): 缓和 downloads 量级差 (1K ~ 1B 都在 3-9 区间)
+ *   - 分母 log10(age+2): age=0 也不退化 (log10(2)=0.301, 不除零);
+ *                       age 越大分母越大, 越新的模型 trending 越高
+ *
+ * 守卫 (返回 null 表示不算 trending, 排序时排到末尾):
+ *   - downloads < 1000   → null (避免新发布小模型用 trending 刷榜)
+ *   - lastModified/createdAt 都缺 → null (没时间锚点)
+ *   - age <= 0           → null (未来时间 / 同日)
+ *   - age > 365 天       → null (老累计王不算 trending, 它们该走 hf_downloads 榜)
+ *
+ * age 优先级: lastModified (活跃度) → createdAt (首次发布) → null.
+ *
+ * @param downloads 全时累计下载量
+ * @param lastModified ISO 日期串 (HF 字段) 或 null
+ * @param createdAt   ISO 日期串 (HF 字段) 或 null
+ * @param now         可选, 注入测试用 (epoch ms); 默认 Date.now()
+ * @returns {number|null} trending 分数 (越大越 "最近火"), null = 不参与 trending
+ */
+export function computeTrendingScore(
+  downloads: any,
+  lastModified: any,
+  createdAt: any,
+  now: number = Date.now(),
+): number | null {
+  const dl = Number(downloads);
+  if (!Number.isFinite(dl) || dl < 1000) return null;
+  const refNow = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
+  const dateStr =
+    typeof lastModified === "string" && lastModified ? lastModified
+      : typeof createdAt === "string" && createdAt ? createdAt
+        : null;
+  if (!dateStr) return null;
+  const t = Date.parse(dateStr);
+  if (!Number.isFinite(t)) return null;
+  const ageDays = (refNow - t) / 86_400_000;
+  if (ageDays <= 0 || ageDays > 365) return null;
+  return Math.log10(dl + 1) / Math.log10(ageDays + 2);
+}
+
 /** tags 数组里挑关键标签（license / base_model / arxiv / quantized）。 */
 export function summarizeTags(tags: any): any {
   if (!Array.isArray(tags)) return { license: null, baseModel: null, arxivIds: [], quantized: false };
@@ -268,11 +312,12 @@ module.exports = {
   requiresKey: false,
   fetch,
   normalize,
-  // 暴露给单测
+  // 暴露给单测 + ranking.ts hf_trending 排序用
   num,
   fetchPage,
   categoryFromPipelineTag,
   summarizeTags,
+  computeTrendingScore,
   HF_API,
   HF_PAGE_SIZE,
   HF_TOP_N,

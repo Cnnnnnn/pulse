@@ -7,6 +7,7 @@
 
 const { CATEGORY_META, DIMENSION_META, SOURCE } = require("./types.ts");
 const { normalizeVendor } = require("./types.ts");
+const { computeTrendingScore } = require("./fetcher-huggingface.ts");
 
 /**
  * 取某模型在某维度下的排序值（越大越优）。
@@ -31,6 +32,15 @@ export function sortValue(item: any, dimension: string, board: string): number {
       ? key.split(".").reduce((o: any, p: string) => (o ? o[p] : null), lb)
       : lb[key];
     return typeof v === "number" && Number.isFinite(v) ? v : -Infinity;
+  }
+  // ponytail: hf_trending 走 special case (v2.79.6+) — m.huggingface 里没 trendingScore 字段,
+  // 实时调 computeTrendingScore(dl, lastModified, createdAt) 算. 必须在 hf_* 通用分支之前,
+  // 否则 DIMENSION_META.sortKey="trendingScore" 会被当成 hf["trendingScore"] 读, undefined.
+  if (dimension === "hf_trending") {
+    const hf = item.huggingface;
+    if (!hf) return -Infinity;
+    const ts = computeTrendingScore(hf.downloads, hf.lastModified, hf.createdAt);
+    return typeof ts === "number" && Number.isFinite(ts) ? ts : -Infinity;
   }
   // ponytail: hf_* 维度走 huggingface 切片, sortKey 直接读 downloads/likes 数字
   // (v2.79.5+). HF 是社区信号维度, 跟 Arena/AA/LB 能力维度完全正交.
@@ -110,4 +120,6 @@ module.exports = {
   filterBySearch,
   normalizeVendor,
   SOURCE,
+  // 暴露给 hf_trending 测试
+  computeTrendingScore,
 };

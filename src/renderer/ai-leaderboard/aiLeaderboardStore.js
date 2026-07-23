@@ -30,7 +30,7 @@ import {
   toIpcParams,
   normalizeBoardResult,
 } from "./types.js";
-import { primaryValue, licenseKind } from "./format.js";
+import { primaryValue, licenseKind, computeTrendingScore } from "./format.js";
 
 /* ── signals ── */
 export const activeView = signal("arena");
@@ -386,10 +386,16 @@ export function clearSearchQuery() {
  */
 export function columnValue(model, view, key) {
   // ponytail: HF 视角 (v2.79.5+) — 走 huggingface 切片, 主键 downloads/likes.
+  // v2.79.6+: hf_trending 走 computeTrendingScore 客户端按需算, 不存 m.huggingface.
   if (view === "huggingface") {
     const hf = model && model.huggingface;
     if (key === "hf_downloads") return hf && typeof hf.downloads === "number" ? hf.downloads : null;
     if (key === "hf_likes") return hf && typeof hf.likes === "number" ? hf.likes : null;
+    if (key === "hf_trending") {
+      if (!hf) return null;
+      const ts = computeTrendingScore(hf.downloads, hf.lastModified, hf.createdAt);
+      return typeof ts === "number" && Number.isFinite(ts) ? ts : null;
+    }
     if (key === "context") {
       // 优先级: modelsdev > openrouter (HF 不返回 context)
       const md = model && model.modelsdev;

@@ -167,6 +167,98 @@ describe("sorting — Arena ELO / AA index", () => {
   });
 });
 
+describe("sorting — HF 视角 hf_downloads / hf_likes / hf_trending (v2.79.6+)", () => {
+  // ponytail: HF view 切到时 sortKey 走 activeDim, hf_trending 调 computeTrendingScore
+  // 客户端算. 关键 case: 新发布爆款在 trending 排前, 老累计王在末尾 (age>365 → null).
+  // 不用 mkModel 是因为它只显式返回列出的字段, huggingface 会被丢.
+  const NOW = Date.now();
+  const day = (n) => new Date(NOW - n * 86_400_000).toISOString();
+  const mkHF = (over = {}) => ({
+    id: over.id || "m",
+    name: over.name || "Model",
+    vendor: over.vendor || "other",
+    vendorRaw: over.vendorRaw || null,
+    category: over.category || "llm",
+    license: over.license || null,
+    arena: {},
+    aa: null,
+    openrouter: null,
+    huggingface: over.hf || null,
+    livebench: null,
+    modelsdev: null,
+    sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none", huggingface: over.hf ? "live" : "none" },
+    isSample: false,
+    fetchedAt: null,
+    rankDelta: null,
+    isNew: false,
+  });
+
+  beforeEach(() => {
+    store.activeView.value = "huggingface";
+    store.sortDir.value = "desc";
+  });
+
+  it("hf_downloads 维度按 downloads 降序", () => {
+    store.activeDim.value = "hf_downloads";
+    const list = [
+      mkHF({ id: "a", name: "A", hf: { downloads: 100, likes: 1, lastModified: day(10) } }),
+      mkHF({ id: "b", name: "B", hf: { downloads: 999, likes: 1, lastModified: day(10) } }),
+      mkHF({ id: "c", name: "C", hf: { downloads: 500, likes: 1, lastModified: day(10) } }),
+    ];
+    store.items.value = list;
+    const shown = store.getDisplayed();
+    expect(shown.map((m) => m.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("hf_likes 维度按 likes 降序", () => {
+    store.activeDim.value = "hf_likes";
+    const list = [
+      mkHF({ id: "a", hf: { downloads: 100, likes: 5, lastModified: day(10) } }),
+      mkHF({ id: "b", hf: { downloads: 100, likes: 50, lastModified: day(10) } }),
+      mkHF({ id: "c", hf: { downloads: 100, likes: 10, lastModified: day(10) } }),
+    ];
+    store.items.value = list;
+    const shown = store.getDisplayed();
+    expect(shown.map((m) => m.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("hf_trending 维度 — 新发布爆款在老累计王前 (客户端算分)", () => {
+    store.activeDim.value = "hf_trending";
+    const list = [
+      // 老累计王: downloads 高但 age > 365 → null → 排末尾
+      mkHF({ id: "old", name: "OldKing", hf: { downloads: 254_000_000, likes: 5000, lastModified: day(934) } }),
+      // 新发布爆款: downloads 少但新 → log10 公式让新发布高分
+      mkHF({ id: "fresh", name: "Fresh", hf: { downloads: 28_000_000, likes: 1200, lastModified: day(8) } }),
+      // 中等: 60 天 + 50M downloads
+      mkHF({ id: "mid", name: "Mid", hf: { downloads: 50_000_000, likes: 800, lastModified: day(60) } }),
+    ];
+    store.items.value = list;
+    const shown = store.getDisplayed();
+    expect(shown.map((m) => m.id)).toEqual(["fresh", "mid", "old"]);
+  });
+
+  it("hf_trending 缺 huggingface 切片 → 排末尾 (-Infinity)", () => {
+    store.activeDim.value = "hf_trending";
+    const list = [
+      mkHF({ id: "a", hf: { downloads: 5_000_000, likes: 100, lastModified: day(10) } }),
+      mkHF({ id: "no-hf", name: "NoHF" }), // huggingface=null
+    ];
+    store.items.value = list;
+    const shown = store.getDisplayed();
+    expect(shown[0].id).toBe("a");
+    expect(shown[1].id).toBe("no-hf");
+  });
+
+  it("columnValue: hf_trending 走 computeTrendingScore 客户端算分", () => {
+    const fresh = mkHF({ id: "f", hf: { downloads: 5_000_000, likes: 100, lastModified: day(7) } });
+    const old = mkHF({ id: "o", hf: { downloads: 254_000_000, likes: 5000, lastModified: day(934) } });
+    const freshTs = store.columnValue(fresh, "huggingface", "hf_trending");
+    const oldTs = store.columnValue(old, "huggingface", "hf_trending");
+    expect(freshTs).toBeGreaterThan(0);
+    expect(oldTs).toBeNull(); // age > 365
+  });
+});
+
 describe("filtering — vendor / 搜索", () => {
   const list = [
     mkModel({ id: "gpt", name: "GPT-4o", vendor: "openai", arena: { text: { score: 1100 } } }),

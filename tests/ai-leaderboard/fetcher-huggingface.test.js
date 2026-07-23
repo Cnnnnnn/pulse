@@ -20,6 +20,7 @@ const {
   categoryFromPipelineTag,
   summarizeTags,
   normalize,
+  computeTrendingScore,
   HF_API,
   HF_PAGE_SIZE,
   HF_TOP_N,
@@ -365,5 +366,71 @@ describe("mergeModelSlices: HF 切片与其它源合并", () => {
       livebench: "none",
       modelsdev: "none",
     });
+  });
+});
+
+describe("fetcher-huggingface: computeTrendingScore (v2.79.6+)", () => {
+  // ponytail: trending 分数 = log10(dl+1) / log10(age_days+2). 公式纯函数, now 注入可控.
+  // 关键 case: 高 dl + 新发布 → 分数高; 老累计王 → null (age > 365); 小模型 → null (dl < 1000).
+  const NOW = new Date("2026-07-23T00:00:00Z").getTime();
+  const day = (n) => new Date(NOW - n * 86_400_000).toISOString();
+
+  it("新发布爆款 (8 天前, 28M downloads) → trending 分数高", () => {
+    // log10(28_000_001) / log10(8+2) ≈ 7.447 / 1.0 ≈ 7.45
+    const ts = computeTrendingScore(28_000_000, day(8), null, NOW);
+    expect(ts).toBeGreaterThan(7.0);
+    expect(ts).toBeLessThan(8.0);
+  });
+
+  it("老累计王 (934 天前, 254M downloads) → age > 365 返回 null", () => {
+    expect(computeTrendingScore(254_000_000, day(934), null, NOW)).toBeNull();
+  });
+
+  it("边界: age = 365 天刚好返回 null (守卫 > 365)", () => {
+    expect(computeTrendingScore(10_000_000, day(366), null, NOW)).toBeNull();
+    // 365 天还在范围
+    const ts365 = computeTrendingScore(10_000_000, day(365), null, NOW);
+    expect(ts365).toBeGreaterThan(0);
+  });
+
+  it("边界: dl = 1000 算, dl = 999 不算 (< 1000 守卫)", () => {
+    const ok = computeTrendingScore(1000, day(30), null, NOW);
+    expect(ok).toBeGreaterThan(0);
+    expect(computeTrendingScore(999, day(30), null, NOW)).toBeNull();
+  });
+
+  it("lastModified 缺时回退 createdAt", () => {
+    const a = computeTrendingScore(5_000_000, null, day(15), NOW);
+    const b = computeTrendingScore(5_000_000, day(15), null, NOW);
+    expect(a).toBe(b);
+    expect(a).toBeGreaterThan(0);
+  });
+
+  it("lastModified + createdAt 都缺 → null", () => {
+    expect(computeTrendingScore(5_000_000, null, null, NOW)).toBeNull();
+    expect(computeTrendingScore(5_000_000, undefined, undefined, NOW)).toBeNull();
+    expect(computeTrendingScore(5_000_000, "", "", NOW)).toBeNull();
+  });
+
+  it("未来时间 (lastModified > now) → age <= 0 返回 null", () => {
+    expect(computeTrendingScore(5_000_000, day(-1), null, NOW)).toBeNull();
+  });
+
+  it("非法日期串 → null (Date.parse NaN 兜底)", () => {
+    expect(computeTrendingScore(5_000_000, "not-a-date", null, NOW)).toBeNull();
+  });
+
+  it("dl 非有限数 → null", () => {
+    expect(computeTrendingScore(null, day(10), null, NOW)).toBeNull();
+    expect(computeTrendingScore(NaN, day(10), null, NOW)).toBeNull();
+    expect(computeTrendingScore("abc", day(10), null, NOW)).toBeNull();
+  });
+
+  it("新发布高分 (7 天, 5M) > 老高分 (180 天, 10M) — trending 公式令新发布占优", () => {
+    // 新发布: log10(5_000_001)/log10(7+2) ≈ 6.70/0.954 ≈ 7.02
+    // 老模型: log10(10_000_001)/log10(180+2) ≈ 7.00/2.243 ≈ 3.12
+    const fresh = computeTrendingScore(5_000_000, day(7), null, NOW);
+    const old = computeTrendingScore(10_000_000, day(180), null, NOW);
+    expect(fresh).toBeGreaterThan(old);
   });
 });

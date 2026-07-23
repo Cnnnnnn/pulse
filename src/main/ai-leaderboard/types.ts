@@ -67,6 +67,16 @@ export const DIMENSION_META: Record<string, any> = {
     field: "huggingface",
     sortKey: "likes",
   },
+  // ponytail: HF Trending (v2.79.6+) — 新发布爆款优先.
+  // sortKey "trendingScore" 是占位 (m.huggingface 里没这字段),
+  // 真实计算在 ranking.ts sortValue 走 special case 调 fetcher.computeTrendingScore.
+  // 为什么不存 m.huggingface.trendingScore: 现有 toEqual({downloads,likes}) 断言
+  // 严格匹配 schema, 加字段会破坏. 按需算保持 schema 稳定.
+  hf_trending: {
+    label: "HuggingFace Trending",
+    field: "huggingface",
+    sortKey: "trendingScore",
+  },
 };
 
 /** Top 20 主流厂商 + other 兜底（归一化见 normalizeVendor）。 */
