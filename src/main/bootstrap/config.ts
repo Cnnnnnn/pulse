@@ -1,12 +1,18 @@
 /**
- * src/main/bootstrap/config.js
+ * src/main/bootstrap/config.ts
  *
  * 启动时 config + 路径常量.
  * ARCH / CONFIG_PATH 仍从 main/index.js re-export 给测试.
  */
 
-const fs = require("fs");
-const path = require("path");
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type * as fsType from "node:fs";
+import type * as pathType from "node:path";
+
+const fs: typeof fsType = require("fs");
+const path: typeof pathType = require("path");
 const { mainLog } = require("../log.ts");
 const { migrateConfigFile, isOldSchemaApp } = require("../../config/migrate");
 const { validateConfig, sanitizeConfig } = require("../../config/schema");

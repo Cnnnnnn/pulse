@@ -1,5 +1,5 @@
 /**
- * src/main/bootstrap/ai-usage.js
+ * src/main/bootstrap/ai-usage.ts
  *
  * AI usage 页面 main 进程 bootstrap.
  * - register IPC handlers (ai-usage:get-cached, ai-usage:fetch)
@@ -10,6 +10,11 @@
  * 设计: 业务逻辑复用 register-ai-usage._internals, 此处只负责装配 + warmup.
  *      multi-provider v2: minimax + glm 各自 fire-and-forget.
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type {} from "electron";
 
 const { _internals, KNOWN_PROVIDERS } = require("../ipc/register-ai-usage.ts");
 
@@ -24,7 +29,7 @@ const { _internals, KNOWN_PROVIDERS } = require("../ipc/register-ai-usage.ts");
  * @param {object} [opts]
  * @param {boolean} [opts.warmup=true]  启动时是否 fire-and-forget 拉一次
  */
-function bootstrapAiUsage(deps, opts = {}) {
+function bootstrapAiUsage(deps, opts: { warmup?: boolean; registerIpc?: boolean } = {}) {
   const warmup = opts.warmup !== false;
   const registerIpc = opts.registerIpc !== false; // 默认也注册 IPC, 调用方可选跳过
 

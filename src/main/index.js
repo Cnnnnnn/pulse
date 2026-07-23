@@ -6,7 +6,7 @@
  *   - worker pool / window / tray / ipc
  *   - 启动时 config + category + AI wiring + 各类 scheduler
  *
- * 编排层 — 业务拆到 ./bootstrap/*.js.
+ * 编排层 — 业务拆到 ./bootstrap/*.ts.
  */
 
 const { app, BrowserWindow, ipcMain, session } = require("electron");
@@ -45,12 +45,12 @@ const { registerIpcHandlers } = require("./ipc");
 const { createSearchIndex } = require("./search/search-index");
 const { registerSearchIpc } = require("./ipc/register-search.ts");
 const { startDailySummaryJob } = require("./digest/daily-summary-job");
-const { bootstrapAiUsage } = require("./bootstrap/ai-usage");
+const { bootstrapAiUsage } = require("./bootstrap/ai-usage.ts");
 const {
   initStateRecovery,
   takeRecoveryEvent,
-} = require("./bootstrap/state-init");
-const { initErrorCapture } = require("./bootstrap/error-init");
+} = require("./bootstrap/state-init.ts");
+const { initErrorCapture } = require("./bootstrap/error-init.ts");
 const { mainLog, detectLog } = require("./log.ts");
 const stateStore = require("./state-store.ts");
 const aiStorage = require("../ai-sessions/storage");
@@ -74,13 +74,13 @@ const {
   CONFIG_PATH,
   PROJECT_ROOT,
   loadConfig,
-} = require("./bootstrap/config.js");
+} = require("./bootstrap/config.ts");
 const {
   loadCategoryConfig,
   classifyUnmappedAppsByLLM,
   primeLLMCacheFromDisk,
-} = require("./bootstrap/category.js");
-const { initAiTasksWiring } = require("./bootstrap/ai-tasks.js");
+} = require("./bootstrap/category.ts");
+const { initAiTasksWiring } = require("./bootstrap/ai-tasks.ts");
 const {
   startFundScheduler,
   startRemindersScheduler,
@@ -90,14 +90,14 @@ const {
   makeRefreshLastOpenedAfterCheck,
   startSelfUpdateTimer,
   startLeaderboardScheduler,
-} = require("./bootstrap/schedulers.js");
+} = require("./bootstrap/schedulers.ts");
 const {
   createSender,
   installErrorGuardBridge,
-} = require("./bootstrap/send-to-renderer.js");
+} = require("./bootstrap/send-to-renderer.ts");
 const {
   setTrayManager: registerTrayManager,
-} = require("./bootstrap/tray-init.js");
+} = require("./bootstrap/tray-init.ts");
 const { installNintendoImageHeaders } = require("./games/nintendo-image-headers.js");
 
 const httpClient = new HttpClient();
@@ -373,7 +373,7 @@ function initAiUsageTray() {
     aiUsageScheduler = createAiUsageRefreshScheduler({
       trayMgr,
       getConfig: () => runtimeConfigRef.current,
-      sendToRenderer: require("./bootstrap/send-to-renderer").sendToRenderer,
+      sendToRenderer: require("./bootstrap/send-to-renderer.ts").sendToRenderer,
       deps: {
         stateStore: {
           loadSnapshotProvider: stateStore.loadAiUsageSnapshotProvider,

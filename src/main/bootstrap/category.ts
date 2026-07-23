@@ -1,14 +1,19 @@
 /**
- * src/main/bootstrap/category.js
+ * src/main/bootstrap/category.ts
  *
  * 启动期 category config 加载 + LLM 批量分类未映射 app.
  */
 
-const fs = require("fs");
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type * as fsType from "node:fs";
+
+const fs: typeof fsType = require("fs");
 const { mainLog } = require("../log.ts");
 const categoryConfig = require("../../config/category");
 const { HttpClient } = require("../http-client.ts");
-const { CATEGORIES_JSON_PATH, APP_CATEGORY_JSON_PATH } = require("./config");
+const { CATEGORIES_JSON_PATH, APP_CATEGORY_JSON_PATH } = require("./config.ts");
 
 /**
  * 加载 category config (categories.json + app-category.json) → setData 注入.

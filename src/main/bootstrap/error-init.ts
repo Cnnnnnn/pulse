@@ -1,5 +1,5 @@
 /**
- * src/main/bootstrap/error-init.js
+ * src/main/bootstrap/error-init.ts
  *
  * Phase Q6: wire process-level error listeners into the aggregator.
  *
@@ -13,12 +13,21 @@
  * DiagnosticsDrawer) can refresh without a manual reopen.
  */
 
-const path = require('path');
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type * as pathType from "node:path";
+
+const path: typeof pathType = require('path');
 const { createAggregator } = require('../error-aggregator');
 
 let _instance = null;
 
-function initErrorCapture(opts = {}) {
+function initErrorCapture(opts: {
+  logsDir?: string;
+  retentionDays?: number;
+  sendToRenderer?: ((channel: string, payload: unknown) => void) | null;
+} = {}) {
   if (_instance) return _instance;
   const logsDir = opts.logsDir || path.join(process.env.HOME || '', 'Library', 'Application Support', 'pulse', 'logs');
   const retentionDays = typeof opts.retentionDays === 'number' ? opts.retentionDays : 30;

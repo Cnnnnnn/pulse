@@ -1,7 +1,7 @@
 /**
  * tests/main/bootstrap-category.test.js
  *
- * v2.16: LLM classify fire-and-forget 拆分后, 测试 bootstrap/category.js 的两个
+ * v2.16: LLM classify fire-and-forget 拆分后, 测试 bootstrap/category.ts 的两个
  * 拆分后入口的契约:
  *   - primeLLMCacheFromDisk: 同步注入历史 LLM cache, 不抛, 不阻塞
  *   - classifyUnmappedAppsByLLM: 异步跑 LLM, 失败不抛, 成功写入 cache
@@ -21,7 +21,7 @@ const categoryConfig = require("../../src/config/category.js");
 const {
   primeLLMCacheFromDisk,
   classifyUnmappedAppsByLLM,
-} = require("../../src/main/bootstrap/category.js");
+} = require("../../src/main/bootstrap/category.ts");
 
 const GOOD_CATS = [
   { id: "ai", name: "AI 工具", icon: "🤖", order: 1 },

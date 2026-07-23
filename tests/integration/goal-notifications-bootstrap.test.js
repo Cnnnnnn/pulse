@@ -13,7 +13,7 @@ describe("goal-notifications: integration smoke", () => {
   });
 
   it("bootstrap/schedulers 暴露 startWorldcupGoalWatcher", () => {
-    const sched = require("../../src/main/bootstrap/schedulers");
+    const sched = require("../../src/main/bootstrap/schedulers.ts");
     expect(typeof sched.startWorldcupGoalWatcher).toBe("function");
   });
 

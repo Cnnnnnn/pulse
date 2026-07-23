@@ -1,13 +1,13 @@
 /**
  * tests/ai-usage/bootstrap-ai-usage.test.js
  *
- * TDD for src/main/bootstrap/ai-usage.js (multi-provider v2)
+ * TDD for src/main/bootstrap/ai-usage.ts (multi-provider v2)
  * 把 "register IPC + 可选预热 fetch" 抽成纯函数, 单测.
  */
 
 import { describe, test, expect } from "vitest";
 
-const { bootstrapAiUsage } = require("../../src/main/bootstrap/ai-usage");
+const { bootstrapAiUsage } = require("../../src/main/bootstrap/ai-usage.ts");
 
 function makeDeps(overrides = {}) {
   const registeredChannels = [];

@@ -25,7 +25,7 @@ let _bootstrapInstance = null;
 function _getBootstrap() {
   if (_bootstrapInstance !== null) return _bootstrapInstance;
   try {
-    _bootstrapInstance = require("./bootstrap/error-init");
+    _bootstrapInstance = require("./bootstrap/error-init.ts");
   } catch {
     _bootstrapInstance = false;
   }

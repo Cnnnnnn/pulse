@@ -1,9 +1,14 @@
 /**
- * src/main/bootstrap/schedulers.js
+ * src/main/bootstrap/schedulers.ts
  *
  * 启动期后台服务: FundScheduler + Reminders scheduler + Auto-check timer +
  * Recent activity listener. 失败 graceful.
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type {} from "electron";
 
 const { app, Notification: ElectronNotification } = require("electron");
 const { mainLog } = require("../log.ts");
@@ -421,7 +426,12 @@ function makeSelfUpdateController(deps) {
  *   controller: ReturnType<typeof makeSelfUpdateController>,
  * } | null}
  */
-function startSelfUpdateTimer(deps = {}) {
+function startSelfUpdateTimer(deps: {
+  autoUpdater?: unknown;
+  intervalMs?: number;
+  getPowerIdleState?: () => unknown;
+  logSkip?: (reason: string) => void;
+} = {}) {
   const intervalMs =
     typeof deps.intervalMs === "number" && deps.intervalMs > 0
       ? deps.intervalMs
@@ -502,7 +512,7 @@ function startSelfUpdateTimer(deps = {}) {
       intervalMs,
       {
         label: "self-update",
-        file: "src/main/bootstrap/schedulers.js",
+        file: "src/main/bootstrap/schedulers.ts",
         line: 0,
       },
     );
@@ -704,7 +714,7 @@ function startAutoCheckTimer(deps) {
     AUTO_CHECK_INTERVAL_MS,
     {
       label: "auto-check",
-      file: "src/main/bootstrap/schedulers.js",
+      file: "src/main/bootstrap/schedulers.ts",
       line: 335,
     },
   );

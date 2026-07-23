@@ -77,7 +77,7 @@ function registerTrayConfigHandlers(ctx) {
       }
       // 通知 tray 立刻 rebuild (main 端单一真相,renderer 不持有 prefs state).
       try {
-        const { getTrayManager } = require("../bootstrap/tray-init");
+        const { getTrayManager } = require("../bootstrap/tray-init.ts");
         const trayMgr = getTrayManager();
         if (trayMgr && typeof trayMgr.setTrayMenuPrefs === "function") {
           trayMgr.setTrayMenuPrefs(saved.tray_menu_prefs || normalized);

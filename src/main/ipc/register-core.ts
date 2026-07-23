@@ -434,7 +434,7 @@ function registerCoreHandlers(ctx) {
   // Phase Q6: error aggregator IPC handlers
   safeHandle("error:fetch-entries", async (_event, opts) => {
     try {
-      const { getInstance } = require("../bootstrap/error-init");
+      const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
       if (!inst)
         return {
@@ -462,7 +462,7 @@ function registerCoreHandlers(ctx) {
 
   safeHandle("error:copy-all", () => {
     try {
-      const { getInstance } = require("../bootstrap/error-init");
+      const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
       if (!inst)
         return Promise.resolve({
@@ -488,7 +488,7 @@ function registerCoreHandlers(ctx) {
     // Phase Q1 v2: 真实导出 — 把 errors-*.jsonl + raw 日志 + diagnostics
     // 合成一个 .tar.gz 写到桌面. 复用 diagnostics-aggregator.bundleDiagnostics.
     try {
-      const { getInstance } = require("../bootstrap/error-init");
+      const { getInstance } = require("../bootstrap/error-init.ts");
       const { bundleDiagnostics } = require("../diagnostics-aggregator");
       const { resolveLogDir } = require("../log.ts");
       const diagnostics = require("../diagnostics.ts");
@@ -522,7 +522,7 @@ function registerCoreHandlers(ctx) {
     try {
       const { getStartup, getMetricsSummary } = require("../diagnostics.ts");
       const { computeTopFailures } = require("../diagnostics-aggregator");
-      const { getInstance } = require("../bootstrap/error-init");
+      const { getInstance } = require("../bootstrap/error-init.ts");
       const sinceMs =
         (opts && typeof opts.sinceMs === "number" && opts.sinceMs) ||
         Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -659,7 +659,7 @@ function registerCoreHandlers(ctx) {
 
   safeHandle("error:clear-old", () => {
     try {
-      const { getInstance } = require("../bootstrap/error-init");
+      const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
       if (!inst)
         return Promise.resolve({
@@ -683,7 +683,7 @@ function registerCoreHandlers(ctx) {
   safeHandle("error:open-folder", () => {
     try {
       const { shell } = require("electron");
-      const { getInstance } = require("../bootstrap/error-init");
+      const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
       const dir = inst && inst.aggregator && inst.aggregator.logsDir;
       if (!dir) return { ok: false, reason: "no_dir" };
@@ -696,7 +696,7 @@ function registerCoreHandlers(ctx) {
 
   safeHandle("error:report", (_event, entry) => {
     try {
-      const { getInstance } = require("../bootstrap/error-init");
+      const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
       if (!inst || !entry) return { ok: false, reason: "no_instance_or_entry" };
       return inst.aggregator

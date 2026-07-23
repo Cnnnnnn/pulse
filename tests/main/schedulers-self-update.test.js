@@ -30,7 +30,7 @@ require.cache[require.resolve("electron")] = {
 const {
   startSelfUpdateTimer,
   makeSelfUpdateController,
-} = require("../../src/main/bootstrap/schedulers.js");
+} = require("../../src/main/bootstrap/schedulers.ts");
 
 function makeMockAutoUpdater() {
   const handlers = {};

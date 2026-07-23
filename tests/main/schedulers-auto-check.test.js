@@ -12,7 +12,7 @@ import {
   checkOnce,
   startAutoCheckTimer,
   __resetForTest,
-} from '../../src/main/bootstrap/schedulers.js';
+} from '../../src/main/bootstrap/schedulers.ts';
 
 describe('decideAutoCheck', () => {
   const INTERVAL = 6 * 60 * 60 * 1000; // 6h
