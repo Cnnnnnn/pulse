@@ -13,7 +13,7 @@
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const {
   serializeConfig,
   parseConfigFile,

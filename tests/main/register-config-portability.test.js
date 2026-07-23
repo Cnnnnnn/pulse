@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-const stateStorePath = require.resolve("../../src/main/state-store.js");
+const stateStorePath = require.resolve("../../src/main/state-store.ts");
 const registerPath = require.resolve(
   "../../src/main/ipc/register-config-portability.js",
 );

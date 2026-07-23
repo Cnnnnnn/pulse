@@ -12,7 +12,7 @@ const {
   DEFAULT_RE_ALERT_STEP_PCT,
 } = require("../ai-usage/anomaly-detect");
 const { todayKey } = require("../ai-usage/history-series");
-const stateStore = require("./state-store");
+const stateStore = require("./state-store.ts");
 
 const DEFAULT_ALERT_PREFS = {
   enabled: true,

@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const stateStorePath = require.resolve("../../src/main/state-store.js");
+const stateStorePath = require.resolve("../../src/main/state-store.ts");
 const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
 
 // mock stateStore 的预算相关方法

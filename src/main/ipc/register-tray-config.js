@@ -13,7 +13,7 @@
  * (通过 bootstrap/tray-init 模块级引用,避免循环依赖).
  */
 const { ipcMain } = require("electron");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { normalizePrefs } = require("../tray-menu-prefs");
 const { mainLog } = require("../log.ts");
 

@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { load, saveAll, saveOne, markNotified, SCHEMA_VERSION } from '../../src/main/state-store.js';
+import { load, saveAll, saveOne, markNotified, SCHEMA_VERSION } from '../../src/main/state-store.ts';
 
 describe('state-store', () => {
   let tmpDir;
@@ -236,7 +236,7 @@ describe('state-store', () => {
 
   describe('defaultPath', () => {
     it('默认到 ~/Library/Application Support/AppUpdateChecker/state.json', async () => {
-      const { defaultPath } = await import('../../src/main/state-store.js');
+      const { defaultPath } = await import('../../src/main/state-store.ts');
       const p = defaultPath();
       expect(p).toContain(path.join('Library', 'Application Support', 'AppUpdateChecker', 'state.json'));
     });

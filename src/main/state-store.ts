@@ -1,5 +1,5 @@
 /**
- * src/main/state-store.js
+ * src/main/state-store.ts
  *
  * Phase 12: 持久化 last-known 检测结果.
  * Phase 27: 持久化 mutes (per-app 静音状态).
@@ -57,16 +57,30 @@
  * 兼容: 老 state.json 没有 mutes 字段 → load() 视作 {}；v 不变（v=1，向后兼容）
  */
 
-const fs = require("fs");
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type * as fsType from "node:fs";
+import type * as pathType from "node:path";
+import type * as osType from "node:os";
+
+type StateRecord = import("../shared/electron/state-store-adapter").StateRecord;
+type StateFeedbackSample = import("../shared/electron/state-store-adapter").StateFeedbackSample;
+type StateWatchlistItem = import("../shared/electron/state-store-adapter").StateWatchlistItem;
+type StateLastOpenedMap = import("../shared/electron/state-store-adapter").StateLastOpenedMap;
+type StateLLMClassifyMap = import("../shared/electron/state-store-adapter").StateLLMClassifyMap;
+type StateRecoveryEvent = import("../shared/electron/state-store-adapter").StateRecoveryEvent;
+
+const fs: typeof fsType = require("fs");
 const { renameSync } = fs;
-const path = require("path");
-const os = require("os");
+const path: typeof pathType = require("path");
+const os: typeof osType = require("os");
 // Schema 校验只在 _loadOrThrow 走错误分支时用, 走 happy path (冷启 load)
 // 完全不需要。require 本身 cached, 但把 require 挪到函数内, 至少让模块
 // evaluate 阶段不需要再触发 state-store-schema.js 的同步求值 (zero deps
 // 的小模块, 但养成 "hot path 之外不 import" 的习惯, 后续拆分时省事).
 // ponytail: < 1ms 量级, 真要抠直接 lazy import 整个 state-store.js.
-let _schema = null;
+let _schema: { validateState?: (data: unknown) => { ok: boolean; errors?: unknown[] } } | null = null;
 function _getSchema() {
   if (_schema) return _schema;
   _schema = require("./state-store-schema");
@@ -74,9 +88,24 @@ function _getSchema() {
 }
 
 class StateCorruptedError extends Error {
+  path: string | undefined;
+  raw: string | null;
+  parseError: Error | null;
+  schemaErrors: unknown[];
+
   constructor(
-    message,
-    { path, raw = null, parseError = null, schemaErrors = [] } = {},
+    message: string,
+    {
+      path,
+      raw = null,
+      parseError = null,
+      schemaErrors = [],
+    }: {
+      path?: string;
+      raw?: string | null;
+      parseError?: Error | null;
+      schemaErrors?: unknown[];
+    } = {},
   ) {
     super(message);
     this.name = "StateCorruptedError";
@@ -98,13 +127,13 @@ const LEGACY_STATE_PATH = path.join(
 );
 
 /** Electron userData 下的 state.json; initStateStorePaths() 在 app ready 后设置 */
-let _resolvedStatePath = null;
+let _resolvedStatePath: string | null = null;
 
 // Phase Q8: last recovery event (consume-once). Set by loadOrRecover, read by IPC push to renderer.
-let _lastRecoveryEvent = null;
+let _lastRecoveryEvent: StateRecoveryEvent | null = null;
 
 // A3: 搜索索引引用 (setter 注入). saveTaskSummary 写盘后 upsert ai-task doc.
-let _searchIndex = null;
+let _searchIndex: { upsert: (doc: Record<string, unknown>) => void } | null = null;
 function setSearchIndex(si) {
   _searchIndex = si;
 }
@@ -305,15 +334,19 @@ function defaultPath() {
 // 这样每个 save 函数只保留"我要改哪个字段"的差异, 不能再忘了 preserve.
 // 修了两个 pre-existing bug: saveWorldcupMatchInsights / saveActiveCategory
 // 原本没保留 ai_sessions_config, 重构后自动保留.
-function patchState(updater, statePath = defaultPath(), opts = {}) {
-  const existing = load(statePath) || {
+function patchState(
+  updater: (next: StateRecord, existing: StateRecord, now: number) => void,
+  statePath = defaultPath(),
+  opts: { dropAiSessionsConfig?: boolean } = {},
+) {
+  const existing: StateRecord = (load(statePath) as StateRecord | null) || {
     v: SCHEMA_VERSION,
     ts: 0,
     apps: {},
     mutes: {},
   };
   const now = Date.now();
-  const next = {
+  const next: StateRecord = {
     v: SCHEMA_VERSION,
     ts: now,
     apps: existing.apps || {},
@@ -560,7 +593,7 @@ function clearMute(name, statePath = defaultPath()) {
     throw new TypeError("clearMute: name must be non-empty string");
   }
   return patchState((next) => {
-    const mutes = next.mutes || {};
+    const mutes = { ...((next.mutes as Record<string, unknown>) || {}) };
     if (name in mutes) delete mutes[name];
     next.mutes = mutes;
   }, statePath);
@@ -768,7 +801,8 @@ function cleanExpiredUpgradeAdvice(map, now) {
   const cutoffMs = now - UPGRADE_ADVICE_GC_DAYS * 86400_000;
   for (const [k, e] of Object.entries(map)) {
     if (!e || typeof e !== "object") continue;
-    if (typeof e.generatedAt !== "number" || e.generatedAt < cutoffMs) continue;
+    const generatedAt = (e as { generatedAt?: unknown }).generatedAt;
+    if (typeof generatedAt !== "number" || generatedAt < cutoffMs) continue;
     out[k] = e;
   }
   return out;
@@ -956,7 +990,8 @@ function cleanExpiredTaskSummaries(map, now) {
   const cutoffMs = now - TASK_SUMMARIES_GC_DAYS * 86400_000;
   for (const [taskKey, e] of Object.entries(map)) {
     if (!e || typeof e !== "object") continue;
-    if (typeof e.generatedAt !== "number" || e.generatedAt < cutoffMs) continue;
+    const generatedAt = (e as { generatedAt?: unknown }).generatedAt;
+    if (typeof generatedAt !== "number" || generatedAt < cutoffMs) continue;
     out[taskKey] = e;
   }
   return out;
@@ -1587,7 +1622,7 @@ function saveLLMClassifyCache(map, statePath = defaultPath()) {
   return patchState((next, existing) => {
     // 合并: 旧值 + 新值, 新值覆盖旧值 (新分类优先)
     next.classify_llm_cache = {
-      ...(existing.classify_llm_cache || {}),
+      ...((existing.classify_llm_cache as Record<string, unknown>) || {}),
       ...trimmed,
     };
   }, statePath);
@@ -1648,7 +1683,7 @@ function loadOrRecover(statePath = defaultPath()) {
               : [],
         ts: Date.now(),
       };
-      _lastRecoveryEvent = event;
+      _lastRecoveryEvent = event as StateRecoveryEvent;
       return null; // baseline will be used by patchState
     }
     throw err; // unrelated IO error — propagate

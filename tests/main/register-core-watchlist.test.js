@@ -59,7 +59,7 @@ const stateStoreStub = {
   markNotified: () => {},
 };
 let loadShouldThrow = false;
-const stateStorePath = require.resolve("../../src/main/state-store.js");
+const stateStorePath = require.resolve("../../src/main/state-store.ts");
 
 // ─── reset + re-register ────────────────────────────────────────
 let registerCoreHandlers;

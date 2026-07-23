@@ -1,4 +1,4 @@
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const {
   computeWorldcupBracket,
   loadWorldcupBracket,

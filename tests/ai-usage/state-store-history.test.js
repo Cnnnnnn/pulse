@@ -21,7 +21,7 @@ beforeEach(async () => {
   vi.doMock('electron', () => ({
     app: { getPath: () => tmpRoot },
   }));
-  stateStore = require('../../src/main/state-store');
+  stateStore = require('../../src/main/state-store.ts');
 });
 
 describe('loadAiUsageHistory', () => {

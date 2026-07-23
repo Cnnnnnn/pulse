@@ -35,7 +35,7 @@ const ADAPTERS = [
   { file: "timer-registry-adapter.d.ts", main: "timer-registry.ts" },
   { file: "pool-size-adapter.d.ts", main: "pool-size.ts" },
   { file: "diagnostics-adapter.d.ts", main: "diagnostics.ts" },
-  { file: "state-store-adapter.d.ts", main: "state-store.js" },
+  { file: "state-store-adapter.d.ts", main: "state-store.ts" },
   // utility (no src/main counterpart); safeRequire is the brief-mandated
   // shape for cross-context module resolution.
   { file: "safe-require.d.ts", main: null },

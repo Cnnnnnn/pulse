@@ -13,7 +13,7 @@ const {
   loadAiUsageSnapshot,
   saveAiUsageSnapshot,
   saveAll,
-} = require("../../src/main/state-store");
+} = require("../../src/main/state-store.ts");
 
 function tmpStatePath() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-usage-state-"));

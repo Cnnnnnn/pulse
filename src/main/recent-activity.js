@@ -18,7 +18,7 @@
  */
 
 const fs = require("fs");
-const stateStore = require("./state-store");
+const stateStore = require("./state-store.ts");
 const { mainLog } = require("./log.ts");
 
 const VALID_KINDS = [

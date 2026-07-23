@@ -13,7 +13,7 @@ import {
   loadOrRecover,
   getLastSeenRelease,
   setLastSeenRelease,
-} from '../../src/main/state-store.js';
+} from '../../src/main/state-store.ts';
 
 let tmpDir;
 let statePath;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-const stateStorePath = require.resolve("../../src/main/state-store.js");
+const stateStorePath = require.resolve("../../src/main/state-store.ts");
 const registryPath = require.resolve("../../src/ai/prompt-registry.js");
 const registerPath =
   require.resolve("../../src/main/ipc/register-ai-prompts.js");

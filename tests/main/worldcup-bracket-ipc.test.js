@@ -122,7 +122,7 @@ describe("worldcup bracket IPC handler", () => {
     expect(r.ok).toBe(true);
     expect(r.snapshot).toBeDefined();
     expect(r.snapshot.r32).toHaveLength(16);
-    const stateStore = require("../../src/main/state-store");
+    const stateStore = require("../../src/main/state-store.ts");
     const loaded = stateStore.loadWorldcupBracket(statePath);
     expect(loaded).toBeDefined();
     expect(loaded.r32).toHaveLength(16);
@@ -140,7 +140,7 @@ describe("worldcup bracket IPC handler", () => {
     });
     expect(r.ok).toBe(false);
     expect(r.reason || r.error).toBeDefined();
-    const stateStore = require("../../src/main/state-store");
+    const stateStore = require("../../src/main/state-store.ts");
     expect(stateStore.loadWorldcupBracket(statePath)).toBeNull();
   });
 

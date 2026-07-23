@@ -16,7 +16,7 @@
  * 单测不依赖 electron / safeStorage. register* 是薄包装, 注入真实 deps.
  */
 
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const aiStorage = require("../../ai-sessions/storage");
 const { MiniMaxQuotaClient } = require("../../ai-usage/client");
 const { GlmQuotaClient } = require("../../ai-usage/client-glm");

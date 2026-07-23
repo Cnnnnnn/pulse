@@ -25,7 +25,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 
 const FUNDS_DELETED_GC_DAYS = 7;
 const FUNDS_DELETED_GC_MS = FUNDS_DELETED_GC_DAYS * 24 * 60 * 60 * 1000;

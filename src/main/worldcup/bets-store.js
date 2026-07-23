@@ -10,7 +10,7 @@
  */
 
 const fs = require("fs");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { mainLog } = require("../log.ts");
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

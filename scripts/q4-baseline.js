@@ -54,7 +54,7 @@ const MAIN_REQUIRED = [
   "src/main/bootstrap/ai-usage",
   "src/main/bootstrap/state-init",
   "src/main/bootstrap/error-init",
-  "src/main/state-store",
+  "src/main/state-store.ts",
   "src/ai-sessions/storage",
   "src/main/http-client",
   "src/main/pool-size",

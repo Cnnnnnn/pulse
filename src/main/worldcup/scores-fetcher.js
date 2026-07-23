@@ -9,7 +9,7 @@
  */
 
 const { HttpClient } = require("../http-client.ts");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { parseWorldcupTxt } = require("./parser");
 const { matchKey } = require("./match-key");
 const { FIXTURES_URL } = require("./fetcher");

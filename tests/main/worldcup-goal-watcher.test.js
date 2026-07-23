@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 const goalWatcher = require("../../src/main/worldcup/goal-watcher");
-const stateStore = require("../../src/main/state-store");
+const stateStore = require("../../src/main/state-store.ts");
 
 function tmpStatePath() {
   const dir = mkdtempSync(join(tmpdir(), "pulse-goal-watcher-"));

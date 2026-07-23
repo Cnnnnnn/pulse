@@ -5,7 +5,7 @@ import path from "path";
 
 // prompt-registry 顶层 require state-store, 必须同步 require 拿同一实例.
 // _setStatePathForTest 设 _resolvedStatePath, defaultPath() 会返回它.
-const stateStore = require("../../src/main/state-store.js");
+const stateStore = require("../../src/main/state-store.ts");
 const {
   DEFAULT_PROMPTS,
   resolvePrompt,

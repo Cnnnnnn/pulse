@@ -15,7 +15,7 @@
  * 进球类型标记: ownGoal / penalty 在通知标题加前缀; 不进 key.
  */
 
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { mainLog } = require("../log.ts");
 const { matchKey, isMatchStarted, matchKickoffUtcMs } = require("./match-key");
 const { parseWorldcupTxt } = require("./parser");

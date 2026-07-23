@@ -9,7 +9,7 @@
  * 与 register-ai-prompts 同一模式.
  */
 
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const {
   recordFeedback,
   pruneToCap,

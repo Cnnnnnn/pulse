@@ -25,7 +25,7 @@
 
 const fs = require("fs");
 const crypto = require("crypto");
-const stateStore = require("./state-store");
+const stateStore = require("./state-store.ts");
 const recentActivity = require("./recent-activity");
 const { mainLog } = require("./log.ts");
 

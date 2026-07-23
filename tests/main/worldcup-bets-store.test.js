@@ -63,7 +63,7 @@ describe("bets-store", () => {
 
   it("upsert ensures apps/mutes shell so state-store.load can read bets later", () => {
     betsStore.upsert({ date: "2026-06-12", stake: 50, pnl: 0 }, p);
-    const stateStore = require("../../src/main/state-store.js");
+    const stateStore = require("../../src/main/state-store.ts");
     const loaded = stateStore.load(p);
     expect(loaded).not.toBeNull();
     expect(loaded.apps).toEqual({});

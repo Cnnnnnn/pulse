@@ -20,9 +20,10 @@ const CONFIG_DIR = join(fileURLToPath(import.meta.url), '../../../src/config/');
 describe('main process module load smoke (Phase 28+ regression)', () => {
   // 收集 src/main/*.js (排除 _test, test, spec 命名)
   const files = readdirSync(MAIN_DIR)
-    .filter((f) => f.endsWith('.js'))
-    .filter((f) => !f.endsWith('.test.js'))
-    .filter((f) => !f.endsWith('.spec.js'))
+    .filter((f) => f.endsWith('.js') || f.endsWith('.ts'))
+    .filter((f) => !f.endsWith('.test.js') && !f.endsWith('.test.ts'))
+    .filter((f) => !f.endsWith('.spec.js') && !f.endsWith('.spec.ts'))
+    .filter((f) => !f.endsWith('.d.ts'))
     .sort();
 
   // 至少要这些 — 防止有人误删 main 文件
@@ -31,7 +32,7 @@ describe('main process module load smoke (Phase 28+ regression)', () => {
     'index.js',
     'ipc.js',
     'last-opened.js',
-    'state-store.js',
+    'state-store.ts',
     'tray.js',
   ];
   for (const e of expected) {

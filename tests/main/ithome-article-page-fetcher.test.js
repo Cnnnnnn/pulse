@@ -9,7 +9,7 @@ import { readFileSync as readFixture } from "fs";
 
 const fetcher = require("../../src/main/ithome/article-page-fetcher.js");
 const newsStore = require("../../src/main/ithome/news-store.js");
-const stateStore = require("../../src/main/state-store.js");
+const stateStore = require("../../src/main/state-store.ts");
 
 const FIXTURE_HTML = readFixture(
   join(__dirname, "..", "fixtures", "ithome", "article-866661.html"),

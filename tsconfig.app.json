@@ -12,6 +12,7 @@
     "src/shared/preload-types.ts",
     "src/shared/window.d.ts",
     "src/shared/electron/**/*.d.ts",
+    "src/main/**/*.ts",
     "src/main/**/*.js",
     "src/workers/**/*.js",
     "src/**/*.js"

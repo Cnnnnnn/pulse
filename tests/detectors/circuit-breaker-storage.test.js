@@ -2,10 +2,10 @@
  * tests/detectors/circuit-breaker-storage.test.js
  *
  * DEVIATION FROM TASK 2 PLAN (2026-06-19-detector-circuit-breaker-plan.md):
- * 原计划用 `vi.mock('../../src/main/state-store.js', () => ({ ... }))` 静态
+ * 原计划用 `vi.mock('../../src/main/state-store.ts', () => ({ ... }))` 静态
  * mock. 但 vitest 1.6 的 vi.mock 只 hook ESM `import` 路径, 不 hook CJS
  * `require` 路径 (vitest-dev/vitest#5359). circuit-breaker-storage.js 是
- * CJS, 内部用 `require('../main/state-store.js')`, vi.mock 替换不生效,
+ * CJS, 内部用 `require('../main/state-store.ts')`, vi.mock 替换不生效,
  * storage 拿到的还是真实 state-store, 测试全失败.
  *
  * 改用项目已有的 require.cache 注入模式 (见 tests/main/tray.test.js
@@ -28,7 +28,7 @@ const require = createRequire(import.meta.url);
 const mockPatchState = vi.fn();
 const mockLoad = vi.fn();
 
-const stateStorePath = require.resolve('../../src/main/state-store.js');
+const stateStorePath = require.resolve('../../src/main/state-store.ts');
 const storagePath = require.resolve('../../src/detectors/circuit-breaker-storage.js');
 
 let loadBreakers;
@@ -132,7 +132,7 @@ describe('circuit-breaker-storage', () => {
 
   it('state-store PRESERVE_FIELDS includes circuitBreakers', async () => {
     const fs = await import('fs');
-    const url = new URL('../../src/main/state-store.js', import.meta.url);
+    const url = new URL('../../src/main/state-store.ts', import.meta.url);
     const src = fs.readFileSync(url, 'utf-8');
     expect(src).toMatch(/circuitBreakers/);
   });

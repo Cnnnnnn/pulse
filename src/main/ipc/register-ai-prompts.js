@@ -7,7 +7,7 @@
  *   ai-prompts:reset  删除某 key 的用户配置 → 回默认
  */
 
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { DEFAULT_PROMPTS, PROMPT_KEYS } = require("../../ai/prompt-registry");
 
 function mergePromptForLoad(key, user) {

@@ -8,12 +8,12 @@
  * 这样 renderer 拿到结果后能跟自己的 state (loading / mutes) 协调.
  *
  * 依赖注入: stateStore / loader 通过 deps 注入, 方便测试. Prod 走默认
- * (require('../release-notes/loader.js') + require('./state-store.js')).
+ * (require('../release-notes/loader.js') + require('./state-store.ts')).
  */
 
 const { createLogger } = require('./log.ts');
 const defaultLoader = require('../release-notes/loader.js');
-const defaultStateStore = require('./state-store.js');
+const defaultStateStore = require('./state-store.ts');
 
 const log = createLogger('release-notes');
 

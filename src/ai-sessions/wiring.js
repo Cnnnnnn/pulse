@@ -20,7 +20,7 @@ const { LLMSummarizer } = require('./summarizer');
 const { CloudSummarizer } = require('./provider-cloud');
 const { TaskSummaryEngine } = require('./engine');
 const { HttpClient } = require('../main/http-client.ts');
-const stateStore = require('../main/state-store');
+const stateStore = require('../main/state-store.ts');
 const { SILENT_LOG } = require('./session-log');
 
 // 只保留云 provider (minimax / deepseek).

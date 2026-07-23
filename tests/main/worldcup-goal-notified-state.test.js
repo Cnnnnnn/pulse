@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
-const stateStore = require("../../src/main/state-store");
+const stateStore = require("../../src/main/state-store.ts");
 
 function tmpStatePath() {
   const dir = mkdtempSync(join(tmpdir(), "pulse-goal-state-"));

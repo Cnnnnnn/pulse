@@ -8,7 +8,7 @@
  * 与 register-ai-prompts 同模式 (stateStore 用默认 path).
  */
 
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { todayKey } = require("../token-budget");
 
 function registerTokenBudgetHandlers(ctx) {

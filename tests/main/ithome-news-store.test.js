@@ -9,7 +9,7 @@ import { join } from "path";
 
 const newsStore = require("../../src/main/ithome/news-store.js");
 const { parseIthomeRss } = require("../../src/main/ithome/rss-parser.js");
-const stateStore = require("../../src/main/state-store.js");
+const stateStore = require("../../src/main/state-store.ts");
 
 function tmpStatePath() {
   const dir = join(

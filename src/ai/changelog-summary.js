@@ -7,7 +7,7 @@
 const crypto = require("crypto");
 const { chatCompletion } = require("./shared-llm");
 const { resolvePrompt } = require("./prompt-registry");
-const stateStore = require("../main/state-store");
+const stateStore = require("../main/state-store.ts");
 
 function summaryCacheKey(appName, latestVersion) {
   return `${appName}::${latestVersion || ""}`;

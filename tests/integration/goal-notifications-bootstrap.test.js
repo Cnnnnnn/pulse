@@ -18,7 +18,7 @@ describe("goal-notifications: integration smoke", () => {
   });
 
   it("state-store PRESERVE_FIELDS 含 worldcupGoalNotified", () => {
-    const stateStore = require("../../src/main/state-store");
+    const stateStore = require("../../src/main/state-store.ts");
     // 通过 patchState 验证 (静态 PRESERVE_FIELDS 不 export)
     // 写一个带 worldcupGoalNotified 的 state, 然后调 saveLastOpened, 验证保留
     const fs = require("fs");

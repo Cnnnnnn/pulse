@@ -14,7 +14,7 @@
 
 "use strict";
 
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { computeBracket } = require("./bracket-rules");
 const { mainLog } = require("../log.ts");
 const { fetchWorldcupFixtures, loadFinalsTxt } = require("./fetcher");

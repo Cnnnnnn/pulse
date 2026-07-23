@@ -6,7 +6,7 @@
  * 2026-07-10: 删除洞察 (overview) 页后, 移除 5 个 overview-* handler 和
  * versions-overview-advisor 依赖. 保留 command-search 和 run-check.
  */
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { runCheckQueued } = require("../check-runner");
 const { buildRunCheckDeps } = require("../run-check-deps");
 

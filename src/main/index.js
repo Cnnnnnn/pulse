@@ -52,7 +52,7 @@ const {
 } = require("./bootstrap/state-init");
 const { initErrorCapture } = require("./bootstrap/error-init");
 const { mainLog, detectLog } = require("./log.ts");
-const stateStore = require("./state-store");
+const stateStore = require("./state-store.ts");
 const aiStorage = require("../ai-sessions/storage");
 const { HttpClient } = require("./http-client.ts");
 const { computePoolSize } = require("./pool-size.ts");

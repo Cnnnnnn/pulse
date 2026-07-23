@@ -9,7 +9,7 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const stateStore = require("../../src/main/state-store");
+const stateStore = require("../../src/main/state-store.ts");
 
 function tmpStatePath() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-state-"));

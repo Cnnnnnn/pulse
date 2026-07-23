@@ -11,7 +11,7 @@
  */
 
 const crypto = require("crypto");
-const stateStore = require("../main/state-store");
+const stateStore = require("../main/state-store.ts");
 const { chatCompletion } = require("./shared-llm");
 const { resolvePrompt } = require("./prompt-registry");
 const { DEFAULT_SCREENER_CRITERIA } = require("../stocks/stock-constants");

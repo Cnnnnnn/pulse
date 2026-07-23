@@ -9,7 +9,7 @@
 "use strict";
 
 const { Notification: ElectronNotification } = require("electron");
-const stateStore = require("./state-store");
+const stateStore = require("./state-store.ts");
 const { mainLog } = require("./log.ts");
 const { inQuietHours } = require("./notification-policy");
 const { pickEffectiveNavNumber } = require("../funds/fund-nav-merge");

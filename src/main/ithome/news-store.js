@@ -5,7 +5,7 @@
  */
 
 const fs = require("fs");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { HttpClient } = require("../http-client.ts");
 const { parseIthomeRss } = require("./rss-parser");
 const { parseIthomeListPage } = require("./list-parser");

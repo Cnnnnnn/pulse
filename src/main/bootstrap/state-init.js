@@ -10,7 +10,7 @@
  *   window is ready. Consume-once semantics prevent re-push.
  */
 
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 
 let _initialized = false;
 

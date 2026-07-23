@@ -1,5 +1,5 @@
 const { ipcMain, shell } = require("electron");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { mainLog } = require("../log.ts");
 const aiStorage = require("../../ai-sessions/storage");
 const { CloudSummarizer, PROVIDER_ENDPOINTS } = require("../../ai-sessions/provider-cloud");

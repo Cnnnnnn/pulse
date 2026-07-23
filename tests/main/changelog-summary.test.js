@@ -16,7 +16,7 @@ const chatCompletion = vi.fn();
 const sharedLlm = require("../../src/ai/shared-llm.js");
 sharedLlm.chatCompletion = chatCompletion;
 
-const stateStore = require("../../src/main/state-store.js");
+const stateStore = require("../../src/main/state-store.ts");
 const {
   collectChangelogSources,
   parseSummaryResponse,

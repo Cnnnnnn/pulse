@@ -23,7 +23,7 @@ const {
 } = require("../metals/metal-kline-fetcher.js");
 const { METALS } = require("../metals/metal-config.js");
 const { mainLog } = require("./log.ts");
-const stateStore = require("./state-store.js");
+const stateStore = require("./state-store.ts");
 
 const DEFAULT_CONFIG = {
   watchedIds: ["XAU", "XAG", "AU9999", "AG9999"],

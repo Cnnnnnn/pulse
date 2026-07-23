@@ -14,7 +14,7 @@
  *     (自动加 fetchedAt 时间戳, 让 tray 能显示陈旧度)
  */
 const fs = require("fs");
-const stateStore = require("./state-store");
+const stateStore = require("./state-store.ts");
 
 const PROVIDERS = ["minimax", "glm"];
 

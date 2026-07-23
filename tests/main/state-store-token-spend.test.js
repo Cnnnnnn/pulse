@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 const require = createRequire(import.meta.url);
-const stateStore = require("../../src/main/state-store");
+const stateStore = require("../../src/main/state-store.ts");
 
 function tmpStatePath() {
   return path.join(

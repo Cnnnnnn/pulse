@@ -17,7 +17,7 @@
 
 const { Notification: ElectronNotification } = require("electron");
 const { inQuietHours, suppressedByCooldown } = require("./notification-policy");
-const { isMuteActive } = require("./state-store");
+const { isMuteActive } = require("./state-store.ts");
 const recentActivity = require("./recent-activity");
 const { detectStaleApps } = require("../utils/stale-detect");
 

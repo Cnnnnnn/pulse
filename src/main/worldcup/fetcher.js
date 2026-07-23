@@ -13,7 +13,7 @@
  */
 
 const { HttpClient } = require("../http-client.ts");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { parseWorldcupTxt } = require("./parser");
 const { mainLog } = require("../log.ts");
 

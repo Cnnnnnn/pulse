@@ -7,7 +7,7 @@
 const { chatCompletion } = require("../../ai/shared-llm");
 const { resolvePrompt } = require("../../ai/prompt-registry");
 const { sanitizeLlmOutput } = require("../../ai/sanitize-llm-output");
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const { matchKey } = require("./match-key");
 const { mainLog } = require("../log.ts");
 

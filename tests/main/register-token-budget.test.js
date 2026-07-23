@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const stateStorePath = require.resolve("../../src/main/state-store.js");
+const stateStorePath = require.resolve("../../src/main/state-store.ts");
 const registerPath = require.resolve(
   "../../src/main/ipc/register-token-budget.js",
 );

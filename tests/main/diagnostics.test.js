@@ -26,7 +26,7 @@ import { createRequire } from "module";
 function importFresh() {
   // vi.resetModules 让模块顶层 const _t0 = Date.now() 重跑
   vi.resetModules();
-  const stateStore = require("../../src/main/state-store.js");
+  const stateStore = require("../../src/main/state-store.ts");
   stateStore._setStatePathForTest?.(
     require("fs").mkdtempSync(require("path").join(require("os").tmpdir(), "pulse-diag-")) +
       "/state.json",

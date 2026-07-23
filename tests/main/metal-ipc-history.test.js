@@ -17,7 +17,7 @@ const electronStub = {
 };
 const electronPath = require.resolve("electron");
 const metalIpcPath = require.resolve("../../src/main/metal-ipc.js");
-const stateStorePath = require.resolve("../../src/main/state-store.js");
+const stateStorePath = require.resolve("../../src/main/state-store.ts");
 
 let tmpDir;
 let statePath;

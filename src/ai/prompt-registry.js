@@ -5,7 +5,7 @@
  * 默认值 = 此前硬编码原值; 用户可在 Settings 改 (含可选 few-shot).
  */
 
-const stateStore = require("../main/state-store");
+const stateStore = require("../main/state-store.ts");
 
 const DEFAULT_PROMPTS = {
   ithome_summary: {

@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 const { initStateStorePaths, loadWechatHotRead, saveWechatHotRead, saveOne } = await import(
-  "../../src/main/state-store.js"
+  "../../src/main/state-store.ts"
 );
 
 beforeEach(() => {

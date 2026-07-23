@@ -9,7 +9,7 @@ import {
   loadIndexHistory,
   saveIndexHistory,
 } from "../../src/main/funds/fund-history-store.js";
-import { stateStore } from "../../src/main/state-store.js";
+import { stateStore } from "../../src/main/state-store.ts";
 import os from "os";
 import path from "path";
 import fs from "fs";

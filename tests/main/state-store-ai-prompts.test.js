@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 const { initStateStorePaths, loadAiPrompts, saveAiPrompts, saveOne } = await import(
-  "../../src/main/state-store.js"
+  "../../src/main/state-store.ts"
 );
 
 beforeEach(() => {

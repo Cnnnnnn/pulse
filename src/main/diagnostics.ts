@@ -45,7 +45,7 @@ interface StateStoreShape {
 const { setManagedInterval } = require("./timer-registry.ts");
 // diagnostics 依赖 state-store (.js, Task 3 才会迁). ponytail: 用 typeof
 // import 推断 .js 模块的类型, 避免对 .js 文件写 .d.ts 双 source.
-const stateStore: StateStoreShape = require("./state-store");
+const stateStore: StateStoreShape = require("./state-store.ts");
 const { createLogger } = require("./log.ts");
 
 const log = createLogger("diagnostics");

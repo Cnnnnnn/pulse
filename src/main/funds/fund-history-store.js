@@ -4,7 +4,7 @@
  * 基金每日盈亏快照持久化 (state.json.funds.dailySnapshots).
  */
 
-const stateStore = require("../state-store");
+const stateStore = require("../state-store.ts");
 const fundStore = require("./fund-store");
 const {
   ymdShanghai,
