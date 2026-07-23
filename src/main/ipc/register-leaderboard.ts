@@ -85,9 +85,10 @@ function sanitize(payload) {
   const force = Boolean(p.force);
   // ponytail: 透传 sources 白名单 — renderer 按 view 决定拉哪些源, sanitize 不能丢.
   // 老版本默认 {arena,aa,openrouter,livebench 全 true} 在 IPC 端补默认, 保持向后兼容.
+  // v2.79.5+: 默认加 huggingface: true — renderer 主动传时会被覆盖, 不影响老路径.
   const sources = p.sources && typeof p.sources === "object"
     ? p.sources
-    : { arena: true, aa: true, openrouter: true, livebench: true, modelsdev: true };
+    : { arena: true, aa: true, openrouter: true, livebench: true, modelsdev: true, huggingface: true };
   return { category, dimension, vendor, sortDir, search, force, sources };
 }
 

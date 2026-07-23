@@ -43,9 +43,19 @@ export const VIEWS = {
     description: "LiveBench 月度抗污染客观评测（仅 LLM）",
     sourceKey: "livebench",
   },
+  // ponytail: 第 4 视角 — HuggingFace 社区信号 (v2.79.5+).
+  // 跟 Arena/AA/LB 能力维度完全正交: 跑通"按下载量 / 点赞排序"作为"用户用得多不多"的代理.
+  huggingface: {
+    key: "huggingface",
+    label: "HuggingFace",
+    segSub: "社区下载 · 点赞",
+    emoji: "🤗",
+    description: "HuggingFace Hub 社区信号 — downloads / likes / 活跃度",
+    sourceKey: "huggingface",
+  },
 };
 
-export const VIEW_KEYS = ["arena", "aa", "livebench"];
+export const VIEW_KEYS = ["arena", "aa", "livebench", "huggingface"];
 
 /* ── Arena 视角：board 子筛选 ── */
 
@@ -90,6 +100,8 @@ export const SORT_COLUMN_LABELS = {
   lb_language: "Language",
   lb_instfollow: "指令遵循",
   lb_cost: "$/成功",
+  hf_downloads: "Downloads",
+  hf_likes: "Likes",
 };
 
 /* ── LiveBench 视角：抗污染子维度（全部 desc 默认）── */
@@ -103,6 +115,15 @@ export const LIVE_DIMENSIONS = {
 
 export const LIVE_DIMENSION_KEYS = ["lb_overall", "lb_coding", "lb_language", "lb_instfollow"];
 
+/* ── HuggingFace 视角：社区信号子维度（全部 desc 默认）── */
+
+export const HF_DIMENSIONS = {
+  hf_downloads: { key: "hf_downloads", label: "Downloads", kind: "huggingface" },
+  hf_likes: { key: "hf_likes", label: "Likes", kind: "huggingface" },
+};
+
+export const HF_DIMENSION_KEYS = ["hf_downloads", "hf_likes"];
+
 /** 升序默认的维度 (低 = 优). */
 export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);
 
@@ -113,6 +134,8 @@ export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);
  * Arena 视角：category 由 board 决定，dimension 固定 "elo"。
  * AA 视角：category 固定 "llm"，dimension 由用户选择。
  * LiveBench 视角：category 固定 "llm"，dimension 取 lb_* 之一，默认 lb_overall。
+ * HuggingFace 视角 (v2.79.5+)：category 固定 "llm"，dimension 取 hf_* 之一，默认 hf_downloads。
+ *   renderer 共享 activeDim 存 HF dimension（AA 共用），HF_DIMENSIONS 校验防越界。
  */
 export function toIpcParams(view, boardOrDim) {
   if (view === "arena") {
@@ -121,6 +144,10 @@ export function toIpcParams(view, boardOrDim) {
   }
   if (view === "livebench") {
     const dim = LIVE_DIMENSION_KEYS.includes(boardOrDim) ? boardOrDim : "lb_overall";
+    return { category: "llm", dimension: dim };
+  }
+  if (view === "huggingface") {
+    const dim = HF_DIMENSION_KEYS.includes(boardOrDim) ? boardOrDim : "hf_downloads";
     return { category: "llm", dimension: dim };
   }
   const dim = AA_DIMENSIONS[boardOrDim] ? boardOrDim : "intelligence";
@@ -193,6 +220,13 @@ export const ATTRIBUTION = {
     url: "https://models.dev/",
     required: false,
   },
+  // ponytail: HF 署名 (v2.79.5+) — 第 6 个数据源, 跟现有 5 个完全正交.
+  huggingface: {
+    id: "huggingface",
+    text: "社区信号：HuggingFace Hub (https://huggingface.co), 数据来源：Hub Models API（按 downloads 降序 top 5000）",
+    url: "https://huggingface.co/models",
+    required: false,
+  },
   sample: {
     id: "sample",
     text: "示例数据（离线快照，非实时）",
@@ -207,6 +241,7 @@ export const SOURCE_URLS = {
   openrouter: "https://openrouter.ai",
   livebench: "https://livebench.ai",
   modelsdev: "https://models.dev",
+  huggingface: "https://huggingface.co/models",
 };
 
 /* ── 归一化 ── */
@@ -272,7 +307,8 @@ return {
     openrouter: null,
     livebench: null,
     modelsdev: null,
-    sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" },
+    huggingface: null,
+    sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none", huggingface: "none" },
     isSample: false,
     fetchedAt: null,
   };
@@ -284,8 +320,9 @@ const sources = raw.sources && typeof raw.sources === "object"
         openrouter: raw.sources.openrouter || "none",
         livebench: raw.sources.livebench || "none",
         modelsdev: raw.sources.modelsdev || "none",
+        huggingface: raw.sources.huggingface || "none",
       }
-    : { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" };
+    : { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none", huggingface: "none" };
   return {
     id: typeof raw.id === "string" ? raw.id : "",
     name: typeof raw.name === "string" ? raw.name : "",
@@ -298,6 +335,8 @@ const sources = raw.sources && typeof raw.sources === "object"
     openrouter: raw.openrouter && typeof raw.openrouter === "object" ? raw.openrouter : null,
     livebench: raw.livebench && typeof raw.livebench === "object" ? raw.livebench : null,
     modelsdev: raw.modelsdev && typeof raw.modelsdev === "object" ? raw.modelsdev : null,
+    // ponytail: HF 切片 (v2.79.5+) — 镜像 main toAiModel 默认 null, 安全解构.
+    huggingface: raw.huggingface && typeof raw.huggingface === "object" ? raw.huggingface : null,
     sources,
     isSample: !!raw.isSample,
     fetchedAt: typeof raw.fetchedAt === "string" ? raw.fetchedAt : null,
@@ -337,6 +376,8 @@ export function normalizeBoardResult(res) {
       openrouter: Number.isFinite(sc.openrouter) ? sc.openrouter : 0,
       livebench: Number.isFinite(sc.livebench) ? sc.livebench : 0,
       modelsdev: Number.isFinite(sc.modelsdev) ? sc.modelsdev : 0,
+      // ponytail: HF 覆盖率 (v2.79.5+) — 镜像 main aggregator
+      huggingface: Number.isFinite(sc.huggingface) ? sc.huggingface : 0,
     },
     attribution,
     stale: !!res.stale,

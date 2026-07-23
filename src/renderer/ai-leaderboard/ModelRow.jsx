@@ -9,7 +9,7 @@
 
 import { forwardRef } from "preact/compat";
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.js";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare, openModelDetail } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.jsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
@@ -80,7 +80,13 @@ export const ModelRow = forwardRef(function ModelRow(
   );
   const vendorCell = (
     <td class="ai-lb-td ai-lb-col-vendor">
-      <span class="ai-lb-vendor">{vendorLabel}{licBadge}</span>
+      <span class="ai-lb-vendor">
+        {/* ponytail: HF view (v2.79.5+) — 优先显示 vendorRaw (HF author 原始组织名)
+            如 "BAAI" / "meta-llama" / "pyannote" 等. 其它 view 走 VENDOR_META 归一
+            (canonical 厂商中文友好名). HF 数据本身就是 author 名, 保留原样更有信息量. */}
+        {view === "huggingface" && m.vendorRaw ? m.vendorRaw : vendorLabel}
+        {licBadge}
+      </span>
     </td>
   );
 
@@ -128,6 +134,35 @@ export const ModelRow = forwardRef(function ModelRow(
         {fmt(value)}
         {bar(key, value)}
       </td>
+    );
+  }
+
+  // ponytail: HF 视角 (v2.79.5+) — 走 huggingface 切片, 主列 Downloads 内联条形.
+  if (view === "huggingface") {
+    const hf = m.huggingface || {};
+    const downloads = typeof hf.downloads === "number" ? hf.downloads : null;
+    const likes = typeof hf.likes === "number" ? hf.likes : null;
+    return (
+      <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
+        {checkboxCell}
+        {rankCell}
+        {modelCell}
+        {vendorCell}
+        {num("hf_downloads", downloads, fmtDownloads, "HuggingFace 累计下载量（按 downloads 降序）")}
+        {num("hf_likes", likes, fmtVotes, "HuggingFace 点赞数（社区认可）")}
+        <td class="ai-lb-td" title={hf.pipelineTag ? `Pipeline: ${hf.pipelineTag}` : "未知 pipeline"}>
+          {hf.pipelineTag || "—"}
+        </td>
+        <td class="ai-lb-td" title={hf.lastModified ? `更新于 ${hf.lastModified}` : "未知更新时间"}>
+          {fmtHfDate(hf.lastModified)}
+        </td>
+        {num(
+          "context",
+          typeof md.contextLength === "number" ? md.contextLength : null,
+          fmtContext,
+          "上下文窗口（来自 models.dev）",
+        )}
+      </tr>
     );
   }
 

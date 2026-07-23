@@ -81,8 +81,16 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
   const list = rows || [];
 
   // 当前驱动排序/强调的主列：列头点选优先，否则走视角主维度。
+  // ponytail: HF 视角 (v2.79.5+) — 主维度走 hf_downloads (renderer store 端 activeDim 兜底 "hf_downloads").
   const primaryKey =
-    sortKey.value || (v === "arena" ? "elo" : v === "livebench" ? lbKey : d);
+    sortKey.value ||
+    (v === "arena"
+      ? "elo"
+      : v === "livebench"
+      ? lbKey
+      : v === "huggingface"
+      ? "hf_downloads"
+      : d);
 
   // 主指标列最大值（内联条形归一化用）。
   let primaryMax = 0;
@@ -139,6 +147,37 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
           active={aKey}
           dir={dir}
           title="cost_per_successful_task — LiveBench 官网性价比主指标"
+        />
+      </tr>
+    ) : v === "huggingface" ? (
+      // ponytail: HF 视角 (v2.79.5+) — 主列 Downloads (内联条形), 副 Likes / Pipeline / Last Modified / 上下文.
+      <tr>
+        <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
+        <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
+        <th class="ai-lb-th" scope="col">模型</th>
+        <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
+        <SortableTh
+          k="hf_downloads"
+          label="Downloads"
+          active={aKey}
+          dir={dir}
+          title="HuggingFace Hub 累计下载量（按下载量降序排列 top 5000）"
+        />
+        <SortableTh
+          k="hf_likes"
+          label="Likes"
+          active={aKey}
+          dir={dir}
+          title="HuggingFace Hub 点赞数（社区认可度）"
+        />
+        <th class="ai-lb-th" scope="col" title="HuggingFace Pipeline Tag (text-generation / sentence-similarity 等)">Pipeline</th>
+        <th class="ai-lb-th" scope="col" title="HuggingFace 模型最后更新时间">最后更新</th>
+        <SortableTh
+          k="context"
+          label="上下文"
+          active={aKey}
+          dir={dir}
+          title="上下文窗口（models.dev 提供）"
         />
       </tr>
     ) : (

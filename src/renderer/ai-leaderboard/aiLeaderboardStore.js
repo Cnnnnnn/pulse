@@ -23,6 +23,8 @@ import {
   ARENA_BOARDS,
   AA_DIMENSIONS,
   LIVE_DIMENSIONS,
+  // ponytail: HF 视角 (v2.79.5+) — 共用 activeDim, HF_DIMENSIONS 校验防越界.
+  HF_DIMENSIONS,
   ASC_DEFAULT_DIMS,
   VENDOR_META,
   toIpcParams,
@@ -214,11 +216,13 @@ async function _run(force) {
   const { category, dimension } = toIpcParams(activeView.value, subFilter);
   // ponytail: 独立数据源管控 — 每个 tab 只拉自己主源 + openrouter 兜底.
   // 升级路径: 用户手动选「同时看 AA+LB」可加 toggle (caller 拼多个 sourceKey).
+  // v2.79.5+: HF 视角下 huggingface=true 拉 hfFetcher, 其它视角不拉 (openrouter 仍兜底).
   const view = activeView.value;
   const sources = {
     arena: view === "arena",
     aa: view === "aa",
     livebench: view === "livebench",
+    huggingface: view === "huggingface",
     openrouter: true, // 任何 view 都拉, 用作"目录骨架" / 厂商匹配
   };
   const opts = { category, dimension, vendor: activeVendor.value, force: !!force, sources };
@@ -233,7 +237,7 @@ async function _run(force) {
       if (norm.ok) {
         items.value = norm.items;
         sources.value = norm.sources;
-        sourceCoverage.value = norm.sourceCoverage || { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
+        sourceCoverage.value = norm.sourceCoverage || { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0, huggingface: 0 };
         attribution.value = norm.attribution;
         lastFetchErrors.value = norm.errors || [];
         stale.value = norm.stale;
@@ -249,7 +253,7 @@ async function _run(force) {
         error.value = norm.error || "加载失败";
         items.value = [];
         sources.value = {};
-        sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
+        sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0, huggingface: 0 };
         attribution.value = [];
       }
     });
@@ -277,7 +281,7 @@ export function refresh() {
 
 /* ── actions ── */
 
-/** 切换视角（arena ↔ aa）→ 重新请求。 */
+/** 切换视角（arena ↔ aa ↔ huggingface）→ 重新请求。 */
 export function setView(v) {
   if (!VIEWS[v] || v === activeView.value) return undefined;
   activeView.value = v;
@@ -285,6 +289,8 @@ export function setView(v) {
   compareList.value = [];
   sortKey.value = null;
   sortDir.value = "desc";
+  // ponytail: HF 视角 (v2.79.5+) — 切到 HF 时重置 activeDim 到 hf_downloads 兜底.
+  if (v === "huggingface" && !HF_DIMENSIONS[activeDim.value]) activeDim.value = "hf_downloads";
   persistPrefs();
   return loadLeaderboard();
 }
@@ -379,6 +385,22 @@ export function clearSearchQuery() {
  * @returns {number|null}
  */
 export function columnValue(model, view, key) {
+  // ponytail: HF 视角 (v2.79.5+) — 走 huggingface 切片, 主键 downloads/likes.
+  if (view === "huggingface") {
+    const hf = model && model.huggingface;
+    if (key === "hf_downloads") return hf && typeof hf.downloads === "number" ? hf.downloads : null;
+    if (key === "hf_likes") return hf && typeof hf.likes === "number" ? hf.likes : null;
+    if (key === "context") {
+      // 优先级: modelsdev > openrouter (HF 不返回 context)
+      const md = model && model.modelsdev;
+      if (md && typeof md.contextLength === "number") return md.contextLength;
+      const or = model && model.openrouter;
+      return or && typeof or.contextLength === "number" && or.contextLength > 0
+        ? or.contextLength
+        : null;
+    }
+    return null;
+  }
   if (view === "arena") {
     if (key === "elo" || key === "ci" || key === "votes") {
       const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
@@ -457,6 +479,11 @@ export function sortValue(model) {
   if (activeView.value === "livebench") {
     return primaryValue(model, activeLB.value, "llm");
   }
+  // ponytail: HF 视角 (v2.79.5+) — 主维度走 activeDim 复用 (HF_DIMENSIONS 校验)
+  if (activeView.value === "huggingface") {
+    const dim = HF_DIMENSIONS[activeDim.value] ? activeDim.value : "hf_downloads";
+    return primaryValue(model, dim, "llm");
+  }
   return primaryValue(model, activeDim.value, "llm");
 }
 
@@ -478,6 +505,8 @@ export function toggleSort(key) {
     // ponytail: 与表头排序对齐偏好里的主维度，避免删掉工具栏下拉后刷新又回默认序
     if (activeView.value === "aa" && AA_DIMENSIONS[key]) activeDim.value = key;
     if (activeView.value === "livebench" && LIVE_DIMENSIONS[key]) activeLB.value = key;
+    // ponytail: HF 视角 (v2.79.5+) — 列头点选 hf_* 同步 activeDim 复用.
+    if (activeView.value === "huggingface" && HF_DIMENSIONS[key]) activeDim.value = key;
     persistPrefs();
   }
 }

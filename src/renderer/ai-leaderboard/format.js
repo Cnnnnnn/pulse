@@ -100,6 +100,27 @@ export function fmtVotes(v) {
   return String(n);
 }
 
+/** ponytail: 大数量紧凑格式化 (HF downloads) — 254761864 → "254.8M", 12345 → "12.3k" (v2.79.5+).
+ *  跟 fmtVotes 的区别: 支持 M/B 级别 (百万/十亿), 因为 HF top 模型下载量动辄亿次. */
+export function fmtDownloads(v) {
+  if (v == null || !Number.isFinite(Number(v))) return "—";
+  const n = Number(v);
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
+/** ponytail: HF lastModified ISO 日期紧凑显示 (v2.79.5+) — 2026-06-01T06:29:13Z → "2026-06-01".
+ *  renderer 主要用相对时间, 主表格里显示精确日期不必要 — 仅显 YYYY-MM-DD. */
+export function fmtHfDate(iso) {
+  if (!iso) return "—";
+  const s = String(iso);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return s.slice(0, 10) || "—";
+}
+
 /**
  * 许可分类：open（开源权重）/ proprietary（闭源）/ unknown。
  * 仅基于 license 字符串关键词粗判，用于"仅开源权重"筛选与徽章着色。
@@ -145,6 +166,17 @@ export function primaryValue(model, dimension, category) {
       : lb[key];
     return typeof v === "number" && Number.isFinite(v) ? v : null;
   }
+  // ponytail: hf_* 维度 (v2.79.5+) — 走 huggingface 切片, sortKey 直接读 downloads/likes.
+  if (typeof dimension === "string" && dimension.startsWith("hf_")) {
+    const hf = model && model.huggingface;
+    if (!hf) return null;
+    const meta = (require("./types.js")).DIMENSION_META &&
+      (require("./types.js")).DIMENSION_META[dimension];
+    const key = meta && meta.sortKey;
+    if (!key) return null;
+    const v = hf[key];
+    return typeof v === "number" && Number.isFinite(v) ? v : null;
+  }
   const aa = model && model.aa;
   if (!aa) return null;
   switch (dimension) {
@@ -175,6 +207,8 @@ export function formatPrimary(value, dimension) {
   if (dimension === "price") return fmtPricePer1M(value);
   if (dimension === "speed") return fmtSpeed(value);
   if (typeof dimension === "string" && dimension.startsWith("lb_")) return fmtLivebench(value);
+  // ponytail: hf_* 维度 (v2.79.5+) — 走 fmtVotes 紧凑格式 (254M → "254.0M")
+  if (typeof dimension === "string" && dimension.startsWith("hf_")) return fmtDownloads(value);
   return fmtIndex(value);
 }
 

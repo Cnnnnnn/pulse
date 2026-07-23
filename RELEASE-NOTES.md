@@ -2,6 +2,39 @@
 
 ---
 
+## v2.79.5 (🤗 AI 榜单接入 HuggingFace Hub) — 2026-07-23
+
+**新增数据源 — HuggingFace Hub Models API**:
+- 第 6 个数据源 fetcher-huggingface, 跟 Arena/AA/OpenRouter/LiveBench/Models.dev 完全正交 — 补全「社区信号」维度 (downloads/likes/活跃度/标签), 跟现有 5 个源「模型能力」「模型元数据」互补
+- 拉取策略: 按 downloads 降序取 top 5000, 覆盖 20+ 主流厂商 (OpenAI/Anthropic/Google/Meta/Mistral/DeepSeek/Qwen/智谱/月之暗面 等) 的所有基模和主要变体
+- 字段: downloads, likes, lastModified, pipelineTag, libraryName, license, baseModel, arxivIds, quantized, author, repoUrl
+- vendor 归一: 加 VENDOR_ALIASES 兜底 (google-bert → google, meta-llama → meta, Qwen → qwen, mistralai → mistral, deepseek-ai → deepseek, zhipu-ai → zhipu, moonshotai → moonshot, thudm → zhipu 等) — 解决 HF author 组织名跟 Arena/AA canonical 厂商名不一致
+- 拉取节流: 24h TTL (downloads/likes 变化频率不算高, 匿名限频 ~1000/h 拉一次 ~5s); 串行分页避免触发 HF 限频
+- 兜底链: 单源失败仅返回 {ok:false}, 不影响其它源; gated/private 模型在 fetch 阶段过滤
+
+**UI — 第 4 个数据视角 tab (跟 Arena/AA/LiveBench 平行)**:
+- `LeaderboardFilterBar` view switch 新增 "HuggingFace" 段 (🤗 社区下载 · 点赞)
+- store 切到 HF 视角 → sources.huggingface=true (其它源自动 false), 走 hfFetcher 主源 + openrouter 兜底
+- 表格列: Downloads (内联条形) / Likes / Pipeline Tag / 最后更新 / 上下文 (models.dev 兜底)
+- 排序: 列头点选 Downloads / Likes, 复用 activeDim (HF_DIMENSIONS 校验); 默认主排 Downloads 降序
+- 大数格式化: fmtDownloads 支持 M/B 级别 (254M → "254.8M"), 跟 fmtVotes 区分
+- IPC sanitize 默认 huggingface=true (renderer 主动传时覆盖, 跟 modelsdev 同模式)
+
+**架构变化**:
+- `AiModel` 新增 `huggingface` 数据切片 (默认 null, 跟 aa/openrouter/livebench/modelsdev 同模式)
+- `BoardResult.sources` 新增 `huggingface` 字段 (顶层, aggregator 独立算 live/none)
+- 新增 `ATTRIBUTION["huggingface"]` (含 url 链接, 符合架构 §12 外部数据源规范)
+- main `DIMENSION_META` 加 hf_downloads / hf_likes (field=huggingface, sortKey=downloads/likes)
+- main `ranking.sortValue` 加 hf_* 处理 (缺切片 → -Infinity, 跟 lb_*/aa 同模式)
+- renderer `VIEWS` 加 huggingface 段; `VIEW_KEYS` 4 个; `toIpcParams` 加 HF 视角映射 (category=llm, dimension=hf_downloads 兜底)
+- renderer `normalizeAiModel` / `normalizeBoardResult` 镜像 huggingface 字段 (跟 5 源同范式)
+
+**测试**:
+- `tests/ai-leaderboard/fetcher-huggingface.test.js` 16 个 case 覆盖纯函数 (num/categoryFromPipelineTag/summarizeTags) + normalize (vendor 归一 / 字段映射 / 跳过畸形 / 空 / 裸数组) + mergeModelSlices (跟 AA / 跨 vendor 合并 / sources 形状)
+- `tests/main/ai-leaderboard-ranking-hf.test.js` 9 个 case 覆盖 sortValue (hf_downloads / hf_likes) + sortModels (desc / asc / 缺切片兜底) + DIMENSION_META 注册完整性
+
+---
+
 ## v2.50.0 (2026-06-29) — 阶段六: 个股财务深度 (同业对比 + 护城河)
 
 **新增分析角度**:
