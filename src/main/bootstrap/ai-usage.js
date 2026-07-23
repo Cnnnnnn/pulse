@@ -11,7 +11,7 @@
  *      multi-provider v2: minimax + glm 各自 fire-and-forget.
  */
 
-const { _internals, KNOWN_PROVIDERS } = require("../ipc/register-ai-usage");
+const { _internals, KNOWN_PROVIDERS } = require("../ipc/register-ai-usage.ts");
 
 /**
  * @param {object} deps

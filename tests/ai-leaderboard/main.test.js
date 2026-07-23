@@ -36,7 +36,7 @@ const { __resetForTest: resetCache, cacheKey, writeCache } = require("../../src/
 const arenaFetcher = require("../../src/main/ai-leaderboard/fetcher-arena");
 const aaFetcher = require("../../src/main/ai-leaderboard/fetcher-aa");
 const { sanitize, boardCacheKey, cacheGet, cacheSet, resetLeaderboardCache } =
-  require("../../src/main/ipc/register-leaderboard");
+  require("../../src/main/ipc/register-leaderboard.ts");
 const { mergeModelSlices } = require("../../src/main/ai-leaderboard/normalize");
 
 // ── 兜底/合并测试用统一 payload（三源同 id，便于验证 merge）─────────────

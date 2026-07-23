@@ -7,6 +7,13 @@
  * ponytail: 走 createStockHttpClient — 在 Electron 环境自动用 Chromium net.fetch
  * (绕开 Node OpenSSL 在 push2.eastmoney.com 被 RST 的反爬). vitest 环境 fallback 到 HttpClient.
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
+
 const { createStockHttpClient } = require("../chromium-http-client");
 const {
   fetchStocks,
@@ -103,7 +110,7 @@ function registerStocksHandlers(ctx) {
 
   safeHandle(
     "stocks:screen",
-    async (_event, { criteria, sort } = {}) => {
+    async (_event, { criteria, sort }: any = {}) => {
       const key = criteriaKey(criteria);
       const now = Date.now();
       if (
@@ -143,7 +150,7 @@ function registerStocksHandlers(ctx) {
           "changePct",
         ].includes(sortKey) &&
         sort.dir === "desc";
-      const fetchOpts = { sortKey };
+      const fetchOpts: any = { sortKey };
       if (numericDescFastSort) {
         fetchOpts.minResults = EARLY_RESULTS;
         fetchOpts.maxPages = EARLY_PAGES; // 兜底: 极端窄筛也能拉到 25 页
@@ -294,7 +301,7 @@ function registerStocksHandlers(ctx) {
   // marketOverview 从最近一次 fetchStocks 缓存的全市场 rows 计算; 用户首次未拉取时降级为 null.
   safeHandle(
     "stocks:ai-advise",
-    async (_event, payload = {}) => {
+    async (_event, payload: any = {}) => {
       const intentChip = payload && payload.intentChip;
       const freeText = payload && payload.freeText;
       if (!intentChip || !intentChip.id) {

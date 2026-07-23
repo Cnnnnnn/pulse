@@ -9,14 +9,14 @@ const { registerOpenUrlHandlers } = require("./register-open-url.ts");
 const {
   registerRemindersRecentHandlers,
 } = require("./register-reminders-recent.ts");
-const { registerAiHandlers } = require("./register-ai");
-const { registerGithubHandlers } = require("./register-github");
-const { registerAiUsageHandlers } = require("./register-ai-usage");
-const { registerWorldcupHandlers } = require("./register-worldcup");
-const { registerIthomeHandlers } = require("./register-ithome");
-const { registerIthomeShareHandlers } = require("./register-ithome-share");
+const { registerAiHandlers } = require("./register-ai.ts");
+const { registerGithubHandlers } = require("./register-github.ts");
+const { registerAiUsageHandlers } = require("./register-ai-usage.ts");
+const { registerWorldcupHandlers } = require("./register-worldcup.ts");
+const { registerIthomeHandlers } = require("./register-ithome.ts");
+const { registerIthomeShareHandlers } = require("./register-ithome-share.ts");
 const { registerFundsHandlers } = require("./register-funds.ts");
-const { registerWechatHotHandlers } = require("./register-wechat-hot");
+const { registerWechatHotHandlers } = require("./register-wechat-hot.ts");
 const { registerAiPromptsHandlers } = require("./register-ai-prompts.ts");
 const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice.ts");
 const {
@@ -28,15 +28,15 @@ const { registerSelfUpdateHandlers } = require("./register-self-update.ts");
 const {
   registerConfigPortabilityHandlers,
 } = require("./register-config-portability.ts");
-const { registerStocksHandlers } = require("./register-stocks");
-const { registerStockDetailHandlers } = require("./register-stock-detail");
-const { registerStockExportHandlers } = require("./register-stock-export");
+const { registerStocksHandlers } = require("./register-stocks.ts");
+const { registerStockDetailHandlers } = require("./register-stock-detail.ts");
+const { registerStockExportHandlers } = require("./register-stock-export.ts");
 const {
   registerVersionsOverviewHandlers,
 } = require("./register-versions-overview.ts");
 const { registerThemeHandlers } = require("./register-theme.ts");
-const { registerGamesHandlers } = require("./register-games");
-const { registerLeaderboardHandlers } = require("./register-leaderboard");
+const { registerGamesHandlers } = require("./register-games.ts");
+const { registerLeaderboardHandlers } = require("./register-leaderboard.ts");
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers

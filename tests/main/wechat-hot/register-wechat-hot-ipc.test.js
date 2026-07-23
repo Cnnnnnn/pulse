@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const httpClientPath = require.resolve("../../../src/main/http-client.ts");
 const fetcherPath = require.resolve("../../../src/main/wechat-hot/fetcher.js");
 const registerPath =
-  require.resolve("../../../src/main/ipc/register-wechat-hot.js");
+  require.resolve("../../../src/main/ipc/register-wechat-hot.ts");
 const logPath = require.resolve("../../../src/main/log.ts");
 const readStorePath = require.resolve("../../../src/main/wechat-hot/read-store.js");
 

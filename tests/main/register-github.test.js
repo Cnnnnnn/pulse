@@ -6,7 +6,7 @@
  *   2026-07-17 用户报告「检查更新全部失败」，日志显示
  *   `[ipc] github:fetch-release threw msg="parseGithubUrl is not defined"`
  *
- * 根因：register-github.js 顶部 require 解构漏了 parseGithubUrl，但 handler 内部
+ * 根因：register-github.ts 顶部 require 解构漏了 parseGithubUrl，但 handler 内部
  * 第 76 行 `parseGithubUrl(input)` 调用了一个未定义标识符 → ReferenceError →
  * safeHandle catch 成 {ok:false, reason:"threw"} → 前端 reason 不在映射表 →
  * 走 default「操作失败，请重试」。
@@ -17,7 +17,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const registerPath = require.resolve(
-  "../../src/main/ipc/register-github.js",
+  "../../src/main/ipc/register-github.ts",
 );
 const githubPath = require.resolve("../../src/main/github.js");
 const aiPath = require.resolve("../../src/ai/readme-parse.js");

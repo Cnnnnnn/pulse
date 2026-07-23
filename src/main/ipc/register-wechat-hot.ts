@@ -6,6 +6,13 @@
  *   wechat-hot:refresh  触发 fetch + 推 wechat-hot:updated
  */
 
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
+
 const { fetchWechatHot } = require("../wechat-hot/fetcher.js");
 const { createWechatHotCache } = require("../wechat-hot/cache.js");
 const { loadReadIds, markItemRead } = require("../wechat-hot/read-store.js");

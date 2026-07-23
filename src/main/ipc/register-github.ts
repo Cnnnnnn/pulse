@@ -8,6 +8,13 @@
  * 2026-07-15 v2.80: 新增。
  */
 
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
+
 const { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl } = require("../github");
 const { parseReadme } = require("../../ai/readme-parse");
 

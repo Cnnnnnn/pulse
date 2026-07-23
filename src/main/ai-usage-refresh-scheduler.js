@@ -11,7 +11,7 @@
  *   - 复用 register-ai-usage 的 _internals.fetch (deps 注入)
  *   - 复用 ai-usage-cache 的 getTraySummary 构造 tray summary
  */
-const registerAiUsage = require("./ipc/register-ai-usage");
+const registerAiUsage = require("./ipc/register-ai-usage.ts");
 const { PROVIDERS } = require("./ai-usage-cache");
 const { inQuietHours } = require("./notification-policy");
 const { Notification: ElectronNotification } = require("electron");

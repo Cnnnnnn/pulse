@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const fetcherPath = require.resolve("../../src/stocks/stock-fetcher.js");
 const searchPath = require.resolve("../../src/stocks/stock-search.js");
-const registerPath = require.resolve("../../src/main/ipc/register-stocks.js");
+const registerPath = require.resolve("../../src/main/ipc/register-stocks.ts");
 
 const httpClient = {
   get: async () => ({ status: 200, body: "{}", error: null }),

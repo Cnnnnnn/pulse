@@ -19,6 +19,13 @@
  *   - dialog / BrowserWindow / app 从 ctx 注入 (与 register-config-portability
  *     一致), 让测试环境能 mock.
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
+
 const fs = require("fs");
 const path = require("path");
 
@@ -54,7 +61,7 @@ function registerStockExportHandlers(ctx) {
 
   safeHandle(
     "stocks:export-diagnosis-png",
-    async (event, { defaultName } = {}) => {
+    async (event, { defaultName }: any = {}) => {
       try {
         if (!BrowserWindow || !dialog) {
           return { ok: false, reason: "main_not_ready" };

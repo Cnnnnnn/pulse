@@ -5,6 +5,13 @@
  * 入参: { id }
  * 出参: { ok: true, bytes } | { ok: false, reason }
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
+
 const newsStore = require("../ithome/news-store");
 const { createShareCardPng } = require("../ithome/share-card-renderer");
 const { writePngToClipboard } = require("../ithome/clipboard-image");

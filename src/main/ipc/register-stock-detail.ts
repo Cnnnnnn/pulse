@@ -6,6 +6,13 @@
  *
  * ponytail: 与 register-stocks.js 风格一致 — safeHandle + threwResponse 模式.
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
+
 const { createStockHttpClient } = require("../chromium-http-client");
 const { fetchStockDetailAngles, fetchSingleAngle } = require("../../stocks/stock-detail-fetcher");
 const { computeStockCacheKey } = require("../../stocks/stock-detail-cache");
@@ -19,7 +26,7 @@ function registerStockDetailHandlers(ctx) {
 
   safeHandle(
     "stocks:detail-angles",
-    async (_event, { code, angles } = {}) => {
+    async (_event, { code, angles }: any = {}) => {
       if (!code || !Array.isArray(angles) || angles.length === 0) {
         return { ok: false, reason: "invalid_args" };
       }
@@ -46,7 +53,7 @@ function registerStockDetailHandlers(ctx) {
 
   safeHandle(
     "stocks:detail-analyze",
-    async (_event, { code, angles, perAngleData, freeText, scores } = {}) => {
+    async (_event, { code, angles, perAngleData, freeText, scores }: any = {}) => {
       return await aiStockDetailAnalyze({ code, angles, perAngleData, freeText, scores });
     },
     {
@@ -62,7 +69,7 @@ function registerStockDetailHandlers(ctx) {
 // renderer 拿到 {note} 后合并进 aiResult.perAngle[key]. 缺数据返 {ok:false, reason:'no_data'}.
   safeHandle(
     "stocks:angle-refresh",
-    async (_event, { angleKey, perAngleData, scores, seed } = {}) => {
+    async (_event, { angleKey, perAngleData, scores, seed }: any = {}) => {
       if (!angleKey) return { ok: false, reason: "invalid_args" };
       const note = refreshAngleLocally({ angleKey, perAngleData, scores, seed });
       if (!note) return { ok: false, reason: "no_data" };
@@ -83,7 +90,7 @@ function registerStockDetailHandlers(ctx) {
   //   no_data, pill 永远 failed. 现改走这条, 数据成功 → pill 自动 ok.
   safeHandle(
     "stocks:angle-reload",
-    async (_event, { code, angleKey } = {}) => {
+    async (_event, { code, angleKey }: any = {}) => {
       if (!code || !angleKey) return { ok: false, reason: "invalid_args" };
       const httpClient = createStockHttpClient({ timeout: 8000, maxRetries: 1 });
       const perAngle = await fetchSingleAngle(httpClient, code, angleKey);

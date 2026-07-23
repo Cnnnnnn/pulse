@@ -17,7 +17,7 @@ const mockFetch = vi.fn();
 const mockSetAiUsage = vi.fn();
 const mockTrayMgr = { setAiUsage: mockSetAiUsage };
 
-const registerAiUsagePath = require.resolve("../../src/main/ipc/register-ai-usage.js");
+const registerAiUsagePath = require.resolve("../../src/main/ipc/register-ai-usage.ts");
 const schedulerModulePath = require.resolve("../../src/main/ai-usage-refresh-scheduler.js");
 
 let createAiUsageRefreshScheduler;

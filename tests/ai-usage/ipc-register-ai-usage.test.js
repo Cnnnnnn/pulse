@@ -10,7 +10,7 @@
 
 import { describe, test, expect, beforeEach, vi } from "vitest";
 
-const { _internals } = require("../../src/main/ipc/register-ai-usage");
+const { _internals } = require("../../src/main/ipc/register-ai-usage.ts");
 
 const FAKE_SNAPSHOT = {
   provider: "minimax",

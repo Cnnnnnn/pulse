@@ -1,3 +1,9 @@
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
+
 const ithomeNewsStore = require("../ithome/news-store");
 const { summarizeArticle } = require("../ithome/article-ai");
 
@@ -11,8 +17,8 @@ function registerIthomeHandlers(ctx) {
           ? Object.values(news.articles)
           : [];
       const headlines = articles
-        .filter((a) => a && typeof a.title === "string")
-        .map((a) => ({ title: a.title }));
+        .filter((a: any) => a && typeof a.title === "string")
+        .map((a: any) => ({ title: a.title }));
       const {
         checkWatchlistKeywordUpdates,
         makeWatchlistSendNotification,

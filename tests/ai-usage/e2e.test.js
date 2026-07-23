@@ -15,7 +15,7 @@ import { describe, test, expect, beforeEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { _internals } from "../../src/main/ipc/register-ai-usage.js";
+import { _internals } from "../../src/main/ipc/register-ai-usage.ts";
 
 const FAKE_SNAPSHOT = {
   provider: "minimax",

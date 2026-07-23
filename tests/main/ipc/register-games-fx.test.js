@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-const { attachFx } = require("../../../src/main/ipc/register-games.js");
+const { attachFx } = require("../../../src/main/ipc/register-games.ts");
 
 const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 

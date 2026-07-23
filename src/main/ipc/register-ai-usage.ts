@@ -16,6 +16,13 @@
  * 单测不依赖 electron / safeStorage. register* 是薄包装, 注入真实 deps.
  */
 
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+
+import type {} from "electron";
+
 const stateStore = require("../state-store.ts");
 const aiStorage = require("../../ai-sessions/storage");
 const { MiniMaxQuotaClient } = require("../../ai-usage/client");
@@ -71,7 +78,7 @@ const _internals = {
    * @param {object} args.deps  { stateStore, storage, MiniMaxQuotaClient, GlmQuotaClient, pushEvent }
    * @param {object} [args.opts] { provider: 'minimax' | 'glm', region?: 'cn' | 'global' }
    */
-  async fetch({ deps, opts = {} }) {
+  async fetch({ deps, opts = {} }: any) {
     const providerId =
       opts && typeof opts.provider === "string" && opts.provider
         ? opts.provider

@@ -8,7 +8,7 @@ const {
   DEALS_CACHE_TTL_MS,
   ALLOWED_MODES,
   applySortAndFilter,
-} = require("../../../src/main/ipc/register-games.js");
+} = require("../../../src/main/ipc/register-games.ts");
 
 beforeEach(() => resetDealsCache());
 
@@ -76,7 +76,7 @@ describe("ALLOWED_MODES 白名单（Task 2 清理验证）", () => {
   });
 });
 
-const { extractLowestFromCheapshark } = require("../../../src/main/ipc/register-games.js");
+const { extractLowestFromCheapshark } = require("../../../src/main/ipc/register-games.ts");
 
 describe("extractLowestFromCheapshark", () => {
   it("取多个商店报价的最小值", () => {
