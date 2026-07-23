@@ -1,5 +1,5 @@
 /**
- * src/main/index.js
+ * src/main/index.ts
  *
  * 主进程入口（spec §6 + 任务约束）:
  *   - 单实例锁 + lifecycle
@@ -8,6 +8,15 @@
  *
  * 编排层 — 业务拆到 ./bootstrap/*.ts.
  */
+
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 触发原因: esbuild 看到 `export`/`import * as` 等 ESM
+//          关键字就用 `__esm` 包装, 把模块级 `var path = ...` 暴露到外层作用域, 导致
+//          `path = require("path")` 被改名 pathN, post-build path rewrite
+//          (scripts/build-main.cjs) 匹配不到 `path.join(...)` 字面量.
+//          走 __commonJS 包装则与现有 .js 模块同形, path 保留裸名. 升级路径: esbuild
+//          升级到支持按模块声明命名空间隔离后再切回 ESM 风格.
+import type {} from "electron";
 
 const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");

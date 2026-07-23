@@ -21,7 +21,7 @@ const MAIN_BUNDLE_PATH = path.join(ROOT_DIR, "dist", "main", "index.js");
 // path off by one or more directory levels.
 //
 // Depth math (bundle __dirname = dist/main/, depth 2 from repo root):
-//   - src/main/index.js timer-audit (1 source `..`): bundle needs 2.
+//   - src/main/index.ts timer-audit (1 source `..`): bundle needs 2.
 //   - src/main/bootstrap/config.js PROJECT_ROOT (3 source `..`): bundle needs 2.
 //   - src/main/tray.js ASSETS (2 source `..`, depth-3 source resolves to
 //     src/assets — pre-existing depth bug; brief target is repo/assets):
@@ -31,7 +31,7 @@ const MAIN_BUNDLE_PATH = path.join(ROOT_DIR, "dist", "main", "index.js");
 //     bundle's 2 `..` already lands at repo, no change needed.
 //   - src/main/ai-leaderboard/sample.js SAMPLE_PATH (0 source `..`): bundle
 //     needs 2 to reach repo, then src/main/ai-leaderboard/ suffix.
-//   - src/main/index.js workerScript (1 source `..`): bundle needs 2,
+//   - src/main/index.ts workerScript (1 source `..`): bundle needs 2,
 //     then src/workers/detect-worker.js.
 //
 // `rewrite` is the literal transform applied by build-main.cjs. For items

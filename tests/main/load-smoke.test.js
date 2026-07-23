@@ -29,7 +29,7 @@ describe('main process module load smoke (Phase 28+ regression)', () => {
   // 至少要这些 — 防止有人误删 main 文件
   const expected = [
     'check-runner.js',
-    'index.js',
+    'index.ts',
     'ipc.js',
     'last-opened.js',
     'state-store.ts',

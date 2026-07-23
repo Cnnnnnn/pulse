@@ -11,7 +11,7 @@ fs.mkdirSync(path.dirname(outfile), { recursive: true });
 execFileSync(
   esbuild,
   [
-    "src/main/index.js",
+    "src/main/index.ts",
     "--bundle",
     "--platform=node",
     "--format=cjs",
@@ -32,7 +32,7 @@ execFileSync(
 // so it resolves to its intended repo-rooted target.
 //
 // Depth math (bundle __dirname = dist/main/, depth 2 from repo root):
-//   - src/main/index.js (depth 2 source, 1 source `..`): bundle needs 2
+//   - src/main/index.ts (depth 2 source, 1 source `..`): bundle needs 2
 //     `..` plus an explicit src/ segment.
 //   - src/main/bootstrap/ (depth 4 source, 3 source `..`): bundle needs
 //     only 2 `..` from dist/main/.
@@ -47,7 +47,7 @@ execFileSync(
 //     so the rewrite is a no-op.
 //   - src/main/ai-leaderboard/ (depth 4 source, 0 source `..`): bundle
 //     needs 2 `..` to reach repo, then src/main/ai-leaderboard/.
-//   - src/main/index.js workerScript (1 source `..`): bundle needs 2
+//   - src/main/index.ts workerScript (1 source `..`): bundle needs 2
 //     `..` plus src/workers/detect-worker.js.
 //
 // Each rewrite uses .replace (not .replaceAll) so a future second
@@ -58,7 +58,7 @@ const bundlePath = outfile;
 let bundle = fs.readFileSync(bundlePath, "utf8");
 
 const rewrites = [
-  // #1 — src/main/index.js timer-audit fixture (depth-2 source)
+  // #1 — src/main/index.ts timer-audit fixture (depth-2 source)
   {
     from: `path.join(__dirname, "..", "tests", "fixtures", "timer-audit")`,
     to: `path.join(__dirname, "..", "..", "src", "tests", "fixtures", "timer-audit")`,
@@ -88,7 +88,7 @@ const rewrites = [
     from: `path2.join(__dirname, "sample.json")`,
     to: `path2.join(__dirname, "..", "..", "src", "main", "ai-leaderboard", "sample.json")`,
   },
-  // #7 — src/main/index.js workerScript (depth-2 source)
+  // #7 — src/main/index.ts workerScript (depth-2 source)
   {
     from: `path.join(
     __dirname,
