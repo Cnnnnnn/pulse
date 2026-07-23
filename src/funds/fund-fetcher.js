@@ -152,7 +152,7 @@ function isTodayLocal(s) {
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
 const { fetchFundNavSina } = require("./fund-fetcher-sina");
 const { attachAltNav } = require("./fund-nav-merge");
-const { mainLog } = require("../main/log");
+const { mainLog } = require("../main/log.ts");
 
 /**
  * 主源 + 备用源 + fallback.

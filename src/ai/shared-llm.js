@@ -6,7 +6,7 @@
  */
 
 const { CloudSummarizer } = require("../ai-sessions/provider-cloud");
-const { HttpClient } = require("../main/http-client");
+const { HttpClient } = require("../main/http-client.ts");
 const stateStore = require("../main/state-store");
 const {
   isOverBudget,

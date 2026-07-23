@@ -12,7 +12,7 @@
 
 const fs = require("fs");
 const stateStore = require("../state-store");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 function _readStateRaw(statePath) {
   const p = statePath || stateStore.defaultPath();

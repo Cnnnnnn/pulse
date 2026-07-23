@@ -9,7 +9,7 @@
  *   - response: { ok: true } | { ok: false, reason: "unsafe_url" | "shell_failed" }
  */
 const { shell } = require("electron");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 function isSafeUrl(url) {
   if (typeof url !== "string" || url.length === 0) return false;

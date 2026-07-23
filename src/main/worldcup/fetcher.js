@@ -12,10 +12,10 @@
  * 0 鉴权, 0 限流, 0 CORS (server-side)
  */
 
-const { HttpClient } = require("../http-client");
+const { HttpClient } = require("../http-client.ts");
 const stateStore = require("../state-store");
 const { parseWorldcupTxt } = require("./parser");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const FIXTURES_URL =
   "https://raw.githubusercontent.com/openfootball/worldcup/master/2026--usa/cup.txt";

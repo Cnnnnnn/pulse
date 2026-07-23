@@ -12,7 +12,7 @@
  * 这些错误仍写 mainLog, 开发者调日志能看到; 只是不让前端弹.
  */
 
-const { mainLog } = require("./log");
+const { mainLog } = require("./log.ts");
 
 let _sendToRenderer = null;
 const _seen = new WeakSet();

@@ -27,7 +27,7 @@ const fs = require("fs");
 const crypto = require("crypto");
 const stateStore = require("./state-store");
 const recentActivity = require("./recent-activity");
-const { mainLog } = require("./log");
+const { mainLog } = require("./log.ts");
 
 const VALID_REPEATS = ["once", "daily", "weekdays", "weekly"];
 const MAX_TITLE_LEN = 100;

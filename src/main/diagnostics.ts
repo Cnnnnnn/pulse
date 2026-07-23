@@ -1,5 +1,5 @@
 /**
- * src/main/diagnostics.js
+ * src/main/diagnostics.ts
  *
  * 2026-06-23: Phase Q1 v2 — structured diagnostics module.
  *
@@ -22,39 +22,63 @@
  * IPC 接口见 register-core.js: diagnostics:fetch / diagnostics:fetch-samples.
  */
 
-const { performance } = require("node:perf_hooks");
-const { setManagedInterval } = require("./timer-registry");
-const stateStore = require("./state-store");
-const { createLogger } = require("./log");
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type * as perfHooksType from "node:perf_hooks";
+
+const { performance }: typeof perfHooksType = require("node:perf_hooks");
+
+type StartupNowFn = import("../shared/electron/diagnostics-adapter").StartupNowFn;
+type StartupSnapshot = import("../shared/electron/diagnostics-adapter").StartupSnapshot;
+type MetricsSample = import("../shared/electron/diagnostics-adapter").MetricsSample;
+type MetricsSummary = import("../shared/electron/diagnostics-adapter").MetricsSummary;
+
+interface StateStoreShape {
+  loadStartupSamples(statePath?: string): Array<{ ts: number; readyMs: number }>;
+  saveStartupSamples(
+    samples: Array<{ ts: number; readyMs: number }>,
+    statePath?: string,
+  ): unknown;
+}
+
+const { setManagedInterval } = require("./timer-registry.ts");
+// diagnostics 依赖 state-store (.js, Task 3 才会迁). ponytail: 用 typeof
+// import 推断 .js 模块的类型, 避免对 .js 文件写 .d.ts 双 source.
+const stateStore: StateStoreShape = require("./state-store");
+const { createLogger } = require("./log.ts");
 
 const log = createLogger("diagnostics");
 
 // 模块加载即拿 t0 (process.hrtime / performance.now 都行, 用 ms 简单)
-const _t0 = Date.now();
-const _t0Perf = performance.now();
+const _t0: number = Date.now();
+const _t0Perf: number = performance.now();
 
 // milestones: { bootstrapDone: ts, rendererReady: ts }
-const _milestones = { bootstrapDone: null, rendererReady: null };
+const _milestones: { bootstrapDone: number | null; rendererReady: number | null } = {
+  bootstrapDone: null,
+  rendererReady: null,
+};
 
 // 当前 sample buffer: 环式 cap 60
 const SAMPLE_CAP = 60;
-const _samples = []; // Array<{ ts, heapUsed, rss, external, cpuUser, cpuSystem, uptimeMs }>
+const _samples: MetricsSample[] = [];
 
-let _samplerHandle = null;
-let _previousCpu = null; // 上次 cpuUsage 快照, diff → 期间增量
+let _samplerHandle: { id: number; clear: () => boolean } | null = null;
+let _previousCpu: { user: number; system: number } | null = null;
 
 /**
- * @param {() => number} [now] 注入测试用
+ * @param now 注入测试用
  */
-function markBootstrapDone(now = Date.now) {
+function markBootstrapDone(now: StartupNowFn = Date.now): void {
   if (_milestones.bootstrapDone) return;
   _milestones.bootstrapDone = now();
 }
 
 /**
- * @param {() => number} [now] 注入测试用
+ * @param now 注入测试用
  */
-function markRendererReady(now = Date.now) {
+function markRendererReady(now: StartupNowFn = Date.now): void {
   if (_milestones.rendererReady) return;
   _milestones.rendererReady = now();
   // 落盘: 启动样本加一条, cap 20
@@ -65,15 +89,15 @@ function markRendererReady(now = Date.now) {
     if (samples.length > 20) samples.length = 20;
     stateStore.saveStartupSamples(samples);
   } catch (err) {
-    log.warn(`saveStartupSamples failed: ${err && err.message}`);
+    const e = err as Error;
+    log.warn(`saveStartupSamples failed: ${e && e.message}`);
   }
 }
 
 /**
  * 取启动里程碑 (ms).
- * @returns {{ moduleLoadAt: number, bootstrapDoneAt: number|null, rendererReadyAt: number|null, readyMs: number|null, bootstrapMs: number|null }}
  */
-function getStartup() {
+function getStartup(): StartupSnapshot {
   const readyMs = _milestones.rendererReady ? _milestones.rendererReady - _t0 : null;
   const bootstrapMs = _milestones.bootstrapDone ? _milestones.bootstrapDone - _t0 : null;
   return {
@@ -85,10 +109,10 @@ function getStartup() {
   };
 }
 
-function _takeSample(now = Date.now) {
+function _takeSample(now: StartupNowFn = Date.now): MetricsSample {
   const mem = process.memoryUsage();
   const cpu = process.cpuUsage();
-  const sample = {
+  const sample: MetricsSample = {
     ts: now(),
     heapUsed: mem.heapUsed,
     rss: mem.rss,
@@ -107,21 +131,22 @@ function _takeSample(now = Date.now) {
   return sample;
 }
 
-function _pushSample(s) {
+function _pushSample(s: MetricsSample): void {
   _samples.push(s);
   if (_samples.length > SAMPLE_CAP) _samples.shift();
 }
 
 /**
  * 启动 5s 采样器. 重复调幂等.
- * @param {number} [intervalMs=5000]
+ * @param intervalMs
  */
-function startMetricsSampler(intervalMs = 5000) {
+function startMetricsSampler(intervalMs: number = 5000): void {
   if (_samplerHandle) return;
   _pushSample(_takeSample()); // 立即一个点, 不空头
   _samplerHandle = setManagedInterval(() => {
     try { _pushSample(_takeSample()); } catch (err) {
-      log.warn(`takeSample failed: ${err && err.message}`);
+      const e = err as Error;
+      log.warn(`takeSample failed: ${e && e.message}`);
     }
   }, intervalMs, { label: "diagnostics-metrics-sampler" });
 }
@@ -129,7 +154,7 @@ function startMetricsSampler(intervalMs = 5000) {
 /**
  * 停采样器 (测试 / 退出时).
  */
-function stopMetricsSampler() {
+function stopMetricsSampler(): void {
   if (_samplerHandle) {
     try { _samplerHandle.clear(); } catch { /* noop */ }
     _samplerHandle = null;
@@ -138,20 +163,18 @@ function stopMetricsSampler() {
 
 /**
  * 取最新采样快照. 不复制内部数组 (renderer 自己只读不写).
- * @returns {Array<{ts, heapUsed, rss, external, arrayBuffers, cpuUser, cpuSystem, cpuUserDeltaUs?, cpuSystemDeltaUs?, uptimeMs}>}
  */
-function getSamples() {
+function getSamples(): MetricsSample[] {
   return _samples.slice();
 }
 
 /**
  * 取最新一帧快照 + 一个 "峰值" 摘要 (供 drawer 顶部数字展示).
- * @returns {{ latest, peak, count }}
  *   latest: 最新一帧 或 null
  *   peak:   { heapUsed, rss } 期间最大值
  *   count:  当前缓冲长度
  */
-function getMetricsSummary() {
+function getMetricsSummary(): MetricsSummary {
   if (_samples.length === 0) {
     return { latest: null, peak: null, count: 0 };
   }
@@ -169,7 +192,7 @@ function getMetricsSummary() {
 }
 
 /** Test-only: 重置所有模块状态. */
-function _resetForTest() {
+function _resetForTest(): void {
   _milestones.bootstrapDone = null;
   _milestones.rendererReady = null;
   _samples.length = 0;

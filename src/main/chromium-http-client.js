@@ -98,7 +98,7 @@ function createStockHttpClient(opts = {}) {
     return new ChromiumHttpClient({ timeout: 10000, maxRetries: 1, ...opts });
   }
   // Fallback (vitest / 没 app 的环境)
-  const { HttpClient } = require("./http-client");
+  const { HttpClient } = require("./http-client.ts");
   return new HttpClient({ timeout: 10000, maxRetries: 1, ...opts });
 }
 

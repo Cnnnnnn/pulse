@@ -16,7 +16,7 @@ import {
   isDebug,
   mainLog,
   detectLog,
-} from '../../src/main/log.js';
+} from '../../src/main/log.ts';
 
 describe('log.js — spec §6 structured format', () => {
   let logDir;

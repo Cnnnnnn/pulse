@@ -19,7 +19,7 @@
 
 const fs = require("fs");
 const stateStore = require("./state-store");
-const { mainLog } = require("./log");
+const { mainLog } = require("./log.ts");
 
 const VALID_KINDS = [
   "app-upgrade",

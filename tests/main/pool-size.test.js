@@ -1,11 +1,11 @@
 // tests/main/pool-size.test.js
 //
-// 覆盖 src/main/pool-size.js 的 size 计算.
+// 覆盖 src/main/pool-size.ts 的 size 计算.
 // 目标: cap=4, min=2, cpus-1 在 cap/min 之间.
 // 关键 case: 8 核机 (8-1=7) → cap 4, 2 核机 (2-1=1) → min 2.
 
 import { describe, it, expect } from "vitest";
-import { computePoolSize, DEFAULT_POOL_CAP, MIN_POOL_SIZE } from "../../src/main/pool-size.js";
+import { computePoolSize, DEFAULT_POOL_CAP, MIN_POOL_SIZE } from "../../src/main/pool-size.ts";
 
 describe("computePoolSize", () => {
   it("defaults: caps at 4 on 8-core machine", () => {

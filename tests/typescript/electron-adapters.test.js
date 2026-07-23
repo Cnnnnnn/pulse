@@ -30,11 +30,11 @@ const MAIN_DIR = path.join(ROOT, "src", "main");
 // helper). Names match the brief verbatim — do not rename without also
 // updating this list and `tsconfig.app.json`'s include glob.
 const ADAPTERS = [
-  { file: "log-adapter.d.ts", main: "log.js" },
-  { file: "http-client-adapter.d.ts", main: "http-client.js" },
-  { file: "timer-registry-adapter.d.ts", main: "timer-registry.js" },
-  { file: "pool-size-adapter.d.ts", main: "pool-size.js" },
-  { file: "diagnostics-adapter.d.ts", main: "diagnostics.js" },
+  { file: "log-adapter.d.ts", main: "log.ts" },
+  { file: "http-client-adapter.d.ts", main: "http-client.ts" },
+  { file: "timer-registry-adapter.d.ts", main: "timer-registry.ts" },
+  { file: "pool-size-adapter.d.ts", main: "pool-size.ts" },
+  { file: "diagnostics-adapter.d.ts", main: "diagnostics.ts" },
   { file: "state-store-adapter.d.ts", main: "state-store.js" },
   // utility (no src/main counterpart); safeRequire is the brief-mandated
   // shape for cross-context module resolution.

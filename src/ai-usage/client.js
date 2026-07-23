@@ -97,7 +97,7 @@ class MiniMaxQuotaClient {
     const endpoint = _resolveEndpoint({ region, endpoint: this.endpoint });
 
     // 3) lazy create HttpClient (require 返 { HttpClient } object, 要 new 出 instance)
-    const { HttpClient: HttpClientCtor } = require("../main/http-client");
+    const { HttpClient: HttpClientCtor } = require("../main/http-client.ts");
     const http = this.httpClient || new HttpClientCtor({ timeout: 15_000, maxRetries: 0 });
 
     // 4) 发请求
@@ -196,7 +196,7 @@ class MiniMaxQuotaClient {
     const region = opts.region === "global" ? "global" : this.region;
     const endpoint = _resolveUsageSummaryEndpoint({ region });
 
-    const { HttpClient: HttpClientCtor } = require("../main/http-client");
+    const { HttpClient: HttpClientCtor } = require("../main/http-client.ts");
     const http = this.httpClient || new HttpClientCtor({ timeout: 30_000, maxRetries: 0 });
 
     let r;

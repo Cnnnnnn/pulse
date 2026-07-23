@@ -1,5 +1,5 @@
 const { ipcMain } = require("electron");
-const { HttpClient } = require("../http-client");
+const { HttpClient } = require("../http-client.ts");
 const fundStore = require("../funds/fund-store");
 const fundHistoryStore = require("../funds/fund-history-store");
 const { searchFunds } = require("../../funds/fund-search");

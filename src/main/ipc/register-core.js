@@ -5,7 +5,7 @@ const { runBulkUpgrade } = require("../bulk-upgrade");
 const stateStore = require("../state-store");
 const { aggregate } = require("../digest/aggregate");
 const platform = require("../../platform");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const lastOpened = require("../last-opened");
 const recentActivity = require("../recent-activity");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
@@ -485,8 +485,8 @@ function registerCoreHandlers(ctx) {
     try {
       const { getInstance } = require("../bootstrap/error-init");
       const { bundleDiagnostics } = require("../diagnostics-aggregator");
-      const { resolveLogDir } = require("../log");
-      const diagnostics = require("../diagnostics");
+      const { resolveLogDir } = require("../log.ts");
+      const diagnostics = require("../diagnostics.ts");
       const inst = getInstance();
       const mainLogDir = resolveLogDir();
       const errLogDir = inst && inst.aggregator && inst.aggregator.logsDir;
@@ -515,7 +515,7 @@ function registerCoreHandlers(ctx) {
   // Phase Q1 v2: diagnostics IPC — drawer 一次拉全 (startup + metrics + top-5)
   safeHandle("diagnostics:fetch", async (_event, opts) => {
     try {
-      const { getStartup, getMetricsSummary } = require("../diagnostics");
+      const { getStartup, getMetricsSummary } = require("../diagnostics.ts");
       const { computeTopFailures } = require("../diagnostics-aggregator");
       const { getInstance } = require("../bootstrap/error-init");
       const sinceMs =
@@ -558,7 +558,7 @@ function registerCoreHandlers(ctx) {
   // Phase Q1 v2: 拉 ring buffer (60 帧) 给 drawer "近期趋势" 用
   safeHandle("diagnostics:fetch-samples", () => {
     try {
-      const { getSamples } = require("../diagnostics");
+      const { getSamples } = require("../diagnostics.ts");
       return { ok: true, samples: getSamples() };
     } catch (err) {
       return { ok: false, reason: "threw", error: err && err.message };

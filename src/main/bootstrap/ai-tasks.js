@@ -4,7 +4,7 @@
  * 初始化 TaskSummaryEngine wiring — 不跑 LLM 不扫盘, 仅装配.
  */
 
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const { buildTaskSummaryEngine } = require("../../ai-sessions/wiring");
 
 /**

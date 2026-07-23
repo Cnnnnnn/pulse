@@ -19,7 +19,7 @@ const { CursorDetectorImpl } = require('./cursor');
 const { LLMSummarizer } = require('./summarizer');
 const { CloudSummarizer } = require('./provider-cloud');
 const { TaskSummaryEngine } = require('./engine');
-const { HttpClient } = require('../main/http-client');
+const { HttpClient } = require('../main/http-client.ts');
 const stateStore = require('../main/state-store');
 const { SILENT_LOG } = require('./session-log');
 

@@ -1,5 +1,5 @@
 /**
- * src/main/timer-registry.js
+ * src/main/timer-registry.ts
  *
  * Phase Q5 v1: Lightweight timer registry.
  *
@@ -15,36 +15,57 @@
  * No Electron dependency — pure CommonJS, vitest-requireable.
  */
 
-'use strict';
+// ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
+//          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
+//          rewrite 依赖 path 保留裸名).
+import type * as timersType from "node:timers";
+import type * as fsType from "node:fs";
+import type * as pathType from "node:path";
 
-const timers = require('node:timers');
-const fs = require('node:fs');
-const path = require('node:path');
+const timers: typeof timersType = require("node:timers");
+const fs: typeof fsType = require("node:fs");
+const path: typeof pathType = require("node:path");
 
-/** @type {Array<{id:number,type:'interval'|'timeout',label:string,file:string|null,line:number|null,startedAt:number,handle:object}>} */
-const _entries = [];
+type ManagedHandle = import("../shared/electron/timer-registry-adapter").ManagedHandle;
+type ManagedTimerMeta = import("../shared/electron/timer-registry-adapter").ManagedTimerMeta;
+type ManagedStats = import("../shared/electron/timer-registry-adapter").ManagedStats;
+type ManagedEntrySnapshot = import("../shared/electron/timer-registry-adapter").ManagedEntrySnapshot;
+type AuditSummary = import("../shared/electron/timer-registry-adapter").AuditSummary;
+type AuditLogger = import("../shared/electron/timer-registry-adapter").AuditLogger;
+type AuditOptions = import("../shared/electron/timer-registry-adapter").AuditOptions;
+type AuditEntry = import("../shared/electron/timer-registry-adapter").AuditEntry;
+type AuditKind = import("../shared/electron/timer-registry-adapter").AuditKind;
+
+interface RegistryEntry {
+  id: number;
+  type: "interval" | "timeout";
+  label: string;
+  file: string | null;
+  line: number | null;
+  startedAt: number;
+  handle: NodeJS.Timeout;
+}
+
+const _entries: RegistryEntry[] = [];
 
 let _nextId = 1;
 
 /**
- * @typedef {object} ManagedHandle
- * @property {number} id
- * @property {function():void} clear
+ * @param fn
+ * @param ms
+ * @param meta
  */
-
-/**
- * @param {function():void} fn
- * @param {number} ms
- * @param {{label?:string,file?:string,line?:number}} [meta]
- * @returns {ManagedHandle}
- */
-function setManagedInterval(fn, ms, meta) {
+function setManagedInterval(
+  fn: () => void,
+  ms: number,
+  meta?: ManagedTimerMeta,
+): ManagedHandle {
   const id = _nextId++;
   const native = timers.setInterval(fn, ms);
-  const entry = {
+  const entry: RegistryEntry = {
     id,
-    type: 'interval',
-    label: (meta && meta.label) || 'anon',
+    type: "interval",
+    label: (meta && meta.label) || "anon",
     file: (meta && meta.file) || null,
     line: (meta && meta.line) || null,
     startedAt: Date.now(),
@@ -58,18 +79,21 @@ function setManagedInterval(fn, ms, meta) {
 }
 
 /**
- * @param {function():void} fn
- * @param {number} ms
- * @param {{label?:string,file?:string,line?:number}} [meta]
- * @returns {ManagedHandle}
+ * @param fn
+ * @param ms
+ * @param meta
  */
-function setManagedTimeout(fn, ms, meta) {
+function setManagedTimeout(
+  fn: () => void,
+  ms: number,
+  meta?: ManagedTimerMeta,
+): ManagedHandle {
   const id = _nextId++;
   const native = timers.setTimeout(fn, ms);
-  const entry = {
+  const entry: RegistryEntry = {
     id,
-    type: 'timeout',
-    label: (meta && meta.label) || 'anon',
+    type: "timeout",
+    label: (meta && meta.label) || "anon",
     file: (meta && meta.file) || null,
     line: (meta && meta.line) || null,
     startedAt: Date.now(),
@@ -83,16 +107,18 @@ function setManagedTimeout(fn, ms, meta) {
 }
 
 /**
- * @param {{id:number}|ManagedHandle} handleOrId
- * @returns {boolean} true if a live entry was cleared
+ * @param handleOrId
+ * @returns true if a live entry was cleared
  */
-function clearManaged(handleOrId) {
-  if (!handleOrId || typeof handleOrId.id !== 'number') return false;
+function clearManaged(
+  handleOrId: ManagedHandle | { id: number },
+): boolean {
+  if (!handleOrId || typeof handleOrId.id !== "number") return false;
   const idx = _entries.findIndex((e) => e.id === handleOrId.id);
   if (idx < 0) return false;
   const entry = _entries[idx];
   try {
-    if (entry.type === 'interval') timers.clearInterval(entry.handle);
+    if (entry.type === "interval") timers.clearInterval(entry.handle);
     else timers.clearTimeout(entry.handle);
   } catch {
     /* swallow — stale native handle should never throw to caller */
@@ -102,12 +128,12 @@ function clearManaged(handleOrId) {
 }
 
 /**
- * @param {string} [labelPrefix] — when provided, only clear entries whose
+ * @param labelPrefix — when provided, only clear entries whose
  *   label starts with this string. When undefined, clears ALL managed timers.
  */
-function clearAllManaged(labelPrefix) {
+function clearAllManaged(labelPrefix?: string): number {
   const targets =
-    typeof labelPrefix === 'string'
+    typeof labelPrefix === "string"
       ? _entries.filter((entry) => entry.label.startsWith(labelPrefix))
       : _entries.slice();
   for (const entry of targets) clearManaged(entry);
@@ -117,7 +143,7 @@ function clearAllManaged(labelPrefix) {
 /**
  * @returns {{count:number,byType:{interval:number,timeout:number}}}
  */
-function getStats() {
+function getStats(): ManagedStats {
   const byType = { interval: 0, timeout: 0 };
   for (const e of _entries) byType[e.type] += 1;
   return { count: _entries.length, byType };
@@ -126,7 +152,7 @@ function getStats() {
 /**
  * @returns {Array<{id:number,type:'interval'|'timeout',label:string,file:string|null,line:number|null,startedAt:number}>}
  */
-function listManaged() {
+function listManaged(): ManagedEntrySnapshot[] {
   return _entries.map((e) => ({
     id: e.id,
     type: e.type,
@@ -138,54 +164,37 @@ function listManaged() {
 }
 
 /** @internal — used by tests to reset between cases. */
-function __resetForTest() {
+function __resetForTest(): void {
   clearAllManaged();
   _nextId = 1;
 }
 
 /**
- * @typedef {object} AuditEntry
- * @property {string} file
- * @property {number} line
- * @property {string} code
- * @property {string|null} var
- * @property {number|null} ms
- * @property {boolean} hasCleanup
- * @property {'clean'|'orphan'|'debounce'|'dup-schedule'} kind
- */
-
-/**
- * @typedef {object} AuditSummary
- * @property {number} total
- * @property {number} clean
- * @property {number} orphan
- * @property {number} debounce
- * @property {number} dupSchedule
- * @property {AuditEntry[]} entries
- * @property {string[]} skipped
- */
-
-/**
  * Scan one file's lines, collecting all setInterval / setTimeout call sites.
  * Skips comment-only lines and 1-shot microtask timeouts (setTimeout ms < 5).
- *
- * @param {string[]} lines
- * @param {string} file
- * @returns {Array<{file:string,line:number,code:string,var:string|null,ms:number|null,func:string}>}
  */
-function collectTimerSites(lines, file) {
-  const sites = [];
+interface TimerSite {
+  file: string;
+  line: number;
+  code: string;
+  var: string | null;
+  ms: number | null;
+  func: string;
+}
+
+function collectTimerSites(lines: string[], file: string): TimerSite[] {
+  const sites: TimerSite[] = [];
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
     const line = raw.trim();
-    if (line.startsWith('//') || line.startsWith('*')) continue; // comments
+    if (line.startsWith("//") || line.startsWith("*")) continue; // comments
 
     const m = line.match(/(setInterval|setTimeout)\s*\(/);
     if (!m) continue;
     // ignore 1-shot microtask timeouts (ms arg of 0/1/<5)
     const msMatch = line.match(/,\s*(\d+)\s*\)/);
     const ms = msMatch ? Number(msMatch[1]) : null;
-    if (m[1] === 'setTimeout' && ms !== null && ms < 5) continue;
+    if (m[1] === "setTimeout" && ms !== null && ms < 5) continue;
 
     // try to extract var name: const|let|var X = setInterval(...)
     const varMatch = line.match(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:setInterval|setTimeout)/);
@@ -206,12 +215,8 @@ function collectTimerSites(lines, file) {
 /**
  * Walk up to 50 lines ahead of `site` looking for clearInterval(var) /
  * clearTimeout(var). Returns true if a cleanup call is found.
- *
- * @param {object} site
- * @param {string[]} lines
- * @returns {boolean}
  */
-function siteHasCleanup(site, lines) {
+function siteHasCleanup(site: TimerSite, lines: string[]): boolean {
   if (!site.var) return false;
   const searchLimit = Math.min(lines.length, site.line + 50);
   for (let j = site.line; j < searchLimit; j++) {
@@ -219,7 +224,7 @@ function siteHasCleanup(site, lines) {
     if (
       (look.includes(`clearInterval(${site.var})`) ||
         look.includes(`clearTimeout(${site.var})`)) &&
-      !look.trim().startsWith('//')
+      !look.trim().startsWith("//")
     ) {
       return true;
     }
@@ -233,49 +238,48 @@ function siteHasCleanup(site, lines) {
  *   debounce      → setTimeout: same var assigned >= 2 times
  *   dup-schedule  → setInterval: same var assigned >= 2 times without clear
  *   orphan        → everything else (incl. anonymous)
- *
- * @param {object} site
- * @param {boolean} hasCleanup
- * @param {Array<object>} sites — sibling sites in the same file (for dup detection)
- * @returns {'clean'|'orphan'|'debounce'|'dup-schedule'}
  */
-function classifySite(site, hasCleanup, sites) {
-  if (hasCleanup) return 'clean';
-  if (site.func === 'setTimeout' && site.var) {
+function classifySite(
+  site: TimerSite,
+  hasCleanup: boolean,
+  sites: TimerSite[],
+): AuditKind {
+  if (hasCleanup) return "clean";
+  if (site.func === "setTimeout" && site.var) {
     const sameVarCount = sites.filter(
-      (s) => s.var === site.var && s.func === 'setTimeout',
+      (s) => s.var === site.var && s.func === "setTimeout",
     ).length;
-    return sameVarCount >= 2 ? 'debounce' : 'orphan';
+    return sameVarCount >= 2 ? "debounce" : "orphan";
   }
-  if (site.func === 'setInterval' && site.var) {
+  if (site.func === "setInterval" && site.var) {
     const sameVarCount = sites.filter(
-      (s) => s.var === site.var && s.func === 'setInterval',
+      (s) => s.var === site.var && s.func === "setInterval",
     ).length;
-    return sameVarCount >= 2 ? 'dup-schedule' : 'orphan';
+    return sameVarCount >= 2 ? "dup-schedule" : "orphan";
   }
-  return 'orphan'; // anonymous (no var)
+  return "orphan"; // anonymous (no var)
 }
 
 /**
  * Emit a per-site log line for non-clean kinds. Clean sites are silent.
- *
- * @param {string} kind
- * @param {object} site
- * @param {string} file
- * @param {{info:function,warn:function}|null} logger
  */
-function logSiteKind(kind, site, file, logger) {
+function logSiteKind(
+  kind: AuditKind,
+  site: TimerSite,
+  file: string,
+  logger: AuditLogger | null,
+): void {
   if (!logger) return;
-  const msSuffix = site.ms != null ? `${site.ms}ms ` : '';
-  if (kind === 'orphan') {
+  const msSuffix = site.ms != null ? `${site.ms}ms ` : "";
+  if (kind === "orphan") {
     logger.info(
       `[timer-registry] [orphan] ${file}:${site.line} ${site.func} ${msSuffix}(no clear found in 50 lines)`,
     );
-  } else if (kind === 'dup-schedule') {
+  } else if (kind === "dup-schedule") {
     logger.info(
       `[timer-registry] [dup-schedule] ${file}:${site.line} ${site.func} ${msSuffix}(var ${site.var} reassigned without prior clear)`,
     );
-  } else if (kind === 'debounce') {
+  } else if (kind === "debounce") {
     logger.info(
       `[timer-registry] [debounce] ${file}:${site.line} ${site.func} ${msSuffix}`,
     );
@@ -288,14 +292,13 @@ function logSiteKind(kind, site, file, logger) {
  *
  * Pure CommonJS, no mainLog dependency — caller (src/main/index.js)
  * is responsible for writing the summary to mainLog if it wants.
- *
- * @param {string} rootDir
- * @param {{fixturesOnly?:boolean,logger?:{info:function,warn:function}}} [opts]
- * @returns {AuditSummary}
  */
-function auditTimers(rootDir, opts) {
+function auditTimers(
+  rootDir: string,
+  opts?: AuditOptions,
+): AuditSummary {
   const logger = (opts && opts.logger) || null;
-  const summary = {
+  const summary: AuditSummary = {
     total: 0,
     clean: 0,
     orphan: 0,
@@ -304,11 +307,11 @@ function auditTimers(rootDir, opts) {
     entries: [],
     skipped: [],
   };
-  if (!rootDir || typeof rootDir !== 'string') return summary;
+  if (!rootDir || typeof rootDir !== "string") return summary;
 
-  let files;
+  let files: string[];
   try {
-    files = fs.readdirSync(rootDir).filter((f) => f.endsWith('.js'));
+    files = fs.readdirSync(rootDir).filter((f) => f.endsWith(".js"));
   } catch (err) {
     if (logger) logger.warn(`[timer-registry] audit: readdir failed: ${err && err.message}`);
     return summary;
@@ -316,22 +319,22 @@ function auditTimers(rootDir, opts) {
 
   for (const file of files) {
     const full = path.join(rootDir, file);
-    let content;
+    let content: string;
     try {
-      content = fs.readFileSync(full, 'utf8');
+      content = fs.readFileSync(full, "utf8");
     } catch (err) {
       summary.skipped.push(file);
       if (logger) logger.warn(`[timer-registry] audit: skip ${file}: ${err && err.message}`);
       continue;
     }
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     const sites = collectTimerSites(lines, file);
 
     for (const site of sites) {
       const hasCleanup = siteHasCleanup(site, lines);
       const kind = classifySite(site, hasCleanup, sites);
 
-      summary.entries.push({
+      const entry: AuditEntry = {
         file,
         line: site.line,
         code: site.code,
@@ -339,12 +342,13 @@ function auditTimers(rootDir, opts) {
         ms: site.ms,
         hasCleanup,
         kind,
-      });
+      };
+      summary.entries.push(entry);
       summary.total += 1;
-      if (kind === 'clean') summary.clean += 1;
-      else if (kind === 'orphan') summary.orphan += 1;
-      else if (kind === 'debounce') summary.debounce += 1;
-      else if (kind === 'dup-schedule') summary.dupSchedule += 1;
+      if (kind === "clean") summary.clean += 1;
+      else if (kind === "orphan") summary.orphan += 1;
+      else if (kind === "debounce") summary.debounce += 1;
+      else if (kind === "dup-schedule") summary.dupSchedule += 1;
 
       logSiteKind(kind, site, file, logger);
     }

@@ -12,7 +12,7 @@
  *       renderer 用 localStorage 覆盖 apply, 再 IPC theme:set 同步给主进程.
  */
 const { ipcMain, nativeTheme } = require("electron");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const VALID = ["system", "light", "dark"];
 let lastThemeMode = "system"; // 主进程内存, 重启时重置为 system.

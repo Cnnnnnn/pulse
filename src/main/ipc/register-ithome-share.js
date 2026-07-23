@@ -8,7 +8,7 @@
 const newsStore = require("../ithome/news-store");
 const { createShareCardPng } = require("../ithome/share-card-renderer");
 const { writePngToClipboard } = require("../ithome/clipboard-image");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 function registerIthomeShareHandlers(ctx) {
   const { safeHandle } = ctx;

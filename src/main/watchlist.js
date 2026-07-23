@@ -10,7 +10,7 @@
 
 const { Notification: ElectronNotification } = require("electron");
 const stateStore = require("./state-store");
-const { mainLog } = require("./log");
+const { mainLog } = require("./log.ts");
 const { inQuietHours } = require("./notification-policy");
 const { pickEffectiveNavNumber } = require("../funds/fund-nav-merge");
 

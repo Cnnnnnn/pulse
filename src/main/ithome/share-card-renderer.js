@@ -6,7 +6,7 @@
  */
 const { BrowserWindow, app, ipcMain } = require("electron");
 const path = require("path");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const DEFAULT_TIMEOUT_MS = 10000;
 const WINDOW_WIDTH = 1080;

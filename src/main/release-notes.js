@@ -11,7 +11,7 @@
  * (require('../release-notes/loader.js') + require('./state-store.js')).
  */
 
-const { createLogger } = require('./log.js');
+const { createLogger } = require('./log.ts');
 const defaultLoader = require('../release-notes/loader.js');
 const defaultStateStore = require('./state-store.js');
 

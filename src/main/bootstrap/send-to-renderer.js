@@ -5,7 +5,7 @@
  * winMgr 通过 deps 注入, 避免在 main/index.js 与各 bootstrap 文件间共享模块级变量.
  */
 
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 /**
  * @param {{ getWindow: () => import('electron').BrowserWindow | null }} deps

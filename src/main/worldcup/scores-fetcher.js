@@ -8,14 +8,14 @@
  * 只更新 eligibleKeys; 已完赛写入 state 后不再请求.
  */
 
-const { HttpClient } = require("../http-client");
+const { HttpClient } = require("../http-client.ts");
 const stateStore = require("../state-store");
 const { parseWorldcupTxt } = require("./parser");
 const { matchKey } = require("./match-key");
 const { FIXTURES_URL } = require("./fetcher");
 const { fetchScoresFromWorldcup26 } = require("./scores-api-worldcup26");
 const { fetchScoresFromEspn } = require("./scores-api-espn");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const FETCH_TIMEOUT_MS = 8000;
 

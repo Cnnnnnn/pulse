@@ -62,7 +62,7 @@ function setup() {
   freshModule();
   tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-diag-ipc-"));
 
-  diag = require("../../src/main/diagnostics.js");
+  diag = require("../../src/main/diagnostics.ts");
   diagAgg = require("../../src/main/diagnostics-aggregator.js");
   errorInit = require("../../src/main/bootstrap/error-init.js");
   ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.js"));

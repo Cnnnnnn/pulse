@@ -18,7 +18,7 @@
  *     双向对齐.
  */
 const { canonicalTeamName, teamsPairKey } = require("./team-aliases");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const SCHEDULE_URL = "https://wc-2026.com/schedule/";
 

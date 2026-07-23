@@ -9,8 +9,8 @@
 const { fetchWechatHot } = require("../wechat-hot/fetcher.js");
 const { createWechatHotCache } = require("../wechat-hot/cache.js");
 const { loadReadIds, markItemRead } = require("../wechat-hot/read-store.js");
-const { HttpClient } = require("../http-client.js");
-const { mainLog } = require("../log");
+const { HttpClient } = require("../http-client.ts");
+const { mainLog } = require("../log.ts");
 
 const UPDATED_CHANNEL = "wechat-hot:updated";
 const TIMEOUT_MS = 10000;

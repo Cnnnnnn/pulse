@@ -22,7 +22,7 @@ const { app } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { mainLog } = require("./log");
+const { mainLog } = require("./log.ts");
 
 /**
  * Main 进程端 app-icon 缓存 + in-flight 去重.

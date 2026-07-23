@@ -7,10 +7,10 @@
  * 与 bootstrap/schedulers.js 的其它调度器同构；由 main/index.js 在启动期注册。
  */
 
-const { setManagedInterval, clearManaged } = require("../timer-registry");
+const { setManagedInterval, clearManaged } = require("../timer-registry.ts");
 const { getLeaderboard } = require("./aggregator");
 const { pruneOldCache } = require("./history");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const DAILY_MS = 24 * 60 * 60 * 1000;
 

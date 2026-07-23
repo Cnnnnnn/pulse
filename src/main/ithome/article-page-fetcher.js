@@ -5,13 +5,13 @@
  * —— 由 article-ai 在 excerpt 太短时触发，避免 LLM 只看到标题而编"原文缺失"。
  */
 
-const { HttpClient } = require("../http-client");
+const { HttpClient } = require("../http-client.ts");
 const {
   parseIthomeArticlePage,
   hasArticleContent,
 } = require("./article-page-parser");
 const newsStore = require("./news-store");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const FETCH_TIMEOUT_MS = 20000;
 const MIN_USEFUL_BODY_CHARS = 200;

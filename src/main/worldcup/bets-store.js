@@ -11,7 +11,7 @@
 
 const fs = require("fs");
 const stateStore = require("../state-store");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_NOTE_LEN = 200;

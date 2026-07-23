@@ -6,7 +6,7 @@
 
 const fs = require("fs");
 const stateStore = require("../state-store");
-const { HttpClient } = require("../http-client");
+const { HttpClient } = require("../http-client.ts");
 const { parseIthomeRss } = require("./rss-parser");
 const { parseIthomeListPage } = require("./list-parser");
 const {
@@ -15,7 +15,7 @@ const {
   todayShanghaiDateKey,
   listPageUrl,
 } = require("./date-bounds");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const { enrichSummaryEntry } = require("./article-summary-parse");
 
 const RSS_URL = "https://www.ithome.com/rss/";

@@ -1607,7 +1607,7 @@ function _backupCorruptState(statePath) {
   } catch (err) {
     // Best-effort: backup failure must not block startup
     try {
-      const { mainLog } = require("./log");
+      const { mainLog } = require("./log.ts");
       mainLog.warn(
         `state-store: failed to back up corrupt state to ${backupPath}: ${err && err.message}`,
       );

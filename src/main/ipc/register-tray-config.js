@@ -15,7 +15,7 @@
 const { ipcMain } = require("electron");
 const stateStore = require("../state-store");
 const { normalizePrefs } = require("../tray-menu-prefs");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 function registerTrayConfigHandlers(ctx) {
   const { getWindow, safeHandle } = ctx;

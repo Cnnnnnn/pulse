@@ -7,7 +7,7 @@
 
 const { canonicalTeamName, teamsPairKey } = require("./team-aliases");
 const { matchKickoffUtcMs } = require("./match-key");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 const ESPN_SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";

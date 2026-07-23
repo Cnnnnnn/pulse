@@ -9,7 +9,7 @@ const { resolvePrompt } = require("../../ai/prompt-registry");
 const { sanitizeLlmOutput } = require("../../ai/sanitize-llm-output");
 const stateStore = require("../state-store");
 const { matchKey } = require("./match-key");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 function _formatScorers(scorers, team1, team2) {
   if (!Array.isArray(scorers) || scorers.length === 0) return "暂无进球记录";

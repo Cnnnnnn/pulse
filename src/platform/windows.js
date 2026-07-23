@@ -14,7 +14,7 @@
 
 let mainLog = null;
 try {
-  mainLog = require('../main/log').mainLog;
+  mainLog = require('../main/log.ts').mainLog;
 } catch {
   /* vitest 等环境里 main/log 可能不可用 — stub 不强依赖日志 */
 }

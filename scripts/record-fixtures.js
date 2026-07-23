@@ -9,7 +9,7 @@
  * 跑一次，**不重跑**——失败也 dump（记录现状）。
  *
  * 设计原则：
- *   - 复用 src/main/http-client.js 的 HttpClient（与 detector 同款 fetch 行为）
+ *   - 复用 src/main/http-client.ts 的 HttpClient（与 detector 同款 fetch 行为）
  *   - 每个 app 触发 6+ 种检测策略（按 spec §5 配置迁移表）
  *     redirect / cursor_redirect / app_store / electron_yml / api_json / qclaw_api
  *     + sparkle_url 单独触发 sparkle_appcast
@@ -44,7 +44,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { HttpClient } = require('../src/main/http-client.js');
+const { HttpClient } = require('../src/main/http-client.ts');
 
 const ROOT = path.resolve(__dirname, '..');
 const CONFIG_PATH = path.join(ROOT, 'config.json');

@@ -31,7 +31,7 @@ function importFresh() {
     require("fs").mkdtempSync(require("path").join(require("os").tmpdir(), "pulse-diag-")) +
       "/state.json",
   );
-  const diag = require("../../src/main/diagnostics.js");
+  const diag = require("../../src/main/diagnostics.ts");
   diag._resetForTest(); // ★ 关键: 清 module-level _milestones + _samples, 防止旧模块实例污染
   return { diag, stateStore };
 }

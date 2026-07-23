@@ -15,7 +15,7 @@
  */
 
 const { parentPort } = require("worker_threads");
-const { HttpClient } = require("../main/http-client");
+const { HttpClient } = require("../main/http-client.ts");
 const {
   makePostMessageLogger,
   sendResult,

@@ -28,7 +28,7 @@ const {
   msUntilNextFetch,
   msUntilNextOpen,
 } = require("../../funds/trading-hours");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const fundStore = require("./fund-store");
 const fundHistoryStore = require("./fund-history-store");
 

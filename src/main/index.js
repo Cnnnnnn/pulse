@@ -51,13 +51,13 @@ const {
   takeRecoveryEvent,
 } = require("./bootstrap/state-init");
 const { initErrorCapture } = require("./bootstrap/error-init");
-const { mainLog, detectLog } = require("./log");
+const { mainLog, detectLog } = require("./log.ts");
 const stateStore = require("./state-store");
 const aiStorage = require("../ai-sessions/storage");
-const { HttpClient } = require("./http-client");
-const { computePoolSize } = require("./pool-size");
-const { auditTimers, clearAllManaged } = require("./timer-registry");
-const { markBootstrapDone } = require("./diagnostics");
+const { HttpClient } = require("./http-client.ts");
+const { computePoolSize } = require("./pool-size.ts");
+const { auditTimers, clearAllManaged } = require("./timer-registry.ts");
+const { markBootstrapDone } = require("./diagnostics.ts");
 const fundStore = require("./funds/fund-store");
 const { FundScheduler } = require("./funds/fund-scheduler");
 const {

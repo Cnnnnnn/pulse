@@ -11,11 +11,11 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const httpClientPath = require.resolve("../../../src/main/http-client.js");
+const httpClientPath = require.resolve("../../../src/main/http-client.ts");
 const fetcherPath = require.resolve("../../../src/main/wechat-hot/fetcher.js");
 const registerPath =
   require.resolve("../../../src/main/ipc/register-wechat-hot.js");
-const logPath = require.resolve("../../../src/main/log.js");
+const logPath = require.resolve("../../../src/main/log.ts");
 const readStorePath = require.resolve("../../../src/main/wechat-hot/read-store.js");
 
 const mockHttpClientInstance = { get: vi.fn() };

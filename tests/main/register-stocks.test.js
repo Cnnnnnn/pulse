@@ -137,7 +137,7 @@ function stubModules(opts = {}) {
     exports: { searchStocks: mockSearch },
   };
   // HttpClient / chromium-http-client 都得 stub — register-stocks 会按需 require.
-  const httpPath = require.resolve("../../src/main/http-client.js");
+  const httpPath = require.resolve("../../src/main/http-client.ts");
   require.cache[httpPath] = {
     id: httpPath,
     filename: httpPath,

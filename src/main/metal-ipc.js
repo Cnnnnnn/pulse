@@ -15,14 +15,14 @@
  */
 
 const { ipcMain, webContents } = require("electron");
-const { HttpClient } = require("./http-client.js");
+const { HttpClient } = require("./http-client.ts");
 const { MetalScheduler } = require("../metals/metal-scheduler.js");
 const {
   fetchMetalKline,
   pointsToHistoryMap,
 } = require("../metals/metal-kline-fetcher.js");
 const { METALS } = require("../metals/metal-config.js");
-const { mainLog } = require("./log");
+const { mainLog } = require("./log.ts");
 const stateStore = require("./state-store.js");
 
 const DEFAULT_CONFIG = {

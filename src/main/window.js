@@ -59,7 +59,7 @@ function createWindowManager(opts = {}) {
       // Phase Q4 v1: 启动时间埋点 — renderer 完整加载完 (preload + bundle + dom).
       // best-effort: diagnostics 失败不影响主流程.
       try {
-        const { markRendererReady } = require('./diagnostics');
+        const { markRendererReady } = require('./diagnostics.ts');
         markRendererReady();
       } catch { /* noop */ }
     });
@@ -67,7 +67,7 @@ function createWindowManager(opts = {}) {
     // Phase B7e.4: 抓 renderer console + crash, 写到 mainLog 方便排查.
     // 否则 renderer 静默挂掉时用户只看到空白屏, 没线索.
     try {
-      const { mainLog } = require('./log');
+      const { mainLog } = require('./log.ts');
       mainWindow.webContents.on('console-message', (event) => {
         try {
           const msg = event && event.message ? String(event.message) : '';

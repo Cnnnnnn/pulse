@@ -14,7 +14,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { createLogger } = require("../main/log.js");
+const { createLogger } = require("../main/log.ts");
 
 const log = createLogger("release-notes-loader");
 

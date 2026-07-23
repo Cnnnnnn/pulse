@@ -5,9 +5,9 @@
  */
 
 const fs = require("fs");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const categoryConfig = require("../../config/category");
-const { HttpClient } = require("../http-client");
+const { HttpClient } = require("../http-client.ts");
 const { CATEGORIES_JSON_PATH, APP_CATEGORY_JSON_PATH } = require("./config");
 
 /**

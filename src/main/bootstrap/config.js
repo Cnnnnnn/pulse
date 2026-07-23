@@ -7,7 +7,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const { migrateConfigFile, isOldSchemaApp } = require("../../config/migrate");
 const { validateConfig, sanitizeConfig } = require("../../config/schema");
 

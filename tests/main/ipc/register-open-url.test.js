@@ -26,7 +26,7 @@ const mainLogDebug = vi.fn();
 const mainLogEvent = vi.fn();
 
 const electronPath = require.resolve("electron");
-const logPath = require.resolve("../../../src/main/log.js");
+const logPath = require.resolve("../../../src/main/log.ts");
 const registerPath = require.resolve("../../../src/main/ipc/register-open-url.js");
 
 let registerMod;

@@ -3,7 +3,7 @@
  */
 
 const { ipcMain } = require("electron");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 
 /**
  * @param {object} deps

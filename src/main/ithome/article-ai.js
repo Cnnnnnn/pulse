@@ -13,7 +13,7 @@ const {
   fetchAndAttachBody,
   needsBodyFetch,
 } = require("./article-page-fetcher");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const {
   parseArticleSummary,
   enrichSummaryEntry,

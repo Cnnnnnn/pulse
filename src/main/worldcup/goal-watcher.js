@@ -16,7 +16,7 @@
  */
 
 const stateStore = require("../state-store");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const { matchKey, isMatchStarted, matchKickoffUtcMs } = require("./match-key");
 const { parseWorldcupTxt } = require("./parser");
 const { refreshWorldcupScores } = require("./scores-fetcher");

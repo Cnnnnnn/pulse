@@ -24,7 +24,7 @@ const { fetchKnockoutEspnEntries } = require("../../src/main/worldcup/bracket");
 const {
   fetchScoresFromEspn,
 } = require("../../src/main/worldcup/scores-api-espn");
-const { HttpClient } = require("../../src/main/http-client");
+const { HttpClient } = require("../../src/main/http-client.ts");
 
 describe("v2.74.3 fetchKnockoutEspnEntries", () => {
   it("returns {} for empty finalsMatches", async () => {

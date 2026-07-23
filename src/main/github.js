@@ -7,8 +7,8 @@
  * 2026-07-15 v2.80: 新增.
  */
 
-const { HttpClient } = require("./http-client");
-const { mainLog } = require("./log");
+const { HttpClient } = require("./http-client.ts");
+const { mainLog } = require("./log.ts");
 
 const UA = "Pulse-AppUpdateChecker/2.79";
 const API_BASE = "https://api.github.com";

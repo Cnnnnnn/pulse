@@ -6,12 +6,12 @@
  */
 
 const { app, Notification: ElectronNotification } = require("electron");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
 const { inQuietHours } = require("../notification-policy");
 const stateStore = require("../state-store");
 const { buildRunCheckDeps } = require("../run-check-deps");
-const { setManagedInterval, clearManaged } = require("../timer-registry");
+const { setManagedInterval, clearManaged } = require("../timer-registry.ts");
 const aiLeaderboard = require("../ai-leaderboard");
 
 // C4: 模块级 timer handle (跟 daily-summary-job 的 _handle 同构), 便于 __resetForTest 清理.

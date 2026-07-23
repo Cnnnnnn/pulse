@@ -1,9 +1,9 @@
 const { ipcMain, shell } = require("electron");
 const stateStore = require("../state-store");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const aiStorage = require("../../ai-sessions/storage");
 const { CloudSummarizer, PROVIDER_ENDPOINTS } = require("../../ai-sessions/provider-cloud");
-const { HttpClient } = require("../http-client");
+const { HttpClient } = require("../http-client.ts");
 const { resolveSharedAiConfig } = require("../../ai/shared-llm");
 
 function localDateKey(offsetDays = 0) {

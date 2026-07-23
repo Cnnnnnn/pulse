@@ -28,7 +28,7 @@ function initStateRecovery() {
     // Best-effort: recovery init failure must not block app startup.
     // state-store.loadOrRecover only rethrows non-corruption errors;
     // log them but let the app continue with whatever state is available.
-    const { mainLog } = require("../log");
+    const { mainLog } = require("../log.ts");
     mainLog.warn(`[state-init] loadOrRecover threw: ${err && err.message}`);
   }
 }

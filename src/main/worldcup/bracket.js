@@ -16,7 +16,7 @@
 
 const stateStore = require("../state-store");
 const { computeBracket } = require("./bracket-rules");
-const { mainLog } = require("../log");
+const { mainLog } = require("../log.ts");
 const { fetchWorldcupFixtures, loadFinalsTxt } = require("./fetcher");
 const { teamsPairKey, canonicalTeamName } = require("./team-aliases");
 const { matchKickoffUtcMs, matchKey } = require("./match-key");
@@ -25,7 +25,7 @@ const {
   indexWc2026ByMatchNum,
 } = require("./scores-fetcher-wc2026");
 const { fetchScoresFromEspn } = require("./scores-api-espn");
-const { HttpClient } = require("../http-client");
+const { HttpClient } = require("../http-client.ts");
 
 /**
  * Compute full bracket from current group standings + scores.
