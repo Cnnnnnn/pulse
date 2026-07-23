@@ -135,7 +135,7 @@ describe("fetcher-huggingface: normalize", () => {
     const out = normalize(raw);
     expect(out).toHaveLength(1);
     const m = out[0];
-    expect(m.id).toBe("other-all-minilm-l6-v2"); // sentence-transformers 走 alias 归到 other
+    expect(m.id).toBe("sentence-transformers-all-minilm-l6-v2"); // ponytail: id 用 author 原名 slugified (v2.79.5+ fix)
     expect(m.name).toBe("all-MiniLM-L6-v2");
     expect(m.vendorRaw).toBe("sentence-transformers");
     expect(m.vendor).toBe("other"); // 不在厂商白名单 → other
@@ -182,11 +182,11 @@ describe("fetcher-huggingface: normalize", () => {
       "qwen",
       "mistral",
     ]);
-    // id 用归一后 vendor 拼
-    expect(out[0].id).toBe("google-bert-base-uncased");
-    expect(out[1].id).toBe("meta-llama-2-7b-hf");
+    // id 用 author 原名 slugified 区分同名不同发布的变体 (v2.79.5+ fix, 之前用归一后 vendor 撞 id)
+    expect(out[0].id).toBe("google-bert-bert-base-uncased");
+    expect(out[1].id).toBe("meta-llama-llama-2-7b-hf");
     expect(out[2].id).toBe("qwen-qwen2-5-7b");
-    expect(out[3].id).toBe("mistral-mistral-7b-v0-1");
+    expect(out[3].id).toBe("mistralai-mistral-7b-v0-1");
   });
 
   it("categoryFromPipelineTag: text-to-image → image, text-to-video → video", () => {
@@ -214,7 +214,7 @@ describe("fetcher-huggingface: normalize", () => {
     };
     const out = normalize(raw);
     expect(out).toHaveLength(1);
-    expect(out[0].id).toBe("other-ok");
+    expect(out[0].id).toBe("valid-ok");
   });
 
   it("tags 截断到 50 条 (防止异常大 tags 列表撑爆主进程)", () => {

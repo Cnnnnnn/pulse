@@ -194,7 +194,12 @@ export async function fetch(opts: any = {}): Promise<any> {
  *   - 每条 model → 一条 AiModel（仅填 huggingface 切片, 其它 slice 留给其它 fetcher 合并）
  *   - vendorRaw = author（HF 组织名; 跟其它源不一致是预期的, mergeModelSlices 兜底）
  *   - vendor = normalizeVendor(author) + VENDOR_ALIASES 兜底（google-bert → google 等）
- *   - id = slugifyModel(vendor, name), name 拆自 id 第二段（author/model）
+ *   - id = `author-modelName` 模式（不是 `vendor-modelName`）—— ponytail:
+ *     HF 上同名 model 可能来自不同 author (e.g. sentence-transformers/all-MiniLM-L6-v2
+ *     vs Xenova/all-MiniLM-L6-v2, transformers.js ONNX 端口). 两者 author 都归
+ *     VENDOR_META "other" → slugifyModel(vendor, name) 撞 id → mergeModelSlices
+ *     spread 覆盖, later 错数据赢. 用 author 原名 (slugified) 区分变体, 跟
+ *     Arena/AA 的 `vendor-name` 风格保持一致, 同时让 _normName 兜底仍能跨源合并.
  *   - gated / private 模型在 fetch() 阶段已过滤
  * @param raw
  * @returns {object[]}
@@ -211,7 +216,11 @@ export function normalize(raw: any): any[] {
     const modelName = idStr.slice(slashIdx + 1);
     if (!modelName) continue;
     const vendor = normalizeVendor(author);
-    const id = slugifyModel(vendor, modelName);
+    // ponytail: id 用 author 原名 slugified 区分同名不同发布的变体.
+    // 跟 Arena/AA 的 `vendor-name` 风格保持一致 (但 vendor 换成 author 原名).
+    const authorSlug = author.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const nameSlug = modelName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const id = `${authorSlug || "unknown"}-${nameSlug || "unknown"}`;
     const tagSummary = summarizeTags(m.tags);
     out.push(
       toAiModel({

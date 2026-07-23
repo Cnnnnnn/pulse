@@ -139,6 +139,9 @@ export function _mergeByName(models: any[]): Map<string, any> {
   // 第一轮: 按 baseName (剥末尾括号变体) 合并 — 处理 AA "GPT-5.5 (xhigh)" vs MD "GPT-5.5" 这种.
   // 第二轮: 按 _normName (小写去标点 + 剥末尾横杠变体) 合并 — 处理 Arena "gpt-5.5-high" vs MD "GPT-5.5" 这种.
   // 两轮都共用 _pickAndMerge 逻辑, 同条 id 在两轮间去重避免重复处理.
+  // ponytail: HF 同名不同发布是合法变体 (sentence-transformers/all-MiniLM-L6-v2 vs
+  // Xenova/all-MiniLM-L6-v2), libraryName 不同. _mergeByName 兜底会误并 (spread 覆盖
+  // slice 数据). 修法: 组里所有 item 都是 HF 切片且 libraryName 不全等 → 跳过合并.
   const byKey = new Map<string, any>();
   for (const m of models) byKey.set(m.id, m);
   const _mergeGroup = (keyFn: (n: any) => string) => {
@@ -151,6 +154,11 @@ export function _mergeByName(models: any[]): Map<string, any> {
     }
     for (const [, list] of groups) {
       if (list.length < 2) continue;
+      // ponytail: HF 多变体保护 — 同名但 libraryName 不同时是合法变体 (HF 上
+      // sentence-transformers 团队 vs Xenova (transformers.js 端口) 都会发同名 model,
+      // 不应该被 _mergeByName 兜底合并). libraryName 都为空时仍走合并 (兼容其它源).
+      const hfLibs = list.map((m) => m && m.huggingface && m.huggingface.libraryName).filter(Boolean);
+      if (hfLibs.length >= 2 && new Set(hfLibs).size > 1) continue;
       list.sort((a, b) => {
         const pa = _priorityScore(a);
         const pb = _priorityScore(b);
