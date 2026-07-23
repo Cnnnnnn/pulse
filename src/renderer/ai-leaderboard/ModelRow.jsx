@@ -10,7 +10,7 @@
 import { forwardRef } from "preact/compat";
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, fmtTrending, computeTrendingScore, licenseKind, licenseShort } from "./format.js";
-import { compareList, toggleCompare, openModelDetail } from "./aiLeaderboardStore.js";
+import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.jsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
 
@@ -139,11 +139,16 @@ export const ModelRow = forwardRef(function ModelRow(
 
   // ponytail: HF 视角 (v2.79.5+) — 走 huggingface 切片, 主列 Downloads 内联条形.
   // v2.79.6+: 加 Trending 列 (computeTrendingScore 客户端算, 老模型 > 365 天返回 null).
+  //         加 License 列 (按 license 类别聚类) + base_model 衍生数 tag.
   if (view === "huggingface") {
     const hf = m.huggingface || {};
     const downloads = typeof hf.downloads === "number" ? hf.downloads : null;
     const likes = typeof hf.likes === "number" ? hf.likes : null;
     const trending = computeTrendingScore(hf.downloads, hf.lastModified, hf.createdAt);
+    // ponytail: base_model 衍生数 (v2.79.6+) — 一次扫描 items 算同 base_model 出现次数.
+    // 派生 state, 不污染 m.huggingface schema (避免破现有 toEqual 断言).
+    // count >= 2 才显示 (单个 base model 没意义, 1 就是它自己).
+    const bmCount = hf.baseModel && items.value ? baseModelCountMap(items.value).get(hf.baseModel) : null;
     // ponytail: Library 列 — 库 + 量化标记. HF 数据里 library_name 覆盖广
     // (transformers/sentence-transformers/timm/diffusers), quantized 来自 base_model:quantized:* tag.
     const libLabel = hf.libraryName || "—";
@@ -151,6 +156,22 @@ export const ModelRow = forwardRef(function ModelRow(
       <td class="ai-lb-td" title={`推理库: ${libLabel}${hf.quantized ? " (量化版: GGUF/AWQ/GPTQ)" : ""}`}>
         {libLabel}
         {hf.quantized ? <span class="ai-lb-tag" style={{ marginLeft: "4px" }}>量化</span> : null}
+      </td>
+    );
+    // ponytail: License 列 — 短名 + 衍生 baseModel tag (v2.79.6+).
+    // 例: "apache-2.0" + "🎯 12 变体" (这个 base_model 在榜上还有 11 个微调版本).
+    const licLabel = m.license || "—";
+    const licCell = (
+      <td class="ai-lb-td" title={m.license ? `许可: ${m.license}` : "未知许可"}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          {licBadge}
+          <span style={{ fontSize: "0.85em" }}>{licLabel}</span>
+          {bmCount && bmCount >= 2 ? (
+            <span class="ai-lb-tag" style={{ fontSize: "0.75em" }} title={`基于 ${hf.baseModel} 共 ${bmCount} 个变体在榜`}>
+              🎯 {bmCount} 变体
+            </span>
+          ) : null}
+        </div>
       </td>
     );
     return (
@@ -162,6 +183,7 @@ export const ModelRow = forwardRef(function ModelRow(
         {num("hf_downloads", downloads, fmtDownloads, "HuggingFace 累计下载量（按 downloads 降序）")}
         {num("hf_trending", trending, fmtTrending, "HF 趋势分数 = log10(downloads+1) / log10(age_days+2) — 新发布爆款优先")}
         {num("hf_likes", likes, fmtVotes, "HuggingFace 点赞数（社区认可）")}
+        {licCell}
         <td class="ai-lb-td" title={hf.pipelineTag ? `Pipeline: ${hf.pipelineTag}` : "未知 pipeline"}>
           {hf.pipelineTag || "—"}
         </td>

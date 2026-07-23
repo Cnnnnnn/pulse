@@ -181,3 +181,62 @@ describe("ranking: HF Trending 维度 (v2.79.6+)", () => {
     expect(sorted[2].name).toBe("Old"); // age > 365 → 末尾
   });
 });
+
+describe("ranking: HF License 维度 (v2.79.6+)", () => {
+  // ponytail: hf_license 走 special case (在 hf_* 通用分支前), 返回 licenseKind 字符串
+  // (open/proprietary/unknown). 同 license 类别聚类.
+  function makeWithLicense(name, vendor, license) {
+    return toAiModel({
+      id: `${vendor}-${name}`,
+      name,
+      vendor,
+      category: "llm",
+      license,
+    });
+  }
+
+  it("sortValue: hf_license 返回 rank number (0=open, 1=proprietary, 2=unknown)", () => {
+    // ponytail: 字符串 sortValue 在 sortModels (va - vb) 是 NaN, 必须返数字.
+    const apache = makeWithLicense("A", "openai", "apache-2.0");
+    const mit = makeWithLicense("B", "anthropic", "mit");
+    const prop = makeWithLicense("C", "google", "proprietary");
+    const none = makeWithLicense("D", "meta", null);
+    expect(sortValue(apache, "hf_license", "text")).toBe(0);
+    expect(sortValue(mit, "hf_license", "text")).toBe(0);
+    expect(sortValue(prop, "hf_license", "text")).toBe(1);
+    expect(sortValue(none, "hf_license", "text")).toBe(2);
+  });
+
+  it("sortValue: hf_license 兼容 HF 常见 license 写法 (llama / qwen / openrail)", () => {
+    expect(sortValue(makeWithLicense("X", "meta", "llama3.1"), "hf_license", "text")).toBe(0);
+    expect(sortValue(makeWithLicense("X", "alibaba", "qwen-research"), "hf_license", "text")).toBe(0);
+    expect(sortValue(makeWithLicense("X", "stability", "openrail++"), "hf_license", "text")).toBe(0);
+  });
+
+  it("sortModels: hf_license asc 字母序 — open 在前, unknown/proprietary 殿后", () => {
+    const items = [
+      makeWithLicense("P1", "openai", "proprietary"),
+      makeWithLicense("U1", "meta", null),
+      makeWithLicense("O1", "anthropic", "apache-2.0"),
+      makeWithLicense("O2", "google", "mit"),
+    ];
+    const sorted = sortModels(items, "hf_license", "asc", "llm");
+    // 字母序: "open" < "proprietary" < "unknown"
+    expect(sorted[0].name).toMatch(/^O/);
+    expect(sorted[1].name).toMatch(/^O/);
+    expect(sorted[2].name).toBe("P1");
+    expect(sorted[3].name).toBe("U1");
+  });
+
+  it("sortModels: hf_license desc — unknown 排前, open 殿后 (字母降序)", () => {
+    const items = [
+      makeWithLicense("O1", "anthropic", "apache-2.0"),
+      makeWithLicense("P1", "openai", "proprietary"),
+      makeWithLicense("U1", "meta", null),
+    ];
+    const sorted = sortModels(items, "hf_license", "desc", "llm");
+    expect(sorted[0].name).toBe("U1"); // unknown
+    expect(sorted[1].name).toBe("P1"); // proprietary
+    expect(sorted[2].name).toBe("O1"); // open
+  });
+});

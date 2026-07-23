@@ -9,6 +9,21 @@ const { CATEGORY_META, DIMENSION_META, SOURCE } = require("./types.ts");
 const { normalizeVendor } = require("./types.ts");
 const { computeTrendingScore } = require("./fetcher-huggingface.ts");
 
+// ponytail: hf_license 维度 (v2.79.6+) — licenseKind → rank number (排序稳定用).
+// 字符串 sortValue 在 sortModels 里 (va - vb) * mul 是 NaN, 必须返数字.
+// 0 = open (开源权重, 商业用户首选), 1 = proprietary (闭源), 2 = unknown (兜底).
+// 字母序: asc 时 open 排前, desc 时 unknown 排前. 跟 renderer format.js licenseKind 字符串
+// 同口径, 双份代码可接受 (跨进程不能 require).
+function _licenseKind(license: any): string {
+  if (!license) return "unknown";
+  const s = String(license).toLowerCase();
+  if (/(^|[^a-z])proprietary|closed[- ]?source/.test(s)) return "proprietary";
+  if (/mit|apache|bsd|llama|community|open|gpl|mpl|free|creative|qwen|deepseek|mistral|openrail|mrl/.test(s)) return "open";
+  return "unknown";
+}
+
+const _LICENSE_RANK: Record<string, number> = { open: 0, proprietary: 1, unknown: 2 };
+
 /**
  * 取某模型在某维度下的排序值（越大越优）。
  * @param item AiModel
@@ -32,6 +47,11 @@ export function sortValue(item: any, dimension: string, board: string): number {
       ? key.split(".").reduce((o: any, p: string) => (o ? o[p] : null), lb)
       : lb[key];
     return typeof v === "number" && Number.isFinite(v) ? v : -Infinity;
+  }
+  // ponytail: hf_license 走 special case (v2.79.6+) — 返回 rank number (0=open, 1=proprietary, 2=unknown)
+  // 让 sortModels 数字排序稳定 (字符串 (va - vb) 是 NaN, 排序会失效). 必须在 hf_* 通用分支之前.
+  if (dimension === "hf_license") {
+    return _LICENSE_RANK[_licenseKind(item.license)] ?? 2;
   }
   // ponytail: hf_trending 走 special case (v2.79.6+) — m.huggingface 里没 trendingScore 字段,
   // 实时调 computeTrendingScore(dl, lastModified, createdAt) 算. 必须在 hf_* 通用分支之前,

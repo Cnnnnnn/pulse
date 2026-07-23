@@ -77,6 +77,14 @@ export const DIMENSION_META: Record<string, any> = {
     field: "huggingface",
     sortKey: "trendingScore",
   },
+  // ponytail: hf_license (v2.79.6+) — 按 license 类别聚类 (open/proprietary/unknown).
+  // sortKey "licenseKind" 是占位; ranking 走 special case 返回 licenseKind 字符串.
+  // (跟 hf_trending 同模式 — sortValue 不依赖 DIMENSION_META.sortKey 直读字段.)
+  hf_license: {
+    label: "HuggingFace License",
+    field: "huggingface",
+    sortKey: "licenseKind",
+  },
 };
 
 /** Top 20 主流厂商 + other 兜底（归一化见 normalizeVendor）。 */

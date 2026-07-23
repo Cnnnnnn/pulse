@@ -205,6 +205,12 @@ export function primaryValue(model, dimension, category) {
     const ts = computeTrendingScore(hf.downloads, hf.lastModified, hf.createdAt);
     return typeof ts === "number" && Number.isFinite(ts) ? ts : null;
   }
+  // ponytail: hf_license 走 special case (v2.79.6+) — 返回 rank number (0=open, 1=proprietary, 2=unknown)
+  // 跟 main 端 ranking 对齐 — 字符串 (va - vb) 在 sortModels 是 NaN, 必须返数字.
+  if (dimension === "hf_license") {
+    const k = licenseKind(model && model.license);
+    return k === "open" ? 0 : k === "proprietary" ? 1 : 2;
+  }
   // ponytail: hf_* 维度 (v2.79.5+) — 走 huggingface 切片, sortKey 直接读 downloads/likes.
   if (typeof dimension === "string" && dimension.startsWith("hf_")) {
     const hf = model && model.huggingface;
@@ -247,6 +253,8 @@ export function formatPrimary(value, dimension) {
   if (typeof dimension === "string" && dimension.startsWith("lb_")) return fmtLivebench(value);
   // ponytail: hf_trending (v2.79.6+) — 走 fmtTrending (2 位小数)
   if (dimension === "hf_trending") return fmtTrending(value);
+  // ponytail: hf_license (v2.79.6+) — licenseKind 字符串直接显示
+  if (dimension === "hf_license") return value || "—";
   // ponytail: hf_* 维度 (v2.79.5+) — 走 fmtVotes 紧凑格式 (254M → "254.0M")
   if (typeof dimension === "string" && dimension.startsWith("hf_")) return fmtDownloads(value);
   return fmtIndex(value);

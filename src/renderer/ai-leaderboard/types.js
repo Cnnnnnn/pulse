@@ -35,6 +35,7 @@ export const DIMENSION_META = {
   hf_downloads: { label: "HuggingFace Downloads", field: "huggingface", sortKey: "downloads" },
   hf_likes: { label: "HuggingFace Likes", field: "huggingface", sortKey: "likes" },
   hf_trending: { label: "HuggingFace Trending", field: "huggingface", sortKey: "trendingScore" },
+  hf_license: { label: "HuggingFace License", field: "huggingface", sortKey: "licenseKind" },
 };
 
 export const VIEWS = {
@@ -122,6 +123,7 @@ export const SORT_COLUMN_LABELS = {
   hf_downloads: "Downloads",
   hf_likes: "Likes",
   hf_trending: "Trending",
+  hf_license: "License",
 };
 
 /* ── LiveBench 视角：抗污染子维度（全部 desc 默认）── */
@@ -137,14 +139,16 @@ export const LIVE_DIMENSION_KEYS = ["lb_overall", "lb_coding", "lb_language", "l
 
 /* ── HuggingFace 视角：社区信号子维度（全部 desc 默认）── */
 // ponytail: hf_trending (v2.79.6+) — log10(dl)/log10(age+2) 客户端算分, 新发布爆款优先.
+//           hf_license (v2.79.6+) — 按 license 类别聚类 (open/proprietary/unknown).
 
 export const HF_DIMENSIONS = {
   hf_downloads: { key: "hf_downloads", label: "Downloads", kind: "huggingface" },
   hf_likes: { key: "hf_likes", label: "Likes", kind: "huggingface" },
   hf_trending: { key: "hf_trending", label: "Trending", kind: "huggingface" },
+  hf_license: { key: "hf_license", label: "License", kind: "huggingface" },
 };
 
-export const HF_DIMENSION_KEYS = ["hf_downloads", "hf_likes", "hf_trending"];
+export const HF_DIMENSION_KEYS = ["hf_downloads", "hf_likes", "hf_trending", "hf_license"];
 
 /** 升序默认的维度 (低 = 优). */
 export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);

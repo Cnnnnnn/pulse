@@ -32,6 +32,23 @@ import {
 } from "./types.js";
 import { primaryValue, licenseKind, computeTrendingScore } from "./format.js";
 
+/**
+ * ponytail: HF 视角 base_model 衍生数 (v2.79.6+) — 一次扫描, 算同 base_model 出现次数.
+ * 返回 Map<baseModel, count>. 没 baseModel 的不进 map.
+ * @param {object[]} items
+ * @returns {Map<string, number>}
+ */
+export function baseModelCountMap(items) {
+  const m = new Map();
+  if (!Array.isArray(items)) return m;
+  for (const it of items) {
+    const bm = it && it.huggingface && it.huggingface.baseModel;
+    if (!bm || typeof bm !== "string") continue;
+    m.set(bm, (m.get(bm) || 0) + 1);
+  }
+  return m;
+}
+
 /* ── signals ── */
 export const activeView = signal("arena");
 export const activeBoard = signal("text");
@@ -395,6 +412,12 @@ export function columnValue(model, view, key) {
       if (!hf) return null;
       const ts = computeTrendingScore(hf.downloads, hf.lastModified, hf.createdAt);
       return typeof ts === "number" && Number.isFinite(ts) ? ts : null;
+    }
+    if (key === "hf_license") {
+      // ponytail: 返回 rank number (0=open, 1=proprietary, 2=unknown) 跟 main ranking 对齐
+      // — store 端 sortValue 走 primaryValue 拿数字, sortModels 数字排序稳定.
+      const k = licenseKind(model && model.license);
+      return k === "open" ? 0 : k === "proprietary" ? 1 : 2;
     }
     if (key === "context") {
       // 优先级: modelsdev > openrouter (HF 不返回 context)

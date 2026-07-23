@@ -151,10 +151,11 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
         />
       </tr>
     ) : v === "huggingface" ? (
-      // ponytail: HF 视角 (v2.79.5+) — 主列 Downloads (内联条形), 副 Trending / Likes / Pipeline / 最后更新 / Library.
+      // ponytail: HF 视角 (v2.79.5+) — 主列 Downloads (内联条形), 副 Trending / Likes / License / Pipeline / 最后更新 / Library.
       // Library 列替换"上下文": HF 数据本身没 context, models.dev 也没收录 HF top 200
       // (大都是 embedding/ASR/旧模型), 用 libraryName 替代更有信息量.
-      // v2.79.6+: Trending 列加在 Downloads 和 Likes 之间 — log10(dl)/log10(age+2) 客户端算分, 新发布爆款优先.
+      // v2.79.6+: Trending 列加在 Downloads 和 Likes 之间 (新发布爆款优先).
+      //         License 列加在 Likes 后 (按 license 类别聚类: open/proprietary/unknown).
       <tr>
         <th class="ai-lb-th ai-lb-col-check" scope="col" aria-label="对比" />
         <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
@@ -180,6 +181,13 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
           active={aKey}
           dir={dir}
           title="HuggingFace Hub 点赞数（社区认可度）"
+        />
+        <SortableTh
+          k="hf_license"
+          label="License"
+          active={aKey}
+          dir={dir}
+          title="按 License 类别聚类: open / proprietary / unknown (commercial users 通常筛 open)"
         />
         <th class="ai-lb-th" scope="col" title="HuggingFace Pipeline Tag (text-generation / sentence-similarity 等)">Pipeline</th>
         <th class="ai-lb-th" scope="col" title="HuggingFace 模型最后更新时间">最后更新</th>

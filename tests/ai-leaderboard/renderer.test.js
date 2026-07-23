@@ -259,6 +259,92 @@ describe("sorting — HF 视角 hf_downloads / hf_likes / hf_trending (v2.79.6+)
   });
 });
 
+describe("HF License 维度 + baseModelCountMap (v2.79.6+)", () => {
+  // ponytail: hf_license 按 license 类别聚类 (open/proprietary/unknown). baseModelCountMap
+  // 一次扫描算同 baseModel 出现次数, count >= 2 才显示 "🎯 N 变体" tag.
+  const NOW = Date.now();
+  const day = (n) => new Date(NOW - n * 86_400_000).toISOString();
+  const mkHF = (over = {}) => ({
+    id: over.id || "m",
+    name: over.name || "Model",
+    vendor: over.vendor || "other",
+    vendorRaw: over.vendorRaw || null,
+    category: "llm",
+    license: over.license || null,
+    arena: {},
+    aa: null,
+    openrouter: null,
+    huggingface: over.hf || null,
+    livebench: null,
+    modelsdev: null,
+    sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none", huggingface: over.hf ? "live" : "none" },
+    isSample: false,
+    fetchedAt: null,
+    rankDelta: null,
+    isNew: false,
+  });
+
+  beforeEach(() => {
+    store.activeView.value = "huggingface";
+    store.sortDir.value = "desc";
+  });
+
+  it("hf_license asc 排序 — open 在前, unknown 殿后", () => {
+    store.activeDim.value = "hf_license";
+    store.sortDir.value = "asc";
+    const list = [
+      mkHF({ id: "u", name: "U", license: null }),
+      mkHF({ id: "p", name: "P", license: "proprietary" }),
+      mkHF({ id: "o1", name: "O1", license: "apache-2.0" }),
+      mkHF({ id: "o2", name: "O2", license: "mit" }),
+    ];
+    store.items.value = list;
+    const shown = store.getDisplayed();
+    expect(shown[0].id).toMatch(/^o/);
+    expect(shown[1].id).toMatch(/^o/);
+    expect(shown[2].id).toBe("p");
+    expect(shown[3].id).toBe("u");
+  });
+
+  it("hf_license desc 排序 — unknown 在前, open 殿后", () => {
+    store.activeDim.value = "hf_license";
+    store.sortDir.value = "desc";
+    const list = [
+      mkHF({ id: "o", name: "O", license: "apache-2.0" }),
+      mkHF({ id: "p", name: "P", license: "proprietary" }),
+      mkHF({ id: "u", name: "U", license: null }),
+    ];
+    store.items.value = list;
+    const shown = store.getDisplayed();
+    expect(shown[0].id).toBe("u");
+    expect(shown[1].id).toBe("p");
+    expect(shown[2].id).toBe("o");
+  });
+
+  it("baseModelCountMap: 同 baseModel 出现 N 次 → count = N", () => {
+    const list = [
+      mkHF({ id: "1", hf: { baseModel: "Qwen/Qwen2.5-7B", downloads: 100, likes: 1, lastModified: day(10) } }),
+      mkHF({ id: "2", hf: { baseModel: "Qwen/Qwen2.5-7B", downloads: 200, likes: 2, lastModified: day(10) } }),
+      mkHF({ id: "3", hf: { baseModel: "Qwen/Qwen2.5-7B", downloads: 300, likes: 3, lastModified: day(10) } }),
+      mkHF({ id: "4", hf: { baseModel: "meta-llama/Llama-3-8B", downloads: 400, likes: 4, lastModified: day(10) } }),
+      mkHF({ id: "5", hf: { downloads: 500, likes: 5, lastModified: day(10) } }), // 无 baseModel
+    ];
+    const map = store.baseModelCountMap(list);
+    expect(map.get("Qwen/Qwen2.5-7B")).toBe(3);
+    expect(map.get("meta-llama/Llama-3-8B")).toBe(1);
+    expect(map.size).toBe(2); // 无 baseModel 不进 map
+  });
+
+  it("columnValue: hf_license 返回 rank number (跟 main 端对齐)", () => {
+    const a = mkHF({ id: "a", license: "apache-2.0" });
+    const p = mkHF({ id: "p", license: "Proprietary" });
+    const u = mkHF({ id: "u", license: null });
+    expect(store.columnValue(a, "huggingface", "hf_license")).toBe(0);
+    expect(store.columnValue(p, "huggingface", "hf_license")).toBe(1);
+    expect(store.columnValue(u, "huggingface", "hf_license")).toBe(2);
+  });
+});
+
 describe("filtering — vendor / 搜索", () => {
   const list = [
     mkModel({ id: "gpt", name: "GPT-4o", vendor: "openai", arena: { text: { score: 1100 } } }),
