@@ -15,6 +15,12 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { getGameDeals, sortDeals } = require("../games/aggregator.ts");
 const { exchangeRateService, isValidCurrency } = require("../games/exchange-rates.ts");
 const { fetchJson } = require("../games/normalize.ts");
@@ -36,13 +42,13 @@ const DEALS_CACHE_MAX = 64; // (platform×mode) 组合有限，64 足够
 /** @type {Map<string, {result:object, fetchedAt:number}>} */
 const _dealsCache = new Map();
 
-function dealsCacheKey({ platform, mode }) {
+function dealsCacheKey({ platform, mode }: any) {
   // sort/minSavings 不进 key：本地应用，避免改下拉框触发重拉
   // country/itadKey 不进 key：聚合内只影响主机平台且基本恒定
   return JSON.stringify({ platform, mode });
 }
 
-function dealsCacheGet(key) {
+function dealsCacheGet(key: any) {
   const e = _dealsCache.get(key);
   if (!e) return null;
   if (Date.now() - e.fetchedAt > DEALS_CACHE_TTL_MS) {
@@ -52,7 +58,7 @@ function dealsCacheGet(key) {
   return e.result;
 }
 
-function dealsCacheSet(key, result) {
+function dealsCacheSet(key: any, result: any) {
   // 超限清一半（简易 LRU，与 register-stocks.js searchCacheSet 一致）
   if (_dealsCache.size > DEALS_CACHE_MAX) {
     const drop = [..._dealsCache.keys()].slice(0, DEALS_CACHE_MAX >> 1);
@@ -65,14 +71,14 @@ function resetDealsCache() {
   _dealsCache.clear();
 }
 
-function resolveItadKey(payload) {
+function resolveItadKey(payload: any) {
   if (payload && typeof payload.itadKey === "string" && payload.itadKey.trim()) {
     return payload.itadKey.trim();
   }
   return process.env.ITAD_API_KEY || null;
 }
 
-function extractFxCurrencies(items) {
+function extractFxCurrencies(items: any) {
   const set = new Set();
   for (const item of items || []) {
     const cur = item && item.currency;
@@ -83,7 +89,7 @@ function extractFxCurrencies(items) {
   return [...set];
 }
 
-async function attachFx(result, service = exchangeRateService) {
+async function attachFx(result: any, service = exchangeRateService) {
   if (!result || result.ok === false) {
     return { ...result, fx: EMPTY_FX };
   }
@@ -96,7 +102,7 @@ async function attachFx(result, service = exchangeRateService) {
 }
 
 /** 从 cheapshark /games?steamAppID= 响应提取历史最低价。 */
-function extractLowestFromCheapshark(games) {
+function extractLowestFromCheapshark(games: any) {
   if (!Array.isArray(games) || games.length === 0) return null;
   let min = Infinity;
   for (const g of games) {
@@ -110,22 +116,22 @@ function extractLowestFromCheapshark(games) {
  * 对 deals 模式的结果本地应用 sort / minSavings（纯函数，不触发上游重拉）。
  * free / compare 模式由 aggregator 内部已排序，这里原样返回。
  */
-function applySortAndFilter(result, { mode, sort, minSavings }) {
+function applySortAndFilter(result: any, { mode, sort, minSavings }: any) {
   if (!result || result.ok === false || mode !== "deals") return result;
   let items = result.items || [];
   if (minSavings > 0) {
-    items = items.filter((it) => it && it.savings >= minSavings);
+    items = items.filter((it: any) => it && it.savings >= minSavings);
   }
   items = sortDeals(items, sort);
   return { ...result, items, count: items.length };
 }
 
-function registerGamesHandlers(ctx) {
+function registerGamesHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
   safeHandle(
     "games:getDeals",
-    async (_event, payload) => {
+    async (_event: any, payload: any) => {
       const opts =
         payload && typeof payload === "object" ? payload : {};
       const allowedPlatforms = [
@@ -170,7 +176,7 @@ function registerGamesHandlers(ctx) {
         return {
           ok: false,
           reason: "aggregate_failed",
-          error: err && err.message,
+          error: errMsg(err),
           items: [],
           sources: {},
           count: 0,
@@ -179,7 +185,7 @@ function registerGamesHandlers(ctx) {
       }
     },
     {
-      logMeta: (_evt, payload) => ({
+      logMeta: (_evt: any, payload: any) => ({
         platform: payload && payload.platform,
         mode: payload && payload.mode,
       }),
@@ -188,7 +194,7 @@ function registerGamesHandlers(ctx) {
 
   safeHandle(
     "games:getSteamLowest",
-    async (_event, payload) => {
+    async (_event: any, payload: any) => {
       const appId = payload && payload.steamAppId;
       if (!appId) return { lowestPrice: null };
       try {
@@ -203,7 +209,7 @@ function registerGamesHandlers(ctx) {
 
   safeHandle(
     "games:getItadLowest",
-    async (_event, payload) => {
+    async (_event: any, payload: any) => {
       const slugs = Array.isArray(payload && payload.slugs) ? payload.slugs : [];
       const key = (payload && payload.itadKey) || process.env.ITAD_API_KEY || null;
       const { fetchItadLowest } = require("../games/itad.ts");
@@ -216,10 +222,10 @@ function registerGamesHandlers(ctx) {
   // 本端点供 GamesLayout mount 时无条件调一次，保证 wishlist 也有人民币参考价。
   safeHandle(
     "games:getFx",
-    async (_event, payload) => {
+    async (_event: any, payload: any) => {
       const raw = (payload && Array.isArray(payload.currencies)) ? payload.currencies : [];
       const currencies = extractFxCurrencies(
-        raw.map((c) => ({ currency: c })),
+        raw.map((c: any) => ({ currency: c })),
       );
       try {
         return await exchangeRateService.getRates(currencies);

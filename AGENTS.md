@@ -5,7 +5,7 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 **Phase 3 Batch 0–9 完成**；**Phase 3.5** 按目录开 `strict`（见 `tsconfig.app.strict.json`，已锁 platform + bootstrap + `src/main/*.ts` + 业务域；剩余 **ipc**）。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 **Phase 3 Batch 0–9 完成**；**Phase 3.5 完成**（`tsconfig.app.strict.json` 已锁 platform + main 全目录含 ipc）。下一步：**Phase 4 renderer**（JSX→TSX）。
 
 ## 仓库布局
 

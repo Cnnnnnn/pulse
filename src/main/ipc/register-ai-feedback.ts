@@ -15,6 +15,12 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const stateStore = require("../state-store.ts");
 const {
   recordFeedback,
@@ -22,11 +28,11 @@ const {
   FEEDBACK_CAP,
 } = require("../ai-feedback-store.ts");
 
-function registerAiFeedbackHandlers(ctx) {
+function registerAiFeedbackHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  safeHandle("feedback:record", async (_evt, raw) => {
+  safeHandle("feedback:record", async (_evt: any, raw: any) => {
     if (!raw || typeof raw !== "object") return { ok: false, reason: "invalid_args" };
     // 必填: feature / appName / ts + (vote 或 implicit 至少一个)
     if (
@@ -43,7 +49,7 @@ function registerAiFeedbackHandlers(ctx) {
       stateStore.saveAiFeedback(next);
       return { ok: true };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
@@ -51,7 +57,7 @@ function registerAiFeedbackHandlers(ctx) {
     try {
       return { ok: true, samples: stateStore.loadAiFeedback() };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 }

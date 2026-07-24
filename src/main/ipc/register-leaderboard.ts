@@ -17,6 +17,12 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const fs = require("fs").promises;
 const path = require("path");
 const { getLeaderboard } = require("../ai-leaderboard/index.ts");
@@ -35,7 +41,7 @@ const _cache = new Map();
  * @param {object} opts
  * @returns {string}
  */
-function boardCacheKey(opts) {
+function boardCacheKey(opts: any) {
   return JSON.stringify({
     category: opts.category,
     dimension: opts.dimension,
@@ -45,7 +51,7 @@ function boardCacheKey(opts) {
   });
 }
 
-function cacheGet(key) {
+function cacheGet(key: any) {
   const e = _cache.get(key);
   if (!e) return null;
   if (Date.now() - e.fetchedAt > CACHE_TTL_MS) {
@@ -55,7 +61,7 @@ function cacheGet(key) {
   return e.result;
 }
 
-function cacheSet(key, result) {
+function cacheSet(key: any, result: any) {
   if (_cache.size > CACHE_MAX) {
     const drop = [..._cache.keys()].slice(0, CACHE_MAX >> 1);
     for (const k of drop) _cache.delete(k);
@@ -73,7 +79,7 @@ function resetLeaderboardCache() {
  * @param {unknown} payload
  * @returns {object}
  */
-function sanitize(payload) {
+function sanitize(payload: any) {
   const p = payload && typeof payload === "object" ? payload : {};
   const category = CATEGORY_META[p.category] ? p.category : "llm";
   const dimension = DIMENSION_META[p.dimension] ? p.dimension : "elo";
@@ -92,13 +98,13 @@ function sanitize(payload) {
   return { category, dimension, vendor, sortDir, search, force, sources };
 }
 
-function registerLeaderboardHandlers(ctx) {
+function registerLeaderboardHandlers(ctx: any) {
   const { safeHandle } = ctx;
   // ponytail: 2026-07-22 CSV 导出 — dialog / BrowserWindow / app 从 ctx 注入
   // (与 register-stock-export 同构), 让测试可 mock.
   const { dialog, BrowserWindow, electronApp } = ctx;
 
-  async function handleGet(_event, payload) {
+  async function handleGet(_event: any, payload: any) {
     const opts = sanitize(payload);
     const key = boardCacheKey(opts);
 
@@ -118,7 +124,7 @@ function registerLeaderboardHandlers(ctx) {
       return {
         ok: false,
         reason: "aggregate_failed",
-        error: err && err.message,
+        error: errMsg(err),
         items: [],
         sources: { arena: "none", aa: "none", openrouter: "none" },
         attribution: [],
@@ -132,7 +138,7 @@ function registerLeaderboardHandlers(ctx) {
   }
 
   safeHandle("leaderboard:get", handleGet, {
-    logMeta: (_evt, payload) => ({
+    logMeta: (_evt: any, payload: any) => ({
       category: payload && payload.category,
       dimension: payload && payload.dimension,
     }),
@@ -141,7 +147,7 @@ function registerLeaderboardHandlers(ctx) {
   safeHandle("leaderboard:rate-budget", async () => budget("artificial-analysis"));
 
   // refresh = get + force:true；聚合内部绕过磁盘缓存重拉，回写请求级缓存。
-  safeHandle("leaderboard:refresh", async (_event, payload) => {
+  safeHandle("leaderboard:refresh", async (_event: any, payload: any) => {
     const opts = sanitize(payload);
     opts.force = true;
     const key = boardCacheKey(opts);
@@ -154,7 +160,7 @@ function registerLeaderboardHandlers(ctx) {
       return {
         ok: false,
         reason: "aggregate_failed",
-        error: err && err.message,
+        error: errMsg(err),
         items: [],
         sources: { arena: "none", aa: "none", openrouter: "none" },
         attribution: [],
@@ -169,7 +175,7 @@ function registerLeaderboardHandlers(ctx) {
 
   // 2026-07-22: CSV 导出 — renderer 把已序列化好的 CSV 字符串发过来, 主进程
   // 只负责弹保存对话框 + 写盘. 失败返 {ok:false, error}, 不抛 (safeHandle 兜底).
-  safeHandle("leaderboard:export-csv", async (event, payload) => {
+  safeHandle("leaderboard:export-csv", async (event: any, payload: any) => {
     const csv = typeof payload?.csv === "string" ? payload.csv : "";
     const suggested =
       typeof payload?.filenameSuggestion === "string"
@@ -199,7 +205,7 @@ function registerLeaderboardHandlers(ctx) {
         filters: [{ name: "CSV", extensions: ["csv"] }],
       });
     } catch (err) {
-      return { ok: false, error: err && err.message };
+      return { ok: false, error: errMsg(err) };
     }
     if (result.canceled || !result.filePath) {
       return { ok: true, cancelled: true };
@@ -208,10 +214,10 @@ function registerLeaderboardHandlers(ctx) {
       await fs.writeFile(result.filePath, csv, "utf8");
       return { ok: true, path: result.filePath };
     } catch (err) {
-      return { ok: false, error: err && err.message };
+      return { ok: false, error: errMsg(err) };
     }
   }, {
-    logMeta: (_evt, payload) => ({
+    logMeta: (_evt: any, payload: any) => ({
       suggested: payload && payload.filenameSuggestion,
       size: typeof payload?.csv === "string" ? payload.csv.length : 0,
     }),

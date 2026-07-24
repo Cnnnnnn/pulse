@@ -14,10 +14,16 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const stateStore = require("../state-store.ts");
 const { todayKey } = require("../token-budget.ts");
 
-function registerTokenBudgetHandlers(ctx) {
+function registerTokenBudgetHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
@@ -27,11 +33,11 @@ function registerTokenBudgetHandlers(ctx) {
       const spend = stateStore.loadTokenSpend();
       return { ok: true, config, todaySpend: spend[todayKey()] || 0 };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
-  safeHandle("token-budget:set", async (_evt, cfg) => {
+  safeHandle("token-budget:set", async (_evt: any, cfg: any) => {
     if (!cfg || typeof cfg !== "object") return { ok: false, reason: "invalid_args" };
     if (typeof cfg.dailyLimit !== "number" || cfg.dailyLimit < 0) {
       return { ok: false, reason: "invalid_args" };
@@ -46,7 +52,7 @@ function registerTokenBudgetHandlers(ctx) {
       });
       return { ok: true };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 }

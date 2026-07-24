@@ -13,10 +13,16 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const stateStore = require("../state-store.ts");
 const { DEFAULT_PROMPTS, PROMPT_KEYS } = require("../../ai/prompt-registry");
 
-function mergePromptForLoad(key, user) {
+function mergePromptForLoad(key: any, user: any) {
   const def = DEFAULT_PROMPTS[key];
   const u = user && user[key];
   const isDefault = !u || typeof u.system !== "string" || !u.system.trim();
@@ -32,20 +38,20 @@ function mergePromptForLoad(key, user) {
   };
 }
 
-function registerAiPromptsHandlers(ctx) {
+function registerAiPromptsHandlers(ctx: any) {
   const { safeHandle, sendToRenderer } = ctx;
   if (typeof safeHandle !== "function") return;
 
   safeHandle("ai-prompts:load", () => {
     const user = stateStore.loadAiPrompts();
-    const result = {};
+    const result: Record<string, any> = {};
     for (const key of PROMPT_KEYS) {
       result[key] = mergePromptForLoad(key, user);
     }
     return result;
   });
 
-  safeHandle("ai-prompts:save", (_evt, payload) => {
+  safeHandle("ai-prompts:save", (_evt: any, payload: any) => {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       return { ok: false, reason: "invalid_args" };
     }
@@ -60,11 +66,11 @@ function registerAiPromptsHandlers(ctx) {
       }
       return { ok: true };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
-  safeHandle("ai-prompts:reset", (_evt, key) => {
+  safeHandle("ai-prompts:reset", (_evt: any, key: any) => {
     if (!key || typeof key !== "string" || !PROMPT_KEYS.includes(key)) {
       return { ok: false, reason: "unknown_key" };
     }
@@ -81,7 +87,7 @@ function registerAiPromptsHandlers(ctx) {
       }
       return { ok: true, key };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 }

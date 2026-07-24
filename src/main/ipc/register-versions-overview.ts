@@ -16,7 +16,7 @@ const stateStore = require("../state-store.ts");
 const { runCheckQueued } = require("../check-runner.ts");
 const { buildRunCheckDeps } = require("../run-check-deps.ts");
 
-async function commandSearch(_ctx, q) {
+async function commandSearch(_ctx: any, q: any) {
   if (!q || typeof q !== "string") return { ok: true, results: [] };
   const lower = q.toLowerCase();
   const results = [];
@@ -36,10 +36,10 @@ async function commandSearch(_ctx, q) {
   return { ok: true, results: results.slice(0, 10) };
 }
 
-function registerVersionsOverviewHandlers(ctx) {
+function registerVersionsOverviewHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
-  safeHandle("versions:command-search", async (_e, { q }) =>
+  safeHandle("versions:command-search", async (_e: any, { q }: any) =>
     commandSearch(ctx, q),
   );
   // v2.50 (T5): TopBar / OverviewEmptyState CTA — 复用 check-runner.runCheckQueued
@@ -60,12 +60,12 @@ function registerVersionsOverviewHandlers(ctx) {
       }),
       { silent: false },
     )
-      .then((r) => {
+      .then((r: any) => {
         // 正常完成 (runCheck 自身无返回值时, 返 true; 已并发返 already_running 时透传)
         if (r && r.started === false) return r;
         return { started: true };
       })
-      .catch((e) => ({
+      .catch((e: any) => ({
         started: false,
         reason: "check_failed",
         error: (e && e.message) || String(e),

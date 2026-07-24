@@ -14,6 +14,12 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { createStockHttpClient } = require("../chromium-http-client.ts");
 const {
   fetchStocks,
@@ -26,7 +32,7 @@ const { aiStockAdvise } = require("../../ai/stock-screener-advisor");
 
 const CACHE_TTL_MS = 60_000;
 // 内存缓存: { key, rows, total, fetchedAt }. key = criteria+sort 的 JSON.
-let _cache = null;
+let _cache: any = null;
 
 // ponytail 2026-07-08 P-1: sortKey 高命中维度 (ROE/PE/增速 desc) 时只拉前 1500 条, 兜底 25 页.
 //   A 股 5534 只, 高 ROE/PE desc 通常集中在前 1000-1500 名, 覆盖筛选命中区间; 余下 4000+
@@ -41,7 +47,7 @@ const SEARCH_CACHE_TTL_MS = 5 * 60_000;
 /** @type {Map<string, {results: any[], fetchedAt: number}>} */
 const _searchCache = new Map();
 
-function searchCacheGet(query) {
+function searchCacheGet(query: any) {
   const e = _searchCache.get(query);
   if (!e) return null;
   if (Date.now() - e.fetchedAt > SEARCH_CACHE_TTL_MS) {
@@ -51,7 +57,7 @@ function searchCacheGet(query) {
   return e.results;
 }
 
-function searchCacheSet(query, results) {
+function searchCacheSet(query: any, results: any) {
   // ponytail: 缓存上限 200 条, 防内存泄漏. LRU 简化版 — 超限清一半.
   if (_searchCache.size > 200) {
     const drop = [..._searchCache.keys()].slice(0, 100);
@@ -62,7 +68,7 @@ function searchCacheSet(query, results) {
 
 // ponytail: 2026-07-07 — 用全市场 rows (StockRow 形态) 补搜索结果的 price/changePct/industry.
 // entries: searchStocks raw 结果. rows: _cache.rows 或 null. 返新数组, 不改 input.
-function enrichSearchResults(entries, rows) {
+function enrichSearchResults(entries: any, rows: any) {
   if (!Array.isArray(entries) || !Array.isArray(rows) || rows.length === 0) {
     return entries;
   }
@@ -86,7 +92,7 @@ function enrichSearchResults(entries, rows) {
 
 // ponytail: 东财底层错误 token ('network' / 'timeout' / 'HTTP 5xx') 不能直接漏给 UI.
 // 翻译成人类可读 + 提示重试 + 原因提示 (公司网络/代理常见 ECONNRESET).
-function friendlyFetchError(raw) {
+function friendlyFetchError(raw: any) {
   if (!raw) return "未知错误, 请重试";
   const r = String(raw).toLowerCase();
   if (r === "network")
@@ -101,16 +107,16 @@ function friendlyFetchError(raw) {
 
 // ponytail 2026-07-08 P-4: cache key 只用 criteria. sort 切列头时前端 stockStore.setSort
 // 已本地 sortStocks 重排, 主进程不需要为排序单开缓存槽. 这样切列头不重打 IPC.
-function criteriaKey(criteria) {
+function criteriaKey(criteria: any) {
   return JSON.stringify({ c: criteria || {} });
 }
 
-function registerStocksHandlers(ctx) {
+function registerStocksHandlers(ctx: any) {
   const { safeHandle, threwResponse } = ctx;
 
   safeHandle(
     "stocks:screen",
-    async (_event, { criteria, sort }: any = {}) => {
+    async (_event: any, { criteria, sort }: any = {}) => {
       const key = criteriaKey(criteria);
       const now = Date.now();
       if (
@@ -177,12 +183,12 @@ function registerStocksHandlers(ctx) {
         fromCache: false,
       };
     },
-    { onError: (err) => threwResponse(err, { results: [], total: 0 }) },
+    { onError: (err: any) => threwResponse(err, { results: [], total: 0 }) },
   );
 
   safeHandle(
     "stocks:search",
-    async (_event, query) => {
+    async (_event: any, query: any) => {
       const q = String(query || "")
         .trim()
         .toLowerCase();
@@ -194,7 +200,7 @@ function registerStocksHandlers(ctx) {
       const cached = searchCacheGet(q);
       if (cached) {
         const stillMissing = cached.filter(
-          (e) => e && e.code && (e.price == null || e.changePct == null),
+          (e: any) => e && e.code && (e.price == null || e.changePct == null),
         );
         if (stillMissing.length === 0) {
           return { ok: true, results: cached, fromCache: true };
@@ -206,18 +212,18 @@ function registerStocksHandlers(ctx) {
         });
         let reEnriched = enrichSearchResults(cached, _cache && _cache.rows);
         const reMissing = reEnriched.filter(
-          (e) => e && e.code && (e.price == null || e.changePct == null),
+          (e: any) => e && e.code && (e.price == null || e.changePct == null),
         );
         if (reMissing.length > 0) {
           try {
             const { rows } = await fetchStocksByCodes(
-              reMissing.map((e) => e.code),
+              reMissing.map((e: any) => e.code),
               httpClient,
               { timeoutMs: 6000 },
             );
             if (Array.isArray(rows) && rows.length > 0) {
               const byCode = new Map(rows.map((r) => [r.code, r]));
-              reEnriched = reEnriched.map((e) => {
+              reEnriched = reEnriched.map((e: any) => {
                 if (!e || !e.code) return e;
                 const r = byCode.get(e.code);
                 if (!r) return e;
@@ -258,18 +264,18 @@ function registerStocksHandlers(ctx) {
       //      直接进诊断 + 加对比池的也能拿到现价/涨跌. 失败静默退化为原 results.
       let enriched = enrichSearchResults(results, _cache && _cache.rows);
       const stillMissing = enriched.filter(
-        (e) => e && e.code && (e.price == null || e.changePct == null),
+        (e: any) => e && e.code && (e.price == null || e.changePct == null),
       );
       if (stillMissing.length > 0) {
         try {
           const { rows } = await fetchStocksByCodes(
-            stillMissing.map((e) => e.code),
+            stillMissing.map((e: any) => e.code),
             httpClient,
             { timeoutMs: 6000 },
           );
           if (Array.isArray(rows) && rows.length > 0) {
             const byCode = new Map(rows.map((r) => [r.code, r]));
-            enriched = enriched.map((e) => {
+            enriched = enriched.map((e: any) => {
               if (!e || !e.code) return e;
               const r = byCode.get(e.code);
               if (!r) return e;
@@ -294,14 +300,14 @@ function registerStocksHandlers(ctx) {
       searchCacheSet(q, enriched);
       return { ok: true, results: enriched };
     },
-    { onError: (err) => threwResponse(err, { results: [] }) },
+    { onError: (err: any) => threwResponse(err, { results: [] }) },
   );
 
   // 阶段二: AI 推荐筛选策略 — 走 chatCompletion (复用 P71 预算 + safeStorage key).
   // marketOverview 从最近一次 fetchStocks 缓存的全市场 rows 计算; 用户首次未拉取时降级为 null.
   safeHandle(
     "stocks:ai-advise",
-    async (_event, payload: any = {}) => {
+    async (_event: any, payload: any = {}) => {
       const intentChip = payload && payload.intentChip;
       const freeText = payload && payload.freeText;
       if (!intentChip || !intentChip.id) {
@@ -320,10 +326,10 @@ function registerStocksHandlers(ctx) {
       return result;
     },
     {
-      onError: (err) => ({
+      onError: (err: any) => ({
         ok: false,
         reason: "internal_error",
-        error: err && err.message,
+        error: errMsg(err),
       }),
     },
   );

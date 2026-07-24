@@ -13,6 +13,12 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { fetchWechatHot } = require("../wechat-hot/fetcher.ts");
 const { createWechatHotCache } = require("../wechat-hot/cache.ts");
 const { loadReadIds, markItemRead } = require("../wechat-hot/read-store.ts");
@@ -22,11 +28,11 @@ const { mainLog } = require("../log.ts");
 const UPDATED_CHANNEL = "wechat-hot:updated";
 const TIMEOUT_MS = 10000;
 
-function registerWechatHotHandlers(ctx) {
+function registerWechatHotHandlers(ctx: any) {
   const { safeHandle, sendToRenderer, getConfig } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  function runKeywordWatchlist(items) {
+  function runKeywordWatchlist(items: any) {
     try {
       const {
         checkWatchlistKeywordUpdates,
@@ -38,7 +44,7 @@ function registerWechatHotHandlers(ctx) {
       });
     } catch (err) {
       mainLog.warn(
-        `[wechat-hot] watchlist keyword check failed: ${err && err.message}`,
+        `[wechat-hot] watchlist keyword check failed: ${errMsg(err)}`,
       );
     }
   }
@@ -47,7 +53,7 @@ function registerWechatHotHandlers(ctx) {
   const httpClient = new HttpClient({ timeout: TIMEOUT_MS, maxRetries: 0 });
   const cache = createWechatHotCache({
     fetcher: () => fetchWechatHot({ httpClient, timeoutMs: TIMEOUT_MS }),
-    onUpdate: (payload) => {
+    onUpdate: (payload: any) => {
       if (typeof sendToRenderer === "function") {
         try { sendToRenderer(UPDATED_CHANNEL, payload); } catch { /* noop */ }
       }
@@ -61,15 +67,16 @@ function registerWechatHotHandlers(ctx) {
     try {
       return await cache.refresh();
     } catch (err) {
-      mainLog.warn(`[ipc] wechat-hot:refresh failed: reason=${err && err.reason}, msg=${err && err.message}`);
-      return { ok: false, reason: err && err.reason ? err.reason : "threw" };
+      const reason = err && typeof err === "object" && "reason" in err ? (err as any).reason : null;
+      mainLog.warn(`[ipc] wechat-hot:refresh failed: reason=${reason}, msg=${errMsg(err)}`);
+      return { ok: false, reason: reason || "threw" };
     }
   });
 
   // I6 v2: 已读词持久化 (仿 ithome:mark-read)
   safeHandle("wechat-hot:load-read", () => loadReadIds());
 
-  safeHandle("wechat-hot:mark-read", (_evt, title) => {
+  safeHandle("wechat-hot:mark-read", (_evt: any, title: any) => {
     if (!title || typeof title !== "string") {
       return { ok: false, reason: "invalid_args" };
     }

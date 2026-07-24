@@ -13,6 +13,12 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { createStockHttpClient } = require("../chromium-http-client.ts");
 const { fetchStockDetailAngles, fetchSingleAngle } = require("../../stocks/stock-detail-fetcher");
 const { computeStockCacheKey } = require("../../stocks/stock-detail-cache");
@@ -21,12 +27,12 @@ const { aiStockDetailAnalyze, refreshAngleLocally } = require("../../ai/stock-de
 const CACHE_TTL_MS = 60_000;
 const _detailCache = new Map();
 
-function registerStockDetailHandlers(ctx) {
+function registerStockDetailHandlers(ctx: any) {
   const { safeHandle, threwResponse } = ctx;
 
   safeHandle(
     "stocks:detail-angles",
-    async (_event, { code, angles }: any = {}) => {
+    async (_event: any, { code, angles }: any = {}) => {
       if (!code || !Array.isArray(angles) || angles.length === 0) {
         return { ok: false, reason: "invalid_args" };
       }
@@ -48,19 +54,19 @@ function registerStockDetailHandlers(ctx) {
       _detailCache.set(key, { data, fetchedAt: Date.now() });
       return { ok: true, data, fromCache: false };
     },
-    { onError: (err) => threwResponse(err, { perAngle: {} }) },
+    { onError: (err: any) => threwResponse(err, { perAngle: {} }) },
   );
 
   safeHandle(
     "stocks:detail-analyze",
-    async (_event, { code, angles, perAngleData, freeText, scores }: any = {}) => {
+    async (_event: any, { code, angles, perAngleData, freeText, scores }: any = {}) => {
       return await aiStockDetailAnalyze({ code, angles, perAngleData, freeText, scores });
     },
     {
-      onError: (err) => ({
+      onError: (err: any) => ({
         ok: false,
         reason: "internal_error",
-        error: err && err.message,
+        error: errMsg(err),
       }),
     },
   );
@@ -69,17 +75,17 @@ function registerStockDetailHandlers(ctx) {
 // renderer 拿到 {note} 后合并进 aiResult.perAngle[key]. 缺数据返 {ok:false, reason:'no_data'}.
   safeHandle(
     "stocks:angle-refresh",
-    async (_event, { angleKey, perAngleData, scores, seed }: any = {}) => {
+    async (_event: any, { angleKey, perAngleData, scores, seed }: any = {}) => {
       if (!angleKey) return { ok: false, reason: "invalid_args" };
       const note = refreshAngleLocally({ angleKey, perAngleData, scores, seed });
       if (!note) return { ok: false, reason: "no_data" };
       return { ok: true, note, angleKey };
     },
     {
-      onError: (err) => ({
+      onError: (err: any) => ({
         ok: false,
         reason: "internal_error",
-        error: err && err.message,
+        error: errMsg(err),
       }),
     },
   );
@@ -90,7 +96,7 @@ function registerStockDetailHandlers(ctx) {
   //   no_data, pill 永远 failed. 现改走这条, 数据成功 → pill 自动 ok.
   safeHandle(
     "stocks:angle-reload",
-    async (_event, { code, angleKey }: any = {}) => {
+    async (_event: any, { code, angleKey }: any = {}) => {
       if (!code || !angleKey) return { ok: false, reason: "invalid_args" };
       const httpClient = createStockHttpClient({ timeout: 8000, maxRetries: 1 });
       const perAngle = await fetchSingleAngle(httpClient, code, angleKey);
@@ -98,10 +104,10 @@ function registerStockDetailHandlers(ctx) {
       return { ok: true, perAngle };
     },
     {
-      onError: (err) => ({
+      onError: (err: any) => ({
         ok: false,
         reason: "internal_error",
-        error: err && err.message,
+        error: errMsg(err),
       }),
     },
   );

@@ -15,7 +15,13 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type {} from "electron";
-function registerSelfUpdateHandlers(ctx) {
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function registerSelfUpdateHandlers(ctx: any) {
   const { safeHandle, controller } = ctx || {};
   if (typeof safeHandle !== "function") return;
   if (!controller) {
@@ -31,7 +37,7 @@ function registerSelfUpdateHandlers(ctx) {
     try {
       return { ok: true, state: controller.getState() };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
@@ -43,7 +49,7 @@ function registerSelfUpdateHandlers(ctx) {
       const r = await controller.checkNow();
       return r || { ok: true };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
@@ -55,7 +61,7 @@ function registerSelfUpdateHandlers(ctx) {
       controller.quitAndInstall();
       return { ok: true };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 }

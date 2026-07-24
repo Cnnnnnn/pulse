@@ -10,17 +10,23 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { fetchChangelogSummary } = require("../../ai/changelog-summary");
 
-function registerChangelogSummaryHandlers(ctx) {
+function registerChangelogSummaryHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  safeHandle("changelog-summary:fetch", async (_evt, opts) => {
+  safeHandle("changelog-summary:fetch", async (_evt: any, opts: any) => {
     try {
       return await fetchChangelogSummary(opts || {});
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 }

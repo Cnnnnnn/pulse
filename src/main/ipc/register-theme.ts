@@ -23,13 +23,13 @@ const { mainLog } = require("../log.ts");
 const VALID = ["system", "light", "dark"];
 let lastThemeMode = "system"; // 主进程内存, 重启时重置为 system.
 
-function resolveTheme(mode) {
+function resolveTheme(mode: any) {
   if (mode === "system")
     return nativeTheme.shouldUseDarkColors ? "dark" : "light";
   return mode === "dark" ? "dark" : "light";
 }
 
-function registerThemeHandlers(ctx) {
+function registerThemeHandlers(ctx: any) {
   const { sendToRenderer } = ctx;
 
   // 监听系统外观变化: 'system' 模式下同步给 renderer (tray icon 已经在 install() 监听了).

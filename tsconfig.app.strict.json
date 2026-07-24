@@ -16,7 +16,8 @@
     "src/main/games/**/*.ts",
     "src/main/ai-leaderboard/**/*.ts",
     "src/main/bootstrap/**/*.ts",
-    "src/main/*.ts"
+    "src/main/*.ts",
+    "src/main/ipc/**/*.ts"
   ],
   "exclude": ["node_modules", "renderer-dist", "tests"]
 }

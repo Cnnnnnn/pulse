@@ -7,10 +7,10 @@ import type {} from "electron";
 const ithomeNewsStore = require("../ithome/news-store.ts");
 const { summarizeArticle } = require("../ithome/article-ai.ts");
 
-function registerIthomeHandlers(ctx) {
+function registerIthomeHandlers(ctx: any) {
   const { safeHandle, getConfig } = ctx;
 
-  function runKeywordWatchlistFromNews(news) {
+  function runKeywordWatchlistFromNews(news: any) {
     try {
       const articles =
         news && news.articles && typeof news.articles === "object"
@@ -34,7 +34,7 @@ function registerIthomeHandlers(ctx) {
 
   safeHandle("ithome:load-news", async () => ithomeNewsStore.loadAll());
 
-  safeHandle("ithome:refresh-news", async (_evt, dateKey) => {
+  safeHandle("ithome:refresh-news", async (_evt: any, dateKey: any) => {
     const out = dateKey
       ? await ithomeNewsStore.fetchDay(dateKey)
       : await ithomeNewsStore.refresh();
@@ -45,15 +45,15 @@ function registerIthomeHandlers(ctx) {
     return out;
   });
 
-  safeHandle("ithome:fetch-day", async (_evt, dateKey) =>
+  safeHandle("ithome:fetch-day", async (_evt: any, dateKey: any) =>
     ithomeNewsStore.fetchDay(dateKey),
   );
 
-  safeHandle("ithome:summarize-article", async (_evt, payload) =>
+  safeHandle("ithome:summarize-article", async (_evt: any, payload: any) =>
     summarizeArticle(payload || {}),
   );
 
-  safeHandle("ithome:toggle-favorite", async (_evt, payload) => {
+  safeHandle("ithome:toggle-favorite", async (_evt: any, payload: any) => {
     const id = payload && payload.id;
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
@@ -61,7 +61,7 @@ function registerIthomeHandlers(ctx) {
     return ithomeNewsStore.toggleFavorite(id);
   });
 
-  safeHandle("ithome:mark-read", async (_evt, id) => {
+  safeHandle("ithome:mark-read", async (_evt: any, id: any) => {
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
     }

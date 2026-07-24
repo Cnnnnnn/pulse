@@ -23,6 +23,12 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const stateStore = require("../state-store.ts");
 const aiStorage = require("../../ai-sessions/storage");
 const { MiniMaxQuotaClient } = require("../../ai-usage/client");
@@ -34,7 +40,7 @@ const KNOWN_PROVIDERS = ["minimax", "glm"];
  * @param {string} providerId
  * @returns {Function|null}  对应的 QuotaClient 构造器
  */
-function _pickClientCtor(deps, providerId) {
+function _pickClientCtor(deps: any, providerId: any) {
   if (providerId === "minimax") return deps.MiniMaxQuotaClient;
   if (providerId === "glm") return deps.GlmQuotaClient;
   return null;
@@ -46,7 +52,7 @@ function _pickClientCtor(deps, providerId) {
  * @param {string} providerId
  * @returns {string|null}
  */
-function _loadApiKeySafe(storage, providerId) {
+function _loadApiKeySafe(storage: any, providerId: any) {
   try {
     const key = storage.loadApiKey(providerId);
     if (typeof key === "string" && key.length > 0) return key;
@@ -62,9 +68,9 @@ const _internals = {
    * @param {object} args
    * @param {object} args.deps  { stateStore }
    */
-  async getCached({ deps }) {
-    const providers = {};
-    const histories = {};
+  async getCached({ deps }: any) {
+    const providers: Record<string, any> = {};
+    const histories: Record<string, any> = {};
     for (const pid of KNOWN_PROVIDERS) {
       providers[pid] = deps.stateStore.loadSnapshotProvider(pid);
       histories[pid] = deps.stateStore.loadHistoryProvider(pid);
@@ -134,10 +140,10 @@ const _internals = {
           fs.mkdirSync(logDir, { recursive: true });
           fs.writeFileSync(
             path.join(logDir, "minimax-usage-summary-fail.log"),
-            `${new Date().toISOString()} threw=${e && e.message}\n${e && e.stack}\n`,
+            `${new Date().toISOString()} threw=${e instanceof Error ? e.message : String(e)}\n${e instanceof Error ? (e.stack || "") : ""}\n`,
           );
         } catch { /* ignore */ }
-        log_warn_history(`usage_summary fetch threw: ${e && e.message}`);
+        log_warn_history(`usage_summary fetch threw: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
     if (usageSummary) {
@@ -187,10 +193,10 @@ function _localDateKey() {
   return `${y}-${m}-${day}`;
 }
 
-function log_warn_history(e) {
+function log_warn_history(e: any) {
   // 历史写入失败不应该阻塞 fetch 主流程; 用 console 而非 renderer log (main 进程)
   try {
-    console.warn("[ai-usage] appendHistory failed:", e && e.message);
+    console.warn("[ai-usage] appendHistory failed:", (e instanceof Error ? e.message : String(e)));
   } catch {
     /* noop */
   }
@@ -201,7 +207,7 @@ function log_warn_history(e) {
  * @param {(channel: string, fn: Function, opts?: object) => void} ctx.safeHandle
  * @param {(channel: string, payload: any) => void} ctx.sendToRenderer
  */
-function registerAiUsageHandlers(ctx) {
+function registerAiUsageHandlers(ctx: any) {
   const { safeHandle, sendToRenderer } = ctx;
 
   // 真实 deps — 引用项目内 module
@@ -222,7 +228,7 @@ function registerAiUsageHandlers(ctx) {
 
   safeHandle("ai-usage:get-cached", async () => _internals.getCached({ deps }));
 
-  safeHandle("ai-usage:fetch", async (_event, opts) =>
+  safeHandle("ai-usage:fetch", async (_event: any, opts: any) =>
     _internals.fetch({ deps, opts: opts || {} }),
   );
 
@@ -231,12 +237,12 @@ function registerAiUsageHandlers(ctx) {
     prefs: stateStore.loadAiUsageAlertPrefs(),
   }));
 
-  safeHandle("ai-usage:alert-prefs:set", (_event, patch) => {
+  safeHandle("ai-usage:alert-prefs:set", (_event: any, patch: any) => {
     try {
       stateStore.saveAiUsageAlertPrefs(patch || {});
       return { ok: true, prefs: stateStore.loadAiUsageAlertPrefs() };
     } catch (err) {
-      return { ok: false, reason: "save_failed", error: err && err.message };
+      return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
   });
 }

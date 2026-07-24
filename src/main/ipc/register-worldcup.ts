@@ -4,6 +4,12 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const stateStore = require("../state-store.ts");
 const {
   computeWorldcupBracket,
@@ -18,10 +24,10 @@ const {
   remove: betsRemove,
 } = require("../worldcup/bets-store.ts");
 
-function registerWorldcupHandlers(ctx) {
+function registerWorldcupHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
-  safeHandle("worldcup:fetch-fixtures", async (_evt, payload) =>
+  safeHandle("worldcup:fetch-fixtures", async (_evt: any, payload: any) =>
     fetchWorldcupFixtures(payload || {}),
   );
 
@@ -34,7 +40,7 @@ function registerWorldcupHandlers(ctx) {
     };
   });
 
-  safeHandle("worldcup:refresh-scores", async (_evt, payload) => {
+  safeHandle("worldcup:refresh-scores", async (_evt: any, payload: any) => {
     const eligibleKeys =
       payload && Array.isArray(payload.eligibleKeys)
         ? payload.eligibleKeys
@@ -55,7 +61,7 @@ function registerWorldcupHandlers(ctx) {
     { log: false },
   );
 
-  safeHandle("worldcup:generate-insight", async (_evt, payload) => {
+  safeHandle("worldcup:generate-insight", async (_evt: any, payload: any) => {
     const match = payload && payload.match;
     const type = payload && payload.type;
     const force = !!(payload && payload.force);
@@ -70,11 +76,11 @@ function registerWorldcupHandlers(ctx) {
 
   safeHandle(
     "worldcup:upsert-bet",
-    async (_evt, payload) => betsUpsert(payload || {}),
-    { onError: (err) => ({ ok: false, reason: err && err.message }) },
+    async (_evt: any, payload: any) => betsUpsert(payload || {}),
+    { onError: (err: any) => ({ ok: false, reason: errMsg(err) }) },
   );
 
-  safeHandle("worldcup:compute-bracket", async (_evt, payload) =>
+  safeHandle("worldcup:compute-bracket", async (_evt: any, payload: any) =>
     computeWorldcupBracket(payload || {}),
   );
 
@@ -84,7 +90,7 @@ function registerWorldcupHandlers(ctx) {
     { log: false },
   );
 
-  safeHandle("worldcup:remove-bet", async (_evt, date) => betsRemove(date));
+  safeHandle("worldcup:remove-bet", async (_evt: any, date: any) => betsRemove(date));
 }
 
 module.exports = { registerWorldcupHandlers };

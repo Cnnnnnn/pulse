@@ -26,10 +26,16 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const fs = require("fs");
 const path = require("path");
 
-function sanitize(name) {
+function sanitize(name: any) {
   // ponytail: 文件名去掉路径分隔符 / 控制字符, 防用户输入奇怪的 defaultName.
   return String(name || "诊断报告").replace(
     // eslint-disable-next-line no-control-regex
@@ -38,7 +44,7 @@ function sanitize(name) {
   ).slice(0, 80);
 }
 
-function resolveDownloadsDir(electronApp) {
+function resolveDownloadsDir(electronApp: any) {
   try {
     if (electronApp && typeof electronApp.getPath === "function") {
       return electronApp.getPath("downloads");
@@ -53,7 +59,7 @@ function resolveDownloadsDir(electronApp) {
   }
 }
 
-function registerStockExportHandlers(ctx) {
+function registerStockExportHandlers(ctx: any) {
   const { safeHandle, threwResponse } = ctx;
   // ponytail: 与 register-config-portability 一致 — dialog/BrowserWindow/app 从 ctx 注入,
   // 让 vitest 测试能 mock. 生产环境 index.js 里直接传 require("electron").xxx.
@@ -61,7 +67,7 @@ function registerStockExportHandlers(ctx) {
 
   safeHandle(
     "stocks:export-diagnosis-png",
-    async (event, { defaultName }: any = {}) => {
+    async (event: any, { defaultName }: any = {}) => {
       try {
         if (!BrowserWindow || !dialog) {
           return { ok: false, reason: "main_not_ready" };
@@ -99,10 +105,10 @@ function registerStockExportHandlers(ctx) {
       }
     },
     {
-      onError: (err) => ({
+      onError: (err: any) => ({
         ok: false,
         reason: "internal_error",
-        error: err && err.message ? err.message : String(err),
+        error: errMsg(err) ? err.message : String(err),
       }),
     },
   );

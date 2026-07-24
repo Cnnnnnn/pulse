@@ -7,6 +7,12 @@
 //          rewrite 依赖 path 保留裸名).
 import type { IpcMain, BrowserWindow } from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 type MainLog = { warn: (msg: string, meta?: Record<string, unknown>) => void };
 
 type IpcContextDeps = {
@@ -89,7 +95,7 @@ function createIpcContext(deps: IpcContextDeps): IpcContext {
   }
 
   function threwResponse(err: any, extra: Record<string, unknown> = {}) {
-    return { ok: false as const, reason: "threw" as const, error: err && err.message, ...extra };
+    return { ok: false as const, reason: "threw" as const, error: errMsg(err), ...extra };
   }
 
   function safeHandle(
@@ -107,7 +113,7 @@ function createIpcContext(deps: IpcContextDeps): IpcContext {
             typeof logMeta === "function" ? logMeta(...args) : logMeta || {};
           mainLog.warn(`[ipc] ${channel} threw`, {
             ...meta,
-            msg: err && err.message,
+            msg: errMsg(err),
           });
         }
         if (onError) return onError(err, ...args);

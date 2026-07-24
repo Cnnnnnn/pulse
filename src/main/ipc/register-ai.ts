@@ -21,16 +21,16 @@ function localDateKey(offsetDays = 0) {
   }).format(new Date(t));
 }
 
-function registerAiHandlers(ctx) {
+function registerAiHandlers(ctx: any) {
   const { safeHandle, sendToRenderer } = ctx;
 
   function getAiTasksWiring() {
-    return global.__pulse_aiTasks || null;
+    return (globalThis as any).__pulse_aiTasks || null;
   }
 
   safeHandle(
     "ai-tasks:list",
-    async (_event, opts) => {
+    async (_event: any, opts: any) => {
       const wiring = getAiTasksWiring();
       if (!wiring) return { ok: false, reason: "not_initialized" };
       const dateKey =
@@ -42,12 +42,12 @@ function registerAiHandlers(ctx) {
       const r = await wiring.engine.listTasks(dateKey, { now: Date.now() });
       return { ok: true, ...r };
     },
-    { logMeta: (_evt, opts) => ({ dateKey: opts && opts.dateKey }) },
+    { logMeta: (_evt: any, opts: any) => ({ dateKey: opts && opts.dateKey }) },
   );
 
   safeHandle(
     "ai-tasks:summarize",
-    async (_event, opts) => {
+    async (_event: any, opts: any) => {
       const wiring = getAiTasksWiring();
       if (!wiring) return { ok: false, reason: "not_initialized" };
       const dateKey =
@@ -58,7 +58,7 @@ function registerAiHandlers(ctx) {
           : localDateKey(0);
       const taskKeys =
         opts && Array.isArray(opts.taskKeys)
-          ? opts.taskKeys.filter((k) => typeof k === "string" && k.length > 0)
+          ? opts.taskKeys.filter((k: any) => typeof k === "string" && k.length > 0)
           : [];
       if (taskKeys.length === 0) {
         return { ok: false, reason: "no_tasks_selected" };
@@ -66,18 +66,18 @@ function registerAiHandlers(ctx) {
       const r = await wiring.engine.summarizeTasks(taskKeys, {
         dateKey,
         now: Date.now(),
-        onTaskDone: (event) => {
+        onTaskDone: (event: any) => {
           sendToRenderer("ai-task-summary-updated", { dateKey, ...event });
         },
       });
       return { ok: r.ok, dateKey, results: r.results, failures: r.failures };
     },
-    { logMeta: (_evt, opts) => ({ dateKey: opts && opts.dateKey }) },
+    { logMeta: (_evt: any, opts: any) => ({ dateKey: opts && opts.dateKey }) },
   );
 
   safeHandle(
     "ai-sessions:open-session",
-    async (_event, target) => {
+    async (_event: any, target: any) => {
       if (typeof target !== "string" || target.length === 0) {
         return { ok: false, reason: "invalid_target" };
       }
@@ -92,12 +92,12 @@ function registerAiHandlers(ctx) {
       }
       return { ok: false, reason: "unrecognized_target" };
     },
-    { logMeta: (_evt, target) => ({ target }) },
+    { logMeta: (_evt: any, target: any) => ({ target }) },
   );
 
   safeHandle(
     "ai-sessions:set-key",
-    async (_event, providerId, apiKey) => {
+    async (_event: any, providerId: any, apiKey: any) => {
       if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
         return { ok: false, reason: "invalid_providerId" };
       }
@@ -111,19 +111,19 @@ function registerAiHandlers(ctx) {
       mainLog.info(`[ipc] ai-sessions:set-key ok provider=${providerId}`);
       return { ok: true };
     },
-    { logMeta: (_evt, providerId) => ({ providerId }) },
+    { logMeta: (_evt: any, providerId: any) => ({ providerId }) },
   );
 
   safeHandle(
     "ai-sessions:clear-key",
-    async (_event, providerId) => {
+    async (_event: any, providerId: any) => {
       if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
         return { ok: false, reason: "invalid_providerId" };
       }
       const r = aiStorage.clearApiKey(providerId);
       return { ok: true, cleared: r };
     },
-    { logMeta: (_evt, providerId) => ({ providerId }) },
+    { logMeta: (_evt: any, providerId: any) => ({ providerId }) },
   );
 
   ipcMain.handle("ai-sessions:has-key", async (_event, providerId) => {
@@ -198,7 +198,7 @@ function registerAiHandlers(ctx) {
         },
       });
     } catch (err) {
-      return { ok: false, error: err.message };
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
   });
 
@@ -207,7 +207,7 @@ function registerAiHandlers(ctx) {
     return { ok: true, config: cfg };
   });
 
-  safeHandle("ai-sessions:save-config", async (_event, cfg) => {
+  safeHandle("ai-sessions:save-config", async (_event: any, cfg: any) => {
     if (cfg != null && typeof cfg !== "object") {
       return { ok: false, reason: "invalid_config" };
     }
@@ -220,7 +220,7 @@ function registerAiHandlers(ctx) {
     );
 
     try {
-      const baseCfg = global.__pulse_aiSessionsBaseCfg || {
+      const baseCfg = (globalThis as any).__pulse_aiSessionsBaseCfg || {
         enabled: false,
         provider: "minimax",
         cloud: null,
@@ -230,15 +230,15 @@ function registerAiHandlers(ctx) {
         config: baseCfg,
         runtimeOverride: stateStore.loadAISessionsConfig(),
         log: {
-          info: (...a) => mainLog.info(...a),
-          warn: (...a) => mainLog.warn(...a),
-          error: (...a) => mainLog.error(...a),
+          info: (...a: any) => mainLog.info(...a),
+          warn: (...a: any) => mainLog.warn(...a),
+          error: (...a: any) => mainLog.error(...a),
         },
       });
-      global.__pulse_aiTasks = wiring;
+      (globalThis as any).__pulse_aiTasks = wiring;
     } catch (e) {
       mainLog.warn("[ipc] ai-sessions:save-config failed to rebuild wiring", {
-        msg: e && e.message,
+        msg: e instanceof Error ? e.message : String(e),
       });
     }
 

@@ -3,18 +3,24 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type { IpcMain } from "electron";
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
 const reminders = require("../reminders.ts");
 const recentActivity = require("../recent-activity.ts");
 
-function registerRemindersRecentHandlers(ctx) {
+function registerRemindersRecentHandlers(ctx: any) {
   const { sendToRenderer } = ctx;
 
   ipcMain.handle("reminders:list", () => {
     try {
       return { ok: true, reminders: reminders.list() };
     } catch (err) {
-      return { ok: false, reason: "list_failed", msg: err && err.message };
+      return { ok: false, reason: "list_failed", msg: errMsg(err) };
     }
   });
   ipcMain.handle("reminders:create", (_evt, input) => reminders.create(input));
@@ -33,7 +39,7 @@ function registerRemindersRecentHandlers(ctx) {
     try {
       return { ok: true, entries: recentActivity.list() };
     } catch (err) {
-      return { ok: false, reason: "list_failed", msg: err && err.message };
+      return { ok: false, reason: "list_failed", msg: errMsg(err) };
     }
   });
   ipcMain.handle("recent:push", (_evt, entry) => {

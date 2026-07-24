@@ -12,15 +12,21 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const newsStore = require("../ithome/news-store.ts");
 const { createShareCardPng } = require("../ithome/share-card-renderer.ts");
 const { writePngToClipboard } = require("../ithome/clipboard-image.ts");
 const { mainLog } = require("../log.ts");
 
-function registerIthomeShareHandlers(ctx) {
+function registerIthomeShareHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
-  safeHandle("ithome:share-card", async (_evt, payload) => {
+  safeHandle("ithome:share-card", async (_evt: any, payload: any) => {
     const id = payload && payload.id;
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
@@ -43,9 +49,9 @@ function registerIthomeShareHandlers(ctx) {
     } catch (err) {
       mainLog.warn("[ithome:share-card] failed", {
         id,
-        msg: err && err.message,
+        msg: errMsg(err),
       });
-      return { ok: false, reason: "render_failed", error: err && err.message };
+      return { ok: false, reason: "render_failed", error: errMsg(err) };
     }
   });
 }

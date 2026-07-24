@@ -15,21 +15,27 @@
 
 import type {} from "electron";
 
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl } = require("../github.ts");
 const { parseReadme } = require("../../ai/readme-parse");
 
 /** 优先用 renderer 传入的 token；为空则回退 .env / 进程环境变量。 */
-function resolveToken(passed) {
+function resolveToken(passed: any) {
   const t = typeof passed === "string" ? passed.trim() : "";
   return t || getEnvGithubToken();
 }
 
-function registerGithubHandlers(ctx) {
+function registerGithubHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
   safeHandle(
     "github:fetch",
-    async (_event, payload) => {
+    async (_event: any, payload: any) => {
       const input =
         payload && typeof payload === "object" ? payload.input : payload;
       if (typeof input !== "string" || input.trim().length === 0) {
@@ -38,11 +44,11 @@ function registerGithubHandlers(ctx) {
       try {
         return await fetchGithubProject(input, resolveToken(payload && payload.token));
       } catch (err) {
-        return { ok: false, reason: "fetch_failed", error: err && err.message };
+        return { ok: false, reason: "fetch_failed", error: errMsg(err) };
       }
     },
     {
-      logMeta: (_evt, payload) => ({
+      logMeta: (_evt: any, payload: any) => ({
         input:
           payload && typeof payload.input === "string"
             ? payload.input.slice(0, 80)
@@ -53,7 +59,7 @@ function registerGithubHandlers(ctx) {
 
   safeHandle(
     "ai:parse-readme",
-    async (_event, payload) => {
+    async (_event: any, payload: any) => {
       if (!payload || typeof payload !== "object") {
         return { ok: false, reason: "invalid_payload" };
       }
@@ -64,17 +70,17 @@ function registerGithubHandlers(ctx) {
           readme: payload.readme,
         });
       } catch (err) {
-        return { ok: false, reason: "parse_failed", error: err && err.message };
+        return { ok: false, reason: "parse_failed", error: errMsg(err) };
       }
     },
     {
-      logMeta: (_evt, p) => ({ project: p && p.projectName }),
+      logMeta: (_evt: any, p: any) => ({ project: p && p.projectName }),
     },
   );
 
   safeHandle(
     "github:fetch-release",
-    async (_event, payload) => {
+    async (_event: any, payload: any) => {
       const input =
         payload && typeof payload === "object" ? payload.input : payload;
       if (typeof input !== "string" || input.trim().length === 0) {
@@ -89,11 +95,11 @@ function registerGithubHandlers(ctx) {
           resolveToken(payload && payload.token),
         );
       } catch (err) {
-        return { ok: false, reason: "fetch_failed", error: err && err.message };
+        return { ok: false, reason: "fetch_failed", error: errMsg(err) };
       }
     },
     {
-      logMeta: (_evt, payload) => ({
+      logMeta: (_evt: any, payload: any) => ({
         input:
           payload && typeof payload.input === "string"
             ? payload.input.slice(0, 80)

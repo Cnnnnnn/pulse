@@ -18,6 +18,12 @@
 import type * as OsType from "node:os";
 import type * as PathType from "node:path";
 import type * as FsType from "node:fs";
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const os: typeof OsType = require("os");
 const path: typeof PathType = require("path");
 const fs: typeof FsType = require("fs");
@@ -28,11 +34,11 @@ const {
   computeDiff,
 } = require("../config-portability.ts");
 
-function registerConfigPortabilityHandlers(ctx) {
+function registerConfigPortabilityHandlers(ctx: any) {
   const { safeHandle, dialog } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  safeHandle("config:export", async (_evt, pulseVersion) => {
+  safeHandle("config:export", async (_evt: any, pulseVersion: any) => {
     try {
       const state = stateStore.load() || {};
       // pulseVersion 优先用传入; 否则从 package.json 读 (渲染层无 version 来源)
@@ -58,7 +64,7 @@ function registerConfigPortabilityHandlers(ctx) {
         sizeBytes: Buffer.byteLength(content, "utf8"),
       };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
@@ -74,7 +80,7 @@ function registerConfigPortabilityHandlers(ctx) {
         properties: ["openFile"],
       });
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
     if (
       !result ||
@@ -89,7 +95,7 @@ function registerConfigPortabilityHandlers(ctx) {
     try {
       content = fs.readFileSync(filePath, "utf8");
     } catch (err) {
-      return { ok: false, reason: "read_failed", error: err && err.message };
+      return { ok: false, reason: "read_failed", error: errMsg(err) };
     }
     const parsed = parseConfigFile(content);
     if (!parsed.ok) return parsed;
@@ -98,7 +104,7 @@ function registerConfigPortabilityHandlers(ctx) {
     return { ok: true, diff, fields: parsed.fields, filePath };
   });
 
-  safeHandle("config:import-apply", async (_evt, payload) => {
+  safeHandle("config:import-apply", async (_evt: any, payload: any) => {
     if (!payload || !payload.fields || typeof payload.fields !== "object") {
       return { ok: false, reason: "no_selection" };
     }
@@ -111,14 +117,14 @@ function registerConfigPortabilityHandlers(ctx) {
       }
       if (Array.isArray(inc.reminders)) {
         // 走 patchState, 绕开 reminders.js raw writeAtomic 竞态
-        stateStore.patchState((next) => {
+        stateStore.patchState((next: any) => {
           next.reminders = inc.reminders;
         });
         applied.push("reminders");
       }
       if (inc.funds && typeof inc.funds === "object") {
         // 完整恢复 funds (含 dailySnapshots/navSource 等), 不走 fund-store.saveAll
-        stateStore.patchState((next) => {
+        stateStore.patchState((next: any) => {
           next.funds = inc.funds;
         });
         applied.push("funds");
@@ -131,7 +137,7 @@ function registerConfigPortabilityHandlers(ctx) {
       return {
         ok: false,
         reason: "threw",
-        error: err && err.message,
+        error: errMsg(err),
         applied,
       };
     }

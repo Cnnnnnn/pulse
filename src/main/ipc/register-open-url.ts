@@ -14,10 +14,16 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type { Shell } from "electron";
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { shell }: { shell: Shell } = require("electron");
 const { mainLog } = require("../log.ts");
 
-function isSafeUrl(url) {
+function isSafeUrl(url: any) {
   if (typeof url !== "string" || url.length === 0) return false;
   try {
     const u = new URL(url);
@@ -27,10 +33,10 @@ function isSafeUrl(url) {
   }
 }
 
-function registerOpenUrlHandlers(ctx) {
+function registerOpenUrlHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
-  safeHandle("open-url:open", async (_evt, url) => {
+  safeHandle("open-url:open", async (_evt: any, url: any) => {
     if (!isSafeUrl(url)) {
       mainLog.warn(`[ipc] open-url:open rejected unsafe url: ${url}`);
       return { ok: false, reason: "unsafe_url" };
@@ -39,7 +45,7 @@ function registerOpenUrlHandlers(ctx) {
       await shell.openExternal(url);
       return { ok: true };
     } catch (err) {
-      mainLog.warn(`[ipc] open-url:open failed: ${err && err.message}`);
+      mainLog.warn(`[ipc] open-url:open failed: ${errMsg(err)}`);
       return { ok: false, reason: "shell_failed" };
     }
   });

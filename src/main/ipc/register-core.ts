@@ -3,6 +3,12 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type { IpcMain } from "electron";
+
+// ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
 const { runCheckQueued } = require("../check-runner.ts");
 const { buildRunCheckDeps } = require("../run-check-deps.ts");
@@ -15,10 +21,10 @@ const lastOpened = require("../last-opened.ts");
 const recentActivity = require("../recent-activity.ts");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
 
-let bulkUpgradeCtrl = null;
+let bulkUpgradeCtrl: any = null;
 let bulkUpgradeRunning = false;
 
-function registerCoreHandlers(ctx) {
+function registerCoreHandlers(ctx: any) {
   const {
     getConfig,
     pool,
@@ -62,7 +68,7 @@ function registerCoreHandlers(ctx) {
     try {
       const { checkWatchlistUpdates } = require("../watchlist.ts");
       const { Notification: ElectronNotification } = require("electron");
-      const sendNotification = (n) => {
+      const sendNotification = (n: any) => {
         if (
           !ElectronNotification.isSupported ||
           !ElectronNotification.isSupported()
@@ -78,7 +84,7 @@ function registerCoreHandlers(ctx) {
       checkWatchlistUpdates({ results: r, sendNotification });
     } catch (err) {
       mainLog.warn(
-        `[ipc] check-updates watchlist hook failed: ${err && err.message}`,
+        `[ipc] check-updates watchlist hook failed: ${errMsg(err)}`,
       );
     }
     return r;
@@ -118,11 +124,11 @@ function registerCoreHandlers(ctx) {
     runBulkUpgrade({
       items,
       signal: ctrl.signal,
-      onProgress: (evt) => {
+      onProgress: (evt: any) => {
         sendToRenderer("bulk-upgrade:progress", evt);
       },
     })
-      .then((summary) => {
+      .then((summary: any) => {
         try {
           for (const s of summary.succeeded || []) {
             const item = items.find((i) => i.id === s.id);
@@ -144,10 +150,10 @@ function registerCoreHandlers(ctx) {
           bulkUpgradeRunning = false;
         }
       })
-      .catch((err) => {
+      .catch((err: any) => {
         sendToRenderer("bulk-upgrade:done", {
           succeeded: [],
-          failed: [{ id: "?", error: (err && err.message) || "unknown" }],
+          failed: [{ id: "?", error: (errMsg(err)) || "unknown" }],
           skipped: [],
           cancelled: false,
         });
@@ -179,7 +185,7 @@ function registerCoreHandlers(ctx) {
     } catch (err) {
       mainLog.warn("[ipc] get-app-icon threw", {
         bundle: bundlePath,
-        msg: err && err.message,
+        msg: errMsg(err),
       });
       return { error: "threw" };
     }
@@ -212,14 +218,14 @@ function registerCoreHandlers(ctx) {
     try {
       return { mutes: stateStore.getMutes() };
     } catch (err) {
-      mainLog.warn("[ipc] get-mutes threw", { msg: err && err.message });
+      mainLog.warn("[ipc] get-mutes threw", { msg: errMsg(err) });
       return { mutes: {} };
     }
   });
 
   safeHandle(
     "set-mute",
-    (_event, name, durationSec) => {
+    (_event: any, name: any, durationSec: any) => {
       if (!name || typeof name !== "string") {
         return {
           ok: false,
@@ -243,7 +249,7 @@ function registerCoreHandlers(ctx) {
       return { ok: true, mutes: next.mutes };
     },
     {
-      logMeta: (_evt, name) => ({ name }),
+      logMeta: (_evt: any, name: any) => ({ name }),
       onError: () => ({
         ok: false,
         reason: "threw",
@@ -254,7 +260,7 @@ function registerCoreHandlers(ctx) {
 
   safeHandle(
     "clear-mute",
-    (_event, name) => {
+    (_event: any, name: any) => {
       if (!name || typeof name !== "string") {
         return {
           ok: false,
@@ -266,7 +272,7 @@ function registerCoreHandlers(ctx) {
       return { ok: true, mutes: next.mutes };
     },
     {
-      logMeta: (_evt, name) => ({ name }),
+      logMeta: (_evt: any, name: any) => ({ name }),
       onError: () => ({
         ok: false,
         reason: "threw",
@@ -279,22 +285,22 @@ function registerCoreHandlers(ctx) {
     try {
       return { lastOpened: stateStore.loadLastOpened() };
     } catch (err) {
-      mainLog.warn("[ipc] get-last-opened threw", { msg: err && err.message });
+      mainLog.warn("[ipc] get-last-opened threw", { msg: errMsg(err) });
       return { lastOpened: {} };
     }
   });
 
   ipcMain.handle("refresh-last-opened", () => {
     const apps = (getConfig() && getConfig().apps) || [];
-    const refreshable = apps.filter((a) => a && a.name && a.bundle);
+    const refreshable = apps.filter((a: any) => a && a.name && a.bundle);
     if (refreshable.length === 0) {
       return { ok: true, count: 0 };
     }
     (async () => {
       try {
-        const next = {};
+        const next: Record<string, any> = {};
         await Promise.all(
-          refreshable.map(async (a) => {
+          refreshable.map(async (a: any) => {
             const bundlePath = platform.resolveAppPath(a.bundle, a);
             try {
               const r = await lastOpened.refreshOne(bundlePath);
@@ -302,7 +308,7 @@ function registerCoreHandlers(ctx) {
             } catch (err) {
               mainLog.warn("[ipc] refresh-last-opened item failed", {
                 name: a.name,
-                msg: err && err.message,
+                msg: errMsg(err),
               });
               next[a.name] = { ms: null, source: "unknown" };
             }
@@ -312,7 +318,7 @@ function registerCoreHandlers(ctx) {
         sendToRenderer("last-opened-updated", { lastOpened: next });
       } catch (err) {
         mainLog.warn("[ipc] refresh-last-opened batch failed", {
-          msg: err && err.message,
+          msg: errMsg(err),
         });
       }
     })();
@@ -324,7 +330,7 @@ function registerCoreHandlers(ctx) {
       return { activeCategory: stateStore.loadActiveCategory() };
     } catch (err) {
       mainLog.warn("[ipc] get-active-category threw", {
-        msg: err && err.message,
+        msg: errMsg(err),
       });
       return { activeCategory: "all" };
     }
@@ -332,7 +338,7 @@ function registerCoreHandlers(ctx) {
 
   safeHandle(
     "save-active-category",
-    (_event, id) => {
+    (_event: any, id: any) => {
       if (typeof id !== "string" || id.length === 0) {
         return {
           ok: false,
@@ -344,7 +350,7 @@ function registerCoreHandlers(ctx) {
       return { ok: true, activeCategory: next.active_category };
     },
     {
-      logMeta: (_evt, id) => ({ id }),
+      logMeta: (_evt: any, id: any) => ({ id }),
       onError: () => ({
         ok: false,
         reason: "threw",
@@ -359,7 +365,7 @@ function registerCoreHandlers(ctx) {
       return { lastActiveNav: stateStore.loadLastActiveNav() };
     } catch (err) {
       mainLog.warn("[ipc] get-last-active-nav threw", {
-        msg: err && err.message,
+        msg: errMsg(err),
       });
       return { lastActiveNav: null };
     }
@@ -367,7 +373,7 @@ function registerCoreHandlers(ctx) {
 
   safeHandle(
     "save-last-active-nav",
-    (_event, key) => {
+    (_event: any, key: any) => {
       if (typeof key !== "string" || key.length === 0) {
         return {
           ok: false,
@@ -379,7 +385,7 @@ function registerCoreHandlers(ctx) {
         const next = stateStore.saveLastActiveNav(key);
         return { ok: true, lastActiveNav: next.last_active_nav };
       } catch (err) {
-        if (err && err.name === "TypeError") {
+        if (err instanceof TypeError || (err instanceof Error && err.name === "TypeError")) {
           return {
             ok: false,
             reason: "invalid_key",
@@ -390,7 +396,7 @@ function registerCoreHandlers(ctx) {
       }
     },
     {
-      logMeta: (_evt, key) => ({ key }),
+      logMeta: (_evt: any, key: any) => ({ key }),
       onError: () => ({
         ok: false,
         reason: "threw",
@@ -409,14 +415,14 @@ function registerCoreHandlers(ctx) {
       return {
         ok: false,
         reason: "threw",
-        error: err && err.message,
+        error: errMsg(err),
         sections: [],
         lines: [],
       };
     }
   });
 
-  safeHandle("digest:update-settings", (_event, cfg) => {
+  safeHandle("digest:update-settings", (_event: any, cfg: any) => {
     if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) {
       return { ok: false, reason: "bad_cfg" };
     }
@@ -427,12 +433,12 @@ function registerCoreHandlers(ctx) {
       });
       return { ok: true };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
   // Phase Q6: error aggregator IPC handlers
-  safeHandle("error:fetch-entries", async (_event, opts) => {
+  safeHandle("error:fetch-entries", async (_event: any, opts: any) => {
     try {
       const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
@@ -453,7 +459,7 @@ function registerCoreHandlers(ctx) {
       return {
         ok: false,
         reason: "threw",
-        error: err && err.message,
+        error: errMsg(err),
         entries: [],
         stats: { total: 0, byLevel: {}, skipped: 0 },
       };
@@ -470,15 +476,15 @@ function registerCoreHandlers(ctx) {
           reason: "not_initialized",
           text: "",
         });
-      return inst.aggregator.query({}).then((r) => ({
+      return inst.aggregator.query({}).then((r: any) => ({
         ok: true,
-        text: (r.entries || []).map((e) => JSON.stringify(e)).join("\n"),
+        text: (r.entries || []).map((e: any) => JSON.stringify(e)).join("\n"),
       }));
     } catch (err) {
       return Promise.resolve({
         ok: false,
         reason: "threw",
-        error: err && err.message,
+        error: errMsg(err),
         text: "",
       });
     }
@@ -513,12 +519,12 @@ function registerCoreHandlers(ctx) {
         fileCount: r.fileCount,
       };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
   // Phase Q1 v2: diagnostics IPC — drawer 一次拉全 (startup + metrics + top-5)
-  safeHandle("diagnostics:fetch", async (_event, opts) => {
+  safeHandle("diagnostics:fetch", async (_event: any, opts: any) => {
     try {
       const { getStartup, getMetricsSummary } = require("../diagnostics.ts");
       const { computeTopFailures } = require("../diagnostics-aggregator.ts");
@@ -556,7 +562,7 @@ function registerCoreHandlers(ctx) {
         sinceMs,
       };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
@@ -566,7 +572,7 @@ function registerCoreHandlers(ctx) {
       const { getSamples } = require("../diagnostics.ts");
       return { ok: true, samples: getSamples() };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
@@ -575,11 +581,11 @@ function registerCoreHandlers(ctx) {
     try {
       return { ok: true, items: stateStore.loadWatchlist() };
     } catch (err) {
-      return { ok: false, reason: "load_failed", error: err && err.message };
+      return { ok: false, reason: "load_failed", error: errMsg(err) };
     }
   });
 
-  safeHandle("watchlist:add", (_e, payload) => {
+  safeHandle("watchlist:add", (_e: any, payload: any) => {
     try {
       const legacyName = payload && payload.appName;
       const type =
@@ -613,7 +619,7 @@ function registerCoreHandlers(ctx) {
         }
       }
       const list = stateStore.loadWatchlist();
-      if (list.some((w) => w.type === type && w.ref === ref)) {
+      if (list.some((w: any) => w.type === type && w.ref === ref)) {
         return { ok: true, items: list };
       }
       const entry: Record<string, unknown> = { type, ref, addedAt: Date.now() };
@@ -625,11 +631,11 @@ function registerCoreHandlers(ctx) {
       stateStore.saveWatchlist(next);
       return { ok: true, items: next };
     } catch (err) {
-      return { ok: false, reason: "save_failed", error: err && err.message };
+      return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
   });
 
-  safeHandle("watchlist:remove", (_e, payload) => {
+  safeHandle("watchlist:remove", (_e: any, payload: any) => {
     try {
       const legacyName = payload && payload.appName;
       const type =
@@ -649,11 +655,11 @@ function registerCoreHandlers(ctx) {
       }
       const key = `${type}:${ref}`;
       const list = stateStore.loadWatchlist();
-      const next = list.filter((w) => stateStore.watchlistItemKey(w) !== key);
+      const next = list.filter((w: any) => stateStore.watchlistItemKey(w) !== key);
       stateStore.saveWatchlist(next);
       return { ok: true, items: next };
     } catch (err) {
-      return { ok: false, reason: "save_failed", error: err && err.message };
+      return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
   });
 
@@ -669,12 +675,12 @@ function registerCoreHandlers(ctx) {
         });
       return inst.aggregator
         .cleanup()
-        .then((removed) => ({ ok: true, removed }));
+        .then((removed: any) => ({ ok: true, removed }));
     } catch (err) {
       return Promise.resolve({
         ok: false,
         reason: "threw",
-        error: err && err.message,
+        error: errMsg(err),
         removed: 0,
       });
     }
@@ -690,11 +696,11 @@ function registerCoreHandlers(ctx) {
       shell.openPath(dir);
       return { ok: true };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 
-  safeHandle("error:report", (_event, entry) => {
+  safeHandle("error:report", (_event: any, entry: any) => {
     try {
       const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
@@ -707,18 +713,18 @@ function registerCoreHandlers(ctx) {
           stack: entry.stack || "",
           context: { ...(entry.context || {}), kind: "renderer-report" },
         })
-        .then((e) => ({ ok: true, id: e.id }));
+        .then((e: any) => ({ ok: true, id: e.id }));
     } catch (err) {
       return Promise.resolve({
         ok: false,
         reason: "threw",
-        error: err && err.message,
+        error: errMsg(err),
       });
     }
   });
 
   // C7 v2.35.0: 检测结果导出 (JSON / CSV → 桌面)
-  safeHandle("detect-results:export", async (_event, opts) => {
+  safeHandle("detect-results:export", async (_event: any, opts: any) => {
     try {
       const { exportDetectResults } = require("../detect-results-export.ts");
       const format = opts && opts.format;
@@ -746,7 +752,7 @@ function registerCoreHandlers(ctx) {
         format,
       };
     } catch (err) {
-      return { ok: false, reason: "threw", error: err && err.message };
+      return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
 }
