@@ -9,8 +9,8 @@ import {
   items,
   toggleCompare,
 } from "./aiLeaderboardStore.js";
-import { VENDOR_META, SOURCE_URLS } from "./types.js";
-import { copyToClipboard, detailToMarkdown } from "./exportMarkdown.js";
+import { VENDOR_META, SOURCE_URLS } from "./types.ts";
+import { copyToClipboard, detailToMarkdown } from "./exportMarkdown.ts";
 
 const SOURCE_LABELS = {
   arena: "Arena",

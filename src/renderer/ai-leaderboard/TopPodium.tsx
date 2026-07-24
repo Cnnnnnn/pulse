@@ -9,7 +9,7 @@ import {
   sortKey,
   columnValue,
 } from "./aiLeaderboardStore.js";
-import { ARENA_BOARDS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.js";
+import { ARENA_BOARDS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.ts";
 import {
   fmtScore,
   fmtIndex,
@@ -17,7 +17,7 @@ import {
   fmtPricePer1M,
   fmtLivebench,
   fmtLbCost,
-} from "./format.js";
+} from "./format.ts";
 
 function primaryKeyFor(view) {
   if (sortKey.value) return sortKey.value;

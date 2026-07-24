@@ -6,8 +6,8 @@
  * 归一，使不同 board / 不同模型之间可横向比较（回应「Arena 单 board 数据稀疏」）。
  */
 
-import { ARENA_BOARDS, ARENA_BOARD_KEYS } from "./types.js";
-import { fmtScore } from "./format.js";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS } from "./types.ts";
+import { fmtScore } from "./format.ts";
 
 // ELO 经验域：Arena 各 board 大致落在 1000~1700，用固定域保证跨 board 可比。
 const ELO_MIN = 1000;

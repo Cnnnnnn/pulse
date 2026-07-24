@@ -14,9 +14,9 @@ import {
   loadCrossSource,
   setSearchQuery,
 } from "./aiLeaderboardStore.js";
-import { VENDOR_META } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena, rankVendorsByEloPerDollar } from "./format.js";
-import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.js";
+import { VENDOR_META } from "./types.ts";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena, rankVendorsByEloPerDollar } from "./format.ts";
+import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.ts";
 import { CrossSourceRadar } from "./CrossSourceRadar.tsx";
 import { EloPerDollar } from "./EloPerDollar.tsx";
 

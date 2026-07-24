@@ -10,7 +10,7 @@
  */
 
 import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources, rateBudget, stale, fetchedAt, isSample } from "./aiLeaderboardStore.js";
-import { fmtRelative } from "./format.js";
+import { fmtRelative } from "./format.ts";
 
 const SOURCE_META = [
   { key: "arena", label: "Arena", color: "blue", desc: "社区 ELO 排名" },

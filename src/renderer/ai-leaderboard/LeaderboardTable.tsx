@@ -24,7 +24,7 @@ import {
 } from "./aiLeaderboardStore.js";
 import { ModelRow } from "./ModelRow.tsx";
 import { ModelCardList } from "./ModelCard.tsx";
-import { ARENA_BOARDS } from "./types.js";
+import { ARENA_BOARDS } from "./types.ts";
 
 /** 可点选排序列头。 */
 function SortableTh({ k, label, active, dir, title }: {

@@ -29,8 +29,8 @@ import {
   fmtIndex,
   fmtLivebench,
   fmtVendor,
-} from "./format.js";
-import { VENDOR_META } from "./types.js";
+} from "./format.ts";
+import { VENDOR_META } from "./types.ts";
 
 // 厂商 → 雷达颜色（与 ValueScatter / ArenaBubbleChart 同一套色板）
 const VENDOR_COLORS = {

@@ -7,8 +7,8 @@
  *  - 桌面端由 CSS 隐藏（display:none），仅 <640px 显示
  */
 
-import { VENDOR_META } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.js";
+import { VENDOR_META } from "./types.ts";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.ts";
 import { compareList, toggleCompare, columnValue, openModelDetail } from "./aiLeaderboardStore.js";
 import { RankSparkline } from "./RankSparkline.tsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.tsx";

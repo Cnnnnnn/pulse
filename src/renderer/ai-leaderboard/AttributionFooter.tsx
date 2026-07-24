@@ -6,7 +6,7 @@
  * 纯展示，无网络出口。
  */
 
-import { ATTRIBUTION } from "./types.js";
+import { ATTRIBUTION } from "./types.ts";
 
 export function AttributionFooter({ attribution }) {
   const active = Array.isArray(attribution) ? attribution.slice() : [];

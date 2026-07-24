@@ -26,10 +26,10 @@ import {
   setLicenseFilter,
   columnValue,
 } from "./aiLeaderboardStore.js";
-import { ARENA_BOARDS, ARENA_BOARD_KEYS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.js";
-import { fmtClock, fmtDate, licenseKind } from "./format.js";
-import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.js";
-import { rowsToCsv } from "./exportCsv.js";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.ts";
+import { fmtClock, fmtDate, licenseKind } from "./format.ts";
+import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.ts";
+import { rowsToCsv } from "./exportCsv.ts";
 import { api } from "../api.ts";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.tsx";
 import { LeaderboardTable } from "./LeaderboardTable.tsx";

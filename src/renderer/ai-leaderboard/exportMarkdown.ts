@@ -4,8 +4,8 @@
  * v3.0 导出工具：将当前表格/对比数据生成 Markdown 表格并复制到剪贴板。
  */
 
-import { VENDOR_META, ARENA_BOARDS } from "./types.js";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.js";
+import { VENDOR_META, ARENA_BOARDS } from "./types.ts";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.ts";
 
 /**
  * 生成当前视角表格的 Markdown。

@@ -19,7 +19,7 @@ import {
   clearSearchQuery,
   refresh,
 } from "./aiLeaderboardStore.js";
-import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, VENDOR_OPTIONS, LICENSE_FILTER_OPTIONS } from "./types.js";
+import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, VENDOR_OPTIONS, LICENSE_FILTER_OPTIONS } from "./types.ts";
 
 export function LeaderboardFilterBar() {
   const [q, setQ] = useState(searchQuery.value);

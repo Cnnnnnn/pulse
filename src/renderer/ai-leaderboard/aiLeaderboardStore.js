@@ -29,8 +29,8 @@ import {
   VENDOR_META,
   toIpcParams,
   normalizeBoardResult,
-} from "./types.js";
-import { primaryValue, licenseKind, computeTrendingScore } from "./format.js";
+} from "./types.ts";
+import { primaryValue, licenseKind, computeTrendingScore } from "./format.ts";
 
 /**
  * ponytail: HF 视角 base_model 衍生数 (v2.79.6+) — 一次扫描, 算同 base_model 出现次数.

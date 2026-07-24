@@ -9,7 +9,7 @@
  * 颜色仅 oklch / var / color-mix，数字统一 tabular-nums。
  */
 
-import { fmtVendor, fmtScore, fmtPricePer1M } from "./format.js";
+import { fmtVendor, fmtScore, fmtPricePer1M } from "./format.ts";
 
 // 厂商 → 颜色（与 CrossSourceRadar / ValueScatter / ArenaBubbleChart 同一套色板）
 const VENDOR_COLORS = {

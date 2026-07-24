@@ -10,8 +10,8 @@ import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardT
 import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.tsx";
 import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.tsx";
 import { CrossSourceRadar } from "../../src/renderer/ai-leaderboard/CrossSourceRadar.tsx";
-import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.js";
-import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, fmtContext, aggregateVendorProfiles, topVendorsByArena, fmtRelative } from "../../src/renderer/ai-leaderboard/format.js";
+import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.ts";
+import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, fmtContext, aggregateVendorProfiles, topVendorsByArena, fmtRelative } from "../../src/renderer/ai-leaderboard/format.ts";
 import {
   columnValue,
   toggleSort,

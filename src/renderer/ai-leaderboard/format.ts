@@ -5,7 +5,7 @@
  * v3.0: 适配双视角结构，primaryValue 使用 CATEGORY_BOARD 映射。
  */
 
-import { VENDOR_META, CATEGORY_BOARD, DIMENSION_META } from "./types.js";
+import { VENDOR_META, CATEGORY_BOARD, DIMENSION_META } from "./types.ts";
 
 /** ELO 分数：取整。 */
 export function fmtScore(v) {
@@ -131,7 +131,7 @@ export function fmtHfDate(iso) {
  * @param {number} [now] epoch ms
  * @returns {number|null}
  */
-export function computeTrendingScore(downloads, lastModified, createdAt, now) {
+export function computeTrendingScore(downloads: any, lastModified: any, createdAt?: any, now?: number) {
   const dl = Number(downloads);
   if (!Number.isFinite(dl) || dl < 1000) return null;
   const refNow = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
@@ -403,7 +403,7 @@ export function rankVendorsByEloPerDollar(profiles) {
  * @param {number} [now] 当前时间 (可注入测试用)
  * @returns {string}
  */
-export function fmtRelative(ms, now) {
+export function fmtRelative(ms: number, now?: number) {
   if (typeof ms !== "number" || !Number.isFinite(ms)) return "—";
   const refNow = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
   const diff = refNow - ms;
