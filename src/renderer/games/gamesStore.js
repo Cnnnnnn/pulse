@@ -10,7 +10,7 @@
  */
 
 import { signal, batch, effect } from "@preact/signals";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import {
   normalizeEntry,
   normalizeFolder,

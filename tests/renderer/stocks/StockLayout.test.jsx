@@ -23,7 +23,7 @@ vi.mock("../../../src/renderer/stocks/stockStore.js", async (importOriginal) => 
 
 // ponytail 2026-07-18 P0-1 T7: StockContent 在 useEffect 里直接读 api 模块,
 //   整个模块不需要 IPC — 给个空 stub 防止主进程 import 链被拉起来.
-vi.mock("../../../src/renderer/api.js", () => ({ api: {} }));
+vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));
 
 afterEach(() => {
   cleanup();

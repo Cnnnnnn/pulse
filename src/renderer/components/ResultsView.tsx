@@ -14,7 +14,7 @@
  */
 
 import { results } from '../store.ts';
-import { filteredResultsBySection } from '../selectors.js';
+import { filteredResultsBySection } from '../selectors.ts';
 import { Section } from './Section.tsx';
 import { EmptyState } from './EmptyState.tsx';
 

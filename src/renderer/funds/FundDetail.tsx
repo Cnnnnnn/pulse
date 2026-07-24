@@ -30,7 +30,7 @@ import {
   removeFund,
 } from "./fundStore.js";
 import { closeFundDetail } from "./fundRoute.js";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { FundAreaChart } from "./FundAreaChart.tsx";
 import { FundRadar } from "./FundRadar.tsx";
 import { openConfirm } from "../store/confirmStore.ts";

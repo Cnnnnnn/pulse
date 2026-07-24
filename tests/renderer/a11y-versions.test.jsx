@@ -28,7 +28,7 @@ import { openPalette, closePalette } from "../../src/renderer/store/command-pale
 import { setViewMode } from "../../src/renderer/store/library-view-store.ts";
 import { results, resetCheck } from "../../src/renderer/store.ts";
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     detectResultsExport: vi.fn(async () => ({ ok: true })),
     openUrl: vi.fn(),

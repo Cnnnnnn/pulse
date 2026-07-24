@@ -10,7 +10,7 @@ import {
   filterCategory, setFilterCategory,
   resetLibraryFilters,
 } from "../store/library-view-store.ts";
-import { tabCounts } from "../selectors.js";
+import { tabCounts } from "../selectors.ts";
 import { results } from "../store.ts";
 import { getCategoryTabsWithCount } from "../../config/category.js";
 import { IconSearch } from "./icons.tsx";

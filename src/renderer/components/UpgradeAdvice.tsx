@@ -4,7 +4,7 @@
  * A2 — 有更新时显示「该不该升」AI 建议 (按需拉取 + 缓存).
  */
 import { useState } from "preact/hooks";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { humanizeAiError } from "../../ai/ai-errors.js";
 import { IconRefresh, IconThumbsUp, IconThumbsDown, IconSparkles } from "./icons.tsx";
 

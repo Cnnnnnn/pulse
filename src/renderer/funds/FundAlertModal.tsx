@@ -6,7 +6,7 @@
 
 import { useState } from 'preact/hooks';
 import { alertPrefs, closeAlertModal, saveAlertPrefs } from './fundStore.js';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import { BareModalShell } from '../components/ModalShell.tsx';
 import { IconBell } from '../components/icons.tsx';
 

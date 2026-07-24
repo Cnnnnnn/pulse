@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { h } from "preact";
 import { render, screen, cleanup } from "@testing-library/preact";
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     getLeaderboard: vi.fn(async () => ({
       ok: true,

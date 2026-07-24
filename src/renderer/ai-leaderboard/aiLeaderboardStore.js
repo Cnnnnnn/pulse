@@ -17,7 +17,7 @@
  */
 
 import { signal, batch } from "@preact/signals";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import {
   VIEWS,
   ARENA_BOARDS,

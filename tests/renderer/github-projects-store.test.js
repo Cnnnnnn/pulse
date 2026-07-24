@@ -20,7 +20,7 @@ import {
   addGithubProjectsBatch,
   __resetQuotaWarnForTest,
 } from "../../src/renderer/store/github-projects-store.ts";
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 import { toast, clearToasts } from "../../src/renderer/store/toast-store.ts";
 
 function seed(items) {

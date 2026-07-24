@@ -24,7 +24,7 @@ vi.mock("../../src/renderer/store.ts", () => ({
   showToast: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     feedbackExport: vi.fn(async () => ({ ok: true, samples: [] })),
     tokenBudgetGet: vi.fn(async () => ({ ok: true, config: { dailyLimit: 0, mode: "warn" }, todaySpend: 0 })),

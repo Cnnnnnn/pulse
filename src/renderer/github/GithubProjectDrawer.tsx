@@ -22,7 +22,7 @@ import {
   hostnameOf,
   hasDistinctHomepage,
 } from "../store/github-projects-store.ts";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { GithubReadmeView } from "./GithubReadmeView.tsx";
 import { GithubAiParseView } from "./GithubAiParseView.tsx";
 import { GithubReleasesView } from "./GithubReleasesView.tsx";

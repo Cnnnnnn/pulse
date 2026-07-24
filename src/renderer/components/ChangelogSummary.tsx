@@ -8,7 +8,7 @@
  * 收集路径 (e.g. digest drawer 顶部 thumbs) 再接.
  */
 import { useState } from "preact/hooks";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { humanizeAiError } from "../../ai/ai-errors.js";
 import { IconSparkles } from "./icons.tsx";
 

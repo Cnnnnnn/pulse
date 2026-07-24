@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from "preact/hooks";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import {
   IconTag,
   IconRefresh,

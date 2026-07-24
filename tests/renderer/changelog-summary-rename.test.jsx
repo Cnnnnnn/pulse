@@ -5,7 +5,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
 import { ChangelogSummary } from "../../src/renderer/components/ChangelogSummary.tsx";
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 
 describe("ChangelogSummary 文案 + 无反馈按钮 (2026-06-28)", () => {
   afterEach(() => cleanup());

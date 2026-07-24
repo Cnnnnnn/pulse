@@ -28,7 +28,7 @@ import {
   bulkUpgradeErrors,
   closeBulkUpgrade,
 } from '../store/store-bulk-upgrade.ts';
-import { taggedLog } from '../log.js';
+import { taggedLog } from '../log.ts';
 import { ModalShell } from './ModalShell.tsx';
 import { BulkStatusIcon, IconRotateCcw } from './icons.tsx';
 

@@ -9,7 +9,7 @@ const { mockVersionsRunCheck } = vi.hoisted(() => ({
   mockVersionsRunCheck: vi.fn(async () => ({ started: true })),
 }));
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     versionsCommandSearch: vi.fn(async (q) => ({
       ok: true,

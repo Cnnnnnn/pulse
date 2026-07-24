@@ -4,7 +4,7 @@
  * P61 — 配置导入 diff 预览 + 字段级勾选覆盖确认.
  */
 import { useEffect, useState } from "preact/hooks";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { showToast } from "../store.ts";
 import { ModalShell } from "./ModalShell.tsx";
 

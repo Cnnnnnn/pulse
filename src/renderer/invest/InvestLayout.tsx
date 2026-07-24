@@ -29,7 +29,7 @@
 import { useEffect } from "preact/hooks";
 import "./InvestLayout.css";
 import { investPrimary } from "../worldcup/navStore.js";
-import { refreshActiveNav } from "../nav-refresh.js";
+import { refreshActiveNav } from "../nav-refresh.ts";
 import {
   fundView,
   fundsLoading,
@@ -42,7 +42,7 @@ import {
 } from "../funds/fundStore.js";
 import { fundPage, setFundPage } from "../funds/fundRoute.js";
 import { metalsRefreshing } from "../metals/metalStore.ts";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { FundContent } from "../funds/FundLayout.tsx";
 import { MetalContent } from "../metals/MetalLayout.tsx";
 import { StockContent } from "../stocks/StockLayout.tsx";

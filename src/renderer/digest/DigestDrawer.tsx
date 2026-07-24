@@ -12,7 +12,7 @@ import {
   digestDate,
   digestLoading,
 } from './digest-store.ts';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import { DigestSection } from './DigestSection.tsx';
 import { DrawerShell } from '../components/DrawerShell.tsx';
 import { DrawerEmpty } from '../components/EmptyState.tsx';

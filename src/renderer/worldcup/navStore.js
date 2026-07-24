@@ -20,7 +20,7 @@ import { clearFundNavBadge } from "../funds/fundStore.js";
 import { clearAiUsageNavBadge } from "../store/ai-usage-store.ts";
 import { clearWechatHotUnreadBadge } from "../wechat-hot/store.ts";
 import { clearIthomeUnreadBadge } from "../ithome/store.js";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 
 // activeNav: 'home' | 'news' | 'worldcup' | 'invest' | 'ai-usage' | 'versions'
 // 默认 'home' — 无历史 → 显示 HomeGrid. bootstrap 拿到上次落点后会在 render 前覆盖.

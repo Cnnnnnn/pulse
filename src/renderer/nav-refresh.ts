@@ -23,7 +23,7 @@ import { fetchNavNow } from "./funds/fundStore.js";
 import { refreshNow as refreshMetals } from "./metals/metalStore.ts";
 import { investPrimary } from "./worldcup/navStore.js";
 import { loadGameDeals } from "./games/gamesStore.js";
-import { api } from "./api.js";
+import { api } from "./api.ts";
 
 /**
  * @typedef {Object} NavRefreshEntry
@@ -72,7 +72,7 @@ export const REFRESHABLE_NAV_KEYS = new Set(Object.keys(REGISTRY));
  * @param {string} navKey
  * @returns {NavRefreshEntry | null}
  */
-export function getRefreshEntry(navKey) {
+export function getRefreshEntry(navKey: string): { fn: () => any; label: string } | null {
   return REGISTRY[navKey] || null;
 }
 
@@ -80,7 +80,7 @@ export function getRefreshEntry(navKey) {
  * @param {string} navKey
  * @returns {Promise<boolean>} true = 已派发, false = 当前 nav 不支持全局刷新
  */
-export async function refreshActiveNav(navKey) {
+export async function refreshActiveNav(navKey: string): Promise<boolean> {
   const entry = getRefreshEntry(navKey);
   if (!entry) return false;
   try {

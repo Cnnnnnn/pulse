@@ -29,7 +29,7 @@ vi.mock("../../src/renderer/funds/fundStore.js", () => ({
 vi.mock("../../src/renderer/metals/metalStore.ts", () => ({
   refreshNow: vi.fn(),
 }));
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: { __mock: true },
 }));
 
@@ -37,7 +37,7 @@ import {
   refreshActiveNav,
   getRefreshEntry,
   REFRESHABLE_NAV_KEYS,
-} from "../../src/renderer/nav-refresh.js";
+} from "../../src/renderer/nav-refresh.ts";
 import { refreshWechatHot } from "../../src/renderer/wechat-hot/store.ts";
 import { refreshIthomeNews } from "../../src/renderer/ithome/store.js";
 import { refreshWorldcupScores } from "../../src/renderer/worldcup/store.js";

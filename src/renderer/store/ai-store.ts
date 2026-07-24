@@ -9,8 +9,8 @@
 
 import { signal, computed } from "@preact/signals";
 import { DEFAULT_MODELS } from "../../ai/default-models.js";
-import { api } from "../api.js";
-import { taggedLog } from "../log.js";
+import { api } from "../api.ts";
+import { taggedLog } from "../log.ts";
 import { showToast } from "./toast-store.ts";
 import { aiTasksDrawerOpen, digestConfigMode } from "../digest/digest-store.ts";
 

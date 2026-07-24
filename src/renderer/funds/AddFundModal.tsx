@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { editingHolding, closeModal, addFund, updateFund, navCache, navSource, fetchNavForCodes } from './fundStore.js';
 import { pickEffectiveNavNumber } from '../../funds/fund-nav-merge.js';
 import { inferCategoryFromFtype, categoryLabel } from '../../funds/fund-category.js';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import { BareModalShell } from '../components/ModalShell.tsx';
 import { TabList, Tab } from '../components/TabList.tsx';
 import { IconCoin, IconBarChart } from '../components/icons.tsx';

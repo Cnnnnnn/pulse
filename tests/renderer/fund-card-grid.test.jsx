@@ -4,7 +4,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 const mockApi = vi.hoisted(() => ({
   fundsList: vi.fn(async () => ({ ok: true, holdings: [] })),
 }));
-vi.mock("../../src/renderer/api.js", () => ({ api: mockApi }));
+vi.mock("../../src/renderer/api.ts", () => ({ api: mockApi }));
 
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/preact";
 import { FundCardGrid } from "../../src/renderer/funds/FundCardGrid.tsx";

@@ -49,7 +49,7 @@ vi.mock('../../src/renderer/store.ts', () => ({
   get aiKeyStatus() { return { value: {} }; },
 }));
 
-vi.mock('../../src/renderer/nav-refresh.js', () => ({
+vi.mock('../../src/renderer/nav-refresh.ts', () => ({
   refreshActiveNav: vi.fn(),
   REFRESHABLE_NAV_KEYS: new Set(['news', 'worldcup', 'funds', 'metals']),
 }));

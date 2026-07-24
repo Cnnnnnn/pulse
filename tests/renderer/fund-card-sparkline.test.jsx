@@ -4,7 +4,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 const mockApi = vi.hoisted(() => ({
   fundsNavHistory: vi.fn(async () => ({ ok: false, reason: "fail" })),
 }));
-vi.mock("../../src/renderer/api.js", () => ({ api: mockApi }));
+vi.mock("../../src/renderer/api.ts", () => ({ api: mockApi }));
 
 import { render, cleanup, fireEvent, waitFor } from "@testing-library/preact";
 import { FundCardSparkline } from "../../src/renderer/funds/FundCardSparkline.tsx";

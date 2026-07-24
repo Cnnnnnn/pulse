@@ -9,8 +9,8 @@
 import type { RefObject } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { createPortal } from "preact/compat";
-import { upgradableCount } from "../selectors.js";
-import { api } from "../api.js";
+import { upgradableCount } from "../selectors.ts";
+import { api } from "../api.ts";
 import { showToast } from "../store/toast-store.ts";
 import { toggleDigestDrawer } from "../store/ai-store.ts";
 import { toggleWatchlistModal } from "../watchlist/watchlist-store.ts";

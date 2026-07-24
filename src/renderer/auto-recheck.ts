@@ -15,12 +15,12 @@
 
 const AUTO_RECHECK_DELAY_MS = 2000;
 
-export function createAutoRecheck({ triggerCheck }) {
+export function createAutoRecheck({ triggerCheck }: { triggerCheck: () => void }) {
   if (typeof triggerCheck !== 'function') {
     throw new Error('createAutoRecheck: triggerCheck must be a function');
   }
 
-  let pending = null;
+  let pending: ReturnType<typeof setTimeout> | null = null;
 
   function schedule() {
     if (pending != null) clearTimeout(pending);

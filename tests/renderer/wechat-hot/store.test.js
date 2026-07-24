@@ -15,7 +15,7 @@ const { mockApi } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../../src/renderer/api.js", () => ({ api: mockApi }));
+vi.mock("../../../src/renderer/api.ts", () => ({ api: mockApi }));
 
 const store = await import("../../../src/renderer/wechat-hot/store.ts");
 const {

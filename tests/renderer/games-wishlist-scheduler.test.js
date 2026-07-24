@@ -6,7 +6,7 @@ const { getGameDealsMock, notificationMock } = vi.hoisted(() => ({
   notificationMock: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: { getGameDeals: getGameDealsMock },
 }));
 

@@ -47,7 +47,7 @@ import {
   startRefreshTimer,
   stopRefreshTimer,
 } from "./stockStore.js";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 
 // ponytail 2026-07-08 UX-2: subtab 键盘导航 (WAI-ARIA tablist pattern). ←→ 切相邻,
 //   Home/End 跳首尾. 只在 tablist 内的 tab 元素上接收.

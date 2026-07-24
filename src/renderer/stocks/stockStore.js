@@ -20,7 +20,7 @@
  *   }
  */
 import { signal, computed } from "@preact/signals";
-import { taggedLog } from "../log.js";
+import { taggedLog } from "../log.ts";
 import {
   STRATEGIES,
   buildCriteria,

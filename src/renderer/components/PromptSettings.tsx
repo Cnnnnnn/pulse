@@ -12,7 +12,7 @@ import {
   promptLabel,
 } from "../store/prompt-store.ts";
 import { showToast } from "../store.ts";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { PromptSectionIcon } from "./icons.tsx";
 
 export function PromptSettings() {

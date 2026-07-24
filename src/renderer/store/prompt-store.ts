@@ -3,7 +3,7 @@
  */
 
 import { signal } from "@preact/signals";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 
 /** @type {Signal<Record<string, {system: string, rules: string, fewShot: string, isDefault: boolean}>|null>} */
 export const aiPrompts = signal(null);

@@ -8,7 +8,7 @@
  */
 
 import { signal } from "@preact/signals";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { showToast } from "./toast-store.ts";
 
 const STORAGE_KEY = "pulse.github.projects.v1";

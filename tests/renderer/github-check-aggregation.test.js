@@ -10,7 +10,7 @@
  *   - 限流 (rate_limited) 应带 retryAfter，让 toast 能显示具体几分钟。
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 import {
   githubProjects,
   githubToken,

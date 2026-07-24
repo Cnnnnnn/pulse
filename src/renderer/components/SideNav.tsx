@@ -31,7 +31,7 @@ import { wechatHotUnreadBadge } from '../wechat-hot/store.ts';
 import { fundUnreadBadge } from '../funds/fundStore.js';
 import { aiUsageNavBadge } from '../store/ai-usage-store.ts';
 import { gamesHasNewFree, gamesHasNewDrop } from '../games/gamesStore.js';
-import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.js';
+import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.ts';
 import { trayMenuPrefs } from '../store/trayConfigStore.ts';
 import {
   loadPrefs,

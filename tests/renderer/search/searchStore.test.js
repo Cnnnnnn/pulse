@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // mock api 避免 searchStore 顶层 import 报错
-vi.mock('../../../src/renderer/api.js', () => ({
+vi.mock('../../../src/renderer/api.ts', () => ({
   api: { searchQuery: vi.fn(() => Promise.resolve({ results: [], counts: {} })) },
 }));
 

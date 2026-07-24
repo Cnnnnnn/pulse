@@ -25,7 +25,7 @@ const IS_DEV =
   process.env.NODE_ENV !== "production";
 const warnedMissing = new Set();
 
-function pick(overrides, name) {
+function pick(overrides: Record<string, any> | null | undefined, name: string): any {
   if (overrides && name in overrides) return overrides[name];
   if (typeof window !== "undefined" && window.api && window.api[name]) {
     return window.api[name];
@@ -42,7 +42,7 @@ function pick(overrides, name) {
   return noop;
 }
 
-export function createApi(overrides = {}) {
+export function createApi(overrides: Record<string, any> = {}): any {
   return {
     getConfig: pick(overrides, "getConfig"),
     getCachedState: pick(overrides, "getCachedState"),
@@ -138,6 +138,8 @@ export function createApi(overrides = {}) {
     // 微博热搜 (v2.24.1, 原微信热搜 v2.24.0)
     wechatHotLoad: pick(overrides, "wechatHotLoad"),
     wechatHotRefresh: pick(overrides, "wechatHotRefresh"),
+    wechatHotLoadRead: pick(overrides, "wechatHotLoadRead"),
+    wechatHotMarkRead: pick(overrides, "wechatHotMarkRead"),
     onWechatHotUpdated: pick(overrides, "onWechatHotUpdated"),
     // v2.13 AI 用量 (Minimax coding plan)
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),
@@ -230,6 +232,11 @@ export function createApi(overrides = {}) {
     getSteamLowest: pick(overrides, "getSteamLowest"),
     getItadLowest: pick(overrides, "getItadLowest"),
     getFx: pick(overrides, "getFx"),
+    // P-N: 上次停留的 nav
+    getLastActiveNav: pick(overrides, "getLastActiveNav"),
+    // P10: 主题
+    themeSet: pick(overrides, "themeSet"),
+    onThemeChanged: pick(overrides, "onThemeChanged"),
   // AI 榜单排名模块 (v2.82): 仅两个白名单通道
   getLeaderboard: pick(overrides, "getLeaderboard"),
   refreshLeaderboard: pick(overrides, "refreshLeaderboard"),

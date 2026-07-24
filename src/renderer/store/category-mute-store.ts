@@ -6,7 +6,7 @@
  */
 
 import { signal } from "@preact/signals";
-import { taggedLog } from "../log.js";
+import { taggedLog } from "../log.ts";
 
 const log = taggedLog("[store]");
 
@@ -43,7 +43,7 @@ export async function setMute(name, durationSec) {
   ) {
     return { ok: false, reason: "invalid_duration" };
   }
-  const { api } = await import("../api.js");
+  const { api } = await import("../api.ts");
   const r = await api.setMute(name, durationSec);
   if (r && r.ok && r.mutes) {
     const next = new Map();
@@ -57,7 +57,7 @@ export async function setMute(name, durationSec) {
 export async function clearMute(name) {
   if (!name || typeof name !== "string")
     return { ok: false, reason: "invalid_name" };
-  const { api } = await import("../api.js");
+  const { api } = await import("../api.ts");
   const r = await api.clearMute(name);
   if (r && r.ok && r.mutes) {
     const next = new Map();
@@ -69,7 +69,7 @@ export async function clearMute(name) {
 }
 
 export async function loadMutes() {
-  const { api } = await import("../api.js");
+  const { api } = await import("../api.ts");
   try {
     const r = await api.getMutes();
     const mutes = (r && r.mutes) || {};
@@ -84,7 +84,7 @@ export async function loadMutes() {
 }
 
 export async function loadLastOpened() {
-  const { api } = await import("../api.js");
+  const { api } = await import("../api.ts");
   try {
     const r = await api.getLastOpened();
     const lo = (r && r.lastOpened) || {};
@@ -99,7 +99,7 @@ export async function loadLastOpened() {
 }
 
 export async function refreshLastOpened() {
-  const { api } = await import("../api.js");
+  const { api } = await import("../api.ts");
   try {
     return await api.refreshLastOpened();
   } catch {
@@ -113,7 +113,7 @@ export function setActiveCategory(id) {
     return;
   }
   activeCategory.value = id;
-  import("../api.js").then(({ api }) => {
+  import("../api.ts").then(({ api }) => {
     if (api && typeof api.saveActiveCategory === "function") {
       const p = api.saveActiveCategory(id);
       if (p && typeof p.then === "function") {
@@ -129,7 +129,7 @@ export function setActiveCategory(id) {
 }
 
 export async function loadActiveCategory() {
-  const { api } = await import("../api.js");
+  const { api } = await import("../api.ts");
   try {
     const r = await api.getActiveCategory();
     const saved = (r && r.activeCategory) || "all";

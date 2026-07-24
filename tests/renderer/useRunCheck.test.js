@@ -6,7 +6,7 @@ import { useRunCheck } from "../../src/renderer/hooks/useRunCheck.ts";
 const mockRunCheck = vi.fn();
 const mockShowToast = vi.fn();
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     get versionsRunCheck() {
       return mockRunCheck;

@@ -8,7 +8,7 @@ import { signal } from "@preact/signals";
 
 const apiState = { handlers: {} };
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   __esModule: true,
   default: { get api() { return apiState; } },
 }));

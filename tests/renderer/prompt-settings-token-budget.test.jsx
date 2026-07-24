@@ -15,7 +15,7 @@ vi.mock("../../src/renderer/store/prompt-store.ts", () => ({
 
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
 import { PromptSettings } from "../../src/renderer/components/PromptSettings.tsx";
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 
 describe("PromptSettings token 预算", () => {
   beforeEach(() => {

@@ -30,7 +30,7 @@ import {
   mutedApps,
   lastOpenedApps,
 } from '../store.ts';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import { AppAvatar } from './AppAvatar.tsx';
 import { AppInfo } from './AppInfo.tsx';
 import { AppVersions } from './AppVersions.tsx';

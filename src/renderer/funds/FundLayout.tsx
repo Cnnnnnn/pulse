@@ -19,7 +19,7 @@ import {
   alertModalOpen,
 } from './fundStore.js';
 import { fundPage, selectedFundCode } from './fundRoute.js';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 
 // ponytail: 投资 nav 合并 (2026-07-13) — 原 FundLayout 改为 FundContent,
 //   nav-level 数据加载 effect 抽到 InvestLayout 统一触发 (避免 Content 卸载重 mount 重复加载).

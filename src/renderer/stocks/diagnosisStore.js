@@ -8,7 +8,7 @@
  */
 import { signal, computed } from "@preact/signals";
 import { computeScores } from "../../stocks/diagnosis-scorer.js";
-import { taggedLog } from "../log.js";
+import { taggedLog } from "../log.ts";
 import { saveSnapshot } from "./diagnosis/diagnosisHistory.js";
 
 const log = taggedLog("[diagnosis]");

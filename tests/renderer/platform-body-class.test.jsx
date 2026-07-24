@@ -7,7 +7,7 @@
  * win → body.platform-win (Win10 纯色 fallback 背景)
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { applyPlatformBodyClass } from '../../src/renderer/platform-body-class.js';
+import { applyPlatformBodyClass } from '../../src/renderer/platform-body-class.ts';
 
 describe('applyPlatformBodyClass', () => {
   afterEach(() => {

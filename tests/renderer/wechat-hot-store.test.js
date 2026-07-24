@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const mockLoadRead = vi.fn(() => Promise.resolve({}));
 const mockMarkRead = vi.fn(() => Promise.resolve({ ok: true }));
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     wechatHotLoad: () => Promise.resolve({ items: [], fetchedAt: 0 }),
     wechatHotRefresh: () => Promise.resolve({ items: [], fetchedAt: 0, source: "x" }),

@@ -15,7 +15,7 @@ import {
   exportGithubData,
   importGithubData,
 } from "../../src/renderer/store/github-projects-store.ts";
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 
 beforeEach(() => {
   githubProjects.value = [];

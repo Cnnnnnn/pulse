@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const saveCalls = [];
-vi.mock('../../../src/renderer/api.js', () => ({
+vi.mock('../../../src/renderer/api.ts', () => ({
   api: {
     saveLastActiveNav: (key) => {
       saveCalls.push(key);
@@ -52,7 +52,7 @@ describe('setActiveNav 落盘白名单', () => {
   });
 
   it('saveLastActiveNav reject 不影响 activeNav (fire-and-forget 语义)', async () => {
-    const failingApi = await import('../../../src/renderer/api.js');
+    const failingApi = await import('../../../src/renderer/api.ts');
     failingApi.api.saveLastActiveNav = vi.fn(() => Promise.reject(new Error('disk full')));
     const { setActiveNav, activeNav } = await import('../../../src/renderer/worldcup/navStore.js');
     setActiveNav('ai-usage');

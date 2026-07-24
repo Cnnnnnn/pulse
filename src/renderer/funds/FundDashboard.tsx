@@ -38,7 +38,7 @@ import {
   navHistoryCache,
   holdingWeights,
 } from "./fundStore.js";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { FundAreaChart } from "./FundAreaChart.tsx";
 import { FundSparkline } from "./FundSparkline.tsx";
 import { FundAllocationDonut } from "./FundAllocationDonut.tsx";

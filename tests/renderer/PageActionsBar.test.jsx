@@ -4,7 +4,7 @@ import { render, cleanup } from "@testing-library/preact";
 import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.tsx";
 import { closePalette } from "../../src/renderer/store/command-palette-store.ts";
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     detectResultsExport: vi.fn(async () => ({ ok: true })),
     openUrl: vi.fn(),

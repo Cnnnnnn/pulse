@@ -36,18 +36,18 @@ import {
   loadAISessionsConfig,
   lastOpenedApps,
 } from './store.ts';
-import { api } from './api.js';
+import { api } from './api.ts';
 import { primeConfigCache } from './components/AppRow.tsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store/store-bulk-upgrade.ts';
-import { createAutoRecheck } from './auto-recheck.js';
-import { taggedLog } from './log.js';
-import { applyPlatformBodyClass } from './platform-body-class.js';
+import { createAutoRecheck } from './auto-recheck.ts';
+import { taggedLog } from './log.ts';
+import { applyPlatformBodyClass } from './platform-body-class.ts';
 import { initTheme, getThemePreference, setThemePreference } from './theme/theme-manager.ts';
 import { setActiveNav, PERSISTABLE_NAV_KEYS } from './worldcup/navStore.js';
 
 const log = taggedLog("[index]");
 
-import './category-init.js';
+import './category-init.ts';
 
 let activeRecheck = null;
 
@@ -138,9 +138,8 @@ function wireRendererListeners() {
 
   api.onStartCheck(() => triggerCheck());
 
-  import('./tray-focus.js').then(({ subscribeTrayFocus }) => {
-    // ponytail: tray-focus 只消费 onTrayFocus，api 是完整 preload 桥
-    subscribeTrayFocus(api as { onTrayFocus?: Function });
+  import('./tray-focus.ts').then(({ subscribeTrayFocus }) => {
+    subscribeTrayFocus(api);
   });
 
   api.onAutoCheckFinished(() => {
@@ -158,7 +157,7 @@ function wireRendererListeners() {
   });
 
   window.addEventListener('app-row:upgraded', () => triggerCheck());
-  import("./error-reporting.js").then((m) => m.installErrorReporting()).catch(() => {});
+  import("./error-reporting.ts").then((m) => m.installErrorReporting()).catch(() => {});
 
   window.addEventListener('app:open-config', () => {
     if (typeof window !== 'undefined' && window.api) {

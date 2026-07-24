@@ -18,9 +18,9 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
-import { renderChangelog } from '../changelog.js';
+import { renderChangelog } from '../changelog.ts';
 import { showToast } from '../store.ts';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import { openConfirm } from '../store/confirmStore.ts';
 import { BareModalShell } from './ModalShell.tsx';
 import {

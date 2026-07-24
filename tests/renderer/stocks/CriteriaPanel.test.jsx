@@ -19,7 +19,7 @@ import {
 } from "../../../src/renderer/stocks/stockStore.js";
 import { DEFAULT_SCREENER_CRITERIA } from "../../../src/stocks/stock-constants.js";
 
-vi.mock("../../../src/renderer/api.js", () => ({ api: {} }));
+vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));
 
 beforeEach(() => {
   criteria.value = { ...DEFAULT_SCREENER_CRITERIA };

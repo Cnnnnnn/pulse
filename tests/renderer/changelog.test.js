@@ -11,7 +11,7 @@
 
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
-import { renderChangelog } from '../../src/renderer/changelog.js';
+import { renderChangelog } from '../../src/renderer/changelog.ts';
 
 describe('renderChangelog', () => {
   describe('基本渲染', () => {

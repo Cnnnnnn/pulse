@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { navHistoryCache, loadFundNavHistory } from './fundStore.js';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 
 export function buildSparklinePoints(values, w = 100, h = 24, pad = 2) {
   if (!values.length) return [];

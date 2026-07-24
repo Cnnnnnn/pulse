@@ -24,7 +24,7 @@ const mockReleaseNotesGetVersion = vi.fn();
 // confirm mock: 默认 resolve true (收到). 单测可临时改成 false (稍后) 或 reject.
 const mockOpenConfirm = vi.fn();
 
-vi.mock('../../src/renderer/api.js', () => ({
+vi.mock('../../src/renderer/api.ts', () => ({
   api: {
     releaseNotes: {
       getCurrent: (...args) => mockReleaseNotesGetCurrent(...args),

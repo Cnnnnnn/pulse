@@ -6,7 +6,7 @@
  */
 
 import { signal, computed } from "@preact/signals";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 
 const COOLDOWN_MS = 15000;
 

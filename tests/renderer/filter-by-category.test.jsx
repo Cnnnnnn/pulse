@@ -23,7 +23,7 @@ import {
   activeCategory,
   setActiveCategory,
 } from '../../src/renderer/store.ts';
-import { filteredResults, filteredResultsBySection } from '../../src/renderer/selectors.js';
+import { filteredResults, filteredResultsBySection } from '../../src/renderer/selectors.ts';
 
 // 测试启动时注入 category data (跟 renderer 端 category-init.js 行为一致)
 beforeEach(() => {

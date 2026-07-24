@@ -15,7 +15,7 @@ import {
   diagnosticsExporting, diagnosticsLastExport,
 } from "../../src/renderer/diagnostics/diagnostics-store.ts";
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     errorFetchEntries: vi.fn(),
     errorCopyAll: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock("../../src/renderer/api.js", () => ({
     selfUpdateInstall: vi.fn(),
   },
 }));
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 
 vi.mock("../../src/renderer/store/route-store.ts", () => ({
   navigateTo: vi.fn(),

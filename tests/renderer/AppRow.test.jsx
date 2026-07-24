@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, cleanup, screen, fireEvent } from "@testing-library/preact";
 import { resetCheck, applyProgress } from "../../src/renderer/store.ts";
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 import { primeConfigCache, AppRow } from "../../src/renderer/components/AppRow.tsx";
 
 function makeResult(over) {

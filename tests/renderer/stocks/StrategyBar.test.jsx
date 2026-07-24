@@ -16,7 +16,7 @@ import {
   setCriteria,
 } from "../../../src/renderer/stocks/stockStore.js";
 
-vi.mock("../../../src/renderer/api.js", () => ({ api: {} }));
+vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));
 
 beforeEach(() => {
   activeStrategy.value = "value_roe";

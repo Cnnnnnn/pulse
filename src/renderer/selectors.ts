@@ -36,7 +36,7 @@ export const SECTION_DEFS = [
 /**
  * 把单个 result 分到 section.key。
  */
-function pickSectionKey(r) {
+function pickSectionKey(r: any): string {
   const note = r.note || '';
   const status = r.status;
   if (status === 'up_to_date' && note === 'installed_newer') return 'installed_newer';
@@ -49,7 +49,7 @@ function pickSectionKey(r) {
  * 把 results 转成 [{ ...def, items: name[] }]。
  * 只返回有 items 的 section，按 SECTION_DEFS 顺序输出。
  */
-function buildSections(list) {
+function buildSections(list: any[]) {
   const buckets = new Map();
   for (const def of SECTION_DEFS) buckets.set(def.key, []);
 
@@ -155,7 +155,7 @@ export const totalAppCount = computed(() => appPhases.value.size);
 /**
  * 纯函数: 判断 result 是否通过 tab + search 过滤。
  */
-export function matchesFilter(r, tab, q) {
+export function matchesFilter(r: any, tab: string, q: string): boolean {
   if (!r) return false;
   if (tab === 'update' && !r.has_update) return false;
   if (tab === 'latest' && (r.has_update || r.status !== 'up_to_date')) return false;

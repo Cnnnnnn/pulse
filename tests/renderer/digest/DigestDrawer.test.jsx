@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, fireEvent, cleanup, waitFor } from '@testing-library/preact';
 import { DigestDrawer } from '../../../src/renderer/digest/DigestDrawer.tsx';
 import { digestDrawerOpen, digestSections, digestLines, digestDate, digestLoading } from '../../../src/renderer/digest/digest-store.ts';
-import { api } from '../../../src/renderer/api.js';
+import { api } from '../../../src/renderer/api.ts';
 
 describe('DigestDrawer', () => {
   beforeEach(() => {

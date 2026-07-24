@@ -18,7 +18,7 @@ import {
   compareIsFull,
 } from "../../../src/renderer/stocks/comparePool.js";
 
-vi.mock("../../../src/renderer/api.js", () => ({ api: {} }));
+vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));
 
 beforeEach(() => {
   clearCompare();

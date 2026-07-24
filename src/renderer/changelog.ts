@@ -23,7 +23,7 @@ import DOMPurify from 'dompurify';
  * @param {string} [changelogUrl]  完整 release notes 链接, 渲染在末尾
  * @returns {string} sanitized HTML
  */
-export function renderChangelog(src, format = 'md', changelogUrl = '') {
+export function renderChangelog(src: string, format: 'md' | 'html' = 'md', changelogUrl = ''): string {
   if (!src) return '';
 
   let rawHtml;
@@ -32,7 +32,7 @@ export function renderChangelog(src, format = 'md', changelogUrl = '') {
   } else {
     // md → html
     marked.setOptions({ gfm: true, breaks: true });
-    rawHtml = marked.parse(src);
+    rawHtml = marked.parse(src) as string;
   }
 
   // XSS 防护: 任何源都过 DOMPurify

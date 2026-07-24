@@ -15,7 +15,7 @@
  */
 
 import { checkSession } from './store.ts';
-import { api } from './api.js';
+import { api } from './api.ts';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.tsx';
 import { Toast } from './components/Toast.tsx';
 import { StateRecoveredBanner } from './components/StateRecoveredBanner.tsx';

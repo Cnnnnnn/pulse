@@ -5,7 +5,7 @@
  * 4 case: schedule → 2s 后触发 / 用户 cancel 阻止 / 多次 schedule 替换 / 状态正确.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createAutoRecheck } from '../../src/renderer/auto-recheck.js';
+import { createAutoRecheck } from '../../src/renderer/auto-recheck.ts';
 
 describe('createAutoRecheck (Phase 24)', () => {
   beforeEach(() => {

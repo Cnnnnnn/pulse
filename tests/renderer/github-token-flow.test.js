@@ -6,7 +6,7 @@
  * 这是「我保存了 token 但检查更新还是报错」的根因判定测试。
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 import {
   githubProjects,
   githubToken,

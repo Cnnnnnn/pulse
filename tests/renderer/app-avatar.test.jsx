@@ -11,7 +11,7 @@ import { render, cleanup } from '@testing-library/preact';
 
 import { AppAvatar } from '../../src/renderer/components/AppAvatar.tsx';
 import * as iconMod from '../../src/renderer/hooks/useIcon.ts';
-import { api } from '../../src/renderer/api.js';
+import { api } from '../../src/renderer/api.ts';
 
 describe('AppAvatar (Phase 25)', () => {
   beforeEach(() => {

@@ -4,7 +4,7 @@
  * A3: 搜索 modal 状态. signals + actions.
  */
 import { signal } from '@preact/signals';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 
 export const isSearchOpen = signal(false);
 export const searchQuery = signal('');

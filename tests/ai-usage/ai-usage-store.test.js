@@ -38,7 +38,7 @@ const FAKE_GLM_SNAPSHOT = {
 
 let apiOverrides = {};
 
-vi.mock("../../src/renderer/api.js", () => {
+vi.mock("../../src/renderer/api.ts", () => {
   return {
     api: {
       aiUsageGetCached: (...args) =>

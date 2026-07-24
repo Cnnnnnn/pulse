@@ -4,7 +4,7 @@
  * 触发单个 app 的升级流程: 走已有 bulk-upgrade flow (openBulkUpgrade + bulkUpgradeStart IPC).
  * 由 tray-focus 在 action === 'upgrade' 时调用.
  */
-import { taggedLog } from "./log.js";
+import { taggedLog } from "./log.ts";
 import { results } from "./store.ts";
 import { openBulkUpgrade } from "./store/store-bulk-upgrade.ts";
 
@@ -14,7 +14,7 @@ const log = taggedLog("[upgrade-actions]");
  * 把 result 转换成 bulk-upgrade item (与 BulkUpgradeButton.toBulkItem 保持一致).
  * @param {object} r
  */
-function toBulkItem(r) {
+function toBulkItem(r: any) {
   return {
     id: r.name,
     name: r.name,
@@ -34,7 +34,7 @@ function toBulkItem(r) {
  * 2) 立即调 window.api.bulkUpgradeStart(items) 起跑 (modal 内 Start 按钮的行为)
  * @param {string} appName
  */
-export async function requestUpgrade(appName) {
+export async function requestUpgrade(appName: string) {
   if (!appName) return;
   const result = results.value.get(appName);
   if (!result) {
@@ -46,7 +46,7 @@ export async function requestUpgrade(appName) {
   try {
     openBulkUpgrade([item]);
   } catch (err) {
-    log.warn("openBulkUpgrade failed:", err && err.message);
+    log.warn("openBulkUpgrade failed:", err instanceof Error ? err.message : err);
     return;
   }
   try {
@@ -54,6 +54,6 @@ export async function requestUpgrade(appName) {
       await window.api.bulkUpgradeStart([item]);
     }
   } catch (err) {
-    log.warn("bulkUpgradeStart failed:", err && err.message);
+    log.warn("bulkUpgradeStart failed:", err instanceof Error ? err.message : err);
   }
 }

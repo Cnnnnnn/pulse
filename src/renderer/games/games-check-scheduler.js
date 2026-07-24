@@ -15,7 +15,7 @@
  *   - 幂等 start（重复调不启多个 interval）
  */
 
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import {
   gamesAutoCheck,
   gamesAutoCheckIntervalMin,

@@ -29,7 +29,7 @@ const mockApi = {
   watchlistRemove: vi.fn(() => Promise.resolve({ ok: true, items: [] })),
 };
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   get api() {
     return mockApi;
   },

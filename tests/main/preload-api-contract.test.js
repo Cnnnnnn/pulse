@@ -131,7 +131,7 @@ describe("dist/preload.js ↔ api.js IPC surface contract", () => {
     const preloadKeys = Object.keys(api);
     expect(preloadKeys.length).toBeGreaterThan(0);
 
-    const mod = await import("../../src/renderer/api.js");
+    const mod = await import("../../src/renderer/api.ts");
     const apiKeys = Object.keys(mod.createApi());
     // releaseNotes 在两端都是嵌套子对象, 顶层对比时按同名跳过.
     const missing = apiKeys.filter(

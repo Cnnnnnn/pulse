@@ -5,7 +5,7 @@
  * 12 case: 各 search / tab 组合 + edge.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { matchesFilter, tabCounts, filteredResults } from '../../src/renderer/selectors.js';
+import { matchesFilter, tabCounts, filteredResults } from '../../src/renderer/selectors.ts';
 import { results, searchQuery, activeFilter, resetCheck } from '../../src/renderer/store.ts';
 
 function makeResult(over) {

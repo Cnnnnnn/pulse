@@ -7,9 +7,9 @@
  */
 
 import { useState, useMemo, useEffect, useRef } from 'preact/hooks';
-import { renderChangelog } from '../changelog.js';
+import { renderChangelog } from '../changelog.ts';
 import { ChangelogSummary } from './ChangelogSummary.tsx';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import type { ResultLike } from './appTypes.ts';
 
 type HistoryItem = { version: string; ts?: number; changelog?: string; changelog_url?: string };

@@ -16,7 +16,7 @@ vi.mock("../../src/renderer/store/store-bulk-upgrade.ts", () => ({
 
 import { openBulkUpgrade } from "../../src/renderer/store/store-bulk-upgrade.ts";
 import { results, resetCheck } from "../../src/renderer/store.ts";
-import { requestUpgrade } from "../../src/renderer/upgrade-actions.js";
+import { requestUpgrade } from "../../src/renderer/upgrade-actions.ts";
 
 function makeResult(name) {
   return {

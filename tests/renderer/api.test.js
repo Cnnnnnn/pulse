@@ -29,7 +29,7 @@ async function loadApiFresh(nodeEnv) {
   warnSpy.mockClear();
   vi.spyOn(console, "warn").mockImplementation(warnSpy);
   // spy 之后再 import, api.js 顶层 IS_DEV 算到正确的 NODE_ENV.
-  return await import("../../src/renderer/api.js");
+  return await import("../../src/renderer/api.ts");
 }
 
 afterEach(() => {

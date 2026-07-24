@@ -9,8 +9,8 @@
  * 当前只实现 IconRefresh 检查更新段 (Task A3); 其他段 (B/C/D) 在各自任务里扩展.
  */
 import { setActiveNav } from "./worldcup/navStore.js";
-import { requestUpgrade } from "./upgrade-actions.js";
-import { taggedLog } from "./log.js";
+import { requestUpgrade } from "./upgrade-actions.ts";
+import { taggedLog } from "./log.ts";
 
 const log = taggedLog("[tray-focus]");
 
@@ -20,7 +20,7 @@ let _subscribed = false;
  * 启动期订阅. 幂等.
  * @param {{ onTrayFocus?: Function }} api - window.api (preload 暴露)
  */
-export function subscribeTrayFocus(api) {
+export function subscribeTrayFocus(api: { onTrayFocus?: (cb: (data: any) => void) => void } | any) {
   if (_subscribed) return;
   _subscribed = true;
   if (api && typeof api.onTrayFocus === "function") {
@@ -28,7 +28,7 @@ export function subscribeTrayFocus(api) {
   }
 }
 
-async function handleFocus(data) {
+async function handleFocus(data: any) {
   if (!data) return;
   log.info("handleFocus", data);
 
@@ -51,12 +51,12 @@ async function handleFocus(data) {
     try {
       await requestUpgrade(data.rowName);
     } catch (err) {
-      log.warn("requestUpgrade failed:", err && err.message);
+      log.warn("requestUpgrade failed:", err instanceof Error ? err.message : err);
     }
   }
 }
 
-async function scrollToRowName(name) {
+async function scrollToRowName(name: string) {
   // AppRow 渲染带 data-name (Pulse 现状) 或 data-app-name (Task A3 兼容)
   const escaped = String(name || "").replace(/"/g, '\\"');
   const el = document.querySelector(`[data-app-name="${escaped}"]`)

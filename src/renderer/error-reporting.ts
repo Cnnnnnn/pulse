@@ -4,7 +4,7 @@
  * Phase Q6: install global error listeners that report to main.
  * Idempotent: call once at bootstrap.
  */
-import { api } from './api.js';
+import { api } from './api.ts';
 
 let installed = false;
 
@@ -12,7 +12,7 @@ export function installErrorReporting() {
   if (installed) return;
   installed = true;
 
-  function report(level, message, stack, extra) {
+  function report(level: string, message: any, stack: any, extra?: Record<string, any>) {
     try {
       if (typeof api.errorReport !== 'function') return;
       api.errorReport({

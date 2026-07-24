@@ -10,7 +10,7 @@
  */
 import { useState } from "preact/hooks";
 import { getResultSignal, getAppPhaseSignal } from "../store.ts";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { AppAvatar } from "./AppAvatar.tsx";
 import type { ResultLike } from "./appTypes.ts";
 

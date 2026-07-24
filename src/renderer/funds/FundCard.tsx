@@ -10,9 +10,9 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund, isListedFundCode } from './fundStore.js';
 import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.ts';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import { openConfirm } from '../store/confirmStore.ts';
-import { taggedLog } from '../log.js';
+import { taggedLog } from '../log.ts';
 import { FundCardSparkline } from './FundCardSparkline.tsx';
 import { AddToCompareButton } from '../stocks/AddToCompareButton.tsx';
 import { fmtCurrency, fmtPct, fmtNum } from '../../funds/format.js';

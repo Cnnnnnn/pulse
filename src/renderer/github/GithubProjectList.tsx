@@ -43,7 +43,7 @@ import {
   collectGithubTags,
 } from "../store/github-projects-store.ts";
 import { openConfirm } from "../store/confirmStore.ts";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 
 const PAGE_SIZE = 8;
 

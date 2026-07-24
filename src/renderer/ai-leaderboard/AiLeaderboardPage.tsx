@@ -30,7 +30,7 @@ import { ARENA_BOARDS, ARENA_BOARD_KEYS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_CO
 import { fmtClock, fmtDate, licenseKind } from "./format.js";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.js";
 import { rowsToCsv } from "./exportCsv.js";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.tsx";
 import { LeaderboardTable } from "./LeaderboardTable.tsx";
 import { ValueScatter } from "./ValueScatter.tsx";

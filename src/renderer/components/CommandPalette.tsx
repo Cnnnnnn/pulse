@@ -10,7 +10,7 @@ import {
   closePalette, setPaletteQuery, setPaletteResults, setPaletteSelectedIndex,
 } from "../store/command-palette-store.ts";
 import { navigateTo } from "../store/route-store.ts";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { setThemePreference } from "../theme/theme-manager.ts";
 import { showToast } from "../store.ts";
 import { IconSearch } from "./icons.tsx";

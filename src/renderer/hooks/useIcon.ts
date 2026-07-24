@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect } from 'preact/hooks';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 
 // Inline 避免 esbuild 拖入 node:path 依赖 (renderer 不该打 path 模块).
 // P4: 加平台守卫 — win32 上返 null, 防止拼出 /Applications/Cursor.exe 错路径.

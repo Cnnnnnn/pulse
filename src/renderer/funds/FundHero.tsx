@@ -24,7 +24,7 @@ import {
   fundsRefreshError,
   navCache,
 } from './fundStore.js';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import { IconBell, IconCoin, IconRefresh } from '../components/icons.tsx';
 import { FundAllocationDonut } from './FundAllocationDonut.tsx';
 import { FundPortfolioTrend } from './FundPortfolioTrend.tsx';

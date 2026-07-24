@@ -26,7 +26,7 @@ import {
   diagnosticsExporting,
   diagnosticsLastExport,
 } from "../diagnostics/diagnostics-store.ts";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import { PageHeader } from "./PageHeader.tsx";
 import { ConfigImportModal } from "./ConfigImportModal.tsx";
 import { PanelEmpty } from "./EmptyState.tsx";

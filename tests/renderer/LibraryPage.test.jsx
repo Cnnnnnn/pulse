@@ -13,7 +13,7 @@ import { viewMode, setViewMode, resetLibraryFilters } from "../../src/renderer/s
 import { results, resetCheck } from "../../src/renderer/store.ts";
 
 const mockRunCheck = vi.fn();
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     get versionsRunCheck() { return mockRunCheck; },
     get brewUpgrade() { return () => Promise.resolve(); },

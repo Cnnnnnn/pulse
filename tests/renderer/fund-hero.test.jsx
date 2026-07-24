@@ -6,7 +6,7 @@ const mockApi = vi.hoisted(() => ({
   fundsNavState: vi.fn(async () => ({ ok: true })),
   fundsList: vi.fn(async () => ({ ok: true, holdings: [] })),
 }));
-vi.mock("../../src/renderer/api.js", () => ({ api: mockApi }));
+vi.mock("../../src/renderer/api.ts", () => ({ api: mockApi }));
 
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/preact";
 import { FundHero } from "../../src/renderer/funds/FundHero.tsx";

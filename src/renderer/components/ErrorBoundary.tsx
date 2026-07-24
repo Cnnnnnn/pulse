@@ -5,7 +5,7 @@
  * and reports the error to main via api.errorReport (best-effort).
  */
 import { Component, type ComponentChildren } from 'preact';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 
 type Props = {
   children?: ComponentChildren;

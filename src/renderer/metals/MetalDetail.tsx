@@ -20,7 +20,7 @@ import {
 import { METALS, getMetalById } from "../../metals/metal-config.js";
 import { calcChange } from "../../metals/metal-calc.js";
 import { ModalShell } from "../components/ModalShell.tsx";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 import {
   isMetalPinned,
   addWatchlistItem,

@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
 import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.tsx";
 
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     detectResultsExport: vi.fn(async () => ({ ok: true })),
     versionsRunCheck: vi.fn(async () => ({ started: true })),
@@ -56,7 +56,7 @@ import { toggleRemindersOpen } from "../../src/renderer/reminders/remindersStore
 import { toggleRecentOpen } from "../../src/renderer/recent/recentStore.ts";
 import { openReleaseNotes } from "../../src/renderer/store/release-notes-store.ts";
 import { navigateTo } from "../../src/renderer/store/route-store.ts";
-import { api } from "../../src/renderer/api.js";
+import { api } from "../../src/renderer/api.ts";
 
 beforeEach(() => {
   cleanup();

@@ -6,7 +6,7 @@
  * Phase 33: 抽屉 → 弹窗 (跟 Reminders 形态一致). 保留 watchlistDrawerOpen 兼容旧调用.
  */
 import { signal, computed } from "@preact/signals";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 
 export const watchlistItems = signal([]);
 export const watchlistDrawerOpen = signal(false);

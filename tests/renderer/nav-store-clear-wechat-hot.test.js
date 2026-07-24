@@ -22,7 +22,7 @@ import {
 import { ithomeNewIds, ithomeUnreadBadge } from "../../src/renderer/ithome/store.js";
 
 // stub 其它 wechat-hot API (本测试不调)
-vi.mock("../../src/renderer/api.js", () => ({
+vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     wechatHotLoad: vi.fn(async () => ({ items: [] })),
     wechatHotRefresh: vi.fn(async () => ({ items: [] })),

@@ -13,7 +13,7 @@ import {
   activeCategory,
   openAddModal,
 } from './fundStore.js';
-import { api } from '../api.js';
+import { api } from '../api.ts';
 import { FundCard } from './FundCard.tsx';
 
 export function FundCardGrid() {
