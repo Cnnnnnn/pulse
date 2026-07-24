@@ -85,7 +85,9 @@ export function NewsHeader({
             t.key === "favorites" && favTotal > 0 ? `${t.label} (${favTotal})` : t.label;
           return (
             <>
-              <span class="ithome-subtab-icon"><t.Icon size={14} /></span>
+              {/* ponytail: SubtabItem 的 [k: string]: unknown 让 t.Icon 是 unknown,
+                  无法直接当 JSX. 实际调用方固定塞入 icon component, cast 一次即可. */}
+              <span class="ithome-subtab-icon">{(() => { const I = t.Icon as any; return <I size={14} />; })()}</span>
               <span class="ithome-subtab-label">{label}</span>
             </>
           );
@@ -97,7 +99,7 @@ export function NewsHeader({
         type="search"
         placeholder="搜索标题、分类…"
         value={search}
-        onInput={(e) => onSearchChange(e.target.value)}
+        onInput={(e) => onSearchChange((e.target as HTMLInputElement).value)}
       />
     </FeatureHeader>
   );

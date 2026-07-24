@@ -5,7 +5,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/preact";
-import { NewsShareCard } from "../../src/renderer/ithome/NewsShareCard.jsx";
+import { NewsShareCard } from "../../src/renderer/ithome/NewsShareCard.tsx";
 
 describe("NewsShareCard", () => {
   it("renders all sections with valid article and summary", () => {

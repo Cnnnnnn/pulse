@@ -45,7 +45,7 @@ vi.mock("../../src/renderer/store.ts", () => ({
   refreshAIReadyStatus: () => Promise.resolve(true),
 }));
 
-import { NewsArticleRow } from "../../src/renderer/ithome/NewsArticleRow.jsx";
+import { NewsArticleRow } from "../../src/renderer/ithome/NewsArticleRow.tsx";
 
 const RE_FETCHING = /\u6293\u53d6\u6b63\u6587\u4e2d/;
 const RE_SUMMARIZING = /\u603b\u7ed3\u4e2d/;

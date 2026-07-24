@@ -11,7 +11,7 @@
 import { render } from "preact";
 import { NewsShareCard } from "./NewsShareCard.jsx";
 
-function mount(article, summary) {
+function mount(article: any, summary: any) {
   const root = document.getElementById("root");
   if (!root) return;
   render(<NewsShareCard article={article} summary={summary} />, root);
@@ -20,15 +20,16 @@ function mount(article, summary) {
     window.api.shareCardReady();
   } else {
     // fallback: 保留老标志,主进程轮询也会成功
-    window.__renderReady = true;
+    (window as unknown as { __renderReady?: boolean }).__renderReady = true;
   }
 }
 
 // 监听主进程注入 — 通过 contextBridge 的 api.onShareData
 if (typeof window !== "undefined" && window.api && typeof window.api.onShareData === "function") {
-  window.api.onShareData((payload) => {
-    if (payload && payload.article) {
-      mount(payload.article, payload.summary || {});
+  window.api.onShareData((payload: unknown) => {
+    const p = payload as { article?: any; summary?: any } | null;
+    if (p && p.article) {
+      mount(p.article, p.summary || {});
     }
   });
 }
