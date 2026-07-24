@@ -17,5 +17,5 @@
     "src/workers/**/*.js",
     "src/**/*.js"
   ],
-  "exclude": ["node_modules", "renderer-dist", "tests"]
+  "exclude": ["node_modules", "renderer-dist", "tests", "src/renderer"]
 }

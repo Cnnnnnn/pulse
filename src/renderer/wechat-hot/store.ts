@@ -1,5 +1,5 @@
 /**
- * src/renderer/wechat-hot/store.js
+ * src/renderer/wechat-hot/store.ts
  *
  * Renderer-side signals + bootstrap + 15s 冷却.
  * Mirror src/renderer/ithome/store.js 风格.

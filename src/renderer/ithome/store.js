@@ -12,7 +12,7 @@ import {
   trackIthomeView,
   trackIthomeFavorite,
   trackIthomeSummary,
-} from "../recent/track.js";
+} from "../recent/track.ts";
 import { requireApiMethod } from "../store/store-utils.js";
 
 export const ithomeArticles = signal({});

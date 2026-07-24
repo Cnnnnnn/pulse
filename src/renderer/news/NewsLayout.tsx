@@ -1,5 +1,5 @@
 /**
- * src/renderer/news/NewsLayout.jsx
+ * src/renderer/news/NewsLayout.tsx
  *
  * P-N+ 「新闻」tab 顶层容器 — 单层 header + sub-tab body.
  * header (品牌/sub-tab/搜索/刷新) 在 NewsLayoutHeader, body 由 IthomeContent 或 WechatHotContent
@@ -11,10 +11,14 @@
  * search 状态在这里 lift up, 因为搜索框在统一 header 而非内容内部 — 切 sub-tab 会重置.
  */
 import { useState } from "preact/hooks";
-import { NEWS_SUBTABS } from "./NewsLayoutHeader.jsx";
-import { NewsLayoutHeader } from "./NewsLayoutHeader.jsx";
-import { IthomeContent } from "../ithome/IthomeContent.jsx";
-import { WechatHotContent } from "../wechat-hot/components/WechatHotContent.jsx";
+import { NEWS_SUBTABS } from "./NewsLayoutHeader.tsx";
+import { NewsLayoutHeader } from "./NewsLayoutHeader.tsx";
+import { IthomeContent as IthomeContentRaw } from "../ithome/IthomeContent.jsx";
+import { WechatHotContent as WechatHotContentRaw } from "../wechat-hot/components/WechatHotContent.tsx";
+
+// ponytail: 对端仍是宽松 JSX props；ithome/wechat 组件迁完后去掉 cast。
+const IthomeContent = IthomeContentRaw as any;
+const WechatHotContent = WechatHotContentRaw as any;
 import "./NewsLayout.css";
 
 export { NEWS_SUBTABS };

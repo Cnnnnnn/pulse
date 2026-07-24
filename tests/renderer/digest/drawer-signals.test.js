@@ -4,7 +4,7 @@ import { render, cleanup } from '@testing-library/preact';
 import {
   digestDrawerOpen,
   aiTasksDrawerOpen,
-} from '../../../src/renderer/digest/digest-store.js';
+} from '../../../src/renderer/digest/digest-store.ts';
 import { openDigestDrawer } from '../../../src/renderer/store/ai-store.js';
 
 describe('digest vs aiTasks drawer signals', () => {

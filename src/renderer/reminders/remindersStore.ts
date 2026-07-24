@@ -1,5 +1,5 @@
 /**
- * src/renderer/reminders/remindersStore.js
+ * src/renderer/reminders/remindersStore.ts
  *
  * v2.11 提醒 (Reminders) — renderer signals + actions
  *
@@ -9,7 +9,7 @@
 
 import { signal, computed } from "@preact/signals";
 import { getApi, requireApiMethod, wrapIpc } from "../store/store-utils.js";
-import { trackReminderUpdate } from "../recent/track.js";
+import { trackReminderUpdate } from "../recent/track.ts";
 
 export const reminders = signal([]); // Reminder[]
 export const remindersLoaded = signal(false);

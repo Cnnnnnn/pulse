@@ -42,7 +42,7 @@ vi.mock("../../metals/metal-config.js", () => ({
 import {
   watchlistItems,
   watchlistModalOpen,
-} from "../../src/renderer/watchlist/watchlist-store.js";
+} from "../../src/renderer/watchlist/watchlist-store.ts";
 import { WatchlistModal } from "../../src/renderer/components/WatchlistModal.jsx";
 
 beforeEach(() => {

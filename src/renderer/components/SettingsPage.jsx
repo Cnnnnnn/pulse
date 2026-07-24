@@ -21,7 +21,7 @@ import {
   getThemePreference,
   setThemePreference,
   subscribeTheme,
-} from "../theme/theme-manager.js";
+} from "../theme/theme-manager.ts";
 import { showToast } from "../store.js";
 import {
   githubToken, setGithubToken, loadGithubSettings,

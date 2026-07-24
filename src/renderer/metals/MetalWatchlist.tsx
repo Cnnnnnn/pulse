@@ -1,5 +1,5 @@
 /**
- * src/renderer/metals/MetalWatchlist.jsx
+ * src/renderer/metals/MetalWatchlist.tsx
  *
  * 行情榜 (单栏, 占满宽): 取代原 MetalTable 的密集表格.
  * 点行 → 调 onSelect(metalId) 弹出详情弹窗 (MetalLayout 控制).
@@ -9,7 +9,7 @@
  */
 import {
   quoteCache, fxCache, historyMap,
-} from "./metalStore.js";
+} from "./metalStore.ts";
 import { METALS } from "../../metals/metal-config.js";
 import { calcChange } from "../../metals/metal-calc.js";
 import { Sparkline } from "../components/Sparkline.jsx";
@@ -17,7 +17,7 @@ import { PinIcon, IconAlert } from "../components/icons.jsx";
 import { showToast } from "../store.js";
 import {
   isMetalPinned, addWatchlistItem, removeWatchlistItem,
-} from "../watchlist/watchlist-store.js";
+} from "../watchlist/watchlist-store.ts";
 
 const GRAM_PER_OZ = 31.1035;
 
@@ -112,8 +112,8 @@ function WatchRow({ metal, onSelect }) {
     <div
       class={`metals-watch-row${error ? " is-error" : ""}`}
       role="button"
-      tabindex="0"
-      onClick={(e) => { if (e.target.closest(".metals-pin")) return; select(); }}
+      tabindex={0}
+      onClick={(e) => { if ((e.target as Element).closest?.(".metals-pin")) return; select(); }}
       onKeyDown={onKeyDown}
       aria-label={`${metal.name} 现价 ${refCNY != null ? formatCNY(refCNY) : "—"} ${arrow} ${changePct.toFixed(2)}%`}
     >

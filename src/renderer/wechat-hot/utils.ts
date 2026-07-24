@@ -1,5 +1,5 @@
 /**
- * src/renderer/wechat-hot/utils.js
+ * src/renderer/wechat-hot/utils.ts
  *
  * Shared display formatters.
  */

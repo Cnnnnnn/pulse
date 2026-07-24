@@ -65,7 +65,7 @@ function apply(mode) {
 }
 
 /* ─── 订阅者 (SettingsPage 用) ─────────────────────────────── */
-const subscribers = new Set();
+const subscribers = new Set<(mode: string) => void>();
 function notify(mode) {
   for (const cb of subscribers) {
     try {

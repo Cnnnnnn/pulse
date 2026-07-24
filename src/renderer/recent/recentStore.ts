@@ -1,5 +1,5 @@
 /**
- * src/renderer/recent/recentStore.js
+ * src/renderer/recent/recentStore.ts
  *
  * v2.11 时间线 (Recent Activity) — renderer signals + actions
  *

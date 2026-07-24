@@ -1,5 +1,5 @@
 /**
- * src/renderer/invest/InvestLayout.jsx
+ * src/renderer/invest/InvestLayout.tsx
  *
  * 2026-07-13 投资 nav 合并 — 顶级 nav panel 容器.
  * 架构 (镜像 NewsLayout / WorldcupLayout):
@@ -41,12 +41,12 @@ import {
   prefetchAllNavHistory,
 } from "../funds/fundStore.js";
 import { fundPage, setFundPage } from "../funds/fundRoute.js";
-import { metalsRefreshing } from "../metals/metalStore.js";
+import { metalsRefreshing } from "../metals/metalStore.ts";
 import { api } from "../api.js";
 import { FundContent } from "../funds/FundLayout.jsx";
-import { MetalContent } from "../metals/MetalLayout.jsx";
+import { MetalContent } from "../metals/MetalLayout.tsx";
 import { StockContent } from "../stocks/StockLayout.jsx";
-import { InvestLayoutHeader } from "./InvestLayoutHeader.jsx";
+import { InvestLayoutHeader } from "./InvestLayoutHeader.tsx";
 
 export function InvestLayout() {
   // 基金数据加载 — 一次 mount, 写 cleanup 到 useEffect return.
@@ -73,7 +73,7 @@ export function InvestLayout() {
     if (typeof window === "undefined" || !window.metalsApi) return undefined;
     let cancelled = false;
     let cleanupStore = null;
-    import("../metals/metalStore.js").then((mod) => {
+    import("../metals/metalStore.ts").then((mod) => {
       if (cancelled) return;
       cleanupStore = () => mod.cleanupMetalStore();
       void mod.initMetalStore();

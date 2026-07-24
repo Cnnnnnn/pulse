@@ -1,5 +1,5 @@
 /**
- * src/renderer/digest/DigestSection.jsx
+ * src/renderer/digest/DigestSection.tsx
  *
  * Phase I1+I5: per-section rendering inside DigestDrawer.
  */

@@ -1,5 +1,5 @@
 /**
- * src/renderer/invest/InvestLayoutHeader.jsx
+ * src/renderer/invest/InvestLayoutHeader.tsx
  *
  * 2026-07-13 投资 nav 合并 — 顶部统一两级 sub-tab header (镜像 NewsLayoutHeader):
  *   - 品牌: 投资 + IconCoin
@@ -77,7 +77,7 @@ function onHeaderKeyDown(e) {
       const refreshed = Array.from(
         primaryList.querySelectorAll('[role="tab"]'),
       );
-      const targetBtn = refreshed[next];
+      const targetBtn = refreshed[next] as HTMLElement | undefined;
       if (targetBtn) targetBtn.focus();
       else void newActive;
     });

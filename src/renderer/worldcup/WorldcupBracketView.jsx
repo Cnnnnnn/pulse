@@ -19,7 +19,7 @@ import {
   computeBracket,
   clearBracketError,
 } from "./bracketStore.js";
-import { trackWorldcupMatchView } from "../recent/track.js";
+import { trackWorldcupMatchView } from "../recent/track.ts";
 import { IconAlert, IconRefresh, IconLoader } from "../components/icons.jsx";
 
 function formatRelativeTime(ts) {

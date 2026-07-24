@@ -10,11 +10,11 @@ const LOADERS = {
   // P-N+: 'news' 单 nav 合并 IT 新闻 + 微博热搜, 容器做 sub-tab 切换.
   // 子 layout (ithome / wechat-hot) 仍走独立 chunk, 这里不再单独暴露.
   // 2026-07-13: 投资 nav 合并 funds/metals/stocks → 'invest', 三 layout 内嵌为 FundContent/MetalContent/StockContent.
-  news: () => import('../news/NewsLayout.jsx').then((m) => m.NewsLayout),
+  news: () => import('../news/NewsLayout.tsx').then((m) => m.NewsLayout),
   worldcup: () =>
     import('../worldcup/WorldcupLayout.jsx').then((m) => m.WorldcupLayout),
   invest: () =>
-    import('../invest/InvestLayout.jsx').then((m) => m.InvestLayout),
+    import('../invest/InvestLayout.tsx').then((m) => m.InvestLayout),
   'ai-usage': () =>
     import('./AIUsageLayout.jsx').then((m) => m.AIUsageLayout),
   github: () =>

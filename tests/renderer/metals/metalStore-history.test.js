@@ -6,7 +6,7 @@ import {
   initMetalStore,
   cleanupMetalStore,
   resetMetalStore,
-} from "../../../src/renderer/metals/metalStore.js";
+} from "../../../src/renderer/metals/metalStore.ts";
 
 describe("metalStore history signals", () => {
   beforeEach(() => {

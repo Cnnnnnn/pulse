@@ -1,5 +1,5 @@
 /**
- * src/renderer/wechat-hot/components/WechatHotList.jsx
+ * src/renderer/wechat-hot/components/WechatHotList.tsx
  *
  * 热搜列表：每行一个 button, 点击通过 openExternal 打开原文 URL.
  * 支持 query prop 做大小写不敏感子串过滤.
@@ -24,8 +24,19 @@ function rankClass(rank) {
   return "";
 }
 
-export function WechatHotList({ items = [], query = "", reason = "empty",
-                                 readIds = {}, onMarkRead } = {}) {
+export function WechatHotList({
+  items = [],
+  query = "",
+  reason = "empty",
+  readIds = {},
+  onMarkRead,
+}: {
+  items?: any[];
+  query?: string;
+  reason?: string;
+  readIds?: Record<string, any>;
+  onMarkRead?: (title: any) => any;
+} = {}) {
   const q = typeof query === "string" ? query.trim().toLowerCase() : "";
   const filtered = q
     ? items.filter((it) => typeof it?.title === "string" && it.title.toLowerCase().includes(q))

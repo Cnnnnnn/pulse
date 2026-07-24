@@ -38,7 +38,7 @@ import {
   isFundPinned,
   addWatchlistItem,
   removeWatchlistItem,
-} from "../watchlist/watchlist-store.js";
+} from "../watchlist/watchlist-store.ts";
 import { showToast } from "../store/toast-store.js";
 import { downloadCsv, safeFilename } from "../utils/csv.ts";
 

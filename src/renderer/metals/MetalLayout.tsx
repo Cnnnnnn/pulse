@@ -1,5 +1,5 @@
 /**
- * src/renderer/metals/MetalLayout.jsx
+ * src/renderer/metals/MetalLayout.tsx
  *
  * 纯行情看板: Header + DataBanner + 单栏行情榜 (占满宽).
  * 点某行 → ModalShell 弹窗展示该品种详情 (K线/指标). 不再常驻双栏.
@@ -13,12 +13,12 @@ import { useEffect, useState } from "preact/hooks";
 // ponytail 2026-07-18 P7-audit-fix: metals 模块专属 CSS (T7 fixup 误进 stocks.css
 //   的 580 行 + 补 3 个缺失 class). import 模式同 src/renderer/stocks/stocks.css.
 import "./metals.css";
-import { MetalHeader } from "./MetalHeader.jsx";
-import { MetalWatchlist } from "./MetalWatchlist.jsx";
-import { MetalDetail } from "./MetalDetail.jsx";
+import { MetalHeader } from "./MetalHeader.tsx";
+import { MetalWatchlist } from "./MetalWatchlist.tsx";
+import { MetalDetail } from "./MetalDetail.tsx";
 import {
   initMetalStore, cleanupMetalStore,
-} from "./metalStore.js";
+} from "./metalStore.ts";
 
 /** 示例数据中性提示 (常驻, 非交易向沙箱横幅). */
 function DataBanner() {

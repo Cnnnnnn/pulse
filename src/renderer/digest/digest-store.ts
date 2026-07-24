@@ -1,5 +1,5 @@
 /**
- * src/renderer/digest/digest-store.js
+ * src/renderer/digest/digest-store.ts
  *
  * Phase I1+I5: signals for the digest drawer + push state.
  *

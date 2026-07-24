@@ -1,5 +1,5 @@
 /**
- * src/renderer/recent/RecentActivityModal.jsx
+ * src/renderer/recent/RecentActivityModal.tsx
  *
  * v2.11 时间线 modal — 倒序 list + 过滤 + 点条目跳 tab.
  */
@@ -12,11 +12,17 @@ import {
   recentFilter,
   loadRecent,
   toggleRecentOpen,
-} from "./recentStore.js";
+} from "./recentStore.ts";
 import { setActiveNav } from "../worldcup/navStore.js";
-import { TabList, Tab } from "../components/TabList.jsx";
-import { PanelEmpty } from "../components/EmptyState.jsx";
-import { ModalShell, ModalHeader } from "../components/ModalShell.jsx";
+import { TabList as TabListRaw, Tab as TabRaw } from "../components/TabList.jsx";
+import { PanelEmpty as PanelEmptyRaw } from "../components/EmptyState.jsx";
+import { ModalShell as ModalShellRaw, ModalHeader } from "../components/ModalShell.jsx";
+
+// ponytail: 共享 shell 仍是 .jsx；components 迁完后去掉 cast。
+const TabList = TabListRaw as any;
+const Tab = TabRaw as any;
+const PanelEmpty = PanelEmptyRaw as any;
+const ModalShell = ModalShellRaw as any;
 import { IconClock, RecentActivityIcon, IconX } from "../components/icons.jsx";
 
 const KIND_META = {

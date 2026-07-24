@@ -25,7 +25,7 @@ import {
   diagnosticsDiagnosticsLoading,
   diagnosticsExporting,
   diagnosticsLastExport,
-} from "../diagnostics/diagnostics-store.js";
+} from "../diagnostics/diagnostics-store.ts";
 import { api } from "../api.js";
 import { PageHeader } from "./PageHeader.jsx";
 import { ConfigImportModal } from "./ConfigImportModal.jsx";

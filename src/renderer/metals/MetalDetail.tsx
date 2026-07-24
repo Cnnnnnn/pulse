@@ -1,5 +1,5 @@
 /**
- * src/renderer/metals/MetalDetail.jsx
+ * src/renderer/metals/MetalDetail.tsx
  *
  * 详情弹窗 (ModalShell): 点行情榜某行弹出.
  * - DetailHeader: 品种名 + 现价(¥/克, 实时 quote 换算) + 涨跌(▲▼ % + ±¥/克)
@@ -16,16 +16,19 @@
 import { useState, useMemo } from "preact/hooks";
 import {
   quoteCache, fxCache, historyMap,
-} from "./metalStore.js";
+} from "./metalStore.ts";
 import { METALS, getMetalById } from "../../metals/metal-config.js";
 import { calcChange } from "../../metals/metal-calc.js";
-import { ModalShell } from "../components/ModalShell.jsx";
+import { ModalShell as ModalShellRaw } from "../components/ModalShell.jsx";
+
+// ponytail: ModalShell 仍是 .jsx；components 迁完后去掉 cast。
+const ModalShell = ModalShellRaw as any;
 import { api } from "../api.js";
 import {
   isMetalPinned,
   addWatchlistItem,
   removeWatchlistItem,
-} from "../watchlist/watchlist-store.js";
+} from "../watchlist/watchlist-store.ts";
 import { AddToCompareButton } from "../stocks/AddToCompareButton.jsx";
 
 const GRAM_PER_OZ = 31.1035;
@@ -66,7 +69,7 @@ function isoWeekKey(dateStr) {
   thursday.setUTCDate(d.getUTCDate() + (4 - day));
   const year = thursday.getUTCFullYear();
   const jan1 = new Date(Date.UTC(year, 0, 1));
-  const week = Math.ceil(((thursday - jan1) / 86400000 + 1) / 7);
+  const week = Math.ceil(((thursday.getTime() - jan1.getTime()) / 86400000 + 1) / 7);
   return `${year}-W${String(week).padStart(2, "0")}`;
 }
 

@@ -19,13 +19,13 @@ import { api } from './api.js';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { Toast } from './components/Toast.jsx';
 import { StateRecoveredBanner } from './components/StateRecoveredBanner.jsx';
-import { DigestDrawer } from './digest/DigestDrawer.jsx';
+import { DigestDrawer } from './digest/DigestDrawer.tsx';
 import { WatchlistModal } from './components/WatchlistModal.jsx';
 import { ReleaseNotesWizard } from './components/ReleaseNotesWizard.jsx';
 import { ConfirmDialog } from './components/ConfirmDialog.jsx';
 import { AppShell } from './components/AppShell.jsx';
-import { RemindersModal } from './reminders/RemindersModal.jsx';
-import { RecentActivityModal } from './recent/RecentActivityModal.jsx';
+import { RemindersModal } from './reminders/RemindersModal.tsx';
+import { RecentActivityModal } from './recent/RecentActivityModal.tsx';
 import { TrayMenuConfigModal } from './components/TrayMenuConfigModal.jsx';
 
 const isWin = (typeof window !== 'undefined' && window.platformInfo && window.platformInfo.platform) === 'win32';

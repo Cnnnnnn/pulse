@@ -18,7 +18,7 @@ import {
   wechatHotNewIds,
   wechatHotReadIds,
   wechatHotUnreadBadge,
-} from "../../src/renderer/wechat-hot/store.js";
+} from "../../src/renderer/wechat-hot/store.ts";
 import { ithomeNewIds, ithomeUnreadBadge } from "../../src/renderer/ithome/store.js";
 
 // stub 其它 wechat-hot API (本测试不调)
@@ -43,7 +43,7 @@ vi.mock("../../src/renderer/store/ai-usage-store.js", () => ({
   aiUsageNavBadge: { value: 0 },
 }));
 
-vi.mock("../../src/renderer/recent/track.js", () => ({
+vi.mock("../../src/renderer/recent/track.ts", () => ({
   trackFundView: vi.fn(),
   trackIthomeView: vi.fn(),
 }));

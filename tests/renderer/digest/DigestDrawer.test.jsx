@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, fireEvent, cleanup, waitFor } from '@testing-library/preact';
-import { DigestDrawer } from '../../../src/renderer/digest/DigestDrawer.jsx';
-import { digestDrawerOpen, digestSections, digestLines, digestDate, digestLoading } from '../../../src/renderer/digest/digest-store.js';
+import { DigestDrawer } from '../../../src/renderer/digest/DigestDrawer.tsx';
+import { digestDrawerOpen, digestSections, digestLines, digestDate, digestLoading } from '../../../src/renderer/digest/digest-store.ts';
 import { api } from '../../../src/renderer/api.js';
 
 describe('DigestDrawer', () => {

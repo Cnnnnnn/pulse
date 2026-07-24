@@ -1,5 +1,5 @@
 /**
- * src/renderer/news/NewsLayoutHeader.jsx
+ * src/renderer/news/NewsLayoutHeader.tsx
  *
  * P-N+ "新闻" tab 顶部统一单层 header — 接管:
  *   - 品牌: 新闻 + 实时 context (条目数 / 上次刷新 / 错误)
@@ -29,8 +29,8 @@ import {
   wechatHotLastRefreshAt,
   wechatHotError,
   refreshWechatHot,
-} from "../wechat-hot/store.js";
-import { formatCooldown, formatTime } from "../wechat-hot/utils.js";
+} from "../wechat-hot/store.ts";
+import { formatCooldown, formatTime } from "../wechat-hot/utils.ts";
 import { IconNews, IconRefresh } from "../components/icons.jsx";
 import { SubtabList } from "../components/SubtabList.jsx";
 

@@ -46,7 +46,7 @@ vi.mock("../../src/renderer/store/trayConfigStore.js", () => ({
 }));
 
 vi.mock("../../src/renderer/ithome/store.js", () => ({ ithomeUnreadBadge }));
-vi.mock("../../src/renderer/wechat-hot/store.js", () => ({ wechatHotUnreadBadge }));
+vi.mock("../../src/renderer/wechat-hot/store.ts", () => ({ wechatHotUnreadBadge }));
 
 beforeEach(() => {
   localStorage.clear();

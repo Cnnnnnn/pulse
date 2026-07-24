@@ -12,7 +12,7 @@ import {
   INVEST_PRIMARY_TABS,
   FUND_VIEW_TABS,
   STOCK_VIEW_TABS,
-} from "../../src/renderer/invest/InvestLayoutHeader.jsx";
+} from "../../src/renderer/invest/InvestLayoutHeader.tsx";
 import {
   FUND_PAGE_TABS,
 } from "../../src/renderer/funds/fundRoute.js";

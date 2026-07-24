@@ -13,7 +13,7 @@ import {
   diagnosticsStartup, diagnosticsMetrics, diagnosticsTopFailures,
   diagnosticsSamples, diagnosticsDiagnosticsLoading,
   diagnosticsExporting, diagnosticsLastExport,
-} from "../../src/renderer/diagnostics/diagnostics-store.js";
+} from "../../src/renderer/diagnostics/diagnostics-store.ts";
 
 vi.mock("../../src/renderer/api.js", () => ({
   api: {

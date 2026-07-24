@@ -31,7 +31,7 @@ import {
   needsConfig,
   showToast,
 } from '../store.js';
-import { aiTasksDrawerOpen } from '../digest/digest-store.js';
+import { aiTasksDrawerOpen } from '../digest/digest-store.ts';
 import { api } from '../api.js';
 import { setActiveNav } from '../worldcup/navStore.js';
 import { navigateTo } from '../store/route-store.js';

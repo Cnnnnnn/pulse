@@ -14,11 +14,11 @@
  */
 
 import { effect, signal } from "@preact/signals";
-import { trackFundView } from "../recent/track.js";
+import { trackFundView } from "../recent/track.ts";
 import { trayMenuPrefs } from "../store/trayConfigStore.js";
 import { clearFundNavBadge } from "../funds/fundStore.js";
 import { clearAiUsageNavBadge } from "../store/ai-usage-store.js";
-import { clearWechatHotUnreadBadge } from "../wechat-hot/store.js";
+import { clearWechatHotUnreadBadge } from "../wechat-hot/store.ts";
 import { clearIthomeUnreadBadge } from "../ithome/store.js";
 import { api } from "../api.js";
 

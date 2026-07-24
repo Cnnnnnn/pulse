@@ -54,7 +54,7 @@ export function AppRow({ name }) {
     try {
       const r = await api.brewUpgrade(cask);
       if (r && r.success) {
-        const { trackAppUpgrade } = await import('../recent/track.js');
+        const { trackAppUpgrade } = await import('../recent/track.ts');
         trackAppUpgrade(appName);
       }
       if (!r || !r.success) {

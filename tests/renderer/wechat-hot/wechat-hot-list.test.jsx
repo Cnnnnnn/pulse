@@ -16,7 +16,7 @@ vi.mock("../../../src/renderer/utils/external-link.ts", () => ({
   openExternal: mockOpenExternal,
 }));
 
-import { WechatHotList } from "../../../src/renderer/wechat-hot/components/WechatHotList.jsx";
+import { WechatHotList } from "../../../src/renderer/wechat-hot/components/WechatHotList.tsx";
 
 const ITEMS = [
   { rank: 1, title: "腾讯收购暴雪", url: "https://a", heat: "1234万", tag: "沸" },

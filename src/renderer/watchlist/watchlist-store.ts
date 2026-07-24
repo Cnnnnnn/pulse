@@ -1,5 +1,5 @@
 /**
- * src/renderer/watchlist/watchlist-store.js
+ * src/renderer/watchlist/watchlist-store.ts
  *
  * I2 v1: app pin
  * I2 v2: + fund / keyword

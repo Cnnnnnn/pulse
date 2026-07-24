@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
-import { MetalDetail } from "../../../src/renderer/metals/MetalDetail.jsx";
+import { MetalDetail } from "../../../src/renderer/metals/MetalDetail.tsx";
 import {
   quoteCache, fxCache, historyMap, resetMetalStore,
-} from "../../../src/renderer/metals/metalStore.js";
+} from "../../../src/renderer/metals/metalStore.ts";
 
 // ModalShell usePortal → 渲染到 document.body, 不在 render() 返回的 container 里.
 // 测试统一从 document.body 查询, 并在 afterEach 清理 body 避免泄漏.

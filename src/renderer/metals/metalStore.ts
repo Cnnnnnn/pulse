@@ -1,5 +1,5 @@
 /**
- * src/renderer/metals/metalStore.js
+ * src/renderer/metals/metalStore.ts
  *
  * Renderer-side signals for metals: config / quoteCache / fxCache / schedulerState.
  * Subscribes to main-process events via window.metalsApi.
@@ -14,14 +14,14 @@ import { signal } from '@preact/signals';
 export const config = signal({
   watchedIds: ['XAU', 'XAG', 'AU9999', 'AG9999'],
   holdings: { XAU: null, XAG: null, AU9999: null, AG9999: null },
-  deletedIds: [],
+  deletedIds: [] as string[],
 });
 
 export const quoteCache = signal({ data: {}, errors: {}, fetchedAt: null });
 export const fxCache = signal({ rate: null, fetchedAt: null });
 export const schedulerState = signal({ status: 'idle', lastFetch: null, nextFetch: null });
 
-export const historyMap = signal({});
+export const historyMap = signal<Record<string, any>>({});
 
 /**
  * 投资 nav 合并 (2026-07-13) N2: refreshNow loading 态.
@@ -36,9 +36,9 @@ export const metalsRefreshing = signal(false);
  */
 export const selectedMetalId = signal('XAU');
 
-let _unsubQuote = null;
-let _unsubState = null;
-let _unsubHist = null;
+let _unsubQuote: (() => void) | null = null;
+let _unsubState: (() => void) | null = null;
+let _unsubHist: (() => void) | null = null;
 
 export async function initMetalStore() {
   if (!window.metalsApi) {
@@ -77,21 +77,21 @@ export async function initMetalStore() {
       // 同步到 signal, 避免 "quote 出了但 30 天走势还在加载中" 的渲染竞态.
       if (r && r.historyMap) historyMap.value = r.historyMap;
     } catch (err) {
-      console.warn('[metals] cold-start fetchNow failed:', err && err.message);
+      console.warn('[metals] cold-start fetchNow failed:', err instanceof Error ? err.message : String(err));
     }
   }
 
   // Subscribe to live updates (preload 返回 unsubscribe 函数)
-  _unsubQuote = window.metalsApi.onQuoteChanged((data) => {
+  _unsubQuote = window.metalsApi.onQuoteChanged((data: any) => {
     if (data.quotes) quoteCache.value = data.quotes;
     if (data.fx) fxCache.value = data.fx;
   });
 
-  _unsubState = window.metalsApi.onStateUpdate((data) => {
+  _unsubState = window.metalsApi.onStateUpdate((data: any) => {
     schedulerState.value = data;
   });
 
-  _unsubHist = window.metalsApi.onHistoryChanged((data) => {
+  _unsubHist = window.metalsApi.onHistoryChanged((data: any) => {
     if (data && data.historyMap) historyMap.value = data.historyMap;
   });
 }
@@ -145,7 +145,7 @@ export function resetMetalStore() {
   config.value = {
     watchedIds: ['XAU', 'XAG', 'AU9999', 'AG9999'],
     holdings: { XAU: null, XAG: null, AU9999: null, AG9999: null },
-    deletedIds: [],
+    deletedIds: [] as string[],
   };
   quoteCache.value = { data: {}, errors: {}, fetchedAt: null };
   fxCache.value = { rate: null, fetchedAt: null };

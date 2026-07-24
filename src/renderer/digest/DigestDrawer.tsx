@@ -1,5 +1,5 @@
 /**
- * src/renderer/digest/DigestDrawer.jsx
+ * src/renderer/digest/DigestDrawer.tsx
  *
  * Phase I1+I5: 480px right-side drawer rendering all digest sections.
  * Driven by digest-store signals. Fetches sections on open.
@@ -11,11 +11,14 @@ import {
   digestLines,
   digestDate,
   digestLoading,
-} from './digest-store.js';
+} from './digest-store.ts';
 import { api } from '../api.js';
-import { DigestSection } from './DigestSection.jsx';
-import { DrawerShell } from '../components/DrawerShell.jsx';
+import { DigestSection } from './DigestSection.tsx';
+import { DrawerShell as DrawerShellRaw } from '../components/DrawerShell.jsx';
 import { DrawerEmpty } from '../components/EmptyState.jsx';
+
+// ponytail: DrawerShell 仍是 .jsx，TS 把无默认值参数当 required；components 迁完后去掉 cast。
+const DrawerShell = DrawerShellRaw as any;
 
 export function DigestDrawer() {
   const open = digestDrawerOpen.value;

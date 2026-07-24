@@ -36,7 +36,7 @@ import {
   DEFAULT_NAV_SOURCE,
   normalizeNavSource,
 } from "../../funds/fund-nav-merge.js";
-import { isFundPinned } from "../watchlist/watchlist-store.js";
+import { isFundPinned } from "../watchlist/watchlist-store.ts";
 
 const log = taggedLog("[funds]");
 
@@ -245,7 +245,7 @@ export async function addFund(api, input) {
   const r = await api.fundsAdd(input);
   if (r && r.ok) {
     holdings.value = r.holdings || [];
-    import("../recent/track.js").then((m) =>
+    import("../recent/track.ts").then((m) =>
       m.trackFundAdd(input && input.code, input && input.name),
     );
     return { ok: true, holding: r.holding };
@@ -258,7 +258,7 @@ export async function updateFund(api, id, patch) {
   if (r && r.ok) {
     holdings.value = r.holdings || [];
     const h = r.holding || {};
-    import("../recent/track.js").then((m) =>
+    import("../recent/track.ts").then((m) =>
       m.trackFundUpdate(h.code || id, h.name, patch),
     );
     return { ok: true, holding: r.holding };
@@ -271,7 +271,7 @@ export async function removeFund(api, id) {
   const r = await api.fundsRemove(id);
   if (r && r.ok) {
     holdings.value = r.all ? r.all.holdings : [];
-    import("../recent/track.js").then((m) =>
+    import("../recent/track.ts").then((m) =>
       m.trackFundRemove(removed.code || id, removed.name),
     );
     return { ok: true };
@@ -321,7 +321,7 @@ export async function fetchNavNow(api) {
         };
       }
       const count = r.results ? Object.keys(r.results).length : 0;
-      import("../recent/track.js").then((m) => m.trackFundNavFetch(count));
+      import("../recent/track.ts").then((m) => m.trackFundNavFetch(count));
       // 不阻塞 UI: 状态/持仓后台同步
       void loadNavState(api);
       void loadFunds(api);

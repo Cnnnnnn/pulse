@@ -12,7 +12,7 @@ import { DEFAULT_MODELS } from "../../ai/default-models.js";
 import { api } from "../api.js";
 import { taggedLog } from "../log.js";
 import { showToast } from "./toast-store.js";
-import { aiTasksDrawerOpen, digestConfigMode } from "../digest/digest-store.js";
+import { aiTasksDrawerOpen, digestConfigMode } from "../digest/digest-store.ts";
 
 const log = taggedLog("[store/ai]");
 
@@ -210,7 +210,7 @@ export function setAIKeyStatuses(map) {
 export function openAISettings(open = true) {
   aiSettingsOpen.value = Boolean(open);
   if (open) {
-    import("../recent/track.js").then((m) => m.trackSettingsOpen());
+    import("../recent/track.ts").then((m) => m.trackSettingsOpen());
   }
 }
 

@@ -29,7 +29,7 @@ import {
   removeWatchlistItem,
   refreshWatchlist,
   watchlistItems,
-} from "../watchlist/watchlist-store.js";
+} from "../watchlist/watchlist-store.ts";
 import { downloadCsv } from "../utils/csv.ts";
 import { showToast } from "../store/toast-store.js";
 

@@ -40,13 +40,13 @@ vi.mock("../../src/renderer/api.js", () => ({
 vi.mock("../../src/renderer/store/ai-store.js", () => ({
   toggleDigestDrawer: () => {},
 }));
-vi.mock("../../src/renderer/watchlist/watchlist-store.js", () => ({
+vi.mock("../../src/renderer/watchlist/watchlist-store.ts", () => ({
   toggleWatchlistDrawer: () => {},
 }));
-vi.mock("../../src/renderer/reminders/remindersStore.js", () => ({
+vi.mock("../../src/renderer/reminders/remindersStore.ts", () => ({
   toggleRemindersOpen: () => {},
 }));
-vi.mock("../../src/renderer/recent/recentStore.js", () => ({
+vi.mock("../../src/renderer/recent/recentStore.ts", () => ({
   toggleRecentOpen: () => {},
 }));
 vi.mock("../../src/renderer/store/release-notes-store.js", () => ({

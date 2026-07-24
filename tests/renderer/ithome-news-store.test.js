@@ -38,7 +38,7 @@ vi.mock("../../src/renderer/store/store-utils.js", () => ({
   },
 }));
 
-vi.mock("../../src/renderer/recent/track.js", () => ({
+vi.mock("../../src/renderer/recent/track.ts", () => ({
   trackIthomeView: () => {},
   trackIthomeFavorite: () => {},
   trackIthomeSummary: () => {},

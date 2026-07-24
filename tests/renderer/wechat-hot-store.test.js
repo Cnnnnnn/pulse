@@ -19,7 +19,7 @@ import {
   wechatHotUnreadBadge,
   applyPayload,
   markWechatHotRead,
-} from "../../src/renderer/wechat-hot/store.js";
+} from "../../src/renderer/wechat-hot/store.ts";
 
 beforeEach(() => {
   wechatHotReadIds.value = {};

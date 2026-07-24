@@ -1,5 +1,5 @@
 /**
- * src/renderer/diagnostics/diagnostics-store.js
+ * src/renderer/diagnostics/diagnostics-store.ts
  *
  * Phase Q6: signals for the diagnostics drawer.
  */

@@ -20,13 +20,13 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
 import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/store.js";
-import { wechatHotUnreadBadge, wechatHotItems } from "../wechat-hot/store.js";
+import { wechatHotUnreadBadge, wechatHotItems } from "../wechat-hot/store.ts";
 import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.js";
 import { aiUsageNavBadge, aiUsageSnapshot, aiUsageActiveProvider } from "../store/ai-usage-store.js";
 import { githubProjects } from "../store/github-projects-store.js";
 import { worldcupMatches } from "../worldcup/store.js";
 import { matchKickoffUtcMs } from "../worldcup/match-utils.js";
-import { quoteCache } from "../metals/metalStore.js";
+import { quoteCache } from "../metals/metalStore.ts";
 import { comparePoolCount } from "../stocks/comparePool.js";
 import { results as stocksResults } from "../stocks/stockStore.js";
 import { results as checkResults, apps as checkApps } from "../store.js";

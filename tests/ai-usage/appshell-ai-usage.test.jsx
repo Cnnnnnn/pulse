@@ -24,7 +24,7 @@ vi.mock("../../src/renderer/worldcup/navStore.js", async (importOriginal) => {
   };
 });
 
-vi.mock("../../src/renderer/reminders/remindersStore.js", () => ({
+vi.mock("../../src/renderer/reminders/remindersStore.ts", () => ({
   get remindersOpen() { return { value: false }; },
   loadReminders: vi.fn(),
 }));

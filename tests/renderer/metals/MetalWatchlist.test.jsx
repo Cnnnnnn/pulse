@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, fireEvent } from "@testing-library/preact";
-import { MetalWatchlist } from "../../../src/renderer/metals/MetalWatchlist.jsx";
+import { MetalWatchlist } from "../../../src/renderer/metals/MetalWatchlist.tsx";
 import {
   quoteCache, fxCache, historyMap, resetMetalStore,
-} from "../../../src/renderer/metals/metalStore.js";
-import { watchlistItems } from "../../../src/renderer/watchlist/watchlist-store.js";
+} from "../../../src/renderer/metals/metalStore.ts";
+import { watchlistItems } from "../../../src/renderer/watchlist/watchlist-store.ts";
 
 describe("MetalWatchlist: 行情榜 (单栏, 点行弹详情)", () => {
   beforeEach(() => {

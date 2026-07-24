@@ -1,5 +1,5 @@
 /**
- * src/renderer/wechat-hot/components/WechatHotContent.jsx
+ * src/renderer/wechat-hot/components/WechatHotContent.tsx
  *
  * P-N+ "新闻" tab 用的微博热搜分支: 仅 List, 不含 header.
  * 跟旧 WechatHotLayout 的区别: 去掉 header, error banner 上交 NewsLayoutHeader.
@@ -17,8 +17,8 @@ import {
   wechatHotLoading,
   wechatHotReadIds,
   markWechatHotRead,
-} from "../store.js";
-import { WechatHotList } from "./WechatHotList.jsx";
+} from "../store.ts";
+import { WechatHotList } from "./WechatHotList.tsx";
 
 function titleMatches(item, q) {
   return typeof item?.title === "string" && item.title.toLowerCase().includes(q);

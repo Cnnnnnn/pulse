@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock 所有依赖模块, 因为 vitest ESM 需要先 hoist vi.mock 才能生效
-vi.mock("../../src/renderer/wechat-hot/store.js", () => ({
+vi.mock("../../src/renderer/wechat-hot/store.ts", () => ({
   refreshWechatHot: vi.fn(),
 }));
 vi.mock("../../src/renderer/ithome/store.js", () => ({
@@ -26,7 +26,7 @@ vi.mock("../../src/renderer/worldcup/store.js", () => ({
 vi.mock("../../src/renderer/funds/fundStore.js", () => ({
   fetchNavNow: vi.fn(),
 }));
-vi.mock("../../src/renderer/metals/metalStore.js", () => ({
+vi.mock("../../src/renderer/metals/metalStore.ts", () => ({
   refreshNow: vi.fn(),
 }));
 vi.mock("../../src/renderer/api.js", () => ({
@@ -38,11 +38,11 @@ import {
   getRefreshEntry,
   REFRESHABLE_NAV_KEYS,
 } from "../../src/renderer/nav-refresh.js";
-import { refreshWechatHot } from "../../src/renderer/wechat-hot/store.js";
+import { refreshWechatHot } from "../../src/renderer/wechat-hot/store.ts";
 import { refreshIthomeNews } from "../../src/renderer/ithome/store.js";
 import { refreshWorldcupScores } from "../../src/renderer/worldcup/store.js";
 import { fetchNavNow } from "../../src/renderer/funds/fundStore.js";
-import { refreshNow as refreshMetals } from "../../src/renderer/metals/metalStore.js";
+import { refreshNow as refreshMetals } from "../../src/renderer/metals/metalStore.ts";
 import { investPrimary } from "../../src/renderer/worldcup/navStore.js";
 
 beforeEach(() => {

@@ -9,7 +9,7 @@
 
 import { useState, useRef, useEffect } from 'preact/hooks';
 import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund, isListedFundCode } from './fundStore.js';
-import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.js';
+import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.ts';
 import { api } from '../api.js';
 import { openConfirm } from '../store/confirmStore.js';
 import { taggedLog } from '../log.js';

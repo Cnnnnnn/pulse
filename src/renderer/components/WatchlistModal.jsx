@@ -19,7 +19,7 @@ import {
   removeWatchlistItem,
   addWatchlistItem,
   itemKey,
-} from "../watchlist/watchlist-store.js";
+} from "../watchlist/watchlist-store.ts";
 import { getMetalById } from "../../metals/metal-config.js";
 import { ModalShell, ModalHeader } from "./ModalShell.jsx";
 import { IconStar, IconX, WatchlistTypeIcon } from "./icons.jsx";

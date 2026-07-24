@@ -51,7 +51,7 @@ vi.mock("../../src/renderer/ithome/store.js", () => ({
   ithomeUnreadBadge: signal(0),
 }));
 
-vi.mock("../../src/renderer/wechat-hot/store.js", () => ({
+vi.mock("../../src/renderer/wechat-hot/store.ts", () => ({
   wechatHotUnreadBadge: signal(0),
 }));
 

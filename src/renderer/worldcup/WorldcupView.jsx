@@ -22,7 +22,7 @@ import {
   clearWorldcupError,
 } from './store.js';
 import { WorldcupBetsStats } from './WorldcupBetsStats.jsx';
-import { trackWorldcupMatchView } from '../recent/track.js';
+import { trackWorldcupMatchView } from '../recent/track.ts';
 import { DayBetFooter } from './DayBetFooter.jsx';
 import { IconAlert } from '../components/icons.jsx';
 

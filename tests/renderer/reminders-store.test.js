@@ -71,7 +71,7 @@ let installRemindersListener;
 
 async function loadStore() {
   vi.resetModules();
-  const m = await import("../../src/renderer/reminders/remindersStore.js");
+  const m = await import("../../src/renderer/reminders/remindersStore.ts");
   reminders = m.reminders;
   remindersOpen = m.remindersOpen;
   installRemindersListener = m.installRemindersListener;

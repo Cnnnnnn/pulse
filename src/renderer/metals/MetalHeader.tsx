@@ -1,5 +1,5 @@
 /**
- * src/renderer/metals/MetalHeader.jsx
+ * src/renderer/metals/MetalHeader.tsx
  *
  * 模块头: 标题块 (medal + 贵金属 + 副标) + 市场状态徽标 (实时行情) + 刷新按钮.
  *
@@ -7,7 +7,7 @@
  * 刷新: 内联 loading (更新中… 禁用) + 完成后 toast「行情已更新 HH:MM」.
  */
 import { useState } from "preact/hooks";
-import { schedulerState, refreshNow } from "./metalStore.js";
+import { schedulerState, refreshNow } from "./metalStore.ts";
 import { IconMedal, IconRefresh } from "../components/icons.jsx";
 import { showToast } from "../store.js";
 

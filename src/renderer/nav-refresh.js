@@ -16,11 +16,11 @@
  *   sub-tab 派发 (data-subtab 属性读 DOM, 不引信号 — registry 是纯模块).
  */
 
-import { refreshWechatHot } from "./wechat-hot/store.js";
+import { refreshWechatHot } from "./wechat-hot/store.ts";
 import { refreshIthomeNews } from "./ithome/store.js";
 import { refreshWorldcupScores } from "./worldcup/store.js";
 import { fetchNavNow } from "./funds/fundStore.js";
-import { refreshNow as refreshMetals } from "./metals/metalStore.js";
+import { refreshNow as refreshMetals } from "./metals/metalStore.ts";
 import { investPrimary } from "./worldcup/navStore.js";
 import { loadGameDeals } from "./games/gamesStore.js";
 import { api } from "./api.js";

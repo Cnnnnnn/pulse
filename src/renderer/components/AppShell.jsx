@@ -27,7 +27,7 @@ import { activeNav, navCollapsed, setActiveNav, goInvest } from '../worldcup/nav
 import { SideNav } from './SideNav.jsx';
 import { LazyNavPanel } from './LazyNavPanel.jsx';
 import { HomeGrid } from './HomeGrid.jsx';
-import { remindersOpen, loadReminders } from '../reminders/remindersStore.js';
+import { remindersOpen, loadReminders } from '../reminders/remindersStore.ts';
 import { SearchModal } from '../search/SearchModal.jsx';
 import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
 import { loadGithubProjects, loadGithubSettings } from '../store/github-projects-store.js';

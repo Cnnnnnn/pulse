@@ -26,7 +26,7 @@ import {
   effectiveVisibleItems,
 } from '../worldcup/navStore.js';
 import { ithomeUnreadBadge } from '../ithome/store.js';
-import { wechatHotUnreadBadge } from '../wechat-hot/store.js';
+import { wechatHotUnreadBadge } from '../wechat-hot/store.ts';
 import { fundUnreadBadge } from '../funds/fundStore.js';
 import { aiUsageNavBadge } from '../store/ai-usage-store.js';
 import { gamesHasNewFree, gamesHasNewDrop } from '../games/gamesStore.js';

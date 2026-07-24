@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent } from "@testing-library/preact";
-import { WechatHotList } from "../../src/renderer/wechat-hot/components/WechatHotList.jsx";
+import { WechatHotList } from "../../src/renderer/wechat-hot/components/WechatHotList.tsx";
 
 // openExternal 是 side effect, mock 掉避免真打开浏览器
 vi.mock("../../src/renderer/utils/external-link.ts", () => ({

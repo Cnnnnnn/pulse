@@ -16,7 +16,7 @@ import {
   cleanupMetalStore,
   refreshNow,
   resetMetalStore,
-} from "../../../src/renderer/metals/metalStore.js";
+} from "../../../src/renderer/metals/metalStore.ts";
 
 function makeMetalsApi({ initialState, fetchNowResult, fetchNowThrows }) {
   const subs = {};

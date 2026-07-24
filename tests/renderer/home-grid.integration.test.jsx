@@ -191,7 +191,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     // ithome 3 + wechat 5 = news badge 8
     const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
-    const { wechatHotNewIds } = await import('../../src/renderer/wechat-hot/store.js');
+    const { wechatHotNewIds } = await import('../../src/renderer/wechat-hot/store.ts');
     ithomeNewIds.value = { a: 1, b: 1, c: 1 };
     wechatHotNewIds.value = { d: 1, e: 1, f: 1, g: 1, h: 1 };
 
@@ -219,7 +219,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     // v5: news = ithome + wechat. 重置全部 source signal 到 0.
     const ithome = await import('../../src/renderer/ithome/store.js');
-    const wechat = await import('../../src/renderer/wechat-hot/store.js');
+    const wechat = await import('../../src/renderer/wechat-hot/store.ts');
     const funds = await import('../../src/renderer/funds/fundStore.js');
     const ai = await import('../../src/renderer/store/ai-usage-store.js');
     ithome.ithomeNewIds.value = {};
@@ -264,7 +264,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     localStorage.clear();
     sp.resetPrefs();
     const ithome = await import('../../src/renderer/ithome/store.js');
-    const wechat = await import('../../src/renderer/wechat-hot/store.js');
+    const wechat = await import('../../src/renderer/wechat-hot/store.ts');
     const funds = await import('../../src/renderer/funds/fundStore.js');
     const ai = await import('../../src/renderer/store/ai-usage-store.js');
     ithome.ithomeNewIds.value = {};
@@ -285,7 +285,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
     const { ithomeDayStats } = await import('../../src/renderer/ithome/store.js');
-    const { wechatHotItems } = await import('../../src/renderer/wechat-hot/store.js');
+    const { wechatHotItems } = await import('../../src/renderer/wechat-hot/store.ts');
     const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.js');
     const today = todayShanghaiDateKey();
     ithomeDayStats.value = { [today]: { count: 23, fetchedAt: Date.now() } };
@@ -305,7 +305,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10: metals 有 AU9999 报价 → status 显示金价', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
-    const { quoteCache } = await import('../../src/renderer/metals/metalStore.js');
+    const { quoteCache } = await import('../../src/renderer/metals/metalStore.ts');
     quoteCache.value = {
       data: { AU9999: { price: 768.5 } },
       errors: {},

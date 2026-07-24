@@ -42,7 +42,7 @@ import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store/store-bu
 import { createAutoRecheck } from './auto-recheck.js';
 import { taggedLog } from './log.js';
 import { applyPlatformBodyClass } from './platform-body-class.js';
-import { initTheme, getThemePreference, setThemePreference } from './theme/theme-manager.js';
+import { initTheme, getThemePreference, setThemePreference } from './theme/theme-manager.ts';
 import { setActiveNav, PERSISTABLE_NAV_KEYS } from './worldcup/navStore.js';
 
 const log = taggedLog("[index]");
@@ -208,11 +208,11 @@ async function bootstrapDeferred(cfg) {
   Promise.allSettled([
     loadAISessionsConfig(),
     import('./store.js').then((m) => m.probeAIKeyStatuses()),
-    import('./recent/recentStore.js').then((m) => {
+    import('./recent/recentStore.ts').then((m) => {
       m.installRecentListener();
       return m.loadRecent();
     }),
-    import('./reminders/remindersStore.js').then((m) => {
+    import('./reminders/remindersStore.ts').then((m) => {
       m.installRemindersListener();
     }),
   ]).catch(() => {});

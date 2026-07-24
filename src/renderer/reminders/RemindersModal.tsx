@@ -1,5 +1,5 @@
 /**
- * src/renderer/reminders/RemindersModal.jsx
+ * src/renderer/reminders/RemindersModal.tsx
  *
  * v2.11 提醒 modal — Phase 33 重设计.
  *
@@ -25,11 +25,16 @@ import {
   activeCount,
   firedCount,
   toggleRemindersOpen,
-} from "./remindersStore.js";
+} from "./remindersStore.ts";
 import { openConfirm } from "../store/confirmStore.js";
-import { Badge } from "../components/Badge.jsx";
-import { ModalShell, ModalHeader } from "../components/ModalShell.jsx";
-import { PanelEmpty } from "../components/EmptyState.jsx";
+import { Badge as BadgeRaw } from "../components/Badge.jsx";
+import { ModalShell as ModalShellRaw, ModalHeader } from "../components/ModalShell.jsx";
+import { PanelEmpty as PanelEmptyRaw } from "../components/EmptyState.jsx";
+
+// ponytail: 共享 shell 仍是 .jsx；components 迁完后去掉 cast。
+const Badge = BadgeRaw as any;
+const ModalShell = ModalShellRaw as any;
+const PanelEmpty = PanelEmptyRaw as any;
 import { IconBell, IconCheck, IconX, IconMoreHorizontal } from "../components/icons.jsx";
 
 const REPEATS = [
@@ -265,7 +270,7 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
     }
     setError(null);
     setSubmitting(true);
-    const input = { title: t, triggerAt, repeat };
+    const input: any = { title: t, triggerAt, repeat };
     if (repeat === "weekly") input.weekday = weekday;
     let r;
     if (initial && initial.id) {
@@ -287,7 +292,7 @@ function ReminderForm({ initial, onSave, onCancel, onDelete }) {
       onCancel && onCancel();
     } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
-      submit();
+      void submit(e);
     }
   }
 

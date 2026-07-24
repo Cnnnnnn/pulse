@@ -11,7 +11,7 @@ import {
 } from "../store/command-palette-store.js";
 import { navigateTo } from "../store/route-store.js";
 import { api } from "../api.js";
-import { setThemePreference } from "../theme/theme-manager.js";
+import { setThemePreference } from "../theme/theme-manager.ts";
 import { showToast } from "../store.js";
 import { IconSearch } from "./icons.jsx";
 

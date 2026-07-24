@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/preact";
-import { MetalHeader } from "../../../src/renderer/metals/MetalHeader.jsx";
+import { MetalHeader } from "../../../src/renderer/metals/MetalHeader.tsx";
 import {
   schedulerState, resetMetalStore,
-} from "../../../src/renderer/metals/metalStore.js";
+} from "../../../src/renderer/metals/metalStore.ts";
 
 describe("MetalHeader: 标题块 + 市场状态徽标 + 刷新 (纯行情看板)", () => {
   beforeEach(() => {

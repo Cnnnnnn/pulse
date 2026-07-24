@@ -1,10 +1,10 @@
 /**
- * src/renderer/recent/track.js
+ * src/renderer/recent/track.ts
  *
  * 最近活动采集 — 各 tab 调 pushRecent, 主进程负责折叠去重.
  */
 
-import { pushRecent } from "./recentStore.js";
+import { pushRecent } from "./recentStore.ts";
 
 export function trackWorldcupMatchView(match) {
   if (!match || match._isTeam) return;
