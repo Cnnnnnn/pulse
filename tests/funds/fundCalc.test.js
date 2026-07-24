@@ -1,7 +1,7 @@
 // tests/funds/fundCalc.test.js
 // 阶段 A (P0): rowWithMetrics 派生 holdingDays / cumulativeProfit / annualizedPct
 import { describe, it, expect } from "vitest";
-import { rowWithMetrics } from "../../src/funds/fundCalc.js";
+import { rowWithMetrics } from '../../src/funds/fundCalc.ts';
 
 // 构造一个持仓 + 净值快照, 让 calcFundMetrics 算出 marketValue=130, costValue=100
 const HOLDING = { code: "000001", name: "测试基金", shares: 100, costNav: 1.0 };

@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { categoryAllocation, rowsWithMetrics } from './fundStore.ts';
-import { computeConcentration } from '../../funds/concentration.js';
+import { computeConcentration } from '../../funds/concentration.ts';
 
 export const CATEGORY_ORDER = ['stock', 'bond', 'money', 'qdii', 'other'];
 const CAT_LABEL = { stock: '股票', bond: '债券', money: '货币', qdii: 'QDII', other: '其他' };

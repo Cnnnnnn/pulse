@@ -1,7 +1,7 @@
 // tests/funds/concentration.test.js
 // 阶段 D (蓝图 §3.4): computeConcentration 纯函数单测.
 import { describe, it, expect } from "vitest";
-import { computeConcentration } from "../../src/funds/concentration.js";
+import { computeConcentration } from '../../src/funds/concentration.ts';
 
 // 构造 rowsWithMetrics: 每项 { holding:{code,name}, metrics:{marketValue} }
 function row(code, marketValue) {

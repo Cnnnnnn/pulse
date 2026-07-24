@@ -28,7 +28,7 @@ import { api } from '../api.ts';
 import { IconBell, IconCoin, IconRefresh } from '../components/icons.tsx';
 import { FundAllocationDonut } from './FundAllocationDonut.tsx';
 import { FundPortfolioTrend } from './FundPortfolioTrend.tsx';
-import { fmtCurrency, fmtPct } from '../../funds/format.js';
+import { fmtCurrency, fmtPct } from '../../funds/format.ts';
 
 function fmtAgo(ts) {
   const s = Math.floor((Date.now() - ts) / 1000);

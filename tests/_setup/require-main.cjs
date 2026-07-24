@@ -1,17 +1,18 @@
 /**
  * tests/_setup/require-main.cjs
  *
- * Phase 3 Batch 9b: load migrated main/platform/utils/config/detectors/metals modules
+ * Phase 3 Batch 9b: load migrated main/platform/utils/config/detectors/metals/funds modules
  * from dist-test per-file .cjs (built by build-main-ts globalSetup).
  *
  * Usage (CJS test or createRequire):
- *   const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals } = require("../_setup/require-main.cjs");
+ *   const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds } = require("../_setup/require-main.cjs");
  *   const { getLeaderboard } = requireMain("ai-leaderboard/aggregator");
  *   const win = requirePlatform("windows");
  *   const { cleanVersion } = requireUtils("version-utils");
  *   const category = requireConfig("category");
  *   const { Detector } = requireDetector("base");
  *   const { METALS } = requireMetals("metal-config");
+ *   const { fetchFundNav } = requireFunds("fund-fetcher");
  */
 const path = require("node:path");
 
@@ -22,6 +23,7 @@ const outUtilsDir = path.join(rootDir, "dist-test", "utils");
 const outConfigDir = path.join(rootDir, "dist-test", "config");
 const outDetectorsDir = path.join(rootDir, "dist-test", "detectors");
 const outMetalsDir = path.join(rootDir, "dist-test", "metals");
+const outFundsDir = path.join(rootDir, "dist-test", "funds");
 
 function cleanRel(rel, fallback) {
   return String(rel || fallback || "")
@@ -55,6 +57,10 @@ function requireMetals(rel) {
   return require(path.join(outMetalsDir, cleanRel(rel) + ".cjs"));
 }
 
+function requireFunds(rel) {
+  return require(path.join(outFundsDir, cleanRel(rel) + ".cjs"));
+}
+
 function mainArtifactPath(rel) {
   return path.join(outMainDir, cleanRel(rel) + ".cjs");
 }
@@ -79,6 +85,10 @@ function metalsArtifactPath(rel) {
   return path.join(outMetalsDir, cleanRel(rel) + ".cjs");
 }
 
+function fundsArtifactPath(rel) {
+  return path.join(outFundsDir, cleanRel(rel) + ".cjs");
+}
+
 module.exports = {
   requireMain,
   requirePlatform,
@@ -86,10 +96,12 @@ module.exports = {
   requireConfig,
   requireDetector,
   requireMetals,
+  requireFunds,
   mainArtifactPath,
   platformArtifactPath,
   utilsArtifactPath,
   configArtifactPath,
   detectorArtifactPath,
   metalsArtifactPath,
+  fundsArtifactPath,
 };

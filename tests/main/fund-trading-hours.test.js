@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getTradingStatus, msUntilNextOpen, msUntilNextFetch } from '../../src/funds/trading-hours.js';
+import { getTradingStatus, msUntilNextOpen, msUntilNextFetch } from '../../src/funds/trading-hours.ts';
 
 // 用 Asia/Shanghai 锁定时区, 避免 CI 跑出来本地时间飘掉
 const TZ = 'Asia/Shanghai';

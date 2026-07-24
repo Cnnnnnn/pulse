@@ -17,9 +17,9 @@ import {
   shiftMonth,
   formatMonthLabel,
   ymShanghai,
-} from '../../funds/fund-history.js';
-import { exportPnlCsv } from '../../funds/pnlCsv.js';
-import { fmtCurrency, fmtPct, fmtDateLabel } from '../../funds/format.js';
+} from '../../funds/fund-history.ts';
+import { exportPnlCsv } from '../../funds/pnlCsv.ts';
+import { fmtCurrency, fmtPct, fmtDateLabel } from '../../funds/format.ts';
 
 export function FundPnlHistory({ layout = 'sidebar' }) {
   const isPage = layout === 'page';

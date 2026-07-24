@@ -1,6 +1,6 @@
 // tests/main/fund-nav-history.test.js
 import { describe, it, expect } from "vitest";
-import { parseLsjzResponse, fetchFundNavHistory } from "../../src/funds/fund-nav-history.js";
+import { parseLsjzResponse, fetchFundNavHistory } from '../../src/funds/fund-nav-history.ts';
 
 const SAMPLE = {
   Data: { LSJZList: [

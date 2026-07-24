@@ -2,7 +2,7 @@
 // T-B1: 盈亏记录导出 CSV — buildPnlCsv 纯函数单测 (BOM / 列头 / 行数 / 数值格式).
 // 数值口径与 UI 表头一致 (PRD B1-4): 金额走 fmtCurrency (含 ¥), 收益率走 fmtPct (含 %).
 import { describe, it, expect } from "vitest";
-import { buildPnlCsv } from "../../src/funds/pnlCsv.js";
+import { buildPnlCsv } from '../../src/funds/pnlCsv.ts';
 
 const ROWS = [
   { date: "2026-07-10", todayProfit: 123.45, dayReturnPct: 1.23, totalMarketValue: 10000 },

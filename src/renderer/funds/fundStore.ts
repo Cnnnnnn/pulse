@@ -24,18 +24,18 @@ import {
   zipHoldingsWithNav,
   rowWithMetrics,
   groupCountByCategory,
-} from "../../funds/fundCalc.js";
+} from "../../funds/fundCalc.ts";
 import {
   computeMonthlyRollups,
   monthProfit,
   ymShanghai,
-} from "../../funds/fund-history.js";
+} from "../../funds/fund-history.ts";
 import {
   resolveNavSnapshot,
   NAV_SOURCE_LABELS,
   DEFAULT_NAV_SOURCE,
   normalizeNavSource,
-} from "../../funds/fund-nav-merge.js";
+} from "../../funds/fund-nav-merge.ts";
 import { isFundPinned } from "../watchlist/watchlist-store.ts";
 
 const log = taggedLog("[funds]");

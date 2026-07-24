@@ -4,7 +4,7 @@ import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import {
   parseIndexResponse,
   fetchIndexHistory,
-} from "../../src/funds/fund-nav-history.js";
+} from '../../src/funds/fund-nav-history.ts';
 import os from "os";
 import path from "path";
 import fs from "fs";

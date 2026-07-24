@@ -19,7 +19,7 @@ import {
   groupCountByCategory,
   zipHoldingsWithNav,
   rowWithMetrics,
-} from '../../src/funds/fundCalc.js';
+} from '../../src/funds/fundCalc.ts';
 
 describe('calcFundMetrics', () => {
   it('基本盈利场景: 份额 × 当前净值 = 市值, 减成本 = 盈亏', () => {

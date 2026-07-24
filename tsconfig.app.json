@@ -18,6 +18,7 @@
     "src/utils/**/*.ts",
     "src/detectors/**/*.ts",
     "src/metals/**/*.ts",
+    "src/funds/**/*.ts",
     "src/workers/**/*.js",
     "src/**/*.js"
   ],

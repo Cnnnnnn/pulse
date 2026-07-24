@@ -7,8 +7,8 @@
 
 import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { editingHolding, closeModal, addFund, updateFund, navCache, navSource, fetchNavForCodes } from './fundStore.ts';
-import { pickEffectiveNavNumber } from '../../funds/fund-nav-merge.js';
-import { inferCategoryFromFtype, categoryLabel } from '../../funds/fund-category.js';
+import { pickEffectiveNavNumber } from '../../funds/fund-nav-merge.ts';
+import { inferCategoryFromFtype, categoryLabel } from '../../funds/fund-category.ts';
 import { api } from '../api.ts';
 import { BareModalShell } from '../components/ModalShell.tsx';
 import { TabList, Tab } from '../components/TabList.tsx';

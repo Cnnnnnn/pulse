@@ -15,7 +15,7 @@ import { openConfirm } from '../store/confirmStore.ts';
 import { taggedLog } from '../log.ts';
 import { FundCardSparkline } from './FundCardSparkline.tsx';
 import { AddToCompareButton } from '../stocks/AddToCompareButton.tsx';
-import { fmtCurrency, fmtPct, fmtNum } from '../../funds/format.js';
+import { fmtCurrency, fmtPct, fmtNum } from '../../funds/format.ts';
 
 const log = taggedLog("[funds]");
 
