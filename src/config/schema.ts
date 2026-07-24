@@ -1,5 +1,5 @@
 /**
- * src/config/schema.js
+ * src/config/schema.ts
  *
  * 新 config schema 验证（spec §5）。
  *
@@ -24,7 +24,7 @@
  * migrate 流程需要在 fallback 阶段容错；schema 阶段只做记录。
  */
 
-const VALID_DETECTOR_TYPES = new Set([
+export const VALID_DETECTOR_TYPES = new Set([
   "brew_formulae",
   "brew_local_cask",
   "sparkle_appcast",
@@ -42,15 +42,15 @@ const VALID_DETECTOR_TYPES = new Set([
   "hilo_changelog_manifest",
 ]);
 
-function isNonEmptyString(v) {
+function isNonEmptyString(v: any) {
   return typeof v === "string" && v.trim().length > 0;
 }
 
-function isPlainObject(v) {
+function isPlainObject(v: any) {
   return v != null && typeof v === "object" && !Array.isArray(v);
 }
 
-function validateDetector(det, index, appName) {
+function validateDetector(det: any, index: any, appName: any) {
   const errs = [];
   if (!isPlainObject(det)) {
     errs.push(`apps[${appName}].detectors[${index}]: not an object`);
@@ -89,7 +89,7 @@ function validateDetector(det, index, appName) {
   return errs;
 }
 
-function validateApp(app, index) {
+function validateApp(app: any, index: any) {
   const errs = [];
   const label = `${app && app.name ? app.name : `#${index}`}`;
   if (!isPlainObject(app)) {
@@ -122,7 +122,7 @@ function validateApp(app, index) {
  * 验证 config；返回 { valid: boolean, errors: string[], config }。
  * 总是返回 config 字段（即使是原样），便于 fallback。
  */
-function validateConfig(input) {
+export function validateConfig(input: any) {
   const errors = [];
   if (!isPlainObject(input)) {
     return { valid: false, errors: ["config: not an object"], config: null };
@@ -150,7 +150,7 @@ function validateConfig(input) {
  * 轻量 sanitize：把非法 detector 静默丢弃，保住能用的部分。
  * 如果整个 app 都没法用，就丢掉这个 app。
  */
-function sanitizeConfig(input) {
+export function sanitizeConfig(input: any) {
   if (!isPlainObject(input)) {
     return { check_on_launch: true, apps: [] };
   }
@@ -185,7 +185,7 @@ function sanitizeConfig(input) {
           isPlainObject(s) && isNonEmptyString(s.type) && validVS.has(s.type),
       )
       .map((s) => {
-        const out = { type: s.type };
+        const out: any = { type: s.type };
         if (s.path) out.path = String(s.path);
         if (s.pattern) out.pattern = String(s.pattern);
         if (isNonEmptyString(s.reg_path)) out.reg_path = s.reg_path;
@@ -209,7 +209,7 @@ function sanitizeConfig(input) {
       win_bundle: isNonEmptyString(a.win_bundle) ? a.win_bundle : undefined,
       winget_id: isNonEmptyString(a.winget_id) ? a.winget_id : undefined,
       detectors: cleanDets.map((d) => {
-        const out = { type: d.type };
+        const out: any = { type: d.type };
         if (isNonEmptyString(d.url)) out.url = d.url;
         if (isNonEmptyString(d.cask)) out.cask = d.cask;
         if (isNonEmptyString(d.field)) out.field = d.field;
@@ -298,7 +298,7 @@ function sanitizeConfig(input) {
  *     cloud: { providerId, model, apiKeyRef? }  // B6 才用
  *   }
  */
-function _sanitizeAISessions(raw) {
+function _sanitizeAISessions(raw: any) {
   const o = isPlainObject(raw) ? raw : {};
   const enabled = o.enabled === true; // 缺省 false (opt-in, 不影响老用户)
   const provider = isNonEmptyString(o.provider) ? o.provider : "ollama";

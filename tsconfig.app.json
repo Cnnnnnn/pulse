@@ -14,6 +14,7 @@
     "src/shared/electron/**/*.d.ts",
     "src/main/**/*.ts",
     "src/main/**/*.js",
+    "src/config/**/*.ts",
     "src/workers/**/*.js",
     "src/**/*.js"
   ],

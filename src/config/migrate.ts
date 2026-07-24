@@ -1,5 +1,5 @@
 /**
- * src/config/migrate.js
+ * src/config/migrate.ts
  *
  * 老 config → 新 config 自动迁移（spec §5 + 约束"启动时 detect 老 config → 自动 migrate → 备份为 .bak"）。
  *
@@ -33,7 +33,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const WEB_TYPE_MAP = Object.freeze({
+export const WEB_TYPE_MAP = Object.freeze({
   redirect:         { type: 'redirect_filename' },
   cursor_redirect:  { type: 'cursor_redirect' },
   app_store:        { type: 'app_store_lookup' },
@@ -44,15 +44,16 @@ const WEB_TYPE_MAP = Object.freeze({
   brew_api_json:    { type: 'brew_formulae' },
 });
 
-class MigrationError extends Error {
-  constructor(message, cause) {
+export class MigrationError extends Error {
+  cause?: any;
+  constructor(message: any, cause?: any) {
     super(message);
     this.name = 'MigrationError';
     if (cause) this.cause = cause;
   }
 }
 
-function isOldSchemaApp(app) {
+export function isOldSchemaApp(app: any) {
   if (!app || typeof app !== 'object') return false;
   // 老 schema 的标志：没有 detectors[] 但有 web_type/sparkle_url/brew_cask 之一
   if (Array.isArray(app.detectors) && app.detectors.length > 0) return false;
@@ -61,8 +62,8 @@ function isOldSchemaApp(app) {
   );
 }
 
-function migrateApp(oldApp) {
-  const detectors = [];
+export function migrateApp(oldApp: any) {
+  const detectors: any[] = [];
 
   if (typeof oldApp.sparkle_url === 'string' && oldApp.sparkle_url.trim()) {
     detectors.push({ type: 'sparkle_appcast', url: oldApp.sparkle_url.trim() });
@@ -71,9 +72,9 @@ function migrateApp(oldApp) {
   const webType = oldApp.web_type;
   const webUrl = typeof oldApp.web_url === 'string' ? oldApp.web_url.trim() : '';
   if (webType && webUrl) {
-    const m = WEB_TYPE_MAP[webType];
+    const m = (WEB_TYPE_MAP as any)[webType];
     if (m) {
-      const det = { type: m.type };
+      const det: any = { type: m.type };
       if (m.type === 'brew_formulae') {
         // brew_api_json → 用 brew_cask 而不是 web_url
         det.cask = oldApp.brew_cask || '';
@@ -102,7 +103,7 @@ function migrateApp(oldApp) {
  * 纯函数：老 config 对象 → 新 config 对象。
  * 不会读 / 写文件，便于测试。
  */
-function migrateConfig(oldConfig) {
+export function migrateConfig(oldConfig: any) {
   if (!oldConfig || typeof oldConfig !== 'object') {
     throw new MigrationError('config is not an object');
   }
@@ -147,22 +148,22 @@ function migrateConfig(oldConfig) {
  *      用户对比 .bak 觉得不对可手动恢复。）
  *   - 读 / 解析 / 写任一步出错 → 抛 MigrationError
  */
-function migrateConfigFile(opts) {
+export function migrateConfigFile(opts: any) {
   const { configPath, fsImpl = fs } = opts;
 
   let raw;
   try {
     raw = fsImpl.readFileSync(configPath, 'utf-8');
-  } catch (err) {
+  } catch (err: any) {
     if (err && err.code === 'ENOENT') {
       return { migrated: false, configPath, backupPath: null, reason: 'file-not-found' };
     }
-    throw new MigrationError(`readFileSync failed: ${err.message}`, err);
+    throw new MigrationError(`readFileSync failed: ${err instanceof Error ? err.message : String(err)}`, err);
   }
 
   let parsed;
   try { parsed = JSON.parse(raw); }
-  catch (err) { throw new MigrationError(`JSON.parse failed: ${err.message}`, err); }
+  catch (err: any) { throw new MigrationError(`JSON.parse failed: ${err instanceof Error ? err.message : String(err)}`, err); }
 
   // 已经全 new schema？不迁移
   if (Array.isArray(parsed.apps) && parsed.apps.length > 0
@@ -187,16 +188,16 @@ function migrateConfigFile(opts) {
   // 备份：拷贝原文件 → .bak（不删原文件，直接覆盖 .bak）
   try {
     fsImpl.copyFileSync(configPath, backupPath);
-  } catch (err) {
-    throw new MigrationError(`backup copyFileSync failed: ${err.message}`, err);
+  } catch (err: any) {
+    throw new MigrationError(`backup copyFileSync failed: ${err instanceof Error ? err.message : String(err)}`, err);
   }
 
   // 写新内容
   const serialized = JSON.stringify(newConfig, null, 2) + '\n';
   try {
     fsImpl.writeFileSync(configPath, serialized, 'utf-8');
-  } catch (err) {
-    throw new MigrationError(`writeFileSync failed: ${err.message}`, err);
+  } catch (err: any) {
+    throw new MigrationError(`writeFileSync failed: ${err instanceof Error ? err.message : String(err)}`, err);
   }
 
   return { migrated: true, configPath, backupPath, config: newConfig };

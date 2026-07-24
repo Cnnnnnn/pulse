@@ -20,8 +20,8 @@ import {
   migrateConfigFile,
   isOldSchemaApp,
   MigrationError,
-} from '../../src/config/migrate.js';
-import { validateConfig, sanitizeConfig, VALID_DETECTOR_TYPES } from '../../src/config/schema.js';
+} from '../../src/config/migrate.ts';
+import { validateConfig, sanitizeConfig, VALID_DETECTOR_TYPES } from '../../src/config/schema.ts';
 
 // ─── 11 个真实老 config fixtures（基于项目 config.json） ───────
 

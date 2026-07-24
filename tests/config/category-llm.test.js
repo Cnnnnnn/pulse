@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import * as real from '../../src/config/category.js';
+import * as real from '../../src/config/category.ts';
 
 const GOOD_CATS = [
   { id: 'ai', name: 'AI 工具', icon: '🤖', order: 1 },

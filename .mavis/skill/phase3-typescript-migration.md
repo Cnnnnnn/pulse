@@ -5,7 +5,7 @@ description: Phase 3 TypeScript 迁移 — Pulse main 进程 .ts 化 + 双 build
 
 # Phase 3 TypeScript Migration — Pulse
 
-> Pulse main 进程从手写 .js 迁移到 .ts 的标准化流程。**Phase 3 Batch 0–9 完成**；**Phase 3.5 完成**（`tsconfig.app.strict.json` 已锁 platform + `src/main/**` 含 ipc）。下一步 Phase 4 renderer JSX→TSX。
+> Pulse main 进程从手写 .js 迁移到 .ts 的标准化流程。**Phase 3 Batch 0–9 完成**；**Phase 3.5 完成**（`tsconfig.app.strict.json` 已锁 platform + `src/main/**` 含 ipc）。**Phase 4 renderer 已完成**；下一步 Phase 5 共享业务域（`src/config` / `utils` / `detectors` / …）。
 > - 业务真相只在 `.ts`
 > - 生产：`scripts/build-main.cjs` → `dist/main/index.js`
 > - 测试：`build-main-ts.cjs` → `dist-test/**/*.cjs` + `requireMain()` / `requirePlatform()`

@@ -9,7 +9,7 @@ import {
   validateConfig,
   sanitizeConfig,
   VALID_DETECTOR_TYPES,
-} from "../../src/config/schema.js";
+} from "../../src/config/schema.ts";
 
 describe("schema P2: new detector types + win fields", () => {
   it("VALID_DETECTOR_TYPES 含 winget_show / github_release / hilo_changelog_manifest", () => {

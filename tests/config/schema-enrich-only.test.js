@@ -10,7 +10,7 @@
  * 时又会带上 enrich_only, 于是"单测绿、集成挂".
  */
 import { describe, it, expect } from "vitest";
-import { sanitizeConfig } from "../../src/config/schema.js";
+import { sanitizeConfig } from "../../src/config/schema.ts";
 import fs from "fs";
 import path from "path";
 

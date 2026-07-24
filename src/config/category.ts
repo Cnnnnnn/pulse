@@ -1,5 +1,5 @@
 /**
- * src/config/category.js
+ * src/config/category.ts
  *
  * Phase A1b (App Categorization, Feature A): 静态 map + 验证 + 纯函数 API.
  * Phase A3 (LLM classify, Step B): heuristic + async LLM fallback 三层查找.
@@ -74,7 +74,7 @@ let _LOAD_STATUS = { ok: true, usedFallback: true, errors: [], warnings: ['modul
 // Step B: LLM classify 结果缓存 (异步注入, getCategory 走 fallback 时查这里)
 let LLM_CLASSIFY_CACHE = new Map();
 
-function _isCategoryShape(c) {
+function _isCategoryShape(c: any) {
   return (
     c != null
     && typeof c === 'object'
@@ -87,7 +87,7 @@ function _isCategoryShape(c) {
   );
 }
 
-function _build(cats, map, source) {
+function _build(cats: any, map: any, source: any) {
   const status = { ok: true, usedFallback: false, errors: [], warnings: [] };
 
   // 1. Filter + sort categories
@@ -131,7 +131,7 @@ function _build(cats, map, source) {
  * @param {object} opts.map      { appName: categoryId }
  * @param {string} [opts.source] 'disk' | 'inline' | 'fallback' (仅 log 用)
  */
-function setData({ cats, map, source } = {}) {
+export function setData({ cats, map, source }: any = {}) {
   _build(cats || DEFAULT_CATEGORIES, map || {}, source || 'inline');
   // 启动期 console 报告 (main + renderer 都会看到)
   const status = _LOAD_STATUS;
@@ -154,7 +154,7 @@ function setData({ cats, map, source } = {}) {
  * @param {string} appName
  * @returns {string} categoryId
  */
-function getCategory(appName) {
+export function getCategory(appName: any) {
   if (typeof appName !== 'string' || appName.length === 0) return 'other';
   const key = appName.toLowerCase();
   // 1. 静态 map
@@ -178,7 +178,7 @@ function getCategory(appName) {
  * @param {string} [app.download_url]  e.g. 'https://cursor.com/...'
  * @returns {string|null}  categoryId 或 null (没匹配)
  */
-function classifyByHeuristic(app) {
+export function classifyByHeuristic(app: any) {
   if (!app || typeof app !== 'object') return null;
   const name = typeof app.name === 'string' ? app.name : '';
   const bundle = typeof app.bundle === 'string' ? app.bundle : '';
@@ -197,7 +197,7 @@ function classifyByHeuristic(app) {
  *
  * @param {object} map  { [appName: string]: categoryId }
  */
-function setLLMCache(map) {
+export function setLLMCache(map: any) {
   if (!map || typeof map !== 'object') return;
   for (const [k, v] of Object.entries(map)) {
     if (typeof k !== 'string' || k.length === 0) continue;
@@ -210,7 +210,7 @@ function setLLMCache(map) {
  * Step B: 读 LLM cache. 一次拿全 (renderer / 测试用).
  * @returns {{[appName: string]: string}}
  */
-function getLLMCache() {
+export function getLLMCache() {
   const out = {};
   for (const [k, v] of LLM_CLASSIFY_CACHE.entries()) {
     out[k] = v;
@@ -242,7 +242,7 @@ function _clearLLMCache() {
  * @param {number} [opts.timeoutMs=30000]  LLM 调用超时
  * @returns {Promise<{[appName: string]: string}>}
  */
-async function classifyByLLM(apps, opts = {}) {
+export async function classifyByLLM(apps: any, opts: any = {}) {
   if (!Array.isArray(apps) || apps.length === 0) return {};
   const llmCaller = typeof opts.llmCaller === 'function' ? opts.llmCaller : null;
   if (!llmCaller) {
@@ -304,7 +304,7 @@ async function classifyByLLM(apps, opts = {}) {
  * 拿全部分类 (按 order asc). 返回新数组, 不暴露内部引用.
  * @returns {Array<{id: string, name: string, icon: string, order: number}>}
  */
-function getAllCategories() {
+export function getAllCategories() {
   return CATEGORIES_SORTED.map((c) => ({ ...c }));
 }
 
@@ -313,7 +313,7 @@ function getAllCategories() {
  * @param {string} id
  * @returns {object|undefined}
  */
-function getCategoryById(id) {
+export function getCategoryById(id: any) {
   if (typeof id !== 'string') return undefined;
   const c = CATEGORIES_BY_ID.get(id);
   return c ? { ...c } : undefined;
@@ -324,7 +324,7 @@ function getCategoryById(id) {
  * @param {string} name
  * @returns {object}
  */
-function getCategoryByName(name) {
+export function getCategoryByName(name: any) {
   if (typeof name !== 'string' || name.length === 0) {
     return { ...(CATEGORIES_BY_ID.get('other') || { id: 'other', name: '其他', order: 99 }) };
   }
@@ -338,7 +338,7 @@ function getCategoryByName(name) {
  * 验证当前 map. 启动期自动跑一次 (启动 log 已含报告), 也可手动调.
  * @returns {{ok: boolean, errors: string[], warnings: string[]}}
  */
-function validateCategoryMap() {
+export function validateCategoryMap() {
   const errors = [];
   const warnings = [];
   if (CATEGORIES_SORTED.length !== DEFAULT_CATEGORIES.length) {
@@ -360,7 +360,7 @@ function validateCategoryMap() {
  * @param {Map<string, any>|Iterable<string>} results  Map<appName, result> 或单纯的可迭代 name 集合
  * @returns {Array<{id: string, name: string, count: number, title: string}>}
  */
-function getCategoryTabsWithCount(results) {
+export function getCategoryTabsWithCount(results: any) {
   const counts = new Map();
   let total = 0;
   const names =

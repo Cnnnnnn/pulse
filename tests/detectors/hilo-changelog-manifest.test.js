@@ -425,7 +425,7 @@ describe("HiloChangelogManifestDetector", () => {
   // 早期 sanitizeConfig 没透传 urls 数组, 导致 detector runtime 拿不到 urls,
   // 抛 NO_VERSION "no urls configured" → Pulse 显示 "无法检测".
   it("sanitizeConfig → detCfg.urls 透传 → detector 能拿到 (回归守护)", async () => {
-    const { sanitizeConfig } = await import("../../src/config/schema.js");
+    const { sanitizeConfig } = await import("../../src/config/schema.ts");
     const cfg = {
       apps: [
         {

@@ -5,13 +5,16 @@ description: Phase 4 renderer JSX→TSX 迁移 — Pulse
 
 # Phase 4 Renderer TypeScript — Pulse
 
-> **目标**：`src/renderer/**` 的 `.js`/`.jsx` 一并改成 `.ts`/`.tsx`；**不保留 `.jsx`**。
+> **已完成**：`src/renderer/**` 的 `.js`/`.jsx` 已全部改为 `.ts`/`.tsx`（Batch A–Y）；**不保留 `.jsx`**。
 > tsconfig.renderer 已含 `.tsx`；esbuild `build:renderer` 已有 `.ts`/`.tsx` loader。
+>
+> **下一步**：Phase 5 = 设计文档第三阶段共享业务域（`src/config` / `utils` / `detectors` / …）。
 >
 > **Batch A 已完成**：`hooks/` + `utils/`。
 > **Batch B 已完成**：theme / diagnostics / watchlist / news / reminders / invest / digest / recent / wechat-hot / metals。
 > **Batch C 已完成**：`store/` + 根 `store.ts` shim。
 > **Batch D 已完成**：components shell — DrawerShell / ModalShell / EmptyState / TabList / Badge / SubtabList；Batch B 的 `as any` cast 已去掉。
+> **Batch E–Y 已完成**：其余 components / 大业务域 / 入口 / 各域 store·utils；renderer `.js`/`.jsx` 清零。
 
 ## 单文件迁移步骤（忠实迁移）
 

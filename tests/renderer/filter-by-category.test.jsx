@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import * as category from '../../src/config/category.js';
+import * as category from '../../src/config/category.ts';
 import {
   results,
   searchQuery,

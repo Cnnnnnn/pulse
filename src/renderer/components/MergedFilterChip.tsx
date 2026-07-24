@@ -12,7 +12,7 @@ import {
 } from "../store/library-view-store.ts";
 import { tabCounts } from "../selectors.ts";
 import { results } from "../store.ts";
-import { getCategoryTabsWithCount } from "../../config/category.js";
+import { getCategoryTabsWithCount } from "../../config/category.ts";
 import { IconSearch } from "./icons.tsx";
 
 const STATUS_TABS = [

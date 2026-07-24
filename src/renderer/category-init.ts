@@ -12,7 +12,7 @@
  *   - renderer: 用 esbuild static import 把 JSON inline 进 bundle (browser 跑)
  */
 
-import * as category from '../config/category.js';
+import * as category from '../config/category.ts';
 import catsData from '../config/data/categories.json';
 import mapData from '../config/data/app-category.json';
 

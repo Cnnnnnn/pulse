@@ -5,7 +5,7 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer** 进行中（A–D：hooks/utils · 小叶子域 · store · components shell；大业务域 / 其余 components / 入口仍待迁）。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**下一步 Phase 5** — 共享业务域（`src/config` / `utils` / `detectors` / `stocks` / `funds` / `metals` / `ai*` 等仍 `.js`）。
 
 ## 仓库布局
 
@@ -13,8 +13,9 @@
   - `src/main/ai-leaderboard/` — AI 榜单核心（fetcher 6 个 + aggregator + ranking + scheduler + types + normalize + cache）
   - `src/main/ipc/` — IPC handler（注册到 `ipcMain`）
   - `src/main/games/`, `src/main/funds/`, `src/main/worldcup/`, `src/main/ithome/`, `src/main/wechat-hot/` — 各业务域
- - `src/renderer/` — 渲染进程（Preact + esbuild；**Phase 4**：hooks/utils/store/小叶子域 + components shell 已 `.ts`/`.tsx`；其余 components / 大业务域 / 入口仍 `.js`/`.jsx`）
+ - `src/renderer/` — 渲染进程（Preact + esbuild；**Phase 4 已完成**：全部 `.ts`/`.tsx`）
   - `src/renderer/ai-leaderboard/` — 榜单 UI（4 个视角 tab：Arena / AA / LiveBench / HuggingFace）
+ - `src/config/` 等共享域 — **Phase 5 进行中**（Batch A 起迁 TS；utils 需先定 worker 产物链）
 - `tests/` — vitest 单元测试（main 测走 `dist-test/main/per-file/*.cjs`，renderer 测走 happy-dom）
 - `scripts/` — 构建脚本（`build-main.cjs` 产线 / `build-main-ts.cjs` dev-test）
 - `docs/` — 架构文档

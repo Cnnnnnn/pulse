@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
-const categoryConfig = require("../../src/config/category.js");
+const categoryConfig = require("../../src/config/category.ts");
 const {
   primeLLMCacheFromDisk,
   classifyUnmappedAppsByLLM,

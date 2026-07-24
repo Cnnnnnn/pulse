@@ -11,7 +11,7 @@
  */
 
 import { computed } from '@preact/signals';
-import * as category from '../config/category.js';
+import * as category from '../config/category.ts';
 import {
   results,
   resultSignals,
