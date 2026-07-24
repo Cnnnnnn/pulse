@@ -32,8 +32,9 @@ import {
   openAiUsageAlertModal,
 } from "../store/ai-usage-store.ts";
 import { useNowTick } from "../hooks/useNowTick.tsx";
-import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
-import { todayKey } from "../../ai-usage/history-series.js";
+import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.ts";
+import { todayKey } from "../../ai-usage/history-series.ts";
+import { formatTokens } from "../../ai-usage/format-glm.ts";
 import { UsageDashboard } from "./UsageDashboard.tsx";
 import { taggedLog } from "../log.ts";
 import { IconBell } from "./icons.tsx";
@@ -68,7 +69,6 @@ const PROVIDER_META = {
 function formatTodayUsed(provider, used) {
   if (used === null) return null;
   if (provider === "glm") {
-    const { formatTokens } = require("../../ai-usage/format-glm");
     const s = formatTokens(used);
     return s ? `${s} tokens` : null;
   }

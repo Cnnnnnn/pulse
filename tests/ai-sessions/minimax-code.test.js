@@ -20,7 +20,7 @@ import {
   MiniMaxCodeDetectorImpl,
   _parseMessageRow,
   _extractContent,
-} from '../../src/ai-sessions/minimax-code.js';
+} from '../../src/ai-sessions/minimax-code.ts';
 
 describe('minimax-code._extractContent', () => {
   it('array of text/content parts → joined', () => {
@@ -211,7 +211,7 @@ describe('MiniMaxCodeDetectorImpl — CLI fallback (WAL snapshot workaround)', (
 
   it('listSessions: node:sqlite 拿 0 rows 时 fallback 到 sqlite3 CLI', async () => {
     // 直接调 _listSessionsViaCli 验证 (因为我们 mock 不到 node:sqlite 的 0 rows 行为)
-    const { _listSessionsViaCli } = await import('../../src/ai-sessions/minimax-code.js');
+    const { _listSessionsViaCli } = await import('../../src/ai-sessions/minimax-code.ts');
     const rows = await _listSessionsViaCli(dbPath);
     expect(rows.length).toBe(2);
     expect(rows[0].id).toBe('mvs_test_002');  // updated_at DESC
@@ -221,7 +221,7 @@ describe('MiniMaxCodeDetectorImpl — CLI fallback (WAL snapshot workaround)', (
   });
 
   it('readSession via CLI: parse messages 正确', async () => {
-    const { _readSessionViaCli } = await import('../../src/ai-sessions/minimax-code.js');
+    const { _readSessionViaCli } = await import('../../src/ai-sessions/minimax-code.ts');
     const sess = await _readSessionViaCli(dbPath, 'mvs_test_001');
     expect(sess.id).toBe('mvs_test_001');
     expect(sess.messages.length).toBe(2);
@@ -232,7 +232,7 @@ describe('MiniMaxCodeDetectorImpl — CLI fallback (WAL snapshot workaround)', (
   });
 
   it('readSession via CLI: 不存在的 session_id → empty messages', async () => {
-    const { _readSessionViaCli } = await import('../../src/ai-sessions/minimax-code.js');
+    const { _readSessionViaCli } = await import('../../src/ai-sessions/minimax-code.ts');
     const sess = await _readSessionViaCli(dbPath, 'mvs_nonexistent');
     expect(sess.messages).toEqual([]);
     expect(sess.startedAt).toBe(0);

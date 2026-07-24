@@ -18,7 +18,7 @@ import {
   buildTaskSummaryEngine,
   mergeAISessionsConfig,
   SUPPORTED_PROVIDERS,
-} from '../../src/ai-sessions/wiring.js';
+} from '../../src/ai-sessions/wiring.ts';
 
 function makeFakeCloud() {
   return { healthcheck: vi.fn(), summarize: vi.fn() };

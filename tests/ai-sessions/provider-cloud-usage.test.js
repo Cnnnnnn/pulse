@@ -5,7 +5,7 @@
  * 返回结构从 string 改为 { content, usage }.
  */
 import { describe, it, expect, vi } from "vitest";
-import { CloudSummarizer } from "../../src/ai-sessions/provider-cloud.js";
+import { CloudSummarizer } from '../../src/ai-sessions/provider-cloud.ts';
 
 function makeHttpClient(body, status = 200) {
   return {

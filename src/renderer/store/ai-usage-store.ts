@@ -11,7 +11,7 @@
 import { signal, computed } from "@preact/signals";
 import { api } from "../api.ts";
 import { taggedLog } from "../log.ts";
-import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
+import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.ts";
 
 const log = taggedLog("[store/ai-usage]");
 

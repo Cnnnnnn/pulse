@@ -21,7 +21,7 @@ import {
   _extractCodexTitle,
   _idFromFilename,
   _extractResponseContent,
-} from '../../src/ai-sessions/codex.js';
+} from '../../src/ai-sessions/codex.ts';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import os from 'os';

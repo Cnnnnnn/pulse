@@ -1,25 +1,5 @@
-/**
- * src/ai-sessions/index.js
- *
- * 统一导出 + main process 入口.
- *
- * 重做版: DailyDigestRunner → TaskSummaryEngine (任务为中心、按需生成).
- *
- * CommonJS, 跟 src/config/ 一致.
- */
-
-const { AISessionDetector } = require('./detector');
-const { LLMSummarizer } = require('./summarizer');
-const { TaskSummaryEngine } = require('./engine');
-const storage = require('./storage');
-const prompts = require('./prompts');
-
-module.exports = {
-  // 抽象
-  AISessionDetector,
-  LLMSummarizer,
-  TaskSummaryEngine,
-  // helpers
-  storage,
-  prompts,
-};
+// Phase 5 shim: vitest/native require → dist-test .cjs; build-main/esbuild → .ts.
+const _fs = require("fs");
+const _path = require("path");
+const _cjs = _path.join(__dirname, "../../dist-test/ai-sessions/index.cjs");
+module.exports = _fs.existsSync(_cjs) ? require(_cjs) : require("./index.ts");

@@ -1,15 +1,5 @@
-/**
- * src/ai-usage/index.js
- *
- * 统一导出 + main process 入口.
- * CommonJS, 跟 src/ai-sessions/ 一致.
- */
-
-const { MiniMaxQuotaClient, ENDPOINTS } = require("./client");
-const normalize = require("./normalize");
-
-module.exports = {
-  MiniMaxQuotaClient,
-  ENDPOINTS,
-  normalize,
-};
+// Phase 5 shim: vitest/native require → dist-test .cjs; build-main/esbuild → .ts.
+const _fs = require("fs");
+const _path = require("path");
+const _cjs = _path.join(__dirname, "../../dist-test/ai-usage/index.cjs");
+module.exports = _fs.existsSync(_cjs) ? require(_cjs) : require("./index.ts");

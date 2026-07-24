@@ -9,7 +9,7 @@
  */
 
 import { useMemo, useState } from "preact/hooks";
-import { buildSeries } from "../../ai-usage/history-series.js";
+import { buildSeries } from "../../ai-usage/history-series.ts";
 
 const DEFAULT_DAYS = 7;
 const PAD_X = 4;

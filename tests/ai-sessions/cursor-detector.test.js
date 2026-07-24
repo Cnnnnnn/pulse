@@ -21,7 +21,7 @@ import {
   _extractUserQuery,
   _projectLabel,
   _firstMeaningfulLine,
-} from '../../src/ai-sessions/cursor.js';
+} from '../../src/ai-sessions/cursor.ts';
 
 let tmpDir;
 let projectsDir;

@@ -21,6 +21,8 @@
     "src/funds/**/*.ts",
     "src/stocks/**/*.ts",
     "src/ai/**/*.ts",
+    "src/ai-sessions/**/*.ts",
+    "src/ai-usage/**/*.ts",
     "src/workers/**/*.js",
     "src/**/*.js"
   ],

@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { AISessionDetector } from '../../src/ai-sessions/detector.js';
+import { AISessionDetector } from '../../src/ai-sessions/detector.ts';
 
 function makeImpl(overrides = {}) {
   return {

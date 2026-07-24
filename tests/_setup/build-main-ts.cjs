@@ -32,6 +32,11 @@
  *   源真相在 .ts，src/ai/*.js 为 shim → dist-test/ai/*.cjs）。
  *   default-models/ai-errors 为 renderer 共享，export-only（禁止 module.exports）。
  *
+ * Phase 5 Batch H: 加 src/ai-sessions + src/ai-usage（main 仍 require .js shim；
+ *   源真相在 .ts，.js 为 shim → dist-test/{ai-sessions,ai-usage}/*.cjs）。
+ *   anomaly-detect/history-series/format-glm 为 renderer 共享，
+ *   export-only（禁止 module.exports）；ai-sessions 全部 dual-export。
+ *
  * 重要: 相对依赖必须 external (不能 bundle 进同一文件):
  *   - bundle 会把 module.exports = singleton 收成 named-export 包装
  *   - bundle 会使 require.cache stub 失效
@@ -51,6 +56,8 @@ const srcMetalsDir = path.join(rootDir, "src", "metals");
 const srcFundsDir = path.join(rootDir, "src", "funds");
 const srcStocksDir = path.join(rootDir, "src", "stocks");
 const srcAiDir = path.join(rootDir, "src", "ai");
+const srcAiSessionsDir = path.join(rootDir, "src", "ai-sessions");
+const srcAiUsageDir = path.join(rootDir, "src", "ai-usage");
 const outMainDir = path.join(rootDir, "dist-test", "main", "per-file");
 const outPlatformDir = path.join(rootDir, "dist-test", "platform");
 const outUtilsDir = path.join(rootDir, "dist-test", "utils");
@@ -60,6 +67,8 @@ const outMetalsDir = path.join(rootDir, "dist-test", "metals");
 const outFundsDir = path.join(rootDir, "dist-test", "funds");
 const outStocksDir = path.join(rootDir, "dist-test", "stocks");
 const outAiDir = path.join(rootDir, "dist-test", "ai");
+const outAiSessionsDir = path.join(rootDir, "dist-test", "ai-sessions");
+const outAiUsageDir = path.join(rootDir, "dist-test", "ai-usage");
 
 function findTsFiles(dir) {
   const out = [];
@@ -112,6 +121,14 @@ function outFileFor(tsFile) {
   if (tsFile.startsWith(srcAiDir + path.sep)) {
     const rel = path.relative(srcAiDir, tsFile).replace(/\.ts$/, ".cjs");
     return path.join(outAiDir, rel);
+  }
+  if (tsFile.startsWith(srcAiSessionsDir + path.sep)) {
+    const rel = path.relative(srcAiSessionsDir, tsFile).replace(/\.ts$/, ".cjs");
+    return path.join(outAiSessionsDir, rel);
+  }
+  if (tsFile.startsWith(srcAiUsageDir + path.sep)) {
+    const rel = path.relative(srcAiUsageDir, tsFile).replace(/\.ts$/, ".cjs");
+    return path.join(outAiUsageDir, rel);
   }
   return null;
 }
@@ -206,6 +223,8 @@ module.exports = async function setup() {
   const fundsTs = findTsFiles(srcFundsDir);
   const stocksTs = findTsFiles(srcStocksDir);
   const aiTs = findTsFiles(srcAiDir);
+  const aiSessionsTs = findTsFiles(srcAiSessionsDir);
+  const aiUsageTs = findTsFiles(srcAiUsageDir);
   // ponytail: match-key.ts 是 ESM-only（仅 renderer 用），不进 dist-test CJS 图
   const utilsTs = findTsFiles(srcUtilsDir).filter(
     (f) => path.basename(f) !== "match-key.ts",
@@ -220,6 +239,8 @@ module.exports = async function setup() {
     ...fundsTs,
     ...stocksTs,
     ...aiTs,
+    ...aiSessionsTs,
+    ...aiUsageTs,
   ];
   if (tsFiles.length === 0) return;
 
@@ -253,6 +274,8 @@ module.exports = async function setup() {
   fs.mkdirSync(outFundsDir, { recursive: true });
   fs.mkdirSync(outStocksDir, { recursive: true });
   fs.mkdirSync(outAiDir, { recursive: true });
+  fs.mkdirSync(outAiSessionsDir, { recursive: true });
+  fs.mkdirSync(outAiUsageDir, { recursive: true });
 
   if (needBuild) {
     const esbuild = require("esbuild");

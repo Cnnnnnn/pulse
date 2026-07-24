@@ -22,7 +22,7 @@ import {
  __setSafeStorageForTest,
  __setUserDataDirForTest,
  __resetForTest,
-} from '../../src/ai-sessions/storage.js';
+} from '../../src/ai-sessions/storage.ts';
 
 let tmpDir = null;
 

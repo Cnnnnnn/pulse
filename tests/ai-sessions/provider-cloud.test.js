@@ -14,7 +14,7 @@ import {
  PROVIDER_ENDPOINTS,
  ANTHROPIC_VERSION,
  DEFAULT_TIMEOUT_MS,
-} from '../../src/ai-sessions/provider-cloud.js';
+} from '../../src/ai-sessions/provider-cloud.ts';
 
 function makeHttpClient(overrides = {}) {
  return {

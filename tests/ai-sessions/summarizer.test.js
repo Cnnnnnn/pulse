@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { LLMSummarizer } from '../../src/ai-sessions/summarizer.js';
-import { buildDigestPrompt, buildPerSessionPrompt, formatSessionBlock, MAX_SESSION_MESSAGES, MAX_MESSAGE_CONTENT_CHARS } from '../../src/ai-sessions/prompts.js';
+import { LLMSummarizer } from '../../src/ai-sessions/summarizer.ts';
+import { buildDigestPrompt, buildPerSessionPrompt, formatSessionBlock, MAX_SESSION_MESSAGES, MAX_MESSAGE_CONTENT_CHARS } from '../../src/ai-sessions/prompts.ts';
 
 function makeImpl(overrides = {}) {
   return {

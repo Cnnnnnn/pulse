@@ -20,8 +20,8 @@ import {
   _extractSummaryFields,
   _resolveJumpTarget,
   _projectOf,
-} from '../../src/ai-sessions/engine.js';
-import { AISessionDetector } from '../../src/ai-sessions/detector.js';
+} from '../../src/ai-sessions/engine.ts';
+import { AISessionDetector } from '../../src/ai-sessions/detector.ts';
 
 const DAY = '2026-06-08';
 // 2026-06-08 12:00 本地时间 (测试环境时区无所谓, 用本地 Date 构造)
