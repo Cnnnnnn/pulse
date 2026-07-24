@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { sanitizeLlmOutput } from "../../src/ai/sanitize-llm-output.js";
+import { sanitizeLlmOutput } from "../../src/ai/sanitize-llm-output.ts";
 
 const THINK_OPEN = "<" + "think" + ">";
 const THINK_CLOSE = "<" + "/" + "think" + ">";

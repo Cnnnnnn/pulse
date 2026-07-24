@@ -5,10 +5,11 @@
  * 用 mock stateStore (require.cache 注入) + mock impl 隔离测试.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { requireMain, mainArtifactPath, aiArtifactPath } = require("../_setup/require-main.cjs");
 
 const stateStorePath = mainArtifactPath("state-store");
-const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
+const sharedLlmPath = aiArtifactPath("shared-llm");
+const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.js");
 
 // mock stateStore 的预算相关方法
 const loadTokenBudgetConfig = vi.fn(() => ({ dailyLimit: 0, mode: "warn" }));
@@ -34,6 +35,7 @@ function stubStateStore() {
 
 function loadChatCompletion() {
   delete require.cache[sharedLlmPath];
+  delete require.cache[sharedLlmShimPath];
   const m = require(sharedLlmPath);
   return m.chatCompletion;
 }

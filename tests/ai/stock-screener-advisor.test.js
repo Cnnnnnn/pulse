@@ -9,45 +9,53 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
+  mainArtifactPath,
+  aiArtifactPath,
+} = require("../_setup/require-main.cjs");
 
 const stateStorePath = mainArtifactPath("state-store");
-const promptRegistryPath = require.resolve("../../src/ai/prompt-registry.js");
-const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
-const advisorPath = require.resolve("../../src/ai/stock-screener-advisor.js");
+const stateStoreShimPath = require.resolve("../../src/main/state-store.js");
+const promptRegistryPath = aiArtifactPath("prompt-registry");
+const promptRegistryShimPath = require.resolve("../../src/ai/prompt-registry.js");
+const sharedLlmPath = aiArtifactPath("shared-llm");
+const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.js");
+const advisorPath = aiArtifactPath("stock-screener-advisor");
+const advisorShimPath = require.resolve("../../src/ai/stock-screener-advisor.js");
 
 const mockChat = vi.fn();
 const _mockState = { aiStockAdviseCache: {}, stockScreener: {}, apps: {} };
 
+function stubCache(path, exports) {
+  require.cache[path] = {
+    id: path,
+    filename: path,
+    loaded: true,
+    exports,
+  };
+}
+
 function reloadAdvisor() {
   delete require.cache[advisorPath];
-  require.cache[sharedLlmPath] = {
-    id: sharedLlmPath,
-    filename: sharedLlmPath,
-    loaded: true,
-    exports: { chatCompletion: (...args) => mockChat(...args) },
+  delete require.cache[advisorShimPath];
+  const sharedExports = { chatCompletion: (...args) => mockChat(...args) };
+  stubCache(sharedLlmPath, sharedExports);
+  stubCache(sharedLlmShimPath, sharedExports);
+  const promptExports = {
+    resolvePrompt: (key) => ({
+      system: `MOCK-SYSTEM-${key}`,
+      rules: `MOCK-RULES-${key}`,
+      fewShot: "",
+    }),
   };
-  require.cache[promptRegistryPath] = {
-    id: promptRegistryPath,
-    filename: promptRegistryPath,
-    loaded: true,
-    exports: {
-      resolvePrompt: (key) => ({
-        system: `MOCK-SYSTEM-${key}`,
-        rules: `MOCK-RULES-${key}`,
-        fewShot: "",
-      }),
-    },
+  stubCache(promptRegistryPath, promptExports);
+  stubCache(promptRegistryShimPath, promptExports);
+  const stateExports = {
+    load: () => _mockState,
+    patchState: (fn) => fn(_mockState),
   };
-  require.cache[stateStorePath] = {
-    id: stateStorePath,
-    filename: stateStorePath,
-    loaded: true,
-    exports: {
-      load: () => _mockState,
-      patchState: (fn) => fn(_mockState),
-    },
-  };
+  stubCache(stateStorePath, stateExports);
+  stubCache(stateStoreShimPath, stateExports);
   return require(advisorPath);
 }
 

@@ -15,11 +15,12 @@
  * 确保任何 URL 都能让 handler 走到 fetchRepoRelease 而不是抛 ReferenceError。
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { requireMain, mainArtifactPath, aiArtifactPath } = require("../_setup/require-main.cjs");
 
 const registerPath = mainArtifactPath("ipc/register-github");
 const githubPath = mainArtifactPath("github");
-const aiPath = require.resolve("../../src/ai/readme-parse.js");
+const aiPath = aiArtifactPath("readme-parse");
+const aiShimPath = require.resolve("../../src/ai/readme-parse.js");
 
 /** 构造一个不会真打网络的 stub http。 */
 function stubGithubModule() {
@@ -29,11 +30,18 @@ function stubGithubModule() {
   delete require.cache[registerPath];
   delete require.cache[githubPath];
   // ai/readme-parse 用 stub，避免拉起真实 LLM 依赖
+  const exports = { parseReadme: async () => ({ ok: true, result: {} }) };
   require.cache[aiPath] = {
     id: aiPath,
     filename: aiPath,
     loaded: true,
-    exports: { parseReadme: async () => ({ ok: true, result: {} }) },
+    exports,
+  };
+  require.cache[aiShimPath] = {
+    id: aiShimPath,
+    filename: aiShimPath,
+    loaded: true,
+    exports,
   };
 }
 

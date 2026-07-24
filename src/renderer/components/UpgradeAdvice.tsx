@@ -5,7 +5,7 @@
  */
 import { useState } from "preact/hooks";
 import { api } from "../api.ts";
-import { humanizeAiError } from "../../ai/ai-errors.js";
+import { humanizeAiError } from "../../ai/ai-errors.ts";
 import { IconRefresh, IconThumbsUp, IconThumbsDown, IconSparkles } from "./icons.tsx";
 
 const REC_LABELS: Record<string, string> = {

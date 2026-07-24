@@ -20,6 +20,7 @@
     "src/metals/**/*.ts",
     "src/funds/**/*.ts",
     "src/stocks/**/*.ts",
+    "src/ai/**/*.ts",
     "src/workers/**/*.js",
     "src/**/*.js"
   ],

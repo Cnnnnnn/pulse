@@ -9,7 +9,7 @@
  */
 import { useState } from "preact/hooks";
 import { api } from "../api.ts";
-import { humanizeAiError } from "../../ai/ai-errors.js";
+import { humanizeAiError } from "../../ai/ai-errors.ts";
 import { IconSparkles } from "./icons.tsx";
 
 type Summary = {

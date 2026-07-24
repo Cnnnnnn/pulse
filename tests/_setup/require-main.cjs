@@ -1,11 +1,11 @@
 /**
  * tests/_setup/require-main.cjs
  *
- * Phase 3 Batch 9b: load migrated main/platform/utils/config/detectors/metals/funds/stocks modules
+ * Phase 3 Batch 9b: load migrated main/platform/utils/config/detectors/metals/funds/stocks/ai modules
  * from dist-test per-file .cjs (built by build-main-ts globalSetup).
  *
  * Usage (CJS test or createRequire):
- *   const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks } = require("../_setup/require-main.cjs");
+ *   const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi } = require("../_setup/require-main.cjs");
  *   const { getLeaderboard } = requireMain("ai-leaderboard/aggregator");
  *   const win = requirePlatform("windows");
  *   const { cleanVersion } = requireUtils("version-utils");
@@ -14,6 +14,7 @@
  *   const { METALS } = requireMetals("metal-config");
  *   const { fetchFundNav } = requireFunds("fund-fetcher");
  *   const { fetchStocks } = requireStocks("stock-fetcher");
+ *   const { chatCompletion } = requireAi("shared-llm");
  */
 const path = require("node:path");
 
@@ -26,6 +27,7 @@ const outDetectorsDir = path.join(rootDir, "dist-test", "detectors");
 const outMetalsDir = path.join(rootDir, "dist-test", "metals");
 const outFundsDir = path.join(rootDir, "dist-test", "funds");
 const outStocksDir = path.join(rootDir, "dist-test", "stocks");
+const outAiDir = path.join(rootDir, "dist-test", "ai");
 
 function cleanRel(rel, fallback) {
   return String(rel || fallback || "")
@@ -67,6 +69,10 @@ function requireStocks(rel) {
   return require(path.join(outStocksDir, cleanRel(rel) + ".cjs"));
 }
 
+function requireAi(rel) {
+  return require(path.join(outAiDir, cleanRel(rel) + ".cjs"));
+}
+
 function mainArtifactPath(rel) {
   return path.join(outMainDir, cleanRel(rel) + ".cjs");
 }
@@ -99,6 +105,10 @@ function stocksArtifactPath(rel) {
   return path.join(outStocksDir, cleanRel(rel) + ".cjs");
 }
 
+function aiArtifactPath(rel) {
+  return path.join(outAiDir, cleanRel(rel) + ".cjs");
+}
+
 module.exports = {
   requireMain,
   requirePlatform,
@@ -108,6 +118,7 @@ module.exports = {
   requireMetals,
   requireFunds,
   requireStocks,
+  requireAi,
   mainArtifactPath,
   platformArtifactPath,
   utilsArtifactPath,
@@ -116,4 +127,5 @@ module.exports = {
   metalsArtifactPath,
   fundsArtifactPath,
   stocksArtifactPath,
+  aiArtifactPath,
 };

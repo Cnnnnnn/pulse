@@ -6,8 +6,8 @@ import { describe, it, expect } from "vitest";
 import {
   SUPPORTED_PROVIDERS,
   chatCompletion,
-} from "../../src/ai/shared-llm.js";
-import { DEFAULT_MODELS } from "../../src/ai/default-models.js";
+} from "../../src/ai/shared-llm.ts";
+import { DEFAULT_MODELS } from "../../src/ai/default-models.ts";
 
 describe("shared-llm", () => {
   it("导出支持的 provider 列表", () => {

@@ -132,7 +132,7 @@ describe("tryRewriteSummary — A7 v3", () => {
   it("共享模块默认 resolvePrompt 能解析 daily_digest_summary", async () => {
     // 集成测试: 走真实 prompt-registry 默认值
     const { resolvePrompt } =
-      await import("../../../src/ai/prompt-registry.js");
+      await import("../../../src/ai/prompt-registry.ts");
     const prompt = resolvePrompt("daily_digest_summary");
     expect(typeof prompt.system).toBe("string");
     expect(prompt.system.length).toBeGreaterThan(0);

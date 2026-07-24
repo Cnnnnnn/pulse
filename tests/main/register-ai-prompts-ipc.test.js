@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { requireMain, mainArtifactPath, aiArtifactPath } = require("../_setup/require-main.cjs");
 
 const stateStorePath = mainArtifactPath("state-store");
-const registryPath = require.resolve("../../src/ai/prompt-registry.js");
+const registryPath = aiArtifactPath("prompt-registry");
+const registryShimPath = require.resolve("../../src/ai/prompt-registry.js");
 const registerPath =
   mainArtifactPath("ipc/register-ai-prompts");
 
@@ -27,15 +28,22 @@ function stubModules() {
     loaded: true,
     exports: { loadAiPrompts, saveAiPrompts },
   };
+  const registryExports = {
+    DEFAULT_PROMPTS,
+    PROMPT_KEYS,
+    resolvePrompt: () => DEFAULT_PROMPTS.ithome_summary,
+  };
   require.cache[registryPath] = {
     id: registryPath,
     filename: registryPath,
     loaded: true,
-    exports: {
-      DEFAULT_PROMPTS,
-      PROMPT_KEYS,
-      resolvePrompt: () => DEFAULT_PROMPTS.ithome_summary,
-    },
+    exports: registryExports,
+  };
+  require.cache[registryShimPath] = {
+    id: registryShimPath,
+    filename: registryShimPath,
+    loaded: true,
+    exports: registryExports,
   };
 }
 
@@ -48,6 +56,7 @@ beforeEach(() => {
 afterEach(() => {
   delete require.cache[stateStorePath];
   delete require.cache[registryPath];
+  delete require.cache[registryShimPath];
   delete require.cache[registerPath];
 });
 

@@ -8,7 +8,7 @@
  */
 
 import { signal, computed } from "@preact/signals";
-import { DEFAULT_MODELS } from "../../ai/default-models.js";
+import { DEFAULT_MODELS } from "../../ai/default-models.ts";
 import { api } from "../api.ts";
 import { taggedLog } from "../log.ts";
 import { showToast } from "./toast-store.ts";

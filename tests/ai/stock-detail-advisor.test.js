@@ -9,15 +9,23 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
+  mainArtifactPath,
+  aiArtifactPath,
+  stocksArtifactPath,
+} = require("../_setup/require-main.cjs");
 
 const stateStorePath = mainArtifactPath("state-store");
 const stateStoreShimPath = require.resolve("../../src/main/state-store.js");
-const promptRegistryPath = require.resolve("../../src/ai/prompt-registry.js");
-const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
-// Phase 5: .js 是 shim → dist-test；advisor require shim，两边都 stub
-const stockAnglesPath = require.resolve("../../src/stocks/stock-detail-angles.js");
-const advisorPath = require.resolve("../../src/ai/stock-detail-advisor.js");
+// Phase 5: dist-test artifact + .js shim 两边都 stub（compiled require 走 artifact）
+const promptRegistryPath = aiArtifactPath("prompt-registry");
+const promptRegistryShimPath = require.resolve("../../src/ai/prompt-registry.js");
+const sharedLlmPath = aiArtifactPath("shared-llm");
+const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.js");
+const stockAnglesPath = stocksArtifactPath("stock-detail-angles");
+const stockAnglesShimPath = require.resolve("../../src/stocks/stock-detail-angles.js");
+const advisorPath = aiArtifactPath("stock-detail-advisor");
+const advisorShimPath = require.resolve("../../src/ai/stock-detail-advisor.js");
 
 // ponytail: 加载真 prompt-registry 仅供 mock 取 fewShot 用 — 单测不修改它,
 // 但 buildAnalyzeMessages 的拼接逻辑需要真 fewShot 才能验证 system 段内容.
@@ -26,53 +34,48 @@ const _realPrompts = require(promptRegistryPath).DEFAULT_PROMPTS;
 const mockChat = vi.fn();
 const _mockState = { stockDetailCache: {}, apps: {} };
 
+function stubCache(path, exports) {
+  require.cache[path] = {
+    id: path,
+    filename: path,
+    loaded: true,
+    exports,
+  };
+}
+
 function reloadAdvisor() {
   delete require.cache[advisorPath];
+  delete require.cache[advisorShimPath];
   delete require.cache[stockAnglesPath];
+  delete require.cache[stockAnglesShimPath];
   delete require.cache[stateStorePath];
   delete require.cache[stateStoreShimPath];
-  require.cache[sharedLlmPath] = {
-    id: sharedLlmPath,
-    filename: sharedLlmPath,
-    loaded: true,
-    exports: { chatCompletion: (...args) => mockChat(...args) },
-  };
-  require.cache[promptRegistryPath] = {
-    id: promptRegistryPath,
-    filename: promptRegistryPath,
-    loaded: true,
-    exports: {
-      resolvePrompt: (key) => {
-        const def = _realPrompts[key];
-        return {
-          system: `MOCK-SYS-${key}`,
-          rules: `MOCK-RULES-${key}`,
-          fewShot: def ? def.fewShot : "",
-        };
-      },
+  delete require.cache[sharedLlmPath];
+  delete require.cache[sharedLlmShimPath];
+  delete require.cache[promptRegistryPath];
+  delete require.cache[promptRegistryShimPath];
+  const sharedExports = { chatCompletion: (...args) => mockChat(...args) };
+  stubCache(sharedLlmPath, sharedExports);
+  stubCache(sharedLlmShimPath, sharedExports);
+  const promptExports = {
+    resolvePrompt: (key) => {
+      const def = _realPrompts[key];
+      return {
+        system: `MOCK-SYS-${key}`,
+        rules: `MOCK-RULES-${key}`,
+        fewShot: def ? def.fewShot : "",
+      };
     },
   };
+  stubCache(promptRegistryPath, promptExports);
+  stubCache(promptRegistryShimPath, promptExports);
   const stateExports = {
     load: () => _mockState,
     patchState: (fn) => fn(_mockState),
   };
-  require.cache[stateStorePath] = {
-    id: stateStorePath,
-    filename: stateStorePath,
-    loaded: true,
-    exports: stateExports,
-  };
-  require.cache[stateStoreShimPath] = {
-    id: stateStoreShimPath,
-    filename: stateStoreShimPath,
-    loaded: true,
-    exports: stateExports,
-  };
-  require.cache[stockAnglesPath] = {
-    id: stockAnglesPath,
-    filename: stockAnglesPath,
-    loaded: true,
-    exports: {
+  stubCache(stateStorePath, stateExports);
+  stubCache(stateStoreShimPath, stateExports);
+  const anglesExports = {
       ANGLE_DEFS: [
         {
           key: "price_trend",
@@ -161,8 +164,9 @@ function reloadAdvisor() {
         };
         return map[k] || null;
       },
-    },
   };
+  stubCache(stockAnglesPath, anglesExports);
+  stubCache(stockAnglesShimPath, anglesExports);
   return require(advisorPath);
 }
 
