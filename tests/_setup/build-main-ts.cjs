@@ -1,10 +1,15 @@
 /**
- * vitest globalSetup: transpile migrated src/main + src/platform .ts files into
- * per-file CommonJS artifacts under dist-test/.
+ * vitest globalSetup: transpile migrated src/main + src/platform + src/utils
+ * + src/config .ts files into per-file CommonJS artifacts under dist-test/.
  *
  * Phase 3 Batch 9b: dist-test 图自包含 — 相对依赖 external 到 sibling
  * dist-test .cjs (不再绕 src .js shim). 业务 .js shim 可删; 测试用
  * tests/_setup/require-main.cjs 加载产物.
+ *
+ * Phase 5 Batch B: 加 src/utils（workers/detectors 仍 require 裸路径；
+ *   源真相在 .ts，src/utils/*.js 为 shim → dist-test/utils/*.cjs）。
+ *   同步把 src/config 编进 dist-test（Batch A 迁 TS 后 main bootstrap
+ *   require("../../config/category") 必须 external 到 .cjs，不能指裸 .ts）。
  *
  * 重要: 相对依赖必须 external (不能 bundle 进同一文件):
  *   - bundle 会把 module.exports = singleton 收成 named-export 包装
@@ -18,8 +23,12 @@ const fs = require("node:fs");
 const rootDir = path.resolve(__dirname, "..", "..");
 const srcMainDir = path.join(rootDir, "src", "main");
 const srcPlatformDir = path.join(rootDir, "src", "platform");
+const srcUtilsDir = path.join(rootDir, "src", "utils");
+const srcConfigDir = path.join(rootDir, "src", "config");
 const outMainDir = path.join(rootDir, "dist-test", "main", "per-file");
 const outPlatformDir = path.join(rootDir, "dist-test", "platform");
+const outUtilsDir = path.join(rootDir, "dist-test", "utils");
+const outConfigDir = path.join(rootDir, "dist-test", "config");
 
 function findTsFiles(dir) {
   const out = [];
@@ -44,6 +53,14 @@ function outFileFor(tsFile) {
   if (tsFile.startsWith(srcPlatformDir + path.sep)) {
     const rel = path.relative(srcPlatformDir, tsFile).replace(/\.ts$/, ".cjs");
     return path.join(outPlatformDir, rel);
+  }
+  if (tsFile.startsWith(srcUtilsDir + path.sep)) {
+    const rel = path.relative(srcUtilsDir, tsFile).replace(/\.ts$/, ".cjs");
+    return path.join(outUtilsDir, rel);
+  }
+  if (tsFile.startsWith(srcConfigDir + path.sep)) {
+    const rel = path.relative(srcConfigDir, tsFile).replace(/\.ts$/, ".cjs");
+    return path.join(outConfigDir, rel);
   }
   return null;
 }
@@ -132,7 +149,12 @@ function buildGroup(esbuild, tsFiles, skip) {
 module.exports = async function setup() {
   const mainTs = findTsFiles(srcMainDir);
   const platformTs = findTsFiles(srcPlatformDir);
-  const tsFiles = [...mainTs, ...platformTs];
+  const configTs = findTsFiles(srcConfigDir);
+  // ponytail: match-key.ts 是 ESM-only（仅 renderer 用），不进 dist-test CJS 图
+  const utilsTs = findTsFiles(srcUtilsDir).filter(
+    (f) => path.basename(f) !== "match-key.ts",
+  );
+  const tsFiles = [...mainTs, ...platformTs, ...configTs, ...utilsTs];
   if (tsFiles.length === 0) return;
 
   let newestTsMtime = 0;
@@ -158,6 +180,8 @@ module.exports = async function setup() {
 
   fs.mkdirSync(outMainDir, { recursive: true });
   fs.mkdirSync(outPlatformDir, { recursive: true });
+  fs.mkdirSync(outUtilsDir, { recursive: true });
+  fs.mkdirSync(outConfigDir, { recursive: true });
 
   if (needBuild) {
     const esbuild = require("esbuild");

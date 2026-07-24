@@ -17,8 +17,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
-const categoryConfig = require("../../src/config/category.ts");
+const {
+  requireMain,
+  requirePlatform,
+  requireConfig,
+  mainArtifactPath,
+  platformArtifactPath,
+} = require("../_setup/require-main.cjs");
+// ponytail: 必须跟 bootstrap/category.cjs 同一份 dist-test/config/category.cjs 单例
+const categoryConfig = requireConfig("category");
 const {
   primeLLMCacheFromDisk,
   classifyUnmappedAppsByLLM,

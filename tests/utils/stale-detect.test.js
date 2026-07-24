@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import {
   detectStaleApps,
   DEFAULT_STALE_DAYS,
-} from "../../src/utils/stale-detect.js";
+} from "../../src/utils/stale-detect.ts";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const NOW = 1_700_000_000_000; // 固定 now 让断言可重现
