@@ -12,7 +12,7 @@ import {
   ithomeReadIds,
   setIthomeSelectedDate,
   setIthomeFavoriteSelectedDate,
-} from "./store.js";
+} from "./store.ts";
 import {
   monthDayRange,
   favoriteDateKeys,
@@ -22,7 +22,7 @@ import {
   weekdayShort,
   currentMonthLabel,
   readCountForDate,
-} from "./news-utils.js";
+} from "./news-utils.ts";
 
 function dayCountTuple(dateKey, isFavorites, articles, dayStats, favorites, readIds) {
   if (isFavorites) {

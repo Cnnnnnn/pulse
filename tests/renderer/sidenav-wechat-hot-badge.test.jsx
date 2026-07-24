@@ -45,7 +45,7 @@ vi.mock("../../src/renderer/store/trayConfigStore.ts", () => ({
   }),
 }));
 
-vi.mock("../../src/renderer/ithome/store.js", () => ({ ithomeUnreadBadge }));
+vi.mock("../../src/renderer/ithome/store.ts", () => ({ ithomeUnreadBadge }));
 vi.mock("../../src/renderer/wechat-hot/store.ts", () => ({ wechatHotUnreadBadge }));
 
 beforeEach(() => {

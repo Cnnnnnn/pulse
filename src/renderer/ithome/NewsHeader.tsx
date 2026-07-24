@@ -8,8 +8,8 @@ import {
   ithomeViewMode,
   setIthomeViewMode,
   ithomeFavorites,
-} from "./store.js";
-import { currentMonthLabel, favoriteCount } from "./news-utils.js";
+} from "./store.ts";
+import { currentMonthLabel, favoriteCount } from "./news-utils.ts";
 import { IconNews, IconRefresh, IconCalendar, IconStar } from "../components/icons.tsx";
 import { SubtabList } from "../components/SubtabList.tsx";
 import { FeatureHeader } from "../components/FeatureHeader.tsx";

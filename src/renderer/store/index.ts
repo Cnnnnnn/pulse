@@ -1,6 +1,6 @@
 /**
  * src/renderer/store/index.ts — re-export aggregate.
- * 保持从 './store.js' 导入时可见所有 symbols.
+ * 保持从 './store.ts' 导入时可见所有 symbols.
  */
 
 export * from "./check-store.ts";

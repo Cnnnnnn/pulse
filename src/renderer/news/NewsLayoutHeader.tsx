@@ -20,8 +20,8 @@ import {
   ithomeFavorites,
   setIthomeViewMode,
   refreshIthomeNews,
-} from "../ithome/store.js";
-import { currentMonthLabel, favoriteCount } from "../ithome/news-utils.js";
+} from "../ithome/store.ts";
+import { currentMonthLabel, favoriteCount } from "../ithome/news-utils.ts";
 import {
   wechatHotLoading,
   wechatHotItems,

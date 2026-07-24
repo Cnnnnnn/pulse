@@ -13,8 +13,8 @@ import {
   toggleIthomeFavorite,
   markIthomeRead,
   shareIthomeArticle,
-} from "./store.js";
-import { formatArticleTime, formatExcerptPreview } from "./news-utils.js";
+} from "./store.ts";
+import { formatArticleTime, formatExcerptPreview } from "./news-utils.ts";
 import { NewsArticleSummary } from "./NewsArticleSummary.tsx";
 import { NewsShareToast } from "./NewsShareToast.tsx";
 import { refreshAIReadyStatus } from "../store.ts";

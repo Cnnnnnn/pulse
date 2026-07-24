@@ -8,7 +8,7 @@
  * 也不在这里持有 search 状态 — 搜索词从 NewsLayout 注入即可.
  */
 import { useEffect } from "preact/hooks";
-import { bootstrapIthomeTab } from "./store.js";
+import { bootstrapIthomeTab } from "./store.ts";
 import { NewsSidebar } from "./NewsSidebar.tsx";
 import { NewsView } from "./NewsView.tsx";
 

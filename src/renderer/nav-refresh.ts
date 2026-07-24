@@ -17,7 +17,7 @@
  */
 
 import { refreshWechatHot } from "./wechat-hot/store.ts";
-import { refreshIthomeNews } from "./ithome/store.js";
+import { refreshIthomeNews } from "./ithome/store.ts";
 import { refreshWorldcupScores } from "./worldcup/store.js";
 import { fetchNavNow } from "./funds/fundStore.js";
 import { refreshNow as refreshMetals } from "./metals/metalStore.ts";

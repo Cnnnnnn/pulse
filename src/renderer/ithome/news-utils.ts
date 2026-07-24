@@ -48,7 +48,7 @@ export function canGoNextDay(dateKey, now = new Date()) {
   return idx >= 0 && idx < days.length - 1;
 }
 
-export function sidebarDayCount(dayStats, articles, dateKey) {
+export function sidebarDayCount(dayStats: any, articles: any, dateKey: string) {
   const stat = dayStats && dayStats[dateKey];
   if (stat && typeof stat.count === "number" && stat.count > 0) {
     return stat.count;
@@ -56,8 +56,8 @@ export function sidebarDayCount(dayStats, articles, dateKey) {
   return articlesForDate(articles, dateKey).length;
 }
 
-export function articlesForDate(articles, dateKey) {
-  const list = Object.values(articles || {}).filter(
+export function articlesForDate(articles: any, dateKey: string): any[] {
+  const list = (Object.values(articles || {}) as any[]).filter(
     (a) => a && a.dateKey === dateKey,
   );
   list.sort((a, b) => {
@@ -68,7 +68,7 @@ export function articlesForDate(articles, dateKey) {
   return list;
 }
 
-export function formatDayHeader(dateKey) {
+export function formatDayHeader(dateKey: string) {
   if (!dateKey) return "";
   const d = new Date(`${dateKey}T12:00:00+08:00`);
   if (Number.isNaN(d.getTime())) return dateKey;
@@ -76,7 +76,7 @@ export function formatDayHeader(dateKey) {
   return `${dateKey} ${wd}`;
 }
 
-export function formatFeedDate(dateKey) {
+export function formatFeedDate(dateKey: string) {
   if (!dateKey) return "";
   const d = new Date(`${dateKey}T12:00:00+08:00`);
   if (Number.isNaN(d.getTime())) return dateKey;
@@ -84,7 +84,7 @@ export function formatFeedDate(dateKey) {
   return `${Number(m)}月${Number(day)}日 · ${WEEKDAYS[d.getDay()]}`;
 }
 
-export function formatArticleTime(pubDate) {
+export function formatArticleTime(pubDate: string) {
   const d = new Date(pubDate);
   if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat("zh-CN", {
@@ -95,9 +95,9 @@ export function formatArticleTime(pubDate) {
   }).format(d);
 }
 
-export function favoriteDateKeys(favorites) {
-  const set = new Set();
-  for (const fav of Object.values(favorites || {})) {
+export function favoriteDateKeys(favorites: any): string[] {
+  const set = new Set<string>();
+  for (const fav of Object.values(favorites || {}) as any[]) {
     if (fav && fav.article && fav.article.dateKey) {
       set.add(fav.article.dateKey);
     }
@@ -105,8 +105,8 @@ export function favoriteDateKeys(favorites) {
   return [...set].sort((a, b) => b.localeCompare(a));
 }
 
-export function favoritesForDate(favorites, dateKey) {
-  const list = Object.values(favorites || {})
+export function favoritesForDate(favorites: any, dateKey: string): any[] {
+  const list = (Object.values(favorites || {}) as any[])
     .filter((f) => f && f.article && f.article.dateKey === dateKey)
     .map((f) => f.article);
   list.sort((a, b) => {
@@ -117,12 +117,12 @@ export function favoritesForDate(favorites, dateKey) {
   return list;
 }
 
-export function canGoPrevFavoriteDay(dateKey, favorites) {
+export function canGoPrevFavoriteDay(dateKey: string, favorites: any) {
   const days = favoriteDateKeys(favorites);
   return days.indexOf(dateKey) > 0;
 }
 
-export function canGoNextFavoriteDay(dateKey, favorites) {
+export function canGoNextFavoriteDay(dateKey: string, favorites: any) {
   const days = favoriteDateKeys(favorites);
   const idx = days.indexOf(dateKey);
   return idx >= 0 && idx < days.length - 1;
@@ -172,10 +172,10 @@ export function countSummarizedArticles(articles, summaries) {
     .length;
 }
 
-export function readCountForDate(articles, readIds, dateKey) {
+export function readCountForDate(articles: any, readIds: any, dateKey: string) {
   if (!articles || !readIds) return 0;
   let n = 0;
-  for (const a of Object.values(articles)) {
+  for (const a of Object.values(articles) as any[]) {
     if (a && a.dateKey === dateKey && readIds[a.id]) n += 1;
   }
   return n;

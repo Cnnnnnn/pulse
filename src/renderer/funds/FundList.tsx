@@ -22,7 +22,7 @@ import {
   fundView,
   holdingWeights,
 } from "./fundStore.js";
-import { openFundDetail } from "./fundRoute.js";
+import { openFundDetail } from "./fundRoute.ts";
 import {
   isFundPinned,
   addWatchlistItem,

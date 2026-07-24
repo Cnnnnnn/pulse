@@ -7,7 +7,7 @@ import {
   todayShanghaiDateKey,
   articlesForDate,
   favoriteDateKeys,
-} from "./news-utils.js";
+} from "./news-utils.ts";
 import {
   trackIthomeView,
   trackIthomeFavorite,
@@ -49,7 +49,7 @@ function _applyPayload(data) {
   ithomeNewsLoaded.value = true;
   // 派生 readIds (从 articles 的 readAt 字段)
   const readIds = {};
-  for (const a of Object.values(articles)) {
+  for (const a of Object.values(articles) as any[]) {
     if (a && a.id && a.readAt) readIds[a.id] = a.readAt;
   }
   ithomeReadIds.value = readIds;

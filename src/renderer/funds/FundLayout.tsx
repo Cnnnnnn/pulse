@@ -18,7 +18,7 @@ import {
   addModalOpen,
   alertModalOpen,
 } from './fundStore.js';
-import { fundPage, selectedFundCode } from './fundRoute.js';
+import { fundPage, selectedFundCode } from './fundRoute.ts';
 import { api } from '../api.ts';
 
 // ponytail: 投资 nav 合并 (2026-07-13) — 原 FundLayout 改为 FundContent,

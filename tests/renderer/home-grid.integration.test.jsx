@@ -176,7 +176,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     // ithomeUnreadBadge 是 computed, 派生自 ithomeNewIds.
     // 写 3 个 key 进 ithomeNewIds → computed 重算 → news badge = 3 (ithome+wechat=3+0).
-    const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
+    const { ithomeNewIds } = await import('../../src/renderer/ithome/store.ts');
     ithomeNewIds.value = { a: 1, b: 1, c: 1 };
 
     const { container } = render(<HomeGrid />);
@@ -190,7 +190,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     // ithome 3 + wechat 5 = news badge 8
-    const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
+    const { ithomeNewIds } = await import('../../src/renderer/ithome/store.ts');
     const { wechatHotNewIds } = await import('../../src/renderer/wechat-hot/store.ts');
     ithomeNewIds.value = { a: 1, b: 1, c: 1 };
     wechatHotNewIds.value = { d: 1, e: 1, f: 1, g: 1, h: 1 };
@@ -204,7 +204,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     // 写 150 个 key (慢? 不, 单测 150 个 {x:1} 操作 < 1ms)
-    const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
+    const { ithomeNewIds } = await import('../../src/renderer/ithome/store.ts');
     const big = {};
     for (let i = 0; i < 150; i++) big[`k${i}`] = 1;
     ithomeNewIds.value = big;
@@ -218,7 +218,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     // v5: news = ithome + wechat. 重置全部 source signal 到 0.
-    const ithome = await import('../../src/renderer/ithome/store.js');
+    const ithome = await import('../../src/renderer/ithome/store.ts');
     const wechat = await import('../../src/renderer/wechat-hot/store.ts');
     const funds = await import('../../src/renderer/funds/fundStore.js');
     const ai = await import('../../src/renderer/store/ai-usage-store.ts');
@@ -263,7 +263,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     sp.resetPrefs();
     localStorage.clear();
     sp.resetPrefs();
-    const ithome = await import('../../src/renderer/ithome/store.js');
+    const ithome = await import('../../src/renderer/ithome/store.ts');
     const wechat = await import('../../src/renderer/wechat-hot/store.ts');
     const funds = await import('../../src/renderer/funds/fundStore.js');
     const ai = await import('../../src/renderer/store/ai-usage-store.ts');
@@ -284,9 +284,9 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10: news 有今日文章 → status 显示 "今日 N 条 · M 热搜" 合并态', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { ithomeDayStats } = await import('../../src/renderer/ithome/store.js');
+    const { ithomeDayStats } = await import('../../src/renderer/ithome/store.ts');
     const { wechatHotItems } = await import('../../src/renderer/wechat-hot/store.ts');
-    const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.js');
+    const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.ts');
     const today = todayShanghaiDateKey();
     ithomeDayStats.value = { [today]: { count: 23, fetchedAt: Date.now() } };
     wechatHotItems.value = Array.from({ length: 12 }, (_, i) => ({
@@ -416,7 +416,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
-    const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.js');
+    const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.ts');
     const today = todayShanghaiDateKey();
     // 2 场今天, 1 场明天.
     const tomorrow = new Date(Date.now() + 86400_000);

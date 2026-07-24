@@ -40,7 +40,7 @@ import {
   subscribeNavUpdates,
   prefetchAllNavHistory,
 } from "../funds/fundStore.js";
-import { fundPage, setFundPage } from "../funds/fundRoute.js";
+import { fundPage, setFundPage } from "../funds/fundRoute.ts";
 import { metalsRefreshing } from "../metals/metalStore.ts";
 import { api } from "../api.ts";
 import { FundContent } from "../funds/FundLayout.tsx";

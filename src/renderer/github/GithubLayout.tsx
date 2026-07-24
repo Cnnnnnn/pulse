@@ -17,7 +17,7 @@ import {
   checkGithubUpdates,
 } from "../store/github-projects-store.ts";
 import { GithubPage } from "./GithubPage.tsx";
-import { createGithubCheckScheduler } from "./github-check-scheduler.js";
+import { createGithubCheckScheduler } from "./github-check-scheduler.ts";
 
 export function GithubLayout() {
   useEffect(() => {

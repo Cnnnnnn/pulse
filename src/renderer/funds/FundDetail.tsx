@@ -29,7 +29,7 @@ import {
   loadFundNavHistory,
   removeFund,
 } from "./fundStore.js";
-import { closeFundDetail } from "./fundRoute.js";
+import { closeFundDetail } from "./fundRoute.ts";
 import { api } from "../api.ts";
 import { FundAreaChart } from "./FundAreaChart.tsx";
 import { FundRadar } from "./FundRadar.tsx";

@@ -17,7 +17,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../../src/renderer/wechat-hot/store.ts", () => ({
   refreshWechatHot: vi.fn(),
 }));
-vi.mock("../../src/renderer/ithome/store.js", () => ({
+vi.mock("../../src/renderer/ithome/store.ts", () => ({
   refreshIthomeNews: vi.fn(),
 }));
 vi.mock("../../src/renderer/worldcup/store.js", () => ({
@@ -39,7 +39,7 @@ import {
   REFRESHABLE_NAV_KEYS,
 } from "../../src/renderer/nav-refresh.ts";
 import { refreshWechatHot } from "../../src/renderer/wechat-hot/store.ts";
-import { refreshIthomeNews } from "../../src/renderer/ithome/store.js";
+import { refreshIthomeNews } from "../../src/renderer/ithome/store.ts";
 import { refreshWorldcupScores } from "../../src/renderer/worldcup/store.js";
 import { fetchNavNow } from "../../src/renderer/funds/fundStore.js";
 import { refreshNow as refreshMetals } from "../../src/renderer/metals/metalStore.ts";

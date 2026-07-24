@@ -29,7 +29,7 @@ const {
   mockSharingIds: { value: {} },
 }));
 
-vi.mock("../../src/renderer/ithome/store.js", () => ({
+vi.mock("../../src/renderer/ithome/store.ts", () => ({
   ithomeSummaries: mockSummaries,
   ithomeFavorites: mockFavorites,
   ithomeReadIds: mockReadIds,

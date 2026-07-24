@@ -8,7 +8,7 @@ import { useEffect, useState } from "preact/hooks";
 import { NewsHeader } from "./NewsHeader.tsx";
 import { NewsSidebar } from "./NewsSidebar.tsx";
 import { NewsView } from "./NewsView.tsx";
-import { bootstrapIthomeTab, refreshIthomeNews } from "./store.js";
+import { bootstrapIthomeTab, refreshIthomeNews } from "./store.ts";
 
 export function NewsLayout() {
   const [search, setSearch] = useState("");

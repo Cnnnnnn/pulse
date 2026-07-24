@@ -47,7 +47,7 @@ vi.mock("../../src/renderer/store/trayConfigStore.ts", () => ({
   }),
 }));
 
-vi.mock("../../src/renderer/ithome/store.js", () => ({
+vi.mock("../../src/renderer/ithome/store.ts", () => ({
   ithomeUnreadBadge: signal(0),
 }));
 

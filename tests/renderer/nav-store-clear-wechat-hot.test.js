@@ -19,7 +19,7 @@ import {
   wechatHotReadIds,
   wechatHotUnreadBadge,
 } from "../../src/renderer/wechat-hot/store.ts";
-import { ithomeNewIds, ithomeUnreadBadge } from "../../src/renderer/ithome/store.js";
+import { ithomeNewIds, ithomeUnreadBadge } from "../../src/renderer/ithome/store.ts";
 
 // stub 其它 wechat-hot API (本测试不调)
 vi.mock("../../src/renderer/api.ts", () => ({

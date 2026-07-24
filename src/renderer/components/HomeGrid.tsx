@@ -19,7 +19,7 @@
  */
 import { useEffect, useRef, useState } from "preact/hooks";
 import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
-import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/store.js";
+import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/store.ts";
 import { wechatHotUnreadBadge, wechatHotItems } from "../wechat-hot/store.ts";
 import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.js";
 import { aiUsageNavBadge, aiUsageSnapshot, aiUsageActiveProvider } from "../store/ai-usage-store.ts";
@@ -30,7 +30,7 @@ import { quoteCache } from "../metals/metalStore.ts";
 import { comparePoolCount } from "../stocks/comparePool.js";
 import { results as stocksResults } from "../stocks/stockStore.js";
 import { results as checkResults, apps as checkApps } from "../store.ts";
-import { todayShanghaiDateKey, articlesForDate } from "../ithome/news-utils.js";
+import { todayShanghaiDateKey, articlesForDate } from "../ithome/news-utils.ts";
 import {
   loadPrefs,
   savePrefs,

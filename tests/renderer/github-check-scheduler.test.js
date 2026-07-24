@@ -58,7 +58,7 @@ afterEach(() => {
 describe("github-check-scheduler · start/stop", () => {
   it("autoCheck=false → start 不启 interval，不检查", async () => {
     githubAutoCheck.value = false;
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     // 推进时间，不应该触发 check
@@ -68,7 +68,7 @@ describe("github-check-scheduler · start/stop", () => {
   });
 
   it("autoCheck=true → start 后首次延迟不立即检查，推进 60s 后检查一次", async () => {
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     expect(checkUpdatesMock).not.toHaveBeenCalled();
@@ -80,7 +80,7 @@ describe("github-check-scheduler · start/stop", () => {
 
   it("按 interval 周期检查（首次 60s 后，每 intervalMs 一次）", async () => {
     githubAutoCheckIntervalMin.value = 1; // 1 分钟，便于测试
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     // 首次 60s
@@ -94,7 +94,7 @@ describe("github-check-scheduler · start/stop", () => {
 
   it("stop → clearInterval，不再触发", async () => {
     githubAutoCheckIntervalMin.value = 1;
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     await vi.advanceTimersByTimeAsync(61 * 1000);
@@ -105,7 +105,7 @@ describe("github-check-scheduler · start/stop", () => {
   });
 
   it("stop 幂等（重复调不报错）", async () => {
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     s.stop();
@@ -113,7 +113,7 @@ describe("github-check-scheduler · start/stop", () => {
   });
 
   it("start 幂等（重复 start 不启多个 interval）", async () => {
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     s.start();
@@ -126,7 +126,7 @@ describe("github-check-scheduler · start/stop", () => {
 describe("github-check-scheduler · 通知", () => {
   it("newCount>0 + notifyOnNew=true → 发系统通知", async () => {
     checkUpdatesMock.mockResolvedValue({ ok: true, newCount: 2, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] });
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     await vi.advanceTimersByTimeAsync(61 * 1000);
@@ -139,7 +139,7 @@ describe("github-check-scheduler · 通知", () => {
 
   it("newCount=0 → 不发通知", async () => {
     checkUpdatesMock.mockResolvedValue({ ok: true, newCount: 0, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] });
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     await vi.advanceTimersByTimeAsync(61 * 1000);
@@ -150,7 +150,7 @@ describe("github-check-scheduler · 通知", () => {
   it("notifyOnNew=false → 即使有新版也不通知", async () => {
     githubNotifyOnNew.value = false;
     checkUpdatesMock.mockResolvedValue({ ok: true, newCount: 5, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] });
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     await vi.advanceTimersByTimeAsync(61 * 1000);
@@ -161,7 +161,7 @@ describe("github-check-scheduler · 通知", () => {
 
 describe("github-check-scheduler · restart", () => {
   it("restart = stop + start（设置变更时用）", async () => {
-    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.js");
+    const { createGithubCheckScheduler } = await import("../../src/renderer/github/github-check-scheduler.ts");
     const s = createGithubCheckScheduler();
     s.start();
     await vi.advanceTimersByTimeAsync(61 * 1000);

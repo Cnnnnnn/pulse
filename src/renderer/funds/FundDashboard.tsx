@@ -46,7 +46,7 @@ import { computeConcentration } from "../../funds/concentration.js";
 import { fmtCurrency, fmtPct } from "../../funds/format.js";
 import { IconRefresh } from "../components/icons.tsx";
 import { openAddModal } from "./fundStore.js";
-import { openFundDetail } from "./fundRoute.js";
+import { openFundDetail } from "./fundRoute.ts";
 import { showToast } from "../store/toast-store.ts";
 
 const RANGE_OPTIONS = [

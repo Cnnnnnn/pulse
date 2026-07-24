@@ -56,7 +56,7 @@ import {
   setIthomeSelectedDate,
   setIthomeFavoriteSelectedDate,
   shareIthomeArticle,
-} from "../../src/renderer/ithome/store.js";
+} from "../../src/renderer/ithome/store.ts";
 
 const ARTICLES_BEFORE = {
   a: { id: "a", title: "old A", dateKey: "2026-06-12" },

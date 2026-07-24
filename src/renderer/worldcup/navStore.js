@@ -19,7 +19,7 @@ import { trayMenuPrefs } from "../store/trayConfigStore.ts";
 import { clearFundNavBadge } from "../funds/fundStore.js";
 import { clearAiUsageNavBadge } from "../store/ai-usage-store.ts";
 import { clearWechatHotUnreadBadge } from "../wechat-hot/store.ts";
-import { clearIthomeUnreadBadge } from "../ithome/store.js";
+import { clearIthomeUnreadBadge } from "../ithome/store.ts";
 import { api } from "../api.ts";
 
 // activeNav: 'home' | 'news' | 'worldcup' | 'invest' | 'ai-usage' | 'versions'

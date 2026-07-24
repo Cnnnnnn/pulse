@@ -15,7 +15,7 @@ import {
 } from "../../src/renderer/invest/InvestLayoutHeader.tsx";
 import {
   FUND_PAGE_TABS,
-} from "../../src/renderer/funds/fundRoute.js";
+} from "../../src/renderer/funds/fundRoute.ts";
 
 describe("invest header tabs", () => {
   it("primary has 3 modules (funds/metals/stocks)", () => {

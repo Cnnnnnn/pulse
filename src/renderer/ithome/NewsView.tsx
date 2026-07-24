@@ -13,7 +13,7 @@ import {
   ithomeFavoriteSelectedDate,
   ithomeViewMode,
   ithomeSummaries,
-} from "./store.js";
+} from "./store.ts";
 import {
   articlesForDate,
   favoritesForDate,
@@ -21,7 +21,7 @@ import {
   favoriteCount,
   countSummarizedArticles,
   sidebarDayCount,
-} from "./news-utils.js";
+} from "./news-utils.ts";
 import { NewsArticleRow } from "./NewsArticleRow.tsx";
 import { PinIcon, IconRefresh } from "../components/icons.tsx";
 

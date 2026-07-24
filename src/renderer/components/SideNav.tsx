@@ -26,7 +26,7 @@ import {
   toggleNavCollapsed,
   effectiveVisibleItems,
 } from '../worldcup/navStore.js';
-import { ithomeUnreadBadge } from '../ithome/store.js';
+import { ithomeUnreadBadge } from '../ithome/store.ts';
 import { wechatHotUnreadBadge } from '../wechat-hot/store.ts';
 import { fundUnreadBadge } from '../funds/fundStore.js';
 import { aiUsageNavBadge } from '../store/ai-usage-store.ts';
