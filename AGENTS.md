@@ -5,7 +5,7 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），`_setup/*.cjs` 保留为 CJS helper bridge。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），连同 `helpers/mock-http`、`fixtures/timer-audit/*`、`perf/{startup,brew-lock}-bench`、`visual/{visual,games}.spec` 6 个非 vitest 文件也已 `.ts`；`_setup/*.cjs` 保留为 CJS helper bridge。`find tests -name "*.js" ! -name "*.cjs"` = 0。
 
 ## 仓库布局
 
