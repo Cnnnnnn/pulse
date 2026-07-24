@@ -596,6 +596,15 @@ export function getDisplayed() {
       return lb && typeof lb.overall === "number";
     });
   }
+  // ponytail: AA/HF 同 Arena/LB — OR/MD 目录骨架会灌进上千空行，主列全是 "—"。
+  //   只留当前维度有主源值的行；升级路径：主进程 matchesCategory 按 view 主源硬过滤。
+  if (activeView.value === "aa") {
+    const dim = activeDim.value;
+    rows = rows.filter((it) => primaryValue(it, dim, "llm") != null);
+  }
+  if (activeView.value === "huggingface") {
+    rows = rows.filter((it) => it && it.huggingface && typeof it.huggingface === "object");
+  }
   rows = filterByVendor(rows, activeVendor.value);
   rows = filterByLicense(rows, licenseFilter.value);
   rows = filterBySearch(rows, searchQuery.value);

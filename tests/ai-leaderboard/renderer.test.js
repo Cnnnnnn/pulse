@@ -59,6 +59,9 @@ function mkModel(over = {}) {
     arena: over.arena || {},
     aa: over.aa || null,
     openrouter: over.openrouter || null,
+    livebench: over.livebench || null,
+    modelsdev: over.modelsdev || null,
+    huggingface: over.huggingface || null,
     sources: over.sources || { arena: "none", aa: "none", openrouter: "none" },
     isSample: !!over.isSample,
     fetchedAt: over.fetchedAt || null,
@@ -150,7 +153,8 @@ describe("sorting — Arena ELO / AA index", () => {
     store.items.value = list;
     store.sortDir.value = "desc";
     const shown = store.getDisplayed();
-    expect(shown.map((m) => m.id)).toEqual(["b", "c", "a", "d"]);
+    // d 无 AA 主源值，被 AA 视角过滤（与 Arena 滤无 ELO 同口径）
+    expect(shown.map((m) => m.id)).toEqual(["b", "c", "a"]);
   });
 
   it("price 维度默认升序（低 = 优）", async () => {
@@ -237,7 +241,7 @@ describe("sorting — HF 视角 hf_downloads / hf_likes / hf_trending (v2.79.6+)
     expect(shown.map((m) => m.id)).toEqual(["fresh", "mid", "old"]);
   });
 
-  it("hf_trending 缺 huggingface 切片 → 排末尾 (-Infinity)", () => {
+  it("hf_trending 缺 huggingface 切片 → 被 HF 视角过滤掉", () => {
     store.activeDim.value = "hf_trending";
     const list = [
       mkHF({ id: "a", hf: { downloads: 5_000_000, likes: 100, lastModified: day(10) } }),
@@ -245,8 +249,7 @@ describe("sorting — HF 视角 hf_downloads / hf_likes / hf_trending (v2.79.6+)
     ];
     store.items.value = list;
     const shown = store.getDisplayed();
-    expect(shown[0].id).toBe("a");
-    expect(shown[1].id).toBe("no-hf");
+    expect(shown.map((m) => m.id)).toEqual(["a"]);
   });
 
   it("columnValue: hf_trending 走 computeTrendingScore 客户端算分", () => {
@@ -274,10 +277,11 @@ describe("HF License 维度 + baseModelCountMap (v2.79.6+)", () => {
     arena: {},
     aa: null,
     openrouter: null,
-    huggingface: over.hf || null,
+    // ponytail: 空对象也算 HF 切片（license 维度测例可不带 downloads）
+    huggingface: over.hf !== undefined ? over.hf : {},
     livebench: null,
     modelsdev: null,
-    sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none", huggingface: over.hf ? "live" : "none" },
+    sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none", huggingface: "live" },
     isSample: false,
     fetchedAt: null,
     rankDelta: null,
@@ -384,6 +388,29 @@ describe("Arena 视角过滤 — 仅保留有 ELO 的模型", () => {
     ];
     const shown = store.getDisplayed();
     expect(shown.map((m) => m.id)).toEqual(["has-elo"]);
+  });
+});
+
+describe("AA / HF 视角过滤 — 排除 OR/MD 空骨架", () => {
+  it("AA 视角只保留当前维度有值的行", () => {
+    store.activeView.value = "aa";
+    store.activeDim.value = "intelligence";
+    store.items.value = [
+      mkModel({ id: "aa-hit", aa: { intelligenceIndex: 50 } }),
+      mkModel({ id: "or-only", openrouter: { context: 128000 } }),
+      mkModel({ id: "aa-no-intel", aa: { codingIndex: 40 } }),
+    ];
+    expect(store.getDisplayed().map((m) => m.id)).toEqual(["aa-hit"]);
+  });
+
+  it("HF 视角只保留有 huggingface 切片的行", () => {
+    store.activeView.value = "huggingface";
+    store.activeDim.value = "hf_downloads";
+    store.items.value = [
+      mkModel({ id: "hf-hit", huggingface: { downloads: 1000, likes: 1 } }),
+      mkModel({ id: "md-only", modelsdev: { context: 32 } }),
+    ];
+    expect(store.getDisplayed().map((m) => m.id)).toEqual(["hf-hit"]);
   });
 });
 
