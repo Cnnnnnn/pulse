@@ -22,6 +22,7 @@ const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } =
 const {
   cacheKey,
   readCache,
+  readLatestCache,
   writeCache,
   isStale,
   __resetForTest,
@@ -136,5 +137,17 @@ describe("cache.js: gzip 往返 + 兼容升级", () => {
     const out = readCache(key);
     expect(out).not.toBeNull();
     expect(out.data).toEqual({ a: 1 });
+  });
+
+  it("readLatestCache：今日 key 不存在时回退到同 source:board 最新日期", () => {
+    writeCache(cacheKey("arena", "all", "2026-07-20"), { day: 20 });
+    writeCache(cacheKey("arena", "all", "2026-07-23"), { day: 23 });
+    writeCache(cacheKey("openrouter", "models", "2026-07-23"), { other: true });
+    __resetForTest();
+    __setCacheDirForTest(tmpDir);
+    // 不写 2026-07-24
+    const out = readLatestCache("arena", "all");
+    expect(out).not.toBeNull();
+    expect(out.data).toEqual({ day: 23 });
   });
 });

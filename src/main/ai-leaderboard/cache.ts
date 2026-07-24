@@ -92,6 +92,41 @@ export function readCache(key: string): { data: any; fetchedAt: number } | null 
 }
 
 /**
+ * 跨日 stale 回退：今天的 key 不存在时，找同 source:board 最新一份磁盘缓存。
+ * ponytail: 缓存键带 UTC 日期，跨日首次打开若实时拉取失败会直接掉 sample；
+ *   升级路径：键改成无日期、只靠 fetchedAt+TTL（更大行为变更）。
+ */
+export function readLatestCache(source: string, board: string): { data: any; fetchedAt: number } | null {
+  const prefix = `ai-lb:${source}:${board}:`;
+  const dir = getCacheDir();
+  if (!dir) {
+    // 内存态：扫 Map 里同前缀最新 fetchedAt
+    let best: { data: any; fetchedAt: number } | null = null;
+    for (const [k, v] of _memCache) {
+      if (!k.startsWith(prefix) || !v || typeof v.fetchedAt !== "number") continue;
+      if (!best || v.fetchedAt > best.fetchedAt) best = v;
+    }
+    return best;
+  }
+  let bestKey: string | null = null;
+  let bestDate = "";
+  try {
+    for (const name of fs.readdirSync(dir as string)) {
+      const key = decodeURIComponent(name.replace(/\.json\.gz$/, "").replace(/\.json$/, ""));
+      if (!key.startsWith(prefix)) continue;
+      const date = key.slice(prefix.length); // YYYY-MM-DD
+      if (date > bestDate) {
+        bestDate = date;
+        bestKey = key;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return bestKey ? readCache(bestKey) : null;
+}
+
+/**
  * 写缓存。
  * @param key
  * @param data
@@ -134,6 +169,7 @@ export function __setCacheDirForTest(dir: any) {
 module.exports = {
   cacheKey,
   readCache,
+  readLatestCache,
   writeCache,
   isStale,
   getCacheDir,

@@ -48,6 +48,8 @@ function boardCacheKey(opts: any) {
     vendor: opts.vendor,
     sortDir: opts.sortDir,
     search: opts.search || "",
+    // ponytail: sources 必须进 key — 否则 arena/aa 等视角互相污染 IPC 5min 缓存
+    sources: opts.sources || null,
   });
 }
 

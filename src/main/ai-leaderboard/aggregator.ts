@@ -22,7 +22,7 @@ const modelsDevFetcher = require("./fetcher-models-dev.ts");
 const huggingfaceFetcher = require("./fetcher-huggingface.ts");
 const { getSampleModels } = require("./sample.ts");
 const { sortModels, filterByVendor, filterBySearch } = require("./ranking.ts");
-const { cacheKey, readCache, writeCache, isStale } = require("./cache.ts");
+const { cacheKey, readCache, readLatestCache, writeCache, isStale } = require("./cache.ts");
 const { acquire, budget } = require("./rate-limiter.ts");
 const { getPreviousArenaRanks, computeRankDelta, getArenaRankSeriesMap } = require("./history.ts");
 const { logFetchError } = require("../games/log.ts");
@@ -65,6 +65,7 @@ function _today(): string {
  */
 async function getBoardRaw(fetcher: any, cacheSource: string, cacheBoard: string, ttl: number, force: boolean): Promise<any> {
   const key = cacheKey(cacheSource, cacheBoard, _today());
+  let staleRaw: any;
   if (!force) {
     const c = readCache(key);
     if (c && !isStale(c.fetchedAt, ttl)) {
@@ -72,7 +73,7 @@ async function getBoardRaw(fetcher: any, cacheSource: string, cacheBoard: string
     }
     if (c) {
       // 过期但存在：先作为 stale 回退候选
-      var staleRaw = c.data;
+      staleRaw = c.data;
     }
   }
   let res: any;
@@ -87,12 +88,14 @@ async function getBoardRaw(fetcher: any, cacheSource: string, cacheBoard: string
     writeCache(key, res.data);
     return { raw: res.data, stale: false, fromCache: false, error: null };
   }
-  // 实时失败：优先用过期缓存（stale），否则 null
+  // 实时失败：优先用今日过期缓存，再跨日找最近一份，避免新日首次失败直接掉 sample
   if (typeof staleRaw !== "undefined") {
     return { raw: staleRaw, stale: true, fromCache: true, error: _lastErrorFor(cacheSource) };
   }
   const c2 = readCache(key);
   if (c2) return { raw: c2.data, stale: true, fromCache: true, error: _lastErrorFor(cacheSource) };
+  const latest = readLatestCache(cacheSource, cacheBoard);
+  if (latest) return { raw: latest.data, stale: true, fromCache: true, error: _lastErrorFor(cacheSource) };
   return { raw: null, stale: false, fromCache: false, error: _lastErrorFor(cacheSource) };
 }
 

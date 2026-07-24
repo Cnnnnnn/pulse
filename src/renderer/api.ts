@@ -14,7 +14,7 @@
  * - 提供一个 clean trigger() helper 给 bootstrap 用
  */
 
-const noop = () => {};
+const noop = () => Promise.resolve(undefined);
 
 // 缺 IPC bridge 时在 dev 模式一次性 warn — 2026-06-28 「检查更新」按钮无反应
 // 根因是 preload 漏暴露 versionsRunCheck, 而 pick() 静默 fallback 到 noop 让人
