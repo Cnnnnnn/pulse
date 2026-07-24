@@ -32,7 +32,7 @@ import { ConfigImportModal } from "./ConfigImportModal.tsx";
 import { PanelEmpty } from "./EmptyState.tsx";
 import { KPICard } from "./KPICard.tsx";
 import { StatusBadge } from "./Badge.tsx";
-import { IconCheck } from "./icons.jsx";
+import { IconCheck } from "./icons.tsx";
 import { navigateTo } from "../store/route-store.ts";
 
 function fmtTs(ts) {

@@ -7,7 +7,7 @@
 
 import { getLocalTier } from '../store.ts';
 import { UpgradeAdvice } from './UpgradeAdvice.tsx';
-import { IconVolumeOff, IconInfo } from './icons.jsx';
+import { IconVolumeOff, IconInfo } from './icons.tsx';
 import type { ResultLike } from './appTypes.ts';
 
 type LastOpened = { ms: number | null; source?: string };

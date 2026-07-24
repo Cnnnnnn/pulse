@@ -9,7 +9,7 @@
  */
 
 import { listTeams } from './teams-data.js';
-import { TeamFlag } from '../components/icons.jsx';
+import { TeamFlag } from '../components/icons.tsx';
 import { worldcupMatches } from './store.js';
 import {
   computeGroupStandings,

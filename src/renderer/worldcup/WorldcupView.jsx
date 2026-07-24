@@ -24,7 +24,7 @@ import {
 import { WorldcupBetsStats } from './WorldcupBetsStats.jsx';
 import { trackWorldcupMatchView } from '../recent/track.ts';
 import { DayBetFooter } from './DayBetFooter.jsx';
-import { IconAlert } from '../components/icons.jsx';
+import { IconAlert } from '../components/icons.tsx';
 
 const WEEKDAYS_CN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 

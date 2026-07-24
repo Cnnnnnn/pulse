@@ -3,7 +3,7 @@
  *
  * Phase I1+I5: per-section rendering inside DigestDrawer.
  */
-import { DigestSectionIcon } from '../components/icons.jsx';
+import { DigestSectionIcon } from '../components/icons.tsx';
 
 const LABELS = {
   updates: { title: '可升级应用' },

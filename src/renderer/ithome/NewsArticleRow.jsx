@@ -18,7 +18,7 @@ import { formatArticleTime, formatExcerptPreview } from "./news-utils.js";
 import { NewsArticleSummary } from "./NewsArticleSummary.jsx";
 import { NewsShareToast } from "./NewsShareToast.jsx";
 import { refreshAIReadyStatus } from "../store.ts";
-import { PinIcon, IconSparkles, IconShare } from "../components/icons.jsx";
+import { PinIcon, IconSparkles, IconShare } from "../components/icons.tsx";
 
 function mapAiError(reason) {
   if (

@@ -2,7 +2,7 @@
  * 单条结果卡片 — 标题(高亮) + matchedSnippet + 来源标签 + 时间
  */
 import DOMPurify from 'dompurify';
-import { SearchSourceIcon } from '../components/icons.jsx';
+import { SearchSourceIcon } from '../components/icons.tsx';
 
 function formatTimeAgo(ms) {
   if (!ms) return '';

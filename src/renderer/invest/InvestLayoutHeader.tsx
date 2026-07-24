@@ -21,7 +21,7 @@ import {
   setInvestPrimary,
 } from "../worldcup/navStore.js";
 import { stockActiveTab } from "../stocks/diagnosisStore.js";
-import { IconCoin as IconInvest, IconRefresh } from "../components/icons.jsx";
+import { IconCoin as IconInvest, IconRefresh } from "../components/icons.tsx";
 import { SubtabList } from "../components/SubtabList.tsx";
 
 export const INVEST_PRIMARY_TABS = [

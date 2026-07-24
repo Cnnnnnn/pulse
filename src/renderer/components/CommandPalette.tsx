@@ -13,7 +13,7 @@ import { navigateTo } from "../store/route-store.ts";
 import { api } from "../api.js";
 import { setThemePreference } from "../theme/theme-manager.ts";
 import { showToast } from "../store.ts";
-import { IconSearch } from "./icons.jsx";
+import { IconSearch } from "./icons.tsx";
 
 const KIND_LABEL: Record<string, string> = { app: "应用", action: "操作", view: "页面" };
 

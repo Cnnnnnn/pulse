@@ -12,7 +12,7 @@ import {
   filterScorersLeaderboard,
   flattenBracketMatches,
 } from './scorers-leaderboard.js';
-import { TeamFlag } from '../components/icons.jsx';
+import { TeamFlag } from '../components/icons.tsx';
 
 // ponytail: 阶段过滤 tab 状态. 小组赛 (group) / 淘汰赛 (knockout) / 全部 (all).
 // 不持久化, 切 tab 重置为 group.

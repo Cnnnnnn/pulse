@@ -15,8 +15,8 @@ import {
   requestAiAdvise,
   applyAiAdvise,
 } from "./stockStore.js";
-import { AIDrawerShell } from "../components/AIDrawerShell.jsx";
-import { IconSparkles, IconBarChart, IconAlert } from "../components/icons.jsx";
+import { AIDrawerShell } from "../components/AIDrawerShell.tsx";
+import { IconSparkles, IconBarChart, IconAlert } from "../components/icons.tsx";
 
 // ponytail: 6 个预设 chip 跟 strategies.js 同级硬编码 (不开新 store 模块).
 //   label 给用户看, id 是 LLM prompt 里的"意图标识".

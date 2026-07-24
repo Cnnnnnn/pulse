@@ -14,12 +14,12 @@
 
 import { memo } from 'preact/compat';
 import { displayTeam } from './teams-data.js';
-import { TeamFlag } from '../components/icons.jsx';
+import { TeamFlag } from '../components/icons.tsx';
 import { toBeijingTime } from './timeUtils.js';
 import MatchScorers from './MatchScorers.jsx';
 import MatchCardAi from './MatchCardAi.jsx';
 import { matchKey as computeMatchKey } from '../../utils/match-key.js';
-import { IconClock } from '../components/icons.jsx';
+import { IconClock } from '../components/icons.tsx';
 
 // TXT 阶段 → 中文
 const STAGE_CN = {

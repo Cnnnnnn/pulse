@@ -6,7 +6,7 @@
 
 import { useMatchAi } from './useMatchAi.js';
 import { formatInsightText } from './insight-text.js';
-import { IconEdit, IconWand } from '../components/icons.jsx';
+import { IconEdit, IconWand } from '../components/icons.tsx';
 
 export function MatchCardAi({ match, score }) {
   const ai = useMatchAi(match, score);

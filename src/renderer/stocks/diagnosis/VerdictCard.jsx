@@ -16,7 +16,7 @@
  */
 import { useEffect, useState } from "preact/hooks";
 import { requestAiSummary } from "../diagnosisStore.js";
-import { IconSparkles, IconWand, IconCheck, IconAlert } from "../../components/icons.jsx";
+import { IconSparkles, IconWand, IconCheck, IconAlert } from "../../components/icons.tsx";
 
 const SIGNAL_META = {
   positive: { label: "整体偏积极", tone: "positive" },

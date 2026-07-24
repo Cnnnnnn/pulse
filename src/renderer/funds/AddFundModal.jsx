@@ -12,7 +12,7 @@ import { inferCategoryFromFtype, categoryLabel } from '../../funds/fund-category
 import { api } from '../api.js';
 import { BareModalShell } from '../components/ModalShell.tsx';
 import { TabList, Tab } from '../components/TabList.tsx';
-import { IconCoin, IconBarChart } from '../components/icons.jsx';
+import { IconCoin, IconBarChart } from '../components/icons.tsx';
 
 function initialForm(holding) {
   if (holding) {

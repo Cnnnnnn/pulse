@@ -18,7 +18,7 @@ import {
   results,
 } from "./stockStore.js";
 import { MARKET_CAP_TIERS } from "../../stocks/stock-constants";
-import { IconSettings } from "../components/icons.jsx";
+import { IconSettings } from "../components/icons.tsx";
 
 function RangeInput({ label, minKey, maxKey, suffix }) {
   const c = criteria.value;

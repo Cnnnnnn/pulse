@@ -44,7 +44,7 @@ import {
   moveToBottom,
 } from './sidenav-prefs.js';
 import { HiddenItemsDrawer } from './HiddenItemsDrawer.tsx';
-import { IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.jsx';
+import { IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.tsx';
 import { navigateTo } from '../store/route-store.ts';
 
 // Phase v1: 3 个动态 nav tab 跟 tray 菜单 prefs 同步 (菜单栏 + 主面板 tab 联动).

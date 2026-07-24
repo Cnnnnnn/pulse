@@ -35,7 +35,7 @@
 
 import { useEffect, useRef, useState, useLayoutEffect } from 'preact/hooks';
 import { setMute, clearMute, getLocalTier } from '../store.ts';
-import { IconBell, IconVolumeOff, IconSparkles } from './icons.jsx';
+import { IconBell, IconVolumeOff, IconSparkles } from './icons.tsx';
 
 const BASE_OPTIONS = [
   { label: '1 天',     seconds: 1 * 24 * 3600 },

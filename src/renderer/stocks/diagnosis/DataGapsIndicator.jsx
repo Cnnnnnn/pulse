@@ -6,7 +6,7 @@
  *          (如 "数据源请求失败" / "该股无行业归属数据, 跳过同业对比").
  *          1 个 component 1 个 function, 不接 props / 不做动画, 只管展示.
  */
-import { IconAlert } from "../../components/icons.jsx";
+import { IconAlert } from "../../components/icons.tsx";
 import { gapReasonText } from "../diagnosisStore.js";
 
 export function DataGapsIndicator({ gaps }) {

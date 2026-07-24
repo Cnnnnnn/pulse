@@ -36,7 +36,7 @@ import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
 import { todayKey } from "../../ai-usage/history-series.js";
 import { UsageDashboard } from "./UsageDashboard.tsx";
 import { taggedLog } from "../log.js";
-import { IconBell } from "./icons.jsx";
+import { IconBell } from "./icons.tsx";
 
 const log = taggedLog("[ai-usage]");
 

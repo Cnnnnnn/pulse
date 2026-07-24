@@ -8,7 +8,7 @@ import { useState } from 'preact/hooks';
 import { alertPrefs, closeAlertModal, saveAlertPrefs } from './fundStore.js';
 import { api } from '../api.js';
 import { BareModalShell } from '../components/ModalShell.tsx';
-import { IconBell } from '../components/icons.jsx';
+import { IconBell } from '../components/icons.tsx';
 
 export function FundAlertModal() {
   const cur = alertPrefs.value;

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/preact";
-import { IconCommand, IconGrid } from "../../src/renderer/components/icons.jsx";
+import { IconCommand, IconGrid } from "../../src/renderer/components/icons.tsx";
 
 describe("new icons", () => {
   it("IconCommand 渲染 svg", () => {

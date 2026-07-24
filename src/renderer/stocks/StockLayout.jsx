@@ -28,7 +28,7 @@ import { ResultTable } from "./ResultTable.jsx";
 import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
 import { CompareDrawer } from "./CompareDrawer.jsx";
 import { ComparePoolButton } from "./ComparePoolButton.jsx";
-import { IconSearch, IconSparkles } from "../components/icons.jsx";
+import { IconSearch, IconSparkles } from "../components/icons.tsx";
 import { stockActiveTab, diagnosisState } from "./diagnosisStore.js";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
 import { DataHealthBadge } from "./diagnosis/DataHealthBadge.jsx";

@@ -13,7 +13,7 @@ import {
 import { tabCounts } from "../selectors.js";
 import { results } from "../store.ts";
 import { getCategoryTabsWithCount } from "../../config/category.js";
-import { IconSearch } from "./icons.jsx";
+import { IconSearch } from "./icons.tsx";
 
 const STATUS_TABS = [
   { key: "all", label: "全部" },

@@ -11,7 +11,7 @@
  * ponytail: 2026-07-07 — 加 failed prop: 换一句失败时按钮闪红 + 文字变"重试失败, 再试一次",
  * 2 秒后自动复原 (failed 由 store 的 failedAngles 信号 2 秒后清掉).
  */
-import { IconSparkles, IconRefresh } from "../../components/icons.jsx";
+import { IconSparkles, IconRefresh } from "../../components/icons.tsx";
 
 export function AiNoteLine({ note, refreshing, onRefresh, failed }) {
   if (!note && !failed) return null;

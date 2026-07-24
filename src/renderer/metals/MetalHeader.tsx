@@ -8,7 +8,7 @@
  */
 import { useState } from "preact/hooks";
 import { schedulerState, refreshNow } from "./metalStore.ts";
-import { IconMedal, IconRefresh } from "../components/icons.jsx";
+import { IconMedal, IconRefresh } from "../components/icons.tsx";
 import { showToast } from "../store.ts";
 
 function formatTime(ts) {

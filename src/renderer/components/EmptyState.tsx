@@ -3,7 +3,7 @@
  */
 import type { ComponentChildren } from "preact";
 import { searchQuery, activeFilter } from "../store.ts";
-import { IconPackage, IconSearch } from "./icons.jsx";
+import { IconPackage, IconSearch } from "./icons.tsx";
 
 export function EmptyState({ filtered = false }: { filtered?: boolean }) {
   if (!filtered) {

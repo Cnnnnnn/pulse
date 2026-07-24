@@ -26,7 +26,7 @@ import {
   IconRefresh,
   IconCheck,
   IconGithub,
-} from "../components/icons.jsx";
+} from "../components/icons.tsx";
 import {
   githubProjects,
   githubBusyId,

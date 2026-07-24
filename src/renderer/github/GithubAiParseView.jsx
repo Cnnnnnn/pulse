@@ -5,7 +5,7 @@
  * 展示：一句话定位 / 使用方法 / 核心功能 / 适用场景 / 关键词。
  */
 
-import { IconRefresh } from "../components/icons.jsx";
+import { IconRefresh } from "../components/icons.tsx";
 import { githubReasonText } from "../store/github-projects-store.ts";
 
 function escapeHtml(s) {

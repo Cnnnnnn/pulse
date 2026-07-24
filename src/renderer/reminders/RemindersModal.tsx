@@ -30,7 +30,7 @@ import { openConfirm } from "../store/confirmStore.ts";
 import { Badge } from "../components/Badge.tsx";
 import { ModalShell, ModalHeader } from "../components/ModalShell.tsx";
 import { PanelEmpty } from "../components/EmptyState.tsx";
-import { IconBell, IconCheck, IconX, IconMoreHorizontal } from "../components/icons.jsx";
+import { IconBell, IconCheck, IconX, IconMoreHorizontal } from "../components/icons.tsx";
 
 const REPEATS = [
   { id: "once", label: "一次" },

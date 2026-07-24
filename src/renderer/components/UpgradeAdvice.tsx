@@ -6,7 +6,7 @@
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
 import { humanizeAiError } from "../../ai/ai-errors.js";
-import { IconRefresh, IconThumbsUp, IconThumbsDown, IconSparkles } from "./icons.jsx";
+import { IconRefresh, IconThumbsUp, IconThumbsDown, IconSparkles } from "./icons.tsx";
 
 const REC_LABELS: Record<string, string> = {
   upgrade: "建议升级",

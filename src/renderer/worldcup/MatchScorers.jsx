@@ -5,7 +5,7 @@
  */
 
 import { displayTeam } from './teams-data.js';
-import { TeamFlag, IconFootball } from '../components/icons.jsx';
+import { TeamFlag, IconFootball } from '../components/icons.tsx';
 import { resolvePlayerCnByName } from './player-cn.js';
 
 function formatScorer(s) {

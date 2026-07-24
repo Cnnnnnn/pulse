@@ -20,7 +20,7 @@ import {
   clearBracketError,
 } from "./bracketStore.js";
 import { trackWorldcupMatchView } from "../recent/track.ts";
-import { IconAlert, IconRefresh, IconLoader } from "../components/icons.jsx";
+import { IconAlert, IconRefresh, IconLoader } from "../components/icons.tsx";
 
 function formatRelativeTime(ts) {
   if (!ts) return "从未计算";

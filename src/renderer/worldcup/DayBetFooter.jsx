@@ -11,7 +11,7 @@
  */
 import { useState, useRef, useEffect } from "preact/hooks";
 import { openConfirm } from "../store/confirmStore.ts";
-import { PnlSignIcon } from "../components/icons.jsx";
+import { PnlSignIcon } from "../components/icons.tsx";
 import {
   worldcupBets,
   upsertWorldcupBet,

@@ -10,7 +10,7 @@ import {
   saveAiUsageAlertPrefs,
 } from '../store/ai-usage-store.ts';
 import { BareModalShell } from './ModalShell.tsx';
-import { IconBarChart } from './icons.jsx';
+import { IconBarChart } from './icons.tsx';
 
 export function AIUsageAlertModal() {
   const cur = aiUsageAlertPrefs.value;

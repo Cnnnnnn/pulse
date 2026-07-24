@@ -13,7 +13,7 @@ import {
 } from "../store/prompt-store.ts";
 import { showToast } from "../store.ts";
 import { api } from "../api.js";
-import { PromptSectionIcon } from "./icons.jsx";
+import { PromptSectionIcon } from "./icons.tsx";
 
 export function PromptSettings() {
   const prompts = aiPrompts.value;

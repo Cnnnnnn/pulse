@@ -44,7 +44,7 @@ import { FundSparkline } from "./FundSparkline.jsx";
 import { FundAllocationDonut } from "./FundAllocationDonut.jsx";
 import { computeConcentration } from "../../funds/concentration.js";
 import { fmtCurrency, fmtPct } from "../../funds/format.js";
-import { IconRefresh } from "../components/icons.jsx";
+import { IconRefresh } from "../components/icons.tsx";
 import { openAddModal } from "./fundStore.js";
 import { openFundDetail } from "./fundRoute.js";
 import { showToast } from "../store/toast-store.ts";

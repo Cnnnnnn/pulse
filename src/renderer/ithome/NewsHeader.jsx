@@ -10,7 +10,7 @@ import {
   ithomeFavorites,
 } from "./store.js";
 import { currentMonthLabel, favoriteCount } from "./news-utils.js";
-import { IconNews, IconRefresh, IconCalendar, IconStar } from "../components/icons.jsx";
+import { IconNews, IconRefresh, IconCalendar, IconStar } from "../components/icons.tsx";
 import { SubtabList } from "../components/SubtabList.tsx";
 import { FeatureHeader } from "../components/FeatureHeader.tsx";
 

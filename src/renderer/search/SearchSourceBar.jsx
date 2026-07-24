@@ -2,7 +2,7 @@
  * 左侧来源栏 — 各源命中数 + 点击切源
  */
 import { searchCounts, searchActiveSource, setSearchActiveSource } from './searchStore.js';
-import { SearchSourceIcon } from '../components/icons.jsx';
+import { SearchSourceIcon } from '../components/icons.tsx';
 
 const SOURCES = [
   { key: null, label: '全部' },

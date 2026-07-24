@@ -30,7 +30,7 @@ import {
 } from '../store/store-bulk-upgrade.ts';
 import { taggedLog } from '../log.js';
 import { ModalShell } from './ModalShell.tsx';
-import { BulkStatusIcon, IconRotateCcw } from './icons.jsx';
+import { BulkStatusIcon, IconRotateCcw } from './icons.tsx';
 
 const log = taggedLog("[bulk-upgrade]");
 

@@ -8,7 +8,7 @@
 import { useEffect } from 'preact/hooks';
 import { activeCategory, categoryCounts, setActiveCategory } from './fundStore.js';
 import { TabList, Tab } from '../components/TabList.tsx';
-import { CategoryTabIcon } from '../components/icons.jsx';
+import { CategoryTabIcon } from '../components/icons.tsx';
 
 const TABS = [
   { id: 'all',   name: '全部',   title: '全部基金' },

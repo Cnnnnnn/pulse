@@ -4,7 +4,7 @@ import { render, fireEvent } from '@testing-library/preact';
 import { TabList, Tab } from '../../src/renderer/components/TabList.tsx';
 import { Badge, StatusBadge } from '../../src/renderer/components/Badge.tsx';
 import { ModalShell } from '../../src/renderer/components/ModalShell.tsx';
-import { CategoryTabIcon, NavIcon, WorldcupTabIcon } from '../../src/renderer/components/icons.jsx';
+import { CategoryTabIcon, NavIcon, WorldcupTabIcon } from '../../src/renderer/components/icons.tsx';
 
 describe('TabList', () => {
   it('chip variant 渲染 filter-tab active 类', () => {

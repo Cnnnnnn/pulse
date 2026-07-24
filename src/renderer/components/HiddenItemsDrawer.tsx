@@ -6,7 +6,7 @@
 
 import { DrawerShell } from './DrawerShell.tsx';
 import { DrawerEmpty } from './EmptyState.tsx';
-import { NavIcon } from './icons.jsx';
+import { NavIcon } from './icons.tsx';
 
 export function HiddenItemsDrawer({ open, hiddenItems = [], onRestore, onClose }) {
   return (

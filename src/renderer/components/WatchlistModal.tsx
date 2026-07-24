@@ -22,7 +22,7 @@ import {
 } from "../watchlist/watchlist-store.ts";
 import { getMetalById } from "../../metals/metal-config.js";
 import { ModalShell, ModalHeader } from "./ModalShell.tsx";
-import { IconStar, IconX, WatchlistTypeIcon } from "./icons.jsx";
+import { IconStar, IconX, WatchlistTypeIcon } from "./icons.tsx";
 
 function fmtTs(ts) {
   if (!ts || typeof ts !== "number") return "";

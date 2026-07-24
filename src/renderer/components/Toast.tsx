@@ -15,7 +15,7 @@
  */
 
 import { toast, dismissToast } from '../store.ts';
-import { ToastTypeIcon } from './icons.jsx';
+import { ToastTypeIcon } from './icons.tsx';
 
 const TOAST_DEFAULT_MS = 5000;
 const TOAST_MAX_VISIBLE = 3;

@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useRef } from 'preact/hooks';
-import { IconFootball, IconRefresh, WorldcupTabIcon } from '../components/icons.jsx';
+import { IconFootball, IconRefresh, WorldcupTabIcon } from '../components/icons.tsx';
 import { SubtabList } from '../components/SubtabList.tsx';
 import { FeatureHeader } from '../components/FeatureHeader.tsx';
 

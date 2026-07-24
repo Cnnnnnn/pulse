@@ -27,7 +27,7 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconTrash,
-} from "./icons.jsx";
+} from "./icons.tsx";
 
 type SideNavItemLike = {
   key: string;

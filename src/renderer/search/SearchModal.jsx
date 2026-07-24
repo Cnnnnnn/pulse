@@ -15,7 +15,7 @@ import { SearchSourceBar } from './SearchSourceBar.jsx';
 import { SearchResultList } from './SearchResultList.jsx';
 import { navigateToResult } from './search-nav.js';
 import { ModalShell } from '../components/ModalShell.tsx';
-import { IconSearch } from '../components/icons.jsx';
+import { IconSearch } from '../components/icons.tsx';
 
 export function SearchModal() {
   const inputRef = useRef(null);

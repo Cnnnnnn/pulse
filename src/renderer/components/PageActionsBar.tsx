@@ -21,7 +21,7 @@ import { navigateTo } from "../store/route-store.ts";
 import {
   IconBot, IconMoreHorizontal,
   IconStar, IconSettings, IconCalendar, IconNote,
-} from "./icons.jsx";
+} from "./icons.tsx";
 
 export function PageActionsBar() {
   const [menuOpen, setMenuOpen] = useState(false);

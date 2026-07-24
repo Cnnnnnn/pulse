@@ -219,7 +219,7 @@ export function openDigestDrawer(open = true) {
   if (!open) digestConfigMode.value = false;
 }
 
-export function toggleDigestDrawer() {
+export function toggleDigestDrawer(): void {
   const next = !aiTasksDrawerOpen.value;
   aiTasksDrawerOpen.value = next;
   if (!next) digestConfigMode.value = false;

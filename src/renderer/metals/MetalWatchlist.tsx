@@ -13,7 +13,7 @@ import {
 import { METALS } from "../../metals/metal-config.js";
 import { calcChange } from "../../metals/metal-calc.js";
 import { Sparkline } from "../components/Sparkline.tsx";
-import { PinIcon, IconAlert } from "../components/icons.jsx";
+import { PinIcon, IconAlert } from "../components/icons.tsx";
 import { showToast } from "../store.ts";
 import {
   isMetalPinned, addWatchlistItem, removeWatchlistItem,

@@ -26,7 +26,7 @@ import {
   runAIHealthcheck,
   saveAISessionsConfig,
 } from '../store.ts';
-import { IconCheck, IconX } from './icons.jsx';
+import { IconCheck, IconX } from './icons.tsx';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.
 // - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).

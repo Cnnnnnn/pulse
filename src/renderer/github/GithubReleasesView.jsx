@@ -17,7 +17,7 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconAlert,
-} from "../components/icons.jsx";
+} from "../components/icons.tsx";
 import {
   githubDensity,
   fetchGithubRelease,

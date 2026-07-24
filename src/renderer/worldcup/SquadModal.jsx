@@ -7,7 +7,7 @@
  */
 
 import { lookupTeam, displayTeam } from './teams-data.js';
-import { TeamFlag, IconClock, IconMapPin } from '../components/icons.jsx';
+import { TeamFlag, IconClock, IconMapPin } from '../components/icons.tsx';
 import { resolvePlayerCn } from './player-cn.js';
 import { toBeijingTime } from './timeUtils.js';
 import MatchScorers from './MatchScorers.jsx';

@@ -12,7 +12,7 @@
  * splitBracketByHalf 保留导出供测试 (如果以后想再尝试 horizontal 树, 直接复用).
  */
 
-import { TeamFlag, IconLock, IconCheck, IconClock } from "../components/icons.jsx";
+import { TeamFlag, IconLock, IconCheck, IconClock } from "../components/icons.tsx";
 import { displayTeam } from "./teams-data.js";
 import { toBeijingTime } from "./timeUtils.js";
 

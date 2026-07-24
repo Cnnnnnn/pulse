@@ -1,5 +1,5 @@
 import { viewMode, setViewMode } from "../store/library-view-store.ts";
-import { IconList, IconGrid } from "./icons.jsx";
+import { IconList, IconGrid } from "./icons.tsx";
 
 export function ViewSwitcher() {
   return (

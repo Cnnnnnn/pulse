@@ -10,7 +10,7 @@
 import { useState } from "preact/hooks";
 import { api } from "../api.js";
 import { humanizeAiError } from "../../ai/ai-errors.js";
-import { IconSparkles } from "./icons.jsx";
+import { IconSparkles } from "./icons.tsx";
 
 type Summary = {
   ok?: boolean;

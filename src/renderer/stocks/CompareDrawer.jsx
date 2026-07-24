@@ -13,7 +13,7 @@
  * 颜色用 DimensionScores 同款 (绿/蓝/橙/红).
  */
 import { useEffect, useRef } from "preact/hooks";
-import { AIDrawerShell } from "../components/AIDrawerShell.jsx";
+import { AIDrawerShell } from "../components/AIDrawerShell.tsx";
 import {
   comparePool,
   compareDrawerOpen,

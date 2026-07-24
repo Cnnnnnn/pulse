@@ -18,19 +18,19 @@ import { activeCategory as filterCategory } from "./category-mute-store.ts";
 export { filterStatus, filterCategory, searchQuery };
 export const viewMode = signal("table");
 
-export function setViewMode(mode) {
+export function setViewMode(mode: "table" | "card") {
   if (mode === "table" || mode === "card") viewMode.value = mode;
 }
-export function setFilterStatus(s) {
+export function setFilterStatus(s: string) {
   filterStatus.value = s;
 }
-export function setFilterCategory(c) {
+export function setFilterCategory(c: string) {
   filterCategory.value = c;
 }
-export function setSearchQuery(q) {
+export function setSearchQuery(q: string) {
   searchQuery.value = q;
 }
-export function resetLibraryFilters() {
+export function resetLibraryFilters(): void {
   viewMode.value = "table";
   filterStatus.value = "all";
   filterCategory.value = "all";

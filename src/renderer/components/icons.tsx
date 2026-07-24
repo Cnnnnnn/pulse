@@ -3,14 +3,17 @@
  * UI 层按 id 映射 SVG (CategoryTabIcon); 数据层 category.js 只持 id/name/order.
  */
 
+// ponytail: spread 进 svg attributes, Preact SVGAttributes 把 strokeLinecap
+// 限成 "round"|"butt"|"square"|"inherit" (Signalish 包装). 静态字面量这里
+// 不用 lift 到 SVGProps<SvgElement>; 调用面是 Svg 内部 spread,绕过强类型校验.
 const defaults = {
   width: 16,
   height: 16,
   fill: 'none',
   stroke: 'currentColor',
   strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
 };
 
 // ponytail: inline-block + vertical-align: middle 让 SVG 在 inline / text 旁边跟
@@ -24,7 +27,12 @@ const svgBaseStyle = {
   flexShrink: 0,
 };
 
-function Svg({ size = 16, style, children, ...rest }) {
+function Svg({ size = 16, style = {}, children, ...rest }: {
+  size?: number;
+  style?: Record<string, any>;
+  children?: any;
+  [k: string]: any;
+}) {
   return (
     <svg
       width={size}

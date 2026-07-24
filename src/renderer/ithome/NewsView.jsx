@@ -23,7 +23,7 @@ import {
   sidebarDayCount,
 } from "./news-utils.js";
 import { NewsArticleRow } from "./NewsArticleRow.jsx";
-import { PinIcon, IconRefresh } from "../components/icons.jsx";
+import { PinIcon, IconRefresh } from "../components/icons.tsx";
 
 export function NewsView({ search = "", onRefresh }) {
   const loaded = ithomeNewsLoaded.value;
