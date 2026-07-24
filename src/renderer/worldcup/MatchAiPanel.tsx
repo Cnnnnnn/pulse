@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/MatchAiPanel.jsx
+ * src/renderer/worldcup/MatchAiPanel.tsx
  *
  * 比赛详情弹窗内的 AI 分析（完整版）
  */

@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/flags.jsx
+ * src/renderer/worldcup/flags.tsx
  *
  * 世界杯参赛队国旗 — 彩色真实国旗 SVG (4:3 viewBox 60x40).
  *

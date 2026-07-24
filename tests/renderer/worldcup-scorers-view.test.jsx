@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/preact";
-import { WorldcupScorersView } from "../../src/renderer/worldcup/WorldcupScorersView.jsx";
+import { WorldcupScorersView } from "../../src/renderer/worldcup/WorldcupScorersView.tsx";
 import { worldcupMatches } from "../../src/renderer/worldcup/store.js";
 import { worldcupBracket } from "../../src/renderer/worldcup/bracketStore.js";
 

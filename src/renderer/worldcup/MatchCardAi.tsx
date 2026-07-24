@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/MatchCardAi.jsx
+ * src/renderer/worldcup/MatchCardAi.tsx
  *
  * 赛程卡片上的 AI 按钮（紧凑版，点击不打开大名单弹窗）
  */

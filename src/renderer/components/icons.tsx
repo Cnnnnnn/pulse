@@ -617,9 +617,9 @@ export function IconLock({ size = 14 }) {
  * 队旗渲染: 有 ISO code → 彩色真实国旗 SVG (4:3, 来自 flags.jsx);
  * 无 code → 通用 IconFlag 占位. 国旗必须用真实配色, 不走 stroke/currentColor.
  */
-import { FLAG_SVGS } from "../worldcup/flags.jsx";
+import { FLAG_SVGS } from "../worldcup/flags.tsx";
 
-export function TeamFlag({ code, size = 16, className }) {
+export function TeamFlag({ code, size = 16, className }: { code: string; size?: number; className?: string }) {
   const key = code ? String(code).toUpperCase() : null;
   const label = key;
   const flagSvg = key ? FLAG_SVGS[key] : null;

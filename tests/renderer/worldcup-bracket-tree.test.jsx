@@ -35,7 +35,7 @@ describe("BracketTree (fallback only)", () => {
     }));
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
     Object.defineProperty(global.window, "innerWidth", { value: 1200, configurable: true, writable: true });
-    const mod = await import("../../src/renderer/worldcup/BracketTree.jsx");
+    const mod = await import("../../src/renderer/worldcup/BracketTree.tsx");
     BracketTree = mod.BracketTree;
   });
   afterEach(() => {
@@ -410,7 +410,7 @@ describe("splitBracketByHalf (保留 API, 不被 fallback 调用)", () => {
     }));
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
     Object.defineProperty(global.window, "innerWidth", { value: 1200, configurable: true, writable: true });
-    const mod = await import("../../src/renderer/worldcup/BracketTree.jsx");
+    const mod = await import("../../src/renderer/worldcup/BracketTree.tsx");
     splitBracketByHalf = mod.splitBracketByHalf;
   });
   afterEach(() => {

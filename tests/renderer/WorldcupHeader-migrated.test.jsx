@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from "vitest";
 import { render } from "@testing-library/preact";
-import { WorldcupHeader } from "../../src/renderer/worldcup/WorldcupHeader.jsx";
+import { WorldcupHeader } from "../../src/renderer/worldcup/WorldcupHeader.tsx";
 
 describe("WorldcupHeader migrated to FeatureHeader shell", () => {
   beforeEach(() => {

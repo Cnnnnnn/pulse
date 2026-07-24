@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/WorldcupLayout.jsx
+ * src/renderer/worldcup/WorldcupLayout.tsx
  *
  * v2.9.1 — 抽 [世界杯] tab 自己的 layout 容器 (完全独立)
  *
@@ -54,7 +54,7 @@ export function WorldcupLayout() {
       setSubTab("fixtures");
       setFocusMatchKey(matchKey);
     });
-    return () => { if (typeof off === "function") off(); };
+    return () => { if (typeof off === "function") (off as () => void)(); };
   }, []);
 
   // v2.51: 订阅 main 进程比分推送 + 60s 轮询兜底.

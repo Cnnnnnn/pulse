@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, waitFor, fireEvent } from "@testing-library/preact";
-import { DayBetFooter } from "../../src/renderer/worldcup/DayBetFooter.jsx";
+import { DayBetFooter } from "../../src/renderer/worldcup/DayBetFooter.tsx";
 import { worldcupBets } from "../../src/renderer/worldcup/betsStore.js";
 
 describe("DayBetFooter v2.10.1 polish", () => {

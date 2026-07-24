@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/WorldcupBetsStats.jsx
+ * src/renderer/worldcup/WorldcupBetsStats.tsx
  *
  * v2.10.0 顶部 stats card — 总投入 / 总盈亏 / 已填 / 未填 / 盈亏率
  */

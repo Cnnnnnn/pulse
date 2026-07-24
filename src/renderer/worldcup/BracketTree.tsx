@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/BracketTree.jsx
+ * src/renderer/worldcup/BracketTree.tsx
  *
  * World Cup 淘汰赛对阵 — v1 5 段垂直堆叠 (fallback 版).
  *
@@ -374,7 +374,7 @@ function splitBracketByHalf(snapshot) {
   };
 }
 
-export function BracketTree({ snapshot, onMatchClick, currentStage }) {
+export function BracketTree({ snapshot, onMatchClick, currentStage }: { snapshot: any; onMatchClick: (m: any) => void; currentStage?: any }) {
   // ponytail: currentStage 参数为 WorldcupBracketView 的 stage tab 状态, 当前实现直接忽略
   // (一整张 fallback 已经包含所有 stage, 不需要按 stage 切换).
   void currentStage; // silence unused

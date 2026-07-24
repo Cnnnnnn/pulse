@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/WorldcupView.jsx
+ * src/renderer/worldcup/WorldcupView.tsx
  *
  * v2.9.0 世界杯专栏 — 主 view (section by day, 你拍 view_section_by_day)
  *

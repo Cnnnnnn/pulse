@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, waitFor, fireEvent } from "@testing-library/preact";
-import { WorldcupLayout } from "../../src/renderer/worldcup/WorldcupLayout.jsx";
+import { WorldcupLayout } from "../../src/renderer/worldcup/WorldcupLayout.tsx";
 
 describe("WorldcupLayout v2.10 smoke (体彩记账)", () => {
   let bets;

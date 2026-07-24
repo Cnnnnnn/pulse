@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/WorldcupBracketView.jsx
+ * src/renderer/worldcup/WorldcupBracketView.tsx
  *
  * World Cup 淘汰赛对阵 - 容器 (toolbar / 空态 / 错误态) + BracketTree 渲染
  *

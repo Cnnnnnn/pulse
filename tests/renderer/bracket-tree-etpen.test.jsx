@@ -13,7 +13,7 @@
 import { describe, it, expect } from "vitest";
 import { h } from "preact";
 import { render } from "@testing-library/preact";
-import { EtPenTags } from "../../src/renderer/worldcup/BracketTree.jsx";
+import { EtPenTags } from "../../src/renderer/worldcup/BracketTree.tsx";
 
 function makeMatch(score, status = "final") {
   return { matchNum: 74, status, score };

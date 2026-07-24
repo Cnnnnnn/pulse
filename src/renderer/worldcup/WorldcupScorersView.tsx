@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/WorldcupScorersView.jsx
+ * src/renderer/worldcup/WorldcupScorersView.tsx
  *
  * 射手榜 tab — 支持 小组赛 / 淘汰赛 / 全部 三个 stage filter
  */

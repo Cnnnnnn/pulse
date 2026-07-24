@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/preact';
-import { WorldcupLayout } from '../../src/renderer/worldcup/WorldcupLayout.jsx';
+import { WorldcupLayout } from '../../src/renderer/worldcup/WorldcupLayout.tsx';
 
 describe('WorldcupLayout smoke', () => {
   beforeEach(() => {

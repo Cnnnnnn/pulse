@@ -15,7 +15,7 @@
  * transformation by exercising cleanTeamName + score/kickoff passthrough.
  */
 import { describe, it, expect } from "vitest";
-import { cleanTeamName } from "../../src/renderer/worldcup/BracketTree.jsx";
+import { cleanTeamName } from "../../src/renderer/worldcup/BracketTree.tsx";
 
 describe("bracket match click → SquadModal payload", () => {
   it("extracts 'Paraguay' from polluted M74 slot2 team name", () => {

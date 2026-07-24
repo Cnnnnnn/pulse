@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/WorldcupHeader.jsx
+ * src/renderer/worldcup/WorldcupHeader.tsx
  *
  * v2.9.1 — 世界杯 tab 独立顶部
  *
@@ -84,7 +84,7 @@ export function WorldcupHeader({
               : '搜索队名 / 场址...'
         }
         value={search}
-        onInput={(e) => onSearchChange(e.target.value)}
+        onInput={(e) => onSearchChange((e.target as HTMLInputElement).value)}
       />
     </FeatureHeader>
   );

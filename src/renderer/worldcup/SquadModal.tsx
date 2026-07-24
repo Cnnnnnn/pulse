@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/SquadModal.jsx
+ * src/renderer/worldcup/SquadModal.tsx
  *
  * v2.9.5 — 兼容 2 模式:
  *   - 比赛详情 (match._isTeam = false): 2 队 squad 并列, 中 VS / 比分

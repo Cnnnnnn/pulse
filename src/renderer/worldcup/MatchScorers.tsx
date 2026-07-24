@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/MatchScorers.jsx
+ * src/renderer/worldcup/MatchScorers.tsx
  *
  * 进球者列表 (ESPN scoringPlays)
  */

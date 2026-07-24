@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/WorldcupTeamsView.jsx
+ * src/renderer/worldcup/WorldcupTeamsView.tsx
  *
  * v2.9.5 — 球队列表 (中文 + 弹 SquadModal)
  *

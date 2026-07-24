@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/MatchCard.jsx
+ * src/renderer/worldcup/MatchCard.tsx
  *
  * v2.9.5 — 赛 card 中文版
  *

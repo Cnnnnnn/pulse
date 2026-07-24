@@ -1,5 +1,5 @@
 /**
- * src/renderer/worldcup/DayBetFooter.jsx
+ * src/renderer/worldcup/DayBetFooter.tsx
  *
  * v2.10.0 比赛日底部小卡 — stake + pnl + note
  * 已填显示当前值, 未填显示按钮, 点开行内编辑.
