@@ -10,7 +10,7 @@
  */
 
 import { useState } from "preact/hooks";
-import { toggleCompare, compareList } from "./aiLeaderboardStore.js";
+import { toggleCompare, compareList } from "./aiLeaderboardStore.ts";
 
 // 厂商 → 散点颜色（oklch 色相均匀分布）
 const VENDOR_COLORS = {

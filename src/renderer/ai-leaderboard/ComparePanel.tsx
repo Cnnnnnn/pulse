@@ -13,7 +13,7 @@ import {
   crossSourceError,
   loadCrossSource,
   setSearchQuery,
-} from "./aiLeaderboardStore.js";
+} from "./aiLeaderboardStore.ts";
 import { VENDOR_META } from "./types.ts";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena, rankVendorsByEloPerDollar } from "./format.ts";
 import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.ts";

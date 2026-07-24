@@ -4,7 +4,7 @@
  * 镜像 games/GamesLayout.tsx 的挂载范式。
  */
 import { useEffect } from "preact/hooks";
-import { loadPrefs, loadLeaderboard } from "./aiLeaderboardStore.js";
+import { loadPrefs, loadLeaderboard } from "./aiLeaderboardStore.ts";
 import { AiLeaderboardPage } from "./AiLeaderboardPage.tsx";
 import "./ai-leaderboard.css";
 

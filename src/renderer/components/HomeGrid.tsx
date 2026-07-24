@@ -21,7 +21,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
 import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/store.ts";
 import { wechatHotUnreadBadge, wechatHotItems } from "../wechat-hot/store.ts";
-import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.js";
+import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.ts";
 import { aiUsageNavBadge, aiUsageSnapshot, aiUsageActiveProvider } from "../store/ai-usage-store.ts";
 import { githubProjects } from "../store/github-projects-store.ts";
 import { worldcupMatches } from "../worldcup/store.js";

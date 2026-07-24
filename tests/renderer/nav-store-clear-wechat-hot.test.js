@@ -33,7 +33,7 @@ vi.mock("../../src/renderer/api.ts", () => ({
 }));
 
 // stub funds/ai-usage store (避免拉它们的依赖)
-vi.mock("../../src/renderer/funds/fundStore.js", () => ({
+vi.mock("../../src/renderer/funds/fundStore.ts", () => ({
   clearFundNavBadge: vi.fn(),
   fundUnreadBadge: { value: 0 },
 }));

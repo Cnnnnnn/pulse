@@ -8,7 +8,7 @@ import {
   holdings,
   fundsLoading,
   fundsLoadError,
-} from "../../src/renderer/funds/fundStore.js";
+} from "../../src/renderer/funds/fundStore.ts";
 
 afterEach(() => {
   navHistoryCache.value = {};

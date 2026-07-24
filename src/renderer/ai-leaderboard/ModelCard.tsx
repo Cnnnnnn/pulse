@@ -9,7 +9,7 @@
 
 import { VENDOR_META } from "./types.ts";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.ts";
-import { compareList, toggleCompare, columnValue, openModelDetail } from "./aiLeaderboardStore.js";
+import { compareList, toggleCompare, columnValue, openModelDetail } from "./aiLeaderboardStore.ts";
 import { RankSparkline } from "./RankSparkline.tsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
 

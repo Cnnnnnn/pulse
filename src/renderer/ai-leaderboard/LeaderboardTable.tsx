@@ -21,7 +21,7 @@ import {
   sortDir,
   toggleSort,
   columnValue,
-} from "./aiLeaderboardStore.js";
+} from "./aiLeaderboardStore.ts";
 import { ModelRow } from "./ModelRow.tsx";
 import { ModelCardList } from "./ModelCard.tsx";
 import { ARENA_BOARDS } from "./types.ts";

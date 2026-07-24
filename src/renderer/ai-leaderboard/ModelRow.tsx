@@ -10,7 +10,7 @@
 import { forwardRef } from "preact/compat";
 import { VENDOR_META, ARENA_BOARDS } from "./types.ts";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, fmtTrending, computeTrendingScore, licenseKind, licenseShort } from "./format.ts";
-import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items } from "./aiLeaderboardStore.js";
+import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items } from "./aiLeaderboardStore.ts";
 import { RankSparkline } from "./RankSparkline.tsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
 

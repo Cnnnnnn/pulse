@@ -21,7 +21,7 @@ import {
   openAddModal,
   fundView,
   holdingWeights,
-} from "./fundStore.js";
+} from "./fundStore.ts";
 import { openFundDetail } from "./fundRoute.ts";
 import {
   isFundPinned,

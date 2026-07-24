@@ -7,7 +7,7 @@
  *   场外开放式: 0/1 开头但不在上述区间
  */
 import { describe, it, expect } from "vitest";
-import { isListedFundCode } from "../../src/renderer/funds/fundStore.js";
+import { isListedFundCode } from "../../src/renderer/funds/fundStore.ts";
 
 describe("isListedFundCode", () => {
   it("ETF/LOF 代码判 true", () => {

@@ -18,7 +18,7 @@ import {
   indexHistoryCache,
   benchmarkError,
   DEFAULT_BENCHMARK,
-} from "../../src/renderer/funds/fundStore.js";
+} from "../../src/renderer/funds/fundStore.ts";
 
 afterEach(() => {
   cleanup();

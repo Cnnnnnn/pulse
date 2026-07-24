@@ -8,7 +8,7 @@ import {
   activeLB,
   sortKey,
   columnValue,
-} from "./aiLeaderboardStore.js";
+} from "./aiLeaderboardStore.ts";
 import { ARENA_BOARDS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.ts";
 import {
   fmtScore,

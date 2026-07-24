@@ -1,5 +1,5 @@
 import { useEffect } from "preact/hooks";
-import { dailySnapshots, benchmarkEnabled, indexHistoryCache, benchmarkError, loadIndexHistory, DEFAULT_BENCHMARK } from "./fundStore.js";
+import { dailySnapshots, benchmarkEnabled, indexHistoryCache, benchmarkError, loadIndexHistory, DEFAULT_BENCHMARK } from "./fundStore.ts";
 import { api } from "../api.ts";
 
 export function recentTotals(snaps, days = 30) {

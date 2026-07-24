@@ -12,7 +12,7 @@ import {
   searchQuery,
   activeCategory,
   openAddModal,
-} from './fundStore.js';
+} from './fundStore.ts';
 import { api } from '../api.ts';
 import { FundCard } from './FundCard.tsx';
 

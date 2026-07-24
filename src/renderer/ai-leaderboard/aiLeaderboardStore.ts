@@ -143,7 +143,9 @@ export async function loadCrossSource(force) {
 
 export const items = signal([]);
 export const sources = signal({});
-export const sourceCoverage = signal({ arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 });
+export const sourceCoverage = signal({
+  arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0, huggingface: 0,
+});
 export const attribution = signal([]);
 export const loading = signal(false);
 export const error = signal(null);
@@ -235,14 +237,15 @@ async function _run(force) {
   // 升级路径: 用户手动选「同时看 AA+LB」可加 toggle (caller 拼多个 sourceKey).
   // v2.79.5+: HF 视角下 huggingface=true 拉 hfFetcher, 其它视角不拉 (openrouter 仍兜底).
   const view = activeView.value;
-  const sources = {
+  // ponytail: 局部 flags 勿命名 sources — 会 shadow 同名 signal
+  const sourceFlags = {
     arena: view === "arena",
     aa: view === "aa",
     livebench: view === "livebench",
     huggingface: view === "huggingface",
     openrouter: true, // 任何 view 都拉, 用作"目录骨架" / 厂商匹配
   };
-  const opts = { category, dimension, vendor: activeVendor.value, force: !!force, sources };
+  const opts = { category, dimension, vendor: activeVendor.value, force: !!force, sources: sourceFlags };
 
   try {
     const res = force
@@ -280,7 +283,7 @@ async function _run(force) {
       error.value = e && e.message ? e.message : "网络错误";
       items.value = [];
       sources.value = {};
-      sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0 };
+      sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0, huggingface: 0 };
       attribution.value = [];
     });
   } finally {
@@ -540,7 +543,7 @@ export function toggleSort(key) {
   }
 }
 
-export function sortModels(list, opts = {}) {
+export function sortModels(list: any[], opts: { dir?: string } = {}) {
   const dir = opts.dir || sortDir.value;
   const arr = Array.isArray(list) ? list.slice() : [];
   const mult = dir === "asc" ? 1 : -1;

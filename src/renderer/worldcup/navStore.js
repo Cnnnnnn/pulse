@@ -16,7 +16,7 @@
 import { effect, signal } from "@preact/signals";
 import { trackFundView } from "../recent/track.ts";
 import { trayMenuPrefs } from "../store/trayConfigStore.ts";
-import { clearFundNavBadge } from "../funds/fundStore.js";
+import { clearFundNavBadge } from "../funds/fundStore.ts";
 import { clearAiUsageNavBadge } from "../store/ai-usage-store.ts";
 import { clearWechatHotUnreadBadge } from "../wechat-hot/store.ts";
 import { clearIthomeUnreadBadge } from "../ithome/store.ts";

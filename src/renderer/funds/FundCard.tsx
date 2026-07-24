@@ -8,7 +8,7 @@
  */
 
 import { useState, useRef, useEffect } from 'preact/hooks';
-import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund, isListedFundCode } from './fundStore.js';
+import { navCache, navSource, NAV_SOURCE_LABELS, openEditModal, removeFund, backfillFund, isListedFundCode } from './fundStore.ts';
 import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlist/watchlist-store.ts';
 import { api } from '../api.ts';
 import { openConfirm } from '../store/confirmStore.ts';

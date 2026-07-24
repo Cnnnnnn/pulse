@@ -8,7 +8,7 @@ import {
   detailId,
   items,
   toggleCompare,
-} from "./aiLeaderboardStore.js";
+} from "./aiLeaderboardStore.ts";
 import { VENDOR_META, SOURCE_URLS } from "./types.ts";
 import { copyToClipboard, detailToMarkdown } from "./exportMarkdown.ts";
 

@@ -39,7 +39,7 @@ vi.mock("../../src/renderer/api.ts", () => ({
   },
 }));
 
-import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
+import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.ts";
 import { ARENA_BOARDS, ARENA_BOARD_KEYS, toIpcParams } from "../../src/renderer/ai-leaderboard/types.ts";
 import { tableToMarkdown, detailToMarkdown } from "../../src/renderer/ai-leaderboard/exportMarkdown.ts";
 import { rowsToCsv } from "../../src/renderer/ai-leaderboard/exportCsv.ts";

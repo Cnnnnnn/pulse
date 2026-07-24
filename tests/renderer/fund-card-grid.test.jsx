@@ -16,7 +16,7 @@ import {
   fundsLoading,
   fundsLoadError,
   addModalOpen,
-} from "../../src/renderer/funds/fundStore.js";
+} from "../../src/renderer/funds/fundStore.ts";
 
 afterEach(() => {
   cleanup();

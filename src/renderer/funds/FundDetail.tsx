@@ -28,7 +28,7 @@ import {
   navHistoryLoading,
   loadFundNavHistory,
   removeFund,
-} from "./fundStore.js";
+} from "./fundStore.ts";
 import { closeFundDetail } from "./fundRoute.ts";
 import { api } from "../api.ts";
 import { FundAreaChart } from "./FundAreaChart.tsx";

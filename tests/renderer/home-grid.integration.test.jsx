@@ -220,7 +220,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     // v5: news = ithome + wechat. 重置全部 source signal 到 0.
     const ithome = await import('../../src/renderer/ithome/store.ts');
     const wechat = await import('../../src/renderer/wechat-hot/store.ts');
-    const funds = await import('../../src/renderer/funds/fundStore.js');
+    const funds = await import('../../src/renderer/funds/fundStore.ts');
     const ai = await import('../../src/renderer/store/ai-usage-store.ts');
     ithome.ithomeNewIds.value = {};
     wechat.wechatHotNewIds.value = {};
@@ -265,7 +265,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     sp.resetPrefs();
     const ithome = await import('../../src/renderer/ithome/store.ts');
     const wechat = await import('../../src/renderer/wechat-hot/store.ts');
-    const funds = await import('../../src/renderer/funds/fundStore.js');
+    const funds = await import('../../src/renderer/funds/fundStore.ts');
     const ai = await import('../../src/renderer/store/ai-usage-store.ts');
     ithome.ithomeNewIds.value = {};
     if (wechat.wechatHotUnreadIds) wechat.wechatHotUnreadIds.value = {};

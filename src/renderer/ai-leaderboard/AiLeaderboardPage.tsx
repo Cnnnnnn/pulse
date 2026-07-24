@@ -25,7 +25,7 @@ import {
   licenseFilter,
   setLicenseFilter,
   columnValue,
-} from "./aiLeaderboardStore.js";
+} from "./aiLeaderboardStore.ts";
 import { ARENA_BOARDS, ARENA_BOARD_KEYS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.ts";
 import { fmtClock, fmtDate, licenseKind } from "./format.ts";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.ts";

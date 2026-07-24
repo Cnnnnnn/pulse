@@ -103,7 +103,7 @@ export const rowsWithMetrics = computed(() => {
   const map = (navCache.value && navCache.value.data) || {};
   const src = navSource.value;
   return zipHoldingsWithNav(h, map).map((row) => {
-    const resolved = resolveNavSnapshot(row.navSnap, src);
+    const resolved = resolveNavSnapshot(row.navSnap, src as any);
     return {
       ...rowWithMetrics({ holding: row.holding, navSnap: resolved }),
       rawNavSnap: row.navSnap,
@@ -587,7 +587,7 @@ const NAV_HISTORY_DEFAULT_DAYS = 90;
 // 单次请求上限, eastmoney 实际允许更大 (5000/10000), 用 9999 保险
 const NAV_HISTORY_MAX_PAGE_SIZE = 9999;
 
-export async function loadFundNavHistory(api, code, opts = {}) {
+export async function loadFundNavHistory(api: any, code: string, opts: { days?: number } = {}) {
   if (!code) return { ok: false };
   const cached = navHistoryCache.value[code];
   // 2026-07-15: 缓存够用 / 已按同样天数拉过 → 直接返回

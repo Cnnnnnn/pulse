@@ -41,7 +41,7 @@ import {
   isSample,
   searchQuery,
   licenseFilter,
-} from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
+} from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.ts";
 import { AiLeaderboardPage } from "../../src/renderer/ai-leaderboard/AiLeaderboardPage.tsx";
 import { ModelDetailDrawer } from "../../src/renderer/ai-leaderboard/ModelDetailDrawer.tsx";
 import { ModelRow } from "../../src/renderer/ai-leaderboard/ModelRow.tsx";

@@ -9,7 +9,7 @@
  *  - 用户据此理解合并行为 + 跨源命名差异 (无 ground truth 跨源合并)
  */
 
-import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources, rateBudget, stale, fetchedAt, isSample } from "./aiLeaderboardStore.js";
+import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources, rateBudget, stale, fetchedAt, isSample } from "./aiLeaderboardStore.ts";
 import { fmtRelative } from "./format.ts";
 
 const SOURCE_META = [

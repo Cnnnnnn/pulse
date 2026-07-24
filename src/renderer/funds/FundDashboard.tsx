@@ -37,7 +37,7 @@ import {
   schedulerState,
   navHistoryCache,
   holdingWeights,
-} from "./fundStore.js";
+} from "./fundStore.ts";
 import { api } from "../api.ts";
 import { FundAreaChart } from "./FundAreaChart.tsx";
 import { FundSparkline } from "./FundSparkline.tsx";
@@ -45,7 +45,7 @@ import { FundAllocationDonut } from "./FundAllocationDonut.tsx";
 import { computeConcentration } from "../../funds/concentration.js";
 import { fmtCurrency, fmtPct } from "../../funds/format.js";
 import { IconRefresh } from "../components/icons.tsx";
-import { openAddModal } from "./fundStore.js";
+import { openAddModal } from "./fundStore.ts";
 import { openFundDetail } from "./fundRoute.ts";
 import { showToast } from "../store/toast-store.ts";
 

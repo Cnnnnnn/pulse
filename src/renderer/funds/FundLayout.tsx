@@ -17,7 +17,7 @@ import {
   prefetchAllNavHistory,
   addModalOpen,
   alertModalOpen,
-} from './fundStore.js';
+} from './fundStore.ts';
 import { fundPage, selectedFundCode } from './fundRoute.ts';
 import { api } from '../api.ts';
 

@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
-import { editingHolding, closeModal, addFund, updateFund, navCache, navSource, fetchNavForCodes } from './fundStore.js';
+import { editingHolding, closeModal, addFund, updateFund, navCache, navSource, fetchNavForCodes } from './fundStore.ts';
 import { pickEffectiveNavNumber } from '../../funds/fund-nav-merge.js';
 import { inferCategoryFromFtype, categoryLabel } from '../../funds/fund-category.js';
 import { api } from '../api.ts';

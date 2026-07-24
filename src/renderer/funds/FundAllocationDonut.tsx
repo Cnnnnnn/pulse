@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { categoryAllocation, rowsWithMetrics } from './fundStore.js';
+import { categoryAllocation, rowsWithMetrics } from './fundStore.ts';
 import { computeConcentration } from '../../funds/concentration.js';
 
 export const CATEGORY_ORDER = ['stock', 'bond', 'money', 'qdii', 'other'];

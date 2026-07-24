@@ -17,7 +17,7 @@ import {
   searchQuery,
   fundsRefreshing,
   fundsRefreshError,
-} from "../../src/renderer/funds/fundStore.js";
+} from "../../src/renderer/funds/fundStore.ts";
 
 afterEach(() => {
   cleanup();

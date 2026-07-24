@@ -23,7 +23,7 @@ vi.mock("../../src/renderer/ithome/store.ts", () => ({
 vi.mock("../../src/renderer/worldcup/store.js", () => ({
   refreshWorldcupScores: vi.fn(),
 }));
-vi.mock("../../src/renderer/funds/fundStore.js", () => ({
+vi.mock("../../src/renderer/funds/fundStore.ts", () => ({
   fetchNavNow: vi.fn(),
 }));
 vi.mock("../../src/renderer/metals/metalStore.ts", () => ({
@@ -41,7 +41,7 @@ import {
 import { refreshWechatHot } from "../../src/renderer/wechat-hot/store.ts";
 import { refreshIthomeNews } from "../../src/renderer/ithome/store.ts";
 import { refreshWorldcupScores } from "../../src/renderer/worldcup/store.js";
-import { fetchNavNow } from "../../src/renderer/funds/fundStore.js";
+import { fetchNavNow } from "../../src/renderer/funds/fundStore.ts";
 import { refreshNow as refreshMetals } from "../../src/renderer/metals/metalStore.ts";
 import { investPrimary } from "../../src/renderer/worldcup/navStore.js";
 

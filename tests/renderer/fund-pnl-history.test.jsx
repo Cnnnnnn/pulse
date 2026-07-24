@@ -4,7 +4,7 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/preact";
 import { FundPnlHistory } from "../../src/renderer/funds/FundPnlHistory.tsx";
-import { dailySnapshots, selectedHistoryMonth } from "../../src/renderer/funds/fundStore.js";
+import { dailySnapshots, selectedHistoryMonth } from "../../src/renderer/funds/fundStore.ts";
 import { ymShanghai } from "../../src/funds/fund-history.js";
 
 afterEach(cleanup);

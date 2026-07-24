@@ -4,7 +4,7 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
 import { describeArc, buildSegments, CATEGORY_ORDER, FundAllocationDonut } from "../../src/renderer/funds/FundAllocationDonut.tsx";
-import { holdings, navCache, navSource, categoryAllocation } from "../../src/renderer/funds/fundStore.js";
+import { holdings, navCache, navSource, categoryAllocation } from "../../src/renderer/funds/fundStore.ts";
 
 describe("buildSegments", () => {
   it("把市值映射成带角度的扇区, 总和360", () => {

@@ -11,7 +11,7 @@ import {
   pnlRollups,
   selectedMonthProfit,
   setSelectedHistoryMonth,
-} from './fundStore.js';
+} from './fundStore.ts';
 import {
   listDaysForMonth,
   shiftMonth,

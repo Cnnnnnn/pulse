@@ -8,7 +8,7 @@ vi.mock("../../src/renderer/api.ts", () => ({ api: mockApi }));
 
 import { render, cleanup, fireEvent, waitFor } from "@testing-library/preact";
 import { FundCardSparkline } from "../../src/renderer/funds/FundCardSparkline.tsx";
-import { navHistoryCache } from "../../src/renderer/funds/fundStore.js";
+import { navHistoryCache } from "../../src/renderer/funds/fundStore.ts";
 
 afterEach(() => {
   cleanup();

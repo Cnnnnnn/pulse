@@ -13,7 +13,7 @@
  */
 
 import { useState } from "preact/hooks";
-import { toggleCompare, compareList } from "./aiLeaderboardStore.js";
+import { toggleCompare, compareList } from "./aiLeaderboardStore.ts";
 
 // 厂商 → 气泡颜色（与 ValueScatter 一致）
 const VENDOR_COLORS = {
