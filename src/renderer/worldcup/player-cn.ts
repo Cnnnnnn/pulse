@@ -4,7 +4,7 @@
  * 球员中文译名解析 (player-cn-map.js 查表)
  */
 
-import { PLAYER_CN } from "./player-cn-map.js";
+import { PLAYER_CN } from "./player-cn-map.ts";
 
 export function resolvePlayerCn(player) {
   if (!player) return "";

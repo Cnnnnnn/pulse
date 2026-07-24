@@ -6,10 +6,10 @@
  *   - 1 队详情 (match._isTeam = true): 单列 26 人 squad
  */
 
-import { lookupTeam, displayTeam } from './teams-data.js';
+import { lookupTeam, displayTeam } from './teams-data.ts';
 import { TeamFlag, IconClock, IconMapPin } from '../components/icons.tsx';
-import { resolvePlayerCn } from './player-cn.js';
-import { toBeijingTime } from './timeUtils.js';
+import { resolvePlayerCn } from './player-cn.ts';
+import { toBeijingTime } from './timeUtils.ts';
 import MatchScorers from './MatchScorers.tsx';
 import MatchAiPanel from './MatchAiPanel.tsx';
 import { ModalShell } from '../components/ModalShell.tsx';

@@ -10,10 +10,10 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const root = join(__dir, '..');
 
 const SQUAD_FILES = [
-  'src/renderer/worldcup/squads-data.js',
-  'src/renderer/worldcup/squads-data-g3g6.js',
-  'src/renderer/worldcup/squads-data-g7g9.js',
-  'src/renderer/worldcup/squads-data-g10g12.js',
+  'src/renderer/worldcup/squads-data.ts',
+  'src/renderer/worldcup/squads-data-g3g6.ts',
+  'src/renderer/worldcup/squads-data-g7g9.ts',
+  'src/renderer/worldcup/squads-data-g10g12.ts',
 ];
 
 /** @type {Record<string, string>} CCTV / 新华 / FIFA 常用译名 */
@@ -254,7 +254,7 @@ function main() {
   }
   const lines = [
     '/**',
-    ' * src/renderer/worldcup/player-cn-map.js',
+    ' * src/renderer/worldcup/player-cn-map.ts',
     ' *',
     ' * 球员英文名 → 简体中文译名',
     ' * 知名球员: CCTV / 新华体育 / FIFA 中文常用译',
@@ -269,7 +269,7 @@ function main() {
     lines.push(`  '${escapeJs(name)}': '${escapeJs(map[name])}',`);
   }
   lines.push('};', '');
-  const out = join(root, 'src/renderer/worldcup/player-cn-map.js');
+  const out = join(root, 'src/renderer/worldcup/player-cn-map.ts');
   writeFileSync(out, lines.join('\n'), 'utf8');
   console.log(`Wrote ${names.length} entries → ${out}`);
 }

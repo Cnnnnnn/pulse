@@ -12,7 +12,7 @@ import {
   STORAGE_KEY_FOR_TESTS,
   DEFAULTS_FOR_TESTS,
 } from "../../src/renderer/components/sidenav-prefs.ts";
-import { NAV_KEYS_LIST } from "../../src/renderer/worldcup/navStore.js";
+import { NAV_KEYS_LIST } from "../../src/renderer/worldcup/navStore.ts";
 
 describe("sidenav-prefs", () => {
   beforeEach(() => {

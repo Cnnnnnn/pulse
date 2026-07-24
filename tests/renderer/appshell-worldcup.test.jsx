@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/preact';
 import { AppShell } from '../../src/renderer/components/AppShell.tsx';
-import { activeNav, setActiveNav } from '../../src/renderer/worldcup/navStore.js';
+import { activeNav, setActiveNav } from '../../src/renderer/worldcup/navStore.ts';
 
 describe('AppShell worldcup nav', () => {
   beforeEach(() => {

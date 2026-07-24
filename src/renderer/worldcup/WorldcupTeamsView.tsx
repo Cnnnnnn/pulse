@@ -8,14 +8,14 @@
  * 点 team card → 弹 SquadModal (传 1 虚拟 match, 1 队对 1 队 自身).
  */
 
-import { listTeams } from './teams-data.js';
+import { listTeams } from './teams-data.ts';
 import { TeamFlag } from '../components/icons.tsx';
-import { worldcupMatches } from './store.js';
+import { worldcupMatches } from './store.ts';
 import {
   computeGroupStandings,
   sortTeamsInGroup,
   formatGoalDiff,
-} from './group-standings.js';
+} from './group-standings.ts';
 
 export function WorldcupTeamsView({ search = '', onTeamClick }) {
   const teams = listTeams();

@@ -18,10 +18,10 @@
 
 import { refreshWechatHot } from "./wechat-hot/store.ts";
 import { refreshIthomeNews } from "./ithome/store.ts";
-import { refreshWorldcupScores } from "./worldcup/store.js";
+import { refreshWorldcupScores } from "./worldcup/store.ts";
 import { fetchNavNow } from "./funds/fundStore.ts";
 import { refreshNow as refreshMetals } from "./metals/metalStore.ts";
-import { investPrimary } from "./worldcup/navStore.js";
+import { investPrimary } from "./worldcup/navStore.ts";
 import { loadGameDeals } from "./games/gamesStore.ts";
 import { api } from "./api.ts";
 

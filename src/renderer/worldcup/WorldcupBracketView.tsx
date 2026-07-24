@@ -18,7 +18,7 @@ import {
   loadBracket,
   computeBracket,
   clearBracketError,
-} from "./bracketStore.js";
+} from "./bracketStore.ts";
 import { trackWorldcupMatchView } from "../recent/track.ts";
 import { IconAlert, IconRefresh, IconLoader } from "../components/icons.tsx";
 

@@ -4,7 +4,7 @@
  * A3: 搜索结果跳转. 切面板 + 滚动 + 高亮 (复用 .search-highlight class).
  * 找不到目标元素时只切面板, console.warn.
  */
-import { setActiveNav, goInvest } from '../worldcup/navStore.js';
+import { setActiveNav, goInvest } from '../worldcup/navStore.ts';
 import { closeSearch } from './searchStore.ts';
 
 const HIGHLIGHT_CLASS = 'search-highlight';

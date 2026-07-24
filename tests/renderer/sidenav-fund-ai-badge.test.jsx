@@ -9,7 +9,7 @@ import { signal } from "@preact/signals";
 const fundUnreadBadge = signal(0);
 const aiUsageNavBadge = signal(0);
 
-vi.mock("../../src/renderer/worldcup/navStore.js", async (importOriginal) => {
+vi.mock("../../src/renderer/worldcup/navStore.ts", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     NAV_KEYS_LIST: actual.NAV_KEYS_LIST,

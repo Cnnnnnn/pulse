@@ -12,26 +12,26 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('HomeGrid navStore 集成路径', () => {
   it('activeNav 默认值为 "home"', async () => {
-    const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
     expect(activeNav.value).toBe('home');
   });
 
   it('setActiveNav("funds") alias → "invest" (投资 nav 合并)', async () => {
-    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
     setActiveNav('funds');
     // ponytail 2026-07-13: funds/metals/stocks 合并为 'invest' nav, legacy key alias.
     expect(activeNav.value).toBe('invest');
   });
 
   it('setActiveNav("home") 后 activeNav.value === "home"', async () => {
-    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
     setActiveNav('metals');
     setActiveNav('home');
     expect(activeNav.value).toBe('home');
   });
 
   it('PERSISTABLE_NAV_KEYS 不含 home', async () => {
-    const { PERSISTABLE_NAV_KEYS } = await import('../../src/renderer/worldcup/navStore.js');
+    const { PERSISTABLE_NAV_KEYS } = await import('../../src/renderer/worldcup/navStore.ts');
     expect(PERSISTABLE_NAV_KEYS.has('home')).toBe(false);
     expect(PERSISTABLE_NAV_KEYS.has('versions')).toBe(true);
     expect(PERSISTABLE_NAV_KEYS.has('github')).toBe(true);
@@ -91,7 +91,7 @@ describe('HomeGrid v2 — 渲染契约', () => {
   it('tile 有点击行为 — click 触发 setActiveNav', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
 
     const { container } = render(<HomeGrid />);
     // v5: IT 新闻 + 微博热搜 合并成 '新闻', aria-label 用 starts-with 选择.
@@ -145,7 +145,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
   it('A3: ⌘1 直接切到 news (P-N+ IT 新闻 + 微博热搜 合并)', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
     setActiveNav('home');
 
     render(<HomeGrid />);
@@ -156,7 +156,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
   it('A3: ArrowRight 在 grid 里移动焦点', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
     activeNav.value = 'home';
 
     const { container } = render(<HomeGrid />);
@@ -322,7 +322,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B11: 点击星标 toggle 收藏 (不会切 nav)', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
     const { isFavorite } = await import('../../src/renderer/components/sidenav-prefs.ts');
 
     const { container } = render(<HomeGrid />);
@@ -345,7 +345,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B11: 收藏的 tile 排前面', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { setActiveNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { setActiveNav } = await import('../../src/renderer/worldcup/navStore.ts');
 
     const { container } = render(<HomeGrid />);
     // v5: news=0, worldcup=1, funds=2. 收藏 idx=1 (worldcup)
@@ -394,7 +394,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10+: worldcup 进行中 → "live <t1> 1-0 <t2> 67\'"', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
+    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.ts');
     worldcupMatches.value = {
       name: 'WC 2026', groups: [], matches: [
         { date: '2026-07-10', time: '14:00', timezone: 'UTC+8', team1: 'Brazil', team2: 'Argentina',
@@ -415,7 +415,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10+: worldcup 今天有 upcoming → "今日 N 场 · HH:MM t1 vs t2"', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
+    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.ts');
     const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.ts');
     const today = todayShanghaiDateKey();
     // 2 场今天, 1 场明天.
@@ -442,7 +442,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10+: worldcup 跨日 upcoming → "下一场 MM-DD HH:MM t1 vs t2"', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
+    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.ts');
     const future = new Date(Date.now() + 7 * 86400_000);
     const key = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
     worldcupMatches.value = {
@@ -460,7 +460,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10+: worldcup 全结束 → "已结束 · <t1> 2:1 <t2>"', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
+    const { worldcupMatches } = await import('../../src/renderer/worldcup/store.ts');
     worldcupMatches.value = {
       name: 'WC', groups: [], matches: [
         { date: '2025-01-01', time: '00:00', timezone: 'UTC+8', team1: 'Sweden', team2: 'Norway',

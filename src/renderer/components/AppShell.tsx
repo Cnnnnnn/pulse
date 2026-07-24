@@ -23,7 +23,7 @@
  */
 
 import { useEffect } from 'preact/hooks';
-import { activeNav, navCollapsed, setActiveNav, goInvest } from '../worldcup/navStore.js';
+import { activeNav, navCollapsed, setActiveNav, goInvest } from '../worldcup/navStore.ts';
 import { SideNav } from './SideNav.tsx';
 import { LazyNavPanel } from './LazyNavPanel.tsx';
 import { HomeGrid } from './HomeGrid.tsx';

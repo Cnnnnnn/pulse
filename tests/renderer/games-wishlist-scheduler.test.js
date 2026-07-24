@@ -28,7 +28,7 @@ import {
   loadWishlist,
 } from "../../src/renderer/games/gamesStore.ts";
 import { createGamesCheckScheduler } from "../../src/renderer/games/games-check-scheduler.ts";
-import { activeNav } from "../../src/renderer/worldcup/navStore.js";
+import { activeNav } from "../../src/renderer/worldcup/navStore.ts";
 
 function setNotificationPermission(value) {
   Object.defineProperty(Notification, "permission", {

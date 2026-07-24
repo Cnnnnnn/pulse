@@ -43,7 +43,7 @@ import { createAutoRecheck } from './auto-recheck.ts';
 import { taggedLog } from './log.ts';
 import { applyPlatformBodyClass } from './platform-body-class.ts';
 import { initTheme, getThemePreference, setThemePreference } from './theme/theme-manager.ts';
-import { setActiveNav, PERSISTABLE_NAV_KEYS } from './worldcup/navStore.js';
+import { setActiveNav, PERSISTABLE_NAV_KEYS } from './worldcup/navStore.ts';
 
 const log = taggedLog("[index]");
 
@@ -184,7 +184,7 @@ function wireRendererListeners() {
         if (r && r.ok && r.prefs) applyTrayPrefsFromMain(r.prefs);
       }).catch(() => {});
     });
-    import('./worldcup/navStore.js').then(({ installNavWatch }) => installNavWatch());
+    import('./worldcup/navStore.ts').then(({ installNavWatch }) => installNavWatch());
   }
 }
 

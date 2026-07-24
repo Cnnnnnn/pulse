@@ -7,7 +7,7 @@ import {
   bracketComputing,
   bracketError,
   bracketLastComputedAt,
-} from "../../src/renderer/worldcup/bracketStore.js";
+} from "../../src/renderer/worldcup/bracketStore.ts";
 
 const sampleSnapshot = {
   version: 1,

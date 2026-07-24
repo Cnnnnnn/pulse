@@ -13,8 +13,8 @@
  */
 
 import { TeamFlag, IconLock, IconCheck, IconClock } from "../components/icons.tsx";
-import { displayTeam } from "./teams-data.js";
-import { toBeijingTime } from "./timeUtils.js";
+import { displayTeam } from "./teams-data.ts";
+import { toBeijingTime } from "./timeUtils.ts";
 
 // ponytail: 2026 世界杯 16 主办城市 × 主球场中英映射. cup_finals.txt 给的是英文
 // "Los Angeles (Inglewood)" 这种, 在卡片 meta 行里翻译成中文.

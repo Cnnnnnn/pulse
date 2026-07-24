@@ -30,7 +30,7 @@ describe("BracketTree (fallback only)", () => {
   let BracketTree;
   beforeEach(async () => {
     vi.resetModules();
-    vi.doMock("../../src/renderer/worldcup/teams-data.js", () => ({
+    vi.doMock("../../src/renderer/worldcup/teams-data.ts", () => ({
       displayTeam: (name) => name ? { flag: 'XX', cn: name } : null,
     }));
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
@@ -40,7 +40,7 @@ describe("BracketTree (fallback only)", () => {
   });
   afterEach(() => {
     delete global.window;
-    vi.doUnmock("../../src/renderer/worldcup/teams-data.js");
+    vi.doUnmock("../../src/renderer/worldcup/teams-data.ts");
   });
 
   test("renders 5 stage sections (r32, r16, qf, sf, finals)", () => {
@@ -405,7 +405,7 @@ describe("splitBracketByHalf (保留 API, 不被 fallback 调用)", () => {
   let splitBracketByHalf;
   beforeEach(async () => {
     vi.resetModules();
-    vi.doMock("../../src/renderer/worldcup/teams-data.js", () => ({
+    vi.doMock("../../src/renderer/worldcup/teams-data.ts", () => ({
       displayTeam: (name) => name ? { flag: 'XX', cn: name } : null,
     }));
     global.window = { api: { worldcupComputeBracket: async () => ({ ok: true, snapshot: null }), worldcupLoadBracket: async () => ({ ok: true, snapshot: null }) } };
@@ -415,7 +415,7 @@ describe("splitBracketByHalf (保留 API, 不被 fallback 调用)", () => {
   });
   afterEach(() => {
     delete global.window;
-    vi.doUnmock("../../src/renderer/worldcup/teams-data.js");
+    vi.doUnmock("../../src/renderer/worldcup/teams-data.ts");
   });
 
   test("splits R32 into upper[0..7] and lower[8..15]", () => {

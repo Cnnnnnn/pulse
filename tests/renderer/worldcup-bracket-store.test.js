@@ -29,14 +29,14 @@ describe("bracketStore computeBracket throttling", () => {
   });
 
   test("first compute call hits IPC", async () => {
-    const { computeBracket } = await import("../../src/renderer/worldcup/bracketStore.js");
+    const { computeBracket } = await import("../../src/renderer/worldcup/bracketStore.ts");
     const ok = await computeBracket();
     expect(ok).toBe(true);
     expect(computeCalls).toBe(1);
   });
 
   test("second call within 30s is throttled (returns false, no IPC)", async () => {
-    const { computeBracket } = await import("../../src/renderer/worldcup/bracketStore.js");
+    const { computeBracket } = await import("../../src/renderer/worldcup/bracketStore.ts");
     await computeBracket();
     expect(computeCalls).toBe(1);
     const ok2 = await computeBracket();
@@ -45,7 +45,7 @@ describe("bracketStore computeBracket throttling", () => {
   });
 
   test("force=true bypasses throttle", async () => {
-    const { computeBracket } = await import("../../src/renderer/worldcup/bracketStore.js");
+    const { computeBracket } = await import("../../src/renderer/worldcup/bracketStore.ts");
     await computeBracket();
     expect(computeCalls).toBe(1);
     const ok2 = await computeBracket({ force: true });
@@ -54,7 +54,7 @@ describe("bracketStore computeBracket throttling", () => {
   });
 
   test("after 30s the next compute is allowed again", async () => {
-    const { computeBracket } = await import("../../src/renderer/worldcup/bracketStore.js");
+    const { computeBracket } = await import("../../src/renderer/worldcup/bracketStore.ts");
     await computeBracket();
     expect(computeCalls).toBe(1);
     // 模拟时间快进 31s
@@ -67,7 +67,7 @@ describe("bracketStore computeBracket throttling", () => {
   });
 
   test("loadBracket does not touch compute IPC", async () => {
-    const { loadBracket } = await import("../../src/renderer/worldcup/bracketStore.js");
+    const { loadBracket } = await import("../../src/renderer/worldcup/bracketStore.ts");
     await loadBracket();
     expect(loadCalls).toBe(1);
     expect(computeCalls).toBe(0);

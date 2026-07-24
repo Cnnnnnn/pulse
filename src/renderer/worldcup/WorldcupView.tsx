@@ -12,15 +12,15 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import MatchCard from './MatchCard.tsx';
 import SquadModal from './SquadModal.tsx';
-import { groupMatchesByDate } from './groupByDate.js';
-import { displayTeam } from './teams-data.js';
+import { groupMatchesByDate } from './groupByDate.ts';
+import { displayTeam } from './teams-data.ts';
 import {
   worldcupMatches,
   worldcupLoading,
   worldcupError,
   loadWorldcupFixtures,
   clearWorldcupError,
-} from './store.js';
+} from './store.ts';
 import { WorldcupBetsStats } from './WorldcupBetsStats.tsx';
 import { trackWorldcupMatchView } from '../recent/track.ts';
 import { DayBetFooter } from './DayBetFooter.tsx';

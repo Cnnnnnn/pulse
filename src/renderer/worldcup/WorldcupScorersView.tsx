@@ -5,13 +5,13 @@
  */
 
 import { useState } from 'preact/hooks';
-import { worldcupMatches } from './store.js';
-import { worldcupBracket } from './bracketStore.js';
+import { worldcupMatches } from './store.ts';
+import { worldcupBracket } from './bracketStore.ts';
 import {
   buildScorersLeaderboard,
   filterScorersLeaderboard,
   flattenBracketMatches,
-} from './scorers-leaderboard.js';
+} from './scorers-leaderboard.ts';
 import { TeamFlag } from '../components/icons.tsx';
 
 // ponytail: 阶段过滤 tab 状态. 小组赛 (group) / 淘汰赛 (knockout) / 全部 (all).

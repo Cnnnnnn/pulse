@@ -4,8 +4,8 @@
  * 比赛详情弹窗内的 AI 分析（完整版）
  */
 
-import { useMatchAi } from './useMatchAi.js';
-import { formatInsightText } from './insight-text.js';
+import { useMatchAi } from './useMatchAi.ts';
+import { formatInsightText } from './insight-text.ts';
 
 export function MatchAiPanel({ match, score }) {
   const ai = useMatchAi(match, score);

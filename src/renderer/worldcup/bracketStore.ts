@@ -59,7 +59,7 @@ export async function loadBracket() {
  * @param {{force?: boolean}} [opts]
  * @returns {Promise<boolean>} true on success, false if throttled or failed
  */
-export async function computeBracket(opts = {}) {
+export async function computeBracket(opts: any = {}) {
   if (bracketComputing.value) return false;
   const force = opts.force === true;
   const now = Date.now();

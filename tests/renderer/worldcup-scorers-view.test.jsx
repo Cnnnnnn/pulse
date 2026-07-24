@@ -2,8 +2,8 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/preact";
 import { WorldcupScorersView } from "../../src/renderer/worldcup/WorldcupScorersView.tsx";
-import { worldcupMatches } from "../../src/renderer/worldcup/store.js";
-import { worldcupBracket } from "../../src/renderer/worldcup/bracketStore.js";
+import { worldcupMatches } from "../../src/renderer/worldcup/store.ts";
+import { worldcupBracket } from "../../src/renderer/worldcup/bracketStore.ts";
 
 const groupMatchWithScorer = (player, team1, team2, teamSide) => ({
   team1, team2,

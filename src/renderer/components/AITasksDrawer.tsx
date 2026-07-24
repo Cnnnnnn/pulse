@@ -33,7 +33,7 @@ import {
 } from '../store.ts';
 import { aiTasksDrawerOpen } from '../digest/digest-store.ts';
 import { api } from '../api.ts';
-import { setActiveNav } from '../worldcup/navStore.js';
+import { setActiveNav } from '../worldcup/navStore.ts';
 import { navigateTo } from '../store/route-store.ts';
 import { taggedLog } from '../log.ts';
 import { Badge, TaskStatusBadge } from './Badge.tsx';

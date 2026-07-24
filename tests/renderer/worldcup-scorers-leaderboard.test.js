@@ -8,7 +8,7 @@ import {
   filterScorersLeaderboard,
   normalizeScorersMatch,
   flattenBracketMatches,
-} from "../../src/renderer/worldcup/scorers-leaderboard.js";
+} from "../../src/renderer/worldcup/scorers-leaderboard.ts";
 
 describe("scorers-leaderboard", () => {
   it("汇总进球并排序", () => {

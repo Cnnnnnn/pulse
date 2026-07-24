@@ -19,7 +19,7 @@ import {
   normalizeScorersMatch,
   buildScorersLeaderboard,
   filterScorersLeaderboard,
-} from "../../src/renderer/worldcup/scorers-leaderboard.js";
+} from "../../src/renderer/worldcup/scorers-leaderboard.ts";
 
 describe("v2.74.3 scorers-leaderboard knockout integration", () => {
   it("flattenBracketMatches flattens all stages", () => {

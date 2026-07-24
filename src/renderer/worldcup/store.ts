@@ -13,8 +13,8 @@ import {
   isScoreRefreshEligible,
   matchKey,
   mergeScoresIntoMatches,
-} from "./match-utils.js";
-import { loadWorldcupBets } from "./betsStore.js";
+} from "./match-utils.ts";
+import { loadWorldcupBets } from "./betsStore.ts";
 
 // worldcupMatches: { name, groups, matches }  (parsed data) | null (未拉取)
 // worldcupLoading: boolean
@@ -194,7 +194,7 @@ export async function loadWorldcupInsightsCache() {
  * @param {{ force?: boolean, scoreEntry?: object }} [opts]
  * @returns {Promise<object>}
  */
-export async function generateWorldcupInsight(match, type, opts = {}) {
+export async function generateWorldcupInsight(match: any, type: any, opts: any = {}) {
   if (
     typeof window === "undefined" ||
     !window.api ||
@@ -250,7 +250,7 @@ export async function bootstrapWorldcupTab() {
  *   onUpdated: 比分刷新完成后的回调 (bracketStore 用它触发重算).
  * @returns {() => void} unsubscribe 函数, 组件 unmount 时必须调用.
  */
-export function subscribeScoresUpdates(opts = {}) {
+export function subscribeScoresUpdates(opts: any = {}) {
   if (
     typeof window === "undefined" ||
     !window.api ||

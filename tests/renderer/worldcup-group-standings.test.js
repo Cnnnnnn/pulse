@@ -6,7 +6,7 @@ import { describe, it, expect } from "vitest";
 import {
   computeGroupStandings,
   sortTeamsInGroup,
-} from "../../src/renderer/worldcup/group-standings.js";
+} from "../../src/renderer/worldcup/group-standings.ts";
 
 const GROUP_A_TEAMS = [
   { name: "Mexico", cn: "墨西哥", group: "A" },

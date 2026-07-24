@@ -4,9 +4,9 @@
  * 进球者列表 (ESPN scoringPlays)
  */
 
-import { displayTeam } from './teams-data.js';
+import { displayTeam } from './teams-data.ts';
 import { TeamFlag, IconFootball } from '../components/icons.tsx';
-import { resolvePlayerCnByName } from './player-cn.js';
+import { resolvePlayerCnByName } from './player-cn.ts';
 
 function formatScorer(s) {
   const cn = resolvePlayerCnByName(s.player);

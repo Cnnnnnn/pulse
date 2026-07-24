@@ -14,7 +14,7 @@ import {
   loadWorldcupBets,
   upsertWorldcupBet,
   removeWorldcupBet,
-} from "../../src/renderer/worldcup/betsStore.js";
+} from "../../src/renderer/worldcup/betsStore.ts";
 
 describe("computeBetsStats", () => {
   it("returns zeros + roi=null for empty dates", () => {

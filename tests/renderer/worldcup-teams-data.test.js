@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { TEAMS, listTeams, lookupTeam, flagFromCode } from '../../src/renderer/worldcup/teams-data.js';
+import { TEAMS, listTeams, lookupTeam, flagFromCode } from '../../src/renderer/worldcup/teams-data.ts';
 
 describe('teams-data 静态数据 integrity', () => {
   it('48 队 (12 group × 4)', () => {

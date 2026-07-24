@@ -29,9 +29,9 @@
  * data integrity: 队名必须跟 openfootball TXT 的 Group 行 1:1, 中文译名 跟 FIFA 官方对齐.
  */
 
-import { SQUADS } from "./squads-data.js";
-import { attachSquadCn } from "./player-cn.js";
-import { canonicalTeamName } from "./team-canonical.js";
+import { SQUADS } from "./squads-data.ts";
+import { attachSquadCn } from "./player-cn.ts";
+import { canonicalTeamName } from "./team-canonical.ts";
 
 // 50 队 数据 (12 组 × 4 队 + 2 邀请 = 50). 注: 2026 决赛圈实际 48 队, 邀请 2 队
 // 由 FIFA 2026 跟 USL 拍板. 这里 hardcode 50 跟 TXT 头部 Group 行 1:1.
@@ -708,8 +708,9 @@ function displayTeam(enName) {
  * 列出所有队, 按 group 排序
  * @returns {Array}
  */
-function listTeams() {
-  return Object.values(TEAMS).sort((a, b) => {
+function listTeams(): any[] {
+  // ponytail: TEAMS 值形状固定，Object.values 在 TS 下是 unknown[]
+  return (Object.values(TEAMS) as any[]).sort((a, b) => {
     if (a.group !== b.group) return a.group < b.group ? -1 : 1;
     return a.name < b.name ? -1 : 1;
   });

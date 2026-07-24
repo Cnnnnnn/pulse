@@ -28,7 +28,7 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 let mockActiveNav = 'news';
 let mockNavCollapsed = true;
 
-vi.mock('../../src/renderer/worldcup/navStore.js', async (importOriginal) => {
+vi.mock('../../src/renderer/worldcup/navStore.ts', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     // 复用真实的 NAV_KEYS_LIST / effectiveVisibleItems (SideNav + sidenav-prefs 依赖),

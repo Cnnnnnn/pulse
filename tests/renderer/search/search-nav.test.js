@@ -6,9 +6,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // mock setActiveNav + goInvest (navStore)
-import { setActiveNav, goInvest } from '../../../src/renderer/worldcup/navStore.js';
+import { setActiveNav, goInvest } from '../../../src/renderer/worldcup/navStore.ts';
 
-vi.mock('../../../src/renderer/worldcup/navStore.js', () => ({
+vi.mock('../../../src/renderer/worldcup/navStore.ts', () => ({
   setActiveNav: vi.fn(),
   goInvest: vi.fn(),
 }));

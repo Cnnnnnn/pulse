@@ -43,7 +43,7 @@ describe("refreshWorldcupScores loading lifecycle", () => {
     };
 
     vi.resetModules();
-    const store = await import("../../src/renderer/worldcup/store.js");
+    const store = await import("../../src/renderer/worldcup/store.ts");
     refreshWorldcupScores = store.refreshWorldcupScores;
     worldcupScoresLoading = store.worldcupScoresLoading;
     // 每个 case 起点前清掉前面测试残留的 loading state

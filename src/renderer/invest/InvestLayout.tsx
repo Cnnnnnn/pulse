@@ -28,7 +28,7 @@
  */
 import { useEffect } from "preact/hooks";
 import "./InvestLayout.css";
-import { investPrimary } from "../worldcup/navStore.js";
+import { investPrimary } from "../worldcup/navStore.ts";
 import { refreshActiveNav } from "../nav-refresh.ts";
 import {
   fundView,

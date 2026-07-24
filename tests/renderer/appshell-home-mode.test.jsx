@@ -54,7 +54,7 @@ describe('AppShell home 模式 — 行为契约', () => {
 describe('AppShell home 模式 — SideNav 🏠 按钮 (行为契约 + 单元)', () => {
   it('点击 🏠 后 activeNav === "home" (regression from flicker bug)', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
-    const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
 
     const { SideNav } = await import('../../src/renderer/components/SideNav.tsx');
     activeNav.value = 'ithome';

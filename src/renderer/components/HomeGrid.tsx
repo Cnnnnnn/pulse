@@ -18,14 +18,14 @@
  * 启动期 assert: HOME_TILES.length === PERSISTABLE_NAV_KEYS.size 防顺序漂移.
  */
 import { useEffect, useRef, useState } from "preact/hooks";
-import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.js";
+import { setActiveNav, goInvest, PERSISTABLE_NAV_KEYS } from "../worldcup/navStore.ts";
 import { ithomeUnreadBadge, ithomeArticles, ithomeDayStats } from "../ithome/store.ts";
 import { wechatHotUnreadBadge, wechatHotItems } from "../wechat-hot/store.ts";
 import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.ts";
 import { aiUsageNavBadge, aiUsageSnapshot, aiUsageActiveProvider } from "../store/ai-usage-store.ts";
 import { githubProjects } from "../store/github-projects-store.ts";
-import { worldcupMatches } from "../worldcup/store.js";
-import { matchKickoffUtcMs } from "../worldcup/match-utils.js";
+import { worldcupMatches } from "../worldcup/store.ts";
+import { matchKickoffUtcMs } from "../worldcup/match-utils.ts";
 import { quoteCache } from "../metals/metalStore.ts";
 import { comparePoolCount } from "../stocks/comparePool.ts";
 import { results as stocksResults } from "../stocks/stockStore.ts";

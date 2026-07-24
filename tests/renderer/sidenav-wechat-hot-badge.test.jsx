@@ -11,7 +11,7 @@ import { signal } from "@preact/signals";
 const ithomeUnreadBadge = signal(0);
 const wechatHotUnreadBadge = signal(0);
 
-vi.mock("../../src/renderer/worldcup/navStore.js", async (importOriginal) => {
+vi.mock("../../src/renderer/worldcup/navStore.ts", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     NAV_KEYS_LIST: actual.NAV_KEYS_LIST,

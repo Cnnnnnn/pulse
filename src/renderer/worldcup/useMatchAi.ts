@@ -5,8 +5,8 @@
  */
 
 import { useState } from "preact/hooks";
-import { matchKey, isMatchUpcoming } from "./match-utils.js";
-import { worldcupMatchInsights, generateWorldcupInsight } from "./store.js";
+import { matchKey, isMatchUpcoming } from "./match-utils.ts";
+import { worldcupMatchInsights, generateWorldcupInsight } from "./store.ts";
 import { refreshAIReadyStatus } from "../store.ts";
 import { trackWorldcupInsight } from "../recent/track.ts";
 

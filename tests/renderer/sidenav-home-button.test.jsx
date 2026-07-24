@@ -20,7 +20,7 @@ const { SideNav } = await import('../../src/renderer/components/SideNav.tsx');
 
 describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
   beforeEach(async () => {
-    const { activeNav, navCollapsed } = await import('../../src/renderer/worldcup/navStore.js');
+    const { activeNav, navCollapsed } = await import('../../src/renderer/worldcup/navStore.ts');
     activeNav.value = 'news';
     navCollapsed.value = false;
     // sidenav-prefs 默认 prefs — 一次性重置, 避免跨测试污染
@@ -39,13 +39,13 @@ describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
 
     fireEvent.click(homeBtn);
 
-    const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
     expect(activeNav.value).toBe('home');
   });
 
   it('从 panel 切到 home, 再次重渲染 (模拟 prefs 变) 后仍是 home', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
-    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
 
     setActiveNav('invest');
     expect(activeNav.value).toBe('invest');
@@ -69,7 +69,7 @@ describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
 
   it('panel → panel 切换 (基线) 不受 home 守卫影响', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
-    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
+    const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
 
     setActiveNav('news');
     expect(activeNav.value).toBe('news');

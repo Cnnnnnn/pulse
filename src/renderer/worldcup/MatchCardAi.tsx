@@ -4,8 +4,8 @@
  * 赛程卡片上的 AI 按钮（紧凑版，点击不打开大名单弹窗）
  */
 
-import { useMatchAi } from './useMatchAi.js';
-import { formatInsightText } from './insight-text.js';
+import { useMatchAi } from './useMatchAi.ts';
+import { formatInsightText } from './insight-text.ts';
 import { IconEdit, IconWand } from '../components/icons.tsx';
 
 export function MatchCardAi({ match, score }) {

@@ -11,7 +11,7 @@
  * spec: docs/superpowers/specs/2026-06-22-i3-sidenav-drag-hide-design.md §3
  */
 
-import { NAV_KEYS_LIST } from "../worldcup/navStore.js";
+import { NAV_KEYS_LIST } from "../worldcup/navStore.ts";
 
 const STORAGE_KEY = "pulse.sidenav.prefs.v1";
 // v2: 加 favorites 字段. v1 数据兼容 — load 时缺字段补 [].

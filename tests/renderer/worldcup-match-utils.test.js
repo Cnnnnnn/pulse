@@ -7,7 +7,7 @@ import {
   matchKey,
   isScoreRefreshEligible,
   mergeScoresIntoMatches,
-} from "../../src/renderer/worldcup/match-utils.js";
+} from "../../src/renderer/worldcup/match-utils.ts";
 
 const SAMPLE = {
   date: "2026-06-11",

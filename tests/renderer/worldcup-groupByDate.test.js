@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { groupMatchesByDate } from '../../src/renderer/worldcup/groupByDate.js';
+import { groupMatchesByDate } from '../../src/renderer/worldcup/groupByDate.ts';
 
 describe('groupMatchesByDate (renderer)', () => {
   it('空数组 → 空数组', () => {

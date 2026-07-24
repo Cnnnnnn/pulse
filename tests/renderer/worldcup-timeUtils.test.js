@@ -6,7 +6,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseUtcOffset,
   toBeijingTime,
-} from "../../src/renderer/worldcup/timeUtils.js";
+} from "../../src/renderer/worldcup/timeUtils.ts";
 
 describe("parseUtcOffset", () => {
   it("UTC-6 → +6 (当地加 6 小时得 UTC)", () => {

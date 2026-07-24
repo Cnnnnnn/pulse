@@ -4,7 +4,7 @@
  * 小组赛积分榜：按积分、净胜球排序
  */
 
-import { canonicalTeamName } from "./team-canonical.js";
+import { canonicalTeamName } from "./team-canonical.ts";
 
 function emptyStanding() {
   return { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 };

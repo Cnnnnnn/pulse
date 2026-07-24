@@ -11,8 +11,8 @@
  * 通过 normalizeScorersMatch 统一成 { team1, team2, scorers }.
  */
 
-import { displayTeam } from "./teams-data.js";
-import { resolvePlayerCnByName } from "./player-cn.js";
+import { displayTeam } from "./teams-data.ts";
+import { resolvePlayerCnByName } from "./player-cn.ts";
 
 function playerKey(player, teamName) {
   return `${String(player || "")

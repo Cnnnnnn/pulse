@@ -3,7 +3,7 @@
  *
  * v2.10.0 顶部 stats card — 总投入 / 总盈亏 / 已填 / 未填 / 盈亏率
  */
-import { worldcupBets, betsLoaded, computeBetsStats } from "./betsStore.js";
+import { worldcupBets, betsLoaded, computeBetsStats } from "./betsStore.ts";
 
 function fmtMoney(n) {
   if (n == null || !Number.isFinite(n)) return "—";

@@ -23,14 +23,14 @@
  *   - G7-G9 12 队 → ./squads-data-g7g9.js
  *   - G10-G12 12 队 → ./squads-data-g10g12.js
  *   - 3 拆文件保留作 source-of-truth (拆分便于独立 review/diff)
- *   - teams-data.js `import { SQUADS } from './squads-data.js'` 仍拿到聚合 map
+ *   - teams-data.js `import { SQUADS } from './squads-data.ts'` 仍拿到聚合 map
  *
  * Schema: [{ number, position, name, club }]
  */
 
-import { SQUADS_G3G6 } from './squads-data-g3g6.js';
-import { SQUADS_G7G9 } from './squads-data-g7g9.js';
-import { SQUADS_G10G12 } from './squads-data-g10g12.js';
+import { SQUADS_G3G6 } from './squads-data-g3g6.ts';
+import { SQUADS_G7G9 } from './squads-data-g7g9.ts';
+import { SQUADS_G10G12 } from './squads-data-g10g12.ts';
 
 const SQUADS_G1G2 = {
   // ─── Group A (4 队) ─────────────────────────────

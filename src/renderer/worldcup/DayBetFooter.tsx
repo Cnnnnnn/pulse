@@ -16,7 +16,7 @@ import {
   worldcupBets,
   upsertWorldcupBet,
   removeWorldcupBet,
-} from "./betsStore.js";
+} from "./betsStore.ts";
 
 function fmtMoney(n) {
   if (n == null || !Number.isFinite(n)) return "—";

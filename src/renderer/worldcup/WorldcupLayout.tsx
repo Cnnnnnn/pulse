@@ -21,8 +21,8 @@ import {
   refreshWorldcupScores,
   subscribeScoresUpdates,
   worldcupScoresLoading,
-} from './store.js';
-import { tryAutoRecompute } from './bracketStore.js';
+} from './store.ts';
+import { tryAutoRecompute } from './bracketStore.ts';
 
 export const WC_SUBTABS = [
   { key: 'fixtures', label: '赛程' },
