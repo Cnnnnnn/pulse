@@ -57,7 +57,9 @@ async function fetchWithRetry(url: string, opts: any = {}, retries: number = 2):
   let lastErr: any;
   for (let i = 0; i <= retries; i++) {
     try {
-      const res = await fetch(url, { ...opts, signal: AbortSignal.timeout(15_000) });
+      // ponytail: 必须用 globalThis.fetch — 本文件 export async function fetch 会遮蔽全局名，
+      //   esbuild 打包后 fetchWithRetry 里的 fetch 会递归到自身 → Maximum call stack.
+      const res = await globalThis.fetch(url, { ...opts, signal: AbortSignal.timeout(15_000) });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
       return res;
     } catch (e) {
