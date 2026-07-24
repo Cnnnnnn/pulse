@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/states.jsx
+ * src/renderer/ai-leaderboard/states.tsx
  *
  * 三种状态呈现：加载骨架 / 错误 / 空。均为纯展示，重试回调由父层注入。
  * 无网络出口；可访问性：role=status/alert + sr-only 文案。

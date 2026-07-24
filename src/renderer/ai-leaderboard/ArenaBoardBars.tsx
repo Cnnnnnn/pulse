@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/ArenaBoardBars.jsx
+ * src/renderer/ai-leaderboard/ArenaBoardBars.tsx
  *
  * 跨 board ELO 迷你条（纯展示，无副作用）。
  * 展示模型参与的所有 Arena board 的 ELO 成绩，宽度按固定域 [ELO_MIN, ELO_MAX]

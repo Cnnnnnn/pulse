@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/BoardHealthCard.jsx
+ * src/renderer/ai-leaderboard/BoardHealthCard.tsx
  *
  * 数据健康看板 (v2.83 → v3.2):
  *  - 5 个数据源徽标 (Arena / AA / LB / OR / MD), 显示每个源在当前列表里覆盖了多少行
@@ -33,9 +33,10 @@ export function BoardHealthCard({ total, compact = false }) {
     ? Date.parse(fetchedAt.value)
     : null;
   const isSampleValue = isSample.value;
-  const aaBudget = rateBudget.value || {};
-  const aaUsedPct = aaBudget && Number.isFinite(aaBudget.limit) && aaBudget.limit > 0
-    ? Math.round((aaBudget.used / aaBudget.limit) * 100)
+  // ponytail: rateBudget 信号默认 {}，消费端 cast 出 AA 预算字段
+  const aaBudget = (rateBudget.value || {}) as { used?: number; limit?: number };
+  const aaUsedPct = aaBudget && Number.isFinite(aaBudget.limit) && (aaBudget.limit as number) > 0
+    ? Math.round(((aaBudget.used || 0) / (aaBudget.limit as number)) * 100)
     : 0;
   const aaWarn = aaUsedPct >= 80;
 
@@ -72,7 +73,7 @@ export function BoardHealthCard({ total, compact = false }) {
                   : `${m.label} — ${m.desc} · 点击隐藏`
               }
               role="button"
-              tabindex="0"
+              tabIndex={0}
               onClick={() => toggleHealthSource(m.key)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {

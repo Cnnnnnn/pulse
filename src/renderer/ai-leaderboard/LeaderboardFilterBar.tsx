@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/LeaderboardFilterBar.jsx
+ * src/renderer/ai-leaderboard/LeaderboardFilterBar.tsx
  *
  * 对齐 ai-leaderboard-redesign-preview：分段视角切换 + 工具栏（左筛选 / 右搜索刷新）
  */

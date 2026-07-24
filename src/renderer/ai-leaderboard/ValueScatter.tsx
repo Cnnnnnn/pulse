@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/ValueScatter.jsx
+ * src/renderer/ai-leaderboard/ValueScatter.tsx
  *
  * v3.0 性价比散点图（AA 深度分析视角专用）。
  * X 轴：输出价格 ($/1M tokens, log scale)

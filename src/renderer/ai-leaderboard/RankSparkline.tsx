@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/RankSparkline.jsx
+ * src/renderer/ai-leaderboard/RankSparkline.tsx
  *
  * 排名趋势迷你折线（纯展示，无副作用）。
  * series: [{ date, rank }]，时间升序；rank 越低越好（排名越靠前）。
@@ -9,7 +9,12 @@
 /**
  * @param {{series?: Array<{date:string, rank:number}>, width?: number, height?: number, title?: string}} props
  */
-export function RankSparkline({ series, width = 56, height = 16, title }) {
+export function RankSparkline({ series, width = 56, height = 16, title }: {
+  series?: Array<{ date?: string; rank?: number }>;
+  width?: number;
+  height?: number;
+  title?: string;
+}) {
   if (!Array.isArray(series) || series.length < 2) return null;
   const ranks = series
     .map((s) => Number(s && s.rank))

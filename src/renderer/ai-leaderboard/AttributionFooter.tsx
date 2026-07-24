@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/AttributionFooter.jsx
+ * src/renderer/ai-leaderboard/AttributionFooter.tsx
  *
  * 署名脚注：AA 强制（架构 §12，含可点击链接 https://artificialanalysis.ai/）；
  * 其余来源按实际命中动态追加（Arena MIT / OpenRouter / 示例）。

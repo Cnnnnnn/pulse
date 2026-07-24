@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/ArenaBubbleChart.jsx
+ * src/renderer/ai-leaderboard/ArenaBubbleChart.tsx
  *
  * v3.x Arena 视角气泡图（ELO × 票数，气泡＝置信区间 CI）。
  * X 轴：ELO 分数（线性）

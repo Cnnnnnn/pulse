@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/AiLeaderboardPage.jsx
+ * src/renderer/ai-leaderboard/AiLeaderboardPage.tsx
  *
  * v3.1 布局对齐 ai-leaderboard-redesign-preview
  */
@@ -31,16 +31,16 @@ import { fmtClock, fmtDate, licenseKind } from "./format.js";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.js";
 import { rowsToCsv } from "./exportCsv.js";
 import { api } from "../api.js";
-import { LeaderboardFilterBar } from "./LeaderboardFilterBar.jsx";
-import { LeaderboardTable } from "./LeaderboardTable.jsx";
-import { ValueScatter } from "./ValueScatter.jsx";
-import { ArenaBubbleChart } from "./ArenaBubbleChart.jsx";
-import { ComparePanel } from "./ComparePanel.jsx";
-import { ModelDetailDrawer } from "./ModelDetailDrawer.jsx";
-import { AttributionFooter } from "./AttributionFooter.jsx";
-import { LoadingState, ErrorState, EmptyState } from "./states.jsx";
-import { TopPodium } from "./TopPodium.jsx";
-import { BoardHealthCard } from "./BoardHealthCard.jsx";
+import { LeaderboardFilterBar } from "./LeaderboardFilterBar.tsx";
+import { LeaderboardTable } from "./LeaderboardTable.tsx";
+import { ValueScatter } from "./ValueScatter.tsx";
+import { ArenaBubbleChart } from "./ArenaBubbleChart.tsx";
+import { ComparePanel } from "./ComparePanel.tsx";
+import { ModelDetailDrawer } from "./ModelDetailDrawer.tsx";
+import { AttributionFooter } from "./AttributionFooter.tsx";
+import { LoadingState, ErrorState, EmptyState } from "./states.tsx";
+import { TopPodium } from "./TopPodium.tsx";
+import { BoardHealthCard } from "./BoardHealthCard.tsx";
 
 /**
  * 当前视图导出 CSV 的列定义（顺序匹配 LeaderboardTable 的列头）。

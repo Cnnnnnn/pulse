@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/EloPerDollar.jsx
+ * src/renderer/ai-leaderboard/EloPerDollar.tsx
  *
  * ELO per $（性价比排名）：横向条形排行。
  * 把厂商「最佳 Arena ELO」除以「最低 AA 输出价」，越高代表花一美元能买到的竞技水平越多（越划算）。
@@ -71,10 +71,10 @@ export function EloPerDollar({ rows = [], focusSet = new Set(), onJump = null })
           const delay = Math.min(i, BAR_STAGGER_CAP) * BAR_STAGGER_MS;
           const rowProps = interactive
             ? {
-                role: "button",
-                tabindex: "0",
+                role: "button" as const,
+                tabIndex: 0,
                 onClick: () => onJump(r.vendor),
-                onKeyDown: (e) => {
+                onKeyDown: (e: KeyboardEvent) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     onJump(r.vendor);

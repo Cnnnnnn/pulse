@@ -13,7 +13,7 @@ const LOADERS = {
   // 2026-07-13: 投资 nav 合并 funds/metals/stocks → 'invest', 三 layout 内嵌为 FundContent/MetalContent/StockContent.
   news: () => import('../news/NewsLayout.tsx').then((m) => m.NewsLayout),
   worldcup: () =>
-    import('../worldcup/WorldcupLayout.jsx').then((m) => m.WorldcupLayout),
+    import('../worldcup/WorldcupLayout.tsx').then((m) => m.WorldcupLayout),
   invest: () =>
     import('../invest/InvestLayout.tsx').then((m) => m.InvestLayout),
   'ai-usage': () =>
@@ -23,7 +23,7 @@ const LOADERS = {
   games: () =>
     import('../games/GamesLayout.tsx').then((m) => m.GamesLayout),
   'ai-leaderboard': () =>
-    import('../ai-leaderboard/AiLeaderboardLayout.jsx').then((m) => m.AiLeaderboardLayout),
+    import('../ai-leaderboard/AiLeaderboardLayout.tsx').then((m) => m.AiLeaderboardLayout),
 };
 
 export function LazyNavPanel({

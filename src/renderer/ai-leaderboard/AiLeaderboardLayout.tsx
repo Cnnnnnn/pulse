@@ -1,11 +1,11 @@
 /**
- * src/renderer/ai-leaderboard/AiLeaderboardLayout.jsx — AI 榜单顶级 nav panel 容器。
+ * src/renderer/ai-leaderboard/AiLeaderboardLayout.tsx — AI 榜单顶级 nav panel 容器。
  * 进入时载入偏好 + 拉一次数据（按当前筛选条件）；后续切换由 store 内部触发。
- * 镜像 games/GamesLayout.jsx 的挂载范式。
+ * 镜像 games/GamesLayout.tsx 的挂载范式。
  */
 import { useEffect } from "preact/hooks";
 import { loadPrefs, loadLeaderboard } from "./aiLeaderboardStore.js";
-import { AiLeaderboardPage } from "./AiLeaderboardPage.jsx";
+import { AiLeaderboardPage } from "./AiLeaderboardPage.tsx";
 import "./ai-leaderboard.css";
 
 export function AiLeaderboardLayout() {

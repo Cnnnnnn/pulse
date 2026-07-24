@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/ModelCard.jsx
+ * src/renderer/ai-leaderboard/ModelCard.tsx
  *
  * v3.1 移动端卡片列表（重设计 P0）：
  *  - 每模型一卡 = medal 排名 + 模型名 + 主指标大数字 + 其余指标 2×N 网格 + 对比勾选
@@ -10,8 +10,8 @@
 import { VENDOR_META } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare, columnValue, openModelDetail } from "./aiLeaderboardStore.js";
-import { RankSparkline } from "./RankSparkline.jsx";
-import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
+import { RankSparkline } from "./RankSparkline.tsx";
+import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
 
 const FIELDS = {
   arena: [
@@ -118,7 +118,11 @@ function ModelCard({ m, rank, view, primaryKey }) {
   );
 }
 
-export function ModelCardList({ rows, view, primaryKey }) {
+export function ModelCardList({ rows, view, primaryKey }: {
+  rows?: any; view?: any; primaryKey?: any;
+  // ponytail: LeaderboardTable 透传 board/dim/lb/primaryMax/votesMax，卡片列表不用
+  board?: any; dim?: any; lb?: any; primaryMax?: any; votesMax?: any;
+}) {
   const list = rows || [];
   return (
     <div class="ai-lb-cards">

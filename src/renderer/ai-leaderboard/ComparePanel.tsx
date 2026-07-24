@@ -17,8 +17,8 @@ import {
 import { VENDOR_META } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena, rankVendorsByEloPerDollar } from "./format.js";
 import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.js";
-import { CrossSourceRadar } from "./CrossSourceRadar.jsx";
-import { EloPerDollar } from "./EloPerDollar.jsx";
+import { CrossSourceRadar } from "./CrossSourceRadar.tsx";
+import { EloPerDollar } from "./EloPerDollar.tsx";
 
 // 跨源加载/错误态门：雷达与性价比两个标签共用同一套三源拉取状态。
 function CrossSourceGate({ loading, error, onRetry, empty, children }) {

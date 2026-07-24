@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/CrossSourceRadar.jsx
+ * src/renderer/ai-leaderboard/CrossSourceRadar.tsx
  *
  * 跨源雷达（Cross-Source Radar）：同一批「厂商（实验室）」在三个独立评测源上的能力叠加对比。
  *   轴 0（顶部）：Arena ELO（社区盲测，取该厂商最高分）

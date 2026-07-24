@@ -6,10 +6,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
-import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
-import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.jsx";
-import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.jsx";
-import { CrossSourceRadar } from "../../src/renderer/ai-leaderboard/CrossSourceRadar.jsx";
+import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.tsx";
+import { TopPodium } from "../../src/renderer/ai-leaderboard/TopPodium.tsx";
+import { ArenaBubbleChart } from "../../src/renderer/ai-leaderboard/ArenaBubbleChart.tsx";
+import { CrossSourceRadar } from "../../src/renderer/ai-leaderboard/CrossSourceRadar.tsx";
 import { normalizeBoardResult, normalizeAiModel } from "../../src/renderer/ai-leaderboard/types.js";
 import { crossSourceProfile, normalizeToUnit, ELO_MIN, ELO_MAX, fmtContext, aggregateVendorProfiles, topVendorsByArena, fmtRelative } from "../../src/renderer/ai-leaderboard/format.js";
 import {
@@ -42,9 +42,9 @@ import {
   searchQuery,
   licenseFilter,
 } from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js";
-import { AiLeaderboardPage } from "../../src/renderer/ai-leaderboard/AiLeaderboardPage.jsx";
-import { ModelDetailDrawer } from "../../src/renderer/ai-leaderboard/ModelDetailDrawer.jsx";
-import { ModelRow } from "../../src/renderer/ai-leaderboard/ModelRow.jsx";
+import { AiLeaderboardPage } from "../../src/renderer/ai-leaderboard/AiLeaderboardPage.tsx";
+import { ModelDetailDrawer } from "../../src/renderer/ai-leaderboard/ModelDetailDrawer.tsx";
+import { ModelRow } from "../../src/renderer/ai-leaderboard/ModelRow.tsx";
 
 const aaModels = [
   {

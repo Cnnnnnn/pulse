@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/ModelRow.jsx
+ * src/renderer/ai-leaderboard/ModelRow.tsx
  *
  * v3.1 三视角行渲染（重设计 P0/P1）：
  *  - rank<=3 金/银/铜 medal（排名是榜单灵魂）
@@ -11,11 +11,14 @@ import { forwardRef } from "preact/compat";
 import { VENDOR_META, ARENA_BOARDS } from "./types.js";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, fmtTrending, computeTrendingScore, licenseKind, licenseShort } from "./format.js";
 import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items } from "./aiLeaderboardStore.js";
-import { RankSparkline } from "./RankSparkline.jsx";
-import { ArenaBoardBars } from "./ArenaBoardBars.jsx";
+import { RankSparkline } from "./RankSparkline.tsx";
+import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
 
 // ponytail: forwardRef 把 virtuoso TableRow 的测量 ref 落到真实 <tr>，否则 ResizeObserver.observe(null)
-export const ModelRow = forwardRef(function ModelRow(
+export const ModelRow = forwardRef<HTMLTableRowElement, {
+  model?: any; rank?: any; view?: any; board?: any; dim?: any; lb?: any;
+  primaryKey?: any; primaryMax?: any; votesMax?: any;
+}>(function ModelRow(
   { model, rank, view, board, dim, lb, primaryKey, primaryMax, votesMax },
   ref,
 ) {
@@ -124,7 +127,7 @@ export const ModelRow = forwardRef(function ModelRow(
     );
   }
   // 数值单元格：按 key 判定是否激活（主指标），并挂条形。
-  function num(key, value, fmt, title) {
+  function num(key: string, value: any, fmt: (v: any) => any, title?: string) {
     const active = key === primaryKey;
     return (
       <td

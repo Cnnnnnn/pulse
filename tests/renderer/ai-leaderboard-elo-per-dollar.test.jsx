@@ -11,7 +11,7 @@ import {
   eloPerDollar,
   rankVendorsByEloPerDollar,
 } from "../../src/renderer/ai-leaderboard/format.js";
-import { EloPerDollar } from "../../src/renderer/ai-leaderboard/EloPerDollar.jsx";
+import { EloPerDollar } from "../../src/renderer/ai-leaderboard/EloPerDollar.tsx";
 
 // 厂商 oa 旗下两模型：输出价取最低（1.5）
 const items = [

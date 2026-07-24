@@ -1,5 +1,5 @@
 /**
- * src/renderer/ai-leaderboard/LeaderboardTable.jsx
+ * src/renderer/ai-leaderboard/LeaderboardTable.tsx
  *
  * v3.2 三视角表格（虚拟化 P0）：
  *  - 列头可点选排序（data-sort + aria-sort + ▲▼ 指示）
@@ -22,12 +22,14 @@ import {
   toggleSort,
   columnValue,
 } from "./aiLeaderboardStore.js";
-import { ModelRow } from "./ModelRow.jsx";
-import { ModelCardList } from "./ModelCard.jsx";
+import { ModelRow } from "./ModelRow.tsx";
+import { ModelCardList } from "./ModelCard.tsx";
 import { ARENA_BOARDS } from "./types.js";
 
 /** 可点选排序列头。 */
-function SortableTh({ k, label, active, dir, title }) {
+function SortableTh({ k, label, active, dir, title }: {
+  k: any; label: any; active: any; dir: any; title?: any;
+}) {
   const isActive = active === k;
   return (
     <th
@@ -35,7 +37,7 @@ function SortableTh({ k, label, active, dir, title }) {
       scope="col"
       data-sort={k}
       role="columnheader"
-      tabindex="0"
+      tabIndex={0}
       title={title || `按${label}排序`}
       aria-sort={isActive ? (dir === "asc" ? "ascending" : "descending") : "none"}
       onClick={() => toggleSort(k)}
@@ -55,16 +57,16 @@ function SortableTh({ k, label, active, dir, title }) {
 }
 
 // ponytail: Preact 自定义组件必须 forwardRef，否则 virtuoso 的 ResizeObserver 拿到 null
-const VirtuosoTable = forwardRef((props, ref) => (
+const VirtuosoTable = forwardRef<HTMLTableElement, any>((props, ref) => (
   <table {...props} ref={ref} class="ai-lb-table" id="ai-leaderboard-table" />
 ));
-const VirtuosoTableHead = forwardRef((props, ref) => <thead {...props} ref={ref} />);
-const VirtuosoTableBody = forwardRef((props, ref) => <tbody {...props} ref={ref} />);
+const VirtuosoTableHead = forwardRef<HTMLTableSectionElement, any>((props, ref) => <thead {...props} ref={ref} />);
+const VirtuosoTableBody = forwardRef<HTMLTableSectionElement, any>((props, ref) => <tbody {...props} ref={ref} />);
 // ModelRow 已返回完整 <tr>；把 virtuoso 的测量 ref / style 合并上去，避免 <tr><tr>
-const VirtuosoTableRow = forwardRef(({ children, ...props }, ref) => {
+const VirtuosoTableRow = forwardRef<HTMLTableRowElement, any>(({ children, ...props }, ref) => {
   const child = toChildArray(children)[0];
   if (child && typeof child === "object") {
-    return cloneElement(child, { ...props, ref });
+    return cloneElement(child as any, { ...props, ref });
   }
   return (
     <tr {...props} ref={ref}>
@@ -73,7 +75,9 @@ const VirtuosoTableRow = forwardRef(({ children, ...props }, ref) => {
   );
 });
 
-export function LeaderboardTable({ rows, view, board, dim, lb }) {
+export function LeaderboardTable({ rows, view, board, dim, lb }: {
+  rows?: any; view?: any; board?: any; dim?: any; lb?: any;
+}) {
   const v = view || activeView.value;
   const b = board || activeBoard.value;
   const d = dim || activeDim.value;
@@ -252,7 +256,7 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
             TableHead: VirtuosoTableHead,
             TableBody: VirtuosoTableBody,
             TableRow: VirtuosoTableRow,
-          }}
+          } as any}
           fixedHeaderContent={() => headRow}
           itemContent={renderRow}
         />
