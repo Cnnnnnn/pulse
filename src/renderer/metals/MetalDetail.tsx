@@ -17,8 +17,8 @@ import { useState, useMemo } from "preact/hooks";
 import {
   quoteCache, fxCache, historyMap,
 } from "./metalStore.ts";
-import { METALS, getMetalById } from "../../metals/metal-config.js";
-import { calcChange } from "../../metals/metal-calc.js";
+import { METALS, getMetalById } from "../../metals/metal-config.ts";
+import { calcChange } from "../../metals/metal-calc.ts";
 import { ModalShell } from "../components/ModalShell.tsx";
 import { api } from "../api.ts";
 import {

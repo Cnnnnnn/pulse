@@ -8,7 +8,7 @@ import {
   dedupeByDate,
   fetchMetalKline,
   pointsToHistoryMap,
-} from "../../src/metals/metal-kline-fetcher.js";
+} from "../../src/metals/metal-kline-fetcher.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

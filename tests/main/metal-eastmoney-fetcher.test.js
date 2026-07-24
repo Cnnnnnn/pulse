@@ -19,7 +19,7 @@ import {
   parseEastmoneyResponse,
   parseEastmoneyQuote,
   buildEastmoneyUrl,
-} from '../../src/metals/metal-eastmoney-fetcher.js';
+} from '../../src/metals/metal-eastmoney-fetcher.ts';
 
 const au9999Response = JSON.stringify({
   rc: 0,

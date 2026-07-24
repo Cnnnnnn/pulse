@@ -21,7 +21,7 @@ import {
   parseHfFxLine,
   parseHfTime,
   buildHfUrl,
-} from '../../src/metals/metal-sina-hf-fetcher.js';
+} from '../../src/metals/metal-sina-hf-fetcher.ts';
 
 const sampleHfResponse =
   'var hq_str_hf_GC="4341.792,,4342.000,4342.400,4369.800,4337.100,16:19:54,4354.400,4352.600,0,1,2,2026-06-17,GC,0";\n' +

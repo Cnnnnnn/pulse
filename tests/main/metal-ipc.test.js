@@ -11,7 +11,7 @@
  * CJS require 路径不稳, 用 require.cache + vi.resetModules 才是 work 的.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { requireMain, mainArtifactPath, metalsArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockIpcMainHandle = vi.fn();
 const mockWebContents = { getAllWebContents: vi.fn(() => []) };
@@ -34,7 +34,7 @@ const metalSchedulerModuleExports = {
 };
 
 const electronPath = require.resolve("electron");
-const metalSchedulerPath = require.resolve("../../src/metals/metal-scheduler.js");
+const metalSchedulerPath = metalsArtifactPath("metal-scheduler");
 const metalIpcPath = mainArtifactPath("metal-ipc");
 
 let metalIpc;

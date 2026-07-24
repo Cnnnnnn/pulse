@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { METALS, FX_RATES, getMetalById } from '../../src/metals/metal-config.js';
+import { METALS, FX_RATES, getMetalById } from '../../src/metals/metal-config.ts';
 
 describe('metal-config', () => {
   it('exports exactly 4 metals', () => {

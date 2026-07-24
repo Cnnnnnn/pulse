@@ -14,6 +14,10 @@
  * Phase 5 Batch C: 加 src/detectors（workers 仍 require 裸路径；
  *   源真相在 .ts，src/detectors/*.js 为 shim → dist-test/detectors/*.cjs）。
  *
+ * Phase 5 Batch D: 加 src/metals（main 仍 require .js shim；
+ *   源真相在 .ts，src/metals/*.js 为 shim → dist-test/metals/*.cjs）。
+ *   metal-config/metal-calc 为 renderer 共享，export-only（禁止 module.exports）。
+ *
  * 重要: 相对依赖必须 external (不能 bundle 进同一文件):
  *   - bundle 会把 module.exports = singleton 收成 named-export 包装
  *   - bundle 会使 require.cache stub 失效
@@ -29,11 +33,13 @@ const srcPlatformDir = path.join(rootDir, "src", "platform");
 const srcUtilsDir = path.join(rootDir, "src", "utils");
 const srcConfigDir = path.join(rootDir, "src", "config");
 const srcDetectorsDir = path.join(rootDir, "src", "detectors");
+const srcMetalsDir = path.join(rootDir, "src", "metals");
 const outMainDir = path.join(rootDir, "dist-test", "main", "per-file");
 const outPlatformDir = path.join(rootDir, "dist-test", "platform");
 const outUtilsDir = path.join(rootDir, "dist-test", "utils");
 const outConfigDir = path.join(rootDir, "dist-test", "config");
 const outDetectorsDir = path.join(rootDir, "dist-test", "detectors");
+const outMetalsDir = path.join(rootDir, "dist-test", "metals");
 
 function findTsFiles(dir) {
   const out = [];
@@ -70,6 +76,10 @@ function outFileFor(tsFile) {
   if (tsFile.startsWith(srcDetectorsDir + path.sep)) {
     const rel = path.relative(srcDetectorsDir, tsFile).replace(/\.ts$/, ".cjs");
     return path.join(outDetectorsDir, rel);
+  }
+  if (tsFile.startsWith(srcMetalsDir + path.sep)) {
+    const rel = path.relative(srcMetalsDir, tsFile).replace(/\.ts$/, ".cjs");
+    return path.join(outMetalsDir, rel);
   }
   return null;
 }
@@ -160,6 +170,7 @@ module.exports = async function setup() {
   const platformTs = findTsFiles(srcPlatformDir);
   const configTs = findTsFiles(srcConfigDir);
   const detectorsTs = findTsFiles(srcDetectorsDir);
+  const metalsTs = findTsFiles(srcMetalsDir);
   // ponytail: match-key.ts 是 ESM-only（仅 renderer 用），不进 dist-test CJS 图
   const utilsTs = findTsFiles(srcUtilsDir).filter(
     (f) => path.basename(f) !== "match-key.ts",
@@ -170,6 +181,7 @@ module.exports = async function setup() {
     ...configTs,
     ...utilsTs,
     ...detectorsTs,
+    ...metalsTs,
   ];
   if (tsFiles.length === 0) return;
 
@@ -199,6 +211,7 @@ module.exports = async function setup() {
   fs.mkdirSync(outUtilsDir, { recursive: true });
   fs.mkdirSync(outConfigDir, { recursive: true });
   fs.mkdirSync(outDetectorsDir, { recursive: true });
+  fs.mkdirSync(outMetalsDir, { recursive: true });
 
   if (needBuild) {
     const esbuild = require("esbuild");

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { METALS, getMetalById } from "../../src/metals/metal-config.js";
+import { METALS, getMetalById } from "../../src/metals/metal-config.ts";
 
 describe("metal-config METALS history fields", () => {
   it("每个品种都有 historySecid / proxyLabel / unitDivisor 3 字段", () => {

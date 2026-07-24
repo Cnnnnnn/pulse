@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { MetalScheduler } from "../../src/metals/metal-scheduler.js";
+import { MetalScheduler } from "../../src/metals/metal-scheduler.ts";
 
 describe("MetalScheduler.snapshotDailyClose", () => {
   let sched;

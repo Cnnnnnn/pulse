@@ -10,8 +10,8 @@
 import {
   quoteCache, fxCache, historyMap,
 } from "./metalStore.ts";
-import { METALS } from "../../metals/metal-config.js";
-import { calcChange } from "../../metals/metal-calc.js";
+import { METALS } from "../../metals/metal-config.ts";
+import { calcChange } from "../../metals/metal-calc.ts";
 import { Sparkline } from "../components/Sparkline.tsx";
 import { PinIcon, IconAlert } from "../components/icons.tsx";
 import { showToast } from "../store.ts";

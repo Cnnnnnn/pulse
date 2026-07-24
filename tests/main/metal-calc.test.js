@@ -19,7 +19,7 @@ import {
   calcTodayPnl,
   calcOverview,
   convertToCNY,
-} from '../../src/metals/metal-calc.js';
+} from '../../src/metals/metal-calc.ts';
 
 const sampleQuote = {
   id: 'XAU',

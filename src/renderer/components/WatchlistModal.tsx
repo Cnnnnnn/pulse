@@ -20,7 +20,7 @@ import {
   addWatchlistItem,
   itemKey,
 } from "../watchlist/watchlist-store.ts";
-import { getMetalById } from "../../metals/metal-config.js";
+import { getMetalById } from "../../metals/metal-config.ts";
 import { ModalShell, ModalHeader } from "./ModalShell.tsx";
 import { IconStar, IconX, WatchlistTypeIcon } from "./icons.tsx";
 
