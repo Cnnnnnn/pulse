@@ -284,7 +284,9 @@ export function normalize(raw: any): any[] {
           createdAt: typeof m.createdAt === "string" ? m.createdAt : null,
           pipelineTag: typeof m.pipeline_tag === "string" ? m.pipeline_tag : null,
           libraryName: typeof m.library_name === "string" ? m.library_name : null,
-          tags: Array.isArray(m.tags) ? m.tags.filter((t) => typeof t === "string").slice(0, 50) : [],
+          tags: Array.isArray(m.tags)
+            ? m.tags.filter((t: unknown): t is string => typeof t === "string").slice(0, 50)
+            : [],
           license: tagSummary.license,
           baseModel: tagSummary.baseModel,
           arxivIds: tagSummary.arxivIds,

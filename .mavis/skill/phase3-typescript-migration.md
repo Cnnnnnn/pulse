@@ -5,11 +5,12 @@ description: Phase 3 TypeScript 迁移 — Pulse main 进程 .ts 化 + 双 build
 
 # Phase 3 TypeScript Migration — Pulse
 
-> Pulse main 进程从手写 .js 迁移到 .ts 的标准化流程。**Phase 3 Batch 0–9 完成**：
+> Pulse main 进程从手写 .js 迁移到 .ts 的标准化流程。**Phase 3 Batch 0–9 完成**；**Phase 3.5 进行中**（per-directory `strict`）。
 > - 业务真相只在 `.ts`
 > - 生产：`scripts/build-main.cjs` → `dist/main/index.js`
 > - 测试：`build-main-ts.cjs` → `dist-test/**/*.cjs` + `requireMain()` / `requirePlatform()`
 > - 例外 shim（给仍是 JS 的 `src/ai`/`workers`/…）：`http-client`/`state-store`/`token-budget`/`log`/`platform/index`
+> - **strict 锁**：`tsconfig.app.strict.json`（`npm run typecheck` 已接入）。新目录过 strict 后追加 `include`；`any` 用 `ponytail:` 标 ceiling，禁 `@ts-ignore`
 >
 > 本 skill 教你怎么：
 > 1. 加新 `.ts` module 时**不漏双导出**（`module.exports` + `export function` 同存）
@@ -17,7 +18,7 @@ description: Phase 3 TypeScript 迁移 — Pulse main 进程 .ts 化 + 双 build
 > 3. 测试用 `requireMain("path/mod")`；`require.cache` stub 用 `mainArtifactPath(...)`
 > 4. **手动跑生产 build** 验证
 > 5. 非 main JS 若必须 require main，走上述例外 shim（`.js`），不要直接 require `.ts`（vitest 会当 ESM 炸）
-
+> 6. Phase 3.5：修完某目录 strict 错误 → 加进 `tsconfig.app.strict.json` include → `npm run typecheck`
 ## 何时触发
 
 - 看到 `git status` 列出一堆 `M src/main/...js` （60+ 个文件全是 +7/-N 行）

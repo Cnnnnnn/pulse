@@ -44,7 +44,9 @@ export function toGameDeal(raw: any): any {
   let savings = raw.savings == null ? 0 : Math.round(Number(raw.savings));
   if (savings < 0) savings = 0;
   if (savings > 100) savings = 100;
-  const isFree = Boolean(raw.isFree) || (salePrice === 0 && normalPrice > 0);
+  const isFree =
+    Boolean(raw.isFree) ||
+    (salePrice === 0 && normalPrice != null && normalPrice > 0);
   return {
     id: String(raw.id != null ? raw.id : `${platform}-${raw.title || Math.random()}`),
     platform,

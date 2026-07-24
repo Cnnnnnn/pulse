@@ -165,7 +165,7 @@ export function buildDealsFromPsGameSpider(priceHistory: any, metaData: any, opt
       store,
       platform,
       source: "live",
-      rating: !isNaN(rating) ? rating : null,
+      rating: rating != null && !isNaN(rating) ? rating : null,
       popular: Math.round((max - latest) * 100) / 100,
       lowestPrice: min,
     });

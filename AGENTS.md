@@ -5,7 +5,7 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 **Phase 3 Batch 0–9 完成**（业务纯 `.ts`；vitest 经 `dist-test` + `requireMain`；仅保留少数给 `src/ai`/`workers` 等非 main JS 用的 dual-path shim）。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 **Phase 3 Batch 0–9 完成**；**Phase 3.5** 按目录开 `strict`（见 `tsconfig.app.strict.json`，已锁 platform + digest/funds/search/wechat-hot/ithome/worldcup/games/ai-leaderboard；剩余 ipc / bootstrap / `src/main/*.ts`）。
 
 ## 仓库布局
 
@@ -51,7 +51,7 @@ npm run dev                 # 起 Electron dev mode（prestart 自动 build main
 npm test                    # 跑 vitest（pretest 自动 build main+preload）
 
 # 类型检查
-npm run typecheck           # 4 个 tsconfig 全部跑
+npm run typecheck           # preload + app + app.strict + renderer + tests
 
 # 构建
 npm run build:mac           # macOS 包（arm64 + x64）

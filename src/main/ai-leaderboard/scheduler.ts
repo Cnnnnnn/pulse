@@ -33,7 +33,8 @@ export function registerLeaderboardScheduler(deps: any = {}): any {
       pruneOldCache(30);
       mainLog.info("[ai-leaderboard] daily sync ok");
     } catch (err) {
-      mainLog.warn(`[ai-leaderboard] daily sync failed: ${err && err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      mainLog.warn(`[ai-leaderboard] daily sync failed: ${msg}`);
     }
   }
 
@@ -61,7 +62,8 @@ export function registerLeaderboardScheduler(deps: any = {}): any {
         `[ai-leaderboard] scheduler started (every ${Math.round(intervalMs / 60000)}min)`,
       );
     } catch (err) {
-      mainLog.warn(`[ai-leaderboard] scheduler init failed: ${err && err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      mainLog.warn(`[ai-leaderboard] scheduler init failed: ${msg}`);
     }
   }
 

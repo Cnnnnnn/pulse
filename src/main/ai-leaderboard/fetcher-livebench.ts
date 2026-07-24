@@ -89,7 +89,8 @@ async function latestRelease(): Promise<string> {
     mainJsUrl = `${BASE}/static/js/main.${m[1]}.js`;
   } catch (e) {
     // fallback: 用最近一次成功值 (callers 都会 catch, 此处抛让上层决定)
-    throw new Error(`livebench: cannot resolve main.js: ${e.message}`);
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`livebench: cannot resolve main.js: ${msg}`);
   }
 
   const res = await fetchWithRetry(mainJsUrl, {}, 1);

@@ -190,7 +190,7 @@ export async function tryRewriteSummary(
   }
   const rewritten = result.text
     .split("\n")
-    .map((s) => s.trim())
+    .map((s: string) => s.trim())
     .filter(Boolean);
   return rewritten.length > 0 ? rewritten : lines;
 }

@@ -125,9 +125,9 @@ export async function getGameDeals(opts: any = {}): Promise<any> {
     platform === "all" ? PLATFORM_KEYS.slice() : [platform].filter((p) => PLATFORM_KEYS.includes(p));
 
   const results = await Promise.all(
-    platforms.map((p) =>
+    platforms.map((p: string) =>
       fetchPlatform(p, { mode, sort, minSavings, country, itadKey }).then(
-        (r) => [p, r],
+        (r: any) => [p, r],
       ),
     ),
   );

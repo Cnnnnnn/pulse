@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  },
+  "include": [
+    "src/platform/**/*.ts",
+    "src/main/digest/**/*.ts",
+    "src/main/funds/**/*.ts",
+    "src/main/search/**/*.ts",
+    "src/main/wechat-hot/**/*.ts",
+    "src/main/ithome/**/*.ts",
+    "src/main/worldcup/**/*.ts",
+    "src/main/games/**/*.ts",
+    "src/main/ai-leaderboard/**/*.ts"
+  ],
+  "exclude": ["node_modules", "renderer-dist", "tests"]
+}
