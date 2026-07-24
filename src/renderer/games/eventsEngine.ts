@@ -11,7 +11,7 @@
  *  - 本文件为纯函数，便于单测；无网络、无副作用。
  */
 
-import { countMatches } from "./achievementsEngine.js";
+import { countMatches } from "./achievementsEngine.ts";
 
 /**
  * 内置活动配置（代码常量，不持久化）。
@@ -53,7 +53,7 @@ export function isEventActive(ev, now = Date.now()) {
  * @param {number} [now] 本地时间戳（ms）
  * @returns {{[id:string]:{claimed:boolean,completed:boolean,progress:number}}}
  */
-export function evaluateEvents(entries, configs, prev, now = Date.now()) {
+export function evaluateEvents(entries: any[], configs?: any, prev?: any, now?: number) {
   const out = {};
   for (const cfg of configs || []) {
     const p = (prev && prev[cfg.id]) || { claimed: false, completed: false, progress: 0 };

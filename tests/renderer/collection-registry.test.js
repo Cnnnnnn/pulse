@@ -12,7 +12,7 @@ import {
   clampPct,
   isRanked,
   DEFAULT_COLLECTION_TYPES,
-} from "../../src/renderer/games/collectionRegistry.js";
+} from "../../src/renderer/games/collectionRegistry.ts";
 
 const E = (platform, rarity) => ({ key: `${platform}:${rarity}`, platform, rarity });
 

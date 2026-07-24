@@ -7,7 +7,7 @@ vi.mock("../../src/renderer/api.ts", () => ({
 }));
 
 import { GameCard } from "../../src/renderer/games/GameCard.tsx";
-import { fx } from "../../src/renderer/games/gamesStore.js";
+import { fx } from "../../src/renderer/games/gamesStore.ts";
 
 afterEach(() => {
   cleanup();

@@ -28,9 +28,9 @@ import {
   activeMode,
   clearGamesNewFree,
   clearGamesNewDrop,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 import { GamesPage } from "./GamesPage.tsx";
-import { createGamesCheckScheduler } from "./games-check-scheduler.js";
+import { createGamesCheckScheduler } from "./games-check-scheduler.ts";
 import "./games.css";
 
 export function GamesLayout() {

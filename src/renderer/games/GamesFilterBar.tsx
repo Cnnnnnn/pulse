@@ -16,7 +16,7 @@ import {
   setSearchQuery,
   clearSearchQuery,
   searchQuery,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 
 export function GamesFilterBar() {
   const mode = activeMode.value;

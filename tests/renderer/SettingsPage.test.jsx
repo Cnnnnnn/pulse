@@ -13,7 +13,7 @@ import {
   screen,
 } from "@testing-library/preact";
 import { SettingsPage } from "../../src/renderer/components/SettingsPage.tsx";
-import { gamesNotifyOnDrop } from "../../src/renderer/games/gamesStore.js";
+import { gamesNotifyOnDrop } from "../../src/renderer/games/gamesStore.ts";
 
 beforeEach(() => {
   // happy-dom 下没有 preload bridge, 注入最小 stub 让 useEffect 不 throw

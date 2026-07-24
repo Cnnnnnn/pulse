@@ -22,7 +22,7 @@ import { refreshWorldcupScores } from "./worldcup/store.js";
 import { fetchNavNow } from "./funds/fundStore.ts";
 import { refreshNow as refreshMetals } from "./metals/metalStore.ts";
 import { investPrimary } from "./worldcup/navStore.js";
-import { loadGameDeals } from "./games/gamesStore.js";
+import { loadGameDeals } from "./games/gamesStore.ts";
 import { api } from "./api.ts";
 
 /**

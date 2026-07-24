@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { render, screen, cleanup } from "@testing-library/preact";
 
-import { loadWishlist } from "../../src/renderer/games/gamesStore.js";
+import { loadWishlist } from "../../src/renderer/games/gamesStore.ts";
 import { GameCard } from "../../src/renderer/games/GameCard.tsx";
 
 afterEach(cleanup);

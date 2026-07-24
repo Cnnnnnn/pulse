@@ -27,7 +27,7 @@ const RARITY_CANVAS_COLORS = {
   legendary: "oklch(72% 0.15 85)",
   unranked: "oklch(55% 0.01 280)",
 };
-function rarityCanvasColor(id) {
+function rarityCanvasColor(id: string) {
   return RARITY_CANVAS_COLORS[id] || "oklch(58% 0.01 280)";
 }
 
@@ -51,7 +51,7 @@ const ACCENT_COLOR = "oklch(80% 0.14 80)";
  *   opts.achievementsProgress 成就进度 { [id]: { unlocked, unlockedAt, current } }
  * @returns {{title:string,total:number,totalValue:number,totalSaved:number,rarityBreakdown:Array<{id:string,name:string,color:string,count:number}>,badgeCount:number,achievementCount:number,template:string}}
  */
-export function buildSharePayload(entries, stats, badgesEarned, opts = {}) {
+export function buildSharePayload(entries: any, stats: any, badgesEarned: any, opts: any = {}) {
   const list = Array.isArray(entries) ? entries : [];
   const tiers = Array.isArray(opts.tiers) ? opts.tiers : [];
   const tierMap = new Map(tiers.map((t) => [t.id, t]));
@@ -64,7 +64,7 @@ export function buildSharePayload(entries, stats, badgesEarned, opts = {}) {
   }
   const rarityBreakdown = Object.keys(counts)
     .map((id) => {
-      const t = tierMap.get(id);
+      const t = tierMap.get(id) as { name?: string; color?: string } | undefined;
       return {
         id,
         name: id === "unranked" ? "未分级" : t ? t.name : id,
@@ -84,7 +84,7 @@ export function buildSharePayload(entries, stats, badgesEarned, opts = {}) {
     opts.achievementsProgress && typeof opts.achievementsProgress === "object"
       ? opts.achievementsProgress
       : {};
-  const achievementCount = Object.values(progress).filter(
+  const achievementCount = (Object.values(progress) as any[]).filter(
     (p) => p && p.unlocked === true,
   ).length;
 
@@ -120,7 +120,7 @@ function fmtMoney(n) {
  * @param {object} payload buildSharePayload 的返回值
  * @returns {boolean} 是否成功绘制（上下文不可用返回 false）
  */
-export function renderShareImage(canvas, payload) {
+export function renderShareImage(canvas: any, payload: any) {
   if (!canvas || typeof canvas.getContext !== "function") return false;
   const ctx = canvas.getContext("2d");
   if (!ctx) return false; // 测试 / 不支持 canvas 时优雅降级
@@ -227,7 +227,7 @@ function roundRect(ctx, x, y, w, h, r) {
  * @param {{filename?:string}} [opts]
  * @returns {Promise<{ok:boolean,path:null}>}
  */
-export async function exportShareImage(canvas, opts = {}) {
+export async function exportShareImage(canvas: any, opts: any = {}) {
   const filename = opts.filename || "pulse-collection.png";
 
   const triggerDownload = (url) => {
@@ -249,7 +249,7 @@ export async function exportShareImage(canvas, opts = {}) {
       }
     });
     if (blob) {
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob as Blob);
       triggerDownload(url);
       if (typeof URL.revokeObjectURL === "function") URL.revokeObjectURL(url);
       return { ok: true, path: null };

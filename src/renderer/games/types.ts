@@ -24,7 +24,7 @@ export const ENTRY_DEFAULTS = {
   currentPrice: /** @type {number|null} */ (null),
   currentCurrency: /** @type {string|null} */ (null),
   mergedIds: /** @type {string[]} */ ([]),
-  mergedMembers: /** @type {import("./types.js").MergedMember[]|null} */ (null),
+  mergedMembers: /** @type {import("./types.ts").MergedMember[]|null} */ (null),
   // P1a（A 稀有度）：单选、互斥；缺省 null（unranked），旧条目无缝升级
   rarity: /** @type {string|null} */ (null),
 };
@@ -35,7 +35,7 @@ export const ENTRY_DEFAULTS = {
  * - 数组字段过滤非法元素；
  * - 缺字段补 ENTRY_DEFAULTS。
  * @param {any} raw
- * @returns {import("./types.js").WishlistEntry}
+ * @returns {import("./types.ts").WishlistEntry}
  */
 export function normalizeEntry(raw) {
   if (!raw || typeof raw !== "object") {
@@ -104,9 +104,9 @@ export function normalizeEntry(raw) {
 
 /**
  * 由一条 WishlistEntry 生成合并快照成员。
- * @param {import("./types.js").WishlistEntry} entry
+ * @param {import("./types.ts").WishlistEntry} entry
  * @param {boolean} isPrimary
- * @returns {import("./types.js").MergedMember}
+ * @returns {import("./types.ts").MergedMember}
  */
 export function createMergedMember(entry, isPrimary) {
   return {
@@ -127,7 +127,7 @@ export function createMergedMember(entry, isPrimary) {
 
 /**
  * @param {any} raw
- * @returns {import("./types.js").Folder}
+ * @returns {import("./types.ts").Folder}
  */
 export function normalizeFolder(raw) {
   if (!raw || typeof raw !== "object") {
@@ -147,7 +147,7 @@ export function normalizeFolder(raw) {
 
 /**
  * @param {any} raw
- * @returns {import("./types.js").Tag}
+ * @returns {import("./types.ts").Tag}
  */
 export function normalizeTag(raw) {
   if (!raw || typeof raw !== "object") {
@@ -166,7 +166,7 @@ export const EMPTY_COLLECTION_FILTER = { type: null, id: null };
 
 /**
  * @param {any} raw
- * @returns {import("./types.js").CollectionFilter}
+ * @returns {import("./types.ts").CollectionFilter}
  */
 export function normalizeCollectionFilter(raw) {
   if (!raw || typeof raw !== "object") return { ...EMPTY_COLLECTION_FILTER };
@@ -245,7 +245,7 @@ export function savedOf(x) {
 
 /**
  * 收藏统计：总数 / 按当前价总值 / 累计节省（合并条目按 mergedMembers 展开）。
- * @param {import("./types.js").WishlistEntry[]} entries
+ * @param {import("./types.ts").WishlistEntry[]} entries
  * @returns {{total:number, totalValue:number, totalSaved:number}}
  */
 export function computeCollectionStats(entries) {

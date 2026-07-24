@@ -18,14 +18,14 @@ import {
   wishlist,
   readStorage,
   writeStorage,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 import {
   buildSharePayload,
   renderShareImage,
   exportShareImage,
   SHARE_TEMPLATES,
   DEFAULT_SHARE_TEMPLATE,
-} from "./shareImage.js";
+} from "./shareImage.ts";
 
 const SHARE_KEY = "pulse.games.share.templates.v1";
 

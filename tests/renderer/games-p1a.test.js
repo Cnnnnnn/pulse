@@ -9,18 +9,18 @@
  * 纯本地：no network；localStorage 用 happy-dom 环境自带。
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import * as store from "../../src/renderer/games/gamesStore.js";
-import { normalizeEntry } from "../../src/renderer/games/types.js";
+import * as store from "../../src/renderer/games/gamesStore.ts";
+import { normalizeEntry } from "../../src/renderer/games/types.ts";
 import {
   DEFAULT_RARITY_TIERS,
   sortByWeight,
   tierColorOf,
-} from "../../src/renderer/games/rarityTiers.js";
+} from "../../src/renderer/games/rarityTiers.ts";
 import {
   EMPTY_METRICS,
   bumpMetric,
   mergeMetrics,
-} from "../../src/renderer/games/metrics.js";
+} from "../../src/renderer/games/metrics.ts";
 import { h } from "preact";
 import { render, cleanup, fireEvent } from "@testing-library/preact";
 import { RarityPicker } from "../../src/renderer/games/RarityPicker.tsx";

@@ -8,7 +8,7 @@
  * 可访问性：role=dialog + aria-modal；关闭按钮有焦点环；空态有引导文案。
  */
 import { useEffect } from "preact/hooks";
-import { unlockHistory, unlockHistoryOpen, setUnlockHistoryOpen } from "./gamesStore.js";
+import { unlockHistory, unlockHistoryOpen, setUnlockHistoryOpen } from "./gamesStore.ts";
 
 /** 类别 → 图标（仅装饰，另配文字标签）。 */
 const KIND_ICON = { badge: "🏅", ach: "🎯", event: "🎉" };

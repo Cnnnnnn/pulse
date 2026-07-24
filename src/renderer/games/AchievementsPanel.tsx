@@ -11,14 +11,14 @@
 import { useState } from "preact/hooks";
 import { ModalShell } from "../components/ModalShell.tsx";
 import { ProgressBar } from "./ProgressBar.tsx";
-import { DEFAULT_ACHIEVEMENTS } from "./achievementsEngine.js";
+import { DEFAULT_ACHIEVEMENTS } from "./achievementsEngine.ts";
 import {
   achievementsDef,
   achievementsProgress,
   addAchievement,
   updateAchievement,
   deleteAchievement,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 
 /** 维度 → 中文标签。 */
 const DIMENSIONS = [

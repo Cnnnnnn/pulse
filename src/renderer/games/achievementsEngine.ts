@@ -53,7 +53,7 @@ export function countMatches(entries, dimension, target) {
  * @param {object} [prev] 上一次进度（保留 unlockedAt / claimed 历史）
  * @returns {{[id:string]:{unlocked:boolean,unlockedAt:string|null,current:number}}}
  */
-export function evaluateAchievements(entries, defs, prev) {
+export function evaluateAchievements(entries: any[], defs?: any, prev?: any) {
   const out = {};
   const now = new Date().toISOString();
   for (const d of defs || []) {

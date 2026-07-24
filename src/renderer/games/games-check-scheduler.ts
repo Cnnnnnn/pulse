@@ -30,8 +30,8 @@ import {
   saveSeenDropKeys,
   setPlatformAndMode,
   setMode,
-} from "./gamesStore.js";
-import { PLATFORM_LABEL, promotionTypeLabel, fmtPrice } from "./format.js";
+} from "./gamesStore.ts";
+import { PLATFORM_LABEL, promotionTypeLabel, fmtPrice } from "./format.ts";
 import { setActiveNav } from "../worldcup/navStore.js";
 
 const INITIAL_DELAY_MS = 60 * 1000; // 首次延迟 60s，避免启动即检查打扰

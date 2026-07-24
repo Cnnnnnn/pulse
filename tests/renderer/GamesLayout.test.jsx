@@ -3,9 +3,9 @@ import { act, cleanup, render } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // mock gamesStore：只拦截 loader 函数，signal 保留真实实现（effect 依赖 .value）
-vi.mock("../../src/renderer/games/gamesStore.js", async () => {
+vi.mock("../../src/renderer/games/gamesStore.ts", async () => {
   const actual = await vi.importActual(
-    "../../src/renderer/games/gamesStore.js",
+    "../../src/renderer/games/gamesStore.ts",
   );
   return {
     ...actual,
@@ -27,12 +27,12 @@ const schedulerMocks = {
   restart: vi.fn(),
   checkOnce: vi.fn(),
 };
-vi.mock("../../src/renderer/games/games-check-scheduler.js", () => ({
+vi.mock("../../src/renderer/games/games-check-scheduler.ts", () => ({
   createGamesCheckScheduler: vi.fn(() => schedulerMocks),
 }));
 
 import { GamesLayout } from "../../src/renderer/games/GamesLayout.tsx";
-import { createGamesCheckScheduler } from "../../src/renderer/games/games-check-scheduler.js";
+import { createGamesCheckScheduler } from "../../src/renderer/games/games-check-scheduler.ts";
 import {
   loadGameDeals,
   loadGamesSettings,
@@ -42,7 +42,7 @@ import {
   enrichXboxLowest,
   fetchedAt,
   activeMode,
-} from "../../src/renderer/games/gamesStore.js";
+} from "../../src/renderer/games/gamesStore.ts";
 
 afterEach(() => {
   cleanup();

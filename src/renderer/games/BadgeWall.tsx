@@ -7,8 +7,8 @@
  *  - 响应式：订阅 badgesEarned signal（由 gamesStore 的引擎 effect 随 wishlist 重算）。
  *  - a11y：图标 aria-hidden，容器/条目带中文 aria-label；焦点环沿用全局范式。
  */
-import { badgesEarned } from "./gamesStore.js";
-import { BUILTIN_BADGE_RULES } from "./badges.js";
+import { badgesEarned } from "./gamesStore.ts";
+import { BUILTIN_BADGE_RULES } from "./badges.ts";
 
 /** ISO 时间 → YYYY-MM-DD（本地，纯展示）。 */
 function fmtDate(iso) {

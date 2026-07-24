@@ -4,7 +4,7 @@
  * 游戏优惠展示用纯函数（价格 / 日期 / 平台中文名）。
  */
 
-import { PLATFORMS } from "./gamesStore.js";
+import { PLATFORMS } from "./gamesStore.ts";
 
 export const PLATFORM_LABEL = Object.fromEntries(
   PLATFORMS.map((p) => [p.key, p.label]),

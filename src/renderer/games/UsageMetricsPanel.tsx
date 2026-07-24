@@ -8,7 +8,7 @@
  *
  * 事件名 → 中文标签（与 gamesStore 中 9 处钩子的事件名对应）。
  */
-import { metrics } from "./gamesStore.js";
+import { metrics } from "./gamesStore.ts";
 
 /** 事件名 → 展示标签。 */
 const EVENT_LABELS = {

@@ -6,7 +6,7 @@ vi.mock("../../src/renderer/api.ts", () => ({
   api: { openUrl: vi.fn() },
 }));
 
-import { lowPriceMap } from "../../src/renderer/games/gamesStore.js";
+import { lowPriceMap } from "../../src/renderer/games/gamesStore.ts";
 import { GameCard } from "../../src/renderer/games/GameCard.tsx";
 
 beforeEach(() => {

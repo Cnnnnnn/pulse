@@ -23,7 +23,7 @@ import {
   activeCollectionFilter,
   searchQuery,
   clearSearchQuery,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 import { CollectionHeader } from "./CollectionHeader.tsx";
 import { CollectibleCard } from "./CollectibleCard.tsx";
 import { UnlockToastStack } from "./UnlockToastStack.tsx";

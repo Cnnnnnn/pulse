@@ -24,8 +24,8 @@ import {
   noteRatingTarget,
   toggleFavorite,
   openNoteRating,
-} from "../../src/renderer/games/gamesStore.js";
-import { DEFAULT_RARITY_TIERS } from "../../src/renderer/games/rarityTiers.js";
+} from "../../src/renderer/games/gamesStore.ts";
+import { DEFAULT_RARITY_TIERS } from "../../src/renderer/games/rarityTiers.ts";
 
 function resetAll() {
   wishlist.value = [];

@@ -5,9 +5,9 @@
  * 纯本地派生、实时随增减重算（读 collectionStats，不直读 addedPrice）。
  * 数值一律 tabular-nums，多币种时退化为无符号纯数字。
  */
-import { collectionStats, wishlist, rarityTiers } from "./gamesStore.js";
-import { sortByWeight, tierColorOf } from "./rarityTiers.js";
-import { fmtPrice } from "./format.js";
+import { collectionStats, wishlist, rarityTiers } from "./gamesStore.ts";
+import { sortByWeight, tierColorOf } from "./rarityTiers.ts";
+import { fmtPrice } from "./format.ts";
 
 /** 从收藏条目推导代表币种：全部同币种用该币种，否则返回 null（纯数字展示）。 */
 function representativeCurrency() {

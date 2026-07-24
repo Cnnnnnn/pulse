@@ -11,7 +11,7 @@ import {
   addToWishlist,
   removeFromWishlist,
   loadWishlist,
-} from "../../src/renderer/games/gamesStore.js";
+} from "../../src/renderer/games/gamesStore.ts";
 import { GameCard } from "../../src/renderer/games/GameCard.tsx";
 
 afterEach(cleanup);

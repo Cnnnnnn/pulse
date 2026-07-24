@@ -32,7 +32,7 @@ import {
   PLATFORMS,
   collectionSidebarOpen,
   setCollectionSidebarOpen,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 import { PlatformTabs } from "./PlatformTabs.tsx";
 import { GamesFilterBar } from "./GamesFilterBar.tsx";
 import { GameCard } from "./GameCard.tsx";
@@ -46,7 +46,7 @@ import { BadgeWall } from "./BadgeWall.tsx";
 import { ShareImageModal } from "./ShareImageModal.tsx";
 import { AchievementsPanel } from "./AchievementsPanel.tsx";
 import { EventBanner } from "./EventBanner.tsx";
-import { rarityTiers } from "./gamesStore.js";
+import { rarityTiers } from "./gamesStore.ts";
 
 const MODE_HINTS = {
   deals: "各平台折扣 · 限时特惠",

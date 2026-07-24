@@ -7,7 +7,7 @@
  * 可访问性：role="img" + aria-label 描述完成度；数值 tabular-nums。
  * 纯展示组件，不持有状态。
  */
-import { clampPct } from "./collectionRegistry.js";
+import { clampPct } from "./collectionRegistry.ts";
 
 /**
  * @param {object} props

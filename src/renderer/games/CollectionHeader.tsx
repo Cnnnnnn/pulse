@@ -15,8 +15,8 @@ import {
   setCollectionType,
   setCollectionView,
   listCollectionTypes,
-} from "./gamesStore.js";
-import { tierColorOf, DEFAULT_RARITY_TIERS } from "./rarityTiers.js";
+} from "./gamesStore.ts";
+import { tierColorOf, DEFAULT_RARITY_TIERS } from "./rarityTiers.ts";
 import { CompletionRing } from "./CompletionRing.tsx";
 
 /** 是否偏好减少动效（安全降级）。 */

@@ -26,8 +26,8 @@ import {
   addToWishlist,
   loadSeenDropKeys,
   loadWishlist,
-} from "../../src/renderer/games/gamesStore.js";
-import { createGamesCheckScheduler } from "../../src/renderer/games/games-check-scheduler.js";
+} from "../../src/renderer/games/gamesStore.ts";
+import { createGamesCheckScheduler } from "../../src/renderer/games/games-check-scheduler.ts";
 import { activeNav } from "../../src/renderer/worldcup/navStore.js";
 
 function setNotificationPermission(value) {

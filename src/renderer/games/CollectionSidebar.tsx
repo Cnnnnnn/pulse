@@ -20,7 +20,7 @@ import {
   addTag,
   renameTag,
   deleteTag,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 import { ProgressBar } from "./ProgressBar.tsx";
 
 function FolderRow({ folder, count, active, onSelect }) {

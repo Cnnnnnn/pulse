@@ -106,7 +106,7 @@ export function getBadgeRule(id) {
  * @param {Array<any>} [tags] 预留（当前从 entries 计算，未使用）。
  * @returns {{total:number,rated:number,mergedCount:number,maxPlatforms:number,folderCount:number,tagKinds:number,hasLegendary:boolean}}
  */
-export function buildBadgeCtx(entries, folders, tags) {
+export function buildBadgeCtx(entries: any[], folders?: any, tags?: any) {
   const list = Array.isArray(entries) ? entries : [];
   const folderIds = new Set();
   const tagSet = new Set();
@@ -161,7 +161,7 @@ export function buildBadgeCtx(entries, folders, tags) {
  *   预计算的徽章上下文；省略时由 entries 自动构建（兜底）。
  * @returns {Array<{id:string,earnedAt:string}>}
  */
-export function evaluateBadges(entries, ctx) {
+export function evaluateBadges(entries: any[], ctx?: any) {
   const context = ctx || buildBadgeCtx(entries);
   const now = new Date().toISOString();
   const out = [];

@@ -48,9 +48,9 @@ import {
   openMerge,
   closeMerge,
   toggleExpandMerge,
-} from "../../src/renderer/games/gamesStore.js";
-import { normalizeEntry } from "../../src/renderer/games/types.js";
-import { areSameGame, findMergeCandidates as staticCandidates } from "../../src/renderer/games/gameIdMap.js";
+} from "../../src/renderer/games/gamesStore.ts";
+import { normalizeEntry } from "../../src/renderer/games/types.ts";
+import { areSameGame, findMergeCandidates as staticCandidates } from "../../src/renderer/games/gameIdMap.ts";
 import { h } from "preact";
 import { render, screen, cleanup } from "@testing-library/preact";
 import { ProgressBar } from "../../src/renderer/games/ProgressBar.tsx";

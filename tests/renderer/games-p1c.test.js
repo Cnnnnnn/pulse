@@ -31,21 +31,21 @@ import {
   DEFAULT_ACHIEVEMENTS,
   countMatches,
   evaluateAchievements,
-} from "../../src/renderer/games/achievementsEngine.js";
+} from "../../src/renderer/games/achievementsEngine.ts";
 import {
   DEFAULT_EVENTS,
   isEventActive,
   evaluateEvents,
-} from "../../src/renderer/games/eventsEngine.js";
-import * as store from "../../src/renderer/games/gamesStore.js";
-import { normalizeEntry } from "../../src/renderer/games/types.js";
+} from "../../src/renderer/games/eventsEngine.ts";
+import * as store from "../../src/renderer/games/gamesStore.ts";
+import { normalizeEntry } from "../../src/renderer/games/types.ts";
 import { AchievementsPanel } from "../../src/renderer/games/AchievementsPanel.tsx";
 import { EventBanner } from "../../src/renderer/games/EventBanner.tsx";
 
 // ── mock gamesStore：仅拦截会触 IPC 的 loader，保留真实引擎/store action ──
-vi.mock("../../src/renderer/games/gamesStore.js", async () => {
+vi.mock("../../src/renderer/games/gamesStore.ts", async () => {
   const actual = await vi.importActual(
-    "../../src/renderer/games/gamesStore.js",
+    "../../src/renderer/games/gamesStore.ts",
   );
   return {
     ...actual,

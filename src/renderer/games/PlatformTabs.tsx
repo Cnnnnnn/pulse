@@ -12,7 +12,7 @@ import {
   activeMode,
   comparePlatforms,
   toggleComparePlatform,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 
 export function PlatformTabs() {
   const isCompare = activeMode.value === "compare";

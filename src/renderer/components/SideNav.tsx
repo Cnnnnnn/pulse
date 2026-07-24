@@ -30,7 +30,7 @@ import { ithomeUnreadBadge } from '../ithome/store.ts';
 import { wechatHotUnreadBadge } from '../wechat-hot/store.ts';
 import { fundUnreadBadge } from '../funds/fundStore.ts';
 import { aiUsageNavBadge } from '../store/ai-usage-store.ts';
-import { gamesHasNewFree, gamesHasNewDrop } from '../games/gamesStore.js';
+import { gamesHasNewFree, gamesHasNewDrop } from '../games/gamesStore.ts';
 import { refreshActiveNav, REFRESHABLE_NAV_KEYS } from '../nav-refresh.ts';
 import { trayMenuPrefs } from '../store/trayConfigStore.ts';
 import {

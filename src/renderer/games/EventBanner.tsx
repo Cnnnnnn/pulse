@@ -12,7 +12,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { ModalShell } from "../components/ModalShell.tsx";
 import { ProgressBar } from "./ProgressBar.tsx";
-import { DEFAULT_EVENTS, isEventActive } from "./eventsEngine.js";
+import { DEFAULT_EVENTS, isEventActive } from "./eventsEngine.ts";
 import {
   eventsConfig,
   eventsProgress,
@@ -20,7 +20,7 @@ import {
   updateEvent,
   deleteEvent,
   claimEvent,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 
 const DIMENSIONS = [
   { key: "platform", label: "平台" },

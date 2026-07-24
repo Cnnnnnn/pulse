@@ -9,7 +9,7 @@
  * 纯展示 + 回调（dismissUnlockToast），不持有状态。
  */
 import { useEffect } from "preact/hooks";
-import { unlockToasts, dismissUnlockToast } from "./gamesStore.js";
+import { unlockToasts, dismissUnlockToast } from "./gamesStore.ts";
 
 const KIND_ICON = { badge: "🏅", ach: "🎯", event: "🎉" };
 const KIND_LABEL = { badge: "徽章解锁", ach: "成就达成", event: "活动完成" };

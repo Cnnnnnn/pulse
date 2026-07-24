@@ -7,7 +7,7 @@
  * - 对比度：实心星用语义强调色，与背景 ≥3:1；状态辅以 aria-checked 文本。
  */
 import { useRef } from "preact/hooks";
-import { RATING_MAX, RATING_MIN } from "./gamesStore.js";
+import { RATING_MAX, RATING_MIN } from "./gamesStore.ts";
 
 export function StarRating({ value, onChange }) {
   const refs = useRef([]);

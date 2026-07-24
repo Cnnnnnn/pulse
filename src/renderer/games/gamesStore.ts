@@ -24,17 +24,17 @@ import {
   RATING_MAX,
   RARITY_MIN,
   RARITY_MAX,
-} from "./types.js";
+} from "./types.ts";
 import {
   findMergeCandidates as mapFindMergeCandidates,
   areCandidatesKnown,
-} from "./gameIdMap.js";
+} from "./gameIdMap.ts";
 import {
   DEFAULT_RARITY_TIERS,
   normalizeRarityTier,
   sortByWeight,
   tierColorOf,
-} from "./rarityTiers.js";
+} from "./rarityTiers.ts";
 // 统一游戏收藏（Phase 2）：数据驱动类型注册表（纯函数，零 store 依赖）
 import {
   DEFAULT_COLLECTION_TYPES,
@@ -47,11 +47,11 @@ import {
   targetCoverage,
   crossedMilestones,
   clampPct,
-} from "./collectionRegistry.js";
-import { bumpMetric as bumpMetricPure, mergeMetrics } from "./metrics.js";
-import { evaluateBadges, buildBadgeCtx, getBadgeRule } from "./badges.js";
-import { evaluateAchievements, DEFAULT_ACHIEVEMENTS, countMatches } from "./achievementsEngine.js";
-import { evaluateEvents, DEFAULT_EVENTS, isEventActive } from "./eventsEngine.js";
+} from "./collectionRegistry.ts";
+import { bumpMetric as bumpMetricPure, mergeMetrics } from "./metrics.ts";
+import { evaluateBadges, buildBadgeCtx, getBadgeRule } from "./badges.ts";
+import { evaluateAchievements, DEFAULT_ACHIEVEMENTS, countMatches } from "./achievementsEngine.ts";
+import { evaluateEvents, DEFAULT_EVENTS, isEventActive } from "./eventsEngine.ts";
 
 /** 平台元信息（renderer 展示用）。key 与 main 端 PLATFORM_KEYS 对齐。 */
 export const PLATFORMS = [
@@ -632,7 +632,7 @@ function _persistRarityTiers() {
 }
 
 /** 新增自定义档位，返回新 id（已存在同名不重复，复用其 id）。 */
-export function addRarityTier(name, opts = {}) {
+export function addRarityTier(name: string, opts: any = {}) {
   const clean = String(name || "").trim();
   if (!clean) return null;
   const existing = rarityTiers.value.find((t) => t.name === clean);
@@ -680,7 +680,7 @@ function _persistCollectionFilter() {
  * @param {string|{type:string,id:string}|null} typeOrObj
  * @param {string} [id]
  */
-export function setCollectionFilter(typeOrObj, id) {
+export function setCollectionFilter(typeOrObj: any, id?: any) {
   let type = typeOrObj;
   let fid = id;
   if (typeOrObj && typeof typeOrObj === "object") {
@@ -907,7 +907,7 @@ export function renameTag(oldName, newName) {
  * @param {string} name
  * @param {{removeEntries?:boolean}} [opts] removeEntries=true 时一并移除含该标签的条目。
  */
-export function deleteTag(name, opts = {}) {
+export function deleteTag(name: string, opts: any = {}) {
   const clean = String(name || "").trim();
   if (!clean) return;
   const removeEntries = !!opts.removeEntries;
@@ -980,7 +980,7 @@ export function setFolderTarget(id, n) {
  *   'keep'（默认）= 保留条目，仅清除其 folderId；
  *   'remove' = 一并移除属于该文件夹的条目。
  */
-export function deleteFolder(id, opts = {}) {
+export function deleteFolder(id: string, opts: any = {}) {
   const mode = opts.mode === "remove" ? "remove" : "keep";
   folders.value = folders.value.filter((f) => f.id !== id);
   let next = wishlist.value;
@@ -1571,13 +1571,13 @@ export function computeUnlocked(entries) {
     [...DEFAULT_ACHIEVEMENTS, ...achievementsDef.value],
     achievementsProgress.peek(),
   );
-  for (const [id, p] of Object.entries(ach)) if (p.unlocked) set.add("ach:" + id);
+  for (const [id, p] of Object.entries(ach) as [string, any][]) if (p && p.unlocked) set.add("ach:" + id);
   const ev = evaluateEvents(
     entries,
     [...DEFAULT_EVENTS, ...eventsConfig.value],
     eventsProgress.peek(),
   );
-  for (const [id, p] of Object.entries(ev)) if (p.completed) set.add("event:" + id);
+  for (const [id, p] of Object.entries(ev) as [string, any][]) if (p && p.completed) set.add("event:" + id);
   return set;
 }
 
@@ -1593,7 +1593,7 @@ export function detectNewUnlocks(prev, entries) {
   const newOnes = [];
   for (const key of set) {
     if (prevSet.has(key)) continue;
-    const [kind, id] = key.split(":", 2);
+    const [kind, id] = String(key).split(":", 2);
     if (kind === "badge") {
       const r = getBadgeRule(id);
       newOnes.push({ kind, id, title: (r && r.name) || "徽章", desc: (r && r.desc) || "" });

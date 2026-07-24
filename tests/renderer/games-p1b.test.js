@@ -28,18 +28,18 @@ import {
   BUILTIN_BADGE_RULES,
   buildBadgeCtx,
   evaluateBadges,
-} from "../../src/renderer/games/badges.js";
-import * as shareImage from "../../src/renderer/games/shareImage.js";
-import * as store from "../../src/renderer/games/gamesStore.js";
-import { normalizeEntry } from "../../src/renderer/games/types.js";
-import { DEFAULT_RARITY_TIERS } from "../../src/renderer/games/rarityTiers.js";
+} from "../../src/renderer/games/badges.ts";
+import * as shareImage from "../../src/renderer/games/shareImage.ts";
+import * as store from "../../src/renderer/games/gamesStore.ts";
+import { normalizeEntry } from "../../src/renderer/games/types.ts";
+import { DEFAULT_RARITY_TIERS } from "../../src/renderer/games/rarityTiers.ts";
 import { BadgeWall } from "../../src/renderer/games/BadgeWall.tsx";
 import { ShareImageModal } from "../../src/renderer/games/ShareImageModal.tsx";
 
 // ── mock gamesStore：仅拦截会触 IPC 的 loader，保留真实 initCollectionEngines / loadBadges 等 ──
-vi.mock("../../src/renderer/games/gamesStore.js", async () => {
+vi.mock("../../src/renderer/games/gamesStore.ts", async () => {
   const actual = await vi.importActual(
-    "../../src/renderer/games/gamesStore.js",
+    "../../src/renderer/games/gamesStore.ts",
   );
   return {
     ...actual,
@@ -56,9 +56,9 @@ vi.mock("../../src/renderer/games/gamesStore.js", async () => {
 });
 
 // ── mock shareImage：保留真实纯函数，仅把渲染/导出包成 spy 便于断言 ──
-vi.mock("../../src/renderer/games/shareImage.js", async () => {
+vi.mock("../../src/renderer/games/shareImage.ts", async () => {
   const actual = await vi.importActual(
-    "../../src/renderer/games/shareImage.js",
+    "../../src/renderer/games/shareImage.ts",
   );
   return {
     ...actual,
@@ -74,7 +74,7 @@ const schedulerMocks = {
   restart: vi.fn(),
   checkOnce: vi.fn(),
 };
-vi.mock("../../src/renderer/games/games-check-scheduler.js", () => ({
+vi.mock("../../src/renderer/games/games-check-scheduler.ts", () => ({
   createGamesCheckScheduler: vi.fn(() => schedulerMocks),
 }));
 

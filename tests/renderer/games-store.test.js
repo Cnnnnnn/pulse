@@ -42,8 +42,8 @@ afterAll(() => {
   globalThis.localStorage = _origLocalStorage;
 });
 
-import * as store from "../../src/renderer/games/gamesStore.js";
-import { normalizeEntry, computeCollectionStats } from "../../src/renderer/games/types.js";
+import * as store from "../../src/renderer/games/gamesStore.ts";
+import { normalizeEntry, computeCollectionStats } from "../../src/renderer/games/types.ts";
 
 beforeEach(() => {
   globalThis.localStorage.clear();

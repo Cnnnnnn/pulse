@@ -48,9 +48,9 @@ export function bumpMetric(metrics, name) {
  * @param {{[k:string]:{count:number,firstSeen:string,lastSeen:string}}} b
  * @returns {{[k:string]:{count:number,firstSeen:string,lastSeen:string}}}
  */
-export function mergeMetrics(a, b) {
-  const out = { ...(a || {}) };
-  for (const [name, m] of Object.entries(b || {})) {
+export function mergeMetrics(a: any, b: any) {
+  const out: Record<string, any> = { ...(a || {}) };
+  for (const [name, m] of Object.entries(b || {}) as [string, any][]) {
     const cur = out[name];
     if (!cur) {
       out[name] = { ...m };

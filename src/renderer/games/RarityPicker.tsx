@@ -10,7 +10,7 @@
  * 数值非必需；可交互元素 ≥44px 触控热区、焦点环（见 games.css）。
  */
 import { useState } from "preact/hooks";
-import { sortByWeight } from "./rarityTiers.js";
+import { sortByWeight } from "./rarityTiers.ts";
 
 /**
  * @param {object} props

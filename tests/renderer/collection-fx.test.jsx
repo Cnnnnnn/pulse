@@ -20,12 +20,12 @@ import {
   noteRatingTarget,
   detectNewUnlocks,
   initCollectionEngines,
-} from "../../src/renderer/games/gamesStore.js";
+} from "../../src/renderer/games/gamesStore.ts";
 import { CollectionView } from "../../src/renderer/games/CollectionView.tsx";
 import { CollectibleCard } from "../../src/renderer/games/CollectibleCard.tsx";
 import { CollectionHeader } from "../../src/renderer/games/CollectionHeader.tsx";
 import { UnlockHistoryPanel } from "../../src/renderer/games/UnlockHistoryPanel.tsx";
-import { DEFAULT_RARITY_TIERS } from "../../src/renderer/games/rarityTiers.js";
+import { DEFAULT_RARITY_TIERS } from "../../src/renderer/games/rarityTiers.ts";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 

@@ -8,7 +8,7 @@
  *  - P0-6 去重：命中映射显示「可合并」徽标；合并主记录可展开并排各平台价 + 拆分还原。
  */
 import { useEffect, useRef, useState } from "preact/hooks";
-import { PLATFORM_LABEL, PLATFORM_EMOJI, fmtPrice, fmtCnyReference, fmtDate, promotionTypeLabel } from "./format.js";
+import { PLATFORM_LABEL, PLATFORM_EMOJI, fmtPrice, fmtCnyReference, fmtDate, promotionTypeLabel } from "./format.ts";
 import {
   isInWishlist,
   toggleFavorite,
@@ -34,10 +34,10 @@ import {
   rarityTiers,
   setEntryRarity,
   addRarityTier,
-} from "./gamesStore.js";
-import { tierColorOf } from "./rarityTiers.js";
+} from "./gamesStore.ts";
+import { tierColorOf } from "./rarityTiers.ts";
 import { RarityPicker } from "./RarityPicker.tsx";
-import { evaluateBadges, getBadgeRule } from "./badges.js";
+import { evaluateBadges, getBadgeRule } from "./badges.ts";
 
 function GameThumb({ thumb, platform, gameId }) {
   const [imgError, setImgError] = useState(false);

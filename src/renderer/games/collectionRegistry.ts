@@ -18,7 +18,7 @@
  * 本文件不依赖任何 store / api / 网络；仅引用 rarityTiers.js 的纯常量，可独立单测。
  */
 
-import { DEFAULT_RARITY_TIERS } from "./rarityTiers.js";
+import { DEFAULT_RARITY_TIERS } from "./rarityTiers.ts";
 
 /**
  * 平台 → 展示用 emoji（与 gamesStore.PLATFORMS 对齐；这里仅做展示，不引入 store 以免循环）。
@@ -203,7 +203,7 @@ function platformType(platform) {
  * @param {Record<string,object>} [custom] 用户自定义注册覆盖（合并到默认之上）
  * @returns {object|null}
  */
-export function getCollectionType(id, custom) {
+export function getCollectionType(id: string, custom?: any) {
   if (!id) return null;
   if (custom && custom[id]) return custom[id];
   return DEFAULT_COLLECTION_TYPES[id] || null;
@@ -214,9 +214,9 @@ export function getCollectionType(id, custom) {
  * @param {Record<string,object>} [custom]
  * @returns {object[]}
  */
-export function listCollectionTypes(custom) {
-  const base = Object.values(DEFAULT_COLLECTION_TYPES);
-  const extra = custom ? Object.values(custom) : [];
+export function listCollectionTypes(custom?: any): any[] {
+  const base = Object.values(DEFAULT_COLLECTION_TYPES) as any[];
+  const extra = custom ? (Object.values(custom) as any[]) : [];
   return [...base, ...extra];
 }
 
@@ -227,7 +227,7 @@ export function listCollectionTypes(custom) {
  * @param {{target?:number|null, custom?:object}} [ctx]
  * @returns {object[]}
  */
-export function catalogOf(typeId, entries, ctx = {}) {
+export function catalogOf(typeId: string, entries: any[], ctx: any = {}) {
   const t = getCollectionType(typeId, ctx.custom);
   if (!t) return Array.isArray(entries) ? entries : [];
   return t.catalog(entries, ctx) || [];
@@ -240,7 +240,7 @@ export function catalogOf(typeId, entries, ctx = {}) {
  * @param {{target?:number|null, custom?:object}} [ctx]
  * @returns {{collected:number,total:number,pct:number,caption:string}}
  */
-export function progressOf(typeId, entries, ctx = {}) {
+export function progressOf(typeId: string, entries: any[], ctx: any = {}) {
   const t = getCollectionType(typeId, ctx.custom);
   if (!t) return { collected: 0, total: 0, pct: 0, caption: "" };
   return t.progress(entries, ctx) || { collected: 0, total: 0, pct: 0, caption: "" };
@@ -254,7 +254,7 @@ export function progressOf(typeId, entries, ctx = {}) {
  * @param {number[]} [milestones]
  * @returns {number[]}
  */
-export function crossedMilestones(prevPct, nextPct, milestones) {
+export function crossedMilestones(prevPct: any, nextPct: any, milestones?: any) {
   const ms = Array.isArray(milestones) && milestones.length ? milestones : [0.25, 0.5, 0.75, 1];
   const lo = Math.min(prevPct, nextPct);
   const hi = Math.max(prevPct, nextPct);

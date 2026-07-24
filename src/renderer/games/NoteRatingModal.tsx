@@ -15,7 +15,7 @@ import {
   addRarityTier,
   rarityTiers,
   wishlist,
-} from "./gamesStore.js";
+} from "./gamesStore.ts";
 import { StarRating } from "./StarRating.tsx";
 import { RarityPicker } from "./RarityPicker.tsx";
 

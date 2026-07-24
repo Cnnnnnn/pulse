@@ -17,8 +17,8 @@ import {
   mergeEntries,
   wishlist,
   currentPriceOf,
-} from "./gamesStore.js";
-import { PLATFORM_LABEL, fmtPrice } from "./format.js";
+} from "./gamesStore.ts";
+import { PLATFORM_LABEL, fmtPrice } from "./format.ts";
 
 export function MergeConfirmModal() {
   const keys = mergeCandidateKeys.value;

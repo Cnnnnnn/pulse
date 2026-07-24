@@ -14,9 +14,9 @@
  * 纯展示组件（除 onToggle/onOpen 回调），不持有状态。
  */
 import { useState, useEffect } from "preact/hooks";
-import { tierColorOf, DEFAULT_RARITY_TIERS } from "./rarityTiers.js";
-import { isRanked } from "./collectionRegistry.js";
-import { currentPriceOf, RATING_MAX } from "./types.js";
+import { tierColorOf, DEFAULT_RARITY_TIERS } from "./rarityTiers.ts";
+import { isRanked } from "./collectionRegistry.ts";
+import { currentPriceOf, RATING_MAX } from "./types.ts";
 
 const PLATFORM_EMOJI = {
   steam: "🎮",

@@ -3,7 +3,7 @@ import {
   fmtPrice,
   fmtCnyReference,
   promotionTypeLabel,
-} from "../../src/renderer/games/format.js";
+} from "../../src/renderer/games/format.ts";
 
 describe("fmtPrice", () => {
   it("USD/EUR/GBP/CNY 使用 Intl 风格", () => {

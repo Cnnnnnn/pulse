@@ -18,7 +18,7 @@ import {
   searchQuery,
   loadWishlist,
   addToWishlist,
-} from "../../src/renderer/games/gamesStore.js";
+} from "../../src/renderer/games/gamesStore.ts";
 
 afterEach(cleanup);
 

@@ -9,7 +9,7 @@
  * 纯展示 + 回调（clearMilestoneFx），不持有状态。
  */
 import { useEffect } from "preact/hooks";
-import { milestoneFx, clearMilestoneFx } from "./gamesStore.js";
+import { milestoneFx, clearMilestoneFx } from "./gamesStore.ts";
 
 const PARTICLES = 16;
 
