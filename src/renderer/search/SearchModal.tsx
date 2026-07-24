@@ -66,7 +66,7 @@ export function SearchModal() {
           class="search-modal-input"
           placeholder="搜索新闻、AI 任务、提醒..."
           value={searchQuery.value}
-          onInput={(e) => setSearchQuery(e.target.value)}
+          onInput={(e) => setSearchQuery((e.target as HTMLInputElement).value)}
         />
         <span class="search-modal-esc">Esc</span>
       </div>
