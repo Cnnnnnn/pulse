@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { MockHttp } from "../helpers/mock-http.js";
+import { MockHttp } from "../helpers/mock-http";
 const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const { FundScheduler } = requireMain("funds/fund-scheduler");
 

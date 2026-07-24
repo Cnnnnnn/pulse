@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { SparkleAppcastDetector } from '../../src/detectors/sparkle-appcast.js';
-import { MockHttp, makeCtx } from '../helpers/mock-http.js';
+import { MockHttp, makeCtx } from '../helpers/mock-http';
 import { REASONS } from '../../src/detectors/errors.js';
 
 const APPCAST = `<?xml version="1.0" encoding="utf-8"?>

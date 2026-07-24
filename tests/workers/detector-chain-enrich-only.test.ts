@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { runDetectorChain } from "../../src/workers/detector-chain.ts";
-import { MockHttp, makeCtx } from "../helpers/mock-http.js";
+import { MockHttp, makeCtx } from "../helpers/mock-http";
 
 const SAMPLE_RSS = `<?xml version="1.0"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">

@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ElectronYmlDetector } from '../../src/detectors/electron-yml.js';
-import { MockHttp, makeCtx } from '../helpers/mock-http.js';
+import { MockHttp, makeCtx } from '../helpers/mock-http';
 import { REASONS } from '../../src/detectors/errors.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

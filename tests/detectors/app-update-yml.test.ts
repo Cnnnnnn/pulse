@@ -14,7 +14,7 @@ vi.mock('fs', () => ({
 }));
 
 import { AppUpdateYmlDetector } from '../../src/detectors/app-update-yml.js';
-import { MockHttp, makeCtx } from '../helpers/mock-http.js';
+import { MockHttp, makeCtx } from '../helpers/mock-http';
 import { REASONS } from '../../src/detectors/errors.js';
 
 describe('AppUpdateYmlDetector', () => {

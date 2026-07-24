@@ -287,11 +287,14 @@ function logSiteKind(
 }
 
 /**
- * Scan .js files under rootDir for setInterval / setTimeout usage and
- * classify each as clean / orphan / debounce / dup-schedule.
+ * Scan .js + .ts files under rootDir for setInterval / setTimeout usage
+ * and classify each as clean / orphan / debounce / dup-schedule.
  *
  * Pure CommonJS, no mainLog dependency — caller (src/main/index.js)
  * is responsible for writing the summary to mainLog if it wants.
+ *
+ * Phase 6: fixtures/timer-audit/*.js → .ts. 双扫 .js + .ts 不破历史
+ * 路径 (主进程自身代码仍是 .js — 见 Phase 5 留下的 4 例外 + shim).
  */
 function auditTimers(
   rootDir: string,
@@ -311,7 +314,7 @@ function auditTimers(
 
   let files: string[];
   try {
-    files = fs.readdirSync(rootDir).filter((f) => f.endsWith(".js"));
+    files = fs.readdirSync(rootDir).filter((f) => f.endsWith(".js") || f.endsWith(".ts"));
   } catch (err) {
     if (logger) logger.warn(`[timer-registry] audit: readdir failed: ${err instanceof Error ? err.message : String(err)}`);
     return summary;

@@ -22,7 +22,7 @@ const FIXTURE_DIR = path.resolve(
 describe('auditTimers on committed fixtures', () => {
   it('clean.js 被识别为 clean', () => {
     const s = auditTimers(FIXTURE_DIR);
-    const clean = s.entries.find((e) => e.file === 'clean.js');
+    const clean = s.entries.find((e) => e.file === 'clean.ts');
     expect(clean).toBeDefined();
     expect(clean.kind).toBe('clean');
     expect(clean.hasCleanup).toBe(true);
@@ -30,7 +30,7 @@ describe('auditTimers on committed fixtures', () => {
 
   it('orphan.js 被识别为 orphan', () => {
     const s = auditTimers(FIXTURE_DIR);
-    const orphan = s.entries.find((e) => e.file === 'orphan.js');
+    const orphan = s.entries.find((e) => e.file === 'orphan.ts');
     expect(orphan).toBeDefined();
     expect(orphan.kind).toBe('orphan');
     expect(orphan.hasCleanup).toBe(false);
@@ -39,7 +39,7 @@ describe('auditTimers on committed fixtures', () => {
   it('debounce.js 至少一个 site 标记 debounce', () => {
     const s = auditTimers(FIXTURE_DIR);
     const debounces = s.entries.filter(
-      (e) => e.file === 'debounce.js' && e.kind === 'debounce',
+      (e) => e.file === 'debounce.ts' && e.kind === 'debounce',
     );
     expect(debounces.length).toBeGreaterThanOrEqual(1);
   });
@@ -47,14 +47,14 @@ describe('auditTimers on committed fixtures', () => {
   it('dup-schedule.js 至少一个 site 标记 dup-schedule', () => {
     const s = auditTimers(FIXTURE_DIR);
     const dup = s.entries.filter(
-      (e) => e.file === 'dup-schedule.js' && e.kind === 'dup-schedule',
+      (e) => e.file === 'dup-schedule.ts' && e.kind === 'dup-schedule',
     );
     expect(dup.length).toBeGreaterThanOrEqual(1);
   });
 
   it('commented.js 不计入 total', () => {
     const s = auditTimers(FIXTURE_DIR);
-    const commented = s.entries.filter((e) => e.file === 'commented.js');
+    const commented = s.entries.filter((e) => e.file === 'commented.ts');
     expect(commented).toHaveLength(0);
   });
 

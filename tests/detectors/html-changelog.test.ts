@@ -12,7 +12,7 @@ import {
   extractFirstSection,
   stripDangerousTags,
 } from "../../src/detectors/html-changelog.js";
-import { MockHttp, makeCtx } from "../helpers/mock-http.js";
+import { MockHttp, makeCtx } from "../helpers/mock-http";
 import { REASONS } from "../../src/detectors/errors.js";
 
 describe("extractFirstSection", () => {

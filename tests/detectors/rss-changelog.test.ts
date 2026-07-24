@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { RssChangelogDetector } from "../../src/detectors/rss-changelog.js";
-import { MockHttp, makeCtx } from "../helpers/mock-http.js";
+import { MockHttp, makeCtx } from "../helpers/mock-http";
 import { REASONS } from "../../src/detectors/errors.js";
 
 const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>

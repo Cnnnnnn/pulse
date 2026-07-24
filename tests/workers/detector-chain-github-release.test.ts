@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createRequire } from 'node:module';
-import { MockHttp } from '../helpers/mock-http.js';
+import { MockHttp } from '../helpers/mock-http';
 const require = createRequire(import.meta.url);
 const {
   workersArtifactPath,

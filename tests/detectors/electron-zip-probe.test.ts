@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { electron_zip_probe } from "../../src/detectors/electron-zip-probe.js";
-import { MockHttp, makeCtx } from "../helpers/mock-http.js";
+import { MockHttp, makeCtx } from "../helpers/mock-http";
 import { REASONS } from "../../src/detectors/errors.js";
 
 describe("electron_zip_probe", () => {

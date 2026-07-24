@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { WingetShowDetector } from '../../src/detectors/winget-show.js';
-import { makeCtx } from '../helpers/mock-http.js';
+import { makeCtx } from '../helpers/mock-http';
 import { REASONS } from '../../src/detectors/errors.js';
 
 describe('WingetShowDetector', () => {

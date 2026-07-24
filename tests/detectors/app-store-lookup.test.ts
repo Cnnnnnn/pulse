@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { AppStoreLookupDetector } from '../../src/detectors/app-store-lookup.js';
-import { MockHttp, makeCtx } from '../helpers/mock-http.js';
+import { MockHttp, makeCtx } from '../helpers/mock-http';
 import { REASONS } from '../../src/detectors/errors.js';
 
 const LOOKUP = {

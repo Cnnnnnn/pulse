@@ -1,5 +1,5 @@
 /**
- * tests/helpers/mock-http.js
+ * tests/helpers/mock-http
  *
  * 给 detector 单元测试用的 mock http client。直接喂预设响应，离线跑。
  *

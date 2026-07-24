@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { GithubReleaseDetector } from '../../src/detectors/github-release.js';
-import { MockHttp, makeCtx } from '../helpers/mock-http.js';
+import { MockHttp, makeCtx } from '../helpers/mock-http';
 import { REASONS } from '../../src/detectors/errors.js';
 
 describe('GithubReleaseDetector', () => {

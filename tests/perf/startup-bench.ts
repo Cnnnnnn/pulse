@@ -1,37 +1,42 @@
 #!/usr/bin/env node
 /**
- * scripts/startup-bench.js
+ * tests/perf/startup-bench.ts — Phase 6 改 .js → .ts.
  *
  * 自动化冷启动基准 (spec §10 / §13):
  *   - 启动 100 次, 量"冷启动 → 窗口可见"时间
  *   - 输出:  中位数 / p95 / 最小 / 最大
  *   - 验收:  中位数 < 1.5s
  *
- * 工作方式 (CJS Node 脚本, 跑在 macOS):
+ * 工作方式 (CLI 工具, 跑在 macOS — 用 tsx/node --loader 跑):
  *   1. 跑一次冷启动, electron 进程自己 fire 'ready-to-show'
  *   2. main 进程在 ready-to-show 触发瞬间, 给 bench 进程发 IPC: "visible"
  *      (走 main 进程的 event() log 行, bench 端用 file-watcher 收)
  *   3. bench 计算: t0 (electron 进程 fork 之前) → 收到"visible" 的差值
  *
  * 为了不引 IPC 复杂度, 简化实现:
- *   - 用 stdout 解析: main/index.js 加一个 env-gate
+ *   - 用 stdout 解析: main/index.ts 加一个 env-gate
  *     BENCH=1 时, ready-to-show 立刻 console.log "BENCH_VISIBLE"
  *   - bench 脚本: spawn electron, 计 t0, 等到 stdout 含 "BENCH_VISIBLE" 算 t1
  *   - 100 次: 每跑完一次, kill + 等待 1s 让 OS 释放资源
  *
  * 用法:
- *   node scripts/startup-bench.js [--iterations=100] [--no-quit]
+ *   npx tsx tests/perf/startup-bench.ts [--iterations=100] [--no-quit]
+ *   (旧用法 `node tests/perf/startup-bench.js` 已失效 — Phase 6 改成 .ts)
  *
  * 输出: stdout + tests/fixtures/startup-bench-{timestamp}.json
+ *
+ * ponytail: 原 .js 版底部有 `module.exports = { runOnce, summary, percentile }` —
+ * 全仓 grep 没人 require 这些 symbol, 删了减少 dead code.
  */
 
-'use strict';
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
 
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const require = createRequire(import.meta.url);
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
+const PROJECT_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 
 // 跑 build 后的 .app (dist/mac-arm64/Pulse.app) — 真生产路径
 // dev 模式 (electron .) 也能跑, 但 1) node_modules/.bin/electron 在某些环境是
@@ -39,14 +44,20 @@ const PROJECT_ROOT = path.resolve(__dirname, '..');
 const BUILT_APP = path.join(PROJECT_ROOT, 'dist', 'mac-arm64', 'Pulse.app', 'Contents', 'MacOS', 'Pulse');
 const ELECTRON_DEV = path.join(PROJECT_ROOT, 'node_modules', '.bin', 'electron');
 
-function pickRunner() {
+function pickRunner(): string {
   if (process.env.BENCH_DEV === '1') return ELECTRON_DEV;
   if (fs.existsSync(BUILT_APP)) return BUILT_APP;
   return ELECTRON_DEV;   // 兜底
 }
 
-function parseArgs(argv) {
-  const out = { iterations: 100, quitAfter: true, warmupMs: 800 };
+interface BenchArgs {
+  iterations: number;
+  quitAfter: boolean;
+  warmupMs: number;
+}
+
+function parseArgs(argv: readonly string[]): BenchArgs {
+  const out: BenchArgs = { iterations: 100, quitAfter: true, warmupMs: 800 };
   for (const a of argv.slice(2)) {
     if (a.startsWith('--iterations=')) out.iterations = parseInt(a.slice(13), 10) || 100;
     if (a === '--no-quit') out.quitAfter = false;
@@ -55,19 +66,31 @@ function parseArgs(argv) {
   return out;
 }
 
-function percentile(arr, p) {
+function percentile(arr: readonly number[], p: number): number {
   if (arr.length === 0) return 0;
   const sorted = [...arr].sort((a, b) => a - b);
   const idx = Math.min(sorted.length - 1, Math.floor((sorted.length * p) / 100));
   return sorted[idx];
 }
 
-function median(arr) {
+function median(arr: readonly number[]): number {
   if (arr.length === 0) return 0;
   return percentile(arr, 50);
 }
 
-function summary(arr) {
+interface BenchSummary {
+  count: number;
+  min: number;
+  max: number;
+  mean: number;
+  median: number;
+  p50: number;
+  p90: number;
+  p95: number;
+  p99: number;
+}
+
+function summary(arr: readonly number[]): BenchSummary | null {
   if (arr.length === 0) return null;
   return {
     count: arr.length,
@@ -82,18 +105,22 @@ function summary(arr) {
   };
 }
 
-function sleep(ms) {
+function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+interface RunOnceOk { ok: true; ms: number }
+interface RunOnceErr { ok: false; ms: number; err: string; timeout?: boolean }
+type RunOnceResult = RunOnceOk | RunOnceErr;
+
 /**
  * 跑一次冷启动, 测量到 "BENCH_VISIBLE" 出现的耗时 (ms)。
- * @returns {Promise<{ok: boolean, ms: number, err?: string, timeout?: boolean}>}
  */
-function runOnce() {
-  return new Promise((resolve) => {
+function runOnce(): Promise<RunOnceResult> {
+  return new Promise<RunOnceResult>((resolve) => {
     const t0 = Date.now();
     let resolved = false;
+    let child: import('node:child_process').ChildProcess = null as unknown as import('node:child_process').ChildProcess;
     const timer = setTimeout(() => {
       if (resolved) return;
       resolved = true;
@@ -101,22 +128,23 @@ function runOnce() {
       resolve({ ok: false, ms: 15000, err: 'timeout (15s)', timeout: true });
     }, 15000);
 
-    const env = {
+    const env: NodeJS.ProcessEnv = {
       ...process.env,
-      BENCH: '1',                  // 触发 main/index.js 的 bench 模式
+      BENCH: '1',                  // 触发 main/index.ts 的 bench 模式
       APP_UPDATE_CHECKER_DEBUG: '0',
     };
 
     const runner = pickRunner();
     const isApp = runner.endsWith('Pulse');
-    const child = isApp
+    const spawned: import('node:child_process').ChildProcess = isApp
       ? spawn(runner, [], { env, stdio: ['ignore', 'pipe', 'pipe'] })
       : spawn(runner, ['.'], { cwd: PROJECT_ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    child = spawned;
 
     let stdoutBuf = '';
     let stderrBuf = '';
 
-    const onData = (which, chunk) => {
+    const onData = (which: 'out' | 'err', chunk: Buffer | string) => {
       const s = chunk.toString();
       if (which === 'out') stdoutBuf += s;
       else stderrBuf += s;
@@ -130,8 +158,8 @@ function runOnce() {
       }
     };
 
-    child.stdout.on('data', (c) => onData('out', c));
-    child.stderr.on('data', (c) => onData('err', c));
+    child.stdout.on('data', (c: Buffer) => onData('out', c));
+    child.stderr.on('data', (c: Buffer) => onData('err', c));
 
     child.on('exit', () => {
       if (!resolved) {
@@ -143,7 +171,7 @@ function runOnce() {
   });
 }
 
-async function main() {
+async function main(): Promise<void> {
   const args = parseArgs(process.argv);
   console.log(`[startup-bench] project=${PROJECT_ROOT}`);
   console.log(`[startup-bench] iterations=${args.iterations}  warmupMs=${args.warmupMs}`);
@@ -158,7 +186,7 @@ async function main() {
   }
   await sleep(args.warmupMs);
 
-  const samples = [];
+  const samples: number[] = [];
   let failCount = 0;
   for (let i = 1; i <= args.iterations; i++) {
     const r = await runOnce();
@@ -198,7 +226,7 @@ async function main() {
     }, null, 2));
     console.log(`[startup-bench] wrote: ${outFile}`);
   } catch (err) {
-    console.error(`[startup-bench] write failed: ${err.message}`);
+    console.error(`[startup-bench] write failed: ${(err as Error).message}`);
   }
 
   // exit code: 0=PASS, 1=FAIL (median >= 1.5s), 2=aborted
@@ -207,10 +235,8 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch((err) => {
+  main().catch((err: Error) => {
     console.error('[startup-bench] fatal:', err);
     process.exit(2);
   });
 }
-
-module.exports = { runOnce, summary, percentile };

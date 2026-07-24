@@ -17,7 +17,7 @@
  */
 import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import { createRequire } from "node:module";
-import { MockHttp, makeCtx } from "../helpers/mock-http.js";
+import { MockHttp, makeCtx } from "../helpers/mock-http";
 
 const require = createRequire(import.meta.url);
 

@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { runDetectorChain } from "../../src/workers/detector-chain.ts";
-import { MockHttp, makeCtx } from "../helpers/mock-http.js";
+import { MockHttp, makeCtx } from "../helpers/mock-http";
 
 const HTML_CHANGELOG = (ver) =>
   `<h2 id="_${ver}">${ver} 版本发布</h2><p>release notes</p>` +

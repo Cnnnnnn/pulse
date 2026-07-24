@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { MockHttp } from "../helpers/mock-http.js";
+import { MockHttp } from "../helpers/mock-http";
 const {
   fetchFundNav,
   fetchFundNavWithAlt,

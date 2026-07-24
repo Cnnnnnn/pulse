@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { CursorRedirectDetector } from '../../src/detectors/cursor-redirect.js';
-import { MockHttp, makeCtx } from '../helpers/mock-http.js';
+import { MockHttp, makeCtx } from '../helpers/mock-http';
 import { REASONS } from '../../src/detectors/errors.js';
 
 describe('CursorRedirectDetector', () => {

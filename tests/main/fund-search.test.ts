@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { MockHttp } from '../helpers/mock-http.js';
+import { MockHttp } from '../helpers/mock-http';
 const { searchFunds, parseSearchResponse } = require('../../src/funds/fund-search.js');
 
 const SAMPLE = JSON.stringify({

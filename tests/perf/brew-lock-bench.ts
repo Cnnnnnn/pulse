@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * scripts/brew-lock-bench.js
+ * tests/perf/brew-lock-bench.ts — Phase 6 改 .js → .ts.
  *
  * 测 brew lock 兼容性 (spec §7 / §10):
  *   - 真 spawn N 个并发 `brew upgrade --cask <name>` 子进程
@@ -16,8 +16,12 @@
  *      真 spawn `brew info <cask>` 这种轻量命令并发即可触发 lock 竞争
  *
  * 用法:
- *   node scripts/brew-lock-bench.js            # 默认 1,2,3,4 各 5 次
- *   node scripts/brew-lock-bench.js --concurrencies=2,4,6 --runs=10
+ *   npx tsx tests/perf/brew-lock-bench.ts            # 默认 1,2,3,4 各 5 次
+ *   npx tsx tests/perf/brew-lock-bench.ts --concurrencies=2,4,6 --runs=10
+ *   (旧用法 `node tests/perf/brew-lock-bench.js` 已失效 — Phase 6 改成 .ts)
+ *
+ * vitest 把 .bench.* 当作 benchmark 收集, 但 main() 用 require.main === module 守门
+ * (vitest require 时 require.main != module, 所以不会触发 spawn).
  *
  * 退出码:
  *   0  - 全部 OK
@@ -25,15 +29,23 @@
  *   2  - 没法测 (brew 不在 PATH)
  */
 
-'use strict';
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { createRequire } from 'node:module';
 
-const { spawn } = require('child_process');
-const path = require('path');
+const require = createRequire(import.meta.url);
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
+const PROJECT_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 
-function parseArgs(argv) {
-  const out = { concurrencies: [1, 2, 3, 4], runs: 5, casks: ['git', 'wget'], dryRun: true };
+interface BrewBenchArgs {
+  concurrencies: number[];
+  runs: number;
+  casks: string[];
+  dryRun: boolean;
+}
+
+function parseArgs(argv: readonly string[]): BrewBenchArgs {
+  const out: BrewBenchArgs = { concurrencies: [1, 2, 3, 4], runs: 5, casks: ['git', 'wget'], dryRun: true };
   for (const a of argv.slice(2)) {
     if (a.startsWith('--concurrencies=')) {
       out.concurrencies = a.slice(16).split(',').map((s) => parseInt(s, 10)).filter(Boolean);
@@ -46,22 +58,28 @@ function parseArgs(argv) {
   return out;
 }
 
-function hasBrew() {
-  return new Promise((resolve) => {
+function hasBrew(): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
     const p = spawn('brew', ['--version'], { stdio: 'ignore' });
     p.on('exit', (code) => resolve(code === 0));
     p.on('error', () => resolve(false));
   });
 }
 
-function runBrew(args) {
-  return new Promise((resolve) => {
+interface BrewRun {
+  code: number;
+  ms: number;
+  stderr: string;
+}
+
+function runBrew(args: readonly string[]): Promise<BrewRun> {
+  return new Promise<BrewRun>((resolve) => {
     const t0 = Date.now();
     const child = spawn('brew', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let stderr = '';
-    child.stderr.on('data', (c) => { stderr += c.toString(); });
+    child.stderr.on('data', (c: Buffer) => { stderr += c.toString(); });
     child.on('exit', (code) => {
-      resolve({ code, ms: Date.now() - t0, stderr });
+      resolve({ code: code ?? -1, ms: Date.now() - t0, stderr });
     });
     child.on('error', (err) => {
       resolve({ code: -1, ms: Date.now() - t0, stderr: err.message });
@@ -69,13 +87,22 @@ function runBrew(args) {
   });
 }
 
-function classifyLockErr(stderr) {
+function classifyLockErr(stderr: string): boolean {
   // brew lock 的典型信号: "Could not acquire lock" / "Locked" / "Operation already in progress"
   return /Could not acquire lock|Locked|Operation already in progress/i.test(stderr);
 }
 
-async function runConcurrency(concurrency, runs, caskArgs) {
-  const stats = { concurrency, runs, success: 0, lockErr: 0, otherErr: 0, totalMs: 0 };
+interface ConcurrencyStats {
+  concurrency: number;
+  runs: number;
+  success: number;
+  lockErr: number;
+  otherErr: number;
+  totalMs: number;
+}
+
+async function runConcurrency(concurrency: number, runs: number, caskArgs: readonly string[]): Promise<ConcurrencyStats> {
+  const stats: ConcurrencyStats = { concurrency, runs, success: 0, lockErr: 0, otherErr: 0, totalMs: 0 };
   for (let i = 0; i < runs; i++) {
     const tasks = Array.from({ length: concurrency }, () => runBrew(caskArgs));
     const results = await Promise.all(tasks);
@@ -93,7 +120,7 @@ async function runConcurrency(concurrency, runs, caskArgs) {
   return stats;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const args = parseArgs(process.argv);
   console.log(`[brew-lock-bench] project=${PROJECT_ROOT}`);
   console.log(`[brew-lock-bench] concurrencies=${args.concurrencies.join(',')}  runs=${args.runs}  casks=${args.casks.join(',')}  dryRun=${args.dryRun}`);
@@ -105,11 +132,11 @@ async function main() {
 
   // 用 brew upgrade --dry-run <cask>: 真去抢 lock, 但不真改系统
   // 不带 --dry-run 时是破坏性的, 显式 --no-dry-run 才允许
-  const upgradeArgs = ['upgrade', '--cask', ...args.casks];
+  const upgradeArgs: string[] = ['upgrade', '--cask', ...args.casks];
   if (args.dryRun) upgradeArgs.push('--dry-run');
-  const safeArgs = upgradeArgs;
+  const safeArgs: string[] = upgradeArgs;
 
-  const allStats = [];
+  const allStats: ConcurrencyStats[] = [];
   for (const c of args.concurrencies) {
     process.stdout.write(`[brew-lock-bench]   concurrency=${c} ... `);
     const s = await runConcurrency(c, args.runs, safeArgs);
@@ -138,7 +165,7 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch((err) => {
+  main().catch((err: Error) => {
     console.error('[brew-lock-bench] fatal:', err);
     process.exit(1);
   });

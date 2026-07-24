@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { BrewLocalCaskDetector } from '../../src/detectors/brew-local-cask.js';
-import { makeCtx } from '../helpers/mock-http.js';
+import { makeCtx } from '../helpers/mock-http';
 import { REASONS } from '../../src/detectors/errors.js';
 
 describe('BrewLocalCaskDetector', () => {
