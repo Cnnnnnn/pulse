@@ -14,7 +14,7 @@
  * - error (红) —错误 (e.g. safeStorage不可用)
  */
 
-import { toast, dismissToast } from '../store.js';
+import { toast, dismissToast } from '../store.ts';
 import { ToastTypeIcon } from './icons.jsx';
 
 const TOAST_DEFAULT_MS = 5000;

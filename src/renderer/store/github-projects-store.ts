@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/github-projects-store.js
+ * src/renderer/store/github-projects-store.ts
  *
  * GitHub 优秀项目收录 — renderer 端状态 + localStorage 持久化。
  * 复用 sidenav-prefs 的 safeStorage 容错模式 (localStorage 不可用时内存兜底)。
@@ -9,7 +9,7 @@
 
 import { signal } from "@preact/signals";
 import { api } from "../api.js";
-import { showToast } from "./toast-store.js";
+import { showToast } from "./toast-store.ts";
 
 const STORAGE_KEY = "pulse.github.projects.v1";
 
@@ -300,7 +300,7 @@ export function collectGithubTags(projects) {
       if (typeof t === "string" && t.trim()) set.add(t.trim());
     }
   }
-  return [...set].sort((a, b) => a.localeCompare(b));
+  return [...set].sort((a: string, b: string) => a.localeCompare(b));
 }
 
 /** 把时间戳格式化为「N 天前 / N 个月前」等人读相对时间。 */
@@ -587,7 +587,7 @@ export async function parseGithubProjectAi(id, force = false) {
  * @param {{silent?:boolean}} [opts] silent=true 时不显示行级 loading 态
  * @returns {Promise<{ok:boolean, reason?:string}>}
  */
-export async function fetchGithubRelease(id, opts = {}) {
+export async function fetchGithubRelease(id: any, opts: any = {}) {
   const silent = !!opts.silent;
   const p = githubProjects.value.find((x) => x.id === id);
   if (!p) return { ok: false, reason: "not_found" };
@@ -738,7 +738,7 @@ async function _runCheckLoop(list, onProgress) {
  *   不再每轮把整批拖成「失败」。瞬时失败 (限流/网络/5xx) 计入 errorCount，并记录到
  *   lastFailedIds 供「重试失败项」按钮消费。
  */
-export async function checkGithubUpdates(opts = {}) {
+export async function checkGithubUpdates(opts: any = {}) {
   const { onProgress, onlyStale } = opts;
   let list = githubProjects.value;
   if (onlyStale) list = list.filter((p) => !p.releaseFetchedAt);
@@ -752,7 +752,7 @@ export async function checkGithubUpdates(opts = {}) {
  * 用于工具栏「重试失败项(N)」按钮 —— 不依赖会消失的 toast。
  * 重试后 lastFailedIds 更新为本次仍失败的 id（全部成功则清空）。
  */
-export async function retryFailedGithubUpdates(opts = {}) {
+export async function retryFailedGithubUpdates(opts: any = {}) {
   const { onProgress } = opts;
   const ids = lastFailedIds.value;
   if (!ids.length) {

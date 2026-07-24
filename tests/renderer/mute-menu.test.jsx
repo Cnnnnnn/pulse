@@ -19,7 +19,7 @@ import { MuteMenu, rankOptions, RECOMMENDED } from '../../src/renderer/component
 // mock store 里的 setMute / clearMute, 因为它们走 IPC, 测试里要拦截
 const setMuteMock = vi.fn();
 const clearMuteMock = vi.fn();
-vi.mock('../../src/renderer/store.js', async () => {
+vi.mock('../../src/renderer/store.ts', async () => {
   const actual = await vi.importActual('../../src/renderer/store.js');
   return {
     ...actual,

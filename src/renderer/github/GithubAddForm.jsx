@@ -12,8 +12,8 @@ import {
   parseGithubUrl,
   githubBusy,
   githubReasonText,
-} from "../store/github-projects-store.js";
-import { showToast } from "../store/toast-store.js";
+} from "../store/github-projects-store.ts";
+import { showToast } from "../store/toast-store.ts";
 
 /** 把批量 textarea 的原始文本解析成地址数组：按换行分割，过滤空行和 # 注释行。 */
 export function parseBatchInputs(text) {

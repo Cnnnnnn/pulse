@@ -16,7 +16,7 @@ import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import {
   openReleaseNotes,
   releaseNotesPayload,
-} from './store/release-notes-store.js';
+} from './store/release-notes-store.ts';
 import {
   apps,
   applyProgress,
@@ -35,10 +35,10 @@ import {
   subscribeAISessionsConfigUpdates,
   loadAISessionsConfig,
   lastOpenedApps,
-} from './store.js';
+} from './store.ts';
 import { api } from './api.js';
 import { primeConfigCache } from './components/AppRow.jsx';
-import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store/store-bulk-upgrade.js';
+import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store/store-bulk-upgrade.ts';
 import { createAutoRecheck } from './auto-recheck.js';
 import { taggedLog } from './log.js';
 import { applyPlatformBodyClass } from './platform-body-class.js';
@@ -84,7 +84,7 @@ function wireRendererListeners() {
 
   if (typeof api.onMainError === "function") {
     api.onMainError((data) => {
-      import("./store.js").then(({ showToast }) => {
+      import("./store.ts").then(({ showToast }) => {
         const msg = (data && data.message) || "后台任务出错";
         showToast(`后台异常: ${msg}`, "error", 8000);
       });
@@ -93,14 +93,14 @@ function wireRendererListeners() {
 
   if (typeof api.onDigestOpen === "function") {
     api.onDigestOpen(() => {
-      import("./store.js").then(({ digestDrawerOpen }) => {
+      import("./store.ts").then(({ digestDrawerOpen }) => {
         digestDrawerOpen.value = true;
       });
     });
   }
 
   api.onStateRecovered((evt) => {
-    import("./store.js").then(({ stateRecoveredSignal }) => {
+    import("./store.ts").then(({ stateRecoveredSignal }) => {
       if (evt) stateRecoveredSignal.value = evt;
     });
   });
@@ -118,7 +118,7 @@ function wireRendererListeners() {
     api.onCheckFinished(async () => {
       if (isCheckRunning()) finishCheck();
       try {
-        const { applyCachedResults, results: resultsSig, apps: appsSig } = await import('./store.js');
+        const { applyCachedResults, results: resultsSig, apps: appsSig } = await import('./store.ts');
         if (resultsSig.value.size === 0) {
           const cached = await api.getCachedState();
           if (cached && cached.apps)
@@ -144,7 +144,7 @@ function wireRendererListeners() {
 
   api.onAutoCheckFinished(() => {
     if (!isCheckRunning()) finishCheck();
-    import('./store.js').then(({ refreshLastOpened }) => {
+    import('./store.ts').then(({ refreshLastOpened }) => {
       refreshLastOpened().catch(() => {});
     });
   });
@@ -169,15 +169,15 @@ function wireRendererListeners() {
     const trayApi = window.pulse.tray;
     if (typeof trayApi.onOpenConfig === 'function') {
       trayApi.onOpenConfig(() => {
-        import('./store/trayConfigStore.js').then(({ openTrayConfig }) => openTrayConfig());
+        import('./store/trayConfigStore.ts').then(({ openTrayConfig }) => openTrayConfig());
       });
     }
     if (typeof trayApi.onCloseConfigModal === 'function') {
       trayApi.onCloseConfigModal(() => {
-        import('./store/trayConfigStore.js').then(({ closeTrayConfig }) => closeTrayConfig());
+        import('./store/trayConfigStore.ts').then(({ closeTrayConfig }) => closeTrayConfig());
       });
     }
-    import('./store/trayConfigStore.js').then(({ applyTrayPrefsFromMain }) => {
+    import('./store/trayConfigStore.ts').then(({ applyTrayPrefsFromMain }) => {
       Promise.resolve(trayApi.getPrefs && trayApi.getPrefs()).then((r) => {
         if (r && r.ok && r.prefs) applyTrayPrefsFromMain(r.prefs);
       }).catch(() => {});
@@ -190,7 +190,7 @@ async function bootstrapDeferred(cfg) {
   try {
     const cached = await api.getCachedState();
     if (cached && cached.apps) {
-      const { applyCachedResults } = await import('./store.js');
+      const { applyCachedResults } = await import('./store.ts');
       applyCachedResults(cached, (cfg && cfg.apps) || []);
     }
   } catch { /* noop */ }
@@ -207,7 +207,7 @@ async function bootstrapDeferred(cfg) {
   subscribeAISessionsConfigUpdates();
   Promise.allSettled([
     loadAISessionsConfig(),
-    import('./store.js').then((m) => m.probeAIKeyStatuses()),
+    import('./store.ts').then((m) => m.probeAIKeyStatuses()),
     import('./recent/recentStore.ts').then((m) => {
       m.installRecentListener();
       return m.loadRecent();
@@ -284,7 +284,7 @@ async function bootstrap() {
   }
   // P10: 监听主进程广播 (托盘切换或 nativeTheme 变化)
   if (typeof api.onThemeChanged === 'function') {
-    const { showToast } = await import('./store.js');
+    const { showToast } = await import('./store.ts');
     const TOAST_LABEL = { system: '跟随系统', light: '浅色', dark: '深色' };
     api.onThemeChanged(({ mode, source }) => {
       if (mode && ['system', 'light', 'dark'].includes(mode)) {

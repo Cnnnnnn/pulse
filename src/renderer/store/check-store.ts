@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/check-store.js
+ * src/renderer/store/check-store.ts
  *
  * Check session + per-app phase + per-app result signal.
  * Session-based 检测模型.
@@ -183,7 +183,7 @@ export function applyCachedResults(cached, configApps) {
   const nextResults = new Map(results.value);
   const nextPhases = new Map(appPhases.value);
 
-  for (const [name, r] of Object.entries(cached.apps)) {
+  for (const [name, r] of Object.entries(cached.apps) as [string, any][]) {
     if (!r || !r.name) continue;
     if (allowed && !allowed.has(name)) continue; // 不在当前 config → 丢弃历史
     nextResults.set(name, r);

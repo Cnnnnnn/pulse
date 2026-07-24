@@ -30,7 +30,7 @@ import { HomeGrid } from './HomeGrid.jsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.ts';
 import { SearchModal } from '../search/SearchModal.jsx';
 import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
-import { loadGithubProjects, loadGithubSettings } from '../store/github-projects-store.js';
+import { loadGithubProjects, loadGithubSettings } from '../store/github-projects-store.ts';
 
 export function AppShell({ onCheck }) {
   const nav = activeNav.value;

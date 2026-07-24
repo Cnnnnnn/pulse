@@ -26,7 +26,7 @@ import {
   firedCount,
   toggleRemindersOpen,
 } from "./remindersStore.ts";
-import { openConfirm } from "../store/confirmStore.js";
+import { openConfirm } from "../store/confirmStore.ts";
 import { Badge as BadgeRaw } from "../components/Badge.jsx";
 import { ModalShell as ModalShellRaw, ModalHeader } from "../components/ModalShell.jsx";
 import { PanelEmpty as PanelEmptyRaw } from "../components/EmptyState.jsx";

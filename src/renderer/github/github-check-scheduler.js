@@ -20,7 +20,7 @@ import {
   githubAutoCheck,
   githubAutoCheckIntervalMin,
   githubNotifyOnNew,
-} from "../store/github-projects-store.js";
+} from "../store/github-projects-store.ts";
 
 const INITIAL_DELAY_MS = 60 * 1000; // 首次延迟 60s，避免启动即检查打扰
 

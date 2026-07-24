@@ -8,7 +8,7 @@ import { ConfigImportModal } from "../../src/renderer/components/ConfigImportMod
 import { api } from "../../src/renderer/api.js";
 
 // mock showToast 避免依赖 store
-vi.mock("../../src/renderer/store.js", () => ({
+vi.mock("../../src/renderer/store.ts", () => ({
   showToast: vi.fn(),
 }));
 

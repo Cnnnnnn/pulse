@@ -18,7 +18,7 @@ import {
   fetchGithubRelease,
   retryFailedGithubUpdates,
   lastFailedIds,
-} from "../../src/renderer/store/github-projects-store.js";
+} from "../../src/renderer/store/github-projects-store.ts";
 
 function seed(items) {
   githubProjects.value = items.map((x) => ({

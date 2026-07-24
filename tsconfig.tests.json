@@ -5,7 +5,10 @@
     "moduleResolution": "Bundler",
     "types": ["node", "vitest/globals"],
     "strict": false,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
   "include": [
     "src/shared/preload-types.ts",

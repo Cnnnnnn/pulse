@@ -24,7 +24,7 @@ import {
   hasGithubUpdate,
   markGithubSeen,
   formatRelativeTime,
-} from "../store/github-projects-store.js";
+} from "../store/github-projects-store.ts";
 import { GithubMarkdown } from "./GithubMarkdown.jsx";
 
 function absoluteDate(ts) {

@@ -2,7 +2,7 @@
  * src/renderer/library-view-store.js
  *
  * Library view 的 view/filter 状态. filterStatus / filterCategory / searchQuery
- * 直接 alias 到 store/ui-store.js 和 store/category-mute-store.js 的 signal
+ * 直接 alias 到 store/ui-store.ts 和 store/category-mute-store.ts 的 signal
  * (同一引用, 同一 reactivity), 确保 MergedFilterChip / ResultsView / AppRow
  * 等无论从哪条路径写入, 另一条路径读到的是同一个值.
  *
@@ -12,8 +12,8 @@
  *          新 MergedFilterChip / 后续 LibraryPage 子组件走本 store (同一 signal).
  */
 import { signal } from "@preact/signals";
-import { activeFilter as filterStatus, searchQuery } from "./ui-store.js";
-import { activeCategory as filterCategory } from "./category-mute-store.js";
+import { activeFilter as filterStatus, searchQuery } from "./ui-store.ts";
+import { activeCategory as filterCategory } from "./category-mute-store.ts";
 
 export { filterStatus, filterCategory, searchQuery };
 export const viewMode = signal("table");

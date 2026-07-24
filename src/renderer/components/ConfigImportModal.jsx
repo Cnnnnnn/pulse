@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api.js";
-import { showToast } from "../store.js";
+import { showToast } from "../store.ts";
 import { ModalShell } from "./ModalShell.jsx";
 
 const FIELD_LABELS = {

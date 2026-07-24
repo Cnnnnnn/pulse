@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
 import { VirtualCardGrid } from "../../src/renderer/components/VirtualCardGrid.jsx";
 
-vi.mock("../../src/renderer/store.js", async () => {
+vi.mock("../../src/renderer/store.ts", async () => {
   const { signal } = await import("@preact/signals");
   const names = Array.from({ length: 200 }, (_, i) => `app-${i}`);
   const map = new Map(names.map((n) => [n, { name: n, has_update: false, current_version: "1", latest_version: "1" }]));

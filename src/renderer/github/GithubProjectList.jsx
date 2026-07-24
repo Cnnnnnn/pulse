@@ -41,8 +41,8 @@ import {
   hasDistinctHomepage,
   lastFailedIds,
   collectGithubTags,
-} from "../store/github-projects-store.js";
-import { openConfirm } from "../store/confirmStore.js";
+} from "../store/github-projects-store.ts";
+import { openConfirm } from "../store/confirmStore.ts";
 import { api } from "../api.js";
 
 const PAGE_SIZE = 8;

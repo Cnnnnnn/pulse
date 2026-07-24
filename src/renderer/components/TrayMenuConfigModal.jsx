@@ -14,9 +14,9 @@
  * 锁死说明: 「打开面板」/「退出」不暴露在 modal 里 — 根本没渲染, buildMenu 硬编码.
  */
 import { useState, useEffect } from "preact/hooks";
-import { trayConfigOpen, closeTrayConfig, applyTrayPrefsFromMain } from "../store/trayConfigStore.js";
+import { trayConfigOpen, closeTrayConfig, applyTrayPrefsFromMain } from "../store/trayConfigStore.ts";
 import { TRAY_SEGMENTS } from "@main/tray-menu-prefs.js";
-import { showToast } from "../store.js";
+import { showToast } from "../store.ts";
 import { ModalShell } from "./ModalShell.jsx";
 
 const SEGMENT_LABELS = TRAY_SEGMENTS;

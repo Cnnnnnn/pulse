@@ -21,7 +21,7 @@ const fetchCalls = [];
 // GLM 槽 (默认无数据, 除非测试显式设)
 let mockGlmSnapshot = null;
 
-vi.mock("../../src/renderer/store/ai-usage-store.js", () => ({
+vi.mock("../../src/renderer/store/ai-usage-store.ts", () => ({
   AI_USAGE_PROVIDERS: ["minimax", "glm"],
   get aiUsageSnapshot() {
     return { get value() { return { minimax: mockSnapshot, glm: mockGlmSnapshot }; } };

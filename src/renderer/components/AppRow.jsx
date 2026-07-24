@@ -29,7 +29,7 @@ import {
   isCheckRunning,
   mutedApps,
   lastOpenedApps,
-} from '../store.js';
+} from '../store.ts';
 import { api } from '../api.js';
 import { AppAvatar } from './AppAvatar.jsx';
 import { AppInfo } from './AppInfo.jsx';

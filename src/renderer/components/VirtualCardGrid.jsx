@@ -5,7 +5,7 @@
  * ponytail: < 100 行不启用 (LibraryPage 已 gate). 自实现, 不引依赖.
  */
 import { useState, useEffect, useRef } from "preact/hooks";
-import { results } from "../store.js";
+import { results } from "../store.ts";
 import { AppCard } from "./AppCard.jsx";
 
 const ROW_HEIGHT = 130;     // Card 高度 (含 gap)

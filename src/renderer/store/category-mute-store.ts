@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/category-mute-store.js
+ * src/renderer/store/category-mute-store.ts
  *
  * Active category tab + Mutes + Last-opened (per-app 状态).
  * 走 IPC 跟 state.json 同步.

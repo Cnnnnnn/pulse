@@ -8,11 +8,11 @@ import { useEffect, useRef } from "preact/hooks";
 import {
   paletteOpen, paletteQuery, paletteResults, paletteSelectedIndex,
   closePalette, setPaletteQuery, setPaletteResults, setPaletteSelectedIndex,
-} from "../store/command-palette-store.js";
-import { navigateTo } from "../store/route-store.js";
+} from "../store/command-palette-store.ts";
+import { navigateTo } from "../store/route-store.ts";
 import { api } from "../api.js";
 import { setThemePreference } from "../theme/theme-manager.ts";
-import { showToast } from "../store.js";
+import { showToast } from "../store.ts";
 import { IconSearch } from "./icons.jsx";
 
 const KIND_LABEL = { app: "应用", action: "操作", view: "页面" };

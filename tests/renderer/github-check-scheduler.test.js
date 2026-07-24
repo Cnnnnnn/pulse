@@ -12,7 +12,7 @@ import {
   githubAutoCheckIntervalMin,
   githubNotifyOnNew,
   lastFailedIds,
-} from "../../src/renderer/store/github-projects-store.js";
+} from "../../src/renderer/store/github-projects-store.ts";
 
 // mock checkGithubUpdates：默认返回无新版
 const { checkUpdatesMock, notifyMock } = vi.hoisted(() => ({
@@ -20,9 +20,9 @@ const { checkUpdatesMock, notifyMock } = vi.hoisted(() => ({
   notifyMock: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/store/github-projects-store.js", async () => {
+vi.mock("../../src/renderer/store/github-projects-store.ts", async () => {
   const actual = await vi.importActual(
-    "../../src/renderer/store/github-projects-store.js",
+    "../../src/renderer/store/github-projects-store.ts",
   );
   return {
     ...actual,

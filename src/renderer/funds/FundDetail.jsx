@@ -33,13 +33,13 @@ import { closeFundDetail } from "./fundRoute.js";
 import { api } from "../api.js";
 import { FundAreaChart } from "./FundAreaChart.jsx";
 import { FundRadar } from "./FundRadar.jsx";
-import { openConfirm } from "../store/confirmStore.js";
+import { openConfirm } from "../store/confirmStore.ts";
 import {
   isFundPinned,
   addWatchlistItem,
   removeWatchlistItem,
 } from "../watchlist/watchlist-store.ts";
-import { showToast } from "../store/toast-store.js";
+import { showToast } from "../store/toast-store.ts";
 import { downloadCsv, safeFilename } from "../utils/csv.ts";
 
 const RANGE_OPTIONS = [

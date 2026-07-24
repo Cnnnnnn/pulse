@@ -15,8 +15,8 @@ import {
   markGithubSeen,
   markGithubAllSeen,
   githubReasonText,
-} from "../store/github-projects-store.js";
-import { showToast } from "../store/toast-store.js";
+} from "../store/github-projects-store.ts";
+import { showToast } from "../store/toast-store.ts";
 import { GithubAddForm } from "./GithubAddForm.jsx";
 import { GithubProjectList } from "./GithubProjectList.jsx";
 import { GithubProjectDrawer } from "./GithubProjectDrawer.jsx";

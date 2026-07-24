@@ -4,7 +4,7 @@
  * Phase I1+I5: signals for the digest drawer + push state.
  *
  * History: digestDrawerOpen / digestConfigMode were originally in
- * src/renderer/store/ai-store.js (added for the AI digest drawer).
+ * src/renderer/store/ai-store.ts (added for the AI digest drawer).
  * Migrated here in Phase I1. aiTasksDrawerOpen split out so daily digest
  * (DigestDrawer) and AI tasks (AITasksDrawer) no longer share one boolean.
  */

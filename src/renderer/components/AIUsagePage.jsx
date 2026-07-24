@@ -30,7 +30,7 @@ import {
   fetchAiUsage,
   setActiveProvider,
   openAiUsageAlertModal,
-} from "../store/ai-usage-store.js";
+} from "../store/ai-usage-store.ts";
 import { useNowTick } from "../hooks/useNowTick.tsx";
 import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
 import { todayKey } from "../../ai-usage/history-series.js";

@@ -19,9 +19,9 @@ import {
   addGithubProject,
   addGithubProjectsBatch,
   __resetQuotaWarnForTest,
-} from "../../src/renderer/store/github-projects-store.js";
+} from "../../src/renderer/store/github-projects-store.ts";
 import { api } from "../../src/renderer/api.js";
-import { toast, clearToasts } from "../../src/renderer/store/toast-store.js";
+import { toast, clearToasts } from "../../src/renderer/store/toast-store.ts";
 
 function seed(items) {
   githubProjects.value = items.map((x) => ({

@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/ui-store.js
+ * src/renderer/store/ui-store.ts
  *
  * Search query / filter / cached state (含 changelog_history).
  */

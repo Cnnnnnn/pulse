@@ -43,7 +43,7 @@ vi.mock("../../src/renderer/worldcup/navStore.js", async (importOriginal) => {
   };
 });
 
-vi.mock("../../src/renderer/store.js", () => ({
+vi.mock("../../src/renderer/store.ts", () => ({
   openAISettings: vi.fn(),
   needsConfig: () => false,
   get aiSessionsConfig() { return { value: null }; },
@@ -55,7 +55,7 @@ vi.mock("../../src/renderer/nav-refresh.js", () => ({
   REFRESHABLE_NAV_KEYS: new Set(),
 }));
 
-vi.mock("../../src/renderer/store/trayConfigStore.js", () => ({
+vi.mock("../../src/renderer/store/trayConfigStore.ts", () => ({
   get trayMenuPrefs() { return mockTrayMenuPrefs; },
 }));
 

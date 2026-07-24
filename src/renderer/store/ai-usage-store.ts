@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/ai-usage-store.js
+ * src/renderer/store/ai-usage-store.ts
  *
  * AI 用量 (multi-provider v2: minimax + glm coding plans) renderer state.
  *
@@ -220,7 +220,7 @@ export async function loadAiUsageCached() {
  * @param {object} [opts] { provider, region }
  * @returns {Promise<{ok: boolean, provider?: string, reason?: string, error?: string}>}
  */
-export async function fetchAiUsage(opts = {}) {
+export async function fetchAiUsage(opts: any = {}) {
   const provider = opts.provider || aiUsageActiveProvider.value;
   if (!AI_USAGE_PROVIDERS.includes(provider)) {
     return { ok: false, reason: "unknown_provider" };

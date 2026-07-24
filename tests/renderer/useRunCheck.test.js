@@ -14,7 +14,7 @@ vi.mock("../../src/renderer/api.js", () => ({
   },
 }));
 
-vi.mock("../../src/renderer/store/toast-store.js", () => ({
+vi.mock("../../src/renderer/store/toast-store.ts", () => ({
   showToast: (...args) => mockShowToast(...args),
 }));
 

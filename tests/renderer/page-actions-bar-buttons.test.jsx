@@ -21,11 +21,11 @@ vi.mock("../../src/renderer/api.js", () => ({
   },
 }));
 
-vi.mock("../../src/renderer/store/toast-store.js", () => ({
+vi.mock("../../src/renderer/store/toast-store.ts", () => ({
   showToast: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/store/ai-store.js", () => ({
+vi.mock("../../src/renderer/store/ai-store.ts", () => ({
   toggleDigestDrawer: vi.fn(),
 }));
 
@@ -41,21 +41,21 @@ vi.mock("../../src/renderer/recent/recentStore.ts", () => ({
   toggleRecentOpen: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/store/release-notes-store.js", () => ({
+vi.mock("../../src/renderer/store/release-notes-store.ts", () => ({
   openReleaseNotes: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/store/route-store.js", () => ({
+vi.mock("../../src/renderer/store/route-store.ts", () => ({
   navigateTo: vi.fn(),
 }));
 
-import { showToast } from "../../src/renderer/store/toast-store.js";
-import { toggleDigestDrawer } from "../../src/renderer/store/ai-store.js";
+import { showToast } from "../../src/renderer/store/toast-store.ts";
+import { toggleDigestDrawer } from "../../src/renderer/store/ai-store.ts";
 import { toggleWatchlistModal } from "../../src/renderer/watchlist/watchlist-store.ts";
 import { toggleRemindersOpen } from "../../src/renderer/reminders/remindersStore.ts";
 import { toggleRecentOpen } from "../../src/renderer/recent/recentStore.ts";
-import { openReleaseNotes } from "../../src/renderer/store/release-notes-store.js";
-import { navigateTo } from "../../src/renderer/store/route-store.js";
+import { openReleaseNotes } from "../../src/renderer/store/release-notes-store.ts";
+import { navigateTo } from "../../src/renderer/store/route-store.ts";
 import { api } from "../../src/renderer/api.js";
 
 beforeEach(() => {

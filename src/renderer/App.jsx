@@ -14,7 +14,7 @@
  *   - Cmd+F 拦截 (在 AppShell 里, 切对应搜索框)
  */
 
-import { checkSession } from './store.js';
+import { checkSession } from './store.ts';
 import { api } from './api.js';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
 import { Toast } from './components/Toast.jsx';

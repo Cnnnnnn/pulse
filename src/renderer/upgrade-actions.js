@@ -5,8 +5,8 @@
  * 由 tray-focus 在 action === 'upgrade' 时调用.
  */
 import { taggedLog } from "./log.js";
-import { results } from "./store.js";
-import { openBulkUpgrade } from "./store/store-bulk-upgrade.js";
+import { results } from "./store.ts";
+import { openBulkUpgrade } from "./store/store-bulk-upgrade.ts";
 
 const log = taggedLog("[upgrade-actions]");
 

@@ -10,12 +10,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock store-bulk-upgrade — 只关心 openBulkUpgrade 是否被调
-vi.mock("../../src/renderer/store/store-bulk-upgrade.js", () => ({
+vi.mock("../../src/renderer/store/store-bulk-upgrade.ts", () => ({
   openBulkUpgrade: vi.fn(),
 }));
 
-import { openBulkUpgrade } from "../../src/renderer/store/store-bulk-upgrade.js";
-import { results, resetCheck } from "../../src/renderer/store.js";
+import { openBulkUpgrade } from "../../src/renderer/store/store-bulk-upgrade.ts";
+import { results, resetCheck } from "../../src/renderer/store.ts";
 import { requestUpgrade } from "../../src/renderer/upgrade-actions.js";
 
 function makeResult(name) {

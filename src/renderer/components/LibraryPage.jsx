@@ -22,8 +22,8 @@ import { AppCard } from "./AppCard.jsx";
 import { VirtualCardGrid } from "./VirtualCardGrid.jsx";
 import { OverviewEmptyState } from "./OverviewEmptyState.jsx";
 import { useRunCheck } from "../hooks/useRunCheck.ts";
-import { viewMode } from "../store/library-view-store.js";
-import { results } from "../store.js";
+import { viewMode } from "../store/library-view-store.ts";
+import { results } from "../store.ts";
 
 export function LibraryPage() {
   const mode = viewMode.value;

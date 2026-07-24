@@ -41,7 +41,7 @@ vi.mock("../../src/renderer/ithome/store.js", () => ({
   shareIthomeArticle: mockShareArticle,
 }));
 
-vi.mock("../../src/renderer/store.js", () => ({
+vi.mock("../../src/renderer/store.ts", () => ({
   refreshAIReadyStatus: () => Promise.resolve(true),
 }));
 

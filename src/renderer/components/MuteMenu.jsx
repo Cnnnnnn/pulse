@@ -34,7 +34,7 @@
  */
 
 import { useEffect, useRef, useState, useLayoutEffect } from 'preact/hooks';
-import { setMute, clearMute, getLocalTier } from '../store.js';
+import { setMute, clearMute, getLocalTier } from '../store.ts';
 import { IconBell, IconVolumeOff, IconSparkles } from './icons.jsx';
 
 const BASE_OPTIONS = [

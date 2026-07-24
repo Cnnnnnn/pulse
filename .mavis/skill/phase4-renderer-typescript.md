@@ -10,6 +10,7 @@ description: Phase 4 renderer JSX→TSX 迁移 — Pulse
 >
 > **Batch A 已完成**：`hooks/` + `utils/`。
 > **Batch B 已完成**：theme / diagnostics / watchlist / news / reminders / invest / digest / recent / wechat-hot / metals。
+> **Batch C 已完成**：`store/` + 根 `store.ts` shim。
 
 ## 单文件迁移步骤（忠实迁移）
 

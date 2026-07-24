@@ -27,7 +27,7 @@ let _resolver = null;
  * @param {{ title?: string, message: string, confirmText?: string, cancelText?: string }} opts
  * @returns {Promise<boolean>}
  */
-export function openConfirm(opts = {}) {
+export function openConfirm(opts: any = {}) {
   if (_resolver) {
     // 覆盖前一个 → 前一个 false
     const prev = _resolver;

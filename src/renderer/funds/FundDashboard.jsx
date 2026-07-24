@@ -47,7 +47,7 @@ import { fmtCurrency, fmtPct } from "../../funds/format.js";
 import { IconRefresh } from "../components/icons.jsx";
 import { openAddModal } from "./fundStore.js";
 import { openFundDetail } from "./fundRoute.js";
-import { showToast } from "../store/toast-store.js";
+import { showToast } from "../store/toast-store.ts";
 
 const RANGE_OPTIONS = [
   { key: "1M", label: "1M", days: 30 },

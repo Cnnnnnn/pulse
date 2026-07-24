@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { currentRoute, navigateTo, ROUTES } from "../../src/renderer/store/route-store.js";
+import { currentRoute, navigateTo, ROUTES } from "../../src/renderer/store/route-store.ts";
 
 beforeEach(() => {
   navigateTo("library");

@@ -10,8 +10,8 @@ import {
   saveAiPrompts,
   resetAiPrompt,
   promptLabel,
-} from "../store/prompt-store.js";
-import { showToast } from "../store.js";
+} from "../store/prompt-store.ts";
+import { showToast } from "../store.ts";
 import { api } from "../api.js";
 import { PromptSectionIcon } from "./icons.jsx";
 

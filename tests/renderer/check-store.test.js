@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 async function freshModule() {
   vi.resetModules();
-  return await import("../../src/renderer/store/check-store.js");
+  return await import("../../src/renderer/store/check-store.ts");
 }
 
 beforeEach(() => {

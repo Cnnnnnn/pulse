@@ -25,7 +25,7 @@ export function requireApiMethod(methodName) {
  * @param {{ label?: string, fallback?: T }} [opts]
  * @returns {Promise<T>}
  */
-export async function wrapIpc(fn, opts = {}) {
+export async function wrapIpc(fn: () => Promise<any>, opts: any = {}) {
   const { label = "[ipc] call failed", fallback = false } = opts;
   try {
     return await fn();

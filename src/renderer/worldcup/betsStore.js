@@ -8,7 +8,7 @@
  */
 
 import { signal } from "@preact/signals";
-import { getApi, requireApiMethod, wrapIpc } from "../store/store-utils.js";
+import { getApi, requireApiMethod, wrapIpc } from "../store/store-utils.ts";
 
 export const worldcupBets = signal({}); // { [date]: { date, stake, pnl, note, updatedAt } }
 export const betsLoaded = signal(false);

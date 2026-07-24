@@ -15,7 +15,7 @@ import {
   loadGithubSettings,
   githubProjects,
   checkGithubUpdates,
-} from "../store/github-projects-store.js";
+} from "../store/github-projects-store.ts";
 import { GithubPage } from "./GithubPage.jsx";
 import { createGithubCheckScheduler } from "./github-check-scheduler.js";
 

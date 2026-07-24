@@ -1,7 +1,7 @@
 /**
  * tests/ai-usage/ai-usage-store.test.js
  *
- * TDD for src/renderer/store/ai-usage-store.js (multi-provider v2)
+ * TDD for src/renderer/store/ai-usage-store.ts (multi-provider v2)
  * 单测 overrides window.api (通过 createApi({overrides}) 的同名 import).
  *
  * signals 现在是 { minimax, glm } 形状.
@@ -52,7 +52,7 @@ vi.mock("../../src/renderer/api.js", () => {
   };
 });
 
-const store = await import("../../src/renderer/store/ai-usage-store.js");
+const store = await import("../../src/renderer/store/ai-usage-store.ts");
 
 function emptySlots(v) {
   return { minimax: v, glm: v };

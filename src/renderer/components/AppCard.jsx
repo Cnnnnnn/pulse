@@ -9,7 +9,7 @@
  * 等 Phase 35+ 决定是否重建 watchlist / snooze / rollback 行级菜单再加回来.
  */
 import { useState } from "preact/hooks";
-import { getResultSignal, getAppPhaseSignal } from "../store.js";
+import { getResultSignal, getAppPhaseSignal } from "../store.ts";
 import { api } from "../api.js";
 import { AppAvatar } from "./AppAvatar.jsx";
 

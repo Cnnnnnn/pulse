@@ -10,13 +10,13 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { createPortal } from "preact/compat";
 import { upgradableCount } from "../selectors.js";
 import { api } from "../api.js";
-import { showToast } from "../store/toast-store.js";
-import { toggleDigestDrawer } from "../store/ai-store.js";
+import { showToast } from "../store/toast-store.ts";
+import { toggleDigestDrawer } from "../store/ai-store.ts";
 import { toggleWatchlistModal } from "../watchlist/watchlist-store.ts";
 import { toggleRemindersOpen } from "../reminders/remindersStore.ts";
 import { toggleRecentOpen } from "../recent/recentStore.ts";
-import { openReleaseNotes } from "../store/release-notes-store.js";
-import { navigateTo } from "../store/route-store.js";
+import { openReleaseNotes } from "../store/release-notes-store.ts";
+import { navigateTo } from "../store/route-store.ts";
 import {
   IconBot, IconMoreHorizontal,
   IconStar, IconSettings, IconCalendar, IconNote,

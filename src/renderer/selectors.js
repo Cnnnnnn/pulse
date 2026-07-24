@@ -19,7 +19,7 @@ import {
   searchQuery,
   activeFilter,
   activeCategory,
-} from './store.js';
+} from './store.ts';
 
 // ─── 分组定义 ──────────────────────────────────────
 // dotColor 跟随对应 accent token (P4 OKLCH 化后保持视觉一致).

@@ -25,7 +25,7 @@ import {
   clearAIKey,
   runAIHealthcheck,
   saveAISessionsConfig,
-} from '../store.js';
+} from '../store.ts';
 import { IconCheck, IconX } from './icons.jsx';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.

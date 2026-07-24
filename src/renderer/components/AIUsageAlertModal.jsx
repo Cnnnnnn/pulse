@@ -8,7 +8,7 @@ import {
   aiUsageAlertPrefs,
   closeAiUsageAlertModal,
   saveAiUsageAlertPrefs,
-} from '../store/ai-usage-store.js';
+} from '../store/ai-usage-store.ts';
 import { BareModalShell } from './ModalShell.jsx';
 import { IconBarChart } from './icons.jsx';
 

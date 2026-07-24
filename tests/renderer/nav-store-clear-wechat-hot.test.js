@@ -38,7 +38,7 @@ vi.mock("../../src/renderer/funds/fundStore.js", () => ({
   fundUnreadBadge: { value: 0 },
 }));
 
-vi.mock("../../src/renderer/store/ai-usage-store.js", () => ({
+vi.mock("../../src/renderer/store/ai-usage-store.ts", () => ({
   clearAiUsageNavBadge: vi.fn(),
   aiUsageNavBadge: { value: 0 },
 }));

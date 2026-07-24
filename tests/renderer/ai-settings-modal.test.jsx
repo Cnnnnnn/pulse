@@ -15,7 +15,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { render, fireEvent, cleanup } from '@testing-library/preact';
-import * as store from '../../src/renderer/store.js';
+import * as store from '../../src/renderer/store.ts';
 import { AIConfigForm } from '../../src/renderer/components/AISettingsModal.jsx';
 
 // mock store — 直接控制 signal, 不真走 IPC

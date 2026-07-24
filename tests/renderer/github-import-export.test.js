@@ -14,7 +14,7 @@ import {
   addGithubProject,
   exportGithubData,
   importGithubData,
-} from "../../src/renderer/store/github-projects-store.js";
+} from "../../src/renderer/store/github-projects-store.ts";
 import { api } from "../../src/renderer/api.js";
 
 beforeEach(() => {

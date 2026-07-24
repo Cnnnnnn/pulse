@@ -33,7 +33,7 @@ function stubTrayApi(overrides = {}) {
 
 async function freshStoreAndModal() {
   vi.resetModules();
-  const store = await import("../../src/renderer/store/trayConfigStore.js");
+  const store = await import("../../src/renderer/store/trayConfigStore.ts");
   store.trayConfigOpen.value = false;
   const { TrayMenuConfigModal } = await import("../../src/renderer/components/TrayMenuConfigModal.jsx");
   return { store, TrayMenuConfigModal };

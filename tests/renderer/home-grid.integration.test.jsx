@@ -221,7 +221,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     const ithome = await import('../../src/renderer/ithome/store.js');
     const wechat = await import('../../src/renderer/wechat-hot/store.ts');
     const funds = await import('../../src/renderer/funds/fundStore.js');
-    const ai = await import('../../src/renderer/store/ai-usage-store.js');
+    const ai = await import('../../src/renderer/store/ai-usage-store.ts');
     ithome.ithomeNewIds.value = {};
     wechat.wechatHotNewIds.value = {};
     if (funds.fundUnreadIds) funds.fundUnreadIds.value = {};
@@ -266,7 +266,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     const ithome = await import('../../src/renderer/ithome/store.js');
     const wechat = await import('../../src/renderer/wechat-hot/store.ts');
     const funds = await import('../../src/renderer/funds/fundStore.js');
-    const ai = await import('../../src/renderer/store/ai-usage-store.js');
+    const ai = await import('../../src/renderer/store/ai-usage-store.ts');
     ithome.ithomeNewIds.value = {};
     if (wechat.wechatHotUnreadIds) wechat.wechatHotUnreadIds.value = {};
     if (funds.fundUnreadBadge) funds.fundUnreadBadge.value = 0;
@@ -480,7 +480,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10+: ai-usage 有 usedPercent → "已用 N%"', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
-    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
+    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.ts');
     aiUsageSnapshot.value = {
       minimax: { windows: { weekly: { usedPercent: 42 } } },
       glm: null,
@@ -495,7 +495,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10+: ai-usage 0% 用完 → 显示 "已用 0%"', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
-    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
+    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.ts');
     aiUsageSnapshot.value = {
       minimax: { windows: { weekly: { usedPercent: 0 } } },
       glm: null,
@@ -509,7 +509,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10+: ai-usage 有 remaining 但无 usedPercent → 算百分比', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
-    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
+    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.ts');
     aiUsageSnapshot.value = {
       minimax: { windows: { weekly: { remaining: 25, total: 100 } } },
       glm: null,
@@ -523,7 +523,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('B10+: ai-usage 无数据 → "—"', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
-    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.js');
+    const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.ts');
     aiUsageSnapshot.value = { minimax: null, glm: null };
     const { container } = render(<HomeGrid />);
     const tile = container.querySelectorAll('.home-grid-tile')[3];

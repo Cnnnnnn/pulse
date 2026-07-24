@@ -12,7 +12,7 @@
  */
 import { useState, useRef } from "preact/hooks";
 import { api } from "../api.js";
-import { showToast } from "../store/toast-store.js";
+import { showToast } from "../store/toast-store.ts";
 
 export function useRunCheck() {
   const [isLoading, setIsLoading] = useState(false);

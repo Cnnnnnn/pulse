@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   githubProjects,
   togglePinGithubProject,
-} from "../../src/renderer/store/github-projects-store.js";
+} from "../../src/renderer/store/github-projects-store.ts";
 
 function seed(items) {
   githubProjects.value = items.map((x) => ({

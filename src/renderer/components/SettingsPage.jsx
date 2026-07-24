@@ -16,20 +16,20 @@ import { signal } from "@preact/signals";
 import { PageHeader } from "./PageHeader.jsx";
 import { SubtabList } from "./SubtabList.jsx";
 import { AISettingsScene } from "./AISettingsScene.jsx";
-import { routeTab } from "../store/route-store.js";
+import { routeTab } from "../store/route-store.ts";
 import {
   getThemePreference,
   setThemePreference,
   subscribeTheme,
 } from "../theme/theme-manager.ts";
-import { showToast } from "../store.js";
+import { showToast } from "../store.ts";
 import {
   githubToken, setGithubToken, loadGithubSettings,
   downloadGithubBackup, pickGithubBackupFile, githubProjects,
   githubAutoCheck, setGithubAutoCheck,
   githubAutoCheckIntervalMin, setGithubAutoCheckInterval,
   githubNotifyOnNew, setGithubNotifyOnNew,
-} from "../store/github-projects-store.js";
+} from "../store/github-projects-store.ts";
 import {
   gamesAutoCheck, setGamesAutoCheck,
   gamesAutoCheckIntervalMin, setGamesAutoCheckInterval,

@@ -13,7 +13,7 @@
  *   (page-level filter row). ResultsView 现在只负责 section 渲染.
  */
 
-import { results } from '../store.js';
+import { results } from '../store.ts';
 import { filteredResultsBySection } from '../selectors.js';
 import { Section } from './Section.jsx';
 import { EmptyState } from './EmptyState.jsx';

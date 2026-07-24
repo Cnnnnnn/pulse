@@ -9,9 +9,9 @@ import {
   filterStatus, setFilterStatus,
   filterCategory, setFilterCategory,
   resetLibraryFilters,
-} from "../store/library-view-store.js";
+} from "../store/library-view-store.ts";
 import { tabCounts } from "../selectors.js";
-import { results } from "../store.js";
+import { results } from "../store.ts";
 import { getCategoryTabsWithCount } from "../../config/category.js";
 import { IconSearch } from "./icons.jsx";
 

@@ -6,7 +6,7 @@
  */
 
 import { IconRefresh } from "../components/icons.jsx";
-import { githubReasonText } from "../store/github-projects-store.js";
+import { githubReasonText } from "../store/github-projects-store.ts";
 
 function escapeHtml(s) {
   return s

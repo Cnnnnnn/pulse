@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/ai-store.js
+ * src/renderer/store/ai-store.ts
  *
  * AI 任务总结 (Phase B7d) + AI Sessions Settings (Phase B6c) + Drawer 状态.
  *
@@ -11,12 +11,12 @@ import { signal, computed } from "@preact/signals";
 import { DEFAULT_MODELS } from "../../ai/default-models.js";
 import { api } from "../api.js";
 import { taggedLog } from "../log.js";
-import { showToast } from "./toast-store.js";
+import { showToast } from "./toast-store.ts";
 import { aiTasksDrawerOpen, digestConfigMode } from "../digest/digest-store.ts";
 
 const log = taggedLog("[store/ai]");
 
-export function localDateKey(offsetDays = 0, now) {
+export function localDateKey(offsetDays = 0, now?: number) {
   const t =
     (typeof now === "number" ? now : Date.now()) - (offsetDays | 0) * 86400_000;
   return new Intl.DateTimeFormat("en-CA", {

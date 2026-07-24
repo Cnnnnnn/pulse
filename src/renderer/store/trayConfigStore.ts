@@ -14,7 +14,7 @@
  * 但作为兜底 (e.g. preload listener 加载失败), closeTrayConfig() 仍可本地直接调用.
  */
 import { signal } from "@preact/signals";
-import { DEFAULT_PREFS } from "@main/tray-menu-prefs.js";
+import { DEFAULT_PREFS } from "@main/tray-menu-prefs.ts";
 
 export const trayConfigOpen = signal(false);
 

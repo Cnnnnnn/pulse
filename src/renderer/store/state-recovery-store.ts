@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/state-recovery-store.js
+ * src/renderer/store/state-recovery-store.ts
  *
  * Phase Q8: signal exposed for the StateRecoveredBanner. Set by the bootstrap
  * IPC subscription in src/renderer/index.jsx when main pushes `state:recovered`.

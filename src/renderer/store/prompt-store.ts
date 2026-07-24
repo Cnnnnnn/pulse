@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/prompt-store.js
+ * src/renderer/store/prompt-store.ts
  */
 
 import { signal } from "@preact/signals";

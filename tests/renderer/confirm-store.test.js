@@ -15,7 +15,7 @@ vi.mock("../../src/renderer/api.js", () => ({
 
 async function freshModule() {
   vi.resetModules();
-  const m = await import("../../src/renderer/store/confirmStore.js");
+  const m = await import("../../src/renderer/store/confirmStore.ts");
   return m;
 }
 

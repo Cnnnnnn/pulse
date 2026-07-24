@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
 import { GithubProjectRow, GithubProjectCard, GithubProjectList } from '../../src/renderer/github/GithubProjectList.jsx';
-import { githubProjects, githubDensity, collectGithubTags } from '../../src/renderer/store/github-projects-store.js';
+import { githubProjects, githubDensity, collectGithubTags } from '../../src/renderer/store/github-projects-store.ts';
 
 function makeProject(overrides = {}) {
   return {

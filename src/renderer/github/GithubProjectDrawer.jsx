@@ -21,7 +21,7 @@ import {
   formatStars,
   hostnameOf,
   hasDistinctHomepage,
-} from "../store/github-projects-store.js";
+} from "../store/github-projects-store.ts";
 import { api } from "../api.js";
 import { GithubReadmeView } from "./GithubReadmeView.jsx";
 import { GithubAiParseView } from "./GithubAiParseView.jsx";

@@ -9,7 +9,7 @@
 import { useState } from "preact/hooks";
 import { schedulerState, refreshNow } from "./metalStore.ts";
 import { IconMedal, IconRefresh } from "../components/icons.jsx";
-import { showToast } from "../store.js";
+import { showToast } from "../store.ts";
 
 function formatTime(ts) {
   if (!ts) return null;

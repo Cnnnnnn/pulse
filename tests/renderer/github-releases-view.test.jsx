@@ -8,9 +8,9 @@ const { fetchGithubReleaseMock, markGithubSeenMock } = vi.hoisted(() => ({
   markGithubSeenMock: vi.fn(),
 }));
 
-vi.mock('../../src/renderer/store/github-projects-store.js', async () => {
+vi.mock('../../src/renderer/store/github-projects-store.ts', async () => {
   const actual = await vi.importActual(
-    '../../src/renderer/store/github-projects-store.js',
+    '../../src/renderer/store/github-projects-store.ts',
   );
   return {
     ...actual,
@@ -19,7 +19,7 @@ vi.mock('../../src/renderer/store/github-projects-store.js', async () => {
   };
 });
 
-import { githubDensity } from '../../src/renderer/store/github-projects-store.js';
+import { githubDensity } from '../../src/renderer/store/github-projects-store.ts';
 
 function makeProject(overrides = {}) {
   return {

@@ -14,7 +14,7 @@ import { METALS } from "../../metals/metal-config.js";
 import { calcChange } from "../../metals/metal-calc.js";
 import { Sparkline } from "../components/Sparkline.jsx";
 import { PinIcon, IconAlert } from "../components/icons.jsx";
-import { showToast } from "../store.js";
+import { showToast } from "../store.ts";
 import {
   isMetalPinned, addWatchlistItem, removeWatchlistItem,
 } from "../watchlist/watchlist-store.ts";

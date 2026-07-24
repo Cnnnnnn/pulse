@@ -5,7 +5,7 @@
  * + Phase 29 上次打开时间 sub-line (按 tier 颜色分类, Phase 30).
  */
 
-import { getLocalTier } from '../store.js';
+import { getLocalTier } from '../store.ts';
 import { UpgradeAdvice } from './UpgradeAdvice.jsx';
 import { IconVolumeOff, IconInfo } from './icons.jsx';
 

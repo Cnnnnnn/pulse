@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, cleanup, act } from '@testing-library/preact';
-import * as store from '../../src/renderer/store.js';
+import * as store from '../../src/renderer/store.ts';
 import { Toast } from '../../src/renderer/components/Toast.jsx';
 
 // @vitest-environment happy-dom

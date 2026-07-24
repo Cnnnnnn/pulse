@@ -11,16 +11,16 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/preact";
-import { toast, clearToasts } from "../../src/renderer/store/toast-store.js";
+import { toast, clearToasts } from "../../src/renderer/store/toast-store.ts";
 
 // hoisted mock：只替换 checkGithubUpdates，保留 githubProjects 等真实 signal
 const { checkUpdatesMock } = vi.hoisted(() => ({
   checkUpdatesMock: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/store/github-projects-store.js", async () => {
+vi.mock("../../src/renderer/store/github-projects-store.ts", async () => {
   const actual = await vi.importActual(
-    "../../src/renderer/store/github-projects-store.js",
+    "../../src/renderer/store/github-projects-store.ts",
   );
   return {
     ...actual,
@@ -29,7 +29,7 @@ vi.mock("../../src/renderer/store/github-projects-store.js", async () => {
 });
 
 import { GithubPage } from "../../src/renderer/github/GithubPage.jsx";
-import { githubProjects } from "../../src/renderer/store/github-projects-store.js";
+import { githubProjects } from "../../src/renderer/store/github-projects-store.ts";
 
 beforeEach(() => {
   clearToasts();

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/preact";
-import { resetCheck, applyProgress } from "../../src/renderer/store.js";
+import { resetCheck, applyProgress } from "../../src/renderer/store.ts";
 import { AppCard } from "../../src/renderer/components/AppCard.jsx";
 
 function makeResult(over) {

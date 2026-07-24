@@ -12,7 +12,7 @@ import {
   loadAiUsageCached,
   subscribeAiUsageUpdates,
   aiUsageAlertModalOpen,
-} from "../store/ai-usage-store.js";
+} from "../store/ai-usage-store.ts";
 import { AIUsagePage } from "./AIUsagePage.jsx";
 import { AIUsageAlertModal } from "./AIUsageAlertModal.jsx";
 

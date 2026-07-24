@@ -12,7 +12,7 @@ const store = vi.hoisted(() => {
   };
 });
 
-vi.mock("../../src/renderer/store/prompt-store.js", () => ({
+vi.mock("../../src/renderer/store/prompt-store.ts", () => ({
   aiPrompts: store.aiPrompts,
   loadAiPrompts: store.loadAiPrompts,
   saveAiPrompts: store.saveAiPrompts,
@@ -20,7 +20,7 @@ vi.mock("../../src/renderer/store/prompt-store.js", () => ({
   promptLabel: (k) => k,
 }));
 
-vi.mock("../../src/renderer/store.js", () => ({
+vi.mock("../../src/renderer/store.ts", () => ({
   showToast: vi.fn(),
 }));
 

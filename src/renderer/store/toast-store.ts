@@ -1,5 +1,5 @@
 /**
- * src/renderer/store/toast-store.js
+ * src/renderer/store/toast-store.ts
  *
  * Toast notification queue — Toast.jsx 订阅 .value 渲染.
  */
@@ -14,7 +14,7 @@ function _nextToastId() {
   return `toast-${Date.now()}-${_toastIdCounter}`;
 }
 
-export function showToast(message, type = "info", ms = 5000) {
+export function showToast(message: string, type: string = "info", ms: number = 5000) {
   if (typeof message !== "string" || message.length === 0) return null;
   const id = _nextToastId();
   const t = { id, message, type, ts: Date.now() };
@@ -23,7 +23,7 @@ export function showToast(message, type = "info", ms = 5000) {
   return id;
 }
 
-export function dismissToast(id) {
+export function dismissToast(id: string) {
   toast.value = toast.value.filter((t) => t.id !== id);
 }
 

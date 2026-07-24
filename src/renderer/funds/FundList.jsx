@@ -31,7 +31,7 @@ import {
   watchlistItems,
 } from "../watchlist/watchlist-store.ts";
 import { downloadCsv } from "../utils/csv.ts";
-import { showToast } from "../store/toast-store.js";
+import { showToast } from "../store/toast-store.ts";
 
 const TYPE_OPTIONS = ["全部", "股票", "债券", "货币", "QDII", "其他"];
 const RISK_OPTIONS = ["全部", "R1", "R2", "R3", "R4", "R5"];

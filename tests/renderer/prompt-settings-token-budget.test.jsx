@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // mock prompt-store: 让 aiPrompts.value 有值, loadAiPrompts 即时 resolve
-vi.mock("../../src/renderer/store/prompt-store.js", () => ({
+vi.mock("../../src/renderer/store/prompt-store.ts", () => ({
   aiPrompts: { value: {} },
   loadAiPrompts: vi.fn(async () => {}),
   saveAiPrompts: vi.fn(async () => ({ ok: true })),

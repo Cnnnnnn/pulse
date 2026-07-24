@@ -30,11 +30,11 @@ import {
   summarizeAiTasks,
   needsConfig,
   showToast,
-} from '../store.js';
+} from '../store.ts';
 import { aiTasksDrawerOpen } from '../digest/digest-store.ts';
 import { api } from '../api.js';
 import { setActiveNav } from '../worldcup/navStore.js';
-import { navigateTo } from '../store/route-store.js';
+import { navigateTo } from '../store/route-store.ts';
 import { taggedLog } from '../log.js';
 import { Badge, TaskStatusBadge } from './Badge.jsx';
 import { TabList, Tab } from './TabList.jsx';

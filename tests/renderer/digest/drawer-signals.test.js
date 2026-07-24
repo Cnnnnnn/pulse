@@ -5,7 +5,7 @@ import {
   digestDrawerOpen,
   aiTasksDrawerOpen,
 } from '../../../src/renderer/digest/digest-store.ts';
-import { openDigestDrawer } from '../../../src/renderer/store/ai-store.js';
+import { openDigestDrawer } from '../../../src/renderer/store/ai-store.ts';
 
 describe('digest vs aiTasks drawer signals', () => {
   beforeEach(() => {

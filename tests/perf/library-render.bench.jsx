@@ -9,11 +9,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
 import { LibraryPage } from "../../src/renderer/components/LibraryPage.jsx";
-import { results, resetCheck } from "../../src/renderer/store.js";
+import { results, resetCheck } from "../../src/renderer/store.ts";
 import {
   setViewMode,
   resetLibraryFilters,
-} from "../../src/renderer/store/library-view-store.js";
+} from "../../src/renderer/store/library-view-store.ts";
 
 function makeResults(n) {
   const map = new Map();

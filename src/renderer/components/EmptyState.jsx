@@ -1,7 +1,7 @@
 /**
  * EmptyState / PanelEmpty / DrawerEmpty — 列表 / 抽屉 / 面板空态统一.
  */
-import { searchQuery, activeFilter } from '../store.js';
+import { searchQuery, activeFilter } from '../store.ts';
 import { IconPackage, IconSearch } from './icons.jsx';
 
 export function EmptyState({ filtered = false }) {
