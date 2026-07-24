@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/CompletionRing.jsx
+ * src/renderer/games/CompletionRing.tsx
  *
  * 完成度环形进度（SVG）。仅动画 transform/opacity，GPU 友好；
  * 尊重 prefers-reduced-motion（由外部传入 reducedMotion 或 CSS 媒体查询降级）。

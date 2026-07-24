@@ -31,7 +31,7 @@ vi.mock("../../src/renderer/games/games-check-scheduler.js", () => ({
   createGamesCheckScheduler: vi.fn(() => schedulerMocks),
 }));
 
-import { GamesLayout } from "../../src/renderer/games/GamesLayout.jsx";
+import { GamesLayout } from "../../src/renderer/games/GamesLayout.tsx";
 import { createGamesCheckScheduler } from "../../src/renderer/games/games-check-scheduler.js";
 import {
   loadGameDeals,

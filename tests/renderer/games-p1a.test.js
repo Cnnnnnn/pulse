@@ -23,8 +23,8 @@ import {
 } from "../../src/renderer/games/metrics.js";
 import { h } from "preact";
 import { render, cleanup, fireEvent } from "@testing-library/preact";
-import { RarityPicker } from "../../src/renderer/games/RarityPicker.jsx";
-import { UsageMetricsPanel } from "../../src/renderer/games/UsageMetricsPanel.jsx";
+import { RarityPicker } from "../../src/renderer/games/RarityPicker.tsx";
+import { UsageMetricsPanel } from "../../src/renderer/games/UsageMetricsPanel.tsx";
 
 function resetAll() {
   store.wishlist.value = [];

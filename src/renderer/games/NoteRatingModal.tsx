@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/NoteRatingModal.jsx
+ * src/renderer/games/NoteRatingModal.tsx
  *
  * 备注 / 私人评分弹窗（P0-4）。复用 ModalShell（Esc / 点遮罩关闭）。
  * 纯本地：note / rating 仅落 localStorage，代码层无网络出口。

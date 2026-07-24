@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/UnlockToastStack.jsx
+ * src/renderer/games/UnlockToastStack.tsx
  *
  * 解锁庆祝 — toast 栈（Phase 2.5）。
  * 读取 store.unlockToasts（由收藏引擎 effect 在「新解锁徽章/成就/活动」时推入）。

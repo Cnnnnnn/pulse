@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { render, screen, cleanup } from "@testing-library/preact";
 
 import { loadWishlist } from "../../src/renderer/games/gamesStore.js";
-import { GameCard } from "../../src/renderer/games/GameCard.jsx";
+import { GameCard } from "../../src/renderer/games/GameCard.tsx";
 
 afterEach(cleanup);
 

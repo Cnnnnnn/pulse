@@ -39,8 +39,8 @@ import {
 } from "../../src/renderer/games/eventsEngine.js";
 import * as store from "../../src/renderer/games/gamesStore.js";
 import { normalizeEntry } from "../../src/renderer/games/types.js";
-import { AchievementsPanel } from "../../src/renderer/games/AchievementsPanel.jsx";
-import { EventBanner } from "../../src/renderer/games/EventBanner.jsx";
+import { AchievementsPanel } from "../../src/renderer/games/AchievementsPanel.tsx";
+import { EventBanner } from "../../src/renderer/games/EventBanner.tsx";
 
 // ── mock gamesStore：仅拦截会触 IPC 的 loader，保留真实引擎/store action ──
 vi.mock("../../src/renderer/games/gamesStore.js", async () => {

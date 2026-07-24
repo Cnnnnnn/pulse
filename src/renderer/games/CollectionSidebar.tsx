@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/CollectionSidebar.jsx
+ * src/renderer/games/CollectionSidebar.tsx
  *
  * 收藏侧栏：文件夹（含目标进度条）+ 标签（含已收数），点击即筛选。
  * 支持新建 / 重命名 / 设目标 / 删除（保留条目 | 一并移除）。纯本地。

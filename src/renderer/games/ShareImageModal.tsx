@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/ShareImageModal.jsx — 分享图弹窗（P1b · F）。
+ * src/renderer/games/ShareImageModal.tsx — 分享图弹窗（P1b · F）。
  *
  * 复用 ModalShell；内含 <canvas> + 「生成分享图」与「导出 PNG」按钮。
  *  - 生成：组装 payload（entries/stats/badges/tiers/template）→ renderShareImage 绘入 canvas。

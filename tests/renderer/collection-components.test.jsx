@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h } from "preact";
 import { render, screen, cleanup, fireEvent } from "@testing-library/preact";
 
-import { CompletionRing } from "../../src/renderer/games/CompletionRing.jsx";
-import { CollectibleCard } from "../../src/renderer/games/CollectibleCard.jsx";
-import { CollectionView } from "../../src/renderer/games/CollectionView.jsx";
-import { CollectionSidebar } from "../../src/renderer/games/CollectionSidebar.jsx";
+import { CompletionRing } from "../../src/renderer/games/CompletionRing.tsx";
+import { CollectibleCard } from "../../src/renderer/games/CollectibleCard.tsx";
+import { CollectionView } from "../../src/renderer/games/CollectionView.tsx";
+import { CollectionSidebar } from "../../src/renderer/games/CollectionSidebar.tsx";
 import {
   wishlist,
   rarityTiers,

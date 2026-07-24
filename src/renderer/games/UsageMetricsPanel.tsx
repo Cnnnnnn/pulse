@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/UsageMetricsPanel.jsx — 使用回顾面板（P1a · E）。
+ * src/renderer/games/UsageMetricsPanel.tsx — 使用回顾面板（P1a · E）。
  *
  * 只读展示本地埋点计数（纯本地、零网络）。
  *  - 数据来自 gamesStore 的 metrics signal（结构 { [event]: { count, firstSeen, lastSeen } }）。

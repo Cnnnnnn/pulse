@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/MergeConfirmModal.jsx
+ * src/renderer/games/MergeConfirmModal.tsx
  *
  * 跨平台合并确认弹窗（P0-6）。
  * - 展示候选各平台当前价（tabular-nums）。
@@ -58,7 +58,7 @@ export function MergeConfirmModal() {
   }
 
   function handleConfirm() {
-    const sel = [...selected];
+    const sel = [...selected] as string[];
     if (sel.length < 2) return;
     mergeEntries(sel, primary || sel[0]);
     closeMerge();

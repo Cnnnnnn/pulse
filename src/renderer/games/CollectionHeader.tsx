@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/CollectionHeader.jsx
+ * src/renderer/games/CollectionHeader.tsx
  *
  * 统一游戏收藏 — 头部：类型切换（注册表驱动）+ 完成度环 + 稀有度分布 + 视图切换。
  * 全部经 store 信号；新增类型只需在注册表加一项，本组件自动出现新入口。
@@ -127,7 +127,7 @@ function RarityDistribution({ distribution }) {
   );
 }
 
-export function CollectionHeader({ reducedMotion } = {}) {
+export function CollectionHeader({ reducedMotion }: { reducedMotion?: boolean } = {}) {
   const rm = reducedMotion != null ? reducedMotion : prefersReducedMotion();
   // 读信号 → 响应式；deriveCollectionView 串联类型/筛选/搜索 + 完成度 + 分布
   const { type, progress, distribution } = deriveCollectionView();

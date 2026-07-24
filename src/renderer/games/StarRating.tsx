@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/StarRating.jsx
+ * src/renderer/games/StarRating.tsx
  *
  * 私有评分组件（P0-4）：1–5 星，0 = 未评。
  * - 受控：value / onChange(rating)。
@@ -62,7 +62,7 @@ export function StarRating({ value, onChange }) {
             <button
               type="button"
               key={n}
-              ref={(el) => (refs.current[i] = el)}
+              ref={(el) => { refs.current[i] = el; }}
               class={`star-rating__star${filled ? " is-filled" : ""}`}
               role="radio"
               aria-checked={value === n}

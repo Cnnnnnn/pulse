@@ -6,7 +6,7 @@ vi.mock("../../src/renderer/api.js", () => ({
   api: { openUrl: vi.fn() },
 }));
 
-import { GameCard } from "../../src/renderer/games/GameCard.jsx";
+import { GameCard } from "../../src/renderer/games/GameCard.tsx";
 import { fx } from "../../src/renderer/games/gamesStore.js";
 
 afterEach(() => {

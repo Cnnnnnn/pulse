@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/ProgressBar.jsx
+ * src/renderer/games/ProgressBar.tsx
  *
  * 通用进度条（收集进度可视化用）。
  * - 仅在 percent 有效（0–100）时渲染填充，否则不渲染比例（P0-1：不设目标不渲染%）。

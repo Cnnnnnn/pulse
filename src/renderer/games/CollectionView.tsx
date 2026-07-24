@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/CollectionView.jsx
+ * src/renderer/games/CollectionView.tsx
  *
  * 统一游戏收藏 — 视图容器（Phase 2 落地核心）。
  * 组合 CollectionHeader + 网格/列表双布局；经 deriveCollectionView() 派生数据，
@@ -31,7 +31,7 @@ import { MilestoneFx } from "./MilestoneFx.jsx";
 import { UnlockHistoryPanel } from "./UnlockHistoryPanel.jsx";
 
 /** 是否偏好减少动效（安全降级，无 matchMedia 环境返回 false）。 */
-export function prefersReducedMotion() {
+export function prefersReducedMotion(): boolean {
   try {
     return (
       typeof window !== "undefined" &&

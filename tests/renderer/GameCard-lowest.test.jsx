@@ -7,7 +7,7 @@ vi.mock("../../src/renderer/api.js", () => ({
 }));
 
 import { lowPriceMap } from "../../src/renderer/games/gamesStore.js";
-import { GameCard } from "../../src/renderer/games/GameCard.jsx";
+import { GameCard } from "../../src/renderer/games/GameCard.tsx";
 
 beforeEach(() => {
   lowPriceMap.value = {};

@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/PlatformTabs.jsx — 平台分类切换 (Steam / Epic / …)。
+ * src/renderer/games/PlatformTabs.tsx — 平台分类切换 (Steam / Epic / …)。
  *
  * 比价模式（compare）下，平台 Tab 变为「多选 toggle」：用户可勾选 2–3 个平台对比，
  * 至少保留 1 个；此时 role 用 button + aria-pressed，而非 tab。
@@ -62,7 +62,7 @@ export function PlatformTabs() {
         return (
           <button
             key={p.key}
-            ref={(el) => (tabRefs.current[i] = el)}
+            ref={(el) => { tabRefs.current[i] = el; }}
             type="button"
             role={isCompare ? "button" : "tab"}
             aria-pressed={isCompare ? active : undefined}

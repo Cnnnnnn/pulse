@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/RarityPicker.jsx — 稀有度单选组件（P1a · A）。
+ * src/renderer/games/RarityPicker.tsx — 稀有度单选组件（P1a · A）。
  *
  * 用于 GameCard「更多」菜单与 NoteRatingModal 内嵌。覆盖式单选：
  *  - 每个档位一个 chip，按 weight 降序排列；

@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/EventBanner.jsx — 限时活动横幅（P1c · D）。
+ * src/renderer/games/EventBanner.tsx — 限时活动横幅（P1c · D）。
  *
  *  - 读取 eventsConfig（用户活动）+ eventsProgress（完成/领取态）signal，合并内置活动统一展示。
  *  - 进行中（isEventActive）活动以醒目横幅呈现：标题 + 相对时间窗口（进行中 / 已结束）
@@ -261,7 +261,7 @@ export function EventBanner() {
               class="ach-form__input"
               type="text"
               value={form.title}
-              onInput={(e) => setForm({ ...form, title: e.target.value })}
+              onInput={(e) => setForm({ ...form, title: (e.target as HTMLInputElement).value })}
               placeholder="活动标题"
             />
 
@@ -271,7 +271,7 @@ export function EventBanner() {
               class="ach-form__input"
               type="datetime-local"
               value={form.startAt}
-              onInput={(e) => setForm({ ...form, startAt: e.target.value })}
+              onInput={(e) => setForm({ ...form, startAt: (e.target as HTMLInputElement).value })}
             />
 
             <label class="ach-form__label" for="ev-end">结束时间</label>
@@ -280,7 +280,7 @@ export function EventBanner() {
               class="ach-form__input"
               type="datetime-local"
               value={form.endAt}
-              onInput={(e) => setForm({ ...form, endAt: e.target.value })}
+              onInput={(e) => setForm({ ...form, endAt: (e.target as HTMLInputElement).value })}
             />
 
             <label class="ach-form__label" for="ev-dim">维度</label>
@@ -288,7 +288,7 @@ export function EventBanner() {
               id="ev-dim"
               class="ach-form__select"
               value={form.dimension}
-              onChange={(e) => setForm({ ...form, dimension: e.target.value })}
+              onChange={(e) => setForm({ ...form, dimension: (e.target as HTMLInputElement).value })}
             >
               {DIMENSIONS.map((d) => (
                 <option value={d.key} key={d.key}>{d.label}</option>
@@ -303,7 +303,7 @@ export function EventBanner() {
                   class="ach-form__input"
                   type="text"
                   value={form.target}
-                  onInput={(e) => setForm({ ...form, target: e.target.value })}
+                  onInput={(e) => setForm({ ...form, target: (e.target as HTMLInputElement).value })}
                   placeholder={
                     form.dimension === "platform"
                       ? "如 steam"
@@ -322,7 +322,7 @@ export function EventBanner() {
               type="number"
               min="1"
               value={form.threshold}
-              onInput={(e) => setForm({ ...form, threshold: e.target.value })}
+              onInput={(e) => setForm({ ...form, threshold: Number((e.target as HTMLInputElement).value) || 1 })}
             />
           </div>
         </ModalShell>

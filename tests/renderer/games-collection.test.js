@@ -53,8 +53,8 @@ import { normalizeEntry } from "../../src/renderer/games/types.js";
 import { areSameGame, findMergeCandidates as staticCandidates } from "../../src/renderer/games/gameIdMap.js";
 import { h } from "preact";
 import { render, screen, cleanup } from "@testing-library/preact";
-import { ProgressBar } from "../../src/renderer/games/ProgressBar.jsx";
-import { CollectionSidebar } from "../../src/renderer/games/CollectionSidebar.jsx";
+import { ProgressBar } from "../../src/renderer/games/ProgressBar.tsx";
+import { CollectionSidebar } from "../../src/renderer/games/CollectionSidebar.tsx";
 
 function resetAll() {
   wishlist.value = [];

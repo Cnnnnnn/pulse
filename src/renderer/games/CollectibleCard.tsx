@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/CollectibleCard.jsx
+ * src/renderer/games/CollectibleCard.tsx
  *
  * 收藏物卡片（统一游戏收藏核心组件）。
  *

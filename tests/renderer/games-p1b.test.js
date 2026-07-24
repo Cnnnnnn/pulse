@@ -33,8 +33,8 @@ import * as shareImage from "../../src/renderer/games/shareImage.js";
 import * as store from "../../src/renderer/games/gamesStore.js";
 import { normalizeEntry } from "../../src/renderer/games/types.js";
 import { DEFAULT_RARITY_TIERS } from "../../src/renderer/games/rarityTiers.js";
-import { BadgeWall } from "../../src/renderer/games/BadgeWall.jsx";
-import { ShareImageModal } from "../../src/renderer/games/ShareImageModal.jsx";
+import { BadgeWall } from "../../src/renderer/games/BadgeWall.tsx";
+import { ShareImageModal } from "../../src/renderer/games/ShareImageModal.tsx";
 
 // ── mock gamesStore：仅拦截会触 IPC 的 loader，保留真实 initCollectionEngines / loadBadges 等 ──
 vi.mock("../../src/renderer/games/gamesStore.js", async () => {
@@ -78,7 +78,7 @@ vi.mock("../../src/renderer/games/games-check-scheduler.js", () => ({
   createGamesCheckScheduler: vi.fn(() => schedulerMocks),
 }));
 
-import { GamesLayout } from "../../src/renderer/games/GamesLayout.jsx";
+import { GamesLayout } from "../../src/renderer/games/GamesLayout.tsx";
 
 /** 重置 store 信号与 localStorage（单一真源，避免跨用例污染）。 */
 function resetAll() {

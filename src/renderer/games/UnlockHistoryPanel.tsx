@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/UnlockHistoryPanel.jsx
+ * src/renderer/games/UnlockHistoryPanel.tsx
  *
  * 解锁庆祝「历史记录」面板（Phase 2.6）。
  * 展示 unlockHistory（徽章/成就/活动解锁的时间线，最新在前）。

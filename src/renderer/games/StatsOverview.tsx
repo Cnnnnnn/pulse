@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/StatsOverview.jsx
+ * src/renderer/games/StatsOverview.tsx
  *
  * 收藏统计概览（P0-5）：总数 / 按当前价总值 / 累计节省。
  * 纯本地派生、实时随增减重算（读 collectionStats，不直读 addedPrice）。

@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/MilestoneFx.jsx
+ * src/renderer/games/MilestoneFx.tsx
  *
  * 里程碑粒子动效（Phase 2.5）。
  * 读取 store.milestoneFx（由收藏引擎 effect 在「完成度越过 25/50/75/100%」时置位）。

@@ -12,7 +12,7 @@ import {
   removeFromWishlist,
   loadWishlist,
 } from "../../src/renderer/games/gamesStore.js";
-import { GameCard } from "../../src/renderer/games/GameCard.jsx";
+import { GameCard } from "../../src/renderer/games/GameCard.tsx";
 
 afterEach(cleanup);
 

@@ -21,7 +21,7 @@ const LOADERS = {
   github: () =>
     import('../github/GithubLayout.tsx').then((m) => m.GithubLayout),
   games: () =>
-    import('../games/GamesLayout.jsx').then((m) => m.GamesLayout),
+    import('../games/GamesLayout.tsx').then((m) => m.GamesLayout),
   'ai-leaderboard': () =>
     import('../ai-leaderboard/AiLeaderboardLayout.jsx').then((m) => m.AiLeaderboardLayout),
 };

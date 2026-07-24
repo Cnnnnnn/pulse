@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/AchievementsPanel.jsx — 成就系统面板（P1c · C）。
+ * src/renderer/games/AchievementsPanel.tsx — 成就系统面板（P1c · C）。
  *
  *  - 读取 achievementsDef（用户成就）+ achievementsProgress（解锁态）signal，合并内置成就统一展示。
  *  - 已解锁 / 未解锁双态（复用 BadgeWall 视觉语言）：已解锁高亮，未解锁置灰并提示条件。
@@ -206,7 +206,7 @@ export function AchievementsPanel() {
               class="ach-form__input"
               type="text"
               value={form.name}
-              onInput={(e) => setForm({ ...form, name: e.target.value })}
+              onInput={(e) => setForm({ ...form, name: (e.target as HTMLInputElement).value })}
               placeholder="成就名称"
             />
 
@@ -215,7 +215,7 @@ export function AchievementsPanel() {
               id="ach-dim"
               class="ach-form__select"
               value={form.dimension}
-              onChange={(e) => setForm({ ...form, dimension: e.target.value })}
+              onChange={(e) => setForm({ ...form, dimension: (e.target as HTMLInputElement).value })}
             >
               {DIMENSIONS.map((d) => (
                 <option value={d.key} key={d.key}>{d.label}</option>
@@ -230,7 +230,7 @@ export function AchievementsPanel() {
                   class="ach-form__input"
                   type="text"
                   value={form.target}
-                  onInput={(e) => setForm({ ...form, target: e.target.value })}
+                  onInput={(e) => setForm({ ...form, target: (e.target as HTMLInputElement).value })}
                   placeholder={
                     form.dimension === "platform"
                       ? "如 steam"
@@ -249,7 +249,7 @@ export function AchievementsPanel() {
               type="number"
               min="1"
               value={form.threshold}
-              onInput={(e) => setForm({ ...form, threshold: e.target.value })}
+              onInput={(e) => setForm({ ...form, threshold: Number((e.target as HTMLInputElement).value) || 1 })}
             />
           </div>
         </ModalShell>

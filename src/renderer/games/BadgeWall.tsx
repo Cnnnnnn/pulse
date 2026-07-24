@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/BadgeWall.jsx — 徽章墙（P1b · B）。
+ * src/renderer/games/BadgeWall.tsx — 徽章墙（P1b · B）。
  *
  * 展示型荣誉墙：
  *  - 已点亮徽章：图标 + 名称 + 获得日期（tabular-nums）。

@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/GamesPage.jsx — 游戏优惠聚合主页面。
+ * src/renderer/games/GamesPage.tsx — 游戏优惠聚合主页面。
  * 结构：FeatureHeader(动态语境) + 平台分类 Tab + 维度筛选栏 + 筛选上下文条 + 内容区。
  *
  * 收藏(wishlist)模式：渲染「侧栏 + 顶部统计 + 网格」布局，并按 activeCollectionFilter 过滤。
@@ -95,7 +95,7 @@ export function GamesPage() {
       const el = document.activeElement;
       const tag = el && el.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      if (el && el.isContentEditable) return;
+      if (el && (el as HTMLElement).isContentEditable) return;
       const input = document.getElementById("games-search-input");
       if (input) {
         e.preventDefault();
@@ -107,11 +107,11 @@ export function GamesPage() {
   }, []);
 
   // 滚动性能优化
-  const bodyRef = useRef(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return undefined;
-    let t = 0;
+    let t: ReturnType<typeof setTimeout> | null = null;
     function onScroll() {
       el.classList.add("is-scrolling");
       clearTimeout(t);

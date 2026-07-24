@@ -1,5 +1,5 @@
 /**
- * src/renderer/games/GameCard.jsx — 单条游戏优惠卡（折扣 / 喜+1 / 收藏 自适应）。
+ * src/renderer/games/GameCard.tsx — 单条游戏优惠卡（折扣 / 喜+1 / 收藏 自适应）。
  *
  * 阶段1 收集模块增强：
  *  - P0-3 快捷收集：收藏按钮（≥44px 触控、焦点环、已/未对比≥3:1、同 key 去重）。
@@ -199,7 +199,7 @@ function CardMenu({ game, onClose }) {
   );
 }
 
-export function GameCard({ game, animate, context }) {
+export function GameCard({ game, animate, context }: { game: any; animate?: boolean; context?: any }) {
   const isWishlistCard = context === "wishlist";
   const isFree = game.isFree;
   const lowestFromDeal = game.lowestPrice;
