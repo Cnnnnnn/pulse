@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/preact';
-import GithubReadmeView from '../../src/renderer/github/GithubReadmeView.jsx';
+import GithubReadmeView from '../../src/renderer/github/GithubReadmeView.tsx';
 
 describe('GithubReadmeView 骨架屏', () => {
   it('loading=true 时渲染骨架屏而非纯文字', () => {

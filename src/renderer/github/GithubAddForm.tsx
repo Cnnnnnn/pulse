@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubAddForm.jsx
+ * src/renderer/github/GithubAddForm.tsx
  *
  * GitHub 优秀项目收录 — 添加表单：输入地址 → 校验 → 入库。
  * 支持单条（input）和批量（textarea 多行，每行一个地址，支持 # 注释）。

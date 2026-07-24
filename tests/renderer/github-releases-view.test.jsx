@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
-import { GithubReleasesView } from '../../src/renderer/github/GithubReleasesView.jsx';
+import { GithubReleasesView } from '../../src/renderer/github/GithubReleasesView.tsx';
 
 const { fetchGithubReleaseMock, markGithubSeenMock } = vi.hoisted(() => ({
   fetchGithubReleaseMock: vi.fn(() => Promise.resolve({ ok: true })),

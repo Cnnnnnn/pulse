@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubMarkdown.jsx
+ * src/renderer/github/GithubMarkdown.tsx
  *
  * 公共 markdown 渲染组件：marked 解析 + DOMPurify 消毒。
  * 被 GithubReadmeView（README tab）和 GithubReleasesView（release notes）复用。

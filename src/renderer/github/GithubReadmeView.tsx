@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubReadmeView.jsx
+ * src/renderer/github/GithubReadmeView.tsx
  *
  * GitHub 优秀项目收录 — README 渲染。
  * 渲染逻辑抽到公共组件 GithubMarkdown（marked + DOMPurify），

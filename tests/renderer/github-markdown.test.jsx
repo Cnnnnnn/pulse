@@ -21,7 +21,7 @@ vi.mock("dompurify", () => ({
 }));
 import DOMPurify from "dompurify";
 
-import { GithubMarkdown } from "../../src/renderer/github/GithubMarkdown.jsx";
+import { GithubMarkdown } from "../../src/renderer/github/GithubMarkdown.tsx";
 
 beforeEach(() => {
   DOMPurify.sanitize.mockClear();

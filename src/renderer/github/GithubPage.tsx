@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubPage.jsx
+ * src/renderer/github/GithubPage.tsx
  *
  * GitHub 优秀项目收录 — 主页面：添加表单 + 项目列表 + 详情抽屉。
  * 列表分页、README 与 AI 解析结果在抽屉内以清晰布局呈现。

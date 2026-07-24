@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/preact';
-import GithubAiParseView from '../../src/renderer/github/GithubAiParseView.jsx';
+import GithubAiParseView from '../../src/renderer/github/GithubAiParseView.tsx';
 
 describe('GithubAiParseView 骨架屏', () => {
   it('loading=true 时渲染 AI 骨架屏而非转圈文案', () => {

@@ -28,7 +28,7 @@ vi.mock("../../src/renderer/store/github-projects-store.ts", async () => {
   };
 });
 
-import { GithubPage } from "../../src/renderer/github/GithubPage.jsx";
+import { GithubPage } from "../../src/renderer/github/GithubPage.tsx";
 import { githubProjects } from "../../src/renderer/store/github-projects-store.ts";
 
 beforeEach(() => {

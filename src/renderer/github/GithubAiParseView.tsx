@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubAiParseView.jsx
+ * src/renderer/github/GithubAiParseView.tsx
  *
  * GitHub 优秀项目收录 — AI 解析结果清晰布局。
  * 展示：一句话定位 / 使用方法 / 核心功能 / 适用场景 / 关键词。

@@ -286,9 +286,9 @@ export function hasDistinctHomepage(project) {
  * - aiParse.tags：AI 解析 README 时生成的关键词（可能为没填 topics 的仓库补充）
  * 合并两者覆盖更广：有 topics 用 topics，没 topics 但解析过的用 AI tags。
  */
-export function collectGithubTags(projects) {
+export function collectGithubTags(projects: any[]): string[] {
   if (!Array.isArray(projects)) return [];
-  const set = new Set();
+  const set = new Set<string>();
   for (const p of projects) {
     if (Array.isArray(p.topics)) {
       for (const t of p.topics) {
@@ -300,7 +300,7 @@ export function collectGithubTags(projects) {
       if (typeof t === "string" && t.trim()) set.add(t.trim());
     }
   }
-  return [...set].sort((a: string, b: string) => a.localeCompare(b));
+  return [...set].sort((a, b) => a.localeCompare(b));
 }
 
 /** 把时间戳格式化为「N 天前 / N 个月前」等人读相对时间。 */
@@ -544,7 +544,10 @@ export async function refreshGithubReadme(id) {
  * @param {boolean} [force] 强制重新解析
  * @returns {Promise<{ok:boolean, reason?:string, result?:object}>}
  */
-export async function parseGithubProjectAi(id, force = false) {
+export async function parseGithubProjectAi(
+  id: string,
+  force = false,
+): Promise<{ ok: true; result: any; cached?: boolean } | { ok: false; reason?: string }> {
   const p = githubProjects.value.find((x) => x.id === id);
   if (!p) return { ok: false, reason: "not_found" };
   if (!force && p.aiParse) {
@@ -553,7 +556,7 @@ export async function parseGithubProjectAi(id, force = false) {
   let readme = p.readme;
   if (!readme || !readme.trim()) {
     const fr = await refreshGithubReadme(id);
-    if (!fr.ok) return fr;
+    if (!fr.ok) return { ok: false, reason: fr.reason };
     readme = githubProjects.value.find((x) => x.id === id)?.readme || "";
   }
   if (!readme || !readme.trim()) {

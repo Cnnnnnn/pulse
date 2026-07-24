@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubProjectList.jsx
+ * src/renderer/github/GithubProjectList.tsx
  *
  * GitHub 优秀项目收录 — 项目列表（搜索 / 排序 + 分页）+ 单行。
  *
@@ -124,7 +124,7 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFail
 
   /* 从收录库派生去重、排序的语言集合，用于筛选胶囊 */
   const allLanguages = useMemo(() => {
-    const set = new Set();
+    const set = new Set<string>();
     projects.forEach((p) => {
       if (p.language) set.add(p.language);
     });

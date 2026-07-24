@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubProjectDrawer.jsx
+ * src/renderer/github/GithubProjectDrawer.tsx
  *
  * GitHub 优秀项目收录 — 详情抽屉：内部 README / AI 解析 双 tab。
  */
@@ -45,7 +45,10 @@ export function GithubProjectDrawer({ projectId, initialTab = "readme", onClose 
     setParseError(null);
     parseGithubProjectAi(project.id)
       .then((r) => {
-        if (!cancelled && !r.ok) setParseError(r.reason);
+        if (!cancelled && !r.ok) {
+          // ponytail: union narrow 在 .then 链不可靠, cast 一次
+          setParseError((r as { reason?: string }).reason || "parse_failed");
+        }
       })
       .finally(() => {
         if (!cancelled) setParseLoading(false);
@@ -72,7 +75,7 @@ export function GithubProjectDrawer({ projectId, initialTab = "readme", onClose 
     setParseLoading(true);
     parseGithubProjectAi(project.id, true)
       .then((r) => {
-        if (!r.ok) setParseError(r.reason);
+        if (!r.ok) setParseError((r as { reason?: string }).reason || "parse_failed");
       })
       .finally(() => setParseLoading(false));
   }

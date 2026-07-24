@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubReleasesView.jsx
+ * src/renderer/github/GithubReleasesView.tsx
  *
  * GitHub 优秀项目收录 — 抽屉「更新」tab：版本对比条 + Release 时间线。
  * 复用 README/AI 解析的骨架屏 / 错误态 / 空态视觉语言，新增第三语义轴（更新=蓝）。
@@ -88,7 +88,7 @@ function ReleasesError({ reason, onRetry }) {
   );
 }
 
-export function GithubReleasesView({ project, onMarkSeen }) {
+export function GithubReleasesView({ project, onMarkSeen }: { project: any; onMarkSeen?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState({});

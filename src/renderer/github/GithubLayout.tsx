@@ -1,5 +1,5 @@
 /**
- * src/renderer/github/GithubLayout.jsx
+ * src/renderer/github/GithubLayout.tsx
  *
  * GitHub 优秀项目收录 — 顶级 nav panel 容器 (v2.80)。
  * 镜像 AIUsageLayout：mount 时加载已收录项目。
