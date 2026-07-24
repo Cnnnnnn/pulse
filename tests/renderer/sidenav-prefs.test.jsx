@@ -31,6 +31,8 @@ let mockTrayMenuPrefs = signal({
 
 vi.mock("../../src/renderer/worldcup/navStore.ts", async (importOriginal) => {
   const actual = await importOriginal();
+  // ponytail: 把 NAV_KEYS_LIST 暴露给测试, 让期望与真相常量化.
+  // 加 nav 时只改 navStore.ts 一处, 这三处期望不脱节.
   return {
     // 复用真实的 NAV_KEYS_LIST / effectiveVisibleItems (SideNav + sidenav-prefs 依赖),
     // 只覆盖 activeNav / navCollapsed 两个 signal 让测试可控.
@@ -60,6 +62,7 @@ vi.mock("../../src/renderer/store/trayConfigStore.ts", () => ({
 }));
 
 const { SideNav } = await import("../../src/renderer/components/SideNav.tsx");
+const { NAV_KEYS_LIST } = await import("../../src/renderer/worldcup/navStore.ts");
 
 beforeEach(() => {
   mockActiveNavValue = "versions";
@@ -84,18 +87,10 @@ function visibleNavKeys() {
 }
 
 describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
-  it("默认 prefs 全开 → 8 个 nav 全显示 (新闻 + 世界杯 + 投资 + AI 用量 + 更新 + GitHub + 游戏优惠 + AI 榜单 v2.83)", () => {
+  it("默认 prefs 全开 → NAV_KEYS_LIST 全显示", () => {
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual([
-      "news",
-      "worldcup",
-      "invest",
-      "ai-usage",
-      "versions",
-      "github",
-      "games",
-      "ai-leaderboard",
-    ]);
+    // ponytail: 期望来自常量, 加 nav 时 navStore.ts 一处改.
+    expect(visibleNavKeys()).toEqual(NAV_KEYS_LIST);
   });
 
   it("关 updates (versions) → versions 隐藏", () => {
@@ -121,7 +116,7 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
     expect(visibleNavKeys()).not.toContain("ai-usage");
   });
 
-  it("3 个动态全关 → 只剩固定 nav (news/invest/github/games/ai-leaderboard)", () => {
+  it("3 个动态全关 → 只剩固定 nav", () => {
     mockTrayMenuPrefs.value = {
       version: 1,
       segments: {
@@ -135,7 +130,11 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual(["news", "invest", "github", "games", "ai-leaderboard"]);
+    // ponytail: 固定 nav = NAV_KEYS_LIST - {versions, ai-usage, worldcup}
+    const dynamicKey = new Set(["versions", "ai-usage", "worldcup"]);
+    expect(visibleNavKeys()).toEqual(
+      NAV_KEYS_LIST.filter((k) => !dynamicKey.has(k)),
+    );
   });
 
   it("只关非动态 prefs (check_action/config_action) → 全部 nav 仍显示", () => {
@@ -152,15 +151,6 @@ describe("SideNav — tray menu prefs 联动 (Phase v1)", () => {
       },
     };
     render(<SideNav />);
-    expect(visibleNavKeys()).toEqual([
-      "news",
-      "worldcup",
-      "invest",
-      "ai-usage",
-      "versions",
-      "github",
-      "games",
-      "ai-leaderboard",
-    ]);
+    expect(visibleNavKeys()).toEqual(NAV_KEYS_LIST);
   });
 });

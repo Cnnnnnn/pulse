@@ -31,13 +31,13 @@ describe('HomeGrid navStore 集成路径', () => {
   });
 
   it('PERSISTABLE_NAV_KEYS 不含 home', async () => {
-    const { PERSISTABLE_NAV_KEYS } = await import('../../src/renderer/worldcup/navStore.ts');
+    const { PERSISTABLE_NAV_KEYS, NAV_KEYS_LIST } = await import('../../src/renderer/worldcup/navStore.ts');
     expect(PERSISTABLE_NAV_KEYS.has('home')).toBe(false);
     expect(PERSISTABLE_NAV_KEYS.has('versions')).toBe(true);
     expect(PERSISTABLE_NAV_KEYS.has('github')).toBe(true);
     expect(PERSISTABLE_NAV_KEYS.has('ai-leaderboard')).toBe(true);
-    // v8 (2026-07-20): + ai-leaderboard (v2.82) → 8 顶级 nav.
-    expect(PERSISTABLE_NAV_KEYS.size).toBe(8);
+    // ponytail: 与 NAV_KEYS_LIST 同步 — 加 nav 时只改 navStore.ts 一处, 此断言不脱节.
+    expect(PERSISTABLE_NAV_KEYS.size).toBe(NAV_KEYS_LIST.length);
   });
 });
 
