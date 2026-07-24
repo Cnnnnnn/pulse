@@ -10,7 +10,7 @@
  */
 import { useState } from "preact/hooks";
 import { ModalShell } from "../components/ModalShell.tsx";
-import { ProgressBar } from "./ProgressBar.jsx";
+import { ProgressBar } from "./ProgressBar.tsx";
 import { DEFAULT_ACHIEVEMENTS } from "./achievementsEngine.js";
 import {
   achievementsDef,

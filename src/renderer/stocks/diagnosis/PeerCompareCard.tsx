@@ -1,5 +1,5 @@
-import { ModuleCard } from "./ModuleCard.jsx";
-import { IndustryCompareBar } from "./IndustryCompareBar.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
+import { IndustryCompareBar } from "./IndustryCompareBar.tsx";
 
 /**
  * PeerCompareCard — 同业对比独立卡片 (从 ModuleGrid 9-card 布局里凸显这一个角度).

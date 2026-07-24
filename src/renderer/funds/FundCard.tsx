@@ -13,8 +13,8 @@ import { isFundPinned, addWatchlistItem, removeWatchlistItem } from '../watchlis
 import { api } from '../api.js';
 import { openConfirm } from '../store/confirmStore.ts';
 import { taggedLog } from '../log.js';
-import { FundCardSparkline } from './FundCardSparkline.jsx';
-import { AddToCompareButton } from '../stocks/AddToCompareButton.jsx';
+import { FundCardSparkline } from './FundCardSparkline.tsx';
+import { AddToCompareButton } from '../stocks/AddToCompareButton.tsx';
 import { fmtCurrency, fmtPct, fmtNum } from '../../funds/format.js';
 
 const log = taggedLog("[funds]");

@@ -1,4 +1,4 @@
-import { ModuleCard } from "./ModuleCard.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
 
 // news_buzz.data 结构 (见 src/stocks/detail-fetchers/news-buzz.js):
 //   { items: [{ title, date, sentiment }] }   sentiment ∈ {positive,neutral,negative}

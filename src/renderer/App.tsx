@@ -16,21 +16,21 @@
 
 import { checkSession } from './store.ts';
 import { api } from './api.js';
-import { BulkUpgradeModal } from './components/BulkUpgradeModal.jsx';
-import { Toast } from './components/Toast.jsx';
-import { StateRecoveredBanner } from './components/StateRecoveredBanner.jsx';
+import { BulkUpgradeModal } from './components/BulkUpgradeModal.tsx';
+import { Toast } from './components/Toast.tsx';
+import { StateRecoveredBanner } from './components/StateRecoveredBanner.tsx';
 import { DigestDrawer } from './digest/DigestDrawer.tsx';
-import { WatchlistModal } from './components/WatchlistModal.jsx';
-import { ReleaseNotesWizard } from './components/ReleaseNotesWizard.jsx';
-import { ConfirmDialog } from './components/ConfirmDialog.jsx';
-import { AppShell } from './components/AppShell.jsx';
+import { WatchlistModal } from './components/WatchlistModal.tsx';
+import { ReleaseNotesWizard } from './components/ReleaseNotesWizard.tsx';
+import { ConfirmDialog } from './components/ConfirmDialog.tsx';
+import { AppShell } from './components/AppShell.tsx';
 import { RemindersModal } from './reminders/RemindersModal.tsx';
 import { RecentActivityModal } from './recent/RecentActivityModal.tsx';
-import { TrayMenuConfigModal } from './components/TrayMenuConfigModal.jsx';
+import { TrayMenuConfigModal } from './components/TrayMenuConfigModal.tsx';
 
 const isWin = (typeof window !== 'undefined' && window.platformInfo && window.platformInfo.platform) === 'win32';
 
-export function App({ onCheck }) {
+export function App({ onCheck }: { onCheck?: () => void }) {
   const session = checkSession.value;
   return (
     <div id="app">

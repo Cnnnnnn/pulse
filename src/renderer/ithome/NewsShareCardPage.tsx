@@ -9,7 +9,7 @@
  * 通过 contextBridge.exposeInMainWorld("api", ...) 暴露,见 preload.js。
  */
 import { render } from "preact";
-import { NewsShareCard } from "./NewsShareCard.jsx";
+import { NewsShareCard } from "./NewsShareCard.tsx";
 
 function mount(article: any, summary: any) {
   const root = document.getElementById("root");

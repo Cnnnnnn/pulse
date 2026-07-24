@@ -22,7 +22,7 @@ import {
   countSummarizedArticles,
   sidebarDayCount,
 } from "./news-utils.js";
-import { NewsArticleRow } from "./NewsArticleRow.jsx";
+import { NewsArticleRow } from "./NewsArticleRow.tsx";
 import { PinIcon, IconRefresh } from "../components/icons.tsx";
 
 export function NewsView({ search = "", onRefresh }) {

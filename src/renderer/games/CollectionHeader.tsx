@@ -17,7 +17,7 @@ import {
   listCollectionTypes,
 } from "./gamesStore.js";
 import { tierColorOf, DEFAULT_RARITY_TIERS } from "./rarityTiers.js";
-import { CompletionRing } from "./CompletionRing.jsx";
+import { CompletionRing } from "./CompletionRing.tsx";
 
 /** 是否偏好减少动效（安全降级）。 */
 function prefersReducedMotion() {

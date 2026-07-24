@@ -16,8 +16,8 @@ import {
   rarityTiers,
   wishlist,
 } from "./gamesStore.js";
-import { StarRating } from "./StarRating.jsx";
-import { RarityPicker } from "./RarityPicker.jsx";
+import { StarRating } from "./StarRating.tsx";
+import { RarityPicker } from "./RarityPicker.tsx";
 
 export function NoteRatingModal() {
   const target = noteRatingTarget.value;

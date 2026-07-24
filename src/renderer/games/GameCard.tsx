@@ -36,7 +36,7 @@ import {
   addRarityTier,
 } from "./gamesStore.js";
 import { tierColorOf } from "./rarityTiers.js";
-import { RarityPicker } from "./RarityPicker.jsx";
+import { RarityPicker } from "./RarityPicker.tsx";
 import { evaluateBadges, getBadgeRule } from "./badges.js";
 
 function GameThumb({ thumb, platform, gameId }) {

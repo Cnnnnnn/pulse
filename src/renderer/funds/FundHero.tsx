@@ -26,8 +26,8 @@ import {
 } from './fundStore.js';
 import { api } from '../api.js';
 import { IconBell, IconCoin, IconRefresh } from '../components/icons.tsx';
-import { FundAllocationDonut } from './FundAllocationDonut.jsx';
-import { FundPortfolioTrend } from './FundPortfolioTrend.jsx';
+import { FundAllocationDonut } from './FundAllocationDonut.tsx';
+import { FundPortfolioTrend } from './FundPortfolioTrend.tsx';
 import { fmtCurrency, fmtPct } from '../../funds/format.js';
 
 function fmtAgo(ts) {

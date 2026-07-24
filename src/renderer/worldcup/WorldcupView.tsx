@@ -10,8 +10,8 @@
  */
 
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import MatchCard from './MatchCard.jsx';
-import SquadModal from './SquadModal.jsx';
+import MatchCard from './MatchCard.tsx';
+import SquadModal from './SquadModal.tsx';
 import { groupMatchesByDate } from './groupByDate.js';
 import { displayTeam } from './teams-data.js';
 import {
@@ -21,9 +21,9 @@ import {
   loadWorldcupFixtures,
   clearWorldcupError,
 } from './store.js';
-import { WorldcupBetsStats } from './WorldcupBetsStats.jsx';
+import { WorldcupBetsStats } from './WorldcupBetsStats.tsx';
 import { trackWorldcupMatchView } from '../recent/track.ts';
-import { DayBetFooter } from './DayBetFooter.jsx';
+import { DayBetFooter } from './DayBetFooter.tsx';
 import { IconAlert } from '../components/icons.tsx';
 
 const WEEKDAYS_CN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];

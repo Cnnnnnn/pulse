@@ -39,9 +39,9 @@ import {
   holdingWeights,
 } from "./fundStore.js";
 import { api } from "../api.js";
-import { FundAreaChart } from "./FundAreaChart.jsx";
-import { FundSparkline } from "./FundSparkline.jsx";
-import { FundAllocationDonut } from "./FundAllocationDonut.jsx";
+import { FundAreaChart } from "./FundAreaChart.tsx";
+import { FundSparkline } from "./FundSparkline.tsx";
+import { FundAllocationDonut } from "./FundAllocationDonut.tsx";
 import { computeConcentration } from "../../funds/concentration.js";
 import { fmtCurrency, fmtPct } from "../../funds/format.js";
 import { IconRefresh } from "../components/icons.tsx";

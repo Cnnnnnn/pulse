@@ -15,8 +15,8 @@ import {
   shareIthomeArticle,
 } from "./store.js";
 import { formatArticleTime, formatExcerptPreview } from "./news-utils.js";
-import { NewsArticleSummary } from "./NewsArticleSummary.jsx";
-import { NewsShareToast } from "./NewsShareToast.jsx";
+import { NewsArticleSummary } from "./NewsArticleSummary.tsx";
+import { NewsShareToast } from "./NewsShareToast.tsx";
 import { refreshAIReadyStatus } from "../store.ts";
 import { PinIcon, IconSparkles, IconShare } from "../components/icons.tsx";
 

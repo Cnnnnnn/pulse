@@ -9,8 +9,8 @@
  */
 import { useEffect } from "preact/hooks";
 import { bootstrapIthomeTab } from "./store.js";
-import { NewsSidebar } from "./NewsSidebar.jsx";
-import { NewsView } from "./NewsView.jsx";
+import { NewsSidebar } from "./NewsSidebar.tsx";
+import { NewsView } from "./NewsView.tsx";
 
 export function IthomeContent({ search = "", onRefresh }) {
   useEffect(() => {

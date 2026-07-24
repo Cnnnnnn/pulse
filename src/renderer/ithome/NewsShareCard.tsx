@@ -4,7 +4,7 @@
  * 分享卡片 Preact 组件 — 1080×1080 视觉卡片,纯展示,无副作用。
  * Props: { article, summary }
  */
-import { normalizeArticleSummary } from "./NewsArticleSummary.jsx";
+import { normalizeArticleSummary } from "./NewsArticleSummary.tsx";
 
 const MAX_SUMMARY_CHARS = 300;
 const MAX_KEYWORDS = 5;

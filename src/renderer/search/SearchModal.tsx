@@ -11,8 +11,8 @@ import {
   setSearchQuery,
   moveSearchSelection,
 } from './searchStore.js';
-import { SearchSourceBar } from './SearchSourceBar.jsx';
-import { SearchResultList } from './SearchResultList.jsx';
+import { SearchSourceBar } from './SearchSourceBar.tsx';
+import { SearchResultList } from './SearchResultList.tsx';
 import { navigateToResult } from './search-nav.js';
 import { ModalShell } from '../components/ModalShell.tsx';
 import { IconSearch } from '../components/icons.tsx';

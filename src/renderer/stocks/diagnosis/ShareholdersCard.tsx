@@ -1,4 +1,4 @@
-import { ModuleCard } from "./ModuleCard.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
 
 // shareholders.data (见 src/stocks/detail-fetchers/shareholders.js):
 //   { holderCountLatest, holderCountChangePct, reportDate,

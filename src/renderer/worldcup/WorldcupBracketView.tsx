@@ -8,8 +8,8 @@
  */
 
 import { useState, useEffect } from "preact/hooks";
-import BracketTree, { cleanTeamName } from "./BracketTree.jsx";
-import SquadModal from "./SquadModal.jsx";
+import BracketTree, { cleanTeamName } from "./BracketTree.tsx";
+import SquadModal from "./SquadModal.tsx";
 import {
   worldcupBracket,
   bracketComputing,

@@ -17,9 +17,9 @@ import {
   githubReasonText,
 } from "../store/github-projects-store.ts";
 import { showToast } from "../store/toast-store.ts";
-import { GithubAddForm } from "./GithubAddForm.jsx";
-import { GithubProjectList } from "./GithubProjectList.jsx";
-import { GithubProjectDrawer } from "./GithubProjectDrawer.jsx";
+import { GithubAddForm } from "./GithubAddForm.tsx";
+import { GithubProjectList } from "./GithubProjectList.tsx";
+import { GithubProjectDrawer } from "./GithubProjectDrawer.tsx";
 
 function GithubMark({ size = 18 }) {
   return (

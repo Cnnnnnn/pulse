@@ -1,4 +1,4 @@
-import { ModuleCard } from "./ModuleCard.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
 
 // corporate_events.data (见 src/stocks/detail-fetchers/corporate-events.js):
 //   { dividends, unlocks, offerings, nearestUnlockDays, latestCashBonusPer10 }

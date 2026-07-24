@@ -1,14 +1,14 @@
-import { FundamentalsCard } from "./FundamentalsCard.jsx";
-import { ValuationCard } from "./ValuationCard.jsx";
-import { CapitalFlowCard } from "./CapitalFlowCard.jsx";
-import { TechCard } from "./TechCard.jsx";
-import { NewsCard } from "./NewsCard.jsx";
-import { RiskCard } from "./RiskCard.jsx";
-import { EarningsForecastCard } from "./EarningsForecastCard.jsx";
-import { ShareholdersCard } from "./ShareholdersCard.jsx";
-import { CorporateEventsCard } from "./CorporateEventsCard.jsx";
-import { PeerCompareCard } from "./PeerCompareCard.jsx";
-import { AiNoteLine } from "./AiNoteLine.jsx";
+import { FundamentalsCard } from "./FundamentalsCard.tsx";
+import { ValuationCard } from "./ValuationCard.tsx";
+import { CapitalFlowCard } from "./CapitalFlowCard.tsx";
+import { TechCard } from "./TechCard.tsx";
+import { NewsCard } from "./NewsCard.tsx";
+import { RiskCard } from "./RiskCard.tsx";
+import { EarningsForecastCard } from "./EarningsForecastCard.tsx";
+import { ShareholdersCard } from "./ShareholdersCard.tsx";
+import { CorporateEventsCard } from "./CorporateEventsCard.tsx";
+import { PeerCompareCard } from "./PeerCompareCard.tsx";
+import { AiNoteLine } from "./AiNoteLine.tsx";
 import { computeBasicRisks } from "../../../stocks/diagnosis-scorer.js";
 
 // ponytail: 2026-07-07 — peer_compare 现在独立成 PeerCompareCard (用户反馈"看不到同业对比").

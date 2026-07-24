@@ -43,8 +43,8 @@ import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.js"
 import { ARENA_BOARDS, ARENA_BOARD_KEYS, toIpcParams } from "../../src/renderer/ai-leaderboard/types.js";
 import { tableToMarkdown, detailToMarkdown } from "../../src/renderer/ai-leaderboard/exportMarkdown.js";
 import { rowsToCsv } from "../../src/renderer/ai-leaderboard/exportCsv.js";
-import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.jsx";
-import { BoardHealthCard } from "../../src/renderer/ai-leaderboard/BoardHealthCard.jsx";
+import { LeaderboardTable } from "../../src/renderer/ai-leaderboard/LeaderboardTable.tsx";
+import { BoardHealthCard } from "../../src/renderer/ai-leaderboard/BoardHealthCard.tsx";
 
 afterEach(cleanup);
 

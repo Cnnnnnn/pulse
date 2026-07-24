@@ -16,8 +16,8 @@ import { memo } from 'preact/compat';
 import { displayTeam } from './teams-data.js';
 import { TeamFlag } from '../components/icons.tsx';
 import { toBeijingTime } from './timeUtils.js';
-import MatchScorers from './MatchScorers.jsx';
-import MatchCardAi from './MatchCardAi.jsx';
+import MatchScorers from './MatchScorers.tsx';
+import MatchCardAi from './MatchCardAi.tsx';
 import { matchKey as computeMatchKey } from '../../utils/match-key.js';
 import { IconClock } from '../components/icons.tsx';
 

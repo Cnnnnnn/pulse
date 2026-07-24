@@ -26,7 +26,7 @@ import {
   addWatchlistItem,
   removeWatchlistItem,
 } from "../watchlist/watchlist-store.ts";
-import { AddToCompareButton } from "../stocks/AddToCompareButton.jsx";
+import { AddToCompareButton } from "../stocks/AddToCompareButton.tsx";
 
 const GRAM_PER_OZ = 31.1035;
 

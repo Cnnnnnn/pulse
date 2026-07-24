@@ -1,4 +1,4 @@
-import { ModuleCard } from "./ModuleCard.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
 
 export function RiskCard({ risks }) {
   const list = Array.isArray(risks) ? risks : [];

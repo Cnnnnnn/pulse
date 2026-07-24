@@ -2,7 +2,7 @@
  * 右侧结果列表
  */
 import { searchResults, searchSelectedIndex, searchQuery } from './searchStore.js';
-import { SearchResultRow } from './SearchResultRow.jsx';
+import { SearchResultRow } from './SearchResultRow.tsx';
 import { DrawerEmpty } from '../components/EmptyState.tsx';
 
 export function SearchResultList({ onSelect }) {

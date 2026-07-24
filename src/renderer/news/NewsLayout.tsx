@@ -13,7 +13,7 @@
 import { useState } from "preact/hooks";
 import { NEWS_SUBTABS } from "./NewsLayoutHeader.tsx";
 import { NewsLayoutHeader } from "./NewsLayoutHeader.tsx";
-import { IthomeContent as IthomeContentRaw } from "../ithome/IthomeContent.jsx";
+import { IthomeContent as IthomeContentRaw } from "../ithome/IthomeContent.tsx";
 import { WechatHotContent as WechatHotContentRaw } from "../wechat-hot/components/WechatHotContent.tsx";
 
 // ponytail: 对端仍是宽松 JSX props；ithome/wechat 组件迁完后去掉 cast。

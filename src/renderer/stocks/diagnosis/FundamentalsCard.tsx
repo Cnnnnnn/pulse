@@ -1,5 +1,5 @@
-import { ModuleCard } from "./ModuleCard.jsx";
-import { IndustryCompareBar } from "./IndustryCompareBar.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
+import { IndustryCompareBar } from "./IndustryCompareBar.tsx";
 
 // ponytail: 2026-07-07 — 主体加 IndustryCompareBar:
 //   ROE / 毛利率 vs 行业中位 (peer_compare.data.roeIndustryMedian /

@@ -43,9 +43,9 @@ import {
 import { fundPage, setFundPage } from "../funds/fundRoute.js";
 import { metalsRefreshing } from "../metals/metalStore.ts";
 import { api } from "../api.js";
-import { FundContent } from "../funds/FundLayout.jsx";
+import { FundContent } from "../funds/FundLayout.tsx";
 import { MetalContent } from "../metals/MetalLayout.tsx";
-import { StockContent } from "../stocks/StockLayout.jsx";
+import { StockContent } from "../stocks/StockLayout.tsx";
 import { InvestLayoutHeader } from "./InvestLayoutHeader.tsx";
 
 export function InvestLayout() {

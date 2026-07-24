@@ -1,4 +1,4 @@
-import { ModuleCard } from "./ModuleCard.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
 
 // earnings_forecast.data (见 src/stocks/detail-fetchers/earnings-forecast.js):
 //   { items: [{ reportDate, type, changeMin, changeMax, reason }], latest }

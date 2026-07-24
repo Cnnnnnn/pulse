@@ -5,9 +5,9 @@
  */
 
 import { useEffect, useState } from "preact/hooks";
-import { NewsHeader } from "./NewsHeader.jsx";
-import { NewsSidebar } from "./NewsSidebar.jsx";
-import { NewsView } from "./NewsView.jsx";
+import { NewsHeader } from "./NewsHeader.tsx";
+import { NewsSidebar } from "./NewsSidebar.tsx";
+import { NewsView } from "./NewsView.tsx";
 import { bootstrapIthomeTab, refreshIthomeNews } from "./store.js";
 
 export function NewsLayout() {

@@ -11,8 +11,8 @@
  */
 
 import { render } from 'preact';
-import { App } from './App.jsx';
-import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+import { App } from './App.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import {
   openReleaseNotes,
   releaseNotesPayload,
@@ -37,7 +37,7 @@ import {
   lastOpenedApps,
 } from './store.ts';
 import { api } from './api.js';
-import { primeConfigCache } from './components/AppRow.jsx';
+import { primeConfigCache } from './components/AppRow.tsx';
 import { applyBulkUpgradeProgress, applyBulkUpgradeDone } from './store/store-bulk-upgrade.ts';
 import { createAutoRecheck } from './auto-recheck.js';
 import { taggedLog } from './log.js';
@@ -139,7 +139,8 @@ function wireRendererListeners() {
   api.onStartCheck(() => triggerCheck());
 
   import('./tray-focus.js').then(({ subscribeTrayFocus }) => {
-    subscribeTrayFocus(api);
+    // ponytail: tray-focus 只消费 onTrayFocus，api 是完整 preload 桥
+    subscribeTrayFocus(api as { onTrayFocus?: Function });
   });
 
   api.onAutoCheckFinished(() => {
@@ -161,7 +162,9 @@ function wireRendererListeners() {
 
   window.addEventListener('app:open-config', () => {
     if (typeof window !== 'undefined' && window.api) {
-      try { window.api.openConfig && window.api.openConfig(); } catch { /* noop */ }
+      // ponytail: openConfig 是历史兜底 IPC，preload WindowApi 未声明
+      const openCfg = (window.api as any).openConfig;
+      try { openCfg && openCfg(); } catch { /* noop */ }
     }
   });
 

@@ -1,13 +1,13 @@
 import { useEffect } from 'preact/hooks';
-import { FundHero } from './FundHero.jsx';
-import { CategoryTabs } from './CategoryTabs.jsx';
-import { FundCardGrid } from './FundCardGrid.jsx';
-import { FundPnlHistory } from './FundPnlHistory.jsx';
-import { AddFundModal } from './AddFundModal.jsx';
-import { FundAlertModal } from './FundAlertModal.jsx';
-import { FundDashboard } from './FundDashboard.jsx';
-import { FundList } from './FundList.jsx';
-import { FundDetail } from './FundDetail.jsx';
+import { FundHero } from './FundHero.tsx';
+import { CategoryTabs } from './CategoryTabs.tsx';
+import { FundCardGrid } from './FundCardGrid.tsx';
+import { FundPnlHistory } from './FundPnlHistory.tsx';
+import { AddFundModal } from './AddFundModal.tsx';
+import { FundAlertModal } from './FundAlertModal.tsx';
+import { FundDashboard } from './FundDashboard.tsx';
+import { FundList } from './FundList.tsx';
+import { FundDetail } from './FundDetail.tsx';
 import {
   loadFunds,
   loadNavState,

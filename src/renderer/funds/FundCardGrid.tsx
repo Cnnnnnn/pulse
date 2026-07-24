@@ -14,7 +14,7 @@ import {
   openAddModal,
 } from './fundStore.js';
 import { api } from '../api.js';
-import { FundCard } from './FundCard.jsx';
+import { FundCard } from './FundCard.tsx';
 
 export function FundCardGrid() {
   const loading = fundsLoading.value;

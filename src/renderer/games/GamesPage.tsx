@@ -33,19 +33,19 @@ import {
   collectionSidebarOpen,
   setCollectionSidebarOpen,
 } from "./gamesStore.js";
-import { PlatformTabs } from "./PlatformTabs.jsx";
-import { GamesFilterBar } from "./GamesFilterBar.jsx";
-import { GameCard } from "./GameCard.jsx";
-import { CollectionSidebar } from "./CollectionSidebar.jsx";
-import { CollectionView } from "./CollectionView.jsx";
-import { StatsOverview } from "./StatsOverview.jsx";
-import { NoteRatingModal } from "./NoteRatingModal.jsx";
-import { MergeConfirmModal } from "./MergeConfirmModal.jsx";
-import { UsageMetricsPanel } from "./UsageMetricsPanel.jsx";
-import { BadgeWall } from "./BadgeWall.jsx";
-import { ShareImageModal } from "./ShareImageModal.jsx";
-import { AchievementsPanel } from "./AchievementsPanel.jsx";
-import { EventBanner } from "./EventBanner.jsx";
+import { PlatformTabs } from "./PlatformTabs.tsx";
+import { GamesFilterBar } from "./GamesFilterBar.tsx";
+import { GameCard } from "./GameCard.tsx";
+import { CollectionSidebar } from "./CollectionSidebar.tsx";
+import { CollectionView } from "./CollectionView.tsx";
+import { StatsOverview } from "./StatsOverview.tsx";
+import { NoteRatingModal } from "./NoteRatingModal.tsx";
+import { MergeConfirmModal } from "./MergeConfirmModal.tsx";
+import { UsageMetricsPanel } from "./UsageMetricsPanel.tsx";
+import { BadgeWall } from "./BadgeWall.tsx";
+import { ShareImageModal } from "./ShareImageModal.tsx";
+import { AchievementsPanel } from "./AchievementsPanel.tsx";
+import { EventBanner } from "./EventBanner.tsx";
 import { rarityTiers } from "./gamesStore.js";
 
 const MODE_HINTS = {

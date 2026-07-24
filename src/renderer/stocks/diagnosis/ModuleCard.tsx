@@ -1,5 +1,5 @@
-import { CardFreshness } from "./CardFreshness.jsx";
-import { DataHealthPill } from "./DataHealthPill.jsx";
+import { CardFreshness } from "./CardFreshness.tsx";
+import { DataHealthPill } from "./DataHealthPill.tsx";
 
 /**
  * ModuleCard — 诊断卡外壳 (9 张 stock diagnosis 卡统一抽).

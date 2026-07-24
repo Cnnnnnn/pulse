@@ -10,12 +10,12 @@
  */
 
 import { useEffect, useState } from 'preact/hooks';
-import { WorldcupView } from './WorldcupView.jsx';
-import { WorldcupTeamsView } from './WorldcupTeamsView.jsx';
-import { WorldcupScorersView } from './WorldcupScorersView.jsx';
-import { WorldcupBracketView } from './WorldcupBracketView.jsx';
-import { WorldcupHeader } from './WorldcupHeader.jsx';
-import SquadModal from './SquadModal.jsx';
+import { WorldcupView } from './WorldcupView.tsx';
+import { WorldcupTeamsView } from './WorldcupTeamsView.tsx';
+import { WorldcupScorersView } from './WorldcupScorersView.tsx';
+import { WorldcupBracketView } from './WorldcupBracketView.tsx';
+import { WorldcupHeader } from './WorldcupHeader.tsx';
+import SquadModal from './SquadModal.tsx';
 import {
   bootstrapWorldcupTab,
   refreshWorldcupScores,

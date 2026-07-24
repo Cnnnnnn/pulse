@@ -21,7 +21,7 @@ import {
   renameTag,
   deleteTag,
 } from "./gamesStore.js";
-import { ProgressBar } from "./ProgressBar.jsx";
+import { ProgressBar } from "./ProgressBar.tsx";
 
 function FolderRow({ folder, count, active, onSelect }) {
   const [menu, setMenu] = useState(null); // 'name' | 'target' | 'delete' | null

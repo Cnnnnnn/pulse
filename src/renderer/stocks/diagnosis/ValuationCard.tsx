@@ -1,5 +1,5 @@
-import { ModuleCard } from "./ModuleCard.jsx";
-import { IndustryCompareBar } from "./IndustryCompareBar.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
+import { IndustryCompareBar } from "./IndustryCompareBar.tsx";
 
 // ponytail: 2026-07-07 — fetcher 升级后 valuation 即使没 PE/PB 也能返 price (现价);
 //          card 拿 d.price 显出来, 避免 "数据不足" 出现但用户知道当前股价.

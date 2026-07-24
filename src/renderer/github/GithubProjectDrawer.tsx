@@ -23,9 +23,9 @@ import {
   hasDistinctHomepage,
 } from "../store/github-projects-store.ts";
 import { api } from "../api.js";
-import { GithubReadmeView } from "./GithubReadmeView.jsx";
-import { GithubAiParseView } from "./GithubAiParseView.jsx";
-import { GithubReleasesView } from "./GithubReleasesView.jsx";
+import { GithubReadmeView } from "./GithubReadmeView.tsx";
+import { GithubAiParseView } from "./GithubAiParseView.tsx";
+import { GithubReleasesView } from "./GithubReleasesView.tsx";
 
 export function GithubProjectDrawer({ projectId, initialTab = "readme", onClose }) {
   const [tab, setTab] = useState(

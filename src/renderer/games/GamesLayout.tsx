@@ -29,7 +29,7 @@ import {
   clearGamesNewFree,
   clearGamesNewDrop,
 } from "./gamesStore.js";
-import { GamesPage } from "./GamesPage.jsx";
+import { GamesPage } from "./GamesPage.tsx";
 import { createGamesCheckScheduler } from "./games-check-scheduler.js";
 import "./games.css";
 

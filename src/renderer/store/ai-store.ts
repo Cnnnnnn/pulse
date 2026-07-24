@@ -109,7 +109,7 @@ export async function refreshAIReadyStatus() {
   }
 }
 
-export async function loadAiTasks(dateKey) {
+export async function loadAiTasks(dateKey?: string) {
   const key =
     typeof dateKey === "string" && dateKey ? dateKey : aiTasksDateKey.value;
   const isDateSwitch = key !== aiTasksDateKey.value;

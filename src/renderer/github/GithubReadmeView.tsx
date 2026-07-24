@@ -6,7 +6,7 @@
  * 与 release notes 复用。本组件只保留骨架屏 + 空态。
  */
 
-import { GithubMarkdown } from "./GithubMarkdown.jsx";
+import { GithubMarkdown } from "./GithubMarkdown.tsx";
 
 export function GithubReadmeView({ markdown, loading }) {
   if (loading) {

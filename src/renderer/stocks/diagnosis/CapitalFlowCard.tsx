@@ -1,4 +1,4 @@
-import { ModuleCard } from "./ModuleCard.jsx";
+import { ModuleCard } from "./ModuleCard.tsx";
 
 // ponytail 2026-07-18 P0-1 T8: 透传 angle + onRefresh 给 ModuleCard
 //   (3 个早 return 也要带, 否则 failed 时 pill 不显示).

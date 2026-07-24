@@ -24,11 +24,11 @@ import {
   searchQuery,
   clearSearchQuery,
 } from "./gamesStore.js";
-import { CollectionHeader } from "./CollectionHeader.jsx";
-import { CollectibleCard } from "./CollectibleCard.jsx";
-import { UnlockToastStack } from "./UnlockToastStack.jsx";
-import { MilestoneFx } from "./MilestoneFx.jsx";
-import { UnlockHistoryPanel } from "./UnlockHistoryPanel.jsx";
+import { CollectionHeader } from "./CollectionHeader.tsx";
+import { CollectibleCard } from "./CollectibleCard.tsx";
+import { UnlockToastStack } from "./UnlockToastStack.tsx";
+import { MilestoneFx } from "./MilestoneFx.tsx";
+import { UnlockHistoryPanel } from "./UnlockHistoryPanel.tsx";
 
 /** 是否偏好减少动效（安全降级，无 matchMedia 环境返回 false）。 */
 export function prefersReducedMotion(): boolean {
