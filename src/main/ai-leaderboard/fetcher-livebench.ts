@@ -111,145 +111,150 @@ export function releaseToSlug(release: string): string {
   return release.replace(/-/g, "_");
 }
 
-export const livebenchFetcher = {
+// ponytail: 必须顶层 export fetch/normalize — 跟 arena/aa 同形。
+//   旧写法 `export const livebenchFetcher = { normalize }` + `module.exports = obj`
+//   经 esbuild 后变成 `{ livebenchFetcher: obj }`，aggregator 调 `.normalize` 会炸。
+export async function fetch(): Promise<any> {
+  const release = await latestRelease();
+  const slug = releaseToSlug(release);
+  const [tableRes, catRes, costRes] = await Promise.all([
+    fetchWithRetry(`${BASE}/table_${slug}.csv`),
+    fetchWithRetry(`${BASE}/categories_${slug}.json`),
+    // ponytail: cost CSV 旧 release 不一定有 (2024 release 全 404). best-effort, 失败不阻塞主表.
+    fetchWithRetry(`${BASE}/cost_${slug}.csv`, {}, 1).catch(() => null),
+  ]);
+  const [tableText, catText, costText] = await Promise.all([
+    tableRes.text(),
+    catRes.text(),
+    costRes ? costRes.text().catch(() => null) : Promise.resolve(null),
+  ]);
+  const categories = JSON.parse(catText);
+  const data: any = { release, table: parseCsv(tableText), categories };
+  if (costText) {
+    data.cost = parseCsv(costText); // 同 model 名 key 联合查
+  }
+  return { ok: true, data };
+}
+
+/**
+ * raw -> AiModel[] 切片
+ * 每个 AiModel.livebench = {
+ *   overall, byCategory: {...}, byTask: {...}, release,
+ *   cost?: { perSuccessfulTask, perQuestion, byTask: {...}, tokens, price }
+ * }
+ */
+export function normalize(raw: any): any[] {
+  if (!raw || !Array.isArray(raw.table) || !raw.categories) return [];
+  const { release, table, categories, cost } = raw;
+
+  // subtask -> category 反向索引
+  const taskToCat: Record<string, string> = {};
+  for (const [cat, tasks] of Object.entries(categories)) {
+    for (const t of tasks as string[]) taskToCat[t] = cat;
+  }
+
+  // cost 行按 model 名做 map, O(1) 查
+  const costByModel = new Map<string, any>();
+  if (Array.isArray(cost)) {
+    for (const row of cost) {
+      if (row && row.model) costByModel.set(row.model, row);
+    }
+  }
+
+  // ponytail: cost 字段白名单 — 避免把 nq_*/out_* 噪音字段全部塞进 livebench.cost.
+  // 想看原始 CSV? 直接 fetch cost_${slug}.csv. 这里只暴露消费侧需要的指标.
+  const COST_TASK_KEYS = Object.keys(categories).flatMap((c) => (categories[c] as string[]));
+
+  return table
+    .filter((row: any) => row.model && typeof row.model === "string")
+    .map((row: any) => {
+      const byTask: Record<string, number> = {};
+      const catScores: Record<string, number[]> = {};
+      for (const task of COST_TASK_KEYS) {
+        const v = row[task];
+        if (typeof v === "number" && Number.isFinite(v)) {
+          byTask[task] = v;
+          const cat = taskToCat[task];
+          if (cat) {
+            if (!catScores[cat]) catScores[cat] = [];
+            catScores[cat]!.push(v);
+          }
+        }
+      }
+      const byCatFinal: Record<string, number> = {};
+      for (const cat of Object.keys(catScores)) {
+        const arr = catScores[cat]!;
+        byCatFinal[cat] = arr.reduce((a, b) => a + b, 0) / arr.length;
+      }
+      const allScores = Object.values(byTask);
+      const overall =
+        allScores.length > 0
+          ? allScores.reduce((a, b) => a + b, 0) / allScores.length
+          : null;
+
+      // 拼 cost 子结构
+      const costRow = costByModel.get(row.model);
+      let costSlice: any = null;
+      if (costRow) {
+        const byTaskCost: Record<string, number> = {};
+        for (const task of COST_TASK_KEYS) {
+          const v = costRow[task];
+          if (typeof v === "number" && Number.isFinite(v)) byTaskCost[task] = v;
+        }
+        costSlice = {
+          perSuccessfulTask:
+            typeof costRow.cost_per_successful_task === "number"
+              ? costRow.cost_per_successful_task
+              : null,
+          perQuestion:
+            typeof costRow.cost_per_question === "number"
+              ? costRow.cost_per_question
+              : null,
+          byTask: byTaskCost,
+          tokens:
+            typeof costRow.avg_input_tokens === "number" &&
+            typeof costRow.avg_output_tokens === "number"
+              ? {
+                  input: costRow.avg_input_tokens,
+                  output: costRow.avg_output_tokens,
+                }
+              : null,
+          price:
+            typeof costRow.input_price_per_million === "number" &&
+            typeof costRow.output_price_per_million === "number"
+              ? {
+                  inputPer1M: costRow.input_price_per_million,
+                  outputPer1M: costRow.output_price_per_million,
+                }
+              : null,
+        };
+      }
+
+      return {
+        id: row.model,
+        name: row.model,
+        vendor: normalizeVendor(row.model),
+        vendorRaw: null,
+        category: "llm",
+        livebench: {
+          overall,
+          byCategory: byCatFinal,
+          byTask,
+          release,
+          cost: costSlice,
+          fetchedAt: new Date().toISOString(),
+        },
+        sources: { livebench: SOURCE.LIVE },
+      };
+    });
+}
+
+module.exports = {
   id: "livebench",
   source: SOURCE.LIVE,
   attribution: ATTRIBUTION.livebench,
-
-  async fetch(): Promise<any> {
-    const release = await latestRelease();
-    const slug = releaseToSlug(release);
-    const [tableRes, catRes, costRes] = await Promise.all([
-      fetchWithRetry(`${BASE}/table_${slug}.csv`),
-      fetchWithRetry(`${BASE}/categories_${slug}.json`),
-      // ponytail: cost CSV 旧 release 不一定有 (2024 release 全 404). best-effort, 失败不阻塞主表.
-      fetchWithRetry(`${BASE}/cost_${slug}.csv`, {}, 1).catch(() => null),
-    ]);
-    const [tableText, catText, costText] = await Promise.all([
-      tableRes.text(),
-      catRes.text(),
-      costRes ? costRes.text().catch(() => null) : Promise.resolve(null),
-    ]);
-    const categories = JSON.parse(catText);
-    const data: any = { release, table: parseCsv(tableText), categories };
-    if (costText) {
-      data.cost = parseCsv(costText); // 同 model 名 key 联合查
-    }
-    return { ok: true, data };
-  },
-
-  /**
-   * raw -> AiModel[] 切片
-   * 每个 AiModel.livebench = {
-   *   overall, byCategory: {...}, byTask: {...}, release,
-   *   cost?: { perSuccessfulTask, perQuestion, byTask: {...}, tokens, price }
-   * }
-   */
-  normalize(raw: any): any[] {
-    if (!raw || !Array.isArray(raw.table) || !raw.categories) return [];
-    const { release, table, categories, cost } = raw;
-
-    // subtask -> category 反向索引
-    const taskToCat: Record<string, string> = {};
-    for (const [cat, tasks] of Object.entries(categories)) {
-      for (const t of tasks as string[]) taskToCat[t] = cat;
-    }
-
-    // cost 行按 model 名做 map, O(1) 查
-    const costByModel = new Map<string, any>();
-    if (Array.isArray(cost)) {
-      for (const row of cost) {
-        if (row && row.model) costByModel.set(row.model, row);
-      }
-    }
-
-    // ponytail: cost 字段白名单 — 避免把 nq_*/out_* 噪音字段全部塞进 livebench.cost.
-    // 想看原始 CSV? 直接 fetch cost_${slug}.csv. 这里只暴露消费侧需要的指标.
-    const COST_TASK_KEYS = Object.keys(categories).flatMap((c) => (categories[c] as string[]));
-
-    return table
-      .filter((row: any) => row.model && typeof row.model === "string")
-      .map((row: any) => {
-        const byTask: Record<string, number> = {};
-        const catScores: Record<string, number[]> = {};
-        for (const task of COST_TASK_KEYS) {
-          const v = row[task];
-          if (typeof v === "number" && Number.isFinite(v)) {
-            byTask[task] = v;
-            const cat = taskToCat[task];
-            if (cat) {
-              if (!catScores[cat]) catScores[cat] = [];
-              catScores[cat]!.push(v);
-            }
-          }
-        }
-        const byCatFinal: Record<string, number> = {};
-        for (const cat of Object.keys(catScores)) {
-          const arr = catScores[cat]!;
-          byCatFinal[cat] = arr.reduce((a, b) => a + b, 0) / arr.length;
-        }
-        const allScores = Object.values(byTask);
-        const overall =
-          allScores.length > 0
-            ? allScores.reduce((a, b) => a + b, 0) / allScores.length
-            : null;
-
-        // 拼 cost 子结构
-        const costRow = costByModel.get(row.model);
-        let costSlice: any = null;
-        if (costRow) {
-          const byTaskCost: Record<string, number> = {};
-          for (const task of COST_TASK_KEYS) {
-            const v = costRow[task];
-            if (typeof v === "number" && Number.isFinite(v)) byTaskCost[task] = v;
-          }
-          costSlice = {
-            perSuccessfulTask:
-              typeof costRow.cost_per_successful_task === "number"
-                ? costRow.cost_per_successful_task
-                : null,
-            perQuestion:
-              typeof costRow.cost_per_question === "number"
-                ? costRow.cost_per_question
-                : null,
-            byTask: byTaskCost,
-            tokens:
-              typeof costRow.avg_input_tokens === "number" &&
-              typeof costRow.avg_output_tokens === "number"
-                ? {
-                    input: costRow.avg_input_tokens,
-                    output: costRow.avg_output_tokens,
-                  }
-                : null,
-            price:
-              typeof costRow.input_price_per_million === "number" &&
-              typeof costRow.output_price_per_million === "number"
-                ? {
-                    inputPer1M: costRow.input_price_per_million,
-                    outputPer1M: costRow.output_price_per_million,
-                  }
-                : null,
-          };
-        }
-
-        return {
-          id: row.model,
-          name: row.model,
-          vendor: normalizeVendor(row.model),
-          vendorRaw: null,
-          category: "llm",
-          livebench: {
-            overall,
-            byCategory: byCatFinal,
-            byTask,
-            release,
-            cost: costSlice,
-            fetchedAt: new Date().toISOString(),
-          },
-          sources: { livebench: SOURCE.LIVE },
-        };
-      });
-  },
+  fetch,
+  normalize,
+  parseCsv,
+  releaseToSlug,
 };
-
-module.exports = livebenchFetcher;
