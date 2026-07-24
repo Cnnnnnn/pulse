@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/preact";
-import { ModuleGrid } from "../../../../src/renderer/stocks/diagnosis/ModuleGrid.jsx";
+import { ModuleGrid } from "../../../../src/renderer/stocks/diagnosis/ModuleGrid.tsx";
 
 describe("ModuleGrid", () => {
   it("数据齐全渲染各模块", () => {

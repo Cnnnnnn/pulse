@@ -5,7 +5,7 @@
 //   漏掉 angle/onRefresh, 立刻被 CI 抓到.
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/preact";
-import { ModuleGrid } from "../../../../src/renderer/stocks/diagnosis/ModuleGrid.jsx";
+import { ModuleGrid } from "../../../../src/renderer/stocks/diagnosis/ModuleGrid.tsx";
 
 const recent = Date.now() - 1000;
 

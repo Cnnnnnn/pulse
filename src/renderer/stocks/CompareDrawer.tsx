@@ -70,7 +70,7 @@ function MiniDim({ value }) {
   );
 }
 
-function FinCell({ value, format }) {
+function FinCell({ value, format }: { value: any; format?: (v: any) => any }) {
   const v = value == null || value === "" ? null : value;
   const text = v == null ? "—" : (format ? format(v) : fmtNum(v));
   return (

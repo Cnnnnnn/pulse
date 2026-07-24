@@ -1,5 +1,5 @@
 /**
- * src/renderer/stocks/AiAdviseDrawer.jsx
+ * src/renderer/stocks/AiAdviseDrawer.tsx
  *
  * 阶段二: AI 推荐策略抽屉 — 6 个预设 chip + 可选自由文本 → 生成预览 → 应用.
  * 走 stockStore.requestAiAdvise / applyAiAdvise (signal-driven).

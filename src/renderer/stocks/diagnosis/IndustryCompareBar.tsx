@@ -21,6 +21,14 @@ export function IndustryCompareBar({
   higherIsBetter,
   formatMine,
   formatIndustry,
+}: {
+  label: any;
+  mine?: any;
+  industry?: any;
+  percentile?: any;
+  higherIsBetter?: any;
+  formatMine?: (v: any) => any;
+  formatIndustry?: (v: any) => any;
 }) {
   const fmtVal = formatMine || ((v) => fmtNum(v));
   const fmtInd = formatIndustry || fmtVal;

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/preact";
-import { ExportDiagnosisButton } from "../../../../src/renderer/stocks/diagnosis/ExportDiagnosisButton.jsx";
+import { ExportDiagnosisButton } from "../../../../src/renderer/stocks/diagnosis/ExportDiagnosisButton.tsx";
 
 describe("ExportDiagnosisButton", () => {
   it("bridge 可用: 点击触发 api.stocksExportDiagnosisPng + ok 状态时不报错", async () => {

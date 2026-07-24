@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
-import { AddToCompareButton } from "../../../src/renderer/stocks/AddToCompareButton.jsx";
+import { AddToCompareButton } from "../../../src/renderer/stocks/AddToCompareButton.tsx";
 import {
   toggleCompare,
   clearCompare,

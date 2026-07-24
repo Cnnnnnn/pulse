@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
-import { ResultTable } from "../../../src/renderer/stocks/ResultTable.jsx";
+import { ResultTable } from "../../../src/renderer/stocks/ResultTable.tsx";
 import { results } from "../../../src/renderer/stocks/stockStore.js";
 import { stockDiagnosisCode, stockActiveTab } from "../../../src/renderer/stocks/diagnosisStore.js";
 

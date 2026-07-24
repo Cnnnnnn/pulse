@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/preact";
-import { ModuleCard } from "../../../../src/renderer/stocks/diagnosis/ModuleCard.jsx";
+import { ModuleCard } from "../../../../src/renderer/stocks/diagnosis/ModuleCard.tsx";
 
 describe("ModuleCard with angle", () => {
   it("renders DataHealthPill when angle prop given", () => {

@@ -39,7 +39,7 @@ export function ExportDiagnosisButton({ api, code, stockName }) {
     if (root) root.classList.add("is-exporting");
     setBusy(true);
     // 等 1 帧让 .is-exporting 的隐藏规则生效
-    await new Promise((r) => requestAnimationFrame(() => r()));
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
     try {
       const r = await api.stocksExportDiagnosisPng({
         defaultName: buildDefaultName(code, stockName),

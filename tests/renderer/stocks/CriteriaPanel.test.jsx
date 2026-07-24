@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
-import { CriteriaPanel } from "../../../src/renderer/stocks/CriteriaPanel.jsx";
+import { CriteriaPanel } from "../../../src/renderer/stocks/CriteriaPanel.tsx";
 import {
   criteria,
   advancedOpen,

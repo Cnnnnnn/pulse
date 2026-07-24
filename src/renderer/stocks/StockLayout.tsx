@@ -1,5 +1,5 @@
 /**
- * src/renderer/stocks/StockLayout.jsx
+ * src/renderer/stocks/StockLayout.tsx
  *
  * 选股 tab 容器 (对照 FundLayout). 两个子 tab (照搬世界杯 segmented control):
  *   - screen      筛选 (StrategyBar + CriteriaPanel + ResultTable)
@@ -22,16 +22,16 @@
  *   StockContent 不再渲染 nav-level 控件, 只渲染 panel body + 静默刷新 + drawer.
  */
 import { useEffect } from "preact/hooks";
-import { StrategyBar } from "./StrategyBar.jsx";
-import { CriteriaPanel } from "./CriteriaPanel.jsx";
-import { ResultTable } from "./ResultTable.jsx";
-import { AiAdviseDrawer } from "./AiAdviseDrawer.jsx";
-import { CompareDrawer } from "./CompareDrawer.jsx";
-import { ComparePoolButton } from "./ComparePoolButton.jsx";
+import { StrategyBar } from "./StrategyBar.tsx";
+import { CriteriaPanel } from "./CriteriaPanel.tsx";
+import { ResultTable } from "./ResultTable.tsx";
+import { AiAdviseDrawer } from "./AiAdviseDrawer.tsx";
+import { CompareDrawer } from "./CompareDrawer.tsx";
+import { ComparePoolButton } from "./ComparePoolButton.tsx";
 import { IconSearch, IconSparkles } from "../components/icons.tsx";
 import { stockActiveTab, diagnosisState } from "./diagnosisStore.js";
-import { StockDiagnosisPage } from "./StockDiagnosisPage.jsx";
-import { DataHealthBadge } from "./diagnosis/DataHealthBadge.jsx";
+import { StockDiagnosisPage } from "./StockDiagnosisPage.tsx";
+import { DataHealthBadge } from "./diagnosis/DataHealthBadge.tsx";
 // ponytail 2026-07-18 P0-1 T7 fixup: 加载 stock 模块专属样式 (.data-health-badge 等).
 //   跟 src/renderer/games/games.css 模式一致.
 import "./stocks.css";

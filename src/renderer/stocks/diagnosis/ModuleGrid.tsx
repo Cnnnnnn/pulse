@@ -27,7 +27,7 @@ function mergeRisks(basic, ai) {
   const aiRisks = Array.isArray(ai) ? ai : [];
   if (aiRisks.length === 0) return basic;
   // 简单去重: 包含子串算重复. LLM 通常用词比规则版长, 包含关系是常见形态.
-  const seen = new Set();
+  const seen = new Set<string>();
   const out = [];
   for (const r of [...basic, ...aiRisks]) {
     if (!r || typeof r !== "string") continue;

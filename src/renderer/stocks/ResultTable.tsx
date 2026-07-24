@@ -1,5 +1,5 @@
 /**
- * src/renderer/stocks/ResultTable.jsx
+ * src/renderer/stocks/ResultTable.tsx
  *
  * 结果表格 — 列头可排序.
  * 对照 spec §6.4. 涨跌用红绿 (A 股惯例: 红涨绿跌; 这里用项目既有 up/down 语义).
@@ -22,7 +22,7 @@ import {
 import { openDiagnosis } from "./diagnosisStore.js";
 import { PanelEmpty } from "../components/EmptyState.tsx";
 import { IconWand } from "../components/icons.tsx";
-import { AddToCompareButton } from "./AddToCompareButton.jsx";
+import { AddToCompareButton } from "./AddToCompareButton.tsx";
 
 const COLUMNS = [
   { key: "name", label: "名称/代码", align: "left" },

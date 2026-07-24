@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
-import { StrategyBar } from "../../../src/renderer/stocks/StrategyBar.jsx";
+import { StrategyBar } from "../../../src/renderer/stocks/StrategyBar.tsx";
 import {
   activeStrategy,
   criteria,

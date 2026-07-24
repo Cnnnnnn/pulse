@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
-import { StockDiagnosisPage } from "../../../src/renderer/stocks/StockDiagnosisPage.jsx";
+import { StockDiagnosisPage } from "../../../src/renderer/stocks/StockDiagnosisPage.tsx";
 import { stockDiagnosisCode, diagnosisState, diagnosisStock, closeDiagnosis } from "../../../src/renderer/stocks/diagnosisStore.js";
 
 afterEach(() => { cleanup(); closeDiagnosis(); });

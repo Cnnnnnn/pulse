@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/preact";
-import { DataHealthPill } from "../../../../src/renderer/stocks/diagnosis/DataHealthPill.jsx";
+import { DataHealthPill } from "../../../../src/renderer/stocks/diagnosis/DataHealthPill.tsx";
 
 const NOW = 1_700_000_000_000;
 const recent = NOW - 1000;

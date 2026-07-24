@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
-import { AiAdviseDrawer } from "../../../src/renderer/stocks/AiAdviseDrawer.jsx";
+import { AiAdviseDrawer } from "../../../src/renderer/stocks/AiAdviseDrawer.tsx";
 import {
   aiAdvise,
   aiAdviseOpen,

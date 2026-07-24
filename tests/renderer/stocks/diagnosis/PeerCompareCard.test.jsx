@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/preact";
-import { PeerCompareCard } from "../../../../src/renderer/stocks/diagnosis/PeerCompareCard.jsx";
+import { PeerCompareCard } from "../../../../src/renderer/stocks/diagnosis/PeerCompareCard.tsx";
 
 describe("PeerCompareCard", () => {
   it("data 缺失显示「数据不足」", () => {

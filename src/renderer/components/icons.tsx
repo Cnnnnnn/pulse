@@ -389,9 +389,9 @@ export function IconEdit({ size = 14 }) {
   );
 }
 
-export function IconAlert({ size = 14 }) {
+export function IconAlert({ size = 14, class: cls }: { size?: number; class?: string }) {
   return (
-    <Svg size={size}>
+    <Svg size={size} class={cls}>
       <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
       <line x1="12" y1="9" x2="12" y2="13" />
       <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -467,9 +467,9 @@ export function IconInfo({ size = 14 }) {
   );
 }
 
-export function IconCheck({ size = 14 }) {
+export function IconCheck({ size = 14, class: cls }: { size?: number; class?: string }) {
   return (
-    <Svg size={size}>
+    <Svg size={size} class={cls}>
       <polyline points="20 6 9 17 4 12" />
     </Svg>
   );
@@ -484,9 +484,9 @@ export function IconX({ size = 14 }) {
   );
 }
 
-export function IconSparkles({ size = 14 }) {
+export function IconSparkles({ size = 14, class: cls }: { size?: number; class?: string }) {
   return (
-    <Svg size={size}>
+    <Svg size={size} class={cls}>
       <path d="M12 3l1.2 4.2L17 8.5l-3.8 1.3L12 14l-1.2-4.2L7 8.5l3.8-1.3L12 3z" />
       <path d="M5 14l.8 2.8L8.5 18l-2.7.9L5 22l-.8-3.1L1.5 18l2.7-.9L5 14z" />
     </Svg>

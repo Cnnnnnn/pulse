@@ -1,14 +1,14 @@
 import { stockDiagnosisCode, diagnosisState, diagnosisStock, loadDiagnosis, refreshAngle, reloadAngle, refreshingAngles, failedAngles } from "./diagnosisStore.js";
 import { closeDiagnosis } from "./diagnosisStore.js";
-import { VerdictCard } from "./diagnosis/VerdictCard.jsx";
-import { DimensionScores } from "./diagnosis/DimensionScores.jsx";
-import { ModuleGrid } from "./diagnosis/ModuleGrid.jsx";
-import { DataGapsIndicator } from "./diagnosis/DataGapsIndicator.jsx";
-import { LastDiagnosisBadge } from "./diagnosis/LastDiagnosisBadge.jsx";
-import { DiagnosisSkeleton } from "./diagnosis/DiagnosisSkeleton.jsx";
-import { ExportDiagnosisButton } from "./diagnosis/ExportDiagnosisButton.jsx";
-import { AddToCompareButton } from "./AddToCompareButton.jsx";
-import { StockSearchInput } from "./StockSearchInput.jsx";
+import { VerdictCard } from "./diagnosis/VerdictCard.tsx";
+import { DimensionScores } from "./diagnosis/DimensionScores.tsx";
+import { ModuleGrid } from "./diagnosis/ModuleGrid.tsx";
+import { DataGapsIndicator } from "./diagnosis/DataGapsIndicator.tsx";
+import { LastDiagnosisBadge } from "./diagnosis/LastDiagnosisBadge.tsx";
+import { DiagnosisSkeleton } from "./diagnosis/DiagnosisSkeleton.tsx";
+import { ExportDiagnosisButton } from "./diagnosis/ExportDiagnosisButton.tsx";
+import { AddToCompareButton } from "./AddToCompareButton.tsx";
+import { StockSearchInput } from "./StockSearchInput.tsx";
 
 const RATING_LABEL = (s) => (s == null ? "数据不足" : s >= 7.5 ? "强烈" : s >= 6 ? "中性偏强" : s >= 4 ? "中性" : "偏弱");
 

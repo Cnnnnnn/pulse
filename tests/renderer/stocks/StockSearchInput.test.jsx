@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, cleanup, act } from "@testing-library/preact";
-import { StockSearchInput } from "../../../src/renderer/stocks/StockSearchInput.jsx";
+import { StockSearchInput } from "../../../src/renderer/stocks/StockSearchInput.tsx";
 import {
   stockDiagnosisCode,
   stockActiveTab,

@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, waitFor } from "@testing-library/preact";
-import { CompareDrawer } from "../../../src/renderer/stocks/CompareDrawer.jsx";
+import { CompareDrawer } from "../../../src/renderer/stocks/CompareDrawer.tsx";
 import {
   comparePool,
   compareDrawerOpen,

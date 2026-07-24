@@ -1,5 +1,5 @@
 /**
- * src/renderer/stocks/StockSearchInput.jsx
+ * src/renderer/stocks/StockSearchInput.tsx
  *
  * 个股分析 tab 顶部搜索框 (输入代码/名称 → 联想下拉 → 选中诊断).
  *
@@ -91,7 +91,7 @@ export function StockSearchInput({ api }) {
         class="stock-search-input"
         placeholder="输入股票代码或名称，如 600519 / 茅台"
         value={query}
-        onInput={(e) => setQuery(e.target.value)}
+        onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
         onFocus={() => {
           if (query.trim().length >= MIN_QUERY_LEN) setOpen(true);
         }}

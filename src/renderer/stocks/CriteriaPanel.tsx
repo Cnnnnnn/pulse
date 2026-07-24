@@ -1,5 +1,5 @@
 /**
- * src/renderer/stocks/CriteriaPanel.jsx
+ * src/renderer/stocks/CriteriaPanel.tsx
  *
  * 精简条件区 — 默认露 PE/ROE/市值, 高级折叠 PB/股息/换手/动量.
  * 改任何条件 → setCriteria → 自动切 custom.
@@ -20,7 +20,7 @@ import {
 import { MARKET_CAP_TIERS } from "../../stocks/stock-constants";
 import { IconSettings } from "../components/icons.tsx";
 
-function RangeInput({ label, minKey, maxKey, suffix }) {
+function RangeInput({ label, minKey, maxKey, suffix }: { label: any; minKey: any; maxKey: any; suffix?: any }) {
   const c = criteria.value;
   const numOrNull = (v) => (v === "" ? null : Number(v));
   return (
@@ -52,7 +52,7 @@ function RangeInput({ label, minKey, maxKey, suffix }) {
   );
 }
 
-function MinInput({ label, minKey, suffix }) {
+function MinInput({ label, minKey, suffix }: { label: any; minKey: any; suffix?: any }) {
   const c = criteria.value;
   const numOrNull = (v) => (v === "" ? null : Number(v));
   return (
@@ -82,7 +82,7 @@ function IndustryChips() {
   // ponytail: 收集所有出现过的 industry, 按字母/中文拼音排. 缺数据的票可能没 industry,
   // 跳过 (空字符串). 用 useMemo 缓存, results 引用变才重算.
   const allIndustries = useMemo(() => {
-    const set = new Set();
+    const set = new Set<string>();
     for (const r of results.value) {
       if (r && r.industry) set.add(r.industry);
     }
@@ -125,7 +125,7 @@ function IndustryChips() {
         行业 {isAll ? `(全部 ${allIndustries.length})` : `(已选 ${selected.length}/${allIndustries.length})`}
       </span>
       <div class="stock-criteria-industries-chips">
-        {allIndustries.map((name) => {
+        {allIndustries.map((name: string) => {
           const active = !isAll && selected.includes(name);
           return (
             <button
