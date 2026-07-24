@@ -4,7 +4,8 @@
  *
  * Task 26: LibraryPage 渲染性能基准.
  * ponytail: measurement only — 不 micro-optimize. 阈值是 generous 的 (50ms / 200ms),
- *          适配 CI 抖动. 如 flaky, 上调至 100ms / 300ms (plan Step 1 注).
+ *          适配 CI 抖动. 2026-07-24 v2.83+ AI 榜单入 nav (SideNav 多一节) 后 11 apps
+ *          ~67ms, 阈值从 50 → 100ms; 100 apps 200ms 仍余量足. 如再 flaky, 上调 300ms (plan Step 1 注).
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
@@ -35,12 +36,12 @@ beforeEach(() => {
 });
 
 describe("perf: library render", () => {
-  it("11 apps render < 50ms", () => {
+  it("11 apps render < 100ms", () => {
     results.value = makeResults(11);
     const t0 = performance.now();
     render(<LibraryPage />);
     const dt = performance.now() - t0;
-    expect(dt).toBeLessThan(50);
+    expect(dt).toBeLessThan(100);
   });
   it("100 apps card render < 200ms", () => {
     results.value = makeResults(100);

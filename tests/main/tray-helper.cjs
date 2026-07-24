@@ -45,7 +45,8 @@ require.cache[electronPath] = {
   },
 };
 
-const trayModulePath = path.resolve(__dirname, '../../src/main/tray.ts');
+// Phase 3: 真相在 .ts; helper 跑独立 node 进程走 dist-test/.cjs (build-main-ts.cjs 已编译).
+const trayModulePath = path.resolve(__dirname, '../../dist-test/main/per-file/tray.cjs');
 const tray = require(trayModulePath);
 
 const icon = tray._internal.loadTrayIcon();

@@ -97,13 +97,33 @@ export const api = {
   tokenBudgetSet: (payload: unknown) => ipcRenderer.invoke("token-budget:set", payload),
   configExport: (pulseVersion: string = "") =>
     ipcRenderer.invoke("config:export", pulseVersion) as Promise<{ ok: boolean; path?: string; sizeBytes?: number; reason?: string; error?: string } | null>,
-  configImportLoad: () => ipcRenderer.invoke("config:import-load") as Promise<{ ok: boolean; path?: string; fields?: any; diff?: any; reason?: string; error?: string } | null>,
+  configImportLoad: () =>
+    ipcRenderer.invoke("config:import-load") as Promise<
+      | {
+          ok: boolean;
+          path?: string;
+          fields?: unknown;
+          diff?: unknown;
+          reason?: string;
+          error?: string;
+        }
+      | null
+    >,
   configImportApply: (payload: unknown) =>
     ipcRenderer.invoke("config:import-apply", payload),
   onAiPromptsUpdated: (cb: () => void) => {
     const handler = (_evt: IpcRendererEvent) => cb();
     ipcRenderer.on("ai-prompts-updated", handler);
     return () => ipcRenderer.removeListener("ai-prompts-updated", handler);
+  },
+
+  // P10: 主题切换顶层 bridge (renderer/index.tsx bootstrap + theme-manager 都用)
+  // 同时也在 metalsApi 里留一份以兼容早期 theme-manager 直接用 window.metalsApi.themeSet 的代码.
+  themeSet: (mode: string) => ipcRenderer.invoke("theme:set", mode),
+  onThemeChanged: (cb: Callback) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+    ipcRenderer.on("theme:changed", handler);
+    return () => ipcRenderer.removeListener("theme:changed", handler);
   },
 
   // v2.13 AI 用量 (Minimax coding plan)
@@ -425,7 +445,8 @@ export const metalsApi = {
     return () => ipcRenderer.removeListener("metals:history:changed", handler);
   },
 
-  // P10: 主题切换 IPC 桥接
+  // P10: 主题切换 IPC 桥接 (顶层 themeSet / onThemeChanged 在 api 上重复暴露,
+  // 这里保留方便 theme-manager 之类直接走 metalsApi 的代码).
   themeGet: () => ipcRenderer.invoke("theme:get"),
   themeSet: (mode: string) => ipcRenderer.invoke("theme:set", mode),
   onThemeChanged: (cb: Callback) => {

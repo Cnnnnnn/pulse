@@ -174,7 +174,8 @@ describe("LeaderboardTable 渲染", () => {
 
     const r2 = render(<LeaderboardTable rows={lbModels} view="livebench" />);
     const t2 = r2.container.querySelector(".ai-lb-table");
-    expect(t2.querySelectorAll(".ai-lb-th--sortable").length).toBe(5);
+    // ponytail: LiveBench 7 列: overall / coding / language / instfollow / reasoning / math / cost.
+    expect(t2.querySelectorAll(".ai-lb-th--sortable").length).toBe(7);
   });
 
   it("TopPodium 渲染前三名", () => {

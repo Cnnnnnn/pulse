@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
-const { requireMain } = require("../_setup/require-main.cjs");
+const { requireMain, requireConfig } = require("../_setup/require-main.cjs");
 
 const MAIN_DIR = join(fileURLToPath(import.meta.url), '../../../src/main/');
 const CONFIG_DIR = join(fileURLToPath(import.meta.url), '../../../src/config/');
@@ -59,7 +59,7 @@ describe('config module load smoke', () => {
   let files = [];
   try {
     files = readdirSync(CONFIG_DIR)
-      .filter((f) => f.endsWith('.js') || f.endsWith('.ts'))
+      .filter((f) => f.endsWith('.ts'))
       .filter((f) => !f.includes('test') && !f.includes('spec'))
       .sort();
   } catch {
@@ -77,7 +77,8 @@ describe('config module load smoke', () => {
     it(`src/config/${f} can be required without error`, () => {
       let err = null;
       try {
-        require(join(CONFIG_DIR, f));
+        // Phase 5 Batch A 起真相在 .ts; 测试走 dist-test/.cjs (.js shim 不再存在).
+        requireConfig(f.replace(/\.ts$/, ''));
       } catch (e) {
         err = e;
       }

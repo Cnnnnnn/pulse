@@ -68,8 +68,10 @@ describe("createApi pick() dev warn", () => {
     api.versionsRunCheck();
     expect(warnMessagesFor("versionsRunCheck").length).toBe(1);
 
-    // 行为: 返 noop, 调用不报错.
-    expect(api.versionsRunCheck()).toBeUndefined();
+    // 行为: 返 noop, 调用不报错. noop = () => Promise.resolve(undefined).
+    const ret = api.versionsRunCheck();
+    expect(ret).toBeInstanceOf(Promise);
+    await expect(ret).resolves.toBeUndefined();
 
     // warn 文本含引导信息.
     expect(warnMessagesFor("versionsRunCheck")[0]).toMatch(/preload\.js/);
@@ -89,8 +91,13 @@ describe("createApi pick() dev warn", () => {
   it("生产模式下缺 bridge 不 warn, 返 noop", async () => {
     const { createApi } = await loadApiFresh("production");
     const api = createApi();
-    expect(api.versionsRunCheck()).toBeUndefined();
-    expect(api.versionsRunCheck()).toBeUndefined();
+    // noop = () => Promise.resolve(undefined).
+    const r1 = api.versionsRunCheck();
+    const r2 = api.versionsRunCheck();
+    expect(r1).toBeInstanceOf(Promise);
+    expect(r2).toBeInstanceOf(Promise);
+    await expect(r1).resolves.toBeUndefined();
+    await expect(r2).resolves.toBeUndefined();
     expect(warnMessagesFor("versionsRunCheck").length).toBe(0);
     expect(warnSpy).not.toHaveBeenCalled();
   });
