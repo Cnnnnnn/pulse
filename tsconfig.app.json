@@ -16,6 +16,7 @@
     "src/main/**/*.js",
     "src/config/**/*.ts",
     "src/utils/**/*.ts",
+    "src/detectors/**/*.ts",
     "src/workers/**/*.js",
     "src/**/*.js"
   ],

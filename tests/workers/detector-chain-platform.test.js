@@ -28,7 +28,7 @@ describe('detector-chain platform filtering', () => {
 
   it('DetectContext 带 platform 字段', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/detectors/base.js'),
+      join(__dirname, '../../src/detectors/base.ts'),
       'utf-8',
     );
     expect(src).toMatch(/platform/);
