@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/preact";
-import { Sparkline } from "../../../src/renderer/components/Sparkline.jsx";
+import { Sparkline } from "../../../src/renderer/components/Sparkline.tsx";
 
 describe("Sparkline", () => {
   it("空 closes 数组不渲染任何 svg", () => {

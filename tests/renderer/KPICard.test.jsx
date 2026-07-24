@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/preact";
-import { KPICard } from "../../src/renderer/components/KPICard.jsx";
+import { KPICard } from "../../src/renderer/components/KPICard.tsx";
 
 describe("KPICard", () => {
   it("渲染 label + value", () => {

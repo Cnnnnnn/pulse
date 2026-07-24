@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/preact";
 import { resetCheck, applyProgress } from "../../src/renderer/store.ts";
-import { AppCard } from "../../src/renderer/components/AppCard.jsx";
+import { AppCard } from "../../src/renderer/components/AppCard.tsx";
 
 function makeResult(over) {
   return {

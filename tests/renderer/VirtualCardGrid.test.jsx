@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
-import { VirtualCardGrid } from "../../src/renderer/components/VirtualCardGrid.jsx";
+import { VirtualCardGrid } from "../../src/renderer/components/VirtualCardGrid.tsx";
 
 vi.mock("../../src/renderer/store.ts", async () => {
   const { signal } = await import("@preact/signals");

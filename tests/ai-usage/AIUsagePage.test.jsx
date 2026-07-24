@@ -66,7 +66,7 @@ vi.mock("../../src/renderer/store/ai-usage-store.ts", () => ({
 }));
 
 const { AIUsagePage } = await import(
-  "../../src/renderer/components/AIUsagePage.jsx"
+  "../../src/renderer/components/AIUsagePage.tsx"
 );
 
 const NOW = Date.now();

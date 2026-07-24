@@ -50,7 +50,7 @@ describe('BulkUpgradeModal — SOURCE_LABELS (P3 winget_show)', () => {
   // 验证常量定义存在. 这是 SOURCE_LABELS 本身的 contract, 跟实现细节无关.
   it('SOURCE_LABELS 包含 winget_show → "winget" 标签', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/renderer/components/BulkUpgradeModal.jsx'),
+      join(__dirname, '../../src/renderer/components/BulkUpgradeModal.tsx'),
       'utf-8',
     );
     expect(src).toMatch(/winget_show:\s*['"]winget['"]/);
@@ -58,7 +58,7 @@ describe('BulkUpgradeModal — SOURCE_LABELS (P3 winget_show)', () => {
 
   it('NON_UPGRADABLE 集合不含 winget_show (winget 是可升级路径)', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/renderer/components/BulkUpgradeModal.jsx'),
+      join(__dirname, '../../src/renderer/components/BulkUpgradeModal.tsx'),
       'utf-8',
     );
     const match = src.match(/const NON_UPGRADABLE = new Set\(([^)]+)\)/);

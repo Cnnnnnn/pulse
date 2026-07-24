@@ -9,7 +9,7 @@
 
 import { describe, test, expect, beforeEach } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
-const { UsageDashboard } = await import("../../src/renderer/components/UsageDashboard.jsx");
+const { UsageDashboard } = await import("../../src/renderer/components/UsageDashboard.tsx");
 
 beforeEach(cleanup);
 

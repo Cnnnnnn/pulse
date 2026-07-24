@@ -66,7 +66,7 @@ vi.mock('../../src/renderer/store/trayConfigStore.ts', () => ({
   },
 }));
 
-const { SideNav } = await import('../../src/renderer/components/SideNav.jsx');
+const { SideNav } = await import('../../src/renderer/components/SideNav.tsx');
 
 beforeEach(() => {
   mockActiveNav = 'news';

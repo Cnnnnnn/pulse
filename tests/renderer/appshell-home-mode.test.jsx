@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const APPSHELL_SRC = readFileSync(
-  resolve('src/renderer/components/AppShell.jsx'),
+  resolve('src/renderer/components/AppShell.tsx'),
   'utf8',
 );
 
@@ -43,7 +43,7 @@ describe('AppShell home 模式 — 行为契约', () => {
   it('SideNav 顶部 🏠 按钮仍在 (panel 模式回 home 入口)', async () => {
     // 直接验证 SideNav.jsx 源码
     const sidenavSrc = readFileSync(
-      resolve('src/renderer/components/SideNav.jsx'),
+      resolve('src/renderer/components/SideNav.tsx'),
       'utf8',
     );
     expect(sidenavSrc).toMatch(/setActiveNav\(['"]home['"]\)/);
@@ -56,7 +56,7 @@ describe('AppShell home 模式 — SideNav 🏠 按钮 (行为契约 + 单元)',
     const { render, fireEvent } = await import('@testing-library/preact');
     const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
 
-    const { SideNav } = await import('../../src/renderer/components/SideNav.jsx');
+    const { SideNav } = await import('../../src/renderer/components/SideNav.tsx');
     activeNav.value = 'ithome';
 
     const { container } = render(<SideNav />);

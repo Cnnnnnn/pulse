@@ -43,7 +43,7 @@ import {
   watchlistItems,
   watchlistModalOpen,
 } from "../../src/renderer/watchlist/watchlist-store.ts";
-import { WatchlistModal } from "../../src/renderer/components/WatchlistModal.jsx";
+import { WatchlistModal } from "../../src/renderer/components/WatchlistModal.tsx";
 
 beforeEach(() => {
   cleanup();

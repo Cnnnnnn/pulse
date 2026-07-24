@@ -796,7 +796,7 @@ export function exportGithubData() {
  * @param {string} jsonString
  * @returns {{ok:boolean, imported?:number, skipped?:number, reason?:string}}
  */
-export function importGithubData(jsonString) {
+export function importGithubData(jsonString: string): { ok: boolean; imported?: number; skipped?: number; reason?: string } {
   let o;
   try {
     o = JSON.parse(jsonString);
@@ -861,7 +861,7 @@ export function downloadGithubBackup() {
  * @returns {Promise<{ok:boolean, imported?:number, skipped?:number, reason?:string}|null>}
  *   用户取消选择时 resolve null。
  */
-export function pickGithubBackupFile() {
+export function pickGithubBackupFile(): Promise<{ ok: boolean; imported?: number; skipped?: number; reason?: string } | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";

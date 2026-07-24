@@ -34,7 +34,7 @@ import {
 import { useNowTick } from "../hooks/useNowTick.tsx";
 import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.js";
 import { todayKey } from "../../ai-usage/history-series.js";
-import { UsageDashboard } from "./UsageDashboard.jsx";
+import { UsageDashboard } from "./UsageDashboard.tsx";
 import { taggedLog } from "../log.js";
 import { IconBell } from "./icons.jsx";
 

@@ -13,7 +13,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/preact';
-import { AppInfo } from '../../src/renderer/components/AppInfo.jsx';
+import { AppInfo } from '../../src/renderer/components/AppInfo.tsx';
 
 function makeResult(over = {}) {
   return {

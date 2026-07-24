@@ -245,8 +245,8 @@ function BulkRow({ item, status, selected, onToggle, running, onRetry, error, ou
   );
 }
 
-function groupBySource(items) {
-  const out = {};
+function groupBySource(items: any[]): Record<string, any[]> {
+  const out: Record<string, any[]> = {};
   for (const it of items) {
     const k = it.source || 'unknown';
     if (!out[k]) out[k] = [];

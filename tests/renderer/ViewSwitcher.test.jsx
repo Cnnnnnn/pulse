@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/preact";
-import { ViewSwitcher } from "../../src/renderer/components/ViewSwitcher.jsx";
+import { ViewSwitcher } from "../../src/renderer/components/ViewSwitcher.tsx";
 import { viewMode, setViewMode } from "../../src/renderer/store/library-view-store.ts";
 
 beforeEach(() => {

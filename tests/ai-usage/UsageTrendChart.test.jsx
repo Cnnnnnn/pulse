@@ -15,7 +15,7 @@
 
 import { describe, test, expect, beforeEach, vi } from "vitest";
 import { render, cleanup, fireEvent } from "@testing-library/preact";
-const { UsageTrendChart } = await import("../../src/renderer/components/UsageTrendChart.jsx");
+const { UsageTrendChart } = await import("../../src/renderer/components/UsageTrendChart.tsx");
 
 beforeEach(cleanup);
 

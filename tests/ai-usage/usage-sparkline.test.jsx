@@ -32,7 +32,7 @@ beforeEach(() => {
 
 describe("UsageSparkline (折线 SVG)", () => {
   test("空 history → 渲染 7 个折线点, 最后一个是 today", async () => {
-    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
+    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.tsx");
     const { container } = render(<UsageSparkline history={{ days: [] }} days={7} />);
     // 7 个 hover 命中 rect (一个点一个)
     const rects = container.querySelectorAll(".ai-usage-sparkline-svg rect");
@@ -42,7 +42,7 @@ describe("UsageSparkline (折线 SVG)", () => {
   });
 
   test("有数据 → 折线渲染 + today 点特殊样式", async () => {
-    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
+    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.tsx");
     const today = todayKey();
     const { container } = render(
       <UsageSparkline
@@ -66,7 +66,7 @@ describe("UsageSparkline (折线 SVG)", () => {
   });
 
   test("数据多过 N → 截到最近 7 天 (今天永远在最右)", async () => {
-    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
+    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.tsx");
     const today = todayKey();
     const days = [];
     for (let i = 30; i >= 0; i--) days.push({ date: shiftDay(today, -i), used: 100 + i });
@@ -78,7 +78,7 @@ describe("UsageSparkline (折线 SVG)", () => {
   });
 
   test("hover rect → 显示 tooltip (含 percent + used 单位)", async () => {
-    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
+    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.tsx");
     const today = todayKey();
     const { container } = render(
       <UsageSparkline
@@ -96,7 +96,7 @@ describe("UsageSparkline (折线 SVG)", () => {
   });
 
   test("有 percent 但 used=null → tooltip 只显示百分比", async () => {
-    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
+    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.tsx");
     const today = todayKey();
     const { container } = render(
       <UsageSparkline
@@ -111,7 +111,7 @@ describe("UsageSparkline (折线 SVG)", () => {
   });
 
   test("anomalyToday=true → today 点用 --anomaly class", async () => {
-    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.jsx");
+    const { UsageSparkline } = await import("../../src/renderer/components/UsageSparkline.tsx");
     const today = todayKey();
     const { container } = render(
       <UsageSparkline

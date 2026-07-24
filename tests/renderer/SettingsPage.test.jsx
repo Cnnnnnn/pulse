@@ -12,7 +12,7 @@ import {
   render,
   screen,
 } from "@testing-library/preact";
-import { SettingsPage } from "../../src/renderer/components/SettingsPage.jsx";
+import { SettingsPage } from "../../src/renderer/components/SettingsPage.tsx";
 import { gamesNotifyOnDrop } from "../../src/renderer/games/gamesStore.js";
 
 beforeEach(() => {

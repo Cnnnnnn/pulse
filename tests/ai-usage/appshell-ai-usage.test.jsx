@@ -29,31 +29,31 @@ vi.mock("../../src/renderer/reminders/remindersStore.ts", () => ({
   loadReminders: vi.fn(),
 }));
 
-vi.mock("../../src/renderer/components/SideNav.jsx", () => ({
+vi.mock("../../src/renderer/components/SideNav.tsx", () => ({
   SideNav: () => <div data-testid="sidenav">sidenav</div>,
 }));
 
-vi.mock("../../src/renderer/components/VersionsLayout.jsx", () => ({
+vi.mock("../../src/renderer/components/VersionsLayout.tsx", () => ({
   VersionsLayout: () => <div data-testid="versions">versions</div>,
 }));
 
-vi.mock("../../src/renderer/worldcup/WorldcupLayout.jsx", () => ({
+vi.mock("../../src/renderer/worldcup/WorldcupLayout.tsx", () => ({
   WorldcupLayout: () => <div data-testid="worldcup">worldcup</div>,
 }));
 
-vi.mock("../../src/renderer/funds/FundLayout.jsx", () => ({
+vi.mock("../../src/renderer/funds/FundLayout.tsx", () => ({
   FundLayout: () => <div data-testid="funds">funds</div>,
 }));
 
-vi.mock("../../src/renderer/ithome/NewsLayout.jsx", () => ({
+vi.mock("../../src/renderer/ithome/NewsLayout.tsx", () => ({
   NewsLayout: () => <div data-testid="ithome">ithome</div>,
 }));
 
-vi.mock("../../src/renderer/components/AIUsageLayout.jsx", () => ({
+vi.mock("../../src/renderer/components/AIUsageLayout.tsx", () => ({
   AIUsageLayout: () => <div data-testid="ai-usage">ai-usage</div>,
 }));
 
-const { AppShell } = await import("../../src/renderer/components/AppShell.jsx");
+const { AppShell } = await import("../../src/renderer/components/AppShell.tsx");
 
 beforeEach(() => {
   mockActiveNav = "versions";

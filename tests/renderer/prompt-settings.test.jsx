@@ -32,7 +32,7 @@ vi.mock("../../src/renderer/api.js", () => ({
   },
 }));
 
-import { PromptSettings } from "../../src/renderer/components/PromptSettings.jsx";
+import { PromptSettings } from "../../src/renderer/components/PromptSettings.tsx";
 
 const SAMPLE = {
   ithome_summary: { system: "默认sys", rules: "默认rules", isDefault: true },

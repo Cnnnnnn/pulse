@@ -43,7 +43,7 @@ vi.mock('../../src/renderer/store/confirmStore.ts', () => ({
 }));
 
 const store = await import('../../src/renderer/store/release-notes-store.ts');
-const { ReleaseNotesWizard } = await import('../../src/renderer/components/ReleaseNotesWizard.jsx');
+const { ReleaseNotesWizard } = await import('../../src/renderer/components/ReleaseNotesWizard.tsx');
 
 function openAsAuto(payload) {
   store.__resetForTest();

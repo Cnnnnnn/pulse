@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { render } from "@testing-library/preact";
-import { SideNavItem } from "../../src/renderer/components/SideNavItem.jsx";
+import { SideNavItem } from "../../src/renderer/components/SideNavItem.tsx";
 
 const baseItem = { key: "ithome", icon: "📰", label: "IT 新闻", tooltip: "x" };
 

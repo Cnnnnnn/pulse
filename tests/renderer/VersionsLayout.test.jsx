@@ -3,14 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/preact";
 
 // mock 掉 CommandPalette 和 AITasksDrawer 避免拉真实 IPC
-vi.mock("../../src/renderer/components/CommandPalette.jsx", () => ({
+vi.mock("../../src/renderer/components/CommandPalette.tsx", () => ({
   CommandPalette: () => null,
 }));
-vi.mock("../../src/renderer/components/AITasksDrawer.jsx", () => ({
+vi.mock("../../src/renderer/components/AITasksDrawer.tsx", () => ({
   AITasksDrawer: () => null,
 }));
 
-import { VersionsLayout } from "../../src/renderer/components/VersionsLayout.jsx";
+import { VersionsLayout } from "../../src/renderer/components/VersionsLayout.tsx";
 import { navigateTo, currentRoute } from "../../src/renderer/store/route-store.ts";
 import { results, resetCheck } from "../../src/renderer/store.ts";
 

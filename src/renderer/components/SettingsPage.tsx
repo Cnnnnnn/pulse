@@ -15,7 +15,7 @@ import { useEffect, useState } from "preact/hooks";
 import { signal } from "@preact/signals";
 import { PageHeader } from "./PageHeader.tsx";
 import { SubtabList } from "./SubtabList.tsx";
-import { AISettingsScene } from "./AISettingsScene.jsx";
+import { AISettingsScene } from "./AISettingsScene.tsx";
 import { routeTab } from "../store/route-store.ts";
 import {
   getThemePreference,
@@ -142,7 +142,7 @@ async function handleRemove(id) {
 async function handleExport() {
   dataBusy.value = true;
   try {
-    const r = await window.api.configExport();
+    const r = await window.api.configExport("");
     if (r && r.ok) {
       showToast(`配置已导出到 ${r.path.split("/").pop()}`, "success", 3000);
     } else {
@@ -496,13 +496,13 @@ export function SettingsPage() {
   useEffect(() => {
     reloadRecent();
     reloadReminders();
-    const offRecent =
+    const offRecent: unknown =
       typeof window.api.onRecentUpdated === "function"
         ? window.api.onRecentUpdated(({ entries }) => {
             recentEntries.value = (entries || []).slice(0, 12);
           })
         : null;
-    const offReminder =
+    const offReminder: unknown =
       typeof window.api.onRemindersFired === "function"
         ? window.api.onRemindersFired(() => reloadReminders())
         : null;

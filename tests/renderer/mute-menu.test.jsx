@@ -14,13 +14,13 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
 import { render, cleanup, fireEvent } from '@testing-library/preact';
-import { MuteMenu, rankOptions, RECOMMENDED } from '../../src/renderer/components/MuteMenu.jsx';
+import { MuteMenu, rankOptions, RECOMMENDED } from '../../src/renderer/components/MuteMenu.tsx';
 
 // mock store 里的 setMute / clearMute, 因为它们走 IPC, 测试里要拦截
 const setMuteMock = vi.fn();
 const clearMuteMock = vi.fn();
 vi.mock('../../src/renderer/store.ts', async () => {
-  const actual = await vi.importActual('../../src/renderer/store.js');
+  const actual = await vi.importActual('../../src/renderer/store.ts');
   return {
     ...actual,
     setMute: (...args) => setMuteMock(...args),

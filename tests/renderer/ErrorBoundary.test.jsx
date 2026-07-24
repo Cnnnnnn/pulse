@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, cleanup } from '@testing-library/preact';
-import { ErrorBoundary } from '../../src/renderer/components/ErrorBoundary.jsx';
+import { ErrorBoundary } from '../../src/renderer/components/ErrorBoundary.tsx';
 
 beforeEach(() => { cleanup(); });
 

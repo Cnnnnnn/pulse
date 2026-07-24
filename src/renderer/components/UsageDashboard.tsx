@@ -17,10 +17,10 @@
  */
 
 import { useMemo } from "preact/hooks";
-import { UsageTrendChart } from "./UsageTrendChart.jsx";
+import { UsageTrendChart } from "./UsageTrendChart.tsx";
 import { useUsageSeries } from "../hooks/useUsageSeries.ts";
-import { UsageSparkline } from "./UsageSparkline.jsx";
-import { UsageDetailList } from "./UsageDetailList.jsx";
+import { UsageSparkline } from "./UsageSparkline.tsx";
+import { UsageDetailList } from "./UsageDetailList.tsx";
 import { modelColorIndex } from "./modelColor.js";
 
 // ─── 工具: 数字格式化 (token 数) ────────────────────────────
@@ -76,12 +76,13 @@ function formatDateShort(isoDate) {
  * 优先级: 5h / weekly / video / videoWeekly / credit — 有多少展示多少.
  * 信息量 >= 老 WindowCard 4 张: 已用% / 进度条 / 倒计时 / status / modelName.
  */
-function UsageWindowOverview({ snapshot }) {
+function UsageWindowOverview({ snapshot }: { snapshot: any }) {
   const windows = (snapshot && snapshot.windows) || {};
   const credit = snapshot && snapshot.credits;
   const entries = useMemo(() => {
-    const out = [];
-    const order = [
+    const out: any[] = [];
+    type WindowMeta = { icon: string; label: string; accent: string; isWeekly?: boolean };
+    const order: Array<[string, WindowMeta]> = [
       ["5h", { icon: "⏱", label: "5 小时窗口", accent: "var(--model-color-1)" }],
       ["weekly", { icon: "📅", label: "周窗口", accent: "var(--model-color-3)", isWeekly: true }],
       ["video", { icon: "🎬", label: "视频赠送", accent: "var(--model-color-4)" }],

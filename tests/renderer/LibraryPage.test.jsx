@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/preact";
-import { LibraryPage } from "../../src/renderer/components/LibraryPage.jsx";
+import { LibraryPage } from "../../src/renderer/components/LibraryPage.tsx";
 import { viewMode, setViewMode, resetLibraryFilters } from "../../src/renderer/store/library-view-store.ts";
 import { results, resetCheck } from "../../src/renderer/store.ts";
 

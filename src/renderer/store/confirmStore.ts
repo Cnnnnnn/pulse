@@ -27,7 +27,7 @@ let _resolver = null;
  * @param {{ title?: string, message: string, confirmText?: string, cancelText?: string }} opts
  * @returns {Promise<boolean>}
  */
-export function openConfirm(opts: any = {}) {
+export function openConfirm(opts: any = {}): Promise<boolean> {
   if (_resolver) {
     // 覆盖前一个 → 前一个 false
     const prev = _resolver;
@@ -51,7 +51,7 @@ export function openConfirm(opts: any = {}) {
  * 关闭弹窗并 resolve 当前 promise.
  * @param {boolean} ok
  */
-export function resolveConfirm(ok) {
+export function resolveConfirm(ok: boolean): void {
   const r = _resolver;
   _resolver = null;
   confirmVisible.value = false;

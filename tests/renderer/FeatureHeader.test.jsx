@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/preact";
-import { FeatureHeader } from "../../src/renderer/components/FeatureHeader.jsx";
+import { FeatureHeader } from "../../src/renderer/components/FeatureHeader.tsx";
 
 describe("FeatureHeader", () => {
   it("默认 className 'feature-header', brand 在左", () => {

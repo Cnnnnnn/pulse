@@ -2,7 +2,7 @@
 // page actions bar 按钮 wiring (前 TopBar 时代, T6).
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
-import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.jsx";
+import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.tsx";
 
 vi.mock("../../src/renderer/api.js", () => ({
   api: {

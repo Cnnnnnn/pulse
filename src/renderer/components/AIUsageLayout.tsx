@@ -13,8 +13,8 @@ import {
   subscribeAiUsageUpdates,
   aiUsageAlertModalOpen,
 } from "../store/ai-usage-store.ts";
-import { AIUsagePage } from "./AIUsagePage.jsx";
-import { AIUsageAlertModal } from "./AIUsageAlertModal.jsx";
+import { AIUsagePage } from "./AIUsagePage.tsx";
+import { AIUsageAlertModal } from "./AIUsageAlertModal.tsx";
 
 export function AIUsageLayout() {
   useEffect(() => {

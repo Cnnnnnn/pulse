@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/preact";
-import { AIDrawerShell } from "../../src/renderer/components/AIDrawerShell.jsx";
+import { AIDrawerShell } from "../../src/renderer/components/AIDrawerShell.tsx";
 
 afterEach(() => cleanup());
 

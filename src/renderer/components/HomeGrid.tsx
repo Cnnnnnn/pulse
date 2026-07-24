@@ -41,7 +41,7 @@ import {
   listFavorites,
   isFavorite,
 } from "./sidenav-prefs.js";
-import { HiddenItemsDrawer } from "./HiddenItemsDrawer.jsx";
+import { HiddenItemsDrawer } from "./HiddenItemsDrawer.tsx";
 import "./HomeGrid.css";
 
 // ponytail: 5 个简单几何 SVG, 24x24 viewBox, 跟 macOS SF Symbols 风格一致.

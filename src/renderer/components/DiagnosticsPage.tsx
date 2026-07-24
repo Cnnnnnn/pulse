@@ -28,7 +28,7 @@ import {
 } from "../diagnostics/diagnostics-store.ts";
 import { api } from "../api.js";
 import { PageHeader } from "./PageHeader.tsx";
-import { ConfigImportModal } from "./ConfigImportModal.jsx";
+import { ConfigImportModal } from "./ConfigImportModal.tsx";
 import { PanelEmpty } from "./EmptyState.tsx";
 import { KPICard } from "./KPICard.tsx";
 import { StatusBadge } from "./Badge.tsx";
@@ -242,9 +242,9 @@ export function DiagnosticsPage() {
   // samples 时间序列迷你趋势图 (heapUsed relative)
   const samplesMax = samples.reduce((m, s) => Math.max(m, (s && s.heapUsed) || 0), 0);
 
-  const errorCount = stats.byLevel.error || 0;
-  const warnCount = stats.byLevel.warn || 0;
-  const unhandledCount = stats.byLevel.unhandled || 0;
+  const errorCount = (stats.byLevel as Record<string, number>).error || 0;
+  const warnCount = (stats.byLevel as Record<string, number>).warn || 0;
+  const unhandledCount = (stats.byLevel as Record<string, number>).unhandled || 0;
 
   return (
     <div class="diagnostics-page">

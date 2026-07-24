@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor, act } from "@testing-library/preact";
-import { CommandPalette } from "../../src/renderer/components/CommandPalette.jsx";
+import { CommandPalette } from "../../src/renderer/components/CommandPalette.tsx";
 import { paletteOpen, openPalette, closePalette, setPaletteSelectedIndex, setPaletteQuery } from "../../src/renderer/store/command-palette-store.ts";
 
 // vi.mock 会被 hoist, 用 vi.hoisted 让 mock fn 也能被测试代码引用

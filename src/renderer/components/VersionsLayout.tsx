@@ -13,9 +13,9 @@ import { currentRoute, navigateTo } from "../store/route-store.ts";
 import { CommandPalette } from "./CommandPalette.tsx";
 import { SubtabList } from "./SubtabList.tsx";
 import { LibraryPage } from "./LibraryPage.tsx";
-import { DiagnosticsPage } from "./DiagnosticsPage.jsx";
-import { SettingsPage } from "./SettingsPage.jsx";
-import { AITasksDrawer } from "./AITasksDrawer.jsx";
+import { DiagnosticsPage } from "./DiagnosticsPage.tsx";
+import { SettingsPage } from "./SettingsPage.tsx";
+import { AITasksDrawer } from "./AITasksDrawer.tsx";
 
 const VERSION_TABS = [
   { key: "library",     label: "应用列表" },

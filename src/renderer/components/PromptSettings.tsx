@@ -194,16 +194,17 @@ export function PromptSettings() {
               value={budget.dailyLimit}
               disabled={!budgetLoaded}
               onInput={(e) => {
-                setBudget({ ...budget, dailyLimit: Number(e.target.value) });
+                const v = (e.currentTarget as HTMLInputElement).value;
+                setBudget({ ...budget, dailyLimit: Number(v) });
               }}
-              onBlur={(e) => saveBudget({ dailyLimit: Number(e.target.value) || 0 })}
+              onBlur={(e) => saveBudget({ dailyLimit: Number((e.currentTarget as HTMLInputElement).value) || 0 })}
               title="0 = 不限制"
             />
             <select
               class="settings-input"
               value={budget.mode}
               disabled={!budgetLoaded}
-              onChange={(e) => saveBudget({ mode: e.target.value })}
+              onChange={(e) => saveBudget({ mode: (e.currentTarget as HTMLSelectElement).value })}
               title="超限处理策略"
             >
               <option value="warn">超限仅警告</option>
@@ -237,9 +238,9 @@ export function PromptSettings() {
               <label class="settings-row__label">角色设定 (system)</label>
               <textarea
                 class="settings-input"
-                rows="2"
+                rows={2}
                 value={draft[key]?.system || ""}
-                onInput={(e) => updateField(key, "system", e.target.value)}
+                onInput={(e) => updateField(key, "system", (e.currentTarget as HTMLTextAreaElement).value)}
                 placeholder={prompts[key].system}
               />
             </div>
@@ -247,9 +248,9 @@ export function PromptSettings() {
               <label class="settings-row__label">输出规则 (rules)</label>
               <textarea
                 class="settings-input"
-                rows="6"
+                rows={6}
                 value={draft[key]?.rules || ""}
-                onInput={(e) => updateField(key, "rules", e.target.value)}
+                onInput={(e) => updateField(key, "rules", (e.currentTarget as HTMLTextAreaElement).value)}
                 placeholder={prompts[key].rules}
               />
             </div>
@@ -257,9 +258,9 @@ export function PromptSettings() {
               <label class="settings-row__label">Few-shot 示例 (可选)</label>
               <textarea
                 class="settings-input"
-                rows="3"
+                rows={3}
                 value={draft[key]?.fewShot || ""}
-                onInput={(e) => updateField(key, "fewShot", e.target.value)}
+                onInput={(e) => updateField(key, "fewShot", (e.currentTarget as HTMLTextAreaElement).value)}
                 placeholder="留空则不用示例"
               />
             </div>

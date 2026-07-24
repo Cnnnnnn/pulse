@@ -215,7 +215,7 @@ export function AITasksDrawer() {
     });
   }
 
-  async function handleGenerate(keys) {
+  async function handleGenerate(keys?: string[]) {
     const target = (Array.isArray(keys) && keys.length > 0 ? keys : selectedKeys).filter(Boolean);
     if (target.length === 0 || busy) return;
     if (needsConfig()) {

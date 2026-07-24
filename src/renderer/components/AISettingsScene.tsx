@@ -1,12 +1,12 @@
 /**
- * src/renderer/components/AISettingsScene.jsx
+ * src/renderer/components/AISettingsScene.tsx
  *
  * P16: AI 设置分类切换 — 改用 SubtabList (与 settings-subtab 同形态),
  *      弃用 TabList variant="config" (依赖的 ai-config-tabs CSS 已删除).
  */
 import { useState } from 'preact/hooks';
-import { AIConfigForm } from './AISettingsModal.jsx';
-import { PromptSettings } from './PromptSettings.jsx';
+import { AIConfigForm } from './AISettingsModal.tsx';
+import { PromptSettings } from './PromptSettings.tsx';
 import { SubtabList } from './SubtabList.tsx';
 
 const AI_TABS = [
@@ -14,20 +14,20 @@ const AI_TABS = [
   { key: 'prompts', label: 'Prompt 模板' },
 ];
 
-/**
- * @param {object} props
- * @param {boolean} [props.compact]
- * @param {'connection'|'prompts'} [props.initialTab]
- * @param {() => void} [props.onSaved]
- * @param {() => void} [props.onCancel]
- */
+type AITab = 'connection' | 'prompts';
+
 export function AISettingsScene({
   compact = false,
   initialTab = 'connection',
   onSaved,
   onCancel,
+}: {
+  compact?: boolean;
+  initialTab?: AITab;
+  onSaved?: () => void;
+  onCancel?: () => void;
 }) {
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState<AITab>(initialTab);
 
   return (
     <div class="digest-setup-scene">
@@ -35,7 +35,7 @@ export function AISettingsScene({
         prefix="settings"
         tabs={AI_TABS}
         activeKey={tab}
-        onChange={setTab}
+        onChange={(k) => setTab(k as AITab)}
         ariaLabel="AI 设置分类"
       />
       {tab === 'connection' ? (

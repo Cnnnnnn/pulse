@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'preact/hooks';
 import type { ComponentType } from 'preact';
-import { VersionsLayout } from './VersionsLayout.jsx';
+import { VersionsLayout } from './VersionsLayout.tsx';
 
 const LOADERS = {
   // P-N+: 'news' 单 nav 合并 IT 新闻 + 微博热搜, 容器做 sub-tab 切换.
@@ -17,7 +17,7 @@ const LOADERS = {
   invest: () =>
     import('../invest/InvestLayout.tsx').then((m) => m.InvestLayout),
   'ai-usage': () =>
-    import('./AIUsageLayout.jsx').then((m) => m.AIUsageLayout),
+    import('./AIUsageLayout.tsx').then((m) => m.AIUsageLayout),
   github: () =>
     import('../github/GithubLayout.jsx').then((m) => m.GithubLayout),
   games: () =>

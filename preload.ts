@@ -95,9 +95,9 @@ export const api = {
   feedbackExport: () => ipcRenderer.invoke("feedback:export"),
   tokenBudgetGet: () => ipcRenderer.invoke("token-budget:get"),
   tokenBudgetSet: (payload: unknown) => ipcRenderer.invoke("token-budget:set", payload),
-  configExport: (pulseVersion: string) =>
-    ipcRenderer.invoke("config:export", pulseVersion),
-  configImportLoad: () => ipcRenderer.invoke("config:import-load"),
+  configExport: (pulseVersion: string = "") =>
+    ipcRenderer.invoke("config:export", pulseVersion) as Promise<{ ok: boolean; path?: string; sizeBytes?: number; reason?: string; error?: string } | null>,
+  configImportLoad: () => ipcRenderer.invoke("config:import-load") as Promise<{ ok: boolean; path?: string; fields?: any; diff?: any; reason?: string; error?: string } | null>,
   configImportApply: (payload: unknown) =>
     ipcRenderer.invoke("config:import-apply", payload),
   onAiPromptsUpdated: (cb: () => void) => {

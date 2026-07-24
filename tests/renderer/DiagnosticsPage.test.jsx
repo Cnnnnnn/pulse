@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
-import { DiagnosticsPage } from "../../src/renderer/components/DiagnosticsPage.jsx";
+import { DiagnosticsPage } from "../../src/renderer/components/DiagnosticsPage.tsx";
 import {
   errorEntries, errorStats, errorLoading,
   diagnosticsStartup, diagnosticsMetrics, diagnosticsTopFailures,

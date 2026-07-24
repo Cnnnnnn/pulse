@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent, screen, cleanup, waitFor } from "@testing-library/preact";
-import { ConfigImportModal } from "../../src/renderer/components/ConfigImportModal.jsx";
+import { ConfigImportModal } from "../../src/renderer/components/ConfigImportModal.tsx";
 import { api } from "../../src/renderer/api.js";
 
 // mock showToast 避免依赖 store

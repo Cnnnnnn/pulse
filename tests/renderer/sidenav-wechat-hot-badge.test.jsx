@@ -55,7 +55,7 @@ beforeEach(() => {
   document.body.innerHTML = "";
 });
 
-const { SideNav } = await import("../../src/renderer/components/SideNav.jsx");
+const { SideNav } = await import("../../src/renderer/components/SideNav.tsx");
 
 function badgeText(navKey) {
   const li = document.body.querySelector(`.side-nav-item[data-nav="${navKey}"]`);

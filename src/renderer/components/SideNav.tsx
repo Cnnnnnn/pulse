@@ -43,7 +43,7 @@ import {
   moveToTop,
   moveToBottom,
 } from './sidenav-prefs.js';
-import { HiddenItemsDrawer } from './HiddenItemsDrawer.jsx';
+import { HiddenItemsDrawer } from './HiddenItemsDrawer.tsx';
 import { IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.jsx';
 import { navigateTo } from '../store/route-store.ts';
 

@@ -14,8 +14,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/preact';
 
 import { applyProgress, resetCheck, getResultSignal } from '../../src/renderer/store.ts';
-import { AppRow } from '../../src/renderer/components/AppRow.jsx';
-import { primeConfigCache } from '../../src/renderer/components/AppRow.jsx';
+import { AppRow } from '../../src/renderer/components/AppRow.tsx';
+import { primeConfigCache } from '../../src/renderer/components/AppRow.tsx';
 
 function makeResult(over) {
   return {

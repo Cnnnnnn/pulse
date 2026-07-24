@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, cleanup } from '@testing-library/preact';
 
-import { AppAvatar } from '../../src/renderer/components/AppAvatar.jsx';
+import { AppAvatar } from '../../src/renderer/components/AppAvatar.tsx';
 import * as iconMod from '../../src/renderer/hooks/useIcon.ts';
 import { api } from '../../src/renderer/api.js';
 

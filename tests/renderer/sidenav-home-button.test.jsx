@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // 用真实的 navStore (不 mock), 因为我们要测的是 SideNav.jsx 内 useEffect
 // 对 'home' 的守卫 — 必须用真实的 effectiveVisibleItems + NAV_KEYS_LIST.
-const { SideNav } = await import('../../src/renderer/components/SideNav.jsx');
+const { SideNav } = await import('../../src/renderer/components/SideNav.tsx');
 
 describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
   beforeEach(async () => {

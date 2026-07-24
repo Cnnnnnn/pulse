@@ -48,7 +48,7 @@ describe('HomeGrid navStore 集成路径', () => {
 describe('HomeGrid v2 — 渲染契约', () => {
   it('渲染出 hero (品牌 mark + greeting + 时间 + 8 模块 meta)', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
 
     expect(container.querySelector('.home-hero')).toBeTruthy();
@@ -61,7 +61,7 @@ describe('HomeGrid v2 — 渲染契约', () => {
 
   it('渲染 8 个 tile, 全部带 home-grid-tile-accent class', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
 
     const tiles = container.querySelectorAll('.home-grid-tile');
@@ -77,7 +77,7 @@ describe('HomeGrid v2 — 渲染契约', () => {
 
   it('每个 tile 都有 SVG icon (不再用 emoji)', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
 
     const tiles = container.querySelectorAll('.home-grid-tile');
@@ -90,7 +90,7 @@ describe('HomeGrid v2 — 渲染契约', () => {
 
   it('tile 有点击行为 — click 触发 setActiveNav', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
 
     const { container } = render(<HomeGrid />);
@@ -103,7 +103,7 @@ describe('HomeGrid v2 — 渲染契约', () => {
 
   it('tile aria-label 包含中文标题 (无障碍)', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
 
     const expected = [
@@ -124,7 +124,7 @@ describe('HomeGrid v2 — 渲染契约', () => {
 describe('HomeGrid v3 — 视觉/交互完善', () => {
   it('A2: 副标题尾部有 ⌘1-6 快捷键提示', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
     const kbdHints = container.querySelectorAll('.home-grid-tile-kbd');
     expect(kbdHints.length).toBe(8);
@@ -134,7 +134,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 
   it('A14: 挂载后 root 加 home-grid-mounted class (cascade 触发)', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
     // useEffect 同步后 + 1 RAF → setMounted(true)
     await new Promise((r) => setTimeout(r, 20));
@@ -144,7 +144,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 
   it('A3: ⌘1 直接切到 news (P-N+ IT 新闻 + 微博热搜 合并)', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { setActiveNav, activeNav } = await import('../../src/renderer/worldcup/navStore.js');
     setActiveNav('home');
 
@@ -155,7 +155,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 
   it('A3: ArrowRight 在 grid 里移动焦点', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
     activeNav.value = 'home';
 
@@ -173,7 +173,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 
   it('A1: ithomeUnreadBadge > 0 时 news tile 渲染 badge (P-N+ 合并)', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     // ithomeUnreadBadge 是 computed, 派生自 ithomeNewIds.
     // 写 3 个 key 进 ithomeNewIds → computed 重算 → news badge = 3 (ithome+wechat=3+0).
     const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
@@ -188,7 +188,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 
   it('A1: news tile 合并 ithome + wechat 角标', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     // ithome 3 + wechat 5 = news badge 8
     const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
     const { wechatHotNewIds } = await import('../../src/renderer/wechat-hot/store.ts');
@@ -202,7 +202,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 
   it('A1: 100+ 显示 99+', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     // 写 150 个 key (慢? 不, 单测 150 个 {x:1} 操作 < 1ms)
     const { ithomeNewIds } = await import('../../src/renderer/ithome/store.js');
     const big = {};
@@ -216,7 +216,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 
   it('A1: badge = 0 时不渲染 .home-grid-tile-badge', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     // v5: news = ithome + wechat. 重置全部 source signal 到 0.
     const ithome = await import('../../src/renderer/ithome/store.js');
     const wechat = await import('../../src/renderer/wechat-hot/store.ts');
@@ -244,7 +244,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
     });
     try {
       const { render } = await import('@testing-library/preact');
-      const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+      const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
       const { container } = render(<HomeGrid />);
       await new Promise((r) => setTimeout(r, 5));
       const root = container.querySelector('.home-grid-root');
@@ -275,7 +275,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10: 8 个 tile 都渲染 status 文本 (冷启动时多数为 "—")', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
     const statuses = container.querySelectorAll('.home-grid-tile-status');
     expect(statuses.length).toBe(8);
@@ -283,7 +283,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10: news 有今日文章 → status 显示 "今日 N 条 · M 热搜" 合并态', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { ithomeDayStats } = await import('../../src/renderer/ithome/store.js');
     const { wechatHotItems } = await import('../../src/renderer/wechat-hot/store.ts');
     const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.js');
@@ -304,7 +304,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10: metals 有 AU9999 报价 → status 显示金价', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { quoteCache } = await import('../../src/renderer/metals/metalStore.ts');
     quoteCache.value = {
       data: { AU9999: { price: 768.5 } },
@@ -321,7 +321,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B11: 点击星标 toggle 收藏 (不会切 nav)', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
     const { isFavorite } = await import('../../src/renderer/components/sidenav-prefs.js');
 
@@ -344,7 +344,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B11: 收藏的 tile 排前面', async () => {
     const { render, fireEvent } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { setActiveNav } = await import('../../src/renderer/worldcup/navStore.js');
 
     const { container } = render(<HomeGrid />);
@@ -360,7 +360,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('A8: tile 渲染 draggable 属性 + dragstart 触发 setDraggingKey', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
     const tiles = container.querySelectorAll('.home-grid-tile');
     expect(tiles[0].getAttribute('draggable')).toBe('true');
@@ -368,7 +368,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('A8: drop 到目标 tile → order 变化 (用 prefs.order 验证)', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { loadPrefs, savePrefs, resetPrefs } = await import('../../src/renderer/components/sidenav-prefs.js');
     // v7: 7 个 tile; 本测只固定前 5 的 order, github 由 computeOrderedTiles 兜底追加
     savePrefs({ ...resetPrefs(), order: ['news', 'worldcup', 'invest', 'ai-usage', 'versions'] });
@@ -393,7 +393,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   // ── worldcup status 4 级 fallback ────────────────────────────────────
   it('B10+: worldcup 进行中 → "live <t1> 1-0 <t2> 67\'"', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
     worldcupMatches.value = {
       name: 'WC 2026', groups: [], matches: [
@@ -414,7 +414,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10+: worldcup 今天有 upcoming → "今日 N 场 · HH:MM t1 vs t2"', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
     const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.js');
     const today = todayShanghaiDateKey();
@@ -441,7 +441,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10+: worldcup 跨日 upcoming → "下一场 MM-DD HH:MM t1 vs t2"', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
     const future = new Date(Date.now() + 7 * 86400_000);
     const key = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
@@ -459,7 +459,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10+: worldcup 全结束 → "已结束 · <t1> 2:1 <t2>"', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { worldcupMatches } = await import('../../src/renderer/worldcup/store.js');
     worldcupMatches.value = {
       name: 'WC', groups: [], matches: [
@@ -479,7 +479,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   // ── ai-usage 简略 ─────────────────────────────────────────────────
   it('B10+: ai-usage 有 usedPercent → "已用 N%"', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.ts');
     aiUsageSnapshot.value = {
       minimax: { windows: { weekly: { usedPercent: 42 } } },
@@ -494,7 +494,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10+: ai-usage 0% 用完 → 显示 "已用 0%"', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.ts');
     aiUsageSnapshot.value = {
       minimax: { windows: { weekly: { usedPercent: 0 } } },
@@ -508,7 +508,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10+: ai-usage 有 remaining 但无 usedPercent → 算百分比', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.ts');
     aiUsageSnapshot.value = {
       minimax: { windows: { weekly: { remaining: 25, total: 100 } } },
@@ -522,7 +522,7 @@ describe('HomeGrid v4 — 功能完善', () => {
 
   it('B10+: ai-usage 无数据 → "—"', async () => {
     const { render } = await import('@testing-library/preact');
-    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.jsx');
+    const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { aiUsageSnapshot } = await import('../../src/renderer/store/ai-usage-store.ts');
     aiUsageSnapshot.value = { minimax: null, glm: null };
     const { container } = render(<HomeGrid />);

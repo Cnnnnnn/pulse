@@ -33,7 +33,7 @@ vi.mock("../../src/renderer/store.ts", () => ({
   get aiKeyStatus() { return { value: {} }; },
 }));
 
-const { SideNav } = await import("../../src/renderer/components/SideNav.jsx");
+const { SideNav } = await import("../../src/renderer/components/SideNav.tsx");
 
 beforeEach(() => {
   mockActiveNav = "versions";

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent, cleanup } from '@testing-library/preact';
-import { StateRecoveredBanner, stateRecoveredSignal } from '../../src/renderer/components/StateRecoveredBanner.jsx';
+import { StateRecoveredBanner, stateRecoveredSignal } from '../../src/renderer/components/StateRecoveredBanner.tsx';
 
 describe('StateRecoveredBanner', () => {
   beforeEach(() => {

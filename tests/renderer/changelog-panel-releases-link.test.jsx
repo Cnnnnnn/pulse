@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
-import { ChangelogPanel } from "../../src/renderer/components/ChangelogPanel.jsx";
+import { ChangelogPanel } from "../../src/renderer/components/ChangelogPanel.tsx";
 
 describe("ChangelogPanel releases link 可见性 (2026-06-28)", () => {
   afterEach(() => cleanup());

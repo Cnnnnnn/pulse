@@ -24,7 +24,7 @@ import {
   applyBulkUpgradeDone,
   resetBulkUpgrade,
 } from '../../src/renderer/store/store-bulk-upgrade.ts';
-import { BulkUpgradeModal } from '../../src/renderer/components/BulkUpgradeModal.jsx';
+import { BulkUpgradeModal } from '../../src/renderer/components/BulkUpgradeModal.tsx';
 
 function makeItem(over) {
   return {

@@ -10,7 +10,7 @@ import { signal } from "@preact/signals";
 
 async function freshModule() {
   vi.resetModules();
-  return await import("../../src/renderer/components/ConfirmDialog.jsx");
+  return await import("../../src/renderer/components/ConfirmDialog.tsx");
 }
 
 beforeEach(() => {

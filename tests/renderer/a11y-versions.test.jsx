@@ -17,13 +17,13 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
-import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.jsx";
-import { CommandPalette } from "../../src/renderer/components/CommandPalette.jsx";
-import { LibraryPage } from "../../src/renderer/components/LibraryPage.jsx";
-import { KPICard } from "../../src/renderer/components/KPICard.jsx";
-import { ViewSwitcher } from "../../src/renderer/components/ViewSwitcher.jsx";
-import { MergedFilterChip } from "../../src/renderer/components/MergedFilterChip.jsx";
-import { AIDrawerShell } from "../../src/renderer/components/AIDrawerShell.jsx";
+import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.tsx";
+import { CommandPalette } from "../../src/renderer/components/CommandPalette.tsx";
+import { LibraryPage } from "../../src/renderer/components/LibraryPage.tsx";
+import { KPICard } from "../../src/renderer/components/KPICard.tsx";
+import { ViewSwitcher } from "../../src/renderer/components/ViewSwitcher.tsx";
+import { MergedFilterChip } from "../../src/renderer/components/MergedFilterChip.tsx";
+import { AIDrawerShell } from "../../src/renderer/components/AIDrawerShell.tsx";
 import { openPalette, closePalette } from "../../src/renderer/store/command-palette-store.ts";
 import { setViewMode } from "../../src/renderer/store/library-view-store.ts";
 import { results, resetCheck } from "../../src/renderer/store.ts";

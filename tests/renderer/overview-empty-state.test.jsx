@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/preact";
-import { OverviewEmptyState } from "../../src/renderer/components/OverviewEmptyState.jsx";
+import { OverviewEmptyState } from "../../src/renderer/components/OverviewEmptyState.tsx";
 
 describe("OverviewEmptyState", () => {
   it("renders CTA button with aria-label", () => {

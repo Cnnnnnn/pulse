@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
-import { UpgradeAdvice } from "../../src/renderer/components/UpgradeAdvice.jsx";
+import { UpgradeAdvice } from "../../src/renderer/components/UpgradeAdvice.tsx";
 import { api } from "../../src/renderer/api.js";
 
 describe("UpgradeAdvice 反馈按钮", () => {

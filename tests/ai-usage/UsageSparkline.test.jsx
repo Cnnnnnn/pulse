@@ -9,7 +9,7 @@
 
 import { describe, test, expect } from "vitest";
 import { render } from "@testing-library/preact";
-import { UsageSparkline } from "../../src/renderer/components/UsageSparkline.jsx";
+import { UsageSparkline } from "../../src/renderer/components/UsageSparkline.tsx";
 const { todayKey, addDays } = require("../../src/ai-usage/history-series.js");
 
 // ponytail: buildSeries 把 series 末尾对齐到 today, 所以 fixture 必须用真实今天日期

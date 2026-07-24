@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
-import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.jsx";
+import { PageActionsBar } from "../../src/renderer/components/PageActionsBar.tsx";
 import { closePalette } from "../../src/renderer/store/command-palette-store.ts";
 
 vi.mock("../../src/renderer/api.js", () => ({

@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/preact";
-import { ChangelogSummary } from "../../src/renderer/components/ChangelogSummary.jsx";
+import { ChangelogSummary } from "../../src/renderer/components/ChangelogSummary.tsx";
 import { api } from "../../src/renderer/api.js";
 
 describe("ChangelogSummary 文案 + 无反馈按钮 (2026-06-28)", () => {
