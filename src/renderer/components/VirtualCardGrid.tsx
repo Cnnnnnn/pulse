@@ -13,7 +13,7 @@ const BUFFER_ROWS = 3;      // 上下多渲染几行
 const COLS = 4;             // 桌面默认 4 列
 
 export function VirtualCardGrid() {
-  const scrollRef = useRef(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(600);
   const allNames = Array.from(results.value.keys());

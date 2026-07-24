@@ -29,6 +29,12 @@ import {
   IconTrash,
 } from "./icons.jsx";
 
+type SideNavItemLike = {
+  key: string;
+  label: string;
+  tooltip?: string;
+};
+
 export function SideNavItem({
   item,
   active = false,
@@ -40,10 +46,21 @@ export function SideNavItem({
   onMoveTop,
   onMoveBottom,
   draggable = true,
+}: {
+  item: SideNavItemLike;
+  active?: boolean;
+  collapsed?: boolean;
+  badge?: number;
+  onSelect?: (key: string) => void;
+  onReorder?: (fromKey: string, toKey: string, position: "before" | "after") => void;
+  onHide?: (key: string) => void;
+  onMoveTop?: (key: string) => void;
+  onMoveBottom?: (key: string) => void;
+  draggable?: boolean;
 }) {
-  const dialogRef = useRef(null);
-  const liRef = useRef(null);
-  const [dropPosition, setDropPosition] = useState(null); // 'before' | 'after' | null
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const liRef = useRef<HTMLLIElement | null>(null);
+  const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
 
   // contextmenu 弹窗: 始终在 li 上右键就开, 不论 active / collapsed
   function handleContextMenu(e) {

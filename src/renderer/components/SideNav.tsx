@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/SideNav.jsx
+ * src/renderer/components/SideNav.tsx
  *
  * v2.9.0 — 左侧导航 (180↔40 可折叠, 你拍 shell_collapsible_leftnav)
  *
@@ -16,6 +16,7 @@
  * v2.24.2 顶部加 IconRefresh 全局刷新按钮 (折叠时仍显示为图标),
  *   按 activeNav 派发到 nav-refresh.js registry.
  */
+import { SideNavItem } from './SideNavItem.tsx';
 
 import { useEffect, useState } from 'preact/hooks';
 import {
@@ -42,7 +43,6 @@ import {
   moveToTop,
   moveToBottom,
 } from './sidenav-prefs.js';
-import { SideNavItem } from './SideNavItem.jsx';
 import { HiddenItemsDrawer } from './HiddenItemsDrawer.jsx';
 import { IconChevronDown, IconMenu, IconRefresh, IconSettings } from './icons.jsx';
 import { navigateTo } from '../store/route-store.ts';
@@ -91,8 +91,10 @@ export function SideNav() {
     games: (gamesHasNewFree.value || gamesHasNewDrop.value) ? 1 : 0, // 后台发现新免费活动 / 心愿单降价时红点
   };
 
+  type SidenavPrefs = ReturnType<typeof loadPrefs>;
+
   // Phase I3: nav 重排 + 隐藏 (localStorage 持久化)
-  const [sidenavPrefs, setSidenavPrefs] = useState(() => loadPrefs());
+  const [sidenavPrefs, setSidenavPrefs] = useState<SidenavPrefs>(() => loadPrefs());
   const [hiddenDrawerOpen, setHiddenDrawerOpen] = useState(false);
 
   // 跟 trayMenuPrefs 同步 (tray 菜单关掉的 nav 也算不可见)
@@ -119,24 +121,24 @@ export function SideNav() {
     }
   }, [sidenavPrefs, trayPrefs, visibleKeys.join(','), current]);
 
-  function applyPrefs(next) {
+  function applyPrefs(next: SidenavPrefs) {
     setSidenavPrefs(next);
     savePrefs(next);
   }
 
-  function handleReorder(fromKey, toKey, position) {
+  function handleReorder(fromKey: string, toKey: string, position: "before" | "after") {
     applyPrefs(reorderItems(sidenavPrefs, fromKey, toKey, position));
   }
-  function handleHide(key) {
+  function handleHide(key: string) {
     applyPrefs(hideItem(sidenavPrefs, key));
   }
-  function handleMoveTop(key) {
+  function handleMoveTop(key: string) {
     applyPrefs(moveToTop(sidenavPrefs, key));
   }
-  function handleMoveBottom(key) {
+  function handleMoveBottom(key: string) {
     applyPrefs(moveToBottom(sidenavPrefs, key));
   }
-  function handleRestore(key) {
+  function handleRestore(key: string) {
     applyPrefs(restoreItem(sidenavPrefs, key));
   }
 

@@ -35,7 +35,7 @@ import { AppAvatar } from './AppAvatar.tsx';
 import { AppInfo } from './AppInfo.tsx';
 import { AppVersions } from './AppVersions.tsx';
 import { AppAction } from './AppAction.tsx';
-import { ChangelogPanel } from './ChangelogPanel.jsx';
+import { ChangelogPanel } from './ChangelogPanel.tsx';
 import { MuteMenu } from './MuteMenu.tsx';
 import type { ResultLike } from './appTypes.ts';
 

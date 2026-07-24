@@ -46,10 +46,13 @@ import "./HomeGrid.css";
 
 // ponytail: 5 个简单几何 SVG, 24x24 viewBox, 跟 macOS SF Symbols 风格一致.
 // 不用 lucide / heroicons 库 — 1 个文件 5 个 inline svg, 0 依赖.
-function TileIcon({ kind }) {
+type StrokeCap = "round" | "butt" | "square";
+type StrokeJoin = "round" | "miter" | "bevel";
+
+function TileIcon({ kind }: { kind: string }) {
   const c = {
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
+    strokeLinecap: "round" as StrokeCap,
+    strokeLinejoin: "round" as StrokeJoin,
     fill: "none",
     stroke: "currentColor",
     strokeWidth: 1.6,
@@ -251,7 +254,7 @@ function getStatus(key) {
         const sign = pnl >= 0 ? '+' : '−';
         return `基金 今日 ${sign}¥${Math.abs(pnl).toFixed(2)} · 对比池 ${pool}`;
       }
-      const q = quoteCache.value?.data?.AU9999;
+      const q = quoteCache.value?.data?.["AU9999"];
       if (q) return `黄金 ¥${q.price.toFixed(2)}/克 · 对比池 ${pool}`;
       const sCount = stocksResults.value?.length || 0;
       if (sCount > 0) return `选股 ${sCount} 条 · 对比池 ${pool}`;
@@ -419,9 +422,10 @@ export function HomeGrid() {
       if (e.key === 'Home')       return move(-orderedTiles.length);
       if (e.key === 'End')        return move(orderedTiles.length);
       if (e.key === 'Enter' || e.key === ' ') {
-        if (document.activeElement && document.activeElement.classList?.contains('home-grid-tile')) {
+        const active = document.activeElement as HTMLElement | null;
+        if (active && active.classList?.contains('home-grid-tile')) {
           e.preventDefault();
-          document.activeElement.click();
+          active.click();
         }
       }
     }

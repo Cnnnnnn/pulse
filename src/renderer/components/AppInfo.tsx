@@ -6,7 +6,7 @@
  */
 
 import { getLocalTier } from '../store.ts';
-import { UpgradeAdvice } from './UpgradeAdvice.jsx';
+import { UpgradeAdvice } from './UpgradeAdvice.tsx';
 import { IconVolumeOff, IconInfo } from './icons.jsx';
 import type { ResultLike } from './appTypes.ts';
 

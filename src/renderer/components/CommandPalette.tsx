@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/CommandPalette.jsx
+ * src/renderer/components/CommandPalette.tsx
  *
  * Cmd+K 全局命令面板. 3 类结果: app (跳转 Library) / action (执行) / view (navigateTo).
  * 键盘导航: ↑↓ 切换, Enter 执行, Esc 关闭.
@@ -15,27 +15,36 @@ import { setThemePreference } from "../theme/theme-manager.ts";
 import { showToast } from "../store.ts";
 import { IconSearch } from "./icons.jsx";
 
-const KIND_LABEL = { app: "应用", action: "操作", view: "页面" };
+const KIND_LABEL: Record<string, string> = { app: "应用", action: "操作", view: "页面" };
+
+type PaletteItem = {
+  id: string;
+  kind: "app" | "action" | "view";
+  label: string;
+  theme?: string;
+};
+
+type ThemeCommand = PaletteItem & { theme: string; match: string[] };
 
 // P12: 主题切换静态命令 (renderer-local, 不走 IPC).
 // 匹配关键词: "主题" / "theme" / "浅色" / "深色" / "跟随系统" / "切换".
-const THEME_COMMANDS = [
+const THEME_COMMANDS_RAW: ThemeCommand[] = [
   { id: "theme-light",  label: "切换为浅色",  kind: "action", theme: "light",  match: ["浅色", "light", "亮色"] },
   { id: "theme-dark",   label: "切换为深色",  kind: "action", theme: "dark",   match: ["深色", "dark"] },
   { id: "theme-system", label: "跟随系统主题", kind: "action", theme: "system", match: ["跟随系统", "系统", "自动", "system", "auto"] },
 ];
-const THEME_TOAST = { light: "浅色", dark: "深色", system: "跟随系统" };
-function matchThemeCommands(q) {
+const THEME_TOAST: Record<string, string> = { light: "浅色", dark: "深色", system: "跟随系统" };
+function matchThemeCommands(q: string): PaletteItem[] {
   const lower = q.toLowerCase();
-  return THEME_COMMANDS.filter((c) => c.match.some((m) => lower.includes(m.toLowerCase())));
+  return THEME_COMMANDS_RAW.filter((c) => c.match.some((m) => lower.includes(m.toLowerCase())));
 }
 
 export function CommandPalette() {
   const open = paletteOpen.value;
   const query = paletteQuery.value;
-  const results = paletteResults.value;
+  const results = paletteResults.value as PaletteItem[];
   const selected = paletteSelectedIndex.value;
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -87,10 +96,10 @@ export function CommandPalette() {
     // P12: 主题切换命令放在最前 (renderer-local, 无延迟).
     const themeHits = matchThemeCommands(query);
     const timer = setTimeout(async () => {
-      let ipcHits = [];
+      let ipcHits: PaletteItem[] = [];
       if (api.versionsCommandSearch) {
         const r = await api.versionsCommandSearch(query);
-        if (r && r.ok) ipcHits = r.results || [];
+        if (r && r.ok) ipcHits = (r.results || []) as PaletteItem[];
       }
       setPaletteResults([...themeHits, ...ipcHits].slice(0, 10));
       setPaletteSelectedIndex(0);
@@ -98,7 +107,7 @@ export function CommandPalette() {
     return () => clearTimeout(timer);
   }, [query, open]);
 
-  function execute(item) {
+  function execute(item: PaletteItem) {
     if (item.kind === "view") navigateTo(item.id);
     else if (item.kind === "action" && item.id === "action-check") {
       api.versionsRunCheck && api.versionsRunCheck();

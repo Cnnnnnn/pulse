@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/ChangelogPanel.jsx
+ * src/renderer/components/ChangelogPanel.tsx
  *
  * Phase 14: inline changelog 展示. 安全渲染 (marked + DOMPurify).
  * Phase 18: 顶部加 "older releases" 列表, 用户可切换看历史版本 release notes.
@@ -8,15 +8,24 @@
 
 import { useState, useMemo, useEffect, useRef } from 'preact/hooks';
 import { renderChangelog } from '../changelog.js';
-import { ChangelogSummary } from './ChangelogSummary.jsx';
+import { ChangelogSummary } from './ChangelogSummary.tsx';
 import { api } from '../api.js';
+import type { ResultLike } from './appTypes.ts';
+
+type HistoryItem = { version: string; ts?: number; changelog?: string; changelog_url?: string };
+type ResultWithChangelog = ResultLike & {
+  changelog_format?: "html" | "md" | string;
+  changelog_history?: HistoryItem[];
+  release_url?: string;
+};
+type ChangelogView = number | "current";
 
 /**
  * Deep-link 到 GitHub Releases / 该版本 release page. 主进程 open-url IPC
  * 验证 + shell.openExternal 打开系统浏览器 (Electron target=_blank 默认
  * 在 Pulse 内开新 BrowserWindow, 不是用户预期的"系统浏览器打开").
  */
-function openExternal(url) {
+function openExternal(url: string) {
   if (!url) return;
   if (api && typeof api.openUrl === 'function') {
     api.openUrl(url).catch(() => {});
@@ -32,7 +41,7 @@ function openExternal(url) {
  * 下载, 不是给用户看的 release page URL). 这种 source 不显示按钮 — 避免点了
  * 跳到无效地址. 等 detector 后续拿到真正的 release page URL 再加分支.
  */
-function releasesLinkLabel(source) {
+function releasesLinkLabel(source: string | undefined | null): string {
   if (typeof source === 'string' && source.includes('github')) {
     return '↗ GitHub Releases';
   }
@@ -46,13 +55,13 @@ function releasesLinkLabel(source) {
  * 哪些 source 提供可点击的 release page URL. 不是所有 detector 都给得出 release
  * page (hilo_changelog_manifest 只给 zip 相对路径, 不显示按钮避免跳到无效地址).
  */
-function hasReleasesLink(source) {
+function hasReleasesLink(source: string | undefined | null): boolean {
   if (typeof source !== 'string') return true; // 未知 source 信任 detector, 显示按钮
   if (source === 'hilo_changelog_manifest') return false;
   return true;
 }
 
-export function ChangelogPanel({ result }) {
+export function ChangelogPanel({ result }: { result: ResultWithChangelog }) {
   const src = result && result.changelog;
   const url = result && result.changelog_url;
   const format = (result && result.changelog_format) || 'md';
@@ -60,7 +69,7 @@ export function ChangelogPanel({ result }) {
   // 当前 detector 返的 release page URL (e.g. github_release.html_url),
   // 永远是该版本的 releases page, 显示在 panel 头部让用户一键跳转.
   const releaseUrl = (result && result.release_url) || '';
-  const [view, setView] = useState('current'); // 'current' | history index
+  const [view, setView] = useState<ChangelogView>("current"); // 'current' | history index
 
   // 切换 view 时重置到 current
   const prevResultRef = useRef(result && result.latest_version);
@@ -74,10 +83,10 @@ export function ChangelogPanel({ result }) {
   // 当前选中显示的内容 (在 hook 之前计算, 避免 rules-of-hooks 违规)
   const isCurrent = view === 'current';
   const activeSrc = isCurrent ? src : (history[view] && history[view].changelog) || '';
-  const activeUrl = isCurrent ? url : (history[view] && history[view].changelog_url) || '';
+  const activeUrl = isCurrent ? url : (typeof view === "number" && history[view] && history[view].changelog_url) || '';
   // 渲染好的 HTML 提前 memo (useMemo 必须在所有 early-return 之前调用)
   const html = useMemo(
-    () => renderChangelog(activeSrc, format, activeUrl),
+    () => renderChangelog(activeSrc, format as "md" | "html", activeUrl),
     [activeSrc, format, activeUrl]
   );
 
@@ -88,7 +97,7 @@ export function ChangelogPanel({ result }) {
     ? ((result && result.changelog_source_version) ||
         (result && result.latest_version) ||
         'latest')
-    : ((history[view] && history[view].version) || 'older');
+    : ((typeof view === "number" && history[view] && history[view].version) || 'older');
   // 更新日志归属版本滞后于展示版本 (官方 changelog 页未同步最新版) 时的提醒.
   // e.g. 展示 5.2.6 但 changelog 实际是 5.2.3 的 → 标注避免误读.
   const changelogLagging =
@@ -151,7 +160,15 @@ export function ChangelogPanel({ result }) {
 /**
  * Phase 18: 历史版本 tab. 在面板底部, 用户可点击切换到旧版 release notes.
  */
-function HistoryTabs({ history, view, onChange }) {
+function HistoryTabs({
+  history,
+  view,
+  onChange,
+}: {
+  history: HistoryItem[];
+  view: ChangelogView;
+  onChange: (next: ChangelogView) => void;
+}) {
   if (!history || history.length === 0) return null;
   return (
     <div class="changelog-history">

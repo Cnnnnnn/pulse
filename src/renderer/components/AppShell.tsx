@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/AppShell.jsx
+ * src/renderer/components/AppShell.tsx
  *
  * v2.9.0 Shell 布局 + v2.9.1 拆 2 独立顶部 + v2.10+ 加 3rd (Funds)
  *
@@ -24,15 +24,15 @@
 
 import { useEffect } from 'preact/hooks';
 import { activeNav, navCollapsed, setActiveNav, goInvest } from '../worldcup/navStore.js';
-import { SideNav } from './SideNav.jsx';
-import { LazyNavPanel } from './LazyNavPanel.jsx';
-import { HomeGrid } from './HomeGrid.jsx';
+import { SideNav } from './SideNav.tsx';
+import { LazyNavPanel } from './LazyNavPanel.tsx';
+import { HomeGrid } from './HomeGrid.tsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.ts';
 import { SearchModal } from '../search/SearchModal.jsx';
 import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
 import { loadGithubProjects, loadGithubSettings } from '../store/github-projects-store.ts';
 
-export function AppShell({ onCheck }) {
+export function AppShell({ onCheck }: { onCheck?: () => void }) {
   const nav = activeNav.value;
   const collapsed = navCollapsed.value;
 
@@ -86,7 +86,7 @@ export function AppShell({ onCheck }) {
         const input = document.getElementById(inputId);
         if (input) {
           input.focus();
-          try { input.select(); } catch { /* noop */ }
+          try { (input as HTMLInputElement).select(); } catch { /* noop */ }
         }
       }
     }

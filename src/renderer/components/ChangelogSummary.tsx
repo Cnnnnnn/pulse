@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/ChangelogSummary.jsx
+ * src/renderer/components/ChangelogSummary.tsx
  *
  * A1 — changelog AI 摘要 (按需拉取 + 缓存).
  *
@@ -12,7 +12,16 @@ import { api } from "../api.js";
 import { humanizeAiError } from "../../ai/ai-errors.js";
 import { IconSparkles } from "./icons.jsx";
 
-function ageLabel(generatedAt) {
+type Summary = {
+  ok?: boolean;
+  reason?: string;
+  error?: string;
+  oneLiner?: string;
+  highlights?: string[];
+  generatedAt?: number;
+};
+
+function ageLabel(generatedAt: number | undefined): string {
   if (typeof generatedAt !== "number") return "";
   const delta = Date.now() - generatedAt;
   if (delta < 60_000) return "刚刚生成";
@@ -23,19 +32,19 @@ function ageLabel(generatedAt) {
   return `${Math.floor(h / 24)}d 前生成`;
 }
 
-function clampText(s, n) {
+function clampText(s: unknown, n: number): string {
   if (typeof s !== "string") return "";
   return s.length > n ? `${s.slice(0, n)}…` : s;
 }
 
-export function ChangelogSummary({ appName }) {
+export function ChangelogSummary({ appName }: { appName: string }) {
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState(null);
-  const [error, setError] = useState(null);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [error, setError] = useState<{ label: string; raw: string } | null>(null);
 
   if (!appName) return null;
 
-  async function fetchSummary(force = false) {
+  async function fetchSummary(force = false): Promise<void> {
     if (loading || !api.changelogSummaryFetch) return;
     setLoading(true);
     setError(null);

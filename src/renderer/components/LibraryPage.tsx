@@ -15,11 +15,11 @@
  */
 import { PageHeader } from "./PageHeader.tsx";
 import { PageActionsBar } from "./PageActionsBar.tsx";
-import { ViewSwitcher } from "./ViewSwitcher.jsx";
+import { ViewSwitcher } from "./ViewSwitcher.tsx";
 import { MergedFilterChip } from "./MergedFilterChip.tsx";
 import { ResultsView } from "./ResultsView.jsx";
 import { AppCard } from "./AppCard.tsx";
-import { VirtualCardGrid } from "./VirtualCardGrid.jsx";
+import { VirtualCardGrid } from "./VirtualCardGrid.tsx";
 import { OverviewEmptyState } from "./OverviewEmptyState.tsx";
 import { useRunCheck } from "../hooks/useRunCheck.ts";
 import { viewMode } from "../store/library-view-store.ts";

@@ -1,9 +1,10 @@
 /**
- * src/renderer/components/LazyNavPanel.jsx
+ * src/renderer/components/LazyNavPanel.tsx
  *
  * Q4 v4: 非默认 nav 面板 dynamic import, 配合 esbuild splitting 降低首屏解析量.
  */
 import { useState, useEffect } from 'preact/hooks';
+import type { ComponentType } from 'preact';
 import { VersionsLayout } from './VersionsLayout.jsx';
 
 const LOADERS = {
@@ -25,8 +26,14 @@ const LOADERS = {
     import('../ai-leaderboard/AiLeaderboardLayout.jsx').then((m) => m.AiLeaderboardLayout),
 };
 
-export function LazyNavPanel({ nav, onCheck }) {
-  const [Panel, setPanel] = useState(null);
+export function LazyNavPanel({
+  nav,
+  onCheck,
+}: {
+  nav: string;
+  onCheck?: () => void;
+}) {
+  const [Panel, setPanel] = useState<ComponentType<{ onCheck?: () => void }> | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

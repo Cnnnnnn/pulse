@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/UpgradeAdvice.jsx
+ * src/renderer/components/UpgradeAdvice.tsx
  *
  * A2 — 有更新时显示「该不该升」AI 建议 (按需拉取 + 缓存).
  */
@@ -8,13 +8,25 @@ import { api } from "../api.js";
 import { humanizeAiError } from "../../ai/ai-errors.js";
 import { IconRefresh, IconThumbsUp, IconThumbsDown, IconSparkles } from "./icons.jsx";
 
-const REC_LABELS = {
+const REC_LABELS: Record<string, string> = {
   upgrade: "建议升级",
   wait: "可再等等",
   skip: "建议跳过",
 };
 
-function ageLabel(generatedAt) {
+type Advice = {
+  ok?: boolean;
+  reason?: string;
+  error?: string;
+  summary?: string;
+  recommendation?: string;
+  confidence?: string;
+  reasons?: string[];
+  latestVersion?: string;
+  generatedAt?: number;
+};
+
+function ageLabel(generatedAt: number | undefined): string {
   if (typeof generatedAt !== "number") return "";
   const delta = Date.now() - generatedAt;
   if (delta < 60_000) return "刚刚生成";
@@ -25,15 +37,15 @@ function ageLabel(generatedAt) {
   return `${Math.floor(h / 24)}d 前生成`;
 }
 
-export function UpgradeAdvice({ appName, hasUpdate }) {
+export function UpgradeAdvice({ appName, hasUpdate }: { appName: string; hasUpdate: boolean }) {
   const [loading, setLoading] = useState(false);
-  const [advice, setAdvice] = useState(null);
-  const [error, setError] = useState(null);
-  const [vote, setVote] = useState(null); // A8: null | "up" | "down" (反馈后锁定)
+  const [advice, setAdvice] = useState<Advice | null>(null);
+  const [error, setError] = useState<{ label: string; raw: string } | null>(null);
+  const [vote, setVote] = useState<"up" | "down" | null>(null); // A8: 反馈后锁定
 
   if (!hasUpdate || !appName) return null;
 
-  async function sendVote(v) {
+  async function sendVote(v: "up" | "down") {
     if (vote || !api.feedbackRecord) return; // 已投过 / 无 API
     setVote(v);
     try {
@@ -51,7 +63,7 @@ export function UpgradeAdvice({ appName, hasUpdate }) {
     }
   }
 
-  async function fetchAdvice(force = false) {
+  async function fetchAdvice(force = false): Promise<void> {
     if (loading || !api.upgradeAdviceFetch) return;
     // A8: force 重生成 = 用户对当前结果不满意 → 记一条隐式反馈
     if (force && api.feedbackRecord && advice) {

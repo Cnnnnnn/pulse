@@ -10,9 +10,9 @@
  * 2026-07-10: 删除洞察 (insights) tab — 功能价值不足.
  */
 import { currentRoute, navigateTo } from "../store/route-store.ts";
-import { CommandPalette } from "./CommandPalette.jsx";
+import { CommandPalette } from "./CommandPalette.tsx";
 import { SubtabList } from "./SubtabList.tsx";
-import { LibraryPage } from "./LibraryPage.jsx";
+import { LibraryPage } from "./LibraryPage.tsx";
 import { DiagnosticsPage } from "./DiagnosticsPage.jsx";
 import { SettingsPage } from "./SettingsPage.jsx";
 import { AITasksDrawer } from "./AITasksDrawer.jsx";
