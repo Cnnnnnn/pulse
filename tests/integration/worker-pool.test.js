@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import path from 'path';
 import url from 'url';
-import { WorkerPool } from '../../src/workers/pool.js';
+import { WorkerPool } from '../../src/workers/pool.ts';
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

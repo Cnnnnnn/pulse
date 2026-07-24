@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 
 const SRC = fs.readFileSync(
-  path.join(__dirname, '../../src/workers/result-builder.js'),
+  path.join(__dirname, '../../src/workers/result-builder.ts'),
   'utf-8'
 );
 

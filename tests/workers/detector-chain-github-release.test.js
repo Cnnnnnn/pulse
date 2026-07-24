@@ -16,14 +16,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createRequire } from 'node:module';
 import { MockHttp } from '../helpers/mock-http.js';
 const require = createRequire(import.meta.url);
+const {
+  workersArtifactPath,
+  detectorArtifactPath,
+} = require("../_setup/require-main.cjs");
 
-const cbStoragePath = require.resolve(
-  '../../src/detectors/circuit-breaker-storage.js',
-);
-const cbPath = require.resolve('../../src/detectors/circuit-breaker.js');
-const chainPath = require.resolve(
-  '../../src/workers/detector-chain.js',
-);
+// Phase 5: chain.cjs externalizes to dist-test/detectors/* — stub those.
+const cbStoragePath = detectorArtifactPath("circuit-breaker-storage");
+const cbPath = detectorArtifactPath("circuit-breaker");
+const chainPath = workersArtifactPath("detector-chain");
 
 const mockLoadBreakers = vi.fn();
 const mockUpsertBreaker = vi.fn();

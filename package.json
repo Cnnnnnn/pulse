@@ -103,7 +103,7 @@
       "dist/main/index.js",
       "dist/main/**/*.js",
       "dist/preload.js",
-      "src/workers/**",
+      "dist/workers/**",
       "config.json",
       "versions/**",
       "index.html",

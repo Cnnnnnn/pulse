@@ -10,6 +10,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+const {
+  workersArtifactPath,
+  detectorArtifactPath,
+} = require("../_setup/require-main.cjs");
 
 // Mock the storage module
 const mockLoadBreakers = vi.fn();
@@ -23,9 +27,10 @@ const mockRecordFailure = vi.fn();
 const mockCreateBreaker = vi.fn();
 const mockHydrate = vi.fn();
 
-const stateStorePath = require.resolve('../../src/detectors/circuit-breaker-storage.js');
-const stateMachinePath = require.resolve('../../src/detectors/circuit-breaker.js');
-const chainPath = require.resolve('../../src/workers/detector-chain.js');
+// Phase 5: chain.cjs externalizes to dist-test/detectors/* — stub those.
+const stateStorePath = detectorArtifactPath("circuit-breaker-storage");
+const stateMachinePath = detectorArtifactPath("circuit-breaker");
+const chainPath = workersArtifactPath("detector-chain");
 
 function reloadChain() {
   delete require.cache[chainPath];

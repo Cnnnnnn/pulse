@@ -11,12 +11,13 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import {
+const { requireReleaseNotes } = require("../_setup/require-main.cjs");
+const {
   readReleaseNotes,
   readSlides,
   __setTestRepoRoot,
   __resetTestRepoRoot,
-} from "../../src/release-notes/loader.js";
+} = requireReleaseNotes("loader");
 
 let tmpDir;
 let repoRoot;

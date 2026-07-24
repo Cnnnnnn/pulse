@@ -37,6 +37,11 @@
  *   anomaly-detect/history-series/format-glm 为 renderer 共享，
  *   export-only（禁止 module.exports）；ai-sessions 全部 dual-export。
  *
+ * Phase 5 Batch I: 加 src/workers + src/release-notes（main/tests 仍 require .js shim；
+ *   源真相在 .ts，.js 为 shim → dist-test/{workers,release-notes}/*.cjs）。
+ *   全部 dual-export。生产 detect-worker 另见 scripts/build-main.cjs
+ *   打出的 dist/workers/detect-worker.js（自包含 bundle）。
+ *
  * 重要: 相对依赖必须 external (不能 bundle 进同一文件):
  *   - bundle 会把 module.exports = singleton 收成 named-export 包装
  *   - bundle 会使 require.cache stub 失效
@@ -58,6 +63,8 @@ const srcStocksDir = path.join(rootDir, "src", "stocks");
 const srcAiDir = path.join(rootDir, "src", "ai");
 const srcAiSessionsDir = path.join(rootDir, "src", "ai-sessions");
 const srcAiUsageDir = path.join(rootDir, "src", "ai-usage");
+const srcWorkersDir = path.join(rootDir, "src", "workers");
+const srcReleaseNotesDir = path.join(rootDir, "src", "release-notes");
 const outMainDir = path.join(rootDir, "dist-test", "main", "per-file");
 const outPlatformDir = path.join(rootDir, "dist-test", "platform");
 const outUtilsDir = path.join(rootDir, "dist-test", "utils");
@@ -69,6 +76,8 @@ const outStocksDir = path.join(rootDir, "dist-test", "stocks");
 const outAiDir = path.join(rootDir, "dist-test", "ai");
 const outAiSessionsDir = path.join(rootDir, "dist-test", "ai-sessions");
 const outAiUsageDir = path.join(rootDir, "dist-test", "ai-usage");
+const outWorkersDir = path.join(rootDir, "dist-test", "workers");
+const outReleaseNotesDir = path.join(rootDir, "dist-test", "release-notes");
 
 function findTsFiles(dir) {
   const out = [];
@@ -129,6 +138,14 @@ function outFileFor(tsFile) {
   if (tsFile.startsWith(srcAiUsageDir + path.sep)) {
     const rel = path.relative(srcAiUsageDir, tsFile).replace(/\.ts$/, ".cjs");
     return path.join(outAiUsageDir, rel);
+  }
+  if (tsFile.startsWith(srcWorkersDir + path.sep)) {
+    const rel = path.relative(srcWorkersDir, tsFile).replace(/\.ts$/, ".cjs");
+    return path.join(outWorkersDir, rel);
+  }
+  if (tsFile.startsWith(srcReleaseNotesDir + path.sep)) {
+    const rel = path.relative(srcReleaseNotesDir, tsFile).replace(/\.ts$/, ".cjs");
+    return path.join(outReleaseNotesDir, rel);
   }
   return null;
 }
@@ -225,6 +242,8 @@ module.exports = async function setup() {
   const aiTs = findTsFiles(srcAiDir);
   const aiSessionsTs = findTsFiles(srcAiSessionsDir);
   const aiUsageTs = findTsFiles(srcAiUsageDir);
+  const workersTs = findTsFiles(srcWorkersDir);
+  const releaseNotesTs = findTsFiles(srcReleaseNotesDir);
   // ponytail: match-key.ts 是 ESM-only（仅 renderer 用），不进 dist-test CJS 图
   const utilsTs = findTsFiles(srcUtilsDir).filter(
     (f) => path.basename(f) !== "match-key.ts",
@@ -241,6 +260,8 @@ module.exports = async function setup() {
     ...aiTs,
     ...aiSessionsTs,
     ...aiUsageTs,
+    ...workersTs,
+    ...releaseNotesTs,
   ];
   if (tsFiles.length === 0) return;
 
@@ -276,6 +297,8 @@ module.exports = async function setup() {
   fs.mkdirSync(outAiDir, { recursive: true });
   fs.mkdirSync(outAiSessionsDir, { recursive: true });
   fs.mkdirSync(outAiUsageDir, { recursive: true });
+  fs.mkdirSync(outWorkersDir, { recursive: true });
+  fs.mkdirSync(outReleaseNotesDir, { recursive: true });
 
   if (needBuild) {
     const esbuild = require("esbuild");

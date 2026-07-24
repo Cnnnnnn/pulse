@@ -8,10 +8,15 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
+  requirePlatform,
+  platformArtifactPath,
+  workersArtifactPath,
+} = require("../_setup/require-main.cjs");
 
-const winRegPath = require.resolve('../../src/workers/win-registry');
-const ivPath = require.resolve('../../src/workers/installed-version');
+// Phase 5: windows.cjs requires dist-test/workers/* — stub those, not src shims.
+const winRegPath = workersArtifactPath("win-registry");
+const ivPath = workersArtifactPath("installed-version");
 const winPath = platformArtifactPath('windows');
 // Phase 3 shim → dist-test .cjs; must bust both or require.cache stubs miss.
 const winCjsPath = path.resolve(__dirname, '../../dist-test/platform/windows.cjs');

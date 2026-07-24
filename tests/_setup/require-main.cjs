@@ -2,11 +2,11 @@
  * tests/_setup/require-main.cjs
  *
  * Phase 3 Batch 9b: load migrated main/platform/utils/config/detectors/metals/funds/stocks/ai
- * + ai-sessions/ai-usage modules from dist-test per-file .cjs
+ * + ai-sessions/ai-usage/workers/release-notes modules from dist-test per-file .cjs
  * (built by build-main-ts globalSetup).
  *
  * Usage (CJS test or createRequire):
- *   const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage } = require("../_setup/require-main.cjs");
+ *   const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
  *   const { getLeaderboard } = requireMain("ai-leaderboard/aggregator");
  *   const win = requirePlatform("windows");
  *   const { cleanVersion } = requireUtils("version-utils");
@@ -18,6 +18,8 @@
  *   const { chatCompletion } = requireAi("shared-llm");
  *   const { TaskSummaryEngine } = requireAiSessions("engine");
  *   const { detectUsageAnomaly } = requireAiUsage("anomaly-detect");
+ *   const { WorkerPool } = requireWorkers("pool");
+ *   const { readReleaseNotes } = requireReleaseNotes("loader");
  */
 const path = require("node:path");
 
@@ -33,6 +35,8 @@ const outStocksDir = path.join(rootDir, "dist-test", "stocks");
 const outAiDir = path.join(rootDir, "dist-test", "ai");
 const outAiSessionsDir = path.join(rootDir, "dist-test", "ai-sessions");
 const outAiUsageDir = path.join(rootDir, "dist-test", "ai-usage");
+const outWorkersDir = path.join(rootDir, "dist-test", "workers");
+const outReleaseNotesDir = path.join(rootDir, "dist-test", "release-notes");
 
 function cleanRel(rel, fallback) {
   return String(rel || fallback || "")
@@ -86,6 +90,14 @@ function requireAiUsage(rel) {
   return require(path.join(outAiUsageDir, cleanRel(rel) + ".cjs"));
 }
 
+function requireWorkers(rel) {
+  return require(path.join(outWorkersDir, cleanRel(rel) + ".cjs"));
+}
+
+function requireReleaseNotes(rel) {
+  return require(path.join(outReleaseNotesDir, cleanRel(rel) + ".cjs"));
+}
+
 function mainArtifactPath(rel) {
   return path.join(outMainDir, cleanRel(rel) + ".cjs");
 }
@@ -130,6 +142,14 @@ function aiUsageArtifactPath(rel) {
   return path.join(outAiUsageDir, cleanRel(rel) + ".cjs");
 }
 
+function workersArtifactPath(rel) {
+  return path.join(outWorkersDir, cleanRel(rel) + ".cjs");
+}
+
+function releaseNotesArtifactPath(rel) {
+  return path.join(outReleaseNotesDir, cleanRel(rel) + ".cjs");
+}
+
 module.exports = {
   requireMain,
   requirePlatform,
@@ -142,6 +162,8 @@ module.exports = {
   requireAi,
   requireAiSessions,
   requireAiUsage,
+  requireWorkers,
+  requireReleaseNotes,
   mainArtifactPath,
   platformArtifactPath,
   utilsArtifactPath,
@@ -153,4 +175,6 @@ module.exports = {
   aiArtifactPath,
   aiSessionsArtifactPath,
   aiUsageArtifactPath,
+  workersArtifactPath,
+  releaseNotesArtifactPath,
 };

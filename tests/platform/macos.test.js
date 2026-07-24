@@ -6,7 +6,7 @@
  *       getInstalledVersion / getAppIcon / execUpgrade 委托到底层模块 (验 spy 调用).
  */
 import { describe, it, expect, vi } from 'vitest';
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { requirePlatform, requireWorkers, requireMain } = require("../_setup/require-main.cjs");
 
 const macos = requirePlatform('macos');
 
@@ -78,7 +78,8 @@ describe('platform/macos', () => {
   describe('getInstalledVersion (委托 installed-version.js)', () => {
     it('调底层 getInstalledVersion, 传 bundle + version_sources', async () => {
       const spy = vi.fn().mockResolvedValue('3.6.31');
-      const iv = require('../../src/workers/installed-version.js');
+      // Phase 5: macos.cjs → dist-test/workers/installed-version.cjs（共享 cache）
+      const iv = requireWorkers('installed-version');
       const orig = iv.getInstalledVersion;
       iv.getInstalledVersion = spy;
       try {

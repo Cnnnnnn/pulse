@@ -87,20 +87,20 @@ const LITERALS = [
     rewrittenLiteral: `join(__dirname, "..", "..", "src", "main", "ai-leaderboard", "sample.json")`,
     resolved: ["..", "..", "src", "main", "ai-leaderboard", "sample.json"],
   },
-  // #7 workerScript (index.js) → repo/src/workers/detect-worker.js (multi-line)
+  // #7 workerScript (index.js) → repo/dist/workers/detect-worker.js (multi-line no-op)
   {
     label: "workerScript",
     detectPattern: `join\\(\\s*__dirname\\s*,\\s*".."\\s*,\\s*"workers"\\s*,\\s*"detect-worker.js"\\s*\\)`,
     preRewriteLiteral: `join(\n    __dirname,\n    "..",\n    "workers",\n    "detect-worker.js"\n  )`,
-    rewrittenLiteral: `join(\n    __dirname,\n    "..",\n    "..",\n    "src",\n    "workers",\n    "detect-worker.js"\n  )`,
-    resolved: ["..", "..", "src", "workers", "detect-worker.js"],
+    rewrittenLiteral: `join(\n    __dirname,\n    "..",\n    "workers",\n    "detect-worker.js"\n  )`,
+    resolved: ["..", "workers", "detect-worker.js"],
   },
 ];
 
 const MUST_EXIST_PATHS = [
   ["assets"],
   ["src", "main", "ai-leaderboard", "sample.json"],
-  ["src", "workers", "detect-worker.js"],
+  ["dist", "workers", "detect-worker.js"],
 ];
 
 function buildBundle() {

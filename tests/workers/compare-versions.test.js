@@ -7,7 +7,7 @@
  * 排序 alpha < beta/pre < rc < release. 同时保留 4 段 build 号归一.
  */
 import { describe, it, expect } from "vitest";
-import { compareVersions } from "../../src/workers/detector-chain.js";
+import { compareVersions } from "../../src/workers/detector-chain.ts";
 
 describe("compareVersions — pre-release 语义", () => {
   it("主体相等无后缀 → 无更新", () => {

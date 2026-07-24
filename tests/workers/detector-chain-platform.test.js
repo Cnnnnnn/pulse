@@ -11,7 +11,7 @@ import { join } from 'path';
 describe('detector-chain platform filtering', () => {
   it('detector-chain.js 源码读 currentPlatform 并过滤', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/workers/detector-chain.js'),
+      join(__dirname, '../../src/workers/detector-chain.ts'),
       'utf-8',
     );
     expect(src).toContain('platform');
@@ -20,7 +20,7 @@ describe('detector-chain platform filtering', () => {
 
   it('installed-version.js 源码按 platform 过滤 version_sources', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/workers/installed-version.js'),
+      join(__dirname, '../../src/workers/installed-version.ts'),
       'utf-8',
     );
     expect(src).toContain('platform');

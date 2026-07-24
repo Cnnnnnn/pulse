@@ -9,7 +9,7 @@ import {
   queryRegistryField,
   parseRegOutput,
   queryAllUninstallKeys,
-} from '../../src/workers/win-registry.js';
+} from '../../src/workers/win-registry.ts';
 
 describe('win-registry', () => {
   describe('parseRegOutput', () => {

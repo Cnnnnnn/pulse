@@ -43,10 +43,15 @@ const WB_DETECTORS = [
 // breakerKey(detCfg) = `${type}:${url}` — url 用配置原值 (含 {arch} 占位符).
 const API_BREAKER_KEY = `api_json:${API_JSON_URL}`;
 
-const storagePath = require.resolve(
-  "../../src/detectors/circuit-breaker-storage.js",
-);
-const chainPath = require.resolve("../../src/workers/detector-chain.js");
+const {
+  workersArtifactPath,
+  detectorArtifactPath,
+  requireDetector,
+} = require("../_setup/require-main.cjs");
+
+// Phase 5: chain.cjs externalizes to dist-test/detectors/* — stub those.
+const storagePath = detectorArtifactPath("circuit-breaker-storage");
+const chainPath = workersArtifactPath("detector-chain");
 
 // 保存原始 cache 以便测试后还原, 避免污染同进程其他测试文件.
 const origStorageEntry = require.cache[storagePath];
@@ -54,7 +59,7 @@ const origChainEntry = require.cache[chainPath];
 
 const mockLoadBreakers = vi.fn();
 const mockUpsertBreaker = vi.fn();
-const realStorage = require("../../src/detectors/circuit-breaker-storage.js");
+const realStorage = requireDetector("circuit-breaker-storage");
 
 /**
  * 注入 storage mock 后重新加载 chain (让其 require 到我们的 storage exports),

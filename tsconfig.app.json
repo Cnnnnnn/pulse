@@ -23,7 +23,8 @@
     "src/ai/**/*.ts",
     "src/ai-sessions/**/*.ts",
     "src/ai-usage/**/*.ts",
-    "src/workers/**/*.js",
+    "src/workers/**/*.ts",
+    "src/release-notes/**/*.ts",
     "src/**/*.js"
   ],
   "exclude": ["node_modules", "renderer-dist", "tests", "src/renderer"]

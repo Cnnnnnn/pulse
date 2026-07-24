@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { tryVersionSource, expandHome } from '../../src/workers/version-source.js';
+import { tryVersionSource, expandHome } from '../../src/workers/version-source.ts';
 
 describe('tryVersionSource', () => {
   let tmpDir;

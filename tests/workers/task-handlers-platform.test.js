@@ -16,10 +16,10 @@ const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } =
 describe('task-handlers uses platform.resolveAppPath', () => {
   it('源码 require platform 层 (不再直接 require app-paths)', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/workers/task-handlers.js'),
+      join(__dirname, '../../src/workers/task-handlers.ts'),
       'utf-8',
     );
-    expect(src).toContain('require("../platform/index.js")');
+    expect(src).toContain('require("../platform/index.ts")');
     expect(src).toContain('platform.resolveAppPath');
     // 不再直接 import resolveAppBundlePath
     expect(src).not.toContain('resolveAppBundlePath');

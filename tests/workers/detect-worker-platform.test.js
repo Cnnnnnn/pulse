@@ -10,7 +10,7 @@ import { join } from 'path';
 describe('worker IPC carries platform', () => {
   it('ipc.js 导出 PLATFORM (从 workerData)', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/workers/ipc.js'),
+      join(__dirname, '../../src/workers/ipc.ts'),
       'utf-8',
     );
     expect(src).toContain('PLATFORM');
@@ -19,7 +19,7 @@ describe('worker IPC carries platform', () => {
 
   it('task-handlers.js import PLATFORM 并传给 runDetectorChain', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/workers/task-handlers.js'),
+      join(__dirname, '../../src/workers/task-handlers.ts'),
       'utf-8',
     );
     expect(src).toContain('PLATFORM');

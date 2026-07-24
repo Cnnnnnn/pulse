@@ -10,7 +10,7 @@
  * message so the user understands why the app shows no update.
  */
 import { describe, it, expect } from 'vitest';
-import { extractErrorMessage } from '../../src/workers/result-builder.js';
+import { extractErrorMessage } from '../../src/workers/result-builder.ts';
 
 describe('extractErrorMessage', () => {
   it('returns versionUnknown message when versionUnknown is true', () => {

@@ -8,7 +8,7 @@
  * 后 result.version=26.623.42026 + result.changelog=<markdown>.
  */
 import { describe, it, expect } from "vitest";
-import { runDetectorChain } from "../../src/workers/detector-chain.js";
+import { runDetectorChain } from "../../src/workers/detector-chain.ts";
 import { MockHttp, makeCtx } from "../helpers/mock-http.js";
 
 const SAMPLE_RSS = `<?xml version="1.0"?>

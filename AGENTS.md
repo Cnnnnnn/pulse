@@ -5,19 +5,19 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 进行中** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage` 已 `.ts`；剩余主要是 `workers` 等仍 `.js`。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 进行中** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；剩余主要是 tests/scripts strict 等。
 
 ## 仓库布局
 
- - `src/main/` — 主进程（Phase 3 已 100% `.ts`。测试：`requireMain` → `dist-test`。例外 shim：`http-client`/`state-store`/`token-budget`/`log` + `platform/index`，供 `workers` 等仍是 JS 的调用方；**Phase 5**：`src/utils/{app-paths,version-utils,stale-detect}.js` + `src/detectors/*.js` + `src/metals/*.js` + `src/funds/*.js` + `src/stocks/**/*.js` + `src/ai/*.js` + `src/ai-sessions/*.js` + `src/ai-usage/*.js` 同款 shim → `dist-test/{utils,detectors,metals,funds,stocks,ai,ai-sessions,ai-usage}/*.cjs`）
+ - `src/main/` — 主进程（Phase 3 已 100% `.ts`。测试：`requireMain` → `dist-test`。例外 shim：`http-client`/`state-store`/`token-budget`/`log` + `platform/index`，供非 main JS 调用方；**Phase 5**：`src/utils/{app-paths,version-utils,stale-detect}.js` + `src/detectors/*.js` + `src/metals/*.js` + `src/funds/*.js` + `src/stocks/**/*.js` + `src/ai/*.js` + `src/ai-sessions/*.js` + `src/ai-usage/*.js` + `src/workers/*.js` + `src/release-notes/*.js` 同款 shim → `dist-test/{utils,detectors,metals,funds,stocks,ai,ai-sessions,ai-usage,workers,release-notes}/*.cjs`）
   - `src/main/ai-leaderboard/` — AI 榜单核心（fetcher 6 个 + aggregator + ranking + scheduler + types + normalize + cache）
   - `src/main/ipc/` — IPC handler（注册到 `ipcMain`）
   - `src/main/games/`, `src/main/funds/`, `src/main/worldcup/`, `src/main/ithome/`, `src/main/wechat-hot/` — 各业务域
  - `src/renderer/` — 渲染进程（Preact + esbuild；**Phase 4 已完成**：全部 `.ts`/`.tsx`）
   - `src/renderer/ai-leaderboard/` — 榜单 UI（4 个视角 tab：Arena / AA / LiveBench / HuggingFace）
- - `src/config/` / `src/utils/` / `src/detectors/` / `src/metals/` / `src/funds/` / `src/stocks/` / `src/ai/` / `src/ai-sessions/` / `src/ai-usage/` — **Phase 5**：真相在 `.ts`；utils/detectors/metals/funds/stocks/ai/ai-sessions/ai-usage 经 `.js` shim 供 main/workers；metal-config/metal-calc 与 fundCalc/fund-history/fund-nav-merge/format/fund-category/concentration/pnlCsv 与 diagnosis-scorer/strategies/stock-constants/stock-filter 与 default-models/ai-errors 与 anomaly-detect/history-series/format-glm 为 renderer 共享（export-only）
+ - `src/config/` / `src/utils/` / `src/detectors/` / `src/metals/` / `src/funds/` / `src/stocks/` / `src/ai/` / `src/ai-sessions/` / `src/ai-usage/` / `src/workers/` / `src/release-notes/` — **Phase 5**：真相在 `.ts`；经 `.js` shim 供 main/tests；metal-config/metal-calc 与 fundCalc/fund-history/fund-nav-merge/format/fund-category/concentration/pnlCsv 与 diagnosis-scorer/strategies/stock-constants/stock-filter 与 default-models/ai-errors 与 anomaly-detect/history-series/format-glm 为 renderer 共享（export-only）。**prod worker** 走 `scripts/build-main.cjs` 打出的自包含 `dist/workers/detect-worker.js`（不进 main bundle；asar 用 `dist/workers/**`，不再打包 `src/workers/**`）
 - `tests/` — vitest 单元测试（main 测走 `dist-test/main/per-file/*.cjs`，renderer 测走 happy-dom）
-- `scripts/` — 构建脚本（`build-main.cjs` 产线 / `build-main-ts.cjs` dev-test）
+- `scripts/` — 构建脚本（`build-main.cjs` 产线：main + workers bundle / `build-main-ts.cjs` dev-test）
 - `docs/` — 架构文档
 - `deliverables/` — 交付报告（v2.7+ 阶段交付物）
 - `RELEASE-NOTES.md` — 版本变更日志（顶部 v2.50，最新 v2.9.8 + 本地 v2.79.x）

@@ -5,7 +5,7 @@
  * 用 mock exec / mock fs 注入, 不依赖真实 Windows.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { tryVersionSource } from '../../src/workers/version-source.js';
+import { tryVersionSource } from '../../src/workers/version-source.ts';
 
 describe('version-source Windows types', () => {
   describe('registry_version', () => {
