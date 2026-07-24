@@ -151,7 +151,7 @@ export async function checkAiUsageAlerts(deps: any): Promise<any> {
     saveAlertPrefs({ lastNotified: nextLast });
   } catch (err) {
     if (log && typeof log.warn === "function") {
-      log.warn(`[ai-usage-alerts] save failed: ${err && err.message}`);
+      log.warn(`[ai-usage-alerts] save failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -177,7 +177,7 @@ export async function checkAiUsageAlerts(deps: any): Promise<any> {
         sendNotification({ title: `📊 ${label} 用量异常`, body });
       } catch (err) {
         if (log && typeof log.warn === "function") {
-          log.warn(`[ai-usage-alerts] notify failed: ${err && err.message}`);
+          log.warn(`[ai-usage-alerts] notify failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
     }

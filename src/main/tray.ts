@@ -178,7 +178,7 @@ function loadFallbackIcon(): NativeImage {
  * @param {object}  [opts.selfUpdateState] - P52: {available, version, status, ...} Pulse 自更新状态
  * @returns {Array} Electron Menu template 数组
  */
-function buildMenu(opts: BuildMenuOpts): MenuItemConstructorOptions[] {
+function buildMenu(opts: BuildMenuOpts): any[] {
   const {
     results = [],
     aiUsage = null,
@@ -200,7 +200,7 @@ function buildMenu(opts: BuildMenuOpts): MenuItemConstructorOptions[] {
     getConfig = () => ({ apps: [] }),
   } = opts;
   const seg = trayPrefs.segments;
-  const template = [];
+  const template: any[] = [];
 
   // ─── I7: 顶部总览 (全局快照) ───
   // 用户开菜单瞬间拿到"全局快照"; 与下方各 segment 互补.
@@ -228,7 +228,7 @@ function buildMenu(opts: BuildMenuOpts): MenuItemConstructorOptions[] {
           template.push({
             label: `${r.name}  ${ver}  ⬆️ 升级`,
             click: () => {
-              onFocusUpdate({ rowName: r.name, action: "upgrade" });
+              onFocusUpdate({ rowName: r.name || "", action: "upgrade" });
             },
           });
         });
@@ -357,7 +357,7 @@ function buildMenu(opts: BuildMenuOpts): MenuItemConstructorOptions[] {
   return template;
 }
 
-const PROVIDER_NAME = { minimax: "MiniMax", glm: "GLM" };
+const PROVIDER_NAME: Record<string, string> = { minimax: "MiniMax", glm: "GLM" };
 
 /**
  * 把 aiUsage summary map 渲染成 menu template 行 (v2.22 Task B2).
@@ -498,7 +498,7 @@ function buildWorldcupLines(wc: any, onFocusWorldcup?: (payload: { matchKey: str
   return lines;
 }
 
-const METAL_NAME = {
+const METAL_NAME: Record<string, string> = {
   XAU: "黄金",
   XAG: "白银",
   AU9999: "Au9999",
@@ -689,11 +689,12 @@ function createTrayManager(opts: CreateTrayManagerOpts) {
   function setBadge(updateCount: number) {
     if (!tray) return;
     if (updateCount > 0) {
-      const icon = loadBadgeIcon(updateCount) || loadTrayIcon();
-      tray.setImage(icon);
+      const icon = loadBadgeIcon(updateCount) || loadTrayIcon() || loadFallbackIcon();
+      if (icon) tray.setImage(icon);
       tray.setToolTip(`Pulse — ${updateCount} 个更新`);
     } else {
       const icon = loadTrayIcon() || loadFallbackIcon();
+      if (!icon) return;
       icon.setTemplateImage(true);
       tray.setImage(icon);
       tray.setToolTip("Pulse — 已是最新");

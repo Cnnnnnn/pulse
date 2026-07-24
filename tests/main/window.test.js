@@ -43,12 +43,12 @@ describe('window.js uses platform.getWindowOptions', () => {
 
     expect(readyToShowBody).toBeTruthy();
     expect(showWindowBody).toBeTruthy();
-    expect(readyToShowBody.indexOf('mainWindow.maximize()')).toBeGreaterThan(-1);
-    expect(readyToShowBody.indexOf('mainWindow.maximize()')).toBeLessThan(
-      readyToShowBody.indexOf('mainWindow.show()'),
+    expect(readyToShowBody.indexOf('.maximize()')).toBeGreaterThan(-1);
+    expect(readyToShowBody.indexOf('.maximize()')).toBeLessThan(
+      readyToShowBody.indexOf('.show()'),
     );
-    expect(readyToShowBody.indexOf('mainWindow.show()')).toBeLessThan(
-      readyToShowBody.indexOf('mainWindow.focus()'),
+    expect(readyToShowBody.indexOf('.show()')).toBeLessThan(
+      readyToShowBody.indexOf('.focus()'),
     );
     expect(showWindowBody).not.toContain('maximize()');
   });

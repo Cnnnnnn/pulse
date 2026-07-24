@@ -111,13 +111,18 @@ const { installNintendoImageHeaders } = require("./games/nintendo-image-headers.
 
 const httpClient = new HttpClient();
 
+// ponytail: bootstrap entry glue; catch stays unknown. Ceiling: any deps until BootstrapDeps.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 let isQuitting = false;
-let pool = null;
-let trayMgr = null;
-let winMgr = null;
-let fundScheduler = null;
-let aiUsageScheduler = null;
-let runtimeConfigRef = { current: null };
+let pool: any = null;
+let trayMgr: any = null;
+let winMgr: any = null;
+let fundScheduler: any = null;
+let aiUsageScheduler: any = null;
+let runtimeConfigRef: { current: any } = { current: null };
 
 function getWindow() {
   return winMgr && winMgr.getWindow();
@@ -133,8 +138,8 @@ installErrorGuardBridge(sendToRenderer);
  * @param {{getTrayMgr: () => object|null}} ctx
  * @returns {{ handle: object|null }} selfUpdateHandle (IPC handler 需读 controller)
  */
-function initSelfUpdateTimer(ctx) {
-  let selfUpdateHandle = null;
+function initSelfUpdateTimer(ctx: any) {
+  let selfUpdateHandle: any = null;
   try {
     selfUpdateHandle = startSelfUpdateTimer({
       // 周期检查仅在系统空闲时运行；手动检查不受限。
@@ -152,11 +157,11 @@ function initSelfUpdateTimer(ctx) {
           return null;
         }
       },
-      logSkip: (reason) =>
+      logSkip: (reason: any) =>
         mainLog.info(`[self-update] 6h tick skipped (${reason})`),
     });
   } catch (err) {
-    mainLog.warn(`[self-update] bootstrap failed: ${err && err.message}`);
+    mainLog.warn(`[self-update] bootstrap failed: ${errMsg(err)}`);
   }
 
   function pushSelfUpdateToTray() {
@@ -166,7 +171,7 @@ function initSelfUpdateTimer(ctx) {
         tray.setSelfUpdateState(selfUpdateHandle.controller.getState());
       }
     } catch (err) {
-      mainLog.warn(`[self-update] push to tray failed: ${err && err.message}`);
+      mainLog.warn(`[self-update] push to tray failed: ${errMsg(err)}`);
     }
   }
   setTimeout(pushSelfUpdateToTray, 35000);
@@ -193,8 +198,8 @@ function initCategoryAndLlm() {
   })();
   if (earlyConfig) {
     runtimeConfigRef.current = earlyConfig;
-    classifyUnmappedAppsByLLM(earlyConfig, { stateStore }).catch((err) => {
-      mainLog.warn(`[bootstrap] LLM classify rejected: ${err && err.message}`);
+    classifyUnmappedAppsByLLM(earlyConfig, { stateStore }).catch((err: any) => {
+      mainLog.warn(`[bootstrap] LLM classify rejected: ${errMsg(err)}`);
     });
   }
 }
@@ -235,13 +240,13 @@ function initWorkerPool() {
     size: poolSize,
     workerScript,
     workerOpts: { workerData: { arch: ARCH, platform: process.platform } },
-    onProgress: (payload) => {
+    onProgress: (payload: any) => {
       const w = getWindow();
       if (w && !w.isDestroyed()) {
         w.webContents.send("check-progress", payload);
       }
     },
-    onLog: (level, text, id, meta) => {
+    onLog: (level: any, text: any, id: any, meta: any) => {
       const m =
         meta && typeof meta === "object" ? { wid: id, ...meta } : { wid: id };
       if (text) m.note = text;
@@ -258,7 +263,7 @@ function initWorkerPool() {
  * @param {object} runtimeConfig
  * @returns {{ ms: number }}
  */
-function createMainWindow(runtimeConfig) {
+function createMainWindow(runtimeConfig: any) {
   const tWindow = Date.now();
   winMgr = createWindowManager({
     config: runtimeConfig,
@@ -298,7 +303,7 @@ function installTray() {
         isQuitting = true;
         app.quit();
       },
-      onFocusUpdate: (data) => {
+      onFocusUpdate: (data: any) => {
         if (winMgr) winMgr.showWindow();
         const w = getWindow();
         if (w && !w.isDestroyed()) {
@@ -309,7 +314,7 @@ function installTray() {
           });
         }
       },
-      onFocusWorldcup: (data) => {
+      onFocusWorldcup: (data: any) => {
         if (winMgr) winMgr.showWindow();
         const w = getWindow();
         if (w && !w.isDestroyed()) {
@@ -318,7 +323,7 @@ function installTray() {
           });
         }
       },
-      onThemeChange: (mode) => {
+      onThemeChange: (mode: any) => {
         const w = getWindow();
         if (w && !w.isDestroyed()) {
           w.webContents.send("theme:changed", { mode, source: "tray" });
@@ -351,11 +356,11 @@ function installTray() {
     try {
       trayMgr.setTrayMenuPrefs(stateStore.loadTrayMenuPrefs());
     } catch (err) {
-      mainLog.warn(`tray menu prefs load failed: ${err && err.message}`);
+      mainLog.warn(`tray menu prefs load failed: ${errMsg(err)}`);
     }
     mainLog.info(`tray installed: ${Date.now() - tTrayStart}ms`);
   } catch (err) {
-    mainLog.error(`tray install failed: ${err.message}`);
+    mainLog.error(`tray install failed: ${errMsg(err)}`);
   }
   return { ms: Date.now() - tTrayStart };
 }
@@ -391,7 +396,7 @@ function initAiUsageTray() {
           appendHistoryProvider: stateStore.appendAiUsageHistoryDayProvider,
         },
         storage: {
-          loadApiKey: (pid) => {
+          loadApiKey: (pid: any) => {
             try {
               return aiStorage.loadApiKey(pid);
             } catch {
@@ -408,8 +413,8 @@ function initAiUsageTray() {
         loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
         loadAlertPrefs: stateStore.loadAiUsageAlertPrefs,
         saveAlertPrefs: stateStore.saveAiUsageAlertPrefs,
-        listTasks: async (dateKey) => {
-          const wiring = global.__pulse_aiTasks;
+        listTasks: async (dateKey: any) => {
+          const wiring = (globalThis as any).__pulse_aiTasks;
           if (!wiring || !wiring.engine) return { tasks: [] };
           return wiring.engine.listTasks(dateKey);
         },
@@ -418,7 +423,7 @@ function initAiUsageTray() {
     aiUsageScheduler.start({ intervalMs: 30 * 60 * 1000, deferInitial: true });
     mainLog.info("ai-usage tray refresh scheduler started (every 30min)");
   } catch (err) {
-    mainLog.warn(`ai-usage tray init failed: ${err && err.message}`);
+    mainLog.warn(`ai-usage tray init failed: ${errMsg(err)}`);
   }
 }
 
@@ -444,7 +449,7 @@ function initWorldcupTray() {
     pushWorldcupToTray();
     mainLog.info("worldcup tray initialized (read-only from state.json)");
   } catch (err) {
-    mainLog.warn(`worldcup tray init failed: ${err && err.message}`);
+    mainLog.warn(`worldcup tray init failed: ${errMsg(err)}`);
   }
   return pushWorldcupToTray;
 }
@@ -476,7 +481,7 @@ function initMetalsTray() {
       }
     });
   } catch (err) {
-    mainLog.warn(`metals tray init failed: ${err && err.message}`);
+    mainLog.warn(`metals tray init failed: ${errMsg(err)}`);
   }
 }
 
@@ -485,7 +490,7 @@ function initMetalsTray() {
  * @param {object} selfUpdateHandle - self-update controller, IPC handler 读
  * @returns {{ ms: number }}
  */
-function registerAllIpc(selfUpdateHandle) {
+function registerAllIpc(selfUpdateHandle: any) {
   const tIpc = Date.now();
   const refreshLastOpenedAfterCheck = makeRefreshLastOpenedAfterCheck({
     runtimeConfigRef,
@@ -498,16 +503,16 @@ function registerAllIpc(selfUpdateHandle) {
     pool,
     getWindow,
     getCachedState: () => stateStore.load(),
-    onCheckComplete: (results, staleNames) => {
+    onCheckComplete: (results: any, staleNames: any) => {
       if (trayMgr) {
         trayMgr.setResults(results, staleNames);
-        const count = results.filter((r) => r.has_update).length;
+        const count = results.filter((r: any) => r.has_update).length;
         trayMgr.setBadge(count);
       }
       try {
         stateStore.saveAll(results);
       } catch (err) {
-        mainLog.warn(`state save failed: ${err.message}`);
+        mainLog.warn(`state save failed: ${errMsg(err)}`);
       }
       refreshLastOpenedAfterCheck();
     },
@@ -537,11 +542,11 @@ function registerAllIpc(selfUpdateHandle) {
           `search index built (deferred): ${searchIndex.size()} docs in ${Date.now() - tSearch}ms`,
         );
       } catch (err) {
-        mainLog.warn(`[search] deferred build failed: ${err && err.message}`);
+        mainLog.warn(`[search] deferred build failed: ${errMsg(err)}`);
       }
     });
   } catch (err) {
-    mainLog.warn(`search index init failed: ${err && err.message}`);
+    mainLog.warn(`search index init failed: ${errMsg(err)}`);
   }
 
   // Phase I5: start daily digest scheduler. setInterval(60s) ticks; the job
@@ -556,20 +561,20 @@ function registerAllIpc(selfUpdateHandle) {
           return {};
         }
       },
-      setState: (partial) => {
+      setState: (partial: any) => {
         try {
           if (partial && partial.daily_digest) {
             stateStore.saveDailyDigest(partial.daily_digest);
           }
         } catch (err) {
           mainLog.warn(
-            `[digest] saveDailyDigest failed: ${err && err.message}`,
+            `[digest] saveDailyDigest failed: ${errMsg(err)}`,
           );
         }
       },
       getConfig: () =>
         runtimeConfigRef.current || { apps: [], notifications: {} },
-      sendNotification: (n) => {
+      sendNotification: (n: any) => {
         try {
           const { Notification: ElectronNotification } = require("electron");
           if (
@@ -596,21 +601,21 @@ function registerAllIpc(selfUpdateHandle) {
                 });
             } catch (err) {
               mainLog.warn(
-                `[digest] notification click failed: ${err && err.message}`,
+                `[digest] notification click failed: ${errMsg(err)}`,
               );
             }
           });
           note.show();
         } catch (err) {
           mainLog.warn(
-            `[digest] sendNotification threw: ${err && err.message}`,
+            `[digest] sendNotification threw: ${errMsg(err)}`,
           );
         }
       },
     });
     mainLog.info("daily digest job started");
   } catch (err) {
-    mainLog.warn(`[digest] job bootstrap failed: ${err && err.message}`);
+    mainLog.warn(`[digest] job bootstrap failed: ${errMsg(err)}`);
   }
   return { ms: Date.now() - tIpc };
 }
@@ -620,7 +625,7 @@ function registerAllIpc(selfUpdateHandle) {
  * fund/reminders/worldcup/recent/auto-check timer.
  * 步骤 7.4 / 7.5 / 8. pushWorldcupToTray 由 initWorldcupTray 返回, 钩给 goal-watcher.
  */
-function startSchedulers(pushWorldcupToTray) {
+function startSchedulers(pushWorldcupToTray: any) {
   // 必须在 renderer 可能 invoke metals:* 前同步注册 IPC。
   registerMetalIpc();
   startMetalScheduler({
@@ -670,7 +675,7 @@ function startSchedulers(pushWorldcupToTray) {
     sendToRenderer,
     getConfig: () => runtimeConfigRef.current,
     goalWatcher,
-    onScoresChanged: (newScores) => {
+    onScoresChanged: (newScores: any) => {
       pushWorldcupToTray();
       try {
         const keys =
@@ -683,7 +688,7 @@ function startSchedulers(pushWorldcupToTray) {
         });
       } catch (err) {
         mainLog.warn(
-          `[worldcup] push scores to renderer failed: ${err && err.message}`,
+          `[worldcup] push scores to renderer failed: ${errMsg(err)}`,
         );
       }
     },
@@ -714,7 +719,7 @@ async function bootstrap() {
     initErrorCapture({ sendToRenderer });
     mainLog.info("error capture enabled");
   } catch (err) {
-    mainLog.warn(`[error-init] failed: ${err && err.message}`);
+    mainLog.warn(`[error-init] failed: ${errMsg(err)}`);
   }
   // 必须先恢复 state，后续模块才能读取可靠基线。
   initStateRecovery();
@@ -829,7 +834,7 @@ if (app && typeof app.whenReady === "function") {
       );
     } catch (err) {
       mainLog.warn(
-        `[timer-registry] startup audit failed: ${err && err.message}`,
+        `[timer-registry] startup audit failed: ${errMsg(err)}`,
       );
     }
 
@@ -839,7 +844,7 @@ if (app && typeof app.whenReady === "function") {
         markBootstrapDone();
       })
       .catch((err) => {
-        mainLog.error(`bootstrap failed: ${err.message}`);
+        mainLog.error(`bootstrap failed: ${errMsg(err)}`);
         try {
           app.quit();
         } catch {
@@ -857,7 +862,7 @@ if (app && typeof app.whenReady === "function") {
         }
       } catch (err) {
         mainLog.warn(
-          `[timer-registry] before-quit clearAllManaged failed: ${err && err.message}`,
+          `[timer-registry] before-quit clearAllManaged failed: ${errMsg(err)}`,
         );
       }
     });

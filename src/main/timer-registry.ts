@@ -313,7 +313,7 @@ function auditTimers(
   try {
     files = fs.readdirSync(rootDir).filter((f) => f.endsWith(".js"));
   } catch (err) {
-    if (logger) logger.warn(`[timer-registry] audit: readdir failed: ${err && err.message}`);
+    if (logger) logger.warn(`[timer-registry] audit: readdir failed: ${err instanceof Error ? err.message : String(err)}`);
     return summary;
   }
 
@@ -324,7 +324,7 @@ function auditTimers(
       content = fs.readFileSync(full, "utf8");
     } catch (err) {
       summary.skipped.push(file);
-      if (logger) logger.warn(`[timer-registry] audit: skip ${file}: ${err && err.message}`);
+      if (logger) logger.warn(`[timer-registry] audit: skip ${file}: ${err instanceof Error ? err.message : String(err)}`);
       continue;
     }
     const lines = content.split("\n");

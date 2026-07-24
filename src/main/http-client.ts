@@ -159,7 +159,7 @@ class HttpClient {
    * 重试期间 logger.debug 记一下, 方便调试.
    */
   async _withRetry(fn: () => Promise<HttpResponse>): Promise<HttpResponse> {
-    let lastResult: HttpResponse;
+    let lastResult: HttpResponse | undefined;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       lastResult = await fn();
       const retriable = lastResult && (lastResult.error === "network" || lastResult.error === "timeout");
@@ -172,7 +172,7 @@ class HttpClient {
       }
     }
     // 重试用完, 还是网络/timeout 错误, 返回最后一次 result (caller 看到的跟旧行为一致)
-    return lastResult;
+    return lastResult!;
   }
 
   async _follow(

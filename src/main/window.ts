@@ -85,7 +85,7 @@ function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager 
     mainWindow.loadFile(indexPath);
     // 页面加载完后再设一次, 防止 did-finish-load 之前 macOS 拿默认值
     mainWindow.webContents.on('did-finish-load', () => {
-      try { mainWindow.setTitle('Pulse'); } catch { /* noop */ }
+      try { mainWindow?.setTitle('Pulse'); } catch { /* noop */ }
       // Phase Q4 v1: 启动时间埋点 — renderer 完整加载完 (preload + bundle + dom).
       // best-effort: diagnostics 失败不影响主流程.
       try {
@@ -115,10 +115,12 @@ function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager 
     } catch { /* noop */ }
 
     mainWindow.once('ready-to-show', () => {
+      const win = mainWindow;
+      if (!win) return;
       if (config.check_on_launch) {
-        mainWindow.maximize();
-        mainWindow.show();
-        mainWindow.focus();
+        win.maximize();
+        win.show();
+        win.focus();
       }
       // 冷启动基准钩子 (scripts/startup-bench.js): BENCH=1 时打一行标记
       // 让外部 bench 进程能在 stdout 看到 "ready-to-show" 触发点
@@ -130,7 +132,7 @@ function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager 
     mainWindow.on('close', (e) => {
       if (!getIsQuitting()) {
         e.preventDefault();
-        mainWindow.hide();
+        mainWindow?.hide();
       }
     });
 
@@ -146,11 +148,13 @@ function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager 
     if (!mainWindow || mainWindow.isDestroyed()) {
       createWindow();
     }
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
+    const win = mainWindow;
+    if (!win || win.isDestroyed()) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
     if (process.platform === 'darwin') {
-      try { mainWindow.moveTop(); } catch { /* noop */ }
+      try { win.moveTop(); } catch { /* noop */ }
     }
   }
 
