@@ -14,7 +14,7 @@ export const searchCounts = signal({ news: 0, 'ai-task': 0, reminder: 0, fund: 0
 export const searchSelectedIndex = signal(0);
 export const isSearching = signal(false);
 
-let debounceTimer = null;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function openSearch() {
   isSearchOpen.value = true;
@@ -31,7 +31,7 @@ export function closeSearch() {
   if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
 }
 
-export function setSearchQuery(q) {
+export function setSearchQuery(q: string) {
   searchQuery.value = q;
   searchSelectedIndex.value = 0;
   if (debounceTimer) clearTimeout(debounceTimer);
@@ -55,7 +55,7 @@ export function setSearchQuery(q) {
   }, 150);
 }
 
-export function setSearchActiveSource(s) {
+export function setSearchActiveSource(s: string | null) {
   searchActiveSource.value = s;
   searchSelectedIndex.value = 0;
   // 切源后重新 query (单源重新匹配)
@@ -63,7 +63,7 @@ export function setSearchActiveSource(s) {
   if (q && q.trim()) setSearchQuery(q);
 }
 
-export function moveSearchSelection(delta) {
+export function moveSearchSelection(delta: number) {
   const len = searchResults.value.length;
   if (len === 0) { searchSelectedIndex.value = 0; return; }
   let next = searchSelectedIndex.value + delta;

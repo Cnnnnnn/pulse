@@ -13,7 +13,7 @@ vi.mock('../../../src/renderer/worldcup/navStore.js', () => ({
   goInvest: vi.fn(),
 }));
 
-import { navigateToResult } from '../../../src/renderer/search/search-nav.js';
+import { navigateToResult } from '../../../src/renderer/search/search-nav.ts';
 
 describe('navigateToResult', () => {
   beforeEach(() => {

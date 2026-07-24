@@ -1,7 +1,7 @@
 /**
  * 右侧结果列表
  */
-import { searchResults, searchSelectedIndex, searchQuery } from './searchStore.js';
+import { searchResults, searchSelectedIndex, searchQuery } from './searchStore.ts';
 import { SearchResultRow } from './SearchResultRow.tsx';
 import { DrawerEmpty } from '../components/EmptyState.tsx';
 

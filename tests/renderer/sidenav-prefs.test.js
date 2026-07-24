@@ -11,7 +11,7 @@ import {
   reorderItems,
   STORAGE_KEY_FOR_TESTS,
   DEFAULTS_FOR_TESTS,
-} from "../../src/renderer/components/sidenav-prefs.js";
+} from "../../src/renderer/components/sidenav-prefs.ts";
 import { NAV_KEYS_LIST } from "../../src/renderer/worldcup/navStore.js";
 
 describe("sidenav-prefs", () => {

@@ -24,7 +24,7 @@ describe('SideNav 🏠 按钮 — useEffect home 守卫', () => {
     activeNav.value = 'news';
     navCollapsed.value = false;
     // sidenav-prefs 默认 prefs — 一次性重置, 避免跨测试污染
-    const sp = await import('../../src/renderer/components/sidenav-prefs.js');
+    const sp = await import('../../src/renderer/components/sidenav-prefs.ts');
     sp.resetPrefs();
     localStorage.clear();
     sp.resetPrefs();

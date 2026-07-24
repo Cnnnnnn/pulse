@@ -29,7 +29,7 @@ import { LazyNavPanel } from './LazyNavPanel.tsx';
 import { HomeGrid } from './HomeGrid.tsx';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.ts';
 import { SearchModal } from '../search/SearchModal.tsx';
-import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.js';
+import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.ts';
 import { loadGithubProjects, loadGithubSettings } from '../store/github-projects-store.ts';
 
 export function AppShell({ onCheck }: { onCheck?: () => void }) {

@@ -18,7 +18,7 @@
  */
 
 import { useMemo, useState } from "preact/hooks";
-import { modelColorIndex } from "./modelColor.js";
+import { modelColorIndex } from "./modelColor.ts";
 
 /** 列定义. numeric 控制右对齐与排序语义. */
 const COLUMNS = [

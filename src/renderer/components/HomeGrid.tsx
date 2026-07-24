@@ -40,7 +40,7 @@ import {
   restoreItem,
   listFavorites,
   isFavorite,
-} from "./sidenav-prefs.js";
+} from "./sidenav-prefs.ts";
 import { HiddenItemsDrawer } from "./HiddenItemsDrawer.tsx";
 import "./HomeGrid.css";
 

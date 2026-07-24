@@ -22,7 +22,7 @@ import {
   setSearchQuery,
   setSearchActiveSource,
   moveSearchSelection,
-} from '../../../src/renderer/search/searchStore.js';
+} from '../../../src/renderer/search/searchStore.ts';
 
 describe('searchStore', () => {
   beforeEach(() => {

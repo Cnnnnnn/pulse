@@ -10,10 +10,10 @@ import {
   searchSelectedIndex,
   setSearchQuery,
   moveSearchSelection,
-} from './searchStore.js';
+} from './searchStore.ts';
 import { SearchSourceBar } from './SearchSourceBar.tsx';
 import { SearchResultList } from './SearchResultList.tsx';
-import { navigateToResult } from './search-nav.js';
+import { navigateToResult } from './search-nav.ts';
 import { ModalShell } from '../components/ModalShell.tsx';
 import { IconSearch } from '../components/icons.tsx';
 

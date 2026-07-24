@@ -259,7 +259,7 @@ describe('HomeGrid v3 — 视觉/交互完善', () => {
 describe('HomeGrid v4 — 功能完善', () => {
   beforeEach(async () => {
     // 重置 prefs + 4 个数据源.
-    const sp = await import('../../src/renderer/components/sidenav-prefs.js');
+    const sp = await import('../../src/renderer/components/sidenav-prefs.ts');
     sp.resetPrefs();
     localStorage.clear();
     sp.resetPrefs();
@@ -323,7 +323,7 @@ describe('HomeGrid v4 — 功能完善', () => {
     const { render, fireEvent } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { activeNav } = await import('../../src/renderer/worldcup/navStore.js');
-    const { isFavorite } = await import('../../src/renderer/components/sidenav-prefs.js');
+    const { isFavorite } = await import('../../src/renderer/components/sidenav-prefs.ts');
 
     const { container } = render(<HomeGrid />);
     // 第一个 tile (ithome) 的收藏按钮
@@ -369,7 +369,7 @@ describe('HomeGrid v4 — 功能完善', () => {
   it('A8: drop 到目标 tile → order 变化 (用 prefs.order 验证)', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
-    const { loadPrefs, savePrefs, resetPrefs } = await import('../../src/renderer/components/sidenav-prefs.js');
+    const { loadPrefs, savePrefs, resetPrefs } = await import('../../src/renderer/components/sidenav-prefs.ts');
     // v7: 7 个 tile; 本测只固定前 5 的 order, github 由 computeOrderedTiles 兜底追加
     savePrefs({ ...resetPrefs(), order: ['news', 'worldcup', 'invest', 'ai-usage', 'versions'] });
 

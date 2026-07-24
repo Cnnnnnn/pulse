@@ -59,7 +59,7 @@ function safeStorageRead() {
   }
 }
 
-function safeStorageWrite(raw) {
+function safeStorageWrite(raw: string) {
   try {
     if (typeof globalThis.localStorage === "undefined") {
       _memoryFallback.set(STORAGE_KEY, raw);
@@ -131,7 +131,7 @@ export function loadPrefs() {
  *
  * v3: 写入前 alias 旧 key → 'news', 防止保存 prefs 重新脏化 (即使 UI 已经 alias 过).
  */
-export function savePrefs(prefs) {
+export function savePrefs(prefs: any) {
   const orderAlias = (Array.isArray(prefs?.order) ? prefs.order : NAV_KEYS.slice())
     .map((k) => LEGACY_KEY_ALIAS[k] || k)
     .filter((k) => NAV_KEYS.includes(k));
@@ -152,7 +152,7 @@ export function savePrefs(prefs) {
     raw = JSON.stringify(out);
   } catch (err) {
      
-    console.warn(`sidenav-prefs: JSON.stringify failed: ${err && err.message}`);
+    console.warn(`sidenav-prefs: JSON.stringify failed: ${err instanceof Error ? err.message : err}`);
     return false;
   }
   const ok = safeStorageWrite(raw);
@@ -169,7 +169,7 @@ export function savePrefs(prefs) {
  * 否则老版本升级后 (新增 nav 项) prefs.order 仍是旧 subset, listVisible 会把它算成隐藏,
  * 但 effectiveVisibleItems 兜底追加让它可见, 两侧矛盾 → SideNav 底部 "已隐藏 (N)" 误报.
  */
-export function listVisible(prefs) {
+export function listVisible(prefs: any) {
   const order =
     prefs && Array.isArray(prefs.order) && prefs.order.length > 0
       ? prefs.order
@@ -189,7 +189,7 @@ export function listVisible(prefs) {
  * ponytail: 这里只看 prefs.hidden, 不看 listVisible — 跟 effectiveVisibleItems 兜底逻辑一致,
  * 老版本升级产生的 order 缺项不算"被隐藏".
  */
-export function listHidden(prefs) {
+export function listHidden(prefs: any) {
   const hidden = new Set((prefs && prefs.hidden) || []);
   return NAV_KEYS.filter((k) => hidden.has(k));
 }
@@ -197,7 +197,7 @@ export function listHidden(prefs) {
 /**
  * Hide one item. 幂等 — 已在 hidden 则不重复.
  */
-export function hideItem(prefs, key) {
+export function hideItem(prefs: any, key: string) {
   if (!NAV_KEYS.includes(key)) return prefs;
   const hidden = new Set(prefs.hidden);
   hidden.add(key);
@@ -207,7 +207,7 @@ export function hideItem(prefs, key) {
 /**
  * Restore one item from hidden.
  */
-export function restoreItem(prefs, key) {
+export function restoreItem(prefs: any, key: string) {
   if (!NAV_KEYS.includes(key)) return prefs;
   const hidden = prefs.hidden.filter((k) => k !== key);
   return { ...prefs, hidden };
@@ -219,7 +219,7 @@ export function restoreItem(prefs, key) {
  *   - 'before' = 插到 to 之前; 'after' = 插到 to 之后.
  *   - splice 后索引已经变, 所以 to > from 时 to 要 -1 (原 to 在新数组的位置).
  */
-function arrayMove(arr, from, to, position) {
+function arrayMove(arr: any[], from: number, to: number, position: string) {
   if (from < 0 || from >= arr.length) return arr.slice();
   if (to < 0 || to >= arr.length) return arr.slice();
   if (from === to) return arr.slice();
@@ -233,7 +233,7 @@ function arrayMove(arr, from, to, position) {
 /**
  * 把 fromKey 移到 toKey 之前/之后. 找不到 key → noop.
  */
-export function reorderItems(prefs, fromKey, toKey, position = "before") {
+export function reorderItems(prefs: any, fromKey: string, toKey: string, position = "before") {
   if (fromKey === toKey) return prefs;
   if (!NAV_KEYS.includes(fromKey) || !NAV_KEYS.includes(toKey)) return prefs;
   const order = prefs.order || NAV_KEYS.slice();
@@ -247,7 +247,7 @@ export function reorderItems(prefs, fromKey, toKey, position = "before") {
 /**
  * 移到顶部: 重排到 order[0] 之前.
  */
-export function moveToTop(prefs, key) {
+export function moveToTop(prefs: any, key: string) {
   if (!NAV_KEYS.includes(key)) return prefs;
   const order = prefs.order || NAV_KEYS.slice();
   const from = order.indexOf(key);
@@ -258,7 +258,7 @@ export function moveToTop(prefs, key) {
 /**
  * 移到底部: 重排到 order[last] 之后.
  */
-export function moveToBottom(prefs, key) {
+export function moveToBottom(prefs: any, key: string) {
   if (!NAV_KEYS.includes(key)) return prefs;
   const order = prefs.order || NAV_KEYS.slice();
   const from = order.indexOf(key);
@@ -276,7 +276,7 @@ export function moveToBottom(prefs, key) {
  * 决定 HomeGrid 收藏角标. 即用户可能某个 nav 排在第 5 但收藏了,
  * 或者顺序拖到第 1 但没收藏 — 两个维度独立.
  */
-export function toggleFavorite(prefs, key) {
+export function toggleFavorite(prefs: any, key: string) {
   if (!NAV_KEYS.includes(key)) return prefs;
   const cur = Array.isArray(prefs.favorites) ? prefs.favorites : [];
   const idx = cur.indexOf(key);
@@ -286,12 +286,12 @@ export function toggleFavorite(prefs, key) {
   return { ...prefs, favorites: [...cur, key] };
 }
 
-export function listFavorites(prefs) {
+export function listFavorites(prefs: any) {
   const f = Array.isArray(prefs?.favorites) ? prefs.favorites : [];
   return f.filter((k) => NAV_KEYS.includes(k));
 }
 
-export function isFavorite(prefs, key) {
+export function isFavorite(prefs: any, key: string) {
   return listFavorites(prefs).includes(key);
 }
 

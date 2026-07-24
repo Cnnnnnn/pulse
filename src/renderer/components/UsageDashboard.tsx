@@ -21,7 +21,7 @@ import { UsageTrendChart } from "./UsageTrendChart.tsx";
 import { useUsageSeries } from "../hooks/useUsageSeries.ts";
 import { UsageSparkline } from "./UsageSparkline.tsx";
 import { UsageDetailList } from "./UsageDetailList.tsx";
-import { modelColorIndex } from "./modelColor.js";
+import { modelColorIndex } from "./modelColor.ts";
 
 // ─── 工具: 数字格式化 (token 数) ────────────────────────────
 

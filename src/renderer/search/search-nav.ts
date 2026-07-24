@@ -5,14 +5,14 @@
  * 找不到目标元素时只切面板, console.warn.
  */
 import { setActiveNav, goInvest } from '../worldcup/navStore.js';
-import { closeSearch } from './searchStore.js';
+import { closeSearch } from './searchStore.ts';
 
 const HIGHLIGHT_CLASS = 'search-highlight';
 const HIGHLIGHT_DURATION_MS = 3000;
 
-let highlightTimer = null;
+let highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
-function scrollAndHighlight(selector) {
+function scrollAndHighlight(selector: string) {
   const el = document.querySelector(selector);
   if (!el) {
     console.warn(`[search-nav] target not found: ${selector}`);
@@ -27,14 +27,14 @@ function scrollAndHighlight(selector) {
   }, HIGHLIGHT_DURATION_MS);
 }
 
-function cssEscape(s) {
+function cssEscape(s: string) {
   if (typeof window !== 'undefined' && window.CSS && typeof window.CSS.escape === 'function') {
     return window.CSS.escape(s);
   }
   return String(s).replace(/["\\]/g, '\\$&');
 }
 
-export function navigateToResult(result) {
+export function navigateToResult(result: any) {
   if (!result) return;
   const { source, nativeId, payload } = result;
   switch (source) {

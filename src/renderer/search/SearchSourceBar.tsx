@@ -1,7 +1,7 @@
 /**
  * 左侧来源栏 — 各源命中数 + 点击切源
  */
-import { searchCounts, searchActiveSource, setSearchActiveSource } from './searchStore.js';
+import { searchCounts, searchActiveSource, setSearchActiveSource } from './searchStore.ts';
 import { SearchSourceIcon } from '../components/icons.tsx';
 
 const SOURCES = [

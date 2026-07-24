@@ -25,7 +25,7 @@ export const MODEL_COLOR_HINTS = {
  * @param {number} [fallback=0]
  * @returns {number}
  */
-export function modelColorIndex(modelName, fallback = 0) {
+export function modelColorIndex(modelName: string, fallback = 0): number {
   if (typeof modelName !== "string") return fallback;
   if (Object.prototype.hasOwnProperty.call(MODEL_COLOR_HINTS, modelName)) {
     return MODEL_COLOR_HINTS[modelName];
