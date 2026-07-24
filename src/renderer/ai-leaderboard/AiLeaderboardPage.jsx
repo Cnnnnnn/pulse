@@ -61,6 +61,9 @@ function csvColumnsForView(view) {
       { key: "lb_coding", header: "Coding" },
       { key: "lb_language", header: "Language" },
       { key: "lb_instfollow", header: "指令遵循" },
+      // ponytail: v2.79.7+ 加 Reasoning + Math (LB byCategory 5 个全暴露)
+      { key: "lb_reasoning", header: "Reasoning" },
+      { key: "lb_math", header: "Math" },
       { key: "lb_cost", header: "$/成功" },
     ];
   }

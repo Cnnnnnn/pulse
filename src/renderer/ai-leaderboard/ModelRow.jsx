@@ -206,6 +206,9 @@ export const ModelRow = forwardRef(function ModelRow(
         {num("lb_coding", byCat.Coding, fmtLivebench)}
         {num("lb_language", byCat.Language, fmtLivebench)}
         {num("lb_instfollow", byCat.IF, fmtLivebench)}
+        {/* ponytail: v2.79.7+ 加 Reasoning + Math (LB byCategory 5 个全暴露) */}
+        {num("lb_reasoning", byCat.Reasoning, fmtLivebench)}
+        {num("lb_math", byCat.Math, fmtLivebench)}
         {num(
           "lb_cost",
           lbData.cost && lbData.cost.perSuccessfulTask,

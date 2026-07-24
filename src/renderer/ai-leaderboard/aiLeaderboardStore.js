@@ -458,7 +458,7 @@ export function columnValue(model, view, key) {
       const c = lb.cost && lb.cost.perSuccessfulTask;
       return typeof c === "number" ? c : null;
     }
-    const cat = { lb_coding: "Coding", lb_language: "Language", lb_instfollow: "IF" }[key];
+    const cat = { lb_coding: "Coding", lb_language: "Language", lb_instfollow: "IF", lb_reasoning: "Reasoning", lb_math: "Math" }[key];
     if (cat) {
       const v = lb.byCategory && lb.byCategory[cat];
       return typeof v === "number" ? v : null;

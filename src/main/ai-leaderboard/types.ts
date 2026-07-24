@@ -55,6 +55,19 @@ export const DIMENSION_META: Record<string, any> = {
     field: "livebench",
     sortKey: "byCategory.IF",
   },
+  // ponytail: LiveBench byCategory 5 个全暴露 (v2.79.7+).
+  // fetcher-livebench.normalize 已经在 byCategory 自动算 5 个 mean (Coding/Language/Reasoning/Math/IF),
+  // 这里只是 UI 暴露, ranking.sortValue 走通用 dot path 不用改.
+  lb_reasoning: {
+    label: "LiveBench Reasoning",
+    field: "livebench",
+    sortKey: "byCategory.Reasoning",
+  },
+  lb_math: {
+    label: "LiveBench Math",
+    field: "livebench",
+    sortKey: "byCategory.Math",
+  },
   // ponytail: HF 社区信号维度 (v2.79.5+) — 跟现有 5 类 (Arena/AA/LB) 完全正交,
   // 走 huggingface 切片, sortKey 直接读 downloads/likes 数字.
   hf_downloads: {

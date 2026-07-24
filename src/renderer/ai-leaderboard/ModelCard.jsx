@@ -35,6 +35,9 @@ const FIELDS = {
     { key: "lb_coding", label: "Coding", fmt: fmtLivebench },
     { key: "lb_language", label: "Language", fmt: fmtLivebench },
     { key: "lb_instfollow", label: "指令遵循", fmt: fmtLivebench },
+    // ponytail: v2.79.7+ 加 Reasoning + Math (LB byCategory 5 个全暴露)
+    { key: "lb_reasoning", label: "Reasoning", fmt: fmtLivebench },
+    { key: "lb_math", label: "Math", fmt: fmtLivebench },
     { key: "lb_cost", label: "$/成功", fmt: fmtLbCost },
   ],
 };

@@ -32,6 +32,9 @@ export const DIMENSION_META = {
   lb_coding: { label: "LiveBench Coding", field: "livebench", sortKey: "byCategory.Coding" },
   lb_language: { label: "LiveBench Language", field: "livebench", sortKey: "byCategory.Language" },
   lb_instfollow: { label: "LiveBench Instruction Following", field: "livebench", sortKey: "byCategory.IF" },
+  // ponytail: LiveBench byCategory 5 个全暴露 (v2.79.7+) — 镜像主进程 types.ts.
+  lb_reasoning: { label: "LiveBench Reasoning", field: "livebench", sortKey: "byCategory.Reasoning" },
+  lb_math: { label: "LiveBench Math", field: "livebench", sortKey: "byCategory.Math" },
   hf_downloads: { label: "HuggingFace Downloads", field: "huggingface", sortKey: "downloads" },
   hf_likes: { label: "HuggingFace Likes", field: "huggingface", sortKey: "likes" },
   hf_trending: { label: "HuggingFace Trending", field: "huggingface", sortKey: "trendingScore" },
@@ -119,6 +122,8 @@ export const SORT_COLUMN_LABELS = {
   lb_coding: "Coding",
   lb_language: "Language",
   lb_instfollow: "指令遵循",
+  lb_reasoning: "Reasoning",
+  lb_math: "Math",
   lb_cost: "$/成功",
   hf_downloads: "Downloads",
   hf_likes: "Likes",
@@ -133,9 +138,12 @@ export const LIVE_DIMENSIONS = {
   lb_coding: { key: "lb_coding", label: "Coding", kind: "livebench" },
   lb_language: { key: "lb_language", label: "Language", kind: "livebench" },
   lb_instfollow: { key: "lb_instfollow", label: "Instruction Following", kind: "livebench" },
+  // ponytail: 补 Reasoning + Math (v2.79.7+), 跟 fetcher-livebench byCategory 5 个对齐.
+  lb_reasoning: { key: "lb_reasoning", label: "Reasoning", kind: "livebench" },
+  lb_math: { key: "lb_math", label: "Math", kind: "livebench" },
 };
 
-export const LIVE_DIMENSION_KEYS = ["lb_overall", "lb_coding", "lb_language", "lb_instfollow"];
+export const LIVE_DIMENSION_KEYS = ["lb_overall", "lb_coding", "lb_language", "lb_instfollow", "lb_reasoning", "lb_math"];
 
 /* ── HuggingFace 视角：社区信号子维度（全部 desc 默认）── */
 // ponytail: hf_trending (v2.79.6+) — log10(dl)/log10(age+2) 客户端算分, 新发布爆款优先.

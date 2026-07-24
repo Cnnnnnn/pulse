@@ -142,6 +142,9 @@ export function LeaderboardTable({ rows, view, board, dim, lb }) {
         <SortableTh k="lb_coding" label="Coding" active={aKey} dir={dir} />
         <SortableTh k="lb_language" label="Language" active={aKey} dir={dir} />
         <SortableTh k="lb_instfollow" label="指令遵循" active={aKey} dir={dir} />
+        {/* ponytail: v2.79.7+ 加 Reasoning + Math (LB byCategory 5 个全暴露) */}
+        <SortableTh k="lb_reasoning" label="Reasoning" active={aKey} dir={dir} title="LiveBench Reasoning 平均分" />
+        <SortableTh k="lb_math" label="Math" active={aKey} dir={dir} title="LiveBench Math 平均分" />
         <SortableTh
           k="lb_cost"
           label="$/成功"
