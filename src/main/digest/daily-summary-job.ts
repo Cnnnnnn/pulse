@@ -17,8 +17,8 @@
  *   now()                → Date (defaults to () => new Date())
  */
 
-const { inQuietHours } = require("../notification-policy");
-const { aggregate: defaultAggregate } = require("./aggregate");
+const { inQuietHours } = require("../notification-policy.ts");
+const { aggregate: defaultAggregate } = require("./aggregate.ts");
 const {
   resolvePrompt: defaultResolvePrompt,
 } = require("../../ai/prompt-registry");

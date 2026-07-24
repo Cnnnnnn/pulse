@@ -13,9 +13,9 @@
 
 import type {} from "electron";
 
-const { fetchWechatHot } = require("../wechat-hot/fetcher.js");
-const { createWechatHotCache } = require("../wechat-hot/cache.js");
-const { loadReadIds, markItemRead } = require("../wechat-hot/read-store.js");
+const { fetchWechatHot } = require("../wechat-hot/fetcher.ts");
+const { createWechatHotCache } = require("../wechat-hot/cache.ts");
+const { loadReadIds, markItemRead } = require("../wechat-hot/read-store.ts");
 const { HttpClient } = require("../http-client.ts");
 const { mainLog } = require("../log.ts");
 
@@ -31,7 +31,7 @@ function registerWechatHotHandlers(ctx) {
       const {
         checkWatchlistKeywordUpdates,
         makeWatchlistSendNotification,
-      } = require("../watchlist");
+      } = require("../watchlist.ts");
       checkWatchlistKeywordUpdates({
         headlines: items || [],
         sendNotification: makeWatchlistSendNotification(getConfig),

@@ -5,11 +5,11 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，v2.79.4 处于 **Phase 3 TypeScript 迁移收尾** 阶段。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 **Phase 3 Batch 0–9 完成**（业务纯 `.ts`；vitest 经 `dist-test` + `requireMain`；仅保留少数给 `src/ai`/`workers` 等非 main JS 用的 dual-path shim）。
 
 ## 仓库布局
 
-- `src/main/` — 主进程（Phase 3 已 100% .ts 化，业务 .js 是 5 行 shim 指向 .ts）
+- `src/main/` — 主进程（Phase 3 已 100% `.ts`。测试：`requireMain` → `dist-test`。例外 shim：`http-client`/`state-store`/`token-budget`/`log` + `platform/index`，供 `src/ai`/`workers` 等仍是 JS 的调用方）
   - `src/main/ai-leaderboard/` — AI 榜单核心（fetcher 6 个 + aggregator + ranking + scheduler + types + normalize + cache）
   - `src/main/ipc/` — IPC handler（注册到 `ipcMain`）
   - `src/main/games/`, `src/main/funds/`, `src/main/worldcup/`, `src/main/ithome/`, `src/main/wechat-hot/` — 各业务域
@@ -88,7 +88,7 @@ npm run lint:css            # stylelint
 
 ## 不要做
 
-- **不要** 删手写 .js 文件 — 都是 5 行 shim 指向 .ts
+- **不要** 再批量加回 dual-path `.js` shim — Batch 9 已清掉；仅 `http-client`/`state-store`/`token-budget`/`log`/`platform/index` 是给非 main JS 留的例外
 - **不要** 在 `toAiModel` 默认 5 字段 sources 里加新字段（保护 11+ toEqual 断言）— 新源切片用新字段但 sources 默认 5 字段不变
 - **不要** `git add -p` 跨"我+别人"mixed 文件 — 用 explicit path add
 - **不要** restore + apply 来回 — 用 `cp /tmp/backup` 兜底

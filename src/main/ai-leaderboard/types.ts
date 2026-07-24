@@ -288,7 +288,7 @@ export function makeId(vendor: any, name: any): string {
   return `${v || "other"}-${n || "unknown"}`;
 }
 
-// fetcher 直接 require("./types").slugifyModel（同 makeId 口径）。
+// fetcher 直接 require("./types.ts").slugifyModel（同 makeId 口径）。
 // 集中放这里，避免 fetcher 散落跨文件依赖 normalize。
 export const slugifyModel = makeId;
 

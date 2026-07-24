@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
 const {
   dealsCacheKey,
@@ -8,7 +9,7 @@ const {
   DEALS_CACHE_TTL_MS,
   ALLOWED_MODES,
   applySortAndFilter,
-} = require("../../../src/main/ipc/register-games.ts");
+} = requireMain("ipc/register-games");
 
 beforeEach(() => resetDealsCache());
 
@@ -76,7 +77,7 @@ describe("ALLOWED_MODES 白名单（Task 2 清理验证）", () => {
   });
 });
 
-const { extractLowestFromCheapshark } = require("../../../src/main/ipc/register-games.ts");
+const { extractLowestFromCheapshark } = requireMain("ipc/register-games");
 
 describe("extractLowestFromCheapshark", () => {
   it("取多个商店报价的最小值", () => {

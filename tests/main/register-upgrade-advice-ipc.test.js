@@ -6,9 +6,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const advicePath = require.resolve("../../src/ai/upgrade-advice.js");
 const registerPath =
-  require.resolve("../../src/main/ipc/register-upgrade-advice.ts");
+  mainArtifactPath("ipc/register-upgrade-advice");
 
 const fetchUpgradeAdvice = vi.fn();
 

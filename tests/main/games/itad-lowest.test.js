@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const { fetchItadLowest } = require("../../../src/main/games/itad.js");
+const { fetchItadLowest } = requireMain("games/itad");
 
 afterEach(() => vi.restoreAllMocks());
 

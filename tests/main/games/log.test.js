@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const { logFetchError } = require("../../../src/main/games/log.js");
+const { logFetchError } = requireMain("games/log");
 
 afterEach(() => vi.restoreAllMocks());
 

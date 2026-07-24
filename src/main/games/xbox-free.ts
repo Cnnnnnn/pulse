@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { fetchJson, toGameDeal, BROWSER_UA } = require("./normalize");
-const { logFetchError } = require("./log");
+const { fetchJson, toGameDeal, BROWSER_UA } = require("./normalize.ts");
+const { logFetchError } = require("./log.ts");
 
 const RSS_URL = "https://news.xbox.com/en-us/feed/?tag=free-play-days";
 const CATALOG_BASE = "https://displaycatalog.mp.microsoft.com/v7.0/products";

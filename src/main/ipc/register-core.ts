@@ -4,15 +4,15 @@
 
 import type { IpcMain } from "electron";
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
-const { runCheckQueued } = require("../check-runner");
-const { buildRunCheckDeps } = require("../run-check-deps");
-const { runBulkUpgrade } = require("../bulk-upgrade");
+const { runCheckQueued } = require("../check-runner.ts");
+const { buildRunCheckDeps } = require("../run-check-deps.ts");
+const { runBulkUpgrade } = require("../bulk-upgrade.ts");
 const stateStore = require("../state-store.ts");
-const { aggregate } = require("../digest/aggregate");
-const platform = require("../../platform");
+const { aggregate } = require("../digest/aggregate.ts");
+const platform = require("../../platform/index.ts");
 const { mainLog } = require("../log.ts");
-const lastOpened = require("../last-opened");
-const recentActivity = require("../recent-activity");
+const lastOpened = require("../last-opened.ts");
+const recentActivity = require("../recent-activity.ts");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
 
 let bulkUpgradeCtrl = null;
@@ -60,7 +60,7 @@ function registerCoreHandlers(ctx) {
     // (C3 version history 已退役, 不再 broadcast counts)
     // I2 v1: pinned app 独立通知 (走 electron.Notification + inQuietHours)
     try {
-      const { checkWatchlistUpdates } = require("../watchlist");
+      const { checkWatchlistUpdates } = require("../watchlist.ts");
       const { Notification: ElectronNotification } = require("electron");
       const sendNotification = (n) => {
         if (
@@ -489,7 +489,7 @@ function registerCoreHandlers(ctx) {
     // 合成一个 .tar.gz 写到桌面. 复用 diagnostics-aggregator.bundleDiagnostics.
     try {
       const { getInstance } = require("../bootstrap/error-init.ts");
-      const { bundleDiagnostics } = require("../diagnostics-aggregator");
+      const { bundleDiagnostics } = require("../diagnostics-aggregator.ts");
       const { resolveLogDir } = require("../log.ts");
       const diagnostics = require("../diagnostics.ts");
       const inst = getInstance();
@@ -521,7 +521,7 @@ function registerCoreHandlers(ctx) {
   safeHandle("diagnostics:fetch", async (_event, opts) => {
     try {
       const { getStartup, getMetricsSummary } = require("../diagnostics.ts");
-      const { computeTopFailures } = require("../diagnostics-aggregator");
+      const { computeTopFailures } = require("../diagnostics-aggregator.ts");
       const { getInstance } = require("../bootstrap/error-init.ts");
       const sinceMs =
         (opts && typeof opts.sinceMs === "number" && opts.sinceMs) ||
@@ -720,7 +720,7 @@ function registerCoreHandlers(ctx) {
   // C7 v2.35.0: 检测结果导出 (JSON / CSV → 桌面)
   safeHandle("detect-results:export", async (_event, opts) => {
     try {
-      const { exportDetectResults } = require("../detect-results-export");
+      const { exportDetectResults } = require("../detect-results-export.ts");
       const format = opts && opts.format;
       let state = null;
       if (typeof getCachedState === "function") {

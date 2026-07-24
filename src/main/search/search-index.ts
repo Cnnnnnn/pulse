@@ -12,9 +12,9 @@
  *   size()
  */
 
-const { tokenize }: { tokenize: (text: unknown) => string[] } = require("./tokenizer");
-const { buildDocsFromState }: { buildDocsFromState: (state: any) => any[] } = require("./build-docs");
-const { makeSnippet }: { makeSnippet: (text: unknown, tokens: string[], opts?: { radius?: number }) => string } = require("./highlight");
+const { tokenize }: { tokenize: (text: unknown) => string[] } = require("./tokenizer.ts");
+const { buildDocsFromState }: { buildDocsFromState: (state: any) => any[] } = require("./build-docs.ts");
+const { makeSnippet }: { makeSnippet: (text: unknown, tokens: string[], opts?: { radius?: number }) => string } = require("./highlight.ts");
 
 const DEFAULT_LIMIT = 50;
 const TITLE_BONUS = 2;

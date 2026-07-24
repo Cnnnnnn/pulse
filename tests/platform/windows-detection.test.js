@@ -7,12 +7,21 @@
  * 注入 stub, 跟 preload-platform.test.js 同样模式.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import path from 'node:path';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const winRegPath = require.resolve('../../src/workers/win-registry');
 const ivPath = require.resolve('../../src/workers/installed-version');
-const winPath = require.resolve('../../src/platform/windows.js');
+const winPath = platformArtifactPath('windows');
+// Phase 3 shim → dist-test .cjs; must bust both or require.cache stubs miss.
+const winCjsPath = path.resolve(__dirname, '../../dist-test/platform/windows.cjs');
 
 const mockQueryAll = vi.fn();
+
+function bustWindowsCache() {
+  delete require.cache[winPath];
+  delete require.cache[winCjsPath];
+}
 
 describe('platform/windows P2 detection', () => {
   let origWinReg;
@@ -37,8 +46,8 @@ describe('platform/windows P2 detection', () => {
       loaded: true,
       exports: { getInstalledVersion: vi.fn() },
     };
-    // 清掉 windows.js 缓存让它重新 require stub
-    delete require.cache[winPath];
+    // 清掉 windows.js + dist-test .cjs 缓存让它重新 require stub
+    bustWindowsCache();
     vi.clearAllMocks();
   });
 
@@ -54,7 +63,7 @@ describe('platform/windows P2 detection', () => {
     } else {
       delete require.cache[ivPath];
     }
-    delete require.cache[winPath];
+    bustWindowsCache();
   });
 
   describe('resolveAppPath', () => {

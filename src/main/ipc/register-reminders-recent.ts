@@ -4,8 +4,8 @@
 
 import type { IpcMain } from "electron";
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
-const reminders = require("../reminders");
-const recentActivity = require("../recent-activity");
+const reminders = require("../reminders.ts");
+const recentActivity = require("../recent-activity.ts");
 
 function registerRemindersRecentHandlers(ctx) {
   const { sendToRenderer } = ctx;

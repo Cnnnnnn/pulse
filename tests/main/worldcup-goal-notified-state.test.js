@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const stateStore = require("../../src/main/state-store.ts");
+const stateStore = requireMain("state-store");
 
 function tmpStatePath() {
   const dir = mkdtempSync(join(tmpdir(), "pulse-goal-state-"));

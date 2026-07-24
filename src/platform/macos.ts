@@ -28,14 +28,14 @@ async function getInstalledVersion(appCfg: any): Promise<string | null> {
 async function getAppIcon(appPath: string): Promise<string | null> {
   const appIconMod: {
     getAppIcon: (p: string) => Promise<string | null>;
-  } = require('../main/app-icon');
+  } = require('../main/app-icon.ts');
   return appIconMod.getAppIcon(appPath);
 }
 
 function getUpgradeAction(_appCfg: any, detectResult: any): unknown {
   const { getActionForApp }: {
     getActionForApp: (item: any) => unknown;
-  } = require('../main/bulk-upgrade-actions');
+  } = require('../main/bulk-upgrade-actions.ts');
   const item = {
     id: detectResult && detectResult.name,
     name: detectResult && detectResult.name,
@@ -52,7 +52,7 @@ async function execUpgrade(action: unknown): Promise<unknown> {
   // bulk-upgrade.ts 顶部 require('electron'), 不能放模块顶层 (worker 会崩)
   const bulkUpgrade: {
     defaultExec: (a: unknown) => Promise<unknown>;
-  } = require('../main/bulk-upgrade');
+  } = require('../main/bulk-upgrade.ts');
   return bulkUpgrade.defaultExec(action);
 }
 

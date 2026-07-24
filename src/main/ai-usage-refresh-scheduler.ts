@@ -13,7 +13,7 @@
  */
 const registerAiUsage = require("./ipc/register-ai-usage.ts");
 const { PROVIDERS } = require("./ai-usage-cache.ts");
-const { inQuietHours } = require("./notification-policy");
+const { inQuietHours } = require("./notification-policy.ts");
 const { Notification: ElectronNotification } = require("electron");
 
 export function createAiUsageRefreshScheduler(opts: any = {}): any {

@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
 const {
   fetchXboxFree,
   parseFpdGames,
   parseEndDate,
-} = require("../../../src/main/games/xbox-free.js");
+} = requireMain("games/xbox-free");
 
 afterEach(() => vi.restoreAllMocks());
 

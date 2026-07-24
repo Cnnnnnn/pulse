@@ -6,10 +6,11 @@ import { mkdirSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { readFileSync as readFixture } from "fs";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const fetcher = require("../../src/main/ithome/article-page-fetcher.js");
-const newsStore = require("../../src/main/ithome/news-store.js");
-const stateStore = require("../../src/main/state-store.ts");
+const fetcher = requireMain("ithome/article-page-fetcher");
+const newsStore = requireMain("ithome/news-store");
+const stateStore = requireMain("state-store");
 
 const FIXTURE_HTML = readFixture(
   join(__dirname, "..", "fixtures", "ithome", "article-866661.html"),

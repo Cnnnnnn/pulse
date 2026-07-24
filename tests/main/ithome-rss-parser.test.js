@@ -3,11 +3,12 @@
  */
 
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   parseIthomeRss,
   stripHtml,
   toShanghaiDateKey,
-} = require("../../src/main/ithome/rss-parser.js");
+} = requireMain("ithome/rss-parser");
 
 const SAMPLE = `<?xml version="1.0"?>
 <rss><channel>

@@ -17,11 +17,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const categoryConfig = require("../../src/config/category.js");
 const {
   primeLLMCacheFromDisk,
   classifyUnmappedAppsByLLM,
-} = require("../../src/main/bootstrap/category.ts");
+} = requireMain("bootstrap/category");
 
 const GOOD_CATS = [
   { id: "ai", name: "AI 工具", icon: "🤖", order: 1 },

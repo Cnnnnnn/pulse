@@ -3,8 +3,8 @@
  * A3: IPC 薄包装测试
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { registerSearchIpc } from '../../../src/main/ipc/register-search.ts';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
+const { registerSearchIpc } = requireMain('ipc/register-search');
 describe('register-search IPC', () => {
   let ipcMain;
   let handles;

@@ -11,6 +11,7 @@
  * mockGetFileIcon.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockGetFileIcon = vi.fn();
 
@@ -21,7 +22,7 @@ const electronStub = {
   },
 };
 
-const modulePath = require.resolve('../../src/main/app-icon-windows.js');
+const modulePath = mainArtifactPath('app-icon-windows');
 
 let getAppIcon;
 let _clearIconCache;

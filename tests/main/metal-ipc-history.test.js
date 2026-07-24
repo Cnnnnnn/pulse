@@ -10,14 +10,15 @@ import os from "os";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const electronStub = {
   ipcMain: { handle: () => {} },
   webContents: { getAllWebContents: () => [] },
 };
 const electronPath = require.resolve("electron");
-const metalIpcPath = require.resolve("../../src/main/metal-ipc.js");
-const stateStorePath = require.resolve("../../src/main/state-store.ts");
+const metalIpcPath = mainArtifactPath("metal-ipc");
+const stateStorePath = mainArtifactPath("state-store");
 
 let tmpDir;
 let statePath;

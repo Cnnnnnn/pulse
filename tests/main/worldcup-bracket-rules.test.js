@@ -1,4 +1,5 @@
 import { describe, test, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   sortThirdPlaced,
   selectThirdPlaced,
@@ -7,7 +8,7 @@ const {
   resolveSlot,
   propagateWinner,
   computeBracket,
-} = require("../../src/main/worldcup/bracket-rules");
+} = requireMain("worldcup/bracket-rules");
 
 describe("sortThirdPlaced", () => {
   test("sorts 12 third-placed teams by pts/gd/gf DESC", () => {
@@ -661,7 +662,7 @@ describe("computeBracket", () => {
 
 describe("v1.2 Annex C lookup", () => {
   test("lookup has exactly 495 entries covering all C(12,8) combos", () => {
-    const { ANNEX_C_ROWS } = require("../../src/main/worldcup/bracket-rules");
+    const { ANNEX_C_ROWS } = requireMain("worldcup/bracket-rules");
     expect(ANNEX_C_ROWS.length).toBe(495);
     const keys = new Set(ANNEX_C_ROWS.map((r) => r.split("").sort().join("")));
     expect(keys.size).toBe(495);

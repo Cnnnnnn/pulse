@@ -5,13 +5,13 @@
 import type { IpcMain } from "electron";
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
 const { HttpClient } = require("../http-client.ts");
-const fundStore = require("../funds/fund-store");
-const fundHistoryStore = require("../funds/fund-history-store");
+const fundStore = require("../funds/fund-store.ts");
+const fundHistoryStore = require("../funds/fund-history-store.ts");
 const { searchFunds } = require("../../funds/fund-search");
 const { fetchFundNavBatch } = require("../../funds/fund-fetcher");
 const { pickEffectiveNavNumber } = require("../../funds/fund-nav-merge");
 const { fetchFundNavHistory, fetchIndexHistory } = require("../../funds/fund-nav-history");
-const fundNavHistoryStore = require("../funds/fund-history-store");
+const fundNavHistoryStore = require("../funds/fund-history-store.ts");
 
 function registerFundsHandlers(ctx) {
   const { safeHandle, threwResponse, fundScheduler } = ctx;

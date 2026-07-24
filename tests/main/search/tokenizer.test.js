@@ -3,8 +3,8 @@
  * A3: 分词器 — bigram(中文) + 空格(英文) + 停用词
  */
 import { describe, it, expect } from 'vitest';
-import { tokenize } from '../../../src/main/search/tokenizer.js';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
+const { tokenize } = requireMain('search/tokenizer');
 describe('tokenizer', () => {
   it('splits English by whitespace + lowercases', () => {
     expect(tokenize('Cursor Performance Update')).toEqual(

@@ -8,12 +8,13 @@
  *   - 网络/timeout → http_timeout
  */
 import { describe, it, expect, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 const {
   fetchWechatHot,
   parseWeiboAjaxRealtime,
   URL_PRIMARY,
   URL_FALLBACK,
-} = require("../../../src/main/wechat-hot/fetcher.js");
+} = requireMain("wechat-hot/fetcher");
 
 function makeClient(responses) {
   // responses: array of { status, body, error? } — 按调用顺序返

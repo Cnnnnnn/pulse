@@ -15,7 +15,7 @@
 import type {} from "electron";
 
 const stateStore = require("../state-store.ts");
-const { todayKey } = require("../token-budget");
+const { todayKey } = require("../token-budget.ts");
 
 function registerTokenBudgetHandlers(ctx) {
   const { safeHandle } = ctx;

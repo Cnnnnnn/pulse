@@ -3,7 +3,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-const { parseIthomeListPage } = require("../../src/main/ithome/list-parser.js");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { parseIthomeListPage } = requireMain("ithome/list-parser");
 
 const SAMPLE = `
 <div id="list">

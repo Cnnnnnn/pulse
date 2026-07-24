@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const { fetchSwitchDeals } = require("../../../src/main/games/switch.js");
+const { fetchSwitchDeals } = requireMain("games/switch");
 
 afterEach(() => vi.restoreAllMocks());
 

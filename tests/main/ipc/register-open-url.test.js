@@ -13,6 +13,7 @@
  * 用 require.cache + vi.resetModules 才是 work 的.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
 const mockShellOpenExternal = vi.fn();
 const electronStub = {
@@ -26,8 +27,8 @@ const mainLogDebug = vi.fn();
 const mainLogEvent = vi.fn();
 
 const electronPath = require.resolve("electron");
-const logPath = require.resolve("../../../src/main/log.ts");
-const registerPath = require.resolve("../../../src/main/ipc/register-open-url.ts");
+const logPath = mainArtifactPath("log");
+const registerPath = mainArtifactPath("ipc/register-open-url");
 
 let registerMod;
 

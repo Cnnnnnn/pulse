@@ -8,16 +8,24 @@
  * 跟 tests/preload-platform.test.js / tests/main/app-icon-windows.test.js 同套路.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import path from 'node:path';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockGetAppIcon = vi.fn();
 
-const stubModulePath = require.resolve('../../src/main/app-icon-windows.js');
+const stubModulePath = mainArtifactPath('app-icon-windows');
 const stubExports = {
   getAppIcon: mockGetAppIcon,
   _clearIconCache: vi.fn(),
 };
 
-const windowsModulePath = require.resolve('../../src/platform/windows.js');
+const windowsModulePath = platformArtifactPath('windows');
+const windowsCjsPath = path.resolve(__dirname, '../../dist-test/platform/windows.cjs');
+
+function bustWindowsCache() {
+  delete require.cache[windowsModulePath];
+  delete require.cache[windowsCjsPath];
+}
 
 let getAppIcon;
 
@@ -30,8 +38,8 @@ describe('platform/windows — getAppIcon (P4)', () => {
       loaded: true,
       exports: stubExports,
     };
-    // 清掉 platform/windows.js cache 让它重新 require 拿 stub
-    delete require.cache[windowsModulePath];
+    // 清掉 platform/windows.js + dist-test .cjs cache 让它重新 require 拿 stub
+    bustWindowsCache();
     const mod = require(windowsModulePath);
     getAppIcon = mod.getAppIcon;
 
@@ -40,7 +48,7 @@ describe('platform/windows — getAppIcon (P4)', () => {
 
   afterEach(() => {
     delete require.cache[stubModulePath];
-    delete require.cache[windowsModulePath];
+    bustWindowsCache();
     vi.restoreAllMocks();
   });
 

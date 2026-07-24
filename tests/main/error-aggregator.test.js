@@ -10,7 +10,8 @@ import { join } from 'path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { createAggregator } = require('../../src/main/error-aggregator.js');
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { createAggregator } = requireMain('error-aggregator');
 
 let dir;
 let agg;

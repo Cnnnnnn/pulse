@@ -15,8 +15,8 @@ import { describe, test, expect, beforeEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { _internals } from "../../src/main/ipc/register-ai-usage.ts";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { _internals } = requireMain("ipc/register-ai-usage");
 const FAKE_SNAPSHOT = {
   provider: "minimax",
   region: "cn",
@@ -73,7 +73,7 @@ describe("AI usage 端到端", () => {
     };
 
     // 用真实 state-store *Provider 函数 (disk-backed)
-    const stateStoreMod = await import("../../src/main/state-store.ts");
+    const stateStoreMod = await Promise.resolve(requireMain("state-store"));
     const deps = {
       stateStore: {
         loadSnapshotProvider: (pid) =>
@@ -111,7 +111,7 @@ describe("AI usage 端到端", () => {
   test("glm fetch 成功: 落盘 providers.glm, 不影响 minimax 槽", async () => {
     seedEmptyState();
     const pushCalls = [];
-    const stateStoreMod = await import("../../src/main/state-store.ts");
+    const stateStoreMod = await Promise.resolve(requireMain("state-store"));
     const deps = {
       stateStore: {
         loadSnapshotProvider: (pid) =>
@@ -147,7 +147,7 @@ describe("AI usage 端到端", () => {
   test("fetch 失败: 不写盘, 不 push, 错误 reason 透传", async () => {
     seedEmptyState();
     const pushCalls = [];
-    const stateStoreMod = await import("../../src/main/state-store.ts");
+    const stateStoreMod = await Promise.resolve(requireMain("state-store"));
     const deps = {
       stateStore: {
         loadSnapshotProvider: (pid) =>
@@ -182,7 +182,7 @@ describe("AI usage 端到端", () => {
   test("api_key 缺失: 早返回, 不调 client", async () => {
     seedEmptyState();
     let clientConstructed = false;
-    const stateStoreMod = await import("../../src/main/state-store.ts");
+    const stateStoreMod = await Promise.resolve(requireMain("state-store"));
     const deps = {
       stateStore: {
         loadSnapshotProvider: (pid) =>
@@ -212,7 +212,7 @@ describe("AI usage 端到端", () => {
 
   test("重复 fetch 串联: 真实 disk-backed store, 新 snapshot 覆盖旧", async () => {
     seedEmptyState();
-    const stateStoreMod = await import("../../src/main/state-store.ts");
+    const stateStoreMod = await Promise.resolve(requireMain("state-store"));
     const baseStateStore = {
       loadSnapshotProvider: (pid) =>
         stateStoreMod.loadAiUsageSnapshotProvider(pid, statePath),
@@ -260,7 +260,7 @@ describe("AI usage 端到端", () => {
 
   test("getCached: 无数据 → { ok, providers:{minimax:null,glm:null}, histories }", async () => {
     seedEmptyState();
-    const stateStoreMod = await import("../../src/main/state-store.ts");
+    const stateStoreMod = await Promise.resolve(requireMain("state-store"));
     const deps = {
       stateStore: {
         loadSnapshotProvider: (pid) =>

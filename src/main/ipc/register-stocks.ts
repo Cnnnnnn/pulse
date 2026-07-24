@@ -14,7 +14,7 @@
 
 import type {} from "electron";
 
-const { createStockHttpClient } = require("../chromium-http-client");
+const { createStockHttpClient } = require("../chromium-http-client.ts");
 const {
   fetchStocks,
   fetchStocksByCodes,

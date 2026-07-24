@@ -11,6 +11,7 @@ import os from "os";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockHandle = vi.fn((name, fn) => { handlers.set(name, fn); });
 const handlers = new Map();
@@ -38,8 +39,8 @@ let registerCoreHandlers;
 function setup(getCachedState) {
   freshModule();
   tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-c7-ipc-"));
-  detectExport = require("../../src/main/detect-results-export.js");
-  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.ts"));
+  detectExport = requireMain("detect-results-export");
+  ({ registerCoreHandlers } = requireMain("ipc/register-core"));
 
   registerCoreHandlers({
     getConfig: () => ({ apps: [] }),

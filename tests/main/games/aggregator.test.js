@@ -8,8 +8,9 @@
  * 让各 fetcher 正常跑解析逻辑，只隔离网络。
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const { getGameDeals, sortDeals } = require("../../../src/main/games/aggregator.js");
+const { getGameDeals, sortDeals } = requireMain("games/aggregator");
 
 // ── 假数据：各平台 fetcher 期望的原始返回形状 ──────────────────────
 

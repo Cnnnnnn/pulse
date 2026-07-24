@@ -3,15 +3,15 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   scoreEntryFromEspnEvent,
   scorersFromEspnEvent,
   mapEspnEventsToScoreEntries,
   eventMatchesFixture,
   deriveEtPenFromScorers,
-} from "../../src/main/worldcup/scores-api-espn.js";
-import { matchKey } from "../../src/main/worldcup/match-key.js";
-
+} = requireMain("worldcup/scores-api-espn");
+const { matchKey } = requireMain("worldcup/match-key");
 const KOR_CZE_FIXTURE = {
   date: "2026-06-11",
   time: "20:00",

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const {
   AA_DAILY_LIMIT,
@@ -6,7 +7,7 @@ const {
   budget,
   remaining,
   resetLimiter,
-} = require("../../src/main/ai-leaderboard/rate-limiter");
+} = requireMain("ai-leaderboard/rate-limiter");
 
 describe("rate-limiter: budget()", () => {
   beforeEach(() => resetLimiter());

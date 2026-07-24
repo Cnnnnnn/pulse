@@ -4,7 +4,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-const parser = require("../../src/main/ithome/article-page-parser.js");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const parser = requireMain("ithome/article-page-parser");
 const { parseIthomeArticlePage, hasArticleContent } = parser;
 
 const FIXTURE = readFileSync(

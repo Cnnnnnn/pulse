@@ -7,6 +7,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 describe("loadFinalsTxt", () => {
   let loadFinalsTxt;
@@ -14,8 +15,8 @@ describe("loadFinalsTxt", () => {
 
   beforeEach(async () => {
     // fresh require so module-level state is clean
-    delete require.cache[require.resolve("../../src/main/worldcup/fetcher.js")];
-    const mod = require("../../src/main/worldcup/fetcher.js");
+    delete require.cache[mainArtifactPath("worldcup/fetcher")];
+    const mod = requireMain("worldcup/fetcher");
     loadFinalsTxt = mod.loadFinalsTxt;
     FINALS_URL = mod.FINALS_URL;
   });

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   validateState,
   isStateValid,
   STATE_SCHEMA_VERSION,
-} from '../../src/main/state-store-schema.js';
-
+} = requireMain('state-store-schema');
 describe('state-store-schema', () => {
   it('exports the same schema version as state-store (1)', () => {
     expect(STATE_SCHEMA_VERSION).toBe(1);

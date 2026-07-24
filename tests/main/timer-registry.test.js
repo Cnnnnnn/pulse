@@ -7,7 +7,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const registry = require('../../src/main/timer-registry.ts');
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const registry = requireMain('timer-registry');
 
 beforeEach(() => {
   registry.__resetForTest();

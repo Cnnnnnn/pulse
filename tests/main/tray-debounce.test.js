@@ -14,6 +14,7 @@
  * CJS require 路径不稳, 走 require.cache stub + resetModules 才是 work 的).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockCreateFromPath = vi.fn();
 const mockCreateFromBuffer = vi.fn();
@@ -44,7 +45,7 @@ const electronStub = {
 };
 
 const electronPath = require.resolve('electron');
-const trayModulePath = require.resolve('../../src/main/tray.ts');
+const trayModulePath = mainArtifactPath('tray');
 
 let createTrayManager;
 

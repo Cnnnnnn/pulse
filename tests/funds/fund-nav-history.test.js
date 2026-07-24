@@ -5,14 +5,14 @@ import {
   parseIndexResponse,
   fetchIndexHistory,
 } from "../../src/funds/fund-nav-history.js";
-import {
-  loadIndexHistory,
-  saveIndexHistory,
-} from "../../src/main/funds/fund-history-store.js";
-import { stateStore } from "../../src/main/state-store.ts";
 import os from "os";
 import path from "path";
 import fs from "fs";
+const { requireMain } = require("../_setup/require-main.cjs");
+const {
+  loadIndexHistory,
+  saveIndexHistory,
+} = requireMain("funds/fund-history-store");
 
 describe("parseIndexResponse (T-C1a)", () => {
   it("映射 eastmoney kline 到 {date, value} 升序, 过滤无效", () => {

@@ -5,8 +5,8 @@
  * 优势: 不依赖 vitest mock 行为, 跟项目其它 state-store 测试风格一致.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { registerReleaseNotes } from '../../src/main/release-notes.js';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { registerReleaseNotes } = requireMain('release-notes');
 const mockApp = {
   getVersion: vi.fn(() => '2.32.0'),
 };

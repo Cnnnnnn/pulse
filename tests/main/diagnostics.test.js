@@ -18,20 +18,21 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-import { createRequire } from "module";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 // 让 sampler 启动后立刻 stop, 不让 timer 真挂
 function importFresh() {
   // vi.resetModules 让模块顶层 const _t0 = Date.now() 重跑
   vi.resetModules();
-  const stateStore = require("../../src/main/state-store.ts");
+  const stateStore = requireMain("state-store");
   stateStore._setStatePathForTest?.(
     require("fs").mkdtempSync(require("path").join(require("os").tmpdir(), "pulse-diag-")) +
       "/state.json",
   );
-  const diag = require("../../src/main/diagnostics.ts");
+  const diag = requireMain("diagnostics");
   diag._resetForTest(); // ★ 关键: 清 module-level _milestones + _samples, 防止旧模块实例污染
   return { diag, stateStore };
 }

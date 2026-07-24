@@ -15,7 +15,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MockHttp } from "../helpers/mock-http.js";
-const { FundScheduler } = require("../../src/main/funds/fund-scheduler.js");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { FundScheduler } = requireMain("funds/fund-scheduler");
 
 const SAMPLE =
   'jsonpgz({"fundcode":"000001","name":"x","jzrq":"2026-06-11","dwjz":"1.0","gsz":"1.05","gszzl":"5","gztime":"2026-06-12 13:00"});';

@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const {
   parseArticleSummary,
   enrichSummaryEntry,
   splitKeywords,
-} = require("../../src/main/ithome/article-summary-parse");
+} = requireMain("ithome/article-summary-parse");
 
 describe("ithome article-summary-parse", () => {
   it("parseArticleSummary extracts four structured fields", () => {

@@ -6,7 +6,7 @@
  */
 "use strict";
 
-const { BROWSER_UA: CHROME_UA } = require("./normalize");
+const { BROWSER_UA: CHROME_UA } = require("./normalize.ts");
 
 const NINTENDO_WEBREQUEST_FILTER: any = {
   urls: ["https://assets.nintendo.com/*"],

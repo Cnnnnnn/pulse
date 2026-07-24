@@ -2,5 +2,5 @@
 // Kept for non-main JS consumers (src/ai, workers, detectors, …). Do not proliferate.
 const _fs = require("fs");
 const _path = require("path");
-const _cjs = _path.join(__dirname, "../../dist-test/main/per-file/token-budget.cjs");
-module.exports = _fs.existsSync(_cjs) ? require(_cjs) : require("./token-budget.ts");
+const _cjs = _path.join(__dirname, "../../dist-test/main/per-file/log.cjs");
+module.exports = _fs.existsSync(_cjs) ? require(_cjs) : require("./log.ts");

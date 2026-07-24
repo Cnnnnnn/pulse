@@ -20,6 +20,7 @@
  *   darwin / install / theme listener test 走 inline mock 即可 (不走 nativeTheme.shouldUseDarkColors).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockCreateFromPath = vi.fn();
 const mockCreateFromBuffer = vi.fn();
@@ -44,7 +45,7 @@ const electronStub = {
 };
 
 const electronPath = require.resolve('electron');
-const trayModulePath = require.resolve('../../src/main/tray.ts');
+const trayModulePath = mainArtifactPath('tray');
 
 let createTrayManager;
 let _internal;

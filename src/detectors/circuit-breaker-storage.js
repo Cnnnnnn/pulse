@@ -10,7 +10,7 @@
  * Snapshot is the breaker object minus the `_now` function (not serializable).
  */
 
-const stateStore = require('../main/state-store.ts');
+const stateStore = require('../main/state-store.js');
 
 async function loadBreakers() {
   const state = stateStore.load() || {};

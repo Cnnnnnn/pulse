@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const { createExchangeRateService } = require("../../../src/main/games/exchange-rates.js");
+const { createExchangeRateService } = requireMain("games/exchange-rates");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

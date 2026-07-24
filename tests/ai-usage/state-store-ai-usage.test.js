@@ -6,6 +6,7 @@
  */
 
 import { describe, test, expect, beforeEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -13,7 +14,7 @@ const {
   loadAiUsageSnapshot,
   saveAiUsageSnapshot,
   saveAll,
-} = require("../../src/main/state-store.ts");
+} = requireMain("state-store");
 
 function tmpStatePath() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-usage-state-"));

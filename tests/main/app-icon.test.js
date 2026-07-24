@@ -8,12 +8,12 @@
  * 5 case: sips 成功 / sips 失败 / 找不到 .icns / bundle 缺 / 空路径.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   getAppIcon,
   findIcnsPath,
   _clearIconCache,
-} from "../../src/main/app-icon.js";
-
+} = requireMain("app-icon");
 // 整个测试文件都是 macOS-only: sips CLI + .icns + Info.plist CFBundleIconFile
 // 路径只对 macOS bundle 有意义. Windows 上 app-icon-windows.js 走完全不同的
 // 逻辑 (PowerShell + .ico), 它的测试应该在 app-icon-windows.test.js.

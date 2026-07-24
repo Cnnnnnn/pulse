@@ -19,7 +19,7 @@
 import type * as pathType from "node:path";
 
 const path: typeof pathType = require('path');
-const { createAggregator } = require('../error-aggregator');
+const { createAggregator } = require('../error-aggregator.ts');
 
 let _instance = null;
 

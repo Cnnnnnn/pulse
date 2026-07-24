@@ -3,8 +3,8 @@
  * A3: inverted index — buildFromState / upsert / query / counts
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createSearchIndex } from '../../../src/main/search/search-index.js';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
+const { createSearchIndex } = requireMain('search/search-index');
 describe('search-index', () => {
   let idx;
 

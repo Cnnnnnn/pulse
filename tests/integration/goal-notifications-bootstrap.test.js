@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 describe("goal-notifications: integration smoke", () => {
   it("main: goal-watcher 模块可 require, 公开 API 完整", () => {
-    const gw = require("../../src/main/worldcup/goal-watcher");
+    const gw = requireMain("worldcup/goal-watcher");
     expect(typeof gw._goalKeyOfScorer).toBe("function");
     expect(typeof gw._diffNewGoals).toBe("function");
     expect(typeof gw._formatGoalNotification).toBe("function");
@@ -13,12 +14,12 @@ describe("goal-notifications: integration smoke", () => {
   });
 
   it("bootstrap/schedulers 暴露 startWorldcupGoalWatcher", () => {
-    const sched = require("../../src/main/bootstrap/schedulers.ts");
+    const sched = requireMain("bootstrap/schedulers");
     expect(typeof sched.startWorldcupGoalWatcher).toBe("function");
   });
 
   it("state-store PRESERVE_FIELDS 含 worldcupGoalNotified", () => {
-    const stateStore = require("../../src/main/state-store.ts");
+    const stateStore = requireMain("state-store");
     // 通过 patchState 验证 (静态 PRESERVE_FIELDS 不 export)
     // 写一个带 worldcupGoalNotified 的 state, 然后调 saveLastOpened, 验证保留
     const fs = require("fs");

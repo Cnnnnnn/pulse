@@ -6,8 +6,8 @@
  */
 "use strict";
 
-const { fetchJson } = require("./normalize");
-const { logFetchError } = require("./log");
+const { fetchJson } = require("./normalize.ts");
+const { logFetchError } = require("./log.ts");
 
 const FRANKFURTER_URL = "https://api.frankfurter.dev/v2/rates";
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;

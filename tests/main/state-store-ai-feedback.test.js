@@ -9,7 +9,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 const require = createRequire(import.meta.url);
-const stateStore = require("../../src/main/state-store.ts");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const stateStore = requireMain("state-store");
 
 function tmpStatePath() {
   return path.join(os.tmpdir(), `pulse-test-fb-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);

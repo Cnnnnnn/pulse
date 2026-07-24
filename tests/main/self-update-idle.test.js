@@ -7,7 +7,8 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { decideSelfUpdateTick } = require("../../src/main/self-update-idle.js");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { decideSelfUpdateTick } = requireMain("self-update-idle");
 
 const FIVE_MIN = 5 * 60 * 1000;
 const BASE_BOOT = 1_700_000_000_000; // 任意固定起点

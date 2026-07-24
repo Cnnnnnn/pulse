@@ -6,10 +6,11 @@ import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   checkAiUsageAlertsPure,
   checkAiUsageAlerts,
-} = require("../../src/main/ai-usage-alerts");
+} = requireMain("ai-usage-alerts");
 const { todayKey, addDays } = require("../../src/ai-usage/history-series");
 
 describe("checkAiUsageAlertsPure", () => {

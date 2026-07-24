@@ -7,11 +7,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const stateStorePath = require.resolve("../../src/main/state-store.ts");
-const registerPath = require.resolve(
-  "../../src/main/ipc/register-config-portability.ts",
-);
+const stateStorePath = mainArtifactPath("state-store");
+const registerPath = mainArtifactPath("ipc/register-config-portability");
 
 const load = vi.fn(() => null);
 const saveWatchlist = vi.fn();

@@ -12,13 +12,14 @@
  * 用 require.cache stub + vi.resetModules 模式.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockFetch = vi.fn();
 const mockSetAiUsage = vi.fn();
 const mockTrayMgr = { setAiUsage: mockSetAiUsage };
 
-const registerAiUsagePath = require.resolve("../../src/main/ipc/register-ai-usage.ts");
-const schedulerModulePath = require.resolve("../../src/main/ai-usage-refresh-scheduler.js");
+const registerAiUsagePath = mainArtifactPath("ipc/register-ai-usage");
+const schedulerModulePath = mainArtifactPath("ai-usage-refresh-scheduler");
 
 let createAiUsageRefreshScheduler;
 
@@ -50,7 +51,7 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
     installStubs();
     mockFetch.mockResolvedValue({ ok: true, provider: "minimax", snapshot: { windows: { "5h": { usedPercent: 42 } } } });
 
-    const cache = require("../../src/main/ai-usage-cache");
+    const cache = requireMain("ai-usage-cache");
     vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
       getTraySummary: () => ({ status: "ok", percent: 42, remainLabel: "2h", fetchedAt: Date.now() }),
     });
@@ -72,7 +73,7 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
       return { ok: true, provider: "glm", snapshot: { windows: { "5h": { usedPercent: 30 } } } };
     });
 
-    const cache = require("../../src/main/ai-usage-cache");
+    const cache = requireMain("ai-usage-cache");
     vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
       getTraySummary: () => ({ status: "ok", percent: 30, remainLabel: "1h" }),
     });
@@ -88,7 +89,7 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
     installStubs();
     mockFetch.mockRejectedValue(new Error("network fail"));
 
-    const cache = require("../../src/main/ai-usage-cache");
+    const cache = requireMain("ai-usage-cache");
     vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
       getTraySummary: () => ({ status: "ok", percent: 50, remainLabel: "1h" }),
     });
@@ -101,7 +102,7 @@ describe("ai-usage-refresh-scheduler (Task B2.1)", () => {
   it("start/stop: setInterval + clearInterval 控制 lifecycle", async () => {
     installStubs();
     vi.useFakeTimers();
-    const cache = require("../../src/main/ai-usage-cache");
+    const cache = requireMain("ai-usage-cache");
     vi.spyOn(cache, "createAiUsageCache").mockReturnValue({
       getTraySummary: () => ({ status: "ok", percent: 50, remainLabel: "1h" }),
     });

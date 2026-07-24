@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   recordFeedback,
   dedupeKey,
   pruneToCap,
-} = require("../../src/main/ai-feedback-store");
+} = requireMain("ai-feedback-store");
 
 describe("ai-feedback-store", () => {
   describe("dedupeKey", () => {

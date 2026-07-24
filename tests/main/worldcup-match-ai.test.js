@@ -3,11 +3,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   buildPreMatchPrompt,
   buildPostMatchPrompt,
-} from "../../src/main/worldcup/match-ai.js";
-
+} = requireMain("worldcup/match-ai");
 describe("worldcup match-ai prompts", () => {
   const match = {
     team1: "South Korea",

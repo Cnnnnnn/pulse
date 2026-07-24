@@ -19,7 +19,7 @@
 
 const childProcess = require("child_process");
 const { shell } = require("electron");
-const { getActionForApp } = require("./bulk-upgrade-actions");
+const { getActionForApp } = require("./bulk-upgrade-actions.ts");
 
 // Testability hook (vitest only): 空 noop, 保留以兼容现有测试 import
 // (原功能: 让测试注入 userDataDir 跳过 electron.app.getPath; 已退役, 但保留符号)

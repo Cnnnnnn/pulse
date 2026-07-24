@@ -12,9 +12,9 @@
 
 import type {} from "electron";
 
-const newsStore = require("../ithome/news-store");
-const { createShareCardPng } = require("../ithome/share-card-renderer");
-const { writePngToClipboard } = require("../ithome/clipboard-image");
+const newsStore = require("../ithome/news-store.ts");
+const { createShareCardPng } = require("../ithome/share-card-renderer.ts");
+const { writePngToClipboard } = require("../ithome/clipboard-image.ts");
 const { mainLog } = require("../log.ts");
 
 function registerIthomeShareHandlers(ctx) {

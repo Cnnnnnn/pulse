@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { toGameDeal, BROWSER_UA: UA } = require("./normalize");
-const { logFetchError } = require("./log");
+const { toGameDeal, BROWSER_UA: UA } = require("./normalize.ts");
+const { logFetchError } = require("./log.ts");
 const os = require("os");
 const fs = require("fs");
 const path = require("path");

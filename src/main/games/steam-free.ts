@@ -5,7 +5,7 @@
  */
 "use strict";
 
-const { fetchJson, toGameDeal } = require("./normalize");
+const { fetchJson, toGameDeal } = require("./normalize.ts");
 
 const GAMERPOWER_URL =
   "https://www.gamerpower.com/api/giveaways?platform=steam&type=game";

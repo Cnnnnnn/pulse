@@ -3,8 +3,8 @@
  * A3: 从 state.json 抽取 Doc 列表 (news/ai-task/reminder/fund/app)
  */
 import { describe, it, expect } from 'vitest';
-import { buildDocsFromState } from '../../../src/main/search/build-docs.js';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
+const { buildDocsFromState } = requireMain('search/build-docs');
 describe('buildDocsFromState', () => {
   it('builds news docs from articles', () => {
     const state = {

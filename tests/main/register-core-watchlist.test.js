@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 // ─── electron stub ───────────────────────────────────────────────
 const handlers = new Map();
@@ -59,7 +60,7 @@ const stateStoreStub = {
   markNotified: () => {},
 };
 let loadShouldThrow = false;
-const stateStorePath = require.resolve("../../src/main/state-store.ts");
+const stateStorePath = mainArtifactPath("state-store");
 
 // ─── reset + re-register ────────────────────────────────────────
 let registerCoreHandlers;
@@ -80,8 +81,8 @@ function freshRegister() {
     exports: stateStoreStub,
   };
   // 重置 register-core 模块缓存, 让它 fresh require
-  delete require.cache[require.resolve("../../src/main/ipc/register-core.ts")];
-  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.ts"));
+  delete require.cache[mainArtifactPath("ipc/register-core")];
+  ({ registerCoreHandlers } = requireMain("ipc/register-core"));
   // 传 ctx with safeHandle (since register-core reads safeHandle from ctx, not electron)
   const mockSafeHandle = vi.fn((name, fn) => handlers.set(name, fn));
   registerCoreHandlers({ safeHandle: mockSafeHandle });

@@ -80,7 +80,7 @@ async function getAppIcon(appPath: string): Promise<string | null> {
   if (!appPath || typeof appPath !== 'string') return null;
   const winAppIcon: {
     getAppIcon: (p: string) => Promise<string | null>;
-  } = require('../main/app-icon-windows');
+  } = require('../main/app-icon-windows.ts');
   return winAppIcon.getAppIcon(appPath);
 }
 
@@ -107,7 +107,7 @@ function getUpgradeAction(appCfg: any, detectResult: any): unknown {
   // 分支, 只用 source + winget_id.
   const { getActionForApp }: {
     getActionForApp: (item: any) => unknown;
-  } = require('../main/bulk-upgrade-actions');
+  } = require('../main/bulk-upgrade-actions.ts');
   const item = {
     id: (detectResult && detectResult.name) || (appCfg && appCfg.name),
     name: (detectResult && detectResult.name) || (appCfg && appCfg.name),
@@ -127,7 +127,7 @@ async function execUpgrade(action: unknown): Promise<unknown> {
   // 懒加载 — bulk-upgrade.ts require('electron'), 顶层 require 会让 worker 崩.
   const { defaultExec }: {
     defaultExec: (a: unknown) => Promise<unknown>;
-  } = require('../main/bulk-upgrade');
+  } = require('../main/bulk-upgrade.ts');
   return defaultExec(action);
 }
 

@@ -9,10 +9,11 @@
  *   - safeHandle 直接捕获 fn, 测试直接 invoke
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const fetcherPath = require.resolve("../../src/stocks/stock-fetcher.js");
 const searchPath = require.resolve("../../src/stocks/stock-search.js");
-const registerPath = require.resolve("../../src/main/ipc/register-stocks.ts");
+const registerPath = mainArtifactPath("ipc/register-stocks");
 
 const httpClient = {
   get: async () => ({ status: 200, body: "{}", error: null }),
@@ -137,7 +138,7 @@ function stubModules(opts = {}) {
     exports: { searchStocks: mockSearch },
   };
   // HttpClient / chromium-http-client 都得 stub — register-stocks 会按需 require.
-  const httpPath = require.resolve("../../src/main/http-client.ts");
+  const httpPath = mainArtifactPath("http-client");
   require.cache[httpPath] = {
     id: httpPath,
     filename: httpPath,
@@ -149,7 +150,7 @@ function stubModules(opts = {}) {
     },
   };
   const chromiumPath =
-    require.resolve("../../src/main/chromium-http-client.js");
+    mainArtifactPath("chromium-http-client");
   require.cache[chromiumPath] = {
     id: chromiumPath,
     filename: chromiumPath,

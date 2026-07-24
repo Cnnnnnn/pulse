@@ -15,8 +15,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { runCheck } from "../../src/main/check-runner.js";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { runCheck } = requireMain("check-runner");
 const FAKE_NOW = 1750000000000;
 const FAKE_DAY = 24 * 3600 * 1000;
 

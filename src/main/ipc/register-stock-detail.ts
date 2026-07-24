@@ -13,7 +13,7 @@
 
 import type {} from "electron";
 
-const { createStockHttpClient } = require("../chromium-http-client");
+const { createStockHttpClient } = require("../chromium-http-client.ts");
 const { fetchStockDetailAngles, fetchSingleAngle } = require("../../stocks/stock-detail-fetcher");
 const { computeStockCacheKey } = require("../../stocks/stock-detail-cache");
 const { aiStockDetailAnalyze, refreshAngleLocally } = require("../../ai/stock-detail-advisor");

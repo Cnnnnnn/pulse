@@ -14,6 +14,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 let tmpDir;
 let statePath;
@@ -37,7 +38,7 @@ describe('state-store recovery', () => {
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'pulse-state-test-'));
     // Reset the module-level "last recovery event" cache by re-requiring fresh
-    delete require.cache[require.resolve('../../src/main/state-store.ts')];
+    delete require.cache[mainArtifactPath('state-store')];
   });
 
   afterEach(() => {
@@ -48,7 +49,7 @@ describe('state-store recovery', () => {
 
   it('loadOrRecover returns null and no event when file is missing', () => {
     statePath = freshStatePath();
-    const ss = require('../../src/main/state-store.ts');
+    const ss = requireMain('state-store');
     const state = ss.loadOrRecover(statePath);
     expect(state).toBeNull();
     expect(ss.getLastRecoveryEvent()).toBeNull();
@@ -57,7 +58,7 @@ describe('state-store recovery', () => {
   it('loadOrRecover returns parsed state and no event when state is valid', () => {
     statePath = freshStatePath();
     writeJson(statePath, { v: 1, ts: 0, apps: {}, mutes: {} });
-    const ss = require('../../src/main/state-store.ts');
+    const ss = requireMain('state-store');
     const state = ss.loadOrRecover(statePath);
     expect(state).not.toBeNull();
     expect(state.apps).toEqual({});
@@ -67,7 +68,7 @@ describe('state-store recovery', () => {
   it('loadOrRecover backs up corrupt JSON, returns null, records event', () => {
     statePath = freshStatePath();
     writeRaw(statePath, '{ this is not valid JSON');
-    const ss = require('../../src/main/state-store.ts');
+    const ss = requireMain('state-store');
     const state = ss.loadOrRecover(statePath);
     expect(state).toBeNull();
     // A backup file should exist
@@ -84,7 +85,7 @@ describe('state-store recovery', () => {
     statePath = freshStatePath();
     // Valid JSON, but missing required apps
     writeJson(statePath, { v: 1, ts: 0 });
-    const ss = require('../../src/main/state-store.ts');
+    const ss = requireMain('state-store');
     const state = ss.loadOrRecover(statePath);
     expect(state).toBeNull();
     const backups = readdirSync(tmpDir).filter((f) => f.includes('state.corrupt-'));
@@ -97,7 +98,7 @@ describe('state-store recovery', () => {
   it('getLastRecoveryEvent returns the event only once (consume-once semantics)', () => {
     statePath = freshStatePath();
     writeRaw(statePath, 'garbage');
-    const ss = require('../../src/main/state-store.ts');
+    const ss = requireMain('state-store');
     ss.loadOrRecover(statePath);
     expect(ss.getLastRecoveryEvent()).not.toBeNull();
     expect(ss.getLastRecoveryEvent()).toBeNull();
@@ -106,7 +107,7 @@ describe('state-store recovery', () => {
   it('loadOrRecover does not throw when backup rename fails (best-effort)', () => {
     statePath = freshStatePath();
     writeRaw(statePath, 'garbage');
-    const ss = require('../../src/main/state-store.ts');
+    const ss = requireMain('state-store');
     expect(() => ss.loadOrRecover(statePath)).not.toThrow();
   });
 });

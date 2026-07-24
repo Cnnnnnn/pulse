@@ -186,7 +186,7 @@ function buildMenu(opts: BuildMenuOpts): MenuItemConstructorOptions[] {
     metals = null,
     staleNames = [],
     selfUpdateState = null,
-    trayPrefs = require("./tray-menu-prefs").DEFAULT_PREFS,
+    trayPrefs = require("./tray-menu-prefs.ts").DEFAULT_PREFS,
     themeMode = "system", // P10: 当前主题偏好 (用于 submenu 选中标记)
     onOpenPanel = () => {},
     onCheck = () => {},
@@ -571,7 +571,7 @@ function createTrayManager(opts: CreateTrayManagerOpts) {
   let lastResults: DetectResult[] = [];
   let lastStaleNames: string[] = [];
   let lastSelfUpdateState: BuildMenuOpts["selfUpdateState"] = null;
-  let lastTrayMenuPrefs: TrayPrefs = require("./tray-menu-prefs").DEFAULT_PREFS;
+  let lastTrayMenuPrefs: TrayPrefs = require("./tray-menu-prefs.ts").DEFAULT_PREFS;
   let lastThemeMode = "system"; // P10: 主进程内存, 由 renderer 同步
 
   function install() {
@@ -673,7 +673,7 @@ function createTrayManager(opts: CreateTrayManagerOpts) {
 
   // Phase v1: 注入 prefs,触发 rebuild. trayPrefs 是 normalizePrefs 归一化过的对象.
   function setTrayMenuPrefs(prefs: any) {
-    const { normalizePrefs, DEFAULT_PREFS: DEF } = require("./tray-menu-prefs");
+    const { normalizePrefs, DEFAULT_PREFS: DEF } = require("./tray-menu-prefs.ts");
     lastTrayMenuPrefs = normalizePrefs(prefs) || DEF;
     scheduleRebuild();
   }

@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { tryRewriteSummary } from "../../../src/main/digest/daily-summary-job.js";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
+const { tryRewriteSummary } = requireMain("digest/daily-summary-job");
 function makeDeps({ llmResult, prompt }) {
   const sharedLlm = {
     chatCompletion: vi.fn(async () => llmResult),

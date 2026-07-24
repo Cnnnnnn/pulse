@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { toGameDeal, fetchJson } = require("./normalize");
-const { logFetchError } = require("./log");
+const { toGameDeal, fetchJson } = require("./normalize.ts");
+const { logFetchError } = require("./log.ts");
 
 const SHOP_BY_PLATFORM: Record<string, number> = {
   xbox: 48,

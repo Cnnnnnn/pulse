@@ -26,9 +26,9 @@ describe('worker IPC carries platform', () => {
     expect(src).toContain('platform: PLATFORM');
   });
 
-  it('main/index.js workerOpts 带 platform', () => {
+  it('main/index.ts workerOpts 带 platform', () => {
     const src = readFileSync(
-      join(__dirname, '../../src/main/index.js'),
+      join(__dirname, '../../src/main/index.ts'),
       'utf-8',
     );
     expect(src).toMatch(/platform:\s*process\.platform/);

@@ -15,7 +15,7 @@
 
 import type {} from "electron";
 
-const { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl } = require("../github");
+const { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl } = require("../github.ts");
 const { parseReadme } = require("../../ai/readme-parse");
 
 /** 优先用 renderer 传入的 token；为空则回退 .env / 进程环境变量。 */

@@ -3,8 +3,8 @@
  * A3: 高亮片段生成 — 从 searchText 定位命中, 前后各取 radius 字符, 包 <mark>
  */
 import { describe, it, expect } from 'vitest';
-import { makeSnippet } from '../../../src/main/search/highlight.js';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
+const { makeSnippet } = requireMain('search/highlight');
 describe('makeSnippet', () => {
   const TEXT = '本次更新主要针对 macOS 上的性能优化，修复了大型文件打开时的卡顿问题。';
 

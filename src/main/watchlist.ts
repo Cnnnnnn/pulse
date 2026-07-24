@@ -10,7 +10,7 @@
 const { Notification: ElectronNotification } = require("electron");
 const stateStore = require("./state-store.ts");
 const { mainLog } = require("./log.ts");
-const { inQuietHours } = require("./notification-policy");
+const { inQuietHours } = require("./notification-policy.ts");
 const { pickEffectiveNavNumber } = require("../funds/fund-nav-merge");
 
 /** ponytail: 基金净值相对上次通知变动 ≥ 此值才再提醒 */

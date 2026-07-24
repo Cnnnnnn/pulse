@@ -7,12 +7,12 @@
  * 业务: Quiet hours 抑制 + cooldown 抑制. 决定一个 app 升级要不要弹通知.
  */
 import { describe, it, expect } from "vitest";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   parseHHMM,
   inQuietHours,
   suppressedByCooldown,
-} from "../../src/main/notification-policy.js";
-
+} = requireMain("notification-policy");
 describe("parseHHMM", () => {
   it("合法输入: '08:00' / '23:30' / '0:00'", () => {
     expect(parseHHMM("08:00")).toBe(480);

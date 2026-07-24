@@ -10,9 +10,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const electronPath = require.resolve("electron");
-const clientPath = require.resolve(
-  "../../src/main/chromium-http-client.js",
-);
+const { mainArtifactPath } = require("../_setup/require-main.cjs");
+const clientPath = mainArtifactPath("chromium-http-client");
 
 function makeFakeElectron(impl) {
   // electron 模块本身是个 stub — vi.resetModules 时清缓存重建.

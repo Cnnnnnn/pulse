@@ -14,8 +14,8 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { authHeader, getEnvGithubToken } from "../../src/main/github.js";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { authHeader, getEnvGithubToken } = requireMain("github");
 describe("github main · token 鉴权", () => {
   const prev = process.env.GITHUB_TOKEN;
   afterEach(() => {

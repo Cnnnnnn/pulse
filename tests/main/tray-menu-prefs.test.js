@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   TRAY_SEGMENTS,
   DEFAULT_PREFS,
   normalizePrefs,
-} from "../../src/main/tray-menu-prefs.js";
-
+} = requireMain("tray-menu-prefs");
 describe("tray-menu-prefs: TRAY_SEGMENTS 单一真相", () => {
   it("包含 6 个 segment,key 集合为 updates/ai_usage/worldcup/metals/check_action/config_action", () => {
     expect(TRAY_SEGMENTS).toHaveLength(6);

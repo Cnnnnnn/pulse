@@ -25,7 +25,7 @@ function createSender(deps) {
 }
 
 function installErrorGuardBridge(sendToRenderer) {
-  const { installErrorGuard } = require("../error-guard");
+  const { installErrorGuard } = require("../error-guard.ts");
   installErrorGuard((channel, payload) => sendToRenderer(channel, payload));
   mainLog.info("error guard installed");
 }

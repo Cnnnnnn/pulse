@@ -5,8 +5,8 @@
  * 12 case: 6 source type + 4 fallback + 2 edge.
  */
 import { describe, it, expect } from 'vitest';
-import { getActionForApp, buildAppPath } from '../../src/main/bulk-upgrade-actions.js';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { getActionForApp, buildAppPath } = requireMain('bulk-upgrade-actions');
 describe('getActionForApp', () => {
   describe('brew sources', () => {
     it('brew_formulae → brew action with --cask', () => {

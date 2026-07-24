@@ -8,15 +8,15 @@ const stateStore = require("../state-store.ts");
 const {
   computeWorldcupBracket,
   loadWorldcupBracket,
-} = require("../worldcup/bracket");
-const { fetchWorldcupFixtures } = require("../worldcup/fetcher");
-const { refreshWorldcupScores } = require("../worldcup/scores-fetcher");
-const { generateMatchInsight } = require("../worldcup/match-ai");
+} = require("../worldcup/bracket.ts");
+const { fetchWorldcupFixtures } = require("../worldcup/fetcher.ts");
+const { refreshWorldcupScores } = require("../worldcup/scores-fetcher.ts");
+const { generateMatchInsight } = require("../worldcup/match-ai.ts");
 const {
   loadAll: betsLoadAll,
   upsert: betsUpsert,
   remove: betsRemove,
-} = require("../worldcup/bets-store");
+} = require("../worldcup/bets-store.ts");
 
 function registerWorldcupHandlers(ctx) {
   const { safeHandle } = ctx;

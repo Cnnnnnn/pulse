@@ -18,13 +18,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const checkRunnerPath = require.resolve("../../src/main/check-runner.js");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const checkRunnerPath = mainArtifactPath("check-runner");
 
 async function freshRunCheckQueued() {
   vi.resetModules();
-  return await import(
-    "../../src/main/check-runner.js?v=" + Date.now() + Math.random()
-  );
+  // Bust dist-test artifact cache so module-scope inflight state resets.
+  delete require.cache[checkRunnerPath];
+  return requireMain("check-runner");
 }
 
 const FAKE_NOW = 1750000000000;

@@ -8,6 +8,7 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pulse-state-history-'));
 const statePath = path.join(tmpRoot, 'state.json');
@@ -21,7 +22,7 @@ beforeEach(async () => {
   vi.doMock('electron', () => ({
     app: { getPath: () => tmpRoot },
   }));
-  stateStore = require('../../src/main/state-store.ts');
+  stateStore = requireMain('state-store');
 });
 
 describe('loadAiUsageHistory', () => {

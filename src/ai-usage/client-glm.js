@@ -96,7 +96,7 @@ class GlmQuotaClient {
       : _resolveEndpoint({ region });
 
     // 3) lazy create HttpClient
-    const { HttpClient: HttpClientCtor } = require("../main/http-client.ts");
+    const { HttpClient: HttpClientCtor } = require("../main/http-client.js");
     const http =
       this.httpClient || new HttpClientCtor({ timeout: 15_000, maxRetries: 0 });
 

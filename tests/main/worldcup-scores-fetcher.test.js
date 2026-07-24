@@ -9,8 +9,8 @@
  *  - openfootball 串行依赖前两层
  */
 import { describe, it, expect, vi } from "vitest";
-import { _fetchScoresLayered } from "../../src/main/worldcup/scores-fetcher.js";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { _fetchScoresLayered } = requireMain("worldcup/scores-fetcher");
 const KEY = "2026-06-11|20:00|Mexico|South Africa";
 
 function _makeFixtures(keys) {

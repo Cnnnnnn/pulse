@@ -5,13 +5,14 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mkdirSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const chatCompletion = vi.fn();
 const sharedLlm = require("../../src/ai/shared-llm.js");
 sharedLlm.chatCompletion = chatCompletion;
 
 // 在 require article-ai 之前完成 chatCompletion 替换
-const aiModule = require("../../src/main/ithome/article-ai.js");
+const aiModule = requireMain("ithome/article-ai");
 
 const NEWS_LINK = "https://www.ithome.com/0/866/661.htm";
 const LONG_BODY = "重要正文".repeat(120);

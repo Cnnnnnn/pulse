@@ -7,13 +7,21 @@
  * 同因), vi.mock 不可靠, 改用 require.cache 注入 stub.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import path from 'node:path';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const actionsPath = require.resolve('../../src/main/bulk-upgrade-actions.js');
-const bulkPath = require.resolve('../../src/main/bulk-upgrade.js');
-const winPath = require.resolve('../../src/platform/windows.js');
+const actionsPath = mainArtifactPath('bulk-upgrade-actions');
+const bulkPath = mainArtifactPath('bulk-upgrade');
+const winPath = platformArtifactPath('windows');
+const winCjsPath = path.resolve(__dirname, '../../dist-test/platform/windows.cjs');
 
 const mockGetActionForApp = vi.fn();
 const mockDefaultExec = vi.fn();
+
+function bustWindowsCache() {
+  delete require.cache[winPath];
+  delete require.cache[winCjsPath];
+}
 
 describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
   let origActions;
@@ -43,8 +51,8 @@ describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
       exports: { defaultExec: mockDefaultExec, runBulkUpgrade: () => {} },
     };
 
-    // 清掉 windows.js 缓存, 让它下一次 require 拿到 stub
-    delete require.cache[winPath];
+    // 清掉 windows.js + dist-test .cjs 缓存, 让它下一次 require 拿到 stub
+    bustWindowsCache();
     vi.clearAllMocks();
   });
 
@@ -59,7 +67,7 @@ describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
     } else {
       delete require.cache[bulkPath];
     }
-    delete require.cache[winPath];
+    bustWindowsCache();
   });
 
   describe('getUpgradeAction', () => {
@@ -74,7 +82,7 @@ describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
         id: 'Anysphere.Cursor',
       });
 
-      const win = require('../../src/platform/windows.js');
+      const win = requirePlatform('windows');
       const action = win.getUpgradeAction(appCfg, detectResult);
 
       expect(mockGetActionForApp).toHaveBeenCalledTimes(1);
@@ -95,7 +103,7 @@ describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
         reason: 'winget: missing id',
       });
 
-      const win = require('../../src/platform/windows.js');
+      const win = requirePlatform('windows');
       const action = win.getUpgradeAction(appCfg, detectResult);
 
       expect(mockGetActionForApp).toHaveBeenCalledWith({
@@ -115,7 +123,7 @@ describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
         reason: "source 'sparkle_appcast' has no auto-upgrade",
       });
 
-      const win = require('../../src/platform/windows.js');
+      const win = requirePlatform('windows');
       const action = win.getUpgradeAction(appCfg, detectResult);
 
       expect(mockGetActionForApp).toHaveBeenCalledWith({
@@ -139,7 +147,7 @@ describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
         stderr: '',
       });
 
-      const win = require('../../src/platform/windows.js');
+      const win = requirePlatform('windows');
       const result = await win.execUpgrade(action);
 
       expect(mockDefaultExec).toHaveBeenCalledTimes(1);
@@ -151,7 +159,7 @@ describe('platform/windows — getUpgradeAction + execUpgrade (P3)', () => {
       const action = { type: 'winget', id: 'Broken.Id' };
       mockDefaultExec.mockRejectedValueOnce(new Error('winget not on PATH'));
 
-      const win = require('../../src/platform/windows.js');
+      const win = requirePlatform('windows');
       await expect(win.execUpgrade(action)).rejects.toThrow('winget not on PATH');
     });
   });

@@ -8,6 +8,7 @@ import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const {
   checkWatchlistUpdatesPure,
@@ -20,7 +21,7 @@ const {
   checkWatchlistMetalUpdates,
   FUND_NAV_CHANGE_PCT,
   METAL_PRICE_CHANGE_PCT,
-} = require("../../src/main/watchlist");
+} = requireMain("watchlist");
 
 const appItem = (ref, lastNotifiedVersion = null) => ({
   type: "app",

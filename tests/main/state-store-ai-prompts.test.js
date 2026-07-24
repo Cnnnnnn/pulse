@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 let tmpFile;
 beforeEach(() => {
@@ -11,9 +12,7 @@ afterEach(() => {
   try { fs.unlinkSync(tmpFile); } catch { /* noop */ }
 });
 
-const { initStateStorePaths, loadAiPrompts, saveAiPrompts, saveOne } = await import(
-  "../../src/main/state-store.ts"
-);
+const { initStateStorePaths, loadAiPrompts, saveAiPrompts, saveOne } = await Promise.resolve(requireMain("state-store"));
 
 beforeEach(() => {
   initStateStorePaths({ statePath: tmpFile });

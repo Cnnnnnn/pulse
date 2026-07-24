@@ -5,8 +5,9 @@
  * 用 mock stateStore (require.cache 注入) + mock impl 隔离测试.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const stateStorePath = require.resolve("../../src/main/state-store.ts");
+const stateStorePath = mainArtifactPath("state-store");
 const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
 
 // mock stateStore 的预算相关方法
@@ -46,7 +47,7 @@ describe("shared-llm token 预算", () => {
   });
 
   it("block 模式 + 超预算: 预算检查代码路径存在且不抛错", async () => {
-    const { todayKey } = require("../../src/main/token-budget");
+    const { todayKey } = requireMain("token-budget");
     loadTokenBudgetConfig.mockReturnValue({ dailyLimit: 100, mode: "block" });
     loadTokenSpend.mockReturnValue({ [todayKey()]: 200 });
     const chatCompletion = loadChatCompletion();
@@ -63,7 +64,7 @@ describe("shared-llm token 预算", () => {
   });
 
   it("warn 模式 + 超预算 → 仍执行 (不拦截)", async () => {
-    const { todayKey } = require("../../src/main/token-budget");
+    const { todayKey } = requireMain("token-budget");
     loadTokenBudgetConfig.mockReturnValue({ dailyLimit: 100, mode: "warn" });
     loadTokenSpend.mockReturnValue({ [todayKey()]: 999 });
     const chatCompletion = loadChatCompletion();
@@ -89,7 +90,7 @@ describe("shared-llm token 预算", () => {
 
   it("dailyLimit=0 (未设) → 永不拦截, 即使 mode=block", async () => {
     loadTokenBudgetConfig.mockReturnValue({ dailyLimit: 0, mode: "block" });
-    loadTokenSpend.mockReturnValue({ [require("../../src/main/token-budget").todayKey()]: 999999 });
+    loadTokenSpend.mockReturnValue({ [requireMain("token-budget").todayKey()]: 999999 });
     const chatCompletion = loadChatCompletion();
 
     const impl = { summarize: vi.fn() };
@@ -103,7 +104,7 @@ describe("shared-llm token 预算", () => {
 
 describe("shared-llm token 累计 (via 纯函数)", () => {
   it("addSpend + pruneDays 组合: 累计 + 30d 截断", () => {
-    const { addSpend, pruneDays, todayKey } = require("../../src/main/token-budget");
+    const { addSpend, pruneDays, todayKey } = requireMain("token-budget");
     let spend = {};
     spend = addSpend(spend, todayKey(), 50);
     spend = addSpend(spend, todayKey(), 30);

@@ -3,11 +3,12 @@
  */
 
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   isFetchableDate,
   assertFetchableDate,
   todayShanghaiDateKey,
-} = require("../../src/main/ithome/date-bounds.js");
+} = requireMain("ithome/date-bounds");
 
 describe("ithome date-bounds", () => {
   const now = new Date("2026-06-12T12:00:00+08:00");

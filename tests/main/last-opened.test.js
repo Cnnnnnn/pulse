@@ -17,14 +17,14 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   getLastOpened,
   refreshOne,
   clearCache,
   CACHE_TTL_MS,
   _cache,
-} from '../../src/main/last-opened.js';
-
+} = requireMain('last-opened');
 const FAKE_NOW = 1750000000000;
 const FAKE_DAY = 24 * 3600 * 1000;
 

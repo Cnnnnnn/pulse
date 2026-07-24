@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { _internal } from "../../src/main/tray.ts";
-import { DEFAULT_PREFS } from "../../src/main/tray-menu-prefs.js";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { _internal } = requireMain("tray");
+const { DEFAULT_PREFS } = requireMain("tray-menu-prefs");
 const { buildMenu } = _internal;
 
 const allOff = {

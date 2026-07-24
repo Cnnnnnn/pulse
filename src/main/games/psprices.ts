@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { toGameDeal, fetchJson } = require("./normalize");
-const { logFetchError } = require("./log");
+const { toGameDeal, fetchJson } = require("./normalize.ts");
+const { logFetchError } = require("./log.ts");
 
 const PSPRICES_BASE = "https://psprices.com/api/b2b";
 const DEFAULT_REGION = "us";

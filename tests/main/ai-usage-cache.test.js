@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 let tmpDir;
 let statePath;
@@ -20,7 +21,7 @@ beforeEach(() => {
 
 describe("ai-usage-cache", () => {
   it("loadAll: 空 state 时返 { providers: {}, histories: {}, fetchedAt: 0 }", async () => {
-    const { createAiUsageCache } = await import("../../src/main/ai-usage-cache.js");
+    const { createAiUsageCache } = await Promise.resolve(requireMain("ai-usage-cache"));
     const cache = createAiUsageCache({ statePath });
     const out = cache.loadAll();
     expect(out).toEqual({ providers: {}, histories: {}, fetchedAt: 0 });
@@ -32,7 +33,7 @@ describe("ai-usage-cache", () => {
       ai_usage: { providers: { minimax: { windows: { "5h": { usedPercent: 72 } } } } },
       ai_usage_history: { providers: { minimax: { days: [{ date: "2026-06-17", percent: 50 }] } } },
     }));
-    const { createAiUsageCache } = await import("../../src/main/ai-usage-cache.js");
+    const { createAiUsageCache } = await Promise.resolve(requireMain("ai-usage-cache"));
     const cache = createAiUsageCache({ statePath });
     const out = cache.loadAll();
     expect(out.providers.minimax.windows["5h"].usedPercent).toBe(72);
@@ -40,7 +41,7 @@ describe("ai-usage-cache", () => {
   });
 
   it("getTraySummary: snapshot=undefined → status='unconfigured'", async () => {
-    const { createAiUsageCache } = await import("../../src/main/ai-usage-cache.js");
+    const { createAiUsageCache } = await Promise.resolve(requireMain("ai-usage-cache"));
     const cache = createAiUsageCache({ statePath });
     const summary = cache.getTraySummary("minimax");
     expect(summary).toEqual({ status: "unconfigured" });
@@ -51,7 +52,7 @@ describe("ai-usage-cache", () => {
       v: 1, ts: 0, apps: {},
       ai_usage: { providers: { minimax: { windows: { "5h": { usedPercent: 72, used: 720, total: 1000 } } } } },
     }));
-    const { createAiUsageCache } = await import("../../src/main/ai-usage-cache.js");
+    const { createAiUsageCache } = await Promise.resolve(requireMain("ai-usage-cache"));
     const cache = createAiUsageCache({ statePath });
     const summary = cache.getTraySummary("minimax");
     expect(summary.status).toBe("ok");
@@ -61,14 +62,14 @@ describe("ai-usage-cache", () => {
   });
 
   it("setSnapshot: 走 stateStore, 然后 loadAll 能读到", async () => {
-    const { createAiUsageCache } = await import("../../src/main/ai-usage-cache.js");
+    const { createAiUsageCache } = await Promise.resolve(requireMain("ai-usage-cache"));
     const cache = createAiUsageCache({ statePath });
     cache.setSnapshot("minimax", { windows: { "5h": { usedPercent: 50 } } });
     expect(cache.loadAll().providers.minimax.windows["5h"].usedPercent).toBe(50);
   });
 
   it("setSnapshot: 未知 provider 抛错", async () => {
-    const { createAiUsageCache } = await import("../../src/main/ai-usage-cache.js");
+    const { createAiUsageCache } = await Promise.resolve(requireMain("ai-usage-cache"));
     const cache = createAiUsageCache({ statePath });
     expect(() => cache.setSnapshot("bogus", {})).toThrow(/unknown provider/);
   });

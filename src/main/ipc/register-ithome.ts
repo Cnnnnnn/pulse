@@ -4,8 +4,8 @@
 
 import type {} from "electron";
 
-const ithomeNewsStore = require("../ithome/news-store");
-const { summarizeArticle } = require("../ithome/article-ai");
+const ithomeNewsStore = require("../ithome/news-store.ts");
+const { summarizeArticle } = require("../ithome/article-ai.ts");
 
 function registerIthomeHandlers(ctx) {
   const { safeHandle, getConfig } = ctx;
@@ -22,7 +22,7 @@ function registerIthomeHandlers(ctx) {
       const {
         checkWatchlistKeywordUpdates,
         makeWatchlistSendNotification,
-      } = require("../watchlist");
+      } = require("../watchlist.ts");
       checkWatchlistKeywordUpdates({
         headlines,
         sendNotification: makeWatchlistSendNotification(getConfig),

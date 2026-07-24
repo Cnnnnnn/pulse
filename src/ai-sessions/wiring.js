@@ -19,8 +19,8 @@ const { CursorDetectorImpl } = require('./cursor');
 const { LLMSummarizer } = require('./summarizer');
 const { CloudSummarizer } = require('./provider-cloud');
 const { TaskSummaryEngine } = require('./engine');
-const { HttpClient } = require('../main/http-client.ts');
-const stateStore = require('../main/state-store.ts');
+const { HttpClient } = require('../main/http-client.js');
+const stateStore = require('../main/state-store.js');
 const { SILENT_LOG } = require('./session-log');
 
 // 只保留云 provider (minimax / deepseek).

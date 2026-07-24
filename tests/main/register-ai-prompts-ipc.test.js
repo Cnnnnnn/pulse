@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const stateStorePath = require.resolve("../../src/main/state-store.ts");
+const stateStorePath = mainArtifactPath("state-store");
 const registryPath = require.resolve("../../src/ai/prompt-registry.js");
 const registerPath =
-  require.resolve("../../src/main/ipc/register-ai-prompts.ts");
+  mainArtifactPath("ipc/register-ai-prompts");
 
 const loadAiPrompts = vi.fn(() => ({}));
 const saveAiPrompts = vi.fn();

@@ -4,8 +4,8 @@
  * Phase I1+I5: pure aggregator — given state, output {date, sections, lines}.
  */
 import { describe, it, expect } from 'vitest';
-import { aggregate, MAX_LINES, SECTION_ORDER } from '../../../src/main/digest/aggregate.js';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
+const { aggregate, MAX_LINES, SECTION_ORDER } = requireMain('digest/aggregate');
 const NOW = new Date('2026-06-20T08:30:00');
 
 describe('aggregate', () => {

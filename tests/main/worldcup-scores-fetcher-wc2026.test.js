@@ -11,16 +11,17 @@
  */
 
 import { describe, test, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const {
   parseScheduleHtml,
   indexWc2026ByMatchNum,
-} = require("../../src/main/worldcup/scores-fetcher-wc2026");
+} = requireMain("worldcup/scores-fetcher-wc2026");
 const {
   mergeWc2026EtPen,
   mergeHardcodedR32EtPen,
   HARDCODED_R32_ET_PEN,
-} = require("../../src/main/worldcup/bracket");
+} = requireMain("worldcup/bracket");
 
 // 最小 bracket snapshot, 4 个 R32 比赛覆盖主要场景:
 // M73 干净队名 90 分决出, M74 污染串 90 分 + 点球, M75 污染串 90 分 + 点球,

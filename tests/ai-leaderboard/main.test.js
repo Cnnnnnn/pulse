@@ -15,29 +15,30 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const {
   getLeaderboard,
   matchesCategory,
-} = require("../../src/main/ai-leaderboard/aggregator");
-const { sortModels, filterByVendor, filterBySearch } = require("../../src/main/ai-leaderboard/ranking");
+} = requireMain("ai-leaderboard/aggregator");
+const { sortModels, filterByVendor, filterBySearch } = requireMain("ai-leaderboard/ranking");
 const {
   normalizeVendor,
   toAiModel,
   VENDOR_META,
-} = require("../../src/main/ai-leaderboard/types");
+} = requireMain("ai-leaderboard/types");
 const {
   acquire,
   remaining,
   resetLimiter,
   AA_DAILY_LIMIT,
-} = require("../../src/main/ai-leaderboard/rate-limiter");
-const { __resetForTest: resetCache, cacheKey, writeCache } = require("../../src/main/ai-leaderboard/cache");
-const arenaFetcher = require("../../src/main/ai-leaderboard/fetcher-arena");
-const aaFetcher = require("../../src/main/ai-leaderboard/fetcher-aa");
+} = requireMain("ai-leaderboard/rate-limiter");
+const { __resetForTest: resetCache, cacheKey, writeCache } = requireMain("ai-leaderboard/cache");
+const arenaFetcher = requireMain("ai-leaderboard/fetcher-arena");
+const aaFetcher = requireMain("ai-leaderboard/fetcher-aa");
 const { sanitize, boardCacheKey, cacheGet, cacheSet, resetLeaderboardCache } =
-  require("../../src/main/ipc/register-leaderboard.ts");
-const { mergeModelSlices } = require("../../src/main/ai-leaderboard/normalize");
+  requireMain("ipc/register-leaderboard");
+const { mergeModelSlices } = requireMain("ai-leaderboard/normalize");
 
 // ── 兜底/合并测试用统一 payload（三源同 id，便于验证 merge）─────────────
 const ARENA_PAYLOAD = {

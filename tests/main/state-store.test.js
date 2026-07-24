@@ -17,7 +17,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   load,
   getMutes,
   setMute,
@@ -43,8 +44,7 @@ import {
   loadTokenSpend,
   loadTokenBudgetConfig,
   loadOverviewCache,
-} from "../../src/main/state-store.ts";
-
+} = requireMain("state-store");
 let tmpDir;
 let statePath;
 const NOW = 1750000000000; // 固定时间便于断言

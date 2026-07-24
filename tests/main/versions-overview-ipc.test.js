@@ -10,10 +10,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const checkRunnerPath = require.resolve("../../src/main/check-runner.js");
+const checkRunnerPath = mainArtifactPath("check-runner");
 const registerPath =
-  require.resolve("../../src/main/ipc/register-versions-overview.ts");
+  mainArtifactPath("ipc/register-versions-overview");
 
 const stubRunCheckQueued = vi.fn(async () => []);
 

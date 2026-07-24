@@ -10,8 +10,8 @@
  * 拿到的 electron 是真实 stub, click 不触发 shell 也没事.
  */
 import { describe, it, expect, vi } from "vitest";
-import { _internal } from "../../src/main/tray.ts";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { _internal } = requireMain("tray");
 const { buildMenu } = _internal;
 
 describe("tray.buildMenu — 基础结构 (Task A1 refactor)", () => {

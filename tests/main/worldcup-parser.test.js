@@ -5,11 +5,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   parseWorldcupTxt,
   groupMatchesByDate,
-} from "../../src/main/worldcup/parser.js";
-
+} = requireMain("worldcup/parser");
 const SAMPLE = `
 = World Cup 2026      # in Canada, USA, and Mexico
 

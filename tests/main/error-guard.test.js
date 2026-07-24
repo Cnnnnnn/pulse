@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { installErrorGuard } from "../../src/main/error-guard.js";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { installErrorGuard } = requireMain("error-guard");
 describe("error-guard", () => {
   let sendToRenderer;
   let origUncaught;

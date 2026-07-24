@@ -5,6 +5,7 @@
  * fetchJson 超时/HTTP 错误用 vi.stubGlobal("fetch") 隔离。
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
 const {
   toGameDeal,
@@ -12,7 +13,7 @@ const {
   PLATFORM_KEYS,
   BROWSER_UA,
   BROWSER_UA_SAFARI,
-} = require("../../../src/main/games/normalize.js");
+} = requireMain("games/normalize");
 
 afterEach(() => {
   vi.restoreAllMocks();

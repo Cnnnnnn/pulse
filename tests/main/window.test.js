@@ -16,6 +16,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, it, expect } from 'vitest';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const windowSource = fs.readFileSync(
   path.join(__dirname, '../../src/main/window.ts'),
@@ -25,7 +26,7 @@ const windowSource = fs.readFileSync(
 describe('window.js uses platform.getWindowOptions', () => {
   it('window.js 源码 require 了 platform 并调用 getWindowOptions', () => {
     // 验证 window.js 已改走平台层
-    expect(windowSource).toContain("require('../platform')");
+    expect(windowSource).toContain("require('../platform/index.ts')");
     expect(windowSource).toContain('getWindowOptions');
     // 验证视觉选项不再硬编码 (已移到 platform 层)
     expect(windowSource).not.toMatch(/titleBarStyle:\s*['"]hiddenInset['"]/);
@@ -54,7 +55,7 @@ describe('window.js uses platform.getWindowOptions', () => {
 
   it('platform.getWindowOptions 返回的键会展开进 BrowserWindow 选项', () => {
     // 读 platform macos.js 确认它导出了 window.js 期望的视觉键
-    const macos = require('../../src/platform/macos.js');
+    const macos = requirePlatform('macos');
     const opts = macos.getWindowOptions();
     expect(opts).toHaveProperty('titleBarStyle');
     expect(opts).toHaveProperty('vibrancy');
@@ -63,7 +64,7 @@ describe('window.js uses platform.getWindowOptions', () => {
   });
 
   it('windows platform 也导出 getWindowOptions (bootable)', () => {
-    const win = require('../../src/platform/windows.js');
+    const win = requirePlatform('windows');
     const opts = win.getWindowOptions();
     expect(opts).toHaveProperty('titleBarStyle');
     expect(opts).toHaveProperty('backgroundMaterial');

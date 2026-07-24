@@ -5,7 +5,7 @@
  */
 "use strict";
 
-const { toGameDeal, fetchJson } = require("./normalize");
+const { toGameDeal, fetchJson } = require("./normalize.ts");
 
 const PROMOTIONS_BASE =
   "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions";

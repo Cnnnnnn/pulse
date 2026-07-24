@@ -20,7 +20,7 @@ const {
   recordFeedback,
   pruneToCap,
   FEEDBACK_CAP,
-} = require("../ai-feedback-store");
+} = require("../ai-feedback-store.ts");
 
 function registerAiFeedbackHandlers(ctx) {
   const { safeHandle } = ctx;

@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { _internal } from "../../src/main/tray.ts";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { _internal } = requireMain("tray");
 const { buildSummaryLine } = _internal;
 
 const FAKE_NOW = 1750000000000;

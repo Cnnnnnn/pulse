@@ -6,8 +6,9 @@
  *       getInstalledVersion / getAppIcon / execUpgrade 委托到底层模块 (验 spy 调用).
  */
 import { describe, it, expect, vi } from 'vitest';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const macos = require('../../src/platform/macos.js');
+const macos = requirePlatform('macos');
 
 describe('platform/macos', () => {
   describe('resolveAppPath', () => {
@@ -98,7 +99,7 @@ describe('platform/macos', () => {
   describe('getAppIcon (委托 app-icon.js)', () => {
     it('调底层 getAppIcon', async () => {
       const spy = vi.fn().mockResolvedValue('data:image/png;base64,xxx');
-      const ai = require('../../src/main/app-icon.js');
+      const ai = requireMain('app-icon');
       const orig = ai.getAppIcon;
       ai.getAppIcon = spy;
       try {
@@ -114,7 +115,7 @@ describe('platform/macos', () => {
   describe('execUpgrade (委托 bulk-upgrade.js defaultExec)', () => {
     it('调底层 defaultExec', async () => {
       const spy = vi.fn().mockResolvedValue({ output: 'done' });
-      const bu = require('../../src/main/bulk-upgrade.js');
+      const bu = requireMain('bulk-upgrade');
       const orig = bu.defaultExec;
       bu.defaultExec = spy;
       try {

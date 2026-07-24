@@ -5,7 +5,7 @@
  * 照搬 games/normalize.js 的 fetchJson + BROWSER_UA 范式（复用同一份实现，避免漂移）。
  */
 
-const { BROWSER_UA, fetchJson } = require("../games/normalize");
+const { BROWSER_UA, fetchJson } = require("../games/normalize.ts");
 const { SOURCE, toAiModel, makeId } = require("./types.ts");
 
 /**

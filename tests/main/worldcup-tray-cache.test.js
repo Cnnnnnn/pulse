@@ -12,8 +12,9 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const { createWorldcupTrayCache } = require("../../src/main/worldcup-tray-cache");
+const { createWorldcupTrayCache } = requireMain("worldcup-tray-cache");
 
 function tmpStatePath() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "worldcup-tray-cache-"));

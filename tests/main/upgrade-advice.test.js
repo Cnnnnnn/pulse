@@ -9,11 +9,12 @@ import path from "path";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const chatCompletion = vi.fn();
 const sharedLlm = require("../../src/ai/shared-llm.js");
 sharedLlm.chatCompletion = chatCompletion;
 
-const stateStore = require("../../src/main/state-store.ts");
+const stateStore = requireMain("state-store");
 const {
   adviceCacheKey,
   parseAdviceResponse,

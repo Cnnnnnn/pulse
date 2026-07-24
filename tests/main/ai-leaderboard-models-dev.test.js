@@ -10,10 +10,11 @@
  */
 
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 // 复用 main 模块 (vitest node env, 无 electron)
-const fetcher = require("../../src/main/ai-leaderboard/fetcher-models-dev.js");
-const { mergeModelSlices } = require("../../src/main/ai-leaderboard/normalize.js");
+const fetcher = requireMain("ai-leaderboard/fetcher-models-dev");
+const { mergeModelSlices } = requireMain("ai-leaderboard/normalize");
 
 // 极简 fixture：1 个 llm provider + 1 个 video provider + 1 个 open-weights
 const FIXTURE = {

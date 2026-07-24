@@ -50,10 +50,10 @@ try {
 const { WorkerPool } = require("../workers/pool");
 const { createWindowManager } = require("./window.ts");
 const { createTrayManager } = require("./tray.ts");
-const { registerIpcHandlers } = require("./ipc");
-const { createSearchIndex } = require("./search/search-index");
+const { registerIpcHandlers } = require("./ipc/index.ts");
+const { createSearchIndex } = require("./search/search-index.ts");
 const { registerSearchIpc } = require("./ipc/register-search.ts");
-const { startDailySummaryJob } = require("./digest/daily-summary-job");
+const { startDailySummaryJob } = require("./digest/daily-summary-job.ts");
 const { bootstrapAiUsage } = require("./bootstrap/ai-usage.ts");
 const {
   initStateRecovery,
@@ -67,16 +67,16 @@ const { HttpClient } = require("./http-client.ts");
 const { computePoolSize } = require("./pool-size.ts");
 const { auditTimers, clearAllManaged } = require("./timer-registry.ts");
 const { markBootstrapDone } = require("./diagnostics.ts");
-const fundStore = require("./funds/fund-store");
-const { FundScheduler } = require("./funds/fund-scheduler");
+const fundStore = require("./funds/fund-store.ts");
+const { FundScheduler } = require("./funds/fund-scheduler.ts");
 const {
   registerMetalIpc,
   startMetalScheduler,
   stopMetalScheduler,
-} = require("./metal-ipc.js");
-const reminders = require("./reminders");
-const recentActivity = require("./recent-activity");
-const goalWatcher = require("./worldcup/goal-watcher");
+} = require("./metal-ipc.ts");
+const reminders = require("./reminders.ts");
+const recentActivity = require("./recent-activity.ts");
+const goalWatcher = require("./worldcup/goal-watcher.ts");
 
 const {
   ARCH,
@@ -107,7 +107,7 @@ const {
 const {
   setTrayManager: registerTrayManager,
 } = require("./bootstrap/tray-init.ts");
-const { installNintendoImageHeaders } = require("./games/nintendo-image-headers.js");
+const { installNintendoImageHeaders } = require("./games/nintendo-image-headers.ts");
 
 const httpClient = new HttpClient();
 
@@ -366,10 +366,10 @@ function installTray() {
 function initAiUsageTray() {
   aiUsageScheduler = null;
   try {
-    const { createAiUsageCache } = require("./ai-usage-cache");
+    const { createAiUsageCache } = require("./ai-usage-cache.ts");
     const {
       createAiUsageRefreshScheduler,
-    } = require("./ai-usage-refresh-scheduler");
+    } = require("./ai-usage-refresh-scheduler.ts");
     const aiUsageCache = createAiUsageCache({});
     if (trayMgr) {
       trayMgr.setAiUsage({
@@ -429,7 +429,7 @@ function initAiUsageTray() {
 function initWorldcupTray() {
   let pushWorldcupToTray = () => {};
   try {
-    const { createWorldcupTrayCache } = require("./worldcup-tray-cache");
+    const { createWorldcupTrayCache } = require("./worldcup-tray-cache.ts");
     const worldcupCache = createWorldcupTrayCache({});
     pushWorldcupToTray = () => {
       if (!trayMgr) return;
@@ -454,7 +454,7 @@ function initWorldcupTray() {
  */
 function initMetalsTray() {
   try {
-    const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc");
+    const { getTraySnapshot: getMetalsTraySnapshot } = require("./metal-ipc.ts");
     function pushMetalsToTray() {
       if (!trayMgr) return;
       const snap = getMetalsTraySnapshot();
@@ -523,11 +523,11 @@ function registerAllIpc(selfUpdateHandle) {
   try {
     const searchIndex = createSearchIndex();
     registerSearchIpc({ ipcMain, searchIndex, stateStore });
-    const { registerReleaseNotes } = require("./release-notes");
+    const { registerReleaseNotes } = require("./release-notes.ts");
     registerReleaseNotes({ ipcMain, app });
     stateStore.setSearchIndex(searchIndex);
     reminders.setSearchIndex(searchIndex);
-    require("./ithome/news-store").setSearchIndex(searchIndex);
+    require("./ithome/news-store.ts").setSearchIndex(searchIndex);
     // ponytail: Q4 v2 — 索引构建延后, 不阻塞 window load / markBootstrapDone
     setImmediate(() => {
       try {
@@ -630,7 +630,7 @@ function startSchedulers(pushWorldcupToTray) {
       try {
         const {
           getTraySnapshot: getMetalsTraySnapshot,
-        } = require("./metal-ipc");
+        } = require("./metal-ipc.ts");
         trayMgr.setMetals(getMetalsTraySnapshot());
       } catch (err) {
         /* noop */

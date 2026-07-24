@@ -5,9 +5,10 @@
  *   { code:200, data:[{index,title,hot,url}] }
  */
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 const {
   parseWechatHotPayload,
-} = require("../../../src/main/wechat-hot/list-parser.js");
+} = requireMain("wechat-hot/list-parser");
 
 const RAW_OK = {
   code: 200,

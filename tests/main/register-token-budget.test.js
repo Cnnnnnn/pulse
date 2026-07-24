@@ -4,11 +4,10 @@
  * P71 Task 5: token-budget:get / token-budget:set IPC.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const stateStorePath = require.resolve("../../src/main/state-store.ts");
-const registerPath = require.resolve(
-  "../../src/main/ipc/register-token-budget.ts",
-);
+const stateStorePath = mainArtifactPath("state-store");
+const registerPath = mainArtifactPath("ipc/register-token-budget");
 
 const loadTokenBudgetConfig = vi.fn(() => ({ dailyLimit: 0, mode: "warn" }));
 const loadTokenSpend = vi.fn(() => ({}));
@@ -50,7 +49,7 @@ describe("register-token-budget IPC", () => {
   });
 
   it("token-budget:get 返回 config + todaySpend", async () => {
-    const { todayKey } = require("../../src/main/token-budget");
+    const { todayKey } = requireMain("token-budget");
     loadTokenBudgetConfig.mockReturnValue({ dailyLimit: 5000, mode: "warn" });
     loadTokenSpend.mockReturnValue({ [todayKey()]: 300 });
     const handlers = loadHandlers();

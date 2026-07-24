@@ -29,7 +29,7 @@ const {
   normalizeNavSource,
   DEFAULT_NAV_SOURCE,
 } = require("../../funds/fund-nav-merge");
-const { normalizeAlertPrefs } = require("./fund-alerts");
+const { normalizeAlertPrefs } = require("./fund-alerts.ts");
 
 export function loadAll(statePath?: any): any {
   const s = stateStore.load(statePath);

@@ -3,7 +3,7 @@
  *
  * 平台抽象层入口 — 按 process.platform 选实现.
  *
- * 业务代码: const platform = require('../platform');
+ * 业务代码: const platform = require('../platform/index.ts');
  * 拿到的永远是当前平台的已绑定实现.
  *
  * macOS: src/platform/macos.ts (委托现有逻辑, 零行为变更)
@@ -18,10 +18,10 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let impl: any;
 if (process.platform === 'darwin') {
-  impl = require('./macos');
+  impl = require('./macos.ts');
 } else {
   // win32 + 其它一律走 windows.ts (P1 全是 stub)
-  impl = require('./windows');
+  impl = require('./windows.ts');
 }
 
 module.exports = impl;

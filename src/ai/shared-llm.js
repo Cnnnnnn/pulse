@@ -6,14 +6,14 @@
  */
 
 const { CloudSummarizer } = require("../ai-sessions/provider-cloud");
-const { HttpClient } = require("../main/http-client.ts");
-const stateStore = require("../main/state-store.ts");
+const { HttpClient } = require("../main/http-client.js");
+const stateStore = require("../main/state-store.js");
 const {
   isOverBudget,
   todayKey,
   addSpend,
   pruneDays,
-} = require("../main/token-budget");
+} = require("../main/token-budget.js");
 const { sanitizeLlmOutput } = require("./sanitize-llm-output");
 
 const SUPPORTED_PROVIDERS = ["openai", "anthropic", "deepseek", "minimax"];

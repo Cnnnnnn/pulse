@@ -10,14 +10,14 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   createLogger,
   resolveLogDir,
   isDebug,
   mainLog,
   detectLog,
-} from '../../src/main/log.ts';
-
+} = requireMain('log');
 describe('log.js — spec §6 structured format', () => {
   let logDir;
   let origLogDir;

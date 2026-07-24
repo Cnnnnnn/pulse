@@ -6,11 +6,11 @@
  * are silent skips.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
+const {
   startDailySummaryJob,
   __resetForTest,
-} from "../../../src/main/digest/daily-summary-job.js";
-
+} = requireMain("digest/daily-summary-job");
 describe("daily-summary-job", () => {
   let deps;
   let state;

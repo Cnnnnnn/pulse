@@ -7,11 +7,12 @@
  * 两者都不碰 fetch/fs，零 mock。
  */
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
 const {
   buildDealsFromPsGameSpider,
   parseDealsHtml,
-} = require("../../../src/main/games/playstation.js");
+} = requireMain("games/playstation");
 
 // ── buildDealsFromPsGameSpider ─────────────────────────────────────
 

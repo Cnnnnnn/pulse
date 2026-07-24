@@ -5,11 +5,11 @@
  * 跟 bulk-upgrade-actions.test.js 的 brew 用例同构.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getActionForApp } from '../../src/main/bulk-upgrade-actions.js';
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { getActionForApp } = requireMain('bulk-upgrade-actions');
 import { EventEmitter } from 'node:events';
 import childProcess from 'node:child_process';
-import { defaultExec } from '../../src/main/bulk-upgrade.js';
-
+const { defaultExec } = requireMain('bulk-upgrade');
 // Build a fresh EventEmitter-based stub child that emits 'close' on next tick.
 function makeStubChild(exitCode = 0) {
   const child = new EventEmitter();

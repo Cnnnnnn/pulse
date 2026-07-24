@@ -5,11 +5,18 @@ description: Phase 3 TypeScript 迁移 — Pulse main 进程 .ts 化 + 双 build
 
 # Phase 3 TypeScript Migration — Pulse
 
-> Pulse main 进程从手写 .js 迁移到 .ts 的标准化流程。v2.79.4 已完成 100% 迁移，本 skill 教你怎么：
-> 1. 看到**残留手写 .js** 时知道是 build 产物（不是要恢复的代码）
-> 2. **强制 rebuild** `dist-test/main/per-file/*.cjs` 当 mtime 缓存不刷新
-> 3. 加新 .ts module 时**不漏双导出**（`module.exports` + `export function` 同存）
+> Pulse main 进程从手写 .js 迁移到 .ts 的标准化流程。**Phase 3 Batch 0–9 完成**：
+> - 业务真相只在 `.ts`
+> - 生产：`scripts/build-main.cjs` → `dist/main/index.js`
+> - 测试：`build-main-ts.cjs` → `dist-test/**/*.cjs` + `requireMain()` / `requirePlatform()`
+> - 例外 shim（给仍是 JS 的 `src/ai`/`workers`/…）：`http-client`/`state-store`/`token-budget`/`log`/`platform/index`
+>
+> 本 skill 教你怎么：
+> 1. 加新 `.ts` module 时**不漏双导出**（`module.exports` + `export function` 同存）
+> 2. **强制 rebuild** `dist-test`（mtime 缓存不刷新时）
+> 3. 测试用 `requireMain("path/mod")`；`require.cache` stub 用 `mainArtifactPath(...)`
 > 4. **手动跑生产 build** 验证
+> 5. 非 main JS 若必须 require main，走上述例外 shim（`.js`），不要直接 require `.ts`（vitest 会当 ESM 炸）
 
 ## 何时触发
 

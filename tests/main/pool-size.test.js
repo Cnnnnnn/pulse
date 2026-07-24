@@ -5,8 +5,8 @@
 // 关键 case: 8 核机 (8-1=7) → cap 4, 2 核机 (2-1=1) → min 2.
 
 import { describe, it, expect } from "vitest";
-import { computePoolSize, DEFAULT_POOL_CAP, MIN_POOL_SIZE } from "../../src/main/pool-size.ts";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { computePoolSize, DEFAULT_POOL_CAP, MIN_POOL_SIZE } = requireMain("pool-size");
 describe("computePoolSize", () => {
   it("defaults: caps at 4 on 8-core machine", () => {
     expect(computePoolSize({ cpus: 8 })).toBe(4);

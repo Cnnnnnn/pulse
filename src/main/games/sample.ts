@@ -7,7 +7,7 @@
  */
 "use strict";
 
-const { toGameDeal } = require("./normalize");
+const { toGameDeal } = require("./normalize.ts");
 
 function mk(platform: string, list: any[]): any[] {
   return list.map((g) =>

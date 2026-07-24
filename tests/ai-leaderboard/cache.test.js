@@ -17,16 +17,16 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import zlib from "zlib";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-import {
+const {
   cacheKey,
   readCache,
   writeCache,
   isStale,
   __resetForTest,
   __setCacheDirForTest,
-} from "../../src/main/ai-leaderboard/cache.js";
-
+} = requireMain("ai-leaderboard/cache");
 const PLAIN_SUFFIX = ".json";
 const GZ_SUFFIX = ".json.gz";
 

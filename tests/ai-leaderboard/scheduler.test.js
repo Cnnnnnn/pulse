@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const _realSetTimeout = global.setTimeout;
 const _realRandom = Math.random;
@@ -20,7 +21,7 @@ describe("scheduler: 第一次 triggerNow jiterr", () => {
 
   it("Math.random=0 → 第一次 trigger 延迟 30 min (1800000 ms)", async () => {
     Math.random = () => 0;
-    const { registerLeaderboardScheduler } = await import("../../src/main/ai-leaderboard/scheduler");
+    const { registerLeaderboardScheduler } = await Promise.resolve(requireMain("ai-leaderboard/scheduler"));
     const sched = registerLeaderboardScheduler();
     sched.start();
     expect(global.__lastJitterMs).toBe(30 * 60 * 1000);
@@ -29,7 +30,7 @@ describe("scheduler: 第一次 triggerNow jiterr", () => {
 
   it("Math.random=1 → 第一次 trigger 延迟 89-90 min (jitter 上界)", async () => {
     Math.random = () => 0.999;
-    const { registerLeaderboardScheduler } = await import("../../src/main/ai-leaderboard/scheduler");
+    const { registerLeaderboardScheduler } = await Promise.resolve(requireMain("ai-leaderboard/scheduler"));
     const sched = registerLeaderboardScheduler();
     sched.start();
     const expected = 30 * 60 * 1000 + Math.floor(0.999 * 60 * 60 * 1000);
@@ -40,7 +41,7 @@ describe("scheduler: 第一次 triggerNow jiterr", () => {
 
   it("Math.random=0.5 → 延迟在 [30, 90] min 范围内", async () => {
     Math.random = () => 0.5;
-    const { registerLeaderboardScheduler } = await import("../../src/main/ai-leaderboard/scheduler");
+    const { registerLeaderboardScheduler } = await Promise.resolve(requireMain("ai-leaderboard/scheduler"));
     const sched = registerLeaderboardScheduler();
     sched.start();
     expect(global.__lastJitterMs).toBeGreaterThanOrEqual(30 * 60 * 1000);

@@ -5,8 +5,8 @@
  * 5 case: 一次性成功 / 重试成功 / 重试用完仍失败 / 4xx/5xx 不重试 / too_large 不重试.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { HttpClient } from '../../src/main/http-client.ts';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { HttpClient } = requireMain('http-client');
 describe('HttpClient 重试 (Phase 24)', () => {
   it('第一次失败 (network) + 第二次成功 → 返成功 result', async () => {
     const client = new HttpClient({ maxRetries: 1, retryDelayMs: 10 });

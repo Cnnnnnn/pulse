@@ -83,7 +83,7 @@ const os: typeof osType = require("os");
 let _schema: { validateState?: (data: unknown) => { ok: boolean; errors?: unknown[] } } | null = null;
 function _getSchema() {
   if (_schema) return _schema;
-  _schema = require("./state-store-schema");
+  _schema = require("./state-store-schema.ts");
   return _schema;
 }
 
@@ -1186,7 +1186,7 @@ function saveLastActiveNav(key, statePath = defaultPath()) {
  * @returns {{version:number, segments: Record<string, boolean>}}
  */
 function loadTrayMenuPrefs(statePath = defaultPath()) {
-  const { DEFAULT_PREFS: DEF, normalizePrefs } = require("./tray-menu-prefs");
+  const { DEFAULT_PREFS: DEF, normalizePrefs } = require("./tray-menu-prefs.ts");
   const s = load(statePath);
   if (!s || !s.tray_menu_prefs) return DEF;
   return normalizePrefs(s.tray_menu_prefs);
@@ -1203,7 +1203,7 @@ function loadTrayMenuPrefs(statePath = defaultPath()) {
  * @returns {object} 写完后的完整 state
  */
 function saveTrayMenuPrefs(prefs, statePath = defaultPath()) {
-  const { normalizePrefs } = require("./tray-menu-prefs");
+  const { normalizePrefs } = require("./tray-menu-prefs.ts");
   const normalized = normalizePrefs(prefs);
   return patchState((next) => {
     next.tray_menu_prefs = normalized;

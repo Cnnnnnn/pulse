@@ -6,7 +6,7 @@
  */
 "use strict";
 
-const { toGameDeal, fetchJson } = require("./normalize");
+const { toGameDeal, fetchJson } = require("./normalize.ts");
 
 const STORE_ID = "1";
 const BASE = "https://www.cheapshark.com/api/1.0/deals";

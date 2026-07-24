@@ -8,15 +8,15 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   load,
   patchState,
   saveAISessionsConfig,
   saveActiveCategory,
   saveWorldcupMatchInsights,
   saveWorldcupScores,
-} from "../../src/main/state-store.ts";
-
+} = requireMain("state-store");
 let tmpDir;
 let statePath;
 

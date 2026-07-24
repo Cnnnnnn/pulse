@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const goalWatcher = require("../../src/main/worldcup/goal-watcher");
+const goalWatcher = requireMain("worldcup/goal-watcher");
 
 describe("goal-watcher: _formatGoalNotification", () => {
   it("基础: scorer + fixture, title 含「进球」body 含比分", () => {

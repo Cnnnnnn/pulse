@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const { fetchEpicDeals, fetchEpicFree } = require("../../../src/main/games/epic.js");
+const { fetchEpicDeals, fetchEpicFree } = requireMain("games/epic");
 
 afterEach(() => vi.restoreAllMocks());
 

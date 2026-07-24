@@ -26,7 +26,7 @@ const {
   serializeConfig,
   parseConfigFile,
   computeDiff,
-} = require("../config-portability");
+} = require("../config-portability.ts");
 
 function registerConfigPortabilityHandlers(ctx) {
   const { safeHandle, dialog } = ctx;

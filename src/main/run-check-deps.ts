@@ -10,7 +10,7 @@
  * 仍可在外层包 tray 副作用 / 自定义 onCheckComplete 后再传进来.
  *
  * 用法:
- *   const { buildRunCheckDeps } = require("./run-check-deps");
+ *   const { buildRunCheckDeps } = require("./run-check-deps.ts");
  *   await runCheckQueued(buildRunCheckDeps(ctx), { silent: false });
  *
  * ctx 入参兼容 (允许的字段, 都 optional):

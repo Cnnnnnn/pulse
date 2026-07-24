@@ -8,8 +8,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { load, saveAll, saveOne, markNotified, SCHEMA_VERSION } from '../../src/main/state-store.ts';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { load, saveAll, saveOne, markNotified, SCHEMA_VERSION } = requireMain('state-store');
 describe('state-store', () => {
   let tmpDir;
   let statePath;
@@ -236,7 +236,7 @@ describe('state-store', () => {
 
   describe('defaultPath', () => {
     it('默认到 ~/Library/Application Support/AppUpdateChecker/state.json', async () => {
-      const { defaultPath } = await import('../../src/main/state-store.ts');
+      const { defaultPath } = await Promise.resolve(requireMain('state-store'));
       const p = defaultPath();
       expect(p).toContain(path.join('Library', 'Application Support', 'AppUpdateChecker', 'state.json'));
     });

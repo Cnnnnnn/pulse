@@ -9,9 +9,10 @@
  *   - onUpdate 在 success 时被调用
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 const {
   createWechatHotCache,
-} = require("../../../src/main/wechat-hot/cache.js");
+} = requireMain("wechat-hot/cache");
 
 function makeFetcher(impl) {
   return vi.fn(impl);

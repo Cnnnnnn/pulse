@@ -10,13 +10,14 @@
  * 用 require.cache + vi.resetModules 才是 work 的.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const httpClientPath = require.resolve("../../../src/main/http-client.ts");
-const fetcherPath = require.resolve("../../../src/main/wechat-hot/fetcher.js");
+const httpClientPath = mainArtifactPath("http-client");
+const fetcherPath = mainArtifactPath("wechat-hot/fetcher");
 const registerPath =
-  require.resolve("../../../src/main/ipc/register-wechat-hot.ts");
-const logPath = require.resolve("../../../src/main/log.ts");
-const readStorePath = require.resolve("../../../src/main/wechat-hot/read-store.js");
+  mainArtifactPath("ipc/register-wechat-hot");
+const logPath = mainArtifactPath("log");
+const readStorePath = mainArtifactPath("wechat-hot/read-store");
 
 const mockHttpClientInstance = { get: vi.fn() };
 const HttpClientCtor = vi.fn(function () {

@@ -7,11 +7,12 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   INITIAL_UPDATE_STATE,
   reduceUpdateState,
   compareVersions,
-} = require("../../src/main/self-updater.js");
+} = requireMain("self-updater");
 
 describe("compareVersions", () => {
   it("新版本 > 当前 → 1 (hasUpdate)", () => {

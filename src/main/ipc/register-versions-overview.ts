@@ -13,8 +13,8 @@
 
 import type {} from "electron";
 const stateStore = require("../state-store.ts");
-const { runCheckQueued } = require("../check-runner");
-const { buildRunCheckDeps } = require("../run-check-deps");
+const { runCheckQueued } = require("../check-runner.ts");
+const { buildRunCheckDeps } = require("../run-check-deps.ts");
 
 async function commandSearch(_ctx, q) {
   if (!q || typeof q !== "string") return { ok: true, results: [] };

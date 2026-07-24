@@ -8,8 +8,8 @@
  *   - 显示在「打开面板」之前 (用户最容易看到的位置)
  */
 import { describe, it, expect, vi } from "vitest";
-import { _internal } from "../../src/main/tray.ts";
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { _internal } = requireMain("tray");
 const { buildMenu } = _internal;
 
 const baseOpts = {

@@ -13,7 +13,8 @@
  */
 
 import { describe, test, expect } from "vitest";
-const { mergeLiveScoresIntoSnapshot } = require("../../src/main/worldcup/bracket");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { mergeLiveScoresIntoSnapshot } = requireMain("worldcup/bracket");
 
 // 最小可用 snapshot: 一个 r16 match (matchNum=97) + final (matchNum=101)
 function makeSnapshot() {

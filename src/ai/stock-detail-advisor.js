@@ -7,7 +7,7 @@
  * ponytail: 不重写 LLM, 不自接 key, 不绕预算. 只做拼 prompt + 校验 + 缓存.
  */
 const crypto = require("crypto");
-const stateStore = require("../main/state-store.ts");
+const stateStore = require("../main/state-store.js");
 const { chatCompletion } = require("./shared-llm");
 const { resolvePrompt } = require("./prompt-registry");
 const { getAngle } = require("../stocks/stock-detail-angles");

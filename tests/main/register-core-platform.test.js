@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+const { requirePlatform } = require("../_setup/require-main.cjs");
 
 describe('register-core uses platform layer', () => {
   it('源码 require platform 层', () => {
@@ -14,7 +15,7 @@ describe('register-core uses platform layer', () => {
       join(__dirname, '../../src/main/ipc/register-core.ts'),
       'utf-8',
     );
-    expect(src).toContain('require("../../platform")');
+    expect(src).toContain('require("../../platform/index.ts")');
   });
 
   it('get-app-icon handler 调 platform.getAppIcon (不再直接 require app-icon)', () => {
@@ -39,7 +40,7 @@ describe('register-core uses platform layer', () => {
   });
 
   it('platform.getAppIcon 委托 app-icon.js (mac 行为不变)', async () => {
-    const platform = require('../../src/platform');
+    const platform = requirePlatform('index');
     // macos.js getAppIcon → app-icon.js getAppIcon (后者有独立测试).
     // 这里只验证委托链存在: platform.getAppIcon 是 function.
     expect(typeof platform.getAppIcon).toBe('function');

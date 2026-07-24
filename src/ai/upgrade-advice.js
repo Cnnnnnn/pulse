@@ -7,7 +7,7 @@
 const crypto = require("crypto");
 const { chatCompletion } = require("./shared-llm");
 const { resolvePrompt } = require("./prompt-registry");
-const stateStore = require("../main/state-store.ts");
+const stateStore = require("../main/state-store.js");
 
 const VALID_RECOMMENDATIONS = ["upgrade", "wait", "skip"];
 const VALID_CONFIDENCE = ["high", "medium", "low"];

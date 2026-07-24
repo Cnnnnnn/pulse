@@ -6,10 +6,11 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { mkdirSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const newsStore = require("../../src/main/ithome/news-store.js");
-const { parseIthomeRss } = require("../../src/main/ithome/rss-parser.js");
-const stateStore = require("../../src/main/state-store.ts");
+const newsStore = requireMain("ithome/news-store");
+const { parseIthomeRss } = requireMain("ithome/rss-parser");
+const stateStore = requireMain("state-store");
 
 function tmpStatePath() {
   const dir = join(

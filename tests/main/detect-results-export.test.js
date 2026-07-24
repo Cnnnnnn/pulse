@@ -11,13 +11,14 @@ import os from "os";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   pickExportFields,
   buildExportPayload,
   toCsv,
   exportDetectResults,
   CSV_COLUMNS,
-} = require("../../src/main/detect-results-export.js");
+} = requireMain("detect-results-export");
 
 let tmpDir;
 

@@ -14,8 +14,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const reminders = require("../../src/main/reminders.js");
+const reminders = requireMain("reminders");
 
 function tmpStatePath() {
   const dir = join(

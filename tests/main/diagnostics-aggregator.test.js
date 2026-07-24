@@ -21,13 +21,14 @@ import zlib from "zlib";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   computeTopFailures,
   buildTarHeader,
   buildTar,
   buildTarGz,
   bundleDiagnostics,
-} = require("../../src/main/diagnostics-aggregator.js");
+} = requireMain("diagnostics-aggregator");
 
 describe("computeTopFailures", () => {
   it("按 (source, message) 桶化, 按 count desc 排序, 返 top 5", () => {

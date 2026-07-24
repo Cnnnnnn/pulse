@@ -15,9 +15,9 @@
 
 import type {} from "electron";
 
-const { getGameDeals, sortDeals } = require("../games/aggregator");
-const { exchangeRateService, isValidCurrency } = require("../games/exchange-rates");
-const { fetchJson } = require("../games/normalize");
+const { getGameDeals, sortDeals } = require("../games/aggregator.ts");
+const { exchangeRateService, isValidCurrency } = require("../games/exchange-rates.ts");
+const { fetchJson } = require("../games/normalize.ts");
 
 const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 
@@ -206,7 +206,7 @@ function registerGamesHandlers(ctx) {
     async (_event, payload) => {
       const slugs = Array.isArray(payload && payload.slugs) ? payload.slugs : [];
       const key = (payload && payload.itadKey) || process.env.ITAD_API_KEY || null;
-      const { fetchItadLowest } = require("../games/itad");
+      const { fetchItadLowest } = require("../games/itad.ts");
       const lowestMap = await fetchItadLowest(slugs, { key });
       return { lowestMap };
     },

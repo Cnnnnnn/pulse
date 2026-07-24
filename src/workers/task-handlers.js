@@ -7,7 +7,7 @@
 const fs = require("fs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
-const platform = require("../platform");
+const platform = require("../platform/index.js");
 const { runDetectorChain } = require("./detector-chain");
 const { getInstalledVersion } = require("./installed-version");
 const { buildDetectResult } = require("./result-builder");

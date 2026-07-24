@@ -12,10 +12,11 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const fundStore = require("../../src/main/funds/fund-store.js");
+const fundStore = requireMain("funds/fund-store");
 
 let tmpPath;
 

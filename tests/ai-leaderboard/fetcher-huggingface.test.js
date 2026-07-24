@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const {
   num,
@@ -24,9 +25,9 @@ const {
   HF_API,
   HF_PAGE_SIZE,
   HF_TOP_N,
-} = require("../../src/main/ai-leaderboard/fetcher-huggingface");
-const { SOURCE, toAiModel } = require("../../src/main/ai-leaderboard/types");
-const { mergeModelSlices } = require("../../src/main/ai-leaderboard/normalize");
+} = requireMain("ai-leaderboard/fetcher-huggingface");
+const { SOURCE, toAiModel } = requireMain("ai-leaderboard/types");
+const { mergeModelSlices } = requireMain("ai-leaderboard/normalize");
 
 describe("fetcher-huggingface: 纯工具函数", () => {
   it("num — 安全取数字（null / 字符串 / NaN 走 default）", () => {

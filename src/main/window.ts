@@ -41,7 +41,7 @@ type WindowManager = {
 
 const { BrowserWindow }: { BrowserWindow: ElectronBrowserWindowCtor } = require('electron');
 const path: typeof pathType = require('path');
-const platform: PlatformModule = require('../platform');
+const platform: PlatformModule = require('../platform/index.ts');
 
 /**
  * @param {object} opts

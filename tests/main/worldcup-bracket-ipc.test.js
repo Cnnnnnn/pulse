@@ -8,6 +8,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -107,7 +108,7 @@ describe("worldcup bracket IPC handler", () => {
   test("computeWorldcupBracket returns ok+snapshot and writes state", async () => {
     const {
       computeWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     const r = await computeWorldcupBracket({
       statePath,
       fetcher: stubFetcher,
@@ -122,7 +123,7 @@ describe("worldcup bracket IPC handler", () => {
     expect(r.ok).toBe(true);
     expect(r.snapshot).toBeDefined();
     expect(r.snapshot.r32).toHaveLength(16);
-    const stateStore = require("../../src/main/state-store.ts");
+    const stateStore = requireMain("state-store");
     const loaded = stateStore.loadWorldcupBracket(statePath);
     expect(loaded).toBeDefined();
     expect(loaded.r32).toHaveLength(16);
@@ -131,7 +132,7 @@ describe("worldcup bracket IPC handler", () => {
   test("computeWorldcupBracket returns ok:false when fetcher throws", async () => {
     const {
       computeWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     const r = await computeWorldcupBracket({
       statePath,
       fetcher: () => {
@@ -140,14 +141,14 @@ describe("worldcup bracket IPC handler", () => {
     });
     expect(r.ok).toBe(false);
     expect(r.reason || r.error).toBeDefined();
-    const stateStore = require("../../src/main/state-store.ts");
+    const stateStore = requireMain("state-store");
     expect(stateStore.loadWorldcupBracket(statePath)).toBeNull();
   });
 
   test("computeWorldcupBracket returns ok:false when fetcher returns ok:false", async () => {
     const {
       computeWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     const r = await computeWorldcupBracket({
       statePath,
       fetcher: () => ({ ok: false, reason: "fetch_failed" }),
@@ -157,7 +158,7 @@ describe("worldcup bracket IPC handler", () => {
   });
 
   test("loadWorldcupBracket returns null when absent", () => {
-    const { loadWorldcupBracket } = require("../../src/main/worldcup/bracket");
+    const { loadWorldcupBracket } = requireMain("worldcup/bracket");
     const r = loadWorldcupBracket({ statePath });
     expect(r.ok).toBe(true);
     expect(r.snapshot).toBeNull();
@@ -167,7 +168,7 @@ describe("worldcup bracket IPC handler", () => {
     const {
       computeWorldcupBracket,
       loadWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     await computeWorldcupBracket({
       statePath,
       fetcher: stubFetcher,
@@ -185,7 +186,7 @@ describe("worldcup bracket IPC handler", () => {
   });
 
   test("rankGroup returns null when no matches played in group", () => {
-    const { rankGroup } = require("../../src/main/worldcup/bracket");
+    const { rankGroup } = requireMain("worldcup/bracket");
     const teams = ["Mexico", "South Africa", "South Korea", "USA"];
     // 没有 final matches → played 全 0 → 应该返回 null (无数据, 不污染 third 排序)
     const r = rankGroup("A", [], teams);
@@ -193,7 +194,7 @@ describe("worldcup bracket IPC handler", () => {
   });
 
   test("rankGroup returns best-effort when ≥1 match played", () => {
-    const { rankGroup } = require("../../src/main/worldcup/bracket");
+    const { rankGroup } = requireMain("worldcup/bracket");
     const teams = ["Mexico", "South Africa", "South Korea", "USA"];
     const matches = [
       {
@@ -217,7 +218,7 @@ describe("worldcup bracket IPC handler", () => {
   test("extractGroupStandings returns all null when no final matches", () => {
     const {
       extractGroupStandings,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     const groupsData = [
       { letter: "A", teams: ["Mexico", "South Africa", "South Korea", "USA"] },
       { letter: "B", teams: ["Canada", "Switzerland", "Qatar", "Iran"] },
@@ -230,7 +231,7 @@ describe("worldcup bracket IPC handler", () => {
   test("end-to-end: no final matches → snapshot has empty advancing and many warnings", async () => {
     const {
       computeWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     const groupsData = [
       { letter: "A", teams: ["Mexico", "South Africa", "South Korea", "USA"] },
       { letter: "B", teams: ["Canada", "Switzerland", "Qatar", "Iran"] },
@@ -281,7 +282,7 @@ describe("worldcup bracket IPC handler", () => {
 // ─── v1.3: cup_finals.txt merge 测试 ──────────────────────────────────────
 
 describe("v1.3 isPlaceholderTeamName", () => {
-  const { isPlaceholderTeamName } = require("../../src/main/worldcup/bracket");
+  const { isPlaceholderTeamName } = requireMain("worldcup/bracket");
   test.each([
     ["W74", true],
     ["L101", true],
@@ -301,7 +302,7 @@ describe("v1.3 isPlaceholderTeamName", () => {
 // ponytail: 历史 bug — 某些 slot.team.name 被污染成
 // "a.e.t. (1-1, 0-1), 3-4 pen. Paraguay" 这种. 下次 refresh 应当用 TXT 真名覆盖.
 describe("v2.66 isPollutedTeamName", () => {
-  const { isPollutedTeamName } = require("../../src/main/worldcup/bracket");
+  const { isPollutedTeamName } = requireMain("worldcup/bracket");
   test.each([
     ["a.e.t. (1-1, 0-1), 3-4 pen. Paraguay", true],
     ["a.e.t. (2-2, 0-1) Senegal", true],
@@ -318,7 +319,7 @@ describe("v2.66 isPollutedTeamName", () => {
 describe("v2.66 attachFinals overwrites polluted team name with TXT real name", () => {
   const {
     mergeFinalsIntoSnapshot,
-  } = require("../../src/main/worldcup/bracket");
+  } = requireMain("worldcup/bracket");
   test("M74 slot2 polluted 'a.e.t. (...) Paraguay' gets restored to 'Paraguay'", () => {
     const snapshot = {
       r32: [
@@ -394,7 +395,7 @@ describe("v2.66 attachFinals overwrites polluted team name with TXT real name", 
 describe("v1.3 mergeFinalsIntoSnapshot", () => {
   const {
     mergeFinalsIntoSnapshot,
-  } = require("../../src/main/worldcup/bracket");
+  } = requireMain("worldcup/bracket");
 
   function buildSnapshot() {
     return {
@@ -639,7 +640,7 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
   test("merges kickoff + venue from injected finalsMatches", async () => {
     const {
       computeWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     const finalsMatches = [
       {
         matchNum: 73,
@@ -686,7 +687,7 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
   test("does not block bracket compute when finals fetcher fails", async () => {
     const {
       computeWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     const r = await computeWorldcupBracket({
       statePath,
       fetcher: () => ({
@@ -708,7 +709,7 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
   test("no finals fetch when finalsMatches injected (bypass)", async () => {
     const {
       computeWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     let finalsFetcherCalled = false;
     const r = await computeWorldcupBracket({
       statePath,
@@ -734,10 +735,10 @@ describe("v1.3 computeWorldcupBracket end-to-end with finals", () => {
 
   // 真实 cup_finals.txt 内容 (2026-06-28 快照) - 验证 parser + merge 在真实数据上无回归
   test("real cup_finals.txt (2026-06-28 snapshot) parses + merges correctly", async () => {
-    const { parseWorldcupTxt } = require("../../src/main/worldcup/parser");
+    const { parseWorldcupTxt } = requireMain("worldcup/parser");
     const {
       computeWorldcupBracket,
-    } = require("../../src/main/worldcup/bracket");
+    } = requireMain("worldcup/bracket");
     const REAL_FINALS_TXT = `= World Cup 2026 # in Canada, USA, and Mexico
 
 ▪ Round of 32

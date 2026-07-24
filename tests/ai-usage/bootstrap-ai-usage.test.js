@@ -6,8 +6,9 @@
  */
 
 import { describe, test, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const { bootstrapAiUsage } = require("../../src/main/bootstrap/ai-usage.ts");
+const { bootstrapAiUsage } = requireMain("bootstrap/ai-usage");
 
 function makeDeps(overrides = {}) {
   const registeredChannels = [];

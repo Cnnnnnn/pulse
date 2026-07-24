@@ -301,7 +301,7 @@ export function startMetalScheduler(opts: StartMetalSchedulerOpts = {}): void {
             const {
               checkWatchlistMetalUpdates,
               makeWatchlistSendNotification,
-            } = require("./watchlist");
+            } = require("./watchlist.ts");
             const { getMetalById } = require("../metals/metal-config");
             checkWatchlistMetalUpdates({
               quoteMap: quoteCache.data,

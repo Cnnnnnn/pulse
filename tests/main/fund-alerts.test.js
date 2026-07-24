@@ -8,13 +8,14 @@ import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const {
   checkFundAlertsPure,
   checkFundAlerts,
   normalizeAlertPrefs,
   RE_ALERT_STEP_PCT,
-} = require("../../src/main/funds/fund-alerts");
+} = requireMain("funds/fund-alerts");
 
 const holding = {
   id: "h1",

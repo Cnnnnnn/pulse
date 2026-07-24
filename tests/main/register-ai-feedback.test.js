@@ -5,11 +5,10 @@
  * 用 vi.resetModules + require.cache 注入 mock stateStore (跟 register-ai-prompts-ipc 同范式).
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const stateStorePath = require.resolve("../../src/main/state-store.ts");
-const registerPath = require.resolve(
-  "../../src/main/ipc/register-ai-feedback.ts",
-);
+const stateStorePath = mainArtifactPath("state-store");
+const registerPath = mainArtifactPath("ipc/register-ai-feedback");
 
 const loadAiFeedback = vi.fn(() => []);
 const saveAiFeedback = vi.fn();

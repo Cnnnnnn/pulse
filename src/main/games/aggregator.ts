@@ -5,17 +5,17 @@
  */
 "use strict";
 
-const { PLATFORM_KEYS } = require("./normalize");
-const { fetchSteamDeals } = require("./steam");
-const { fetchSteamFree } = require("./steam-free");
-const { fetchEpicDeals, fetchEpicFree } = require("./epic");
-const { fetchXboxFree } = require("./xbox-free");
-const { fetchItadDeals } = require("./itad");
-const { fetchSwitchDeals } = require("./switch");
-const { fetchPlayStationDeals: fetchPsMain } = require("./playstation");
-const { fetchPlayStationDeals: fetchPsPsprices } = require("./psprices");
-const { getSampleDeals } = require("./sample");
-const { logFetchError } = require("./log");
+const { PLATFORM_KEYS } = require("./normalize.ts");
+const { fetchSteamDeals } = require("./steam.ts");
+const { fetchSteamFree } = require("./steam-free.ts");
+const { fetchEpicDeals, fetchEpicFree } = require("./epic.ts");
+const { fetchXboxFree } = require("./xbox-free.ts");
+const { fetchItadDeals } = require("./itad.ts");
+const { fetchSwitchDeals } = require("./switch.ts");
+const { fetchPlayStationDeals: fetchPsMain } = require("./playstation.ts");
+const { fetchPlayStationDeals: fetchPsPsprices } = require("./psprices.ts");
+const { getSampleDeals } = require("./sample.ts");
+const { logFetchError } = require("./log.ts");
 
 const CONSOLE_PLATFORMS = ["xbox", "playstation", "switch"];
 

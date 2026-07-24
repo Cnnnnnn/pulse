@@ -11,9 +11,10 @@
  */
 
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const { sortValue, sortModels } = require("../../src/main/ai-leaderboard/ranking");
-const { toAiModel } = require("../../src/main/ai-leaderboard/types");
+const { sortValue, sortModels } = requireMain("ai-leaderboard/ranking");
+const { toAiModel } = requireMain("ai-leaderboard/types");
 
 function makeHF(name, vendor, downloads, likes) {
   return toAiModel({
@@ -103,7 +104,7 @@ describe("ranking: HF 维度 (v2.79.5+)", () => {
 
   it("sortValue: 未知 hf_* 维度走 DIMENSION_META 兜底 (sortKey undefined → -Infinity)", () => {
     // ponytail: sortKey 缺失时跟其它维度走 fallback 路径, 不会因 "hf_" 前缀而炸.
-    const meta = require("../../src/main/ai-leaderboard/types").DIMENSION_META;
+    const meta = requireMain("ai-leaderboard/types").DIMENSION_META;
     expect(meta.hf_downloads).toBeDefined();
     expect(meta.hf_likes).toBeDefined();
     expect(meta.hf_trending).toBeDefined(); // v2.79.6+

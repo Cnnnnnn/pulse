@@ -9,8 +9,9 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const { _internals } = require("../../src/main/ipc/register-ai-usage.ts");
+const { _internals } = requireMain("ipc/register-ai-usage");
 
 const FAKE_SNAPSHOT = {
   provider: "minimax",

@@ -5,8 +5,8 @@
  * 注入 mock exec 避免真实 brew/shell 调用.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { runBulkUpgrade } from '../../src/main/bulk-upgrade.js';
-
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { runBulkUpgrade } = requireMain('bulk-upgrade');
 // 简易 helper: mock exec, 按 action 路由到 stub
 function makeExecStub(map = {}) {
   const calls = [];

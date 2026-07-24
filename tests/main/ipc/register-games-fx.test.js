@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const { attachFx } = require("../../../src/main/ipc/register-games.ts");
+const { attachFx } = requireMain("ipc/register-games");
 
 const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 

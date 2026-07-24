@@ -4,13 +4,14 @@
  * Nintendo CDN 封面在 Electron UA 下 404 — 主进程 webRequest 改写 UA。
  */
 import { describe, it, expect, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
 const {
   patchBeforeSendHeaders,
   installNintendoImageHeaders,
   NINTENDO_WEBREQUEST_FILTER,
   CHROME_UA,
-} = require("../../../src/main/games/nintendo-image-headers.js");
+} = requireMain("games/nintendo-image-headers");
 
 describe("patchBeforeSendHeaders", () => {
   it("Nintendo 资产 URL 将 User-Agent 改为普通 Chrome", () => {

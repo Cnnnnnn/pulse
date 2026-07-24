@@ -6,9 +6,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const registerPath = require.resolve(
-  "../../src/main/ipc/register-self-update.ts",
-);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const registerPath = mainArtifactPath("ipc/register-self-update");
 
 function loadHandlers(controller, safeHandle) {
   // reset module cache 让多次 load 拿到 fresh

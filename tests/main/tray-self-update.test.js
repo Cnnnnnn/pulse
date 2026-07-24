@@ -6,7 +6,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const trayPath = require.resolve("../../src/main/tray.ts");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const trayPath = mainArtifactPath("tray");
 const {
   createTrayManager,
   _internal,

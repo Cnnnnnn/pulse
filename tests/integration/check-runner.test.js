@@ -13,9 +13,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-import { runCheck } from "../../src/main/check-runner.js";
-
+const { runCheck } = requireMain("check-runner");
 function flushAsync() {
   return new Promise((resolve) => setImmediate(resolve));
 }

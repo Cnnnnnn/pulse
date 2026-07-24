@@ -13,11 +13,11 @@ import type {} from "electron";
 const { app, Notification: ElectronNotification } = require("electron");
 const { mainLog } = require("../log.ts");
 const { resolveAppBundlePath } = require("../../utils/app-paths");
-const { inQuietHours } = require("../notification-policy");
+const { inQuietHours } = require("../notification-policy.ts");
 const stateStore = require("../state-store.ts");
-const { buildRunCheckDeps } = require("../run-check-deps");
+const { buildRunCheckDeps } = require("../run-check-deps.ts");
 const { setManagedInterval, clearManaged } = require("../timer-registry.ts");
-const aiLeaderboard = require("../ai-leaderboard");
+const aiLeaderboard = require("../ai-leaderboard/index.ts");
 
 // C4: 模块级 timer handle (跟 daily-summary-job 的 _handle 同构), 便于 __resetForTest 清理.
 const _autoCheckHandle = { interval: null };
@@ -70,7 +70,7 @@ function decideAutoCheck({
  * @param {number}  ctx.intervalMs
  * @param {function} [ctx.now]          注入当前时间, 测试用. 默认 () => new Date()
  * @param {function} [ctx.runCheck]     注入 runCheckQueued 的替代, 测试用.
- *                                       默认 require("../check-runner").runCheckQueued
+ *                                       默认 require("../check-runner.ts").runCheckQueued
  * @param {object}  [ctx.log]           注入 logger, 默认 mainLog
  */
 async function checkOnce(ctx) {
@@ -99,7 +99,7 @@ async function checkOnce(ctx) {
   const runCheck =
     ctx.runCheck ||
     ((runDeps, opts) =>
-      require("../check-runner").runCheckQueued(runDeps, opts));
+      require("../check-runner.ts").runCheckQueued(runDeps, opts));
   try {
     await runCheck(
       {
@@ -157,7 +157,7 @@ function startFundScheduler(deps) {
     sched.on("fetched", (payload) => {
       sendToRenderer("funds:nav:fetched", payload);
       try {
-        const { checkFundAlerts } = require("../funds/fund-alerts");
+        const { checkFundAlerts } = require("../funds/fund-alerts.ts");
         const all = fundStore.loadAll();
         const cfg = typeof getConfig === "function" ? getConfig() || {} : {};
         const notif = cfg.notifications || {};
@@ -203,7 +203,7 @@ function startFundScheduler(deps) {
         const {
           checkWatchlistFundUpdates,
           makeWatchlistSendNotification,
-        } = require("../watchlist");
+        } = require("../watchlist.ts");
         checkWatchlistFundUpdates({
           navMap: (payload && payload.results) || {},
           navSource: all.navSource,
@@ -328,7 +328,7 @@ function makeSelfUpdateController(deps) {
   const {
     INITIAL_UPDATE_STATE,
     reduceUpdateState,
-  } = require("../self-updater");
+  } = require("../self-updater.ts");
   let state = { ...INITIAL_UPDATE_STATE };
 
   function dispatch(action) {
@@ -470,7 +470,7 @@ function startSelfUpdateTimer(deps: {
     typeof deps.logSkip === "function"
       ? deps.logSkip
       : (reason) => mainLog.info(`self-update tick skipped (${reason})`);
-  const { decideSelfUpdateTick } = require("../self-update-idle");
+  const { decideSelfUpdateTick } = require("../self-update-idle.ts");
 
   // 幂等 powerMonitor 查询: 接线层提供 getPowerIdleState fn,
   // 测试注入 mock, 生产接 electron.powerMonitor.getSystemIdleState.
@@ -592,7 +592,7 @@ function startWorldcupGoalWatcher(deps) {
   try {
     goalWatcher.startGoalWatcher({
       refreshScores: (keys) =>
-        require("../worldcup/scores-fetcher").refreshWorldcupScores(keys),
+        require("../worldcup/scores-fetcher.ts").refreshWorldcupScores(keys),
       loadFixtures: () => stateStore.loadWorldcupTxt(),
       onGoal: (notif, meta) => {
         try {
@@ -757,7 +757,7 @@ function makeRefreshLastOpenedAfterCheck(deps) {
     if (refreshable.length === 0) return;
     (async () => {
       try {
-        const lastOpened = require("../last-opened");
+        const lastOpened = require("../last-opened.ts");
         const next = {};
         await Promise.all(
           refreshable.map(async (a) => {

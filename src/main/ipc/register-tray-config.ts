@@ -20,7 +20,7 @@
 import type { IpcMain } from "electron";
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
 const stateStore = require("../state-store.ts");
-const { normalizePrefs } = require("../tray-menu-prefs");
+const { normalizePrefs } = require("../tray-menu-prefs.ts");
 const { mainLog } = require("../log.ts");
 
 function registerTrayConfigHandlers(ctx) {
@@ -59,7 +59,7 @@ function registerTrayConfigHandlers(ctx) {
       return { ok: true, prefs: stateStore.loadTrayMenuPrefs() };
     } catch (err) {
       mainLog.warn("[ipc] tray:get-prefs threw", { msg: err && err.message });
-      const { DEFAULT_PREFS } = require("../tray-menu-prefs");
+      const { DEFAULT_PREFS } = require("../tray-menu-prefs.ts");
       return { ok: false, reason: "threw", prefs: DEFAULT_PREFS, error: err && err.message };
     }
   });

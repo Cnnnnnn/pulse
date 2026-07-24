@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
 const {
   classifySteamPromotion,
   fetchSteamFree,
-} = require("../../../src/main/games/steam-free.js");
+} = requireMain("games/steam-free");
 
 afterEach(() => vi.restoreAllMocks());
 

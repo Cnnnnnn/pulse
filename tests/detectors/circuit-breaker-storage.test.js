@@ -24,11 +24,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockPatchState = vi.fn();
 const mockLoad = vi.fn();
 
-const stateStorePath = require.resolve('../../src/main/state-store.ts');
+const stateStorePath = mainArtifactPath('state-store');
 const storagePath = require.resolve('../../src/detectors/circuit-breaker-storage.js');
 
 let loadBreakers;

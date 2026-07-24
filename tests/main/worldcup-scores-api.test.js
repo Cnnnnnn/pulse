@@ -3,17 +3,17 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   fixtureLookupKey,
   gameLookupKey,
   canonicalTeamName,
-} from "../../src/main/worldcup/team-aliases.js";
-import {
+} = requireMain("worldcup/team-aliases");
+const {
   mapGamesToScoreEntries,
   scoreEntryFromGame,
-} from "../../src/main/worldcup/scores-api-worldcup26.js";
-import { matchKey } from "../../src/main/worldcup/match-key.js";
-
+} = requireMain("worldcup/scores-api-worldcup26");
+const { matchKey } = requireMain("worldcup/match-key");
 describe("team-aliases", () => {
   it("South Korea / Korea Republic 归一", () => {
     expect(canonicalTeamName("South Korea")).toBe(

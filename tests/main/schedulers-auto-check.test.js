@@ -7,13 +7,13 @@
  * daily-summary-job 的可测性模式.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   decideAutoCheck,
   checkOnce,
   startAutoCheckTimer,
   __resetForTest,
-} from '../../src/main/bootstrap/schedulers.ts';
-
+} = requireMain('bootstrap/schedulers');
 describe('decideAutoCheck', () => {
   const INTERVAL = 6 * 60 * 60 * 1000; // 6h
 

@@ -23,6 +23,7 @@ import os from "os";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockHandle = vi.fn((name, fn) => { handlers.set(name, fn); });
 const handlers = new Map();
@@ -62,11 +63,11 @@ function setup() {
   freshModule();
   tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-diag-ipc-"));
 
-  diag = require("../../src/main/diagnostics.ts");
-  diagAgg = require("../../src/main/diagnostics-aggregator.js");
-  errorInit = require("../../src/main/bootstrap/error-init.ts");
-  ({ registerCoreHandlers } = require("../../src/main/ipc/register-core.ts"));
-  ({ bundleDiagnostics } = require("../../src/main/diagnostics-aggregator.js"));
+  diag = requireMain("diagnostics");
+  diagAgg = requireMain("diagnostics-aggregator");
+  errorInit = requireMain("bootstrap/error-init");
+  ({ registerCoreHandlers } = requireMain("ipc/register-core"));
+  ({ bundleDiagnostics } = requireMain("diagnostics-aggregator"));
 
   diag._resetForTest();
 

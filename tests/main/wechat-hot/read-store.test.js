@@ -2,10 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../../_setup/require-main.cjs");
 
-const { loadReadIds, markItemRead } = await import(
-  "../../../src/main/wechat-hot/read-store.js"
-);
+const { loadReadIds, markItemRead } = await Promise.resolve(requireMain("wechat-hot/read-store"));
 
 let tmpFile;
 beforeEach(() => {

@@ -12,8 +12,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const recent = require("../../src/main/recent-activity.js");
+const recent = requireMain("recent-activity");
 
 function tmpStatePath() {
   const dir = join(

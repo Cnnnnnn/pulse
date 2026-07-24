@@ -11,6 +11,7 @@
  * 同样的套路: require.cache 注入 stub electron + vi.resetModules。
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const mockDestroy = vi.fn();
 const mockLoadFile = vi.fn();
@@ -49,7 +50,7 @@ const electronStub = {
 
 const electronPath = require.resolve("electron");
 const modulePath =
-  require.resolve("../../src/main/ithome/share-card-renderer.js");
+  mainArtifactPath("ithome/share-card-renderer");
 
 let createShareCardPng;
 

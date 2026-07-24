@@ -15,11 +15,10 @@
  * 确保任何 URL 都能让 handler 走到 fetchRepoRelease 而不是抛 ReferenceError。
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const registerPath = require.resolve(
-  "../../src/main/ipc/register-github.ts",
-);
-const githubPath = require.resolve("../../src/main/github.js");
+const registerPath = mainArtifactPath("ipc/register-github");
+const githubPath = mainArtifactPath("github");
 const aiPath = require.resolve("../../src/ai/readme-parse.js");
 
 /** 构造一个不会真打网络的 stub http。 */

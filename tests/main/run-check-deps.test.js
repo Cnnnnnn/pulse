@@ -15,10 +15,11 @@ import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 describe("buildRunCheckDeps", () => {
   it("ctx.getConfig 优先, 每次 check 调一次返最新 cfg", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     const getConfig = vi.fn(() => ({ apps: [] }));
     const ctx = {
       getConfig,
@@ -32,7 +33,7 @@ describe("buildRunCheckDeps", () => {
   });
 
   it("无 ctx.getConfig 时从 ctx.runtimeConfigRef.current 派生", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     let current = { apps: [{ name: "A" }] };
     const ctx = {
       runtimeConfigRef: {
@@ -51,7 +52,7 @@ describe("buildRunCheckDeps", () => {
   });
 
   it("ctx 都没有 → 返空 cfg, 不崩", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     const deps = buildRunCheckDeps({});
     expect(deps.getConfig()).toEqual({});
     expect(typeof deps.getWindow()).toBe("object"); // null
@@ -59,7 +60,7 @@ describe("buildRunCheckDeps", () => {
   });
 
   it("完全没传 ctx → 不崩, 默认值兜底", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     const deps = buildRunCheckDeps();
     expect(deps.getConfig()).toEqual({});
     expect(deps.getState()).toBeNull();
@@ -67,7 +68,7 @@ describe("buildRunCheckDeps", () => {
   });
 
   it("stateStore.load 抛错 → getState 返 null, 不传播", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     const ctx = {
       pool: {},
       stateStore: {
@@ -82,7 +83,7 @@ describe("buildRunCheckDeps", () => {
   });
 
   it("stateStore.markNotified 抛错 → 不传播 (no-op swallow)", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     const ctx = {
       pool: {},
       stateStore: {
@@ -97,21 +98,21 @@ describe("buildRunCheckDeps", () => {
   });
 
   it("没传 stateStore → getState 返 null, markNotified 不抛", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     const deps = buildRunCheckDeps({ pool: {} });
     expect(deps.getState()).toBeNull();
     expect(() => deps.markNotified(["x"])).not.toThrow();
   });
 
   it("ctx.getWindow 透传, 缺省返 () => null", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     const win = { id: 1 };
     expect(buildRunCheckDeps({ getWindow: () => win }).getWindow()).toBe(win);
     expect(buildRunCheckDeps({}).getWindow()).toBeNull();
   });
 
   it("ctx.onCheckComplete 透传, 缺省 noop", () => {
-    const { buildRunCheckDeps } = require("../../src/main/run-check-deps.js");
+    const { buildRunCheckDeps } = requireMain("run-check-deps");
     const cb = vi.fn();
     const deps = buildRunCheckDeps({ onCheckComplete: cb });
     deps.onCheckComplete([{ name: "X" }]);

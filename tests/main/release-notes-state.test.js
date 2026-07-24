@@ -8,13 +8,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import {
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const {
   _setStatePathForTest,
   loadOrRecover,
   getLastSeenRelease,
   setLastSeenRelease,
-} from '../../src/main/state-store.ts';
-
+} = requireMain('state-store');
 let tmpDir;
 let statePath;
 

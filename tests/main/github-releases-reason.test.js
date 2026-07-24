@@ -12,11 +12,12 @@
  * 注入内存 stub，测试结束后复原。
  */
 import { describe, it, expect, afterEach } from "vitest";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 const {
   fetchRepoRelease,
   fetchRepoMeta,
   __setHttpForTest,
-} = require("../../src/main/github.js");
+} = requireMain("github");
 
 /** 构造一个 stub HttpClient.get，返回固定 response。 */
 function stubGet(responder) {

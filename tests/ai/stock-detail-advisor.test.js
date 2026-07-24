@@ -9,8 +9,9 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const stateStorePath = require.resolve("../../src/main/state-store.ts");
+const stateStorePath = mainArtifactPath("state-store");
 const promptRegistryPath = require.resolve("../../src/ai/prompt-registry.js");
 const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
 const stockAnglesPath =

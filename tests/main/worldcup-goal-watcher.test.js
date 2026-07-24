@@ -2,9 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { mkdtempSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
-const goalWatcher = require("../../src/main/worldcup/goal-watcher");
-const stateStore = require("../../src/main/state-store.ts");
+const goalWatcher = requireMain("worldcup/goal-watcher");
+const stateStore = requireMain("state-store");
 
 function tmpStatePath() {
   const dir = mkdtempSync(join(tmpdir(), "pulse-goal-watcher-"));

@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { toGameDeal, BROWSER_UA_SAFARI: UA } = require("./normalize");
-const { logFetchError } = require("./log");
+const { toGameDeal, BROWSER_UA_SAFARI: UA } = require("./normalize.ts");
+const { logFetchError } = require("./log.ts");
 
 const ALGOLIA_APP_ID = "U3B6GR4UA3";
 const ALGOLIA_API_KEY = "a29c6927638bfd8cee23993e51e721c9";
