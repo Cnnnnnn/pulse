@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundDashboard.jsx
+ * src/renderer/funds/FundDashboard.tsx
  *
  * 2026-07-14 计划 §3 Phase 1 — 基金「概览」仪表盘.
  *
@@ -411,7 +411,7 @@ export function FundDashboard() {
             : ageMs < 30 * 60 * 1000
             ? "aging"
             : "stale";
-        const totalMs = st.intervalMs || 5 * 60 * 1000;
+        const totalMs = (st as { intervalMs?: number }).intervalMs || 5 * 60 * 1000;
         // 进度条: 已用 / 总间隔. 当数据正在拉取时, 显示"拉取中"满条.
         const inFlight = !!fundsRefreshing.value;
         const elapsed = inFlight
@@ -689,11 +689,13 @@ export function FundDashboard() {
               <tbody>
                 {topRows.map((r) => {
                   const m = (r.metrics && r.metrics) || {};
-                  const mv = Number(m.marketValue) || 0;
-                  const todayP = Number(m.todayProfit) || 0;
+                  // ponytail: 持有 metrics 字段是 store 动态计算, 这里 ponytail cast
+                  const mTyped = m as { marketValue?: number; todayProfit?: number; profit?: number; profitPct?: number };
+                  const mv = Number(mTyped.marketValue) || 0;
+                  const todayP = Number(mTyped.todayProfit) || 0;
                   const todayPctNum = mv > 0 ? (todayP / mv) * 100 : 0;
-                  const cumP = Number(m.profit) || 0;
-                  const cumPct = Number(m.profitPct) || 0;
+                  const cumP = Number(mTyped.profit) || 0;
+                  const cumPct = Number(mTyped.profitPct) || 0;
                   const sparkValues = pickLast30DayValues(r.holding && r.holding.code);
                   // 2026-07-14: 行 tint 标记 — 与 FundList 共享 CSS (tr[data-risk-row]/[data-deep-loss]/[data-high-weight])
                   const risk = riskFromCategoryDashboard(r.holding && r.holding.category);

@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundList.jsx
+ * src/renderer/funds/FundList.tsx
  *
  * 2026-07-14 计划 §3 Phase 2 — 基金列表 (多维筛选 / 列排序 / 分页 / 骨架 / 卡片态).
  *
@@ -225,8 +225,8 @@ export function FundList() {
         // reuse isFundPinned 通过 watchlist-store; 避免循环引用就内联简单的判断
         try {
           const wl =
-            typeof window !== "undefined" && window.__FUND_PIN_CHECK__
-              ? window.__FUND_PIN_CHECK__
+            typeof window !== "undefined" && (window as unknown as { __FUND_PIN_CHECK__?: (code: string) => boolean }).__FUND_PIN_CHECK__
+              ? (window as unknown as { __FUND_PIN_CHECK__: (code: string) => boolean }).__FUND_PIN_CHECK__
               : null;
           if (wl) return wl(r.holding && r.holding.code);
         } catch {
@@ -277,7 +277,7 @@ export function FundList() {
   //   ponytail: 导出 sorted (排序后全量), 不是 pageItems (分页); 用户能看到多少导多少
   function handleExport() {
     if (sorted.length === 0) {
-      showToast("当前没有可导出的基金", { type: "info" });
+      showToast("当前没有可导出的基金", "info");
       return;
     }
     const header = [
@@ -295,7 +295,11 @@ export function FundList() {
     ];
     for (const r of sorted) {
       const h = r.holding || {};
-      const m = r.metrics || {};
+      // ponytail: metrics 是 store 动态计算结果, 此处消费展示, cast 出字段集
+      const m = (r.metrics || {}) as {
+        nav?: number; dailyReturnPct?: number; todayProfit?: number;
+        profitPct?: number; profit?: number; marketValue?: number;
+      };
       const nav = Number(m.nav);
       const day = Number(m.dailyReturnPct);
       const today = Number(m.todayProfit);
@@ -323,7 +327,7 @@ export function FundList() {
     const stamp = new Date().toISOString().slice(0, 10);
     const viewTag = fundView.value === "watch" ? "-watch" : "";
     downloadCsv(`pulse-funds${viewTag}-${stamp}.csv`, rows);
-    showToast(`已导出 ${sorted.length} 只基金`, { type: "success" });
+    showToast(`已导出 ${sorted.length} 只基金`, "success");
   }
 
 
@@ -498,7 +502,20 @@ export function FundList() {
               ? skeletonRows(PAGE_SIZE)
               : pageItems.length === 0
               ? emptyRow(COLS.length + 1, fundView.value === "watch")
-              : pageItems.map((r) => {
+              : pageItems.map((rawRow) => {
+                  // ponytail: row.metrics 是 store 动态计算 union, 此组件消费展示,
+                  // 给一个具体类型 cast 而非 any. 字段集对应 useHoldingMetrics 计算结果.
+                  const r = rawRow as {
+                    typeLabel?: string;
+                    riskDerived?: string;
+                    holding?: { id?: string; code?: string; name?: string };
+                    metrics?: {
+                      marketValue?: number; costValue?: number;
+                      profit?: number; profitPct?: number;
+                      todayProfit?: number; usingEstimate?: boolean;
+                      nav?: number; dailyReturnPct?: number;
+                    };
+                  };
                   // 2026-07-14: 行 tint 标记 — R5 / 深度亏损 / 集中度高 触发视觉权重提升
                   //   ponytail: 不引入新 store, 在渲染时算 attr, CSS 用 attribute selector
                   const profitPctNum = Number((r.metrics && r.metrics.profitPct) || 0);

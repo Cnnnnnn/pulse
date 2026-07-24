@@ -10,8 +10,8 @@ import {
   buildDateMap,
   alignBenchmark,
   toPoints,
-} from "../../src/renderer/funds/FundPortfolioTrend.jsx";
-import { FundPortfolioTrend } from "../../src/renderer/funds/FundPortfolioTrend.jsx";
+} from "../../src/renderer/funds/FundPortfolioTrend.tsx";
+import { FundPortfolioTrend } from "../../src/renderer/funds/FundPortfolioTrend.tsx";
 import {
   dailySnapshots,
   benchmarkEnabled,

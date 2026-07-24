@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/AddFundModal.jsx
+ * src/renderer/funds/AddFundModal.tsx
  *
  * 添加 / 编辑持仓 Modal — 精简录入: 代码 + 金额 (+ 可选备注).
  * 名称、分类由搜索/净值接口自动推断.

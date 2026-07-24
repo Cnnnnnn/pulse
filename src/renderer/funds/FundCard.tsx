@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundCard.jsx
+ * src/renderer/funds/FundCard.tsx
  *
  * 单只基金卡片 — 替换 FundRow. 保持 FundRow 的数据字段 / 格式化 / 状态机,
  * 卡片化布局 + 底部 NAV sparkline.

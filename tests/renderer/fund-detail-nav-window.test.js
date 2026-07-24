@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickNavHistoryWindow } from "../../src/renderer/funds/FundDetail.jsx";
+import { pickNavHistoryWindow } from "../../src/renderer/funds/FundDetail.tsx";
 
 describe("pickNavHistoryWindow", () => {
   const rows = [

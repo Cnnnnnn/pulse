@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundCardGrid.jsx
+ * src/renderer/funds/FundCardGrid.tsx
  *
  * 持仓卡片网格 — 替换 FundList. 按 filteredRows 渲染 FundCard, 空状态三态分流.
  */

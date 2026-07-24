@@ -7,7 +7,7 @@ const mockApi = vi.hoisted(() => ({
 vi.mock("../../src/renderer/api.js", () => ({ api: mockApi }));
 
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/preact";
-import { FundCardGrid } from "../../src/renderer/funds/FundCardGrid.jsx";
+import { FundCardGrid } from "../../src/renderer/funds/FundCardGrid.tsx";
 import {
   holdings,
   navCache,

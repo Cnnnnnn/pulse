@@ -7,7 +7,7 @@ const mockApi = vi.hoisted(() => ({
 vi.mock("../../src/renderer/api.js", () => ({ api: mockApi }));
 
 import { render, cleanup, fireEvent, waitFor } from "@testing-library/preact";
-import { FundCardSparkline } from "../../src/renderer/funds/FundCardSparkline.jsx";
+import { FundCardSparkline } from "../../src/renderer/funds/FundCardSparkline.tsx";
 import { navHistoryCache } from "../../src/renderer/funds/fundStore.js";
 
 afterEach(() => {

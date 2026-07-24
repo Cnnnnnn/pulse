@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundHero.jsx
+ * src/renderer/funds/FundHero.tsx
  *
  * 组合 Hero 区 (三栏布局的顶栏): 取代 FundHeader 的总览角色.
  *   1. 顶部工具条: 品牌 + 次级工具 (净值源切换 / 提醒 / 刷新)

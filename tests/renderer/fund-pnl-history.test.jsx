@@ -3,7 +3,7 @@
 // T-B1: 盈亏记录面板 — 导出按钮在空态 disabled, 有数据时 enabled.
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/preact";
-import { FundPnlHistory } from "../../src/renderer/funds/FundPnlHistory.jsx";
+import { FundPnlHistory } from "../../src/renderer/funds/FundPnlHistory.tsx";
 import { dailySnapshots, selectedHistoryMonth } from "../../src/renderer/funds/fundStore.js";
 import { ymShanghai } from "../../src/funds/fund-history.js";
 

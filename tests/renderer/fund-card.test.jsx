@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup, fireEvent, screen } from "@testing-library/preact";
-import { FundCard } from "../../src/renderer/funds/FundCard.jsx";
+import { FundCard } from "../../src/renderer/funds/FundCard.tsx";
 
 const ROW = {
   holding: { id: "x", code: "000001", name: "测试基金", category: "stock", shares: 100, costNav: 1.0 },

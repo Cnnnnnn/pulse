@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundDetail.jsx
+ * src/renderer/funds/FundDetail.tsx
  *
  * 2026-07-14 计划 §3 Phase 3 — 基金详情.
  *
@@ -356,7 +356,17 @@ export function FundDetail({ code }) {
   }
 
   const h = row.holding;
-  const m = row.metrics || {};
+  // ponytail: row.metrics 由 store 动态计算, 此组件是数据消费的最后一公里,
+  // 给一个具体类型 cast 而非 any. 字段集对应 useHoldingMetrics 计算结果.
+  const m = (row.metrics || {}) as {
+    nav?: number;
+    dailyReturnPct?: number;
+    profitPct?: number;
+    marketValue?: number;
+    costValue?: number;
+    profit?: number;
+    todayProfit?: number;
+  };
   const cat = h.category || "other";
   const typeLabel = TYPE_LABEL[cat] || "其他";
   const risk = pickRisk(m);
@@ -390,10 +400,10 @@ export function FundDetail({ code }) {
     if (!ok) return;
     const r = await removeFund(api, h.id);
     if (r && r.ok) {
-      showToast("已删除", { type: "success" });
+      showToast("已删除", "success");
       closeFundDetail();
     } else {
-      showToast("删除失败", { type: "error" });
+      showToast("删除失败", "error");
     }
   }
 
@@ -667,7 +677,7 @@ export function FundDetail({ code }) {
                   const rows = buildNavHistoryCsv(h, navHistory, rangeLabel);
                   const stamp = new Date().toISOString().slice(0, 10);
                   downloadCsv(`${safeFilename(h.code)}-nav-${stamp}.csv`, rows);
-                  showToast(`已导出 ${rows.length - 5} 行`, { type: "success" });
+                  showToast(`已导出 ${rows.length - 5} 行`, "success");
                 }}
                 disabled={navHistory.length === 0}
                 title="导出当前区间的净值序列为 CSV (Excel/Numbers 可直接打开)"

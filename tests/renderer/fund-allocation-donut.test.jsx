@@ -3,7 +3,7 @@
 // T-D1: 持仓集中度风险区渲染 (computeConcentration 纯函数, 经 rowsWithMetrics 计算).
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
-import { describeArc, buildSegments, CATEGORY_ORDER, FundAllocationDonut } from "../../src/renderer/funds/FundAllocationDonut.jsx";
+import { describeArc, buildSegments, CATEGORY_ORDER, FundAllocationDonut } from "../../src/renderer/funds/FundAllocationDonut.tsx";
 import { holdings, navCache, navSource, categoryAllocation } from "../../src/renderer/funds/fundStore.js";
 
 describe("buildSegments", () => {

@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundAreaChart.jsx
+ * src/renderer/funds/FundAreaChart.tsx
  *
  * 2026-07-14 计划 §1.3 / §2 — 基金模块共享面积走势图.
  *

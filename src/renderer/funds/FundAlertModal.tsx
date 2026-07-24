@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundAlertModal.jsx
+ * src/renderer/funds/FundAlertModal.tsx
  *
  * I8 v1: 盈亏阈值提醒设置 — 全局开关 + 盈利/亏损阈值.
  */

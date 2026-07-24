@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundRadar.jsx
+ * src/renderer/funds/FundRadar.tsx
  *
  * 2026-07-14 计划 §2 / Phase 3 — 基金风险雷达.
  *

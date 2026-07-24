@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/CategoryTabs.jsx
+ * src/renderer/funds/CategoryTabs.tsx
  *
  * 6 个分类 tab: 全部 / 股票 / 债券 / 货币 / QDII / 其他
  * 数字键 1-6 切换 (跟 Worldcup 数字键切子 tab 对齐).
@@ -28,7 +28,7 @@ export function CategoryTabs() {
       if (!Number.isFinite(n) || n < 1 || n > TABS.length) return;
       const target = document.activeElement;
       // 输入框 / textarea 里不切
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || (target as HTMLElement).isContentEditable)) {
         // 搜索框允许 1-6 (但实际体验上可能影响输入, 暂时禁用)
         return;
       }

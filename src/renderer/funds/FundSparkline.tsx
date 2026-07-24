@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundSparkline.jsx
+ * src/renderer/funds/FundSparkline.tsx
  *
  * 2026-07-14 计划 §2 — KPI 卡里用的小型 sparkline.
  * 与 FundCardSparkline 同源 (viewBox + vector-effect=non-scaling-stroke),

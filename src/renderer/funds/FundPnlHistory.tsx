@@ -1,5 +1,5 @@
 /**
- * src/renderer/funds/FundPnlHistory.jsx
+ * src/renderer/funds/FundPnlHistory.tsx
  *
  * 每日 / 月度盈亏记录面板.
  */
