@@ -304,6 +304,14 @@ export async function classifyByLLM(apps: any, opts: any = {}) {
  * 拿全部分类 (按 order asc). 返回新数组, 不暴露内部引用.
  * @returns {Array<{id: string, name: string, icon: string, order: number}>}
  */
+export function getLoadStatus() {
+  return _LOAD_STATUS;
+}
+
+export function clearLLMCache() {
+  _clearLLMCache();
+}
+
 export function getAllCategories() {
   return CATEGORIES_SORTED.map((c) => ({ ...c }));
 }
@@ -397,22 +405,27 @@ export function getCategoryTabsWithCount(results: any) {
   return tabs;
 }
 
-module.exports = {
-  setData,
-  getCategory,
-  getAllCategories,
-  getCategoryById,
-  getCategoryByName,
-  validateCategoryMap,
-  getCategoryTabsWithCount,
-  // Step B (LLM classify)
-  classifyByHeuristic,
-  classifyByLLM,
-  setLLMCache,
-  getLLMCache,
-  // 测试/调试用 (不应在生产代码调)
-  _LOAD_STATUS: () => _LOAD_STATUS,
-  _DEFAULT_CATEGORIES: DEFAULT_CATEGORIES,
-  _HEURISTIC_RULES: HEURISTIC_RULES,
-  _clearLLMCache,
-};
+// ponytail: module.exports 仅给 Node/CJS（main bundle / dist-test）；
+//   renderer 是 ESM，裸 module.exports 会 ReferenceError。
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    setData,
+    getCategory,
+    getAllCategories,
+    getCategoryById,
+    getCategoryByName,
+    validateCategoryMap,
+    getCategoryTabsWithCount,
+    // Step B (LLM classify)
+    classifyByHeuristic,
+    classifyByLLM,
+    setLLMCache,
+    getLLMCache,
+    getLoadStatus,
+    clearLLMCache,
+    _LOAD_STATUS: getLoadStatus,
+    _DEFAULT_CATEGORIES: DEFAULT_CATEGORIES,
+    _HEURISTIC_RULES: HEURISTIC_RULES,
+    _clearLLMCache,
+  };
+}

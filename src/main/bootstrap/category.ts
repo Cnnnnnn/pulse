@@ -54,7 +54,7 @@ function loadCategoryConfig() {
   }
 
   categoryConfig.setData({ cats, map, source: "disk" });
-  const status = categoryConfig._LOAD_STATUS();
+  const status = categoryConfig.getLoadStatus();
   if (status.warnings.length > 0) {
     mainLog.warn(`[category] load warnings: ${status.warnings.join("; ")}`);
   }
