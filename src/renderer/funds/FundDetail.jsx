@@ -40,7 +40,7 @@ import {
   removeWatchlistItem,
 } from "../watchlist/watchlist-store.js";
 import { showToast } from "../store/toast-store.js";
-import { downloadCsv, safeFilename } from "../utils/csv.js";
+import { downloadCsv, safeFilename } from "../utils/csv.ts";
 
 const RANGE_OPTIONS = [
   { key: "1M", label: "1M", days: 30 },

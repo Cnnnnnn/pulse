@@ -8,7 +8,7 @@
 
 import { describe, test, expect } from "vitest";
 import { renderHook, act } from "@testing-library/preact";
-const { useBrushRange } = await import("../../src/renderer/hooks/useBrushRange.js");
+const { useBrushRange } = await import("../../src/renderer/hooks/useBrushRange.ts");
 
 describe("useBrushRange", () => {
   test("初始 null range + visible = [0, length-1]", () => {

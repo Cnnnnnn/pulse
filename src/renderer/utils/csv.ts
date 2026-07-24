@@ -1,5 +1,5 @@
 /**
- * src/renderer/utils/csv.js
+ * src/renderer/utils/csv.ts
  *
  * 通用 CSV 下载工具 — 浏览器原生实现, 不引入第三方库.
  *
@@ -12,9 +12,9 @@
  * ponytail: 整段 < 40 行, 没拆 hook, 因为调用方只有 2 处 (FundDetail / FundList).
  *          等出现第三处调用再考虑抽 hook.
  */
-export function downloadCsv(filename, rows) {
+export function downloadCsv(filename: string, rows: unknown[][]): void {
   if (!Array.isArray(rows) || rows.length === 0) return;
-  const esc = (v) => {
+  const esc = (v: unknown) => {
     const s = v == null ? "" : String(v);
     if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
@@ -33,7 +33,7 @@ export function downloadCsv(filename, rows) {
 
 // 2026-07-15: 文件名安全化 — 去掉路径分隔符 / 特殊字符, 防止下载异常
 //   ponytail: 单行正则在所有现代浏览器都 OK, 不引入 lodash
-export function safeFilename(s) {
+export function safeFilename(s: unknown): string {
   return String(s || "fund")
     .replace(/[\\/:*?"<>|]/g, "")
     .replace(/\s+/g, "_")

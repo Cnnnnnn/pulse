@@ -11,7 +11,7 @@
  *
  * ponytail: 不用 FeatureHeader — 这里需要 2 行 + 自定义布局, 直接 header 元素更紧凑.
  */
-import { useNowTick } from "../hooks/useNowTick.jsx";
+import { useNowTick } from "../hooks/useNowTick.tsx";
 import {
   ithomeNewsLoading,
   ithomeNewsTs,

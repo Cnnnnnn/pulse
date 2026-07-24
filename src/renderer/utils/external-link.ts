@@ -1,5 +1,5 @@
 /**
- * src/renderer/utils/external-link.js
+ * src/renderer/utils/external-link.ts
  *
  * Renderer-side helper to open an external URL via the preload bridge.
  * In Electron, window.api.openUrl goes through IPC to shell.openExternal
@@ -7,7 +7,7 @@
  * Tests / non-Electron environments fall back to window.open().
  */
 
-export async function openExternal(url) {
+export async function openExternal(url: string | null | undefined): Promise<void> {
   if (!url) return;
   if (typeof window !== "undefined" && window.api && typeof window.api.openUrl === "function") {
     try {

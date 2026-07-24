@@ -18,7 +18,7 @@
 
 import { useMemo } from "preact/hooks";
 import { UsageTrendChart } from "./UsageTrendChart.jsx";
-import { useUsageSeries } from "../hooks/useUsageSeries.js";
+import { useUsageSeries } from "../hooks/useUsageSeries.ts";
 import { UsageSparkline } from "./UsageSparkline.jsx";
 import { UsageDetailList } from "./UsageDetailList.jsx";
 import { modelColorIndex } from "./modelColor.js";

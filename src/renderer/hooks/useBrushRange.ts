@@ -1,5 +1,5 @@
 /**
- * src/renderer/hooks/useBrushRange.js
+ * src/renderer/hooks/useBrushRange.ts
  *
  * 趋势图「区间刷选缩放」的状态机 + 像素↔索引换算工具。
  * 纯 UI 状态，与具体数据无关，可被任意序列图表复用。
@@ -16,17 +16,17 @@ import { useCallback, useMemo, useState } from "preact/hooks";
 /**
  * @param {number} length 序列长度
  */
-export function useBrushRange(length) {
-  const [range, setRange] = useState(/** @type {[number, number]|null} */ (null));
+export function useBrushRange(length: number) {
+  const [range, setRange] = useState<[number, number] | null>(null);
 
   const clampIdx = useCallback(
-    (i) => Math.max(0, Math.min(length - 1, i)),
+    (i: number) => Math.max(0, Math.min(length - 1, i)),
     [length]
   );
 
   /** 设置刷选区间；区间过窄（<2 点）视为取消。 */
   const setBrush = useCallback(
-    (start, end) => {
+    (start: number | null | undefined, end: number | null | undefined) => {
       if (start == null || end == null || length <= 1) {
         setRange(null);
         return;
@@ -56,7 +56,7 @@ export function useBrushRange(length) {
    * @param {number} plotWidth plot 区域宽度像素
    */
   const indexFromX = useCallback(
-    (x, plotLeft, plotWidth) => {
+    (x: number, plotLeft: number, plotWidth: number) => {
       if (plotWidth <= 0 || length <= 1) return 0;
       const ratio = (x - plotLeft) / plotWidth;
       return clampIdx(Math.round(ratio * (length - 1)));
@@ -68,7 +68,7 @@ export function useBrushRange(length) {
    * 序列索引 → 像素 X（相对 plot 区域左缘）。
    */
   const xForIndex = useCallback(
-    (i, plotLeft, plotWidth) => {
+    (i: number, plotLeft: number, plotWidth: number) => {
       if (length <= 1) return plotLeft;
       return plotLeft + (i / (length - 1)) * plotWidth;
     },

@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "preact/hooks";
-import { useBrushRange } from "../hooks/useBrushRange.js";
+import { useBrushRange } from "../hooks/useBrushRange.ts";
 
 // ─── 工具 ────────────────────────────────────────────────────
 

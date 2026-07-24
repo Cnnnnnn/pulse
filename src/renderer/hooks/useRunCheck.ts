@@ -1,5 +1,5 @@
 /**
- * src/renderer/hooks/useRunCheck.js
+ * src/renderer/hooks/useRunCheck.ts
  *
  * 共享的"检查更新"逻辑: loading 态 + api.versionsRunCheck() + 2s 视觉 hold.
  * 供 LibraryPage 空态 CTA 与 PageHeader 主按钮共用.
@@ -16,7 +16,7 @@ import { showToast } from "../store/toast-store.js";
 
 export function useRunCheck() {
   const [isLoading, setIsLoading] = useState(false);
-  const timerRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const run = async () => {
     setIsLoading(true);
@@ -38,7 +38,7 @@ export function useRunCheck() {
     } catch (err) {
       // IPC 没注册 / preload 漏暴露 / 主进程抛 — 2026-06-28 regression.
       showToast(
-        `检查失败: ${(err && err.message) || "IPC 调用异常"}`,
+        `检查失败: ${(err instanceof Error ? err.message : null) || "IPC 调用异常"}`,
         "error",
         3500,
       );

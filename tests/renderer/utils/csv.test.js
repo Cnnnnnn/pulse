@@ -2,7 +2,7 @@
 // tests/renderer/utils/csv.test.js
 // CSV 工具纯函数测试 — escape / safeFilename
 import { describe, it, expect } from "vitest";
-import { downloadCsv, safeFilename } from "../../../src/renderer/utils/csv.js";
+import { downloadCsv, safeFilename } from "../../../src/renderer/utils/csv.ts";
 
 describe("safeFilename", () => {
   it("去掉路径分隔符", () => {

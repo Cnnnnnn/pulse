@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/preact";
-import { useRunCheck } from "../../src/renderer/hooks/useRunCheck.js";
+import { useRunCheck } from "../../src/renderer/hooks/useRunCheck.ts";
 
 const mockRunCheck = vi.fn();
 const mockShowToast = vi.fn();

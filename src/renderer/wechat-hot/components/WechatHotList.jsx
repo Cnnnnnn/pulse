@@ -7,7 +7,7 @@
  * 具体在组件里只渲染提示文案, 状态机由 Header / Layout 编排.
  */
 
-import { openExternal } from "../../utils/external-link.js";
+import { openExternal } from "../../utils/external-link.ts";
 
 const EMPTY_TEXT = {
   empty: "暂无热搜数据",

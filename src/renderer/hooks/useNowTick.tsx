@@ -1,5 +1,5 @@
 /**
- * src/renderer/hooks/useNowTick.jsx
+ * src/renderer/hooks/useNowTick.tsx
  *
  * 返回当前 Date.now(), 每 `intervalMs` 更新一次. unmount 时自动 clear.
  * 用于倒计时 / 相对时间显示.
@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "preact/hooks";
 
-export function useNowTick(intervalMs = 1000) {
+export function useNowTick(intervalMs: number = 1000): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!intervalMs || intervalMs <= 0) return undefined;

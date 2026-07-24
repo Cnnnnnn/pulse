@@ -9,7 +9,7 @@
 
 import { describe, test, expect } from "vitest";
 import { renderHook } from "@testing-library/preact";
-const { useUsageSeries } = await import("../../src/renderer/hooks/useUsageSeries.js");
+const { useUsageSeries } = await import("../../src/renderer/hooks/useUsageSeries.ts");
 
 describe("useUsageSeries", () => {
   test("null/undefined 输入 → empty 状态 + 0 points", () => {

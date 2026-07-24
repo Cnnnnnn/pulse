@@ -11,7 +11,7 @@
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, act, cleanup } from "@testing-library/preact";
-import { useNowTick } from "../../src/renderer/hooks/useNowTick.jsx";
+import { useNowTick } from "../../src/renderer/hooks/useNowTick.tsx";
 
 let _lastNow = null;
 function Probe() {

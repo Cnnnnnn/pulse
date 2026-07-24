@@ -1,5 +1,5 @@
 /**
- * src/renderer/hooks/useIcon.js
+ * src/renderer/hooks/useIcon.ts
  *
  * App 图标 hook —— 模块级缓存 + 单 row 局部更新。
  *
@@ -20,7 +20,7 @@ import { api } from '../api.js';
 // P4: 加平台守卫 — win32 上返 null, 防止拼出 /Applications/Cursor.exe 错路径.
 //     useIcon 不会在 Windows 真跑 (windows.js getAppIcon 走真实 .exe 路径 +
 //     app.getFileIcon), 这是防御性 coding.
-export function resolveAppBundlePath(bundle) {
+export function resolveAppBundlePath(bundle: string | null | undefined): string | null {
   if (!bundle || typeof bundle !== 'string') return null;
   const trimmed = bundle.trim();
   if (!trimmed) return null;
@@ -35,13 +35,13 @@ export function resolveAppBundlePath(bundle) {
   return `/Applications/${trimmed}`;
 }
 
-const iconCache = new Map();       // bundle → dataURL
-const inflight = new Map();        // bundle → Promise (避免重复请求)
+const iconCache = new Map<string, string>(); // bundle → dataURL
+const inflight = new Map<string, Promise<string | null>>(); // bundle → Promise
 
 /**
  * 把 config 里的 bundle (e.g. "Cursor.app") 拼成 macOS 全路径.
  */
-function bundleToPath(bundle) {
+function bundleToPath(bundle: string | null | undefined): string | null {
   return resolveAppBundlePath(bundle);
 }
 
@@ -50,7 +50,7 @@ function bundleToPath(bundle) {
  * @param {string} name   - app name (用于头像首字母 + fallback 渐变)
  * @returns {{ src: string|null, nameInitial: string, nameColor: string }}
  */
-export function useIcon(bundle, name) {
+export function useIcon(bundle: string | null | undefined, name?: string | null): { src: string | null; nameInitial: string; nameColor: string } {
   const [src, setSrc] = useState(() => iconCache.get(bundle) || null);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ const COLORS = [
   'linear-gradient(135deg, #0c3483, #a2b6df)',
 ];
 
-function nameColor(name) {
+function nameColor(name: string): string {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -131,7 +131,7 @@ export function _clearIconCache() {
 }
 
 /** 测试用：直接设 cache 项, 跳过 IPC. bundle 是 "Cursor.app" 这种短名 (hook 内部会拼路径). */
-export function _setIconForTest(bundle, dataUrl) {
+export function _setIconForTest(bundle: string, dataUrl: string): void {
   const path = bundleToPath(bundle);
   if (path) iconCache.set(path, dataUrl);
 }

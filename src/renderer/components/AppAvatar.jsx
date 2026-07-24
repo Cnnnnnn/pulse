@@ -6,7 +6,7 @@
  * useIcon 内部维护模块级缓存 —— 同一个 bundle 只发一次 IPC。
  */
 
-import { useIcon } from '../hooks/useIcon.js';
+import { useIcon } from '../hooks/useIcon.ts';
 
 export function AppAvatar({ bundle, name }) {
   const { src, nameInitial, nameColor } = useIcon(bundle, name);

@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 
-import { resolveAppBundlePath } from '../../src/renderer/hooks/useIcon.js';
+import { resolveAppBundlePath } from '../../src/renderer/hooks/useIcon.ts';
 
 describe('useIcon — resolveAppBundlePath (P4 平台守卫)', () => {
   let originalWindow;

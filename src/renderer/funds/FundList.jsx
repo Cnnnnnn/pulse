@@ -30,7 +30,7 @@ import {
   refreshWatchlist,
   watchlistItems,
 } from "../watchlist/watchlist-store.js";
-import { downloadCsv } from "../utils/csv.js";
+import { downloadCsv } from "../utils/csv.ts";
 import { showToast } from "../store/toast-store.js";
 
 const TYPE_OPTIONS = ["全部", "股票", "债券", "货币", "QDII", "其他"];

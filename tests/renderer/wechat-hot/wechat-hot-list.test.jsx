@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 
 const { mockOpenExternal } = vi.hoisted(() => ({ mockOpenExternal: vi.fn() }));
-vi.mock("../../../src/renderer/utils/external-link.js", () => ({
+vi.mock("../../../src/renderer/utils/external-link.ts", () => ({
   openExternal: mockOpenExternal,
 }));
 

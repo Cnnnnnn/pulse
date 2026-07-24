@@ -1,5 +1,5 @@
 /**
- * src/renderer/hooks/useUsageSeries.js
+ * src/renderer/hooks/useUsageSeries.ts
  *
  * 把真实的 AI 用量日序列（snapshot.usageSummary.dailyTokenUsage: number[]）
  * 适配成 UsageTrendChart 需要的并行序列点 SeriesPoint[]。
@@ -38,24 +38,24 @@ function shiftDate(daysAgo) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/**
- * 单点结构（与规范 SeriesPoint 对齐）。
- * @typedef {Object} SeriesPoint
- * @property {string} date   ISO date，旧→新递增
- * @property {number} total  当日总 token（琥珀特性色序列）
- * @property {number|null} lastWeek 7 天前同日值（对照线，可为 null）
- * @property {number} [input]
- * @property {number} [output]
- */
+export interface SeriesPoint {
+  date: string;
+  total: number;
+  lastWeek: number | null;
+  input?: number;
+  output?: number;
+}
 
-/**
- * @param {number[]|null|undefined} rawDaily
- * @param {Object} [options]
- * @param {boolean} [options.loading]
- * @param {boolean} [options.error]
- * @returns {{ points: SeriesPoint[], status: "loading"|"error"|"empty"|"ready", loading: boolean, error: boolean, count: number }}
- */
-export function useUsageSeries(rawDaily, options = {}) {
+export function useUsageSeries(
+  rawDaily: number[] | null | undefined,
+  options: { loading?: boolean; error?: boolean } = {},
+): {
+  points: SeriesPoint[];
+  status: "loading" | "error" | "empty" | "ready";
+  loading: boolean;
+  error: boolean;
+  count: number;
+} {
   const { loading = false, error = false } = options;
 
   const points = useMemo(() => {

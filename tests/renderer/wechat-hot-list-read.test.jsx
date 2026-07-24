@@ -4,7 +4,7 @@ import { render, fireEvent } from "@testing-library/preact";
 import { WechatHotList } from "../../src/renderer/wechat-hot/components/WechatHotList.jsx";
 
 // openExternal 是 side effect, mock 掉避免真打开浏览器
-vi.mock("../../src/renderer/utils/external-link.js", () => ({
+vi.mock("../../src/renderer/utils/external-link.ts", () => ({
   openExternal: vi.fn(),
 }));
 
