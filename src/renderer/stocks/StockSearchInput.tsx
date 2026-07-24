@@ -9,7 +9,7 @@
  * 样式照搬 worldcup 搜索框但用 stock- 前缀 (见 styles.css .stock-search-*).
  */
 import { useState, useEffect, useRef } from "preact/hooks";
-import { openDiagnosis } from "./diagnosisStore.js";
+import { openDiagnosis } from "./diagnosisStore.ts";
 
 const DEBOUNCE_MS = 250;
 const MIN_QUERY_LEN = 1;

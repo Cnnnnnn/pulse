@@ -14,7 +14,7 @@ import {
   closeAdvise,
   requestAiAdvise,
   applyAiAdvise,
-} from "./stockStore.js";
+} from "./stockStore.ts";
 import { AIDrawerShell } from "../components/AIDrawerShell.tsx";
 import { IconSparkles, IconBarChart, IconAlert } from "../components/icons.tsx";
 

@@ -12,7 +12,7 @@ import {
   startRefreshTimer,
   stopRefreshTimer,
   runScreenSilent,
-} from "../../../src/renderer/stocks/stockStore.js";
+} from "../../../src/renderer/stocks/stockStore.ts";
 
 describe("stockStore D-6 静默刷新", () => {
   beforeEach(() => {

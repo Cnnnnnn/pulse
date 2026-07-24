@@ -18,8 +18,8 @@ import {
   sortDir,
   setSort,
   runScreen,
-} from "./stockStore.js";
-import { openDiagnosis } from "./diagnosisStore.js";
+} from "./stockStore.ts";
+import { openDiagnosis } from "./diagnosisStore.ts";
 import { PanelEmpty } from "../components/EmptyState.tsx";
 import { IconWand } from "../components/icons.tsx";
 import { AddToCompareButton } from "./AddToCompareButton.tsx";

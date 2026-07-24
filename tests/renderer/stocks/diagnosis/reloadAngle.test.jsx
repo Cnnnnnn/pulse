@@ -9,7 +9,7 @@ import {
   refreshingAngles,
   failedAngles,
   reloadAngle,
-} from "../../../../src/renderer/stocks/diagnosisStore.js";
+} from "../../../../src/renderer/stocks/diagnosisStore.ts";
 
 afterEach(() => {
   diagnosisState.value = {

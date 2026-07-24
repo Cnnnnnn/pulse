@@ -8,7 +8,7 @@
  * 避免跟 DataHealthPill 阈值两份. 陈旧阈值 30 天 — 季报披露后的窗口期,
  * 超过一般意味着数据源/行业节奏断了.
  */
-import { STALE_MS } from "./dataHealth.js";
+import { STALE_MS } from "./dataHealth.ts";
 
 function formatRelative(ts, now) {
   const diff = now - ts;

@@ -115,7 +115,7 @@ export function setSort(key) {
   //   字符串列 (name/industry) 由 sortStocks 的 localeCompare 处理, 不依赖 fid.
   results.value = sortStocks(results.value, {
     key: sortKey.value,
-    dir: sortDir.value,
+    dir: sortDir.value as "asc" | "desc",
   });
 }
 
@@ -214,7 +214,7 @@ export function applyAiAdvise() {
     sortDir.value = r.sortConfig.dir === "asc" ? "asc" : "desc";
     results.value = sortStocks(results.value, {
       key: sortKey.value,
-      dir: sortDir.value,
+      dir: sortDir.value as "asc" | "desc",
     });
   }
   closeAdvise();

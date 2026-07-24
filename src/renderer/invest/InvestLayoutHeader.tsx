@@ -20,7 +20,7 @@ import {
   investPrimary,
   setInvestPrimary,
 } from "../worldcup/navStore.js";
-import { stockActiveTab } from "../stocks/diagnosisStore.js";
+import { stockActiveTab } from "../stocks/diagnosisStore.ts";
 import { IconCoin as IconInvest, IconRefresh } from "../components/icons.tsx";
 import { SubtabList } from "../components/SubtabList.tsx";
 

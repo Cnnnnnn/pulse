@@ -29,7 +29,7 @@ import { AiAdviseDrawer } from "./AiAdviseDrawer.tsx";
 import { CompareDrawer } from "./CompareDrawer.tsx";
 import { ComparePoolButton } from "./ComparePoolButton.tsx";
 import { IconSearch, IconSparkles } from "../components/icons.tsx";
-import { stockActiveTab, diagnosisState } from "./diagnosisStore.js";
+import { stockActiveTab, diagnosisState } from "./diagnosisStore.ts";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.tsx";
 import { DataHealthBadge } from "./diagnosis/DataHealthBadge.tsx";
 // ponytail 2026-07-18 P0-1 T7 fixup: 加载 stock 模块专属样式 (.data-health-badge 等).
@@ -46,7 +46,7 @@ import {
   silentRefreshTick,
   startRefreshTimer,
   stopRefreshTimer,
-} from "./stockStore.js";
+} from "./stockStore.ts";
 import { api } from "../api.ts";
 
 // ponytail 2026-07-08 UX-2: subtab 键盘导航 (WAI-ARIA tablist pattern). ←→ 切相邻,

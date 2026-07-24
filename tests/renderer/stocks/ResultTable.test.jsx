@@ -2,8 +2,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 import { ResultTable } from "../../../src/renderer/stocks/ResultTable.tsx";
-import { results } from "../../../src/renderer/stocks/stockStore.js";
-import { stockDiagnosisCode, stockActiveTab } from "../../../src/renderer/stocks/diagnosisStore.js";
+import { results } from "../../../src/renderer/stocks/stockStore.ts";
+import { stockDiagnosisCode, stockActiveTab } from "../../../src/renderer/stocks/diagnosisStore.ts";
 
 vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));
 afterEach(() => { cleanup(); results.value = []; stockDiagnosisCode.value = null; stockActiveTab.value = "screen"; });

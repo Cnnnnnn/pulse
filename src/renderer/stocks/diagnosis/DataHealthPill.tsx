@@ -8,7 +8,7 @@
  *   ⏵ (U+23F5) 在系统字体里渲染未必稳定 (字体降级时可能出方块), 纯文字 + 同族 btn
  *   视觉更一致, 不引 icon 库.
  */
-import { deriveAngleStatus, failureReasonText } from "./dataHealth.js";
+import { deriveAngleStatus, failureReasonText } from "./dataHealth.ts";
 
 const STATUS_LABEL = {
   ok: "已更新",

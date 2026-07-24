@@ -4,7 +4,7 @@
  * 策略 chip 横条 — 4 个预设策略平铺, 一键切换.
  * 对照 spec §6.4 方案 A. 点 chip → applyStrategy(id) 自动填条件.
  */
-import { STRATEGIES, activeStrategy, applyStrategy } from "./stockStore.js";
+import { STRATEGIES, activeStrategy, applyStrategy } from "./stockStore.ts";
 
 export function StrategyBar() {
   const cur = activeStrategy.value;

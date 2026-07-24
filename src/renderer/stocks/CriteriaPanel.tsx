@@ -16,7 +16,7 @@ import {
   advancedOpen,
   toggleAdvanced,
   results,
-} from "./stockStore.js";
+} from "./stockStore.ts";
 import { MARKET_CAP_TIERS } from "../../stocks/stock-constants";
 import { IconSettings } from "../components/icons.tsx";
 

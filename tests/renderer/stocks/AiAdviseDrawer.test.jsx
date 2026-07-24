@@ -19,7 +19,7 @@ import {
   requestAiAdvise,
   applyAiAdvise,
   closeAdvise,
-} from "../../../src/renderer/stocks/stockStore.js";
+} from "../../../src/renderer/stocks/stockStore.ts";
 
 vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));
 
@@ -60,7 +60,7 @@ describe("AiAdviseDrawer chip + 生成", () => {
   it("点 '生成推荐' → requestAiAdvise(api, {intentChip, freeText})", async () => {
     const api = {};
     const spy = vi.spyOn(
-      await import("../../../src/renderer/stocks/stockStore.js"),
+      await import("../../../src/renderer/stocks/stockStore.ts"),
       "requestAiAdvise",
     );
     const { container } = render(<AiAdviseDrawer api={api} />);
@@ -74,7 +74,7 @@ describe("AiAdviseDrawer chip + 生成", () => {
   it("自由文本输入 → 生成时一并传到 requestAiAdvise", async () => {
     const api = {};
     const spy = vi.spyOn(
-      await import("../../../src/renderer/stocks/stockStore.js"),
+      await import("../../../src/renderer/stocks/stockStore.ts"),
       "requestAiAdvise",
     );
     const { container } = render(<AiAdviseDrawer api={api} />);
@@ -135,7 +135,7 @@ describe("AiAdviseDrawer 状态", () => {
 
   it("点 '应用' → applyAiAdvise (写 criteria/sort, 关闭 drawer)", async () => {
     const spy = vi.spyOn(
-      await import("../../../src/renderer/stocks/stockStore.js"),
+      await import("../../../src/renderer/stocks/stockStore.ts"),
       "applyAiAdvise",
     );
     aiAdvise.value = {

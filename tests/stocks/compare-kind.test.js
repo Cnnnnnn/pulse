@@ -5,7 +5,7 @@
  *   跨模块加入 (fund/metal 走场内 ETF code) 时 kind 正确分类.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { toggleCompare, comparePool } from "../../src/renderer/stocks/comparePool.js";
+import { toggleCompare, comparePool } from "../../src/renderer/stocks/comparePool.ts";
 
 describe("comparePool kind (2026-07-13 投资 nav 合并)", () => {
   beforeEach(() => {

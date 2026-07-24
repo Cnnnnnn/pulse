@@ -16,7 +16,7 @@ import {
   advancedOpen,
   activeStrategy,
   results,
-} from "../../../src/renderer/stocks/stockStore.js";
+} from "../../../src/renderer/stocks/stockStore.ts";
 import { DEFAULT_SCREENER_CRITERIA } from "../../../src/stocks/stock-constants.js";
 
 vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));

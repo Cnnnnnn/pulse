@@ -5,7 +5,7 @@ import { StockSearchInput } from "../../../src/renderer/stocks/StockSearchInput.
 import {
   stockDiagnosisCode,
   stockActiveTab,
-} from "../../../src/renderer/stocks/diagnosisStore.js";
+} from "../../../src/renderer/stocks/diagnosisStore.ts";
 
 beforeEach(() => {
   vi.useFakeTimers();

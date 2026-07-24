@@ -24,7 +24,7 @@ import {
   updateCompareFields,
   DIM_LABELS,
   DIM_KEYS,
-} from "./comparePool.js";
+} from "./comparePool.ts";
 
 // P5: 返回 CSS 变量字符串 (而非 hex), 让三主题下颜色随 --accent-* 走.
 const COLOR = (s) =>

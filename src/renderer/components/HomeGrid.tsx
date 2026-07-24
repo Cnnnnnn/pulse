@@ -27,8 +27,8 @@ import { githubProjects } from "../store/github-projects-store.ts";
 import { worldcupMatches } from "../worldcup/store.js";
 import { matchKickoffUtcMs } from "../worldcup/match-utils.js";
 import { quoteCache } from "../metals/metalStore.ts";
-import { comparePoolCount } from "../stocks/comparePool.js";
-import { results as stocksResults } from "../stocks/stockStore.js";
+import { comparePoolCount } from "../stocks/comparePool.ts";
+import { results as stocksResults } from "../stocks/stockStore.ts";
 import { results as checkResults, apps as checkApps } from "../store.ts";
 import { todayShanghaiDateKey, articlesForDate } from "../ithome/news-utils.ts";
 import {

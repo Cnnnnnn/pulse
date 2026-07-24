@@ -4,7 +4,7 @@ import {
   STALE_MS,
   failureReasonText,
   HEALTH_REASON_TEXT,
-} from "../../../../src/renderer/stocks/diagnosis/dataHealth.js";
+} from "../../../../src/renderer/stocks/diagnosis/dataHealth.ts";
 
 describe("deriveAngleStatus", () => {
   const NOW = 1_700_000_000_000;

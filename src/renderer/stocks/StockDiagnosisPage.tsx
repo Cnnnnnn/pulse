@@ -1,5 +1,5 @@
-import { stockDiagnosisCode, diagnosisState, diagnosisStock, loadDiagnosis, refreshAngle, reloadAngle, refreshingAngles, failedAngles } from "./diagnosisStore.js";
-import { closeDiagnosis } from "./diagnosisStore.js";
+import { stockDiagnosisCode, diagnosisState, diagnosisStock, loadDiagnosis, refreshAngle, reloadAngle, refreshingAngles, failedAngles } from "./diagnosisStore.ts";
+import { closeDiagnosis } from "./diagnosisStore.ts";
 import { VerdictCard } from "./diagnosis/VerdictCard.tsx";
 import { DimensionScores } from "./diagnosis/DimensionScores.tsx";
 import { ModuleGrid } from "./diagnosis/ModuleGrid.tsx";

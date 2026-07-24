@@ -20,7 +20,7 @@ import {
   compareIsFull,
   updateComparePrice,
   MAX_COMPARE,
-} from "./comparePool.js";
+} from "./comparePool.ts";
 
 export function AddToCompareButton({ entry, variant = "row", api }) {
   const inPool = isInCompare(entry.code);

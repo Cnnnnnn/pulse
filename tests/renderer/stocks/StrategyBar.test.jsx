@@ -14,7 +14,7 @@ import {
   criteria,
   applyStrategy,
   setCriteria,
-} from "../../../src/renderer/stocks/stockStore.js";
+} from "../../../src/renderer/stocks/stockStore.ts";
 
 vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));
 

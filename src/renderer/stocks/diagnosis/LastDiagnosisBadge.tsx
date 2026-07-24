@@ -4,7 +4,7 @@
  * ponytail: 2026-07-07 — 历史快照 (overall + 5 维 + 价格) 从 diagnosisHistory 读,
  * 跟当前 scores 比较. 首次诊断 → 不渲染 (零噪声). 变化量按方向着色 (绿/橙/灰).
  */
-import { loadLastSnapshot } from "./diagnosisHistory.js";
+import { loadLastSnapshot } from "./diagnosisHistory.ts";
 
 const DIM_LABELS = {
   fundamental: "基本面",

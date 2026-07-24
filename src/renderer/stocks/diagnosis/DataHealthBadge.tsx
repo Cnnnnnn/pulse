@@ -5,7 +5,7 @@
  * 渲染 "数据: 6/9 已更新" 形式, hover tooltip 列出每张卡状态.
  * 不引第三方 tooltip 库, 走原生 title 属性 (跟 CardFreshness 一致).
  */
-import { deriveAngleStatus, failureReasonText } from "./dataHealth.js";
+import { deriveAngleStatus, failureReasonText } from "./dataHealth.ts";
 import { ANGLE_LABELS, ALL_ANGLES } from "../diagnosisStore.js";
 
 const STATUS_TEXT = {

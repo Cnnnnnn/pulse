@@ -8,7 +8,7 @@ import {
   diagnosisState,
   loadDiagnosis,
   requestAiSummary,
-} from "../../../src/renderer/stocks/diagnosisStore.js";
+} from "../../../src/renderer/stocks/diagnosisStore.ts";
 
 // closeDiagnosis 不再清 stockDiagnosisCode (保留当"最近分析过的股票"语义),
 // 测试间手动归零避免互相污染.

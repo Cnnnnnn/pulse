@@ -101,6 +101,8 @@ export const diagnosisStock = signal(null);
 //   aiStartedAt: loading 起算时间戳 (ms), 前端用于显示已等待秒数, 避免"卡住"的体感
 export const diagnosisState = signal({
   status: "idle",
+  // ponytail: code 偶发写进 state（reloadAngle 兜底读）；默认 null
+  code: null as string | null,
   perAngleData: {},
   scores: null,
   aiResult: null,
@@ -152,6 +154,7 @@ export function closeDiagnosis() {
   _failedTimers.clear();
   diagnosisState.value = {
     status: "idle",
+    code: null,
     perAngleData: {},
     scores: null,
     aiResult: null,
@@ -249,7 +252,7 @@ export async function loadDiagnosis(api, code) {
 // (网络超时 / parse 失败 / 预算超限 / 缺 key 等) 可以针对性重试. 同时记日志便于排查.
 // ponytail: 2026-07-07 P1-1 — 接受 override 入参, 允许调用方在 store 写回 ready 之前就
 // 启动 AI 解读 (真并行); override 缺省时回退到读 store.
-export async function requestAiSummary(api, code, override) {
+export async function requestAiSummary(api: any, code: string, override?: any) {
   const perAngleData =
     (override && override.perAngleData) || diagnosisState.value.perAngleData;
   const scores = (override && override.scores) || diagnosisState.value.scores;

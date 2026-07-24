@@ -14,7 +14,7 @@ import {
   removeFromCompare,
   clearCompare,
   updateComparePrice,
-} from "../../../src/renderer/stocks/comparePool.js";
+} from "../../../src/renderer/stocks/comparePool.ts";
 
 describe("comparePool store", () => {
   beforeEach(() => {

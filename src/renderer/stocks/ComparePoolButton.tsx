@@ -6,7 +6,7 @@
 import {
   comparePoolCount,
   openCompareDrawer,
-} from "./comparePool.js";
+} from "./comparePool.ts";
 
 export function ComparePoolButton() {
   const n = comparePoolCount.value;

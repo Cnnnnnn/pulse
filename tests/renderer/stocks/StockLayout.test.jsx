@@ -7,12 +7,12 @@ import {
   stockDiagnosisCode,
   diagnosisState,
   closeDiagnosis,
-} from "../../../src/renderer/stocks/diagnosisStore.js";
+} from "../../../src/renderer/stocks/diagnosisStore.ts";
 
 // ponytail 2026-07-18 P0-1 T7: stockStore 在子组件 (StrategyBar / CriteriaPanel /
 //   ResultTable / AiAdviseDrawer) 里到处 import — 走 importOriginal 拿真实实现, 只
 //   静音 refresh timer (避免 happy-dom 清理时的开放 setInterval 警告).
-vi.mock("../../../src/renderer/stocks/stockStore.js", async (importOriginal) => {
+vi.mock("../../../src/renderer/stocks/stockStore.ts", async (importOriginal) => {
   const real = await importOriginal();
   return {
     ...real,

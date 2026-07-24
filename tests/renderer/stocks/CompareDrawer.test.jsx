@@ -16,7 +16,7 @@ import {
   compareDrawerOpen,
   toggleCompare,
   clearCompare,
-} from "../../../src/renderer/stocks/comparePool.js";
+} from "../../../src/renderer/stocks/comparePool.ts";
 
 // ponytail: 把 grid-template-columns 字符串按顶层空格切分. minmax(0, 1fr) 内部
 // 空格+逗号因 depth>0 视作 1 token.

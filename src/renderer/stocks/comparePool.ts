@@ -58,7 +58,7 @@ export function removeFromCompare(code) {
 // ponytail 2026-07-07: drawer 渲染时如果 entry 缺价, 反查一次 stocksSearch 拿到价后
 // 写回 pool (reactive), 让全屏 (ResultTable 行尾 "已在对比池" 角标等) 都能看到最新价.
 // 不存在的 code 或非数组 pool 都安全 noop.
-export function updateComparePrice(code, { price, changePct } = {}) {
+export function updateComparePrice(code: string, { price, changePct }: { price?: any; changePct?: any } = {}) {
   if (!code) return;
   const pool = comparePool.value;
   if (!Array.isArray(pool) || pool.length === 0) return;
