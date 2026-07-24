@@ -5,7 +5,7 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 进行中** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；剩余主要是 tests/scripts strict 等。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），`_setup/*.cjs` 保留为 CJS helper bridge。
 
 ## 仓库布局
 
@@ -94,6 +94,8 @@ npm run lint:css            # stylelint
 - **不要** `git add -p` 跨"我+别人"mixed 文件 — 用 explicit path add
 - **不要** restore + apply 来回 — 用 `cp /tmp/backup` 兜底
 - **不要** 拍"等 X 公布"边界前必 web_search 验（按 agent memory 教训）
+- **不要** 把 `tests/**/*.ts`/`tests/**/*.tsx` 加回 `tsconfig.tests.json` 的 include — Phase 6 已 exclude，Bundler resolution 会触发 169 个假阳性 (dist-test/.cjs 产物类型窄化)，vitest 不依赖 tsconfig.include 仍跑 469 文件 4869 测试
+- **不要** `sed -i '1i ...' $(find ...)` 在 zsh 下会爆 — 用 while read + per-file 处理
 
 ## .mavis/ 项目级 skill
 
