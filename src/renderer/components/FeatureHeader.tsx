@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/FeatureHeader.jsx — 共享 header 壳 (P3 创建, P4 迁移 Worldcup + News)
+ * src/renderer/components/FeatureHeader.tsx — 共享 header 壳 (P3 创建, P4 迁移 Worldcup + News)
  *
  * ponytail: 提供一个语义化 shell, 强制 brand + controls 两栏结构.
  * 默认无任何样式 (壳本身透明), 视觉由调用方的 className + styles.css 中的 .X-header 控制.
@@ -19,9 +19,18 @@
  * P4 决策: 迁移 WorldcupHeader + NewsHeader, FundHeader/MetalHeader/WechatHotHeader 因结构差异
  * (3 栏 / 2 段 / 倒计时) 暂不迁.
  */
+import type { ComponentChildren } from "preact";
 import "./FeatureHeader.css";
 
-export function FeatureHeader({ className = "", brand, children }) {
+export function FeatureHeader({
+  className = "",
+  brand,
+  children,
+}: {
+  className?: string;
+  brand?: ComponentChildren;
+  children?: ComponentChildren;
+}) {
   // ponytail: 默认 className = "feature-header". 调用方传自己的类会追加.
   // 双 class 'feature-header X-header' 让 feature 特有 CSS 与壳 CSS 协同
   // (feature-header 后载入, 但 feature 特有样式用更高特异性覆写, 见 CSS 注释).

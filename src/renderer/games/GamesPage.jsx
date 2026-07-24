@@ -5,7 +5,7 @@
  * 收藏(wishlist)模式：渲染「侧栏 + 顶部统计 + 网格」布局，并按 activeCollectionFilter 过滤。
  */
 import { useEffect, useRef, useState } from "preact/hooks";
-import { FeatureHeader } from "../components/FeatureHeader.jsx";
+import { FeatureHeader } from "../components/FeatureHeader.tsx";
 import {
   items,
   loading,

@@ -12,7 +12,7 @@ import {
 } from "./metalStore.ts";
 import { METALS } from "../../metals/metal-config.js";
 import { calcChange } from "../../metals/metal-calc.js";
-import { Sparkline } from "../components/Sparkline.jsx";
+import { Sparkline } from "../components/Sparkline.tsx";
 import { PinIcon, IconAlert } from "../components/icons.jsx";
 import { showToast } from "../store.ts";
 import {

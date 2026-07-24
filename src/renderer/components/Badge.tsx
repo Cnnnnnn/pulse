@@ -60,14 +60,16 @@ export function StatusBadge({
   status,
   className = "",
   children,
+  title,
 }: {
   status?: string;
   className?: string;
   children?: ComponentChildren;
+  title?: string;
 }) {
   const mod = status ? ` ${status}` : "";
   return (
-    <span class={`status-badge${mod}${className ? ` ${className}` : ""}`}>
+    <span class={`status-badge${mod}${className ? ` ${className}` : ""}`} title={title}>
       {children}
     </span>
   );

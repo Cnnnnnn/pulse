@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/MergedFilterChip.jsx
+ * src/renderer/components/MergedFilterChip.tsx
  *
  * 单行 chip 集合：search input + 4 status chip + N category chip + reset button.
  * 取代原 FilterBar.jsx + CategoryTabs.jsx (Task 14 删除).

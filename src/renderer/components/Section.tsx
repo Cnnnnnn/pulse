@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/Section.jsx
+ * src/renderer/components/Section.tsx
  *
  * 一个 section 容器: SectionHeader + N 个 AppRow
  *
@@ -8,11 +8,11 @@
  * Preact 的 diff 不会重复创建 AppRow 实例；AppRow 内部用 .value 订阅自己
  * 的 signal，spec §7 "11 个 progress → 只重渲染那 1 个 row" 就成立。
  */
+import type { Section as SectionModel } from "./appTypes.ts";
+import { SectionHeader } from './SectionHeader.tsx';
+import { AppRow } from './AppRow.tsx';
 
-import { SectionHeader } from './SectionHeader.jsx';
-import { AppRow } from './AppRow.jsx';
-
-export function Section({ section }) {
+export function Section({ section }: { section: SectionModel }) {
   return (
     <div class="section" data-section={section.key}>
       <SectionHeader section={section} />

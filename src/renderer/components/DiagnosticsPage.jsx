@@ -27,10 +27,10 @@ import {
   diagnosticsLastExport,
 } from "../diagnostics/diagnostics-store.ts";
 import { api } from "../api.js";
-import { PageHeader } from "./PageHeader.jsx";
+import { PageHeader } from "./PageHeader.tsx";
 import { ConfigImportModal } from "./ConfigImportModal.jsx";
 import { PanelEmpty } from "./EmptyState.tsx";
-import { KPICard } from "./KPICard.jsx";
+import { KPICard } from "./KPICard.tsx";
 import { StatusBadge } from "./Badge.tsx";
 import { IconCheck } from "./icons.jsx";
 import { navigateTo } from "../store/route-store.ts";

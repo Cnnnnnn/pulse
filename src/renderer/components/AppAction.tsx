@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/AppAction.jsx
+ * src/renderer/components/AppAction.tsx
  *
  * 行内操作: 有 brew_cask → "升级" 按钮; 否则 → status badge.
  * Phase 30+1: ⓘ info 按钮从 AppAction 移到 AppInfo (跟 app name 同行),
@@ -17,8 +17,9 @@
  */
 
 import { StatusBadge } from './Badge.tsx';
+import type { ResultLike } from './appTypes.ts';
 
-const STATUS_MAP = {
+const STATUS_MAP: Record<string, { text: string; cls: string }> = {
   update_available: { text: '有更新',   cls: 'update'  },
   up_to_date:       { text: '最新',     cls: 'latest'  },
   no_auto_check:    { text: '无法检测', cls: 'warning' },
@@ -26,7 +27,15 @@ const STATUS_MAP = {
   error:            { text: '出错',     cls: 'error'   },
 };
 
-export function AppAction({ result, onUpgrade, isUpgrading }) {
+export function AppAction({
+  result,
+  onUpgrade,
+  isUpgrading,
+}: {
+  result: ResultLike;
+  onUpgrade: (cask: string, appName: string) => void;
+  isUpgrading?: boolean;
+}) {
   const note = result.note || '';
   const status = result.status;
 

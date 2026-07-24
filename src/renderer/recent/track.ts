@@ -133,7 +133,7 @@ export function trackSettingsOpen() {
   });
 }
 
-export function trackAppUpgrade(appName, detail) {
+export function trackAppUpgrade(appName: string, detail?: string): void {
   const name = (appName || "").trim() || "应用";
   const label = detail ? `${name} · ${detail}` : `${name} 已升级`;
   pushRecent({

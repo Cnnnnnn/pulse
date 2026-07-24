@@ -52,7 +52,7 @@ const RECOMMENDED = {
   unknown: 7 * 86400,
 };
 
-function rankOptions(tier) {
+function rankOptions(tier: string) {
   const rec = RECOMMENDED[tier] ?? RECOMMENDED.unknown;
   return BASE_OPTIONS.map((o) => ({ ...o, recommended: o.seconds === rec }))
     .sort((a, b) => {
@@ -63,22 +63,40 @@ function rankOptions(tier) {
     });
 }
 
-const TIER_LABELS = {
+const TIER_LABELS: Record<string, string> = {
   hot: '热',
   warm: '温',
   cold: '冷',
   unknown: '未知',
 };
 
-function formatUntil(untilMs) {
+function formatUntil(untilMs: number) {
   if (!untilMs) return '永远';
   const d = new Date(untilMs);
-  const pad = (n) => String(n).padStart(2, '0');
+  const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getMonth() + 1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function MuteMenu({ x, y, appName, isMuted, muteUntil, lastOpened = null, onClose, onAction }) {
-  const ref = useRef(null);
+export function MuteMenu({
+  x,
+  y,
+  appName,
+  isMuted,
+  muteUntil,
+  lastOpened = null,
+  onClose,
+  onAction,
+}: {
+  x: number;
+  y: number;
+  appName: string;
+  isMuted: boolean;
+  muteUntil?: number;
+  lastOpened?: { ms: number | null; source?: string } | null;
+  onClose?: () => void;
+  onAction?: (action: { type: string; seconds?: number }) => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState({ left: x, top: y });
   const [busy, setBusy] = useState(false);
 
@@ -121,10 +139,10 @@ export function MuteMenu({ x, y, appName, isMuted, muteUntil, lastOpened = null,
   }, [onClose]);
 
   // Phase 29: 按 tier 排 5 个选项
-  const tier = lastOpened ? getLocalTier(lastOpened.ms) : 'unknown';
+  const tier: string = lastOpened ? getLocalTier(lastOpened.ms) : 'unknown';
   const ranked = rankOptions(tier);
 
-  async function pickDuration(seconds) {
+  async function pickDuration(seconds: number) {
     if (busy) return;
     setBusy(true);
     try {

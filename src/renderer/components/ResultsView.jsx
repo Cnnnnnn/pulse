@@ -15,7 +15,7 @@
 
 import { results } from '../store.ts';
 import { filteredResultsBySection } from '../selectors.js';
-import { Section } from './Section.jsx';
+import { Section } from './Section.tsx';
 import { EmptyState } from './EmptyState.tsx';
 
 export function ResultsView() {

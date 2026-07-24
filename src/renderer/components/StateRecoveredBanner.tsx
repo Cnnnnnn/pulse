@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/StateRecoveredBanner.jsx
+ * src/renderer/components/StateRecoveredBanner.tsx
  *
  * Phase Q8: one-time dismissible banner shown when state.json was corrupt
  * at startup. Driven by `stateRecoveredSignal` (set by the bootstrap
@@ -8,9 +8,16 @@
  */
 import { signal, useComputed } from '@preact/signals';
 
-export const stateRecoveredSignal = signal(null);
+type StateRecoveryEvent = {
+  ts: number;
+  reason?: string;
+  backup?: string;
+  backupFailed?: string;
+};
 
-function isDismissedForEvent(evt) {
+export const stateRecoveredSignal = signal<StateRecoveryEvent | null>(null);
+
+function isDismissedForEvent(evt: StateRecoveryEvent) {
   if (!evt) return false;
   const dismissed = localStorage.getItem('state-banner:dismissed');
   if (!dismissed) return false;

@@ -14,7 +14,7 @@ export const activeCategory = signal("all");
 export const mutedApps = signal(new Map());
 export const lastOpenedApps = signal(new Map());
 
-export function isMuted(name, now) {
+export function isMuted(name: string, now?: number): boolean {
   if (!name) return false;
   const m = mutedApps.value.get(name);
   if (!m) return false;
@@ -23,7 +23,7 @@ export function isMuted(name, now) {
   return t < m.until;
 }
 
-export function getLocalTier(lastMs, now) {
+export function getLocalTier(lastMs: number | null | undefined, now?: number): "hot" | "warm" | "cold" | "unknown" {
   if (lastMs == null || typeof lastMs !== "number") return "unknown";
   const t = typeof now === "number" ? now : Date.now();
   if (t < lastMs) return "unknown";

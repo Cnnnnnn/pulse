@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/AppRow.jsx
+ * src/renderer/components/AppRow.tsx
  *
  * 单个 app 行 —— 局部更新的关键单元。
  *
@@ -31,24 +31,25 @@ import {
   lastOpenedApps,
 } from '../store.ts';
 import { api } from '../api.js';
-import { AppAvatar } from './AppAvatar.jsx';
-import { AppInfo } from './AppInfo.jsx';
-import { AppVersions } from './AppVersions.jsx';
-import { AppAction } from './AppAction.jsx';
+import { AppAvatar } from './AppAvatar.tsx';
+import { AppInfo } from './AppInfo.tsx';
+import { AppVersions } from './AppVersions.tsx';
+import { AppAction } from './AppAction.tsx';
 import { ChangelogPanel } from './ChangelogPanel.jsx';
-import { MuteMenu } from './MuteMenu.jsx';
+import { MuteMenu } from './MuteMenu.tsx';
+import type { ResultLike } from './appTypes.ts';
 
-export function AppRow({ name }) {
+export function AppRow({ name }: { name: string }) {
   // 订阅 per-row signals (本组件的订阅点)
   const resultSig = getResultSignal(name);
-  const result = resultSig.value;
+  const result = resultSig.value as ResultLike | null;
   const phase = getAppPhaseSignal(name).value;
 
   const [upgrading, setUpgrading] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
-  const [muteMenuAt, setMuteMenuAt] = useState(null);
+  const [muteMenuAt, setMuteMenuAt] = useState<{ x: number; y: number } | null>(null);
 
-  const handleUpgrade = useCallback(async (cask, appName) => {
+  const handleUpgrade = useCallback(async (cask: string, appName: string) => {
     if (!cask) return;
     setUpgrading(true);
     try {

@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/AppInfo.jsx
+ * src/renderer/components/AppInfo.tsx
  *
  * App 名字 + 副标题 (source/note 派生) + Phase 27 mute badge.
  * + Phase 29 上次打开时间 sub-line (按 tier 颜色分类, Phase 30).
@@ -8,8 +8,11 @@
 import { getLocalTier } from '../store.ts';
 import { UpgradeAdvice } from './UpgradeAdvice.jsx';
 import { IconVolumeOff, IconInfo } from './icons.jsx';
+import type { ResultLike } from './appTypes.ts';
 
-const SOURCE_LABELS = {
+type LastOpened = { ms: number | null; source?: string };
+
+const SOURCE_LABELS: Record<string, string> = {
   'brew': 'Brew', 'sparkle': 'Sparkle', 'web(yml)': 'CDN',
   'web(api)': 'API', 'web(redirect)': 'Redirect',
   'web(github)': 'GitHub', 'web(brew)': 'Brew(API)', 'web(cursor)': 'CDN',
@@ -30,7 +33,7 @@ const SOURCE_LABELS = {
   'html_changelog': 'Changelog',
 };
 
-function sourceLabel(s) {
+function sourceLabel(s: string | undefined | null): string {
   if (!s) return '';
   return SOURCE_LABELS[s] || s;
 }
@@ -39,7 +42,7 @@ function sourceLabel(s) {
  * Phase 12: 把 result.ts (ms epoch) 渲染成 "刚刚" / "X 分钟前" / "X 小时前" / "X 天前".
  * > 24h 加 class="stale" 让 UI 显示警告色.
  */
-function relativeTime(ts) {
+function relativeTime(ts: number | undefined | null): string {
   if (!ts) return '';
   const diffMs = Date.now() - ts;
   if (diffMs < 0) return '刚刚';
@@ -53,7 +56,7 @@ function relativeTime(ts) {
   return `${d} 天前`;
 }
 
-function isStale(ts) {
+function isStale(ts: number | undefined | null): boolean {
   if (!ts) return false;
   return (Date.now() - ts) > 24 * 60 * 60 * 1000;
 }
@@ -64,7 +67,7 @@ function isStale(ts) {
  *   - 截到 80 字符, 词边界优先
  *   - 末尾加 "…"
  */
-function changelogPreview(raw) {
+function changelogPreview(raw: string | undefined | null): string {
   if (!raw) return '';
   // 简单 HTML strip (我们只关心展示, 严格安全交给 ChangelogPanel)
   let s = raw.replace(/<[^>]+>/g, ' ');
@@ -84,7 +87,7 @@ function changelogPreview(raw) {
  * @param {number} untilMs  0 = 永远; >0 = 到期 epoch ms
  * @returns {string}
  */
-function muteUntilLabel(untilMs) {
+function muteUntilLabel(untilMs: number): string {
   if (!untilMs) return '永远';
   const d = new Date(untilMs);
   const pad = (n) => String(n).padStart(2, '0');
@@ -98,6 +101,13 @@ export function AppInfo({
   lastOpened = null,
   onShowChangelog,
   isChangelogOpen = false,
+}: {
+  result: ResultLike;
+  muted?: boolean;
+  muteUntil?: number;
+  lastOpened?: LastOpened | null;
+  onShowChangelog?: () => void;
+  isChangelogOpen?: boolean;
 }) {
   const source = sourceLabel(result.source);
   const note = result.note || '';
@@ -219,7 +229,7 @@ export function AppInfo({
         </div>
       )}
       {result.has_update && (
-        <UpgradeAdvice appName={result.name} hasUpdate={result.has_update} />
+        <UpgradeAdvice appName={result.name} hasUpdate={true} />
       )}
       {lastOpenedLine}
     </div>

@@ -20,7 +20,7 @@ export const ROUTES = ["library", "diagnostics", "settings"];
 export const currentRoute = signal("library");
 export const routeTab = signal("general"); // 'general' | 'ai'
 
-export function navigateTo(route, tab) {
+export function navigateTo(route: string, tab?: string): void {
   // 容错: 已废弃的旧路由重定向到 library (应用列表)
   if (route === "overview" || route === "insights") route = "library";
   if (!ROUTES.includes(route)) return;

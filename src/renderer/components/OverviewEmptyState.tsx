@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/OverviewEmptyState.jsx
+ * src/renderer/components/OverviewEmptyState.tsx
  *
  * v2.50 (T4): Overview 首次启动 CTA — 大按钮触发 onRunCheck.
  * 无 state, 无副作用. 纯展示. 输入 onRunCheck + isLoading, 输出 button.
@@ -7,7 +7,13 @@
  */
 import "./OverviewEmptyState.css";
 
-export function OverviewEmptyState({ onRunCheck, isLoading }) {
+export function OverviewEmptyState({
+  onRunCheck,
+  isLoading,
+}: {
+  onRunCheck: () => void;
+  isLoading: boolean;
+}) {
   return (
     <div class="overview-empty-state">
       <div class="empty-content">

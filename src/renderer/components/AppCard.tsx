@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/AppCard.jsx
+ * src/renderer/components/AppCard.tsx
  *
  * Library Card 视图单卡. ponytail: 跟 AppRow 共用 data source,
  * 但不抽 helper — Card 后续可独立演进 (放更多元数据).
@@ -11,10 +11,11 @@
 import { useState } from "preact/hooks";
 import { getResultSignal, getAppPhaseSignal } from "../store.ts";
 import { api } from "../api.js";
-import { AppAvatar } from "./AppAvatar.jsx";
+import { AppAvatar } from "./AppAvatar.tsx";
+import type { ResultLike } from "./appTypes.ts";
 
-export function AppCard({ name }) {
-  const result = getResultSignal(name).value;
+export function AppCard({ name }: { name: string }) {
+  const result = getResultSignal(name).value as ResultLike | null;
   const phase = getAppPhaseSignal(name).value;
   const [upgrading, setUpgrading] = useState(false);
 
@@ -45,7 +46,7 @@ export function AppCard({ name }) {
       <div class="app-card-name">{result.name}</div>
       <div class="app-card-versions">
         {result.current_version} → {result.latest_version}
-        {result.has_update && <span class="app-card-update-badge">有更新</span>}
+        {result.has_update ? <span class="app-card-update-badge">有更新</span> : null}
       </div>
       <button
         type="button"

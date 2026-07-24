@@ -4,7 +4,7 @@
  * v3.1 布局对齐 ai-leaderboard-redesign-preview
  */
 import { useEffect, useState } from "preact/hooks";
-import { FeatureHeader } from "../components/FeatureHeader.jsx";
+import { FeatureHeader } from "../components/FeatureHeader.tsx";
 import {
   loading,
   error,

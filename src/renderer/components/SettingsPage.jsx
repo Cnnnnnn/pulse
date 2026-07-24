@@ -13,7 +13,7 @@
  */
 import { useEffect, useState } from "preact/hooks";
 import { signal } from "@preact/signals";
-import { PageHeader } from "./PageHeader.jsx";
+import { PageHeader } from "./PageHeader.tsx";
 import { SubtabList } from "./SubtabList.tsx";
 import { AISettingsScene } from "./AISettingsScene.jsx";
 import { routeTab } from "../store/route-store.ts";

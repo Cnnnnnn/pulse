@@ -1,10 +1,11 @@
 /**
- * src/renderer/components/SectionHeader.jsx
+ * src/renderer/components/SectionHeader.tsx
  *
  * 单个 section 标题行: dot + label + count
  */
+import type { Section as SectionModel } from "./appTypes.ts";
 
-export function SectionHeader({ section }) {
+export function SectionHeader({ section }: { section: SectionModel }) {
   return (
     <div class="section-header">
       <span class="dot" style={{ background: section.dotColor }}></span>

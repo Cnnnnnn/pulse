@@ -13,14 +13,14 @@
  * ponytail: 复用现有 ResultsView 当 TableView. Card 视图 < 100 行直接渲染,
  *          > 100 行用 VirtualCardGrid.
  */
-import { PageHeader } from "./PageHeader.jsx";
-import { PageActionsBar } from "./PageActionsBar.jsx";
+import { PageHeader } from "./PageHeader.tsx";
+import { PageActionsBar } from "./PageActionsBar.tsx";
 import { ViewSwitcher } from "./ViewSwitcher.jsx";
-import { MergedFilterChip } from "./MergedFilterChip.jsx";
+import { MergedFilterChip } from "./MergedFilterChip.tsx";
 import { ResultsView } from "./ResultsView.jsx";
-import { AppCard } from "./AppCard.jsx";
+import { AppCard } from "./AppCard.tsx";
 import { VirtualCardGrid } from "./VirtualCardGrid.jsx";
-import { OverviewEmptyState } from "./OverviewEmptyState.jsx";
+import { OverviewEmptyState } from "./OverviewEmptyState.tsx";
 import { useRunCheck } from "../hooks/useRunCheck.ts";
 import { viewMode } from "../store/library-view-store.ts";
 import { results } from "../store.ts";

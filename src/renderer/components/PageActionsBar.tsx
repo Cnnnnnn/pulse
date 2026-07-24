@@ -1,11 +1,12 @@
 /**
- * src/renderer/components/PageActionsBar.jsx
+ * src/renderer/components/PageActionsBar.tsx
  *
  * 把原 TopBar 的全局动作 (搜索 / AI 任务 / 通知 / overflow 菜单) 合并到
  * PageHeader 右侧, 跟 LibraryPage 的「检查更新」按钮同行.
  *
  * 原 TopBar 已删除 (2026-06-27 整合进 PageHeader).
  */
+import type { RefObject } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { createPortal } from "preact/compat";
 import { upgradableCount } from "../selectors.js";
@@ -24,8 +25,8 @@ import {
 
 export function PageActionsBar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const overflowRef = useRef(null);
-  const [menuPos, setMenuPos] = useState(null);
+  const overflowRef = useRef<HTMLDivElement | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const badge = upgradableCount.value;
 
   // 用 fixed + portal 渲染 overflow menu, 跳出 .page-header 和 .app-shell-view
@@ -64,7 +65,7 @@ export function PageActionsBar() {
     };
   }, [menuOpen]);
 
-  async function exportResults(format) {
+  async function exportResults(format: "json" | "csv") {
     if (!api.detectResultsExport) {
       showToast("导出 IPC 暂不可用, 请升级到 v2.51+", "info", 2500);
       setMenuOpen(false);
@@ -85,7 +86,7 @@ export function PageActionsBar() {
   }
 
   // drawer 打开后顺手关掉 overflow 菜单 (顶层只有 overflow 在监听 doc click).
-  function openDrawer(action) {
+  function openDrawer(action: () => void) {
     setMenuOpen(false);
     action();
   }
@@ -94,6 +95,7 @@ export function PageActionsBar() {
   function openDiagnosticsPage() {
     setMenuOpen(false);
     navigateTo("diagnostics");
+    return undefined;
   }
 
   // Release Notes: 拉当前版本 payload 后打开 wizard (manual 入口, 不写 mark-seen)
@@ -152,16 +154,18 @@ export function PageActionsBar() {
           class="page-action-menu page-action-menu-portal"
           role="menu"
           style={{ top: `${menuPos.top}px`, right: `${menuPos.right}px` }}
-          onMouseDown={(e) => {
+          onMouseDown={(e: MouseEvent) => {
             e.stopPropagation();
-            if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === "function") {
-              e.nativeEvent.stopImmediatePropagation();
+            const native = e as unknown as { nativeEvent?: { stopImmediatePropagation?: () => void } };
+            if (native.nativeEvent && typeof native.nativeEvent.stopImmediatePropagation === "function") {
+              native.nativeEvent.stopImmediatePropagation();
             }
           }}
-          onClick={(e) => {
+          onClick={(e: MouseEvent) => {
             e.stopPropagation();
-            if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === "function") {
-              e.nativeEvent.stopImmediatePropagation();
+            const native = e as unknown as { nativeEvent?: { stopImmediatePropagation?: () => void } };
+            if (native.nativeEvent && typeof native.nativeEvent.stopImmediatePropagation === "function") {
+              native.nativeEvent.stopImmediatePropagation();
             }
           }}
         >

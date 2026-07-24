@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useRef } from "preact/hooks";
 import { results } from "../store.ts";
-import { AppCard } from "./AppCard.jsx";
+import { AppCard } from "./AppCard.tsx";
 
 const ROW_HEIGHT = 130;     // Card 高度 (含 gap)
 const BUFFER_ROWS = 3;      // 上下多渲染几行

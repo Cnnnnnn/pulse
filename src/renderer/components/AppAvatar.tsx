@@ -1,5 +1,5 @@
 /**
- * src/renderer/components/AppAvatar.jsx
+ * src/renderer/components/AppAvatar.tsx
  *
  * App 头像: 优先用真图标 (来自 IPC 缓存)，否则用首字母渐变块。
  * 有真图标时: 透明背景, 图标自身就是前景.
@@ -8,7 +8,7 @@
 
 import { useIcon } from '../hooks/useIcon.ts';
 
-export function AppAvatar({ bundle, name }) {
+export function AppAvatar({ bundle, name }: { bundle: string; name: string }) {
   const { src, nameInitial, nameColor } = useIcon(bundle, name);
 
   if (src) {

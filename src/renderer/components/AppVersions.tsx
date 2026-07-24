@@ -1,10 +1,11 @@
 /**
- * src/renderer/components/AppVersions.jsx
+ * src/renderer/components/AppVersions.tsx
  *
  * 已安装 → 最新 两栏版本对比
  */
+import type { ResultLike } from "./appTypes.ts";
 
-export function AppVersions({ result }) {
+export function AppVersions({ result }: { result: ResultLike }) {
   const installed = result.installed_version || '—';
   const latest = result.latest_version || '—';
   const highlight = !!result.has_update;

@@ -6,7 +6,7 @@
  */
 
 import { useState } from "preact/hooks";
-import { FeatureHeader } from "../components/FeatureHeader.jsx";
+import { FeatureHeader } from "../components/FeatureHeader.tsx";
 import {
   githubProjects,
   githubError,
