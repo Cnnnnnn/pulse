@@ -405,27 +405,10 @@ export function getCategoryTabsWithCount(results: any) {
   return tabs;
 }
 
-// ponytail: module.exports 仅给 Node/CJS（main bundle / dist-test）；
-//   renderer 是 ESM，裸 module.exports 会 ReferenceError。
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    setData,
-    getCategory,
-    getAllCategories,
-    getCategoryById,
-    getCategoryByName,
-    validateCategoryMap,
-    getCategoryTabsWithCount,
-    // Step B (LLM classify)
-    classifyByHeuristic,
-    classifyByLLM,
-    setLLMCache,
-    getLLMCache,
-    getLoadStatus,
-    clearLLMCache,
-    _LOAD_STATUS: getLoadStatus,
-    _DEFAULT_CATEGORIES: DEFAULT_CATEGORIES,
-    _HEURISTIC_RULES: HEURISTIC_RULES,
-    _clearLLMCache,
-  };
-}
+// ponytail: 测试/CJS 需要的内部符号走 export（dist-test esbuild 会打进 module.exports）；
+//   禁止本文件再写 module.exports —— renderer ESM 会 ReferenceError 白屏。
+export {
+  DEFAULT_CATEGORIES as _DEFAULT_CATEGORIES,
+  HEURISTIC_RULES as _HEURISTIC_RULES,
+  _clearLLMCache,
+};

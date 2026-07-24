@@ -135,11 +135,10 @@ describe("classifyUnmappedAppsByLLM (async, fire-and-forget)", () => {
       { name: "Cursor", bundle: "Cursor.app" },
       { name: "Kimi", bundle: "Kimi.app" },
     ]);
-    // mock classifyByLLM 确认不被调
-    const spy = vi.spyOn(categoryConfig, "classifyByLLM");
-    await classifyUnmappedAppsByLLM(cfg, { stateStore });
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
+    // ponytail: esbuild CJS export 不可 redefine，改 spy llmCaller（早退也不会调到）
+    const llmCaller = vi.fn();
+    await classifyUnmappedAppsByLLM(cfg, { stateStore, llmCaller });
+    expect(llmCaller).not.toHaveBeenCalled();
   });
 
   it("未分类 app → 调 LLM, 成功后写入 cache + save disk", async () => {

@@ -44,4 +44,5 @@ export function normalizePrefs(input: unknown): TrayPrefs {
   return out;
 }
 
-module.exports = { TRAY_SEGMENTS, DEFAULT_PREFS, normalizePrefs };
+// ponytail: 无 module.exports — 本文件被 renderer ESM 直接 import；
+//   main/tests 走 export + dist-test/esbuild bundle，不需要 CJS 双导出。
