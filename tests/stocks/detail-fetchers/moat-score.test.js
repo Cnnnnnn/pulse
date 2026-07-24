@@ -5,14 +5,19 @@
  * httpClient.get 只服务于 MAINFINADATA 财务接口; fetchIndustryPeers 单独 mock.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createRequire } from "node:module";
 
-// mock fetchIndustryPeers (moat-score 用 require("./_shared-industry") 拿它).
+// ponytail: 勿用 const require = createRequire — 会 TDZ 挡住 vi.hoisted 里的 require("path")
+const nodeRequire = createRequire(import.meta.url);
+const { stocksArtifactPath, requireStocks } = nodeRequire("../../_setup/require-main.cjs");
+
+// mock fetchIndustryPeers (moat-score CJS 产物 require dist-test sibling).
 const _mockIndustry = vi.fn();
 vi.hoisted(() => {
   const path = require("path");
   const modulePath = path.resolve(
     __dirname,
-    "../../../src/stocks/detail-fetchers/_shared-industry.js",
+    "../../../dist-test/stocks/detail-fetchers/_shared-industry.cjs",
   );
   delete require.cache[modulePath];
   require.cache[modulePath] = {
@@ -25,7 +30,8 @@ vi.hoisted(() => {
   };
 });
 
-const { fetchMoatScore } = await import("../../../src/stocks/detail-fetchers/moat-score.js");
+delete require.cache[stocksArtifactPath("detail-fetchers/moat-score")];
+const { fetchMoatScore } = requireStocks("detail-fetchers/moat-score");
 
 // MAINFINADATA 财务 200 + data
 function financeResponse(rows) {

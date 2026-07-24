@@ -5,14 +5,19 @@
  * httpClient.get 顺序: VALUATIONSTATUS → board(LICO 步骤1) → member(LICO 步骤2).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createRequire } from "node:module";
 
-// mock valuation fetcher (同原测试: vi.hoisted 注入 require.cache).
+// ponytail: 勿用 const require = createRequire — 会 TDZ 挡住 vi.hoisted 里的 require("path")
+const nodeRequire = createRequire(import.meta.url);
+const { stocksArtifactPath, requireStocks } = nodeRequire("../../_setup/require-main.cjs");
+
+// mock valuation fetcher (同原测试: vi.hoisted 注入 require.cache → dist-test).
 const _mockValuation = vi.fn();
 vi.hoisted(() => {
   const path = require("path");
   const modulePath = path.resolve(
     __dirname,
-    "../../../src/stocks/detail-fetchers/valuation.js",
+    "../../../dist-test/stocks/detail-fetchers/valuation.cjs",
   );
   delete require.cache[modulePath];
   require.cache[modulePath] = {
@@ -25,14 +30,14 @@ vi.hoisted(() => {
   };
 });
 
-// mock fetchIndustryPeers (peer-compare 用 require("./_shared-industry") 拿它).
+// mock fetchIndustryPeers (peer-compare CJS 产物 require dist-test sibling).
 // 这样测试只验 peer-compare 的编排 + 字段映射, 不耦合 LICO 两步细节 (_shared-industry 有自己测试).
 const _mockIndustry = vi.fn();
 vi.hoisted(() => {
   const path = require("path");
   const modulePath = path.resolve(
     __dirname,
-    "../../../src/stocks/detail-fetchers/_shared-industry.js",
+    "../../../dist-test/stocks/detail-fetchers/_shared-industry.cjs",
   );
   delete require.cache[modulePath];
   require.cache[modulePath] = {
@@ -45,7 +50,8 @@ vi.hoisted(() => {
   };
 });
 
-const { fetchPeerCompare } = await import("../../../src/stocks/detail-fetchers/peer-compare.js");
+delete require.cache[stocksArtifactPath("detail-fetchers/peer-compare")];
+const { fetchPeerCompare } = requireStocks("detail-fetchers/peer-compare");
 
 // VALUATIONSTATUS datacenter 200 (type=1 PE, type=2 PB)
 function valuationStatusResponse(rows) {

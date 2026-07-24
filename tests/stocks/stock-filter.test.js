@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterStocks, sortStocks, applyScreen } from "../../src/stocks/stock-filter";
+import { filterStocks, sortStocks, applyScreen } from "../../src/stocks/stock-filter.ts";
 
 const mk = (over) => ({
   code: "000001", name: "测试", price: 10, changePct: 1,

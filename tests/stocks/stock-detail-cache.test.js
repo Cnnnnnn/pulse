@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeStockCacheKey } from "../../src/stocks/stock-detail-cache";
+import { computeStockCacheKey } from "../../src/stocks/stock-detail-cache.ts";
 
 describe("computeStockCacheKey", () => {
   it("returns stable key for same input", () => {

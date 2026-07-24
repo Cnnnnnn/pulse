@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   computeScores,
   computeBasicRisks,
-} from "../../src/stocks/diagnosis-scorer.js";
+} from "../../src/stocks/diagnosis-scorer.ts";
 
 describe("diagnosis-scorer", () => {
   describe("基本面 fundamental (基于 ROE)", () => {

@@ -2,7 +2,7 @@
  * tests/stocks/detail-fetchers/capital-flow.test.js
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchCapitalFlow } from "../../../src/stocks/detail-fetchers/capital-flow.js";
+import { fetchCapitalFlow } from "../../../src/stocks/detail-fetchers/capital-flow.ts";
 
 const emOK = (klines) => ({
   ok: true,

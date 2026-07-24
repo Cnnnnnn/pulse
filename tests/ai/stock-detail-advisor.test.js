@@ -12,10 +12,11 @@ const require = createRequire(import.meta.url);
 const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const stateStorePath = mainArtifactPath("state-store");
+const stateStoreShimPath = require.resolve("../../src/main/state-store.js");
 const promptRegistryPath = require.resolve("../../src/ai/prompt-registry.js");
 const sharedLlmPath = require.resolve("../../src/ai/shared-llm.js");
-const stockAnglesPath =
-  require.resolve("../../src/stocks/stock-detail-angles.js");
+// Phase 5: .js 是 shim → dist-test；advisor require shim，两边都 stub
+const stockAnglesPath = require.resolve("../../src/stocks/stock-detail-angles.js");
 const advisorPath = require.resolve("../../src/ai/stock-detail-advisor.js");
 
 // ponytail: 加载真 prompt-registry 仅供 mock 取 fewShot 用 — 单测不修改它,
@@ -28,6 +29,8 @@ const _mockState = { stockDetailCache: {}, apps: {} };
 function reloadAdvisor() {
   delete require.cache[advisorPath];
   delete require.cache[stockAnglesPath];
+  delete require.cache[stateStorePath];
+  delete require.cache[stateStoreShimPath];
   require.cache[sharedLlmPath] = {
     id: sharedLlmPath,
     filename: sharedLlmPath,
@@ -49,14 +52,21 @@ function reloadAdvisor() {
       },
     },
   };
+  const stateExports = {
+    load: () => _mockState,
+    patchState: (fn) => fn(_mockState),
+  };
   require.cache[stateStorePath] = {
     id: stateStorePath,
     filename: stateStorePath,
     loaded: true,
-    exports: {
-      load: () => _mockState,
-      patchState: (fn) => fn(_mockState),
-    },
+    exports: stateExports,
+  };
+  require.cache[stateStoreShimPath] = {
+    id: stateStoreShimPath,
+    filename: stateStoreShimPath,
+    loaded: true,
+    exports: stateExports,
   };
   require.cache[stockAnglesPath] = {
     id: stockAnglesPath,

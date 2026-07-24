@@ -2,7 +2,7 @@
  * tests/stocks/detail-fetchers/news-buzz.test.js
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchNewsBuzz } from "../../../src/stocks/detail-fetchers/news-buzz.js";
+import { fetchNewsBuzz } from "../../../src/stocks/detail-fetchers/news-buzz.ts";
 
 const emOK = (list) => ({ ok: true, status: 200, body: { data: { list } } });
 const fail = () => ({ ok: false, status: 500, error: "http_error" });

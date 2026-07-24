@@ -2,7 +2,7 @@
  * tests/stocks/detail-fetchers/price-trend.test.js
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchPriceTrend } from "../../../src/stocks/detail-fetchers/price-trend.js";
+import { fetchPriceTrend } from "../../../src/stocks/detail-fetchers/price-trend.ts";
 
 const emResponse = (klines) => ({ ok: true, status: 200, body: { data: { klines } } });
 const fail = (status = 500) => ({ ok: false, status, error: "http_error" });

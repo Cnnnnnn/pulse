@@ -2,16 +2,17 @@
  * tests/stocks/stock-detail-fetcher.test.js
  *
  * ponytail: vitest 1.6 的 vi.mock 只 hook ESM import, 不 hook CJS require
- * (vitest-dev/vitest#5359). stock-detail-fetcher.js 是 CJS, 内部用 require(...).
+ * (vitest-dev/vitest#5359). stock-detail-fetcher 是 CJS 产物, 内部用 require(...).
  * 改用 require.cache 注入模式 (见 tests/ai/stock-screener-advisor.test.js).
  */
 import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
+const { stocksArtifactPath, requireStocks } = require("../_setup/require-main.cjs");
 
-const anglesPath = require.resolve("../../src/stocks/stock-detail-angles.js");
-const fetcherPath = require.resolve("../../src/stocks/stock-detail-fetcher.js");
+const anglesPath = stocksArtifactPath("stock-detail-angles");
+const fetcherPath = stocksArtifactPath("stock-detail-fetcher");
 
 const mockPriceTrendFetcher = vi.fn(async (_http, { code }) => ({
   ok: true,
@@ -67,7 +68,7 @@ function injectMockAngles() {
 }
 
 injectMockAngles();
-const { fetchStockDetailAngles, fetchSingleAngle } = require("../../src/stocks/stock-detail-fetcher.js");
+const { fetchStockDetailAngles, fetchSingleAngle } = requireStocks("stock-detail-fetcher");
 
 const httpClient = { get: vi.fn() };
 

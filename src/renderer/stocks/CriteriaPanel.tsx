@@ -17,7 +17,7 @@ import {
   toggleAdvanced,
   results,
 } from "./stockStore.ts";
-import { MARKET_CAP_TIERS } from "../../stocks/stock-constants";
+import { MARKET_CAP_TIERS } from "../../stocks/stock-constants.ts";
 import { IconSettings } from "../components/icons.tsx";
 
 function RangeInput({ label, minKey, maxKey, suffix }: { label: any; minKey: any; maxKey: any; suffix?: any }) {

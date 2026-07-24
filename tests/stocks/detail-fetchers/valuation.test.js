@@ -2,7 +2,7 @@
  * tests/stocks/detail-fetchers/valuation.test.js
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchValuation } from "../../../src/stocks/detail-fetchers/valuation.js";
+import { fetchValuation } from "../../../src/stocks/detail-fetchers/valuation.ts";
 
 const push2OK = (data) => ({ ok: true, status: 200, body: { data } });
 const dcOK = (data) => ({ ok: true, status: 200, body: { result: { data } } });

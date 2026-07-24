@@ -25,9 +25,9 @@ import {
   STRATEGIES,
   buildCriteria,
   getStrategy,
-} from "../../stocks/strategies";
-import { DEFAULT_SCREENER_CRITERIA } from "../../stocks/stock-constants";
-import { sortStocks } from "../../stocks/stock-filter";
+} from "../../stocks/strategies.ts";
+import { DEFAULT_SCREENER_CRITERIA } from "../../stocks/stock-constants.ts";
+import { sortStocks } from "../../stocks/stock-filter.ts";
 
 const log = taggedLog("[stocks]");
 

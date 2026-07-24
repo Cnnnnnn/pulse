@@ -7,7 +7,7 @@
  *   它会同时设 stockDiagnosisCode 并切到 diagnosis tab.
  */
 import { signal, computed } from "@preact/signals";
-import { computeScores } from "../../stocks/diagnosis-scorer.js";
+import { computeScores } from "../../stocks/diagnosis-scorer.ts";
 import { taggedLog } from "../log.ts";
 import { saveSnapshot } from "./diagnosis/diagnosisHistory.js";
 

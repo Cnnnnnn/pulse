@@ -2,7 +2,7 @@
  * tests/stocks/detail-fetchers/tech-indicators.test.js
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchTechIndicators } from "../../../src/stocks/detail-fetchers/tech-indicators.js";
+import { fetchTechIndicators } from "../../../src/stocks/detail-fetchers/tech-indicators.ts";
 
 const emOK = (closes) => ({ ok: true, status: 200, body: { data: { klines: closes.map((c, i) => `2026-05-${(i+1).toString().padStart(2,"0")},${c},${c},${c},${c},1000,10000,0.5`) } } });  // 模板: open, close, high, low — close=c 让 parsed closes == closes
 const sinaOK = (closes) => ({ ok: true, status: 200, body: closes.map((c, i) => ({ day: `2026-05-${(i+1).toString().padStart(2,"0")}`, open: c, close: c, high: c, low: c, amount: 10000, turnover: 0.5 })) });

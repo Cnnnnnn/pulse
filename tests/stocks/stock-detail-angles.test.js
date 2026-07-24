@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ANGLE_DEFS, getAngle } from "../../src/stocks/stock-detail-angles";
+import { ANGLE_DEFS, getAngle } from "../../src/stocks/stock-detail-angles.ts";
 
 describe("stock-detail-angles", () => {
   it("ANGLE_DEFS has 12 angles (9 基础 + 3 P1 季频/静态; 删 industry_momentum + margin_trading 周末永远空)", () => {

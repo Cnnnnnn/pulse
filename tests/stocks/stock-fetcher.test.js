@@ -6,7 +6,7 @@ import {
   mapRow,
   buildUrl,
   codeToSecid,
-} from "../../src/stocks/stock-fetcher";
+} from "../../src/stocks/stock-fetcher.ts";
 
 // 假 httpClient: 返回固定 clist 响应
 function mockClient(body) {
@@ -270,7 +270,7 @@ import {
   fetchStocksSina,
   mapSinaRow,
   parseSinaList,
-} from "../../src/stocks/sina-fetcher";
+} from "../../src/stocks/sina-fetcher.ts";
 
 const SINA_SAMPLE = JSON.stringify([
   {

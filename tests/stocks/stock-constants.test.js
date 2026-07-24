@@ -8,7 +8,7 @@ import {
   MARKET_CAP_TIERS,
   tierForMarketCap,
   DEFAULT_SCREENER_CRITERIA,
-} from "../../src/stocks/stock-constants";
+} from "../../src/stocks/stock-constants.ts";
 
 describe("stock-constants", () => {
   it("MARKET_PARAM covers sh + sz main board", () => {

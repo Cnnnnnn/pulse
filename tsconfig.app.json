@@ -19,6 +19,7 @@
     "src/detectors/**/*.ts",
     "src/metals/**/*.ts",
     "src/funds/**/*.ts",
+    "src/stocks/**/*.ts",
     "src/workers/**/*.js",
     "src/**/*.js"
   ],

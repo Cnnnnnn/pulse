@@ -9,7 +9,7 @@ import { ShareholdersCard } from "./ShareholdersCard.tsx";
 import { CorporateEventsCard } from "./CorporateEventsCard.tsx";
 import { PeerCompareCard } from "./PeerCompareCard.tsx";
 import { AiNoteLine } from "./AiNoteLine.tsx";
-import { computeBasicRisks } from "../../../stocks/diagnosis-scorer.js";
+import { computeBasicRisks } from "../../../stocks/diagnosis-scorer.ts";
 
 // ponytail: 2026-07-07 — peer_compare 现在独立成 PeerCompareCard (用户反馈"看不到同业对比").
 // 还在 FundamentalsCard / ValuationCard 留 sub-section (本股 PE/PB / ROE/毛利率 vs 行业中位,

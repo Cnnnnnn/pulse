@@ -9,10 +9,10 @@
  *   - safeHandle 直接捕获 fn, 测试直接 invoke
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath, stocksArtifactPath } = require("../_setup/require-main.cjs");
 
-const fetcherPath = require.resolve("../../src/stocks/stock-fetcher.js");
-const searchPath = require.resolve("../../src/stocks/stock-search.js");
+const fetcherPath = stocksArtifactPath("stock-fetcher");
+const searchPath = stocksArtifactPath("stock-search");
 const registerPath = mainArtifactPath("ipc/register-stocks");
 
 const httpClient = {

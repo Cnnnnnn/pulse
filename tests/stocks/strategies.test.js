@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { STRATEGIES, getStrategy, buildCriteria } from "../../src/stocks/strategies";
+import { STRATEGIES, getStrategy, buildCriteria } from "../../src/stocks/strategies.ts";
 
 describe("strategies", () => {
   it("has 4 strategies with id+label", () => {

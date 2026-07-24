@@ -3,7 +3,7 @@ import {
   computeMarketOverview,
   medianOf,
   percentileOf,
-} from "../../src/stocks/market-overview";
+} from "../../src/stocks/market-overview.ts";
 
 describe("medianOf", () => {
   it("returns null for empty", () => {

@@ -2,7 +2,7 @@
  * tests/stocks/detail-fetchers/volume-turnover.test.js
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchVolumeTurnover } from "../../../src/stocks/detail-fetchers/volume-turnover.js";
+import { fetchVolumeTurnover } from "../../../src/stocks/detail-fetchers/volume-turnover.ts";
 
 const emOK = (klines) => ({ ok: true, status: 200, body: { data: { klines } } });
 const sinaOK = (items) => ({ ok: true, status: 200, body: items });

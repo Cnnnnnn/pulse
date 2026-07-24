@@ -2,7 +2,7 @@
  * tests/stocks/detail-fetchers/profitability.test.js
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchProfitability } from "../../../src/stocks/detail-fetchers/profitability.js";
+import { fetchProfitability } from "../../../src/stocks/detail-fetchers/profitability.ts";
 
 const emOK = (data) => ({ ok: true, status: 200, body: { data } });
 const fail = () => ({ ok: false, status: 500, error: "http_error" });

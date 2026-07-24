@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { fetchIndustryPeers } = await import(
-  "../../../src/stocks/detail-fetchers/_shared-industry.js"
+  "../../../src/stocks/detail-fetchers/_shared-industry.ts"
 );
 
 // datacenter 200 + data
