@@ -14,9 +14,9 @@
 //          rewrite 依赖 path 保留裸名).
 import type {} from "electron";
 
-let _trayMgr = null;
+let _trayMgr: any = null;
 
-function setTrayManager(m) {
+function setTrayManager(m: any) {
   _trayMgr = m;
 }
 

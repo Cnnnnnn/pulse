@@ -34,7 +34,7 @@ function initStateRecovery() {
     // state-store.loadOrRecover only rethrows non-corruption errors;
     // log them but let the app continue with whatever state is available.
     const { mainLog } = require("../log.ts");
-    mainLog.warn(`[state-init] loadOrRecover threw: ${err && err.message}`);
+    mainLog.warn(`[state-init] loadOrRecover threw: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

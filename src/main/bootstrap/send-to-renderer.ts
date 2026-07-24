@@ -15,8 +15,8 @@ const { mainLog } = require("../log.ts");
 /**
  * @param {{ getWindow: () => import('electron').BrowserWindow | null }} deps
  */
-function createSender(deps) {
-  return function sendToRenderer(channel, payload) {
+function createSender(deps: any) {
+  return function sendToRenderer(channel: any, payload: any) {
     const w = deps.getWindow && deps.getWindow();
     if (w && !w.isDestroyed()) {
       w.webContents.send(channel, payload);
@@ -24,9 +24,9 @@ function createSender(deps) {
   };
 }
 
-function installErrorGuardBridge(sendToRenderer) {
+function installErrorGuardBridge(sendToRenderer: any) {
   const { installErrorGuard } = require("../error-guard.ts");
-  installErrorGuard((channel, payload) => sendToRenderer(channel, payload));
+  installErrorGuard((channel: any, payload: any) => sendToRenderer(channel, payload));
   mainLog.info("error guard installed");
 }
 

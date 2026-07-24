@@ -34,7 +34,7 @@ function loadCategoryConfig() {
       cats = parsed.categories;
     }
   } catch (err) {
-    mainLog.warn(`[category] categories.json read failed: ${err.message}`);
+    mainLog.warn(`[category] categories.json read failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   try {
@@ -44,7 +44,7 @@ function loadCategoryConfig() {
       map = parsed.mapping;
     }
   } catch (err) {
-    mainLog.warn(`[category] app-category.json read failed: ${err.message}`);
+    mainLog.warn(`[category] app-category.json read failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   if (cats === null || map === null) {
@@ -72,7 +72,7 @@ function loadCategoryConfig() {
  * @param {function} [deps.llmCaller]  可选, 测试用; 不传则走内置 ollama caller.
  *                                     signature: async (systemMsg, userMsg) => string
  */
-async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
+async function classifyUnmappedAppsByLLM(runtimeConfig: any, deps: any) {
   const { stateStore, llmCaller: externalLlmCaller } = deps;
   const t0 = Date.now();
   if (
@@ -116,7 +116,7 @@ async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
   let systemMsg;
   try {
     const { resolvePrompt } = require("../../ai/prompt-registry");
-    const validCatIds = categoryConfig.getAllCategories().map((c) => c.id);
+    const validCatIds = categoryConfig.getAllCategories().map((c: any) => c.id);
     const prompt = resolvePrompt("category_classify");
     systemMsg = [
       prompt.system,
@@ -134,7 +134,7 @@ async function classifyUnmappedAppsByLLM(runtimeConfig, deps) {
       systemMsg,
     });
   } catch (err) {
-    mainLog.warn(`[category] LLM classify threw: ${err.message}`);
+    mainLog.warn(`[category] LLM classify threw: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   if (Object.keys(llmResult).length > 0) {
@@ -163,7 +163,7 @@ function defaultOllamaCaller() {
   const host = "http://127.0.0.1:11434";
   const model = "qwen2.5-coder:7b";
   const http = new HttpClient({ timeout: 30_000, maxRetries: 0 });
-  return async (systemMsg, userMsg) => {
+  return async (systemMsg: any, userMsg: any) => {
     const r = await http.post(
       `${host}/api/chat`,
       {
@@ -189,7 +189,7 @@ function defaultOllamaCaller() {
     try {
       parsed = JSON.parse(r.body);
     } catch (err) {
-      throw new Error(`llm caller: response not JSON: ${err.message}`);
+      throw new Error(`llm caller: response not JSON: ${err instanceof Error ? err.message : String(err)}`);
     }
     const content =
       parsed && parsed.message && typeof parsed.message.content === "string"
@@ -210,7 +210,7 @@ function defaultOllamaCaller() {
  * @param {object} deps
  * @param {object} deps.stateStore
  */
-function primeLLMCacheFromDisk(deps) {
+function primeLLMCacheFromDisk(deps: any) {
   const { stateStore } = deps;
   try {
     const oldCache = stateStore.loadLLMClassifyCache();
@@ -221,7 +221,7 @@ function primeLLMCacheFromDisk(deps) {
       );
     }
   } catch (err) {
-    mainLog.warn(`[category] prime LLM cache failed: ${err && err.message}`);
+    mainLog.warn(`[category] prime LLM cache failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

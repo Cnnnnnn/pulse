@@ -5,7 +5,7 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 **Phase 3 Batch 0–9 完成**；**Phase 3.5** 按目录开 `strict`（见 `tsconfig.app.strict.json`，已锁 platform + digest/funds/search/wechat-hot/ithome/worldcup/games/ai-leaderboard；剩余 ipc / bootstrap / `src/main/*.ts`）。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 **Phase 3 Batch 0–9 完成**；**Phase 3.5** 按目录开 `strict`（见 `tsconfig.app.strict.json`，已锁 platform + bootstrap + 业务域；剩余 ipc / `src/main/*.ts`）。
 
 ## 仓库布局
 

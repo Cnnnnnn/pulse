@@ -16,7 +16,7 @@ const { buildTaskSummaryEngine } = require("../../ai-sessions/wiring");
  * @param {object} deps
  * @param {object} deps.stateStore
  */
-function initAiTasksWiring(deps) {
+function initAiTasksWiring(deps: any) {
   const { stateStore } = deps;
   const stateOverride = stateStore.loadAISessionsConfig();
   const cfgBase =
@@ -29,19 +29,19 @@ function initAiTasksWiring(deps) {
       config: cfgBase,
       runtimeOverride: stateStore.loadAISessionsConfig(),
       log: {
-        info: (...a) => mainLog.info(...a),
-        warn: (...a) => mainLog.warn(...a),
-        error: (...a) => mainLog.error(...a),
+        info: (...a: any[]) => mainLog.info(...a),
+        warn: (...a: any[]) => mainLog.warn(...a),
+        error: (...a: any[]) => mainLog.error(...a),
       },
     });
-    global.__pulse_aiTasks = wiring;
-    global.__pulse_aiSessionsBaseCfg = cfgBase;
-    const detectorNames = wiring.detectors.map((d) => d.appName).join(",");
+    (globalThis as any).__pulse_aiTasks = wiring;
+    (globalThis as any).__pulse_aiSessionsBaseCfg = cfgBase;
+    const detectorNames = wiring.detectors.map((d: any) => d.appName).join(",");
     mainLog.info(
       `[tasks] wiring ready: provider=${wiring.providerId} detectors=[${detectorNames}]`,
     );
   } catch (err) {
-    mainLog.warn(`[tasks] buildTaskSummaryEngine failed: ${err.message}`);
+    mainLog.warn(`[tasks] buildTaskSummaryEngine failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

@@ -21,7 +21,7 @@ import type * as pathType from "node:path";
 const path: typeof pathType = require('path');
 const { createAggregator } = require('../error-aggregator.ts');
 
-let _instance = null;
+let _instance: { aggregator: any; sendToRenderer: any } | null = null;
 
 function initErrorCapture(opts: {
   logsDir?: string;
@@ -34,7 +34,7 @@ function initErrorCapture(opts: {
   const sendToRenderer = typeof opts.sendToRenderer === 'function' ? opts.sendToRenderer : null;
   const agg = createAggregator({ logsDir, retentionDays });
 
-  function notify(entry) {
+  function notify(entry: any) {
     if (sendToRenderer) {
       try {
         sendToRenderer('error:appended', { id: entry.id, ts: entry.ts, level: entry.level, source: entry.source });

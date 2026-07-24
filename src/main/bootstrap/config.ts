@@ -41,7 +41,7 @@ function loadConfig() {
     const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
     parsed = JSON.parse(raw);
   } catch (err) {
-    mainLog.error(`config read/parse failed: ${err.message}`);
+    mainLog.error(`config read/parse failed: ${err instanceof Error ? err.message : String(err)}`);
     return sanitizeConfig(null);
   }
 
@@ -55,7 +55,7 @@ function loadConfig() {
         parsed = r.config;
       }
     } catch (err) {
-      mainLog.error(`config migrate failed: ${err.message}`);
+      mainLog.error(`config migrate failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

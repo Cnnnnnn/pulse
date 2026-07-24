@@ -29,7 +29,7 @@ const { _internals, KNOWN_PROVIDERS } = require("../ipc/register-ai-usage.ts");
  * @param {object} [opts]
  * @param {boolean} [opts.warmup=true]  启动时是否 fire-and-forget 拉一次
  */
-function bootstrapAiUsage(deps, opts: { warmup?: boolean; registerIpc?: boolean } = {}) {
+function bootstrapAiUsage(deps: any, opts: { warmup?: boolean; registerIpc?: boolean } = {}) {
   const warmup = opts.warmup !== false;
   const registerIpc = opts.registerIpc !== false; // 默认也注册 IPC, 调用方可选跳过
 
@@ -48,7 +48,7 @@ function bootstrapAiUsage(deps, opts: { warmup?: boolean; registerIpc?: boolean 
     deps.register("ai-usage:get-cached", async () =>
       _internals.getCached({ deps: internalDeps }),
     );
-    deps.register("ai-usage:fetch", async (_event, evtOpts) =>
+    deps.register("ai-usage:fetch", async (_event: any, evtOpts: any) =>
       _internals.fetch({ deps: internalDeps, opts: evtOpts || {} }),
     );
   }

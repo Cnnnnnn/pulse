@@ -22,6 +22,12 @@ const aiLeaderboard = require("../ai-leaderboard/index.ts");
 // C4: 模块级 timer handle (跟 daily-summary-job 的 _handle 同构), 便于 __resetForTest 清理.
 const _autoCheckHandle = { interval: null };
 
+// ponytail: bootstrap = DI glue; deps stay `any` until BootstrapDeps. Ceiling: any; upgrade when deps consolidate.
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+
 function __resetForTest() {
   if (_autoCheckHandle.interval) {
     clearManaged(_autoCheckHandle.interval);
@@ -47,6 +53,12 @@ function decideAutoCheck({
   quietEnd,
   lastAutoCheckAt,
   intervalMs,
+}: {
+  now: Date;
+  quietStart?: string | null;
+  quietEnd?: string | null;
+  lastAutoCheckAt: number | null;
+  intervalMs: number;
 }) {
   if (quietStart && quietEnd && inQuietHours(now, quietStart, quietEnd)) {
     return { action: "skip", reason: "quiet_hours" };
@@ -73,7 +85,7 @@ function decideAutoCheck({
  *                                       默认 require("../check-runner.ts").runCheckQueued
  * @param {object}  [ctx.log]           注入 logger, 默认 mainLog
  */
-async function checkOnce(ctx) {
+async function checkOnce(ctx: any) {
   const { deps, state, intervalMs } = ctx;
   const nowFn = ctx.now || (() => new Date());
   const log = ctx.log || mainLog;
@@ -98,7 +110,7 @@ async function checkOnce(ctx) {
   log.info("auto-check triggered");
   const runCheck =
     ctx.runCheck ||
-    ((runDeps, opts) =>
+    ((runDeps: any, opts: any) =>
       require("../check-runner.ts").runCheckQueued(runDeps, opts));
   try {
     await runCheck(
@@ -110,15 +122,15 @@ async function checkOnce(ctx) {
           // auto-check 默认 silent, 不需要 onCheckComplete (它由 silent=false
           // 路径内部 scheduleOnCheckComplete 处理). 但 trayMgr.setResults +
           // saveAll 还是要在 check 完成后触发, 这里自定义一个组合包.
-          onCheckComplete: (results) => {
+          onCheckComplete: (results: any) => {
             if (deps.trayMgr) {
               deps.trayMgr.setResults(results);
-              deps.trayMgr.setBadge(results.filter((r) => r.has_update).length);
+              deps.trayMgr.setBadge(results.filter((r: any) => r.has_update).length);
             }
             try {
               deps.stateStore.saveAll(results);
             } catch (err) {
-              log.warn(`state save failed: ${err.message}`);
+              log.warn(`state save failed: ${errMsg(err)}`);
             }
           },
         }),
@@ -128,8 +140,8 @@ async function checkOnce(ctx) {
     state.lastAutoCheckAt = Date.now();
     return { action: "run" };
   } catch (err) {
-    log.warn(`auto-check failed: ${err && err.message}`);
-    return { action: "error", error: err && err.message };
+    log.warn(`auto-check failed: ${errMsg(err)}`);
+    return { action: "error", error: errMsg(err) };
   }
 }
 
@@ -141,27 +153,27 @@ async function checkOnce(ctx) {
  * @param {function} deps.sendToRenderer
  * @returns {object|null}
  */
-function startFundScheduler(deps) {
+function startFundScheduler(deps: any) {
   const { httpClient, fundStore, FundScheduler, sendToRenderer, getConfig } =
     deps;
   try {
     const sched = new FundScheduler({
       httpClient,
       getCodes: () =>
-        (fundStore.loadAll().holdings || []).map((h) => h.code).filter(Boolean),
+        (fundStore.loadAll().holdings || []).map((h: any) => h.code).filter(Boolean),
       intervalMs: 5 * 60 * 1000,
       concurrency: 4,
       logger: mainLog,
     });
-    sched.on("state", (st) => sendToRenderer("funds:nav:state", st));
-    sched.on("fetched", (payload) => {
+    sched.on("state", (st: any) => sendToRenderer("funds:nav:state", st));
+    sched.on("fetched", (payload: any) => {
       sendToRenderer("funds:nav:fetched", payload);
       try {
         const { checkFundAlerts } = require("../funds/fund-alerts.ts");
         const all = fundStore.loadAll();
         const cfg = typeof getConfig === "function" ? getConfig() || {} : {};
         const notif = cfg.notifications || {};
-        const sendNotification = (n) => {
+        const sendNotification = (n: any) => {
           if (
             notif.quiet_hours_start &&
             notif.quiet_hours_end &&
@@ -191,7 +203,7 @@ function startFundScheduler(deps) {
           alertPrefs: all.alertPrefs,
           navSource: all.navSource,
           sendNotification,
-          saveAlertPrefs: (patch) => fundStore.setAlertPrefs(patch),
+          saveAlertPrefs: (patch: any) => fundStore.setAlertPrefs(patch),
           log: mainLog,
         });
         if (alertOut && alertOut.notified > 0) {
@@ -211,11 +223,11 @@ function startFundScheduler(deps) {
         });
       } catch (err) {
         mainLog.warn(
-          `[fund-scheduler] alert check failed: ${err && err.message}`,
+          `[fund-scheduler] alert check failed: ${errMsg(err)}`,
         );
       }
     });
-    sched.on("history", (payload) =>
+    sched.on("history", (payload: any) =>
       sendToRenderer("funds:history:updated", payload),
     );
     sched.start();
@@ -229,7 +241,7 @@ function startFundScheduler(deps) {
     });
     return sched;
   } catch (err) {
-    mainLog.warn(`fund scheduler init failed: ${err && err.message}`);
+    mainLog.warn(`fund scheduler init failed: ${errMsg(err)}`);
     return null;
   }
 }
@@ -240,11 +252,11 @@ function startFundScheduler(deps) {
  * @param {function} deps.getWindow
  * @param {function} deps.sendToRenderer
  */
-function startRemindersScheduler(deps) {
+function startRemindersScheduler(deps: any) {
   const { reminders, getWindow, sendToRenderer } = deps;
   try {
     reminders.startScheduler({
-      onFire: (r) => {
+      onFire: (r: any) => {
         try {
           if (ElectronNotification && ElectronNotification.isSupported()) {
             const n = new ElectronNotification({
@@ -265,7 +277,7 @@ function startRemindersScheduler(deps) {
           }
         } catch (err) {
           mainLog.warn(
-            `[reminders] notification show failed: ${err && err.message}`,
+            `[reminders] notification show failed: ${errMsg(err)}`,
           );
         }
         sendToRenderer("reminders:fired", { id: r.id, reminder: r });
@@ -280,7 +292,7 @@ function startRemindersScheduler(deps) {
       }
     });
   } catch (err) {
-    mainLog.warn(`reminders scheduler init failed: ${err && err.message}`);
+    mainLog.warn(`reminders scheduler init failed: ${errMsg(err)}`);
   }
 }
 
@@ -289,14 +301,14 @@ function startRemindersScheduler(deps) {
  * @param {object} deps.recentActivity
  * @param {function} deps.sendToRenderer
  */
-function wireRecentActivityListener(deps) {
+function wireRecentActivityListener(deps: any) {
   const { recentActivity, sendToRenderer } = deps;
   try {
     recentActivity.setOnUpdate(() => {
       sendToRenderer("recent:updated", { entries: recentActivity.list() });
     });
   } catch (err) {
-    mainLog.warn(`recent-activity onUpdate failed: ${err && err.message}`);
+    mainLog.warn(`recent-activity onUpdate failed: ${errMsg(err)}`);
   }
 }
 
@@ -323,7 +335,7 @@ function wireRecentActivityListener(deps) {
  *   quitAndInstall: () => void,
  * }}
  */
-function makeSelfUpdateController(deps) {
+function makeSelfUpdateController(deps: any) {
   const { autoUpdater } = deps || {};
   const {
     INITIAL_UPDATE_STATE,
@@ -331,7 +343,7 @@ function makeSelfUpdateController(deps) {
   } = require("../self-updater.ts");
   let state = { ...INITIAL_UPDATE_STATE };
 
-  function dispatch(action) {
+  function dispatch(action: any) {
     state = reduceUpdateState(state, action);
   }
 
@@ -356,7 +368,7 @@ function makeSelfUpdateController(deps) {
   // 事件 → dispatch
   try {
     autoUpdater.on("checking-for-update", () => dispatch({ type: "CHECKING" }));
-    autoUpdater.on("update-available", (info) =>
+    autoUpdater.on("update-available", (info: any) =>
       dispatch({
         type: "UPDATE_AVAILABLE",
         version: info && info.version,
@@ -370,7 +382,7 @@ function makeSelfUpdateController(deps) {
     autoUpdater.on("update-not-available", () =>
       dispatch({ type: "UPDATE_NOT_AVAILABLE" }),
     );
-    autoUpdater.on("download-progress", (p) =>
+    autoUpdater.on("download-progress", (p: any) =>
       dispatch({
         type: "DOWNLOAD_PROGRESS",
         percent:
@@ -380,7 +392,7 @@ function makeSelfUpdateController(deps) {
     autoUpdater.on("update-downloaded", () =>
       dispatch({ type: "UPDATE_DOWNLOADED" }),
     );
-    autoUpdater.on("error", (err) =>
+    autoUpdater.on("error", (err: any) =>
       dispatch({ type: "ERROR", message: (err && err.message) || String(err) }),
     );
   } catch {
@@ -396,9 +408,9 @@ function makeSelfUpdateController(deps) {
       } catch (err) {
         dispatch({
           type: "ERROR",
-          message: (err && err.message) || String(err),
+          message: errMsg(err),
         });
-        return { ok: false, reason: "threw", error: err && err.message };
+        return { ok: false, reason: "threw", error: errMsg(err) };
       }
     },
     quitAndInstall: () => {
@@ -445,7 +457,7 @@ function startSelfUpdateTimer(deps: {
       autoUpdater = mod.autoUpdater;
     } catch (err) {
       mainLog.warn(
-        `[self-update] electron-updater not available: ${err && err.message}`,
+        `[self-update] electron-updater not available: ${errMsg(err)}`,
       );
       // 降级: 返一个 "未启用" controller, IPC 仍能注册但 checkNow 返 no-autoUpdater
       const controller = makeSelfUpdateController({});
@@ -469,13 +481,13 @@ function startSelfUpdateTimer(deps: {
   let logSkip =
     typeof deps.logSkip === "function"
       ? deps.logSkip
-      : (reason) => mainLog.info(`self-update tick skipped (${reason})`);
+      : (reason: any) => mainLog.info(`self-update tick skipped (${reason})`);
   const { decideSelfUpdateTick } = require("../self-update-idle.ts");
 
   // 幂等 powerMonitor 查询: 接线层提供 getPowerIdleState fn,
   // 测试注入 mock, 生产接 electron.powerMonitor.getSystemIdleState.
   // 任何异常 → 返 null (纯函数把 null 当 "unknown" 处理, 不阻断但也不强跑).
-  function safeGetPowerIdleState(fn) {
+  function safeGetPowerIdleState(fn: any) {
     try {
       const r = fn();
       if (r === "active" || r === "idle" || r === "locked" || r === "unknown") {
@@ -492,7 +504,7 @@ function startSelfUpdateTimer(deps: {
   }
 
   // setManagedInterval 范式 (参考 startAutoCheckTimer)
-  let intervalHandle = null;
+  let intervalHandle: any = null;
   try {
     intervalHandle = setManagedInterval(
       () => {
@@ -521,12 +533,12 @@ function startSelfUpdateTimer(deps: {
     );
   } catch (err) {
     mainLog.warn(
-      `[self-update] setManagedInterval failed: ${err && err.message}`,
+      `[self-update] setManagedInterval failed: ${errMsg(err)}`,
     );
   }
 
   // 启动时延迟 30s 检测一次 (避免跟启动 check 抢资源)
-  let initialTimer = null;
+  let initialTimer: ReturnType<typeof setTimeout> | null = null;
   try {
     initialTimer = setTimeout(() => {
       checkOnce().catch(() => {});
@@ -585,16 +597,16 @@ function startSelfUpdateTimer(deps: {
 // 2026 世界杯已于 2026-07-19 结束。赛事结束后不再轮询外部 API（tray/digest
 // 的数据源已有日期过滤，不会显示过期比赛）。如需支持下届赛事，更新此日期。
 const WORLDCUP_2026_END_MS = Date.UTC(2026, 6, 20); // 7月20日 00:00 UTC（决赛次日）
-function startWorldcupGoalWatcher(deps) {
+function startWorldcupGoalWatcher(deps: any) {
   if (Date.now() >= WORLDCUP_2026_END_MS) return; // 赛事已结束，不启动后台轮询
   const { getWindow, sendToRenderer, getConfig, goalWatcher, onScoresChanged } =
     deps;
   try {
     goalWatcher.startGoalWatcher({
-      refreshScores: (keys) =>
+      refreshScores: (keys: any) =>
         require("../worldcup/scores-fetcher.ts").refreshWorldcupScores(keys),
       loadFixtures: () => stateStore.loadWorldcupTxt(),
-      onGoal: (notif, meta) => {
+      onGoal: (notif: any, meta: any) => {
         try {
           // 复用现有 quiet hours
           const cfg =
@@ -629,21 +641,21 @@ function startWorldcupGoalWatcher(deps) {
               });
             } catch (err) {
               mainLog.warn(
-                `[worldcup/goal-watcher] sendToRenderer failed: ${err && err.message}`,
+                `[worldcup/goal-watcher] sendToRenderer failed: ${errMsg(err)}`,
               );
             }
           });
           n.show();
         } catch (err) {
           mainLog.warn(
-            `[worldcup/goal-watcher] notification show failed: ${err && err.message}`,
+            `[worldcup/goal-watcher] notification show failed: ${errMsg(err)}`,
           );
         }
       },
       log: {
-        info: (...args) => mainLog.info(...args),
-        warn: (...args) => mainLog.warn(...args),
-        error: (...args) => mainLog.error(...args),
+        info: (...args: any[]) => mainLog.info(...args),
+        warn: (...args: any[]) => mainLog.warn(...args),
+        error: (...args: any[]) => mainLog.error(...args),
       },
       // v2.22 C2.1: 透传 onScoresChanged (only if defined, 避免显式 undefined)
       ...(typeof onScoresChanged === "function" ? { onScoresChanged } : {}),
@@ -657,7 +669,7 @@ function startWorldcupGoalWatcher(deps) {
       }
     });
   } catch (err) {
-    mainLog.warn(`worldcup goal watcher init failed: ${err && err.message}`);
+    mainLog.warn(`worldcup goal watcher init failed: ${errMsg(err)}`);
   }
 }
 
@@ -679,7 +691,7 @@ function startWorldcupGoalWatcher(deps) {
  * @param {function} [deps._testNow]       测试注入: 当前时间
  * @param {function} [deps._testRunCheck]  测试注入: runCheckQueued 替代
  */
-function startAutoCheckTimer(deps) {
+function startAutoCheckTimer(deps: any) {
   const cfg = (deps.runtimeConfigRef && deps.runtimeConfigRef.current) || {};
   const rawInterval =
     cfg.notifications && cfg.notifications.check_interval_hours;
@@ -748,19 +760,19 @@ function startAutoCheckTimer(deps) {
  * @param {object} deps.stateStore
  * @param {function} deps.sendToRenderer
  */
-function makeRefreshLastOpenedAfterCheck(deps) {
+function makeRefreshLastOpenedAfterCheck(deps: any) {
   const { runtimeConfigRef, stateStore, sendToRenderer } = deps;
   return function refreshLastOpenedAfterCheck() {
     const cfg = runtimeConfigRef.current;
     const apps = (cfg && cfg.apps) || [];
-    const refreshable = apps.filter((a) => a && a.name && a.bundle);
+    const refreshable = apps.filter((a: any) => a && a.name && a.bundle);
     if (refreshable.length === 0) return;
     (async () => {
       try {
         const lastOpened = require("../last-opened.ts");
-        const next = {};
+        const next: Record<string, any> = {};
         await Promise.all(
-          refreshable.map(async (a) => {
+          refreshable.map(async (a: any) => {
             const bundlePath = resolveAppBundlePath(a.bundle);
             if (!bundlePath) {
               next[a.name] = { ms: null, source: "unknown" };
@@ -771,7 +783,7 @@ function makeRefreshLastOpenedAfterCheck(deps) {
               next[a.name] = { ms: r.ms, source: r.source };
             } catch (err) {
               mainLog.warn(
-                `[last-opened] refresh item failed: ${a.name} ${err && err.message}`,
+                `[last-opened] refresh item failed: ${a.name} ${errMsg(err)}`,
               );
               next[a.name] = { ms: null, source: "unknown" };
             }
@@ -781,7 +793,7 @@ function makeRefreshLastOpenedAfterCheck(deps) {
         sendToRenderer("last-opened-updated", { lastOpened: next });
       } catch (err) {
         mainLog.warn(
-          `[last-opened] batch refresh failed: ${err && err.message}`,
+          `[last-opened] batch refresh failed: ${errMsg(err)}`,
         );
       }
     })();
@@ -810,7 +822,7 @@ module.exports = {
  * @param {object} [deps]
  * @returns {{start:function, stop:function, triggerNow:function}|null}
  */
-function startLeaderboardScheduler(deps) {
+function startLeaderboardScheduler(deps: any) {
   try {
     const handle = aiLeaderboard.registerLeaderboardScheduler(deps || {});
     handle.start();
@@ -825,7 +837,7 @@ function startLeaderboardScheduler(deps) {
     }
     return handle;
   } catch (err) {
-    mainLog.warn(`[ai-leaderboard] scheduler init failed: ${err && err.message}`);
+    mainLog.warn(`[ai-leaderboard] scheduler init failed: ${errMsg(err)}`);
     return null;
   }
 }
