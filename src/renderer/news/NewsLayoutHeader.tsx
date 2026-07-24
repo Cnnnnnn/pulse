@@ -32,7 +32,7 @@ import {
 } from "../wechat-hot/store.ts";
 import { formatCooldown, formatTime } from "../wechat-hot/utils.ts";
 import { IconNews, IconRefresh } from "../components/icons.jsx";
-import { SubtabList } from "../components/SubtabList.jsx";
+import { SubtabList } from "../components/SubtabList.tsx";
 
 const COOLDOWN_MS = 15000;
 

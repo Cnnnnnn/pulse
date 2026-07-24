@@ -12,7 +12,7 @@ import { resolvePlayerCn } from './player-cn.js';
 import { toBeijingTime } from './timeUtils.js';
 import MatchScorers from './MatchScorers.jsx';
 import MatchAiPanel from './MatchAiPanel.jsx';
-import { ModalShell } from '../components/ModalShell.jsx';
+import { ModalShell } from '../components/ModalShell.tsx';
 
 const POS_LABELS = {
   GK: '门将', DF: '后卫', MF: '中场', FW: '前锋',

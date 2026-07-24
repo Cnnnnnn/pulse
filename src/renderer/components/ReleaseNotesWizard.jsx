@@ -22,7 +22,7 @@ import { renderChangelog } from '../changelog.js';
 import { showToast } from '../store.ts';
 import { api } from '../api.js';
 import { openConfirm } from '../store/confirmStore.ts';
-import { BareModalShell } from './ModalShell.jsx';
+import { BareModalShell } from './ModalShell.tsx';
 import {
   releaseNotesOpen,
   releaseNotesEntryPath,

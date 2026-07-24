@@ -5,7 +5,7 @@
  * 纯本地：note / rating 仅落 localStorage，代码层无网络出口。
  */
 import { useEffect, useRef, useState } from "preact/hooks";
-import { ModalShell } from "../components/ModalShell.jsx";
+import { ModalShell } from "../components/ModalShell.tsx";
 import {
   noteRatingTarget,
   closeNoteRating,

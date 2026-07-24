@@ -21,7 +21,7 @@ import {
   itemKey,
 } from "../watchlist/watchlist-store.ts";
 import { getMetalById } from "../../metals/metal-config.js";
-import { ModalShell, ModalHeader } from "./ModalShell.jsx";
+import { ModalShell, ModalHeader } from "./ModalShell.tsx";
 import { IconStar, IconX, WatchlistTypeIcon } from "./icons.jsx";
 
 function fmtTs(ts) {

@@ -11,7 +11,7 @@ import {
 } from "./store.js";
 import { currentMonthLabel, favoriteCount } from "./news-utils.js";
 import { IconNews, IconRefresh, IconCalendar, IconStar } from "../components/icons.jsx";
-import { SubtabList } from "../components/SubtabList.jsx";
+import { SubtabList } from "../components/SubtabList.tsx";
 import { FeatureHeader } from "../components/FeatureHeader.jsx";
 
 const SUBTABS = [

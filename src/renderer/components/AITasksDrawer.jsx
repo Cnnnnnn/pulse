@@ -36,10 +36,10 @@ import { api } from '../api.js';
 import { setActiveNav } from '../worldcup/navStore.js';
 import { navigateTo } from '../store/route-store.ts';
 import { taggedLog } from '../log.js';
-import { Badge, TaskStatusBadge } from './Badge.jsx';
-import { TabList, Tab } from './TabList.jsx';
-import { DrawerEmpty } from './EmptyState.jsx';
-import { DrawerShell } from './DrawerShell.jsx';
+import { Badge, TaskStatusBadge } from './Badge.tsx';
+import { TabList, Tab } from './TabList.tsx';
+import { DrawerEmpty } from './EmptyState.tsx';
+import { DrawerShell } from './DrawerShell.tsx';
 
 const log = taggedLog("[tasks]");
 

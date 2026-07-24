@@ -10,8 +10,8 @@ import { editingHolding, closeModal, addFund, updateFund, navCache, navSource, f
 import { pickEffectiveNavNumber } from '../../funds/fund-nav-merge.js';
 import { inferCategoryFromFtype, categoryLabel } from '../../funds/fund-category.js';
 import { api } from '../api.js';
-import { BareModalShell } from '../components/ModalShell.jsx';
-import { TabList, Tab } from '../components/TabList.jsx';
+import { BareModalShell } from '../components/ModalShell.tsx';
+import { TabList, Tab } from '../components/TabList.tsx';
 import { IconCoin, IconBarChart } from '../components/icons.jsx';
 
 function initialForm(holding) {

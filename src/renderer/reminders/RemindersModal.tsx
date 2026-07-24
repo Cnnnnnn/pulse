@@ -27,14 +27,9 @@ import {
   toggleRemindersOpen,
 } from "./remindersStore.ts";
 import { openConfirm } from "../store/confirmStore.ts";
-import { Badge as BadgeRaw } from "../components/Badge.jsx";
-import { ModalShell as ModalShellRaw, ModalHeader } from "../components/ModalShell.jsx";
-import { PanelEmpty as PanelEmptyRaw } from "../components/EmptyState.jsx";
-
-// ponytail: 共享 shell 仍是 .jsx；components 迁完后去掉 cast。
-const Badge = BadgeRaw as any;
-const ModalShell = ModalShellRaw as any;
-const PanelEmpty = PanelEmptyRaw as any;
+import { Badge } from "../components/Badge.tsx";
+import { ModalShell, ModalHeader } from "../components/ModalShell.tsx";
+import { PanelEmpty } from "../components/EmptyState.tsx";
 import { IconBell, IconCheck, IconX, IconMoreHorizontal } from "../components/icons.jsx";
 
 const REPEATS = [

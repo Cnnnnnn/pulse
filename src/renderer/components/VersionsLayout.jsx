@@ -11,7 +11,7 @@
  */
 import { currentRoute, navigateTo } from "../store/route-store.ts";
 import { CommandPalette } from "./CommandPalette.jsx";
-import { SubtabList } from "./SubtabList.jsx";
+import { SubtabList } from "./SubtabList.tsx";
 import { LibraryPage } from "./LibraryPage.jsx";
 import { DiagnosticsPage } from "./DiagnosticsPage.jsx";
 import { SettingsPage } from "./SettingsPage.jsx";

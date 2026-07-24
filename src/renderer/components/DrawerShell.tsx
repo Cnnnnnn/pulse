@@ -5,8 +5,30 @@
  *   stacking context (transform/filter/backdrop-filter 都会创建). 这是 z-index
  *   调多高都压不住的"穿透"的根本解法 — 跟 ModalShell 的 usePortal 保持一致.
  */
-import { useEffect, useRef } from 'preact/hooks';
-import { createPortal } from 'preact/compat';
+import type { ComponentChildren, JSX } from "preact";
+import { useEffect, useRef } from "preact/hooks";
+import { createPortal } from "preact/compat";
+
+export type DrawerShellProps = {
+  open: boolean;
+  onClose: () => void;
+  onEscape?: ((e: KeyboardEvent) => boolean | void) | null;
+  title?: string;
+  titleExtra?: ComponentChildren;
+  header?: ComponentChildren;
+  headerActions?: ComponentChildren;
+  overlayClass?: string;
+  drawerClass: string;
+  drawerExtraClass?: string;
+  showOverlay?: boolean;
+  role?: JSX.AriaRole;
+  ariaLabel?: string;
+  beforeBody?: ComponentChildren;
+  footer?: ComponentChildren;
+  bodyClass?: string;
+  children?: ComponentChildren;
+  usePortal?: boolean;
+};
 
 export function DrawerShell({
   open,
@@ -18,23 +40,23 @@ export function DrawerShell({
   headerActions = null,
   overlayClass,
   drawerClass,
-  drawerExtraClass = '',
+  drawerExtraClass = "",
   showOverlay = true,
-  role = 'complementary',
+  role = "complementary",
   ariaLabel,
   beforeBody = null,
   footer = null,
   bodyClass,
   children,
   usePortal = false,
-}) {
+}: DrawerShellProps) {
   const onEscapeRef = useRef(onEscape);
   onEscapeRef.current = onEscape;
 
   useEffect(() => {
     if (!open) return;
-    function onKey(e) {
-      if (e.key === 'Escape') {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
         e.preventDefault();
         const esc = onEscapeRef.current;
         if (esc) {
@@ -44,20 +66,20 @@ export function DrawerShell({
         onClose();
       }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   if (!open) return null;
 
-  const drawerCls = `${drawerClass}${drawerExtraClass ? ` ${drawerExtraClass}` : ''}`;
+  const drawerCls = `${drawerClass}${drawerExtraClass ? ` ${drawerExtraClass}` : ""}`;
   const bodyCls = bodyClass || `${drawerClass}__body`;
 
   const node = (
     <>
       {showOverlay ? (
         <div
-          class={`${overlayClass} visible`}
+          class={`${overlayClass || ""} visible`}
           onClick={onClose}
           aria-hidden="true"
         />

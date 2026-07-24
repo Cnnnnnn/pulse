@@ -20,7 +20,7 @@ import {
   runScreen,
 } from "./stockStore.js";
 import { openDiagnosis } from "./diagnosisStore.js";
-import { PanelEmpty } from "../components/EmptyState.jsx";
+import { PanelEmpty } from "../components/EmptyState.tsx";
 import { IconWand } from "../components/icons.jsx";
 import { AddToCompareButton } from "./AddToCompareButton.jsx";
 

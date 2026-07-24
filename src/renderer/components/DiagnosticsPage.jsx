@@ -29,9 +29,9 @@ import {
 import { api } from "../api.js";
 import { PageHeader } from "./PageHeader.jsx";
 import { ConfigImportModal } from "./ConfigImportModal.jsx";
-import { PanelEmpty } from "./EmptyState.jsx";
+import { PanelEmpty } from "./EmptyState.tsx";
 import { KPICard } from "./KPICard.jsx";
-import { StatusBadge } from "./Badge.jsx";
+import { StatusBadge } from "./Badge.tsx";
 import { IconCheck } from "./icons.jsx";
 import { navigateTo } from "../store/route-store.ts";
 

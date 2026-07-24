@@ -21,7 +21,7 @@
  */
 
 import { useEffect, useRef, useState } from "preact/hooks";
-import { Badge } from "./Badge.jsx";
+import { Badge } from "./Badge.tsx";
 import {
   NavIcon,
   IconChevronDown,

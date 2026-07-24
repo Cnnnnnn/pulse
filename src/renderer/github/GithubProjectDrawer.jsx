@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "preact/hooks";
-import { DrawerShell } from "../components/DrawerShell.jsx";
+import { DrawerShell } from "../components/DrawerShell.tsx";
 import {
   IconGlobe,
   IconRefresh,

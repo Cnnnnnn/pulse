@@ -9,7 +9,7 @@
  * 纯本地，无网络。
  */
 import { useEffect, useState } from "preact/hooks";
-import { ModalShell } from "../components/ModalShell.jsx";
+import { ModalShell } from "../components/ModalShell.tsx";
 import {
   mergeCandidateKeys,
   mergeIsUnknown,

@@ -7,7 +7,7 @@
 import { useState } from 'preact/hooks';
 import { AIConfigForm } from './AISettingsModal.jsx';
 import { PromptSettings } from './PromptSettings.jsx';
-import { SubtabList } from './SubtabList.jsx';
+import { SubtabList } from './SubtabList.tsx';
 
 const AI_TABS = [
   { key: 'connection', label: '连接设置' },

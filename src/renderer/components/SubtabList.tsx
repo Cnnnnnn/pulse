@@ -11,13 +11,28 @@
  *     {(t) => <><Icon /><span>{t.label}</span></>}
  *   </SubtabList>
  */
+import type { ComponentChildren } from "preact";
+
+export type SubtabItem = {
+  key: string;
+  label?: ComponentChildren;
+  [k: string]: unknown;
+};
+
 export function SubtabList({
   prefix,
   tabs,
   activeKey,
   onChange,
   ariaLabel,
-  children,  // (tab) => JSX
+  children,
+}: {
+  prefix: string;
+  tabs: SubtabItem[];
+  activeKey?: string;
+  onChange?: (key: string) => void;
+  ariaLabel?: string;
+  children?: (tab: SubtabItem) => ComponentChildren;
 }) {
   return (
     <div class={`${prefix}-subtabs`} role="tablist" aria-label={ariaLabel}>

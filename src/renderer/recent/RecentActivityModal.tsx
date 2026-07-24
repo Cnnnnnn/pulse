@@ -14,15 +14,9 @@ import {
   toggleRecentOpen,
 } from "./recentStore.ts";
 import { setActiveNav } from "../worldcup/navStore.js";
-import { TabList as TabListRaw, Tab as TabRaw } from "../components/TabList.jsx";
-import { PanelEmpty as PanelEmptyRaw } from "../components/EmptyState.jsx";
-import { ModalShell as ModalShellRaw, ModalHeader } from "../components/ModalShell.jsx";
-
-// ponytail: 共享 shell 仍是 .jsx；components 迁完后去掉 cast。
-const TabList = TabListRaw as any;
-const Tab = TabRaw as any;
-const PanelEmpty = PanelEmptyRaw as any;
-const ModalShell = ModalShellRaw as any;
+import { TabList, Tab } from "../components/TabList.tsx";
+import { PanelEmpty } from "../components/EmptyState.tsx";
+import { ModalShell, ModalHeader } from "../components/ModalShell.tsx";
 import { IconClock, RecentActivityIcon, IconX } from "../components/icons.jsx";
 
 const KIND_META = {

@@ -10,7 +10,7 @@
  *  - a11y：横幅/历史项带中文 aria-label；按钮可聚焦、≥44px 触控；弹窗 role=dialog。
  */
 import { useEffect, useState } from "preact/hooks";
-import { ModalShell } from "../components/ModalShell.jsx";
+import { ModalShell } from "../components/ModalShell.tsx";
 import { ProgressBar } from "./ProgressBar.jsx";
 import { DEFAULT_EVENTS, isEventActive } from "./eventsEngine.js";
 import {

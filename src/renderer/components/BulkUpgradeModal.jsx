@@ -29,7 +29,7 @@ import {
   closeBulkUpgrade,
 } from '../store/store-bulk-upgrade.ts';
 import { taggedLog } from '../log.js';
-import { ModalShell } from './ModalShell.jsx';
+import { ModalShell } from './ModalShell.tsx';
 import { BulkStatusIcon, IconRotateCcw } from './icons.jsx';
 
 const log = taggedLog("[bulk-upgrade]");

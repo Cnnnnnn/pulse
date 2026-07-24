@@ -6,7 +6,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api.js";
 import { showToast } from "../store.ts";
-import { ModalShell } from "./ModalShell.jsx";
+import { ModalShell } from "./ModalShell.tsx";
 
 const FIELD_LABELS = {
   watchlist: "关注列表",

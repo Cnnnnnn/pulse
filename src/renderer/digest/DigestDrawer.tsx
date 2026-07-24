@@ -14,11 +14,8 @@ import {
 } from './digest-store.ts';
 import { api } from '../api.js';
 import { DigestSection } from './DigestSection.tsx';
-import { DrawerShell as DrawerShellRaw } from '../components/DrawerShell.jsx';
-import { DrawerEmpty } from '../components/EmptyState.jsx';
-
-// ponytail: DrawerShell 仍是 .jsx，TS 把无默认值参数当 required；components 迁完后去掉 cast。
-const DrawerShell = DrawerShellRaw as any;
+import { DrawerShell } from '../components/DrawerShell.tsx';
+import { DrawerEmpty } from '../components/EmptyState.tsx';
 
 export function DigestDrawer() {
   const open = digestDrawerOpen.value;

@@ -4,8 +4,8 @@
  * Phase I3 v1: 显示已隐藏 nav item 的抽屉.
  */
 
-import { DrawerShell } from './DrawerShell.jsx';
-import { DrawerEmpty } from './EmptyState.jsx';
+import { DrawerShell } from './DrawerShell.tsx';
+import { DrawerEmpty } from './EmptyState.tsx';
 import { NavIcon } from './icons.jsx';
 
 export function HiddenItemsDrawer({ open, hiddenItems = [], onRestore, onClose }) {

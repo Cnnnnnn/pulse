@@ -6,7 +6,7 @@
 
 import { useEffect, useRef } from "preact/hooks";
 import { confirmDialog, confirmVisible, resolveConfirm } from "../store/confirmStore.ts";
-import { ModalShell } from "./ModalShell.jsx";
+import { ModalShell } from "./ModalShell.tsx";
 
 export function ConfirmDialog() {
   const visible = confirmVisible.value;

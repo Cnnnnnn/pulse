@@ -9,7 +9,7 @@
  *  - a11y：条目带中文 aria-label；按钮可聚焦、≥44px 触控；弹窗 role=dialog。
  */
 import { useState } from "preact/hooks";
-import { ModalShell } from "../components/ModalShell.jsx";
+import { ModalShell } from "../components/ModalShell.tsx";
 import { ProgressBar } from "./ProgressBar.jsx";
 import { DEFAULT_ACHIEVEMENTS } from "./achievementsEngine.js";
 import {

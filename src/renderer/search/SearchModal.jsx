@@ -14,7 +14,7 @@ import {
 import { SearchSourceBar } from './SearchSourceBar.jsx';
 import { SearchResultList } from './SearchResultList.jsx';
 import { navigateToResult } from './search-nav.js';
-import { ModalShell } from '../components/ModalShell.jsx';
+import { ModalShell } from '../components/ModalShell.tsx';
 import { IconSearch } from '../components/icons.jsx';
 
 export function SearchModal() {

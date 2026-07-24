@@ -19,10 +19,7 @@ import {
 } from "./metalStore.ts";
 import { METALS, getMetalById } from "../../metals/metal-config.js";
 import { calcChange } from "../../metals/metal-calc.js";
-import { ModalShell as ModalShellRaw } from "../components/ModalShell.jsx";
-
-// ponytail: ModalShell 仍是 .jsx；components 迁完后去掉 cast。
-const ModalShell = ModalShellRaw as any;
+import { ModalShell } from "../components/ModalShell.tsx";
 import { api } from "../api.js";
 import {
   isMetalPinned,

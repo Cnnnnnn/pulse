@@ -10,7 +10,7 @@
 
 import { useEffect, useRef } from 'preact/hooks';
 import { IconFootball, IconRefresh, WorldcupTabIcon } from '../components/icons.jsx';
-import { SubtabList } from '../components/SubtabList.jsx';
+import { SubtabList } from '../components/SubtabList.tsx';
 import { FeatureHeader } from '../components/FeatureHeader.jsx';
 
 export function WorldcupHeader({

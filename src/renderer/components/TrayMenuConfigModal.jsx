@@ -15,9 +15,9 @@
  */
 import { useState, useEffect } from "preact/hooks";
 import { trayConfigOpen, closeTrayConfig, applyTrayPrefsFromMain } from "../store/trayConfigStore.ts";
-import { TRAY_SEGMENTS } from "@main/tray-menu-prefs.js";
+import { TRAY_SEGMENTS } from "@main/tray-menu-prefs.ts";
 import { showToast } from "../store.ts";
-import { ModalShell } from "./ModalShell.jsx";
+import { ModalShell } from "./ModalShell.tsx";
 
 const SEGMENT_LABELS = TRAY_SEGMENTS;
 

@@ -22,7 +22,7 @@ import {
 } from "../worldcup/navStore.js";
 import { stockActiveTab } from "../stocks/diagnosisStore.js";
 import { IconCoin as IconInvest, IconRefresh } from "../components/icons.jsx";
-import { SubtabList } from "../components/SubtabList.jsx";
+import { SubtabList } from "../components/SubtabList.tsx";
 
 export const INVEST_PRIMARY_TABS = [
   { key: "funds", label: "基金" },

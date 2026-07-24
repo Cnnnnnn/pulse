@@ -9,7 +9,7 @@
  *  - 纯本地：无网络、无 IPC、远程缩略图按安全模式仅色块呈现。
  */
 import { useRef, useState } from "preact/hooks";
-import { ModalShell } from "../components/ModalShell.jsx";
+import { ModalShell } from "../components/ModalShell.tsx";
 import {
   collectionStats,
   badgesEarned,

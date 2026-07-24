@@ -7,7 +7,7 @@
 
 import { useEffect } from 'preact/hooks';
 import { activeCategory, categoryCounts, setActiveCategory } from './fundStore.js';
-import { TabList, Tab } from '../components/TabList.jsx';
+import { TabList, Tab } from '../components/TabList.tsx';
 import { CategoryTabIcon } from '../components/icons.jsx';
 
 const TABS = [

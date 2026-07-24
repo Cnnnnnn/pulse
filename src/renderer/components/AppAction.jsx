@@ -16,7 +16,7 @@
  * `incompatible`   (note) 显式 → "需确认" / cls=warning
  */
 
-import { StatusBadge } from './Badge.jsx';
+import { StatusBadge } from './Badge.tsx';
 
 const STATUS_MAP = {
   update_available: { text: '有更新',   cls: 'update'  },

@@ -11,6 +11,7 @@ description: Phase 4 renderer JSX→TSX 迁移 — Pulse
 > **Batch A 已完成**：`hooks/` + `utils/`。
 > **Batch B 已完成**：theme / diagnostics / watchlist / news / reminders / invest / digest / recent / wechat-hot / metals。
 > **Batch C 已完成**：`store/` + 根 `store.ts` shim。
+> **Batch D 已完成**：components shell — DrawerShell / ModalShell / EmptyState / TabList / Badge / SubtabList；Batch B 的 `as any` cast 已去掉。
 
 ## 单文件迁移步骤（忠实迁移）
 
@@ -32,6 +33,6 @@ description: Phase 4 renderer JSX→TSX 迁移 — Pulse
 - **解构里不要写 `{ x: any }`** — 那是 rename，应写成 `{ x }: any`
 - **按 basename 批量改扩展名会误伤**（如 `wechat-hot/store` 让 `../store.js`、`ithome/store.js` 也变成 `.ts`）— 只替换带目录前缀的路径，或改完后校验目标文件是否存在
 - **`.ts`/`.tsx` 扩展名 import**：`tsconfig.renderer` / `tsconfig.tests` 需 `allowImportingTsExtensions: true`；`tsconfig.app` **exclude `src/renderer`**（renderer 只走自己的 tsconfig）
-- 未迁的 `.jsx` shell（DrawerShell/ModalShell/…）把无默认值参数当 required — 临时 `as any` cast，标 `ponytail:`，等 components 批去掉
+- Preact `role` 属性要标 `JSX.AriaRole`，裸 `string` 会 typecheck 挂
 - vitest 已 `include: **/*.{js,jsx,ts,tsx}`；happy-dom 测试头注释不变
 - CSS/`*.module` 不动；只迁脚本

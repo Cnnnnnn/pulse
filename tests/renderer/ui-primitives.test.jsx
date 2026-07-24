@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
-import { TabList, Tab } from '../../src/renderer/components/TabList.jsx';
-import { Badge, StatusBadge } from '../../src/renderer/components/Badge.jsx';
-import { ModalShell } from '../../src/renderer/components/ModalShell.jsx';
+import { TabList, Tab } from '../../src/renderer/components/TabList.tsx';
+import { Badge, StatusBadge } from '../../src/renderer/components/Badge.tsx';
+import { ModalShell } from '../../src/renderer/components/ModalShell.tsx';
 import { CategoryTabIcon, NavIcon, WorldcupTabIcon } from '../../src/renderer/components/icons.jsx';
 
 describe('TabList', () => {

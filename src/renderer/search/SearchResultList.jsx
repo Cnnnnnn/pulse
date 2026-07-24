@@ -3,7 +3,7 @@
  */
 import { searchResults, searchSelectedIndex, searchQuery } from './searchStore.js';
 import { SearchResultRow } from './SearchResultRow.jsx';
-import { DrawerEmpty } from '../components/EmptyState.jsx';
+import { DrawerEmpty } from '../components/EmptyState.tsx';
 
 export function SearchResultList({ onSelect }) {
   const results = searchResults.value;
