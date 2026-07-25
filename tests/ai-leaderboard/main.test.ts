@@ -316,7 +316,7 @@ describe("P1BugFix: video board 键名修正（text-to-video）", () => {
 describe("P1 限流时机修正：缓存命中不消耗 AA 令牌", () => {
   it("AA 磁盘缓存命中（非 force）不消耗 AA 令牌，且数据来自缓存", async () => {
     // 预填 Arena + AA 磁盘缓存（与 aggregator 落盘结构一致）
-    writeCache(cacheKey("arena", "all"), { boards: { text: ARENA_PAYLOAD } });
+    writeCache(cacheKey("arena", "all-v11"), { boards: { text: ARENA_PAYLOAD } });
     writeCache(cacheKey("artificial-analysis", "llms"), AA_PAYLOAD);
     // fetch 全失败：证明数据完全来自磁盘缓存，零网络、零 AA 令牌
     vi.stubGlobal("fetch", makeFetchMock(ALL_FAIL));

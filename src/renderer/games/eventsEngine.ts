@@ -36,7 +36,7 @@ export const DEFAULT_EVENTS = [
  * @param {number} [now] 本地时间戳（ms）
  * @returns {boolean}
  */
-export function isEventActive(ev, now = Date.now()) {
+export function isEventActive(ev: any, now: any = 0) {
   const s = new Date(ev.startAt).getTime();
   const e = new Date(ev.endAt).getTime();
   return !Number.isNaN(s) && !Number.isNaN(e) && now >= s && now <= e;
@@ -55,9 +55,10 @@ export function isEventActive(ev, now = Date.now()) {
  */
 export function evaluateEvents(entries: any[], configs?: any, prev?: any, now?: number) {
   const out = {};
+  const _now = typeof now === "number" ? now : Date.now();
   for (const cfg of configs || []) {
     const p = (prev && prev[cfg.id]) || { claimed: false, completed: false, progress: 0 };
-    const active = isEventActive(cfg, now);
+    const active = isEventActive(cfg, _now);
     if (!active) {
       out[cfg.id] = { claimed: p.claimed, completed: p.completed, progress: p.progress };
       continue;

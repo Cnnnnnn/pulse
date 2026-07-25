@@ -418,15 +418,17 @@ describe('HomeGrid v4 — 功能完善', () => {
     const { worldcupMatches } = await import('../../src/renderer/worldcup/store.ts');
     const { todayShanghaiDateKey } = await import('../../src/renderer/ithome/news-utils.ts');
     const today = todayShanghaiDateKey();
-    // 2 场今天, 1 场明天.
-    const tomorrow = new Date(Date.now() + 86400_000);
-    const tomKey = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+    // 2 场今天, 1 场 tomorrow (shanghai TZ, +1 day 与 today 同算法).
+    const tom = new Date(Date.now() + 2 * 86400_000); // +2 天边界安全: today +1 天 (shanghai TZ)
+    const tomFmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Shanghai",
+    }).format(tom);
     // ponytail: 用 timezone='UTC' 让 happy-dom 时区一致, 避开 host TZ 漂移.
     worldcupMatches.value = {
       name: 'WC', groups: [], matches: [
         { date: today, time: '18:00', timezone: 'UTC', team1: 'France', team2: 'Spain', score: null },
         { date: today, time: '22:00', timezone: 'UTC', team1: 'Germany', team2: 'Italy', score: null },
-        { date: tomKey, time: '18:00', timezone: 'UTC', team1: 'A', team2: 'B', score: null },
+        { date: tomFmt, time: '18:00', timezone: 'UTC', team1: 'A', team2: 'B', score: null },
       ],
     };
     const { container } = render(<HomeGrid />);
