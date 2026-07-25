@@ -76,4 +76,3 @@ export async function fetchFundNavSina(code: any, httpClient: any, opts: any = {
   };
 }
 
-module.exports = { fetchFundNavSina, parseSinaFundLine };

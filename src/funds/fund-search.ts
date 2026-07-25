@@ -106,5 +106,3 @@ export function parseSearchResponse(body: any) {
   }
   return out;
 }
-
-module.exports = { searchFunds, parseSearchResponse, SEARCH_URL };

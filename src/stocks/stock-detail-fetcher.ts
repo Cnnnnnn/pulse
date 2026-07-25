@@ -162,5 +162,3 @@ export async function fetchSingleAngle(httpClient: any, code: any, angleKey: any
     };
   }
 }
-
-module.exports = { fetchStockDetailAngles, fetchSingleAngle };

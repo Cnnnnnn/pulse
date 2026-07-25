@@ -139,4 +139,3 @@ function isoDate(d: any) {
   return `${y}-${m}-${day}`;
 }
 
-module.exports = { MetalScheduler, FIVE_MINUTES_MS };

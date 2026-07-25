@@ -135,10 +135,3 @@ export async function fetchStocksSina(httpClient: any, opts: any = {}) {
     };
   }
 }
-
-module.exports = {
-  fetchStocksSina,
-  mapSinaRow,
-  parseSinaList,
-  buildSinaUrl,
-};

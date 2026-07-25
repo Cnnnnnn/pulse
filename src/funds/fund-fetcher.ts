@@ -13,7 +13,10 @@
 
 import { fetchFundNavSina } from "./fund-fetcher-sina";
 import { attachAltNav } from "./fund-nav-merge";
-const { mainLog } = require("../main/log.js");
+// ponytail: main/log.js 是 Phase 3 5 例外 (CJS module.exports, 7a-6 才 ESM-ify).
+// ESM-import named 失败. 走 namespace import 兼容 CJS 互操作.
+import * as log from "../main/log.js";
+const { mainLog } = log as any;
 
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
 
@@ -254,10 +257,3 @@ export async function fetchFundNavWithAlt(code: any, httpClient: any, opts: any 
   return attachAltNav(primary, alt);
 }
 
-module.exports = {
-  fetchFundNav,
-  fetchFundNavWithAlt,
-  fetchFundNavBatch,
-  parseJsonpgz,
-  mapFundData,
-};

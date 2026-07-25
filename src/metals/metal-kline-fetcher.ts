@@ -127,11 +127,3 @@ export function isoDateOffset(dayOffset: any) {
   return `${y}${m}${day}`;
 }
 
-module.exports = {
-  buildKlineUrl,
-  parseKlineResponse,
-  dedupeByDate,
-  fetchMetalKline,
-  pointsToHistoryMap,
-  isoDateOffset,
-};

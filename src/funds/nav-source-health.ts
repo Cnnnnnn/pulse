@@ -111,10 +111,3 @@ export class NavSourceHealth {
   }
 }
 
-module.exports = {
-  NavSourceHealth,
-  SOURCES,
-  WINDOW_SIZE,
-  CONSECUTIVE_FAIL_THRESHOLD,
-  MIN_SUCCESS_RATE,
-};

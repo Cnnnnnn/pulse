@@ -121,9 +121,3 @@ export async function fetchEastmoneyQuotes(items: any, httpGet: any) {
   return quotes;
 }
 
-module.exports = {
-  fetchEastmoneyQuotes,
-  parseEastmoneyResponse,
-  parseEastmoneyQuote,
-  buildEastmoneyUrl,
-};

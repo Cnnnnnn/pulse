@@ -10,7 +10,7 @@
  *          rows 为空 → 全 null + "无市场数据" 标记, AI 降级为通用知识.
  */
 
-const crypto = require("crypto");
+import crypto from "crypto";
 
 /**
  * 中位数 = 排序后取中间. null/非数过滤后计算.
@@ -89,8 +89,3 @@ export function computeMarketOverview(rows) {
   };
 }
 
-module.exports = {
-  computeMarketOverview,
-  medianOf,
-  percentileOf,
-};

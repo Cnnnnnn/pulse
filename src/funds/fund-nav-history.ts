@@ -153,10 +153,3 @@ export async function fetchIndexHistory(symbol: any, httpClient: any, opts: any 
   }
 }
 
-module.exports = {
-  parseLsjzResponse,
-  fetchFundNavHistory,
-  parseIndexResponse,
-  fetchIndexHistory,
-  INDEX_DEFAULT_DAYS,
-};

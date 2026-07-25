@@ -36,4 +36,3 @@ export async function searchStocks(query, httpClient) {
   }
 }
 
-module.exports = { searchStocks };

@@ -22,4 +22,3 @@ export function computeStockCacheKey(code, angles) {
   return `${CACHE_VERSION}|detail|${code}|${sortedAngles.join(",")}`;
 }
 
-module.exports = { computeStockCacheKey, CACHE_VERSION };

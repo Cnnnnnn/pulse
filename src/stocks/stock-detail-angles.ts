@@ -443,4 +443,3 @@ function summarizeCorporateEvents(d) {
   return parts.join("; ");
 }
 
-module.exports = { ANGLE_DEFS, getAngle };

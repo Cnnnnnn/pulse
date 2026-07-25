@@ -172,5 +172,3 @@ function shanghaiAt(d, h, m) {
   );
   return new Date(utcMs);
 }
-
-module.exports = { getTradingStatus, msUntilNextOpen, msUntilNextFetch };

@@ -110,7 +110,3 @@ export async function fetchAllQuotes(httpGet: any) {
   return { quotes, fx, errors };
 }
 
-module.exports = {
-  fetchAllQuotes,
-  buildFetcherPlan,
-};

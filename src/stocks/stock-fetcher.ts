@@ -237,11 +237,3 @@ export async function fetchStocksByCodes(codes: any, httpClient: any, opts: any 
   }
 }
 
-module.exports = {
-  fetchStocks,
-  fetchStocksByCodes,
-  parseClist,
-  mapRow,
-  buildUrl,
-  codeToSecid,
-};

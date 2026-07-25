@@ -153,11 +153,3 @@ export async function fetchHfQuotes(symbols: any, httpGet: any, symbolToMetal: a
   return parseHfResponse(response, symbolToMetal, symbolToFx);
 }
 
-module.exports = {
-  fetchHfQuotes,
-  parseHfResponse,
-  parseHfMetalLine,
-  parseHfFxLine,
-  parseHfTime,
-  buildHfUrl,
-};
