@@ -72,5 +72,3 @@ export function detectStaleApps(stateApps: any, now?: any, thresholdDays?: any) 
   }
   return { staleNames, staleCount: staleNames.length, freshestTs };
 }
-
-module.exports = { detectStaleApps, DEFAULT_STALE_DAYS };

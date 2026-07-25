@@ -62,5 +62,3 @@ export function stripBuildNumber(ver: any) {
   if (!Number.isFinite(last) || last < 1000) return ver;
   return parts.slice(0, -1).join(".");
 }
-
-module.exports = { cleanVersion, stripBuildNumber };

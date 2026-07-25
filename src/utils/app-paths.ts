@@ -4,7 +4,7 @@
  * macOS .app bundle 路径解析 — config 里 bundle 通常是裸名 (e.g. "Cursor.app").
  */
 
-const path = require("path");
+import path from "node:path";
 
 export const DEFAULT_APPS_DIR = "/Applications";
 
@@ -30,9 +30,3 @@ export function appBundleResourcePath(bundle: any, ...segments: string[]) {
   if (!base) return null;
   return path.join(base, ...segments);
 }
-
-module.exports = {
-  DEFAULT_APPS_DIR,
-  resolveAppBundlePath,
-  appBundleResourcePath,
-};
