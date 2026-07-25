@@ -1,8 +1,11 @@
 /**
  * src/main/ai-leaderboard/fetcher-arena.ts
  *
- * 主源1：Arena 社区快照（text / code / vision / text-to-image / text-to-video 多 board）。
- * 免鉴权；优先走 api.wulong.dev，失败回退 GitHub raw 社区快照。
+ * 主源1：Arena 排行榜。v2.8x 起主源为官方 HuggingFace 数据集
+ *   `lmarena-ai/leaderboard-dataset`（MIT，满 blood、免 Cloudflare、免鉴权、带历史），
+ *   失败回落社区快照 api.wulong.dev → GitHub raw oolong-tea-2026。
+ * 覆盖 11 个 arena（text/vision/code/text-to-image/text-to-video/agent/document/search/image-edit/image-to-video/video-edit），
+ * 其中 agent 拉 6 个 per-signal config 合并成 scores[]（满血 38 模型）。
  *
  * 单源失败不影响其它源（aggregator 兜底链）。本 fetcher 内部 try/catch，
  * 失败仅返回 {ok:false}，绝不向上抛。
@@ -73,137 +76,185 @@ export function inferVendor(name: any): string {
 }
 
 /**
- * ponytail: Agent 榜官方 RSC 端点（arena.ai 服务端渲染 payload）。
- * Cloudflare 只拦 /api/ 返回 403，但页面/RSC 路由放行（偶发 403，需重试+回落）。
- * 用于拿 agent 满血 38 模型 × 6 维度（社区快照仅 top-10）。
- * 维度顺序按 AGENT_DIMENSIONS 位置对齐 —— 需在干净 200 样本上确认一次；
- * 任何解析异常/维度数不符都回落快照，绝不阻塞。
+ * ponytail: Arena 官方数据源 — HuggingFace `lmarena-ai/leaderboard-dataset`（v2.8x 主源）。
+ * lmarena 官方发布的历史快照数据集（MIT）：覆盖全部 arena + agent 6 维 per-signal 子集，
+ * 满 blood（text overall 378 / agent 38），HF CDN 无 Cloudflare、免鉴权、带历史。
+ * 经 datasets-server /filter(category='overall') 拉取；失败回落社区快照（wulong/GitHub raw）。
  */
+const HF_DATASET = "lmarena-ai/leaderboard-dataset";
+const HF_SERVER = "https://datasets-server.huggingface.co";
+
+// board → HF config。text/vision 用 _style_control 对齐 arena.ai 默认 style-control 榜；
+// code 对应 HF webdev config。
+const BOARD_TO_HF: Record<string, string> = {
+  text: "text_style_control",
+  vision: "vision_style_control",
+  code: "webdev",
+  "text-to-image": "text_to_image",
+  "text-to-video": "text_to_video",
+  document: "document",
+  search: "search",
+  "image-edit": "image_edit",
+  "image-to-video": "image_to_video",
+  "video-edit": "video_edit",
+};
+
+// Agent 6 维：1 聚合 config（overall=Net Improvement）+ 5 per-signal config。score 为 0-1，×100 对齐快照百分位。
 const AGENT_DIMENSIONS = [
   "Net Improvement", "Confirmed Success", "Praise vs Complaint",
   "Steerability", "Bash Recovery", "Tool Hallucination",
 ];
-const AGENT_RSC_URL = "https://arena.ai/leaderboard/agent?_rsc=x";
-// 设 false 可强制只用快照（被 WAF 持续拦 / 调试维度映射时）
-const USE_AGENT_RSC = true;
+const AGENT_HF_CONFIGS: { config: string; dim: string }[] = [
+  { config: "agent", dim: "Net Improvement" },
+  { config: "agent_task_outcome_explicit", dim: "Confirmed Success" },
+  { config: "agent_praise_complaint", dim: "Praise vs Complaint" },
+  { config: "agent_steerability", dim: "Steerability" },
+  { config: "agent_bash_recovery_steps", dim: "Bash Recovery" },
+  { config: "agent_tool_hallucination", dim: "Tool Hallucination" },
+];
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((r: any) => setTimeout(r, ms));
-}
+// Text 榜 category 子榜（arena.ai 文本大类下的子排行榜）。overall 为默认；其余按需拉取合并成 categories map。
+const TEXT_CATEGORY_KEYS = [
+  "overall", "coding", "math", "hard", "instruction_following", "non_english",
+];
 
-/** 拉取 RSC 文本（Node 全局 fetch + AbortController 超时）。 */
-async function fetchText(url: string, opts: any = {}): Promise<string> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), opts.timeoutMs || 12000);
-  try {
-    const res = await (fetch as any)(url, { headers: opts.headers, signal: ctrl.signal });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return await res.text();
-  } finally {
-    clearTimeout(t);
-  }
-}
+// Code 榜 category 子榜（arena.ai Code 大类下：WebDev + Image-to-WebDev）。
+const CODE_CATEGORY_KEYS = [
+  "overall", "image_to_webdev",
+];
 
-/** 从 RSC flight 文本抽所有含 model+score+ciLower 的扁平对象（括号平衡）。 */
-function extractAgentEntries(html: string): any[] {
+/** 拉一个 HF config 的全部行（/filter category=<category>，分页 length=100）。 */
+async function fetchHfConfig(config: string, category = "overall", timeoutMs = 8000): Promise<any[]> {
+  const headers = { "User-Agent": BROWSER_UA, Accept: "application/json" };
+  const where = encodeURIComponent(`"category"='${category}'`);
   const out: any[] = [];
-  const n = html.length;
-  let i = 0;
-  while (i < n) {
-    const at = html.indexOf('"model"', i);
-    if (at >= 0 && at < i + 40 && html[i] === "{") {
-      let depth = 0, j = i; const buf: string[] = [];
-      while (j < n) {
-        const c = html[j]; buf.push(c);
-        if (c === "{") depth++;
-        else if (c === "}") { depth--; if (depth === 0) break; }
-        j++;
-      }
-      const seg = buf.join("");
-      if (seg.includes('"score"') && seg.includes("ciLower")) {
-        try { out.push(JSON.parse(seg)); } catch { /* skip malformed */ }
-      }
-      i = j + 1;
-    } else {
-      i++;
-    }
+  let offset = 0;
+  for (let page = 0; page < 5; page++) {
+    const url = `${HF_SERVER}/filter?dataset=${encodeURIComponent(HF_DATASET)}&config=${encodeURIComponent(config)}&split=latest&where=${where}&offset=${offset}&length=100`;
+    const d = await fetchJson(url, { timeoutMs, headers });
+    const rows = Array.isArray(d && d.rows) ? d.rows.map((r: any) => r.row) : [];
+    out.push(...rows);
+    const total = Number(d && d.num_rows_total) || 0;
+    offset += rows.length;
+    if (rows.length < 100 || (total && offset >= total) || rows.length === 0) break;
   }
   return out;
 }
 
-/** 解析 RSC → 快照兼容的 agent models（scores:[{name,score,ci}]）。 */
-function parseAgentRSC(html: string): any[] | null {
-  const entries = extractAgentEntries(html);
-  if (!entries.length) return null;
-  const byModel = new Map<string, any[]>();
-  const order: string[] = [];
-  for (const e of entries) {
-    const name = e.model || e.contenderName;
-    if (!name) continue;
-    if (!byModel.has(name)) { byModel.set(name, []); order.push(name); }
-    byModel.get(name)!.push(e);
+/** HF 行 → 快照兼容 model。agentStyle=true 时 score×100（对齐快照百分位量级）。 */
+export function hfRowToModel(row: any, agentStyle: boolean): any {
+  const model = String(row.model_name || "");
+  if (!model) return null;
+  const vendor = row.organization || inferVendor(model) || "";
+  const license = row.license != null ? String(row.license) : null;
+  const rank = Number(row.rank) || 0;
+  if (agentStyle) {
+    const sc = Number(row.score) || 0;
+    const lo = Number(row.score_ci_lower) || 0;
+    const up = Number(row.score_ci_upper) || 0;
+    return { rank, model, vendor, license, _agentScore: sc * 100, _agentCi: ((up - lo) / 2) * 100, _sessions: Number(row.session_count) || 0 };
   }
-  const models: any[] = [];
-  for (const name of order) {
-    const list = byModel.get(name)!;
-    // 保守：维度数必须 == 6，否则跳过该模型（避免错位/误标）
-    if (list.length !== AGENT_DIMENSIONS.length) continue;
-    const scores = list.map((e: any, idx: number) => ({
-      name: AGENT_DIMENSIONS[idx],
-      score: Number(e.score) || 0,
-      ci: Number(((e.ciUpper ?? e.ciLower ?? 0) - (e.ciLower ?? 0)) / 2) || 0,
-    }));
-    const head = list[0];
-    models.push({
-      rank: Number(head.rank) || 0,
-      model: name,
-      vendor: head.modelOrganization || inferVendor(name),
-      license: head.license != null ? String(head.license) : null,
-      sessions: Number(head.sessions) || 0,
-      scores,
-    });
-  }
-  return models.length ? models : null;
+  const rating = Number(row.rating) || 0;
+  const lo = Number(row.rating_lower) || 0;
+  const up = Number(row.rating_upper) || 0;
+  return { rank, model, vendor, license, score: rating, ci: (up - lo) / 2, votes: Number(row.vote_count) || 0 };
 }
 
-/** Agent 榜：优先官方 RSC（满血），失败回落社区快照。返回快照兼容 payload。 */
-async function fetchAgentViaRSC(timeoutMs = 12000): Promise<{ dimensions: string[]; models: any[]; lastUpdated: string } | null> {
-  if (!USE_AGENT_RSC) return null;
-  const headers = { "User-Agent": BROWSER_UA, "RSC": "1", "Accept": "text/x-component" };
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const html = await fetchText(AGENT_RSC_URL, { timeoutMs, headers });
-      if (html && html.length > 1000) {
-        const models = parseAgentRSC(html);
-        if (models && models.length) {
-          const dm = html.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}/);
-          return { dimensions: AGENT_DIMENSIONS, models, lastUpdated: dm ? dm[0] : "" };
+/** HF 主源拉一个 board（agent 合并 6 config 成 scores[]）。失败返回 null → 走快照兜底。 */
+export async function fetchOneBoardHf(board: string, timeoutMs?: number): Promise<any | null> {
+  try {
+    if (board === "agent") {
+      // 拉 6 个 config，按 model_name 合并成 scores[]（顺序对齐 AGENT_DIMENSIONS）
+      const models = new Map<string, any>();
+      let lastUpdated = "";
+      for (const { config, dim } of AGENT_HF_CONFIGS) {
+        const rows = await fetchHfConfig(config, "overall", timeoutMs);
+        for (const row of rows) {
+          const m = hfRowToModel(row, true);
+          if (!m) continue;
+          if (!models.has(m.model)) {
+            models.set(m.model, {
+              rank: m.rank, model: m.model, vendor: m.vendor, license: m.license,
+              sessions: m._sessions, scores: [],
+            });
+          }
+          models.get(m.model).scores.push({ name: dim, score: m._agentScore, ci: m._agentCi });
+          if (!lastUpdated && row.leaderboard_publish_date) lastUpdated = String(row.leaderboard_publish_date);
         }
       }
-    } catch (e: any) {
-      // 403 / 超时 / 解析失败 -> 重试
-    }
-    await sleep(700 * (attempt + 1));
-  }
-  return null;
-}
-
-async function fetchOneBoard(board: string, timeoutMs?: number): Promise<any> {
-  // Agent: 优先官方 RSC 端点（满血 38×6），失败回落社区快照
-  if (board === "agent") {
-    const rsc = await fetchAgentViaRSC(timeoutMs);
-    if (rsc && rsc.models.length) {
+      const out: any[] = [];
+      for (const m of models.values()) {
+        m.scores.sort((a: any, b: any) => AGENT_DIMENSIONS.indexOf(a.name) - AGENT_DIMENSIONS.indexOf(b.name));
+        if (m.scores.length === AGENT_DIMENSIONS.length) out.push(m); // 维度数 != 6 丢弃（防错位）
+      }
+      if (!out.length) return null;
       return {
-        meta: {
-          leaderboard: "agent",
-          dimensions: rsc.dimensions,
-          last_updated: rsc.lastUpdated,
-          model_count: rsc.models.length,
-        },
-        models: rsc.models,
+        meta: { leaderboard: "agent", dimensions: AGENT_DIMENSIONS.slice(), last_updated: lastUpdated, model_count: out.length },
+        models: out,
       };
     }
+    if (board === "text") {
+      // ponytail: 文本大类下 6 个 category 子榜，按 model_name 合并成 categories map（top-level = overall）。
+      // 呼应 arena.ai 文本榜的 Overall/Coding/Math/Hard/IF/Non-English 子榜切换。
+      const config = "text_style_control";
+      const models = new Map<string, any>();
+      let lastUpdated = "";
+      await mapWithConcurrency(TEXT_CATEGORY_KEYS, 3, async (cat: string) => {
+        const rows = await fetchHfConfig(config, cat, timeoutMs);
+        for (const row of rows) {
+          const m = hfRowToModel(row, false);
+          if (!m) continue;
+          if (!models.has(m.model)) {
+            models.set(m.model, { rank: 0, model: m.model, vendor: m.vendor, license: m.license, score: 0, ci: 0, votes: 0, categories: {} });
+          }
+          const e = models.get(m.model);
+          e.categories[cat] = { rank: m.rank, score: m.score, ci: m.ci, votes: m.votes };
+          if (cat === "overall") { e.rank = m.rank; e.score = m.score; e.ci = m.ci; e.votes = m.votes; }
+          if (!lastUpdated && row.leaderboard_publish_date) lastUpdated = String(row.leaderboard_publish_date);
+        }
+      });
+      const out: any[] = [...models.values()].filter((m: any) => m.categories.overall);
+      if (!out.length) return null;
+      return { meta: { leaderboard: "text", last_updated: lastUpdated, model_count: out.length }, models: out };
+    }
+    if (board === "code") {
+      // ponytail: Code 大类下 WebDev(overall) + Image-to-WebDev 两个 category 子榜，同 text 模式合并成 categories map。
+      const config = "webdev";
+      const models = new Map<string, any>();
+      let lastUpdated = "";
+      await mapWithConcurrency(CODE_CATEGORY_KEYS, 3, async (cat: string) => {
+        const rows = await fetchHfConfig(config, cat, timeoutMs);
+        for (const row of rows) {
+          const m = hfRowToModel(row, false);
+          if (!m) continue;
+          if (!models.has(m.model)) {
+            models.set(m.model, { rank: 0, model: m.model, vendor: m.vendor, license: m.license, score: 0, ci: 0, votes: 0, categories: {} });
+          }
+          const e = models.get(m.model);
+          e.categories[cat] = { rank: m.rank, score: m.score, ci: m.ci, votes: m.votes };
+          if (cat === "overall") { e.rank = m.rank; e.score = m.score; e.ci = m.ci; e.votes = m.votes; }
+          if (!lastUpdated && row.leaderboard_publish_date) lastUpdated = String(row.leaderboard_publish_date);
+        }
+      });
+      const out: any[] = [...models.values()].filter((m: any) => m.categories.overall);
+      if (!out.length) return null;
+      return { meta: { leaderboard: "code", last_updated: lastUpdated, model_count: out.length }, models: out };
+    }
+    const config = BOARD_TO_HF[board];
+    if (!config) return null;
+    const rows = await fetchHfConfig(config, undefined, timeoutMs);
+    const models = rows.map((r: any) => hfRowToModel(r, false)).filter(Boolean);
+    if (!models.length) return null;
+    const lastUpdated = rows[0] && rows[0].leaderboard_publish_date ? String(rows[0].leaderboard_publish_date) : "";
+    return { meta: { leaderboard: board, last_updated: lastUpdated, model_count: models.length }, models };
+  } catch (err: any) {
+    logFetchError(`arena-hf:${board}`, err);
+    return null;
   }
+}
+
+/** 快照兜底：wulong 主 → GitHub raw 回退（agent 快照已带 scores[] 6 维截断 10 条）。 */
+async function fetchOneBoardSnapshot(board: string, timeoutMs?: number): Promise<any | null> {
   const headers = { "User-Agent": BROWSER_UA, Accept: "application/json" };
   try {
     return await fetchJson(`${ARENA_BASE}?name=${encodeURIComponent(board)}`, {
@@ -231,6 +282,13 @@ async function fetchOneBoard(board: string, timeoutMs?: number): Promise<any> {
       return null;
     }
   }
+}
+
+async function fetchOneBoard(board: string, timeoutMs?: number): Promise<any | null> {
+  // ponytail: 官方 HF 数据集为主源（满 blood + 稳定 + 免 Cloudflare），失败回落社区快照。
+  const hf = await fetchOneBoardHf(board, timeoutMs);
+  if (hf && Array.isArray(hf.models) && hf.models.length) return hf;
+  return fetchOneBoardSnapshot(board, timeoutMs);
 }
 
 /**
@@ -264,19 +322,38 @@ export function extractArenaLastUpdated(boardsMap: any): string | null {
  * 拉取全部 board 的原始快照。
  * @returns {Promise<object>} RawFetchResult：{ ok, source, data:{boards, lastUpdated}, fetchedAt }
  */
+/**
+ * 限并发映射：避免一次性 Promise.all 11+ 个 board 触发 undici 连接池/重定向递归栈溢出。
+ * 顺序派发 `limit` 个 worker，各 worker 从共享游标取任务。
+ */
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T, i: number) => Promise<R>): Promise<void> {
+  let idx = 0;
+  const n = items.length;
+  const worker = async () => {
+    while (idx < n) {
+      const i = idx++;
+      try { await fn(items[i], i); } catch { /* 单 board 失败不阻塞其余 */ }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, n) }, () => worker()));
+}
+
+/**
+ * 拉取全部 board 的原始快照。
+ * @returns {Promise<object>} RawFetchResult：{ ok, source, data:{boards, lastUpdated}, fetchedAt }
+ */
 export async function fetch(opts: any = {}): Promise<any> {
   const timeoutMs = opts && opts.timeoutMs;
   const boardsMap: Record<string, any> = {};
   let anyOk = false;
-  await Promise.all(
-    BOARDS.map(async (board: any) => {
-      const data = await fetchOneBoard(board, timeoutMs);
-      if (data && (Array.isArray(data.models) || (data.data && Array.isArray(data.data)))) {
-        boardsMap[board] = data;
-        anyOk = true;
-      }
-    }),
-  );
+  // ponytail: 限并发 3（原 Promise.all 11 个 board 在 Electron undici 下栈溢出）。
+  await mapWithConcurrency(BOARDS, 3, async (board: string) => {
+    const data = await fetchOneBoard(board, timeoutMs);
+    if (data && (Array.isArray(data.models) || (data.data && Array.isArray(data.data)))) {
+      boardsMap[board] = data;
+      anyOk = true;
+    }
+  });
   if (!anyOk) {
     return {
       ok: false,
@@ -363,6 +440,8 @@ export function normalize(raw: any): any[] {
       };
       if (sessions) entry.sessions = sessions;
       if (dimensions) entry.dimensions = dimensions;
+      // ponytail: text 榜 category 子榜映射（overall/coding/math/hard/instruction_following/non_english）
+      if (m.categories && typeof m.categories === "object") entry.categories = m.categories;
       existing.arena[board] = entry;
       if (!existing.boardsPresent.includes(board)) existing.boardsPresent.push(board);
       byKey.set(id, existing);
@@ -406,6 +485,8 @@ module.exports = {
   requiresKey: false,
   fetch,
   normalize,
+  hfRowToModel,
+  fetchOneBoardHf,
 };
 
 export const id = "arena-snapshot";

@@ -761,6 +761,17 @@ describe("ipc/register-leaderboard: sanitize 与请求级缓存键", () => {
 
 // ── 6. aggregator: rateBudget 透传 ─────────────────────────────────
 describe("aggregator: rateBudget 透传", () => {
+  // ponytail: 7a-6 后 fetcher-arena 走 HF 主源 (datasets-server.huggingface.co,
+  // 11 boards × 12s+ × pagination = 远超 30s vitest timeout). 测试不走真实网络
+  // 改为 mock fetch 返空, 验证 rateBudget 不依赖网络.
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })),
+    );
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
   it("getLeaderboard 返回值顶层含 rateBudget.aa", async () => {
     const result = await getLeaderboard({ category: "llm", dimension: "elo" });
     expect(result.rateBudget).toBeDefined();
@@ -774,6 +785,44 @@ describe("aggregator: rateBudget 透传", () => {
 
 // ── 7. aggregator: errors 收集 ─────────────────────────────────────
 describe("aggregator: errors 收集", () => {
+  // ponytail: 同上 (fetcher-arena HF 网络). 测试期望 errors[] 默认空,
+  // 需要 mock 让所有 fetcher 都返 ok:true (即便 payload 空) — 同时 livebench
+  // 走 HTML 解析, mock 必须给 text() 方法 + 含 main.js hash. 走全部 URL 兜底.
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: any) => {
+        const u = String(url);
+        // livebench / — index.html with main.js hash
+        if (u.endsWith("/") || /\/\/?$/.test(u)) {
+          return {
+            ok: true,
+            status: 200,
+            text: async () => `<script src="/static/js/main.abc123def.js"></script>`,
+            json: async () => ({ rows: [] }),
+          };
+        }
+        // main.<hash>.js — 含 release array
+        if (/main\.[a-f0-9]+\.js/.test(u)) {
+          return {
+            ok: true,
+            status: 200,
+            text: async () => `const pe=["2026-01-01","2025-12-01","2025-09-01"];var models=[];`,
+            json: async () => ({ rows: [] }),
+          };
+        }
+        // categories / table / cost — 空 ok
+        return {
+          ok: true,
+          status: 200,
+          text: async () => "[]",
+          json: async () => ({ rows: [], models: [] }),
+        };
+      }),
+    );
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
   it("BoardResult.errors 顶层默认 []", async () => {
     const result = await getLeaderboard({ category: "llm", dimension: "elo" });
     expect(result.errors).toBeDefined();
