@@ -12,8 +12,8 @@ export const paletteSelectedIndex = signal(0);
 
 export function openPalette() { paletteOpen.value = true; }
 export function closePalette() { paletteOpen.value = false; }
-export function setPaletteQuery(q) { paletteQuery.value = q; }
-export function setPaletteResults(arr) { paletteResults.value = arr; }
-export function setPaletteSelectedIndex(n) {
+export function setPaletteQuery(q: any) { paletteQuery.value = q; }
+export function setPaletteResults(arr: any) { paletteResults.value = arr; }
+export function setPaletteSelectedIndex(n: any) {
   paletteSelectedIndex.value = Math.max(0, n);
 }

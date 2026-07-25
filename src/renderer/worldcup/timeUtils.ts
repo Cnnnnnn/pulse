@@ -14,7 +14,7 @@
  * @param {string} tz  e.g. "UTC-6" / "UTC+5"
  * @returns {number}   UTC-6 → 6, UTC+5 → -5
  */
-export function parseUtcOffset(tz) {
+export function parseUtcOffset(tz: any) {
   if (!tz || typeof tz !== "string") return 0;
   const m = tz.match(/^UTC([+-])(\d{1,2})$/);
   if (!m) return 0;
@@ -23,7 +23,7 @@ export function parseUtcOffset(tz) {
 
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
-function shiftDateYmd(date, dayShift) {
+function shiftDateYmd(date: any, dayShift: any) {
   const dt = new Date(`${date}T00:00:00Z`);
   dt.setUTCDate(dt.getUTCDate() + dayShift);
   return {
@@ -39,7 +39,7 @@ function shiftDateYmd(date, dayShift) {
  * @param {string} date    "YYYY-MM-DD" (赛程日, 当地日历日)
  * @returns {{ date: string, time: string, weekday: string, originalTime: string, originalDate: string }}
  */
-export function toBeijingTime(time, tz, date) {
+export function toBeijingTime(time: any, tz: any, date: any) {
   const result = {
     date: date || "",
     time: time || "",

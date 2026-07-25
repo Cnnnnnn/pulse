@@ -24,68 +24,68 @@ export const BUILTIN_BADGE_RULES = [
     name: "初露锋芒",
     desc: "收藏满 10 款",
     icon: "🌱",
-    test: (c) => c.total >= 10,
+    test: (c: any) => c.total >= 10,
   },
   {
     id: "first_merge",
     name: "跨界收藏家",
     desc: "完成首次合并",
     icon: "🔗",
-    test: (c) => c.mergedCount >= 1,
+    test: (c: any) => c.mergedCount >= 1,
   },
   {
     id: "multiplat",
     name: "全家桶",
     desc: "同一游戏 ≥3 平台",
     icon: "🎮",
-    test: (c) => c.maxPlatforms >= 3,
+    test: (c: any) => c.maxPlatforms >= 3,
   },
   {
     id: "fully_rated",
     name: "评分达人",
     desc: "全部已评分",
     icon: "⭐",
-    test: (c) => c.total > 0 && c.rated === c.total,
+    test: (c: any) => c.total > 0 && c.rated === c.total,
   },
   {
     id: "collector",
     name: "收藏大师",
     desc: "收藏满 50 款",
     icon: "🏆",
-    test: (c) => c.total >= 50,
+    test: (c: any) => c.total >= 50,
   },
   {
     id: "folder_master",
     name: "收纳控",
     desc: "创建 ≥3 收藏夹",
     icon: "📁",
-    test: (c) => c.folderCount >= 3,
+    test: (c: any) => c.folderCount >= 3,
   },
   {
     id: "tagged",
     name: "标签猎人",
     desc: "使用 ≥5 标签",
     icon: "🏷️",
-    test: (c) => c.tagKinds >= 5,
+    test: (c: any) => c.tagKinds >= 5,
   },
   {
     id: "legendary",
     name: "传说收藏",
     desc: "拥有传说稀有度",
     icon: "💎",
-    test: (c) => c.hasLegendary,
+    test: (c: any) => c.hasLegendary,
   },
 ];
 
 /** 规则 id → 规则对象（O(1) 查表，供 BadgeWall 取 name/icon/desc）。 */
-const BADGE_RULE_MAP = new Map(BUILTIN_BADGE_RULES.map((r) => [r.id, r]));
+const BADGE_RULE_MAP = new Map(BUILTIN_BADGE_RULES.map((r: any) => [r.id, r]));
 
 /**
  * 按 id 取规则；不存在返回 undefined。
  * @param {string} id
  * @returns {{id:string,name:string,desc:string,icon:string,test:(c:object)=>boolean}|undefined}
  */
-export function getBadgeRule(id) {
+export function getBadgeRule(id: any) {
   return BADGE_RULE_MAP.get(id);
 }
 
@@ -164,7 +164,7 @@ export function buildBadgeCtx(entries: any[], folders?: any, tags?: any) {
 export function evaluateBadges(entries: any[], ctx?: any) {
   const context = ctx || buildBadgeCtx(entries);
   const now = new Date().toISOString();
-  const out = [];
+  const out: any[] = [];
   for (const rule of BUILTIN_BADGE_RULES) {
     let hit = false;
     try {

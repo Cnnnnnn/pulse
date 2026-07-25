@@ -10,13 +10,13 @@ import { worldcupMatchInsights, generateWorldcupInsight } from "./store.ts";
 import { refreshAIReadyStatus } from "../store.ts";
 import { trackWorldcupInsight } from "../recent/track.ts";
 
-function insightFor(match, type) {
+function insightFor(match: any, type: any) {
   const key = matchKey(match);
   const entry = worldcupMatchInsights.value[key];
   return entry && entry[type] ? entry[type] : null;
 }
 
-function mapAiError(reason) {
+function mapAiError(reason: any) {
   if (
     reason === "api_key_missing" ||
     reason === "config_missing" ||
@@ -31,7 +31,7 @@ function mapAiError(reason) {
   return reason || "生成失败";
 }
 
-export function useMatchAi(match, score) {
+export function useMatchAi(match: any, score: any) {
   const [busyType, setBusyType] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -48,7 +48,7 @@ export function useMatchAi(match, score) {
   const activeType = isFinal ? "post" : isUpcoming ? "pre" : null;
   const activeInsight = activeType === "post" ? post : pre;
 
-  async function handleGenerate(type, force = false) {
+  async function handleGenerate(type: any, force: any = 0) {
     const ready = await refreshAIReadyStatus();
     if (!ready) {
       setError("请先在侧栏「AI 配置」中保存 Provider、模型和 API Key");

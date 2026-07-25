@@ -67,7 +67,7 @@ function safeStorageWrite(raw: string) {
     }
     globalThis.localStorage.setItem(STORAGE_KEY, raw);
     return true;
-  } catch (err) {
+  } catch (err: any) {
     _memoryFallback.set(STORAGE_KEY, raw);
     return false; // not throw — caller 可能 console.warn
   }
@@ -93,25 +93,25 @@ export function loadPrefs() {
     if (!Array.isArray(parsed.hidden)) return makeDefault();
     // 清洗 + v3 迁移: order 内 legacy key 归一到 'news' (保持顺序位置);
     // 然后只保留 NAV_KEYS 内的 (alias 之后); 去重.
-    const aliasOrder = parsed.order.map((k) => LEGACY_KEY_ALIAS[k] || k);
+    const aliasOrder = parsed.order.map((k: any) => LEGACY_KEY_ALIAS[k] || k);
     const seenOrder = new Set();
-    const order = aliasOrder.filter((k) => {
+    const order = aliasOrder.filter((k: any) => {
       if (!NAV_KEYS.includes(k) || seenOrder.has(k)) return false;
       seenOrder.add(k);
       return true;
     });
     const seen = new Set();
-    const aliasHidden = parsed.hidden.map((k) => LEGACY_KEY_ALIAS[k] || k);
-    const hidden = aliasHidden.filter((k) => {
+    const aliasHidden = parsed.hidden.map((k: any) => LEGACY_KEY_ALIAS[k] || k);
+    const hidden = aliasHidden.filter((k: any) => {
       if (!NAV_KEYS.includes(k) || seen.has(k)) return false;
       seen.add(k);
       return true;
     });
     // v2: favorites 容错 — v1 数据没这字段 → 默认空数组.
     const seenFav = new Set();
-    const aliasFavs = (parsed.favorites || []).map((k) => LEGACY_KEY_ALIAS[k] || k);
+    const aliasFavs = (parsed.favorites || []).map((k: any) => LEGACY_KEY_ALIAS[k] || k);
     const favorites = Array.isArray(parsed.favorites)
-      ? aliasFavs.filter((k) => {
+      ? aliasFavs.filter((k: any) => {
           if (!NAV_KEYS.includes(k) || seenFav.has(k)) return false;
           seenFav.add(k);
           return true;
@@ -133,14 +133,14 @@ export function loadPrefs() {
  */
 export function savePrefs(prefs: any) {
   const orderAlias = (Array.isArray(prefs?.order) ? prefs.order : NAV_KEYS.slice())
-    .map((k) => LEGACY_KEY_ALIAS[k] || k)
-    .filter((k) => NAV_KEYS.includes(k));
+    .map((k: any) => LEGACY_KEY_ALIAS[k] || k)
+    .filter((k: any) => NAV_KEYS.includes(k));
   const hiddenAlias = (Array.isArray(prefs?.hidden) ? prefs.hidden : [])
-    .map((k) => LEGACY_KEY_ALIAS[k] || k)
-    .filter((k) => NAV_KEYS.includes(k));
+    .map((k: any) => LEGACY_KEY_ALIAS[k] || k)
+    .filter((k: any) => NAV_KEYS.includes(k));
   const favAlias = (Array.isArray(prefs?.favorites) ? prefs.favorites : [])
-    .map((k) => LEGACY_KEY_ALIAS[k] || k)
-    .filter((k) => NAV_KEYS.includes(k));
+    .map((k: any) => LEGACY_KEY_ALIAS[k] || k)
+    .filter((k: any) => NAV_KEYS.includes(k));
   const out = {
     version: SCHEMA_VERSION,
     order: orderAlias,
@@ -150,7 +150,7 @@ export function savePrefs(prefs: any) {
   let raw;
   try {
     raw = JSON.stringify(out);
-  } catch (err) {
+  } catch (err: any) {
      
     console.warn(`sidenav-prefs: JSON.stringify failed: ${err instanceof Error ? err.message : err}`);
     return false;
@@ -175,7 +175,7 @@ export function listVisible(prefs: any) {
       ? prefs.order
       : NAV_KEYS.slice();
   const hidden = new Set((prefs && prefs.hidden) || []);
-  const visible = new Set(order.filter((k) => !hidden.has(k)));
+  const visible = new Set(order.filter((k: any) => !hidden.has(k)));
   for (const k of NAV_KEYS) {
     if (!visible.has(k) && !hidden.has(k)) visible.add(k);
   }
@@ -191,7 +191,7 @@ export function listVisible(prefs: any) {
  */
 export function listHidden(prefs: any) {
   const hidden = new Set((prefs && prefs.hidden) || []);
-  return NAV_KEYS.filter((k) => hidden.has(k));
+  return NAV_KEYS.filter((k: any) => hidden.has(k));
 }
 
 /**
@@ -209,7 +209,7 @@ export function hideItem(prefs: any, key: string) {
  */
 export function restoreItem(prefs: any, key: string) {
   if (!NAV_KEYS.includes(key)) return prefs;
-  const hidden = prefs.hidden.filter((k) => k !== key);
+  const hidden = prefs.hidden.filter((k: any) => k !== key);
   return { ...prefs, hidden };
 }
 
@@ -281,14 +281,14 @@ export function toggleFavorite(prefs: any, key: string) {
   const cur = Array.isArray(prefs.favorites) ? prefs.favorites : [];
   const idx = cur.indexOf(key);
   if (idx >= 0) {
-    return { ...prefs, favorites: cur.filter((k) => k !== key) };
+    return { ...prefs, favorites: cur.filter((k: any) => k !== key) };
   }
   return { ...prefs, favorites: [...cur, key] };
 }
 
 export function listFavorites(prefs: any) {
   const f = Array.isArray(prefs?.favorites) ? prefs.favorites : [];
-  return f.filter((k) => NAV_KEYS.includes(k));
+  return f.filter((k: any) => NAV_KEYS.includes(k));
 }
 
 export function isFavorite(prefs: any, key: string) {

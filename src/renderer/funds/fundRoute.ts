@@ -24,14 +24,14 @@ import { signal } from "@preact/signals";
 export const fundPage = signal("dashboard");
 export const selectedFundCode = signal(null);
 
-export function setFundPage(page) {
+export function setFundPage(page: any) {
   if (page !== "dashboard" && page !== "list") return;
   fundPage.value = page;
   // 切页时清掉下钻状态 — detail 严格属于 list 内部
   if (selectedFundCode.value) selectedFundCode.value = null;
 }
 
-export function openFundDetail(code) {
+export function openFundDetail(code: any) {
   if (!code) return;
   selectedFundCode.value = String(code);
 }

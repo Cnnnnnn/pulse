@@ -40,7 +40,7 @@ export const lastError = computed(() => checkSession.value.error);
 export const checkStartTime = computed(() => checkSession.value.startedAt);
 
 const resultSignals = new Map();
-export function getResultSignal(name) {
+export function getResultSignal(name: any) {
   let sig = resultSignals.get(name);
   if (!sig) {
     sig = signal(undefined);
@@ -50,7 +50,7 @@ export function getResultSignal(name) {
 }
 
 const appPhaseSignals = new Map();
-export function getAppPhaseSignal(name) {
+export function getAppPhaseSignal(name: any) {
   let sig = appPhaseSignals.get(name);
   if (!sig) {
     sig = signal("idle");
@@ -59,11 +59,11 @@ export function getAppPhaseSignal(name) {
   return sig;
 }
 
-export function getAppPhase(name) {
+export function getAppPhase(name: any) {
   return appPhases.value.get(name) || "idle";
 }
 
-function resultToPhase(result) {
+function resultToPhase(result: any) {
   if (result.status === "error") return "error";
   return "done";
 }
@@ -71,7 +71,7 @@ function resultToPhase(result) {
 export function startCheck(appNames = []) {
   const sessionId = generateSessionId();
 
-  const phases = new Map(appNames.map((name) => [name, "pending"]));
+  const phases = new Map(appNames.map((name: any) => [name, "pending"]));
   // 重置所有 phase signals: 在新 appNames 里的 → pending, 否则 → idle.
   // 避免 stale app (上次 check 中存在, 这次不在) 留在 "pending" 状态, 导致
   // AppRow 显示 loading 永远不结束.
@@ -98,17 +98,17 @@ export function startCheck(appNames = []) {
 }
 
 export function resetCheck() {
-  return startCheck(apps.value.map((a) => a.name));
+  return startCheck(apps.value.map((a: any) => a.name));
 }
 
-export function applyProgressBatch(list, sessionId) {
+export function applyProgressBatch(list: any, sessionId: any) {
   if (!Array.isArray(list)) return;
   for (const r of list) {
     applyProgress(r, sessionId);
   }
 }
 
-export function applyProgress(result, sessionId) {
+export function applyProgress(result: any, sessionId: any) {
   if (!result || !result.name) return;
 
   const currentSession = checkSession.value;
@@ -133,7 +133,7 @@ export function applyProgress(result, sessionId) {
   getResultSignal(name).value = result;
 }
 
-export function markAppDetecting(name, sessionId) {
+export function markAppDetecting(name: any, sessionId: any) {
   if (!name) return;
   const currentSession = checkSession.value;
   if (sessionId && currentSession.id && sessionId !== currentSession.id) return;
@@ -156,7 +156,7 @@ export function finishCheck() {
   };
 }
 
-export function setError(message) {
+export function setError(message: any) {
   const s = checkSession.value;
   if (s.phase !== "running") return;
   checkSession.value = {
@@ -171,14 +171,14 @@ export function isCheckRunning() {
   return checkSession.value.phase === "running";
 }
 
-export function applyCachedResults(cached, configApps) {
+export function applyCachedResults(cached: any, configApps: any) {
   if (!cached || !cached.apps) return;
   // ponytail: 用户从 config.json 移除某个 app (比如 Codex/ChatGPT) 后, state.json
   //   里还残留着历史检测结果; applyCachedResults 直接 set 会让 UI 继续显示"幽灵
   //   app". 过滤掉 configApps 中不存在的 name, 让"取消检查"立即生效 (不需要
   //   等 state 里的 ts 老化或手清 state.json).
   const allowed = configApps
-    ? new Set(configApps.map((a) => a && a.name).filter(Boolean))
+    ? new Set(configApps.map((a: any) => a && a.name).filter(Boolean))
     : null;
   const nextResults = new Map(results.value);
   const nextPhases = new Map(appPhases.value);

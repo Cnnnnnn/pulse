@@ -20,7 +20,7 @@ type LogBackend = { info: LogFn; warn: LogFn; error: LogFn };
 function consoleBackend(prefix?: string): LogBackend {
   // ponytail: log 库的核心就是薄包装 console[level], 这里集中调用无法避免
   /* eslint-disable no-console */
-  const fmt = (level) => (msg, ...rest) => {
+  const fmt = (level: any) => (msg, ...rest) => {
     if (typeof console === "undefined" || !console[level]) return;
     const tag = prefix ? `${prefix} ` : "";
     if (rest.length > 0) console[level](`${tag}${msg}`, ...rest);

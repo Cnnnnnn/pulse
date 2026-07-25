@@ -15,15 +15,15 @@ import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebenc
  * @param {string} [opts.board] - Arena board key
  * @returns {string} Markdown 表格
  */
-export function tableToMarkdown({ rows, view, board }) {
-  const vendorLabel = (m) => (VENDOR_META[m.vendor] || {}).label || m.vendor;
+export function tableToMarkdown({ rows, view, board }: any) {
+  const vendorLabel = (m: any) => (VENDOR_META[m.vendor] || {}).label || m.vendor;
 
   if (view === "arena") {
     const boardMeta = ARENA_BOARDS[board] || ARENA_BOARDS.text;
     const boardName = boardMeta.key; // Arena board 名（text / vision / code / text-to-image / text-to-video）
     const header = "| # | 模型 | 厂商 | 许可 | ELO | 置信区间 | 票数 |";
     const sep = "|---|------|------|------|-----|----------|------|";
-    const lines = rows.map((m, i) => {
+    const lines = rows.map((m: any, i: any) => {
       const slice = m.arena && m.arena[boardName];
       const elo = slice && typeof slice.score === "number" ? Math.round(slice.score) : "—";
       const ci = slice && slice.ci != null ? `±${Math.round(slice.ci)}` : "—";
@@ -37,7 +37,7 @@ export function tableToMarkdown({ rows, view, board }) {
   if (view === "livebench") {
     const header = "| # | 模型 | 厂商 | 综合 | Coding | Language | 指令遵循 | $/成功 |";
     const sep = "|---|------|------|------|--------|----------|----------|--------|";
-    const lines = rows.map((m, i) => {
+    const lines = rows.map((m: any, i: any) => {
       const lb = m.livebench || {};
       const byCat = lb.byCategory || {};
       return `| ${i + 1} | ${m.name} | ${vendorLabel(m)} | ${fmtLivebench(lb.overall)} | ${fmtLivebench(byCat.Coding)} | ${fmtLivebench(byCat.Language)} | ${fmtLivebench(byCat.IF)} | ${fmtLbCost(lb.cost && lb.cost.perSuccessfulTask)} |`;
@@ -48,7 +48,7 @@ export function tableToMarkdown({ rows, view, board }) {
   // AA view
   const header = "| # | 模型 | 厂商 | 智能指数 | 代码 | Agent | 速度 | 输出价 | 性价比 |";
   const sep = "|---|------|------|----------|------|-------|------|--------|--------|";
-  const lines = rows.map((m, i) => {
+  const lines = rows.map((m: any, i: any) => {
     const aa = m.aa || {};
     return `| ${i + 1} | ${m.name} | ${vendorLabel(m)} | ${fmtIndex(aa.intelligenceIndex)} | ${fmtIndex(aa.codingIndex)} | ${fmtIndex(aa.agenticIndex)} | ${fmtSpeed(aa.outputTokensPerSec)} | ${fmtPricePer1M(aa.priceOutputPer1M)} | ${fmtValueRatio(aa)} |`;
   });
@@ -62,12 +62,12 @@ export function tableToMarkdown({ rows, view, board }) {
  * @param {Array} opts.rows - 对比行定义 [{label, get}]
  * @returns {string}
  */
-export function compareToMarkdown({ models, rows }) {
-  const names = models.map((m) => m.name);
+export function compareToMarkdown({ models, rows }: any) {
+  const names = models.map((m: any) => m.name);
   const header = `| 指标 | ${names.join(" | ")} |`;
   const sep = `|------|${names.map(() => "------").join("|")}|`;
-  const lines = rows.map((row) => {
-    const vals = models.map((m) => row.get(m));
+  const lines = rows.map((row: any) => {
+    const vals = models.map((m: any) => row.get(m));
     return `| ${row.label} | ${vals.join(" | ")} |`;
   });
   return [header, sep, ...lines].join("\n");
@@ -78,7 +78,7 @@ export function compareToMarkdown({ models, rows }) {
  * @param {object|null} model
  * @returns {string}
  */
-export function detailToMarkdown(model) {
+export function detailToMarkdown(model: any) {
   if (!model) return "";
   const lines = [
     `# ${model.name}`,
@@ -112,7 +112,7 @@ export function detailToMarkdown(model) {
  * @param {string} text
  * @returns {Promise<boolean>} 是否成功
  */
-export async function copyToClipboard(text) {
+export async function copyToClipboard(text: any) {
   try {
     await navigator.clipboard.writeText(text);
     return true;

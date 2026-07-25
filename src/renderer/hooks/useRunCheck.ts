@@ -35,7 +35,7 @@ export function useRunCheck() {
           );
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       // IPC 没注册 / preload 漏暴露 / 主进程抛 — 2026-06-28 regression.
       showToast(
         `检查失败: ${(err instanceof Error ? err.message : null) || "IPC 调用异常"}`,

@@ -31,13 +31,13 @@ export const DEFAULT_ACHIEVEMENTS = [
  * @param {string|null} target
  * @returns {number}
  */
-export function countMatches(entries, dimension, target) {
+export function countMatches(entries: any, dimension: any, target: any) {
   switch (dimension) {
-    case "platform": return entries.filter((e) => e.platform === target).length;
-    case "tag":      return entries.filter((e) => (e.tags || []).includes(target)).length;
-    case "folder":   return entries.filter((e) => e.folderId === target).length;
-    case "rarity":   return entries.filter((e) => e.rarity === target).length;
-    case "merged":   return entries.filter((e) => e.mergedMembers && e.mergedMembers.length).length;
+    case "platform": return entries.filter((e: any) => e.platform === target).length;
+    case "tag":      return entries.filter((e: any) => (e.tags || []).includes(target)).length;
+    case "folder":   return entries.filter((e: any) => e.folderId === target).length;
+    case "rarity":   return entries.filter((e: any) => e.rarity === target).length;
+    case "merged":   return entries.filter((e: any) => e.mergedMembers && e.mergedMembers.length).length;
     default: return 0;
   }
 }

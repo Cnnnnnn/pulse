@@ -54,7 +54,7 @@ const ACCENT_COLOR = "oklch(80% 0.14 80)";
 export function buildSharePayload(entries: any, stats: any, badgesEarned: any, opts: any = {}) {
   const list = Array.isArray(entries) ? entries : [];
   const tiers = Array.isArray(opts.tiers) ? opts.tiers : [];
-  const tierMap = new Map(tiers.map((t) => [t.id, t]));
+  const tierMap = new Map(tiers.map((t: any) => [t.id, t]));
 
   // 稀有度分布：按 rarity id 计数（unranked 归并为 "unranked"）
   const counts = {};
@@ -63,7 +63,7 @@ export function buildSharePayload(entries: any, stats: any, badgesEarned: any, o
     counts[id] = (counts[id] || 0) + 1;
   }
   const rarityBreakdown = Object.keys(counts)
-    .map((id) => {
+    .map((id: any) => {
       const t = tierMap.get(id) as { name?: string; color?: string } | undefined;
       return {
         id,
@@ -72,11 +72,11 @@ export function buildSharePayload(entries: any, stats: any, badgesEarned: any, o
         count: counts[id],
       };
     })
-    .sort((a, b) => b.count - a.count);
+    .sort((a: any, b: any) => b.count - a.count);
 
   const earnedKeys =
     badgesEarned && typeof badgesEarned === "object"
-      ? Object.keys(badgesEarned).filter((k) => badgesEarned[k])
+      ? Object.keys(badgesEarned).filter((k: any) => badgesEarned[k])
       : [];
 
   // 成就解锁数：从 achievementsProgress 数 unlocked === true
@@ -85,7 +85,7 @@ export function buildSharePayload(entries: any, stats: any, badgesEarned: any, o
       ? opts.achievementsProgress
       : {};
   const achievementCount = (Object.values(progress) as any[]).filter(
-    (p) => p && p.unlocked === true,
+    (p: any) => p && p.unlocked === true,
   ).length;
 
   return {
@@ -101,7 +101,7 @@ export function buildSharePayload(entries: any, stats: any, badgesEarned: any, o
 }
 
 /** 货币格式化（与展示一致，零网络）。 */
-function fmtMoney(n) {
+function fmtMoney(n: any) {
   const num = Number(n) || 0;
   return num.toLocaleString("zh-CN", {
     minimumFractionDigits: 0,
@@ -230,7 +230,7 @@ function roundRect(ctx, x, y, w, h, r) {
 export async function exportShareImage(canvas: any, opts: any = {}) {
   const filename = opts.filename || "pulse-collection.png";
 
-  const triggerDownload = (url) => {
+  const triggerDownload = (url: any) => {
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
@@ -241,9 +241,9 @@ export async function exportShareImage(canvas: any, opts: any = {}) {
   };
 
   if (canvas && typeof canvas.toBlob === "function") {
-    const blob = await new Promise((resolve) => {
+    const blob = await new Promise((resolve: any) => {
       try {
-        canvas.toBlob((b) => resolve(b), "image/png");
+        canvas.toBlob((b: any) => resolve(b), "image/png");
       } catch {
         resolve(null);
       }

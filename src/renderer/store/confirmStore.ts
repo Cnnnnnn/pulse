@@ -42,7 +42,7 @@ export function openConfirm(opts: any = {}): Promise<boolean> {
   };
   confirmDialog.value = state;
   confirmVisible.value = true;
-  return new Promise((resolve) => {
+  return new Promise((resolve: any) => {
     _resolver = resolve;
   });
 }

@@ -7,7 +7,7 @@
 
 const UTF8_BOM = "\ufeff";
 
-function csvCell(v) {
+function csvCell(v: any) {
   if (v == null) return "";
   const s = String(v);
   if (/[,"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -21,13 +21,13 @@ function csvCell(v) {
  * @param {Array<{key: string, header: string}>} opts.columns — 列定义（顺序与表头一致）
  * @returns {string} UTF-8 BOM + header + 多行 `\r\n` 分隔
  */
-export function rowsToCsv({ rows, columns }) {
+export function rowsToCsv({ rows, columns }: any) {
   const cols = Array.isArray(columns) ? columns : [];
   const list = Array.isArray(rows) ? rows : [];
-  const header = cols.map((c) => csvCell(c && c.header != null ? c.header : (c && c.key) || "")).join(",");
+  const header = cols.map((c: any) => csvCell(c && c.header != null ? c.header : (c && c.key) || "")).join(",");
   const body = list
-    .map((row) =>
-      cols.map((c) => csvCell(c && row ? row[c.key] : "")).join(","),
+    .map((row: any) =>
+      cols.map((c: any) => csvCell(c && row ? row[c.key] : "")).join(","),
     )
     .join("\r\n");
   return UTF8_BOM + header + (body ? "\r\n" + body + "\r\n" : "\r\n");

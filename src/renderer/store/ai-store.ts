@@ -43,11 +43,11 @@ export const aiSettingsOpen = signal(false);
 export const aiHealthcheckBusy = signal(false);
 export const aiHealthcheckResult = signal(null);
 
-export function setAISessionsEnabled(enabled) {
+export function setAISessionsEnabled(enabled: any) {
   aiSessionsEnabled.value = Boolean(enabled);
 }
 
-export function syncEnabledFromConfig(cfg) {
+export function syncEnabledFromConfig(cfg: any) {
   if (!cfg || typeof cfg !== "object") {
     aiSessionsEnabled.value = false;
     return;
@@ -56,13 +56,13 @@ export function syncEnabledFromConfig(cfg) {
   aiSessionsEnabled.value = Boolean(provider);
 }
 
-function _aiProviderId(cfg) {
+function _aiProviderId(cfg: any) {
   if (!cfg || typeof cfg !== "object") return null;
   const id = cfg.provider || (cfg.cloud && cfg.cloud.providerId);
   return typeof id === "string" && id ? id : null;
 }
 
-function _aiModel(cfg, providerId) {
+function _aiModel(cfg: any, providerId: any) {
   if (!cfg || !providerId) return null;
   const cloud = cfg.cloud || {};
   if (typeof cloud.model === "string" && cloud.model) return cloud.model;
@@ -127,7 +127,7 @@ export async function loadAiTasks(dateKey?: string) {
     }
     aiTasksError.value = (r && (r.error || r.reason)) || "list_failed";
     return [];
-  } catch (err) {
+  } catch (err: any) {
     aiTasksError.value = (err && err.message) || "list_threw";
     return [];
   } finally {
@@ -135,10 +135,10 @@ export async function loadAiTasks(dateKey?: string) {
   }
 }
 
-export async function summarizeAiTasks(taskKeys) {
+export async function summarizeAiTasks(taskKeys: any) {
   if (needsConfig()) return null;
   const keys = Array.isArray(taskKeys)
-    ? taskKeys.filter((k) => typeof k === "string" && k.length > 0)
+    ? taskKeys.filter((k: any) => typeof k === "string" && k.length > 0)
     : [];
   if (keys.length === 0) return null;
   const dateKey = aiTasksDateKey.value;
@@ -152,13 +152,13 @@ export async function summarizeAiTasks(taskKeys) {
       r &&
       Array.isArray(r.failures) &&
       r.failures.some(
-        (f) => f && typeof f.message === "string" && /^auth_/.test(f.message),
+        (f: any) => f && typeof f.message === "string" && /^auth_/.test(f.message),
       );
     if (authFail) {
       showToast("API key 无效,请在设置里更新", "warn", 5000);
     }
     return r || null;
-  } catch (err) {
+  } catch (err: any) {
     log.warn("summarizeAiTasks threw:", err && err.message);
     return null;
   } finally {
@@ -168,7 +168,7 @@ export async function summarizeAiTasks(taskKeys) {
   }
 }
 
-export function applyTaskSummaryEvent(data) {
+export function applyTaskSummaryEvent(data: any) {
   if (!data || typeof data.taskKey !== "string") return;
   if (summarizingTaskKeys.value.has(data.taskKey)) {
     const next = new Set(summarizingTaskKeys.value);
@@ -176,7 +176,7 @@ export function applyTaskSummaryEvent(data) {
     summarizingTaskKeys.value = next;
   }
   if (data.ok && data.task && data.dateKey === aiTasksDateKey.value) {
-    aiTasks.value = aiTasks.value.map((t) =>
+    aiTasks.value = aiTasks.value.map((t: any) =>
       t && t.taskKey === data.taskKey ? data.task : t,
     );
   }
@@ -188,12 +188,12 @@ export function subscribeAiTaskUpdates() {
   }
 }
 
-export function setAISessionsConfig(cfg) {
+export function setAISessionsConfig(cfg: any) {
   aiSessionsConfig.value = cfg && typeof cfg === "object" ? cfg : null;
   syncEnabledFromConfig(aiSessionsConfig.value);
 }
 
-export function setAIKeyStatus(providerId, status) {
+export function setAIKeyStatus(providerId: any, status: any) {
   const next = { ...aiKeyStatus.value };
   if (status === null || status === undefined) {
     delete next[providerId];
@@ -203,18 +203,18 @@ export function setAIKeyStatus(providerId, status) {
   aiKeyStatus.value = next;
 }
 
-export function setAIKeyStatuses(map) {
+export function setAIKeyStatuses(map: any) {
   aiKeyStatus.value = map && typeof map === "object" ? { ...map } : {};
 }
 
-export function openAISettings(open = true) {
+export function openAISettings(open: any = 0) {
   aiSettingsOpen.value = Boolean(open);
   if (open) {
-    import("../recent/track.ts").then((m) => m.trackSettingsOpen());
+    import("../recent/track.ts").then((m: any) => m.trackSettingsOpen());
   }
 }
 
-export function openDigestDrawer(open = true) {
+export function openDigestDrawer(open: any = 0) {
   aiTasksDrawerOpen.value = Boolean(open);
   if (!open) digestConfigMode.value = false;
 }
@@ -225,11 +225,11 @@ export function toggleDigestDrawer(): void {
   if (!next) digestConfigMode.value = false;
 }
 
-export function setAIHealthcheckBusy(busy) {
+export function setAIHealthcheckBusy(busy: any) {
   aiHealthcheckBusy.value = Boolean(busy);
 }
 
-export function setAIHealthcheckResult(r) {
+export function setAIHealthcheckResult(r: any) {
   aiHealthcheckResult.value = r && typeof r === "object" ? r : null;
 }
 
@@ -247,7 +247,7 @@ export async function probeAIKeyStatuses() {
   const providers = ["openai", "anthropic", "deepseek", "minimax", "glm"];
   const next = {};
   await Promise.all(
-    providers.map(async (id) => {
+    providers.map(async (id: any) => {
       try {
         const r = await api.hasAiKey(id);
         if (r && r.ok)
@@ -265,7 +265,7 @@ export async function probeAIKeyStatuses() {
   return next;
 }
 
-export async function setAIKey(providerId, apiKey) {
+export async function setAIKey(providerId: any, apiKey: any) {
   try {
     const r = await api.setAiKey(providerId, apiKey);
     if (r && r.ok) {
@@ -273,12 +273,12 @@ export async function setAIKey(providerId, apiKey) {
       return { ok: true };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: "threw", error: err && err.message };
   }
 }
 
-export async function clearAIKey(providerId) {
+export async function clearAIKey(providerId: any) {
   try {
     const r = await api.clearAiKey(providerId);
     if (r && r.ok) {
@@ -291,7 +291,7 @@ export async function clearAIKey(providerId) {
   }
 }
 
-export async function runAIHealthcheck(opts) {
+export async function runAIHealthcheck(opts: any) {
   setAIHealthcheckBusy(true);
   try {
     const r = await api.aiHealthcheck(opts);
@@ -300,7 +300,7 @@ export async function runAIHealthcheck(opts) {
       showToast("API key 无效,请在设置里更新", "warn", 5000);
     }
     return r || { ok: false };
-  } catch (err) {
+  } catch (err: any) {
     const out = { ok: false, error: (err && err.message) || "unknown" };
     setAIHealthcheckResult(out);
     if (/^auth_/.test(out.error || "")) {
@@ -312,7 +312,7 @@ export async function runAIHealthcheck(opts) {
   }
 }
 
-export async function saveAISessionsConfig(cfg) {
+export async function saveAISessionsConfig(cfg: any) {
   try {
     const r = await api.saveAiSessionsConfig(cfg);
     if (r && r.ok) {
@@ -320,14 +320,14 @@ export async function saveAISessionsConfig(cfg) {
       return { ok: true, config: r.config };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: "threw", error: err && err.message };
   }
 }
 
 export function subscribeAISessionsConfigUpdates() {
   if (api && typeof api.onAiSessionsConfigUpdated === "function") {
-    api.onAiSessionsConfigUpdated((data) => {
+    api.onAiSessionsConfigUpdated((data: any) => {
       if (data && data.config !== undefined) {
         setAISessionsConfig(data.config || null);
       }

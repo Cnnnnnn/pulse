@@ -34,7 +34,7 @@ export const HEALTH_REASON_TEXT = {
  * @param {number} [now=Date.now()]
  * @returns {"ok"|"partial"|"stale"|"failed"}
  */
-export function deriveAngleStatus(angle, now = Date.now()) {
+export function deriveAngleStatus(angle: any, now: any = 0) {
   if (!angle) return HEALTH_STATUS.FAILED;
   if (angle.status === "failed") return HEALTH_STATUS.FAILED;
   if (!angle.data || (typeof angle.data === "object" && Object.keys(angle.data).length === 0)) {
@@ -52,7 +52,7 @@ export function deriveAngleStatus(angle, now = Date.now()) {
  * @param {{reason?: string|null, error?: string|null}} angle
  * @returns {string}
  */
-export function failureReasonText(angle) {
+export function failureReasonText(angle: any) {
   const r = (angle && angle.reason) || "unknown";
   const base = HEALTH_REASON_TEXT[r] || r;
   if (angle && angle.error) {

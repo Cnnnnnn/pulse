@@ -330,6 +330,7 @@
 /* ── Arena board chips ── */
 .ai-leaderboard-chips {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
   padding: 3px;
@@ -365,6 +366,140 @@
 .ai-leaderboard-chip:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 1px;
+}
+
+/* ponytail: Agent 榜细分维度子切换 (v2.8x) — 与 board chips 区分：强调色描边胶囊 + 激活态 accent 文字。
+   仅用 var()/oklch()/color-mix，遵守 CSS 硬约束；移动端可换行避免溢出。 */
+.ai-leaderboard-chips--dim {
+  flex-wrap: wrap;
+  background: color-mix(in oklch, var(--accent-primary) 8%, var(--bg-secondary));
+  border-color: color-mix(in oklch, var(--accent-primary) 22%, var(--border));
+}
+.ai-leaderboard-chip--dim {
+  font-size: var(--font-size-xs);
+  padding: 5px 12px;
+}
+.ai-leaderboard-chip--dim.is-active {
+  background: color-mix(in oklch, var(--accent-primary) 14%, var(--surface));
+  color: var(--accent-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--accent-primary) 30%, transparent);
+}
+
+/* ponytail: Arena 二级榜 chips (v2.8x) — 一级大类下的子榜，视觉上比一级更弱：
+   无胶囊底、虚线描边，激活态实底高亮，体现「大类 → 子榜」层级。仅用 var()/oklch()/color-mix。 */
+.ai-leaderboard-chips--sub {
+  flex-wrap: wrap;
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+.ai-leaderboard-chip--sub {
+  font-size: var(--font-size-xs);
+  padding: 5px 12px;
+  color: var(--text-tertiary, var(--text-secondary));
+}
+.ai-leaderboard-chip--sub:hover {
+  color: var(--text-primary);
+}
+.ai-leaderboard-chip--sub.is-active {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px color-mix(in oklch, black 8%, transparent);
+}
+
+/* ponytail: Arena 大类+二级榜合并选择器 (方案 B, v2.8x) — 单行替代原大类+二级两行 chip。
+   单 board 大类 = 普通按钮；多 board 大类 = 按钮+下拉菜单。仅用 var()/oklch()/color-mix。 */
+.ai-leaderboard-boardsel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  position: relative;
+}
+.ai-leaderboard-boardsel__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+.ai-leaderboard-boardsel__grp {
+  position: relative;
+}
+.ai-leaderboard-boardsel__cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.ai-leaderboard-boardsel__cat:hover {
+  color: var(--text-primary);
+  background: color-mix(in oklch, var(--surface) 60%, transparent);
+}
+.ai-leaderboard-boardsel__cat.is-active {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px color-mix(in oklch, black 8%, transparent);
+}
+.ai-leaderboard-boardsel__cat:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+.ai-leaderboard-boardsel__arrow {
+  font-size: 0.7em;
+  opacity: 0.6;
+}
+.ai-leaderboard-boardsel__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 140px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px color-mix(in oklch, black 12%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ai-leaderboard-boardsel__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.ai-leaderboard-boardsel__item:hover {
+  background: color-mix(in oklch, var(--accent-primary) 8%, transparent);
+  color: var(--text-primary);
+}
+.ai-leaderboard-boardsel__item.is-active {
+  background: color-mix(in oklch, var(--accent-primary) 12%, var(--surface));
+  color: var(--accent-primary);
+  font-weight: 600;
 }
 
 /* 上下文条「仅 LLM」标注 */

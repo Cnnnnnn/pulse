@@ -45,7 +45,7 @@ export async function requestUpgrade(appName: string) {
   log.info(`requestUpgrade: ${appName}`);
   try {
     openBulkUpgrade([item]);
-  } catch (err) {
+  } catch (err: any) {
     log.warn("openBulkUpgrade failed:", err instanceof Error ? err.message : err);
     return;
   }
@@ -53,7 +53,7 @@ export async function requestUpgrade(appName: string) {
     if (window.api && typeof window.api.bulkUpgradeStart === "function") {
       await window.api.bulkUpgradeStart([item]);
     }
-  } catch (err) {
+  } catch (err: any) {
     log.warn("bulkUpgradeStart failed:", err instanceof Error ? err.message : err);
   }
 }

@@ -30,11 +30,11 @@ const ALIASES = {
   curaçao: "curacao",
 };
 
-function stripDiacritics(s) {
+function stripDiacritics(s: any) {
   return s.normalize("NFD").replace(/\p{M}/gu, "");
 }
 
-export function canonicalTeamName(name) {
+export function canonicalTeamName(name: any) {
   if (!name || typeof name !== "string") return "";
   let s = stripDiacritics(name).toLowerCase();
   s = s.replace(/&/g, " and ");

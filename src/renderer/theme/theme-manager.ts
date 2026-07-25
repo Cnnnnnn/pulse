@@ -31,7 +31,7 @@ function readPreference() {
   }
 }
 
-function writePreference(mode) {
+function writePreference(mode: any) {
   try {
     localStorage.setItem(STORAGE_KEY, mode);
   } catch {
@@ -51,13 +51,13 @@ function getSystemDark() {
 }
 
 /** 把用户偏好解析成具体主题 */
-function resolve(mode) {
+function resolve(mode: any) {
   if (mode === "system") return getSystemDark() ? "dark" : "light";
   return mode === "dark" ? "dark" : "light";
 }
 
 /** 把解析后的具体主题写到 <html data-theme>; 广播给订阅者 */
-function apply(mode) {
+function apply(mode: any) {
   if (!root) return;
   root.setAttribute("data-theme", resolve(mode));
   root.setAttribute("data-theme-source", mode); // 供 UI 显示当前模式
@@ -66,7 +66,7 @@ function apply(mode) {
 
 /* ─── 订阅者 (SettingsPage 用) ─────────────────────────────── */
 const subscribers = new Set<(mode: string) => void>();
-function notify(mode) {
+function notify(mode: any) {
   for (const cb of subscribers) {
     try {
       cb(mode);
@@ -80,7 +80,7 @@ function notify(mode) {
  * 订阅偏好变化 (initTheme 调用 apply 或 setThemePreference 时触发).
  * 返回 unsubscribe.
  */
-export function subscribeTheme(cb) {
+export function subscribeTheme(cb: any) {
   subscribers.add(cb);
   return () => subscribers.delete(cb);
 }
@@ -95,7 +95,7 @@ export function getThemePreference() {
  * 设置偏好并立即生效, 异步同步给主进程 (跨 renderer 一致).
  * 返回生效的偏好值.
  */
-export function setThemePreference(mode) {
+export function setThemePreference(mode: any) {
   const m = VALID.includes(mode) ? mode : "system";
   writePreference(m);
   apply(m);
@@ -135,7 +135,7 @@ export function initTheme() {
   if (window.metalsApi && typeof window.metalsApi.themeGet === "function") {
     window.metalsApi
       .themeGet()
-      .then((res) => {
+      .then((res: any) => {
         if (!res) return;
         if (typeof res.resolved === "string") {
           // 优先用主进程的解析 (nativeTheme.shouldUseDarkColors).
@@ -159,7 +159,7 @@ export function initTheme() {
     typeof window.metalsApi.onThemeChanged === "function"
   ) {
     try {
-      window.metalsApi.onThemeChanged(({ mode, resolved }) => {
+      window.metalsApi.onThemeChanged(({ mode, resolved }: any) => {
         if (mode === "system" && typeof resolved === "string") {
           systemDarkOverride = resolved === "dark";
         }

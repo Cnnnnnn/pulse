@@ -45,7 +45,7 @@ function syncMatchesWithScores() {
  * 拉取 + 解析 + 写 store. 失败置 error.
  * @returns {Promise<boolean>} true=成功
  */
-export async function loadWorldcupFixtures(force = false) {
+export async function loadWorldcupFixtures(force: any = 0) {
   if (worldcupLoading.value) return false; // 并发守卫
   worldcupLoading.value = true;
   worldcupError.value = null;
@@ -69,7 +69,7 @@ export async function loadWorldcupFixtures(force = false) {
     await loadWorldcupScoresCache();
     syncMatchesWithScores();
     return true;
-  } catch (err) {
+  } catch (err: any) {
     worldcupError.value = (err && err.message) || "加载异常";
     return false;
   } finally {
@@ -129,10 +129,10 @@ export async function refreshWorldcupScores() {
     if (!matches || matches.length === 0) return true;
 
     const eligibleKeys = matches
-      .filter((m) =>
+      .filter((m: any) =>
         isScoreRefreshEligible(m, worldcupScores.value[matchKey(m)]),
       )
-      .map((m) => matchKey(m));
+      .map((m: any) => matchKey(m));
 
     if (eligibleKeys.length === 0) return true;
 
@@ -157,7 +157,7 @@ export async function refreshWorldcupScores() {
     worldcupScoresLastRefresh.value = Date.now();
     syncMatchesWithScores();
     return true;
-  } catch (err) {
+  } catch (err: any) {
     worldcupScoresError.value = (err && err.message) || "刷新异常";
     return false;
   } finally {
@@ -258,7 +258,7 @@ export function subscribeScoresUpdates(opts: any = {}) {
   ) {
     return () => {};
   }
-  return window.api.onWorldcupScoresUpdated(async (data) => {
+  return window.api.onWorldcupScoresUpdated(async (data: any) => {
     // 静默刷新 (不闪 loading 态, 避免每 60s 抖动 UI).
     await refreshWorldcupScores();
     if (typeof opts.onUpdated === "function") {

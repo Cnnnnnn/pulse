@@ -62,13 +62,13 @@ const GAP_REASON_TEXT = {
   exception: "数据源调用异常",
   unknown: "未知原因",
 };
-function gapReasonText(gap) {
+function gapReasonText(gap: any) {
   const r = gap.reason || "unknown";
   return GAP_REASON_TEXT[r] || `${r}${gap.error ? `: ${gap.error}` : ""}`;
 }
 
-function computeDataGaps(perAngleData) {
-  const gaps = [];
+function computeDataGaps(perAngleData: any) {
+  const gaps: any[] = [];
   for (const k of ALL_ANGLES) {
     const e = perAngleData && perAngleData[k];
     if (!e || e.status !== "ok") {
@@ -123,7 +123,7 @@ let _aiPromise = null;
 
 // 开启诊断: 设 stock 信息 + 切 tab + 立即拉数据.
 // stock 是 { code, name, industry? } (搜索联想项) 或 { code, name, price, changePct, ... } (筛选行).
-export function openDiagnosis(api, stock) {
+export function openDiagnosis(api: any, stock: any) {
   const code = typeof stock === "string" ? stock : stock && stock.code;
   if (!code) return;
   diagnosisStock.value = typeof stock === "string" ? { code } : stock;
@@ -166,7 +166,7 @@ export function closeDiagnosis() {
   };
 }
 
-async function _runDiagnosisFlow(api, code, token) {
+async function _runDiagnosisFlow(api: any, code: any, token: any) {
   // ponytail: 2026-07-07 — token 从 openDiagnosis 传入 (Symbol 占位 → 真 promise),
   // 不再用 _aiPromise 捕获 (那时还是 null, 永远 mismatched).
   const myToken = token;
@@ -185,7 +185,7 @@ async function _runDiagnosisFlow(api, code, token) {
     if (!resp || !resp.ok) throw new Error(resp?.reason || "fetch_failed");
     perAngleData = (resp.data && resp.data.perAngle) || {};
     scores = computeScores(perAngleData);
-  } catch (e) {
+  } catch (e: any) {
     if (_aiPromise !== myToken) return; // 已被新诊断取代
     diagnosisState.value = {
       ...diagnosisState.value,
@@ -206,7 +206,7 @@ async function _runDiagnosisFlow(api, code, token) {
 // ponytail: 2026-07-07 — "写 ready + 存历史快照" 抽出来, openDiagnosis / loadDiagnosis
 //          (重试按钮) 都走同一处. 快照存 overall + 5 维 + 价格, 给 hero 徽标跨次对比用.
 //          失败 / 缺 scores → 不存 (避免半成品写进历史).
-function commitReady(code, perAngleData, scores) {
+function commitReady(code: any, perAngleData: any, scores: any) {
   diagnosisState.value = {
     ...diagnosisState.value,
     status: "ready",
@@ -226,7 +226,7 @@ function commitReady(code, perAngleData, scores) {
 }
 
 // 拉数据 + 算分 (用于单点重拉, 不触发 AI). AI 由 openDiagnosis 触发.
-export async function loadDiagnosis(api, code) {
+export async function loadDiagnosis(api: any, code: any) {
   diagnosisState.value = {
     ...diagnosisState.value,
     status: "loading",
@@ -238,7 +238,7 @@ export async function loadDiagnosis(api, code) {
     const perAngleData = (resp.data && resp.data.perAngle) || {};
     const scores = computeScores(perAngleData);
     commitReady(code, perAngleData, scores);
-  } catch (e) {
+  } catch (e: any) {
     diagnosisState.value = {
       ...diagnosisState.value,
       status: "error",
@@ -297,7 +297,7 @@ export async function requestAiSummary(api: any, code: string, override?: any) {
         aiStartedAt: null,
       };
     }
-  } catch (aiErr) {
+  } catch (aiErr: any) {
     log.warn(
       `AI analyze exception: code=${code} elapsed=${Date.now() - t0}ms`,
       aiErr,
@@ -322,7 +322,7 @@ export const refreshingAngles = signal(new Set());
 //          2 秒后自动清, 给按钮闪一下红 + 一行 toast 类提示 (AiNoteLine 内部渲染).
 export const failedAngles = signal(new Set());
 
-export async function refreshAngle(api, angleKey) {
+export async function refreshAngle(api: any, angleKey: any) {
   const { perAngleData, aiResult, scores } = diagnosisState.value;
   if (!api || !angleKey) return;
   const next = new Set(refreshingAngles.value);
@@ -349,7 +349,7 @@ export async function refreshAngle(api, angleKey) {
       );
       markAngleFailed(angleKey);
     }
-  } catch (e) {
+  } catch (e: any) {
     log.warn(`refreshAngle ${angleKey} failed`, e);
     markAngleFailed(angleKey);
   } finally {
@@ -367,7 +367,7 @@ export async function refreshAngle(api, angleKey) {
 //   跟 refreshAngle 区别: refreshAngle 调 stocks:angle-refresh (LLM 重解读, 不重拉数据),
 //   数据本身失败时永远 no_data. reloadAngle 真拉数据, 才是 retry 按钮应有的语义.
 //   取代 ModuleGrid 传给 DataHealthPill 的 onRefresh.
-export async function reloadAngle(api, angleKey) {
+export async function reloadAngle(api: any, angleKey: any) {
   const code = diagnosisState.value.code || stockDiagnosisCode.value;
   if (!api || !angleKey || !code) return;
   const next = new Set(refreshingAngles.value);
@@ -388,7 +388,7 @@ export async function reloadAngle(api, angleKey) {
       );
       markAngleFailed(angleKey);
     }
-  } catch (e) {
+  } catch (e: any) {
     log.warn(`reloadAngle ${angleKey} exception`, e);
     markAngleFailed(angleKey);
   } finally {
@@ -401,7 +401,7 @@ export async function reloadAngle(api, angleKey) {
 // ponytail: 失败闪烁的 setTimeout 句柄, 切换股票 / 快速重试时清理掉旧 timer
 //          (否则会"已经成功 5 秒了又被旧 timer 改回 failed").
 const _failedTimers = new Map();
-function markAngleFailed(angleKey) {
+function markAngleFailed(angleKey: any) {
   const failed = new Set(failedAngles.value);
   failed.add(angleKey);
   failedAngles.value = failed;

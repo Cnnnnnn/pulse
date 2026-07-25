@@ -27,6 +27,16 @@ import {
   HF_DIMENSIONS,
   ASC_DEFAULT_DIMS,
   VENDOR_META,
+  // ponytail: Agent 榜 6 维细分 (v2.8x) — 维度子切换驱动按维排名.
+  AGENT_DIMENSIONS,
+  AGENT_DIMENSION_DEFAULT,
+  // ponytail: 文本榜 category 子榜 (v2.8x) — Overall/Coding/Math/... 本地切换.
+  TEXT_CATEGORIES,
+  TEXT_CATEGORY_DEFAULT,
+  // ponytail: 5 大类分组 (v2.8x) — 一级大类 → 二级榜.
+  ARENA_CATEGORIES,
+  boardsOfCategory,
+  categoryOfBoard,
   toIpcParams,
   normalizeBoardResult,
 } from "./types.ts";
@@ -38,7 +48,7 @@ import { primaryValue, licenseKind, computeTrendingScore } from "./format.ts";
  * @param {object[]} items
  * @returns {Map<string, number>}
  */
-export function baseModelCountMap(items) {
+export function baseModelCountMap(items: any) {
   const m = new Map();
   if (!Array.isArray(items)) return m;
   for (const it of items) {
@@ -67,16 +77,24 @@ export const licenseFilter = signal("all");
  * 会话内有效，刷新后重置（不持久化）。 */
 export const hiddenHealthSources = signal(new Set());
 
+/** Agent 榜当前选中的细分维度（Net Improvement / Confirmed Success / ...）。
+ * 仅当 activeBoard==="agent" 时生效，驱动「按维度排名」。纯本地重排，不触发 IPC。 */
+export const activeAgentDim = signal(AGENT_DIMENSION_DEFAULT);
+
+/** 文本榜当前选中的 category 子榜（overall / coding / math / hard / instruction_following / non_english）。
+ * 仅当 activeBoard==="text" 时生效。纯本地切换（数据已在 categories map 里），不触发 IPC。 */
+export const activeTextCat = signal(TEXT_CATEGORY_DEFAULT);
+
 /** 模型对比列表（最多 3 个 id）。 */
 export const compareList = signal([]);
 
 /** 模型详情抽屉：当前展示的模型 id（null = 关闭）。 */
 export const detailId = signal(null);
 
-export function toggleCompare(id) {
+export function toggleCompare(id: any) {
   const list = compareList.value;
   if (list.includes(id)) {
-    compareList.value = list.filter((x) => x !== id);
+    compareList.value = list.filter((x: any) => x !== id);
   } else if (list.length < 3) {
     compareList.value = [...list, id];
   }
@@ -86,7 +104,7 @@ export function clearCompare() {
   compareList.value = [];
 }
 
-export function openModelDetail(id) {
+export function openModelDetail(id: any) {
   if (!id) return;
   detailId.value = id;
 }
@@ -102,7 +120,7 @@ export const crossSourceError = signal(null);
 let _csToken = 0;
 
 /** 跨源雷达请求参数：同时拉 arena + aa + livebench（+ openrouter 兜底骨架）。 */
-function _crossSourceOpts(force) {
+function _crossSourceOpts(force: any) {
   return {
     category: "llm",
     dimension: "elo",
@@ -117,7 +135,7 @@ function _crossSourceOpts(force) {
  * 结果合并进 crossSourceItems，供跨源雷达在 Arena ELO / AA 智能 / LiveBench
  * 三维叠加同一批模型（mergeModelSlices 已按 id 合并三源切片）。
  */
-export async function loadCrossSource(force) {
+export async function loadCrossSource(force: any) {
   if (crossSourceItems.value && !force) return;
   const token = ++_csToken;
   crossSourceLoading.value = true;
@@ -133,7 +151,7 @@ export async function loadCrossSource(force) {
     } else {
       crossSourceError.value = norm.error || "跨源加载失败";
     }
-  } catch (e) {
+  } catch (e: any) {
     if (token !== _csToken) return;
     crossSourceError.value = e && e.message ? e.message : "网络错误";
   } finally {
@@ -173,7 +191,7 @@ let _reqToken = 0;
 /* ── localStorage 偏好 ── */
 const PREFS_KEY = "pulse.aiLeaderboard.prefs.v3";
 
-export function readStorage(key) {
+export function readStorage(key: any) {
   try {
     if (typeof globalThis.localStorage === "undefined") return null;
     return globalThis.localStorage.getItem(key);
@@ -182,7 +200,7 @@ export function readStorage(key) {
   }
 }
 
-export function writeStorage(key, val) {
+export function writeStorage(key: any, val: any) {
   try {
     globalThis.localStorage.setItem(key, val);
   } catch { /* 忽略 */ }
@@ -200,6 +218,14 @@ export function loadPrefs() {
     if (o && typeof o.vendor === "string") activeVendor.value = o.vendor;
     if (o && ["all", "open", "proprietary"].includes(o.license)) licenseFilter.value = o.license;
     if (o && (o.sortDir === "asc" || o.sortDir === "desc")) sortDir.value = o.sortDir;
+    // ponytail: Agent 维度偏好 (v2.8x) — 仅当 board 是 agent 时恢复，其它 board 忽略越界值.
+    if (o && typeof o.agentDim === "string" && AGENT_DIMENSIONS.includes(o.agentDim)) {
+      if (activeBoard.value === "agent") activeAgentDim.value = o.agentDim;
+    }
+    // ponytail: 文本榜 category 偏好 (v2.8x) — 仅当 board 是 text 时恢复.
+    if (o && typeof o.textCat === "string" && TEXT_CATEGORIES.some((c: any) => c.key === o.textCat)) {
+      if (activeBoard.value === "text") activeTextCat.value = o.textCat;
+    }
   } catch { /* 忽略 */ }
 }
 
@@ -215,13 +241,15 @@ function persistPrefs() {
         vendor: activeVendor.value,
         license: licenseFilter.value,
         sortDir: sortDir.value,
+        agentDim: activeAgentDim.value,
+        textCat: activeTextCat.value,
       }),
     );
   } catch { /* 忽略 */ }
 }
 
 /* ── 请求（竞态保护 + batch 写入）── */
-async function _run(force) {
+async function _run(force: any) {
   const token = ++_reqToken;
   loading.value = true;
   error.value = null;
@@ -266,7 +294,7 @@ async function _run(force) {
         sourceDate.value = norm.lastUpdated;
         isSample.value =
           Object.values(norm.sources || {}).includes("sample") ||
-          (norm.items || []).some((it) => it && it.isSample);
+          (norm.items || []).some((it: any) => it && it.isSample);
         error.value = null;
         loadRateBudget();
       } else {
@@ -277,7 +305,7 @@ async function _run(force) {
         attribution.value = [];
       }
     });
-  } catch (e) {
+  } catch (e: any) {
     if (token !== _reqToken) return;
     batch(() => {
       error.value = e && e.message ? e.message : "网络错误";
@@ -302,7 +330,7 @@ export function refresh() {
 /* ── actions ── */
 
 /** 切换视角（arena ↔ aa ↔ huggingface）→ 重新请求。 */
-export function setView(v) {
+export function setView(v: any) {
   if (!VIEWS[v] || v === activeView.value) return undefined;
   activeView.value = v;
   activeVendor.value = "all";
@@ -316,17 +344,58 @@ export function setView(v) {
 }
 
 /** Arena 视角：切 board → 重新请求。 */
-export function setBoard(b) {
+export function setBoard(b: any) {
   if (!ARENA_BOARDS[b] || b === activeBoard.value) return undefined;
   activeBoard.value = b;
   activeVendor.value = "all";
   sortKey.value = null;
+  // ponytail: 切到 Agent 榜时把维度复位到头条（Net Improvement）；切走则保持默认。
+  if (b === "agent") activeAgentDim.value = AGENT_DIMENSION_DEFAULT;
+  // ponytail: 切到文本榜时把 category 复位到 overall；切走则保持默认。
+  if (b === "text") activeTextCat.value = TEXT_CATEGORY_DEFAULT;
   persistPrefs();
   return loadLeaderboard();
 }
 
+/** Arena 视角：切一级大类（llm/multimodal/code/image/video）。
+ * 大类本身不单独请求——切到该类下的默认 board（或保持当前 board 若已在该类），
+ * 由 setBoard 触发 reload。 */
+export function setCategory(cat: any) {
+  const boards = boardsOfCategory(cat);
+  if (!boards.length) return undefined;
+  const cur = activeBoard.value;
+  // 当前 board 已属该大类 → 仅切选中态，不重发请求
+  if (categoryOfBoard(cur) === cat) return undefined;
+  return setBoard(boards[0]);
+}
+
+/** 当前激活的一级大类 key（由 activeBoard 派生，便于 FilterBar 渲染选中态）。 */
+export function activeCategory() {
+  return categoryOfBoard(activeBoard.value);
+}
+
+/** Agent 榜：切细分维度 → 纯本地重排（数据已加载，不触发 IPC）。
+ * 该维度成为主指标列与排序依据（"按维度排名"，呼应 arena.ai 官网）。 */
+export function setAgentDim(d: any) {
+  if (!AGENT_DIMENSIONS.includes(d) || d === activeAgentDim.value) return undefined;
+  activeAgentDim.value = d;
+  sortKey.value = null; // 让 sortValue 走 agent 维度分支
+  persistPrefs();
+  return undefined;
+}
+
+/** 文本榜：切 category 子榜 → 纯本地切换（数据已在 categories map 里，不触发 IPC）。
+ * 该 category 成为主指标列与排序/过滤依据（呼应 arena.ai 文本榜的 Overall/Coding/... 子榜）。 */
+export function setTextCat(cat: any) {
+  if (!TEXT_CATEGORIES.some((c: any) => c.key === cat) || cat === activeTextCat.value) return undefined;
+  activeTextCat.value = cat;
+  sortKey.value = null;
+  persistPrefs();
+  return undefined;
+}
+
 /** AA 视角：切排序维度 → 重新请求。 */
-export function setDim(d) {
+export function setDim(d: any) {
   if (!AA_DIMENSIONS[d] || d === activeDim.value) return undefined;
   activeDim.value = d;
   activeVendor.value = "all";
@@ -337,7 +406,7 @@ export function setDim(d) {
 }
 
 /** LiveBench 视角：切子维度 → 重新请求。全部 desc 默认, 不动 sortDir 现状。 */
-export function setLB(d) {
+export function setLB(d: any) {
   if (!LIVE_DIMENSIONS[d] || d === activeLB.value) return undefined;
   activeLB.value = d;
   activeVendor.value = "all";
@@ -347,13 +416,13 @@ export function setLB(d) {
 }
 
 /** 切厂商：纯本地派生。 */
-export function setVendor(v) {
+export function setVendor(v: any) {
   const allowed = v === "all" || VENDOR_META[v];
   activeVendor.value = allowed ? v : "all";
   persistPrefs();
 }
 
-export function setLicenseFilter(v) {
+export function setLicenseFilter(v: any) {
   const allowed = ["all", "open", "proprietary"].includes(v);
   licenseFilter.value = allowed ? v : "all";
   persistPrefs();
@@ -362,7 +431,7 @@ export function setLicenseFilter(v) {
 /** 切数据健康卡的 source chip 隐藏/显示。不会影响实际数据源是否拉取。
  * @param {string} key
  */
-export function toggleHealthSource(key) {
+export function toggleHealthSource(key: any) {
   if (!key) return;
   const cur = hiddenHealthSources.value;
   const next = new Set(cur);
@@ -377,7 +446,7 @@ export function resetHealthSources() {
 }
 
 /** 切排序方向：纯本地派生。 */
-export function setSortDir(dir) {
+export function setSortDir(dir: any) {
   const d = dir === "asc" ? "asc" : "desc";
   if (d === sortDir.value) return;
   sortDir.value = d;
@@ -385,7 +454,7 @@ export function setSortDir(dir) {
 }
 
 let _searchTimer = null;
-export function setSearchQuery(v) {
+export function setSearchQuery(v: any) {
   if (_searchTimer) clearTimeout(_searchTimer);
   _searchTimer = setTimeout(() => {
     searchQuery.value = v || "";
@@ -404,7 +473,7 @@ export function clearSearchQuery() {
  * 覆盖所有可排序列，包括 primaryValue 未涵盖的 valueRatio / ci / lb_cost。
  * @returns {number|null}
  */
-export function columnValue(model, view, key) {
+export function columnValue(model: any, view: any, key: any) {
   // ponytail: HF 视角 (v2.79.5+) — 走 huggingface 切片, 主键 downloads/likes.
   // v2.79.6+: hf_trending 走 computeTrendingScore 客户端按需算, 不存 m.huggingface.
   if (view === "huggingface") {
@@ -438,6 +507,30 @@ export function columnValue(model, view, key) {
       const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
       const slice = model && model.arena && model.arena[board.key];
       if (!slice) return null;
+      // ponytail: Agent 榜 6 维细分 (v2.8x) — elo/ci 读选中维度, votes 列复用为 sessions 体量.
+      if (activeBoard.value === "agent") {
+        const dimName = activeAgentDim.value || AGENT_DIMENSION_DEFAULT;
+        const dim = slice.dimensions && slice.dimensions[dimName];
+        if (key === "elo") {
+          return dim && typeof dim.score === "number"
+            ? dim.score
+            : typeof slice.score === "number"
+            ? slice.score
+            : null;
+        }
+        if (key === "ci") return dim && typeof dim.ci === "number" ? dim.ci : null;
+        // votes 列在 agent 榜表示参与会话数（sessions）
+        return typeof slice.sessions === "number" ? slice.sessions : null;
+      }
+      // ponytail: 文本榜 category 子榜 (v2.8x) — elo/ci/votes 读选中 category 切片（默认 overall = slice 本身）。
+      if (activeBoard.value === "text" && slice.categories) {
+        const cat = activeTextCat.value || TEXT_CATEGORY_DEFAULT;
+        const c = cat === "overall" ? { rank: slice.rank, score: slice.score, ci: slice.ci, votes: slice.votes } : slice.categories[cat];
+        if (!c) return null;
+        if (key === "elo") return typeof c.score === "number" ? c.score : null;
+        if (key === "ci") return c.ci != null ? c.ci : null;
+        return c.votes != null ? c.votes : null;
+      }
       if (key === "elo") return typeof slice.score === "number" ? slice.score : null;
       if (key === "ci") return slice.ci != null ? slice.ci : null;
       return slice.votes != null ? slice.votes : null;
@@ -501,12 +594,33 @@ export function columnValue(model, view, key) {
 }
 
 /** 提取模型在当前视角下的排序值（sortKey 优先，否则走当前主维度）。 */
-export function sortValue(model) {
+export function sortValue(model: any) {
   const key = sortKey.value;
   if (key) return columnValue(model, activeView.value, key);
   if (activeView.value === "arena") {
+    // ponytail: Agent 榜 (v2.8x) — 用选中维度分数排序（primaryValue 走 CATEGORY_BOARD 会错取 text 切片）。
+    if (activeBoard.value === "agent") {
+      const slice = model && model.arena && model.arena["agent"];
+      const dimName = activeAgentDim.value || AGENT_DIMENSION_DEFAULT;
+      const dim = slice && slice.dimensions && slice.dimensions[dimName];
+      return dim && typeof dim.score === "number"
+        ? dim.score
+        : slice && typeof slice.score === "number"
+        ? slice.score
+        : null;
+    }
     const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
-    return primaryValue(model, "elo", board.category);
+    // ponytail: 直接读当前 board 切片（board.key），不走 CATEGORY_BOARD 映射——
+    // 新 board（image-edit/image-to-video/video-edit/document/search）的 key 与
+    // category→board 映射不一致，映射会错取 text-to-image/text-to-video 等导致排序失效。
+    const slice = model && model.arena && model.arena[board.key];
+    // ponytail: 文本榜 category 子榜 (v2.8x) — 按选中 category 排序（默认 overall = slice.score）。
+    if (activeBoard.value === "text" && slice && slice.categories) {
+      const cat = activeTextCat.value || TEXT_CATEGORY_DEFAULT;
+      const c = cat === "overall" ? slice : slice.categories[cat];
+      return c && typeof c.score === "number" ? c.score : null;
+    }
+    return slice && typeof slice.score === "number" ? slice.score : null;
   }
   if (activeView.value === "livebench") {
     return primaryValue(model, activeLB.value, "llm");
@@ -527,7 +641,7 @@ const ASC_DEFAULT_COLS = new Set(["price", "speed", "lb_cost"]);
  *  - 点同一列 → 切换升/降序；
  *  - 点不同列 → 设为该列，并按 better 方向给默认序（低优列 asc，其余 desc）。
  */
-export function toggleSort(key) {
+export function toggleSort(key: any) {
   if (!key) return;
   if (sortKey.value === key) {
     setSortDir(sortDir.value === "asc" ? "desc" : "asc");
@@ -547,7 +661,7 @@ export function sortModels(list: any[], opts: { dir?: string } = {}) {
   const dir = opts.dir || sortDir.value;
   const arr = Array.isArray(list) ? list.slice() : [];
   const mult = dir === "asc" ? 1 : -1;
-  arr.sort((a, b) => {
+  arr.sort((a: any, b: any) => {
     const va = sortValue(a);
     const vb = sortValue(b);
     if (va == null && vb == null) return 0;
@@ -558,20 +672,20 @@ export function sortModels(list: any[], opts: { dir?: string } = {}) {
   return arr;
 }
 
-export function filterByVendor(list, vendor) {
+export function filterByVendor(list: any, vendor: any) {
   if (!vendor || vendor === "all") return list;
-  return (Array.isArray(list) ? list : []).filter((it) => it && it.vendor === vendor);
+  return (Array.isArray(list) ? list : []).filter((it: any) => it && it.vendor === vendor);
 }
 
-export function filterByLicense(list, kind) {
+export function filterByLicense(list: any, kind: any) {
   if (!kind || kind === "all") return list;
-  return (Array.isArray(list) ? list : []).filter((it) => licenseKind(it.license) === kind);
+  return (Array.isArray(list) ? list : []).filter((it: any) => licenseKind(it.license) === kind);
 }
 
-export function filterBySearch(list, q) {
+export function filterBySearch(list: any, q: any) {
   const needle = (q || "").trim().toLowerCase();
   if (!needle) return list;
-  return (Array.isArray(list) ? list : []).filter((it) => {
+  return (Array.isArray(list) ? list : []).filter((it: any) => {
     const vendorLabel = (VENDOR_META[it.vendor] || {}).label || "";
     const hay = [it.name, it.vendor, vendorLabel].filter(Boolean).join(" ").toLowerCase();
     return hay.includes(needle);
@@ -584,14 +698,23 @@ export function getDisplayed() {
   // Arena 视角：仅保留有 ELO 分数的模型（排除 AA/OR 骨架）
   if (activeView.value === "arena") {
     const board = ARENA_BOARDS[activeBoard.value] || ARENA_BOARDS.text;
-    rows = rows.filter((it) => {
+    rows = rows.filter((it: any) => {
       const slice = it && it.arena && it.arena[board.key];
-      return slice && typeof slice.score === "number";
+      if (!slice || typeof slice.score !== "number") return false;
+      // ponytail: 文本榜 category 子榜 — 非 overall 时仅保留有该 category 分数的模型
+      if (activeBoard.value === "text" && slice.categories) {
+        const cat = activeTextCat.value || TEXT_CATEGORY_DEFAULT;
+        if (cat !== "overall") {
+          const c = slice.categories[cat];
+          return c && typeof c.score === "number";
+        }
+      }
+      return true;
     });
   }
   // LiveBench 视角：仅保留 overall 有数据的行（其他 lb_* 列允许空）
   if (activeView.value === "livebench") {
-    rows = rows.filter((it) => {
+    rows = rows.filter((it: any) => {
       const lb = it && it.livebench;
       return lb && typeof lb.overall === "number";
     });
@@ -600,10 +723,10 @@ export function getDisplayed() {
   //   只留当前维度有主源值的行；升级路径：主进程 matchesCategory 按 view 主源硬过滤。
   if (activeView.value === "aa") {
     const dim = activeDim.value;
-    rows = rows.filter((it) => primaryValue(it, dim, "llm") != null);
+    rows = rows.filter((it: any) => primaryValue(it, dim, "llm") != null);
   }
   if (activeView.value === "huggingface") {
-    rows = rows.filter((it) => it && it.huggingface && typeof it.huggingface === "object");
+    rows = rows.filter((it: any) => it && it.huggingface && typeof it.huggingface === "object");
   }
   rows = filterByVendor(rows, activeVendor.value);
   rows = filterByLicense(rows, licenseFilter.value);
@@ -616,16 +739,16 @@ export function getDisplayed() {
 export function hasSampleSource() {
   const s = sources.value || {};
   if (Object.values(s).includes("sample")) return true;
-  return (items.value || []).some((it) => it && it.isSample);
+  return (items.value || []).some((it: any) => it && it.isSample);
 }
 
 export function isAllSample() {
   const list = items.value;
-  return Array.isArray(list) && list.length > 0 && list.every((it) => it && it.isSample);
+  return Array.isArray(list) && list.length > 0 && list.every((it: any) => it && it.isSample);
 }
 
-export function hasAttribution(id) {
-  return (attribution.value || []).some((a) => a && a.id === id);
+export function hasAttribution(id: any) {
+  return (attribution.value || []).some((a: any) => a && a.id === id);
 }
 
 export function deriveShown() {

@@ -17,6 +17,7 @@ import {
   activeBoard,
   activeDim,
   activeLB,
+  activeAgentDim,
   sortKey,
   sortDir,
   toggleSort,
@@ -117,6 +118,15 @@ export function LeaderboardTable({ rows, view, board, dim, lb }: {
   const aKey = primaryKey;
   const dir = sortDir.value;
 
+  // ponytail: Agent 榜 (v2.8x) — 主指标列标题随选中维度变化（"按维度排名"），
+  // 投票列复用为「会话」体量（agent 榜无 vote 概念，sessions 才是有意义的体量信号）。
+  const isAgent = v === "arena" && b === "agent";
+  const agentPrimLabel = isAgent ? activeAgentDim.value : "ELO 分数";
+  const agentVotesLabel = isAgent ? "会话" : "票数";
+  const agentVotesTitle = isAgent
+    ? "该模型在 Agent 榜的参与会话数（sessions）"
+    : "该模型在本 board 的参与对战 / 投票数";
+
   // thead `<tr>` 内容：v4 virtuoso 会把它包进 `<thead>`，所以这里只返单行 `<tr>`
   const headRow =
     v === "arena" ? (
@@ -125,9 +135,9 @@ export function LeaderboardTable({ rows, view, board, dim, lb }: {
         <th class="ai-lb-th ai-lb-col-rank" scope="col">#</th>
         <th class="ai-lb-th" scope="col">模型</th>
         <th class="ai-lb-th ai-lb-col-vendor" scope="col">厂商</th>
-        <SortableTh k="elo" label="ELO 分数" active={aKey} dir={dir} />
+        <SortableTh k="elo" label={agentPrimLabel} active={aKey} dir={dir} title={isAgent ? `按${activeAgentDim.value}排名` : "Arena ELO 分数"} />
         <SortableTh k="ci" label="置信区间" active={aKey} dir={dir} />
-        <SortableTh k="votes" label="票数" active={aKey} dir={dir} title="该模型在本 board 的参与对战 / 投票数" />
+        <SortableTh k="votes" label={agentVotesLabel} active={aKey} dir={dir} title={agentVotesTitle} />
         <SortableTh
           k="context"
           label="上下文"

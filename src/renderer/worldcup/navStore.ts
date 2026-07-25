@@ -88,15 +88,15 @@ export const PERSISTABLE_NAV_KEYS = new Set([
  * @param {{order?: string[], hidden?: string[]} | null} prefs
  * @returns {string[]}
  */
-export function effectiveVisibleItems(prefs) {
+export function effectiveVisibleItems(prefs: any) {
   const order =
     prefs && Array.isArray(prefs.order) && prefs.order.length > 0
-      ? prefs.order.filter((k) => NAV_KEYS.has(k))
+      ? prefs.order.filter((k: any) => NAV_KEYS.has(k))
       : NAV_KEYS_LIST.slice();
   const hidden = new Set(
     prefs && Array.isArray(prefs.hidden) ? prefs.hidden : [],
   );
-  const out = [];
+  const out: any[] = [];
   for (const k of order) {
     if (!hidden.has(k)) out.push(k);
   }
@@ -116,7 +116,7 @@ const NAV_TO_PREFS_SEGMENT = {
   worldcup: "worldcup",
 };
 
-function isNavVisible(key, prefs) {
+function isNavVisible(key: any, prefs: any) {
   const segKey = NAV_TO_PREFS_SEGMENT[key];
   if (!segKey) return true;
   if (!prefs || !prefs.segments) return true;
@@ -129,7 +129,7 @@ function isNavVisible(key, prefs) {
  * HomeGrid 是显示态而不是 panel, tray prefs 不应该把用户弹到 HomeGrid.
  * 不可见列表 (activeNav 不可见 + 没有其他可见 nav) 时不动 (极端兜底, 不会发生因为有固定 tab).
  */
-function firstVisibleNav(prefs) {
+function firstVisibleNav(prefs: any) {
   for (const k of PERSISTABLE_NAV_KEYS) {
     if (isNavVisible(k, prefs)) return k;
   }
@@ -151,7 +151,7 @@ export function installNavWatch() {
   });
 }
 
-export function setActiveNav(key) {
+export function setActiveNav(key: any) {
   // ponytail: 兼容旧 key — 旧落盘 / 命令行可能仍传 'ithome' 或 'wechat-hot' / 'funds' / 'metals' / 'stocks',
   // 在白名单校验之前归一到 'news' 或 'invest', 让旧调用点不报错 (boot lastActiveNav 路径尤其常见).
   const aliased = LEGACY_NAV_ALIAS[key] || key;
@@ -185,13 +185,13 @@ export function setActiveNav(key) {
 }
 
 // ponytail: 投资 nav 主级子 tab 切换 — 仅接受 INVEST_MODULES 内的值, 未知 key 忽略.
-export function setInvestPrimary(mod) {
+export function setInvestPrimary(mod: any) {
   if (INVEST_MODULES.includes(mod)) investPrimary.value = mod;
 }
 
 // ponytail: 跳到投资 nav 并设主级子 tab. 默认 'funds' (从 LEGACY_NAV_ALIAS 落到 invest 的入口,
 // 用户没指定子模块时按习惯先看基金).
-export function goInvest(module) {
+export function goInvest(module: any) {
   setInvestPrimary(module || "funds");
   setActiveNav("invest");
 }

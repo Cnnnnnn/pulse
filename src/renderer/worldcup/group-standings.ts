@@ -10,7 +10,7 @@ function emptyStanding() {
   return { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
 }
 
-function groupLetterFromStage(stage) {
+function groupLetterFromStage(stage: any) {
   if (!stage || typeof stage !== "string") return null;
   const m = stage.match(/^Group\s+([A-L])$/i);
   return m ? m[1].toUpperCase() : null;
@@ -20,7 +20,7 @@ function groupLetterFromStage(stage) {
  * @param {Array<{ name: string }>} teams
  * @returns {Map<string, string>} canonical -> teams-data name
  */
-function buildCanonicalIndex(teams) {
+function buildCanonicalIndex(teams: any) {
   const map = new Map();
   for (const t of teams || []) {
     if (!t || !t.name) continue;
@@ -29,7 +29,7 @@ function buildCanonicalIndex(teams) {
   return map;
 }
 
-function resolveTeamKey(matchName, canonicalIndex) {
+function resolveTeamKey(matchName: any, canonicalIndex: any) {
   const key = canonicalTeamName(matchName);
   return canonicalIndex.get(key) || null;
 }
@@ -39,7 +39,7 @@ function resolveTeamKey(matchName, canonicalIndex) {
  * @param {Array<{ name: string, group: string }>} teams
  * @returns {Record<string, Record<string, object>>} groupLetter -> teamName -> standing
  */
-export function computeGroupStandings(matches, teams) {
+export function computeGroupStandings(matches: any, teams: any) {
   const canonicalIndex = buildCanonicalIndex(teams);
   const byGroup = {};
 
@@ -100,7 +100,7 @@ export function computeGroupStandings(matches, teams) {
  * @param {object} b team
  * @param {Record<string, Record<string, object>>} standings
  */
-export function compareTeamsByStandings(a, b, standings) {
+export function compareTeamsByStandings(a: any, b: any, standings: any) {
   const sa =
     (standings[a.group] && standings[a.group][a.name]) || emptyStanding();
   const sb =
@@ -112,9 +112,9 @@ export function compareTeamsByStandings(a, b, standings) {
   return (a.cn || a.name).localeCompare(b.cn || b.name, "zh");
 }
 
-export function sortTeamsInGroup(teamList, standings, groupLetter) {
+export function sortTeamsInGroup(teamList: any, standings: any, groupLetter: any) {
   const groupStandings = standings[groupLetter] || {};
-  return [...teamList].sort((a, b) => {
+  return [...teamList].sort((a: any, b: any) => {
     const sa = groupStandings[a.name] || emptyStanding();
     const sb = groupStandings[b.name] || emptyStanding();
     if (sb.pts !== sa.pts) return sb.pts - sa.pts;
@@ -124,7 +124,7 @@ export function sortTeamsInGroup(teamList, standings, groupLetter) {
   });
 }
 
-export function formatGoalDiff(gd) {
+export function formatGoalDiff(gd: any) {
   if (gd > 0) return `+${gd}`;
   return String(gd);
 }

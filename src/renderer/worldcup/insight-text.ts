@@ -17,7 +17,7 @@ function thinkOpenRe() {
   return new RegExp("^" + esc + "[\\s\\S]*", "i");
 }
 
-export function formatInsightText(raw) {
+export function formatInsightText(raw: any) {
   if (!raw || typeof raw !== "string") return "";
   let text = raw.trim();
   text = text.replace(thinkBlockRe(), "");

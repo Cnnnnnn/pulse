@@ -27,7 +27,7 @@ export const releaseNotesLoading = signal(false);
  * @param {'auto' | 'manual'} entryPath
  * @param {object} payload { version, changelogMd, slides }
  */
-export function openReleaseNotes(entryPath, payload) {
+export function openReleaseNotes(entryPath: any, payload: any) {
   releaseNotesEntryPath.value = entryPath;
   releaseNotesPayload.value = payload;
   releaseNotesOpen.value = true;

@@ -34,7 +34,7 @@ export function closeTrayConfig() {
  * 渲染端 SideNav 订阅 trayMenuPrefs 过滤 nav tab.
  * @param {{version:number, segments: Record<string, boolean>}} prefs
  */
-export function applyTrayPrefsFromMain(prefs) {
+export function applyTrayPrefsFromMain(prefs: any) {
   if (!prefs || typeof prefs !== "object" || !prefs.segments) return;
   trayMenuPrefs.value = prefs;
 }

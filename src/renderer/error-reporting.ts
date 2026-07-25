@@ -24,7 +24,7 @@ export function installErrorReporting() {
     } catch { /* swallow */ }
   }
 
-  window.addEventListener('error', (e) => {
+  window.addEventListener('error', (e: any) => {
     report(
       'error',
       (e.error && e.error.message) || e.message,
@@ -33,7 +33,7 @@ export function installErrorReporting() {
     );
   });
 
-  window.addEventListener('unhandledrejection', (e) => {
+  window.addEventListener('unhandledrejection', (e: any) => {
     const reason = e.reason;
     if (reason instanceof Error) {
       report('unhandled', reason.message, reason.stack, { kind: 'unhandledrejection' });

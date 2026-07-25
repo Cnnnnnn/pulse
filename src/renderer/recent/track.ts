@@ -6,7 +6,7 @@
 
 import { pushRecent } from "./recentStore.ts";
 
-export function trackWorldcupMatchView(match) {
+export function trackWorldcupMatchView(match: any) {
   if (!match || match._isTeam) return;
   const t1 = match.team1 || "?";
   const t2 = match.team2 || "?";
@@ -26,7 +26,7 @@ export function trackFundView() {
   });
 }
 
-export function trackIthomeView(dateKey) {
+export function trackIthomeView(dateKey: any) {
   if (!dateKey) return;
   const parts = dateKey.split("-");
   const label =
@@ -40,7 +40,7 @@ export function trackIthomeView(dateKey) {
   });
 }
 
-export function trackIthomeFavorite(article) {
+export function trackIthomeFavorite(article: any) {
   if (!article || !article.id) return;
   const title = (article.title || "").trim() || "资讯";
   pushRecent({
@@ -50,7 +50,7 @@ export function trackIthomeFavorite(article) {
   });
 }
 
-export function trackIthomeSummary(article) {
+export function trackIthomeSummary(article: any) {
   if (!article || !article.id) return;
   const title = (article.title || "").trim() || "资讯";
   pushRecent({
@@ -60,7 +60,7 @@ export function trackIthomeSummary(article) {
   });
 }
 
-export function trackWorldcupInsight(match, type) {
+export function trackWorldcupInsight(match: any, type: any) {
   if (!match || match._isTeam) return;
   const t1 = match.team1 || "?";
   const t2 = match.team2 || "?";
@@ -73,7 +73,7 @@ export function trackWorldcupInsight(match, type) {
   });
 }
 
-export function trackFundAdd(code, name) {
+export function trackFundAdd(code: any, name: any) {
   if (!code) return;
   pushRecent({
     kind: "fund-add",
@@ -82,11 +82,11 @@ export function trackFundAdd(code, name) {
   });
 }
 
-export function trackFundUpdate(code, name, patch) {
+export function trackFundUpdate(code: any, name: any, patch: any) {
   if (!code) return;
   let detail = "";
   if (patch && typeof patch === "object") {
-    const keys = Object.keys(patch).filter((k) => k !== "id");
+    const keys = Object.keys(patch).filter((k: any) => k !== "id");
     if (keys.length) detail = keys.join("/");
   }
   pushRecent({
@@ -98,7 +98,7 @@ export function trackFundUpdate(code, name, patch) {
   });
 }
 
-export function trackFundRemove(code, name) {
+export function trackFundRemove(code: any, name: any) {
   if (!code) return;
   pushRecent({
     kind: "fund-remove",
@@ -107,7 +107,7 @@ export function trackFundRemove(code, name) {
   });
 }
 
-export function trackFundNavFetch(count) {
+export function trackFundNavFetch(count: any) {
   const n = typeof count === "number" ? count : 0;
   pushRecent({
     kind: "fund-nav-fetch",
@@ -116,7 +116,7 @@ export function trackFundNavFetch(count) {
   });
 }
 
-export function trackReminderUpdate(reminder) {
+export function trackReminderUpdate(reminder: any) {
   if (!reminder || !reminder.id) return;
   pushRecent({
     kind: "reminder-update",
@@ -143,7 +143,7 @@ export function trackAppUpgrade(appName: string, detail?: string): void {
   });
 }
 
-export function trackAppCheck(appCount) {
+export function trackAppCheck(appCount: any) {
   const n = typeof appCount === "number" ? appCount : 0;
   pushRecent({
     kind: "app-check",

@@ -12,23 +12,23 @@ export const watchlistItems = signal([]);
 export const watchlistDrawerOpen = signal(false);
 export const watchlistModalOpen = signal(false);
 
-export function isAppPinned(appName) {
+export function isAppPinned(appName: any) {
   return watchlistItems.value.some(
-    (w) => w.type === "app" && w.ref === appName,
+    (w: any) => w.type === "app" && w.ref === appName,
   );
 }
 
-export function isFundPinned(code) {
-  return watchlistItems.value.some((w) => w.type === "fund" && w.ref === code);
+export function isFundPinned(code: any) {
+  return watchlistItems.value.some((w: any) => w.type === "fund" && w.ref === code);
 }
 
-export function isMetalPinned(id) {
-  return watchlistItems.value.some((w) => w.type === "metal" && w.ref === id);
+export function isMetalPinned(id: any) {
+  return watchlistItems.value.some((w: any) => w.type === "metal" && w.ref === id);
 }
 
-export const isPinned = (appName) => computed(() => isAppPinned(appName));
+export const isPinned = (appName: any) => computed(() => isAppPinned(appName));
 
-export function itemKey(w) {
+export function itemKey(w: any) {
   if (!w) return "";
   return `${w.type || "app"}:${w.ref || w.appName || ""}`;
 }
@@ -38,7 +38,7 @@ export async function refreshWatchlist() {
   if (r && r.ok) watchlistItems.value = r.items;
 }
 
-export function openWatchlistDrawer(open = true) {
+export function openWatchlistDrawer(open: any = 0) {
   watchlistDrawerOpen.value = Boolean(open);
 }
 export function toggleWatchlistDrawer() {
@@ -46,29 +46,29 @@ export function toggleWatchlistDrawer() {
 }
 
 // Phase 33: modal 入口
-export function openWatchlistModal(open = true) {
+export function openWatchlistModal(open: any = 0) {
   watchlistModalOpen.value = Boolean(open);
 }
 export function toggleWatchlistModal() {
   watchlistModalOpen.value = !watchlistModalOpen.value;
 }
 
-export async function addWatchlistItem({ type, ref }) {
+export async function addWatchlistItem({ type, ref }: any) {
   if (!type || !ref) return;
   const r = await api.watchlistAdd({ type, ref });
   if (r && r.ok) watchlistItems.value = r.items;
 }
 
-export async function addWatchlist(appName) {
+export async function addWatchlist(appName: any) {
   return addWatchlistItem({ type: "app", ref: appName });
 }
 
-export async function removeWatchlistItem({ type, ref }) {
+export async function removeWatchlistItem({ type, ref }: any) {
   if (!type || !ref) return;
   const r = await api.watchlistRemove({ type, ref });
   if (r && r.ok) watchlistItems.value = r.items;
 }
 
-export async function removeWatchlist(appName) {
+export async function removeWatchlist(appName: any) {
   return removeWatchlistItem({ type: "app", ref: appName });
 }

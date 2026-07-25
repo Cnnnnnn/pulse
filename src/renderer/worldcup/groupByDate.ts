@@ -9,7 +9,7 @@
  * @param {Array<{date, time, ...}>} matches
  * @returns {Array<{date, weekday, matches}>}
  */
-export function groupMatchesByDate(matches) {
+export function groupMatchesByDate(matches: any) {
   const map = new Map();
   for (const m of matches || []) {
     if (!m.date) continue;
@@ -18,5 +18,5 @@ export function groupMatchesByDate(matches) {
     }
     map.get(m.date).matches.push(m);
   }
-  return Array.from(map.values()).sort((a, b) => (a.date < b.date ? -1 : 1));
+  return Array.from(map.values()).sort((a: any, b: any) => (a.date < b.date ? -1 : 1));
 }

@@ -18,7 +18,7 @@ vi.mock("../../src/renderer/api.ts", () => ({
 }));
 
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.ts";
-import { ARENA_BOARDS, ARENA_BOARD_KEYS, toIpcParams } from "../../src/renderer/ai-leaderboard/types.ts";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, boardsOfCategory, categoryOfBoard, toIpcParams } from "../../src/renderer/ai-leaderboard/types.ts";
 
 function mk(id: string, arenaSlice: Record<string, any>) {
   return {
@@ -88,5 +88,40 @@ describe("新 board 按切片过滤 + flat 列值", () => {
     store.activeBoard.value = "video-edit";
     const rows = store.getDisplayed();
     expect(rows.map((r: any) => r.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("5 大类分组（一级大类 → 二级榜）", () => {
+  it("ARENA_CATEGORIES 共 5 个，key 为 llm/multimodal/code/image/video", () => {
+    expect(ARENA_CATEGORIES.map((c: any) => c.key)).toEqual(["llm", "multimodal", "code", "image", "video"]);
+  });
+
+  it("boardsOfCategory 返回各类的二级榜（llm 含 agent，image/video 含编辑/图生视频）", () => {
+    expect(boardsOfCategory("llm")).toEqual(["text", "document", "search", "agent"]);
+    expect(boardsOfCategory("image")).toEqual(["image", "image-edit"]);
+    expect(boardsOfCategory("video")).toEqual(["video", "image-to-video", "video-edit"]);
+    expect(boardsOfCategory("multimodal")).toEqual(["vision"]);
+    expect(boardsOfCategory("code")).toEqual(["code"]);
+  });
+
+  it("boardsOfCategory 对非法 key 回退到 llm", () => {
+    expect(boardsOfCategory("nope")).toEqual(boardsOfCategory("llm"));
+  });
+
+  it("categoryOfBoard 返回 board 所属大类", () => {
+    expect(categoryOfBoard("image-edit")).toBe("image");
+    expect(categoryOfBoard("video-edit")).toBe("video");
+    expect(categoryOfBoard("agent")).toBe("llm");
+  });
+
+  it("setCategory 切到该类默认 board；切到已含当前 board 的类是 no-op", () => {
+    store.activeBoard.value = "text"; // llm
+    store.setCategory("image");
+    expect(store.activeBoard.value).toBe("image"); // image 类首 board
+    // 切到 image-edit 后再切 image 类 → 已在该类，不强制回 image
+    store.activeBoard.value = "image-edit";
+    store.setCategory("image");
+    expect(store.activeBoard.value).toBe("image-edit");
+    expect(store.activeCategory()).toBe("image");
   });
 });

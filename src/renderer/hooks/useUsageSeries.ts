@@ -32,7 +32,7 @@ function todayKey() {
  * @param {number} daysAgo
  * @returns {string}
  */
-function shiftDate(daysAgo) {
+function shiftDate(daysAgo: any) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

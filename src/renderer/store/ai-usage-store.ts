@@ -17,7 +17,7 @@ const log = taggedLog("[store/ai-usage]");
 
 export const AI_USAGE_PROVIDERS = ["minimax", "glm"];
 
-function emptySlots(value) {
+function emptySlots(value: any) {
   const out = {};
   for (const pid of AI_USAGE_PROVIDERS) out[pid] = value;
   return out;
@@ -87,7 +87,7 @@ export function clearAiUsageNavBadge() {
   aiUsageNavBadge.value = 0;
 }
 
-export function bumpAiUsageNavBadge(count = 1) {
+export function bumpAiUsageNavBadge(count: any = 0) {
   _badgeDismissed = false;
   const n = Math.max(1, Number(count) || 1);
   aiUsageNavBadge.value += n;
@@ -109,12 +109,12 @@ export async function loadAiUsageAlertPrefs() {
       aiUsageAlertPrefs.value = r.prefs;
       recomputeAiUsageNavBadge();
     }
-  } catch (err) {
+  } catch (err: any) {
     log.warn("loadAiUsageAlertPrefs failed:", err && err.message);
   }
 }
 
-export async function saveAiUsageAlertPrefs(patch) {
+export async function saveAiUsageAlertPrefs(patch: any) {
   if (!api.aiUsageAlertPrefsSet) return { ok: false };
   try {
     const r = await api.aiUsageAlertPrefsSet(patch);
@@ -124,7 +124,7 @@ export async function saveAiUsageAlertPrefs(patch) {
       recomputeAiUsageNavBadge();
     }
     return r;
-  } catch (err) {
+  } catch (err: any) {
     log.warn("saveAiUsageAlertPrefs failed:", err && err.message);
     return { ok: false };
   }
@@ -141,7 +141,7 @@ export function _resetSubscribeForTest() {
  * 处理 main 主动 push 的 ai-usage-updated 事件 (单 provider).
  * @param {{provider: string, snapshot?: object, history?: {days: Array}}} data
  */
-export function applyAiUsageEvent(data) {
+export function applyAiUsageEvent(data: any) {
   if (!data || !data.provider) return;
   const pid = data.provider;
   if (!AI_USAGE_PROVIDERS.includes(pid)) return;
@@ -172,7 +172,7 @@ export function subscribeAiUsageUpdates() {
     api.onAiUsageUpdated(applyAiUsageEvent);
   }
   if (api && typeof api.onSidenavBadge === "function") {
-    api.onSidenavBadge((payload) => {
+    api.onSidenavBadge((payload: any) => {
       if (payload && payload.key === "ai-usage") {
         bumpAiUsageNavBadge(payload.count || 1);
       }
@@ -210,7 +210,7 @@ export async function loadAiUsageCached() {
     }
     await loadAiUsageAlertPrefs();
     recomputeAiUsageNavBadge();
-  } catch (err) {
+  } catch (err: any) {
     log.warn("loadAiUsageCached threw:", err && err.message);
   }
 }
@@ -238,7 +238,7 @@ export async function fetchAiUsage(opts: any = {}) {
       [provider]: (r && (r.reason || r.error)) || "unknown",
     };
     return r || { ok: false, reason: "no_response" };
-  } catch (err) {
+  } catch (err: any) {
     const out = { ok: false, reason: "threw", error: err && err.message };
     aiUsageLastError.value = {
       ...aiUsageLastError.value,
@@ -254,7 +254,7 @@ export async function fetchAiUsage(opts: any = {}) {
  * 切换当前展示的 provider tab.
  * @param {string} providerId
  */
-export function setActiveProvider(providerId) {
+export function setActiveProvider(providerId: any) {
   if (AI_USAGE_PROVIDERS.includes(providerId)) {
     aiUsageActiveProvider.value = providerId;
   }

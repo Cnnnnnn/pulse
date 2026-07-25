@@ -70,7 +70,7 @@ export function useIcon(bundle: string | null | undefined, name?: string | null)
     let promise = inflight.get(path);
     if (!promise) {
       promise = Promise.resolve(api.getAppIcon(path))
-        .then((result) => {
+        .then((result: any) => {
           // IPC 返 { dataUrl } | { error }, 取 dataUrl
           if (result && typeof result.dataUrl === 'string') return result.dataUrl;
           return null;
@@ -80,7 +80,7 @@ export function useIcon(bundle: string | null | undefined, name?: string | null)
     }
 
     let cancelled = false;
-    promise.then((dataUrl) => {
+    promise.then((dataUrl: any) => {
       inflight.delete(path);
       if (cancelled) return;
       if (dataUrl) {

@@ -38,7 +38,7 @@ export const ithomeUnreadBadge = computed(
 );
 export const ithomeSharingIds = signal({});
 
-function _applyPayload(data) {
+function _applyPayload(data: any) {
   if (!data) return;
   const articles = data.articles || {};
   ithomeArticles.value = articles;
@@ -80,7 +80,7 @@ function _syncFavoriteSelectedDate() {
   }
 }
 
-export function isArticleFavorited(id) {
+export function isArticleFavorited(id: any) {
   return !!(id && ithomeFavorites.value[id]);
 }
 
@@ -99,7 +99,7 @@ export async function loadIthomeNews() {
   }
 }
 
-export async function fetchDayNews(dateKey) {
+export async function fetchDayNews(dateKey: any) {
   const fetchDay = requireApiMethod("ithomeFetchDay");
   if (!fetchDay) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -129,7 +129,7 @@ export async function fetchDayNews(dateKey) {
     }
     await loadIthomeNews();
     return r;
-  } catch (err) {
+  } catch (err: any) {
     ithomeNewsError.value = (err && err.message) || "拉取异常";
     return { ok: false, reason: "threw" };
   } finally {
@@ -141,7 +141,7 @@ export async function refreshIthomeNews() {
   return fetchDayNews(ithomeSelectedDate.value);
 }
 
-export async function setIthomeSelectedDate(dateKey) {
+export async function setIthomeSelectedDate(dateKey: any) {
   const prev = ithomeSelectedDate.value;
   ithomeSelectedDate.value = dateKey;
   ithomeNewsError.value = null;
@@ -155,7 +155,7 @@ export async function setIthomeSelectedDate(dateKey) {
   }
 }
 
-export async function summarizeIthomeArticle(id, force = false) {
+export async function summarizeIthomeArticle(id: any, force: any = 0) {
   const summarize = requireApiMethod("ithomeSummarizeArticle");
   if (!summarize) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -181,7 +181,7 @@ export async function summarizeIthomeArticle(id, force = false) {
   return r;
 }
 
-export async function markIthomeRead(id) {
+export async function markIthomeRead(id: any) {
   if (!id) return { ok: false, reason: "invalid_args" };
   const now = Date.now();
   // 1. 乐观更新 readIds signal
@@ -211,7 +211,7 @@ export async function markIthomeRead(id) {
   return { ok: true };
 }
 
-export async function toggleIthomeFavorite(id) {
+export async function toggleIthomeFavorite(id: any) {
   const toggleFavorite = requireApiMethod("ithomeToggleFavorite");
   if (!toggleFavorite) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -230,7 +230,7 @@ export async function toggleIthomeFavorite(id) {
   return r;
 }
 
-export function setIthomeViewMode(mode) {
+export function setIthomeViewMode(mode: any) {
   ithomeViewMode.value = mode === "favorites" ? "favorites" : "news";
   ithomeNewIds.value = {};
   if (ithomeViewMode.value === "favorites") {
@@ -238,7 +238,7 @@ export function setIthomeViewMode(mode) {
   }
 }
 
-export function setIthomeFavoriteSelectedDate(dateKey) {
+export function setIthomeFavoriteSelectedDate(dateKey: any) {
   ithomeFavoriteSelectedDate.value = dateKey;
   ithomeNewIds.value = {};
 }
@@ -252,7 +252,7 @@ export async function bootstrapIthomeTab() {
   }
 }
 
-export async function shareIthomeArticle(id) {
+export async function shareIthomeArticle(id: any) {
   if (!id) return { ok: false, reason: "invalid_args" };
   // 乐观锁
   ithomeSharingIds.value = { ...ithomeSharingIds.value, [id]: true };
@@ -264,7 +264,7 @@ export async function shareIthomeArticle(id) {
   try {
     const r = await shareCard(id);
     return r || { ok: false, reason: "unknown" };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: "threw", error: err && err.message };
   } finally {
     const next = { ...ithomeSharingIds.value };

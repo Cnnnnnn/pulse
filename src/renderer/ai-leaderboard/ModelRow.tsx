@@ -8,9 +8,9 @@
  */
 
 import { forwardRef } from "preact/compat";
-import { VENDOR_META, ARENA_BOARDS } from "./types.ts";
+import { VENDOR_META, ARENA_BOARDS, AGENT_DIMENSION_DEFAULT, TEXT_CATEGORY_DEFAULT } from "./types.ts";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, fmtTrending, computeTrendingScore, licenseKind, licenseShort } from "./format.ts";
-import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items } from "./aiLeaderboardStore.ts";
+import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items, activeAgentDim, activeTextCat } from "./aiLeaderboardStore.ts";
 import { RankSparkline } from "./RankSparkline.tsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
 
@@ -225,10 +225,46 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
   }
 
   if (view === "arena") {
-    const elo = arenaSlice && typeof arenaSlice.score === "number" ? arenaSlice.score : null;
-    const ci = arenaSlice && arenaSlice.ci != null ? arenaSlice.ci : null;
-    const votes = arenaSlice && typeof arenaSlice.votes === "number" ? arenaSlice.votes : null;
-    const votesCell = (
+    // ponytail: Agent 榜 (v2.8x) — 主指标 / CI 读选中维度；投票列复用为 sessions 体量.
+    const isAgent = board === "agent";
+    const dimName = activeAgentDim.value || AGENT_DIMENSION_DEFAULT;
+    const dim = isAgent && arenaSlice && arenaSlice.dimensions ? arenaSlice.dimensions[dimName] : null;
+    // ponytail: 文本榜 category 子榜 (v2.8x) — 主指标/CI/votes 读选中 category 切片（默认 overall = arenaSlice 本身）.
+    const isText = board === "text";
+    const catName = isText ? (activeTextCat.value || TEXT_CATEGORY_DEFAULT) : null;
+    const catSlice = isText && arenaSlice && arenaSlice.categories
+      ? (catName === "overall" ? arenaSlice : (arenaSlice.categories[catName] || null))
+      : null;
+    const elo = dim && typeof dim.score === "number"
+      ? dim.score
+      : catSlice && typeof catSlice.score === "number"
+      ? catSlice.score
+      : arenaSlice && typeof arenaSlice.score === "number"
+      ? arenaSlice.score
+      : null;
+    const ci = dim && typeof dim.ci === "number"
+      ? dim.ci
+      : catSlice && catSlice.ci != null
+      ? catSlice.ci
+      : arenaSlice && arenaSlice.ci != null
+      ? arenaSlice.ci
+      : null;
+    const votes = catSlice && typeof catSlice.votes === "number"
+      ? catSlice.votes
+      : arenaSlice && typeof arenaSlice.votes === "number"
+      ? arenaSlice.votes
+      : null;
+    const sessions = arenaSlice && typeof arenaSlice.sessions === "number" ? arenaSlice.sessions : null;
+    const volumeCell = isAgent ? (
+      <td class="ai-lb-td ai-lb-col-num" title={sessions != null ? `${sessions.toLocaleString()} 会话` : "无会话数据"}>
+        {sessions != null ? fmtVotes(sessions) : "—"}
+        {sessions != null && votesMax ? (
+          <div class="ai-lb-bar" aria-hidden="true">
+            <i style={{ width: Math.max(0, Math.min(100, (sessions / votesMax) * 100)) + "%" }} />
+          </div>
+        ) : null}
+      </td>
+    ) : (
       <td class="ai-lb-td ai-lb-col-num" title={votes != null ? `${votes.toLocaleString()} 票` : "无票数数据"}>
         {votes != null ? fmtVotes(votes) : "—"}
         {votes != null && votesMax ? (
@@ -246,7 +282,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
         {vendorCell}
         {num("elo", elo, fmtScore)}
         {num("ci", ci, (v) => (v != null ? `±${Math.round(v)}` : "—"))}
-        {votesCell}
+        {volumeCell}
         {num(
           "context",
           typeof md.contextLength === "number" ? md.contextLength : null,

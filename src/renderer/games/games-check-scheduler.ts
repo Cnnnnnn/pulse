@@ -61,11 +61,11 @@ export function createGamesCheckScheduler() {
     if (!res || !res.ok || !Array.isArray(res.items)) return;
 
     const seen = loadSeenFreeIds();
-    const fresh = res.items.filter((it) => !seen.has(it.id));
+    const fresh = res.items.filter((it: any) => !seen.has(it.id));
     if (fresh.length === 0) return;
 
     // 更新已通知集合（合并新旧，超出上限截断旧的）
-    const merged = new Set([...seen, ...res.items.map((it) => it.id)]);
+    const merged = new Set([...seen, ...res.items.map((it: any) => it.id)]);
     if (merged.size > MAX_SEEN_IDS) {
       const arr = [...merged].slice(merged.size - MAX_SEEN_IDS);
       saveSeenFreeIds(new Set(arr));
@@ -115,7 +115,7 @@ export function createGamesCheckScheduler() {
 
     if (drops.length === 0) return;
 
-    const merged = new Set([...seen, ...drops.map((d) => d.seenKey)]);
+    const merged = new Set([...seen, ...drops.map((d: any) => d.seenKey)]);
     if (merged.size > MAX_SEEN_DROPS) {
       const arr = [...merged].slice(merged.size - MAX_SEEN_DROPS);
       saveSeenDropKeys(new Set(arr));
@@ -171,12 +171,12 @@ export function createGamesCheckScheduler() {
  * 发系统通知：发现新免费活动。首次请求权限；权限被拒或不支持则静默回退。
  * 点击通知 → 聚焦窗口 + 跳转到游戏优惠的「免费活动」tab。
  */
-function _notifyNewFreeGames(fresh) {
+function _notifyNewFreeGames(fresh: any) {
   try {
     if (typeof Notification === "undefined") return;
     if (Notification.permission === "denied") return;
     const count = fresh.length;
-    const titles = fresh.slice(0, 2).map((g) => g.title);
+    const titles = fresh.slice(0, 2).map((g: any) => g.title);
     const body =
       count === 1
         ? `${PLATFORM_LABEL[fresh[0].platform] || fresh[0].platform} · ${
@@ -205,7 +205,7 @@ function _notifyNewFreeGames(fresh) {
     if (Notification.permission === "granted") {
       send();
     } else if (Notification.permission === "default") {
-      Notification.requestPermission().then((perm) => {
+      Notification.requestPermission().then((perm: any) => {
         if (perm === "granted") send();
       });
     }
@@ -218,12 +218,12 @@ function _notifyNewFreeGames(fresh) {
  * 发系统通知：心愿单游戏降价。权限处理模式同 _notifyNewFreeGames。
  * 点击通知 → 聚焦窗口 + 跳转到游戏优惠的「心愿单」tab。
  */
-function _notifyDrops(drops) {
+function _notifyDrops(drops: any) {
   try {
     if (typeof Notification === "undefined") return;
     if (Notification.permission === "denied") return;
     const count = drops.length;
-    const titles = drops.slice(0, 2).map((d) => d.wish.title);
+    const titles = drops.slice(0, 2).map((d: any) => d.wish.title);
     const body =
       count === 1
         ? `${PLATFORM_LABEL[drops[0].wish.platform] || drops[0].wish.platform} · ${
@@ -254,7 +254,7 @@ function _notifyDrops(drops) {
     if (Notification.permission === "granted") {
       send();
     } else if (Notification.permission === "default") {
-      Notification.requestPermission().then((perm) => {
+      Notification.requestPermission().then((perm: any) => {
         if (perm === "granted") send();
       });
     }

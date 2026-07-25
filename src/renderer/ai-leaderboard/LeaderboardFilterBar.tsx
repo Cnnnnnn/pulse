@@ -7,19 +7,89 @@ import { useState, useEffect } from "preact/hooks";
 import {
   activeView,
   activeBoard,
+  activeAgentDim,
+  activeTextCat,
+  activeCategory,
   activeVendor,
   licenseFilter,
   searchQuery,
   loading,
   setView,
   setBoard,
+  setCategory,
+  setAgentDim,
+  setTextCat,
   setVendor,
   setLicenseFilter,
   setSearchQuery,
   clearSearchQuery,
   refresh,
 } from "./aiLeaderboardStore.ts";
-import { VIEW_KEYS, VIEWS, ARENA_BOARD_KEYS, ARENA_BOARDS, VENDOR_OPTIONS, LICENSE_FILTER_OPTIONS } from "./types.ts";
+import { VIEW_KEYS, VIEWS, ARENA_CATEGORIES, ARENA_BOARDS, boardsOfCategory, AGENT_DIMENSIONS, TEXT_CATEGORIES, VENDOR_OPTIONS, LICENSE_FILTER_OPTIONS } from "./types.ts";
+
+/**
+ * Arena 大类 + 二级榜合并选择器（方案 B）：
+ *  - 单 board 大类（多模态/代码）→ 直接按钮切换
+ *  - 多 board 大类（文本/图像/视频）→ 点击展开下拉菜单选子榜
+ *  - 当前选中大类高亮；下拉里当前子榜高亮
+ *  - 点击空白处关闭下拉（透明 overlay 兜底）
+ */
+function ArenaBoardSelector() {
+  const [openCat, setOpenCat] = useState(null);
+  const activeCat = activeCategory();
+  return (
+    <div class="ai-leaderboard-boardsel" role="group" aria-label="Arena 大类">
+      {openCat && <div class="ai-leaderboard-boardsel__overlay" onClick={() => setOpenCat(null)} aria-hidden="true" />}
+      {ARENA_CATEGORIES.map((c: any) => {
+        const isActive = activeCat === c.key;
+        const hasMultiple = c.boards.length > 1;
+        if (!hasMultiple) {
+          return (
+            <button
+              key={c.key}
+              type="button"
+              class={`ai-leaderboard-boardsel__cat${isActive ? " is-active" : ""}`}
+              aria-pressed={isActive}
+              onClick={() => setBoard(c.boards[0])}
+            >
+              {c.label}
+            </button>
+          );
+        }
+        return (
+          <div key={c.key} class="ai-leaderboard-boardsel__grp">
+            <button
+              type="button"
+              class={`ai-leaderboard-boardsel__cat${isActive ? " is-active" : ""}${openCat === c.key ? " is-open" : ""}`}
+              aria-haspopup="menu"
+              aria-expanded={openCat === c.key}
+              onClick={() => setOpenCat(openCat === c.key ? null : c.key)}
+            >
+              {c.label}
+              <span class="ai-leaderboard-boardsel__arrow" aria-hidden="true">▾</span>
+            </button>
+            {openCat === c.key && (
+              <div class="ai-leaderboard-boardsel__menu" role="menu">
+                {c.boards.map((bk: string) => (
+                  <button
+                    key={bk}
+                    type="button"
+                    role="menuitem"
+                    class={`ai-leaderboard-boardsel__item${activeBoard.value === bk ? " is-active" : ""}`}
+                    aria-pressed={activeBoard.value === bk}
+                    onClick={() => { setBoard(bk); setOpenCat(null); }}
+                  >
+                    {ARENA_BOARDS[bk].label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function LeaderboardFilterBar() {
   const [q, setQ] = useState(searchQuery.value);
@@ -74,17 +144,35 @@ export function LeaderboardFilterBar() {
 
       <div class="ai-leaderboard-toolbar-row">
         <div class="ai-leaderboard-toolbar__left">
-          {view === "arena" && (
-            <div class="ai-leaderboard-chips" role="group" aria-label="Arena 分类">
-              {ARENA_BOARD_KEYS.map((key) => (
+          {view === "arena" && <ArenaBoardSelector />}
+
+          {view === "arena" && activeBoard.value === "agent" && (
+            <div class="ai-leaderboard-chips ai-leaderboard-chips--dim" role="group" aria-label="Agent 细分维度">
+              {AGENT_DIMENSIONS.map((dim) => (
                 <button
-                  key={key}
+                  key={dim}
                   type="button"
-                  class={`ai-leaderboard-chip${activeBoard.value === key ? " is-active" : ""}`}
-                  aria-pressed={activeBoard.value === key}
-                  onClick={() => setBoard(key)}
+                  class={`ai-leaderboard-chip ai-leaderboard-chip--dim${activeAgentDim.value === dim ? " is-active" : ""}`}
+                  aria-pressed={activeAgentDim.value === dim}
+                  onClick={() => setAgentDim(dim)}
                 >
-                  {ARENA_BOARDS[key].label}
+                  {dim}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {view === "arena" && activeBoard.value === "text" && (
+            <div class="ai-leaderboard-chips ai-leaderboard-chips--dim" role="group" aria-label="文本 category 子榜">
+              {TEXT_CATEGORIES.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  class={`ai-leaderboard-chip ai-leaderboard-chip--dim${activeTextCat.value === c.key ? " is-active" : ""}`}
+                  aria-pressed={activeTextCat.value === c.key}
+                  onClick={() => setTextCat(c.key)}
+                >
+                  {c.label}
                 </button>
               ))}
             </div>

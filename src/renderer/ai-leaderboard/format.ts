@@ -8,25 +8,25 @@
 import { VENDOR_META, CATEGORY_BOARD, DIMENSION_META } from "./types.ts";
 
 /** ELO 分数：取整。 */
-export function fmtScore(v) {
+export function fmtScore(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   return String(Math.round(Number(v)));
 }
 
 /** AA 客观指数（0-100+）：1 位小数。 */
-export function fmtIndex(v) {
+export function fmtIndex(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   return Number(v).toFixed(1);
 }
 
 /** 每百万 token 价格（USD）：`$x.xx /1M`。 */
-export function fmtPricePer1M(v) {
+export function fmtPricePer1M(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   return `$${Number(v).toFixed(2)} /1M`;
 }
 
 /** 上下文窗口（tokens）紧凑显示：128000 → "128K"，1050000 → "1.0M"。 */
-export function fmtContext(v) {
+export function fmtContext(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   const n = Number(v);
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
@@ -35,19 +35,19 @@ export function fmtContext(v) {
 }
 
 /** 生成速度（tokens/s）。 */
-export function fmtSpeed(v) {
+export function fmtSpeed(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   return `${Math.round(Number(v))} tok/s`;
 }
 
 /** 厂商展示名。 */
-export function fmtVendor(vendor) {
+export function fmtVendor(vendor: any) {
   if (!vendor) return "—";
   return (VENDOR_META[vendor] && VENDOR_META[vendor].label) || vendor;
 }
 
 /** 更新时间（HH:mm）。 */
-export function fmtClock(iso) {
+export function fmtClock(iso: any) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
@@ -55,7 +55,7 @@ export function fmtClock(iso) {
 }
 
 /** 更新日期（YYYY-MM-DD）。 */
-export function fmtDate(iso) {
+export function fmtDate(iso: any) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
@@ -66,7 +66,7 @@ export function fmtDate(iso) {
 }
 
 /** 性价比 = 智能指数 / 输出价格（越高越划算）。 */
-export function fmtValueRatio(aa) {
+export function fmtValueRatio(aa: any) {
   if (!aa) return "—";
   const idx = aa.intelligenceIndex;
   const price = aa.priceOutputPer1M;
@@ -75,7 +75,7 @@ export function fmtValueRatio(aa) {
 }
 
 /** LiveBench 0..100 分数 → "xx.x".  (0..1 比例 → "xx.x%"). */
-export function fmtLivebench(v) {
+export function fmtLivebench(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   const n = Number(v);
   // byCategory/overall 已是 0..100 (百分制). 兼容旧 0..1 输入 (除以 100 后显示 %).
@@ -83,14 +83,14 @@ export function fmtLivebench(v) {
 }
 
 /** LB 性价比指标 (cost_per_successful_task) — <$1 显 3 位小数, >=$1 显 2 位. */
-export function fmtLbCost(v) {
+export function fmtLbCost(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   const n = Number(v);
   return n < 1 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`;
 }
 
 /** 票数紧凑格式化：8500 → "8.5k"，62355 → "62.4k"。 */
-export function fmtVotes(v) {
+export function fmtVotes(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   const n = Number(v);
   if (n >= 1000) {
@@ -102,7 +102,7 @@ export function fmtVotes(v) {
 
 /** ponytail: 大数量紧凑格式化 (HF downloads) — 254761864 → "254.8M", 12345 → "12.3k" (v2.79.5+).
  *  跟 fmtVotes 的区别: 支持 M/B 级别 (百万/十亿), 因为 HF top 模型下载量动辄亿次. */
-export function fmtDownloads(v) {
+export function fmtDownloads(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   const n = Number(v);
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
@@ -113,7 +113,7 @@ export function fmtDownloads(v) {
 
 /** ponytail: HF lastModified ISO 日期紧凑显示 (v2.79.5+) — 2026-06-01T06:29:13Z → "2026-06-01".
  *  renderer 主要用相对时间, 主表格里显示精确日期不必要 — 仅显 YYYY-MM-DD. */
-export function fmtHfDate(iso) {
+export function fmtHfDate(iso: any) {
   if (!iso) return "—";
   const s = String(iso);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -148,7 +148,7 @@ export function computeTrendingScore(downloads: any, lastModified: any, createdA
 }
 
 /** ponytail: Trending 分数紧凑显示 (v2.79.6+) — 7.45 → "7.45", null → "—". */
-export function fmtTrending(v) {
+export function fmtTrending(v: any) {
   if (v == null || !Number.isFinite(Number(v))) return "—";
   return Number(v).toFixed(2);
 }
@@ -157,7 +157,7 @@ export function fmtTrending(v) {
  * 许可分类：open（开源权重）/ proprietary（闭源）/ unknown。
  * 仅基于 license 字符串关键词粗判，用于"仅开源权重"筛选与徽章着色。
  */
-export function licenseKind(license) {
+export function licenseKind(license: any) {
   if (!license) return "unknown";
   const s = String(license).toLowerCase();
   if (/(^|[^a-z])proprietary|closed[- ]?source/.test(s)) return "proprietary";
@@ -168,7 +168,7 @@ export function licenseKind(license) {
 }
 
 /** 许可短标签。 */
-export function licenseShort(kind) {
+export function licenseShort(kind: any) {
   return kind === "open" ? "开源" : kind === "proprietary" ? "闭源" : "—";
 }
 
@@ -179,7 +179,7 @@ export function licenseShort(kind) {
  * @param {string} category llm|multimodal|code（决定 Arena board）
  * @returns {number|null}
  */
-export function primaryValue(model, dimension, category) {
+export function primaryValue(model: any, dimension: any, category: any) {
   if (dimension === "elo") {
     const board = CATEGORY_BOARD[category] || "text";
     const slice = model && model.arena && model.arena[board];
@@ -193,7 +193,7 @@ export function primaryValue(model, dimension, category) {
     const key = meta && meta.sortKey;
     if (!key) return null;
     const v = key.includes(".")
-      ? key.split(".").reduce((o, p) => (o ? o[p] : null), lb)
+      ? key.split(".").reduce((o: any, p: any) => (o ? o[p] : null), lb)
       : lb[key];
     return typeof v === "number" && Number.isFinite(v) ? v : null;
   }
@@ -245,7 +245,7 @@ export function primaryValue(model, dimension, category) {
  * @param {string} dimension
  * @returns {string}
  */
-export function formatPrimary(value, dimension) {
+export function formatPrimary(value: any, dimension: any) {
   if (value == null || !Number.isFinite(Number(value))) return "—";
   if (dimension === "elo") return fmtScore(value);
   if (dimension === "price") return fmtPricePer1M(value);
@@ -277,7 +277,7 @@ export const LB_MAX = 100;
  * @param {object|null} model
  * @returns {{arena:number|null, aa:number|null, livebench:number|null}}
  */
-export function crossSourceProfile(model) {
+export function crossSourceProfile(model: any) {
   if (!model) return { arena: null, aa: null, livebench: null };
   const arena = model.arena && typeof model.arena === "object" ? model.arena : {};
   let arenaVal = null;
@@ -300,7 +300,7 @@ export function crossSourceProfile(model) {
 }
 
 /** 将分数映射到 [0,1]（clamp）。null/NaN 或非法域 → null。 */
-export function normalizeToUnit(v, min, max) {
+export function normalizeToUnit(v: any, min: any, max: any) {
   if (v == null || !Number.isFinite(v) || !(max > min)) return null;
   const t = (v - min) / (max - min);
   return Math.max(0, Math.min(1, t));
@@ -319,7 +319,7 @@ export function normalizeToUnit(v, min, max) {
  * @param {object[]} items 合并后的模型（含 arena/aa/livebench 切片）
  * @returns {Map<string,{arena:number|null, aa:number|null, livebench:number|null, priceOut:number|null}>}
  */
-export function aggregateVendorProfiles(items) {
+export function aggregateVendorProfiles(items: any) {
   const map = new Map();
   if (!Array.isArray(items)) return map;
   const push = (vendor, axis, val, mode = "max") => {
@@ -359,10 +359,10 @@ export function aggregateVendorProfiles(items) {
  * @param {Array<{vendor:string, arena:number|null, aa:number|null, livebench:number|null, priceOut:number|null}>} profiles
  * @param {number} n
  */
-export function topVendorsByArena(profiles, n = 8) {
+export function topVendorsByArena(profiles: any, n: any = 0) {
   return [...profiles]
-    .filter((p) => p.arena != null)
-    .sort((a, b) => b.arena - a.arena)
+    .filter((p: any) => p.arena != null)
+    .sort((a: any, b: any) => b.arena - a.arena)
     .slice(0, n);
 }
 
@@ -373,7 +373,7 @@ export function topVendorsByArena(profiles, n = 8) {
  * @param {{arena:number|null, priceOut:number|null}} profile
  * @returns {number|null}
  */
-export function eloPerDollar(profile) {
+export function eloPerDollar(profile: any) {
   if (!profile) return null;
   const elo = profile.arena;
   const price = profile.priceOut;
@@ -386,14 +386,14 @@ export function eloPerDollar(profile) {
  * @param {Map<string,{arena:number|null, aa:number|null, livebench:number|null, priceOut:number|null}>} profiles
  * @returns {Array<{vendor:string, eloPerDollar:number, arena:number, priceOut:number}>}
  */
-export function rankVendorsByEloPerDollar(profiles) {
-  const rows = [];
+export function rankVendorsByEloPerDollar(profiles: any) {
+  const rows: any[] = [];
   for (const [vendor, p] of profiles) {
     const v = eloPerDollar(p);
     if (v == null) continue;
     rows.push({ vendor, eloPerDollar: v, arena: p.arena, priceOut: p.priceOut });
   }
-  rows.sort((a, b) => b.eloPerDollar - a.eloPerDollar);
+  rows.sort((a: any, b: any) => b.eloPerDollar - a.eloPerDollar);
   return rows;
 }
 
@@ -413,6 +413,6 @@ export function fmtRelative(ms: number, now?: number) {
   if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))} 小时前`;  // < 1 day
   // >= 1 day: return ISO date "YYYY-MM-DD" via UTC
   const d = new Date(ms);
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: any) => String(n).padStart(2, "0");
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }

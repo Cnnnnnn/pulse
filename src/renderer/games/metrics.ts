@@ -21,7 +21,7 @@ export const EMPTY_METRICS = {};
  * @param {string} name 事件名（如 "wishlist.add"）
  * @returns {{[k:string]:{count:number,firstSeen:string,lastSeen:string}}}
  */
-export function bumpMetric(metrics, name) {
+export function bumpMetric(metrics: any, name: any) {
   const now = new Date().toISOString();
   const cur = metrics && metrics[name];
   const next = { ...(metrics || {}) };

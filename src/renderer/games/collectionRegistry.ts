@@ -37,7 +37,7 @@ const PLATFORM_EMOJI = {
  * @param {{rarity?:string|null}} entry
  * @returns {boolean}
  */
-export function isRanked(entry) {
+export function isRanked(entry: any) {
   return !!(entry && typeof entry.rarity === "string" && entry.rarity);
 }
 
@@ -46,7 +46,7 @@ export function isRanked(entry) {
  * @param {Array<{rarity?:string|null}>} entries
  * @returns {{collected:number,total:number,pct:number,caption:string}}
  */
-export function rarityCoverage(entries) {
+export function rarityCoverage(entries: any) {
   const list = Array.isArray(entries) ? entries : [];
   const total = list.length;
   const collected = list.filter(isRanked).length;
@@ -65,7 +65,7 @@ export function rarityCoverage(entries) {
  * @param {number|null} target
  * @returns {{collected:number,total:number,pct:number,caption:string}}
  */
-export function targetCoverage(collected, target) {
+export function targetCoverage(collected: any, target: any) {
   const c = Math.max(0, Math.floor(Number(collected) || 0));
   const t = target == null ? null : Math.max(0, Math.floor(Number(target) || 0));
   if (t == null || t <= 0) {
@@ -85,12 +85,12 @@ export function targetCoverage(collected, target) {
  * @param {Array<{id:string,name:string,weight:number,color:string}>} [tiers]
  * @returns {Array<{id:string,name:string,weight:number,color:string,count:number}>}
  */
-export function rarityDistribution(entries, tiers) {
+export function rarityDistribution(entries: any, tiers: any) {
   const list = Array.isArray(entries) ? entries : [];
   const defs =
     tiers && Array.isArray(tiers) && tiers.length
-      ? [...tiers].sort((a, b) => b.weight - a.weight)
-      : [...DEFAULT_RARITY_TIERS].sort((a, b) => b.weight - a.weight);
+      ? [...tiers].sort((a: any, b: any) => b.weight - a.weight)
+      : [...DEFAULT_RARITY_TIERS].sort((a: any, b: any) => b.weight - a.weight);
   const counts = new Map();
   for (const d of defs) counts.set(d.id, 0);
   let unranked = 0;
@@ -98,7 +98,7 @@ export function rarityDistribution(entries, tiers) {
     if (isRanked(e) && counts.has(e.rarity)) counts.set(e.rarity, counts.get(e.rarity) + 1);
     else unranked += 1;
   }
-  const rows = defs.map((d) => ({ ...d, count: counts.get(d.id) || 0 }));
+  const rows = defs.map((d: any) => ({ ...d, count: counts.get(d.id) || 0 }));
   rows.push({
     id: "unranked",
     name: "待分级",
@@ -129,8 +129,8 @@ export const DEFAULT_COLLECTION_TYPES = {
     label: "全平台图鉴",
     icon: "🎮",
     accent: "var(--accent-primary)",
-    catalog: (entries) => (Array.isArray(entries) ? entries : []),
-    progress: (entries) => rarityCoverage(entries),
+    catalog: (entries: any) => (Array.isArray(entries) ? entries : []),
+    progress: (entries: any) => rarityCoverage(entries),
     rarityTiers: DEFAULT_RARITY_TIERS,
     milestone: [0.25, 0.5, 0.75, 1],
   },
@@ -148,9 +148,9 @@ export const DEFAULT_COLLECTION_TYPES = {
     label: "待分级",
     icon: "🏷️",
     accent: "var(--text-secondary)",
-    catalog: (entries) =>
-      (Array.isArray(entries) ? entries : []).filter((e) => !isRanked(e)),
-    progress: (entries) => {
+    catalog: (entries: any) =>
+      (Array.isArray(entries) ? entries : []).filter((e: any) => !isRanked(e)),
+    progress: (entries: any) => {
       const cov = rarityCoverage(entries);
       // 反相：待分级视图的「完成」= 清零未分级项
       return {
@@ -170,9 +170,9 @@ export const DEFAULT_COLLECTION_TYPES = {
     label: "传说典藏",
     icon: "👑",
     accent: "var(--color-warning)",
-    catalog: (entries) =>
-      (Array.isArray(entries) ? entries : []).filter((e) => e && e.rarity === "legendary"),
-    progress: (entries) => rarityCoverage(entries),
+    catalog: (entries: any) =>
+      (Array.isArray(entries) ? entries : []).filter((e: any) => e && e.rarity === "legendary"),
+    progress: (entries: any) => rarityCoverage(entries),
     rarityTiers: DEFAULT_RARITY_TIERS,
     milestone: [0.25, 0.5, 0.75, 1],
   },
@@ -182,16 +182,16 @@ export const DEFAULT_COLLECTION_TYPES = {
  * 构造一个「平台过滤」类型定义（工厂，避免 5 个重复字面量）。
  * @param {string} platform
  */
-function platformType(platform) {
+function platformType(platform: any) {
   const emoji = PLATFORM_EMOJI[platform] || "🎮";
   return {
     id: platform,
     label: platform.charAt(0).toUpperCase() + platform.slice(1),
     icon: emoji,
     accent: "var(--accent-primary)",
-    catalog: (entries) =>
-      (Array.isArray(entries) ? entries : []).filter((e) => e && e.platform === platform),
-    progress: (entries) => rarityCoverage(entries),
+    catalog: (entries: any) =>
+      (Array.isArray(entries) ? entries : []).filter((e: any) => e && e.platform === platform),
+    progress: (entries: any) => rarityCoverage(entries),
     rarityTiers: DEFAULT_RARITY_TIERS,
     milestone: [0.25, 0.5, 0.75, 1],
   };
@@ -258,11 +258,11 @@ export function crossedMilestones(prevPct: any, nextPct: any, milestones?: any) 
   const ms = Array.isArray(milestones) && milestones.length ? milestones : [0.25, 0.5, 0.75, 1];
   const lo = Math.min(prevPct, nextPct);
   const hi = Math.max(prevPct, nextPct);
-  return ms.filter((m) => m > lo && m <= hi);
+  return ms.filter((m: any) => m > lo && m <= hi);
 }
 
 /** 裁剪 pct 到 [0,1]。 */
-export function clampPct(p) {
+export function clampPct(p: any) {
   const n = Number(p);
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, Math.min(1, n));

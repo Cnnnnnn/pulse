@@ -4,23 +4,23 @@
  * 比赛键 / 开球时间 / 比分刷新筛选 (跟 main/match-key.js 对齐)
  */
 
-export function parseUtcOffsetHours(tz) {
+export function parseUtcOffsetHours(tz: any) {
   if (!tz || typeof tz !== "string") return 0;
   const m = tz.match(/^UTC([+-])(\d{1,2})$/);
   if (!m) return 0;
   return m[1] === "+" ? -parseInt(m[2], 10) : parseInt(m[2], 10);
 }
 
-export function matchKey(match) {
+export function matchKey(match: any) {
   if (!match) return "";
   return `${match.date}|${match.time}|${match.team1}|${match.team2}`;
 }
 
-export function matchKickoffUtcMs(match) {
+export function matchKickoffUtcMs(match: any) {
   if (!match || !match.date || !match.time) return null;
-  const [y, mo, d] = match.date.split("-").map((n) => parseInt(n, 10));
-  const [h, mi] = match.time.split(":").map((n) => parseInt(n, 10));
-  if ([y, mo, d, h, mi].some((n) => Number.isNaN(n))) return null;
+  const [y, mo, d] = match.date.split("-").map((n: any) => parseInt(n, 10));
+  const [h, mi] = match.time.split(":").map((n: any) => parseInt(n, 10));
+  if ([y, mo, d, h, mi].some((n: any) => Number.isNaN(n))) return null;
 
   const offsetH = parseUtcOffsetHours(match.timezone || "");
   let utcH = h + offsetH;
@@ -61,7 +61,7 @@ export function isMatchUpcoming(match, nowMs = Date.now()) {
   return kickoff > nowMs;
 }
 
-export function applyScoreToMatch(match, scoreEntry) {
+export function applyScoreToMatch(match: any, scoreEntry: any) {
   if (!match || !scoreEntry || !scoreEntry.ft) return match;
   return {
     ...match,
@@ -77,9 +77,9 @@ export function applyScoreToMatch(match, scoreEntry) {
   };
 }
 
-export function mergeScoresIntoMatches(matches, scoreMap) {
+export function mergeScoresIntoMatches(matches: any, scoreMap: any) {
   if (!Array.isArray(matches) || !scoreMap) return matches;
-  return matches.map((m) => {
+  return matches.map((m: any) => {
     const entry = scoreMap[matchKey(m)];
     return entry ? applyScoreToMatch(m, entry) : m;
   });

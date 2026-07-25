@@ -7,9 +7,9 @@
  *   0 后端侵入, 切股票后跟着 closes 一起刷新.
  */
 
-export function maSeries(closes, n) {
+export function maSeries(closes: any, n: any) {
   if (!Array.isArray(closes) || closes.length === 0) return [];
-  const out = [];
+  const out: any[] = [];
   let sum = 0;
   for (let i = 0; i < closes.length; i++) {
     sum += closes[i];
@@ -19,12 +19,12 @@ export function maSeries(closes, n) {
   return out;
 }
 
-export function emaSeries(closes, n) {
+export function emaSeries(closes: any, n: any) {
   if (!Array.isArray(closes) || closes.length === 0) return [];
   if (closes.length < n) return new Array(closes.length).fill(null);
   const k = 2 / (n + 1);
   const out = new Array(n - 1).fill(null);
-  let e = closes.slice(0, n).reduce((s, x) => s + x, 0) / n;
+  let e = closes.slice(0, n).reduce((s: any, x: any) => s + x, 0) / n;
   out.push(e);
   for (let i = n; i < closes.length; i++) {
     e = closes[i] * k + e * (1 - k);
@@ -33,7 +33,7 @@ export function emaSeries(closes, n) {
   return out;
 }
 
-export function macdSeries(closes) {
+export function macdSeries(closes: any) {
   if (!Array.isArray(closes) || closes.length === 0) {
     return { dif: [], dea: [], hist: [] };
   }
@@ -47,11 +47,11 @@ export function macdSeries(closes) {
   }
   const ema12 = emaSeries(closes, 12);
   const ema26 = emaSeries(closes, 26);
-  const dif = closes.map((_, i) =>
+  const dif = closes.map((_: any, i: any) =>
     ema12[i] != null && ema26[i] != null ? ema12[i] - ema26[i] : null,
   );
   // DEA = EMA9(DIF), 只对 DIF 非 null 段计算, 前面补 null
-  const firstValidIdx = dif.findIndex((v) => v != null);
+  const firstValidIdx = dif.findIndex((v: any) => v != null);
   if (firstValidIdx < 0 || dif.length - firstValidIdx < 9) {
     return {
       dif,
@@ -68,7 +68,7 @@ export function macdSeries(closes) {
   // ponytail: 对齐长度防越界 — deaTail 长度可能 = validDif 长度, 跟 closes 长度不一定相等.
   while (dea.length < closes.length) dea.push(null);
   if (dea.length > closes.length) dea.length = closes.length;
-  const hist = closes.map((_, i) =>
+  const hist = closes.map((_: any, i: any) =>
     dif[i] != null && dea[i] != null ? (dif[i] - dea[i]) * 2 : null,
   );
   return { dif, dea, hist };

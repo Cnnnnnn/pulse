@@ -39,7 +39,7 @@ async function handleFocus(data: any) {
   // 其他 tab 在 B/C/D 任务里加分支
 
   // 2) 等布局 mount
-  await new Promise((r) => setTimeout(r, 80));
+  await new Promise((r: any) => setTimeout(r, 80));
 
   // 3) 滚到目标
   if (data.tab === "versions" && data.rowName) {
@@ -50,7 +50,7 @@ async function handleFocus(data: any) {
   if (data.action === "upgrade" && data.rowName) {
     try {
       await requestUpgrade(data.rowName);
-    } catch (err) {
+    } catch (err: any) {
       log.warn("requestUpgrade failed:", err instanceof Error ? err.message : err);
     }
   }

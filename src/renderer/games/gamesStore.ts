@@ -83,7 +83,7 @@ export const activeMode = signal("deals");
 export const activeSort = signal("savings");
 export const minSavings = signal(0);
 /** 比价模式下参与对比的平台集合（多选，至少保留 1 个）。 */
-export const comparePlatforms = signal(PLATFORMS.map((p) => p.key));
+export const comparePlatforms = signal(PLATFORMS.map((p: any) => p.key));
 
 /** 标题搜索关键词（本地派生，不发 IPC）。由 setSearchQuery 200ms 防抖写入。 */
 export const searchQuery = signal("");
@@ -98,7 +98,7 @@ export const fetchedAt = signal(null);
 export const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 export const fx = signal({ ...EMPTY_FX });
 
-function normalizeFx(raw) {
+function normalizeFx(raw: any) {
   if (!raw || typeof raw !== "object") return { ...EMPTY_FX };
   const rates =
     raw.rates && typeof raw.rates === "object" && !Array.isArray(raw.rates)
@@ -171,7 +171,7 @@ export async function loadGameDeals() {
         fx.value = { ...EMPTY_FX };
       });
     }
-  } catch (e) {
+  } catch (e: any) {
     if (token !== _reqToken) return;
     batch(() => {
       error.value = e && e.message ? e.message : "网络错误";
@@ -195,38 +195,38 @@ export async function loadFx() {
   try {
     const res = await api.getFx(["USD"]);
     fx.value = normalizeFx(res);
-  } catch (e) {
+  } catch (e: any) {
     // 失败不清空：保留上一次的 fx（若有），wishlist 不至于完全丢失参考价
   }
 }
 
-export function setPlatform(p) {
+export function setPlatform(p: any) {
   if (activePlatform.value === p) return;
   activePlatform.value = p;
   loadGameDeals();
 }
 
-export function setMode(m) {
+export function setMode(m: any) {
   if (activeMode.value === m) return;
   activeMode.value = m;
   loadGameDeals();
 }
 
 /** 比价模式：切换某平台是否参与对比（至少保留 1 个）。 */
-export function toggleComparePlatform(key) {
+export function toggleComparePlatform(key: any) {
   const cur = comparePlatforms.value;
   if (cur.includes(key)) {
-    if (cur.length > 1) comparePlatforms.value = cur.filter((k) => k !== key);
+    if (cur.length > 1) comparePlatforms.value = cur.filter((k: any) => k !== key);
   } else {
     comparePlatforms.value = [...cur, key];
   }
 }
 
-export function setPlatformAndMode(platform, mode) {
-  const nextPlatform = PLATFORMS.some(({ key }) => key === platform)
+export function setPlatformAndMode(platform: any, mode: any) {
+  const nextPlatform = PLATFORMS.some(({ key }: any) => key === platform)
     ? platform
     : activePlatform.value;
-  const nextMode = MODES.some(({ key }) => key === mode)
+  const nextMode = MODES.some(({ key }: any) => key === mode)
     ? mode
     : activeMode.value;
   if (
@@ -240,11 +240,11 @@ export function setPlatformAndMode(platform, mode) {
 
 // sort / minSavings 改为纯本地派生（GamesPage 用 sortItems/filterBySavings 计算 shown），
 // 不再触发 loadGameDeals —— 避免 skeleton 闪烁 + 史低徽标清空 + IPC 往返。
-export function setSort(s) {
+export function setSort(s: any) {
   activeSort.value = s;
 }
 
-export function setMinSavings(v) {
+export function setMinSavings(v: any) {
   minSavings.value = v;
 }
 
@@ -252,23 +252,23 @@ export function setMinSavings(v) {
  * deals 模式本地排序（与 IPC 层 applySortAndFilter 的 sortDeals 逻辑一致）。
  * 改下拉框时只更新 activeSort signal → GamesPage 派生重排，不发 IPC、不闪 skeleton。
  */
-export function sortItems(items, sort) {
+export function sortItems(items: any, sort: any) {
   const arr = items.slice();
   if (sort === "price") {
-    arr.sort((a, b) => (a.salePrice ?? Infinity) - (b.salePrice ?? Infinity));
+    arr.sort((a: any, b: any) => (a.salePrice ?? Infinity) - (b.salePrice ?? Infinity));
   } else if (sort === "rating") {
-    arr.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    arr.sort((a: any, b: any) => (b.rating ?? -1) - (a.rating ?? -1));
   } else {
     // 'savings' 默认：折扣力度降序
-    arr.sort((a, b) => b.savings - a.savings);
+    arr.sort((a: any, b: any) => b.savings - a.savings);
   }
   return arr;
 }
 
 /** deals 模式本地 minSavings 过滤。 */
-export function filterBySavings(items, min) {
+export function filterBySavings(items: any, min: any) {
   if (!min || min <= 0) return items;
-  return items.filter((it) => it && it.savings >= min);
+  return items.filter((it: any) => it && it.savings >= min);
 }
 
 /** 数据源是否含 'sample'（用于页头提示）。 */
@@ -294,7 +294,7 @@ export function hasPsgamespiderAttribution() {
 
 /** GamerPower 数据来源署名（Steam 免费活动）。 */
 export function hasGamerPowerAttribution() {
-  return items.value.some((item) => item.provider === "gamerpower");
+  return items.value.some((item: any) => item.provider === "gamerpower");
 }
 
 // ── 后台检查设置持久化（localStorage，照搬 github-projects-store.js）──
@@ -321,7 +321,7 @@ const ACH_PROGRESS_KEY = "pulse.games.achievements.progress.v1"; // C 成就进�
 const EVENTS_CONFIG_KEY = "pulse.games.events.config.v1"; // D 用户活动配置
 const EVENTS_PROGRESS_KEY = "pulse.games.events.progress.v1"; // D 活动进度（完成/领取态）
 
-export function readStorage(key) {
+export function readStorage(key: any) {
   try {
     if (typeof globalThis.localStorage === "undefined") return null;
     return globalThis.localStorage.getItem(key);
@@ -330,7 +330,7 @@ export function readStorage(key) {
   }
 }
 
-export function writeStorage(key, val) {
+export function writeStorage(key: any, val: any) {
   try {
     globalThis.localStorage.setItem(key, val);
   } catch {
@@ -378,14 +378,14 @@ function persistSettings() {
 }
 
 /** 设置自动检查开关。变更后通知调度器重启。 */
-export function setGamesAutoCheck(v) {
+export function setGamesAutoCheck(v: any) {
   gamesAutoCheck.value = !!v;
   persistSettings();
   emitSettingsChanged();
 }
 
 /** 设置自动检查间隔（分钟）。下限 60 分钟（各平台活动更新节奏不同，无需更频繁）。 */
-export function setGamesAutoCheckInterval(min) {
+export function setGamesAutoCheckInterval(min: any) {
   const n = Math.max(60, Math.floor(Number(min) || 360));
   gamesAutoCheckIntervalMin.value = n;
   persistSettings();
@@ -393,7 +393,7 @@ export function setGamesAutoCheckInterval(min) {
 }
 
 /** 设置是否桌面通知新免费活动。不重启调度器（下次 checkOnce 读最新值）。 */
-export function setGamesNotifyOnFree(v) {
+export function setGamesNotifyOnFree(v: any) {
   gamesNotifyOnFree.value = !!v;
   persistSettings();
 }
@@ -415,7 +415,7 @@ export function loadSeenFreeIds() {
 }
 
 /** 持久化已通知过的免费活动 id 集合。 */
-export function saveSeenFreeIds(ids) {
+export function saveSeenFreeIds(ids: any) {
   try {
     writeStorage(SEEN_FREE_KEY, JSON.stringify([...ids]));
   } catch {
@@ -426,7 +426,7 @@ export function saveSeenFreeIds(ids) {
 // ── 心愿单 + 降价通知 ──────────────────────────────────────────────
 
 /** 生成心愿单条目主键。 */
-export function getWishlistKey(game) {
+export function getWishlistKey(game: any) {
   return `${game.platform}:${game.id}`;
 }
 
@@ -446,7 +446,7 @@ export function loadWishlist() {
 }
 
 /** 关注一款游戏（加入心愿单）。同 key 去重。 */
-export function addToWishlist(game) {
+export function addToWishlist(game: any) {
   const key = getWishlistKey(game);
   if (isInWishlist(key)) return;
   const base = {
@@ -471,8 +471,8 @@ export function addToWishlist(game) {
 }
 
 /** 取消关注（移除心愿单条目）。 */
-export function removeFromWishlist(key) {
-  wishlist.value = wishlist.value.filter((w) => w.key !== key);
+export function removeFromWishlist(key: any) {
+  wishlist.value = wishlist.value.filter((w: any) => w.key !== key);
   // 若移除的是正在展开的合并主记录，清掉展开态
   if (expandedMergeKey.value === key) expandedMergeKey.value = null;
   _persistWishlist();
@@ -480,8 +480,8 @@ export function removeFromWishlist(key) {
 }
 
 /** 判断是否已关注。 */
-export function isInWishlist(key) {
-  return wishlist.value.some((w) => w.key === key);
+export function isInWishlist(key: any) {
+  return wishlist.value.some((w: any) => w.key === key);
 }
 
 // ── 收藏模块：文件夹 / 标签 / 筛选 ────────────────────────────────
@@ -606,7 +606,7 @@ export function loadRarityTiers() {
   const raw = readStorage(RARITY_TIERS_KEY);
   if (!raw) {
     // 首次使用：写入默认 4 档
-    rarityTiers.value = DEFAULT_RARITY_TIERS.map((t) => ({ ...t }));
+    rarityTiers.value = DEFAULT_RARITY_TIERS.map((t: any) => ({ ...t }));
     _persistRarityTiers();
     return;
   }
@@ -618,7 +618,7 @@ export function loadRarityTiers() {
     rarityTiers.value = normalized;
   } catch {
     // 损坏数据：回退默认 4 档并覆盖落盘
-    rarityTiers.value = DEFAULT_RARITY_TIERS.map((t) => ({ ...t }));
+    rarityTiers.value = DEFAULT_RARITY_TIERS.map((t: any) => ({ ...t }));
     _persistRarityTiers();
   }
 }
@@ -635,7 +635,7 @@ function _persistRarityTiers() {
 export function addRarityTier(name: string, opts: any = {}) {
   const clean = String(name || "").trim();
   if (!clean) return null;
-  const existing = rarityTiers.value.find((t) => t.name === clean);
+  const existing = rarityTiers.value.find((t: any) => t.name === clean);
   if (existing) return existing.id;
   const id = typeof opts.id === "string" && opts.id ? opts.id : genId();
   const weight = Number.isFinite(Number(opts.weight)) ? Number(opts.weight) : rarityTiers.value.length + 1;
@@ -649,19 +649,19 @@ export function addRarityTier(name: string, opts: any = {}) {
 }
 
 /** 重命名档位（id 不变，条目 rarity 引用按 id 自然跟随）。 */
-export function renameRarityTier(id, name) {
+export function renameRarityTier(id: any, name: any) {
   const clean = String(name || "").trim();
   if (!clean || !id) return;
-  rarityTiers.value = rarityTiers.value.map((t) =>
+  rarityTiers.value = rarityTiers.value.map((t: any) =>
     t.id === id ? { ...t, name: clean } : t,
   );
   _persistRarityTiers();
 }
 
 /** 删除档位（被删档位 id 仍留在旧条目 rarity 上，渲染时按未知处理为中性色）。 */
-export function deleteRarityTier(id) {
+export function deleteRarityTier(id: any) {
   if (!id) return;
-  rarityTiers.value = rarityTiers.value.filter((t) => t.id !== id);
+  rarityTiers.value = rarityTiers.value.filter((t: any) => t.id !== id);
   _persistRarityTiers();
 }
 
@@ -698,7 +698,7 @@ export function setCollectionFilter(typeOrObj: any, id?: any) {
 // ── 统一游戏收藏（Phase 2）：类型 / 视图 切换 + 派生选择器 ──
 
 /** 设置当前收藏类型（仅接受注册表中存在的 id，非法忽略）。 */
-export function setCollectionType(id) {
+export function setCollectionType(id: any) {
   if (!getCollectionType(id)) return;
   if (activeCollectionType.value === id) return;
   activeCollectionType.value = id;
@@ -706,7 +706,7 @@ export function setCollectionType(id) {
 }
 
 /** 设置收藏展示视图（'grid' | 'list'）；非法值回退 'grid'。 */
-export function setCollectionView(v) {
+export function setCollectionView(v: any) {
   const next = v === "list" ? "list" : "grid";
   if (collectionView.value === next) return;
   collectionView.value = next;
@@ -724,20 +724,20 @@ function triggerCollectionLoading() {
 }
 
 /** 设置皮肤（仅接受已知值，非法回退 minimal）。 */
-export function setCollectionSkin(s) {
+export function setCollectionSkin(s: any) {
   const allowed = ["minimal", "neon", "retro"];
   collectionSkin.value = allowed.includes(s) ? s : "minimal";
 }
 
 /** 推入一条解锁 toast（上限保留最近 4 条）。 */
-export function pushUnlockToast(kind, title, desc) {
+export function pushUnlockToast(kind: any, title: any, desc: any) {
   const uid = `${kind}-${title}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   unlockToasts.value = [...unlockToasts.value, { uid, kind, title, desc }].slice(-4);
 }
 
 /** 关闭指定 toast。 */
-export function dismissUnlockToast(uid) {
-  unlockToasts.value = unlockToasts.value.filter((t) => t.uid !== uid);
+export function dismissUnlockToast(uid: any) {
+  unlockToasts.value = unlockToasts.value.filter((t: any) => t.uid !== uid);
 }
 
 /** 清除里程碑动效信号。 */
@@ -748,7 +748,7 @@ export function clearMilestoneFx() {
 // ── 窄屏侧栏抽屉 ──
 
 /** 设置抽屉开合态。 */
-export function setCollectionSidebarOpen(v) {
+export function setCollectionSidebarOpen(v: any) {
   collectionSidebarOpen.value = !!v;
 }
 /** 切换抽屉开合态。 */
@@ -759,7 +759,7 @@ export function toggleCollectionSidebar() {
 // ── 解锁历史 ──
 
 /** 打开 / 关闭解锁历史面板。 */
-export function setUnlockHistoryOpen(v) {
+export function setUnlockHistoryOpen(v: any) {
   unlockHistoryOpen.value = !!v;
 }
 /** 切换解锁历史面板开合态。 */
@@ -773,7 +773,7 @@ export function clearUnlockHistory() {
 }
 
 /** 追加一条解锁历史（最新在前，上限 50）。 */
-export function pushUnlockHistory(kind, title, desc) {
+export function pushUnlockHistory(kind: any, title: any, desc: any) {
   const item = {
     id: `h-${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     kind,
@@ -794,9 +794,9 @@ export function currentCompletionPct() {
   const all = wishlist.value;
   const f = activeCollectionFilter.value;
   if (f && f.type === "folder") {
-    const folder = folders.value.find((x) => x.id === f.id);
+    const folder = folders.value.find((x: any) => x.id === f.id);
     return targetCoverage(
-      all.filter((e) => e && e.folderId === f.id).length,
+      all.filter((e: any) => e && e.folderId === f.id).length,
       folder ? folder.target : null,
     ).pct;
   }
@@ -822,21 +822,21 @@ export function deriveCollectionView() {
   const f = activeCollectionFilter.value;
   let folderTarget = null;
   if (f && f.type === "folder") {
-    entries = entries.filter((e) => e && e.folderId === f.id);
-    const folder = folders.value.find((x) => x.id === f.id);
+    entries = entries.filter((e: any) => e && e.folderId === f.id);
+    const folder = folders.value.find((x: any) => x.id === f.id);
     folderTarget = folder ? folder.target : null;
   } else if (f && f.type === "tag") {
-    entries = entries.filter((e) => e && Array.isArray(e.tags) && e.tags.includes(f.id));
+    entries = entries.filter((e: any) => e && Array.isArray(e.tags) && e.tags.includes(f.id));
   }
 
   // 3) 标题搜索（本地过滤）
   const q = (searchQuery.value || "").trim().toLowerCase();
-  if (q) entries = entries.filter((e) => matchesSearch(e, q));
+  if (q) entries = entries.filter((e: any) => matchesSearch(e, q));
 
   // 4) 按稀有度降序（unranked 恒末尾），与既有 wishlist 网格排序一致
   const weightOf = {};
   for (const t of rarityTiers.value) weightOf[t.id] = t.weight;
-  entries = [...entries].sort((a, b) => {
+  entries = [...entries].sort((a: any, b: any) => {
     const wa = a.rarity != null && weightOf[a.rarity] != null ? weightOf[a.rarity] : -1;
     const wb = b.rarity != null && weightOf[b.rarity] != null ? weightOf[b.rarity] : -1;
     return wb - wa;
@@ -857,10 +857,10 @@ export function deriveCollectionView() {
 // ── 标签 action ──
 
 /** 新增标签（按名）。已存在则复用，返回其 id。 */
-export function addTag(name) {
+export function addTag(name: any) {
   const clean = String(name || "").trim();
   if (!clean) return null;
-  const existing = tags.value.find((t) => t.name === clean);
+  const existing = tags.value.find((t: any) => t.name === clean);
   if (existing) return existing.id;
   const tag = normalizeTag({
     id: genId(),
@@ -873,22 +873,22 @@ export function addTag(name) {
 }
 
 /** 重命名标签：元数据 + 所有条目 tags 同步批量改（旧标签消失）。 */
-export function renameTag(oldName, newName) {
+export function renameTag(oldName: any, newName: any) {
   const cleanOld = String(oldName || "").trim();
   const cleanNew = String(newName || "").trim();
   if (!cleanOld || !cleanNew || cleanOld === cleanNew) return;
-  const tag = tags.value.find((t) => t.name === cleanOld);
+  const tag = tags.value.find((t: any) => t.name === cleanOld);
   if (!tag) return;
   // 元数据重命名
-  tags.value = tags.value.map((t) =>
+  tags.value = tags.value.map((t: any) =>
     t.name === cleanOld ? { ...t, name: cleanNew } : t,
   );
   // 条目同步
   let changed = false;
-  const next = wishlist.value.map((e) => {
+  const next = wishlist.value.map((e: any) => {
     if (e.tags.includes(cleanOld)) {
       changed = true;
-      const tags2 = e.tags.map((x) => (x === cleanOld ? cleanNew : x));
+      const tags2 = e.tags.map((x: any) => (x === cleanOld ? cleanNew : x));
       return normalizeEntry({ ...e, tags: tags2 });
     }
     return e;
@@ -911,14 +911,14 @@ export function deleteTag(name: string, opts: any = {}) {
   const clean = String(name || "").trim();
   if (!clean) return;
   const removeEntries = !!opts.removeEntries;
-  tags.value = tags.value.filter((t) => t.name !== clean);
+  tags.value = tags.value.filter((t: any) => t.name !== clean);
   let next = wishlist.value;
   if (removeEntries) {
-    next = next.filter((e) => !e.tags.includes(clean));
+    next = next.filter((e: any) => !e.tags.includes(clean));
   } else {
-    next = next.map((e) => {
+    next = next.map((e: any) => {
       if (e.tags.includes(clean)) {
-        return normalizeEntry({ ...e, tags: e.tags.filter((x) => x !== clean) });
+        return normalizeEntry({ ...e, tags: e.tags.filter((x: any) => x !== clean) });
       }
       return e;
     });
@@ -935,7 +935,7 @@ export function deleteTag(name: string, opts: any = {}) {
 // ── 文件夹 action ──
 
 /** 新建文件夹，返回 id。 */
-export function createFolder(name) {
+export function createFolder(name: any) {
   const clean = String(name || "").trim() || "新收藏夹";
   const folder = normalizeFolder({
     id: genId(),
@@ -951,10 +951,10 @@ export function createFolder(name) {
 }
 
 /** 重命名文件夹（folderId 不变，条目无需改动）。 */
-export function renameFolder(id, name) {
+export function renameFolder(id: any, name: any) {
   const clean = String(name || "").trim();
   if (!clean) return;
-  folders.value = folders.value.map((f) =>
+  folders.value = folders.value.map((f: any) =>
     f.id === id ? { ...f, name: clean } : f,
   );
   _persistFolders();
@@ -965,9 +965,9 @@ export function renameFolder(id, name) {
  * @param {string} id
  * @param {number|null} n
  */
-export function setFolderTarget(id, n) {
+export function setFolderTarget(id: any, n: any) {
   const target = n == null || Number(n) <= 0 ? null : Math.max(1, Math.floor(Number(n)));
-  folders.value = folders.value.map((f) =>
+  folders.value = folders.value.map((f: any) =>
     f.id === id ? { ...f, target } : f,
   );
   _persistFolders();
@@ -982,12 +982,12 @@ export function setFolderTarget(id, n) {
  */
 export function deleteFolder(id: string, opts: any = {}) {
   const mode = opts.mode === "remove" ? "remove" : "keep";
-  folders.value = folders.value.filter((f) => f.id !== id);
+  folders.value = folders.value.filter((f: any) => f.id !== id);
   let next = wishlist.value;
   if (mode === "remove") {
-    next = next.filter((e) => e.folderId !== id);
+    next = next.filter((e: any) => e.folderId !== id);
   } else {
-    next = next.map((e) => {
+    next = next.map((e: any) => {
       if (e.folderId === id) return normalizeEntry({ ...e, folderId: null });
       return e;
     });
@@ -1004,9 +1004,9 @@ export function deleteFolder(id: string, opts: any = {}) {
 // ── 条目级 action（标签 / 文件夹 / 备注 / 评分）──
 
 /** 更新指定条目（内部 helper，写回并持久化）。 */
-function updateEntry(key, mutator) {
+function updateEntry(key: any, mutator: any) {
   let changed = false;
-  const next = wishlist.value.map((e) => {
+  const next = wishlist.value.map((e: any) => {
     if (e.key !== key) return e;
     changed = true;
     // 经 normalizeEntry 兜底，保证写入对象字段完整
@@ -1020,35 +1020,35 @@ function updateEntry(key, mutator) {
 }
 
 /** 设置条目标签（按名数组，去重 + 去空）。缺失的标签元数据自动补全，保证侧栏统计与筛选可用。 */
-export function setEntryTags(key, names) {
+export function setEntryTags(key: any, names: any) {
   const list = Array.isArray(names)
-    ? [...new Set(names.map((x) => String(x).trim()).filter(Boolean))]
+    ? [...new Set(names.map((x: any) => String(x).trim()).filter(Boolean))]
     : [];
   // 自动补全缺失标签元数据（按名去重，复用已有）
   for (const name of list) {
-    if (!tags.value.find((t) => t.name === name)) {
+    if (!tags.value.find((t: any) => t.name === name)) {
       addTag(name);
     }
   }
-  updateEntry(key, (e) => ({ ...e, tags: list }));
+  updateEntry(key, (e: any) => ({ ...e, tags: list }));
   bumpMetric("tag.set");
 }
 
 /** 设置条目所属文件夹（folderId 或 null）。 */
-export function setEntryFolder(key, folderId) {
+export function setEntryFolder(key: any, folderId: any) {
   const fid = typeof folderId === "string" ? folderId : null;
-  updateEntry(key, (e) => ({ ...e, folderId: fid }));
+  updateEntry(key, (e: any) => ({ ...e, folderId: fid }));
 }
 
 /** 设置条目备注（本地，不上报）。 */
-export function setNote(key, note) {
-  updateEntry(key, (e) => ({ ...e, note: String(note == null ? "" : note) }));
+export function setNote(key: any, note: any) {
+  updateEntry(key, (e: any) => ({ ...e, note: String(note == null ? "" : note) }));
   bumpMetric("note.set");
 }
 
 /** 设置条目评分（1–5，0=未评；自动裁剪）。 */
-export function setRating(key, rating) {
-  updateEntry(key, (e) => ({ ...e, rating: clampRating(rating) }));
+export function setRating(key: any, rating: any) {
+  updateEntry(key, (e: any) => ({ ...e, rating: clampRating(rating) }));
   bumpMetric("rating.set");
 }
 
@@ -1059,9 +1059,9 @@ export function setRating(key, rating) {
  * @param {string} key 条目主键
  * @param {string|null} tierId 档位 id；null = 清除为 unranked
  */
-export function setEntryRarity(key, tierId) {
+export function setEntryRarity(key: any, tierId: any) {
   const id = typeof tierId === "string" && tierId ? tierId : null;
-  updateEntry(key, (e) => ({ ...e, rarity: id }));
+  updateEntry(key, (e: any) => ({ ...e, rarity: id }));
   bumpMetric("rarity.set");
 }
 
@@ -1069,10 +1069,10 @@ export function setEntryRarity(key, tierId) {
  * 批量设 common（Q1「批量设为 common」入口）。
  * @param {string[]} keys
  */
-export function batchSetCommonRarity(keys) {
+export function batchSetCommonRarity(keys: any) {
   const list = Array.isArray(keys) ? keys.filter(Boolean) : [];
   if (!list.length) return;
-  const next = wishlist.value.map((e) =>
+  const next = wishlist.value.map((e: any) =>
     list.includes(e.key) ? normalizeEntry({ ...e, rarity: "common" }) : e,
   );
   wishlist.value = next;
@@ -1087,7 +1087,7 @@ export function batchSetCommonRarity(keys) {
  * @param {{platform:string,id:string,salePrice?:number,currency?:string,title?:string,thumb?:string}} game
  * @returns {boolean} true=已收藏，false=已取消
  */
-export function toggleFavorite(game) {
+export function toggleFavorite(game: any) {
   const key = getWishlistKey(game);
   if (isInWishlist(key)) {
     removeFromWishlist(key);
@@ -1105,13 +1105,13 @@ export function toggleFavorite(game) {
  * @param {string} key
  * @returns {string[]}
  */
-export function findMergeCandidates(key) {
+export function findMergeCandidates(key: any) {
   const candidates = mapFindMergeCandidates(key);
   if (!candidates.length) return [];
-  const byKey = new Map(wishlist.value.map((e) => [e.key, e]));
+  const byKey = new Map(wishlist.value.map((e: any) => [e.key, e]));
   const self = byKey.get(key);
   if (!self || (self.mergedMembers && self.mergedMembers.length)) return [];
-  return candidates.filter((k) => {
+  return candidates.filter((k: any) => {
     const e = byKey.get(k);
     return e && !(e.mergedMembers && e.mergedMembers.length);
   });
@@ -1124,17 +1124,17 @@ export function findMergeCandidates(key) {
  * @param {string} [primaryKey] 主记录 key（默认 keys[0]）
  * @returns {string|null} 主记录 key；参数非法返回 null
  */
-export function mergeEntries(keys, primaryKey) {
+export function mergeEntries(keys: any, primaryKey: any) {
   const list = Array.isArray(keys) ? keys.filter(Boolean) : [];
   if (list.length < 2) return null;
-  const byKey = new Map(wishlist.value.map((e) => [e.key, e]));
-  const entries = list.map((k) => byKey.get(k)).filter(Boolean);
+  const byKey = new Map(wishlist.value.map((e: any) => [e.key, e]));
+  const entries = list.map((k: any) => byKey.get(k)).filter(Boolean);
   if (entries.length < 2) return null;
   const primary = (primaryKey && byKey.get(primaryKey)) || entries[0];
   const primaryKeyResolved = primary.key;
 
   // 全量快照：每个成员都存当前价，便于并排展示与统计展开
-  const members = entries.map((e) => ({
+  const members = entries.map((e: any) => ({
     key: e.key,
     platform: e.platform,
     id: e.id,
@@ -1147,8 +1147,8 @@ export function mergeEntries(keys, primaryKey) {
     currentCurrency: e.currentCurrency,
   }));
 
-  const mergedIds = entries.map((e) => e.key);
-  const others = wishlist.value.filter((e) => !mergedIds.includes(e.key));
+  const mergedIds = entries.map((e: any) => e.key);
+  const others = wishlist.value.filter((e: any) => !mergedIds.includes(e.key));
 
   const primaryEntry = normalizeEntry({
     ...primary,
@@ -1170,12 +1170,12 @@ export function mergeEntries(keys, primaryKey) {
  * @param {string} key 合并主记录 key
  * @returns {boolean} 是否成功拆分
  */
-export function splitEntry(key) {
-  const entry = wishlist.value.find((e) => e.key === key);
+export function splitEntry(key: any) {
+  const entry = wishlist.value.find((e: any) => e.key === key);
   if (!entry || !(entry.mergedMembers && entry.mergedMembers.length)) return false;
   const rebuilt = entry.mergedMembers
-    .filter((m) => !m.isPrimary)
-    .map((m) =>
+    .filter((m: any) => !m.isPrimary)
+    .map((m: any) =>
       normalizeEntry({
         key: m.key,
         platform: m.platform,
@@ -1194,7 +1194,7 @@ export function splitEntry(key) {
     mergedIds: [],
     mergedMembers: null,
   });
-  const others = wishlist.value.filter((e) => e.key !== key);
+  const others = wishlist.value.filter((e: any) => e.key !== key);
   batch(() => {
     wishlist.value = [primaryEntry, ...rebuilt, ...others];
     expandedMergeKey.value = null;
@@ -1226,7 +1226,7 @@ export function refreshWishlistPrices() {
 // ── UI 动作（弹窗 / 展开）──
 
 /** 打开备注/评分弹窗。 */
-export function openNoteRating(key) {
+export function openNoteRating(key: any) {
   noteRatingTarget.value = key;
 }
 
@@ -1236,13 +1236,13 @@ export function closeNoteRating() {
 }
 
 /** 打开合并确认弹窗（已知映射命中）。 */
-export function openMerge(keys, unknown = false) {
+export function openMerge(keys: any, unknown: any = 0) {
   mergeCandidateKeys.value = Array.isArray(keys) ? [...keys] : [];
   mergeIsUnknown.value = !!unknown;
 }
 
 /** 打开合并确认弹窗（手动合并，提示「映射未知请自确认」）。 */
-export function openMergeManual(baseKey) {
+export function openMergeManual(baseKey: any) {
   openMerge([baseKey], true);
 }
 
@@ -1253,7 +1253,7 @@ export function closeMerge() {
 }
 
 /** 切换合并主记录的展开/收起。 */
-export function toggleExpandMerge(key) {
+export function toggleExpandMerge(key: any) {
   expandedMergeKey.value = expandedMergeKey.value === key ? null : key;
 }
 
@@ -1263,11 +1263,11 @@ export function toggleExpandMerge(key) {
  * 标题搜索匹配（不区分大小写）。
  * 命中维度：游戏标题 + 平台 label（便于「steam / 蒸汽」等别名检索）。
  */
-export function matchesSearch(game, q) {
+export function matchesSearch(game: any, q: any) {
   const needle = (q || "").trim().toLowerCase();
   if (!needle) return true;
   const platLabel =
-    (PLATFORMS.find((p) => p.key === game.platform) || {}).label ||
+    (PLATFORMS.find((p: any) => p.key === game.platform) || {}).label ||
     game.platform ||
     "";
   const hay = [game.title, platLabel].filter(Boolean).join(" ").toLowerCase();
@@ -1276,7 +1276,7 @@ export function matchesSearch(game, q) {
 
 let _searchTimer = null;
 /** 200ms 防抖写入 searchQuery，避免逐字重渲整网格。 */
-export function setSearchQuery(v) {
+export function setSearchQuery(v: any) {
   if (_searchTimer) clearTimeout(_searchTimer);
   _searchTimer = setTimeout(() => {
     searchQuery.value = v || "";
@@ -1294,8 +1294,8 @@ export function clearSearchQuery() {
  * 命中返回 { dropped, delta, pct, currency }，否则 null。
  * GameCard 仅 deals/free 模式渲染（wishlist 模式 card.salePrice 已被覆写为 addedPrice → 自然返回 null）。
  */
-export function getDropInfo(game) {
-  const entry = wishlist.value.find((w) => w.key === getWishlistKey(game));
+export function getDropInfo(game: any) {
+  const entry = wishlist.value.find((w: any) => w.key === getWishlistKey(game));
   if (!entry) return null;
   const added = Number(entry.addedPrice) || 0;
   const cur = Number(game.salePrice) || 0;
@@ -1328,7 +1328,7 @@ export function loadMetrics() {
  * 全程 try/catch + peek() 读取，任何异常不影响主 action 语义与返回值。
  * @param {string} name
  */
-export function bumpMetric(name) {
+export function bumpMetric(name: any) {
   try {
     const next = bumpMetricPure(metrics.peek(), name);
     metrics.value = next;
@@ -1391,7 +1391,7 @@ export function loadAchProgress() {
 }
 
 /** 规范化用户成就定义（补全字段 / 校验维度；非法返回 null）。 */
-function normalizeAchDef(raw) {
+function normalizeAchDef(raw: any) {
   if (!raw || typeof raw !== "object") return null;
   const id = typeof raw.id === "string" && raw.id ? raw.id : genId();
   const name = typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : null;
@@ -1421,7 +1421,7 @@ function _persistAchProgress() {
 }
 
 /** 新增用户成就，返回新 id。进度重算由 initCollectionEngines 的 effect 自动处理。 */
-export function addAchievement(def) {
+export function addAchievement(def: any) {
   const clean = normalizeAchDef(def);
   if (!clean) return null;
   achievementsDef.value = [...achievementsDef.value, clean];
@@ -1430,10 +1430,10 @@ export function addAchievement(def) {
 }
 
 /** 更新用户成就（id 不变）。进度重算由 effect 自动处理。 */
-export function updateAchievement(id, patch) {
+export function updateAchievement(id: any, patch: any) {
   if (!id) return;
   let found = false;
-  achievementsDef.value = achievementsDef.value.map((d) => {
+  achievementsDef.value = achievementsDef.value.map((d: any) => {
     if (d.id !== id) return d;
     found = true;
     return normalizeAchDef({ ...d, ...patch, id });
@@ -1443,9 +1443,9 @@ export function updateAchievement(id, patch) {
 }
 
 /** 删除用户成就。进度重算由 effect 自动处理。 */
-export function deleteAchievement(id) {
+export function deleteAchievement(id: any) {
   if (!id) return;
-  achievementsDef.value = achievementsDef.value.filter((d) => d.id !== id);
+  achievementsDef.value = achievementsDef.value.filter((d: any) => d.id !== id);
   _persistAchDef();
 }
 
@@ -1480,7 +1480,7 @@ export function loadEvents() {
 }
 
 /** 规范化用户活动配置（补全字段 / 校验时间窗 + 维度；非法返回 null）。 */
-function normalizeEventDef(raw) {
+function normalizeEventDef(raw: any) {
   if (!raw || typeof raw !== "object") return null;
   const id = typeof raw.id === "string" && raw.id ? raw.id : genId();
   const title = typeof raw.title === "string" && raw.title.trim() ? raw.title.trim() : null;
@@ -1512,7 +1512,7 @@ function _persistEventsProgress() {
 }
 
 /** 新增用户活动，返回新 id。进度重算由 initCollectionEngines 的 effect 自动处理。 */
-export function addEvent(cfg) {
+export function addEvent(cfg: any) {
   const clean = normalizeEventDef(cfg);
   if (!clean) return null;
   eventsConfig.value = [...eventsConfig.value, clean];
@@ -1521,10 +1521,10 @@ export function addEvent(cfg) {
 }
 
 /** 更新用户活动（id 不变）。进度重算由 effect 自动处理。 */
-export function updateEvent(id, patch) {
+export function updateEvent(id: any, patch: any) {
   if (!id) return;
   let found = false;
-  eventsConfig.value = eventsConfig.value.map((c) => {
+  eventsConfig.value = eventsConfig.value.map((c: any) => {
     if (c.id !== id) return c;
     found = true;
     return normalizeEventDef({ ...c, ...patch, id });
@@ -1534,9 +1534,9 @@ export function updateEvent(id, patch) {
 }
 
 /** 删除用户活动。进度重算由 effect 自动处理。 */
-export function deleteEvent(id) {
+export function deleteEvent(id: any) {
   if (!id) return;
-  eventsConfig.value = eventsConfig.value.filter((c) => c.id !== id);
+  eventsConfig.value = eventsConfig.value.filter((c: any) => c.id !== id);
   _persistEventsConfig();
 }
 
@@ -1545,7 +1545,7 @@ export function deleteEvent(id) {
  * @param {string} id
  * @returns {boolean} 是否成功领取
  */
-export function claimEvent(id) {
+export function claimEvent(id: any) {
   if (!id) return false;
   const prog = eventsProgress.value[id];
   if (!prog || !prog.completed) return false;
@@ -1563,7 +1563,7 @@ export function claimEvent(id) {
  * @param {Array<object>} entries 收藏条目
  * @returns {Set<string>}
  */
-export function computeUnlocked(entries) {
+export function computeUnlocked(entries: any) {
   const set = new Set();
   for (const b of evaluateBadges(entries, buildBadgeCtx(entries))) set.add("badge:" + b.id);
   const ach = evaluateAchievements(
@@ -1587,10 +1587,10 @@ export function computeUnlocked(entries) {
  * @param {Array<object>} entries 当前收藏条目
  * @returns {{newOnes:Array<{kind:string,id:string,title:string,desc:string}>, set:Set<string>}}
  */
-export function detectNewUnlocks(prev, entries) {
+export function detectNewUnlocks(prev: any, entries: any) {
   const prevSet = prev instanceof Set ? prev : new Set(Array.isArray(prev) ? prev : []);
   const set = computeUnlocked(entries);
-  const newOnes = [];
+  const newOnes: any[] = [];
   for (const key of set) {
     if (prevSet.has(key)) continue;
     const [kind, id] = String(key).split(":", 2);
@@ -1598,10 +1598,10 @@ export function detectNewUnlocks(prev, entries) {
       const r = getBadgeRule(id);
       newOnes.push({ kind, id, title: (r && r.name) || "徽章", desc: (r && r.desc) || "" });
     } else if (kind === "ach") {
-      const d = [...DEFAULT_ACHIEVEMENTS, ...achievementsDef.value].find((x) => x.id === id);
+      const d = [...DEFAULT_ACHIEVEMENTS, ...achievementsDef.value].find((x: any) => x.id === id);
       newOnes.push({ kind, id, title: (d && d.name) || "成就", desc: "达成目标" });
     } else {
-      const d = [...DEFAULT_EVENTS, ...eventsConfig.value].find((x) => x.id === id);
+      const d = [...DEFAULT_EVENTS, ...eventsConfig.value].find((x: any) => x.id === id);
       newOnes.push({ kind, id, title: (d && d.title) || "活动", desc: "达成目标" });
     }
   }
@@ -1619,7 +1619,7 @@ export function detectNewUnlocks(prev, entries) {
  * @returns {() => void} 停止所有已注册引擎 effect 的句柄
  */
 export function initCollectionEngines() {
-  const stops = [];
+  const stops: any[] = [];
 
   // 徽章引擎：订阅 wishlist，重算已点亮徽章并落盘（徽章无历史进度，仅当前命中集）
   stops.push(
@@ -1789,7 +1789,7 @@ export function loadSeenDropKeys() {
 }
 
 /** 持久化已通知降价集合。 */
-export function saveSeenDropKeys(set) {
+export function saveSeenDropKeys(set: any) {
   try {
     writeStorage(SEEN_DROP_KEY, JSON.stringify([...set]));
   } catch {
@@ -1803,7 +1803,7 @@ export function clearGamesNewDrop() {
 }
 
 /** 设置降价通知开关。 */
-export function setGamesNotifyOnDrop(v) {
+export function setGamesNotifyOnDrop(v: any) {
   gamesNotifyOnDrop.value = !!v;
   persistSettings();
 }
@@ -1825,7 +1825,7 @@ function emitSettingsChanged() {
 // ── 史低增强（lowPriceMap 渐进填充）─────────────────────────────────
 
 /** 从 game.id 提取 steamAppID（"steam-367520" → "367520"）。非 steam 返回 null。 */
-export function extractSteamAppId(id) {
+export function extractSteamAppId(id: any) {
   if (typeof id !== "string") return null;
   const m = id.match(/^steam-(.+)$/);
   return m && m[1] ? m[1] : null;
@@ -1838,9 +1838,9 @@ export function extractSteamAppId(id) {
 export async function enrichSteamLowest() {
   const token = ++_steamLowToken;
   const steamGames = (items.value || []).filter(
-    (it) => it && it.platform === "steam" && extractSteamAppId(it.id),
+    (it: any) => it && it.platform === "steam" && extractSteamAppId(it.id),
   );
-  const pending = steamGames.filter((it) => lowPriceMap.value[it.id] == null);
+  const pending = steamGames.filter((it: any) => lowPriceMap.value[it.id] == null);
   if (pending.length === 0) return;
 
   const BATCH = 5;
@@ -1848,7 +1848,7 @@ export async function enrichSteamLowest() {
     if (token !== _steamLowToken) return; // 已被新任务取代
     const batch = pending.slice(i, i + BATCH);
     const results = await Promise.allSettled(
-      batch.map(async (g) => {
+      batch.map(async (g: any) => {
         const appId = extractSteamAppId(g.id);
         const res = await api.getSteamLowest({ steamAppId: appId });
         if (res && res.lowestPrice != null) return [g.id, res.lowestPrice];
@@ -1865,7 +1865,7 @@ export async function enrichSteamLowest() {
       lowPriceMap.value = { ...lowPriceMap.value, ...batchMap };
     }
     if (i + BATCH < pending.length) {
-      await new Promise((r) => setTimeout(r, 0)); // 让出主线程
+      await new Promise((r: any) => setTimeout(r, 0)); // 让出主线程
     }
   }
 }
@@ -1875,12 +1875,12 @@ export async function enrichSteamLowest() {
  */
 export async function enrichXboxLowest() {
   const token = ++_xboxLowToken;
-  const xboxGames = (items.value || []).filter((it) => it && it.platform === "xbox");
-  const pending = xboxGames.filter((it) => lowPriceMap.value[it.id] == null);
+  const xboxGames = (items.value || []).filter((it: any) => it && it.platform === "xbox");
+  const pending = xboxGames.filter((it: any) => lowPriceMap.value[it.id] == null);
   if (pending.length === 0) return;
 
   const slugs = pending
-    .map((g) => (g.id && g.id.startsWith("xbox-") ? g.id.slice(5) : null))
+    .map((g: any) => (g.id && g.id.startsWith("xbox-") ? g.id.slice(5) : null))
     .filter(Boolean);
   if (slugs.length === 0) return;
 

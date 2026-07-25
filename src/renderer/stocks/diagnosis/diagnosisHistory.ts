@@ -26,7 +26,7 @@ function safeRead() {
   }
 }
 
-function safeWrite(raw) {
+function safeWrite(raw: any) {
   try {
     if (typeof globalThis.localStorage === "undefined") {
       _memoryFallback.set(STORAGE_KEY, raw);
@@ -63,13 +63,13 @@ function loadStore() {
   }
 }
 
-export function loadLastSnapshot(code) {
+export function loadLastSnapshot(code: any) {
   if (!code) return null;
   const store = loadStore();
   return store.entries[code] || null;
 }
 
-export function saveSnapshot(code, snapshot) {
+export function saveSnapshot(code: any, snapshot: any) {
   if (!code || !snapshot || typeof snapshot.overall !== "number") return false;
   // 同一只股票 5 分钟内不重复写 — 避免用户连点 / 自动重拉时刷掉 history.
   const prev = loadLastSnapshot(code);

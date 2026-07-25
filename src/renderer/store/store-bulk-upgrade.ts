@@ -37,14 +37,14 @@ export function resetBulkUpgrade() {
 }
 
 // 打开 modal: 由 BulkUpgradeButton click 触发
-export function openBulkUpgrade(items) {
+export function openBulkUpgrade(items: any) {
   if (!Array.isArray(items) || items.length === 0) return;
   // 重置再开
   resetBulkUpgrade();
   bulkUpgradeItems.value = items;
   // 初始状态: 全 pending (除了 source 不可升级的会标 skipped)
   const statuses = new Map();
-  items.forEach((it) => {
+  items.forEach((it: any) => {
     if (isUpgradableSource(it.source)) {
       statuses.set(it.id, 'pending');
     } else {
@@ -66,7 +66,7 @@ export function closeBulkUpgrade() {
 }
 
 // 进度事件回调 (注册到 api.onBulkUpgradeProgress)
-export function applyBulkUpgradeProgress(evt) {
+export function applyBulkUpgradeProgress(evt: any) {
   if (!evt || !evt.id) return;
   const next = new Map(bulkUpgradeStatuses.value);
   next.set(evt.id, evt.status);
@@ -95,7 +95,7 @@ export function applyBulkUpgradeProgress(evt) {
 }
 
 // 完成事件回调 (注册到 api.onBulkUpgradeDone)
-export function applyBulkUpgradeDone(summary) {
+export function applyBulkUpgradeDone(summary: any) {
   bulkUpgradeRunning.value = false;
   bulkUpgradeSummary.value = summary || { succeeded: [], failed: [], skipped: [], cancelled: false };
 }
@@ -103,7 +103,7 @@ export function applyBulkUpgradeDone(summary) {
 // 工具: 判断 source 是否有可执行升级路径
 // exported for tests + reuse by BulkUpgradeModal (single source of truth).
 // P3: winget_show added — Windows 端 winget upgrade (spec §3).
-export function isUpgradableSource(src) {
+export function isUpgradableSource(src: any) {
   return src === 'brew_formulae'
     || src === 'brew_local_cask'
     || src === 'sparkle_appcast'

@@ -83,7 +83,7 @@ export function createGithubCheckScheduler() {
 /**
  * 发系统通知：发现新版本。首次请求权限；权限被拒或不支持则静默回退。
  */
-function _notifyNewReleases(newCount, failedProjects) {
+function _notifyNewReleases(newCount: any, failedProjects: any) {
   try {
     if (typeof Notification === "undefined") return;
     if (Notification.permission === "denied") return;
@@ -108,7 +108,7 @@ function _notifyNewReleases(newCount, failedProjects) {
       send();
     } else if (Notification.permission === "default") {
       // 首次：请求权限，granted 后才发
-      Notification.requestPermission().then((perm) => {
+      Notification.requestPermission().then((perm: any) => {
         if (perm === "granted") send();
       });
     }

@@ -37,7 +37,7 @@ export const githubNotifyOnNew = signal(true);
 
 const _mem = new Map();
 
-function readStorage(key) {
+function readStorage(key: any) {
   try {
     if (typeof globalThis.localStorage === "undefined") return null;
     return globalThis.localStorage.getItem(key);
@@ -59,7 +59,7 @@ function writeStorage(key, raw, reportFailure = false) {
   try {
     globalThis.localStorage.setItem(key, raw);
     return true;
-  } catch (err) {
+  } catch (err: any) {
     _mem.set(key, raw);
     if (reportFailure) {
       console.warn("[github] localStorage.setItem failed:", err && err.message);
@@ -176,7 +176,7 @@ function persistSettings() {
  * 设置并更新持久化视图密度。
  * @param {"comfortable"|"compact"} d
  */
-export function setGithubDensity(d) {
+export function setGithubDensity(d: any) {
   if (d !== "compact" && d !== "comfortable") return;
   githubDensity.value = d;
   persistSettings();
@@ -186,7 +186,7 @@ export function setGithubDensity(d) {
  * 设置并更新持久化 GitHub Token（空串 = 清除）。
  * @param {string} t
  */
-export function setGithubToken(t) {
+export function setGithubToken(t: any) {
   githubToken.value = typeof t === "string" ? t.trim() : "";
   persistSettings();
   emitSettingsChanged();
@@ -196,7 +196,7 @@ export function setGithubToken(t) {
  * 设置自动检查开关。变更后通知调度器重启（通过 github-settings-changed 事件）。
  * @param {boolean} v
  */
-export function setGithubAutoCheck(v) {
+export function setGithubAutoCheck(v: any) {
   githubAutoCheck.value = !!v;
   persistSettings();
   emitSettingsChanged();
@@ -206,7 +206,7 @@ export function setGithubAutoCheck(v) {
  * 设置自动检查间隔（分钟）。下限 10 分钟，避免过于频繁打 GitHub API。
  * @param {number} min
  */
-export function setGithubAutoCheckInterval(min) {
+export function setGithubAutoCheckInterval(min: any) {
   const n = Math.max(10, Math.floor(Number(min) || 360));
   githubAutoCheckIntervalMin.value = n;
   persistSettings();
@@ -214,7 +214,7 @@ export function setGithubAutoCheckInterval(min) {
 }
 
 /** 设置是否桌面通知新版本。 */
-export function setGithubNotifyOnNew(v) {
+export function setGithubNotifyOnNew(v: any) {
   githubNotifyOnNew.value = !!v;
   persistSettings();
   // notifyOnNew 变更不需要重启调度器（下次 checkOnce 时读最新值）
@@ -234,12 +234,12 @@ function emitSettingsChanged() {
   }
 }
 
-function makeId(owner, repo) {
+function makeId(owner: any, repo: any) {
   return `${owner}/${repo}`.toLowerCase();
 }
 
 /** 把 star 数格式化为 1.2k / 3.4w 等紧凑形式。 */
-export function formatStars(n) {
+export function formatStars(n: any) {
   const num = typeof n === "number" ? n : 0;
   if (num < 1000) return String(num);
   if (num < 10000) return `${(num / 1000).toFixed(1)}k`;
@@ -248,7 +248,7 @@ export function formatStars(n) {
 }
 
 /** 把收录时间格式化为 MM-DD（如 07-16）。 */
-export function formatAddedDate(ts) {
+export function formatAddedDate(ts: any) {
   const d = typeof ts === "number" && ts > 0 ? new Date(ts) : null;
   if (!d || Number.isNaN(d.getTime())) return "";
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -260,7 +260,7 @@ export function formatAddedDate(ts) {
  * 从 homepage URL 提取显示用的域名（去掉 www. 前缀）。解析失败原样返回。
  * 仅用于 chip 文案展示，不影响点击跳转（点击用原始 URL）。
  */
-export function hostnameOf(url) {
+export function hostnameOf(url: any) {
   try {
     return new URL(url).hostname.replace(/^www\./i, "");
   } catch {
@@ -272,7 +272,7 @@ export function hostnameOf(url) {
  * 判断 homepage 是否值得展示：非空，且不等于仓库自身 GitHub 地址（避免冗余）。
  * 形如 https://github.com/owner/repo 的 homepage 也视为冗余。
  */
-export function hasDistinctHomepage(project) {
+export function hasDistinctHomepage(project: any) {
   if (!project || !project.homepage || !project.homepage.trim()) return false;
   if (project.url && project.homepage === project.url) return false;
   if (/^https?:\/\/github\.com\//i.test(project.homepage)) return false;
@@ -300,11 +300,11 @@ export function collectGithubTags(projects: any[]): string[] {
       if (typeof t === "string" && t.trim()) set.add(t.trim());
     }
   }
-  return [...set].sort((a, b) => a.localeCompare(b));
+  return [...set].sort((a: any, b: any) => a.localeCompare(b));
 }
 
 /** 把时间戳格式化为「N 天前 / N 个月前」等人读相对时间。 */
-export function formatRelativeTime(ts) {
+export function formatRelativeTime(ts: any) {
   const d = typeof ts === "number" && ts > 0 ? new Date(ts) : null;
   if (!d || Number.isNaN(d.getTime())) return "";
   const sec = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -322,7 +322,7 @@ export function formatRelativeTime(ts) {
 }
 
 /** 把错误 reason 映射成中文提示。 */
-export function githubReasonText(reason) {
+export function githubReasonText(reason: any) {
   switch (reason) {
     case "invalid_url":
       return "地址无法识别为 GitHub 仓库";
@@ -368,7 +368,7 @@ export function githubReasonText(reason) {
  * @param {object} p
  * @returns {boolean}
  */
-export function hasGithubUpdate(p) {
+export function hasGithubUpdate(p: any) {
   if (!p || !p.latestVersion) return false;
   return p.latestVersion !== p.lastSeenVersion;
 }
@@ -377,7 +377,7 @@ export function hasGithubUpdate(p) {
  * 解析 GitHub 地址 (renderer 侧校验，给输入框即时反馈用)。
  * 支持 http(s) / git@ / 裸 slug。
  */
-export function parseGithubUrl(input) {
+export function parseGithubUrl(input: any) {
   if (!input || typeof input !== "string") return null;
   const s = input.trim();
   if (!s) return null;
@@ -406,11 +406,11 @@ export function parseGithubUrl(input) {
  * @param {string} input
  * @returns {Promise<{ok:boolean, reason?:string, project?:object}>}
  */
-export async function addGithubProject(input) {
+export async function addGithubProject(input: any) {
   const parsed = parseGithubUrl(input);
   if (!parsed) return { ok: false, reason: "invalid_url" };
   const id = makeId(parsed.owner, parsed.repo);
-  if (githubProjects.value.some((p) => p.id === id)) {
+  if (githubProjects.value.some((p: any) => p.id === id)) {
     return { ok: false, reason: "duplicate" };
   }
   githubBusy.value = true;
@@ -466,13 +466,13 @@ export async function addGithubProject(input) {
  * @param {string[]} inputs 地址数组
  * @returns {Promise<{ok:boolean, added:number, duplicates:number, failed:Array<{input:string, reason:string}>}>}
  */
-export async function addGithubProjectsBatch(inputs) {
+export async function addGithubProjectsBatch(inputs: any) {
   if (!Array.isArray(inputs) || inputs.length === 0) {
     return { ok: true, added: 0, duplicates: 0, failed: [] };
   }
   let added = 0;
   let duplicates = 0;
-  const failed = [];
+  const failed: any[] = [];
   for (const input of inputs) {
     const r = await addGithubProject(input);
     if (r.ok) {
@@ -486,8 +486,8 @@ export async function addGithubProjectsBatch(inputs) {
   return { ok: true, added, duplicates, failed };
 }
 
-export function removeGithubProject(id) {
-  githubProjects.value = githubProjects.value.filter((p) => p.id !== id);
+export function removeGithubProject(id: any) {
+  githubProjects.value = githubProjects.value.filter((p: any) => p.id !== id);
   persist();
 }
 
@@ -496,8 +496,8 @@ export function removeGithubProject(id) {
  * 旧数据可能无 pinned 字段，按 falsy 处理，翻转后写入 true。
  * @param {string} id
  */
-export function togglePinGithubProject(id) {
-  githubProjects.value = githubProjects.value.map((x) =>
+export function togglePinGithubProject(id: any) {
+  githubProjects.value = githubProjects.value.map((x: any) =>
     x.id === id ? { ...x, pinned: !x.pinned } : x,
   );
   persist();
@@ -506,8 +506,8 @@ export function togglePinGithubProject(id) {
 /**
  * 重新抓取某项目 README + 元数据。
  */
-export async function refreshGithubReadme(id) {
-  const p = githubProjects.value.find((x) => x.id === id);
+export async function refreshGithubReadme(id: any) {
+  const p = githubProjects.value.find((x: any) => x.id === id);
   if (!p) return { ok: false, reason: "not_found" };
   githubBusyId.value = id;
   try {
@@ -518,7 +518,7 @@ export async function refreshGithubReadme(id) {
     if (!res || !res.ok) {
       return { ok: false, reason: (res && res.reason) || "fetch_failed" };
     }
-    githubProjects.value = githubProjects.value.map((x) =>
+    githubProjects.value = githubProjects.value.map((x: any) =>
       x.id === id
         ? {
             ...x,
@@ -548,7 +548,7 @@ export async function parseGithubProjectAi(
   id: string,
   force = false,
 ): Promise<{ ok: true; result: any; cached?: boolean } | { ok: false; reason?: string }> {
-  const p = githubProjects.value.find((x) => x.id === id);
+  const p = githubProjects.value.find((x: any) => x.id === id);
   if (!p) return { ok: false, reason: "not_found" };
   if (!force && p.aiParse) {
     return { ok: true, result: p.aiParse, cached: true };
@@ -557,7 +557,7 @@ export async function parseGithubProjectAi(
   if (!readme || !readme.trim()) {
     const fr = await refreshGithubReadme(id);
     if (!fr.ok) return { ok: false, reason: fr.reason };
-    readme = githubProjects.value.find((x) => x.id === id)?.readme || "";
+    readme = githubProjects.value.find((x: any) => x.id === id)?.readme || "";
   }
   if (!readme || !readme.trim()) {
     return { ok: false, reason: "no_readme" };
@@ -572,7 +572,7 @@ export async function parseGithubProjectAi(
     if (!res || !res.ok) {
       return { ok: false, reason: (res && res.reason) || "ai_failed" };
     }
-    githubProjects.value = githubProjects.value.map((x) =>
+    githubProjects.value = githubProjects.value.map((x: any) =>
       x.id === id ? { ...x, aiParse: res.result, aiParsedAt: Date.now() } : x,
     );
     persist();
@@ -592,7 +592,7 @@ export async function parseGithubProjectAi(
  */
 export async function fetchGithubRelease(id: any, opts: any = {}) {
   const silent = !!opts.silent;
-  const p = githubProjects.value.find((x) => x.id === id);
+  const p = githubProjects.value.find((x: any) => x.id === id);
   if (!p) return { ok: false, reason: "not_found" };
   if (!silent) githubBusyId.value = id;
   try {
@@ -617,7 +617,7 @@ export async function fetchGithubRelease(id: any, opts: any = {}) {
     }
     const rel = res.release || {};
     const releases = Array.isArray(res.releases) ? res.releases : [];
-    githubProjects.value = githubProjects.value.map((x) =>
+    githubProjects.value = githubProjects.value.map((x: any) =>
       x.id === id
         ? {
             ...x,
@@ -634,7 +634,7 @@ export async function fetchGithubRelease(id: any, opts: any = {}) {
     );
     persist();
     return { ok: true };
-  } catch (err) {
+  } catch (err: any) {
     return {
       ok: false,
       reason: "fetch_failed",
@@ -650,10 +650,10 @@ export async function fetchGithubRelease(id: any, opts: any = {}) {
  * 消除「新版本」徽标（用户已通过徽标或更新 tab 内的按钮主动查看）。
  * @param {string} id
  */
-export function markGithubSeen(id) {
-  const p = githubProjects.value.find((x) => x.id === id);
+export function markGithubSeen(id: any) {
+  const p = githubProjects.value.find((x: any) => x.id === id);
   if (!p || !p.latestVersion) return;
-  githubProjects.value = githubProjects.value.map((x) =>
+  githubProjects.value = githubProjects.value.map((x: any) =>
     x.id === id ? { ...x, lastSeenVersion: x.latestVersion } : x,
   );
   persist();
@@ -665,7 +665,7 @@ export function markGithubSeen(id) {
  */
 export function markGithubAllSeen() {
   let count = 0;
-  const next = githubProjects.value.map((x) => {
+  const next = githubProjects.value.map((x: any) => {
     if (x.latestVersion && x.latestVersion !== x.lastSeenVersion) {
       count += 1;
       return { ...x, lastSeenVersion: x.latestVersion };
@@ -683,7 +683,7 @@ export function markGithubAllSeen() {
  * 批量检查的核心循环（内部 helper）。checkGithubUpdates 和 retryFailedGithubUpdates 共用。
  * 不直接操作 lastFailedIds —— 由调用方在结束后据返回的 failedProjects 决定。
  */
-async function _runCheckLoop(list, onProgress) {
+async function _runCheckLoop(list: any, onProgress: any) {
   if (list.length === 0) {
     return { ok: true, newCount: 0, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] };
   }
@@ -691,8 +691,8 @@ async function _runCheckLoop(list, onProgress) {
   let newCount = 0;
   let errorCount = 0;
   let skippedCount = 0;
-  const failedProjects = [];
-  const skippedProjects = [];
+  const failedProjects: any[] = [];
+  const skippedProjects: any[] = [];
   try {
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
@@ -720,7 +720,7 @@ async function _runCheckLoop(list, onProgress) {
         }
         continue;
       }
-      const updated = githubProjects.value.find((x) => x.id === p.id);
+      const updated = githubProjects.value.find((x: any) => x.id === p.id);
       if (updated && hasGithubUpdate(updated)) newCount += 1;
     }
     return { ok: true, newCount, errorCount, skippedCount, failedProjects, skippedProjects };
@@ -744,9 +744,9 @@ async function _runCheckLoop(list, onProgress) {
 export async function checkGithubUpdates(opts: any = {}) {
   const { onProgress, onlyStale } = opts;
   let list = githubProjects.value;
-  if (onlyStale) list = list.filter((p) => !p.releaseFetchedAt);
+  if (onlyStale) list = list.filter((p: any) => !p.releaseFetchedAt);
   const r = await _runCheckLoop(list, onProgress);
-  lastFailedIds.value = (r.failedProjects || []).map((f) => f.id);
+  lastFailedIds.value = (r.failedProjects || []).map((f: any) => f.id);
   return r;
 }
 
@@ -762,9 +762,9 @@ export async function retryFailedGithubUpdates(opts: any = {}) {
     return { ok: true, newCount: 0, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] };
   }
   const idSet = new Set(ids);
-  const list = githubProjects.value.filter((p) => idSet.has(p.id));
+  const list = githubProjects.value.filter((p: any) => idSet.has(p.id));
   const r = await _runCheckLoop(list, onProgress);
-  lastFailedIds.value = (r.failedProjects || []).map((f) => f.id);
+  lastFailedIds.value = (r.failedProjects || []).map((f: any) => f.id);
   return r;
 }
 
@@ -809,10 +809,10 @@ export function importGithubData(jsonString: string): { ok: boolean; imported?: 
   if (!o || o.schema !== EXPORT_SCHEMA || !Array.isArray(o.projects)) {
     return { ok: false, reason: "invalid_format" };
   }
-  const existingIds = new Set(githubProjects.value.map((p) => p.id));
+  const existingIds = new Set(githubProjects.value.map((p: any) => p.id));
   let imported = 0;
   let skipped = 0;
-  const incoming = [];
+  const incoming: any[] = [];
   for (const p of o.projects) {
     if (!p || typeof p.id !== "string") continue;
     if (existingIds.has(p.id)) {
@@ -865,7 +865,7 @@ export function downloadGithubBackup() {
  *   用户取消选择时 resolve null。
  */
 export function pickGithubBackupFile(): Promise<{ ok: boolean; imported?: number; skipped?: number; reason?: string } | null> {
-  return new Promise((resolve) => {
+  return new Promise((resolve: any) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".json,application/json";
@@ -877,7 +877,7 @@ export function pickGithubBackupFile(): Promise<{ ok: boolean; imported?: number
         try {
           const text = typeof reader.result === "string" ? reader.result : "";
           resolve(importGithubData(text));
-        } catch (err) {
+        } catch (err: any) {
           resolve({ ok: false, reason: "invalid_format" });
         }
       };

@@ -32,7 +32,7 @@ export async function loadReminders() {
   );
 }
 
-export async function createReminder(input) {
+export async function createReminder(input: any) {
   const create = requireApiMethod("remindersCreate");
   if (!create) return { ok: false, reason: "ipc_unavailable" };
   try {
@@ -42,12 +42,12 @@ export async function createReminder(input) {
       return { ok: true, reminder: r.reminder };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: (err && err.message) || "threw" };
   }
 }
 
-export async function updateReminder(id, patch) {
+export async function updateReminder(id: any, patch: any) {
   const update = requireApiMethod("remindersUpdate");
   if (!update) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -55,19 +55,19 @@ export async function updateReminder(id, patch) {
   try {
     const r = await update(id, patch);
     if (r && r.ok) {
-      reminders.value = reminders.value.map((x) =>
+      reminders.value = reminders.value.map((x: any) =>
         x.id === id ? r.reminder : x,
       );
       trackReminderUpdate(r.reminder);
       return { ok: true, reminder: r.reminder };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: (err && err.message) || "threw" };
   }
 }
 
-export async function removeReminder(id) {
+export async function removeReminder(id: any) {
   const remove = requireApiMethod("remindersRemove");
   if (!remove) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -75,16 +75,16 @@ export async function removeReminder(id) {
   try {
     const r = await remove(id);
     if (r && r.ok) {
-      reminders.value = reminders.value.filter((x) => x.id !== id);
+      reminders.value = reminders.value.filter((x: any) => x.id !== id);
       return { ok: true };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: (err && err.message) || "threw" };
   }
 }
 
-export async function markReminderDone(id) {
+export async function markReminderDone(id: any) {
   const markDone = requireApiMethod("remindersMarkDone");
   if (!markDone) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -94,21 +94,21 @@ export async function markReminderDone(id) {
     if (r && r.ok) {
       if (r.reminder === null) {
         // once → 删
-        reminders.value = reminders.value.filter((x) => x.id !== id);
+        reminders.value = reminders.value.filter((x: any) => x.id !== id);
       } else {
-        reminders.value = reminders.value.map((x) =>
+        reminders.value = reminders.value.map((x: any) =>
           x.id === id ? r.reminder : x,
         );
       }
       return { ok: true, reminder: r.reminder };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: (err && err.message) || "threw" };
   }
 }
 
-export async function markReminderDismissed(id) {
+export async function markReminderDismissed(id: any) {
   const markDismissed = requireApiMethod("remindersMarkDismissed");
   if (!markDismissed) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -116,33 +116,33 @@ export async function markReminderDismissed(id) {
   try {
     const r = await markDismissed(id);
     if (r && r.ok) {
-      reminders.value = reminders.value.map((x) =>
+      reminders.value = reminders.value.map((x: any) =>
         x.id === id ? r.reminder : x,
       );
       return { ok: true, reminder: r.reminder };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: (err && err.message) || "threw" };
   }
 }
 
 /** Header 角标: fired (待打卡) 的数量 */
 export const firedCount = computed(
-  () => reminders.value.filter((r) => r && r.status === "fired").length,
+  () => reminders.value.filter((r: any) => r && r.status === "fired").length,
 );
 
 /** 派发提醒: pending + fired (排除 dismissed) — 给时间线头部 "X 项" 用 */
 export const activeCount = computed(
-  () => reminders.value.filter((r) => r && r.status !== "dismissed").length,
+  () => reminders.value.filter((r: any) => r && r.status !== "dismissed").length,
 );
 
 /** 下一个 pending 提醒 (按 triggerAt 升序) */
 export const nextDue = computed(() => {
   const pending = reminders.value
-    .filter((r) => r && r.status === "pending")
+    .filter((r: any) => r && r.status === "pending")
     .slice()
-    .sort((a, b) => a.triggerAt - b.triggerAt);
+    .sort((a: any, b: any) => a.triggerAt - b.triggerAt);
   return pending[0] || null;
 });
 
@@ -161,9 +161,9 @@ export function installRemindersListener() {
   if (!api) return;
 
   if (typeof api.onRemindersFired === "function") {
-    api.onRemindersFired(({ reminder }) => {
+    api.onRemindersFired(({ reminder }: any) => {
       if (!reminder || !reminder.id) return;
-      const idx = reminders.value.findIndex((r) => r && r.id === reminder.id);
+      const idx = reminders.value.findIndex((r: any) => r && r.id === reminder.id);
       if (idx >= 0) {
         const next = [...reminders.value];
         next[idx] = { ...next[idx], ...reminder };

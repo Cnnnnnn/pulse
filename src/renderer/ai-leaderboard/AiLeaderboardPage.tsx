@@ -18,6 +18,7 @@ import {
   refresh,
   activeView,
   activeBoard,
+  activeAgentDim,
   activeDim,
   activeLB,
   sortKey,
@@ -26,7 +27,7 @@ import {
   setLicenseFilter,
   columnValue,
 } from "./aiLeaderboardStore.ts";
-import { ARENA_BOARDS, ARENA_BOARD_KEYS, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.ts";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, categoryOfBoard, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.ts";
 import { fmtClock, fmtDate, licenseKind } from "./format.ts";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.ts";
 import { rowsToCsv } from "./exportCsv.ts";
@@ -176,7 +177,15 @@ export function AiLeaderboardPage() {
   let crumb;
   if (view === "arena") {
     const boardMeta = ARENA_BOARDS[activeBoard.value] || {};
-    crumb = `${boardMeta.label || "文本"} 榜`;
+    const catKey = categoryOfBoard(activeBoard.value);
+    const catMeta = ARENA_CATEGORIES.find((c) => c.key === catKey);
+    const catLabel = catMeta ? catMeta.label : "";
+    const boardLabel = boardMeta.label || "综合";
+    // 二级标签与大类同名时（multimodal/code 单榜）不重复，agent 榜追加选中维度。
+    const two = catLabel && catLabel !== boardLabel ? `${catLabel} · ${boardLabel}` : boardLabel;
+    crumb = activeBoard.value === "agent"
+      ? `${catLabel} · Agent · ${activeAgentDim.value}`
+      : `${two} 榜`;
   } else if (view === "livebench") {
     const lbMeta = LIVE_DIMENSIONS[activeLB.value] || {};
     const sub = sortLabel || lbMeta.label || "Overall";

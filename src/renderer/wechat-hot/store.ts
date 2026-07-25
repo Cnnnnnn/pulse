@@ -27,7 +27,7 @@ export const wechatHotUnreadBadge = computed(
   () => Object.keys(wechatHotNewIds.value).length
 );
 
-export function applyPayload(payload) {
+export function applyPayload(payload: any) {
   if (!payload || typeof payload !== "object") return;
   wechatHotItems.value = Array.isArray(payload.items) ? payload.items : [];
   wechatHotLastFetched.value = payload.fetchedAt || 0;
@@ -77,7 +77,7 @@ export async function refreshWechatHot() {
     }
     applyPayload(r);
     return true;
-  } catch (err) {
+  } catch (err: any) {
     wechatHotError.value = (err && err.message) || "刷新失败";
     return false;
   } finally {
@@ -87,7 +87,7 @@ export async function refreshWechatHot() {
 
 export function subscribeWechatHotUpdates() {
   if (wechatHotUpdatedUnsub.value) return; // 幂等
-  const unsub = api.onWechatHotUpdated((payload) => {
+  const unsub = api.onWechatHotUpdated((payload: any) => {
     applyPayload(payload);
   });
   wechatHotUpdatedUnsub.value = typeof unsub === "function" ? unsub : null;
@@ -104,7 +104,7 @@ export function cleanupWechatHotUpdates() {
   }
 }
 
-export async function markWechatHotRead(title) {
+export async function markWechatHotRead(title: any) {
   if (!title || typeof title !== "string") {
     return { ok: false, reason: "invalid_args" };
   }
@@ -142,6 +142,6 @@ const REASON_MAP = {
   threw: "拉取异常",
   ipc_unavailable: "系统通信异常，请重启应用",
 };
-function mapReason(reason) {
+function mapReason(reason: any) {
   return REASON_MAP[reason] || reason || "刷新失败";
 }

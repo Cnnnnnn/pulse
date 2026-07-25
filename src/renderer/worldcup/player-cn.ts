@@ -6,19 +6,19 @@
 
 import { PLAYER_CN } from "./player-cn-map.ts";
 
-export function resolvePlayerCn(player) {
+export function resolvePlayerCn(player: any) {
   if (!player) return "";
   if (player.cn) return player.cn;
   return PLAYER_CN[player.name] || "";
 }
 
-export function resolvePlayerCnByName(name) {
+export function resolvePlayerCnByName(name: any) {
   if (!name || typeof name !== "string") return "";
   return PLAYER_CN[name] || "";
 }
 
-export function attachSquadCn(squad) {
-  return (squad || []).map((p) => ({
+export function attachSquadCn(squad: any) {
+  return (squad || []).map((p: any) => ({
     ...p,
     cn: resolvePlayerCn(p),
   }));

@@ -7,16 +7,16 @@
 import { PLATFORMS } from "./gamesStore.ts";
 
 export const PLATFORM_LABEL = Object.fromEntries(
-  PLATFORMS.map((p) => [p.key, p.label]),
+  PLATFORMS.map((p: any) => [p.key, p.label]),
 );
 
 export const PLATFORM_EMOJI = Object.fromEntries(
-  PLATFORMS.map((p) => [p.key, p.emoji]),
+  PLATFORMS.map((p: any) => [p.key, p.emoji]),
 );
 
 const intlCache = new Map();
 
-function intlFormat(locale, options, value) {
+function intlFormat(locale: any, options: any, value: any) {
   const key = `${locale}:${JSON.stringify(options)}`;
   let fmt = intlCache.get(key);
   if (!fmt) {
@@ -26,12 +26,12 @@ function intlFormat(locale, options, value) {
   return fmt.format(value);
 }
 
-function normalizeCurrency(cur) {
+function normalizeCurrency(cur: any) {
   if (typeof cur !== "string" || !cur.trim()) return "";
   return cur.trim().toUpperCase();
 }
 
-export function fmtPrice(v, cur) {
+export function fmtPrice(v: any, cur: any) {
   if (v == null) return "—";
   const num = Number(v);
   if (!Number.isFinite(num)) return "—";
@@ -66,7 +66,7 @@ export function fmtPrice(v, cur) {
   }
 }
 
-export function fmtCnyReference(value, currency, fx) {
+export function fmtCnyReference(value: any, currency: any, fx: any) {
   if (value == null) return "";
   const code = normalizeCurrency(currency);
   if (!code || code === "CNY") return "";
@@ -84,7 +84,7 @@ export function fmtCnyReference(value, currency, fx) {
   return `约 ¥${cny.toFixed(2)}`;
 }
 
-export function fmtDate(iso) {
+export function fmtDate(iso: any) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
@@ -98,6 +98,6 @@ const PROMOTION_LABELS = {
   "free-play-days": "限时试玩",
 };
 
-export function promotionTypeLabel(type) {
+export function promotionTypeLabel(type: any) {
   return PROMOTION_LABELS[type] || "免费活动";
 }

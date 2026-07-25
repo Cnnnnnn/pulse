@@ -45,12 +45,12 @@ export async function upsertWorldcupBet({ date, stake, pnl, note = "" }) {
       return { ok: true };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: (err && err.message) || "threw" };
   }
 }
 
-export async function removeWorldcupBet(date) {
+export async function removeWorldcupBet(date: any) {
   const remove = requireApiMethod("worldcupRemoveBet");
   if (!remove) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -64,7 +64,7 @@ export async function removeWorldcupBet(date) {
       return { ok: true };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: (err && err.message) || "threw" };
   }
 }
@@ -75,7 +75,7 @@ export async function removeWorldcupBet(date) {
  * @param {string[]} allDates - YYYY-MM-DD[]
  * @returns {{ totalStake: number, totalPnl: number, filled: number, unfilled: number, roi: number|null }}
  */
-export function computeBetsStats(betsMap, allDates) {
+export function computeBetsStats(betsMap: any, allDates: any) {
   const dates = Array.isArray(allDates) ? allDates : [];
   let totalStake = 0;
   let totalPnl = 0;

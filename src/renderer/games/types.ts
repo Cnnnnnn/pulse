@@ -37,7 +37,7 @@ export const ENTRY_DEFAULTS = {
  * @param {any} raw
  * @returns {import("./types.ts").WishlistEntry}
  */
-export function normalizeEntry(raw) {
+export function normalizeEntry(raw: any) {
   if (!raw || typeof raw !== "object") {
     return {
       key: "",
@@ -53,11 +53,11 @@ export function normalizeEntry(raw) {
   }
 
   const tags = Array.isArray(raw.tags)
-    ? raw.tags.filter((t) => typeof t === "string")
+    ? raw.tags.filter((t: any) => typeof t === "string")
     : [];
 
   const mergedIds = Array.isArray(raw.mergedIds)
-    ? raw.mergedIds.filter((x) => typeof x === "string")
+    ? raw.mergedIds.filter((x: any) => typeof x === "string")
     : [];
 
   // 评分统一走 clampRating（整数星：四舍五入 + 区间裁剪），避免散落 clamp 逻辑。
@@ -108,7 +108,7 @@ export function normalizeEntry(raw) {
  * @param {boolean} isPrimary
  * @returns {import("./types.ts").MergedMember}
  */
-export function createMergedMember(entry, isPrimary) {
+export function createMergedMember(entry: any, isPrimary: any) {
   return {
     key: entry.key,
     platform: entry.platform,
@@ -129,7 +129,7 @@ export function createMergedMember(entry, isPrimary) {
  * @param {any} raw
  * @returns {import("./types.ts").Folder}
  */
-export function normalizeFolder(raw) {
+export function normalizeFolder(raw: any) {
   if (!raw || typeof raw !== "object") {
     return { id: "", name: "", target: null, createdAt: "", order: 0 };
   }
@@ -149,7 +149,7 @@ export function normalizeFolder(raw) {
  * @param {any} raw
  * @returns {import("./types.ts").Tag}
  */
-export function normalizeTag(raw) {
+export function normalizeTag(raw: any) {
   if (!raw || typeof raw !== "object") {
     return { id: "", name: "", createdAt: "" };
   }
@@ -168,7 +168,7 @@ export const EMPTY_COLLECTION_FILTER = { type: null, id: null };
  * @param {any} raw
  * @returns {import("./types.ts").CollectionFilter}
  */
-export function normalizeCollectionFilter(raw) {
+export function normalizeCollectionFilter(raw: any) {
   if (!raw || typeof raw !== "object") return { ...EMPTY_COLLECTION_FILTER };
   const type =
     raw.type === "folder" || raw.type === "tag" ? raw.type : null;
@@ -200,7 +200,7 @@ export const RARITY_MAX = 1;
  * @param {any} r
  * @returns {number}
  */
-export function clampRating(r) {
+export function clampRating(r: any) {
   let n = Number(r);
   // 评分按整数星处理：非法值归零，合法值四舍五入后再裁剪到 [RATING_MIN, RATING_MAX]
   if (!Number.isFinite(n)) n = RATING_MIN;
@@ -218,7 +218,7 @@ export function clampRating(r) {
  * @param {{currentPrice?:number|null, addedPrice?:number}} x
  * @returns {number}
  */
-export function currentPriceOf(x) {
+export function currentPriceOf(x: any) {
   if (!x || typeof x !== "object") return 0;
   const cur = x.currentPrice;
   if (cur != null) {
@@ -234,7 +234,7 @@ export function currentPriceOf(x) {
  * @param {{addedPrice?:number, currentPrice?:number|null}} x
  * @returns {number}
  */
-export function savedOf(x) {
+export function savedOf(x: any) {
   if (!x || typeof x !== "object") return 0;
   const added = Number(x.addedPrice);
   if (!Number.isFinite(added)) return 0;
@@ -248,7 +248,7 @@ export function savedOf(x) {
  * @param {import("./types.ts").WishlistEntry[]} entries
  * @returns {{total:number, totalValue:number, totalSaved:number}}
  */
-export function computeCollectionStats(entries) {
+export function computeCollectionStats(entries: any) {
   const list = Array.isArray(entries) ? entries : [];
   let total = 0;
   let totalValue = 0;

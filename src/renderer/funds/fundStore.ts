@@ -86,7 +86,7 @@ export function clearFundNavBadge() {
   fundUnreadBadge.value = 0;
 }
 
-export function bumpFundNavBadge(count = 1) {
+export function bumpFundNavBadge(count: any = 0) {
   const n = Number(count);
   if (!Number.isFinite(n) || n <= 0) return;
   fundUnreadBadge.value += n;
@@ -102,7 +102,7 @@ export const rowsWithMetrics = computed(() => {
   const h = holdings.value || [];
   const map = (navCache.value && navCache.value.data) || {};
   const src = navSource.value;
-  return zipHoldingsWithNav(h, map).map((row) => {
+  return zipHoldingsWithNav(h, map).map((row: any) => {
     const resolved = resolveNavSnapshot(row.navSnap, src as any);
     return {
       ...rowWithMetrics({ holding: row.holding, navSnap: resolved }),
@@ -128,11 +128,11 @@ export const filteredRows = computed(() => {
   let rows = rowsWithMetrics.value;
   const cat = activeCategory.value;
   if (cat !== "all") {
-    rows = rows.filter((r) => (r.holding && r.holding.category) === cat);
+    rows = rows.filter((r: any) => (r.holding && r.holding.category) === cat);
   }
   const q = (searchQuery.value || "").trim().toLowerCase();
   if (q) {
-    rows = rows.filter((r) => {
+    rows = rows.filter((r: any) => {
       const h = r.holding || {};
       const n = (h.name || "").toLowerCase();
       const c = h.code || "";
@@ -141,7 +141,7 @@ export const filteredRows = computed(() => {
   }
   // N4: watch 视图叠一层 isFundPinned 过滤
   if (fundView.value === "watch") {
-    rows = rows.filter((r) => isFundPinned(r.holding && r.holding.code));
+    rows = rows.filter((r: any) => isFundPinned(r.holding && r.holding.code));
   }
   return rows;
 });
@@ -173,18 +173,18 @@ const LISTED_PREFIXES = ["51", "56", "58", "15", "16", "18"];
  * @param {unknown} code — 6 位字符串基金代码
  * @returns {boolean} true = 场内 ETF/LOF (可入对比池)
  */
-export function isListedFundCode(code) {
+export function isListedFundCode(code: any) {
   if (typeof code !== "string" || code.length !== 6) return false;
-  return LISTED_PREFIXES.some((p) => code.startsWith(p));
+  return LISTED_PREFIXES.some((p: any) => code.startsWith(p));
 }
 
 // ── mutations (renderer-side, 不走 IPC) ──
 
-export function setActiveCategory(id) {
+export function setActiveCategory(id: any) {
   activeCategory.value = id;
 }
 
-export function setSearchQuery(q) {
+export function setSearchQuery(q: any) {
   searchQuery.value = q;
 }
 
@@ -193,7 +193,7 @@ export function openAddModal() {
   addModalOpen.value = true;
 }
 
-export function openEditModal(holding) {
+export function openEditModal(holding: any) {
   editingHolding.value = holding;
   addModalOpen.value = true;
 }
@@ -213,7 +213,7 @@ export function closeAlertModal() {
 
 // ── async actions (走 IPC) ──
 
-export async function loadFunds(api) {
+export async function loadFunds(api: any) {
   fundsLoading.value = true;
   fundsLoadError.value = null;
   try {
@@ -232,7 +232,7 @@ export async function loadFunds(api) {
       holdings.value = [];
       fundsLoadError.value = (r && r.reason) || '加载失败';
     }
-  } catch (err) {
+  } catch (err: any) {
     log.warn("loadFunds failed:", err && err.message);
     holdings.value = [];
     fundsLoadError.value = (err && err.message) || '加载失败';
@@ -241,11 +241,11 @@ export async function loadFunds(api) {
   }
 }
 
-export async function addFund(api, input) {
+export async function addFund(api: any, input: any) {
   const r = await api.fundsAdd(input);
   if (r && r.ok) {
     holdings.value = r.holdings || [];
-    import("../recent/track.ts").then((m) =>
+    import("../recent/track.ts").then((m: any) =>
       m.trackFundAdd(input && input.code, input && input.name),
     );
     return { ok: true, holding: r.holding };
@@ -253,12 +253,12 @@ export async function addFund(api, input) {
   return { ok: false, reason: r && r.reason, error: r && r.error };
 }
 
-export async function updateFund(api, id, patch) {
+export async function updateFund(api: any, id: any, patch: any) {
   const r = await api.fundsUpdate(id, patch);
   if (r && r.ok) {
     holdings.value = r.holdings || [];
     const h = r.holding || {};
-    import("../recent/track.ts").then((m) =>
+    import("../recent/track.ts").then((m: any) =>
       m.trackFundUpdate(h.code || id, h.name, patch),
     );
     return { ok: true, holding: r.holding };
@@ -266,12 +266,12 @@ export async function updateFund(api, id, patch) {
   return { ok: false, reason: r && r.reason, error: r && r.error };
 }
 
-export async function removeFund(api, id) {
-  const removed = (holdings.value || []).find((h) => h && h.id === id) || {};
+export async function removeFund(api: any, id: any) {
+  const removed = (holdings.value || []).find((h: any) => h && h.id === id) || {};
   const r = await api.fundsRemove(id);
   if (r && r.ok) {
     holdings.value = r.all ? r.all.holdings : [];
-    import("../recent/track.ts").then((m) =>
+    import("../recent/track.ts").then((m: any) =>
       m.trackFundRemove(removed.code || id, removed.name),
     );
     return { ok: true };
@@ -283,12 +283,12 @@ export async function removeFund(api, id) {
  * 用最新净值反填占位 holding (costNav=0 → costNav=nav, shares=amount/nav).
  * 走主进程 funds:backfill, 然后 reload holdings.
  */
-export async function backfillFund(api, code) {
+export async function backfillFund(api: any, code: any) {
   const r = await api.fundsBackfill(code);
   if (r && r.ok && r.holding) {
     // 局部更新: 把反填后的 holding merge 进 holdings
     const list = holdings.value || [];
-    const idx = list.findIndex((h) => h && h.code === code);
+    const idx = list.findIndex((h: any) => h && h.code === code);
     if (idx !== -1) {
       const next = [...list];
       next[idx] = r.holding;
@@ -299,7 +299,7 @@ export async function backfillFund(api, code) {
   return { ok: false, reason: r && r.reason };
 }
 
-export async function fetchNavNow(api) {
+export async function fetchNavNow(api: any) {
   fundsRefreshing.value = true;
   fundsRefreshError.value = null;
   try {
@@ -321,7 +321,7 @@ export async function fetchNavNow(api) {
         };
       }
       const count = r.results ? Object.keys(r.results).length : 0;
-      import("../recent/track.ts").then((m) => m.trackFundNavFetch(count));
+      import("../recent/track.ts").then((m: any) => m.trackFundNavFetch(count));
       // 不阻塞 UI: 状态/持仓后台同步
       void loadNavState(api);
       void loadFunds(api);
@@ -329,7 +329,7 @@ export async function fetchNavNow(api) {
       fundsRefreshError.value = (r && r.reason) || '刷新失败';
     }
     return r;
-  } catch (err) {
+  } catch (err: any) {
     fundsRefreshError.value = (err && err.message) || '刷新失败';
     return { ok: false, reason: err && err.message };
   } finally {
@@ -338,7 +338,7 @@ export async function fetchNavNow(api) {
 }
 
 /** 拉单只/少量基金净值, 合并进 navCache (弹窗填码用) */
-export async function fetchNavForCodes(api, codes) {
+export async function fetchNavForCodes(api: any, codes: any) {
   if (!api || !api.fundsNavFetchCodes) return { ok: false, reason: "no_api" };
   const r = await api.fundsNavFetchCodes(codes);
   if (r && r.ok && (r.results || r.errors)) {
@@ -359,7 +359,7 @@ export async function fetchNavForCodes(api, codes) {
   return r;
 }
 
-export async function loadNavState(api) {
+export async function loadNavState(api: any) {
   try {
     const r = await api.fundsNavState();
     if (r && r.ok) schedulerState.value = r;
@@ -368,29 +368,29 @@ export async function loadNavState(api) {
   }
 }
 
-export async function loadFundHistory(api) {
+export async function loadFundHistory(api: any) {
   try {
     const r = await api.fundsHistoryList();
     if (r && r.ok) {
       dailySnapshots.value = r.dailySnapshots || [];
     }
-  } catch (err) {
+  } catch (err: any) {
     log.warn("loadFundHistory failed:", err && err.message);
   }
 }
 
-export function setSelectedHistoryMonth(ym) {
+export function setSelectedHistoryMonth(ym: any) {
   selectedHistoryMonth.value = ym;
 }
 
-export async function setNavSource(api, source) {
+export async function setNavSource(api: any, source: any) {
   const next = normalizeNavSource(source);
   const prev = navSource.value;
   if (next === prev) return { ok: true, reason: "same" };
   navSource.value = next;
   try {
     await api.fundsSetNavSource(next);
-  } catch (err) {
+  } catch (err: any) {
     log.warn("setNavSource failed:", err && err.message);
     return { ok: false, reason: "save_failed" };
   }
@@ -400,13 +400,13 @@ export async function setNavSource(api, source) {
   try {
     const r = await fetchNavNow(api);
     return r && r.ok ? { ok: true } : { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     log.warn("setNavSource post-refresh failed:", err && err.message);
     return { ok: false, reason: "refresh_failed" };
   }
 }
 
-export async function loadAlertPrefs(api) {
+export async function loadAlertPrefs(api: any) {
   try {
     const r = await api.fundsAlertPrefsGet();
     if (r && r.ok && r.alertPrefs) {
@@ -416,12 +416,12 @@ export async function loadAlertPrefs(api) {
         lossPct: Number(r.alertPrefs.lossPct) || -5,
       };
     }
-  } catch (err) {
+  } catch (err: any) {
     log.warn("loadAlertPrefs failed:", err && err.message);
   }
 }
 
-export async function saveAlertPrefs(api, patch) {
+export async function saveAlertPrefs(api: any, patch: any) {
   try {
     const r = await api.fundsAlertPrefsSet(patch);
     if (r && r.ok && r.alertPrefs) {
@@ -432,7 +432,7 @@ export async function saveAlertPrefs(api, patch) {
       };
     }
     return r;
-  } catch (err) {
+  } catch (err: any) {
     log.warn("saveAlertPrefs failed:", err && err.message);
     return { ok: false };
   }
@@ -443,11 +443,11 @@ export async function saveAlertPrefs(api, patch) {
  *  - funds:nav:state → schedulerState
  *  - funds:nav:fetched → navCache (合并: 替换 code 对应 data + errors)
  */
-export function subscribeNavUpdates(api) {
-  const offState = api.onFundsNavState((st) => {
+export function subscribeNavUpdates(api: any) {
+  const offState = api.onFundsNavState((st: any) => {
     schedulerState.value = st;
   });
-  const offFetched = api.onFundsNavFetched((payload) => {
+  const offFetched = api.onFundsNavFetched((payload: any) => {
     if (!payload) return;
     navCache.value = {
       fetchedAt: payload.fetchedAt,
@@ -466,7 +466,7 @@ export function subscribeNavUpdates(api) {
   });
   const offHistory =
     api.onFundsHistoryUpdated &&
-    api.onFundsHistoryUpdated((payload) => {
+    api.onFundsHistoryUpdated((payload: any) => {
       if (payload && Array.isArray(payload.dailySnapshots)) {
         dailySnapshots.value = payload.dailySnapshots;
       } else {
@@ -475,7 +475,7 @@ export function subscribeNavUpdates(api) {
     });
   const offSidenavBadge =
     api.onSidenavBadge &&
-    api.onSidenavBadge((payload) => {
+    api.onSidenavBadge((payload: any) => {
       if (payload && payload.key === "funds") {
         bumpFundNavBadge(payload.count || 1);
       }
@@ -552,7 +552,7 @@ export const benchmarkError = signal(null);
 
 let indexHistoryLoading = false; // 并发保护
 
-export async function loadIndexHistory(api, symbol) {
+export async function loadIndexHistory(api: any, symbol: any) {
   const sym = symbol || DEFAULT_BENCHMARK;
   if (indexHistoryLoading) return { ok: false, reason: "in_flight" };
   const cached = indexHistoryCache.value[sym];
@@ -570,7 +570,7 @@ export async function loadIndexHistory(api, symbol) {
     const reason = (r && r.reason) || "unknown";
     benchmarkError.value = reason;
     return { ok: false, reason };
-  } catch (err) {
+  } catch (err: any) {
     const reason = (err && err.message) ? err.message : String(err);
     benchmarkError.value = reason;
     return { ok: false, reason };
@@ -638,7 +638,7 @@ export async function loadFundNavHistory(api: any, code: string, opts: { days?: 
       return { ok: true, series };
     }
     return { ok: false, reason: r && r.reason };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: err && err.message };
   } finally {
     const next = Object.assign({}, navHistoryLoading.value);
@@ -654,9 +654,9 @@ let navPrefetchRunning = false;
 export async function prefetchAllNavHistory(api, { concurrency = NAV_PREFETCH_CONCURRENCY } = {}) {
   if (navPrefetchRunning) return;
   const codes = (holdings.value || [])
-    .map((h) => h && h.code)
+    .map((h: any) => h && h.code)
     .filter(Boolean)
-    .filter((code) => {
+    .filter((code: any) => {
       const c = navHistoryCache.value[code];
       return !(c && c.series && c.series.length);
     });

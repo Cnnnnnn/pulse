@@ -32,16 +32,16 @@ export const compareIsFull = computed(
   () => comparePool.value.length >= MAX_COMPARE,
 );
 
-function hasCode(pool, code) {
-  return pool.some((e) => e.code === code);
+function hasCode(pool: any, code: any) {
+  return pool.some((e: any) => e.code === code);
 }
 
 // ponytail: 同 code 重复 → 移除 (toggle). 已满 → 不加, 返 false.
-export function toggleCompare(entry) {
+export function toggleCompare(entry: any) {
   if (!entry || !entry.code) return { ok: false, reason: "missing_code" };
   const pool = comparePool.value;
   if (hasCode(pool, entry.code)) {
-    comparePool.value = pool.filter((e) => e.code !== entry.code);
+    comparePool.value = pool.filter((e: any) => e.code !== entry.code);
     return { ok: true, action: "removed" };
   }
   if (pool.length >= MAX_COMPARE) {
@@ -51,8 +51,8 @@ export function toggleCompare(entry) {
   return { ok: true, action: "added" };
 }
 
-export function removeFromCompare(code) {
-  comparePool.value = comparePool.value.filter((e) => e.code !== code);
+export function removeFromCompare(code: any) {
+  comparePool.value = comparePool.value.filter((e: any) => e.code !== code);
 }
 
 // ponytail 2026-07-07: drawer 渲染时如果 entry 缺价, 反查一次 stocksSearch 拿到价后
@@ -63,7 +63,7 @@ export function updateComparePrice(code: string, { price, changePct }: { price?:
   const pool = comparePool.value;
   if (!Array.isArray(pool) || pool.length === 0) return;
   let changed = false;
-  const next = pool.map((e) => {
+  const next = pool.map((e: any) => {
     if (!e || e.code !== code) return e;
     const merged = { ...e };
     if (price != null) {
@@ -91,7 +91,7 @@ export function closeCompareDrawer() {
   compareDrawerOpen.value = false;
 }
 
-export function isInCompare(code) {
+export function isInCompare(code: any) {
   return hasCode(comparePool.value, code);
 }
 
@@ -105,7 +105,7 @@ export const DIM_LABELS = {
 };
 export const DIM_KEYS = Object.keys(DIM_LABELS);
 
-function normalize(entry) {
+function normalize(entry: any) {
   return {
     code: entry.code,
     name: entry.name || entry.code,
@@ -134,13 +134,13 @@ function normalize(entry) {
 
 // ponytail 2026-07-08 D-5: 跟 updateComparePrice 同型的"财务字段补全" merge. 给 useEnrichMissingPrices
 //   拉到的 row 同时把 pe/pb/roe/marketCap 也合并进 pool. 不存在/非数组时安全 noop.
-export function updateCompareFields(code, patch = {}) {
+export function updateCompareFields(code: any, patch: any = 0) {
   if (!code) return;
   const pool = comparePool.value;
   if (!Array.isArray(pool) || pool.length === 0) return;
   const keys = ["pe", "pb", "roe", "marketCap"];
   let changed = false;
-  const next = pool.map((e) => {
+  const next = pool.map((e: any) => {
     if (!e || e.code !== code) return e;
     const merged = { ...e };
     for (const k of keys) {

@@ -85,7 +85,7 @@ const KEY_TO_GAME = (() => {
  * 面向阅读的静态映射表：steam key → 其他平台等价 key 列表。
  * 仅作文档/调试用途，查询走 findMergeCandidates。
  */
-export const STEAM_TO_OTHER = CANONICAL_GAMES.reduce((acc, g) => {
+export const STEAM_TO_OTHER = CANONICAL_GAMES.reduce((acc: any, g: any) => {
   if (g.platforms.steam) {
     acc[g.platforms.steam] = Object.entries(g.platforms)
       .filter(([p]) => p !== "steam")
@@ -100,12 +100,12 @@ export const STEAM_TO_OTHER = CANONICAL_GAMES.reduce((acc, g) => {
  * @param {string} key
  * @returns {string[]}
  */
-export function findMergeCandidates(key) {
+export function findMergeCandidates(key: any) {
   const gameId = KEY_TO_GAME[key];
   if (!gameId) return [];
-  const game = CANONICAL_GAMES.find((g) => g.id === gameId);
+  const game = CANONICAL_GAMES.find((g: any) => g.id === gameId);
   if (!game) return [];
-  return Object.values(game.platforms).filter((k) => k !== key);
+  return Object.values(game.platforms).filter((k: any) => k !== key);
 }
 
 /**
@@ -114,7 +114,7 @@ export function findMergeCandidates(key) {
  * @param {string} b
  * @returns {boolean}
  */
-export function areSameGame(a, b) {
+export function areSameGame(a: any, b: any) {
   const ga = KEY_TO_GAME[a];
   const gb = KEY_TO_GAME[b];
   return !!ga && ga === gb;
@@ -129,10 +129,10 @@ export function areSameGame(a, b) {
  * @param {string[]} keys
  * @returns {boolean}
  */
-export function areCandidatesKnown(keys) {
+export function areCandidatesKnown(keys: any) {
   const list = Array.isArray(keys) ? keys : [];
   if (list.length < 2) return true;
   const first = KEY_TO_GAME[list[0]];
   if (!first) return false;
-  return list.every((k) => KEY_TO_GAME[k] === first);
+  return list.every((k: any) => KEY_TO_GAME[k] === first);
 }

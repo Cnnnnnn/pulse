@@ -13,7 +13,7 @@ export function getApi() {
 }
 
 /** @param {string} methodName */
-export function requireApiMethod(methodName) {
+export function requireApiMethod(methodName: any) {
   const api = getApi();
   if (!api || typeof api[methodName] !== "function") return null;
   return api[methodName].bind(api);
@@ -29,7 +29,7 @@ export async function wrapIpc(fn: () => Promise<any>, opts: any = {}) {
   const { label = "[ipc] call failed", fallback = false } = opts;
   try {
     return await fn();
-  } catch (err) {
+  } catch (err: any) {
     rendererLog.warn(label, err);
     return fallback;
   }

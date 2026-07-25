@@ -14,7 +14,7 @@
 import { displayTeam } from "./teams-data.ts";
 import { resolvePlayerCnByName } from "./player-cn.ts";
 
-function playerKey(player, teamName) {
+function playerKey(player: any, teamName: any) {
   return `${String(player || "")
     .trim()
     .toLowerCase()}|${teamName || ""}`;
@@ -31,7 +31,7 @@ function playerKey(player, teamName) {
  * 同时需要 score.pen 存在 (本场有 shootout) 才视为 shootout 进球. 单独 minute
  * 形态不带 score.pen 的不算 (防止误判某些边界情况).
  */
-function isShootoutGoal(scorer, score) {
+function isShootoutGoal(scorer: any, score: any) {
   if (!scorer || !scorer.penalty) return false;
   if (!score || !Array.isArray(score.pen) || score.pen.length !== 2)
     return false;
@@ -44,7 +44,7 @@ function isShootoutGoal(scorer, score) {
  * 适配 match shape: 小组赛 (扁平 team1/team2) 或 淘汰赛 (嵌套 slot1.team.name).
  * @returns {{ team1: string, team2: string, scorers: Array, score: object } | null}
  */
-export function normalizeScorersMatch(m) {
+export function normalizeScorersMatch(m: any) {
   if (!m) return null;
   const t1 = m.team1 || (m.slot1 && m.slot1.team && m.slot1.team.name) || null;
   const t2 = m.team2 || (m.slot2 && m.slot2.team && m.slot2.team.name) || null;
@@ -57,9 +57,9 @@ export function normalizeScorersMatch(m) {
 /**
  * 把 bracket snapshot (r32/r16/qf/sf/final/third) 拍平成 match 数组.
  */
-export function flattenBracketMatches(snapshot) {
+export function flattenBracketMatches(snapshot: any) {
   if (!snapshot) return [];
-  const out = [];
+  const out: any[] = [];
   for (const k of ["r32", "r16", "qf", "sf"]) {
     if (Array.isArray(snapshot[k])) out.push(...snapshot[k]);
   }
@@ -72,7 +72,7 @@ export function flattenBracketMatches(snapshot) {
  * @param {Array} matches 含 score.scorers 的赛程
  * @returns {Array<{ rank?: number, player: string, playerCn: string, teamName: string, teamCn: string, flag: string, goals: number, penalties: number }>}
  */
-export function buildScorersLeaderboard(matches) {
+export function buildScorersLeaderboard(matches: any) {
   const map = new Map();
 
   for (const m of matches || []) {
@@ -111,7 +111,7 @@ export function buildScorersLeaderboard(matches) {
     }
   }
 
-  const list = [...map.values()].sort((a, b) => {
+  const list = [...map.values()].sort((a: any, b: any) => {
     if (b.goals !== a.goals) return b.goals - a.goals;
     const ac = a.playerCn || a.player;
     const bc = b.playerCn || b.player;
@@ -120,7 +120,7 @@ export function buildScorersLeaderboard(matches) {
 
   let rank = 0;
   let prevGoals = null;
-  return list.map((row, idx) => {
+  return list.map((row: any, idx: any) => {
     if (row.goals !== prevGoals) {
       rank = idx + 1;
       prevGoals = row.goals;
@@ -129,13 +129,13 @@ export function buildScorersLeaderboard(matches) {
   });
 }
 
-export function filterScorersLeaderboard(list, query) {
+export function filterScorersLeaderboard(list: any, query: any) {
   const q = String(query || "")
     .trim()
     .toLowerCase();
   if (!q) return list;
   return list.filter(
-    (r) =>
+    (r: any) =>
       r.player.toLowerCase().includes(q) ||
       (r.playerCn && r.playerCn.includes(q)) ||
       r.teamName.toLowerCase().includes(q) ||

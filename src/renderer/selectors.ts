@@ -76,7 +76,7 @@ export const resultsBySection = computed(() => {
    
   results.value;
 
-  const all = [];
+  const all: any[] = [];
   for (const [name, sig] of resultSignals) {
     if (sig.value) all.push(sig.value);
   }
@@ -97,7 +97,7 @@ export const summary = computed(() => {
     else if (r.status === 'up_to_date') upToDate++;
     else other++;
   }
-  const parts = [];
+  const parts: any[] = [];
   if (updates)  parts.push(`${updates} 个有更新`);
   if (upToDate) parts.push(`${upToDate} 个已是最新`);
   if (other)    parts.push(`${other} 个需关注`);

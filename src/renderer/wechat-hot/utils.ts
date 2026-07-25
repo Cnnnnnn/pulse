@@ -4,7 +4,7 @@
  * Shared display formatters.
  */
 
-export function formatTime(ms) {
+export function formatTime(ms: any) {
   if (typeof ms !== "number" || ms <= 0) return "—";
   const d = new Date(ms);
   const hh = String(d.getHours()).padStart(2, "0");
@@ -12,7 +12,7 @@ export function formatTime(ms) {
   return `${hh}:${mm}`;
 }
 
-export function formatCooldown(remainingMs) {
+export function formatCooldown(remainingMs: any) {
   if (typeof remainingMs !== "number" || remainingMs <= 0) return "";
   return `冷却 ${Math.ceil(remainingMs / 1000)}s`;
 }

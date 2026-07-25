@@ -88,7 +88,7 @@ export async function computeBracket(opts: any = {}) {
       : Date.now();
     lastAutoComputeAt = bracketLastComputedAt.value;
     return true;
-  } catch (err) {
+  } catch (err: any) {
     bracketError.value = (err && err.message) || "计算异常";
     return false;
   } finally {

@@ -19,7 +19,7 @@ export function downloadCsv(filename: string, rows: unknown[][]): void {
     if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
-  const csv = rows.map((r) => r.map(esc).join(",")).join("\r\n");
+  const csv = rows.map((r: any) => r.map(esc).join(",")).join("\r\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

@@ -627,14 +627,14 @@ const TEAMS_RAW = [
 ];
 
 // ISO alpha-2 队旗 code（UI 用 TeamFlag SVG 渲染，非 emoji）
-function flagFromCode(code) {
+function flagFromCode(code: any) {
   if (!code || typeof code !== 'string' || code.length !== 2) return null;
   return code.toUpperCase();
 }
 
 // 26 人占位骨架 (FIFA 报名未填时 fallback)
 function makeSquadSkeleton() {
-  const list = [];
+  const list: any[] = [];
   for (let i = 1; i <= 26; i += 1) {
     list.push({ number: i, position: "TBD", name: `TBD-${i}`, club: "TBD" });
   }
@@ -661,7 +661,7 @@ for (const name of Object.keys(TEAMS)) {
   CANONICAL_TEAM_KEY[canonicalTeamName(name)] = name;
 }
 
-function teamEntry(t) {
+function teamEntry(t: any) {
   return {
     name: t.name,
     cn: t.cn,
@@ -678,7 +678,7 @@ function teamEntry(t) {
  * @param {string} enName
  * @returns {{ name: string, cn: string, flag: string, code: string, group: string, squad: Array, famous: Array }|null}
  */
-function lookupTeam(enName) {
+function lookupTeam(enName: any) {
   if (!enName) return null;
   const direct = TEAMS[enName];
   if (direct) return teamEntry(direct);
@@ -693,7 +693,7 @@ function lookupTeam(enName) {
  * UI 展示用: 始终返回中文名 + 队旗 code（未知队回退英文名 + null code）
  * @param {string} enName
  */
-function displayTeam(enName) {
+function displayTeam(enName: any) {
   const t = lookupTeam(enName);
   return {
     officialName: t ? t.name : enName,
@@ -710,7 +710,7 @@ function displayTeam(enName) {
  */
 function listTeams(): any[] {
   // ponytail: TEAMS 值形状固定，Object.values 在 TS 下是 unknown[]
-  return (Object.values(TEAMS) as any[]).sort((a, b) => {
+  return (Object.values(TEAMS) as any[]).sort((a: any, b: any) => {
     if (a.group !== b.group) return a.group < b.group ? -1 : 1;
     return a.name < b.name ? -1 : 1;
   });

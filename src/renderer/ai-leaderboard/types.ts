@@ -86,14 +86,81 @@ export const VIEW_KEYS = ["arena", "aa", "livebench", "huggingface"];
 // 与 fetcher-arena.js 落盘切片键一致；category 映射到主进程 CATEGORY_META。
 // 数据与 text/vision/code 同源（Arena 社区 ELO），零 AA 成本。
 export const ARENA_BOARDS = {
-  text: { key: "text", label: "文本", category: "llm" },
+  // ponytail: text 是 lmarena 主榜（overall text ELO）。在「文本」大类下作为二级榜，
+  // 为避免与一级类别同名，二级标签用「综合」。
+  text: { key: "text", label: "综合", category: "llm" },
   vision: { key: "vision", label: "多模态", category: "multimodal" },
   code: { key: "code", label: "代码", category: "code" },
   image: { key: "text-to-image", label: "图像生成", category: "image" },
-  video: { key: "text-to-video", label: "视频", category: "video" },
+  video: { key: "text-to-video", label: "文生视频", category: "video" },
+  // ponytail: Agent 榜（v2.8x）— arena.ai/leaderboard/agent 同款 6 维细分。
+  // 数据：RSC 满血 38 / 社区快照截断 10，均带 scores[] 维度。cat=llm 复用 text 通道。
+  agent: { key: "agent", label: "Agent", category: "llm" },
+  // ponytail: 其余 5 个新 arena（v2.8x）— 快照已有数据（flat score/ci/votes），
+  // 与主源同源、零 AA 成本，仅补 tab 暴露；排序/列复用 text 路径。
+  document: { key: "document", label: "文档", category: "llm" },
+  search: { key: "search", label: "搜索", category: "llm" },
+  "image-edit": { key: "image-edit", label: "图像编辑", category: "image" },
+  "image-to-video": { key: "image-to-video", label: "图生视频", category: "video" },
+  "video-edit": { key: "video-edit", label: "视频编辑", category: "video" },
 };
 
-export const ARENA_BOARD_KEYS = ["text", "vision", "code", "image", "video"];
+export const ARENA_BOARD_KEYS = [
+  "text", "vision", "code", "image", "video", "agent",
+  "document", "search", "image-edit", "image-to-video", "video-edit",
+];
+
+/* ── Arena 一级大类（5 个）→ 二级榜。对齐 arena.ai 的 Text/Vision/Code/Image/Video 分组。
+ * boards 内顺序即二级 chip 展示顺序；首项是该大类的默认榜。 */
+export const ARENA_CATEGORIES = [
+  { key: "llm", label: "文本", boards: ["text", "document", "search", "agent"] },
+  { key: "multimodal", label: "多模态", boards: ["vision"] },
+  { key: "code", label: "代码", boards: ["code"] },
+  { key: "image", label: "图像", boards: ["image", "image-edit"] },
+  { key: "video", label: "视频", boards: ["video", "image-to-video", "video-edit"] },
+];
+
+/** 取某大类下的二级 board key 列表（非法大类回退到 text 所在 llm）。 */
+export function boardsOfCategory(cat) {
+  const c = ARENA_CATEGORIES.find((x) => x.key === cat) || ARENA_CATEGORIES[0];
+  return c.boards;
+}
+
+/** 取某 board 所属大类 key（默认 llm）。 */
+export function categoryOfBoard(board) {
+  const meta = ARENA_BOARDS[board] || ARENA_BOARDS.text;
+  return meta.category;
+}
+
+/* ── Arena Agent 视角：6 维细分（arena.ai/leaderboard/agent 同序）──
+ * Net Improvement 是头条（默认排序维度）；其余 5 维可独立排名。
+ * 顺序与 fetcher-arena AGENT_DIMENSIONS / 快照 meta.dimensions 严格一致。 */
+export const AGENT_DIMENSIONS = [
+  "Net Improvement",
+  "Confirmed Success",
+  "Praise vs Complaint",
+  "Steerability",
+  "Bash Recovery",
+  "Tool Hallucination",
+];
+
+/** Agent 默认排序维度（头条，arena.ai 默认榜）。 */
+export const AGENT_DIMENSION_DEFAULT = "Net Improvement";
+
+/* ── Arena 文本榜 category 子榜（arena.ai 文本大类的子排行榜）──
+ * 对应 HF text_style_control 的 category 字段；overall 为默认。
+ * 顺序与 fetcher-arena TEXT_CATEGORY_KEYS 一致。 */
+export const TEXT_CATEGORIES = [
+  { key: "overall", label: "综合" },
+  { key: "coding", label: "代码" },
+  { key: "math", label: "数学" },
+  { key: "hard", label: "硬题" },
+  { key: "instruction_following", label: "指令遵循" },
+  { key: "non_english", label: "非英语" },
+];
+
+/** 文本榜默认 category（overall = 文本综合总榜）。 */
+export const TEXT_CATEGORY_DEFAULT = "overall";
 
 /* ── AA 视角：可选排序维度 ── */
 
@@ -171,7 +238,7 @@ export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);
  * HuggingFace 视角 (v2.79.5+)：category 固定 "llm"，dimension 取 hf_* 之一，默认 hf_downloads。
  *   renderer 共享 activeDim 存 HF dimension（AA 共用），HF_DIMENSIONS 校验防越界。
  */
-export function toIpcParams(view, boardOrDim) {
+export function toIpcParams(view: any, boardOrDim: any) {
   if (view === "arena") {
     const board = ARENA_BOARDS[boardOrDim] || ARENA_BOARDS.text;
     return { category: board.category, dimension: "elo" };
@@ -217,7 +284,7 @@ export const VENDOR_META = {
 
 export const VENDOR_OPTIONS = [
   { key: "all", label: "全部厂商" },
-  ...Object.values(VENDOR_META).map((v) => ({ key: v.key, label: v.label })),
+  ...Object.values(VENDOR_META).map((v: any) => ({ key: v.key, label: v.label })),
 ];
 
 /** 许可筛选（基于 license 字符串粗判）。 */
@@ -304,7 +371,7 @@ const VENDOR_ALIAS = {
   "azure": "other",
 };
 
-export function normalizeVendor(raw) {
+export function normalizeVendor(raw: any) {
   if (typeof raw !== "string" || !raw.trim()) return "other";
   const key = raw.trim().toLowerCase();
   if (VENDOR_META[key]) return key;
@@ -312,7 +379,7 @@ export function normalizeVendor(raw) {
   return "other";
 }
 
-export function slugifyVendor(raw) {
+export function slugifyVendor(raw: any) {
   return normalizeVendor(raw);
 }
 
@@ -327,7 +394,7 @@ const CATEGORY_BOARD = {
 
 export { CATEGORY_BOARD };
 
-export function normalizeAiModel(raw) {
+export function normalizeAiModel(raw: any) {
   if (!raw || typeof raw !== "object") {
 return {
     id: "",
@@ -380,7 +447,7 @@ const sources = raw.sources && typeof raw.sources === "object"
   };
 }
 
-export function normalizeBoardResult(res) {
+export function normalizeBoardResult(res: any) {
   if (!res || typeof res !== "object") {
     return {
       ok: false,
@@ -421,7 +488,7 @@ export function normalizeBoardResult(res) {
     count: typeof res.count === "number" ? res.count : items.length,
     error: typeof res.error === "string" ? res.error : null,
     errors: Array.isArray(res.errors)
-      ? res.errors.filter((e) => e && typeof e === "object")
+      ? res.errors.filter((e: any) => e && typeof e === "object")
       : [],
   };
 }

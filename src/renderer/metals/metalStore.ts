@@ -61,7 +61,7 @@ export async function initMetalStore() {
   try {
     const hist = await window.metalsApi.getHistory();
     if (hist && hist.historyMap) historyMap.value = hist.historyMap;
-  } catch (err) {
+  } catch (err: any) {
     console.warn('[metals] getHistory failed:', err && err.message);
   }
 
@@ -76,7 +76,7 @@ export async function initMetalStore() {
       // 串行 fetchNow 内部已经等 backfill 完成, 直接拿 response 里的 historyMap
       // 同步到 signal, 避免 "quote 出了但 30 天走势还在加载中" 的渲染竞态.
       if (r && r.historyMap) historyMap.value = r.historyMap;
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[metals] cold-start fetchNow failed:', err instanceof Error ? err.message : String(err));
     }
   }
@@ -130,7 +130,7 @@ export async function refreshNow() {
   }
 }
 
-export async function updateConfig(patch) {
+export async function updateConfig(patch: any) {
   if (!window.metalsApi) return;
   const next = await window.metalsApi.updateConfig(patch);
   config.value = next;

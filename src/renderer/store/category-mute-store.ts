@@ -33,7 +33,7 @@ export function getLocalTier(lastMs: number | null | undefined, now?: number): "
   return "cold";
 }
 
-export async function setMute(name, durationSec) {
+export async function setMute(name: any, durationSec: any) {
   if (!name || typeof name !== "string")
     return { ok: false, reason: "invalid_name" };
   if (
@@ -54,7 +54,7 @@ export async function setMute(name, durationSec) {
   return { ok: false, reason: (r && r.reason) || "threw" };
 }
 
-export async function clearMute(name) {
+export async function clearMute(name: any) {
   if (!name || typeof name !== "string")
     return { ok: false, reason: "invalid_name" };
   const { api } = await import("../api.ts");
@@ -107,19 +107,19 @@ export async function refreshLastOpened() {
   }
 }
 
-export function setActiveCategory(id) {
+export function setActiveCategory(id: any) {
   if (typeof id !== "string" || id.length === 0) {
     log.warn("setActiveCategory: id must be non-empty string, got", id);
     return;
   }
   activeCategory.value = id;
-  import("../api.ts").then(({ api }) => {
+  import("../api.ts").then(({ api }: any) => {
     if (api && typeof api.saveActiveCategory === "function") {
       const p = api.saveActiveCategory(id);
       if (p && typeof p.then === "function") {
         p.then(
           () => {},
-          (err) => {
+          (err: any) => {
             log.warn("saveActiveCategory failed:", err && err.message);
           },
         );

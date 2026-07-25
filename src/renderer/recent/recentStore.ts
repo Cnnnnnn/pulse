@@ -31,7 +31,7 @@ export async function loadRecent() {
   );
 }
 
-export async function pushRecent(entry) {
+export async function pushRecent(entry: any) {
   const push = requireApiMethod("recentPush");
   if (!push) return false;
   return wrapIpc(
@@ -54,7 +54,7 @@ export function toggleRecentOpen() {
 export function installRecentListener() {
   const api = getApi();
   if (!api || typeof api.onRecentUpdated !== "function") return;
-  api.onRecentUpdated(({ entries }) => {
+  api.onRecentUpdated(({ entries }: any) => {
     if (Array.isArray(entries)) {
       recent.value = entries;
       recentLoaded.value = true;

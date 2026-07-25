@@ -6,7 +6,7 @@
 import { signal } from "@preact/signals";
 
 export const diagnosticsDrawerOpen = signal(false);
-export function openDiagnosticsDrawer(open = true) {
+export function openDiagnosticsDrawer(open: any = 0) {
   diagnosticsDrawerOpen.value = Boolean(open);
 }
 export function toggleDiagnosticsDrawer() {

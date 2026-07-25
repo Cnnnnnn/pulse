@@ -31,7 +31,7 @@ export const DEFAULT_RARITY_TIERS = [
  * @param {any} raw
  * @returns {{id:string,name:string,weight:number,color:string}|null}
  */
-export function normalizeRarityTier(raw) {
+export function normalizeRarityTier(raw: any) {
   if (!raw || typeof raw !== "object") return null;
   const id = typeof raw.id === "string" && raw.id ? raw.id : null;
   if (!id) return null;
@@ -48,8 +48,8 @@ export function normalizeRarityTier(raw) {
  * @param {Array<{id:string,weight:number,name:string,color:string}>} tiers
  * @returns {Array<{id:string,weight:number,name:string,color:string}>}
  */
-export function sortByWeight(tiers) {
-  return [...(tiers || [])].sort((a, b) => b.weight - a.weight);
+export function sortByWeight(tiers: any) {
+  return [...(tiers || [])].sort((a: any, b: any) => b.weight - a.weight);
 }
 
 /**
@@ -58,8 +58,8 @@ export function sortByWeight(tiers) {
  * @param {string|null} rarityId
  * @returns {string}
  */
-export function tierColorOf(tiers, rarityId) {
+export function tierColorOf(tiers: any, rarityId: any) {
   if (!rarityId) return "var(--text-secondary)";
-  const t = (tiers || []).find((x) => x.id === rarityId);
+  const t = (tiers || []).find((x: any) => x.id === rarityId);
   return t ? t.color : "var(--text-secondary)";
 }

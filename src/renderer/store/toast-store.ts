@@ -24,7 +24,7 @@ export function showToast(message: string, type: string = "info", ms: number = 5
 }
 
 export function dismissToast(id: string) {
-  toast.value = toast.value.filter((t) => t.id !== id);
+  toast.value = toast.value.filter((t: any) => t.id !== id);
 }
 
 export function clearToasts() {

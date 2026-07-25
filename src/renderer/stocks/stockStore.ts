@@ -89,7 +89,7 @@ export function stopRefreshTimer() {
 // ── mutations (renderer-side) ──
 
 /** 选中预设策略: 用 buildCriteria 填充条件区 */
-export function applyStrategy(id) {
+export function applyStrategy(id: any) {
   const c = buildCriteria(id);
   if (!c) return;
   criteria.value = c;
@@ -97,12 +97,12 @@ export function applyStrategy(id) {
 }
 
 /** 手动改条件 → 切 custom (所有 chip 取消高亮) */
-export function setCriteria(patch) {
+export function setCriteria(patch: any) {
   criteria.value = { ...criteria.value, ...patch };
   activeStrategy.value = "custom";
 }
 
-export function setSort(key) {
+export function setSort(key: any) {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
   } else {
@@ -145,7 +145,7 @@ export function closeAdvise() {
  * 请求 AI 推荐. 调 main 进程 stocks:ai-advise, 更新 aiAdvise signal.
  * ponytail: 不重打 IPC 的 criteria 已经在 store 里, 直接传 snapshot 给 main.
  */
-export async function requestAiAdvise(api, payload) {
+export async function requestAiAdvise(api: any, payload: any) {
   if (!api || !api.stocksAiAdvise) {
     aiAdvise.value = {
       status: "error",
@@ -185,7 +185,7 @@ export async function requestAiAdvise(api, payload) {
         error: (r && r.error) || null,
       };
     }
-  } catch (e) {
+  } catch (e: any) {
     aiAdvise.value = {
       status: "error",
       result: null,
@@ -222,7 +222,7 @@ export function applyAiAdvise() {
 
 // ── async actions (走 IPC) ──
 
-export async function runScreen(api) {
+export async function runScreen(api: any) {
   loading.value = true;
   error.value = null;
   try {
@@ -237,7 +237,7 @@ export async function runScreen(api) {
       error.value = (r && r.error) || "筛选失败";
       results.value = [];
     }
-  } catch (e) {
+  } catch (e: any) {
     log.warn("runScreen failed:", e && e.message);
     error.value = e && e.message ? e.message : String(e);
     results.value = [];
@@ -251,7 +251,7 @@ export async function runScreen(api) {
  *   失败静默 (只 log.warn), 不重置 results. 给 60s 自动 refresh 用.
  *   等价于"refresh 按钮但默默按了一次".
  */
-export async function runScreenSilent(api) {
+export async function runScreenSilent(api: any) {
   if (!api || !api.stocksScreen) return;
   try {
     const r = await api.stocksScreen({
@@ -262,7 +262,7 @@ export async function runScreenSilent(api) {
       results.value = r.results;
       fetchedAt.value = r.fetchedAt || Date.now();
     }
-  } catch (e) {
+  } catch (e: any) {
     log.warn("silent refresh failed:", e && e.message);
     // 静默 — 不动 results, 不报错
   }

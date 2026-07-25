@@ -18,7 +18,9 @@ const ELO_MAX = 1700;
  */
 export function ArenaBoardBars({ model }) {
   const m = model || {};
+  // ponytail: Agent 榜分数不是 ELO（~12 量级 vs ELO 1000-1700），放进跨 board ELO 迷你条会失真，跳过。
   const present = ARENA_BOARD_KEYS.map((k) => {
+    if (k === "agent") return null;
     const meta = ARENA_BOARDS[k];
     const slice = m.arena && m.arena[meta.key];
     return slice && typeof slice.score === "number" ? { k, meta, slice } : null;

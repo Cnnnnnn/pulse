@@ -20,7 +20,7 @@ const PROMPT_LABELS = {
   daily_digest_summary: "每日早报摘要",
 };
 
-export function promptLabel(key) {
+export function promptLabel(key: any) {
   return PROMPT_LABELS[key] || key;
 }
 
@@ -36,7 +36,7 @@ export async function loadAiPrompts() {
   }
 }
 
-export async function saveAiPrompts(prompts) {
+export async function saveAiPrompts(prompts: any) {
   if (!api || typeof api.aiPromptsSave !== "function") return { ok: false };
   aiPromptsSaving.value = true;
   try {
@@ -52,7 +52,7 @@ export async function saveAiPrompts(prompts) {
   }
 }
 
-export async function resetAiPrompt(key) {
+export async function resetAiPrompt(key: any) {
   if (!api || typeof api.aiPromptsReset !== "function") return { ok: false };
   try {
     const r = await api.aiPromptsReset(key);
