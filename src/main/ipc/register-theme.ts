@@ -18,7 +18,7 @@
 
 import type { IpcMain, NativeTheme } from "electron";
 const { ipcMain, nativeTheme }: { ipcMain: IpcMain; nativeTheme: NativeTheme } = require("electron");
-const { mainLog } = require("../log.ts");
+import { mainLog } from "../log";
 
 const VALID = ["system", "light", "dark"];
 let lastThemeMode = "system"; // 主进程内存, 重启时重置为 system.
@@ -29,7 +29,7 @@ function resolveTheme(mode: any) {
   return mode === "dark" ? "dark" : "light";
 }
 
-function registerThemeHandlers(ctx: any) {
+export function registerThemeHandlers(ctx: any) {
   const { sendToRenderer } = ctx;
 
   // 监听系统外观变化: 'system' 模式下同步给 renderer (tray icon 已经在 install() 监听了).
@@ -50,7 +50,7 @@ function registerThemeHandlers(ctx: any) {
     return { mode: lastThemeMode, resolved: resolveTheme(lastThemeMode) };
   });
 
-  ipcMain.handle("theme:set", (_event, mode) => {
+  ipcMain.handle("theme:set", (_event: any, mode: any) => {
     const m = VALID.includes(mode) ? mode : "system";
     lastThemeMode = m;
     mainLog.info(`[theme] main process lastThemeMode = ${m}`);

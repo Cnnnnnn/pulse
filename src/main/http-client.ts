@@ -26,7 +26,7 @@ const http: typeof httpType = require("node:http");
 const https: typeof httpsType = require("node:https");
 const { URL }: typeof urlType = require("node:url");
 
-const { DetectorError, REASONS } = require("../detectors/errors");
+import { DetectorError, REASONS } from "../detectors/errors";
 
 type HttpResponse = import("../shared/electron/http-client-adapter").HttpResponse;
 type HttpGetOptions = import("../shared/electron/http-client-adapter").HttpGetOptions;
@@ -65,7 +65,7 @@ const DEFAULT_MAX_BODY_BYTES = 1 * 1024 * 1024;
 const DEFAULT_MAX_RETRIES = 1;
 const DEFAULT_RETRY_DELAY_MS = 3000;
 
-class HttpClient {
+export class HttpClient {
   defaultTimeout: number;
   logger: LoggerLike;
   maxBodyBytes: number;
@@ -168,7 +168,7 @@ class HttpClient {
         try {
           if (this.logger.debug) this.logger.debug(`http retry ${attempt + 1}/${this.maxRetries} after ${lastResult.error}`);
         } catch { /* noop */ }
-        await new Promise<void>((resolve) => setTimeout(resolve, this.retryDelayMs));
+        await new Promise<void>((resolve: any) => setTimeout(resolve, this.retryDelayMs));
       }
     }
     // 重试用完, 还是网络/timeout 错误, 返回最后一次 result (caller 看到的跟旧行为一致)
@@ -224,7 +224,7 @@ class HttpClient {
 
   _request(rawUrl: string, args: RequestInternal): Promise<HttpResponse> {
     const { method, headers = {}, timeout, body = null, maxBodyBytes = DEFAULT_MAX_BODY_BYTES } = args;
-    return new Promise<HttpResponse>((resolve) => {
+    return new Promise<HttpResponse>((resolve: any) => {
       let parsed: URL;
       try { parsed = new URL(rawUrl); }
       catch { return resolve({ status: 0, body: "", headers: {}, error: "network" }); }
@@ -296,3 +296,5 @@ class HttpClient {
 }
 
 module.exports = { HttpClient };
+// ponytail: 兼容 7a-6 caller `import { HttpClient }`. CJS dual-export 互操作.
+// (Phase 7 7b 删 shim 时再考虑纯 ESM export.)

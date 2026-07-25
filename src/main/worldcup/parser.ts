@@ -213,7 +213,7 @@ export function parseWorldcupTxt(txt: string): any {
       const letter = groupMatch[1].toUpperCase();
       const teamsRaw = groupMatch[2]
         .split(/\s{2,}|\s+\|\s+/)
-        .map((s) => s.trim())
+        .map((s: any) => s.trim())
         .filter(Boolean);
       if (teamsRaw.length > 0) {
         groups.push({ letter, teams: teamsRaw });
@@ -271,7 +271,7 @@ export function parseWorldcupTxt(txt: string): any {
   }
 
   // 按 date 排序
-  matches.sort((a, b) => {
+  matches.sort((a: any, b: any) => {
     if (a.date !== b.date) return a.date < b.date ? -1 : 1;
     return (a.time || "").localeCompare(b.time || "");
   });
@@ -293,7 +293,7 @@ export function groupMatchesByDate(matches: any[]): any[] {
     }
     map.get(m.date)!.matches.push(m);
   }
-  return Array.from(map.values()).sort((a, b) => (a.date < b.date ? -1 : 1));
+  return Array.from(map.values()).sort((a: any, b: any) => (a.date < b.date ? -1 : 1));
 }
 
 module.exports = {

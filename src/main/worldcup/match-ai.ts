@@ -5,17 +5,17 @@
  */
 "use strict";
 
-const { chatCompletion } = require("../../ai/shared-llm");
-const { resolvePrompt } = require("../../ai/prompt-registry");
-const { sanitizeLlmOutput } = require("../../ai/sanitize-llm-output");
-const stateStore = require("../state-store.ts");
-const { matchKey } = require("./match-key.ts");
-const { mainLog } = require("../log.ts");
+import { chatCompletion } from "../../ai/shared-llm";
+import { resolvePrompt } from "../../ai/prompt-registry";
+import { sanitizeLlmOutput } from "../../ai/sanitize-llm-output";
+import * as stateStore from "../state-store";
+import { matchKey } from "./match-key";
+import { mainLog } from "../log";
 
 function _formatScorers(scorers: any, team1: any, team2: any): string {
   if (!Array.isArray(scorers) || scorers.length === 0) return "暂无进球记录";
   return scorers
-    .map((s) => {
+    .map((s: any) => {
       const team = s.teamSide === "team1" ? team1 : team2;
       const tags: string[] = [];
       if (s.ownGoal) tags.push("乌龙");

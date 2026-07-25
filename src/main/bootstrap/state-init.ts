@@ -15,7 +15,7 @@
 //          rewrite 依赖 path 保留裸名).
 import type {} from "electron";
 
-const stateStore = require("../state-store.ts");
+import * as stateStore from "../state-store";
 
 let _initialized = false;
 
@@ -24,12 +24,12 @@ let _initialized = false;
  * Runs loadOrRecover eagerly so the side-effect (backup + event record)
  * happens at startup, even if the renderer never connects.
  */
-function initStateRecovery() {
+export function initStateRecovery() {
   if (_initialized) return;
   _initialized = true;
   try {
     stateStore.loadOrRecover();
-  } catch (err) {
+  } catch (err: any) {
     // Best-effort: recovery init failure must not block app startup.
     // state-store.loadOrRecover only rethrows non-corruption errors;
     // log them but let the app continue with whatever state is available.
@@ -43,7 +43,7 @@ function initStateRecovery() {
  * Returns the event (and clears it) or null. Caller is responsible for
  * pushing it to the renderer via sendToRenderer.
  */
-function takeRecoveryEvent() {
+export function takeRecoveryEvent() {
   return stateStore.getLastRecoveryEvent();
 }
 

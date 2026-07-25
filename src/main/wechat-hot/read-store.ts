@@ -5,9 +5,9 @@
  */
 "use strict";
 
-const fs = require("fs");
-const stateStore = require("../state-store.ts");
-const { mainLog } = require("../log.ts");
+import * as fs from "fs";
+import * as stateStore from "../state-store";
+import { mainLog } from "../log";
 
 function _readStateRaw(statePath: any): any {
     const p = statePath || stateStore.defaultPath();
@@ -59,7 +59,7 @@ export function markItemRead(title: string, statePath?: any): any {
                 readIds: { ...prevReadIds, [title]: Date.now() },
             };
         }, statePath);
-        return { ok: true, readIds: result && result.wechat_hot && result.wechat_hot.readIds };
+        return { ok: true, readIds: (result as any) && (result as any).wechat_hot && (result as any).wechat_hot.readIds };
     } catch (err: any) {
         mainLog.warn("[wechat-hot/read-store] markItemRead failed", {
             msg: err && err.message,

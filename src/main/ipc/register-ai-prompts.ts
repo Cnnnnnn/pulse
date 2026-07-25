@@ -19,8 +19,8 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const stateStore = require("../state-store.ts");
-const { DEFAULT_PROMPTS, PROMPT_KEYS } = require("../../ai/prompt-registry");
+import * as stateStore from "../state-store";
+import { DEFAULT_PROMPTS, PROMPT_KEYS } from "../../ai/prompt-registry";
 
 function mergePromptForLoad(key: any, user: any) {
   const def = DEFAULT_PROMPTS[key];
@@ -38,7 +38,7 @@ function mergePromptForLoad(key: any, user: any) {
   };
 }
 
-function registerAiPromptsHandlers(ctx: any) {
+export function registerAiPromptsHandlers(ctx: any) {
   const { safeHandle, sendToRenderer } = ctx;
   if (typeof safeHandle !== "function") return;
 
@@ -65,7 +65,7 @@ function registerAiPromptsHandlers(ctx: any) {
         }
       }
       return { ok: true };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -86,7 +86,7 @@ function registerAiPromptsHandlers(ctx: any) {
         }
       }
       return { ok: true, key };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });

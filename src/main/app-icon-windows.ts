@@ -13,7 +13,7 @@
  *   - 失败 → null (不抛), 允许下次重试 (用户装新 app 后探测)
  */
 
-const { app } = require("electron");
+import { app } from "electron";
 
 const _iconCache = new Map<string, string>();
 const _inflight = new Map<string, Promise<string | null>>();

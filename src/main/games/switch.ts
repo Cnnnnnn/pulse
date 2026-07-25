@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { toGameDeal, BROWSER_UA_SAFARI: UA } = require("./normalize.ts");
-const { logFetchError } = require("./log.ts");
+import { toGameDeal, BROWSER_UA_SAFARI as UA } from "./normalize";
+import { logFetchError } from "./log";
 
 const ALGOLIA_APP_ID = "U3B6GR4UA3";
 const ALGOLIA_API_KEY = "a29c6927638bfd8cee23993e51e721c9";
@@ -103,7 +103,7 @@ export async function fetchSwitchDeals(opts: any = {}): Promise<any[]> {
       })
       .filter((it: any) => it.normalPrice > 0 || it.isFree);
     return items;
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("switch:algolia", err);
     return [];
   }

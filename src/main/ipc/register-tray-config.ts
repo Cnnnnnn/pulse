@@ -25,11 +25,11 @@ function errMsg(err: unknown): string {
 }
 
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
-const stateStore = require("../state-store.ts");
-const { normalizePrefs } = require("../tray-menu-prefs.ts");
-const { mainLog } = require("../log.ts");
+import * as stateStore from "../state-store";
+import { normalizePrefs } from "../tray-menu-prefs";
+import { mainLog } from "../log";
 
-function registerTrayConfigHandlers(ctx: any) {
+export function registerTrayConfigHandlers(ctx: any) {
   const { getWindow, safeHandle } = ctx;
 
   ipcMain.on("tray:open-config", () => {
@@ -38,12 +38,12 @@ function registerTrayConfigHandlers(ctx: any) {
       try {
         w.show();
         w.focus();
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn("[ipc] tray:open-config show/ focus threw", { msg: errMsg(err) });
       }
       try {
         w.webContents.send("tray:open-config");
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn("[ipc] tray:open-config send threw", { msg: errMsg(err) });
       }
     }
@@ -54,7 +54,7 @@ function registerTrayConfigHandlers(ctx: any) {
     if (w && !w.isDestroyed()) {
       try {
         w.webContents.send("tray:close-config");
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn("[ipc] tray:close-config send threw", { msg: errMsg(err) });
       }
     }
@@ -63,7 +63,7 @@ function registerTrayConfigHandlers(ctx: any) {
   ipcMain.handle("tray:get-prefs", () => {
     try {
       return { ok: true, prefs: stateStore.loadTrayMenuPrefs() };
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn("[ipc] tray:get-prefs threw", { msg: errMsg(err) });
       const { DEFAULT_PREFS } = require("../tray-menu-prefs.ts");
       return { ok: false, reason: "threw", prefs: DEFAULT_PREFS, error: errMsg(err) };
@@ -78,7 +78,7 @@ function registerTrayConfigHandlers(ctx: any) {
       let saved;
       try {
         saved = stateStore.saveTrayMenuPrefs(normalized);
-      } catch (err) {
+      } catch (err: any) {
         return { ok: false, reason: "write_failed", error: errMsg(err) };
       }
       // 通知 tray 立刻 rebuild (main 端单一真相,renderer 不持有 prefs state).
@@ -88,7 +88,7 @@ function registerTrayConfigHandlers(ctx: any) {
         if (trayMgr && typeof trayMgr.setTrayMenuPrefs === "function") {
           trayMgr.setTrayMenuPrefs(saved.tray_menu_prefs || normalized);
         }
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn("[ipc] tray:save-prefs trayMgr update threw", { msg: errMsg(err) });
       }
       return { ok: true, prefs: saved.tray_menu_prefs || normalized };

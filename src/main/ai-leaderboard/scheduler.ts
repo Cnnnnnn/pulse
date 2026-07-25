@@ -7,10 +7,10 @@
  * 与 bootstrap/schedulers.js 的其它调度器同构；由 main/index.js 在启动期注册。
  */
 
-const { setManagedInterval, clearManaged } = require("../timer-registry.ts");
-const { getLeaderboard } = require("./aggregator.ts");
-const { pruneOldCache } = require("./history.ts");
-const { mainLog } = require("../log.ts");
+import { setManagedInterval, clearManaged } from "../timer-registry";
+import { getLeaderboard } from "./aggregator";
+import { pruneOldCache } from "./history";
+import { mainLog } from "../log";
 
 export const DAILY_MS = 24 * 60 * 60 * 1000;
 
@@ -32,7 +32,7 @@ export function registerLeaderboardScheduler(deps: any = {}): any {
       await getLeaderboard({ force: false });
       pruneOldCache(30);
       mainLog.info("[ai-leaderboard] daily sync ok");
-    } catch (err) {
+    } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
       mainLog.warn(`[ai-leaderboard] daily sync failed: ${msg}`);
     }
@@ -61,7 +61,7 @@ export function registerLeaderboardScheduler(deps: any = {}): any {
       mainLog.info(
         `[ai-leaderboard] scheduler started (every ${Math.round(intervalMs / 60000)}min)`,
       );
-    } catch (err) {
+    } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
       mainLog.warn(`[ai-leaderboard] scheduler init failed: ${msg}`);
     }

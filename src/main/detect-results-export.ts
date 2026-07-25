@@ -7,9 +7,9 @@
  */
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 /** CSV 列 — 跟 AppRow 展示字段对齐, 不含 trace/changelog 等大字段 */
 const CSV_COLUMNS = [
@@ -79,7 +79,7 @@ export function csvEscape(val: any): string {
 export function toCsv(apps: any[]): string {
   const lines = [CSV_COLUMNS.join(",")];
   for (const row of apps || []) {
-    lines.push(CSV_COLUMNS.map((col) => csvEscape(row[col])).join(","));
+    lines.push(CSV_COLUMNS.map((col: any) => csvEscape(row[col])).join(","));
   }
   return lines.join("\n") + "\n";
 }

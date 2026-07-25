@@ -10,8 +10,8 @@ const {
   fixtureLookupKey,
   gameLookupKey,
 } = require("./team-aliases.ts");
-const { isMatchStarted } = require("./match-key.ts");
-const { mainLog } = require("../log.ts");
+import { isMatchStarted } from "./match-key";
+import { mainLog } from "../log";
 
 const GAMES_URL = "https://worldcup26.ir/get/games";
 

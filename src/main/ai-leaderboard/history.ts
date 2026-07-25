@@ -8,10 +8,10 @@
  * 返回 Map<modelId, {board: rank}> 供 aggregator 做 diff。
  */
 
-const fs = require("fs");
-const path = require("path");
-const { cacheKey, readCache, getCacheDir } = require("./cache.ts");
-const { slugifyModel, normalizeVendor } = require("./types.ts");
+import * as fs from "fs";
+import * as path from "path";
+import { cacheKey, readCache, getCacheDir } from "./cache";
+import { slugifyModel, normalizeVendor } from "./types";
 
 /**
  * 获取最近一次历史 Arena 排名快照。

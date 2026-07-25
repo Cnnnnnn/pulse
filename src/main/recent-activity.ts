@@ -18,9 +18,9 @@
  */
 "use strict";
 
-const fs = require("fs");
-const stateStore = require("./state-store.ts");
-const { mainLog } = require("./log.ts");
+import * as fs from "fs";
+import * as stateStore from "./state-store";
+import { mainLog } from "./log";
 
 const VALID_KINDS = [
   "app-upgrade",

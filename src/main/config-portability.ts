@@ -59,7 +59,7 @@ export function parseConfigFile(content: string): ParseResult {
     return { ok: false, reason: "bad_schema" };
   }
   const fieldKeys = Object.keys(parsed.fields);
-  const unknownFields = fieldKeys.filter((k) => !CONFIG_FIELDS.includes(k as any));
+  const unknownFields = fieldKeys.filter((k: any) => !CONFIG_FIELDS.includes(k as any));
   if (unknownFields.length > 0) {
     return { ok: false, reason: "unknown_fields", unknownFields };
   }
@@ -77,7 +77,7 @@ export type DiffEntry = {
 export function computeDiff(currentState: any, incomingFields: any): DiffEntry[] {
   const cur = currentState || {};
   const inc = incomingFields || {};
-  return CONFIG_FIELDS.map((f) => {
+  return CONFIG_FIELDS.map((f: any) => {
     const curVal = cur[f];
     const incVal = inc[f];
     const curCount = countOf(curVal);

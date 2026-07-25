@@ -10,21 +10,21 @@ function errMsg(err: unknown): string {
 }
 
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
-const { runCheckQueued } = require("../check-runner.ts");
-const { buildRunCheckDeps } = require("../run-check-deps.ts");
-const { runBulkUpgrade } = require("../bulk-upgrade.ts");
-const stateStore = require("../state-store.ts");
-const { aggregate } = require("../digest/aggregate.ts");
-const platform = require("../../platform/index.ts");
-const { mainLog } = require("../log.ts");
-const lastOpened = require("../last-opened.ts");
-const recentActivity = require("../recent-activity.ts");
-const { resolveAppBundlePath } = require("../../utils/app-paths");
+import { runCheckQueued } from "../check-runner";
+import { buildRunCheckDeps } from "../run-check-deps";
+import { runBulkUpgrade } from "../bulk-upgrade";
+import * as stateStore from "../state-store";
+import { aggregate } from "../digest/aggregate";
+import * as platform from "../../platform/index";
+import { mainLog } from "../log";
+import * as lastOpened from "../last-opened";
+import * as recentActivity from "../recent-activity";
+import { resolveAppBundlePath } from "../../utils/app-paths";
 
 let bulkUpgradeCtrl: any = null;
 let bulkUpgradeRunning = false;
 
-function registerCoreHandlers(ctx: any) {
+export function registerCoreHandlers(ctx: any) {
   const {
     getConfig,
     pool,
@@ -82,7 +82,7 @@ function registerCoreHandlers(ctx: any) {
         });
       };
       checkWatchlistUpdates({ results: r, sendNotification });
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn(
         `[ipc] check-updates watchlist hook failed: ${errMsg(err)}`,
       );
@@ -90,7 +90,7 @@ function registerCoreHandlers(ctx: any) {
     return r;
   });
 
-  ipcMain.handle("brew-upgrade", async (_event, caskName) => {
+  ipcMain.handle("brew-upgrade", async (_event: any, caskName: any) => {
     if (!caskName) return { success: false, output: "no cask" };
     const r = await pool.enqueue({
       type: "brew-upgrade",
@@ -110,7 +110,7 @@ function registerCoreHandlers(ctx: any) {
     return r;
   });
 
-  ipcMain.handle("bulk-upgrade:start", async (_event, items) => {
+  ipcMain.handle("bulk-upgrade:start", async (_event: any, items: any) => {
     if (bulkUpgradeRunning) {
       return { ok: false, reason: "already running" };
     }
@@ -131,7 +131,7 @@ function registerCoreHandlers(ctx: any) {
       .then((summary: any) => {
         try {
           for (const s of summary.succeeded || []) {
-            const item = items.find((i) => i.id === s.id);
+            const item = items.find((i: any) => i.id === s.id);
             if (item && item.name) {
               recentActivity.push({
                 kind: "app-upgrade",
@@ -175,14 +175,14 @@ function registerCoreHandlers(ctx: any) {
     return { ok: true };
   });
 
-  ipcMain.handle("get-app-icon", async (_event, bundlePath) => {
+  ipcMain.handle("get-app-icon", async (_event: any, bundlePath: any) => {
     try {
       const dataUrl = await platform.getAppIcon(bundlePath);
       if (!dataUrl) return { error: "not_found" };
       if (typeof dataUrl !== "string" || dataUrl.length < 30)
         return { error: "invalid" };
       return { dataUrl };
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn("[ipc] get-app-icon threw", {
         bundle: bundlePath,
         msg: errMsg(err),
@@ -217,7 +217,7 @@ function registerCoreHandlers(ctx: any) {
   ipcMain.handle("get-mutes", () => {
     try {
       return { mutes: stateStore.getMutes() };
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn("[ipc] get-mutes threw", { msg: errMsg(err) });
       return { mutes: {} };
     }
@@ -284,7 +284,7 @@ function registerCoreHandlers(ctx: any) {
   ipcMain.handle("get-last-opened", () => {
     try {
       return { lastOpened: stateStore.loadLastOpened() };
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn("[ipc] get-last-opened threw", { msg: errMsg(err) });
       return { lastOpened: {} };
     }
@@ -305,7 +305,7 @@ function registerCoreHandlers(ctx: any) {
             try {
               const r = await lastOpened.refreshOne(bundlePath);
               next[a.name] = { ms: r.ms, source: r.source };
-            } catch (err) {
+            } catch (err: any) {
               mainLog.warn("[ipc] refresh-last-opened item failed", {
                 name: a.name,
                 msg: errMsg(err),
@@ -316,7 +316,7 @@ function registerCoreHandlers(ctx: any) {
         );
         stateStore.saveLastOpened(next);
         sendToRenderer("last-opened-updated", { lastOpened: next });
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn("[ipc] refresh-last-opened batch failed", {
           msg: errMsg(err),
         });
@@ -328,7 +328,7 @@ function registerCoreHandlers(ctx: any) {
   ipcMain.handle("get-active-category", () => {
     try {
       return { activeCategory: stateStore.loadActiveCategory() };
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn("[ipc] get-active-category threw", {
         msg: errMsg(err),
       });
@@ -363,7 +363,7 @@ function registerCoreHandlers(ctx: any) {
   ipcMain.handle("get-last-active-nav", () => {
     try {
       return { lastActiveNav: stateStore.loadLastActiveNav() };
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn("[ipc] get-last-active-nav threw", {
         msg: errMsg(err),
       });
@@ -384,7 +384,7 @@ function registerCoreHandlers(ctx: any) {
       try {
         const next = stateStore.saveLastActiveNav(key);
         return { ok: true, lastActiveNav: next.last_active_nav };
-      } catch (err) {
+      } catch (err: any) {
         if (err instanceof TypeError || (err instanceof Error && err.name === "TypeError")) {
           return {
             ok: false,
@@ -411,7 +411,7 @@ function registerCoreHandlers(ctx: any) {
       const state = stateStore.load() || {};
       const result = aggregate(state, { now: new Date() });
       return { ok: true, ...result };
-    } catch (err) {
+    } catch (err: any) {
       return {
         ok: false,
         reason: "threw",
@@ -432,7 +432,7 @@ function registerCoreHandlers(ctx: any) {
         time: typeof cfg.time === "string" ? cfg.time : undefined,
       });
       return { ok: true };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -455,7 +455,7 @@ function registerCoreHandlers(ctx: any) {
         entries: r.entries || [],
         stats: r.stats || { total: 0, byLevel: {}, skipped: 0 },
       };
-    } catch (err) {
+    } catch (err: any) {
       return {
         ok: false,
         reason: "threw",
@@ -480,7 +480,7 @@ function registerCoreHandlers(ctx: any) {
         ok: true,
         text: (r.entries || []).map((e: any) => JSON.stringify(e)).join("\n"),
       }));
-    } catch (err) {
+    } catch (err: any) {
       return Promise.resolve({
         ok: false,
         reason: "threw",
@@ -506,7 +506,7 @@ function registerCoreHandlers(ctx: any) {
       const metrics = diagnostics.getMetricsSummary();
       const r = await bundleDiagnostics({
         logsDir: errLogDir,
-        extraLogsDirs: [mainLogDir].filter((d) => d && d !== errLogDir),
+        extraLogsDirs: [mainLogDir].filter((d: any) => d && d !== errLogDir),
         aggregator: inst && inst.aggregator,
         extras: { startup, metrics },
         // outputDir 默认 ~/Desktop (bundleDiagnostics 内置)
@@ -518,7 +518,7 @@ function registerCoreHandlers(ctx: any) {
         sizeBytes: r.sizeBytes,
         fileCount: r.fileCount,
       };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -561,7 +561,7 @@ function registerCoreHandlers(ctx: any) {
         stats,
         sinceMs,
       };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -571,7 +571,7 @@ function registerCoreHandlers(ctx: any) {
     try {
       const { getSamples } = require("../diagnostics.ts");
       return { ok: true, samples: getSamples() };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -580,7 +580,7 @@ function registerCoreHandlers(ctx: any) {
   safeHandle("watchlist:list", () => {
     try {
       return { ok: true, items: stateStore.loadWatchlist() };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "load_failed", error: errMsg(err) };
     }
   });
@@ -613,7 +613,7 @@ function registerCoreHandlers(ctx: any) {
         return { ok: false, reason: "keyword_too_long" };
       }
       if (type === "metal") {
-        const { METAL_IDS } = require("../../metals/metal-config");
+        const { METAL_IDS } = require("../../metals/metal-config.js");
         if (!METAL_IDS.includes(ref)) {
           return { ok: false, reason: "invalid_metal_id" };
         }
@@ -630,7 +630,7 @@ function registerCoreHandlers(ctx: any) {
       const next = [...list, entry];
       stateStore.saveWatchlist(next);
       return { ok: true, items: next };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
   });
@@ -658,7 +658,7 @@ function registerCoreHandlers(ctx: any) {
       const next = list.filter((w: any) => stateStore.watchlistItemKey(w) !== key);
       stateStore.saveWatchlist(next);
       return { ok: true, items: next };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
   });
@@ -676,7 +676,7 @@ function registerCoreHandlers(ctx: any) {
       return inst.aggregator
         .cleanup()
         .then((removed: any) => ({ ok: true, removed }));
-    } catch (err) {
+    } catch (err: any) {
       return Promise.resolve({
         ok: false,
         reason: "threw",
@@ -695,7 +695,7 @@ function registerCoreHandlers(ctx: any) {
       if (!dir) return { ok: false, reason: "no_dir" };
       shell.openPath(dir);
       return { ok: true };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -714,7 +714,7 @@ function registerCoreHandlers(ctx: any) {
           context: { ...(entry.context || {}), kind: "renderer-report" },
         })
         .then((e: any) => ({ ok: true, id: e.id }));
-    } catch (err) {
+    } catch (err: any) {
       return Promise.resolve({
         ok: false,
         reason: "threw",
@@ -751,7 +751,7 @@ function registerCoreHandlers(ctx: any) {
         rowCount: r.rowCount,
         format,
       };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });

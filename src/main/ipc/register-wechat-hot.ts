@@ -19,16 +19,16 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const { fetchWechatHot } = require("../wechat-hot/fetcher.ts");
-const { createWechatHotCache } = require("../wechat-hot/cache.ts");
-const { loadReadIds, markItemRead } = require("../wechat-hot/read-store.ts");
-const { HttpClient } = require("../http-client.ts");
-const { mainLog } = require("../log.ts");
+import { fetchWechatHot } from "../wechat-hot/fetcher";
+import { createWechatHotCache } from "../wechat-hot/cache";
+import { loadReadIds, markItemRead } from "../wechat-hot/read-store";
+import { HttpClient } from "../http-client";
+import { mainLog } from "../log";
 
-const UPDATED_CHANNEL = "wechat-hot:updated";
+export const UPDATED_CHANNEL = "wechat-hot:updated";
 const TIMEOUT_MS = 10000;
 
-function registerWechatHotHandlers(ctx: any) {
+export function registerWechatHotHandlers(ctx: any) {
   const { safeHandle, sendToRenderer, getConfig } = ctx;
   if (typeof safeHandle !== "function") return;
 
@@ -42,7 +42,7 @@ function registerWechatHotHandlers(ctx: any) {
         headlines: items || [],
         sendNotification: makeWatchlistSendNotification(getConfig),
       });
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn(
         `[wechat-hot] watchlist keyword check failed: ${errMsg(err)}`,
       );
@@ -66,7 +66,7 @@ function registerWechatHotHandlers(ctx: any) {
   safeHandle("wechat-hot:refresh", async () => {
     try {
       return await cache.refresh();
-    } catch (err) {
+    } catch (err: any) {
       const reason = err && typeof err === "object" && "reason" in err ? (err as any).reason : null;
       mainLog.warn(`[ipc] wechat-hot:refresh failed: reason=${reason}, msg=${errMsg(err)}`);
       return { ok: false, reason: reason || "threw" };

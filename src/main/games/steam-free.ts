@@ -5,7 +5,7 @@
  */
 "use strict";
 
-const { fetchJson, toGameDeal } = require("./normalize.ts");
+import { fetchJson, toGameDeal } from "./normalize";
 
 const GAMERPOWER_URL =
   "https://www.gamerpower.com/api/giveaways?platform=steam&type=game";
@@ -48,13 +48,13 @@ export function requirementsFor(type: string, item: any): string {
 export async function fetchSteamFree(): Promise<any[]> {
   const data = await fetchJson(GAMERPOWER_URL, { timeoutMs: 9000 });
   if (!Array.isArray(data)) return [];
-  return data.filter((item) => {
+  return data.filter((item: any) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return false;
     if (normalizeId(item.id) == null) return false;
     if (typeof item.title !== "string" || !item.title.trim()) return false;
     const claimUrl = item.open_giveaway_url || item.open_giveaway;
     return typeof claimUrl === "string" && Boolean(claimUrl.trim());
-  }).map((item) => {
+  }).map((item: any) => {
     const promotionType = classifySteamPromotion(item);
     return toGameDeal({
       id: `steam-free-${normalizeId(item.id)}`,

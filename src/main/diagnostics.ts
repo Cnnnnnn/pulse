@@ -42,17 +42,17 @@ interface StateStoreShape {
   ): unknown;
 }
 
-const { setManagedInterval } = require("./timer-registry.ts");
+import { setManagedInterval } from "./timer-registry";
 // diagnostics 依赖 state-store (.js, Task 3 才会迁). ponytail: 用 typeof
 // import 推断 .js 模块的类型, 避免对 .js 文件写 .d.ts 双 source.
 const stateStore: StateStoreShape = require("./state-store.ts");
-const { createLogger } = require("./log.ts");
+import { createLogger } from "./log";
 
 const log = createLogger("diagnostics");
 
 // 模块加载即拿 t0 (process.hrtime / performance.now 都行, 用 ms 简单)
-const _t0: number = Date.now();
-const _t0Perf: number = performance.now();
+export const _t0: number = Date.now();
+export const _t0Perf: number = performance.now();
 
 // milestones: { bootstrapDone: ts, rendererReady: ts }
 const _milestones: { bootstrapDone: number | null; rendererReady: number | null } = {
@@ -61,16 +61,16 @@ const _milestones: { bootstrapDone: number | null; rendererReady: number | null 
 };
 
 // 当前 sample buffer: 环式 cap 60
-const SAMPLE_CAP = 60;
+export const SAMPLE_CAP = 60;
 const _samples: MetricsSample[] = [];
 
-let _samplerHandle: { id: number; clear: () => boolean } | null = null;
+let _samplerHandle: { id: number; clear: () => void } | null = null;
 let _previousCpu: { user: number; system: number } | null = null;
 
 /**
  * @param now 注入测试用
  */
-function markBootstrapDone(now: StartupNowFn = Date.now): void {
+export function markBootstrapDone(now: StartupNowFn = Date.now): void {
   if (_milestones.bootstrapDone) return;
   _milestones.bootstrapDone = now();
 }
@@ -78,7 +78,7 @@ function markBootstrapDone(now: StartupNowFn = Date.now): void {
 /**
  * @param now 注入测试用
  */
-function markRendererReady(now: StartupNowFn = Date.now): void {
+export function markRendererReady(now: StartupNowFn = Date.now): void {
   if (_milestones.rendererReady) return;
   _milestones.rendererReady = now();
   // 落盘: 启动样本加一条, cap 20
@@ -88,7 +88,7 @@ function markRendererReady(now: StartupNowFn = Date.now): void {
     samples.unshift({ ts: _milestones.rendererReady, readyMs });
     if (samples.length > 20) samples.length = 20;
     stateStore.saveStartupSamples(samples);
-  } catch (err) {
+  } catch (err: any) {
     const e = err as Error;
     log.warn(`saveStartupSamples failed: ${e && e.message}`);
   }
@@ -97,7 +97,7 @@ function markRendererReady(now: StartupNowFn = Date.now): void {
 /**
  * 取启动里程碑 (ms).
  */
-function getStartup(): StartupSnapshot {
+export function getStartup(): StartupSnapshot {
   const readyMs = _milestones.rendererReady ? _milestones.rendererReady - _t0 : null;
   const bootstrapMs = _milestones.bootstrapDone ? _milestones.bootstrapDone - _t0 : null;
   return {
@@ -140,11 +140,11 @@ function _pushSample(s: MetricsSample): void {
  * 启动 5s 采样器. 重复调幂等.
  * @param intervalMs
  */
-function startMetricsSampler(intervalMs: number = 5000): void {
+export function startMetricsSampler(intervalMs: number = 5000): void {
   if (_samplerHandle) return;
   _pushSample(_takeSample()); // 立即一个点, 不空头
   _samplerHandle = setManagedInterval(() => {
-    try { _pushSample(_takeSample()); } catch (err) {
+    try { _pushSample(_takeSample()); } catch (err: any) {
       const e = err as Error;
       log.warn(`takeSample failed: ${e && e.message}`);
     }
@@ -154,7 +154,7 @@ function startMetricsSampler(intervalMs: number = 5000): void {
 /**
  * 停采样器 (测试 / 退出时).
  */
-function stopMetricsSampler(): void {
+export function stopMetricsSampler(): void {
   if (_samplerHandle) {
     try { _samplerHandle.clear(); } catch { /* noop */ }
     _samplerHandle = null;
@@ -164,7 +164,7 @@ function stopMetricsSampler(): void {
 /**
  * 取最新采样快照. 不复制内部数组 (renderer 自己只读不写).
  */
-function getSamples(): MetricsSample[] {
+export function getSamples(): MetricsSample[] {
   return _samples.slice();
 }
 
@@ -174,7 +174,7 @@ function getSamples(): MetricsSample[] {
  *   peak:   { heapUsed, rss } 期间最大值
  *   count:  当前缓冲长度
  */
-function getMetricsSummary(): MetricsSummary {
+export function getMetricsSummary(): MetricsSummary {
   if (_samples.length === 0) {
     return { latest: null, peak: null, count: 0 };
   }
@@ -192,7 +192,7 @@ function getMetricsSummary(): MetricsSummary {
 }
 
 /** Test-only: 重置所有模块状态. */
-function _resetForTest(): void {
+export function _resetForTest(): void {
   _milestones.bootstrapDone = null;
   _milestones.rendererReady = null;
   _samples.length = 0;

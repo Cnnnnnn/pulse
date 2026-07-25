@@ -12,20 +12,20 @@
  * 保证始终返回 { ok:true, ... BoardResult }（最坏 = sample）。
  */
 
-const { CATEGORY_META, DIMENSION_META, SOURCE, ATTRIBUTION } = require("./types.ts");
-const { mergeModelSlices } = require("./normalize.ts");
-const arenaFetcher = require("./fetcher-arena.ts");
-const aaFetcher = require("./fetcher-aa.ts");
-const openrouterFetcher = require("./fetcher-openrouter.ts");
-const livebenchFetcher = require("./fetcher-livebench.ts");
-const modelsDevFetcher = require("./fetcher-models-dev.ts");
-const huggingfaceFetcher = require("./fetcher-huggingface.ts");
-const { getSampleModels } = require("./sample.ts");
-const { sortModels, filterByVendor, filterBySearch } = require("./ranking.ts");
-const { cacheKey, readCache, readLatestCache, writeCache, isStale } = require("./cache.ts");
-const { acquire, budget } = require("./rate-limiter.ts");
-const { getPreviousArenaRanks, computeRankDelta, getArenaRankSeriesMap } = require("./history.ts");
-const { logFetchError } = require("../games/log.ts");
+import { CATEGORY_META, DIMENSION_META, SOURCE, ATTRIBUTION } from "./types";
+import { mergeModelSlices } from "./normalize";
+import * as arenaFetcher from "./fetcher-arena";
+import * as aaFetcher from "./fetcher-aa";
+import * as openrouterFetcher from "./fetcher-openrouter";
+import * as livebenchFetcher from "./fetcher-livebench";
+import * as modelsDevFetcher from "./fetcher-models-dev";
+import * as huggingfaceFetcher from "./fetcher-huggingface";
+import { getSampleModels } from "./sample";
+import { sortModels, filterByVendor, filterBySearch } from "./ranking";
+import { cacheKey, readCache, readLatestCache, writeCache, isStale } from "./cache";
+import { acquire, budget } from "./rate-limiter";
+import { getPreviousArenaRanks, computeRankDelta, getArenaRankSeriesMap } from "./history";
+import { logFetchError } from "../games/log";
 
 const ARENA_TTL = 24 * 60 * 60 * 1000;
 const AA_TTL = 24 * 60 * 60 * 1000;
@@ -46,13 +46,13 @@ function _resetErrors() {
 
 function _recordError(source: string, err: any) {
   // ponytail: 同 source 在一次 getLeaderboard 调用里只记一次, 避免重复堆叠
-  if (_errors.some((e) => e.source === source)) return;
+  if (_errors.some((e: any) => e.source === source)) return;
   const msg = (err && err.message) || String(err);
   _errors.push({ source, message: msg, ts: new Date().toISOString() });
 }
 
 function _lastErrorFor(source: string): { source: string; message: string; ts: string } | null {
-  return _errors.find((e) => e.source === source) || null;
+  return _errors.find((e: any) => e.source === source) || null;
 }
 
 function _today(): string {
@@ -79,7 +79,7 @@ async function getBoardRaw(fetcher: any, cacheSource: string, cacheBoard: string
   let res: any;
   try {
     res = await fetcher.fetch({});
-  } catch (err) {
+  } catch (err: any) {
     logFetchError(`agg:${cacheSource}`, err);
     _recordError(cacheSource, err);
     res = { ok: false, data: null };
@@ -147,7 +147,9 @@ export async function getLeaderboard(opts: any = {}): Promise<any> {
   // ponytail: 按 caller 传入的 sources 白名单独立拉取. openrouter 作为通用兜底层, 任何 view 都拉 (便宜).
   // 主源 = 拉了且能填该 view 的源 (arena 视角: arena; aa 视角: aa; lb 视角: lb).
   const fetches: Promise<any>[] = [];
-  if (need("arena")) fetches.push(getBoardRaw(arenaFetcher, "arena", "all", ARENA_TTL, force));
+  // ponytail: v2.8x 扩到 11 arena — 缓存板名带版本后缀 all-v11，废弃旧 5-board 当日缓存，
+  // 否则旧缓存 24h 内被当"新鲜"直接返回，新 board（document/search/...）拉不到数据。
+  if (need("arena")) fetches.push(getBoardRaw(arenaFetcher, "arena", "all-v11", ARENA_TTL, force));
   if (need("aa")) fetches.push(getBoardRaw(aaFetcher, "artificial-analysis", "llms", AA_TTL, aaForce));
   if (need("openrouter")) fetches.push(getBoardRaw(openrouterFetcher, "openrouter", "models", OR_TTL, force));
   if (need("livebench")) fetches.push(getBoardRaw(livebenchFetcher, "livebench", "table", LB_TTL, force));
@@ -189,7 +191,7 @@ export async function getLeaderboard(opts: any = {}): Promise<any> {
 
   // ponytail: 兜底策略 — caller 没要的源永远不拉. 主源全失败时, 用 sample 兜底.
   // 注意: 拉到的源里只要有数据就够, 不强制要求 caller 列的每个源都活.
-  const sliceList = [arenaModels, aaModels, orModels, lbModels, mdModels, hfModels].filter((arr) => arr.length > 0);
+  const sliceList = [arenaModels, aaModels, orModels, lbModels, mdModels, hfModels].filter((arr: any) => arr.length > 0);
   let items: any[];
   let sourcesOut: Record<string, string> = {
     arena: arenaSource,
@@ -215,7 +217,7 @@ export async function getLeaderboard(opts: any = {}): Promise<any> {
   }
 
   // 分类筛选 → 排序 → vendor 筛选 → 搜索
-  let shown = items.filter((it) => matchesCategory(it, category));
+  let shown = items.filter((it: any) => matchesCategory(it, category));
   shown = sortModels(shown, dimension, sortDir, category);
   shown = filterByVendor(shown, vendor);
   shown = filterBySearch(shown, search);
@@ -226,7 +228,7 @@ export async function getLeaderboard(opts: any = {}): Promise<any> {
     const prevRanks = getPreviousArenaRanks();
     // 一次扫描多日缓存，构建所有模型当前 board 的排名序列（供 sparkline）。
     const rankSeriesMap = getArenaRankSeriesMap(14);
-    shown = shown.map((it, idx) => {
+    shown = shown.map((it: any, idx: any) => {
       const arenaSlice = it.arena && it.arena[board];
       if (!arenaSlice || typeof arenaSlice.score !== "number") return it;
       const currentRank = idx + 1;
@@ -243,13 +245,13 @@ export async function getLeaderboard(opts: any = {}): Promise<any> {
   // (基于筛选后, 用户当前看到的列表计算)
   // ponytail: modelsdev 是元数据补全层, 不参与"主要评估源"健康判断, 但覆盖率仍要计入 (用户能看到上下文/价格).
   const sourceCoverage = {
-    arena: shown.filter((it) => it.arena && Object.keys(it.arena).length > 0).length,
-    aa: shown.filter((it) => it.aa && typeof it.aa === "object").length,
-    openrouter: shown.filter((it) => it.openrouter && typeof it.openrouter === "object").length,
-    livebench: shown.filter((it) => it.livebench && typeof it.livebench === "object").length,
-    modelsdev: shown.filter((it) => it.modelsdev && typeof it.modelsdev === "object").length,
+    arena: shown.filter((it: any) => it.arena && Object.keys(it.arena).length > 0).length,
+    aa: shown.filter((it: any) => it.aa && typeof it.aa === "object").length,
+    openrouter: shown.filter((it: any) => it.openrouter && typeof it.openrouter === "object").length,
+    livebench: shown.filter((it: any) => it.livebench && typeof it.livebench === "object").length,
+    modelsdev: shown.filter((it: any) => it.modelsdev && typeof it.modelsdev === "object").length,
     // ponytail: HF 切片覆盖率 — 补全层, 跟 MD 同口径 (有数据对象就算)
-    huggingface: shown.filter((it) => it.huggingface && typeof it.huggingface === "object").length,
+    huggingface: shown.filter((it: any) => it.huggingface && typeof it.huggingface === "object").length,
   };
 
   // 是否整页 sample（决定页头「示例」徽标）

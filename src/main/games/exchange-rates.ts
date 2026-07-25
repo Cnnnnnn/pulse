@@ -6,8 +6,8 @@
  */
 "use strict";
 
-const { fetchJson } = require("./normalize.ts");
-const { logFetchError } = require("./log.ts");
+import { fetchJson } from "./normalize";
+import { logFetchError } from "./log";
 
 const FRANKFURTER_URL = "https://api.frankfurter.dev/v2/rates";
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -72,7 +72,7 @@ export function createExchangeRateService({
       try {
         const fresh = await fetchRate(currency);
         if (fresh) cache.set(currency, fresh);
-      } catch (err) {
+      } catch (err: any) {
         logFetchError(`exchange-rates:${currency}`, err);
       } finally {
         inflight.delete(currency);
@@ -136,6 +136,8 @@ export function createExchangeRateService({
 }
 
 export const exchangeRateService = createExchangeRateService();
+
+export { isValidCurrency };
 
 module.exports = {
   createExchangeRateService,

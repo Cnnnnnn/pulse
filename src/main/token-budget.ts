@@ -15,9 +15,10 @@
  */
 "use strict";
 
-const DEFAULT_DAILY_LIMIT = 0; // 0 = 未设预算, 不拦截
-const DEFAULT_MODE = "warn"; // warn | block
-const KEEP_DAYS = 30;
+// ponytail: const 直接 export const (7a-6 dual-export).
+export const DEFAULT_DAILY_LIMIT = 0; // 0 = 未设预算, 不拦截
+export const DEFAULT_MODE = "warn"; // warn | block
+export const KEEP_DAYS = 30;
 
 export function todayKey(now: any = new Date()): string {
   const d = now instanceof Date ? now : new Date(now);

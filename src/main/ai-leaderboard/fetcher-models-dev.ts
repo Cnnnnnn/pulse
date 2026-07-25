@@ -13,9 +13,9 @@
  * 单源失败不影响其它源；本 fetcher 内部 try/catch，失败仅返回 {ok:false}。
  */
 
-const { fetchJson, BROWSER_UA } = require("./normalize.ts");
-const { SOURCE, toAiModel, slugifyModel, normalizeVendor } = require("./types.ts");
-const { logFetchError } = require("../games/log.ts");
+import { fetchJson, BROWSER_UA } from "./normalize";
+import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+import { logFetchError } from "../games/log";
 
 const MODELS_DEV_API = "https://models.dev/api.json";
 
@@ -55,7 +55,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       data,
       fetchedAt: new Date().toISOString(),
     };
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("models-dev", err);
     return {
       ok: false,
@@ -100,8 +100,8 @@ export function normalize(raw: any): any[] {
   ]);
   const allProviders = Object.keys(root);
   const ordered = [
-    ...allProviders.filter((p) => KNOWN_VENDORS.has(p)),
-    ...allProviders.filter((p) => !KNOWN_VENDORS.has(p)),
+    ...allProviders.filter((p: any) => KNOWN_VENDORS.has(p)),
+    ...allProviders.filter((p: any) => !KNOWN_VENDORS.has(p)),
   ];
   const seen = new Set<string>();
   const out: any[] = [];

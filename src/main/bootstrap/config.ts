@@ -13,21 +13,21 @@ import type * as pathType from "node:path";
 
 const fs: typeof fsType = require("fs");
 const path: typeof pathType = require("path");
-const { mainLog } = require("../log.ts");
-const { migrateConfigFile, isOldSchemaApp } = require("../../config/migrate");
-const { validateConfig, sanitizeConfig } = require("../../config/schema");
+import { mainLog } from "../log";
+import { migrateConfigFile, isOldSchemaApp } from "../../config/migrate";
+import { validateConfig, sanitizeConfig } from "../../config/schema";
 
-const ARCH = process.arch === "arm64" ? "arm64" : "x64";
-const PROJECT_ROOT = path.join(__dirname, "..", "..", "..");
-const CONFIG_PATH = path.join(PROJECT_ROOT, "config.json");
-const CATEGORIES_JSON_PATH = path.join(
+export const ARCH = process.arch === "arm64" ? "arm64" : "x64";
+export const PROJECT_ROOT = path.join(__dirname, "..", "..", "..");
+export const CONFIG_PATH = path.join(PROJECT_ROOT, "config.json");
+export const CATEGORIES_JSON_PATH = path.join(
   PROJECT_ROOT,
   "src",
   "config",
   "data",
   "categories.json",
 );
-const APP_CATEGORY_JSON_PATH = path.join(
+export const APP_CATEGORY_JSON_PATH = path.join(
   PROJECT_ROOT,
   "src",
   "config",
@@ -35,12 +35,12 @@ const APP_CATEGORY_JSON_PATH = path.join(
   "app-category.json",
 );
 
-function loadConfig() {
+export function loadConfig() {
   let parsed = null;
   try {
     const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
     parsed = JSON.parse(raw);
-  } catch (err) {
+  } catch (err: any) {
     mainLog.error(`config read/parse failed: ${err instanceof Error ? err.message : String(err)}`);
     return sanitizeConfig(null);
   }
@@ -54,7 +54,7 @@ function loadConfig() {
         mainLog.info(`config migrated; backup=${r.backupPath}`);
         parsed = r.config;
       }
-    } catch (err) {
+    } catch (err: any) {
       mainLog.error(`config migrate failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }

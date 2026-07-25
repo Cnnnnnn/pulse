@@ -12,7 +12,7 @@
  * 这些错误仍写 mainLog, 开发者调日志能看到; 只是不让前端弹.
  */
 
-const { mainLog } = require("./log.ts");
+import { mainLog } from "./log";
 
 let _sendToRenderer: ((channel: string, payload: unknown) => void) | null = null;
 const _seen = new WeakSet<object>();
@@ -100,7 +100,7 @@ export function installErrorGuard(sendToRenderer?: (channel: string, payload: un
     // Phase Q6: wrap so each main:error toast also lands in the JSONL
     // aggregator. Preserve original call (channel, payload) verbatim so
     // toast behavior is unchanged.
-    _sendToRenderer = (channel, payload) => {
+    _sendToRenderer = (channel: any, payload: any) => {
       try {
         original(channel, payload);
       } catch {
@@ -131,11 +131,11 @@ export function installErrorGuard(sendToRenderer?: (channel: string, payload: un
     };
   }
 
-  process.on("uncaughtException", (err) => {
+  process.on("uncaughtException", (err: any) => {
     _report("uncaughtException", err);
   });
 
-  process.on("unhandledRejection", (reason) => {
+  process.on("unhandledRejection", (reason: any) => {
     const err =
       reason && typeof reason === "object" && "message" in (reason as any)
         ? reason

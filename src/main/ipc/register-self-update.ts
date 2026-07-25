@@ -21,7 +21,7 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-function registerSelfUpdateHandlers(ctx: any) {
+export function registerSelfUpdateHandlers(ctx: any) {
   const { safeHandle, controller } = ctx || {};
   if (typeof safeHandle !== "function") return;
   if (!controller) {
@@ -36,7 +36,7 @@ function registerSelfUpdateHandlers(ctx: any) {
     }
     try {
       return { ok: true, state: controller.getState() };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -48,7 +48,7 @@ function registerSelfUpdateHandlers(ctx: any) {
     try {
       const r = await controller.checkNow();
       return r || { ok: true };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -60,7 +60,7 @@ function registerSelfUpdateHandlers(ctx: any) {
     try {
       controller.quitAndInstall();
       return { ok: true };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });

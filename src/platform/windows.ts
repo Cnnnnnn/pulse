@@ -33,7 +33,7 @@ const { queryAllUninstallKeys }: {
   queryAllUninstallKeys: (winBundle: string) => Promise<{
     version?: string | null;
   } | null>;
-} = require('../workers/win-registry');
+} = require('../workers/win-registry.js');
 
 function resolveAppPath(_bundle: string, appCfg: any): string | null {
   // P2: Windows 没有 mac 那样的固定 /Applications 路径. 返回 win_bundle 作为存在性标记.
@@ -48,7 +48,7 @@ const iv: {
     bundle: string,
     sources?: unknown,
   ) => Promise<string | null>;
-} = require('../workers/installed-version');
+} = require('../workers/installed-version.js');
 
 async function getInstalledVersion(appCfg: any): Promise<string | null> {
   const winBundle = appCfg && appCfg.win_bundle;
@@ -142,6 +142,17 @@ function getWindowOptions(): Record<string, unknown> {
 }
 
 module.exports = {
+  resolveAppPath,
+  getInstalledVersion,
+  getAppIcon,
+  getUpgradeAction,
+  execUpgrade,
+  getWindowOptions,
+};
+
+// ponytail: 7a-6 加 ESM named export 让 caller 用 `import { X }`.
+// 7b 删 shim 时再去掉 module.exports.
+export {
   resolveAppPath,
   getInstalledVersion,
   getAppIcon,

@@ -9,14 +9,14 @@
  */
 "use strict";
 
-const { HttpClient } = require("../http-client.ts");
-const stateStore = require("../state-store.ts");
-const { parseWorldcupTxt } = require("./parser.ts");
-const { matchKey } = require("./match-key.ts");
-const { FIXTURES_URL } = require("./fetcher.ts");
-const { fetchScoresFromWorldcup26 } = require("./scores-api-worldcup26.ts");
-const { fetchScoresFromEspn } = require("./scores-api-espn.ts");
-const { mainLog } = require("../log.ts");
+import { HttpClient } from "../http-client";
+import * as stateStore from "../state-store";
+import { parseWorldcupTxt } from "./parser";
+import { matchKey } from "./match-key";
+import { FIXTURES_URL } from "./fetcher";
+import { fetchScoresFromWorldcup26 } from "./scores-api-worldcup26";
+import { fetchScoresFromEspn } from "./scores-api-espn";
+import { mainLog } from "../log";
 
 const FETCH_TIMEOUT_MS = 8000;
 
@@ -96,7 +96,7 @@ export async function _fetchScoresLayered(keys: string[], targetFixtures: any[],
     }
   }
 
-  const needWc26 = keys.filter((k) => !fromEspn[k]);
+  const needWc26 = keys.filter((k: any) => !fromEspn[k]);
   for (const k of needWc26) {
     if (fromApi[k]) {
       merged[k] = fromApi[k];
@@ -105,7 +105,7 @@ export async function _fetchScoresLayered(keys: string[], targetFixtures: any[],
     }
   }
 
-  const missingKeys = keys.filter((k) => !fromEspn[k] && !fromApi[k]);
+  const missingKeys = keys.filter((k: any) => !fromEspn[k] && !fromApi[k]);
   if (missingKeys.length > 0 && typeof fetchFreshTxt === "function") {
     const fresh = await fetchFreshTxt();
     if (fresh.ok && fresh.data && fresh.data.matches) {

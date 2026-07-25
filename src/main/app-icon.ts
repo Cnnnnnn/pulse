@@ -18,11 +18,11 @@
  * 平台: 仅 macOS (依赖 sips).
  */
 
-const { app } = require("electron");
-const fs = require("fs");
-const path = require("path");
-const { spawnSync } = require("child_process");
-const { mainLog } = require("./log.ts");
+import { app } from "electron";
+import * as fs from "fs";
+import * as path from "path";
+import { spawnSync } from "child_process";
+import { mainLog } from "./log";
 
 /**
  * Main 进程端 app-icon 缓存 + in-flight 去重.

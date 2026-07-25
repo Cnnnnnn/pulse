@@ -15,7 +15,7 @@ const FIELD_PATTERNS: { key: string; re: RegExp }[] = [
 export function splitKeywords(raw: any): string[] {
     return String(raw || "")
         .split(/[,，、;；|/]\s*/)
-        .map((k) => k.trim())
+        .map((k: any) => k.trim())
         .filter(Boolean)
         .slice(0, 8);
 }
@@ -33,9 +33,9 @@ export function parseArticleSummary(text: any): {
     const raw = typeof text === "string" ? text : "";
     const lines = raw
         .split(/\r?\n/)
-        .map((l) => l.trim())
+        .map((l: any) => l.trim())
         .filter(Boolean)
-        .filter((l) => !/^#{1,6}\s/.test(l));
+        .filter((l: any) => !/^#{1,6}\s/.test(l));
 
     const out: any = {
         abstract: "",

@@ -9,9 +9,9 @@
  * 单源失败不影响其它源；本 fetcher 内部 try/catch，失败仅返回 {ok:false}。
  */
 
-const { fetchJson, BROWSER_UA } = require("./normalize.ts");
-const { SOURCE, toAiModel, slugifyModel, normalizeVendor } = require("./types.ts");
-const { logFetchError } = require("../games/log.ts");
+import { fetchJson, BROWSER_UA } from "./normalize";
+import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+import { logFetchError } from "../games/log";
 
 const AA_API = "https://artificialanalysis.ai/api/v2/language/models/free";
 // 注: AA 不存在可信的 GitHub raw 镜像仓库, 主源失败直接走 aggregator 兜底链
@@ -53,7 +53,7 @@ export function loadAaKey(): string | undefined {
         }
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("aa:env", err);
   }
   return _aaKey;
@@ -97,7 +97,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       data,
       fetchedAt: new Date().toISOString(),
     };
-  } catch (err) {
+  } catch (err: any) {
     // 主源失败 (无 key / 401 / 网络 / quota) → 不存在可信 raw 镜像, 直接返回 ok:false
     // aggregator 兜底链会处理 (Arena live → OR 骨架 → sample)
     logFetchError("aa", err);

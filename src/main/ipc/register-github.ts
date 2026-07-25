@@ -21,8 +21,8 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl } = require("../github.ts");
-const { parseReadme } = require("../../ai/readme-parse");
+import { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl } from "../github";
+import { parseReadme } from "../../ai/readme-parse";
 
 /** 优先用 renderer 传入的 token；为空则回退 .env / 进程环境变量。 */
 function resolveToken(passed: any) {
@@ -30,7 +30,7 @@ function resolveToken(passed: any) {
   return t || getEnvGithubToken();
 }
 
-function registerGithubHandlers(ctx: any) {
+export function registerGithubHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
   safeHandle(
@@ -43,7 +43,7 @@ function registerGithubHandlers(ctx: any) {
       }
       try {
         return await fetchGithubProject(input, resolveToken(payload && payload.token));
-      } catch (err) {
+      } catch (err: any) {
         return { ok: false, reason: "fetch_failed", error: errMsg(err) };
       }
     },
@@ -69,7 +69,7 @@ function registerGithubHandlers(ctx: any) {
           description: payload.description,
           readme: payload.readme,
         });
-      } catch (err) {
+      } catch (err: any) {
         return { ok: false, reason: "parse_failed", error: errMsg(err) };
       }
     },
@@ -94,7 +94,7 @@ function registerGithubHandlers(ctx: any) {
           parsed.repo,
           resolveToken(payload && payload.token),
         );
-      } catch (err) {
+      } catch (err: any) {
         return { ok: false, reason: "fetch_failed", error: errMsg(err) };
       }
     },

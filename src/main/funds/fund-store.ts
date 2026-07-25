@@ -14,22 +14,22 @@
  */
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const crypto = require("crypto");
-const stateStore = require("../state-store.ts");
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import * as crypto from "crypto";
+import * as stateStore from "../state-store";
 
 const FUNDS_DELETED_GC_DAYS = 7;
 const FUNDS_DELETED_GC_MS = FUNDS_DELETED_GC_DAYS * 24 * 60 * 60 * 1000;
 
 const VALID_CATEGORIES = ["stock", "bond", "money", "qdii", "other"];
-const { isValidSnapshot } = require("../../funds/fund-history");
+import { isValidSnapshot } from "../../funds/fund-history";
 const {
   normalizeNavSource,
   DEFAULT_NAV_SOURCE,
-} = require("../../funds/fund-nav-merge");
-const { normalizeAlertPrefs } = require("./fund-alerts.ts");
+} = require("../../funds/fund-nav-merge.js");
+import { normalizeAlertPrefs } from "./fund-alerts";
 
 export function loadAll(statePath?: any): any {
   const s = stateStore.load(statePath);

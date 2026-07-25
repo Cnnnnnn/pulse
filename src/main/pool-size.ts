@@ -22,8 +22,8 @@
 import type * as osType from "node:os";
 const os: typeof osType = require("node:os");
 
-const DEFAULT_POOL_CAP = 4;
-const MIN_POOL_SIZE = 2;
+export const DEFAULT_POOL_CAP = 4;
+export const MIN_POOL_SIZE = 2;
 
 /**
  * 算 worker pool size. 单独 export 给 main/index.js 用 + 测试覆盖.
@@ -33,7 +33,7 @@ const MIN_POOL_SIZE = 2;
  * @param opts.min    下限 (默认 2)
  * @returns 推荐的 pool size
  */
-function computePoolSize(
+export function computePoolSize(
   opts: { cpus?: number; cap?: number; min?: number } = {},
 ): number {
   // ponytail: os.cpus() 在沙箱/异常环境可能返 undefined; 走 `|| 4`

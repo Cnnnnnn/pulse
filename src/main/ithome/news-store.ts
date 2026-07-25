@@ -5,19 +5,19 @@
  */
 "use strict";
 
-const fs = require("fs");
-const stateStore = require("../state-store.ts");
-const { HttpClient } = require("../http-client.ts");
-const { parseIthomeRss } = require("./rss-parser.ts");
-const { parseIthomeListPage } = require("./list-parser.ts");
+import * as fs from "fs";
+import * as stateStore from "../state-store";
+import { HttpClient } from "../http-client";
+import { parseIthomeRss } from "./rss-parser";
+import { parseIthomeListPage } from "./list-parser";
 const {
     assertFetchableDate,
     isInCurrentMonth,
     todayShanghaiDateKey,
     listPageUrl,
 } = require("./date-bounds.ts");
-const { mainLog } = require("../log.ts");
-const { enrichSummaryEntry } = require("./article-summary-parse.ts");
+import { mainLog } from "../log";
+import { enrichSummaryEntry } from "./article-summary-parse";
 
 const RSS_URL = "https://www.ithome.com/rss/";
 const FETCH_TIMEOUT_MS = 20000;

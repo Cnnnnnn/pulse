@@ -29,12 +29,12 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const stateStore = require("../state-store.ts");
-const aiStorage = require("../../ai-sessions/storage");
-const { MiniMaxQuotaClient } = require("../../ai-usage/client");
-const { GlmQuotaClient } = require("../../ai-usage/client-glm");
+import * as stateStore from "../state-store";
+import * as aiStorage from "../../ai-sessions/storage";
+import { MiniMaxQuotaClient } from "../../ai-usage/client";
+import { GlmQuotaClient } from "../../ai-usage/client-glm";
 
-const KNOWN_PROVIDERS = ["minimax", "glm"];
+export const KNOWN_PROVIDERS = ["minimax", "glm"];
 
 /**
  * @param {string} providerId
@@ -62,7 +62,7 @@ function _loadApiKeySafe(storage: any, providerId: any) {
   }
 }
 
-const _internals = {
+export const _internals = {
   /**
    * 返回所有 provider 的快照 + 历史, renderer 一次拿全建 tab.
    * @param {object} args
@@ -131,7 +131,7 @@ const _internals = {
           } catch { /* ignore */ }
           log_warn_history(`usage_summary fetch failed: ${us && us.reason}`);
         }
-      } catch (e) {
+      } catch (e: any) {
         try {
           const path = require("path");
           const fs = require("fs");
@@ -166,7 +166,7 @@ const _internals = {
           percent,
           used,
         });
-      } catch (e) {
+      } catch (e: any) {
         log_warn_history(e);
       }
     }
@@ -207,7 +207,7 @@ function log_warn_history(e: any) {
  * @param {(channel: string, fn: Function, opts?: object) => void} ctx.safeHandle
  * @param {(channel: string, payload: any) => void} ctx.sendToRenderer
  */
-function registerAiUsageHandlers(ctx: any) {
+export function registerAiUsageHandlers(ctx: any) {
   const { safeHandle, sendToRenderer } = ctx;
 
   // 真实 deps — 引用项目内 module
@@ -241,7 +241,7 @@ function registerAiUsageHandlers(ctx: any) {
     try {
       stateStore.saveAiUsageAlertPrefs(patch || {});
       return { ok: true, prefs: stateStore.loadAiUsageAlertPrefs() };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
   });

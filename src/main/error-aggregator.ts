@@ -12,8 +12,8 @@
  */
 "use strict";
 
-const fs = require('fs');
-const path = require('path');
+import * as fs from "fs";
+import * as path from "path";
 
 function defaultYmd(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -105,7 +105,7 @@ export function createAggregator(opts: any): any {
       }
     }
 
-    entries.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    entries.sort((a: any, b: any) => (b.ts || 0) - (a.ts || 0));
 
     const byLevel: Record<string, number> = {};
     for (const e of entries) {

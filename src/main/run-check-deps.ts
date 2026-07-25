@@ -70,7 +70,7 @@ export function buildRunCheckDeps(ctx: BuildRunCheckDepsCtx = {}): RunCheckDeps 
         return null;
       }
     },
-    markNotified: (names) => {
+    markNotified: (names: any) => {
       try {
         stateStore.markNotified(names);
       } catch {

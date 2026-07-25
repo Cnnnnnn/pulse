@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { toGameDeal, fetchJson } = require("./normalize.ts");
-const { logFetchError } = require("./log.ts");
+import { toGameDeal, fetchJson } from "./normalize";
+import { logFetchError } from "./log";
 
 const PSPRICES_BASE = "https://psprices.com/api/b2b";
 const DEFAULT_REGION = "us";
@@ -37,7 +37,7 @@ function loadEnvPspricesKey(): void {
         break;
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("psprices:env", err);
   }
 }
@@ -90,7 +90,7 @@ export async function fetchPlayStationDeals(opts: any = {}): Promise<any[] | nul
           : it.savings > 0 && it.normalPrice > 0,
       );
     return items;
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("psprices", err);
     return null;
   }

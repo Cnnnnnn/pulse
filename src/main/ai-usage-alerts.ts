@@ -10,9 +10,9 @@ const {
   DEFAULT_ABS_MIN_PCT,
   DEFAULT_SPIKE_RATIO,
   DEFAULT_RE_ALERT_STEP_PCT,
-} = require("../ai-usage/anomaly-detect");
-const { todayKey } = require("../ai-usage/history-series");
-const stateStore = require("./state-store.ts");
+} = require("../ai-usage/anomaly-detect.js");
+import { todayKey } from "../ai-usage/history-series";
+import * as stateStore from "./state-store";
 
 export const DEFAULT_ALERT_PREFS: any = {
   enabled: true,
@@ -149,7 +149,7 @@ export async function checkAiUsageAlerts(deps: any): Promise<any> {
 
   try {
     saveAlertPrefs({ lastNotified: nextLast });
-  } catch (err) {
+  } catch (err: any) {
     if (log && typeof log.warn === "function") {
       log.warn(`[ai-usage-alerts] save failed: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -175,7 +175,7 @@ export async function checkAiUsageAlerts(deps: any): Promise<any> {
       }
       try {
         sendNotification({ title: `📊 ${label} 用量异常`, body });
-      } catch (err) {
+      } catch (err: any) {
         if (log && typeof log.warn === "function") {
           log.warn(`[ai-usage-alerts] notify failed: ${err instanceof Error ? err.message : String(err)}`);
         }

@@ -5,16 +5,16 @@
  */
 "use strict";
 
-const crypto = require("crypto");
-const { chatCompletion } = require("../../ai/shared-llm");
-const { resolvePrompt } = require("../../ai/prompt-registry");
-const { sanitizeLlmOutput } = require("../../ai/sanitize-llm-output");
-const newsStore = require("./news-store.ts");
+import * as crypto from "crypto";
+import { chatCompletion } from "../../ai/shared-llm";
+import { resolvePrompt } from "../../ai/prompt-registry";
+import { sanitizeLlmOutput } from "../../ai/sanitize-llm-output";
+import * as newsStore from "./news-store";
 const {
     fetchAndAttachBody,
     needsBodyFetch,
 } = require("./article-page-fetcher.ts");
-const { mainLog } = require("../log.ts");
+import { mainLog } from "../log";
 const {
     parseArticleSummary,
     enrichSummaryEntry,

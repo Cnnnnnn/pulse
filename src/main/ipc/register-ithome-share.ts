@@ -18,12 +18,13 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const newsStore = require("../ithome/news-store.ts");
-const { createShareCardPng } = require("../ithome/share-card-renderer.ts");
-const { writePngToClipboard } = require("../ithome/clipboard-image.ts");
-const { mainLog } = require("../log.ts");
+import * as newsStore from "../ithome/news-store";
+const _ns: any = newsStore;
+import { createShareCardPng } from "../ithome/share-card-renderer";
+import { writePngToClipboard } from "../ithome/clipboard-image";
+import { mainLog } from "../log";
 
-function registerIthomeShareHandlers(ctx: any) {
+export function registerIthomeShareHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
   safeHandle("ithome:share-card", async (_evt: any, payload: any) => {
@@ -32,11 +33,11 @@ function registerIthomeShareHandlers(ctx: any) {
       return { ok: false, reason: "invalid_args" };
     }
 
-    const article = newsStore.getArticle(id);
+    const article = _ns.getArticle(id);
     if (!article) return { ok: false, reason: "article_not_found" };
 
     // summary 存在 newsStore.ithome_news.summaries
-    const all = newsStore.loadAll();
+    const all = _ns.loadAll();
     const summary = all.summaries && all.summaries[id];
     if (!summary || !summary.text) {
       return { ok: false, reason: "no_summary" };
@@ -46,7 +47,7 @@ function registerIthomeShareHandlers(ctx: any) {
       const pngBuffer = await createShareCardPng({ article, summary });
       writePngToClipboard(pngBuffer);
       return { ok: true, bytes: pngBuffer.length };
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn("[ithome:share-card] failed", {
         id,
         msg: errMsg(err),

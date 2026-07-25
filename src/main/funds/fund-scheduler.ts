@@ -20,18 +20,18 @@
  */
 "use strict";
 
-const EventEmitter = require("events");
-const { fetchFundNavBatch } = require("../../funds/fund-fetcher");
-const { pickEffectiveNavNumber } = require("../../funds/fund-nav-merge");
-const { NavSourceHealth } = require("../../funds/nav-source-health");
+import { EventEmitter } from "node:events";
+import { fetchFundNavBatch } from "../../funds/fund-fetcher";
+import { pickEffectiveNavNumber } from "../../funds/fund-nav-merge";
+import { NavSourceHealth } from "../../funds/nav-source-health";
 const {
   getTradingStatus,
   msUntilNextFetch,
   msUntilNextOpen,
-} = require("../../funds/trading-hours");
-const { mainLog } = require("../log.ts");
-const fundStore = require("./fund-store.ts");
-const fundHistoryStore = require("./fund-history-store.ts");
+} = require("../../funds/trading-hours.js");
+import { mainLog } from "../log";
+import * as fundStore from "./fund-store";
+import * as fundHistoryStore from "./fund-history-store";
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
 const DEFAULT_CONCURRENCY = 4;
@@ -227,7 +227,7 @@ export class FundScheduler extends EventEmitter {
                   `[fund-scheduler] backfilled ${code} → ${nav.toFixed(4)}`,
                 );
             }
-          } catch (e) {
+          } catch (e: any) {
             /* 单只反填失败不阻塞 */
           }
         }

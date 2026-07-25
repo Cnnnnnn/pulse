@@ -16,7 +16,7 @@
 //          rewrite 依赖 path 保留裸名).
 import type {} from "electron";
 
-const { _internals, KNOWN_PROVIDERS } = require("../ipc/register-ai-usage.ts");
+import { _internals, KNOWN_PROVIDERS } from "../ipc/register-ai-usage";
 
 /**
  * @param {object} deps
@@ -29,7 +29,7 @@ const { _internals, KNOWN_PROVIDERS } = require("../ipc/register-ai-usage.ts");
  * @param {object} [opts]
  * @param {boolean} [opts.warmup=true]  启动时是否 fire-and-forget 拉一次
  */
-function bootstrapAiUsage(deps: any, opts: { warmup?: boolean; registerIpc?: boolean } = {}) {
+export function bootstrapAiUsage(deps: any, opts: { warmup?: boolean; registerIpc?: boolean } = {}) {
   const warmup = opts.warmup !== false;
   const registerIpc = opts.registerIpc !== false; // 默认也注册 IPC, 调用方可选跳过
 

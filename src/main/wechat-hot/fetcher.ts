@@ -12,7 +12,7 @@
  */
 "use strict";
 
-const { parseWechatHotPayload } = require("./list-parser.ts");
+import { parseWechatHotPayload } from "./list-parser";
 
 const SOURCE_PRIMARY = "xxapi";
 const SOURCE_FALLBACK = "weibo.com";
@@ -40,11 +40,11 @@ export async function fetchWechatHot({
     try {
         const items = await fetchAndParsePrimary(httpClient, timeoutMs);
         return { items, fetchedAt: Date.now(), source: SOURCE_PRIMARY };
-    } catch (primaryErr) {
+    } catch (primaryErr: any) {
         try {
             const items = await fetchAndParseFallback(httpClient, timeoutMs);
             return { items, fetchedAt: Date.now(), source: SOURCE_FALLBACK };
-        } catch (fallbackErr) {
+        } catch (fallbackErr: any) {
             throw primaryErr;
         }
     }

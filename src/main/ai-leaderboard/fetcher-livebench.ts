@@ -13,7 +13,7 @@
  * 数据比 HF `livebench/model_judgment` 新 3-12 个月（HF 上传靠志愿者，滞后明显）。
  */
 
-const { SOURCE, ATTRIBUTION, normalizeVendor } = require("./types.ts");
+import { SOURCE, ATTRIBUTION, normalizeVendor } from "./types";
 
 const BASE = "https://livebench.ai";
 const MAIN_JS_RE = /const pe=\[("[0-9]{4}-[0-9]{2}-[0-9]{2}",?)+\]/;
@@ -31,7 +31,7 @@ const MAIN_JS_TTL = 60 * 60 * 1000; // main.js 1h 缓存一次，避免每次都
  * 若遇到含逗号 model 名 (实际不会), 直接抛错让上层 fail-fast, 不静默错乱数据。
  */
 export function parseCsv(text: string): any[] {
-  const lines = text.split("\n").filter((l) => l.length > 0);
+  const lines = text.split("\n").filter((l: any) => l.length > 0);
   if (lines.length < 2) return [];
   const headers = lines[0].split(",");
   const out = new Array(lines.length - 1);
@@ -62,9 +62,9 @@ async function fetchWithRetry(url: string, opts: any = {}, retries: number = 2):
       const res = await globalThis.fetch(url, { ...opts, signal: AbortSignal.timeout(15_000) });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
       return res;
-    } catch (e) {
+    } catch (e: any) {
       lastErr = e;
-      if (i < retries) await new Promise((r) => setTimeout(r, 300 * 2 ** i));
+      if (i < retries) await new Promise((r: any) => setTimeout(r, 300 * 2 ** i));
     }
   }
   throw lastErr;
@@ -89,7 +89,7 @@ async function latestRelease(): Promise<string> {
     const m = html.match(/\/static\/js\/main\.([a-f0-9]+)\.js/);
     if (!m) throw new Error("no main.js in index.html");
     mainJsUrl = `${BASE}/static/js/main.${m[1]}.js`;
-  } catch (e) {
+  } catch (e: any) {
     // fallback: 用最近一次成功值 (callers 都会 catch, 此处抛让上层决定)
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`livebench: cannot resolve main.js: ${msg}`);
@@ -99,7 +99,7 @@ async function latestRelease(): Promise<string> {
   const body = await res.text();
   const m = body.match(MAIN_JS_RE);
   if (!m) throw new Error("livebench: release array pe=[...] not found in main.js");
-  const arr = (m[0].match(/"[0-9]{4}-[0-9]{2}-[0-9]{2}"/g) || []).map((s) => s.slice(1, -1));
+  const arr = (m[0].match(/"[0-9]{4}-[0-9]{2}-[0-9]{2}"/g) || []).map((s: any) => s.slice(1, -1));
   if (arr.length === 0) throw new Error("livebench: empty release list");
   // ponytail: 信任 build 输出已排序; 不重排以省 O(n log n).
   // 若 build 改成乱序, 升序排序即可, 无副作用.
@@ -165,7 +165,7 @@ export function normalize(raw: any): any[] {
 
   // ponytail: cost 字段白名单 — 避免把 nq_*/out_* 噪音字段全部塞进 livebench.cost.
   // 想看原始 CSV? 直接 fetch cost_${slug}.csv. 这里只暴露消费侧需要的指标.
-  const COST_TASK_KEYS = Object.keys(categories).flatMap((c) => (categories[c] as string[]));
+  const COST_TASK_KEYS = Object.keys(categories).flatMap((c: any) => (categories[c] as string[]));
 
   return table
     .filter((row: any) => row.model && typeof row.model === "string")
@@ -186,12 +186,12 @@ export function normalize(raw: any): any[] {
       const byCatFinal: Record<string, number> = {};
       for (const cat of Object.keys(catScores)) {
         const arr = catScores[cat]!;
-        byCatFinal[cat] = arr.reduce((a, b) => a + b, 0) / arr.length;
+        byCatFinal[cat] = arr.reduce((a: any, b: any) => a + b, 0) / arr.length;
       }
       const allScores = Object.values(byTask);
       const overall =
         allScores.length > 0
-          ? allScores.reduce((a, b) => a + b, 0) / allScores.length
+          ? allScores.reduce((a: any, b: any) => a + b, 0) / allScores.length
           : null;
 
       // 拼 cost 子结构

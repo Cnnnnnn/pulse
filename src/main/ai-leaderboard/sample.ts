@@ -8,9 +8,9 @@
  * 非实时。要接实时数据，请配置 .env 或保证网络可达 Arena / AA。
  */
 
-const fs = require("fs");
-const path = require("path");
-const { SOURCE, toAiModel } = require("./types.ts");
+import * as fs from "fs";
+import * as path from "path";
+import { SOURCE, toAiModel } from "./types";
 
 export const SAMPLE_PATH = path.join(__dirname, "sample.json");
 
@@ -27,10 +27,10 @@ export function getSampleModels(): any[] {
     const txt = fs.readFileSync(SAMPLE_PATH, "utf8");
     const parsed = JSON.parse(txt);
     raw = Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
+  } catch (err: any) {
     raw = [];
   }
-  _cache = raw.map((m) =>
+  _cache = raw.map((m: any) =>
     toAiModel({
       ...m,
       isSample: true,

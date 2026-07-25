@@ -18,10 +18,10 @@
 //          升级到支持按模块声明命名空间隔离后再切回 ESM 风格.
 import type {} from "electron";
 
-const { app, BrowserWindow, ipcMain, session } = require("electron");
-const path = require("path");
-const fs = require("fs");
-const os = require("os");
+import { app, BrowserWindow, ipcMain, session } from "electron";
+import * as path from "path";
+import * as fs from "fs";
+import * as os from "os";
 
 // 旧版 safeStorage 使用 "pulse Safe Storage"；必须在 app.whenReady() 前
 // 保持小写 service name，否则旧用户的加密 key 无法解密。
@@ -47,36 +47,36 @@ try {
   /* noop — vitest load-smoke 环境里 app 是 undefined */
 }
 
-const { WorkerPool } = require("../workers/pool");
-const { createWindowManager } = require("./window.ts");
-const { createTrayManager } = require("./tray.ts");
-const { registerIpcHandlers } = require("./ipc/index.ts");
-const { createSearchIndex } = require("./search/search-index.ts");
-const { registerSearchIpc } = require("./ipc/register-search.ts");
-const { startDailySummaryJob } = require("./digest/daily-summary-job.ts");
-const { bootstrapAiUsage } = require("./bootstrap/ai-usage.ts");
+import { WorkerPool } from "../workers/pool";
+import { createWindowManager } from "./window";
+import { createTrayManager } from "./tray";
+import { registerIpcHandlers } from "./ipc/index";
+import { createSearchIndex } from "./search/search-index";
+import { registerSearchIpc } from "./ipc/register-search";
+import { startDailySummaryJob } from "./digest/daily-summary-job";
+import { bootstrapAiUsage } from "./bootstrap/ai-usage";
 const {
   initStateRecovery,
   takeRecoveryEvent,
 } = require("./bootstrap/state-init.ts");
-const { initErrorCapture } = require("./bootstrap/error-init.ts");
-const { mainLog, detectLog } = require("./log.ts");
-const stateStore = require("./state-store.ts");
-const aiStorage = require("../ai-sessions/storage");
-const { HttpClient } = require("./http-client.ts");
-const { computePoolSize } = require("./pool-size.ts");
-const { auditTimers, clearAllManaged } = require("./timer-registry.ts");
-const { markBootstrapDone } = require("./diagnostics.ts");
-const fundStore = require("./funds/fund-store.ts");
-const { FundScheduler } = require("./funds/fund-scheduler.ts");
+import { initErrorCapture } from "./bootstrap/error-init";
+import { mainLog, detectLog } from "./log";
+import * as stateStore from "./state-store";
+import * as aiStorage from "../ai-sessions/storage";
+import { HttpClient } from "./http-client";
+import { computePoolSize } from "./pool-size";
+import { auditTimers, clearAllManaged } from "./timer-registry";
+import { markBootstrapDone } from "./diagnostics";
+import * as fundStore from "./funds/fund-store";
+import { FundScheduler } from "./funds/fund-scheduler";
 const {
   registerMetalIpc,
   startMetalScheduler,
   stopMetalScheduler,
 } = require("./metal-ipc.ts");
-const reminders = require("./reminders.ts");
-const recentActivity = require("./recent-activity.ts");
-const goalWatcher = require("./worldcup/goal-watcher.ts");
+import * as reminders from "./reminders";
+import * as recentActivity from "./recent-activity";
+import * as goalWatcher from "./worldcup/goal-watcher";
 
 const {
   ARCH,
@@ -89,7 +89,7 @@ const {
   classifyUnmappedAppsByLLM,
   primeLLMCacheFromDisk,
 } = require("./bootstrap/category.ts");
-const { initAiTasksWiring } = require("./bootstrap/ai-tasks.ts");
+import { initAiTasksWiring } from "./bootstrap/ai-tasks";
 const {
   startFundScheduler,
   startRemindersScheduler,
@@ -107,7 +107,7 @@ const {
 const {
   setTrayManager: registerTrayManager,
 } = require("./bootstrap/tray-init.ts");
-const { installNintendoImageHeaders } = require("./games/nintendo-image-headers.ts");
+import { installNintendoImageHeaders } from "./games/nintendo-image-headers";
 
 const httpClient = new HttpClient();
 
@@ -160,7 +160,7 @@ function initSelfUpdateTimer(ctx: any) {
       logSkip: (reason: any) =>
         mainLog.info(`[self-update] 6h tick skipped (${reason})`),
     });
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`[self-update] bootstrap failed: ${errMsg(err)}`);
   }
 
@@ -170,7 +170,7 @@ function initSelfUpdateTimer(ctx: any) {
       if (tray && selfUpdateHandle && selfUpdateHandle.controller) {
         tray.setSelfUpdateState(selfUpdateHandle.controller.getState());
       }
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn(`[self-update] push to tray failed: ${errMsg(err)}`);
     }
   }
@@ -198,7 +198,7 @@ function initCategoryAndLlm() {
   })();
   if (earlyConfig) {
     runtimeConfigRef.current = earlyConfig;
-    classifyUnmappedAppsByLLM(earlyConfig, { stateStore }).catch((err: any) => {
+    classifyUnmappedAppsByLLM(earlyConfig, { stateStore }).catch((err) => {
       mainLog.warn(`[bootstrap] LLM classify rejected: ${errMsg(err)}`);
     });
   }
@@ -355,11 +355,11 @@ function installTray() {
     registerTrayManager(trayMgr);
     try {
       trayMgr.setTrayMenuPrefs(stateStore.loadTrayMenuPrefs());
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn(`tray menu prefs load failed: ${errMsg(err)}`);
     }
     mainLog.info(`tray installed: ${Date.now() - tTrayStart}ms`);
-  } catch (err) {
+  } catch (err: any) {
     mainLog.error(`tray install failed: ${errMsg(err)}`);
   }
   return { ms: Date.now() - tTrayStart };
@@ -404,8 +404,8 @@ function initAiUsageTray() {
             }
           },
         },
-        MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
-        GlmQuotaClient: require("../ai-usage/client-glm").GlmQuotaClient,
+        MiniMaxQuotaClient: require("../ai-usage/client.js").MiniMaxQuotaClient,
+        GlmQuotaClient: require("../ai-usage/client-glm.js").GlmQuotaClient,
         pushEvent: () => {},
       },
       alertDeps: {
@@ -422,7 +422,7 @@ function initAiUsageTray() {
     });
     aiUsageScheduler.start({ intervalMs: 30 * 60 * 1000, deferInitial: true });
     mainLog.info("ai-usage tray refresh scheduler started (every 30min)");
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`ai-usage tray init failed: ${errMsg(err)}`);
   }
 }
@@ -448,7 +448,7 @@ function initWorldcupTray() {
     };
     pushWorldcupToTray();
     mainLog.info("worldcup tray initialized (read-only from state.json)");
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`worldcup tray init failed: ${errMsg(err)}`);
   }
   return pushWorldcupToTray;
@@ -480,7 +480,7 @@ function initMetalsTray() {
         /* noop */
       }
     });
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`metals tray init failed: ${errMsg(err)}`);
   }
 }
@@ -511,7 +511,7 @@ function registerAllIpc(selfUpdateHandle: any) {
       }
       try {
         stateStore.saveAll(results);
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn(`state save failed: ${errMsg(err)}`);
       }
       refreshLastOpenedAfterCheck();
@@ -541,11 +541,11 @@ function registerAllIpc(selfUpdateHandle: any) {
         mainLog.info(
           `search index built (deferred): ${searchIndex.size()} docs in ${Date.now() - tSearch}ms`,
         );
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn(`[search] deferred build failed: ${errMsg(err)}`);
       }
     });
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`search index init failed: ${errMsg(err)}`);
   }
 
@@ -566,7 +566,7 @@ function registerAllIpc(selfUpdateHandle: any) {
           if (partial && partial.daily_digest) {
             stateStore.saveDailyDigest(partial.daily_digest);
           }
-        } catch (err) {
+        } catch (err: any) {
           mainLog.warn(
             `[digest] saveDailyDigest failed: ${errMsg(err)}`,
           );
@@ -599,14 +599,14 @@ function registerAllIpc(selfUpdateHandle: any) {
                 w.webContents.send("digest:open", {
                   date: new Date().toISOString().slice(0, 10),
                 });
-            } catch (err) {
+            } catch (err: any) {
               mainLog.warn(
                 `[digest] notification click failed: ${errMsg(err)}`,
               );
             }
           });
           note.show();
-        } catch (err) {
+        } catch (err: any) {
           mainLog.warn(
             `[digest] sendNotification threw: ${errMsg(err)}`,
           );
@@ -614,7 +614,7 @@ function registerAllIpc(selfUpdateHandle: any) {
       },
     });
     mainLog.info("daily digest job started");
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`[digest] job bootstrap failed: ${errMsg(err)}`);
   }
   return { ms: Date.now() - tIpc };
@@ -637,7 +637,7 @@ function startSchedulers(pushWorldcupToTray: any) {
           getTraySnapshot: getMetalsTraySnapshot,
         } = require("./metal-ipc.ts");
         trayMgr.setMetals(getMetalsTraySnapshot());
-      } catch (err) {
+      } catch (err: any) {
         /* noop */
       }
     },
@@ -653,9 +653,9 @@ function startSchedulers(pushWorldcupToTray: any) {
           loadHistoryProvider: stateStore.loadAiUsageHistoryProvider,
           appendHistoryProvider: stateStore.appendAiUsageHistoryDayProvider,
         },
-        storage: require("../ai-sessions/storage"),
-        MiniMaxQuotaClient: require("../ai-usage/client").MiniMaxQuotaClient,
-        GlmQuotaClient: require("../ai-usage/client-glm").GlmQuotaClient,
+        storage: require("../ai-sessions/storage.js"),
+        MiniMaxQuotaClient: require("../ai-usage/client.js").MiniMaxQuotaClient,
+        GlmQuotaClient: require("../ai-usage/client-glm.js").GlmQuotaClient,
         sendToRenderer,
       },
       { warmup: true, registerIpc: false },
@@ -686,7 +686,7 @@ function startSchedulers(pushWorldcupToTray: any) {
           ts: Date.now(),
           updatedKeys: keys,
         });
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn(
           `[worldcup] push scores to renderer failed: ${errMsg(err)}`,
         );
@@ -718,7 +718,7 @@ async function bootstrap() {
   try {
     initErrorCapture({ sendToRenderer });
     mainLog.info("error capture enabled");
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`[error-init] failed: ${errMsg(err)}`);
   }
   // 必须先恢复 state，后续模块才能读取可靠基线。
@@ -832,7 +832,7 @@ if (app && typeof app.whenReady === "function") {
       mainLog.info(
         `[timer-registry] startup audit summary: total=${audit.total} clean=${audit.clean} orphan=${audit.orphan} debounce=${audit.debounce} dupSchedule=${audit.dupSchedule}`,
       );
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn(
         `[timer-registry] startup audit failed: ${errMsg(err)}`,
       );
@@ -843,7 +843,7 @@ if (app && typeof app.whenReady === "function") {
       .then(() => {
         markBootstrapDone();
       })
-      .catch((err) => {
+      .catch((err: any) => {
         mainLog.error(`bootstrap failed: ${errMsg(err)}`);
         try {
           app.quit();
@@ -860,7 +860,7 @@ if (app && typeof app.whenReady === "function") {
             `[timer-registry] before-quit cleared ${cleared} managed timer(s)`,
           );
         }
-      } catch (err) {
+      } catch (err: any) {
         mainLog.warn(
           `[timer-registry] before-quit clearAllManaged failed: ${errMsg(err)}`,
         );

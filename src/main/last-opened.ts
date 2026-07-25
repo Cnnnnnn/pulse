@@ -109,7 +109,7 @@ export async function getLastOpened(
 }
 
 function runMdls(exec: ExecFileFn, bundlePath: string, timeout: number): Promise<number | null> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve: any, reject: any) => {
     let settled = false;
     const finish = (fn: (val: any) => void, val: any) => {
       if (!settled) {
@@ -139,7 +139,7 @@ function runMdls(exec: ExecFileFn, bundlePath: string, timeout: number): Promise
 }
 
 function runStatAtime(exec: ExecFileFn, bundlePath: string, timeout: number): Promise<number | null> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve: any, reject: any) => {
     let settled = false;
     const finish = (fn: (val: any) => void, val: any) => {
       if (!settled) {

@@ -14,16 +14,16 @@
  * classify_llm_cache etc.) without relying on PRESERVE_FIELDS.
  */
 
-const { ipcMain, webContents } = require("electron");
-const { HttpClient } = require("./http-client.ts");
-const { MetalScheduler } = require("../metals/metal-scheduler.js");
+import { ipcMain, webContents } from "electron";
+import { HttpClient } from "./http-client";
+import { MetalScheduler } from "../metals/metal-scheduler.js";
 const {
   fetchMetalKline,
   pointsToHistoryMap,
 } = require("../metals/metal-kline-fetcher.js");
-const { METALS } = require("../metals/metal-config.js");
-const { mainLog } = require("./log.ts");
-const stateStore = require("./state-store.ts");
+import { METALS } from "../metals/metal-config.js";
+import { mainLog } from "./log";
+import * as stateStore from "./state-store";
 
 const DEFAULT_CONFIG = {
   watchedIds: ["XAU", "XAG", "AU9999", "AG9999"],
@@ -44,11 +44,11 @@ let fxCache: { rate: number | null; fetchedAt: any } = { rate: null, fetchedAt: 
 
 /**
  * Adapter: Pulse's httpClient returns { status, body, headers, error? }.
- * The metals fetchers expect (url, headers) => string.
+ * The metals fetchers expect (url: any, headers: any) => string.
  * This adapter wraps the status check + body passthrough.
  */
 function httpGetAdapter(url: string, headers: any): Promise<string> {
-  return httpClient.get(url, { headers, timeoutMs: 8000 }).then((r: any) => {
+  return httpClient.get(url, { headers, timeout: 8000 }).then((r: any) => {
     if (r.error) throw new Error(r.error);
     if (r.status !== 200) throw new Error(`HTTP ${r.status}`);
     return r.body;
@@ -292,7 +292,7 @@ export function startMetalScheduler(opts: StartMetalSchedulerOpts = {}): void {
         if (onUpdateTray) {
           try {
             onUpdateTray(getTraySnapshot());
-          } catch (err) {
+          } catch (err: any) {
             /* noop */
           }
         }
@@ -302,7 +302,7 @@ export function startMetalScheduler(opts: StartMetalSchedulerOpts = {}): void {
               checkWatchlistMetalUpdates,
               makeWatchlistSendNotification,
             } = require("./watchlist.ts");
-            const { getMetalById } = require("../metals/metal-config");
+            const { getMetalById } = require("../metals/metal-config.js");
             checkWatchlistMetalUpdates({
               quoteMap: quoteCache.data,
               sendNotification: makeWatchlistSendNotification(getConfig),
@@ -311,7 +311,7 @@ export function startMetalScheduler(opts: StartMetalSchedulerOpts = {}): void {
                 return (m && m.shortName) || id;
               },
             });
-          } catch (err) {
+          } catch (err: any) {
             /* noop — watchlist 是 best-effort */
           }
         }

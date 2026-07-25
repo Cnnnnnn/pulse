@@ -88,7 +88,7 @@ export class ChromiumHttpClient {
         (lastResult.error === "network" || lastResult.error === "timeout");
       if (!retriable) return lastResult;
       if (attempt < this.maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, this.retryDelayMs));
+        await new Promise((resolve: any) => setTimeout(resolve, this.retryDelayMs));
       }
     }
     return lastResult;

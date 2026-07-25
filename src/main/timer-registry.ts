@@ -55,7 +55,7 @@ let _nextId = 1;
  * @param ms
  * @param meta
  */
-function setManagedInterval(
+export function setManagedInterval(
   fn: () => void,
   ms: number,
   meta?: ManagedTimerMeta,
@@ -83,7 +83,7 @@ function setManagedInterval(
  * @param ms
  * @param meta
  */
-function setManagedTimeout(
+export function setManagedTimeout(
   fn: () => void,
   ms: number,
   meta?: ManagedTimerMeta,
@@ -110,11 +110,11 @@ function setManagedTimeout(
  * @param handleOrId
  * @returns true if a live entry was cleared
  */
-function clearManaged(
+export function clearManaged(
   handleOrId: ManagedHandle | { id: number },
 ): boolean {
   if (!handleOrId || typeof handleOrId.id !== "number") return false;
-  const idx = _entries.findIndex((e) => e.id === handleOrId.id);
+  const idx = _entries.findIndex((e: any) => e.id === handleOrId.id);
   if (idx < 0) return false;
   const entry = _entries[idx];
   try {
@@ -131,10 +131,10 @@ function clearManaged(
  * @param labelPrefix — when provided, only clear entries whose
  *   label starts with this string. When undefined, clears ALL managed timers.
  */
-function clearAllManaged(labelPrefix?: string): number {
+export function clearAllManaged(labelPrefix?: string): number {
   const targets =
     typeof labelPrefix === "string"
-      ? _entries.filter((entry) => entry.label.startsWith(labelPrefix))
+      ? _entries.filter((entry: any) => entry.label.startsWith(labelPrefix))
       : _entries.slice();
   for (const entry of targets) clearManaged(entry);
   return targets.length;
@@ -143,7 +143,7 @@ function clearAllManaged(labelPrefix?: string): number {
 /**
  * @returns {{count:number,byType:{interval:number,timeout:number}}}
  */
-function getStats(): ManagedStats {
+export function getStats(): ManagedStats {
   const byType = { interval: 0, timeout: 0 };
   for (const e of _entries) byType[e.type] += 1;
   return { count: _entries.length, byType };
@@ -152,8 +152,8 @@ function getStats(): ManagedStats {
 /**
  * @returns {Array<{id:number,type:'interval'|'timeout',label:string,file:string|null,line:number|null,startedAt:number}>}
  */
-function listManaged(): ManagedEntrySnapshot[] {
-  return _entries.map((e) => ({
+export function listManaged(): ManagedEntrySnapshot[] {
+  return _entries.map((e: any) => ({
     id: e.id,
     type: e.type,
     label: e.label,
@@ -164,7 +164,7 @@ function listManaged(): ManagedEntrySnapshot[] {
 }
 
 /** @internal — used by tests to reset between cases. */
-function __resetForTest(): void {
+export function __resetForTest(): void {
   clearAllManaged();
   _nextId = 1;
 }
@@ -247,13 +247,13 @@ function classifySite(
   if (hasCleanup) return "clean";
   if (site.func === "setTimeout" && site.var) {
     const sameVarCount = sites.filter(
-      (s) => s.var === site.var && s.func === "setTimeout",
+      (s: any) => s.var === site.var && s.func === "setTimeout",
     ).length;
     return sameVarCount >= 2 ? "debounce" : "orphan";
   }
   if (site.func === "setInterval" && site.var) {
     const sameVarCount = sites.filter(
-      (s) => s.var === site.var && s.func === "setInterval",
+      (s: any) => s.var === site.var && s.func === "setInterval",
     ).length;
     return sameVarCount >= 2 ? "dup-schedule" : "orphan";
   }
@@ -296,7 +296,7 @@ function logSiteKind(
  * Phase 6: fixtures/timer-audit/*.js → .ts. 双扫 .js + .ts 不破历史
  * 路径 (主进程自身代码仍是 .js — 见 Phase 5 留下的 4 例外 + shim).
  */
-function auditTimers(
+export function auditTimers(
   rootDir: string,
   opts?: AuditOptions,
 ): AuditSummary {
@@ -314,8 +314,8 @@ function auditTimers(
 
   let files: string[];
   try {
-    files = fs.readdirSync(rootDir).filter((f) => f.endsWith(".js") || f.endsWith(".ts"));
-  } catch (err) {
+    files = fs.readdirSync(rootDir).filter((f: any) => f.endsWith(".js") || f.endsWith(".ts"));
+  } catch (err: any) {
     if (logger) logger.warn(`[timer-registry] audit: readdir failed: ${err instanceof Error ? err.message : String(err)}`);
     return summary;
   }
@@ -325,7 +325,7 @@ function auditTimers(
     let content: string;
     try {
       content = fs.readFileSync(full, "utf8");
-    } catch (err) {
+    } catch (err: any) {
       summary.skipped.push(file);
       if (logger) logger.warn(`[timer-registry] audit: skip ${file}: ${err instanceof Error ? err.message : String(err)}`);
       continue;

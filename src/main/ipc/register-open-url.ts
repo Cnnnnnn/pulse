@@ -21,7 +21,7 @@ function errMsg(err: unknown): string {
 }
 
 const { shell }: { shell: Shell } = require("electron");
-const { mainLog } = require("../log.ts");
+import { mainLog } from "../log";
 
 function isSafeUrl(url: any) {
   if (typeof url !== "string" || url.length === 0) return false;
@@ -33,7 +33,7 @@ function isSafeUrl(url: any) {
   }
 }
 
-function registerOpenUrlHandlers(ctx: any) {
+export function registerOpenUrlHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
   safeHandle("open-url:open", async (_evt: any, url: any) => {
@@ -44,7 +44,7 @@ function registerOpenUrlHandlers(ctx: any) {
     try {
       await shell.openExternal(url);
       return { ok: true };
-    } catch (err) {
+    } catch (err: any) {
       mainLog.warn(`[ipc] open-url:open failed: ${errMsg(err)}`);
       return { ok: false, reason: "shell_failed" };
     }

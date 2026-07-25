@@ -21,34 +21,34 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const { getGameDeals, sortDeals } = require("../games/aggregator.ts");
-const { exchangeRateService, isValidCurrency } = require("../games/exchange-rates.ts");
-const { fetchJson } = require("../games/normalize.ts");
+import { getGameDeals, sortDeals } from "../games/aggregator";
+import { exchangeRateService, isValidCurrency } from "../games/exchange-rates";
+import { fetchJson } from "../games/normalize";
 
-const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
+export const EMPTY_FX = { rates: {}, date: null, fetchedAt: null, stale: true };
 
 // games:getDeals 接受的 mode 白名单（Task 2 清理：删除已废弃的 'top'，
 // TopRanking.jsx 已无引用）。提升为模块级常量便于测试与跨文件复用。
 // Task 3 新增 'compare'：比价视图（跨平台同款价格对比）。
-const ALLOWED_MODES = ["deals", "free", "compare"];
+export const ALLOWED_MODES = ["deals", "free", "compare"];
 
 // ── 请求级缓存（Map + TTL，照搬 register-stocks.js 范式）──────────────
 // 按 (platform, mode) 维度缓存聚合结果，切 Tab 来回切时 5 分钟内命中缓存，
 // 避免重复打 5+ 个外部 API（CheapShark 有 rate limit）。
 // sort / minSavings 是纯函数（sortDeals + filter），在缓存命中后本地应用，
 // 不进缓存 key —— 改下拉框不再触发上游重拉。
-const DEALS_CACHE_TTL_MS = 5 * 60_000; // 5 分钟
-const DEALS_CACHE_MAX = 64; // (platform×mode) 组合有限，64 足够
+export const DEALS_CACHE_TTL_MS = 5 * 60_000; // 5 分钟
+export const DEALS_CACHE_MAX = 64; // (platform×mode) 组合有限，64 足够
 /** @type {Map<string, {result:object, fetchedAt:number}>} */
 const _dealsCache = new Map();
 
-function dealsCacheKey({ platform, mode }: any) {
+export function dealsCacheKey({ platform, mode }: any) {
   // sort/minSavings 不进 key：本地应用，避免改下拉框触发重拉
   // country/itadKey 不进 key：聚合内只影响主机平台且基本恒定
   return JSON.stringify({ platform, mode });
 }
 
-function dealsCacheGet(key: any) {
+export function dealsCacheGet(key: any) {
   const e = _dealsCache.get(key);
   if (!e) return null;
   if (Date.now() - e.fetchedAt > DEALS_CACHE_TTL_MS) {
@@ -58,7 +58,7 @@ function dealsCacheGet(key: any) {
   return e.result;
 }
 
-function dealsCacheSet(key: any, result: any) {
+export function dealsCacheSet(key: any, result: any) {
   // 超限清一半（简易 LRU，与 register-stocks.js searchCacheSet 一致）
   if (_dealsCache.size > DEALS_CACHE_MAX) {
     const drop = [..._dealsCache.keys()].slice(0, DEALS_CACHE_MAX >> 1);
@@ -67,7 +67,7 @@ function dealsCacheSet(key: any, result: any) {
   _dealsCache.set(key, { result, fetchedAt: Date.now() });
 }
 
-function resetDealsCache() {
+export function resetDealsCache() {
   _dealsCache.clear();
 }
 
@@ -89,7 +89,7 @@ function extractFxCurrencies(items: any) {
   return [...set];
 }
 
-async function attachFx(result: any, service = exchangeRateService) {
+export async function attachFx(result: any, service = exchangeRateService) {
   if (!result || result.ok === false) {
     return { ...result, fx: EMPTY_FX };
   }
@@ -102,7 +102,7 @@ async function attachFx(result: any, service = exchangeRateService) {
 }
 
 /** 从 cheapshark /games?steamAppID= 响应提取历史最低价。 */
-function extractLowestFromCheapshark(games: any) {
+export function extractLowestFromCheapshark(games: any) {
   if (!Array.isArray(games) || games.length === 0) return null;
   let min = Infinity;
   for (const g of games) {
@@ -116,7 +116,7 @@ function extractLowestFromCheapshark(games: any) {
  * 对 deals 模式的结果本地应用 sort / minSavings（纯函数，不触发上游重拉）。
  * free / compare 模式由 aggregator 内部已排序，这里原样返回。
  */
-function applySortAndFilter(result: any, { mode, sort, minSavings }: any) {
+export function applySortAndFilter(result: any, { mode, sort, minSavings }: any) {
   if (!result || result.ok === false || mode !== "deals") return result;
   let items = result.items || [];
   if (minSavings > 0) {
@@ -126,7 +126,7 @@ function applySortAndFilter(result: any, { mode, sort, minSavings }: any) {
   return { ...result, items, count: items.length };
 }
 
-function registerGamesHandlers(ctx: any) {
+export function registerGamesHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
   safeHandle(
@@ -172,7 +172,7 @@ function registerGamesHandlers(ctx: any) {
         const withFx = await attachFx(result);
         dealsCacheSet(cacheKey, withFx); // 缓存全量原始结果
         return applySortAndFilter(withFx, { mode, sort, minSavings });
-      } catch (err) {
+      } catch (err: any) {
         return {
           ok: false,
           reason: "aggregate_failed",
@@ -201,7 +201,7 @@ function registerGamesHandlers(ctx: any) {
         const url = `https://www.cheapshark.com/api/1.0/games?steamAppID=${encodeURIComponent(appId)}`;
         const data = await fetchJson(url, { timeoutMs: 9000 });
         return { lowestPrice: extractLowestFromCheapshark(data) };
-      } catch (err) {
+      } catch (err: any) {
         return { lowestPrice: null };
       }
     },

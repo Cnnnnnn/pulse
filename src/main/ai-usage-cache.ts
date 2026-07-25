@@ -13,8 +13,8 @@
  *   - setSnapshot(providerId, snapshot) 包装 stateStore.saveAiUsageSnapshotProvider
  *     (自动加 fetchedAt 时间戳, 让 tray 能显示陈旧度)
  */
-const fs = require("fs");
-const stateStore = require("./state-store.ts");
+import * as fs from "fs";
+import * as stateStore from "./state-store";
 
 export const PROVIDERS = ["minimax", "glm"];
 

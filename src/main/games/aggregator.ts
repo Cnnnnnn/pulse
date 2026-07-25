@@ -5,17 +5,17 @@
  */
 "use strict";
 
-const { PLATFORM_KEYS } = require("./normalize.ts");
-const { fetchSteamDeals } = require("./steam.ts");
-const { fetchSteamFree } = require("./steam-free.ts");
-const { fetchEpicDeals, fetchEpicFree } = require("./epic.ts");
-const { fetchXboxFree } = require("./xbox-free.ts");
-const { fetchItadDeals } = require("./itad.ts");
-const { fetchSwitchDeals } = require("./switch.ts");
-const { fetchPlayStationDeals: fetchPsMain } = require("./playstation.ts");
-const { fetchPlayStationDeals: fetchPsPsprices } = require("./psprices.ts");
-const { getSampleDeals } = require("./sample.ts");
-const { logFetchError } = require("./log.ts");
+import { PLATFORM_KEYS } from "./normalize";
+import { fetchSteamDeals } from "./steam";
+import { fetchSteamFree } from "./steam-free";
+import { fetchEpicDeals, fetchEpicFree } from "./epic";
+import { fetchXboxFree } from "./xbox-free";
+import { fetchItadDeals } from "./itad";
+import { fetchSwitchDeals } from "./switch";
+import { fetchPlayStationDeals as fetchPsMain } from "./playstation";
+import { fetchPlayStationDeals as fetchPsPsprices } from "./psprices";
+import { getSampleDeals } from "./sample";
+import { logFetchError } from "./log";
 
 const CONSOLE_PLATFORMS = ["xbox", "playstation", "switch"];
 
@@ -71,7 +71,7 @@ export async function fetchPlatform(platform: string, { mode, sort, minSavings, 
     });
     if (live && live.length > 0) return { items: live, source: "live" };
     return { items: getSampleDeals(platform), source: "sample" };
-  } catch (err) {
+  } catch (err: any) {
     logFetchError(`aggregator:${platform}`, err);
     if (mode === "free") return { items: [], source: "live" };
     if (CONSOLE_PLATFORMS.includes(platform)) {
@@ -84,11 +84,11 @@ export async function fetchPlatform(platform: string, { mode, sort, minSavings, 
 export function sortDeals(items: any[], sort: string): any[] {
   const arr = items.slice();
   if (sort === "price") {
-    arr.sort((a, b) => (a.salePrice ?? Infinity) - (b.salePrice ?? Infinity));
+    arr.sort((a: any, b: any) => (a.salePrice ?? Infinity) - (b.salePrice ?? Infinity));
   } else if (sort === "rating") {
-    arr.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    arr.sort((a: any, b: any) => (b.rating ?? -1) - (a.rating ?? -1));
   } else {
-    arr.sort((a, b) => b.savings - a.savings);
+    arr.sort((a: any, b: any) => b.savings - a.savings);
   }
   return arr;
 }
@@ -122,7 +122,7 @@ export async function getGameDeals(opts: any = {}): Promise<any> {
   } = opts;
 
   const platforms =
-    platform === "all" ? PLATFORM_KEYS.slice() : [platform].filter((p) => PLATFORM_KEYS.includes(p));
+    platform === "all" ? PLATFORM_KEYS.slice() : [platform].filter((p: any) => PLATFORM_KEYS.includes(p));
 
   const results = await Promise.all(
     platforms.map((p: string) =>
@@ -167,7 +167,7 @@ export async function getGameDeals(opts: any = {}): Promise<any> {
   if (mode === "free") {
     items = items
       .filter((it: any) => it.isFree)
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         const parsedAEnd = a.freeUntil ? Date.parse(a.freeUntil) : NaN;
         const parsedBEnd = b.freeUntil ? Date.parse(b.freeUntil) : NaN;
         const aEnd = Number.isFinite(parsedAEnd) ? parsedAEnd : Infinity;
@@ -177,7 +177,7 @@ export async function getGameDeals(opts: any = {}): Promise<any> {
   } else if (mode === "compare") {
     items = items
       .filter((it: any) => !it.isFree)
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         const ta = normalizeTitle(a.title);
         const tb = normalizeTitle(b.title);
         if (ta !== tb) return ta < tb ? -1 : 1;

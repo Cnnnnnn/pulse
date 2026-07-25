@@ -10,16 +10,16 @@
 import type * as fsType from "node:fs";
 
 const fs: typeof fsType = require("fs");
-const { mainLog } = require("../log.ts");
-const categoryConfig = require("../../config/category");
-const { HttpClient } = require("../http-client.ts");
-const { CATEGORIES_JSON_PATH, APP_CATEGORY_JSON_PATH } = require("./config.ts");
+import { mainLog } from "../log";
+import * as categoryConfig from "../../config/category";
+import { HttpClient } from "../http-client";
+import { CATEGORIES_JSON_PATH, APP_CATEGORY_JSON_PATH } from "./config";
 
 /**
  * 加载 category config (categories.json + app-category.json) → setData 注入.
  * 失败时 log warn, 不 throw.
  */
-function loadCategoryConfig() {
+export function loadCategoryConfig() {
   let cats = null;
   let map = null;
 
@@ -33,7 +33,7 @@ function loadCategoryConfig() {
     ) {
       cats = parsed.categories;
     }
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`[category] categories.json read failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
@@ -43,7 +43,7 @@ function loadCategoryConfig() {
     if (parsed && parsed.mapping && typeof parsed.mapping === "object") {
       map = parsed.mapping;
     }
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`[category] app-category.json read failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
@@ -70,9 +70,9 @@ function loadCategoryConfig() {
  * @param {object} deps
  * @param {object} deps.stateStore
  * @param {function} [deps.llmCaller]  可选, 测试用; 不传则走内置 ollama caller.
- *                                     signature: async (systemMsg, userMsg) => string
+ *                                     signature: async (systemMsg: any, userMsg: any) => string
  */
-async function classifyUnmappedAppsByLLM(runtimeConfig: any, deps: any) {
+export async function classifyUnmappedAppsByLLM(runtimeConfig: any, deps: any) {
   const { stateStore, llmCaller: externalLlmCaller } = deps;
   const t0 = Date.now();
   if (
@@ -93,7 +93,7 @@ async function classifyUnmappedAppsByLLM(runtimeConfig: any, deps: any) {
     );
   }
 
-  const unmapped = [];
+  const unmapped: any[] = [];
   for (const app of runtimeConfig.apps) {
     if (!app || typeof app.name !== "string" || app.name.length === 0) continue;
     // [v2.16] 注意: getCategory 现在会查到刚注入的 LLM cache (上一步), 所以已分类的会跳过
@@ -115,7 +115,7 @@ async function classifyUnmappedAppsByLLM(runtimeConfig: any, deps: any) {
   const llmCaller = externalLlmCaller || defaultOllamaCaller();
   let systemMsg;
   try {
-    const { resolvePrompt } = require("../../ai/prompt-registry");
+    const { resolvePrompt } = require("../../ai/prompt-registry.js");
     const validCatIds = categoryConfig.getAllCategories().map((c: any) => c.id);
     const prompt = resolvePrompt("category_classify");
     systemMsg = [
@@ -133,7 +133,7 @@ async function classifyUnmappedAppsByLLM(runtimeConfig: any, deps: any) {
       timeoutMs: 28_000,
       systemMsg,
     });
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`[category] LLM classify threw: ${err instanceof Error ? err.message : String(err)}`);
   }
 
@@ -188,7 +188,7 @@ function defaultOllamaCaller() {
     let parsed;
     try {
       parsed = JSON.parse(r.body);
-    } catch (err) {
+    } catch (err: any) {
       throw new Error(`llm caller: response not JSON: ${err instanceof Error ? err.message : String(err)}`);
     }
     const content =
@@ -210,7 +210,7 @@ function defaultOllamaCaller() {
  * @param {object} deps
  * @param {object} deps.stateStore
  */
-function primeLLMCacheFromDisk(deps: any) {
+export function primeLLMCacheFromDisk(deps: any) {
   const { stateStore } = deps;
   try {
     const oldCache = stateStore.loadLLMClassifyCache();
@@ -220,7 +220,7 @@ function primeLLMCacheFromDisk(deps: any) {
         `[category] LLM cache primed: ${Object.keys(oldCache).length} entries`,
       );
     }
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`[category] prime LLM cache failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

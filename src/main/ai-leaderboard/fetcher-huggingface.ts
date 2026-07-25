@@ -24,9 +24,9 @@
  * 的 _normName 兜底 (Qwen3-7B vs Qwen3 7B) 把 slice 接回去.
  */
 
-const { fetchJson, BROWSER_UA } = require("./normalize.ts");
-const { SOURCE, toAiModel, slugifyModel, normalizeVendor } = require("./types.ts");
-const { logFetchError } = require("../games/log.ts");
+import { fetchJson, BROWSER_UA } from "./normalize";
+import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+import { logFetchError } from "../games/log";
 
 const HF_API = "https://huggingface.co/api/models";
 const HF_PAGE_SIZE = 1000; // HF API 单页上限实测稳定 1000; 大页可能触发 429
@@ -50,8 +50,8 @@ export function num(v: any, d: number = 0): number {
  */
 export function categoryFromPipelineTag(tag: any, tags: any = []): string {
   const t = String(tag || "").toLowerCase();
-  const ts = Array.isArray(tags) ? tags.filter((x) => typeof x === "string").map((x) => x.toLowerCase()) : [];
-  const has = (needle: string) => ts.some((x) => x === needle || x.includes(needle));
+  const ts = Array.isArray(tags) ? tags.filter((x: any) => typeof x === "string").map((x: any) => x.toLowerCase()) : [];
+  const has = (needle: string) => ts.some((x: any) => x === needle || x.includes(needle));
   // ponytail: 主路径 — pipeline_tag 命中即返回 (与之前完全一致)
   if (t) {
     if (t.includes("text-to-image") || t === "image-to-image" || t === "image-classification") return "image";
@@ -149,11 +149,11 @@ export function computeTrendingScore(
 /** tags 数组里挑关键标签（license / base_model / arxiv / quantized）。 */
 export function summarizeTags(tags: any): any {
   if (!Array.isArray(tags)) return { license: null, baseModel: null, arxivIds: [], quantized: false };
-  const licenseTags = tags.filter((t) => typeof t === "string" && t.startsWith("license:"));
-  const baseModelTags = tags.filter((t) => typeof t === "string" && t.startsWith("base_model:"));
-  const arxivTags = tags.filter((t) => typeof t === "string" && t.startsWith("arxiv:"));
+  const licenseTags = tags.filter((t: any) => typeof t === "string" && t.startsWith("license:"));
+  const baseModelTags = tags.filter((t: any) => typeof t === "string" && t.startsWith("base_model:"));
+  const arxivTags = tags.filter((t: any) => typeof t === "string" && t.startsWith("arxiv:"));
   const isQuantized = tags.some(
-    (t) => typeof t === "string" && (t.startsWith("base_model:quantized:") || t.includes("quantized")),
+    (t: any) => typeof t === "string" && (t.startsWith("base_model:quantized:") || t.includes("quantized")),
   );
   return {
     license: licenseTags.length ? licenseTags[0].slice("license:".length) : null,
@@ -161,7 +161,7 @@ export function summarizeTags(tags: any): any {
       baseModelTags.length
         ? baseModelTags[0].replace(/^base_model:(quantized:)?/, "")
         : null,
-    arxivIds: arxivTags.map((t) => t.slice("arxiv:".length)).filter(Boolean),
+    arxivIds: arxivTags.map((t: any) => t.slice("arxiv:".length)).filter(Boolean),
     quantized: isQuantized,
   };
 }
@@ -184,7 +184,7 @@ export async function fetchPage(opts: any = {}): Promise<any[]> {
     headers: { "User-Agent": BROWSER_UA, Accept: "application/json" },
   });
   if (!Array.isArray(data)) return [];
-  return data.filter((m) => m && m.id && !m.private && !m.gated);
+  return data.filter((m: any) => m && m.id && !m.private && !m.gated);
 }
 
 /**
@@ -215,7 +215,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       fetchedAt: new Date().toISOString(),
       count: Math.min(all.length, topN),
     };
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("huggingface", err);
     return {
       ok: false,

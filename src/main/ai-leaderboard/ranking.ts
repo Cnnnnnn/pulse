@@ -5,9 +5,9 @@
  * 便于单测（无网络、无副作用）。
  */
 
-const { CATEGORY_META, DIMENSION_META, SOURCE } = require("./types.ts");
-const { normalizeVendor } = require("./types.ts");
-const { computeTrendingScore } = require("./fetcher-huggingface.ts");
+import { CATEGORY_META, DIMENSION_META, SOURCE } from "./types";
+import { normalizeVendor } from "./types";
+import { computeTrendingScore } from "./fetcher-huggingface";
 
 // ponytail: hf_license 维度 (v2.79.6+) — licenseKind → rank number (排序稳定用).
 // 字符串 sortValue 在 sortModels 里 (va - vb) * mul 是 NaN, 必须返数字.
@@ -95,7 +95,7 @@ export function sortModels(items: any[], dimension: string, dir: string = "desc"
   const board = (CATEGORY_META[category] && CATEGORY_META[category].board) || "text";
   const arr = Array.isArray(items) ? items.slice() : [];
   const mul = dir === "asc" ? 1 : -1;
-  arr.sort((a, b) => {
+  arr.sort((a: any, b: any) => {
     const va = sortValue(a, dimension, board);
     const vb = sortValue(b, dimension, board);
     if (va === vb) return 0;

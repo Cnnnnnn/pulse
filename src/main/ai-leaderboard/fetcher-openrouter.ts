@@ -8,9 +8,9 @@
  * 单源失败不影响其它源；本 fetcher 内部 try/catch，失败仅返回 {ok:false}。
  */
 
-const { fetchJson, BROWSER_UA } = require("./normalize.ts");
-const { SOURCE, toAiModel, slugifyModel, normalizeVendor } = require("./types.ts");
-const { logFetchError } = require("../games/log.ts");
+import { fetchJson, BROWSER_UA } from "./normalize";
+import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+import { logFetchError } from "../games/log";
 
 const OR_API = "https://openrouter.ai/api/v1/models";
 
@@ -43,7 +43,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       data,
       fetchedAt: new Date().toISOString(),
     };
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("openrouter", err);
     return {
       ok: false,

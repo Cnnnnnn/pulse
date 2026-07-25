@@ -65,7 +65,7 @@ const { mainLog }: { mainLog: MainLog } = require("../log.ts");
  * @param {object} deps
  * @returns {object} ctx
  */
-function createIpcContext(deps: IpcContextDeps): IpcContext {
+export function createIpcContext(deps: IpcContextDeps): IpcContext {
   const {
     getConfig,
     pool,

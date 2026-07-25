@@ -8,8 +8,8 @@
  */
 "use strict";
 
-const { getLeaderboard, matchesCategory } = require("./aggregator.ts");
-const { registerLeaderboardScheduler } = require("./scheduler.ts");
+import { getLeaderboard, matchesCategory } from "./aggregator";
+import { registerLeaderboardScheduler } from "./scheduler";
 
 let _scheduler: any = null;
 

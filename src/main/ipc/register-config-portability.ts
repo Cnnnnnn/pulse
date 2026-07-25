@@ -27,14 +27,14 @@ function errMsg(err: unknown): string {
 const os: typeof OsType = require("os");
 const path: typeof PathType = require("path");
 const fs: typeof FsType = require("fs");
-const stateStore = require("../state-store.ts");
+import * as stateStore from "../state-store";
 const {
   serializeConfig,
   parseConfigFile,
   computeDiff,
 } = require("../config-portability.ts");
 
-function registerConfigPortabilityHandlers(ctx: any) {
+export function registerConfigPortabilityHandlers(ctx: any) {
   const { safeHandle, dialog } = ctx;
   if (typeof safeHandle !== "function") return;
 
@@ -63,7 +63,7 @@ function registerConfigPortabilityHandlers(ctx: any) {
         path: outPath,
         sizeBytes: Buffer.byteLength(content, "utf8"),
       };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -79,7 +79,7 @@ function registerConfigPortabilityHandlers(ctx: any) {
         filters: [{ name: "Pulse Config", extensions: ["json"] }],
         properties: ["openFile"],
       });
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
     if (
@@ -94,7 +94,7 @@ function registerConfigPortabilityHandlers(ctx: any) {
     let content;
     try {
       content = fs.readFileSync(filePath, "utf8");
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "read_failed", error: errMsg(err) };
     }
     const parsed = parseConfigFile(content);
@@ -133,7 +133,7 @@ function registerConfigPortabilityHandlers(ctx: any) {
         stateStore.saveAiPrompts(inc.ai_prompts);
         applied.push("ai_prompts");
       }
-    } catch (err) {
+    } catch (err: any) {
       return {
         ok: false,
         reason: "threw",

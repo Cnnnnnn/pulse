@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { toGameDeal, fetchJson } = require("./normalize.ts");
-const { logFetchError } = require("./log.ts");
+import { toGameDeal, fetchJson } from "./normalize";
+import { logFetchError } from "./log";
 
 const SHOP_BY_PLATFORM: Record<string, number> = {
   xbox: 48,
@@ -40,7 +40,7 @@ function loadEnvItadKey(): void {
         break;
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("itad:env", err);
   }
 }
@@ -88,7 +88,7 @@ export async function fetchItadDeals(platform: string, opts: any = {}): Promise<
       })
       .filter((it: any) => it.normalPrice > 0);
     return items;
-  } catch (err) {
+  } catch (err: any) {
     logFetchError(`itad:${platform}`, err);
     return null;
   }
@@ -116,7 +116,7 @@ export async function fetchItadLowest(slugs: string[], opts: any = {}): Promise<
         }
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("itad:prices", err);
   }
   return result;

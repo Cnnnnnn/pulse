@@ -42,7 +42,7 @@ export function compareVersions(remote: string, local: string): number {
     String(v || "")
       .split("-")[0]
       .split(".")
-      .map((n) => parseInt(n, 10) || 0);
+      .map((n: any) => parseInt(n, 10) || 0);
   const r = norm(remote);
   const l = norm(local);
   for (let i = 0; i < 3; i++) {

@@ -6,13 +6,13 @@
  */
 "use strict";
 
-const { HttpClient } = require("../http-client.ts");
+import { HttpClient } from "../http-client";
 const {
     parseIthomeArticlePage,
     hasArticleContent,
 } = require("./article-page-parser.ts");
-const newsStore = require("./news-store.ts");
-const { mainLog } = require("../log.ts");
+import * as newsStore from "./news-store";
+import { mainLog } from "../log";
 
 const FETCH_TIMEOUT_MS = 20000;
 const MIN_USEFUL_BODY_CHARS = 200;

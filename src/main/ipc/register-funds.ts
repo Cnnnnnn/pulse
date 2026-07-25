@@ -4,26 +4,28 @@
 
 import type { IpcMain } from "electron";
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
-const { HttpClient } = require("../http-client.ts");
-const fundStore = require("../funds/fund-store.ts");
-const fundHistoryStore = require("../funds/fund-history-store.ts");
-const { searchFunds } = require("../../funds/fund-search");
-const { fetchFundNavBatch } = require("../../funds/fund-fetcher");
-const { pickEffectiveNavNumber } = require("../../funds/fund-nav-merge");
-const { fetchFundNavHistory, fetchIndexHistory } = require("../../funds/fund-nav-history");
-const fundNavHistoryStore = require("../funds/fund-history-store.ts");
+import { HttpClient } from "../http-client";
+import * as fundStore from "../funds/fund-store";
+import * as fundHistoryStore from "../funds/fund-history-store";
+const _hs: any = fundHistoryStore;
+const _fs: any = fundStore;
+import { searchFunds } from "../../funds/fund-search";
+import { fetchFundNavBatch } from "../../funds/fund-fetcher";
+import { pickEffectiveNavNumber } from "../../funds/fund-nav-merge";
+import { fetchFundNavHistory, fetchIndexHistory } from "../../funds/fund-nav-history";
+import * as fundNavHistoryStore from "../funds/fund-history-store";
 
-function registerFundsHandlers(ctx: any) {
+export function registerFundsHandlers(ctx: any) {
   const { safeHandle, threwResponse, fundScheduler } = ctx;
 
-  safeHandle("funds:list", () => ({ ok: true, ...fundStore.loadAll() }), {
+  safeHandle("funds:list", () => ({ ok: true, ..._fs.loadAll() }), {
     onError: (err: any) => threwResponse(err, { holdings: [], deletedIds: [] }),
   });
 
   safeHandle(
     "funds:add",
     (_event: any, input: any) => {
-      const out = fundStore.add(input);
+      const out = _fs.add(input);
       const sched = fundScheduler();
       if (sched && out.holding) {
         sched.fetchNow().catch(() => {});
@@ -44,7 +46,7 @@ function registerFundsHandlers(ctx: any) {
   safeHandle(
     "funds:update",
     (_event: any, id: any, patch: any) => {
-      const out = fundStore.update(id, patch);
+      const out = _fs.update(id, patch);
       if (!out) return { ok: false, reason: "not_found" };
       return { ok: true, holding: out.holding, holdings: out.all.holdings };
     },
@@ -60,7 +62,7 @@ function registerFundsHandlers(ctx: any) {
   );
 
   safeHandle("funds:remove", (_event: any, id: any) => {
-    const out = fundStore.remove(id);
+    const out = _fs.remove(id);
     if (!out.ok) return out;
     const sched = fundScheduler();
     if (sched) {
@@ -70,7 +72,7 @@ function registerFundsHandlers(ctx: any) {
   });
 
   safeHandle("funds:restore", (_event: any, id: any) => {
-    const out = fundStore.restore(id);
+    const out = _fs.restore(id);
     return out.ok ? { ok: true, holding: out.holding } : out;
   });
 
@@ -97,8 +99,8 @@ function registerFundsHandlers(ctx: any) {
     const list = [
       ...new Set(
         (Array.isArray(codes) ? codes : [])
-          .map((c) => String(c || "").trim())
-          .filter((c) => /^\d{6}$/.test(c)),
+          .map((c: any) => String(c || "").trim())
+          .filter((c: any) => /^\d{6}$/.test(c)),
       ),
     ];
     if (list.length === 0) return { ok: false, reason: "invalid_codes" };
@@ -125,7 +127,7 @@ function registerFundsHandlers(ctx: any) {
   safeHandle(
     "funds:history:list",
     () => {
-      const dailySnapshots = fundHistoryStore.loadSnapshots();
+      const dailySnapshots = _hs.loadSnapshots();
       return { ok: true, dailySnapshots };
     },
     { onError: (err: any) => threwResponse(err, { dailySnapshots: [] }) },
@@ -135,8 +137,8 @@ function registerFundsHandlers(ctx: any) {
   //   ponytail: 旧逻辑「有缓存就返回」会把历史上 30 天短缓存永久钉死, 用户切 3M/1Y 无效
   safeHandle("funds:nav:history", async (_event: any, code: any, opts: any) => {
     const requestedDays = Math.max(1, Number(opts && opts.days) || 365);
-    const cached = fundNavHistoryStore.loadNavHistory(code);
-    if (fundNavHistoryStore.isNavCacheSufficient(cached, requestedDays)) {
+    const cached = _hs.loadNavHistory(code);
+    if (_hs.isNavCacheSufficient(cached, requestedDays)) {
       return { ok: true, series: cached, cached: true };
     }
     const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
@@ -145,7 +147,7 @@ function registerFundsHandlers(ctx: any) {
       // 新拉的更长才覆盖; 基金上市不足时接口可能返回更短, 保留较长的那份
       const series =
         out.series.length >= cached.length ? out.series : cached;
-      fundNavHistoryStore.saveNavHistory(code, series);
+      _hs.saveNavHistory(code, series);
       return { ok: true, series, reason: null, cached: false };
     }
     if (cached.length) return { ok: true, series: cached, cached: true, reason: out.reason };
@@ -155,8 +157,8 @@ function registerFundsHandlers(ctx: any) {
   // T-C1a: 基准指数历史 (沪深300 等). 先读缓存, miss 再拉取并写回.
   safeHandle("funds:index:history", async (_event: any, symbol: any, opts: any) => {
     const requestedDays = Math.max(1, Number(opts && opts.days) || 365);
-    const cached = fundNavHistoryStore.loadIndexHistory(symbol);
-    if (fundNavHistoryStore.isNavCacheSufficient(cached, requestedDays)) {
+    const cached = _hs.loadIndexHistory(symbol);
+    if (_hs.isNavCacheSufficient(cached, requestedDays)) {
       return { ok: true, series: cached, cached: true };
     }
     const httpClient = new HttpClient({ timeout: 8000, maxRetries: 0 });
@@ -164,7 +166,7 @@ function registerFundsHandlers(ctx: any) {
     if (out.ok) {
       const series =
         out.series.length >= cached.length ? out.series : cached;
-      fundNavHistoryStore.saveIndexHistory(symbol, series);
+      _hs.saveIndexHistory(symbol, series);
       return { ok: true, series, reason: null, cached: false };
     }
     if (cached.length) return { ok: true, series: cached, cached: true, reason: out.reason };
@@ -172,7 +174,7 @@ function registerFundsHandlers(ctx: any) {
   });
 
   safeHandle("funds:set-nav-source", (_event: any, source: any) => {
-    const all = fundStore.setNavSource(source);
+    const all = _fs.setNavSource(source);
     return { ok: true, navSource: all.navSource };
   });
 
@@ -180,21 +182,21 @@ function registerFundsHandlers(ctx: any) {
     const sched = fundScheduler();
     const cache =
       sched && sched.getLastNavForCode ? sched.getLastNavForCode(code) : null;
-    const { navSource } = fundStore.loadAll();
+    const { navSource } = _fs.loadAll();
     const nav = pickEffectiveNavNumber(cache, navSource);
     if (!nav) {
       return { ok: false, reason: "no_nav_cached" };
     }
-    return fundStore.backfillFromNav(code, nav);
+    return _fs.backfillFromNav(code, nav);
   });
 
   safeHandle("funds:alert-prefs:get", () => {
-    const { alertPrefs } = fundStore.loadAll();
+    const { alertPrefs } = _fs.loadAll();
     return { ok: true, alertPrefs };
   });
 
   safeHandle("funds:alert-prefs:set", (_event: any, patch: any) => {
-    const all = fundStore.setAlertPrefs(patch || {});
+    const all = _fs.setAlertPrefs(patch || {});
     return { ok: true, alertPrefs: all.alertPrefs };
   });
 }

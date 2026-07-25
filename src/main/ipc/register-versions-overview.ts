@@ -12,14 +12,14 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type {} from "electron";
-const stateStore = require("../state-store.ts");
-const { runCheckQueued } = require("../check-runner.ts");
-const { buildRunCheckDeps } = require("../run-check-deps.ts");
+import * as stateStore from "../state-store";
+import { runCheckQueued } from "../check-runner";
+import { buildRunCheckDeps } from "../run-check-deps";
 
-async function commandSearch(_ctx: any, q: any) {
+export async function commandSearch(_ctx: any, q: any) {
   if (!q || typeof q !== "string") return { ok: true, results: [] };
   const lower = q.toLowerCase();
-  const results = [];
+  const results: any[] = [];
   if (lower.includes("check") || lower.includes("更新")) {
     results.push({ id: "action-check", label: "检查更新", kind: "action" });
   }
@@ -36,7 +36,7 @@ async function commandSearch(_ctx: any, q: any) {
   return { ok: true, results: results.slice(0, 10) };
 }
 
-function registerVersionsOverviewHandlers(ctx: any) {
+export function registerVersionsOverviewHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
   safeHandle("versions:command-search", async (_e: any, { q }: any) =>

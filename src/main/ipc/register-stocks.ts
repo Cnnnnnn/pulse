@@ -20,15 +20,15 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const { createStockHttpClient } = require("../chromium-http-client.ts");
+import { createStockHttpClient } from "../chromium-http-client";
 const {
   fetchStocks,
   fetchStocksByCodes,
-} = require("../../stocks/stock-fetcher");
-const { searchStocks } = require("../../stocks/stock-search");
-const { applyScreen, filterStocks } = require("../../stocks/stock-filter");
-const { computeMarketOverview } = require("../../stocks/market-overview");
-const { aiStockAdvise } = require("../../ai/stock-screener-advisor");
+} = require("../../stocks/stock-fetcher.js");
+import { searchStocks } from "../../stocks/stock-search";
+import { applyScreen, filterStocks } from "../../stocks/stock-filter";
+import { computeMarketOverview } from "../../stocks/market-overview";
+import { aiStockAdvise } from "../../ai/stock-screener-advisor";
 
 const CACHE_TTL_MS = 60_000;
 // 内存缓存: { key, rows, total, fetchedAt }. key = criteria+sort 的 JSON.
@@ -68,7 +68,7 @@ function searchCacheSet(query: any, results: any) {
 
 // ponytail: 2026-07-07 — 用全市场 rows (StockRow 形态) 补搜索结果的 price/changePct/industry.
 // entries: searchStocks raw 结果. rows: _cache.rows 或 null. 返新数组, 不改 input.
-function enrichSearchResults(entries: any, rows: any) {
+export function enrichSearchResults(entries: any, rows: any) {
   if (!Array.isArray(entries) || !Array.isArray(rows) || rows.length === 0) {
     return entries;
   }
@@ -77,7 +77,7 @@ function enrichSearchResults(entries: any, rows: any) {
   for (const r of rows) {
     if (r && r.code) byCode.set(r.code, r);
   }
-  return entries.map((e) => {
+  return entries.map((e: any) => {
     if (!e || !e.code) return e;
     const r = byCode.get(e.code);
     if (!r) return e;
@@ -111,7 +111,7 @@ function criteriaKey(criteria: any) {
   return JSON.stringify({ c: criteria || {} });
 }
 
-function registerStocksHandlers(ctx: any) {
+export function registerStocksHandlers(ctx: any) {
   const { safeHandle, threwResponse } = ctx;
 
   safeHandle(
@@ -222,7 +222,7 @@ function registerStocksHandlers(ctx: any) {
               { timeoutMs: 6000 },
             );
             if (Array.isArray(rows) && rows.length > 0) {
-              const byCode = new Map(rows.map((r) => [r.code, r]));
+              const byCode = new Map(rows.map((r: any) => [r.code, r]));
               reEnriched = reEnriched.map((e: any) => {
                 if (!e || !e.code) return e;
                 const r = byCode.get(e.code);
@@ -245,7 +245,7 @@ function registerStocksHandlers(ctx: any) {
                 };
               });
             }
-          } catch (_) {
+          } catch (_: any) {
             // ponytail: 行情拉失败保持原缓存, 不阻塞返结果
           }
         }
@@ -274,7 +274,7 @@ function registerStocksHandlers(ctx: any) {
             { timeoutMs: 6000 },
           );
           if (Array.isArray(rows) && rows.length > 0) {
-            const byCode = new Map(rows.map((r) => [r.code, r]));
+            const byCode = new Map(rows.map((r: any) => [r.code, r]));
             enriched = enriched.map((e: any) => {
               if (!e || !e.code) return e;
               const r = byCode.get(e.code);
@@ -293,7 +293,7 @@ function registerStocksHandlers(ctx: any) {
               };
             });
           }
-        } catch (_) {
+        } catch (_: any) {
           // ponytail: 行情拉失败不阻塞搜索, 仍返部分结果
         }
       }

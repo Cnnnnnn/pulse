@@ -16,16 +16,16 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const { fetchUpgradeAdvice } = require("../../ai/upgrade-advice");
+import { fetchUpgradeAdvice } from "../../ai/upgrade-advice";
 
-function registerUpgradeAdviceHandlers(ctx: any) {
+export function registerUpgradeAdviceHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
   safeHandle("upgrade-advice:fetch", async (_evt: any, opts: any) => {
     try {
       return await fetchUpgradeAdvice(opts || {});
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });

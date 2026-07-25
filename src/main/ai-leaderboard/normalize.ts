@@ -5,8 +5,12 @@
  * 照搬 games/normalize.js 的 fetchJson + BROWSER_UA 范式（复用同一份实现，避免漂移）。
  */
 
-const { BROWSER_UA, fetchJson } = require("../games/normalize.ts");
-const { SOURCE, toAiModel, makeId } = require("./types.ts");
+import { BROWSER_UA, fetchJson } from "../games/normalize";
+import { SOURCE, toAiModel, makeId } from "./types";
+
+// ponytail: 7a-6 re-export 让 fetcher-X 用 `import { fetchJson, BROWSER_UA } from "./normalize"`,
+// 7b 删 shim 时去掉 module.exports.
+export { BROWSER_UA, fetchJson };
 
 /**
  * 构造稳定主键：vendor + name 归一化。与 types.makeId 同口径。
@@ -157,9 +161,9 @@ export function _mergeByName(models: any[]): Map<string, any> {
       // ponytail: HF 多变体保护 — 同名但 libraryName 不同时是合法变体 (HF 上
       // sentence-transformers 团队 vs Xenova (transformers.js 端口) 都会发同名 model,
       // 不应该被 _mergeByName 兜底合并). libraryName 都为空时仍走合并 (兼容其它源).
-      const hfLibs = list.map((m) => m && m.huggingface && m.huggingface.libraryName).filter(Boolean);
+      const hfLibs = list.map((m: any) => m && m.huggingface && m.huggingface.libraryName).filter(Boolean);
       if (hfLibs.length >= 2 && new Set(hfLibs).size > 1) continue;
-      list.sort((a, b) => {
+      list.sort((a: any, b: any) => {
         const pa = _priorityScore(a);
         const pb = _priorityScore(b);
         if (pb !== pa) return pb - pa;

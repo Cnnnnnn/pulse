@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { fetchJson, toGameDeal, BROWSER_UA } = require("./normalize.ts");
-const { logFetchError } = require("./log.ts");
+import { fetchJson, toGameDeal, BROWSER_UA } from "./normalize";
+import { logFetchError } from "./log";
 
 const RSS_URL = "https://news.xbox.com/en-us/feed/?tag=free-play-days";
 const CATALOG_BASE = "https://displaycatalog.mp.microsoft.com/v7.0/products";
@@ -179,7 +179,7 @@ export async function fetchXboxFree(opts: any = {}): Promise<any[]> {
         });
       })
       .filter(Boolean);
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("xbox:free-play-days", err);
     return [];
   }

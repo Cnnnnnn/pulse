@@ -20,10 +20,10 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let impl: any;
 if (process.platform === "darwin") {
-  impl = require("./macos");
+  impl = require("./macos.js");
 } else {
   // win32 + 其它一律走 windows (P1 全是 stub)
-  impl = require("./windows");
+  impl = require("./windows.js");
 }
 
 // ponytail 3: Phase 7 7a 保留 module.exports, 测试用 requirePlatform('index')
@@ -31,3 +31,12 @@ if (process.platform === "darwin") {
 module.exports = impl;
 // ESM default export 让 `import platform from ...` 也能工作 (task-handlers 用).
 export default impl;
+
+// ponytail 4: 7a-6 让 `import * as platform from ...` 也能拿到 named methods
+// (register-core 等用 namespace import). 跨平台实现可能缺方法, caller 用之前要 narrow.
+export const resolveAppPath = impl.resolveAppPath;
+export const getInstalledVersion = impl.getInstalledVersion;
+export const getAppIcon = impl.getAppIcon;
+export const getUpgradeAction = impl.getUpgradeAction;
+export const execUpgrade = impl.execUpgrade;
+export const getWindowOptions = impl.getWindowOptions;

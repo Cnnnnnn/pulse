@@ -6,7 +6,7 @@
  */
 "use strict";
 
-const { toGameDeal, fetchJson } = require("./normalize.ts");
+import { toGameDeal, fetchJson } from "./normalize";
 
 const STORE_ID = "1";
 const BASE = "https://www.cheapshark.com/api/1.0/deals";
@@ -26,7 +26,7 @@ export async function fetchSteamDeals(opts: any = {}): Promise<any[]> {
     timeoutMs: 9000,
   });
   if (!Array.isArray(data)) return [];
-  return data.map((d) => {
+  return data.map((d: any) => {
     const appId = d.steamAppID;
     const dealUrl = appId
       ? `https://store.steampowered.com/app/${appId}/`

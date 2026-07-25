@@ -10,12 +10,12 @@
 //          rewrite 依赖 path 保留裸名).
 import type {} from "electron";
 
-const { mainLog } = require("../log.ts");
+import { mainLog } from "../log";
 
 /**
  * @param {{ getWindow: () => import('electron').BrowserWindow | null }} deps
  */
-function createSender(deps: any) {
+export function createSender(deps: any) {
   return function sendToRenderer(channel: any, payload: any) {
     const w = deps.getWindow && deps.getWindow();
     if (w && !w.isDestroyed()) {
@@ -24,7 +24,7 @@ function createSender(deps: any) {
   };
 }
 
-function installErrorGuardBridge(sendToRenderer: any) {
+export function installErrorGuardBridge(sendToRenderer: any) {
   const { installErrorGuard } = require("../error-guard.ts");
   installErrorGuard((channel: any, payload: any) => sendToRenderer(channel, payload));
   mainLog.info("error guard installed");

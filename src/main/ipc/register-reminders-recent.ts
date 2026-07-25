@@ -10,39 +10,39 @@ function errMsg(err: unknown): string {
 }
 
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
-const reminders = require("../reminders.ts");
-const recentActivity = require("../recent-activity.ts");
+import * as reminders from "../reminders";
+import * as recentActivity from "../recent-activity";
 
-function registerRemindersRecentHandlers(ctx: any) {
+export function registerRemindersRecentHandlers(ctx: any) {
   const { sendToRenderer } = ctx;
 
   ipcMain.handle("reminders:list", () => {
     try {
       return { ok: true, reminders: reminders.list() };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "list_failed", msg: errMsg(err) };
     }
   });
-  ipcMain.handle("reminders:create", (_evt, input) => reminders.create(input));
-  ipcMain.handle("reminders:update", (_evt, payload) => {
+  ipcMain.handle("reminders:create", (_evt: any, input: any) => reminders.create(input));
+  ipcMain.handle("reminders:update", (_evt: any, payload: any) => {
     if (!payload || typeof payload !== "object")
       return { ok: false, reason: "invalid_input" };
     return reminders.update(payload.id, payload.patch);
   });
-  ipcMain.handle("reminders:remove", (_evt, id) => reminders.remove(id));
-  ipcMain.handle("reminders:mark-done", (_evt, id) => reminders.markDone(id));
-  ipcMain.handle("reminders:mark-dismissed", (_evt, id) =>
+  ipcMain.handle("reminders:remove", (_evt: any, id: any) => reminders.remove(id));
+  ipcMain.handle("reminders:mark-done", (_evt: any, id: any) => reminders.markDone(id));
+  ipcMain.handle("reminders:mark-dismissed", (_evt: any, id: any) =>
     reminders.markDismissed(id),
   );
 
   ipcMain.handle("recent:list", () => {
     try {
       return { ok: true, entries: recentActivity.list() };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "list_failed", msg: errMsg(err) };
     }
   });
-  ipcMain.handle("recent:push", (_evt, entry) => {
+  ipcMain.handle("recent:push", (_evt: any, entry: any) => {
     const r = recentActivity.push(entry);
     if (r && r.ok) {
       sendToRenderer("recent:updated", { entries: recentActivity.list() });

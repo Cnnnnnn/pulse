@@ -6,9 +6,9 @@
  */
 "use strict";
 
-const { canonicalTeamName, teamsPairKey } = require("./team-aliases.ts");
-const { matchKickoffUtcMs } = require("./match-key.ts");
-const { mainLog } = require("../log.ts");
+import { canonicalTeamName, teamsPairKey } from "./team-aliases";
+import { matchKickoffUtcMs } from "./match-key";
+import { mainLog } from "../log";
 
 const ESPN_SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
@@ -165,7 +165,7 @@ export function scorersFromEspnEvent(event: any, fixture: any): any[] {
     });
   }
 
-  out.sort((a, b) => {
+  out.sort((a: any, b: any) => {
     const ma = parseInt(String(a.minute).replace(/\D/g, ""), 10) || 0;
     const mb = parseInt(String(b.minute).replace(/\D/g, ""), 10) || 0;
     return ma - mb;
@@ -208,7 +208,7 @@ export function orientEspnScore(entry: any, event: any, fixture: any): any {
     return {
       ...entry,
       ft: [entry.ft[1], entry.ft[0]],
-      scorers: scorers.map((s) => ({
+      scorers: scorers.map((s: any) => ({
         ...s,
         teamSide: s.teamSide === "team1" ? "team2" : "team1",
       })),

@@ -7,11 +7,11 @@
  * Spec: docs/superpowers/specs/2026-06-23-i2-watchlist-design.md
  */
 
-const { Notification: ElectronNotification } = require("electron");
-const stateStore = require("./state-store.ts");
-const { mainLog } = require("./log.ts");
-const { inQuietHours } = require("./notification-policy.ts");
-const { pickEffectiveNavNumber } = require("../funds/fund-nav-merge");
+import { Notification as ElectronNotification } from "electron";
+import * as stateStore from "./state-store";
+import { mainLog } from "./log";
+import { inQuietHours } from "./notification-policy";
+import { pickEffectiveNavNumber } from "../funds/fund-nav-merge";
 
 /** ponytail: 基金净值相对上次通知变动 ≥ 此值才再提醒 */
 export const FUND_NAV_CHANGE_PCT = 2;
@@ -37,9 +37,9 @@ function appRef(w: WatchItem | null | undefined): string | null {
 
 function mergeWatchlistPatches(watchlist: WatchItem[], patches: any[]): WatchItem[] {
   const byKey = new Map(
-    patches.map((p) => [stateStore.watchlistItemKey(p), p]),
+    patches.map((p: any) => [stateStore.watchlistItemKey(p), p]),
   );
-  return watchlist.map((w) => {
+  return watchlist.map((w: any) => {
     const patch = byKey.get(stateStore.watchlistItemKey(w));
     return patch ? { ...w, ...patch } : w;
   });
@@ -235,7 +235,7 @@ export function checkWatchlistKeywordUpdatesPure(watchlist: WatchItem[], headlin
     if (!kw) continue;
     const lower = kw.toLowerCase();
     const hit = headlines.find(
-      (h) =>
+      (h: any) =>
         h &&
         typeof h.title === "string" &&
         h.title.toLowerCase().includes(lower),
@@ -330,7 +330,7 @@ export function checkWatchlistUpdates(deps: CheckDeps = {}): CheckResult {
   return persistAndNotify(
     { watchlist, saveWatchlist, sendNotification, log },
     out,
-    (it) => ({
+    (it: any) => ({
       title: `⭐ ${it.ref} 升级`,
       body: `新版本 ${it.latestVersion}`,
     }),
@@ -351,7 +351,7 @@ export function checkWatchlistFundUpdates(deps: CheckDeps = {}): CheckResult {
   return persistAndNotify(
     { watchlist, saveWatchlist, sendNotification, log },
     out,
-    (it) => ({
+    (it: any) => ({
       title: `💰 基金 ${it.ref} 净值${it.dir}`,
       body: `现价 ${Number(it.nav).toFixed(4)}，较上次提醒变动 ${it.changePct.toFixed(2)}%`,
     }),
@@ -371,7 +371,7 @@ export function checkWatchlistKeywordUpdates(deps: CheckDeps = {}): CheckResult 
   return persistAndNotify(
     { watchlist, saveWatchlist, sendNotification, log },
     out,
-    (it) => ({
+    (it: any) => ({
       title: `🔍 关键词「${it.ref}」`,
       body: it.matchTitle,
     }),
@@ -392,7 +392,7 @@ export function checkWatchlistMetalUpdates(deps: CheckDeps = {}): CheckResult {
   return persistAndNotify(
     { watchlist, saveWatchlist, sendNotification, log },
     out,
-    (it) => {
+    (it: any) => {
       const name =
         typeof getMetalLabel === "function"
           ? getMetalLabel(it.ref) || it.ref

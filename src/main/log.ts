@@ -112,7 +112,7 @@ function flattenMeta(meta: Record<string, unknown>): string {
         // 含特殊字符: 加双引号 + 转义
         const safe = v.replace(
           /[\\\n\r"]/g,
-          (c) =>
+          (c: any) =>
             ({ "\\": "\\\\", "\n": "\\n", "\r": "\\r", '"': '\\"' } as Record<
               string,
               string
@@ -163,7 +163,7 @@ function writeLine(file: string, line: string): void {
       }
     } catch { /* file not exist yet, noop */ }
     fs.appendFileSync(full, line);
-  } catch (err) {
+  } catch (err: any) {
     // 写失败就退到 console；绝不让 logger 自己 crash 主进程
     try {
       const msg = err && typeof err === "object" && "message" in err ? (err as Error).message : String(err);
@@ -219,3 +219,7 @@ module.exports = {
   mainLog,
   detectLog,
 };
+
+// ponytail: Phase 3 5 例外加 ESM named export 让 caller 用 `import { mainLog }`,
+// 同时保留 module.exports 让 CJS shim/test 不破. dist-test 互操作标记 __esModule.
+export { createLogger, resolveLogDir, isDebug, mainLog, detectLog };

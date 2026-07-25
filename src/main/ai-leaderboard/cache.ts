@@ -11,9 +11,9 @@
  * 在 vitest node 环境（无 electron）下自动降级为纯内存缓存，保证可测。
  */
 
-const fs = require("fs");
-const zlib = require("zlib");
-const path = require("path");
+import * as fs from "fs";
+import * as zlib from "zlib";
+import * as path from "path";
 
 let _cacheDir: string | false | null = null;
 let _memCache = new Map<string, any>(); // key -> { data, fetchedAt }

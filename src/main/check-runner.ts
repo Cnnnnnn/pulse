@@ -4,7 +4,7 @@
  * Phase 16: 抽出 check 逻辑, 让 IPC handler 和后台定时器共用.
  * Phase 27: 通知 dispatch 时跳过 muted apps.
  *
- * 入口: runCheck(ctx, { silent })
+ * 入口: runCheck(ctx: any, { silent }: any)
  *   - silent=false (默认, IPC 调用): 推 check-started/finished 事件, 发系统通知
  *   - silent=true (后台定时): 静默, 只更新 state + tray/badge + 发 auto-check-finished
  *
@@ -15,11 +15,11 @@
  *   - onCheckComplete(results) → 推给 tray/badge + state-store
  */
 
-const { Notification: ElectronNotification } = require("electron");
-const { inQuietHours, suppressedByCooldown } = require("./notification-policy.ts");
-const { isMuteActive } = require("./state-store.ts");
-const recentActivity = require("./recent-activity.ts");
-const { detectStaleApps } = require("../utils/stale-detect");
+import { Notification as ElectronNotification } from "electron";
+import { inQuietHours, suppressedByCooldown } from "./notification-policy";
+import { isMuteActive } from "./state-store";
+import * as recentActivity from "./recent-activity";
+import { detectStaleApps } from "../utils/stale-detect";
 
 const PER_APP_DETECT_TIMEOUT_MS = 95_000;
 
@@ -52,7 +52,7 @@ function enqueueDetectApp(pool: any, appCfg: any, history: any, incremental: any
   });
   return Promise.race([
     job,
-    new Promise((_, reject) => {
+    new Promise((_: any, reject: any) => {
       setTimeout(
         () =>
           reject(
@@ -137,7 +137,7 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
     );
   });
   const settled = await Promise.allSettled(tasks);
-  const results = settled.map((s, i) => {
+  const results = settled.map((s: any, i: any) => {
     if (s.status === "fulfilled" && (s as any).value) {
       return (s as any).value;
     }

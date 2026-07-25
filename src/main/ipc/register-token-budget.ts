@@ -20,10 +20,10 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const stateStore = require("../state-store.ts");
-const { todayKey } = require("../token-budget.ts");
+import * as stateStore from "../state-store";
+import { todayKey } from "../token-budget";
 
-function registerTokenBudgetHandlers(ctx: any) {
+export function registerTokenBudgetHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
@@ -32,7 +32,7 @@ function registerTokenBudgetHandlers(ctx: any) {
       const config = stateStore.loadTokenBudgetConfig();
       const spend = stateStore.loadTokenSpend();
       return { ok: true, config, todaySpend: spend[todayKey()] || 0 };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -51,7 +51,7 @@ function registerTokenBudgetHandlers(ctx: any) {
         mode: cfg.mode,
       });
       return { ok: true };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });

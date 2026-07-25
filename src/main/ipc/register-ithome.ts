@@ -4,10 +4,11 @@
 
 import type {} from "electron";
 
-const ithomeNewsStore = require("../ithome/news-store.ts");
-const { summarizeArticle } = require("../ithome/article-ai.ts");
+import * as ithomeNewsStore from "../ithome/news-store";
+const _ns: any = ithomeNewsStore;
+import { summarizeArticle } from "../ithome/article-ai";
 
-function registerIthomeHandlers(ctx: any) {
+export function registerIthomeHandlers(ctx: any) {
   const { safeHandle, getConfig } = ctx;
 
   function runKeywordWatchlistFromNews(news: any) {
@@ -32,21 +33,21 @@ function registerIthomeHandlers(ctx: any) {
     }
   }
 
-  safeHandle("ithome:load-news", async () => ithomeNewsStore.loadAll());
+  safeHandle("ithome:load-news", async () => _ns.loadAll());
 
   safeHandle("ithome:refresh-news", async (_evt: any, dateKey: any) => {
     const out = dateKey
-      ? await ithomeNewsStore.fetchDay(dateKey)
-      : await ithomeNewsStore.refresh();
+      ? await _ns.fetchDay(dateKey)
+      : await _ns.refresh();
     if (out && out.ok !== false) {
-      const all = await ithomeNewsStore.loadAll();
+      const all = await _ns.loadAll();
       runKeywordWatchlistFromNews(all);
     }
     return out;
   });
 
   safeHandle("ithome:fetch-day", async (_evt: any, dateKey: any) =>
-    ithomeNewsStore.fetchDay(dateKey),
+    _ns.fetchDay(dateKey),
   );
 
   safeHandle("ithome:summarize-article", async (_evt: any, payload: any) =>
@@ -58,14 +59,14 @@ function registerIthomeHandlers(ctx: any) {
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
     }
-    return ithomeNewsStore.toggleFavorite(id);
+    return _ns.toggleFavorite(id);
   });
 
   safeHandle("ithome:mark-read", async (_evt: any, id: any) => {
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
     }
-    return ithomeNewsStore.markArticleRead(id);
+    return _ns.markArticleRead(id);
   });
 }
 

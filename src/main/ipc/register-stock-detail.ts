@@ -19,15 +19,15 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const { createStockHttpClient } = require("../chromium-http-client.ts");
-const { fetchStockDetailAngles, fetchSingleAngle } = require("../../stocks/stock-detail-fetcher");
-const { computeStockCacheKey } = require("../../stocks/stock-detail-cache");
-const { aiStockDetailAnalyze, refreshAngleLocally } = require("../../ai/stock-detail-advisor");
+import { createStockHttpClient } from "../chromium-http-client";
+import { fetchStockDetailAngles, fetchSingleAngle } from "../../stocks/stock-detail-fetcher";
+import { computeStockCacheKey } from "../../stocks/stock-detail-cache";
+import { aiStockDetailAnalyze, refreshAngleLocally } from "../../ai/stock-detail-advisor";
 
 const CACHE_TTL_MS = 60_000;
 const _detailCache = new Map();
 
-function registerStockDetailHandlers(ctx: any) {
+export function registerStockDetailHandlers(ctx: any) {
   const { safeHandle, threwResponse } = ctx;
 
   safeHandle(

@@ -9,14 +9,14 @@
 //          rewrite 依赖 path 保留裸名).
 import type {} from "electron";
 
-const { mainLog } = require("../log.ts");
-const { buildTaskSummaryEngine } = require("../../ai-sessions/wiring");
+import { mainLog } from "../log";
+import { buildTaskSummaryEngine } from "../../ai-sessions/wiring";
 
 /**
  * @param {object} deps
  * @param {object} deps.stateStore
  */
-function initAiTasksWiring(deps: any) {
+export function initAiTasksWiring(deps: any) {
   const { stateStore } = deps;
   const stateOverride = stateStore.loadAISessionsConfig();
   const cfgBase =
@@ -29,9 +29,9 @@ function initAiTasksWiring(deps: any) {
       config: cfgBase,
       runtimeOverride: stateStore.loadAISessionsConfig(),
       log: {
-        info: (...a: any[]) => mainLog.info(...a),
-        warn: (...a: any[]) => mainLog.warn(...a),
-        error: (...a: any[]) => mainLog.error(...a),
+        info: (...a: any[]) => (mainLog as any).info(...a),
+        warn: (...a: any[]) => (mainLog as any).warn(...a),
+        error: (...a: any[]) => (mainLog as any).error(...a),
       },
     });
     (globalThis as any).__pulse_aiTasks = wiring;
@@ -40,7 +40,7 @@ function initAiTasksWiring(deps: any) {
     mainLog.info(
       `[tasks] wiring ready: provider=${wiring.providerId} detectors=[${detectorNames}]`,
     );
-  } catch (err) {
+  } catch (err: any) {
     mainLog.warn(`[tasks] buildTaskSummaryEngine failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

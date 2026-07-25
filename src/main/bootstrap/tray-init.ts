@@ -16,11 +16,11 @@ import type {} from "electron";
 
 let _trayMgr: any = null;
 
-function setTrayManager(m: any) {
+export function setTrayManager(m: any) {
   _trayMgr = m;
 }
 
-function getTrayManager() {
+export function getTrayManager() {
   return _trayMgr;
 }
 

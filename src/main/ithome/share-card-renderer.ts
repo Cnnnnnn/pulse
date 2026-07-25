@@ -6,9 +6,9 @@
  */
 "use strict";
 
-const { BrowserWindow, app, ipcMain } = require("electron");
-const path = require("path");
-const { mainLog } = require("../log.ts");
+import { BrowserWindow, app, ipcMain } from "electron";
+import * as path from "path";
+import { mainLog } from "../log";
 
 const DEFAULT_TIMEOUT_MS = 10000;
 const WINDOW_WIDTH = 1080;
@@ -23,7 +23,7 @@ function _diag(line: string): void {
 }
 
 function _timeoutPromise(ms: number, message: string): Promise<never> {
-    return new Promise((_resolve, reject) => {
+    return new Promise((_resolve: any, reject: any) => {
         setTimeout(() => reject(new Error(message)), ms);
     });
 }
@@ -50,7 +50,7 @@ export async function createShareCardPng(payload: any, opts: any = {}): Promise<
     });
 
     let _resolveReady: (v: any) => void;
-    const readyPromise = new Promise((resolve) => {
+    const readyPromise = new Promise((resolve: any) => {
         _resolveReady = resolve;
     });
     ipcMain.on("share-card:ready", () => {
@@ -102,7 +102,7 @@ export async function createShareCardPng(payload: any, opts: any = {}): Promise<
 
         const dimsRaw = await win.webContents.executeJavaScript(`
           JSON.stringify((function() {
-            function r(sel) {
+            function r(sel: any) {
               const el = document.querySelector(sel);
               if (!el) return null;
               const b = el.getBoundingClientRect();
@@ -139,7 +139,7 @@ export async function createShareCardPng(payload: any, opts: any = {}): Promise<
             throw new Error("render_timeout");
         }
 
-        await new Promise((r) => setTimeout(r, 100));
+        await new Promise((r: any) => setTimeout(r, 100));
 
         const image = await win.webContents.capturePage();
         if (!image) throw new Error("capture_empty");

@@ -10,9 +10,9 @@
  */
 "use strict";
 
-const fs = require("fs");
-const stateStore = require("../state-store.ts");
-const { mainLog } = require("../log.ts");
+import * as fs from "fs";
+import * as stateStore from "../state-store";
+import { mainLog } from "../log";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_NOTE_LEN = 200;

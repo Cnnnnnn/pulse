@@ -8,8 +8,8 @@
  */
 "use strict";
 
-const { HttpClient } = require("./http-client.ts");
-const { mainLog } = require("./log.ts");
+import { HttpClient } from "./http-client";
+import { mainLog } from "./log";
 
 const UA = "Pulse-AppUpdateChecker/2.79";
 const API_BASE = "https://api.github.com";

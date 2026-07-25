@@ -135,7 +135,7 @@ export function createSearchIndex(): SearchIndex {
     }
 
     // 排序: score 降序, 同分按 dateMs 降序
-    matched.sort((a, b) => {
+    matched.sort((a: any, b: any) => {
       if (b.score !== a.score) return b.score - a.score;
       const da = (a.doc.payload && (a.doc.payload as any).dateMs) || 0;
       const db = (b.doc.payload && (b.doc.payload as any).dateMs) || 0;
@@ -150,11 +150,11 @@ export function createSearchIndex(): SearchIndex {
 
     // source filter
     const filtered = sourceFilter
-      ? matched.filter((m) => m.doc.source === sourceFilter)
+      ? matched.filter((m: any) => m.doc.source === sourceFilter)
       : matched;
 
     return {
-      results: filtered.slice(0, limit).map((m) => ({
+      results: filtered.slice(0, limit).map((m: any) => ({
         ...m.doc,
         matchedSnippet: makeSnippet(m.doc.searchText || m.doc.title || "", queryTokens, { radius: 30 }),
       })),

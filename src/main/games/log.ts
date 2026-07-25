@@ -13,8 +13,8 @@
  * @param source 数据源标识，如 "playstation:psgamespider"
  * @param err 异常对象
  */
-export function logFetchError(source: string, err: unknown): void {
-  const msg = err && (err as any).message ? (err as any).message : String(err);
+export function logFetchError(source: string, err: any): void {
+  const msg = err && err.message ? err.message : String(err);
   console.warn(`[games] fetch failed: ${source} — ${msg}`);
 }
 

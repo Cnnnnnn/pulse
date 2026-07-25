@@ -28,7 +28,7 @@ export const TRAY_SEGMENTS: ReadonlyArray<{ key: string; label: string }> = [
 export const DEFAULT_PREFS: TrayPrefs = Object.freeze({
   version: 1,
   segments: Object.freeze(
-    Object.fromEntries(TRAY_SEGMENTS.map((s) => [s.key, true])),
+    Object.fromEntries(TRAY_SEGMENTS.map((s: any) => [s.key, true])),
   ) as Record<string, boolean>,
 });
 

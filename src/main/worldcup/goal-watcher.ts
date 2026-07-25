@@ -5,11 +5,11 @@
  */
 "use strict";
 
-const stateStore = require("../state-store.ts");
-const { mainLog } = require("../log.ts");
-const { matchKey, isMatchStarted, matchKickoffUtcMs } = require("./match-key.ts");
-const { parseWorldcupTxt } = require("./parser.ts");
-const { refreshWorldcupScores } = require("./scores-fetcher.ts");
+import * as stateStore from "../state-store";
+import { mainLog } from "../log";
+import { matchKey, isMatchStarted, matchKickoffUtcMs } from "./match-key";
+import { parseWorldcupTxt } from "./parser";
+import { refreshWorldcupScores } from "./scores-fetcher";
 
 const SWEEP_INTERVAL_MS = 60 * 1000;       // 60s
 const MAX_GOAL_KEYS_PER_MATCH = 50;        // 单场 goalKey 上限

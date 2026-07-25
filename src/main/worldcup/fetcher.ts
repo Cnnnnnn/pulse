@@ -13,12 +13,12 @@
  */
 "use strict";
 
-const { HttpClient } = require("../http-client.ts");
-const stateStore = require("../state-store.ts");
-const { parseWorldcupTxt } = require("./parser.ts");
-const { mainLog } = require("../log.ts");
+import { HttpClient } from "../http-client";
+import * as stateStore from "../state-store";
+import { parseWorldcupTxt } from "./parser";
+import { mainLog } from "../log";
 
-const FIXTURES_URL =
+export const FIXTURES_URL =
   "https://raw.githubusercontent.com/openfootball/worldcup/master/2026--usa/cup.txt";
 const FINALS_URL =
   "https://raw.githubusercontent.com/openfootball/worldcup/master/2026--usa/cup_finals.txt";

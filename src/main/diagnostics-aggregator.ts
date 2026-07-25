@@ -24,10 +24,10 @@
  */
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const zlib = require("zlib");
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import * as zlib from "zlib";
 
 /**
  * 按 (source, message) 聚合 entries, 返 top N (按 count desc, tie → 最近 ts 优先).
@@ -55,7 +55,7 @@ export function computeTopFailures(entries: any[], topN: number = 5): any[] {
     if (ts && ts > b.lastTs) b.lastTs = ts;
   }
   const arr = Array.from(buckets.values());
-  arr.sort((a, b) => {
+  arr.sort((a: any, b: any) => {
     if (b.count !== a.count) return b.count - a.count;
     return (b.lastTs || 0) - (a.lastTs || 0);
   });
@@ -280,7 +280,7 @@ function buildManifestPart(parts: any[], fileCount: number): any {
     `fileCount: ${fileCount}`,
     "",
     "Files:",
-    ...parts.map((p) => `  - ${p.name} (${p.content.length} bytes)`),
+    ...parts.map((p: any) => `  - ${p.name} (${p.content.length} bytes)`),
   ].join("\n");
   return { name: "manifest.txt", content: manifest };
 }

@@ -17,9 +17,9 @@
  */
 "use strict";
 
-const childProcess = require("child_process");
-const { shell } = require("electron");
-const { getActionForApp } = require("./bulk-upgrade-actions.ts");
+import * as childProcess from "child_process";
+import { shell } from "electron";
+import { getActionForApp } from "./bulk-upgrade-actions";
 
 // Testability hook (vitest only): 空 noop, 保留以兼容现有测试 import
 // (原功能: 让测试注入 userDataDir 跳过 electron.app.getPath; 已退役, 但保留符号)
@@ -34,10 +34,10 @@ const DEFAULT_PER_ITEM_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
  * @param {Array<object>} opts.items
  *        每项: { id, name, source, current, latest, cask, bundleName, trackId }
  * @param {function} [opts.onProgress]
- *        (event) => void; event = { id, status, ...payload }
+ *        (event: any) => void; event = { id, status, ...payload }
  *        status: 'running' | 'done' | 'failed' | 'skipped'
  * @param {function} [opts.exec]
- *        (action) => Promise<{output?: string}>
+ *        (action: any) => Promise<{output?: string}>
  *        默认 defaultExec (brew execFile + shell.openPath/openExternal)
  * @param {AbortSignal} [opts.signal]
  *        取消: 在每个 item 完成时检查, aborted=true 就停
@@ -134,7 +134,7 @@ export async function runBulkUpgrade(opts: any): Promise<{
  * 跑单个 action, 加 timeout + signal.
  */
 function runOne(action: any, exec: any, perItemTimeoutMs: number, signal: AbortSignal | null): Promise<any> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve: any, reject: any) => {
     let settled = false;
     const finish = (fn: any, val: any) => {
       if (settled) return;
@@ -212,7 +212,7 @@ export async function defaultExec(action: any): Promise<any> {
 }
 
 export function execBrew(cmd: string, args: string[]): Promise<any> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve: any, reject: any) => {
     childProcess.execFile(cmd, args, { timeout: 0 }, (err: any, stdout: string, stderr: string) => {
       const out = (stdout || "") + (stderr ? "\n[stderr]\n" + stderr : "");
       // brew upgrade 退出码:
@@ -245,7 +245,7 @@ export function execBrew(cmd: string, args: string[]): Promise<any> {
  * gracefully.
  */
 export function execWinget(id: string): Promise<any> {
-  return new Promise((resolve) => {
+  return new Promise((resolve: any) => {
     if (!id || typeof id !== "string" || !id.trim()) {
       return resolve({ ok: false, reason: "winget: missing id" });
     }

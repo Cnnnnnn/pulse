@@ -8,46 +8,46 @@
 
 import type {} from "electron";
 
-const { createIpcContext } = require("./context.ts");
-const { registerCoreHandlers } = require("./register-core.ts");
-const { registerTrayConfigHandlers } = require("./register-tray-config.ts");
-const { registerOpenUrlHandlers } = require("./register-open-url.ts");
+import { createIpcContext } from "./context";
+import { registerCoreHandlers } from "./register-core";
+import { registerTrayConfigHandlers } from "./register-tray-config";
+import { registerOpenUrlHandlers } from "./register-open-url";
 const {
   registerRemindersRecentHandlers,
 } = require("./register-reminders-recent.ts");
-const { registerAiHandlers } = require("./register-ai.ts");
-const { registerGithubHandlers } = require("./register-github.ts");
-const { registerAiUsageHandlers } = require("./register-ai-usage.ts");
-const { registerWorldcupHandlers } = require("./register-worldcup.ts");
-const { registerIthomeHandlers } = require("./register-ithome.ts");
-const { registerIthomeShareHandlers } = require("./register-ithome-share.ts");
-const { registerFundsHandlers } = require("./register-funds.ts");
-const { registerWechatHotHandlers } = require("./register-wechat-hot.ts");
-const { registerAiPromptsHandlers } = require("./register-ai-prompts.ts");
-const { registerUpgradeAdviceHandlers } = require("./register-upgrade-advice.ts");
+import { registerAiHandlers } from "./register-ai";
+import { registerGithubHandlers } from "./register-github";
+import { registerAiUsageHandlers } from "./register-ai-usage";
+import { registerWorldcupHandlers } from "./register-worldcup";
+import { registerIthomeHandlers } from "./register-ithome";
+import { registerIthomeShareHandlers } from "./register-ithome-share";
+import { registerFundsHandlers } from "./register-funds";
+import { registerWechatHotHandlers } from "./register-wechat-hot";
+import { registerAiPromptsHandlers } from "./register-ai-prompts";
+import { registerUpgradeAdviceHandlers } from "./register-upgrade-advice";
 const {
   registerChangelogSummaryHandlers,
 } = require("./register-changelog-summary.ts");
-const { registerAiFeedbackHandlers } = require("./register-ai-feedback.ts");
-const { registerTokenBudgetHandlers } = require("./register-token-budget.ts");
-const { registerSelfUpdateHandlers } = require("./register-self-update.ts");
+import { registerAiFeedbackHandlers } from "./register-ai-feedback";
+import { registerTokenBudgetHandlers } from "./register-token-budget";
+import { registerSelfUpdateHandlers } from "./register-self-update";
 const {
   registerConfigPortabilityHandlers,
 } = require("./register-config-portability.ts");
-const { registerStocksHandlers } = require("./register-stocks.ts");
-const { registerStockDetailHandlers } = require("./register-stock-detail.ts");
-const { registerStockExportHandlers } = require("./register-stock-export.ts");
+import { registerStocksHandlers } from "./register-stocks";
+import { registerStockDetailHandlers } from "./register-stock-detail";
+import { registerStockExportHandlers } from "./register-stock-export";
 const {
   registerVersionsOverviewHandlers,
 } = require("./register-versions-overview.ts");
-const { registerThemeHandlers } = require("./register-theme.ts");
-const { registerGamesHandlers } = require("./register-games.ts");
-const { registerLeaderboardHandlers } = require("./register-leaderboard.ts");
+import { registerThemeHandlers } from "./register-theme";
+import { registerGamesHandlers } from "./register-games";
+import { registerLeaderboardHandlers } from "./register-leaderboard";
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
  */
-function registerIpcHandlers(deps: Record<string, unknown>) {
+export function registerIpcHandlers(deps: Record<string, unknown>) {
   const ctx = createIpcContext(deps);
   registerCoreHandlers(ctx);
   registerTrayConfigHandlers(ctx); // Phase v1: tray 菜单配置

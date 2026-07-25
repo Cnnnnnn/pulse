@@ -15,19 +15,19 @@
 
 import type { IpcMain, IpcMainInvokeEvent } from "electron";
 
-function registerSearchIpc(deps: { ipcMain: IpcMain; searchIndex: any; stateStore: any }) {
+export function registerSearchIpc(deps: { ipcMain: IpcMain; searchIndex: any; stateStore: any }) {
   const { ipcMain, searchIndex, stateStore } = deps;
 
-  ipcMain.handle('search:query', async (event, args) => {
+  ipcMain.handle('search:query', async (event: any, args: any) => {
     try {
       const a = args || {};
       return searchIndex.query(a.q || '', { source: a.source || null });
-    } catch (err) {
+    } catch (err: any) {
       return { results: [], counts: { news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 } };
     }
   });
 
-  ipcMain.handle('search:upsert', async (event, doc) => {
+  ipcMain.handle('search:upsert', async (event: any, doc: any) => {
     try {
       if (doc && doc.id) searchIndex.upsert(doc);
     } catch {

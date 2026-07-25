@@ -16,16 +16,16 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const { fetchChangelogSummary } = require("../../ai/changelog-summary");
+import { fetchChangelogSummary } from "../../ai/changelog-summary";
 
-function registerChangelogSummaryHandlers(ctx: any) {
+export function registerChangelogSummaryHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
   safeHandle("changelog-summary:fetch", async (_evt: any, opts: any) => {
     try {
       return await fetchChangelogSummary(opts || {});
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });

@@ -7,10 +7,10 @@
  */
 "use strict";
 
-const { toGameDeal } = require("./normalize.ts");
+import { toGameDeal } from "./normalize";
 
 function mk(platform: string, list: any[]): any[] {
-  return list.map((g) =>
+  return list.map((g: any) =>
     toGameDeal({
       platform,
       source: "sample",

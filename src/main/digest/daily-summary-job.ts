@@ -13,16 +13,16 @@
  *   setState(partial)    → merge into state (only used to write last_push_date)
  *   getConfig()          → { notifications: { quiet_hours_start, quiet_hours_end } }
  *   sendNotification(n)  → { title, body }
- *   aggregate(state, { now }) → { date, sections, lines }   (optional; defaults to ./aggregate)
+ *   aggregate(state: any, { now }: any) → { date, sections, lines }   (optional; defaults to ./aggregate)
  *   now()                → Date (defaults to () => new Date())
  */
 
-const { inQuietHours } = require("../notification-policy.ts");
-const { aggregate: defaultAggregate } = require("./aggregate.ts");
+import { inQuietHours } from "../notification-policy";
+import { aggregate as defaultAggregate } from "./aggregate";
 const {
   resolvePrompt: defaultResolvePrompt,
-} = require("../../ai/prompt-registry");
-const defaultSharedLlm = require("../../ai/shared-llm");
+} = require("../../ai/prompt-registry.js");
+import * as defaultSharedLlm from "../../ai/shared-llm";
 
 const DEFAULT_TIME = "08:30";
 // A7 v3: LLM 改写超时 (硬上限). 失败/超时回退原 lines, 不阻塞 push.
@@ -125,8 +125,8 @@ export async function checkAndPush(deps: any): Promise<any> {
  * @param lines    - aggregator 输出的要点行
  * @param date     - 'YYYY-MM-DD'
  * @param deps
- * @param deps.sharedLlm    - 含 chatCompletion(messages, opts) => Promise<{ok, text?, reason?}>
- * @param deps.resolvePrompt - (key) => {system, rules, fewShot}
+ * @param deps.sharedLlm    - 含 chatCompletion(messages: any, opts: any) => Promise<{ok, text?, reason?}>
+ * @param deps.resolvePrompt - (key: any) => {system, rules, fewShot}
  * @param deps.timeoutMs=8000
  * @returns 改写后的 lines 或原 lines
  */
@@ -158,7 +158,7 @@ export async function tryRewriteSummary(
     prompt.rules || "",
     `日期: ${date}`,
     "要点:",
-    ...lines.map((l) => `  ${l}`),
+    ...lines.map((l: any) => `  ${l}`),
   ].join("\n");
 
   const messages = [
@@ -171,7 +171,7 @@ export async function tryRewriteSummary(
   // ponytail: chatCompletion 内部 try/catch 已包, 这里再 Promise.race 兜 8s.
   // 不传 httpClient → 走 shared-llm 内部默认 (120s), 我们外层卡 8s.
   const llmPromise = deps.sharedLlm.chatCompletion(messages);
-  const timeoutPromise = new Promise((resolve) => {
+  const timeoutPromise = new Promise((resolve: any) => {
     setTimeout(() => resolve({ ok: false, reason: "timeout" }), timeoutMs);
   });
   let result: any;

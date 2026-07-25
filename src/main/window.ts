@@ -51,7 +51,7 @@ const platform: PlatformModule = require('../platform/index.ts');
  * @param {Function} [opts.onClosed]   window closed 回调
  * @param {Function} [opts.getIsQuitting]
  */
-function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager {
+export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager {
   const preloadPath = opts.preloadPath || path.join(__dirname, "..", "..", "dist", "preload.js");
   const indexPath = opts.indexPath || path.join(__dirname, '..', '..', 'index.html');
   const config = opts.config || { check_on_launch: true };
@@ -98,13 +98,13 @@ function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager 
     // 否则 renderer 静默挂掉时用户只看到空白屏, 没线索.
     try {
       const { mainLog } = require('./log.ts');
-      mainWindow.webContents.on('console-message', (event) => {
+      mainWindow.webContents.on('console-message', (event: any) => {
         try {
           const msg = event && event.message ? String(event.message) : '';
           if (msg) mainLog.warn(`[renderer:console] ${msg}`);
         } catch { /* noop */ }
       });
-      mainWindow.webContents.on('render-process-gone', (_event, details) => {
+      mainWindow.webContents.on('render-process-gone', (_event: any, details: any) => {
         try {
           mainLog.warn(`[renderer:gone] reason=${details && details.reason} exitCode=${details && details.exitCode}`);
         } catch { /* noop */ }
@@ -129,7 +129,7 @@ function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowManager 
       }
     });
 
-    mainWindow.on('close', (e) => {
+    mainWindow.on('close', (e: any) => {
       if (!getIsQuitting()) {
         e.preventDefault();
         mainWindow?.hide();

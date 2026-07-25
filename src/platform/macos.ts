@@ -5,7 +5,7 @@
 
 const { resolveAppBundlePath }: {
   resolveAppBundlePath: (b: string) => string | null;
-} = require('../utils/app-paths');
+} = require('../utils/app-paths.js');
 
 function resolveAppPath(bundle: string, _appCfg?: any): string | null {
   return resolveAppBundlePath(bundle);
@@ -16,7 +16,7 @@ const iv: {
     bundle: string | null,
     sources?: unknown,
   ) => Promise<string | null>;
-} = require('../workers/installed-version');
+} = require('../workers/installed-version.js');
 
 async function getInstalledVersion(appCfg: any): Promise<string | null> {
   const bundle = appCfg && appCfg.bundle ? appCfg.bundle : null;
@@ -69,6 +69,17 @@ function getWindowOptions(): Record<string, unknown> {
 }
 
 export {
+  resolveAppPath,
+  getInstalledVersion,
+  getAppIcon,
+  getUpgradeAction,
+  execUpgrade,
+  getWindowOptions,
+};
+
+// ponytail: 7a-6 保留 module.exports 让 CJS caller 也能 require() 整个对象.
+// 7b 删 shim 时去掉 + 改 caller 用 named import.
+module.exports = {
   resolveAppPath,
   getInstalledVersion,
   getAppIcon,

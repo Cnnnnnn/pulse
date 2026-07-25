@@ -11,10 +11,10 @@
  *   - 复用 register-ai-usage 的 _internals.fetch (deps 注入)
  *   - 复用 ai-usage-cache 的 getTraySummary 构造 tray summary
  */
-const registerAiUsage = require("./ipc/register-ai-usage.ts");
-const { PROVIDERS } = require("./ai-usage-cache.ts");
-const { inQuietHours } = require("./notification-policy.ts");
-const { Notification: ElectronNotification } = require("electron");
+import * as registerAiUsage from "./ipc/register-ai-usage";
+import { PROVIDERS } from "./ai-usage-cache";
+import { inQuietHours } from "./notification-policy";
+import { Notification as ElectronNotification } from "electron";
 
 export function createAiUsageRefreshScheduler(opts: any = {}): any {
   const trayMgr = opts.trayMgr;
@@ -71,7 +71,7 @@ export function createAiUsageRefreshScheduler(opts: any = {}): any {
           minimax: cache.getTraySummary("minimax"),
           glm: cache.getTraySummary("glm"),
         });
-      } catch (err) {
+      } catch (err: any) {
         // swallow — tray update failure should not kill the loop
       }
     }

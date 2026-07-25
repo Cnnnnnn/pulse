@@ -21,7 +21,7 @@ export function matchKickoffUtcMs(match: any): number | null {
   if (!match || !match.date || !match.time) return null;
   const [y, mo, d] = match.date.split("-").map((n: string) => parseInt(n, 10));
   const [h, mi] = match.time.split(":").map((n: string) => parseInt(n, 10));
-  if ([y, mo, d, h, mi].some((n) => Number.isNaN(n))) return null;
+  if ([y, mo, d, h, mi].some((n: any) => Number.isNaN(n))) return null;
 
   const offsetH = parseUtcOffsetHours(match.timezone || "");
   let utcH = h + offsetH;

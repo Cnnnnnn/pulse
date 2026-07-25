@@ -98,7 +98,7 @@ const {
 } = require("electron");
 const path: typeof pathType = require("path");
 
-const ASSETS = path.join(__dirname, "..", "..", "assets");
+export const ASSETS = path.join(__dirname, "..", "..", "assets");
 
 /**
  * 加载模板图标.
@@ -107,7 +107,7 @@ const ASSETS = path.join(__dirname, "..", "..", "assets");
  *
  * @param {object} [theme] - 注入依赖, 默认走 require('electron').nativeTheme.
  */
-function loadTrayIcon(theme?: ThemeLike): NativeImage | null {
+export function loadTrayIcon(theme?: ThemeLike): NativeImage | null {
   if (process.platform === "win32") {
     // P4: Windows 端用 ICO + 深浅色两套.
     // nativeTheme.shouldUseDarkColors 反映 OS 当前主题.
@@ -129,7 +129,7 @@ function loadTrayIcon(theme?: ThemeLike): NativeImage | null {
 }
 
 /** 加载 badge 图标 (count 1-9 → 数字; ≥10 → 9+). */
-function loadBadgeIcon(count: number): NativeImage | null {
+export function loadBadgeIcon(count: number): NativeImage | null {
   const n = Math.max(0, Math.min(99, count | 0));
   const variant = n >= 10 ? "9plus" : String(n);
   const png = nativeImage.createFromPath(
@@ -139,7 +139,7 @@ function loadBadgeIcon(count: number): NativeImage | null {
 }
 
 /** 最小 fallback PNG (1x1 灰). 资源文件丢失时使用, 避免 tray 完全空白. */
-function loadFallbackIcon(): NativeImage {
+export function loadFallbackIcon(): NativeImage {
   // 1x1 transparent PNG
   const buf = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -178,7 +178,7 @@ function loadFallbackIcon(): NativeImage {
  * @param {object}  [opts.selfUpdateState] - P52: {available, version, status, ...} Pulse 自更新状态
  * @returns {Array} Electron Menu template 数组
  */
-function buildMenu(opts: BuildMenuOpts): any[] {
+export function buildMenu(opts: BuildMenuOpts): any[] {
   const {
     results = [],
     aiUsage = null,
@@ -213,15 +213,15 @@ function buildMenu(opts: BuildMenuOpts): any[] {
   // ─── 🔄 检查更新 (v2.22 Task A2: 内容预览) ───
   if (seg.updates) {
     if (results.length > 0) {
-      const updates = results.filter((r) => r.has_update);
-      const upToDate = results.filter((r) => r.status === "up_to_date");
+      const updates = results.filter((r: any) => r.has_update);
+      const upToDate = results.filter((r: any) => r.status === "up_to_date");
 
       if (updates.length > 0) {
         template.push({
           label: `── 🔄 检查更新 (${updates.length} 待升级) ──`,
           enabled: false,
         });
-        updates.forEach((r) => {
+        updates.forEach((r: any) => {
           const ver = r.latest_version
             ? `${r.installed_version || "?"} → ${r.latest_version}`
             : "";
@@ -368,7 +368,7 @@ const PROVIDER_NAME: Record<string, string> = { minimax: "MiniMax", glm: "GLM" }
  * - 全部 unconfigured → 整段只显示一行 "  未配置"
  */
 function buildAiUsageLines(summaryMap: any): MenuItemConstructorOptions[] {
-  const lines = [];
+  const lines: any[] = [];
   let hasAny = false;
   for (const pid of ["minimax", "glm"]) {
     const s = summaryMap[pid];
@@ -417,16 +417,16 @@ function _ageLabel(deltaMs: number): string {
  * 用户左键/右键打开菜单立即可见, 信息密度比 tooltip 高.
  * age 格式与下方 AI 用量段统一 ("Xm 前" / "Xh 前", 无括号), 信息层视觉对齐.
  */
-function buildSummaryLine(results: DetectResult[] | null | undefined): MenuItemConstructorOptions | null {
+export function buildSummaryLine(results: DetectResult[] | null | undefined): MenuItemConstructorOptions | null {
   if (!Array.isArray(results) || results.length === 0) {
     return { label: "🔔 Pulse · 尚未检测", enabled: false };
   }
   const total = results.length;
-  const pending = results.filter((r) => r && r.has_update).length;
+  const pending = results.filter((r: any) => r && r.has_update).length;
   // 找最早 ts (最旧的那次检测)
   const tsList = results
-    .map((r) => (r && typeof r.ts === "number" ? r.ts : null))
-    .filter((t) => t !== null);
+    .map((r: any) => (r && typeof r.ts === "number" ? r.ts : null))
+    .filter((t: any) => t !== null);
   const oldestTs = tsList.length > 0 ? Math.min.apply(null, tsList) : null;
   const age = oldestTs !== null ? _summaryAgeLabel(Date.now() - oldestTs) : "";
 
@@ -459,7 +459,7 @@ function _summaryAgeLabel(deltaMs: number): string {
  * - 今日无比赛 + 有 upcoming →  "  下一场: team1 vs team2  明天 15:00"
  */
 function buildWorldcupLines(wc: any, onFocusWorldcup?: (payload: { matchKey: string }) => void): MenuItemConstructorOptions[] {
-  const lines = [];
+  const lines: any[] = [];
   const today = Array.isArray(wc.todayMatches) ? wc.todayMatches : [];
   const cb = typeof onFocusWorldcup === "function" ? onFocusWorldcup : () => {};
   for (const m of today) {
@@ -512,13 +512,13 @@ const METAL_NAME: Record<string, string> = {
  * - 有 quote → 每条金属一行 "  名称 (id): price currency/unit ↑/↓"
  */
 function buildMetalsLines(metals: any): MenuItemConstructorOptions[] {
-  const lines = [];
+  const lines: any[] = [];
   const quotes =
     metals && metals.quotes && typeof metals.quotes === "object"
       ? metals.quotes
       : {};
   const keys = Object.keys(quotes).filter(
-    (k) => quotes[k] && typeof quotes[k].price === "number",
+    (k: any) => quotes[k] && typeof quotes[k].price === "number",
   );
   if (keys.length === 0) {
     lines.push({ label: "  加载中...", enabled: false });
@@ -555,7 +555,7 @@ function buildMetalsLines(metals: any): MenuItemConstructorOptions[] {
  *   tray.setBadge(updateCount);
  *   tray.dispose();
  */
-function createTrayManager(opts: CreateTrayManagerOpts) {
+export function createTrayManager(opts: CreateTrayManagerOpts) {
   const getConfig = opts.getConfig || (() => ({ apps: [] }));
   const getConfigPath = opts.getConfigPath || (() => "");
   const onCheck = opts.onCheck || (() => {});

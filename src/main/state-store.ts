@@ -87,7 +87,7 @@ function _getSchema(): { validateState?: (data: unknown) => { ok: boolean; error
   return _schema!;
 }
 
-class StateCorruptedError extends Error {
+export class StateCorruptedError extends Error {
   path: string | undefined;
   raw: string | null;
   parseError: Error | null;
@@ -116,7 +116,7 @@ class StateCorruptedError extends Error {
   }
 }
 
-const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 1;
 
 // ponytail: state maps are JSON bags; typed Record waits schema tighten. Ceiling: any index.
 function errMsg(err: unknown): string {
@@ -139,7 +139,7 @@ let _lastRecoveryEvent: StateRecoveryEvent | null = null;
 
 // A3: 搜索索引引用 (setter 注入). saveTaskSummary 写盘后 upsert ai-task doc.
 let _searchIndex: { upsert: (doc: Record<string, unknown>) => void } | null = null;
-function setSearchIndex(si: any) {
+export function setSearchIndex(si: any) {
   _searchIndex = si;
 }
 
@@ -183,7 +183,7 @@ function _tryGetUserDataDir() {
  * app.whenReady 后调用: state.json 迁到 userData, 与 ai-keys 同目录.
  * @returns {string} 生效的 state 路径
  */
-function initStateStorePaths() {
+export function initStateStorePaths() {
   const userData = _tryGetUserDataDir();
   if (!userData) {
     _resolvedStatePath = LEGACY_STATE_PATH;
@@ -200,11 +200,11 @@ function initStateStorePaths() {
  * 生产代码不要调.
  * @param {string} p  绝对路径, e.g. /tmp/test/state.json
  */
-function _setStatePathForTest(p: any) {
+export function _setStatePathForTest(p: any) {
   _resolvedStatePath = p;
 }
 
-function migrateLegacyStateIfNeeded(targetPath: any) {
+export function migrateLegacyStateIfNeeded(targetPath: any) {
   try {
     const dir = path.dirname(targetPath);
     fs.mkdirSync(dir, { recursive: true });
@@ -319,7 +319,7 @@ function preserveExtraFields(existing: any, next: any) {
   return next;
 }
 
-function defaultPath() {
+export function defaultPath() {
   if (_resolvedStatePath) return _resolvedStatePath;
   const userData = _tryGetUserDataDir();
   if (userData) return path.join(userData, "state.json");
@@ -339,7 +339,7 @@ function defaultPath() {
 // 这样每个 save 函数只保留"我要改哪个字段"的差异, 不能再忘了 preserve.
 // 修了两个 pre-existing bug: saveWorldcupMatchInsights / saveActiveCategory
 // 原本没保留 ai_sessions_config, 重构后自动保留.
-function patchState(
+export function patchState(
   updater: (next: StateRecord, existing: StateRecord, now: number) => void,
   statePath = defaultPath(),
   opts: { dropAiSessionsConfig?: boolean } = {},
@@ -424,7 +424,7 @@ function _loadOrThrow(statePath: any) {
  * (mutes 字段为 undefined). mutes 的兜底 (空 map) 在 getMutes/saveAll/setMute
  * 等使用时各自处理 — load() 保持纯读, 不 mutate.
  */
-function load(statePath = defaultPath()) {
+export function load(statePath = defaultPath()) {
   try {
     const raw = fs.readFileSync(statePath, "utf-8");
     const j = JSON.parse(raw);
@@ -449,8 +449,8 @@ function load(statePath = defaultPath()) {
  */
 const CHANGELOG_HISTORY_MAX = 10;
 
-function saveAll(results: any, statePath = defaultPath()) {
-  return patchState((next, existing, now) => {
+export function saveAll(results: any, statePath = defaultPath()) {
+  return patchState((next: any, existing: any, now: any) => {
     const apps = (existing.apps || {}) as Record<string, any>;
     for (const r of results || []) {
       if (!r || !r.name) continue;
@@ -498,9 +498,9 @@ function saveAll(results: any, statePath = defaultPath()) {
  * @param {string[]} names
  * @param {string} [statePath]
  */
-function markNotified(names: any, statePath = defaultPath()) {
+export function markNotified(names: any, statePath = defaultPath()) {
   if (!Array.isArray(names) || names.length === 0) return null;
-  return patchState((next) => {
+  return patchState((next: any) => {
     const apps = (next.apps || {}) as Record<string, any>;
     for (const name of names) {
       if (!name || !apps[name]) continue;
@@ -515,7 +515,7 @@ function markNotified(names: any, statePath = defaultPath()) {
 /**
  * 把单个 result 加/更新进 state (用于更细粒度的写入, 比如每个 worker 跑完就写一次).
  */
-function saveOne(result: any, statePath = defaultPath()) {
+export function saveOne(result: any, statePath = defaultPath()) {
   return saveAll([result], statePath);
 }
 
@@ -527,7 +527,7 @@ function saveOne(result: any, statePath = defaultPath()) {
  * @param {number} now   epoch ms, 注入便于测试
  * @returns {boolean}
  */
-function isMuteActive(mute: any, now: any) {
+export function isMuteActive(mute: any, now: any = Date.now()) {
   if (!mute || typeof mute !== "object") return false;
   // until=0 → 永远有效
   if (!mute.until) return true;
@@ -541,7 +541,7 @@ function isMuteActive(mute: any, now: any) {
  * @param {number} now
  * @returns {object} 新的 mutes 对象 (新引用, 不 mutate 原对象)
  */
-function cleanExpiredMutes(mutes: any, now: any) {
+export function cleanExpiredMutes(mutes: any, now: any = Date.now()) {
   if (!mutes || typeof mutes !== "object") return {};
   const out: Record<string, any> = {};
   for (const [name, m] of Object.entries(mutes)) {
@@ -558,7 +558,7 @@ function cleanExpiredMutes(mutes: any, now: any) {
  * @param {number} [now]   注入便于测试, 默认 Date.now()
  * @returns {object} { [name]: { until, reason } }
  */
-function getMutes(statePath = defaultPath(), now: any) {
+export function getMutes(statePath = defaultPath(), now: any = Date.now()) {
   const t = typeof now === "number" ? now : Date.now();
   const s = load(statePath);
   if (!s) return {};
@@ -573,7 +573,7 @@ function getMutes(statePath = defaultPath(), now: any) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function setMute(name: any, untilMs: any, reason: any, statePath = defaultPath()) {
+export function setMute(name: any, untilMs: any, reason: any, statePath = defaultPath()) {
   if (!name || typeof name !== "string") {
     throw new TypeError("setMute: name must be non-empty string");
   }
@@ -582,7 +582,7 @@ function setMute(name: any, untilMs: any, reason: any, statePath = defaultPath()
       "setMute: untilMs must be non-negative finite number (0 = forever)",
     );
   }
-  return patchState((next, existing) => {
+  return patchState((next: any, existing: any) => {
     const mutes = (next.mutes || {}) as Record<string, any>;
     mutes[name] = {
       until: untilMs,
@@ -598,11 +598,11 @@ function setMute(name: any, untilMs: any, reason: any, statePath = defaultPath()
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function clearMute(name: any, statePath = defaultPath()) {
+export function clearMute(name: any, statePath = defaultPath()) {
   if (!name || typeof name !== "string") {
     throw new TypeError("clearMute: name must be non-empty string");
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     const mutes = { ...((next.mutes as Record<string, unknown>) || {}) };
     if (name in mutes) delete mutes[name];
     next.mutes = mutes;
@@ -617,7 +617,7 @@ function clearMute(name: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} { [name]: { ms: number|null, source: string } }
  */
-function loadLastOpened(statePath = defaultPath()) {
+export function loadLastOpened(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return {};
   if (
@@ -635,11 +635,11 @@ function loadLastOpened(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveLastOpened(map: any, statePath = defaultPath()) {
+export function saveLastOpened(map: any, statePath = defaultPath()) {
   if (!map || typeof map !== "object" || Array.isArray(map)) {
     throw new TypeError("saveLastOpened: map must be plain object");
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.last_opened = map;
   }, statePath);
 }
@@ -650,7 +650,7 @@ function saveLastOpened(map: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {{txt: string, ts: number}|null}
  */
-function loadWorldcupTxt(statePath = defaultPath()) {
+export function loadWorldcupTxt(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return null;
   if (!s.worldcup_txt || typeof s.worldcup_txt !== "object") return null;
@@ -665,13 +665,13 @@ function loadWorldcupTxt(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveWorldcupTxt(entry: any, statePath = defaultPath()) {
+export function saveWorldcupTxt(entry: any, statePath = defaultPath()) {
   if (!entry || typeof entry.txt !== "string" || typeof entry.ts !== "number") {
     throw new TypeError(
       "saveWorldcupTxt: entry must be {txt: string, ts: number}",
     );
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.worldcup_txt = { txt: entry.txt, ts: entry.ts };
   }, statePath);
 }
@@ -684,7 +684,7 @@ function saveWorldcupTxt(entry: any, statePath = defaultPath()) {
  *   { version, computedAt, projected, r32, r16, qf, sf, final, third,
  *     thirdPlacedAdvancing, annexCIndex, warnings }
  */
-function loadWorldcupBracket(statePath = defaultPath()) {
+export function loadWorldcupBracket(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return null;
   const snap = s.worldcup_bracket_snapshot;
@@ -700,11 +700,11 @@ function loadWorldcupBracket(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveWorldcupBracket(snapshot: any, statePath = defaultPath()) {
+export function saveWorldcupBracket(snapshot: any, statePath = defaultPath()) {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
     throw new TypeError("saveWorldcupBracket: snapshot must be plain object");
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.worldcup_bracket_snapshot = { ...snapshot };
   }, statePath);
 }
@@ -713,7 +713,7 @@ function saveWorldcupBracket(snapshot: any, statePath = defaultPath()) {
  * 读 worldcup 比分缓存
  * @returns {{ entries: object, ts: number }|null}
  */
-function loadWorldcupScores(statePath = defaultPath()) {
+export function loadWorldcupScores(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s || !s.worldcup_scores || typeof s.worldcup_scores !== "object")
     return null;
@@ -727,7 +727,7 @@ function loadWorldcupScores(statePath = defaultPath()) {
  * 写 worldcup 比分缓存
  * @param {{ entries: object, ts: number }} cache
  */
-function saveWorldcupScores(cache: any, statePath = defaultPath()) {
+export function saveWorldcupScores(cache: any, statePath = defaultPath()) {
   if (
     !cache ||
     typeof cache.entries !== "object" ||
@@ -737,7 +737,7 @@ function saveWorldcupScores(cache: any, statePath = defaultPath()) {
       "saveWorldcupScores: cache must be {entries: object, ts: number}",
     );
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.worldcup_scores = { entries: cache.entries, ts: cache.ts };
   }, statePath);
 }
@@ -749,7 +749,7 @@ function saveWorldcupScores(cache: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {Record<string, number>}
  */
-function loadWechatHotRead(statePath = defaultPath()) {
+export function loadWechatHotRead(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s || !s.wechat_hot || typeof s.wechat_hot !== "object") return {};
   const readIds = s.wechat_hot.readIds;
@@ -764,11 +764,11 @@ function loadWechatHotRead(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveWechatHotRead(readIds: any, statePath = defaultPath()) {
+export function saveWechatHotRead(readIds: any, statePath = defaultPath()) {
   if (!readIds || typeof readIds !== "object" || Array.isArray(readIds)) {
     throw new TypeError("saveWechatHotRead: readIds must be plain object");
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.wechat_hot = { readIds };
   }, statePath);
 }
@@ -780,7 +780,7 @@ function saveWechatHotRead(readIds: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {Record<string, {system: string, rules: string}>}
  */
-function loadAiPrompts(statePath = defaultPath()) {
+export function loadAiPrompts(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s || !s.ai_prompts || typeof s.ai_prompts !== "object") return {};
   return s.ai_prompts;
@@ -792,11 +792,11 @@ function loadAiPrompts(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveAiPrompts(prompts: any, statePath = defaultPath()) {
+export function saveAiPrompts(prompts: any, statePath = defaultPath()) {
   if (!prompts || typeof prompts !== "object" || Array.isArray(prompts)) {
     throw new TypeError("saveAiPrompts: prompts must be plain object");
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.ai_prompts = prompts;
   }, statePath);
 }
@@ -818,7 +818,7 @@ function cleanExpiredUpgradeAdvice(map: any, now: any) {
   return out;
 }
 
-function loadUpgradeAdviceCache(statePath = defaultPath()) {
+export function loadUpgradeAdviceCache(statePath = defaultPath()) {
   const s = load(statePath);
   if (
     !s ||
@@ -830,13 +830,13 @@ function loadUpgradeAdviceCache(statePath = defaultPath()) {
   return cleanExpiredUpgradeAdvice(s.upgrade_advice_cache, Date.now());
 }
 
-function loadUpgradeAdviceEntry(cacheKey: any, statePath = defaultPath()) {
+export function loadUpgradeAdviceEntry(cacheKey: any, statePath = defaultPath()) {
   if (!cacheKey) return null;
   const map = loadUpgradeAdviceCache(statePath) as Record<string, any>;
   return map[cacheKey] || null;
 }
 
-function saveUpgradeAdviceEntry(entry: any, statePath = defaultPath()) {
+export function saveUpgradeAdviceEntry(entry: any, statePath = defaultPath()) {
   if (
     !entry ||
     typeof entry !== "object" ||
@@ -844,7 +844,7 @@ function saveUpgradeAdviceEntry(entry: any, statePath = defaultPath()) {
   ) {
     throw new TypeError("saveUpgradeAdviceEntry: entry.cacheKey required");
   }
-  return patchState((next, existing, now) => {
+  return patchState((next: any, existing: any, now: any) => {
     const map = cleanExpiredUpgradeAdvice(
       existing.upgrade_advice_cache || {},
       now,
@@ -856,13 +856,13 @@ function saveUpgradeAdviceEntry(entry: any, statePath = defaultPath()) {
 
 // ─── A4: AI 用量异常告警偏好 ─────────────────────────────────
 
-function loadAiUsageAlertPrefs(statePath = defaultPath()) {
+export function loadAiUsageAlertPrefs(statePath = defaultPath()) {
   const s = load(statePath);
   return normalizeAiUsageAlertPrefs(s && s.ai_usage_alert_prefs);
 }
 
-function saveAiUsageAlertPrefs(patch: any, statePath = defaultPath()) {
-  return patchState((next, existing) => {
+export function saveAiUsageAlertPrefs(patch: any, statePath = defaultPath()) {
+  return patchState((next: any, existing: any) => {
     const cur = normalizeAiUsageAlertPrefs(existing.ai_usage_alert_prefs);
     next.ai_usage_alert_prefs = normalizeAiUsageAlertPrefs({
       ...cur,
@@ -880,7 +880,7 @@ function normalizeAiUsageAlertPrefs(raw: any) {
     DEFAULT_ABS_MIN_PCT,
     DEFAULT_SPIKE_RATIO,
     DEFAULT_RE_ALERT_STEP_PCT,
-  } = require("../ai-usage/anomaly-detect");
+  } = require("../ai-usage/anomaly-detect.js");
   const out = {
     enabled: true,
     absMinPct: DEFAULT_ABS_MIN_PCT,
@@ -904,7 +904,7 @@ function normalizeAiUsageAlertPrefs(raw: any) {
 
 // ─── A1: changelog 摘要缓存 (复用 A2 30 天 GC) ───────────────
 
-function loadChangelogSummaryCache(statePath = defaultPath()) {
+export function loadChangelogSummaryCache(statePath = defaultPath()) {
   const s = load(statePath);
   if (
     !s ||
@@ -916,13 +916,13 @@ function loadChangelogSummaryCache(statePath = defaultPath()) {
   return cleanExpiredUpgradeAdvice(s.changelog_summary_cache, Date.now());
 }
 
-function loadChangelogSummaryEntry(cacheKey: any, statePath = defaultPath()) {
+export function loadChangelogSummaryEntry(cacheKey: any, statePath = defaultPath()) {
   if (!cacheKey) return null;
   const map = loadChangelogSummaryCache(statePath) as Record<string, any>;
   return map[cacheKey] || null;
 }
 
-function saveChangelogSummaryEntry(entry: any, statePath = defaultPath()) {
+export function saveChangelogSummaryEntry(entry: any, statePath = defaultPath()) {
   if (
     !entry ||
     typeof entry !== "object" ||
@@ -930,7 +930,7 @@ function saveChangelogSummaryEntry(entry: any, statePath = defaultPath()) {
   ) {
     throw new TypeError("saveChangelogSummaryEntry: entry.cacheKey required");
   }
-  return patchState((next, existing, now) => {
+  return patchState((next: any, existing: any, now: any) => {
     const map = cleanExpiredUpgradeAdvice(
       existing.changelog_summary_cache || {},
       now,
@@ -944,7 +944,7 @@ function saveChangelogSummaryEntry(entry: any, statePath = defaultPath()) {
  * 读世界杯场次 AI 缓存 (赛前预测 / 赛后总结)
  * @returns {{ entries: object, ts: number }|null}
  */
-function loadWorldcupMatchInsights(statePath = defaultPath()) {
+export function loadWorldcupMatchInsights(statePath = defaultPath()) {
   const s = load(statePath);
   if (
     !s ||
@@ -963,7 +963,7 @@ function loadWorldcupMatchInsights(statePath = defaultPath()) {
 /**
  * @param {{ entries: object, ts: number }} cache
  */
-function saveWorldcupMatchInsights(cache: any, statePath = defaultPath()) {
+export function saveWorldcupMatchInsights(cache: any, statePath = defaultPath()) {
   if (
     !cache ||
     typeof cache.entries !== "object" ||
@@ -974,7 +974,7 @@ function saveWorldcupMatchInsights(cache: any, statePath = defaultPath()) {
     );
   }
   // bug 修复: 老实现没 preserve ai_sessions_config, 走 patchState 自动补上.
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.worldcup_match_insights = { entries: cache.entries, ts: cache.ts };
   }, statePath);
 }
@@ -986,7 +986,7 @@ function saveWorldcupMatchInsights(cache: any, statePath = defaultPath()) {
 //   Entry   = { taskKey, sessionId, appName, title, userGoal, outcome,
 //               provider, model, generatedAt, contentHash, dateKey }
 
-const TASK_SUMMARIES_GC_DAYS = 30;
+export const TASK_SUMMARIES_GC_DAYS = 30;
 
 /**
  * GC: 删 30 天外的任务总结. 写盘前调.
@@ -994,7 +994,7 @@ const TASK_SUMMARIES_GC_DAYS = 30;
  * @param {number} now  epoch ms
  * @returns {object} 新 map (新引用, 不 mutate 原对象)
  */
-function cleanExpiredTaskSummaries(map: any, now: any) {
+export function cleanExpiredTaskSummaries(map: any, now: any = Date.now()) {
   if (!map || typeof map !== "object") return {};
   const out: Record<string, any> = {};
   const cutoffMs = now - TASK_SUMMARIES_GC_DAYS * 86400_000;
@@ -1012,7 +1012,7 @@ function cleanExpiredTaskSummaries(map: any, now: any) {
  * @param {string} [statePath]
  * @returns {object} { [taskKey]: Entry }
  */
-function loadTaskSummaries(statePath = defaultPath()) {
+export function loadTaskSummaries(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return {};
   if (
@@ -1030,7 +1030,7 @@ function loadTaskSummaries(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveTaskSummary(entry: any, statePath = defaultPath()) {
+export function saveTaskSummary(entry: any, statePath = defaultPath()) {
   if (
     !entry ||
     typeof entry !== "object" ||
@@ -1042,7 +1042,7 @@ function saveTaskSummary(entry: any, statePath = defaultPath()) {
     );
   }
   _upsertAiTaskDoc(entry);
-  return patchState((next, existing, now) => {
+  return patchState((next: any, existing: any, now: any) => {
     const map = cleanExpiredTaskSummaries(existing.task_summaries || {}, now) as Record<string, any>;
     map[entry.taskKey] = {
       ...entry,
@@ -1058,7 +1058,7 @@ function saveTaskSummary(entry: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object|null}
  */
-function loadAISessionsConfig(statePath = defaultPath()) {
+export function loadAISessionsConfig(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s || !s.ai_sessions_config || typeof s.ai_sessions_config !== "object")
     return null;
@@ -1071,13 +1071,13 @@ function loadAISessionsConfig(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveAISessionsConfig(cfg: any, statePath = defaultPath()) {
+export function saveAISessionsConfig(cfg: any, statePath = defaultPath()) {
   if (cfg != null && typeof cfg !== "object") {
     throw new TypeError("saveAISessionsConfig: cfg must be object or null");
   }
   // cfg=null → 显式清字段: patchState 里的 ai_sessions_config 默认保留要禁用
   return patchState(
-    (next) => {
+    (next: any) => {
       if (cfg != null) next.ai_sessions_config = { ...cfg };
     },
     statePath,
@@ -1085,7 +1085,7 @@ function saveAISessionsConfig(cfg: any, statePath = defaultPath()) {
   );
 }
 
-function writeAtomic(filePath: any, data: any) {
+export function writeAtomic(filePath: any, data: any) {
   const dir = path.dirname(filePath);
   try {
     fs.mkdirSync(dir, { recursive: true });
@@ -1096,7 +1096,7 @@ function writeAtomic(filePath: any, data: any) {
   try {
     fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
     fs.renameSync(tmp, filePath);
-  } catch (err) {
+  } catch (err: any) {
     // 清理 tmp, 重新抛
     try {
       fs.unlinkSync(tmp);
@@ -1118,7 +1118,7 @@ function writeAtomic(filePath: any, data: any) {
  * @param {string} [statePath]
  * @returns {string}  'all' 或 categoryId
  */
-function loadActiveCategory(statePath = defaultPath()) {
+export function loadActiveCategory(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return "all";
   const v = s.active_category;
@@ -1134,12 +1134,12 @@ function loadActiveCategory(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveActiveCategory(id: any, statePath = defaultPath()) {
+export function saveActiveCategory(id: any, statePath = defaultPath()) {
   if (typeof id !== "string" || id.length === 0) {
     throw new TypeError("saveActiveCategory: id must be non-empty string");
   }
   // bug 修复: 老实现没 preserve ai_sessions_config, 走 patchState 自动补上.
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.active_category = id;
   }, statePath);
 }
@@ -1161,7 +1161,7 @@ const PERSISTABLE_NAV_VALUES = new Set([
  * @param {string} [statePath]
  * @returns {string|null}
  */
-function loadLastActiveNav(statePath = defaultPath()) {
+export function loadLastActiveNav(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s) return null;
   const v = s.last_active_nav;
@@ -1178,11 +1178,11 @@ function loadLastActiveNav(statePath = defaultPath()) {
  * @returns {object} 写完后的完整 state
  * @throws {TypeError} 非合法 key
  */
-function saveLastActiveNav(key: any, statePath = defaultPath()) {
+export function saveLastActiveNav(key: any, statePath = defaultPath()) {
   if (typeof key !== 'string' || !PERSISTABLE_NAV_VALUES.has(key)) {
     throw new TypeError('saveLastActiveNav: key must be a persistable nav key');
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.last_active_nav = key;
   }, statePath);
 }
@@ -1195,7 +1195,7 @@ function saveLastActiveNav(key: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {{version:number, segments: Record<string, boolean>}}
  */
-function loadTrayMenuPrefs(statePath = defaultPath()) {
+export function loadTrayMenuPrefs(statePath = defaultPath()) {
   const { DEFAULT_PREFS: DEF, normalizePrefs } = require("./tray-menu-prefs.ts");
   const s = load(statePath);
   if (!s || !s.tray_menu_prefs) return DEF;
@@ -1212,10 +1212,10 @@ function loadTrayMenuPrefs(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveTrayMenuPrefs(prefs: any, statePath = defaultPath()) {
+export function saveTrayMenuPrefs(prefs: any, statePath = defaultPath()) {
   const { normalizePrefs } = require("./tray-menu-prefs.ts");
   const normalized = normalizePrefs(prefs);
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.tray_menu_prefs = normalized;
   }, statePath);
 }
@@ -1228,11 +1228,11 @@ function saveTrayMenuPrefs(prefs: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveDailyDigest(cfg: any, statePath = defaultPath()) {
+export function saveDailyDigest(cfg: any, statePath = defaultPath()) {
   if (cfg == null || typeof cfg !== "object" || Array.isArray(cfg)) {
     throw new TypeError("saveDailyDigest: cfg must be plain object");
   }
-  return patchState((next, existing) => {
+  return patchState((next: any, existing: any) => {
     const prev =
       existing.daily_digest && typeof existing.daily_digest === "object"
         ? existing.daily_digest
@@ -1246,7 +1246,7 @@ function saveDailyDigest(cfg: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {{enabled: boolean, time: string, last_push_date: string|null}}
  */
-function loadDailyDigest(statePath = defaultPath()) {
+export function loadDailyDigest(statePath = defaultPath()) {
   const s = load(statePath);
   const def = { enabled: true, time: "08:30", last_push_date: null };
   if (
@@ -1286,7 +1286,7 @@ function loadDailyDigest(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object|null}
  */
-function loadAiUsageSnapshot(statePath = defaultPath()) {
+export function loadAiUsageSnapshot(statePath = defaultPath()) {
   return loadAiUsageSnapshotProvider("minimax", statePath);
 }
 
@@ -1296,7 +1296,7 @@ function loadAiUsageSnapshot(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveAiUsageSnapshot(snapshot: any, statePath = defaultPath()) {
+export function saveAiUsageSnapshot(snapshot: any, statePath = defaultPath()) {
   return saveAiUsageSnapshotProvider(
     (snapshot && snapshot.provider) || "minimax",
     snapshot,
@@ -1317,20 +1317,20 @@ function saveAiUsageSnapshot(snapshot: any, statePath = defaultPath()) {
 //
 // 保留 30 天 (GC 删更早的), 不让文件无限涨.
 
-const USAGE_HISTORY_GC_DAYS = 30;
-const USAGE_HISTORY_MAX_DAYS = 30;
+export const USAGE_HISTORY_GC_DAYS = 30;
+export const USAGE_HISTORY_MAX_DAYS = 30;
 
 /**
  * GC: 删 30 天外的 entry. 写盘前调.
  * @param {Array<{date: string}>|null|undefined} days
  * @returns {Array}
  */
-function cleanExpiredUsageHistory(days: any) {
+export function cleanExpiredUsageHistory(days: any) {
   if (!Array.isArray(days)) return [];
   // 简单按 date string 倒序排, 截前 N 条. YYYY-MM-DD 可直接字符串比较.
   const sorted = [...days]
-    .filter((d) => d && typeof d === "object" && typeof d.date === "string")
-    .sort((a, b) => (a.date < b.date ? 1 : -1));
+    .filter((d: any) => d && typeof d === "object" && typeof d.date === "string")
+    .sort((a: any, b: any) => (a.date < b.date ? 1 : -1));
   return sorted.slice(0, USAGE_HISTORY_MAX_DAYS);
 }
 
@@ -1339,7 +1339,7 @@ function cleanExpiredUsageHistory(days: any) {
  * @param {string} [statePath]
  * @returns {{days: Array}}
  */
-function loadAiUsageHistory(statePath = defaultPath()) {
+export function loadAiUsageHistory(statePath = defaultPath()) {
   return loadAiUsageHistoryProvider("minimax", statePath);
 }
 
@@ -1349,7 +1349,7 @@ function loadAiUsageHistory(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function appendAiUsageHistoryDay(entry: any, statePath = defaultPath()) {
+export function appendAiUsageHistoryDay(entry: any, statePath = defaultPath()) {
   return appendAiUsageHistoryDayProvider("minimax", entry, statePath);
 }
 
@@ -1411,7 +1411,7 @@ function _ensureAiUsageV2(statePath = defaultPath()) {
     schema_version: 2,
     providers: { minimax: { ...s.ai_usage } },
   };
-  patchState((next) => {
+  patchState((next: any) => {
     next.ai_usage = migrated;
   }, statePath);
   return migrated;
@@ -1423,7 +1423,7 @@ function _ensureAiUsageV2(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object|null}
  */
-function loadAiUsageSnapshotProvider(providerId: any, statePath = defaultPath()) {
+export function loadAiUsageSnapshotProvider(providerId: any, statePath = defaultPath()) {
   if (typeof providerId !== "string" || !providerId) return null;
   const v2 = _ensureAiUsageV2(statePath);
   const snap = v2.providers[providerId];
@@ -1438,7 +1438,7 @@ function loadAiUsageSnapshotProvider(providerId: any, statePath = defaultPath())
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveAiUsageSnapshotProvider(
+export function saveAiUsageSnapshotProvider(
   providerId: any,
   snapshot: any,
   statePath = defaultPath(),
@@ -1455,7 +1455,7 @@ function saveAiUsageSnapshotProvider(
   }
   const v2 = _ensureAiUsageV2(statePath);
   v2.providers[providerId] = { ...snapshot };
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.ai_usage = { schema_version: 2, providers: { ...v2.providers } };
   }, statePath);
 }
@@ -1466,7 +1466,7 @@ function saveAiUsageSnapshotProvider(
  * @param {string} [statePath]
  * @returns {{days: Array}}
  */
-function loadAiUsageHistoryProvider(providerId: any, statePath = defaultPath()) {
+export function loadAiUsageHistoryProvider(providerId: any, statePath = defaultPath()) {
   if (typeof providerId !== "string" || !providerId) return { days: [] };
   const s = load(statePath);
   if (!s || !s.ai_usage_history || typeof s.ai_usage_history !== "object") {
@@ -1495,7 +1495,7 @@ function loadAiUsageHistoryProvider(providerId: any, statePath = defaultPath()) 
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function appendAiUsageHistoryDayProvider(
+export function appendAiUsageHistoryDayProvider(
   providerId: any,
   entry: any,
   statePath = defaultPath(),
@@ -1576,7 +1576,7 @@ function appendAiUsageHistoryDayProvider(
   });
   providers[providerId] = { days: cleanExpiredUsageHistory([...map.values()]) };
 
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.ai_usage_history = { schema_version: 2, providers: { ...providers } };
   }, statePath);
 }
@@ -1589,7 +1589,7 @@ function appendAiUsageHistoryDayProvider(
 // Schema: state.json.classify_llm_cache = { "kimi": "ai", "kodi": "media", ... }
 // key 是 lowercase appName (跟 category module 一致).
 
-function loadLLMClassifyCache(statePath = defaultPath()) {
+export function loadLLMClassifyCache(statePath = defaultPath()) {
   const s = load(statePath);
   if (
     !s ||
@@ -1613,7 +1613,7 @@ function loadLLMClassifyCache(statePath = defaultPath()) {
   return out;
 }
 
-function saveLLMClassifyCache(map: any, statePath = defaultPath()) {
+export function saveLLMClassifyCache(map: any, statePath = defaultPath()) {
   if (map == null || typeof map !== "object" || Array.isArray(map)) {
     throw new TypeError("saveLLMClassifyCache: map must be plain object");
   }
@@ -1629,7 +1629,7 @@ function saveLLMClassifyCache(map: any, statePath = defaultPath()) {
       trimmed[k] = v;
     }
   }
-  return patchState((next, existing) => {
+  return patchState((next: any, existing: any) => {
     // 合并: 旧值 + 新值, 新值覆盖旧值 (新分类优先)
     next.classify_llm_cache = {
       ...((existing.classify_llm_cache as Record<string, unknown>) || {}),
@@ -1649,7 +1649,7 @@ function _backupCorruptState(statePath: any) {
   try {
     renameSync(statePath, backupPath);
     return { ok: true, backupPath };
-  } catch (err) {
+  } catch (err: any) {
     // Best-effort: backup failure must not block startup
     try {
       const { mainLog } = require("./log.ts");
@@ -1671,13 +1671,13 @@ function _backupCorruptState(statePath: any) {
  * @param {string} [statePath]
  * @returns {object|null}
  */
-function loadOrRecover(statePath = defaultPath()) {
+export function loadOrRecover(statePath = defaultPath()) {
   try {
     const state = _loadOrThrow(statePath);
     // Successful load — clear any stale event from a previous boot
     _lastRecoveryEvent = null;
     return state;
-  } catch (err) {
+  } catch (err: any) {
     if (err instanceof StateCorruptedError) {
       const backup = _backupCorruptState(statePath);
       const event = {
@@ -1705,7 +1705,7 @@ function loadOrRecover(statePath = defaultPath()) {
  * event on first call, null thereafter. The renderer asks for this once at
  * bootstrap; if null, no banner is shown.
  */
-function getLastRecoveryEvent() {
+export function getLastRecoveryEvent() {
   const evt = _lastRecoveryEvent;
   _lastRecoveryEvent = null; // consume
   return evt;
@@ -1723,7 +1723,7 @@ function getLastRecoveryEvent() {
  * @param {string} [statePath]
  * @returns {{version: string, at: number} | null}
  */
-function getLastSeenRelease(statePath = defaultPath()) {
+export function getLastSeenRelease(statePath = defaultPath()) {
   const s = load(statePath);
   if (!s || !s.last_seen_release) return null;
   const { version, at } = s.last_seen_release;
@@ -1737,7 +1737,7 @@ function getLastSeenRelease(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function setLastSeenRelease(version: any, at: any, statePath = defaultPath()) {
+export function setLastSeenRelease(version: any, at: any, statePath = defaultPath()) {
   if (typeof version !== "string" || !version) {
     throw new TypeError("setLastSeenRelease: version must be non-empty string");
   }
@@ -1746,7 +1746,7 @@ function setLastSeenRelease(version: any, at: any, statePath = defaultPath()) {
       "setLastSeenRelease: at must be non-negative finite number",
     );
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.last_seen_release = { version, at };
   }, statePath);
 }
@@ -1757,7 +1757,7 @@ function setLastSeenRelease(version: any, at: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {Array<{ts:number, readyMs:number}>} 倒序, 最新在前
  */
-function loadStartupSamples(statePath = defaultPath()) {
+export function loadStartupSamples(statePath = defaultPath()) {
   try {
     const s = load(statePath);
     const arr = s && s.startup_samples;
@@ -1765,9 +1765,9 @@ function loadStartupSamples(statePath = defaultPath()) {
     // 兼容容错: 每条只保留 { ts, readyMs } 两个 number 字段
     return arr
       .filter(
-        (e) => e && typeof e === "object" && typeof e.readyMs === "number",
+        (e: any) => e && typeof e === "object" && typeof e.readyMs === "number",
       )
-      .map((e) => ({ ts: e.ts || 0, readyMs: e.readyMs }));
+      .map((e: any) => ({ ts: e.ts || 0, readyMs: e.readyMs }));
   } catch {
     return [];
   }
@@ -1778,9 +1778,9 @@ function loadStartupSamples(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveStartupSamples(samples: any, statePath = defaultPath()) {
+export function saveStartupSamples(samples: any, statePath = defaultPath()) {
   const safe = Array.isArray(samples) ? samples : [];
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.startup_samples = safe;
   }, statePath);
 }
@@ -1791,7 +1791,7 @@ function saveStartupSamples(samples: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {Array<object>}
  */
-function loadAiFeedback(statePath = defaultPath()) {
+export function loadAiFeedback(statePath = defaultPath()) {
   const s = load(statePath);
   const arr = s && s.aiFeedback;
   return Array.isArray(arr) ? arr : [];
@@ -1803,9 +1803,9 @@ function loadAiFeedback(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveAiFeedback(samples: any, statePath = defaultPath()) {
+export function saveAiFeedback(samples: any, statePath = defaultPath()) {
   if (!Array.isArray(samples)) return load(statePath);
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.aiFeedback = samples;
   }, statePath);
 }
@@ -1815,7 +1815,7 @@ function saveAiFeedback(samples: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {Record<string, number>}
  */
-function loadTokenSpend(statePath = defaultPath()) {
+export function loadTokenSpend(statePath = defaultPath()) {
   const s = load(statePath);
   const m = s && s.tokenSpend;
   return m && typeof m === "object" ? m : {};
@@ -1827,8 +1827,8 @@ function loadTokenSpend(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveTokenSpend(spendMap: any, statePath = defaultPath()) {
-  return patchState((next) => {
+export function saveTokenSpend(spendMap: any, statePath = defaultPath()) {
+  return patchState((next: any) => {
     next.tokenSpend = spendMap || {};
   }, statePath);
 }
@@ -1838,7 +1838,7 @@ function saveTokenSpend(spendMap: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {{dailyLimit: number, mode: "warn"|"block"}}
  */
-function loadTokenBudgetConfig(statePath = defaultPath()) {
+export function loadTokenBudgetConfig(statePath = defaultPath()) {
   const s = load(statePath);
   const c = s && s.tokenBudgetConfig;
   const dailyLimit = c && typeof c.dailyLimit === "number" ? c.dailyLimit : 0;
@@ -1853,8 +1853,8 @@ function loadTokenBudgetConfig(statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveTokenBudgetConfig(cfg: any, statePath = defaultPath()) {
-  return patchState((next) => {
+export function saveTokenBudgetConfig(cfg: any, statePath = defaultPath()) {
+  return patchState((next: any) => {
     next.tokenBudgetConfig = cfg || {};
   }, statePath);
 }
@@ -1865,7 +1865,7 @@ function saveTokenBudgetConfig(cfg: any, statePath = defaultPath()) {
  * Old state.json without watchlist field → []. 兼容老数据 (appName → type:app).
  * @returns {Array<object>}
  */
-function normalizeWatchlistItem(w: any) {
+export function normalizeWatchlistItem(w: any) {
   if (!w || typeof w !== "object") return null;
   const addedAt = typeof w.addedAt === "number" ? w.addedAt : 0;
   if (typeof w.appName === "string" && w.appName.length > 0) {
@@ -1925,14 +1925,14 @@ function normalizeWatchlistItem(w: any) {
   return null;
 }
 
-function watchlistItemKey(item: any) {
+export function watchlistItemKey(item: any) {
   if (!item) return "";
   const type = item.type || "app";
   const ref = item.ref || item.appName || "";
   return `${type}:${ref}`;
 }
 
-function loadWatchlist(statePath = defaultPath()) {
+export function loadWatchlist(statePath = defaultPath()) {
   try {
     const s = load(statePath);
     const wl = s && Array.isArray(s.watchlist) ? s.watchlist : [];
@@ -1947,7 +1947,7 @@ function loadWatchlist(statePath = defaultPath()) {
 // 用途: overview 页 AI 洞察 24h 内命中缓存直接返. 字段: { text, fetchedAt }.
 // 走 PRESERVE_FIELDS 自动保留.
 
-function loadOverviewCache(statePath = defaultPath()) {
+export function loadOverviewCache(statePath = defaultPath()) {
   const s = load(statePath);
   const c = s && s.overviewCache;
   if (!c || typeof c !== "object" || Array.isArray(c)) return null;
@@ -1957,7 +1957,7 @@ function loadOverviewCache(statePath = defaultPath()) {
   return { text: c.text, fetchedAt: c.fetchedAt };
 }
 
-function saveOverviewCache(entry: any, statePath = defaultPath()) {
+export function saveOverviewCache(entry: any, statePath = defaultPath()) {
   if (
     !entry ||
     typeof entry !== "object" ||
@@ -1968,7 +1968,7 @@ function saveOverviewCache(entry: any, statePath = defaultPath()) {
       "saveOverviewCache: entry must be {text: string, fetchedAt: number}",
     );
   }
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.overviewCache = { text: entry.text, fetchedAt: entry.fetchedAt };
   }, statePath);
 }
@@ -1979,11 +1979,11 @@ function saveOverviewCache(entry: any, statePath = defaultPath()) {
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  */
-function saveWatchlist(list: any, statePath = defaultPath()) {
+export function saveWatchlist(list: any, statePath = defaultPath()) {
   const safe = (Array.isArray(list) ? list : [])
     .map(normalizeWatchlistItem)
     .filter(Boolean);
-  return patchState((next) => {
+  return patchState((next: any) => {
     next.watchlist = safe;
   }, statePath);
 }

@@ -5,9 +5,9 @@
  */
 "use strict";
 
-const fs = require("fs");
-const { parseWorldcupTxt } = require("./worldcup/parser.ts");
-const { matchKey, matchKickoffUtcMs } = require("./worldcup/match-key.ts");
+import * as fs from "fs";
+import { parseWorldcupTxt } from "./worldcup/parser";
+import { matchKey, matchKickoffUtcMs } from "./worldcup/match-key";
 
 function _readState(statePath: any): any {
   if (!statePath) return null;

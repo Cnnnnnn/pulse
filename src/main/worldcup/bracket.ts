@@ -13,19 +13,19 @@
  */
 "use strict";
 
-const stateStore = require("../state-store.ts");
-const { computeBracket } = require("./bracket-rules.ts");
-const { mainLog } = require("../log.ts");
-const { fetchWorldcupFixtures, loadFinalsTxt } = require("./fetcher.ts");
-const { teamsPairKey, canonicalTeamName } = require("./team-aliases.ts");
-const { matchKickoffUtcMs, matchKey } = require("./match-key.ts");
+import * as stateStore from "../state-store";
+import { computeBracket } from "./bracket-rules";
+import { mainLog } from "../log";
+import { fetchWorldcupFixtures, loadFinalsTxt } from "./fetcher";
+import { teamsPairKey, canonicalTeamName } from "./team-aliases";
+import { matchKickoffUtcMs, matchKey } from "./match-key";
 const {
   fetchWc2026Schedule,
   indexWc2026ByMatchNum,
 } = require("./scores-fetcher-wc2026.ts");
-const { fetchScoresFromEspn } = require("./scores-api-espn.ts");
-const { parseWorldcupTxt } = require("./parser.ts");
-const { HttpClient } = require("../http-client.ts");
+import { fetchScoresFromEspn } from "./scores-api-espn";
+import { parseWorldcupTxt } from "./parser";
+import { HttpClient } from "../http-client";
 
 /**
  * Compute full bracket from current group standings + scores.
@@ -535,7 +535,7 @@ export function rankGroup(letter: any, matches: any[], teams: string[]): any {
     }
   }
 
-  const sorted = Object.entries(stats).sort((a, b) => {
+  const sorted = Object.entries(stats).sort((a: any, b: any) => {
     const sa = a[1] as any;
     const sb = b[1] as any;
     if (sb.pts !== sa.pts) return sb.pts - sa.pts;

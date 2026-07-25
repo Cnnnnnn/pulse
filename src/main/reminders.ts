@@ -23,11 +23,11 @@
  * 4 个重复规则都靠 _computeNextFireTime 纯函数算下次, 单元测覆盖.
  */
 
-const fs = require("fs");
-const crypto = require("crypto");
-const stateStore = require("./state-store.ts");
-const recentActivity = require("./recent-activity.ts");
-const { mainLog } = require("./log.ts");
+import * as fs from "fs";
+import * as crypto from "crypto";
+import * as stateStore from "./state-store";
+import * as recentActivity from "./recent-activity";
+import { mainLog } from "./log";
 
 const VALID_REPEATS = ["once", "daily", "weekdays", "weekly"] as const;
 type Repeat = (typeof VALID_REPEATS)[number];
@@ -253,7 +253,7 @@ function _invalidIdResult(id: unknown): { ok: false; reason: string } | null {
 }
 
 function _findReminderIndex(reminders: Reminder[], id: string): number {
-  return reminders.findIndex((r) => r && r.id === id);
+  return reminders.findIndex((r: any) => r && r.id === id);
 }
 
 function _saveReminders(ctx: RemindersCtx, reminders: Reminder[]): void {

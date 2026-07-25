@@ -21,14 +21,14 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const stateStore = require("../state-store.ts");
+import * as stateStore from "../state-store";
 const {
   recordFeedback,
   pruneToCap,
   FEEDBACK_CAP,
 } = require("../ai-feedback-store.ts");
 
-function registerAiFeedbackHandlers(ctx: any) {
+export function registerAiFeedbackHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
@@ -48,7 +48,7 @@ function registerAiFeedbackHandlers(ctx: any) {
       const next = pruneToCap(recordFeedback(current, raw), FEEDBACK_CAP);
       stateStore.saveAiFeedback(next);
       return { ok: true };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });
@@ -56,7 +56,7 @@ function registerAiFeedbackHandlers(ctx: any) {
   safeHandle("feedback:export", async () => {
     try {
       return { ok: true, samples: stateStore.loadAiFeedback() };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
   });

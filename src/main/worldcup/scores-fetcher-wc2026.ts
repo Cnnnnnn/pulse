@@ -5,8 +5,8 @@
  */
 "use strict";
 
-const { canonicalTeamName, teamsPairKey } = require("./team-aliases.ts");
-const { mainLog } = require("../log.ts");
+import { canonicalTeamName, teamsPairKey } from "./team-aliases";
+import { mainLog } from "../log";
 
 const SCHEDULE_URL = "https://wc-2026.com/schedule/";
 

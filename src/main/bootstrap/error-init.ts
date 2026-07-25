@@ -19,11 +19,11 @@
 import type * as pathType from "node:path";
 
 const path: typeof pathType = require('path');
-const { createAggregator } = require('../error-aggregator.ts');
+import { createAggregator } from "../error-aggregator";
 
 let _instance: { aggregator: any; sendToRenderer: any } | null = null;
 
-function initErrorCapture(opts: {
+export function initErrorCapture(opts: {
   logsDir?: string;
   retentionDays?: number;
   sendToRenderer?: ((channel: string, payload: unknown) => void) | null;
@@ -42,7 +42,7 @@ function initErrorCapture(opts: {
     }
   }
 
-  process.on('uncaughtException', (err) => {
+  process.on('uncaughtException', (err: any) => {
     try {
       agg.append({
         source: 'main',
@@ -54,7 +54,7 @@ function initErrorCapture(opts: {
     } catch { /* swallow */ }
   });
 
-  process.on('unhandledRejection', (reason) => {
+  process.on('unhandledRejection', (reason: any) => {
     try {
       const err = reason instanceof Error ? reason : new Error(String(reason));
       agg.append({
@@ -73,11 +73,11 @@ function initErrorCapture(opts: {
   return _instance;
 }
 
-function getInstance() {
+export function getInstance() {
   return _instance;
 }
 
-function __resetForTest() {
+export function __resetForTest() {
   _instance = null;
 }
 

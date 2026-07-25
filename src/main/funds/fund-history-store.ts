@@ -5,23 +5,23 @@
  */
 "use strict";
 
-const stateStore = require("../state-store.ts");
-const fundStore = require("./fund-store.ts");
+import * as stateStore from "../state-store";
+import * as fundStore from "./fund-store";
 const {
   ymdShanghai,
   isValidSnapshot,
   buildSnapshotFromMetrics,
   upsertDailySnapshot,
   pruneSnapshots,
-} = require("../../funds/fund-history");
+} = require("../../funds/fund-history.js");
 const {
   calcPortfolioTotal,
   zipHoldingsWithNav,
   rowWithMetrics,
-} = require("../../funds/fundCalc");
-const { resolveNavSnapshot } = require("../../funds/fund-nav-merge");
+} = require("../../funds/fundCalc.js");
+import { resolveNavSnapshot } from "../../funds/fund-nav-merge";
 
-export function loadSnapshots(statePath: any): any[] {
+export function loadSnapshots(statePath: any = stateStore.defaultPath()): any[] {
   const s = stateStore.load(statePath);
   const raw = s && s.funds && s.funds.dailySnapshots;
   if (!Array.isArray(raw)) return [];

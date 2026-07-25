@@ -176,7 +176,7 @@ export function sortThirdPlaced(standings: any): any[] {
  * Pick top N group letters by sortThirdPlaced ranking.
  */
 export function selectThirdPlaced(sortedThird: any[], n: number = 8): string[] {
-  return sortedThird.slice(0, n).map((s) => s.group);
+  return sortedThird.slice(0, n).map((s: any) => s.group);
 }
 
 /**
@@ -216,8 +216,8 @@ function buildAnnexConfigFromRow(rowIndex: number, rawLetters: string): any {
 
   // 8 场 winner-vs-best3rd (slot1 = winner, slot2 = best3rd)
   const winnerVsThird = ALL_GROUP_LETTERS
-    .filter((g) => ANNEX_C_WINNERS.includes(g))
-    .map((g) => ({
+    .filter((g: any) => ANNEX_C_WINNERS.includes(g))
+    .map((g: any) => ({
       num: R32_MATCH_OF_WINNER[g],
       slot1: { type: 'group', rank: 'winner', group: g },
       slot2: { type: 'best-third', pool: [bestThirdByWinner[g]] },
@@ -240,7 +240,7 @@ function buildAnnexConfigFromRow(rowIndex: number, rawLetters: string): any {
   ];
 
   const r32 = [...winnerVsThird, ...winnerVsRunner, ...runnerVsRunner]
-    .sort((a, b) => a.num - b.num);
+    .sort((a: any, b: any) => a.num - b.num);
 
   return {
     r32Matches_73_88: r32,

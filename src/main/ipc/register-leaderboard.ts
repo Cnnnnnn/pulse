@@ -23,11 +23,11 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const fs = require("fs").promises;
-const path = require("path");
-const { getLeaderboard } = require("../ai-leaderboard/index.ts");
-const { CATEGORY_META, DIMENSION_META, VENDOR_META } = require("../ai-leaderboard/types.ts");
-const { budget } = require("../ai-leaderboard/rate-limiter.ts");
+import { promises as fs } from "fs";
+import * as path from "path";
+import { getLeaderboard } from "../ai-leaderboard/index";
+import { CATEGORY_META, DIMENSION_META, VENDOR_META } from "../ai-leaderboard/types";
+import { budget } from "../ai-leaderboard/rate-limiter";
 
 // ── 请求级缓存（Map + TTL，与 register-games.js 同构）──────────────
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 分钟
@@ -41,7 +41,7 @@ const _cache = new Map();
  * @param {object} opts
  * @returns {string}
  */
-function boardCacheKey(opts: any) {
+export function boardCacheKey(opts: any) {
   return JSON.stringify({
     category: opts.category,
     dimension: opts.dimension,
@@ -53,7 +53,7 @@ function boardCacheKey(opts: any) {
   });
 }
 
-function cacheGet(key: any) {
+export function cacheGet(key: any) {
   const e = _cache.get(key);
   if (!e) return null;
   if (Date.now() - e.fetchedAt > CACHE_TTL_MS) {
@@ -63,7 +63,7 @@ function cacheGet(key: any) {
   return e.result;
 }
 
-function cacheSet(key: any, result: any) {
+export function cacheSet(key: any, result: any) {
   if (_cache.size > CACHE_MAX) {
     const drop = [..._cache.keys()].slice(0, CACHE_MAX >> 1);
     for (const k of drop) _cache.delete(k);
@@ -72,7 +72,7 @@ function cacheSet(key: any, result: any) {
 }
 
 /** 测试 / 手动刷新用：清请求级缓存。 */
-function resetLeaderboardCache() {
+export function resetLeaderboardCache() {
   _cache.clear();
 }
 
@@ -81,7 +81,7 @@ function resetLeaderboardCache() {
  * @param {unknown} payload
  * @returns {object}
  */
-function sanitize(payload: any) {
+export function sanitize(payload: any) {
   const p = payload && typeof payload === "object" ? payload : {};
   const category = CATEGORY_META[p.category] ? p.category : "llm";
   const dimension = DIMENSION_META[p.dimension] ? p.dimension : "elo";
@@ -100,7 +100,7 @@ function sanitize(payload: any) {
   return { category, dimension, vendor, sortDir, search, force, sources };
 }
 
-function registerLeaderboardHandlers(ctx: any) {
+export function registerLeaderboardHandlers(ctx: any) {
   const { safeHandle } = ctx;
   // ponytail: 2026-07-22 CSV 导出 — dialog / BrowserWindow / app 从 ctx 注入
   // (与 register-stock-export 同构), 让测试可 mock.
@@ -122,7 +122,7 @@ function registerLeaderboardHandlers(ctx: any) {
       const result = await getLeaderboard(opts);
       cacheSet(key, result);
       return opts.force ? { ...result, fromCache: false } : result;
-    } catch (err) {
+    } catch (err: any) {
       return {
         ok: false,
         reason: "aggregate_failed",
@@ -158,7 +158,7 @@ function registerLeaderboardHandlers(ctx: any) {
       const result = await getLeaderboard(opts);
       cacheSet(key, result);
       return { ...result, fromCache: false };
-    } catch (err) {
+    } catch (err: any) {
       return {
         ok: false,
         reason: "aggregate_failed",
@@ -206,7 +206,7 @@ function registerLeaderboardHandlers(ctx: any) {
         defaultPath,
         filters: [{ name: "CSV", extensions: ["csv"] }],
       });
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, error: errMsg(err) };
     }
     if (result.canceled || !result.filePath) {
@@ -215,7 +215,7 @@ function registerLeaderboardHandlers(ctx: any) {
     try {
       await fs.writeFile(result.filePath, csv, "utf8");
       return { ok: true, path: result.filePath };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, error: errMsg(err) };
     }
   }, {

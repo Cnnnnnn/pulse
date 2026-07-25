@@ -5,7 +5,7 @@
  */
 "use strict";
 
-const { clipboard, nativeImage } = require("electron");
+import { clipboard, nativeImage } from "electron";
 
 export function writePngToClipboard(pngBuffer: any): void {
     if (!Buffer.isBuffer(pngBuffer) || pngBuffer.length === 0) {

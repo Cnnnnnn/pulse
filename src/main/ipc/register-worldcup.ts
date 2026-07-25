@@ -10,21 +10,21 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const stateStore = require("../state-store.ts");
+import * as stateStore from "../state-store";
 const {
   computeWorldcupBracket,
   loadWorldcupBracket,
 } = require("../worldcup/bracket.ts");
-const { fetchWorldcupFixtures } = require("../worldcup/fetcher.ts");
-const { refreshWorldcupScores } = require("../worldcup/scores-fetcher.ts");
-const { generateMatchInsight } = require("../worldcup/match-ai.ts");
+import { fetchWorldcupFixtures } from "../worldcup/fetcher";
+import { refreshWorldcupScores } from "../worldcup/scores-fetcher";
+import { generateMatchInsight } from "../worldcup/match-ai";
 const {
   loadAll: betsLoadAll,
   upsert: betsUpsert,
   remove: betsRemove,
 } = require("../worldcup/bets-store.ts");
 
-function registerWorldcupHandlers(ctx: any) {
+export function registerWorldcupHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
   safeHandle("worldcup:fetch-fixtures", async (_evt: any, payload: any) =>

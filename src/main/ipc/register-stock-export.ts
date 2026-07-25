@@ -32,8 +32,8 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const fs = require("fs");
-const path = require("path");
+import * as fs from "fs";
+import * as path from "path";
 
 function sanitize(name: any) {
   // ponytail: 文件名去掉路径分隔符 / 控制字符, 防用户输入奇怪的 defaultName.
@@ -59,7 +59,7 @@ function resolveDownloadsDir(electronApp: any) {
   }
 }
 
-function registerStockExportHandlers(ctx: any) {
+export function registerStockExportHandlers(ctx: any) {
   const { safeHandle, threwResponse } = ctx;
   // ponytail: 与 register-config-portability 一致 — dialog/BrowserWindow/app 从 ctx 注入,
   // 让 vitest 测试能 mock. 生产环境 index.js 里直接传 require("electron").xxx.
@@ -100,7 +100,7 @@ function registerStockExportHandlers(ctx: any) {
         }
         fs.writeFileSync(result.filePath, buf);
         return { ok: true, path: result.filePath, sizeBytes: buf.length };
-      } catch (err) {
+      } catch (err: any) {
         return threwResponse(err);
       }
     },

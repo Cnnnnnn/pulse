@@ -5,11 +5,11 @@
  */
 "use strict";
 
-const { toGameDeal, BROWSER_UA: UA } = require("./normalize.ts");
-const { logFetchError } = require("./log.ts");
-const os = require("os");
-const fs = require("fs");
-const path = require("path");
+import { toGameDeal, BROWSER_UA as UA } from "./normalize";
+import { logFetchError } from "./log";
+import * as os from "os";
+import * as fs from "fs";
+import * as path from "path";
 
 const PSGS_RAW_BASE =
   "https://raw.githubusercontent.com/RavelloH/PSGameSpider/main/data";
@@ -69,7 +69,7 @@ function readCache(region: string, kind: string): any {
     const stat = fs.statSync(p);
     if (Date.now() - stat.mtimeMs > PSGS_CACHE_TTL_MS) return null;
     return JSON.parse(fs.readFileSync(p, "utf8"));
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("playstation:cache:read", err);
     return null;
   }
@@ -79,7 +79,7 @@ async function writeCache(region: string, kind: string, data: any): Promise<void
   try {
     await fs.promises.mkdir(PSGS_CACHE_DIR, { recursive: true });
     await fs.promises.writeFile(cachePath(region, kind), JSON.stringify(data), "utf8");
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("playstation:cache:write", err);
   }
 }
@@ -103,7 +103,7 @@ export async function loadPsGameSpiderData(region: string): Promise<any> {
       );
       writeCache(reg, "metaData", metaData).catch(() => {});
     }
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("playstation:psgamespider", err);
     return null;
   }
@@ -171,8 +171,8 @@ export function buildDealsFromPsGameSpider(priceHistory: any, metaData: any, opt
     });
   }
 
-  deals.sort((a, b) => (b.popular || 0) - (a.popular || 0));
-  return deals.slice(0, limit).map((d) => toGameDeal(d));
+  deals.sort((a: any, b: any) => (b.popular || 0) - (a.popular || 0));
+  return deals.slice(0, limit).map((d: any) => toGameDeal(d));
 }
 
 export async function fetchPlayStationDeals(opts: any = {}): Promise<any[] | null> {
@@ -188,14 +188,14 @@ export async function fetchPlayStationDeals(opts: any = {}): Promise<any[] | nul
       );
       if (deals.length > 0) return deals;
     }
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("playstation:psgamespider:main", err);
   }
 
   try {
     const deals = await fetchPlayStationStoreDeals(opts);
     if (deals && deals.length > 0) return deals;
-  } catch (err) {
+  } catch (err: any) {
     logFetchError("playstation:ssr", err);
   }
 
@@ -212,7 +212,7 @@ export async function fetchPlayStationStoreDeals(opts: any = {}): Promise<any[] 
     const raw = parseDealsHtml(html);
     const items = raw
       .slice(0, limit)
-      .map((r) => toGameDeal(r))
+      .map((r: any) => toGameDeal(r))
       .filter((it: any) => it.savings > 0 && it.normalPrice > 0);
     return items;
   } catch {

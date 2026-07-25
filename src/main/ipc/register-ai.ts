@@ -5,12 +5,12 @@
 import type { IpcMain, Shell } from "electron";
 
 const { ipcMain, shell }: { ipcMain: IpcMain; shell: Shell } = require("electron");
-const stateStore = require("../state-store.ts");
-const { mainLog } = require("../log.ts");
-const aiStorage = require("../../ai-sessions/storage");
-const { CloudSummarizer, PROVIDER_ENDPOINTS } = require("../../ai-sessions/provider-cloud");
-const { HttpClient } = require("../http-client.ts");
-const { resolveSharedAiConfig } = require("../../ai/shared-llm");
+import * as stateStore from "../state-store";
+import { mainLog } from "../log";
+import * as aiStorage from "../../ai-sessions/storage";
+import { CloudSummarizer, PROVIDER_ENDPOINTS } from "../../ai-sessions/provider-cloud";
+import { HttpClient } from "../http-client";
+import { resolveSharedAiConfig } from "../../ai/shared-llm";
 
 function localDateKey(offsetDays = 0) {
   const t = Date.now() - (offsetDays | 0) * 86400_000;
@@ -21,7 +21,7 @@ function localDateKey(offsetDays = 0) {
   }).format(new Date(t));
 }
 
-function registerAiHandlers(ctx: any) {
+export function registerAiHandlers(ctx: any) {
   const { safeHandle, sendToRenderer } = ctx;
 
   function getAiTasksWiring() {
@@ -126,7 +126,7 @@ function registerAiHandlers(ctx: any) {
     { logMeta: (_evt: any, providerId: any) => ({ providerId }) },
   );
 
-  ipcMain.handle("ai-sessions:has-key", async (_event, providerId) => {
+  ipcMain.handle("ai-sessions:has-key", async (_event: any, providerId: any) => {
     if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
       return {
         ok: false,
@@ -141,8 +141,8 @@ function registerAiHandlers(ctx: any) {
     }
     const hasKey = Boolean(aiStorage.loadApiKey(providerId));
     const hasFile =
-      typeof aiStorage.hasApiKeyFile === "function"
-        ? aiStorage.hasApiKeyFile(providerId)
+      typeof (aiStorage as any).hasApiKeyFile === "function"
+        ? (aiStorage as any).hasApiKeyFile(providerId)
         : hasKey;
     return {
       ok: true,
@@ -152,7 +152,7 @@ function registerAiHandlers(ctx: any) {
     };
   });
 
-  ipcMain.handle("ai-sessions:healthcheck", async (_event, opts) => {
+  ipcMain.handle("ai-sessions:healthcheck", async (_event: any, opts: any) => {
     const stateCfg = stateStore.loadAISessionsConfig();
     const providerId =
       opts && typeof opts.providerId === "string"
@@ -197,7 +197,7 @@ function registerAiHandlers(ctx: any) {
               : undefined,
         },
       });
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
   });
@@ -225,18 +225,18 @@ function registerAiHandlers(ctx: any) {
         provider: "minimax",
         cloud: null,
       };
-      const { buildTaskSummaryEngine } = require("../../ai-sessions/wiring");
+      const { buildTaskSummaryEngine } = require("../../ai-sessions/wiring.js");
       const wiring = buildTaskSummaryEngine({
         config: baseCfg,
         runtimeOverride: stateStore.loadAISessionsConfig(),
         log: {
-          info: (...a: any) => mainLog.info(...a),
-          warn: (...a: any) => mainLog.warn(...a),
-          error: (...a: any) => mainLog.error(...a),
+          info: (...a: any) => (mainLog as any).info(...a),
+          warn: (...a: any) => (mainLog as any).warn(...a),
+          error: (...a: any) => (mainLog as any).error(...a),
         },
       });
       (globalThis as any).__pulse_aiTasks = wiring;
-    } catch (e) {
+    } catch (e: any) {
       mainLog.warn("[ipc] ai-sessions:save-config failed to rebuild wiring", {
         msg: e instanceof Error ? e.message : String(e),
       });
