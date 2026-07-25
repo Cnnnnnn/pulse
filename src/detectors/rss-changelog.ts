@@ -19,11 +19,11 @@
  * 暂不支持. 这是 Codex changelog RSS 专属探测器, 后续若有其它 RSS 源需要
  * 通用化再扩展.
  */
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { truncate, assertHttpResponse } = require("./utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { truncate, assertHttpResponse } from "./utils";
 
-class RssChangelogDetector extends Detector {
+export class RssChangelogDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -110,6 +110,4 @@ class RssChangelogDetector extends Detector {
 }
 
 Object.defineProperty(RssChangelogDetector, "name", { value: "rss_changelog", configurable: true });
-module.exports = { RssChangelogDetector };
 
-export {};

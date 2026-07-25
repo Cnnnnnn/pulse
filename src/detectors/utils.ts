@@ -8,8 +8,8 @@
  * detector 的 case: 引号 / 逗号 hash / v 前缀).
  */
 
-const { cleanVersion } = require("../utils/version-utils");
-const { DetectorError, REASONS } = require("./errors");
+import { cleanVersion } from "../utils/version-utils";
+import { DetectorError, REASONS } from "./errors";
 
 /**
  * 把超长字符串截到 n 字符 + "…". detector response body 经常上万字符,
@@ -18,7 +18,7 @@ const { DetectorError, REASONS } = require("./errors");
  * @param {number} [n=4096]
  * @returns {string|null}  s 为 null/空 → null
  */
-function truncate(s, n = 4096) {
+export function truncate(s, n = 4096) {
   if (!s) return null;
   return s.length > n ? s.slice(0, n) + "…" : s;
 }
@@ -31,7 +31,7 @@ function truncate(s, n = 4096) {
  * @param {string} note        通常是 URL
  * @param {{ includeRaw?: boolean, tooLargeNote?: string }} [opts]
  */
-function assertHttpResponse(r: any, detector: any, note: any, opts: any = {}) {
+export function assertHttpResponse(r: any, detector: any, note: any, opts: any = {}) {
   const includeRaw = opts.includeRaw !== false;
   if (r.error === "timeout") {
     throw new DetectorError({ detector, reason: REASONS.TIMEOUT, note });
@@ -66,10 +66,6 @@ function assertHttpResponse(r: any, detector: any, note: any, opts: any = {}) {
   }
 }
 
-module.exports = {
-  truncate,
-  cleanVersion,
-  assertHttpResponse,
-};
 
-export {};
+
+export { cleanVersion };

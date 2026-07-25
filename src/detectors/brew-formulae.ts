@@ -7,11 +7,11 @@
  * 配置: { type: 'brew_formulae', cask: 'cursor' }
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { truncate, cleanVersion, assertHttpResponse } = require("./utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { truncate, cleanVersion, assertHttpResponse } from "./utils";
 
-class BrewFormulaeDetector extends Detector {
+export class BrewFormulaeDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -67,6 +67,4 @@ class BrewFormulaeDetector extends Detector {
 }
 
 Object.defineProperty(BrewFormulaeDetector, "name", { value: "brew_formulae", configurable: true });
-module.exports = { BrewFormulaeDetector };
 
-export {};

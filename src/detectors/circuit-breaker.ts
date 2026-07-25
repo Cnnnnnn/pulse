@@ -14,13 +14,13 @@
  * Persistence is handled by `circuit-breaker-storage.js`.
  */
 
-const STATE = Object.freeze({
+export const STATE = Object.freeze({
   CLOSED: 'closed',
   OPEN: 'open',
   HALF_OPEN: 'half_open',
 });
 
-const DEFAULTS = Object.freeze({
+export const DEFAULTS = Object.freeze({
   failureThreshold: 3,
   cooldownMs: 5 * 60 * 1000, // 5 minutes
 });
@@ -29,7 +29,7 @@ function mergeConfig(config) {
   return { ...DEFAULTS, ...(config || {}) };
 }
 
-function createBreaker({ key, now = Date.now, config }: any = {}) {
+export function createBreaker({ key, now = Date.now, config }: any = {}) {
   if (!key) throw new Error('circuit-breaker: key is required');
   return {
     key,
@@ -51,7 +51,7 @@ function createBreaker({ key, now = Date.now, config }: any = {}) {
  *   也强制放行一次 (绕过熔断冷却, 重试权威源). 成功后仍会 recordSuccess 自愈,
  *   失败则 recordFailure 维持/重置冷却 — 跟正常路径一致.
  */
-function shouldAllow(breaker, now, force = false) {
+export function shouldAllow(breaker, now, force = false) {
   if (force) return true;
   if (breaker.state === STATE.CLOSED) return true;
   if (breaker.state === STATE.OPEN) {
@@ -64,14 +64,14 @@ function shouldAllow(breaker, now, force = false) {
   return false;
 }
 
-function transitionAfterProbe(breaker, now) {
+export function transitionAfterProbe(breaker, now) {
   if (breaker.state === STATE.OPEN && now >= breaker.openUntil) {
     return { ...breaker, state: STATE.HALF_OPEN };
   }
   return breaker;
 }
 
-function recordSuccess(breaker, now) {
+export function recordSuccess(breaker, now) {
   return {
     ...breaker,
     state: STATE.CLOSED,
@@ -81,7 +81,7 @@ function recordSuccess(breaker, now) {
   };
 }
 
-function recordFailure(breaker, now, configOverride) {
+export function recordFailure(breaker, now, configOverride) {
   const cfg = configOverride
     ? mergeConfig(configOverride)
     : breaker.config;
@@ -104,14 +104,4 @@ function recordFailure(breaker, now, configOverride) {
   };
 }
 
-module.exports = {
-  STATE,
-  DEFAULTS,
-  createBreaker,
-  shouldAllow,
-  transitionAfterProbe,
-  recordSuccess,
-  recordFailure,
-};
 
-export {};

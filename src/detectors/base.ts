@@ -10,7 +10,7 @@
  * 这样 detector 本体保持纯逻辑、易测、不直接 require fs/https。
  */
 
-class DetectorResult {
+export class DetectorResult {
   version: any;
   raw: any;
   source: any;
@@ -71,7 +71,7 @@ class DetectorResult {
   }
 }
 
-class DetectContext {
+export class DetectContext {
   appCfg: any;
   arch: any;
   http: any;
@@ -114,8 +114,13 @@ class DetectContext {
   }
 }
 
-class Detector {
+export class Detector {
   timeout: any;
+  // 子类会用 this.url / this.field / this.id 等构造选项, 没在 class body
+  // 显式声明. Phase 5 之前 CJS require("./base") 拿到的 Detector 是 any,
+  // 字段随便写. Phase 7 ESM-ify 后严格 import — TS strict mode 抓出. 加索引
+  // ponytail: 字段类型实际是 unknown; 如果子类要严格类型, 应改在 class body 声明.
+  [key: string]: any;
   /** 子类覆盖 Function.name（见各子类 Object.defineProperty） */
 
   /**
@@ -131,7 +136,7 @@ class Detector {
    * @param {DetectContext} ctx
    * @returns {Promise<DetectorResult>}
    */
-  async detect(_ctx: any) {
+  async detect(_ctx: any): Promise<DetectorResult> {
     throw new Error(
       `Detector.detect not implemented (${this.constructor.name})`,
     );
@@ -139,6 +144,4 @@ class Detector {
 }
 
 Object.defineProperty(Detector, "name", { value: "base", configurable: true });
-module.exports = { Detector, DetectContext, DetectorResult };
 
-export {};

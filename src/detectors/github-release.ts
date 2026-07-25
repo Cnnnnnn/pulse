@@ -10,11 +10,11 @@
  *       这种通用源, github_release 填补这个空缺 (mac 也能用).
  */
 
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
-const { truncate, assertHttpResponse } = require('./utils');
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { truncate, assertHttpResponse } from "./utils";
 
-class GithubReleaseDetector extends Detector {
+export class GithubReleaseDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -87,6 +87,4 @@ class GithubReleaseDetector extends Detector {
 }
 
 Object.defineProperty(GithubReleaseDetector, "name", { value: 'github_release', configurable: true });
-module.exports = { GithubReleaseDetector };
 
-export {};

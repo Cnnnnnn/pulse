@@ -10,11 +10,11 @@
  * 配置: { type: 'sparkle_appcast', url: 'https://...' }
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { truncate, assertHttpResponse } = require("./utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { truncate, assertHttpResponse } from "./utils";
 
-class SparkleAppcastDetector extends Detector {
+export class SparkleAppcastDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -120,6 +120,4 @@ function extractSparkleEnclosureUrl(xml) {
 }
 
 Object.defineProperty(SparkleAppcastDetector, "name", { value: "sparkle_appcast", configurable: true });
-module.exports = { SparkleAppcastDetector };
 
-export {};

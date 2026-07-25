@@ -20,17 +20,17 @@
  * 依赖注入: ctx.detCfg._exec 用于测试 mock. 生产环境用 child_process.execFile.
  */
 
-const { execFile } = require('child_process');
-const { promisify } = require('util');
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
+import { execFile } from "child_process";
+import { promisify } from "util";
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
 
 const pExecFile = promisify(execFile);
 
 // 版本号行: 纯 x.y.z 格式 (至少 2 段数字), 可带 prerelease (+/- 后缀)
 const VERSION_LINE = /^\d+\.\d+(?:\.\d+)*(?:[-+].+)?$/;
 
-class WingetShowDetector extends Detector {
+export class WingetShowDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -92,6 +92,4 @@ class WingetShowDetector extends Detector {
 }
 
 Object.defineProperty(WingetShowDetector, "name", { value: 'winget_show', configurable: true });
-module.exports = { WingetShowDetector };
 
-export {};

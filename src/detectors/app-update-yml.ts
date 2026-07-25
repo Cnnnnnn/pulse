@@ -9,12 +9,12 @@
  * 配置: { type: 'app_update_yml' }  (从 appCfg.bundle 读文件)
  */
 
-const fs = require("fs");
-const path = require("path");
-const { appBundleResourcePath } = require("../utils/app-paths");
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { truncate, assertHttpResponse } = require("./utils");
+import fs from "fs";
+import path from "path";
+import { appBundleResourcePath } from "../utils/app-paths";
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { truncate, assertHttpResponse } from "./utils";
 
 let yamlLib = null;
 try {
@@ -23,7 +23,7 @@ try {
   /* fallback to regex */
 }
 
-class AppUpdateYmlDetector extends Detector {
+export class AppUpdateYmlDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -164,6 +164,4 @@ function parseYmlFallback(raw) {
 }
 
 Object.defineProperty(AppUpdateYmlDetector, "name", { value: "app_update_yml", configurable: true });
-module.exports = { AppUpdateYmlDetector };
 
-export {};

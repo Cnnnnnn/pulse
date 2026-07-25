@@ -13,7 +13,7 @@
  *   - 'too_large'  响应体超过 maxBodyBytes 上限 (默认 1MB) — 通常是 endpoint 把整个 dmg 当 body 返回
  */
 
-class DetectorError extends Error {
+export class DetectorError extends Error {
   detector: any;
   reason: any;
   httpStatus: any;
@@ -38,7 +38,7 @@ class DetectorError extends Error {
   }
 }
 
-const REASONS = Object.freeze({
+export const REASONS = Object.freeze({
   TIMEOUT: 'timeout',
   PARSE: 'parse',
   HTTP_4XX: 'http_4xx',
@@ -48,6 +48,4 @@ const REASONS = Object.freeze({
   TOO_LARGE: 'too_large',
 });
 
-module.exports = { DetectorError, REASONS };
 
-export {};

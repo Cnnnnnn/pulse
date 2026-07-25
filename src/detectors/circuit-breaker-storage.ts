@@ -10,7 +10,9 @@
  * Snapshot is the breaker object minus the `_now` function (not serializable).
  */
 
-const stateStore = require('../main/state-store.js');
+// ponytail: state-store 还在 Phase 7 7a-6 (main/) ESM-ify, 这里 CJS-only.
+// 保留 require() 让 ESM 模块图继续把 state-store 当 any — 解 type 兼容性.
+const stateStore = require("../main/state-store");
 
 async function loadBreakers() {
   const state = stateStore.load() || {};
@@ -44,27 +46,19 @@ async function removeBreaker(key) {
   return saveBreakers(all);
 }
 
-function snapshot(breaker) {
+export function snapshot(breaker) {
   // strip non-serializable fields
   const { _now, ...rest } = breaker;
   return rest;
 }
 
-function hydrate(snapshot, now) {
+export function hydrate(snapshot, now) {
   return {
     ...snapshot,
     _now: now || (() => Date.now()),
   };
 }
 
-module.exports = {
-  loadBreakers,
-  saveBreakers,
-  upsertBreaker,
-  getBreaker,
-  removeBreaker,
-  snapshot,
-  hydrate,
-};
 
-export {};
+
+export { loadBreakers, saveBreakers, upsertBreaker, getBreaker, removeBreaker };

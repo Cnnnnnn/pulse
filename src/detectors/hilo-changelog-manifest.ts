@@ -28,15 +28,15 @@
  * ponytail: urls 并发用 Promise.any, 不等所有 url 返回 (坏 URL 等到 timeout 是浪费).
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { truncate } = require("./utils");
-const { cleanVersion } = require("../utils/version-utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { truncate } from "./utils";
+import { cleanVersion } from "../utils/version-utils";
 
 const DEFAULT_TIMEOUT = 4000;
 const SUPPORTED_SCHEMA = 1;
 
-class HiloChangelogManifestDetector extends Detector {
+export class HiloChangelogManifestDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -305,6 +305,4 @@ function extractZipUrl(ymlBody, arch) {
 }
 
 Object.defineProperty(HiloChangelogManifestDetector, "name", { value: "hilo_changelog_manifest", configurable: true });
-module.exports = { HiloChangelogManifestDetector };
 
-export {};

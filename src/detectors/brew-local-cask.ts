@@ -7,12 +7,12 @@
  * 配置: { type: 'brew_local_cask', cask: 'cursor' }
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { truncate, cleanVersion } = require("./utils");
-const { execFile } = require("child_process");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { truncate, cleanVersion } from "./utils";
+import { execFile } from "child_process";
 
-class BrewLocalCaskDetector extends Detector {
+export class BrewLocalCaskDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -98,6 +98,4 @@ class BrewLocalCaskDetector extends Detector {
 }
 
 Object.defineProperty(BrewLocalCaskDetector, "name", { value: "brew_local_cask", configurable: true });
-module.exports = { BrewLocalCaskDetector };
 
-export {};

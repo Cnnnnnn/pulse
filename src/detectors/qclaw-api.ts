@@ -14,12 +14,12 @@
  *   - confidence 从 medium → high (因为该 detector 直接对腾讯网关, 数据可靠)
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { expandUrl } = require("./url-template");
-const { truncate, assertHttpResponse } = require("./utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { expandUrl } from "./url-template";
+import { truncate, assertHttpResponse } from "./utils";
 
-class QClawApiDetector extends Detector {
+export class QClawApiDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -134,6 +134,4 @@ function pluckPath(obj, path) {
 }
 
 Object.defineProperty(QClawApiDetector, "name", { value: "qclaw_api", configurable: true });
-module.exports = { QClawApiDetector };
 
-export {};

@@ -4,9 +4,9 @@
  * cursor-redirect + redirect-filename 共用的 HEAD 重定向链 + GET 兜底逻辑.
  */
 
-const { DetectorError, REASONS } = require("./errors");
+import { DetectorError, REASONS } from "./errors";
 
-function absUrl(loc, base) {
+export function absUrl(loc, base) {
   if (!loc) return base;
   if (loc.startsWith("http://") || loc.startsWith("https://")) return loc;
   try {
@@ -142,7 +142,7 @@ async function resolveFinalUrlAfterHead(ctx, opts) {
 }
 
 /** 从 URL 末段文件名提取 semver-ish 版本 */
-function extractVersionFromFilename(finalUrl) {
+export function extractVersionFromFilename(finalUrl) {
   const filename = finalUrl.split("/").pop() || "";
   const m = filename.match(/[vV]?(\d+\.\d+(?:\.\d+)*)/);
   if (!m) return null;
@@ -151,11 +151,6 @@ function extractVersionFromFilename(finalUrl) {
   return { version: v, filename };
 }
 
-module.exports = {
-  absUrl,
-  followHeadRedirects,
-  resolveFinalUrlAfterHead,
-  extractVersionFromFilename,
-};
 
-export {};
+
+export { followHeadRedirects, resolveFinalUrlAfterHead };

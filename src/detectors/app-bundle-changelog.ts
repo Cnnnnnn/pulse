@@ -24,11 +24,11 @@
  * 就不工作. (跟 version_sources 的 plist 路径有同样限制, 不在 Phase 21 解决.)
  */
 
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
-const { Detector, DetectorResult } = require('./base');
-const { DetectorError, REASONS } = require('./errors');
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
 
 const FILENAMES = [
   'CHANGELOG.md', 'changelog.md', 'CHANGELOG',
@@ -39,7 +39,7 @@ const FILENAMES = [
   'WhatsNew.md', 'WHATSNEW',
 ];
 
-class AppBundleChangelogDetector extends Detector {
+export class AppBundleChangelogDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -65,7 +65,7 @@ class AppBundleChangelogDetector extends Detector {
     // 浅递归: 先查 Resources/ 根, 再查第一层子目录 (QoderWork 在 Resources/bin/)
     try {
       const topEntries = await fs.readdir(resourcesDir, { withFileTypes: true });
-      const topDirs = new Set();
+      const topDirs = new Set<string>();
       for (const ent of topEntries) {
         if (ent.isFile()) {
           if (matchesName(ent.name)) { foundFile = ent.name; foundPath = path.join(resourcesDir, ent.name); break; }
@@ -143,7 +143,7 @@ function matchesName(filename) {
  * 如果没有 heading, 整个 content 作为一个段.
  * 段间分隔: /^#{1,3}\s+/
  */
-function extractFirstSection(content) {
+export function extractFirstSection(content) {
   if (!content) return '';
   // 找第一个 heading 之后到下一个 heading 之间的内容
   const lines = content.split(/\r?\n/);
@@ -163,6 +163,4 @@ function extractFirstSection(content) {
 }
 
 Object.defineProperty(AppBundleChangelogDetector, "name", { value: 'app_bundle_changelog', configurable: true });
-module.exports = { AppBundleChangelogDetector, extractFirstSection };
 
-export {};

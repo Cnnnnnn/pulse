@@ -13,13 +13,13 @@
  *   - URL 模板展开 ({arch})
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { expandUrl } = require("./url-template");
-const { truncate, assertHttpResponse } = require("./utils");
-const { stripBuildNumber } = require("../utils/version-utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { expandUrl } from "./url-template";
+import { truncate, assertHttpResponse } from "./utils";
+import { stripBuildNumber } from "../utils/version-utils";
 
-class ApiJsonDetector extends Detector {
+export class ApiJsonDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -171,8 +171,6 @@ function pluckPath(obj, path) {
 }
 
 Object.defineProperty(ApiJsonDetector, "name", { value: "api_json", configurable: true });
-module.exports = { ApiJsonDetector };
 
 // stripBuildNumber 现在从 ../utils/version-utils 导入 (见顶部).
 
-export {};

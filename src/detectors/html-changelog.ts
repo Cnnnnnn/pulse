@@ -33,11 +33,11 @@
  *   - 这是已知折衷: changelog 内容会过 renderer 的 DOMPurify 二层清洗
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { truncate, assertHttpResponse } = require("./utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { truncate, assertHttpResponse } from "./utils";
 
-class HtmlChangelogDetector extends Detector {
+export class HtmlChangelogDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -144,7 +144,7 @@ class HtmlChangelogDetector extends Detector {
  * 按 semver 倒序比较 a, b. 都是 "X.Y.Z" 形式 (短形式按 0 补齐).
  * 返回 1 (a > b), -1 (a < b), 0 (相等).
  */
-function compareVersionsDesc(a, b) {
+export function compareVersionsDesc(a, b) {
   const parse = (v) =>
     String(v)
       .split(".")
@@ -175,7 +175,7 @@ function compareVersionsDesc(a, b) {
  * @param {string} sectionEndTag 闭合标签 (e.g. '</div>') 或下一个起始 (e.g. '<h2')
  * @returns {string|null}       切出的 section HTML (含起始标记) 或 null
  */
-function extractFirstSection(html, sectionStart, sectionEndTag) {
+export function extractFirstSection(html, sectionStart, sectionEndTag) {
   if (!html || !sectionStart) return null;
   const startIdx = html.indexOf(sectionStart);
   if (startIdx === -1) return null;
@@ -230,7 +230,7 @@ function extractFirstSection(html, sectionStart, sectionEndTag) {
  * 第一层 XSS 防护: 移除 script / iframe / style / object / embed 整块内容 + onxxx= 属性.
  * renderer 端还会再过 DOMPurify (二层防护).
  */
-function stripDangerousTags(html) {
+export function stripDangerousTags(html) {
   if (!html) return "";
   return (
     html
@@ -251,12 +251,4 @@ function stripDangerousTags(html) {
 }
 
 Object.defineProperty(HtmlChangelogDetector, "name", { value: "html_changelog", configurable: true });
-module.exports = {
-  HtmlChangelogDetector,
-  // exported for unit tests
-  extractFirstSection,
-  stripDangerousTags,
-  compareVersionsDesc,
-};
 
-export {};

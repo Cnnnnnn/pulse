@@ -13,12 +13,12 @@
  *   - trim 引号 (iTunes 偶尔返回 "2.1.0" 带引号)
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { expandUrl } = require("./url-template");
-const { truncate, cleanVersion, assertHttpResponse } = require("./utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { expandUrl } from "./url-template";
+import { truncate, cleanVersion, assertHttpResponse } from "./utils";
 
-class AppStoreLookupDetector extends Detector {
+export class AppStoreLookupDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -121,6 +121,4 @@ function pickTrackId(item) {
 }
 
 Object.defineProperty(AppStoreLookupDetector, "name", { value: "app_store_lookup", configurable: true });
-module.exports = { AppStoreLookupDetector };
 
-export {};

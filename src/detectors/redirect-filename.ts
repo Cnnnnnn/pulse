@@ -7,16 +7,16 @@
  * 配置: { type: 'redirect_filename', url: 'https://...' }
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { expandUrl } = require("./url-template");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { expandUrl } from "./url-template";
 const {
   followHeadRedirects,
   resolveFinalUrlAfterHead,
   extractVersionFromFilename,
 } = require("./redirect-base");
 
-class RedirectFilenameDetector extends Detector {
+export class RedirectFilenameDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -75,6 +75,4 @@ class RedirectFilenameDetector extends Detector {
 }
 
 Object.defineProperty(RedirectFilenameDetector, "name", { value: "redirect_filename", configurable: true });
-module.exports = { RedirectFilenameDetector };
 
-export {};

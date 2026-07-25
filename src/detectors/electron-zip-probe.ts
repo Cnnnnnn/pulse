@@ -16,18 +16,18 @@
  *   }
  */
 
-const fs = require("fs");
-const { execFile } = require("child_process");
-const { promisify } = require("util");
+import fs from "fs";
+import { execFile } from "child_process";
+import { promisify } from "util";
 const pExecFile = promisify(execFile);
-const { appBundleResourcePath } = require("../utils/app-paths");
+import { appBundleResourcePath } from "../utils/app-paths";
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
 
 const DEFAULT_MAX_PROBE = 20;
 
-class electron_zip_probe extends Detector {
+export class electron_zip_probe extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -219,6 +219,4 @@ async function readInstalledVersion(bundle) {
 }
 
 Object.defineProperty(electron_zip_probe, "name", { value: "electron_zip_probe", configurable: true });
-module.exports = { electron_zip_probe };
 
-export {};

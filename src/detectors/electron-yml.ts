@@ -14,10 +14,10 @@
  *   - regex fallback 更稳: 允许多种引号/前缀 (version: 1.2.3, version: '1.2.3', version: "1.2.3")
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { expandUrl } = require("./url-template");
-const { truncate, assertHttpResponse } = require("./utils");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { expandUrl } from "./url-template";
+import { truncate, assertHttpResponse } from "./utils";
 
 let yamlLib = null;
 try {
@@ -26,7 +26,7 @@ try {
   /* fallback to regex */
 }
 
-class ElectronYmlDetector extends Detector {
+export class ElectronYmlDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -136,6 +136,4 @@ function regexExtractVersion(body) {
 }
 
 Object.defineProperty(ElectronYmlDetector, "name", { value: "electron_yml", configurable: true });
-module.exports = { ElectronYmlDetector };
 
-export {};

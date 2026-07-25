@@ -9,16 +9,16 @@
  * 配置: { type: 'cursor_redirect', url: 'https://...' }
  */
 
-const { Detector, DetectorResult } = require("./base");
-const { DetectorError, REASONS } = require("./errors");
-const { expandUrl } = require("./url-template");
+import { Detector, DetectorResult } from "./base";
+import { DetectorError, REASONS } from "./errors";
+import { expandUrl } from "./url-template";
 const {
   followHeadRedirects,
   resolveFinalUrlAfterHead,
   extractVersionFromFilename,
 } = require("./redirect-base");
 
-class CursorRedirectDetector extends Detector {
+export class CursorRedirectDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
 
   constructor(opts: any = {}) {
@@ -92,6 +92,4 @@ class CursorRedirectDetector extends Detector {
 }
 
 Object.defineProperty(CursorRedirectDetector, "name", { value: "cursor_redirect", configurable: true });
-module.exports = { CursorRedirectDetector };
 
-export {};

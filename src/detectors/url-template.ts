@@ -15,7 +15,7 @@
  *   {version}      → 不动 (留个接口, 实际不展开, 避免误改)
  */
 
-function expandUrl(rawUrl, arch) {
+export function expandUrl(rawUrl, arch) {
   if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
   if (!arch) return rawUrl;
   return rawUrl
@@ -23,6 +23,4 @@ function expandUrl(rawUrl, arch) {
     .replace(/\{arch_short\}/g, arch);
 }
 
-module.exports = { expandUrl };
 
-export {};
