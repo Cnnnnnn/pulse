@@ -194,10 +194,3 @@ export function buildDigestPrompt({ sessions, dateKey, locale, model, provider }
   };
 }
 
-module.exports = {
-  buildDigestPrompt,
-  buildPerSessionPrompt,
-  formatSessionBlock,
-  MAX_SESSION_MESSAGES,
-  MAX_MESSAGE_CONTENT_CHARS,
-};

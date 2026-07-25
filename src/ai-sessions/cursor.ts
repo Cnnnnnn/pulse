@@ -29,10 +29,10 @@
 import { parseJsonlFile } from "./jsonl-reader";
 import { firstMeaningfulLine } from "./text-utils";
 
-const fs = require('fs');
-const fsp = require('fs/promises');
-const os = require('os');
-const path = require('path');
+import fs from "fs";
+import fsp from "fs/promises";
+import os from "os";
+import path from "path";
 
 export const CURSOR_BUNDLE_PATH = '/Applications/Cursor.app';
 export const CURSOR_PROJECTS_DIR = path.join(os.homedir(), '.cursor', 'projects');
@@ -278,14 +278,3 @@ export function _projectLabel(dirName) {
   return name;
 }
 
-module.exports = {
-  CursorDetectorImpl,
-  CURSOR_BUNDLE_PATH,
-  CURSOR_PROJECTS_DIR,
-  // 内部 helper (单测)
-  _parseTranscriptJsonl,
-  _extractUserQuery,
-  _parseCursorTimestamp,
-  _projectLabel,
-  _firstMeaningfulLine,
-};

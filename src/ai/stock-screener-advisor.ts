@@ -12,9 +12,10 @@
 
 import { chatCompletion } from "./shared-llm";
 import { resolvePrompt } from "./prompt-registry";
-const crypto = require("crypto");
-const stateStore = require("../main/state-store.js");
-const { DEFAULT_SCREENER_CRITERIA } = require("../stocks/stock-constants");
+import crypto from "node:crypto";
+// ponytail: state-store 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
+const stateStore: any = require("../main/state-store.js");
+import { DEFAULT_SCREENER_CRITERIA } from "../stocks/stock-constants";
 
 export const PROMPT_KEY = "stock_screener_advise";
 export const CACHE_VERSION = "v1";
@@ -275,23 +276,3 @@ function fmtNumSigned(v) {
   if (typeof v !== "number" || !Number.isFinite(v)) return "—";
   return v >= 0 ? `+${v}` : String(v);
 }
-
-module.exports = {
-  // 主入口
-  aiStockAdvise,
-  // 给测试/外部用
-  adviseCacheKey,
-  buildAdviseMessages,
-  parseAndValidateAdvise,
-  // 常量 (测试断言)
-  CACHE_TTL_MS,
-  CACHE_VERSION,
-  PROMPT_KEY,
-  VALID_SORT_KEYS,
-  VALID_MARKET_TIERS,
-  SUMMARY_MAX_LEN,
-  // 内部 (测试用)
-  sanitizeCriteria,
-  sanitizeSortConfig,
-  sanitizeSummary,
-};

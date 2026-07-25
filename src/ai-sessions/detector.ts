@@ -134,4 +134,3 @@ export class AISessionDetector {
   }
 }
 
-module.exports = { AISessionDetector };

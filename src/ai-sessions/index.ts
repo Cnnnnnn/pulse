@@ -15,11 +15,3 @@ import * as storage from "./storage";
 import * as prompts from "./prompts";
 
 export { AISessionDetector, LLMSummarizer, TaskSummaryEngine, storage, prompts };
-
-module.exports = {
-  AISessionDetector,
-  LLMSummarizer,
-  TaskSummaryEngine,
-  storage,
-  prompts,
-};

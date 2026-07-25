@@ -166,4 +166,3 @@ export class GlmQuotaClient {
   }
 }
 
-module.exports = { GlmQuotaClient, ENDPOINTS, _resolveEndpoint };

@@ -308,9 +308,3 @@ export class CloudSummarizer {
  }
 }
 
-module.exports = {
- CloudSummarizer,
- PROVIDER_ENDPOINTS,
- ANTHROPIC_VERSION,
- DEFAULT_TIMEOUT_MS,
-};

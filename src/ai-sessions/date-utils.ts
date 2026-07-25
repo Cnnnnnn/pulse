@@ -29,4 +29,3 @@ export function dateKeyToMs(dateKey, now) {
   return Number.isFinite(ms) ? ms : 0;
 }
 
-module.exports = { localDayStart, dateKeyToMs };

@@ -393,15 +393,3 @@ export function _resolveJumpTarget(session) {
   return file || null;
 }
 
-module.exports = {
-  TaskSummaryEngine,
-  // helpers export (单测)
-  _taskKeyOf,
-  _contentHash,
-  _toTaskCard,
-  _parsePerSessionBlock,
-  _extractSummaryFields,
-  _inferTaskTitle,
-  _resolveJumpTarget,
-  _projectOf,
-};

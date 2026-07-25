@@ -6,8 +6,8 @@
 
 import { SILENT_LOG } from "./session-log";
 
-const fs = require("fs");
-const { spawn } = require("child_process");
+import fs from "fs";
+import { spawn } from "child_process";
 /**
  * @param {{ info?: Function, warn?: Function, error?: Function }} [log]
  */
@@ -169,9 +169,3 @@ export async function readSessionViaCli(sqlitePath: any, sessionId: any, log: an
   };
 }
 
-module.exports = {
-  loadNodeSqlite,
-  runSqliteCli,
-  listSessionsViaCli,
-  readSessionViaCli,
-};

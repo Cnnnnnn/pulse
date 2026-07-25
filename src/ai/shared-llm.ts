@@ -7,19 +7,20 @@
 
 import { sanitizeLlmOutput } from "./sanitize-llm-output";
 import { DEFAULT_MODELS } from "./default-models";
-const { CloudSummarizer } = require("../ai-sessions/provider-cloud");
-const { HttpClient } = require("../main/http-client.js");
-const stateStore = require("../main/state-store.js");
+import { CloudSummarizer } from "../ai-sessions/provider-cloud";
+// ponytail: main/{http-client,state-store,token-budget}.js 是 Phase 3 5 例外 (CJS
+// module.exports, 7a-6 才 ESM-ify). 保留 require() 让 TS 把 module 整体当 any,
+// 跑通 ESM-import 不到的 CJS 模块. 等 7a-6 完成再换成 named import.
+const { HttpClient } = require("../main/http-client.js") as any;
+const stateStore: any = require("../main/state-store.js");
 const {
   isOverBudget,
   todayKey,
   addSpend,
   pruneDays,
-} = require("../main/token-budget.js");
+} = require("../main/token-budget.js") as any;
 
 export const SUPPORTED_PROVIDERS = ["openai", "anthropic", "deepseek", "minimax"];
-
-export { DEFAULT_MODELS };
 
 let _http = null;
 function _getHttp() {
@@ -140,9 +141,12 @@ export async function chatCompletion(messages: any, opts: any = {}) {
   }
 }
 
+// ponytail: Phase 7 7a 保留 module.exports, 给 CJS 测试 + shim 调用方用.
+// dist-test/.cjs 编译时 esbuild 自动改写 __export 互操作, 但 module.exports = {…}
+// 显式列出可写属性, 测试 `sharedLlm.chatCompletion = mockFn` 能直接改. 7b
+// 删 shim 阶段再去掉 module.exports (此时测试必须改 vi.mock).
 module.exports = {
   SUPPORTED_PROVIDERS,
-  DEFAULT_MODELS,
   resolveSharedAiConfig,
   chatCompletion,
 };

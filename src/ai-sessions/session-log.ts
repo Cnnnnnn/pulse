@@ -23,4 +23,3 @@ export function prefixLog(prefix: any, backend: any = SILENT_LOG) {
   };
 }
 
-module.exports = { SILENT_LOG, prefixLog };

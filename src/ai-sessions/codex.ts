@@ -35,10 +35,10 @@ import {
   trimTitle,
 } from "./text-utils";
 
-const fs = require('fs');
-const fsp = require('fs/promises');
-const os = require('os');
-const path = require('path');
+import fs from "fs";
+import fsp from "fs/promises";
+import os from "os";
+import path from "path";
 
 export const CODEX_BUNDLE_PATH = '/Applications/Codex.app';
 export const CODEX_SESSIONS_DIR = path.join(os.homedir(), '.codex', 'sessions');
@@ -322,15 +322,3 @@ function _parseTs(ts) {
   const t = Date.parse(ts);
   return Number.isFinite(t) ? t : 0;
 }
-
-module.exports = {
-  CodexDetectorImpl,
-  CODEX_BUNDLE_PATH,
-  CODEX_SESSIONS_DIR,
-  // 内部 helper (单测)
-  _parseCodexJsonl,
-  _extractCodexTitle,
-  _firstMeaningfulLine,
-  _idFromFilename,
-  _extractResponseContent,
-};

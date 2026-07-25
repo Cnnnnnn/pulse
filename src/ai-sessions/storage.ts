@@ -23,8 +23,8 @@
 
 import { SILENT_LOG } from "./session-log";
 
-const fs = require('fs');
-const path = require('path');
+import fs from "fs";
+import path from "path";
 /**
  * Lazy require electron.避免 main process启动时强制加载.
  *实际 safeStorage 在 B6 + B4调,启动期不需要.
@@ -180,13 +180,3 @@ export function clearApiKey(providerId: any, log: any = SILENT_LOG) {
  return removed;
 }
 
-module.exports = {
- isAvailable,
- saveApiKey,
- loadApiKey,
- clearApiKey,
- // 测试用 (B6a):注入 safeStorage / userData dir,避免依赖 Electron runtime
- __setSafeStorageForTest,
- __setUserDataDirForTest,
- __resetForTest,
-};

@@ -111,4 +111,3 @@ export class LLMSummarizer {
   }
 }
 
-module.exports = { LLMSummarizer };

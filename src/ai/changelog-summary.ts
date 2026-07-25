@@ -6,8 +6,9 @@
 
 import { chatCompletion } from "./shared-llm";
 import { resolvePrompt } from "./prompt-registry";
-const crypto = require("crypto");
-const stateStore = require("../main/state-store.js");
+import crypto from "node:crypto";
+// ponytail: state-store 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
+const stateStore: any = require("../main/state-store.js");
 
 export function summaryCacheKey(appName, latestVersion) {
   return `${appName}::${latestVersion || ""}`;
@@ -164,10 +165,3 @@ export async function fetchChangelogSummary(opts) {
   return { ok: true, cached: false, ...entry };
 }
 
-module.exports = {
-  summaryCacheKey,
-  collectChangelogSources,
-  buildSummaryMessages,
-  parseSummaryResponse,
-  fetchChangelogSummary,
-};

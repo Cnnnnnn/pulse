@@ -24,8 +24,10 @@ import { TaskSummaryEngine } from "./engine";
 import { SILENT_LOG } from "./session-log";
 import * as storageMod from "./storage";
 
-const { HttpClient } = require('../main/http-client.js');
-const stateStore = require('../main/state-store.js');
+// ponytail: main/{http-client,state-store}.js 是 Phase 3 5 例外 (CJS),
+// 7a-6 才 ESM-ify. 这里 require() 拿整体当 any, 等 7a-6 改 named import.
+const { HttpClient } = require("../main/http-client.js") as any;
+const stateStore: any = require("../main/state-store.js");
 // 只保留云 provider (minimax / deepseek).
 export const SUPPORTED_PROVIDERS = ['deepseek', 'minimax'];
 
@@ -180,10 +182,3 @@ export function buildTaskSummaryEngine(opts: any = {}) {
   };
 }
 
-module.exports = {
-  buildTaskSummaryEngine,
-  makeStateStoreStorage,
-  mergeAISessionsConfig,
-  _defaultResolveApiKey,
-  SUPPORTED_PROVIDERS,
-};

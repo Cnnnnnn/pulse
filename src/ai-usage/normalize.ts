@@ -337,15 +337,3 @@ export function normalize(rawResponse, opts: any = {}) {
 
   return { ok: true, snapshot };
 }
-
-module.exports = {
-  _pickNumber,
-  _pickTotal,
-  _pickAny,
-  _pickString,
-  _parseRemainsTime,
-  _parsePercent,
-  _pickBlocks,
-  _buildWindow,
-  normalize,
-};

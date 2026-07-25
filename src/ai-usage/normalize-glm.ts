@@ -218,8 +218,3 @@ export function normalizeGlm(rawResponse, opts: any = {}) {
   return { ok: true, snapshot };
 }
 
-module.exports = {
-  normalizeGlm,
-  _findLimit,
-  _buildWindow,
-};

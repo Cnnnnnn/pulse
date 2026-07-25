@@ -69,9 +69,3 @@ export function formatBlowUpIn(epochMs, now = Date.now()) {
   return `${minutes} 分钟后`;
 }
 
-module.exports = {
-  computeBurnRate,
-  computeBlowUpAt,
-  formatBlowUpIn,
-  MAX_BLOW_UP_HOURS,
-};

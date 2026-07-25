@@ -94,9 +94,3 @@ export async function parseReadme(opts) {
   return { ok: true, result };
 }
 
-module.exports = {
-  SYSTEM_PROMPT,
-  buildMessages,
-  parseJson,
-  parseReadme,
-};

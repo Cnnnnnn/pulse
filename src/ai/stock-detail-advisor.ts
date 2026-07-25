@@ -8,9 +8,10 @@
  */
 import { chatCompletion } from "./shared-llm";
 import { resolvePrompt } from "./prompt-registry";
-const crypto = require("crypto");
-const stateStore = require("../main/state-store.js");
-const { getAngle } = require("../stocks/stock-detail-angles");
+import crypto from "node:crypto";
+// ponytail: state-store 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
+const stateStore: any = require("../main/state-store.js");
+import { getAngle } from "../stocks/stock-detail-angles";
 
 export const PROMPT_KEY = "stock_detail_analyze";
 // bump v2→v3: 2026-07-07 prompt 重大重设 — 加 highlights / blindspots, summary 改
@@ -752,15 +753,3 @@ export async function aiStockDetailAnalyze(opts) {
   };
 }
 
-module.exports = {
-  aiStockDetailAnalyze,
-  adviseCacheKey,
-  buildAnalyzeMessages,
-  parseAndValidateAnalyze,
-  refreshAngleLocally,
-  CACHE_TTL_MS,
-  CACHE_VERSION,
-  PROMPT_KEY,
-  VALID_SIGNALS,
-  SUMMARY_MAX_LEN,
-};

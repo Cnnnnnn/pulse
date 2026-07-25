@@ -4,8 +4,8 @@
  * cursor / codex JSONL 流式解析共用骨架.
  */
 
-const fs = require("fs");
-const readline = require("readline");
+import fs from "fs";
+import readline from "readline";
 
 /**
  * @param {string} file
@@ -29,4 +29,3 @@ export async function parseJsonlFile(file, onRow) {
   }
 }
 
-module.exports = { parseJsonlFile };

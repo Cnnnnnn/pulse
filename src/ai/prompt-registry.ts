@@ -5,7 +5,8 @@
  * 默认值 = 此前硬编码原值; 用户可在 Settings 改 (含可选 few-shot).
  */
 
-const stateStore = require("../main/state-store.js");
+// ponytail: state-store 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
+const stateStore: any = require("../main/state-store.js");
 
 export const DEFAULT_PROMPTS = {
   ithome_summary: {
@@ -240,4 +241,3 @@ export function resolvePrompt(key) {
   };
 }
 
-module.exports = { DEFAULT_PROMPTS, resolvePrompt, PROMPT_KEYS };

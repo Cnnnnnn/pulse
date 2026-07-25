@@ -9,9 +9,3 @@ import { MiniMaxQuotaClient, ENDPOINTS } from "./client";
 import * as normalize from "./normalize";
 
 export { MiniMaxQuotaClient, ENDPOINTS, normalize };
-
-module.exports = {
-  MiniMaxQuotaClient,
-  ENDPOINTS,
-  normalize,
-};

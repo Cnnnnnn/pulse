@@ -32,10 +32,10 @@ import {
 } from "./sqlite-helper";
 import { SILENT_LOG, prefixLog } from "./session-log";
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { resolveAppBundlePath } = require('../utils/app-paths');
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { resolveAppBundlePath } from "../utils/app-paths";
 
 export const MINIMAX_CODE_BUNDLE_PATH = resolveAppBundlePath('MiniMax Code.app');
 export const MINIMAX_SQLITE_PATH = path.join(os.homedir(), '.minimax', 'sqlite.db');
@@ -315,16 +315,3 @@ function _toMs(v) {
 export const _listSessionsViaCli = (sqlitePath, log) => listSessionsViaCli(sqlitePath, log);
 export const _readSessionViaCli = (sqlitePath, sessionId, log) =>
   readSessionViaCli(sqlitePath, sessionId, log);
-
-module.exports = {
-  MiniMaxCodeDetectorImpl,
-  MINIMAX_CODE_BUNDLE_PATH,
-  MINIMAX_SQLITE_PATH,
-  // 内部 helper (单测)
-  _loadNodeSqlite,
-  _parseMessageRow,
-  _extractContent,
-  _hasColumn,
-  _listSessionsViaCli,
-  _readSessionViaCli,
-};

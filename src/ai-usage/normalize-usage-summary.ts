@@ -192,5 +192,3 @@ export function normalizeUsageSummary(rawResponse, opts: any = {}) {
     },
   };
 }
-
-module.exports = { normalizeUsageSummary, _parseTokenStr, _parsePctStr };

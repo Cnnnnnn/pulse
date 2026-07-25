@@ -57,8 +57,3 @@ export function sanitizeLlmOutput(raw: any, opts: any = {}) {
   return text;
 }
 
-module.exports = {
-  sanitizeLlmOutput,
-  hasCjk,
-  stripThinkTags,
-};

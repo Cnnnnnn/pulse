@@ -83,12 +83,3 @@ export function trimTitle(s: any, maxLen: any = 48) {
     .slice(0, maxLen);
 }
 
-module.exports = {
-  GENERIC_QUERY_RE,
-  stripNoiseLine,
-  looksLikePromptNoise,
-  isInformativeLine,
-  firstMeaningfulLine,
-  firstInformativeLine,
-  trimTitle,
-};
