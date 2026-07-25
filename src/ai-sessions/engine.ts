@@ -60,7 +60,7 @@ export class TaskSummaryEngine {
    * @param {object} [opts]    { now }
    * @returns {Promise<{dateKey, collectedAt, tasks: Array, sourceStats: Array}>}
    */
-  async listTasks(dateKey, opts: any = {}) {
+  async listTasks(dateKey: any, opts: any = {}) {
     _assertDateKey(dateKey, 'listTasks');
     const now = typeof opts.now === 'number' ? opts.now : Date.now();
     const snapshot = await this._collectSessions(dateKey, now);
@@ -86,7 +86,7 @@ export class TaskSummaryEngine {
    * @param {object} opts             { dateKey, now, onTaskDone }
    * @returns {Promise<{ok: boolean, dateKey, results: Array, failures: Array}>}
    */
-  async summarizeTasks(taskKeys, opts: any = {}) {
+  async summarizeTasks(taskKeys: any, opts: any = {}) {
     const dateKey = opts.dateKey;
     _assertDateKey(dateKey, 'summarizeTasks');
     const keys = Array.isArray(taskKeys)
@@ -153,7 +153,7 @@ export class TaskSummaryEngine {
   /**
    * 内部: 问所有 detector, 按本地日过滤, 返 {sessions, sourceStats}.
    */
-  async _collectSessions(dateKey, now) {
+  async _collectSessions(dateKey: any, now: any) {
     const sessions = [];
     const sourceStats = [];
     for (const det of this.detectors) {

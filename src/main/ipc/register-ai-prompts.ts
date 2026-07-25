@@ -23,7 +23,7 @@ import * as stateStore from "../state-store";
 import { DEFAULT_PROMPTS, PROMPT_KEYS } from "../../ai/prompt-registry";
 
 function mergePromptForLoad(key: any, user: any) {
-  const def = DEFAULT_PROMPTS[key];
+  const def = (DEFAULT_PROMPTS as any)[key];
   const u = user && user[key];
   const isDefault = !u || typeof u.system !== "string" || !u.system.trim();
   return {

@@ -30,7 +30,7 @@ export class AISessionDetector {
    * @param {object} opts.impl        具体实现 (CursorDetectorImpl 等)
    *                                  必须实现: isInstalled / listSessions / readSession
    */
-  constructor({ appName, impl }) {
+  constructor({ appName, impl }: any) {
     if (!appName || typeof appName !== 'string') {
       throw new TypeError('AISessionDetector: appName must be non-empty string');
     }
@@ -103,7 +103,7 @@ export class AISessionDetector {
    * @param {number} [now]                   注入便于测试, 默认 Date.now()
    * @returns {Array}
    */
- filterByLocalDay(sessions, dateKey, now) {
+ filterByLocalDay(sessions: any, dateKey: any, now: any) {
  if (!Array.isArray(sessions)) return [];
  if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return [];
  const t = (typeof now === 'number') ? now : Date.now();
@@ -129,7 +129,7 @@ export class AISessionDetector {
     * @param {number} now        注入便于测试
     * @returns {number}          epoch ms (本地 0:00)
     */
-  static _localDayStart(dateKey, now) {
+  static _localDayStart(dateKey: any, now: any) {
     return localDayStart(dateKey, now);
   }
 }

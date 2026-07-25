@@ -32,8 +32,8 @@ import path from "path";
  * 测试注入: __setSafeStorageForTest({ encryptString, decryptString, isEncryptionAvailable })
  * __setUserDataDirForTest('/tmp/xxx') —跳过 electron require
  */
-let _safeStorageOverride = null;
-let _userDataDirOverride = null;
+let _safeStorageOverride: any = null;
+let _userDataDirOverride: any = null;
 
 export function __setSafeStorageForTest(safeStorage: any) {
  _safeStorageOverride = safeStorage || null;

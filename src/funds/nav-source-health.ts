@@ -79,7 +79,7 @@ export class NavSourceHealth {
    * 取统计快照 (供 IPC / UI 显示).
    */
   snapshot() {
-    const out = {};
+    const out: any = {};
     for (const s of SOURCES) {
       const list = this._samples[s];
       const succ = list.filter((x: any) => x.ok).length;

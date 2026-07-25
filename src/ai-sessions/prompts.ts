@@ -126,7 +126,7 @@ export function buildPerSessionPrompt({ session, index, locale }: any) {
  * @param {string} [opts.provider]    注入 meta
  * @returns {{ messages: Array<{role: string, content: string}>, meta: object }}
  */
-export function buildDigestPrompt({ sessions, dateKey, locale, model, provider }) {
+export function buildDigestPrompt({ sessions, dateKey, locale, model, provider }: any) {
   const safeLocale = (locale === 'en-US' || locale === 'en') ? 'en' : 'zh-CN';
 
   const system = safeLocale === 'en'

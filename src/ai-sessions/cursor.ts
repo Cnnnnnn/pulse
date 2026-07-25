@@ -162,7 +162,7 @@ export async function _parseTranscriptJsonl(file: any) {
   const messages: any[] = [];
   let firstTs = 0;
   let lastTs = 0;
-  let title = null;
+  let title: any = null;
 
   await parseJsonlFile(file, (row: any) => {
     const role = row.role === 'user' || row.role === 'assistant' ? row.role : null;
@@ -241,7 +241,7 @@ function _parseTimestampTag(text: any) {
 export function _parseCursorTimestamp(raw: any) {
   const m = /([A-Za-z]{3})[A-Za-z]*\s+(\d{1,2}),\s*(\d{4}),\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*\(UTC([+-]\d{1,2})(?::(\d{2}))?\)/i.exec(String(raw || ''));
   if (!m) return 0;
-  const month = _MONTHS[m[1].toLowerCase()];
+  const month = (_MONTHS as any)[m[1].toLowerCase()];
   if (month === undefined) return 0;
   const day = parseInt(m[2], 10);
   const year = parseInt(m[3], 10);

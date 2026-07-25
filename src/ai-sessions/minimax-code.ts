@@ -90,7 +90,7 @@ export class MiniMaxCodeDetectorImpl {
       this.log.warn(`stat failed for ${this.sqlitePath}: ${err.message}`);
       return [];
     }
-    let db;
+    let db: any;
     try {
       // 注: minimax daemon 跑时 db 是 WAL mode, 只读 connection 可能拿不到最新 wal snapshot
       // 一些 node:sqlite 实现对 WAL + readOnly 跨进程有 bug (返 stale snapshot / 0 rows).
@@ -164,7 +164,7 @@ export class MiniMaxCodeDetectorImpl {
       return await readSessionViaCli(this.sqlitePath, id, this.log);
     }
     const sqlite = loaded.sqlite;
-    let db;
+    let db: any;
     try {
       db = new sqlite.DatabaseSync(this.sqlitePath, { readOnly: true });
     } catch (err: any) {

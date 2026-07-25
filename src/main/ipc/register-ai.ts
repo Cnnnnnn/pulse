@@ -159,7 +159,7 @@ export function registerAiHandlers(ctx: any) {
         ? opts.providerId
         : "deepseek";
 
-    if (!PROVIDER_ENDPOINTS[providerId]) {
+    if (!(PROVIDER_ENDPOINTS as any)[providerId]) {
       return { ok: false, error: "unsupported_providerId" };
     }
 

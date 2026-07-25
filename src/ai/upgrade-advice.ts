@@ -17,7 +17,7 @@ export function adviceCacheKey(appName: any, latestVersion: any) {
   return `${appName}::${latestVersion || ""}`;
 }
 
-export function usageTierLabel(lastMs, now = Date.now()) {
+export function usageTierLabel(lastMs: any, now: any = Date.now()) {
   if (lastMs == null || typeof lastMs !== "number")
     return "unknown（未使用记录）";
   const ageDays = (now - lastMs) / 86400_000;

@@ -70,7 +70,7 @@ const HEURISTIC_RULES = Object.freeze([
 let APP_TO_CATEGORY = new Map();
 let CATEGORIES_BY_ID = new Map();
 let CATEGORIES_SORTED = [...DEFAULT_CATEGORIES];
-let _LOAD_STATUS = { ok: true, usedFallback: true, errors: [], warnings: ['module not yet initialized via setData'] };
+let _LOAD_STATUS: any = { ok: true, usedFallback: true, errors: [], warnings: ['module not yet initialized via setData'] };
 // Step B: LLM classify 结果缓存 (异步注入, getCategory 走 fallback 时查这里)
 let LLM_CLASSIFY_CACHE = new Map();
 
@@ -88,7 +88,7 @@ function _isCategoryShape(c: any) {
 }
 
 function _build(cats: any, map: any, source: any) {
-  const status = { ok: true, usedFallback: false, errors: [], warnings: [] };
+  const status: any = { ok: true, usedFallback: false, errors: [], warnings: [] };
 
   // 1. Filter + sort categories
   const valid = (Array.isArray(cats) ? cats : []).filter(_isCategoryShape);
@@ -211,7 +211,7 @@ export function setLLMCache(map: any) {
  * @returns {{[appName: string]: string}}
  */
 export function getLLMCache() {
-  const out = {};
+  const out: any = {};
   for (const [k, v] of LLM_CLASSIFY_CACHE.entries()) {
     out[k] = v;
   }
@@ -291,7 +291,7 @@ export async function classifyByLLM(apps: any, opts: any = {}) {
   }
   if (!parsed || typeof parsed !== 'object') return {};
   // 过滤: 只保留合法 catId
-  const out = {};
+  const out: any = {};
   for (const [k, v] of Object.entries(parsed)) {
     if (typeof k !== 'string' || k.length === 0) continue;
     if (typeof v !== 'string' || !CATEGORIES_BY_ID.has(v)) continue;

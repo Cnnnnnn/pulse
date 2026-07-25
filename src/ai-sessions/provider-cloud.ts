@@ -61,7 +61,7 @@ export const PROVIDER_ENDPOINTS = {
 export const ANTHROPIC_VERSION = '2023-06-01';
 
 function _resolveProvider(providerId: any) {
- const cfg = PROVIDER_ENDPOINTS[providerId];
+ const cfg = (PROVIDER_ENDPOINTS as any)[providerId];
  if (!cfg) {
  throw new TypeError(`CloudSummarizer: unsupported providerId '${providerId}'. Allowed: openai|anthropic|deepseek|minimax`);
  }

@@ -69,8 +69,8 @@ export async function fetchFundNav(code: any, httpClient: any, opts: any = {}) {
  */
 export async function fetchFundNavBatch(codes: any, httpClient: any, opts: any = {}, health?: any) {
   const concurrency = opts.concurrency ?? 4;
-  const results = {};
-  const errors = {};
+  const results: any = {};
+  const errors: any = {};
   let i = 0;
 
   async function worker() {

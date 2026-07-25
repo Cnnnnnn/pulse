@@ -22,7 +22,7 @@ const {
 
 export const SUPPORTED_PROVIDERS = ["openai", "anthropic", "deepseek", "minimax"];
 
-let _http = null;
+let _http: any = null;
 function _getHttp() {
   if (!_http) _http = new HttpClient({ timeout: 120_000, maxRetries: 1 });
   return _http;
@@ -42,7 +42,7 @@ function _loadApiKey(providerId: any) {
     deepseek: ["DEEPSEEK_API_KEY"],
     minimax: ["MINIMAX_API_KEY", "MINIMAX_KEY"],
   };
-  for (const name of envMap[providerId] || []) {
+  for (const name of (envMap as any)[providerId] || []) {
     const v = process.env[name];
     if (typeof v === "string" && v.length > 0) return v;
   }
@@ -65,7 +65,7 @@ export function resolveSharedAiConfig() {
   const cloud = cfg.cloud || {};
   const model =
     (typeof cloud.model === "string" && cloud.model) ||
-    DEFAULT_MODELS[providerId];
+    (DEFAULT_MODELS as any)[providerId];
   if (!model) {
     return { ok: false, reason: "model_missing" };
   }

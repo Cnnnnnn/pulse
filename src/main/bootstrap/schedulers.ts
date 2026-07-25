@@ -20,7 +20,7 @@ import { setManagedInterval, clearManaged } from "../timer-registry";
 import * as aiLeaderboard from "../ai-leaderboard/index";
 
 // C4: 模块级 timer handle (跟 daily-summary-job 的 _handle 同构), 便于 __resetForTest 清理.
-const _autoCheckHandle = { interval: null };
+const _autoCheckHandle: any = { interval: null };
 
 // ponytail: bootstrap = DI glue; deps stay `any` until BootstrapDeps. Ceiling: any; upgrade when deps consolidate.
 function errMsg(err: unknown): string {

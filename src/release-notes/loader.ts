@@ -19,7 +19,7 @@ const { createLogger } = require("../main/log.js") as any;
 
 const log = createLogger("release-notes-loader");
 
-let __testRepoRoot = null;
+let __testRepoRoot: any = null;
 
 export function __setTestRepoRoot(repoRoot: any) {
   __testRepoRoot = repoRoot;

@@ -102,7 +102,7 @@ export function _parseRemainsTime(v: any) {
  * @param {object} [opts] { allowOverflow?: boolean }
  * @returns {number|null}
  */
-export function _parsePercent(v, opts: any = {}) {
+export function _parsePercent(v: any, opts: any = {}) {
   if (v == null) return null;
   const allowOverflow = Boolean(opts && opts.allowOverflow);
   if (typeof v === 'number' && Number.isFinite(v)) {
@@ -134,7 +134,7 @@ export function _pickBlocks(raw: any) {
  * @param {object} opts
  * @returns {object|null}
  */
-export function _buildWindow({ total, remaining, usedPercent, resetSec, label, fetchedAt, modelName, status, startTime, endTime, remainingPercent }) {
+export function _buildWindow({ total, remaining, usedPercent, resetSec, label, fetchedAt, modelName, status, startTime, endTime, remainingPercent }: any) {
   if (total === null && remaining === null && usedPercent === null && resetSec === null) return null;
   const used = (typeof total === 'number' && typeof remaining === 'number')
     ? Math.max(0, total - remaining) : null;
@@ -195,7 +195,7 @@ function _parseBlockWindow(block: any, opts: any) {
  * @param {object} [opts] { fetchedAt, endpoint, provider, region }
  * @returns {{ok: boolean, snapshot?: object, reason?: string, error?: string}}
  */
-export function normalize(rawResponse, opts: any = {}) {
+export function normalize(rawResponse: any, opts: any = {}) {
   if (!rawResponse || typeof rawResponse !== 'object') {
     return { ok: false, reason: 'api_error', error: 'response_not_object' };
   }

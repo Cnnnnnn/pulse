@@ -169,7 +169,7 @@ export function _idFromFilename(name: any) {
  * @param {string} id
  * @returns {Promise<string|null>}
  */
-async function _findFileById(dir: any, id: any) {
+async function _findFileById(dir: any, id: any): Promise<string | null> {
   let entries;
   try {
     entries = await fsp.readdir(dir, { withFileTypes: true });
@@ -206,9 +206,9 @@ async function _findFileById(dir: any, id: any) {
  */
 export async function _parseCodexJsonl(file: any) {
   const messages: any[] = [];
-  let sessionUuid = null;
-  let workspaceDir = null;
-  let idFromMeta = null;
+  let sessionUuid: any = null;
+  let workspaceDir: any = null;
+  let idFromMeta: any = null;
 
   await parseJsonlFile(file, (row: any) => {
     const ts = _parseTs(row.timestamp);

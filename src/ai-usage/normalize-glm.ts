@@ -64,7 +64,7 @@ export function _buildWindow({
   resetAt,
   label,
   fetchedAt,
-}) {
+}: any) {
   if (
     total === null &&
     remaining === null &&
@@ -106,7 +106,7 @@ export function _buildWindow({
  * @param {object} [opts] { fetchedAt, endpoint, provider, region }
  * @returns {{ok: boolean, snapshot?: object, reason?: string, error?: string}}
  */
-export function normalizeGlm(rawResponse, opts: any = {}) {
+export function normalizeGlm(rawResponse: any, opts: any = {}) {
   if (!rawResponse || typeof rawResponse !== "object") {
     return { ok: false, reason: "api_error", error: "response_not_object" };
   }

@@ -107,7 +107,7 @@ export function migrateConfig(oldConfig: any) {
   if (!oldConfig || typeof oldConfig !== 'object') {
     throw new MigrationError('config is not an object');
   }
-  const newConfig = {
+  const newConfig: any = {
     check_on_launch: typeof oldConfig.check_on_launch === 'boolean'
       ? oldConfig.check_on_launch
       : true,

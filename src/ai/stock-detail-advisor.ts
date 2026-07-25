@@ -321,7 +321,7 @@ export function parseAndValidateAnalyze(rawText: any): any {
     parsed.perAngle && typeof parsed.perAngle === "object"
       ? parsed.perAngle
       : {};
-  const perAngle = {};
+  const perAngle: any = {};
   for (const [k, v] of Object.entries(perAngleRaw)) {
     const cleaned = cleanStringField(v);
     if (cleaned) perAngle[k] = cleaned;
@@ -526,7 +526,7 @@ function _fillTemplate(tpl: any, perAngleData: any, scores: any) {
 export function refreshAngleLocally({ angleKey, perAngleData, scores, seed }: any) {
   // ponytail: 不依赖 getAngle (它还会拖入 fetcher 等重依赖). LOCAL_TEMPLATES 是
   // 闭包内硬编码, angle key 不在 map 里直接返 null (说明该 angle 没本地模板).
-  if (!LOCAL_TEMPLATES[angleKey]) return null;
+  if (!(LOCAL_TEMPLATES as any)[angleKey]) return null;
   const e = perAngleData && perAngleData[angleKey];
   if (!e || e.status !== "ok") return null;
   // ponytail: 优先用"已有 aiResult.perAngle[key]"做 tone (那是 LLM 视角), 缺则用
@@ -556,7 +556,7 @@ export function refreshAngleLocally({ angleKey, perAngleData, scores, seed }: an
     }
   }
   if (!tone) return null;
-  const group = LOCAL_TEMPLATES[angleKey] || LOCAL_TEMPLATES.profitability;
+  const group = (LOCAL_TEMPLATES as any)[angleKey] || (LOCAL_TEMPLATES as any).profitability;
   const list = (group && group[tone]) || group.neutral || [];
   if (list.length === 0) return null;
   const idx =

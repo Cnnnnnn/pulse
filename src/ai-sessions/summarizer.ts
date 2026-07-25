@@ -79,7 +79,7 @@ export class LLMSummarizer {
    * @param {string} [opts.locale]     'zh-CN' (默认)
    * @returns {Promise<string>}         markdown summary
    */
-  async summarize(sessions, opts: any = {}) {
+  async summarize(sessions: any, opts: any = {}) {
     if (!Array.isArray(sessions)) {
       throw new TypeError('summarize: sessions must be array');
     }

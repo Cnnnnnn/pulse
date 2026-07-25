@@ -87,7 +87,7 @@ export function createWorldcupTrayCache(opts: any = {}): any {
         const ks = matchKickoffUtcMs(m);
         return typeof ks === "number" && ks > nowMs;
       })
-      .sort((a: any, b: any) => matchKickoffUtcMs(a) - matchKickoffUtcMs(b))
+      .sort((a: any, b: any) => (matchKickoffUtcMs(a) || 0) - (matchKickoffUtcMs(b) || 0))
       .slice(0, limit);
     return {
       ok: true,

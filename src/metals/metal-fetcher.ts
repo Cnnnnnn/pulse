@@ -53,7 +53,7 @@ export async function fetchAllQuotes(httpGet: any) {
   const hfSymbolToMetal: any = {};
   for (const metal of METALS) {
     if (metal.primary.kind === 'sina-hf') {
-      hfSymbolToMetal[metal.primary.symbol] = {
+      hfSymbolToMetal[(metal.primary as any).symbol] = {
         metalId: metal.id,
         meta: { unit: metal.unit, currency: metal.currency },
       };

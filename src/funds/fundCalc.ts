@@ -162,7 +162,7 @@ export function calcPortfolioTotal(rows: any) {
  * @returns {Record<string, number>}
  */
 export function groupCountByCategory(holdings: any) {
-  const out = {};
+  const out: any = {};
   for (const h of holdings) {
     const k = h && h.category ? h.category : 'other';
     out[k] = (out[k] || 0) + 1;

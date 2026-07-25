@@ -68,7 +68,7 @@ function _pickNumber(obj: any, keys: any) {
  * @param {object} [opts] { fetchedAt, endpoint }
  * @returns {{ok: boolean, usageStats?: object, reason?: string, error?: string}}
  */
-export function normalizeUsageSummary(rawResponse, opts: any = {}) {
+export function normalizeUsageSummary(rawResponse: any, opts: any = {}) {
   if (!rawResponse || typeof rawResponse !== "object") {
     return { ok: false, reason: "api_error", error: "response_not_object" };
   }

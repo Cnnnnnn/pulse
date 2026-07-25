@@ -198,7 +198,7 @@ function initCategoryAndLlm() {
   })();
   if (earlyConfig) {
     runtimeConfigRef.current = earlyConfig;
-    classifyUnmappedAppsByLLM(earlyConfig, { stateStore }).catch((err) => {
+    classifyUnmappedAppsByLLM(earlyConfig, { stateStore }).catch((err: any) => {
       mainLog.warn(`[bootstrap] LLM classify rejected: ${errMsg(err)}`);
     });
   }
@@ -770,7 +770,7 @@ async function bootstrap() {
   // 3) dock 隐藏
   try {
     if (process.env.PULSE_HIDE_DOCK === "1") {
-      app.dock.hide();
+      (app.dock as any)?.hide?.();
     }
   } catch {
     /* noop */

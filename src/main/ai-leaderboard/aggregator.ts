@@ -234,8 +234,8 @@ export async function getLeaderboard(opts: any = {}): Promise<any> {
       const currentRank = idx + 1;
       const { delta, isNew } = computeRankDelta(it.id, board, currentRank, prevRanks);
       const boardSeries =
-        rankSeriesMap.get(it.id) && rankSeriesMap.get(it.id).get(board)
-          ? rankSeriesMap.get(it.id).get(board)
+        rankSeriesMap.get(it.id) && (rankSeriesMap.get(it.id) as any).get(board)
+          ? (rankSeriesMap.get(it.id) as any).get(board)
           : null;
       return { ...it, rankDelta: delta, isNew, rankSeries: boardSeries };
     });
