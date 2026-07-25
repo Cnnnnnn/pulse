@@ -4,14 +4,18 @@
  * 三个 task.type: detect-app / brew-upgrade / brew-update.
  */
 
-const fs = require("fs");
-const { execFile } = require("child_process");
-const { promisify } = require("util");
-const platform = require("../platform/index.ts");
-const { runDetectorChain } = require("./detector-chain");
-const { getInstalledVersion } = require("./installed-version");
-const { buildDetectResult } = require("./result-builder");
-const { sendProgress, postLog, ARCH, PLATFORM } = require("./ipc");
+import fs from "fs";
+import { execFile } from "child_process";
+import { promisify } from "util";
+// ponytail: src/platform/index.ts 是 CJS module.exports + ESM default. namespace
+// import 拿到 { default: impl } — 取 .default 解 impl. 7a-6 加 named export 后
+// 再换 import platform from "...";. 现在 namespace import + .default 兼容.
+import * as platformMod from "../platform/index";
+const platform: any = (platformMod as any).default || platformMod;
+import { runDetectorChain } from "./detector-chain";
+import { getInstalledVersion } from "./installed-version";
+import { buildDetectResult } from "./result-builder";
+import { sendProgress, postLog, ARCH, PLATFORM } from "./ipc";
 const {
   AppBundleChangelogDetector,
 } = require("../detectors/app-bundle-changelog");
@@ -189,11 +193,3 @@ export async function handleBrewUpdate() {
   }
 }
 
-module.exports = {
-  handleDetectApp,
-  handleBrewUpgrade,
-  handleBrewUpdate,
-  withTimeout,
-  DETECT_APP_TIMEOUT_MS,
-  BREW_UPGRADE_TIMEOUT_MS,
-};

@@ -14,6 +14,11 @@ const require = createRequire(import.meta.url);
 const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 const chatCompletion = vi.fn();
+// Phase 7 7a: shared-llm 保留 module.exports = {…} (给 CJS 互操作 + 测试改写
+// chatCompletion). dist-test/.cjs 编译产物走 require() 拿到对象, 这里赋值
+// mock 不被 esbuild __export getter 包 — 测试 fixture 改 shared-llm.cjs 的
+// chatCompletion 后, src/ai/changelog-summary.ts (ESM) import { chatCompletion }
+// 拿到的也是同一个 module 实例 (vitest ESM 图 + require cache 桥).
 const sharedLlm = require("../../src/ai/shared-llm.js");
 sharedLlm.chatCompletion = chatCompletion;
 
@@ -24,7 +29,7 @@ const {
   buildSummaryMessages,
   summaryCacheKey,
   fetchChangelogSummary,
-} = require("../../src/ai/changelog-summary");
+} = require("../../src/ai/changelog-summary.js");
 
 function tmpStatePath() {
   const dir = join(

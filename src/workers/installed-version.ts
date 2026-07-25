@@ -8,11 +8,11 @@
  *   2) legacy: installed.json → plist shortVer → system_profiler
  */
 
-const fs = require("fs");
-const { execFile } = require("child_process");
-const { promisify } = require("util");
-const { appBundleResourcePath } = require("../utils/app-paths");
-const { tryVersionSource } = require("./version-source");
+import fs from "fs";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import { appBundleResourcePath } from "../utils/app-paths";
+import { tryVersionSource } from "./version-source";
 
 const pExecFile = promisify(execFile);
 
@@ -137,11 +137,7 @@ export async function getInstalledVersion(bundleName, versionSources) {
   return lookupSp(bundleName, spMap);
 }
 
-module.exports = {
-  getInstalledVersion,
-  lookupSp,
-  readPlistOnce,
-  tryInstalledJson,
-  plistShortVersion,
-  refreshSystemProfilerCache,
-};
+// ponytail: Phase 7 7a 保留 module.exports, 给 CJS 测试 mock (eg: 测试改写
+// getInstalledVersion spy). 7b 删 shim 阶段再去掉, 此时测试改 vi.mock.
+module.exports = { getInstalledVersion, lookupSp, plistShortVersion };
+

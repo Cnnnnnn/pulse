@@ -13,8 +13,8 @@
  * 这版只在 Node 主进程 / 测试里跑（不引入 worker_threads.workerData 也能工作）。
  */
 
-const { Worker } = require('worker_threads');
-const os = require('os');
+import { Worker } from "worker_threads";
+import os from "os";
 
 /**
  * @typedef {object} WorkerSlot
@@ -196,4 +196,3 @@ export class WorkerPool {
   }
 }
 
-module.exports = { WorkerPool };

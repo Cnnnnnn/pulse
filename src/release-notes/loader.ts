@@ -12,9 +12,10 @@
  * __setTestOverrides 让测试可以注入 mock repoRoot (主进程测试时, 仓库根可能不是 __dirname 解析的目标).
  */
 
-const fs = require("fs");
-const path = require("path");
-const { createLogger } = require("../main/log.js");
+import fs from "node:fs";
+import path from "node:path";
+// ponytail: main/log 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
+const { createLogger } = require("../main/log.js") as any;
 
 const log = createLogger("release-notes-loader");
 
@@ -80,9 +81,3 @@ export function readSlides(version) {
   }
 }
 
-module.exports = {
-  readReleaseNotes,
-  readSlides,
-  __setTestRepoRoot,
-  __resetTestRepoRoot,
-};

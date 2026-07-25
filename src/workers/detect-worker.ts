@@ -14,8 +14,9 @@
  *   - task-handlers.js   handleDetectApp / handleBrewUpgrade / handleBrewUpdate
  */
 
-const { parentPort } = require("worker_threads");
-const { HttpClient } = require("../main/http-client.ts");
+import { parentPort } from "worker_threads";
+// ponytail: main/http-client 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
+const { HttpClient } = require("../main/http-client.js") as any;
 const {
   makePostMessageLogger,
   sendResult,

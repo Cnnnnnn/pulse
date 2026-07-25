@@ -11,9 +11,12 @@
  * (require('../release-notes/loader.ts') + require('./state-store.ts')).
  */
 
-const { createLogger } = require("./log.ts");
-const defaultLoader = require("../release-notes/loader.ts");
-const defaultStateStore = require("./state-store.ts");
+// ponytail: main/log + main/state-store 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
+const { createLogger } = require("./log.js") as any;
+import * as loaderMod from "../release-notes/loader";
+import * as stateStoreMod from "./state-store.js";
+const defaultLoader = (loaderMod as any).default || loaderMod;
+const defaultStateStore = (stateStoreMod as any).default || stateStoreMod;
 
 const log = createLogger("release-notes");
 
@@ -35,8 +38,8 @@ export function registerReleaseNotes(ctx: any): void {
   }
   const ipcMainRef = ctx.ipcMain;
   const app = ctx.app || require("electron").app;
-  const stateStore = ctx.stateStore || defaultStateStore;
-  const loader = ctx.loader || defaultLoader;
+const stateStore = ctx.stateStore || defaultStateStore;
+const loader = ctx.loader || (defaultLoader as any).default || defaultLoader;
 
   ipcMainRef.handle("release-notes:get-current", async () => {
     let currentVersion: string;
@@ -90,5 +93,3 @@ export function registerReleaseNotes(ctx: any): void {
     }
   });
 }
-
-module.exports = { registerReleaseNotes };

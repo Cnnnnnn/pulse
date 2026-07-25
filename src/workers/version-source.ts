@@ -12,9 +12,9 @@
  * 全部结果再过 stripBuildNumber 兜底 (如 "2.5.3.4392" → "2.5.3").
  */
 
-const fs = require('fs');
-const { stripBuildNumber } = require('../utils/version-utils');
-const { queryRegistryField } = require('./win-registry');
+import fs from "fs";
+import { stripBuildNumber } from "../utils/version-utils";
+import { queryRegistryField } from "./win-registry";
 
 /**
  * 逐段数字比较两版本号大小 (semver-ish).
@@ -179,4 +179,3 @@ export function expandHome(p, HOME = process.env.HOME || '/Users/Shared') {
   return p;
 }
 
-module.exports = { tryVersionSource, expandHome };

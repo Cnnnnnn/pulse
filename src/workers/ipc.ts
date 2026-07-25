@@ -4,7 +4,7 @@
  * Worker → main 进程 IPC helpers. postMessage 包装, parent 死时 swallow.
  */
 
-const { parentPort, workerData } = require("worker_threads");
+import { parentPort, workerData } from "worker_threads";
 
 export const ARCH =
   (workerData && workerData.arch) ||
@@ -61,12 +61,3 @@ export function postLog(level, text, meta) {
   }
 }
 
-module.exports = {
-  ARCH,
-  PLATFORM,
-  makePostMessageLogger,
-  sendProgress,
-  sendResult,
-  sendError,
-  postLog,
-};

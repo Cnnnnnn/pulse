@@ -14,12 +14,17 @@ import { join } from 'path';
 const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
 
 describe('task-handlers uses platform.resolveAppPath', () => {
-  it('源码 require platform 层 (不再直接 require app-paths)', () => {
+  it('源码 require/import platform 层 (不再直接 require app-paths)', () => {
     const src = readFileSync(
       join(__dirname, '../../src/workers/task-handlers.ts'),
       'utf-8',
     );
-    expect(src).toContain('require("../platform/index.ts")');
+    // Phase 7 7a-5: ESM-ify 后 task-handlers 改 `import * as platform from "../platform/index"`,
+    // 不再 require. 测试 source-string 断言两种都接受.
+    expect(
+      src.includes('require("../platform/index.ts")') ||
+      src.includes('import') && src.includes('"../platform/index"'),
+    ).toBe(true);
     expect(src).toContain('platform.resolveAppPath');
     // 不再直接 import resolveAppBundlePath
     expect(src).not.toContain('resolveAppBundlePath');

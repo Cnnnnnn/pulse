@@ -4,9 +4,9 @@
  * Detector chain runner + version compare.
  */
 
-const { DetectContext } = require("../detectors/base");
-const { cleanVersion } = require("../utils/version-utils");
-const cbStorage = require("../detectors/circuit-breaker-storage");
+import { DetectContext } from "../detectors/base";
+import { cleanVersion } from "../utils/version-utils";
+import * as cbStorage from "../detectors/circuit-breaker-storage";
 const {
   shouldAllow,
   transitionAfterProbe,
@@ -14,7 +14,7 @@ const {
   recordFailure,
   createBreaker,
 } = require("../detectors/circuit-breaker");
-const { decideIncremental } = require("./detector-chain-incremental");
+import { decideIncremental } from "./detector-chain-incremental";
 
 const DETECTORS = {
   brew_formulae: require("../detectors/brew-formulae"),
@@ -213,7 +213,7 @@ async function runOneDetector(detCfg, ctx, stored, force = false) {
   const key = breakerKey(detCfg);
   const storedBreaker = stored[key];
   const breaker = storedBreaker
-    ? cbStorage.hydrate(storedBreaker)
+    ? cbStorage.hydrate(storedBreaker, () => Date.now())
     : createBreaker({ key });
   const now = breaker._now();
   const openBefore = breaker.state === "open";
@@ -508,4 +508,3 @@ function mergeEnrich(base, winner) {
   };
 }
 
-module.exports = { makeDetector, runDetectorChain, compareVersions };

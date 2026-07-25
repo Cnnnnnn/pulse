@@ -41,4 +41,3 @@ export function decideIncremental({
   return { useIncremental: true, maxIndex: 1 };
 }
 
-module.exports = { decideIncremental };

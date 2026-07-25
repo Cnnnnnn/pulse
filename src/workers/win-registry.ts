@@ -13,8 +13,8 @@
  * 依赖注入: opts._exec 用于测试 mock. 生产环境用 child_process.execFile.
  */
 
-const { execFile } = require('child_process');
-const { promisify } = require('util');
+import { execFile } from "child_process";
+import { promisify } from "util";
 
 const pExecFile = promisify(execFile);
 
@@ -112,9 +112,3 @@ export async function queryAllUninstallKeys(displayName, opts: any = {}) {
   return null;
 }
 
-module.exports = {
-  parseRegOutput,
-  queryRegistryField,
-  queryAllUninstallKeys,
-  UNINSTALL_ROOTS,
-};

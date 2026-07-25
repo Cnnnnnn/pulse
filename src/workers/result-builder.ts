@@ -4,7 +4,7 @@
  * Detector result → IPC result 对象 + 错误信息提取.
  */
 
-const { cleanVersion } = require("../utils/version-utils");
+import { cleanVersion } from "../utils/version-utils";
 
 export function extractBrewCask(appCfg) {
   const dets =
@@ -123,10 +123,3 @@ export function buildDetectResult({
   };
 }
 
-module.exports = {
-  extractBrewCask,
-  extractErrorMessage,
-  isChromiumVersion,
-  statusOf,
-  buildDetectResult,
-};
