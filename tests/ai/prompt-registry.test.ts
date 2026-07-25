@@ -9,8 +9,9 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 
-const require = createRequire(import.meta.url);
-const { DEFAULT_PROMPTS } = require("../../src/ai/prompt-registry.js");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = _require("../_setup/require-main.cjs");
+const { DEFAULT_PROMPTS } = requireAi("prompt-registry");
 
 describe("stock_detail_analyze prompt", () => {
   it("fewShot 字段非空字符串", () => {

@@ -217,7 +217,7 @@ export const PROMPT_KEYS = Object.keys(DEFAULT_PROMPTS);
  * @param {string} key
  * @returns {{ system: string, rules: string, fewShot: string }}
  */
-export function resolvePrompt(key) {
+export function resolvePrompt(key: any) {
   const def = DEFAULT_PROMPTS[key];
   if (!def) throw new Error(`unknown prompt key: ${key}`);
   const userPrompts = stateStore.loadAiPrompts();

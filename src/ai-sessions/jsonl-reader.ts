@@ -12,7 +12,7 @@ import readline from "readline";
  * @param {(row: object) => void | false | Promise<void | false>} onRow
  *   返 false 可提前结束
  */
-export async function parseJsonlFile(file, onRow) {
+export async function parseJsonlFile(file: any, onRow: any) {
   const stream = fs.createReadStream(file, { encoding: "utf8" });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
   for await (const line of rl) {

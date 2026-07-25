@@ -25,7 +25,7 @@ export const DEFAULTS = Object.freeze({
   cooldownMs: 5 * 60 * 1000, // 5 minutes
 });
 
-function mergeConfig(config) {
+function mergeConfig(config: any) {
   return { ...DEFAULTS, ...(config || {}) };
 }
 
@@ -64,14 +64,14 @@ export function shouldAllow(breaker, now, force = false) {
   return false;
 }
 
-export function transitionAfterProbe(breaker, now) {
+export function transitionAfterProbe(breaker: any, now: any) {
   if (breaker.state === STATE.OPEN && now >= breaker.openUntil) {
     return { ...breaker, state: STATE.HALF_OPEN };
   }
   return breaker;
 }
 
-export function recordSuccess(breaker, now) {
+export function recordSuccess(breaker: any, now: any) {
   return {
     ...breaker,
     state: STATE.CLOSED,
@@ -81,7 +81,7 @@ export function recordSuccess(breaker, now) {
   };
 }
 
-export function recordFailure(breaker, now, configOverride) {
+export function recordFailure(breaker: any, now: any, configOverride: any) {
   const cfg = configOverride
     ? mergeConfig(configOverride)
     : breaker.config;

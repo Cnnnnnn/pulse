@@ -39,7 +39,7 @@ export const SUPPORTED_PROVIDERS = ['deepseek', 'minimax'];
  * @param {object|null} override
  * @returns {object}
  */
-export function mergeAISessionsConfig(cfg, override) {
+export function mergeAISessionsConfig(cfg: any, override: any) {
   const base = cfg || { enabled: false, provider: 'minimax', cloud: null };
   if (!override || typeof override !== 'object') return base;
   const out = { ...base };
@@ -57,10 +57,10 @@ export function mergeAISessionsConfig(cfg, override) {
  * @param {string} [statePath] 注入便于测试
  * @returns {{ loadTaskSummaries, saveTaskSummary }}
  */
-export function makeStateStoreStorage(statePath) {
+export function makeStateStoreStorage(statePath: any) {
   return {
     loadTaskSummaries: () => stateStore.loadTaskSummaries(statePath),
-    saveTaskSummary: (entry) => stateStore.saveTaskSummary(entry, statePath),
+    saveTaskSummary: (entry: any) => stateStore.saveTaskSummary(entry, statePath),
   };
 }
 
@@ -69,7 +69,7 @@ export function makeStateStoreStorage(statePath) {
  * @param {string} providerId
  * @returns {string|null}
  */
-export function _defaultResolveApiKey(providerId) {
+export function _defaultResolveApiKey(providerId: any) {
   try {
     return storageMod.loadApiKey(providerId);
   } catch {
@@ -80,7 +80,7 @@ export function _defaultResolveApiKey(providerId) {
 /**
  * "no api key" stub summarizer. summarize 永远 throw (UI 提示去配置).
  */
-function _makeStubSummarizer(providerId, reason) {
+function _makeStubSummarizer(providerId: any, reason: any) {
   return new LLMSummarizer({
     provider: providerId,
     model: 'stub',

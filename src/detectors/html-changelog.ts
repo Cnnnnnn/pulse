@@ -49,7 +49,7 @@ export class HtmlChangelogDetector extends Detector {
     this.contentPattern = opts.content_pattern || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const url = this.url || ctx.url;
     if (!url) {
       throw new DetectorError({
@@ -102,9 +102,9 @@ export class HtmlChangelogDetector extends Detector {
         // 选最大 semver
         ver =
           allMatches
-            .map((m) => (m[1] || "").trim())
+            .map((m: any) => (m[1] || "").trim())
             .filter(Boolean)
-            .sort((a, b) => compareVersionsDesc(a, b))[0] || "";
+            .sort((a: any, b: any) => compareVersionsDesc(a, b))[0] || "";
       }
     }
     if (!ver) {
@@ -144,11 +144,11 @@ export class HtmlChangelogDetector extends Detector {
  * 按 semver 倒序比较 a, b. 都是 "X.Y.Z" 形式 (短形式按 0 补齐).
  * 返回 1 (a > b), -1 (a < b), 0 (相等).
  */
-export function compareVersionsDesc(a, b) {
-  const parse = (v) =>
+export function compareVersionsDesc(a: any, b: any) {
+  const parse = (v: any) =>
     String(v)
       .split(".")
-      .map((p) => parseInt(p, 10) || 0);
+      .map((p: any) => parseInt(p, 10) || 0);
   const pa = parse(a);
   const pb = parse(b);
   const len = Math.max(pa.length, pb.length);
@@ -175,7 +175,7 @@ export function compareVersionsDesc(a, b) {
  * @param {string} sectionEndTag 闭合标签 (e.g. '</div>') 或下一个起始 (e.g. '<h2')
  * @returns {string|null}       切出的 section HTML (含起始标记) 或 null
  */
-export function extractFirstSection(html, sectionStart, sectionEndTag) {
+export function extractFirstSection(html: any, sectionStart: any, sectionEndTag: any) {
   if (!html || !sectionStart) return null;
   const startIdx = html.indexOf(sectionStart);
   if (startIdx === -1) return null;
@@ -230,7 +230,7 @@ export function extractFirstSection(html, sectionStart, sectionEndTag) {
  * 第一层 XSS 防护: 移除 script / iframe / style / object / embed 整块内容 + onxxx= 属性.
  * renderer 端还会再过 DOMPurify (二层防护).
  */
-export function stripDangerousTags(html) {
+export function stripDangerousTags(html: any) {
   if (!html) return "";
   return (
     html

@@ -5,10 +5,10 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mkdirSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
 
 const chatCompletion = vi.fn();
-const sharedLlm = require("../../src/ai/shared-llm.js");
+const sharedLlm = requireAi("shared-llm");
 sharedLlm.chatCompletion = chatCompletion;
 
 // 在 require article-ai 之前完成 chatCompletion 替换

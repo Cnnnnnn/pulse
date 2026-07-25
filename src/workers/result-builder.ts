@@ -6,7 +6,7 @@
 
 import { cleanVersion } from "../utils/version-utils";
 
-export function extractBrewCask(appCfg) {
+export function extractBrewCask(appCfg: any) {
   const dets =
     appCfg && Array.isArray(appCfg.detectors) ? appCfg.detectors : [];
   for (const d of dets) {
@@ -28,7 +28,7 @@ export function extractBrewCask(appCfg) {
  *  - 全部 detector 失败 + 没有 latest → 最后一条 error
  *  - 其它 → null
  */
-export function extractErrorMessage(trace, latest, versionUnknown) {
+export function extractErrorMessage(trace: any, latest: any, versionUnknown: any) {
   if (versionUnknown) return "已安装版本无法读取";
   if (!trace || trace.length === 0) return null;
   for (let i = trace.length - 1; i >= 0; i--) {
@@ -42,12 +42,12 @@ export function extractErrorMessage(trace, latest, versionUnknown) {
   return null;
 }
 
-export function isChromiumVersion(ver) {
+export function isChromiumVersion(ver: any) {
   if (!ver || typeof ver !== "string") return false;
   const parts = ver.split(".");
   if (parts.length !== 4) return false;
   const major = parseInt(parts[0], 10);
-  return major >= 80 && parts.every((p) => /^\d+$/.test(p));
+  return major >= 80 && parts.every((p: any) => /^\d+$/.test(p));
 }
 
 export function statusOf(versionUnknown, latest, hasUpdate, note) {
@@ -84,7 +84,7 @@ export function buildDetectResult({
     // 唯一可用版本来自 enrich_only (changelog 等), 权威源全部失败 → 不可靠
     note = "enrich_fallback";
   } else if (latest && installed && installed !== "未知") {
-    const cmp = require("./detector-chain").compareVersions(installed, latest);
+    const cmp = require("./detector-chain.js").compareVersions(installed, latest);
     hasUpdate = cmp.hasUpdate;
     note = cmp.note;
   }

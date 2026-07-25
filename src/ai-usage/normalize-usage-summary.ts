@@ -20,7 +20,7 @@
  * @param {string|number|null|undefined} v
  * @returns {number|null}
  */
-export function _parseTokenStr(v) {
+export function _parseTokenStr(v: any) {
   if (v === null || v === undefined) return null;
   if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? v : null;
   if (typeof v !== "string") return null;
@@ -42,7 +42,7 @@ export function _parseTokenStr(v) {
  * @param {string|number|null|undefined} v
  * @returns {number|null}
  */
-export function _parsePctStr(v) {
+export function _parsePctStr(v: any) {
   if (v === null || v === undefined) return null;
   if (typeof v === "number") return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : null;
   if (typeof v !== "string") return null;
@@ -51,7 +51,7 @@ export function _parsePctStr(v) {
   return Math.max(0, Math.min(100, Number(m[1])));
 }
 
-function _pickNumber(obj, keys) {
+function _pickNumber(obj: any, keys: any) {
   if (!obj || typeof obj !== "object" || !Array.isArray(keys) || keys.length === 0) return null;
   for (const k of keys) {
     const v = obj[k];
@@ -102,20 +102,20 @@ export function normalizeUsageSummary(rawResponse, opts: any = {}) {
 
   // daily_token_usage: 90 个 number (可能为 0)
   const dailyTokenUsage = Array.isArray(rawResponse.daily_token_usage)
-    ? rawResponse.daily_token_usage.map((v) => (typeof v === "number" && Number.isFinite(v) && v >= 0) ? v : 0)
+    ? rawResponse.daily_token_usage.map((v: any) => (typeof v === "number" && Number.isFinite(v) && v >= 0) ? v : 0)
     : [];
 
   // date_model_usage: 90 项, 每项含 models[] + totals
-  let dateModelUsage = [];
+  let dateModelUsage: any[] = [];
   let modelTotals: any = {}; // 按 model 聚合 90 天总 token (排序用)
   let grandTotal = 0;
   if (Array.isArray(rawResponse.date_model_usage)) {
-    dateModelUsage = rawResponse.date_model_usage.map((d) => {
+    dateModelUsage = rawResponse.date_model_usage.map((d: any) => {
       if (!d || typeof d !== "object") return null;
       const dayTotal = _pickNumber(d, ["total_token"]) || 0;
       grandTotal += dayTotal;
       const models = Array.isArray(d.models)
-        ? d.models.map((m) => {
+        ? d.models.map((m: any) => {
             if (!m || typeof m !== "object") return null;
             const total = _pickNumber(m, ["total_token"]) || 0;
             const name = typeof m.model === "string" ? m.model : null;
@@ -162,13 +162,13 @@ export function normalizeUsageSummary(rawResponse, opts: any = {}) {
   // 7 天平均 (daily_token_usage 末尾 7 个 = 最近 7 天, 假设顺序是 [旧 → 新])
   const recent7 = dailyTokenUsage.slice(-7);
   const recent7Avg = recent7.length > 0
-    ? Math.round(recent7.reduce((s, v) => s + v, 0) / recent7.length)
+    ? Math.round(recent7.reduce((s: any, v: any) => s + v, 0) / recent7.length)
     : null;
 
   // 30 天平均
   const recent30 = dailyTokenUsage.slice(-30);
   const recent30Avg = recent30.length > 0
-    ? Math.round(recent30.reduce((s, v) => s + v, 0) / recent30.length)
+    ? Math.round(recent30.reduce((s: any, v: any) => s + v, 0) / recent30.length)
     : null;
 
   return {

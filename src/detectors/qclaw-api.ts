@@ -27,7 +27,7 @@ export class QClawApiDetector extends Detector {
     this.url = opts.url || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const rawUrl = this.url || ctx.url;
     if (!rawUrl) {
       throw new DetectorError({
@@ -53,7 +53,7 @@ export class QClawApiDetector extends Detector {
     let data;
     try {
       data = JSON.parse(r.body);
-    } catch (e) {
+    } catch (e: any) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.PARSE,
@@ -124,7 +124,7 @@ export class QClawApiDetector extends Detector {
   }
 }
 
-function pluckPath(obj, path) {
+function pluckPath(obj: any, path: any) {
   let node = obj;
   for (const seg of path) {
     if (node == null || typeof node !== "object") return null;

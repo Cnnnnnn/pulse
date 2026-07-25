@@ -15,7 +15,7 @@ module.exports = defineConfig({
     // pnpm exec vitest --run (CI release job 入口, 不走 npm lifecycle)
     // 与 npm test 两种路径. 见 tests/_setup/build-preload.cjs.
     globalSetup: ["./tests/_setup/build-preload.cjs", "./tests/_setup/build-main-ts.cjs"],
-    testTimeout: 8000, // 多数 detector 自身 timeout 就是 8s
+    testTimeout: 30000, // 7a-6: aggregator 测试触发真实网络 fallback, 8s 不够; 多数 detector 仍 ≤8s
     pool: "forks", // macOS 稳；windows 也兼容
     globals: false, // 显式 import，避免 vitest 1.x 的隐式全局
     env: {
@@ -39,6 +39,10 @@ module.exports = defineConfig({
     jsxImportSource: "preact",
   },
   resolve: {
+    // Phase 7b: src/.js shim 删除后, 测试里 `require("../../src/foo")` 或 `require("../../src/foo.js")`
+    // (node CJS 默认会找 .js 然后 .json) 需要 vitest 显式声明 .ts 优先, 让 vitest 把
+    // src/foo.ts 当作 module 入口. esbuild 处理 .ts (vitest 内部用 esbuild 转译).
+    extensions: [".ts", ".tsx", ".js", ".jsx", ".json", ".cjs", ".mjs"],
     alias: [
       // Phase v1: 允许 renderer 文件 import 主进程模块 (tray-menu-prefs.js 提供单一真相).
       // vitest 1.x 默认 fs.strict 阻止跨 src 目录, 这里放开.

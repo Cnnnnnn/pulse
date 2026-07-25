@@ -15,7 +15,7 @@
  *   {version}      → 不动 (留个接口, 实际不展开, 避免误改)
  */
 
-export function expandUrl(rawUrl, arch) {
+export function expandUrl(rawUrl: any, arch: any) {
   if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
   if (!arch) return rawUrl;
   return rawUrl

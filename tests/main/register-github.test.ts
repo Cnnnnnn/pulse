@@ -20,7 +20,7 @@ const { requireMain, mainArtifactPath, aiArtifactPath } = require("../_setup/req
 const registerPath = mainArtifactPath("ipc/register-github");
 const githubPath = mainArtifactPath("github");
 const aiPath = aiArtifactPath("readme-parse");
-const aiShimPath = require.resolve("../../src/ai/readme-parse.js");
+const aiShimPath = require.resolve("../../src/ai/readme-parse.ts");
 
 /** 构造一个不会真打网络的 stub http。 */
 function stubGithubModule() {

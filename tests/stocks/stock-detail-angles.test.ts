@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ANGLE_DEFS, getAngle } from "../../src/stocks/stock-detail-angles.ts";
 
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
 describe("stock-detail-angles", () => {
   it("ANGLE_DEFS has 12 angles (9 基础 + 3 P1 季频/静态; 删 industry_momentum + margin_trading 周末永远空)", () => {
     // ponytail: 2026-07-07 — 锁死 12 提醒"加新 angle 必须改这 5 处: ANGLE_DEFS /
@@ -108,7 +109,7 @@ describe("stock-detail-angles", () => {
 
   describe("price_trend.getSparklineData", () => {
     // import 在文件顶部
-    // const { ANGLE_DEFS, getAngle } = require("../../src/stocks/stock-detail-angles.js");
+    // const { ANGLE_DEFS, getAngle } = requireStocks("stock-detail-angles");
     // (如果文件顶部已有 import, 复用, 不重复声明)
     const ang = getAngle("price_trend");
 

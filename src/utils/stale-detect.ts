@@ -53,7 +53,7 @@ export function detectStaleApps(stateApps: any, now?: any, thresholdDays?: any) 
     typeof thresholdDays === "number" && thresholdDays <= 0;
   const thresholdMs = days * MS_PER_DAY;
 
-  const staleNames = [];
+  const staleNames: any[] = [];
   let freshestTs = 0;
   for (const [name, raw] of Object.entries(stateApps)) {
     const app: any = raw;

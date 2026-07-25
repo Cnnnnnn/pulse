@@ -24,7 +24,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
  * 拉单只基金的当前净值/估值.
  *
  * @param {string} code        6 位基金代码, e.g. "000001"
- * @param {{ get: (url, opts) => Promise<{status:number, body:string, headers:object, error?:string}> }} httpClient
+ * @param {{ get: (url: any, opts: any) => Promise<{status:number, body:string, headers:object, error?:string}> }} httpClient
  * @param {{ timeoutMs?: number }} [opts]
  * @returns {Promise<{
  *   code: string,
@@ -84,13 +84,13 @@ export async function fetchFundNavBatch(codes: any, httpClient: any, opts: any =
           opts,
           health,
         );
-      } catch (e) {
+      } catch (e: any) {
         errors[code] = e && e.message ? e.message : String(e);
       }
     }
   }
 
-  const workers = [];
+  const workers: any[] = [];
   for (let k = 0; k < concurrency; k++) workers.push(worker());
   await Promise.all(workers);
 
@@ -146,7 +146,7 @@ export function mapFundData(raw: any) {
   };
 }
 
-function isTodayLocal(s) {
+function isTodayLocal(s: any) {
   // s 格式 "2026-06-12 14:55" 或 "2026-06-12"
   const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return false;
@@ -184,7 +184,7 @@ export async function fetchFundNavWithAlt(code: any, httpClient: any, opts: any 
     if (health && typeof health.record === "function") {
       health.record("tiantian", true, code);
     }
-  } catch (e) {
+  } catch (e: any) {
     primaryErr = e;
     if (health && typeof health.record === "function") {
       health.record("tiantian", false, code);
@@ -208,7 +208,7 @@ export async function fetchFundNavWithAlt(code: any, httpClient: any, opts: any 
       if (health && typeof health.record === "function") {
         health.record("sina", true, code);
       }
-    } catch (e) {
+    } catch (e: any) {
       altErr = e;
       if (health && typeof health.record === "function") {
         health.record("sina", false, code);

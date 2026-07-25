@@ -13,7 +13,7 @@ const stateStore: any = require("../main/state-store.js");
 export const VALID_RECOMMENDATIONS = ["upgrade", "wait", "skip"];
 const VALID_CONFIDENCE = ["high", "medium", "low"];
 
-export function adviceCacheKey(appName, latestVersion) {
+export function adviceCacheKey(appName: any, latestVersion: any) {
   return `${appName}::${latestVersion || ""}`;
 }
 
@@ -26,7 +26,7 @@ export function usageTierLabel(lastMs, now = Date.now()) {
   return "cold（30 天以上未开）";
 }
 
-function changelogExcerpt(changelog, limit = 1200) {
+function changelogExcerpt(changelog: any, limit: any = 0) {
   if (!changelog || typeof changelog !== "string") return "(无 release notes)";
   const plain = changelog
     .replace(/<[^>]+>/g, " ")
@@ -40,7 +40,7 @@ function changelogExcerpt(changelog, limit = 1200) {
  * @param {object} app  state.apps[name] 或 detect result
  * @param {object|null} lastOpened  { ms, source }
  */
-export function buildAdviceMessages(app, lastOpened) {
+export function buildAdviceMessages(app: any, lastOpened: any) {
   const prompt = resolvePrompt("upgrade_advice");
   const tier = usageTierLabel(lastOpened && lastOpened.ms);
   const userLines = [
@@ -67,7 +67,7 @@ export function buildAdviceMessages(app, lastOpened) {
  * @param {string} text
  * @returns {object|null}
  */
-export function parseAdviceResponse(text) {
+export function parseAdviceResponse(text: any) {
   if (typeof text !== "string" || !text.trim()) return null;
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -87,13 +87,13 @@ export function parseAdviceResponse(text) {
   const confidence = VALID_CONFIDENCE.includes(conf) ? conf : "medium";
   const reasons = Array.isArray(parsed.reasons)
     ? parsed.reasons
-        .filter((r) => typeof r === "string" && r.trim())
+        .filter((r: any) => typeof r === "string" && r.trim())
         .slice(0, 4)
     : [];
   return { recommendation: rec, confidence, summary, reasons };
 }
 
-function contentHash(app) {
+function contentHash(app: any) {
   const base = [
     app.name,
     app.installed_version,
@@ -109,7 +109,7 @@ function contentHash(app) {
  * @param {boolean} [opts.force]
  * @param {string} [opts.statePath]
  */
-export async function fetchUpgradeAdvice(opts) {
+export async function fetchUpgradeAdvice(opts: any) {
   const appName = opts && opts.appName;
   if (!appName || typeof appName !== "string") {
     return { ok: false, reason: "invalid_args" };

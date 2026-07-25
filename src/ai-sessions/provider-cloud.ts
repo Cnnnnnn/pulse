@@ -60,7 +60,7 @@ export const PROVIDER_ENDPOINTS = {
 
 export const ANTHROPIC_VERSION = '2023-06-01';
 
-function _resolveProvider(providerId) {
+function _resolveProvider(providerId: any) {
  const cfg = PROVIDER_ENDPOINTS[providerId];
  if (!cfg) {
  throw new TypeError(`CloudSummarizer: unsupported providerId '${providerId}'. Allowed: openai|anthropic|deepseek|minimax`);
@@ -68,7 +68,7 @@ function _resolveProvider(providerId) {
  return cfg;
 }
 
-function _resolveBaseUrl(providerId, config) {
+function _resolveBaseUrl(providerId: any, config: any) {
  const ep = _resolveProvider(providerId);
  const u = (config && typeof config.baseUrl === 'string' && config.baseUrl.length >0)
  ? config.baseUrl
@@ -80,20 +80,20 @@ function _resolveBaseUrl(providerId, config) {
  * user传 baseUrl 时, 可能含 /v1 也可能不含 /v1. path 总以 /v1/开头.
  *避免拼成 ".../v1/v1/..." 这种重复.
  */
-function _joinUrl(baseUrl, path) {
+function _joinUrl(baseUrl: any, path: any) {
  if (path.startsWith('/v1/') && baseUrl.endsWith('/v1')) {
  return `${baseUrl}${path.slice(3)}`; //剥 path 的 /v1
  }
  return `${baseUrl}${path}`;
 }
 
-function _resolveModel(config) {
+function _resolveModel(config: any) {
  const m = config && typeof config.model === 'string' ? config.model : '';
  if (!m) throw new TypeError('CloudSummarizer: config.model must be non-empty string');
  return m;
 }
 
-function _resolveApiKey(config) {
+function _resolveApiKey(config: any) {
  const k = config && typeof config.apiKey === 'string' ? config.apiKey : '';
  if (!k) throw new TypeError('CloudSummarizer: config.apiKey must be non-empty string (caller must load from safeStorage)');
  return k;
@@ -102,10 +102,10 @@ function _resolveApiKey(config) {
 /**
  * healthcheck 用: 用户配错应该 graceful返 ok:false 而不是 throw. summarize 里才 throw.
  */
-function _tryResolveModel(config) {
+function _tryResolveModel(config: any) {
  try { return _resolveModel(config); } catch { return null; }
 }
-function _tryResolveApiKey(config) {
+function _tryResolveApiKey(config: any) {
  try { return _resolveApiKey(config); } catch { return null; }
 }
 
@@ -128,7 +128,7 @@ export class CloudSummarizer {
  const apiKey = _tryResolveApiKey(config);
  if (!apiKey) return { ok: false, error: 'config.apiKey required' };
  let ep;
- try { ep = _resolveProvider(providerId); } catch (err) { return { ok: false, error: err.message }; }
+ try { ep = _resolveProvider(providerId); } catch (err: any) { return { ok: false, error: err.message }; }
  const baseUrl = _resolveBaseUrl(providerId, config);
  const modelName = _tryResolveModel(config);
  if (!modelName) return { ok: false, error: 'config.model required' };
@@ -167,7 +167,7 @@ export class CloudSummarizer {
  { timeout:10_000 }
  );
  }
- } catch (err) {
+ } catch (err: any) {
  return { ok: false, error: (err && err.message) || 'unknown', latencyMs: Date.now() - t0 };
  }
 
@@ -224,8 +224,8 @@ export class CloudSummarizer {
  );
  } else {
  // Anthropic: system message拆出, messages数组只剩 user/assistant
- const systemMsgs = messages.filter((m) => m && m.role === 'system');
- const chatMsgs = messages.filter((m) => m && m.role !== 'system');
+ const systemMsgs = messages.filter((m: any) => m && m.role === 'system');
+ const chatMsgs = messages.filter((m: any) => m && m.role !== 'system');
  const body: any = {
  model,
  messages: chatMsgs,
@@ -233,7 +233,7 @@ export class CloudSummarizer {
  temperature:0.3,
  };
  if (systemMsgs.length >0) {
- body.system = systemMsgs.map((m) => m.content).join('\n\n');
+ body.system = systemMsgs.map((m: any) => m.content).join('\n\n');
  }
  r = await httpClient.post(
  url,
@@ -259,7 +259,7 @@ export class CloudSummarizer {
  let parsed;
  try {
  parsed = JSON.parse(r.body);
- } catch (err) {
+ } catch (err: any) {
  throw new Error(`cloud_summarize: response not JSON: ${err.message}; body=${(r.body || '').slice(0,200)}`);
  }
 
@@ -287,7 +287,7 @@ export class CloudSummarizer {
  if (parsed && parsed.usage && typeof parsed.usage === 'object') {
    if (ep.protocol === 'openai') {
      const u = parsed.usage;
-     const num = (v) => (typeof v === 'number' ? v : null);
+     const num = (v: any) => (typeof v === 'number' ? v : null);
      usage = {
        total_tokens: num(u.total_tokens),
        prompt_tokens: num(u.prompt_tokens),

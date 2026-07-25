@@ -57,10 +57,10 @@ export class AISessionDetector {
    * @param {object} [opts]
    * @returns {Promise<Array<{id: string, file: string, mtimeMs: number, sizeBytes: number, appName: string}>>}
    */
-  async listSessions(opts) {
+  async listSessions(opts: any) {
     const list = await this.impl.listSessions(opts);
     if (!Array.isArray(list)) return [];
-    return list.map((m) => ({
+    return list.map((m: any) => ({
       id: m.id,
       file: m.file,
       mtimeMs: m.mtimeMs,
@@ -74,7 +74,7 @@ export class AISessionDetector {
    * @param {string} id
    * @returns {Promise<{id: string, appName: string, startedAt: number, endedAt: number, messages: Array<{role: string, content: string, ts: number}>}>}
    */
-  async readSession(id) {
+  async readSession(id: any) {
     if (typeof id !== 'string' || id.length === 0) {
       throw new TypeError('readSession: id must be non-empty string');
     }
@@ -109,7 +109,7 @@ export class AISessionDetector {
  const t = (typeof now === 'number') ? now : Date.now();
  const dayStart = AISessionDetector._localDayStart(dateKey, t);
  const dayEnd = dayStart +86400_000;
- return sessions.filter((s) => {
+ return sessions.filter((s: any) => {
  // B7 fix:优先 endedAt > startedAt > mtimeMs (mtime只fallback, 不是主用)
  // state.vscdb mtime跟 session实际时间无关 (改文件就更新)
  const endedAt = (typeof s.endedAt === 'number' && s.endedAt >0) ? s.endedAt :0;

@@ -62,7 +62,7 @@ export class LLMSummarizer {
       const r = await this.impl.healthcheck({ provider: this.provider, model: this.model, config: this.config, httpClient: this.httpClient });
       if (r && typeof r.ok === 'boolean') return r;
       return { ok: Boolean(r) };
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, error: (err && err.message) || 'unknown' };
     }
   }

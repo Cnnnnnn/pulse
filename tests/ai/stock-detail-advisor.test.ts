@@ -16,16 +16,16 @@ const {
 } = require("../_setup/require-main.cjs");
 
 const stateStorePath = mainArtifactPath("state-store");
-const stateStoreShimPath = require.resolve("../../src/main/state-store.js");
+const stateStoreShimPath = require.resolve("../../src/main/state-store.ts");
 // Phase 5: dist-test artifact + .js shim 两边都 stub（compiled require 走 artifact）
 const promptRegistryPath = aiArtifactPath("prompt-registry");
-const promptRegistryShimPath = require.resolve("../../src/ai/prompt-registry.js");
+const promptRegistryShimPath = require.resolve("../../src/ai/prompt-registry.ts");
 const sharedLlmPath = aiArtifactPath("shared-llm");
-const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.js");
+const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.ts");
 const stockAnglesPath = stocksArtifactPath("stock-detail-angles");
-const stockAnglesShimPath = require.resolve("../../src/stocks/stock-detail-angles.js");
+const stockAnglesShimPath = require.resolve("../../src/stocks/stock-detail-angles.ts");
 const advisorPath = aiArtifactPath("stock-detail-advisor");
-const advisorShimPath = require.resolve("../../src/ai/stock-detail-advisor.js");
+const advisorShimPath = require.resolve("../../src/ai/stock-detail-advisor.ts");
 
 // ponytail: 加载真 prompt-registry 仅供 mock 取 fewShot 用 — 单测不修改它,
 // 但 buildAnalyzeMessages 的拼接逻辑需要真 fewShot 才能验证 system 段内容.

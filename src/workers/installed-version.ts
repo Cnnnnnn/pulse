@@ -19,7 +19,7 @@ const pExecFile = promisify(execFile);
 const SP_TTL = 5 * 60 * 1000;
 const _spCache = { data: null, time: 0 };
 
-export function lookupSp(bundleName, map) {
+export function lookupSp(bundleName: any, map: any) {
   if (!map) return null;
   const fromPath = map[`__path__${bundleName}`];
   if (fromPath) return fromPath;
@@ -27,7 +27,7 @@ export function lookupSp(bundleName, map) {
   return map[appName] || null;
 }
 
-export async function readPlistOnce(bundleName) {
+export async function readPlistOnce(bundleName: any) {
   const result = { plistRaw: null, bundleId: null };
   try {
     const { stdout } = await pExecFile(
@@ -52,7 +52,7 @@ export async function readPlistOnce(bundleName) {
   return result;
 }
 
-export async function tryInstalledJson(bundleId) {
+export async function tryInstalledJson(bundleId: any) {
   if (!bundleId) return null;
   const HOME = process.env.HOME || "/Users/Shared";
   const installedJsonPath = `${HOME}/Library/Application Support/${bundleId}/installed.json`;
@@ -68,7 +68,7 @@ export async function tryInstalledJson(bundleId) {
   return null;
 }
 
-export function plistShortVersion(plistRaw) {
+export function plistShortVersion(plistRaw: any) {
   if (!plistRaw) return null;
   const m = plistRaw.match(
     /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/,
@@ -110,14 +110,14 @@ export async function refreshSystemProfilerCache() {
  * @param {Array} [versionSources]
  * @returns {Promise<string|null>}
  */
-export async function getInstalledVersion(bundleName, versionSources) {
+export async function getInstalledVersion(bundleName: any, versionSources: any) {
   if (!bundleName) return null;
   const { plistRaw, bundleId } = await readPlistOnce(bundleName);
 
   if (Array.isArray(versionSources) && versionSources.length > 0) {
     const currentPlatform = process.platform;
     const filtered = versionSources.filter(
-      (s) => !s.platform || s.platform === currentPlatform,
+      (s: any) => !s.platform || s.platform === currentPlatform,
     );
     for (const src of filtered) {
       const v = await tryVersionSource(src, { bundleId, plistRaw });

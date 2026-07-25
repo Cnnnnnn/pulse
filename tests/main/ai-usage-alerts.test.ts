@@ -5,13 +5,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "module";
 
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = _require("../_setup/require-main.cjs");
 const {
   checkAiUsageAlertsPure,
   checkAiUsageAlerts,
 } = requireMain("ai-usage-alerts");
-const { todayKey, addDays } = require("../../src/ai-usage/history-series");
+const { todayKey, addDays } = requireAiUsage("history-series");
 
 describe("checkAiUsageAlertsPure", () => {
   it("无尖峰 → 不通知", () => {

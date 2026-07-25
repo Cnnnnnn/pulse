@@ -36,7 +36,7 @@ export const SEARCH_URL = 'http://fundsuggest.eastmoney.com/FundSearch/api/FundS
  * 搜索基金
  *
  * @param {string} query        关键字 (>= 2 字符才发请求, 否则返空)
- * @param {{ get: (url, opts) => Promise<{status, body, headers, error?}> }} httpClient
+ * @param {{ get: (url: any, opts: any) => Promise<{status, body, headers, error?}> }} httpClient
  * @param {{ timeoutMs?: number, pagesize?: number }} [opts]
  * @returns {Promise<FundSearchResult[]>}
  */
@@ -80,7 +80,7 @@ export function parseSearchResponse(body: any) {
   if (!json || json.ErrCode !== 0) return [];
   const arr = Array.isArray(json.Datas) ? json.Datas : [];
 
-  const out = [];
+  const out: any[] = [];
   for (const item of arr) {
     if (!item || typeof item !== 'object') continue;
     // 过滤: 只要 CATEGORYDESC === '基金'

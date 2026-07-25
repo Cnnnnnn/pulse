@@ -20,7 +20,7 @@ export class BrewLocalCaskDetector extends Detector {
     this.cask = opts.cask || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const cask = this.cask || ctx.detCfg.cask || ctx.appCfg.brew_cask;
     if (!cask) {
       throw new DetectorError({
@@ -34,7 +34,7 @@ export class BrewLocalCaskDetector extends Detector {
     let stdout;
     try {
       stdout = await this._runBrew(cask, timeout);
-    } catch (err) {
+    } catch (err: any) {
       // brew 不在 / 命令失败 → 当作 network
       throw new DetectorError({
         detector: this.constructor.name,
@@ -46,7 +46,7 @@ export class BrewLocalCaskDetector extends Detector {
     let data;
     try {
       data = JSON.parse(stdout);
-    } catch (e) {
+    } catch (e: any) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.PARSE,
@@ -77,12 +77,12 @@ export class BrewLocalCaskDetector extends Detector {
   }
 
   _runBrew(cask, timeout) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve: any, reject: any) => {
       execFile(
         "brew",
         ["info", "--cask", "--json=v2", cask],
         { timeout },
-        (err, stdout, stderr) => {
+        (err: any, stdout: any, stderr: any) => {
           if (err) {
             // 区分 timeout / 其他
             if (err.killed || /timeout/i.test(String(err.message))) {

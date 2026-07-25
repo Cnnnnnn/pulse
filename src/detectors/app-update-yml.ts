@@ -30,7 +30,7 @@ export class AppUpdateYmlDetector extends Detector {
     super({ timeout: opts.timeout ?? 8000 });
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const bundle = ctx.appCfg && ctx.appCfg.bundle;
     if (!bundle) {
       throw new DetectorError({
@@ -50,7 +50,7 @@ export class AppUpdateYmlDetector extends Detector {
     try {
       const raw = fs.readFileSync(ymlPath, "utf-8");
       ymlData = yamlLib ? yamlLib.load(raw) : parseYmlFallback(raw);
-    } catch (e) {
+    } catch (e: any) {
       // 文件不存在 / 权限不足 → 视为本机未装或不是 electron-builder 出品
       throw new DetectorError({
         detector: this.constructor.name,
@@ -118,7 +118,7 @@ export class AppUpdateYmlDetector extends Detector {
       let data;
       try {
         data = JSON.parse(r.body);
-      } catch (e) {
+      } catch (e: any) {
         throw new DetectorError({
           detector: this.constructor.name,
           reason: REASONS.PARSE,
@@ -150,7 +150,7 @@ export class AppUpdateYmlDetector extends Detector {
   }
 }
 
-function parseYmlFallback(raw) {
+function parseYmlFallback(raw: any) {
   const urlMatch = raw.match(/url:\s*(.+)/);
   const providerMatch = raw.match(/provider:\s*(.+)/);
   const ownerMatch = raw.match(/owner:\s*(.+)/);

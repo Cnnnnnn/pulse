@@ -20,9 +20,9 @@ export const MAX_MESSAGE_CONTENT_CHARS = 4000;  // 单条消息上限
  * @param {object} session  Session (spec §4.1)
  * @returns {string}         markdown block
  */
-export function formatSessionBlock(session, idx) {
+export function formatSessionBlock(session: any, idx: any) {
   if (!session) return '';
-  const lines = [];
+  const lines: any[] = [];
   lines.push(`### Session ${idx + 1}: ${session.id || '(unknown)'}`);
   if (session.appName) lines.push(`- app: ${session.appName}`);
   if (typeof session.title === 'string' && session.title.trim()) {
@@ -65,7 +65,7 @@ export function formatSessionBlock(session, idx) {
  * @param {string}  [opts.locale]  'zh-CN' (default)
  * @returns {{ messages: Array<{role: string, content: string}>, meta: object }}
  */
-export function buildPerSessionPrompt({ session, index, locale }) {
+export function buildPerSessionPrompt({ session, index, locale }: any) {
   const safeLocale = (locale === 'en-US' || locale === 'en') ? 'en' : 'zh-CN';
 
   const system = safeLocale === 'en'
@@ -161,14 +161,14 @@ export function buildDigestPrompt({ sessions, dateKey, locale, model, provider }
         '- 只返 per-session 块, 不要客套话。',
       ].join(' ');
 
-  const lines = [];
+  const lines: any[] = [];
   lines.push(`# 日期: ${dateKey}`);
   lines.push(`# Session 总数: ${sessions.length}`);
   lines.push('');
   if (sessions.length === 0) {
     lines.push('(无 session 数据)');
   } else {
-    sessions.forEach((s, i) => {
+    sessions.forEach((s: any, i: any) => {
       const block = formatSessionBlock(s, i);
       if (block) {
         lines.push(block);

@@ -51,7 +51,7 @@ function isPlainObject(v: any) {
 }
 
 function validateDetector(det: any, index: any, appName: any) {
-  const errs = [];
+  const errs: any[] = [];
   if (!isPlainObject(det)) {
     errs.push(`apps[${appName}].detectors[${index}]: not an object`);
     return errs;
@@ -90,7 +90,7 @@ function validateDetector(det: any, index: any, appName: any) {
 }
 
 function validateApp(app: any, index: any) {
-  const errs = [];
+  const errs: any[] = [];
   const label = `${app && app.name ? app.name : `#${index}`}`;
   if (!isPlainObject(app)) {
     errs.push(`apps[${index}]: not an object`);
@@ -111,7 +111,7 @@ function validateApp(app: any, index: any) {
       `apps[${label}].detectors: empty (at least one detector required)`,
     );
   } else {
-    app.detectors.forEach((det, i) => {
+    app.detectors.forEach((det: any, i: any) => {
       errs.push(...validateDetector(det, i, app.name || label));
     });
   }
@@ -123,7 +123,7 @@ function validateApp(app: any, index: any) {
  * 总是返回 config 字段（即使是原样），便于 fallback。
  */
 export function validateConfig(input: any) {
-  const errors = [];
+  const errors: any[] = [];
   if (!isPlainObject(input)) {
     return { valid: false, errors: ["config: not an object"], config: null };
   }
@@ -140,7 +140,7 @@ export function validateConfig(input: any) {
     errors.push("apps: must be array");
     return { valid: false, errors, config: input };
   }
-  input.apps.forEach((app, i) => {
+  input.apps.forEach((app: any, i: any) => {
     errors.push(...validateApp(app, i));
   });
   return { valid: errors.length === 0, errors, config: input };
@@ -157,13 +157,13 @@ export function sanitizeConfig(input: any) {
   const col =
     typeof input.check_on_launch === "boolean" ? input.check_on_launch : true;
   const apps = Array.isArray(input.apps) ? input.apps : [];
-  const cleanApps = [];
+  const cleanApps: any[] = [];
   for (const a of apps) {
     if (!isPlainObject(a)) continue;
     if (!isNonEmptyString(a.name) || !isNonEmptyString(a.bundle)) continue;
     const dets = Array.isArray(a.detectors) ? a.detectors : [];
     const cleanDets = dets.filter(
-      (d) =>
+      (d: any) =>
         isPlainObject(d) &&
         isNonEmptyString(d.type) &&
         VALID_DETECTOR_TYPES.has(d.type),
@@ -181,10 +181,10 @@ export function sanitizeConfig(input: any) {
     const vs = Array.isArray(a.version_sources) ? a.version_sources : [];
     const cleanVS = vs
       .filter(
-        (s) =>
+        (s: any) =>
           isPlainObject(s) && isNonEmptyString(s.type) && validVS.has(s.type),
       )
-      .map((s) => {
+      .map((s: any) => {
         const out: any = { type: s.type };
         if (s.path) out.path = String(s.path);
         if (s.pattern) out.pattern = String(s.pattern);
@@ -208,7 +208,7 @@ export function sanitizeConfig(input: any) {
       // P2: Windows 标识字段
       win_bundle: isNonEmptyString(a.win_bundle) ? a.win_bundle : undefined,
       winget_id: isNonEmptyString(a.winget_id) ? a.winget_id : undefined,
-      detectors: cleanDets.map((d) => {
+      detectors: cleanDets.map((d: any) => {
         const out: any = { type: d.type };
         if (isNonEmptyString(d.url)) out.url = d.url;
         if (isNonEmptyString(d.cask)) out.cask = d.cask;
@@ -233,8 +233,8 @@ export function sanitizeConfig(input: any) {
         // 仅过滤字符串项, 非字符串项静默丢弃 — 避免脏数据传进 detector.
         if (Array.isArray(d.urls) && d.urls.length > 0) {
           const cleanUrls = d.urls
-            .filter((u) => isNonEmptyString(u))
-            .map((u) => String(u));
+            .filter((u: any) => isNonEmptyString(u))
+            .map((u: any) => String(u));
           if (cleanUrls.length > 0) out.urls = cleanUrls;
         }
         return out;

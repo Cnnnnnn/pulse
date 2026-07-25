@@ -10,8 +10,8 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
 
 // 屏蔽 electron.app.once — schedulers.js 在 test 环境调用 app.once
 // 我们的 require chain 真实跑会拿真 electron. stub 掉:

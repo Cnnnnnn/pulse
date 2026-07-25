@@ -14,7 +14,7 @@ export const PLATFORM =
   (workerData && workerData.platform) || process.platform;
 
 export function makePostMessageLogger() {
-  function send(level, text, meta) {
+  function send(level: any, text: any, meta: any) {
     try {
       parentPort.postMessage({ type: "log", level, text, meta: meta || null });
     } catch {
@@ -22,14 +22,14 @@ export function makePostMessageLogger() {
     }
   }
   return {
-    debug: (t, m) => send("DEBUG", t, m),
-    info: (t, m) => send("INFO", t, m),
-    warn: (t, m) => send("WARN", t, m),
-    error: (t, m) => send("ERROR", t, m),
+    debug: (t: any, m: any) => send("DEBUG", t, m),
+    info: (t: any, m: any) => send("INFO", t, m),
+    warn: (t: any, m: any) => send("WARN", t, m),
+    error: (t: any, m: any) => send("ERROR", t, m),
   };
 }
 
-export function sendProgress(payload) {
+export function sendProgress(payload: any) {
   try {
     parentPort.postMessage({ type: "progress", payload });
   } catch {
@@ -37,7 +37,7 @@ export function sendProgress(payload) {
   }
 }
 
-export function sendResult(payload) {
+export function sendResult(payload: any) {
   try {
     parentPort.postMessage({ type: "result", payload });
   } catch {
@@ -45,7 +45,7 @@ export function sendResult(payload) {
   }
 }
 
-export function sendError(message) {
+export function sendError(message: any) {
   try {
     parentPort.postMessage({ type: "error", message });
   } catch {
@@ -53,7 +53,7 @@ export function sendError(message) {
   }
 }
 
-export function postLog(level, text, meta) {
+export function postLog(level: any, text: any, meta: any) {
   try {
     parentPort.postMessage({ type: "log", level, text, meta: meta || null });
   } catch {

@@ -1,9 +1,11 @@
 import { describe, test, expect } from 'vitest';
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 const {
   computeBurnRate,
   computeBlowUpAt,
   formatBlowUpIn,
-} = require('../../src/ai-usage/derive');
+} = requireAiUsage("derive");
 
 describe('computeBurnRate', () => {
   test('returns null when prev missing', () => {

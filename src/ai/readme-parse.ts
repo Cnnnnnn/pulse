@@ -28,7 +28,7 @@ export const SYSTEM_PROMPT = `你是一个资深的技术项目分析师。用�
 - 信息必须来自 README，不要编造。
 - 若 README 信息不足，可基于项目名与简介合理推断，但不要夸大。`;
 
-export function buildMessages({ projectName, description, readme }) {
+export function buildMessages({ projectName, description, readme }: any) {
   const user = [
     `项目名称: ${projectName || "未知"}`,
     `项目简介: ${description || "（无）"}`,
@@ -42,7 +42,7 @@ export function buildMessages({ projectName, description, readme }) {
   ];
 }
 
-export function parseJson(text) {
+export function parseJson(text: any) {
   if (typeof text !== "string" || !text.trim()) return null;
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -54,9 +54,9 @@ export function parseJson(text) {
     return null;
   }
   if (!obj || typeof obj !== "object") return null;
-  const asStrArray = (v) =>
+  const asStrArray = (v: any) =>
     Array.isArray(v)
-      ? v.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim())
+      ? v.filter((s: any) => typeof s === "string" && s.trim()).map((s: any) => s.trim())
       : [];
   return {
     summary: typeof obj.summary === "string" ? obj.summary.trim() : "",
@@ -74,7 +74,7 @@ export function parseJson(text) {
  * @param {string} opts.readme
  * @returns {Promise<{ok:boolean, reason?:string, error?:string, result?:object}>}
  */
-export async function parseReadme(opts) {
+export async function parseReadme(opts: any) {
   const readme = opts && opts.readme ? String(opts.readme) : "";
   const truncated =
     readme.length > MAX_README_CHARS

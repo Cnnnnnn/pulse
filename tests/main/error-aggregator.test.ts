@@ -9,8 +9,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
 const { createAggregator } = requireMain('error-aggregator');
 
 let dir;

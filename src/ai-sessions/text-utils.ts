@@ -50,7 +50,7 @@ export function isInformativeLine(line: any) {
 export function firstMeaningfulLine(text: any, maxLen?: any) {
   const lines = String(text || "")
     .split(/\r?\n/)
-    .map((l) => l.trim())
+    .map((l: any) => l.trim())
     .filter(Boolean);
   for (const line of lines) {
     const clean = stripNoiseLine(line);
@@ -66,7 +66,7 @@ export function firstMeaningfulLine(text: any, maxLen?: any) {
 export function firstInformativeLine(text: any) {
   const lines = String(text || "")
     .split(/\r?\n/)
-    .map((l) => l.trim())
+    .map((l: any) => l.trim())
     .filter(Boolean);
   for (const line of lines) {
     const clean = stripNoiseLine(line);

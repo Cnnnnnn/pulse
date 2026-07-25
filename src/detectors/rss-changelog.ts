@@ -31,7 +31,7 @@ export class RssChangelogDetector extends Detector {
     this.url = opts.url || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const url = this.url || ctx.url;
     if (!url) {
       throw new DetectorError({

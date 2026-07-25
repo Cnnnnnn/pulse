@@ -16,21 +16,21 @@ import crypto from "crypto";
  * 中位数 = 排序后取中间. null/非数过滤后计算.
  * 单元素 → 该元素值; 空数组 → null.
  */
-export function medianOf(values) {
+export function medianOf(values: any) {
   const nums = values
-    .filter((v) => typeof v === "number" && Number.isFinite(v))
-    .sort((a, b) => a - b);
+    .filter((v: any) => typeof v === "number" && Number.isFinite(v))
+    .sort((a: any, b: any) => a - b);
   if (nums.length === 0) return null;
   const mid = Math.floor(nums.length / 2);
   if (nums.length % 2 === 1) return nums[mid];
   return (nums[mid - 1] + nums[mid]) / 2;
 }
 
-export function percentileOf(values, p) {
+export function percentileOf(values: any, p: any) {
   // ponytail: 简单线性插值, 跟 numpy.percentile 默认 linear 一致.
   const nums = values
-    .filter((v) => typeof v === "number" && Number.isFinite(v))
-    .sort((a, b) => a - b);
+    .filter((v: any) => typeof v === "number" && Number.isFinite(v))
+    .sort((a: any, b: any) => a - b);
   if (nums.length === 0) return null;
   if (p <= 0) return nums[0];
   if (p >= 100) return nums[nums.length - 1];
@@ -56,13 +56,13 @@ export function percentileOf(values, p) {
  *   hash: string                      // sha1 截断, 用于 cache key
  * }}
  */
-export function computeMarketOverview(rows) {
+export function computeMarketOverview(rows: any) {
   const safeRows = Array.isArray(rows) ? rows : [];
   const date = new Date().toISOString().slice(0, 10);
-  const peValues = safeRows.map((r) => (r ? r.pe : undefined));
-  const roeValues = safeRows.map((r) => (r ? r.roe : undefined));
-  const changeValues = safeRows.map((r) => (r ? r.changePct : undefined));
-  const turnoverValues = safeRows.map((r) => (r ? r.turnover : undefined));
+  const peValues = safeRows.map((r: any) => (r ? r.pe : undefined));
+  const roeValues = safeRows.map((r: any) => (r ? r.roe : undefined));
+  const changeValues = safeRows.map((r: any) => (r ? r.changePct : undefined));
+  const turnoverValues = safeRows.map((r: any) => (r ? r.turnover : undefined));
   const total = safeRows.length;
   const peMedian = medianOf(peValues);
   const roeMedian = medianOf(roeValues);

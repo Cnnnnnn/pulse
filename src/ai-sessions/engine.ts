@@ -67,12 +67,12 @@ export class TaskSummaryEngine {
     let cache = {};
     try {
       cache = this.storage.loadTaskSummaries() || {};
-    } catch (err) {
+    } catch (err: any) {
       this.log.warn(`[tasks] loadTaskSummaries failed: ${err.message}`);
     }
     const tasks = snapshot.sessions
-      .map((s) => _toTaskCard(s, cache))
-      .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+      .map((s: any) => _toTaskCard(s, cache))
+      .sort((a: any, b: any) => (a.startedAt || 0) - (b.startedAt || 0));
     return { dateKey, collectedAt: now, tasks, sourceStats: snapshot.sourceStats };
   }
 
@@ -90,7 +90,7 @@ export class TaskSummaryEngine {
     const dateKey = opts.dateKey;
     _assertDateKey(dateKey, 'summarizeTasks');
     const keys = Array.isArray(taskKeys)
-      ? taskKeys.filter((k) => typeof k === 'string' && k.length > 0)
+      ? taskKeys.filter((k: any) => typeof k === 'string' && k.length > 0)
       : [];
     const now = typeof opts.now === 'number' ? opts.now : Date.now();
     const onTaskDone = typeof opts.onTaskDone === 'function' ? opts.onTaskDone : () => {};
@@ -99,7 +99,7 @@ export class TaskSummaryEngine {
     }
 
     const snapshot = await this._collectSessions(dateKey, now);
-    const byKey = new Map(snapshot.sessions.map((s) => [_taskKeyOf(s), s]));
+    const byKey = new Map(snapshot.sessions.map((s: any) => [_taskKeyOf(s), s]));
     const locale = this.config.locale || 'zh-CN';
     const results = [];
     const failures = [];
@@ -140,7 +140,7 @@ export class TaskSummaryEngine {
         results.push(task);
         onTaskDone({ taskKey, ok: true, task });
         this.log.info(`[tasks] ${dateKey} ${taskKey} summarized (${Date.now() - t0}ms)`);
-      } catch (err) {
+      } catch (err: any) {
         const message = (err && err.message) || 'unknown';
         failures.push({ taskKey, message });
         onTaskDone({ taskKey, ok: false, error: message });
@@ -174,7 +174,7 @@ export class TaskSummaryEngine {
           ? Math.ceil((now - targetMs) / 86400_000) + 7  // dateKey 前后留 7 天 buffer
           : 60;
         metas = await det.listSessions({ maxMtimeAgeDays: Math.max(maxAgeDays, 7) });
-      } catch (err) {
+      } catch (err: any) {
         this.log.warn(`[tasks] ${det.appName} listSessions failed: ${err.message}`);
         sourceStats.push({ appName: det.appName, installed: true, metaCount: 0, matchedCount: 0 });
         continue;
@@ -193,7 +193,7 @@ export class TaskSummaryEngine {
             sessions.push(filtered[0]);
             matchedCount += 1;
           }
-        } catch (err) {
+        } catch (err: any) {
           this.log.warn(`[tasks] ${det.appName}/${m.id} read failed: ${err.message}`);
         }
       }
@@ -205,7 +205,7 @@ export class TaskSummaryEngine {
 
 // ── Module helpers ───────────────────────────────────────────────────
 
-function _assertDateKey(dateKey, fn) {
+function _assertDateKey(dateKey: any, fn: any) {
   if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
     throw new TypeError(`${fn}: dateKey must be YYYY-MM-DD`);
   }
@@ -214,21 +214,21 @@ function _assertDateKey(dateKey, fn) {
 /**
  * 'YYYY-MM-DD' → 该天 0:00 的 epoch ms (本地时区). 失败返 0.
  */
-function _nearDay(mtimeMs, dateKey, now) {
+function _nearDay(mtimeMs: any, dateKey: any, now: any) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
   if (!m) return true;
   const approx = Date.UTC(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
   return Math.abs(mtimeMs - approx) <= 2 * 86400_000;
 }
 
-export function _taskKeyOf(session) {
+export function _taskKeyOf(session: any) {
   return `${(session && session.appName) || 'unknown'}:${(session && session.id) || ''}`;
 }
 
 /**
  * 任务内容 hash (djb2). 消息变了 → hash 变 → 缓存标 stale.
  */
-export function _contentHash(session) {
+export function _contentHash(session: any) {
   const messages = Array.isArray(session && session.messages) ? session.messages : [];
   let h = 5381;
   for (const m of messages) {
@@ -243,7 +243,7 @@ export function _contentHash(session) {
 /**
  * Session → 任务卡 (UI 渲染用). cacheMap 命中时带 summary.
  */
-export function _toTaskCard(session, cacheMap) {
+export function _toTaskCard(session: any, cacheMap: any) {
   const taskKey = _taskKeyOf(session);
   const hash = _contentHash(session);
   const cached = cacheMap && typeof cacheMap === 'object' ? cacheMap[taskKey] : null;
@@ -276,7 +276,7 @@ export function _toTaskCard(session, cacheMap) {
 /**
  * 项目 label: workspaceDir 是绝对路径取最后一段, 已是 label 直接用.
  */
-export function _projectOf(session) {
+export function _projectOf(session: any) {
   const dir = session && typeof session.workspaceDir === 'string' ? session.workspaceDir.trim() : '';
   if (!dir) return '';
   if (dir.includes('/')) {
@@ -289,14 +289,14 @@ export function _projectOf(session) {
 /**
  * 任务标题: detector 的 title 优先, 否则第一条非噪声 user 消息首行.
  */
-export function _inferTaskTitle(session) {
+export function _inferTaskTitle(session: any) {
   if (session && typeof session.title === 'string' && session.title.trim() && !looksLikePromptNoise(session.title)) {
     return session.title.trim().replace(/\s+/g, ' ').slice(0, 48);
   }
   if (!session || !Array.isArray(session.messages)) return '';
   for (const msg of session.messages) {
     if (!msg || msg.role !== 'user' || typeof msg.content !== 'string') continue;
-    const lines = msg.content.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = msg.content.split(/\r?\n/).map((l: any) => l.trim()).filter(Boolean);
     for (const line of lines) {
       if (looksLikePromptNoise(line)) continue;
       return line.replace(/\s+/g, ' ').slice(0, 48);
@@ -312,7 +312,7 @@ export function _inferTaskTitle(session) {
  *   - 处理结果：...
  * 容错: 模型漏 "###" / 加前言 / 标题含 ":".
  */
-export function _parsePerSessionBlock(text, index) {
+export function _parsePerSessionBlock(text: any, index: any) {
   const fallbackTitle = `任务 ${index + 1}`;
   if (typeof text !== 'string' || text.length === 0) {
     return { title: fallbackTitle, summary: '' };
@@ -339,7 +339,7 @@ export function _parsePerSessionBlock(text, index) {
   };
 }
 
-function _normalizeTitle(title, fallbackTitle) {
+function _normalizeTitle(title: any, fallbackTitle: any) {
   const raw = String(title || '').replace(/^[-*#\s]+/, '').replace(/\s+/g, ' ').trim();
   if (!raw) return fallbackTitle;
   return raw.slice(0, 40);
@@ -348,15 +348,15 @@ function _normalizeTitle(title, fallbackTitle) {
 /**
  * 从 summary 文本抽 (用户诉求, 处理结果). 模型没按格式时尽量兜底.
  */
-export function _extractSummaryFields(summary) {
+export function _extractSummaryFields(summary: any) {
   const text = typeof summary === 'string' ? summary : '';
-  const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
-    .filter((l) => !/^#{1,6}\s*/.test(l))
-    .filter((l) => !/^session\s*\d+/i.test(l));
+  const rawLines = text.split(/\r?\n/).map((l: any) => l.trim()).filter(Boolean)
+    .filter((l: any) => !/^#{1,6}\s*/.test(l))
+    .filter((l: any) => !/^session\s*\d+/i.test(l));
 
   let userGoal = '';
   let outcome = '';
-  const extra = [];
+  const extra: any[] = [];
   for (const line of rawLines) {
     const clean = line.replace(/^[-*•]\s*/, '').trim();
     if (!userGoal) {
@@ -383,7 +383,7 @@ export function _extractSummaryFields(summary) {
  *   - minimax-code : minimax://<session-id>
  *   - cursor / 其它: session.file 绝对路径 (shell.openPath)
  */
-export function _resolveJumpTarget(session) {
+export function _resolveJumpTarget(session: any) {
   if (!session) return null;
   const app = session.appName || '';
   const id = session.id || '';

@@ -5,7 +5,7 @@
  */
 const F10_URL = "https://push2his.eastmoney.com/api/qt/stock/get";
 
-export async function fetchEastmoneyF10(httpClient, code) {
+export async function fetchEastmoneyF10(httpClient: any, code: any) {
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
   const url = `${F10_URL}?secid=${secid}&fields=f57,f58,f59,f60,f116,f117,f37,f22,f24`;
   try {
@@ -13,12 +13,12 @@ export async function fetchEastmoneyF10(httpClient, code) {
     if (res && typeof res.body === "string") {
       try {
         return { ...res, body: JSON.parse(res.body) };
-      } catch (_) {
+      } catch (_: any) {
         return { ...res, body: null };
       }
     }
     return res;
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, status: 0, error: e.message };
   }
 }

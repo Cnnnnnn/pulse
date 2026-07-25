@@ -8,7 +8,7 @@
  * 任一 fetcher 挂掉不影响其他. 历史变迁见 metal-sina-hf-fetcher.ts /
  * metal-eastmoney-fetcher.ts 头部注释.
  *
- * HTTP abstraction: 注入 httpGet(url, headers) => Promise<string>.
+ * HTTP abstraction: 注入 httpGet(url: any, headers: any) => Promise<string>.
  */
 
 import { METALS, FX_RATES } from './metal-config';
@@ -78,8 +78,8 @@ export async function fetchAllQuotes(httpGet: any) {
     }
   }
 
-  const hfBatch = plan.find((p) => p.kind === 'sina-hf');
-  const emBatch = plan.find((p) => p.kind === 'eastmoney');
+  const hfBatch = plan.find((p: any) => p.kind === 'sina-hf');
+  const emBatch = plan.find((p: any) => p.kind === 'eastmoney');
 
   // 三个 fetcher 并发 (sina-hf, eastmoney; sina-jsonp 已废弃)
   const [hfResult, emResult] = await Promise.allSettled([

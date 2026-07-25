@@ -30,7 +30,7 @@
  *   原因: 白银以"元/千克"为基准报价, 黄金以"元/克". priceDivisor 在
  *   metal-config.ts 每品种显式声明, 不在这里猜.
  *
- * HTTP 抽象: 注入 httpGet(url, headers) => Promise<string>, 返回 UTF-8 JSON 字符串.
+ * HTTP 抽象: 注入 httpGet(url: any, headers: any) => Promise<string>, 返回 UTF-8 JSON 字符串.
  */
 
 const EM_BASE = 'https://push2delay.eastmoney.com/api/qt/stock/get';
@@ -105,7 +105,7 @@ export async function fetchEastmoneyQuotes(items: any, httpGet: any) {
   );
 
   const quotes: any = {};
-  const errors = [];
+  const errors: any[] = [];
   for (let i = 0; i < settled.length; i++) {
     const r = settled[i];
     if (r.status === 'fulfilled') {

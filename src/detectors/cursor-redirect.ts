@@ -12,11 +12,11 @@
 import { Detector, DetectorResult } from "./base";
 import { DetectorError, REASONS } from "./errors";
 import { expandUrl } from "./url-template";
-const {
+import {
   followHeadRedirects,
   resolveFinalUrlAfterHead,
   extractVersionFromFilename,
-} = require("./redirect-base");
+} from "./redirect-base";
 
 export class CursorRedirectDetector extends Detector {
   // ponytail: name via Object.defineProperty (TS 禁 static name vs Function.name)
@@ -26,7 +26,7 @@ export class CursorRedirectDetector extends Detector {
     this.url = opts.url || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const rawUrl = this.url || ctx.url;
     if (!rawUrl) {
       throw new DetectorError({

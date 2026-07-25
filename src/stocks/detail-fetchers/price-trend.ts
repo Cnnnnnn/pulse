@@ -7,7 +7,7 @@
 import * as emKline from "./_shared-em-kline";
 import * as sinaKline from "./_shared-sina-kline";
 
-export async function fetchPriceTrend(httpClient, { code }) {
+export async function fetchPriceTrend(httpClient: any, { code }: any) {
   const primary = await emKline.fetchEastmoneyKline(httpClient, code, 30);
   if (primary && primary.status === 200 && primary.body) {
     const parsed = emKline.parseEastmoneyKlines(primary.body);
@@ -30,17 +30,17 @@ export async function fetchPriceTrend(httpClient, { code }) {
   };
 }
 
-function summarize(klines) {
-  const closes = klines.map((k) => k.close);
+function summarize(klines: any) {
+  const closes = klines.map((k: any) => k.close);
   const last = klines[klines.length - 1];
   const prev = klines[klines.length - 2];
   return {
     closes,
     change5d: pctChange(closes, 5),
     change20d: pctChange(closes, 20),
-    amplitude: avg(klines.map((k) => k.amplitude)),
+    amplitude: avg(klines.map((k: any) => k.amplitude)),
     // ponytail: amount(成交额元) 当作 volume(成交量) 喂 K 线图 — 用户看的是活跃度, 不区分.
-    klines: klines.map((k) => ({
+    klines: klines.map((k: any) => ({
       date: k.date,
       open: k.open, high: k.high, low: k.low, close: k.close,
       volume: k.amount,
@@ -55,7 +55,7 @@ function summarize(klines) {
   };
 }
 
-function pctChange(closes, n) {
+function pctChange(closes: any, n: any) {
   if (closes.length < n + 1) return 0;
   const last = closes[closes.length - 1];
   const past = closes[closes.length - 1 - n];
@@ -63,9 +63,9 @@ function pctChange(closes, n) {
   return ((last - past) / past) * 100;
 }
 
-function avg(arr) {
+function avg(arr: any) {
   if (!arr || arr.length === 0) return 0;
-  return arr.reduce((s, x) => s + x, 0) / arr.length;
+  return arr.reduce((s: any, x: any) => s + x, 0) / arr.length;
 }
 
 module.exports = { fetchPriceTrend };

@@ -22,7 +22,7 @@ export class GithubReleaseDetector extends Detector {
     this.url = opts.url || '';
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const url = this.url || ctx.url;
     if (!url) {
       throw new DetectorError({
@@ -42,7 +42,7 @@ export class GithubReleaseDetector extends Detector {
     let data;
     try {
       data = JSON.parse(r.body);
-    } catch (e) {
+    } catch (e: any) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.PARSE,

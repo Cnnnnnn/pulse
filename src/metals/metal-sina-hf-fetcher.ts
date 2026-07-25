@@ -27,7 +27,7 @@
  * local metal-config.ts, so no iconv-lite dependency is needed — same trick as
  * the domestic sina fetcher.
  *
- * HTTP abstraction: injected `httpGet(url, headers) => Promise<string>`.
+ * HTTP abstraction: injected `httpGet(url: any, headers: any) => Promise<string>`.
  */
 
 const SINA_BASE = 'https://hq.sinajs.cn/list';

@@ -28,7 +28,7 @@ const NEGATIVE_KW = [
   "下滑",
 ];
 
-export async function fetchNewsBuzz(httpClient, { code }) {
+export async function fetchNewsBuzz(httpClient: any, { code }: any) {
   // np-listapi 改版: 必须用 mTypeAndCode (secid 格式 1.600519/0.000001), 旧 code 参数已失效.
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
   const emUrl = `${NEWS_URL}?client=wap&type=1&pageSize=20&pageIndex=1&mTypeAndCode=${secid}&_=${Date.now()}`;
@@ -76,41 +76,41 @@ export async function fetchNewsBuzz(httpClient, { code }) {
   return { ok: true, data: { items: [] } };
 }
 
-function parseEmNews(body) {
+function parseEmNews(body: any) {
   if (!body || !body.data || !Array.isArray(body.data.list)) return null;
   const items = body.data.list
     .slice(0, 7)
-    .map((it) => ({
+    .map((it: any) => ({
       title: it.title || it.Art_Title || "",
       date: it.date || it.showTime || it.Art_ShowTime || "",
       sentiment: classifySentiment(it.title || ""),
     }))
-    .filter((it) => it.title);
+    .filter((it: any) => it.title);
   if (items.length === 0) return null;
   return { items };
 }
 
-function parseSinaNews(body) {
+function parseSinaNews(body: any) {
   if (!body || !body.result || !Array.isArray(body.result.data)) return null;
   const items = body.result.data
     .slice(0, 7)
-    .map((it) => ({
+    .map((it: any) => ({
       title: it.title || "",
       date: it.ctime || "",
       sentiment: classifySentiment(it.title || ""),
     }))
-    .filter((it) => it.title);
+    .filter((it: any) => it.title);
   if (items.length === 0) return null;
   return { items };
 }
 
-function classifySentiment(title) {
+function classifySentiment(title: any) {
   for (const k of POSITIVE_KW) if (title.includes(k)) return "positive";
   for (const k of NEGATIVE_KW) if (title.includes(k)) return "negative";
   return "neutral";
 }
 
-function safeParse(s) {
+function safeParse(s: any) {
   try {
     return JSON.parse(s);
   } catch {

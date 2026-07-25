@@ -38,7 +38,7 @@ export class WingetShowDetector extends Detector {
     this.id = opts.id || '';
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const id = this.id || (ctx.detCfg && ctx.detCfg.id) || '';
     if (!id) {
       throw new DetectorError({
@@ -58,7 +58,7 @@ export class WingetShowDetector extends Detector {
         { timeout: ctx.timeout || this.timeout, encoding: 'utf-8' },
       );
       stdout = (result && result.stdout) || '';
-    } catch (e) {
+    } catch (e: any) {
       // winget 不存在 / 报错 → 没拿到版本
       throw new DetectorError({
         detector: this.constructor.name,

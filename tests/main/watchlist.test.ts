@@ -7,8 +7,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { createRequire } from "module";
 
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
 
 const {
   checkWatchlistUpdatesPure,

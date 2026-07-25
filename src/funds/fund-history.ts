@@ -30,12 +30,12 @@ export function isValidSnapshot(s: any) {
   );
 }
 
-function round2(n) {
+function round2(n: any) {
   const r = Math.round(n * 100) / 100;
   return r === 0 ? 0 : r;
 }
 
-function round4(n) {
+function round4(n: any) {
   const r = Math.round(n * 10000) / 10000;
   return r === 0 ? 0 : r;
 }
@@ -53,14 +53,14 @@ export function buildSnapshotFromMetrics(date: any, metrics: any, recordedAt?: a
 
 export function upsertDailySnapshot(snapshots: any, entry: any) {
   if (!entry || !entry.date) return snapshots || [];
-  const list = (snapshots || []).filter((s) => s && s.date !== entry.date);
+  const list = (snapshots || []).filter((s: any) => s && s.date !== entry.date);
   list.push(entry);
-  list.sort((a, b) => b.date.localeCompare(a.date));
+  list.sort((a: any, b: any) => b.date.localeCompare(a.date));
   return list;
 }
 
 export function pruneSnapshots(snapshots: any, maxDays = MAX_SNAPSHOT_DAYS) {
-  const sorted = [...(snapshots || [])].sort((a, b) =>
+  const sorted = [...(snapshots || [])].sort((a: any, b: any) =>
     b.date.localeCompare(a.date),
   );
   return sorted.slice(0, maxDays);
@@ -85,8 +85,8 @@ export function monthProfit(snapshots: any, ym: any) {
   if (!ym) return 0;
   return round2(
     (snapshots || [])
-      .filter((s) => s && s.date && s.date.startsWith(ym))
-      .reduce((acc, s) => acc + Number(s.todayProfit || 0), 0),
+      .filter((s: any) => s && s.date && s.date.startsWith(ym))
+      .reduce((acc: any, s: any) => acc + Number(s.todayProfit || 0), 0),
   );
 }
 
@@ -109,9 +109,9 @@ export function computeMonthlyRollups(snapshots: any, now = new Date()) {
 
 export function listDaysForMonth(snapshots: any, ym: any) {
   return (snapshots || [])
-    .filter((s) => s && s.date && s.date.startsWith(ym))
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .map((s) => ({
+    .filter((s: any) => s && s.date && s.date.startsWith(ym))
+    .sort((a: any, b: any) => b.date.localeCompare(a.date))
+    .map((s: any) => ({
       ...s,
       dayReturnPct:
         Number(s.totalMarketValue) > 0
@@ -129,12 +129,12 @@ export function recentDailyList(snapshots: any, days = 30) {
 export function yesterdayProfit(snapshots: any, now = new Date()) {
   const today = ymdShanghai(now);
   const yesterday = ymdShanghai(new Date(now.getTime() - 86400000));
-  const snap = (snapshots || []).find((s) => s && s.date === yesterday);
+  const snap = (snapshots || []).find((s: any) => s && s.date === yesterday);
   if (snap) return round2(Number(snap.todayProfit));
-  const sorted = [...(snapshots || [])].sort((a, b) =>
+  const sorted = [...(snapshots || [])].sort((a: any, b: any) =>
     b.date.localeCompare(a.date),
   );
-  const past = sorted.find((s) => s.date < today);
+  const past = sorted.find((s: any) => s.date < today);
   return past ? round2(Number(past.todayProfit)) : null;
 }
 

@@ -117,7 +117,7 @@ export class DetectContext {
 export class Detector {
   timeout: any;
   // 子类会用 this.url / this.field / this.id 等构造选项, 没在 class body
-  // 显式声明. Phase 5 之前 CJS require("./base") 拿到的 Detector 是 any,
+  // 显式声明. Phase 5 之前 CJS require("./base.js") 拿到的 Detector 是 any,
   // 字段随便写. Phase 7 ESM-ify 后严格 import — TS strict mode 抓出. 加索引
   // ponytail: 字段类型实际是 unknown; 如果子类要严格类型, 应改在 class body 声明.
   [key: string]: any;

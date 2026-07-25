@@ -116,7 +116,7 @@ export class MiniMaxQuotaClient {
         headers: { Authorization: `Bearer ${this.apiKey}` },
         timeout: 15_000,
       });
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "network_failed", error: (err && err.message) || "unknown" };
     }
 
@@ -137,7 +137,7 @@ export class MiniMaxQuotaClient {
     // 6) parse JSON
     let parsed;
     try { parsed = JSON.parse(r.body); }
-    catch (err) {
+    catch (err: any) {
       return { ok: false, reason: "response_not_json", error: err.message, status };
     }
 
@@ -214,7 +214,7 @@ export class MiniMaxQuotaClient {
         headers: { Authorization: `Bearer ${this.apiKey}` },
         timeout: 30_000,
       });
-    } catch (err) {
+    } catch (err: any) {
       return { ok: false, reason: "network_failed", error: (err && err.message) || "unknown" };
     }
 
@@ -233,7 +233,7 @@ export class MiniMaxQuotaClient {
 
     let parsed;
     try { parsed = JSON.parse(r.body); }
-    catch (err) {
+    catch (err: any) {
       return { ok: false, reason: "response_not_json", error: err.message, status };
     }
 

@@ -35,10 +35,10 @@ import path from "path";
 let _safeStorageOverride = null;
 let _userDataDirOverride = null;
 
-export function __setSafeStorageForTest(safeStorage) {
+export function __setSafeStorageForTest(safeStorage: any) {
  _safeStorageOverride = safeStorage || null;
 }
-export function __setUserDataDirForTest(dir) {
+export function __setUserDataDirForTest(dir: any) {
  _userDataDirOverride = dir || null;
 }
 export function __resetForTest() {
@@ -80,7 +80,7 @@ export function isAvailable() {
   return true;
 }
 
-function _keyPath(providerId) {
+function _keyPath(providerId: any) {
   if (typeof providerId !== 'string' || !/^[a-z0-9_-]+$/i.test(providerId)) {
     throw new TypeError(`invalid providerId: ${providerId}`);
   }
@@ -97,7 +97,7 @@ function _keyPath(providerId) {
  * @param {string} providerId
  * @returns {string|null} 实际存在的文件路径, 都没有 → null
  */
-function _findKeyFile(providerId) {
+function _findKeyFile(providerId: any) {
   const bin = _keyPath(providerId);
   if (fs.existsSync(bin)) return bin;
   // 回退历史后缀 .enc
@@ -153,7 +153,7 @@ export function loadApiKey(providerId: any, log: any = SILENT_LOG) {
  const plain = ss.decryptString(buf);
  if (typeof plain !== 'string') return null;
  return plain;
- } catch (err) {
+ } catch (err: any) {
  log.warn(`loadApiKey failed for ${providerId}: ${err.message}`);
  return null;
  }
@@ -172,7 +172,7 @@ export function clearApiKey(providerId: any, log: any = SILENT_LOG) {
    try {
      fs.unlinkSync(file);
      removed = true;
-   } catch (err) {
+   } catch (err: any) {
      if (err && err.code === 'ENOENT') continue;
      log.warn(`clearApiKey failed for ${providerId}: ${err.message}`);
    }

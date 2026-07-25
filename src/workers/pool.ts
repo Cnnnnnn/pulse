@@ -98,8 +98,8 @@ export class WorkerPool {
    * @param {object} task  任意可序列化对象
    * @returns {Promise<any>}
    */
-  enqueue(task) {
-    return new Promise((resolve, reject) => {
+  enqueue(task: any) {
+    return new Promise((resolve: any, reject: any) => {
       this.queue.push({ id: ++this.taskId, task, resolve, reject });
       this._dispatch();
     });
@@ -107,19 +107,19 @@ export class WorkerPool {
 
   /** 当前排队 + 飞行中 task 数（诊断用） */
   pending() {
-    const flying = this.workers.reduce((n, w) => n + (w && w.busy ? 1 : 0), 0);
+    const flying = this.workers.reduce((n: any, w: any) => n + (w && w.busy ? 1 : 0), 0);
     return this.queue.length + flying;
   }
 
   // ── 内部：spawn / dispatch / message / error ─────────────────────────
 
-  _spawn(id) {
+  _spawn(id: any) {
     if (this.workerScript) {
       const worker = new Worker(this.workerScript, this.workerOpts);
       this.workers[id] = { worker, busy: false, current: null };
-      worker.on('message', (msg) => this._onMessage(id, msg));
-      worker.on('error', (err) => this._onError(id, err));
-      worker.on('exit', (code) => {
+      worker.on('message', (msg: any) => this._onMessage(id, msg));
+      worker.on('error', (err: any) => this._onError(id, err));
+      worker.on('exit', (code: any) => {
         if (code !== 0) this._onError(id, new Error(`Worker ${id} exited with code ${code}`));
       });
     } else {
@@ -130,7 +130,7 @@ export class WorkerPool {
 
   _dispatch() {
     if (!this.queue.length) return;
-    const idle = this.workers.findIndex((w) => w && !w.busy);
+    const idle = this.workers.findIndex((w: any) => w && !w.busy);
     if (idle < 0) return;
     const item = this.queue.shift();
     const slot = this.workers[idle];
@@ -151,7 +151,7 @@ export class WorkerPool {
     }
   }
 
-  _onMessage(id, msg) {
+  _onMessage(id: any, msg: any) {
     const w = this.workers[id];
     if (!w) return;
     if (!msg || typeof msg !== 'object') return;
@@ -181,7 +181,7 @@ export class WorkerPool {
     }
   }
 
-  _onError(id, err) {
+  _onError(id: any, err: any) {
     const w = this.workers[id];
     if (w && w.current) {
       const cur = w.current;

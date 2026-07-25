@@ -37,10 +37,10 @@ const TIME_LIMIT_MCP = { type: "TIME_LIMIT" };
  * @param {object} expect { type, unit?, number? }
  * @returns {object|null}
  */
-export function _findLimit(limits, expect) {
+export function _findLimit(limits: any, expect: any) {
   if (!Array.isArray(limits)) return null;
   return (
-    limits.find((l) => {
+    limits.find((l: any) => {
       if (!l || typeof l !== "object") return false;
       if (l.type !== expect.type) return false;
       if (expect.unit !== undefined && l.unit !== expect.unit) return false;
@@ -206,12 +206,12 @@ export function normalizeGlm(rawResponse, opts: any = {}) {
     // 仅当 API 真正给了 usageDetails 才挂载, 缺数据时保持空数组
     if (Array.isArray(limitMcp.usageDetails)) {
       snapshot.toolUsageDetails = limitMcp.usageDetails
-        .filter((d) => d && typeof d === "object")
-        .map((d) => ({
+        .filter((d: any) => d && typeof d === "object")
+        .map((d: any) => ({
           modelCode: typeof d.modelCode === "string" ? d.modelCode : "",
           usage: typeof d.usage === "number" ? d.usage : 0,
         }))
-        .filter((d) => d.modelCode.length > 0);
+        .filter((d: any) => d.modelCode.length > 0);
     }
   }
 

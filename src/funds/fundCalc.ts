@@ -76,7 +76,7 @@ export function calcFundMetrics(holding: any, navSnap: any) {
 }
 
 // 市场侧按 0 时共用基础字段
-function baseMetricsZeroMarket(costValue) {
+function baseMetricsZeroMarket(costValue: any) {
   return {
     marketValue: 0,
     costValue,
@@ -96,7 +96,7 @@ function baseMetricsZeroMarket(costValue) {
  * @param {number} costValue
  * @param {{ addedAt?: any }} holding
  */
-function derivedMetrics(marketValue, costValue, holding) {
+function derivedMetrics(marketValue: any, costValue: any, holding: any) {
   // 累计收益额 = 市值 - 成本 (手算口径, 与 profit 等同但语义是"持有至今累计")
   const cumulativeProfit = round2(marketValue - costValue);
 
@@ -178,7 +178,7 @@ export function groupCountByCategory(holdings: any) {
  */
 export function zipHoldingsWithNav(holdings: any, navMap: any) {
   const safeMap = navMap || {};
-  return (holdings || []).map((h) => ({
+  return (holdings || []).map((h: any) => ({
     holding: h,
     navSnap: h && h.code ? safeMap[h.code] : null,
   }));
@@ -230,18 +230,18 @@ export function rowWithMetrics(row: any) {
 
 // ── helpers ──
 
-function numOrZero(v) {
+function numOrZero(v: any) {
   const n = typeof v === 'number' ? v : parseFloat(v);
   return Number.isFinite(n) ? n : 0;
 }
 
-function round2(n) {
+function round2(n: any) {
   // +0 化 -0: r === 0 判的是值相等 (-0 === 0 是 true), 但 return 0 显式产出 +0
   const r = Math.round(n * 100) / 100;
   return r === 0 ? 0 : r;
 }
 
-function round4(n) {
+function round4(n: any) {
   const r = Math.round(n * 10000) / 10000;
   return r === 0 ? 0 : r;
 }

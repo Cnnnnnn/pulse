@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/main/fund-fetcher-sina.test.js
  */
@@ -7,7 +9,7 @@ import { MockHttp } from "../helpers/mock-http";
 const {
   fetchFundNavSina,
   parseSinaFundLine,
-} = require("../../src/funds/fund-fetcher-sina.js");
+} = requireFunds("fund-fetcher-sina");
 
 const SAMPLE =
   'var hq_str_of021528="财通成长优选混合C,4.672,4.672,4.682,-0.21,2026-06-11";';

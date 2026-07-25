@@ -92,13 +92,13 @@ function _build(cats: any, map: any, source: any) {
 
   // 1. Filter + sort categories
   const valid = (Array.isArray(cats) ? cats : []).filter(_isCategoryShape);
-  if (!valid.find((c) => c.id === 'other')) {
+  if (!valid.find((c: any) => c.id === 'other')) {
     // 兜底: 任何 'other' 缺失都强行补
     valid.push({ id: 'other', name: '其他', order: 99 });
     status.warnings.push(`[${source}] 'other' category missing, appended fallback`);
   }
-  const sorted = valid.slice().sort((a, b) => a.order - b.order);
-  const byId = new Map(sorted.map((c) => [c.id, c]));
+  const sorted = valid.slice().sort((a: any, b: any) => a.order - b.order);
+  const byId = new Map(sorted.map((c: any) => [c.id, c]));
 
   // 2. Build app → categoryId
   const appToCat = new Map();
@@ -237,7 +237,7 @@ function _clearLLMCache() {
  * @param {Array<{name: string, bundle?: string, download_url?: string, _heuristic?: string}>} apps
  *        _heuristic 字段: 调用方预跑的 heuristic 提示, 让 LLM 优先参考
  * @param {object} [opts]
- * @param {function} [opts.llmCaller]  async (systemMsg, userMsg) => string
+ * @param {function} [opts.llmCaller]  async (systemMsg: any, userMsg: any) => string
  *                                     default: 不接, 立即返 {}
  * @param {number} [opts.timeoutMs=30000]  LLM 调用超时
  * @returns {Promise<{[appName: string]: string}>}
@@ -249,7 +249,7 @@ export async function classifyByLLM(apps: any, opts: any = {}) {
     // 没人注入 caller — 跳过 LLM 阶段, 返 {}
     return {};
   }
-  const validCatIds = CATEGORIES_SORTED.map((c) => c.id);
+  const validCatIds = CATEGORIES_SORTED.map((c: any) => c.id);
   const systemMsg = typeof opts.systemMsg === 'string' && opts.systemMsg.trim()
     ? opts.systemMsg.trim()
     : [
@@ -272,9 +272,9 @@ export async function classifyByLLM(apps: any, opts: any = {}) {
     const timeoutMs = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 30_000;
     raw = await Promise.race([
       llmCaller(systemMsg, userMsg),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('classifyByLLM: timeout')), timeoutMs)),
+      new Promise((_: any, reject: any) => setTimeout(() => reject(new Error('classifyByLLM: timeout')), timeoutMs)),
     ]);
-  } catch (err) {
+  } catch (err: any) {
     // 网络/超时 — 不 throw, 上层用 heuristic
     return {};
   }
@@ -313,7 +313,7 @@ export function clearLLMCache() {
 }
 
 export function getAllCategories() {
-  return CATEGORIES_SORTED.map((c) => ({ ...c }));
+  return CATEGORIES_SORTED.map((c: any) => ({ ...c }));
 }
 
 /**
@@ -347,8 +347,8 @@ export function getCategoryByName(name: any) {
  * @returns {{ok: boolean, errors: string[], warnings: string[]}}
  */
 export function validateCategoryMap() {
-  const errors = [];
-  const warnings = [];
+  const errors: any[] = [];
+  const warnings: any[] = [];
   if (CATEGORIES_SORTED.length !== DEFAULT_CATEGORIES.length) {
     warnings.push(`expected ${DEFAULT_CATEGORIES.length} categories, got ${CATEGORIES_SORTED.length}`);
   }
@@ -382,13 +382,13 @@ export function getCategoryTabsWithCount(results: any) {
     }
   }
 
-  const tabs = [];
+  const tabs: any[] = [];
   // 1) "全部" 永远第一
   tabs.push({ id: 'all', name: '全部', count: total, title: '所有 app' });
 
   // 2) 其他 7 个分类 (除 'other'), 按 count desc → order asc
-  const cats = CATEGORIES_SORTED.filter((c) => c.id !== 'other');
-  cats.sort((a, b) => {
+  const cats = CATEGORIES_SORTED.filter((c: any) => c.id !== 'other');
+  cats.sort((a: any, b: any) => {
     const ca = counts.get(a.id) || 0;
     const cb = counts.get(b.id) || 0;
     if (ca !== cb) return cb - ca;

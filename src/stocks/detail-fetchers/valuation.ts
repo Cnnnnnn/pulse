@@ -17,7 +17,7 @@ const PUSH2_URL = "https://push2.eastmoney.com/api/qt/stock/get";
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
 const TENCENT_URL = "https://qt.gtimg.cn/q=";
 
-export async function fetchValuation(httpClient, { code }) {
+export async function fetchValuation(httpClient: any, { code }: any) {
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
   // ponytail: 一把要 f43 (现价) + f9 (PE) + f23 (PB) + f60 (昨收), 单请求拿全.
   const priceUrl = `${PUSH2_URL}?secid=${secid}&fields=f43,f9,f23,f60,f116`;
@@ -134,16 +134,16 @@ export async function fetchValuation(httpClient, { code }) {
   };
 }
 
-function num(v) {
+function num(v: any) {
   const n = Number(v);
   return Number.isFinite(n) && n !== 0 ? n : null;
 }
 
-function round2(v) {
+function round2(v: any) {
   return Math.round(v * 100) / 100;
 }
 
-function safeJsonParse(s) {
+function safeJsonParse(s: any) {
   try {
     return JSON.parse(s);
   } catch {

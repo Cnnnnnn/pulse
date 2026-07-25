@@ -5,16 +5,16 @@
  */
 const SINA_URL = "https://money.finance.sina.com.cn/corp/go.php/vFD_FinancialGuideLine/stockid/";
 
-export async function fetchSinaProfitability(httpClient, code) {
+export async function fetchSinaProfitability(httpClient: any, code: any) {
   const url = `${SINA_URL}${code}/ctrl/part/displaytype/4.phtml`;
   try {
     return await httpClient.get(url);
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, status: 0, error: e.message };
   }
 }
 
-export function parseSinaProfitability(text) {
+export function parseSinaProfitability(text: any) {
   if (!text || typeof text !== "string") return null;
   const roeMatch = text.match(/ROE\s*=\s*([\d.]+)/i);
   if (!roeMatch) return null;

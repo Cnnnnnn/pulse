@@ -15,13 +15,13 @@ const {
 } = require("../_setup/require-main.cjs");
 
 const stateStorePath = mainArtifactPath("state-store");
-const stateStoreShimPath = require.resolve("../../src/main/state-store.js");
+const stateStoreShimPath = require.resolve("../../src/main/state-store.ts");
 const promptRegistryPath = aiArtifactPath("prompt-registry");
-const promptRegistryShimPath = require.resolve("../../src/ai/prompt-registry.js");
+const promptRegistryShimPath = require.resolve("../../src/ai/prompt-registry.ts");
 const sharedLlmPath = aiArtifactPath("shared-llm");
-const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.js");
+const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.ts");
 const advisorPath = aiArtifactPath("stock-screener-advisor");
-const advisorShimPath = require.resolve("../../src/ai/stock-screener-advisor.js");
+const advisorShimPath = require.resolve("../../src/ai/stock-screener-advisor.ts");
 
 const mockChat = vi.fn();
 const _mockState = { aiStockAdviseCache: {}, stockScreener: {}, apps: {} };

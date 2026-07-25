@@ -7,45 +7,62 @@
 import { DetectContext } from "../detectors/base";
 import { cleanVersion } from "../utils/version-utils";
 import * as cbStorage from "../detectors/circuit-breaker-storage";
-const {
+import {
   shouldAllow,
   transitionAfterProbe,
   recordSuccess,
   recordFailure,
   createBreaker,
-} = require("../detectors/circuit-breaker");
+} from "../detectors/circuit-breaker";
 import { decideIncremental } from "./detector-chain-incremental";
 
+import * as brewFormulaeMod from "../detectors/brew-formulae";
+import * as brewLocalCaskMod from "../detectors/brew-local-cask";
+import * as sparkleAppcastMod from "../detectors/sparkle-appcast";
+import * as electronYmlMod from "../detectors/electron-yml";
+import * as appStoreLookupMod from "../detectors/app-store-lookup";
+import * as apiJsonMod from "../detectors/api-json";
+import * as rssChangelogMod from "../detectors/rss-changelog";
+import * as redirectFilenameMod from "../detectors/redirect-filename";
+import * as cursorRedirectMod from "../detectors/cursor-redirect";
+import * as qclawApiMod from "../detectors/qclaw-api";
+import * as appUpdateYmlMod from "../detectors/app-update-yml";
+import * as electronZipProbeMod from "../detectors/electron-zip-probe";
+import * as htmlChangelogMod from "../detectors/html-changelog";
+import * as wingetShowMod from "../detectors/winget-show";
+import * as githubReleaseMod from "../detectors/github-release";
+import * as hiloChangelogManifestMod from "../detectors/hilo-changelog-manifest";
+
 const DETECTORS = {
-  brew_formulae: require("../detectors/brew-formulae"),
-  brew_local_cask: require("../detectors/brew-local-cask"),
-  sparkle_appcast: require("../detectors/sparkle-appcast"),
-  electron_yml: require("../detectors/electron-yml"),
-  app_store_lookup: require("../detectors/app-store-lookup"),
-  api_json: require("../detectors/api-json"),
-  rss_changelog: require("../detectors/rss-changelog"),
-  redirect_filename: require("../detectors/redirect-filename"),
-  cursor_redirect: require("../detectors/cursor-redirect"),
-  qclaw_api: require("../detectors/qclaw-api"),
-  app_update_yml: require("../detectors/app-update-yml"),
-  electron_zip_probe: require("../detectors/electron-zip-probe"),
-  html_changelog: require("../detectors/html-changelog"),
-  winget_show: require("../detectors/winget-show"),
-  github_release: require("../detectors/github-release"),
-  hilo_changelog_manifest: require("../detectors/hilo-changelog-manifest"),
+  brew_formulae: brewFormulaeMod,
+  brew_local_cask: brewLocalCaskMod,
+  sparkle_appcast: sparkleAppcastMod,
+  electron_yml: electronYmlMod,
+  app_store_lookup: appStoreLookupMod,
+  api_json: apiJsonMod,
+  rss_changelog: rssChangelogMod,
+  redirect_filename: redirectFilenameMod,
+  cursor_redirect: cursorRedirectMod,
+  qclaw_api: qclawApiMod,
+  app_update_yml: appUpdateYmlMod,
+  electron_zip_probe: electronZipProbeMod,
+  html_changelog: htmlChangelogMod,
+  winget_show: wingetShowMod,
+  github_release: githubReleaseMod,
+  hilo_changelog_manifest: hiloChangelogManifestMod,
 };
 
-export function makeDetector(detCfg) {
+export function makeDetector(detCfg: any) {
   const mod = DETECTORS[detCfg.type];
   if (!mod) return null;
   const Cls = Object.values(mod).find(
-    (v) => typeof v === "function" && v.name === detCfg.type,
+    (v: any) => typeof v === "function" && v.name === detCfg.type,
   );
   if (!Cls) return null;
   return new (Cls as any)(detCfg);
 }
 
-function breakerKey(detCfg) {
+function breakerKey(detCfg: any) {
   const id =
     detCfg.url ||
     detCfg.id ||
@@ -60,7 +77,7 @@ function breakerKey(detCfg) {
  * 拆出 pre-release 后缀: "5.2.6-rc1" → { core: "5.2.6", pre: "rc1" }.
  * 无后缀 → { core, pre: null }. 只切第一个 "-", 保留 build 号里的 ".".
  */
-function splitPrerelease(v) {
+function splitPrerelease(v: any) {
   if (!v) return { core: "", pre: null };
   const s = String(v);
   const idx = s.indexOf("-");
@@ -73,7 +90,7 @@ function splitPrerelease(v) {
  * 未知标识给中间权重, 数字后缀用于同级精确比较 (beta.2 > beta.1).
  */
 const PRE_RANK = { alpha: 0, a: 0, beta: 1, b: 1, pre: 1, preview: 1, rc: 2, c: 2 };
-function parsePre(pre) {
+function parsePre(pre: any) {
   if (!pre) return { rank: 99, num: 0 }; // release 视为最"新"
   const nameMatch = String(pre).match(/^[a-zA-Z]+/);
   const name = nameMatch ? nameMatch[0].toLowerCase() : "";
@@ -84,7 +101,7 @@ function parsePre(pre) {
 }
 
 /** 比较 pre-release: 返回 -1 (a 更早/更小) / 0 / 1 (a 更新/更大). */
-function comparePre(pi, pl) {
+function comparePre(pi: any, pl: any) {
   const a = parsePre(pi);
   const b = parsePre(pl);
   if (a.rank !== b.rank) return a.rank < b.rank ? -1 : 1;
@@ -96,11 +113,11 @@ function comparePre(pi, pl) {
  * 仅比版本号主体 (core), 保留原 4 段 build 号归一逻辑. 返回 -1/0/1.
  * 与旧 compareVersions 的逐段 + build 归一行为完全一致.
  */
-function compareCores(ic, lc) {
-  const si = String(ic).split(".").map((s) => parseInt(s, 10) || 0);
-  const sl = String(lc).split(".").map((s) => parseInt(s, 10) || 0);
+function compareCores(ic: any, lc: any) {
+  const si = String(ic).split(".").map((s: any) => parseInt(s, 10) || 0);
+  const sl = String(lc).split(".").map((s: any) => parseInt(s, 10) || 0);
 
-  const looksLikeBuild = (n) => Number.isFinite(n) && n >= 100;
+  const looksLikeBuild = (n: any) => Number.isFinite(n) && n >= 100;
   const canNormalize =
     si.length >= 3 &&
     sl.length >= 3 &&
@@ -130,7 +147,7 @@ function compareCores(ic, lc) {
   return 0;
 }
 
-export function compareVersions(installed, latest) {
+export function compareVersions(installed: any, latest: any) {
   const ins = cleanVersion(installed);
   const lat = cleanVersion(latest);
   if (ins === lat) return { hasUpdate: false, note: "" };
@@ -159,7 +176,7 @@ export function compareVersions(installed, latest) {
  * C5: 增量模式决策 — app 名在 appCfg 上, ts 在 incremental.appsLastChecked[name].
  * 返 detectorLimit (跑前 N 个) + isIncremental 标志.
  */
-function resolveDetectorLimit(detectors, incremental, appCfg) {
+function resolveDetectorLimit(detectors: any, incremental: any, appCfg: any) {
   if (!incremental || typeof incremental !== "object") {
     return { detectorLimit: detectors.length, isIncremental: false };
   }
@@ -246,7 +263,7 @@ async function runOneDetector(detCfg, ctx, stored, force = false) {
   let error = null;
   try {
     result = await Det.detect(ctx);
-  } catch (err) {
+  } catch (err: any) {
     error = err && err.message ? err.message : String(err);
   }
   const ms = Date.now() - t0;
@@ -272,7 +289,7 @@ async function runOneDetector(detCfg, ctx, stored, force = false) {
       },
     };
   }
-  const next = recordFailure(probe, now);
+  const next = recordFailure(probe, now, undefined as any);
   await cbStorage.upsertBreaker(key, cbStorage.snapshot(next));
   return {
     result: null,
@@ -290,13 +307,13 @@ async function runOneDetector(detCfg, ctx, stored, force = false) {
   };
 }
 
-export async function runDetectorChain(appCfg, deps) {
+export async function runDetectorChain(appCfg: any, deps: any) {
   const { arch, http, logger, platform, incremental, forceRefresh } = deps;
   // forceRefresh 由检测链上游透传 (手动刷新路径为 true), 单 app 内所有
   // detector 共享 — 即"手动刷新时绕过熔断冷却强制重试权威源一次".
   const currentPlatform = platform || process.platform;
   const detectors = Array.isArray(appCfg.detectors) ? appCfg.detectors : [];
-  const trace = [];
+  const trace: any[] = [];
   let firstHit = null;
   // 多源版本候选: 收集链上所有返回了 version 的 detector 结果 (含 enrich_only),
   // 用于"多源共同探寻, 取最新版本". 这样:
@@ -304,7 +321,7 @@ export async function runDetectorChain(appCfg, deps) {
   //      (停在旧版), 也以权威源的最新版本为准;
   //   2) 权威源全部失败时, 退化到 enrich_only 版本但打 _enrichFallback 标记
   //      (降级置信度), 避免把滞后的 changelog 版本当成"最新"误导用户.
-  const versionCandidates = [];
+  const versionCandidates: any[] = [];
   // 权威 (非 enrich) 源上次成功拿到版本的时间 (跨源取最大值). enrich_fallback
   // 时透出给 UI: "权威源上次成功 · X 前".
   let authoritativeLastSuccessAt = 0;
@@ -408,7 +425,7 @@ export async function runDetectorChain(appCfg, deps) {
  * 版本号倒序比较 (cleanVersion 后比主体 + pre-release). 返回 1 (a>b) / -1 (a<b) / 0.
  * 用于多源候选排序, 与 compareVersions 的排序语义一致 (含 pre-release).
  */
-function versionCompareDesc(a, b) {
+function versionCompareDesc(a: any, b: any) {
   const ca = cleanVersion(a) || "";
   const cb = cleanVersion(b) || "";
   if (ca === cb) return 0;
@@ -430,11 +447,11 @@ function versionCompareDesc(a, b) {
  *    并打 _enrichFallback 标记, 让 result-builder / UI 显示"更新源异常,
  *    版本仅供参考"而非误导性的"预发布版本".
  */
-function pickLatestVersion(candidates, firstHit, authoritativeLastSuccessAt) {
+function pickLatestVersion(candidates: any, firstHit: any, authoritativeLastSuccessAt: any) {
   if (!candidates.length) {
     return firstHit ? firstHit.result : null;
   }
-  const sorted = [...candidates].sort((a, b) =>
+  const sorted = [...candidates].sort((a: any, b: any) =>
     versionCompareDesc(a.version, b.version),
   );
   const top = sorted[0];
@@ -469,7 +486,7 @@ function pickLatestVersion(candidates, firstHit, authoritativeLastSuccessAt) {
     // 仅当所有权威 (非 enrich) 源都失败、唯一版本来自 enrich_only 时才降级.
     // 若至少存在一个非 enrich 候选 (哪怕版本号较低), 不算 fallback — 此时
     // 取到的更高版本可能是 changelog 已更新而 API 尚未同步, 仍属有效信息.
-    const hasAuthoritative = candidates.some((c) => !c.isEnrich);
+    const hasAuthoritative = candidates.some((c: any) => !c.isEnrich);
     if (!hasAuthoritative) {
       merged.confidence = "low";
       merged.note = "enrich_fallback";
@@ -491,7 +508,7 @@ function pickLatestVersion(candidates, firstHit, authoritativeLastSuccessAt) {
  * 顺序的解法 (排 html_changelog 第一) 不同, 这里允许两个 detector 各自
  * 拿不同字段然后合并.
  */
-function mergeEnrich(base, winner) {
+function mergeEnrich(base: any, winner: any) {
   if (!base) return winner;
   if (!winner) return base;
   return {

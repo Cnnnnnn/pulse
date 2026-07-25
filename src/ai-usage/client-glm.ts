@@ -85,7 +85,7 @@ export class GlmQuotaClient {
    * @param {string} region
    * @returns {string}
    */
-  _authHeader(region) {
+  _authHeader(region: any) {
     return region === "cn" ? this.apiKey : `Bearer ${this.apiKey}`;
   }
 
@@ -115,7 +115,7 @@ export class GlmQuotaClient {
         headers: { Authorization: this._authHeader(region) },
         timeout: 15_000,
       });
-    } catch (err) {
+    } catch (err: any) {
       return {
         ok: false,
         reason: "network_failed",
@@ -142,7 +142,7 @@ export class GlmQuotaClient {
     let parsed;
     try {
       parsed = JSON.parse(r.body);
-    } catch (err) {
+    } catch (err: any) {
       return {
         ok: false,
         reason: "response_not_json",

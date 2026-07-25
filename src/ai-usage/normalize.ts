@@ -19,7 +19,7 @@
  * @param {string[]} keys
  * @returns {number|null}
  */
-export function _pickNumber(obj, keys) {
+export function _pickNumber(obj: any, keys: any) {
   if (!obj || typeof obj !== 'object' || !Array.isArray(keys) || keys.length === 0) {
     return null;
   }
@@ -38,7 +38,7 @@ export function _pickNumber(obj, keys) {
  * @param {string[]} keys
  * @returns {number|null}
  */
-export function _pickTotal(obj, keys) {
+export function _pickTotal(obj: any, keys: any) {
   return _pickNumber(obj, keys);
 }
 
@@ -48,7 +48,7 @@ export function _pickTotal(obj, keys) {
  * @param {string[]} keys
  * @returns {*}
  */
-export function _pickAny(obj, keys) {
+export function _pickAny(obj: any, keys: any) {
   if (!obj || typeof obj !== 'object' || !Array.isArray(keys) || keys.length === 0) {
     return undefined;
   }
@@ -65,7 +65,7 @@ export function _pickAny(obj, keys) {
  * @param {string[]} keys
  * @returns {string|null}
  */
-export function _pickString(obj, keys) {
+export function _pickString(obj: any, keys: any) {
   const v = _pickAny(obj, keys);
   if (v === undefined) return null;
   return typeof v === 'string' ? v : String(v);
@@ -77,7 +77,7 @@ export function _pickString(obj, keys) {
  * @param {string|number|null|undefined} v
  * @returns {number|null}
  */
-export function _parseRemainsTime(v) {
+export function _parseRemainsTime(v: any) {
   if (v == null) return null;
   if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
     if (v >= 10000) return Math.round(v / 1000);
@@ -119,12 +119,12 @@ export function _parsePercent(v, opts: any = {}) {
  * @param {object} raw
  * @returns {object[]}
  */
-export function _pickBlocks(raw) {
+export function _pickBlocks(raw: any) {
   if (Array.isArray(raw.model_remains) && raw.model_remains.length > 0) {
-    return raw.model_remains.filter((b) => b && typeof b === 'object');
+    return raw.model_remains.filter((b: any) => b && typeof b === 'object');
   }
   if (Array.isArray(raw.coding_plan_remains) && raw.coding_plan_remains.length > 0) {
-    return raw.coding_plan_remains.filter((b) => b && typeof b === 'object');
+    return raw.coding_plan_remains.filter((b: any) => b && typeof b === 'object');
   }
   return [];
 }
@@ -166,7 +166,7 @@ export function _buildWindow({ total, remaining, usedPercent, resetSec, label, f
  * 旧 schema (remains) 提供 usage_count / remaining_percent / total_count.
  * 两种 schema 共存的字段名 candidates 同时列出, 按优先级取.
  */
-function _parseBlockWindow(block, opts) {
+function _parseBlockWindow(block: any, opts: any) {
   const {
     totalKeys, remainingKeys, usedPctKeys, remainingPctKeys,
     resetKeys, statusKey, startKey, endKey,
@@ -227,10 +227,10 @@ export function normalize(rawResponse, opts: any = {}) {
 
   // 3) 找 general (5h + 周) 和 video (视频赠送) 块
   //    老 schema 没 model_name, 默认当 general 处理
-  const general = blocks.find((b) => b.model_name === 'general')
-    || blocks.find((b) => !b.model_name)
+  const general = blocks.find((b: any) => b.model_name === 'general')
+    || blocks.find((b: any) => !b.model_name)
     || blocks[0];
-  const video = blocks.find((b) => b.model_name === 'video');
+  const video = blocks.find((b: any) => b.model_name === 'video');
 
   // 4) general 块的 5h 窗口
   if (general) {

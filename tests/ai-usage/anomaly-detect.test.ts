@@ -5,9 +5,10 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "module";
 
-const require = createRequire(import.meta.url);
-const { detectUsageAnomaly } = require("../../src/ai-usage/anomaly-detect");
-const { todayKey, addDays } = require("../../src/ai-usage/history-series");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = _require("../_setup/require-main.cjs");
+const { detectUsageAnomaly } = requireAiUsage("anomaly-detect");
+const { todayKey, addDays } = requireAiUsage("history-series");
 
 describe("detectUsageAnomaly", () => {
   it("数据不足 → 无异常", () => {

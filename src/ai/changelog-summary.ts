@@ -10,11 +10,11 @@ import crypto from "node:crypto";
 // ponytail: state-store 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
 const stateStore: any = require("../main/state-store.js");
 
-export function summaryCacheKey(appName, latestVersion) {
+export function summaryCacheKey(appName: any, latestVersion: any) {
   return `${appName}::${latestVersion || ""}`;
 }
 
-function changelogExcerpt(changelog, limit = 800) {
+function changelogExcerpt(changelog: any, limit: any = 0) {
   if (!changelog || typeof changelog !== "string") return "";
   const plain = changelog
     .replace(/<[^>]+>/g, " ")
@@ -29,8 +29,8 @@ function changelogExcerpt(changelog, limit = 800) {
  * 聚合当前 + 历史 changelog 片段 (多源交叉 v1: 同 app 多版本文本).
  * @param {object} app
  */
-export function collectChangelogSources(app) {
-  const blocks = [];
+export function collectChangelogSources(app: any) {
+  const blocks: any[] = [];
   const cur = changelogExcerpt(app.changelog, 1000);
   if (cur) {
     blocks.push({
@@ -52,7 +52,7 @@ export function collectChangelogSources(app) {
   return blocks;
 }
 
-export function buildSummaryMessages(app) {
+export function buildSummaryMessages(app: any) {
   const prompt = resolvePrompt("changelog_summary");
   const blocks = collectChangelogSources(app);
   const userLines = [
@@ -82,7 +82,7 @@ export function buildSummaryMessages(app) {
 /**
  * @param {string} text
  */
-export function parseSummaryResponse(text) {
+export function parseSummaryResponse(text: any) {
   if (typeof text !== "string" || !text.trim()) return null;
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -98,8 +98,8 @@ export function parseSummaryResponse(text) {
     typeof parsed.oneLiner === "string" ? parsed.oneLiner.trim() : "";
   const highlights = Array.isArray(parsed.highlights)
     ? parsed.highlights
-        .filter((h) => typeof h === "string" && h.trim())
-        .map((h) => h.trim())
+        .filter((h: any) => typeof h === "string" && h.trim())
+        .map((h: any) => h.trim())
         .slice(0, 3)
     : [];
   if (!oneLiner && highlights.length === 0) return null;
@@ -109,13 +109,13 @@ export function parseSummaryResponse(text) {
   };
 }
 
-function contentHash(app) {
+function contentHash(app: any) {
   const blocks = collectChangelogSources(app);
   const base = [
     app.name,
     app.installed_version,
     app.latest_version,
-    blocks.map((b) => `${b.label}\n${b.text}`).join("\n"),
+    blocks.map((b: any) => `${b.label}\n${b.text}`).join("\n"),
   ].join("\n");
   return crypto.createHash("sha256").update(base).digest("hex").slice(0, 16);
 }
@@ -125,7 +125,7 @@ function contentHash(app) {
  * @param {string} opts.appName
  * @param {boolean} [opts.force]
  */
-export async function fetchChangelogSummary(opts) {
+export async function fetchChangelogSummary(opts: any) {
   const appName = opts && opts.appName;
   if (!appName || typeof appName !== "string") {
     return { ok: false, reason: "invalid_args" };

@@ -40,7 +40,7 @@ export const SUMMARY_MAX_LEN = 120;
  * @param {{intentChip:{id:string}, freeText?:string, marketOverviewHash:string}} opts
  * @returns {string}
  */
-export function adviseCacheKey(opts) {
+export function adviseCacheKey(opts: any) {
   if (!opts || !opts.intentChip || !opts.intentChip.id) return null;
   if (!opts.marketOverviewHash) return null;
   const freeText = (opts.freeText || "").trim();
@@ -56,7 +56,7 @@ export function adviseCacheKey(opts) {
  * @param {{intentChip:{id:string, label:string}, freeText?:string, marketOverview:object, currentCriteria?:object}} opts
  * @returns {Array<{role:string, content:string}>}
  */
-export function buildAdviseMessages(opts) {
+export function buildAdviseMessages(opts: any) {
   const { intentChip, freeText, marketOverview, currentCriteria } = opts || {};
   if (!intentChip || !intentChip.id) {
     throw new Error("buildAdviseMessages: intentChip.id 必填");
@@ -70,7 +70,7 @@ export function buildAdviseMessages(opts) {
   if (def.rules) systemParts.push(def.rules);
   const system = systemParts.join("\n\n");
 
-  const userLines = [];
+  const userLines: any[] = [];
   userLines.push(`意图: ${intentChip.id} — ${intentChip.label}`);
   if (freeText && String(freeText).trim()) {
     userLines.push(`补充说明: ${String(freeText).trim()}`);
@@ -101,7 +101,7 @@ export function buildAdviseMessages(opts) {
  * @param {string} rawText  LLM 原始返回 (已经过 sanitizeLlmOutput)
  * @returns {null | {criteria:object, sortConfig:object|null, summary:string}}
  */
-export function parseAndValidateAdvise(rawText) {
+export function parseAndValidateAdvise(rawText: any) {
   if (typeof rawText !== "string" || !rawText.trim()) return null;
   // 找 JSON 块 (LLM 偶尔在 JSON 前后补文字)
   const start = rawText.indexOf("{");
@@ -131,7 +131,7 @@ export function parseAndValidateAdvise(rawText) {
  * @param {{intentChip:{id:string,label:string}, freeText?:string, marketOverview:object, currentCriteria?:object, statePath?:string}} opts
  * @returns {Promise<{ok:boolean, reason?:string, result?:object, fromCache?:boolean}>}
  */
-export async function aiStockAdvise(opts) {
+export async function aiStockAdvise(opts: any) {
   const safeOpts = opts || {};
   const { intentChip, freeText, marketOverview, currentCriteria, statePath } = safeOpts;
 
@@ -166,7 +166,7 @@ export async function aiStockAdvise(opts) {
   let messages;
   try {
     messages = buildAdviseMessages({ intentChip, freeText, marketOverview, currentCriteria });
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, reason: "build_prompt_failed", error: e && e.message };
   }
   const llm = await chatCompletion(messages);
@@ -188,7 +188,7 @@ export async function aiStockAdvise(opts) {
     fetchedAt: Date.now(),
   };
   stateStore.patchState(
-    (st) => {
+    (st: any) => {
       st.aiStockAdviseCache = nextCache;
     },
     statePath,
@@ -224,20 +224,20 @@ export function sanitizeCriteria(raw: any) {
   }
   // industries: 数组 + 字符串
   if (Array.isArray(raw.industries)) {
-    out.industries = raw.industries.filter((s) => typeof s === "string" && s.length > 0).slice(0, 50);
+    out.industries = raw.industries.filter((s: any) => typeof s === "string" && s.length > 0).slice(0, 50);
   }
   // ponytail: 合并默认值, 避免 UI 读 undefined.industries 报错.
   return Object.assign(cloneDefaultCriteria(), out);
 }
 
-export function sanitizeSortConfig(raw) {
+export function sanitizeSortConfig(raw: any) {
   if (!raw || typeof raw !== "object") return null;
   if (typeof raw.key !== "string" || !VALID_SORT_KEYS.has(raw.key)) return null;
   const dir = raw.dir === "asc" ? "asc" : "desc";
   return { key: raw.key, dir };
 }
 
-export function sanitizeSummary(raw) {
+export function sanitizeSummary(raw: any) {
   let s = typeof raw === "string" ? raw.trim() : "";
   if (!s) return "当前市场呈现中性估值水平, 可结合自身偏好微调筛选条件。";
   // 合规改写
@@ -265,13 +265,13 @@ function cloneDefaultCriteria() {
   };
 }
 
-function fmtNum(v) {
+function fmtNum(v: any) {
   if (v == null) return "—";
   if (typeof v !== "number" || !Number.isFinite(v)) return "—";
   return String(v);
 }
 
-function fmtNumSigned(v) {
+function fmtNumSigned(v: any) {
   if (v == null) return "—";
   if (typeof v !== "number" || !Number.isFinite(v)) return "—";
   return v >= 0 ? `+${v}` : String(v);

@@ -46,7 +46,7 @@ export class AppBundleChangelogDetector extends Detector {
     super({ timeout: opts.timeout ?? 3000 });
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const appCfg = ctx.appCfg || {};
     const bundle = appCfg.bundle;
     if (!bundle) {
@@ -88,7 +88,7 @@ export class AppBundleChangelogDetector extends Detector {
           } catch { /* 跳过无权限子目录 */ }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       // Resources 目录不存在/无权限 → 跳到下个 detector
       throw new DetectorError({
         detector: this.constructor.name,
@@ -109,7 +109,7 @@ export class AppBundleChangelogDetector extends Detector {
     let content;
     try {
       content = await fs.readFile(fullPath, 'utf-8');
-    } catch (err) {
+    } catch (err: any) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.NO_VERSION,
@@ -133,9 +133,9 @@ export class AppBundleChangelogDetector extends Detector {
   }
 }
 
-function matchesName(filename) {
+function matchesName(filename: any) {
   const lower = filename.toLowerCase();
-  return FILENAMES.some((want) => want.toLowerCase() === lower);
+  return FILENAMES.some((want: any) => want.toLowerCase() === lower);
 }
 
 /**
@@ -143,12 +143,12 @@ function matchesName(filename) {
  * 如果没有 heading, 整个 content 作为一个段.
  * 段间分隔: /^#{1,3}\s+/
  */
-export function extractFirstSection(content) {
+export function extractFirstSection(content: any) {
   if (!content) return '';
   // 找第一个 heading 之后到下一个 heading 之间的内容
   const lines = content.split(/\r?\n/);
   let inSection = false;
-  let collected = [];
+  let collected: any[] = [];
   for (const line of lines) {
     if (/^#{1,3}\s+/.test(line)) {
       if (inSection) break;  // 遇到第二个 heading → 段结束

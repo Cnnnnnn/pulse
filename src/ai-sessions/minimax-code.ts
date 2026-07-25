@@ -40,7 +40,7 @@ import { resolveAppBundlePath } from "../utils/app-paths";
 export const MINIMAX_CODE_BUNDLE_PATH = resolveAppBundlePath('MiniMax Code.app');
 export const MINIMAX_SQLITE_PATH = path.join(os.homedir(), '.minimax', 'sqlite.db');
 
-export function _loadNodeSqlite(log = SILENT_LOG) {
+export function _loadNodeSqlite(log: any = 0) {
   return loadNodeSqlite(log);
 }
 
@@ -86,7 +86,7 @@ export class MiniMaxCodeDetectorImpl {
     let stat;
     try {
       stat = fs.statSync(this.sqlitePath);
-    } catch (err) {
+    } catch (err: any) {
       this.log.warn(`stat failed for ${this.sqlitePath}: ${err.message}`);
       return [];
     }
@@ -98,11 +98,11 @@ export class MiniMaxCodeDetectorImpl {
       try {
         db = new sqlite.DatabaseSync(this.sqlitePath, { readOnly: true });
         db.exec('PRAGMA journal_mode=wal');
-      } catch (roErr) {
+      } catch (roErr: any) {
         db = new sqlite.DatabaseSync(this.sqlitePath);
         db.exec('PRAGMA journal_mode=wal');
       }
-    } catch (err) {
+    } catch (err: any) {
       // 文件被 lock / schema 变了 / 其它 → 返空 (再走 CLI fallback)
       this.log.warn(`node:sqlite open failed (${err.message}); falling back to sqlite3 CLI`);
       try { db.close(); } catch { /* noop */ }
@@ -133,7 +133,7 @@ export class MiniMaxCodeDetectorImpl {
         this.log.warn('node:sqlite returned 0 rows (likely WAL snapshot issue); falling back to sqlite3 CLI');
         return await listSessionsViaCli(this.sqlitePath, this.log);
       }
-      return rows.map((r) => ({
+      return rows.map((r: any) => ({
         id: r.session_id,
         file: this.sqlitePath,  // 共享 1 个 db, file 用来 jump fallback
         mtimeMs: typeof r.updated_at === 'number' ? r.updated_at : stat.mtimeMs,
@@ -155,7 +155,7 @@ export class MiniMaxCodeDetectorImpl {
    * @param {string} id   session_id (mvs_xxx 之类)
    * @returns {Promise<{id: string, startedAt: number, endedAt: number, messages: Array<{role: string, content: string, ts: number}>, workspaceDir?: string, title?: string, model?: string}>}
    */
-  async readSession(id) {
+  async readSession(id: any) {
     if (typeof id !== 'string' || id.length === 0) {
       throw new TypeError('readSession: id must be non-empty string');
     }
@@ -167,7 +167,7 @@ export class MiniMaxCodeDetectorImpl {
     let db;
     try {
       db = new sqlite.DatabaseSync(this.sqlitePath, { readOnly: true });
-    } catch (err) {
+    } catch (err: any) {
       // node:sqlite open 失败 → 走 CLI fallback
       this.log.warn(`readSession node:sqlite open failed (${err.message}); falling back to sqlite3 CLI`);
       return await readSessionViaCli(this.sqlitePath, id, this.log);
@@ -234,10 +234,10 @@ export class MiniMaxCodeDetectorImpl {
  * @param {string} col
  * @returns {boolean}
  */
-export function _hasColumn(db, table, col) {
+export function _hasColumn(db: any, table: any, col: any) {
   try {
     const rows = db.prepare(`PRAGMA table_info(${table})`).all();
-    return Array.isArray(rows) && rows.some((r) => r && r.name === col);
+    return Array.isArray(rows) && rows.some((r: any) => r && r.name === col);
   } catch {
     return false;
   }
@@ -251,7 +251,7 @@ export function _hasColumn(db, table, col) {
  *   data = { msg_id, role, msg_type, msg_content, timestamp, source?, tool_calls?, usage?, finish_reason? }
  *   注: 字段叫 msg_content, 不是 content / text (跟 OpenAI / Anthropic 不同).
  */
-export function _parseMessageRow(row) {
+export function _parseMessageRow(row: any) {
   if (!row || typeof row.role !== 'string') return null;
   let data = null;
   if (typeof row.data === 'string' && row.data.length > 0) {
@@ -285,14 +285,14 @@ export function _parseMessageRow(row) {
   return { role: _normalizeRole(role), content, ts };
 }
 
-function _normalizeRole(role) {
+function _normalizeRole(role: any) {
   if (role === 'user' || role === 'assistant' || role === 'system' || role === 'tool') return role;
   return 'unknown';
 }
 
-export function _extractContent(arr) {
+export function _extractContent(arr: any) {
   if (!Array.isArray(arr)) return '';
-  const parts = [];
+  const parts: any[] = [];
   for (const c of arr) {
     if (!c || typeof c !== 'object') continue;
     if (typeof c.text === 'string') parts.push(c.text);
@@ -303,7 +303,7 @@ export function _extractContent(arr) {
   return parts.join('\n').trim();
 }
 
-function _toMs(v) {
+function _toMs(v: any) {
   if (typeof v === 'number' && v > 0) return v;
   if (typeof v === 'string' && v.length > 0) {
     const t = Date.parse(v);
@@ -312,6 +312,6 @@ function _toMs(v) {
   return 0;
 }
 
-export const _listSessionsViaCli = (sqlitePath, log) => listSessionsViaCli(sqlitePath, log);
-export const _readSessionViaCli = (sqlitePath, sessionId, log) =>
+export const _listSessionsViaCli = (sqlitePath: any, log: any) => listSessionsViaCli(sqlitePath, log);
+export const _readSessionViaCli = (sqlitePath: any, sessionId: any, log: any) =>
   readSessionViaCli(sqlitePath, sessionId, log);

@@ -15,7 +15,7 @@
  */
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
 
-export async function fetchShareholders(httpClient, { code }) {
+export async function fetchShareholders(httpClient: any, { code }: any) {
   const secucode = `${code}.${code.startsWith("6") ? "SH" : "SZ"}`;
   const filter = encodeURIComponent(`(SECUCODE="${secucode}")`);
 
@@ -54,7 +54,7 @@ export async function fetchShareholders(httpClient, { code }) {
 }
 
 // RPT_F10_EH_PER: 股东人数, 字段 HOLDNUM (最新 + 上一期), END_DATE.
-async function fetchHolderCount(httpClient, filter) {
+async function fetchHolderCount(httpClient: any, filter: any) {
   const url =
     `${DATACENTER_URL}?reportName=RPT_F10_EH_PER` +
     `&columns=ALL&filter=${filter}&pageNumber=1&pageSize=2` +
@@ -62,7 +62,7 @@ async function fetchHolderCount(httpClient, filter) {
   let res;
   try {
     res = await httpClient.get(url, { timeout: 8000 });
-  } catch (_) {
+  } catch (_: any) {
     return null;
   }
   if (!res || res.status !== 200 || !res.body) return null;
@@ -82,7 +82,7 @@ async function fetchHolderCount(httpClient, filter) {
 }
 
 // RPT_F10_SHAREHOLDER_SDJZ: 机构持股比例, 字段 ORG_HOLD_RATIO.
-async function fetchInstitutionPct(httpClient, filter) {
+async function fetchInstitutionPct(httpClient: any, filter: any) {
   const url =
     `${DATACENTER_URL}?reportName=RPT_F10_SHAREHOLDER_SDJZ` +
     `&columns=ALL&filter=${filter}&pageNumber=1&pageSize=2` +
@@ -90,7 +90,7 @@ async function fetchInstitutionPct(httpClient, filter) {
   let res;
   try {
     res = await httpClient.get(url, { timeout: 8000 });
-  } catch (_) {
+  } catch (_: any) {
     return null;
   }
   if (!res || res.status !== 200 || !res.body) return null;
@@ -109,21 +109,21 @@ async function fetchInstitutionPct(httpClient, filter) {
   };
 }
 
-function pctChange(curr, prev) {
+function pctChange(curr: any, prev: any) {
   if (curr == null || prev == null || prev === 0) return null;
   return ((curr - prev) / prev) * 100;
 }
 
-function num(v) {
+function num(v: any) {
   if (v == null || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
-function safeJson(s) {
+function safeJson(s: any) {
   try {
     return JSON.parse(s);
-  } catch (_) {
+  } catch (_: any) {
     return null;
   }
 }

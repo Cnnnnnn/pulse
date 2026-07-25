@@ -3,10 +3,11 @@
  */
 
 import { describe, it, expect } from "vitest";
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
 const {
   cleanVersion,
   stripBuildNumber,
-} = require("../../src/utils/version-utils.js");
+} = requireUtils("version-utils");
 
 describe("cleanVersion", () => {
   it("null / undefined / 空串 → null", () => {

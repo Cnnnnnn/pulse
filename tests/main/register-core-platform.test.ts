@@ -15,7 +15,7 @@ describe('register-core uses platform layer', () => {
       join(__dirname, '../../src/main/ipc/register-core.ts'),
       'utf-8',
     );
-    expect(src).toContain('require("../../platform/index.ts")');
+    expect(src).toContain('import * as platform from "../../platform/index"');
   });
 
   it('get-app-icon handler 调 platform.getAppIcon (不再直接 require app-icon)', () => {

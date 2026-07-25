@@ -80,8 +80,8 @@ export const FX_RATES = [
  * Derived list of metal ids. Used as the default `watchedIds` value
  * in the renderer's metalStore (Task 7).
  */
-export const METAL_IDS = METALS.map((m) => m.id);
+export const METAL_IDS = METALS.map((m: any) => m.id);
 
 export function getMetalById(id: any) {
-  return METALS.find((m) => m.id === id) || null;
+  return METALS.find((m: any) => m.id === id) || null;
 }

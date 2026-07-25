@@ -40,7 +40,7 @@ export function parseSinaFundLine(body: any) {
 
 /**
  * @param {string} code
- * @param {{ get: (url, opts) => Promise<{status, body, error?}> }} httpClient
+ * @param {{ get: (url: any, opts: any) => Promise<{status, body, error?}> }} httpClient
  * @param {{ timeoutMs?: number }} [opts]
  */
 export async function fetchFundNavSina(code: any, httpClient: any, opts: any = {}) {

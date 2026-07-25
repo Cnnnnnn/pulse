@@ -10,8 +10,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
 const { auditTimers } = requireMain('timer-registry');
 
 const FIXTURE_DIR = path.resolve(

@@ -28,7 +28,7 @@ export class ApiJsonDetector extends Detector {
     this.field = opts.field || ""; // 可指定字段路径（点号分隔）
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const rawUrl = this.url || ctx.url;
     if (!rawUrl) {
       throw new DetectorError({
@@ -49,7 +49,7 @@ export class ApiJsonDetector extends Detector {
     let data;
     try {
       data = JSON.parse(r.body);
-    } catch (e) {
+    } catch (e: any) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.PARSE,
@@ -91,7 +91,7 @@ export class ApiJsonDetector extends Detector {
  * GitHub releases API: { tag_name, body, html_url } — body 是 markdown release notes.
  * Custom APIs: releaseNotes / release_notes / changelog.
  */
-function pickChangelog(obj) {
+function pickChangelog(obj: any) {
   if (!obj || typeof obj !== "object") return "";
   return (
     obj.body ||
@@ -104,7 +104,7 @@ function pickChangelog(obj) {
   );
 }
 
-function pickChangelogUrl(obj) {
+function pickChangelogUrl(obj: any) {
   if (!obj || typeof obj !== "object") return "";
   return (
     obj.html_url ||
@@ -118,7 +118,7 @@ function pickChangelogUrl(obj) {
 
 // stripBuildNumber (Phase 8) 定义已搬至 ../utils/version-utils.js, 在 detect() 里复用.
 // 本文件不再保留副本 — 既避免双源真相, 也方便 detect-worker 的 installed 侧共用.
-function pickVersion(obj) {
+function pickVersion(obj: any) {
   if (!obj || typeof obj !== "object") return null;
   // Phase 6: 支持更多字段名 + 嵌套对象 (data.x)
   // 1) 顶层常见字段
@@ -160,7 +160,7 @@ function pickVersion(obj) {
   return null;
 }
 
-function pluckPath(obj, path) {
+function pluckPath(obj: any, path: any) {
   if (!path) return null;
   let node = obj;
   for (const seg of path.split(".")) {

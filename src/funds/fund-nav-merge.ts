@@ -66,7 +66,7 @@ export function normalizeNavSource(source: any) {
   return NAV_SOURCES.includes(source) ? source : DEFAULT_NAV_SOURCE;
 }
 
-function numOrZero(v) {
+function numOrZero(v: any) {
   const n = typeof v === "number" ? v : parseFloat(v);
   return Number.isFinite(n) ? n : 0;
 }

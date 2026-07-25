@@ -30,7 +30,7 @@ export function getTradingStatus(now: any, holidays: any = []) {
   const parts = shanghaiParts(now);
 
   // 节假日优先判定
-  if (holidays.some((h) => h instanceof Date && ymdShanghai(h) === parts.ymd)) {
+  if (holidays.some((h: any) => h instanceof Date && ymdShanghai(h) === parts.ymd)) {
     return { isTrading: false, session: 'closed', nextOpenAt: nextWeekdayOpen(now, holidays) };
   }
 
@@ -81,7 +81,7 @@ function shanghaiParts(d: any) {
   };
 }
 
-function ymdShanghai(d) {
+function ymdShanghai(d: any) {
   return shanghaiParts(d).ymd;
 }
 
@@ -127,13 +127,13 @@ export function msUntilNextFetch(now: any, { intervalMs, holidays = [] }: any) {
  *
  * 注: 所有时间判定都用 Asia/Shanghai (不依赖 process.env.TZ)
  */
-function nextOpenAfter(now, holidays) {
+function nextOpenAfter(now: any, holidays: any) {
   const parts = shanghaiParts(now);
   const day = parts.day;
   const minutes = parts.hour * 60 + parts.minute;
 
   if (day === 0 || day === 6) return nextWeekdayOpen(now, holidays);
-  if (holidays.some((h) => h instanceof Date && ymdShanghai(h) === parts.ymd)) {
+  if (holidays.some((h: any) => h instanceof Date && ymdShanghai(h) === parts.ymd)) {
     return nextWeekdayOpen(now, holidays);
   }
 
@@ -143,13 +143,13 @@ function nextOpenAfter(now, holidays) {
   return nextWeekdayOpen(now, holidays);
 }
 
-function nextWeekdayOpen(now, holidays) {
+function nextWeekdayOpen(now: any, holidays: any) {
   const d = shanghaiAt(now, 9, 30);  // 当天 09:30 Shanghai
   for (let i = 0; i < 14; i++) {
     d.setUTCDate(d.getUTCDate() + 1);
     const parts = shanghaiParts(d);
     if (parts.day === 0 || parts.day === 6) continue;
-    if (holidays.some((h) => h instanceof Date && ymdShanghai(h) === parts.ymd)) continue;
+    if (holidays.some((h: any) => h instanceof Date && ymdShanghai(h) === parts.ymd)) continue;
     // 用 shanghaiAt 重设到 09:30 (setUTCDate 后时间可能漂了)
     return shanghaiAt(d, 9, 30);
   }
@@ -161,7 +161,7 @@ function nextWeekdayOpen(now, holidays) {
  * 给定 Date + 时分 (Asia/Shanghai), 返回对应的真实 Date 对象 (UTC 时刻).
  * 用 "YYYY-MM-DD HH:mm" 字符串 + TZ=Asia/Shanghai 反解, 避免 setHours 受本地 TZ 影响.
  */
-function shanghaiAt(d, h, m) {
+function shanghaiAt(d: any, h: any, m: any) {
   const parts = shanghaiParts(d);
   // 用 Date.UTC 反算 UTC 时间 (Asia/Shanghai = UTC+8, 无夏令时)
   const utcMs = Date.UTC(

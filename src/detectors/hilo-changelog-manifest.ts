@@ -44,7 +44,7 @@ export class HiloChangelogManifestDetector extends Detector {
     this.urls = Array.isArray(opts.urls) ? opts.urls.filter(Boolean) : [];
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const urls = this.urls.length > 0 ? this.urls : ctx.detCfg.urls || [];
     if (!Array.isArray(urls) || urls.length === 0) {
       throw new DetectorError({
@@ -132,10 +132,10 @@ export class HiloChangelogManifestDetector extends Detector {
  */
 async function firstValidManifest(urls, http, timeout, logger) {
   const errors = new Map(); // url → error string (给失败日志用)
-  const probes = urls.map((url) =>
+  const probes = urls.map((url: any) =>
     probeOne(url, http, timeout).then(
-      (manifest) => ({ url, manifest }),
-      (err) => {
+      (manifest: any) => ({ url, manifest }),
+      (err: any) => {
         errors.set(url, (err && err.message) || String(err));
         throw err;
       },
@@ -157,7 +157,7 @@ async function firstValidManifest(urls, http, timeout, logger) {
   return winner;
 }
 
-async function probeOne(url, http, timeout) {
+async function probeOne(url: any, http: any, timeout: any) {
   const r = await http.get(url, {
     timeout,
     headers: { Accept: "application/json" },
@@ -167,7 +167,7 @@ async function probeOne(url, http, timeout) {
   let data;
   try {
     data = JSON.parse(r.body);
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(`parse: ${e.message}`);
   }
   if (
@@ -180,14 +180,14 @@ async function probeOne(url, http, timeout) {
   return data;
 }
 
-function hasItemsArray(manifest) {
+function hasItemsArray(manifest: any) {
   if (!manifest || typeof manifest !== "object") return false;
   const zh = manifest.zh && Array.isArray(manifest.zh.items);
   const en = manifest.en && Array.isArray(manifest.en.items);
   return zh || en;
 }
 
-function pickItems(manifest) {
+function pickItems(manifest: any) {
   if (
     manifest.zh &&
     Array.isArray(manifest.zh.items) &&
@@ -207,9 +207,9 @@ function pickItems(manifest) {
  *   - subtitle: 一行 italic
  *   - body: items[].map(line => `- ${line}`)
  */
-function renderChangelog(entry) {
+function renderChangelog(entry: any) {
   if (!entry || typeof entry !== "object") return "";
-  const out = [];
+  const out: any[] = [];
   const ver = entry.version || "";
   const date = entry.date || "";
   const subtitle = entry.subtitle || "";
@@ -239,7 +239,7 @@ async function fetchYml(baseUrl, http, timeout, logger) {
     if (!r || r.error) return "";
     if (r.status >= 400) return "";
     return r.body || "";
-  } catch (err) {
+  } catch (err: any) {
     if (logger && typeof logger.debug === "function") {
       logger.debug(
         `hilo_changelog_manifest: yml ${ymlUrl} → ${(err && err.message) || err}`,
@@ -249,7 +249,7 @@ async function fetchYml(baseUrl, http, timeout, logger) {
   }
 }
 
-function extractYmlVersion(ymlBody) {
+function extractYmlVersion(ymlBody: any) {
   if (!ymlBody) return "";
   const m = ymlBody.match(/^version:\s*['"]?([^'"\s#]+)['"]?/m);
   return m ? m[1].trim() : "";
@@ -258,9 +258,9 @@ function extractYmlVersion(ymlBody) {
 /**
  * a > b? 仅当 a 严格高于 b (semver 主体逐段). 解析失败 → false.
  */
-function isGreater(a, b) {
-  const pa = String(a).split(".").map((n) => parseInt(n, 10) || 0);
-  const pb = String(b).split(".").map((n) => parseInt(n, 10) || 0);
+function isGreater(a: any, b: any) {
+  const pa = String(a).split(".").map((n: any) => parseInt(n, 10) || 0);
+  const pb = String(b).split(".").map((n: any) => parseInt(n, 10) || 0);
   const len = Math.max(pa.length, pb.length);
   for (let i = 0; i < len; i++) {
     const x = pa[i] || 0;
@@ -288,7 +288,7 @@ function isGreater(a, b) {
  * (例如 `MiniMax`), greedy 会因回溯失败. 行级 scan 简单直接, 跟 detector chain
  * 其它 url-text parser 风格一致.
  */
-function extractZipUrl(ymlBody, arch) {
+function extractZipUrl(ymlBody: any, arch: any) {
   if (!ymlBody || typeof ymlBody !== "string") return "";
   const preferredSuffix = arch === "arm64" ? "arm64-mac" : "mac";
   const lines = ymlBody.split(/\r?\n/);

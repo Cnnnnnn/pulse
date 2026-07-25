@@ -41,7 +41,7 @@ export class electron_zip_probe extends Detector {
     this.pathTemplate = opts.path_template || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const baseUrl = (this.baseUrl || ctx.detCfg.baseUrl || "").replace(
       /\/+$/,
       "",
@@ -152,7 +152,7 @@ export class electron_zip_probe extends Detector {
   }
 }
 
-function defaultArchSuffix(arch) {
+function defaultArchSuffix(arch: any) {
   return arch === "arm64" ? "arm64-mac" : "mac";
 }
 
@@ -177,7 +177,7 @@ function buildZipUrl(
   // encodeURIComponent encodes space as %20 — matches MiniMax CDN layout
 }
 
-function parseVersion(v) {
+function parseVersion(v: any) {
   const m = String(v)
     .trim()
     .match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -185,21 +185,21 @@ function parseVersion(v) {
   return [Number(m[1]), Number(m[2]), Number(m[3])];
 }
 
-function formatVersion(parts) {
+function formatVersion(parts: any) {
   return `${parts[0]}.${parts[1]}.${parts[2]}`;
 }
 
-function incrementPatch(parts) {
+function incrementPatch(parts: any) {
   if (!Array.isArray(parts) || parts.length !== 3) return null;
   return [parts[0], parts[1], parts[2] + 1];
 }
 
-function decrementPatch(parts) {
+function decrementPatch(parts: any) {
   if (!Array.isArray(parts) || parts.length !== 3 || parts[2] <= 0) return null;
   return [parts[0], parts[1], parts[2] - 1];
 }
 
-async function readInstalledVersion(bundle) {
+async function readInstalledVersion(bundle: any) {
   if (!bundle || typeof bundle !== "string") return null;
   const plistPath = appBundleResourcePath(bundle, "Contents", "Info.plist");
   if (!fs.existsSync(plistPath)) return null;

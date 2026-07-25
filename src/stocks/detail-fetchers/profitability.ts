@@ -7,7 +7,7 @@
 import * as f10 from "./_shared-f10";
 import * as fb from "./_shared-profitability-fallback";
 
-export async function fetchProfitability(httpClient, { code }) {
+export async function fetchProfitability(httpClient: any, { code }: any) {
   const primary = await f10.fetchEastmoneyF10(httpClient, code);
   if (primary && primary.status === 200 && primary.body) {
     const out = parseF10(primary.body);
@@ -37,10 +37,10 @@ export async function fetchProfitability(httpClient, { code }) {
   };
 }
 
-function parseF10(body) {
+function parseF10(body: any) {
   if (!body || !body.data) return null;
   const d = body.data;
-  const num = (v) => {
+  const num = (v: any) => {
     const n = Number(v);
     return Number.isFinite(n) && n !== 0 ? n : null;
   };
@@ -53,7 +53,7 @@ function parseF10(body) {
 }
 
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
-async function fetchDatacenterFinance(httpClient, code) {
+async function fetchDatacenterFinance(httpClient: any, code: any) {
   const secucode = `${code}.${code.startsWith("6") ? "SH" : "SZ"}`;
   const filter = encodeURIComponent(`(SECUCODE="${secucode}")`);
   const url = `${DATACENTER_URL}?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=SECUCODE,REPORT_DATE,ROEJQ,XSMLL,XSJLL&filter=${filter}&pageNumber=1&pageSize=1&sortColumns=REPORT_DATE&sortTypes=-1&source=HSF10&client=PC`;
@@ -66,7 +66,7 @@ async function fetchDatacenterFinance(httpClient, code) {
       typeof res.body === "string" ? safeJsonParse(res.body) : res.body;
     const row = body && body.result && body.result.data && body.result.data[0];
     if (!row) return { ok: false };
-    const num = (v) => {
+    const num = (v: any) => {
       const n = Number(v);
       return Number.isFinite(n) && n !== 0 ? n : null;
     };
@@ -79,15 +79,15 @@ async function fetchDatacenterFinance(httpClient, code) {
         reportDate: (row.REPORT_DATE || "").slice(0, 10) || "unknown",
       },
     };
-  } catch (_) {
+  } catch (_: any) {
     return { ok: false };
   }
 }
 
-function safeJsonParse(s) {
+function safeJsonParse(s: any) {
   try {
     return JSON.parse(s);
-  } catch (_) {
+  } catch (_: any) {
     return null;
   }
 }

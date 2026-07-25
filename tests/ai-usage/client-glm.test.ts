@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/ai-usage/client-glm.test.js
  *
@@ -8,7 +10,7 @@ import { describe, test, expect } from "vitest";
 const {
   _resolveEndpoint,
   GlmQuotaClient,
-} = require("../../src/ai-usage/client-glm");
+} = requireAiUsage("client-glm");
 
 describe("_resolveEndpoint", () => {
   test("returns Global endpoint by default", () => {

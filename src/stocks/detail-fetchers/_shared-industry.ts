@@ -21,7 +21,7 @@ const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
 const INDUSTRY_TIMEOUT_MS = 8000;
 const PEER_PAGE_SIZE = 50;
 
-export async function fetchIndustryPeers(httpClient, code) {
+export async function fetchIndustryPeers(httpClient: any, code: any) {
   const secucode = toSecucode(code);
 
   // 步骤 1: secucode → BOARD_CODE + BOARD_NAME
@@ -34,7 +34,7 @@ export async function fetchIndustryPeers(httpClient, code) {
   let boardRes;
   try {
     boardRes = await httpClient.get(boardUrl, { timeout: INDUSTRY_TIMEOUT_MS });
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, reason: "fetch_failed", error: e && e.message };
   }
   if (!boardRes || boardRes.status !== 200 || !boardRes.body) {
@@ -64,7 +64,7 @@ export async function fetchIndustryPeers(httpClient, code) {
   let memberRes;
   try {
     memberRes = await httpClient.get(memberUrl, { timeout: INDUSTRY_TIMEOUT_MS });
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, reason: "fetch_failed", error: e && e.message };
   }
   if (!memberRes || memberRes.status !== 200 || !memberRes.body) {
@@ -78,7 +78,7 @@ export async function fetchIndustryPeers(httpClient, code) {
     return { ok: false, reason: "no_industry_data", error: "member 接口 result.data 为空" };
   }
 
-  const peers = memberParsed.map((r) => ({
+  const peers = memberParsed.map((r: any) => ({
     code: stripMarket(r.SECUCODE),
     name: r.SECURITY_NAME_ABBR || null,
     // WEIGHTAVG_ROE = 加权 ROE, 近似 ROIC (调用方需注意是 ROE 近似)
@@ -94,17 +94,17 @@ export async function fetchIndustryPeers(httpClient, code) {
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 // code (6 位) → secucode (600519.SH / 000001.SZ). 6 开头沪, 其余深.
-function toSecucode(code) {
+function toSecucode(code: any) {
   return `${code}.${String(code).startsWith("6") ? "SH" : "SZ"}`;
 }
 
 // secucode "600519.SH" → "600519"
-function stripMarket(secucode) {
+function stripMarket(secucode: any) {
   if (!secucode) return null;
   return String(secucode).split(".")[0];
 }
 
-function num(v) {
+function num(v: any) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
@@ -112,12 +112,12 @@ function num(v) {
 // 解析 datacenter 响应 body: 返回 array (rows) 或字符串标记.
 // "parse_failed" = body 是字符串但 JSON.parse 失败.
 // [] = body 解析成功但 result.data 不是数组 / 是空数组.
-function parseDatacenterBody(body) {
+function parseDatacenterBody(body: any) {
   let parsed = body;
   if (typeof body === "string") {
     try {
       parsed = JSON.parse(body);
-    } catch (_) {
+    } catch (_: any) {
       return "parse_failed";
     }
   }

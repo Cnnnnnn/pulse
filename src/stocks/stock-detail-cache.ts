@@ -14,7 +14,7 @@ export const CACHE_VERSION = 2;
  * @param {string[]} angles  角度 key 数组
  * @returns {string} 缓存 key
  */
-export function computeStockCacheKey(code, angles) {
+export function computeStockCacheKey(code: any, angles: any) {
   if (!code || !Array.isArray(angles) || angles.length === 0) {
     return null;
   }

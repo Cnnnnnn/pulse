@@ -9,8 +9,11 @@
 
 import { describe, test, expect } from "vitest";
 import { render } from "@testing-library/preact";
+import { createRequire } from "node:module";
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
 import { UsageSparkline } from "../../src/renderer/components/UsageSparkline.tsx";
-const { todayKey, addDays } = require("../../src/ai-usage/history-series.js");
+const { todayKey, addDays } = requireAiUsage("history-series");
 
 // ponytail: buildSeries 把 series 末尾对齐到 today, 所以 fixture 必须用真实今天日期
 // 倒退 6 天 (共 7 天), 否则 buildSeries 会用 0 填充缺失日期, 测试断言错位.

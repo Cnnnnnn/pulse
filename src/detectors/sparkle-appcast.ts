@@ -22,7 +22,7 @@ export class SparkleAppcastDetector extends Detector {
     this.url = opts.url || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const url = this.url || ctx.url;
     if (!url) {
       throw new DetectorError({
@@ -74,7 +74,7 @@ export class SparkleAppcastDetector extends Detector {
  * 取最近 (第一个) item 的 description, 因为 appcast 通常是倒序 (最新在前).
  * 如果没有 description 节点, 返回空串 (UI 端 fallback 到 "无 release notes").
  */
-function extractSparkleDescription(xml) {
+function extractSparkleDescription(xml: any) {
   if (!xml) return "";
   // 匹配第一个 <item>...</item> 块
   const itemMatch = xml.match(/<item[^>]*>([\s\S]*?)<\/item>/i);
@@ -89,7 +89,7 @@ function extractSparkleDescription(xml) {
   return "";
 }
 
-function extractSparkleVersion(xml) {
+function extractSparkleVersion(xml: any) {
   if (!xml) return null;
   // 优先 shortVersionString（更接近用户能看的版本号）
   // 两种形式都兼容：
@@ -111,7 +111,7 @@ function extractSparkleVersion(xml) {
  * Sparkle appcast 倒序 (最新在前), 所以第一个 item 就是目标版本.
  * 没找到 → 返回 '' (caller fallback 到 shell.openPath).
  */
-function extractSparkleEnclosureUrl(xml) {
+function extractSparkleEnclosureUrl(xml: any) {
   if (!xml) return "";
   const itemMatch = xml.match(/<item[^>]*>([\s\S]*?)<\/item>/i);
   const block = itemMatch ? itemMatch[1] : xml;

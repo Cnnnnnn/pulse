@@ -34,7 +34,7 @@ export class ElectronYmlDetector extends Detector {
     this.url = opts.url || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const rawUrl = this.url || ctx.url;
     if (!rawUrl) {
       throw new DetectorError({
@@ -66,7 +66,7 @@ export class ElectronYmlDetector extends Detector {
           }
         }
         parsed = data;
-      } catch (e) {
+      } catch (e: any) {
         // 继续尝试 regex 回退
         ver = regexExtractVersion(r.body);
         if (!ver) {
@@ -125,7 +125,7 @@ export class ElectronYmlDetector extends Detector {
  *   version: '1.2.3'
  *   version: "1.2.3"
  */
-function regexExtractVersion(body) {
+function regexExtractVersion(body: any) {
   if (!body) return null;
   const m = body.match(/^\s*version:\s*['"]?([^'"\n]+)['"]?/m);
   if (m) return m[1].trim();

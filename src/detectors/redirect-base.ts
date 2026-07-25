@@ -6,7 +6,7 @@
 
 import { DetectorError, REASONS } from "./errors";
 
-export function absUrl(loc, base) {
+export function absUrl(loc: any, base: any) {
   if (!loc) return base;
   if (loc.startsWith("http://") || loc.startsWith("https://")) return loc;
   try {
@@ -23,7 +23,7 @@ export function absUrl(loc, base) {
  * HEAD 跟随重定向链 (follow=false, 手动解析 Location).
  * @returns {{ current: string, finalUrl: string, lastStatus: number, lastAllowHeader: string }}
  */
-async function followHeadRedirects(ctx, startUrl, opts) {
+async function followHeadRedirects(ctx: any, startUrl: any, opts: any) {
   const { detector, timeout, maxHops = 5 } = opts;
   let current = startUrl;
   let finalUrl = startUrl;
@@ -67,7 +67,7 @@ async function followHeadRedirects(ctx, startUrl, opts) {
 /**
  * HEAD 4xx/405 + Allow:GET 时 GET 兜底, 否则按 lastStatus 抛 HTTP 错.
  */
-async function resolveFinalUrlAfterHead(ctx, opts) {
+async function resolveFinalUrlAfterHead(ctx: any, opts: any) {
   const {
     detector,
     current,
@@ -142,7 +142,7 @@ async function resolveFinalUrlAfterHead(ctx, opts) {
 }
 
 /** 从 URL 末段文件名提取 semver-ish 版本 */
-export function extractVersionFromFilename(finalUrl) {
+export function extractVersionFromFilename(finalUrl: any) {
   const filename = finalUrl.split("/").pop() || "";
   const m = filename.match(/[vV]?(\d+\.\d+(?:\.\d+)*)/);
   if (!m) return null;

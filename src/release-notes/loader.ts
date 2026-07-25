@@ -21,7 +21,7 @@ const log = createLogger("release-notes-loader");
 
 let __testRepoRoot = null;
 
-export function __setTestRepoRoot(repoRoot) {
+export function __setTestRepoRoot(repoRoot: any) {
   __testRepoRoot = repoRoot;
 }
 
@@ -42,13 +42,13 @@ function resolveRepoRoot() {
  * @param {string} version semver string
  * @returns {string|null} md 内容, 或 null (缺/错)
  */
-export function readReleaseNotes(version) {
+export function readReleaseNotes(version: any) {
   if (typeof version !== "string" || !version) return null;
   const file = path.join(resolveRepoRoot(), "versions", `${version}.md`);
   try {
     if (!fs.existsSync(file)) return null;
     return fs.readFileSync(file, "utf8");
-  } catch (err) {
+  } catch (err: any) {
     log.warn(`readReleaseNotes(${version}) failed:`, err.message);
     return null;
   }
@@ -58,7 +58,7 @@ export function readReleaseNotes(version) {
  * @param {string} version
  * @returns {{version: string, slides: Array}|null}
  */
-export function readSlides(version) {
+export function readSlides(version: any) {
   if (typeof version !== "string" || !version) return null;
   const file = path.join(
     resolveRepoRoot(),
@@ -75,7 +75,7 @@ export function readSlides(version) {
     if (!Array.isArray(parsed.slides)) return null;
     if (parsed.slides.length === 0) return null;
     return parsed;
-  } catch (err) {
+  } catch (err: any) {
     log.warn(`readSlides(${version}) failed:`, err.message);
     return null;
   }

@@ -12,13 +12,13 @@ import { getAngle } from "./stock-detail-angles";
 // ponytail: module 级 LRU 内存表, key = `${code}|${angleKey}`. 跨调用共享.
 //   ceiling: app 进程内 in-memory, 重启即清. 不需要持久化, 上次成功时间只是 UI 提示.
 const _angleHealth = new Map();
-const HEALTH_KEY = (code, angleKey) => `${code}|${angleKey}`;
+const HEALTH_KEY = (code: any, angleKey: any) => `${code}|${angleKey}`;
 
-function getHealth(code, angleKey) {
+function getHealth(code: any, angleKey: any) {
   return _angleHealth.get(HEALTH_KEY(code, angleKey)) || { lastSuccessAt: 0, failureStreakCount: 0 };
 }
 
-function recordSuccess(code, angleKey) {
+function recordSuccess(code: any, angleKey: any) {
   const h = getHealth(code, angleKey);
   h.lastSuccessAt = Date.now();
   h.failureStreakCount = 0;
@@ -26,7 +26,7 @@ function recordSuccess(code, angleKey) {
   return h;
 }
 
-function recordFailure(code, angleKey) {
+function recordFailure(code: any, angleKey: any) {
   const h = getHealth(code, angleKey);
   h.failureStreakCount += 1;
   _angleHealth.set(HEALTH_KEY(code, angleKey), h);
@@ -53,21 +53,21 @@ function recordFailure(code, angleKey) {
  *   totalCount: number
  * }>}
  */
-export async function fetchStockDetailAngles(httpClient, code, angles) {
-  const perAngle = {};
+export async function fetchStockDetailAngles(httpClient: any, code: any, angles: any) {
+  const perAngle: any = {};
   const now = Date.now();
 
   if (!Array.isArray(angles) || angles.length === 0) {
     return { perAngle, fulfilledCount: 0, totalCount: 0 };
   }
 
-  const valid = angles.filter((k) => getAngle(k) !== null);
+  const valid = angles.filter((k: any) => getAngle(k) !== null);
   const results = await Promise.allSettled(
-    valid.map((angleKey) => {
-      const { fetcher } = getAngle(angleKey);
+    valid.map((angleKey: any) => {
+      const { fetcher } = getAngle(angleKey) as any;
       return fetcher(httpClient, { code }).then(
-        (res) => ({ angleKey, res }),
-        (err) => ({
+        (res: any) => ({ angleKey, res }),
+        (err: any) => ({
           angleKey,
           res: { ok: false, reason: "exception", error: err && err.message ? err.message : String(err) },
         }),
@@ -149,13 +149,13 @@ export async function fetchSingleAngle(httpClient: any, code: any, angleKey: any
       lastSuccessAt: h.lastSuccessAt || null,
       failureStreakCount: h.failureStreakCount,
     };
-  } catch (err) {
+  } catch (err: any) {
     const h = recordFailure(code, angleKey);
     return {
       angleKey,
       status: "failed",
       reason: "exception",
-      error: err && err.message ? err.message : String(err),
+      error: (err as any) && err.message ? err.message : String(err),
       fetchedAt: now,
       lastSuccessAt: h.lastSuccessAt || null,
       failureStreakCount: h.failureStreakCount,

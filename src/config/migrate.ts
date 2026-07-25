@@ -167,7 +167,7 @@ export function migrateConfigFile(opts: any) {
 
   // 已经全 new schema？不迁移
   if (Array.isArray(parsed.apps) && parsed.apps.length > 0
-      && parsed.apps.every((a) => a && Array.isArray(a.detectors) && a.detectors.length > 0)) {
+      && parsed.apps.every((a: any) => a && Array.isArray(a.detectors) && a.detectors.length > 0)) {
     return { migrated: false, configPath, backupPath: null, reason: 'already-new', config: parsed };
   }
 

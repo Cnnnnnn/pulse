@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/main/nav-source-health.test.js
  */
@@ -6,7 +8,7 @@ import { describe, it, expect } from "vitest";
 const {
   NavSourceHealth,
   SOURCES,
-} = require("../../src/funds/nav-source-health.js");
+} = requireFunds("nav-source-health");
 
 describe("NavSourceHealth", () => {
   it("初始: 全部源样本不足, 非 unhealthy", () => {

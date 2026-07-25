@@ -26,7 +26,7 @@ const MIN_FILTERS = [
   ["netIncomeGrowthYoY", "netIncomeGrowthYoYMin"],
 ];
 
-function isNum(v) {
+function isNum(v: any) {
   return typeof v === "number" && Number.isFinite(v);
 }
 
@@ -36,13 +36,13 @@ function isNum(v) {
  * @param {object} criteria  跟 DEFAULT_SCREENER_CRITERIA 同形 (缺字段自动补默认)
  * @returns {Array} 过滤后的新数组 (不改原数组)
  */
-export function filterStocks(rows, criteria) {
+export function filterStocks(rows: any, criteria: any) {
   if (!Array.isArray(rows)) return [];
   const c = Object.assign({}, DEFAULT_SCREENER_CRITERIA, criteria || {});
-  return rows.filter((r) => matchCriteria(r, c));
+  return rows.filter((r: any) => matchCriteria(r, c));
 }
 
-export function matchCriteria(r, c) {
+export function matchCriteria(r: any, c: any) {
   if (!r || typeof r !== "object") return false;
 
   // 区间过滤
@@ -83,11 +83,11 @@ export function matchCriteria(r, c) {
  * @param {{key:string, dir:"asc"|"desc"}|null} sort
  * @returns {Array} 排序后的新数组
  */
-export function sortStocks(rows, sort) {
+export function sortStocks(rows: any, sort: any) {
   if (!Array.isArray(rows)) return [];
   if (!sort || !sort.key) return [...rows];
   const dir = sort.dir === "asc" ? 1 : -1;
-  return [...rows].sort((a, b) => {
+  return [...rows].sort((a: any, b: any) => {
     const av = a ? a[sort.key] : undefined;
     const bv = b ? b[sort.key] : undefined;
     const aBad = av == null || av === "";
@@ -107,7 +107,7 @@ export function sortStocks(rows, sort) {
 }
 
 /** filter + sort 复合 (stocks:screen IPC 用) */
-export function applyScreen(rows, criteria, sort) {
+export function applyScreen(rows: any, criteria: any, sort: any) {
   return sortStocks(filterStocks(rows, criteria), sort);
 }
 

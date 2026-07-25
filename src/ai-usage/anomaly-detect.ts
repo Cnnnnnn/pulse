@@ -12,9 +12,9 @@ export const DEFAULT_SPIKE_RATIO = 1.5;
 export const DEFAULT_ABS_MIN_PCT = 55;
 export const DEFAULT_RE_ALERT_STEP_PCT = 5;
 
-function median(nums) {
+function median(nums: any) {
   if (!nums.length) return 0;
-  const sorted = nums.slice().sort((a, b) => a - b);
+  const sorted = nums.slice().sort((a: any, b: any) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
@@ -50,16 +50,16 @@ export function detectUsageAnomaly(days, opts: any = {}) {
 
   const today = todayKey();
   const todayPoint =
-    series.find((p) => p.date === today) || series[series.length - 1];
+    series.find((p: any) => p.date === today) || series[series.length - 1];
   const todayPercent =
     typeof todayPoint.percent === "number" ? todayPoint.percent : null;
   if (todayPercent == null || todayPercent <= 0) return empty;
 
   const prev = series
     .filter(
-      (p) => p.date !== today && typeof p.percent === "number" && p.percent > 0,
+      (p: any) => p.date !== today && typeof p.percent === "number" && p.percent > 0,
     )
-    .map((p) => p.percent);
+    .map((p: any) => p.percent);
   if (prev.length < 2) return empty;
 
   const baselineMedian = median(prev);

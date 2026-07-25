@@ -22,7 +22,7 @@ const {
   sendResult,
   sendError,
   postLog,
-} = require("./ipc");
+} = require("./ipc.js");
 const {
   handleDetectApp,
   handleBrewUpgrade,
@@ -30,13 +30,13 @@ const {
   withTimeout,
   DETECT_APP_TIMEOUT_MS,
   BREW_UPGRADE_TIMEOUT_MS,
-} = require("./task-handlers");
+} = require("./task-handlers.js");
 
 const http = new HttpClient({ timeout: 8000, maxBodyBytes: 1024 * 1024 });
 const logger = makePostMessageLogger();
 
 if (parentPort) {
-  parentPort.on("message", async (msg) => {
+  parentPort.on("message", async (msg: any) => {
     if (!msg || !msg.task) return;
     const { id, task } = msg;
     try {
@@ -69,7 +69,7 @@ if (parentPort) {
         return;
       }
       sendResult({ id, ...result });
-    } catch (err) {
+    } catch (err: any) {
       sendError((err && err.message) || String(err));
     }
   });

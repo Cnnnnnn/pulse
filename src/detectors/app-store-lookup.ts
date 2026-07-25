@@ -27,7 +27,7 @@ export class AppStoreLookupDetector extends Detector {
     this.url = opts.url || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const rawUrl = this.url || ctx.url;
     if (!rawUrl) {
       throw new DetectorError({
@@ -44,7 +44,7 @@ export class AppStoreLookupDetector extends Detector {
     let data;
     try {
       data = JSON.parse(r.body);
-    } catch (e) {
+    } catch (e: any) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.PARSE,
@@ -98,7 +98,7 @@ export class AppStoreLookupDetector extends Detector {
   }
 }
 
-function pickReleaseNotes(item) {
+function pickReleaseNotes(item: any) {
   if (!item || typeof item !== "object") return "";
   const notes = item.releaseNotes;
   return typeof notes === "string" ? notes.trim() : "";
@@ -109,7 +109,7 @@ function pickReleaseNotes(item) {
  *   macappstore://apps.apple.com/app/id<trackId> 用.
  * 没有 / 不是 number → 0 (bulk-upgrade-actions 会当 missing 处理).
  */
-function pickTrackId(item) {
+function pickTrackId(item: any) {
   if (!item || typeof item !== "object") return 0;
   const t = item.trackId;
   if (typeof t === "number" && Number.isFinite(t) && t > 0) return t;

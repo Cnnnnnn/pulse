@@ -23,14 +23,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes, mainArtifactPath, platformArtifactPath, detectorArtifactPath } = _require("../_setup/require-main.cjs");
 
 const mockPatchState = vi.fn();
 const mockLoad = vi.fn();
 
 const stateStorePath = mainArtifactPath('state-store');
-const storagePath = require.resolve('../../src/detectors/circuit-breaker-storage.js');
+const storageArtifactPath = detectorArtifactPath('circuit-breaker-storage');
 
 let loadBreakers;
 let saveBreakers;
@@ -39,7 +39,7 @@ let getBreaker;
 let removeBreaker;
 
 function loadStorageWithMockedStateStore() {
-  delete require.cache[storagePath];
+  delete require.cache[storageArtifactPath];
   require.cache[stateStorePath] = {
     id: stateStorePath,
     filename: stateStorePath,
@@ -49,7 +49,7 @@ function loadStorageWithMockedStateStore() {
       patchState: mockPatchState,
     },
   };
-  const mod = require(storagePath);
+  const mod = require(storageArtifactPath);
   loadBreakers = mod.loadBreakers;
   saveBreakers = mod.saveBreakers;
   upsertBreaker = mod.upsertBreaker;
@@ -65,7 +65,7 @@ beforeEach(() => {
 
 afterEach(() => {
   delete require.cache[stateStorePath];
-  delete require.cache[storagePath];
+  delete require.cache[storageArtifactPath];
 });
 
 describe('circuit-breaker-storage', () => {

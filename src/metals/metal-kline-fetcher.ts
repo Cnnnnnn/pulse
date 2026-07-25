@@ -62,7 +62,7 @@ export function dedupeByDate(points: any, maxDays = 30) {
   for (const p of points) {
     map.set(p.date, p);
   }
-  const out = Array.from(map.values()).sort((a, b) =>
+  const out = Array.from(map.values()).sort((a: any, b: any) =>
     a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
   );
   return out.slice(-maxDays);

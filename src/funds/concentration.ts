@@ -30,10 +30,10 @@ export function computeConcentration(rowsWithMetrics: any) {
     name: x.name,
     weight: x.marketValue / total,
   }));
-  const sorted = [...weights].sort((a, b) => b.weight - a.weight);
-  const top3 = sorted.slice(0, 3).reduce((s, x) => s + x.weight, 0);
+  const sorted = [...weights].sort((a: any, b: any) => b.weight - a.weight);
+  const top3 = sorted.slice(0, 3).reduce((s: any, x: any) => s + x.weight, 0);
   const maxW = sorted.length ? sorted[0].weight : 0;
-  const hhi = weights.reduce((s, x) => s + x.weight * x.weight, 0);
+  const hhi = weights.reduce((s: any, x: any) => s + x.weight * x.weight, 0);
 
   const top3Pct = round4(top3 * 100);
   const maxWeight = round4(maxW * 100);

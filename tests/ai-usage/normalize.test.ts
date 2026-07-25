@@ -1,5 +1,7 @@
 import { describe, test, expect } from 'vitest';
-const { _pickNumber, _pickString, _parseRemainsTime, normalize } = require('../../src/ai-usage/normalize');
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
+const { _pickNumber, _pickString, _parseRemainsTime, normalize } = requireAiUsage("normalize");
 
 describe('_pickNumber', () => {
   test('returns first present key value as number', () => {
@@ -27,7 +29,7 @@ describe('_pickNumber', () => {
 });
 
 describe('_pickTotal', () => {
-  const { _pickTotal } = require('../../src/ai-usage/normalize');
+  const { _pickTotal } = requireAiUsage("normalize");
   test('returns positive numbers as-is', () => {
     expect(_pickTotal({ x: 6000 }, ['x'])).toBe(6000);
   });

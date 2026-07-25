@@ -8,8 +8,8 @@ import { createRequire } from 'node:module';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
 const stateStore = requireMain("state-store");
 
 function tmpStatePath() {

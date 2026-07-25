@@ -28,9 +28,9 @@ function _getHttp() {
   return _http;
 }
 
-function _loadApiKey(providerId) {
+function _loadApiKey(providerId: any) {
   try {
-    const storage = require("../ai-sessions/storage");
+    const storage = require("../ai-sessions/storage.js");
     const fromStore = storage.loadApiKey(providerId);
     if (fromStore) return fromStore;
   } catch {
@@ -136,7 +136,7 @@ export async function chatCompletion(messages: any, opts: any = {}) {
       ok: true,
       text: sanitizeLlmOutput(String(text || "").trim()),
     };
-  } catch (err) {
+  } catch (err: any) {
     return { ok: false, reason: "llm_failed", error: err && err.message };
   }
 }

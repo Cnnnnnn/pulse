@@ -26,7 +26,7 @@ const PAGE_SIZE = 100;
  * @param {string} [sortKey]  我们的 key (roe/pe/pb/...), 未知则用默认 fid
  * @param {number} [pn=1]     页码 (1-based), 每页 ≤100 条
  */
-export function buildUrl(sortKey, pn = 1) {
+export function buildUrl(sortKey: any, pn: any = 1) {
   const fid =
     (sortKey && SORT_KEY_TO_FID[sortKey]) || DEFAULT_FID;
   const q = new URLSearchParams({
@@ -48,7 +48,7 @@ export function buildUrl(sortKey, pn = 1) {
  * @param {string} body
  * @returns {{total:number, diff:object[]}}
  */
-export function parseClist(body) {
+export function parseClist(body: any) {
   if (typeof body !== "string" || body.length === 0) {
     return { total: 0, diff: [] };
   }
@@ -66,7 +66,7 @@ export function parseClist(body) {
 }
 
 /** 东财 "-" 表示无数据 → null. 其它 number 字段 NaN → null. */
-function toNum(v) {
+function toNum(v: any) {
   if (v == null) return null;
   if (typeof v === "string") {
     const s = v.trim();
@@ -78,7 +78,7 @@ function toNum(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-function toStr(v) {
+function toStr(v: any) {
   if (v == null) return null;
   const s = String(v).trim();
   return s.length > 0 ? s : null;
@@ -88,9 +88,9 @@ function toStr(v) {
  * 把东财一条 diff 映射成 StockRow.
  * @returns {{code,name,price,changePct,turnover,pe,pb,roe,industry,marketCap,revenueGrowthYoY,netIncomeGrowthYoY}|null}
  */
-export function mapRow(raw) {
+export function mapRow(raw: any) {
   if (!raw || typeof raw !== "object") return null;
-  const g = (f) => raw[f];
+  const g = (f: any) => raw[f];
   return {
     code: toStr(g(FIELD_MAP.code)),
     name: toStr(g(FIELD_MAP.name)),
@@ -122,7 +122,7 @@ export function mapRow(raw) {
 export async function fetchStocks(httpClient: any, opts: any = {}) {
   const fallbackToSina = opts.fallbackToSina !== false; // 默认开启
   const fetchedAt = Date.now();
-  const all = [];
+  const all: any[] = [];
   let total = 0;
   // ponytail: 东财硬限制单页 ≤100, 拉全市场必须翻页. maxPages 上限防接口"total"异常导致死循环.
   const maxPages = opts.maxPages ?? 60; // 60*100=6000, 覆盖全市场 5534 + 缓冲
@@ -148,7 +148,7 @@ export async function fetchStocks(httpClient: any, opts: any = {}) {
       }
       const { total: t, diff } = parseClist(r.body);
       if (pn === 1) total = t;
-      const pageRows = diff.map(mapRow).filter((x) => x && x.code);
+      const pageRows = diff.map(mapRow).filter((x: any) => x && x.code);
       all.push(...pageRows);
       // 翻页停止条件: 当页返空, 或已覆盖 total
       if (pageRows.length === 0 || all.length >= total) break;
@@ -180,7 +180,7 @@ export async function fetchStocks(httpClient: any, opts: any = {}) {
     }
     // ponytail 2026-07-08 P-1: truncated 标记让调用方 (IPC handler) 知道这是"快速截断"而非"全量".
     return { rows: all, total, fetchedAt, ...(truncated && { truncated: true }) };
-  } catch (e) {
+  } catch (e: any) {
     return {
       rows: all,
       total,
@@ -196,7 +196,7 @@ export async function fetchStocks(httpClient: any, opts: any = {}) {
  * @param {string} code 6 位代码
  * @returns {string|null}
  */
-export function codeToSecid(code) {
+export function codeToSecid(code: any) {
   const c = String(code || "").trim();
   if (!/^\d{6}$/.test(c)) return null;
   if (c.startsWith("6")) return `1.${c}`;
@@ -226,9 +226,9 @@ export async function fetchStocksByCodes(codes: any, httpClient: any, opts: any 
     if (r.status !== 200)
       return { rows: [], fetchedAt: Date.now(), error: `HTTP ${r.status}` };
     const { diff } = parseClist(r.body);
-    const rows = diff.map(mapRow).filter((x) => x && x.code);
+    const rows = diff.map(mapRow).filter((x: any) => x && x.code);
     return { rows, fetchedAt: Date.now() };
-  } catch (e) {
+  } catch (e: any) {
     return {
       rows: [],
       fetchedAt: Date.now(),

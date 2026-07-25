@@ -19,7 +19,7 @@ export class BrewFormulaeDetector extends Detector {
     this.cask = opts.cask || "";
   }
 
-  async detect(ctx) {
+  async detect(ctx: any) {
     const cask = this.cask || ctx.detCfg.cask || ctx.appCfg.brew_cask;
     if (!cask) {
       throw new DetectorError({
@@ -37,7 +37,7 @@ export class BrewFormulaeDetector extends Detector {
     let data;
     try {
       data = JSON.parse(r.body);
-    } catch (e) {
+    } catch (e: any) {
       throw new DetectorError({
         detector: this.constructor.name,
         reason: REASONS.PARSE,

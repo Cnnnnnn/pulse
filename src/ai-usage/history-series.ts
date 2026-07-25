@@ -11,15 +11,15 @@ export function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function addDays(yyyyMmDd, deltaDays) {
+export function addDays(yyyyMmDd: any, deltaDays: any) {
   const [y, m, d] = yyyyMmDd.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   dt.setUTCDate(dt.getUTCDate() + deltaDays);
   return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
 }
 
-function buildAllEmpty(n) {
-  const series = [];
+function buildAllEmpty(n: any) {
+  const series: any[] = [];
   for (let i = n - 1; i >= 0; i--) {
     series.push({ date: addDays(todayKey(), -i), percent: 0, used: null });
   }
@@ -30,7 +30,7 @@ function buildAllEmpty(n) {
  * @param {Array<{date:string, percent:number, used?:number|null}>} rawDays
  * @param {number} n
  */
-export function buildSeries(rawDays, n) {
+export function buildSeries(rawDays: any, n: any) {
   if (!Array.isArray(rawDays) || rawDays.length === 0) {
     return buildAllEmpty(n);
   }
@@ -56,7 +56,7 @@ export function buildSeries(rawDays, n) {
       prev.used = used;
     }
   }
-  const sorted = [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sorted = [...map.values()].sort((a: any, b: any) => (a.date < b.date ? -1 : 1));
   let series = sorted.slice(-n);
   const today = todayKey();
   const lastDate = series.length > 0 ? series[series.length - 1].date : today;

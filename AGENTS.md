@@ -5,17 +5,17 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），连同 `helpers/mock-http`、`fixtures/timer-audit/*`、`perf/{startup,brew-lock}-bench`、`visual/{visual,games}.spec` 6 个非 vitest 文件也已 `.ts`；`_setup/*.cjs` 保留为 CJS helper bridge。`find tests -name "*.js" ! -name "*.cjs"` = 0。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），连同 `helpers/mock-http`、`fixtures/timer-audit/*`、`perf/{startup,brew-lock}-bench`、`visual/{visual,games}.spec` 6 个非 vitest 文件也已 `.ts`；`_setup/*.cjs` 保留为 CJS helper bridge；**Phase 7 完成** — 150 个 `src/**/*.ts` 内部 `require()/module.exports` 改 ESM `import/export` (7a 全批 + 5 例外 dual-export)，随后 **126 个 `src/**/*.js` shim 全删** (7b)，vitest `resolve.extensions` 加 `.ts`，仅 Phase 3 五例外 (`http-client`/`state-store`/`token-budget`/`log`/`platform/index`) 保留为 CJS shim 供 main/src/.ts `require("./foo.js")` 直引。`find src -name "*.js" | grep -v "^src/main/.*$\|^src/platform/index\.js$"` = 0。
 
 ## 仓库布局
 
- - `src/main/` — 主进程（Phase 3 已 100% `.ts`。测试：`requireMain` → `dist-test`。例外 shim：`http-client`/`state-store`/`token-budget`/`log` + `platform/index`，供非 main JS 调用方；**Phase 5**：`src/utils/{app-paths,version-utils,stale-detect}.js` + `src/detectors/*.js` + `src/metals/*.js` + `src/funds/*.js` + `src/stocks/**/*.js` + `src/ai/*.js` + `src/ai-sessions/*.js` + `src/ai-usage/*.js` + `src/workers/*.js` + `src/release-notes/*.js` 同款 shim → `dist-test/{utils,detectors,metals,funds,stocks,ai,ai-sessions,ai-usage,workers,release-notes}/*.cjs`）
+ - `src/main/` — 主进程（Phase 3 已 100% `.ts`。测试：`requireMain` → `dist-test`。**Phase 7 收尾**：仅 `http-client`/`state-store`/`token-budget`/`log` 4 个例外 shim 保留 (CJS `module.exports` only，main/release-notes.ts `require("./foo.js")` 直接吃);`platform/index.js` 也已删,改成 ESM dual-export (named + default export + module.exports)。其余 Phase 5 的 126 个 shim (utils/detectors/metals/funds/stocks/ai/ai-sessions/ai-usage/workers/release-notes) 全删—— caller 走 `import` ESM 或 `requireAi("foo")`/`requireWorkers("foo")` 等 helper 加载 dist-test .cjs 产物）
   - `src/main/ai-leaderboard/` — AI 榜单核心（fetcher 6 个 + aggregator + ranking + scheduler + types + normalize + cache）
   - `src/main/ipc/` — IPC handler（注册到 `ipcMain`）
   - `src/main/games/`, `src/main/funds/`, `src/main/worldcup/`, `src/main/ithome/`, `src/main/wechat-hot/` — 各业务域
  - `src/renderer/` — 渲染进程（Preact + esbuild；**Phase 4 已完成**：全部 `.ts`/`.tsx`）
   - `src/renderer/ai-leaderboard/` — 榜单 UI（4 个视角 tab：Arena / AA / LiveBench / HuggingFace）
- - `src/config/` / `src/utils/` / `src/detectors/` / `src/metals/` / `src/funds/` / `src/stocks/` / `src/ai/` / `src/ai-sessions/` / `src/ai-usage/` / `src/workers/` / `src/release-notes/` — **Phase 5**：真相在 `.ts`；经 `.js` shim 供 main/tests；metal-config/metal-calc 与 fundCalc/fund-history/fund-nav-merge/format/fund-category/concentration/pnlCsv 与 diagnosis-scorer/strategies/stock-constants/stock-filter 与 default-models/ai-errors 与 anomaly-detect/history-series/format-glm 为 renderer 共享（export-only）。**prod worker** 走 `scripts/build-main.cjs` 打出的自包含 `dist/workers/detect-worker.js`（不进 main bundle；asar 用 `dist/workers/**`，不再打包 `src/workers/**`）
+ - `src/config/` / `src/utils/` / `src/detectors/` / `src/metals/` / `src/funds/` / `src/stocks/` / `src/ai/` / `src/ai-sessions/` / `src/ai-usage/` / `src/workers/` / `src/release-notes/` — **Phase 7**：真相在 `.ts`，已 ESM-ify (named `export` + 必要的 `import { ... }`/`import * as`)，`.js` shim 已删。tests 走 `requireUtils("foo")` 等 helper 加载 dist-test .cjs 产物；main/worker 内部用 `require("./foo.js")` (esbuild plugin backfill .js → .ts)。metal-config/metal-calc 与 fundCalc/fund-history/fund-nav-merge/format/fund-category/concentration/pnlCsv 与 diagnosis-scorer/strategies/stock-constants/stock-filter 与 default-models/ai-errors 与 anomaly-detect/history-series/format-glm 为 renderer 共享（纯 named `export`）。**prod worker** 走 `scripts/build-main.cjs` 打出的自包含 `dist/workers/detect-worker.js`（不进 main bundle；asar 用 `dist/workers/**`，不再打包 `src/workers/**`）
 - `tests/` — vitest 单元测试（main 测走 `dist-test/main/per-file/*.cjs`，renderer 测走 happy-dom）
 - `scripts/` — 构建脚本（`build-main.cjs` 产线：main + workers bundle / `build-main-ts.cjs` dev-test）
 - `docs/` — 架构文档
@@ -43,6 +43,10 @@
 - **Pulse `module.exports` vs `__export` 共存导致 sortValue 类型丢失** — 加新 export 后必须同步到底部 `module.exports = {...}`
 - **esbuild 编译 .ts 双重导出坑**（跨项目通用）— `export function` + `module.exports` 双导出范式
 - **esbuild `__export` 包装的 `__esModule: true` 互操作** — 调用方按 ESM 语义会踩坑
+- **Pulse Phase 7 src/.js shim 删除关键决策** — vitest `require("../../src/foo")` 走 Node CJS 解析，不走 vite resolve.extensions；必须改成 `requireFoo("bar")` 走 dist-test .cjs 产物，或者改测试 import。**src/.ts 内部 `require("../bar")` (no .js) 删 shim 后 Node CJS 不能 resolve .ts**，要么加 `.js` 后缀 (esbuild plugin backfill) 要么改 ESM `import`
+- **Pulse `vi.mock` hook ESM import 但 hook 不到 CJS `require.cache` 注入** — Phase 7 删 shim 后 detector-chain.ts 走 ESM `import * as`，require.cache 注入对 ESM namespace 不生效；改用 `vi.mock("../path/to/storage")` mock `loadBreakers`/`upsertBreaker` 绕过真实 state.json 持久污染
+- **Pulse `const X = createRequire(import.meta.url)` TDZ** — ESM 模块顶层 `const require = createRequire(import.meta.url)` + `const { ... } = require(...)` 在 require-main import 之前会报 "Cannot access 'require' before initialization"；改用 `const _require = createRequire(...)` 别名 + `_require("../_setup/require-main.cjs")`，且 require-main import 必须放在所有 `import` 语句之后（ESM hoist 错位）
+- **Pulse `extractFn(name)` 测试读 .ts source eval Function ctor** — Phase 7 ESM-ify 后 .ts source 含 `: any` TS syntax，`new Function('${src}; return X')()` 报 "Unexpected token ':'"；改读 `dist-test/.cjs` 编译产物
 
 ## 关键命令速查
 
@@ -62,6 +66,8 @@ npm run build:win           # Windows 包
 npm run lint                # eslint
 npm run lint:css            # stylelint
 ```
+
+> **Phase 7 后状态**：vitest 跑 469 文件 4832 pass + 4 skip + 4-6 已知 flaky（games-p1c date-related + home-grid）；4 个 tsconfigs (`app`/`preload`/`renderer`/`tests`) 0 errors；`tsconfig.app.strict.json` 86 errors 主要是 ai-sessions strict 历史遗留（不属于 Phase 7 引入）；`find src -name "*.js"` = 4（Phase 3 五例外最后堡垒）。
 
 ## 数据源（v2.79.4）
 
@@ -85,18 +91,22 @@ npm run lint:css            # stylelint
 
 - `docs/architecture.md`（如有）— 整体架构
 - `RELEASE-NOTES.md` 顶部 — 最新变更
-- `tests/ai-leaderboard/main.test.js` — 数据层契约（asserts 决定 schema 边界）
+- `tests/ai-leaderboard/main.test.ts` — 数据层契约（asserts 决定 schema 边界；Phase 6 已迁 .ts）
 
 ## 不要做
 
-- **不要** 再批量加回 dual-path `.js` shim — Batch 9 已清掉；仅 `http-client`/`state-store`/`token-budget`/`log`/`platform/index` 是给非 main JS 留的例外
+- **不要** 再批量加回 dual-path `.js` shim — **Phase 7 已删 126 个 shim**，仅 `http-client`/`state-store`/`token-budget`/`log` (4 个) 保留为 Phase 3 5 例外最后堡垒；新增 src/ 模块直接 `.ts` 走 ESM `import`/`export`，不用 shim 兜底
 - **不要** 在 `toAiModel` 默认 5 字段 sources 里加新字段（保护 11+ toEqual 断言）— 新源切片用新字段但 sources 默认 5 字段不变
 - **不要** `git add -p` 跨"我+别人"mixed 文件 — 用 explicit path add
 - **不要** restore + apply 来回 — 用 `cp /tmp/backup` 兜底
 - **不要** 拍"等 X 公布"边界前必 web_search 验（按 agent memory 教训）
 - **不要** 把 `tests/**/*.ts`/`tests/**/*.tsx` 加回 `tsconfig.tests.json` 的 include — Phase 6 已 exclude，Bundler resolution 会触发 169 个假阳性 (dist-test/.cjs 产物类型窄化)，vitest 不依赖 tsconfig.include 仍跑 469 文件 4869 测试
 - **不要** `sed -i '1i ...' $(find ...)` 在 zsh 下会爆 — 用 while read + per-file 处理
+- **不要** 在 src/.ts 内部 `require("./foo")` 不加 `.js` 后缀 — 删 shim 后 Node CJS 不能 resolve `.ts`；统一用 `require("./foo.js")` (esbuild plugin backfill 到 .ts)。prod build 走 esbuild 编译期处理，vitest 测试同样依赖 build-main-ts.cjs plugin
+- **不要** 把 `vi.mock` 跟 `require.cache[path] = {...}` 注入混用 — Phase 7 ESM-ify 后 module exports 是 frozen ESM namespace，require.cache stub 注入不生效；要 mock ESM module 用 `vi.mock("../../src/path/to/file.ts", () => ({ ... }))`
+- **不要** 在 ESM test 顶部用 `const require = createRequire(import.meta.url)` 然后紧接 `require("../_setup/require-main.cjs")` — ESM hoist + TDZ 会让 `require` 报 "before initialization"；用 `const _require = createRequire(...)` 别名 + `_require(...)` 调用
 
 ## .mavis/ 项目级 skill
 
 - `.mavis/skill/phase3-typescript-migration.md` — Phase 3 TS 迁移的具体操作 + 踩坑
+- `.mavis/phase7-esm-ify.md` — Phase 7 src/.ts ESM-ify + 删 shim 重启版的详细计划（7a + 7b 两阶段、风险、回退）

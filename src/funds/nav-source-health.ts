@@ -39,9 +39,9 @@ export class NavSourceHealth {
       opts.consecutiveFailThreshold ?? CONSECUTIVE_FAIL_THRESHOLD;
     this._minSuccessRate = opts.minSuccessRate ?? MIN_SUCCESS_RATE;
     /** @type {Record<string, HealthSample[]>} */
-    this._samples = Object.fromEntries(SOURCES.map((s) => [s, []]));
+    this._samples = Object.fromEntries(SOURCES.map((s: any) => [s, []]));
     /** @type {Record<string, number>} */
-    this._consecutiveFails = Object.fromEntries(SOURCES.map((s) => [s, 0]));
+    this._consecutiveFails = Object.fromEntries(SOURCES.map((s: any) => [s, 0]));
   }
 
   /**
@@ -71,7 +71,7 @@ export class NavSourceHealth {
       return true;
     const list = this._samples[source];
     if (list.length < 3) return false; // 样本太少别瞎判
-    const succ = list.filter((s) => s.ok).length;
+    const succ = list.filter((s: any) => s.ok).length;
     return succ / list.length < this._minSuccessRate;
   }
 
@@ -82,7 +82,7 @@ export class NavSourceHealth {
     const out = {};
     for (const s of SOURCES) {
       const list = this._samples[s];
-      const succ = list.filter((x) => x.ok).length;
+      const succ = list.filter((x: any) => x.ok).length;
       out[s] = {
         samples: list.length,
         successRate: list.length > 0 ? +(succ / list.length).toFixed(3) : null,
@@ -104,7 +104,7 @@ export class NavSourceHealth {
   pickPreferred(primary: any) {
     if (!SOURCES.includes(primary)) primary = SOURCES[0];
     if (!this.isUnhealthy(primary)) return primary;
-    const alt = SOURCES.find((s) => s !== primary);
+    const alt = SOURCES.find((s: any) => s !== primary);
     if (!alt) return primary;
     if (this.isUnhealthy(alt)) return primary; // 两源都挂 → 主源
     return alt;

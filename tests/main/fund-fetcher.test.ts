@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/main/fund-fetcher.test.js
  *
@@ -16,7 +18,7 @@ const {
   fetchFundNavBatch,
   parseJsonpgz,
   mapFundData,
-} = require("../../src/funds/fund-fetcher.js");
+} = requireFunds("fund-fetcher");
 
 const SAMPLE_JSONP =
   'jsonpgz({"fundcode":"000001","name":"华夏成长混合","jzrq":"2026-06-11","dwjz":"1.2860","gsz":"1.2959","gszzl":"0.77","gztime":"2026-06-12 13:13"});';

@@ -5,7 +5,7 @@
  */
 const FLOW_URL = "https://push2his.eastmoney.com/api/qt/stock/fflow/kline/get";
 
-export async function fetchCapitalFlow(httpClient, { code }) {
+export async function fetchCapitalFlow(httpClient: any, { code }: any) {
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
   // klt=101 日级资金流 (lmt=15 取最近 15 个交易日). 用日级而非分钟级(klt=1),
   // 因为分钟级在非交易时段/盘后返空 klines, 日级始终有历史数据.
@@ -21,7 +21,7 @@ export async function fetchCapitalFlow(httpClient, { code }) {
       const out = parseFlow(bodyObj);
       if (out) return { ok: true, data: out };
     }
-  } catch (e) {
+  } catch (e: any) {
     /* fall through */
   }
   // ponytail: 2026-07-07 全部失败时 (周末接口限流/新股无数据), 返 noData 占位
@@ -38,17 +38,17 @@ export async function fetchCapitalFlow(httpClient, { code }) {
   };
 }
 
-function parseFlow(body) {
+function parseFlow(body: any) {
   if (!body || !body.data || !Array.isArray(body.data.klines)) return null;
   // ponytail: em fflow 接口对部分股票 (新股/小盘/北交所) 返 klines: [],
   // 没数据不算接口错, 返 0 占位让 UI 显示 "暂无资金流向" 而不是 failed.
   const klines = body.data.klines;
-  const main = klines.map((line) => {
+  const main = klines.map((line: any) => {
     const parts = String(line).split(",");
     return Number(parts[1]) || 0;
   });
-  const last5 = main.slice(-5).reduce((s, x) => s + x, 0);
-  const last10 = main.slice(-10).reduce((s, x) => s + x, 0);
+  const last5 = main.slice(-5).reduce((s: any, x: any) => s + x, 0);
+  const last10 = main.slice(-10).reduce((s: any, x: any) => s + x, 0);
   return {
     mainNetInflow5d: last5,
     mainNetInflow10d: last10,
@@ -56,10 +56,10 @@ function parseFlow(body) {
   };
 }
 
-function safeParse(s) {
+function safeParse(s: any) {
   try {
     return JSON.parse(s);
-  } catch (_) {
+  } catch (_: any) {
     return null;
   }
 }

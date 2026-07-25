@@ -10,7 +10,7 @@
  * @param {number} now
  * @returns {number}
  */
-export function localDayStart(dateKey, now) {
+export function localDayStart(dateKey: any, now: any) {
   const m1 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
   if (!m1) return NaN;
   const y = parseInt(m1[1], 10);
@@ -24,7 +24,7 @@ export function localDayStart(dateKey, now) {
 }
 
 /** 同 localDayStart, 非法输入返 0 (engine 过滤用). */
-export function dateKeyToMs(dateKey, now) {
+export function dateKeyToMs(dateKey: any, now: any) {
   const ms = localDayStart(dateKey, now);
   return Number.isFinite(ms) ? ms : 0;
 }

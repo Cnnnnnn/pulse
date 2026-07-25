@@ -9,13 +9,30 @@
  * 误判预发布". 新逻辑: 收集所有源版本取最新; 仅在"所有权威源都失败、唯一
  * 版本来自 enrich_only"时降级标记 enrich_fallback.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { createRequire } from "node:module";
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes, mainArtifactPath, platformArtifactPath, detectorArtifactPath, workersArtifactPath } = _require("../_setup/require-main.cjs");
 import { runDetectorChain } from "../../src/workers/detector-chain.ts";
 import { MockHttp, makeCtx } from "../helpers/mock-http";
+
+import { Detector, DetectorResult } from "../../src/detectors/base";
 
 const HTML_CHANGELOG = (ver) =>
   `<h2 id="_${ver}">${ver} 版本发布</h2><p>release notes</p>` +
   `<h2 id="_old">1.0.0 版本发布</h2>`;
+
+// ponytail: 7b 删 src/.js shim 后, detector-chain.ts 走 ESM import. require.cache
+// 注入对 ESM namespace 不生效 (namespace 是 frozen). 改用 vi.mock hook ESM import,
+// 强制 loadBreakers/upsertBreaker 返回空 / mock, 避免 state.json 跨测试持久状态污染.
+vi.mock("../../src/detectors/circuit-breaker-storage.ts", async () => {
+  const real = await vi.importActual("../../src/detectors/circuit-breaker-storage.ts");
+  return {
+    ...real,
+    loadBreakers: vi.fn(async () => ({})),
+    upsertBreaker: vi.fn(async () => {}),
+  };
+});
 
 const WB_DETECTORS = [
   {

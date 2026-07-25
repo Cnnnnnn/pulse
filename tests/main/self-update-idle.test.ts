@@ -6,8 +6,8 @@
  */
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
 const { decideSelfUpdateTick } = requireMain("self-update-idle");
 
 const FIVE_MIN = 5 * 60 * 1000;

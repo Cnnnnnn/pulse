@@ -11,7 +11,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
  * @param {{get:(url,opts)=>Promise<{status:number,body:string,error?:string}>}} httpClient
  * @returns {Promise<Array<{code:string,name:string,industry:string}>>}
  */
-export async function searchStocks(query, httpClient) {
+export async function searchStocks(query: any, httpClient: any) {
   const q = String(query || "").trim();
   if (!q) return [];
   const url = `https://searchapi.eastmoney.com/api/suggest/get?input=${encodeURIComponent(q)}&type=14&token=D43BF722C8E33BDC906FB84D85E326E8&count=15`;
@@ -25,8 +25,8 @@ export async function searchStocks(query, httpClient) {
     const list =
       (j && j.QuotationCodeTable && j.QuotationCodeTable.Data) || [];
     return list
-      .filter((x) => x && /^\d{6}$/.test(String(x.Code)))
-      .map((x) => ({
+      .filter((x: any) => x && /^\d{6}$/.test(String(x.Code)))
+      .map((x: any) => ({
         code: String(x.Code),
         name: x.Name || "",
         industry: "",

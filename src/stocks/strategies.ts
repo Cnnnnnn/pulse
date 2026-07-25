@@ -43,8 +43,8 @@ export const STRATEGIES = [
   },
 ];
 
-export function getStrategy(id) {
-  return STRATEGIES.find((s) => s.id === id) || null;
+export function getStrategy(id: any) {
+  return STRATEGIES.find((s: any) => s.id === id) || null;
 }
 
 /**
@@ -52,7 +52,7 @@ export function getStrategy(id) {
  * @param {string} id
  * @returns {object|null} criteria, null 表示 id 未知
  */
-export function buildCriteria(id) {
+export function buildCriteria(id: any) {
   const s = getStrategy(id);
   if (!s) return null;
   return s.buildCriteria();

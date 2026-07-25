@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/main/fund-nav-merge.test.js
  */
@@ -8,7 +10,7 @@ const {
   resolveNavSnapshot,
   pickEffectiveNavNumber,
   normalizeNavSource,
-} = require("../../src/funds/fund-nav-merge.js");
+} = requireFunds("fund-nav-merge");
 
 describe("attachAltNav", () => {
   const primary = {

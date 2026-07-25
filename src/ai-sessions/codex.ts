@@ -89,7 +89,7 @@ export class CodexDetectorImpl {
       ? Date.now() - maxMtimeAgeDays * 86400_000
       : 0;
     const files = await _scanAllRollouts(this.sessionsDir, cutoffMs);
-    return files.map((f) => ({
+    return files.map((f: any) => ({
       id: _idFromFilename(path.basename(f.file)) || path.basename(f.file, '.jsonl'),
       file: f.file,
       mtimeMs: f.mtimeMs,
@@ -103,7 +103,7 @@ export class CodexDetectorImpl {
    * @param {string} id
    * @returns {Promise<{id, startedAt, endedAt, messages, title?, workspaceDir?, file?}>}
    */
-  async readSession(id) {
+  async readSession(id: any) {
     if (typeof id !== 'string' || id.length === 0) {
       throw new TypeError('readSession: id must be non-empty string');
     }
@@ -124,12 +124,12 @@ export class CodexDetectorImpl {
  * @param {number} [cutoffMs=0]
  * @returns {Promise<Array<{file, mtimeMs, sizeBytes}>>}
  */
-async function _scanAllRollouts(dir, cutoffMs = 0) {
-  const out = [];
+async function _scanAllRollouts(dir: any, cutoffMs: any = 0) {
+  const out: any[] = [];
   let entries;
   try {
     entries = await fsp.readdir(dir, { withFileTypes: true });
-  } catch (err) {
+  } catch (err: any) {
     if (err && (err.code === 'ENOENT' || err.code === 'EACCES' || err.code === 'ENOTDIR')) {
       return [];
     }
@@ -158,7 +158,7 @@ async function _scanAllRollouts(dir, cutoffMs = 0) {
  * @param {string} name
  * @returns {string|null}
  */
-export function _idFromFilename(name) {
+export function _idFromFilename(name: any) {
   const m = /^rollout-[\d-]+T[\d-]+-(.+)\.jsonl$/.exec(name);
   return m ? m[1] : null;
 }
@@ -169,7 +169,7 @@ export function _idFromFilename(name) {
  * @param {string} id
  * @returns {Promise<string|null>}
  */
-async function _findFileById(dir, id) {
+async function _findFileById(dir: any, id: any) {
   let entries;
   try {
     entries = await fsp.readdir(dir, { withFileTypes: true });
@@ -204,13 +204,13 @@ async function _findFileById(dir, id) {
  *   workspaceDir?: string,
  * }>}
  */
-export async function _parseCodexJsonl(file) {
-  const messages = [];
+export async function _parseCodexJsonl(file: any) {
+  const messages: any[] = [];
   let sessionUuid = null;
   let workspaceDir = null;
   let idFromMeta = null;
 
-  await parseJsonlFile(file, (row) => {
+  await parseJsonlFile(file, (row: any) => {
     const ts = _parseTs(row.timestamp);
 
     if (row.type === 'session_meta' && row.payload && typeof row.payload === 'object') {
@@ -246,8 +246,8 @@ export async function _parseCodexJsonl(file) {
     }
   });
 
-  messages.sort((a, b) => (a.ts || 0) - (b.ts || 0));
-  const tsList = messages.map((m) => m.ts).filter((t) => t > 0);
+  messages.sort((a: any, b: any) => (a.ts || 0) - (b.ts || 0));
+  const tsList = messages.map((m: any) => m.ts).filter((t: any) => t > 0);
   const startedAt = tsList.length > 0 ? Math.min(...tsList) : 0;
   const endedAt = tsList.length > 0 ? Math.max(...tsList) : 0;
 
@@ -269,7 +269,7 @@ export async function _parseCodexJsonl(file) {
  * "信息量"过滤: 跳过 < 8 字符的 query (太短像 '可以'/'好的'/'ok'), 跳过常见语气词开头
  * (这样长会话里前几次短确认不会盖掉后续真正的 query).
  */
-export function _extractCodexTitle(messages) {
+export function _extractCodexTitle(messages: any) {
   if (!Array.isArray(messages) || messages.length === 0) return '';
   for (const msg of messages) {
     if (!msg || msg.role !== 'user' || typeof msg.content !== 'string') continue;
@@ -290,7 +290,7 @@ export function _extractCodexTitle(messages) {
 }
 
 /** 单测兼容导出 */
-export function _firstMeaningfulLine(text) {
+export function _firstMeaningfulLine(text: any) {
   return firstMeaningfulLine(text);
 }
 
@@ -299,9 +299,9 @@ export function _firstMeaningfulLine(text) {
  *   [{type:'input_text', text:'...'}, {type:'input_image', image_url:'...'}, ...]
  * 跟 OpenAI Chat Completions content 数组同结构.
  */
-export function _extractResponseContent(content) {
+export function _extractResponseContent(content: any) {
   if (!Array.isArray(content)) return '';
-  const parts = [];
+  const parts: any[] = [];
   for (const c of content) {
     if (!c || typeof c !== 'object') continue;
     if (typeof c.text === 'string') {
@@ -317,7 +317,7 @@ export function _extractResponseContent(content) {
 /**
  * ISO timestamp 字符串 → epoch ms. 失败返 0.
  */
-function _parseTs(ts) {
+function _parseTs(ts: any) {
   if (typeof ts !== 'string' || ts.length === 0) return 0;
   const t = Date.parse(ts);
   return Number.isFinite(t) ? t : 0;

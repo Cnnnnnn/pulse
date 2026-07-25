@@ -25,10 +25,10 @@ const MAX_PAGES = 100;
  * 构造 Sina 列表 URL. node=hs_a (沪深 A 股), num=页大小, page=页码 (1-based),
  * sort=changepercent (按涨跌幅), asc=0 (降序).
  */
-export function buildSinaUrl(page = 1, num = PAGE_SIZE) {
+export function buildSinaUrl(page: any = 0) {
   const q = new URLSearchParams({
     node: "hs_a",
-    num: String(num),
+    num: String(PAGE_SIZE),
     page: String(page),
     sort: "changepercent",
     asc: "0",
@@ -40,7 +40,7 @@ export function buildSinaUrl(page = 1, num = PAGE_SIZE) {
 /**
  * 解析 Sina 响应 — 它返回 JSON 数组 (有时被 var 包裹, 我们做 robust 处理).
  */
-export function parseSinaList(body) {
+export function parseSinaList(body: any) {
   if (typeof body !== "string" || body.length === 0) return [];
   let s = body.trim();
   // Sina 有时会包一层 var hqData_xxx=[]; 去掉
@@ -58,7 +58,7 @@ export function parseSinaList(body) {
 }
 
 /** "-" / 非数 → null (跟 east-money 的 toNum 一致). */
-function toNum(v) {
+function toNum(v: any) {
   if (v == null) return null;
   if (typeof v === "string") {
     const s = v.trim();
@@ -70,7 +70,7 @@ function toNum(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-function toStr(v) {
+function toStr(v: any) {
   if (v == null) return null;
   const s = String(v).trim();
   return s.length > 0 ? s : null;
@@ -80,7 +80,7 @@ function toStr(v) {
  * 把新浪一条数据映射成 StockRow (跟 east-money mapRow 同形, 但 roe=null).
  *   Sina mktcap 单位是"万元", 我们的 row.marketCap 用"元", 故 ×10000.
  */
-export function mapSinaRow(raw) {
+export function mapSinaRow(raw: any) {
   if (!raw || typeof raw !== "object") return null;
   return {
     code: toStr(raw.code),
@@ -107,7 +107,7 @@ export function mapSinaRow(raw) {
  */
 export async function fetchStocksSina(httpClient: any, opts: any = {}) {
   const fetchedAt = Date.now();
-  const all = [];
+  const all: any[] = [];
   const maxPages = opts.maxPages ?? MAX_PAGES;
   try {
     for (let page = 1; page <= maxPages; page++) {
@@ -120,13 +120,13 @@ export async function fetchStocksSina(httpClient: any, opts: any = {}) {
         return { rows: all, fetchedAt, source: "sina", error: `HTTP ${r.status}` };
       }
       const arr = parseSinaList(r.body);
-      const rows = arr.map(mapSinaRow).filter((x) => x && x.code);
+      const rows = arr.map(mapSinaRow).filter((x: any) => x && x.code);
       all.push(...rows);
       // ponytail: 当页返空 / 不满 PAGE_SIZE → 末页, 停
       if (arr.length === 0 || arr.length < PAGE_SIZE) break;
     }
     return { rows: all, fetchedAt, source: "sina" };
-  } catch (e) {
+  } catch (e: any) {
     return {
       rows: all,
       fetchedAt,

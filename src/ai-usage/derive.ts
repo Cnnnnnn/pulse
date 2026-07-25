@@ -15,7 +15,7 @@ export const MAX_BLOW_UP_HOURS = 24; // > 24h 视为速率太低/数据异常, �
  * @param {{used: number|null, fetchedAt: number}|null} prev
  * @returns {number|null} units per hour, 2 位小数; 输入不合法返 null
  */
-export function computeBurnRate(cur, prev) {
+export function computeBurnRate(cur: any, prev: any) {
   if (!cur || !prev) return null;
   if (typeof cur.used !== 'number' || typeof prev.used !== 'number') return null;
   if (typeof cur.fetchedAt !== 'number' || typeof prev.fetchedAt !== 'number') return null;
@@ -37,7 +37,7 @@ export function computeBurnRate(cur, prev) {
  * @param {{used: number|null, fetchedAt: number}|null} prev
  * @returns {number|null} epoch ms 耗尽时间; 不合法/超 24h 返 null
  */
-export function computeBlowUpAt(cur, prev) {
+export function computeBlowUpAt(cur: any, prev: any) {
   const rate = computeBurnRate(cur, prev);
   if (rate === null || rate <= 0) return null;
   if (typeof cur.remaining !== 'number' || cur.remaining <= 0) return null;

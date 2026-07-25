@@ -8,10 +8,10 @@ import os from "os";
 import path from "path";
 import { createRequire } from "module";
 
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = _require("../_setup/require-main.cjs");
 const chatCompletion = vi.fn();
-const sharedLlm = require("../../src/ai/shared-llm.js");
+const sharedLlm = requireAi("shared-llm");
 sharedLlm.chatCompletion = chatCompletion;
 
 const stateStore = requireMain("state-store");
@@ -21,7 +21,7 @@ const {
   buildAdviceMessages,
   usageTierLabel,
   fetchUpgradeAdvice,
-} = require("../../src/ai/upgrade-advice.js");
+} = requireAi("upgrade-advice");
 
 let tmpFile;
 

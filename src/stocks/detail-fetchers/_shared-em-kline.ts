@@ -7,7 +7,7 @@
 const EASTMONEY_KLINE_URL =
   "https://push2his.eastmoney.com/api/qt/stock/kline/get";
 
-export async function fetchEastmoneyKline(httpClient, code, limit) {
+export async function fetchEastmoneyKline(httpClient: any, code: any, limit: any) {
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
   // ponytail: 用 beg+end 限定 90 天窗口, 不用 0/20500101. 拉全历史会触发 em 服务端前复权计算,
   // 返回 8000+ 行 + 极慢 (timeout). lmt 也会被服务端忽略 → 用时间窗自己截断.
@@ -19,26 +19,26 @@ export async function fetchEastmoneyKline(httpClient, code, limit) {
     if (res && typeof res.body === "string") {
       try {
         return { ...res, body: JSON.parse(res.body) };
-      } catch (_) {
+      } catch (_: any) {
         return { ...res, body: null };
       }
     }
     return res;
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, status: 0, error: e.message };
   }
 }
 
-function formatYmd(d) {
+function formatYmd(d: any) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}${m}${day}`;
 }
 
-export function parseEastmoneyKlines(body) {
+export function parseEastmoneyKlines(body: any) {
   if (!body || !body.data || !Array.isArray(body.data.klines)) return null;
-  const out = [];
+  const out: any[] = [];
   for (const line of body.data.klines) {
     const parts = String(line).split(",");
     if (parts.length < 6) return null;

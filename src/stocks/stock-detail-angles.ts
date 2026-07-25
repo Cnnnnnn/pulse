@@ -135,7 +135,7 @@ export const ANGLE_DEFS = [
 ];
 
 export function getAngle(key: any) {
-  return ANGLE_DEFS.find((a) => a.key === key) || null;
+  return ANGLE_DEFS.find((a: any) => a.key === key) || null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -145,30 +145,30 @@ export function getAngle(key: any) {
 //          若新加 angle, 在此补一个 summarizeXxx, 注册表挂上即可.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function num(v) {
+function num(v: any) {
   if (v == null) return null;
   const n = Number(v);
   return Number.isFinite(n) && n !== 0 ? n : null;
 }
 
-function numStr(v, digits = 2) {
+function numStr(v: any, digits: any = 0) {
   const n = num(v);
   return n == null ? null : n.toFixed(digits);
 }
 
-function pct(v, digits = 2) {
+function pct(v: any, digits: any = 0) {
   const s = numStr(v, digits);
   return s == null ? null : `${s}%`;
 }
 
-function billions(v) {
+function billions(v: any) {
   // 元 → 亿: 1e8
   const n = Number(v);
   if (!Number.isFinite(n) || n === 0) return null;
   return `${(n / 1e8).toFixed(2)} 亿`;
 }
 
-function summarizePriceTrend(d) {
+function summarizePriceTrend(d: any) {
   if (!d || !Array.isArray(d.closes) || d.closes.length === 0) return null;
   const closes = d.closes;
   const first = closes[0];
@@ -190,7 +190,7 @@ function summarizePriceTrend(d) {
     .join("; ");
 }
 
-function getSparklineData(d) {
+function getSparklineData(d: any) {
   if (!d || !Array.isArray(d.closes) || d.closes.length === 0) return null;
   const first = Number(d.closes[0]);
   const last = Number(d.closes[d.closes.length - 1]);
@@ -198,9 +198,9 @@ function getSparklineData(d) {
   return d.closes;
 }
 
-function summarizeVolumeTurnover(d) {
+function summarizeVolumeTurnover(d: any) {
   if (!d) return null;
-  const parts = [];
+  const parts: any[] = [];
   if (d.avgAmount30d) {
     parts.push(`30 日均成交额 ${billions(d.avgAmount30d)}`);
   }
@@ -219,9 +219,9 @@ function summarizeVolumeTurnover(d) {
   return parts.length ? parts.join("; ") : null;
 }
 
-function summarizeValuation(d) {
+function summarizeValuation(d: any) {
   if (!d) return null;
-  const parts = [];
+  const parts: any[] = [];
   if (d.pe != null) parts.push(`动态 PE ${numStr(d.pe)} 倍`);
   if (d.pb != null) parts.push(`PB ${numStr(d.pb)} 倍`);
   if (d.pePercentile3y != null)
@@ -229,9 +229,9 @@ function summarizeValuation(d) {
   return parts.length ? parts.join("; ") : "估值数据缺失";
 }
 
-function summarizeProfitability(d) {
+function summarizeProfitability(d: any) {
   if (!d) return null;
-  const parts = [];
+  const parts: any[] = [];
   if (d.roe != null) parts.push(`ROE ${pct(d.roe)}`);
   if (d.grossMargin != null) parts.push(`毛利率 ${pct(d.grossMargin)}`);
   if (d.netMargin != null) parts.push(`净利率 ${pct(d.netMargin)}`);
@@ -243,10 +243,10 @@ function summarizeProfitability(d) {
   return parts.join("; ") + suffix;
 }
 
-function summarizeCapitalFlow(d) {
+function summarizeCapitalFlow(d: any) {
   if (!d) return null;
   if (d.sampleCount === 0) return "该股暂无资金流向数据";
-  const parts = [];
+  const parts: any[] = [];
   if (d.mainNetInflow5d != null)
     parts.push(`近 5 日主力净流入 ${billions(d.mainNetInflow5d)}`);
   if (d.mainNetInflow10d != null)
@@ -254,7 +254,7 @@ function summarizeCapitalFlow(d) {
   return parts.length ? `${parts.join("; ")} (样本 ${d.sampleCount} 天)` : null;
 }
 
-function summarizeTechIndicators(d) {
+function summarizeTechIndicators(d: any) {
   if (!d) return null;
   const ma5 = num(d.ma5);
   const ma10 = num(d.ma10);
@@ -280,22 +280,22 @@ function summarizeTechIndicators(d) {
     .join("; ");
 }
 
-function summarizeNewsBuzz(d) {
+function summarizeNewsBuzz(d: any) {
   if (!d || !Array.isArray(d.items)) return "暂无舆情数据";
   if (d.items.length === 0) return "近 7 日无相关新闻";
-  const pos = d.items.filter((i) => i.sentiment === "positive").length;
-  const neg = d.items.filter((i) => i.sentiment === "negative").length;
-  const neu = d.items.filter((i) => i.sentiment === "neutral").length;
+  const pos = d.items.filter((i: any) => i.sentiment === "positive").length;
+  const neg = d.items.filter((i: any) => i.sentiment === "negative").length;
+  const neu = d.items.filter((i: any) => i.sentiment === "neutral").length;
   const top3 = d.items
     .slice(0, 3)
-    .map((i) => i.title)
+    .map((i: any) => i.title)
     .join(" / ");
   return `共 ${d.items.length} 条 (正 ${pos} / 负 ${neg} / 中 ${neu}); 近期: ${top3}`;
 }
 
-function summarizePeerCompare(d) {
+function summarizePeerCompare(d: any) {
   if (!d) return null;
-  const parts = [];
+  const parts: any[] = [];
   // PE/PB: 改用历史分位 (INDEX_PERCENTILE) + 估值状态. 旧的行业中位/排名字段已废弃.
   if (d.pe != null) {
     const pct =
@@ -322,10 +322,10 @@ function summarizePeerCompare(d) {
   return industryPrefix + parts.join("; ");
 }
 
-function summarizeMoatScore(d) {
+function summarizeMoatScore(d: any) {
   if (!d || d.score == null) return null;
   const breakdown = d.breakdown || {};
-  const dims = [];
+  const dims: any[] = [];
   if (breakdown.marginEdge != null) dims.push(`毛利 ${breakdown.marginEdge}/3`);
   if (breakdown.roicEdge != null) dims.push(`ROIC ${breakdown.roicEdge}/3`);
   if (breakdown.revenueStability != null)
@@ -337,7 +337,7 @@ function summarizeMoatScore(d) {
 }
 
 // ── 业绩预期 (earnings_forecast) ──
-function summarizeEarningsForecast(d) {
+function summarizeEarningsForecast(d: any) {
   if (!d) return null;
   if (!d.items || d.items.length === 0) return "近期无业绩预告/快报披露";
   const latest = d.latest || d.items[0];
@@ -349,7 +349,7 @@ function summarizeEarningsForecast(d) {
   return [latestLine, trendLine].filter(Boolean).join("; ");
 }
 
-function formatChangeRange(min, max) {
+function formatChangeRange(min: any, max: any) {
   if (min == null && max == null) return "";
   if (min != null && max != null) {
     // ponytail: 同一区间 (预增 50%-80%) vs 不同区间 (扭亏) 都支持.
@@ -362,17 +362,17 @@ function formatChangeRange(min, max) {
 
 // ponytail: 把 4 期类型翻译成 LLM 直读的趋势.
 //   全部预增 → "趋势持续向好"; 预增→预减 → "趋势转弱"; 全部预减 → "趋势持续承压".
-function summarizeForecastTrend(items) {
+function summarizeForecastTrend(items: any) {
   if (!items || items.length < 2) return null;
-  const tone = (t) => {
+  const tone = (t: any) => {
     if (!t) return 0;
     if (t.includes("增") || t.includes("扭亏")) return 1;
     if (t.includes("减") || t.includes("首亏") || t.includes("续亏")) return -1;
     return 0;
   };
-  const tones = items.map((it) => tone(it.type));
-  const pos = tones.filter((t) => t > 0).length;
-  const neg = tones.filter((t) => t < 0).length;
+  const tones = items.map((it: any) => tone(it.type));
+  const pos = tones.filter((t: any) => t > 0).length;
+  const neg = tones.filter((t: any) => t < 0).length;
   if (pos === tones.length) return "趋势: 连续向好";
   if (neg === tones.length) return "趋势: 持续承压";
   if (pos > 0 && neg > 0) return "趋势: 由好转弱";
@@ -380,9 +380,9 @@ function summarizeForecastTrend(items) {
 }
 
 // ── 股东结构 (shareholders) ──
-function summarizeShareholders(d) {
+function summarizeShareholders(d: any) {
   if (!d) return null;
-  const parts = [];
+  const parts: any[] = [];
   if (d.holderCountLatest != null) {
     const chg = d.holderCountChangePct;
     const chgStr =
@@ -404,9 +404,9 @@ function summarizeShareholders(d) {
 }
 
 // ── 股本事件 (corporate_events) ──
-function summarizeCorporateEvents(d) {
+function summarizeCorporateEvents(d: any) {
   if (!d) return null;
-  const parts = [];
+  const parts: any[] = [];
   // 分红: 最近一次 (含 派现 / 送股)
   if (d.dividends && d.dividends.length > 0) {
     const latest = d.dividends[0];

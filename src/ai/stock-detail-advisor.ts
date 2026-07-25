@@ -34,7 +34,7 @@ const PII_REGEX =
 // 不再依赖别的字段过滤 (summary 已经做了), 这里只兜底防 LLM 越界.
 const FIELD_ITEM_MAX_LEN = 120;
 
-function dataHash(perAngleData) {
+function dataHash(perAngleData: any) {
   return crypto
     .createHash("sha1")
     .update(JSON.stringify(perAngleData || {}))
@@ -45,7 +45,7 @@ function dataHash(perAngleData) {
 // 注: cache key 不含 scores — scores 由 computeScores(perAngleData) 确定性派生,
 // 同 perAngleData 必同 scores, 故 perAngleData 的 hash 已隐式覆盖 scores.
 // 若 scorer 未来引入非 perAngleData 输入 (如市场状态), 需把 scores 纳入 key 或 bump CACHE_VERSION.
-export function adviseCacheKey(opts) {
+export function adviseCacheKey(opts: any) {
   if (!opts || !opts.code) return null;
   const angles = (opts.angles || []).slice().sort();
   const hash = dataHash(opts.perAngleData);
@@ -69,7 +69,7 @@ export function adviseCacheKey(opts) {
 // 都给它, 解读自然有锚点. 同时显式列出空缺维度, 让 LLM 在写盲点时能引用.
 //
 // 返回 string, 没有就 null (避免在 prompt 里出现空块).
-function _formatBenchmarkBlock(perAngleData) {
+function _formatBenchmarkBlock(perAngleData: any) {
   if (!perAngleData || typeof perAngleData !== "object") return null;
   const lines = ["对比基准 (这只 vs 行业 vs 历史):"];
 
@@ -107,7 +107,7 @@ function _formatBenchmarkBlock(perAngleData) {
       ? perAngleData.valuation.data
       : null;
   if (val && val.pePercentile3y != null) {
-    const exists = lines.some((l) => l.startsWith("- PE:"));
+    const exists = lines.some((l: any) => l.startsWith("- PE:"));
     if (!exists)
       lines.push(`- PE 历史 3 年分位: ${val.pePercentile3y.toFixed(0)}%`);
   }
@@ -148,11 +148,11 @@ function _formatBenchmarkBlock(perAngleData) {
   return lines.join("\n");
 }
 
-function _formatGapBlock(perAngleData, angles) {
+function _formatGapBlock(perAngleData: any, angles: any) {
   // ponytail: 2026-07-07 P0-2 — 数据缺口显式列出, 让 LLM 知道"哪些维度无法判断",
   // 也让前端读取这份列表在 UI 上提示用户.
   if (!Array.isArray(angles) || angles.length === 0) return null;
-  const missing = [];
+  const missing: any[] = [];
   for (const k of angles) {
     const ang = getAngle(k);
     const label = ang ? ang.label : k;
@@ -170,14 +170,14 @@ function _formatGapBlock(perAngleData, angles) {
   return `数据缺口 (这些维度无法可靠判断): ${missing.join("、")}`;
 }
 
-export function buildAnalyzeMessages(opts) {
+export function buildAnalyzeMessages(opts: any) {
   const { code, angles, perAngleData, freeText, scores } = opts || {};
   if (!code) throw new Error("buildAnalyzeMessages: code 必填");
   const def = resolvePrompt(PROMPT_KEY);
   const system = [def.system, def.rules, def.fewShot]
     .filter(Boolean)
     .join("\n\n");
-  const lines = [];
+  const lines: any[] = [];
   lines.push(`股票: ${code}`);
   // ── scores 块 (规则评分, AI 只解读不打分) ──
   // Task 2: scores 由规则确定性算出 (diagnosis-scorer), AI 收到后基于此写解读, 不重新打分.
@@ -245,7 +245,7 @@ export function buildAnalyzeMessages(opts) {
 
 // ponytail: 字符串数组清洗 (PII 脱敏 + 长度截断 + forbidden 替换), 用于 highlights /
 // blindspots / risks / perAngle 字符串值. 数组保留前 4 条, 每条截到 FIELD_ITEM_MAX_LEN.
-function cleanStringField(s) {
+function cleanStringField(s: any) {
   if (typeof s !== "string") return null;
   let t = s.trim();
   if (!t) return null;
@@ -261,10 +261,10 @@ function cleanStringField(s) {
 // 加前面一段 "Note: ..." 含另一对 {}, 会拿错段 (跨段被吞了).
 // ponytail fix: 用 stack 找**平衡**的 {...} 段, 选最长的 (覆盖嵌套完整 JSON).
 // 仍抓不到 → 返 null, 不强行解析.
-function _extractBalancedJson(text) {
+function _extractBalancedJson(text: any) {
   if (typeof text !== "string" || !text) return null;
   let best = null;
-  const stack = [];
+  const stack: any[] = [];
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === "{") stack.push(i);
@@ -301,7 +301,7 @@ export function parseAndValidateAnalyze(rawText: any): any {
 
   // 新版字段 (2026-07-07): highlights / blindspots. 数组, 1-2 条.
   const highlightsRaw = Array.isArray(parsed.highlights)
-    ? parsed.highlights.filter((s) => typeof s === "string")
+    ? parsed.highlights.filter((s: any) => typeof s === "string")
     : [];
   const highlights = highlightsRaw
     .map(cleanStringField)
@@ -309,7 +309,7 @@ export function parseAndValidateAnalyze(rawText: any): any {
     .slice(0, 2);
 
   const blindspotsRaw = Array.isArray(parsed.blindspots)
-    ? parsed.blindspots.filter((s) => typeof s === "string")
+    ? parsed.blindspots.filter((s: any) => typeof s === "string")
     : [];
   const blindspots = blindspotsRaw
     .map(cleanStringField)
@@ -328,7 +328,7 @@ export function parseAndValidateAnalyze(rawText: any): any {
   }
 
   const risksRaw = Array.isArray(parsed.risks)
-    ? parsed.risks.filter((s) => typeof s === "string")
+    ? parsed.risks.filter((s: any) => typeof s === "string")
     : [];
   const risks = risksRaw.map(cleanStringField).filter(Boolean).slice(0, 3);
 
@@ -338,9 +338,9 @@ export function parseAndValidateAnalyze(rawText: any): any {
 
 // ponytail: 2026-07-07 P0-2 — 在 LLM 拿到 prompt 前就显式算出"无法判断的维度",
 // 一起返回, 让前端 UI 直接展示缺口. 不依赖 LLM 是否遵守规则.
-function computeDataGaps(angles, perAngleData) {
+function computeDataGaps(angles: any, perAngleData: any) {
   if (!Array.isArray(angles)) return [];
-  const gaps = [];
+  const gaps: any[] = [];
   for (const k of angles) {
     const ang = getAngle(k);
     const label = ang ? ang.label : k;
@@ -469,13 +469,13 @@ const LOCAL_TEMPLATES = {
 };
 
 // 把一个数字 n 截到小数后 d 位再格式化.
-function _fmt(n, d) {
+function _fmt(n: any, d: any) {
   if (n == null || !Number.isFinite(n)) return "—";
   return Number(n).toFixed(d);
 }
 
 // 用 score (0-10) 推 tone. 7+ → positive, 4-6 → neutral, 0-3 → cautious, 缺数据 → null.
-function _toneFromScore(score) {
+function _toneFromScore(score: any) {
   if (score == null) return null;
   if (score >= 7) return "positive";
   if (score <= 3) return "cautious";
@@ -483,7 +483,7 @@ function _toneFromScore(score) {
 }
 
 // 用 perAngleData 内字段做模板替换. 缺字段时整段 fallback 文字.
-function _fillTemplate(tpl, perAngleData, scores) {
+function _fillTemplate(tpl: any, perAngleData: any, scores: any) {
   const a = perAngleData || {};
   const pt =
     a.price_trend && a.price_trend.status === "ok" ? a.price_trend.data : null;
@@ -523,7 +523,7 @@ function _fillTemplate(tpl, perAngleData, scores) {
 // ponytail: 2026-07-07 P1-2 — 单条 angle 的本地刷新. 不调 LLM, 不消耗 token.
 // 1) 用 score 推 tone; 2) 抽模板; 3) 替换占位符; 4) 截 50 字内.
 // 返回 null 时表示"该 angle 缺数据, 没法本地生成" — 调用方应显示"数据缺失".
-export function refreshAngleLocally({ angleKey, perAngleData, scores, seed }) {
+export function refreshAngleLocally({ angleKey, perAngleData, scores, seed }: any) {
   // ponytail: 不依赖 getAngle (它还会拖入 fetcher 等重依赖). LOCAL_TEMPLATES 是
   // 闭包内硬编码, angle key 不在 map 里直接返 null (说明该 angle 没本地模板).
   if (!LOCAL_TEMPLATES[angleKey]) return null;
@@ -585,7 +585,7 @@ const PARSE_RETRY_MAX = 2;
 //   "summary: <text>" / "**summary**: <text>" / '"summary":"<text>"'), 抠出来
 //   当 summary 展示. 找得到就当 ok=true 但带 degrade 标记 (前端可读 fromCache=false
 //   + attempts>1 走降级渲染). 找不到才返 parse_failed.
-function _fallbackProseExtract(rawText) {
+function _fallbackProseExtract(rawText: any) {
   if (typeof rawText !== "string" || !rawText.trim()) return null;
   // 1) 找 "summary" 后面跟的引号内容 (大模型常输出 "summary":"..." 或 'summary':'...')
   const quoted = rawText.match(
@@ -631,7 +631,7 @@ function _fallbackProseExtract(rawText) {
   return null;
 }
 
-export async function aiStockDetailAnalyze(opts) {
+export async function aiStockDetailAnalyze(opts: any) {
   const safeOpts = opts || {};
   const { code, angles, perAngleData, freeText, scores } = safeOpts;
   if (!code) return { ok: false, reason: "invalid_args" };
@@ -669,7 +669,7 @@ export async function aiStockDetailAnalyze(opts) {
       freeText,
       scores,
     });
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, reason: "build_prompt_failed", error: e && e.message };
   }
 
@@ -711,7 +711,7 @@ export async function aiStockDetailAnalyze(opts) {
       if (!parsed._degraded) {
         const nextCache = { ...cacheMap };
         nextCache[cacheKey] = { result: parsed, fetchedAt: Date.now() };
-        stateStore.patchState((st) => {
+        stateStore.patchState((st: any) => {
           st.stockDetailCache = nextCache;
         });
       }

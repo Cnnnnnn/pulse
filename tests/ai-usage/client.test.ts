@@ -1,10 +1,12 @@
 import { describe, test, expect } from "vitest";
 import fs from "fs";
 import path from "path";
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 const {
   _resolveEndpoint,
   MiniMaxQuotaClient,
-} = require("../../src/ai-usage/client");
+} = requireAiUsage("client");
 
 describe("_resolveEndpoint", () => {
   test("returns CN endpoint by default", () => {

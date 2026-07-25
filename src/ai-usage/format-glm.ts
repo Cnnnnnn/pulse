@@ -28,7 +28,7 @@
  * @param {number|null|undefined} n
  * @returns {string|null}
  */
-export function formatTokens(n) {
+export function formatTokens(n: any) {
   if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return null;
   if (n < 1e4) return String(n);
   if (n < 1e8) {
@@ -53,7 +53,7 @@ export function formatTokens(n) {
  * @param {number|null|undefined} seconds
  * @returns {string|null}
  */
-export function formatDuration(seconds) {
+export function formatDuration(seconds: any) {
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
     return null;
   }
@@ -83,7 +83,7 @@ export const LEVEL_LABELS = {
  * @param {string|null|undefined} level
  * @returns {string|null}
  */
-export function levelLabel(level) {
+export function levelLabel(level: any) {
   if (typeof level !== "string" || level.length === 0) return null;
   return LEVEL_LABELS[level] || level;
 }

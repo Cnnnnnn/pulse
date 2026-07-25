@@ -9,7 +9,7 @@ const { requireMain, mainArtifactPath, aiArtifactPath } = require("../_setup/req
 
 const stateStorePath = mainArtifactPath("state-store");
 const sharedLlmPath = aiArtifactPath("shared-llm");
-const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.js");
+const sharedLlmShimPath = require.resolve("../../src/ai/shared-llm.ts");
 
 // mock stateStore 的预算相关方法
 const loadTokenBudgetConfig = vi.fn(() => ({ dailyLimit: 0, mode: "warn" }));

@@ -22,9 +22,9 @@ import { queryRegistryField } from "./win-registry";
  * 和 detector-chain.compareVersions 同思路, 但这里只是给 regex_file 选最大用,
  * 所以不引入 detector-chain (避免 workers → detectors 的循环依赖风险).
  */
-function compareNumeric(a, b) {
-  const pa = String(a).split('.').map((s) => parseInt(s, 10) || 0);
-  const pb = String(b).split('.').map((s) => parseInt(s, 10) || 0);
+function compareNumeric(a: any, b: any) {
+  const pa = String(a).split('.').map((s: any) => parseInt(s, 10) || 0);
+  const pb = String(b).split('.').map((s: any) => parseInt(s, 10) || 0);
   const len = Math.max(pa.length, pb.length);
   for (let i = 0; i < len; i++) {
     const x = pa[i] || 0;
@@ -56,7 +56,7 @@ async function readInstalledJson(src, { bundleId, HOME }) {
  * plist: 从 CFBundleShortVersionString 提取版本号.
  * @returns {string|null}
  */
-function readPlist(plistRaw) {
+function readPlist(plistRaw: any) {
   if (!plistRaw) return null;
   const m = plistRaw.match(/<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/);
   return m ? stripBuildNumber(m[1]) : null;
@@ -69,7 +69,7 @@ function readPlist(plistRaw) {
  * 版本读成最老的 (已修复: 旧实现 raw.match 只取第一个).
  * @returns {Promise<string|null>}
  */
-async function readRegexFile(src, HOME) {
+async function readRegexFile(src: any, HOME: any) {
   if (!src.path || !src.pattern) return null;
   const p = expandHome(src.path, HOME);
   const raw = await fs.promises.readFile(p, 'utf-8');
@@ -91,7 +91,7 @@ async function readRegexFile(src, HOME) {
  * registry_version (Windows): 从注册表读 DisplayVersion.
  * @returns {Promise<string|null>}
  */
-async function readRegistryVersion(src, { _exec }) {
+async function readRegistryVersion(src: any, { _exec }: any) {
   if (!src.reg_path) return null;
   const reg = await queryRegistryField(src.reg_path, 'DisplayVersion', {
     _exec,
@@ -104,7 +104,7 @@ async function readRegistryVersion(src, { _exec }) {
  * _exec 已是 promise-returning (测试注入); 否则用真实 execFile + promisify.
  * @returns {Promise<string|null>}
  */
-async function readWingetList(src, { _exec }) {
+async function readWingetList(src: any, { _exec }: any) {
   const wingetId = src.winget_id;
   if (!wingetId) return null;
   const { execFile } = require('child_process');
@@ -118,7 +118,7 @@ async function readWingetList(src, { _exec }) {
     );
     // 输出形如表格: Name Id Version Available Source
     // 取 Version 列 (第 3 列). 跳过表头行.
-    const lines = stdout.split(/\r?\n/).filter((l) => l.trim());
+    const lines = stdout.split(/\r?\n/).filter((l: any) => l.trim());
     for (const line of lines) {
       const cols = line.split(/\s{2,}/);
       if (cols.length >= 3 && /^\d/.test(cols[2])) {
@@ -135,7 +135,7 @@ async function readWingetList(src, { _exec }) {
  * windows_app_yml: 从 app-update.yml 读 version: x.y.z.
  * @returns {Promise<string|null>}
  */
-async function readWindowsAppYml(src, { _fs }) {
+async function readWindowsAppYml(src: any, { _fs }: any) {
   if (!src.path) return null;
   const fsMod = _fs || fs;
   try {
@@ -153,12 +153,12 @@ async function readWindowsAppYml(src, { _fs }) {
  * 这样 tryVersionSource 本体只负责参数校验 + try/catch 兜底.
  */
 const SOURCE_READERS = {
-  installed_json: (src, ctx) => readInstalledJson(src, ctx),
-  plist: (src, ctx) => readPlist(ctx.plistRaw),
-  regex_file: (src, ctx) => readRegexFile(src, ctx.HOME),
-  registry_version: (src, ctx) => readRegistryVersion(src, ctx),
-  winget_list: (src, ctx) => readWingetList(src, ctx),
-  windows_app_yml: (src, ctx) => readWindowsAppYml(src, ctx),
+  installed_json: (src: any, ctx: any) => readInstalledJson(src, ctx),
+  plist: (src: any, ctx: any) => readPlist(ctx.plistRaw),
+  regex_file: (src: any, ctx: any) => readRegexFile(src, ctx.HOME),
+  registry_version: (src: any, ctx: any) => readRegistryVersion(src, ctx),
+  winget_list: (src: any, ctx: any) => readWingetList(src, ctx),
+  windows_app_yml: (src: any, ctx: any) => readWindowsAppYml(src, ctx),
 };
 
 export async function tryVersionSource(src, { bundleId, plistRaw, homeDir, _exec, _fs }: any = {}) {
@@ -173,7 +173,7 @@ export async function tryVersionSource(src, { bundleId, plistRaw, homeDir, _exec
   }
 }
 
-export function expandHome(p, HOME = process.env.HOME || '/Users/Shared') {
+export function expandHome(p: any, HOME: any = process.env.HOME || '/Users/Shared') {
   if (typeof p !== 'string') return p;
   if (p.startsWith('~/')) return HOME + p.slice(1);
   return p;

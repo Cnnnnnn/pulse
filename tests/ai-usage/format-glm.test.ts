@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/ai-usage/format-glm.test.js
  *
@@ -10,7 +12,7 @@ const {
   formatDuration,
   LEVEL_LABELS,
   levelLabel,
-} = require("../../src/ai-usage/format-glm");
+} = requireAiUsage("format-glm");
 
 describe("formatTokens — token 数 → 中文紧凑单位", () => {
   test("亿级: 672305536 → '6.72 亿'", () => {

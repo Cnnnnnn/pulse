@@ -18,23 +18,23 @@ import { buildDetectResult } from "./result-builder";
 import { sendProgress, postLog, ARCH, PLATFORM } from "./ipc";
 const {
   AppBundleChangelogDetector,
-} = require("../detectors/app-bundle-changelog");
+} = require("../detectors/app-bundle-changelog.js");
 
 const pExecFile = promisify(execFile);
 
 export const DETECT_APP_TIMEOUT_MS = 90_000;
 export const BREW_UPGRADE_TIMEOUT_MS = 320_000;
 
-export function withTimeout(promise, ms, label) {
+export function withTimeout(promise: any, ms: any, label: any) {
   return Promise.race([
     promise,
-    new Promise((_, reject) => {
+    new Promise((_: any, reject: any) => {
       setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms);
     }),
   ]);
 }
 
-export async function handleDetectApp(appCfg, deps) {
+export async function handleDetectApp(appCfg: any, deps: any) {
   const { http, logger } = deps;
   const name = (appCfg && appCfg.name) || "unknown";
   const bundle = (appCfg && appCfg.bundle) || "";
@@ -66,7 +66,7 @@ export async function handleDetectApp(appCfg, deps) {
       source: "",
       note: "",
       bundle,
-      brew_cask: require("./result-builder").extractBrewCask(appCfg),
+      brew_cask: require("./result-builder.js").extractBrewCask(appCfg),
       trace: [],
       ts: startedAt,
       ms: Date.now() - startedAt,
@@ -162,7 +162,7 @@ export async function handleDetectApp(appCfg, deps) {
   return r;
 }
 
-export async function handleBrewUpgrade(cask) {
+export async function handleBrewUpgrade(cask: any) {
   if (!cask) return { success: false, output: "no cask" };
   try {
     const { stdout, stderr } = await pExecFile(
@@ -171,7 +171,7 @@ export async function handleBrewUpgrade(cask) {
       { timeout: 300000 },
     );
     return { success: true, output: (stdout || "") + (stderr || "") };
-  } catch (err) {
+  } catch (err: any) {
     return {
       success: false,
       output: (err && err.message) || "brew upgrade failed",
@@ -185,7 +185,7 @@ export async function handleBrewUpdate() {
       timeout: 120000,
     });
     return { success: true, output: stdout || "" };
-  } catch (err) {
+  } catch (err: any) {
     return {
       success: false,
       output: (err && err.message) || "brew update failed",

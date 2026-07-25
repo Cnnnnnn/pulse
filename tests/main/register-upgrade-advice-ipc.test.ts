@@ -5,10 +5,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createRequire } from "module";
 
-const require = createRequire(import.meta.url);
-const { requireMain, mainArtifactPath, aiArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, mainArtifactPath, aiArtifactPath } = _require("../_setup/require-main.cjs");
 const advicePath = aiArtifactPath("upgrade-advice");
-const adviceShimPath = require.resolve("../../src/ai/upgrade-advice.js");
+const adviceShimPath = require.resolve("../../src/ai/upgrade-advice.ts");
 const registerPath =
   mainArtifactPath("ipc/register-upgrade-advice");
 

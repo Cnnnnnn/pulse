@@ -538,7 +538,7 @@ describe("BoardHealthCard 渲染（P0 回归）", () => {
 describe("P1 图像/视频分榜（Arena 视角）", () => {
   it("ARENA_BOARDS 含 image/video，key 为 Arena board 名（text-to-image / video）", () => {
     expect(ARENA_BOARDS.image).toEqual({ key: "text-to-image", label: "图像生成", category: "image" });
-    expect(ARENA_BOARDS.video).toEqual({ key: "text-to-video", label: "视频", category: "video" });
+    expect(ARENA_BOARDS.video).toEqual({ key: "text-to-video", label: "文生视频", category: "video" });
     expect(ARENA_BOARD_KEYS).toContain("image");
     expect(ARENA_BOARD_KEYS).toContain("video");
     // 索引仍含原三 board，顺序在前（不改变现有默认）

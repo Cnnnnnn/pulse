@@ -13,8 +13,8 @@ import { mkdtempSync, writeFileSync, readFileSync, existsSync, renameSync, unlin
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
 
 let tmpDir;
 let statePath;

@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/ai-usage/normalize-glm.test.js
  *
@@ -10,7 +12,7 @@ const {
   normalizeGlm,
   _findLimit,
   _buildWindow,
-} = require("../../src/ai-usage/normalize-glm");
+} = requireAiUsage("normalize-glm");
 
 describe("normalizeGlm — 完整响应 (5h + weekly + MCP)", () => {
   const fetchedAt = 1718400000000;

@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/main/fund-search.test.js
  *
@@ -9,7 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { MockHttp } from '../helpers/mock-http';
-const { searchFunds, parseSearchResponse } = require('../../src/funds/fund-search.js');
+const { searchFunds, parseSearchResponse } = requireFunds("fund-search");
 
 const SAMPLE = JSON.stringify({
   ErrCode: 0,

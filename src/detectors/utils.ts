@@ -18,7 +18,7 @@ import { DetectorError, REASONS } from "./errors";
  * @param {number} [n=4096]
  * @returns {string|null}  s 为 null/空 → null
  */
-export function truncate(s, n = 4096) {
+export function truncate(s: any, n: any = 0) {
   if (!s) return null;
   return s.length > n ? s.slice(0, n) + "…" : s;
 }

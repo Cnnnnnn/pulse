@@ -12,7 +12,7 @@ import { WorkerPool } from '../../src/workers/pool.ts';
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const WORKER_SCRIPT = path.join(__dirname, '..', '..', 'src', 'workers', 'detect-worker.js');
+const WORKER_SCRIPT = path.join(__dirname, '..', '..', 'dist', 'workers', 'detect-worker.js');
 
 describe('WorkerPool (stub mode)', () => {
   let pool;

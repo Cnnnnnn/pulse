@@ -73,7 +73,7 @@ export const MARKET_CAP_MID = 1e11; // 100亿
  * @param {number|null|undefined} marketCapYuan
  * @returns {"large"|"mid"|"small"|null}
  */
-export function tierForMarketCap(marketCapYuan) {
+export function tierForMarketCap(marketCapYuan: any) {
   if (typeof marketCapYuan !== "number" || !Number.isFinite(marketCapYuan)) {
     return null;
   }

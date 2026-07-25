@@ -5,18 +5,18 @@
  */
 
 // num: 接受 0 (区别于 profitability fetcher 把 0 当 null 的行为)
-function num0(v) {
+function num0(v: any) {
   const n = typeof v === "string" ? Number(v) : v;
   return typeof n === "number" && Number.isFinite(n) ? n : null;
 }
 
-function angleData(perAngleData, key) {
+function angleData(perAngleData: any, key: any) {
   const e = perAngleData && perAngleData[key];
   return e && e.status === "ok" ? e.data || {} : null;
 }
 
 // ── 基本面 ──
-function scoreFundamental(data) {
+function scoreFundamental(data: any) {
   const prof = angleData(data, "profitability");
   if (!prof) return null;
   const roe = num0(prof.roe);
@@ -27,7 +27,7 @@ function scoreFundamental(data) {
   return 2;
 }
 
-function scoreValuation(data) {
+function scoreValuation(data: any) {
   const v = angleData(data, "valuation");
   if (!v) return null;
   const pe = num0(v.pe);
@@ -39,7 +39,7 @@ function scoreValuation(data) {
   return 2;
 }
 
-function scoreCapital(data) {
+function scoreCapital(data: any) {
   const c = angleData(data, "capital_flow");
   // ponytail: 2026-07-07 — 资金流向 fallback 三级. 主路径用 capital_flow. 限流 / 周末时
   // fetcher 走 noData 占位 → sampleCount=0 / mainNetInflow5d=null. 这时不能返 null 让资金
@@ -49,7 +49,7 @@ function scoreCapital(data) {
   //      avgAmount30d 做"量比", 量比 >1 = 当日明显放量 = 资金关注. 量比近似换手率, 方向一致.
   //   3) 全无 → null (确实无成交, 维度不评).
   // ceiling: 量比不知道分股流通市值, 不能区分"中字头大票放量" vs "小票放量". 够用但不细.
-  const turnoverFallback = (data) => {
+  const turnoverFallback = (data: any) => {
     const v = angleData(data, "volume_turnover");
     if (!v) return null;
     const tr = num0(v.latestTurnover);
@@ -86,7 +86,7 @@ function scoreCapital(data) {
   return 4;
 }
 
-function scoreTech(data) {
+function scoreTech(data: any) {
   const t = angleData(data, "tech_indicators");
   if (!t) return null;
   const macdHist = num0(t.macdHist);
@@ -101,7 +101,7 @@ function scoreTech(data) {
   return 5;
 }
 
-function scoreRisk(data) {
+function scoreRisk(data: any) {
   const v = angleData(data, "valuation");
   if (!v) return null;
   const pe = num0(v.pe);
@@ -121,7 +121,7 @@ function scoreRisk(data) {
 }
 
 // news_buzz 把情感标在每个 item 上, 这里聚合为整体倾向 (多数票). 无 items/空 → null.
-function aggregateNewsSentiment(news) {
+function aggregateNewsSentiment(news: any) {
   if (!news || !Array.isArray(news.items) || news.items.length === 0)
     return null;
   let pos = 0,
@@ -153,7 +153,7 @@ export function computeScores(perAngleData: any) {
   const present = DIMENSIONS.filter(([key]) => dimensions[key] !== null);
   let overall = null;
   if (present.length > 0) {
-    const wsum = present.reduce((s, d) => s + d[2], 0);
+    const wsum = present.reduce((s: any, d: any) => s + d[2], 0);
     overall = present.reduce(
       (s, [k, , w]) => s + dimensions[k] * (w / wsum),
       0,
@@ -180,8 +180,8 @@ export function computeScores(perAngleData: any) {
 // 阈值跟 scoreValuation / scoreFundamental / scoreRisk 对齐, 跟评分保持一致口径.
 // ceiling: 不覆盖 AI 给的语义化风险 (政策/突发/风格切换), AI 跑了之后 aiResult.risks
 //          会替换 (RiskCard 内部去重). 没数据 / 全无信号 → 空数组 (老行为).
-export function computeBasicRisks(perAngleData) {
-  const out = [];
+export function computeBasicRisks(perAngleData: any) {
+  const out: any[] = [];
   // 1) 估值偏高
   const v = angleData(perAngleData, "valuation");
   if (v) {

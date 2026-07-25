@@ -5,13 +5,13 @@ const REF = "https://fundf10.eastmoney.com/";
 export function parseLsjzResponse(json: any) {
   const list = json && json.Data && Array.isArray(json.Data.LSJZList) ? json.Data.LSJZList : null;
   if (!list) throw new Error("unexpected lsjz shape");
-  const out = [];
+  const out: any[] = [];
   for (const row of list) {
     const nav = parseFloat(row.DWJZ);
     if (!row.FSRQ || !Number.isFinite(nav)) continue; // 过滤无效
     out.push({ date: String(row.FSRQ), nav });
   }
-  out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  out.sort((a: any, b: any) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   return out;
 }
 
@@ -44,7 +44,7 @@ export async function fetchFundNavHistory(code: any, httpClient: any, opts: any 
       let json;
       try {
         json = JSON.parse(r.body || "{}");
-      } catch (e) {
+      } catch (e: any) {
         if (byDate.size) break;
         return {
           ok: false,
@@ -74,10 +74,10 @@ export async function fetchFundNavHistory(code: any, httpClient: any, opts: any 
     }
     const series = [...byDate.entries()]
       .map(([date, nav]) => ({ date, nav }))
-      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      .sort((a: any, b: any) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     const trimmed = series.length > days ? series.slice(-days) : series;
     return { ok: true, series: trimmed, reason: null };
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, series: [], reason: e && e.message ? e.message : String(e) };
   }
 }
@@ -101,7 +101,7 @@ export function parseIndexResponse(json: any) {
       ? json.data.klines
       : null;
   if (!list) throw new Error("unexpected index kline shape");
-  const out = [];
+  const out: any[] = [];
   for (const line of list) {
     const parts = String(line).split(",");
     const date = parts[0];
@@ -109,7 +109,7 @@ export function parseIndexResponse(json: any) {
     if (!date || !Number.isFinite(value)) continue; // 过滤无效
     out.push({ date, value });
   }
-  out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  out.sort((a: any, b: any) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   return out;
 }
 
@@ -144,7 +144,7 @@ export async function fetchIndexHistory(symbol: any, httpClient: any, opts: any 
     let series = parseIndexResponse(JSON.parse(r.body || "{}"));
     if (days && series.length > days) series = series.slice(-days);
     return { ok: true, series, reason: null };
-  } catch (e) {
+  } catch (e: any) {
     return {
       ok: false,
       series: [],

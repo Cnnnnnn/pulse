@@ -4,7 +4,7 @@
  * 5-minute setInterval state machine for metals. Runs in main process.
  * No worker_threads — only 2 HTTP requests per cycle.
  *
- * HTTP abstraction: takes an injected `httpGet(url, headers) => Promise<string>`
+ * HTTP abstraction: takes an injected `httpGet(url: any, headers: any) => Promise<string>`
  * so the scheduler itself has no electron / http deps. The caller wires up the
  * Pulse httpClient adapter (which always returns a UTF-8 string).
  *

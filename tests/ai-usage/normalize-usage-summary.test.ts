@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/ai-usage/normalize-usage-summary.test.js
  *
@@ -5,7 +7,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-const { normalizeUsageSummary, _parseTokenStr, _parsePctStr } = require("../../src/ai-usage/normalize-usage-summary");
+const { normalizeUsageSummary, _parseTokenStr, _parsePctStr } = requireAiUsage("normalize-usage-summary");
 
 const SAMPLE_RAW = {
   total_days: 90,

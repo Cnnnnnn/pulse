@@ -25,7 +25,7 @@ import { fetchIndustryPeers } from "./_shared-industry";
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
 const PEER_TIMEOUT_MS = 8000;
 
-export async function fetchPeerCompare(httpClient, { code }) {
+export async function fetchPeerCompare(httpClient: any, { code }: any) {
   // 1) 复用 valuation 拿 PE/PB
   const val = await fetchValuation(httpClient, { code });
   if (!val || !val.ok) return { ok: false, reason: "no_industry_data", error: "valuation 失败" };
@@ -39,8 +39,8 @@ export async function fetchPeerCompare(httpClient, { code }) {
   const peers = await fetchIndustryPeers(httpClient, code);
   if (!peers.ok) return { ok: false, reason: peers.reason, error: peers.error };
 
-  const roeValues = peers.data.peers.map((p) => p.roe).filter((v) => v != null);
-  const grossValues = peers.data.peers.map((p) => p.grossMargin).filter((v) => v != null);
+  const roeValues = peers.data!.peers.map((p: any) => p.roe).filter((v: any) => v != null);
+  const grossValues = peers.data!.peers.map((p: any) => p.grossMargin).filter((v: any) => v != null);
 
   const peStatus = valuationRes.pe;
   const pbStatus = valuationRes.pb;
@@ -48,7 +48,7 @@ export async function fetchPeerCompare(httpClient, { code }) {
   return {
     ok: true,
     data: {
-      industry: peers.data.industry,
+      industry: peers.data!.industry,
       pe,
       pePercentile: peStatus ? peStatus.percentile : null,
       peValuationStatus: peStatus ? peStatus.status : null,
@@ -64,7 +64,7 @@ export async function fetchPeerCompare(httpClient, { code }) {
 // RPT_VALUATIONSTATUS: type=1 是 PE_TTM, type=2 是 PB.
 // 每条返回 INDEX_VALUE (当前值) + INDEX_PERCENTILE (历史分位 0-100) + VALATION_STATUS (中文状态).
 // columns=ALL 一次拿多条, 客户端按 type 分.
-async function fetchValuationStatus(httpClient, secucode) {
+async function fetchValuationStatus(httpClient: any, secucode: any) {
   const filter = encodeURIComponent(`(SECUCODE="${secucode}")`);
   const url =
     `${DATACENTER_URL}?reportName=RPT_VALUATIONSTATUS` +
@@ -73,7 +73,7 @@ async function fetchValuationStatus(httpClient, secucode) {
   let res;
   try {
     res = await httpClient.get(url, { timeout: PEER_TIMEOUT_MS });
-  } catch (e) {
+  } catch (e: any) {
     return { pe: null, pb: null };
   }
   if (!res || res.status !== 200 || !res.body) return { pe: null, pb: null };
@@ -83,8 +83,8 @@ async function fetchValuationStatus(httpClient, secucode) {
     body && body.result && Array.isArray(body.result.data) ? body.result.data : [];
 
   // 字段名是 INDICATOR_TYPE (实测: type=1 PE_TTM, type=2 PB), 不是 TYPE.
-  const pe = rows.find((r) => Number(r.INDICATOR_TYPE) === 1);
-  const pb = rows.find((r) => Number(r.INDICATOR_TYPE) === 2);
+  const pe = rows.find((r: any) => Number(r.INDICATOR_TYPE) === 1);
+  const pb = rows.find((r: any) => Number(r.INDICATOR_TYPE) === 2);
   return {
     pe: pe ? { percentile: num(pe.INDEX_PERCENTILE), status: pe.VALATION_STATUS || null } : null,
     pb: pb ? { percentile: num(pb.INDEX_PERCENTILE), status: pb.VALATION_STATUS || null } : null,
@@ -92,8 +92,8 @@ async function fetchValuationStatus(httpClient, secucode) {
 }
 
 // 中位数 (数值数组). 空数组返 null.
-function median(arr) {
-  const sorted = arr.filter((v) => v != null && Number.isFinite(v)).slice().sort((a, b) => a - b);
+function median(arr: any) {
+  const sorted = arr.filter((v: any) => v != null && Number.isFinite(v)).slice().sort((a: any, b: any) => a - b);
   if (sorted.length === 0) return null;
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0
@@ -101,12 +101,12 @@ function median(arr) {
     : sorted[mid];
 }
 
-function num(v) {
+function num(v: any) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
-function safeJson(s) {
+function safeJson(s: any) {
   try {
     return JSON.parse(s);
   } catch {

@@ -13,7 +13,7 @@
  */
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
 
-export async function fetchEarningsForecast(httpClient, { code }) {
+export async function fetchEarningsForecast(httpClient: any, { code }: any) {
   const secucode = `${code}.${code.startsWith("6") ? "SH" : "SZ"}`;
   const filter = encodeURIComponent(`(SECUCODE="${secucode}")`);
   // RPT_RES_FORECAST_MAINBZB: 业绩快报 + 业绩预告合并, 包含: REPORT_DATE, PREDICT_TYPE
@@ -26,7 +26,7 @@ export async function fetchEarningsForecast(httpClient, { code }) {
   let res;
   try {
     res = await httpClient.get(url, { timeout: 8000 });
-  } catch (_) {
+  } catch (_: any) {
     return {
       ok: false,
       reason: "fetch_failed",
@@ -53,7 +53,7 @@ export async function fetchEarningsForecast(httpClient, { code }) {
   };
 }
 
-function parseRow(row) {
+function parseRow(row: any) {
   if (!row) return null;
   return {
     reportDate: (row.REPORT_DATE || "").slice(0, 10) || null,
@@ -64,16 +64,16 @@ function parseRow(row) {
   };
 }
 
-function num(v) {
+function num(v: any) {
   if (v == null || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
-function safeJson(s) {
+function safeJson(s: any) {
   try {
     return JSON.parse(s);
-  } catch (_) {
+  } catch (_: any) {
     return null;
   }
 }

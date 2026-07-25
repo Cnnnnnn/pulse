@@ -3,7 +3,7 @@ const { requireMain, mainArtifactPath, aiArtifactPath } = require("../_setup/req
 
 const stateStorePath = mainArtifactPath("state-store");
 const registryPath = aiArtifactPath("prompt-registry");
-const registryShimPath = require.resolve("../../src/ai/prompt-registry.js");
+const registryShimPath = require.resolve("../../src/ai/prompt-registry.ts");
 const registerPath =
   mainArtifactPath("ipc/register-ai-prompts");
 

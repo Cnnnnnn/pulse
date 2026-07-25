@@ -72,7 +72,7 @@ export class CursorDetectorImpl {
     let projectEntries;
     try {
       projectEntries = await fsp.readdir(this.projectsDir, { withFileTypes: true });
-    } catch (err) {
+    } catch (err: any) {
       if (err && (err.code === 'ENOENT' || err.code === 'EACCES' || err.code === 'ENOTDIR')) {
         return [];
       }
@@ -123,7 +123,7 @@ export class CursorDetectorImpl {
    * @param {string} id
    * @returns {Promise<{id, startedAt, endedAt, messages, title?, workspaceDir?, file?}>}
    */
-  async readSession(id) {
+  async readSession(id: any) {
     if (typeof id !== 'string' || id.length === 0) {
       throw new TypeError('readSession: id must be non-empty string');
     }
@@ -158,13 +158,13 @@ export class CursorDetectorImpl {
  * @param {string} file
  * @returns {Promise<{messages: Array, firstTs: number, title: string|null}>}
  */
-export async function _parseTranscriptJsonl(file) {
-  const messages = [];
+export async function _parseTranscriptJsonl(file: any) {
+  const messages: any[] = [];
   let firstTs = 0;
   let lastTs = 0;
   let title = null;
 
-  await parseJsonlFile(file, (row) => {
+  await parseJsonlFile(file, (row: any) => {
     const role = row.role === 'user' || row.role === 'assistant' ? row.role : null;
     if (!role) return;
     const rawText = _extractTextBlocks(row.message && row.message.content);
@@ -190,9 +190,9 @@ export async function _parseTranscriptJsonl(file) {
 /**
  * message.content 数组里抽 text 块 (跳过 tool_use / image 等), 拼成字符串.
  */
-function _extractTextBlocks(content) {
+function _extractTextBlocks(content: any) {
   if (!Array.isArray(content)) return '';
-  const parts = [];
+  const parts: any[] = [];
   for (const c of content) {
     if (!c || typeof c !== 'object') continue;
     if (c.type === 'text' && typeof c.text === 'string' && c.text.trim()) {
@@ -206,10 +206,10 @@ function _extractTextBlocks(content) {
  * 抽 <user_query>...</user_query> 内文. 没标签时退回原文 (老格式容错),
  * 但要剔除 <timestamp>/<system_reminder> 等系统注入标签块.
  */
-export function _extractUserQuery(text) {
+export function _extractUserQuery(text: any) {
   const matches = [...String(text || '').matchAll(/<user_query>([\s\S]*?)<\/user_query>/g)];
   if (matches.length > 0) {
-    return matches.map((m) => m[1].trim()).filter(Boolean).join('\n').trim();
+    return matches.map((m: any) => m[1].trim()).filter(Boolean).join('\n').trim();
   }
   // 无 user_query 标签: 去掉已知系统标签块后, 剩文本才算用户输入
   const stripped = String(text || '')
@@ -232,13 +232,13 @@ const _MONTHS = {
  * 解析 <timestamp>Monday, Jun 8, 2026, 2:20 PM (UTC+8)</timestamp> → epoch ms.
  * 解析失败返 0.
  */
-function _parseTimestampTag(text) {
+function _parseTimestampTag(text: any) {
   const m = /<timestamp>([\s\S]*?)<\/timestamp>/.exec(String(text || ''));
   if (!m) return 0;
   return _parseCursorTimestamp(m[1]);
 }
 
-export function _parseCursorTimestamp(raw) {
+export function _parseCursorTimestamp(raw: any) {
   const m = /([A-Za-z]{3})[A-Za-z]*\s+(\d{1,2}),\s*(\d{4}),\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*\(UTC([+-]\d{1,2})(?::(\d{2}))?\)/i.exec(String(raw || ''));
   if (!m) return 0;
   const month = _MONTHS[m[1].toLowerCase()];
@@ -258,7 +258,7 @@ export function _parseCursorTimestamp(raw) {
  * 取首个有意义的行做 title (跳过 markdown 标题 / 路径 / URL 等噪声).
  * 单测仍从此模块导出.
  */
-export function _firstMeaningfulLine(text) {
+export function _firstMeaningfulLine(text: any) {
   return firstMeaningfulLine(text, 60);
 }
 
@@ -269,7 +269,7 @@ export function _firstMeaningfulLine(text) {
  *   '1777109260121' (数字临时目录)            → ''
  *   'empty-window'                           → 'empty-window'
  */
-export function _projectLabel(dirName) {
+export function _projectLabel(dirName: any) {
   const name = String(dirName || '');
   if (!name || /^\d+$/.test(name)) return '';
   const idx = name.indexOf('-Desktop-');

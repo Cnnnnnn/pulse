@@ -16,7 +16,7 @@
  */
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
 
-export async function fetchCorporateEvents(httpClient, { code }) {
+export async function fetchCorporateEvents(httpClient: any, { code }: any) {
   const secucode = `${code}.${code.startsWith("6") ? "SH" : "SZ"}`;
   const filter = encodeURIComponent(`(SECUCODE="${secucode}")`);
 
@@ -48,14 +48,14 @@ export async function fetchCorporateEvents(httpClient, { code }) {
 }
 
 // RPT_F10_DIVIDENT: 分红送配. 字段: REPORT_DATE, PLAN, SONGLIU (送股), XIANLIU (派现 / 10股).
-async function fetchDividends(httpClient, filter) {
+async function fetchDividends(httpClient: any, filter: any) {
   const url =
     `${DATACENTER_URL}?reportName=RPT_F10_DIVIDENT` +
     `&columns=ALL&filter=${filter}&pageNumber=1&pageSize=4` +
     `&sortColumns=REPORT_DATE&sortTypes=-1&source=HSF10&client=PC`;
   const rows = await fetchDatacenterRows(httpClient, url);
   if (!rows) return [];
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     reportDate: (row.REPORT_DATE || "").slice(0, 10) || null,
     plan: row.PLAN || null,
     shareBonus: num(row.SONGLIU), // 每 10 股送股
@@ -64,14 +64,14 @@ async function fetchDividends(httpClient, filter) {
 }
 
 // RPT_F10_LIFT_LIMIT: 限售解禁. 字段: LIMIT_DATE, CLASS_NAME, LIMIT_NUM, RATIO.
-async function fetchUnlocks(httpClient, filter) {
+async function fetchUnlocks(httpClient: any, filter: any) {
   const url =
     `${DATACENTER_URL}?reportName=RPT_F10_LIFT_LIMIT` +
     `&columns=ALL&filter=${filter}&pageNumber=1&pageSize=4` +
     `&sortColumns=LIMIT_DATE&sortTypes=1&source=HSF10&client=PC`; // asc — 最近的在前
   const rows = await fetchDatacenterRows(httpClient, url);
   if (!rows) return [];
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     limitDate: (row.LIMIT_DATE || "").slice(0, 10) || null,
     shareType: row.CLASS_NAME || null,
     limitShares: num(row.LIMIT_NUM),
@@ -80,14 +80,14 @@ async function fetchUnlocks(httpClient, filter) {
 }
 
 // RPT_F10_RAISE: 增发 / IPO. 字段: ISSUE_DATE, RAISE_OBJECT, ISSUE_PRICE, ISSUE_NUM.
-async function fetchOfferings(httpClient, filter) {
+async function fetchOfferings(httpClient: any, filter: any) {
   const url =
     `${DATACENTER_URL}?reportName=RPT_F10_RAISE` +
     `&columns=ALL&filter=${filter}&pageNumber=1&pageSize=3` +
     `&sortColumns=ISSUE_DATE&sortTypes=-1&source=HSF10&client=PC`;
   const rows = await fetchDatacenterRows(httpClient, url);
   if (!rows) return [];
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     issueDate: (row.ISSUE_DATE || "").slice(0, 10) || null,
     issueType: row.RAISE_OBJECT || null,
     price: num(row.ISSUE_PRICE),
@@ -95,11 +95,11 @@ async function fetchOfferings(httpClient, filter) {
   }));
 }
 
-async function fetchDatacenterRows(httpClient, url) {
+async function fetchDatacenterRows(httpClient: any, url: any) {
   let res;
   try {
     res = await httpClient.get(url, { timeout: 8000 });
-  } catch (_) {
+  } catch (_: any) {
     return null;
   }
   if (!res || res.status !== 200 || !res.body) return null;
@@ -109,7 +109,7 @@ async function fetchDatacenterRows(httpClient, url) {
     : [];
 }
 
-function daysUntil(dateStr) {
+function daysUntil(dateStr: any) {
   if (!dateStr) return null;
   const target = new Date(dateStr).getTime();
   if (!Number.isFinite(target)) return null;
@@ -118,16 +118,16 @@ function daysUntil(dateStr) {
   return Math.round(diff / 86400000);
 }
 
-function num(v) {
+function num(v: any) {
   if (v == null || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
-function safeJson(s) {
+function safeJson(s: any) {
   try {
     return JSON.parse(s);
-  } catch (_) {
+  } catch (_: any) {
     return null;
   }
 }

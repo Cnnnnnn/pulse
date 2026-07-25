@@ -7,7 +7,7 @@
 const SINA_KLINE_URL =
   "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData";
 
-export async function fetchSinaKline(httpClient, code, limit) {
+export async function fetchSinaKline(httpClient: any, code: any, limit: any) {
   // ponytail: sina API 需要 sh/sz 前缀, 裸 code 会返 null. sh=6xx, sz=其他.
   const market = code.startsWith("6") ? "sh" : "sz";
   const url = `${SINA_KLINE_URL}?symbol=${market}${code}&scale=240&datalen=${limit}&ma=no`;
@@ -16,19 +16,19 @@ export async function fetchSinaKline(httpClient, code, limit) {
     if (res && typeof res.body === "string") {
       try {
         return { ...res, body: JSON.parse(res.body) };
-      } catch (_) {
+      } catch (_: any) {
         return { ...res, body: null };
       }
     }
     return res;
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, status: 0, error: e.message };
   }
 }
 
-export function parseSinaKlines(body) {
+export function parseSinaKlines(body: any) {
   if (!Array.isArray(body)) return null;
-  const out = [];
+  const out: any[] = [];
   for (const item of body) {
     if (!item || typeof item !== "object") return null;
     const o = Number(item.open),

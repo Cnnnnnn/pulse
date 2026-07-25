@@ -25,7 +25,7 @@ const FINANCE_COLUMNS = "SECUCODE,REPORT_DATE,REPORT_YEAR,ROIC,XSMLL,PARENTNETPR
 const MOAT_TIMEOUT_MS = 8000;
 
 
-export async function fetchMoatScore(httpClient, { code }) {
+export async function fetchMoatScore(httpClient: any, { code }: any) {
   const secucode = `${code}.${code.startsWith("6") ? "SH" : "SZ"}`;
   const financeFilter = encodeURIComponent(`(SECUCODE="${secucode}")`);
   const financeUrl =
@@ -40,7 +40,7 @@ export async function fetchMoatScore(httpClient, { code }) {
       httpClient.get(financeUrl, { timeout: MOAT_TIMEOUT_MS }),
       fetchIndustryPeers(httpClient, code),
     ]);
-  } catch (e) {
+  } catch (e: any) {
     return { ok: false, reason: "fetch_failed", error: e && e.message };
   }
 
@@ -60,14 +60,14 @@ export async function fetchMoatScore(httpClient, { code }) {
   const financeRows = financeParsed;
   if (financeRows.length === 0) return { ok: false, reason: "no_finance_data", error: "finance 接口 result.data 为空" };
 
-  const peers = industryRes.data.peers;
-  const industry = industryRes.data.industry;
+  const peers = industryRes.data!.peers;
+  const industry = industryRes.data!.industry;
   const industryTotal = peers.length;
 
   // 行业中位: ROIC 用 peers 的 WEIGHTAVG_ROE 近似 (helper 已映射到 peer.roe),
   // 毛利率用 peer.grossMargin. 客户端算中位.
-  const industryRoeValues = peers.map((p) => p.roe).filter((v) => v != null);
-  const industryGrossValues = peers.map((p) => p.grossMargin).filter((v) => v != null);
+  const industryRoeValues = peers.map((p: any) => p.roe).filter((v: any) => v != null);
+  const industryGrossValues = peers.map((p: any) => p.grossMargin).filter((v: any) => v != null);
   const industryRoicMedian = median(industryRoeValues); // 近似 ROIC 中位 (实为 ROE 中位)
   const industryGrossMarginMedian = median(industryGrossValues);
 
@@ -77,14 +77,14 @@ export async function fetchMoatScore(httpClient, { code }) {
   const grossMargin = num(latest.XSMLL);
 
   // 自身毛利率 70 分位 (历史门): 用 financeRows 中所有 XSMLL
-  const marginHistory = financeRows.map((r) => num(r.XSMLL)).filter((v) => v != null);
+  const marginHistory = financeRows.map((r: any) => num(r.XSMLL)).filter((v: any) => v != null);
   const selfGrossMarginP70 = percentile(marginHistory, 0.7);
 
   // 净利 CAGR: 用 PARENTNETPROFIT 序列 (按 REPORT_DATE 倒序, 第一条最新)
   const profits = financeRows
-    .map((r) => num(r.PARENTNETPROFIT))
-    .filter((v) => v != null && v > 0)
-    .sort((a, b) => b - a); // 最新在前
+    .map((r: any) => num(r.PARENTNETPROFIT))
+    .filter((v: any) => v != null && v > 0)
+    .sort((a: any, b: any) => b - a); // 最新在前
   const revenueCagr5y = computeCagr(profits);
 
   // 行业营收排名: peers 里按 revenue desc, 找本股位置.
@@ -98,7 +98,7 @@ export async function fetchMoatScore(httpClient, { code }) {
   const revenueStability = scoreRevenueStability(revenueRank, industryTotal, revenueCagr5y);
 
   const score = marginEdge + roicEdge + revenueStability;
-  const missingDims = [];
+  const missingDims: any[] = [];
   if (grossMargin == null || industryGrossMarginMedian == null) missingDims.push("毛利");
   if (roic == null || industryRoicMedian == null) missingDims.push("ROIC");
   if (revenueRank == null) missingDims.push("营收稳定度");
@@ -123,7 +123,7 @@ export async function fetchMoatScore(httpClient, { code }) {
   };
 }
 
-function scoreMarginEdge(thisMargin, industryMedian, thisRoic, industryRoicMedian, selfP70) {
+function scoreMarginEdge(thisMargin: any, industryMedian: any, thisRoic: any, industryRoicMedian: any, selfP70: any) {
   if (thisMargin == null || industryMedian == null) return 0;
   const diff = thisMargin - industryMedian;
   // tier 2/3 gate: 当前毛利率 ≥ 自身近 3 年 70 分位 (用线性插值的 percentile)
@@ -136,7 +136,7 @@ function scoreMarginEdge(thisMargin, industryMedian, thisRoic, industryRoicMedia
   return 0;
 }
 
-function scoreRoicEdge(thisRoic, industryMedian) {
+function scoreRoicEdge(thisRoic: any, industryMedian: any) {
   if (thisRoic == null || industryMedian == null) return 0;
   const diff = thisRoic - industryMedian;
   if (diff > 10) return 3;
@@ -147,7 +147,7 @@ function scoreRoicEdge(thisRoic, industryMedian) {
 
 // 排名稳定性: 极差越小越稳. revenueRank 是绝对排名 (1 = 最大), 用 (total - rank)
 // 衡量"排得靠前". 简化: rank 在前 30% 视为稳定.
-function scoreRevenueStability(rank, total, cagr) {
+function scoreRevenueStability(rank: any, total: any, cagr: any) {
   if (rank == null || total == null || total === 0) {
     // 排名缺失, 退化为只看 cagr
     if (cagr == null) return 0;
@@ -163,7 +163,7 @@ function scoreRevenueStability(rank, total, cagr) {
   return 0;
 }
 
-function computeCagr(sortedProfitsDesc) {
+function computeCagr(sortedProfitsDesc: any) {
   if (sortedProfitsDesc.length < 2) return null;
   const latest = sortedProfitsDesc[0];
   const earliest = sortedProfitsDesc[sortedProfitsDesc.length - 1];
@@ -173,18 +173,18 @@ function computeCagr(sortedProfitsDesc) {
 }
 
 // 在 peers 里按指定字段 desc 排序, 找本股的排名 (1 = 最大). 找不到返 null.
-function rankInPeers(peers, code, field) {
+function rankInPeers(peers: any, code: any, field: any) {
   const sorted = peers
-    .filter((p) => p[field] != null)
+    .filter((p: any) => p[field] != null)
     .slice()
-    .sort((a, b) => (b[field] || 0) - (a[field] || 0));
-  const idx = sorted.findIndex((p) => p.code === code);
+    .sort((a: any, b: any) => (b[field] || 0) - (a[field] || 0));
+  const idx = sorted.findIndex((p: any) => p.code === code);
   return idx >= 0 ? idx + 1 : null;
 }
 
 // 中位数 (数值数组). 空数组返 null.
-function median(arr) {
-  const sorted = arr.filter((v) => v != null && Number.isFinite(v)).slice().sort((a, b) => a - b);
+function median(arr: any) {
+  const sorted = arr.filter((v: any) => v != null && Number.isFinite(v)).slice().sort((a: any, b: any) => a - b);
   if (sorted.length === 0) return null;
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0
@@ -193,8 +193,8 @@ function median(arr) {
 }
 
 // 线性插值的 percentile (跟 numpy.percentile 默认 linear 方法一致).
-function percentile(arr, p) {
-  const sorted = arr.filter((v) => v != null && Number.isFinite(v)).slice().sort((a, b) => a - b);
+function percentile(arr: any, p: any) {
+  const sorted = arr.filter((v: any) => v != null && Number.isFinite(v)).slice().sort((a: any, b: any) => a - b);
   if (sorted.length === 0) return null;
   if (sorted.length === 1) return sorted[0];
   const idx = p * (sorted.length - 1);
@@ -205,7 +205,7 @@ function percentile(arr, p) {
 }
 
 // 解析 datacenter 响应 body: 返回 array (rows) 或字符串标记.
-function parseDatacenterBody(body) {
+function parseDatacenterBody(body: any) {
   let parsed = body;
   if (typeof body === "string") {
     parsed = safeJson(body);
@@ -217,7 +217,7 @@ function parseDatacenterBody(body) {
   return [];
 }
 
-function buildNote(score, missingDims) {
+function buildNote(score: any, missingDims: any) {
   if (missingDims.length > 0) return `数据缺失 ${missingDims.join("/")} 维度`;
   if (score >= 7) return "毛利 + ROIC 双优势, 营收稳定, 强护城河";
   if (score >= 5) return "有护城河, 关注薄弱维度";
@@ -225,12 +225,12 @@ function buildNote(score, missingDims) {
   return "无护城河";
 }
 
-function num(v) {
+function num(v: any) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
-function safeJson(s) {
+function safeJson(s: any) {
   try {
     return JSON.parse(s);
   } catch {

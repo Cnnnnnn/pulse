@@ -1,3 +1,5 @@
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = require("../_setup/require-main.cjs");
+
 /**
  * tests/main/fund-history.test.js
  */
@@ -10,7 +12,7 @@ const {
   monthProfit,
   listDaysForMonth,
   shiftMonth,
-} = require("../../src/funds/fund-history.js");
+} = requireFunds("fund-history");
 
 const snap = (date, todayProfit, mv = 10000) => ({
   date,

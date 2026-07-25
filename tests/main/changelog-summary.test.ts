@@ -10,8 +10,8 @@ import { mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
-const require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = _require("../_setup/require-main.cjs");
 
 const chatCompletion = vi.fn();
 // Phase 7 7a: shared-llm 保留 module.exports = {…} (给 CJS 互操作 + 测试改写
@@ -19,7 +19,7 @@ const chatCompletion = vi.fn();
 // mock 不被 esbuild __export getter 包 — 测试 fixture 改 shared-llm.cjs 的
 // chatCompletion 后, src/ai/changelog-summary.ts (ESM) import { chatCompletion }
 // 拿到的也是同一个 module 实例 (vitest ESM 图 + require cache 桥).
-const sharedLlm = require("../../src/ai/shared-llm.js");
+const sharedLlm = requireAi("shared-llm");
 sharedLlm.chatCompletion = chatCompletion;
 
 const stateStore = requireMain("state-store");
@@ -29,7 +29,7 @@ const {
   buildSummaryMessages,
   summaryCacheKey,
   fetchChangelogSummary,
-} = require("../../src/ai/changelog-summary.js");
+} = requireAi("changelog-summary");
 
 function tmpStatePath() {
   const dir = join(

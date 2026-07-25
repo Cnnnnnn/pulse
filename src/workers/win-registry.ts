@@ -32,7 +32,7 @@ export const UNINSTALL_ROOTS = [
  *       DisplayName    REG_SZ    Cursor
  *       DisplayVersion    REG_SZ    1.0.0
  */
-export function parseRegOutput(output) {
+export function parseRegOutput(output: any) {
   const fields = {};
   if (!output || typeof output !== 'string') return fields;
   // 匹配 "    FieldName    REG_TYPE    value"

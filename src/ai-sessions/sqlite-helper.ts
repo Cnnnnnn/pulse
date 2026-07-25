@@ -15,7 +15,7 @@ export function loadNodeSqlite(log: any = SILENT_LOG) {
   try {
     const sqlite = require("node:sqlite");
     return { sqlite, source: "node:sqlite" };
-  } catch (err) {
+  } catch (err: any) {
     if (log.warn) log.warn(`node:sqlite load failed: ${err.message}`);
     return null;
   }
@@ -28,7 +28,7 @@ export function loadNodeSqlite(log: any = SILENT_LOG) {
  */
 export function runSqliteCli(sqlitePath, sql, opts: any = {}) {
   const { separator = "\t", rejectOnError = false, log = SILENT_LOG } = opts;
-  return new Promise<any>((resolve, reject) => {
+  return new Promise<any>((resolve: any, reject: any) => {
     const proc = spawn(
       "sqlite3",
       ["-separator", separator, sqlitePath, sql],
@@ -36,20 +36,20 @@ export function runSqliteCli(sqlitePath, sql, opts: any = {}) {
     );
     let stdout = "";
     let stderr = "";
-    proc.stdout.on("data", (d) => {
+    proc.stdout.on("data", (d: any) => {
       stdout += d.toString();
     });
-    proc.stderr.on("data", (d) => {
+    proc.stderr.on("data", (d: any) => {
       stderr += d.toString();
     });
-    proc.on("error", (err) => {
+    proc.on("error", (err: any) => {
       if (rejectOnError) reject(err);
       else {
         if (log.warn) log.warn(`sqlite3 CLI spawn failed: ${err.message}`);
         resolve({ stdout: "", stderr: err.message, code: 1 });
       }
     });
-    proc.on("close", (code) => {
+    proc.on("close", (code: any) => {
       if (code !== 0 && rejectOnError) {
         reject(
           new Error(
@@ -79,8 +79,8 @@ export async function listSessionsViaCli(sqlitePath: any, log: any = SILENT_LOG)
   }
   const rows = stdout
     .split("\n")
-    .filter((l) => l.length > 0)
-    .map((line) => {
+    .filter((l: any) => l.length > 0)
+    .map((line: any) => {
       const [
         session_id,
         title,
@@ -107,7 +107,7 @@ export async function listSessionsViaCli(sqlitePath: any, log: any = SILENT_LOG)
       `listSessions via sqlite3 CLI: ${rows.length} rows from ${sqlitePath}`,
     );
   }
-  return rows.map((r) => ({
+  return rows.map((r: any) => ({
     id: r.session_id,
     file: sqlitePath,
     mtimeMs: r.updated_at > 0 ? r.updated_at : stat ? stat.mtimeMs : 0,
@@ -126,8 +126,8 @@ export async function readSessionViaCli(sqlitePath: any, sessionId: any, log: an
     log,
     rejectOnError: true,
   });
-  const rows = stdout.split("\n").filter((l) => l.length > 0);
-  const messages = [];
+  const rows = stdout.split("\n").filter((l: any) => l.length > 0);
+  const messages: any[] = [];
   for (const line of rows) {
     const parts = line.split("\t");
     const dataStr = parts[3] || "";
@@ -141,7 +141,7 @@ export async function readSessionViaCli(sqlitePath: any, sessionId: any, log: an
         if (typeof data.content === "string") content = data.content;
         else if (Array.isArray(data.content)) {
           content = data.content
-            .map((c) => c.text || c.content || c.msg_content || c.msg_text || "")
+            .map((c: any) => c.text || c.content || c.msg_content || c.msg_text || "")
             .filter(Boolean)
             .join("\n")
             .trim();
@@ -149,7 +149,7 @@ export async function readSessionViaCli(sqlitePath: any, sessionId: any, log: an
         else if (typeof data.msg_content === "string") content = data.msg_content;
         else if (Array.isArray(data.msg_content)) {
           content = data.msg_content
-            .map((c) => c.text || c.content || c.msg_content || c.msg_text || "")
+            .map((c: any) => c.text || c.content || c.msg_content || c.msg_text || "")
             .filter(Boolean)
             .join("\n")
             .trim();
@@ -160,7 +160,7 @@ export async function readSessionViaCli(sqlitePath: any, sessionId: any, log: an
     }
     if (content) messages.push({ role, content, ts });
   }
-  const tsList = messages.map((m) => m.ts).filter((t) => t > 0);
+  const tsList = messages.map((m: any) => m.ts).filter((t: any) => t > 0);
   return {
     id: sessionId,
     startedAt: tsList.length > 0 ? Math.min(...tsList) : 0,

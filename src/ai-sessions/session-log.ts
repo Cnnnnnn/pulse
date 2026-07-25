@@ -17,9 +17,9 @@ export const SILENT_LOG = Object.freeze({
 export function prefixLog(prefix: any, backend: any = SILENT_LOG) {
   const p = prefix.endsWith(" ") ? prefix : `${prefix} `;
   return {
-    info: (msg) => backend.info && backend.info(`${p}${msg}`),
-    warn: (msg) => backend.warn && backend.warn(`${p}${msg}`),
-    error: (msg) => backend.error && backend.error(`${p}${msg}`),
+    info: (msg: any) => backend.info && backend.info(`${p}${msg}`),
+    warn: (msg: any) => backend.warn && backend.warn(`${p}${msg}`),
+    error: (msg: any) => backend.error && backend.error(`${p}${msg}`),
   };
 }
 

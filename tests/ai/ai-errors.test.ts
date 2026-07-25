@@ -4,8 +4,9 @@
 
 import { describe, it, expect } from "vitest";
 import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const { humanizeAiError, REASON_LABELS } = require("../../src/ai/ai-errors.js");
+const _require = createRequire(import.meta.url);
+const { requireMain, requirePlatform, requireUtils, requireConfig, requireDetector, requireMetals, requireFunds, requireStocks, requireAi, requireAiSessions, requireAiUsage, requireWorkers, requireReleaseNotes } = _require("../_setup/require-main.cjs");
+const { humanizeAiError, REASON_LABELS } = requireAi("ai-errors");
 
 describe("humanizeAiError", () => {
   it("命中 reason 字典", () => {

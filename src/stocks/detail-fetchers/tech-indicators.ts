@@ -7,19 +7,19 @@
 import * as emKline from "./_shared-em-kline";
 import * as sinaKline from "./_shared-sina-kline";
 
-export async function fetchTechIndicators(httpClient, { code }) {
+export async function fetchTechIndicators(httpClient: any, { code }: any) {
   const primary = await emKline.fetchEastmoneyKline(httpClient, code, 30);
   if (primary && primary.status === 200 && primary.body) {
     const parsed = emKline.parseEastmoneyKlines(primary.body);
     if (parsed && parsed.length >= 20) {
-      return { ok: true, data: indicators(parsed.map((k) => k.close)) };
+      return { ok: true, data: indicators(parsed.map((k: any) => k.close)) };
     }
   }
   const fallback = await sinaKline.fetchSinaKline(httpClient, code, 30);
   if (fallback && fallback.status === 200 && fallback.body) {
     const parsed = sinaKline.parseSinaKlines(fallback.body);
     if (parsed && parsed.length >= 20) {
-      return { ok: true, data: indicators(parsed.map((k) => k.close)) };
+      return { ok: true, data: indicators(parsed.map((k: any) => k.close)) };
     }
   }
   const primaryOk = primary && primary.status === 200 && primary.body;
@@ -30,23 +30,23 @@ export async function fetchTechIndicators(httpClient, { code }) {
   };
 }
 
-function ma(arr, n) {
+function ma(arr: any, n: any) {
   if (arr.length < n) return 0;
   const slice = arr.slice(-n);
-  return slice.reduce((s, x) => s + x, 0) / n;
+  return slice.reduce((s: any, x: any) => s + x, 0) / n;
 }
 
-function ema(arr, n) {
+function ema(arr: any, n: any) {
   if (arr.length < n) return 0;
   const k = 2 / (n + 1);
-  let e = arr.slice(0, n).reduce((s, x) => s + x, 0) / n;
+  let e = arr.slice(0, n).reduce((s: any, x: any) => s + x, 0) / n;
   for (let i = n; i < arr.length; i += 1) e = arr[i] * k + e * (1 - k);
   return e;
 }
 
-function macdHist(closes) {
+function macdHist(closes: any) {
   if (closes.length < 26) return 0;
-  const recent = [];
+  const recent: any[] = [];
   for (let i = 25; i < closes.length; i += 1) {
     const sub = closes.slice(0, i + 1);
     recent.push(ema(sub, 12) - ema(sub, 26));
@@ -56,7 +56,7 @@ function macdHist(closes) {
   return macdLine - signal;
 }
 
-function indicators(closes) {
+function indicators(closes: any) {
   return {
     ma5: ma(closes, 5),
     ma10: ma(closes, 10),
