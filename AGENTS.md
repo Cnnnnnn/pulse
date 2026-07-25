@@ -5,7 +5,7 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），连同 `helpers/mock-http`、`fixtures/timer-audit/*`、`perf/{startup,brew-lock}-bench`、`visual/{visual,games}.spec` 6 个非 vitest 文件也已 `.ts`；`_setup/*.cjs` 保留为 CJS helper bridge；**Phase 7 完成** — 150 个 `src/**/*.ts` 内部 `require()/module.exports` 改 ESM `import/export` (7a 全批 + 5 例外 dual-export)，随后 **126 个 `src/**/*.js` shim 全删** (7b)，vitest `resolve.extensions` 加 `.ts`，仅 Phase 3 五例外 (`http-client`/`state-store`/`token-budget`/`log`/`platform/index`) 保留为 CJS shim 供 main/src/.ts `require("./foo.js")` 直引。`find src -name "*.js" | grep -v "^src/main/.*$\|^src/platform/index\.js$"` = 0。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），连同 `helpers/mock-http`、`fixtures/timer-audit/*`、`perf/{startup,brew-lock}-bench`、`visual/{visual,games}.spec` 6 个非 vitest 文件也已 `.ts`；`_setup/*.cjs` 保留为 CJS helper bridge；**Phase 7 完成** — 150 个 `src/**/*.ts` 内部 `require()/module.exports` 改 ESM `import/export` (7a 全批 + 5 例外 dual-export)，随后 **126 个 `src/**/*.js` shim 全删** (7b)，vitest `resolve.extensions` 加 `.ts`，仅 Phase 3 五例外 (`http-client`/`state-store`/`token-budget`/`log`/`platform/index`) 保留为 CJS shim 供 main/src/.ts `require("./foo.js")` 直引；**Phase 8 完成** — `tsconfig.app.strict.json` 86 → 0 errors（之前 Phase 3.5 strict 跳过的 ai-sessions/ai-usage/共享模块补齐），5 tsconfigs 全 0。`find src -name "*.js" | grep -v "^src/main/.*$\|^src/platform/index\.js$"` = 0。
 
 ## 仓库布局
 
@@ -67,7 +67,7 @@ npm run lint                # eslint
 npm run lint:css            # stylelint
 ```
 
-> **Phase 7 后状态**：vitest 跑 469 文件 4832 pass + 4 skip + 4-6 已知 flaky（games-p1c date-related + home-grid）；4 个 tsconfigs (`app`/`preload`/`renderer`/`tests`) 0 errors；`tsconfig.app.strict.json` 86 errors 主要是 ai-sessions strict 历史遗留（不属于 Phase 7 引入）；`find src -name "*.js"` = 4（Phase 3 五例外最后堡垒）。
+> **Phase 8 后状态**：vitest 跑 469 文件 4885 pass + 4 skip + 5 已知 flaky（4 个预先 date-related games-p1c/home-grid + 1 个预先 aggregator cacheBoard "all" vs "all-v11" 不匹配）；5 个 tsconfigs (`app`/`app.strict`/`preload`/`renderer`/`tests`) 全 0 errors；`find src -name "*.js"` = 4（Phase 3 五例外最后堡垒）。
 
 ## 数据源（v2.79.4）
 
