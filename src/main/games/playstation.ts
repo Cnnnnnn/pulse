@@ -5,7 +5,7 @@
  */
 "use strict";
 
-import { toGameDeal, BROWSER_UA as UA } from "./normalize";
+import { toGameDeal, fetchText } from "./normalize";
 import { logFetchError } from "./log";
 import * as os from "os";
 import * as fs from "fs";
@@ -44,20 +44,8 @@ function decodeEntities(s: string): string {
     .replace(/&gt;/g, ">");
 }
 
-async function fetchText(url: string, timeoutMs = 9000): Promise<string> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": UA, Accept: "application/json,text/html,*/*" },
-      signal: ctrl.signal,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
-  } finally {
-    clearTimeout(t);
-  }
-}
+// 2026-07-26: fetchText 改用 normalize.ts 的 export（两份实现合并）.
+// Accept header 由 caller 传入, 默认 UA 走 BROWSER_UA.
 
 function cachePath(region: string, kind: string): string {
   return path.join(PSGS_CACHE_DIR, `${region}-${kind}.json`);
@@ -93,13 +81,17 @@ export async function loadPsGameSpiderData(region: string): Promise<any> {
   try {
     if (!priceHistory) {
       priceHistory = JSON.parse(
-        await fetchText(`${PSGS_RAW_BASE}/${reg}-priceHistory.json`),
+        await fetchText(`${PSGS_RAW_BASE}/${reg}-priceHistory.json`, {
+          headers: { Accept: "application/json,text/html,*/*" },
+        }),
       );
       writeCache(reg, "priceHistory", priceHistory).catch(() => {});
     }
     if (!metaData) {
       metaData = JSON.parse(
-        await fetchText(`${PSGS_RAW_BASE}/${reg}-metaData.json`),
+        await fetchText(`${PSGS_RAW_BASE}/${reg}-metaData.json`, {
+          headers: { Accept: "application/json,text/html,*/*" },
+        }),
       );
       writeCache(reg, "metaData", metaData).catch(() => {});
     }
@@ -208,7 +200,10 @@ export async function fetchPlayStationStoreDeals(opts: any = {}): Promise<any[] 
   const limit = Math.min(Math.max(opts.limit || 40, 1), 60);
   try {
     const url = `${STORE_BASE}/${locale}/deals`;
-    const html = await fetchText(url, 9000);
+    const html = await fetchText(url, {
+      timeoutMs: 9000,
+      headers: { Accept: "application/json,text/html,*/*" },
+    });
     const raw = parseDealsHtml(html);
     const items = raw
       .slice(0, limit)

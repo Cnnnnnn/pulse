@@ -41,6 +41,8 @@ import {
 } from "../watchlist/watchlist-store.ts";
 import { showToast } from "../store/toast-store.ts";
 import { downloadCsv, safeFilename } from "../utils/csv.ts";
+// 2026-07-26: fmtSignedPct / fmtCurrency 从 src/funds/format.ts 复用 (canonical, 两文件实现合并)
+import { fmtSignedPct, fmtCurrency } from "../../funds/format.ts";
 
 const RANGE_OPTIONS = [
   { key: "1M", label: "1M", days: 30 },
@@ -81,25 +83,6 @@ function fmtNum(v, dp = 4) {
     minimumFractionDigits: dp,
     maximumFractionDigits: dp,
   });
-}
-function fmtSignedPct(p) {
-  const v = Number(p);
-  if (!Number.isFinite(v)) return "—";
-  if (v === 0) return "0.00%";
-  const arrow = v > 0 ? "▲" : "▼";
-  const sign = v > 0 ? "+" : "";
-  return `${arrow}${sign}${v.toFixed(2)}%`;
-}
-// 2026-07-14: 与 Dashboard fmtCurrency 对齐 — ¥ + 千分位 + 2 位小数 + 负号前缀
-//   ponytail: 复用同样的 localeZh / dp=2 习惯, 跨模块读数一致
-function fmtCurrency(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "¥0.00";
-  const sign = v < 0 ? "-" : "";
-  return `${sign}¥${Math.abs(v).toLocaleString("zh-CN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
 }
 function signClass(n) {
   const v = Number(n);

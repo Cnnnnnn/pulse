@@ -18,7 +18,7 @@ import { TeamFlag } from '../components/icons.tsx';
 import { toBeijingTime } from './timeUtils.ts';
 import MatchScorers from './MatchScorers.tsx';
 import MatchCardAi from './MatchCardAi.tsx';
-import { matchKey as computeMatchKey } from '../../utils/match-key.ts';
+import { matchKey as computeMatchKey } from './match-utils.ts';
 import { IconClock } from '../components/icons.tsx';
 
 // TXT 阶段 → 中文

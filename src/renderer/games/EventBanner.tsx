@@ -13,6 +13,8 @@ import { useEffect, useState } from "preact/hooks";
 import { ModalShell } from "../components/ModalShell.tsx";
 import { ProgressBar } from "./ProgressBar.tsx";
 import { DEFAULT_EVENTS, isEventActive } from "./eventsEngine.ts";
+// 2026-07-26: fmtDate 改用 src/renderer/utils/date.ts 的 fmtDateIso（4 处实现合并）
+import { fmtDateIso as fmtDate } from "../utils/date.ts";
 import {
   eventsConfig,
   eventsProgress,
@@ -34,16 +36,7 @@ function dimLabel(d) {
   return (DIMENSIONS.find((x) => x.key === d) || {}).label || d || "—";
 }
 
-/** ISO 时间 → YYYY-MM-DD（本地，纯展示）。 */
-function fmtDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+/** ISO 时间 → YYYY-MM-DD（本地，纯展示）— 见 utils/date.ts:fmtDateIso */
 
 /** 时间窗口相对措辞（不显示秒级倒计时）。 */
 function windowText(cfg, now) {

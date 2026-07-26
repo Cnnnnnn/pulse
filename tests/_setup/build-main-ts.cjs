@@ -65,6 +65,8 @@ const srcAiSessionsDir = path.join(rootDir, "src", "ai-sessions");
 const srcAiUsageDir = path.join(rootDir, "src", "ai-usage");
 const srcWorkersDir = path.join(rootDir, "src", "workers");
 const srcReleaseNotesDir = path.join(rootDir, "src", "release-notes");
+// 2026-07-26: src/shared/ 加入 dist-test build (computeTrendingScore 等跨进程共享模块).
+const srcSharedDir = path.join(rootDir, "src", "shared");
 const outMainDir = path.join(rootDir, "dist-test", "main", "per-file");
 const outPlatformDir = path.join(rootDir, "dist-test", "platform");
 const outUtilsDir = path.join(rootDir, "dist-test", "utils");
@@ -78,6 +80,7 @@ const outAiSessionsDir = path.join(rootDir, "dist-test", "ai-sessions");
 const outAiUsageDir = path.join(rootDir, "dist-test", "ai-usage");
 const outWorkersDir = path.join(rootDir, "dist-test", "workers");
 const outReleaseNotesDir = path.join(rootDir, "dist-test", "release-notes");
+const outSharedDir = path.join(rootDir, "dist-test", "shared");
 
 function findTsFiles(dir) {
   const out = [];
@@ -146,6 +149,10 @@ function outFileFor(tsFile) {
   if (tsFile.startsWith(srcReleaseNotesDir + path.sep)) {
     const rel = path.relative(srcReleaseNotesDir, tsFile).replace(/\.ts$/, ".cjs");
     return path.join(outReleaseNotesDir, rel);
+  }
+  if (tsFile.startsWith(srcSharedDir + path.sep)) {
+    const rel = path.relative(srcSharedDir, tsFile).replace(/\.ts$/, ".cjs");
+    return path.join(outSharedDir, rel);
   }
   return null;
 }
@@ -250,10 +257,8 @@ module.exports = async function setup() {
   const aiUsageTs = findTsFiles(srcAiUsageDir);
   const workersTs = findTsFiles(srcWorkersDir);
   const releaseNotesTs = findTsFiles(srcReleaseNotesDir);
-  // ponytail: match-key.ts 是 ESM-only（仅 renderer 用），不进 dist-test CJS 图
-  const utilsTs = findTsFiles(srcUtilsDir).filter(
-    (f) => path.basename(f) !== "match-key.ts",
-  );
+  const utilsTs = findTsFiles(srcUtilsDir);
+  const sharedTs = findTsFiles(srcSharedDir);
   const tsFiles = [
     ...mainTs,
     ...platformTs,
@@ -268,6 +273,7 @@ module.exports = async function setup() {
     ...aiUsageTs,
     ...workersTs,
     ...releaseNotesTs,
+    ...sharedTs,
   ];
   if (tsFiles.length === 0) return;
 
@@ -305,6 +311,7 @@ module.exports = async function setup() {
   fs.mkdirSync(outAiUsageDir, { recursive: true });
   fs.mkdirSync(outWorkersDir, { recursive: true });
   fs.mkdirSync(outReleaseNotesDir, { recursive: true });
+  fs.mkdirSync(outSharedDir, { recursive: true });
 
   if (needBuild) {
     const esbuild = require("esbuild");

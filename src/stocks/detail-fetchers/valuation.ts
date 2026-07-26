@@ -17,6 +17,9 @@ const PUSH2_URL = "https://push2.eastmoney.com/api/qt/stock/get";
 const DATACENTER_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get";
 const TENCENT_URL = "https://qt.gtimg.cn/q=";
 
+// 2026-07-26: safeJsonParse 改用 _shared-json.ts（4 份实现合并）
+import { safeJsonParse } from "./_shared-json";
+
 export async function fetchValuation(httpClient: any, { code }: any) {
   const secid = code.startsWith("6") ? `1.${code}` : `0.${code}`;
   // ponytail: 一把要 f43 (现价) + f9 (PE) + f23 (PB) + f60 (昨收), 单请求拿全.
@@ -141,14 +144,6 @@ function num(v: any) {
 
 function round2(v: any) {
   return Math.round(v * 100) / 100;
-}
-
-function safeJsonParse(s: any) {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
-  }
 }
 
 module.exports = { fetchValuation };

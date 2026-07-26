@@ -9,17 +9,8 @@
  */
 import { badgesEarned } from "./gamesStore.ts";
 import { BUILTIN_BADGE_RULES } from "./badges.ts";
-
-/** ISO 时间 → YYYY-MM-DD（本地，纯展示）。 */
-function fmtDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+// 2026-07-26: fmtDate 改用 src/renderer/utils/date.ts 的 fmtDateIso（4 处实现合并）
+import { fmtDateIso as fmtDate } from "../utils/date.ts";
 
 export function BadgeWall() {
   const earned = badgesEarned.value || {};

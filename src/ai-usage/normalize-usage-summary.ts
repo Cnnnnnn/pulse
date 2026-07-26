@@ -51,16 +51,8 @@ export function _parsePctStr(v: any) {
   return Math.max(0, Math.min(100, Number(m[1])));
 }
 
-function _pickNumber(obj: any, keys: any) {
-  if (!obj || typeof obj !== "object" || !Array.isArray(keys) || keys.length === 0) return null;
-  for (const k of keys) {
-    const v = obj[k];
-    if (v === undefined || v === null) continue;
-    const n = typeof v === "number" ? v : Number(v);
-    if (Number.isFinite(n) && n >= 0) return n;
-  }
-  return null;
-}
+// 2026-07-26: _pickNumber 改用 normalize 的 export（两份实现合并）
+import { _pickNumber } from "./normalize";
 
 /**
  * 主入口: 解析 raw usage_summary response → 标准化 usageStats.

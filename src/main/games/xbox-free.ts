@@ -5,26 +5,11 @@
  */
 "use strict";
 
-import { fetchJson, toGameDeal, BROWSER_UA } from "./normalize";
+import { fetchJson, fetchText, toGameDeal, BROWSER_UA } from "./normalize";
 import { logFetchError } from "./log";
 
 const RSS_URL = "https://news.xbox.com/en-us/feed/?tag=free-play-days";
 const CATALOG_BASE = "https://displaycatalog.mp.microsoft.com/v7.0/products";
-
-async function fetchText(url: string, timeoutMs = 9000): Promise<string> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      headers: { "User-Agent": BROWSER_UA, Accept: "application/xml,text/html,*/*" },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
-  } finally {
-    clearTimeout(t);
-  }
-}
 
 export function parseFpdGames(xml: string): any[] {
   if (typeof xml !== "string" || !xml) return [];
@@ -117,7 +102,10 @@ export async function fetchXboxFree(opts: any = {}): Promise<any[]> {
   const market = opts.market || "US";
   const language = opts.language || "en-US";
   try {
-    const xml = await fetchText(RSS_URL, 9000);
+    const xml = await fetchText(RSS_URL, {
+      timeoutMs: 9000,
+      headers: { Accept: "application/xml,text/html,*/*" },
+    });
     const games = parseFpdGames(xml);
     if (games.length === 0) return [];
 

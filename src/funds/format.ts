@@ -31,6 +31,18 @@ export function fmtPct(p: any) {
   return `${sign}${p.toFixed(2)}%`;
 }
 
+// 涨跌用 ▲▼ 前缀 — A 股习惯, 扫视时比单纯看颜色 + 符号更快
+//   ponytail: 0 不加箭头 (灰色), 正加 ▲, 负加 ▼, 后跟原值
+//   2026-07-26: 从 renderer/funds/FundDetail.tsx + FundList.tsx 合并到此（两份字节相同）
+export function fmtSignedPct(p: any, fallback = '—') {
+  const v = Number(p);
+  if (!Number.isFinite(v)) return fallback;
+  if (v === 0) return '0.00%';
+  const arrow = v > 0 ? '▲' : '▼';
+  const sign = v > 0 ? '+' : '';
+  return `${arrow}${sign}${v.toFixed(2)}%`;
+}
+
 export function fmtDateLabel(ymd: any) {
   if (!ymd) return '--';
   const parts = ymd.split('-');

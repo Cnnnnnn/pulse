@@ -6,6 +6,8 @@
 
 import * as f10 from "./_shared-f10";
 import * as fb from "./_shared-profitability-fallback";
+// 2026-07-26: safeJsonParse 改用 _shared-json.ts（4 份实现合并）
+import { safeJsonParse } from "./_shared-json";
 
 export async function fetchProfitability(httpClient: any, { code }: any) {
   const primary = await f10.fetchEastmoneyF10(httpClient, code);
@@ -84,12 +86,5 @@ async function fetchDatacenterFinance(httpClient: any, code: any) {
   }
 }
 
-function safeJsonParse(s: any) {
-  try {
-    return JSON.parse(s);
-  } catch (_: any) {
-    return null;
-  }
-}
 
 module.exports = { fetchProfitability };

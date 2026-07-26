@@ -3,6 +3,8 @@
  *
  * capital_flow angle fetcher. 东财 push2his 主力资金流向.
  */
+// 2026-07-26: safeParse 改用 _shared-json.ts 的 safeJsonParse（4 份实现合并）
+import { safeJsonParse as safeParse } from "./_shared-json";
 const FLOW_URL = "https://push2his.eastmoney.com/api/qt/stock/fflow/kline/get";
 
 export async function fetchCapitalFlow(httpClient: any, { code }: any) {
@@ -54,14 +56,6 @@ function parseFlow(body: any) {
     mainNetInflow10d: last10,
     sampleCount: klines.length,
   };
-}
-
-function safeParse(s: any) {
-  try {
-    return JSON.parse(s);
-  } catch (_: any) {
-    return null;
-  }
 }
 
 module.exports = { fetchCapitalFlow };

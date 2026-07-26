@@ -4,6 +4,8 @@
  * news_buzz angle fetcher. 东财 np-listapi 优先, sina feed.mix 备援.
  * 客户端词典情感打标 (positive / neutral / negative).
  */
+// 2026-07-26: safeParse 改用 _shared-json.ts 的 safeJsonParse（4 份实现合并）
+import { safeJsonParse as safeParse } from "./_shared-json";
 const NEWS_URL = "https://np-listapi.eastmoney.com/comm/web/getListInfo";
 const SINA_FEED_URL = "https://feed.mix.sina.com.cn/api/roll/get";
 
@@ -108,14 +110,6 @@ function classifySentiment(title: any) {
   for (const k of POSITIVE_KW) if (title.includes(k)) return "positive";
   for (const k of NEGATIVE_KW) if (title.includes(k)) return "negative";
   return "neutral";
-}
-
-function safeParse(s: any) {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
-  }
 }
 
 module.exports = { fetchNewsBuzz };

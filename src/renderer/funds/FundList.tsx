@@ -61,16 +61,9 @@ function fmtMoney(n) {
   });
 }
 
-// 2026-07-14: 涨跌用 ▲▼ 前缀 — A 股习惯, 扫视时比单纯看颜色 + 符号更快
-//   ponytail: 0 不加箭头 (灰色), 正加 ▲, 负加 ▼, 后跟原值
-function fmtSignedPct(p) {
-  const v = Number(p);
-  if (!Number.isFinite(v)) return "—";
-  if (v === 0) return `0.00%`;
-  const arrow = v > 0 ? "▲" : "▼";
-  const sign = v > 0 ? "+" : "";
-  return `${arrow}${sign}${v.toFixed(2)}%`;
-}
+// 2026-07-26: fmtSignedPct / fmtCurrency 从 src/funds/format.ts 复用 (canonical, 两文件实现合并)
+import { fmtSignedPct, fmtCurrency } from "../../funds/format.ts";
+
 // 金额版 — 只在已有 signClass 染色的 cell 用, 0 显示 "¥0.00" 不带箭头
 function fmtSignedCurrency(n) {
   const v = Number(n);
@@ -79,18 +72,6 @@ function fmtSignedCurrency(n) {
   const arrow = v > 0 ? "▲" : "▼";
   const sign = v < 0 ? "-" : "";
   return `${arrow}${sign}¥${Math.abs(v).toLocaleString("zh-CN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-// 2026-07-14: ¥ + 千分位 + 2dp, 与 Dashboard / FundDetail fmtCurrency 一致
-//   ponytail: 同一个函数签名, 三处实现收敛, 视觉读数统一
-function fmtCurrency(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "¥0.00";
-  const sign = v < 0 ? "-" : "";
-  return `${sign}¥${Math.abs(v).toLocaleString("zh-CN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
