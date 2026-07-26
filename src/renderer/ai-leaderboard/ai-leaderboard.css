@@ -177,6 +177,14 @@
   color: var(--text-tertiary);
   font-size: var(--font-size-xs);
 }
+/* R1/R2a/R3：AA 方法说明整行备注——占满一行、可读性更强。 */
+.ai-leaderboard-summary__method {
+  flex: 1 1 100%;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: normal;
+}
 .ai-leaderboard-summary__fill {
   flex: 1;
   min-width: 8px;
@@ -959,6 +967,14 @@
   background: var(--ai-lb-sample-bg);
   border: 1px solid var(--ai-lb-sample-border);
 }
+/* R2(b)：AA 字段覆盖率小标签（仅 AA 视图 ModelRow 内联渲染）。
+   复用视角语义强调色，tabular-nums 保证数字等宽。 */
+.ai-lb-tag--coverage {
+  color: var(--ai-lb-accent-text);
+  background: color-mix(in oklch, var(--ai-lb-accent) 12%, transparent);
+  border: 1px solid color-mix(in oklch, var(--ai-lb-accent) 30%, transparent);
+  font-variant-numeric: tabular-nums;
+}
 /* ── 署名脚注（AttributionFooter）── */
 .ai-lb-attribution {
   flex: 0 0 auto;
@@ -1017,6 +1033,33 @@
 }
 .ai-lb-state--error {
   color: color-mix(in oklch, var(--color-danger) 42%, black);
+  font-weight: 600;
+}
+/* R4：数据过期兜底提示——复用 :root 预置的 --ai-lb-stale-* 琥珀令牌（信息级，非危险）。
+   行内紧凑横幅，覆盖 .ai-lb-state 默认居中大留白。 */
+.ai-lb-state--warn {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 var(--space-5) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--ai-lb-stale-bg);
+  border: 1px solid var(--ai-lb-stale-fg);
+  color: var(--ai-lb-stale-fg);
+  font-weight: 600;
+  text-align: left;
+}
+.ai-lb-state--warn .ai-lb-state-icon {
+  width: auto;
+  height: auto;
+  background: transparent;
+  color: var(--ai-lb-stale-fg);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+}
+.ai-lb-state--warn .ai-lb-state-text {
+  color: var(--ai-lb-stale-fg);
   font-weight: 600;
 }
 .ai-lb-sr-only {

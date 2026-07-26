@@ -12,6 +12,7 @@ import {
   hasSampleSource,
   fetchedAt,
   sourceDate,
+  stale,
   searchQuery,
   clearSearchQuery,
   getDisplayed,
@@ -27,7 +28,7 @@ import {
   setLicenseFilter,
   columnValue,
 } from "./aiLeaderboardStore.ts";
-import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, categoryOfBoard, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META } from "./types.ts";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, uiCategoryOfBoard, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META, AA_METHODOLOGY_VERSION } from "./types.ts";
 import { fmtClock, fmtDate, licenseKind } from "./format.ts";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.ts";
 import { rowsToCsv } from "./exportCsv.ts";
@@ -177,7 +178,7 @@ export function AiLeaderboardPage() {
   let crumb;
   if (view === "arena") {
     const boardMeta = ARENA_BOARDS[activeBoard.value] || {};
-    const catKey = categoryOfBoard(activeBoard.value);
+    const catKey = uiCategoryOfBoard(activeBoard.value);
     const catMeta = ARENA_CATEGORIES.find((c) => c.key === catKey);
     const catLabel = catMeta ? catMeta.label : "";
     const boardLabel = boardMeta.label || "综合";
@@ -272,7 +273,16 @@ export function AiLeaderboardPage() {
           ) : fetchedAt.value ? (
             <>
               <span class="ai-leaderboard-summary__sep">·</span>
-              <span class="ai-leaderboard-summary__note">数据更新于 {fmtDate(fetchedAt.value)}</span>
+              {view === "aa" ? (
+                <span
+                  class="ai-leaderboard-summary__note"
+                  title={`数据快照引用日 = ${fmtDate(fetchedAt.value)}；AA 方法论版本 ${AA_METHODOLOGY_VERSION}`}
+                >
+                  数据快照（引用日）：{fmtDate(fetchedAt.value)} · 方法论 {AA_METHODOLOGY_VERSION}
+                </span>
+              ) : (
+                <span class="ai-leaderboard-summary__note">数据更新于 {fmtDate(fetchedAt.value)}</span>
+              )}
             </>
           ) : null}
           <span class="ai-leaderboard-summary__fill" />
@@ -294,6 +304,29 @@ export function AiLeaderboardPage() {
             </button>
           )}
         </div>
+      )}
+
+      {/* AA 视角专属：方法说明（R1/R2a/R3）+ 过期兜底提示（R4）。
+          仅 AA 视图渲染，且避开 loading/error 态；其它视图（arena/livebench/hf）行为不变。 */}
+      {view === "aa" && !loading.value && !error.value && (
+        <>
+          {count > 0 && (
+            <div class="ai-leaderboard-summary" aria-live="polite">
+              <span class="ai-leaderboard-summary__dot" aria-hidden="true" />
+              <span class="ai-leaderboard-summary__note ai-leaderboard-summary__method">
+                <strong>AA 方法说明：</strong>
+                Intelligence Index 由 AA 按 9 项评测加权（{AA_METHODOLOGY_VERSION}）得出，Pulse 直接引用、未本地重算；
+                本视图无置信区间（Free tier 未提供）；价格为 (in+out)/2 估算，价值比 = 智能指数 ÷ 输出价（Pulse 估算口径，非 AA 官方 Cost per Task）。
+              </span>
+            </div>
+          )}
+          {stale.value && (
+            <div class="ai-lb-state ai-lb-state--warn" role="status">
+              <span class="ai-lb-state-icon" aria-hidden="true">⚠</span>
+              <span class="ai-lb-state-text">数据可能过期（使用缓存快照兜底）</span>
+            </div>
+          )}
+        </>
       )}
 
       <div class={`ai-leaderboard-body${animate ? " is-entering" : ""}`}>

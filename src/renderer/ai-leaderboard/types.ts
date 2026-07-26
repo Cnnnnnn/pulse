@@ -86,47 +86,52 @@ export const VIEW_KEYS = ["arena", "aa", "livebench", "huggingface"];
 // 与 fetcher-arena.js 落盘切片键一致；category 映射到主进程 CATEGORY_META。
 // 数据与 text/vision/code 同源（Arena 社区 ELO），零 AA 成本。
 export const ARENA_BOARDS = {
-  // ponytail: text 是 lmarena 主榜（overall text ELO）。在「文本」大类下作为二级榜，
-  // 为避免与一级类别同名，二级标签用「综合」。
-  text: { key: "text", label: "综合", category: "llm" },
-  vision: { key: "vision", label: "多模态", category: "multimodal" },
-  code: { key: "code", label: "代码", category: "code" },
-  image: { key: "text-to-image", label: "图像生成", category: "image" },
-  video: { key: "text-to-video", label: "文生视频", category: "video" },
-  // ponytail: Agent 榜（v2.8x）— arena.ai/leaderboard/agent 同款 6 维细分。
-  // 数据：RSC 满血 38 / 社区快照截断 10，均带 scores[] 维度。cat=llm 复用 text 通道。
+  // ponytail: 标签对齐 arena.ai 官网英文命名。category 字段是 IPC category（不变），与 UI 大类分组独立。
+  text: { key: "text", label: "Text", category: "llm" },
+  vision: { key: "vision", label: "Vision", category: "multimodal" },
+  code: { key: "code", label: "WebDev", category: "code" },
+  image: { key: "text-to-image", label: "Text-to-Image", category: "image" },
+  video: { key: "text-to-video", label: "Text-to-Video", category: "video" },
   agent: { key: "agent", label: "Agent", category: "llm" },
-  // ponytail: 其余 5 个新 arena（v2.8x）— 快照已有数据（flat score/ci/votes），
-  // 与主源同源、零 AA 成本，仅补 tab 暴露；排序/列复用 text 路径。
-  document: { key: "document", label: "文档", category: "llm" },
-  search: { key: "search", label: "搜索", category: "llm" },
-  "image-edit": { key: "image-edit", label: "图像编辑", category: "image" },
-  "image-to-video": { key: "image-to-video", label: "图生视频", category: "video" },
-  "video-edit": { key: "video-edit", label: "视频编辑", category: "video" },
+  document: { key: "document", label: "Document", category: "llm" },
+  search: { key: "search", label: "Search", category: "llm" },
+  "image-edit": { key: "image-edit", label: "Image Edit", category: "image" },
+  "image-to-video": { key: "image-to-video", label: "Image-to-Video", category: "video" },
+  "video-edit": { key: "video-edit", label: "Video Edit", category: "video" },
 };
 
 export const ARENA_BOARD_KEYS = [
-  "text", "vision", "code", "image", "video", "agent",
-  "document", "search", "image-edit", "image-to-video", "video-edit",
+  "agent", "text", "search", "vision", "document", "code",
+  "image", "image-edit", "video", "image-to-video", "video-edit",
 ];
 
-/* ── Arena 一级大类（5 个）→ 二级榜。对齐 arena.ai 的 Text/Vision/Code/Image/Video 分组。
- * boards 内顺序即二级 chip 展示顺序；首项是该大类的默认榜。 */
+/* ── Arena 一级大类（5 个）→ 二级榜。对齐 arena.ai 官网分组：
+ *   Agent（独立）/ Chat（Text+Search+Vision+Document）/ Code（WebDev）/ Image / Video。
+ * boards 内顺序即下拉菜单展示顺序；首项是该大类的默认榜。
+ * 注意：key 是 UI 大类 key，与 ARENA_BOARDS[board].category（IPC category）独立。 */
 export const ARENA_CATEGORIES = [
-  { key: "llm", label: "文本", boards: ["text", "document", "search", "agent"] },
-  { key: "multimodal", label: "多模态", boards: ["vision"] },
-  { key: "code", label: "代码", boards: ["code"] },
-  { key: "image", label: "图像", boards: ["image", "image-edit"] },
-  { key: "video", label: "视频", boards: ["video", "image-to-video", "video-edit"] },
+  { key: "agent", label: "Agent", boards: ["agent"] },
+  { key: "chat", label: "Chat", boards: ["text", "search", "vision", "document"] },
+  { key: "code", label: "Code", boards: ["code"] },
+  { key: "image", label: "Image", boards: ["image", "image-edit"] },
+  { key: "video", label: "Video", boards: ["video", "image-to-video", "video-edit"] },
 ];
 
-/** 取某大类下的二级 board key 列表（非法大类回退到 text 所在 llm）。 */
+/** 取某 UI 大类下的二级 board key 列表（非法大类回退到首个）。 */
 export function boardsOfCategory(cat) {
   const c = ARENA_CATEGORIES.find((x) => x.key === cat) || ARENA_CATEGORIES[0];
   return c.boards;
 }
 
-/** 取某 board 所属大类 key（默认 llm）。 */
+/** 取某 board 所属的 UI 大类 key（ARENA_CATEGORIES 分组，非 IPC category）。 */
+export function uiCategoryOfBoard(board) {
+  for (const c of ARENA_CATEGORIES) {
+    if (c.boards.includes(board)) return c.key;
+  }
+  return ARENA_CATEGORIES[0].key;
+}
+
+/** 取某 board 的 IPC category（用于 toIpcParams，与 UI 大类分组独立）。 */
 export function categoryOfBoard(board) {
   const meta = ARENA_BOARDS[board] || ARENA_BOARDS.text;
   return meta.category;
@@ -162,6 +167,15 @@ export const TEXT_CATEGORIES = [
 /** 文本榜默认 category（overall = 文本综合总榜）。 */
 export const TEXT_CATEGORY_DEFAULT = "overall";
 
+/* ── Arena Code 榜 category 子榜（WebDev + Image-to-WebDev）── 对应 HF webdev config 的 category 字段。 */
+export const CODE_CATEGORIES = [
+  { key: "overall", label: "WebDev" },
+  { key: "image_to_webdev", label: "Image-to-WebDev" },
+];
+
+/** Code 榜默认 category（overall = WebDev 总榜）。 */
+export const CODE_CATEGORY_DEFAULT = "overall";
+
 /* ── AA 视角：可选排序维度 ── */
 
 export const AA_DIMENSIONS = {
@@ -173,6 +187,10 @@ export const AA_DIMENSIONS = {
 };
 
 export const AA_DIMENSION_KEYS = ["intelligence", "coding", "agentic", "speed", "price"];
+
+/** AA 方法论版本：人工维护的引用版本（配合 fetchedAt 显示引用日）。
+ * 仅用于署名 / 方法说明文案，不参与任何计算或排序。 */
+export const AA_METHODOLOGY_VERSION = "v4.1";
 
 /** 表头排序列 → 上下文条展示名（与 LeaderboardTable 列头文案一致） */
 export const SORT_COLUMN_LABELS = {
@@ -299,7 +317,7 @@ export const LICENSE_FILTER_OPTIONS = [
 export const ATTRIBUTION = {
   "artificial-analysis": {
     id: "artificial-analysis",
-    text: "数据来源：Artificial Analysis",
+    text: `Artificial Analysis（方法论 ${AA_METHODOLOGY_VERSION}）`,
     url: "https://artificialanalysis.ai/",
     required: true,
   },

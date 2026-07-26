@@ -8,9 +8,9 @@
  */
 
 import { forwardRef } from "preact/compat";
-import { VENDOR_META, ARENA_BOARDS, AGENT_DIMENSION_DEFAULT, TEXT_CATEGORY_DEFAULT } from "./types.ts";
+import { VENDOR_META, ARENA_BOARDS, AGENT_DIMENSION_DEFAULT, TEXT_CATEGORY_DEFAULT, CODE_CATEGORY_DEFAULT } from "./types.ts";
 import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, fmtTrending, computeTrendingScore, licenseKind, licenseShort } from "./format.ts";
-import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items, activeAgentDim, activeTextCat } from "./aiLeaderboardStore.ts";
+import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items, activeAgentDim, activeTextCat, activeCodeCat } from "./aiLeaderboardStore.ts";
 import { RankSparkline } from "./RankSparkline.tsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
 
@@ -78,6 +78,33 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
       {m.isSample && (
         <span class="ai-lb-tag ai-lb-tag--sample" title="示例数据（离线快照）">示例</span>
       )}
+      {/* R2(b) AA 字段覆盖率：5 维中值有效（非 null 且有限；price 须 >0）的个数 / 5。
+          内联计算，仅基于 m.aa 字段，不污染 schema、不新增 store 字段。
+          sample 来源已由上方「示例」标签体现，此处不重复（R8）。 */}
+      {view === "aa" && m.aa && (() => {
+        const dims = [
+          { label: "智能指数", val: aa.intelligenceIndex, isPrice: false },
+          { label: "代码", val: aa.codingIndex, isPrice: false },
+          { label: "Agentic", val: aa.agenticIndex, isPrice: false },
+          { label: "速度", val: aa.outputTokensPerSec, isPrice: false },
+          { label: "输出价", val: aa.priceOutputPer1M, isPrice: true },
+        ];
+        const valid = dims.map(
+          (d) => typeof d.val === "number" && Number.isFinite(d.val) && (!d.isPrice || d.val > 0),
+        );
+        const count = valid.filter(Boolean).length;
+        const present = dims.filter((_, i) => valid[i]).map((d) => d.label);
+        const absent = dims.filter((_, i) => !valid[i]).map((d) => d.label);
+        const title =
+          `AA 字段覆盖率 ${count}/5（Free tier 无置信区间）：` +
+          `${present.length ? `有值 — ${present.join("、")}` : "全部缺失"}` +
+          `${absent.length ? `；暂无 — ${absent.join("、")}` : ""}`;
+        return (
+          <span class="ai-lb-tag ai-lb-tag--coverage" title={title}>
+            ▦ {count}/5
+          </span>
+        );
+      })()}
       {view === "arena" && <ArenaBoardBars model={m} />}
     </td>
   );
@@ -229,10 +256,12 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
     const isAgent = board === "agent";
     const dimName = activeAgentDim.value || AGENT_DIMENSION_DEFAULT;
     const dim = isAgent && arenaSlice && arenaSlice.dimensions ? arenaSlice.dimensions[dimName] : null;
-    // ponytail: 文本榜 category 子榜 (v2.8x) — 主指标/CI/votes 读选中 category 切片（默认 overall = arenaSlice 本身）.
+    // ponytail: 文本/Code 榜 category 子榜 (v2.8x) — 主指标/CI/votes 读选中 category 切片（默认 overall = arenaSlice 本身）.
     const isText = board === "text";
-    const catName = isText ? (activeTextCat.value || TEXT_CATEGORY_DEFAULT) : null;
-    const catSlice = isText && arenaSlice && arenaSlice.categories
+    const isCode = board === "code";
+    const catName = isText ? (activeTextCat.value || TEXT_CATEGORY_DEFAULT)
+      : isCode ? (activeCodeCat.value || CODE_CATEGORY_DEFAULT) : null;
+    const catSlice = (isText || isCode) && arenaSlice && arenaSlice.categories
       ? (catName === "overall" ? arenaSlice : (arenaSlice.categories[catName] || null))
       : null;
     const elo = dim && typeof dim.score === "number"
@@ -308,14 +337,24 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
       {num("coding", aa.codingIndex, fmtIndex)}
       {num("agentic", aa.agenticIndex, fmtIndex)}
       {num("speed", aa.outputTokensPerSec, fmtSpeed)}
-      {num("price", aa.priceOutputPer1M, fmtPricePer1M)}
+      {num(
+        "price",
+        aa.priceOutputPer1M,
+        fmtPricePer1M,
+        "输出价：AA Free tier 单价；Pulse 用 (in+out)/2 估算 blended，非 AA 官方 Cost per Task",
+      )}
       {num(
         "inputPrice",
         typeof md.inputCostPer1M === "number" ? md.inputCostPer1M : null,
         fmtPricePer1M,
         "输入价（来自 models.dev）",
       )}
-      {num("valueRatio", vr, (v) => (v == null ? "—" : v.toFixed(1)))}
+      {num(
+        "valueRatio",
+        vr,
+        (v) => (v == null ? "—" : v.toFixed(1)),
+        "性价比 = 智能指数 ÷ 输出价，Pulse 估算口径（非 AA 官方 Cost per Task）",
+      )}
       {num(
         "context",
         typeof md.contextLength === "number" ? md.contextLength : null,
