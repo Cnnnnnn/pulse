@@ -42,15 +42,7 @@ export function extractErrorMessage(trace: any, latest: any, versionUnknown: any
   return null;
 }
 
-export function isChromiumVersion(ver: any) {
-  if (!ver || typeof ver !== "string") return false;
-  const parts = ver.split(".");
-  if (parts.length !== 4) return false;
-  const major = parseInt(parts[0], 10);
-  return major >= 80 && parts.every((p: any) => /^\d+$/.test(p));
-}
-
-export function statusOf(versionUnknown, latest, hasUpdate, note) {
+function statusOf(versionUnknown, latest, hasUpdate, note) {
   if (versionUnknown && latest) return "no_auto_check";
   if (!latest) return "no_auto_check";
   // enrich_fallback: 唯一可用版本来自 enrich_only (changelog 等), 权威源

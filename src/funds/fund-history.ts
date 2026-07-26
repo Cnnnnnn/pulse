@@ -4,7 +4,7 @@
  * 基金每日盈亏快照 — 纯函数 (主进程 + renderer 共用).
  */
 
-export const MAX_SNAPSHOT_DAYS = 400;
+const MAX_SNAPSHOT_DAYS = 400;
 
 export function ymdShanghai(d: any) {
   const date = d instanceof Date ? d : new Date(d);
@@ -120,21 +120,4 @@ export function listDaysForMonth(snapshots: any, ym: any) {
     }));
 }
 
-export function recentDailyList(snapshots: any, days = 30) {
-  const ym = ymShanghai(new Date());
-  const inMonth = listDaysForMonth(snapshots, ym);
-  return inMonth.slice(0, days);
-}
-
-export function yesterdayProfit(snapshots: any, now = new Date()) {
-  const today = ymdShanghai(now);
-  const yesterday = ymdShanghai(new Date(now.getTime() - 86400000));
-  const snap = (snapshots || []).find((s: any) => s && s.date === yesterday);
-  if (snap) return round2(Number(snap.todayProfit));
-  const sorted = [...(snapshots || [])].sort((a: any, b: any) =>
-    b.date.localeCompare(a.date),
-  );
-  const past = sorted.find((s: any) => s.date < today);
-  return past ? round2(Number(past.todayProfit)) : null;
-}
 
