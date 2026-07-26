@@ -27,6 +27,7 @@ import {
   licenseFilter,
   setLicenseFilter,
   columnValue,
+  setView,
 } from "./aiLeaderboardStore.ts";
 import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, uiCategoryOfBoard, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META, AA_METHODOLOGY_VERSION } from "./types.ts";
 import { fmtClock, fmtDate, licenseKind } from "./format.ts";
@@ -359,6 +360,26 @@ export function AiLeaderboardPage() {
                 默认按 <strong>Intelligence Index（AA 综合智力指数）</strong> 排序 —— 由 AA 加权 9
                 项评测得出，Pulse 直接引用、未本地重算加权。点击其它列头可切换为单维度排序。
               </p>
+            )}
+            {/* R5 Free 轻量版：AA 维度透明度提示块（仅 AA 视图渲染）。
+                说明 Capability Indices / Openness Index / 多模态 Elo 为 AA Commercial 专属维度，
+                Free tier 不暴露；Pulse 当前仅展示免费 5 维。多模态评测指针可点击跳转 Arena 视角，
+                避免把恒为「暂无」的知识维度（math/gpqa/mmlu/hle/lcb）伪装成可选维度暴露。 */}
+            {view === "aa" && (
+              <div class="ai-leaderboard-dim-note" role="note">
+                <p class="ai-leaderboard-dim-note__text">
+                  AA 的 <strong>Capability Indices（行业能力）</strong>、<strong>Openness Index</strong>
+                  与 <strong>多模态 Elo</strong> 为 Commercial 专属维度，Free tier 不暴露。Pulse 当前仅展示
+                  免费 5 维：Intelligence / Coding / Agentic / Speed / Price。
+                </p>
+                <button
+                  type="button"
+                  class="ai-leaderboard-dim-note__link"
+                  onClick={() => setView("arena")}
+                >
+                  多模态（图/视频）评测 → 见 Arena 视角的 图生图 / 文生视频 榜
+                </button>
+              </div>
             )}
             {view === "aa" && <ValueScatter items={rows} />}
             {view === "arena" && <ArenaBubbleChart items={rows} board={activeBoard.value} />}

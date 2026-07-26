@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, cleanup } from "@testing-library/preact";
+import { render, cleanup, fireEvent } from "@testing-library/preact";
 import { AiLeaderboardPage } from "../../src/renderer/ai-leaderboard/AiLeaderboardPage.tsx";
 import { ValueScatter } from "../../src/renderer/ai-leaderboard/ValueScatter.tsx";
 import { AttributionFooter } from "../../src/renderer/ai-leaderboard/AttributionFooter.tsx";
@@ -280,5 +280,36 @@ describe("ValueScatter header 估算声明（R3）", () => {
   it("AA 散点图 header 含「价格为估算 blended（in+out)/2，无置信区间」", () => {
     const { container } = render(<ValueScatter items={[aaFull, aaPartial]} />);
     expect(container.textContent).toContain("价格为估算 blended（in+out)/2，无置信区间");
+  });
+});
+
+describe("R5 Free 轻量版", () => {
+  // 维度透明度提示块：仅 AA 视角渲染，说明 Commercial 专属维度不暴露。
+  it("AA 视图渲染 Commercial 维度说明，含 Capability/Openness/多模态 任一关键词", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.activeView.value = "aa";
+    store.activeDim.value = "intelligence";
+    const { container } = render(<AiLeaderboardPage />);
+
+    // 提示块落在专属 class 上
+    expect(container.querySelector(".ai-leaderboard-dim-note")).toBeTruthy();
+    // 文案覆盖 Commercial 三大家族（任一关键词命中即可）
+    const txt = container.textContent;
+    expect(txt).toMatch(/Commercial|Capability|Openness|多模态/);
+  });
+
+  it("多模态指针存在，点击后 activeView.value === \"arena\"", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.activeView.value = "aa";
+    store.activeDim.value = "intelligence";
+    const { container } = render(<AiLeaderboardPage />);
+
+    const link = container.querySelector(".ai-leaderboard-dim-note__link");
+    expect(link).toBeTruthy();
+    // 点击前仍为 aa 视图
+    expect(store.activeView.value).toBe("aa");
+    // 点击调用 setView("arena")，同步切换 activeView
+    fireEvent.click(link);
+    expect(store.activeView.value).toBe("arena");
   });
 });

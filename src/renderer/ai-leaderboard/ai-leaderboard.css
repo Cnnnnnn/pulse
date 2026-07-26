@@ -203,6 +203,53 @@
   color: var(--text-primary);
   font-weight: 600;
 }
+/* R5 Free 轻量版：AA 视角维度透明度提示块。
+   与 .ai-leaderboard-sort-hint 视觉一致（muted 文本色 / 圆角 / 内边距 / tabular-nums），
+   仅用 var()/oklch()/color-mix，无裸 hex；暗/亮主题均可读。多模态指针为强调色芯片，
+   触控热区 ≥44px，焦点环统一 var() 令牌。 */
+.ai-leaderboard-dim-note {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--ai-lb-accent) 8%, var(--surface));
+  border: 1px solid color-mix(in oklch, var(--ai-lb-accent) 24%, var(--border-light));
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.ai-leaderboard-dim-note__text {
+  margin: 0 0 var(--space-2);
+}
+.ai-leaderboard-dim-note__text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+/* 多模态指针：强调色芯片，可点击跳转 Arena 视角。
+   min-height + 内边距保证 ≥44px 触控热区；hover/focus 仅用 var()/color-mix 派生。 */
+.ai-leaderboard-dim-note__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--ai-lb-accent) 45%, var(--border-light));
+  background: color-mix(in oklch, var(--ai-lb-accent) 14%, var(--surface));
+  color: var(--ai-lb-accent-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  white-space: normal;
+}
+.ai-leaderboard-dim-note__link:hover {
+  background: color-mix(in oklch, var(--ai-lb-accent) 24%, var(--surface));
+  border-color: color-mix(in oklch, var(--ai-lb-accent) 60%, var(--border-light));
+}
+.ai-leaderboard-dim-note__link:focus-visible {
+  outline: 2px solid var(--ai-lb-accent);
+  outline-offset: 2px;
+}
 .ai-leaderboard-summary__fill {
   flex: 1;
   min-width: 8px;
