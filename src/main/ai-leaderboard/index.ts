@@ -27,7 +27,10 @@ export function registerLeaderboardSchedulerWrapped(deps: any): any {
  * 触发一次同步（预热缓存）。未注册调度器时直接打聚合（graceful）。
  * @returns {Promise<void>}
  */
-export async function triggerLeaderboardSync(): Promise<void> {
+// 2026-07-26: triggerLeaderboardSync 移除 export (零 caller — schedulers.ts 走
+//   registerLeaderboardScheduler alias, IPC 层无手动触发入口). 本地 helper 保留
+//   备未来 IPC 接入; 暂作内部函数.
+async function triggerLeaderboardSync(): Promise<void> {
   if (_scheduler && typeof _scheduler.triggerNow === "function") {
     await _scheduler.triggerNow();
     return;
@@ -43,5 +46,4 @@ module.exports = {
   getLeaderboard,
   matchesCategory,
   registerLeaderboardScheduler: registerLeaderboardSchedulerWrapped,
-  triggerLeaderboardSync,
 };

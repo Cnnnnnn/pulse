@@ -12,7 +12,7 @@ import { getLeaderboard } from "./aggregator";
 import { pruneOldCache } from "./history";
 import { mainLog } from "../log";
 
-export const DAILY_MS = 24 * 60 * 60 * 1000;
+const DAILY_MS = 24 * 60 * 60 * 1000;
 
 let _handle: any = null;
 
@@ -81,4 +81,4 @@ export function registerLeaderboardScheduler(deps: any = {}): any {
   return { start, stop, triggerNow };
 }
 
-module.exports = { registerLeaderboardScheduler, DAILY_MS };
+module.exports = { registerLeaderboardScheduler };

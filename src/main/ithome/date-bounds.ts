@@ -13,11 +13,11 @@ export function todayShanghaiDateKey(now: Date = new Date()): string {
     }).format(now);
 }
 
-export function currentMonthPrefix(now: Date = new Date()): string {
+function currentMonthPrefix(now: Date = new Date()): string {
     return todayShanghaiDateKey(now).slice(0, 7);
 }
 
-export function isValidDateKey(dateKey: any): boolean {
+function isValidDateKey(dateKey: any): boolean {
     return typeof dateKey === "string" && DATE_RE.test(dateKey);
 }
 
@@ -75,8 +75,7 @@ export function listPageUrl(dateKey: string): string {
 module.exports = {
     DATE_RE,
     todayShanghaiDateKey,
-    currentMonthPrefix,
-    isValidDateKey,
+
     isInCurrentMonth,
     isFetchableDate,
     monthDayRange,

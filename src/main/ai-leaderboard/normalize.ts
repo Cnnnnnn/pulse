@@ -119,7 +119,7 @@ export function _mergeInto(existing: any, m: any) {
 }
 
 // 把 name 末尾括号变体归一: "GPT-5.5 (xhigh)" / "Claude Sonnet 5 (Max Effort)" → "GPT-5.5" / "Claude Sonnet 5"
-export function _baseName(name: any): string {
+function _baseName(name: any): string {
   return String(name || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
 }
 
@@ -134,7 +134,7 @@ export function _normName(name: any): string {
   return s;
 }
 
-export function _priorityScore(m: any): number {
+function _priorityScore(m: any): number {
   const src = m.sources || {};
   // 优先级: aa > arena > openrouter > modelsdev > livebench > sample > none
   if (src.aa === "live") return 7;
@@ -146,7 +146,7 @@ export function _priorityScore(m: any): number {
   return 0;
 }
 
-export function _mergeByName(models: any[]): Map<string, any> {
+function _mergeByName(models: any[]): Map<string, any> {
   // 第一轮: 按 baseName (剥末尾括号变体) 合并 — 处理 AA "GPT-5.5 (xhigh)" vs MD "GPT-5.5" 这种.
   // 第二轮: 按 _normName (小写去标点 + 剥末尾横杠变体) 合并 — 处理 Arena "gpt-5.5-high" vs MD "GPT-5.5" 这种.
   // 两轮都共用 _pickAndMerge 逻辑, 同条 id 在两轮间去重避免重复处理.
@@ -190,8 +190,8 @@ export function _mergeByName(models: any[]): Map<string, any> {
   return byKey;
 }
 
-export const _SOURCE_RANK: Record<string, number> = { live: 2, sample: 1, none: 0 };
-export function _bestSource(a: any, b: any): string {
+const _SOURCE_RANK: Record<string, number> = { live: 2, sample: 1, none: 0 };
+function _bestSource(a: any, b: any): string {
   const ra = _SOURCE_RANK[a] != null ? _SOURCE_RANK[a] : 0;
   const rb = _SOURCE_RANK[b] != null ? _SOURCE_RANK[b] : 0;
   return rb > ra ? b : a;

@@ -6,6 +6,18 @@
  *
  * 这里只放纯数据/纯函数（不引入任何网络/electron 依赖），
  * 保证可单测、且被 fetcher / aggregator / ranking 安全复用。
+ *
+ * ponytail 2026-07-26 (code-simplifier audit):
+ *   src/renderer/ai-leaderboard/types.ts 是这份文件的 mirror (renderer 不能跨进程
+ *   import main). 两者有意保留差异, 不是单纯复制:
+ *     - main normalizeVendor: 复杂版, 含 VENDOR_ALIASES stripping + 模型名前缀兜底
+ *       (gpt-5.6-sol-max / claude-4-7-xhigh 等 LiveBench 来源).
+ *     - renderer normalizeVendor: trivial subset (只查 VENDOR_META / VENDOR_ALIAS 直
+ *       命中, 不做 stripping / 前缀兜底). UI 不需要那么多 fallback.
+ *   VENDOR_META 也已漂移: main 有 baichuan; renderer 有 alibaba/baidu/bytedance.
+ *   不强行合一 — renderer types.ts 当前在 uncommitted 重构中, 等那次 commit 落定
+ *   再单独评估是否抽 src/shared/ai-leaderboard.ts. 强制合一会破坏 main 的 fallback
+ *   链或 renderer 的简单语义.
  */
 "use strict";
 
@@ -344,7 +356,7 @@ export const ATTRIBUTION: Record<string, any> = {
   },
 };
 
-export function _sourceNorm(v: any): string {
+function _sourceNorm(v: any): string {
   return v === SOURCE.LIVE || v === SOURCE.SAMPLE ? v : SOURCE.NONE;
 }
 

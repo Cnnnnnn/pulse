@@ -93,7 +93,7 @@ export function sortDeals(items: any[], sort: string): any[] {
   return arr;
 }
 
-export function normalizeTitle(t: string): string {
+function normalizeTitle(t: string): string {
   return String(t || "")
     .toLowerCase()
     .replace(/[™®©]/g, "")

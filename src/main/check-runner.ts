@@ -76,7 +76,7 @@ export type RunCheckDeps = {
   Notification?: any;
 };
 
-export type RunCheckOpts = {
+type RunCheckOpts = {
   silent?: boolean;
 };
 
@@ -239,7 +239,7 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
 let checkTail: Promise<any> = Promise.resolve();
 let manualCheckInflight: Promise<any[]> | null = null;
 
-export type RunCheckQueuedResult = { started: boolean; reason?: string };
+type RunCheckQueuedResult = { started: boolean; reason?: string };
 
 export function runCheckQueued(deps: RunCheckDeps, opts: RunCheckOpts = {}): Promise<RunCheckQueuedResult | any[]> {
   const silent = !!opts.silent;

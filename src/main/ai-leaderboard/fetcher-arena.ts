@@ -27,7 +27,7 @@ const BOARDS = [
 ];
 
 // board → 模型大类（用于给合并后的模型标注 category 提示）
-export const BOARD_TO_CATEGORY: Record<string, string> = {
+const BOARD_TO_CATEGORY: Record<string, string> = {
   text: "llm",
   code: "code",
   vision: "multimodal",
@@ -53,7 +53,7 @@ const CATEGORY_PRIORITY = [
  * @param name
  * @returns {string}
  */
-export function inferVendor(name: any): string {
+function inferVendor(name: any): string {
   const n = String(name || "").toLowerCase();
   if (n.includes("gpt") || n.includes("o1") || n.includes("o3")) return "openai";
   if (n.includes("claude")) return "anthropic";
@@ -298,7 +298,7 @@ async function fetchOneBoard(board: string, timeoutMs?: number): Promise<any | n
  * @param boardsMap { [board]: payload }
  * @returns {string|null}
  */
-export function extractArenaLastUpdated(boardsMap: any): string | null {
+function extractArenaLastUpdated(boardsMap: any): string | null {
   if (!boardsMap || typeof boardsMap !== "object") return null;
   let latest: { raw: string; t: number } | null = null; // { raw, t }
   for (const board of Object.keys(boardsMap)) {
@@ -475,7 +475,7 @@ export function normalize(raw: any): any[] {
 }
 
 // 取 license：各 board 可能不同，取第一个非空
-export function m_lic(e: any): string | null {
+function m_lic(e: any): string | null {
   return e.license != null ? String(e.license) : null;
 }
 

@@ -33,7 +33,7 @@ function pickCurrentPromo(el: any): any {
   return offers[0];
 }
 
-export async function fetchEpicPromotions({ country = "CN", locale = "zh-CN" }: any = {}): Promise<any[]> {
+async function fetchEpicPromotions({ country = "CN", locale = "zh-CN" }: any = {}): Promise<any[]> {
   const url = `${PROMOTIONS_BASE}?locale=${locale}&country=${country}`;
   const data = await fetchJson(url, { timeoutMs: 9000 });
   const elements =

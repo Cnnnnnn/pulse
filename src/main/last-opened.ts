@@ -47,7 +47,7 @@ type ExecFileFn = (
   cb: (err: any, stdout: string) => void,
 ) => any;
 
-export type GetLastOpenedOpts = {
+type GetLastOpenedOpts = {
   execFileImpl?: ExecFileFn;
   now?: number;
   mdlsTimeout?: number;
@@ -55,7 +55,7 @@ export type GetLastOpenedOpts = {
   skipCache?: boolean;
 };
 
-export type LastOpenedResult = {
+type LastOpenedResult = {
   ms: number | null;
   source: "spotlight" | "atime" | "unknown";
 };

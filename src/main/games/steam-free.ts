@@ -35,7 +35,7 @@ function normalizeId(value: any): string | null {
   return null;
 }
 
-export function requirementsFor(type: string, item: any): string {
+function requirementsFor(type: string, item: any): string {
   if (type === "key") {
     const instructions =
       typeof item.instructions === "string" ? item.instructions.trim() : "";

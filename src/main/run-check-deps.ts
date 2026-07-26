@@ -39,7 +39,7 @@ export type RunCheckDeps = {
   markNotified: (names: string[]) => void;
 };
 
-export type BuildRunCheckDepsCtx = {
+type BuildRunCheckDepsCtx = {
   getConfig?: () => any;
   runtimeConfigRef?: { current: any };
   pool?: unknown;

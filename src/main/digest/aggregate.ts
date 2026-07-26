@@ -157,7 +157,7 @@ function lineFor(s: Section): string | null {
   }
 }
 
-export type AggregateResult = {
+type AggregateResult = {
   date: string;
   sections: Section[];
   lines: string[];

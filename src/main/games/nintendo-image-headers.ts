@@ -12,7 +12,7 @@ const NINTENDO_WEBREQUEST_FILTER: any = {
   urls: ["https://assets.nintendo.com/*"],
 };
 
-export function isNintendoAssetUrl(url: string): boolean {
+function isNintendoAssetUrl(url: string): boolean {
   try {
     return new URL(url).hostname === "assets.nintendo.com";
   } catch {
@@ -41,7 +41,7 @@ export function installNintendoImageHeaders(session: any): void {
 module.exports = {
   CHROME_UA,
   NINTENDO_WEBREQUEST_FILTER,
-  isNintendoAssetUrl,
+
   patchBeforeSendHeaders,
   installNintendoImageHeaders,
 };

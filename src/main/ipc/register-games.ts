@@ -38,7 +38,7 @@ export const ALLOWED_MODES = ["deals", "free", "compare"];
 // sort / minSavings 是纯函数（sortDeals + filter），在缓存命中后本地应用，
 // 不进缓存 key —— 改下拉框不再触发上游重拉。
 export const DEALS_CACHE_TTL_MS = 5 * 60_000; // 5 分钟
-export const DEALS_CACHE_MAX = 64; // (platform×mode) 组合有限，64 足够
+const DEALS_CACHE_MAX = 64; // (platform×mode) 组合有限，64 足够
 /** @type {Map<string, {result:object, fetchedAt:number}>} */
 const _dealsCache = new Map();
 
@@ -245,7 +245,7 @@ module.exports = {
   dealsCacheGet,
   dealsCacheSet,
   DEALS_CACHE_TTL_MS,
-  DEALS_CACHE_MAX,
+
   resetDealsCache,
   ALLOWED_MODES,
   applySortAndFilter,

@@ -23,7 +23,7 @@ import { getActionForApp } from "./bulk-upgrade-actions";
 
 // Testability hook (vitest only): 空 noop, 保留以兼容现有测试 import
 // (原功能: 让测试注入 userDataDir 跳过 electron.app.getPath; 已退役, 但保留符号)
-export function _setUserDataDirForTest(_dir: any): void {
+function _setUserDataDirForTest(_dir: any): void {
   /* noop — bulk-upgrade 不再需要 userDataDir */
 }
 
@@ -211,7 +211,7 @@ export async function defaultExec(action: any): Promise<any> {
   throw new Error(`unknown action type: ${action && action.type}`);
 }
 
-export function execBrew(cmd: string, args: string[]): Promise<any> {
+function execBrew(cmd: string, args: string[]): Promise<any> {
   return new Promise((resolve: any, reject: any) => {
     childProcess.execFile(cmd, args, { timeout: 0 }, (err: any, stdout: string, stderr: string) => {
       const out = (stdout || "") + (stderr ? "\n[stderr]\n" + stderr : "");
@@ -338,8 +338,8 @@ async function execMas(trackId: number, fallbackUrl: string): Promise<any> {
 module.exports = {
   runBulkUpgrade,
   defaultExec, // exported for tests
-  execBrew, // exported for tests
+
   execWinget, // exported for tests
   // Testability hook (vitest only)
-  _setUserDataDirForTest,
+
 };

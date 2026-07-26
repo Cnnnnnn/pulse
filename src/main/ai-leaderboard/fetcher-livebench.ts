@@ -30,7 +30,7 @@ const MAIN_JS_TTL = 60 * 60 * 1000; // main.js 1h 缓存一次，避免每次都
  * LiveBench CSV 形状固定: model 名 + 全数字列, 满足假设。
  * 若遇到含逗号 model 名 (实际不会), 直接抛错让上层 fail-fast, 不静默错乱数据。
  */
-export function parseCsv(text: string): any[] {
+function parseCsv(text: string): any[] {
   const lines = text.split("\n").filter((l: any) => l.length > 0);
   if (lines.length < 2) return [];
   const headers = lines[0].split(",");
@@ -109,7 +109,7 @@ async function latestRelease(): Promise<string> {
   return latest;
 }
 
-export function releaseToSlug(release: string): string {
+function releaseToSlug(release: string): string {
   return release.replace(/-/g, "_");
 }
 
@@ -257,6 +257,5 @@ module.exports = {
   attribution: ATTRIBUTION.livebench,
   fetch,
   normalize,
-  parseCsv,
-  releaseToSlug,
+
 };

@@ -38,7 +38,7 @@ export function serializeConfig(state: any, pulseVersion = ""): {
   };
 }
 
-export type ParseResult =
+type ParseResult =
   | { ok: true; fields: Record<string, unknown> }
   | { ok: false; reason: "bad_json" | "bad_schema" | "unknown_fields"; unknownFields?: string[] };
 
@@ -66,7 +66,7 @@ export function parseConfigFile(content: string): ParseResult {
   return { ok: true, fields: parsed.fields };
 }
 
-export type DiffEntry = {
+type DiffEntry = {
   field: string;
   status: "removed" | "added" | "same" | "changed";
   currentCount: number;

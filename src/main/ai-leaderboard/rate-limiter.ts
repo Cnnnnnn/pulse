@@ -16,12 +16,12 @@ let _aaDay = _utcDay();
 let _aaLastAcquireAt: string | null = null;
 const _inflight = new Map<string, Promise<any>>(); // source -> Promise（单飞）
 
-export function _utcDay(d?: Date): string {
+function _utcDay(d?: Date): string {
   const date = d || new Date();
   return date.toISOString().slice(0, 10);
 }
 
-export function _resetIfNewDay() {
+function _resetIfNewDay() {
   const today = _utcDay();
   if (today !== _aaDay) {
     _aaDay = today;
@@ -30,7 +30,7 @@ export function _resetIfNewDay() {
   }
 }
 
-export function _nextUtcMidnight(): string {
+function _nextUtcMidnight(): string {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0)).toISOString();
 }
@@ -91,7 +91,7 @@ export function budget(source: string): any {
  * @param fn
  * @returns {Promise<any>}
  */
-export async function singleFlight<T = any>(source: string, fn: () => Promise<T>): Promise<T> {
+async function singleFlight<T = any>(source: string, fn: () => Promise<T>): Promise<T> {
   const existing = _inflight.get(source);
   if (existing) return existing as Promise<T>;
   const p = (async () => {
@@ -118,6 +118,6 @@ module.exports = {
   acquire,
   remaining,
   budget,
-  singleFlight,
+
   resetLimiter,
 };

@@ -208,7 +208,7 @@ export function getArticle(id: string, statePath: any): any {
     return fav && fav.article ? fav.article : null;
 }
 
-export function isFavorited(id: string, statePath: any): boolean {
+function isFavorited(id: string, statePath: any): boolean {
     const news = _normalizeNews(_readStateRaw(statePath).ithome_news);
     return !!(news.favorites && news.favorites[id]);
 }
@@ -488,7 +488,7 @@ module.exports = {
     getArticle,
     saveSummary,
     toggleFavorite,
-    isFavorited,
+
     attachArticleBody,
     markArticleRead,
     setSearchIndex,

@@ -28,7 +28,7 @@ export function loadSnapshots(statePath: any = stateStore.defaultPath()): any[] 
   return raw.filter(isValidSnapshot);
 }
 
-export function saveSnapshots(snapshots: any[], statePath: any): any {
+function saveSnapshots(snapshots: any[], statePath: any): any {
   const existing = stateStore.load(statePath) || {};
   const funds =
     existing.funds && typeof existing.funds === "object"
@@ -129,7 +129,7 @@ export function saveIndexHistory(symbol: string, series: any, statePath: any): b
 
 module.exports = {
   loadSnapshots,
-  saveSnapshots,
+
   recordFromNavMap,
   loadNavHistory,
   saveNavHistory,

@@ -66,7 +66,7 @@ export function buildExportPayload(state: any, pulseVersion: string = ""): any {
 }
 
 /** RFC 4180-ish: 双引号包裹, 内部双引号加倍 */
-export function csvEscape(val: any): string {
+function csvEscape(val: any): string {
   const s = val == null ? "" : String(val);
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;

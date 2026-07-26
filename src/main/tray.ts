@@ -129,7 +129,7 @@ export function loadTrayIcon(theme?: ThemeLike): NativeImage | null {
 }
 
 /** 加载 badge 图标 (count 1-9 → 数字; ≥10 → 9+). */
-export function loadBadgeIcon(count: number): NativeImage | null {
+function loadBadgeIcon(count: number): NativeImage | null {
   const n = Math.max(0, Math.min(99, count | 0));
   const variant = n >= 10 ? "9plus" : String(n);
   const png = nativeImage.createFromPath(
@@ -731,7 +731,6 @@ module.exports = {
   // 暴露给测试 (assets 加载 + badge 变体选择 + menu template 纯函数)
   _internal: {
     loadTrayIcon,
-    loadBadgeIcon,
     loadFallbackIcon,
     buildMenu,
     buildSummaryLine,

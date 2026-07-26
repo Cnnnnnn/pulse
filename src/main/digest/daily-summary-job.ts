@@ -26,7 +26,7 @@ import * as defaultSharedLlm from "../../ai/shared-llm";
 
 const DEFAULT_TIME = "08:30";
 // A7 v3: LLM 改写超时 (硬上限). 失败/超时回退原 lines, 不阻塞 push.
-export const REWRITE_TIMEOUT_MS = 8000;
+const REWRITE_TIMEOUT_MS = 8000;
 const _handle: { interval: any; deps: any } = { interval: null, deps: null };
 
 function parseTargetMinutes(hhmm: unknown): number | null {
@@ -46,7 +46,7 @@ function ymd(d: Date): string {
   return `${y}-${mm}-${dd}`;
 }
 
-export async function checkAndPush(deps: any): Promise<any> {
+async function checkAndPush(deps: any): Promise<any> {
   const state = deps.getState() || {};
   const cfg = state.daily_digest || {};
   if (cfg.enabled === false) return { skipped: "disabled" };
@@ -236,6 +236,6 @@ module.exports = {
   startDailySummaryJob,
   __resetForTest,
   parseTargetMinutes,
-  checkAndPush,
+
   tryRewriteSummary,
 };
