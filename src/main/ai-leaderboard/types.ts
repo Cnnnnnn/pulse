@@ -7,17 +7,24 @@
  * 这里只放纯数据/纯函数（不引入任何网络/electron 依赖），
  * 保证可单测、且被 fetcher / aggregator / ranking 安全复用。
  *
- * ponytail 2026-07-26 (code-simplifier audit):
+ * ponytail 2026-07-26 (code-simplifier audit, 三轮最终结论):
  *   src/renderer/ai-leaderboard/types.ts 是这份文件的 mirror (renderer 不能跨进程
- *   import main). 两者有意保留差异, 不是单纯复制:
- *     - main normalizeVendor: 复杂版, 含 VENDOR_ALIASES stripping + 模型名前缀兜底
- *       (gpt-5.6-sol-max / claude-4-7-xhigh 等 LiveBench 来源).
- *     - renderer normalizeVendor: trivial subset (只查 VENDOR_META / VENDOR_ALIAS 直
- *       命中, 不做 stripping / 前缀兜底). UI 不需要那么多 fallback.
- *   VENDOR_META 也已漂移: main 有 baichuan; renderer 有 alibaba/baidu/bytedance.
- *   不强行合一 — renderer types.ts 当前在 uncommitted 重构中, 等那次 commit 落定
- *   再单独评估是否抽 src/shared/ai-leaderboard.ts. 强制合一会破坏 main 的 fallback
- *   链或 renderer 的简单语义.
+ *   import main). 经实测两份的"shared" symbol 共 6 个, 但真正字节相同的只有 2 个:
+ *     - SOURCE (字节相同)
+ *     - slugifyVendor (字节相同)
+ *   其余 4 个 (DIMENSION_META / VENDOR_META / ATTRIBUTION / normalizeVendor) 逻辑
+ *   真的不同 — main 复杂版含 VENDOR_ALIASES stripping + 模型名前缀兜底 (gpt-5.6-sol-max
+ *   等 LiveBench 来源), renderer 是 trivial subset 只查直命中. VENDOR_META 也漂移:
+ *   main 有 baichuan; renderer 有 alibaba/baidu/bytedance.
+ *
+ *   决定: 不抽 src/shared/ai-leaderboard-types.ts. 理由 — 抽 2 个 ~6 行 const/function
+ *   到新 shared 文件 ROI 太低, 且会让读者误以为 "mirror 已解决" 但实际还有 4 个不同的
+ *   没解决, 反而误导. 保留现状 + 注释明说更诚实 (符合 code-simplifier "Prefer deletion
+ *   and local simplification over new wrapper layers" 原则). 强合 4 个 DIFFER 项会
+ *   破坏 main 的 fallback 链或强加 renderer 不需要的复杂度.
+ *
+ *   唯一跨进程共享的 ai-leaderboard 模块: src/shared/ai-leaderboard-trending.ts
+ *   (computeTrendingScore, 两边都 import).
  */
 "use strict";
 
