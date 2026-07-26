@@ -32,8 +32,11 @@
 
 const SINA_BASE = 'https://hq.sinajs.cn/list';
 
+// 2026-07-26: SINA_REFERER 改为从 utils/http-constants.ts 复用 (canonical). UA 'Mozilla/5.0' 是 minimal 故保留本地.
+import { SINA_REFERER } from "../utils/http-constants";
+
 const DEFAULT_HEADERS = {
-  Referer: 'https://finance.sina.com.cn',
+  Referer: SINA_REFERER,
   'User-Agent': 'Mozilla/5.0',
 };
 

@@ -1,10 +1,7 @@
 const EM_KLINE_BASE = "https://push2his.eastmoney.com/api/qt/stock/kline/get";
 
-const DEFAULT_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-  Referer: "https://quote.eastmoney.com/",
-};
+// 2026-07-26: DEFAULT_HEADERS 改用 utils/http-constants.ts 的 EM_DEFAULT_HEADERS (canonical, 2 处 eastmoney 合并)
+import { EM_DEFAULT_HEADERS as DEFAULT_HEADERS } from "../utils/http-constants";
 
 const FIELDS = "f51,f52,f53,f54,f55,f56,f57,f58";
 const KLINE_FIELDS_1 = "f1,f2,f3,f4,f5";

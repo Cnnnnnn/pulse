@@ -35,10 +35,8 @@
 
 const EM_BASE = 'https://push2delay.eastmoney.com/api/qt/stock/get';
 
-const DEFAULT_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-  Referer: 'https://quote.eastmoney.com/',
-};
+// 2026-07-26: DEFAULT_HEADERS 改用 utils/http-constants.ts 的 EM_DEFAULT_HEADERS (canonical, 2 处 eastmoney 合并)
+import { EM_DEFAULT_HEADERS as DEFAULT_HEADERS } from "../utils/http-constants";
 
 // 单次请求要拉的字段
 const FIELDS = 'f43,f44,f45,f46,f57,f58,f60,f170,f86';

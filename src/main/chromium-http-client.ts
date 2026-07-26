@@ -13,10 +13,10 @@
  *
  * ponytail: 这个文件只换底层传输, 不动业务语义. retry / timeout 逻辑跟 HttpClient 对齐.
  */
-const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+// 2026-07-26: UA 改为从 utils/http-constants.ts 复用 (canonical, 修复 Chrome 版本号 120 → 124 漂移)
+import { BROWSER_UA as UA } from "../utils/http-constants";
 
-export type HttpClientResult = {
+type HttpClientResult = {
   status: number;
   body: string;
   headers: Record<string, string>;

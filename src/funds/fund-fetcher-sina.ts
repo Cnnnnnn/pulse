@@ -7,7 +7,8 @@
  */
 
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
-const SINA_REFERER = "https://finance.sina.com.cn";
+// 2026-07-26: SINA_REFERER 改为从 utils/http-constants.ts 复用 (canonical). UA 是 truncated 故保留本地.
+import { SINA_REFERER } from "../utils/http-constants";
 
 /**
  * @param {string} body

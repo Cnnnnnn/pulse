@@ -19,10 +19,12 @@ const SOURCE_FALLBACK = "weibo.com";
 const URL_PRIMARY = "https://v2.xxapi.cn/api/weibohot";
 const URL_FALLBACK = "https://weibo.com/ajax/side/hotSearch";
 const DEFAULT_TIMEOUT_MS = 10000;
+// 2026-07-26: UA 改为从 utils/http-constants.ts 复用 (canonical, 修复 Chrome 版本号 120 → 124 漂移)
+import { BROWSER_UA } from "../../utils/http-constants";
+
 const FALLBACK_HEADERS = {
     Referer: "https://weibo.com/",
-    "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+    "User-Agent": BROWSER_UA,
 };
 
 /**
