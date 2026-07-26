@@ -139,14 +139,11 @@ export function registerAiHandlers(ctx: any) {
     if (!available) {
       return { ok: true, hasKey: false, available: false };
     }
+    // ponytail: hasApiKeyFile 从未 export；loadApiKey 已覆盖“有文件且能解密”。
     const hasKey = Boolean(aiStorage.loadApiKey(providerId));
-    const hasFile =
-      typeof (aiStorage as any).hasApiKeyFile === "function"
-        ? (aiStorage as any).hasApiKeyFile(providerId)
-        : hasKey;
     return {
       ok: true,
-      hasKey: hasKey || hasFile,
+      hasKey,
       decryptOk: hasKey,
       available: true,
     };

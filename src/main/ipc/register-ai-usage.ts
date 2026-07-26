@@ -129,7 +129,11 @@ export const _internals = {
               `${new Date().toISOString()} reason=${us && us.reason} status=${us && us.status} error=${us && us.error}\n`,
             );
           } catch { /* ignore */ }
-          log_warn_history(`usage_summary fetch failed: ${us && us.reason}`);
+          // ponytail: auth_401 对订阅 key 是预期（usage_summary 要账号 session，
+          // 订阅 API key 拿不到）。fail log 文件够诊断，别刷 console。
+          if (us && us.reason !== "auth_401") {
+            log_warn_history(`usage_summary fetch failed: ${us && us.reason}`);
+          }
         }
       } catch (e: any) {
         try {
