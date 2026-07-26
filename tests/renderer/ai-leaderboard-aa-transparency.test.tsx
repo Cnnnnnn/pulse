@@ -209,6 +209,60 @@ describe("stale 横幅（R4）", () => {
   });
 });
 
+describe("AA 排序区默认提示（R6）", () => {
+  // arena 视图样本：确保非 AA 视图也能渲染出行（验证提示缺失是条件判断、而非无数据）。
+  const arenaItem = {
+    id: "arena1",
+    name: "ArenaModel",
+    vendor: "openai",
+    isSample: false,
+    arena: { text: { score: 1350, ci: 10, votes: 100 } },
+    aa: null,
+    modelsdev: null,
+    sources: { arena: "live", aa: "none", openrouter: "none", livebench: "none", modelsdev: "none" },
+  };
+
+  it("AA 视图 + intelligence 维度渲染排序提示，含「Intelligence Index」「未本地重算加权」", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.activeView.value = "aa";
+    store.activeDim.value = "intelligence"; // 默认头条维度
+    const { container } = render(<AiLeaderboardPage />);
+
+    const txt = container.textContent;
+    expect(txt).toContain("Intelligence Index");
+    // 「未本地重算加权」为 R6 提示专属短语（R1 方法说明仅写「未本地重算」，无「加权」），
+    // 用作唯一性判据，避免与 R1 文案混淆。
+    expect(txt).toContain("未本地重算加权");
+    // 提示仅 AA + intelligence 渲染，落在专属 class 上
+    expect(container.querySelector(".ai-leaderboard-sort-hint")).toBeTruthy();
+  });
+
+  it("AA 视图 + coding 维度时不渲染该提示（R1 方法说明仍在，但 R6 提示缺失）", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.activeView.value = "aa";
+    store.activeDim.value = "coding";
+    const { container } = render(<AiLeaderboardPage />);
+
+    expect(container.textContent).not.toContain("未本地重算加权");
+    // 回归护栏：R1 全局方法说明不受影响，仍含「未本地重算」
+    expect(container.textContent).toContain("未本地重算");
+    expect(container.querySelector(".ai-leaderboard-sort-hint")).toBeNull();
+  });
+
+  it("非 AA 视角（arena）+ intelligence 时不渲染该提示", () => {
+    store.items.value = [arenaItem];
+    store.activeView.value = "arena";
+    store.activeBoard.value = "text";
+    store.activeDim.value = "intelligence";
+    const { container } = render(<AiLeaderboardPage />);
+
+    // 行已渲染（ArenaBubbleChart 存在），但 R6 提示不应出现
+    expect(container.querySelector(".ai-lb-table")).toBeTruthy();
+    expect(container.textContent).not.toContain("未本地重算加权");
+    expect(container.querySelector(".ai-leaderboard-sort-hint")).toBeNull();
+  });
+});
+
 describe("AttributionFooter 渲染 v4.1 署名（R8）", () => {
   it("空 attribution 时强制追加 AA 署名「Artificial Analysis（方法论 v4.1）」", () => {
     const { container } = render(<AttributionFooter attribution={[]} />);

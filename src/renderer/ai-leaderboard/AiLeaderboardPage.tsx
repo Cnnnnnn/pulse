@@ -350,6 +350,16 @@ export function AiLeaderboardPage() {
 
         {!loading.value && !error.value && rows.length > 0 && (
           <>
+            {/* R6：排序区上下文提示——仅 AA 视图 + 默认 intelligence 维度（即头条排序）。
+                说明默认视图即按 AA 综合智力指数排序，Pulse 直接引用、未本地重算加权；
+                与 R1「AA 方法说明」互补（R1 为全局方法说明，本提示为排序区局部上下文）。
+                其它视角（arena/livebench/hf）或 AA 非 intelligence 维度均不渲染。 */}
+            {view === "aa" && activeDim.value === "intelligence" && (
+              <p class="ai-leaderboard-sort-hint" role="note">
+                默认按 <strong>Intelligence Index（AA 综合智力指数）</strong> 排序 —— 由 AA 加权 9
+                项评测得出，Pulse 直接引用、未本地重算加权。点击其它列头可切换为单维度排序。
+              </p>
+            )}
             {view === "aa" && <ValueScatter items={rows} />}
             {view === "arena" && <ArenaBubbleChart items={rows} board={activeBoard.value} />}
             <TopPodium rows={rows} view={view} />

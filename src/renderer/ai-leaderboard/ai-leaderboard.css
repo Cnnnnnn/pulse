@@ -185,6 +185,24 @@
   color: var(--text-secondary);
   white-space: normal;
 }
+/* R6：排序区上下文提示——仅 AA 视图 + 默认 intelligence 维度（头条排序）渲染。
+   紧凑横幅，复用 R1 同款视图语义色令牌（--ai-lb-accent / --border-light / --surface），
+   仅用 var()/color-mix，无裸 hex；tabular-nums 保证「9 项」等数字等宽。 */
+.ai-leaderboard-sort-hint {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--ai-lb-accent) 8%, var(--surface));
+  border: 1px solid color-mix(in oklch, var(--ai-lb-accent) 24%, var(--border-light));
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.ai-leaderboard-sort-hint strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
 .ai-leaderboard-summary__fill {
   flex: 1;
   min-width: 8px;
