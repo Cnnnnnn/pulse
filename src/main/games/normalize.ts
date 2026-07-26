@@ -16,11 +16,10 @@ const PLATFORM_META: Record<string, { label: string; color: string }> = {
 
 export const PLATFORM_KEYS = Object.keys(PLATFORM_META);
 
-export const BROWSER_UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
-
-export const BROWSER_UA_SAFARI =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
+// 2026-07-26: BROWSER_UA / BROWSER_UA_SAFARI 改为从 src/utils/http-constants.ts 复用 (canonical).
+//   games/normalize.ts 这里 re-export 维持向后兼容 (game fetcher 已有 import 不破坏).
+import { BROWSER_UA, BROWSER_UA_SAFARI } from "../../utils/http-constants";
+export { BROWSER_UA, BROWSER_UA_SAFARI };
 
 const PROMOTION_TYPES = new Set([
   "giveaway",
@@ -28,12 +27,6 @@ const PROMOTION_TYPES = new Set([
   "free-weekend",
   "free-play-days",
 ]);
-
-export function toTrimmedString(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const trimmed = raw.trim();
-  return trimmed ? trimmed : null;
-}
 
 export function toGameDeal(raw: any): any {
   const platform = PLATFORM_KEYS.includes(raw.platform) ? raw.platform : "steam";
@@ -96,6 +89,26 @@ export async function fetchJson(url: string, { timeoutMs = 8000, headers = {} }:
   }
 }
 
+// 2026-07-26: 抽出 fetchText. playstation.ts + xbox-free.ts 两份本地实现合并,
+// 差异只在 Accept header (caller 通过 headers 传入). 默认 UA 走 BROWSER_UA.
+export async function fetchText(
+  url: string,
+  { timeoutMs = 9000, headers = {} }: { timeoutMs?: number; headers?: Record<string, string> } = {},
+): Promise<string> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": BROWSER_UA, ...headers },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 module.exports = {
   PLATFORM_META,
   PLATFORM_KEYS,
@@ -103,4 +116,5 @@ module.exports = {
   BROWSER_UA_SAFARI,
   toGameDeal,
   fetchJson,
+  fetchText,
 };
