@@ -11,6 +11,12 @@
 
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+
+/** 取首个有限数值, 否则返回默认. ponytail: 3 fetcher 各 1 份, 不抽 (esbuild 编译陷阱). */
+function num(v: any, d: number = 0): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+}
 import { logFetchError } from "../games/log";
 
 const AA_API = "https://artificialanalysis.ai/api/v2/language/models/free";
@@ -24,7 +30,7 @@ let _aaKey: string | undefined = undefined; // undefined = 尚未探测
  * 极简 .env 加载器（与 itad.js 同款范式）：
  * 仅当进程尚未有 ARTIFICIAL_ANALYSIS_API_KEY 时，从 process.cwd()/.env 读取。
  */
-export function loadAaKey(): string | undefined {
+function loadAaKey(): string | undefined {
   if (_envLoaded) return _aaKey;
   _envLoaded = true;
   if (process.env.ARTIFICIAL_ANALYSIS_API_KEY) {
@@ -59,14 +65,8 @@ export function loadAaKey(): string | undefined {
   return _aaKey;
 }
 
-/** 取首个有限数值，否则返回默认。 */
-export function num(v: any, d: number = 0): number {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : d;
-}
-
 /** 从 evaluations 对象按候选键取首个有限数值（兼容不同字段命名）。 */
-export function pickEval(ev: any, keys: string[], d: number = 0): number {
+function pickEval(ev: any, keys: string[], d: number = 0): number {
   if (!ev || typeof ev !== "object") return d;
   for (const k of keys) {
     const v = ev[k];
@@ -76,7 +76,7 @@ export function pickEval(ev: any, keys: string[], d: number = 0): number {
 }
 
 /** 从 model_creator 提取 vendor string（兼容 {name} / string / 旧字段）。 */
-export function pickCreatorName(d: any): string {
+function pickCreatorName(d: any): string {
   const mc = d && d.model_creator;
   if (mc && typeof mc === "object" && mc.name) return String(mc.name);
   if (typeof mc === "string") return mc;

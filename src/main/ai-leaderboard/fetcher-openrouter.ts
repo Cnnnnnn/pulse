@@ -15,7 +15,7 @@ import { logFetchError } from "../games/log";
 const OR_API = "https://openrouter.ai/api/v1/models";
 
 /** 由 architecture 模态推断 category（仅作兜底分类提示）。 */
-export function inferCategoryFromArch(arch: any, d: any): string {
+function inferCategoryFromArch(arch: any, d: any): string {
   const a = String(arch || "").toLowerCase();
   const name = String((d && d.name) || (d && d.id) || "").toLowerCase();
   if (a.includes("image") || name.includes("image") || name.includes("dall") || name.includes("flux")) {

@@ -26,18 +26,18 @@
 
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+
+/** 安全取数字 (HF 偶发返 null/missing). null/undefined 走默认. ponytail: 3 fetcher 各 1 份, 不抽. */
+function num(v: any, d: number = 0): number {
+  if (v == null) return d;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+}
 import { logFetchError } from "../games/log";
 
 const HF_API = "https://huggingface.co/api/models";
 const HF_PAGE_SIZE = 1000; // HF API 单页上限实测稳定 1000; 大页可能触发 429
 const HF_TOP_N = 5000; // top N by downloads — 覆盖 20+ 主流厂商基模 + 主要变体
-
-/** 安全取数字（HF 偶发返回 null/missing）。null/undefined 走默认。 */
-export function num(v: any, d: number = 0): number {
-  if (v == null) return d;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : d;
-}
 
 /**
  * pipeline_tag + tags 兜底 → CATEGORY_META key (v2.79.5+).

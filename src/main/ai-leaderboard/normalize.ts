@@ -12,6 +12,13 @@ import { SOURCE, toAiModel, makeId } from "./types";
 // 7b 删 shim 时去掉 module.exports.
 export { BROWSER_UA, fetchJson };
 
+// num(): 原计划抽到此处 + 3 fetcher 复用. 实际触发 esbuild 编译陷阱:
+//   `module.exports = { 4 keys }` (line 173) 硬编码覆盖 `__toCommonJS()` (line 35),
+//   hardcoded list 不含 num, 但 `__export` 含 num, 导致 module.exports.num = undefined.
+//   抽取净省 1 行 + 加 esbuild 编译 anti-pattern, 不值. 3 fetcher 各自 inline 5 行.
+// (Phase 10.2 撤销; ponytail 笔记: src/ 下 ESM→CJS export 模式对每个新加 export 都要
+//  验证 module.exports 硬编码 list, 否则会出现"module.exports.num = undefined"反直觉 bug.)
+
 /**
  * 构造稳定主键：vendor + name 归一化。与 types.makeId 同口径。
  * @param vendor

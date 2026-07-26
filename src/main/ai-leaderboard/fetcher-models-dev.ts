@@ -15,18 +15,18 @@
 
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+
+/** 取首个有限数值, 否则返回默认. ponytail: 3 fetcher 各 1 份, 不抽. */
+function num(v: any, d: number = 0): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+}
 import { logFetchError } from "../games/log";
 
 const MODELS_DEV_API = "https://models.dev/api.json";
 
-/** 取首个有限数值，否则返回默认。 */
-export function num(v: any, d: number = 0): number {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : d;
-}
-
 /** modalities → 简单 category 兜底（视频 / 图像 / 默认 llm）。 */
-export function inferCategory(modalities: any): string {
+function inferCategory(modalities: any): string {
   const out = (modalities && modalities.output) || [];
   if (out.includes("video")) return "video";
   if (out.includes("image")) return "image";
@@ -34,7 +34,7 @@ export function inferCategory(modalities: any): string {
 }
 
 /** status 字段 → license 字段粗归一（renderer 用 license 做开源/闭源筛选）。 */
-export function licenseFromStatus(status: any, openWeights: any): string | null {
+function licenseFromStatus(status: any, openWeights: any): string | null {
   if (openWeights === true) return "open";
   if (status === "deprecated") return "deprecated";
   if (status === "alpha" || status === "beta") return status;
