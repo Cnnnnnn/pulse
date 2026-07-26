@@ -88,7 +88,7 @@ export async function fetchFundNavHistory(code: any, httpClient: any, opts: any 
 const IDX_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
 const IDX_REF = "https://quote.eastmoney.com/";
 const IDX_SECID_PREFIX = "1."; // 上交所指数 secid 前缀
-export const INDEX_DEFAULT_DAYS = 365;
+const INDEX_DEFAULT_DAYS = 365;
 
 /**
  * 解析 eastmoney 指数 kline 响应.

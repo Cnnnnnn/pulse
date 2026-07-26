@@ -4,11 +4,11 @@
  * cursor / codex / engine 共用的 session title 去噪与抽取.
  */
 
-export const GENERIC_QUERY_RE =
+const GENERIC_QUERY_RE =
   /^(可以|好的|好|ok|okay|yes|no|嗯|啊|哦|行|对|是|不是|继续|接着|然后|下一步|next|continue|go|ok,|好的,|好,|行,)$/i;
 
 /** 跳 markdown / tag / 路径 / URL, 提取 clean 行. */
-export function stripNoiseLine(line: any) {
+function stripNoiseLine(line: any) {
   if (/^#/.test(line)) return null;
   if (/^<[^>]+>$/.test(line)) return null;
   if (/^<[a-z_]+>/i.test(line)) return null;
@@ -34,7 +34,7 @@ export function looksLikePromptNoise(text: any) {
   return false;
 }
 
-export function isInformativeLine(line: any) {
+function isInformativeLine(line: any) {
   if (!line || typeof line !== "string") return false;
   const t = line.trim();
   if (t.length < 8) return false;

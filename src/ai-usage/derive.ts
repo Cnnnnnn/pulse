@@ -7,7 +7,7 @@
  * Spec: docs/superpowers/specs/2026-06-14-minimax-coding-plan-usage-design.md §3.2.2
  */
 
-export const MAX_BLOW_UP_HOURS = 24; // > 24h 视为速率太低/数据异常, 不显示
+const MAX_BLOW_UP_HOURS = 24; // > 24h 视为速率太低/数据异常, 不显示
 
 /**
  * 计算每小时消耗速率 (units per hour).

@@ -57,7 +57,7 @@ export function mergeAISessionsConfig(cfg: any, override: any) {
  * @param {string} [statePath] 注入便于测试
  * @returns {{ loadTaskSummaries, saveTaskSummary }}
  */
-export function makeStateStoreStorage(statePath: any) {
+function makeStateStoreStorage(statePath: any) {
   return {
     loadTaskSummaries: () => stateStore.loadTaskSummaries(statePath),
     saveTaskSummary: (entry: any) => stateStore.saveTaskSummary(entry, statePath),
@@ -69,7 +69,7 @@ export function makeStateStoreStorage(statePath: any) {
  * @param {string} providerId
  * @returns {string|null}
  */
-export function _defaultResolveApiKey(providerId: any) {
+function _defaultResolveApiKey(providerId: any) {
   try {
     return storageMod.loadApiKey(providerId);
   } catch {

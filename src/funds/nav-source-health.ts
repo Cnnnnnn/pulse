@@ -16,9 +16,9 @@
  * v1.0 (2026-06-13) — 初版
  */
 
-export const WINDOW_SIZE = 20;
-export const CONSECUTIVE_FAIL_THRESHOLD = 3;
-export const MIN_SUCCESS_RATE = 0.5; // 滑动窗口内 < 50% 成功 → unhealthy
+const WINDOW_SIZE = 20;
+const CONSECUTIVE_FAIL_THRESHOLD = 3;
+const MIN_SUCCESS_RATE = 0.5; // 滑动窗口内 < 50% 成功 → unhealthy
 
 export const SOURCES = ["tiantian", "sina"];
 

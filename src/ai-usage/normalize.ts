@@ -48,7 +48,7 @@ export function _pickTotal(obj: any, keys: any) {
  * @param {string[]} keys
  * @returns {*}
  */
-export function _pickAny(obj: any, keys: any) {
+function _pickAny(obj: any, keys: any) {
   if (!obj || typeof obj !== 'object' || !Array.isArray(keys) || keys.length === 0) {
     return undefined;
   }
@@ -102,7 +102,7 @@ export function _parseRemainsTime(v: any) {
  * @param {object} [opts] { allowOverflow?: boolean }
  * @returns {number|null}
  */
-export function _parsePercent(v: any, opts: any = {}) {
+function _parsePercent(v: any, opts: any = {}) {
   if (v == null) return null;
   const allowOverflow = Boolean(opts && opts.allowOverflow);
   if (typeof v === 'number' && Number.isFinite(v)) {
@@ -119,7 +119,7 @@ export function _parsePercent(v: any, opts: any = {}) {
  * @param {object} raw
  * @returns {object[]}
  */
-export function _pickBlocks(raw: any) {
+function _pickBlocks(raw: any) {
   if (Array.isArray(raw.model_remains) && raw.model_remains.length > 0) {
     return raw.model_remains.filter((b: any) => b && typeof b === 'object');
   }

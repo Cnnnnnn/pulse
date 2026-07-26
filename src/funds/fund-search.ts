@@ -17,7 +17,7 @@
  */
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36';
-export const SEARCH_URL = 'http://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx';
+const SEARCH_URL = 'http://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx';
 
 /**
  * @typedef {{

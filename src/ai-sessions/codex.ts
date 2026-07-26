@@ -40,8 +40,8 @@ import fsp from "fs/promises";
 import os from "os";
 import path from "path";
 
-export const CODEX_BUNDLE_PATH = '/Applications/Codex.app';
-export const CODEX_SESSIONS_DIR = path.join(os.homedir(), '.codex', 'sessions');
+const CODEX_BUNDLE_PATH = '/Applications/Codex.app';
+const CODEX_SESSIONS_DIR = path.join(os.homedir(), '.codex', 'sessions');
 
 export class CodexDetectorImpl {
   appName: any;

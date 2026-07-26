@@ -13,7 +13,7 @@ import { chatCompletion } from "./shared-llm";
 
 const MAX_README_CHARS = 14000;
 
-export const SYSTEM_PROMPT = `你是一个资深的技术项目分析师。用户会给你一个 GitHub 开源项目的名称、简介和 README 原文。
+const SYSTEM_PROMPT = `你是一个资深的技术项目分析师。用户会给你一个 GitHub 开源项目的名称、简介和 README 原文。
 请仔细阅读，提取对"是否值得收藏 / 如何使用"最有价值的信息。
 你必须只输出一个 JSON 对象（不要包含任何 markdown 代码围栏或额外解释文字），结构严格如下：
 {
@@ -42,7 +42,7 @@ export function buildMessages({ projectName, description, readme }: any) {
   ];
 }
 
-export function parseJson(text: any) {
+function parseJson(text: any) {
   if (typeof text !== "string" || !text.trim()) return null;
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");

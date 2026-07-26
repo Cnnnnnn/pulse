@@ -23,11 +23,11 @@ const REASONING_BLOCK_RES = [
   /<analysis>[\s\S]*?<\/analysis>/gi,
 ];
 
-export function hasCjk(text: any) {
+function hasCjk(text: any) {
   return /[\u3400-\u9fff]/.test(text);
 }
 
-export function stripThinkTags(text: any) {
+function stripThinkTags(text: any) {
   let out = text.replace(thinkBlockRe(), "");
   out = out.replace(thinkOpenRe(), "");
   return out;

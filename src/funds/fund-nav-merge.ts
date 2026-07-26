@@ -4,8 +4,8 @@
  * 多源净值合并 + 按用户所选数据源解析为单一快照.
  */
 
-export const DEVIATION_WARN_PCT = 0.5;
-export const NAV_SOURCES = ["tiantian", "sina"];
+const DEVIATION_WARN_PCT = 0.5;
+const NAV_SOURCES = ["tiantian", "sina"];
 export const NAV_SOURCE_LABELS = {
   tiantian: "天天基金",
   sina: "新浪财经",
@@ -17,7 +17,7 @@ function round4(n: any) {
   return r === 0 ? 0 : r;
 }
 
-export function effectiveEstimate(snap: any) {
+function effectiveEstimate(snap: any) {
   if (!snap) return null;
   if (snap.estimatedNav != null && snap.estimatedNav > 0)
     return snap.estimatedNav;

@@ -26,7 +26,7 @@ export function loadNodeSqlite(log: any = SILENT_LOG) {
  * @param {string} sql
  * @param {{ separator?: string, rejectOnError?: boolean, log?: object }} [opts]
  */
-export function runSqliteCli(sqlitePath: any, sql: any, opts: any = {}) {
+function runSqliteCli(sqlitePath: any, sql: any, opts: any = {}) {
   const { separator = "\t", rejectOnError = false, log = SILENT_LOG } = opts;
   return new Promise<any>((resolve: any, reject: any) => {
     const proc = spawn(

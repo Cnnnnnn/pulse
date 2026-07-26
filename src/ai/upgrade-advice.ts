@@ -10,7 +10,7 @@ import crypto from "node:crypto";
 // ponytail: state-store 是 Phase 3 5 例外 (CJS), 7a-6 才 ESM-ify.
 const stateStore: any = require("../main/state-store.js");
 
-export const VALID_RECOMMENDATIONS = ["upgrade", "wait", "skip"];
+const VALID_RECOMMENDATIONS = ["upgrade", "wait", "skip"];
 const VALID_CONFIDENCE = ["high", "medium", "low"];
 
 export function adviceCacheKey(appName: any, latestVersion: any) {

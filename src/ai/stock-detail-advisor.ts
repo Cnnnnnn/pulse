@@ -20,7 +20,7 @@ export const PROMPT_KEY = "stock_detail_analyze";
 export const CACHE_VERSION = "v3";
 export const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-export const VALID_SIGNALS = new Set(["positive", "neutral", "cautious"]);
+const VALID_SIGNALS = new Set(["positive", "neutral", "cautious"]);
 const FORBIDDEN_SUMMARY_REGEX =
   /买入|卖出|加仓|减仓|看多|看空|必涨|必跌|强烈推荐/g;
 const SUMMARY_SAFE_REPLACEMENT = "当前市场呈现";

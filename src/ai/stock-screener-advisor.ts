@@ -22,10 +22,10 @@ export const CACHE_VERSION = "v1";
 export const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 // ponytail: 排序键白名单 — 防止 LLM 输出不可识别的 key 把 sortKey signal 写炸
-export const VALID_SORT_KEYS = new Set([
+const VALID_SORT_KEYS = new Set([
   "roe", "pe", "pb", "changePct", "marketCap", "turnover", "price", "name", "industry",
 ]);
-export const VALID_MARKET_TIERS = new Set(["all", "large", "mid", "small"]);
+const VALID_MARKET_TIERS = new Set(["all", "large", "mid", "small"]);
 // ponytail: summary 合规改写 — 命中投资建议关键词时整句替换
 const FORBIDDEN_SUMMARY_REGEX = /买入|卖出|加仓|减仓|看多|看空|必涨|必跌|强烈推荐/g;
 const SUMMARY_SAFE_REPLACEMENT = "当前市场呈现";
@@ -201,7 +201,7 @@ export async function aiStockAdvise(opts: any) {
 // 内部 helpers (export 给测试用)
 // ─────────────────────────────────────────────────────────────────────────
 
-export function sanitizeCriteria(raw: any) {
+function sanitizeCriteria(raw: any) {
   const out: any = {};
   if (!raw || typeof raw !== "object") return cloneDefaultCriteria();
   // 数值字段: 范围 [null, 数字]
@@ -230,14 +230,14 @@ export function sanitizeCriteria(raw: any) {
   return Object.assign(cloneDefaultCriteria(), out);
 }
 
-export function sanitizeSortConfig(raw: any) {
+function sanitizeSortConfig(raw: any) {
   if (!raw || typeof raw !== "object") return null;
   if (typeof raw.key !== "string" || !VALID_SORT_KEYS.has(raw.key)) return null;
   const dir = raw.dir === "asc" ? "asc" : "desc";
   return { key: raw.key, dir };
 }
 
-export function sanitizeSummary(raw: any) {
+function sanitizeSummary(raw: any) {
   let s = typeof raw === "string" ? raw.trim() : "";
   if (!s) return "当前市场呈现中性估值水平, 可结合自身偏好微调筛选条件。";
   // 合规改写

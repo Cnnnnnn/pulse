@@ -19,7 +19,7 @@ import { promisify } from "util";
 const pExecFile = promisify(execFile);
 
 // 3 个 Uninstall 根 (系统 64 位 / 系统 32 位 / 用户级)
-export const UNINSTALL_ROOTS = [
+const UNINSTALL_ROOTS = [
   'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
   'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
   'HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',

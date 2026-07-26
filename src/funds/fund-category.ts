@@ -4,7 +4,7 @@
  * Phase 5: export-only（renderer 共享，禁止 module.exports）。
  */
 
-export const CATEGORY_LABELS: Record<string, string> = {
+const CATEGORY_LABELS: Record<string, string> = {
   stock: "股票",
   bond: "债券",
   money: "货币",

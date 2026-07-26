@@ -34,8 +34,8 @@ import fsp from "fs/promises";
 import os from "os";
 import path from "path";
 
-export const CURSOR_BUNDLE_PATH = '/Applications/Cursor.app';
-export const CURSOR_PROJECTS_DIR = path.join(os.homedir(), '.cursor', 'projects');
+const CURSOR_BUNDLE_PATH = '/Applications/Cursor.app';
+const CURSOR_PROJECTS_DIR = path.join(os.homedir(), '.cursor', 'projects');
 
 export class CursorDetectorImpl {
   appName: any;

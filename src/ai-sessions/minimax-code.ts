@@ -37,10 +37,10 @@ import os from "os";
 import path from "path";
 import { resolveAppBundlePath } from "../utils/app-paths";
 
-export const MINIMAX_CODE_BUNDLE_PATH = resolveAppBundlePath('MiniMax Code.app');
-export const MINIMAX_SQLITE_PATH = path.join(os.homedir(), '.minimax', 'sqlite.db');
+const MINIMAX_CODE_BUNDLE_PATH = resolveAppBundlePath('MiniMax Code.app');
+const MINIMAX_SQLITE_PATH = path.join(os.homedir(), '.minimax', 'sqlite.db');
 
-export function _loadNodeSqlite(log: any = 0) {
+function _loadNodeSqlite(log: any = 0) {
   return loadNodeSqlite(log);
 }
 
@@ -234,7 +234,7 @@ export class MiniMaxCodeDetectorImpl {
  * @param {string} col
  * @returns {boolean}
  */
-export function _hasColumn(db: any, table: any, col: any) {
+function _hasColumn(db: any, table: any, col: any) {
   try {
     const rows = db.prepare(`PRAGMA table_info(${table})`).all();
     return Array.isArray(rows) && rows.some((r: any) => r && r.name === col);

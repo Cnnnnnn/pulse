@@ -243,7 +243,7 @@ export function _contentHash(session: any) {
 /**
  * Session → 任务卡 (UI 渲染用). cacheMap 命中时带 summary.
  */
-export function _toTaskCard(session: any, cacheMap: any) {
+function _toTaskCard(session: any, cacheMap: any) {
   const taskKey = _taskKeyOf(session);
   const hash = _contentHash(session);
   const cached = cacheMap && typeof cacheMap === 'object' ? cacheMap[taskKey] : null;
@@ -289,7 +289,7 @@ export function _projectOf(session: any) {
 /**
  * 任务标题: detector 的 title 优先, 否则第一条非噪声 user 消息首行.
  */
-export function _inferTaskTitle(session: any) {
+function _inferTaskTitle(session: any) {
   if (session && typeof session.title === 'string' && session.title.trim() && !looksLikePromptNoise(session.title)) {
     return session.title.trim().replace(/\s+/g, ' ').slice(0, 48);
   }
