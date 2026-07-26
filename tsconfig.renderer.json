@@ -10,6 +10,7 @@
   "include": [
     "src/shared/preload-types.ts",
     "src/shared/window.d.ts",
+    "src/shared/ai-leaderboard-trending.ts",
     "src/renderer/**/*.jsx",
     "src/renderer/**/*.js",
     "src/renderer/**/*.tsx",

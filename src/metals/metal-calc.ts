@@ -108,3 +108,47 @@ export function calcOverview(holdingMap: any, quoteMap: any, cnyPerUsd: any) {
     hasFxMissing,
   };
 }
+
+// ---- 共享常量 + 渲染辅助 (2026-07-26 code-simplifier) ------------------------
+// 之前散落在 src/renderer/metals/MetalDetail.tsx + MetalWatchlist.tsx 各一份,
+// 两份实现字节相同. 这里抽出避免漂移.
+
+/** 金衡盎司 → 克的换算系数. */
+export const GRAM_PER_OZ = 31.1035;
+
+/** CNY 货币显示 (¥ + 千分位 + N 位小数, NaN/null → "—"). */
+export function formatCNY(value: any, decimals = 2): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `¥${value.toLocaleString("zh-CN", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })}`;
+}
+
+/** 通用数字显示 (千分位 + N 位小数, NaN/null → "—"). */
+export function formatNum(value: any, decimals = 2): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toLocaleString("zh-CN", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+/**
+ * 国际品种 (USD/oz) → ¥/克; 国内品种 (CNY) 原价即 ¥/克. fx 缺失返 null.
+ * 跟 calcChange 一样不依赖 I/O, 纯函数.
+ */
+export function getRefPriceCNY(quote: any, fx: any): number | null {
+  if (!quote) return null;
+  if (quote.currency === "CNY") return quote.price;
+  if (fx == null) return null;
+  return (quote.price * fx) / GRAM_PER_OZ;
+}
+
+/** 每克涨跌额 (¥/克), 国际品种经 FX 换算. */
+export function getChangePerGramCNY(quote: any, fx: any): number | null {
+  if (!quote) return null;
+  if (quote.currency === "CNY") return calcChange(quote).change;
+  if (fx == null) return null;
+  return (calcChange(quote).change * fx) / GRAM_PER_OZ;
+}

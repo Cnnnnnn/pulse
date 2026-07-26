@@ -8,18 +8,11 @@
  *   例: 13:00 UTC-6 → UTC 19:00 → 北京次日 03:00
  */
 
-/**
- * 当地时区相对 UTC 的小时偏移量 (加到当地时间得到 UTC 小时).
- * 与 match-utils.js / match-key.js 的 parseUtcOffsetHours 一致.
- * @param {string} tz  e.g. "UTC-6" / "UTC+5"
- * @returns {number}   UTC-6 → 6, UTC+5 → -5
- */
-export function parseUtcOffset(tz: any) {
-  if (!tz || typeof tz !== "string") return 0;
-  const m = tz.match(/^UTC([+-])(\d{1,2})$/);
-  if (!m) return 0;
-  return m[1] === "+" ? -parseInt(m[2], 10) : parseInt(m[2], 10);
-}
+// 2026-07-26: parseUtcOffset 改用 match-utils.ts 的 parseUtcOffsetHours (canonical,
+//   两份实现字节相同 — main 端 match-key.ts 也有一份, 跨进程不能 require 故保留).
+//   用 import 别名把 canonical 名字映射成本模块的 parseUtcOffset (保持现有 caller 不破坏).
+import { parseUtcOffsetHours as parseUtcOffset } from "./match-utils.ts";
+export { parseUtcOffset };
 
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 

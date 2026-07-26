@@ -22,19 +22,8 @@ import { useUsageSeries } from "../hooks/useUsageSeries.ts";
 import { UsageSparkline } from "./UsageSparkline.tsx";
 import { UsageDetailList } from "./UsageDetailList.tsx";
 import { modelColorIndex } from "./modelColor.ts";
-
-// ─── 工具: 数字格式化 (token 数) ────────────────────────────
-
-/**
- * 大数 → 紧凑格式: 1234 → "1.2K", 12345678 → "12.3M", 1234567890 → "1.2B".
- */
-function formatCompact(n) {
-  if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "—";
-  if (n < 1000) return String(n);
-  if (n < 1_000_000) return `${(n / 1_000).toFixed(n < 10_000 ? 2 : 1)}K`;
-  if (n < 1_000_000_000) return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 2 : 1)}M`;
-  return `${(n / 1_000_000_000).toFixed(n < 10_000_000_000 ? 2 : 1)}B`;
-}
+// 2026-07-26: formatCompact 改用 utils/number.ts (canonical, 2 处实现合并)
+import { formatCompact } from "../utils/number.ts";
 
 /**
  * 大数 → 千分位整数 (渲染 tooltip / 详情). 例: 12345678 → "12,345,678".

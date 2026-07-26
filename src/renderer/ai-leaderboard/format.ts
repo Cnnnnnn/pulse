@@ -6,6 +6,11 @@
  */
 
 import { VENDOR_META, CATEGORY_BOARD, DIMENSION_META } from "./types.ts";
+// 2026-07-26: computeTrendingScore 抽到 src/shared/ai-leaderboard-trending.ts (跨进程共享).
+//   之前 renderer 副本注释明说 "can't cross-process require" 故复制 — 实际只依赖 Number/Date/Math,
+//   无 electron/node 依赖, 可以走 shared import. 这里 import + re-export 维持向后兼容.
+import { computeTrendingScore } from "../../shared/ai-leaderboard-trending";
+export { computeTrendingScore };
 
 /** ELO 分数：取整。 */
 export function fmtScore(v: any) {
@@ -121,31 +126,7 @@ export function fmtHfDate(iso: any) {
   return s.slice(0, 10) || "—";
 }
 
-/**
- * ponytail: HF Trending 分数 (v2.79.6+) — renderer 副本 (跟 main 端 fetcher-huggingface.ts
- *  computeTrendingScore 公式一致, 不能跨进程 require). 公式: log10(dl+1) / log10(age+2).
- *  守卫: dl < 1000 / 无时间锚点 / age 越界 → null.
- * @param {number|null|undefined} downloads
- * @param {string|null|undefined} lastModified
- * @param {string|null|undefined} createdAt
- * @param {number} [now] epoch ms
- * @returns {number|null}
- */
-export function computeTrendingScore(downloads: any, lastModified: any, createdAt?: any, now?: number) {
-  const dl = Number(downloads);
-  if (!Number.isFinite(dl) || dl < 1000) return null;
-  const refNow = typeof now === "number" && Number.isFinite(now) ? now : Date.now();
-  const dateStr =
-    typeof lastModified === "string" && lastModified ? lastModified
-      : typeof createdAt === "string" && createdAt ? createdAt
-        : null;
-  if (!dateStr) return null;
-  const t = Date.parse(dateStr);
-  if (!Number.isFinite(t)) return null;
-  const ageDays = (refNow - t) / 86_400_000;
-  if (ageDays <= 0 || ageDays > 365) return null;
-  return Math.log10(dl + 1) / Math.log10(ageDays + 2);
-}
+/** HF Trending 分数 — 见 src/shared/ai-leaderboard-trending.ts (跨进程共享 canonical). */
 
 /** ponytail: Trending 分数紧凑显示 (v2.79.6+) — 7.45 → "7.45", null → "—". */
 export function fmtTrending(v: any) {

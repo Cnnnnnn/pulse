@@ -7,6 +7,7 @@
   },
   "include": [
     "src/platform/**/*.ts",
+    "src/shared/**/*.ts",
     "src/main/digest/**/*.ts",
     "src/main/funds/**/*.ts",
     "src/main/search/**/*.ts",

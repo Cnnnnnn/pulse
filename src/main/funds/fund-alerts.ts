@@ -13,6 +13,8 @@
 
 import { calcFundMetrics } from "../../funds/fundCalc";
 import { resolveNavSnapshot } from "../../funds/fund-nav-merge";
+// 2026-07-26: fmtPct 改用 funds/format.ts 的 canonical (两份实现合并)
+import { fmtPct } from "../../funds/format";
 
 export const DEFAULT_ALERT_PREFS = {
   enabled: false,
@@ -68,14 +70,7 @@ function fmtMoney(n: unknown): string {
   return `${sign}¥${Math.abs(v).toFixed(2)}`;
 }
 
-function fmtPct(p: unknown): string {
-  const v = Number(p);
-  if (!Number.isFinite(v)) return "0.00%";
-  const sign = v >= 0 ? "+" : "";
-  return `${sign}${v.toFixed(2)}%`;
-}
-
-export type AlertItem = {
+type AlertItem = {
   holdingId: string;
   code: string;
   name: string;

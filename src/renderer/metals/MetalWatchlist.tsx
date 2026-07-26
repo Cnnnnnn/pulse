@@ -11,38 +11,20 @@ import {
   quoteCache, fxCache, historyMap,
 } from "./metalStore.ts";
 import { METALS } from "../../metals/metal-config.ts";
-import { calcChange } from "../../metals/metal-calc.ts";
+import {
+  calcChange,
+  // 2026-07-26: formatCNY / getRefPriceCNY / getChangePerGramCNY 从 metal-calc.ts 复用
+  //   (canonical, 两份 renderer 实现合并).
+  formatCNY,
+  getRefPriceCNY,
+  getChangePerGramCNY,
+} from "../../metals/metal-calc.ts";
 import { Sparkline } from "../components/Sparkline.tsx";
 import { PinIcon, IconAlert } from "../components/icons.tsx";
 import { showToast } from "../store.ts";
 import {
   isMetalPinned, addWatchlistItem, removeWatchlistItem,
 } from "../watchlist/watchlist-store.ts";
-
-const GRAM_PER_OZ = 31.1035;
-
-function formatCNY(value, decimals = 2) {
-  if (value == null || !Number.isFinite(value)) return "—";
-  return `¥${value.toLocaleString("zh-CN", {
-    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
-  })}`;
-}
-
-/** 国际品种 (USD/oz) → ¥/克; 国内品种 (CNY) 原价即 ¥/克. fx 缺失返 null. */
-function getRefPriceCNY(quote, fx) {
-  if (!quote) return null;
-  if (quote.currency === "CNY") return quote.price;
-  if (fx == null) return null;
-  return (quote.price * fx) / GRAM_PER_OZ;
-}
-
-/** 每克涨跌额 (¥/克), 国际品种经 FX 换算. */
-function getChangePerGramCNY(quote, fx) {
-  if (!quote) return null;
-  if (quote.currency === "CNY") return calcChange(quote).change;
-  if (fx == null) return null;
-  return (calcChange(quote).change * fx) / GRAM_PER_OZ;
-}
 
 export function MetalWatchlist({ onSelect }) {
   return (

@@ -10,6 +10,8 @@
  */
 
 import { normalizeGlm } from "./normalize-glm";
+// 2026-07-26: classifyHttpResponse 抽到 _shared-http.ts (3 处 status ladder 合并)
+import { classifyHttpResponse } from "./_shared-http";
 
 export const ENDPOINTS = {
   cn: "https://open.bigmodel.cn/api/monitor/usage/quota/limit",
@@ -124,19 +126,8 @@ export class GlmQuotaClient {
     }
 
     // 5) 解析 status
-    if (r.error && !r.status) {
-      return { ok: false, reason: "network_failed", error: r.error };
-    }
-    const status = r.status;
-    if (status === 401) return { ok: false, reason: "auth_401", status };
-    if (status === 403) return { ok: false, reason: "auth_403", status };
-    if (status === 429) return { ok: false, reason: "rate_limited", status };
-    if (status === 404) return { ok: false, reason: "http_status_404", status };
-    if (status >= 500)
-      return { ok: false, reason: `http_status_${status}`, status };
-    if (status < 200 || status >= 300) {
-      return { ok: false, reason: `http_status_${status}`, status };
-    }
+    const httpErr = classifyHttpResponse(r);
+    if (httpErr) return httpErr;
 
     // 6) parse JSON
     let parsed;
@@ -147,7 +138,7 @@ export class GlmQuotaClient {
         ok: false,
         reason: "response_not_json",
         error: err.message,
-        status,
+        status: r.status,
       };
     }
 
@@ -159,7 +150,7 @@ export class GlmQuotaClient {
       region,
     });
     if (!n.ok) {
-      return { ok: false, reason: n.reason, error: n.error, status };
+      return { ok: false, reason: n.reason, error: n.error, status: r.status };
     }
 
     return { ok: true, snapshot: n.snapshot };

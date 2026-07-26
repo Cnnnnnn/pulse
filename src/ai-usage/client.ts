@@ -9,6 +9,8 @@
 
 import { normalize } from "./normalize";
 import { normalizeUsageSummary } from "./normalize-usage-summary";
+// 2026-07-26: classifyHttpResponse 抽到 _shared-http.ts (3 处 status ladder 合并)
+import { classifyHttpResponse } from "./_shared-http";
 
 // Endpoint: remains_percent schema (含 *_used_percent / *_total_percent / *_remains_count
 // 等完整字段, 含 weekly). api.minimaxi.com/v1/token_plan/remains 是另一个端点,
@@ -38,7 +40,7 @@ export function _resolveEndpoint(opts: any = {}) {
   return ENDPOINTS.remainsPercent[region];
 }
 
-export function _resolveUsageSummaryEndpoint(opts: any = {}) {
+function _resolveUsageSummaryEndpoint(opts: any = {}) {
   const env = process.env.MINIMAX_USAGE_SUMMARY_URL;
   if (typeof env === "string" && env.length > 0) return env;
   if (typeof opts.endpoint === "string" && opts.endpoint.length > 0)
@@ -121,24 +123,14 @@ export class MiniMaxQuotaClient {
     }
 
     // 5) 解析 status
-    if (r.error && !r.status) {
-      return { ok: false, reason: "network_failed", error: r.error };
-    }
-    const status = r.status;
-    if (status === 401) return { ok: false, reason: "auth_401", status };
-    if (status === 403) return { ok: false, reason: "auth_403", status };
-    if (status === 429) return { ok: false, reason: "rate_limited", status };
-    if (status === 404) return { ok: false, reason: "http_status_404", status };
-    if (status >= 500) return { ok: false, reason: `http_status_${status}`, status };
-    if (status < 200 || status >= 300) {
-      return { ok: false, reason: `http_status_${status}`, status };
-    }
+    const httpErr = classifyHttpResponse(r);
+    if (httpErr) return httpErr;
 
     // 6) parse JSON
     let parsed;
     try { parsed = JSON.parse(r.body); }
     catch (err: any) {
-      return { ok: false, reason: "response_not_json", error: err.message, status };
+      return { ok: false, reason: "response_not_json", error: err.message, status: r.status };
     }
 
     // 7) normalize
@@ -149,7 +141,7 @@ export class MiniMaxQuotaClient {
       region,
     });
     if (!n.ok) {
-      return { ok: false, reason: n.reason, error: n.error, status };
+      return { ok: false, reason: n.reason, error: n.error, status: r.status };
     }
 
     // 8) 调试: 把原始响应写到 ~/Library/Logs/Pulse/minimax-raw.json
@@ -218,23 +210,13 @@ export class MiniMaxQuotaClient {
       return { ok: false, reason: "network_failed", error: (err && err.message) || "unknown" };
     }
 
-    if (r.error && !r.status) {
-      return { ok: false, reason: "network_failed", error: r.error };
-    }
-    const status = r.status;
-    if (status === 401) return { ok: false, reason: "auth_401", status };
-    if (status === 403) return { ok: false, reason: "auth_403", status };
-    if (status === 429) return { ok: false, reason: "rate_limited", status };
-    if (status === 404) return { ok: false, reason: "http_status_404", status };
-    if (status >= 500) return { ok: false, reason: `http_status_${status}`, status };
-    if (status < 200 || status >= 300) {
-      return { ok: false, reason: `http_status_${status}`, status };
-    }
+    const httpErr = classifyHttpResponse(r);
+    if (httpErr) return httpErr;
 
     let parsed;
     try { parsed = JSON.parse(r.body); }
     catch (err: any) {
-      return { ok: false, reason: "response_not_json", error: err.message, status };
+      return { ok: false, reason: "response_not_json", error: err.message, status: r.status };
     }
 
     const n = normalizeUsageSummary(parsed, {
@@ -242,7 +224,7 @@ export class MiniMaxQuotaClient {
       endpoint,
     });
     if (!n.ok) {
-      return { ok: false, reason: n.reason, error: n.error, status };
+      return { ok: false, reason: n.reason, error: n.error, status: r.status };
     }
 
     // 调试: 写到 ~/Library/Logs/Pulse/minimax-usage-summary-raw.json

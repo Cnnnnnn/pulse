@@ -18,7 +18,15 @@ import {
   quoteCache, fxCache, historyMap,
 } from "./metalStore.ts";
 import { METALS, getMetalById } from "../../metals/metal-config.ts";
-import { calcChange } from "../../metals/metal-calc.ts";
+import {
+  calcChange,
+  // 2026-07-26: formatCNY / formatNum / getRefPriceCNY / getChangePerGramCNY
+  //   从 metal-calc.ts 复用 (canonical, 两份 renderer 实现合并).
+  formatCNY,
+  formatNum,
+  getRefPriceCNY,
+  getChangePerGramCNY,
+} from "../../metals/metal-calc.ts";
 import { ModalShell } from "../components/ModalShell.tsx";
 import { api } from "../api.ts";
 import {
@@ -27,36 +35,6 @@ import {
   removeWatchlistItem,
 } from "../watchlist/watchlist-store.ts";
 import { AddToCompareButton } from "../stocks/AddToCompareButton.tsx";
-
-const GRAM_PER_OZ = 31.1035;
-
-function formatCNY(value, decimals = 2) {
-  if (value == null || !Number.isFinite(value)) return "—";
-  return `¥${value.toLocaleString("zh-CN", {
-    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
-  })}`;
-}
-
-function formatNum(value, decimals = 2) {
-  if (value == null || !Number.isFinite(value)) return "—";
-  return value.toLocaleString("zh-CN", {
-    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
-  });
-}
-
-function getRefPriceCNY(quote, fx) {
-  if (!quote) return null;
-  if (quote.currency === "CNY") return quote.price;
-  if (fx == null) return null;
-  return (quote.price * fx) / GRAM_PER_OZ;
-}
-
-function getChangePerGramCNY(quote, fx) {
-  if (!quote) return null;
-  if (quote.currency === "CNY") return calcChange(quote).change;
-  if (fx == null) return null;
-  return (calcChange(quote).change * fx) / GRAM_PER_OZ;
-}
 
 /** ISO 8601 周号 (YYYY-Www). */
 function isoWeekKey(dateStr) {

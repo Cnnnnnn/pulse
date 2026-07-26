@@ -18,17 +18,10 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "preact/hooks";
 import { useBrushRange } from "../hooks/useBrushRange.ts";
+// 2026-07-26: formatCompact 改用 utils/number.ts (canonical, 2 处实现合并)
+import { formatCompact } from "../utils/number.ts";
 
 // ─── 工具 ────────────────────────────────────────────────────
-
-/** 大数 → 紧凑格式: 1234 → "1.2K" / 12345678 → "12.3M" / 1234567890 → "1.2B". */
-function formatCompact(n) {
-  if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "—";
-  if (n < 1000) return String(n);
-  if (n < 1_000_000) return `${(n / 1_000).toFixed(n < 10_000 ? 2 : 1)}K`;
-  if (n < 1_000_000_000) return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 2 : 1)}M`;
-  return `${(n / 1_000_000_000).toFixed(n < 10_000_000_000 ? 2 : 1)}B`;
-}
 
 /** 轴最大值向上取整到「好看」的数（1/2/5 × 10^n）。 */
 function niceMax(v) {
