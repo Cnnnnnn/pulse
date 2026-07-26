@@ -206,6 +206,12 @@ function buildGroup(esbuild, tsFiles, skip) {
           packages: "external",
           outfile: outFile,
           logLevel: "silent",
+          // ponytail: Phase 11 — logLevel=silent 已静默, 显式 logOverride 仍是
+          // 文档化 (让 reader 知道这些 warnings 故意忽略). 145 file dual-export
+          // (module.exports + export {}) 兼容 CJS caller, esbuild 报 commonjs-variable-in-esm.
+          logOverride: {
+            "commonjs-variable-in-esm": "silent",
+          },
           plugins: [
             {
               name: "externalize-src-deps",

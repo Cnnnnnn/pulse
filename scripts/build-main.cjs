@@ -20,6 +20,10 @@ execFileSync(
     "--external:electron",
     "--packages=external",
     "--outfile=dist/main/index.js",
+    // ponytail: Phase 11 静默 145 file dual-export 引发的 commonjs-variable-in-esm warning.
+    // 这些是 Phase 7 7a-6 兼容性模式 (module.exports + export {} 共存), 不是 error.
+    // 改 source 风险高 (test 靠 module.exports 拿 internal exports), 抑制此 warning 类别.
+    "--log-override:commonjs-variable-in-esm=silent",
   ],
   { cwd: rootDir, stdio: "inherit" },
 );
@@ -48,6 +52,13 @@ async function buildWorkerBundle() {
     external: ["electron"],
     outfile: workerOutfile,
     logLevel: "warning",
+    // ponytail: Phase 7 7a-6 留 145 file dual-export (module.exports + export {}) 兼容
+    // CJS caller. esbuild 把 file 视 ESM 后报 "commonjs-variable-in-esm" warning.
+    // 不是 error, 不影响 build 形状, 改 source 风险高 (test 靠 module.exports 拿
+    // internal export). 用 logOverride 静默这个具体 warning 类别.
+    logOverride: {
+      "commonjs-variable-in-esm": "silent",
+    },
     plugins: [
       {
         name: "prefer-ts-over-shim",
