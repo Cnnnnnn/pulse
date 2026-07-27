@@ -115,7 +115,30 @@ describe("store actions — 视角 / board / 维度切换", () => {
     expect(store.sortDir.value).toBe("asc"); // price 默认升序
   });
 
+  it("setDim('coding') 切换到 Coding 子榜", async () => {
+    store.activeView.value = "aa";
+    await store.setDim("coding");
+    expect(store.activeDim.value).toBe("coding");
+    expect(store.sortDir.value).toBe("desc");
+  });
+
+  it("setDim('costPerTask') 默认升序", async () => {
+    store.activeView.value = "aa";
+    await store.setDim("costPerTask");
+    expect(store.activeDim.value).toBe("costPerTask");
+    expect(store.sortDir.value).toBe("asc");
+  });
+
+  it("从 HF 切回 AA 时复位 activeDim（避免 hf_* 残留导致空表）", async () => {
+    store.activeView.value = "huggingface";
+    store.activeDim.value = "hf_downloads";
+    await store.setView("aa");
+    expect(store.activeDim.value).toBe("intelligence");
+  });
+
   it("setDim 非法值被忽略", async () => {
+    store.activeView.value = "aa";
+    store.activeDim.value = "intelligence";
     await store.setDim("nope");
     expect(store.activeDim.value).toBe("intelligence");
   });
@@ -537,12 +560,12 @@ describe("BoardHealthCard 渲染（P0 回归）", () => {
 // ── P1 回归：图像/视频分榜（复用 Arena 已抓取数据，零 AA 成本）────────
 describe("P1 图像/视频分榜（Arena 视角）", () => {
   it("ARENA_BOARDS 含 image/video，key 为 Arena board 名（text-to-image / video）", () => {
-    expect(ARENA_BOARDS.image).toEqual({ key: "text-to-image", label: "图像生成", category: "image" });
-    expect(ARENA_BOARDS.video).toEqual({ key: "text-to-video", label: "文生视频", category: "video" });
+    expect(ARENA_BOARDS.image).toEqual({ key: "text-to-image", label: "Text-to-Image", category: "image" });
+    expect(ARENA_BOARDS.video).toEqual({ key: "text-to-video", label: "Text-to-Video", category: "video" });
     expect(ARENA_BOARD_KEYS).toContain("image");
     expect(ARENA_BOARD_KEYS).toContain("video");
-    // 索引仍含原三 board，顺序在前（不改变现有默认）
-    expect(ARENA_BOARD_KEYS.indexOf("text")).toBe(0);
+    // ponytail: 新分组 agent 在首位；image 仍在 code 之后
+    expect(ARENA_BOARD_KEYS.indexOf("agent")).toBe(0);
     expect(ARENA_BOARD_KEYS.indexOf("image")).toBeGreaterThan(ARENA_BOARD_KEYS.indexOf("code"));
   });
 

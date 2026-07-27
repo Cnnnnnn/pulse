@@ -28,6 +28,7 @@ export const DIMENSION_META = {
   agentic: { label: "Agentic Coding", field: "aa", sortKey: "agenticIndex" },
   speed: { label: "Output Speed (tok/s)", field: "aa", sortKey: "outputTokensPerSec" },
   price: { label: "Output Price ($/1M)", field: "aa", sortKey: "priceOutputPer1M" },
+  costPerTask: { label: "Cost per Task", field: "aa", sortKey: "costPerTask" },
   lb_overall: { label: "LiveBench Overall", field: "livebench", sortKey: "overall" },
   lb_coding: { label: "LiveBench Coding", field: "livebench", sortKey: "byCategory.Coding" },
   lb_language: { label: "LiveBench Language", field: "livebench", sortKey: "byCategory.Language" },
@@ -179,14 +180,22 @@ export const CODE_CATEGORY_DEFAULT = "overall";
 /* ── AA 视角：可选排序维度 ── */
 
 export const AA_DIMENSIONS = {
-  intelligence: { key: "intelligence", label: "Intelligence Index", kind: "index" },
-  coding: { key: "coding", label: "Coding Index", kind: "index" },
-  agentic: { key: "agentic", label: "Agentic Coding", kind: "index" },
-  speed: { key: "speed", label: "Output Speed (tok/s)", kind: "speed" },
-  price: { key: "price", label: "Output Price ($/1M)", kind: "price" },
+  intelligence: { key: "intelligence", label: "Intelligence", kind: "index" },
+  coding: { key: "coding", label: "Coding", kind: "index" },
+  agentic: { key: "agentic", label: "Agentic", kind: "index" },
+  speed: { key: "speed", label: "Speed", kind: "speed" },
+  price: { key: "price", label: "Price", kind: "price" },
+  costPerTask: { key: "costPerTask", label: "Cost/Task", kind: "price" },
 };
 
-export const AA_DIMENSION_KEYS = ["intelligence", "coding", "agentic", "speed", "price"];
+export const AA_DIMENSION_KEYS = [
+  "intelligence",
+  "coding",
+  "agentic",
+  "speed",
+  "price",
+  "costPerTask",
+];
 
 /** AA 方法论版本：人工维护的引用版本（配合 fetchedAt 显示引用日）。
  * 仅用于署名 / 方法说明文案，不参与任何计算或排序。 */
@@ -202,7 +211,7 @@ export const SORT_COLUMN_LABELS = {
   agentic: "Agentic",
   speed: "速度",
   price: "输出价",
-  valueRatio: "性价比",
+  costPerTask: "Cost/Task",
   lb_overall: "综合",
   lb_coding: "Coding",
   lb_language: "Language",
@@ -244,7 +253,7 @@ export const HF_DIMENSIONS = {
 export const HF_DIMENSION_KEYS = ["hf_downloads", "hf_likes", "hf_trending", "hf_license"];
 
 /** 升序默认的维度 (低 = 优). */
-export const ASC_DEFAULT_DIMS = new Set(["price", "speed"]);
+export const ASC_DEFAULT_DIMS = new Set(["price", "speed", "costPerTask"]);
 
 /* ── 兼容旧主进程 IPC：category/dimension 映射 ── */
 

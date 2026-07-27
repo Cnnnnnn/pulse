@@ -7,8 +7,10 @@ import { useState, useEffect } from "preact/hooks";
 import {
   activeView,
   activeBoard,
+  activeDim,
   activeAgentDim,
   activeTextCat,
+  activeCodeCat,
   activeCategory,
   activeVendor,
   licenseFilter,
@@ -17,15 +19,30 @@ import {
   setView,
   setBoard,
   setCategory,
+  setDim,
   setAgentDim,
   setTextCat,
+  setCodeCat,
   setVendor,
   setLicenseFilter,
   setSearchQuery,
   clearSearchQuery,
   refresh,
 } from "./aiLeaderboardStore.ts";
-import { VIEW_KEYS, VIEWS, ARENA_CATEGORIES, ARENA_BOARDS, boardsOfCategory, AGENT_DIMENSIONS, TEXT_CATEGORIES, VENDOR_OPTIONS, LICENSE_FILTER_OPTIONS } from "./types.ts";
+import {
+  VIEW_KEYS,
+  VIEWS,
+  ARENA_CATEGORIES,
+  ARENA_BOARDS,
+  boardsOfCategory,
+  AGENT_DIMENSIONS,
+  TEXT_CATEGORIES,
+  CODE_CATEGORIES,
+  AA_DIMENSIONS,
+  AA_DIMENSION_KEYS,
+  VENDOR_OPTIONS,
+  LICENSE_FILTER_OPTIONS,
+} from "./types.ts";
 
 /**
  * Arena 大类 + 二级榜合并选择器（方案 B）：
@@ -91,6 +108,89 @@ function ArenaBoardSelector() {
   );
 }
 
+/**
+ * Arena 二级维度统一下拉框：
+ *  - agent → 6 维细分（Net Improvement / Confirmed Success / ...）
+ *  - text  → 6 category 子榜（综合 / 代码 / 数学 / ...）
+ *  - code  → 2 category 子榜（WebDev / Image-to-WebDev）
+ *  - 其他 board → 不渲染（无二级维度）
+ */
+function ArenaSubDimSelect() {
+  const board = activeBoard.value;
+  if (board === "agent") {
+    return (
+      <label class="ai-leaderboard-select ai-leaderboard-select--toolbar">
+        <span class="ai-leaderboard-select__label">维度</span>
+        <select
+          class="ai-leaderboard-select__input"
+          value={activeAgentDim.value}
+          onChange={(e) => setAgentDim(e.currentTarget.value)}
+        >
+          {AGENT_DIMENSIONS.map((dim) => (
+            <option key={dim} value={dim}>{dim}</option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+  if (board === "text") {
+    return (
+      <label class="ai-leaderboard-select ai-leaderboard-select--toolbar">
+        <span class="ai-leaderboard-select__label">子榜</span>
+        <select
+          class="ai-leaderboard-select__input"
+          value={activeTextCat.value}
+          onChange={(e) => setTextCat(e.currentTarget.value)}
+        >
+          {TEXT_CATEGORIES.map((c) => (
+            <option key={c.key} value={c.key}>{c.label}</option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+  if (board === "code") {
+    return (
+      <label class="ai-leaderboard-select ai-leaderboard-select--toolbar">
+        <span class="ai-leaderboard-select__label">子榜</span>
+        <select
+          class="ai-leaderboard-select__input"
+          value={activeCodeCat.value}
+          onChange={(e) => setCodeCat(e.currentTarget.value)}
+        >
+          {CODE_CATEGORIES.map((c) => (
+            <option key={c.key} value={c.key}>{c.label}</option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+  return null;
+}
+
+/** AA 子榜维度 chips — 对齐官网 Intelligence / Coding / Agentic 切换手感。 */
+function AaDimChips() {
+  return (
+    <div class="ai-leaderboard-chips ai-leaderboard-chips--dim" role="group" aria-label="AA 排序维度">
+      {AA_DIMENSION_KEYS.map((key) => {
+        const meta = AA_DIMENSIONS[key];
+        const active = activeDim.value === key;
+        return (
+          <button
+            key={key}
+            type="button"
+            class={`ai-leaderboard-chip ai-leaderboard-chip--dim${active ? " is-active" : ""}`}
+            aria-pressed={active}
+            onClick={() => setDim(key)}
+          >
+            {meta.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function LeaderboardFilterBar() {
   const [q, setQ] = useState(searchQuery.value);
 
@@ -146,37 +246,9 @@ export function LeaderboardFilterBar() {
         <div class="ai-leaderboard-toolbar__left">
           {view === "arena" && <ArenaBoardSelector />}
 
-          {view === "arena" && activeBoard.value === "agent" && (
-            <div class="ai-leaderboard-chips ai-leaderboard-chips--dim" role="group" aria-label="Agent 细分维度">
-              {AGENT_DIMENSIONS.map((dim) => (
-                <button
-                  key={dim}
-                  type="button"
-                  class={`ai-leaderboard-chip ai-leaderboard-chip--dim${activeAgentDim.value === dim ? " is-active" : ""}`}
-                  aria-pressed={activeAgentDim.value === dim}
-                  onClick={() => setAgentDim(dim)}
-                >
-                  {dim}
-                </button>
-              ))}
-            </div>
-          )}
+          {view === "arena" && <ArenaSubDimSelect />}
 
-          {view === "arena" && activeBoard.value === "text" && (
-            <div class="ai-leaderboard-chips ai-leaderboard-chips--dim" role="group" aria-label="文本 category 子榜">
-              {TEXT_CATEGORIES.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  class={`ai-leaderboard-chip ai-leaderboard-chip--dim${activeTextCat.value === c.key ? " is-active" : ""}`}
-                  aria-pressed={activeTextCat.value === c.key}
-                  onClick={() => setTextCat(c.key)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          )}
+          {view === "aa" && <AaDimChips />}
 
           <div class="ai-leaderboard-chips" role="group" aria-label="许可筛选">
             {LICENSE_FILTER_OPTIONS.map((o) => (

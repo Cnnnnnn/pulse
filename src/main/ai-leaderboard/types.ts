@@ -52,6 +52,7 @@ export const DIMENSION_META: Record<string, any> = {
   agentic: { label: "Agentic Coding", field: "aa", sortKey: "agenticIndex" },
   speed: { label: "Output Speed (tok/s)", field: "aa", sortKey: "outputTokensPerSec" },
   price: { label: "Output Price ($/1M)", field: "aa", sortKey: "priceOutputPer1M" },
+  costPerTask: { label: "Cost per Task", field: "aa", sortKey: "costPerTask" },
   // LiveBench 抗污染客观榜 (livebench.ai GitHub Pages 静态 CSV, 月更新).
   // aggregator.fetch 拿到后此维度展示; ranking.sortValue 走 livebench 切片.
   lb_overall: {

@@ -5,7 +5,7 @@
  */
 
 import { VENDOR_META, ARENA_BOARDS } from "./types.ts";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.ts";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtCostPerTask, fmtLivebench, fmtLbCost, fmtVotes, licenseKind, licenseShort } from "./format.ts";
 
 /**
  * 生成当前视角表格的 Markdown。
@@ -46,11 +46,11 @@ export function tableToMarkdown({ rows, view, board }: any) {
   }
 
   // AA view
-  const header = "| # | 模型 | 厂商 | 智能指数 | 代码 | Agent | 速度 | 输出价 | 性价比 |";
-  const sep = "|---|------|------|----------|------|-------|------|--------|--------|";
+  const header = "| # | 模型 | 厂商 | 智能指数 | 代码 | Agent | 速度 | 输出价 | Cost/Task |";
+  const sep = "|---|------|------|----------|------|-------|------|--------|-----------|";
   const lines = rows.map((m: any, i: any) => {
     const aa = m.aa || {};
-    return `| ${i + 1} | ${m.name} | ${vendorLabel(m)} | ${fmtIndex(aa.intelligenceIndex)} | ${fmtIndex(aa.codingIndex)} | ${fmtIndex(aa.agenticIndex)} | ${fmtSpeed(aa.outputTokensPerSec)} | ${fmtPricePer1M(aa.priceOutputPer1M)} | ${fmtValueRatio(aa)} |`;
+    return `| ${i + 1} | ${m.name} | ${vendorLabel(m)} | ${fmtIndex(aa.intelligenceIndex)} | ${fmtIndex(aa.codingIndex)} | ${fmtIndex(aa.agenticIndex)} | ${fmtSpeed(aa.outputTokensPerSec)} | ${fmtPricePer1M(aa.priceOutputPer1M)} | ${fmtCostPerTask(aa.costPerTask)} |`;
   });
   return [header, sep, ...lines].join("\n");
 }

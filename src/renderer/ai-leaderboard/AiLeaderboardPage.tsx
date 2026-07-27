@@ -77,7 +77,7 @@ function csvColumnsForView(view) {
     { key: "speed", header: "速度" },
     { key: "price", header: "输出价" },
     { key: "inputPrice", header: "输入价" },
-    { key: "valueRatio", header: "性价比" },
+    { key: "costPerTask", header: "Cost/Task" },
     { key: "context", header: "上下文" },
   ];
 }
@@ -317,7 +317,8 @@ export function AiLeaderboardPage() {
               <span class="ai-leaderboard-summary__note ai-leaderboard-summary__method">
                 <strong>AA 方法说明：</strong>
                 Intelligence Index 由 AA 按 9 项评测加权（{AA_METHODOLOGY_VERSION}）得出，Pulse 直接引用、未本地重算；
-                本视图无置信区间（Free tier 未提供）；价格为 (in+out)/2 估算，价值比 = 智能指数 ÷ 输出价（Pulse 估算口径，非 AA 官方 Cost per Task）。
+                本视图无置信区间（Free tier 未提供）；Cost/Task 取官方 cost_per_task.total_cost；
+                输出价仍展示 token 单价，blended 为 (in+out)/2 估算；数据来自 Free API 分页结果（可能少于官网图表窗）。
               </span>
             </div>
           )}
@@ -370,7 +371,7 @@ export function AiLeaderboardPage() {
                 <p class="ai-leaderboard-dim-note__text">
                   AA 的 <strong>Capability Indices（行业能力）</strong>、<strong>Openness Index</strong>
                   与 <strong>多模态 Elo</strong> 为 Commercial 专属维度，Free tier 不暴露。Pulse 当前仅展示
-                  免费 5 维：Intelligence / Coding / Agentic / Speed / Price。
+                  免费维度：Intelligence / Coding / Agentic / Speed / Price / Cost·Task。
                 </p>
                 <button
                   type="button"

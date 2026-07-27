@@ -3,25 +3,24 @@
  *
  * 主源2：Artificial Analysis（客观分 + 价格 + 速度）。
  * 官方 Free API（x-api-key 头，1000/天限流，强制署名）。
- * 无 key 时走官方 API 会 401，自动回退 GitHub raw 社区快照；
- * 全失败 → {ok:false}（aggregator 兜底链接管）。
+ * 无 key 时走官方 API 会 401；全失败 → {ok:false}（aggregator 兜底链接管）。
  *
  * 单源失败不影响其它源；本 fetcher 内部 try/catch，失败仅返回 {ok:false}。
  */
 
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+import { logFetchError } from "../games/log";
 
 /** 取首个有限数值, 否则返回默认. ponytail: 3 fetcher 各 1 份, 不抽 (esbuild 编译陷阱). */
 function num(v: any, d: number = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
 }
-import { logFetchError } from "../games/log";
 
 const AA_API = "https://artificialanalysis.ai/api/v2/language/models/free";
-// 注: AA 不存在可信的 GitHub raw 镜像仓库, 主源失败直接走 aggregator 兜底链
-const AA_GITHUB_RAW = null;
+/** ponytail: 翻页安全上限 — Free 日配额 1000；24h TTL 下一天通常只打一轮。 */
+const AA_MAX_PAGES = 20;
 
 let _envLoaded = false;
 let _aaKey: string | undefined = undefined; // undefined = 尚未探测
@@ -83,6 +82,22 @@ function pickCreatorName(d: any): string {
   return d && (d.creator || d.org) ? String(d.creator || d.org) : "";
 }
 
+/** Free 官方 Cost per Task：cost_per_task.total_cost，兜底扁平 total_cost。 */
+function pickCostPerTask(d: any): number {
+  const cost = d && d.artificial_analysis_intelligence_index_cost;
+  if (!cost || typeof cost !== "object") return 0;
+  const nested = cost.cost_per_task;
+  if (nested && typeof nested === "object" && nested.total_cost != null) {
+    return num(nested.total_cost);
+  }
+  return num(cost.total_cost);
+}
+
+function pageUrl(page: number): string {
+  const sep = AA_API.includes("?") ? "&" : "?";
+  return `${AA_API}${sep}page=${page}`;
+}
+
 export async function fetch(opts: any = {}): Promise<any> {
   const timeoutMs = opts && opts.timeoutMs;
   const key = loadAaKey();
@@ -90,11 +105,24 @@ export async function fetch(opts: any = {}): Promise<any> {
   if (key) headers["x-api-key"] = key;
 
   try {
-    const data = await fetchJson(AA_API, { timeoutMs: timeoutMs || 12000, headers });
+    const first = await fetchJson(pageUrl(1), { timeoutMs: timeoutMs || 12000, headers });
+    const all: any[] = Array.isArray(first && first.data) ? [...first.data] : [];
+    const pag = first && first.pagination;
+    let hasMore = Boolean(pag && pag.has_more);
+    let page = 1;
+    // ponytail: 以 has_more 为准；total_pages 仅作硬停，缺省时靠 AA_MAX_PAGES。
+    while (hasMore && page < AA_MAX_PAGES) {
+      page += 1;
+      if (pag && typeof pag.total_pages === "number" && page > pag.total_pages) break;
+      const next = await fetchJson(pageUrl(page), { timeoutMs: timeoutMs || 12000, headers });
+      if (Array.isArray(next && next.data)) all.push(...next.data);
+      hasMore = Boolean(next && next.pagination && next.pagination.has_more);
+      if (!hasMore) break;
+    }
     return {
       ok: true,
       source: "artificial-analysis",
-      data,
+      data: { ...first, data: all, pagination: { ...(pag || {}), page: 1, has_more: false } },
       fetchedAt: new Date().toISOString(),
     };
   } catch (err: any) {
@@ -111,24 +139,11 @@ export async function fetch(opts: any = {}): Promise<any> {
 }
 
 /**
- * ── Free-tier 截断 / 占位维度风险说明 (R7 文档化, 纯注释, 零行为变更) ──
- * 来源对比报告: deliverables/software-company/aa-ranking-analysis-2026-07-26.md
- *   - 差异项 D4 (维度覆盖广度)
- *   - 建议   R7 (记录并监控 "AA Free-tier 字段截断" 已知风险)
- *
- * 以下为已核实的 Free-tier 硬限制 (仅文档化, 不改运行逻辑):
- *  1. 模型集合是"截断"的: AA Free API (/api/v2/language/models/free) 只返回
- *     头部若干模型, 并非完整榜单。Pulse 当前直接消费该截断集合, 未做分页 / 全量拉取。
- *  2. 仅暴露 5 维: intelligence / coding / agentic / speed / price。
+ * ── Free-tier 字段限制说明 ──
+ *  1. Free API 支持分页；Pulse 翻页合并（上限 AA_MAX_PAGES），仍可能少于官网图表窗。
+ *  2. Headline 维: intelligence / coding / agentic / speed / price + 官方 costPerTask。
  *     math / gpqa / mmlu / hle / lcb 在 Free tier 不返回 → 恒为 0, UI 显示「暂无」。
- *     它们是"未暴露的占位", 不是真实零分, 切勿当作真实 0 分参与排序 / 对比。
- *  3. Capability Indices (行业能力) / Openness Index (开放度) / 多模态 Elo (图/视频/语音)
- *     是 AA Commercial 专属数据, 需 Commercial 授权; Free tier 不暴露, 当前未接入
- *     (呼应 R5 门禁: 需先确认 Free tier 是否暴露, 否则走 Commercial 密钥 / 独立多模态源)。
- *  4. 以上为已知风险, 在 RELEASE-NOTES.md (v2.79.5) 同步跟踪。
- *
- * ⚠️ 本注释纯为风险固化: 不要据此把占位维度暴露成可选维度、不要改 toAiModel 默认
- *    5 字段 sources、不要动下列字段映射 / 返回结构或 normalize 逻辑。
+ *  3. Capability / Openness / 多模态 Elo 属 Commercial 专属，当前未接入。
  */
 
 /**
@@ -137,6 +152,7 @@ export async function fetch(opts: any = {}): Promise<any> {
  * AA Free tier 实际 schema (2026-07):
  *   { data: [{ id, name, slug, release_date, model_creator:{id,name},
  *              evaluations:{artificial_analysis_intelligence_index, ...coding_index, ...agentic_index},
+ *              artificial_analysis_intelligence_index_cost:{cost_per_task:{total_cost}, total_cost?},
  *              pricing:{price_1m_input_tokens, price_1m_output_tokens, ...},
  *              performance:{median_output_tokens_per_second, median_time_to_first_token_seconds, ...}
  *            }] }
@@ -152,20 +168,15 @@ export function normalize(raw: any): any[] {
     if (!d || !d.name) continue;
     const creatorName = pickCreatorName(d);
     const vendor = normalizeVendor(creatorName);
-    // ponytail: 跨源 merge 主键口径要统一 (其它 fetcher 走 slugifyModel(vendor, name) 带 vendor 前缀).
-    // AA 原本用 d.slug (无前缀) 会导致同 model 在 AA 切片跟其它切片 id 永远不匹配, merge 落空, 上游 metadata (价格/上下文/...) 全丢.
-    // 强制统一到 slugifyModel, 让 d.slug 仅作展示别名 (vendorRaw 里已经存了).
-    // ponytail: AA 列表里 model.name 常带推理强度后缀 "GPT-5.5 (xhigh)" / "Claude Sonnet 5 (Max Effort)" / "Gemini 3.5 Flash (high)".
-    // models.dev / arena / openrouter 的 name 是产品级基模 ("GPT-5.5" / "Claude Sonnet 5" / "Gemini 3.5 Flash").
-    // 不归一化的话, id 主键永远对不上. 这里把末尾括号变体剥掉再算 id, 主键就能跨源合并.
-    const idName = String(d.name).replace(/\s*\([^)]*\)\s*$/, "").trim() || d.name;
-    const id = slugifyModel(vendor, idName);
+    // ponytail: 保留推理强度后缀进 id — 官网把 Max/Low Effort 当分条模型；
+    // 跨源合并靠 normalize._mergeByName（AA 变体互吞有保护，单变体仍可挂 MD/OR）。
+    const id = slugifyModel(vendor, d.name);
     const ev = d.evaluations || d.eval || {};
     const pricing = d.pricing || {};
     const perf = d.performance || {};
     const priceIn = num(pricing.price_1m_input_tokens || pricing.input || pricing.input_per_1m);
     const priceOut = num(pricing.price_1m_output_tokens || pricing.output || pricing.output_per_1m);
-    // Free tier 不给 blended — 用 (in+out)/2 兜底供 ranking.price_perf 用
+    // Free tier 不给 blended — 用 (in+out)/2 兜底
     const priceBlended = num(pricing.blended) || (priceIn + priceOut > 0 ? (priceIn + priceOut) / 2 : 0);
     const aa = {
       intelligenceIndex: pickEval(ev, [
@@ -195,6 +206,7 @@ export function normalize(raw: any): any[] {
       priceInputPer1M: priceIn,
       priceOutputPer1M: priceOut,
       priceBlendedPer1M: priceBlended,
+      costPerTask: pickCostPerTask(d),
       outputTokensPerSec: num(perf.median_output_tokens_per_second || d.med_speed || d.output_tokens_per_sec),
       timeToFirstTokenSec: num(perf.median_time_to_first_token_seconds || d.ttft),
       endToEndSec: num(perf.median_end_to_end_response_time_seconds),

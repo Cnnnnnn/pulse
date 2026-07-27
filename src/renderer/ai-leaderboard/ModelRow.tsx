@@ -9,7 +9,7 @@
 
 import { forwardRef } from "preact/compat";
 import { VENDOR_META, ARENA_BOARDS, AGENT_DIMENSION_DEFAULT, TEXT_CATEGORY_DEFAULT, CODE_CATEGORY_DEFAULT } from "./types.ts";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, fmtTrending, computeTrendingScore, licenseKind, licenseShort } from "./format.ts";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtCostPerTask, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, fmtDownloads, fmtHfDate, fmtTrending, computeTrendingScore, licenseKind, licenseShort } from "./format.ts";
 import { compareList, toggleCompare, openModelDetail, baseModelCountMap, items, activeAgentDim, activeTextCat, activeCodeCat } from "./aiLeaderboardStore.ts";
 import { RankSparkline } from "./RankSparkline.tsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
@@ -323,10 +323,6 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
   }
 
   // AA 视角
-  const vr =
-    aa.intelligenceIndex != null && aa.priceOutputPer1M > 0
-      ? aa.intelligenceIndex / aa.priceOutputPer1M
-      : null;
   return (
     <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
       {checkboxCell}
@@ -341,7 +337,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
         "price",
         aa.priceOutputPer1M,
         fmtPricePer1M,
-        "输出价：AA Free tier 单价；Pulse 用 (in+out)/2 估算 blended，非 AA 官方 Cost per Task",
+        "输出价：AA Free tier 输出 token 单价；blended 展示用 (in+out)/2 估算",
       )}
       {num(
         "inputPrice",
@@ -350,10 +346,10 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
         "输入价（来自 models.dev）",
       )}
       {num(
-        "valueRatio",
-        vr,
-        (v) => (v == null ? "—" : v.toFixed(1)),
-        "性价比 = 智能指数 ÷ 输出价，Pulse 估算口径（非 AA 官方 Cost per Task）",
+        "costPerTask",
+        typeof aa.costPerTask === "number" && aa.costPerTask > 0 ? aa.costPerTask : null,
+        fmtCostPerTask,
+        "Cost/Task：AA Free cost_per_task.total_cost（官方 Intelligence Index 任务加权成本）",
       )}
       {num(
         "context",

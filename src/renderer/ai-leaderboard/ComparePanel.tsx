@@ -15,7 +15,7 @@ import {
   setSearchQuery,
 } from "./aiLeaderboardStore.ts";
 import { VENDOR_META } from "./types.ts";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtValueRatio, aggregateVendorProfiles, topVendorsByArena, rankVendorsByEloPerDollar } from "./format.ts";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtCostPerTask, aggregateVendorProfiles, topVendorsByArena, rankVendorsByEloPerDollar } from "./format.ts";
 import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.ts";
 import { CrossSourceRadar } from "./CrossSourceRadar.tsx";
 import { EloPerDollar } from "./EloPerDollar.tsx";
@@ -114,7 +114,7 @@ export function ComparePanel() {
         { label: "Agent", get: (m) => fmtIndex(m.aa && m.aa.agenticIndex), raw: (m) => m.aa && m.aa.agenticIndex, better: "high" },
         { label: "速度", get: (m) => fmtSpeed(m.aa && m.aa.outputTokensPerSec), raw: (m) => m.aa && m.aa.outputTokensPerSec, better: "high" },
         { label: "输出价", get: (m) => fmtPricePer1M(m.aa && m.aa.priceOutputPer1M), raw: (m) => m.aa && m.aa.priceOutputPer1M, better: "low" },
-        { label: "性价比", get: (m) => fmtValueRatio(m.aa), raw: (m) => (m.aa && m.aa.intelligenceIndex != null && m.aa.priceOutputPer1M > 0) ? m.aa.intelligenceIndex / m.aa.priceOutputPer1M : null, better: "high" },
+        { label: "Cost/Task", get: (m) => fmtCostPerTask(m.aa && m.aa.costPerTask), raw: (m) => (m.aa && typeof m.aa.costPerTask === "number" && m.aa.costPerTask > 0) ? m.aa.costPerTask : null, better: "low" },
       ];
 
   function bestId(row) {

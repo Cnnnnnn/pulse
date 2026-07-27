@@ -1,10 +1,10 @@
 /**
  * src/renderer/ai-leaderboard/ValueScatter.tsx
  *
- * v3.0 性价比散点图（AA 深度分析视角专用）。
- * X 轴：输出价格 ($/1M tokens, log scale)
- * Y 轴：智能指数 (0-100+)
- * 左上角 = 高性价比区（聪明且便宜）。
+ * AA 视角：Intelligence Index × Cost per Task（对齐官网主轴）。
+ * X 轴：Cost per Task (USD, log scale) · 越低越好
+ * Y 轴：智能指数 · 越高越好
+ * 左上角 = 高智能且低任务成本区。
  *
  * 纯 SVG 实现，无外部图表库依赖。
  */
@@ -36,12 +36,17 @@ const PAD = { top: 24, right: 24, bottom: 40, left: 48 };
 const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 
-/** log scale 映射（价格范围 0.1 ~ 100 $/1M）。 */
+/** log scale 映射。 */
 function logScale(val, min, max, px) {
-  const logMin = Math.log10(Math.max(min, 0.05));
+  const logMin = Math.log10(Math.max(min, 0.001));
   const logMax = Math.log10(max);
-  const logVal = Math.log10(Math.max(val, 0.05));
+  const logVal = Math.log10(Math.max(val, 0.001));
   return ((logVal - logMin) / (logMax - logMin)) * px;
+}
+
+function costOf(m) {
+  const c = m && m.aa && m.aa.costPerTask;
+  return typeof c === "number" && c > 0 ? c : null;
 }
 
 export function ValueScatter({ items }) {
@@ -53,16 +58,15 @@ export function ValueScatter({ items }) {
     return (
       aa &&
       typeof aa.intelligenceIndex === "number" &&
-      typeof aa.priceOutputPer1M === "number" &&
-      aa.priceOutputPer1M > 0
+      costOf(m) != null
     );
   });
 
   if (points.length === 0) return null;
 
-  // 性价比 Top 3（智能指数 / 价格）
+  // 低 Cost/Task 且高智能 → 取 Index/Cost 最高的 Top 3 标名
   const top3 = points
-    .map((m) => ({ id: m.id, name: m.name, ratio: m.aa.intelligenceIndex / m.aa.priceOutputPer1M }))
+    .map((m) => ({ id: m.id, name: m.name, ratio: m.aa.intelligenceIndex / costOf(m) }))
     .sort((a, b) => b.ratio - a.ratio)
     .slice(0, 3)
     .map((t) => t.id);
@@ -71,15 +75,15 @@ export function ValueScatter({ items }) {
   const selected = compareList.value;
 
   // 动态范围
-  const prices = points.map((m) => m.aa.priceOutputPer1M);
+  const costs = points.map((m) => costOf(m));
   const indexes = points.map((m) => m.aa.intelligenceIndex);
-  const pMin = Math.max(0.05, Math.min(...prices) * 0.7);
-  const pMax = Math.max(...prices) * 1.3;
+  const pMin = Math.max(0.001, Math.min(...costs) * 0.7);
+  const pMax = Math.max(...costs) * 1.3;
   const iMin = Math.max(0, Math.min(...indexes) - 5);
   const iMax = Math.max(...indexes) + 5;
 
-  function toX(price) {
-    return PAD.left + logScale(price, pMin, pMax, PLOT_W);
+  function toX(cost) {
+    return PAD.left + logScale(cost, pMin, pMax, PLOT_W);
   }
   function toY(idx) {
     return PAD.top + PLOT_H - ((idx - iMin) / (iMax - iMin)) * PLOT_H;
@@ -87,22 +91,22 @@ export function ValueScatter({ items }) {
 
   // 网格线
   const yTicks = 4;
-  const xTickVals = [0.1, 0.5, 1, 5, 10, 50].filter((v) => v >= pMin && v <= pMax);
+  const xTickVals = [0.01, 0.05, 0.1, 0.5, 1, 5, 10].filter((v) => v >= pMin && v <= pMax);
 
   return (
     <div class="ai-lb-scatter">
       <div class="ai-lb-scatter__header">
-        <span class="ai-lb-scatter__title">价值散点 · 智能指数 × 输出价</span>
-        <span class="ai-lb-scatter__hint">气泡大小＝输出速度 · 点击气泡加入对比（最多 3 个）</span>
-        <span class="ai-lb-scatter__hint">价格为估算 blended（in+out)/2，无置信区间（Free tier 未提供）</span>
+        <span class="ai-lb-scatter__title">价值散点 · 智能指数 × Cost per Task</span>
+        <span class="ai-lb-scatter__hint">气泡＝模型 · 点击加入对比（最多 3 个）</span>
+        <span class="ai-lb-scatter__hint">X 轴为 AA Free 官方 cost_per_task.total_cost</span>
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         class="ai-lb-scatter__svg"
         role="img"
-        aria-label="智能指数 vs 输出价格散点图"
+        aria-label="智能指数 vs Cost per Task 散点图"
       >
-        {/* 高性价比区域背景 */}
+        {/* 高性价比区域背景（左上：低成本 + 高智能） */}
         <rect
           x={PAD.left}
           y={PAD.top}
@@ -141,7 +145,7 @@ export function ValueScatter({ items }) {
 
         {/* 轴标题 */}
         <text x={W / 2} y={H - 4} text-anchor="middle" class="ai-lb-scatter__axis">
-          输出价格 ($/1M tokens)
+          Cost per Task (USD)
         </text>
         <text x={12} y={H / 2} text-anchor="middle" class="ai-lb-scatter__axis" transform={`rotate(-90, 12, ${H / 2})`}>
           智能指数
@@ -149,7 +153,8 @@ export function ValueScatter({ items }) {
 
         {/* 数据点 */}
         {points.map((m) => {
-          const x = toX(m.aa.priceOutputPer1M);
+          const cost = costOf(m);
+          const x = toX(cost);
           const y = toY(m.aa.intelligenceIndex);
           const color = VENDOR_COLORS[m.vendor] || DEFAULT_COLOR;
           const isHover = hover === m.id;
@@ -190,9 +195,11 @@ export function ValueScatter({ items }) {
         {hover && (() => {
           const m = points.find((p) => p.id === hover);
           if (!m) return null;
-          const x = toX(m.aa.priceOutputPer1M);
+          const cost = costOf(m);
+          const x = toX(cost);
           const y = toY(m.aa.intelligenceIndex);
-          const label = `${m.name} — ${m.aa.intelligenceIndex.toFixed(1)} / $${m.aa.priceOutputPer1M.toFixed(2)}`;
+          const costLabel = cost < 1 ? cost.toFixed(3) : cost.toFixed(2);
+          const label = `${m.name} — ${m.aa.intelligenceIndex.toFixed(1)} / $${costLabel}`;
           const tx = Math.min(x + 10, W - 160);
           const ty = Math.max(y - 10, PAD.top + 12);
           return (

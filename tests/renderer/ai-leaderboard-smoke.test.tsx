@@ -58,6 +58,7 @@ const aaModels = [
       agenticIndex: 60,
       outputTokensPerSec: 120,
       priceOutputPer1M: 2,
+      costPerTask: 0.4,
     },
     modelsdev: { contextLength: 128000, inputCostPer1M: 5 },
   },
@@ -72,6 +73,7 @@ const aaModels = [
       agenticIndex: 20,
       outputTokensPerSec: 50,
       priceOutputPer1M: 8,
+      costPerTask: 1.2,
     },
     // b 缺 modelsdev 切片 → context / inputPrice 列显示 "—"
   },
@@ -240,9 +242,9 @@ describe("store 排序逻辑", () => {
     activeBoard.value = "text";
   });
 
-  it("columnValue 覆盖所有可排序列（含 valueRatio + context + inputPrice）", () => {
+  it("columnValue 覆盖所有可排序列（含 costPerTask + context + inputPrice）", () => {
     expect(columnValue(aaModels[0], "aa", "intelligence")).toBe(80);
-    expect(columnValue(aaModels[0], "aa", "valueRatio")).toBeCloseTo(40);
+    expect(columnValue(aaModels[0], "aa", "costPerTask")).toBeCloseTo(0.4);
     expect(columnValue(aaModels[0], "aa", "context")).toBe(128000);
     expect(columnValue(aaModels[0], "aa", "inputPrice")).toBe(5);
     expect(columnValue(aaModels[1], "aa", "context")).toBeNull();

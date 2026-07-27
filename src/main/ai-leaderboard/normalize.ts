@@ -170,6 +170,10 @@ function _mergeByName(models: any[]): Map<string, any> {
       // 不应该被 _mergeByName 兜底合并). libraryName 都为空时仍走合并 (兼容其它源).
       const hfLibs = list.map((m: any) => m && m.huggingface && m.huggingface.libraryName).filter(Boolean);
       if (hfLibs.length >= 2 && new Set(hfLibs).size > 1) continue;
+      // ponytail: AA 推理强度变体保护 — "Claude Opus 5 (Max Effort)" vs "(Low Effort)"
+      // 官网分条；≥2 条 aa.live 且展示名不同时跳过互吞（单 AA + MD/OR 仍可合并）。
+      const aaLive = list.filter((m: any) => m && m.sources && m.sources.aa === "live");
+      if (aaLive.length >= 2 && new Set(aaLive.map((m: any) => String(m.name || ""))).size > 1) continue;
       list.sort((a: any, b: any) => {
         const pa = _priorityScore(a);
         const pb = _priorityScore(b);

@@ -15,6 +15,7 @@ import {
   fmtIndex,
   fmtSpeed,
   fmtPricePer1M,
+  fmtCostPerTask,
   fmtLivebench,
   fmtLbCost,
 } from "./format.ts";
@@ -35,7 +36,7 @@ function formatMetric(view, key, model) {
   if (typeof key === "string" && key.startsWith("lb_")) return fmtLivebench(val);
   if (key === "speed") return fmtSpeed(val);
   if (key === "price") return fmtPricePer1M(val);
-  if (key === "valueRatio") return Number(val).toFixed(1);
+  if (key === "costPerTask") return fmtCostPerTask(val);
   return fmtIndex(val);
 }
 

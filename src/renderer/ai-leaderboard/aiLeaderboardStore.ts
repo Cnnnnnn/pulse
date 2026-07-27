@@ -33,10 +33,13 @@ import {
   // ponytail: 文本榜 category 子榜 (v2.8x) — Overall/Coding/Math/... 本地切换.
   TEXT_CATEGORIES,
   TEXT_CATEGORY_DEFAULT,
+  // ponytail: Code 榜 category 子榜 (v2.8x) — WebDev/Image-to-WebDev 本地切换.
+  CODE_CATEGORIES,
+  CODE_CATEGORY_DEFAULT,
   // ponytail: 5 大类分组 (v2.8x) — 一级大类 → 二级榜.
   ARENA_CATEGORIES,
   boardsOfCategory,
-  categoryOfBoard,
+  uiCategoryOfBoard,
   toIpcParams,
   normalizeBoardResult,
 } from "./types.ts";
@@ -84,6 +87,10 @@ export const activeAgentDim = signal(AGENT_DIMENSION_DEFAULT);
 /** 文本榜当前选中的 category 子榜（overall / coding / math / hard / instruction_following / non_english）。
  * 仅当 activeBoard==="text" 时生效。纯本地切换（数据已在 categories map 里），不触发 IPC。 */
 export const activeTextCat = signal(TEXT_CATEGORY_DEFAULT);
+
+/** Code 榜当前选中的 category 子榜（overall=WebDev / image_to_webdev=Image-to-WebDev）。
+ * 仅当 activeBoard==="code" 时生效。纯本地切换，不触发 IPC。 */
+export const activeCodeCat = signal(CODE_CATEGORY_DEFAULT);
 
 /** 模型对比列表（最多 3 个 id）。 */
 export const compareList = signal([]);
@@ -226,6 +233,10 @@ export function loadPrefs() {
     if (o && typeof o.textCat === "string" && TEXT_CATEGORIES.some((c: any) => c.key === o.textCat)) {
       if (activeBoard.value === "text") activeTextCat.value = o.textCat;
     }
+    // ponytail: Code 榜 category 偏好 (v2.8x) — 仅当 board 是 code 时恢复.
+    if (o && typeof o.codeCat === "string" && CODE_CATEGORIES.some((c: any) => c.key === o.codeCat)) {
+      if (activeBoard.value === "code") activeCodeCat.value = o.codeCat;
+    }
   } catch { /* 忽略 */ }
 }
 
@@ -243,6 +254,7 @@ function persistPrefs() {
         sortDir: sortDir.value,
         agentDim: activeAgentDim.value,
         textCat: activeTextCat.value,
+        codeCat: activeCodeCat.value,
       }),
     );
   } catch { /* 忽略 */ }
@@ -339,6 +351,8 @@ export function setView(v: any) {
   sortDir.value = "desc";
   // ponytail: HF 视角 (v2.79.5+) — 切到 HF 时重置 activeDim 到 hf_downloads 兜底.
   if (v === "huggingface" && !HF_DIMENSIONS[activeDim.value]) activeDim.value = "hf_downloads";
+  // ponytail: 从 HF 切回 AA 时 activeDim 可能仍是 hf_*，须复位否则 getDisplayed 全空。
+  if (v === "aa" && !AA_DIMENSIONS[activeDim.value]) activeDim.value = "intelligence";
   persistPrefs();
   return loadLeaderboard();
 }
@@ -353,6 +367,7 @@ export function setBoard(b: any) {
   if (b === "agent") activeAgentDim.value = AGENT_DIMENSION_DEFAULT;
   // ponytail: 切到文本榜时把 category 复位到 overall；切走则保持默认。
   if (b === "text") activeTextCat.value = TEXT_CATEGORY_DEFAULT;
+  if (b === "code") activeCodeCat.value = CODE_CATEGORY_DEFAULT;
   persistPrefs();
   return loadLeaderboard();
 }
@@ -364,14 +379,14 @@ export function setCategory(cat: any) {
   const boards = boardsOfCategory(cat);
   if (!boards.length) return undefined;
   const cur = activeBoard.value;
-  // 当前 board 已属该大类 → 仅切选中态，不重发请求
-  if (categoryOfBoard(cur) === cat) return undefined;
+  // 当前 board 已属该 UI 大类 → 仅切选中态，不重发请求
+  if (uiCategoryOfBoard(cur) === cat) return undefined;
   return setBoard(boards[0]);
 }
 
-/** 当前激活的一级大类 key（由 activeBoard 派生，便于 FilterBar 渲染选中态）。 */
+/** 当前激活的 UI 大类 key（由 activeBoard 派生，便于 FilterBar 渲染选中态）。 */
 export function activeCategory() {
-  return categoryOfBoard(activeBoard.value);
+  return uiCategoryOfBoard(activeBoard.value);
 }
 
 /** Agent 榜：切细分维度 → 纯本地重排（数据已加载，不触发 IPC）。
@@ -389,6 +404,15 @@ export function setAgentDim(d: any) {
 export function setTextCat(cat: any) {
   if (!TEXT_CATEGORIES.some((c: any) => c.key === cat) || cat === activeTextCat.value) return undefined;
   activeTextCat.value = cat;
+  sortKey.value = null;
+  persistPrefs();
+  return undefined;
+}
+
+/** Code 榜：切 category 子榜 → 纯本地切换（WebDev / Image-to-WebDev），不触发 IPC。 */
+export function setCodeCat(cat: any) {
+  if (!CODE_CATEGORIES.some((c: any) => c.key === cat) || cat === activeCodeCat.value) return undefined;
+  activeCodeCat.value = cat;
   sortKey.value = null;
   persistPrefs();
   return undefined;
@@ -470,7 +494,7 @@ export function clearSearchQuery() {
 
 /**
  * 取模型在指定视角下「某一列」的原始数值（用于列头点选排序）。
- * 覆盖所有可排序列，包括 primaryValue 未涵盖的 valueRatio / ci / lb_cost。
+ * 覆盖所有可排序列，包括 primaryValue 未涵盖的 costPerTask / ci / lb_cost。
  * @returns {number|null}
  */
 export function columnValue(model: any, view: any, key: any) {
@@ -522,9 +546,11 @@ export function columnValue(model: any, view: any, key: any) {
         // votes 列在 agent 榜表示参与会话数（sessions）
         return typeof slice.sessions === "number" ? slice.sessions : null;
       }
-      // ponytail: 文本榜 category 子榜 (v2.8x) — elo/ci/votes 读选中 category 切片（默认 overall = slice 本身）。
-      if (activeBoard.value === "text" && slice.categories) {
-        const cat = activeTextCat.value || TEXT_CATEGORY_DEFAULT;
+      // ponytail: 文本/Code 榜 category 子榜 (v2.8x) — elo/ci/votes 读选中 category 切片（默认 overall = slice 本身）。
+      if ((activeBoard.value === "text" || activeBoard.value === "code") && slice.categories) {
+        const cat = activeBoard.value === "text"
+          ? (activeTextCat.value || TEXT_CATEGORY_DEFAULT)
+          : (activeCodeCat.value || CODE_CATEGORY_DEFAULT);
         const c = cat === "overall" ? { rank: slice.rank, score: slice.score, ci: slice.ci, votes: slice.votes } : slice.categories[cat];
         if (!c) return null;
         if (key === "elo") return typeof c.score === "number" ? c.score : null;
@@ -569,10 +595,8 @@ export function columnValue(model: any, view: any, key: any) {
     case "agentic": return aa.agenticIndex ?? null;
     case "speed": return aa.outputTokensPerSec ?? null;
     case "price": return aa.priceOutputPer1M ?? null;
-    case "valueRatio":
-      return aa.intelligenceIndex != null && aa.priceOutputPer1M > 0
-        ? aa.intelligenceIndex / aa.priceOutputPer1M
-        : null;
+    case "costPerTask":
+      return typeof aa.costPerTask === "number" && aa.costPerTask > 0 ? aa.costPerTask : null;
     case "context": {
       // 优先 AA slice (Free tier 不返回, 0), 回退 modelsdev > openrouter.contextLength
       const md = model && model.modelsdev;
@@ -614,9 +638,11 @@ export function sortValue(model: any) {
     // 新 board（image-edit/image-to-video/video-edit/document/search）的 key 与
     // category→board 映射不一致，映射会错取 text-to-image/text-to-video 等导致排序失效。
     const slice = model && model.arena && model.arena[board.key];
-    // ponytail: 文本榜 category 子榜 (v2.8x) — 按选中 category 排序（默认 overall = slice.score）。
-    if (activeBoard.value === "text" && slice && slice.categories) {
-      const cat = activeTextCat.value || TEXT_CATEGORY_DEFAULT;
+    // ponytail: 文本/Code 榜 category 子榜 (v2.8x) — 按选中 category 排序（默认 overall = slice.score）。
+    if ((activeBoard.value === "text" || activeBoard.value === "code") && slice && slice.categories) {
+      const cat = activeBoard.value === "text"
+        ? (activeTextCat.value || TEXT_CATEGORY_DEFAULT)
+        : (activeCodeCat.value || CODE_CATEGORY_DEFAULT);
       const c = cat === "overall" ? slice : slice.categories[cat];
       return c && typeof c.score === "number" ? c.score : null;
     }
@@ -634,7 +660,7 @@ export function sortValue(model: any) {
 }
 
 /** 越低越优的列（点选时默认升序）。 */
-const ASC_DEFAULT_COLS = new Set(["price", "speed", "lb_cost"]);
+const ASC_DEFAULT_COLS = new Set(["price", "speed", "lb_cost", "costPerTask"]);
 
 /**
  * 列头点选排序：
@@ -701,9 +727,11 @@ export function getDisplayed() {
     rows = rows.filter((it: any) => {
       const slice = it && it.arena && it.arena[board.key];
       if (!slice || typeof slice.score !== "number") return false;
-      // ponytail: 文本榜 category 子榜 — 非 overall 时仅保留有该 category 分数的模型
-      if (activeBoard.value === "text" && slice.categories) {
-        const cat = activeTextCat.value || TEXT_CATEGORY_DEFAULT;
+      // ponytail: 文本/Code 榜 category 子榜 — 非 overall 时仅保留有该 category 分数的模型
+      if ((activeBoard.value === "text" || activeBoard.value === "code") && slice.categories) {
+        const cat = activeBoard.value === "text"
+          ? (activeTextCat.value || TEXT_CATEGORY_DEFAULT)
+          : (activeCodeCat.value || CODE_CATEGORY_DEFAULT);
         if (cat !== "overall") {
           const c = slice.categories[cat];
           return c && typeof c.score === "number";

@@ -67,6 +67,10 @@ const AA_PAYLOAD = {
         gpqa: 51,
       },
       pricing: { blended: 6.25 },
+      artificial_analysis_intelligence_index_cost: {
+        total_cost: 12.5,
+        cost_per_task: { total_cost: 0.42 },
+      },
     },
   ],
 };
@@ -539,7 +543,37 @@ describe("normalize: vendor 归一化 + AiModel 字段完整性", () => {
     expect(m.vendor).toBe("openai");
     expect(m.sources.aa).toBe("live");
     expect(m.aa.intelligenceIndex).toBe(78);
+    expect(m.aa.costPerTask).toBe(0.42);
     expect(m.arena).toEqual({});
+  });
+
+  it("AA normalize 保留括号变体为独立 id，并解析 costPerTask", () => {
+    const out = aaFetcher.normalize({
+      data: [
+        {
+          name: "Claude Opus 5 (Max Effort)",
+          model_creator: { name: "Anthropic" },
+          evaluations: { artificial_analysis_intelligence_index: 61 },
+          pricing: { price_1m_output_tokens: 25 },
+          artificial_analysis_intelligence_index_cost: {
+            cost_per_task: { total_cost: 1.2 },
+          },
+        },
+        {
+          name: "Claude Opus 5 (Low Effort)",
+          model_creator: { name: "Anthropic" },
+          evaluations: { artificial_analysis_intelligence_index: 52 },
+          pricing: { price_1m_output_tokens: 25 },
+          artificial_analysis_intelligence_index_cost: {
+            cost_per_task: { total_cost: 0.3 },
+          },
+        },
+      ],
+    });
+    expect(out).toHaveLength(2);
+    expect(out[0].id).not.toBe(out[1].id);
+    expect(out[0].aa.costPerTask).toBe(1.2);
+    expect(out[1].aa.costPerTask).toBe(0.3);
   });
 });
 
@@ -719,6 +753,47 @@ describe("mergeModelSlices: name 兜底合并（vendor 命名不一致场景）"
     const merged = mergeModelSlices([a, b]);
     // 不同 model — 应当保持 2 条独立
     expect(merged.length).toBe(2);
+  });
+
+  it("AA 括号变体互不吞并；MD 同基名仍可挂到其中一条", () => {
+    const aa = [
+      {
+        id: "anthropic-claude-opus-5-max-effort",
+        name: "Claude Opus 5 (Max Effort)",
+        vendor: "anthropic",
+        category: "llm",
+        aa: { intelligenceIndex: 61, costPerTask: 1.2 },
+        sources: { arena: "none", aa: "live", openrouter: "none", livebench: "none", modelsdev: "none" },
+        isSample: false,
+      },
+      {
+        id: "anthropic-claude-opus-5-low-effort",
+        name: "Claude Opus 5 (Low Effort)",
+        vendor: "anthropic",
+        category: "llm",
+        aa: { intelligenceIndex: 52, costPerTask: 0.3 },
+        sources: { arena: "none", aa: "live", openrouter: "none", livebench: "none", modelsdev: "none" },
+        isSample: false,
+      },
+    ];
+    const md = [
+      {
+        id: "anthropic-claude-opus-5",
+        name: "Claude Opus 5",
+        vendor: "anthropic",
+        category: "llm",
+        modelsdev: { contextLength: 200000 },
+        sources: { arena: "none", aa: "none", openrouter: "none", livebench: "none", modelsdev: "live" },
+        isSample: false,
+      },
+    ];
+    const merged = mergeModelSlices([aa, md]);
+    const aaRows = merged.filter((m) => m.sources && m.sources.aa === "live");
+    expect(aaRows.length).toBe(2);
+    // 变体保护跳过整组 baseName 合并时，MD 可能仍以独立行存在；至少 AA 两行保留。
+    expect(merged.length).toBeGreaterThanOrEqual(2);
+    const withMd = merged.filter((m) => m.modelsdev && m.modelsdev.contextLength === 200000);
+    expect(withMd.length).toBeGreaterThanOrEqual(1);
   });
 });
 

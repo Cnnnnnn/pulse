@@ -18,6 +18,9 @@ import {
   activeDim,
   activeLB,
   activeAgentDim,
+  activeVendor,
+  licenseFilter,
+  searchQuery,
   sortKey,
   sortDir,
   toggleSort,
@@ -228,7 +231,13 @@ export function LeaderboardTable({ rows, view, board, dim, lb }: {
           dir={dir}
           title="输入 token 价格（models.dev 提供）— AA Free tier 不返回此字段，作为价格兜底"
         />
-        <SortableTh k="valueRatio" label="性价比" active={aKey} dir={dir} />
+        <SortableTh
+          k="costPerTask"
+          label="Cost/Task"
+          active={aKey}
+          dir={dir}
+          title="AA Free cost_per_task.total_cost — 官方 Intelligence Index 任务加权成本，越低越好"
+        />
         <SortableTh
           k="context"
           label="上下文"
@@ -253,10 +262,15 @@ export function LeaderboardTable({ rows, view, board, dim, lb }: {
     />
   );
 
+  // react-virtuoso 在 Preact compat 下不一定能检测 data prop 变化（内部缓存行），
+  // 用 key 强制本地筛选条件变化时重新挂载，确保过滤后列表正确渲染。
+  const virtuosoKey = `${v}|${b}|${activeVendor.value}|${licenseFilter.value}|${searchQuery.value}|${aKey}|${dir}`;
+
   return (
     <>
       <div class="ai-lb-table-wrap">
         <TableVirtuoso
+          key={virtuosoKey}
           data={list}
           style={{ height: "100%" }}
           // ponytail: happy-dom 量不到容器高度；生产用合理上限避免首屏建全量 DOM

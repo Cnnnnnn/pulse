@@ -8,10 +8,10 @@
  *  - R1/R2a/R3：AA 视图「AA 方法说明」整行含「未本地重算」「无置信区间」「估算」。
  *  - R1：AA 视图 summary 含「数据快照（引用日）… · 方法论 v4.1」。
  *  - R2b：AA 模型行 modelCell 内联覆盖率标签 `▦ N/5`，N 按 5 维有效值计数（价格须 >0）。
- *  - R3：价格列（及性价比列）`title` 含「估算」字样。
+ *  - R3：价格列 `title` 含「估算」字样；Cost/Task 列为官方成本。
  *  - R4：stale signal 为 true 时渲染「数据可能过期（使用缓存快照兜底）」横幅。
  *  - R8：AttributionFooter 渲染「数据来源」标签 + 「Artificial Analysis（方法论 v4.1）」署名。
- *  - ValueScatter header 追加「价格为估算 blended（in+out)/2，无置信区间」。
+ *  - ValueScatter header 声明 X 轴为官方 cost_per_task.total_cost。
  *
  * 范式：mock api + 设置 activeView.value="aa" + 注入 store.items，render 整页 / 组件。
  */
@@ -45,6 +45,7 @@ const aaFull = {
     agenticIndex: 60,
     outputTokensPerSec: 120,
     priceOutputPer1M: 2,
+    costPerTask: 0.35,
   },
   modelsdev: { contextLength: 128000, inputCostPer1M: 5 },
   sources: { arena: "none", aa: "live", openrouter: "none", livebench: "none", modelsdev: "none" },
@@ -59,6 +60,7 @@ const aaPartial = {
   aa: {
     intelligenceIndex: 40,
     priceOutputPer1M: 8,
+    costPerTask: 1.1,
   },
   modelsdev: null,
   sources: { arena: "none", aa: "live", openrouter: "none", livebench: "none", modelsdev: "none" },
@@ -276,10 +278,36 @@ describe("AttributionFooter 渲染 v4.1 署名（R8）", () => {
   });
 });
 
-describe("ValueScatter header 估算声明（R3）", () => {
-  it("AA 散点图 header 含「价格为估算 blended（in+out)/2，无置信区间」", () => {
+describe("ValueScatter header Cost/Task 声明（R3）", () => {
+  it("AA 散点图 header 含官方 cost_per_task 口径", () => {
     const { container } = render(<ValueScatter items={[aaFull, aaPartial]} />);
-    expect(container.textContent).toContain("价格为估算 blended（in+out)/2，无置信区间");
+    expect(container.textContent).toContain("智能指数 × Cost per Task");
+    expect(container.textContent).toContain("cost_per_task.total_cost");
+  });
+});
+
+describe("AA 维度 chips（子榜切换）", () => {
+  it("AA 视图渲染 6 个维度 chip，含 Coding / Cost/Task", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.activeView.value = "aa";
+    const { container } = render(<AiLeaderboardPage />);
+    const group = container.querySelector('[aria-label="AA 排序维度"]');
+    expect(group).toBeTruthy();
+    const labels = Array.from(group.querySelectorAll("button")).map((b) => b.textContent.trim());
+    expect(labels).toEqual(["Intelligence", "Coding", "Agentic", "Speed", "Price", "Cost/Task"]);
+    expect(group.querySelector(".is-active")?.textContent.trim()).toBe("Intelligence");
+  });
+
+  it("点击 Coding chip 切换 activeDim", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.activeView.value = "aa";
+    const { container } = render(<AiLeaderboardPage />);
+    const coding = Array.from(container.querySelectorAll('[aria-label="AA 排序维度"] button')).find(
+      (b) => b.textContent.trim() === "Coding",
+    );
+    expect(coding).toBeTruthy();
+    fireEvent.click(coding);
+    expect(store.activeDim.value).toBe("coding");
   });
 });
 

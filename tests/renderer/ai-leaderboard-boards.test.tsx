@@ -18,7 +18,7 @@ vi.mock("../../src/renderer/api.ts", () => ({
 }));
 
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.ts";
-import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, boardsOfCategory, categoryOfBoard, toIpcParams } from "../../src/renderer/ai-leaderboard/types.ts";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, boardsOfCategory, categoryOfBoard, uiCategoryOfBoard, toIpcParams } from "../../src/renderer/ai-leaderboard/types.ts";
 
 function mk(id: string, arenaSlice: Record<string, any>) {
   return {
@@ -42,21 +42,21 @@ beforeEach(() => {
 });
 
 describe("ARENA_BOARDS 注册（5 个新 arena）", () => {
-  it("文档/搜索/图像编辑/图生视频/视频编辑 均已注册且 key 与 fetcher board 名一致", () => {
-    expect(ARENA_BOARDS.document).toEqual({ key: "document", label: "文档", category: "llm" });
-    expect(ARENA_BOARDS.search).toEqual({ key: "search", label: "搜索", category: "llm" });
-    expect(ARENA_BOARDS["image-edit"]).toEqual({ key: "image-edit", label: "图像编辑", category: "image" });
-    expect(ARENA_BOARDS["image-to-video"]).toEqual({ key: "image-to-video", label: "图生视频", category: "video" });
-    expect(ARENA_BOARDS["video-edit"]).toEqual({ key: "video-edit", label: "视频编辑", category: "video" });
+  it("document/search/image-edit/image-to-video/video-edit 均已注册且 key 与 fetcher board 名一致", () => {
+    expect(ARENA_BOARDS.document).toEqual({ key: "document", label: "Document", category: "llm" });
+    expect(ARENA_BOARDS.search).toEqual({ key: "search", label: "Search", category: "llm" });
+    expect(ARENA_BOARDS["image-edit"]).toEqual({ key: "image-edit", label: "Image Edit", category: "image" });
+    expect(ARENA_BOARDS["image-to-video"]).toEqual({ key: "image-to-video", label: "Image-to-Video", category: "video" });
+    expect(ARENA_BOARDS["video-edit"]).toEqual({ key: "video-edit", label: "Video Edit", category: "video" });
   });
 
-  it("ARENA_BOARD_KEYS 共 11 个，text 在首位，image 在 code 之后（不破坏旧断言）", () => {
+  it("ARENA_BOARD_KEYS 共 11 个，agent 在首位，image 在 code 之后", () => {
     expect(ARENA_BOARD_KEYS.length).toBe(11);
-    expect(ARENA_BOARD_KEYS.indexOf("text")).toBe(0);
+    expect(ARENA_BOARD_KEYS.indexOf("agent")).toBe(0);
     expect(ARENA_BOARD_KEYS.indexOf("image")).toBeGreaterThan(ARENA_BOARD_KEYS.indexOf("code"));
   });
 
-  it("toIpcParams 对新 board 返回正确 category（llm/image/video 复用 text 通道）", () => {
+  it("toIpcParams 对新 board 返回正确 IPC category（llm/image/video 复用 text 通道）", () => {
     expect(toIpcParams("arena", "document")).toEqual({ category: "llm", dimension: "elo" });
     expect(toIpcParams("arena", "image-edit")).toEqual({ category: "image", dimension: "elo" });
     expect(toIpcParams("arena", "video-edit")).toEqual({ category: "video", dimension: "elo" });
@@ -91,31 +91,40 @@ describe("新 board 按切片过滤 + flat 列值", () => {
   });
 });
 
-describe("5 大类分组（一级大类 → 二级榜）", () => {
-  it("ARENA_CATEGORIES 共 5 个，key 为 llm/multimodal/code/image/video", () => {
-    expect(ARENA_CATEGORIES.map((c: any) => c.key)).toEqual(["llm", "multimodal", "code", "image", "video"]);
+describe("5 大类分组（对齐 arena.ai 官网：Agent / Chat / Code / Image / Video）", () => {
+  it("ARENA_CATEGORIES 共 5 个，key 为 agent/chat/code/image/video", () => {
+    expect(ARENA_CATEGORIES.map((c: any) => c.key)).toEqual(["agent", "chat", "code", "image", "video"]);
   });
 
-  it("boardsOfCategory 返回各类的二级榜（llm 含 agent，image/video 含编辑/图生视频）", () => {
-    expect(boardsOfCategory("llm")).toEqual(["text", "document", "search", "agent"]);
+  it("boardsOfCategory 返回各类的二级榜（Chat 含 Text+Search+Vision+Document）", () => {
+    expect(boardsOfCategory("agent")).toEqual(["agent"]);
+    expect(boardsOfCategory("chat")).toEqual(["text", "search", "vision", "document"]);
+    expect(boardsOfCategory("code")).toEqual(["code"]);
     expect(boardsOfCategory("image")).toEqual(["image", "image-edit"]);
     expect(boardsOfCategory("video")).toEqual(["video", "image-to-video", "video-edit"]);
-    expect(boardsOfCategory("multimodal")).toEqual(["vision"]);
-    expect(boardsOfCategory("code")).toEqual(["code"]);
   });
 
-  it("boardsOfCategory 对非法 key 回退到 llm", () => {
-    expect(boardsOfCategory("nope")).toEqual(boardsOfCategory("llm"));
+  it("boardsOfCategory 对非法 key 回退到首个大类", () => {
+    expect(boardsOfCategory("nope")).toEqual(boardsOfCategory("agent"));
   });
 
-  it("categoryOfBoard 返回 board 所属大类", () => {
+  it("uiCategoryOfBoard 返回 board 所属 UI 大类（与 IPC category 独立）", () => {
+    expect(uiCategoryOfBoard("text")).toBe("chat");
+    expect(uiCategoryOfBoard("vision")).toBe("chat");
+    expect(uiCategoryOfBoard("agent")).toBe("agent");
+    expect(uiCategoryOfBoard("image-edit")).toBe("image");
+    expect(uiCategoryOfBoard("video-edit")).toBe("video");
+  });
+
+  it("categoryOfBoard 返回 IPC category（用于 toIpcParams，与 UI 大类独立）", () => {
     expect(categoryOfBoard("image-edit")).toBe("image");
     expect(categoryOfBoard("video-edit")).toBe("video");
     expect(categoryOfBoard("agent")).toBe("llm");
+    expect(categoryOfBoard("vision")).toBe("multimodal");
   });
 
   it("setCategory 切到该类默认 board；切到已含当前 board 的类是 no-op", () => {
-    store.activeBoard.value = "text"; // llm
+    store.activeBoard.value = "text"; // chat
     store.setCategory("image");
     expect(store.activeBoard.value).toBe("image"); // image 类首 board
     // 切到 image-edit 后再切 image 类 → 已在该类，不强制回 image

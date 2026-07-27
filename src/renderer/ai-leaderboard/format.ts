@@ -70,13 +70,11 @@ export function fmtDate(iso: any) {
   return `${y}-${mo}-${da}`;
 }
 
-/** 性价比 = 智能指数 / 输出价格（越高越划算）。 */
-export function fmtValueRatio(aa: any) {
-  if (!aa) return "—";
-  const idx = aa.intelligenceIndex;
-  const price = aa.priceOutputPer1M;
-  if (idx == null || price == null || price <= 0) return "—";
-  return (idx / price).toFixed(1);
+/** AA 官方 Cost per Task（Intelligence Index 任务加权成本，越低越好）。 */
+export function fmtCostPerTask(v: any) {
+  if (v == null || !Number.isFinite(Number(v)) || Number(v) <= 0) return "—";
+  const n = Number(v);
+  return n < 1 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`;
 }
 
 /** LiveBench 0..100 分数 → "xx.x".  (0..1 比例 → "xx.x%"). */
@@ -215,6 +213,8 @@ export function primaryValue(model: any, dimension: any, category: any) {
       return aa.outputTokensPerSec ?? null;
     case "price":
       return aa.priceOutputPer1M ?? null;
+    case "costPerTask":
+      return typeof aa.costPerTask === "number" && aa.costPerTask > 0 ? aa.costPerTask : null;
     default:
       return null;
   }
@@ -230,6 +230,7 @@ export function formatPrimary(value: any, dimension: any) {
   if (value == null || !Number.isFinite(Number(value))) return "—";
   if (dimension === "elo") return fmtScore(value);
   if (dimension === "price") return fmtPricePer1M(value);
+  if (dimension === "costPerTask") return fmtCostPerTask(value);
   if (dimension === "speed") return fmtSpeed(value);
   if (typeof dimension === "string" && dimension.startsWith("lb_")) return fmtLivebench(value);
   // ponytail: hf_trending (v2.79.6+) — 走 fmtTrending (2 位小数)

@@ -8,7 +8,7 @@
  */
 
 import { VENDOR_META } from "./types.ts";
-import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.ts";
+import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtCostPerTask, fmtLivebench, fmtLbCost, fmtVotes, fmtContext, licenseKind, licenseShort } from "./format.ts";
 import { compareList, toggleCompare, columnValue, openModelDetail } from "./aiLeaderboardStore.ts";
 import { RankSparkline } from "./RankSparkline.tsx";
 import { ArenaBoardBars } from "./ArenaBoardBars.tsx";
@@ -27,7 +27,7 @@ const FIELDS = {
     { key: "speed", label: "速度", fmt: fmtSpeed },
     { key: "price", label: "输出价", fmt: fmtPricePer1M },
     { key: "inputPrice", label: "输入价", fmt: fmtPricePer1M },
-    { key: "valueRatio", label: "性价比", fmt: (v) => (v == null ? "—" : v.toFixed(1)) },
+    { key: "costPerTask", label: "Cost/Task", fmt: fmtCostPerTask },
     { key: "context", label: "上下文", fmt: fmtContext },
   ],
   livebench: [
