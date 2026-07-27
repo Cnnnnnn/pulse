@@ -42,7 +42,7 @@ beforeEach(() => {
   localStorage.clear();
   getGameDealsMock.mockReset();
   notificationMock.mockReset();
-  notificationMock.mockImplementation(() => ({}));
+  notificationMock.mockImplementation(function () { return {}; });
   Notification.requestPermission = vi.fn(async () => "granted");
   setNotificationPermission("granted");
   gamesAutoCheck.value = true;
@@ -230,7 +230,8 @@ describe("checkWishlistDrops 降价检查", () => {
       };
     });
     const notice = {};
-    notificationMock.mockImplementation(() => notice);
+    // vitest 4: 箭头函数不能被 new. 用普通 function.
+    notificationMock.mockImplementation(function () { return notice; });
 
     await createGamesCheckScheduler().checkOnce();
     notice.onclick();

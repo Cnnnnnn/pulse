@@ -1,67 +1,72 @@
 # SECURITY-NOTES — 依赖漏洞审计与处置记录
 
-> **最近审计**: 2026-07-26 (code-simplifier cleanup 收尾)
-> **审计方式**: `npm audit --registry=https://registry.npmjs.org` (默认 Nexus registry 不支持 audit 接口)
-> **当前状态**: 33 → 32 vulnerabilities (1 已修, 32 评估后保留)
+> **最近审计**: 2026-07-26 (code-simplifier cleanup + vitest 4 升级)
+> **审计方式**: `npm audit` (项目根 .npmrc 已切到 registry.npmjs.org)
+> **当前状态**: 33 → 26 vulnerabilities (7 已修, 26 评估后保留, 0 moderate / 0 low)
 
 ## 已修复 (2026-07-26)
+
+### Round 1: dompurify (root dep 安全升级)
 
 | Package | 严重度 | 漏洞 | 处置 |
 |---|---|---|---|
 | `dompurify` 3.4.11 → 3.4.12 | low | [GHSA-c2j3-45gr-mqc4](https://github.com/advisories/GHSA-c2j3-45gr-mqc4) `CUSTOM_ELEMENT_HANDLING` bypasses `afterSanitizeElements` | root dep, `npm install dompurify@latest` 直接升 |
 
-## 保留 (32 个, 评估为"暂不修")
+### Round 2: vitest 2 → vitest 4 + 连带升级 (major breaking, 已迁移)
 
-剩余漏洞全部是 **transitive dependencies**, 被以下 4 个 root dev-tool 依赖锁住, 升级需要 **major breaking change**:
+| Package | 严重度 | 漏洞 | 处置 |
+|---|---|---|---|
+| `vitest` 2.1.9 → 4.1.10 | **critical** | Vitest UI server 任意文件读取/执行 | major 升级 + 测试适配 (见下) |
+| `vite` ≤ 6.4.2 → 8.1.5 | high | Path Traversal in Optimized Deps `.map` Handling | vitest 4 连带 |
+| `esbuild` ≤ 0.24.2 | moderate | 开发服务器任意请求/响应读取 | vitest 4 连带修复 |
+| `@vitest/mocker` ≤ 3.0.0-beta.4 | moderate | (transitive) | vitest 4 连带 |
+| `vite-node` ≤ 2.2.0-beta.2 | moderate | (transitive) | vitest 4 连带 |
 
-### 1. `vitest` ≤ 3.2.5 → 需升 `vitest@4.1.10` (25 个漏洞的根因之一)
+**vitest 4 迁移踩坑** (后续遇到类似问题可参考):
+1. `vi.fn(() => instance)` 不能被 `new` 调用 → 改 `function NameCtor() { return instance; }` (箭头函数无 [[Construct]])
+2. happy-dom + react-virtuoso + preact/compat 出现 `__H undefined` → 全局 mock react-virtuoso 透传组件 (happy-dom 无 viewport, 真虚拟滚动无意义)
+3. vitest 4 install 把 eslint 顺带升到 10 (跟 eslint-plugin-react-hooks 不兼容) → 手动 pin eslint@9
+
+## 保留 (26 个, 评估为"暂不修")
+
+剩余漏洞全部是 **transitive dependencies**, 被以下 3 个 root dev-tool 依赖锁住:
+
+### 1. `eslint` 9.x → 需升 `eslint@10.8.0` (4-5 个漏洞根因)
 
 | 影响 | 漏洞 | 严重度 |
 |---|---|---|
-| vitest 自身 | [GHSA-...](https://github.com/advisories/) Vitest UI server 任意文件读取/执行 | **critical** |
-| vite ≤ 6.4.2 | Path Traversal in Optimized Deps `.map` Handling | high |
-| esbuild ≤ 0.24.2 | 开发服务器任意请求/响应读取 | moderate |
-| @vitest/mocker ≤ 3.0.0-beta.4 | (transitive) | moderate |
-| vite-node ≤ 2.2.0-beta.2 | (transitive) | moderate |
-
-**为什么不修**: vitest 4 是 major breaking, 配置/API 变化未知, 现有 474 个 test files / 4901 tests 全部依赖 vitest 3 行为. 升级需要单独的迁移工作 (跑全量 vitest 4 兼容性测试).
-
-### 2. `eslint` ≤ 9.x → 需升 `eslint@10.8.0` (5 个漏洞根因)
-
-| 影响 | 漏洞 | 严重度 |
-|---|---|---|
-| eslint 自身 | (multiple) | high |
-| @eslint/config-array, @eslint/eslintrc | (transitive) | high |
+| @eslint/eslintrc, @eslint/config-array | (transitive) | high |
 | minimatch | DoS via exponential-time expansion | high |
 | brace-expansion | DoS via exponential-time expansion | high |
 
-**为什么不修**: eslint 10 是 major breaking, `eslint.config.mjs` flat config 兼容性未知. 升级需要单独迁移工作.
+**为什么不修**: eslint 10 跟 `eslint-plugin-react-hooks@5` peer 不兼容 (peer 限制到 9). 升级 eslint 10 需要等 react-hooks plugin 升级支持, 或者迁移到 eslint 9 兼容的 hooks plugin.
 
-### 3. `electron-builder` ≤ 24 → 需升 `electron-builder@25.1.8` (12 个漏洞根因)
-
-| 影响 | 漏洞 | 严重度 |
-|---|---|---|
-| electron-builder 自身 + transitive (@electron/asar, @electron/universal, app-builder-lib, dmg-builder, dir-compare, ejs, filelist, jake, electron-winstaller, electron-builder-squirrel-windows) | (multiple, mostly transitive vulns) | high |
-
-**为什么不修**: electron-builder 25 改了 macOS notarization API + windows signing 流程, 现有 `build/after-pack.cjs` + entitlements 配置可能要改. 升级需要 build 验证 (跑 `npm run build:mac` + `build:win` 实测).
-
-### 4. `stylelint` ≤ 16 → 需升 `stylelint@17.14.1` (5 个漏洞根因)
+### 2. `electron-builder` ≤ 24 → 需升 `electron-builder@26.15.3` (15+ 个漏洞根因, 含 critical)
 
 | 影响 | 漏洞 | 严重度 |
 |---|---|---|
-| stylelint 自身 | (transitive via file-entry-cache/flat-cache/glob/rimraf) | high |
-| stylelint-config-standard → needs `stylelint-config-standard@40.0.0` | (transitive) | high |
+| **tar** (transitive via node-gyp / app-builder-lib) | 11 个 advisory (路径遍历 / 符号链接 / DoS 等) | **critical** |
+| @electron/asar, @electron/universal, app-builder-lib, dmg-builder, dir-compare, ejs, filelist, jake 等 | (transitive) | high |
 
-**为什么不修**: stylelint 17 改了 rule API, 现有 `.stylelintrc.json` 配置可能失效. 升级需要 lint:css 验证.
+**为什么不修**: electron-builder 25/26 改了 macOS notarization API + windows signing 流程, 现有 `build/after-pack.cjs` + entitlements 配置可能要改. tar 的 critical 只影响 build 时解压第三方包 (electron-builder 下载依赖时用), 不影响运行时 app 用户.
+
+### 3. `stylelint` ≤ 16 → 需升 `stylelint@17.14.1` (5 个漏洞根因)
+
+| 影响 | 漏洞 | 严重度 |
+|---|---|---|
+| stylelint + file-entry-cache/flat-cache/glob/rimraf | (transitive) | high |
+
+**为什么不修**: stylelint 17 改了 rule API, 现有 `.stylelintrc.json` 配置可能失效.
 
 ## 处置原则
 
-1. **CI/runtime 漏洞优先**: 所有保留的漏洞都在 **devDependencies** (vitest/eslint/electron-builder/stylelint), 不进生产 bundle (`npm run build:mac` 产物). 用户安装的 app 不受影响.
-2. **Major 升级单独做**: 每个 breaking 升级 (vitest 4 / eslint 10 / electron-builder 25 / stylelint 17) 应该单独开分支 + 单独 commit + 单独验证, 不混在其他 cleanup 里.
-3. **审计 Nexus URL 完整性**: 用 `--registry=https://registry.npmjs.org` 跑 audit fix 会把 `package-lock.json` 里所有 `resolved` URL 从 `nexus.npt.seabank.io` 改成 `registry.npmjs.org`, 破坏团队镜像依赖. **永远只用它做 audit (只读), 不要用它做 fix**. fix 走默认 Nexus registry + 手动 `npm install <pkg>@latest`.
+1. **CI/runtime 漏洞优先**: 所有保留的漏洞都在 **devDependencies** (eslint/electron-builder/stylelint), 不进生产 bundle (`npm run build:mac` 产物). 用户安装的 app 不受影响.
+2. **Major 升级单独做**: 每个 breaking 升级应该单独开分支 + 单独 commit + 单独验证, 不混在其他 cleanup 里.
+3. **`.npmrc` 已切官方源**: 项目根 `.npmrc` 把 registry 改到 `registry.npmjs.org` (覆盖用户级 Nexus). 团队成员如需切回 Nexus, 删 `.npmrc` 即可.
 
 ## 下次审计
 
-- 跑: `npm audit --registry=https://registry.npmjs.org`
+- 跑: `npm audit` (项目根 .npmrc 已配置)
 - 比对本文件: 新漏洞补到上面, 已修的从"保留"挪到"已修复"
-- 评估 breaking 升级是否到时机 (例: vitest 4 / eslint 10 是否已有 stable + 社区迁移指南)
+- 优先级建议: electron-builder 26 (含 critical, 但只影响 build) > eslint 10 (等 plugin 支持) > stylelint 17
+

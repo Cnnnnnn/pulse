@@ -150,7 +150,8 @@ describe("games check scheduler", () => {
       }],
     });
     const notice = {};
-    notificationMock.mockImplementation(() => notice);
+    // vitest 4: 箭头函数不能被 new. 用普通 function (返回对象, JS new 会用返回值).
+    notificationMock.mockImplementation(function () { return notice; });
     await createGamesCheckScheduler().checkOnce();
     getGameDealsMock.mockClear();
     notice.onclick();
@@ -177,7 +178,8 @@ describe("games check scheduler", () => {
       }],
     });
     const notice = {};
-    notificationMock.mockImplementation(() => notice);
+    // vitest 4: 箭头函数不能被 new. 用普通 function (返回对象, JS new 会用返回值).
+    notificationMock.mockImplementation(function () { return notice; });
     await createGamesCheckScheduler().checkOnce();
     getGameDealsMock.mockClear();
 

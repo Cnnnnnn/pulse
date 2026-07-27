@@ -15,6 +15,8 @@ module.exports = defineConfig({
     // pnpm exec vitest --run (CI release job 入口, 不走 npm lifecycle)
     // 与 npm test 两种路径. 见 tests/_setup/build-preload.cjs.
     globalSetup: ["./tests/_setup/build-preload.cjs", "./tests/_setup/build-main-ts.cjs"],
+    // vitest 4: mock react-virtuoso 透传组件 (happy-dom 无 viewport, 真虚拟滚动无意义)
+    setupFiles: ["./tests/_setup/mock-react-virtuoso.ts"],
     testTimeout: 30000, // 7a-6: aggregator 测试触发真实网络 fallback, 8s 不够; 多数 detector 仍 ≤8s
     pool: "forks", // macOS 稳；windows 也兼容
     globals: false, // 显式 import，避免 vitest 1.x 的隐式全局
@@ -32,6 +34,13 @@ module.exports = defineConfig({
         // 产出的 forwardRef / memo 元素带 React $$typeof, preact 不识别, 渲染成 [object Object].
         inline: ["react-virtuoso"],
       },
+    },
+    // vitest 4 + vite 8: preact/compat 内部 require preact/hooks, 如果不一起预 bundle,
+    // 会被解析成两份 preact 实例 (compat 走 alias 拿一份, hooks 走原生 require 拿另一份),
+    // hooks 找不到 currentComponent 报 __H undefined. optimizeDeps.include 把整个 preact
+    // 系列强制走 vite 的 deps optimizer, 保证单一实例.
+    optimizeDeps: {
+      include: ["preact", "preact/hooks", "preact/compat", "react-virtuoso"],
     },
   },
   esbuild: {

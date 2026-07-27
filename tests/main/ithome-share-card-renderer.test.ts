@@ -37,7 +37,10 @@ const mockWindow = {
   isDestroyed: () => false,
 };
 
-const mockBrowserWindowCtor = vi.fn(() => mockWindow);
+// vitest 4: vi.fn(() => instance) 不能被 `new` 调用. 改成普通 function
+// (JS 中 new 一个返回对象的 function 会用返回值作 instance).
+function BrowserWindowCtor() { return mockWindow; }
+const mockBrowserWindowCtor = vi.fn(BrowserWindowCtor);
 
 const electronStub = {
   BrowserWindow: mockBrowserWindowCtor,
@@ -81,7 +84,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockLoadFile.mockResolvedValue(undefined);
   mockWindow.destroy = mockDestroy;
-  mockBrowserWindowCtor.mockImplementation(() => mockWindow);
+  mockBrowserWindowCtor.mockImplementation(BrowserWindowCtor);
   freshModule();
 });
 

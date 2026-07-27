@@ -27,7 +27,10 @@ const mockCreateFromBuffer = vi.fn();
 const mockShouldUseDarkColors = vi.fn(() => false);
 const mockOnThemeUpdated = vi.fn();
 const mockTrayInstance = { setToolTip: vi.fn(), setImage: vi.fn(), on: vi.fn(), setContextMenu: vi.fn(), destroy: vi.fn() };
-const mockTray = vi.fn(() => mockTrayInstance);
+// vitest 4: vi.fn(() => instance) 不能被 `new` 调用 (Mock 不再当 constructor 用).
+// 改成普通 function (JS 中 new 一个返回对象的 function 会用返回值作 instance).
+function TrayCtor() { return mockTrayInstance; }
+const mockTray = vi.fn(TrayCtor);
 const mockBuildFromTemplate = vi.fn(() => ({}));
 
 const electronStub = {
