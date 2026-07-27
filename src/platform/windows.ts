@@ -20,7 +20,6 @@
 // ponytail: explicit `any` for AppCfg/DetectResult — 字段集合跨 detector/config
 //          差异大, 不在这里强加窄类型. 升级路径: 抽 AppCfg/DetectResult interface
 //          到 src/shared/types/.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 let mainLog: unknown = null;
 try {

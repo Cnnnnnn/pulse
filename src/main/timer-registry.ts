@@ -43,6 +43,7 @@ interface RegistryEntry {
   file: string | null;
   line: number | null;
   startedAt: number;
+  // eslint-disable-next-line no-undef -- NodeJS.Timeout is a TS global type from @types/node, not a runtime global
   handle: NodeJS.Timeout;
 }
 

@@ -17,7 +17,6 @@
 //          macos.ts/windows.ts : PlatformModule.
 // ponytail 2: macos.ts/windows.ts 没 ESM export (CJS module.exports), 走 require()
 // 兼容. 等 7a-6 batch 阶段统一加 named export 后再换 import.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let impl: any;
 if (process.platform === "darwin") {
   impl = require("./macos.js");

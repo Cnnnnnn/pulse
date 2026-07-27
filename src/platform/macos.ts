@@ -1,8 +1,6 @@
 // ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
 //          `module.exports = ...`. 跟 src/main/window.ts 同模式.
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 const { resolveAppBundlePath }: {
   resolveAppBundlePath: (b: string) => string | null;
 } = require('../utils/app-paths.js');
