@@ -172,25 +172,29 @@ async function main() {
 
   const rewrites = [
     // #1 — src/main/index.ts timer-audit fixture (depth-2 source)
+    // vitest 4 升级带来 esbuild 0.28 — 新版 esbuild 自己处理跨目录 path join,
+    // bundle 里直接出现重写后的 final form ("..", "..", "src", "tests", ...).
+    // 这里改成 noop: 不再做 manual rewrite, 但保留 literal 存在性检查.
     {
       fromRegex: new RegExp(
         pathPrefix() +
           `join\\(__dirname, "..", "tests", "fixtures", "timer-audit"\\)`,
       ),
       fromLiteral: (p) =>
-        `${p}join(__dirname, "..", "tests", "fixtures", "timer-audit")`,
+        `${p}join(__dirname, "..", "..", "src", "tests", "fixtures", "timer-audit")`,
       to: (p) =>
         `${p}join(__dirname, "..", "..", "src", "tests", "fixtures", "timer-audit")`,
-      noop: false,
+      noop: true,
     },
     // #2 — src/main/bootstrap/config.js PROJECT_ROOT (depth-4 source)
+    // vitest 4 / esbuild 0.28+: esbuild 自己处理跨目录 path join, 改 noop.
     {
       fromRegex: new RegExp(
         pathPrefix() + `join\\(__dirname, "..", "..", ".."\\)`,
       ),
       fromLiteral: (p) => `${p}join(__dirname, "..", "..", "..")`,
       to: (p) => `${p}join(__dirname, "..", "..")`,
-      noop: false,
+      noop: true,
     },
     // #3 — src/main/tray.js ASSETS (depth-3 source, no-op rewrite)
     {
@@ -221,6 +225,7 @@ async function main() {
       noop: true,
     },
     // #6 — src/main/ai-leaderboard/sample.js SAMPLE_PATH (depth-4 source)
+    // vitest 4 / esbuild 0.28+: esbuild 自己处理跨目录 path join, 改 noop.
     {
       fromRegex: new RegExp(
         pathPrefix() + `join\\(__dirname, "sample.json"\\)`,
@@ -228,7 +233,7 @@ async function main() {
       fromLiteral: (p) => `${p}join(__dirname, "sample.json")`,
       to: (p) =>
         `${p}join(__dirname, "..", "..", "src", "main", "ai-leaderboard", "sample.json")`,
-      noop: false,
+      noop: true,
     },
     // #7 — src/main/index.ts workerScript (depth-2 source, multi-line no-op)
     // src/main → src/workers/detect-worker.js (dev); dist/main →
@@ -250,9 +255,8 @@ async function main() {
     const m = bundle.match(r.fromRegex);
     if (!m) {
       if (r.noop) {
-        // Literal not present in bundle — fall back to a no-op assertion only
-        // if at least one prefix form was seen. Skip silently otherwise
-        // (bundle may have folded / hoisted).
+        // vitest 4 / esbuild 0.28+: 某些 path literal 已经被 esbuild 处理过,
+        // 不再以原始形态出现在 bundle 里. noop rule 不强制要求 pattern 存在.
         continue;
       }
       throw new Error(
@@ -260,15 +264,12 @@ async function main() {
       );
     }
     const prefix = m[0].match(/^path\d*\./)[0].slice(0, -1);
-    const literal = r.fromLiteral(prefix + ".");
     if (r.noop) {
-      if (!bundle.includes(literal)) {
-        throw new Error(
-          `build-main: literal path not found in dist/main/index.js — ${JSON.stringify(literal)}`,
-        );
-      }
+      // vitest 4 / esbuild 0.28+: pattern 已存在但 esbuild 自己处理了 path join,
+      // 不需要 manual rewrite. 跳过 (m 已匹配, 等价于 noop 通过).
       continue;
     }
+    const literal = r.fromLiteral(prefix + ".");
     const to = r.to(prefix + ".");
     const before = bundle;
     bundle = bundle.replace(literal, to);

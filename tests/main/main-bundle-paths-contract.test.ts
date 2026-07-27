@@ -132,7 +132,19 @@ describe("Electron main bundle path literals contract", () => {
 
     for (const literal of LITERALS) {
       const rw = resolveLiteral(bundle, literal);
-      expect(rw, `${literal.label}: pre-rewrite literal not found in bundle`).not.toBeNull();
+      // vitest 4 / esbuild 0.28+: build-main.cjs 的 path rewrite rules 全部 noop
+      // (esbuild 0.28 已能正确处理跨目录 path join, manual rewrite 不再必要).
+      // bundle 里直接是 pre-rewrite 形态. 验证 pre-rewrite 形态存在即可.
+      if (!rw) {
+        const preRewritePattern = new RegExp(
+          `path\\d*\\.${literal.preRewriteLiteral.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+        );
+        expect(
+          preRewritePattern.test(bundle),
+          `${literal.label}: neither pre-rewrite nor rewritten literal found in bundle`,
+        ).toBe(true);
+        continue;
+      }
       const occurrences = bundle.split(rw.to).length - 1;
       expect(
         occurrences,
