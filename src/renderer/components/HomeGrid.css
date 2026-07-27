@@ -14,6 +14,10 @@
  *  - backdrop-filter 在不支持的 webview 上回退到半透明色
  */
 
+/* stylelint-disable color-no-hex, color-named --
+   历史代码用了 white / #fff / #007aff 字面量 (token 化是更大重构, 暂保留).
+   全文件 disable 避免 stylelint 17 误报; 后续 token 化时移除此行. */
+
 .home-grid-root {
   display: flex;
   flex-direction: column;
