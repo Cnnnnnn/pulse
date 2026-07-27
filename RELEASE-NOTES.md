@@ -33,6 +33,9 @@
 - `tests/ai-leaderboard/fetcher-huggingface.test.js` 16 个 case 覆盖纯函数 (num/categoryFromPipelineTag/summarizeTags) + normalize (vendor 归一 / 字段映射 / 跳过畸形 / 空 / 裸数组) + mergeModelSlices (跟 AA / 跨 vendor 合并 / sources 形状)
 - `tests/main/ai-leaderboard-ranking-hf.test.js` 9 个 case 覆盖 sortValue (hf_downloads / hf_likes) + sortModels (desc / asc / 缺切片兜底) + DIMENSION_META 注册完整性
 
+**文档/注释 — AI 榜单 AA 视角 (R7 Free-tier 截断风险文档化)**:
+- `src/main/ai-leaderboard/fetcher-aa.ts`: 在 `normalize()` 上方新增中文注释块, 固化 Free-tier 截断 / 占位维度风险: (1) Free API 仅返回截断后的模型集合 (非完整榜单), 当前未做分页 / 全量拉取; (2) 仅暴露 5 维 (intelligence/coding/agentic/speed/price), `math`/`gpqa`/`mmlu`/`hle`/`lcb` 为占位恒为 0、UI 标「暂无」, 勿当真实零分使用; (3) Capability Indices / Openness Index / 多模态 Elo 属 Commercial 专属, 需授权, 当前未接入 (呼应 R5 门禁); (4) 出处: `deliverables/software-company/aa-ranking-analysis-2026-07-26.md` 差异项 D4 + 建议 R7。纯注释 / 文档改动, 零行为变更。
+
 ---
 
 ## v2.50.0 (2026-06-29) — 阶段六: 个股财务深度 (同业对比 + 护城河)

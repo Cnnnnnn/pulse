@@ -111,6 +111,27 @@ export async function fetch(opts: any = {}): Promise<any> {
 }
 
 /**
+ * ── Free-tier 截断 / 占位维度风险说明 (R7 文档化, 纯注释, 零行为变更) ──
+ * 来源对比报告: deliverables/software-company/aa-ranking-analysis-2026-07-26.md
+ *   - 差异项 D4 (维度覆盖广度)
+ *   - 建议   R7 (记录并监控 "AA Free-tier 字段截断" 已知风险)
+ *
+ * 以下为已核实的 Free-tier 硬限制 (仅文档化, 不改运行逻辑):
+ *  1. 模型集合是"截断"的: AA Free API (/api/v2/language/models/free) 只返回
+ *     头部若干模型, 并非完整榜单。Pulse 当前直接消费该截断集合, 未做分页 / 全量拉取。
+ *  2. 仅暴露 5 维: intelligence / coding / agentic / speed / price。
+ *     math / gpqa / mmlu / hle / lcb 在 Free tier 不返回 → 恒为 0, UI 显示「暂无」。
+ *     它们是"未暴露的占位", 不是真实零分, 切勿当作真实 0 分参与排序 / 对比。
+ *  3. Capability Indices (行业能力) / Openness Index (开放度) / 多模态 Elo (图/视频/语音)
+ *     是 AA Commercial 专属数据, 需 Commercial 授权; Free tier 不暴露, 当前未接入
+ *     (呼应 R5 门禁: 需先确认 Free tier 是否暴露, 否则走 Commercial 密钥 / 独立多模态源)。
+ *  4. 以上为已知风险, 在 RELEASE-NOTES.md (v2.79.5) 同步跟踪。
+ *
+ * ⚠️ 本注释纯为风险固化: 不要据此把占位维度暴露成可选维度、不要改 toAiModel 默认
+ *    5 字段 sources、不要动下列字段映射 / 返回结构或 normalize 逻辑。
+ */
+
+/**
  * 把 AA 原始 payload 归一化为 AiModel[]（仅填 aa 切片）。
  *
  * AA Free tier 实际 schema (2026-07):
