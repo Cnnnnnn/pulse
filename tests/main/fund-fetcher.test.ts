@@ -24,8 +24,10 @@ const SAMPLE_JSONP =
   'jsonpgz({"fundcode":"000001","name":"华夏成长混合","jzrq":"2026-06-11","dwjz":"1.2860","gsz":"1.2959","gszzl":"0.77","gztime":"2026-06-12 13:13"});';
 const SAMPLE_JSONP_NO_SEMI =
   'jsonpgz({"fundcode":"000001","name":"华夏成长混合","jzrq":"2026-06-11","dwjz":"1.2860","gsz":"1.2959","gszzl":"0.77","gztime":"2026-06-12 13:13"})';
+// 新浪 of 接口: 名称, 单位净值(最新), 累计净值, 上日净值, 涨跌幅%, 日期
+// 自洽: 今日 1.2959 涨 0.77%, 上日净值 1.2860 → (1.2959-1.2860)/1.2860 ≈ +0.77%
 const SAMPLE_SINA =
-  'var hq_str_of000001="华夏成长混合,1.2860,1.2860,1.2959,0.77,2026-06-11";';
+  'var hq_str_of000001="华夏成长混合,1.2959,1.2959,1.2860,0.77,2026-06-11";';
 
 function dualSourceHttp(overrides = {}) {
   return new MockHttp({
@@ -197,7 +199,8 @@ describe("fetchFundNavWithAlt", () => {
     const r = await fetchFundNavWithAlt("000001", http);
     expect(r.source).toBe("tiantian");
     expect(r.altAvailable).toBe(true);
-    expect(r.altEstimatedNav).toBe(1.2959);
+    // 新浪无盘中估算净值 → altEstimatedNav 恒 null
+    expect(r.altEstimatedNav).toBeNull();
   });
 
   it("新浪失败 → altAvailable=false", async () => {
@@ -247,6 +250,10 @@ describe("fetchFundNavBatch", () => {
     expect(out.results["000002"]).toBeDefined();
     expect(out.results["000002"].fallbackFrom).toBe("tiantian");
     expect(out.results["000002"].source).toBe("sina");
+    // 新浪兜底: dayChange 由官方涨跌幅反推, 符号必须与 dayChangePct 一致 (修倒挂)
+    expect(out.results["000002"].dayChangePct).toBe(0.77);
+    expect(out.results["000002"].dayChange).toBeCloseTo(0.01, 3); // 1.2959 × 0.77%
+    expect(out.results["000002"].estimatedNav).toBeNull();
     expect(out.results["000003"]).toBeDefined();
     expect(out.errors).toEqual({});
   });

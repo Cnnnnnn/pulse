@@ -99,34 +99,26 @@ export function resolveNavSnapshot(merged: any, source = DEFAULT_NAV_SOURCE) {
   if (!merged.altAvailable) return null;
 
   const nav = numOrZero(merged.altNav);
-  const estimatedNav =
-    merged.altEstimatedNav != null && merged.altEstimatedNav > 0
-      ? numOrZero(merged.altEstimatedNav)
-      : null;
+  if (nav <= 0) return null;
 
-  if (nav <= 0 && !(estimatedNav != null && estimatedNav > 0)) return null;
-
-  let dayChange = 0;
-  if (estimatedNav != null && estimatedNav > 0 && nav > 0) {
-    dayChange = +(estimatedNav - nav).toFixed(4);
-  } else if (nav > 0 && Number.isFinite(merged.altDayChangePct)) {
-    dayChange = +(nav * (merged.altDayChangePct / 100)).toFixed(4);
-  }
+  // 新浪 of 接口无「盘中估算净值」字段 (实测 parts[3] 是上日净值, 非估算).
+  // dayChange 由官方涨跌幅 altDayChangePct 反推, 符号与 dayChangePct 一致, 避免
+  // estimatedNav - nav 在收盘后 (nav 已是今日确认值, 估算缺失) 出现符号倒挂.
+  const dayChange = Number.isFinite(merged.altDayChangePct)
+    ? +(nav * (merged.altDayChangePct / 100)).toFixed(4)
+    : 0;
 
   return {
     code: merged.code,
     name: merged.name,
-    nav: nav > 0 ? nav : estimatedNav,
-    estimatedNav,
+    nav,
+    estimatedNav: null,
     dayChange,
     dayChangePct: merged.altDayChangePct,
     navDate: merged.altNavDate,
     estimateTime: null,
-    // TODO(已知问题): 新浪 of 接口只返回「净值日期」(altNavDate, 确认值交易日),
-    // 无类似天天源 gztime 的「估值时间戳」. 这里 estimated 仅按"有估值净值"判定,
-    // 会在非交易时段把旧估值误判成今日盘中 → 下游 todayProfit/dailyReturnPct 误差.
-    // 完全修复需换带时间戳的数据源. 见 AGENTS 讨论记录 (2026-07-31).
-    estimated: estimatedNav != null && estimatedNav > 0,
+    // 新浪返回的涨跌幅即今日表现 (无估值时间戳可判), 有值即视为当日数据.
+    estimated: Number.isFinite(merged.altDayChangePct),
     source: "sina",
   };
 }

@@ -20,7 +20,7 @@ const { FundScheduler } = requireMain("funds/fund-scheduler");
 
 const SAMPLE =
   'jsonpgz({"fundcode":"000001","name":"x","jzrq":"2026-06-11","dwjz":"1.0","gsz":"1.05","gszzl":"5","gztime":"2026-06-12 13:00"});';
-const SAMPLE_SINA = 'var hq_str_of000001="x,1.0,1.0,1.05,5,2026-06-11";';
+const SAMPLE_SINA = 'var hq_str_of000001="x,1.05,1.05,1.0,5,2026-06-11";';
 
 function dualSourceHttp(overrides = {}) {
   return new MockHttp({

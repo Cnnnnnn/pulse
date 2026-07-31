@@ -24,16 +24,17 @@ describe("attachAltNav", () => {
   const alt = {
     code: "021528",
     source: "sina",
-    nav: 4.672,
-    estimatedNav: 4.682,
+    nav: 4.672, // 新浪今日单位净值
+    estimatedNav: null, // 新浪 of 接口无盘中估算净值
     dayChangePct: -0.21,
   };
 
   it("合并新浪数据并计算偏差", () => {
     const m = attachAltNav(primary, alt);
     expect(m.altAvailable).toBe(true);
-    expect(m.altEstimatedNav).toBe(4.682);
-    expect(m.estimateDeviationPct).toBeCloseTo(1.0493, 2);
+    // 新浪无估算净值 → altEstimatedNav=null, 偏差用新浪 nav 兜底 (effectiveEstimate)
+    expect(m.altEstimatedNav).toBeNull();
+    expect(m.estimateDeviationPct).toBeCloseTo(1.2617, 2);
     expect(m.estimateDeviationHigh).toBe(true);
   });
 
@@ -55,7 +56,7 @@ describe("resolveNavSnapshot", () => {
     estimated: true,
     altAvailable: true,
     altNav: 4.672,
-    altEstimatedNav: 4.682,
+    altEstimatedNav: null, // 新浪无盘中估算净值
     altDayChangePct: -0.21,
   };
 
@@ -65,11 +66,15 @@ describe("resolveNavSnapshot", () => {
     expect(s.estimatedNav).toBe(4.7317);
   });
 
-  it("新浪 → 备源字段", () => {
+  it("新浪 → 备源字段 (dayChange 由官方涨跌幅反推, 不反转)", () => {
     const s = resolveNavSnapshot(merged, "sina");
     expect(s.source).toBe("sina");
-    expect(s.estimatedNav).toBe(4.682);
-    expect(s.dayChange).toBeCloseTo(0.01, 3);
+    expect(s.estimatedNav).toBeNull(); // 新浪无估算净值
+    expect(s.nav).toBe(4.672);
+    // 官方涨跌幅 -0.21% → dayChange 必须为负 (今日是跌的)
+    // 旧逻辑 estimatedNav-nav 会把上日净值当估算 → +0.01 错误反转
+    expect(s.dayChange).toBeCloseTo(-0.0098, 3);
+    expect(s.dayChangePct).toBe(-0.21);
   });
 
   it("新浪不可用 → null", () => {
@@ -78,8 +83,8 @@ describe("resolveNavSnapshot", () => {
     ).toBeNull();
   });
 
-  it("pickEffectiveNavNumber 优先估值", () => {
-    expect(pickEffectiveNavNumber(merged, "sina")).toBe(4.682);
+  it("pickEffectiveNavNumber 新浪无估算 → 用 nav", () => {
+    expect(pickEffectiveNavNumber(merged, "sina")).toBe(4.672);
   });
 
   it("normalizeNavSource 非法值回退", () => {

@@ -1,9 +1,11 @@
 /**
  * src/funds/fund-fetcher-sina.ts
  *
- * 新浪财经基金估值 (第二数据源, 与天天基金交叉比对).
+ * 新浪财经基金净值 (第二数据源, 与天天基金交叉比对).
  *   URL: http://hq.sinajs.cn/list=of{code}
- *   格式: var hq_str_of000001="名称,单位净值,累计净值,估算净值,估算涨跌%,净值日期";
+ *   格式: var hq_str_of000001="名称,单位净值,累计净值,上日净值,涨跌幅%,净值日期";
+ *   (2026-07-31 实测: parts[3] 是"上日净值"不是"估算净值"; parts[4] 是官方涨跌幅,
+ *    新浪 of 接口没有盘中估算净值字段.)
  */
 
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
@@ -12,7 +14,7 @@ import { SINA_REFERER } from "../utils/http-constants";
 
 /**
  * @param {string} body
- * @returns {{ name: string, nav: number, accNav: number, estimatedNav: number | null, dayChangePct: number, navDate: string } | null}
+ * @returns {{ name: string, nav: number, accNav: number, estimatedNav: null, dayChangePct: number, navDate: string } | null}
  */
 export function parseSinaFundLine(body: any) {
   if (typeof body !== "string" || !body.length) return null;
@@ -23,7 +25,6 @@ export function parseSinaFundLine(body: any) {
 
   const nav = parseFloat(parts[1]);
   const accNav = parseFloat(parts[2]);
-  const est = parseFloat(parts[3]);
   const dayChangePct = parseFloat(parts[4]);
   const navDate = String(parts[5] || "").trim();
 
@@ -33,7 +34,10 @@ export function parseSinaFundLine(body: any) {
     name: parts[0] || "",
     nav,
     accNav: Number.isFinite(accNav) ? accNav : nav,
-    estimatedNav: Number.isFinite(est) && est > 0 ? est : null,
+    // parts[3] 是"上日净值", 不是盘中估算净值. 新浪 of 接口无估算净值字段,
+    // estimatedNav 恒为 null. 涨跌一律以官方 parts[4] 为准, 避免
+    // estimatedNav - nav 在收盘后 (nav 已是今日确认值) 符号倒挂.
+    estimatedNav: null,
     dayChangePct: Number.isFinite(dayChangePct) ? dayChangePct : 0,
     navDate,
   };

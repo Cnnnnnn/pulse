@@ -236,13 +236,17 @@ export async function fetchFundNavWithAlt(code: any, httpClient: any, opts: any 
         name: alt.name,
         source: "sina",
         nav: alt.nav,
-        estimatedNav: alt.estimatedNav,
-        dayChange: 0,
+        estimatedNav: alt.estimatedNav, // null — 新浪 of 接口无盘中估算净值
+        // dayChange 由官方涨跌幅反推, 符号与 dayChangePct 一致 (修符号倒挂)
+        dayChange:
+          alt.nav > 0 && Number.isFinite(alt.dayChangePct)
+            ? +(alt.nav * (alt.dayChangePct / 100)).toFixed(4)
+            : 0,
         dayChangePct: alt.dayChangePct,
         navDate: alt.navDate,
         estimateTime: null,
-        // TODO(已知问题): 同 fund-nav-merge.ts 新浪源分支 — 缺估值时间戳, estimated 不可靠.
-        estimated: !!(alt.estimatedNav != null && alt.estimatedNav > 0),
+        // 新浪返回的涨跌幅即今日表现 (无估值时间戳可判), 有值即视为当日数据.
+        estimated: Number.isFinite(alt.dayChangePct),
         fallbackFrom: "tiantian",
         // alt 维度都置 false, 因为这里 alt 已经升格成主快照
         primarySource: "sina",
