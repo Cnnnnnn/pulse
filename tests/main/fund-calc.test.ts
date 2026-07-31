@@ -146,6 +146,57 @@ describe('calcFundMetrics', () => {
   });
 });
 
+// ── 字段补全: nav / dailyReturnPct / todayReturnPct ──
+// 修复: UI (FundList "单位净值"/"日涨跌" 列, FundDetail 数据卡) 消费这些字段,
+// 但 calcFundMetrics 此前从未产出 → 显示恒空. 现补齐.
+describe('calcFundMetrics · 字段补全 (nav / dailyReturnPct / todayReturnPct)', () => {
+  it('正常分支: nav=确认净值, dailyReturnPct/todayReturnPct 按 gate (estimated=true)', () => {
+    const m = calcFundMetrics(
+      { shares: 1000, costNav: 1.0 },
+      { nav: 1.2, estimatedNav: 1.21, dayChange: 0.01, dayChangePct: 5, estimated: true },
+    );
+    expect(m.nav).toBe(1.2);                 // 确认单位净值 (非交易时段也能显示)
+    expect(m.dailyReturnPct).toBe(5);        // = navSnap.dayChangePct (今日盘中)
+    expect(m.todayReturnPct).toBe(5);        // 与 dailyReturnPct 等价 (风险计算用)
+  });
+
+  it('gate: estimated=false (非交易时段旧数据) → dailyReturnPct/todayReturnPct 归零, nav 仍显示', () => {
+    const m = calcFundMetrics(
+      { shares: 1000, costNav: 1.0 },
+      { nav: 1.2, dayChangePct: -3.14, estimated: false },
+    );
+    expect(m.nav).toBe(1.2);                 // 净值不受 gate
+    expect(m.dailyReturnPct).toBe(0);        // 旧 gszzl 不当今日
+    expect(m.todayReturnPct).toBe(0);
+  });
+
+  it('navSnap 缺失分支 → nav=0, dailyReturnPct=0, todayReturnPct=0', () => {
+    const m = calcFundMetrics({ shares: 1000, costNav: 1.0 }, null);
+    expect(m.nav).toBe(0);
+    expect(m.dailyReturnPct).toBe(0);
+    expect(m.todayReturnPct).toBe(0);
+  });
+
+  it('净值异常分支 (effectiveNav<=0) → nav 保留 confirmedNav, dailyReturnPct/todayReturnPct=0', () => {
+    const m = calcFundMetrics(
+      { shares: 1000, costNav: 1.0 },
+      { nav: 0, dayChangePct: 9, estimated: true },
+    );
+    expect(m.nav).toBe(0);                   // confirmedNav 透传
+    expect(m.dailyReturnPct).toBe(0);        // 异常分支不参与
+    expect(m.todayReturnPct).toBe(0);
+  });
+
+  it('字符串数字容错: dayChangePct 字符串 → number', () => {
+    const m = calcFundMetrics(
+      { shares: 1000, costNav: 1.0 },
+      { nav: '1.2', dayChangePct: '3.5', estimated: true },
+    );
+    expect(m.dailyReturnPct).toBe(3.5);
+    expect(m.nav).toBeCloseTo(1.2, 4);
+  });
+});
+
 describe('calcPortfolioTotal', () => {
   it('空组合 → 全 0', () => {
     const t = calcPortfolioTotal([]);

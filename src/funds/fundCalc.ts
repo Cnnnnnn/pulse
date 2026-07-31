@@ -38,6 +38,7 @@ export function calcFundMetrics(holding: any, navSnap: any) {
   if (!navSnap) {
     return Object.assign(
       baseMetricsZeroMarket(costValue),
+      { nav: 0, dailyReturnPct: 0, todayReturnPct: 0 },
       derivedMetrics(0, costValue, holding),
     );
   }
@@ -53,6 +54,7 @@ export function calcFundMetrics(holding: any, navSnap: any) {
   if (effectiveNav <= 0) {
     return Object.assign(
       baseMetricsZeroMarket(costValue),
+      { nav: confirmedNav, dailyReturnPct: 0, todayReturnPct: 0 },
       derivedMetrics(0, costValue, holding),
     );
   }
@@ -68,6 +70,9 @@ export function calcFundMetrics(holding: any, navSnap: any) {
   const todayProfit = isLiveEstimate
     ? round2(shares * numOrZero(navSnap.dayChange))
     : 0;
+  // 日涨跌幅% 与今日盈亏同口径 gate: 非交易时段旧 gszzl 不当"今日"显示, 置 0.
+  // todayReturnPct (FundDetail 风险等级用) 与 dailyReturnPct 语义等价, 复用同值.
+  const dailyReturnPct = isLiveEstimate ? numOrZero(navSnap.dayChangePct) : 0;
 
   return Object.assign(
     {
@@ -77,6 +82,9 @@ export function calcFundMetrics(holding: any, navSnap: any) {
       profitPct,
       todayProfit,
       usingEstimate,
+      nav: confirmedNav,                 // 单位净值 (确认值), 非交易时段也能显示
+      dailyReturnPct,                    // 日涨跌幅% (gate: 仅今日盘中)
+      todayReturnPct: dailyReturnPct,    // 今日涨跌幅% (风险计算用, 与 dailyReturnPct 等价)
     },
     derivedMetrics(marketValue, costValue, holding),
   );

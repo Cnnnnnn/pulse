@@ -122,6 +122,10 @@ export function resolveNavSnapshot(merged: any, source = DEFAULT_NAV_SOURCE) {
     dayChangePct: merged.altDayChangePct,
     navDate: merged.altNavDate,
     estimateTime: null,
+    // TODO(已知问题): 新浪 of 接口只返回「净值日期」(altNavDate, 确认值交易日),
+    // 无类似天天源 gztime 的「估值时间戳」. 这里 estimated 仅按"有估值净值"判定,
+    // 会在非交易时段把旧估值误判成今日盘中 → 下游 todayProfit/dailyReturnPct 误差.
+    // 完全修复需换带时间戳的数据源. 见 AGENTS 讨论记录 (2026-07-31).
     estimated: estimatedNav != null && estimatedNav > 0,
     source: "sina",
   };

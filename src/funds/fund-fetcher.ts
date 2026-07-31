@@ -241,6 +241,7 @@ export async function fetchFundNavWithAlt(code: any, httpClient: any, opts: any 
         dayChangePct: alt.dayChangePct,
         navDate: alt.navDate,
         estimateTime: null,
+        // TODO(已知问题): 同 fund-nav-merge.ts 新浪源分支 — 缺估值时间戳, estimated 不可靠.
         estimated: !!(alt.estimatedNav != null && alt.estimatedNav > 0),
         fallbackFrom: "tiantian",
         // alt 维度都置 false, 因为这里 alt 已经升格成主快照
