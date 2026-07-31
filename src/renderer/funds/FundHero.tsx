@@ -29,6 +29,7 @@ import { IconBell, IconCoin, IconRefresh } from '../components/icons.tsx';
 import { FundAllocationDonut } from './FundAllocationDonut.tsx';
 import { FundPortfolioTrend } from './FundPortfolioTrend.tsx';
 import { fmtCurrency, fmtPct } from '../../funds/format.ts';
+import { getTradingStatus } from '../../funds/trading-hours.ts';
 
 function fmtAgo(ts) {
   const s = Math.floor((Date.now() - ts) / 1000);
@@ -55,6 +56,9 @@ export function FundHero() {
   const totalMarketValue = Number(m.totalMarketValue) || 0;
   const todayProfit = Number(m.todayProfit) || 0;
   const totalProfit = Number(m.totalProfit) || 0;
+  // 非交易时段 (盘前/收盘后/周末/节假日) 今日盈亏已被数据层 gate 成 0;
+  // 这里再显式标"待开盘", 让用户明确"0"的含义是"未开盘"而非"今日持平".
+  const marketClosed = !getTradingStatus(new Date()).isTrading;
   // 今日预估百分比 (参照 FundHeader: 今日盈亏 / 总市值)
   const todayProfitPct =
     totalMarketValue > 0 ? (todayProfit / totalMarketValue) * 100 : 0;
@@ -128,11 +132,13 @@ export function FundHero() {
         </div>
         <div class="fund-hero-kpi-tile">
           <span class="fund-hero-kpi-label">今日预估</span>
-          <span class={`fund-hero-kpi-value ${signClass(todayProfit)}`}>
-            <span class="fund-hero-kpi-arrow" aria-hidden="true">{arrow(todayProfit)}</span>
-            {fmtCurrency(todayProfit)}
+          <span class={`fund-hero-kpi-value ${marketClosed ? '' : signClass(todayProfit)}`}>
+            <span class="fund-hero-kpi-arrow" aria-hidden="true">{marketClosed ? '·' : arrow(todayProfit)}</span>
+            {marketClosed ? '待开盘' : fmtCurrency(todayProfit)}
           </span>
-          <span class={`fund-hero-kpi-sub ${signClass(todayProfitPct)}`}>{fmtPct(todayProfitPct)}</span>
+          <span class={`fund-hero-kpi-sub ${marketClosed ? '' : signClass(todayProfitPct)}`}>
+            {marketClosed ? '非交易时段' : fmtPct(todayProfitPct)}
+          </span>
         </div>
         <div class="fund-hero-kpi-tile">
           <span class="fund-hero-kpi-label">总盈亏</span>

@@ -25,25 +25,25 @@ describe('calcFundMetrics', () => {
   it('基本盈利场景: 份额 × 当前净值 = 市值, 减成本 = 盈亏', () => {
     const m = calcFundMetrics(
       { shares: 10000, costNav: 1.0 },
-      { nav: 1.2, estimatedNav: 1.21, dayChange: 0.01 },
+      { nav: 1.2, estimatedNav: 1.21, dayChange: 0.01, estimated: true },
     );
     expect(m.marketValue).toBe(12100);    // 用 estimatedNav
     expect(m.costValue).toBe(10000);
     expect(m.profit).toBe(2100);
     expect(m.profitPct).toBe(21);
-    expect(m.todayProfit).toBe(100);      // 10000 × 0.01
+    expect(m.todayProfit).toBe(100);      // 10000 × 0.01 (estimated=true: 今日盘中)
     expect(m.usingEstimate).toBe(true);
   });
 
   it('亏损场景: profit < 0', () => {
     const m = calcFundMetrics(
       { shares: 5000, costNav: 2.0 },
-      { nav: 1.5, dayChange: -0.02 },
+      { nav: 1.5, dayChange: -0.02, estimated: true },
     );
     expect(m.marketValue).toBe(7500);
     expect(m.profit).toBe(-2500);
     expect(m.profitPct).toBe(-25);
-    expect(m.todayProfit).toBe(-100);
+    expect(m.todayProfit).toBe(-100);     // 5000 × -0.02 (estimated=true: 今日盘中)
     expect(m.usingEstimate).toBe(false);
   });
 
@@ -109,12 +109,40 @@ describe('calcFundMetrics', () => {
   it('持有 0 份 → 全 0, 不报错', () => {
     const m = calcFundMetrics(
       { shares: 0, costNav: 1.5 },
-      { nav: 2.0, dayChange: 0.05 },
+      { nav: 2.0, dayChange: 0.05, estimated: true },
     );
     expect(m.marketValue).toBe(0);
     expect(m.costValue).toBe(0);
     expect(m.profit).toBe(0);
     expect(m.todayProfit).toBe(0);
+  });
+
+  // ── 今日盈亏 estimated gate (修复: 非交易时段旧估值差不当"今日"显示) ──
+  it('今日盈亏 gate: estimated=true (今日盘中) → 正常累计 dayChange', () => {
+    const m = calcFundMetrics(
+      { shares: 100, costNav: 1.0 },
+      { nav: 1.0, dayChange: 0.05, estimated: true },
+    );
+    expect(m.todayProfit).toBe(5);   // 100 × 0.05
+  });
+
+  it('今日盈亏 gate: estimated=false (上一交易日旧数据) → todayProfit 归零, 防误导', () => {
+    const m = calcFundMetrics(
+      { shares: 100, costNav: 1.0 },
+      { nav: 1.0, dayChange: -0.03, estimated: false },
+    );
+    expect(m.todayProfit).toBe(0);   // 关键: 旧跌幅不当今日
+    // 市值/总盈亏口径不受影响 (基于 effectiveNav, 与 estimated 无关)
+    expect(m.marketValue).toBe(100);
+    expect(m.profit).toBe(0);
+  });
+
+  it('今日盈亏 gate: estimated 缺失 → 防御性归零 (不假定是今日)', () => {
+    const m = calcFundMetrics(
+      { shares: 100, costNav: 1.0 },
+      { nav: 1.0, dayChange: 0.05 },
+    );
+    expect(m.todayProfit).toBe(0);   // undefined !== true
   });
 });
 
@@ -132,16 +160,16 @@ describe('calcPortfolioTotal', () => {
 
   it('3 只基金混合: 聚合市值/盈亏/今日预估', () => {
     const rows = [
-      { holding: { shares: 10000, costNav: 1.0 }, navSnap: { nav: 1.2, estimatedNav: 1.21, dayChange: 0.01 } },
-      { holding: { shares: 5000, costNav: 2.0 },  navSnap: { nav: 1.5, dayChange: -0.02 } },
-      { holding: { shares: 1000, costNav: 0 },    navSnap: { nav: 1.0, dayChange: 0.005 } },
+      { holding: { shares: 10000, costNav: 1.0 }, navSnap: { nav: 1.2, estimatedNav: 1.21, dayChange: 0.01, estimated: true } },
+      { holding: { shares: 5000, costNav: 2.0 },  navSnap: { nav: 1.5, dayChange: -0.02, estimated: true } },
+      { holding: { shares: 1000, costNav: 0 },    navSnap: { nav: 1.0, dayChange: 0.005, estimated: true } },
     ];
     const t = calcPortfolioTotal(rows);
     expect(t.totalMarketValue).toBe(12100 + 7500 + 1000);   // 20600
     expect(t.totalCost).toBe(10000 + 10000 + 0);             // 20000
     expect(t.totalProfit).toBe(2100 - 2500 + 1000);          // 600
     expect(t.totalProfitPct).toBe(3);                        // 600/20000=3%
-    expect(t.todayProfit).toBe(100 - 100 + 5);               // 5
+    expect(t.todayProfit).toBe(100 - 100 + 5);               // 5 (均为 estimated=true: 今日盘中)
     expect(t.count).toBe(3);
     expect(t.countWithNav).toBe(3);
   });
@@ -163,6 +191,17 @@ describe('calcPortfolioTotal', () => {
     ]);
     expect(t.totalProfit).toBe(150);
     expect(t.totalProfitPct).toBe(0);
+  });
+
+  it('今日盈亏 gate: 混合 estimated true/false → todayProfit 只累计实时 (今日盘中) 部分', () => {
+    const t = calcPortfolioTotal([
+      { holding: { shares: 10000, costNav: 1.0 }, navSnap: { nav: 1.2, dayChange: 0.01, estimated: true } },   // +100
+      { holding: { shares: 5000, costNav: 2.0 },  navSnap: { nav: 1.5, dayChange: -0.02, estimated: false } }, // 旧数据, 不计
+      { holding: { shares: 1000, costNav: 1.0 },  navSnap: { nav: 1.0, dayChange: 0.005 } },                   // estimated 缺失, 不计
+    ]);
+    expect(t.todayProfit).toBe(100);  // 仅第一只 (estimated=true)
+    // 市值/总盈亏口径不受 gate 影响
+    expect(t.totalMarketValue).toBe(12000 + 7500 + 1000);
   });
 });
 

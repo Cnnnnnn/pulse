@@ -60,7 +60,14 @@ export function calcFundMetrics(holding: any, navSnap: any) {
   const marketValue = round2(shares * effectiveNav);
   const profit = round2(marketValue - costValue);
   const profitPct = costValue > 0 ? round4((profit / costValue) * 100) : 0;
-  const todayProfit = round2(shares * numOrZero(navSnap.dayChange));
+  // 今日盈亏只在「今日盘中实时估值」(navSnap.estimated === true, 即 gztime=今天) 才计.
+  // 非交易时段数据源仍会返回上一交易日的 gsz/gszzl, 若不过滤会被当成"今日"显示, 出现
+  // "实际今天是涨的却显示跌(旧跌幅)"的误导. 收盘后/盘前/周末/节假日 → estimated=false → 今日盈亏按 0.
+  // (注: marketValue/profit 口径基于 effectiveNav, 与 estimated 无关, 总盈亏不受影响.)
+  const isLiveEstimate = navSnap.estimated === true;
+  const todayProfit = isLiveEstimate
+    ? round2(shares * numOrZero(navSnap.dayChange))
+    : 0;
 
   return Object.assign(
     {
