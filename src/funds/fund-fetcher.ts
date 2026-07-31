@@ -245,8 +245,9 @@ export async function fetchFundNavWithAlt(code: any, httpClient: any, opts: any 
         dayChangePct: alt.dayChangePct,
         navDate: alt.navDate,
         estimateTime: null,
-        // 新浪返回的涨跌幅即今日表现 (无估值时间戳可判), 有值即视为当日数据.
-        estimated: Number.isFinite(alt.dayChangePct),
+        // 新浪返回的涨跌幅即最近交易日表现. 是否"今日"由 navDate 判定
+        // (周末/节假日 navDate 为上一交易日 → 非今日, 不当作今日盈亏显示).
+        estimated: isTodayLocal(alt.navDate),
         fallbackFrom: "tiantian",
         // alt 维度都置 false, 因为这里 alt 已经升格成主快照
         primarySource: "sina",

@@ -144,6 +144,36 @@ describe('calcFundMetrics', () => {
     );
     expect(m.todayProfit).toBe(0);   // undefined !== true
   });
+
+  // ── gateToday=false (历史快照口径): 非交易时段也记录最近交易日盈亏 ──
+  it('gateToday=false: estimated=false 但 dayChange 有效 → 记录日盈亏', () => {
+    const m = calcFundMetrics(
+      { shares: 100, costNav: 1.0 },
+      { nav: 1.0, dayChange: 0.05, dayChangePct: 5, estimated: false },
+      { gateToday: false },
+    );
+    expect(m.todayProfit).toBe(5);        // 100 × 0.05
+    expect(m.dailyReturnPct).toBe(5);     // 官方涨跌幅
+  });
+
+  it('gateToday=false: dayChange 缺失但 dayChangePct 有效 → 净值×涨跌幅反推', () => {
+    const m = calcFundMetrics(
+      { shares: 100, costNav: 1.0 },
+      { nav: 2.0, dayChange: 0, dayChangePct: 3.24, estimated: false },
+      { gateToday: false },
+    );
+    expect(m.todayProfit).toBeCloseTo(6.48, 2);  // 100 × 2.0 × 3.24%
+    expect(m.dailyReturnPct).toBe(3.24);
+  });
+
+  it('gateToday 默认 true: UI 实时口径不变 (estimated=false → 0)', () => {
+    const m = calcFundMetrics(
+      { shares: 100, costNav: 1.0 },
+      { nav: 1.0, dayChange: 0.05, dayChangePct: 5, estimated: false },
+    );
+    expect(m.todayProfit).toBe(0);
+    expect(m.dailyReturnPct).toBe(0);
+  });
 });
 
 // ── 字段补全: nav / dailyReturnPct / todayReturnPct ──
@@ -253,6 +283,15 @@ describe('calcPortfolioTotal', () => {
     expect(t.todayProfit).toBe(100);  // 仅第一只 (estimated=true)
     // 市值/总盈亏口径不受 gate 影响
     expect(t.totalMarketValue).toBe(12000 + 7500 + 1000);
+  });
+
+  it('calcPortfolioTotal 透传 gateToday=false → 非交易时段也累计日盈亏 (历史快照口径)', () => {
+    const t = calcPortfolioTotal([
+      { holding: { shares: 10000, costNav: 1.0 }, navSnap: { nav: 1.2, dayChange: 0.01, estimated: true } },    // +100
+      { holding: { shares: 5000, costNav: 2.0 },  navSnap: { nav: 1.5, dayChange: -0.02, estimated: false } },  // -100 (最近交易日盈亏)
+      { holding: { shares: 1000, costNav: 1.0 },  navSnap: { nav: 1.0, dayChange: 0.005, estimated: false } }, // +5
+    ], { gateToday: false });
+    expect(t.todayProfit).toBe(5);  // 100 - 100 + 5
   });
 });
 

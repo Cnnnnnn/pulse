@@ -46,6 +46,11 @@ describe("attachAltNav", () => {
 });
 
 describe("resolveNavSnapshot", () => {
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
   const merged = {
     code: "021528",
     name: "x",
@@ -58,6 +63,7 @@ describe("resolveNavSnapshot", () => {
     altNav: 4.672,
     altEstimatedNav: null, // 新浪无盘中估算净值
     altDayChangePct: -0.21,
+    altNavDate: todayStr,
   };
 
   it("天天 → 主源字段", () => {
@@ -75,6 +81,22 @@ describe("resolveNavSnapshot", () => {
     // 旧逻辑 estimatedNav-nav 会把上日净值当估算 → +0.01 错误反转
     expect(s.dayChange).toBeCloseTo(-0.0098, 3);
     expect(s.dayChangePct).toBe(-0.21);
+  });
+
+  it("新浪 estimated: altNavDate=今天 → true (当日数据)", () => {
+    const s = resolveNavSnapshot(
+      { ...merged, altNavDate: todayStr },
+      "sina",
+    );
+    expect(s.estimated).toBe(true);
+  });
+
+  it("新浪 estimated: altNavDate=昨天 → false (周末/节假日旧数据不当今日)", () => {
+    const s = resolveNavSnapshot(
+      { ...merged, altNavDate: "2020-01-01" },
+      "sina",
+    );
+    expect(s.estimated).toBe(false);
   });
 
   it("新浪不可用 → null", () => {

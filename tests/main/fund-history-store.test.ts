@@ -37,6 +37,7 @@ describe("recordFromNavMap", () => {
         estimatedNav: 1.05,
         dayChange: 0.05,
         dayChangePct: 5,
+        navDate: "2026-06-12",
         // estimated=true 代表"今日盘中"数据 (gztime=今天).
         // calcFundMetrics 的 todayProfit 只认 estimated=true 的 dayChange,
         // 历史快照落盘与实时展示同口径.
@@ -49,6 +50,7 @@ describe("recordFromNavMap", () => {
       tmpPath,
     );
     expect(r.ok).toBe(true);
+    // 快照日期 = navMap 数据交易日 (navDate), 非记录时刻日期
     expect(r.entry.date).toBe("2026-06-12");
     expect(r.entry.todayProfit).toBe(50);
 
@@ -59,6 +61,73 @@ describe("recordFromNavMap", () => {
     const snaps = fundHistoryStore.loadSnapshots(tmpPath);
     expect(snaps).toHaveLength(1);
     expect(snaps[0].todayProfit).toBe(50);
+  });
+
+  it("快照日期用 navMap 最新 navDate (非记录时刻), 周末拉取不产生重复 0 值记录", () => {
+    fundStore.add(
+      { code: "000001", name: "测试", shares: 100, costNav: 1.0 },
+      tmpPath,
+    );
+    const navMap = {
+      "000001": {
+        code: "000001",
+        name: "测试",
+        nav: 1.05,
+        dayChange: 0.05,
+        dayChangePct: 5,
+        navDate: "2026-07-31", // 最近交易日 (周六记录时数据是周五的)
+        estimated: false,      // 非今日数据
+      },
+    };
+    const r = fundHistoryStore.recordFromNavMap(
+      navMap,
+      new Date("2026-08-01T10:00:00+08:00"), // 周六
+      tmpPath,
+    );
+    expect(r.ok).toBe(true);
+    expect(r.entry.date).toBe("2026-07-31"); // 不是 2026-08-01
+    // gateToday=false (历史快照口径): 非交易时段也按最近交易日涨跌记录盈亏
+    expect(r.entry.todayProfit).toBe(5);      // 100 × 0.05
+  });
+
+  it("navMap 无 navDate → 回退记录时刻日期", () => {
+    fundStore.add(
+      { code: "000001", name: "测试", shares: 100, costNav: 1.0 },
+      tmpPath,
+    );
+    const r = fundHistoryStore.recordFromNavMap(
+      {
+        "000001": {
+          code: "000001",
+          name: "测试",
+          nav: 1.0,
+          dayChange: 0.01,
+          estimated: true,
+        },
+      },
+      new Date("2026-06-12T15:00:00+08:00"),
+      tmpPath,
+    );
+    expect(r.ok).toBe(true);
+    expect(r.entry.date).toBe("2026-06-12");
+  });
+});
+
+describe("pickTradeDate", () => {
+  it("取最新有效 navDate", () => {
+    expect(
+      fundHistoryStore.pickTradeDate({
+        a: { navDate: "2026-07-30" },
+        b: { navDate: "2026-07-31" },
+      }),
+    ).toBe("2026-07-31");
+  });
+  it("忽略无效/缺失 navDate", () => {
+    expect(
+      fundHistoryStore.pickTradeDate({ a: { navDate: "" }, b: {} }),
+    ).toBeNull();
+    expect(fundHistoryStore.pickTradeDate(null)).toBeNull();
+    expect(fundHistoryStore.pickTradeDate({})).toBeNull();
   });
 });
 

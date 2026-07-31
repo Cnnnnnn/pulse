@@ -20,6 +20,9 @@
  * 计算单只基金的派生字段.
  * @param {{ shares: number, costNav: number }} holding
  * @param {{ nav: number, estimatedNav?: number, dayChange: number } | null | undefined} navSnap
+ * @param {{ gateToday?: boolean }} [opts]
+ *   gateToday: true (默认) = UI 实时口径, 今日盈亏只认"今日盘中估值"(estimated=true);
+ *              false = 历史快照口径, 非交易时段也按数据源提供的涨跌记录最近交易日盈亏.
  * @returns {{
  *   marketValue: number,
  *   costValue: number,
@@ -29,7 +32,8 @@
  *   usingEstimate: boolean
  * }}
  */
-export function calcFundMetrics(holding: any, navSnap: any) {
+export function calcFundMetrics(holding: any, navSnap: any, opts: any = {}) {
+  const gateToday = opts.gateToday !== false;
   const shares = numOrZero(holding && holding.shares);
   const costNav = numOrZero(holding && holding.costNav);
   const costValue = round2(shares * costNav);
@@ -62,17 +66,23 @@ export function calcFundMetrics(holding: any, navSnap: any) {
   const marketValue = round2(shares * effectiveNav);
   const profit = round2(marketValue - costValue);
   const profitPct = costValue > 0 ? round4((profit / costValue) * 100) : 0;
-  // 今日盈亏只在「今日盘中实时估值」(navSnap.estimated === true, 即 gztime=今天) 才计.
-  // 非交易时段数据源仍会返回上一交易日的 gsz/gszzl, 若不过滤会被当成"今日"显示, 出现
-  // "实际今天是涨的却显示跌(旧跌幅)"的误导. 收盘后/盘前/周末/节假日 → estimated=false → 今日盈亏按 0.
-  // (注: marketValue/profit 口径基于 effectiveNav, 与 estimated 无关, 总盈亏不受影响.)
+  // 今日盈亏口径分两种:
+  //   - UI 实时 (gateToday=true): 只在「今日盘中实时估值」(navSnap.estimated === true,
+  //     即 gztime=今天) 才计. 非交易时段数据源仍会返回上一交易日的 gsz/gszzl, 若不过滤
+  //     会被当成"今日"显示, 出现"实际今天是涨的却显示跌(旧跌幅)"的误导.
+  //   - 历史快照 (gateToday=false): 非交易时段也按数据源涨跌记录"最近交易日盈亏",
+  //     让每日盈亏记录有值; dayChange 缺失但 dayChangePct 有效时用 净值×涨跌幅 反推.
   const isLiveEstimate = navSnap.estimated === true;
-  const todayProfit = isLiveEstimate
-    ? round2(shares * numOrZero(navSnap.dayChange))
-    : 0;
+  const countToday = isLiveEstimate || !gateToday;
+  let change = countToday ? numOrZero(navSnap.dayChange) : 0;
+  if (countToday && change === 0 && confirmedNav > 0) {
+    const pct = numOrZero(navSnap.dayChangePct);
+    if (pct !== 0) change = +(confirmedNav * (pct / 100)).toFixed(4);
+  }
+  const todayProfit = countToday ? round2(shares * change) : 0;
   // 日涨跌幅% 与今日盈亏同口径 gate: 非交易时段旧 gszzl 不当"今日"显示, 置 0.
   // todayReturnPct (FundDetail 风险等级用) 与 dailyReturnPct 语义等价, 复用同值.
-  const dailyReturnPct = isLiveEstimate ? numOrZero(navSnap.dayChangePct) : 0;
+  const dailyReturnPct = countToday ? numOrZero(navSnap.dayChangePct) : 0;
 
   return Object.assign(
     {
@@ -144,7 +154,7 @@ function derivedMetrics(marketValue: any, costValue: any, holding: any) {
  *   countWithNav: number
  * }}
  */
-export function calcPortfolioTotal(rows: any) {
+export function calcPortfolioTotal(rows: any, opts: any = {}) {
   let totalMarketValue = 0;
   let totalCost = 0;
   let totalProfit = 0;
@@ -152,7 +162,7 @@ export function calcPortfolioTotal(rows: any) {
   let countWithNav = 0;
 
   for (const row of rows) {
-    const m = calcFundMetrics(row.holding, row.navSnap);
+    const m = calcFundMetrics(row.holding, row.navSnap, opts);
     totalMarketValue += m.marketValue;
     totalCost += m.costValue;
     totalProfit += m.profit;

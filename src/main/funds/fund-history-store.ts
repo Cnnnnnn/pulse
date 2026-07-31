@@ -50,7 +50,30 @@ function saveSnapshots(snapshots: any[], statePath: any): any {
 }
 
 /**
+ * 从 navMap 里取数据对应的最新交易日 (YYYY-MM-DD).
+ * 多基金时取最新日期 (避免 QDII/T+1 等慢一拍的基金把快照钉在旧交易日).
+ * 没有有效 navDate → null (调用方回退到记录时刻日期).
+ */
+export function pickTradeDate(navMap: any): string | null {
+  if (!navMap || typeof navMap !== "object") return null;
+  let best: string | null = null;
+  for (const snap of Object.values(navMap) as any[]) {
+    const d = snap && snap.navDate;
+    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      if (best == null || d > best) best = d;
+    }
+  }
+  return best;
+}
+
+/**
  * 净值拉取成功后写入/更新当天快照.
+ *
+ * 口径 (2026-08-01 修订):
+ *   - 快照日期 = navMap 数据对应的交易日 (navDate), 不是记录时刻日期.
+ *     非交易时段 (周末/收盘后) 拉取会补/覆盖该交易日快照, 不产生重复的 0 值记录.
+ *   - todayProfit 用 gateToday=false 口径: 非交易时段也按数据源涨跌记录
+ *     "最近交易日盈亏", 避免历史盈亏记录大片 0.
  */
 export function recordFromNavMap(navMap: any, now: Date = new Date(), statePath?: any): any {
   const { holdings, navSource } = fundStore.loadAll(statePath);
@@ -69,12 +92,12 @@ export function recordFromNavMap(navMap: any, now: Date = new Date(), statePath?
     const resolved = resolveNavSnapshot(row.navSnap, navSource);
     return rowWithMetrics({ holding: row.holding, navSnap: resolved });
   });
-  const totals = calcPortfolioTotal(rows);
+  const totals = calcPortfolioTotal(rows, { gateToday: false });
   if (totals.countWithNav === 0) {
     return { ok: false, reason: "no_nav_data" };
   }
 
-  const date = ymdShanghai(now);
+  const date = pickTradeDate(navMap) || ymdShanghai(now);
   const entry = buildSnapshotFromMetrics(date, totals, Date.now());
   const cur = loadSnapshots(statePath);
   const next = upsertDailySnapshot(cur, entry);
@@ -131,6 +154,7 @@ module.exports = {
   loadSnapshots,
 
   recordFromNavMap,
+  pickTradeDate,
   loadNavHistory,
   saveNavHistory,
   isNavCacheSufficient,

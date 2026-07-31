@@ -72,6 +72,21 @@ function numOrZero(v: any) {
 }
 
 /**
+ * s 格式 "2026-07-31" 或 "2026-07-31 15:00", 判断是否今天 (本地时区).
+ * 与 fund-fetcher.ts 的 isTodayLocal 同语义; 本地实现避免循环依赖.
+ */
+function isTodayLocal(s: any) {
+  const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return false;
+  const d = new Date();
+  return (
+    d.getFullYear() === +m[1] &&
+    d.getMonth() + 1 === +m[2] &&
+    d.getDate() === +m[3]
+  );
+}
+
+/**
  * 把合并后的双源快照解析为用户选定数据源的单源结构 (供 fundCalc 用).
  * @param {object | null | undefined} merged  attachAltNav 输出
  * @param {'tiantian' | 'sina'} [source]
@@ -117,8 +132,9 @@ export function resolveNavSnapshot(merged: any, source = DEFAULT_NAV_SOURCE) {
     dayChangePct: merged.altDayChangePct,
     navDate: merged.altNavDate,
     estimateTime: null,
-    // 新浪返回的涨跌幅即今日表现 (无估值时间戳可判), 有值即视为当日数据.
-    estimated: Number.isFinite(merged.altDayChangePct),
+    // 新浪返回的涨跌幅即最近交易日表现. 是否"今日"由 navDate 判定:
+    // navDate=今天 → 今日数据; 否则 (周末/节假日) → 非今日, UI 实时不当作今日盈亏.
+    estimated: isTodayLocal(merged.altNavDate),
     source: "sina",
   };
 }
