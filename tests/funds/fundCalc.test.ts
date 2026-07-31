@@ -59,3 +59,30 @@ describe("rowWithMetrics · 派生字段 (阶段 A)", () => {
     expect(m.annualizedPct).toBeNull();
   });
 });
+
+// ── 今日盈亏 estimated gate (修复: 非交易时段旧估值差不当"今日"显示) ──
+describe("rowWithMetrics · todayProfit estimated gate", () => {
+  it("estimated=true (今日盘中) → 计 dayChange", () => {
+    const m = rowWithMetrics({
+      holding: HOLDING,
+      navSnap: { nav: 1.3, dayChange: 0.05, estimated: true },
+    }).metrics;
+    expect(m.todayProfit).toBe(5);   // 100 × 0.05
+  });
+
+  it("estimated=false (上一交易日旧数据) → todayProfit 归零", () => {
+    const m = rowWithMetrics({
+      holding: HOLDING,
+      navSnap: { nav: 1.3, dayChange: -0.03, estimated: false },
+    }).metrics;
+    expect(m.todayProfit).toBe(0);
+  });
+
+  it("estimated 缺失 → 防御性归零", () => {
+    const m = rowWithMetrics({
+      holding: HOLDING,
+      navSnap: { nav: 1.3, dayChange: 0.05 },
+    }).metrics;
+    expect(m.todayProfit).toBe(0);
+  });
+});

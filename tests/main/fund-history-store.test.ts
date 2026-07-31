@@ -37,6 +37,10 @@ describe("recordFromNavMap", () => {
         estimatedNav: 1.05,
         dayChange: 0.05,
         dayChangePct: 5,
+        // estimated=true 代表"今日盘中"数据 (gztime=今天).
+        // calcFundMetrics 的 todayProfit 只认 estimated=true 的 dayChange,
+        // 历史快照落盘与实时展示同口径.
+        estimated: true,
       },
     };
     const r = fundHistoryStore.recordFromNavMap(
