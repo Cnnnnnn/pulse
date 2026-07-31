@@ -389,6 +389,44 @@ export const api = {
   // 2026-07-22: 工具栏「导出 CSV」→ 主进程 dialog.showSaveDialog + fs.writeFile
   exportLeaderboardCsv: (payload: unknown) =>
     ipcRenderer.invoke("leaderboard:export-csv", payload || {}),
+
+  // 财经新闻 + 行情 (P0): 7 个主通道 + 2 个推送订阅
+  financeRefreshNews: (opts: unknown) =>
+    ipcRenderer.invoke("finance:refresh-news", opts || {}),
+  financeGetNews: (args: unknown) =>
+    ipcRenderer.invoke("finance:get-news", args || {}),
+  // E2：各分类文章计数（含「全部」）
+  financeGetCategories: () => ipcRenderer.invoke("finance:categories"),
+  financeGetArticle: (args: unknown) =>
+    ipcRenderer.invoke("finance:get-article", args || {}),
+  // 相关推荐（同标签优先 + 同分类补全），详情页列表为空时回退用
+  financeGetRelated: (args: unknown) =>
+    ipcRenderer.invoke("finance:get-related", args || {}),
+  financeRefreshQuotes: (opts: unknown) =>
+    ipcRenderer.invoke("finance:refresh-quotes", opts || {}),
+  financeGetQuotes: () => ipcRenderer.invoke("finance:get-quotes"),
+  financeToggleFavorite: (args: unknown) =>
+    ipcRenderer.invoke("finance:toggle-favorite", args || {}),
+  financeMarkRead: (args: unknown) =>
+    ipcRenderer.invoke("finance:mark-read", args || {}),
+  // 财经新闻 AI 解读（结果缓存到 finance_ai.json）
+  financeInterpret: (args: unknown) =>
+    ipcRenderer.invoke("finance:interpret", args || {}),
+  financeInterpretClear: (args: unknown) =>
+    ipcRenderer.invoke("finance:interpret-clear", args || {}),
+  // P2：跨新闻聚合洞察
+  financeAggregate: (args: unknown) =>
+    ipcRenderer.invoke("finance:aggregate", args || {}),
+  onFinanceNewsUpdated: (cb: Callback) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+    ipcRenderer.on("finance:news-updated", handler);
+    return () => ipcRenderer.removeListener("finance:news-updated", handler);
+  },
+  onFinanceQuotesUpdated: (cb: Callback) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+    ipcRenderer.on("finance:quotes-updated", handler);
+    return () => ipcRenderer.removeListener("finance:quotes-updated", handler);
+  },
 };
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)

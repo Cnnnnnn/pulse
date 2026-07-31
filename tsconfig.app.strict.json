@@ -16,6 +16,7 @@
     "src/main/worldcup/**/*.ts",
     "src/main/games/**/*.ts",
     "src/main/ai-leaderboard/**/*.ts",
+    "src/main/finance/**/*.ts",
     "src/main/bootstrap/**/*.ts",
     "src/main/*.ts",
     "src/main/ipc/**/*.ts"

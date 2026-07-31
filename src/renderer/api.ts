@@ -243,6 +243,21 @@ export function createApi(overrides: Record<string, any> = {}): any {
   rateBudget: pick(overrides, "rateBudget"),
   // 2026-07-22: 工具栏「导出 CSV」
   exportLeaderboardCsv: pick(overrides, "exportLeaderboardCsv"),
+  // 财经新闻 + 行情 (P0): 7 个主通道 + 2 个推送订阅
+  financeRefreshNews: pick(overrides, "financeRefreshNews"),
+  financeGetNews: pick(overrides, "financeGetNews"),
+  financeGetCategories: pick(overrides, "financeGetCategories"),
+  financeGetArticle: pick(overrides, "financeGetArticle"),
+  financeGetRelated: pick(overrides, "financeGetRelated"),
+  financeRefreshQuotes: pick(overrides, "financeRefreshQuotes"),
+  financeGetQuotes: pick(overrides, "financeGetQuotes"),
+  financeToggleFavorite: pick(overrides, "financeToggleFavorite"),
+  financeMarkRead: pick(overrides, "financeMarkRead"),
+  financeInterpret: pick(overrides, "financeInterpret"),
+  financeInterpretClear: pick(overrides, "financeInterpretClear"),
+  financeAggregate: pick(overrides, "financeAggregate"),
+  onFinanceNewsUpdated: pick(overrides, "onFinanceNewsUpdated"),
+  onFinanceQuotesUpdated: pick(overrides, "onFinanceQuotesUpdated"),
   };
 }
 

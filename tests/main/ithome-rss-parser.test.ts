@@ -40,4 +40,36 @@ describe("ithome rss-parser", () => {
       "2026-06-12",
     );
   });
+
+  it("无 link/guid 的 item 仍被保留（用 title+pubDate 生成稳定 id）", () => {
+    const xml = `<?xml version="1.0"?><rss><channel>
+<item>
+<title>仅标题无链接的统计新闻</title>
+<pubDate>Fri, 12 Jun 2026 15:59:39 GMT</pubDate>
+<description>摘要内容</description>
+</item>
+</channel></rss>`;
+    const items = parseIthomeRss(xml);
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe("仅标题无链接的统计新闻");
+    // id 为可复现的 title::pubDate，刷新不会重复入库
+    expect(items[0].id).toBe("仅标题无链接的统计新闻::Fri, 12 Jun 2026 15:59:39 GMT");
+    expect(items[0].link).toBe("");
+    expect(items[0].dateKey).toBe("2026-06-12");
+  });
+
+  it("仅 guid 无 link 的 item 仍被保留（id 取 guid，link 回退空串）", () => {
+    const xml = `<?xml version="1.0"?><rss><channel>
+<item>
+<title>有 guid 无 link</title>
+<guid>tag:example.com,2026:42</guid>
+<pubDate>Fri, 12 Jun 2026 15:59:39 GMT</pubDate>
+<description>x</description>
+</item>
+</channel></rss>`;
+    const items = parseIthomeRss(xml);
+    expect(items).toHaveLength(1);
+    expect(items[0].id).toBe("tag:example.com,2026:42");
+    expect(items[0].link).toBe("");
+  });
 });

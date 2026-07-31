@@ -33,12 +33,19 @@ import {
 import { formatCooldown, formatTime } from "../wechat-hot/utils.ts";
 import { IconNews, IconRefresh } from "../components/icons.tsx";
 import { SubtabList } from "../components/SubtabList.tsx";
+import {
+  financeTs,
+  financeError,
+  financeLoading,
+  refreshFinanceNews,
+} from "../finance/financeStore.ts";
 
 const COOLDOWN_MS = 15000;
 
 const NEWS_SUBTABS = [
   { key: "ithome", label: "IT 新闻" },
   { key: "wechat-hot", label: "微博热搜" },
+  { key: "finance", label: "财经" },
 ];
 
 const ITHOME_VIEW_TABS = [
@@ -77,9 +84,11 @@ export function NewsLayoutHeader({
   const weiboLoading = wechatHotLoading.value;
   const isFavorites = ithomeViewMode.value === "favorites" && subTab === "ithome";
   const favTotal = favoriteCount(ithomeFavorites.value);
+  const finLoading = financeLoading.value;
 
   function handleRefresh() {
     if (subTab === "wechat-hot") refreshWechatHot();
+    else if (subTab === "finance") refreshFinanceNews();
     else refreshIthomeNews();
   }
 
@@ -90,6 +99,9 @@ export function NewsLayoutHeader({
     const items = wechatHotItems.value;
     error = wechatHotError.value || null;
     subText = `微博热搜榜 · ${items.length} 条 · 更新于 ${formatTime(wechatHotLastFetched.value)}`;
+  } else if (subTab === "finance") {
+    error = financeError.value || null;
+    subText = `财经 · 更新于 ${formatTs(financeTs.value)}`;
   } else if (isFavorites) {
     error = null;
     subText = `收藏 ${favTotal} 篇 · 永久保留`;
@@ -99,9 +111,17 @@ export function NewsLayoutHeader({
   }
 
   const searchInputId =
-    subTab === "wechat-hot" ? "wechat-hot-search-input" : "ithome-search-input";
+    subTab === "wechat-hot"
+      ? "wechat-hot-search-input"
+      : subTab === "finance"
+        ? "finance-search-input"
+        : "ithome-search-input";
   const searchPlaceholder =
-    subTab === "wechat-hot" ? "搜索热搜……" : "搜索标题、分类…";
+    subTab === "wechat-hot"
+      ? "搜索热搜……"
+      : subTab === "finance"
+        ? "搜索标题、分类、标签…"
+        : "搜索标题、分类…";
 
   return (
     <header class="news-header">
@@ -116,11 +136,11 @@ export function NewsLayoutHeader({
         <div class="news-header-actions">
           <button
             type="button"
-            class={`news-refresh-btn${itLoading || weiboLoading ? " is-loading" : ""}${subTab === "wechat-hot" && weiboCooling ? " is-cooling" : ""}`}
+            class={`news-refresh-btn${itLoading || weiboLoading || finLoading ? " is-loading" : ""}${subTab === "wechat-hot" && weiboCooling ? " is-cooling" : ""}`}
             onClick={handleRefresh}
-            disabled={itLoading || weiboLoading || (subTab === "wechat-hot" && weiboCooling)}
-            title={subTab === "wechat-hot" ? "拉取微博热搜" : "拉取当前日期 IT 新闻"}
-            aria-label={subTab === "wechat-hot" ? "拉取微博热搜" : "拉取当前日期 IT 新闻"}
+            disabled={itLoading || weiboLoading || finLoading || (subTab === "wechat-hot" && weiboCooling)}
+            title={subTab === "wechat-hot" ? "拉取微博热搜" : subTab === "finance" ? "刷新财经新闻与行情" : "拉取当前日期 IT 新闻"}
+            aria-label={subTab === "wechat-hot" ? "拉取微博热搜" : subTab === "finance" ? "刷新财经新闻与行情" : "拉取当前日期 IT 新闻"}
           >
             <span class="news-refresh-icon" aria-hidden="true">
               <IconRefresh size={14} />

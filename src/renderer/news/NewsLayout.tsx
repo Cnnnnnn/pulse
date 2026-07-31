@@ -15,10 +15,12 @@ import { NEWS_SUBTABS } from "./NewsLayoutHeader.tsx";
 import { NewsLayoutHeader } from "./NewsLayoutHeader.tsx";
 import { IthomeContent as IthomeContentRaw } from "../ithome/IthomeContent.tsx";
 import { WechatHotContent as WechatHotContentRaw } from "../wechat-hot/components/WechatHotContent.tsx";
+import { FinanceLayout as FinanceLayoutRaw } from "../finance/FinanceLayout.tsx";
 
 // ponytail: 对端仍是宽松 JSX props；ithome/wechat 组件迁完后去掉 cast。
 const IthomeContent = IthomeContentRaw as any;
 const WechatHotContent = WechatHotContentRaw as any;
+const FinanceLayout = FinanceLayoutRaw as any;
 import "./NewsLayout.css";
 
 export { NEWS_SUBTABS };
@@ -42,6 +44,8 @@ export function NewsLayout() {
       <div class="news-layout-body">
         {subTab === "ithome" ? (
           <IthomeContent search={search} />
+        ) : subTab === "finance" ? (
+          <FinanceLayout search={search} />
         ) : (
           <WechatHotContent search={search} />
         )}

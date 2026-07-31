@@ -171,6 +171,9 @@ svg:not([role="img"]) {
   --cat-money:  oklch(72% 0.15 70);    /* 货币 橙 */
   --cat-qdii:   oklch(56% 0.17 295);   /* QDII 紫 */
   --cat-other:  oklch(62% 0.02 270);   /* 其他 灰 */
+  /* 财经模块分类色（基金 / 宏观；股市/债券/全球复用既有 cat 变量） */
+  --cat-fund:   oklch(58% 0.14 200);   /* 基金 青 */
+  --cat-macro:  oklch(64% 0.16 25);    /* 宏观 红橙 */
   --fund-trend: var(--accent-primary);
   --fund-trend-area: oklch(60% 0.16 255 / 0.16); /* 主色透明填充 */
   --fund-grid-line: oklch(60% 0.02 270 / 0.12);

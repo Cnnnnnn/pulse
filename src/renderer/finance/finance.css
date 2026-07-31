@@ -1,0 +1,990 @@
+/* src/renderer/finance/finance.css
+ * 财经模块样式。仅用 var()/oklch()/color-mix()。
+ * a11y 基线：≥44px 触控热区、统一焦点环、prefers-reduced-motion 关动效。
+ * 涨跌色：A 股红涨绿跌（--color-up / --color-down）。
+ */
+
+.finance-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── 行情条 ── */
+.finance-market-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid color-mix(in oklch, var(--gray-300) 60%, transparent);
+  background: color-mix(in oklch, var(--gray-50) 70%, transparent);
+}
+
+.finance-quote {
+  display: flex;
+  flex-direction: column;
+  min-width: 92px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--gray-100) 60%, transparent);
+  border: 1px solid color-mix(in oklch, var(--gray-300) 50%, transparent);
+  line-height: 1.25;
+}
+
+.finance-quote-label {
+  font-size: 11px;
+  color: var(--gray-500);
+}
+
+.finance-quote-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.finance-quote-change {
+  font-size: 11px;
+  color: var(--gray-600);
+}
+
+.finance-quote-mid {
+  font-size: 11px;
+  color: var(--gray-500);
+}
+
+.finance-quote.is-up .finance-quote-price,
+.finance-quote.is-up .finance-quote-change {
+  color: var(--color-up);
+}
+
+.finance-quote.is-down .finance-quote-price,
+.finance-quote.is-down .finance-quote-change {
+  color: var(--color-down);
+}
+
+.finance-quote.is-flat .finance-quote-price,
+.finance-quote.is-flat .finance-quote-change {
+  color: var(--gray-600);
+}
+
+.finance-quote-empty .finance-quote-price {
+  color: var(--gray-400);
+}
+
+/* ── 内容区 ── */
+.finance-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.finance-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px 4px;
+  flex-wrap: wrap;
+}
+
+.finance-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.finance-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
+.finance-sort-select {
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklch, var(--gray-300) 70%, transparent);
+  background: var(--gray-50);
+  color: var(--gray-800);
+}
+
+.finance-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklch, var(--gray-300) 70%, transparent);
+  background: var(--gray-50);
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.finance-refresh-btn.is-loading {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.finance-error {
+  margin: 8px 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--accent-red) 14%, transparent);
+  color: color-mix(in oklch, var(--accent-red) 80%, var(--gray-800));
+  font-size: 13px;
+}
+
+.finance-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 24px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  align-content: start;
+  grid-auto-rows: max-content;   /* 每行高度由内容决定，不压缩 */
+}
+
+.finance-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+/* ── 分类 chips（下划线变体，复用 SubtabList 结构）── */
+.finance-subtabs {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.finance-subtab {
+  min-height: 40px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--gray-600);
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+
+.finance-subtab-active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+  font-weight: 600;
+}
+
+/* E2：分类 tab 旁的文章计数徽标 */
+.finance-cat-count {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 6px;
+  min-width: 18px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 16px;
+  border-radius: 8px;
+  background: var(--bg-muted, oklch(0.95 0 0));
+  color: var(--gray-600);
+  vertical-align: middle;
+}
+
+.finance-subtab-active .finance-cat-count {
+  background: color-mix(in oklch, var(--accent-primary) 18%, transparent);
+  color: var(--accent-primary);
+}
+
+/* ── 卡片（替代原来的 list row）── */
+.finance-card {
+  position: relative;
+  background: var(--bg-card, oklch(1 0 0));
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--cat, var(--cat-other));
+  border-radius: var(--radius-md, 10px);
+  padding: 14px;
+  cursor: pointer;
+  height: auto;                /* 高度完全由内容决定 */
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.finance-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md, 0 4px 12px color-mix(in oklch, oklch(0 0 0) 8%, transparent));
+}
+
+/* 分类色条颜色由组件内联 --cat 驱动（finance-cats.ts 映射），不再逐分类枚举 */
+
+.finance-tag {
+  color: var(--accent-primary);
+  font-size: 11px;
+}
+
+/* 卡片顶部：来源 + 时间 */
+.finance-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.finance-card-source {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--cat, var(--cat-other));
+  /* 用 color-mix 淡化分类色做底 */
+  background: color-mix(in oklch, currentColor 12%, transparent);
+}
+
+/* .finance-card-source 颜色由 --cat 驱动，见上文基础规则 */
+
+.finance-card-time {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--gray-500));
+}
+
+/* 标题：不截断，完整展示 */
+.finance-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary, var(--gray-800));
+}
+
+/* 摘要：3 行粗略预览，超出省略 */
+.finance-card-summary {
+  font-size: 13px;
+  color: var(--text-tertiary, var(--gray-600));
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 底部 meta：标签 + 收藏 */
+.finance-card-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary, var(--gray-500));
+  flex-wrap: wrap;
+}
+
+.finance-card-tag {
+  color: var(--text-secondary, var(--gray-700));
+}
+.finance-card-tag::before {
+  content: "#";
+  opacity: 0.6;
+}
+
+/* 分类 chip（底部小药丸） */
+.finance-card-cat-chip {
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: var(--cat-text-on, oklch(1 0 0));
+  font-size: 11px;
+  background: var(--cat, var(--cat-other));
+}
+
+/* 收藏按钮（卡片内右上角或 footer 内） */
+.finance-card-fav-btn {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  min-width: 32px;
+  min-height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--gray-400);
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 4px;
+}
+.finance-card-fav-btn.is-active {
+  color: var(--cat-fund);
+}
+
+/* ── 详情 ── */
+.finance-article {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 24px;
+}
+
+.finance-article-loading {
+  color: var(--gray-500);
+}
+
+.finance-back-btn {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--accent-primary);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.finance-article-title {
+  margin: 4px 0 8px;
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--gray-800);
+}
+
+.finance-article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-bottom: 12px;
+}
+
+  .finance-article-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--gray-700);
+  white-space: pre-wrap;
+}
+
+.finance-article-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--accent-primary);
+  font-size: 13px;
+}
+
+.finance-related {
+  margin-top: 20px;
+  border-top: 1px solid color-mix(in oklch, var(--gray-200) 80%, transparent);
+  padding-top: 12px;
+}
+
+.finance-related-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--gray-700);
+}
+
+.finance-related-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.finance-related-item {
+  width: 100%;
+  text-align: left;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: none;
+  background: transparent;
+  color: var(--gray-700);
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.finance-related-item:hover {
+  background: color-mix(in oklch, var(--gray-100) 80%, transparent);
+}
+
+.finance-disclaimer {
+  margin-top: 20px;
+  font-size: 11px;
+  color: var(--gray-400);
+  text-align: center;
+}
+
+/* ── 详情页重设计（2026-07-29）──
+   标题区 / 配图 / 分段正文 / 来源卡片 / 相关推荐网格。
+   复用项目令牌：--cat-* / data-cat / --radius-* / --shadow-* / --focus-ring。
+   响应式由 .finance-article 容器查询驱动（容器 <480px 走移动排版）。 */
+.finance-article {
+  container-type: inline-size;
+}
+
+.finance-article-detail {
+  padding: 0 16px 24px;
+  background: var(--content-bg);
+}
+
+.detail-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 抵消 .finance-article-detail 的左右内边距，使工具栏贴边 */
+  margin: 0 -16px 0;
+  padding: 10px 16px;
+  background: var(--content-bg);
+  border-bottom: 1px solid var(--border-soft, color-mix(in oklch, var(--gray-200) 70%, transparent));
+  box-shadow: var(--shadow-sm, 0 1px 2px color-mix(in oklch, oklch(0 0 0) 6%, transparent));
+}
+
+.detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px 0 6px;
+  border: none;
+  background: transparent;
+  color: var(--accent-primary);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 8px;
+}
+
+.detail-toolbar .spacer { flex: 1; }
+
+.detail-icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card, oklch(1 0 0));
+  color: var(--text-secondary, var(--gray-600));
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 0 12px;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.detail-icon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md, 0 4px 12px color-mix(in oklch, oklch(0 0 0) 8%, transparent));
+}
+.detail-icon-btn .star { color: var(--gray-400); font-size: 17px; }
+.detail-icon-btn.is-fav .star { color: var(--cat-macro); }
+
+.detail-col {
+  max-width: 720px;
+  margin: 0 auto;
+  /* 把原本 toolbar margin-bottom 的呼吸间距移到这里，
+     避免滚动时正文先经过 toolbar 下方的无背景空隙 */
+  padding-top: 14px;
+}
+
+/* 标题区 */
+.detail-cat {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 11px;
+  border-radius: 999px;
+  color: oklch(1 0 0);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  /* 颜色由组件内联 --cat 驱动（finance-cats.ts 映射），不再逐分类枚举 */
+  background: var(--cat, var(--cat-other));
+}
+
+.detail-title {
+  margin: 12px 0 0;
+  font-size: 27px;
+  line-height: 1.32;
+  font-weight: 700;
+  color: var(--text-primary, var(--gray-800));
+  letter-spacing: -0.2px;
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-secondary, var(--gray-600));
+}
+.detail-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--cat-macro);
+  background: color-mix(in oklch, var(--cat-macro) 14%, transparent);
+}
+.detail-meta .dot { color: var(--text-tertiary, var(--gray-500)); }
+.detail-tags { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.detail-tag {
+  font-size: 12px;
+  color: var(--text-secondary, var(--gray-600));
+  background: color-mix(in oklch, var(--gray-300) 22%, transparent);
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.detail-tag::before { content: "#"; opacity: 0.55; }
+
+/* 配图（有图才渲染） */
+.detail-hero { margin: 22px 0 4px; }
+.detail-hero figure { margin: 0; }
+.detail-hero img {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg, 14px);
+  border: 1px solid var(--border-subtle);
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: color-mix(in oklch, var(--gray-100) 60%, transparent);
+}
+.detail-hero figcaption {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary, var(--gray-500));
+  text-align: center;
+}
+
+/* 正文：分段 + lead */
+.detail-body {
+  margin-top: 22px;
+  color: color-mix(in oklch, var(--text-primary, var(--gray-800)) 88%, var(--gray-500));
+  font-size: 15.5px;
+  line-height: 1.85;
+}
+.detail-body .lead {
+  font-size: 17px;
+  line-height: 1.8;
+  font-weight: 500;
+  color: var(--text-primary, var(--gray-800));
+  margin: 0 0 18px;
+}
+.detail-body p { margin: 0 0 17px; }
+/* 注：当前正文分段仅输出 <p>，h3 / 引用块 / 链接样式不可达。
+   待真实正文带标记（HTML/Markdown）并配安全解析器后再启用，避免死代码。 */
+.detail-body a { color: var(--accent-primary); text-decoration: none; }
+.detail-body a:hover { text-decoration: underline; }
+
+/* 来源卡片：复用列表卡片语言（左侧分类色条 + 圆角） */
+.detail-sourcecard {
+  margin: 26px 0 4px;
+  background: var(--bg-card, oklch(1 0 0));
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--cat-macro);
+  border-radius: var(--radius-md, 10px);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));
+}
+.detail-sourcecard .sc-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--cat-macro) 16%, transparent);
+  color: var(--cat-macro);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.detail-sourcecard .sc-meta { flex: 1; min-width: 0; }
+.detail-sourcecard .sc-name { font-size: 14px; font-weight: 600; color: var(--text-primary, var(--gray-800)); }
+.detail-sourcecard .sc-sub { font-size: 12px; color: var(--text-secondary, var(--gray-600)); margin-top: 2px; }
+.detail-sourcecard .sc-go {
+  flex: 0 0 auto;
+  color: var(--accent-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 相关推荐 */
+.detail-related {
+  margin-top: 32px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border-subtle);
+}
+.detail-related h2 {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, var(--gray-800));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.detail-related h2::before {
+  content: "";
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--accent-primary);
+}
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+/* 焦点环（统一） */
+.detail-back:focus-visible,
+.detail-icon-btn:focus-visible,
+.detail-sourcecard .sc-go:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* 减动效 */
+@media (prefers-reduced-motion: reduce) {
+  .detail-icon-btn { transition: none; }
+}
+
+/* 窄容器（移动端）排版覆盖 */
+@container (max-width: 480px) {
+  .detail-title { font-size: 21px; line-height: 1.34; }
+  .detail-body { font-size: 15px; line-height: 1.8; }
+  .detail-body .lead { font-size: 15.5px; }
+  .related-grid { grid-template-columns: 1fr; }
+  .detail-icon-btn .label { display: none; }
+  .detail-icon-btn { padding: 0; min-width: 40px; }
+}
+
+/* ── 焦点环（统一）── */
+.finance-refresh-btn:focus-visible,
+.finance-sort-select:focus-visible,
+.finance-subtab:focus-visible,
+.finance-card:focus-visible,
+.finance-card-fav-btn:focus-visible,
+.finance-back-btn:focus-visible,
+.finance-related-item:focus-visible,
+.finance-article-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ── 减动效 ── */
+@media (prefers-reduced-motion: reduce) {
+  .finance-card,
+  .finance-refresh-btn,
+  .finance-related-item {
+    transition: none;
+  }
+}
+
+/* ── AI 解读面板 ── */
+.finance-ai {
+  margin: 18px 0 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklch, var(--gray-300) 55%, transparent);
+  background: color-mix(in oklch, var(--gray-50) 80%, transparent);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.finance-ai-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.finance-ai-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--gray-700);
+}
+
+.finance-ai-rebtn {
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklch, var(--gray-400) 50%, transparent);
+  background: color-mix(in oklch, var(--gray-100) 70%, transparent);
+  color: var(--gray-800);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast, 150ms ease);
+}
+
+.finance-ai-rebtn:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--gray-200) 80%, transparent);
+}
+
+.finance-ai-rebtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.finance-ai-summary {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--gray-900);
+}
+
+.finance-ai-list {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: var(--gray-700);
+}
+
+.finance-ai-list li {
+  margin: 4px 0;
+}
+
+.finance-ai-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+
+.finance-ai-row-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-500);
+  min-width: 32px;
+}
+
+.finance-ai-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.finance-ai-pill.bullish {
+  color: color-mix(in oklch, var(--color-success, #10b981) 75%, black 0%);
+  background: color-mix(in oklch, var(--color-success, #10b981) 16%, transparent);
+  border-color: color-mix(in oklch, var(--color-success, #10b981) 35%, transparent);
+}
+
+.finance-ai-pill.bearish {
+  color: oklch(55% 0.18 25);
+  background: oklch(55% 0.18 25 / 0.14);
+  border-color: oklch(55% 0.18 25 / 0.32);
+}
+
+.finance-ai-pill.neutral {
+  color: var(--gray-700);
+  background: color-mix(in oklch, var(--gray-300) 30%, transparent);
+  border-color: color-mix(in oklch, var(--gray-300) 50%, transparent);
+}
+
+.finance-ai-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.finance-ai-impact-text {
+  font-size: 13px;
+  color: var(--gray-700);
+}
+
+.finance-ai-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.finance-ai-chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--gray-700);
+  background: color-mix(in oklch, var(--gray-200) 75%, transparent);
+  border: 1px solid color-mix(in oklch, var(--gray-300) 45%, transparent);
+}
+
+.finance-ai-meta {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--gray-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.finance-ai-disclaimer {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--gray-500);
+  border-top: 1px dashed color-mix(in oklch, var(--gray-300) 55%, transparent);
+  padding-top: 8px;
+}
+
+.finance-ai-loading-tip,
+.finance-ai-empty,
+.finance-ai-error-tip,
+.finance-ai-config-tip {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--gray-600);
+}
+
+.finance-ai-skeleton {
+  height: 54px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--gray-200) 60%, transparent) 25%,
+    color-mix(in oklch, var(--gray-100) 60%, transparent) 37%,
+    color-mix(in oklch, var(--gray-200) 60%, transparent) 63%
+  );
+  background-size: 400% 100%;
+  animation: finance-ai-shimmer 1.4s ease infinite;
+}
+
+@keyframes finance-ai-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+.finance-ai-rebtn:focus-visible,
+.finance-ai-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* AI 解读触发按钮（空闲态，点击才发起解读，零默认成本） */
+.finance-ai-trigger {
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklch, var(--accent-primary) 60%, transparent);
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast, 150ms ease),
+    transform var(--transition-fast, 150ms ease);
+}
+.finance-ai-trigger:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--accent-primary) 86%, #000 14%);
+  transform: translateY(-1px);
+}
+.finance-ai-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.finance-ai-trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .finance-ai-trigger {
+    transition: none;
+  }
+}
+
+/* ── P2：聚合洞察入口按钮 + 头部操作区 + 时间视角 pill ── */
+.finance-agg-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in oklch, var(--gray-300) 70%, transparent);
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--gray-100) 80%, transparent);
+  color: var(--gray-900);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast, 150ms ease),
+    transform var(--transition-fast, 150ms ease);
+}
+.finance-agg-btn:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--gray-200) 90%, transparent);
+  transform: translateY(-1px);
+}
+.finance-agg-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.finance-ai-head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.finance-ai-scope {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gray-500);
+}
+
+/* 聚合 block 列表（共识 / 分歧 / 信号） */
+.finance-ai-block {
+  margin: 10px 0;
+}
+.finance-ai-block-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 4px;
+}
+.finance-ai-block .finance-ai-list {
+  margin: 0;
+  padding-left: 18px;
+}
+.finance-ai-block .finance-ai-list li {
+  margin: 2px 0;
+}
+
+/* 时间视角 pill 变体（short / medium / long） */
+.finance-ai-pill.short {
+  background: color-mix(in oklch, var(--green-500, #22c55e) 18%, transparent);
+  color: color-mix(in oklch, var(--green-700, #15803d) 85%, var(--gray-900));
+}
+.finance-ai-pill.medium {
+  background: color-mix(in oklch, var(--blue-500, #3b82f6) 16%, transparent);
+  color: color-mix(in oklch, var(--blue-700, #1d4ed8) 85%, var(--gray-900));
+}
+.finance-ai-pill.long {
+  background: color-mix(in oklch, var(--purple-500, #8b5cf6) 16%, transparent);
+  color: color-mix(in oklch, var(--purple-700, #6d28d9) 85%, var(--gray-900));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finance-ai-skeleton { animation: none; }
+}

@@ -56,17 +56,23 @@ export function parseIthomeRss(xml: any): any[] {
     while ((m = itemRe.exec(xml)) !== null) {
         const block = m[1];
         const title = pickTag(block, "title");
-        const link = pickTag(block, "link") || pickTag(block, "guid");
+        // 部分官方 RSS（如国家统计局）的 <item> 可能只有标题+日期而无 <link>/<guid>。
+        // 因此不再强制要求 link，仅要求 title；链接缺失时 url 留空（详情页已支持无 body/无 url 退化）。
+        // link 严格取 <link> 真实 URL；guid 仅用于派生 id，不作为 url（tag URI 不是可打开链接）。
+        const link = pickTag(block, "link");
+        const guid = pickTag(block, "guid");
         const pubDate = pickTag(block, "pubDate");
         const description = pickTag(block, "description");
-        const id = pickTag(block, "guid") || link;
-        if (!id || !title || !link) continue;
+        if (!title) continue;
+        // id 优先级 guid > link；若两者皆无，用 title+pubDate 生成稳定 id，
+        // 保证幂等（重复刷新不重复入库、收藏/已读可持久）。
+        const id = guid || link || `${title}::${pubDate}`;
         const excerpt = stripHtml(description).slice(0, EXCERPT_MAX);
         const dateKey = toShanghaiDateKey(pubDate);
         items.push({
             id,
             title,
-            link,
+            link: link || "",
             pubDate,
             dateKey,
             excerpt,
