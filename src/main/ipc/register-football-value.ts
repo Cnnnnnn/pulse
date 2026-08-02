@@ -7,7 +7,7 @@
  *
  * 渲染层只通过这几个通道交互（白名单）。单例 HttpClient 注入 fetcher。
  * 请求级缓存（Map + TTL 5min）照搬 register-leaderboard 同款范式，
- * 避免重复打 parse.bot（免费 tier 100 credits/月，身价低频）。
+ * 避免重复打 dcaribou R2（gz 文件较大，身价低频数据）。
  */
 "use strict";
 
@@ -109,7 +109,7 @@ export function registerFootballValueHandlers(ctx: any) {
   safeHandle("football-value:get", handleGet);
 
   // refresh：清 IPC 请求级缓存后重新走聚合；聚合层 3 天 TTL 节流仍生效
-  // （缓存 ≤3 天 → 返回缓存不真拉；>3 天才真拉 parse.bot）。语义同 get，
+  // （缓存 ≤3 天 → 返回缓存不真拉；>3 天才真拉 dcaribou R2）。语义同 get，
   // 区别在于 refresh 绕过 IPC 5min 请求缓存，强制走一遍聚合判定。
   safeHandle("football-value:refresh", async (_event: any, payload: any) => {
     const opts = sanitize(payload);

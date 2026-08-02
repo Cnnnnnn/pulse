@@ -20,7 +20,7 @@ export type HttpRequestInit = {
 
 export type HttpResponse = {
   status: number;
-  body: string;
+  body: string | Buffer;
   headers: Record<string, string>;
   finalUrl?: string;
   /** populated only when the request bailed out before/during the response */
@@ -32,6 +32,9 @@ export type HttpGetOptions = {
   timeout?: number;
   follow?: boolean;
   maxBodyBytes?: number;
+  /** binary:true 时 body 返回 Buffer（不 toString），用于拉 gz/图片等二进制。
+   *  默认 false → body 为 UTF-8 string（保持现有 detector 调用兼容）。 */
+  binary?: boolean;
 };
 
 export type HttpPostOptions = {

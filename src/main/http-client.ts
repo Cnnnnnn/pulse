@@ -54,6 +54,7 @@ interface RequestInternal {
   timeout?: number;
   body?: string | null;
   maxBodyBytes?: number;
+  binary?: boolean;
 }
 
 const UA = "Pulse/2.2";
@@ -100,6 +101,7 @@ export class HttpClient {
       headers: opts.headers,
       timeout,
       maxBodyBytes: opts.maxBodyBytes ?? this.maxBodyBytes,
+      binary: opts.binary,
     });
   }
 
@@ -223,7 +225,7 @@ export class HttpClient {
   }
 
   _request(rawUrl: string, args: RequestInternal): Promise<HttpResponse> {
-    const { method, headers = {}, timeout, body = null, maxBodyBytes = DEFAULT_MAX_BODY_BYTES } = args;
+    const { method, headers = {}, timeout, body = null, maxBodyBytes = DEFAULT_MAX_BODY_BYTES, binary = false } = args;
     return new Promise<HttpResponse>((resolve: any) => {
       let parsed: URL;
       try { parsed = new URL(rawUrl); }
@@ -273,10 +275,12 @@ export class HttpClient {
             });
             return;
           }
-          const text = Buffer.concat(chunks).toString("utf-8");
+          // binary:true → 返回 Buffer（拉 gz/图片等二进制，不损坏数据）；
+          // 否则 toString("utf-8") 保持现有 string 行为兼容。
+          const buf = Buffer.concat(chunks);
           resolve({
             status: res.statusCode || 0,
-            body: text,
+            body: binary ? buf : buf.toString("utf-8"),
             headers: (res.headers || {}) as Record<string, string>,
           });
         });

@@ -12,7 +12,7 @@
 /** 数据来源标记。 */
 export const SOURCE: Record<string, string> = { LIVE: "live", SAMPLE: "sample", CACHE: "cache" };
 
-/** 位置归一化映射：parse.bot 原始 position → 标准四类。 */
+/** 位置归一化映射：原始 position（dcaribou Attack/Defender/Midfield/Goalkeeper）→ 标准四类。 */
 export const POSITION_META: Record<string, any> = {
   GK: { label: "门将", order: 0 },
   DF: { label: "后卫", order: 1 },

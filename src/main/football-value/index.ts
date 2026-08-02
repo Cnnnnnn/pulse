@@ -5,8 +5,8 @@
  *   - getFootballValueBoard: 聚合入口（对外稳定契约）
  *   - registerFootballValueScheduler: 注册每日同步调度器
  *
- * 逻辑链：读缓存（今日键）→ 命中返回 → 未命中 fetch（parse.bot）
- *   → 写缓存 → 失败无 key / 网络 → 回退上次快照（stale）→ 再失败 sample。
+ * 逻辑链：读缓存（稳定 key）→ 命中且未过 TTL → 返回 → 否则 fetch（dcaribou R2）
+ *   → 写缓存 → 失败网络 → 回退已过期缓存（stale）→ 再失败 sample。
  */
 "use strict";
 
@@ -23,7 +23,7 @@ import { SOURCE } from "./types";
 import { registerFootballValueScheduler } from "./scheduler";
 
 /**
- * 身价低频数据：3 天 TTL（Transfermarkt 季度级更新 + parse.bot 配额紧）。
+ * 身价低频数据：3 天 TTL（Transfermarkt 季度级更新）。手动刷新 + TTL 节流。
  * 手动刷新 + TTL 节流：缓存 ≤3 天命中直接返回，>3 天或 force 才真拉。
  * 注：稳定 key（无日期）后，跨日复用同一份缓存。
  */
@@ -41,7 +41,7 @@ function errMsg(err: unknown): string {
  * 聚合入口。对外契约：
  *   { ok, players, source: 'live'|'cache'|'sample', fetchedAt, stale,
  *     count, attribution, errors, isSample }
- * @param deps { force?: boolean, httpClient?: object, apiKey?: string }
+ * @param deps { force?: boolean, httpClient?: object }
  * @returns {Promise<object>}
  */
 export async function getFootballValueBoard(deps: any = {}): Promise<any> {
@@ -72,14 +72,14 @@ export async function getFootballValueBoard(deps: any = {}): Promise<any> {
     }
   }
 
-  // 2) force 或缓存未命中 → 拉取 parse.bot（涨跌对照已弃用，不再传 prevByPlayer）
+  // 2) force 或缓存未命中 → 拉取 dcaribou R2 两份 CSV.gz + join
   try {
     const payload = await fetchTopPlayers({
       httpClient: deps.httpClient,
-      apiKey: deps.apiKey,
       timeoutMs: deps.timeoutMs,
     });
-    const parsed = parseTopPlayers({ players: payload.players });
+    const parsed = parseTopPlayers(payload.valuationsCsvGz, payload.playersCsvGz);
+    if (parsed.errors && parsed.errors.length) errors.push(...parsed.errors);
     const result = boardPayload(parsed.players, SOURCE.LIVE, payload.fetchedAt, {
       errors,
     });
@@ -124,7 +124,7 @@ function boardPayload(
     attribution: [
       {
         id: "transfermarkt",
-        text: "数据来源：Transfermarkt（经 parse.bot API）",
+        text: "数据来源：Transfermarkt（经 dcaribou/transfermarkt-datasets，公开 R2 CDN）",
         url: "https://www.transfermarkt.com/",
         required: source === SOURCE.LIVE,
       },

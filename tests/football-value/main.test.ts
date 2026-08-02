@@ -2,7 +2,7 @@
  * tests/football-value/main.test.ts
  *
  * 主进程数据层测试：
- *   1) parser: parse.bot 原始响应 → Player[]（位置归一化 / 身价解析）
+ *   1) parser: dcaribou gz CSV → Player[]（join + 取最新身价 + 位置归一）
  *   2) types: normalizePosition / formatValueEur / toPlayer 安全默认
  *   3) cache: write/read 往返 + readLatestCache 排除今天
  */
@@ -10,7 +10,13 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import zlib from "zlib";
 const { requireMain } = require("../_setup/require-main.cjs");
+
+// 构造微型 dcaribou CSV.gz 测试夹具（valuations + players）
+function gz(s: string): Buffer {
+  return zlib.gzipSync(Buffer.from(s, "utf8"));
+}
 
 const {
   parseTopPlayers,
@@ -30,138 +36,101 @@ const {
 } = requireMain("football-value/cache");
 
 describe("football-value/parser", () => {
-  it("解析 parse.bot 原始响应 → Player[]（含位置/身价归一化）", () => {
-    const raw = {
-      players: [
-        {
-          id: "418560",
-          rank: 1,
-          name: "Erling Haaland",
-          position: "Attack",
-          age: 26,
-          club: "Manchester City",
-          nationality: "Norway",
-          market_value_euros: 180000000,
-        },
-        {
-          id: "624855",
-          rank: 2,
-          name: "Jude Bellingham",
-          position: "Midfield",
-          age: 23,
-          club: "Real Madrid",
-          nationality: "England",
-          market_value_euros: 180000000,
-        },
-      ],
-      total_players: 2,
-    };
-    const { ok, players, count } = parseTopPlayers(raw);
+  // 微型 dcaribou CSV 夹具：2 球员 + 各自身价记录
+  const VAL_CSV =
+    "player_id,date,market_value_in_eur,current_club_name,current_club_id,player_club_domestic_competition_id\n" +
+    "1,2025-12-09,180000000,Manchester City,281,GB1\n" +
+    "1,2024-06-01,150000000,Manchester City,281,GB1\n" + // 旧记录，应被新记录覆盖
+    "2,2025-12-12,160000000,Real Madrid,150,ES1\n";
+  const PLA_CSV =
+    "player_id,first_name,last_name,name,last_season,current_club_id,player_code,country_of_birth,city_of_birth,country_of_citizenship,date_of_birth,sub_position,position,foot,height_in_cm,contract_expiration_date,agent_name,image_url\n" +
+    '1,Erling,Haaland,Erling Haaland,2025,281,erling-haaland,England,Leeds,Norway,2000-07-21 00:00:00,Centre-Forward,Attack,left,194,,Roc Nation,https://img.example/1.jpg\n' +
+    '2,Jude,Bellingham,Jude Bellingham,2025,150,jude-bellingham,England,Stourbridge,England,2003-06-29 00:00:00,Attacking Midfield,Midfield,right,186,,IMG,https://img.example/2.jpg\n';
+
+  it("解析 dcaribou gz CSV → Player[]（join + 取最新身价 + 位置归一）", () => {
+    const { ok, players, count } = parseTopPlayers(gz(VAL_CSV), gz(PLA_CSV));
     expect(ok).toBe(true);
     expect(count).toBe(2);
+    // 身价降序：Haaland 180m > Bellingham 160m
     expect(players[0]).toMatchObject({
-      id: "418560",
+      id: "1",
       name: "Erling Haaland",
       position: "FW",
       valueEur: 180000000,
       valueLabel: "€180m",
+      nationality: "Norway",
+      club: "Manchester City",
+      portraitUrl: "https://img.example/1.jpg",
     });
-    expect(players[1].position).toBe("MF");
+    expect(players[1]).toMatchObject({
+      id: "2",
+      name: "Jude Bellingham",
+      position: "MF",
+      valueEur: 160000000,
+    });
   });
 
-  it("兼容 parse.bot 实测响应壳 { status, data: { players } }", () => {
-    const raw = {
-      status: "success",
-      data: {
-        total_players: 1,
-        players: [
-          {
-            rank: 1,
-            name: "Désiré Doué",
-            id: "914562",
-            position: "Right Winger",
-            age: 21,
-            nationality: "France, Cote d'Ivoire",
-            club: "Paris Saint-Germain",
-            market_value: "€120.00m",
-            market_value_euros: 120000000,
-            portrait_url: "https://img.example/914562.jpg",
-          },
-        ],
-      },
-    };
-    const { ok, players, count } = parseTopPlayers(raw);
-    expect(ok).toBe(true);
+  it("取每人最新身价（同球员多条记录 → date 最大那条）", () => {
+    // Haaland 有 2024-06 (150m) 和 2025-12 (180m) → 应取 180m
+    const { players } = parseTopPlayers(gz(VAL_CSV), gz(PLA_CSV));
+    const haaland = players.find((p: any) => p.id === "1");
+    expect(haaland.valueEur).toBe(180000000); // 不是 150m
+  });
+
+  it("引号内逗号不破坏 CSV 解析（name 含逗号场景）", () => {
+    const plaWithComma =
+      "player_id,name,position,country_of_citizenship,date_of_birth,image_url\n" +
+      '1,"Smith, John",Attack,England,1990-01-01 00:00:00,img.jpg\n';
+    const { players } = parseTopPlayers(
+      gz("player_id,date,market_value_in_eur,current_club_name,current_club_id\n1,2025-01-01,50000000,Club,1\n"),
+      gz(plaWithComma),
+    );
+    expect(players[0].name).toBe("Smith, John");
+    expect(players[0].position).toBe("FW");
+  });
+
+  it("位置归一：dcaribou Attack/Defender/Midfield/Goalkeeper → 四类", () => {
+    const pla =
+      "player_id,name,position,country_of_citizenship,date_of_birth,image_url\n" +
+      "1,P1,Attack,X,2000-01-01,\n2,P2,Defender,X,2000-01-01,\n3,P3,Midfield,X,2000-01-01,\n4,P4,Goalkeeper,X,2000-01-01,\n";
+    const val =
+      "player_id,date,market_value_in_eur,current_club_name,current_club_id\n" +
+      "1,2025-01-01,50000000,C,1\n2,2025-01-01,40000000,C,1\n3,2025-01-01,30000000,C,1\n4,2025-01-01,20000000,C,1\n";
+    const { players } = parseTopPlayers(gz(val), gz(pla));
+    const pos = players.map((p: any) => p.position);
+    expect(pos).toContain("FW");
+    expect(pos).toContain("DF");
+    expect(pos).toContain("MF");
+    expect(pos).toContain("GK");
+  });
+
+  it("容错：空 / 损坏 gz 不炸", () => {
+    expect(parseTopPlayers(gz(""), gz(PLA_CSV)).ok).toBe(false);
+    expect(parseTopPlayers(gz(VAL_CSV), gz("")).ok).toBe(false);
+    expect(parseTopPlayers(Buffer.from("not-gzip"), gz(PLA_CSV)).ok).toBe(false);
+  });
+
+  it("无身价记录的球员被跳过（join 内连接）", () => {
+    const pla =
+      "player_id,name,position,country_of_citizenship,date_of_birth,image_url\n" +
+      "1,HasVal,Attack,X,2000-01-01,\n2,NoVal,Attack,X,2000-01-01,\n";
+    const val = "player_id,date,market_value_in_eur,current_club_name,current_club_id\n1,2025-01-01,50000000,C,1\n";
+    const { count, players } = parseTopPlayers(gz(val), gz(pla));
     expect(count).toBe(1);
-    expect(players[0]).toMatchObject({
-      id: "914562",
-      name: "Désiré Doué",
-      position: "FW", // Right Winger → FW
-      valueEur: 120000000,
-      valueLabel: "€120m",
-      portraitUrl: "https://img.example/914562.jpg",
-    });
+    expect(players[0].name).toBe("HasVal");
   });
 
-  it("真实位置值全部正确归类", () => {
-    const map = {
-      "Right Winger": "FW",
-      "Centre-Forward": "FW",
-      "Attacking Midfield": "MF",
-      "Central Midfield": "MF",
-      "Left Winger": "FW",
-      "Defensive Midfield": "MF",
-      "Centre-Back": "DF",
-      "Left-Back": "DF",
-      "Right-Back": "DF",
-      Goalkeeper: "GK",
-    };
-    for (const [raw, expected] of Object.entries(map)) {
-      expect(normalizePosition(raw)).toBe(expected);
-    }
-  });
-
-  it("容错：空 / 缺字段不炸", () => {
-    expect(parseTopPlayers(null).ok).toBe(false);
-    expect(parseTopPlayers({ players: [] }).ok).toBe(false);
-    expect(parseTopPlayers({ players: [null, { name: "X" }] }).count).toBe(1);
-  });
-
-  it("上游重复返回同一球员（分页复读）→ 按 id 去重，保留首次(最小 rank)", () => {
-    const raw = {
-      players: [
-        { id: "1", rank: 1, name: "Yamal", position: "Right Winger", age: 19, club: "FC Barcelona", nationality: "Spain", market_value_euros: 220000000 },
-        { id: "2", rank: 2, name: "Haaland", position: "Attack", age: 26, club: "Manchester City", nationality: "Norway", market_value_euros: 220000000 },
-        { id: "1", rank: 101, name: "Yamal", position: "Right Winger", age: 19, club: "FC Barcelona", nationality: "Spain", market_value_euros: 220000000 },
-        { id: "2", rank: 102, name: "Haaland", position: "Attack", age: 26, club: "Manchester City", nationality: "Norway", market_value_euros: 220000000 },
-        { id: "1", rank: 201, name: "Yamal", position: "Right Winger", age: 19, club: "FC Barcelona", nationality: "Spain", market_value_euros: 220000000 },
-      ],
-    };
-    const { ok, players, count } = parseTopPlayers(raw);
-    expect(ok).toBe(true);
+  it("limit 限制返回数 + 按身价降序", () => {
+    const pla =
+      "player_id,name,position,country_of_citizenship,date_of_birth,image_url\n" +
+      "1,A,Attack,X,2000-01-01,\n2,B,Attack,X,2000-01-01,\n3,C,Attack,X,2000-01-01,\n";
+    const val =
+      "player_id,date,market_value_in_eur,current_club_name,current_club_id\n" +
+      "1,2025-01-01,30000000,C,1\n2,2025-01-01,100000000,C,1\n3,2025-01-01,50000000,C,1\n";
+    const { players, count } = parseTopPlayers(gz(val), gz(pla), { limit: 2 });
     expect(count).toBe(2);
-    expect(players.map((p: any) => p.id)).toEqual(["1", "2"]);
-    // 保留首次出现（rank=1/2，非 101/102/201）
-    expect(players[0].rank).toBe(1);
-    expect(players[1].rank).toBe(2);
-  });
-
-  it("去重退化：无 id 时按归一 name 去重（大小写不敏感）", () => {
-    const raw = {
-      players: [
-        { rank: 1, name: "Player A", position: "FW", market_value_euros: 50000000 },
-        { rank: 2, name: "Player B", position: "MF", market_value_euros: 40000000 },
-        { rank: 3, name: "player a", position: "FW", market_value_euros: 55000000 },
-        { rank: 4, name: "Player B", position: "MF", market_value_euros: 40000000 },
-      ],
-    };
-    const { count, players } = parseTopPlayers(raw);
-    // "player a" 与 "Player A" 大小写不敏感去重 → 视为同一人；"Player B" 重复也去重
-    expect(count).toBe(2);
-    expect(players.map((p: any) => p.name)).toEqual(["Player A", "Player B"]);
-    // 保留首次出现（rank=1 和 rank=2）
-    expect(players[0].rank).toBe(1);
-    expect(players[1].rank).toBe(2);
+    expect(players[0].valueEur).toBe(100000000); // B 最高
+    expect(players[1].valueEur).toBe(50000000); // C 次之
   });
 });
 

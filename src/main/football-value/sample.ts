@@ -1,7 +1,7 @@
 /**
  * src/main/football-value/sample.ts
  *
- * 兜底：当 parse.bot 无 key / 请求失败时，用内置 sample 填充，保证 UI 不空白。
+ * 兜底：当 dcaribou R2 拉取失败时，用内置 sample 填充，保证 UI 不空白。
  * 每条 source:'sample'（renderer 显示"示例"徽标）。
  *
  * 数据是 2026-08 的贴近真实快照（Transfermarkt 口径，整数欧元），仅用于演示与布局，非实时。

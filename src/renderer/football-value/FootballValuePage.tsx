@@ -104,7 +104,7 @@ function heatPct(p: any): number {
   return Math.max(4, Math.round((val(p) / m) * 100));
 }
 // HTML 转义:外部球员/俱乐部/联赛名进 dangerouslySetInnerHTML 前必须转义,
-// 防止名字含 <img onerror> 等标签的注入(数据来自 parse.bot API)。
+// 防止名字含 <img onerror> 等标签的注入(数据来自 dcaribou R2 CSV)。
 function esc(s: any): string {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;")
@@ -820,7 +820,7 @@ export function FootballValuePage() {
       )}
 
       <div class="football-footnote">
-        数据来源：Transfermarkt（经 parse.bot API）· 身价为市场估值，非实时交易价 · 季度级更新，采集时间见顶部信任条
+        数据来源：Transfermarkt（经 dcaribou/transfermarkt-datasets 公开数据集）· 身价为市场估值，非实时交易价 · 采集时间见顶部信任条
       </div>
 
       <PlayerDrawer id={drawerId} onClose={() => setDrawerId(null)} onNavigate={setDrawerId} />

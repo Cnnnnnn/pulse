@@ -40,7 +40,7 @@ export function registerFootballValueScheduler(deps: any = {}): any {
   function start() {
     if (_handle) return;
     try {
-      // ponytail: 一次性 30-90 min jitter, 避免跟所有 Pulse 用户同一 UTC 时间点叠峰打 parse.bot
+      // ponytail: 一次性 30-90 min jitter, 避免跟所有 Pulse 用户同一 UTC 时间点叠峰打 R2 CDN
       const firstDelayMs = 30 * 60 * 1000 + Math.floor(Math.random() * 60 * 60 * 1000);
       setTimeout(() => triggerNow().catch(() => {}), firstDelayMs);
       mainLog.info(
