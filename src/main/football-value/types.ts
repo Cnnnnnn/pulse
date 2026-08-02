@@ -9,11 +9,17 @@
  */
 "use strict";
 
+import type { Player, Position, SourceKind } from "../../shared/football-value-types";
+
 /** 数据来源标记。 */
-export const SOURCE: Record<string, string> = { LIVE: "live", SAMPLE: "sample", CACHE: "cache" };
+export const SOURCE: Record<"LIVE" | "SAMPLE" | "CACHE", SourceKind> = {
+  LIVE: "live",
+  SAMPLE: "sample",
+  CACHE: "cache",
+};
 
 /** 位置归一化映射：原始 position（dcaribou Attack/Defender/Midfield/Goalkeeper）→ 标准四类。 */
-export const POSITION_META: Record<string, any> = {
+export const POSITION_META: Record<Position, { label: string; order: number }> = {
   GK: { label: "门将", order: 0 },
   DF: { label: "后卫", order: 1 },
   MF: { label: "中场", order: 2 },
@@ -60,12 +66,13 @@ export const POSITION_ALIASES: Record<string, string> = {
  * @param raw
  * @returns {string|null}
  */
-export function normalizePosition(raw: any): string | null {
+export function normalizePosition(raw: any): Position | null {
   if (!raw) return null;
   const s = String(raw).toLowerCase().trim();
   if (!s) return null;
-  if (POSITION_META[s]) return s;
-  if (POSITION_ALIASES[s]) return POSITION_ALIASES[s];
+  if (POSITION_META[s as Position]) return s as Position;
+  const alias = POSITION_ALIASES[s];
+  if (alias) return alias as Position;
   // 兜底：短语模糊匹配（如 "Centre Back" / "Right-Back" 含 back → DF）
   if (s.includes("back") || s.includes("defen") || s.includes("defence")) return "DF";
   if (s.includes("wing") || s.includes("striker") || s.includes("forward") || s.includes("attack")) return "FW";
@@ -86,17 +93,16 @@ export function formatValueEur(v: any): string {
 
 /**
  * 构造一条规范化的 Player（缺字段补安全默认，避免 renderer 解构炸）。
- * @param raw
- * @returns {object}
+ * raw 仍为 any（输入边界：parser 喂的 CSV 字段形状不定）。
  */
-export function toPlayer(raw: any): any {
+export function toPlayer(raw: any): Player {
   const r = raw || {};
   const position = normalizePosition(r.position);
   const valueEur = Number(r.valueEur);
   return {
     id: r.id != null ? String(r.id) : "",
     name: String(r.name || "未知球员"),
-    position: position || "MF", // 兜底中场，避免筛选全空
+    position: (position || "MF") as Position, // 兜底中场，避免筛选全空
     age: Number.isFinite(Number(r.age)) ? Number(r.age) : null,
     club: r.club != null ? String(r.club) : "",
     league: r.league != null ? String(r.league) : null,

@@ -57,6 +57,7 @@ import {
   VALUE_BANDS,
 } from "./footballValueStore.ts";
 import { POSITION_META, POSITION_KEYS } from "./types.ts";
+import type { Player } from "../../shared/football-value-types.ts";
 
 /* ── 工具 ── */
 function fmtTime(iso: any) {
@@ -96,10 +97,10 @@ function posColorStyle(pos: string): string {
   const v = `--football-pos-${pos.toLowerCase()}`;
   return `background:color-mix(in oklch, var(${v}) 16%, transparent);color:var(${v})`;
 }
-function val(p: any): number {
+function val(p: Player): number {
   return Number(p && p.valueEur) || 0;
 }
-function heatPct(p: any): number {
+function heatPct(p: Player): number {
   const m = maxValueEur.value || 1;
   return Math.max(4, Math.round((val(p) / m) * 100));
 }
@@ -298,7 +299,7 @@ function Summary({ onClearSearch }: { onClearSearch: () => void }) {
 }
 
 /* ── 领奖台 ── */
-function Podium({ list, onOpen }: { list: any[]; onOpen: (id: string) => void }) {
+function Podium({ list, onOpen }: { list: Player[]; onOpen: (id: string) => void }) {
   const q = (searchQuery.value || "").trim();
   const shown =
     !q &&
@@ -355,7 +356,7 @@ function Podium({ list, onOpen }: { list: any[]; onOpen: (id: string) => void })
 }
 
 /* ── 表格行 ── */
-function PlayerRow({ p, rank, q, onOpen }: { p: any; rank: number; q: string; onOpen: (id: string) => void }) {
+function PlayerRow({ p, rank, q, onOpen }: { p: Player; rank: number; q: string; onOpen: (id: string) => void }) {
   const top3 = rank <= 3;
   const medalColor = ["", "var(--football-medal-gold)", "var(--football-medal-silver)", "var(--football-medal-bronze)"][rank];
   const star = val(p) >= 150e6 ? <span class="football-star">★ TOP</span> : null;
@@ -772,14 +773,14 @@ export function FootballValuePage() {
               </tr>
             </thead>
             <tbody>
-              {list.map((p: any, i: number) => (
+              {list.map((p: Player, i: number) => (
                 <PlayerRow key={`${p.id || p.name}#${i}`} p={p} rank={i + 1} q={q} onOpen={setDrawerId} />
               ))}
             </tbody>
           </table>
 
           <div class="football-cards">
-            {list.map((p: any, i: number) => {
+            {list.map((p: Player, i: number) => {
               return (
                 <button type="button" class="football-card" key={`${p.id || p.name}#${i}`} onClick={() => setDrawerId(p.id)}>
                   <span class="football-card-rank">{i + 1}</span>

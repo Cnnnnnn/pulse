@@ -11,6 +11,7 @@
 import { signal, batch } from "@preact/signals";
 import { api } from "../api.ts";
 import { POSITION_KEYS, POSITION_META } from "./types.ts";
+import type { BoardResult, Player, Position, SourceKind } from "../../shared/football-value-types.ts";
 
 /* ── 身价区间（热度分桶）── */
 export const VALUE_BANDS = [
@@ -19,54 +20,65 @@ export const VALUE_BANDS = [
   { key: "b50", label: "€50–100M", test: (v: number) => v >= 50e6 && v < 100e6 },
   { key: "b0", label: "<€50M", test: (v: number) => v < 50e6 },
 ];
-export function bandOf(eur: any): string {
+export function bandOf(eur: number): string {
   const v = Number(eur) || 0;
   for (const b of VALUE_BANDS) if (b.test(v)) return b.key;
   return "b0";
 }
 
 /* ── 数据态 ── */
-export const players = signal([]);
+export const players = signal<Player[]>([]);
 /** 初次加载（展示骨架屏）。 */
 export const loading = signal(false);
 /** 后台刷新（保留旧数据，仅按钮转圈）。 */
 export const refreshing = signal(false);
-export const error = signal(null); // string | null
-export const source = signal(null); // "live" | "cache" | "sample"
+export const error = signal<string | null>(null);
+export const source = signal<SourceKind | null>(null);
 export const stale = signal(false);
 export const fromCache = signal(false);
 export const isSample = signal(false);
-export const fetchedAt = signal(null);
+export const fetchedAt = signal<string | null>(null);
 /** 部分源失败明细（norm.ok 但 errors.length>0 → 部分态）。 */
-export const errors = signal([]);
+export const errors = signal<string[]>([]);
 /** 全榜峰值（热度条基线，过滤后不变），加载后计算。 */
 export const maxValueEur = signal(0);
 
 /* ── 筛选 / 排序态 ── */
 /** 位置多选集合。 */
-export const activePositions = signal(new Set());
+export const activePositions = signal<Set<Position>>(new Set());
 /** 联赛："all" 或具体联赛名。 */
 export const activeLeague = signal("all");
 /** 身价区间多选集合（VALUE_BANDS 键）。 */
-export const activeBands = signal(new Set());
-/** 排序键：value | delta | age | name。 */
-export const sortKey = signal("value");
+export const activeBands = signal<Set<string>>(new Set());
+/** 排序键：value | age | name。 */
+export const sortKey = signal<"value" | "age" | "name">("value");
 /** 排序方向：'asc' | 'desc' | null（null = 无排序，默认按身价降序）。 */
-export const sortDir = signal("desc");
+export const sortDir = signal<"asc" | "desc" | null>("desc");
 /** 搜索词（球员名 / 俱乐部 / 联赛 / 国籍）。 */
 export const searchQuery = signal("");
 
 let _reqToken = 0;
 
-/** 归一化主进程返回的 board result（容错 + 兜底去重）。 */
-export function normalizeBoardResult(res: any): any {
+/** 归一化主进程返回的 board result（容错 + 兜底去重）。res 为 any（IPC 边界）。 */
+export function normalizeBoardResult(res: any): {
+  ok: boolean;
+  players: Player[];
+  count: number;
+  source: SourceKind | null;
+  stale: boolean;
+  fromCache: boolean;
+  isSample: boolean;
+  fetchedAt: string | null;
+  errors: string[];
+  error: string | null;
+} {
   const r = res && typeof res === "object" ? res : {};
-  let list = Array.isArray(r.players) ? r.players : [];
+  let list: Player[] = Array.isArray(r.players) ? r.players : [];
   // 纵深防御：若上游 parser 未去重（或新数据源引入重复），renderer 侧兜底按 id 去重。
   // 保留首次出现（最小 rank），与 parser.ts seen 逻辑一致。
   if (list.length > 1) {
     const seen = new Set<string>();
-    const deduped: any[] = [];
+    const deduped: Player[] = [];
     for (const p of list) {
       if (!p) continue;
       const dk = p.id || `name:${String(p.name || "").trim().toLowerCase()}`;
@@ -80,7 +92,7 @@ export function normalizeBoardResult(res: any): any {
     ok: Boolean(r.ok) || list.length > 0,
     players: list,
     count: Array.isArray(r.players) ? r.players.length : 0,
-    source: typeof r.source === "string" ? r.source : null,
+    source: typeof r.source === "string" ? (r.source as SourceKind) : null,
     stale: Boolean(r.stale),
     fromCache: Boolean(r.fromCache),
     isSample: Boolean(r.isSample),
@@ -90,7 +102,7 @@ export function normalizeBoardResult(res: any): any {
   };
 }
 
-function computeMax(list: any[]) {
+function computeMax(list: Player[]): number {
   let m = 0;
   for (const p of list) {
     const v = Number(p && p.valueEur) || 0;
@@ -235,20 +247,20 @@ function _filterExcept(except: "positions" | "league" | "bands" | "none") {
   let list = Array.isArray(players.value) ? players.value : [];
   const q = (searchQuery.value || "").trim().toLowerCase();
   if (q) {
-    list = list.filter((p: any) => {
+    list = list.filter((p: Player) => {
       if (!p) return false;
       const hay = [p.name, p.club, p.nationality, p.league].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(q);
     });
   }
   if (except !== "league" && activeLeague.value !== "all") {
-    list = list.filter((p: any) => p && p.league === activeLeague.value);
+    list = list.filter((p: Player) => p && p.league === activeLeague.value);
   }
   if (except !== "positions" && activePositions.value.size) {
-    list = list.filter((p: any) => p && activePositions.value.has(p.position));
+    list = list.filter((p: Player) => p && activePositions.value.has(p.position));
   }
   if (except !== "bands" && activeBands.value.size) {
-    list = list.filter((p: any) => p && activeBands.value.has(bandOf(p.valueEur)));
+    list = list.filter((p: Player) => p && activeBands.value.has(bandOf(p.valueEur)));
   }
   return list;
 }
@@ -257,7 +269,7 @@ function _filterExcept(except: "positions" | "league" | "bands" | "none") {
 export function positionCounts(): Record<string, number> {
   const base = _filterExcept("positions");
   const out: Record<string, number> = {};
-  for (const k of POSITION_KEYS) out[k] = base.filter((p: any) => p.position === k).length;
+  for (const k of POSITION_KEYS) out[k] = base.filter((p: Player) => p.position === k).length;
   return out;
 }
 
@@ -277,7 +289,7 @@ export function leagueCounts(): Record<string, number> {
 export function bandCounts(): Record<string, number> {
   const base = _filterExcept("bands");
   const out: Record<string, number> = {};
-  for (const b of VALUE_BANDS) out[b.key] = base.filter((p: any) => bandOf(p.valueEur) === b.key).length;
+  for (const b of VALUE_BANDS) out[b.key] = base.filter((p: Player) => bandOf(p.valueEur) === b.key).length;
   return out;
 }
 
@@ -291,25 +303,25 @@ export function leagueOptions(): string[] {
 }
 
 /* ── 排序 ── */
-function _val(p: any) {
+function _val(p: Player) {
   return Number(p && p.valueEur) || 0;
 }
 
-export function sortDisplayed(list: any[]): any[] {
+export function sortDisplayed(list: Player[]): Player[] {
   const k = sortKey.value;
   const d = sortDir.value;
   const out = (Array.isArray(list) ? list : []).slice();
   if (!d) {
-    out.sort((a: any, b: any) => _val(b) - _val(a));
+    out.sort((a: Player, b: Player) => _val(b) - _val(a));
     return out;
   }
-  const score = (p: any): number | string => {
+  const score = (p: Player): number | string => {
     if (k === "value") return _val(p);
     if (k === "age") return Number(p && p.age) || 0;
     if (k === "name") return String((p && p.name) || "").toLowerCase();
     return _val(p);
   };
-  out.sort((a: any, b: any) => {
+  out.sort((a: Player, b: Player) => {
     let cmp: number;
     if (k === "name") cmp = String(score(a)).localeCompare(String(score(b)));
     else {
@@ -324,7 +336,7 @@ export function sortDisplayed(list: any[]): any[] {
 }
 
 /** 当前筛选+排序后的展示列表。 */
-export function getDisplayed(): any[] {
+export function getDisplayed(): Player[] {
   if (!Array.isArray(players.value) || players.value.length === 0) return [];
   return sortDisplayed(_filterExcept("none"));
 }

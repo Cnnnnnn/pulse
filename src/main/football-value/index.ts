@@ -21,6 +21,7 @@ import { parseTopPlayers } from "./parser";
 import { getSamplePlayers } from "./sample";
 import { SOURCE } from "./types";
 import { registerFootballValueScheduler } from "./scheduler";
+import type { BoardResult, HttpClientLike, Player, SourceKind } from "../../shared/football-value-types";
 
 /**
  * 身价低频数据：3 天 TTL（Transfermarkt 季度级更新）。手动刷新 + TTL 节流。
@@ -38,13 +39,17 @@ function errMsg(err: unknown): string {
 // prevValueEur 字段不再使用。parser 的 prevByPlayer 入参也不再传入。
 
 /**
- * 聚合入口。对外契约：
- *   { ok, players, source: 'live'|'cache'|'sample', fetchedAt, stale,
- *     count, attribution, errors, isSample }
- * @param deps { force?: boolean, httpClient?: object }
- * @returns {Promise<object>}
+/** getFootballValueBoard 的 deps 形状。 */
+interface BoardDeps {
+  force?: boolean;
+  httpClient?: HttpClientLike;
+  timeoutMs?: number;
+}
+
+/**
+ * 聚合入口。对外契约见 BoardResult（shared/football-value-types.ts）。
  */
-export async function getFootballValueBoard(deps: any = {}): Promise<any> {
+export async function getFootballValueBoard(deps: BoardDeps = {}): Promise<BoardResult> {
   const key = cacheKey(BOARD);
   const force = Boolean(deps.force);
   const errors: string[] = [];
@@ -107,11 +112,11 @@ export async function getFootballValueBoard(deps: any = {}): Promise<any> {
 }
 
 function boardPayload(
-  players: any[],
-  source: string,
+  players: Player[],
+  source: SourceKind,
   fetchedAtMs: number,
-  extra: any = {},
-): any {
+  extra: { stale?: boolean; errors?: string[]; isSample?: boolean } = {},
+): BoardResult {
   return {
     ok: true,
     players,

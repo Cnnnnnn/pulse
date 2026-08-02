@@ -15,9 +15,10 @@
 
 import * as zlib from "zlib";
 import { toPlayer } from "./types";
+import type { ParseResult, Position } from "../../shared/football-value-types";
 
 /** 位置归一：dcaribou 用 Attack/Defender/Midfield/Goalkeeper → TM 四类。 */
-function normPositionDC(raw: any): string {
+function normPositionDC(raw: any): Position {
   const s = String(raw || "").toLowerCase();
   if (!s) return "MF";
   if (s.includes("goal") || s.includes("keep")) return "GK";
@@ -74,18 +75,23 @@ function parseCSV(text: string): string[][] {
   return rows;
 }
 
+/** parseTopPlayers 的 opts 形状。 */
+interface ParseOpts {
+  isSample?: boolean;
+  limit?: number;
+}
+
 /**
  * 解析 dcaribou 两份 CSV.gz → Player[]（Top 500 身价降序）。
  * @param valuationsCsvGz Buffer（player_valuations.csv.gz）
  * @param playersCsvGz Buffer（players.csv.gz）
  * @param opts { isSample?: boolean, limit?: number }
- * @returns {{ players: object[], ok: boolean, count: number }}
  */
 export function parseTopPlayers(
   valuationsCsvGz: Buffer | string,
   playersCsvGz: Buffer | string,
-  opts: any = {},
-): any {
+  opts: ParseOpts = {},
+): ParseResult {
   const limit = Number(opts.limit) > 0 ? Number(opts.limit) : 500;
   const errors: string[] = [];
 
@@ -152,7 +158,7 @@ export function parseTopPlayers(
     idx[k] = header.indexOf(k);
   }
 
-  const players: any[] = [];
+  const players: import("../../shared/football-value-types").Player[] = [];
   for (let i = 1; i < plaRows.length; i++) {
     const r = plaRows[i];
     const pid = idx.player_id >= 0 ? r[idx.player_id] : "";
@@ -196,7 +202,7 @@ export function parseTopPlayers(
   // 4) 按身价降序 + 去重（同 id 保留身价最高）+ Top N
   players.sort((a, b) => (Number(b.valueEur) || 0) - (Number(a.valueEur) || 0));
   const seen = new Set<string>();
-  const deduped: any[] = [];
+  const deduped: import("../../shared/football-value-types").Player[] = [];
   for (const p of players) {
     if (seen.has(p.id)) continue;
     seen.add(p.id);
