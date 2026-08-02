@@ -7,7 +7,7 @@
  *   → 部分源失败横幅
  *   → 控制条(位置多选 / 联赛 / 身价区间多选 / 排序)
  *   → 筛选摘要 token
- *   → 领奖台(Podium，条件渲染)
+ *   → 最贵 XI 阵容(BestXI，4-3-3 足球场布局，条件渲染)
  *   → 表格(可排序表头 + 热度条 + 位置色) / <720px 卡片列表
  *   → 脚注
  *   → 右侧详情抽屉(DrawerShell + 焦点陷阱 + 前后导航 + 同位置参照)
@@ -55,8 +55,11 @@ import {
   isPartial,
   hasActiveFilters,
   VALUE_BANDS,
+  buildBestXI,
+  bestXITotalValue,
+  FORMATION_433,
 } from "./footballValueStore.ts";
-import { POSITION_META, POSITION_KEYS } from "./types.ts";
+import { POSITION_META, POSITION_KEYS, formatValueEur } from "./types.ts";
 import type { Player } from "../../shared/football-value-types.ts";
 
 /* ── 工具 ── */
@@ -298,8 +301,8 @@ function Summary({ onClearSearch }: { onClearSearch: () => void }) {
   );
 }
 
-/* ── 领奖台 ── */
-function Podium({ list, onOpen }: { list: Player[]; onOpen: (id: string) => void }) {
+/* ── 最贵 XI 阵容（4-3-3 足球场布局，招牌视图）── */
+function BestXI({ list, onOpen }: { list: Player[]; onOpen: (id: string) => void }) {
   const q = (searchQuery.value || "").trim();
   const shown =
     !q &&
@@ -309,47 +312,54 @@ function Podium({ list, onOpen }: { list: Player[]; onOpen: (id: string) => void
     list.length >= 6 &&
     sortDir.value !== "asc";
   if (!shown) return null;
-  const top3 = list.slice(0, 3);
-  const useMedal = sortKey.value === "value";
-  const order = [1, 0, 2]; // 视觉序 2-1-3
+
+  const xi = buildBestXI(list);
+  const total = bestXITotalValue(xi);
+  const filled = xi.flat().filter((p) => p).length;
+
   return (
-    <div class="football-podium-wrap">
-      <div class="football-podium-title">
-        身价领奖台 <span>{useMedal ? "按当前市场估值排序" : "当前排序下的前三名"}</span>
+    <div class="football-xi-wrap">
+      <div class="football-xi-title">
+        世界最贵 XI <span>4-3-3 · 总身价 {formatValueEur(total)} · {filled}/11</span>
       </div>
-      <div class="football-podium">
-        {order.map((idx) => {
-          const p = top3[idx];
-          const place = idx + 1;
-          const rank = list.indexOf(p) + 1;
-          const badge = useMedal
-            ? `<span class="football-medal" data-medal="${place}">${place}</span>`
-            : `<span class="football-medal" data-medal="n">#${rank}</span>`;
-          return (
-            <div
-              class="football-pod-card"
-              data-place={place}
-              role="button"
-              tabIndex={0}
-              aria-label={`查看 ${p.name} 详情`}
-              onClick={() => onOpen(p.id)}
-              onKeyDown={(e: any) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onOpen(p.id);
-                }
-              }}
-              dangerouslySetInnerHTML={{
-                __html:
-                  badge +
-                  `<div class="football-pod-avatar" style="${posColorStyle(p.position)}">${esc(initials(p.name))}</div>` +
-                  `<div class="football-pod-name">${hl(p.name, q)}</div>` +
-                  `<div class="football-pod-meta">${esc(p.position)} · ${esc(p.club) || "—"}</div>` +
-                  `<div class="football-pod-value">${esc(p.valueLabel) || "—"}</div>`,
-              }}
-            />
-          );
-        })}
+      <div class="football-xi-pitch">
+        {xi.map((line, lineIdx) => (
+          <div class="football-xi-line" key={lineIdx} data-line={FORMATION_433[lineIdx].pos}>
+            {line.map((p, slotIdx) => {
+              if (!p) {
+                return (
+                  <div class="football-xi-slot football-xi-empty" key={slotIdx}>
+                    <span class="football-xi-avatar football-xi-avatar-empty">—</span>
+                    <span class="football-xi-name">空缺</span>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  class="football-xi-slot"
+                  key={slotIdx}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`查看 ${p.name} 详情`}
+                  onClick={() => onOpen(p.id)}
+                  onKeyDown={(e: any) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onOpen(p.id);
+                    }
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      `<div class="football-xi-avatar" style="${posColorStyle(p.position)}">${esc(initials(p.name))}</div>` +
+                      `<div class="football-xi-name">${hl(p.name, q)}</div>` +
+                      `<div class="football-xi-meta">${esc(p.club) || "—"}</div>` +
+                      `<div class="football-xi-value">${esc(p.valueLabel) || "—"}</div>`,
+                  }}
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -709,7 +719,7 @@ export function FootballValuePage() {
         <>
           <Controls onClearSearch={clearSearch} />
           <Summary onClearSearch={clearSearch} />
-          <Podium list={list} onOpen={setDrawerId} />
+          <BestXI list={list} onOpen={setDrawerId} />
         </>
       )}
 

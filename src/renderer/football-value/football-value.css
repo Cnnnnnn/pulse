@@ -437,6 +437,137 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── 最贵 XI 阵容（4-3-3 足球场布局）── */
+.football-xi-wrap {
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.football-xi-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary, inherit);
+}
+.football-xi-title span {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-tertiary, inherit);
+}
+.football-xi-pitch {
+  /* 足球场背景：绿茵 + 中线 + 罚区暗示 */
+  background:
+    radial-gradient(ellipse at center, color-mix(in oklch, var(--football-pitch, oklch(45% 0.13 145)) 22%, transparent 70%), transparent),
+    linear-gradient(180deg, color-mix(in oklch, var(--football-pitch, oklch(45% 0.13 145)) 18%, transparent) 0%, transparent 100%);
+  border: 1px solid color-mix(in oklch, var(--football-pitch, oklch(45% 0.13 145)) 35%, transparent);
+  border-radius: 10px;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.football-xi-line {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 64px;
+}
+.football-xi-line[data-line="GK"] {
+  justify-content: center;
+}
+.football-xi-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  flex: 1 1 0;
+  max-width: 120px;
+  padding: 4px 2px;
+  border-radius: 8px;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.football-xi-slot:hover {
+  transform: translateY(-2px);
+  background: color-mix(in oklch, var(--football-pitch, oklch(45% 0.13 145)) 12%, transparent);
+}
+.football-xi-empty {
+  cursor: default;
+  opacity: 0.5;
+}
+.football-xi-empty:hover {
+  transform: none;
+  background: transparent;
+}
+.football-xi-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  border: 2px solid color-mix(in oklch, white 25%, transparent);
+  flex-shrink: 0;
+}
+.football-xi-avatar-empty {
+  background: color-mix(in oklch, var(--text-tertiary, gray) 30%, transparent);
+  color: var(--text-tertiary, gray);
+  font-size: 16px;
+}
+.football-xi-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.football-xi-name mark {
+  background: color-mix(in oklch, var(--accent-primary, #4a9) 70%, transparent);
+  color: #fff;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.football-xi-meta {
+  font-size: 10px;
+  color: color-mix(in oklch, white 70%, transparent);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.football-xi-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+@media (max-width: 720px) {
+  .football-xi-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 11px;
+  }
+  .football-xi-name {
+    font-size: 10px;
+  }
+  .football-xi-meta {
+    display: none;
+  }
+}
+
 /* ── 表格 ── */
 .football-board {
   flex: 1;

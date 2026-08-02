@@ -360,3 +360,51 @@ export function hasActiveFilters() {
     (searchQuery.value || "").trim() !== ""
   );
 }
+
+/* ── 最贵 XI 阵容（4-3-3，招牌视图）── */
+
+/** 4-3-3 阵型：从后到前 [GK] / [DF×4] / [MF×3] / [FW×3]。 */
+export const FORMATION_433: { pos: Position; count: number; label: string }[] = [
+  { pos: "FW", count: 3, label: "前锋" },
+  { pos: "MF", count: 3, label: "中场" },
+  { pos: "DF", count: 4, label: "后卫" },
+  { pos: "GK", count: 1, label: "门将" },
+];
+
+/**
+ * 从 list 贪心选最贵 XI（4-3-3）：每个位置取剩余球员中身价最高的。
+ * 一名球员只能占一个位置（不重复）。缺位时该槽为 null（UI 显示空位）。
+ * @param list 已排序或未排序的球员（内部按 valueEur 降序处理）
+ * @returns 按阵型行（FW→MF→DF→GK，自上而下）的 (Player|null) 槽
+ */
+export function buildBestXI(list: Player[]): (Player | null)[][] {
+  const pool = (Array.isArray(list) ? list : [])
+    .filter((p) => p && Number(p.valueEur) > 0)
+    .slice()
+    .sort((a, b) => Number(b.valueEur) - Number(a.valueEur));
+  const used = new Set<string>();
+  return FORMATION_433.map((line) => {
+    const slots: (Player | null)[] = [];
+    for (let i = 0; i < line.count; i++) {
+      const pick = pool.find((p) => !used.has(p.id) && p.position === line.pos);
+      if (pick) {
+        used.add(pick.id);
+        slots.push(pick);
+      } else {
+        slots.push(null); // 缺位
+      }
+    }
+    return slots;
+  });
+}
+
+/** 最贵 XI 总身价（所有非空槽 valueEur 之和）。 */
+export function bestXITotalValue(xi: (Player | null)[][]): number {
+  let sum = 0;
+  for (const line of xi) {
+    for (const p of line) {
+      if (p) sum += Number(p.valueEur) || 0;
+    }
+  }
+  return sum;
+}
