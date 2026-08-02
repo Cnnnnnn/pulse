@@ -45,8 +45,9 @@ describe('HomeGrid navStore 集成路径', () => {
 // 验证 hero / tile / SVG icon / accent class / aria-label 都在.
 // v6 (2026-07-13): 合并 funds + metals + stocks → 'invest' tile.
 // v7 (2026-07-16): + github tile → 6.
+// v8 (2026-08-02): + football-value tile → 9.
 describe('HomeGrid v2 — 渲染契约', () => {
-  it('渲染出 hero (品牌 mark + greeting + 时间 + 8 模块 meta)', async () => {
+  it('渲染出 hero (品牌 mark + greeting + 时间 + 9 模块 meta)', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
@@ -56,23 +57,23 @@ describe('HomeGrid v2 — 渲染契约', () => {
     expect(container.querySelector('.home-hero-greeting')).toBeTruthy();
     expect(container.querySelector('.home-hero-time')).toBeTruthy();
     expect(container.querySelector('.home-hero-date')).toBeTruthy();
-    expect(container.querySelector('.home-hero-meta')?.textContent).toContain('8');
+    expect(container.querySelector('.home-hero-meta')?.textContent).toContain('9');
   });
 
-  it('渲染 8 个 tile, 全部带 home-grid-tile-accent class', async () => {
+  it('渲染 9 个 tile, 全部带 home-grid-tile-accent class', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
 
     const tiles = container.querySelectorAll('.home-grid-tile');
-    expect(tiles.length).toBe(8);
+    expect(tiles.length).toBe(9);
     const accents = new Set();
     tiles.forEach((t) => {
       const m = t.className.match(/home-grid-tile-(\w+)/);
       if (m) accents.add(m[1]);
     });
     accents.delete('tile'); // base class 名字
-    expect(accents.size).toBe(8);
+    expect(accents.size).toBe(9);
   });
 
   it('每个 tile 都有 SVG icon (不再用 emoji)', async () => {
@@ -122,14 +123,14 @@ describe('HomeGrid v2 — 渲染契约', () => {
 
 // v3 (2026-07-10): 6 项完善. 每个加 1-2 个真测试.
 describe('HomeGrid v3 — 视觉/交互完善', () => {
-  it('A2: 副标题尾部有 ⌘1-6 快捷键提示', async () => {
+  it('A2: 副标题尾部有 ⌘1-9 快捷键提示', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
     const kbdHints = container.querySelectorAll('.home-grid-tile-kbd');
-    expect(kbdHints.length).toBe(8);
+    expect(kbdHints.length).toBe(9);
     expect(kbdHints[0].textContent).toBe('⌘1');
-    expect(kbdHints[7].textContent).toBe('⌘8');
+    expect(kbdHints[8].textContent).toBe('⌘9');
   });
 
   it('A14: 挂载后 root 加 home-grid-mounted class (cascade 触发)', async () => {
@@ -273,12 +274,12 @@ describe('HomeGrid v4 — 功能完善', () => {
     ai.aiUsageNavBadge.value = 0;
   });
 
-  it('B10: 8 个 tile 都渲染 status 文本 (冷启动时多数为 "—")', async () => {
+  it('B10: 9 个 tile 都渲染 status 文本 (冷启动时多数为 "—")', async () => {
     const { render } = await import('@testing-library/preact');
     const { HomeGrid } = await import('../../src/renderer/components/HomeGrid.tsx');
     const { container } = render(<HomeGrid />);
     const statuses = container.querySelectorAll('.home-grid-tile-status');
-    expect(statuses.length).toBe(8);
+    expect(statuses.length).toBe(9);
   });
 
   it('B10: news 有今日文章 → status 显示 "今日 N 条 · M 热搜" 合并态', async () => {

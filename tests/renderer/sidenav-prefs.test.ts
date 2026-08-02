@@ -123,11 +123,11 @@ describe("sidenav-prefs", () => {
     };
     // 注: listVisible 不做 legacy alias/filter, 直接用 prefs.order/hidden.
     // order filter hidden → ["funds", "news", "versions"]
-    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 worldcup/invest/ai-usage/github/games/ai-leaderboard
+    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 worldcup/invest/ai-usage/github/games/ai-leaderboard/football-value
     //   (metals 在 hidden 不加, funds 不在 NAV_KEYS 也不加 — 但已经在 order 保留)
-    // 最终 Set: funds, news, versions, worldcup, invest, ai-usage, github, games, ai-leaderboard
+    // 最终 Set: funds, news, versions, worldcup, invest, ai-usage, github, games, ai-leaderboard, football-value
     expect(new Set(listVisible(p))).toEqual(
-      new Set(["funds", "news", "versions", "worldcup", "invest", "ai-usage", "github", "games", "ai-leaderboard"]),
+      new Set(["funds", "news", "versions", "worldcup", "invest", "ai-usage", "github", "games", "ai-leaderboard", "football-value"]),
     );
   });
 
@@ -141,16 +141,16 @@ describe("sidenav-prefs", () => {
   it("listVisible: prefs.order 短于 NAV_KEYS_LIST → 兜底追加漏掉的 known key (regression: 升级后已隐藏误报)", () => {
     const p = {
       version: 2,
-      order: ["news", "worldcup", "invest", "ai-usage", "versions"], // 老版本 order, 缺 github/games/ai-leaderboard
+      order: ["news", "worldcup", "invest", "ai-usage", "versions"], // 老版本 order, 缺 github/games/ai-leaderboard/football-value
       hidden: [],
       favorites: [],
     };
     const visible = listVisible(p);
-    // 5 个老 order 项 + 兜底 3 个 (github, games, ai-leaderboard) = 全部 NAV_KEYS_LIST.length
+    // 5 个老 order 项 + 兜底 4 个 (github, games, ai-leaderboard, football-value) = 全部 NAV_KEYS_LIST.length
     expect(visible).toHaveLength(NAV_KEYS_LIST.length);
     expect(new Set(visible)).toEqual(new Set(NAV_KEYS_LIST));
     // 兜底项必须在末尾
-    expect(visible).toEqual(["news", "worldcup", "invest", "ai-usage", "versions", "github", "games", "ai-leaderboard"]);
+    expect(visible).toEqual(["news", "worldcup", "invest", "ai-usage", "versions", "github", "games", "ai-leaderboard", "football-value"]);
   });
 
   it("listHidden: NAV_KEYS 中 prefs.hidden 标记的项 (按 NAV_KEYS 默认顺序)", () => {
@@ -237,7 +237,8 @@ describe("sidenav-prefs: reorderItems", () => {
 
   it("reorderItems: from → to 'before'", () => {
     // v4 2026-07-13: funds + metals + stocks 合并成 'invest' (8 顶级 nav + AI 榜单 v2.83).
-    const p0 = resetPrefs(); // [news, worldcup, invest, ai-usage, versions, github, games, ai-leaderboard]
+    // v8 2026-08-02: + football-value → 9.
+    const p0 = resetPrefs(); // [news, worldcup, invest, ai-usage, versions, github, games, ai-leaderboard, football-value]
     const p1 = reorderItems(p0, "news", "invest", "before");
     expect(p1.order).toEqual([
       "worldcup",
@@ -248,6 +249,7 @@ describe("sidenav-prefs: reorderItems", () => {
       "github",
       "games",
       "ai-leaderboard",
+      "football-value",
     ]);
   });
 
@@ -263,6 +265,7 @@ describe("sidenav-prefs: reorderItems", () => {
       "github",
       "games",
       "ai-leaderboard",
+      "football-value",
     ]);
   });
 
@@ -297,8 +300,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 8 个 nav key (+ AI 榜单 v2.83)", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(8);
+  it("DEFAULTS_FOR_TESTS: 9 个 nav key (+ AI 榜单 v2.83 + 球员身价 v2.8x)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(9);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

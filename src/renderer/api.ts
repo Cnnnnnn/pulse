@@ -258,6 +258,9 @@ export function createApi(overrides: Record<string, any> = {}): any {
   financeAggregate: pick(overrides, "financeAggregate"),
   onFinanceNewsUpdated: pick(overrides, "onFinanceNewsUpdated"),
   onFinanceQuotesUpdated: pick(overrides, "onFinanceQuotesUpdated"),
+  // 足球球员身价榜 (v2.8x): Transfermarkt 数据 (parse.bot)
+  footballValueGet: pick(overrides, "footballValueGet"),
+  footballValueRefresh: pick(overrides, "footballValueRefresh"),
   };
 }
 

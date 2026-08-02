@@ -2,6 +2,37 @@
 
 ---
 
+## v2.79.6 (⚽ 足球球员身价榜) — 2026-08-02
+
+**新模块 — 足球球员身价榜 (Transfermarkt/parse.bot)**:
+- 全球 Top 500 球员身价榜: 排名 / 球员 (头像+名字) / 位置 / 年龄 / 俱乐部 / 国籍 / 身价 / 涨跌
+- 数据源: parse.bot 的 `get_top_market_values` (Transfermarkt 数据, 一次返 500 人, 10 credits/次)
+  - API key 从 `.env` 读 `PARSE_BOT_API_KEY` (对齐 AA key 范式); 免费 tier 100 credits/月, 身价低频够用
+  - 无 key / 网络失败 → 回退最近磁盘快照 (stale) → 再失败内置 sample (UI 不空白)
+- 涨跌对比: 磁盘缓存按日期键, 读最近一份非今日快照算 ↑↓ 百分比 (△ 徽章绿涨红跌, 新上榜标 NEW)
+- 位置筛选: 全部 / 门将 / 后卫 / 中场 / 前锋 (chips + 计数); 搜索 (球员/俱乐部/国籍)
+- 低频调度: 每日一次同步 (30-90min jitter 预暖, 对齐 ai-leaderboard), 不学 funds 5min 状态机
+
+**架构 (对齐现有范式)**:
+- `src/main/football-value/` (types/parser/fetcher/cache/sample/index/scheduler) — 单源极简模式
+- IPC: `football-value:get` / `football-value:refresh` (5min 请求级缓存)
+- renderer: `src/renderer/football-value/` (Layout/Page/store/css) + 独立顶层 nav `football-value`
+- 接线 5 处: navStore / SideNav / LazyNavPanel / HomeGrid (tile amber) / api.ts
+
+**测试**:
+- `tests/football-value/main.test.ts` 15 个 case (parser 解析/prev 对照/真实响应壳 `{status,data:{players}}`/真实位置值归类/types/cache)
+- `tests/football-value/board.test.ts` 5 个 case (兜底链: 无 key→sample / live+缓存 / 失败回退 / force)
+- `tests/football-value/renderer.test.ts` 10 个 case (load/refresh/筛选/搜索/涨跌/sample)
+- 既有断言同步: home-grid / sidenav-prefs 8 → 9 个 nav
+
+**2026-08-02 hotfix — parse.bot 响应壳兼容**:
+- 实测 parse.bot `get_top_market_values` 返回 `{status, data:{players}}` 而非文档的 `{players}`，parser 读不到数据导致一直走 sample 兜底
+- `parser.ts` 现在兼容两种响应壳（优先 `data.players`）
+- 位置归一化覆盖真实值: Right/Left Winger→FW, Centre-Forward→FW, Attacking/Central/Defensive Midfield→MF, Centre/Left/Right-Back→DF, Goalkeeper→GK
+- 实测: Top 500 无门将 (GK 身价天花板 ~€40m 进不了 Top 500)，位置筛选 GK 计数 0 属正常
+
+---
+
 ## v2.79.5 (🤗 AI 榜单接入 HuggingFace Hub) — 2026-07-23
 
 **新增数据源 — HuggingFace Hub Models API**:

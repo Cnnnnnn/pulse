@@ -44,6 +44,7 @@ import { registerThemeHandlers } from "./register-theme";
 import { registerGamesHandlers } from "./register-games";
 import { registerLeaderboardHandlers } from "./register-leaderboard";
 import { registerFinanceHandlers } from "./register-finance";
+import { registerFootballValueHandlers } from "./register-football-value";
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -93,6 +94,7 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
     electronApp: require("electron").app,
   }); // AI 榜单排名 (Arena + Artificial Analysis + 兜底链 + CSV 导出)
   registerFinanceHandlers(ctx); // 财经新闻 + 行情（P0）
+  registerFootballValueHandlers(ctx); // 足球球员身价榜 (Transfermarkt/parse.bot)
 }
 
 module.exports = { registerIpcHandlers };

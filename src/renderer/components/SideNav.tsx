@@ -68,6 +68,7 @@ export const NAV_ITEMS = [
   { key: 'github',    label: 'GitHub 收录', tooltip: 'GitHub 优秀项目收录与管理 (v2.80)' },
   { key: 'games',     label: '游戏优惠',   tooltip: '各平台折扣 / 免费活动 / 心愿单' },
   { key: 'ai-leaderboard', label: 'AI 榜单', tooltip: '大模型排名 / 性价比 / 速度' },
+  { key: 'football-value', label: '球员身价', tooltip: '足球球员身价榜 (Transfermarkt)' },
 ];
 
 export function SideNav() {

@@ -122,6 +122,15 @@ function TileIcon({ kind }: { kind: string }) {
           <path {...c} d="M6 16V9M11 16V6M16 16v-7" />
         </svg>
       );
+    case "football-value":
+      // 足球图标 — 表达"足球球员身价榜"语义.
+      return (
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <circle {...c} cx="12" cy="12" r="9" />
+          <path {...c} d="M12 7l4.3 3-1.6 5h-5.4L8 10l4-3z" />
+          <path {...c} d="M12 3v4M12 17v4M8 10l-4-1M20 11l-4 1M9.3 15l-2.5 3M16.7 15l2.5 3" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -139,6 +148,7 @@ const HOME_TILES = [
   { key: 'github',    title: 'GitHub 收录', subtitle: '优秀开源项目收录与管理',   accent: 'purple' },
   { key: 'games',     title: '游戏优惠',  subtitle: '各平台折扣 / 免费活动 / 热门榜', accent: 'red'   },
   { key: 'ai-leaderboard', title: 'AI 榜单', subtitle: '大模型排名 / 性价比 / 速度', accent: 'teal' },
+  { key: 'football-value', title: '球员身价', subtitle: '足球球员身价榜 (Transfermarkt)', accent: 'amber' },
 ];
 // ponytail: 给 tile 补 label 别名 → 跟 SideNav NAV_ITEMS 同 schema, HiddenItemsDrawer
 //   不用分支判断两边数据. 也避免两侧重复维护 label/title.
@@ -293,6 +303,9 @@ function getStatus(key) {
       return 'Steam / Epic 实时 · 主机示例';
     case 'ai-leaderboard':
       // v2.82: AI 榜单 (Arena + AA + OpenRouter), 冷启动空数据时显示 "—".
+      return '—';
+    case 'football-value':
+      // v2.8x: 足球球员身价榜 (Transfermarkt), 冷启动空数据时显示 "—".
       return '—';
     default:
       return null;
