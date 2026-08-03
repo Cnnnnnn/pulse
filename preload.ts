@@ -397,9 +397,6 @@ export const api = {
     ipcRenderer.invoke("finance:get-news", args || {}),
   // E2：各分类文章计数（含「全部」）
   financeGetCategories: () => ipcRenderer.invoke("finance:categories"),
-  // 足球球员身价榜 (v2.8x): Transfermarkt 数据 (parse.bot)
-  footballValueGet: () => ipcRenderer.invoke("football-value:get"),
-  footballValueRefresh: () => ipcRenderer.invoke("football-value:refresh"),
   financeGetArticle: (args: unknown) =>
     ipcRenderer.invoke("finance:get-article", args || {}),
   // 相关推荐（同标签优先 + 同分类补全），详情页列表为空时回退用

@@ -703,8 +703,6 @@ function startSchedulers(pushWorldcupToTray: any) {
   });
   // AI 榜单每日同步（启动延迟预暖 + 每日拉取；graceful）
   startLeaderboardScheduler({});
-  // 注：球员身价榜不注册后台 scheduler —— 低频数据（季度级更新）+ 配额紧
-  // （parse.bot 100 credits/月）。改为手动刷新触发，3 天 TTL 节流。
 }
 
 async function bootstrap() {

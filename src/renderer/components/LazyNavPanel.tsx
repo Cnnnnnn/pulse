@@ -24,8 +24,6 @@ const LOADERS = {
     import('../games/GamesLayout.tsx').then((m) => m.GamesLayout),
   'ai-leaderboard': () =>
     import('../ai-leaderboard/AiLeaderboardLayout.tsx').then((m) => m.AiLeaderboardLayout),
-  'football-value': () =>
-    import('../football-value/FootballValueLayout.tsx').then((m) => m.FootballValueLayout),
 };
 
 export function LazyNavPanel({

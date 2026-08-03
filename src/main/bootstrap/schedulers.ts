@@ -841,7 +841,3 @@ export function startLeaderboardScheduler(deps: any) {
     return null;
   }
 }
-
-// 注：球员身价榜不注册后台 scheduler —— 低频数据（季度级更新）+ parse.bot 配额紧
-// （100 credits/月）。改为手动刷新触发（首次进 tab + 用户点刷新），3 天 TTL 节流。
-// 见 football-value/index.ts 与 register-football-value.ts。

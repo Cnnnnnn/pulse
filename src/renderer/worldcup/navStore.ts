@@ -48,7 +48,6 @@ const NAV_KEYS = new Set([
   "github",          // GitHub 优秀项目收录 (v2.80)
   "games",           // 游戏优惠聚合 (v2.81)
   "ai-leaderboard",  // AI 榜单排名 (v2.82)
-  "football-value",  // 足球球员身价榜
 ]);
 
 // ponytail: 兼容旧落盘 — 旧数据可能含 'ithome' / 'wechat-hot' / 'funds' / 'metals' / 'stocks',
@@ -72,14 +71,13 @@ export const NAV_KEYS_LIST = [
   "github",
   "games",
   "ai-leaderboard",
-  "football-value",
 ];
 
 // P-N: HomeGrid 落点白名单 — "home" 是显示态, 不落盘.
 // 跟 NAV_KEYS 的区别: NAV_KEYS 是 activeNav 全部合法值, 这里只挑出可持久化的顶级 nav.
 export const PERSISTABLE_NAV_KEYS = new Set([
   "news", "worldcup", "invest", "ai-usage", "versions", "github", "games",
-  "ai-leaderboard", "football-value",
+  "ai-leaderboard",
 ]);
 /**
  * Phase I3: 计算"实际可见"nav 列表
