@@ -187,7 +187,7 @@ function defaultOllamaCaller() {
     }
     let parsed;
     try {
-      parsed = JSON.parse(r.body);
+      parsed = JSON.parse(typeof r.body === "string" ? r.body : String(r.body ?? ""));
     } catch (err: any) {
       throw new Error(`llm caller: response not JSON: ${err instanceof Error ? err.message : String(err)}`);
     }
