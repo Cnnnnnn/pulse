@@ -5,8 +5,6 @@
  * 用 computed signal 包裹：只有依赖变化时才会重算。
  *
  * v2 改进:
- *   - 新增 per-app phase 相关选择器 (pendingCount, detectingCount, completedCount)
- *   - checkedCount 改用 appPhases 计算 (O(n) 遍历 phase Map 而非 resultSignals)
  *   - 不再读旧 checkStatus signal, 统一读 checkSession.phase
  */
 
@@ -15,7 +13,6 @@ import * as category from '../config/category.ts';
 import {
   results,
   resultSignals,
-  appPhases,
   searchQuery,
   activeFilter,
   activeCategory,
@@ -113,42 +110,6 @@ export const upgradableCount = computed(() => {
   }
   return n;
 });
-
-// ─── Per-app phase 计数 (v2 新增) ──────────────────────
-
-/**
- * 已完成的检测数 (phase = 'done' 或 'error')。
- * 用 appPhases Map 计算, 比遍历 resultSignals 更准确
- * (results 只有最终结果, phases 包含检测中的状态)。
- */
-export const checkedCount = computed(() => {
-  let n = 0;
-  for (const phase of appPhases.value.values()) {
-    if (phase === 'done' || phase === 'error') n++;
-  }
-  return n;
-});
-
-/** 正在检测中的 app 数量 (phase = 'detecting', 显示 spinner) */
-export const detectingCount = computed(() => {
-  let n = 0;
-  for (const phase of appPhases.value.values()) {
-    if (phase === 'detecting') n++;
-  }
-  return n;
-});
-
-/** 等待检测的 app 数量 (phase = 'pending') */
-export const pendingCount = computed(() => {
-  let n = 0;
-  for (const phase of appPhases.value.values()) {
-    if (phase === 'pending') n++;
-  }
-  return n;
-});
-
-/** 总 app 数 (phase Map 的 size, 或 appOrder.length) */
-export const totalAppCount = computed(() => appPhases.value.size);
 
 // ─── Search + Filter 派生 ───────────────────────────
 
