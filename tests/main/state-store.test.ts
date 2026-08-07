@@ -501,43 +501,6 @@ describe("loadLastOpened / saveLastOpened (Phase 29)", () => {
     expect(raw.last_opened.X.ms).toBe(123);
   });
 
-  it("saveAll 写盘时保留 worldcupBets 字段", () => {
-    fs.writeFileSync(
-      statePath,
-      JSON.stringify({
-        v: 1,
-        apps: {},
-        mutes: {},
-        worldcupBets: {
-          "2026-06-12": {
-            date: "2026-06-12",
-            stake: 100,
-            pnl: 50,
-            note: "",
-            updatedAt: 1,
-          },
-        },
-      }),
-      "utf-8",
-    );
-    saveAll(
-      [
-        {
-          name: "Cursor",
-          latest_version: "3.6",
-          has_update: false,
-          status: "up_to_date",
-        },
-      ],
-      statePath,
-    );
-    const raw = JSON.parse(fs.readFileSync(statePath, "utf-8"));
-    expect(raw.worldcupBets["2026-06-12"]).toMatchObject({
-      stake: 100,
-      pnl: 50,
-    });
-  });
-
   it("markNotified 写盘时保留 last_opened 字段", () => {
     fs.writeFileSync(
       statePath,

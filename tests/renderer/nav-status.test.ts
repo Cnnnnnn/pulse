@@ -39,7 +39,6 @@ const emptyCtx: NavStatusCtx = {
   checkResults: null,
   checkApps: null,
   githubProjects: null,
-  worldcupMatches: null,
 };
 
 describe("getBadge — 4 个有 badge 语义的 nav + null 兜底", () => {
@@ -63,8 +62,7 @@ describe("getBadge — 4 个有 badge 语义的 nav + null 兜底", () => {
     expect(getBadge("games", { ...emptyCtx, gamesHasNew: true })).toBe(1);
     expect(getBadge("games", emptyCtx)).toBeNull();
   });
-  it("未注册 badge 的 nav → null (worldcup/versions/github/ai-leaderboard)", () => {
-    expect(getBadge("worldcup", emptyCtx)).toBeNull();
+  it("未注册 badge 的 nav → null (versions/github/ai-leaderboard)", () => {
     expect(getBadge("versions", emptyCtx)).toBeNull();
     expect(getBadge("github", emptyCtx)).toBeNull();
     expect(getBadge("ai-leaderboard", emptyCtx)).toBeNull();
@@ -102,8 +100,8 @@ describe("getStatus — 8 个 nav 关键路径", () => {
       getStatus("news", { ...emptyCtx, wechatHotItems: [{ id: 1 }, { id: 2 }] })
     ).toContain("2 热搜");
   });
-  it("worldcup: 无赛程 → '—'", () => {
-    expect(getStatus("worldcup", emptyCtx)).toBe("—");
+  it("worldcup nav 已下线 → null (v2.80)", () => {
+    expect(getStatus("worldcup", emptyCtx)).toBeNull();
   });
   it("invest: 0 → '—'", () => {
     expect(getStatus("invest", emptyCtx)).toBe("—");

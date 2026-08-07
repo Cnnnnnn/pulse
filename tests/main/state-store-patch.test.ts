@@ -14,8 +14,7 @@ const {
   patchState,
   saveAISessionsConfig,
   saveActiveCategory,
-  saveWorldcupMatchInsights,
-  saveWorldcupScores,
+  saveAiUsageSnapshotProvider,
 } = requireMain("state-store");
 let tmpDir;
 let statePath;
@@ -104,8 +103,8 @@ describe("patchState (公共范式)", () => {
 });
 
 // ─── 修复 bug 的回归测试 ──────────────────────────────────
-// 老 saveWorldcupMatchInsights / saveActiveCategory 不 preserve ai_sessions_config,
-// 重构后通过 patchState 自动补上.
+// 老 saveActiveCategory / saveWorldcupMatchInsights 不 preserve ai_sessions_config,
+// 重构后通过 patchState 自动补上 (2026-08: WC 已下线, 替换为 AiUsage 同模式回归).
 
 describe("bug 修复: ai_sessions_config 保留", () => {
   beforeEach(() => {
@@ -117,14 +116,15 @@ describe("bug 修复: ai_sessions_config 保留", () => {
     });
   });
 
-  it("saveWorldcupMatchInsights 不再吃掉 ai_sessions_config", () => {
-    saveWorldcupMatchInsights(
-      { entries: { m1: { ft: [1, 0] } }, ts: 123 },
+  it("saveAiUsageSnapshotProvider 不再吃掉 ai_sessions_config (回归 — 替代 WC 旧测)", () => {
+    saveAiUsageSnapshotProvider(
+      "minimax",
+      { fetchedAt: 1, windows: { weekly: { usedPercent: 50 } } },
       statePath,
     );
     const s = load(statePath);
     expect(s.ai_sessions_config).toEqual({ provider: "openai" });
-    expect(s.worldcup_match_insights.entries.m1).toBeDefined();
+    expect(s.ai_usage.minimax).toBeDefined();
   });
 
   it("saveActiveCategory 不再吃掉 ai_sessions_config", () => {

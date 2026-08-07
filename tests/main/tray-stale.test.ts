@@ -15,7 +15,6 @@ const { buildMenu } = _internal;
 const baseOpts = {
   results: [],
   aiUsage: null,
-  worldcup: null,
   metals: null,
 };
 

@@ -36,8 +36,7 @@ import { PromptSettings } from "../../src/renderer/components/PromptSettings.tsx
 
 const SAMPLE = {
   ithome_summary: { system: "默认sys", rules: "默认rules", isDefault: true },
-  worldcup_prematch: { system: "p", rules: "r", isDefault: true },
-  worldcup_postmatch: { system: "p2", rules: "r2", isDefault: true },
+  upgrade_advice: { system: "u-sys", rules: "u-rules", isDefault: true },
 };
 
 beforeEach(() => {
@@ -48,18 +47,18 @@ beforeEach(() => {
 });
 
 describe("PromptSettings (A7)", () => {
-  it("渲染 3 个 prompt section", () => {
+  it("渲染 2 个 prompt section (v2.80 删 worldcup 后)", () => {
     render(<PromptSettings />);
-    // P16: 改用 settings-card 段落, 包含 1 个「Prompt 模板说明」+ 1 个「Token 预算」+ 3 个 prompt 段 = 5 张卡片
+    // P16: 改用 settings-card 段落, 包含 1 个「Prompt 模板说明」+ 1 个「Token 预算」+ 2 个 prompt 段 = 4 张卡片
     const cards = document.body.querySelectorAll(".settings-card");
-    // 反馈导出 + token 预算 + 3 prompt 卡片 = 5 卡片
-    expect(cards.length).toBe(5);
+    // 反馈导出 + token 预算 + 2 prompt 卡片 = 4 卡片
+    expect(cards.length).toBe(4);
   });
 
-  it("isDefault=true 显示 3 个「默认」标记", () => {
+  it("isDefault=true 显示 2 个「默认」标记", () => {
     render(<PromptSettings />);
     // P16: 「默认」badge 改用 settings-ai-badge--ready, 文本 "默认"
-    expect(document.body.querySelectorAll(".settings-ai-badge--ready")).toHaveLength(3);
+    expect(document.body.querySelectorAll(".settings-ai-badge--ready")).toHaveLength(2);
   });
 
   it("编辑 system textarea 触发保存 (debounce 500ms)", async () => {

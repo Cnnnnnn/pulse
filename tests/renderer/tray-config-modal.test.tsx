@@ -15,7 +15,7 @@ function stubTrayApi(overrides = {}) {
     getPrefs: vi.fn(async () => {
       calls.getPrefsCount += 1;
       return { ok: true, prefs: { version: 1, segments: {
-        updates: true, ai_usage: true, worldcup: true, metals: true,
+        updates: true, ai_usage: true, metals: true,
         check_action: true, config_action: true,
       } } };
     }),
@@ -102,15 +102,15 @@ describe("TrayMenuConfigModal", () => {
     store.trayConfigOpen.value = true;
     render(<TrayMenuConfigModal />);
     await waitFor(() => {
-      expect(document.body.querySelectorAll(".tray-config-segment-row")).toHaveLength(6);
+      expect(document.body.querySelectorAll(".tray-config-segment-row")).toHaveLength(5);
     });
-    // 关掉 updates + worldcup
+    // 关掉 updates + metals
     const checkboxes = document.body.querySelectorAll(".tray-config-segment-row input[type=checkbox]");
     await act(async () => {
       fireEvent.click(checkboxes[0]); // updates off
     });
     await act(async () => {
-      fireEvent.click(checkboxes[2]); // worldcup off
+      fireEvent.click(checkboxes[2]); // metals off
     });
     const saveBtn = document.body.querySelector(".tray-config-save");
     await act(async () => {
@@ -122,10 +122,10 @@ describe("TrayMenuConfigModal", () => {
     const arg = calls.savePrefsArgs;
     expect(arg.segments).toBeDefined();
     expect(Object.keys(arg.segments).sort()).toEqual([
-      "ai_usage", "check_action", "config_action", "metals", "updates", "worldcup",
+      "ai_usage", "check_action", "config_action", "metals", "updates",
     ]);
     expect(arg.segments.updates).toBe(false);
-    expect(arg.segments.worldcup).toBe(false);
+    expect(arg.segments.metals).toBe(false);
     expect(arg.segments.ai_usage).toBe(true);
   });
 
@@ -135,7 +135,7 @@ describe("TrayMenuConfigModal", () => {
     store.trayConfigOpen.value = true;
     render(<TrayMenuConfigModal />);
     await waitFor(() => {
-      expect(document.body.querySelectorAll(".tray-config-segment-row")).toHaveLength(6);
+      expect(document.body.querySelectorAll(".tray-config-segment-row")).toHaveLength(5);
     });
     const cancelBtn = document.body.querySelector(".tray-config-cancel");
     await act(async () => {

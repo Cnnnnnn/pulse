@@ -7,7 +7,7 @@
  * 行为契约:
  *   - section=null → 不渲染 (AppShell hover 状态机管理)
  *   - section=X → 渲染 .nav-drawer + data-section="X" + 该 section 下的 nav items
- *   - 按 NAV_REGISTRY.section 分组 (news section: news/worldcup/ai-leaderboard/games/github; holdings: invest/ai-usage; system: versions)
+ *   - 按 NAV_REGISTRY.section 分组 (news section: news/ai-leaderboard/games/github; holdings: invest/ai-usage; system: versions)
  *   - active 项加 .nav-drawer-item-active class
  *   - 可见项 = effectiveVisibleItems (sidenav-prefs) ∩ trayMenuPrefs.segments
  *   - 鼠标移入/移出 onEnter/onLeave (AppShell 用来维持 hover 状态)
@@ -20,7 +20,7 @@ const mockSetActiveNav = vi.fn();
 const mockGoInvest = vi.fn();
 let mockTrayPrefs: any = {
   version: 1,
-  segments: { updates: true, ai_usage: true, worldcup: true } as Record<string, boolean>,
+  segments: { updates: true, ai_usage: true } as Record<string, boolean>,
 };
 
 vi.mock("../../src/renderer/nav/navStore.ts", () => ({
@@ -32,7 +32,6 @@ vi.mock("../../src/renderer/nav/navStore.ts", () => ({
   // 简化: 不消费 prefs, 全部可见 (按 NAV_KEYS_LIST 顺序)
   effectiveVisibleItems: () => [
     "news",
-    "worldcup",
     "ai-leaderboard",
     "games",
     "github",
@@ -83,10 +82,10 @@ describe("NavDrawer — 渲染门控", () => {
 describe("NavDrawer — section 过滤", () => {
   beforeEach(() => cleanup());
 
-  it("section=news → 渲染 news section 下 5 个 item (news/worldcup/ai-leaderboard/games/github)", () => {
+  it("section=news → 渲染 news section 下 4 个 item (news/ai-leaderboard/games/github, v2.80 删 worldcup)", () => {
     const { container } = render(<NavDrawer section="news" />);
     const items = container.querySelectorAll(".nav-drawer-item");
-    expect(items.length).toBe(5);
+    expect(items.length).toBe(4);
   });
 
   it("section=holdings → 渲染 2 个 item (invest/ai-usage)", () => {

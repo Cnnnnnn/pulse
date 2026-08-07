@@ -3,13 +3,15 @@
  * tests/renderer/nav-refresh.test.js
  *
  * v2.24.2 — 单测全局刷新 registry:
- *   - REFRESHABLE_NAV_KEYS 包含 news (合并 IT 新闻 + 微博热搜) / worldcup / funds / metals
+ *   - REFRESHABLE_NAV_KEYS 包含 news (合并 IT 新闻 + 微博热搜) / funds / metals
  *   - 不包含 ai-usage / versions (后续按需扩展)
+ *   - 不包含 worldcup (v2.80 已下线)
  *   - news 看 DOM sub-tab 派发到对应 fn
  *   - refreshActiveNav 派发到对应 fn
  *   - 未注册的 nav key 返 false 不抛错
  *
  * 2026-07-10 P-N+: IT 新闻 + 微博热搜 合并 → 'news'.
+ * 2026-08 (v2.80): worldcup 模块整体下线, 删对应 dispatch.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -19,9 +21,6 @@ vi.mock("../../src/renderer/wechat-hot/store.ts", () => ({
 }));
 vi.mock("../../src/renderer/ithome/store.ts", () => ({
   refreshIthomeNews: vi.fn(),
-}));
-vi.mock("../../src/renderer/worldcup/store.ts", () => ({
-  refreshWorldcupScores: vi.fn(),
 }));
 vi.mock("../../src/renderer/funds/fundStore.ts", () => ({
   fetchNavNow: vi.fn(),
@@ -40,7 +39,6 @@ import {
 } from "../../src/renderer/nav-refresh.ts";
 import { refreshWechatHot } from "../../src/renderer/wechat-hot/store.ts";
 import { refreshIthomeNews } from "../../src/renderer/ithome/store.ts";
-import { refreshWorldcupScores } from "../../src/renderer/worldcup/store.ts";
 import { fetchNavNow } from "../../src/renderer/funds/fundStore.ts";
 import { refreshNow as refreshMetals } from "../../src/renderer/metals/metalStore.ts";
 import { investPrimary } from "../../src/renderer/nav/navStore.ts";
@@ -49,7 +47,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   refreshWechatHot.mockResolvedValue(true);
   refreshIthomeNews.mockResolvedValue(undefined);
-  refreshWorldcupScores.mockResolvedValue(undefined);
   fetchNavNow.mockResolvedValue(undefined);
   refreshMetals.mockResolvedValue(undefined);
   // 重置 investPrimary 到默认值 funds (避免跨测试污染)
@@ -59,10 +56,10 @@ beforeEach(() => {
 });
 
 describe("nav-refresh REFRESHABLE_NAV_KEYS", () => {
-  it("contains news, worldcup, invest (2026-07-13 投资 nav 合并)", () => {
+  it("contains news, invest (2026-08 删 worldcup)", () => {
     expect(REFRESHABLE_NAV_KEYS.has("news")).toBe(true);
-    expect(REFRESHABLE_NAV_KEYS.has("worldcup")).toBe(true);
     expect(REFRESHABLE_NAV_KEYS.has("invest")).toBe(true);
+    expect(REFRESHABLE_NAV_KEYS.has("worldcup")).toBe(false);
   });
 
   it("does NOT contain legacy funds/metals/stocks/ithome/wechat-hot/ai-usage/versions", () => {
@@ -87,6 +84,7 @@ describe("getRefreshEntry", () => {
   it("returns null for unknown nav key", () => {
     expect(getRefreshEntry("nope")).toBeNull();
     expect(getRefreshEntry("ai-usage")).toBeNull();
+    expect(getRefreshEntry("worldcup")).toBeNull();
   });
 });
 
@@ -128,10 +126,9 @@ describe("refreshActiveNav dispatch", () => {
     }
   });
 
-  it("worldcup → calls refreshWorldcupScores", async () => {
+  it("worldcup → returns false (v2.80 已下线, no entry)", async () => {
     const ok = await refreshActiveNav("worldcup");
-    expect(ok).toBe(true);
-    expect(refreshWorldcupScores).toHaveBeenCalledTimes(1);
+    expect(ok).toBe(false);
   });
 
   it("funds → calls fetchNavNow with api instance", async () => {

@@ -11,13 +11,11 @@ const loadAiPrompts = vi.fn(() => ({}));
 const saveAiPrompts = vi.fn();
 const DEFAULT_PROMPTS = {
   ithome_summary: { system: "默认sys", rules: "默认rules" },
-  worldcup_prematch: { system: "p", rules: "r" },
-  worldcup_postmatch: { system: "p2", rules: "r2" },
+  upgrade_advice: { system: "u-sys", rules: "u-rules" },
 };
 const PROMPT_KEYS = [
   "ithome_summary",
-  "worldcup_prematch",
-  "worldcup_postmatch",
+  "upgrade_advice",
 ];
 
 function stubModules() {

@@ -9,7 +9,6 @@ const allOff = {
   segments: {
     updates: false,
     ai_usage: false,
-    worldcup: false,
     metals: false,
     check_action: false,
     config_action: false,
@@ -28,11 +27,10 @@ describe("tray.buildMenu — trayPrefs 接线 (Phase v1)", () => {
     expect(labels.some((l) => l.includes("Codex"))).toBe(false);
   });
 
-  it("6 项全 false → 动态段全隐藏,底部只剩「打开面板」", () => {
+  it("5 项全 false → 动态段全隐藏,底部只剩「打开面板」", () => {
     const m = buildMenu({
       results: [{ name: "Codex", has_update: true, installed_version: "1.0", latest_version: "2.0" }],
       aiUsage: { minimax: { status: "ok", percent: 50, remainLabel: "1h", fetchedAt: Date.now() } },
-      worldcup: { todayMatches: [{ team1: "A", team2: "B", time: "12:00" }] },
       metals: { quotes: { XAU: { price: 3000, currency: "USD", unit: "oz" } } },
       trayPrefs: allOff,
     });
@@ -43,7 +41,6 @@ describe("tray.buildMenu — trayPrefs 接线 (Phase v1)", () => {
     // 关闭的项消失
     expect(labels.some((l) => l.includes("Codex"))).toBe(false);
     expect(labels.some((l) => l.includes("MiniMax"))).toBe(false);
-    expect(labels.some((l) => l.includes("⚽"))).toBe(false);
     expect(labels.some((l) => l.includes("XAU"))).toBe(false);
     expect(labels).not.toContain("检查更新");
     expect(labels).not.toContain("打开配置文件");

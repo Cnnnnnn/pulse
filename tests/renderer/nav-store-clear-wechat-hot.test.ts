@@ -95,7 +95,7 @@ describe("P-N+ — setActiveNav('news') 触发 clearIthome + clearWechatHotUnrea
     expect(ithomeNewIds.value).toEqual({ X: 1 });
   });
 
-  it("切到其他 tab (funds/ai-usage/versions/metals/worldcup) → 不调 news 块清角标", () => {
+  it("切到其他 tab (funds/ai-usage/versions/metals) → 不调 news 块清角标", () => {
     wechatHotNewIds.value = { "A": 1 };
     ithomeNewIds.value = { "X": 1 };
     setActiveNav("funds");
@@ -108,9 +108,6 @@ describe("P-N+ — setActiveNav('news') 触发 clearIthome + clearWechatHotUnrea
     expect(wechatHotNewIds.value).toEqual({ A: 1 });
     expect(ithomeNewIds.value).toEqual({ X: 1 });
     setActiveNav("metals");
-    expect(wechatHotNewIds.value).toEqual({ A: 1 });
-    expect(ithomeNewIds.value).toEqual({ X: 1 });
-    setActiveNav("worldcup");
     expect(wechatHotNewIds.value).toEqual({ A: 1 });
     expect(ithomeNewIds.value).toEqual({ X: 1 });
   });

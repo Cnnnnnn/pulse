@@ -17,7 +17,6 @@ const PREFS_ALL_ON = {
   segments: {
     updates: true,
     ai_usage: true,
-    worldcup: true,
     metals: true,
     check_action: true,
     config_action: true,

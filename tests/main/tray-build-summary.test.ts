@@ -88,7 +88,6 @@ describe("tray.buildMenu — I7 集成", () => {
     const m = buildMenu({
       results: [{ name: "A", has_update: false, ts: FAKE_NOW - 60_000 }],
       aiUsage: null,
-      worldcup: null,
       metals: null,
     });
     const labels = m.map((i) => i.label).filter(Boolean);

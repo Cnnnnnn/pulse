@@ -22,7 +22,7 @@
  *         默默变 false-positive, 真执行只查 stub.exposed, 不依赖源码格式.
  *
  *         只测 "preload 覆盖 api.js" (正向), 不测反向: preload 多出来的 key
- *         是 feature store (wechat-hot / ithome / worldcup / share-card) 通过
+ *         是 feature store (wechat-hot / ithome / share-card) 通过
  *         requireApiMethod 或 window.api.xxx 直接消费, 故意绕过 api.js wrapper
  *         的设计 — 让 feature store 在 api.js 加载失败时也能 graceful degrade.
  *         真死代码 (例: 2026-06-28 删的 getAiKey — preload 暴露但 main handler

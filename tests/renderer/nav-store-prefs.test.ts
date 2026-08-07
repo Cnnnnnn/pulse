@@ -32,7 +32,6 @@ const ALL_ON = {
   segments: {
     updates: true,
     ai_usage: true,
-    worldcup: true,
     metals: true,
     check_action: true,
     config_action: true,
@@ -44,7 +43,6 @@ const ALL_OFF = {
   segments: {
     updates: false,
     ai_usage: false,
-    worldcup: false,
     metals: false,
     check_action: false,
     config_action: false,
@@ -115,10 +113,10 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
   it("手动 setActiveNav 到一个被关的 nav 也会被 effect 弹回", async () => {
     await applyPrefs({
       ...ALL_ON,
-      segments: { ...ALL_ON.segments, worldcup: false },
+      segments: { ...ALL_ON.segments, metals: false },
     });
-    activeNav.value = "worldcup"; // 直接设,跳过 setActiveNav 校验
+    activeNav.value = "metals"; // 直接设,跳过 setActiveNav 校验
     await new Promise((r) => setTimeout(r, 0));
-    expect(activeNav.value).not.toBe("worldcup");
+    expect(activeNav.value).not.toBe("metals");
   });
 });

@@ -74,11 +74,11 @@ describe('saveLastActiveNav', () => {
       v: 1, apps: {}, active_category: 'ai', last_opened: { foo: 1 },
     }));
     const { saveLastActiveNav, loadLastActiveNav } = await Promise.resolve(requireMain('state-store'));
-    saveLastActiveNav('worldcup', statePath);
+    saveLastActiveNav('invest', statePath);
     const reloaded = JSON.parse(fs.readFileSync(statePath, 'utf8'));
     expect(reloaded.active_category).toBe('ai');
     expect(reloaded.last_opened).toEqual({ foo: 1 });
-    expect(reloaded.last_active_nav).toBe('worldcup');
+    expect(reloaded.last_active_nav).toBe('invest');
     cleanup();
   });
 });

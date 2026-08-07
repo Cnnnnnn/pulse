@@ -19,7 +19,6 @@ describe("tray.buildMenu — 基础结构 (Task A1 refactor)", () => {
     const m = buildMenu({
       results: [],
       aiUsage: null,
-      worldcup: null,
       metals: null,
     });
     const labels = m.map((i) => i.label).filter(Boolean);
@@ -44,7 +43,6 @@ describe("tray.buildMenu — 基础结构 (Task A1 refactor)", () => {
     const m = buildMenu({
       results: [],
       aiUsage: null,
-      worldcup: null,
       metals: null,
       onOpenPanel,
       onCheck,
@@ -195,154 +193,6 @@ describe("tray.buildMenu — 📊 AI 用量段 (Task B2)", () => {
     });
     const aiLines = m.filter((i) => i.label && i.label.includes("MiniMax"));
     expect(aiLines[0].label).toContain("(2h 前)");
-  });
-});
-
-describe("tray.buildMenu — ⚽ 世界杯段 (Task C2)", () => {
-  it("有今日比赛 → 显示 ⚽ 段 + 至少一行 team1 vs team2", () => {
-    const m = buildMenu({
-      results: [],
-      worldcup: {
-        todayMatches: [
-          {
-            team1: "Mexico",
-            team2: "South Africa",
-            time: "13:00",
-            score: { ft: [1, 0], status: "live" },
-          },
-        ],
-      },
-    });
-    const headerRow = m.find((i) => i.label && i.label.includes("⚽"));
-    expect(headerRow).toBeDefined();
-    const matchRow = m.find(
-      (i) =>
-        i.label &&
-        i.label.includes("Mexico") &&
-        i.label.includes("South Africa"),
-    );
-    expect(matchRow).toBeDefined();
-  });
-
-  it("live 比赛显示实时比分", () => {
-    const m = buildMenu({
-      results: [],
-      worldcup: {
-        todayMatches: [
-          {
-            team1: "Brazil",
-            team2: "Argentina",
-            time: "20:00",
-            score: { ft: [2, 1], status: "live" },
-          },
-        ],
-      },
-    });
-    const matchRow = m.find((i) => i.label && i.label.includes("Brazil"));
-    expect(matchRow.label).toContain("2-1");
-  });
-
-  it("worldcup=null → 整段隐藏", () => {
-    const m = buildMenu({ results: [] });
-    const wcRows = m.filter((i) => i.label && i.label.includes("⚽"));
-    expect(wcRows).toHaveLength(0);
-  });
-
-  it("显示即将开始的下一场 (无今日比赛)", () => {
-    const m = buildMenu({
-      results: [],
-      worldcup: {
-        todayMatches: [],
-        upcoming: [
-          {
-            team1: "Spain",
-            team2: "France",
-            time: "明天 15:00",
-            date: "2026-06-18",
-          },
-        ],
-      },
-    });
-    const upcomingRow = m.find(
-      (i) => i.label && i.label.includes("下一场") && i.label.includes("Spain"),
-    );
-    expect(upcomingRow).toBeDefined();
-  });
-});
-
-describe("tray.buildMenu — ⚽ 世界杯段 clickable (Task C3)", () => {
-  it("今日比赛行 → enabled: true (可点击)", () => {
-    let captured = null;
-    const m = buildMenu({
-      results: [],
-      worldcup: {
-        todayMatches: [
-          {
-            key: "2026-06-17|13:00|Mexico|South Africa",
-            team1: "Mexico",
-            team2: "South Africa",
-            time: "13:00",
-          },
-        ],
-      },
-      onFocusWorldcup: (data) => {
-        captured = data;
-      },
-    });
-    const matchRow = m.find(
-      (i) =>
-        i.label &&
-        i.label.includes("Mexico") &&
-        i.label.includes("South Africa"),
-    );
-    expect(matchRow).toBeDefined();
-    expect(matchRow.enabled).toBe(true);
-    // 模拟 click
-    matchRow.click();
-    expect(captured).toEqual({
-      matchKey: "2026-06-17|13:00|Mexico|South Africa",
-    });
-  });
-
-  it('"下一场" 行 → 也可点击 + 调 onFocusWorldcup', () => {
-    let captured = null;
-    const m = buildMenu({
-      results: [],
-      worldcup: {
-        todayMatches: [],
-        upcoming: [
-          {
-            key: "2026-06-18|15:00|Spain|France",
-            team1: "Spain",
-            team2: "France",
-            time: "明天 15:00",
-          },
-        ],
-      },
-      onFocusWorldcup: (data) => {
-        captured = data;
-      },
-    });
-    const nextRow = m.find(
-      (i) => i.label && i.label.includes("下一场") && i.label.includes("Spain"),
-    );
-    expect(nextRow).toBeDefined();
-    expect(nextRow.enabled).toBe(true);
-    nextRow.click();
-    expect(captured).toEqual({ matchKey: "2026-06-18|15:00|Spain|France" });
-  });
-
-  it("onFocusWorldcup 缺省 → 回调 stub 不抛异常", () => {
-    const m = buildMenu({
-      results: [],
-      worldcup: {
-        todayMatches: [{ key: "k1", team1: "A", team2: "B", time: "12:00" }],
-      },
-    });
-    const matchRow = m.find(
-      (i) => i.label && i.label.includes("A") && i.label.includes("B"),
-    );
-    expect(() => matchRow.click()).not.toThrow();
   });
 });
 

@@ -110,7 +110,7 @@ describe("sidenav-prefs", () => {
 
   it("restoreItem: key 不在 hidden → noop", () => {
     const p0 = hideItem(resetPrefs(), "invest");
-    const p1 = restoreItem(p0, "worldcup");
+    const p1 = restoreItem(p0, "versions");
     expect(p1.hidden).toEqual(["invest"]);
   });
 
@@ -123,11 +123,11 @@ describe("sidenav-prefs", () => {
     };
     // 注: listVisible 不做 legacy alias/filter, 直接用 prefs.order/hidden.
     // order filter hidden → ["funds", "news", "versions"]
-    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 worldcup/invest/ai-usage/github/games/ai-leaderboard
+    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 invest/ai-usage/github/games/ai-leaderboard
     //   (metals 在 hidden 不加, funds 不在 NAV_KEYS 也不加 — 但已经在 order 保留)
-    // 最终 Set: funds, news, versions, worldcup, invest, ai-usage, github, games, ai-leaderboard
+    // 最终 Set: funds, news, versions, invest, ai-usage, github, games, ai-leaderboard
     expect(new Set(listVisible(p))).toEqual(
-      new Set(["funds", "news", "versions", "worldcup", "invest", "ai-usage", "github", "games", "ai-leaderboard"]),
+      new Set(["funds", "news", "versions", "invest", "ai-usage", "github", "games", "ai-leaderboard"]),
     );
   });
 
@@ -141,7 +141,7 @@ describe("sidenav-prefs", () => {
   it("listVisible: prefs.order 短于 NAV_KEYS_LIST → 兜底追加漏掉的 known key (regression: 升级后已隐藏误报)", () => {
     const p = {
       version: 2,
-      order: ["news", "worldcup", "invest", "ai-usage", "versions"], // 老版本 order, 缺 ai-leaderboard/games/github
+      order: ["news", "invest", "ai-usage", "versions"], // 老版本 order, 缺 ai-leaderboard/games/github
       hidden: [],
       favorites: [],
     };
@@ -150,19 +150,19 @@ describe("sidenav-prefs", () => {
     expect(visible).toHaveLength(NAV_KEYS_LIST.length);
     expect(new Set(visible)).toEqual(new Set(NAV_KEYS_LIST));
     // 兜底项必须在末尾 (registry 顺序: ai-leaderboard, games, github)
-    expect(visible).toEqual(["news", "worldcup", "invest", "ai-usage", "versions", "ai-leaderboard", "games", "github"]);
+    expect(visible).toEqual(["news", "invest", "ai-usage", "versions", "ai-leaderboard", "games", "github"]);
   });
 
   it("listHidden: NAV_KEYS 中 prefs.hidden 标记的项 (按 NAV_KEYS 默认顺序)", () => {
     const p = {
       version: 2,
       order: NAV_KEYS_LIST,
-      hidden: ["invest", "worldcup"],
+      hidden: ["invest", "versions"],
       favorites: [],
     };
     // 顺序按 NAV_KEYS_LIST 排, 不是按 hidden 数组
-    expect(new Set(listHidden(p))).toEqual(new Set(["invest", "worldcup"]));
-    expect(listHidden(p)).toEqual(["worldcup", "invest"]);
+    expect(new Set(listHidden(p))).toEqual(new Set(["invest", "versions"]));
+    expect(listHidden(p)).toEqual(["versions", "invest"]);
   });
 
   // ponytail: bug 回归 — 升级后 prefs.order 短, 但 prefs.hidden = [] → listHidden 必须返 [],
@@ -170,7 +170,7 @@ describe("sidenav-prefs", () => {
   it("listHidden: prefs.order 短但 prefs.hidden 空 → 返 [] (regression: 已隐藏误报)", () => {
     const p = {
       version: 2,
-      order: ["news", "worldcup", "invest", "ai-usage", "versions"],
+      order: ["news", "invest", "ai-usage", "versions"],
       hidden: [],
       favorites: [],
     };
@@ -207,13 +207,13 @@ describe("sidenav-prefs", () => {
       STORAGE_KEY_FOR_TESTS,
       JSON.stringify({
         version: 2,
-        order: ["ithome", "worldcup", "wechat-hot", "funds"],
+        order: ["ithome", "wechat-hot", "funds"],
         hidden: ["ithome"],
         favorites: ["wechat-hot"],
       }),
     );
     const p = loadPrefs();
-    expect(p.order).toEqual(["news", "worldcup", "invest"]);
+    expect(p.order).toEqual(["news", "invest"]);
     expect(p.hidden).toEqual(["news"]); // dedupe 后
     expect(p.favorites).toEqual(["news"]);
   });
@@ -221,13 +221,13 @@ describe("sidenav-prefs", () => {
   it("v3 迁移: savePrefs alias 旧 key → 'news' 写盘", () => {
     savePrefs({
       version: 2,
-      order: ["ithome", "worldcup"],
+      order: ["ithome"],
       hidden: [],
       favorites: ["wechat-hot"],
     });
     const raw = localStorage.getItem(STORAGE_KEY_FOR_TESTS);
     const parsed = JSON.parse(raw);
-    expect(parsed.order).toEqual(["news", "worldcup"]);
+    expect(parsed.order).toEqual(["news"]);
     expect(parsed.favorites).toEqual(["news"]);
   });
 });
@@ -236,11 +236,10 @@ describe("sidenav-prefs: reorderItems", () => {
   beforeEach(() => localStorage.clear());
 
   it("reorderItems: from → to 'before'", () => {
-    // Phase 9: 默认顺序按 section 分组 [news, worldcup, ai-leaderboard, games, github, invest, ai-usage, versions].
+    // Phase 9: 默认顺序按 section 分组 [news, ai-leaderboard, games, github, invest, ai-usage, versions].
     const p0 = resetPrefs();
     const p1 = reorderItems(p0, "news", "invest", "before");
     expect(p1.order).toEqual([
-      "worldcup",
       "ai-leaderboard",
       "games",
       "github",
@@ -255,7 +254,6 @@ describe("sidenav-prefs: reorderItems", () => {
     const p0 = resetPrefs();
     const p1 = reorderItems(p0, "news", "invest", "after");
     expect(p1.order).toEqual([
-      "worldcup",
       "ai-leaderboard",
       "games",
       "github",

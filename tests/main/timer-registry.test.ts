@@ -82,13 +82,13 @@ describe('clearAllManaged', () => {
 
   it('传 labelPrefix 时只清匹配前缀的', () => {
     registry.setManagedInterval(() => {}, 1000, { label: 'fund.tick' });
-    registry.setManagedInterval(() => {}, 1000, { label: 'worldcup.tick' });
+    registry.setManagedInterval(() => {}, 1000, { label: 'metals.tick' });
     registry.setManagedInterval(() => {}, 1000, { label: 'fund.goals' });
     const cleared = registry.clearAllManaged('fund.');
     expect(cleared).toBe(2);
     const remaining = registry.listManaged();
     expect(remaining).toHaveLength(1);
-    expect(remaining[0].label).toBe('worldcup.tick');
+    expect(remaining[0].label).toBe('metals.tick');
   });
 
   it('清理后原生 timer 不再执行回调', () => {

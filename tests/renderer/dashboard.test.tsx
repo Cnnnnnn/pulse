@@ -13,7 +13,7 @@
  *   - 不带任何 .side-nav / .home-grid 老 class (Phase 9 收尾)
  *
  * Mock 策略: 整个 mock nav-status.ts (返回空 ctx + 真实 greeting/fmtTime/fmtDate),
- * 避免真实 store 链 (ithome/funds/worldcup/...) 在 happy-dom 下加载失败.
+ * 避免真实 store 链 (ithome/funds/metals/...) 在 happy-dom 下加载失败.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/preact";
@@ -66,7 +66,6 @@ vi.mock("../../src/renderer/components/nav-status.ts", async (importOriginal) =>
       checkResults: null,
       checkApps: null,
       githubProjects: null,
-      worldcupMatches: null,
     }),
     getBadge: () => null,
     getStatus: () => null,
@@ -154,8 +153,8 @@ describe("Dashboard — Recent 条件渲染", () => {
 
   it("recent 有数据 → 渲染 .dashboard-recent + item 列表 (上限 4 条, 屏幕缩小不被挡)", () => {
     mockRecent = Array.from({ length: 10 }, (_, i) => ({
-      kind: "worldcup-match-view",
-      title: `比赛 ${i}`,
+      kind: "fund-view",
+      title: `基金 ${i}`,
       ts: Date.now() - i * 60_000,
     }));
     const { container } = render(<Dashboard />);

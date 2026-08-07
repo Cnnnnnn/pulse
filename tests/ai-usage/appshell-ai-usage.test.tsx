@@ -37,10 +37,6 @@ vi.mock("../../src/renderer/components/VersionsLayout.tsx", () => ({
   VersionsLayout: () => <div data-testid="versions">versions</div>,
 }));
 
-vi.mock("../../src/renderer/worldcup/WorldcupLayout.tsx", () => ({
-  WorldcupLayout: () => <div data-testid="worldcup">worldcup</div>,
-}));
-
 vi.mock("../../src/renderer/funds/FundLayout.tsx", () => ({
   FundLayout: () => <div data-testid="funds">funds</div>,
 }));
