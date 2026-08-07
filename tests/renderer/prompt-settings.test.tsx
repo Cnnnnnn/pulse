@@ -63,11 +63,11 @@ describe("PromptSettings (A7)", () => {
 
   it("编辑 system textarea 触发保存 (debounce 500ms)", async () => {
     render(<PromptSettings />);
-    // P16: textarea 复用 .settings-input, 3 prompts × 3 = 9 个 textarea
+    // P16: textarea 复用 .settings-input, v2.80 删 worldcup 后 2 prompts × 3 = 6 个 textarea
     const textareas = Array.from(document.body.querySelectorAll(".settings-input")).filter(
       (el) => el.tagName === "TEXTAREA"
     );
-    expect(textareas).toHaveLength(9);
+    expect(textareas).toHaveLength(6);
     fireEvent.input(textareas[0], { target: { value: "新角色" } });
     await new Promise((r) => setTimeout(r, 600));
     expect(store.saveAiPrompts).toHaveBeenCalled();
@@ -80,10 +80,10 @@ describe("PromptSettings (A7)", () => {
       daily_digest_summary: { system: "编辑", rules: "1. 简洁", isDefault: false },
     };
     render(<PromptSettings />);
-    // 1 反馈导出 + 1 token 预算 + 4 prompt 段 = 6 卡片
+    // 1 反馈导出 + 1 token 预算 + 3 prompt 段 = 5 卡片 (v2.80 删 worldcup 减 1)
     const textareas = Array.from(document.body.querySelectorAll(".settings-input")).filter(
       (el) => el.tagName === "TEXTAREA"
     );
-    expect(textareas).toHaveLength(12); // 4 prompts × 3
+    expect(textareas).toHaveLength(9); // 3 prompts × 3
   });
 });

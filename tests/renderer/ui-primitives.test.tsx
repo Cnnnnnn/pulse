@@ -4,7 +4,7 @@ import { render, fireEvent } from '@testing-library/preact';
 import { TabList, Tab } from '../../src/renderer/components/TabList.tsx';
 import { Badge, StatusBadge } from '../../src/renderer/components/Badge.tsx';
 import { ModalShell } from '../../src/renderer/components/ModalShell.tsx';
-import { CategoryTabIcon, NavIcon, WorldcupTabIcon } from '../../src/renderer/components/icons.tsx';
+import { CategoryTabIcon, NavIcon } from '../../src/renderer/components/icons.tsx';
 
 describe('TabList', () => {
   it('chip variant 渲染 filter-tab active 类', () => {
@@ -84,15 +84,6 @@ describe('CategoryTabIcon', () => {
   it('未知 id 回退 IconPackage', () => {
     const { container } = render(<CategoryTabIcon id="unknown-cat" />);
     expect(container.querySelector('svg')).not.toBeNull();
-  });
-});
-
-describe('WorldcupTabIcon', () => {
-  it('fixtures / bracket 渲染 svg', () => {
-    const { container: fixtures } = render(<WorldcupTabIcon tabKey="fixtures" />);
-    expect(fixtures.querySelector('svg')).not.toBeNull();
-    const { container: bracket } = render(<WorldcupTabIcon tabKey="bracket" />);
-    expect(bracket.querySelector('svg')).not.toBeNull();
   });
 });
 

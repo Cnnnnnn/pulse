@@ -15,6 +15,7 @@ const {
   saveAISessionsConfig,
   saveActiveCategory,
   saveAiUsageSnapshotProvider,
+  appendAiUsageHistoryDayProvider,
 } = requireMain("state-store");
 let tmpDir;
 let statePath;
@@ -124,7 +125,8 @@ describe("bug 修复: ai_sessions_config 保留", () => {
     );
     const s = load(statePath);
     expect(s.ai_sessions_config).toEqual({ provider: "openai" });
-    expect(s.ai_usage.minimax).toBeDefined();
+    expect(s.ai_usage.providers.minimax).toBeDefined();
+    expect(s.ai_usage.providers.minimax.fetchedAt).toBe(1);
   });
 
   it("saveActiveCategory 不再吃掉 ai_sessions_config", () => {
@@ -134,10 +136,21 @@ describe("bug 修复: ai_sessions_config 保留", () => {
     expect(s.active_category).toBe("ai");
   });
 
-  it("saveWorldcupScores 不再吃掉 ai_sessions_config", () => {
-    saveWorldcupScores({ entries: {}, ts: 1 }, statePath);
+  it("appendAiUsageHistoryDayProvider 不再吃掉 ai_sessions_config (回归)", () => {
+    saveAiUsageSnapshotProvider(
+      "minimax",
+      { fetchedAt: 2, windows: { weekly: { usedPercent: 60 } } },
+      statePath,
+    );
+    appendAiUsageHistoryDayProvider(
+      "minimax",
+      { date: "2026-08-07", used: 100, percent: 50 },
+      statePath,
+    );
     const s = load(statePath);
     expect(s.ai_sessions_config).toEqual({ provider: "openai" });
+    expect(s.ai_usage.providers.minimax.fetchedAt).toBe(2);
+    expect(s.ai_usage_history.providers.minimax.days[0].used).toBe(100);
   });
 
   it("saveAISessionsConfig(null) 仍然显式清字段", () => {

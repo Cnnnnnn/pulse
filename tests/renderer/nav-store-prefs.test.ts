@@ -113,10 +113,10 @@ describe("navStore — tray menu prefs effect (Phase v1)", () => {
   it("手动 setActiveNav 到一个被关的 nav 也会被 effect 弹回", async () => {
     await applyPrefs({
       ...ALL_ON,
-      segments: { ...ALL_ON.segments, metals: false },
+      segments: { ...ALL_ON.segments, ai_usage: false },
     });
-    activeNav.value = "metals"; // 直接设,跳过 setActiveNav 校验
+    activeNav.value = "ai-usage"; // 直接设,跳过 setActiveNav 校验
     await new Promise((r) => setTimeout(r, 0));
-    expect(activeNav.value).not.toBe("metals");
+    expect(activeNav.value).not.toBe("ai-usage");
   });
 });

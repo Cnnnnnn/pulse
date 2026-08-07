@@ -136,7 +136,7 @@ describe("NavDrawer — header 计数", () => {
   it("header 显示 'N 项' 计数 (该 section 可见项数)", () => {
     const { container } = render(<NavDrawer section="news" />);
     const count = container.querySelector(".nav-drawer-count");
-    expect(count?.textContent).toBe("5 项");
+    expect(count?.textContent).toBe("4 项");
   });
 
   it("section 标题来自 NAV_SECTIONS 单一真源", () => {

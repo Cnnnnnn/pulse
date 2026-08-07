@@ -4,7 +4,7 @@
  * v2.22 Task E1: 测 scheduleRebuild 的 debounce (200ms) + Windows throttle (1s).
  *
  * scheduleRebuild 是 createTrayManager 内部闭包 (tray.js:388-401),通过 setter
- * (setResults / setAiUsage / setWorldcup / setMetals) 触发. 本测试不导出
+ * (setResults / setAiUsage / setMetals) 触发. 本测试不导出
  * 内部 closure (避免改 production code),而是走 createTrayManager().install()
  * 真实路径, 用 vi.mock-style require.cache 注入 stub electron, spy Menu.
  * buildFromTemplate 调用次数, 用 vi.useFakeTimers() 控制时间.
@@ -148,7 +148,6 @@ describe('tray scheduleRebuild (Task E1) — debounce + Windows throttle', () =>
     vi.setSystemTime(new Date(0));
     mgr.setResults([{ name: 'A', has_update: false }]);
     mgr.setAiUsage({ minimax: { status: 'ok', percent: 50, remainLabel: '2h' }, glm: { status: 'unconfigured' } });
-    mgr.setWorldcup({ todayMatches: [], upcoming: [] });
     mgr.setMetals({ quotes: {}, holdings: {}, fetchedAt: null });
 
     vi.advanceTimersByTime(250);
@@ -216,14 +215,13 @@ describe('tray scheduleRebuild (Task E1) — debounce + Windows throttle', () =>
     expect(mockBuildFromTemplate).toHaveBeenCalledTimes(1);
     // fake clock=1000, lastRebuildAt=1000, rebuildTimer=null
 
-    // 5 个 setter 连发 (fake clock=1000):
+    // 4 个 setter 连发 (fake clock=1000):
     // 第 1 个: elapsed=0, delay=max(200, 1000-0)=1000 → timer 设到 2000
-    // 第 2-5 个: rebuildTimer 已存在, return 忽略
+    // 第 2-4 个: rebuildTimer 已存在, return 忽略
     mgr.setResults([{ name: 'A', has_update: false }]);
     mgr.setAiUsage({ minimax: { status: 'ok', percent: 30, remainLabel: '5h' }, glm: { status: 'unconfigured' } });
-    mgr.setWorldcup({ todayMatches: [], upcoming: [] });
     mgr.setMetals({ quotes: {}, holdings: {}, fetchedAt: null });
-    expect(vi.getTimerCount()).toBe(1); // 5 个 setter 合并为 1 个待 fire timer
+    expect(vi.getTimerCount()).toBe(1); // 3 个 setter 合并为 1 个待 fire timer
     vi.advanceTimersByTime(999);
     expect(mockBuildFromTemplate).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(1);

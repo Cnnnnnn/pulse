@@ -53,7 +53,7 @@ describe("TrayMenuConfigModal", () => {
     expect(container.querySelector(".tray-config-modal")).toBeNull();
   });
 
-  it("modal 打开 → 显示加载中,然后切到 6 个 checkbox", async () => {
+  it("modal 打开 → 显示加载中,然后切到 5 个 checkbox (v2.80 删 worldcup)", async () => {
     stubTrayApi();
     const { store, TrayMenuConfigModal } = await freshStoreAndModal();
     store.trayConfigOpen.value = true;
@@ -62,7 +62,7 @@ describe("TrayMenuConfigModal", () => {
     expect(document.body.querySelector(".tray-config-modal-loading")).toBeTruthy();
     // 等 getPrefs resolve
     await waitFor(() => {
-      expect(document.body.querySelectorAll(".tray-config-segment-row")).toHaveLength(6);
+      expect(document.body.querySelectorAll(".tray-config-segment-row")).toHaveLength(5);
     });
   });
 
@@ -84,7 +84,7 @@ describe("TrayMenuConfigModal", () => {
     store.trayConfigOpen.value = true;
     render(<TrayMenuConfigModal />);
     await waitFor(() => {
-      expect(document.body.querySelectorAll(".tray-config-segment-row")).toHaveLength(6);
+      expect(document.body.querySelectorAll(".tray-config-segment-row")).toHaveLength(5);
     });
     const saveBtn = document.body.querySelector(".tray-config-save");
     expect(saveBtn.disabled).toBe(true);

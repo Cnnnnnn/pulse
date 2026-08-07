@@ -160,9 +160,9 @@ describe("sidenav-prefs", () => {
       hidden: ["invest", "versions"],
       favorites: [],
     };
-    // 顺序按 NAV_KEYS_LIST 排, 不是按 hidden 数组
+    // 顺序按 NAV_KEYS_LIST 排 (v2.80 删 worldcup 后: invest 在 versions 前)
     expect(new Set(listHidden(p))).toEqual(new Set(["invest", "versions"]));
-    expect(listHidden(p)).toEqual(["versions", "invest"]);
+    expect(listHidden(p)).toEqual(["invest", "versions"]);
   });
 
   // ponytail: bug 回归 — 升级后 prefs.order 短, 但 prefs.hidden = [] → listHidden 必须返 [],
@@ -295,8 +295,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 8 个 nav key（含 AI 榜单 v2.83）", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(8);
+  it("DEFAULTS_FOR_TESTS: 7 个 nav key (v2.80 删 worldcup)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(7);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });
