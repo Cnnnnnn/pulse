@@ -7,6 +7,10 @@
  *   - close 拦截 → hide（macOS tray 模式）；isQuitting=true 时才真退出
  *   - 标题栏 hiddenInset + 亚克力 vibrancy
  *   - preload + contextIsolation + nodeIntegration:false
+ *
+ * Phase 9 收尾: 自适应窗口大小 — 按 primary display work area 70% 宽 75% 高
+ * 算默认尺寸, 上下限 (MIN 720x540 / MAX 1600x1000), 居中. 不再 maximize()
+ * 强制全屏 (用户反馈: 启动全屏体验不好). 用户想全屏自己点 green 按钮.
  */
 
 // ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
@@ -61,12 +65,32 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
   let mainWindow: BrowserWindowInstance | null = null;
 
   function createWindow() {
+    // Phase 9 收尾: 自适应窗口大小 — 按 primary display work area 70% 算默认尺寸,
+    // 上下限, 居中. 不再 maximize() 强制全屏 (用户反馈: 启动全屏体验不好).
+    // 小屏 (≤1280) 走 70% 完整适配, 大屏 (4K) 走 maxWidth 1600 上限.
+    const { screen } = require('electron');
+    const display = screen.getPrimaryDisplay();
+    const wa = display.workArea; // 去掉 dock / taskbar 的可用区域
+    const MIN_W = 720, MIN_H = 540;
+    const MAX_W = 1600, MAX_H = 1000;
+    const TARGET_W_RATIO = 0.7; // 70% 宽
+    const TARGET_H_RATIO = 0.75; // 75% 高 (留 25% 给 dock + 用户切换窗口)
+    const width  = Math.max(MIN_W, Math.min(MAX_W, Math.floor(wa.width  * TARGET_W_RATIO)));
+    const height = Math.max(MIN_H, Math.min(MAX_H, Math.floor(wa.height * TARGET_H_RATIO)));
+    // 居中: 屏幕中点 - 窗口一半
+    const x = Math.floor(wa.x + (wa.width  - width)  / 2);
+    const y = Math.floor(wa.y + (wa.height - height) / 2);
+
     mainWindow = new BrowserWindow({
-      // Phase B7e: 默认加大 (1080x780), 给 digest drawer (460px) + main 列表留足空间.
-      width: 1080,
-      height: 780,
-      minWidth: 720,
-      minHeight: 540,
+      width,
+      height,
+      minWidth: MIN_W,
+      minHeight: MIN_H,
+      // 上限防止拖到离谱大小 (4K 屏上用户能拖出 3000+px 没意义)
+      maxWidth: MAX_W,
+      maxHeight: MAX_H,
+      x,
+      y,
       show: false,
       // Phase 28: 显式设 title, 防止 Electron 默认 "Electron" / 老 install 残留
       title: 'Pulse',
@@ -118,7 +142,8 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
       const win = mainWindow;
       if (!win) return;
       if (config.check_on_launch) {
-        win.maximize();
+        // 不再 maximize() — 保持窗口创建时设的合理大小 + 居中.
+        // 用户想全屏可以自己点 green 按钮, 默认窗口化更友好.
         win.show();
         win.focus();
       }

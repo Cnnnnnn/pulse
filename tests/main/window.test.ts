@@ -33,7 +33,10 @@ describe('window.js uses platform.getWindowOptions', () => {
     expect(windowSource).not.toMatch(/vibrancy:\s*['"]under-window['"]/);
   });
 
-  it('冷启动首次显示前最大化，普通唤醒不强制最大化', () => {
+  it('冷启动首次显示 + 普通唤醒 都不强制 maximize (Phase 9 收尾: 自适应窗口化)', () => {
+    // Phase 9 收尾前: 冷启动 maximize() 强制全屏 (用户体验差)
+    // Phase 9 收尾后: 用 screen.getPrimaryDisplay().workArea 70% 算默认尺寸,
+    //                 居中, 不强制 maximize. 用户想全屏自己点 green 按钮.
     const readyToShowBody = windowSource.match(
       /mainWindow\.once\('ready-to-show',[\s\S]*?\n\s{4}\}\);/,
     )?.[0];
@@ -43,14 +46,28 @@ describe('window.js uses platform.getWindowOptions', () => {
 
     expect(readyToShowBody).toBeTruthy();
     expect(showWindowBody).toBeTruthy();
-    expect(readyToShowBody.indexOf('.maximize()')).toBeGreaterThan(-1);
-    expect(readyToShowBody.indexOf('.maximize()')).toBeLessThan(
-      readyToShowBody.indexOf('.show()'),
-    );
+    // 都不调 maximize (冷启动也不再强制)
+    expect(readyToShowBody).not.toContain('.maximize()');
+    expect(showWindowBody).not.toContain('.maximize()');
+    // 冷启动仍然先 show 再 focus (跟旧行为一致, 只是去掉中间的 maximize)
+    expect(readyToShowBody.indexOf('.show()')).toBeGreaterThan(-1);
     expect(readyToShowBody.indexOf('.show()')).toBeLessThan(
       readyToShowBody.indexOf('.focus()'),
     );
-    expect(showWindowBody).not.toContain('maximize()');
+  });
+
+  it('窗口尺寸按 primary display work area 70% 算默认 + 上下限 + 居中', () => {
+    // Phase 9 收尾: 自适应窗口化 — 不再用固定 1080x780
+    expect(windowSource).toMatch(/screen\.getPrimaryDisplay\(\)/);
+    expect(windowSource).toMatch(/workArea/);
+    // 70% 宽 75% 高 (留 25% 给 dock / 切换窗口)
+    expect(windowSource).toMatch(/0\.7/);
+    expect(windowSource).toMatch(/0\.75/);
+    // MIN 上限 (maxWidth / maxHeight 也设了, 防止 4K 屏拖到 3000+px)
+    expect(windowSource).toMatch(/minWidth:\s*MIN_W/);
+    expect(windowSource).toMatch(/maxWidth:\s*MAX_W/);
+    // 居中 (中点 - 一半)
+    expect(windowSource).toMatch(/wa\.x\s*\+\s*\(wa\.width\s*-\s*width\)\s*\/\s*2/);
   });
 
   it('platform.getWindowOptions 返回的键会展开进 BrowserWindow 选项', () => {
