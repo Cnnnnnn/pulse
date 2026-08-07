@@ -189,39 +189,6 @@ export const api = {
   // Phase C2: per-app snooze (C2 功能已退役, 移除)
   // setAppSnooze / clearAppSnooze IPC 已删除
 
-  // v2.9.0 世界杯专栏: 拉 + 解析 Football.TXT
-  worldcupFetchFixtures: (payload: unknown) =>
-    ipcRenderer.invoke("worldcup:fetch-fixtures", payload),
-  worldcupLoadScores: () => ipcRenderer.invoke("worldcup:load-scores"),
-  worldcupRefreshScores: (payload: unknown) =>
-    ipcRenderer.invoke("worldcup:refresh-scores", payload),
-  worldcupLoadInsights: () => ipcRenderer.invoke("worldcup:load-insights"),
-  worldcupGenerateInsight: (payload: unknown) =>
-    ipcRenderer.invoke("worldcup:generate-insight", payload),
-
-  // v2.10.0 世界杯体彩记账 (stake + pnl per matchday)
-  worldcupLoadBets: () => ipcRenderer.invoke("worldcup:load-bets"),
-  worldcupUpsertBet: (payload: unknown) =>
-    ipcRenderer.invoke("worldcup:upsert-bet", payload),
-  worldcupRemoveBet: (date: string) =>
-    ipcRenderer.invoke("worldcup:remove-bet", date),
-
-  // 世界杯淘汰赛对阵表 (bracket compute + load)
-  worldcupComputeBracket: (payload: unknown) =>
-    ipcRenderer.invoke("worldcup:compute-bracket", payload),
-  worldcupLoadBracket: () => ipcRenderer.invoke("worldcup:load-bracket"),
-
-  // v2.16.0 世界杯进球通知: main 推通知点击 → renderer 切 tab + scroll
-  onWorldcupFocusMatch: (cb: Callback) =>
-    ipcRenderer.on("worldcup:focus-match", (_, data) => cb(data)),
-
-  // v2.51 世界杯实时比分: goal-watcher sweep 完推 renderer, 触发面板自动刷新.
-  // 返回 unsubscribe 函数, 避免 renderer 重复注册导致内存泄漏.
-  onWorldcupScoresUpdated: (cb: Callback) => {
-    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
-    ipcRenderer.on("worldcup:scores-updated", handler);
-    return () => ipcRenderer.removeListener("worldcup:scores-updated", handler);
-  },
 
   getAiSharedConfig: () => ipcRenderer.invoke("ai:get-shared-config"),
 
@@ -454,7 +421,7 @@ export const pulse = {
   },
 };
 
-// 贵金属 (v2.20.0) — 独立 contextBridge, 跟 funds / reminders / worldcup 一致
+// 贵金属 (v2.20.0) — 独立 contextBridge, 跟 funds / reminders / metals 一致
 export const metalsApi = {
   list: () => ipcRenderer.invoke("metals:list"),
   updateConfig: (patch: unknown) =>

@@ -12,8 +12,6 @@ export const aiPromptsSaving = signal(false);
 
 const PROMPT_LABELS = {
   ithome_summary: "IT之家文章摘要",
-  worldcup_prematch: "世界杯赛前预测",
-  worldcup_postmatch: "世界杯赛后总结",
   upgrade_advice: "升级建议 (该不该升)",
   changelog_summary: "Changelog 3 件大事",
   category_classify: "App 分类",

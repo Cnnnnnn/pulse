@@ -233,7 +233,6 @@ export default Dashboard;
 // ── 最近活动 helper (复用 RecentActivityModal 的 kind → nav 映射) ──
 
 function navForRecent(kind: string): string | null {
-  if (kind === "worldcup-match-view" || kind === "worldcup-insight") return "worldcup";
   if (
     kind === "fund-view" ||
     kind === "fund-add" ||
@@ -251,7 +250,6 @@ function navForRecent(kind: string): string | null {
 function recentKindLabel(kind: string): string {
   if (kind?.startsWith("fund")) return "💰";
   if (kind?.startsWith("ithome")) return "📰";
-  if (kind?.startsWith("worldcup")) return "🏆";
   if (kind === "app-upgrade" || kind === "app-check") return "🔄";
   if (kind === "settings-open") return "⚙";
   return "·";

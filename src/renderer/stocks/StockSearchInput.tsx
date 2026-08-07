@@ -6,7 +6,7 @@
  * API 契约: api.stocksSearch(query) → { ok, results: [{code,name,industry?}], fromCache }
  * 选中后调 openDiagnosis(code) (它会切到 diagnosis tab 并设 stockDiagnosisCode).
  *
- * 样式照搬 worldcup 搜索框但用 stock- 前缀 (见 styles.css .stock-search-*).
+ * 样式照搬 wechat-hot 搜索框但用 stock- 前缀 (见 styles.css .stock-search-*).
  */
 import { useState, useEffect, useRef } from "preact/hooks";
 import { openDiagnosis } from "./diagnosisStore.ts";

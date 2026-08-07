@@ -87,16 +87,6 @@ export function createApi(overrides: Record<string, any> = {}): any {
     getAiSessionsConfig: pick(overrides, "getAiSessionsConfig"),
     saveAiSessionsConfig: pick(overrides, "saveAiSessionsConfig"),
     onAiSessionsConfigUpdated: pick(overrides, "onAiSessionsConfigUpdated"),
-    // v2.9.0 世界杯专栏
-    worldcupFetchFixtures: pick(overrides, "worldcupFetchFixtures"),
-    worldcupLoadScores: pick(overrides, "worldcupLoadScores"),
-    worldcupRefreshScores: pick(overrides, "worldcupRefreshScores"),
-    worldcupLoadInsights: pick(overrides, "worldcupLoadInsights"),
-    worldcupGenerateInsight: pick(overrides, "worldcupGenerateInsight"),
-    // v2.10.0 世界杯体彩记账
-    worldcupLoadBets: pick(overrides, "worldcupLoadBets"),
-    worldcupUpsertBet: pick(overrides, "worldcupUpsertBet"),
-    worldcupRemoveBet: pick(overrides, "worldcupRemoveBet"),
     getAiSharedConfig: pick(overrides, "getAiSharedConfig"),
     // v2.10+ 基金管理
     fundsList: pick(overrides, "fundsList"),

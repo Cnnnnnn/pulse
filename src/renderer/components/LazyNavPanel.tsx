@@ -12,8 +12,6 @@ const LOADERS = {
   // 子 layout (ithome / wechat-hot) 仍走独立 chunk, 这里不再单独暴露.
   // 2026-07-13: 投资 nav 合并 funds/metals/stocks → 'invest', 三 layout 内嵌为 FundContent/MetalContent/StockContent.
   news: () => import('../news/NewsLayout.tsx').then((m) => m.NewsLayout),
-  worldcup: () =>
-    import('../worldcup/WorldcupLayout.tsx').then((m) => m.WorldcupLayout),
   invest: () =>
     import('../invest/InvestLayout.tsx').then((m) => m.InvestLayout),
   'ai-usage': () =>

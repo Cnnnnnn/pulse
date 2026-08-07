@@ -6,7 +6,6 @@
  * v2.9.0 → v2.9.1: AppShell 拆 2 独立 layout.
  * v2.9.5: Header + AITasksDrawer + FilterBar 从顶层 移 给 VersionsLayout.
  *   [版本检查] tab: VersionsLayout 包 Header (检查更新 / Upgrade All / 通知 badge) + FilterBar (搜索 + 状态 chip) + 主体.
- *   [世界杯] tab:   WorldcupLayout 完全独立顶部, 不显 版本检查 任何元素.
  *   2 套顶部 0 共享, 拍 1 拍 (跟版本检查相关元素 留 在 版本检查).
  *
  * v2 改进 (跟 v2.6 保持):

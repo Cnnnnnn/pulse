@@ -11,7 +11,6 @@ const LABELS = {
   news: { title: 'IT 新闻' },
   funds: { title: '基金变动' },
   ai_usage: { title: 'AI 用量预警' },
-  worldcup: { title: '今日比赛' },
 };
 
 export function DigestSection({ section }) {
@@ -47,8 +46,6 @@ function renderItem(kind, it) {
     }
     case 'ai_usage':
       return `${it.provider} ${it.percent}%`;
-    case 'worldcup':
-      return `${it.home} vs ${it.away}`;
     default:
       return JSON.stringify(it);
   }

@@ -18,8 +18,6 @@ import { wechatHotUnreadBadge, wechatHotItems } from "../wechat-hot/store.ts";
 import { fundUnreadBadge, totalMetrics, holdings } from "../funds/fundStore.ts";
 import { aiUsageNavBadge, aiUsageSnapshot, aiUsageActiveProvider } from "../store/ai-usage-store.ts";
 import { githubProjects } from "../store/github-projects-store.ts";
-import { worldcupMatches } from "../worldcup/store.ts";
-import { matchKickoffUtcMs } from "../worldcup/match-utils.ts";
 import { quoteCache } from "../metals/metalStore.ts";
 import { comparePoolCount } from "../stocks/comparePool.ts";
 import { results as stocksResults } from "../stocks/stockStore.ts";
@@ -55,8 +53,6 @@ export interface NavStatusCtx {
   checkApps: any;
   // github status 源
   githubProjects: any;
-  // worldcup status 源
-  worldcupMatches: any;
 }
 
 /**
@@ -83,7 +79,6 @@ export function collectNavStatusCtx(): NavStatusCtx {
     checkResults: checkResults.value,
     checkApps: checkApps.value,
     githubProjects: githubProjects.value,
-    worldcupMatches: worldcupMatches.value,
   };
 }
 
@@ -145,46 +140,6 @@ export function getStatus(key: string, ctx: NavStatusCtx): string | null {
       if (parts.length === 0) return "—";
       return parts.join(" · ");
     }
-    case "worldcup": {
-      const matches = ctx.worldcupMatches?.matches ?? [];
-      if (matches.length === 0) return "—";
-      const now = Date.now();
-      const live = matches.find((m) => m?.score?.status === "live");
-      if (live) {
-        const ft = live.score?.ft ?? [0, 0];
-        const clock = live.score?.clock ?? "";
-        return `live ${live.team1} ${ft[0]}-${ft[1]} ${live.team2}${clock ? " " + clock : ""}`;
-      }
-      const upcoming = matches
-        .map((m) => ({ m, ms: m && matchKickoffUtcMs(m) }))
-        .filter((x) => x.ms > now)
-        .sort((a, b) => a.ms - b.ms);
-      const today = todayShanghaiDateKey();
-      const todays = upcoming.filter(({ m }) => m.date === today);
-      if (todays.length > 0) {
-        const n = todays.length;
-        const first = todays[0].m;
-        const firstMs = todays[0].ms;
-        const hhmm = formatBjHHMM(firstMs);
-        return `今日 ${n} 场 · ${hhmm} ${shortTeam(first.team1)} vs ${shortTeam(first.team2)}`;
-      }
-      if (upcoming.length > 0) {
-        const first = upcoming[0].m;
-        const firstMs = upcoming[0].ms;
-        const md = formatBjMD(firstMs);
-        const hhmm = formatBjHHMM(firstMs);
-        return `下一场 ${md} ${hhmm} ${shortTeam(first.team1)} vs ${shortTeam(first.team2)}`;
-      }
-      const finals = matches
-        .filter((m) => m?.score?.status === "final")
-        .sort((a, b) => (matchKickoffUtcMs(b) || 0) - (matchKickoffUtcMs(a) || 0));
-      if (finals.length > 0) {
-        const last = finals[0];
-        const ft = last.score?.ft ?? [0, 0];
-        return `已结束 · ${last.team1} ${ft[0]}:${ft[1]} ${last.team2}`;
-      }
-      return "—";
-    }
     case "invest": {
       // 投资 nav 合并: status 按 funds → metals → stocks 优先级下探.
       const pool = ctx.comparePoolCount || 0;
@@ -237,25 +192,6 @@ export function getStatus(key: string, ctx: NavStatusCtx): string | null {
 }
 
 // ─── 纯 helper (Dashboard Hero 复用) ───────────────
-
-function shortTeam(name?: string): string {
-  if (!name) return "";
-  const space = name.indexOf(" ");
-  if (space < 0 || space > 8) return name.slice(0, 8);
-  return name.slice(0, space);
-}
-
-function formatBjHHMM(ms: number): string {
-  if (!ms) return "--:--";
-  const d = new Date(ms);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
-function formatBjMD(ms: number): string {
-  if (!ms) return "--/--";
-  const d = new Date(ms);
-  return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 /** 时段问候语 (Hero 复用). */
 export function greeting(): string {

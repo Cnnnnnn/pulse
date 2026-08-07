@@ -3,7 +3,7 @@
  *
  * v2.10+ 基金管理 — renderer store (signals).
  *
- * 跟 v2.6 主体 0 共享 (跟 worldcup/store.js 一个套路).
+ * 跟 v2.6 主体 0 共享 (preact/signals + window.api 套路).
  *
  * State:
  *   holdings: FundHolding[]                  // 持久化 (主进程维护)

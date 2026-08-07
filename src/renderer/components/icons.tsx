@@ -271,28 +271,6 @@ export function IconUsers({ size = 14 }) {
   );
 }
 
-export function IconFootball({ size = 14 }) {
-  return (
-    <Svg size={size}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-      <path d="M2 12h20" />
-    </Svg>
-  );
-}
-
-export function IconTrophy({ size = 14 }) {
-  return (
-    <Svg size={size}>
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-      <path d="M7 4h10v4a5 5 0 0 1-10 0V4z" />
-      <path d="M7 4H4a1 1 0 0 0-1 1v1a3 3 0 0 0 3 3" />
-      <path d="M17 4h3a1 1 0 0 1 1 1v1a3 3 0 0 1-3 3" />
-    </Svg>
-  );
-}
-
 export function IconMedal({ size = 20 }) {
   return (
     <Svg size={size}>
@@ -300,18 +278,6 @@ export function IconMedal({ size = 20 }) {
       <path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12" />
     </Svg>
   );
-}
-
-const WORLDCUP_TAB_ICON = {
-  fixtures: IconCalendar,
-  teams: IconUsers,
-  scorers: IconFootball,
-  bracket: IconTrophy,
-};
-
-export function WorldcupTabIcon({ tabKey, size = 14 }) {
-  const Icon = WORLDCUP_TAB_ICON[tabKey] || IconFootball;
-  return <Icon size={size} />;
 }
 
 export function IconRefresh({ size = 16, ...rest }) {
@@ -416,7 +382,6 @@ const NAV_ICON = {
   ithome: IconNews,
   news: IconNews,
   'wechat-hot': IconFlame,
-  worldcup: IconTrophy,
   funds: IconCoin,
   invest: IconCoin,
   metals: IconMedal,
@@ -614,46 +579,16 @@ export function IconLock({ size = 14 }) {
 }
 
 /**
- * 队旗渲染: 有 ISO code → 彩色真实国旗 SVG (4:3, 来自 flags.jsx);
- * 无 code → 通用 IconFlag 占位. 国旗必须用真实配色, 不走 stroke/currentColor.
+ * TeamFlag — 通用旗子图标 (2026-08: 真实国旗表已下线, Worldcup 模块整体下线 v2.80).
+ * 之前支持 ISO code → 彩色真实国旗 (4:3, 来自 flags.jsx); 现统一回退到 IconFlag 占位.
  */
-import { FLAG_SVGS } from "../worldcup/flags.tsx";
-
-export function TeamFlag({ code, size = 16, className }: { code: string; size?: number; className?: string }) {
-  const key = code ? String(code).toUpperCase() : null;
-  const label = key;
-  const flagSvg = key ? FLAG_SVGS[key] : null;
-  if (flagSvg) {
-    // 真实国旗: 独立 <svg>, viewBox 4:3, 彩色填充. 跟 stroke 风格 IconSvg 隔离.
-    return (
-      <span
-        class={className}
-        title={label || undefined}
-        aria-label={label ? `球队 ${label}` : undefined}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <svg
-          width={size}
-          height={Math.round((size * 3) / 4)}
-          viewBox="0 0 60 40"
-          role="img"
-          style={{ display: "block", borderRadius: "1px" }}
-        >
-          {flagSvg}
-        </svg>
-      </span>
-    );
-  }
-  // fallback: 通用旗子图标 (无 code 或 code 未收录)
+export function TeamFlag({ code, size = 16, className }: { code?: string; size?: number; className?: string }) {
+  const label = code ? String(code).toUpperCase() : null;
   return (
     <span
       class={className}
       title={label || undefined}
-      aria-label={label ? `球队 ${label}` : undefined}
+      aria-label={label ? `旗 ${label}` : undefined}
     >
       <IconFlag size={size} />
     </span>
@@ -692,7 +627,6 @@ const DIGEST_SECTION_ICON = {
   news: IconNews,
   funds: IconTrendingUp,
   ai_usage: IconAlert,
-  worldcup: IconFootball,
 };
 
 export function DigestSectionIcon({ kind, size = 14 }) {
@@ -708,8 +642,6 @@ const RECENT_ACTIVITY_ICON = {
   'reminder-fire': IconBell,
   'reminder-done': IconCheck,
   'reminder-dismissed': IconX,
-  'worldcup-match-view': IconFootball,
-  'worldcup-insight': IconWand,
   'fund-view': IconCoin,
   'fund-add': IconCoin,
   'fund-update': IconEdit,
@@ -728,8 +660,6 @@ export function RecentActivityIcon({ kind, size = 14 }) {
 
 const PROMPT_SECTION_ICON = {
   ithome_summary: IconNews,
-  worldcup_prematch: IconTrophy,
-  worldcup_postmatch: IconTrophy,
   upgrade_advice: IconSparkles,
   changelog_summary: IconSparkles,
   category_classify: IconPackage,

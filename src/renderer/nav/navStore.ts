@@ -3,15 +3,15 @@
  *
  * App 级导航信号 (activeNav / navCollapsed / investPrimary).
  *
- * Phase 9 (外壳+导航+视觉重设): 从 src/renderer/worldcup/navStore.ts 迁入本目录.
- *   - 旧位置误导: 这是 app 级状态, 不是 worldcup 专属.
+ * Phase 9 (外壳+导航+视觉重设): 净身从 src/renderer/worldcup/navStore.ts 迁入本目录.
+ *   - 旧位置误导: 这是 app 级状态, 不应该跟 worldcup 耦在一起 (2026-08 已下线 WC 模块).
  *   - nav key 集合 / 分组 / legacy alias 改为从 src/shared/nav-keys.ts 单一真源派生,
  *     不再在本文件维护并行表.
  *
- * v2.9.0 世界杯专栏起源, 后续合并:
+ * nav 合并历史:
  *   - P-N+ (2026-07-10): IT 新闻 + 微博热搜 → 'news' 单 nav, 页内 sub-tab.
  *   - 2026-07-13: funds/metals/stocks → 'invest' 单 nav, investPrimary signal 驱动子 tab.
- *   - Phase 9: worldcup 从顶层独立项 → 资讯组成员 (key 不变, 只改 section 归属).
+ *   - 2026-08 (v2.80): worldcup 模块整体下线, 资讯组从 4 项 → 3 项.
  */
 
 import { effect, signal } from "@preact/signals";

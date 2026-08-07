@@ -19,7 +19,6 @@
 
 import { refreshWechatHot } from "./wechat-hot/store.ts";
 import { refreshIthomeNews } from "./ithome/store.ts";
-import { refreshWorldcupScores } from "./worldcup/store.ts";
 import { fetchNavNow } from "./funds/fundStore.ts";
 import { refreshNow as refreshMetals } from "./metals/metalStore.ts";
 import { investPrimary } from "./nav/navStore.ts";
@@ -61,7 +60,6 @@ function refreshInvest() {
 /** nav key → refresh 函数 + label */
 const REGISTRY = {
   news: { fn: () => refreshNews(), label: "刷新当前新闻子 tab" },
-  worldcup: { fn: () => refreshWorldcupScores(), label: "刷新世界杯比分" },
   invest: { fn: () => refreshInvest(), label: "刷新当前投资子模块" },
   games: { fn: () => loadGameDeals(), label: "刷新游戏优惠" },
 };

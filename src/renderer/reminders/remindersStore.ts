@@ -3,7 +3,7 @@
  *
  * v2.11 提醒 (Reminders) — renderer signals + actions
  *
- * 沿用 src/renderer/worldcup/betsStore.js 的 pattern (preact/signals + window.api).
+ * 沿用 src/renderer/funds/fundStore.ts 的 pattern (preact/signals + window.api).
  * 跟 reminders 主进程的字段一致 (id / title / triggerAt / repeat / weekday? / status / ...).
  */
 

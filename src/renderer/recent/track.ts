@@ -2,21 +2,10 @@
  * src/renderer/recent/track.ts
  *
  * 最近活动采集 — 各 tab 调 pushRecent, 主进程负责折叠去重.
+ * 2026-08: Worldcup 模块整体下线, 删 trackWorldcupMatchView / trackWorldcupInsight.
  */
 
 import { pushRecent } from "./recentStore.ts";
-
-export function trackWorldcupMatchView(match: any) {
-  if (!match || match._isTeam) return;
-  const t1 = match.team1 || "?";
-  const t2 = match.team2 || "?";
-  const ref = `${match.date}|${match.time}|${t1}|${t2}`;
-  pushRecent({
-    kind: "worldcup-match-view",
-    ref,
-    label: `${t1} vs ${t2}`,
-  });
-}
 
 export function trackFundView() {
   pushRecent({
@@ -57,19 +46,6 @@ export function trackIthomeSummary(article: any) {
     kind: "ithome-summary",
     ref: article.id,
     label: `AI 总结：${title.length > 60 ? title.slice(0, 60) + "…" : title}`,
-  });
-}
-
-export function trackWorldcupInsight(match: any, type: any) {
-  if (!match || match._isTeam) return;
-  const t1 = match.team1 || "?";
-  const t2 = match.team2 || "?";
-  const ref = `${match.date}|${match.time}|${t1}|${t2}`;
-  const verb = type === "post" ? "赛后总结" : "赛前预测";
-  pushRecent({
-    kind: "worldcup-insight",
-    ref,
-    label: `${verb}：${t1} vs ${t2}`,
   });
 }
 

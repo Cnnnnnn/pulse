@@ -27,8 +27,6 @@ const KIND_META = {
   "reminder-fire": { label: "提醒触发" },
   "reminder-done": { label: "提醒完成" },
   "reminder-dismissed": { label: "忽略提醒" },
-  "worldcup-match-view": { label: "比赛" },
-  "worldcup-insight": { label: "AI 分析" },
   "fund-view": { label: "基金" },
   "fund-add": { label: "新增基金" },
   "fund-update": { label: "编辑基金" },
@@ -55,11 +53,6 @@ const FILTERS = [
     ],
   },
   {
-    id: "worldcup",
-    label: "比赛",
-    kinds: ["worldcup-match-view", "worldcup-insight"],
-  },
-  {
     id: "fund",
     label: "基金",
     kinds: [
@@ -80,8 +73,6 @@ const FILTERS = [
 
 /** 找 kind 对应的 nav 目标 (点跳过去) */
 function navForKind(kind) {
-  if (kind === "worldcup-match-view" || kind === "worldcup-insight")
-    return "worldcup";
   if (
     kind === "fund-view" ||
     kind === "fund-add" ||

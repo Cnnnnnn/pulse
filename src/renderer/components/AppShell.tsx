@@ -95,7 +95,6 @@ export function AppShell({ onCheck }: { onCheck?: () => void }) {
           inputId = activeSubtab === 'wechat-hot' ? 'wechat-hot-search-input' : 'ithome-search-input';
         } else if (nav === 'ithome') inputId = 'ithome-search-input';
         else if (nav === 'wechat-hot') inputId = 'wechat-hot-search-input';
-        else if (nav === 'worldcup') inputId = 'worldcup-search-input';
         // ponytail 2026-07-13 投资 nav 合并: 合并后 nav 永远 'invest',
         //   一期简化为 focus 基金搜索框 (最常用), 二期按 investPrimary 细分.
         else if (nav === 'invest') inputId = 'fund-search-input';
