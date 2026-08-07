@@ -2,6 +2,58 @@
 
 ---
 
+## v2.80 (⚽ 世界杯模块下线) — 2026-08-07
+
+**⚽ 2026 世界杯模块整体下线** (赛事 2026-07-19 决赛后已过, 无新数据, 维护成本 > 价值):
+- **删除**:
+  - `src/main/worldcup/` (12 个 .ts: scores-fetcher / fetcher / bracket / match-ai / goal-watcher / team-aliases / ...)
+  - `src/main/worldcup-tray-cache.ts` + `src/main/ipc/register-worldcup.ts`
+  - `src/renderer/worldcup/` (32 个 .ts/.tsx: WorldcupLayout / MatchCard / BracketTree / flags SVG / squads data / ...)
+  - `tests/main/worldcup*` (17 个) + `tests/renderer/worldcup*` (16 个) + 3 个独立 smoke
+  - `tests/visual/visual.spec.js-snapshots/worldcup-{light,dark}-darwin.png` (2 个)
+- **集成点清理** (13 个源文件 + 26 个测试文件, 共 +1800/-500 行净删):
+  - `src/shared/nav-keys.ts`: 删 `NavKey.worldcup` + NAV_REGISTRY WC 条目 + icon 'trophy'
+  - `src/main/state-store.{ts,schema.ts}`: 删 9 个 WC schema/PRESERVE/legacy migration + 8 个 load/save 函数
+  - `src/main/index.ts`: 删 `initWorldcupTray` (50 行) + `startWorldcupGoalWatcher` 调用 + `onFocusWorldcup` IPC
+  - `src/main/ipc/index.ts` + `bootstrap/schedulers.ts` + `digest/aggregate.ts`: 删 WC IPC + goal-watcher + digest section
+  - `src/main/tray.ts` + `tray-menu-prefs.ts`: 删 WC segment + `setWorldcup` + `buildWorldcupLines` (40 行)
+  - `src/ai/prompt-registry.ts`: 删 `worldcup_prematch` / `worldcup_postmatch` 2 个 prompt 模板
+  - `src/main/tray-menu-prefs.ts`: TRAY_SEGMENTS 6 → 5 项
+  - `preload.ts`: 删 12 个 `worldcup*` IPC API (fixtures/scores/insights/bets/bracket/focus/scores-updated)
+  - `src/renderer/{App,api,nav-refresh,navStore}` + `components/{AppShell,LazyNavPanel,Dashboard,SubtabList,FeatureHeader,icons,nav-status}` + `digest/DigestSection` + `recent/{RecentActivityModal,track}`: 删 WC route / tile / status / recent kinds
+  - `src/renderer/components/icons.tsx`: 删 `IconFootball` / `IconTrophy` / `WorldcupTabIcon` + `TeamFlag` 真国旗 fallback 到通用 IconFlag
+  - `src/renderer/components/nav-status.ts`: 删 `getStatus('worldcup')` (50 行) + `shortTeam`/`formatBjHHMM`/`formatBjMD` helper
+  - `src/renderer/digest/DigestSection.tsx` + `aggregate.ts`: 删 WC 段
+  - `styles.css`: 删 1545 行 `.worldcup-*` + `.match-card-*` 块 + 2 个 `--accent-worldcup` 变量
+- **行为变化**:
+  - 资讯组 (news section): 4 → 3 项 (news/ai-leaderboard/games/github)
+  - nav 视角: nav-refresh 删 WC dispatch; nav-status 返 null
+  - state.json PRESERVE 字段: 9 个 WC 字段不再 preserve (下次写自然消失, 老 state 里残留的 `worldcup*` 字段仍兼容)
+  - 旧 `last_active_nav='worldcup'` 读不出合法值, 走 fallback 路径; 不破坏现有 user prefs
+  - 老 `tray_menu_prefs.segments.worldcup` 字段被 `normalizePrefs` 静默丢弃
+
+**保留**:
+- 旧 state.json / 用户 data 完全兼容 (forward-compat: 未知 top-level 字段保留)
+- `sidenav-prefs.ts` filename + `STORAGE_KEY = "pulse.sidenav.prefs.v1"` 不变
+- `state-store` schema 整体不动, 只删 WC 字段
+
+**测试**:
+- 删除 36 个 WC 专项测试 (89 个源/测试文件在 Commit 1, 26 个集成点测试在 Commit 6)
+- 7 个预存在 fail (4 finance + 1 prompt-registry + 0-2 main-bundle-contract) baseline 不增
+- typecheck 0 errors (5 tsconfigs)
+- ESLint 0 errors
+
+**用户可见影响**:
+- IconRail 资讯组少一个 "世界杯" 入口
+- 侧栏 tray 菜单 prefs 少一个 "⚽ 世界杯" 段
+- 最近活动 timeline 不再出现 "比赛 / AI 分析" 类别
+- 每日早报 digest 不再有 "今日比赛" 段
+- 如要支持下届赛事, 见 `git log` 找回 `goal-watcher` / `scores-fetcher` 实现
+
+USER-REQUEST: "世界杯这个模块直接下线吧，可以不要了，删除掉所有世界杯相关的"
+
+---
+
 ## v2.79.5 (🤗 AI 榜单接入 HuggingFace Hub) — 2026-07-23
 
 **新增数据源 — HuggingFace Hub Models API**:

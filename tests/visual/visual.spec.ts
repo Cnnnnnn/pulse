@@ -114,27 +114,6 @@ test("side nav collapsed — light theme baseline", async ({ page }) => {
   });
 });
 
-test("worldcup tab — light theme baseline (FeatureHeader 壳)", async ({
-  page,
-}) => {
-  await page.emulateMedia({ colorScheme: "light" });
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem("app-theme-preference", "light");
-    } catch {}
-  });
-  await page.goto("/");
-  await waitForShell(page);
-  const worldcupNav = page.locator('li[data-nav="worldcup"]').first();
-  if (await worldcupNav.count()) {
-    await worldcupNav.click();
-    await page.waitForTimeout(800);
-  }
-  await expect(page).toHaveScreenshot("worldcup-light.png", {
-    fullPage: false,
-  });
-});
-
 test("funds tab — light theme baseline (FundHeader 5 张空 summary)", async ({
   page,
 }) => {
@@ -186,25 +165,6 @@ test("wechat-hot tab — light theme baseline (cooldown 倒计时 UI)", async ({
   await expect(page).toHaveScreenshot("wechat-hot-light.png", {
     fullPage: false,
   });
-});
-
-test("worldcup tab — dark theme baseline (跨主题 OKLCH 一致性)", async ({
-  page,
-}) => {
-  await page.emulateMedia({ colorScheme: "dark" });
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem("app-theme-preference", "dark");
-    } catch {}
-  });
-  await page.goto("/");
-  await waitForShell(page);
-  const worldcupNav = page.locator('li[data-nav="worldcup"]').first();
-  if (await worldcupNav.count()) {
-    await worldcupNav.click();
-    await page.waitForTimeout(800);
-  }
-  await expect(page).toHaveScreenshot("worldcup-dark.png", { fullPage: false });
 });
 
 test("overview (Library page) — win32 platform baseline (浅底 accent 验证)", async ({
