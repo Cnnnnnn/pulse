@@ -20,23 +20,17 @@ const FIELD_SPECS: Record<string, { kind: string; required?: boolean }> = {
   mutes:             { kind: 'object' },
   last_opened:       { kind: 'object' },
   active_category:   { kind: 'string' },
-  last_active_nav:   { kind: 'string' },  // P-N: HomeGrid 落点 ('funds'|'metals'|'worldcup'|...)
+  last_active_nav:   { kind: 'string' },  // P-N: HomeGrid 落点 ('funds'|'metals'|'invest'|...)
   ai_sessions_config: { kind: 'object' },
   classify_llm_cache: { kind: 'object' },
   task_summaries:    { kind: 'object' },
   funds:             { kind: 'object' },
-  worldcupBets:      { kind: 'object' },
   ithome_news:       { kind: 'object' },
   reminders:         { kind: 'array' },
   recentActivity:    { kind: 'array' },
   ai_usage:          { kind: 'object' },
   ai_usage_history:  { kind: 'object' },
   circuitBreakers:   { kind: 'object' },
-  worldcup_txt:      { kind: 'object' },
-  worldcup_scores:   { kind: 'object' },
-  worldcup_match_insights: { kind: 'object' },
-  worldcup_bracket_snapshot: { kind: 'object' },
-  worldcupGoalNotified: { kind: 'object' },
   daily_digest:       { kind: 'object' },
   aiFeedback:         { kind: 'array' },   // A8: AI 反馈样本 cap-500
   tokenSpend:         { kind: 'object' },  // P71: 每日 token 消耗 {"YYYY-MM-DD": number}

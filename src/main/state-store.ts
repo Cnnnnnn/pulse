@@ -46,7 +46,6 @@
  *       "segments": {
  *         "updates": true,         // 🔄 检查更新(动态段)
  *         "ai_usage": true,        // 📊 AI 用量
- *         "worldcup": true,        // ⚽ 世界杯
  *         "metals": true,          // 💎 贵金属
  *         "check_action": true,    // 底部「检查更新」按钮
  *         "config_action": true    // 底部「打开配置文件」按钮
@@ -231,10 +230,6 @@ export function migrateLegacyStateIfNeeded(targetPath: any) {
       current.task_summaries = legacy.task_summaries;
       merged = true;
     }
-    if (legacy.worldcup_match_insights && !current.worldcup_match_insights) {
-      current.worldcup_match_insights = legacy.worldcup_match_insights;
-      merged = true;
-    }
     if (merged) {
       writeAtomic(targetPath, current);
     }
@@ -253,7 +248,6 @@ export function migrateLegacyStateIfNeeded(targetPath: any) {
 //   - classify_llm_cache: { appName: catId } (Step B LLM classify 用)
 //   - task_summaries: { taskKey: entry } (AI 任务总结缓存)
 //   - funds: { holdings, deletedIds, dailySnapshots } (基金管理, fund-store 写入)
-//   - worldcupBets: { [date]: entry } (体彩记账, bets-store 写入)
 //   - ithome_news: { articles, summaries, favorites, ts } (IT之家新闻, news-store 写入)
 //   - reminders: [] (提醒, reminders.js 写入)
 //   - recentActivity: [] (最近活动时间线, recent-activity.js 写入)
@@ -266,13 +260,7 @@ export function migrateLegacyStateIfNeeded(targetPath: any) {
 const PRESERVE_FIELDS = [
   { key: "classify_llm_cache", kind: "object" },
   { key: "task_summaries", kind: "object", notArray: true },
-  { key: "worldcup_txt", kind: "object" },
-  { key: "worldcup_scores", kind: "object" },
-  { key: "worldcup_match_insights", kind: "object" },
-  { key: "worldcup_bracket_snapshot", kind: "object" },
-  { key: "worldcupGoalNotified", kind: "object", notArray: true }, // 新增 (goal notifications v1)
   { key: "funds", kind: "object", notArray: true },
-  { key: "worldcupBets", kind: "object", notArray: true },
   { key: "ithome_news", kind: "object", notArray: true },
   { key: "reminders", kind: "array" },
   { key: "recentActivity", kind: "array" },
@@ -337,7 +325,7 @@ export function defaultPath() {
 //   6) writeAtomic 落盘
 //
 // 这样每个 save 函数只保留"我要改哪个字段"的差异, 不能再忘了 preserve.
-// 修了两个 pre-existing bug: saveWorldcupMatchInsights / saveActiveCategory
+// 修了一个 pre-existing bug: saveActiveCategory
 // 原本没保留 ai_sessions_config, 重构后自动保留.
 export function patchState(
   updater: (next: StateRecord, existing: StateRecord, now: number) => void,
@@ -644,104 +632,6 @@ export function saveLastOpened(map: any, statePath = defaultPath()) {
   }, statePath);
 }
 
-/**
- * 读 worldcup Football.TXT 缓存. 老 state.json (无 worldcup_txt 字段) → null.
- * 没 expiry (caller 用 ts 自查).
- * @param {string} [statePath]
- * @returns {{txt: string, ts: number}|null}
- */
-export function loadWorldcupTxt(statePath = defaultPath()) {
-  const s = load(statePath);
-  if (!s) return null;
-  if (!s.worldcup_txt || typeof s.worldcup_txt !== "object") return null;
-  const { txt, ts } = s.worldcup_txt;
-  if (typeof txt !== "string" || typeof ts !== "number") return null;
-  return { txt, ts };
-}
-
-/**
- * 写 worldcup Football.TXT 缓存. atomic write, 保留 apps / mutes / last_opened 等.
- * @param {{txt: string, ts: number}} entry
- * @param {string} [statePath]
- * @returns {object} 写完后的完整 state
- */
-export function saveWorldcupTxt(entry: any, statePath = defaultPath()) {
-  if (!entry || typeof entry.txt !== "string" || typeof entry.ts !== "number") {
-    throw new TypeError(
-      "saveWorldcupTxt: entry must be {txt: string, ts: number}",
-    );
-  }
-  return patchState((next: any) => {
-    next.worldcup_txt = { txt: entry.txt, ts: entry.ts };
-  }, statePath);
-}
-
-/**
- * 读 worldcup 淘汰赛 bracket snapshot. 老 state.json (无 worldcup_bracket_snapshot
- * 字段) 或值非法 → null. 没有 expiry — caller 用 computedAt 自查.
- * @param {string} [statePath]
- * @returns {object|null}  BracketSnapshot
- *   { version, computedAt, projected, r32, r16, qf, sf, final, third,
- *     thirdPlacedAdvancing, annexCIndex, warnings }
- */
-export function loadWorldcupBracket(statePath = defaultPath()) {
-  const s = load(statePath);
-  if (!s) return null;
-  const snap = s.worldcup_bracket_snapshot;
-  if (!snap || typeof snap !== "object") return null;
-  return snap;
-}
-
-/**
- * 写 worldcup 淘汰赛 bracket snapshot. atomic write, 保留 apps / mutes /
- * last_opened / worldcup_txt / worldcup_scores / worldcup_match_insights
- * 等所有其它字段.
- * @param {object} snapshot  BracketSnapshot
- * @param {string} [statePath]
- * @returns {object} 写完后的完整 state
- */
-export function saveWorldcupBracket(snapshot: any, statePath = defaultPath()) {
-  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
-    throw new TypeError("saveWorldcupBracket: snapshot must be plain object");
-  }
-  return patchState((next: any) => {
-    next.worldcup_bracket_snapshot = { ...snapshot };
-  }, statePath);
-}
-
-/**
- * 读 worldcup 比分缓存
- * @returns {{ entries: object, ts: number }|null}
- */
-export function loadWorldcupScores(statePath = defaultPath()) {
-  const s = load(statePath);
-  if (!s || !s.worldcup_scores || typeof s.worldcup_scores !== "object")
-    return null;
-  const { entries, ts } = s.worldcup_scores;
-  if (!entries || typeof entries !== "object" || typeof ts !== "number")
-    return null;
-  return { entries, ts };
-}
-
-/**
- * 写 worldcup 比分缓存
- * @param {{ entries: object, ts: number }} cache
- */
-export function saveWorldcupScores(cache: any, statePath = defaultPath()) {
-  if (
-    !cache ||
-    typeof cache.entries !== "object" ||
-    typeof cache.ts !== "number"
-  ) {
-    throw new TypeError(
-      "saveWorldcupScores: cache must be {entries: object, ts: number}",
-    );
-  }
-  return patchState((next: any) => {
-    next.worldcup_scores = { entries: cache.entries, ts: cache.ts };
-  }, statePath);
-}
-
 // ─── I6 v2: wechat-hot 已读词 ───────────────────────────────
 
 /**
@@ -940,45 +830,6 @@ export function saveChangelogSummaryEntry(entry: any, statePath = defaultPath())
   }, statePath);
 }
 
-/**
- * 读世界杯场次 AI 缓存 (赛前预测 / 赛后总结)
- * @returns {{ entries: object, ts: number }|null}
- */
-export function loadWorldcupMatchInsights(statePath = defaultPath()) {
-  const s = load(statePath);
-  if (
-    !s ||
-    !s.worldcup_match_insights ||
-    typeof s.worldcup_match_insights !== "object"
-  ) {
-    return null;
-  }
-  const { entries, ts } = s.worldcup_match_insights;
-  if (!entries || typeof entries !== "object" || typeof ts !== "number") {
-    return null;
-  }
-  return { entries, ts };
-}
-
-/**
- * @param {{ entries: object, ts: number }} cache
- */
-export function saveWorldcupMatchInsights(cache: any, statePath = defaultPath()) {
-  if (
-    !cache ||
-    typeof cache.entries !== "object" ||
-    typeof cache.ts !== "number"
-  ) {
-    throw new TypeError(
-      "saveWorldcupMatchInsights: cache must be {entries: object, ts: number}",
-    );
-  }
-  // bug 修复: 老实现没 preserve ai_sessions_config, 走 patchState 自动补上.
-  return patchState((next: any) => {
-    next.worldcup_match_insights = { entries: cache.entries, ts: cache.ts };
-  }, statePath);
-}
-
 // ─── AI 任务总结缓存 (task_summaries) ────────────────────────
 // 重做版: 按任务缓存 (不再按天). 30 天外 GC, 跟 mutes 同款处理.
 // 字段: task_summaries = { [taskKey]: Entry }
@@ -1170,7 +1021,7 @@ export function loadLastActiveNav(statePath = defaultPath()) {
  * P-N HomeGrid 落点: 写 last_active_nav. atomic write,
  * 自动 preserve apps / mutes / last_opened / active_category / ...
  *
- * @param {string} key             persistable nav key (news/worldcup/invest/ai-usage/versions/github; legacy keys also accepted)
+ * @param {string} key             persistable nav key (news/invest/ai-usage/versions/github; legacy keys also accepted)
  * @param {string} [statePath]
  * @returns {object} 写完后的完整 state
  * @throws {TypeError} 非合法 key
@@ -1201,7 +1052,7 @@ export function loadTrayMenuPrefs(statePath = defaultPath()) {
 
 /**
  * 写 tray_menu_prefs. atomic write, 保留 apps / mutes / last_opened / active_category /
- * classify_llm_cache / task_summaries / funds / worldcupBets / ithome_news / reminders /
+ * classify_llm_cache / task_summaries / funds / ithome_news / reminders /
  * recentActivity / ai_usage / ai_usage_history / circuitBreakers / daily_digest 等所有字段
  * (走 patchState 公共范式, 自动 preserve).
  *
@@ -2033,16 +1884,6 @@ module.exports = {
   // Step B: LLM classify cache 持久化
   loadLLMClassifyCache,
   saveLLMClassifyCache,
-  // v2.9.0: 世界杯 Football.TXT 缓存 (24h TTL, fetcher 调用)
-  loadWorldcupTxt,
-  saveWorldcupTxt,
-  loadWorldcupScores,
-  saveWorldcupScores,
-  loadWorldcupMatchInsights,
-  saveWorldcupMatchInsights,
-  // 世界杯淘汰赛 bracket 快照
-  loadWorldcupBracket,
-  saveWorldcupBracket,
   // Phase Q8: state.json corruption self-recovery
   StateCorruptedError,
   loadOrRecover,
