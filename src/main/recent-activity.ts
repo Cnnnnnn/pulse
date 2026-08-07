@@ -3,7 +3,7 @@
  *
  * v2.11 最近时间线 (Recent Activity) — store + 折叠去重
  *
- * 模式跟 src/main/worldcup/bets-store.js 一致:
+ * 模式跟 src/main/funds/fund-store.ts 一致 (state-store atomic write pattern):
  *   - 走 state-store.load / writeAtomic (同进程复用, atomic write)
  *   - 顶层 state.json.recentActivity[] = array of RecentActivityEntry
  *   - cap 走 config.json.recentActivity.maxEntries (默认 200, 范围 [50, 1000])
@@ -30,8 +30,6 @@ const VALID_KINDS = [
   "reminder-fire",
   "reminder-done",
   "reminder-dismissed",
-  "worldcup-match-view",
-  "worldcup-insight",
   "fund-view",
   "fund-add",
   "fund-update",

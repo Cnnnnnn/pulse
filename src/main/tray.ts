@@ -42,7 +42,6 @@ type TrayPrefs = {
   segments: {
     updates?: boolean;
     ai_usage?: boolean;
-    worldcup?: boolean;
     metals?: boolean;
     check_action?: boolean;
     config_action?: boolean;
@@ -52,7 +51,6 @@ type TrayPrefs = {
 type BuildMenuOpts = {
   results?: DetectResult[];
   aiUsage?: any;
-  worldcup?: any;
   metals?: any;
   trayPrefs?: TrayPrefs;
   themeMode?: string;
@@ -62,7 +60,6 @@ type BuildMenuOpts = {
   onOpenTrayConfig?: () => void;
   onQuit?: () => void;
   onFocusUpdate?: (payload: { rowName: string; action: string }) => void;
-  onFocusWorldcup?: (payload: { matchKey: string }) => void;
   onThemeChange?: (mode: string) => void;
   getConfigPath?: () => string;
   getConfig?: () => { apps?: any[] };
@@ -79,7 +76,6 @@ type CreateTrayManagerOpts = {
   onOpenTrayConfig?: () => void;
   onQuit?: () => void;
   onFocusUpdate?: (payload: any) => void;
-  onFocusWorldcup?: (payload: any) => void;
   onThemeChange?: (mode: string) => void;
 };
 
@@ -157,13 +153,12 @@ export function loadFallbackIcon(): NativeImage {
  *   - 底部 4 个 action: 打开面板 / 检查更新 / 打开配置文件 / 退出
  *
  * 后续 Task A2-A4 会在此函数里按段替换内容; callback 注入已经预留
- * onFocusUpdate (A2 用). aiUsage / worldcup / metals 字段已收, 待
- * B2/C2/D1 在函数体内插入对应段.
+ * onFocusUpdate (A2 用). aiUsage / metals 字段已收, 待
+ * B2/D1 在函数体内插入对应段.
  *
  * @param {object} opts
  * @param {Array}  [opts.results=[]]      - detect 返回的 app 状态列表
  * @param {object} [opts.aiUsage=null]    - A2/B2 任务: AI 配额状态
- * @param {object} [opts.worldcup=null]   - C2 任务: 世界杯比分
  * @param {object} [opts.metals=null]     - D1 任务: 贵金属行情
  * @param {object} [opts.trayPrefs]       - Phase v1: tray 菜单项 prefs (默认 DEFAULT_PREFS 全开)
  * @param {Function} [opts.onOpenPanel]   - 点击 "打开面板" 时调用
@@ -182,7 +177,6 @@ export function buildMenu(opts: BuildMenuOpts): any[] {
   const {
     results = [],
     aiUsage = null,
-    worldcup = null,
     metals = null,
     staleNames = [],
     selfUpdateState = null,
@@ -194,7 +188,6 @@ export function buildMenu(opts: BuildMenuOpts): any[] {
     onOpenTrayConfig = () => {},
     onQuit = () => {},
     onFocusUpdate = () => {},
-    onFocusWorldcup = () => {},
     onThemeChange = () => {}, // P10: 用户在托盘切换主题
     getConfigPath = () => "",
     getConfig = () => ({ apps: [] }),
@@ -260,18 +253,6 @@ export function buildMenu(opts: BuildMenuOpts): any[] {
     if (lines.length > 0) {
       template.push({ label: "── 📊 AI coding plan 用量 ──", enabled: false });
       for (const line of lines) {
-        template.push(line);
-      }
-      template.push({ type: "separator" });
-    }
-  }
-
-  // ─── ⚽ 世界杯 (v2.22 Task C2) ───
-  if (seg.worldcup && worldcup) {
-    const wcLines = buildWorldcupLines(worldcup, onFocusWorldcup);
-    if (wcLines.length > 0) {
-      template.push({ label: "── ⚽ 世界杯 ──", enabled: false });
-      for (const line of wcLines) {
         template.push(line);
       }
       template.push({ type: "separator" });
@@ -451,52 +432,10 @@ function _summaryAgeLabel(deltaMs: number): string {
 }
 
 /**
- * 把 worldcup summary map 渲染成 menu template 行 (v2.22 Task C2).
- * wc = { todayMatches: [...], upcoming: [...] }
- * - 今日 live 比赛 → "  team1 vs team2  2-1 (live)"
- * - 今日已结束 → "  team1 vs team2  1-0 (终)"
- * - 今日未开赛 → "  team1 vs team2  13:00"
- * - 今日无比赛 + 有 upcoming →  "  下一场: team1 vs team2  明天 15:00"
+ * 把 metals summary map 渲染成 menu template 行 (v2.22 Task D1).
+ * metals = { holdings: [...], quotes: {gold: 2400, silver: 30, ...} }
+ * 旧版曾有 buildWorldcupLines — 2026 世界杯已下线, 整段删除 (v2.80).
  */
-function buildWorldcupLines(wc: any, onFocusWorldcup?: (payload: { matchKey: string }) => void): MenuItemConstructorOptions[] {
-  const lines: any[] = [];
-  const today = Array.isArray(wc.todayMatches) ? wc.todayMatches : [];
-  const cb = typeof onFocusWorldcup === "function" ? onFocusWorldcup : () => {};
-  for (const m of today) {
-    if (!m || !m.team1 || !m.team2) continue;
-    const score = m.score || {};
-    let scoreText = "";
-    if (score.status === "live" && Array.isArray(score.ft)) {
-      scoreText = `  ${score.ft[0]}-${score.ft[1]} (live)`;
-    } else if (score.status === "final" && Array.isArray(score.ft)) {
-      scoreText = `  ${score.ft[0]}-${score.ft[1]} (终)`;
-    } else if (m.time) {
-      scoreText = `  ${m.time}`;
-    }
-    lines.push({
-      label: `  ${m.team1} vs ${m.team2}${scoreText}`,
-      enabled: typeof m.key === "string",
-      click: () => {
-        if (m.key) cb({ matchKey: m.key });
-      },
-    });
-  }
-  const upcoming = Array.isArray(wc.upcoming) ? wc.upcoming : [];
-  if (today.length === 0 && upcoming.length > 0) {
-    const next = upcoming[0];
-    if (next && next.team1 && next.team2) {
-      lines.push({
-        label:
-          `  下一场: ${next.team1} vs ${next.team2}  ${next.time || next.date || ""}`.trim(),
-        enabled: typeof next.key === "string",
-        click: () => {
-          if (next.key) cb({ matchKey: next.key });
-        },
-      });
-    }
-  }
-  return lines;
-}
 
 const METAL_NAME: Record<string, string> = {
   XAU: "黄金",
@@ -564,7 +503,6 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
   const onOpenTrayConfig = opts.onOpenTrayConfig || (() => {});
   const onQuit = opts.onQuit || (() => {});
   const onFocusUpdate = opts.onFocusUpdate || (() => {});
-  const onFocusWorldcup = opts.onFocusWorldcup || (() => {});
   const onThemeChange = opts.onThemeChange || (() => {}); // P10
 
   let tray: TrayInstance | null = null;
@@ -597,7 +535,6 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
     const template = buildMenu({
       results: lastResults,
       aiUsage: lastAiUsage,
-      worldcup: lastWorldcup,
       metals: lastMetals,
       trayPrefs: lastTrayMenuPrefs,
       staleNames: lastStaleNames,
@@ -611,7 +548,6 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
       onOpenTrayConfig,
       onQuit,
       onFocusUpdate,
-      onFocusWorldcup,
       getConfigPath,
     });
     // Phase v1: 锁死位置,在「退出」上方拼「菜单栏配置...」(用户可配置入口,锁死位置不漂移)
@@ -656,12 +592,6 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
   let lastAiUsage: any = null;
   function setAiUsage(snapshot: any) {
     lastAiUsage = snapshot;
-    scheduleRebuild();
-  }
-
-  let lastWorldcup: any = null;
-  function setWorldcup(snapshot: any) {
-    lastWorldcup = snapshot;
     scheduleRebuild();
   }
 
@@ -717,7 +647,6 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
     setResults,
     setBadge,
     setAiUsage,
-    setWorldcup,
     setMetals,
     setSelfUpdateState,
     setTrayMenuPrefs,

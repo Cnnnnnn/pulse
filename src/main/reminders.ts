@@ -3,7 +3,7 @@
  *
  * v2.11 提醒 (Reminders) — store + scheduler
  *
- * 模式跟 src/main/worldcup/bets-store.js 一致:
+ * 模式跟 src/main/funds/fund-store.ts 一致 (state-store atomic write pattern):
  *   - 走 state-store.load / writeAtomic (同进程复用, atomic write)
  *   - 顶层 state.json.reminders[] = array of Reminder
  *   - 输入校验, 状态机 (pending → fired → dismissed / 删除)

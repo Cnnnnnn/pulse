@@ -583,97 +583,6 @@ export function startSelfUpdateTimer(deps: {
 }
 
 /**
- * v2.16.0 世界杯进球通知 — 60s sweep + 系统通知.
- * 复用 refreshWorldcupScores / inQuietHours / Electron Notification.
- * @param {object} deps
- * @param {function} deps.getWindow
- * @param {function} deps.sendToRenderer
- * @param {function} deps.getConfig
- * @param {object} deps.goalWatcher
- * @param {function} [deps.onScoresChanged]  v2.22 C2.1 — goal-watcher 每次 sweep 完
- *   (refreshScores 成功) fire, 跟 onGoal 独立. 透传给 goalWatcher.startGoalWatcher.
- *   tray pushWorldcupToTray 走这里, 替换之前的 60s setInterval 兜底轮询.
- */
-// 2026 世界杯已于 2026-07-19 结束。赛事结束后不再轮询外部 API（tray/digest
-// 的数据源已有日期过滤，不会显示过期比赛）。如需支持下届赛事，更新此日期。
-const WORLDCUP_2026_END_MS = Date.UTC(2026, 6, 20); // 7月20日 00:00 UTC（决赛次日）
-export function startWorldcupGoalWatcher(deps: any) {
-  if (Date.now() >= WORLDCUP_2026_END_MS) return; // 赛事已结束，不启动后台轮询
-  const { getWindow, sendToRenderer, getConfig, goalWatcher, onScoresChanged } =
-    deps;
-  try {
-    goalWatcher.startGoalWatcher({
-      refreshScores: (keys: any) =>
-        require("../worldcup/scores-fetcher.ts").refreshWorldcupScores(keys),
-      loadFixtures: () => stateStore.loadWorldcupTxt(),
-      onGoal: (notif: any, meta: any) => {
-        try {
-          // 复用现有 quiet hours
-          const cfg =
-            (typeof getConfig === "function" ? getConfig() : null) || {};
-          const qh = cfg.notifications || {};
-          const now = new Date();
-          if (inQuietHours(now, qh.quiet_hours_start, qh.quiet_hours_end)) {
-            mainLog.info(
-              `[worldcup/goal-watcher] quiet hours skip: ${meta.matchKey}`,
-            );
-            return;
-          }
-          if (!ElectronNotification.isSupported()) return;
-          const n = new ElectronNotification({
-            title: notif.title,
-            body: notif.body,
-            silent: false,
-          });
-          n.on("click", () => {
-            try {
-              const w = getWindow();
-              if (w && !w.isDestroyed()) {
-                w.show();
-                w.focus();
-              }
-            } catch {
-              /* noop */
-            }
-            try {
-              sendToRenderer("worldcup:focus-match", {
-                matchKey: meta.matchKey,
-              });
-            } catch (err: any) {
-              mainLog.warn(
-                `[worldcup/goal-watcher] sendToRenderer failed: ${errMsg(err)}`,
-              );
-            }
-          });
-          n.show();
-        } catch (err: any) {
-          mainLog.warn(
-            `[worldcup/goal-watcher] notification show failed: ${errMsg(err)}`,
-          );
-        }
-      },
-      log: {
-        info: (...args: any[]) => (mainLog as any).info(...args),
-        warn: (...args: any[]) => (mainLog as any).warn(...args),
-        error: (...args: any[]) => (mainLog as any).error(...args),
-      },
-      // v2.22 C2.1: 透传 onScoresChanged (only if defined, 避免显式 undefined)
-      ...(typeof onScoresChanged === "function" ? { onScoresChanged } : {}),
-    });
-    mainLog.info("worldcup goal watcher started (60s sweep)");
-    app.once("before-quit", () => {
-      try {
-        goalWatcher.stopGoalWatcher();
-      } catch {
-        /* noop */
-      }
-    });
-  } catch (err: any) {
-    mainLog.warn(`worldcup goal watcher init failed: ${errMsg(err)}`);
-  }
-}
-
-/**
  * Phase 16 / C4: 后台定时静默 check. C4 起: quiet hours 内跳过检测,
  * quiet hours 结束后补跑一次 (lastAutoCheckAt=null 语义). 顺带把 config
  * 取值从启动快照改为 runtimeConfigRef.current, 让 quiet hours 热生效.
@@ -806,7 +715,6 @@ module.exports = {
   __resetForTest,
   startFundScheduler,
   startRemindersScheduler,
-  startWorldcupGoalWatcher,
   wireRecentActivityListener,
   startAutoCheckTimer,
   makeRefreshLastOpenedAfterCheck,

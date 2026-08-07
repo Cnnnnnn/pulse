@@ -64,7 +64,6 @@ const MAIN_REQUIRED = [
   "src/main/metal-ipc.js",
   "src/main/reminders",
   "src/main/recent-activity",
-  "src/main/worldcup/goal-watcher",
   "src/main/bootstrap/config.js",
   "src/main/bootstrap/category.js",
   "src/main/bootstrap/ai-tasks.js",

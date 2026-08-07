@@ -1,7 +1,7 @@
 /**
  * src/main/tray-menu-prefs.ts — Tray 菜单配置 v1.
  *
- * 单一真相: segment key 列表 (updates/ai_usage/worldcup/metals/check_action/config_action).
+ * 单一真相: segment key 列表 (updates/ai_usage/metals/check_action/config_action).
  * 锁死的 2 项 (打开面板 / 退出) **不进** schema,也不进 TRAY_SEGMENTS —
  * buildMenu 永远渲染,根本不读 prefs.
  *
@@ -19,7 +19,6 @@ export type TrayPrefs = {
 export const TRAY_SEGMENTS: ReadonlyArray<{ key: string; label: string }> = [
   { key: "updates", label: "🔄 检查更新" },
   { key: "ai_usage", label: "📊 AI 用量" },
-  { key: "worldcup", label: "⚽ 世界杯" },
   { key: "metals", label: "💎 贵金属" },
   { key: "check_action", label: "检查更新(按钮)" },
   { key: "config_action", label: "打开配置文件" },

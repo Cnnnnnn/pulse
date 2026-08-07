@@ -76,7 +76,6 @@ const {
 } = require("./metal-ipc.ts");
 import * as reminders from "./reminders";
 import * as recentActivity from "./recent-activity";
-import * as goalWatcher from "./worldcup/goal-watcher";
 
 const {
   ARCH,
@@ -93,7 +92,6 @@ import { initAiTasksWiring } from "./bootstrap/ai-tasks";
 const {
   startFundScheduler,
   startRemindersScheduler,
-  startWorldcupGoalWatcher,
   wireRecentActivityListener,
   startAutoCheckTimer,
   makeRefreshLastOpenedAfterCheck,
@@ -314,15 +312,6 @@ function installTray() {
           });
         }
       },
-      onFocusWorldcup: (data: any) => {
-        if (winMgr) winMgr.showWindow();
-        const w = getWindow();
-        if (w && !w.isDestroyed()) {
-          w.webContents.send("worldcup:focus-match", {
-            matchKey: data && data.matchKey,
-          });
-        }
-      },
       onThemeChange: (mode: any) => {
         const w = getWindow();
         if (w && !w.isDestroyed()) {
@@ -425,33 +414,6 @@ function initAiUsageTray() {
   } catch (err: any) {
     mainLog.warn(`ai-usage tray init failed: ${errMsg(err)}`);
   }
-}
-
-/**
- * Bootstrap 子阶段: 世界杯 tray cache (从 state.json 读, 不主动 fetch).
- * @returns {() => void}
- */
-function initWorldcupTray() {
-  let pushWorldcupToTray = () => {};
-  try {
-    const { createWorldcupTrayCache } = require("./worldcup-tray-cache.ts");
-    const worldcupCache = createWorldcupTrayCache({});
-    pushWorldcupToTray = () => {
-      if (!trayMgr) return;
-      const today = worldcupCache.getTodayLive();
-      const upcoming = worldcupCache.getUpcoming(3);
-      trayMgr.setWorldcup({
-        todayMatches: today.ok ? today.matches : [],
-        upcoming: upcoming.ok ? upcoming.matches : [],
-        ts: today.ts || (upcoming.ok ? upcoming.ts : null),
-      });
-    };
-    pushWorldcupToTray();
-    mainLog.info("worldcup tray initialized (read-only from state.json)");
-  } catch (err: any) {
-    mainLog.warn(`worldcup tray init failed: ${errMsg(err)}`);
-  }
-  return pushWorldcupToTray;
 }
 
 /**
@@ -622,10 +584,10 @@ function registerAllIpc(selfUpdateHandle: any) {
 
 /**
  * Bootstrap 子阶段: 启动 metals IPC + scheduler + ai-usage warmup +
- * fund/reminders/worldcup/recent/auto-check timer.
- * 步骤 7.4 / 7.5 / 8. pushWorldcupToTray 由 initWorldcupTray 返回, 钩给 goal-watcher.
+ * fund/reminders/recent/auto-check timer.
+ * 步骤 7.4 / 7.5 / 8.
  */
-function startSchedulers(pushWorldcupToTray: any) {
+function startSchedulers() {
   // 必须在 renderer 可能 invoke metals:* 前同步注册 IPC。
   registerMetalIpc();
   startMetalScheduler({
@@ -670,29 +632,6 @@ function startSchedulers(pushWorldcupToTray: any) {
     getConfig: () => runtimeConfigRef.current,
   });
   startRemindersScheduler({ reminders, getWindow, sendToRenderer });
-  startWorldcupGoalWatcher({
-    getWindow,
-    sendToRenderer,
-    getConfig: () => runtimeConfigRef.current,
-    goalWatcher,
-    onScoresChanged: (newScores: any) => {
-      pushWorldcupToTray();
-      try {
-        const keys =
-          newScores && Array.isArray(newScores._updatedKeys)
-            ? newScores._updatedKeys
-            : null;
-        sendToRenderer("worldcup:scores-updated", {
-          ts: Date.now(),
-          updatedKeys: keys,
-        });
-      } catch (err: any) {
-        mainLog.warn(
-          `[worldcup] push scores to renderer failed: ${errMsg(err)}`,
-        );
-      }
-    },
-  });
   wireRecentActivityListener({ recentActivity, sendToRenderer });
   startAutoCheckTimer({
     runtimeConfigRef,
@@ -799,10 +738,7 @@ async function bootstrap() {
   // 6.5) ai-usage tray
   initAiUsageTray();
 
-  // 6.6) worldcup tray (返回 pushWorldcupToTray 给 goal-watcher 复用)
-  const pushWorldcupToTray = initWorldcupTray();
-
-  // 6.7) metals tray
+  // 6.6) metals tray
   initMetalsTray();
 
   // 7) ipc
@@ -810,7 +746,7 @@ async function bootstrap() {
   timings.ipc = ipcOut.ms;
 
   // 7.4 + 7.5 + 8) schedulers
-  startSchedulers(pushWorldcupToTray);
+  startSchedulers();
 
   // 启动埋点
   timings.total = Date.now() - t0;

@@ -10,7 +10,7 @@
  *
  * Persistence: mirrors fund-store.js's pattern — `stateStore.load()` +
  * `stateStore.writeAtomic()` with explicit `Object.assign({}, existing, ...)`,
- * which preserves all sibling fields (funds / task_summaries / worldcup* /
+ * which preserves all sibling fields (funds / task_summaries /
  * classify_llm_cache etc.) without relying on PRESERVE_FIELDS.
  */
 
@@ -69,8 +69,8 @@ function loadConfig(): any {
 
 function persistConfig(metalsPayload: any): any {
   // 走 patchState: 自动处理 apps / mutes / last_opened / active_category /
-  // ai_sessions_config 基础字段, 再 preserveExtraFields 兜住其余 (funds / worldcup*
-  // / ithome_news / reminders / recentActivity 等). 比手撸 Object.assign 更安全:
+  // ai_sessions_config 基础字段, 再 preserveExtraFields 兜住其余 (funds /
+  // ithome_news / reminders / recentActivity 等). 比手撸 Object.assign 更安全:
   // 老实现遇到 state.json 缺失会写出缺 apps 字段的 state, 直接破坏 Pulse 主流程.
   stateStore.patchState((next: any) => {
     next.metals = metalsPayload;

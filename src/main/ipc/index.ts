@@ -18,7 +18,6 @@ const {
 import { registerAiHandlers } from "./register-ai";
 import { registerGithubHandlers } from "./register-github";
 import { registerAiUsageHandlers } from "./register-ai-usage";
-import { registerWorldcupHandlers } from "./register-worldcup";
 import { registerIthomeHandlers } from "./register-ithome";
 import { registerIthomeShareHandlers } from "./register-ithome-share";
 import { registerFundsHandlers } from "./register-funds";
@@ -57,7 +56,6 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
   registerAiHandlers(ctx);
   registerGithubHandlers(ctx); // v2.80 GitHub 优秀项目收录
   registerAiUsageHandlers(ctx);
-  registerWorldcupHandlers(ctx);
   registerIthomeHandlers(ctx);
   registerIthomeShareHandlers(ctx);
   registerFundsHandlers(ctx);

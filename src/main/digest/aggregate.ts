@@ -13,7 +13,7 @@
 
 const MAX_LINES = 6;
 
-const SECTION_ORDER = ["updates", "hot", "news", "funds", "ai_usage", "worldcup"] as const;
+const SECTION_ORDER = ["updates", "hot", "news", "funds", "ai_usage"] as const;
 
 const MAX_LINE_LEN = 60;
 const UPDATES_CAP = 3;
@@ -21,7 +21,6 @@ const HOT_CAP = 3;
 const NEWS_CAP = 1;
 const FUNDS_CAP = 2;
 const AI_USAGE_CAP = 1;
-const WORLDUP_CAP = 1;
 const AI_USAGE_THRESHOLD_PCT = 80;
 const FUND_DELTA_THRESHOLD_PCT = 1;
 
@@ -54,15 +53,13 @@ type HotItem = { title: string };
 type NewsItem = { title: string; url: string };
 type FundItem = { code: string; name: string; today_change_pct: number };
 type AiUsageItem = { provider: string; percent: number };
-type WorldcupItem = { home: string; away: string; kickoff: string };
 
 type Section =
   | { kind: "updates"; items: UpdateItem[] }
   | { kind: "hot"; items: HotItem[] }
   | { kind: "news"; items: NewsItem[] }
   | { kind: "funds"; items: FundItem[] }
-  | { kind: "ai_usage"; items: AiUsageItem[] }
-  | { kind: "worldcup"; items: WorldcupItem[] };
+  | { kind: "ai_usage"; items: AiUsageItem[] };
 
 function sectionUpdates(apps: any): Section | null {
   if (!apps || typeof apps !== "object") return null;
@@ -127,12 +124,6 @@ function sectionAiUsage(aiUsage: any): Section | null {
   return items.length ? { kind: "ai_usage", items } : null;
 }
 
-function sectionWorldcup(wc: any): Section | null {
-  if (!wc || !Array.isArray(wc.today)) return null;
-  const first = wc.today[0];
-  return first ? { kind: "worldcup", items: [{ home: first.home, away: first.away, kickoff: first.kickoff }] } : null;
-}
-
 function lineFor(s: Section): string | null {
   const first = s.items[0] as any;
   switch (s.kind) {
@@ -150,8 +141,6 @@ function lineFor(s: Section): string | null {
     }
     case "ai_usage":
       return `• AI 用量: ${first.provider} ${first.percent}%`;
-    case "worldcup":
-      return `• 比赛: ${first.home} vs ${first.away}`;
     default:
       return null;
   }
@@ -165,7 +154,7 @@ type AggregateResult = {
 
 /**
  * Pure aggregator.
- * @param state  shape: {apps, wechatHot, ithome_news, funds, ai_usage, worldcup}
+ * @param state  shape: {apps, wechatHot, ithome_news, funds, ai_usage}
  * @param opts
  */
 export function aggregate(state: any, opts: { now?: Date } = {}): AggregateResult {
@@ -178,7 +167,6 @@ export function aggregate(state: any, opts: { now?: Date } = {}): AggregateResul
     () => sectionNews(s.ithome_news),
     () => sectionFunds(s.funds),
     () => sectionAiUsage(s.ai_usage),
-    () => sectionWorldcup(s.worldcup),
   ];
 
   const sections: Section[] = [];

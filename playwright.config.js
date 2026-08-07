@@ -5,8 +5,8 @@
  * 静态 http server 由 scripts/visual-serve.cjs (零依赖 Node 实现) 提供.
  *
  * P5 演进:
- * - 8 张 baseline (overview-light/dark/win32, sidenav-collapsed-light,
- *   worldcup-light/dark, funds-light, wechat-hot-light)
+ * - 7 张 baseline (overview-light/dark/win32, sidenav-collapsed-light,
+ *   funds-light, wechat-hot-light, ai-usage-tab 系列)
  * - 默认每 PR 跑 (CI workflow)
  * - maxDiffPixels 500 + threshold 0.3 容忍跨平台 font subpixel 差异
  *   (baseline 由 dev 本机 mac 拍, ubuntu runner 跑会有抗锯齿漂移,
