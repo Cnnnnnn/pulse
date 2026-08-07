@@ -19,8 +19,10 @@
   height: 100%;
   min-height: 0;
   background: var(--bg-primary, transparent);
-  padding: 20px 20px 20px;
-  gap: 16px;
+  /* 压缩: 16px padding + 10px gap — 7 个 section 能装进 ~720px 窗口,
+     Recent 不会被压到底 (用户反馈). 大屏 70% 高度更宽松, 无影响. */
+  padding: 16px 16px 16px;
+  gap: 10px;
   box-sizing: border-box;
   overflow-y: auto;
 }
@@ -31,21 +33,22 @@
 .dashboard-hero {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
+  gap: 12px;
+  padding: 10px 14px;
   border-radius: var(--radius-md, 10px);
   background: var(--bg-modal, #fff);
   border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+  flex-shrink: 0;
 }
 
 .dashboard-hero-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: var(--accent-primary);
   color: #fff;
   font-weight: 800;
-  font-size: 16px;
+  font-size: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -105,8 +108,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
+  gap: 2px;
+  padding: 9px 12px;
   border-radius: var(--radius-md, 10px);
   background: var(--bg-modal, #fff);
   border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
@@ -116,6 +119,7 @@
   font: inherit;
   color: inherit;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .dashboard-summary-card:hover {
@@ -165,11 +169,13 @@
 
 /* ============================================================
  * Tiles — 按 section 分组, 同 section 共用 1 个 accent
+ * flex: 1 + min-height: 0 → 自动吃掉中间剩余空间, Recent 不会被压.
+ * overflow 不加 — 整页走 .dashboard-root 一层滚动, 避免嵌套.
  * ============================================================ */
 .dashboard-tiles {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   flex: 1;
   min-height: 0;
 }
@@ -177,7 +183,7 @@
 .dashboard-tile-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .dashboard-tile-section-label {
@@ -190,8 +196,8 @@
 
 .dashboard-tile-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
   align-content: start;
 }
 
@@ -199,9 +205,9 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  min-height: 80px;
+  gap: 4px;
+  padding: 10px;
+  min-height: 68px;
   border-radius: var(--radius-md, 10px);
   background: var(--bg-modal, #fff);
   border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
@@ -226,27 +232,29 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: color-mix(in oklch, var(--tile-accent, var(--accent-primary)) 12%, transparent);
   color: var(--tile-accent, var(--accent-primary));
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .dashboard-tile-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.005em;
+  line-height: 1.2;
 }
 
 .dashboard-tile-subtitle {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 .dashboard-tile-badge {
@@ -273,11 +281,14 @@
 
 /* ============================================================
  * Recent — 时间线条目
+ * flex-shrink: 0 → 小窗口下不被 .dashboard-tiles 的 flex: 1 吃掉,
+ * 始终显示完整 (用户反馈: 屏幕缩小后 Recent 被挡住).
  * ============================================================ */
 .dashboard-recent {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .dashboard-recent-header {
@@ -309,10 +320,10 @@
 .dashboard-recent-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 7px 10px;
-  border-radius: 6px;
+  padding: 5px 8px;
+  border-radius: 5px;
   background: transparent;
   border: none;
   cursor: pointer;

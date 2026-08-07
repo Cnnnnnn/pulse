@@ -152,7 +152,7 @@ describe("Dashboard — Recent 条件渲染", () => {
     expect(container.querySelector(".dashboard-recent")).toBeNull();
   });
 
-  it("recent 有数据 → 渲染 .dashboard-recent + item 列表 (上限 6 条)", () => {
+  it("recent 有数据 → 渲染 .dashboard-recent + item 列表 (上限 4 条, 屏幕缩小不被挡)", () => {
     mockRecent = Array.from({ length: 10 }, (_, i) => ({
       kind: "worldcup-match-view",
       title: `比赛 ${i}`,
@@ -160,7 +160,7 @@ describe("Dashboard — Recent 条件渲染", () => {
     }));
     const { container } = render(<Dashboard />);
     const items = container.querySelectorAll(".dashboard-recent-item");
-    expect(items.length).toBe(6); // 前 6 条
+    expect(items.length).toBe(4); // 上限 4 条 (用户反馈: 屏幕小被挡, 6 → 4)
   });
 });
 

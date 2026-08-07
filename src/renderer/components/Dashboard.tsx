@@ -118,8 +118,8 @@ export function Dashboard() {
     tiles: NAV_REGISTRY.filter((e) => e.section === section.id),
   }));
 
-  // ── 最近活动 (前 6 条) ──
-  const recentItems = (recent.value || []).slice(0, 6);
+  // ── 最近活动 (前 4 条 — 屏幕小能装下, 多了可滚动看) ──
+  const recentItems = (recent.value || []).slice(0, 4);
 
   return (
     <div class="dashboard-root">
