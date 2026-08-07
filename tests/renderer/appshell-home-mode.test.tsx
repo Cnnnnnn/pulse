@@ -1,68 +1,75 @@
 // @vitest-environment happy-dom
 /**
- * tests/renderer/appshell-home-mode.test.jsx
+ * tests/renderer/appshell-home-mode.test.tsx
  *
- * 2026-07-10 用户反馈: "首页就是平铺开这几个 icon", 不要 SideNav.
- * 设计: AppShell 在 home 模式不挂载 <SideNav/>, 整页只有 <HomeGrid/>.
- *      panel 模式下 <SideNav/> 正常挂载, 🏠 按钮在 panel 模式仍是回 home 入口.
+ * Phase 9 外壳重构后的行为契约:
+ *   - IconRail 常驻 (home 也挂载, 不再有 nav !== 'home' 条件隐藏)
+ *   - home 模式渲染 <Dashboard/> (替代旧 <HomeGrid/>)
+ *   - panel 模式渲染 <LazyNavPanel/>
+ *   - NavDrawer hover 协同
  *
  * AppShell 引入 SearchModal/LazyNavPanel 等重依赖, 整树 happy-dom 渲染不稳.
- * 这里直接验证 AppShell.jsx 源码条件渲染逻辑 (行为契约), 不真正渲染整树.
+ * 这里验证 AppShell.tsx 源码条件渲染逻辑 (行为契约), 不真正渲染整树.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { describe, it, expect, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const APPSHELL_SRC = readFileSync(
-  resolve('src/renderer/components/AppShell.tsx'),
-  'utf8',
+  resolve("src/renderer/components/AppShell.tsx"),
+  "utf8",
 );
 
-describe('AppShell home 模式 — 行为契约', () => {
+describe("AppShell 外壳重构 — 行为契约", () => {
   beforeEach(() => {
     // 不渲染; 解析源码检查条件
   });
 
-  it('home 模式 nav !== "home" 为 false → SideNav 不挂载', () => {
-    // 关键条件: {nav !== 'home' && <SideNav />}
-    expect(APPSHELL_SRC).toMatch(/\{nav\s*!==\s*['"]home['"]\s*&&\s*<SideNav\s*\/>/);
+  it("IconRail 常驻挂载 (无 nav !== 'home' 条件)", () => {
+    // Phase 9: IconRail 不再有 {nav !== 'home' && ...} 条件, home 也常驻.
+    expect(APPSHELL_SRC).toMatch(/<IconRail/);
+    expect(APPSHELL_SRC).not.toMatch(
+      /\{nav\s*!==\s*['"]home['"]\s*&&\s*<IconRail/,
+    );
   });
 
-  it('home 模式 main view 渲染 <HomeGrid/>', () => {
-    expect(APPSHELL_SRC).toMatch(/\{nav\s*===\s*['"]home['"][\s\S]*?<HomeGrid/);
+  it("home 模式 main view 渲染 <Dashboard/>", () => {
+    expect(APPSHELL_SRC).toMatch(
+      /\{nav\s*===\s*['"]home['"][\s\S]*?<Dashboard/,
+    );
   });
 
-  it('panel 模式 main view 渲染 <LazyNavPanel/>', () => {
+  it("panel 模式 main view 渲染 <LazyNavPanel/>", () => {
     expect(APPSHELL_SRC).toMatch(/<LazyNavPanel/);
   });
 
-  it('app-shell 根 div 加 app-shell-home class (CSS hook)', () => {
-    expect(APPSHELL_SRC).toMatch(/app-shell-home/);
+  it("NavDrawer 协同挂载 (hover 抽屉)", () => {
+    expect(APPSHELL_SRC).toMatch(/<NavDrawer/);
   });
 
-  it('SideNav 顶部 🏠 按钮仍在 (panel 模式回 home 入口)', async () => {
-    // 直接验证 SideNav.jsx 源码
-    const sidenavSrc = readFileSync(
-      resolve('src/renderer/components/SideNav.tsx'),
-      'utf8',
+  it("IconRail 🏠 按钮设 activeNav('home') (回 home 入口)", () => {
+    const railSrc = readFileSync(
+      resolve("src/renderer/components/IconRail.tsx"),
+      "utf8",
     );
-    expect(sidenavSrc).toMatch(/setActiveNav\(['"]home['"]\)/);
-    expect(sidenavSrc).toMatch(/aria-label="首页"/);
+    expect(railSrc).toMatch(/setActiveNav\(['"]home['"]\)/);
+    expect(railSrc).toMatch(/aria-label="首页"/);
   });
 });
 
-describe('AppShell home 模式 — SideNav 🏠 按钮 (行为契约 + 单元)', () => {
-  it('点击 🏠 后 activeNav === "home" (regression from flicker bug)', async () => {
-    const { render, fireEvent } = await import('@testing-library/preact');
-    const { activeNav } = await import('../../src/renderer/worldcup/navStore.ts');
+describe("AppShell IconRail 🏠 按钮 (行为契约 + 单元)", () => {
+  it("点击 🏠 后 activeNav === 'home'", async () => {
+    const { render, fireEvent } = await import("@testing-library/preact");
+    const { activeNav } = await import("../../src/renderer/nav/navStore.ts");
+    const { IconRail } = await import(
+      "../../src/renderer/components/IconRail.tsx"
+    );
+    activeNav.value = "ithome";
 
-    const { SideNav } = await import('../../src/renderer/components/SideNav.tsx');
-    activeNav.value = 'ithome';
-
-    const { container } = render(<SideNav />);
+    const { container } = render(<IconRail />);
     const homeBtn = container.querySelector('button[aria-label="首页"]');
     expect(homeBtn).toBeTruthy();
     fireEvent.click(homeBtn);
-    expect(activeNav.value).toBe('home');
+    expect(activeNav.value).toBe("home");
   });
 });

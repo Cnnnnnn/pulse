@@ -43,7 +43,7 @@ import { refreshIthomeNews } from "../../src/renderer/ithome/store.ts";
 import { refreshWorldcupScores } from "../../src/renderer/worldcup/store.ts";
 import { fetchNavNow } from "../../src/renderer/funds/fundStore.ts";
 import { refreshNow as refreshMetals } from "../../src/renderer/metals/metalStore.ts";
-import { investPrimary } from "../../src/renderer/worldcup/navStore.ts";
+import { investPrimary } from "../../src/renderer/nav/navStore.ts";
 
 beforeEach(() => {
   vi.clearAllMocks();

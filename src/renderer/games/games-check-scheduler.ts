@@ -32,7 +32,7 @@ import {
   setMode,
 } from "./gamesStore.ts";
 import { PLATFORM_LABEL, promotionTypeLabel, fmtPrice } from "./format.ts";
-import { setActiveNav } from "../worldcup/navStore.ts";
+import { setActiveNav } from "../nav/navStore.ts";
 
 const INITIAL_DELAY_MS = 60 * 1000; // 首次延迟 60s，避免启动即检查打扰
 const MAX_SEEN_IDS = 200; // 已通知免费活动集合上限，防止无限增长

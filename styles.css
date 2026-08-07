@@ -325,11 +325,6 @@ body.platform-win {
 body.platform-win .btn-primary {
   color: #003046;
 }
-/* 侧栏品牌 mark (蓝底白字) 同理: accent 太亮, 白字糊 → 深字 */
-body.platform-win .side-nav-brand-mark {
-  color: #003046;
-}
-
 /* Win 上深色内容区, 滚动条用浅色半透明 (默认 rgba(0,0,0,...) 在深底上不可见) */
 body.platform-win #content::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.16);
@@ -3409,376 +3404,333 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   width: 100%;
 }
 
-.side-nav {
-  width: 188px;
+/* ============================================================
+ * Phase 9: IconRail — 48px 常驻图标边栏 (替代 188px SideNav).
+ * ============================================================ */
+/* ============================================================
+ * Phase 9 重设: IconRail — 毛玻璃 + pill 胶囊 active + section accent 色.
+ * 设计语言: macOS Big Sur 控制中心风 — 半透明毛玻璃 + 彩色 pill 高亮.
+ * ============================================================ */
+
+/* section → 代表 accent (复用该组首个 nav 的 accent 语义). */
+.icon-rail-section-news { --rail-accent: var(--accent-blue); }
+.icon-rail-section-holdings { --rail-accent: var(--accent-orange); }
+.icon-rail-section-system { --rail-accent: oklch(58% 0.18 270); }
+
+.icon-rail {
+  width: 56px;
   flex-shrink: 0;
-  background: var(--chrome-bg, var(--bg-modal));
-  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  transition: width 0.18s ease;
-  overflow: hidden;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0 12px;
+  /* 毛玻璃: 半透明 + blur, 跟内容区有层次分离 */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--chrome-bg, var(--bg-modal)) 92%, transparent) 0%,
+      color-mix(in oklch, var(--chrome-bg, var(--bg-modal)) 78%, transparent) 100%
+    );
+  border-right: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+  /* 右侧边缘高光: 制造"浮起"感 */
+  box-shadow: inset 1px 0 0 color-mix(in oklch, var(--bg-modal) 40%, transparent);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  transition: width 0.22s var(--ease-ui, cubic-bezier(0.25, 0.1, 0.25, 1));
+  overflow: visible;
 }
 
-.side-nav-collapsed {
-  width: 40px;
-}
-
-.side-nav-header {
-  padding: 12px 10px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-height: 44px;
-}
-
-.side-nav-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  padding-left: 4px;
-  flex: 1 1 auto;
-}
-
-.side-nav-brand-name {
-  flex: 0 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.side-nav-brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--accent-primary);
-  color: #fff;
-  font-size: var(--font-size-md);
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-.side-nav-brand-name {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-.side-nav-collapsed .side-nav-header {
-  justify-content: center;
-  padding: 10px 0 8px;
-}
-
-.side-nav-toggle {
+/* 折叠态: 56px → 4px hover 热区. */
+.icon-rail-collapsed {
+  width: 4px;
+  padding: 0;
+  gap: 0;
   background: transparent;
-  border: 0;
-  font-size: var(--font-size-2xl);
-  cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: 4px;
-  color: var(--text-secondary);
+  border-right-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
-
-.side-nav-toggle:hover {
-  background: var(--bg-tertiary);
-}
-
-.side-nav-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-  /* ponytail: 不 wrap — brand 用 truncate 让位, 保证 3 个图标按钮永远在第一行. */
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-}
-
-/* 折叠态: header-actions 容器只有 40px, 两个图标按钮必须上下排 */
-.side-nav-collapsed .side-nav-header-actions {
-  flex-direction: column;
-  gap: 2px;
-  justify-content: center;
-  align-items: center;
-}
-
-.side-nav-collapsed .side-nav-refresh-btn,
-.side-nav-collapsed .side-nav-toggle {
-  padding: 4px 4px;
-}
-
-.side-nav-refresh-btn {
-  background: transparent;
-  border: 0;
-  font-size: var(--font-size-2xl);
-  line-height: 1;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  transition: background 120ms ease, transform 120ms ease;
-}
-
-.side-nav-refresh-btn:hover {
-  background: var(--bg-tertiary);
-}
-
-.side-nav-refresh-btn:active {
-  transform: scale(0.92);
-}
-
-.side-nav-refresh-btn:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 1px;
-}
-
-.side-nav-list {
-  list-style: none;
-  margin: 0;
-  padding: 4px 0 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.side-nav-item {
-  margin: 0;
-}
-
-.side-nav-button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2h);
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  border: 0;
-  text-align: left;
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: var(--font-size-md);
-  border-radius: 6px;
-  margin: 0 6px;
-  width: calc(100% - 12px);
-}
-
-.side-nav-collapsed .side-nav-button {
-  justify-content: center;
-  padding: 8px 0;
-}
-
-.side-nav-button:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.side-nav-item-active .side-nav-button {
-  font-weight: 600;
-  color: var(--text-primary);
-  background: var(--bg-hover);
-  box-shadow: inset 3px 0 0 var(--accent-primary);
-}
-
-.side-nav-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.side-nav-collapsed .side-nav-label {
+.icon-rail-collapsed .icon-rail-btn,
+.icon-rail-collapsed .icon-rail-divider,
+.icon-rail-collapsed .icon-rail-spacer {
   display: none;
 }
 
-.side-nav-label {
-  white-space: nowrap;
-}
-
-/* Phase I3 v1: drag + drop indicator + right-click menu + hidden drawer */
-.side-nav-item-dragging {
-  opacity: 0.5;
-  transform: scale(0.98);
-  transition: transform 200ms ease;
-}
-.side-nav-item-drop-before {
-  box-shadow: inset 0 2px 0 0 var(--accent-primary);
-}
-.side-nav-item-drop-after {
-  box-shadow: inset 0 -2px 0 0 var(--accent-primary);
-}
-.sidenav-context-menu {
-  border: 1px solid var(--bg-secondary);
-  border-radius: 6px;
-  padding: var(--space-2);
-  min-width: 160px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-.sidenav-context-menu::backdrop {
-  background: transparent;
-}
-.sidenav-context-menu__title {
-  font-size: var(--font-size-sm);
-  color: var(--text-tertiary);
-  padding: var(--space-1) var(--space-2);
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--bg-secondary);
-}
-.sidenav-context-menu__btn {
+.icon-rail-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-1h) var(--space-2);
-  text-align: left;
-  border: 0;
+  justify-content: center;
+  border-radius: 12px;
   background: transparent;
-  border-radius: 4px;
+  border: none;
   cursor: pointer;
-  font-size: var(--font-size-md);
-  color: inherit;
+  color: var(--text-secondary);
+  transition: background 0.16s var(--ease-ui, ease), color 0.16s var(--ease-ui, ease),
+    transform 0.1s ease;
+  font: inherit;
 }
-.sidenav-context-menu__btn:hover {
-  background: var(--bg-secondary);
+
+.icon-rail-btn:hover,
+.icon-rail-btn:focus-visible {
+  background: color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 14%, transparent);
+  color: color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 85%, var(--text-primary));
+  outline: none;
 }
-.sidenav-context-menu__btn--danger {
-  color: var(--error);
+
+/* active: pill 胶囊 (实心 accent 底 + 白字) */
+.icon-rail-btn.is-active {
+  background: var(--rail-accent, var(--accent-primary));
+  color: #fff;
+  box-shadow:
+    0 2px 8px color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 40%, transparent),
+    inset 0 1px 0 color-mix(in oklch, white 25%, transparent);
 }
-.sidenav-context-menu__btn--cancel {
-  margin-top: 4px;
-  border-top: 1px solid var(--bg-secondary);
-  color: var(--text-tertiary);
+
+/* open (抽屉展开): pill 变体 — 半透明 accent + 左侧彩条 */
+.icon-rail-btn.is-open {
+  background: color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 18%, transparent);
+  color: var(--rail-accent, var(--accent-primary));
 }
-.sidenav-hidden-drawer-overlay {
-  position: fixed;
-  inset: 0;
-  /* ponytail: 配合 drawer 改成不透明背景, overlay 加深一点,
-     视觉层次更分明 (浅色 0.4, 深色 0.6).
-     z-index 用项目 --z-index-drawer-overlay (4050), 跟其它 drawer 一档,
-     不被游戏/新闻等页面的 game-card stacking context 穿透. */
-  background: rgba(0, 0, 0, 0.4);
-  z-index: var(--z-index-drawer-overlay);
+
+.icon-rail-btn:active {
+  transform: scale(0.92);
 }
-.sidenav-hidden-drawer {
-  position: fixed;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 320px;
-  /* ponytail: drawer 是 modal 级别浮层, 背景必须不透明,
-     --bg-primary 带 alpha (浅色 0.82, 深色 0.88~0.92) 会让底层 homegrid 的
-     玻璃 tile 透过来. --bg-modal 是实色 (浅色 #fff, 深色 #1c1c1e / #2b2b2b),
-     跨主题稳定不透明. z-index 用 --z-index-drawer (4100) 跟其它 drawer 一档,
-     保证不被游戏卡片的 backdrop-filter 子元素穿透. */
-  background: var(--bg-modal);
-  border-left: 1px solid var(--bg-secondary);
-  z-index: var(--z-index-drawer);
+
+.icon-rail-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  line-height: 1;
+}
+
+/* 展开时的左侧高亮条 — 改成竖向 pill 指示器 */
+.icon-rail-active-bar {
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 22px;
+  border-radius: 0 3px 3px 0;
+  background: var(--rail-accent, var(--accent-primary));
+  box-shadow: 0 0 8px color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 50%, transparent);
+}
+
+.icon-rail-sections {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  align-items: center;
 }
-.sidenav-hidden-drawer__header {
+
+.icon-rail-divider {
+  width: 22px;
+  height: 1px;
+  background: var(--border-subtle, rgba(0, 0, 0, 0.08));
+  margin: 3px 0;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.icon-rail-spacer {
+  flex: 1;
+  min-height: 8px;
+}
+
+/* section 图标上的聚合未读 badge. */
+.icon-rail-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--accent-red, #ff3b30);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 0 0 2px var(--chrome-bg, var(--bg-modal, #fff)),
+    0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================================
+ * Phase 9: NavDrawer — hover 弹出的轻量导航抽屉.
+ * ============================================================ */
+/* ============================================================
+ * Phase 9 重设: NavDrawer — 加重阴影 + section 主题色 + 渐变 status.
+ * ============================================================ */
+
+/* section 主题色 (跟 IconRail 同源, 复用 attribute 选择器) */
+.nav-drawer[data-section="news"] { --drawer-accent: var(--accent-blue); }
+.nav-drawer[data-section="holdings"] { --drawer-accent: var(--accent-orange); }
+.nav-drawer[data-section="system"] { --drawer-accent: oklch(58% 0.18 270); }
+
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 56px;
+  width: 232px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 10px 12px;
+  /* 毛玻璃 + 左侧 accent 色微染 (让抽屉跟 section 呼应) */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 4%, var(--bg-modal, #fff)) 0%,
+      var(--bg-modal, #fff) 40%
+    );
+  border-right: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  /* 加重阴影: 双层 (近距 sharp + 远距 soft) 制造浮起感 */
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 8%, transparent),
+    8px 0 24px -4px rgba(0, 0, 0, 0.12),
+    24px 0 48px -8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  z-index: 3;
+  animation: nav-drawer-in 0.18s var(--ease-ui, cubic-bezier(0.25, 0.1, 0.25, 1));
+}
+
+@keyframes nav-drawer-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-drawer { animation: none; }
+}
+
+.nav-drawer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--bg-secondary);
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.05));
+  position: relative;
 }
-.sidenav-hidden-drawer__title {
-  font-weight: 600;
-  font-size: var(--font-size-lg);
+
+/* header 左侧 accent 竖条 (强化 section 归属) */
+.nav-drawer-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--drawer-accent, var(--accent-primary));
 }
-.sidenav-hidden-drawer__close {
-  background: transparent;
-  border: 0;
-  font-size: var(--font-size-display-sm);
-  line-height: 1;
-  cursor: pointer;
-  color: var(--text-tertiary);
+
+.nav-drawer-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 70%, var(--text-primary));
 }
-.sidenav-hidden-drawer__body {
+
+.nav-drawer-count {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary, var(--text-secondary));
+  font-variant-numeric: tabular-nums;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: var(--bg-section, rgba(0, 0, 0, 0.04));
+}
+
+/* NavDrawer 列表 (.nav-drawer-list) 跟 NavDrawerItem 配合 (拖拽/右键/badge 全保留). */
+.nav-drawer-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 4px 0;
 }
-.sidenav-hidden-drawer__empty {
-  padding: var(--space-4);
-  font-size: var(--font-size-md);
-  color: var(--text-tertiary);
+
+.nav-drawer-empty {
+  padding: 24px 12px;
+  font-size: 12px;
+  color: var(--text-tertiary, var(--text-secondary));
   text-align: center;
+  line-height: 1.6;
 }
-.sidenav-hidden-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--bg-secondary);
-}
-.sidenav-hidden-row__icon {
-  font-size: var(--font-size-subtitle);
-}
-.sidenav-hidden-row__label {
-  flex: 1;
-  font-size: var(--font-size-md);
-}
-.sidenav-hidden-row__restore {
-  padding: 4px 10px;
-  border: 1px solid var(--accent-primary);
-  background: transparent;
-  color: var(--accent-primary);
-  border-radius: 4px;
+
+.nav-drawer-empty-link {
+  background: none;
+  border: none;
+  color: var(--drawer-accent, var(--accent-primary));
   cursor: pointer;
-  font-size: var(--font-size-sm);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  padding: 0;
 }
-.sidenav-hidden-row__restore:hover {
-  background: var(--accent-primary);
-  color: #fff;
+
+/* status: accent 渐变条 (更醒目, 跟抽屉主题色呼应) */
+.nav-drawer-status {
+  padding: 8px 12px;
+  margin: 0 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 75%, var(--text-primary));
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 12%, transparent),
+    color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 4%, transparent)
+  );
+  border: 1px solid color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 15%, transparent);
 }
-.side-nav-hidden-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+
+.nav-drawer-footer {
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.05));
+}
+
+.nav-drawer-hidden-toggle {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  margin-top: 4px;
-  border: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
   background: transparent;
+  border: none;
   cursor: pointer;
-  color: var(--text-tertiary);
-  font-size: var(--font-size-sm);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-.side-nav-hidden-toggle:hover {
-  background: var(--bg-secondary);
+
+.nav-drawer-hidden-toggle:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
   color: var(--text-primary);
 }
-.side-nav-empty-banner {
-  padding: var(--space-2) var(--space-3);
-  background: rgba(217, 59, 59, 0.08);
-  color: var(--error);
-  font-size: var(--font-size-sm);
-  border-bottom: 1px solid var(--bg-secondary);
-}
-.side-nav-empty-banner__link {
-  background: transparent;
-  border: 0;
-  color: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0;
-  font-size: inherit;
+
+.nav-drawer-hidden-toggle:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  color: var(--text-primary);
 }
 
 .app-shell-view {
@@ -4808,61 +4760,12 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 .positive { color: var(--color-up); }
 .negative { color: var(--color-down); }
 
-.side-nav-footer {
-  flex-shrink: 0;
-  padding: 8px 0 12px;
-  border-top: 1px solid var(--border-subtle);
-  background: color-mix(
-    in oklch,
-    var(--bg-secondary) 60%,
-    transparent
-  );
-}
-
-.side-nav-ai-btn { position: relative; }
-
-.side-nav-ai-btn-needs-setup .side-nav-icon { opacity: 0.85; }
-
-.side-nav-setup-dot {
-  position: absolute;
-  top: 6px;
-  right: 10px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent-orange);
-  box-shadow: 0 0 0 2px var(--bg-secondary);
-}
-
-.side-nav-collapsed .side-nav-setup-dot { top: 4px; right: 4px; }
-
-.side-nav-badge {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  right: 14px;            /* 展开态: 与 title 垂直居中对齐 */
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: var(--accent-red);
-  color: #fff;
-  font-size: var(--font-size-10);
-  line-height: 16px;
-  text-align: center;
-  pointer-events: none;   /* 不挡下层 button 点击 */
-  z-index: 1;
-}
-
-.side-nav-collapsed .side-nav-badge {
-  right: 2px;             /* 折叠态: 40px 窄栏, 锚定 button 右上 */
-}
-
 .app-shell-view:has(> .fund-layout),
 .app-shell-view:has(> .versions-layout),
 .app-shell-view:has(> .worldcup-layout),
 .app-shell-view:has(> .ithome-layout),
-.app-shell-view:has(> .ai-leaderboard-layout) {
+.app-shell-view:has(> .ai-leaderboard-layout),
+.app-shell-view:has(> .dashboard-root) {
   padding: 0;
   overflow: hidden;
   display: flex;
@@ -5895,7 +5798,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
    ═══════════════════════════════════════════════════ */
 
 .btn,
-.side-nav-button,
 .filter-tab,
 .category-tab,
 .fund-view-tab,
@@ -5922,7 +5824,6 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .btn:focus-visible,
-.side-nav-button:focus-visible,
 .filter-tab:focus-visible,
 .category-tab:focus-visible,
 .fund-view-tab:focus-visible,

@@ -8,7 +8,7 @@
  *
  * 当前只实现 IconRefresh 检查更新段 (Task A3); 其他段 (B/C/D) 在各自任务里扩展.
  */
-import { setActiveNav } from "./worldcup/navStore.ts";
+import { setActiveNav } from "./nav/navStore.ts";
 import { requestUpgrade } from "./upgrade-actions.ts";
 import { taggedLog } from "./log.ts";
 

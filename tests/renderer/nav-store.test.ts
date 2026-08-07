@@ -9,7 +9,7 @@ import {
   goInvest,
   setInvestPrimary,
   setActiveNav,
-} from "../../src/renderer/worldcup/navStore.ts";
+} from "../../src/renderer/nav/navStore.ts";
 
 describe("navStore", () => {
   beforeEach(() => {

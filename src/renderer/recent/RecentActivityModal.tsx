@@ -13,7 +13,7 @@ import {
   loadRecent,
   toggleRecentOpen,
 } from "./recentStore.ts";
-import { setActiveNav } from "../worldcup/navStore.ts";
+import { setActiveNav } from "../nav/navStore.ts";
 import { TabList, Tab } from "../components/TabList.tsx";
 import { PanelEmpty } from "../components/EmptyState.tsx";
 import { ModalShell, ModalHeader } from "../components/ModalShell.tsx";

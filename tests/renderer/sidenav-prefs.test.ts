@@ -12,7 +12,7 @@ import {
   STORAGE_KEY_FOR_TESTS,
   DEFAULTS_FOR_TESTS,
 } from "../../src/renderer/components/sidenav-prefs.ts";
-import { NAV_KEYS_LIST } from "../../src/renderer/worldcup/navStore.ts";
+import { NAV_KEYS_LIST } from "../../src/renderer/nav/navStore.ts";
 
 describe("sidenav-prefs", () => {
   beforeEach(() => {
@@ -141,16 +141,16 @@ describe("sidenav-prefs", () => {
   it("listVisible: prefs.order 短于 NAV_KEYS_LIST → 兜底追加漏掉的 known key (regression: 升级后已隐藏误报)", () => {
     const p = {
       version: 2,
-      order: ["news", "worldcup", "invest", "ai-usage", "versions"], // 老版本 order, 缺 github/games/ai-leaderboard
+      order: ["news", "worldcup", "invest", "ai-usage", "versions"], // 老版本 order, 缺 ai-leaderboard/games/github
       hidden: [],
       favorites: [],
     };
     const visible = listVisible(p);
-    // 5 个老 order 项 + 兜底 3 个 (github, games, ai-leaderboard) = 全部 NAV_KEYS_LIST.length
+    // 5 个老 order 项 + 兜底 3 个 (按当前 registry 顺序) = 全部 NAV_KEYS_LIST.length
     expect(visible).toHaveLength(NAV_KEYS_LIST.length);
     expect(new Set(visible)).toEqual(new Set(NAV_KEYS_LIST));
-    // 兜底项必须在末尾
-    expect(visible).toEqual(["news", "worldcup", "invest", "ai-usage", "versions", "github", "games", "ai-leaderboard"]);
+    // 兜底项必须在末尾 (registry 顺序: ai-leaderboard, games, github)
+    expect(visible).toEqual(["news", "worldcup", "invest", "ai-usage", "versions", "ai-leaderboard", "games", "github"]);
   });
 
   it("listHidden: NAV_KEYS 中 prefs.hidden 标记的项 (按 NAV_KEYS 默认顺序)", () => {
@@ -236,18 +236,18 @@ describe("sidenav-prefs: reorderItems", () => {
   beforeEach(() => localStorage.clear());
 
   it("reorderItems: from → to 'before'", () => {
-    // v4 2026-07-13: funds + metals + stocks 合并成 'invest' (8 顶级 nav + AI 榜单 v2.83).
-    const p0 = resetPrefs(); // [news, worldcup, invest, ai-usage, versions, github, games, ai-leaderboard]
+    // Phase 9: 默认顺序按 section 分组 [news, worldcup, ai-leaderboard, games, github, invest, ai-usage, versions].
+    const p0 = resetPrefs();
     const p1 = reorderItems(p0, "news", "invest", "before");
     expect(p1.order).toEqual([
       "worldcup",
+      "ai-leaderboard",
+      "games",
+      "github",
       "news",
       "invest",
       "ai-usage",
       "versions",
-      "github",
-      "games",
-      "ai-leaderboard",
     ]);
   });
 
@@ -256,13 +256,13 @@ describe("sidenav-prefs: reorderItems", () => {
     const p1 = reorderItems(p0, "news", "invest", "after");
     expect(p1.order).toEqual([
       "worldcup",
+      "ai-leaderboard",
+      "games",
+      "github",
       "invest",
       "news",
       "ai-usage",
       "versions",
-      "github",
-      "games",
-      "ai-leaderboard",
     ]);
   });
 

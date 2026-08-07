@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { signal } from "@preact/signals";
 
 // 用真实 stores 测 setActiveNav 集成
-import { setActiveNav, activeNav } from "../../src/renderer/worldcup/navStore.ts";
+import { setActiveNav, activeNav } from "../../src/renderer/nav/navStore.ts";
 import {
   wechatHotNewIds,
   wechatHotReadIds,

@@ -16,7 +16,8 @@ module.exports = defineConfig({
     // 与 npm test 两种路径. 见 tests/_setup/build-preload.cjs.
     globalSetup: ["./tests/_setup/build-preload.cjs", "./tests/_setup/build-main-ts.cjs"],
     // vitest 4: mock react-virtuoso 透传组件 (happy-dom 无 viewport, 真虚拟滚动无意义)
-    setupFiles: ["./tests/_setup/mock-react-virtuoso.ts"],
+    // + polyfill localStorage (happy-dom 20.x localStorage.clear 不是函数, renderer 测试 beforeEach 大量调用).
+    setupFiles: ["./tests/_setup/mock-react-virtuoso.ts", "./tests/_setup/polyfill-localstorage.ts"],
     testTimeout: 30000, // 7a-6: aggregator 测试触发真实网络 fallback, 8s 不够; 多数 detector 仍 ≤8s
     pool: "forks", // macOS 稳；windows 也兼容
     globals: false, // 显式 import，避免 vitest 1.x 的隐式全局

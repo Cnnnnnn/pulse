@@ -22,7 +22,7 @@ import {
   gamesNotifyOnFree,
 } from "../../src/renderer/games/gamesStore.ts";
 import { createGamesCheckScheduler } from "../../src/renderer/games/games-check-scheduler.ts";
-import { activeNav } from "../../src/renderer/worldcup/navStore.ts";
+import { activeNav } from "../../src/renderer/nav/navStore.ts";
 
 function setNotificationPermission(value) {
   Object.defineProperty(Notification, "permission", {

@@ -1,11 +1,12 @@
 /**
- * src/renderer/nav-refresh.js
+ * src/renderer/nav-refresh.ts
  *
- * v2.24.2 全局刷新注册表 — SideNav 顶部 IconRefresh 按钮点击时,
- * 根据当前 activeNav 调对应的 refresh 函数.
+ * v2.24.2 全局刷新注册表 — 根据当前 activeNav 调对应的 refresh 函数.
+ * (Phase 9 之前是 SideNav 顶部 IconRefresh 按钮触发; Phase 9 后 IconRail 没自带
+ *  刷新按钮, 调用点迁到各 module 自身 (Cmd+R 派发) + 后续可能加 tray menu 项)
  *
  * 设计原则:
- *   - 单文件, 无副作用, SideNav 只 import `refreshActiveNav`
+ *   - 单文件, 无副作用, 只 export `refreshActiveNav`
  *   - 各 tab 的 refresh 函数已经是 idle-cooldown + loading signal 兼容,
  *     这里只做 dispatch, 不重复处理错误 (具体 tab 自己显示 error)
  *   - ai-usage / versions 暂不入 registry (它们是配置/状态类页面,
@@ -21,7 +22,7 @@ import { refreshIthomeNews } from "./ithome/store.ts";
 import { refreshWorldcupScores } from "./worldcup/store.ts";
 import { fetchNavNow } from "./funds/fundStore.ts";
 import { refreshNow as refreshMetals } from "./metals/metalStore.ts";
-import { investPrimary } from "./worldcup/navStore.ts";
+import { investPrimary } from "./nav/navStore.ts";
 import { loadGameDeals } from "./games/gamesStore.ts";
 import { api } from "./api.ts";
 
@@ -65,7 +66,7 @@ const REGISTRY = {
   games: { fn: () => loadGameDeals(), label: "刷新游戏优惠" },
 };
 
-/** 注册表里存在的 nav key 集合 — 给 SideNav 判断按钮要不要显示 */
+/** 注册表里存在的 nav key 集合 — 跟 navStore.PERSISTABLE_NAV_KEYS 互为镜像 */
 export const REFRESHABLE_NAV_KEYS = new Set(Object.keys(REGISTRY));
 
 /**

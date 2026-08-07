@@ -1146,12 +1146,9 @@ export function saveActiveCategory(id: any, statePath = defaultPath()) {
 
 // ─── P-N HomeGrid 落点: last_active_nav ──────────
 
-const PERSISTABLE_NAV_VALUES = new Set([
-  // current
-  'news', 'worldcup', 'invest', 'ai-usage', 'versions', 'github',
-  // legacy (load 旧落盘仍合法; renderer setActiveNav 会 alias)
-  'ithome', 'wechat-hot', 'funds', 'metals', 'stocks',
-]);
+// Phase 9: 从 shared/nav-keys.ts 单一真源派生 (消除跨进程漂移).
+// 旧定义漏了 games/ai-leaderboard (saveLastActiveNav 会 throw), 派生后自动补齐.
+import { PERSISTABLE_NAV_VALUES } from "../shared/nav-keys";
 
 /**
  * P-N HomeGrid 落点: 读 last_active_nav.

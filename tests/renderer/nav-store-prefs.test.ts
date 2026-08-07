@@ -15,7 +15,7 @@ import {
   activeNav,
   setActiveNav,
   installNavWatch,
-} from "../../src/renderer/worldcup/navStore.ts";
+} from "../../src/renderer/nav/navStore.ts";
 
 // 直接 import trayConfigStore 控制其 signal (vitest 允许跨模块)
 let trayMenuPrefsRef = null;

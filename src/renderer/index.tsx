@@ -43,7 +43,7 @@ import { createAutoRecheck } from './auto-recheck.ts';
 import { taggedLog } from './log.ts';
 import { applyPlatformBodyClass } from './platform-body-class.ts';
 import { initTheme, getThemePreference, setThemePreference } from './theme/theme-manager.ts';
-import { setActiveNav, PERSISTABLE_NAV_KEYS } from './worldcup/navStore.ts';
+import { setActiveNav, PERSISTABLE_NAV_KEYS } from './nav/navStore.ts';
 
 const log = taggedLog("[index]");
 
@@ -184,7 +184,7 @@ function wireRendererListeners() {
         if (r && r.ok && r.prefs) applyTrayPrefsFromMain(r.prefs);
       }).catch(() => {});
     });
-    import('./worldcup/navStore.ts').then(({ installNavWatch }) => installNavWatch());
+    import('./nav/navStore.ts').then(({ installNavWatch }) => installNavWatch());
   }
 }
 
@@ -257,8 +257,8 @@ async function bootstrap() {
   apps.value = cfg.apps;
   primeConfigCache(cfg);
 
-  // P-N: HomeGrid 落点 — 拿到上次停留的 nav, 在 render 之前覆盖 activeNav,
-  // 避免首帧闪 HomeGrid 再切到目标 (视觉撕裂).
+  // Phase 9: Dashboard 落点 — 拿到上次停留的 nav, 在 render 之前覆盖 activeNav,
+  // 避免首帧闪 Dashboard 再切到目标 (视觉撕裂).
   // 非法值 / 失败 → 静默, 留在默认 activeNav="home".
   if (typeof api.getLastActiveNav === 'function') {
     try {

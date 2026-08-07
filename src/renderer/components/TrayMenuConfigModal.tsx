@@ -77,7 +77,7 @@ export function TrayMenuConfigModal() {
           ? r.prefs
           : { version: 1, segments: draft };
         setOriginal(savedPrefs.segments);
-        // 同步推到 renderer 端 trayMenuPrefs signal (SideNav 立即过滤)
+        // 同步推到 renderer 端 trayMenuPrefs signal (IconRail/NavDrawer 立即过滤)
         applyTrayPrefsFromMain(savedPrefs);
         // 关 modal 走 IPC, main 推 close 信号回流
         trayApi.closeConfigModal();

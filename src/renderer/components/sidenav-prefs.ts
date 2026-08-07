@@ -11,14 +11,15 @@
  * spec: docs/superpowers/specs/2026-06-22-i3-sidenav-drag-hide-design.md §3
  */
 
-import { NAV_KEYS_LIST } from "../worldcup/navStore.ts";
+import { NAV_KEYS_LIST } from "../nav/navStore.ts";
 
 const STORAGE_KEY = "pulse.sidenav.prefs.v1";
 // v2: 加 favorites 字段. v1 数据兼容 — load 时缺字段补 [].
 // v3: 不动 schema — 旧 'ithome' / 'wechat-hot' 在 load 时归一到 'news',
 //     保持 order 相对位置. round-trip 后 prefs 干净.
 const SCHEMA_VERSION = 2;
-const NAV_KEYS = NAV_KEYS_LIST;
+// prefs 层做 "key 是否合法" 校验, 不需要字面量类型收窄 — 当 string[] 用.
+const NAV_KEYS: string[] = NAV_KEYS_LIST.slice();
 
 // ponytail: v3 迁移 — 旧 'ithome' / 'wechat-hot' 归一到 'news'.
 // v4 (2026-07-13): funds + metals + stocks 合并为 'invest' nav, 旧 key 归一到 'invest'.

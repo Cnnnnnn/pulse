@@ -7,7 +7,7 @@ const TYPE_CLASS: Record<string, string> = {
   digest: "digest-badge",
   setup: "digest-badge setup-badge",
   reminder: "reminder-badge",
-  sidenav: "side-nav-badge",
+  navdrawer: "nav-drawer-badge",
   dot: "release-notes-trigger-badge",
   status: "status-badge",
 };

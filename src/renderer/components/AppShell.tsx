@@ -1,32 +1,25 @@
 /**
  * src/renderer/components/AppShell.tsx
  *
- * v2.9.0 Shell 布局 + v2.9.1 拆 2 独立顶部 + v2.10+ 加 3rd (Funds)
+ * Phase 9 外壳重构 — 48px 常驻 IconRail (左) + hover 弹 NavDrawer (侧边抽屉) + main 区.
  *
- *  左侧 180px (或 40 折叠) SideNav
- *  右侧 main 区: 根据 activeNav 切 3 个完全独立 layout
+ *  左侧 48px IconRail (常驻, 折叠 0px 也保留 hover 热区)
+ *    - 🏠 Home — 回首页 Dashboard
+ *    - 3 个 section 图标 (资讯/持仓/系统) — hover IconRail 设 openSection, NavDrawer 弹出
+ *  主区: 根据 activeNav 切
+ *    - activeNav === 'home' → <Dashboard/> (4 区: Hero / Summary / Tiles / Recent)
+ *    - 其它 → <LazyNavPanel nav={nav}/> (按需 lazy load 各 module layout)
  *
- *    [版本检查] tab:
- *      顶部: Header (含 检查更新 按钮) + FilterBar (搜索 + 4 status tab)
- *      main:  v2.6 phase 切 (Skeleton / ResultsView / ErrorBanner) + WeeklyBanner
- *
- *    [世界杯] tab:
- *      顶部: WorldcupHeader (品牌 + [赛程] / [球队] 子 tab + 搜索框)
- *      main:  WorldcupView (赛程) / WorldcupTeamsView (球队)
- *
- *    [基金管理] tab (v2.10+):
- *      顶部: FundHeader (总览卡片 + 工具栏 + 搜索框)
- *      Tab:   持仓 | 盈亏记录
- *      main:  FundList + CategoryTabs | FundPnlHistory
- *
- * 跟 v2.6 主体隔离: 0 共享 view, 各自 Header / 搜索 / 切.
+ * 跟 Phase 8 主体隔离: 0 共享 view, 各 module layout 独立.
  */
 
-import { useEffect } from 'preact/hooks';
-import { activeNav, navCollapsed, setActiveNav, goInvest } from '../worldcup/navStore.ts';
-import { SideNav } from './SideNav.tsx';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { activeNav, navCollapsed, setActiveNav, goInvest } from '../nav/navStore.ts';
+import { IconRail } from './IconRail.tsx';
+import { NavDrawer } from './NavDrawer.tsx';
+import { Dashboard } from './Dashboard.tsx';
 import { LazyNavPanel } from './LazyNavPanel.tsx';
-import { HomeGrid } from './HomeGrid.tsx';
+import type { NavSectionId } from '../../shared/nav-keys.ts';
 import { remindersOpen, loadReminders } from '../reminders/remindersStore.ts';
 import { SearchModal } from '../search/SearchModal.tsx';
 import { isSearchOpen, openSearch, closeSearch } from '../search/searchStore.ts';
@@ -35,6 +28,29 @@ import { loadGithubProjects, loadGithubSettings } from '../store/github-projects
 export function AppShell({ onCheck }: { onCheck?: () => void }) {
   const nav = activeNav.value;
   const collapsed = navCollapsed.value;
+
+  // ── NavDrawer hover 协同状态机 ──
+  // IconRail hover section → 打开; 离开 IconRail+NavDrawer 150ms 后关闭 (hover intent 防误触).
+  const [openSection, setOpenSection] = useState<NavSectionId | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function handleHoverSection(sectionId: NavSectionId | null) {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setOpenSection(sectionId);
+  }
+  function scheduleClose() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpenSection(null), 150);
+  }
+  function cancelClose() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   // Cmd+F 拦截: 切到对应搜索框
   // Cmd+Shift+F: 跳到基金管理栏目
@@ -94,7 +110,7 @@ export function AppShell({ onCheck }: { onCheck?: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [nav]);
 
-  // 提前加载 GitHub 收录数据（确保 HomeGrid 首次渲染时 githubProjects 已从 localStorage 恢复，
+  // 提前加载 GitHub 收录数据（确保 Dashboard 首次渲染时 githubProjects 已从 localStorage 恢复，
   // 避免 GitHub 卡片短暂闪现"尚未收录"再跳为"已收录 N 个"的竞态）。
   // 同时加载模块设置（density + token）：在应用启动即把保存的 Token 读入信号，
   // 避免「保存了 Token 但 GitHub 视图尚未挂载时 githubToken 仍为空」导致鉴权不生效。
@@ -104,13 +120,22 @@ export function AppShell({ onCheck }: { onCheck?: () => void }) {
   }, []);
 
   return (
-    <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}${nav === 'home' ? ' app-shell-home' : ''}`}>
-      {nav !== 'home' && <SideNav />}
+    <div class={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
+      <IconRail
+        onHoverSection={handleHoverSection}
+        onLeaveSection={scheduleClose}
+        openSection={openSection}
+      />
       <div class="app-shell-view">
         {nav === 'home'
-          ? <HomeGrid />
+          ? <Dashboard />
           : <LazyNavPanel nav={nav} onCheck={onCheck} />}
       </div>
+      <NavDrawer
+        section={openSection}
+        onEnter={cancelClose}
+        onLeave={scheduleClose}
+      />
       <SearchModal />
     </div>
   );

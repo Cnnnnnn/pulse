@@ -4,8 +4,9 @@
  * v2.79 — P15 设置页 AI 配置深度融入
  *   - 顶部 2-tab 切换: 「常规」(外观 / 最近活动 / 提醒 / 数据) | 「AI 配置」
  *   - 「AI 配置」tab 内嵌完整 AISettingsScene (连接设置 + Prompt 模板)
- *   - 取消 AI 配置弹窗入口: SideNav AI 齿轮 / AITasksDrawer config mode 都改为
+ *   - 取消 AI 配置弹窗入口: AITasksDrawer config mode 改为
  *     navigateTo('settings') + 切到 'ai-config' 子 tab
+ *     (Phase 9 收尾: SideNav 已删, IconRail 没 AI 齿轮入口)
  *   - 取消 AISettingsModal 调用, App.jsx 不再挂载 modal 组件
  *
  * ponytail: single source of truth — 所有 AI 配置修改只在 SettingsPage 'ai-config'

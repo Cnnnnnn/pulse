@@ -1,19 +1,21 @@
 /**
- * src/renderer/components/SideNavItem.jsx
+ * src/renderer/components/NavDrawerItem.tsx
  *
- * Phase I3 v1: 单个 SideNav item 的拖拽 + 右键菜单子组件.
+ * Phase 9: 改名自 SideNavItem — 现在唯一使用者是 NavDrawer (老的 SideNav.tsx 已删).
+ * 单个 nav item 的拖拽 + 右键菜单子组件.
  *
  * Props:
- *   - item: { key, icon, label, tooltip }
+ *   - item: { key, label, tooltip? }
  *   - active: boolean
  *   - collapsed: boolean
  *   - onSelect(key): 切 activeNav
  *   - onReorder(fromKey, toKey, position): 调 sidenav-prefs.reorderItems
+ *     (sidenav-prefs 文件名保留: localStorage key = "pulse.sidenav.prefs.v1", 不能动 — 兼容老用户)
  *   - onHide(key): 调 sidenav-prefs.hideItem
  *   - onMoveTop(key): onMoveBottom(key): 调 onReorder to 0 / to last
  *
  * 设计 (spec §3.2):
- *   - ondragstart: setData + classList.add('side-nav-item-dragging')
+ *   - ondragstart: setData + classList.add('nav-drawer-item-dragging')
  *   - ondragover: preventDefault + 根据 mouse Y vs target mid 算 before/after, 加 class
  *   - ondragend: 清 dragging class
  *   - ondrop: 调 onReorder, 清 drop-before/-after class
@@ -29,13 +31,13 @@ import {
   IconTrash,
 } from "./icons.tsx";
 
-type SideNavItemLike = {
+type NavDrawerItemLike = {
   key: string;
   label: string;
   tooltip?: string;
 };
 
-export function SideNavItem({
+export function NavDrawerItem({
   item,
   active = false,
   collapsed = false,
@@ -47,7 +49,7 @@ export function SideNavItem({
   onMoveBottom,
   draggable = true,
 }: {
-  item: SideNavItemLike;
+  item: NavDrawerItemLike;
   active?: boolean;
   collapsed?: boolean;
   badge?: number;
@@ -69,7 +71,7 @@ export function SideNavItem({
       dialogRef.current.showModal();
     } else {
       // fallback: 无 dialog API 时弹 alert 风格的简易菜单 (Electron 通常支持 showModal)
-      console.warn(`SideNavItem(${item.key}): <dialog> showModal not available`);
+      console.warn(`NavDrawerItem(${item.key}): <dialog> showModal not available`);
     }
   }
 
@@ -86,7 +88,7 @@ export function SideNavItem({
     }
     e.dataTransfer.setData("text/plain", item.key);
     e.dataTransfer.effectAllowed = "move";
-    if (liRef.current) liRef.current.classList.add("side-nav-item-dragging");
+    if (liRef.current) liRef.current.classList.add("nav-drawer-item-dragging");
   }
 
   function handleDragOver(e) {
@@ -98,16 +100,16 @@ export function SideNavItem({
     const midY = rect.top + rect.height / 2;
     const pos = e.clientY < midY ? "before" : "after";
     if (dropPosition !== pos) setDropPosition(pos);
-    liRef.current.classList.toggle("side-nav-item-drop-before", pos === "before");
-    liRef.current.classList.toggle("side-nav-item-drop-after", pos === "after");
+    liRef.current.classList.toggle("nav-drawer-item-drop-before", pos === "before");
+    liRef.current.classList.toggle("nav-drawer-item-drop-after", pos === "after");
   }
 
   function clearDropIndicator() {
     setDropPosition(null);
     if (liRef.current) {
-      liRef.current.classList.remove("side-nav-item-drop-before");
-      liRef.current.classList.remove("side-nav-item-drop-after");
-      liRef.current.classList.remove("side-nav-item-dragging");
+      liRef.current.classList.remove("nav-drawer-item-drop-before");
+      liRef.current.classList.remove("nav-drawer-item-drop-after");
+      liRef.current.classList.remove("nav-drawer-item-dragging");
     }
   }
 
@@ -161,7 +163,7 @@ export function SideNavItem({
     <li
       ref={liRef}
       key={item.key}
-      class={`side-nav-item${active ? " side-nav-item-active" : ""}`}
+      class={`nav-drawer-item${active ? " nav-drawer-item-active" : ""}`}
       data-nav={item.key}
       draggable={draggable}
       onDragStart={handleDragStart}
@@ -171,37 +173,37 @@ export function SideNavItem({
       onContextMenu={handleContextMenu}
     >
       <button
-        class="side-nav-button"
+        class="nav-drawer-button"
         onClick={() => onSelect && onSelect(item.key)}
         title={collapsed ? item.tooltip : ""}
         aria-label={item.label}
       >
-        <span class="side-nav-icon" aria-hidden="true"><NavIcon navKey={item.key} size={18} /></span>
+        <span class="nav-drawer-icon" aria-hidden="true"><NavIcon navKey={item.key} size={18} /></span>
         {badge > 0 && (
-          <Badge type="sidenav" ariaLabel={`${badge} 条未读`}>
+          <Badge type="navdrawer" ariaLabel={`${badge} 条未读`}>
             {badge}
           </Badge>
         )}
-        {!collapsed && <span class="side-nav-label">{item.label}</span>}
+        {!collapsed && <span class="nav-drawer-label">{item.label}</span>}
       </button>
       <dialog
         ref={dialogRef}
-        class="sidenav-context-menu"
+        class="nav-drawer-context-menu"
         aria-label={`${item.label} 操作`}
       >
-        <div class="sidenav-context-menu__title">
+        <div class="nav-drawer-context-menu__title">
           <NavIcon navKey={item.key} size={16} /> {item.label}
         </div>
-        <button type="button" class="sidenav-context-menu__btn" onClick={handleMoveTop}>
+        <button type="button" class="nav-drawer-context-menu__btn" onClick={handleMoveTop}>
           <IconChevronUp size={14} /> 移到顶部
         </button>
-        <button type="button" class="sidenav-context-menu__btn" onClick={handleMoveBottom}>
+        <button type="button" class="nav-drawer-context-menu__btn" onClick={handleMoveBottom}>
           <IconChevronDown size={14} /> 移到底部
         </button>
-        <button type="button" class="sidenav-context-menu__btn sidenav-context-menu__btn--danger" onClick={handleHide}>
+        <button type="button" class="nav-drawer-context-menu__btn nav-drawer-context-menu__btn--danger" onClick={handleHide}>
           <IconTrash size={14} /> 隐藏
         </button>
-        <button type="button" class="sidenav-context-menu__btn sidenav-context-menu__btn--cancel" onClick={closeMenu}>
+        <button type="button" class="nav-drawer-context-menu__btn nav-drawer-context-menu__btn--cancel" onClick={closeMenu}>
           取消
         </button>
       </dialog>
@@ -209,4 +211,4 @@ export function SideNavItem({
   );
 }
 
-export default SideNavItem;
+export default NavDrawerItem;
