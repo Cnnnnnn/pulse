@@ -51,6 +51,7 @@ svg:not([role="img"]) {
   --accent-green: oklch(73.03% 0.1944 147.5);    /* was #34c759 */
   --accent-blue: oklch(60.28% 0.2178 257.4);     /* was #007aff (alias of primary) */
   --accent-red: oklch(65.42% 0.2321 28.7);      /* was #ff3b30 */
+  --accent-purple: oklch(58% 0.13 285);         /* Phase 9 收尾新增: section 3 色之一, system 用 */
   --accent-gray: var(--gray-400);
   /* 语义色别名 (UI Designer P0: 修复 games/全局潜在未定义引用) */
   --color-success: var(--accent-green);
@@ -3408,14 +3409,15 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
  * Phase 9: IconRail — 48px 常驻图标边栏 (替代 188px SideNav).
  * ============================================================ */
 /* ============================================================
- * Phase 9 重设: IconRail — 毛玻璃 + pill 胶囊 active + section accent 色.
- * 设计语言: macOS Big Sur 控制中心风 — 半透明毛玻璃 + 彩色 pill 高亮.
+ * Phase 9 收尾重设 (Calm Pro): IconRail — 固体底 + 边线 + 3 section accent.
+ * 设计语言: Linear / Raycast 克制风 — 不用 glass blur (4 层堆叠性能差),
+ * 边线 + 微 tint 即可分层. 折叠态 56px → 48px (旧 4px 太激进, 找不到 icon).
  * ============================================================ */
 
-/* section → 代表 accent (复用该组首个 nav 的 accent 语义). */
-.icon-rail-section-news { --rail-accent: var(--accent-blue); }
+/* section → 代表 accent (3 色制, 跟 NavDrawer / Dashboard 共享) */
+.icon-rail-section-news     { --rail-accent: var(--accent-blue); }
 .icon-rail-section-holdings { --rail-accent: var(--accent-orange); }
-.icon-rail-section-system { --rail-accent: oklch(58% 0.18 270); }
+.icon-rail-section-system   { --rail-accent: var(--accent-purple); }
 
 .icon-rail {
   width: 56px;
@@ -3425,36 +3427,24 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   align-items: center;
   gap: 4px;
   padding: 10px 0 12px;
-  /* 毛玻璃: 半透明 + blur, 跟内容区有层次分离 */
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklch, var(--chrome-bg, var(--bg-modal)) 92%, transparent) 0%,
-      color-mix(in oklch, var(--chrome-bg, var(--bg-modal)) 78%, transparent) 100%
-    );
+  /* Calm Pro: 固体底 + 边线, 不用 glass blur */
+  background: var(--bg-modal, #fff);
   border-right: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
-  /* 右侧边缘高光: 制造"浮起"感 */
-  box-shadow: inset 1px 0 0 color-mix(in oklch, var(--bg-modal) 40%, transparent);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
   position: relative;
   z-index: 2;
-  transition: width 0.22s var(--ease-ui, cubic-bezier(0.25, 0.1, 0.25, 1));
+  transition: width 0.2s var(--ease-ui, cubic-bezier(0.25, 0.1, 0.25, 1));
   overflow: visible;
 }
 
-/* 折叠态: 56px → 4px hover 热区. */
+/* 折叠态: 56px → 48px, icon 仍可见 (旧 4px 找不到入口) */
 .icon-rail-collapsed {
-  width: 4px;
-  padding: 0;
-  gap: 0;
-  background: transparent;
-  border-right-color: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  width: 48px;
+  padding: 8px 0 10px;
+  gap: 2px;
 }
-.icon-rail-collapsed .icon-rail-btn,
+/* 折叠态只藏 section 图标列 + spacer, Home + Settings 仍可见 (跟 hover 抽屉互为备份) */
+.icon-rail-collapsed .icon-rail-section,
+.icon-rail-collapsed .icon-rail-sections,
 .icon-rail-collapsed .icon-rail-divider,
 .icon-rail-collapsed .icon-rail-spacer {
   display: none;
@@ -3468,35 +3458,31 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: background 0.16s var(--ease-ui, ease), color 0.16s var(--ease-ui, ease),
-    transform 0.1s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.08s ease;
   font: inherit;
 }
 
 .icon-rail-btn:hover,
 .icon-rail-btn:focus-visible {
-  background: color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 14%, transparent);
-  color: color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 85%, var(--text-primary));
+  background: color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 8%, transparent);
+  color: var(--rail-accent, var(--accent-primary));
   outline: none;
 }
 
-/* active: pill 胶囊 (实心 accent 底 + 白字) */
+/* active: 实心 accent 胶囊 */
 .icon-rail-btn.is-active {
   background: var(--rail-accent, var(--accent-primary));
   color: #fff;
-  box-shadow:
-    0 2px 8px color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 40%, transparent),
-    inset 0 1px 0 color-mix(in oklch, white 25%, transparent);
 }
 
-/* open (抽屉展开): pill 变体 — 半透明 accent + 左侧彩条 */
+/* open (hover 抽屉展开): 半透明 accent */
 .icon-rail-btn.is-open {
-  background: color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 18%, transparent);
+  background: color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 12%, transparent);
   color: var(--rail-accent, var(--accent-primary));
 }
 
@@ -3508,38 +3494,36 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1;
 }
 
-/* 展开时的左侧高亮条 — 改成竖向 pill 指示器 */
+/* 展开时左侧 accent 竖条 (2px, 旧 3px 减) */
 .icon-rail-active-bar {
   position: absolute;
-  left: -8px;
+  left: -6px;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
-  height: 22px;
-  border-radius: 0 3px 3px 0;
+  width: 2px;
+  height: 20px;
+  border-radius: 0 2px 2px 0;
   background: var(--rail-accent, var(--accent-primary));
-  box-shadow: 0 0 8px color-mix(in oklch, var(--rail-accent, var(--accent-primary)) 50%, transparent);
 }
 
 .icon-rail-sections {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
   align-items: center;
 }
 
 .icon-rail-divider {
-  width: 22px;
+  width: 20px;
   height: 1px;
   background: var(--border-subtle, rgba(0, 0, 0, 0.08));
-  margin: 3px 0;
+  margin: 4px 0;
   flex-shrink: 0;
-  opacity: 0.7;
 }
 
 .icon-rail-spacer {
@@ -3547,70 +3531,56 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   min-height: 8px;
 }
 
-/* section 图标上的聚合未读 badge. */
+/* 聚合未读 badge — 缩到 14px, 跟内圈 1.5px stroke */
 .icon-rail-badge {
   position: absolute;
-  top: 3px;
-  right: 3px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
+  top: 4px;
+  right: 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
   background: var(--accent-red, #ff3b30);
   color: #fff;
   font-size: 9px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 14px;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  box-shadow:
-    0 0 0 2px var(--chrome-bg, var(--bg-modal, #fff)),
-    0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 1.5px var(--bg-modal, #fff);
 }
 
 /* ============================================================
- * Phase 9: NavDrawer — hover 弹出的轻量导航抽屉.
- * ============================================================ */
-/* ============================================================
- * Phase 9 重设: NavDrawer — 加重阴影 + section 主题色 + 渐变 status.
+ * Phase 9 收尾重设 (Calm Pro): NavDrawer — 固体底 + 边线 + 3 section accent.
+ * 设计语言: 跟 IconRail 统一 (共用 --drawer-accent 变量), 不再单独 glass blur.
  * ============================================================ */
 
-/* section 主题色 (跟 IconRail 同源, 复用 attribute 选择器) */
-.nav-drawer[data-section="news"] { --drawer-accent: var(--accent-blue); }
+/* section 主题色 (跟 IconRail 同源) */
+.nav-drawer[data-section="news"]     { --drawer-accent: var(--accent-blue); }
 .nav-drawer[data-section="holdings"] { --drawer-accent: var(--accent-orange); }
-.nav-drawer[data-section="system"] { --drawer-accent: oklch(58% 0.18 270); }
+.nav-drawer[data-section="system"]   { --drawer-accent: var(--accent-purple); }
 
 .nav-drawer {
   position: fixed;
   top: 0;
   bottom: 0;
   left: 56px;
-  width: 232px;
+  width: 240px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 10px 12px;
-  /* 毛玻璃 + 左侧 accent 色微染 (让抽屉跟 section 呼应) */
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 4%, var(--bg-modal, #fff)) 0%,
-      var(--bg-modal, #fff) 40%
-    );
+  gap: 6px;
+  padding: 12px 10px 12px;
+  /* Calm Pro: 固体底, 不用 glass blur */
+  background: var(--bg-modal, #fff);
   border-right: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
-  /* 加重阴影: 双层 (近距 sharp + 远距 soft) 制造浮起感 */
-  box-shadow:
-    0 0 0 1px color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 8%, transparent),
-    8px 0 24px -4px rgba(0, 0, 0, 0.12),
-    24px 0 48px -8px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  /* 浮起阴影 (克制) */
+  box-shadow: 4px 0 16px -4px rgba(0, 0, 0, 0.08);
   z-index: 3;
-  animation: nav-drawer-in 0.18s var(--ease-ui, cubic-bezier(0.25, 0.1, 0.25, 1));
+  animation: nav-drawer-in 0.16s var(--ease-ui, cubic-bezier(0.25, 0.1, 0.25, 1));
 }
 
 @keyframes nav-drawer-in {
-  from { opacity: 0; transform: translateX(-12px); }
+  from { opacity: 0; transform: translateX(-8px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
@@ -3627,24 +3597,22 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   position: relative;
 }
 
-/* header 左侧 accent 竖条 (强化 section 归属) */
+/* header 左侧 accent 竖条 (2px, 旧 3px 减) */
 .nav-drawer-header::before {
   content: "";
   position: absolute;
   left: 0;
   top: 4px;
   bottom: 8px;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
+  width: 2px;
   background: var(--drawer-accent, var(--accent-primary));
 }
 
 .nav-drawer-title {
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 70%, var(--text-primary));
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
 }
 
 .nav-drawer-count {
@@ -3652,8 +3620,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   font-weight: 500;
   color: var(--text-tertiary, var(--text-secondary));
   font-variant-numeric: tabular-nums;
-  padding: 2px 7px;
-  border-radius: 8px;
+  padding: 2px 6px;
+  border-radius: 6px;
   background: var(--bg-section, rgba(0, 0, 0, 0.04));
 }
 
@@ -3684,20 +3652,15 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
   padding: 0;
 }
 
-/* status: accent 渐变条 (更醒目, 跟抽屉主题色呼应) */
+/* status: 简单中性底 (旧 accent 渐变条太抢戏) */
 .nav-drawer-status {
-  padding: 8px 12px;
+  padding: 6px 10px;
   margin: 0 4px;
   font-size: 11px;
   font-weight: 500;
-  color: color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 75%, var(--text-primary));
-  border-radius: 8px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 12%, transparent),
-    color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 4%, transparent)
-  );
-  border: 1px solid color-mix(in oklch, var(--drawer-accent, var(--accent-primary)) 15%, transparent);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  background: var(--bg-hover, rgba(0, 0, 0, 0.03));
 }
 
 .nav-drawer-footer {
@@ -3707,8 +3670,8 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 
 .nav-drawer-hidden-toggle {
   width: 100%;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -3724,12 +3687,7 @@ body.platform-win .toast-error { background: rgba(255, 107, 107, 0.14); }
 }
 
 .nav-drawer-hidden-toggle:hover {
-  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
-  color: var(--text-primary);
-}
-
-.nav-drawer-hidden-toggle:hover {
-  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  background: var(--bg-hover, rgba(0, 0, 0, 0.03));
   color: var(--text-primary);
 }
 

@@ -27,14 +27,15 @@ import {
   type NavSectionId,
 } from "../../shared/nav-keys.ts";
 import { collectNavStatusCtx, sectionBadge } from "./nav-status.ts";
-import { IconSettings, IconTrendingUp, IconGlobe } from "./icons.tsx";
+import { IconSettings, IconTrendingUp, IconGlobe, IconLayers } from "./icons.tsx";
 import { navigateTo } from "../store/route-store.ts";
 
 // section → 代表图标组件 (NAV_REGISTRY 无 section-icon 字段, 这里映射).
 const SECTION_ICON: Record<NavSectionId, (p: { size?: number }) => any> = {
   news: IconGlobe,
   holdings: IconTrendingUp,
-  system: IconSettings,
+  // Phase 9 收尾: system 改 IconLayers, 避免跟底部 Settings 按钮重复
+  system: IconLayers,
 };
 
 export interface IconRailProps {

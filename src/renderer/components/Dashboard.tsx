@@ -1,12 +1,13 @@
 /**
  * src/renderer/components/Dashboard.tsx
  *
- * Phase 9 外壳重构 — 首页仪表盘 (替代 HomeGrid 磁贴网格).
+ * Phase 9 外壳重构 + 收尾 (Calm Pro) — 首页仪表盘 (替代 HomeGrid 磁贴网格).
  *
  * 四区结构:
  *   1. Hero 问候条 — 时段问候 + 实时时钟 + 日期 + 上次访问 nav
  *   2. 未读汇总卡 row — news 总未读 / invest 净值更新 / ai-usage 用量, 横排小卡, 点击跳转
  *   3. 栏目摘要卡 grid — 每个 nav 一张卡, 副标题用 getStatus 实时状态, 点击跳转
+ *      (Calm Pro: 同 section 共用 1 个 accent, 不再 8 色彩虹)
  *   4. 最近活动 — recentStore 的 recent signal 前 N 条, 点击跳转对应 nav
  *
  * 跟 HomeGrid 的差异:
@@ -169,7 +170,9 @@ export function Dashboard() {
                   <button
                     key={entry.key}
                     type="button"
-                    class={`dashboard-tile dashboard-tile-${entry.accent}`}
+                    // Phase 9 收尾 Calm Pro: 同 section 共用 1 个 accent (news/holdings/system),
+                    // 8 种颜色彩虹太花, 改 3 section 真源 (跟 IconRail/NavDrawer 共享)
+                    class={`dashboard-tile dashboard-tile-${entry.section}`}
                     onClick={onClick}
                   >
                     <span class="dashboard-tile-icon" aria-hidden="true">
