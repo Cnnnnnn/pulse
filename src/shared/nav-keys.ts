@@ -23,7 +23,6 @@
 export type NavKey =
   | 'home'
   | 'news'
-  | 'worldcup'
   | 'invest'
   | 'ai-usage'
   | 'versions'
@@ -42,7 +41,6 @@ export interface NavRegistryEntry {
   /** 图标 name — renderer icons.tsx 把 name 映射到组件 */
   icon:
     | 'news'
-    | 'trophy'
     | 'coin'
     | 'medal'
     | 'bar-chart'
@@ -84,16 +82,6 @@ export const NAV_REGISTRY: NavRegistryEntry[] = [
     icon: 'news',
     section: 'news',
     subtitle: 'IT 资讯 + 微博热搜',
-  },
-  {
-    key: 'worldcup',
-    label: '世界杯',
-    tooltip: '2026 世界杯赛程',
-    accent: 'green',
-    icon: 'trophy',
-    section: 'news',
-    subtitle: '2026 世界杯赛程',
-    prefsSegment: 'worldcup',
   },
   {
     key: 'ai-leaderboard',

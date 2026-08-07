@@ -5,7 +5,7 @@
  *
  * ponytail: 1:1 mirrors the existing ~85-symbol public surface — the
  *           state-store has grown to host nearly every persisted concern
- *           (apps / mutes / last_opened / worldcup / ai prompts / usage /
+ *           (apps / mutes / last_opened / ai prompts / usage /
  *           watchlist / startup samples / …). Forcing a fully type-safe
  *           shape for every distinct payload here would dwarf the runtime
  *           the adapter exposes.
@@ -137,29 +137,6 @@ export interface StateStoreAdapter {
   // Step B LLM classify cache
   loadLLMClassifyCache(statePath?: string): StateLLMClassifyMap;
   saveLLMClassifyCache(map: StateLLMClassifyMap, statePath?: string): StateRecord;
-
-  // Worldcup TXT / scores / bracket / match insights
-  loadWorldcupTxt(statePath?: string): { txt: string; ts: number } | null;
-  saveWorldcupTxt(
-    entry: { txt: string; ts: number },
-    statePath?: string,
-  ): StateRecord;
-  loadWorldcupScores(
-    statePath?: string,
-  ): { entries: StateRecord; ts: number } | null;
-  saveWorldcupScores(
-    cache: { entries: StateRecord; ts: number },
-    statePath?: string,
-  ): StateRecord;
-  loadWorldcupMatchInsights(
-    statePath?: string,
-  ): { entries: StateRecord; ts: number } | null;
-  saveWorldcupMatchInsights(
-    cache: { entries: StateRecord; ts: number },
-    statePath?: string,
-  ): StateRecord;
-  loadWorldcupBracket(statePath?: string): StateRecord | null;
-  saveWorldcupBracket(snapshot: StateRecord, statePath?: string): StateRecord;
 
   // Phase Q8 — corruption recovery
   readonly StateCorruptedError: StateCorruptedErrorCtor;
