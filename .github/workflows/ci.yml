@@ -77,10 +77,8 @@ jobs:
           echo "entry size: $(du -h renderer-dist/index.js | cut -f1)"
           echo "chunks: $(ls renderer-dist/chunk-*.js 2>/dev/null | wc -l | tr -d ' ')"
 
-      # ponytail: 2026-07-09 — P5 默认跑视觉回归 (8 张 baseline).
-      # chromium cache 30 天 (避免每次 PR 下 ~150MB); baseline 是 dev 本机
-      # mac 拍的, ubuntu runner 跑会有 font subpixel / 抗锯齿差异, threshold
-      # 放宽到 0.3 (见 playwright.config.js) 兜底, 真回归 dev 本机会先 fail.
+      # 结构化视觉规范在 Ubuntu CI 运行；人工审阅的像素基线仅在 macOS 本机运行，
+      # 避免跨平台字体/emoji 渲染差异造成无意义的像素失败。
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
