@@ -35,10 +35,12 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           npm config get registry
       - name: Install deps
-        # package-lock.json 是唯一锁文件；显式保留 optional native bindings，
-        # 供 Vite/Rolldown 在 macOS 和 Windows runner 上加载。
-        run: npm ci --include=optional
-      - run: npm test -- --run --watch=false
+        # npm 在 GitHub runner 的 lifecycle 阶段会偶发 "Exit handler never
+        # called!"；pnpm 搭配已提交的锁文件可稳定安装各平台 native binding。
+        run: |
+          npm install -g pnpm@9.15.9
+          pnpm install --frozen-lockfile --reporter=append-only
+      - run: pnpm test -- --run --watch=false
       - run: npm run build:renderer
       - name: Build macOS (electron-builder)
         run: npm run build:mac
@@ -86,10 +88,12 @@ jobs:
         shell: pwsh
         run: choco install sqlite -y --no-progress
       - name: Install deps
-        # package-lock.json 是唯一锁文件；显式保留 optional native bindings，
-        # 供 Vite/Rolldown 在 macOS 和 Windows runner 上加载。
-        run: npm ci --include=optional
-      - run: npm test -- --run --watch=false
+        # npm 在 GitHub runner 的 lifecycle 阶段会偶发 "Exit handler never
+        # called!"；pnpm 搭配已提交的锁文件可稳定安装各平台 native binding。
+        run: |
+          npm install -g pnpm@9.15.9
+          pnpm install --frozen-lockfile --reporter=append-only
+      - run: pnpm test -- --run --watch=false
       - run: npm run build:renderer
       - name: Build Windows (electron-builder NSIS)
         run: npm run build:win
