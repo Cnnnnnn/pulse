@@ -25,7 +25,7 @@ const MIN_USEFUL_BODY_CHARS = 200;
 
 function summaryResponse(entry: any, cached: boolean): any {
     const fields = enrichSummaryEntry(entry);
-    return {
+    const response: any = {
         ok: true,
         text: entry.text,
         abstract: fields.abstract,
@@ -35,6 +35,18 @@ function summaryResponse(entry: any, cached: boolean): any {
         cached,
         id: entry.id,
     };
+    for (const key of [
+        "whyImportant",
+        "risks",
+        "followUps",
+        "evidence",
+        "completeness",
+    ]) {
+        if (Object.prototype.hasOwnProperty.call(fields, key)) {
+            response[key] = fields[key];
+        }
+    }
+    return response;
 }
 
 function contentHash(article: any): string {
@@ -140,7 +152,7 @@ export async function summarizeArticle(opts: any): Promise<any> {
 
     const cleanText = sanitizeLlmOutput(llm.text);
     const fields = parseArticleSummary(cleanText);
-    const entry = {
+    const entry: any = {
         text: cleanText,
         abstract: fields.abstract,
         keywords: fields.keywords,
@@ -150,6 +162,17 @@ export async function summarizeArticle(opts: any): Promise<any> {
         generatedAt: Date.now(),
         provider: "shared",
     };
+    for (const key of [
+        "whyImportant",
+        "risks",
+        "followUps",
+        "evidence",
+        "completeness",
+    ]) {
+        if (Object.prototype.hasOwnProperty.call(fields, key)) {
+            entry[key] = fields[key];
+        }
+    }
     newsStore.saveSummary(id, entry, statePath);
     return summaryResponse({ ...entry, id }, false);
 }

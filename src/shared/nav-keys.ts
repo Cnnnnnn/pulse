@@ -27,7 +27,6 @@ export type NavKey =
   | 'ai-usage'
   | 'versions'
   | 'github'
-  | 'games'
   | 'ai-leaderboard';
 
 export type NavSectionId = 'news' | 'holdings' | 'system';
@@ -46,7 +45,6 @@ export interface NavRegistryEntry {
     | 'bar-chart'
     | 'refresh'
     | 'layers'
-    | 'gamepad'
     | 'star';
   /** 归属分组 */
   section: NavSectionId;
@@ -91,15 +89,6 @@ export const NAV_REGISTRY: NavRegistryEntry[] = [
     icon: 'bar-chart',
     section: 'news',
     subtitle: '大模型排名 / 性价比 / 速度',
-  },
-  {
-    key: 'games',
-    label: '游戏优惠',
-    tooltip: '各平台折扣 / 免费活动 / 心愿单',
-    accent: 'red',
-    icon: 'gamepad',
-    section: 'news',
-    subtitle: '各平台折扣 / 免费活动 / 热门榜',
   },
   {
     key: 'github',

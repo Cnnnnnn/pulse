@@ -15,7 +15,7 @@ const cssPath = join(here, "..", "..", "..", "src", "renderer", "stocks", "stock
 const css = readFileSync(cssPath, "utf8");
 
 // P0-1 polish 搬过来的 ~95 个 stocks-only selector. 每个都是单一模块的 class, 不在
-// src/renderer/{funds,invest,metals,games,news}/ 用到. styles.css 里这类 class 出现的
+// src/renderer/{funds,invest,metals,news}/ 用到. styles.css 里这类 class 出现的
 // 来源也被搬过来了. 这里列表是这份搬运的最小保证 — 任何丢失会触发 CI fail.
 const STOCKS_ONLY_CLASSES = [
   // 个股对比池 (add-compare-*)

@@ -34,6 +34,7 @@ export default impl;
 // ponytail 4: 7a-6 让 `import * as platform from ...` 也能拿到 named methods
 // (register-core 等用 namespace import). 跨平台实现可能缺方法, caller 用之前要 narrow.
 export const resolveAppPath = impl.resolveAppPath;
+export const resolveBundleName = impl.resolveBundleName;
 export const getInstalledVersion = impl.getInstalledVersion;
 export const getAppIcon = impl.getAppIcon;
 export const getUpgradeAction = impl.getUpgradeAction;

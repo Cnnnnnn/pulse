@@ -52,7 +52,6 @@ vi.mock("../../src/renderer/components/nav-status.ts", async (importOriginal) =>
       wechatHotUnread: 0,
       fundUnread: 0,
       aiUsageNavBadge: 0,
-      gamesHasNew: false,
       ithomeDayStats: null,
       ithomeArticles: null,
       wechatHotItems: null,
@@ -126,10 +125,10 @@ describe("Dashboard — Tiles 按 section 分组", () => {
     expect(labels).toEqual(["资讯", "持仓", "系统"]);
   });
 
-  it("tiles 数 = NAV_REGISTRY 数 (7 个非 home module, v2.80 删 worldcup)", () => {
+  it("tiles 数 = NAV_REGISTRY 数 (6 个非 home module, v2.80 删 worldcup)", () => {
     const { container } = render(<Dashboard />);
     const tiles = container.querySelectorAll(".dashboard-tile");
-    expect(tiles.length).toBe(7);
+    expect(tiles.length).toBe(6);
   });
 });
 

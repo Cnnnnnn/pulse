@@ -162,6 +162,28 @@ describe("NewsArticleRow 已读/新 视觉", () => {
   });
 });
 
+describe("NewsArticleRow 封面缩略图", () => {
+  afterEach(() => cleanup());
+
+  it("有 cover 字段 → 渲染 <img> 且 loading=lazy", () => {
+    const article = makeArticle({ excerpt: "x".repeat(500) });
+    article.cover = "https://img.ithome.com/newsuploadfiles/2026/test.jpg";
+    const { container } = render(<NewsArticleRow article={article} />);
+    const img = container.querySelector(".ithome-row-cover-img");
+    expect(img).toBeTruthy();
+    expect(img.getAttribute("loading")).toBe("lazy");
+    expect(img.getAttribute("src")).toContain("test.jpg");
+    expect(container.querySelector(".ithome-row.has-cover")).toBeTruthy();
+  });
+
+  it("无 cover 字段 → 不渲染缩略图容器", () => {
+    const article = makeArticle({ excerpt: "x".repeat(500) });
+    const { container } = render(<NewsArticleRow article={article} />);
+    expect(container.querySelector(".ithome-row-cover")).toBeNull();
+    expect(container.querySelector(".ithome-row.has-cover")).toBeNull();
+  });
+});
+
 describe("NewsArticleRow 分享按钮", () => {
   const baseArticle = {
     id: "s1",
@@ -178,27 +200,39 @@ describe("NewsArticleRow 分享按钮", () => {
   });
   afterEach(() => cleanup());
 
-  it("仅当 summary.text 存在时渲染分享按钮", () => {
-    const { rerender } = render(<NewsArticleRow article={baseArticle} />);
-    expect(screen.queryByText(/分享/)).toBeNull();
+  // ⋯ 菜单折叠后，分享/重新生成等次操作需先点开菜单才可见。
+  function openOverflow() {
+    fireEvent.click(screen.getByTestId("ithome-row-menu"));
+  }
 
+  it("仅当 summary.text 存在时渲染分享入口", () => {
+    // 无摘要：菜单内只有「收藏」，无分享项
+    const r1 = render(<NewsArticleRow article={baseArticle} />);
+    openOverflow();
+    expect(r1.queryByText(/分享/)).toBeNull();
+    r1.unmount();
+
+    // 有摘要：菜单出现「分享卡片」
     mockSummaries.value = { s1: { text: "sum", keywords: [] } };
-    rerender(<NewsArticleRow article={baseArticle} />);
-    expect(screen.getByText(/分享/)).toBeTruthy();
+    render(<NewsArticleRow article={baseArticle} />);
+    openOverflow();
+    expect(screen.getByText(/分享卡片/)).toBeTruthy();
   });
 
-  it("分享中: 按钮 disabled 且文案为 生成图片中", () => {
+  it("分享中: 菜单项 disabled 且文案为 生成图片中", () => {
     mockSummaries.value = { s1: { text: "sum", keywords: [] } };
     mockSharingIds.value = { s1: true };
     render(<NewsArticleRow article={baseArticle} />);
-    const btn = screen.getByText(/生成图片中/);
-    expect(btn.getAttribute("disabled")).not.toBeNull();
+    openOverflow();
+    const btn = screen.getByText(/生成图片中/).closest("button");
+    expect(btn?.getAttribute("disabled")).not.toBeNull();
   });
 
   it("点击调用 shareIthomeArticle 并显示成功 toast", async () => {
     mockSummaries.value = { s1: { text: "sum", keywords: [] } };
     render(<NewsArticleRow article={baseArticle} />);
-    fireEvent.click(screen.getByText(/分享/));
+    openOverflow();
+    fireEvent.click(screen.getByText(/分享卡片/));
     await waitFor(() =>
       expect(screen.getByText(/已复制到剪贴板/)).toBeTruthy(),
     );
@@ -209,7 +243,8 @@ describe("NewsArticleRow 分享按钮", () => {
     mockSummaries.value = { s1: { text: "sum", keywords: [] } };
     mockShareArticle.mockResolvedValueOnce({ ok: false, reason: "render_failed" });
     render(<NewsArticleRow article={baseArticle} />);
-    fireEvent.click(screen.getByText(/分享/));
+    openOverflow();
+    fireEvent.click(screen.getByText(/分享卡片/));
     await waitFor(() =>
       expect(screen.getByText(/图片生成失败/)).toBeTruthy(),
     );
@@ -217,12 +252,21 @@ describe("NewsArticleRow 分享按钮", () => {
 
   it("用 ithomeSharingIds 信号控制 disabled 状态", () => {
     mockSummaries.value = { s1: { text: "sum", keywords: [] } };
+    // 未在分享中：菜单项可点
     mockSharingIds.value = {};
-    const { rerender } = render(<NewsArticleRow article={baseArticle} />);
-    expect(screen.getByText(/分享/).getAttribute("disabled")).toBeNull();
+    const r1 = render(<NewsArticleRow article={baseArticle} />);
+    openOverflow();
+    expect(
+      screen.getByText(/分享卡片/).closest("button")?.getAttribute("disabled"),
+    ).toBeNull();
+    r1.unmount();
 
+    // 分享中：文案变「生成图片中」且 disabled
     mockSharingIds.value = { s1: true };
-    rerender(<NewsArticleRow article={baseArticle} />);
-    expect(screen.getByText(/生成图片中/).getAttribute("disabled")).not.toBeNull();
+    render(<NewsArticleRow article={baseArticle} />);
+    openOverflow();
+    expect(
+      screen.getByText(/生成图片中/).closest("button")?.getAttribute("disabled"),
+    ).not.toBeNull();
   });
 });

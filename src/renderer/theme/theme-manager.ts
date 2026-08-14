@@ -95,7 +95,10 @@ export function getThemePreference() {
  * 设置偏好并立即生效, 异步同步给主进程 (跨 renderer 一致).
  * 返回生效的偏好值.
  */
-export function setThemePreference(mode: any) {
+export function setThemePreference(
+  mode: any,
+  { syncMain = true }: { syncMain?: boolean } = {},
+) {
   const m = VALID.includes(mode) ? mode : "system";
   writePreference(m);
   apply(m);
@@ -105,6 +108,7 @@ export function setThemePreference(mode: any) {
     if (
       typeof window !== "undefined" &&
       window.metalsApi &&
+      syncMain &&
       typeof window.metalsApi.themeSet === "function"
     ) {
       window.metalsApi.themeSet(m).catch(() => {});

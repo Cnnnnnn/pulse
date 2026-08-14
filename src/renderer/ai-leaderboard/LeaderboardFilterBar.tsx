@@ -8,6 +8,7 @@ import {
   activeView,
   activeBoard,
   activeDim,
+  activeLB,
   activeAgentDim,
   activeTextCat,
   activeCodeCat,
@@ -16,7 +17,6 @@ import {
   licenseFilter,
   searchQuery,
   loading,
-  setView,
   setBoard,
   setCategory,
   setDim,
@@ -30,7 +30,6 @@ import {
   refresh,
 } from "./aiLeaderboardStore.ts";
 import {
-  VIEW_KEYS,
   VIEWS,
   ARENA_CATEGORIES,
   ARENA_BOARDS,
@@ -40,9 +39,11 @@ import {
   CODE_CATEGORIES,
   AA_DIMENSIONS,
   AA_DIMENSION_KEYS,
+  SORT_COLUMN_LABELS,
   VENDOR_OPTIONS,
   LICENSE_FILTER_OPTIONS,
 } from "./types.ts";
+import { IconSearch } from "../components/icons.tsx";
 
 /**
  * Arena 大类 + 二级榜合并选择器（方案 B）：
@@ -193,6 +194,7 @@ function AaDimChips() {
 
 export function LeaderboardFilterBar() {
   const [q, setQ] = useState(searchQuery.value);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // 外部（如性价比榜点击跳转）改了搜索时，回灌本地输入态，保持搜索框与过滤一致
   useEffect(() => {
@@ -216,71 +218,36 @@ export function LeaderboardFilterBar() {
   }
 
   const view = activeView.value;
+  const metricText = sortKeyLabel(view);
+  const hasActiveFilter = activeVendor.value !== "all" || licenseFilter.value !== "all" || !!q;
+  const viewMeta = VIEWS[view] || VIEWS.aa;
 
   return (
-    <div class="ai-leaderboard-filter-bar">
-      <div class="ai-leaderboard-view-switch" role="tablist" aria-label="数据视角">
-        {VIEW_KEYS.map((key) => {
-          const meta = VIEWS[key];
-          const active = view === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              class={`ai-leaderboard-seg ai-leaderboard-seg--${key}${active ? " is-active" : ""}`}
-              onClick={() => setView(key)}
-            >
-              <span class="ai-leaderboard-seg__main">
-                <span class="ai-leaderboard-seg__dot" aria-hidden="true" />
-                {meta.label}
-              </span>
-              <span class="ai-leaderboard-seg__sub">{meta.segSub}</span>
-            </button>
-          );
-        })}
-      </div>
-
+    <div class={`ai-leaderboard-filter-bar${filtersOpen ? " is-filters-open" : ""}`}>
       <div class="ai-leaderboard-toolbar-row">
         <div class="ai-leaderboard-toolbar__left">
-          {view === "arena" && <ArenaBoardSelector />}
-
-          {view === "arena" && <ArenaSubDimSelect />}
-
-          {view === "aa" && <AaDimChips />}
-
-          <div class="ai-leaderboard-chips" role="group" aria-label="许可筛选">
-            {LICENSE_FILTER_OPTIONS.map((o) => (
-              <button
-                key={o.key}
-                type="button"
-                class={`ai-leaderboard-chip${licenseFilter.value === o.key ? " is-active" : ""}`}
-                aria-pressed={licenseFilter.value === o.key}
-                onClick={() => setLicenseFilter(o.key)}
-              >
-                {o.label}
-              </button>
-            ))}
+          <div class="ai-lb-toolbar-context">
+            <span class={`ai-lb-toolbar-context__dot ai-lb-toolbar-context__dot--${view}`} aria-hidden="true" />
+            <strong>{viewMeta.label}</strong>
+            <span class="ai-lb-toolbar-context__separator">·</span>
+            <span>{metricText}</span>
+            {(view === "aa" || view === "livebench") && <span class="ai-lb-toolbar-context__scope">仅 LLM</span>}
           </div>
         </div>
 
         <div class="ai-leaderboard-toolbar__right">
-          <label class="ai-leaderboard-select ai-leaderboard-select--toolbar">
-            <span class="ai-leaderboard-select__label">厂商</span>
-            <select
-              class="ai-leaderboard-select__input"
-              value={activeVendor.value}
-              onChange={(e) => setVendor(e.currentTarget.value)}
-            >
-              {VENDOR_OPTIONS.map((o) => (
-                <option key={o.key} value={o.key}>{o.label}</option>
-              ))}
-            </select>
-          </label>
+          <button
+            type="button"
+            class={`ai-leaderboard-filter-toggle${hasActiveFilter ? " has-active" : ""}`}
+            aria-expanded={filtersOpen}
+            aria-controls="ai-leaderboard-advanced-filters"
+            onClick={() => setFiltersOpen((value) => !value)}
+          >
+            筛选{hasActiveFilter ? " · 已启用" : ""}
+          </button>
 
           <div class="ai-leaderboard-search" role="search">
-            <span class="ai-leaderboard-search__icon" aria-hidden="true">🔍</span>
+            <span class="ai-leaderboard-search__icon" aria-hidden="true"><IconSearch size={15} /></span>
             <input
               id="ai-leaderboard-search-input"
               type="search"
@@ -305,6 +272,34 @@ export function LeaderboardFilterBar() {
             )}
           </div>
 
+          <div id="ai-leaderboard-advanced-filters" class="ai-leaderboard-advanced-control ai-leaderboard-advanced-control--right">
+            <label class="ai-leaderboard-select ai-leaderboard-select--toolbar">
+              <span class="ai-leaderboard-select__label">厂商</span>
+              <select
+                class="ai-leaderboard-select__input"
+                value={activeVendor.value}
+                onChange={(e) => setVendor(e.currentTarget.value)}
+              >
+                {VENDOR_OPTIONS.map((o) => (
+                  <option key={o.key} value={o.key}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+            <div class="ai-leaderboard-chips" role="group" aria-label="许可筛选">
+              {LICENSE_FILTER_OPTIONS.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  class={`ai-leaderboard-chip${licenseFilter.value === o.key ? " is-active" : ""}`}
+                  aria-pressed={licenseFilter.value === o.key}
+                  onClick={() => setLicenseFilter(o.key)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             type="button"
             class="ai-leaderboard-refresh ai-leaderboard-refresh--primary"
@@ -317,6 +312,13 @@ export function LeaderboardFilterBar() {
       </div>
     </div>
   );
+}
+
+function sortKeyLabel(view) {
+  if (view === "arena") return "综合 ELO";
+  if (view === "livebench") return SORT_COLUMN_LABELS[activeLB.value] || "LiveBench Overall";
+  if (view === "huggingface") return SORT_COLUMN_LABELS[activeDim.value] || "Downloads";
+  return SORT_COLUMN_LABELS[activeDim.value] || "Intelligence Index";
 }
 
 export default LeaderboardFilterBar;

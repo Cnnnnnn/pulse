@@ -121,7 +121,7 @@ export function NewsLayoutHeader({
       ? "搜索热搜……"
       : subTab === "finance"
         ? "搜索标题、分类、标签…"
-        : "搜索标题、分类…";
+        : "搜索标题、正文、关键词…";
 
   return (
     <header class="news-header">

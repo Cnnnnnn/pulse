@@ -49,6 +49,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
   const inCompare = compareList.value.includes(m.id);
   const compareDisabled = !inCompare && compareList.value.length >= 3;
   const sampleCls = m.isSample ? " ai-lb-row--sample" : "";
+  const compareCls = inCompare ? " ai-lb-row--compare" : "";
   const checkboxCell = (
     <td class="ai-lb-td ai-lb-col-check">
       <input
@@ -205,7 +206,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
       </td>
     );
     return (
-      <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
+      <tr ref={ref} class={`ai-lb-row${sampleCls}${compareCls}`}>
         {checkboxCell}
         {rankCell}
         {modelCell}
@@ -227,7 +228,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
 
   if (view === "livebench") {
     return (
-      <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
+      <tr ref={ref} class={`ai-lb-row${sampleCls}${compareCls}`}>
         {checkboxCell}
         {rankCell}
         {modelCell}
@@ -304,7 +305,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
       </td>
     );
     return (
-      <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
+      <tr ref={ref} class={`ai-lb-row${sampleCls}${compareCls}`}>
         {checkboxCell}
         {rankCell}
         {modelCell}
@@ -324,7 +325,7 @@ export const ModelRow = forwardRef<HTMLTableRowElement, {
 
   // AA 视角
   return (
-    <tr ref={ref} class={`ai-lb-row${sampleCls}`}>
+    <tr ref={ref} class={`ai-lb-row${sampleCls}${compareCls}`}>
       {checkboxCell}
       {rankCell}
       {modelCell}

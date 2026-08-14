@@ -22,7 +22,6 @@ import { refreshIthomeNews } from "./ithome/store.ts";
 import { fetchNavNow } from "./funds/fundStore.ts";
 import { refreshNow as refreshMetals } from "./metals/metalStore.ts";
 import { investPrimary } from "./nav/navStore.ts";
-import { loadGameDeals } from "./games/gamesStore.ts";
 import { api } from "./api.ts";
 
 /**
@@ -61,7 +60,6 @@ function refreshInvest() {
 const REGISTRY = {
   news: { fn: () => refreshNews(), label: "刷新当前新闻子 tab" },
   invest: { fn: () => refreshInvest(), label: "刷新当前投资子模块" },
-  games: { fn: () => loadGameDeals(), label: "刷新游戏优惠" },
 };
 
 /** 注册表里存在的 nav key 集合 — 跟 navStore.PERSISTABLE_NAV_KEYS 互为镜像 */

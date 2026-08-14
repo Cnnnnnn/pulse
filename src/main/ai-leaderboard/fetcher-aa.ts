@@ -10,7 +10,7 @@
 
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
-import { logFetchError } from "../games/log";
+import { logFetchError } from "./log";
 
 /** 取首个有限数值, 否则返回默认. ponytail: 3 fetcher 各 1 份, 不抽 (esbuild 编译陷阱). */
 function num(v: any, d: number = 0): number {
@@ -26,7 +26,7 @@ let _envLoaded = false;
 let _aaKey: string | undefined = undefined; // undefined = 尚未探测
 
 /**
- * 极简 .env 加载器（与 itad.js 同款范式）：
+ * 极简 .env 加载器：
  * 仅当进程尚未有 ARTIFICIAL_ANALYSIS_API_KEY 时，从 process.cwd()/.env 读取。
  */
 function loadAaKey(): string | undefined {
@@ -134,6 +134,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       source: "artificial-analysis",
       data: null,
       fetchedAt: new Date().toISOString(),
+      error: err instanceof Error ? err.message : String(err),
     };
   }
 }

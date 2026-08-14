@@ -5,7 +5,7 @@
  * Session-based 检测模型.
  */
 
-import { signal, computed } from "@preact/signals";
+import { signal, computed, batch } from "@preact/signals";
 import { taggedLog } from "../log.ts";
 
 const log = taggedLog("[store/check]");
@@ -102,10 +102,36 @@ export function resetCheck() {
 }
 
 export function applyProgressBatch(list: any, sessionId: any) {
-  if (!Array.isArray(list)) return;
-  for (const r of list) {
-    applyProgress(r, sessionId);
+  if (!Array.isArray(list) || list.length === 0) return;
+
+  const currentSession = checkSession.value;
+  if (sessionId && currentSession.id && sessionId !== currentSession.id) {
+    log.warn(
+      `applyProgressBatch: stale session ${sessionId}, current=${currentSession.id}, discarding`,
+    );
+    return;
   }
+
+  const accepted = list.filter((result: any) => result && result.name);
+  if (accepted.length === 0) return;
+
+  batch(() => {
+    const nextPhases = new Map(appPhases.value);
+    const nextResults = new Map(results.value);
+
+    for (const result of accepted) {
+      nextPhases.set(result.name, resultToPhase(result));
+      nextResults.set(result.name, result);
+    }
+
+    appPhases.value = nextPhases;
+    results.value = nextResults;
+
+    for (const result of accepted) {
+      getAppPhaseSignal(result.name).value = resultToPhase(result);
+      getResultSignal(result.name).value = result;
+    }
+  });
 }
 
 export function applyProgress(result: any, sessionId: any) {

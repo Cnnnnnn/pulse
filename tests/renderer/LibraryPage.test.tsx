@@ -9,14 +9,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/preact";
 import { LibraryPage } from "../../src/renderer/components/LibraryPage.tsx";
-import { viewMode, setViewMode, resetLibraryFilters } from "../../src/renderer/store/library-view-store.ts";
-import { results, resetCheck } from "../../src/renderer/store.ts";
+import {
+  viewMode,
+  setViewMode,
+  setFilterStatus,
+  setSearchQuery,
+  resetLibraryFilters,
+} from "../../src/renderer/store/library-view-store.ts";
+import { results, resetCheck, finishCheck, applyProgress } from "../../src/renderer/store.ts";
 
 const mockRunCheck = vi.fn();
 vi.mock("../../src/renderer/api.ts", () => ({
   api: {
-    get versionsRunCheck() { return mockRunCheck; },
+    get checkUpdates() { return mockRunCheck; },
     get brewUpgrade() { return () => Promise.resolve(); },
+    get getAppIcon() { return () => Promise.resolve(null); },
     get detectResultsExport() { return () => Promise.resolve(); },
   },
 }));
@@ -25,6 +32,8 @@ beforeEach(() => {
   cleanup();
   resetLibraryFilters();
   resetCheck();
+  finishCheck();
+  results.value = new Map();
   vi.clearAllMocks();
   mockRunCheck.mockReset();
 });
@@ -45,6 +54,63 @@ describe("LibraryPage (Task 12)", () => {
     results.value = new Map([["App1", { name: "App1", current_version: "1", latest_version: "2", has_update: false, bundle: "" }]]);
     render(<LibraryPage />);
     expect(document.querySelector(".app-card-grid")).toBeTruthy();
+  });
+
+  it("card 模式遵守搜索筛选", () => {
+    setViewMode("card");
+    applyProgress({
+      name: "Cursor",
+      bundle: "Cursor.app",
+      brew_cask: "cursor",
+      installed_version: "1.0",
+      latest_version: "2.0",
+      has_update: true,
+      status: "update_available",
+    });
+    applyProgress({
+      name: "Raycast",
+      bundle: "Raycast.app",
+      installed_version: "1.0",
+      latest_version: "1.0",
+      has_update: false,
+      status: "up_to_date",
+    });
+    setSearchQuery("cursor");
+
+    const { container } = render(<LibraryPage />);
+
+    expect(container.querySelector('[data-name="Cursor"]')).toBeTruthy();
+    expect(container.querySelector('[data-name="Raycast"]')).toBeFalsy();
+  });
+
+  it("card 模式遵守状态筛选并显示无匹配空态", async () => {
+    setViewMode("card");
+    applyProgress({
+      name: "Cursor",
+      bundle: "Cursor.app",
+      brew_cask: "cursor",
+      installed_version: "1.0",
+      latest_version: "2.0",
+      has_update: true,
+      status: "update_available",
+    });
+    applyProgress({
+      name: "Raycast",
+      bundle: "Raycast.app",
+      installed_version: "1.0",
+      latest_version: "1.0",
+      has_update: false,
+      status: "up_to_date",
+    });
+    setFilterStatus("latest");
+
+    const { container } = render(<LibraryPage />);
+
+    expect(container.querySelector('[data-name="Cursor"]')).toBeFalsy();
+    expect(container.querySelector('[data-name="Raycast"]')).toBeTruthy();
+
+    setSearchQuery("does-not-exist");
+    await waitFor(() => expect(container.querySelector(".empty-state-filtered")).toBeTruthy());
   });
 });
 
@@ -85,7 +151,7 @@ describe("LibraryPage 空态 + 检查更新按钮", () => {
     expect(container.querySelector(".merged-filter")).toBeFalsy();
   });
 
-  it("空态 CTA 点击触发 api.versionsRunCheck", async () => {
+  it("空态 CTA 点击触发统一 runCheck", async () => {
     let resolve;
     mockRunCheck.mockReturnValue(new Promise((r) => { resolve = r; }));
     results.value = new Map();
@@ -104,7 +170,31 @@ describe("LibraryPage 空态 + 检查更新按钮", () => {
     expect(btn.textContent).toMatch(/检查更新/);
   });
 
-  it("检查更新主按钮点击触发 api.versionsRunCheck", async () => {
+  it("PageHeader 的可升级数量只统计有 brew cask 的更新", () => {
+    applyProgress({
+      name: "Cursor",
+      bundle: "Cursor.app",
+      brew_cask: "cursor",
+      installed_version: "1.0",
+      latest_version: "2.0",
+      has_update: true,
+      status: "update_available",
+    });
+    applyProgress({
+      name: "Manual App",
+      bundle: "Manual.app",
+      installed_version: "1.0",
+      latest_version: "2.0",
+      has_update: true,
+      status: "update_available",
+    });
+
+    render(<LibraryPage />);
+
+    expect(screen.getByText("2 个监控 · 1 个可升级")).toBeTruthy();
+  });
+
+  it("检查更新主按钮点击触发统一 runCheck", async () => {
     mockRunCheck.mockResolvedValue({ started: true });
     results.value = new Map([["App1", { name: "App1", current_version: "1", latest_version: "2", has_update: false, bundle: "" }]]);
     render(<LibraryPage />);

@@ -22,7 +22,6 @@ import { quoteCache } from "../metals/metalStore.ts";
 import { comparePoolCount } from "../stocks/comparePool.ts";
 import { results as stocksResults } from "../stocks/stockStore.ts";
 import { results as checkResults, apps as checkApps } from "../store.ts";
-import { gamesHasNewFree, gamesHasNewDrop } from "../games/gamesStore.ts";
 import { todayShanghaiDateKey, articlesForDate } from "../ithome/news-utils.ts";
 
 // ─── ctx 类型 ──────────────────────────────────────
@@ -34,7 +33,6 @@ export interface NavStatusCtx {
   wechatHotUnread: number;
   fundUnread: number;
   aiUsageNavBadge: number;
-  gamesHasNew: boolean;
   // news status 源
   ithomeDayStats: Record<string, { count?: number }> | null;
   ithomeArticles: any;
@@ -65,7 +63,6 @@ export function collectNavStatusCtx(): NavStatusCtx {
     wechatHotUnread: wechatHotUnreadBadge.value || 0,
     fundUnread: fundUnreadBadge.value || 0,
     aiUsageNavBadge: aiUsageNavBadge.value || 0,
-    gamesHasNew: !!(gamesHasNewFree.value || gamesHasNewDrop.value),
     ithomeDayStats: ithomeDayStats.value,
     ithomeArticles: ithomeArticles.value,
     wechatHotItems: wechatHotItems.value,
@@ -87,7 +84,6 @@ export function collectNavStatusCtx(): NavStatusCtx {
 /**
  * nav 未读角标数. 返回 null 表示不渲染角标 (0 也返回 null).
  * 'news' = ithome + wechat-hot 之和 (P-N+ 合并后).
- * 'games' = 有新免费活动/心愿单降价时返回 1 (红点语义), 否则 null.
  */
 export function getBadge(key: string, ctx: NavStatusCtx): number | null {
   switch (key) {
@@ -97,8 +93,6 @@ export function getBadge(key: string, ctx: NavStatusCtx): number | null {
       return ctx.fundUnread || null;
     case "ai-usage":
       return ctx.aiUsageNavBadge || null;
-    case "games":
-      return ctx.gamesHasNew ? 1 : null;
     default:
       return null;
   }
@@ -106,14 +100,13 @@ export function getBadge(key: string, ctx: NavStatusCtx): number | null {
 
 /**
  * 按 section 聚合未读总数 (IconRail section 图标角标用).
- * news section = news + games; holdings = invest + ai-usage; system = versions.
+ * holdings = invest + ai-usage; system = versions.
  */
 export function sectionBadge(sectionId: string, ctx: NavStatusCtx): number {
   switch (sectionId) {
     case "news": {
       const news = ctx.ithomeUnread + ctx.wechatHotUnread;
-      const games = ctx.gamesHasNew ? 1 : 0;
-      return news + games;
+      return news;
     }
     case "holdings":
       return ctx.fundUnread + ctx.aiUsageNavBadge;
@@ -182,8 +175,6 @@ export function getStatus(key: string, ctx: NavStatusCtx): string | null {
       const n = ctx.githubProjects?.length ?? 0;
       return n > 0 ? `已收录 ${n} 个` : "尚未收录";
     }
-    case "games":
-      return "Steam / Epic 实时 · 主机示例";
     case "ai-leaderboard":
       return "—";
     default:

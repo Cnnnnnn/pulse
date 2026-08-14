@@ -19,6 +19,8 @@ export const api = {
 
   onCheckProgress: (cb: Callback) =>
     ipcRenderer.on("check-progress", (_, data) => cb(data)),
+  onCheckStarted: (cb: Callback) =>
+    ipcRenderer.on("check-started", (_, data) => cb(data)),
   onCheckDetecting: (cb: Callback) =>
     ipcRenderer.on("check-detecting", (_, data) => cb(data)),
   onStartCheck: (cb: () => void) => ipcRenderer.on("start-check", () => cb()),
@@ -213,6 +215,8 @@ export const api = {
     ipcRenderer.invoke("ithome:refresh-news", dateKey),
   ithomeFetchDay: (dateKey: string) =>
     ipcRenderer.invoke("ithome:fetch-day", dateKey),
+  ithomeFetchArticleBody: (payload: unknown) =>
+    ipcRenderer.invoke("ithome:fetch-article-body", payload),
   ithomeSummarizeArticle: (payload: unknown) =>
     ipcRenderer.invoke("ithome:summarize-article", payload),
   ithomeToggleFavorite: (payload: unknown) =>
@@ -329,8 +333,8 @@ export const api = {
   versionsCommandSearch: (q: string) =>
     ipcRenderer.invoke("versions:command-search", { q }),
   // v2.50 (T5): LibraryPage / PageHeader / OverviewEmptyState / CommandPalette
-  // "检查更新" 按钮统一走这里 → main 的 versions:run-check (→ check-runner.runCheckQueued)
-  versionsRunCheck: () => ipcRenderer.invoke("versions:run-check"),
+  // 兼容旧 renderer 调用, 实际仍复用唯一的 check-updates IPC 通道.
+  versionsRunCheck: () => ipcRenderer.invoke("check-updates"),
 
   // v2.80 GitHub 优秀项目收录
   // 第二个参数 token 透传给主进程，用于解除未登录 60 次/小时限流。
@@ -341,13 +345,6 @@ export const api = {
   githubFetchRelease: (input: unknown, token: string) =>
     ipcRenderer.invoke("github:fetch-release", { input, token }),
 
-  // 游戏优惠聚合 (v2.81): 各平台折扣 / 喜+1 / 热门榜
-  getGameDeals: (opts: unknown) => ipcRenderer.invoke("games:getDeals", opts || {}),
-  getSteamLowest: (opts: unknown) =>
-    ipcRenderer.invoke("games:getSteamLowest", opts || {}),
-  getItadLowest: (opts: unknown) =>
-    ipcRenderer.invoke("games:getItadLowest", opts || {}),
-  getFx: (opts: unknown) => ipcRenderer.invoke("games:getFx", opts || {}),
   // AI 榜单排名模块 (v2.82): 白名单双通道
   getLeaderboard: (opts: unknown) => ipcRenderer.invoke("leaderboard:get", opts || {}),
   refreshLeaderboard: (opts: unknown) =>

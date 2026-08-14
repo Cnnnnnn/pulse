@@ -102,9 +102,14 @@ describe("ithome article-ai summarizeArticle lazy fetch", () => {
       ok: true,
       text:
         "摘要：蔚来回应合资公司注销。\n" +
+        "为什么重要：合资关系变化可能影响后续业务安排。\n" +
         "关键词：蔚来、江淮\n" +
         "所属领域：汽车\n" +
-        "影响方面：可能影响代工合作。",
+        "影响方面：可能影响代工合作。\n" +
+        "风险与不确定性：具体原因仍待调查。\n" +
+        "后续关注：相关部门调查结论。\n" +
+        "原文依据：官方称已成立专项工作组。\n" +
+        "信息完整度：高",
     });
     const http = {
       async get() {
@@ -124,6 +129,10 @@ describe("ithome article-ai summarizeArticle lazy fetch", () => {
       statePath: p,
     });
     expect(r.ok).toBe(true);
+    expect(r.whyImportant).toBe("合资关系变化可能影响后续业务安排。");
+    expect(r.risks).toEqual(["具体原因仍待调查。"]);
+    expect(r.followUps).toEqual(["相关部门调查结论。"]);
+    expect(r.completeness).toBe("high");
 
     // 抓正文后入提示
     const call = chatCompletion.mock.calls[0][0];
@@ -136,6 +145,9 @@ describe("ithome article-ai summarizeArticle lazy fetch", () => {
     expect(stored.ithome_news.articles[NEWS_LINK].body.length).toBeGreaterThan(
       100,
     );
+    expect(stored.ithome_news.summaries[NEWS_LINK].evidence).toEqual([
+      "官方称已成立专项工作组。",
+    ]);
   });
 
   it("uses stored body directly without re-fetching when body is already long", async () => {

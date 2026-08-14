@@ -21,7 +21,8 @@ vi.mock("../../src/renderer/store.ts", async () => {
 
 describe("VirtualCardGrid", () => {
   it("默认只渲染可视区 (~30 个, 不是 200)", () => {
-    const { unmount } = render(<VirtualCardGrid />);
+    const names = Array.from({ length: 200 }, (_, i) => `app-${i}`);
+    const { unmount } = render(<VirtualCardGrid names={names} />);
     const cards = document.querySelectorAll(".app-card");
     expect(cards.length).toBeLessThan(60);
     expect(cards.length).toBeGreaterThan(0);

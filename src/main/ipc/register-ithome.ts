@@ -7,6 +7,7 @@ import type {} from "electron";
 import * as ithomeNewsStore from "../ithome/news-store";
 const _ns: any = ithomeNewsStore;
 import { summarizeArticle } from "../ithome/article-ai";
+import { fetchAndAttachBody } from "../ithome/article-page-fetcher";
 
 export function registerIthomeHandlers(ctx: any) {
   const { safeHandle, getConfig } = ctx;
@@ -48,6 +49,10 @@ export function registerIthomeHandlers(ctx: any) {
 
   safeHandle("ithome:fetch-day", async (_evt: any, dateKey: any) =>
     _ns.fetchDay(dateKey),
+  );
+
+  safeHandle("ithome:fetch-article-body", async (_evt: any, payload: any) =>
+    fetchAndAttachBody({ id: payload && payload.id }),
   );
 
   safeHandle("ithome:summarize-article", async (_evt: any, payload: any) =>

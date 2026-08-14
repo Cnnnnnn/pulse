@@ -7,7 +7,7 @@
  *   leaderboard:export-csv     → 用户选保存路径 → fs.writeFile
  *
  * 渲染层只通过这几个通道交互（白名单）。请求级缓存 (Map + TTL 5min)
- * 照搬 games 同款范式，避免重复打外部 API（Arena/AA 有 rate limit）。
+ * 使用请求级缓存，避免重复打外部 API（Arena/AA 有 rate limit）。
  */
 
 
@@ -29,9 +29,10 @@ import { getLeaderboard } from "../ai-leaderboard/index";
 import { CATEGORY_META, DIMENSION_META, VENDOR_META } from "../ai-leaderboard/types";
 import { budget } from "../ai-leaderboard/rate-limiter";
 
-// ── 请求级缓存（Map + TTL，与 register-games.js 同构）──────────────
+// ── 请求级缓存（Map + TTL）────────────────────────────────────────
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 分钟
 const CACHE_MAX = 32;
+const LEADERBOARD_SOURCE_KEYS = ["arena", "aa", "openrouter", "livebench", "modelsdev", "huggingface"];
 /** @type {Map<string, {result:object, fetchedAt:number}>} */
 const _cache = new Map();
 
@@ -91,13 +92,34 @@ export function sanitize(payload: any) {
   const sortDir = p.sortDir === "asc" ? "asc" : "desc";
   const search = typeof p.search === "string" ? p.search : "";
   const force = Boolean(p.force);
-  // ponytail: 透传 sources 白名单 — renderer 按 view 决定拉哪些源, sanitize 不能丢.
-  // 老版本默认 {arena,aa,openrouter,livebench 全 true} 在 IPC 端补默认, 保持向后兼容.
-  // v2.79.5+: 默认加 huggingface: true — renderer 主动传时会被覆盖, 不影响老路径.
+  // ponytail: sources 是严格白名单 — renderer 按 view 决定拉哪些源。
+  // 只接受已知 key + boolean true，避免旧的「缺省即 true」语义把一次视角请求
+  // 扩大成全源请求。未传 sources 的老调用仍然保持全源兼容。
   const sources = p.sources && typeof p.sources === "object"
-    ? p.sources
-    : { arena: true, aa: true, openrouter: true, livebench: true, modelsdev: true, huggingface: true };
+    ? Object.fromEntries(LEADERBOARD_SOURCE_KEYS.map((key) => [key, p.sources[key] === true]))
+    : Object.fromEntries(LEADERBOARD_SOURCE_KEYS.map((key) => [key, true]));
   return { category, dimension, vendor, sortDir, search, force, sources };
+}
+
+function aggregateFailure(err: unknown) {
+  const message = errMsg(err);
+  return {
+    ok: false,
+    reason: "aggregate_failed",
+    error: message,
+    items: [],
+    sources: Object.fromEntries(LEADERBOARD_SOURCE_KEYS.map((key) => [key, "none"])),
+    sourceCoverage: Object.fromEntries(LEADERBOARD_SOURCE_KEYS.map((key) => [key, 0])),
+    attribution: [],
+    count: 0,
+    stale: false,
+    fromCache: false,
+    isSample: false,
+    fetchedAt: new Date().toISOString(),
+    lastUpdated: null,
+    errors: [{ source: "aggregator", message, ts: new Date().toISOString() }],
+    rateBudget: { aa: budget("artificial-analysis") },
+  };
 }
 
 export function registerLeaderboardHandlers(ctx: any) {
@@ -123,19 +145,7 @@ export function registerLeaderboardHandlers(ctx: any) {
       cacheSet(key, result);
       return opts.force ? { ...result, fromCache: false } : result;
     } catch (err: any) {
-      return {
-        ok: false,
-        reason: "aggregate_failed",
-        error: errMsg(err),
-        items: [],
-        sources: { arena: "none", aa: "none", openrouter: "none" },
-        attribution: [],
-        count: 0,
-        stale: false,
-        fromCache: false,
-        isSample: false,
-        fetchedAt: new Date().toISOString(),
-      };
+      return aggregateFailure(err);
     }
   }
 
@@ -159,19 +169,7 @@ export function registerLeaderboardHandlers(ctx: any) {
       cacheSet(key, result);
       return { ...result, fromCache: false };
     } catch (err: any) {
-      return {
-        ok: false,
-        reason: "aggregate_failed",
-        error: errMsg(err),
-        items: [],
-        sources: { arena: "none", aa: "none", openrouter: "none" },
-        attribution: [],
-        count: 0,
-        stale: false,
-        fromCache: false,
-        isSample: false,
-        fetchedAt: new Date().toISOString(),
-      };
+      return aggregateFailure(err);
     }
   });
 

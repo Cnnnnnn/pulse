@@ -21,7 +21,7 @@ function num(v: any, d: number = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
 }
-import { logFetchError } from "../games/log";
+import { logFetchError } from "./log";
 
 const MODELS_DEV_API = "https://models.dev/api.json";
 
@@ -62,6 +62,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       source: "models-dev",
       data: null,
       fetchedAt: new Date().toISOString(),
+      error: err instanceof Error ? err.message : String(err),
     };
   }
 }

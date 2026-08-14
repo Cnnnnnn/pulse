@@ -11,6 +11,10 @@ const { requirePlatform, requireWorkers, requireMain } = require("../_setup/requ
 const macos = requirePlatform('macos');
 
 describe('platform/macos', () => {
+  it('exports the bundle resolver used by worker detection', () => {
+    expect(typeof macos.resolveBundleName).toBe('function');
+  });
+
   describe('resolveAppPath', () => {
     it('裸 bundle 名 → /Applications/<bundle>', () => {
       expect(macos.resolveAppPath('Cursor.app')).toBe('/Applications/Cursor.app');
@@ -26,7 +30,7 @@ describe('platform/macos', () => {
       expect(macos.resolveAppPath('   ')).toBeNull();
     });
 
-    it('忽略 appCfg 第二参数 (mac 不需要)', () => {
+    it('不使用 win_bundle 覆盖 macOS bundle', () => {
       expect(macos.resolveAppPath('Cursor.app', { win_bundle: 'Cursor' })).toBe(
         '/Applications/Cursor.app',
       );

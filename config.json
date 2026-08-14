@@ -120,8 +120,11 @@
       "winget_id": "MiniMax.MiniMaxCode"
     },
     {
-      "name": "MiniMax Hub",
-      "bundle": "MiniMax Hub.app",
+      "name": "MiniMax Design",
+      "bundle": "MiniMax Design.app",
+      "bundle_aliases": [
+        "MiniMax Hub.app"
+      ],
       "win_bundle": "MiniMax Hub",
       "download_url": "https://hub.minimax.io/",
       "release_notes_url": "https://hub.minimax.io/",
@@ -193,25 +196,23 @@
       "bundle": "Marvis.app",
       "win_bundle": "Marvis",
       "download_url": "https://marvis.qq.com",
-      "release_notes_url": "https://marvis.qq.com/changelog",
+      "release_notes_url": "https://marvis.qq.com/",
       "bundle_changelog": true,
       "detectors": [
         {
           "type": "redirect_filename",
-          "url": "https://marvis.qq.com/download/dmg"
+          "url": "https://marvis.qq.com/download/dmg",
+          "platform": "darwin"
         },
         {
-          "type": "html_changelog",
-          "url": "https://marvis.qq.com/changelog",
-          "section_pattern": "<section",
-          "section_end": "</section>",
-          "version_pattern": "v?(1\\.60\\.\\d+)",
-          "enrich_only": true
+          "type": "redirect_filename",
+          "url": "https://marvis.qq.com/download/exe",
+          "platform": "win32"
         },
         {
           "type": "winget_show",
           "id": "Tencent.Marvis",
-          "platform": "win"
+          "platform": "win32"
         }
       ],
       "winget_id": "Tencent.Marvis"

@@ -2,14 +2,14 @@
  * src/renderer/ai-leaderboard/BoardHealthCard.tsx
  *
  * 数据健康看板 (v2.83 → v3.2):
- *  - 5 个数据源徽标 (Arena / AA / LB / OR / MD), 显示每个源在当前列表里覆盖了多少行
+ *  - 5 个数据源徽标 (Arena / AA / LB / OR / MD), 显示每个源在当前可见列表里覆盖了多少行
  *  - hover 单个 chip 出现「隐藏」按钮，点击该 source chip 不再渲染（会话级）
  *  - 已隐藏的 source 数 >0 时显示「+N 已隐藏」chip，点击恢复全部
  *  - 一行解释文字 (为什么有些行某些列是 "—")
  *  - 用户据此理解合并行为 + 跨源命名差异 (无 ground truth 跨源合并)
  */
 
-import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources, rateBudget, stale, fetchedAt, isSample } from "./aiLeaderboardStore.ts";
+import { sourceCoverage, sources, hiddenHealthSources, toggleHealthSource, resetHealthSources, rateBudget, stale, fetchedAt, isSample, lastFetchErrors } from "./aiLeaderboardStore.ts";
 import { fmtRelative } from "./format.ts";
 
 const SOURCE_META = [
@@ -18,21 +18,33 @@ const SOURCE_META = [
   { key: "livebench", label: "LB", color: "livebench", desc: "抗污染客观评测 (livebench.ai)" },
   { key: "openrouter", label: "OR", color: "teal", desc: "目录骨架" },
   { key: "modelsdev", label: "MD", color: "modelsdev", desc: "模型元数据 (models.dev)" },
+  { key: "huggingface", label: "HF", color: "huggingface", desc: "社区下载 / 点赞" },
 ];
 
+const SOURCE_LABELS = {
+  arena: "Arena",
+  "artificial-analysis": "AA",
+  openrouter: "OpenRouter",
+  livebench: "LiveBench",
+  "models-dev": "Models.dev",
+  huggingface: "HuggingFace",
+};
+
 /**
- * @param {{total:number, compact?: boolean}} props
+ * @param {{total:number, items?: object[], compact?: boolean}} props
  */
-export function BoardHealthCard({ total, compact = false }) {
+export function BoardHealthCard({ total, items, compact = false }) {
   const cov = sourceCoverage.value || {};
   const src = sources.value || {};
   const hidden = hiddenHealthSources.value || new Set();
   const totalN = Number.isFinite(total) ? total : 0;
+  const visibleItems = Array.isArray(items) ? items : null;
   const staleValue = stale.value;
   const staleSinceMs = fetchedAt.value
     ? Date.parse(fetchedAt.value)
     : null;
   const isSampleValue = isSample.value;
+  const errors = Array.isArray(lastFetchErrors.value) ? lastFetchErrors.value : [];
   // ponytail: rateBudget 信号默认 {}，消费端 cast 出 AA 预算字段
   const aaBudget = (rateBudget.value || {}) as { used?: number; limit?: number };
   const aaUsedPct = aaBudget && Number.isFinite(aaBudget.limit) && (aaBudget.limit as number) > 0
@@ -43,12 +55,15 @@ export function BoardHealthCard({ total, compact = false }) {
   // 没数据时整张卡隐藏, 不画空架子
   if (totalN === 0) return null;
 
-  const visibleMeta = SOURCE_META.filter((m) => !hidden.has(m.key));
+  const hasHfState = Object.prototype.hasOwnProperty.call(src, "huggingface")
+    || Object.prototype.hasOwnProperty.call(cov, "huggingface")
+    || errors.some((e) => e && e.source === "huggingface");
+  const visibleMeta = SOURCE_META.filter((m) => (m.key !== "huggingface" || hasHfState) && !hidden.has(m.key));
   const hiddenN = hidden.size;
 
   return (
     <div class={`ai-lb-health${compact ? " ai-lb-health--compact" : ""}`} aria-label="数据源覆盖">
-      {Boolean(staleValue) && !isSampleValue && (
+      {Boolean(staleValue) && !isSampleValue && !compact && (
         <div class="ai-lb-health__stale" role="status" aria-label="数据陈旧">
           <span class="ai-lb-health__stale-dot" aria-hidden="true" />
           <span>
@@ -60,7 +75,15 @@ export function BoardHealthCard({ total, compact = false }) {
         {visibleMeta.map((m) => {
           const live = src[m.key] === "live";
           const sample = src[m.key] === "sample";
-          const count = cov[m.key] || 0;
+          // 主进程 sourceCoverage 按聚合结果统计；AA/HF 视角在 renderer 还会
+          // 按维度二次过滤，因此这里必须以当前可见 rows 重算，避免出现 1649/596。
+          const count = visibleItems
+            ? visibleItems.filter((item) => {
+                const slice = item && item[m.key];
+                if (!slice || typeof slice !== "object") return false;
+                return m.key !== "arena" || Object.keys(slice).length > 0;
+              }).length
+            : cov[m.key] || 0;
           // 活源但当前 category 下 0 覆盖 → 警告 (该源端点活, 但未收录此分类)
           const liveButEmpty = live && count === 0;
           return (
@@ -105,6 +128,16 @@ export function BoardHealthCard({ total, compact = false }) {
           </button>
         )}
       </div>
+      {errors.length > 0 && (
+        <div class="ai-lb-health__errors" role="status" aria-label="数据源请求错误">
+          <strong>部分请求失败</strong>
+          {errors.slice(0, 4).map((e) => (
+            <span key={`${e.source}-${e.ts}`} title={e.message}>
+              {SOURCE_LABELS[e.source] || e.source}: {e.message}
+            </span>
+          ))}
+        </div>
+      )}
       {aaBudget && Number.isFinite(aaBudget.limit) && (
         <div class={`ai-lb-budget${aaWarn ? " is-warn" : ""}`} aria-label="AA 今日预算">
           <span class="ai-lb-budget__label">AA 今日</span>

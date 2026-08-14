@@ -1,7 +1,7 @@
 # AI 榜单排名模块 · 架构设计方案
 
 > **设计人**：高见远（架构师）　**版本**：v1（架构基线）　**面向**：工程师可直接落地
-> **一句话摘要**：沿用现有 Electron + Node CommonJS(main) + Preact/signals(renderer) 技术栈，按 games 模块的「多源 fetcher + aggregator + sample 兜底 + IPC 白名单」范式，构建**可插拔**的 AI 榜单模块——双主源（Arena 社区快照 + Artificial Analysis）归一化为统一 `AiModel`，主进程负责抓取/缓存/排名/IPC，渲染层只做多维度筛选与展示（vendor / 模型类型 / 评测维度），全链路 sample 兜底、永不空白、强制署名。
+> **一句话摘要**：沿用现有 Electron + Node CommonJS(main) + Preact/signals(renderer) 技术栈，以「多源 fetcher + aggregator + sample 兜底 + IPC 白名单」构建**可插拔**的 AI 榜单模块——双主源（Arena 社区快照 + Artificial Analysis）归一化为统一 `AiModel`，主进程负责抓取/缓存/排名/IPC，渲染层只做多维度筛选与展示（vendor / 模型类型 / 评测维度），全链路 sample 兜底、永不空白、强制署名。
 
 ---
 
@@ -9,12 +9,12 @@
 
 | 维度 | 决策 | 理由 |
 |---|---|---|
-| **整体栈** | 沿用现有：Electron + Node CommonJS(main) + Preact + `@preact/signals`(renderer) + esbuild | 与 games 完全一致，零学习成本、零迁移风险 |
-| **渲染层网络** | **禁止直连网络**，100% 走主进程 IPC 白名单（同 games） | 铁律；renderer 只调 `api.getLeaderboard()` |
+| **整体栈** | 沿用现有：Electron + Node CommonJS(main) + Preact + `@preact/signals`(renderer) + esbuild | 与现有模块一致，零学习成本、零迁移风险 |
+| **渲染层网络** | **禁止直连网络**，100% 走主进程 IPC 白名单 | 铁律；renderer 只调 `api.getLeaderboard()` |
 | **main 模块形态** | `src/main/ai-leaderboard/*.js` 全部 CommonJS（`require`/`module.exports`） | 工程约定 `.js` 默认 CommonJS |
 | **renderer 模块形态** | `src/renderer/ai-leaderboard/*.{js,jsx}` 全部 ES Module（`import`/`export`） | 工程约定 renderer 用 ESM + JSX |
-| **新增 npm 依赖** | **0 个**（详见 §11） | Electron 39（Node 18+）内置 `fetch`(undici)；缓存/限流/调度均手搓（与 games 同构） |
-| **架构模式** | 可插拔 fetcher + normalizer + aggregator（照搬 games 的 live/sample 源模式） | 新增数据源 = 注册一对 fetcher+normalizer；新增维度 = 扩 schema 字段 + UI 筛选项 |
+| **新增 npm 依赖** | **0 个**（详见 §11） | Electron 39（Node 18+）内置 `fetch`(undici)；缓存/限流/调度均手搓 |
+| **架构模式** | 可插拔 fetcher + normalizer + aggregator（live/sample 源模式） | 新增数据源 = 注册一对 fetcher+normalizer；新增维度 = 扩 schema 字段 + UI 筛选项 |
 | **缓存** | 磁盘缓存（userData 下 `ai-leaderboard-cache/`）+ 进程内 Map TTL | 离线可用、节流、单源失败回退 stale |
 | **UI 令牌** | 复用 `styles.css :root` 令牌 + `oklch()`/`var()`，禁裸 hex，数字 `tabular-nums` | 满足 a11y 基线、Apple 美学 |
 
@@ -68,14 +68,14 @@
 | 文件 | 改动点 |
 |---|---|
 | `src/main/ipc/register-leaderboard.js` | **新增文件**：注册 `leaderboard:get` / `leaderboard:refresh` IPC handler（缓存命中→聚合→署名附带） |
-| `src/main/ipc/index.js` | `require` 并调用 `registerLeaderboardHandlers(ctx)`（参照 `registerGamesHandlers` 一行） |
+| `src/main/ipc/index.js` | `require` 并调用 `registerLeaderboardHandlers(ctx)` |
 | `src/main/bootstrap/schedulers.js` | 在启动期注册 `registerLeaderboardScheduler()`（每日拉取，graceful） |
 
 ### 2.3 渲染层（ESM，新增）
 
 | 文件 | 职责 |
 |---|---|
-| `src/renderer/ai-leaderboard/types.js` | 渲染端纯类型 + 默认值（对齐 games/types.js 单一真源） |
+| `src/renderer/ai-leaderboard/types.js` | 渲染端纯类型 + 默认值 |
 | `src/renderer/ai-leaderboard/format.js` | 数字格式化（`tabular-nums` 友好：分数/百分比/价格 $/1M/速度） |
 | `src/renderer/ai-leaderboard/aiLeaderboardStore.js` | signals 状态 + `loadLeaderboard()` + 竞态 token + localStorage 视图偏好 + 署名/示例判定 |
 | `src/renderer/ai-leaderboard/AiLeaderboardLayout.jsx` | nav panel 容器（mount→load + 监听刷新事件，unmount 清理） |
@@ -127,7 +127,7 @@ Arena + AA 全失败 → OpenRouter 目录    → 仅骨架（无分数）
 ### 4.1 TypeScript 风格类型定义
 
 ```ts
-/** 数据来源标记（同 games 的 'live'/'sample' 语义） */
+/** 数据来源标记 */
 type DataSource = "live" | "sample" | "none";
 
 /** 模型大类（驱动分类 tab 与 Arena board 映射） */
@@ -196,7 +196,7 @@ interface AiModel {
   fetchedAt?: string;         // ISO8601
 }
 
-/** IPC 返回的整体结果（对齐 games 的 getGameDeals 形状） */
+/** IPC 返回的整体结果 */
 interface BoardResult {
   ok: boolean;
   category: ModelCategory | "all";
@@ -389,14 +389,14 @@ function registerLeaderboardScheduler(): { start(): void; stop(): void; triggerN
 | `leaderboard:get` | renderer→main | `GetLeaderboardOpts` | 命中缓存/聚合结果（附 `fromCache`/`stale`） |
 | `leaderboard:refresh` | renderer→main | `GetLeaderboardOpts`（`force:true`） | 强制网络重拉，清缓存后回写 |
 
-> 渲染层**只**通过这两个通道交互；white-list 注册在 `register-leaderboard.js`。请求级缓存（同 games：`Map` + TTL 5min）在 IPC handler 内，避免重复打外部 API。
+> 渲染层**只**通过这两个通道交互；white-list 注册在 `register-leaderboard.js`。请求级缓存（`Map` + TTL 5min）在 IPC handler 内，避免重复打外部 API。
 
 ```js
 // register-leaderboard.js 骨架（CommonJS）
 safeHandle("leaderboard:get", async (_e, payload) => {
   const opts = sanitize(payload);                 // 白名单 category/dimension/vendor
   const cacheKey = boardCacheKey(opts);
-  const cached = dealsCacheGet(cacheKey);          // 复用 games 同款 Map+TTL 范式
+  const cached = dealsCacheGet(cacheKey);          // Map + TTL 缓存
   if (cached && !opts.force) return { ...cached, fromCache: true };
   const result = await getLeaderboard(opts);       // aggregator
   boardCacheSet(cacheKey, result);
@@ -434,7 +434,7 @@ actions: {
   hasAttribution(id): boolean;          // 脚注渲染
 }
 ```
-> 竞态保护：`_reqToken` 自增比对（同 games `loadGameDeals`）；`batch()` 合并写入避免多次重渲；视图偏好（category/dimension/vendor）持久化到 `localStorage`（key 域 `pulse.aiLeaderboard.*.v1`）。
+> 竞态保护：`_reqToken` 自增比对；`batch()` 合并写入避免多次重渲；视图偏好（category/dimension/vendor）持久化到 `localStorage`（key 域 `pulse.aiLeaderboard.*.v1`）。
 
 ### 5.6 共享常量（types.js 单一真源）
 
@@ -567,7 +567,7 @@ AiLeaderboardLayout
 
 - **按厂商筛选**：`activeVendor` → `filterByVendor`；
 - **按模型类型**：`activeCategory` → 决定 Arena board + 表内 `category` 列；
-- **排序方向**：`sortDir`（`desc` 默认），纯本地派生（同 games：改下拉不重发 IPC，不闪 skeleton）；
+- **排序方向**：`sortDir`（`desc` 默认），纯本地派生（改下拉不重发 IPC，不闪 skeleton）；
 - **搜索**：`searchQuery` 本地标题匹配，不发 IPC。
 
 ### 7.3 状态态（永不空白）
@@ -603,7 +603,7 @@ AiLeaderboardLayout
 1. 新建 `src/main/ai-leaderboard/fetcher-opencompass.js`，实现 `LeaderboardFetcher`（填 `arena`/`aa` 中对应切片）；
 2. 在 `aggregator.js` 的 fetcher 注册表追加该项（失败回退 GitHub raw / sample）；
 3. `types.js` 的 `ATTRIBUTION` 增加其署名条目（如要求强制则 `required:true`）；
-4. 如需 key：`itad.js` 同款 `.env` 加载器读取 `OPENCOMPASS_KEY`；
+4. 如需 key：复用当前 `.env` 加载器读取 `OPENCOMPASS_KEY`；
 5. 渲染层 `ModelRow` 自动展示新切片（字段已存在于 `AiModel`）。
 
 > 无需改动 IPC / store / 组件骨架——**只加一个 fetcher + 一条常量**。
@@ -641,7 +641,7 @@ AiLeaderboardLayout
 | 内置 `fetch`（undici，Node18+/Electron39） | 网络请求 | 内置 | **无需 node-fetch/undici** |
 | `fs` / `path` / `os` | 磁盘缓存目录 | 内置 | 复用 |
 | `timer-registry`（现有 `setManagedInterval`） | 每日调度 | 已有 | 复用 |
-| — | JSON Schema 校验 / 日期库 / LRU 库 | **不引入** | 手搓（与 games 同构，零依赖） |
+| — | JSON Schema 校验 / 日期库 / LRU 库 | **不引入** | 手搓，零依赖 |
 
 **结论：MVP 零新增 npm 依赖。**
 
@@ -652,7 +652,7 @@ AiLeaderboardLayout
 1. **缓存键命名**：`ai-lb:<source>:<board>:<YYYY-MM-DD>.json`，存于 `app.getPath('userData')/ai-leaderboard-cache/`；`board` 取值见 `CATEGORY_META[*].board`；TTL：Arena/AA = 24h，OpenRouter = 6h；过期但存在 → 回退 stale（`stale:true`）。
 2. **sample 兜底文件名**：`main/ai-leaderboard/sample.json`（随包内置最近快照）；渲染标「示例」徽标由 `isSample` 驱动。
 3. **署名文案常量**：集中在 `types.js` 的 `ATTRIBUTION`；**AA 强制署名** `https://artificialanalysis.ai/`，任何含 AA 数据的视图都必须渲染 `AttributionFooter`；Arena 注明 MIT + 来源 `api.wulong.dev`。
-4. **令牌复用规则**：`normalize.js` 定义共享 `BROWSER_UA`（照搬 games `BROWSER_UA`），各 fetcher 禁止散落硬编码 UA；AA key 用 `itad.js` 同款 `.env` 加载器读 `ARTIFICIAL_ANALYSIS_API_KEY`，进程已有则不覆盖。
+4. **令牌复用规则**：`normalize.js` 定义共享 `BROWSER_UA`，各 fetcher 禁止散落硬编码 UA；AA key 使用 `.env` 加载器读取 `ARTIFICIAL_ANALYSIS_API_KEY`，进程已有则不覆盖。
 5. **限流常量**：`AA_DAILY_LIMIT = 1000`（按 UTC 日重置的令牌桶）；Arena 无 key 但受请求级缓存 + 单并发保护，避免每日多次打满。
 6. **source 标记语义**：统一 `'live' | 'sample' | 'none'`；`sources.<slice>` 逐切片标记；`isSample` 仅当排名关键切片整体 sample 时为 true（页头徽标）。
 7. **localStorage key 域**：`pulse.aiLeaderboard.<pref>.v1`（视图偏好 category/dimension/vendor/sortDir）。
@@ -688,7 +688,7 @@ AiLeaderboardLayout
 - 图像生成 / 视频 分榜（Arena `text-to-image`/`video`）；
 - OpenCompass / LiveBench 可选增强 fetcher（§9.1，默认关）；
 - 对比模式（多模型并排）、收藏、历史快照与趋势 sparkline；
-- 性价比雷达图、厂商横向对比、导出分享图（复用 games `ShareImageModal` 思路）；
+- 性价比雷达图、厂商横向对比、导出分享图；
 - 爬取源合规审查通过后接入。
 
 ---

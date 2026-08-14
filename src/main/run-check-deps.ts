@@ -2,7 +2,7 @@
  * src/main/run-check-deps.ts
  *
  * 统一的 runCheckQueued deps 构造器. 消除 register-core.check-updates /
- * register-versions-overview.versions:run-check / bootstrap/schedulers 三处的
+ * bootstrap/schedulers 两处的
  * 重复 deps 注入样板, 把 getState / markNotified 的 try/catch 收敛到一处.
  *
  * ponytail: 三处 call site 形状略不同 (ctx.getConfig vs runtimeConfigRef.current,

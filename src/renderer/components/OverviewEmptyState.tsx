@@ -3,7 +3,7 @@
  *
  * v2.50 (T4): Overview 首次启动 CTA — 大按钮触发 onRunCheck.
  * 无 state, 无副作用. 纯展示. 输入 onRunCheck + isLoading, 输出 button.
- * 不直连 IPC (T5 接线到 api.versionsRunCheck()).
+ * 不直连 IPC, 由 LibraryPage 注入统一的 renderer runCheck().
  */
 import "./OverviewEmptyState.css";
 

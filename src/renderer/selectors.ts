@@ -74,7 +74,7 @@ export const resultsBySection = computed(() => {
   results.value;
 
   const all: any[] = [];
-  for (const [name, sig] of resultSignals) {
+  for (const sig of resultSignals.values()) {
     if (sig.value) all.push(sig.value);
   }
   return buildSections(all);
@@ -104,8 +104,7 @@ export const summary = computed(() => {
 /** 可升级应用数量 (驱动"全部升级"按钮) */
 export const upgradableCount = computed(() => {
   let n = 0;
-  for (const sig of resultSignals.values()) {
-    const r = sig.value;
+  for (const r of results.value.values()) {
     if (r && r.has_update && r.brew_cask) n++;
   }
   return n;

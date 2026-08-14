@@ -36,6 +36,26 @@ function stripHtml(html: any): string {
         .trim();
 }
 
+// IT之家 RSS description 常内嵌 <img>, 占位图统一用 //img.ithome.com/images/v2/t.png
+// (真实地址在 src 属性). 跳过占位图, 返回首个真实封面 url 或 "".
+const PLACEHOLDER_IMG_RE = /img\.ithome\.com\/images\/v\d+\/[a-z]+\.\w+/i;
+
+function extractCover(html: any): string {
+    if (!html) return "";
+    const imgRe = /<img[^>]+src=["']([^"']+)["']/gi;
+    let m: RegExpExecArray | null;
+    while ((m = imgRe.exec(html)) !== null) {
+        let url = m[1].trim();
+        if (!url) continue;
+        // 补全协议相对 URL (//img.ithome.com/... → https://img.ithome.com/...)
+        if (url.startsWith("//")) url = `https:${url}`;
+        if (!/^https?:\/\//i.test(url)) continue;
+        if (PLACEHOLDER_IMG_RE.test(url)) continue;
+        return url;
+    }
+    return "";
+}
+
 function toShanghaiDateKey(pubDate: any): string {
     const d = new Date(pubDate);
     if (Number.isNaN(d.getTime())) return "";
@@ -68,6 +88,7 @@ export function parseIthomeRss(xml: any): any[] {
         // 保证幂等（重复刷新不重复入库、收藏/已读可持久）。
         const id = guid || link || `${title}::${pubDate}`;
         const excerpt = stripHtml(description).slice(0, EXCERPT_MAX);
+        const cover = extractCover(description);
         const dateKey = toShanghaiDateKey(pubDate);
         items.push({
             id,
@@ -76,6 +97,7 @@ export function parseIthomeRss(xml: any): any[] {
             pubDate,
             dateKey,
             excerpt,
+            cover,
         });
     }
     return items;

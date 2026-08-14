@@ -1,6 +1,6 @@
 {
   "name": "pulse",
-  "version": "2.79.4",
+  "version": "2.80.0",
   "description": "macOS 菜单栏更新监测器 — Pulse",
   "main": "dist/main/index.js",
   "scripts": {

@@ -4,10 +4,9 @@
  * 跨模块共享的 HTTP 常量单一来源.
  *
  * 2026-07-26: 抽出 BROWSER_UA / BROWSER_UA_SAFARI / SINA_REFERER.
- *   - 之前散落在 src/main/games/normalize.ts (canonical), src/main/chromium-http-client.ts,
+ *   - 之前散落在 src/main/chromium-http-client.ts,
  *     src/main/wechat-hot/fetcher.ts, src/funds/fund-fetcher-sina.ts, src/stocks/sina-fetcher.ts,
  *     src/metals/metal-sina-hf-fetcher.ts 多份复制 (Chrome 版本号已漂移 120 vs 124).
- *   - games/normalize.ts 通过 re-export 保持向后兼容 (game fetcher 已有 import 不破坏).
  *
  * Phase 7: export-only（renderer 共享 / main / workers 都可用，禁止 module.exports）.
  */

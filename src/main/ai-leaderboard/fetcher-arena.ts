@@ -13,7 +13,7 @@
 
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
-import { logFetchError } from "../games/log";
+import { logFetchError } from "./log";
 
 // 主端点（社区维护的 Arena 快照聚合，path 前缀是 /arena-ai-leaderboards/）
 const ARENA_BASE = "https://api.wulong.dev/arena-ai-leaderboards/v1/leaderboard";
@@ -346,13 +346,14 @@ export async function fetch(opts: any = {}): Promise<any> {
   const timeoutMs = opts && opts.timeoutMs;
   const boardsMap: Record<string, any> = {};
   let anyOk = false;
+  let failedBoards = 0;
   // ponytail: 限并发 3（原 Promise.all 11 个 board 在 Electron undici 下栈溢出）。
   await mapWithConcurrency(BOARDS, 3, async (board: string) => {
     const data = await fetchOneBoard(board, timeoutMs);
     if (data && (Array.isArray(data.models) || (data.data && Array.isArray(data.data)))) {
       boardsMap[board] = data;
       anyOk = true;
-    }
+    } else failedBoards += 1;
   });
   if (!anyOk) {
     return {
@@ -360,6 +361,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       source: "arena-snapshot",
       data: null,
       fetchedAt: new Date().toISOString(),
+      error: `all ${failedBoards || BOARDS.length} Arena boards failed`,
     };
   }
   return {

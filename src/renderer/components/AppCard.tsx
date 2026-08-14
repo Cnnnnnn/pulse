@@ -9,25 +9,26 @@
  * 等 Phase 35+ 决定是否重建 watchlist / snooze / rollback 行级菜单再加回来.
  */
 import { useState } from "preact/hooks";
-import { getResultSignal, getAppPhaseSignal } from "../store.ts";
+import { getResultSignal } from "../store.ts";
 import { api } from "../api.ts";
 import { AppAvatar } from "./AppAvatar.tsx";
+import { AppAction } from "./AppAction.tsx";
 import type { ResultLike } from "./appTypes.ts";
 
 export function AppCard({ name }: { name: string }) {
   const result = getResultSignal(name).value as ResultLike | null;
-  const phase = getAppPhaseSignal(name).value;
   const [upgrading, setUpgrading] = useState(false);
 
-  async function onUpgrade() {
-    if (!result || !result.bundle) return;
+  async function onUpgrade(cask: string, appName: string) {
+    if (!cask) return;
     setUpgrading(true);
     try {
-      await api.brewUpgrade(result.bundle);
+      await api.brewUpgrade(cask);
     } catch (err) {
-      console.warn(`brewUpgrade ${name} failed:`, err);
+      console.warn(`brewUpgrade ${appName} failed:`, err);
+    } finally {
+      setUpgrading(false);
     }
-    setUpgrading(false);
   }
 
   if (!result) {
@@ -40,23 +41,18 @@ export function AppCard({ name }: { name: string }) {
     );
   }
 
+  const installedVersion = result.installed_version || result.current_version || "未知";
+  const latestVersion = result.latest_version || "未知";
+
   return (
     <div class="app-card" data-name={result.name}>
       <AppAvatar bundle={result.bundle} name={result.name} />
       <div class="app-card-name">{result.name}</div>
       <div class="app-card-versions">
-        {result.current_version} → {result.latest_version}
+        {installedVersion} → {latestVersion}
         {result.has_update ? <span class="app-card-update-badge">有更新</span> : null}
       </div>
-      <button
-        type="button"
-        class="btn-upgrade-row"
-        onClick={onUpgrade}
-        disabled={upgrading || !result.has_update}
-        aria-label={`升级 ${result.name}`}
-      >
-        {upgrading ? "升级中…" : result.has_update ? "升级" : "最新"}
-      </button>
+      <AppAction result={result} onUpgrade={onUpgrade} isUpgrading={upgrading} />
     </div>
   );
 }

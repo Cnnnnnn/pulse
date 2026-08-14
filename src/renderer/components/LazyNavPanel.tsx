@@ -18,8 +18,6 @@ const LOADERS = {
     import('./AIUsageLayout.tsx').then((m) => m.AIUsageLayout),
   github: () =>
     import('../github/GithubLayout.tsx').then((m) => m.GithubLayout),
-  games: () =>
-    import('../games/GamesLayout.tsx').then((m) => m.GamesLayout),
   'ai-leaderboard': () =>
     import('../ai-leaderboard/AiLeaderboardLayout.tsx').then((m) => m.AiLeaderboardLayout),
 };

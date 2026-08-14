@@ -1,41 +1,23 @@
 /**
  * tests/main/versions-overview-ipc.test.js
  *
- * commandSearch + run-check IPC handler 单测.
+ * commandSearch IPC handler 单测.
  *
  * 2026-07-10: 删除洞察 (overview) 页后, 移除 getOverviewKpis/Trend/Watchlist/
- * Recent/AiInsights 的测试. 保留 commandSearch 和 versions:run-check.
+ * Recent/AiInsights 的测试. 保留 commandSearch.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createRequire } from "module";
 
 const _require = createRequire(import.meta.url);
-const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = _require("../_setup/require-main.cjs");
-
-const checkRunnerPath = mainArtifactPath("check-runner");
-const registerPath =
-  mainArtifactPath("ipc/register-versions-overview");
-
-const stubRunCheckQueued = vi.fn(async () => []);
-
-function stubModules() {
-  vi.resetModules();
-  require.cache[checkRunnerPath] = {
-    id: checkRunnerPath,
-    filename: checkRunnerPath,
-    loaded: true,
-    exports: { runCheckQueued: stubRunCheckQueued },
-  };
-}
+const { mainArtifactPath } = _require("../_setup/require-main.cjs");
+const registerPath = mainArtifactPath("ipc/register-versions-overview");
 
 beforeEach(() => {
-  stubRunCheckQueued.mockReset();
-  stubRunCheckQueued.mockResolvedValue([]);
-  stubModules();
+  vi.resetModules();
 });
 
 afterEach(() => {
-  delete require.cache[checkRunnerPath];
   delete require.cache[registerPath];
 });
 
@@ -65,55 +47,20 @@ describe("register-versions-overview IPC", () => {
     expect(r.results.some((x) => x.id === "insights")).toBe(false);
   });
 
-  it("registerVersionsOverviewHandlers — 注册 command-search + run-check", () => {
-    const handlers = {};
-    const { registerVersionsOverviewHandlers } = require(registerPath);
-    registerVersionsOverviewHandlers({
-      safeHandle: (ch, fn) => {
-        handlers[ch] = fn;
-      },
-    });
-    expect(Object.keys(handlers).sort()).toEqual([
-      "versions:command-search",
-      "versions:run-check",
-    ]);
+  it("commandSearch — 不再包含 overview view", async () => {
+    const { commandSearch } = require(registerPath);
+    const r = await commandSearch({}, "overview");
+    expect(r.results.some((x) => x.id === "overview")).toBe(false);
   });
 
-  it("versions:run-check — 调 runCheckQueued, 返 { started: true }", async () => {
+  it("registerVersionsOverviewHandlers — 只注册 command-search", () => {
     const handlers = {};
     const { registerVersionsOverviewHandlers } = require(registerPath);
     registerVersionsOverviewHandlers({
       safeHandle: (ch, fn) => {
         handlers[ch] = fn;
       },
-      getConfig: () => ({ apps: [] }),
-      pool: {},
-      getWindow: () => null,
-      onCheckComplete: () => {},
     });
-    const r = await handlers["versions:run-check"]();
-    expect(stubRunCheckQueued).toHaveBeenCalledTimes(1);
-    expect(r).toEqual({ started: true });
-  });
-
-  it("versions:run-check — runCheckQueued 抛错 → 返 { started: false, error }", async () => {
-    stubRunCheckQueued.mockRejectedValueOnce(new Error("boom"));
-    const handlers = {};
-    const { registerVersionsOverviewHandlers } = require(registerPath);
-    registerVersionsOverviewHandlers({
-      safeHandle: (ch, fn) => {
-        handlers[ch] = fn;
-      },
-      getConfig: () => ({ apps: [] }),
-      pool: {},
-      getWindow: () => null,
-      onCheckComplete: () => {},
-    });
-    const r = await handlers["versions:run-check"]();
-    expect(r).toEqual({
-      started: false,
-      reason: "check_failed",
-      error: "boom",
-    });
+    expect(Object.keys(handlers)).toEqual(["versions:command-search"]);
   });
 });

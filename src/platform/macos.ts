@@ -1,12 +1,20 @@
 // ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
 //          `module.exports = ...`. 跟 src/main/window.ts 同模式.
 
-const { resolveAppBundlePath }: {
-  resolveAppBundlePath: (b: string) => string | null;
+const { resolveAppBundlePath, resolveExistingAppBundle }: {
+  resolveAppBundlePath: (b: any) => string | null;
+  resolveExistingAppBundle: (b: any, appCfg?: any) => string | null;
 } = require('../utils/app-paths.js');
 
-function resolveAppPath(bundle: string, _appCfg?: any): string | null {
-  return resolveAppBundlePath(bundle);
+function resolveBundleName(bundle: any, appCfg?: any): string | null {
+  const existing = resolveExistingAppBundle(bundle, appCfg);
+  if (existing) return existing;
+  return typeof bundle === 'string' && bundle.trim() ? bundle.trim() : null;
+}
+
+function resolveAppPath(bundle: any, appCfg?: any): string | null {
+  const resolved = resolveBundleName(bundle, appCfg);
+  return resolved ? resolveAppBundlePath(resolved) : null;
 }
 
 const iv: {
@@ -17,7 +25,10 @@ const iv: {
 } = require('../workers/installed-version.js');
 
 async function getInstalledVersion(appCfg: any): Promise<string | null> {
-  const bundle = appCfg && appCfg.bundle ? appCfg.bundle : null;
+  const bundle = resolveBundleName(
+    appCfg && appCfg.bundle ? appCfg.bundle : null,
+    appCfg,
+  );
   const sources =
     appCfg && appCfg.version_sources ? appCfg.version_sources : undefined;
   return iv.getInstalledVersion(bundle, sources);
@@ -67,6 +78,7 @@ function getWindowOptions(): Record<string, unknown> {
 }
 
 export {
+  resolveBundleName,
   resolveAppPath,
   getInstalledVersion,
   getAppIcon,
@@ -78,6 +90,7 @@ export {
 // ponytail: 7a-6 保留 module.exports 让 CJS caller 也能 require() 整个对象.
 // 7b 删 shim 时去掉 + 改 caller 用 named import.
 module.exports = {
+  resolveBundleName,
   resolveAppPath,
   getInstalledVersion,
   getAppIcon,

@@ -1,10 +1,11 @@
 /**
  * src/main/ipc/register-versions-overview.js
  *
- * Command palette 搜索 + 检查更新入口.
+ * Command palette 搜索入口.
  *
  * 2026-07-10: 删除洞察 (overview) 页后, 移除 5 个 overview-* handler 和
- * versions-overview-advisor 依赖. 保留 command-search 和 run-check.
+ * versions-overview-advisor 依赖. 检查更新统一由 register-core 的
+ * `check-updates` handler 负责；这里不再注册第二个检查入口.
  */
 
 // ponytail: 只用 `import type` (TS 编译期剥除), 运行时全走 CommonJS `require()` +
@@ -12,9 +13,6 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type {} from "electron";
-import * as stateStore from "../state-store";
-import { runCheckQueued } from "../check-runner";
-import { buildRunCheckDeps } from "../run-check-deps";
 
 export async function commandSearch(_ctx: any, q: any) {
   if (!q || typeof q !== "string") return { ok: true, results: [] };
@@ -24,7 +22,6 @@ export async function commandSearch(_ctx: any, q: any) {
     results.push({ id: "action-check", label: "检查更新", kind: "action" });
   }
   for (const v of [
-    "overview",
     "library",
     "diagnostics",
     "settings",
@@ -41,35 +38,6 @@ export function registerVersionsOverviewHandlers(ctx: any) {
   if (typeof safeHandle !== "function") return;
   safeHandle("versions:command-search", async (_e: any, { q }: any) =>
     commandSearch(ctx, q),
-  );
-  // v2.50 (T5): TopBar / OverviewEmptyState CTA — 复用 check-runner.runCheckQueued
-  // (跟 register-core.js 的 check-updates 同一个入口, 不重复实现).
-  //
-  // runCheckQueued 现在并发手动点击会返 { started: false, reason: "already_running" }
-  // (而不是把第一次的 in-flight Promise 透传出去), 所以这里不要无脑包成
-  // { started: true } — 透传底层的 started/reason/error 让 renderer 区分 "已在跑"
-  // 和 "真失败".
-  safeHandle("versions:run-check", async () =>
-    runCheckQueued(
-      buildRunCheckDeps({
-        getConfig: ctx.getConfig,
-        pool: ctx.pool,
-        getWindow: ctx.getWindow,
-        onCheckComplete: ctx.onCheckComplete,
-        stateStore,
-      }),
-      { silent: false },
-    )
-      .then((r: any) => {
-        // 正常完成 (runCheck 自身无返回值时, 返 true; 已并发返 already_running 时透传)
-        if (r && r.started === false) return r;
-        return { started: true };
-      })
-      .catch((e: any) => ({
-        started: false,
-        reason: "check_failed",
-        error: (e && e.message) || String(e),
-      })),
   );
 }
 

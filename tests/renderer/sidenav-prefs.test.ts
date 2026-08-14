@@ -123,11 +123,11 @@ describe("sidenav-prefs", () => {
     };
     // 注: listVisible 不做 legacy alias/filter, 直接用 prefs.order/hidden.
     // order filter hidden → ["funds", "news", "versions"]
-    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 invest/ai-usage/github/games/ai-leaderboard
+    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 invest/ai-usage/github/ai-leaderboard
     //   (metals 在 hidden 不加, funds 不在 NAV_KEYS 也不加 — 但已经在 order 保留)
-    // 最终 Set: funds, news, versions, invest, ai-usage, github, games, ai-leaderboard
+    // 最终 Set: funds, news, versions, invest, ai-usage, github, ai-leaderboard
     expect(new Set(listVisible(p))).toEqual(
-      new Set(["funds", "news", "versions", "invest", "ai-usage", "github", "games", "ai-leaderboard"]),
+      new Set(["funds", "news", "versions", "invest", "ai-usage", "github", "ai-leaderboard"]),
     );
   });
 
@@ -135,22 +135,22 @@ describe("sidenav-prefs", () => {
     expect(listVisible(null)).toEqual(NAV_KEYS_LIST);
   });
 
-  // ponytail: bug 回归 — 老版本升级后 prefs.order 短于 NAV_KEYS_LIST (如 v2.79 → v2.80+ 加 github/games),
+  // ponytail: bug 回归 — 老版本升级后 prefs.order 短于 NAV_KEYS_LIST (如 v2.79 → v2.80+ 加 github),
   // listVisible 必须把漏掉的 known key 兜底视为可见, 跟 effectiveVisibleItems (navStore.js) 口径一致.
   // 修前 listVisible 返 5 项, listHidden 误报 "已隐藏 (2)" 与侧边栏显示矛盾.
   it("listVisible: prefs.order 短于 NAV_KEYS_LIST → 兜底追加漏掉的 known key (regression: 升级后已隐藏误报)", () => {
     const p = {
       version: 2,
-      order: ["news", "invest", "ai-usage", "versions"], // 老版本 order, 缺 ai-leaderboard/games/github
+      order: ["news", "invest", "ai-usage", "versions"], // 老版本 order, 缺 ai-leaderboard/github
       hidden: [],
       favorites: [],
     };
     const visible = listVisible(p);
-    // 5 个老 order 项 + 兜底 3 个 (按当前 registry 顺序) = 全部 NAV_KEYS_LIST.length
+    // 5 个老 order 项 + 兜底 2 个 (按当前 registry 顺序) = 全部 NAV_KEYS_LIST.length
     expect(visible).toHaveLength(NAV_KEYS_LIST.length);
     expect(new Set(visible)).toEqual(new Set(NAV_KEYS_LIST));
-    // 兜底项必须在末尾 (registry 顺序: ai-leaderboard, games, github)
-    expect(visible).toEqual(["news", "invest", "ai-usage", "versions", "ai-leaderboard", "games", "github"]);
+    // 兜底项必须在末尾 (registry 顺序: ai-leaderboard, github)
+    expect(visible).toEqual(["news", "invest", "ai-usage", "versions", "ai-leaderboard", "github"]);
   });
 
   it("listHidden: NAV_KEYS 中 prefs.hidden 标记的项 (按 NAV_KEYS 默认顺序)", () => {
@@ -236,12 +236,11 @@ describe("sidenav-prefs: reorderItems", () => {
   beforeEach(() => localStorage.clear());
 
   it("reorderItems: from → to 'before'", () => {
-    // Phase 9: 默认顺序按 section 分组 [news, ai-leaderboard, games, github, invest, ai-usage, versions].
+    // Phase 9: 默认顺序按 section 分组 [news, ai-leaderboard, github, invest, ai-usage, versions].
     const p0 = resetPrefs();
     const p1 = reorderItems(p0, "news", "invest", "before");
     expect(p1.order).toEqual([
       "ai-leaderboard",
-      "games",
       "github",
       "news",
       "invest",
@@ -255,7 +254,6 @@ describe("sidenav-prefs: reorderItems", () => {
     const p1 = reorderItems(p0, "news", "invest", "after");
     expect(p1.order).toEqual([
       "ai-leaderboard",
-      "games",
       "github",
       "invest",
       "news",
@@ -295,8 +293,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 7 个 nav key (v2.80 删 worldcup)", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(7);
+  it("DEFAULTS_FOR_TESTS: 6 个 nav key (v2.80 删 worldcup)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(6);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

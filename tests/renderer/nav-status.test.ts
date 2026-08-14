@@ -7,7 +7,7 @@
  *
  * 纯函数 + ctx 注入, 不依赖 signal, 易测.
  * 覆盖:
- *   - getBadge: 4 个有 badge 语义的 nav (news/invest/ai-usage/games) + null 兜底
+ *   - getBadge: 3 个有 badge 语义的 nav (news/invest/ai-usage) + null 兜底
  *   - sectionBadge: 3 个 section 聚合
  *   - getStatus: 8 个 nav 关键路径 (空/有数据/未知)
  */
@@ -25,7 +25,6 @@ const emptyCtx: NavStatusCtx = {
   wechatHotUnread: 0,
   fundUnread: 0,
   aiUsageNavBadge: 0,
-  gamesHasNew: false,
   ithomeDayStats: null,
   ithomeArticles: null,
   wechatHotItems: null,
@@ -41,7 +40,7 @@ const emptyCtx: NavStatusCtx = {
   githubProjects: null,
 };
 
-describe("getBadge — 4 个有 badge 语义的 nav + null 兜底", () => {
+describe("getBadge — 3 个有 badge 语义的 nav + null 兜底", () => {
   it("news = ithomeUnread + wechatHotUnread 之和", () => {
     expect(
       getBadge("news", { ...emptyCtx, ithomeUnread: 3, wechatHotUnread: 5 })
@@ -58,10 +57,6 @@ describe("getBadge — 4 个有 badge 语义的 nav + null 兜底", () => {
     expect(getBadge("ai-usage", { ...emptyCtx, aiUsageNavBadge: 5 })).toBe(5);
     expect(getBadge("ai-usage", emptyCtx)).toBeNull();
   });
-  it("games: 有新免费/降价 → 1 (红点), 否则 null", () => {
-    expect(getBadge("games", { ...emptyCtx, gamesHasNew: true })).toBe(1);
-    expect(getBadge("games", emptyCtx)).toBeNull();
-  });
   it("未注册 badge 的 nav → null (versions/github/ai-leaderboard)", () => {
     expect(getBadge("versions", emptyCtx)).toBeNull();
     expect(getBadge("github", emptyCtx)).toBeNull();
@@ -70,13 +65,10 @@ describe("getBadge — 4 个有 badge 语义的 nav + null 兜底", () => {
 });
 
 describe("sectionBadge — IconRail section 图标聚合", () => {
-  it("news section = news + games(有新增时)", () => {
+  it("news section = news 未读总数", () => {
     expect(
       sectionBadge("news", { ...emptyCtx, ithomeUnread: 3, wechatHotUnread: 5 })
     ).toBe(8);
-    expect(
-      sectionBadge("news", { ...emptyCtx, ithomeUnread: 3, wechatHotUnread: 5, gamesHasNew: true })
-    ).toBe(9);
   });
   it("holdings section = invest + ai-usage", () => {
     expect(

@@ -19,6 +19,7 @@ import { useEffect, useState } from "preact/hooks";
 import { NavDrawerItem } from "./NavDrawerItem.tsx";
 import { HiddenItemsDrawer } from "./HiddenItemsDrawer.tsx";
 import { activeNav, setActiveNav, goInvest, effectiveVisibleItems } from "../nav/navStore.ts";
+import { currentRoute, navigateTo } from "../store/route-store.ts";
 import {
   NAV_REGISTRY,
   NAV_REGISTRY_BY_KEY,
@@ -30,6 +31,15 @@ import { LEGACY_NAV_ALIAS } from "../../shared/nav-keys.ts";
 
 // NAV_ITEMS 本地派生 (跟 SideNav 同 schema, 避免两处维护 label/tooltip).
 const NAV_ITEMS = NAV_REGISTRY.map((e) => ({ key: e.key, label: e.label, tooltip: e.tooltip }));
+
+// 系统区的三个页面各自独立管理，不再在 VersionsLayout 内渲染共享横向 subtab。
+// 它们仍共用版本检查模块的加载边界，但由系统抽屉直接切换当前页面。
+const SYSTEM_VIEW_ITEMS = [
+  { key: "library", label: "应用列表", tooltip: "应用版本监控列表" },
+  { key: "diagnostics", label: "诊断", tooltip: "检查失败与网络诊断" },
+  { key: "settings", label: "设置", tooltip: "应用与 AI 设置" },
+] as const;
+const SYSTEM_VIEW_KEYS = new Set<string>(SYSTEM_VIEW_ITEMS.map((item) => item.key));
 import { collectNavStatusCtx, getBadge, getStatus } from "./nav-status.ts";
 import { trayMenuPrefs } from "../store/trayConfigStore.ts";
 import {
@@ -54,6 +64,7 @@ export interface NavDrawerProps {
 
 export function NavDrawer({ section, onEnter, onLeave }: NavDrawerProps) {
   const current = activeNav.value;
+  const route = currentRoute.value;
   void trayMenuPrefs.value; // 订阅 tray prefs (影响可见性过滤)
   const navCtx = collectNavStatusCtx();
 
@@ -76,10 +87,12 @@ export function NavDrawer({ section, onEnter, onLeave }: NavDrawerProps) {
   });
 
   // 本 section 下的可见项 (保持全局相对顺序).
-  const sectionItems = visibleKeys
-    .filter((key) => NAV_REGISTRY_BY_KEY[key]?.section === section)
-    .map((key) => NAV_ITEMS.find((it) => it.key === key))
-    .filter(Boolean) as { key: string; label: string; tooltip?: string }[];
+  const sectionItems = section === "system"
+    ? SYSTEM_VIEW_ITEMS
+    : visibleKeys
+      .filter((key) => NAV_REGISTRY_BY_KEY[key]?.section === section)
+      .map((key) => NAV_ITEMS.find((it) => it.key === key))
+      .filter(Boolean) as { key: string; label: string; tooltip?: string }[];
 
   const hiddenNavItems = listHidden(sidenavPrefs)
     .map((key) => NAV_ITEMS.find((it) => it.key === key))
@@ -89,8 +102,11 @@ export function NavDrawer({ section, onEnter, onLeave }: NavDrawerProps) {
   const sectionLabel = sectionMeta?.label ?? section;
 
   function handleSelect(key: string) {
+    if (section === "system" && SYSTEM_VIEW_KEYS.has(key)) {
+      setActiveNav("versions");
+      navigateTo(key);
     // invest 系子模块 (funds/metals/stocks, legacy alias) 走 goInvest 设 primary.
-    if (key === "invest" || LEGACY_NAV_ALIAS[key] === "invest") {
+    } else if (key === "invest" || LEGACY_NAV_ALIAS[key] === "invest") {
       goInvest(key === "invest" ? undefined : key);
     } else {
       setActiveNav(key);
@@ -146,7 +162,9 @@ export function NavDrawer({ section, onEnter, onLeave }: NavDrawerProps) {
         ) : (
           <ul class="nav-drawer-list">
             {sectionItems.map((item) => {
-              const isActive = current === item.key;
+              const isActive = section === "system"
+                ? current === "versions" && route === item.key
+                : current === item.key;
               const badge = getBadge(item.key, navCtx) || 0;
               const status = getStatus(item.key, navCtx);
               return (
@@ -160,6 +178,7 @@ export function NavDrawer({ section, onEnter, onLeave }: NavDrawerProps) {
                   onHide={handleHide}
                   onMoveTop={handleMoveTop}
                   onMoveBottom={handleMoveBottom}
+                  draggable={section !== "system"}
                 />
               );
             })}

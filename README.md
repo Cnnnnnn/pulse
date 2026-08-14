@@ -1,6 +1,6 @@
 # Pulse
 
-面向 macOS 与 Windows 的个人桌面信息中心：以应用版本检查与升级为核心，同时整合新闻、投资行情、世界杯、AI 用量、GitHub 项目和游戏优惠。
+面向 macOS 与 Windows 的个人桌面信息中心：以应用版本检查与升级为核心，同时整合新闻、投资行情、世界杯、AI 用量、GitHub 项目和 AI 榜单。
 
 Pulse 常驻系统托盘，把分散在不同应用和网站里的日常信息集中到一个桌面窗口中。主要数据保存在本机；需要联网的模块只在获取对应内容时访问外部服务。
 
@@ -15,7 +15,6 @@ Pulse 常驻系统托盘，把分散在不同应用和网站里的日常信息�
 | AI 用量 | 监控 MiniMax 与 GLM 编程套餐配额和趋势 |
 | 版本检查 | 检测应用更新，并通过支持的升级路径执行升级 |
 | GitHub 收录 | 建立本地开源项目库，跟踪 README 与 Release |
-| 游戏优惠 | 聚合多个平台的折扣、免费活动和热门榜 |
 | AI 榜单 | 按厂商 / 维度（ELO、智能指数、代码、数学、推理、性价比）筛选主流大模型排名 |
 
 跨模块能力包括：
@@ -63,7 +62,7 @@ Pulse 常驻系统托盘，把分散在不同应用和网站里的日常信息�
 
 1. 启动 Pulse，从首页进入需要的模块。
 2. 打开“版本检查”，首次使用时点击“运行首次检查”。
-3. 在“版本检查 → 设置”中调整主题、GitHub、游戏和 AI 配置。
+3. 在“版本检查 → 设置”中调整主题、GitHub 和 AI 配置。
 4. 使用 `⌘/Ctrl+K` 搜索新闻、AI 任务、提醒、基金和应用。
 
 首页支持收藏、拖拽排序和 `⌘/Ctrl+1–9` 快速打开前九张卡片。更多快捷键和模块操作见 [用户功能手册](docs/user-features-guide.md)。
@@ -95,7 +94,7 @@ AI API Key 使用 Electron `safeStorage` 加密：
 
 GitHub Token 保存在本机应用的浏览器存储中，不使用 `safeStorage`。不要在共享系统账户中保存敏感 Token。
 
-新闻、行情、比赛、版本、GitHub、游戏和 AI 模块会访问各自的外部服务。具体数据来源和降级行为见 [用户功能手册](docs/user-features-guide.md)。
+新闻、行情、比赛、版本、GitHub 和 AI 模块会访问各自的外部服务。具体数据来源和降级行为见 [用户功能手册](docs/user-features-guide.md)。
 
 ## 开发
 
@@ -109,7 +108,7 @@ npm run build:mac
 npm run build:win
 ```
 
-> **⚠️ `.env` 文件**：仓库根目录的 `.env`（已 gitignore，不入库）可能包含 `GITHUB_TOKEN` / `ITAD_API_KEY` / `ARTIFICIAL_ANALYSIS_API_KEY` 等真实凭据，供本地开发调用限流 API。请勿将其提交、截图或分享给他人；如凭据已泄露请立即在对应平台轮换。
+> **⚠️ `.env` 文件**：仓库根目录的 `.env`（已 gitignore，不入库）可能包含 `GITHUB_TOKEN` / `ARTIFICIAL_ANALYSIS_API_KEY` 等真实凭据，供本地开发调用限流 API。请勿将其提交、截图或分享给他人；如凭据已泄露请立即在对应平台轮换。
 
 ### 可选 API Key
 
@@ -118,7 +117,6 @@ npm run build:win
 | Key | 作用 | 缺失影响 |
 | --- | --- | --- |
 | `GITHUB_TOKEN` | GitHub 收录 / Release 追踪：解除未登录 60 次/小时限流 | 仍可浏览，但频繁调用可能被 GitHub 限流 |
-| `ITAD_API_KEY` | 游戏优惠：Xbox（Microsoft Store）实时折扣 | Xbox 走示例数据；PlayStation / Switch 始终走示例数据 |
 | `ARTIFICIAL_ANALYSIS_API_KEY` | AI 榜单：客观分 / 价格 / 速度维度（Free tier 每日 100 次） | AA 维度回退 GitHub 社区快照；Arena 主源与 OpenRouter 仍可用 |
 
 ### AI 榜单模块
@@ -150,7 +148,6 @@ npm run build:win
 - Windows 当前只发布 x64 安装包，原生 arm64 设备需通过兼容层运行 x64 版本。
 - 自动升级能力取决于 Homebrew、winget 和各应用的数据源。
 - 外部服务不可用、公司网络限流或代理配置可能导致部分模块刷新失败。
-- 部分游戏平台或浏览模式可能暂时没有数据；标记为示例的内容不是实时价格。
 
 ## License
 

@@ -192,6 +192,16 @@ export function IconSettings({ size = 14 }) {
   );
 }
 
+export function IconHome({ size = 14 }) {
+  return (
+    <Svg size={size}>
+      <path d="m3 10 9-7 9 7" />
+      <path d="M5 9v11h14V9" />
+      <path d="M9 20v-6h6v6" />
+    </Svg>
+  );
+}
+
 export function IconLayers({ size = 14 }) {
   return (
     <Svg size={size}>
@@ -388,6 +398,9 @@ const NAV_ICON = {
   'ai-usage': IconBarChart,
   'ai-leaderboard': IconBarChart,
   versions: IconRefresh,
+  library: IconList,
+  diagnostics: IconWrench,
+  settings: IconSettings,
   github: IconLayers,
 };
 

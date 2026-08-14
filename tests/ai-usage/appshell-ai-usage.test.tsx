@@ -41,7 +41,7 @@ vi.mock("../../src/renderer/funds/FundLayout.tsx", () => ({
   FundLayout: () => <div data-testid="funds">funds</div>,
 }));
 
-vi.mock("../../src/renderer/ithome/NewsLayout.tsx", () => ({
+vi.mock("../../src/renderer/news/NewsLayout.tsx", () => ({
   NewsLayout: () => <div data-testid="ithome">ithome</div>,
 }));
 

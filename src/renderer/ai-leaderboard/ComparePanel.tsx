@@ -19,6 +19,7 @@ import { fmtScore, fmtIndex, fmtSpeed, fmtPricePer1M, fmtCostPerTask, aggregateV
 import { compareToMarkdown, copyToClipboard } from "./exportMarkdown.ts";
 import { CrossSourceRadar } from "./CrossSourceRadar.tsx";
 import { EloPerDollar } from "./EloPerDollar.tsx";
+import { IconSparkles, IconX } from "../components/icons.tsx";
 
 // 跨源加载/错误态门：雷达与性价比两个标签共用同一套三源拉取状态。
 function CrossSourceGate({ loading, error, onRetry, empty, children }) {
@@ -45,7 +46,7 @@ function CrossSourceGate({ loading, error, onRetry, empty, children }) {
   return children;
 }
 
-export function ComparePanel() {
+export function ComparePanel({ onAnalyze }: { onAnalyze?: () => void }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState("table");
@@ -139,15 +140,35 @@ export function ComparePanel() {
 
   return (
     <>
-      <button
-        type="button"
-        class="ai-lb-compare-fab is-visible"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-      >
-        对比 <span class="ai-lb-compare-fab__count">{ids.length}</span>
-      </button>
+      <section class="ai-lb-compare-tray" aria-label="已选择模型">
+        <div class="ai-lb-compare-tray__selection">
+          <div class="ai-lb-compare-tray__title">已选择 <strong>{models.length}</strong> 个模型</div>
+          <p class="ai-lb-compare-tray__hint">最多支持选择 3 个模型进行对比</p>
+          <div class="ai-lb-compare-tray__chips">
+            {models.map((model) => (
+              <button
+                key={model.id}
+                type="button"
+                class="ai-lb-compare-tray__chip"
+                onClick={() => toggleCompare(model.id)}
+                aria-label={`移除 ${model.name}`}
+              >
+                <span>{model.name}</span>
+                <IconX size={12} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div class="ai-lb-compare-tray__actions">
+          <button type="button" class="ai-lb-compare-tray__secondary" onClick={() => setOpen(true)} aria-haspopup="dialog">
+            查看对比
+          </button>
+          <button type="button" class="ai-lb-compare-tray__primary" onClick={onAnalyze} disabled={!onAnalyze}>
+            <IconSparkles size={15} /> 让 AI 分析 {models.length} 个模型
+          </button>
+          <button type="button" class="ai-lb-compare-tray__clear" onClick={clearCompare}>清空</button>
+        </div>
+      </section>
 
       <div
         class={`ai-lb-drawer-mask${open ? " is-open" : ""}`}
@@ -225,7 +246,7 @@ export function ComparePanel() {
             aria-label="关闭"
             onClick={() => setOpen(false)}
           >
-            ✕
+            <IconX size={16} />
           </button>
         </header>
         <div class="ai-lb-drawer__body">
@@ -273,7 +294,7 @@ export function ComparePanel() {
                         aria-label={`移除 ${m.name}`}
                         onClick={() => toggleCompare(m.id)}
                       >
-                        ×
+                        <IconX size={12} />
                       </button>
                     </th>
                   ))}

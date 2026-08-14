@@ -5,18 +5,17 @@
  * ponytail: < 100 行不启用 (LibraryPage 已 gate). 自实现, 不引依赖.
  */
 import { useState, useEffect, useRef } from "preact/hooks";
-import { results } from "../store.ts";
 import { AppCard } from "./AppCard.tsx";
 
 const ROW_HEIGHT = 130;     // Card 高度 (含 gap)
 const BUFFER_ROWS = 3;      // 上下多渲染几行
 const COLS = 4;             // 桌面默认 4 列
 
-export function VirtualCardGrid() {
+export function VirtualCardGrid({ names }: { names: string[] }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(600);
-  const allNames = Array.from(results.value.keys());
+  const allNames = names;
 
   useEffect(() => {
     const el = scrollRef.current;

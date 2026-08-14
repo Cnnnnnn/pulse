@@ -108,7 +108,11 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
   }
 
   if (!silent) {
-    sendToRenderer("check-started", { count: apps.length, ts: Date.now() });
+    sendToRenderer("check-started", {
+      count: apps.length,
+      appNames: apps.map((app: any) => app && app.name).filter(Boolean),
+      ts: Date.now(),
+    });
   }
 
   // 队列化: 每个 app 一个 detect-app task (带主进程侧超时, 防止 worker 挂死占满 pool)

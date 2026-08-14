@@ -68,6 +68,15 @@ async function waitForShell(page) {
   await page.waitForTimeout(500);
 }
 
+async function openSystemView(page, key) {
+  await page.locator('[data-section="system"]').hover({ force: true });
+  await page.waitForTimeout(180);
+  await page
+    .locator(`.nav-drawer[data-section="system"] li[data-nav="${key}"] .nav-drawer-button`)
+    .click();
+  await page.waitForTimeout(300);
+}
+
 test("overview (Library page) — light theme baseline", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.addInitScript(() => {
@@ -218,13 +227,8 @@ test("settings page — P13 4-section 卡片化 baseline", async ({ page }) => {
   });
   await page.goto("/");
   await waitForShell(page);
-  // 切到 settings subtab
-  await page
-    .locator(".versions-subtab")
-    .filter({ hasText: "设置" })
-    .first()
-    .click();
-  await page.waitForTimeout(300);
+  // 系统区入口独立管理，不再依赖 VersionsLayout 内的共享横向 subtab。
+  await openSystemView(page, "settings");
   await expect(page).toHaveScreenshot("settings-light.png", {
     fullPage: false,
   });
@@ -249,13 +253,8 @@ test("settings page — P15 AI 配置 tab baseline", async ({ page }) => {
   });
   await page.goto("/");
   await waitForShell(page);
-  // 切到 settings subtab → AI 配置 subtab
-  await page
-    .locator(".versions-subtab")
-    .filter({ hasText: "设置" })
-    .first()
-    .click();
-  await page.waitForTimeout(200);
+  // 先从系统抽屉进入独立的设置页面，再进入设置页内部的 AI 配置 subtab。
+  await openSystemView(page, "settings");
   await page
     .locator(".settings-subtab")
     .filter({ hasText: "AI 配置" })

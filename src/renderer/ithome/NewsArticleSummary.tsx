@@ -13,22 +13,42 @@ export function splitKeywords(raw) {
     .slice(0, 8);
 }
 
+function splitAnalysisList(raw) {
+  if (Array.isArray(raw)) return raw.filter(Boolean).map((item) => String(item).trim()).filter(Boolean);
+  return String(raw || "")
+    .split(/[；;|\n]/)
+    .map((item) => item.replace(/^[-*•\d]+[.)、]?\s*/, "").trim())
+    .filter(Boolean);
+}
+
 export function normalizeArticleSummary(summary) {
   if (!summary || typeof summary !== "object") {
-    return { abstract: "", keywords: [], domain: "", impact: "" };
+    return {
+      abstract: "", keywords: [], domain: "", impact: "",
+      whyImportant: "", risks: [], followUps: [], evidence: [], completeness: "",
+    };
   }
   // 任何结构化字段或数组型 keywords → 走结构化分支;
   // 否则视为纯 text 摘要(无 keywords/domain/impact)
   const text = String(summary.text || "").trim();
   const abstract = summary.abstract || text;
   const hasStructured =
-    summary.abstract || summary.domain || summary.impact || Array.isArray(summary.keywords);
+    summary.abstract || summary.domain || summary.impact || summary.whyImportant ||
+    (Array.isArray(summary.keywords) && summary.keywords.length > 0) ||
+    (Array.isArray(summary.risks) && summary.risks.length > 0) ||
+    (Array.isArray(summary.followUps) && summary.followUps.length > 0) ||
+    (Array.isArray(summary.evidence) && summary.evidence.length > 0);
   if (hasStructured) {
     return {
       abstract,
       keywords: splitKeywords(summary.keywords),
       domain: summary.domain || "",
       impact: summary.impact || "",
+      whyImportant: summary.whyImportant || "",
+      risks: splitAnalysisList(summary.risks),
+      followUps: splitAnalysisList(summary.followUps),
+      evidence: splitAnalysisList(summary.evidence),
+      completeness: summary.completeness || "",
     };
   }
   return {
@@ -36,6 +56,11 @@ export function normalizeArticleSummary(summary) {
     keywords: [],
     domain: "",
     impact: "",
+    whyImportant: "",
+    risks: [],
+    followUps: [],
+    evidence: [],
+    completeness: summary.completeness || "",
   };
 }
 

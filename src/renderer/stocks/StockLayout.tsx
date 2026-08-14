@@ -33,7 +33,7 @@ import { stockActiveTab, diagnosisState } from "./diagnosisStore.ts";
 import { StockDiagnosisPage } from "./StockDiagnosisPage.tsx";
 import { DataHealthBadge } from "./diagnosis/DataHealthBadge.tsx";
 // ponytail 2026-07-18 P0-1 T7 fixup: 加载 stock 模块专属样式 (.data-health-badge 等).
-//   跟 src/renderer/games/games.css 模式一致.
+//   跟各业务模块的专属样式组织模式一致.
 import "./stocks.css";
 import {
   runScreen,

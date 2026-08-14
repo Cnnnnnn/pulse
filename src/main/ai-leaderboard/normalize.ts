@@ -2,15 +2,85 @@
  * src/main/ai-leaderboard/normalize.ts
  *
  * 共享归一化层：fetchJson（UA+超时+abort）、BROWSER_UA、slugifyModel、mergeModelSlices。
- * 照搬 games/normalize.js 的 fetchJson + BROWSER_UA 范式（复用同一份实现，避免漂移）。
+ * fetchJson 与 BROWSER_UA 在 AI 榜单域内保持单一实现，避免各 fetcher 漂移。
  */
 
-import { BROWSER_UA, fetchJson } from "../games/normalize";
+import { BROWSER_UA } from "../../utils/http-constants";
 import { SOURCE, toAiModel, makeId } from "./types";
 
-// ponytail: 7a-6 re-export 让 fetcher-X 用 `import { fetchJson, BROWSER_UA } from "./normalize"`,
-// 7b 删 shim 时去掉 module.exports.
-export { BROWSER_UA, fetchJson };
+export { BROWSER_UA };
+
+type FetchJsonOptions = {
+  timeoutMs?: number;
+  headers?: Record<string, string>;
+  /** 只对网络、超时、429 和 5xx 做有限重试，避免把 4xx 配置错误放大。 */
+  retries?: number;
+  retryDelayMs?: number;
+};
+
+function requestError(url: string, res: Response): any {
+  const err: any = new Error(`HTTP ${res.status} for ${url}`);
+  err.status = res.status;
+  const retryAfter = res.headers && typeof res.headers.get === "function"
+    ? res.headers.get("retry-after")
+    : null;
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds)) {
+      err.retryAfterMs = Math.max(0, seconds * 1000);
+    }
+  }
+  return err;
+}
+
+function isRetryable(err: any): boolean {
+  const status = err && Number(err.status);
+  if (Number.isFinite(status)) {
+    return status === 408 || status === 425 || status === 429 || status >= 500;
+  }
+  // JSON 解析失败通常表示 schema/内容变更，重试没有收益；网络断开和 abort 则值得重试一次。
+  if (err && (err.name === "SyntaxError" || err.name === "TypeError" && /json/i.test(String(err.message)))) {
+    return false;
+  }
+  return true;
+}
+
+export async function fetchJson(
+  url: string,
+  {
+    timeoutMs = 8000,
+    headers = {},
+    retries = 1,
+    retryDelayMs = 250,
+  }: FetchJsonOptions = {},
+): Promise<any> {
+  const timeout = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 8000;
+  const maxRetries = Number.isFinite(retries) ? Math.max(0, Math.min(2, Math.floor(retries))) : 1;
+  const baseDelay = Number.isFinite(retryDelayMs) ? Math.max(0, retryDelayMs) : 250;
+  let lastErr: any;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const res = await globalThis.fetch(url, { signal: ctrl.signal, headers });
+      if (!res.ok) throw requestError(url, res);
+      return await res.json();
+    } catch (err: any) {
+      lastErr = err;
+      if (attempt >= maxRetries || !isRetryable(err)) throw err;
+      const retryAfterMs = Number(err && err.retryAfterMs);
+      const backoff = Number.isFinite(retryAfterMs)
+        ? Math.min(retryAfterMs, 2000)
+        : Math.min(baseDelay * 2 ** attempt, 2000);
+      if (backoff > 0) await new Promise((resolve) => setTimeout(resolve, backoff));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  throw lastErr || new Error(`Request failed for ${url}`);
+}
 
 // num(): 原计划抽到此处 + 3 fetcher 复用. 实际触发 esbuild 编译陷阱:
 //   `module.exports = { 4 keys }` (line 173) 硬编码覆盖 `__toCommonJS()` (line 35),

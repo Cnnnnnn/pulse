@@ -9,6 +9,10 @@ const { mockVersionsRunCheck } = vi.hoisted(() => ({
   mockVersionsRunCheck: vi.fn(async () => ({ started: true })),
 }));
 
+vi.mock("../../src/renderer/run-check.ts", () => ({
+  runCheck: mockVersionsRunCheck,
+}));
+
 vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     versionsCommandSearch: vi.fn(async (q) => ({
@@ -18,7 +22,6 @@ vi.mock("../../src/renderer/api.ts", () => ({
         { id: "action-check", label: "检查更新", kind: "action" },
       ],
     })),
-    versionsRunCheck: mockVersionsRunCheck,
   },
 }));
 
@@ -49,8 +52,8 @@ describe("CommandPalette", () => {
   });
 });
 
-describe("CommandPalette 检查更新 (断链修复)", () => {
-  it("选中 action-check 调用 api.versionsRunCheck (而非不存在的 runCheck)", async () => {
+describe("CommandPalette 检查更新 (统一 renderer seam)", () => {
+  it("选中 action-check 调用 renderer runCheck", async () => {
     act(() => {
       paletteOpen.value = true;
       setPaletteQuery("检查");

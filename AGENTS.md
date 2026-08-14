@@ -5,14 +5,14 @@
 
 ## 项目一句话
 
-**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），连同 `helpers/mock-http`、`fixtures/timer-audit/*`、`perf/{startup,brew-lock}-bench`、`visual/{visual,games}.spec` 6 个非 vitest 文件也已 `.ts`；`_setup/*.cjs` 保留为 CJS helper bridge；**Phase 7 完成** — 150 个 `src/**/*.ts` 内部 `require()/module.exports` 改 ESM `import/export` (7a 全批 + 5 例外 dual-export)，随后 **126 个 `src/**/*.js` shim 全删** (7b)，vitest `resolve.extensions` 加 `.ts`，仅 Phase 3 五例外 (`http-client`/`state-store`/`token-budget`/`log`/`platform/index`) 保留为 CJS shim 供 main/src/.ts `require("./foo.js")` 直引；**Phase 8 完成** — `tsconfig.app.strict.json` 86 → 0 errors（之前 Phase 3.5 strict 跳过的 ai-sessions/ai-usage/共享模块补齐），5 tsconfigs 全 0。`find src -name "*.js" | grep -v "^src/main/.*$\|^src/platform/index\.js$"` = 0。
+**Pulse** = macOS 菜单栏应用，AppUpdateChecker 工具。监听 macOS / Windows app 更新 + AI 榜单（v2.79.4+）。**多模态多数据源 Electron app**，主进程 Phase 3 + 3.5 完成；**Phase 4 renderer 已完成**（`src/renderer` `.js`/`.jsx` 清零）；**Phase 5 完成** — `config`/`utils`/`detectors`/`metals`/`funds`/`stocks`/`ai`/`ai-sessions`/`ai-usage`/`workers`/`release-notes` 已 `.ts`；**Phase 6 完成** — `tests/**/*.test.{js,jsx}` 已全 `.ts`/`.tsx`（350 + 128 = 478 files），连同 `helpers/mock-http`、`fixtures/timer-audit/*`、`perf/{startup,brew-lock}-bench`、`visual/visual.spec` 等非 vitest 文件也已 `.ts`；`_setup/*.cjs` 保留为 CJS helper bridge；**Phase 7 完成** — 150 个 `src/**/*.ts` 内部 `require()/module.exports` 改 ESM `import/export` (7a 全批 + 5 例外 dual-export)，随后 **126 个 `src/**/*.js` shim 全删** (7b)，vitest `resolve.extensions` 加 `.ts`，仅 Phase 3 五例外 (`http-client`/`state-store`/`token-budget`/`log`/`platform/index`) 保留为 CJS shim 供 main/src/.ts `require("./foo.js")` 直引；**Phase 8 完成** — `tsconfig.app.strict.json` 86 → 0 errors（之前 Phase 3.5 strict 跳过的 ai-sessions/ai-usage/共享模块补齐），5 tsconfigs 全 0。`find src -name "*.js" | grep -v "^src/main/.*$\|^src/platform/index\.js$"` = 0。
 
 ## 仓库布局
 
  - `src/main/` — 主进程（Phase 3 已 100% `.ts`。测试：`requireMain` → `dist-test`。**Phase 7 收尾**：仅 `http-client`/`state-store`/`token-budget`/`log` 4 个例外 shim 保留 (CJS `module.exports` only，main/release-notes.ts `require("./foo.js")` 直接吃);`platform/index.js` 也已删,改成 ESM dual-export (named + default export + module.exports)。其余 Phase 5 的 126 个 shim (utils/detectors/metals/funds/stocks/ai/ai-sessions/ai-usage/workers/release-notes) 全删—— caller 走 `import` ESM 或 `requireAi("foo")`/`requireWorkers("foo")` 等 helper 加载 dist-test .cjs 产物）
   - `src/main/ai-leaderboard/` — AI 榜单核心（fetcher 6 个 + aggregator + ranking + scheduler + types + normalize + cache）
   - `src/main/ipc/` — IPC handler（注册到 `ipcMain`）
-  - `src/main/games/`, `src/main/funds/`, `src/main/ithome/`, `src/main/wechat-hot/` — 各业务域 (v2.80 删 `src/main/worldcup/`)
+ - `src/main/funds/`, `src/main/ithome/`, `src/main/wechat-hot/` — 各业务域 (v2.80 删 `src/main/worldcup/`)
  - `src/renderer/` — 渲染进程（Preact + esbuild；**Phase 4 已完成**：全部 `.ts`/`.tsx`）
   - `src/renderer/ai-leaderboard/` — 榜单 UI（4 个视角 tab：Arena / AA / LiveBench / HuggingFace）
  - `src/config/` / `src/utils/` / `src/detectors/` / `src/metals/` / `src/funds/` / `src/stocks/` / `src/ai/` / `src/ai-sessions/` / `src/ai-usage/` / `src/workers/` / `src/release-notes/` — **Phase 7**：真相在 `.ts`，已 ESM-ify (named `export` + 必要的 `import { ... }`/`import * as`)，`.js` shim 已删。tests 走 `requireUtils("foo")` 等 helper 加载 dist-test .cjs 产物；main/worker 内部用 `require("./foo.js")` (esbuild plugin backfill .js → .ts)。metal-config/metal-calc 与 fundCalc/fund-history/fund-nav-merge/format/fund-category/concentration/pnlCsv 与 diagnosis-scorer/strategies/stock-constants/stock-filter 与 default-models/ai-errors 与 anomaly-detect/history-series/format-glm 为 renderer 共享（纯 named `export`）。**prod worker** 走 `scripts/build-main.cjs` 打出的自包含 `dist/workers/detect-worker.js`（不进 main bundle；asar 用 `dist/workers/**`，不再打包 `src/workers/**`）
@@ -67,7 +67,7 @@ npm run lint                # eslint
 npm run lint:css            # stylelint
 ```
 
-> **Phase 8 后状态**：vitest 跑 469 文件 4885 pass + 4 skip + 5 已知 flaky（4 个预先 date-related games-p1c/home-grid + 1 个预先 aggregator cacheBoard "all" vs "all-v11" 不匹配）；5 个 tsconfigs (`app`/`app.strict`/`preload`/`renderer`/`tests`) 全 0 errors；`find src -name "*.js"` = 4（Phase 3 五例外最后堡垒）。
+> **Phase 8 后状态**：vitest 历史基线为 469 文件 4885 pass + 4 skip + 5 个已知 flaky（预先存在的 date-related/home-grid 与 aggregator cacheBoard "all" vs "all-v11" 不匹配）；5 个 tsconfigs (`app`/`app.strict`/`preload`/`renderer`/`tests`) 全 0 errors；`find src -name "*.js"` = 4（Phase 3 五例外最后堡垒）。
 
 ## 数据源（v2.79.4）
 

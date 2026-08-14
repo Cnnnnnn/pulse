@@ -6,12 +6,8 @@ import { useRunCheck } from "../../src/renderer/hooks/useRunCheck.ts";
 const mockRunCheck = vi.fn();
 const mockShowToast = vi.fn();
 
-vi.mock("../../src/renderer/api.ts", () => ({
-  api: {
-    get versionsRunCheck() {
-      return mockRunCheck;
-    },
-  },
+vi.mock("../../src/renderer/run-check.ts", () => ({
+  runCheck: (...args) => mockRunCheck(...args),
 }));
 
 vi.mock("../../src/renderer/store/toast-store.ts", () => ({
@@ -29,7 +25,7 @@ describe("useRunCheck", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("run() 调用 api.versionsRunCheck 并置 loading=true", async () => {
+  it("run() 调用 renderer runCheck 并置 loading=true", async () => {
     let resolve;
     mockRunCheck.mockReturnValue(
       new Promise((r) => {
@@ -100,14 +96,14 @@ describe("useRunCheck", () => {
 
   it("IPC 抛异常时也弹 error toast (防 preload 漏暴露回归)", async () => {
     mockRunCheck.mockRejectedValue(
-      new Error("versionsRunCheck is not a function"),
+      new Error("check-updates is not a function"),
     );
     const { result } = renderHook(() => useRunCheck());
     await act(async () => {
       await result.current.run();
     });
     expect(mockShowToast).toHaveBeenCalledWith(
-      "检查失败: versionsRunCheck is not a function",
+      "检查失败: check-updates is not a function",
       "error",
       3500,
     );

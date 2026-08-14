@@ -6,7 +6,7 @@
  * 范式: VSCode 活动栏风格 — 极窄图标列常驻, hover section 图标弹 NavDrawer 浏览/管理.
  *
  * 结构 (从上到下):
- *   - Home (🏠) — 回首页仪表盘
+ *   - Home — 回首页仪表盘
  *   - 分隔
  *   - 3 个 section 图标 (资讯/持仓/系统) — 按 NAV_SECTIONS 渲染
  *       · hover → onHoverSection(sectionId) 打开 NavDrawer
@@ -27,7 +27,7 @@ import {
   type NavSectionId,
 } from "../../shared/nav-keys.ts";
 import { collectNavStatusCtx, sectionBadge } from "./nav-status.ts";
-import { IconSettings, IconTrendingUp, IconGlobe, IconLayers } from "./icons.tsx";
+import { IconHome, IconSettings, IconTrendingUp, IconGlobe, IconLayers } from "./icons.tsx";
 import { navigateTo } from "../store/route-store.ts";
 
 // section → 代表图标组件 (NAV_REGISTRY 无 section-icon 字段, 这里映射).
@@ -71,7 +71,9 @@ export function IconRail({ onHoverSection, onLeaveSection, openSection = null }:
         aria-label="首页"
         aria-current={current === "home" ? "page" : undefined}
       >
-        <span class="icon-rail-glyph" aria-hidden="true">🏠</span>
+        <span class="icon-rail-glyph" aria-hidden="true">
+          <IconHome size={20} />
+        </span>
       </button>
 
       <div class="icon-rail-divider" aria-hidden="true" />

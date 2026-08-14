@@ -10,7 +10,7 @@
 
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
-import { logFetchError } from "../games/log";
+import { logFetchError } from "./log";
 
 const OR_API = "https://openrouter.ai/api/v1/models";
 
@@ -50,6 +50,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       source: "openrouter",
       data: null,
       fetchedAt: new Date().toISOString(),
+      error: err instanceof Error ? err.message : String(err),
     };
   }
 }

@@ -17,10 +17,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { render, cleanup, fireEvent } from "@testing-library/preact";
 import { AiLeaderboardPage } from "../../src/renderer/ai-leaderboard/AiLeaderboardPage.tsx";
 import { ValueScatter } from "../../src/renderer/ai-leaderboard/ValueScatter.tsx";
 import { AttributionFooter } from "../../src/renderer/ai-leaderboard/AttributionFooter.tsx";
+import { LoadingState } from "../../src/renderer/ai-leaderboard/states.tsx";
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.ts";
 import { ATTRIBUTION, AA_METHODOLOGY_VERSION } from "../../src/renderer/ai-leaderboard/types.ts";
 
@@ -84,6 +87,7 @@ function resetStore() {
   store.sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0, huggingface: 0 };
   store.loading.value = false;
   store.error.value = null;
+  store.lastFetchErrors.value = [];
   store.fetchedAt.value = null;
   store.sourceDate.value = null;
   store.stale.value = false;
@@ -208,6 +212,90 @@ describe("stale 横幅（R4）", () => {
     store.stale.value = false;
     const { container } = render(<AiLeaderboardPage />);
     expect(container.querySelector(".ai-lb-state--warn")).toBeNull();
+  });
+});
+
+describe("紧凑数据状态条", () => {
+  it("默认只显示一行上下文，来源/方法/导出收进关闭的数据状态面板", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.fetchedAt.value = "2026-07-20T00:00:00Z";
+    const { container } = render(<AiLeaderboardPage />);
+
+    const details = container.querySelector(".ai-lb-data-details") as HTMLDetailsElement;
+    expect(details).toBeTruthy();
+    expect(details.open).toBe(false);
+    expect(container.querySelector(".ai-lb-status-row")).toBeTruthy();
+    expect(container.querySelector(".ai-lb-inline-notes")).toBeNull();
+    expect(container.querySelector(".ai-lb-table-region__header")).toBeNull();
+    expect(container.querySelector(".ai-lb-data-details__panel")).toBeTruthy();
+  });
+});
+
+describe("AI 榜单加载态", () => {
+  it("首屏骨架镜像 AA 表格列，并填满可用表格区域", () => {
+    const { container } = render(<LoadingState view="aa" />);
+    expect(container.querySelector(".ai-lb-skeleton-table--aa")).toBeTruthy();
+    expect(container.querySelectorAll(".ai-lb-skeleton-head > span")).toHaveLength(12);
+    expect(container.querySelectorAll(".ai-lb-skeleton-row")).toHaveLength(12);
+    expect(container.querySelector(".ai-lb-skeleton-row")?.children).toHaveLength(12);
+  });
+
+  it("刷新已有数据时保留表格，只显示轻量更新提示", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.loading.value = true;
+    const { container } = render(<AiLeaderboardPage />);
+
+    expect(container.querySelector(".ai-lb-table")).toBeTruthy();
+    expect(container.querySelector(".ai-lb-state--loading")).toBeNull();
+    expect(container.querySelector(".ai-lb-refresh-progress")?.textContent).toContain("当前表格仍可阅读");
+    expect(container.querySelector(".ai-leaderboard-status-pill")?.textContent).toContain("更新中");
+    expect(container.querySelector(".ai-leaderboard-status-pill")?.textContent).not.toContain("实时");
+  });
+});
+
+describe("AI 榜单面板一致性（截图回归）", () => {
+  it("缓存态不应继续标成实时，来源数量应按当前可见列表重算", () => {
+    store.items.value = [aaFull, aaPartial];
+    store.activeDim.value = "coding";
+    store.stale.value = true;
+    store.sourceCoverage.value = {
+      arena: 0,
+      aa: 2,
+      openrouter: 149,
+      livebench: 0,
+      modelsdev: 1649,
+      huggingface: 0,
+    };
+
+    const { container } = render(<AiLeaderboardPage />);
+    const status = container.querySelector(".ai-leaderboard-status-pill");
+    expect(status).toBeTruthy();
+    expect(status!.textContent).not.toContain("实时");
+
+    const chips = Array.from(container.querySelectorAll(".ai-lb-health__chip"));
+    const openRouterChip = chips.find((el) => el.textContent?.includes("OR"));
+    const modelsDevChip = chips.find((el) => el.textContent?.includes("MD"));
+    expect(openRouterChip?.textContent).toContain("0/1");
+    expect(modelsDevChip?.textContent).toContain("1/1");
+    expect(modelsDevChip?.textContent).not.toContain("1649");
+  });
+
+  it("页头副标题不应与四个数据视角产生数量歧义", () => {
+    store.items.value = [aaFull, aaPartial];
+    const { container } = render(<AiLeaderboardPage />);
+    expect(container.querySelector(".ai-leaderboard-page-header__sub")?.textContent).toBe(
+      "多源数据，一个视图",
+    );
+  });
+
+  it("榜单表格应使用页面剩余空间，避免首屏只露出表头", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "src/renderer/ai-leaderboard/ai-leaderboard.css"),
+      "utf8",
+    );
+    expect(css).not.toContain("height: min(70vh, 720px);");
+    expect(css).toContain(".ai-leaderboard-body {");
+    expect(css).toContain("display: flex;");
   });
 });
 

@@ -33,7 +33,7 @@ function num(v: any, d: number = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
 }
-import { logFetchError } from "../games/log";
+import { logFetchError } from "./log";
 // 2026-07-26: computeTrendingScore 抽到 src/shared/ai-leaderboard-trending.ts (跨进程共享).
 import { computeTrendingScore } from "../../shared/ai-leaderboard-trending";
 
@@ -189,6 +189,7 @@ export async function fetch(opts: any = {}): Promise<any> {
       data: null,
       fetchedAt: new Date().toISOString(),
       count: 0,
+      error: err instanceof Error ? err.message : String(err),
     };
   }
 }

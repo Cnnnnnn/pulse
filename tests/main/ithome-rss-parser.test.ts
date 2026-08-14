@@ -72,4 +72,50 @@ describe("ithome rss-parser", () => {
     expect(items[0].id).toBe("tag:example.com,2026:42");
     expect(items[0].link).toBe("");
   });
+
+  it("description 含 <img> → 提取首个真实封面 url 到 cover", () => {
+    const xml = `<?xml version="1.0"?><rss><channel>
+<item>
+<title>带封面新闻</title>
+<link>https://www.ithome.com/0/2/2.htm</link>
+<pubDate>Fri, 12 Jun 2026 15:59:39 GMT</pubDate>
+<description>&lt;p&gt;&lt;img src="https://img.ithome.com/newsuploadfiles/2026/06/abc.jpg" /&gt;IT之家消息。&lt;/p&gt;</description>
+</item>
+</channel></rss>`;
+    const items = parseIthomeRss(xml);
+    expect(items).toHaveLength(1);
+    expect(items[0].cover).toBe(
+      "https://img.ithome.com/newsuploadfiles/2026/06/abc.jpg",
+    );
+  });
+
+  it("description 仅含占位图 → cover 回退空串", () => {
+    const xml = `<?xml version="1.0"?><rss><channel>
+<item>
+<title>占位图新闻</title>
+<link>https://www.ithome.com/0/3/3.htm</link>
+<pubDate>Fri, 12 Jun 2026 15:59:39 GMT</pubDate>
+<description>&lt;p&gt;&lt;img src="//img.ithome.com/images/v2/t.png" /&gt;正文摘要。&lt;/p&gt;</description>
+</item>
+</channel></rss>`;
+    const items = parseIthomeRss(xml);
+    expect(items).toHaveLength(1);
+    expect(items[0].cover).toBe("");
+  });
+
+  it("description 协议相对 URL 的图 → 补全 https", () => {
+    const xml = `<?xml version="1.0"?><rss><channel>
+<item>
+<title>协议相对图新闻</title>
+<link>https://www.ithome.com/0/4/4.htm</link>
+<pubDate>Fri, 12 Jun 2026 15:59:39 GMT</pubDate>
+<description>&lt;img src="//img.ithome.com/newsuploadfiles/real.jpg" /&gt;</description>
+</item>
+</channel></rss>`;
+    const items = parseIthomeRss(xml);
+    expect(items).toHaveLength(1);
+    expect(items[0].cover).toBe(
+      "https://img.ithome.com/newsuploadfiles/real.jpg",
+    );
+  });
 });

@@ -20,15 +20,18 @@ import { MergedFilterChip } from "./MergedFilterChip.tsx";
 import { ResultsView } from "./ResultsView.tsx";
 import { AppCard } from "./AppCard.tsx";
 import { VirtualCardGrid } from "./VirtualCardGrid.tsx";
+import { EmptyState } from "./EmptyState.tsx";
 import { OverviewEmptyState } from "./OverviewEmptyState.tsx";
 import { useRunCheck } from "../hooks/useRunCheck.ts";
 import { viewMode } from "../store/library-view-store.ts";
 import { results } from "../store.ts";
+import { filteredResults, upgradableCount } from "../selectors.ts";
 
 export function LibraryPage() {
   const mode = viewMode.value;
   const totalApps = results.value.size;
-  const upgradable = Array.from(results.value.values()).filter((r) => r && r.has_update).length;
+  const visibleNames = Array.from(filteredResults.value.keys());
+  const upgradable = upgradableCount.value;
   const { isLoading, run } = useRunCheck();
 
   // 空态: 首次启动引导 CTA
@@ -36,7 +39,7 @@ export function LibraryPage() {
     return <OverviewEmptyState onRunCheck={run} isLoading={isLoading} />;
   }
 
-  const useVirtual = mode === "card" && totalApps > 100;
+  const useVirtual = mode === "card" && visibleNames.length > 100;
 
   return (
     <div class="library-page">
@@ -63,9 +66,11 @@ export function LibraryPage() {
       <div class="library-list-scroll">
         {mode === "table" && <ResultsView />}
         {mode === "card" && (
-          useVirtual
-            ? <VirtualCardGrid />
-            : <div class="app-card-grid">{Array.from(results.value.keys()).map((n) => <AppCard key={n} name={n} />)}</div>
+          visibleNames.length === 0
+            ? <EmptyState filtered={totalApps > 0} />
+            : useVirtual
+              ? <VirtualCardGrid names={visibleNames} />
+              : <div class="app-card-grid">{visibleNames.map((n) => <AppCard key={n} name={n} />)}</div>
         )}
       </div>
     </div>

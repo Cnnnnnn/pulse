@@ -13,6 +13,7 @@ import {
   fetchedAt,
   sourceDate,
   stale,
+  fromCache,
   searchQuery,
   clearSearchQuery,
   getDisplayed,
@@ -22,6 +23,7 @@ import {
   activeAgentDim,
   activeDim,
   activeLB,
+  compareList,
   sortKey,
   items,
   licenseFilter,
@@ -29,16 +31,18 @@ import {
   columnValue,
   setView,
 } from "./aiLeaderboardStore.ts";
-import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, uiCategoryOfBoard, AA_DIMENSIONS, LIVE_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META, AA_METHODOLOGY_VERSION } from "./types.ts";
+import { ARENA_BOARDS, ARENA_BOARD_KEYS, ARENA_CATEGORIES, uiCategoryOfBoard, AA_DIMENSIONS, LIVE_DIMENSIONS, HF_DIMENSIONS, SORT_COLUMN_LABELS, VENDOR_META, AA_METHODOLOGY_VERSION } from "./types.ts";
 import { fmtClock, fmtDate, licenseKind } from "./format.ts";
 import { tableToMarkdown, copyToClipboard } from "./exportMarkdown.ts";
 import { rowsToCsv } from "./exportCsv.ts";
 import { api } from "../api.ts";
 import { LeaderboardFilterBar } from "./LeaderboardFilterBar.tsx";
+import { LeaderboardReadingRail } from "./LeaderboardReadingRail.tsx";
 import { LeaderboardTable } from "./LeaderboardTable.tsx";
 import { ValueScatter } from "./ValueScatter.tsx";
 import { ArenaBubbleChart } from "./ArenaBubbleChart.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
+import { AIAnalysisPanel } from "./AIAnalysisPanel.tsx";
 import { ModelDetailDrawer } from "./ModelDetailDrawer.tsx";
 import { AttributionFooter } from "./AttributionFooter.tsx";
 import { LoadingState, ErrorState, EmptyState } from "./states.tsx";
@@ -119,10 +123,14 @@ export function AiLeaderboardPage() {
   const [animate, setAnimate] = useState(true);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setAnimate(false), 450);
     return () => clearTimeout(t);
   }, []);
+  useEffect(() => {
+    if (compareList.value.length === 0) setAnalysisOpen(false);
+  }, [compareList.value.length]);
 
   async function handleCopyTable() {
     const md = tableToMarkdown({ rows, view, board: activeBoard.value });
@@ -192,6 +200,10 @@ export function AiLeaderboardPage() {
     const lbMeta = LIVE_DIMENSIONS[activeLB.value] || {};
     const sub = sortLabel || lbMeta.label || "Overall";
     crumb = `LiveBench · ${sub}`;
+  } else if (view === "huggingface") {
+    const hfMeta = HF_DIMENSIONS[activeDim.value] || {};
+    const sub = sortLabel || hfMeta.label || "Downloads";
+    crumb = `HuggingFace · ${sub}`;
   } else {
     const dimMeta = AA_DIMENSIONS[activeDim.value] || {};
     const sub = sortLabel || dimMeta.label || "Intelligence Index";
@@ -201,6 +213,7 @@ export function AiLeaderboardPage() {
   const count = rows.length;
   const clock = fmtClock(fetchedAt.value);
   const isEmpty = !loading.value && !error.value && rows.length === 0;
+  const showInitialLoading = loading.value && rows.length === 0;
 
   // 按许可筛选却无结果：说明当前榜单无该类模型，统计哪些 board 有（给提示用）。
   const licenseActive = licenseFilter.value !== "all";
@@ -218,6 +231,10 @@ export function AiLeaderboardPage() {
     return counts;
   })();
   const sample = hasSampleSource();
+  const cacheBacked = Boolean(stale.value || fromCache.value);
+  const statusIsCached = !sample && cacheBacked;
+  const statusIsLoading = Boolean(loading.value);
+  const statusLabel = statusIsLoading ? "更新中" : sample ? "含示例" : statusIsCached ? "缓存" : "实时";
   const scopeNote =
     view === "aa" || view === "livebench"
       ? "仅 LLM"
@@ -226,172 +243,185 @@ export function AiLeaderboardPage() {
         : null;
 
   return (
-    <div class="ai-leaderboard-page" data-view={view}>
+    <div class={`ai-leaderboard-page${analysisOpen ? " is-analysis-open" : ""}`} data-view={view}>
       <FeatureHeader
         className="ai-leaderboard-header"
         brand={
           <div class="ai-leaderboard-page-header__brand">
             <h1 class="ai-leaderboard-page-header__title">AI 榜单</h1>
-            <p class="ai-leaderboard-page-header__sub">三个评测源，一个视图</p>
+            <p class="ai-leaderboard-page-header__sub">多源数据，一个视图</p>
           </div>
         }
       >
         <span
-          class={`ai-leaderboard-status-pill${sample ? " is-sample" : ""}`}
-          title={sample ? "部分数据为示例快照" : "数据来自在线或缓存"}
+          class={`ai-leaderboard-status-pill${statusIsLoading ? " is-loading" : sample ? " is-sample" : statusIsCached ? " is-cached" : ""}`}
+          title={statusIsLoading ? "正在获取榜单数据" : sample ? "部分数据为示例快照" : statusIsCached ? "当前使用缓存快照，可能需要刷新" : "数据来自在线源"}
         >
           <span class="ai-leaderboard-status-pill__dot" aria-hidden="true" />
-          {sample ? "含示例" : "实时"}
+          {statusLabel}
           {clock ? ` · ${clock}` : ""}
         </span>
       </FeatureHeader>
 
-      <div class="ai-leaderboard-toolbar">
-        <LeaderboardFilterBar />
-      </div>
+      <div class="ai-lb-workbench">
+        <LeaderboardReadingRail onAnalyze={() => setAnalysisOpen(true)} />
 
-      {count > 0 && (
-        <div class="ai-leaderboard-summary" aria-live="polite">
-          <span class="ai-leaderboard-summary__dot" aria-hidden="true" />
-          <span>{crumb}</span>
-          <span class="ai-leaderboard-summary__sep">·</span>
-          <span>
-            共 <strong>{count}</strong> 个模型
-          </span>
-          {scopeNote && (
-            <>
-              <span class="ai-leaderboard-summary__sep">·</span>
-              <span class="ai-leaderboard-summary__note">{scopeNote}</span>
-            </>
-          )}
-          {sourceDate.value ? (
-            <>
-              <span class="ai-leaderboard-summary__sep">·</span>
-              <span class="ai-leaderboard-summary__note" title="Arena 社区快照的数据截止日期">
-                数据截至 {fmtDate(sourceDate.value)}
-              </span>
-            </>
-          ) : fetchedAt.value ? (
-            <>
-              <span class="ai-leaderboard-summary__sep">·</span>
-              {view === "aa" ? (
-                <span
-                  class="ai-leaderboard-summary__note"
-                  title={`数据快照引用日 = ${fmtDate(fetchedAt.value)}；AA 方法论版本 ${AA_METHODOLOGY_VERSION}`}
-                >
-                  数据快照（引用日）：{fmtDate(fetchedAt.value)} · 方法论 {AA_METHODOLOGY_VERSION}
-                </span>
-              ) : (
-                <span class="ai-leaderboard-summary__note">数据更新于 {fmtDate(fetchedAt.value)}</span>
-              )}
-            </>
-          ) : null}
-          <span class="ai-leaderboard-summary__fill" />
-          <BoardHealthCard total={count} compact />
+        <main class="ai-lb-main" aria-label="AI 榜单数据工作区">
+          <div class="ai-leaderboard-toolbar">
+            <LeaderboardFilterBar />
+          </div>
+
           {count > 0 && (
-            <button type="button" class="ai-lb-copy-btn" onClick={handleCopyTable}>
-              {copied ? "已复制 ✓" : "复制表格"}
-            </button>
-          )}
-          {count > 0 && (
-            <button
-              type="button"
-              class="ai-lb-copy-btn"
-              onClick={handleExportCsv}
-              disabled={exporting}
-              title="导出当前视图当前过滤后模型为 CSV"
-            >
-              {exporting ? "导出中…" : "导出 CSV"}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* AA 视角专属：方法说明（R1/R2a/R3）+ 过期兜底提示（R4）。
-          仅 AA 视图渲染，且避开 loading/error 态；其它视图（arena/livebench/hf）行为不变。 */}
-      {view === "aa" && !loading.value && !error.value && (
-        <>
-          {count > 0 && (
-            <div class="ai-leaderboard-summary" aria-live="polite">
-              <span class="ai-leaderboard-summary__dot" aria-hidden="true" />
-              <span class="ai-leaderboard-summary__note ai-leaderboard-summary__method">
-                <strong>AA 方法说明：</strong>
-                Intelligence Index 由 AA 按 9 项评测加权（{AA_METHODOLOGY_VERSION}）得出，Pulse 直接引用、未本地重算；
-                本视图无置信区间（Free tier 未提供）；Cost/Task 取官方 cost_per_task.total_cost；
-                输出价仍展示 token 单价，blended 为 (in+out)/2 估算；数据来自 Free API 分页结果（可能少于官网图表窗）。
-              </span>
-            </div>
-          )}
-          {stale.value && (
-            <div class="ai-lb-state ai-lb-state--warn" role="status">
-              <span class="ai-lb-state-icon" aria-hidden="true">⚠</span>
-              <span class="ai-lb-state-text">数据可能过期（使用缓存快照兜底）</span>
-            </div>
-          )}
-        </>
-      )}
-
-      <div class={`ai-leaderboard-body${animate ? " is-entering" : ""}`}>
-        {loading.value && <LoadingState />}
-
-        {error.value && (
-          <ErrorState message={error.value} onRetry={() => refresh()} />
-        )}
-
-        {isEmpty && licenseEmpty ? (
-          <LicenseEmptyHint
-            kind={licenseFilter.value}
-            counts={licenseCounts}
-            boardLabel={boardLabel}
-            arenaView={view === "arena"}
-            onClear={() => setLicenseFilter("all")}
-          />
-        ) : isEmpty ? (
-          <EmptyState onRetry={() => (searchQuery.value ? clearSearchQuery() : refresh())} />
-        ) : null}
-
-        {!loading.value && !error.value && rows.length > 0 && (
-          <>
-            {/* R6：排序区上下文提示——仅 AA 视图 + 默认 intelligence 维度（即头条排序）。
-                说明默认视图即按 AA 综合智力指数排序，Pulse 直接引用、未本地重算加权；
-                与 R1「AA 方法说明」互补（R1 为全局方法说明，本提示为排序区局部上下文）。
-                其它视角（arena/livebench/hf）或 AA 非 intelligence 维度均不渲染。 */}
-            {view === "aa" && activeDim.value === "intelligence" && (
-              <p class="ai-leaderboard-sort-hint" role="note">
-                默认按 <strong>Intelligence Index（AA 综合智力指数）</strong> 排序 —— 由 AA 加权 9
-                项评测得出，Pulse 直接引用、未本地重算加权。点击其它列头可切换为单维度排序。
-              </p>
-            )}
-            {/* R5 Free 轻量版：AA 维度透明度提示块（仅 AA 视图渲染）。
-                说明 Capability Indices / Openness Index / 多模态 Elo 为 AA Commercial 专属维度，
-                Free tier 不暴露；Pulse 当前仅展示免费 5 维。多模态评测指针可点击跳转 Arena 视角，
-                避免把恒为「暂无」的知识维度（math/gpqa/mmlu/hle/lcb）伪装成可选维度暴露。 */}
-            {view === "aa" && (
-              <div class="ai-leaderboard-dim-note" role="note">
-                <p class="ai-leaderboard-dim-note__text">
-                  AA 的 <strong>Capability Indices（行业能力）</strong>、<strong>Openness Index</strong>
-                  与 <strong>多模态 Elo</strong> 为 Commercial 专属维度，Free tier 不暴露。Pulse 当前仅展示
-                  免费维度：Intelligence / Coding / Agentic / Speed / Price / Cost·Task。
-                </p>
-                <button
-                  type="button"
-                  class="ai-leaderboard-dim-note__link"
-                  onClick={() => setView("arena")}
-                >
-                  多模态（图/视频）评测 → 见 Arena 视角的 图生图 / 文生视频 榜
-                </button>
+            <div class="ai-lb-status-row" aria-live="polite">
+              <div class="ai-lb-status-row__main">
+                <span class="ai-leaderboard-summary__dot" aria-hidden="true" />
+                <strong>{crumb}</strong>
+                <span class="ai-lb-status-row__count"><b>{count}</b> 个模型</span>
+                {scopeNote && <span class="ai-lb-status-row__scope">{scopeNote}</span>}
               </div>
-            )}
+              <div class="ai-lb-status-row__actions">
+                {cacheBacked && (
+                  <span
+                    class={`ai-lb-state ai-lb-state--warn ai-lb-status-badge${stale.value ? " is-stale" : ""}`}
+                    role="status"
+                    title={stale.value ? "数据可能过期，当前使用缓存快照兜底" : "当前使用缓存快照"}
+                  >
+                    <span class="ai-lb-status-badge__dot" aria-hidden="true" />
+                    <span class="ai-lb-state-text">{stale.value ? "数据可能过期" : "缓存快照"}</span>
+                  </span>
+                )}
+                <details class="ai-lb-data-details">
+                  <summary aria-label="查看数据状态、来源和方法说明">数据状态</summary>
+                  <div class="ai-lb-data-details__panel">
+                    <div class="ai-lb-data-details__heading">
+                      <strong>数据状态</strong>
+                      <span>
+                        {sourceDate.value
+                          ? `数据截至 ${fmtDate(sourceDate.value)}`
+                          : fetchedAt.value
+                            ? view === "aa"
+                              ? `数据快照（引用日）：${fmtDate(fetchedAt.value)}`
+                              : `更新于 ${fmtDate(fetchedAt.value)}`
+                            : "暂无快照时间"}
+                      </span>
+                    </div>
+                    <BoardHealthCard total={count} items={rows} compact />
+                    {view === "aa" && (
+                      <div class="ai-lb-data-details__method">
+                        <div class="ai-lb-data-details__method-title">
+                          <strong>AA 方法说明</strong>
+                          <span>方法论 {AA_METHODOLOGY_VERSION} · Free tier 口径</span>
+                        </div>
+                        <p class="ai-leaderboard-summary__note ai-leaderboard-summary__method">
+                          Intelligence Index 由 AA 按 9 项评测加权（{AA_METHODOLOGY_VERSION}）得出，Pulse 直接引用、未本地重算；
+                          本视图无置信区间（Free tier 未提供）；Cost/Task 取官方 cost_per_task.total_cost；
+                          输出价仍展示 token 单价，blended 为 (in+out)/2 估算；数据来自 Free API 分页结果。
+                        </p>
+                      </div>
+                    )}
+                    {view === "aa" && (
+                      <details class="ai-leaderboard-dim-note" role="note">
+                        <summary>
+                          <strong>AA 免费维度说明</strong>
+                          <span>Commercial 能力维度不在 Free tier</span>
+                        </summary>
+                        <p class="ai-leaderboard-dim-note__text">
+                          AA 的 <strong>Capability Indices（行业能力）</strong>、<strong>Openness Index</strong>
+                          与 <strong>多模态 Elo</strong> 为 Commercial 专属维度，Free tier 不暴露。Pulse 当前仅展示
+                          免费维度：Intelligence / Coding / Agentic / Speed / Price / Cost·Task。
+                        </p>
+                        <button
+                          type="button"
+                          class="ai-leaderboard-dim-note__link"
+                          onClick={() => setView("arena")}
+                        >
+                          多模态（图/视频）评测 → 见 Arena 视角的 图生图 / 文生视频 榜
+                        </button>
+                      </details>
+                    )}
+                    <div class="ai-lb-data-details__actions">
+                      <button type="button" class="ai-lb-copy-btn" onClick={handleCopyTable}>
+                        {copied ? "已复制 ✓" : "复制表格"}
+                      </button>
+                      <button
+                        type="button"
+                        class="ai-lb-copy-btn"
+                        onClick={handleExportCsv}
+                        disabled={exporting}
+                        title="导出当前视图当前过滤后模型为 CSV"
+                      >
+                        {exporting ? "导出中…" : "导出 CSV"}
+                      </button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          )}
+
+          <section
+            class="ai-lb-table-region"
+            aria-busy={loading.value}
+            aria-label={`${crumb || "AI 榜单"}数据表`}
+          >
+            <div class={`ai-leaderboard-body${animate ? " is-entering" : ""}`}>
+              {showInitialLoading && <LoadingState view={view} />}
+
+              {loading.value && rows.length > 0 && (
+                <div class="ai-lb-refresh-progress" role="status" aria-live="polite">
+                  <span class="ai-lb-refresh-progress__dot" aria-hidden="true" />
+                  正在更新数据，当前表格仍可阅读
+                </div>
+              )}
+
+              {error.value && (
+                <ErrorState message={error.value} onRetry={() => refresh()} />
+              )}
+
+              {isEmpty && licenseEmpty ? (
+                <LicenseEmptyHint
+                  kind={licenseFilter.value}
+                  counts={licenseCounts}
+                  boardLabel={boardLabel}
+                  arenaView={view === "arena"}
+                  onClear={() => setLicenseFilter("all")}
+                />
+              ) : isEmpty ? (
+                <EmptyState onRetry={() => (searchQuery.value ? clearSearchQuery() : refresh())} />
+              ) : null}
+
+              {!error.value && rows.length > 0 && !showInitialLoading && (
+                <>
+                  {view === "aa" && activeDim.value === "intelligence" && (
+                    <p class="ai-leaderboard-sort-hint" role="note">
+                      默认按 <strong>Intelligence Index（AA 综合智力指数）</strong> 排序 —— 由 AA 加权 9
+                      项评测得出，Pulse 直接引用、未本地重算加权。点击其它列头可切换为单维度排序。
+                    </p>
+                  )}
+                  <LeaderboardTable rows={rows} view={view} />
+                </>
+              )}
+            </div>
+          </section>
+
+          <details class="ai-lb-secondary-insights">
+            <summary>查看补充视图</summary>
             {view === "aa" && <ValueScatter items={rows} />}
             {view === "arena" && <ArenaBubbleChart items={rows} board={activeBoard.value} />}
             <TopPodium rows={rows} view={view} />
-            <LeaderboardTable rows={rows} view={view} />
-          </>
-        )}
+          </details>
+        </main>
+
+        <aside class="ai-lb-context-rail" aria-label="模型详情提示">
+          <div class="ai-lb-context-rail__title">详情</div>
+          <div class="ai-lb-context-rail__state">未选择行</div>
+          <p>点击表格中的模型名称，查看模型切片、来源和原始数据。</p>
+        </aside>
       </div>
 
       <ModelDetailDrawer />
-      <ComparePanel />
+      <ComparePanel onAnalyze={() => setAnalysisOpen(true)} />
+      <AIAnalysisPanel open={analysisOpen} onClose={() => setAnalysisOpen(false)} />
 
       <AttributionFooter attribution={attribution.value} />
     </div>

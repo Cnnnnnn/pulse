@@ -7,7 +7,8 @@
  * 行为契约:
  *   - section=null → 不渲染 (AppShell hover 状态机管理)
  *   - section=X → 渲染 .nav-drawer + data-section="X" + 该 section 下的 nav items
- *   - 按 NAV_REGISTRY.section 分组 (news section: news/ai-leaderboard/games/github; holdings: invest/ai-usage; system: versions)
+ *   - 按 NAV_REGISTRY.section 分组 (news section: news/ai-leaderboard/github; holdings: invest/ai-usage)
+ *   - system section 独立管理 应用列表 / 诊断 / 设置 三个版本检查页面
  *   - active 项加 .nav-drawer-item-active class
  *   - 可见项 = effectiveVisibleItems (sidenav-prefs) ∩ trayMenuPrefs.segments
  *   - 鼠标移入/移出 onEnter/onLeave (AppShell 用来维持 hover 状态)
@@ -16,8 +17,10 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 
 let mockActiveNav = "news";
+let mockCurrentRoute = "library";
 const mockSetActiveNav = vi.fn();
 const mockGoInvest = vi.fn();
+const mockNavigateTo = vi.fn();
 let mockTrayPrefs: any = {
   version: 1,
   segments: { updates: true, ai_usage: true } as Record<string, boolean>,
@@ -33,7 +36,6 @@ vi.mock("../../src/renderer/nav/navStore.ts", () => ({
   effectiveVisibleItems: () => [
     "news",
     "ai-leaderboard",
-    "games",
     "github",
     "invest",
     "ai-usage",
@@ -45,6 +47,13 @@ vi.mock("../../src/renderer/store/trayConfigStore.ts", () => ({
   get trayMenuPrefs() {
     return { get value() { return mockTrayPrefs; } };
   },
+}));
+
+vi.mock("../../src/renderer/store/route-store.ts", () => ({
+  get currentRoute() {
+    return { get value() { return mockCurrentRoute; } };
+  },
+  navigateTo: (route: string) => mockNavigateTo(route),
 }));
 
 vi.mock("../../src/renderer/components/sidenav-prefs.ts", () => ({
@@ -63,6 +72,8 @@ import { NavDrawer } from "../../src/renderer/components/NavDrawer.tsx";
 describe("NavDrawer — 渲染门控", () => {
   beforeEach(() => {
     mockActiveNav = "news";
+    mockCurrentRoute = "library";
+    mockNavigateTo.mockClear();
     cleanup();
   });
 
@@ -82,10 +93,10 @@ describe("NavDrawer — 渲染门控", () => {
 describe("NavDrawer — section 过滤", () => {
   beforeEach(() => cleanup());
 
-  it("section=news → 渲染 news section 下 4 个 item (news/ai-leaderboard/games/github, v2.80 删 worldcup)", () => {
+  it("section=news → 渲染 news section 下 3 个 item (news/ai-leaderboard/github, v2.80 删 worldcup)", () => {
     const { container } = render(<NavDrawer section="news" />);
     const items = container.querySelectorAll(".nav-drawer-item");
-    expect(items.length).toBe(4);
+    expect(items.length).toBe(3);
   });
 
   it("section=holdings → 渲染 2 个 item (invest/ai-usage)", () => {
@@ -97,17 +108,22 @@ describe("NavDrawer — section 过滤", () => {
     expect(keys).toContain("ai-usage");
   });
 
-  it("section=system → 渲染 1 个 item (versions)", () => {
+  it("section=system → 渲染 3 个独立页面入口", () => {
     const { container } = render(<NavDrawer section="system" />);
     const items = container.querySelectorAll(".nav-drawer-item");
-    expect(items.length).toBe(1);
-    expect(items[0].getAttribute("data-nav")).toBe("versions");
+    expect(items.length).toBe(3);
+    expect(Array.from(items).map((item) => item.getAttribute("data-nav"))).toEqual([
+      "library",
+      "diagnostics",
+      "settings",
+    ]);
   });
 });
 
 describe("NavDrawer — 选中态", () => {
   beforeEach(() => {
     mockActiveNav = "news";
+    mockCurrentRoute = "library";
     cleanup();
   });
 
@@ -130,13 +146,40 @@ describe("NavDrawer — 选中态", () => {
   });
 });
 
+describe("NavDrawer — system 独立页面", () => {
+  beforeEach(() => {
+    mockActiveNav = "versions";
+    mockCurrentRoute = "library";
+    mockSetActiveNav.mockClear();
+    mockNavigateTo.mockClear();
+    cleanup();
+  });
+
+  it("当前 route 在 system drawer 中高亮", () => {
+    mockCurrentRoute = "diagnostics";
+    const { container } = render(<NavDrawer section="system" />);
+    const active = container.querySelector(".nav-drawer-item-active");
+    expect(active?.getAttribute("data-nav")).toBe("diagnostics");
+  });
+
+  it("点击设置 → 保持 versions 模块并切换独立 route", () => {
+    const { container } = render(<NavDrawer section="system" />);
+    const settings = container.querySelector(
+      'li[data-nav="settings"] .nav-drawer-button'
+    ) as HTMLElement;
+    fireEvent.click(settings);
+    expect(mockSetActiveNav).toHaveBeenCalledWith("versions");
+    expect(mockNavigateTo).toHaveBeenCalledWith("settings");
+  });
+});
+
 describe("NavDrawer — header 计数", () => {
   beforeEach(() => cleanup());
 
   it("header 显示 'N 项' 计数 (该 section 可见项数)", () => {
     const { container } = render(<NavDrawer section="news" />);
     const count = container.querySelector(".nav-drawer-count");
-    expect(count?.textContent).toBe("4 项");
+    expect(count?.textContent).toBe("3 项");
   });
 
   it("section 标题来自 NAV_SECTIONS 单一真源", () => {

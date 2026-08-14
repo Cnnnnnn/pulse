@@ -283,6 +283,7 @@ async function _run(force: any) {
     aa: view === "aa",
     livebench: view === "livebench",
     huggingface: view === "huggingface",
+    modelsdev: true, // 上下文窗口 / 价格等表格元数据，作为轻量补全源保留
     openrouter: true, // 任何 view 都拉, 用作"目录骨架" / 厂商匹配
   };
   const opts = { category, dimension, vendor: activeVendor.value, force: !!force, sources: sourceFlags };

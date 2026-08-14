@@ -11,6 +11,7 @@ import {
 } from "../store/command-palette-store.ts";
 import { navigateTo } from "../store/route-store.ts";
 import { api } from "../api.ts";
+import { runCheck } from "../run-check.ts";
 import { setThemePreference } from "../theme/theme-manager.ts";
 import { showToast } from "../store.ts";
 import { IconSearch } from "./icons.tsx";
@@ -110,7 +111,7 @@ export function CommandPalette() {
   function execute(item: PaletteItem) {
     if (item.kind === "view") navigateTo(item.id);
     else if (item.kind === "action" && item.id === "action-check") {
-      api.versionsRunCheck && api.versionsRunCheck();
+      runCheck();
     }
     else if (item.kind === "action" && typeof item.theme === "string") {
       // P12: Cmd+K 主题切换 + toast 反馈

@@ -1,8 +1,8 @@
 /**
  * src/renderer/stocks/stocks.css
  *
- * ponytail 2026-07-18 P0-1 T7 fixup: 股票模块专属样式. 跟 src/renderer/games/games.css
- * 模式一致 (per-feature CSS file + import by layout).
+ * ponytail 2026-07-18 P0-1 T7 fixup: 股票模块专属样式（per-feature CSS file +
+ * import by layout）。
  *
  * 起步阶段只放 .data-health-badge 三条 (原 commit 9379bc2 误放全局 styles.css).
  * 后续 stock 子样式可陆续从 styles.css 提取到这里, 收敛到 module 边界.

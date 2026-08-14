@@ -81,28 +81,44 @@ export function NewsSidebar() {
             favorites,
             readIds,
           );
+          const unread = Math.max(0, total - read);
+          const readPct = total > 0 ? Math.round((read / total) * 100) : 0;
+          const allRead = !isFavorites && total > 0 && read >= total;
           return (
             <button
               key={dateKey}
               type="button"
-              class={`ithome-sidebar-item${active ? " is-active" : ""}${today ? " is-today" : ""}`}
+              class={`ithome-sidebar-item${active ? " is-active" : ""}${today ? " is-today" : ""}${unread > 0 ? " has-unread" : ""}${allRead ? " is-all-read" : ""}`}
               onClick={() => handleSelect(dateKey)}
             >
-              <span class="ithome-sidebar-item-main">
-                <span class="ithome-sidebar-item-day">{Number(d)}日</span>
-                <span class="ithome-sidebar-item-wd">
-                  周{weekdayShort(dateKey)}
-                  {today && (
-                    <span class="ithome-sidebar-today">今天</span>
-                  )}
+              <span class="ithome-sidebar-item-row">
+                <span class="ithome-sidebar-item-main">
+                  <span class="ithome-sidebar-item-day">{Number(d)}日</span>
+                  <span class="ithome-sidebar-item-wd">
+                    周{weekdayShort(dateKey)}
+                    {today && (
+                      <span class="ithome-sidebar-today">今天</span>
+                    )}
+                  </span>
                 </span>
+                {total > 0 && (
+                  <span
+                    class={`ithome-sidebar-item-badge${unread > 0 && !isFavorites ? " is-unread" : ""}`}
+                    title={isFavorites ? `${total} 篇收藏` : `${read}/${total} 已读`}
+                  >
+                    {isFavorites ? total : unread > 0 ? unread : read}
+                  </span>
+                )}
               </span>
-              {total > 0 && (
-                <span class="ithome-sidebar-item-badge">
-                  {total}
-                  {read > 0 && (
-                    <span class="ithome-sidebar-item-badge-read"> (已读 {read})</span>
-                  )}
+              {!isFavorites && total > 0 && (
+                <span
+                  class="ithome-sidebar-item-progress"
+                  aria-hidden="true"
+                >
+                  <span
+                    class="ithome-sidebar-item-progress-fill"
+                    style={`width:${readPct}%`}
+                  />
                 </span>
               )}
             </button>

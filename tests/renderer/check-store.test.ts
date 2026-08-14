@@ -113,6 +113,21 @@ describe("check-store stale phase signal cleanup", () => {
     expect(results.value.get("A").version).toBe("1.0");
   });
 
+  it("applyProgressBatch updates multiple apps through one batch", async () => {
+    const m = await freshModule();
+    const { startCheck, applyProgressBatch, getAppPhaseSignal, results } = m;
+    const sid = startCheck(["A", "B"]);
+
+    applyProgressBatch([
+      { name: "A", status: "ok", version: "1.0" },
+      { name: "B", status: "error", error: "boom" },
+    ], sid);
+
+    expect(results.value.size).toBe(2);
+    expect(getAppPhaseSignal("A").value).toBe("done");
+    expect(getAppPhaseSignal("B").value).toBe("error");
+  });
+
   it("applyProgress on error result sets phase=error", async () => {
     const m = await freshModule();
     const { startCheck, applyProgress, getAppPhaseSignal } = m;

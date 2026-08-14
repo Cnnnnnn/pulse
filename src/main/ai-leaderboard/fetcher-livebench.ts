@@ -14,6 +14,7 @@
  */
 
 import { SOURCE, ATTRIBUTION, normalizeVendor } from "./types";
+import { logFetchError } from "./log";
 
 const BASE = "https://livebench.ai";
 const MAIN_JS_RE = /const pe=\[("[0-9]{4}-[0-9]{2}-[0-9]{2}",?)+\]/;
@@ -117,25 +118,36 @@ function releaseToSlug(release: string): string {
 //   旧写法 `export const livebenchFetcher = { normalize }` + `module.exports = obj`
 //   经 esbuild 后变成 `{ livebenchFetcher: obj }`，aggregator 调 `.normalize` 会炸。
 export async function fetch(): Promise<any> {
-  const release = await latestRelease();
-  const slug = releaseToSlug(release);
-  const [tableRes, catRes, costRes] = await Promise.all([
-    fetchWithRetry(`${BASE}/table_${slug}.csv`),
-    fetchWithRetry(`${BASE}/categories_${slug}.json`),
-    // ponytail: cost CSV 旧 release 不一定有 (2024 release 全 404). best-effort, 失败不阻塞主表.
-    fetchWithRetry(`${BASE}/cost_${slug}.csv`, {}, 1).catch(() => null),
-  ]);
-  const [tableText, catText, costText] = await Promise.all([
-    tableRes.text(),
-    catRes.text(),
-    costRes ? costRes.text().catch(() => null) : Promise.resolve(null),
-  ]);
-  const categories = JSON.parse(catText);
-  const data: any = { release, table: parseCsv(tableText), categories };
-  if (costText) {
-    data.cost = parseCsv(costText); // 同 model 名 key 联合查
+  try {
+    const release = await latestRelease();
+    const slug = releaseToSlug(release);
+    const [tableRes, catRes, costRes] = await Promise.all([
+      fetchWithRetry(`${BASE}/table_${slug}.csv`),
+      fetchWithRetry(`${BASE}/categories_${slug}.json`),
+      // ponytail: cost CSV 旧 release 不一定有 (2024 release 全 404). best-effort, 失败不阻塞主表.
+      fetchWithRetry(`${BASE}/cost_${slug}.csv`, {}, 1).catch(() => null),
+    ]);
+    const [tableText, catText, costText] = await Promise.all([
+      tableRes.text(),
+      catRes.text(),
+      costRes ? costRes.text().catch(() => null) : Promise.resolve(null),
+    ]);
+    const categories = JSON.parse(catText);
+    const data: any = { release, table: parseCsv(tableText), categories };
+    if (costText) {
+      data.cost = parseCsv(costText); // 同 model 名 key 联合查
+    }
+    return { ok: true, data };
+  } catch (err: any) {
+    logFetchError("livebench", err);
+    return {
+      ok: false,
+      source: "livebench",
+      data: null,
+      fetchedAt: new Date().toISOString(),
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
-  return { ok: true, data };
 }
 
 /**

@@ -19,14 +19,11 @@ import {
 } from './store/release-notes-store.ts';
 import {
   apps,
-  applyProgress,
   applyProgressBatch,
   markAppDetecting,
   startCheck,
   finishCheck,
-  setError,
   isCheckRunning,
-  checkSession,
   loadMutes,
   loadLastOpened,
   loadActiveCategory,
@@ -44,6 +41,8 @@ import { taggedLog } from './log.ts';
 import { applyPlatformBodyClass } from './platform-body-class.ts';
 import { initTheme, getThemePreference, setThemePreference } from './theme/theme-manager.ts';
 import { setActiveNav, PERSISTABLE_NAV_KEYS } from './nav/navStore.ts';
+import { runCheck } from './run-check.ts';
+import { createProgressBuffer } from './check-progress-buffer.ts';
 
 const log = taggedLog("[index]");
 
@@ -54,27 +53,14 @@ let activeRecheck = null;
 async function triggerCheck() {
   if (isCheckRunning()) return;
   if (activeRecheck) activeRecheck.cancel();
-
-  const appNames = apps.value.map(a => a.name);
-  const sessionId = startCheck(appNames);
-
-  try {
-    const returned = await api.checkUpdates();
-    if (checkSession.value.id === sessionId) {
-      if (Array.isArray(returned) && returned.length > 0) {
-        applyProgressBatch(returned, sessionId);
-      }
-      finishCheck();
-    }
-  } catch (err) {
-    log.error("checkUpdates failed:", err);
-    if (checkSession.value.id === sessionId) {
-      setError(err && err.message || String(err));
-    }
-  }
+  return runCheck();
 }
 
 function wireRendererListeners() {
+  const progressBuffer = createProgressBuffer((batch, sessionId) => {
+    applyProgressBatch(batch, sessionId);
+  });
+
   api.onLastOpenedUpdated((data) => {
     if (!data || !data.lastOpened) return;
     const next = new Map();
@@ -105,13 +91,23 @@ function wireRendererListeners() {
     });
   });
 
+  if (typeof api.onCheckStarted === 'function') {
+    api.onCheckStarted((data) => {
+      if (isCheckRunning()) return;
+      const appNames = Array.isArray(data && data.appNames)
+        ? data.appNames
+        : apps.value.map((app) => app && app.name).filter(Boolean);
+      startCheck(appNames);
+    });
+  }
+
   api.onCheckProgress((result) => {
     if (!result || !result.name) return;
     if (result.status === 'started') {
       markAppDetecting(result.name, result && result._sessionId);
       return;
     }
-    applyProgress(result, result && result._sessionId);
+    progressBuffer.enqueue(result);
   });
 
   if (typeof api.onCheckFinished === 'function') {
@@ -291,7 +287,9 @@ async function bootstrap() {
     api.onThemeChanged(({ mode, source }) => {
       if (mode && ['system', 'light', 'dark'].includes(mode)) {
         // 仅当来自托盘 (source='tray') 时 toast — system 模式自动跟随不 toast (避免噪音)
-        setThemePreference(mode);
+        // 主进程广播是对 renderer 写入的回执；不要再次 theme:set，
+        // 否则 renderer → main → renderer 会形成无限同步环并导致整页闪动。
+        setThemePreference(mode, { syncMain: false });
         if (source === 'tray') {
           showToast(`主题已切换为「${TOAST_LABEL[mode] || mode}」`, 'success', 1800);
         }

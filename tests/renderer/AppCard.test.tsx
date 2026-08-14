@@ -1,8 +1,16 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { render, cleanup, screen } from "@testing-library/preact";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/preact";
 import { resetCheck, applyProgress } from "../../src/renderer/store.ts";
 import { AppCard } from "../../src/renderer/components/AppCard.tsx";
+import { api } from "../../src/renderer/api.ts";
+
+vi.mock("../../src/renderer/api.ts", () => ({
+  api: {
+    brewUpgrade: vi.fn(() => Promise.resolve({ success: true })),
+    getAppIcon: vi.fn(() => Promise.resolve(null)),
+  },
+}));
 
 function makeResult(over) {
   return {
@@ -37,5 +45,16 @@ describe("AppCard (Task 11)", () => {
     render(<AppCard name="vscode" />);
     expect(screen.getByText("vscode")).toBeTruthy();
     expect(screen.getByLabelText("升级 vscode")).toBeTruthy();
+  });
+
+  it("显示 installed_version 并使用 brew_cask 执行升级", async () => {
+    render(<AppCard name="vscode" />);
+
+    expect(screen.getByText(/1\.85.*1\.86/)).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("升级 vscode"));
+
+    await waitFor(() => {
+      expect(api.brewUpgrade).toHaveBeenCalledWith("visual-studio-code");
+    });
   });
 });

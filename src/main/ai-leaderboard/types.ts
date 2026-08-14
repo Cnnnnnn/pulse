@@ -2,7 +2,7 @@
  * src/main/ai-leaderboard/types.ts
  *
  * 模块级常量 + 基础构造（单一真源）。
- * 对应 games 的 src/main/games/normalize.js 的 PLATFORM_META 常量区范式。
+ * 对应本模块 normalize.ts 的常量组织范式。
  *
  * 这里只放纯数据/纯函数（不引入任何网络/electron 依赖），
  * 保证可单测、且被 fetcher / aggregator / ranking 安全复用。

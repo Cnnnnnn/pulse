@@ -38,6 +38,7 @@ export async function handleDetectApp(appCfg: any, deps: any) {
   const { http, logger } = deps;
   const name = (appCfg && appCfg.name) || "unknown";
   const bundle = (appCfg && appCfg.bundle) || "";
+  let detectedBundle = bundle;
   const startedAt = Date.now();
   sendProgress({ task: "detect-app", name, status: "started", ts: startedAt });
 
@@ -52,6 +53,12 @@ export async function handleDetectApp(appCfg: any, deps: any) {
       appExists = !!(await platform.getInstalledVersion(appCfg));
     } else {
       appExists = fs.existsSync(platform.resolveAppPath(bundle, appCfg));
+      if (
+        appExists &&
+        typeof platform.resolveBundleName === "function"
+      ) {
+        detectedBundle = platform.resolveBundleName(bundle, appCfg) || bundle;
+      }
     }
   } catch {
     appExists = false;
@@ -75,10 +82,20 @@ export async function handleDetectApp(appCfg: any, deps: any) {
     return r;
   }
 
+  // Bundle-dependent detectors (app-update.yml / bundle changelog) must read
+  // the actual installed alias as well, not only the configured package name.
+  const effectiveAppCfg =
+    detectedBundle === bundle
+      ? appCfg
+      : { ...appCfg, bundle: detectedBundle };
+
   let installed = null;
   let versionUnknown = false;
   try {
-    installed = await getInstalledVersion(bundle, appCfg.version_sources);
+    installed = await getInstalledVersion(
+      detectedBundle,
+      appCfg.version_sources,
+    );
   } catch {
     /* noop */
   }
@@ -97,7 +114,7 @@ export async function handleDetectApp(appCfg: any, deps: any) {
     note: hasVS ? `vs[${appCfg.version_sources.length}]` : "legacy",
   });
 
-  const chainResult = await runDetectorChain(appCfg, {
+  const chainResult = await runDetectorChain(effectiveAppCfg, {
     arch: ARCH,
     platform: PLATFORM,
     http,
@@ -120,7 +137,7 @@ export async function handleDetectApp(appCfg: any, deps: any) {
   if (appCfg.bundle_changelog === true) {
     try {
       const bundleResult = await new AppBundleChangelogDetector().detect({
-        appCfg,
+        appCfg: effectiveAppCfg,
         arch: ARCH,
         http: null,
         logger,
@@ -150,8 +167,8 @@ export async function handleDetectApp(appCfg: any, deps: any) {
 
   const r = buildDetectResult({
     name,
-    bundle,
-    appCfg,
+    bundle: detectedBundle,
+    appCfg: effectiveAppCfg,
     installed,
     versionUnknown,
     chainResult,
@@ -192,4 +209,3 @@ export async function handleBrewUpdate() {
     };
   }
 }
-

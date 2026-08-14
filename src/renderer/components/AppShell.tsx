@@ -125,7 +125,7 @@ export function AppShell({ onCheck }: { onCheck?: () => void }) {
         onLeaveSection={scheduleClose}
         openSection={openSection}
       />
-      <div class="app-shell-view">
+      <div class={`app-shell-view${nav === 'ai-leaderboard' ? ' app-shell-view--ai-leaderboard' : ''}`}>
         {nav === 'home'
           ? <Dashboard />
           : <LazyNavPanel nav={nav} onCheck={onCheck} />}

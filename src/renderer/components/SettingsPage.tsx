@@ -17,6 +17,13 @@ import { signal } from "@preact/signals";
 import { PageHeader } from "./PageHeader.tsx";
 import { SubtabList } from "./SubtabList.tsx";
 import { AISettingsScene } from "./AISettingsScene.tsx";
+import {
+  IconBell,
+  IconClock,
+  IconLock,
+  IconPalette,
+  IconShare,
+} from "./icons.tsx";
 import { routeTab } from "../store/route-store.ts";
 import {
   getThemePreference,
@@ -31,13 +38,6 @@ import {
   githubAutoCheckIntervalMin, setGithubAutoCheckInterval,
   githubNotifyOnNew, setGithubNotifyOnNew,
 } from "../store/github-projects-store.ts";
-import {
-  gamesAutoCheck, setGamesAutoCheck,
-  gamesAutoCheckIntervalMin, setGamesAutoCheckInterval,
-  gamesNotifyOnFree, setGamesNotifyOnFree,
-  gamesNotifyOnDrop, setGamesNotifyOnDrop,
-  loadGamesSettings,
-} from "../games/gamesStore.ts";
 // ponytail: 初始值取 localStorage, 但在 useEffect 里再订阅 data-theme-source
 //           变化, 防止 main 进程 / 其它 renderer 改主题时 signal 跟 UI 脱节.
 const themeMode = signal(getThemePreference());
@@ -55,7 +55,6 @@ const settingsTab = signal(routeTab.value === "ai" ? "ai" : "general");
 const SETTINGS_TABS = [
   { key: "general", label: "常规" },
   { key: "github", label: "GitHub" },
-  { key: "games", label: "游戏" },
   { key: "ai", label: "AI 配置" },
 ];
 
@@ -66,6 +65,13 @@ const THEME_OPTIONS = [
 ];
 const THEME_TOAST = { system: "跟随系统", light: "浅色", dark: "深色" };
 const VALID_THEME = new Set(["system", "light", "dark"]);
+
+function themeSummary() {
+  if (themeMode.value === "system") {
+    return `跟随系统 · 当前${themeResolved.value === "dark" ? "深色" : "浅色"}`;
+  }
+  return themeMode.value === "dark" ? "深色模式" : "浅色模式";
+}
 
 /* ─── 最近活动 + 提醒 (异步加载) ──────────────────────────────── */
 const recentEntries = signal([]); // RecentActivityEntry[]
@@ -338,34 +344,35 @@ function GithubSettingsSection() {
       </div>
     </section>
 
-    <section class="settings-card">
-      <h3 class="settings-card__title">自动检查</h3>
-      <p class="settings-row__hint" style="margin:0 0 12px">
-        在应用运行时定时检查新版本，发现更新时弹桌面通知。
-        <b>仅在应用开着时检查</b>，关闭应用不会后台运行。
-      </p>
-      <div class="settings-row">
+    <section class="settings-card settings-card--automation">
+      <div class="settings-card__heading">
+        <div>
+          <h3 class="settings-card__title">自动检查</h3>
+          <p class="settings-card__intro">仅在 Pulse 运行时检查新版本；关闭应用不会后台运行。</p>
+        </div>
+        <span class={`settings-status-pill ${githubAutoCheck.value ? "is-on" : ""}`}>{githubAutoCheck.value ? "运行中" : "已暂停"}</span>
+      </div>
+      <div class="settings-control-row">
         <div class="settings-row__label-block">
           <span class="settings-row__label">自动检查新版本</span>
-          <span class="settings-row__hint">
-            {githubAutoCheck.value ? "已开启" : "已关闭"}
-          </span>
+          <span class="settings-row__hint">按设置的节奏扫描已收录项目的最新版本。</span>
         </div>
-        <div class="settings-row__buttons">
-          <button
-            type="button"
-            class={`settings-btn ${githubAutoCheck.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
-            onClick={() => setGithubAutoCheck(!githubAutoCheck.value)}
-          >
-            {githubAutoCheck.value ? "已开启" : "已关闭"}
-          </button>
-        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={githubAutoCheck.value}
+          aria-label="自动检查新版本"
+          class={`settings-switch ${githubAutoCheck.value ? "is-on" : ""}`}
+          onClick={() => setGithubAutoCheck(!githubAutoCheck.value)}
+        >
+          <span class="settings-switch__thumb" />
+        </button>
       </div>
       {githubAutoCheck.value && (
-        <div class="settings-row">
+        <div class="settings-control-row">
           <div class="settings-row__label-block">
             <span class="settings-row__label">检查频率</span>
-            <span class="settings-row__hint">过于频繁可能触发 GitHub 限流。</span>
+            <span class="settings-row__hint">建议保持 6 小时；过于频繁可能触发 GitHub 限流。</span>
           </div>
           <div class="settings-select">
             <select
@@ -381,111 +388,23 @@ function GithubSettingsSection() {
           </div>
         </div>
       )}
-      <div class="settings-row">
+      <div class="settings-control-row">
         <div class="settings-row__label-block">
           <span class="settings-row__label">发现新版本时桌面通知</span>
           <span class="settings-row__hint">
             首次发通知时会请求系统通知权限，拒绝后只更新徽标。
           </span>
         </div>
-        <div class="settings-row__buttons">
-          <button
-            type="button"
-            class={`settings-btn ${githubNotifyOnNew.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
-            onClick={() => setGithubNotifyOnNew(!githubNotifyOnNew.value)}
-          >
-            {githubNotifyOnNew.value ? "已开启" : "已关闭"}
-          </button>
-        </div>
-      </div>
-    </section>
-    </>
-  );
-}
-
-/* ─── 游戏优惠 (免费活动后台检查) ─────────────────────────────── */
-function GamesSettingsSection() {
-  useEffect(() => {
-    loadGamesSettings();
-  }, []);
-  return (
-    <>
-    <section class="settings-card">
-      <h3 class="settings-card__title">免费活动自动检查</h3>
-      <p class="settings-row__hint" style="margin:0 0 12px">
-        在应用运行时定时检查 Epic、Steam 和 Xbox 免费活动，发现新活动时弹桌面通知。
-        <b>仅在应用开着时检查</b>，关闭应用不会后台运行。
-      </p>
-      <div class="settings-row">
-        <div class="settings-row__label-block">
-          <span class="settings-row__label">自动检查免费活动</span>
-          <span class="settings-row__hint">
-            {gamesAutoCheck.value ? "已开启" : "已关闭"}
-          </span>
-        </div>
-        <div class="settings-row__buttons">
-          <button
-            type="button"
-            class={`settings-btn ${gamesAutoCheck.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
-            onClick={() => setGamesAutoCheck(!gamesAutoCheck.value)}
-          >
-            {gamesAutoCheck.value ? "已开启" : "已关闭"}
-          </button>
-        </div>
-      </div>
-      {gamesAutoCheck.value && (
-        <div class="settings-row">
-          <div class="settings-row__label-block">
-            <span class="settings-row__label">检查频率</span>
-            <span class="settings-row__hint">各平台活动更新时间不同。</span>
-          </div>
-          <div class="settings-select">
-            <select
-              class="settings-select__el"
-              value={String(gamesAutoCheckIntervalMin.value)}
-              onChange={(e) => setGamesAutoCheckInterval(Number(e.currentTarget.value))}
-            >
-              <option value="60">每 1 小时</option>
-              <option value="180">每 3 小时</option>
-              <option value="360">每 6 小时（默认）</option>
-              <option value="720">每 12 小时</option>
-            </select>
-          </div>
-        </div>
-      )}
-      <div class="settings-row">
-        <div class="settings-row__label-block">
-          <span class="settings-row__label">发现新免费活动时桌面通知</span>
-          <span class="settings-row__hint">
-            首次发通知时会请求系统通知权限，拒绝后只更新侧栏红点。
-          </span>
-        </div>
-        <div class="settings-row__buttons">
-          <button
-            type="button"
-            class={`settings-btn ${gamesNotifyOnFree.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
-            onClick={() => setGamesNotifyOnFree(!gamesNotifyOnFree.value)}
-          >
-            {gamesNotifyOnFree.value ? "已开启" : "已关闭"}
-          </button>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-row__label-block">
-          <span class="settings-row__label">关注游戏降价时桌面通知</span>
-          <span class="settings-row__hint">
-            心愿单里的游戏降价时弹桌面通知。先在游戏页点 ♥ 关注。
-          </span>
-        </div>
-        <div class="settings-row__buttons">
-          <button
-            type="button"
-            class={`settings-btn ${gamesNotifyOnDrop.value ? "settings-btn--primary" : "settings-btn--ghost"}`}
-            onClick={() => setGamesNotifyOnDrop(!gamesNotifyOnDrop.value)}
-          >
-            {gamesNotifyOnDrop.value ? "已开启" : "已关闭"}
-          </button>
-        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={githubNotifyOnNew.value}
+          aria-label="发现新版本时桌面通知"
+          class={`settings-switch ${githubNotifyOnNew.value ? "is-on" : ""}`}
+          onClick={() => setGithubNotifyOnNew(!githubNotifyOnNew.value)}
+        >
+          <span class="settings-switch__thumb" />
+        </button>
       </div>
     </section>
     </>
@@ -552,155 +471,122 @@ export function SettingsPage() {
       <div class="settings-content">
         {tab === "general" ? (
           <>
-            {/* ── 外观 ── */}
-            <section class="settings-card">
-              <h3 class="settings-card__title">外观</h3>
-              <div class="settings-row">
-                <div class="settings-row__label-block">
-                  <span class="settings-row__label">主题</span>
-                  <span class="settings-row__hint">选择「跟随系统」自动匹配 macOS / Windows 外观。</span>
+            <section class="settings-overview" aria-label="设置概览">
+              <div class="settings-overview-card">
+                <span class="settings-overview-card__icon"><IconPalette size={20} /></span>
+                <span class="settings-overview-card__eyebrow">外观</span>
+                <strong>{themeSummary()}</strong>
+                <span>选择适合当前环境的界面主题</span>
+              </div>
+              <div class="settings-overview-card">
+                <span class="settings-overview-card__icon"><IconClock size={20} /></span>
+                <span class="settings-overview-card__eyebrow">最近活动</span>
+                <strong>{recent.length ? `${recent.length} 条已记录` : "等待新的记录"}</strong>
+                <span>检查更新或完成操作后会自动显示</span>
+              </div>
+              <div class="settings-overview-card">
+                <span class="settings-overview-card__icon"><IconLock size={20} /></span>
+                <span class="settings-overview-card__eyebrow">数据安全</span>
+                <strong>仅保存在本机</strong>
+                <span>配置不会同步到云端服务</span>
+              </div>
+            </section>
+
+            <section class="settings-group" aria-labelledby="settings-common-title">
+              <div class="settings-group__header">
+                <h3 id="settings-common-title">常用设置</h3>
+                <span>修改后立即生效</span>
+              </div>
+              <div class="settings-action-list">
+                <div class="settings-action-row">
+                  <span class="settings-action-row__icon"><IconPalette size={18} /></span>
+                  <div class="settings-row__label-block">
+                    <span class="settings-row__label">外观主题</span>
+                    <span class="settings-row__hint">选择 Pulse 的外观模式。</span>
+                  </div>
+                  <div class="theme-segmented" role="radiogroup" aria-label="主题模式">
+                    {THEME_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={themeMode.value === opt.value}
+                        class={"theme-segmented-item" + (themeMode.value === opt.value ? " is-active" : "")}
+                        onClick={() => {
+                          themeMode.value = opt.value;
+                          setThemePreference(opt.value);
+                          if (opt.value === "system") {
+                            const root = typeof document !== "undefined" ? document.documentElement : null;
+                            const resolved = (root && root.getAttribute("data-theme")) || "light";
+                            showToast(`主题已切换为「跟随系统」（当前解析为${resolved === "dark" ? "深色" : "浅色"}）`, "success", 2200);
+                          } else {
+                            showToast(`主题已切换为「${THEME_TOAST[opt.value] || opt.value}」`, "success", 1800);
+                          }
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div class="theme-segmented" role="radiogroup" aria-label="主题模式">
-                  {THEME_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={themeMode.value === opt.value}
-                      class={"theme-segmented-item" + (themeMode.value === opt.value ? " is-active" : "")}
-                      onClick={() => {
-                        themeMode.value = opt.value;
-                        setThemePreference(opt.value);
-                        // ponytail: system 模式额外提示当前解析值, 让用户清楚
-                        //   "跟随系统" 是按 OS 实时状态走的 (含 macOS Auto 时段切换).
-                        if (opt.value === "system") {
-                          const root =
-                            typeof document !== "undefined"
-                              ? document.documentElement
-                              : null;
-                          const resolved =
-                            (root && root.getAttribute("data-theme")) || "light";
-                          showToast(
-                            `主题已切换为「跟随系统」（当前解析为${
-                              resolved === "dark" ? "深色" : "浅色"
-                            }）`,
-                            "success",
-                            2200,
-                          );
-                        } else {
-                          showToast(
-                            `主题已切换为「${THEME_TOAST[opt.value] || opt.value}」`,
-                            "success",
-                            1800,
-                          );
-                        }
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                <div class="settings-workspace-grid">
+                  <div class="settings-context-panel">
+                    <div class="settings-context-panel__heading">
+                      <IconClock size={16} />
+                      <h4>最近活动</h4>
+                    </div>
+                    {recent.length === 0 ? (
+                      <p class="settings-empty">暂无最近活动。检查更新或操作基金 / 提醒后将自动记录。</p>
+                    ) : (
+                      <ul class="settings-list">
+                        {recent.map((e, i) => (
+                          <li key={`${e.ts}-${i}`} class="settings-list__item">
+                            <span class="settings-list__kind">{RECENT_KIND_LABEL[e.kind] || e.kind}</span>
+                            <span class="settings-list__label">{e.label}</span>
+                            {typeof e.count === "number" && e.count > 1 && <span class="settings-list__count">×{e.count}</span>}
+                            <span class="settings-list__time">{_humanizeTs(e.ts)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div class="settings-context-panel">
+                    <div class="settings-context-panel__heading">
+                      <IconBell size={16} />
+                      <h4>提醒 <span>{activeReminders.length}</span></h4>
+                    </div>
+                    {activeReminders.length === 0 ? (
+                      <p class="settings-empty">当前无活动提醒。在主面板添加提醒后会在此显示。</p>
+                    ) : (
+                      <ul class="settings-list">
+                        {activeReminders.map((r) => (
+                          <li key={r.id} class="settings-list__item">
+                            <span class={`settings-list__badge settings-list__badge--${r.status}`}>{r.status === "fired" ? "已触发" : REPEAT_LABEL[r.repeat] || r.repeat}</span>
+                            <span class="settings-list__label">{r.title || "(无标题)"}</span>
+                            <span class="settings-list__time">{new Date(r.triggerAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                            <div class="settings-list__actions">
+                              {r.status === "fired" && <button type="button" class="settings-btn settings-btn--ghost" onClick={() => handleMarkDone(r.id)}>完成</button>}
+                              <button type="button" class="settings-btn settings-btn--danger-ghost" onClick={() => handleRemove(r.id)} aria-label={`删除提醒 ${r.title}`}>删除</button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* ── 最近活动 ── */}
-            <section class="settings-card">
-              <h3 class="settings-card__title">最近活动</h3>
-              {recent.length === 0 ? (
-                <p class="settings-empty">暂无最近活动。检查更新或操作基金 / 提醒后将自动记录。</p>
-              ) : (
-                <ul class="settings-list">
-                  {recent.map((e, i) => (
-                    <li key={`${e.ts}-${i}`} class="settings-list__item">
-                      <span class="settings-list__kind">{RECENT_KIND_LABEL[e.kind] || e.kind}</span>
-                      <span class="settings-list__label">{e.label}</span>
-                      {typeof e.count === "number" && e.count > 1 && (
-                        <span class="settings-list__count">×{e.count}</span>
-                      )}
-                      <span class="settings-list__time">{_humanizeTs(e.ts)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {/* ── 提醒 ── */}
-            <section class="settings-card">
-              <h3 class="settings-card__title">
-                提醒
-                <span class="settings-card__count">{activeReminders.length}</span>
-              </h3>
-              {activeReminders.length === 0 ? (
-                <p class="settings-empty">当前无活动提醒。在主面板添加提醒后会在此显示。</p>
-              ) : (
-                <ul class="settings-list">
-                  {activeReminders.map((r) => (
-                    <li key={r.id} class="settings-list__item">
-                      <span class={`settings-list__badge settings-list__badge--${r.status}`}>
-                        {r.status === "fired" ? "已触发" : REPEAT_LABEL[r.repeat] || r.repeat}
-                      </span>
-                      <span class="settings-list__label">{r.title || "(无标题)"}</span>
-                      <span class="settings-list__time">
-                        {new Date(r.triggerAt).toLocaleString("zh-CN", {
-                          month: "numeric",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <div class="settings-list__actions">
-                        {r.status === "fired" && (
-                          <button
-                            type="button"
-                            class="settings-btn settings-btn--ghost"
-                            onClick={() => handleMarkDone(r.id)}
-                          >
-                            完成
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          class="settings-btn settings-btn--danger-ghost"
-                          onClick={() => handleRemove(r.id)}
-                          aria-label={`删除提醒 ${r.title}`}
-                        >
-                          删除
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {/* ── 数据 ── */}
-            <section class="settings-card">
-              <h3 class="settings-card__title">数据</h3>
-              <div class="settings-row">
+            <section class="settings-group settings-group--migration" aria-labelledby="settings-data-title">
+              <div class="settings-action-row">
+                <span class="settings-action-row__icon"><IconShare size={18} /></span>
                 <div class="settings-row__label-block">
-                  <span class="settings-row__label">配置导出 / 导入</span>
-                  <span class="settings-row__hint">
-                    导出含监控列表、提醒、基金、AI 提示词 → 桌面
-                    <code>pulse-config-{`{时间戳}`}.json</code>。
-                  </span>
+                  <h3 id="settings-data-title">数据与迁移</h3>
+                  <span class="settings-row__hint">导出监控列表、提醒、基金与 AI 提示词；也可从备份文件恢复。</span>
                 </div>
                 <div class="settings-row__buttons">
-                  <button
-                    type="button"
-                    class="settings-btn settings-btn--primary"
-                    onClick={handleExport}
-                    disabled={dataBusy.value}
-                  >
-                    导出配置
-                  </button>
-                  <button
-                    type="button"
-                    class="settings-btn settings-btn--ghost"
-                    onClick={handleImport}
-                    disabled={dataBusy.value}
-                  >
-                    导入配置…
-                  </button>
+                  <button type="button" class="settings-btn settings-btn--primary" onClick={handleExport} disabled={dataBusy.value}>导出配置</button>
+                  <button type="button" class="settings-btn settings-btn--ghost" onClick={handleImport} disabled={dataBusy.value}>导入配置…</button>
                 </div>
               </div>
             </section>
@@ -710,14 +596,9 @@ export function SettingsPage() {
           tab === "github" ? (
             <GithubSettingsSection />
           ) : (
-          /* ── 游戏优惠 (免费活动自动检查) ── */
-          tab === "games" ? (
-            <GamesSettingsSection />
-          ) : (
             /* ── AI 配置 (P16: 不再用 settings-card 包裹, 让外层 .settings-content 滚动接管;
                 AISettingsScene 内部已是 settings-card 段, 多包一层会触发 overflow:hidden 把内容切掉.) ── */
             <AISettingsScene compact={false} initialTab="connection" />
-          )
           )
         )}
       </div>

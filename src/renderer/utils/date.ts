@@ -3,12 +3,9 @@
  *
  * 日期格式化单一来源 (renderer 内共享).
  *
- * 2026-07-26: 抽出 fmtDateIso (YYYY-MM-DD). 内容与下列 4 处既有实现逐字一致,
+ * 2026-07-26: 抽出 fmtDateIso (YYYY-MM-DD). 内容与下列既有实现逐字一致,
  *   避免 ISO→本地日期格式漂移:
  *   - src/renderer/ai-leaderboard/format.ts:58 fmtDate
- *   - src/renderer/games/AchievementsPanel.tsx:49 fmtDate
- *   - src/renderer/games/BadgeWall.tsx:14 fmtDate
- *   - src/renderer/games/EventBanner.tsx:38 fmtDate
  *
  * Phase 4: export-only（renderer 共享，禁止 module.exports）。
  */

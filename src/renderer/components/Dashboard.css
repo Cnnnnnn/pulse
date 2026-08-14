@@ -169,15 +169,15 @@
 
 /* ============================================================
  * Tiles — 按 section 分组, 同 section 共用 1 个 accent
- * flex: 1 + min-height: 0 → 自动吃掉中间剩余空间, Recent 不会被压.
- * overflow 不加 — 整页走 .dashboard-root 一层滚动, 避免嵌套.
+ * 保持 tiles 的内容高度, 由 .dashboard-root 负责整体滚动.
+ * 不能把 tiles 压缩后让内部 section 溢出, 否则会覆盖后面的 Recent.
  * ============================================================ */
 .dashboard-tiles {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: auto;
 }
 
 .dashboard-tile-section {

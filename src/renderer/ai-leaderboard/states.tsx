@@ -5,9 +5,17 @@
  * 无网络出口；可访问性：role=status/alert + sr-only 文案。
  */
 
-const SKELETON_ROWS = 8;
+const SKELETON_ROWS = 12;
+const SKELETON_COLUMNS = {
+  arena: 8,
+  aa: 12,
+  livebench: 10,
+  huggingface: 9,
+};
 
-export function LoadingState() {
+export function LoadingState({ view = "aa" }: { view?: string } = {}) {
+  const columnCount = SKELETON_COLUMNS[view] || SKELETON_COLUMNS.aa;
+  const cells = Array.from({ length: columnCount });
   return (
     <div
       class="ai-lb-state ai-lb-state--loading"
@@ -15,18 +23,30 @@ export function LoadingState() {
       aria-live="polite"
     >
       <span class="ai-lb-sr-only">加载中…</span>
-      <div class="ai-lb-skeleton-wrap">
+      <div class={`ai-lb-skeleton-table ai-lb-skeleton-table--${view}`} aria-hidden="true">
+        <div class="ai-lb-skeleton-head">
+          {cells.map((_, i) => (
+            <span class={`ai-lb-skeleton ai-lb-skeleton--head ai-lb-skeleton--col-${i}`} key={`head-${i}`} />
+          ))}
+        </div>
         {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
           <div class="ai-lb-skeleton-row" key={i}>
-            <span class="ai-lb-skeleton ai-lb-skeleton--rank" />
-            <span class="ai-lb-skeleton ai-lb-skeleton--name" />
-            <span class="ai-lb-skeleton ai-lb-skeleton--num" />
-            <span class="ai-lb-skeleton ai-lb-skeleton--num" />
-            <span class="ai-lb-skeleton ai-lb-skeleton--num" />
-            <span class="ai-lb-skeleton ai-lb-skeleton--num" />
-            <span class="ai-lb-skeleton ai-lb-skeleton--num" />
-            <span class="ai-lb-skeleton ai-lb-skeleton--num" />
-            <span class="ai-lb-skeleton ai-lb-skeleton--num" />
+            {cells.map((_, column) => (
+              <span
+                class={`ai-lb-skeleton ${
+                  column === 0
+                    ? "ai-lb-skeleton--check"
+                    : column === 1
+                      ? "ai-lb-skeleton--rank"
+                      : column === 2
+                        ? "ai-lb-skeleton--name"
+                        : column === 3
+                          ? "ai-lb-skeleton--vendor"
+                          : "ai-lb-skeleton--num"
+                }`}
+                key={`${i}-${column}`}
+              />
+            ))}
           </div>
         ))}
       </div>

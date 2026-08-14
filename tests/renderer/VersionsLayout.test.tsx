@@ -25,6 +25,13 @@ beforeEach(() => {
 });
 
 describe("VersionsLayout", () => {
+  it("不再渲染应用列表/诊断/设置共享横向导航", () => {
+    navigateTo("library");
+    const { container } = render(<VersionsLayout />);
+    expect(container.querySelector(".versions-subtabs")).toBeNull();
+    expect(container.querySelectorAll(".versions-subtab").length).toBe(0);
+  });
+
   it("默认渲染 library 而非 overview", () => {
     navigateTo("library");
     const { container } = render(<VersionsLayout />);
@@ -49,5 +56,4 @@ describe("VersionsLayout", () => {
     navigateTo("library");
   });
 });
-
 

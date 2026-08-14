@@ -193,9 +193,20 @@ export function sanitizeConfig(input: any) {
         if (isNonEmptyString(s.platform)) out.platform = s.platform;
         return out;
       });
+    const bundleAliases = Array.isArray(a.bundle_aliases)
+      ? [
+          ...new Set(
+            a.bundle_aliases
+              .filter((bundle: any) => isNonEmptyString(bundle))
+              .map((bundle: any) => bundle.trim()),
+          ),
+        ]
+      : [];
     cleanApps.push({
       name: a.name,
       bundle: a.bundle,
+      bundle_aliases:
+        bundleAliases.length > 0 ? bundleAliases : undefined,
       download_url: isNonEmptyString(a.download_url) ? a.download_url : "",
       // Phase 20: per-app 可选 release notes URL. 多数 app 都不公开机器可读的 release notes,
       // 但人看的 changelog 页/官网 changelog 区通常有. 配这个 URL 后, UI 没拉到 changelog 时

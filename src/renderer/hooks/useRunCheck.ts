@@ -1,17 +1,16 @@
 /**
  * src/renderer/hooks/useRunCheck.ts
  *
- * 共享的"检查更新"逻辑: loading 态 + api.versionsRunCheck() + 2s 视觉 hold.
+ * 共享的"检查更新"逻辑: loading 态 + renderer runCheck() + 2s 视觉 hold.
  * 供 LibraryPage 空态 CTA 与 PageHeader 主按钮共用.
  *
  * 2s hold 避免按钮闪一下又可点 (check 通常 < 2s).
  *
- * main 侧 safeHandle 返 { started: true } 或 { started: false, error }. 失败时弹
- * toast 红色提示, 抛异常 (e.g. IPC 没注册 / preload 漏暴露) 兜底也弹, 避免按钮
- * 「点了没反应」用户看不出原因.
+ * renderer runCheck 统一管理 session、结果回填和 IPC 错误契约. 失败时弹 toast
+ * 红色提示, 避免按钮「点了没反应」用户看不出原因.
  */
 import { useState, useRef } from "preact/hooks";
-import { api } from "../api.ts";
+import { runCheck } from "../run-check.ts";
 import { showToast } from "../store/toast-store.ts";
 
 export function useRunCheck() {
@@ -21,7 +20,7 @@ export function useRunCheck() {
   const run = async () => {
     setIsLoading(true);
     try {
-      const r = await api.versionsRunCheck();
+      const r = await runCheck();
       if (r && r.started === false) {
         if (r.reason === "already_running") {
           // main 已在跑一次手动检查 (check-runner.runCheckQueued 拒绝并发手动).

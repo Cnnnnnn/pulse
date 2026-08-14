@@ -180,6 +180,60 @@ describe("aggregator: 合并与兜底链", () => {
     expect(m.openrouter.contextLength).toBe(128000);
   });
 
+  it("显式 sources 白名单只请求当前视角需要的数据源", async () => {
+    const fetchMock = vi.fn(async (url) => {
+      if (String(url).includes("openrouter.ai")) {
+        return { ok: true, status: 200, json: async () => OR_PAYLOAD };
+      }
+      throw new Error(`unexpected source request: ${String(url)}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const res = await getLeaderboard({
+      category: "llm",
+      dimension: "elo",
+      force: true,
+      sources: {
+        arena: false,
+        aa: false,
+        openrouter: true,
+        livebench: false,
+        modelsdev: false,
+        huggingface: false,
+      },
+    });
+
+    expect(res.sources).toMatchObject({
+      arena: "none",
+      aa: "none",
+      openrouter: "live",
+      livebench: "none",
+      modelsdev: "none",
+      huggingface: "none",
+    });
+    expect(fetchMock.mock.calls.every(([url]) => String(url).includes("openrouter.ai"))).toBe(true);
+  });
+
+  it("单源返回 5xx 时继续返回结果，并把失败原因放进 errors", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: false, status: 502 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const res = await getLeaderboard({
+      category: "llm",
+      dimension: "elo",
+      force: true,
+      sources: { openrouter: true },
+    });
+
+    expect(res.ok).toBe(true);
+    expect(res.items.length).toBeGreaterThan(0);
+    expect(res.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: "openrouter", message: expect.stringContaining("HTTP 502") }),
+      ]),
+    );
+  });
+
   it("Arena+AA 全失败 → OpenRouter 兜底（仅骨架，无分数，sources 非 sample）", async () => {
     vi.stubGlobal("fetch", makeFetchMock(ONLY_OR));
     const res = await getLeaderboard({ category: "llm", dimension: "elo", force: true });
@@ -819,6 +873,18 @@ describe("ipc/register-leaderboard: sanitize 与请求级缓存键", () => {
     expect(out.vendor).toBe("openai");
     expect(out.sortDir).toBe("asc");
     expect(out.search).toBe("gpt");
+  });
+
+  it("sanitize 将 sources 作为严格白名单，不把缺省源扩成 true", () => {
+    const out = sanitize({ sources: { aa: true, openrouter: true } });
+    expect(out.sources).toEqual({
+      arena: false,
+      aa: true,
+      openrouter: true,
+      livebench: false,
+      modelsdev: false,
+      huggingface: false,
+    });
   });
 
   it("boardCacheKey 仅含影响数据的维度（force 不进 key）", () => {

@@ -40,7 +40,6 @@ const {
   registerVersionsOverviewHandlers,
 } = require("./register-versions-overview.ts");
 import { registerThemeHandlers } from "./register-theme";
-import { registerGamesHandlers } from "./register-games";
 import { registerLeaderboardHandlers } from "./register-leaderboard";
 import { registerFinanceHandlers } from "./register-finance";
 
@@ -83,7 +82,6 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
   }); // 诊断报告导出 PNG (需要 dialog + BrowserWindow + app.getPath)
   registerVersionsOverviewHandlers(ctx); // Task 15: overview 5 数据源 + command palette
   registerThemeHandlers(ctx); // P10: 主进程 ↔ renderer 主题桥接 (托盘切换 + system 同步)
-  registerGamesHandlers(ctx); // 游戏优惠聚合 (Steam/Epic 真实 + 主机示例兜底)
   registerLeaderboardHandlers({
     ...ctx,
     dialog: require("electron").dialog,

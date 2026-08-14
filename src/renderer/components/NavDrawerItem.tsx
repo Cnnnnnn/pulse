@@ -170,7 +170,7 @@ export function NavDrawerItem({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       onDrop={handleDrop}
-      onContextMenu={handleContextMenu}
+      onContextMenu={draggable ? handleContextMenu : undefined}
     >
       <button
         class="nav-drawer-button"
@@ -186,27 +186,29 @@ export function NavDrawerItem({
         )}
         {!collapsed && <span class="nav-drawer-label">{item.label}</span>}
       </button>
-      <dialog
-        ref={dialogRef}
-        class="nav-drawer-context-menu"
-        aria-label={`${item.label} 操作`}
-      >
-        <div class="nav-drawer-context-menu__title">
-          <NavIcon navKey={item.key} size={16} /> {item.label}
-        </div>
-        <button type="button" class="nav-drawer-context-menu__btn" onClick={handleMoveTop}>
-          <IconChevronUp size={14} /> 移到顶部
-        </button>
-        <button type="button" class="nav-drawer-context-menu__btn" onClick={handleMoveBottom}>
-          <IconChevronDown size={14} /> 移到底部
-        </button>
-        <button type="button" class="nav-drawer-context-menu__btn nav-drawer-context-menu__btn--danger" onClick={handleHide}>
-          <IconTrash size={14} /> 隐藏
-        </button>
-        <button type="button" class="nav-drawer-context-menu__btn nav-drawer-context-menu__btn--cancel" onClick={closeMenu}>
-          取消
-        </button>
-      </dialog>
+      {draggable && (
+        <dialog
+          ref={dialogRef}
+          class="nav-drawer-context-menu"
+          aria-label={`${item.label} 操作`}
+        >
+          <div class="nav-drawer-context-menu__title">
+            <NavIcon navKey={item.key} size={16} /> {item.label}
+          </div>
+          <button type="button" class="nav-drawer-context-menu__btn" onClick={handleMoveTop}>
+            <IconChevronUp size={14} /> 移到顶部
+          </button>
+          <button type="button" class="nav-drawer-context-menu__btn" onClick={handleMoveBottom}>
+            <IconChevronDown size={14} /> 移到底部
+          </button>
+          <button type="button" class="nav-drawer-context-menu__btn nav-drawer-context-menu__btn--danger" onClick={handleHide}>
+            <IconTrash size={14} /> 隐藏
+          </button>
+          <button type="button" class="nav-drawer-context-menu__btn nav-drawer-context-menu__btn--cancel" onClick={closeMenu}>
+            取消
+          </button>
+        </dialog>
+      )}
     </li>
   );
 }

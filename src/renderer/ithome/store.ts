@@ -162,16 +162,31 @@ export async function summarizeIthomeArticle(id: any, force: any = 0) {
   }
   const r = await summarize({ id, force });
   if (r && r.ok && r.text) {
+    const nextSummary: any = {
+      text: r.text,
+      abstract: r.abstract || "",
+      keywords: Array.isArray(r.keywords) ? r.keywords : [],
+      domain: r.domain || "",
+      impact: r.impact || "",
+      generatedAt: Date.now(),
+    };
+    for (const key of [
+      "whyImportant",
+      "risks",
+      "followUps",
+      "evidence",
+      "completeness",
+    ]) {
+      if (!Object.prototype.hasOwnProperty.call(r, key)) continue;
+      if (["risks", "followUps", "evidence"].includes(key)) {
+        nextSummary[key] = Array.isArray(r[key]) ? r[key] : [];
+      } else {
+        nextSummary[key] = r[key] || "";
+      }
+    }
     ithomeSummaries.value = {
       ...ithomeSummaries.value,
-      [id]: {
-        text: r.text,
-        abstract: r.abstract || "",
-        keywords: Array.isArray(r.keywords) ? r.keywords : [],
-        domain: r.domain || "",
-        impact: r.impact || "",
-        generatedAt: Date.now(),
-      },
+      [id]: nextSummary,
     };
     const article =
       ithomeArticles.value[id] ||
@@ -179,6 +194,34 @@ export async function summarizeIthomeArticle(id: any, force: any = 0) {
     if (article) trackIthomeSummary(article);
   }
   return r;
+}
+
+export async function fetchIthomeArticleBody(id: any) {
+  const fetchBody = requireApiMethod("ithomeFetchArticleBody");
+  if (!fetchBody) {
+    return { ok: false, reason: "ipc_unavailable", body: "" };
+  }
+  if (!id || typeof id !== "string") {
+    return { ok: false, reason: "invalid_args", body: "" };
+  }
+  const r = await fetchBody({ id });
+  if (r && r.ok && r.body) {
+    const article = ithomeArticles.value[id];
+    if (article) {
+      ithomeArticles.value = {
+        ...ithomeArticles.value,
+        [id]: { ...article, body: r.body },
+      };
+    }
+    const favorite = ithomeFavorites.value[id];
+    if (favorite && favorite.article) {
+      ithomeFavorites.value = {
+        ...ithomeFavorites.value,
+        [id]: { ...favorite, article: { ...favorite.article, body: r.body } },
+      };
+    }
+  }
+  return r || { ok: false, reason: "fetch_failed", body: "" };
 }
 
 export async function markIthomeRead(id: any) {

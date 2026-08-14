@@ -18,7 +18,7 @@
 //          升级到支持按模块声明命名空间隔离后再切回 ESM 风格.
 import type {} from "electron";
 
-import { app, BrowserWindow, ipcMain, session } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
@@ -105,7 +105,6 @@ const {
 const {
   setTrayManager: registerTrayManager,
 } = require("./bootstrap/tray-init.ts");
-import { installNintendoImageHeaders } from "./games/nintendo-image-headers";
 
 const httpClient = new HttpClient();
 
@@ -713,13 +712,6 @@ async function bootstrap() {
     }
   } catch {
     /* noop */
-  }
-
-  // 3.5) Nintendo 封面 UA 改写（须在创建窗口前）
-  try {
-    installNintendoImageHeaders(session && session.defaultSession);
-  } catch {
-    /* noop — vitest load-smoke 环境里 session 可能不可用 */
   }
 
   // 4) worker pool

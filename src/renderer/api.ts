@@ -3,7 +3,7 @@
  *
  * window.api包装层。preload.js 通过 contextBridge暴露：
  * getConfig / checkUpdates / brewUpgrade / brewUpdate /
- * getAppIcon / onCheckProgress / onStartCheck /
+ * getAppIcon / onCheckStarted / onCheckProgress / onStartCheck /
  * bulkUpgradeStart / bulkUpgradeCancel / onBulkUpgradeProgress / onBulkUpgradeDone
  * (Phase22 bulk upgrade 新增)
  * openUrl — universal "open URL in system browser" bridge (v2.24+).
@@ -16,9 +16,8 @@
 
 const noop = () => Promise.resolve(undefined);
 
-// 缺 IPC bridge 时在 dev 模式一次性 warn — 2026-06-28 「检查更新」按钮无反应
-// 根因是 preload 漏暴露 versionsRunCheck, 而 pick() 静默 fallback 到 noop 让人
-// 排查两小时. 现在同一进程同一 key 只 warn 一次, 生产无副作用.
+// 缺 IPC bridge 时在 dev 模式一次性 warn — 检查更新入口缺失时给出明确线索.
+// 现在同一进程同一 key 只 warn 一次, 生产无副作用.
 const IS_DEV =
   typeof process !== "undefined" &&
   process.env &&
@@ -52,6 +51,7 @@ export function createApi(overrides: Record<string, any> = {}): any {
     brewUpgrade: pick(overrides, "brewUpgrade"),
     brewUpdate: pick(overrides, "brewUpdate"),
     getAppIcon: pick(overrides, "getAppIcon"),
+    onCheckStarted: pick(overrides, "onCheckStarted"),
     onCheckProgress: pick(overrides, "onCheckProgress"),
     onCheckDetecting: pick(overrides, "onCheckDetecting"),
     onStartCheck: pick(overrides, "onStartCheck"),
@@ -210,18 +210,13 @@ export function createApi(overrides: Record<string, any> = {}): any {
     stocksExportDiagnosisPng: pick(overrides, "stocksExportDiagnosisPng"),
     // Cmd+K command palette 全局搜索
     versionsCommandSearch: pick(overrides, "versionsCommandSearch"),
-    // v2.50 (T5): LibraryPage / OverviewEmptyState CTA 触发检查
+    // v2.50 (T5): 旧 renderer 兼容别名, 实际 preload 复用 check-updates 通道
     versionsRunCheck: pick(overrides, "versionsRunCheck"),
     // v2.80 GitHub 优秀项目收录
     githubFetch: pick(overrides, "githubFetch"),
     aiParseReadme: pick(overrides, "aiParseReadme"),
     // Release 更新追踪：抓取某仓库 recent releases
     githubFetchRelease: pick(overrides, "githubFetchRelease"),
-    // 游戏优惠聚合 (v2.81): 各平台折扣 / 免费活动 / 热门榜
-    getGameDeals: pick(overrides, "getGameDeals"),
-    getSteamLowest: pick(overrides, "getSteamLowest"),
-    getItadLowest: pick(overrides, "getItadLowest"),
-    getFx: pick(overrides, "getFx"),
     // P-N: 上次停留的 nav
     getLastActiveNav: pick(overrides, "getLastActiveNav"),
     // P10: 主题

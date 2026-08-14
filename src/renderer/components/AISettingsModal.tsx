@@ -196,17 +196,29 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
 
  return (
  <div class="ai-config-form">
- {/* P16: 改用 settings-card 体系, 去掉独立 hero/section 包装, 与设置页 4 段卡片视觉统一. */}
+ <header class="ai-config-form__hero">
+  <div>
+   <span class="ai-config-form__eyebrow">AI 工作台</span>
+   <h2>连接你的模型服务</h2>
+   <p>选择 Provider，保存密钥，然后用一次轻量请求确认连接。</p>
+  </div>
+  <div class={`ai-config-form__health ${keyStatus.hasKey ? 'is-ready' : ''}`}>
+   <span class="ai-config-form__health-dot" />
+   {keyStatus.hasKey ? '密钥已就绪' : '需要 API Key'}
+  </div>
+ </header>
 
  {/* ── Provider 段 ── */}
- <section class="settings-card">
- <h3 class="settings-card__title">
- Provider
- <span class="settings-ai-badge settings-ai-badge--ready">{prov.label}</span>
- </h3>
+ <section class="settings-card ai-config-form__provider-card">
+ <div class="settings-card__heading">
+ <div>
+  <h3 class="settings-card__title">选择 Provider</h3>
  <p class="settings-card__intro">
- 先确定模型提供方，下面的默认参数会自动同步。当前方案偏向 {providerDescriptor}。
+先确定模型提供方，下面的默认参数会自动同步。当前方案偏向 {providerDescriptor}。
  </p>
+ </div>
+ <span class="settings-ai-badge settings-ai-badge--ready">当前 · {prov.label}</span>
+ </div>
  <ul class="settings-list settings-list--radiogroup" role="radiogroup" aria-label="AI Provider 选择">
  {PROVIDERS.map((p) => {
  const selected = cloudProviderId === p.id;
@@ -239,11 +251,16 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  </section>
 
  {/* ── 连接参数段 ── */}
- <section class="settings-card">
+ <section class="settings-card ai-config-form__connection-card">
+ <div class="settings-card__heading">
+ <div>
  <h3 class="settings-card__title">连接参数</h3>
  <p class="settings-card__intro">
  保留自动填好的默认值即可，只有自建代理时才需要改 Base URL。
  </p>
+ </div>
+ <span class="ai-config-form__provider-label">{prov.label}</span>
+ </div>
  <div class="ai-settings-field-grid">
  <div class="settings-row">
  <div class="settings-row__label-block">
@@ -275,7 +292,9 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  </section>
 
  {/* ── API Key 段 ── */}
- <section class="settings-card">
+ <section class="settings-card ai-config-form__key-card">
+ <div class="settings-card__heading">
+ <div>
  <h3 class="settings-card__title">
  API Key
  <span class={`settings-ai-badge ${keyStatus.hasKey ? 'settings-ai-badge--ready' : 'settings-ai-badge--missing'}`}>
@@ -290,6 +309,8 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  ? '修改 key 后可以直接点"测试连接"验证，再保存最终配置。'
  : '当前系统不支持 safeStorage，可改用环境变量提供 key。'}
  </p>
+ </div>
+ </div>
  <div class="ai-settings-key-input">
  <label class="settings-row__label" for="ai-api-key-input">新 Key</label>
  <input
@@ -326,11 +347,13 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  </section>
 
  {/* ── 验证连接段 ── */}
- <section class="settings-card">
+ <section class="settings-card ai-config-form__test-card">
+ <div>
  <h3 class="settings-card__title">验证连接</h3>
  <p class="settings-card__intro">
  保存前先测试连接，确认 key 和模型可用。用当前 Provider + Model + API Key 发一次轻量请求。
  </p>
+ </div>
  <div class="ai-settings-test">
  <button
  type="button"
