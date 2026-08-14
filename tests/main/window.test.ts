@@ -70,6 +70,11 @@ describe('window.js uses platform.getWindowOptions', () => {
     expect(windowSource).toMatch(/wa\.x\s*\+\s*\(wa\.width\s*-\s*width\)\s*\/\s*2/);
   });
 
+  it('development 环境监听 renderer 构建产物并无缓存刷新窗口', () => {
+    expect(windowSource).toContain("require('./renderer-auto-reload.ts')");
+    expect(windowSource).toContain('installRendererAutoReload');
+  });
+
   it('platform.getWindowOptions 返回的键会展开进 BrowserWindow 选项', () => {
     // 读 platform macos.js 确认它导出了 window.js 期望的视觉键
     const macos = requirePlatform('macos');

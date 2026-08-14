@@ -46,6 +46,7 @@ type WindowManager = {
 const { BrowserWindow }: { BrowserWindow: ElectronBrowserWindowCtor } = require('electron');
 const path: typeof pathType = require('path');
 const platform: PlatformModule = require('../platform/index.ts');
+const { installRendererAutoReload } = require('./renderer-auto-reload.ts');
 
 /**
  * @param {object} opts
@@ -63,6 +64,7 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
   const onClosed = opts.onClosed || (() => {});
 
   let mainWindow: BrowserWindowInstance | null = null;
+  let stopRendererAutoReload: (() => void) | null = null;
 
   function createWindow() {
     // Phase 9 收尾: 自适应窗口大小 — 按 primary display work area 70% 算默认尺寸,
@@ -107,6 +109,15 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
 
     // 双保险: index.html <title> 也设了, 但 BrowserWindow 显式 title 优先生效
     mainWindow.loadFile(indexPath);
+    if (process.env.NODE_ENV === 'development') {
+      stopRendererAutoReload = installRendererAutoReload({
+        rendererDir: path.join(__dirname, '..', '..', 'renderer-dist'),
+        reload: () => {
+          const win = mainWindow;
+          if (win && !win.isDestroyed()) win.webContents.reloadIgnoringCache();
+        },
+      });
+    }
     // 页面加载完后再设一次, 防止 did-finish-load 之前 macOS 拿默认值
     mainWindow.webContents.on('did-finish-load', () => {
       try { mainWindow?.setTitle('Pulse'); } catch { /* noop */ }
@@ -162,6 +173,8 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
     });
 
     mainWindow.on('closed', () => {
+      stopRendererAutoReload?.();
+      stopRendererAutoReload = null;
       mainWindow = null;
       try { onClosed(); } catch { /* noop */ }
     });
