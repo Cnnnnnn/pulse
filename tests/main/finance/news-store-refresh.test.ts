@@ -24,6 +24,7 @@ const aggMock = vi.mocked(aggregator.aggregateNews);
 let tmp = "";
 
 function mkItem(id: string, title: string, cat: string, fetchedAt: number): any {
+  const publishedAt = new Date(fetchedAt).toISOString();
   return {
     id,
     source: "t",
@@ -32,8 +33,8 @@ function mkItem(id: string, title: string, cat: string, fetchedAt: number): any 
     summary: "",
     body: "",
     url: "",
-    pubDate: "2026-07-27T09:00:00+08:00",
-    dateKey: "2026-07-27",
+    pubDate: publishedAt,
+    dateKey: publishedAt.slice(0, 10),
     category: cat,
     tags: [],
     popularity: 0,

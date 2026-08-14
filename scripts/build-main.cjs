@@ -172,12 +172,16 @@ async function main() {
 
   const rewrites = [
     // #1 — src/main/index.ts timer-audit fixture (depth-2 source)
-    // src/main/index.ts → src/tests/fixtures/timer-audit (源 dev path);
+    // src/main/index.ts → src/tests/fixtures/timer-audit (source dev path);
     // bundle 后 __dirname = dist/main, 要走 ../.. 回项目根再进 src/tests.
     {
       fromRegex: new RegExp(
         pathPrefix() +
           `join\\(__dirname, "..", "tests", "fixtures", "timer-audit"\\)`,
+      ),
+      toRegex: new RegExp(
+        pathPrefix() +
+          `join\\(__dirname, "..", "..", "src", "tests", "fixtures", "timer-audit"\\)`,
       ),
       fromLiteral: (p) =>
         `${p}join(__dirname, "..", "tests", "fixtures", "timer-audit")`,
@@ -191,6 +195,9 @@ async function main() {
     {
       fromRegex: new RegExp(
         pathPrefix() + `join\\(__dirname, "..", "..", ".."\\)`,
+      ),
+      toRegex: new RegExp(
+        pathPrefix() + `join\\(__dirname, "..", ".."\\)`,
       ),
       fromLiteral: (p) => `${p}join(__dirname, "..", "..", "..")`,
       to: (p) => `${p}join(__dirname, "..", "..")`,
@@ -231,6 +238,10 @@ async function main() {
       fromRegex: new RegExp(
         pathPrefix() + `join\\(__dirname, "sample.json"\\)`,
       ),
+      toRegex: new RegExp(
+        pathPrefix() +
+          `join\\(__dirname, "..", "..", "src", "main", "ai-leaderboard", "sample.json"\\)`,
+      ),
       fromLiteral: (p) => `${p}join(__dirname, "sample.json")`,
       to: (p) =>
         `${p}join(__dirname, "..", "..", "src", "main", "ai-leaderboard", "sample.json")`,
@@ -261,6 +272,9 @@ async function main() {
         // (bundle may have folded / hoisted).
         continue;
       }
+      // 合约测试会并行运行 build-main；若另一进程已先完成同一条
+      // rewrite，当前 bundle 的目标文本就是合法终态，直接视作成功。
+      if (r.toRegex && r.toRegex.test(bundle)) continue;
       throw new Error(
         `build-main: literal path rewrite missed — expected to match ${r.fromRegex} in dist/main/index.js`,
       );

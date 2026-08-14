@@ -25,23 +25,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
-          # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
-          # 22.5.1 修了原 bug, 但 22.5.x 后续小版本仍偶发. 锁到 Node 20 LTS
-          # (issue 7666 实测稳定 + 本地 dev 环境一致). 跟踪:
-          # https://github.com/npm/cli/issues/7666
-          node-version: 20
+          # Vite/Rolldown 与 electron-rebuild 当前要求 Node >=22.12；
+          # 固定到已验证的 LTS 版本，避免 optional native binding 缺失。
+          node-version: 22.23.2
           cache: npm
 
-      # 2026-06: GitHub runner 的 bundled npm 跟项目里一票老 dep (rimraf 3,
-      # glob 7-10) deprecate warn 之间 race condition 报 "Exit handler never
-      # called!" (npm/cli #7666), step exit 1 但 node_modules 部分装好. npm
-      # 10.8.2 也中招, 实际是 node 20 + deprecate warn 太多 race.
-      #
-      # 最稳: 改用 `npm install` (有 lifecycle hooks 容忍度更高) + 允许 exit
-      # 1 fallback 到 `npm install` 重试 + 末尾校验关键 binary 在.
       - name: Pin npm to last-known-good
-        run: npm install -g npm@10.8.2
+        run: npm install -g npm@10.9.8
 
       - name: Override registry to public npm
         # 本地 ~/.npmrc 指向 nexus.npt.seabank.io (公司私有 proxy), 在
@@ -56,27 +46,25 @@ jobs:
           npm config get registry
 
       - name: Install deps
-        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
-        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
-        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
-        # npm 那个 buggy promise-call-limit, install 完整.
-        run: |
-          npm install -g pnpm@9
-          pnpm install --reporter=append-only
+        # package-lock.json 是唯一锁文件；npm ci 会安装各 runner 对应的
+        # optional native binding，避免 pnpm 无锁解析导致 Rolldown binding 缺失。
+        run: npm ci --include=optional
 
       - name: Run unit tests
-        run: pnpm exec vitest --run
+        # npm test 的 pretest 会先生成 dist/main 与 dist/workers，供
+        # worker-pool 的真实 worker_threads 集成测试加载。
+        run: npm test -- --run --watch=false
 
       # ponytail: 2026-07-08 — 新 CSS stylelint 严格 (仅 src/renderer/components/**).
       # 老 styles.css 与全局暂未强约束 (设计系统文档规范), 避免爆历史债.
       - name: Lint component CSS
-        run: pnpm exec stylelint "src/renderer/components/**/*.css"
+        run: npm run lint:css
 
       # ESLint: warn 为主，CI 当前不阻断（|| true），仅报告问题。
       # 31 个历史 error + 212 个 warning 待逐步清理；清理完后可移除 || true 让 CI 阻断。
       # 开发者本地 npm run lint 可看到全部问题。
       - name: Lint JS
-        run: pnpm exec eslint . --max-warnings=9999 || true
+        run: npm run lint -- --max-warnings=9999 || true
 
       - name: Build renderer bundle
         run: npm run build:renderer
@@ -101,8 +89,8 @@ jobs:
 
       - name: Visual regression
         run: |
-          pnpm exec playwright install chromium --with-deps
-          pnpm exec playwright test --config=playwright.config.js
+          npm exec -- playwright install chromium --with-deps
+          npm run test:visual
           # 失败时把 diff 图 archive 出来, 方便本地 debug
           if [ -d test-results ]; then
             echo "test-results/ contents:"

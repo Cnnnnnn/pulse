@@ -18,13 +18,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
-          # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
-          # 锁到 22.4.1 (npm/cli #7666 验证 last known good) 绕开.
-          # 跟踪: https://github.com/npm/cli/issues/7666
-          node-version: 22.4.1
+          # Vite/Rolldown 与 electron-rebuild 当前要求 Node >=22.12；
+          # 固定到已验证的 LTS 版本，避免 optional native binding 缺失。
+          node-version: 22.23.2
           cache: npm
-      - run: npm install -g npm@10.8.2
+      - run: npm install -g npm@10.9.8
       - name: Override registry to public npm
         # lockfile 里 250 处 resolved 指向 nexus.npt.seabank.io (公司私有
         # proxy), 在 GitHub runner 上 ENOTFOUND, 装 preact 之类直接挂. CI
@@ -37,14 +35,10 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           npm config get registry
       - name: Install deps
-        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
-        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
-        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
-        # npm 那个 buggy promise-call-limit, install 完整.
-        run: |
-          npm install -g pnpm@9
-          pnpm install --reporter=append-only
-      - run: pnpm exec vitest --run
+        # package-lock.json 是唯一锁文件；显式保留 optional native bindings，
+        # 供 Vite/Rolldown 在 macOS 和 Windows runner 上加载。
+        run: npm ci --include=optional
+      - run: npm test -- --run --watch=false
       - run: npm run build:renderer
       - name: Build macOS (electron-builder)
         run: npm run build:mac
@@ -69,13 +63,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # 2026-06: Node 22.5.0 引入 race condition 让 npm install lifecycle
-          # 提前退出, 报 "Exit handler never called!" 然后 devDeps 阶段跳过.
-          # 锁到 22.4.1 (npm/cli #7666 验证 last known good) 绕开.
-          # 跟踪: https://github.com/npm/cli/issues/7666
-          node-version: 22.4.1
+          # Vite/Rolldown 与 electron-rebuild 当前要求 Node >=22.12；
+          # 固定到已验证的 LTS 版本，避免 optional native binding 缺失。
+          node-version: 22.23.2
           cache: npm
-      - run: npm install -g npm@10.8.2
+      - run: npm install -g npm@10.9.8
       - name: Override registry to public npm
         # lockfile 里 250 处 resolved 指向 nexus.npt.seabank.io (公司私有
         # proxy), 在 GitHub runner 上 ENOTFOUND, 装 preact 之类直接挂. CI
@@ -94,14 +86,10 @@ jobs:
         shell: pwsh
         run: choco install sqlite -y --no-progress
       - name: Install deps
-        # GitHub runner 的 npm 跟项目里 ~10 个 transitive deprecate 触发的
-        # "Exit handler never called!" (npm/cli #7666) 在 lifecycle hook
-        # 处理 signal 时 crash, devDeps 阶段被跳过. 改用 pnpm, pnpm 不用
-        # npm 那个 buggy promise-call-limit, install 完整.
-        run: |
-          npm install -g pnpm@9
-          pnpm install --reporter=append-only
-      - run: pnpm exec vitest --run
+        # package-lock.json 是唯一锁文件；显式保留 optional native bindings，
+        # 供 Vite/Rolldown 在 macOS 和 Windows runner 上加载。
+        run: npm ci --include=optional
+      - run: npm test -- --run --watch=false
       - run: npm run build:renderer
       - name: Build Windows (electron-builder NSIS)
         run: npm run build:win
