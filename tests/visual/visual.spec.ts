@@ -272,6 +272,12 @@ test("GitHub curated library — light theme interaction contract", async ({ pag
   await expect(page.locator(".github-project-grid .github-card")).toHaveCount(1);
   await page.getByRole("button", { name: "facebook/react" }).click();
   await expect(page.getByRole("tab", { name: "概览" })).toBeVisible();
+  const drawerBounds = await page.locator(".github-drawer").evaluate((drawer) => {
+    const rect = drawer.getBoundingClientRect();
+    return { top: rect.top, bottom: rect.bottom, viewportHeight: window.innerHeight };
+  });
+  expect(drawerBounds.top).toBeGreaterThanOrEqual(28);
+  expect(drawerBounds.bottom).toBeLessThanOrEqual(drawerBounds.viewportHeight);
   const drawerLayout = await page.locator(".github-drawer__header--stacked").evaluate((header) => {
     const title = header.querySelector(".github-drawer__title-wrap")!.getBoundingClientRect();
     const desc = header.querySelector(".github-drawer__desc")!.getBoundingClientRect();

@@ -27,6 +27,7 @@ svg:not([role="img"]) {
 }
 
 :root {
+  --titlebar-height: 28px;
   --bg-primary: rgba(255, 255, 255, 0.82);
   --bg-secondary: rgba(246, 246, 246, 0.9);
   --bg-elevated: var(--gray-50);
@@ -356,7 +357,7 @@ body {
 }
 
 #titlebar {
-  height: 28px;
+  height: var(--titlebar-height);
   -webkit-app-region: drag;
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -409,7 +410,7 @@ body.platform-win .window-control-btn--close:hover {
 }
 
 /* Windows 的标题栏按钮由 renderer 绘制, 仍需要给按钮保留占位行. */
-body.platform-win #app { padding-top: 28px; }
+body.platform-win #app { padding-top: var(--titlebar-height); }
 
 #header {
   position: relative;

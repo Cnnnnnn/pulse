@@ -809,7 +809,7 @@
 /* ── 抽屉 ── */
 .github-drawer-overlay {
   position: fixed;
-  inset: 0;
+  inset: var(--titlebar-height) 0 0;
   background: rgba(0, 0, 0, 0.4);
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -820,9 +820,9 @@
 }
 .github-drawer {
   position: fixed;
-  top: 0;
+  top: var(--titlebar-height);
   right: 0;
-  height: 100%;
+  height: calc(100% - var(--titlebar-height));
   width: min(720px, 92vw);
   background: var(--surface);
   box-shadow: var(--shadow-lg);
