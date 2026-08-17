@@ -24,6 +24,7 @@ import * as githubSettings from "../github/github-settings-store.ts";
 import { createGithubProjectRepository } from "../github/github-project-repository.ts";
 import { createGithubReadmeService } from "../github/github-readme-service.ts";
 import { createGithubBackupService } from "../github/github-backup-service.ts";
+import { collectGithubTags as collectGithubTagsSelector } from "../github/github-library-selectors.ts";
 
 /** 全部已收录项目 (按添加时间倒序)。 */
 export const githubProjects = signal([]);
@@ -75,6 +76,16 @@ export function __resetQuotaWarnForTest() {
 
 function persist() {
   return githubProjectRepository.save(githubProjects.value);
+}
+
+export function markGithubProjectViewed(id: string) {
+  let changed = false;
+  githubProjects.value = githubProjects.value.map((project: any) => {
+    if (project.id !== id) return project;
+    changed = true;
+    return { ...project, lastViewedAt: Date.now() };
+  });
+  if (changed) persist();
 }
 
 export const loadGithubSettings = githubSettings.loadGithubSettings;
@@ -163,20 +174,7 @@ export function hasDistinctHomepage(project: any) {
  * 合并两者覆盖更广：有 topics 用 topics，没 topics 但解析过的用 AI tags。
  */
 export function collectGithubTags(projects: any[]): string[] {
-  if (!Array.isArray(projects)) return [];
-  const set = new Set<string>();
-  for (const p of projects) {
-    if (Array.isArray(p.topics)) {
-      for (const t of p.topics) {
-        if (typeof t === "string" && t.trim()) set.add(t.trim());
-      }
-    }
-    const aiTags = p.aiParse && Array.isArray(p.aiParse.tags) ? p.aiParse.tags : [];
-    for (const t of aiTags) {
-      if (typeof t === "string" && t.trim()) set.add(t.trim());
-    }
-  }
-  return [...set].sort((a: any, b: any) => a.localeCompare(b));
+  return collectGithubTagsSelector(projects);
 }
 
 /** 把时间戳格式化为「N 天前 / N 个月前」等人读相对时间。 */

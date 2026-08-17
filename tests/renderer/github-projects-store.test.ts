@@ -18,6 +18,7 @@ import {
   githubReasonText,
   addGithubProject,
   addGithubProjectsBatch,
+  markGithubProjectViewed,
   __resetQuotaWarnForTest,
 } from "../../src/renderer/store/github-projects-store.ts";
 import { api } from "../../src/renderer/api.ts";
@@ -128,6 +129,19 @@ describe("github store · 批量已读 + 视图密度", () => {
     const t = githubReasonText("auth_invalid");
     expect(t).toContain("Token");
     expect(t).toContain("重新生成");
+  });
+
+  it("markGithubProjectViewed 只更新目标项目并持久化", () => {
+    githubProjects.value = [
+      { id: "a/b", name: "a/b" },
+      { id: "c/d", name: "c/d", lastViewedAt: 10 },
+    ];
+    const before = githubProjects.value;
+    markGithubProjectViewed("a/b");
+    expect(githubProjects.value[0].lastViewedAt).toBeGreaterThan(0);
+    expect(githubProjects.value[1].lastViewedAt).toBe(10);
+    expect(githubProjects.value).not.toBe(before);
+    expect(globalThis.localStorage.getItem("pulse.github.projects.v1")).toContain("lastViewedAt");
   });
 });
 
