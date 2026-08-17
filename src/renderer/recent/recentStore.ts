@@ -7,28 +7,52 @@
  */
 
 import { signal } from "@preact/signals";
+import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+  type DataState,
+} from "../../shared/data-state.ts";
+import type { RecentListResponse } from "../../shared/ipc-contracts.ts";
 import { getApi, requireApiMethod, wrapIpc } from "../store/store-utils.ts";
 
 export const recent = signal([]); // RecentActivityEntry[]
 export const recentLoaded = signal(false);
 export const recentOpen = signal(false);
 export const recentFilter = signal("all"); // 'all' | kind
+export const recentDataState = signal<DataState<RecentListResponse>>(
+  createDataState({ ok: true, entries: [] }),
+);
 
 export async function loadRecent() {
   const list = requireApiMethod("recentList");
-  if (!list) return false;
-  return wrapIpc(
-    async () => {
-      const r = await list();
-      if (r && r.ok) {
-        recent.value = r.entries || [];
-        recentLoaded.value = true;
-        return true;
-      }
-      return false;
-    },
-    { label: "[recentStore] loadRecent failed", fallback: false },
-  );
+  if (!list) {
+    recentDataState.value = rejectData(recentDataState.value, "ipc_unavailable");
+    return false;
+  }
+  recentDataState.value = beginDataRequest(recentDataState.value);
+  try {
+    const r = await list();
+    if (r && r.ok) {
+      recent.value = r.entries || [];
+      recentLoaded.value = true;
+      recentDataState.value = resolveData(
+        recentDataState.value,
+        r,
+        { source: "live" },
+      );
+      return true;
+    }
+    recentDataState.value = rejectData(
+      recentDataState.value,
+      (r && (r.reason || r.msg)) || "load_failed",
+    );
+    return false;
+  } catch (err) {
+    recentDataState.value = rejectData(recentDataState.value, err);
+    return false;
+  }
 }
 
 export async function pushRecent(entry: any) {
@@ -58,6 +82,11 @@ export function installRecentListener() {
     if (Array.isArray(entries)) {
       recent.value = entries;
       recentLoaded.value = true;
+      recentDataState.value = resolveData(
+        recentDataState.value,
+        { ok: true, entries },
+        { source: "live" },
+      );
     }
   });
 }

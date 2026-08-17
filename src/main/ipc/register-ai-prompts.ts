@@ -21,6 +21,7 @@ function errMsg(err: unknown): string {
 
 import * as stateStore from "../state-store";
 import { DEFAULT_PROMPTS, PROMPT_KEYS } from "../../ai/prompt-registry";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 function mergePromptForLoad(key: any, user: any) {
   const def = (DEFAULT_PROMPTS as any)[key];
@@ -51,7 +52,12 @@ export function registerAiPromptsHandlers(ctx: any) {
     return result;
   });
 
-  safeHandle("ai-prompts:save", (_evt: any, payload: any) => {
+  safeHandle(
+    "ai-prompts:save",
+    (
+      _evt: unknown,
+      payload: IpcChannelMap["ai-prompts:save"]["args"][0],
+    ) => {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       return { ok: false, reason: "invalid_args" };
     }
@@ -68,9 +74,12 @@ export function registerAiPromptsHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 
-  safeHandle("ai-prompts:reset", (_evt: any, key: any) => {
+  safeHandle(
+    "ai-prompts:reset",
+    (_evt: unknown, key: IpcChannelMap["ai-prompts:reset"]["args"][0]) => {
     if (!key || typeof key !== "string" || !PROMPT_KEYS.includes(key)) {
       return { ok: false, reason: "unknown_key" };
     }
@@ -89,7 +98,8 @@ export function registerAiPromptsHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 }
 
 module.exports = { registerAiPromptsHandlers };

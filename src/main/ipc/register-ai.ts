@@ -11,6 +11,8 @@ import * as aiStorage from "../../ai-sessions/storage";
 import { CloudSummarizer, PROVIDER_ENDPOINTS } from "../../ai-sessions/provider-cloud";
 import { HttpClient } from "../http-client";
 import { resolveSharedAiConfig } from "../../ai/shared-llm";
+import type { IpcMainInvokeEvent } from "electron";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 function localDateKey(offsetDays = 0) {
   const t = Date.now() - (offsetDays | 0) * 86400_000;
@@ -30,7 +32,10 @@ export function registerAiHandlers(ctx: any) {
 
   safeHandle(
     "ai-tasks:list",
-    async (_event: any, opts: any) => {
+    async (
+      _event: unknown,
+      opts: IpcChannelMap["ai-tasks:list"]["args"][0],
+    ) => {
       const wiring = getAiTasksWiring();
       if (!wiring) return { ok: false, reason: "not_initialized" };
       const dateKey =
@@ -42,12 +47,20 @@ export function registerAiHandlers(ctx: any) {
       const r = await wiring.engine.listTasks(dateKey, { now: Date.now() });
       return { ok: true, ...r };
     },
-    { logMeta: (_evt: any, opts: any) => ({ dateKey: opts && opts.dateKey }) },
+    {
+      logMeta: (
+        _evt: unknown,
+        opts: IpcChannelMap["ai-tasks:list"]["args"][0],
+      ) => ({ dateKey: opts && opts.dateKey }),
+    },
   );
 
   safeHandle(
     "ai-tasks:summarize",
-    async (_event: any, opts: any) => {
+    async (
+      _event: unknown,
+      opts: IpcChannelMap["ai-tasks:summarize"]["args"][0],
+    ) => {
       const wiring = getAiTasksWiring();
       if (!wiring) return { ok: false, reason: "not_initialized" };
       const dateKey =
@@ -72,12 +85,20 @@ export function registerAiHandlers(ctx: any) {
       });
       return { ok: r.ok, dateKey, results: r.results, failures: r.failures };
     },
-    { logMeta: (_evt: any, opts: any) => ({ dateKey: opts && opts.dateKey }) },
+    {
+      logMeta: (
+        _evt: unknown,
+        opts: IpcChannelMap["ai-tasks:summarize"]["args"][0],
+      ) => ({ dateKey: opts && opts.dateKey }),
+    },
   );
 
   safeHandle(
     "ai-sessions:open-session",
-    async (_event: any, target: any) => {
+    async (
+      _event: unknown,
+      target: IpcChannelMap["ai-sessions:open-session"]["args"][0],
+    ) => {
       if (typeof target !== "string" || target.length === 0) {
         return { ok: false, reason: "invalid_target" };
       }
@@ -92,12 +113,16 @@ export function registerAiHandlers(ctx: any) {
       }
       return { ok: false, reason: "unrecognized_target" };
     },
-    { logMeta: (_evt: any, target: any) => ({ target }) },
+    { logMeta: (_evt: unknown, target: IpcChannelMap["ai-sessions:open-session"]["args"][0]) => ({ target }) },
   );
 
   safeHandle(
     "ai-sessions:set-key",
-    async (_event: any, providerId: any, apiKey: any) => {
+    async (
+      _event: unknown,
+      providerId: IpcChannelMap["ai-sessions:set-key"]["args"][0],
+      apiKey: IpcChannelMap["ai-sessions:set-key"]["args"][1],
+    ) => {
       if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
         return { ok: false, reason: "invalid_providerId" };
       }
@@ -111,22 +136,30 @@ export function registerAiHandlers(ctx: any) {
       mainLog.info(`[ipc] ai-sessions:set-key ok provider=${providerId}`);
       return { ok: true };
     },
-    { logMeta: (_evt: any, providerId: any) => ({ providerId }) },
+    { logMeta: (_evt: unknown, providerId: IpcChannelMap["ai-sessions:set-key"]["args"][0]) => ({ providerId }) },
   );
 
   safeHandle(
     "ai-sessions:clear-key",
-    async (_event: any, providerId: any) => {
+    async (
+      _event: unknown,
+      providerId: IpcChannelMap["ai-sessions:clear-key"]["args"][0],
+    ) => {
       if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
         return { ok: false, reason: "invalid_providerId" };
       }
       const r = aiStorage.clearApiKey(providerId);
       return { ok: true, cleared: r };
     },
-    { logMeta: (_evt: any, providerId: any) => ({ providerId }) },
+    { logMeta: (_evt: unknown, providerId: IpcChannelMap["ai-sessions:clear-key"]["args"][0]) => ({ providerId }) },
   );
 
-  ipcMain.handle("ai-sessions:has-key", async (_event: any, providerId: any) => {
+  ipcMain.handle(
+    "ai-sessions:has-key",
+    async (
+      _event: IpcMainInvokeEvent,
+      providerId: IpcChannelMap["ai-sessions:has-key"]["args"][0],
+    ) => {
     if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
       return {
         ok: false,
@@ -147,9 +180,15 @@ export function registerAiHandlers(ctx: any) {
       decryptOk: hasKey,
       available: true,
     };
-  });
+    },
+  );
 
-  ipcMain.handle("ai-sessions:healthcheck", async (_event: any, opts: any) => {
+  ipcMain.handle(
+    "ai-sessions:healthcheck",
+    async (
+      _event: IpcMainInvokeEvent,
+      opts: IpcChannelMap["ai-sessions:healthcheck"]["args"][0],
+    ) => {
     const stateCfg = stateStore.loadAISessionsConfig();
     const providerId =
       opts && typeof opts.providerId === "string"
@@ -197,14 +236,20 @@ export function registerAiHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
-  });
+    },
+  );
 
   safeHandle("ai-sessions:get-config", async () => {
     const cfg = stateStore.loadAISessionsConfig();
     return { ok: true, config: cfg };
   });
 
-  safeHandle("ai-sessions:save-config", async (_event: any, cfg: any) => {
+  safeHandle(
+    "ai-sessions:save-config",
+    async (
+      _event: unknown,
+      cfg: IpcChannelMap["ai-sessions:save-config"]["args"][0],
+    ) => {
     if (cfg != null && typeof cfg !== "object") {
       return { ok: false, reason: "invalid_config" };
     }
@@ -240,7 +285,8 @@ export function registerAiHandlers(ctx: any) {
     }
 
     return { ok: true, config: next.ai_sessions_config || null };
-  });
+    },
+  );
 
   safeHandle(
     "ai:get-shared-config",

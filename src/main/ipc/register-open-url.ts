@@ -22,6 +22,7 @@ function errMsg(err: unknown): string {
 
 const { shell }: { shell: Shell } = require("electron");
 import { mainLog } from "../log";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 function isSafeUrl(url: any) {
   if (typeof url !== "string" || url.length === 0) return false;
@@ -36,7 +37,12 @@ function isSafeUrl(url: any) {
 export function registerOpenUrlHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
-  safeHandle("open-url:open", async (_evt: any, url: any) => {
+  safeHandle(
+    "open-url:open",
+    async (
+      _evt: unknown,
+      url: IpcChannelMap["open-url:open"]["args"][0],
+    ) => {
     if (!isSafeUrl(url)) {
       mainLog.warn(`[ipc] open-url:open rejected unsafe url: ${url}`);
       return { ok: false, reason: "unsafe_url" };
@@ -48,7 +54,8 @@ export function registerOpenUrlHandlers(ctx: any) {
       mainLog.warn(`[ipc] open-url:open failed: ${errMsg(err)}`);
       return { ok: false, reason: "shell_failed" };
     }
-  });
+    },
+  );
 }
 
 module.exports = { registerOpenUrlHandlers };

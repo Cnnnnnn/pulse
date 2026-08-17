@@ -13,6 +13,7 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type {} from "electron";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export async function commandSearch(_ctx: any, q: any) {
   if (!q || typeof q !== "string") return { ok: true, results: [] };
@@ -36,8 +37,12 @@ export async function commandSearch(_ctx: any, q: any) {
 export function registerVersionsOverviewHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
-  safeHandle("versions:command-search", async (_e: any, { q }: any) =>
-    commandSearch(ctx, q),
+  safeHandle(
+    "versions:command-search",
+    async (
+      _e: unknown,
+      payload: IpcChannelMap["versions:command-search"]["args"][0],
+    ) => commandSearch(ctx, payload && payload.q),
   );
 }
 

@@ -16,7 +16,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } = require("../_setup/require-main.cjs");
-const { runCheck } = requireMain("check-runner");
+const { runCheck, cancelCheck } = requireMain("check-runner");
 const FAKE_NOW = 1750000000000;
 const FAKE_DAY = 24 * 3600 * 1000;
 
@@ -350,5 +350,112 @@ describe("runCheck forceRefresh payload (manual bypass)", () => {
     await runCheck(deps, { silent: true });
 
     expect(seen[0]).toBe(false);
+  });
+});
+
+// ── 检查 job correlation / timeout cleanup ─────────────────
+
+describe("runCheck job correlation and timeout cleanup", () => {
+  it("manual check uses one jobId for lifecycle events and worker tasks", async () => {
+    const events = [];
+    const tasks = [];
+    const results = [makeResult("Cursor")];
+    const deps = {
+      ...makeDeps({
+        results,
+        poolOverride: {
+          enqueue: (task) => {
+            if (task.type === "detect-app") tasks.push(task);
+            return Promise.resolve(makeResult(task.payload.appCfg.name));
+          },
+        },
+      }),
+      getWindow: () => ({
+        isDestroyed: () => false,
+        webContents: {
+          send: (channel, payload) => events.push({ channel, payload }),
+        },
+      }),
+      onCheckComplete: undefined,
+    };
+
+    await runCheck(deps, { silent: false, jobId: "job-test-1" });
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].payload.jobId).toBe("job-test-1");
+    expect(events.map((event) => event.channel)).toEqual([
+      "check-started",
+      "check-finished",
+    ]);
+    expect(events[0].payload.jobId).toBe("job-test-1");
+    expect(events[1].payload.jobId).toBe("job-test-1");
+  });
+
+  it("clears the per-app timeout after a successful detection", async () => {
+    const deps = {
+      ...makeDeps({ results: [makeResult("Cursor")] }),
+      onCheckComplete: undefined,
+    };
+
+    await runCheck(deps, { silent: true, jobId: "job-success" });
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("clears the per-app timeout after a timed-out detection", async () => {
+    const deps = {
+      ...makeDeps({
+        results: [makeResult("Cursor")],
+        poolOverride: {
+          enqueue: () => new Promise(() => {}),
+        },
+      }),
+      onCheckComplete: undefined,
+    };
+    const check = runCheck(deps, { silent: true, jobId: "job-timeout" });
+
+    await vi.advanceTimersByTimeAsync(95_000);
+    const results = await check;
+
+    expect(results[0].status).toBe("error");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("cancels a running job through the pool and marks its finish payload", async () => {
+    let rejectTask;
+    const events = [];
+    const pool = {
+      enqueue: () => new Promise((_, reject) => { rejectTask = reject; }),
+      cancelJob: vi.fn(() => {
+        const error = new Error("task cancelled");
+        error.code = "TASK_CANCELLED";
+        rejectTask(error);
+        return { queued: 0, running: 1 };
+      }),
+    };
+    const deps = {
+      ...makeDeps({ results: [makeResult("Cursor")], poolOverride: pool }),
+      getWindow: () => ({
+        isDestroyed: () => false,
+        webContents: {
+          send: (channel, payload) => events.push({ channel, payload }),
+        },
+      }),
+      onCheckComplete: undefined,
+    };
+    const check = runCheck(deps, { silent: false, jobId: "job-cancel" });
+
+    await Promise.resolve();
+    expect(cancelCheck("job-cancel")).toEqual({
+      ok: true,
+      jobId: "job-cancel",
+      queued: 0,
+      running: 1,
+    });
+    const results = await check;
+
+    expect(pool.cancelJob).toHaveBeenCalledWith("job-cancel");
+    expect(results[0].status).toBe("cancelled");
+    expect(events.find((event) => event.channel === "check-finished").payload.cancelled).toBe(true);
   });
 });

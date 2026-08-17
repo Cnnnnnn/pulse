@@ -15,6 +15,7 @@ import {
   reminders,
   remindersOpen,
   remindersLoaded,
+  remindersDataState,
   loadReminders,
   createReminder,
   updateReminder,
@@ -398,6 +399,9 @@ export function RemindersModal() {
   const open = remindersOpen.value;
   const list = reminders.value;
   const loaded = remindersLoaded.value;
+  const loadState = remindersDataState.value;
+  const loading = loadState.phase === "loading";
+  const loadError = loadState.error;
   const now = useNowTick(open);
 
   const [editing, setEditing] = useState(null); // null | 'new' | Reminder
@@ -419,8 +423,8 @@ export function RemindersModal() {
   );
 
   useEffect(() => {
-    if (open && !loaded) loadReminders();
-  }, [open, loaded]);
+    if (open && !loaded && loadState.phase === "idle") loadReminders();
+  }, [open, loaded, loadState.phase]);
 
   useEffect(() => {
     if (!open) setEditing(null);
@@ -492,7 +496,13 @@ export function RemindersModal() {
         />
       )}
 
-      {!loaded && <PanelEmpty className="reminder-empty">加载中...</PanelEmpty>}
+      {loading && <PanelEmpty className="reminder-empty">加载中...</PanelEmpty>}
+      {!loading && loadError && (
+        <PanelEmpty className="reminder-empty">
+          <div class="reminder-empty-title">加载失败</div>
+          <div class="reminder-empty-hint">{loadError}，请关闭后重试。</div>
+        </PanelEmpty>
+      )}
       {loaded && list.length === 0 && editing === null && (
         <PanelEmpty className="reminder-empty">
           <div class="reminder-empty-title">还没有提醒</div>

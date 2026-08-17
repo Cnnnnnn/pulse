@@ -5,7 +5,11 @@ import {
   loadFundNavHistory,
   prefetchAllNavHistory,
   loadFunds,
+  fetchNavNow,
   holdings,
+  navCache,
+  fundsHoldingsState,
+  fundsNavDataState,
   fundsLoading,
   fundsLoadError,
 } from "../../src/renderer/funds/fundStore.ts";
@@ -14,6 +18,23 @@ afterEach(() => {
   navHistoryCache.value = {};
   navHistoryLoading.value = {};
   holdings.value = [];
+  navCache.value = { fetchedAt: null, data: {}, errors: {} };
+  fundsHoldingsState.value = {
+    phase: "idle",
+    data: [],
+    error: null,
+    source: "unknown",
+    fetchedAt: 0,
+    lastAttemptAt: 0,
+  };
+  fundsNavDataState.value = {
+    phase: "idle",
+    data: { fetchedAt: null, data: {}, errors: {} },
+    error: null,
+    source: "unknown",
+    fetchedAt: 0,
+    lastAttemptAt: 0,
+  };
   fundsLoadError.value = null;
   fundsLoading.value = false;
 });
@@ -268,5 +289,70 @@ describe("loadFunds (Task B) — 加载状态", () => {
     expect(fundsLoadError.value).toBeNull();
     expect(fundsLoading.value).toBe(false);
     expect(holdings.value.length).toBe(1);
+    expect(fundsHoldingsState.value.phase).toBe("ready");
+    expect(fundsHoldingsState.value.source).toBe("cache");
+  });
+
+  it("刷新失败保留已有持仓并标记为 stale", async () => {
+    const previous = [{ id: "1", code: "X" }];
+    holdings.value = previous;
+    fundsHoldingsState.value = {
+      phase: "ready",
+      data: previous,
+      error: null,
+      source: "cache",
+      fetchedAt: 123,
+      lastAttemptAt: 123,
+    };
+
+    await loadFunds({ fundsList: async () => ({ ok: false, reason: "offline" }) });
+
+    expect(holdings.value).toEqual(previous);
+    expect(fundsHoldingsState.value.phase).toBe("stale");
+    expect(fundsHoldingsState.value.error).toBe("offline");
+  });
+});
+
+describe("fund nav data state", () => {
+  it("成功刷新标记 live 并保留合并后的净值", async () => {
+    const api = {
+      fundsNavFetch: async () => ({
+        ok: true,
+        results: { X: { nav: 1.23 } },
+        errors: {},
+      }),
+      fundsList: async () => ({ ok: true, holdings: [] }),
+      fundsNavState: async () => ({ ok: true }),
+    };
+
+    await fetchNavNow(api);
+
+    expect(navCache.value.data.X.nav).toBe(1.23);
+    expect(fundsNavDataState.value.phase).toBe("ready");
+    expect(fundsNavDataState.value.source).toBe("live");
+  });
+
+  it("刷新失败保留已有净值并标记为 stale", async () => {
+    navCache.value = {
+      fetchedAt: 123,
+      data: { X: { nav: 1.2 } },
+      errors: {},
+    };
+    fundsNavDataState.value = {
+      phase: "ready",
+      data: navCache.value,
+      error: null,
+      source: "live",
+      fetchedAt: 123,
+      lastAttemptAt: 123,
+    };
+
+    await fetchNavNow({
+      fundsNavFetch: async () => ({ ok: false, reason: "offline" }),
+    });
+
+    expect(navCache.value.data.X.nav).toBe(1.2);
+    expect(fundsNavDataState.value.phase).toBe("stale");
+    expect(fundsNavDataState.value.error).toBe("offline");
   });
 });

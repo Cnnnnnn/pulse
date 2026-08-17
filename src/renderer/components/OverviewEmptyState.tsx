@@ -9,9 +9,11 @@ import "./OverviewEmptyState.css";
 
 export function OverviewEmptyState({
   onRunCheck,
+  onCancel,
   isLoading,
 }: {
   onRunCheck: () => void;
+  onCancel?: () => void;
   isLoading: boolean;
 }) {
   return (
@@ -28,6 +30,11 @@ export function OverviewEmptyState({
         >
           {isLoading ? "检查中..." : "运行首次检查"}
         </button>
+        {isLoading && onCancel && (
+          <button type="button" class="btn btn-ghost btn-sm" onClick={onCancel}>
+            取消检查
+          </button>
+        )}
       </div>
     </div>
   );

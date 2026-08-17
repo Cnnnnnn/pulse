@@ -8,15 +8,25 @@
 
 import { signal } from "@preact/signals";
 import { api } from "../api.ts";
+import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+  type DataSource,
+  type DataState,
+} from "../../shared/data-state.ts";
+import type { FinanceNewsSort } from "../../shared/ipc-contracts.ts";
 
 /** 当前分类（全部 | 股市 | 基金 | 债券 | 宏观 | 全球）。 */
 export const financeCategory = signal("all");
 /** 排序（time | popularity；popularity 缺省按 time 兜底）。 */
-export const financeSort = signal("time");
+export const financeSort = signal<FinanceNewsSort>("time");
 /** 搜索词（由 header 框驱动，FinanceContent 写入）。 */
 export const financeSearch = signal("");
 
 export const financeList = signal<any[]>([]);
+export const financeNewsState = signal<DataState<any[]>>(createDataState([]));
 export const financeLoading = signal(false);
 export const financeError = signal<any>(null);
 export const financeTs = signal(0);
@@ -67,10 +77,14 @@ export function applyCategoryCounts(): void {
 }
 
 /** 按当前 category / sort / search 重新拉取过滤列表。 */
-export function applyNewsFilters(search?: string): void {
+export function applyNewsFilters(
+  search?: string,
+  options: { source?: DataSource } = {},
+): void {
   const q = typeof search === "string" ? search : financeSearch.value;
   financeSearch.value = q;
   financeLoading.value = true;
+  financeNewsState.value = beginDataRequest(financeNewsState.value);
   financeError.value = null;
   api
     .financeGetNews({
@@ -82,9 +96,14 @@ export function applyNewsFilters(search?: string): void {
       // 契约（register-finance finance:get-news）永远返回数组，无需 list.items 双形防御
       financeList.value = Array.isArray(list) ? list : [];
       financeTs.value = Date.now();
+      financeNewsState.value = resolveData(financeNewsState.value, financeList.value, {
+        source: options.source || "cache",
+        fetchedAt: financeTs.value,
+      });
     })
     .catch((err: any) => {
       financeError.value = (err && err.message) || "加载失败";
+      financeNewsState.value = rejectData(financeNewsState.value, financeError.value);
     })
     .finally(() => {
       financeLoading.value = false;
@@ -94,18 +113,21 @@ export function applyNewsFilters(search?: string): void {
 export async function refreshFinanceNews(): Promise<boolean> {
   if (financeLoading.value) return false;
   financeLoading.value = true;
+  financeNewsState.value = beginDataRequest(financeNewsState.value);
   financeError.value = null;
   try {
     const r = await api.financeRefreshNews({});
     if (r && r.ok === false) {
       financeError.value = (r.reason as string) || "刷新失败";
+      financeNewsState.value = rejectData(financeNewsState.value, financeError.value);
       return false;
     }
-    applyNewsFilters(financeSearch.value);
+    applyNewsFilters(financeSearch.value, { source: "live" });
     applyCategoryCounts();
     return true;
   } catch (err: any) {
     financeError.value = (err && err.message) || "刷新失败";
+    financeNewsState.value = rejectData(financeNewsState.value, financeError.value);
     return false;
   } finally {
     financeLoading.value = false;
@@ -144,6 +166,7 @@ export async function refreshMarketQuotes(): Promise<boolean> {
 }
 
 export async function bootstrapFinance(): Promise<void> {
+  financeNewsState.value = beginDataRequest(financeNewsState.value);
   try {
     const cached = await api.financeGetNews({
       category: financeCategory.value,
@@ -151,8 +174,12 @@ export async function bootstrapFinance(): Promise<void> {
       search: financeSearch.value,
     });
     financeList.value = Array.isArray(cached) ? cached : [];
+    financeNewsState.value = resolveData(financeNewsState.value, financeList.value, {
+      source: "cache",
+      fetchedAt: Date.now(),
+    });
   } catch {
-    /* 通过 refresh 暴露错误 */
+    financeNewsState.value = rejectData(financeNewsState.value, "读取财经缓存失败");
   }
   // C4：先 await 行情加载完成，再据真实缓存判断是否首拉，避免依赖初始空值
   await applyQuotes();

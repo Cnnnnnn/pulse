@@ -23,11 +23,17 @@ const _ns: any = newsStore;
 import { createShareCardPng } from "../ithome/share-card-renderer";
 import { writePngToClipboard } from "../ithome/clipboard-image";
 import { mainLog } from "../log";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export function registerIthomeShareHandlers(ctx: any) {
   const { safeHandle } = ctx;
 
-  safeHandle("ithome:share-card", async (_evt: any, payload: any) => {
+  safeHandle(
+    "ithome:share-card",
+    async (
+      _evt: unknown,
+      payload: IpcChannelMap["ithome:share-card"]["args"][0],
+    ) => {
     const id = payload && payload.id;
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
@@ -54,7 +60,8 @@ export function registerIthomeShareHandlers(ctx: any) {
       });
       return { ok: false, reason: "render_failed", error: errMsg(err) };
     }
-  });
+    },
+  );
 }
 
 module.exports = { registerIthomeShareHandlers };

@@ -23,6 +23,7 @@ const {
   wechatHotLoaded,
   wechatHotLoading,
   wechatHotError,
+  wechatHotDataState,
   wechatHotLastFetched,
   wechatHotLastRefreshAt,
   wechatHotUpdatedUnsub,
@@ -45,6 +46,14 @@ beforeEach(() => {
   wechatHotLoaded.value = false;
   wechatHotLoading.value = false;
   wechatHotError.value = null;
+  wechatHotDataState.value = {
+    phase: "idle",
+    data: [],
+    error: null,
+    source: "unknown",
+    fetchedAt: 0,
+    lastAttemptAt: 0,
+  };
   wechatHotLastFetched.value = 0;
   wechatHotLastRefreshAt.value = 0;
   mockApi.wechatHotLoad.mockReset();
@@ -64,6 +73,13 @@ describe("wechat-hot store: applyPayload", () => {
     expect(wechatHotLastFetched.value).toBe(1700000000000);
     expect(wechatHotLoaded.value).toBe(true);
     expect(wechatHotError.value).toBe(null);
+    expect(wechatHotDataState.value.phase).toBe("ready");
+    expect(wechatHotDataState.value.source).toBe("live");
+  });
+
+  it("records cache payloads as cache data", () => {
+    applyPayload(SAMPLE, "cache");
+    expect(wechatHotDataState.value.source).toBe("cache");
   });
 });
 
@@ -115,6 +131,21 @@ describe("wechat-hot store: refreshWechatHot 15s cooldown", () => {
     const r = await refreshWechatHot();
     expect(r).toBe(true);
     expect(mockApi.wechatHotRefresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the last hot list as stale data when refresh fails", async () => {
+    mockApi.wechatHotRefresh.mockResolvedValueOnce(SAMPLE);
+    await refreshWechatHot();
+    wechatHotLastRefreshAt.value = 0;
+    mockApi.wechatHotRefresh.mockResolvedValueOnce({ ok: false, reason: "fetch_failed" });
+
+    const result = await refreshWechatHot();
+
+    expect(result).toBe(false);
+    expect(wechatHotItems.value).toEqual(SAMPLE.items);
+    expect(wechatHotDataState.value.phase).toBe("stale");
+    expect(wechatHotDataState.value.data).toEqual(SAMPLE.items);
+    expect(wechatHotError.value).toContain("拉取失败");
   });
 });
 

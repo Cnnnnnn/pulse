@@ -17,18 +17,25 @@ function errMsg(err: unknown): string {
 }
 
 import { fetchChangelogSummary } from "../../ai/changelog-summary";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export function registerChangelogSummaryHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  safeHandle("changelog-summary:fetch", async (_evt: any, opts: any) => {
+  safeHandle(
+    "changelog-summary:fetch",
+    async (
+      _evt: unknown,
+      opts: IpcChannelMap["changelog-summary:fetch"]["args"][0],
+    ) => {
     try {
       return await fetchChangelogSummary(opts || {});
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 }
 
 module.exports = { registerChangelogSummaryHandlers };

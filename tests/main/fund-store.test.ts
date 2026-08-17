@@ -197,6 +197,22 @@ describe("add", () => {
     expect(raw.apps).toEqual({}); // 不丢其他字段
   });
 
+  it("写基金时保留未来领域的顶层字段", () => {
+    fs.writeFileSync(
+      tmpPath,
+      JSON.stringify({
+        v: 1,
+        ts: 0,
+        apps: {},
+        mutes: {},
+        future_domain: { version: 2, payload: ["keep"] },
+      }),
+    );
+    fundStore.add({ code: "000001", shares: 100, costNav: 1.0 }, tmpPath);
+    const raw = JSON.parse(fs.readFileSync(tmpPath, "utf-8"));
+    expect(raw.future_domain).toEqual({ version: 2, payload: ["keep"] });
+  });
+
   it("note 字段保留 / 缺失", () => {
     const { holding: a } = fundStore.add(
       { code: "000001", shares: 100, costNav: 1.0 },

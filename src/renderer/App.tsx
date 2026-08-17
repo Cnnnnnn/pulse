@@ -13,7 +13,7 @@
  *   - Cmd+F 拦截 (在 AppShell 里, 切对应搜索框)
  */
 
-import { checkSession } from './store.ts';
+import { checkJob, checkSession } from './store.ts';
 import { api } from './api.ts';
 import { BulkUpgradeModal } from './components/BulkUpgradeModal.tsx';
 import { Toast } from './components/Toast.tsx';
@@ -31,6 +31,7 @@ const isWin = (typeof window !== 'undefined' && window.platformInfo && window.pl
 
 export function App({ onCheck }: { onCheck?: () => void }) {
   const session = checkSession.value;
+  const job = checkJob.value;
   return (
     <div id="app">
       <div id="titlebar">
@@ -77,7 +78,7 @@ export function App({ onCheck }: { onCheck?: () => void }) {
         <AppShell onCheck={onCheck} />
       </main>
       <footer id="footer">
-        <span id="check-time">{footerTime(session)}</span>
+        <span id="check-time">{footerTime(session, job)}</span>
         <div class="footer-right">
           <button class="btn btn-ghost btn-sm" onClick={onOpenConfig}>打开配置</button>
         </div>
@@ -97,7 +98,23 @@ export function App({ onCheck }: { onCheck?: () => void }) {
   );
 }
 
-function footerTime(session) {
+function footerTime(session, job) {
+  if (job.phase === 'running' && job.startedAt) {
+    return `检查中... ${formatTime(new Date(job.startedAt))} 开始 · ${job.completed}/${job.total}`;
+  }
+  if (job.phase === 'partial' && job.finishedAt) {
+    return `检查部分完成: ${job.succeeded}/${job.total} 成功 · ${formatTime(new Date(job.finishedAt))}`;
+  }
+  if (job.phase === 'cancelled' && job.finishedAt) {
+    return `检查已取消: ${formatTime(new Date(job.finishedAt))}`;
+  }
+  if (job.phase === 'failed' && job.finishedAt) {
+    return `检查失败: ${formatTime(new Date(job.finishedAt))}`;
+  }
+  if (job.phase === 'succeeded' && job.finishedAt && job.startedAt) {
+    const duration = job.finishedAt - job.startedAt;
+    return `上次检查: ${formatTime(new Date(job.finishedAt))} · 用时 ${(duration / 1000).toFixed(1)}s`;
+  }
   if (session.phase === 'running' && session.startedAt) {
     return `检查中... ${formatTime(new Date(session.startedAt))} 开始`;
   }

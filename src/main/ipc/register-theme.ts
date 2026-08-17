@@ -19,6 +19,7 @@
 import type { IpcMain, NativeTheme } from "electron";
 const { ipcMain, nativeTheme }: { ipcMain: IpcMain; nativeTheme: NativeTheme } = require("electron");
 import { mainLog } from "../log";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 const VALID = ["system", "light", "dark"];
 let lastThemeMode = "system"; // 主进程内存, 重启时重置为 system.
@@ -50,7 +51,12 @@ export function registerThemeHandlers(ctx: any) {
     return { mode: lastThemeMode, resolved: resolveTheme(lastThemeMode) };
   });
 
-  ipcMain.handle("theme:set", (_event: any, mode: any) => {
+  ipcMain.handle(
+    "theme:set",
+    (
+      _event: unknown,
+      mode: IpcChannelMap["theme:set"]["args"][0],
+    ) => {
     const m = VALID.includes(mode) ? mode : "system";
     lastThemeMode = m;
     mainLog.info(`[theme] main process lastThemeMode = ${m}`);
@@ -59,7 +65,8 @@ export function registerThemeHandlers(ctx: any) {
       sendToRenderer("theme:changed", { mode: m, resolved: resolveTheme(m) });
     }
     return { mode: m, resolved: resolveTheme(m) };
-  });
+    },
+  );
 }
 
 module.exports = { registerThemeHandlers };

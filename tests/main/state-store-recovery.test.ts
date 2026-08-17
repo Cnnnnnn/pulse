@@ -65,6 +65,29 @@ describe('state-store recovery', () => {
     expect(ss.getLastRecoveryEvent()).toBeNull();
   });
 
+  it('loadOrRecover migrates an unversioned legacy state and persists the v1 envelope', () => {
+    statePath = freshStatePath();
+    writeJson(statePath, { apps: { Cursor: { name: 'Cursor' } } });
+    const ss = requireMain('state-store');
+    const state = ss.loadOrRecover(statePath);
+
+    expect(state).toMatchObject({
+      v: 1,
+      ts: 0,
+      apps: { Cursor: { name: 'Cursor' } },
+      mutes: {},
+      last_opened: {},
+      active_category: 'all',
+    });
+    expect(JSON.parse(readFileSync(statePath, 'utf8'))).toMatchObject({
+      v: 1,
+      mutes: {},
+      last_opened: {},
+      active_category: 'all',
+    });
+    expect(ss.getLastRecoveryEvent()).toBeNull();
+  });
+
   it('loadOrRecover backs up corrupt JSON, returns null, records event', () => {
     statePath = freshStatePath();
     writeRaw(statePath, '{ this is not valid JSON');

@@ -17,8 +17,10 @@
  *           由 renderer 在 setThemePreference 时主动 push 过去 (theme:set IPC).
  */
 
+import type { ThemeMode } from "../../shared/ipc-contracts";
+
 const STORAGE_KEY = "app-theme-preference"; // 'system' | 'light' | 'dark'
-const VALID = ["system", "light", "dark"];
+const VALID: ThemeMode[] = ["system", "light", "dark"];
 const root =
   typeof document !== "undefined" ? document.documentElement : null;
 
@@ -51,13 +53,13 @@ function getSystemDark() {
 }
 
 /** 把用户偏好解析成具体主题 */
-function resolve(mode: any) {
+function resolve(mode: ThemeMode) {
   if (mode === "system") return getSystemDark() ? "dark" : "light";
   return mode === "dark" ? "dark" : "light";
 }
 
 /** 把解析后的具体主题写到 <html data-theme>; 广播给订阅者 */
-function apply(mode: any) {
+function apply(mode: ThemeMode) {
   if (!root) return;
   root.setAttribute("data-theme", resolve(mode));
   root.setAttribute("data-theme-source", mode); // 供 UI 显示当前模式
@@ -65,8 +67,8 @@ function apply(mode: any) {
 }
 
 /* ─── 订阅者 (SettingsPage 用) ─────────────────────────────── */
-const subscribers = new Set<(mode: string) => void>();
-function notify(mode: any) {
+const subscribers = new Set<(_mode: ThemeMode) => void>();
+function notify(mode: ThemeMode) {
   for (const cb of subscribers) {
     try {
       cb(mode);
@@ -80,15 +82,15 @@ function notify(mode: any) {
  * 订阅偏好变化 (initTheme 调用 apply 或 setThemePreference 时触发).
  * 返回 unsubscribe.
  */
-export function subscribeTheme(cb: any) {
+export function subscribeTheme(cb: (_mode: ThemeMode) => void) {
   subscribers.add(cb);
   return () => subscribers.delete(cb);
 }
 
 /** 读取当前偏好（'system' | 'light' | 'dark'） */
-export function getThemePreference() {
+export function getThemePreference(): ThemeMode {
   const m = readPreference();
-  return VALID.includes(m) ? m : "system";
+  return VALID.includes(m as ThemeMode) ? (m as ThemeMode) : "system";
 }
 
 /**
@@ -98,8 +100,8 @@ export function getThemePreference() {
 export function setThemePreference(
   mode: any,
   { syncMain = true }: { syncMain?: boolean } = {},
-) {
-  const m = VALID.includes(mode) ? mode : "system";
+): ThemeMode {
+  const m: ThemeMode = VALID.includes(mode) ? mode : "system";
   writePreference(m);
   apply(m);
   // ponytail: 让主进程记住偏好, 后续 nativeTheme 变化能正确广播到 renderer.

@@ -39,6 +39,8 @@ import {
   runScreen,
   runScreenSilent,
   fetchedAt,
+  dataProvider,
+  dataTruncated,
   loading,
   openAdvise,
   aiAdviseOpen,
@@ -114,6 +116,15 @@ export function StockContent() {
 
   const tab = stockActiveTab.value; // 订阅 — InvestLayoutHeader 二级 tab 改它
   const ts = fetchedAt.value;
+  const providerLabel =
+    dataProvider.value === "eastmoney"
+      ? "东财"
+      : dataProvider.value === "sina"
+        ? "新浪备用源"
+        : null;
+  const dataMeta = [providerLabel, dataTruncated.value ? "快速样本" : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div class="stock-layout">
@@ -143,7 +154,7 @@ export function StockContent() {
         ) : null}
         {ts && (
           <span class="stock-toolbar-ts" aria-label="最后更新时间">
-            更新于 {fmtTime(ts)}
+            更新于 {fmtTime(ts)}{dataMeta ? ` · ${dataMeta}` : ""}
           </span>
         )}
       </div>

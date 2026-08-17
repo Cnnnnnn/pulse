@@ -40,6 +40,7 @@ vi.mock("../../src/renderer/api.ts", () => ({
 }));
 
 import * as store from "../../src/renderer/ai-leaderboard/aiLeaderboardStore.ts";
+import { api } from "../../src/renderer/api.ts";
 import { ARENA_BOARDS, ARENA_BOARD_KEYS, toIpcParams } from "../../src/renderer/ai-leaderboard/types.ts";
 import { tableToMarkdown, detailToMarkdown } from "../../src/renderer/ai-leaderboard/exportMarkdown.ts";
 import { rowsToCsv } from "../../src/renderer/ai-leaderboard/exportCsv.ts";
@@ -83,10 +84,41 @@ beforeEach(() => {
   store.attribution.value = [];
   store.loading.value = false;
   store.error.value = null;
+  store.aiLeaderboardDataState.value = {
+    phase: "idle",
+    data: [],
+    error: null,
+    source: "unknown",
+    fetchedAt: 0,
+    lastAttemptAt: 0,
+  };
   store.stale.value = false;
   store.fromCache.value = false;
   store.fetchedAt.value = null;
   store.compareList.value = [];
+});
+
+describe("leaderboard data state", () => {
+  it("刷新失败保留已有榜单并标记为 stale", async () => {
+    const previous = [mkModel({ id: "cached", arena: { text: { score: 1200 } } })];
+    store.items.value = previous;
+    store.aiLeaderboardDataState.value = {
+      phase: "ready",
+      data: previous,
+      error: null,
+      source: "live",
+      fetchedAt: 123,
+      lastAttemptAt: 123,
+    };
+    vi.mocked(api.getLeaderboard).mockRejectedValueOnce(new Error("network"));
+
+    await store.loadLeaderboard();
+
+    expect(store.items.value).toEqual(previous);
+    expect(store.aiLeaderboardDataState.value.phase).toBe("stale");
+    expect(store.aiLeaderboardDataState.value.error).toBe("network");
+    expect(store.stale.value).toBe(true);
+  });
 });
 
 describe("store actions — 视角 / board / 维度切换", () => {

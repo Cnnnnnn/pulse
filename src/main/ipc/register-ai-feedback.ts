@@ -22,6 +22,7 @@ function errMsg(err: unknown): string {
 }
 
 import * as stateStore from "../state-store";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 const {
   recordFeedback,
   pruneToCap,
@@ -32,7 +33,12 @@ export function registerAiFeedbackHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  safeHandle("feedback:record", async (_evt: any, raw: any) => {
+  safeHandle(
+    "feedback:record",
+    async (
+      _evt: unknown,
+      raw: IpcChannelMap["feedback:record"]["args"][0],
+    ) => {
     if (!raw || typeof raw !== "object") return { ok: false, reason: "invalid_args" };
     // 必填: feature / appName / ts + (vote 或 implicit 至少一个)
     if (
@@ -51,7 +57,8 @@ export function registerAiFeedbackHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 
   safeHandle("feedback:export", async () => {
     try {

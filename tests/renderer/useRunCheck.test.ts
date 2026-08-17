@@ -4,10 +4,17 @@ import { renderHook, act, waitFor } from "@testing-library/preact";
 import { useRunCheck } from "../../src/renderer/hooks/useRunCheck.ts";
 
 const mockRunCheck = vi.fn();
+const mockCancelCheck = vi.fn();
 const mockShowToast = vi.fn();
 
 vi.mock("../../src/renderer/run-check.ts", () => ({
   runCheck: (...args) => mockRunCheck(...args),
+}));
+
+vi.mock("../../src/renderer/api.ts", () => ({
+  api: {
+    cancelCheck: (...args) => mockCancelCheck(...args),
+  },
 }));
 
 vi.mock("../../src/renderer/store/toast-store.ts", () => ({
@@ -17,6 +24,7 @@ vi.mock("../../src/renderer/store/toast-store.ts", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
+  mockCancelCheck.mockResolvedValue({ ok: true });
 });
 
 describe("useRunCheck", () => {
@@ -139,5 +147,26 @@ describe("useRunCheck", () => {
       vi.advanceTimersByTime(2000);
     });
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it("cancel() calls the main cancel bridge and releases loading immediately", async () => {
+    let resolve;
+    mockRunCheck.mockReturnValue(new Promise((r) => { resolve = r; }));
+    const { result } = renderHook(() => useRunCheck());
+
+    act(() => {
+      result.current.run();
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(true));
+
+    await act(async () => {
+      await result.current.cancel();
+    });
+
+    expect(mockCancelCheck).toHaveBeenCalledWith(undefined);
+    expect(result.current.isLoading).toBe(false);
+    await act(async () => {
+      resolve({ started: true });
+    });
   });
 });

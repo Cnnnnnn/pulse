@@ -21,18 +21,30 @@ function errMsg(err: unknown): string {
 
 import { createStockHttpClient } from "../chromium-http-client";
 import { fetchStockDetailAngles, fetchSingleAngle } from "../../stocks/stock-detail-fetcher";
-import { computeStockCacheKey } from "../../stocks/stock-detail-cache";
+import { CACHE_VERSION, computeStockCacheKey } from "../../stocks/stock-detail-cache";
 import { aiStockDetailAnalyze, refreshAngleLocally } from "../../ai/stock-detail-advisor";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 const CACHE_TTL_MS = 60_000;
 const _detailCache = new Map();
+
+function invalidateDetailCache(code: any) {
+  const prefix = `${CACHE_VERSION}|detail|${String(code)}|`;
+  for (const key of _detailCache.keys()) {
+    if (key.startsWith(prefix)) _detailCache.delete(key);
+  }
+}
 
 export function registerStockDetailHandlers(ctx: any) {
   const { safeHandle, threwResponse } = ctx;
 
   safeHandle(
     "stocks:detail-angles",
-    async (_event: any, { code, angles }: any = {}) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["stocks:detail-angles"]["args"][0],
+    ) => {
+      const { code, angles } = payload || {};
       if (!code || !Array.isArray(angles) || angles.length === 0) {
         return { ok: false, reason: "invalid_args" };
       }
@@ -59,7 +71,11 @@ export function registerStockDetailHandlers(ctx: any) {
 
   safeHandle(
     "stocks:detail-analyze",
-    async (_event: any, { code, angles, perAngleData, freeText, scores }: any = {}) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["stocks:detail-analyze"]["args"][0],
+    ) => {
+      const { code, angles, perAngleData, freeText, scores } = payload || {};
       return await aiStockDetailAnalyze({ code, angles, perAngleData, freeText, scores });
     },
     {
@@ -75,7 +91,11 @@ export function registerStockDetailHandlers(ctx: any) {
 // renderer 拿到 {note} 后合并进 aiResult.perAngle[key]. 缺数据返 {ok:false, reason:'no_data'}.
   safeHandle(
     "stocks:angle-refresh",
-    async (_event: any, { angleKey, perAngleData, scores, seed }: any = {}) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["stocks:angle-refresh"]["args"][0],
+    ) => {
+      const { angleKey, perAngleData, scores, seed } = payload || {};
       if (!angleKey) return { ok: false, reason: "invalid_args" };
       const note = refreshAngleLocally({ angleKey, perAngleData, scores, seed });
       if (!note) return { ok: false, reason: "no_data" };
@@ -96,11 +116,26 @@ export function registerStockDetailHandlers(ctx: any) {
   //   no_data, pill 永远 failed. 现改走这条, 数据成功 → pill 自动 ok.
   safeHandle(
     "stocks:angle-reload",
-    async (_event: any, { code, angleKey }: any = {}) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["stocks:angle-reload"]["args"][0],
+    ) => {
+      const { code, angleKey } = payload || {};
       if (!code || !angleKey) return { ok: false, reason: "invalid_args" };
       const httpClient = createStockHttpClient({ timeout: 8000, maxRetries: 1 });
       const perAngle = await fetchSingleAngle(httpClient, code, angleKey);
       if (!perAngle) return { ok: false, reason: "invalid_args" };
+      if (perAngle.status !== "ok") {
+        return {
+          ok: false,
+          reason: perAngle.reason || "fetch_failed",
+          error: perAngle.error || null,
+          perAngle,
+        };
+      }
+      // 单角度成功后使该股票的整组详情缓存失效，避免离开诊断页再进入时
+      // 60s 内又读回旧 angle，覆盖刚刚重拉成功的数据。
+      invalidateDetailCache(code);
       return { ok: true, perAngle };
     },
     {

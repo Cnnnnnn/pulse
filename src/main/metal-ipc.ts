@@ -8,13 +8,14 @@
  * isolated so the scheduler (and below it, the fetchers) can be tested
  * without electron in the loop.
  *
- * Persistence: mirrors fund-store.js's pattern — `stateStore.load()` +
- * `stateStore.writeAtomic()` with explicit `Object.assign({}, existing, ...)`,
- * which preserves all sibling fields (funds / task_summaries /
- * classify_llm_cache etc.) without relying on PRESERVE_FIELDS.
+ * Persistence: delegated to metals/metal-repository.ts. IPC code does not
+ * construct state.json payloads; the repository normalizes defaults and uses
+ * patchState so sibling domains (funds / task_summaries / classify_llm_cache)
+ * remain intact.
  */
 
 import { ipcMain, webContents } from "electron";
+import type { IpcMainInvokeEvent } from "electron";
 import { HttpClient } from "./http-client";
 import { MetalScheduler } from "../metals/metal-scheduler.js";
 const {
@@ -23,15 +24,8 @@ const {
 } = require("../metals/metal-kline-fetcher.js");
 import { METALS } from "../metals/metal-config.js";
 import { mainLog } from "./log";
-import * as stateStore from "./state-store";
-
-const DEFAULT_CONFIG = {
-  watchedIds: ["XAU", "XAG", "AU9999", "AG9999"],
-  holdings: { XAU: null, XAG: null, AU9999: null, AG9999: null },
-  deletedIds: [],
-  historyMap: {},
-  lastBackfillAt: 0,
-};
+import * as metalRepository from "./metals/metal-repository";
+import type { IpcChannelMap } from "../shared/ipc-contracts";
 
 // Singleton HttpClient — metals fetches are 2 lightweight GETs per 5-min cycle,
 // no need to instantiate per-request. Mirrors the shared-instance style used
@@ -56,26 +50,11 @@ function httpGetAdapter(url: string, headers: any): Promise<string> {
 }
 
 function loadConfig(): any {
-  const state = stateStore.load();
-  const stored = (state && state.metals) || {};
-  return {
-    ...DEFAULT_CONFIG,
-    ...stored,
-    holdings: { ...DEFAULT_CONFIG.holdings, ...(stored.holdings || {}) },
-    historyMap: stored.historyMap || {},
-    lastBackfillAt: stored.lastBackfillAt || 0,
-  };
+  return metalRepository.load();
 }
 
 function persistConfig(metalsPayload: any): any {
-  // 走 patchState: 自动处理 apps / mutes / last_opened / active_category /
-  // ai_sessions_config 基础字段, 再 preserveExtraFields 兜住其余 (funds /
-  // ithome_news / reminders / recentActivity 等). 比手撸 Object.assign 更安全:
-  // 老实现遇到 state.json 缺失会写出缺 apps 字段的 state, 直接破坏 Pulse 主流程.
-  stateStore.patchState((next: any) => {
-    next.metals = metalsPayload;
-  });
-  return metalsPayload;
+  return metalRepository.save(metalsPayload);
 }
 
 function saveConfig(patch: any): any {
@@ -85,16 +64,11 @@ function saveConfig(patch: any): any {
 }
 
 function saveHistoryMap(historyMap: any): any {
-  stateStore.patchState((next: any) => {
-    next.metals = { ...(next.metals || {}), historyMap };
-  });
-  return historyMap;
+  return metalRepository.saveHistoryMap(historyMap);
 }
 
 function markBackfilled(atMs: number): void {
-  stateStore.patchState((next: any) => {
-    next.metals = { ...(next.metals || {}), lastBackfillAt: atMs };
-  });
+  metalRepository.markBackfilled(atMs);
 }
 
 function broadcast(channel: string, payload: any): void {
@@ -209,23 +183,41 @@ export function registerMetalIpc(): void {
     };
   });
 
-  ipcMain.handle("metals:config:update", (_evt: any, { patch }: any) =>
-    saveConfig(patch),
+  ipcMain.handle(
+    "metals:config:update",
+    (
+      _evt: IpcMainInvokeEvent,
+      payload: IpcChannelMap["metals:config:update"]["args"][0],
+    ) => saveConfig(payload.patch),
   );
 
-  ipcMain.handle("metals:holding:upsert", (_evt: any, { id, holding }: any) => {
+  ipcMain.handle(
+    "metals:holding:upsert",
+    (
+      _evt: IpcMainInvokeEvent,
+      payload: IpcChannelMap["metals:holding:upsert"]["args"][0],
+    ) => {
+      const { id, holding } = payload;
     const cfg = loadConfig();
     cfg.holdings[id] = holding;
     persistConfig(cfg);
     return cfg;
-  });
+    },
+  );
 
-  ipcMain.handle("metals:holding:remove", (_evt: any, { id }: any) => {
+  ipcMain.handle(
+    "metals:holding:remove",
+    (
+      _evt: IpcMainInvokeEvent,
+      payload: IpcChannelMap["metals:holding:remove"]["args"][0],
+    ) => {
+      const { id } = payload;
     const cfg = loadConfig();
     cfg.holdings[id] = null;
     persistConfig(cfg);
     return cfg;
-  });
+    },
+  );
 
   ipcMain.handle("metals:quote:fetch", async () => {
     if (!scheduler) return { ok: false, error: "scheduler not started" };

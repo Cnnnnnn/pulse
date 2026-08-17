@@ -5,14 +5,33 @@
  */
 import { signal } from '@preact/signals';
 import { api } from '../api.ts';
+import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+  type DataState,
+} from '../../shared/data-state.ts';
+import type {
+  SearchCounts,
+  SearchQueryResponse,
+  SearchResult,
+  SearchSource,
+} from '../../shared/ipc-contracts';
 
 export const isSearchOpen = signal(false);
 export const searchQuery = signal('');
-export const searchActiveSource = signal(null); // null = 全部
-export const searchResults = signal([]);
-export const searchCounts = signal({ news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 });
+export const searchActiveSource = signal<SearchSource | null>(null); // null = 全部
+export const searchResults = signal<SearchResult[]>([]);
+export const searchCounts = signal<SearchCounts>({ news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 });
 export const searchSelectedIndex = signal(0);
 export const isSearching = signal(false);
+export const searchDataState = signal<DataState<SearchQueryResponse>>(
+  createDataState({
+    results: [],
+    counts: { news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 },
+  }),
+);
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -20,6 +39,10 @@ export function openSearch() {
   isSearchOpen.value = true;
   searchQuery.value = '';
   searchResults.value = [];
+  searchDataState.value = createDataState({
+    results: [],
+    counts: { news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 },
+  });
   searchSelectedIndex.value = 0;
 }
 
@@ -27,6 +50,11 @@ export function closeSearch() {
   isSearchOpen.value = false;
   searchQuery.value = '';
   searchResults.value = [];
+  isSearching.value = false;
+  searchDataState.value = createDataState({
+    results: [],
+    counts: { news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 },
+  });
   searchSelectedIndex.value = 0;
   if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
 }
@@ -40,22 +68,32 @@ export function setSearchQuery(q: string) {
     if (!queryStr.trim()) {
       searchResults.value = [];
       searchCounts.value = { news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 };
+      searchDataState.value = createDataState({
+        results: [],
+        counts: { news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 },
+      });
       return;
     }
     isSearching.value = true;
+    searchDataState.value = beginDataRequest(searchDataState.value);
     try {
       const out = await api.searchQuery(queryStr, searchActiveSource.value);
       searchResults.value = out.results || [];
       searchCounts.value = out.counts || searchCounts.value;
-    } catch {
-      searchResults.value = [];
+      searchDataState.value = resolveData(
+        searchDataState.value,
+        out,
+        { source: 'live' },
+      );
+    } catch (err) {
+      searchDataState.value = rejectData(searchDataState.value, err);
     } finally {
       isSearching.value = false;
     }
   }, 150);
 }
 
-export function setSearchActiveSource(s: string | null) {
+export function setSearchActiveSource(s: SearchSource | null) {
   searchActiveSource.value = s;
   searchSelectedIndex.value = 0;
   // 切源后重新 query (单源重新匹配)

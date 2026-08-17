@@ -29,9 +29,11 @@ import { searchStocks } from "../../stocks/stock-search";
 import { applyScreen, filterStocks } from "../../stocks/stock-filter";
 import { computeMarketOverview } from "../../stocks/market-overview";
 import { aiStockAdvise } from "../../ai/stock-screener-advisor";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 const CACHE_TTL_MS = 60_000;
-// 内存缓存: { key, rows, total, fetchedAt }. key = criteria+sort 的 JSON.
+// 内存缓存: { key, rows, total, fetchedAt, source, truncated }.
+// key = criteria 的 JSON; source/truncated 随数据一起缓存，避免 UI 误判数据可信度.
 let _cache: any = null;
 
 // ponytail 2026-07-08 P-1: sortKey 高命中维度 (ROE/PE/增速 desc) 时只拉前 1500 条, 兜底 25 页.
@@ -116,7 +118,11 @@ export function registerStocksHandlers(ctx: any) {
 
   safeHandle(
     "stocks:screen",
-    async (_event: any, { criteria, sort }: any = {}) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["stocks:screen"]["args"][0] = {},
+    ) => {
+      const { criteria, sort } = payload;
       const key = criteriaKey(criteria);
       const now = Date.now();
       if (
@@ -132,6 +138,8 @@ export function registerStocksHandlers(ctx: any) {
           total: _cache.total,
           fetchedAt: _cache.fetchedAt,
           fromCache: true,
+          source: _cache.source,
+          truncated: _cache.truncated,
         };
       }
       const httpClient = createStockHttpClient({
@@ -174,6 +182,8 @@ export function registerStocksHandlers(ctx: any) {
         rows: out.rows,
         total: out.total,
         fetchedAt: out.fetchedAt,
+        source: out.source || "unknown",
+        truncated: out.truncated === true,
       };
       return {
         ok: true,
@@ -181,6 +191,8 @@ export function registerStocksHandlers(ctx: any) {
         total: out.total,
         fetchedAt: out.fetchedAt,
         fromCache: false,
+        source: _cache.source,
+        truncated: _cache.truncated,
       };
     },
     { onError: (err: any) => threwResponse(err, { results: [], total: 0 }) },
@@ -188,7 +200,10 @@ export function registerStocksHandlers(ctx: any) {
 
   safeHandle(
     "stocks:search",
-    async (_event: any, query: any) => {
+    async (
+      _event: unknown,
+      query: IpcChannelMap["stocks:search"]["args"][0],
+    ) => {
       const q = String(query || "")
         .trim()
         .toLowerCase();
@@ -307,7 +322,10 @@ export function registerStocksHandlers(ctx: any) {
   // marketOverview 从最近一次 fetchStocks 缓存的全市场 rows 计算; 用户首次未拉取时降级为 null.
   safeHandle(
     "stocks:ai-advise",
-    async (_event: any, payload: any = {}) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["stocks:ai-advise"]["args"][0],
+    ) => {
       const intentChip = payload && payload.intentChip;
       const freeText = payload && payload.freeText;
       if (!intentChip || !intentChip.id) {

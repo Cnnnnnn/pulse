@@ -4,9 +4,13 @@
 
 import { signal } from "@preact/signals";
 import { api } from "../api.ts";
+import type {
+  AiPromptsLoadResponse,
+  AiPromptsSavePayload,
+} from "../../shared/ipc-contracts";
 
 /** @type {Signal<Record<string, {system: string, rules: string, fewShot: string, isDefault: boolean}>|null>} */
-export const aiPrompts = signal(null);
+export const aiPrompts = signal<AiPromptsLoadResponse | null>(null);
 export const aiPromptsLoading = signal(false);
 export const aiPromptsSaving = signal(false);
 
@@ -34,7 +38,7 @@ export async function loadAiPrompts() {
   }
 }
 
-export async function saveAiPrompts(prompts: any) {
+export async function saveAiPrompts(prompts: AiPromptsSavePayload) {
   if (!api || typeof api.aiPromptsSave !== "function") return { ok: false };
   aiPromptsSaving.value = true;
   try {
@@ -50,7 +54,7 @@ export async function saveAiPrompts(prompts: any) {
   }
 }
 
-export async function resetAiPrompt(key: any) {
+export async function resetAiPrompt(key: string) {
   if (!api || typeof api.aiPromptsReset !== "function") return { ok: false };
   try {
     const r = await api.aiPromptsReset(key);

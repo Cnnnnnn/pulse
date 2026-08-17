@@ -2,7 +2,7 @@
  * src/renderer/api.js
  *
  * window.api包装层。preload.js 通过 contextBridge暴露：
- * getConfig / checkUpdates / brewUpgrade / brewUpdate /
+ * getConfig / checkUpdates / brewUpgrade /
  * getAppIcon / onCheckStarted / onCheckProgress / onStartCheck /
  * bulkUpgradeStart / bulkUpgradeCancel / onBulkUpgradeProgress / onBulkUpgradeDone
  * (Phase22 bulk upgrade 新增)
@@ -13,6 +13,43 @@
  * - 测试时可注入 mock (overrides)
  * - 提供一个 clean trigger() helper 给 bootstrap 用
  */
+
+import type {
+  AiAdviceApiContract,
+  AiFeedbackApiContract,
+  GithubApiContract,
+  MutesApiContract,
+  LastOpenedApiContract,
+  WindowApiContract,
+  OpenUrlApiContract,
+  BulkUpgradeApiContract,
+  NavigationPersistenceApiContract,
+  ConfigStateApiContract,
+  UpgradeActionsApiContract,
+  AiLeaderboardApiContract,
+  AiPromptsApiContract,
+  AiSessionsApiContract,
+  AiSharedConfigApiContract,
+  AiTasksApiContract,
+  AiUsageApiContract,
+  ConfigPortabilityApiContract,
+  DigestApiContract,
+  DiagnosticsApiContract,
+  FinanceApiContract,
+  FundsApiContract,
+  RecentApiContract,
+  ReleaseNotesApiContract,
+  RemindersApiContract,
+  SelfUpdateApiContract,
+  SearchApiContract,
+  StocksApiContract,
+  TokenBudgetApiContract,
+  ThemeSyncApiContract,
+  UpdateCheckApiContract,
+  VersionsApiContract,
+  WechatHotApiContract,
+  WatchlistApiContract,
+} from "../shared/ipc-contracts";
 
 const noop = () => Promise.resolve(undefined);
 
@@ -41,15 +78,52 @@ function pick(overrides: Record<string, any> | null | undefined, name: string): 
   return noop;
 }
 
-export function createApi(overrides: Record<string, any> = {}): any {
+export type RendererApi =
+  AiAdviceApiContract &
+  AiFeedbackApiContract &
+  GithubApiContract &
+  ConfigStateApiContract &
+  UpgradeActionsApiContract &
+  MutesApiContract &
+  LastOpenedApiContract &
+  WindowApiContract &
+  OpenUrlApiContract &
+  BulkUpgradeApiContract &
+  NavigationPersistenceApiContract &
+  AiUsageApiContract &
+  ConfigPortabilityApiContract &
+  DiagnosticsApiContract &
+  FundsApiContract &
+  FinanceApiContract &
+  AiLeaderboardApiContract &
+  StocksApiContract &
+  WechatHotApiContract &
+  RecentApiContract &
+  RemindersApiContract &
+  WatchlistApiContract &
+  ReleaseNotesApiContract &
+  ThemeSyncApiContract &
+  SelfUpdateApiContract &
+  AiPromptsApiContract &
+  TokenBudgetApiContract &
+  UpdateCheckApiContract &
+  VersionsApiContract &
+  AiTasksApiContract &
+  AiSessionsApiContract &
+  AiSharedConfigApiContract &
+  SearchApiContract &
+  DigestApiContract &
+  Record<string, any>;
+
+export function createApi(overrides: Record<string, any> = {}): RendererApi {
   return {
     getConfig: pick(overrides, "getConfig"),
     getCachedState: pick(overrides, "getCachedState"),
     searchQuery: pick(overrides, "searchQuery"),
     searchUpsert: pick(overrides, "searchUpsert"),
     checkUpdates: pick(overrides, "checkUpdates"),
+    cancelCheck: pick(overrides, "cancelCheck"),
     brewUpgrade: pick(overrides, "brewUpgrade"),
-    brewUpdate: pick(overrides, "brewUpdate"),
     getAppIcon: pick(overrides, "getAppIcon"),
     onCheckStarted: pick(overrides, "onCheckStarted"),
     onCheckProgress: pick(overrides, "onCheckProgress"),
@@ -178,9 +252,9 @@ export function createApi(overrides: Record<string, any> = {}): any {
       (typeof window !== "undefined" &&
         window.api &&
         window.api.releaseNotes) || {
-        getCurrent: noop,
-        getVersion: noop,
-        markSeen: noop,
+        getCurrent: () => Promise.resolve(null),
+        getVersion: () => Promise.resolve(null),
+        markSeen: () => Promise.resolve({ ok: false, version: "" }),
       },
     // A7: AI prompt 模板化
     aiPromptsLoad: pick(overrides, "aiPromptsLoad"),
@@ -206,6 +280,7 @@ export function createApi(overrides: Record<string, any> = {}): any {
     stocksDetailAnalyze: pick(overrides, "stocksDetailAnalyze"),
     // ponytail: 2026-07-07 P1-2 — 单条 angle 本地重解读
     stocksAngleRefresh: pick(overrides, "stocksAngleRefresh"),
+    stocksAngleReload: pick(overrides, "stocksAngleReload"),
     // 2026-07-07 — 诊断报告导出 PNG (主进程 capturePage + showSaveDialog)
     stocksExportDiagnosisPng: pick(overrides, "stocksExportDiagnosisPng"),
     // Cmd+K command palette 全局搜索
@@ -217,8 +292,9 @@ export function createApi(overrides: Record<string, any> = {}): any {
     aiParseReadme: pick(overrides, "aiParseReadme"),
     // Release 更新追踪：抓取某仓库 recent releases
     githubFetchRelease: pick(overrides, "githubFetchRelease"),
-    // P-N: 上次停留的 nav
-    getLastActiveNav: pick(overrides, "getLastActiveNav"),
+  // P-N: 上次停留的 nav
+  getLastActiveNav: pick(overrides, "getLastActiveNav"),
+  saveLastActiveNav: pick(overrides, "saveLastActiveNav"),
     // P10: 主题
     themeSet: pick(overrides, "themeSet"),
     onThemeChanged: pick(overrides, "onThemeChanged"),

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse · AI 榜单视觉 QA</title>
+  <script>
+    document.documentElement.dataset.theme = "light";
+    const leaderboardItems = [
+      { id: "o1", name: "OpenAI o1", vendor: "openai", license: "proprietary", arena: { text: { score: 1450, ci: 8, votes: 5200, rank: 1 } }, aa: { intelligenceIndex: 85, codingIndex: 80, agenticIndex: 82, outputTokensPerSec: 70, priceOutputPer1M: 15 }, livebench: { overall: 82, byCategory: { Coding: 84, Language: 81, IF: 80 }, cost: { perSuccessfulTask: 0.21 } }, sources: { arena: "live", aa: "live", livebench: "live" }, isSample: false },
+      { id: "claude-35", name: "Claude 3.5 Sonnet", vendor: "anthropic", license: "proprietary", arena: { text: { score: 1420, ci: 9, votes: 4900, rank: 2 } }, aa: { intelligenceIndex: 83, codingIndex: 82, agenticIndex: 84, outputTokensPerSec: 88, priceOutputPer1M: 15 }, livebench: { overall: 84, byCategory: { Coding: 87, Language: 83, IF: 85 }, cost: { perSuccessfulTask: 0.18 } }, sources: { arena: "live", aa: "live", livebench: "live" }, isSample: false },
+      { id: "gpt-4o", name: "GPT-4o", vendor: "openai", license: "proprietary", arena: { text: { score: 1385, ci: 10, votes: 6100, rank: 3 } }, aa: { intelligenceIndex: 82, codingIndex: 78, agenticIndex: 80, outputTokensPerSec: 110, priceOutputPer1M: 5 }, livebench: { overall: 80, byCategory: { Coding: 79, Language: 82, IF: 81 }, cost: { perSuccessfulTask: 0.1 } }, sources: { arena: "live", aa: "live", livebench: "live" }, isSample: false },
+      { id: "deepseek-v3", name: "DeepSeek V3", vendor: "deepseek", license: "apache-2.0", arena: { text: { score: 1330, ci: 11, votes: 5800, rank: 4 } }, aa: { intelligenceIndex: 76, codingIndex: 79, agenticIndex: 74, outputTokensPerSec: 90, priceOutputPer1M: 0.5 }, livebench: { overall: 78, byCategory: { Coding: 82, Language: 76, IF: 77 }, cost: { perSuccessfulTask: 0.03 } }, sources: { arena: "live", aa: "live", livebench: "live" }, isSample: false },
+      { id: "llama-31", name: "Llama 3.1 405B Instruct", vendor: "meta", license: "llama", arena: { text: { score: 1260, ci: 14, votes: 4200, rank: 5 } }, aa: { intelligenceIndex: 74, codingIndex: 76, agenticIndex: 70, outputTokensPerSec: 76, priceOutputPer1M: 3 }, sources: { arena: "live", aa: "live" }, isSample: false },
+      { id: "gemini-15", name: "Gemini 1.5 Pro", vendor: "google", license: "proprietary", arena: { text: { score: 1250, ci: 13, votes: 3900, rank: 6 } }, aa: { intelligenceIndex: 73, codingIndex: 72, agenticIndex: 73, outputTokensPerSec: 95, priceOutputPer1M: 7 }, sources: { arena: "live", aa: "live" }, isSample: false },
+      { id: "qwen-25", name: "Qwen2.5 72B Instruct", vendor: "alibaba", license: "apache-2.0", arena: { text: { score: 1205, ci: 15, votes: 3600, rank: 7 } }, aa: { intelligenceIndex: 70, codingIndex: 74, agenticIndex: 69, outputTokensPerSec: 88, priceOutputPer1M: 0.4 }, sources: { arena: "live", aa: "live" }, isSample: false },
+      { id: "mistral-large", name: "Mistral Large", vendor: "mistral", license: "apache-2.0", arena: { text: { score: 1180, ci: 16, votes: 3300, rank: 8 } }, aa: { intelligenceIndex: 68, codingIndex: 70, agenticIndex: 66, outputTokensPerSec: 80, priceOutputPer1M: 2 }, sources: { arena: "live", aa: "live" }, isSample: false }
+    ];
+    const empty = async () => ({ ok: true });
+    const leaderboard = async () => ({
+      ok: true,
+      category: "llm",
+      dimension: "elo",
+      items: leaderboardItems,
+      sources: { arena: "live", aa: "live", livebench: "live", openrouter: "live", modelsdev: "live" },
+      sourceCoverage: { arena: 8, aa: 8, openrouter: 8, livebench: 4, modelsdev: 8, huggingface: 0 },
+      attribution: [
+        { id: "arena", text: "Arena" },
+        { id: "artificial-analysis", text: "Artificial Analysis（方法论 v4.1）" },
+        { id: "livebench", text: "LiveBench" }
+      ],
+      fetchedAt: "2026-08-11T09:00:00.000Z",
+      lastUpdated: "2026-08-11"
+    });
+    const apiMethods = {
+      getLeaderboard: leaderboard,
+      refreshLeaderboard: leaderboard,
+      rateBudget: async () => ({ used: 12, limit: 1000, remaining: 988 }),
+      exportLeaderboardCsv: empty,
+      getCachedState: async () => null,
+      getConfig: async () => ({})
+    };
+    const bridge = new Proxy(apiMethods, { get(target, key) {
+      if (key in target) return target[key];
+      if (typeof key === "string" && (/^on[A-Z]/.test(key) || key.startsWith("subscribe"))) return () => {};
+      return empty;
+    }});
+    window.api = bridge;
+    window.pulse = bridge;
+    window.metalsApi = bridge;
+    window.platformInfo = { platform: "darwin" };
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="renderer-dist/index.css" />
+</head>
+<body>
+  <div id="titlebar"></div>
+  <div id="app"><div class="boot-skeleton"></div></div>
+  <script type="module" src="renderer-dist/index.js"></script>
+</body>
+</html>

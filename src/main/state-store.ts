@@ -79,8 +79,18 @@ const os: typeof osType = require("os");
 // evaluate 阶段不需要再触发 state-store-schema.js 的同步求值 (zero deps
 // 的小模块, 但养成 "hot path 之外不 import" 的习惯, 后续拆分时省事).
 // ponytail: < 1ms 量级, 真要抠直接 lazy import 整个 state-store.js.
-let _schema: { validateState?: (data: unknown) => { ok: boolean; errors?: unknown[] } } | null = null;
-function _getSchema(): { validateState?: (data: unknown) => { ok: boolean; errors?: unknown[] } } {
+type StateSchema = {
+  validateState?: (data: unknown) => { ok: boolean; errors?: unknown[] };
+  migrateState?: (data: unknown) => {
+    state: unknown;
+    migrated: boolean;
+    fromVersion: number;
+    toVersion: number;
+  };
+};
+
+let _schema: StateSchema | null = null;
+function _getSchema(): StateSchema {
   if (_schema) return _schema;
   _schema = require("./state-store-schema.ts");
   return _schema!;
@@ -288,6 +298,12 @@ const PRESERVE_FIELDS = [
   { key: "metals", kind: "object", notArray: true }, // 贵金属: watchedIds / holdings / historyMap / lastBackfillAt (metal-ipc 写入)
   { key: "last_active_nav", kind: "string" },  // P-N: HomeGrid 落点
 ];
+const PRESERVE_KEYS = new Set(PRESERVE_FIELDS.map((spec: any) => spec.key));
+const RETIRED_KEYS = new Set([
+  "daily_digests",
+  "daily_digest_v2",
+  "last_digest_attempts",
+]);
 
 function shouldPreserveValue(val: any, spec: any) {
   if (spec.kind === "array") return Array.isArray(val);
@@ -347,6 +363,19 @@ export function patchState(
     last_opened: existing.last_opened || {},
     active_category: existing.active_category || "all",
   };
+  // 保留 schema 尚未认识的顶层字段，兑现 state-store-schema 的 forward-compat
+  // 约定。领域字段仍走下面的类型感知 preserveExtraFields，避免把已知坏值原样带回。
+  for (const [key, value] of Object.entries(existing)) {
+    if (
+      key in next ||
+      key === "ai_sessions_config" ||
+      PRESERVE_KEYS.has(key) ||
+      RETIRED_KEYS.has(key)
+    ) {
+      continue;
+    }
+    next[key] = value;
+  }
   if (!opts.dropAiSessionsConfig && existing.ai_sessions_config) {
     next.ai_sessions_config = existing.ai_sessions_config;
   }
@@ -391,6 +420,10 @@ function _loadOrThrow(statePath: any) {
     );
   }
   const schema = _getSchema();
+  const migration = schema.migrateState
+    ? schema.migrateState(parsed)
+    : { state: parsed, migrated: false, fromVersion: SCHEMA_VERSION, toVersion: SCHEMA_VERSION };
+  parsed = migration.state;
   const validated = schema.validateState
     ? schema.validateState(parsed)
     : { ok: true as boolean, errors: [] as unknown[] };
@@ -401,6 +434,9 @@ function _loadOrThrow(statePath: any) {
       raw: raw.slice(0, 1024),
       schemaErrors: errors,
     });
+  }
+  if (migration.migrated) {
+    writeAtomic(statePath, parsed);
   }
   return parsed;
 }

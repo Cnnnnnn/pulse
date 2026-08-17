@@ -67,6 +67,20 @@ describe("patchState (公共范式)", () => {
     expect(next.recentActivity).toEqual([{ kind: "k1" }]);
   });
 
+  it("保留 schema 尚未认识的顶层字段 (forward compatibility)", () => {
+    seed({
+      v: 1,
+      ts: 1,
+      apps: {},
+      mutes: {},
+      future_domain: { version: 2, payload: ["keep"] },
+    });
+    const next = patchState((s) => {
+      s.active_category = "ai";
+    }, statePath);
+    expect(next.future_domain).toEqual({ version: 2, payload: ["keep"] });
+  });
+
   it("opts.dropAiSessionsConfig=true → ai_sessions_config 不被保留 (用于显式清空)", () => {
     seed({
       v: 1,

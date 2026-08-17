@@ -14,6 +14,13 @@ import {
   trackIthomeSummary,
 } from "../recent/track.ts";
 import { requireApiMethod } from "../store/store-utils.ts";
+import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+  type DataState,
+} from "../../shared/data-state.ts";
 
 export const ithomeArticles = signal({});
 export const ithomeDayStats = signal({});
@@ -23,13 +30,16 @@ export const ithomeNewsTs = signal(0);
 export const ithomeNewsLoaded = signal(false);
 export const ithomeNewsLoading = signal(false);
 export const ithomeNewsError = signal(null);
+export const ithomeNewsState = signal<DataState<Record<string, any>>>(
+  createDataState({}),
+);
 export const ithomeSelectedDate = signal(todayShanghaiDateKey());
 export const ithomeFavoriteSelectedDate = signal("");
 export const ithomeViewMode = signal("news");
 export const ithomeReadIds = signal({});
 export const ithomeNewIds = signal({});
 /**
- * SideNav 未读角标 (I6) — 本 session 新增且未读的文章数.
+ * SideNav 未读角标 (I6) — 最近一次刷新新增且未读的文章数.
  * 直接派生自 ithomeNewIds, 行为完全跟随:
  *   读一篇 (markIthomeRead) → -1; 切日期/重启 → 归 0.
  */
@@ -38,34 +48,44 @@ export const ithomeUnreadBadge = computed(
 );
 export const ithomeSharingIds = signal({});
 
-function _applyPayload(data: any) {
+function _applyPayload(data: any, trackNew = false) {
   if (!data) return;
   const articles = data.articles || {};
+  const previousArticleIds = new Set(Object.keys(ithomeArticles.value));
   ithomeArticles.value = articles;
   ithomeDayStats.value = data.dayStats || {};
   ithomeSummaries.value = data.summaries || {};
   ithomeFavorites.value = data.favorites || {};
   ithomeNewsTs.value = data.ts || 0;
   ithomeNewsLoaded.value = true;
+  ithomeNewsState.value = resolveData(ithomeNewsState.value, articles, {
+    source: "live",
+    fetchedAt: data.ts || Date.now(),
+  });
   // 派生 readIds (从 articles 的 readAt 字段)
   const readIds = {};
   for (const a of Object.values(articles) as any[]) {
     if (a && a.id && a.readAt) readIds[a.id] = a.readAt;
   }
   ithomeReadIds.value = readIds;
-  // diff 找出新文章 — 仅追踪本 session 内首次出现的 id
-  // (信号生命周期 = app 一次运行; 启动时 prevIds === {} 所以这次 load 不会
-  // 把所有现存文章都标 NEW, 这符合 spec 4.2 "app 重启后 NEW 全部清空" 的语义)
-  const prevIds = new Set(Object.keys(ithomeNewIds.value));
-  const newMap = { ...ithomeNewIds.value };
-  let mutated = false;
-  for (const id of Object.keys(articles)) {
-    if (!prevIds.has(id) && !readIds[id]) {
-      newMap[id] = 1;
-      mutated = true;
+  // 刷新时只标记相对于上一次 payload 新增且未读的文章。
+  // 普通 load（启动/收藏后同步）不应把旧文章重新标成 NEW，
+  // 但要清掉已经不在当前缓存或已读的旧标记。
+  const nextNewIds = {};
+  if (trackNew) {
+    for (const id of Object.keys(articles)) {
+      if (!previousArticleIds.has(id) && !readIds[id]) {
+        nextNewIds[id] = 1;
+      }
+    }
+  } else {
+    for (const id of Object.keys(ithomeNewIds.value)) {
+      if (articles[id] && !readIds[id]) {
+        nextNewIds[id] = 1;
+      }
     }
   }
-  if (mutated) ithomeNewIds.value = newMap;
+  ithomeNewIds.value = nextNewIds;
   _syncFavoriteSelectedDate();
 }
 
@@ -84,22 +104,28 @@ export function isArticleFavorited(id: any) {
   return !!(id && ithomeFavorites.value[id]);
 }
 
-export async function loadIthomeNews() {
+export async function loadIthomeNews(options: { trackNew?: boolean } = {}) {
   const loadNews = requireApiMethod("ithomeLoadNews");
   if (!loadNews) return false;
+  ithomeNewsState.value = beginDataRequest(ithomeNewsState.value);
   try {
     const r = await loadNews();
     if (r && r.ok !== false) {
-      _applyPayload(r);
+      _applyPayload(r, options.trackNew === true);
       return true;
     }
+    ithomeNewsState.value = rejectData(
+      ithomeNewsState.value,
+      (r && (r.error || r.reason)) || "加载新闻失败",
+    );
     return false;
-  } catch {
+  } catch (err) {
+    ithomeNewsState.value = rejectData(ithomeNewsState.value, err);
     return false;
   }
 }
 
-export async function fetchDayNews(dateKey: any) {
+export async function fetchDayNews(dateKey: string) {
   const fetchDay = requireApiMethod("ithomeFetchDay");
   if (!fetchDay) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -108,6 +134,7 @@ export async function fetchDayNews(dateKey: any) {
     return { ok: false, reason: "busy" };
   }
   ithomeNewsLoading.value = true;
+  ithomeNewsState.value = beginDataRequest(ithomeNewsState.value);
   ithomeNewsError.value = null;
   try {
     const r = await fetchDay(dateKey);
@@ -125,12 +152,14 @@ export async function fetchDayNews(dateKey: any) {
         ipc_unavailable: "系统通信异常，请重启应用",
       };
       ithomeNewsError.value = map[reason] || reason;
+      ithomeNewsState.value = rejectData(ithomeNewsState.value, ithomeNewsError.value);
       return r || { ok: false, reason: "fetch_failed" };
     }
-    await loadIthomeNews();
+    await loadIthomeNews({ trackNew: true });
     return r;
   } catch (err: any) {
     ithomeNewsError.value = (err && err.message) || "拉取异常";
+    ithomeNewsState.value = rejectData(ithomeNewsState.value, ithomeNewsError.value);
     return { ok: false, reason: "threw" };
   } finally {
     ithomeNewsLoading.value = false;
@@ -141,7 +170,7 @@ export async function refreshIthomeNews() {
   return fetchDayNews(ithomeSelectedDate.value);
 }
 
-export async function setIthomeSelectedDate(dateKey: any) {
+export async function setIthomeSelectedDate(dateKey: string) {
   const prev = ithomeSelectedDate.value;
   ithomeSelectedDate.value = dateKey;
   ithomeNewsError.value = null;
@@ -155,7 +184,10 @@ export async function setIthomeSelectedDate(dateKey: any) {
   }
 }
 
-export async function summarizeIthomeArticle(id: any, force: any = 0) {
+export async function summarizeIthomeArticle(
+  id: string,
+  force: number | boolean = 0,
+) {
   const summarize = requireApiMethod("ithomeSummarizeArticle");
   if (!summarize) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -196,7 +228,7 @@ export async function summarizeIthomeArticle(id: any, force: any = 0) {
   return r;
 }
 
-export async function fetchIthomeArticleBody(id: any) {
+export async function fetchIthomeArticleBody(id: string) {
   const fetchBody = requireApiMethod("ithomeFetchArticleBody");
   if (!fetchBody) {
     return { ok: false, reason: "ipc_unavailable", body: "" };
@@ -224,7 +256,7 @@ export async function fetchIthomeArticleBody(id: any) {
   return r || { ok: false, reason: "fetch_failed", body: "" };
 }
 
-export async function markIthomeRead(id: any) {
+export async function markIthomeRead(id: string) {
   if (!id) return { ok: false, reason: "invalid_args" };
   const now = Date.now();
   // 1. 乐观更新 readIds signal
@@ -254,7 +286,7 @@ export async function markIthomeRead(id: any) {
   return { ok: true };
 }
 
-export async function toggleIthomeFavorite(id: any) {
+export async function toggleIthomeFavorite(id: string) {
   const toggleFavorite = requireApiMethod("ithomeToggleFavorite");
   if (!toggleFavorite) {
     return { ok: false, reason: "ipc_unavailable" };
@@ -318,7 +350,7 @@ export async function shareIthomeArticle(id: any) {
 
 /**
  * P-N+ (2026-07-10): 切到 'news' tab 时清 IT 新闻子 tab 未读角标 (跟 clearWechatHotUnreadBadge 等价).
- * 不动 ithomeReadIds (持久化已读文章), 只清 session 级 newIds.
+ * 不动 ithomeReadIds (持久化已读文章), 只清当前刷新产生的 newIds.
  * ponytail: 跟原 ithome 独立 nav 的 setIthomeViewMode / setIthomeFavoriteSelectedDate 行为一致 — 切走即清.
  */
 export function clearIthomeUnreadBadge() {

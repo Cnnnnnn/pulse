@@ -10,8 +10,20 @@
 import { signal } from "@preact/signals";
 import { api } from "../api.ts";
 import { showToast } from "./toast-store.ts";
-
-const STORAGE_KEY = "pulse.github.projects.v1";
+import {
+  createDataState,
+  rejectData,
+  resolveData,
+  type DataState,
+} from "../../shared/data-state.ts";
+import {
+  createGithubReleaseChecker,
+  type GithubCheckSummary,
+} from "../github/github-release-checker.ts";
+import * as githubSettings from "../github/github-settings-store.ts";
+import { createGithubProjectRepository } from "../github/github-project-repository.ts";
+import { createGithubReadmeService } from "../github/github-readme-service.ts";
+import { createGithubBackupService } from "../github/github-backup-service.ts";
 
 /** 全部已收录项目 (按添加时间倒序)。 */
 export const githubProjects = signal([]);
@@ -24,82 +36,33 @@ export const githubError = signal(null);
 /** 最近一次「检查更新」失败（瞬时，非 permanent）的项目 id 列表。
  *  供工具栏「重试失败项(N)」按钮消费，不依赖会消失的 toast。 */
 export const lastFailedIds = signal([]);
-/** 视图密度偏好（comfortable | compact）— 控制更新时间线默认展开条数与间距。 */
-export const githubDensity = signal("comfortable");
-/** GitHub Personal Access Token（仅本机 localStorage，不发往任何服务器）。用于解除未登录 60 次/小时限流。 */
-export const githubToken = signal("");
-/** 自动检查新版本（默认开，仅在应用运行时检查）。 */
-export const githubAutoCheck = signal(true);
-/** 自动检查间隔（分钟，默认 360 = 6 小时）。 */
-export const githubAutoCheckIntervalMin = signal(360);
-/** 发现新版本时发桌面通知（默认开）。 */
-export const githubNotifyOnNew = signal(true);
+export const githubCheckDataState = signal<DataState<GithubCheckSummary>>(
+  createDataState({
+    ok: true,
+    newCount: 0,
+    errorCount: 0,
+    skippedCount: 0,
+    failedProjects: [],
+    skippedProjects: [],
+  }),
+);
+// Settings module 的兼容 façade：旧调用方继续从 projects-store 导入。
+export const githubDensity = githubSettings.githubDensity;
+export const githubToken = githubSettings.githubToken;
+export const githubAutoCheck = githubSettings.githubAutoCheck;
+export const githubAutoCheckIntervalMin = githubSettings.githubAutoCheckIntervalMin;
+export const githubNotifyOnNew = githubSettings.githubNotifyOnNew;
 
-const _mem = new Map();
-
-function readStorage(key: any) {
-  try {
-    if (typeof globalThis.localStorage === "undefined") return null;
-    return globalThis.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * 写入持久层。返回 true=落盘成功；false=localStorage 可用但写入失败（配额超限等）。
- * localStorage 完全不可用时走 _mem 内存兜底，算「兜底成功」返回 true
- * （因为本来就没有持久层可言，不应误报配额错误）。
- */
-function writeStorage(key, raw, reportFailure = false) {
-  if (typeof globalThis.localStorage === "undefined") {
-    _mem.set(key, raw);
-    return true;
-  }
-  try {
-    globalThis.localStorage.setItem(key, raw);
-    return true;
-  } catch (err: any) {
-    _mem.set(key, raw);
-    if (reportFailure) {
-      console.warn("[github] localStorage.setItem failed:", err && err.message);
-    }
-    return false;
-  }
-}
-
-export function loadGithubProjects() {
-  const raw = readStorage(STORAGE_KEY) ?? _mem.get(STORAGE_KEY) ?? null;
-  if (!raw) {
-    githubProjects.value = [];
-    return;
-  }
-  try {
-    const arr = JSON.parse(raw);
-    githubProjects.value = Array.isArray(arr) ? arr : [];
-  } catch {
-    githubProjects.value = [];
-  }
-}
-
-/**
- * 写回项目数组到 localStorage。返回 true 表示落盘成功，false 表示失败（配额超限等）。
- *
- * 不抛异常（保留「不阻断 UI」原则），但调用方可据返回值决定是否提示用户。
- * 配额超限是真实风险：README 原文 + 5 条 release body 全塞 localStorage，
- * 几十个项目就可能撞 5-10MB 上限。此时必须告知用户，而不是静默吞掉让数据消失。
- */
-let _lastQuotaWarnTs = 0;
-function warnQuotaOnce() {
-  const now = Date.now();
-  // 60 秒内只 warn 一次，避免批量检查更新时连续弹一堆 toast
-  if (now - _lastQuotaWarnTs < 60000) return;
-  _lastQuotaWarnTs = now;
+const githubProjectRepository = createGithubProjectRepository(() => {
   showToast(
     "本地存储已满，改动刷新后会丢失。建议导出备份后清理旧项目",
     "warn",
     8000,
   );
+});
+
+export function loadGithubProjects() {
+  githubProjects.value = githubProjectRepository.load();
 }
 
 /**
@@ -107,132 +70,45 @@ function warnQuotaOnce() {
  * 生产代码不要调用。测试间隔离用。
  */
 export function __resetQuotaWarnForTest() {
-  _lastQuotaWarnTs = 0;
+  githubProjectRepository.resetQuotaWarning();
 }
 
 function persist() {
-  const ok = writeStorage(
-    STORAGE_KEY,
-    JSON.stringify(githubProjects.value),
-    true,
-  );
-  if (!ok) {
-    // 配额超限等：不阻断 UI，但必须告知用户
-    warnQuotaOnce();
-  }
-  return ok;
+  return githubProjectRepository.save(githubProjects.value);
 }
 
-const SETTINGS_KEY = "pulse.github.settings.v1";
+export const loadGithubSettings = githubSettings.loadGithubSettings;
+export const setGithubDensity = githubSettings.setGithubDensity;
+export const setGithubToken = githubSettings.setGithubToken;
+export const setGithubAutoCheck = githubSettings.setGithubAutoCheck;
+export const setGithubAutoCheckInterval = githubSettings.setGithubAutoCheckInterval;
+export const setGithubNotifyOnNew = githubSettings.setGithubNotifyOnNew;
 
-/**
- * 读取持久化的模块设置（density + token + autoCheck/interval/notify）。
- * 损坏数据忽略，回退默认。
- */
-export function loadGithubSettings() {
-  const raw = readStorage(SETTINGS_KEY) ?? _mem.get(SETTINGS_KEY) ?? null;
-  if (!raw) return;
-  try {
-    const o = JSON.parse(raw);
-    if (o && (o.density === "compact" || o.density === "comfortable")) {
-      githubDensity.value = o.density;
+const githubBackupService = createGithubBackupService({
+  getProjects: () => githubProjects.value,
+  mergeProjects: (incoming) => {
+    const existingIds = new Set(githubProjects.value.map((project: any) => project.id));
+    let imported = 0;
+    let skipped = 0;
+    const added: any[] = [];
+    for (const project of incoming) {
+      if (!project || typeof project.id !== "string") continue;
+      if (existingIds.has(project.id)) {
+        skipped += 1;
+      } else {
+        added.push(project);
+        imported += 1;
+      }
     }
-    if (o && typeof o.token === "string") {
-      githubToken.value = o.token;
-    }
-    if (o && typeof o.autoCheck === "boolean") {
-      githubAutoCheck.value = o.autoCheck;
-    }
-    if (o && typeof o.autoCheckIntervalMin === "number" && o.autoCheckIntervalMin > 0) {
-      githubAutoCheckIntervalMin.value = o.autoCheckIntervalMin;
-    }
-    if (o && typeof o.notifyOnNew === "boolean") {
-      githubNotifyOnNew.value = o.notifyOnNew;
-    }
-  } catch {
-    /* 损坏数据忽略 */
-  }
-}
-
-/** 把所有设置一起写回，避免任一设置覆盖另一设置。 */
-function persistSettings() {
-  try {
-    writeStorage(
-      SETTINGS_KEY,
-      JSON.stringify({
-        density: githubDensity.value,
-        token: githubToken.value,
-        autoCheck: githubAutoCheck.value,
-        autoCheckIntervalMin: githubAutoCheckIntervalMin.value,
-        notifyOnNew: githubNotifyOnNew.value,
-      }),
-    );
-  } catch {
-    /* 配额超限等忽略 */
-  }
-}
-
-/**
- * 设置并更新持久化视图密度。
- * @param {"comfortable"|"compact"} d
- */
-export function setGithubDensity(d: any) {
-  if (d !== "compact" && d !== "comfortable") return;
-  githubDensity.value = d;
-  persistSettings();
-}
-
-/**
- * 设置并更新持久化 GitHub Token（空串 = 清除）。
- * @param {string} t
- */
-export function setGithubToken(t: any) {
-  githubToken.value = typeof t === "string" ? t.trim() : "";
-  persistSettings();
-  emitSettingsChanged();
-}
-
-/**
- * 设置自动检查开关。变更后通知调度器重启（通过 github-settings-changed 事件）。
- * @param {boolean} v
- */
-export function setGithubAutoCheck(v: any) {
-  githubAutoCheck.value = !!v;
-  persistSettings();
-  emitSettingsChanged();
-}
-
-/**
- * 设置自动检查间隔（分钟）。下限 10 分钟，避免过于频繁打 GitHub API。
- * @param {number} min
- */
-export function setGithubAutoCheckInterval(min: any) {
-  const n = Math.max(10, Math.floor(Number(min) || 360));
-  githubAutoCheckIntervalMin.value = n;
-  persistSettings();
-  emitSettingsChanged();
-}
-
-/** 设置是否桌面通知新版本。 */
-export function setGithubNotifyOnNew(v: any) {
-  githubNotifyOnNew.value = !!v;
-  persistSettings();
-  // notifyOnNew 变更不需要重启调度器（下次 checkOnce 时读最新值）
-}
-
-/**
- * 广播设置变更事件（解耦：store 不直接依赖调度器）。
- * GithubLayout 监听此事件并 restart 调度器。
- */
-function emitSettingsChanged() {
-  try {
-    if (typeof globalThis.dispatchEvent === "function") {
-      globalThis.dispatchEvent(new CustomEvent("github-settings-changed"));
-    }
-  } catch {
-    /* 非浏览器环境忽略 */
-  }
-}
+    if (added.length > 0) githubProjects.value = [...added, ...githubProjects.value];
+    return { imported, skipped };
+  },
+  getDensity: () => githubDensity.value,
+  setDensity: setGithubDensity,
+  getToken: () => githubToken.value,
+  setToken: setGithubToken,
+  persist,
+});
 
 function makeId(owner: any, repo: any) {
   return `${owner}/${repo}`.toLowerCase();
@@ -373,6 +249,36 @@ export function hasGithubUpdate(p: any) {
   return p.latestVersion !== p.lastSeenVersion;
 }
 
+const githubReleaseChecker = createGithubReleaseChecker({
+  getProjects: () => githubProjects.value,
+  updateProjects: (updater) => {
+    githubProjects.value = updater(githubProjects.value);
+  },
+  getToken: () => githubToken.value,
+  fetchRelease: (url, token) => api.githubFetchRelease(url, token),
+  persist,
+  setBusyId: (id) => {
+    githubBusyId.value = id;
+  },
+  hasUpdate: hasGithubUpdate,
+});
+
+const githubReadmeService = createGithubReadmeService({
+  getProject: (id) => githubProjects.value.find((project: any) => project.id === id),
+  updateProject: (id, updater) => {
+    githubProjects.value = githubProjects.value.map((project: any) =>
+      project.id === id ? updater(project) : project,
+    );
+  },
+  getToken: () => githubToken.value,
+  fetchProject: (url, token) => api.githubFetch(url, token),
+  parseReadme: (input) => api.aiParseReadme(input),
+  persist,
+  setBusyId: (id) => {
+    githubBusyId.value = id;
+  },
+});
+
 /**
  * 解析 GitHub 地址 (renderer 侧校验，给输入框即时反馈用)。
  * 支持 http(s) / git@ / 裸 slug。
@@ -417,12 +323,12 @@ export async function addGithubProject(input: any) {
   githubError.value = null;
   try {
     const res = await api.githubFetch(input, githubToken.value);
-    if (!res || !res.ok) {
-      const reason = (res && res.reason) || "fetch_failed";
+    if (res.ok !== true) {
+      const reason = res.reason || "fetch_failed";
       githubError.value = reason;
       return { ok: false, reason };
     }
-    const meta = res.meta || {};
+    const meta = res.meta;
     const proj = {
       id,
       owner: res.owner,
@@ -506,36 +412,8 @@ export function togglePinGithubProject(id: any) {
 /**
  * 重新抓取某项目 README + 元数据。
  */
-export async function refreshGithubReadme(id: any) {
-  const p = githubProjects.value.find((x: any) => x.id === id);
-  if (!p) return { ok: false, reason: "not_found" };
-  githubBusyId.value = id;
-  try {
-    const res = await api.githubFetch(
-      `https://github.com/${p.owner}/${p.repo}`,
-      githubToken.value,
-    );
-    if (!res || !res.ok) {
-      return { ok: false, reason: (res && res.reason) || "fetch_failed" };
-    }
-    githubProjects.value = githubProjects.value.map((x: any) =>
-      x.id === id
-        ? {
-            ...x,
-            readme: res.readme || x.readme,
-            readmeFetchedAt: res.readme ? Date.now() : x.readmeFetchedAt,
-            description: res.meta?.description || x.description,
-            stars: res.meta?.stars || x.stars,
-            language: res.meta?.language || x.language,
-            homepage: res.meta?.homepage || x.homepage,
-          }
-        : x,
-    );
-    persist();
-    return { ok: true };
-  } finally {
-    githubBusyId.value = null;
-  }
+export function refreshGithubReadme(id: any) {
+  return githubReadmeService.refreshReadme(id);
 }
 
 /**
@@ -544,42 +422,8 @@ export async function refreshGithubReadme(id: any) {
  * @param {boolean} [force] 强制重新解析
  * @returns {Promise<{ok:boolean, reason?:string, result?:object}>}
  */
-export async function parseGithubProjectAi(
-  id: string,
-  force = false,
-): Promise<{ ok: true; result: any; cached?: boolean } | { ok: false; reason?: string }> {
-  const p = githubProjects.value.find((x: any) => x.id === id);
-  if (!p) return { ok: false, reason: "not_found" };
-  if (!force && p.aiParse) {
-    return { ok: true, result: p.aiParse, cached: true };
-  }
-  let readme = p.readme;
-  if (!readme || !readme.trim()) {
-    const fr = await refreshGithubReadme(id);
-    if (!fr.ok) return { ok: false, reason: fr.reason };
-    readme = githubProjects.value.find((x: any) => x.id === id)?.readme || "";
-  }
-  if (!readme || !readme.trim()) {
-    return { ok: false, reason: "no_readme" };
-  }
-  githubBusyId.value = id;
-  try {
-    const res = await api.aiParseReadme({
-      projectName: p.name,
-      description: p.description,
-      readme,
-    });
-    if (!res || !res.ok) {
-      return { ok: false, reason: (res && res.reason) || "ai_failed" };
-    }
-    githubProjects.value = githubProjects.value.map((x: any) =>
-      x.id === id ? { ...x, aiParse: res.result, aiParsedAt: Date.now() } : x,
-    );
-    persist();
-    return { ok: true, result: res.result };
-  } finally {
-    githubBusyId.value = null;
-  }
+export function parseGithubProjectAi(id: string, force = false) {
+  return githubReadmeService.parseProjectAi(id, force);
 }
 
 /**
@@ -590,59 +434,8 @@ export async function parseGithubProjectAi(
  * @param {{silent?:boolean}} [opts] silent=true 时不显示行级 loading 态
  * @returns {Promise<{ok:boolean, reason?:string}>}
  */
-export async function fetchGithubRelease(id: any, opts: any = {}) {
-  const silent = !!opts.silent;
-  const p = githubProjects.value.find((x: any) => x.id === id);
-  if (!p) return { ok: false, reason: "not_found" };
-  if (!silent) githubBusyId.value = id;
-  try {
-    const res = await api.githubFetchRelease(
-      `https://github.com/${p.owner}/${p.repo}`,
-      githubToken.value,
-    );
-    if (!res || !res.ok) {
-      // 透出主进程附加的元信息，让上层 toast 能显示「剩余 N 次 / 约 X 分钟后重置」
-      // 以及区分永久失败 (permanent) 与瞬时失败。
-      // IPC 层 safeHandle 把任何异常包成 {reason:"threw", error: msg}，
-      // 这种未预期错误没有 reason 映射，必须把原始 error 透出为 detail，
-      // 否则用户只看到笼统的「操作失败，请重试」无从排查。
-      return {
-        ok: false,
-        reason: (res && res.reason) || "fetch_failed",
-        retryAfter: res && res.retryAfter,
-        rateLimitRemaining: res && res.rateLimitRemaining,
-        permanent: !!(res && res.permanent),
-        detail: res && res.error ? String(res.error) : (res && res.detail) || "",
-      };
-    }
-    const rel = res.release || {};
-    const releases = Array.isArray(res.releases) ? res.releases : [];
-    githubProjects.value = githubProjects.value.map((x: any) =>
-      x.id === id
-        ? {
-            ...x,
-            latestVersion: rel.version || x.latestVersion || "",
-            latestVersionPublishedAt: rel.publishedAt || 0,
-            releases,
-            releaseFetchedAt: Date.now(),
-            lastSeenVersion:
-              x.lastSeenVersion === "" || x.lastSeenVersion == null
-                ? rel.version || x.latestVersion || ""
-                : x.lastSeenVersion,
-          }
-        : x,
-    );
-    persist();
-    return { ok: true };
-  } catch (err: any) {
-    return {
-      ok: false,
-      reason: "fetch_failed",
-      detail: err && (err.message || err.toString()),
-    };
-  } finally {
-    if (!silent) githubBusyId.value = null;
-  }
+export function fetchGithubRelease(id: any, opts: any = {}) {
+  return githubReleaseChecker.fetchProjectRelease(id, opts);
 }
 
 /**
@@ -680,56 +473,6 @@ export function markGithubAllSeen() {
 }
 
 /**
- * 批量检查的核心循环（内部 helper）。checkGithubUpdates 和 retryFailedGithubUpdates 共用。
- * 不直接操作 lastFailedIds —— 由调用方在结束后据返回的 failedProjects 决定。
- */
-async function _runCheckLoop(list: any, onProgress: any) {
-  if (list.length === 0) {
-    return { ok: true, newCount: 0, errorCount: 0, skippedCount: 0, failedProjects: [], skippedProjects: [] };
-  }
-  githubBusy.value = true;
-  let newCount = 0;
-  let errorCount = 0;
-  let skippedCount = 0;
-  const failedProjects: any[] = [];
-  const skippedProjects: any[] = [];
-  try {
-    for (let i = 0; i < list.length; i++) {
-      const p = list[i];
-      if (onProgress) onProgress(i + 1, list.length);
-      const r = await fetchGithubRelease(p.id, { silent: true });
-      if (!r.ok) {
-        // 永久失败：仓库不存在/已删除/私有 → 单独归档，不拖累整批 toast
-        if (r.permanent) {
-          skippedCount += 1;
-          skippedProjects.push({
-            id: p.id,
-            name: p.name || p.id,
-            reason: r.reason || "not_found",
-          });
-        } else {
-          errorCount += 1;
-          failedProjects.push({
-            id: p.id,
-            name: p.name || p.id,
-            reason: r.reason || "fetch_failed",
-            detail: r.detail || "",
-            retryAfter: r.retryAfter,
-            rateLimitRemaining: r.rateLimitRemaining,
-          });
-        }
-        continue;
-      }
-      const updated = githubProjects.value.find((x: any) => x.id === p.id);
-      if (updated && hasGithubUpdate(updated)) newCount += 1;
-    }
-    return { ok: true, newCount, errorCount, skippedCount, failedProjects, skippedProjects };
-  } finally {
-    githubBusy.value = false;
-  }
-}
-
-/**
  * 批量检查所有项目的更新。
  * @param {{onProgress?:(done:number,total:number)=>void, onlyStale?:boolean}} [opts]
  *   onProgress 用于 UI 进度（检查中 N/M）；onlyStale 仅检查从未拉过 release 的项目。
@@ -745,9 +488,22 @@ export async function checkGithubUpdates(opts: any = {}) {
   const { onProgress, onlyStale } = opts;
   let list = githubProjects.value;
   if (onlyStale) list = list.filter((p: any) => !p.releaseFetchedAt);
-  const r = await _runCheckLoop(list, onProgress);
-  lastFailedIds.value = (r.failedProjects || []).map((f: any) => f.id);
-  return r;
+  try {
+    githubBusy.value = true;
+    const r = await githubReleaseChecker.checkProjects(list, onProgress);
+    githubBusy.value = false;
+    lastFailedIds.value = (r.failedProjects || []).map((f: any) => f.id);
+    githubCheckDataState.value = resolveData(
+      githubCheckDataState.value,
+      r,
+      { source: "live" },
+    );
+    return r;
+  } catch (err) {
+    githubBusy.value = false;
+    githubCheckDataState.value = rejectData(githubCheckDataState.value, err);
+    throw err;
+  }
 }
 
 /**
@@ -763,9 +519,22 @@ export async function retryFailedGithubUpdates(opts: any = {}) {
   }
   const idSet = new Set(ids);
   const list = githubProjects.value.filter((p: any) => idSet.has(p.id));
-  const r = await _runCheckLoop(list, onProgress);
-  lastFailedIds.value = (r.failedProjects || []).map((f: any) => f.id);
-  return r;
+  try {
+    githubBusy.value = true;
+    const r = await githubReleaseChecker.checkProjects(list, onProgress);
+    githubBusy.value = false;
+    lastFailedIds.value = (r.failedProjects || []).map((f: any) => f.id);
+    githubCheckDataState.value = resolveData(
+      githubCheckDataState.value,
+      r,
+      { source: "live" },
+    );
+    return r;
+  } catch (err) {
+    githubBusy.value = false;
+    githubCheckDataState.value = rejectData(githubCheckDataState.value, err);
+    throw err;
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -775,115 +544,7 @@ export async function retryFailedGithubUpdates(opts: any = {}) {
 // 备份可迁移。导出走 Blob 下载，导入走 file input，数据不经过主进程文件系统。
 // ──────────────────────────────────────────────────────────────────────────
 
-const EXPORT_SCHEMA = "pulse.github.export.v1";
-
-/**
- * 导出全部数据为 JSON 字符串。含 schema 标记便于后续版本迁移。
- * @returns {string}
- */
-export function exportGithubData() {
-  return JSON.stringify({
-    schema: EXPORT_SCHEMA,
-    exportedAt: Date.now(),
-    projects: githubProjects.value,
-    settings: {
-      density: githubDensity.value,
-      token: githubToken.value,
-    },
-  });
-}
-
-/**
- * 导入备份 JSON。按 id 去重合并：本地已存在的跳过（保留本地最新），不存在的添加。
- * settings：density 采用导入值（若合法）；token 本地已有非空则保留本地。
- * @param {string} jsonString
- * @returns {{ok:boolean, imported?:number, skipped?:number, reason?:string}}
- */
-export function importGithubData(jsonString: string): { ok: boolean; imported?: number; skipped?: number; reason?: string } {
-  let o;
-  try {
-    o = JSON.parse(jsonString);
-  } catch {
-    return { ok: false, reason: "invalid_format" };
-  }
-  if (!o || o.schema !== EXPORT_SCHEMA || !Array.isArray(o.projects)) {
-    return { ok: false, reason: "invalid_format" };
-  }
-  const existingIds = new Set(githubProjects.value.map((p: any) => p.id));
-  let imported = 0;
-  let skipped = 0;
-  const incoming: any[] = [];
-  for (const p of o.projects) {
-    if (!p || typeof p.id !== "string") continue;
-    if (existingIds.has(p.id)) {
-      skipped += 1; // 本地已有 → 保留本地，跳过
-    } else {
-      incoming.push(p);
-      imported += 1;
-    }
-  }
-  // 新项目插到最前面（保持「最近添加在前」的视觉）
-  if (incoming.length) {
-    githubProjects.value = [...incoming, ...githubProjects.value];
-  }
-  // settings 合并
-  const s = o.settings || {};
-  if (s.density === "compact" || s.density === "comfortable") {
-    setGithubDensity(s.density);
-  }
-  // token：本地空才采用导入值（避免覆盖用户已在本地配置的 token）
-  if (!githubToken.value && typeof s.token === "string" && s.token) {
-    setGithubToken(s.token);
-  }
-  persist();
-  return { ok: true, imported, skipped };
-}
-
-/**
- * 触发浏览器下载备份 JSON。文件名 github-backup-YYYYMMDD.json。
- * 依赖 DOM API（Blob/URL），生产 Electron 环境可用，单测不覆盖。
- */
-export function downloadGithubBackup() {
-  const json = exportGithubData();
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const d = new Date();
-  const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `github-backup-${stamp}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // 释放 blob URL，避免内存泄漏
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-/**
- * 弹出文件选择器，读取用户选的备份 JSON 并导入。
- * @returns {Promise<{ok:boolean, imported?:number, skipped?:number, reason?:string}|null>}
- *   用户取消选择时 resolve null。
- */
-export function pickGithubBackupFile(): Promise<{ ok: boolean; imported?: number; skipped?: number; reason?: string } | null> {
-  return new Promise((resolve: any) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json,application/json";
-    input.onchange = () => {
-      const file = input.files && input.files[0];
-      if (!file) return resolve(null);
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const text = typeof reader.result === "string" ? reader.result : "";
-          resolve(importGithubData(text));
-        } catch (err: any) {
-          resolve({ ok: false, reason: "invalid_format" });
-        }
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsText(file);
-    };
-    input.click();
-  });
-}
+export const exportGithubData = githubBackupService.exportData;
+export const importGithubData = githubBackupService.importData;
+export const downloadGithubBackup = githubBackupService.downloadBackup;
+export const pickGithubBackupFile = githubBackupService.pickBackupFile;

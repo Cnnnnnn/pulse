@@ -16,6 +16,7 @@ import {
   ithomeNewsLoading,
   ithomeNewsTs,
   ithomeNewsError,
+  ithomeNewsState,
   ithomeViewMode,
   ithomeFavorites,
   setIthomeViewMode,
@@ -28,6 +29,7 @@ import {
   wechatHotLastFetched,
   wechatHotLastRefreshAt,
   wechatHotError,
+  wechatHotDataState,
   refreshWechatHot,
 } from "../wechat-hot/store.ts";
 import { formatCooldown, formatTime } from "../wechat-hot/utils.ts";
@@ -37,6 +39,7 @@ import {
   financeTs,
   financeError,
   financeLoading,
+  financeNewsState,
   refreshFinanceNews,
 } from "../finance/financeStore.ts";
 
@@ -81,10 +84,13 @@ export function NewsLayoutHeader({
     ? COOLDOWN_MS - (now - wechatHotLastRefreshAt.value)
     : 0;
   const itLoading = ithomeNewsLoading.value;
+  const itState = ithomeNewsState.value;
   const weiboLoading = wechatHotLoading.value;
+  const weiboState = wechatHotDataState.value;
   const isFavorites = ithomeViewMode.value === "favorites" && subTab === "ithome";
   const favTotal = favoriteCount(ithomeFavorites.value);
   const finLoading = financeLoading.value;
+  const finState = financeNewsState.value;
 
   function handleRefresh() {
     if (subTab === "wechat-hot") refreshWechatHot();
@@ -98,16 +104,31 @@ export function NewsLayoutHeader({
   if (subTab === "wechat-hot") {
     const items = wechatHotItems.value;
     error = wechatHotError.value || null;
-    subText = `微博热搜榜 · ${items.length} 条 · 更新于 ${formatTime(wechatHotLastFetched.value)}`;
+    const freshness = weiboState.phase === "stale"
+      ? " · 缓存"
+      : weiboState.phase === "loading" && weiboState.fetchedAt > 0
+        ? " · 更新中"
+        : "";
+    subText = `微博热搜榜 · ${items.length} 条 · 更新于 ${formatTime(wechatHotLastFetched.value)}${freshness}`;
   } else if (subTab === "finance") {
     error = financeError.value || null;
-    subText = `财经 · 更新于 ${formatTs(financeTs.value)}`;
+    const freshness = finState.phase === "stale"
+      ? " · 缓存"
+      : finState.phase === "loading" && finState.fetchedAt > 0
+        ? " · 更新中"
+        : "";
+    subText = `财经 · 更新于 ${formatTs(financeTs.value)}${freshness}`;
   } else if (isFavorites) {
     error = null;
     subText = `收藏 ${favTotal} 篇 · 永久保留`;
   } else {
     error = ithomeNewsError.value || null;
-    subText = `IT 之家 · ${currentMonthLabel()} · 更新于 ${formatTs(ithomeNewsTs.value)}`;
+    const freshness = itState.phase === "stale"
+      ? " · 缓存"
+      : itState.phase === "loading" && itState.fetchedAt > 0
+        ? " · 更新中"
+        : "";
+    subText = `IT 之家 · ${currentMonthLabel()} · 更新于 ${formatTs(ithomeNewsTs.value)}${freshness}`;
   }
 
   const searchInputId =
@@ -190,7 +211,11 @@ export function NewsLayoutHeader({
 
       {error && (
         <div class="news-header-error" role="alert">
-          {error}
+          {(itState.fetchedAt > 0 && subTab === "ithome") ||
+          (finState.fetchedAt > 0 && subTab === "finance") ||
+          (weiboState.fetchedAt > 0 && subTab === "wechat-hot")
+            ? `更新失败，已保留上次内容：${error}`
+            : error}
         </div>
       )}
     </header>

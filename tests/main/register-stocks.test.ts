@@ -48,6 +48,8 @@ const mockFetchStocks = vi.fn(async (httpClient, opts) => ({
   ],
   total: 2,
   fetchedAt: Date.now(),
+  source: "eastmoney",
+  truncated: false,
   // 回显 sortKey 方便断言下推是否生效
   _sortKey: opts && opts.sortKey,
 }));
@@ -234,6 +236,8 @@ describe("register-stocks IPC", () => {
     expect(r.results[0].code).toBe("600519"); // roe 28 > 17
     expect(r.total).toBe(2);
     expect(r.fromCache).toBe(false);
+    expect(r.source).toBe("eastmoney");
+    expect(r.truncated).toBe(false);
     // 排序意图下推给东财 (fid)
     expect(mockFetchStocks).toHaveBeenCalledTimes(1);
     const fetchCallOpts = mockFetchStocks.mock.calls[0][1];
@@ -251,6 +255,8 @@ describe("register-stocks IPC", () => {
       { criteria: { marketCapTier: "all", industries: [] }, sort: null },
     );
     expect(r2.fromCache).toBe(true);
+    expect(r2.source).toBe("eastmoney");
+    expect(r2.truncated).toBe(false);
     expect(mockFetchStocks).toHaveBeenCalledTimes(1); // 只真拉一次
   });
 

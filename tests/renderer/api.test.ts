@@ -144,4 +144,16 @@ describe("createApi pick() dev warn", () => {
     //   default export. 这条测试只验 key 存在, errno 还是要走真正的调用链.
     expect(typeof a.stocksExportDiagnosisPng).toBe("function");
   });
+
+  it("导航持久化 API 会转发 saveLastActiveNav 到 renderer wrapper", async () => {
+    const { createApi } = await loadApiFresh("development");
+    const saveLastActiveNav = vi.fn(() =>
+      Promise.resolve({ ok: true, lastActiveNav: "invest" }),
+    );
+    const api = createApi({ saveLastActiveNav });
+
+    await api.saveLastActiveNav("invest");
+
+    expect(saveLastActiveNav).toHaveBeenCalledWith("invest");
+  });
 });

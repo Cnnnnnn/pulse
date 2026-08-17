@@ -22,6 +22,11 @@ import * as newsStore from "../finance/news-store";
 import * as quoteStore from "../finance/quote-store";
 import { FIN_CATEGORIES } from "../finance/config";
 import * as financeInterpret from "../../ai/finance-news-interpret";
+import type {
+  FinanceGetNewsOptions,
+  FinanceRefreshOptions,
+  IpcChannelMap,
+} from "../../shared/ipc-contracts";
 
 export const NEWS_UPDATED_CHANNEL = "finance:news-updated";
 export const QUOTES_UPDATED_CHANNEL = "finance:quotes-updated";
@@ -30,24 +35,27 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-function sanitizeRefreshOpts(opts: any): any {
+function sanitizeRefreshOpts(opts: unknown): FinanceRefreshOptions {
   if (!opts || typeof opts !== "object") return {};
+  const input = opts as Record<string, unknown>;
   return {
-    force: opts.force === true,
-    timeoutMs: typeof opts.timeoutMs === "number" ? opts.timeoutMs : undefined,
+    force: input.force === true,
+    timeoutMs:
+      typeof input.timeoutMs === "number" ? input.timeoutMs : undefined,
   };
 }
 
-function sanitizeGetArgs(args: any): any {
+function sanitizeGetArgs(args: unknown): FinanceGetNewsOptions {
   if (!args || typeof args !== "object") return {};
+  const input = args as Record<string, unknown>;
   // D5：category 限制在 FIN_CATEGORIES ∪ {all}，越界回退 "all"
   const allowedCategories = new Set<string>(["all", ...FIN_CATEGORIES]);
   const category =
-    typeof args.category === "string" && allowedCategories.has(args.category)
-      ? args.category
+    typeof input.category === "string" && allowedCategories.has(input.category)
+      ? input.category
       : "all";
-  const sort = args.sort === "popularity" ? "popularity" : "time";
-  const search = typeof args.search === "string" ? args.search : "";
+  const sort = input.sort === "popularity" ? "popularity" : "time";
+  const search = typeof input.search === "string" ? input.search : "";
   return { category, sort, search };
 }
 
@@ -55,7 +63,7 @@ export function registerFinanceHandlers(ctx: any) {
   const { safeHandle, sendToRenderer } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  function broadcast(channel: string, payload: any) {
+  function broadcast(channel: string, payload: unknown) {
     if (typeof sendToRenderer === "function") {
       try {
         sendToRenderer(channel, payload);
@@ -65,7 +73,12 @@ export function registerFinanceHandlers(ctx: any) {
     }
   }
 
-  safeHandle("finance:refresh-news", async (_evt: any, opts: any) => {
+  safeHandle(
+    "finance:refresh-news",
+    async (
+      _evt: unknown,
+      opts: IpcChannelMap["finance:refresh-news"]["args"][0],
+    ) => {
     try {
       const out = await newsStore.refresh(undefined, sanitizeRefreshOpts(opts));
       broadcast(NEWS_UPDATED_CHANNEL, out);
@@ -77,9 +90,15 @@ export function registerFinanceHandlers(ctx: any) {
         message: errMsg(err),
       };
     }
-  });
+    },
+  );
 
-  safeHandle("finance:get-news", async (_evt: any, args: any) => {
+  safeHandle(
+    "finance:get-news",
+    async (
+      _evt: unknown,
+      args: IpcChannelMap["finance:get-news"]["args"][0],
+    ) => {
     try {
       return newsStore.getFiltered(undefined, sanitizeGetArgs(args));
     } catch (err: any) {
@@ -90,18 +109,24 @@ export function registerFinanceHandlers(ctx: any) {
         items: [],
       };
     }
-  });
+    },
+  );
 
   // E2：各分类文章计数（含「全部」），供分类 tab 展示数量。
   safeHandle("finance:categories", async () => {
     try {
       return newsStore.getCategoryCounts(undefined);
-    } catch (err: any) {
+    } catch {
       return { all: 0 };
     }
   });
 
-  safeHandle("finance:get-article", async (_evt: any, args: any) => {
+  safeHandle(
+    "finance:get-article",
+    async (
+      _evt: unknown,
+      args: IpcChannelMap["finance:get-article"]["args"][0],
+    ) => {
     try {
       const id = args && args.id;
       const art = newsStore.getArticle(undefined, id);
@@ -110,11 +135,17 @@ export function registerFinanceHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", message: errMsg(err) };
     }
-  });
+    },
+  );
 
   // 相关推荐（同标签优先 + 同分类补全）。列表为空 / 深链直达时详情页回退用，
   // 避免为算几条相关而全量拉取分类列表。
-  safeHandle("finance:get-related", async (_evt: any, args: any) => {
+  safeHandle(
+    "finance:get-related",
+    async (
+      _evt: unknown,
+      args: IpcChannelMap["finance:get-related"]["args"][0],
+    ) => {
     const id = args && args.id;
     if (!id || typeof id !== "string") return [];
     const limit = typeof args.limit === "number" && args.limit > 0
@@ -122,12 +153,18 @@ export function registerFinanceHandlers(ctx: any) {
       : 5;
     try {
       return newsStore.getRelated(undefined, id, limit);
-    } catch (err: any) {
+    } catch {
       return [];
     }
-  });
+    },
+  );
 
-  safeHandle("finance:refresh-quotes", async (_evt: any, opts: any) => {
+  safeHandle(
+    "finance:refresh-quotes",
+    async (
+      _evt: unknown,
+      opts: IpcChannelMap["finance:refresh-quotes"]["args"][0],
+    ) => {
     try {
       const out = await quoteStore.refreshQuotes(
         undefined,
@@ -142,7 +179,8 @@ export function registerFinanceHandlers(ctx: any) {
         message: errMsg(err),
       };
     }
-  });
+    },
+  );
 
   safeHandle("finance:get-quotes", async () => {
     try {
@@ -158,7 +196,12 @@ export function registerFinanceHandlers(ctx: any) {
     }
   });
 
-  safeHandle("finance:toggle-favorite", async (_evt: any, args: any) => {
+  safeHandle(
+    "finance:toggle-favorite",
+    async (
+      _evt: unknown,
+      args: IpcChannelMap["finance:toggle-favorite"]["args"][0],
+    ) => {
     const id = args && args.id;
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
@@ -170,9 +213,15 @@ export function registerFinanceHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", message: errMsg(err) };
     }
-  });
+    },
+  );
 
-  safeHandle("finance:mark-read", async (_evt: any, args: any) => {
+  safeHandle(
+    "finance:mark-read",
+    async (
+      _evt: unknown,
+      args: IpcChannelMap["finance:mark-read"]["args"][0],
+    ) => {
     const id = args && args.id;
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
@@ -182,20 +231,32 @@ export function registerFinanceHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", message: errMsg(err) };
     }
-  });
+    },
+  );
 
   // 财经新闻 AI 解读（复用全局 chatCompletion / token-budget）。结果缓存到
   // 独立 sidecar finance_ai.json，不碰 state.json 的 PRESERVE_FIELDS。
-  safeHandle("finance:interpret", async (_evt: any, opts: any) => {
+  safeHandle(
+    "finance:interpret",
+    async (
+      _evt: unknown,
+      opts: IpcChannelMap["finance:interpret"]["args"][0],
+    ) => {
     try {
       return await financeInterpret.fetchFinanceInterpret(opts || {});
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 
   // 清除单篇 AI 解读缓存（重新解读前调用）。
-  safeHandle("finance:interpret-clear", async (_evt: any, opts: any) => {
+  safeHandle(
+    "finance:interpret-clear",
+    async (
+      _evt: unknown,
+      opts: IpcChannelMap["finance:interpret-clear"]["args"][0],
+    ) => {
     const id = opts && opts.id;
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
@@ -209,17 +270,24 @@ export function registerFinanceHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 
   // 跨新闻聚合（P2）。基于近期本地文章做主题/共识/分歧/信号聚合，结果按批次 hash 缓存
   // 到独立 sidecar finance_ai.json（与单篇解读同文件、不同 key），不碰 state.json。
-  safeHandle("finance:aggregate", async (_evt: any, opts: any) => {
+  safeHandle(
+    "finance:aggregate",
+    async (
+      _evt: unknown,
+      opts: IpcChannelMap["finance:aggregate"]["args"][0],
+    ) => {
     try {
       return await financeInterpret.fetchFinanceAggregate(opts || {});
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 }
 
 module.exports = {

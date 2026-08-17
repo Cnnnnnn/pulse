@@ -146,11 +146,67 @@ describe("check-store stale phase signal cleanup", () => {
 
   it("finishCheck sets phase=done, finishedAt", async () => {
     const m = await freshModule();
-    const { startCheck, finishCheck, checkSession } = m;
+    const { startCheck, finishCheck, checkSession, checkJob } = m;
     startCheck(["A"]);
     finishCheck();
     expect(checkSession.value.phase).toBe("done");
     expect(typeof checkSession.value.finishedAt).toBe("number");
+    expect(checkJob.value.phase).toBe("partial");
+    expect(checkJob.value.completed).toBe(0);
+  });
+
+  it("finishCheck marks mixed results as partial and retryable", async () => {
+    const m = await freshModule();
+    const { startCheck, applyProgressBatch, finishCheck, checkJob } = m;
+    const sessionId = startCheck(["A", "B", "C"]);
+    applyProgressBatch([
+      { name: "A", status: "ok" },
+      { name: "B", status: "error", error: "offline" },
+    ], sessionId);
+    finishCheck();
+
+    expect(checkJob.value.phase).toBe("partial");
+    expect(checkJob.value.total).toBe(3);
+    expect(checkJob.value.completed).toBe(2);
+    expect(checkJob.value.succeeded).toBe(1);
+    expect(checkJob.value.failed).toBe(1);
+    expect(checkJob.value.retryable).toBe(true);
+  });
+
+  it("setError marks a job failed before any app completes", async () => {
+    const m = await freshModule();
+    const { startCheck, setError, checkJob } = m;
+    startCheck(["A"]);
+    setError("worker unavailable");
+
+    expect(checkJob.value.phase).toBe("failed");
+    expect(checkJob.value.error).toBe("worker unavailable");
+    expect(checkJob.value.retryable).toBe(true);
+  });
+
+  it("cancelCheck closes the local job without reporting success", async () => {
+    const m = await freshModule();
+    const { startCheck, cancelCheck, checkSession, checkJob, isCheckRunning } = m;
+    startCheck(["A"]);
+    cancelCheck("already_running");
+
+    expect(isCheckRunning()).toBe(false);
+    expect(checkSession.value.phase).toBe("cancelled");
+    expect(checkJob.value.phase).toBe("cancelled");
+    expect(checkJob.value.retryable).toBe(true);
+  });
+
+  it("a retry creates a new running job and clears the previous outcome", async () => {
+    const m = await freshModule();
+    const { startCheck, setError, checkJob } = m;
+    startCheck(["A"]);
+    setError("temporary");
+    const retryId = startCheck(["A"]);
+
+    expect(checkJob.value.id).toBe(retryId);
+    expect(checkJob.value.phase).toBe("running");
+    expect(checkJob.value.error).toBe(null);
+    expect(checkJob.value.retryable).toBe(false);
   });
 
   it("finishCheck on already-done session is a no-op", async () => {

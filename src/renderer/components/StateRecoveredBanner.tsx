@@ -7,17 +7,11 @@
  * banner does not reappear on the next check.
  */
 import { signal, useComputed } from '@preact/signals';
+import type { StateRecoveredPayload } from '../../shared/ipc-contracts.ts';
 
-type StateRecoveryEvent = {
-  ts: number;
-  reason?: string;
-  backup?: string;
-  backupFailed?: string;
-};
+export const stateRecoveredSignal = signal<StateRecoveredPayload | null>(null);
 
-export const stateRecoveredSignal = signal<StateRecoveryEvent | null>(null);
-
-function isDismissedForEvent(evt: StateRecoveryEvent) {
+function isDismissedForEvent(evt: StateRecoveredPayload) {
   if (!evt) return false;
   const dismissed = localStorage.getItem('state-banner:dismissed');
   if (!dismissed) return false;

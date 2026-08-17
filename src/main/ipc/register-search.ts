@@ -14,26 +14,39 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type { IpcMain, IpcMainInvokeEvent } from "electron";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export function registerSearchIpc(deps: { ipcMain: IpcMain; searchIndex: any; stateStore: any }) {
   const { ipcMain, searchIndex, stateStore } = deps;
 
-  ipcMain.handle('search:query', async (event: any, args: any) => {
+  ipcMain.handle(
+    'search:query',
+    async (
+      _event: IpcMainInvokeEvent,
+      args: IpcChannelMap["search:query"]["args"][0],
+    ) => {
     try {
       const a = args || {};
       return searchIndex.query(a.q || '', { source: a.source || null });
-    } catch (err: any) {
+    } catch {
       return { results: [], counts: { news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 } };
     }
-  });
+    },
+  );
 
-  ipcMain.handle('search:upsert', async (event: any, doc: any) => {
+  ipcMain.handle(
+    'search:upsert',
+    async (
+      _event: IpcMainInvokeEvent,
+      doc: IpcChannelMap["search:upsert"]["args"][0],
+    ) => {
     try {
       if (doc && doc.id) searchIndex.upsert(doc);
     } catch {
       /* noop */
     }
-  });
+    },
+  );
 
   ipcMain.handle('search:rebuild', async () => {
     try {

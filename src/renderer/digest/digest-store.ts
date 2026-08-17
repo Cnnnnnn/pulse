@@ -9,6 +9,7 @@
  * (DigestDrawer) and AI tasks (AITasksDrawer) no longer share one boolean.
  */
 import { signal } from "@preact/signals";
+import type { DigestSection } from "../../shared/ipc-contracts";
 
 /** Daily digest drawer (DigestDrawer) — opened via IPC onDigestOpen */
 export const digestDrawerOpen = signal(false);
@@ -17,7 +18,7 @@ export const aiTasksDrawerOpen = signal(false);
 export const digestConfigMode = signal(false);
 
 // Phase I1+I5: pure-state signals driven by IPC push + drawer fetch
-export const digestSections = signal([]); // [{kind, items}]
-export const digestLines = signal([]);    // string[]
+export const digestSections = signal<DigestSection[]>([]);
+export const digestLines = signal<string[]>([]);
 export const digestLoading = signal(false);
-export const digestDate = signal(null);   // 'YYYY-MM-DD' from server
+export const digestDate = signal<string | null>(null);   // 'YYYY-MM-DD' from server

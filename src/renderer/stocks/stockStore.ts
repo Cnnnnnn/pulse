@@ -22,6 +22,13 @@
 import { signal, computed } from "@preact/signals";
 import { taggedLog } from "../log.ts";
 import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+} from "../../shared/data-state.ts";
+import type { DataState } from "../../shared/data-state.ts";
+import {
   STRATEGIES,
   buildCriteria,
   getStrategy,
@@ -36,7 +43,11 @@ const log = taggedLog("[stocks]");
 export const criteria = signal({ ...DEFAULT_SCREENER_CRITERIA });
 export const activeStrategy = signal("value_roe");
 export const results = signal([]);
+export const stocksDataState = signal<DataState<any[]>>(createDataState([]));
 export const fetchedAt = signal(null);
+// 数据源和是否为快速截断样本独立于 DataState.source: 后者表示 live/cache，前者描述实际行情提供方.
+export const dataProvider = signal("unknown");
+export const dataTruncated = signal(false);
 export const loading = signal(false);
 export const error = signal(null);
 export const sortKey = signal("roe");
@@ -225,6 +236,7 @@ export function applyAiAdvise() {
 export async function runScreen(api: any) {
   loading.value = true;
   error.value = null;
+  stocksDataState.value = beginDataRequest(stocksDataState.value);
   try {
     const r = await api.stocksScreen({
       criteria: criteria.value,
@@ -233,14 +245,21 @@ export async function runScreen(api: any) {
     if (r && r.ok) {
       results.value = r.results || [];
       fetchedAt.value = r.fetchedAt;
+      dataProvider.value = r.source || "unknown";
+      dataTruncated.value = r.truncated === true;
+      stocksDataState.value = resolveData(
+        stocksDataState.value,
+        results.value,
+        { source: r.fromCache ? "cache" : "live", fetchedAt: r.fetchedAt },
+      );
     } else {
       error.value = (r && r.error) || "筛选失败";
-      results.value = [];
+      stocksDataState.value = rejectData(stocksDataState.value, error.value);
     }
   } catch (e: any) {
     log.warn("runScreen failed:", e && e.message);
     error.value = e && e.message ? e.message : String(e);
-    results.value = [];
+    stocksDataState.value = rejectData(stocksDataState.value, error.value);
   } finally {
     loading.value = false;
   }
@@ -253,17 +272,41 @@ export async function runScreen(api: any) {
  */
 export async function runScreenSilent(api: any) {
   if (!api || !api.stocksScreen) return;
+  stocksDataState.value = beginDataRequest(stocksDataState.value);
   try {
     const r = await api.stocksScreen({
       criteria: criteria.value,
       sort: sortConfig.value,
     });
     if (r && r.ok && Array.isArray(r.results)) {
+      if (r.results.length === 0 && results.value.length > 0) {
+        stocksDataState.value = rejectData(
+          stocksDataState.value,
+          "刷新返回空结果",
+        );
+        return;
+      }
       results.value = r.results;
       fetchedAt.value = r.fetchedAt || Date.now();
+      dataProvider.value = r.source || "unknown";
+      dataTruncated.value = r.truncated === true;
+      stocksDataState.value = resolveData(
+        stocksDataState.value,
+        results.value,
+        {
+          source: r.fromCache ? "cache" : "live",
+          fetchedAt: fetchedAt.value,
+        },
+      );
+    } else {
+      stocksDataState.value = rejectData(
+        stocksDataState.value,
+        (r && (r.error || r.reason)) || "筛选失败",
+      );
     }
   } catch (e: any) {
     log.warn("silent refresh failed:", e && e.message);
+    stocksDataState.value = rejectData(stocksDataState.value, e);
     // 静默 — 不动 results, 不报错
   }
 }

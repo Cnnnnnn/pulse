@@ -53,7 +53,7 @@ export function FinanceContent({ search }: { search: string }) {
     financeCategory.value = k;
   }
   function setSort(s: string) {
-    financeSort.value = s;
+    financeSort.value = s === "popularity" ? "popularity" : "time";
   }
   function openAggregate() {
     financeViewMode.value = "aggregate";

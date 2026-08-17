@@ -33,6 +33,7 @@ import * as stateStore from "../state-store";
 import * as aiStorage from "../../ai-sessions/storage";
 import { MiniMaxQuotaClient } from "../../ai-usage/client";
 import { GlmQuotaClient } from "../../ai-usage/client-glm";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export const KNOWN_PROVIDERS = ["minimax", "glm"];
 
@@ -232,8 +233,12 @@ export function registerAiUsageHandlers(ctx: any) {
 
   safeHandle("ai-usage:get-cached", async () => _internals.getCached({ deps }));
 
-  safeHandle("ai-usage:fetch", async (_event: any, opts: any) =>
-    _internals.fetch({ deps, opts: opts || {} }),
+  safeHandle(
+    "ai-usage:fetch",
+    async (
+      _event: unknown,
+      opts: IpcChannelMap["ai-usage:fetch"]["args"][0],
+    ) => _internals.fetch({ deps, opts: opts || {} }),
   );
 
   safeHandle("ai-usage:alert-prefs:get", () => ({
@@ -241,14 +246,20 @@ export function registerAiUsageHandlers(ctx: any) {
     prefs: stateStore.loadAiUsageAlertPrefs(),
   }));
 
-  safeHandle("ai-usage:alert-prefs:set", (_event: any, patch: any) => {
+  safeHandle(
+    "ai-usage:alert-prefs:set",
+    (
+      _event: unknown,
+      patch: IpcChannelMap["ai-usage:alert-prefs:set"]["args"][0],
+    ) => {
     try {
       stateStore.saveAiUsageAlertPrefs(patch || {});
       return { ok: true, prefs: stateStore.loadAiUsageAlertPrefs() };
     } catch (err: any) {
       return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
-  });
+    },
+  );
 }
 
 module.exports = { registerAiUsageHandlers, _internals, KNOWN_PROVIDERS };

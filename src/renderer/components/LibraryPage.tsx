@@ -32,11 +32,11 @@ export function LibraryPage() {
   const totalApps = results.value.size;
   const visibleNames = Array.from(filteredResults.value.keys());
   const upgradable = upgradableCount.value;
-  const { isLoading, run } = useRunCheck();
+  const { isLoading, run, cancel } = useRunCheck();
 
   // 空态: 首次启动引导 CTA
   if (totalApps === 0) {
-    return <OverviewEmptyState onRunCheck={run} isLoading={isLoading} />;
+    return <OverviewEmptyState onRunCheck={run} onCancel={cancel} isLoading={isLoading} />;
   }
 
   const useVirtual = mode === "card" && visibleNames.length > 100;
@@ -59,6 +59,11 @@ export function LibraryPage() {
         >
           {isLoading ? "检查中…" : "检查更新"}
         </button>
+        {isLoading && (
+          <button type="button" class="btn btn-ghost btn-sm" onClick={cancel}>
+            取消
+          </button>
+        )}
         <PageActionsBar />
         <ViewSwitcher />
       </PageHeader>

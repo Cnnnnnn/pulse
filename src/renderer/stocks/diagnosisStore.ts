@@ -378,9 +378,15 @@ export async function reloadAngle(api: any, angleKey: any) {
     if (resp && resp.ok && resp.perAngle) {
       const pa = resp.perAngle;
       const cur = diagnosisState.value.perAngleData || {};
+      const nextPerAngle = { ...cur, [angleKey]: pa };
       diagnosisState.value = {
         ...diagnosisState.value,
-        perAngleData: { ...cur, [angleKey]: pa },
+        perAngleData: nextPerAngle,
+        scores: computeScores(nextPerAngle),
+        dataGaps: computeDataGaps(nextPerAngle),
+        // 原始数据变了，旧 AI 结论不再对应当前数据，必须要求用户重新生成。
+        aiResult: null,
+        aiStatus: "idle",
       };
     } else {
       log.warn(

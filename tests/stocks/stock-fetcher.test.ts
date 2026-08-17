@@ -405,7 +405,7 @@ describe("fetchStocks with Sina fallback", () => {
     const out = await fetchStocks(mockClient(SAMPLE_BODY));
     expect(out.rows.length).toBe(2);
     expect(out.rows[0].code).toBe("600519");
-    expect(out.source).toBeUndefined(); // ponytail: 默认源不标记
+    expect(out.source).toBe("eastmoney"); // 主源显式标记，供 UI 展示数据可信度
   });
 
   it("returns error when BOTH east-money and Sina fail", async () => {

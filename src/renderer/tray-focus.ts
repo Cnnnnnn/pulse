@@ -11,6 +11,7 @@
 import { setActiveNav } from "./nav/navStore.ts";
 import { requestUpgrade } from "./upgrade-actions.ts";
 import { taggedLog } from "./log.ts";
+import type { TrayFocusPayload } from "../shared/ipc-contracts.ts";
 
 const log = taggedLog("[tray-focus]");
 
@@ -20,7 +21,9 @@ let _subscribed = false;
  * 启动期订阅. 幂等.
  * @param {{ onTrayFocus?: Function }} api - window.api (preload 暴露)
  */
-export function subscribeTrayFocus(api: { onTrayFocus?: (cb: (data: any) => void) => void } | any) {
+export function subscribeTrayFocus(
+  api: { onTrayFocus?: (_cb: (_data: TrayFocusPayload) => void) => void } | any,
+) {
   if (_subscribed) return;
   _subscribed = true;
   if (api && typeof api.onTrayFocus === "function") {
@@ -28,7 +31,7 @@ export function subscribeTrayFocus(api: { onTrayFocus?: (cb: (data: any) => void
   }
 }
 
-async function handleFocus(data: any) {
+async function handleFocus(data: TrayFocusPayload) {
   if (!data) return;
   log.info("handleFocus", data);
 

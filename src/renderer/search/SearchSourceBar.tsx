@@ -3,8 +3,9 @@
  */
 import { searchCounts, searchActiveSource, setSearchActiveSource } from './searchStore.ts';
 import { SearchSourceIcon } from '../components/icons.tsx';
+import type { SearchSource } from '../../shared/ipc-contracts';
 
-const SOURCES = [
+const SOURCES: Array<{ key: SearchSource | null; label: string }> = [
   { key: null, label: '全部' },
   { key: 'news', label: '新闻' },
   { key: 'ai-task', label: 'AI 任务' },

@@ -25,6 +25,9 @@ const viewSrc = readFileSync(resolve(root, "src/renderer/finance/FinanceArticleV
 
 // 渲染端源码（store ∪ view），空白归一化，便于匹配跨行书写
 const rendererNorm = `${storeSrc}\n${viewSrc}`.replace(/\s+/g, " ");
+// 主进程 / preload 允许按类型注解和多行格式书写，契约检查只关注调用符号与 channel。
+const regNorm = regSrc.replace(/\s+/g, "");
+const preNorm = preSrc.replace(/\s+/g, "");
 
 // channel -> 渲染侧 api key（驼峰）
 const INVOKE: [string, string][] = [
@@ -55,9 +58,9 @@ describe("finance IPC 四端契约一致性", () => {
   for (const [channel, apiKey] of INVOKE) {
     it(`invoke 通道 ${channel} 四端一致`, () => {
       // 1) 主进程 handler 注册
-      expect(regSrc).toContain(`safeHandle("${channel}"`);
-      // 2) preload 桥 invoke
-      expect(preSrc).toContain(`ipcRenderer.invoke("${channel}"`);
+      expect(regNorm).toContain(`safeHandle("${channel}"`);
+      // 2) preload 桥统一通过 invokeChannel 转发到 ipcRenderer.invoke
+      expect(preNorm).toContain(`invokeChannel("${channel}"`);
       // 3) api.ts 封装层暴露同名 key
       expect(apiSrc).toContain(`pick(overrides, "${apiKey}"`);
       // 4) 渲染层调用（store 或 详情页）

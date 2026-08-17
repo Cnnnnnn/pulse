@@ -2,7 +2,8 @@
 //          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
 //          rewrite 依赖 path 保留裸名).
 
-import type { IpcMain } from "electron";
+import type { IpcMain, IpcMainInvokeEvent } from "electron";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 // ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
 function errMsg(err: unknown): string {
@@ -10,7 +11,7 @@ function errMsg(err: unknown): string {
 }
 
 const { ipcMain }: { ipcMain: IpcMain } = require("electron");
-import { runCheckQueued } from "../check-runner";
+import { runCheckQueued, cancelCheck as cancelRunCheck } from "../check-runner";
 import { buildRunCheckDeps } from "../run-check-deps";
 import { runBulkUpgrade } from "../bulk-upgrade";
 import * as stateStore from "../state-store";
@@ -90,7 +91,20 @@ export function registerCoreHandlers(ctx: any) {
     return r;
   });
 
-  ipcMain.handle("brew-upgrade", async (_event: any, caskName: any) => {
+  ipcMain.handle(
+    "check-updates:cancel",
+    (
+      _event: IpcMainInvokeEvent,
+      jobId: IpcChannelMap["check-updates:cancel"]["args"][0],
+    ) => cancelRunCheck(typeof jobId === "string" ? jobId : undefined),
+  );
+
+  ipcMain.handle(
+    "brew-upgrade",
+    async (
+      _event: IpcMainInvokeEvent,
+      caskName: IpcChannelMap["brew-upgrade"]["args"][0],
+    ) => {
     if (!caskName) return { success: false, output: "no cask" };
     const r = await pool.enqueue({
       type: "brew-upgrade",
@@ -108,9 +122,15 @@ export function registerCoreHandlers(ctx: any) {
       }
     }
     return r;
-  });
+    },
+  );
 
-  ipcMain.handle("bulk-upgrade:start", async (_event: any, items: any) => {
+  ipcMain.handle(
+    "bulk-upgrade:start",
+    async (
+      _event: IpcMainInvokeEvent,
+      items: IpcChannelMap["bulk-upgrade:start"]["args"][0],
+    ) => {
     if (bulkUpgradeRunning) {
       return { ok: false, reason: "already running" };
     }
@@ -165,7 +185,8 @@ export function registerCoreHandlers(ctx: any) {
       });
 
     return { ok: true, count: items.length };
-  });
+    },
+  );
 
   ipcMain.handle("bulk-upgrade:cancel", async () => {
     if (!bulkUpgradeRunning || !bulkUpgradeCtrl) {
@@ -175,7 +196,12 @@ export function registerCoreHandlers(ctx: any) {
     return { ok: true };
   });
 
-  ipcMain.handle("get-app-icon", async (_event: any, bundlePath: any) => {
+  ipcMain.handle(
+    "get-app-icon",
+    async (
+      _event: IpcMainInvokeEvent,
+      bundlePath: IpcChannelMap["get-app-icon"]["args"][0],
+    ) => {
     try {
       const dataUrl = await platform.getAppIcon(bundlePath);
       if (!dataUrl) return { error: "not_found" };
@@ -189,7 +215,8 @@ export function registerCoreHandlers(ctx: any) {
       });
       return { error: "threw" };
     }
-  });
+    },
+  );
 
   // Win 走 titleBarStyle:'hidden' 把 OS 三键隐藏, renderer 画三个按钮调这里.
   // mac 走 hiddenInset 自带三颗灯, 不调这里. 不做平台守卫 — 调了也对 mac 无副作用
@@ -225,7 +252,11 @@ export function registerCoreHandlers(ctx: any) {
 
   safeHandle(
     "set-mute",
-    (_event: any, name: any, durationSec: any) => {
+    (
+      _event: unknown,
+      name: IpcChannelMap["set-mute"]["args"][0],
+      durationSec: IpcChannelMap["set-mute"]["args"][1],
+    ) => {
       if (!name || typeof name !== "string") {
         return {
           ok: false,
@@ -249,7 +280,7 @@ export function registerCoreHandlers(ctx: any) {
       return { ok: true, mutes: next.mutes };
     },
     {
-      logMeta: (_evt: any, name: any) => ({ name }),
+      logMeta: (_evt: unknown, name: IpcChannelMap["set-mute"]["args"][0]) => ({ name }),
       onError: () => ({
         ok: false,
         reason: "threw",
@@ -260,7 +291,7 @@ export function registerCoreHandlers(ctx: any) {
 
   safeHandle(
     "clear-mute",
-    (_event: any, name: any) => {
+    (_event: unknown, name: IpcChannelMap["clear-mute"]["args"][0]) => {
       if (!name || typeof name !== "string") {
         return {
           ok: false,
@@ -272,7 +303,7 @@ export function registerCoreHandlers(ctx: any) {
       return { ok: true, mutes: next.mutes };
     },
     {
-      logMeta: (_evt: any, name: any) => ({ name }),
+      logMeta: (_evt: unknown, name: IpcChannelMap["clear-mute"]["args"][0]) => ({ name }),
       onError: () => ({
         ok: false,
         reason: "threw",
@@ -338,7 +369,7 @@ export function registerCoreHandlers(ctx: any) {
 
   safeHandle(
     "save-active-category",
-    (_event: any, id: any) => {
+    (_event: unknown, id: IpcChannelMap["save-active-category"]["args"][0]) => {
       if (typeof id !== "string" || id.length === 0) {
         return {
           ok: false,
@@ -350,7 +381,7 @@ export function registerCoreHandlers(ctx: any) {
       return { ok: true, activeCategory: next.active_category };
     },
     {
-      logMeta: (_evt: any, id: any) => ({ id }),
+      logMeta: (_evt: unknown, id: IpcChannelMap["save-active-category"]["args"][0]) => ({ id }),
       onError: () => ({
         ok: false,
         reason: "threw",
@@ -373,7 +404,7 @@ export function registerCoreHandlers(ctx: any) {
 
   safeHandle(
     "save-last-active-nav",
-    (_event: any, key: any) => {
+    (_event: unknown, key: IpcChannelMap["save-last-active-nav"]["args"][0]) => {
       if (typeof key !== "string" || key.length === 0) {
         return {
           ok: false,
@@ -396,7 +427,7 @@ export function registerCoreHandlers(ctx: any) {
       }
     },
     {
-      logMeta: (_evt: any, key: any) => ({ key }),
+      logMeta: (_evt: unknown, key: IpcChannelMap["save-last-active-nav"]["args"][0]) => ({ key }),
       onError: () => ({
         ok: false,
         reason: "threw",
@@ -422,7 +453,12 @@ export function registerCoreHandlers(ctx: any) {
     }
   });
 
-  safeHandle("digest:update-settings", (_event: any, cfg: any) => {
+  safeHandle(
+    "digest:update-settings",
+    (
+      _event: unknown,
+      cfg: IpcChannelMap["digest:update-settings"]["args"][0],
+    ) => {
     if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) {
       return { ok: false, reason: "bad_cfg" };
     }
@@ -435,10 +471,16 @@ export function registerCoreHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 
   // Phase Q6: error aggregator IPC handlers
-  safeHandle("error:fetch-entries", async (_event: any, opts: any) => {
+  safeHandle(
+    "error:fetch-entries",
+    async (
+      _event: unknown,
+      opts: IpcChannelMap["error:fetch-entries"]["args"][0],
+    ) => {
     try {
       const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
@@ -464,7 +506,8 @@ export function registerCoreHandlers(ctx: any) {
         stats: { total: 0, byLevel: {}, skipped: 0 },
       };
     }
-  });
+    },
+  );
 
   safeHandle("error:copy-all", () => {
     try {
@@ -524,7 +567,12 @@ export function registerCoreHandlers(ctx: any) {
   });
 
   // Phase Q1 v2: diagnostics IPC — drawer 一次拉全 (startup + metrics + top-5)
-  safeHandle("diagnostics:fetch", async (_event: any, opts: any) => {
+  safeHandle(
+    "diagnostics:fetch",
+    async (
+      _event: unknown,
+      opts: IpcChannelMap["diagnostics:fetch"]["args"][0],
+    ) => {
     try {
       const { getStartup, getMetricsSummary } = require("../diagnostics.ts");
       const { computeTopFailures } = require("../diagnostics-aggregator.ts");
@@ -564,7 +612,8 @@ export function registerCoreHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 
   // Phase Q1 v2: 拉 ring buffer (60 帧) 给 drawer "近期趋势" 用
   safeHandle("diagnostics:fetch-samples", () => {
@@ -585,7 +634,12 @@ export function registerCoreHandlers(ctx: any) {
     }
   });
 
-  safeHandle("watchlist:add", (_e: any, payload: any) => {
+  safeHandle(
+    "watchlist:add",
+    (
+      _e: unknown,
+      payload: IpcChannelMap["watchlist:add"]["args"][0],
+    ) => {
     try {
       const legacyName = payload && payload.appName;
       const type =
@@ -633,9 +687,15 @@ export function registerCoreHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
-  });
+    },
+  );
 
-  safeHandle("watchlist:remove", (_e: any, payload: any) => {
+  safeHandle(
+    "watchlist:remove",
+    (
+      _e: unknown,
+      payload: IpcChannelMap["watchlist:remove"]["args"][0],
+    ) => {
     try {
       const legacyName = payload && payload.appName;
       const type =
@@ -661,7 +721,8 @@ export function registerCoreHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "save_failed", error: errMsg(err) };
     }
-  });
+    },
+  );
 
   safeHandle("error:clear-old", () => {
     try {
@@ -700,7 +761,12 @@ export function registerCoreHandlers(ctx: any) {
     }
   });
 
-  safeHandle("error:report", (_event: any, entry: any) => {
+  safeHandle(
+    "error:report",
+    (
+      _event: unknown,
+      entry: IpcChannelMap["error:report"]["args"][0],
+    ) => {
     try {
       const { getInstance } = require("../bootstrap/error-init.ts");
       const inst = getInstance();
@@ -721,10 +787,16 @@ export function registerCoreHandlers(ctx: any) {
         error: errMsg(err),
       });
     }
-  });
+    },
+  );
 
   // C7 v2.35.0: 检测结果导出 (JSON / CSV → 桌面)
-  safeHandle("detect-results:export", async (_event: any, opts: any) => {
+  safeHandle(
+    "detect-results:export",
+    async (
+      _event: unknown,
+      opts: IpcChannelMap["detect-results:export"]["args"][0],
+    ) => {
     try {
       const { exportDetectResults } = require("../detect-results-export.ts");
       const format = opts && opts.format;
@@ -754,7 +826,8 @@ export function registerCoreHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 }
 
 module.exports = { registerCoreHandlers };

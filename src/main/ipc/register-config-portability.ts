@@ -28,6 +28,7 @@ const os: typeof OsType = require("os");
 const path: typeof PathType = require("path");
 const fs: typeof FsType = require("fs");
 import * as stateStore from "../state-store";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 const {
   serializeConfig,
   parseConfigFile,
@@ -38,7 +39,12 @@ export function registerConfigPortabilityHandlers(ctx: any) {
   const { safeHandle, dialog } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  safeHandle("config:export", async (_evt: any, pulseVersion: any) => {
+  safeHandle(
+    "config:export",
+    async (
+      _evt: unknown,
+      pulseVersion: IpcChannelMap["config:export"]["args"][0],
+    ) => {
     try {
       const state = stateStore.load() || {};
       // pulseVersion 优先用传入; 否则从 package.json 读 (渲染层无 version 来源)
@@ -66,7 +72,8 @@ export function registerConfigPortabilityHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 
   safeHandle("config:import-load", async () => {
     if (!dialog || typeof dialog.showOpenDialog !== "function") {
@@ -104,7 +111,12 @@ export function registerConfigPortabilityHandlers(ctx: any) {
     return { ok: true, diff, fields: parsed.fields, filePath };
   });
 
-  safeHandle("config:import-apply", async (_evt: any, payload: any) => {
+  safeHandle(
+    "config:import-apply",
+    async (
+      _evt: unknown,
+      payload: IpcChannelMap["config:import-apply"]["args"][0],
+    ) => {
     if (!payload || !payload.fields || typeof payload.fields !== "object") {
       return { ok: false, reason: "no_selection" };
     }
@@ -143,7 +155,8 @@ export function registerConfigPortabilityHandlers(ctx: any) {
     }
     if (applied.length === 0) return { ok: false, reason: "no_selection" };
     return { ok: true, applied };
-  });
+    },
+  );
 }
 
 module.exports = { registerConfigPortabilityHandlers };

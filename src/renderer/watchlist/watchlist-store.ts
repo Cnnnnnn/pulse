@@ -7,8 +7,9 @@
  */
 import { signal, computed } from "@preact/signals";
 import { api } from "../api.ts";
+import type { WatchlistItem } from "../../shared/ipc-contracts";
 
-export const watchlistItems = signal([]);
+export const watchlistItems = signal<WatchlistItem[]>([]);
 export const watchlistDrawerOpen = signal(false);
 export const watchlistModalOpen = signal(false);
 

@@ -8,28 +8,52 @@
  */
 
 import { signal, computed } from "@preact/signals";
-import { getApi, requireApiMethod, wrapIpc } from "../store/store-utils.ts";
+import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+  type DataState,
+} from "../../shared/data-state.ts";
+import type { ReminderListResponse } from "../../shared/ipc-contracts.ts";
+import { getApi, requireApiMethod } from "../store/store-utils.ts";
 import { trackReminderUpdate } from "../recent/track.ts";
 
 export const reminders = signal([]); // Reminder[]
 export const remindersLoaded = signal(false);
 export const remindersOpen = signal(false);
+export const remindersDataState = signal<DataState<ReminderListResponse>>(
+  createDataState({ ok: true, reminders: [] }),
+);
 
 export async function loadReminders() {
   const list = requireApiMethod("remindersList");
-  if (!list) return false;
-  return wrapIpc(
-    async () => {
-      const r = await list();
-      if (r && r.ok) {
-        reminders.value = r.reminders || [];
-        remindersLoaded.value = true;
-        return true;
-      }
-      return false;
-    },
-    { label: "[remindersStore] loadReminders failed", fallback: false },
-  );
+  if (!list) {
+    remindersDataState.value = rejectData(remindersDataState.value, "ipc_unavailable");
+    return false;
+  }
+  remindersDataState.value = beginDataRequest(remindersDataState.value);
+  try {
+    const r = await list();
+    if (r && r.ok) {
+      reminders.value = r.reminders || [];
+      remindersLoaded.value = true;
+      remindersDataState.value = resolveData(
+        remindersDataState.value,
+        r,
+        { source: "live" },
+      );
+      return true;
+    }
+    remindersDataState.value = rejectData(
+      remindersDataState.value,
+      (r && (r.reason || r.msg)) || "load_failed",
+    );
+    return false;
+  } catch (err) {
+    remindersDataState.value = rejectData(remindersDataState.value, err);
+    return false;
+  }
 }
 
 export async function createReminder(input: any) {
@@ -149,6 +173,7 @@ export const nextDue = computed(() => {
 // ── 跟 IPC 事件联动: reminders:fired / reminders:open-modal (主进程推) ──
 
 let _installed = false;
+let _cleanup: (() => void) | null = null;
 
 /**
  * 装好 IPC 监听: 主进程推 reminders:fired → 合并到 reminders signal;
@@ -156,12 +181,14 @@ let _installed = false;
  * 跟 installRecentListener() 同样的 pattern.
  */
 export function installRemindersListener() {
-  if (_installed) return;
+  if (_installed) return _cleanup;
   const api = getApi();
   if (!api) return;
 
+  const unsubscribes: Array<() => void> = [];
+
   if (typeof api.onRemindersFired === "function") {
-    api.onRemindersFired(({ reminder }: any) => {
+    const unsubscribe = api.onRemindersFired(({ reminder }: any) => {
       if (!reminder || !reminder.id) return;
       const idx = reminders.value.findIndex((r: any) => r && r.id === reminder.id);
       if (idx >= 0) {
@@ -172,15 +199,28 @@ export function installRemindersListener() {
         reminders.value = [...reminders.value, reminder];
       }
     });
+    if (typeof unsubscribe === "function") unsubscribes.push(unsubscribe);
   }
 
   if (typeof api.onRemindersOpenModal === "function") {
-    api.onRemindersOpenModal(() => {
+    const unsubscribe = api.onRemindersOpenModal(() => {
       remindersOpen.value = true;
     });
+    if (typeof unsubscribe === "function") unsubscribes.push(unsubscribe);
   }
 
+  _cleanup = () => {
+    for (const unsubscribe of unsubscribes.splice(0).reverse()) unsubscribe();
+    _cleanup = null;
+    _installed = false;
+  };
   _installed = true;
+  return _cleanup;
+}
+
+/** 清理 IPC 监听，供页面/测试卸载时使用。重复调用安全。 */
+export function cleanupRemindersListener() {
+  _cleanup?.();
 }
 
 export function toggleRemindersOpen() {

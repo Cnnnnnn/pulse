@@ -19,6 +19,13 @@
 import { signal, batch } from "@preact/signals";
 import { api } from "../api.ts";
 import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+} from "../../shared/data-state.ts";
+import type { DataState, DataSource } from "../../shared/data-state.ts";
+import {
   VIEWS,
   ARENA_BOARDS,
   AA_DIMENSIONS,
@@ -174,6 +181,7 @@ export const sourceCoverage = signal({
 export const attribution = signal([]);
 export const loading = signal(false);
 export const error = signal(null);
+export const aiLeaderboardDataState = signal<DataState<any[]>>(createDataState([]));
 export const lastFetchErrors = signal([]);
 export const stale = signal(false);
 export const fromCache = signal(false);
@@ -183,6 +191,21 @@ export const sourceDate = signal(null);
 export const isSample = signal(false);
 /** AA 今日速率预算快照（best-effort；失败时保持上次值或默认 0/1000）。 */
 export const rateBudget = signal({ used: 0, limit: 1000, remaining: 1000, dayResetsAt: null, lastAcquireAt: null });
+
+function boardTimestamp(value: any) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return Date.now();
+}
+
+function boardDataSource(norm: any): DataSource {
+  if (norm && (norm.stale || norm.fromCache)) return "cache";
+  if (norm && Object.values(norm.sources || {}).includes("sample")) return "sample";
+  return "live";
+}
 
 export async function loadRateBudget() {
   try {
@@ -265,6 +288,7 @@ async function _run(force: any) {
   const token = ++_reqToken;
   loading.value = true;
   error.value = null;
+  aiLeaderboardDataState.value = beginDataRequest(aiLeaderboardDataState.value);
 
   const subFilter =
     activeView.value === "arena"
@@ -308,24 +332,25 @@ async function _run(force: any) {
         isSample.value =
           Object.values(norm.sources || {}).includes("sample") ||
           (norm.items || []).some((it: any) => it && it.isSample);
+        aiLeaderboardDataState.value = resolveData(
+          aiLeaderboardDataState.value,
+          norm.items || [],
+          { source: boardDataSource(norm), fetchedAt: boardTimestamp(norm.fetchedAt) },
+        );
         error.value = null;
         loadRateBudget();
       } else {
         error.value = norm.error || "加载失败";
-        items.value = [];
-        sources.value = {};
-        sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0, huggingface: 0 };
-        attribution.value = [];
+        aiLeaderboardDataState.value = rejectData(aiLeaderboardDataState.value, error.value);
+        stale.value = aiLeaderboardDataState.value.phase === "stale";
       }
     });
   } catch (e: any) {
     if (token !== _reqToken) return;
     batch(() => {
       error.value = e && e.message ? e.message : "网络错误";
-      items.value = [];
-      sources.value = {};
-      sourceCoverage.value = { arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0, huggingface: 0 };
-      attribution.value = [];
+      aiLeaderboardDataState.value = rejectData(aiLeaderboardDataState.value, error.value);
+      stale.value = aiLeaderboardDataState.value.phase === "stale";
     });
   } finally {
     if (token === _reqToken) loading.value = false;

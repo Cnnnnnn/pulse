@@ -67,6 +67,14 @@ beforeEach(() => {
   store.aiUsageLastError.value = emptySlots(null);
   store.aiUsageFetching.value = emptySlots(false);
   store.aiUsageFromCache.value = emptySlots(true);
+  store.aiUsageDataState.value = {
+    phase: "idle",
+    data: { ok: true, providers: {}, histories: {} },
+    error: null,
+    source: "unknown",
+    fetchedAt: 0,
+    lastAttemptAt: 0,
+  };
   store.aiUsageActiveProvider.value = "minimax";
   store._resetSubscribeForTest && store._resetSubscribeForTest();
 });
@@ -83,6 +91,8 @@ describe("ai-usage-store", () => {
       expect(store.aiUsageSnapshot.value.minimax).toEqual(FAKE_SNAPSHOT);
       expect(store.aiUsageSnapshot.value.glm).toBe(null);
       expect(store.aiUsageFromCache.value.minimax).toBe(true);
+      expect(store.aiUsageDataState.value.phase).toBe("ready");
+      expect(store.aiUsageDataState.value.source).toBe("cache");
     });
 
     test("populates glm snapshot when present", async () => {
@@ -112,6 +122,7 @@ describe("ai-usage-store", () => {
       };
       await expect(store.loadAiUsageCached()).resolves.toBeUndefined();
       expect(store.aiUsageSnapshot.value.minimax).toBe(null);
+      expect(store.aiUsageDataState.value.phase).toBe("error");
     });
   });
 
@@ -123,6 +134,8 @@ describe("ai-usage-store", () => {
       const r = await store.fetchAiUsage({ provider: "minimax" });
       expect(r.ok).toBe(true);
       expect(store.aiUsageLastError.value.minimax).toBe(null);
+      expect(store.aiUsageDataState.value.phase).toBe("ready");
+      expect(store.aiUsageDataState.value.source).toBe("live");
     });
 
     test("failure: sets minimax lastError, keeps existing snapshot", async () => {
@@ -138,6 +151,7 @@ describe("ai-usage-store", () => {
       expect(r.reason).toBe("rate_limited");
       expect(store.aiUsageLastError.value.minimax).toBe("rate_limited");
       expect(store.aiUsageSnapshot.value.minimax).toEqual(FAKE_SNAPSHOT);
+      expect(store.aiUsageDataState.value.phase).toBe("stale");
     });
 
     test("glm failure does not affect minimax slot", async () => {

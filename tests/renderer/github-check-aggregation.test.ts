@@ -18,6 +18,7 @@ import {
   fetchGithubRelease,
   retryFailedGithubUpdates,
   lastFailedIds,
+  githubCheckDataState,
 } from "../../src/renderer/store/github-projects-store.ts";
 
 function seed(items) {
@@ -37,6 +38,21 @@ function seed(items) {
 beforeEach(() => {
   githubProjects.value = [];
   githubToken.value = "";
+  githubCheckDataState.value = {
+    phase: "idle",
+    data: {
+      ok: true,
+      newCount: 0,
+      errorCount: 0,
+      skippedCount: 0,
+      failedProjects: [],
+      skippedProjects: [],
+    },
+    error: null,
+    source: "unknown",
+    fetchedAt: 0,
+    lastAttemptAt: 0,
+  };
 });
 
 describe("checkGithubUpdates · permanent 失败不拖累整批", () => {
@@ -58,6 +74,8 @@ describe("checkGithubUpdates · permanent 失败不拖累整批", () => {
     expect(r.errorCount).toBe(0);
     expect(r.skippedCount).toBe(1);
     expect(r.failedProjects).toEqual([]);
+    expect(githubCheckDataState.value.phase).toBe("ready");
+    expect(githubCheckDataState.value.source).toBe("live");
     expect(r.skippedProjects.length).toBe(1);
     expect(r.skippedProjects[0].id).toBe("x/deleted");
     expect(r.skippedProjects[0].reason).toBe("not_found");

@@ -13,6 +13,17 @@ import { api } from "../api.ts";
 import { taggedLog } from "../log.ts";
 import { showToast } from "./toast-store.ts";
 import { aiTasksDrawerOpen, digestConfigMode } from "../digest/digest-store.ts";
+import type {
+  AiHealthcheckOptions,
+  AiHealthcheckResponse,
+  AiKeyStatus,
+  AiSessionsConfig,
+  AiSessionsConfigUpdatedPayload,
+  AiTask,
+  AiTaskSourceStat,
+  AiTaskSummaryUpdatedPayload,
+  AiTasksSummarizeResponse,
+} from "../../shared/ipc-contracts";
 
 const log = taggedLog("[store/ai]");
 
@@ -28,26 +39,26 @@ export function localDateKey(offsetDays = 0, now?: number) {
 
 export const aiSessionsEnabled = signal(false);
 export const aiTasksDateKey = signal(localDateKey(0));
-export const aiTasks = signal([]);
-export const aiTasksSourceStats = signal([]);
+export const aiTasks = signal<AiTask[]>([]);
+export const aiTasksSourceStats = signal<AiTaskSourceStat[]>([]);
 export const aiTasksLoading = signal(false);
-export const aiTasksError = signal(null);
-export const summarizingTaskKeys = signal(new Set());
+export const aiTasksError = signal<string | null>(null);
+export const summarizingTaskKeys = signal<Set<string>>(new Set());
 export const aiSummarizeBusy = computed(
   () => summarizingTaskKeys.value.size > 0,
 );
 
-export const aiSessionsConfig = signal(null);
-export const aiKeyStatus = signal({});
+export const aiSessionsConfig = signal<AiSessionsConfig | null>(null);
+export const aiKeyStatus = signal<Record<string, AiKeyStatus>>({});
 export const aiSettingsOpen = signal(false);
 export const aiHealthcheckBusy = signal(false);
-export const aiHealthcheckResult = signal(null);
+export const aiHealthcheckResult = signal<AiHealthcheckResponse | null>(null);
 
 export function setAISessionsEnabled(enabled: any) {
   aiSessionsEnabled.value = Boolean(enabled);
 }
 
-export function syncEnabledFromConfig(cfg: any) {
+export function syncEnabledFromConfig(cfg: AiSessionsConfig | null) {
   if (!cfg || typeof cfg !== "object") {
     aiSessionsEnabled.value = false;
     return;
@@ -56,13 +67,13 @@ export function syncEnabledFromConfig(cfg: any) {
   aiSessionsEnabled.value = Boolean(provider);
 }
 
-function _aiProviderId(cfg: any) {
+function _aiProviderId(cfg: AiSessionsConfig | null) {
   if (!cfg || typeof cfg !== "object") return null;
   const id = cfg.provider || (cfg.cloud && cfg.cloud.providerId);
   return typeof id === "string" && id ? id : null;
 }
 
-function _aiModel(cfg: any, providerId: any) {
+function _aiModel(cfg: AiSessionsConfig | null, providerId: string | null) {
   if (!cfg || !providerId) return null;
   const cloud = cfg.cloud || {};
   if (typeof cloud.model === "string" && cloud.model) return cloud.model;
@@ -120,12 +131,12 @@ export async function loadAiTasks(dateKey?: string) {
   try {
     const r = await api.listAiTasks({ dateKey: key });
     if (aiTasksDateKey.value !== key) return [];
-    if (r && r.ok) {
+    if (r.ok === true) {
       aiTasks.value = Array.isArray(r.tasks) ? r.tasks : [];
       aiTasksSourceStats.value = Array.isArray(r.sourceStats) ? r.sourceStats : [];
       return aiTasks.value;
     }
-    aiTasksError.value = (r && (r.error || r.reason)) || "list_failed";
+    aiTasksError.value = r.error || r.reason || "list_failed";
     return [];
   } catch (err: any) {
     aiTasksError.value = (err && err.message) || "list_threw";
@@ -135,7 +146,9 @@ export async function loadAiTasks(dateKey?: string) {
   }
 }
 
-export async function summarizeAiTasks(taskKeys: any) {
+export async function summarizeAiTasks(
+  taskKeys: unknown,
+): Promise<AiTasksSummarizeResponse | null> {
   if (needsConfig()) return null;
   const keys = Array.isArray(taskKeys)
     ? taskKeys.filter((k: any) => typeof k === "string" && k.length > 0)
@@ -168,7 +181,7 @@ export async function summarizeAiTasks(taskKeys: any) {
   }
 }
 
-export function applyTaskSummaryEvent(data: any) {
+export function applyTaskSummaryEvent(data: AiTaskSummaryUpdatedPayload) {
   if (!data || typeof data.taskKey !== "string") return;
   if (summarizingTaskKeys.value.has(data.taskKey)) {
     const next = new Set(summarizingTaskKeys.value);
@@ -176,7 +189,7 @@ export function applyTaskSummaryEvent(data: any) {
     summarizingTaskKeys.value = next;
   }
   if (data.ok && data.task && data.dateKey === aiTasksDateKey.value) {
-    aiTasks.value = aiTasks.value.map((t: any) =>
+    aiTasks.value = aiTasks.value.map((t) =>
       t && t.taskKey === data.taskKey ? data.task : t,
     );
   }
@@ -188,12 +201,12 @@ export function subscribeAiTaskUpdates() {
   }
 }
 
-export function setAISessionsConfig(cfg: any) {
+export function setAISessionsConfig(cfg: AiSessionsConfig | null) {
   aiSessionsConfig.value = cfg && typeof cfg === "object" ? cfg : null;
   syncEnabledFromConfig(aiSessionsConfig.value);
 }
 
-export function setAIKeyStatus(providerId: any, status: any) {
+export function setAIKeyStatus(providerId: string, status: AiKeyStatus | null) {
   const next = { ...aiKeyStatus.value };
   if (status === null || status === undefined) {
     delete next[providerId];
@@ -203,7 +216,7 @@ export function setAIKeyStatus(providerId: any, status: any) {
   aiKeyStatus.value = next;
 }
 
-export function setAIKeyStatuses(map: any) {
+export function setAIKeyStatuses(map: Record<string, AiKeyStatus>) {
   aiKeyStatus.value = map && typeof map === "object" ? { ...map } : {};
 }
 
@@ -229,7 +242,7 @@ export function setAIHealthcheckBusy(busy: any) {
   aiHealthcheckBusy.value = Boolean(busy);
 }
 
-export function setAIHealthcheckResult(r: any) {
+export function setAIHealthcheckResult(r: AiHealthcheckResponse | null) {
   aiHealthcheckResult.value = r && typeof r === "object" ? r : null;
 }
 
@@ -245,7 +258,7 @@ export async function loadAISessionsConfig() {
 
 export async function probeAIKeyStatuses() {
   const providers = ["openai", "anthropic", "deepseek", "minimax", "glm"];
-  const next = {};
+  const next: Record<string, AiKeyStatus> = {};
   await Promise.all(
     providers.map(async (id: any) => {
       try {
@@ -291,7 +304,7 @@ export async function clearAIKey(providerId: any) {
   }
 }
 
-export async function runAIHealthcheck(opts: any) {
+export async function runAIHealthcheck(opts: AiHealthcheckOptions) {
   setAIHealthcheckBusy(true);
   try {
     const r = await api.aiHealthcheck(opts);
@@ -312,7 +325,7 @@ export async function runAIHealthcheck(opts: any) {
   }
 }
 
-export async function saveAISessionsConfig(cfg: any) {
+export async function saveAISessionsConfig(cfg: AiSessionsConfig | null) {
   try {
     const r = await api.saveAiSessionsConfig(cfg);
     if (r && r.ok) {
@@ -327,7 +340,7 @@ export async function saveAISessionsConfig(cfg: any) {
 
 export function subscribeAISessionsConfigUpdates() {
   if (api && typeof api.onAiSessionsConfigUpdated === "function") {
-    api.onAiSessionsConfigUpdated((data: any) => {
+    api.onAiSessionsConfigUpdated((data: AiSessionsConfigUpdatedPayload) => {
       if (data && data.config !== undefined) {
         setAISessionsConfig(data.config || null);
       }

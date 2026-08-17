@@ -27,6 +27,14 @@ describe("finance store (renderer)", () => {
     store.financeSort.value = "time";
     store.financeSearch.value = "";
     store.financeList.value = [];
+    store.financeNewsState.value = {
+      phase: "idle",
+      data: [],
+      error: null,
+      source: "unknown",
+      fetchedAt: 0,
+      lastAttemptAt: 0,
+    };
     store.financeLoading.value = false;
     store.financeError.value = null;
     store.financeSelectedId.value = null;
@@ -44,6 +52,8 @@ describe("finance store (renderer)", () => {
       search: "",
     });
     expect(store.financeList.value).toEqual(SAMPLE);
+    expect(store.financeNewsState.value.phase).toBe("ready");
+    expect(store.financeNewsState.value.source).toBe("cache");
     expect(store.financeLoading.value).toBe(false);
   });
 
@@ -68,6 +78,7 @@ describe("finance store (renderer)", () => {
     expect((api as any).financeRefreshNews).toHaveBeenCalled();
     await new Promise((r) => setTimeout(r, 0));
     expect((api as any).financeGetNews).toHaveBeenCalled();
+    expect(store.financeNewsState.value.source).toBe("live");
   });
 
   it("refreshFinanceNews: 失败置错误且不重载", async () => {
@@ -78,8 +89,28 @@ describe("finance store (renderer)", () => {
     const ok = await store.refreshFinanceNews();
     expect(ok).toBe(false);
     expect(store.financeError.value).toBe("fetch_failed");
+    expect(store.financeNewsState.value.phase).toBe("error");
     await new Promise((r) => setTimeout(r, 0));
     expect((api as any).financeGetNews).not.toHaveBeenCalled();
+  });
+
+  it("refreshFinanceNews: 失败时保留已有列表并标记 stale", async () => {
+    store.financeList.value = SAMPLE;
+    store.financeNewsState.value = {
+      phase: "ready",
+      data: SAMPLE,
+      error: null,
+      source: "live",
+      fetchedAt: 100,
+      lastAttemptAt: 100,
+    };
+    (api as any).financeRefreshNews = vi.fn(() =>
+      Promise.resolve({ ok: false, reason: "network_failed" }),
+    );
+    const ok = await store.refreshFinanceNews();
+    expect(ok).toBe(false);
+    expect(store.financeNewsState.value.phase).toBe("stale");
+    expect(store.financeList.value).toEqual(SAMPLE);
   });
 
   it("toggleFinanceFavorite: 乐观更新 isFavorited", async () => {

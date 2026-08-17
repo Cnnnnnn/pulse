@@ -5,18 +5,16 @@
  */
 "use strict";
 
-import * as fs from "fs";
-import * as stateStore from "../state-store";
 import { HttpClient } from "../http-client";
 import { parseIthomeRss } from "./rss-parser";
 import { parseIthomeListPage } from "./list-parser";
+import * as newsRepository from "./news-repository";
 const {
     assertFetchableDate,
     isInCurrentMonth,
     todayShanghaiDateKey,
     listPageUrl,
 } = require("./date-bounds.ts");
-import { mainLog } from "../log";
 import { enrichSummaryEntry } from "./article-summary-parse";
 
 const RSS_URL = "https://www.ithome.com/rss/";
@@ -82,40 +80,6 @@ function http(): any {
     return _http;
 }
 
-function _readStateRaw(statePath: any): any {
-    const p = statePath || stateStore.defaultPath();
-    try {
-        const raw = fs.readFileSync(p, "utf-8");
-        const j = JSON.parse(raw);
-        return j && typeof j === "object" ? j : {};
-    } catch (err: any) {
-        if (err && err.code === "ENOENT") return {};
-        mainLog.warn("[ithome/news-store] state read failed", {
-            msg: err && err.message,
-        });
-        return {};
-    }
-}
-
-function _emptyNews(): any {
-    return { ts: 0, articles: {}, summaries: {}, favorites: {}, dayStats: {} };
-}
-
-function _normalizeNews(raw: any): any {
-    if (!raw || typeof raw !== "object") return _emptyNews();
-    return {
-        ts: typeof raw.ts === "number" ? raw.ts : 0,
-        articles:
-            raw.articles && typeof raw.articles === "object" ? raw.articles : {},
-        summaries:
-            raw.summaries && typeof raw.summaries === "object" ? raw.summaries : {},
-        favorites:
-            raw.favorites && typeof raw.favorites === "object" ? raw.favorites : {},
-        dayStats:
-            raw.dayStats && typeof raw.dayStats === "object" ? raw.dayStats : {},
-    };
-}
-
 function _pruneDayStats(dayStats: any, now: Date = new Date()): any {
     const out: any = {};
     for (const [dateKey, rawEntry] of Object.entries(dayStats || {})) {
@@ -175,8 +139,7 @@ function _mergeSummariesForLoad(news: any): any {
 }
 
 export function loadAll(statePath: any): any {
-    const raw = _readStateRaw(statePath);
-    const news = _normalizeNews(raw.ithome_news);
+    const news = newsRepository.load(statePath);
     return {
         ok: true,
         ...news,
@@ -185,32 +148,14 @@ export function loadAll(statePath: any): any {
 }
 
 function _writeNews(news: any, statePath: any): void {
-    const path = statePath || stateStore.defaultPath();
-    const existing = _readStateRaw(path);
-    const next = {
-        ...existing,
-        v: existing.v || stateStore.SCHEMA_VERSION,
-        apps:
-            existing.apps && typeof existing.apps === "object" ? existing.apps : {},
-        mutes:
-            existing.mutes && typeof existing.mutes === "object"
-                ? existing.mutes
-                : {},
-        ithome_news: news,
-    };
-    stateStore.writeAtomic(path, next);
+    newsRepository.save(news, statePath);
 }
 
 export function getArticle(id: string, statePath: any): any {
-    const news = _normalizeNews(_readStateRaw(statePath).ithome_news);
+    const news = newsRepository.load(statePath);
     if (news.articles[id]) return news.articles[id];
     const fav = news.favorites[id];
     return fav && fav.article ? fav.article : null;
-}
-
-function isFavorited(id: string, statePath: any): boolean {
-    const news = _normalizeNews(_readStateRaw(statePath).ithome_news);
-    return !!(news.favorites && news.favorites[id]);
 }
 
 function _mergeArticles(cur: any, parsed: any[], now: number): any {
@@ -292,7 +237,7 @@ export async function fetchDay(dateKey: string, statePath: any): Promise<any> {
         return { ok: false, reason: "parse_empty", dateKey };
     }
 
-    const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+    const cur = newsRepository.load(statePath);
     const now = Date.now();
     const articles = _mergeArticles(cur, parsed, now);
     const dayStats = {
@@ -338,7 +283,7 @@ export async function refresh(statePath: any): Promise<any> {
     const parsed = parseIthomeRss(r.body).filter((item: any) =>
         isInCurrentMonth(item.dateKey),
     );
-    const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+    const cur = newsRepository.load(statePath);
     const now = Date.now();
     const articles = { ...cur.articles };
     for (const item of parsed) {
@@ -367,7 +312,7 @@ export function markArticleRead(id: string, statePath: any): any {
     if (!id || typeof id !== "string") {
         return { ok: false, reason: "invalid_args" };
     }
-    const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+    const cur = newsRepository.load(statePath);
     if (!cur.articles[id] && !(cur.favorites && cur.favorites[id])) {
         return { ok: false, reason: "article_not_found" };
     }
@@ -398,7 +343,7 @@ export function attachArticleBody(id: string, body: any, statePath: any): any {
     if (!id || typeof id !== "string") {
         return { ok: false, reason: "invalid_args" };
     }
-    const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+    const cur = newsRepository.load(statePath);
     if (!cur.articles[id] && !(cur.favorites && cur.favorites[id])) {
         return { ok: false, reason: "article_not_found" };
     }
@@ -429,7 +374,7 @@ export function attachArticleBody(id: string, body: any, statePath: any): any {
 }
 
 export function saveSummary(id: string, entry: any, statePath: any): any {
-    const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+    const cur = newsRepository.load(statePath);
     const inArticles = !!cur.articles[id];
     const inFavorites = !!(cur.favorites && cur.favorites[id]);
     if (!inArticles && !inFavorites) {
@@ -451,7 +396,7 @@ export function saveSummary(id: string, entry: any, statePath: any): any {
 }
 
 export function toggleFavorite(id: string, statePath: any): any {
-    const cur = _normalizeNews(_readStateRaw(statePath).ithome_news);
+    const cur = newsRepository.load(statePath);
     const favorites = { ...(cur.favorites || {}) };
 
     if (favorites[id]) {

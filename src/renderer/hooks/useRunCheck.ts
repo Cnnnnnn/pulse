@@ -11,13 +11,17 @@
  */
 import { useState, useRef } from "preact/hooks";
 import { runCheck } from "../run-check.ts";
+import { checkJob, cancelCheck as cancelLocalCheck } from "../store.ts";
+import { api } from "../api.ts";
 import { showToast } from "../store/toast-store.ts";
 
 export function useRunCheck() {
   const [isLoading, setIsLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelRequestedRef = useRef(false);
 
   const run = async () => {
+    cancelRequestedRef.current = false;
     setIsLoading(true);
     try {
       const r = await runCheck();
@@ -43,9 +47,35 @@ export function useRunCheck() {
       );
     } finally {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setIsLoading(false), 2000);
+      if (cancelRequestedRef.current) {
+        cancelRequestedRef.current = false;
+        setIsLoading(false);
+      } else {
+        timerRef.current = setTimeout(() => setIsLoading(false), 2000);
+      }
     }
   };
 
-  return { isLoading, run };
+  const cancel = async () => {
+    cancelRequestedRef.current = true;
+    try {
+      const jobId = checkJob.value.mainJobId || undefined;
+      const response = await api.cancelCheck(jobId);
+      if (response && response.ok === false && response.reason !== "not_running") {
+        showToast(`取消检查失败: ${response.reason || "未知错误"}`, "error", 3000);
+      }
+    } catch (err: any) {
+      showToast(
+        `取消检查失败: ${(err instanceof Error ? err.message : null) || "IPC 调用异常"}`,
+        "error",
+        3000,
+      );
+    } finally {
+      cancelLocalCheck("user_cancelled");
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setIsLoading(false);
+    }
+  };
+
+  return { isLoading, run, cancel };
 }

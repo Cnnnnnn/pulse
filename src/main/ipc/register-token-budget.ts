@@ -22,6 +22,7 @@ function errMsg(err: unknown): string {
 
 import * as stateStore from "../state-store";
 import { todayKey } from "../token-budget";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export function registerTokenBudgetHandlers(ctx: any) {
   const { safeHandle } = ctx;
@@ -37,7 +38,12 @@ export function registerTokenBudgetHandlers(ctx: any) {
     }
   });
 
-  safeHandle("token-budget:set", async (_evt: any, cfg: any) => {
+  safeHandle(
+    "token-budget:set",
+    async (
+      _evt: unknown,
+      cfg: IpcChannelMap["token-budget:set"]["args"][0],
+    ) => {
     if (!cfg || typeof cfg !== "object") return { ok: false, reason: "invalid_args" };
     if (typeof cfg.dailyLimit !== "number" || cfg.dailyLimit < 0) {
       return { ok: false, reason: "invalid_args" };
@@ -54,7 +60,8 @@ export function registerTokenBudgetHandlers(ctx: any) {
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 }
 
 module.exports = { registerTokenBudgetHandlers };

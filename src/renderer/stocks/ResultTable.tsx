@@ -45,7 +45,7 @@ export function ResultTable({ api }) {
   const isLoading = loading.value;
   const err = error.value;
 
-  if (err && !isLoading) {
+  if (err && !isLoading && rows.length === 0) {
     // ponytail: 仅在非 loading 时显示错误页. loading 期间保留旧表格 + loading 角标,
     //          避免"切策略 → loading 40s (sina fallback 翻页) → 用户看不到任何变化" 的体验断.
     return (
@@ -82,6 +82,18 @@ export function ResultTable({ api }) {
 
   return (
     <div class={`stock-table${isLoading ? " stock-table-loading" : ""}`}>
+      {err && !isLoading && rows.length > 0 && (
+        <div class="stock-table-stale-banner" role="alert">
+          <span>更新失败，已保留上次结果：{err}</span>
+          <button
+            type="button"
+            class="stock-btn stock-btn-secondary"
+            onClick={() => runScreen(api)}
+          >
+            重试
+          </button>
+        </div>
+      )}
       {isLoading && (
         // ponytail: 40s loading 期间让用户明确知道正在拉新数据 (切策略后).
         // 用顶部 2px 蓝色 progress bar + 整个表格 opacity 弱化, 强反馈替代底部 11px 角标.

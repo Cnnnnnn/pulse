@@ -89,6 +89,29 @@ describe("runCheckQueued 并发语义", () => {
     expect(r[0].name).toBe("Cursor");
   });
 
+  it("queued manual check keeps the supplied jobId across lifecycle events", async () => {
+    const { runCheckQueued } = await freshRunCheckQueued();
+    const events = [];
+    const deps = {
+      ...makeDeps([makeResult("Cursor")]),
+      getWindow: () => ({
+        isDestroyed: () => false,
+        webContents: {
+          send: (channel, payload) => events.push({ channel, payload }),
+        },
+      }),
+    };
+
+    await runCheckQueued(deps, { silent: false, jobId: "queued-job-1" });
+
+    expect(events.map((event) => event.channel)).toEqual([
+      "check-started",
+      "check-finished",
+    ]);
+    expect(events[0].payload.jobId).toBe("queued-job-1");
+    expect(events[1].payload.jobId).toBe("queued-job-1");
+  });
+
   it("silent: true 不走 already_running 短路 (auto-check 永远并发安全)", async () => {
     const { runCheckQueued } = await freshRunCheckQueued();
     const deps = makeDeps([makeResult("Cursor")]);

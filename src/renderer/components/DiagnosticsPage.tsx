@@ -25,6 +25,14 @@ import {
   diagnosticsDiagnosticsLoading,
   diagnosticsExporting,
   diagnosticsLastExport,
+  errorDataState,
+  diagnosticsDataState,
+  beginErrorEntriesRequest,
+  resolveErrorEntries,
+  rejectErrorEntries,
+  beginDiagnosticsRequest,
+  resolveDiagnosticsResponses,
+  rejectDiagnostics,
 } from "../diagnostics/diagnostics-store.ts";
 import { api } from "../api.ts";
 import { PageHeader } from "./PageHeader.tsx";
@@ -34,6 +42,7 @@ import { KPICard } from "./KPICard.tsx";
 import { StatusBadge } from "./Badge.tsx";
 import { IconCheck } from "./icons.tsx";
 import { navigateTo } from "../store/route-store.ts";
+import type { SelfUpdateState } from "../../shared/ipc-contracts";
 
 function fmtTs(ts) {
   if (!ts) return "";
@@ -67,9 +76,11 @@ export function DiagnosticsPage() {
   const diagLoading = diagnosticsDiagnosticsLoading.value;
   const exporting = diagnosticsExporting.value;
   const lastExport = diagnosticsLastExport.value;
+  const errorState = errorDataState.value;
+  const diagnosticsState = diagnosticsDataState.value;
 
   // 自更新状态 (有新版时每 2s 拉一次 progress)
-  const [updateState, setUpdateState] = useState(null);
+  const [updateState, setUpdateState] = useState<SelfUpdateState | null>(null);
   useEffect(() => {
     if (!api.selfUpdateGetState) return undefined;
     let cancelled = false;
@@ -91,15 +102,17 @@ export function DiagnosticsPage() {
 
   // 拉 error entries
   useEffect(() => {
-    errorLoading.value = true;
+    beginErrorEntriesRequest();
     const p = api.errorFetchEntries && api.errorFetchEntries({});
     Promise.resolve(p)
       .then((resp) => {
         if (resp && resp.ok) {
-          errorEntries.value = resp.entries || [];
-          errorStats.value = resp.stats || { total: 0, byLevel: {}, skipped: 0 };
+          resolveErrorEntries(resp);
+        } else {
+          rejectErrorEntries((resp && (resp.error || resp.reason)) || "error_entries_unavailable");
         }
       })
+      .catch(rejectErrorEntries)
       .finally(() => {
         errorLoading.value = false;
       });
@@ -107,24 +120,13 @@ export function DiagnosticsPage() {
 
   // 拉 startup / metrics / samples
   useEffect(() => {
-    diagnosticsDiagnosticsLoading.value = true;
+    beginDiagnosticsRequest();
     Promise.all([
       api.diagnosticsFetch ? api.diagnosticsFetch({ topN: 5 }) : null,
       api.diagnosticsFetchSamples ? api.diagnosticsFetchSamples() : null,
     ])
-      .then(([dResp, sResp]) => {
-        if (dResp && dResp.ok) {
-          diagnosticsStartup.value = dResp.startup || null;
-          diagnosticsMetrics.value = dResp.metrics || { latest: null, peak: null, count: 0 };
-          diagnosticsTopFailures.value = dResp.topFailures || [];
-        }
-        if (sResp && sResp.ok) {
-          diagnosticsSamples.value = sResp.samples || [];
-        }
-      })
-      .finally(() => {
-        diagnosticsDiagnosticsLoading.value = false;
-      });
+      .then(([dResp, sResp]) => resolveDiagnosticsResponses(dResp, sResp))
+      .catch(rejectDiagnostics);
   }, []);
 
   const onSelfUpdateCheck = async () => {
@@ -138,7 +140,7 @@ export function DiagnosticsPage() {
   const onSelfUpdateInstall = async () => {
     if (!api.selfUpdateInstall) return;
     const r = await api.selfUpdateInstall();
-    if (r && !r.ok) {
+    if (r?.ok === false) {
        
       window.alert(`退出并安装失败: ${r.error || r.reason || "未知错误"}`);
     }
@@ -161,13 +163,16 @@ export function DiagnosticsPage() {
   }, [entries, query, levelFilter]);
 
   async function refresh() {
-    errorLoading.value = true;
+    beginErrorEntriesRequest();
     try {
       const r = await (api.errorFetchEntries ? api.errorFetchEntries({}) : Promise.resolve(null));
       if (r && r.ok) {
-        errorEntries.value = r.entries || [];
-        errorStats.value = r.stats || { total: 0, byLevel: {}, skipped: 0 };
+        resolveErrorEntries(r);
+      } else {
+        rejectErrorEntries((r && (r.error || r.reason)) || "error_entries_unavailable");
       }
+    } catch (err) {
+      rejectErrorEntries(err);
     } finally {
       errorLoading.value = false;
     }
@@ -255,6 +260,12 @@ export function DiagnosticsPage() {
           ← 返回应用库
         </button>
       </PageHeader>
+
+      {(errorState.error || diagnosticsState.error) && (
+        <div class="diag-card diag-card--error" role="status">
+          数据刷新失败：{errorState.error || diagnosticsState.error}，当前保留最近一次可用结果。
+        </div>
+      )}
 
       <div class="diagnostics-content">
         {updateState && updateState.available && (

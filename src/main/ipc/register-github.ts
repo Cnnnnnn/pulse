@@ -14,6 +14,7 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type {} from "electron";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 
 // ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
@@ -25,7 +26,7 @@ import { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl
 import { parseReadme } from "../../ai/readme-parse";
 
 /** 优先用 renderer 传入的 token；为空则回退 .env / 进程环境变量。 */
-function resolveToken(passed: any) {
+function resolveToken(passed: unknown) {
   const t = typeof passed === "string" ? passed.trim() : "";
   return t || getEnvGithubToken();
 }
@@ -35,7 +36,10 @@ export function registerGithubHandlers(ctx: any) {
 
   safeHandle(
     "github:fetch",
-    async (_event: any, payload: any) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["github:fetch"]["args"][0],
+    ) => {
       const input =
         payload && typeof payload === "object" ? payload.input : payload;
       if (typeof input !== "string" || input.trim().length === 0) {
@@ -43,12 +47,15 @@ export function registerGithubHandlers(ctx: any) {
       }
       try {
         return await fetchGithubProject(input, resolveToken(payload && payload.token));
-      } catch (err: any) {
+      } catch (err: unknown) {
         return { ok: false, reason: "fetch_failed", error: errMsg(err) };
       }
     },
     {
-      logMeta: (_evt: any, payload: any) => ({
+      logMeta: (
+        _evt: unknown,
+        payload: IpcChannelMap["github:fetch"]["args"][0],
+      ) => ({
         input:
           payload && typeof payload.input === "string"
             ? payload.input.slice(0, 80)
@@ -59,7 +66,10 @@ export function registerGithubHandlers(ctx: any) {
 
   safeHandle(
     "ai:parse-readme",
-    async (_event: any, payload: any) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["ai:parse-readme"]["args"][0],
+    ) => {
       if (!payload || typeof payload !== "object") {
         return { ok: false, reason: "invalid_payload" };
       }
@@ -69,18 +79,24 @@ export function registerGithubHandlers(ctx: any) {
           description: payload.description,
           readme: payload.readme,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         return { ok: false, reason: "parse_failed", error: errMsg(err) };
       }
     },
     {
-      logMeta: (_evt: any, p: any) => ({ project: p && p.projectName }),
+      logMeta: (
+        _evt: unknown,
+        p: IpcChannelMap["ai:parse-readme"]["args"][0],
+      ) => ({ project: p && p.projectName }),
     },
   );
 
   safeHandle(
     "github:fetch-release",
-    async (_event: any, payload: any) => {
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["github:fetch-release"]["args"][0],
+    ) => {
       const input =
         payload && typeof payload === "object" ? payload.input : payload;
       if (typeof input !== "string" || input.trim().length === 0) {
@@ -94,12 +110,15 @@ export function registerGithubHandlers(ctx: any) {
           parsed.repo,
           resolveToken(payload && payload.token),
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
         return { ok: false, reason: "fetch_failed", error: errMsg(err) };
       }
     },
     {
-      logMeta: (_evt: any, payload: any) => ({
+      logMeta: (
+        _evt: unknown,
+        payload: IpcChannelMap["github:fetch-release"]["args"][0],
+      ) => ({
         input:
           payload && typeof payload.input === "string"
             ? payload.input.slice(0, 80)

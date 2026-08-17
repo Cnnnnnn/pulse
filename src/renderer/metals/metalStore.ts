@@ -10,18 +10,89 @@
  */
 
 import { signal } from '@preact/signals';
+import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+} from '../../shared/data-state.ts';
+import type { DataState, DataSource } from '../../shared/data-state.ts';
+import type {
+  MetalConfigContract,
+  MetalStateResponse,
+} from '../../shared/ipc-contracts.ts';
 
-export const config = signal({
+type MetalQuoteCache = {
+  data: Record<string, any>;
+  errors: Record<string, any>;
+  fetchedAt: number | null;
+};
+
+type MetalFxCache = {
+  rate: number | null;
+  fetchedAt: number | null;
+};
+
+export type MetalDataSnapshot = {
+  quotes: MetalQuoteCache;
+  fx: MetalFxCache;
+  historyMap: Record<string, any>;
+};
+
+function emptyMetalDataSnapshot(): MetalDataSnapshot {
+  return {
+    quotes: { data: {}, errors: {}, fetchedAt: null },
+    fx: { rate: null, fetchedAt: null },
+    historyMap: {},
+  };
+}
+
+export const config = signal<MetalConfigContract>({
   watchedIds: ['XAU', 'XAG', 'AU9999', 'AG9999'],
   holdings: { XAU: null, XAG: null, AU9999: null, AG9999: null },
   deletedIds: [] as string[],
 });
 
-export const quoteCache = signal({ data: {}, errors: {}, fetchedAt: null });
-export const fxCache = signal({ rate: null, fetchedAt: null });
-export const schedulerState = signal({ status: 'idle', lastFetch: null, nextFetch: null });
+export const quoteCache = signal<MetalQuoteCache>({ data: {}, errors: {}, fetchedAt: null });
+export const fxCache = signal<MetalFxCache>({ rate: null, fetchedAt: null });
+export const schedulerState = signal<MetalStateResponse['scheduler']>({
+  status: 'idle',
+  lastFetch: null,
+  nextFetch: null,
+});
 
 export const historyMap = signal<Record<string, any>>({});
+export const metalDataState = signal<DataState<MetalDataSnapshot>>(
+  createDataState(emptyMetalDataSnapshot()),
+);
+
+function currentMetalData(): MetalDataSnapshot {
+  return {
+    quotes: {
+      data: { ...(quoteCache.value.data || {}) },
+      errors: { ...(quoteCache.value.errors || {}) },
+      fetchedAt: quoteCache.value.fetchedAt || null,
+    },
+    fx: { ...fxCache.value },
+    historyMap: { ...(historyMap.value || {}) },
+  };
+}
+
+function resolveMetalData(source: DataSource = 'live') {
+  const data = currentMetalData();
+  metalDataState.value = resolveData(
+    metalDataState.value,
+    data,
+    { source, fetchedAt: data.quotes.fetchedAt || undefined },
+  );
+}
+
+function applyMetalResponse(response: any, source: DataSource = 'live') {
+  if (response && response.quotes) quoteCache.value = response.quotes;
+  if (response && response.fx) fxCache.value = response.fx;
+  if (response && response.historyMap) historyMap.value = response.historyMap;
+  resolveMetalData(source);
+}
 
 /**
  * 投资 nav 合并 (2026-07-13) N2: refreshNow loading 态.
@@ -65,18 +136,26 @@ export async function initMetalStore() {
     console.warn('[metals] getHistory failed:', err && err.message);
   }
 
+  if (quoteCache.value && quoteCache.value.fetchedAt) {
+    resolveMetalData('cache');
+  } else {
+    metalDataState.value = beginDataRequest(metalDataState.value);
+  }
+
   // 冷启动兜底: 刚装/刚升级后 quoteCache 还没首次 fetch, 立即拉一次避免 tab 进去空白.
   // scheduler.start() 虽然 fire-and-forget 调 fetchNow, 但 fetch 失败时 cache 仍是空,
   // 用户不点刷新就永远空白. 这里串行 await: 失败时让 refresh 按钮处理.
   if (!quoteCache.value || !quoteCache.value.fetchedAt) {
     try {
       const r = await window.metalsApi.fetchNow();
-      if (r && r.quotes) quoteCache.value = r.quotes;
-      if (r && r.fx) fxCache.value = r.fx;
+      if (r && r.ok === false) {
+        throw new Error(r.reason || '刷新失败');
+      }
       // 串行 fetchNow 内部已经等 backfill 完成, 直接拿 response 里的 historyMap
       // 同步到 signal, 避免 "quote 出了但 30 天走势还在加载中" 的渲染竞态.
-      if (r && r.historyMap) historyMap.value = r.historyMap;
+      applyMetalResponse(r);
     } catch (err: any) {
+      metalDataState.value = rejectData(metalDataState.value, err);
       console.warn('[metals] cold-start fetchNow failed:', err instanceof Error ? err.message : String(err));
     }
   }
@@ -85,6 +164,7 @@ export async function initMetalStore() {
   _unsubQuote = window.metalsApi.onQuoteChanged((data: any) => {
     if (data.quotes) quoteCache.value = data.quotes;
     if (data.fx) fxCache.value = data.fx;
+    resolveMetalData('live');
   });
 
   _unsubState = window.metalsApi.onStateUpdate((data: any) => {
@@ -93,6 +173,7 @@ export async function initMetalStore() {
 
   _unsubHist = window.metalsApi.onHistoryChanged((data: any) => {
     if (data && data.historyMap) historyMap.value = data.historyMap;
+    resolveMetalData('live');
   });
 }
 
@@ -118,13 +199,20 @@ export function cleanupMetalStore() {
 export async function refreshNow() {
   if (!window.metalsApi) return;
   metalsRefreshing.value = true;
+  metalDataState.value = beginDataRequest(metalDataState.value);
   try {
     const r = await window.metalsApi.fetchNow();
-    if (r && r.quotes) quoteCache.value = r.quotes;
-    if (r && r.fx) fxCache.value = r.fx;
+    if (r && r.ok === false) {
+      metalDataState.value = rejectData(metalDataState.value, r.reason || '刷新失败');
+      return r;
+    }
     // fetchNow 现在串行等 backfill, response 里直接带最新 historyMap,
     // 同步到 signal 避免依赖 onHistoryChanged 事件时序.
-    if (r && r.historyMap) historyMap.value = r.historyMap;
+    applyMetalResponse(r);
+    return r;
+  } catch (err) {
+    metalDataState.value = rejectData(metalDataState.value, err);
+    throw err;
   } finally {
     metalsRefreshing.value = false;
   }
@@ -151,6 +239,7 @@ export function resetMetalStore() {
   fxCache.value = { rate: null, fetchedAt: null };
   schedulerState.value = { status: 'idle', lastFetch: null, nextFetch: null };
   historyMap.value = {};
+  metalDataState.value = createDataState(emptyMetalDataSnapshot());
   metalsRefreshing.value = false;
   selectedMetalId.value = 'XAU';
   if (typeof window !== 'undefined' && window.metalsApi) {

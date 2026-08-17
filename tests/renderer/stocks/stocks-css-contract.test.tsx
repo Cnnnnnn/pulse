@@ -64,7 +64,7 @@ const STOCKS_ONLY_CLASSES = [
   ".stock-search-item", ".stock-search-item-name", ".stock-search-item-code",
   ".stock-search-empty",
   // 表格骨架 + 加载状态 (来自 stocks-only 复合 selector)
-  ".stock-table-loading", ".stock-table-loading-bar", ".stock-table-loading-bar-inner",
+  ".stock-table-loading", ".stock-table-loading-bar", ".stock-table-loading-bar-inner", ".stock-table-stale-banner",
   ".stock-empty-state", ".stock-empty-title", ".stock-empty-sub",
   // 维度评分对比柱 (DimensionScores)
   ".dimension-scores", ".dimension-scores-bars", ".dimension-scores-skel",

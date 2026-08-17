@@ -8,10 +8,19 @@
  * snapshot 不直接落 renderer 盘 — main 进程 state.json 才是 source of truth, renderer 只持有 "当前显示用" 副本.
  */
 
-import { signal, computed } from "@preact/signals";
+import { signal } from "@preact/signals";
 import { api } from "../api.ts";
 import { taggedLog } from "../log.ts";
 import { detectUsageAnomaly } from "../../ai-usage/anomaly-detect.ts";
+import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+  type DataState,
+  type DataSource,
+} from "../../shared/data-state.ts";
+import type { AiUsageCachedResponse } from "../../shared/ipc-contracts.ts";
 
 const log = taggedLog("[store/ai-usage]");
 
@@ -41,6 +50,11 @@ export const aiUsageFetching = signal(emptySlots(false));
 /** "snapshot 是从 cache 来的" — 区别于实时 (per-provider). */
 export const aiUsageFromCache = signal(emptySlots(true));
 
+/** 聚合的跨 provider 状态，统一表达 loading / stale / error / source。 */
+export const aiUsageDataState = signal<DataState<AiUsageCachedResponse>>(
+  createDataState({ ok: true, providers: {}, histories: {} }),
+);
+
 /** 当前选中的 provider tab. */
 export const aiUsageActiveProvider = signal("minimax");
 
@@ -59,6 +73,29 @@ export const aiUsageAlertModalOpen = signal(false);
 export const aiUsageNavBadge = signal(0);
 
 let _badgeDismissed = false;
+
+function currentCachedData(): AiUsageCachedResponse {
+  return {
+    ok: true,
+    providers: { ...aiUsageSnapshot.value },
+    histories: { ...aiUsageHistory.value },
+  };
+}
+
+function latestFetchedAt(): number | undefined {
+  const values = Object.values(aiUsageSnapshot.value)
+    .map((snapshot: any) => snapshot && snapshot.fetchedAt)
+    .filter((value): value is number => typeof value === "number" && value > 0);
+  return values.length > 0 ? Math.max(...values) : undefined;
+}
+
+function resolveAiUsageData(source: DataSource, fetchedAt?: number): void {
+  aiUsageDataState.value = resolveData(
+    aiUsageDataState.value,
+    currentCachedData(),
+    { source, fetchedAt: fetchedAt || latestFetchedAt() },
+  );
+}
 
 function recomputeAiUsageNavBadge() {
   if (_badgeDismissed) return;
@@ -159,6 +196,7 @@ export function applyAiUsageEvent(data: any) {
   if (data.history && Array.isArray(data.history.days)) {
     aiUsageHistory.value = { ...aiUsageHistory.value, [pid]: data.history };
   }
+  resolveAiUsageData("live", data.snapshot && data.snapshot.fetchedAt);
   recomputeAiUsageNavBadge();
 }
 
@@ -185,6 +223,7 @@ export function subscribeAiUsageUpdates() {
  * 不触发 fetch — 预热由 main bootstrap 完成, 这里只把已有数据拉到 UI.
  */
 export async function loadAiUsageCached() {
+  aiUsageDataState.value = beginDataRequest(aiUsageDataState.value);
   try {
     const r = await api.aiUsageGetCached();
     if (r && r.ok && r.providers) {
@@ -208,9 +247,18 @@ export async function loadAiUsageCached() {
       }
       aiUsageHistory.value = nextHist;
     }
+    if (r && r.ok) {
+      resolveAiUsageData("cache");
+    } else {
+      aiUsageDataState.value = rejectData(
+        aiUsageDataState.value,
+        (r && (r.error || r.reason)) || "cache_unavailable",
+      );
+    }
     await loadAiUsageAlertPrefs();
     recomputeAiUsageNavBadge();
   } catch (err: any) {
+    aiUsageDataState.value = rejectData(aiUsageDataState.value, err);
     log.warn("loadAiUsageCached threw:", err && err.message);
   }
 }
@@ -226,10 +274,16 @@ export async function fetchAiUsage(opts: any = {}) {
     return { ok: false, reason: "unknown_provider" };
   }
   aiUsageFetching.value = { ...aiUsageFetching.value, [provider]: true };
+  aiUsageDataState.value = beginDataRequest(aiUsageDataState.value);
   try {
     const r = await api.aiUsageFetch({ provider });
     if (r && r.ok) {
       // 成功 — main 已经 push 过 ai-usage-updated, applyAiUsageEvent 已更新 signal
+      if (r.snapshot) {
+        applyAiUsageEvent({ provider, snapshot: r.snapshot });
+      } else {
+        resolveAiUsageData("live");
+      }
       aiUsageLastError.value = { ...aiUsageLastError.value, [provider]: null };
       return r;
     }
@@ -237,6 +291,10 @@ export async function fetchAiUsage(opts: any = {}) {
       ...aiUsageLastError.value,
       [provider]: (r && (r.reason || r.error)) || "unknown",
     };
+    aiUsageDataState.value = rejectData(
+      aiUsageDataState.value,
+      (r && (r.reason || r.error)) || "unknown",
+    );
     return r || { ok: false, reason: "no_response" };
   } catch (err: any) {
     const out = { ok: false, reason: "threw", error: err && err.message };
@@ -244,6 +302,7 @@ export async function fetchAiUsage(opts: any = {}) {
       ...aiUsageLastError.value,
       [provider]: out.reason,
     };
+    aiUsageDataState.value = rejectData(aiUsageDataState.value, err);
     return out;
   } finally {
     aiUsageFetching.value = { ...aiUsageFetching.value, [provider]: false };

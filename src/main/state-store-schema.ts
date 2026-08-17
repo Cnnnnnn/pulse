@@ -30,11 +30,25 @@ const FIELD_SPECS: Record<string, { kind: string; required?: boolean }> = {
   recentActivity:    { kind: 'array' },
   ai_usage:          { kind: 'object' },
   ai_usage_history:  { kind: 'object' },
+  ai_usage_alert_prefs: { kind: 'object' },
   circuitBreakers:   { kind: 'object' },
   daily_digest:       { kind: 'object' },
+  tray_menu_prefs:    { kind: 'object' },
+  startup_samples:    { kind: 'array' },
+  watchlist:          { kind: 'array' },
+  last_seen_release:  { kind: 'object' },
+  wechat_hot:         { kind: 'object' },
+  ai_prompts:         { kind: 'object' },
+  upgrade_advice_cache: { kind: 'object' },
+  changelog_summary_cache: { kind: 'object' },
   aiFeedback:         { kind: 'array' },   // A8: AI 反馈样本 cap-500
   tokenSpend:         { kind: 'object' },  // P71: 每日 token 消耗 {"YYYY-MM-DD": number}
   tokenBudgetConfig:  { kind: 'object' },  // P71: { dailyLimit, mode }
+  stockScreener:      { kind: 'object' },
+  aiStockAdviseCache: { kind: 'object' },
+  stockDetailCache:   { kind: 'object' },
+  overviewCache:      { kind: 'object' },
+  metals:             { kind: 'object' },
 };
 
 function isObject(v: any): boolean {
@@ -79,4 +93,64 @@ export function isStateValid(obj: any): boolean {
   return validateState(obj).ok;
 }
 
-module.exports = { STATE_SCHEMA_VERSION, validateState, isStateValid, FIELD_SPECS };
+export interface StateMigrationResult {
+  state: any;
+  migrated: boolean;
+  fromVersion: number;
+  toVersion: number;
+}
+
+/**
+ * Upgrade state files created before the explicit v1 envelope existed.
+ *
+ * Only an absent/zero version with a valid apps object is eligible. We do not
+ * repair malformed known fields here; those must still fail validation and go
+ * through the normal corrupt-state backup path.
+ */
+export function migrateState(obj: any): StateMigrationResult {
+  if (!isObject(obj)) {
+    return {
+      state: obj,
+      migrated: false,
+      fromVersion: 0,
+      toVersion: STATE_SCHEMA_VERSION,
+    };
+  }
+
+  const rawVersion = obj.v;
+  const fromVersion = rawVersion === undefined ? 0 : rawVersion;
+  if (
+    typeof fromVersion !== "number" ||
+    !Number.isInteger(fromVersion) ||
+    fromVersion >= STATE_SCHEMA_VERSION ||
+    !isObject(obj.apps)
+  ) {
+    return {
+      state: obj,
+      migrated: false,
+      fromVersion: typeof fromVersion === "number" ? fromVersion : 0,
+      toVersion: STATE_SCHEMA_VERSION,
+    };
+  }
+
+  const state = { ...obj, v: STATE_SCHEMA_VERSION };
+  if (!("ts" in state)) state.ts = 0;
+  if (!("mutes" in state)) state.mutes = {};
+  if (!("last_opened" in state)) state.last_opened = {};
+  if (!("active_category" in state)) state.active_category = "all";
+
+  return {
+    state,
+    migrated: true,
+    fromVersion,
+    toVersion: STATE_SCHEMA_VERSION,
+  };
+}
+
+module.exports = {
+  STATE_SCHEMA_VERSION,
+  validateState,
+  isStateValid,
+  migrateState,
+  FIELD_SPECS,
+};

@@ -10,6 +10,7 @@ import { FeatureHeader } from "../components/FeatureHeader.tsx";
 import {
   githubProjects,
   githubError,
+  githubCheckDataState,
   checkGithubUpdates,
   retryFailedGithubUpdates,
   markGithubSeen,
@@ -177,6 +178,11 @@ export function GithubPage() {
         {githubError.value && (
           <p class="github-page__err">
             操作失败：{githubError.value}
+          </p>
+        )}
+        {githubCheckDataState.value.error && (
+          <p class="github-page__err">
+            更新检查失败：{githubCheckDataState.value.error}，保留最近一次检查结果。
           </p>
         )}
         <GithubProjectList

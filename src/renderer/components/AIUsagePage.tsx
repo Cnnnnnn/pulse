@@ -25,6 +25,7 @@ import {
   aiUsageLastError,
   aiUsageFetching,
   aiUsageFromCache,
+  aiUsageDataState,
   aiUsageActiveProvider,
   aiUsageAlertPrefs,
   fetchAiUsage,
@@ -81,6 +82,7 @@ function ProviderUsageView({ provider }) {
   const errors = aiUsageLastError.value;
   const fetchingMap = aiUsageFetching.value;
   const fromCacheMap = aiUsageFromCache.value;
+  const dataState = aiUsageDataState?.value || { phase: "idle", error: null };
   const now = useNowTick();
 
   const snapshot = snapshots[provider] || null;
@@ -88,6 +90,11 @@ function ProviderUsageView({ provider }) {
   const lastError = errors[provider] || null;
   const fetching = !!fetchingMap[provider];
   const fromCache = !!fromCacheMap[provider];
+  const hasAnySnapshot = Object.values(snapshots).some(Boolean);
+  const dataStateError =
+    !snapshot && !lastError && !hasAnySnapshot ? dataState.error : null;
+  const initialLoading =
+    !snapshot && !lastError && !dataStateError && dataState.phase === "loading";
   const meta = PROVIDER_META[provider] || PROVIDER_META.minimax;
 
   const onRefresh = async () => {
@@ -190,14 +197,14 @@ function ProviderUsageView({ provider }) {
         </div>
       )}
 
-      {lastError && !snapshot && (
+      {(lastError || dataStateError) && !snapshot && (
         <>
           <div class="ai-usage-banner ai-usage-banner--error">
-            拉取失败: {lastError}
-            {lastError === "api_key_missing" && (
+            拉取失败: {lastError || dataStateError}
+            {(lastError || dataStateError) === "api_key_missing" && (
               <span> · 请在左下角"AI 配置"中填入 {meta.label} 的 API key</span>
             )}
-            {lastError === "network_failed" && (
+            {(lastError || dataStateError) === "network_failed" && (
               <span> · 请检查网络连接或代理设置</span>
             )}
           </div>
@@ -208,7 +215,14 @@ function ProviderUsageView({ provider }) {
         </>
       )}
 
-      {!snapshot && !lastError && (
+      {initialLoading && (
+        <div class="ai-usage-empty">
+          <p>正在读取用量缓存…</p>
+          <p class="ai-usage-empty-hint">缓存加载完成后会显示最近一次可用数据</p>
+        </div>
+      )}
+
+      {!snapshot && !lastError && !dataStateError && !initialLoading && (
         <div class="ai-usage-empty">
           <p>还没有配额数据</p>
           <p class="ai-usage-empty-hint">点击右上角"刷新"按钮拉取最新用量</p>

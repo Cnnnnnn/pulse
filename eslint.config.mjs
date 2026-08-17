@@ -164,6 +164,7 @@ export default [
     files: [
       "src/stocks/diagnosis-scorer.js",
       "scripts/gen-player-cn-map.mjs",
+      "scripts/**/*.mjs",
     ],
     languageOptions: {
       ecmaVersion: 2022,

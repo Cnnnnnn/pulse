@@ -20,6 +20,13 @@
 import { signal, computed } from "@preact/signals";
 import { taggedLog } from "../log.ts";
 import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+} from "../../shared/data-state.ts";
+import type { DataState, DataSource } from "../../shared/data-state.ts";
+import {
   calcPortfolioTotal,
   zipHoldingsWithNav,
   rowWithMetrics,
@@ -40,10 +47,20 @@ import { isFundPinned } from "../watchlist/watchlist-store.ts";
 
 const log = taggedLog("[funds]");
 
+type FundNavSnapshot = {
+  fetchedAt: number | null;
+  data: Record<string, any>;
+  errors: Record<string, any>;
+};
+
 // ── signals ──
 
 export const holdings = signal([]);
 export const navCache = signal({ fetchedAt: null, data: {}, errors: {} });
+export const fundsHoldingsState = signal<DataState<any[]>>(createDataState([]));
+export const fundsNavDataState = signal<DataState<FundNavSnapshot>>(
+  createDataState({ fetchedAt: null, data: {}, errors: {} }),
+);
 export const schedulerState = signal({
   status: "closed",
   lastFetch: null,
@@ -78,6 +95,49 @@ export const fundsRefreshError = signal(null);
 export const fundsLoading = signal(false);
 /** 持仓列表加载错误 (string | null) */
 export const fundsLoadError = signal(null);
+
+function setHoldings(next: any[], source: DataSource = "live") {
+  holdings.value = next;
+  fundsHoldingsState.value = resolveData(fundsHoldingsState.value, next, { source });
+}
+
+function currentNavSnapshot(): FundNavSnapshot {
+  const current = navCache.value || { fetchedAt: null, data: {}, errors: {} };
+  return {
+    fetchedAt: current.fetchedAt || null,
+    data: { ...(current.data || {}) },
+    errors: { ...(current.errors || {}) },
+  };
+}
+
+function resolveCurrentNavData(source: DataSource = "live") {
+  const snapshot = currentNavSnapshot();
+  fundsNavDataState.value = resolveData(
+    fundsNavDataState.value,
+    snapshot,
+    { source, fetchedAt: snapshot.fetchedAt || undefined },
+  );
+}
+
+function mergeNavResult(
+  results: Record<string, any> = {},
+  errors: Record<string, any> = {},
+  source: DataSource = "live",
+  fetchedAt?: number | null,
+) {
+  const current = currentNavSnapshot();
+  const nextFetchedAt = fetchedAt || Date.now();
+  navCache.value = {
+    fetchedAt: nextFetchedAt,
+    data: Object.assign({}, current.data, results || {}),
+    errors: Object.assign({}, current.errors, errors || {}),
+  };
+  fundsNavDataState.value = resolveData(
+    fundsNavDataState.value,
+    currentNavSnapshot(),
+    { source, fetchedAt: nextFetchedAt },
+  );
+}
 
 /** I6 v3: 盈亏提醒未读角标 */
 export const fundUnreadBadge = signal(0);
@@ -216,10 +276,11 @@ export function closeAlertModal() {
 export async function loadFunds(api: any) {
   fundsLoading.value = true;
   fundsLoadError.value = null;
+  fundsHoldingsState.value = beginDataRequest(fundsHoldingsState.value);
   try {
     const r = await api.fundsList();
     if (r && r.ok) {
-      holdings.value = r.holdings || [];
+      setHoldings(r.holdings || [], "cache");
       navSource.value = normalizeNavSource(r.navSource);
       if (r.alertPrefs) {
         alertPrefs.value = {
@@ -229,13 +290,19 @@ export async function loadFunds(api: any) {
         };
       }
     } else {
-      holdings.value = [];
       fundsLoadError.value = (r && r.reason) || '加载失败';
+      fundsHoldingsState.value = rejectData(
+        fundsHoldingsState.value,
+        fundsLoadError.value,
+      );
     }
   } catch (err: any) {
     log.warn("loadFunds failed:", err && err.message);
-    holdings.value = [];
     fundsLoadError.value = (err && err.message) || '加载失败';
+    fundsHoldingsState.value = rejectData(
+      fundsHoldingsState.value,
+      fundsLoadError.value,
+    );
   } finally {
     fundsLoading.value = false;
   }
@@ -244,7 +311,7 @@ export async function loadFunds(api: any) {
 export async function addFund(api: any, input: any) {
   const r = await api.fundsAdd(input);
   if (r && r.ok) {
-    holdings.value = r.holdings || [];
+    setHoldings(r.holdings || []);
     import("../recent/track.ts").then((m: any) =>
       m.trackFundAdd(input && input.code, input && input.name),
     );
@@ -256,7 +323,7 @@ export async function addFund(api: any, input: any) {
 export async function updateFund(api: any, id: any, patch: any) {
   const r = await api.fundsUpdate(id, patch);
   if (r && r.ok) {
-    holdings.value = r.holdings || [];
+    setHoldings(r.holdings || []);
     const h = r.holding || {};
     import("../recent/track.ts").then((m: any) =>
       m.trackFundUpdate(h.code || id, h.name, patch),
@@ -270,7 +337,7 @@ export async function removeFund(api: any, id: any) {
   const removed = (holdings.value || []).find((h: any) => h && h.id === id) || {};
   const r = await api.fundsRemove(id);
   if (r && r.ok) {
-    holdings.value = r.all ? r.all.holdings : [];
+    setHoldings(r.all ? r.all.holdings : []);
     import("../recent/track.ts").then((m: any) =>
       m.trackFundRemove(removed.code || id, removed.name),
     );
@@ -292,7 +359,7 @@ export async function backfillFund(api: any, code: any) {
     if (idx !== -1) {
       const next = [...list];
       next[idx] = r.holding;
-      holdings.value = next;
+      setHoldings(next);
     }
     return { ok: true, holding: r.holding };
   }
@@ -302,23 +369,14 @@ export async function backfillFund(api: any, code: any) {
 export async function fetchNavNow(api: any) {
   fundsRefreshing.value = true;
   fundsRefreshError.value = null;
+  fundsNavDataState.value = beginDataRequest(fundsNavDataState.value);
   try {
     const r = await api.fundsNavFetch();
     if (r && r.ok) {
       if (r.results || r.errors) {
-        navCache.value = {
-          fetchedAt: Date.now(),
-          data: Object.assign(
-            {},
-            (navCache.value && navCache.value.data) || {},
-            r.results || {},
-          ),
-          errors: Object.assign(
-            {},
-            (navCache.value && navCache.value.errors) || {},
-            r.errors || {},
-          ),
-        };
+        mergeNavResult(r.results || {}, r.errors || {});
+      } else {
+        resolveCurrentNavData();
       }
       const count = r.results ? Object.keys(r.results).length : 0;
       import("../recent/track.ts").then((m: any) => m.trackFundNavFetch(count));
@@ -327,10 +385,18 @@ export async function fetchNavNow(api: any) {
       void loadFunds(api);
     } else {
       fundsRefreshError.value = (r && r.reason) || '刷新失败';
+      fundsNavDataState.value = rejectData(
+        fundsNavDataState.value,
+        fundsRefreshError.value,
+      );
     }
     return r;
   } catch (err: any) {
     fundsRefreshError.value = (err && err.message) || '刷新失败';
+    fundsNavDataState.value = rejectData(
+      fundsNavDataState.value,
+      fundsRefreshError.value,
+    );
     return { ok: false, reason: err && err.message };
   } finally {
     fundsRefreshing.value = false;
@@ -342,19 +408,7 @@ export async function fetchNavForCodes(api: any, codes: any) {
   if (!api || !api.fundsNavFetchCodes) return { ok: false, reason: "no_api" };
   const r = await api.fundsNavFetchCodes(codes);
   if (r && r.ok && (r.results || r.errors)) {
-    navCache.value = {
-      fetchedAt: Date.now(),
-      data: Object.assign(
-        {},
-        (navCache.value && navCache.value.data) || {},
-        r.results || {},
-      ),
-      errors: Object.assign(
-        {},
-        (navCache.value && navCache.value.errors) || {},
-        r.errors || {},
-      ),
-    };
+    mergeNavResult(r.results || {}, r.errors || {});
   }
   return r;
 }
@@ -449,19 +503,12 @@ export function subscribeNavUpdates(api: any) {
   });
   const offFetched = api.onFundsNavFetched((payload: any) => {
     if (!payload) return;
-    navCache.value = {
-      fetchedAt: payload.fetchedAt,
-      data: Object.assign(
-        {},
-        (navCache.value && navCache.value.data) || {},
-        payload.results || {},
-      ),
-      errors: Object.assign(
-        {},
-        (navCache.value && navCache.value.errors) || {},
-        payload.errors || {},
-      ),
-    };
+    mergeNavResult(
+      payload.results || {},
+      payload.errors || {},
+      "live",
+      payload.fetchedAt,
+    );
     void loadFundHistory(api);
   });
   const offHistory =

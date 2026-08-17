@@ -14,61 +14,23 @@
  */
 "use strict";
 
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
 import * as crypto from "crypto";
-import * as stateStore from "../state-store";
+import * as fundRepository from "./fund-repository";
 
-const FUNDS_DELETED_GC_DAYS = 7;
-const FUNDS_DELETED_GC_MS = FUNDS_DELETED_GC_DAYS * 24 * 60 * 60 * 1000;
+const FUNDS_DELETED_GC_DAYS = fundRepository.FUNDS_DELETED_GC_DAYS;
 
 const VALID_CATEGORIES = ["stock", "bond", "money", "qdii", "other"];
-import { isValidSnapshot } from "../../funds/fund-history";
 const {
   normalizeNavSource,
-  DEFAULT_NAV_SOURCE,
 } = require("../../funds/fund-nav-merge.js");
 import { normalizeAlertPrefs } from "./fund-alerts";
 
 export function loadAll(statePath?: any): any {
-  const s = stateStore.load(statePath);
-  if (!s) return { holdings: [], deletedIds: [] };
-  return normalizeFunds(s.funds);
+  return fundRepository.load(statePath);
 }
 
 export function saveAll(patch: any, statePath?: any): any {
-  const existing = stateStore.load(statePath);
-  const cur = normalizeFunds(existing && existing.funds);
-  const next = {
-    holdings: Array.isArray(patch && patch.holdings)
-      ? patch.holdings
-      : cur.holdings,
-    deletedIds: Array.isArray(patch && patch.deletedIds)
-      ? patch.deletedIds
-      : cur.deletedIds,
-    dailySnapshots:
-      patch && patch.dailySnapshots !== undefined
-        ? patch.dailySnapshots
-        : cur.dailySnapshots,
-    navSource:
-      patch && patch.navSource !== undefined
-        ? normalizeNavSource(patch.navSource)
-        : cur.navSource,
-    alertPrefs:
-      patch && patch.alertPrefs !== undefined
-        ? normalizeAlertPrefs(patch.alertPrefs)
-        : cur.alertPrefs,
-  };
-  next.deletedIds = cleanExpiredDeleted(next.deletedIds);
-
-  const nextState = Object.assign({}, existing || {}, {
-    v: (existing && existing.v) || stateStore.SCHEMA_VERSION,
-    ts: Date.now(),
-    funds: next,
-  });
-  stateStore.writeAtomic(statePath || stateStore.defaultPath(), nextState);
-  return next;
+  return fundRepository.save(patch, statePath);
 }
 
 export function add(input: any, statePath?: any): any {
@@ -133,39 +95,13 @@ export function restore(id: string, statePath?: any): any {
 }
 
 export function cleanExpiredDeleted(deletedIds: any, now: number = Date.now()): any[] {
-  if (!Array.isArray(deletedIds)) return [];
-  return deletedIds.filter(
-    (d: any) => d && d.deletedAt && now - d.deletedAt < FUNDS_DELETED_GC_MS,
-  );
+  return fundRepository.cleanExpiredDeleted(deletedIds, now);
 }
 
 function setNavSource(source: any, statePath?: any): any {
   const cur = loadAll(statePath);
   cur.navSource = normalizeNavSource(source);
   return saveAll(cur, statePath);
-}
-
-function normalizeFunds(raw: any): any {
-  const out = {
-    holdings: [],
-    deletedIds: [],
-    dailySnapshots: [],
-    navSource: DEFAULT_NAV_SOURCE,
-    alertPrefs: normalizeAlertPrefs(null),
-  };
-  if (!raw || typeof raw !== "object") return out;
-  if (Array.isArray(raw.holdings)) {
-    out.holdings = raw.holdings.filter(isValidHolding);
-  }
-  if (Array.isArray(raw.deletedIds)) {
-    out.deletedIds = raw.deletedIds.filter(isValidDeleted);
-  }
-  if (Array.isArray(raw.dailySnapshots)) {
-    out.dailySnapshots = raw.dailySnapshots.filter(isValidSnapshot);
-  }
-  out.navSource = normalizeNavSource(raw.navSource);
-  out.alertPrefs = normalizeAlertPrefs(raw.alertPrefs);
-  return out;
 }
 
 export function setAlertPrefs(patch: any, statePath?: any): any {
@@ -183,14 +119,6 @@ export function setAlertPrefs(patch: any, statePath?: any): any {
     },
     statePath,
   );
-}
-
-function isValidHolding(h: any): boolean {
-  return h && typeof h.id === "string" && /^\d{6}$/.test(String(h.code || ""));
-}
-
-function isValidDeleted(d: any): boolean {
-  return d && typeof d.id === "string" && typeof d.deletedAt === "number";
 }
 
 function validateAndFill(input: any): any {

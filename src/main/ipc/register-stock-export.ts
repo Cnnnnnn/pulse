@@ -34,6 +34,8 @@ function errMsg(err: unknown): string {
 
 import * as fs from "fs";
 import * as path from "path";
+import type { IpcMainInvokeEvent } from "electron";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 function sanitize(name: any) {
   // ponytail: 文件名去掉路径分隔符 / 控制字符, 防用户输入奇怪的 defaultName.
@@ -67,8 +69,12 @@ export function registerStockExportHandlers(ctx: any) {
 
   safeHandle(
     "stocks:export-diagnosis-png",
-    async (event: any, { defaultName }: any = {}) => {
+    async (
+      event: IpcMainInvokeEvent,
+      payload: IpcChannelMap["stocks:export-diagnosis-png"]["args"][0] = {},
+    ) => {
       try {
+        const { defaultName } = payload;
         if (!BrowserWindow || !dialog) {
           return { ok: false, reason: "main_not_ready" };
         }

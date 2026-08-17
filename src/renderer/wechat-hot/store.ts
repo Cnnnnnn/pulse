@@ -7,6 +7,13 @@
 
 import { signal, computed } from "@preact/signals";
 import { api } from "../api.ts";
+import {
+  beginDataRequest,
+  createDataState,
+  rejectData,
+  resolveData,
+} from "../../shared/data-state.ts";
+import type { DataSource, DataState } from "../../shared/data-state.ts";
 
 const COOLDOWN_MS = 15000;
 
@@ -14,6 +21,7 @@ export const wechatHotItems = signal([]);
 export const wechatHotLoaded = signal(false);
 export const wechatHotLoading = signal(false);
 export const wechatHotError = signal(null);
+export const wechatHotDataState = signal<DataState<any[]>>(createDataState([]));
 export const wechatHotLastFetched = signal(0);
 export const wechatHotLastRefreshAt = signal(0);
 export const wechatHotUpdatedUnsub = signal(null);
@@ -27,12 +35,17 @@ export const wechatHotUnreadBadge = computed(
   () => Object.keys(wechatHotNewIds.value).length
 );
 
-export function applyPayload(payload: any) {
+export function applyPayload(payload: any, source: DataSource = "live") {
   if (!payload || typeof payload !== "object") return;
   wechatHotItems.value = Array.isArray(payload.items) ? payload.items : [];
   wechatHotLastFetched.value = payload.fetchedAt || 0;
   wechatHotLoaded.value = true;
   wechatHotError.value = null;
+  wechatHotDataState.value = resolveData(
+    wechatHotDataState.value,
+    wechatHotItems.value,
+    { source, fetchedAt: payload.fetchedAt || undefined },
+  );
   // I6 v2: diff 产生 newIds — 本 session 首次出现且未读的词
   const prevIds = new Set(Object.keys(wechatHotNewIds.value));
   const newMap = { ...wechatHotNewIds.value };
@@ -52,7 +65,7 @@ export async function bootstrapWechatHotTab() {
     // I6 v2: 先拉已读词, 再 load (diff 依赖 readIds)
     wechatHotReadIds.value = await api.wechatHotLoadRead();
     const cached = await api.wechatHotLoad();
-    applyPayload(cached);
+    applyPayload(cached, "cache");
     if (!cached || !Array.isArray(cached.items) || cached.items.length === 0) {
       await refreshWechatHot();
     }
@@ -68,17 +81,20 @@ export async function refreshWechatHot() {
   if (now - wechatHotLastRefreshAt.value < COOLDOWN_MS) return false;
   wechatHotLastRefreshAt.value = now;
   wechatHotLoading.value = true;
+  wechatHotDataState.value = beginDataRequest(wechatHotDataState.value);
   wechatHotError.value = null;
   try {
     const r = await api.wechatHotRefresh();
     if (r && r.ok === false) {
       wechatHotError.value = mapReason(r.reason);
+      wechatHotDataState.value = rejectData(wechatHotDataState.value, wechatHotError.value);
       return false;
     }
-    applyPayload(r);
+    applyPayload(r, "live");
     return true;
   } catch (err: any) {
     wechatHotError.value = (err && err.message) || "刷新失败";
+    wechatHotDataState.value = rejectData(wechatHotDataState.value, wechatHotError.value);
     return false;
   } finally {
     wechatHotLoading.value = false;
@@ -88,7 +104,7 @@ export async function refreshWechatHot() {
 export function subscribeWechatHotUpdates() {
   if (wechatHotUpdatedUnsub.value) return; // 幂等
   const unsub = api.onWechatHotUpdated((payload: any) => {
-    applyPayload(payload);
+    applyPayload(payload, "live");
   });
   wechatHotUpdatedUnsub.value = typeof unsub === "function" ? unsub : null;
 }

@@ -67,14 +67,20 @@ vi.mock("../../src/renderer/store/store-utils.ts", () => ({
 
 let reminders;
 let remindersOpen;
+let remindersDataState;
 let installRemindersListener;
+let cleanupRemindersListener;
+let loadReminders;
 
 async function loadStore() {
   vi.resetModules();
   const m = await import("../../src/renderer/reminders/remindersStore.ts");
   reminders = m.reminders;
   remindersOpen = m.remindersOpen;
+  remindersDataState = m.remindersDataState;
   installRemindersListener = m.installRemindersListener;
+  cleanupRemindersListener = m.cleanupRemindersListener;
+  loadReminders = m.loadReminders;
 }
 
 const NOW = Date.now();
@@ -86,6 +92,20 @@ describe("remindersStore installRemindersListener", () => {
     await loadStore();
     reminders.value = [];
     remindersOpen.value = false;
+    remindersDataState.value = {
+      phase: "idle",
+      data: { ok: true, reminders: [] },
+      error: null,
+      source: "unknown",
+      fetchedAt: 0,
+      lastAttemptAt: 0,
+    };
+  });
+
+  it("loadReminders 请求失败时进入 error 状态", async () => {
+    await expect(loadReminders()).resolves.toBe(false);
+    expect(remindersDataState.value.phase).toBe("error");
+    expect(remindersDataState.value.error).toBe("load_failed");
   });
 
   it("onRemindersFired 回调: 按 id 替换已存在的 reminder", () => {
@@ -130,6 +150,20 @@ describe("remindersStore installRemindersListener", () => {
   it("install 多次调用安全 (idempotent, 不重复订阅)", () => {
     installRemindersListener();
     installRemindersListener();
+    installRemindersListener();
+    expect(apiState.firedHandlers.length).toBe(1);
+    expect(apiState.openModalHandlers.length).toBe(1);
+  });
+
+  it("cleanupRemindersListener 会移除两类 IPC 监听并允许重新安装", () => {
+    installRemindersListener();
+    expect(apiState.firedHandlers.length).toBe(1);
+    expect(apiState.openModalHandlers.length).toBe(1);
+
+    cleanupRemindersListener();
+    expect(apiState.firedHandlers.length).toBe(0);
+    expect(apiState.openModalHandlers.length).toBe(0);
+
     installRemindersListener();
     expect(apiState.firedHandlers.length).toBe(1);
     expect(apiState.openModalHandlers.length).toBe(1);

@@ -22,7 +22,9 @@ import {
   applyProgressBatch,
   markAppDetecting,
   startCheck,
+  attachMainJobId,
   finishCheck,
+  cancelCheck,
   isCheckRunning,
   loadMutes,
   loadLastOpened,
@@ -93,11 +95,15 @@ function wireRendererListeners() {
 
   if (typeof api.onCheckStarted === 'function') {
     api.onCheckStarted((data) => {
-      if (isCheckRunning()) return;
+      if (isCheckRunning()) {
+        if (data && data.jobId) attachMainJobId(data.jobId);
+        return;
+      }
       const appNames = Array.isArray(data && data.appNames)
         ? data.appNames
         : apps.value.map((app) => app && app.name).filter(Boolean);
       startCheck(appNames);
+      if (data && data.jobId) attachMainJobId(data.jobId);
     });
   }
 
@@ -111,8 +117,11 @@ function wireRendererListeners() {
   });
 
   if (typeof api.onCheckFinished === 'function') {
-    api.onCheckFinished(async () => {
-      if (isCheckRunning()) finishCheck();
+  api.onCheckFinished(async (data) => {
+      if (isCheckRunning()) {
+        if (data && data.cancelled) cancelCheck("cancelled");
+        else finishCheck();
+      }
       try {
         const { applyCachedResults, results: resultsSig, apps: appsSig } = await import('./store.ts');
         if (resultsSig.value.size === 0) {

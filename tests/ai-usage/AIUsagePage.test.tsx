@@ -16,6 +16,7 @@ let mockHistory = { days: [] };
 let mockLastError = null;
 let mockFetching = false;
 let mockFromCache = true;
+let mockDataState = { phase: "idle", error: null };
 let mockActiveProvider = "minimax";
 const fetchCalls = [];
 // GLM 槽 (默认无数据, 除非测试显式设)
@@ -40,6 +41,9 @@ vi.mock("../../src/renderer/store/ai-usage-store.ts", () => ({
   },
   get aiUsageFromCache() {
     return { get value() { return { minimax: mockFromCache, glm: true }; } };
+  },
+  get aiUsageDataState() {
+    return { get value() { return mockDataState; } };
   },
   get aiUsageActiveProvider() {
     return { get value() { return mockActiveProvider; }, set value(v) { mockActiveProvider = v; } };
@@ -123,6 +127,7 @@ beforeEach(() => {
   mockLastError = null;
   mockFetching = false;
   mockFromCache = true;
+  mockDataState = { phase: "idle", error: null };
   mockActiveProvider = "minimax";
   mockGlmSnapshot = null;
   fetchCalls.length = 0;
@@ -134,6 +139,18 @@ describe("AIUsagePage", () => {
     const { container } = render(<AIUsagePage />);
     expect(container.querySelector(".ai-usage-empty")).toBeTruthy();
     expect(container.textContent).toContain("还没有配额数据");
+  });
+
+  test("统一 DataState loading → 显示缓存加载态", () => {
+    mockDataState = { phase: "loading", error: null };
+    const { container } = render(<AIUsagePage />);
+    expect(container.textContent).toContain("正在读取用量缓存");
+  });
+
+  test("统一 DataState error → 无 provider 错误时显示失败原因", () => {
+    mockDataState = { phase: "error", error: "cache_unavailable" };
+    const { container } = render(<AIUsagePage />);
+    expect(container.textContent).toContain("cache_unavailable");
   });
 
   test("Minimax dashboard 概览 KPI 渲染 (windows 数据驱动新 UI)", () => {

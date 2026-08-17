@@ -17,18 +17,25 @@ function errMsg(err: unknown): string {
 }
 
 import { fetchUpgradeAdvice } from "../../ai/upgrade-advice";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export function registerUpgradeAdviceHandlers(ctx: any) {
   const { safeHandle } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  safeHandle("upgrade-advice:fetch", async (_evt: any, opts: any) => {
+  safeHandle(
+    "upgrade-advice:fetch",
+    async (
+      _evt: unknown,
+      opts: IpcChannelMap["upgrade-advice:fetch"]["args"][0],
+    ) => {
     try {
       return await fetchUpgradeAdvice(opts || {});
     } catch (err: any) {
       return { ok: false, reason: "threw", error: errMsg(err) };
     }
-  });
+    },
+  );
 }
 
 module.exports = { registerUpgradeAdviceHandlers };

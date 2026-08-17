@@ -179,7 +179,13 @@ export async function fetchStocks(httpClient: any, opts: any = {}) {
       return { rows: all, total, fetchedAt, error: primaryError };
     }
     // ponytail 2026-07-08 P-1: truncated 标记让调用方 (IPC handler) 知道这是"快速截断"而非"全量".
-    return { rows: all, total, fetchedAt, ...(truncated && { truncated: true }) };
+    return {
+      rows: all,
+      total,
+      fetchedAt,
+      source: "eastmoney",
+      ...(truncated && { truncated: true }),
+    };
   } catch (e: any) {
     return {
       rows: all,
@@ -236,4 +242,3 @@ export async function fetchStocksByCodes(codes: any, httpClient: any, opts: any 
     };
   }
 }
-

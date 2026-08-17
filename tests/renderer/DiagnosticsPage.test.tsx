@@ -13,6 +13,7 @@ import {
   diagnosticsStartup, diagnosticsMetrics, diagnosticsTopFailures,
   diagnosticsSamples, diagnosticsDiagnosticsLoading,
   diagnosticsExporting, diagnosticsLastExport,
+  errorDataState, diagnosticsDataState,
 } from "../../src/renderer/diagnostics/diagnostics-store.ts";
 
 vi.mock("../../src/renderer/api.ts", () => ({
@@ -42,6 +43,14 @@ beforeEach(() => {
   errorEntries.value = [];
   errorStats.value = { total: 0, byLevel: {}, skipped: 0 };
   errorLoading.value = false;
+  errorDataState.value = {
+    phase: "idle",
+    data: { entries: [], stats: { total: 0, byLevel: {}, skipped: 0 } },
+    error: null,
+    source: "unknown",
+    fetchedAt: 0,
+    lastAttemptAt: 0,
+  };
   diagnosticsStartup.value = null;
   diagnosticsMetrics.value = { latest: null, peak: null, count: 0 };
   diagnosticsTopFailures.value = [];
@@ -49,6 +58,19 @@ beforeEach(() => {
   diagnosticsDiagnosticsLoading.value = false;
   diagnosticsExporting.value = false;
   diagnosticsLastExport.value = null;
+  diagnosticsDataState.value = {
+    phase: "idle",
+    data: {
+      startup: null,
+      metrics: { latest: null, peak: null, count: 0 },
+      topFailures: [],
+      samples: [],
+    },
+    error: null,
+    source: "unknown",
+    fetchedAt: 0,
+    lastAttemptAt: 0,
+  };
   vi.clearAllMocks();
   api.errorFetchEntries.mockResolvedValue({ ok: true, entries: [], stats: { total: 0, byLevel: {}, skipped: 0 } });
   api.errorCopyAll.mockResolvedValue({ ok: true, text: "" });
@@ -96,6 +118,15 @@ describe("DiagnosticsPage 基础渲染", () => {
 });
 
 describe("DiagnosticsPage 数据展示", () => {
+  it("错误日志刷新失败时保留状态并显示统一失败提示", async () => {
+    api.errorFetchEntries.mockRejectedValueOnce(new Error("log_unavailable"));
+    const { container } = render(<DiagnosticsPage />);
+    await waitFor(() => {
+      expect(container.textContent).toContain("log_unavailable");
+    });
+    expect(errorDataState.value.phase).toBe("error");
+  });
+
   it("无 entries 时显示空态", async () => {
     api.errorFetchEntries.mockResolvedValue({
       ok: true, entries: [],

@@ -3,6 +3,7 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type {} from "electron";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 import * as ithomeNewsStore from "../ithome/news-store";
 const _ns: any = ithomeNewsStore;
@@ -12,7 +13,9 @@ import { fetchAndAttachBody } from "../ithome/article-page-fetcher";
 export function registerIthomeHandlers(ctx: any) {
   const { safeHandle, getConfig } = ctx;
 
-  function runKeywordWatchlistFromNews(news: any) {
+  function runKeywordWatchlistFromNews(
+    news: IpcChannelMap["ithome:load-news"]["result"],
+  ) {
     try {
       const articles =
         news && news.articles && typeof news.articles === "object"
@@ -36,7 +39,12 @@ export function registerIthomeHandlers(ctx: any) {
 
   safeHandle("ithome:load-news", async () => _ns.loadAll());
 
-  safeHandle("ithome:refresh-news", async (_evt: any, dateKey: any) => {
+  safeHandle(
+    "ithome:refresh-news",
+    async (
+      _evt: unknown,
+      dateKey: IpcChannelMap["ithome:refresh-news"]["args"][0],
+    ) => {
     const out = dateKey
       ? await _ns.fetchDay(dateKey)
       : await _ns.refresh();
@@ -45,34 +53,59 @@ export function registerIthomeHandlers(ctx: any) {
       runKeywordWatchlistFromNews(all);
     }
     return out;
-  });
-
-  safeHandle("ithome:fetch-day", async (_evt: any, dateKey: any) =>
-    _ns.fetchDay(dateKey),
+    },
   );
 
-  safeHandle("ithome:fetch-article-body", async (_evt: any, payload: any) =>
-    fetchAndAttachBody({ id: payload && payload.id }),
+  safeHandle(
+    "ithome:fetch-day",
+    async (
+      _evt: unknown,
+      dateKey: IpcChannelMap["ithome:fetch-day"]["args"][0],
+    ) => _ns.fetchDay(dateKey),
   );
 
-  safeHandle("ithome:summarize-article", async (_evt: any, payload: any) =>
-    summarizeArticle(payload || {}),
+  safeHandle(
+    "ithome:fetch-article-body",
+    async (
+      _evt: unknown,
+      payload: IpcChannelMap["ithome:fetch-article-body"]["args"][0],
+    ) => fetchAndAttachBody({ id: payload && payload.id }),
   );
 
-  safeHandle("ithome:toggle-favorite", async (_evt: any, payload: any) => {
+  safeHandle(
+    "ithome:summarize-article",
+    async (
+      _evt: unknown,
+      payload: IpcChannelMap["ithome:summarize-article"]["args"][0],
+    ) => summarizeArticle(payload || {}),
+  );
+
+  safeHandle(
+    "ithome:toggle-favorite",
+    async (
+      _evt: unknown,
+      payload: IpcChannelMap["ithome:toggle-favorite"]["args"][0],
+    ) => {
     const id = payload && payload.id;
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
     }
     return _ns.toggleFavorite(id);
-  });
+    },
+  );
 
-  safeHandle("ithome:mark-read", async (_evt: any, id: any) => {
+  safeHandle(
+    "ithome:mark-read",
+    async (
+      _evt: unknown,
+      id: IpcChannelMap["ithome:mark-read"]["args"][0],
+    ) => {
     if (!id || typeof id !== "string") {
       return { ok: false, reason: "invalid_args" };
     }
     return _ns.markArticleRead(id);
-  });
+    },
+  );
 }
 
 module.exports = { registerIthomeHandlers };

@@ -15,7 +15,8 @@
 //          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
 //          rewrite 依赖 path 保留裸名).
 
-import type {} from "electron";
+import type { IpcMainInvokeEvent } from "electron";
+import type { AiLeaderboardOptions, IpcChannelMap } from "../../shared/ipc-contracts";
 
 
 // ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
@@ -42,7 +43,7 @@ const _cache = new Map();
  * @param {object} opts
  * @returns {string}
  */
-export function boardCacheKey(opts: any) {
+export function boardCacheKey(opts: AiLeaderboardOptions) {
   return JSON.stringify({
     category: opts.category,
     dimension: opts.dimension,
@@ -82,8 +83,11 @@ export function resetLeaderboardCache() {
  * @param {unknown} payload
  * @returns {object}
  */
-export function sanitize(payload: any) {
-  const p = payload && typeof payload === "object" ? payload : {};
+export function sanitize(payload: unknown): AiLeaderboardOptions {
+  const p =
+    payload && typeof payload === "object"
+      ? (payload as Record<string, any>)
+      : {};
   const category = CATEGORY_META[p.category] ? p.category : "llm";
   const dimension = DIMENSION_META[p.dimension] ? p.dimension : "elo";
   const vendorValid =
@@ -128,7 +132,10 @@ export function registerLeaderboardHandlers(ctx: any) {
   // (与 register-stock-export 同构), 让测试可 mock.
   const { dialog, BrowserWindow, electronApp } = ctx;
 
-  async function handleGet(_event: any, payload: any) {
+  async function handleGet(
+    _event: unknown,
+    payload: IpcChannelMap["leaderboard:get"]["args"][0],
+  ) {
     const opts = sanitize(payload);
     const key = boardCacheKey(opts);
 
@@ -150,7 +157,10 @@ export function registerLeaderboardHandlers(ctx: any) {
   }
 
   safeHandle("leaderboard:get", handleGet, {
-    logMeta: (_evt: any, payload: any) => ({
+    logMeta: (
+      _evt: unknown,
+      payload: IpcChannelMap["leaderboard:get"]["args"][0],
+    ) => ({
       category: payload && payload.category,
       dimension: payload && payload.dimension,
     }),
@@ -159,7 +169,12 @@ export function registerLeaderboardHandlers(ctx: any) {
   safeHandle("leaderboard:rate-budget", async () => budget("artificial-analysis"));
 
   // refresh = get + force:true；聚合内部绕过磁盘缓存重拉，回写请求级缓存。
-  safeHandle("leaderboard:refresh", async (_event: any, payload: any) => {
+  safeHandle(
+    "leaderboard:refresh",
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["leaderboard:refresh"]["args"][0],
+    ) => {
     const opts = sanitize(payload);
     opts.force = true;
     const key = boardCacheKey(opts);
@@ -168,14 +183,20 @@ export function registerLeaderboardHandlers(ctx: any) {
       const result = await getLeaderboard(opts);
       cacheSet(key, result);
       return { ...result, fromCache: false };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return aggregateFailure(err);
     }
-  });
+    },
+  );
 
   // 2026-07-22: CSV 导出 — renderer 把已序列化好的 CSV 字符串发过来, 主进程
   // 只负责弹保存对话框 + 写盘. 失败返 {ok:false, error}, 不抛 (safeHandle 兜底).
-  safeHandle("leaderboard:export-csv", async (event: any, payload: any) => {
+  safeHandle(
+    "leaderboard:export-csv",
+    async (
+      event: IpcMainInvokeEvent,
+      payload: IpcChannelMap["leaderboard:export-csv"]["args"][0],
+    ) => {
     const csv = typeof payload?.csv === "string" ? payload.csv : "";
     const suggested =
       typeof payload?.filenameSuggestion === "string"
@@ -204,7 +225,7 @@ export function registerLeaderboardHandlers(ctx: any) {
         defaultPath,
         filters: [{ name: "CSV", extensions: ["csv"] }],
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       return { ok: false, error: errMsg(err) };
     }
     if (result.canceled || !result.filePath) {
@@ -213,15 +234,20 @@ export function registerLeaderboardHandlers(ctx: any) {
     try {
       await fs.writeFile(result.filePath, csv, "utf8");
       return { ok: true, path: result.filePath };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return { ok: false, error: errMsg(err) };
     }
-  }, {
-    logMeta: (_evt: any, payload: any) => ({
+    },
+    {
+    logMeta: (
+      _evt: unknown,
+      payload: IpcChannelMap["leaderboard:export-csv"]["args"][0],
+    ) => ({
       suggested: payload && payload.filenameSuggestion,
       size: typeof payload?.csv === "string" ? payload.csv.length : 0,
     }),
-  });
+    },
+  );
 }
 
 module.exports = {

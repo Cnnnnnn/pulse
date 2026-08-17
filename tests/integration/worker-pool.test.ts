@@ -109,6 +109,39 @@ describe('WorkerPool (stub mode)', () => {
     await expect(queued).rejects.toThrow();
   });
 
+  it('cancelJob only rejects matching queued/in-flight tasks and keeps other jobs running', async () => {
+    pool = new WorkerPool({ size: 1 });
+    pool.start();
+
+    let rejectRunning;
+    const running = new Promise((_, reject) => { rejectRunning = reject; });
+    pool.workers[0].current = {
+      id: 1,
+      task: { type: 'detect-app', payload: { jobId: 'job-a' } },
+      resolve: () => {},
+      reject: rejectRunning,
+    };
+    pool.workers[0].busy = true;
+
+    const queuedCancelled = pool.enqueue({
+      type: 'detect-app',
+      payload: { jobId: 'job-a' },
+    });
+    const queuedOther = pool.enqueue({
+      type: 'detect-app',
+      payload: { jobId: 'job-b' },
+    });
+
+    expect(pool.cancelJob('job-a')).toEqual({
+      jobId: 'job-a',
+      queued: 1,
+      running: 1,
+    });
+    await expect(running).rejects.toMatchObject({ code: 'TASK_CANCELLED' });
+    await expect(queuedCancelled).rejects.toMatchObject({ code: 'TASK_CANCELLED' });
+    await expect(queuedOther).resolves.toBeNull();
+  });
+
   it('size 默认 ≥ 2', () => {
     pool = new WorkerPool();
     expect(pool.size).toBeGreaterThanOrEqual(2);

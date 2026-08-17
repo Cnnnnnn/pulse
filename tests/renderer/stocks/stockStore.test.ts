@@ -11,13 +11,29 @@ import {
   silentRefreshTick,
   startRefreshTimer,
   stopRefreshTimer,
+  runScreen,
   runScreenSilent,
+  stocksDataState,
+  dataProvider,
+  dataTruncated,
+  error,
 } from "../../../src/renderer/stocks/stockStore.ts";
 
 describe("stockStore D-6 静默刷新", () => {
   beforeEach(() => {
     stopRefreshTimer();
     results.value = [];
+    error.value = null;
+    dataProvider.value = "unknown";
+    dataTruncated.value = false;
+    stocksDataState.value = {
+      phase: "idle",
+      data: [],
+      error: null,
+      source: "unknown",
+      fetchedAt: 0,
+      lastAttemptAt: 0,
+    };
     silentRefreshTick.value = 0;
   });
   afterEach(() => {
@@ -65,6 +81,8 @@ describe("stockStore D-6 静默刷新", () => {
           { code: "000001", name: "测试", price: 10, changePct: 1, marketCap: 6e11, roe: 18 },
         ],
         fetchedAt: 100,
+        source: "eastmoney",
+        truncated: false,
       }),
     };
     const before = results.value;
@@ -72,6 +90,10 @@ describe("stockStore D-6 静默刷新", () => {
     expect(results.value).toEqual([
       { code: "000001", name: "测试", price: 10, changePct: 1, marketCap: 6e11, roe: 18 },
     ]);
+    expect(stocksDataState.value.phase).toBe("ready");
+    expect(stocksDataState.value.source).toBe("live");
+    expect(dataProvider.value).toBe("eastmoney");
+    expect(dataTruncated.value).toBe(false);
   });
 
   it("D-6: runScreenSilent 拉失败 → 静默, 不动 results 不报错", async () => {
@@ -85,13 +107,64 @@ describe("stockStore D-6 静默刷新", () => {
 
   it("D-6: runScreenSilent 拉 ok 但 results=[] → 不重置现有 results", async () => {
     // ponytail: 后端偶发返空不覆盖前端已有数据 (防"刷新闪空")
-    results.value = [{ code: "000001", name: "X", price: 5 }];
+    const previous = [{ code: "000001", name: "X", price: 5 }];
+    results.value = previous;
+    stocksDataState.value = {
+      phase: "ready",
+      data: previous,
+      error: null,
+      source: "live",
+      fetchedAt: 100,
+      lastAttemptAt: 100,
+    };
     const fakeApi = {
-      stocksScreen: vi.fn().mockResolvedValue({ ok: true, results: [] }),
+      stocksScreen: vi.fn().mockResolvedValue({
+        ok: true,
+        results: [],
+        fetchedAt: 200,
+      }),
     };
     await runScreenSilent(fakeApi);
-    // 现状代码: results.value = r.results ([]) → 会被覆盖. 这是已知问题, 期望保持现有行为.
-    // 这里只验证不会 throw.
-    expect(true).toBe(true);
+    expect(results.value).toEqual(previous);
+    expect(stocksDataState.value.phase).toBe("stale");
+    expect(stocksDataState.value.error).toBe("刷新返回空结果");
+  });
+
+  it("runScreen 命中主进程缓存时标记 cache，并保留 provider/truncated 元数据", async () => {
+    await runScreen({
+      stocksScreen: async () => ({
+        ok: true,
+        results: [{ code: "600519", name: "贵州茅台" }],
+        fetchedAt: 300,
+        fromCache: true,
+        source: "eastmoney",
+        truncated: true,
+      }),
+    });
+
+    expect(stocksDataState.value.source).toBe("cache");
+    expect(dataProvider.value).toBe("eastmoney");
+    expect(dataTruncated.value).toBe(true);
+  });
+
+  it("手动筛选失败保留已有结果并标记为 stale", async () => {
+    const previous = [{ code: "000001", name: "保留", price: 10 }];
+    results.value = previous;
+    stocksDataState.value = {
+      phase: "ready",
+      data: previous,
+      error: null,
+      source: "live",
+      fetchedAt: 100,
+      lastAttemptAt: 100,
+    };
+
+    await runScreen({
+      stocksScreen: async () => ({ ok: false, error: "network" }),
+    });
+
+    expect(results.value).toEqual(previous);
+    expect(stocksDataState.value.phase).toBe("stale");
+    expect(stocksDataState.value.error).toBe("network");
   });
 });

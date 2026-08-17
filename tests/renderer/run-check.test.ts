@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { runCheck } from "../../src/renderer/run-check.ts";
-import { apps, checkSession, results, startCheck, finishCheck } from "../../src/renderer/store.ts";
+import { apps, checkJob, checkSession, results, startCheck, finishCheck } from "../../src/renderer/store.ts";
 
 const mockCheckUpdates = vi.fn();
 
@@ -35,6 +35,7 @@ describe("renderer runCheck", () => {
     expect(mockCheckUpdates).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ started: true });
     expect(checkSession.value.phase).toBe("done");
+    expect(checkJob.value.phase).toBe("succeeded");
     expect(results.value.get("Cursor").brew_cask).toBe("cursor");
   });
 
@@ -59,9 +60,10 @@ describe("renderer runCheck", () => {
     });
     expect(checkSession.value.phase).toBe("error");
     expect(checkSession.value.error).toBe("worker unavailable");
+    expect(checkJob.value.phase).toBe("failed");
   });
 
-  it("finishes the local session when main rejects a duplicate request", async () => {
+  it("cancels the local job when main rejects a duplicate request", async () => {
     mockCheckUpdates.mockResolvedValue({
       started: false,
       reason: "already_running",
@@ -70,6 +72,7 @@ describe("renderer runCheck", () => {
     const result = await runCheck();
 
     expect(result).toEqual({ started: false, reason: "already_running" });
-    expect(checkSession.value.phase).toBe("done");
+    expect(checkSession.value.phase).toBe("cancelled");
+    expect(checkJob.value.phase).toBe("cancelled");
   });
 });

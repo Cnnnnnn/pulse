@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   quoteCache,
+  metalDataState,
   historyMap,
   initMetalStore,
   cleanupMetalStore,
@@ -57,6 +58,8 @@ describe("metalStore cold-start fetchNow", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(quoteCache.value.data.XAU.price).toBe(700);
     expect(quoteCache.value.fetchedAt).toBe(1234);
+    expect(metalDataState.value.phase).toBe("ready");
+    expect(metalDataState.value.source).toBe("live");
   });
 
   it("quoteCache.fetchedAt 已存在 (scheduler 已跑过) → 不再 fetchNow", async () => {
@@ -69,6 +72,8 @@ describe("metalStore cold-start fetchNow", () => {
     };
     await initMetalStore();
     expect(fetchSpy).not.toHaveBeenCalled();
+    expect(metalDataState.value.phase).toBe("ready");
+    expect(metalDataState.value.source).toBe("cache");
   });
 
   it("fetchNow 抛错时不崩, warn 即可, 让 refresh 按钮兜底", async () => {
@@ -82,6 +87,8 @@ describe("metalStore cold-start fetchNow", () => {
       expect.stringContaining("[metals] cold-start fetchNow failed"),
       expect.stringContaining("network down"),
     );
+    expect(metalDataState.value.phase).toBe("error");
+    expect(metalDataState.value.error).toBe("network down");
     consoleWarn.mockRestore();
   });
 
@@ -130,5 +137,25 @@ describe("metalStore cold-start fetchNow", () => {
     expect(historyMap.value.XAU).toBeUndefined();
     await refreshNow();
     expect(historyMap.value.XAU.length).toBe(1);
+  });
+
+  it("刷新失败保留已有行情并标记为 stale", async () => {
+    global.window.metalsApi = {
+      ...makeMetalsApi({
+        initialState: {
+          quotes: { data: { XAU: { price: 700 } }, errors: {}, fetchedAt: 999 },
+          fx: { rate: 7.18, fetchedAt: 999 },
+          scheduler: { status: "idle" },
+        },
+      }),
+      fetchNow: async () => ({ ok: false, reason: "network down" }),
+    };
+
+    await initMetalStore();
+    await refreshNow();
+
+    expect(quoteCache.value.data.XAU.price).toBe(700);
+    expect(metalDataState.value.phase).toBe("stale");
+    expect(metalDataState.value.error).toBe("network down");
   });
 });

@@ -14,6 +14,7 @@ import { fetchFundNavBatch } from "../../funds/fund-fetcher";
 import { pickEffectiveNavNumber } from "../../funds/fund-nav-merge";
 import { fetchFundNavHistory, fetchIndexHistory } from "../../funds/fund-nav-history";
 import * as fundNavHistoryStore from "../funds/fund-history-store";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 export function registerFundsHandlers(ctx: any) {
   const { safeHandle, threwResponse, fundScheduler } = ctx;
@@ -24,7 +25,7 @@ export function registerFundsHandlers(ctx: any) {
 
   safeHandle(
     "funds:add",
-    (_event: any, input: any) => {
+    (_event: unknown, input: IpcChannelMap["funds:add"]["args"][0]) => {
       const out = _fs.add(input);
       const sched = fundScheduler();
       if (sched && out.holding) {
@@ -45,7 +46,11 @@ export function registerFundsHandlers(ctx: any) {
 
   safeHandle(
     "funds:update",
-    (_event: any, id: any, patch: any) => {
+    (
+      _event: unknown,
+      id: IpcChannelMap["funds:update"]["args"][0],
+      patch: IpcChannelMap["funds:update"]["args"][1],
+    ) => {
       const out = _fs.update(id, patch);
       if (!out) return { ok: false, reason: "not_found" };
       return { ok: true, holding: out.holding, holdings: out.all.holdings };
@@ -61,7 +66,9 @@ export function registerFundsHandlers(ctx: any) {
     },
   );
 
-  safeHandle("funds:remove", (_event: any, id: any) => {
+  safeHandle(
+    "funds:remove",
+    (_event: unknown, id: IpcChannelMap["funds:remove"]["args"][0]) => {
     const out = _fs.remove(id);
     if (!out.ok) return out;
     const sched = fundScheduler();
@@ -69,12 +76,16 @@ export function registerFundsHandlers(ctx: any) {
       sched.fetchNow().catch(() => {});
     }
     return out;
-  });
+    },
+  );
 
-  safeHandle("funds:restore", (_event: any, id: any) => {
+  safeHandle(
+    "funds:restore",
+    (_event: unknown, id: IpcChannelMap["funds:restore"]["args"][0]) => {
     const out = _fs.restore(id);
     return out.ok ? { ok: true, holding: out.holding } : out;
-  });
+    },
+  );
 
   ipcMain.handle("funds:nav:fetch", async () => {
     const sched = fundScheduler();
@@ -95,7 +106,12 @@ export function registerFundsHandlers(ctx: any) {
     return { ok: true, ...sched.getState() };
   });
 
-  safeHandle("funds:nav:fetch-codes", async (_event: any, codes: any) => {
+  safeHandle(
+    "funds:nav:fetch-codes",
+    async (
+      _event: unknown,
+      codes: IpcChannelMap["funds:nav:fetch-codes"]["args"][0],
+    ) => {
     const list = [
       ...new Set(
         (Array.isArray(codes) ? codes : [])
@@ -112,11 +128,15 @@ export function registerFundsHandlers(ctx: any) {
     const sched = fundScheduler();
     if (sched && sched.cacheNavResults) sched.cacheNavResults(out.results);
     return { ok: true, ...out };
-  });
+    },
+  );
 
   safeHandle(
     "funds:search",
-    async (_event: any, query: any) => {
+    async (
+      _event: unknown,
+      query: IpcChannelMap["funds:search"]["args"][0],
+    ) => {
       const httpClient = new HttpClient({ timeout: 6000, maxRetries: 0 });
       const results = await searchFunds(query, httpClient);
       return { ok: true, results };
@@ -135,7 +155,13 @@ export function registerFundsHandlers(ctx: any) {
 
   // 2026-07-15: 缓存命中必须「条数 >= 请求天数」
   //   ponytail: 旧逻辑「有缓存就返回」会把历史上 30 天短缓存永久钉死, 用户切 3M/1Y 无效
-  safeHandle("funds:nav:history", async (_event: any, code: any, opts: any) => {
+  safeHandle(
+    "funds:nav:history",
+    async (
+      _event: unknown,
+      code: IpcChannelMap["funds:nav:history"]["args"][0],
+      opts: IpcChannelMap["funds:nav:history"]["args"][1],
+    ) => {
     const requestedDays = Math.max(1, Number(opts && opts.days) || 365);
     const cached = _hs.loadNavHistory(code);
     if (_hs.isNavCacheSufficient(cached, requestedDays)) {
@@ -152,10 +178,17 @@ export function registerFundsHandlers(ctx: any) {
     }
     if (cached.length) return { ok: true, series: cached, cached: true, reason: out.reason };
     return out;
-  });
+    },
+  );
 
   // T-C1a: 基准指数历史 (沪深300 等). 先读缓存, miss 再拉取并写回.
-  safeHandle("funds:index:history", async (_event: any, symbol: any, opts: any) => {
+  safeHandle(
+    "funds:index:history",
+    async (
+      _event: unknown,
+      symbol: IpcChannelMap["funds:index:history"]["args"][0],
+      opts: IpcChannelMap["funds:index:history"]["args"][1],
+    ) => {
     const requestedDays = Math.max(1, Number(opts && opts.days) || 365);
     const cached = _hs.loadIndexHistory(symbol);
     if (_hs.isNavCacheSufficient(cached, requestedDays)) {
@@ -171,14 +204,20 @@ export function registerFundsHandlers(ctx: any) {
     }
     if (cached.length) return { ok: true, series: cached, cached: true, reason: out.reason };
     return out;
-  });
+    },
+  );
 
-  safeHandle("funds:set-nav-source", (_event: any, source: any) => {
+  safeHandle(
+    "funds:set-nav-source",
+    (_event: unknown, source: IpcChannelMap["funds:set-nav-source"]["args"][0]) => {
     const all = _fs.setNavSource(source);
     return { ok: true, navSource: all.navSource };
-  });
+    },
+  );
 
-  safeHandle("funds:backfill", (_event: any, code: any) => {
+  safeHandle(
+    "funds:backfill",
+    (_event: unknown, code: IpcChannelMap["funds:backfill"]["args"][0]) => {
     const sched = fundScheduler();
     const cache =
       sched && sched.getLastNavForCode ? sched.getLastNavForCode(code) : null;
@@ -188,17 +227,24 @@ export function registerFundsHandlers(ctx: any) {
       return { ok: false, reason: "no_nav_cached" };
     }
     return _fs.backfillFromNav(code, nav);
-  });
+    },
+  );
 
   safeHandle("funds:alert-prefs:get", () => {
     const { alertPrefs } = _fs.loadAll();
     return { ok: true, alertPrefs };
   });
 
-  safeHandle("funds:alert-prefs:set", (_event: any, patch: any) => {
+  safeHandle(
+    "funds:alert-prefs:set",
+    (
+      _event: unknown,
+      patch: IpcChannelMap["funds:alert-prefs:set"]["args"][0],
+    ) => {
     const all = _fs.setAlertPrefs(patch || {});
     return { ok: true, alertPrefs: all.alertPrefs };
-  });
+    },
+  );
 }
 
 module.exports = { registerFundsHandlers };

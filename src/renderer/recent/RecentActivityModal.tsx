@@ -9,6 +9,7 @@ import {
   recent,
   recentOpen,
   recentLoaded,
+  recentDataState,
   recentFilter,
   loadRecent,
   toggleRecentOpen,
@@ -132,6 +133,9 @@ export function RecentActivityModal() {
   const open = recentOpen.value;
   const list = recent.value;
   const loaded = recentLoaded.value;
+  const loadState = recentDataState.value;
+  const loading = loadState.phase === "loading";
+  const loadError = loadState.error;
   const filter = recentFilter.value;
   const now = useNowTick(open);
 
@@ -146,8 +150,8 @@ export function RecentActivityModal() {
   }, [list, filter]);
 
   useEffect(() => {
-    if (open && !loaded) loadRecent();
-  }, [open, loaded]);
+    if (open && !loaded && loadState.phase === "idle") loadRecent();
+  }, [open, loaded, loadState.phase]);
 
   function close() {
     recentOpen.value = false;
@@ -210,7 +214,13 @@ export function RecentActivityModal() {
       )}
       bodyClass="recent-modal-body"
     >
-      {!loaded && <PanelEmpty className="recent-empty">加载中...</PanelEmpty>}
+      {loading && <PanelEmpty className="recent-empty">加载中...</PanelEmpty>}
+      {!loading && loadError && (
+        <PanelEmpty className="recent-empty">
+          <div class="recent-empty-title">加载失败</div>
+          <div class="recent-empty-hint">{loadError}，请关闭后重试。</div>
+        </PanelEmpty>
+      )}
       {loaded && list.length === 0 && (
         <PanelEmpty className="recent-empty">
           <div class="recent-empty-title">还没有活动记录</div>

@@ -105,6 +105,61 @@ export class WorkerPool {
     });
   }
 
+  /**
+   * 取消一个检查 job 的 queued / in-flight task。
+   *
+   * 一个 worker 同时只承载一个 task，因此 in-flight 取消只终止对应
+   * worker slot，并立即 respawn；其它 slot 和其它 job 不受影响。
+   */
+  cancelJob(jobId: string) {
+    if (!jobId) return { jobId, queued: 0, running: 0 };
+
+    let queued = 0;
+    const retained = [];
+    for (const item of this.queue) {
+      if (item.task && item.task.payload && item.task.payload.jobId === jobId) {
+        queued += 1;
+        try { item.reject(makeTaskCancelledError(jobId)); } catch { /* noop */ }
+      } else {
+        retained.push(item);
+      }
+    }
+    this.queue = retained;
+
+    let running = 0;
+    for (let i = 0; i < this.workers.length; i += 1) {
+      const slot = this.workers[i];
+      const current = slot && slot.current;
+      if (!slot || !current || !current.task ||
+        !current.task.payload || current.task.payload.jobId !== jobId) {
+        continue;
+      }
+
+      running += 1;
+      current.cancelRequested = true;
+      if (!slot.worker) {
+        slot.busy = false;
+        slot.current = null;
+        try { current.reject(makeTaskCancelledError(jobId)); } catch { /* noop */ }
+        continue;
+      }
+
+      const taskId = current.id;
+      try {
+        Promise.resolve(slot.worker.terminate()).then(() => {
+          this._finishCancelled(i, taskId, jobId);
+        }).catch(() => {
+          this._finishCancelled(i, taskId, jobId);
+        });
+      } catch {
+        this._finishCancelled(i, taskId, jobId);
+      }
+    }
+
+    this._dispatch();
+    return { jobId, queued, running };
+  }
+
   /** 当前排队 + 飞行中 task 数（诊断用） */
   pending() {
     const flying = this.workers.reduce((n: any, w: any) => n + (w && w.busy ? 1 : 0), 0);
@@ -117,10 +172,20 @@ export class WorkerPool {
     if (this.workerScript) {
       const worker = new Worker(this.workerScript, this.workerOpts);
       this.workers[id] = { worker, busy: false, current: null };
-      worker.on('message', (msg: any) => this._onMessage(id, msg));
-      worker.on('error', (err: any) => this._onError(id, err));
+      worker.on('message', (msg: any) => {
+        if (this.workers[id] && this.workers[id].worker === worker) {
+          this._onMessage(id, msg);
+        }
+      });
+      worker.on('error', (err: any) => {
+        if (this.workers[id] && this.workers[id].worker === worker) {
+          this._onError(id, err);
+        }
+      });
       worker.on('exit', (code: any) => {
-        if (code !== 0) this._onError(id, new Error(`Worker ${id} exited with code ${code}`));
+        if (this.workers[id] && this.workers[id].worker === worker && code !== 0) {
+          this._onError(id, new Error(`Worker ${id} exited with code ${code}`));
+        }
       });
     } else {
       // stub: 没有 workerScript 时，task 直接同步 resolve（_dispatch 不进入这个 slot）
@@ -142,10 +207,15 @@ export class WorkerPool {
     } else {
       // stub 模式: 立刻用 null 模拟一个 result
       Promise.resolve().then(() => {
+        if (!slot.current || slot.current.id !== item.id) return;
         slot.busy = false;
         const cur = slot.current;
         slot.current = null;
-        if (cur) cur.resolve(null);
+        if (cur && cur.cancelRequested) {
+          try { cur.reject(makeTaskCancelledError(cur.task && cur.task.payload && cur.task.payload.jobId)); } catch { /* noop */ }
+        } else if (cur) {
+          cur.resolve(null);
+        }
         this._dispatch();
       });
     }
@@ -181,18 +251,40 @@ export class WorkerPool {
     }
   }
 
+  _finishCancelled(id: any, taskId: any, jobId: string) {
+    const slot = this.workers[id];
+    if (!slot || !slot.current || slot.current.id !== taskId) return;
+    const current = slot.current;
+    slot.busy = false;
+    slot.current = null;
+    try { current.reject(makeTaskCancelledError(jobId)); } catch { /* noop */ }
+    this.workers[id] = null;
+    this._spawn(id);
+    this._dispatch();
+  }
+
   _onError(id: any, err: any) {
     const w = this.workers[id];
     if (w && w.current) {
       const cur = w.current;
       w.busy = false;
       w.current = null;
-      try { cur.reject(err); } catch { /* noop */ }
+      try {
+        cur.reject(cur.cancelRequested
+          ? makeTaskCancelledError(cur.task && cur.task.payload && cur.task.payload.jobId)
+          : err);
+      } catch { /* noop */ }
     }
     // 自动 respawn
+    if (this.workers[id] === w) this.workers[id] = null;
     try { if (w && w.worker) w.worker.terminate(); } catch { /* noop */ }
     this._spawn(id);
     this._dispatch();
   }
 }
 
+function makeTaskCancelledError(jobId: any) {
+  const error: any = new Error(`task cancelled${jobId ? `: ${jobId}` : ""}`);
+  error.code = "TASK_CANCELLED";
+  return error;
+}

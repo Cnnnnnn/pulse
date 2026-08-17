@@ -18,6 +18,7 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type { IpcMain } from "electron";
+import type { IpcChannelMap } from "../../shared/ipc-contracts";
 
 // ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
 function errMsg(err: unknown): string {
@@ -72,7 +73,10 @@ export function registerTrayConfigHandlers(ctx: any) {
 
   safeHandle(
     "tray:save-prefs",
-    (_event: any, prefs: any) => {
+    (
+      _event: unknown,
+      prefs: IpcChannelMap["tray:save-prefs"]["args"][0],
+    ) => {
       // normalizePrefs 已经在内部过滤未知 key / 补默认 true.
       const normalized = normalizePrefs(prefs);
       let saved;

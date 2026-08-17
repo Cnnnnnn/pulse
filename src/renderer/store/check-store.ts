@@ -18,6 +18,42 @@ function generateSessionId() {
 export const apps = signal([]);
 export const results = signal(new Map());
 
+export type CheckJobPhase =
+  | "idle"
+  | "running"
+  | "succeeded"
+  | "partial"
+  | "failed"
+  | "cancelled";
+
+export interface CheckJobState {
+  id: string | null;
+  mainJobId: string | null;
+  phase: CheckJobPhase;
+  startedAt: number | null;
+  finishedAt: number | null;
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  error: string | null;
+  retryable: boolean;
+}
+
+export const checkJob = signal<CheckJobState>({
+  id: null,
+  mainJobId: null,
+  phase: "idle",
+  startedAt: null,
+  finishedAt: null,
+  total: 0,
+  completed: 0,
+  succeeded: 0,
+  failed: 0,
+  error: null,
+  retryable: false,
+});
+
 export const checkSession = signal({
   id: null,
   phase: "idle",
@@ -68,8 +104,36 @@ function resultToPhase(result: any) {
   return "done";
 }
 
+function getJobCounts() {
+  const phases = [...appPhases.value.values()];
+  const succeeded = phases.filter((phase) => phase === "done").length;
+  const failed = phases.filter((phase) => phase === "error").length;
+  return {
+    total: new Set(checkSession.value.appOrder).size,
+    completed: succeeded + failed,
+    succeeded,
+    failed,
+  };
+}
+
+function syncJobProgress(sessionId: string | null) {
+  if (!sessionId || checkJob.value.id !== sessionId) return;
+  checkJob.value = {
+    ...checkJob.value,
+    ...getJobCounts(),
+  };
+}
+
+function finalJobPhase(counts: ReturnType<typeof getJobCounts>): CheckJobPhase {
+  if (counts.failed > 0 && counts.succeeded > 0) return "partial";
+  if (counts.failed > 0) return "failed";
+  if (counts.completed < counts.total) return "partial";
+  return "succeeded";
+}
+
 export function startCheck(appNames = []) {
   const sessionId = generateSessionId();
+  const startedAt = Date.now();
 
   const phases = new Map(appNames.map((name: any) => [name, "pending"]));
   // 重置所有 phase signals: 在新 appNames 里的 → pending, 否则 → idle.
@@ -88,13 +152,34 @@ export function startCheck(appNames = []) {
   checkSession.value = {
     id: sessionId,
     phase: "running",
-    startedAt: Date.now(),
+    startedAt,
     finishedAt: null,
     error: null,
     appOrder: [...appNames],
   };
+  checkJob.value = {
+    id: sessionId,
+    mainJobId: null,
+    phase: "running",
+    startedAt,
+    finishedAt: null,
+    total: new Set(appNames).size,
+    completed: 0,
+    succeeded: 0,
+    failed: 0,
+    error: null,
+    retryable: false,
+  };
 
   return sessionId;
+}
+
+export function attachMainJobId(jobId: any) {
+  if (!jobId || checkSession.value.phase !== "running") return;
+  checkJob.value = {
+    ...checkJob.value,
+    mainJobId: String(jobId),
+  };
 }
 
 export function resetCheck() {
@@ -132,6 +217,7 @@ export function applyProgressBatch(list: any, sessionId: any) {
       getResultSignal(result.name).value = result;
     }
   });
+  syncJobProgress(sessionId || currentSession.id);
 }
 
 export function applyProgress(result: any, sessionId: any) {
@@ -157,6 +243,7 @@ export function applyProgress(result: any, sessionId: any) {
   results.value = next;
 
   getResultSignal(name).value = result;
+  syncJobProgress(sessionId || currentSession.id);
 }
 
 export function markAppDetecting(name: any, sessionId: any) {
@@ -175,21 +262,68 @@ export function markAppDetecting(name: any, sessionId: any) {
 export function finishCheck() {
   const s = checkSession.value;
   if (s.phase !== "running") return;
+  const counts = getJobCounts();
+  const phase = finalJobPhase(counts);
+  const finishedAt = Date.now();
   checkSession.value = {
     ...s,
     phase: "done",
-    finishedAt: Date.now(),
+    finishedAt,
+  };
+  checkJob.value = {
+    ...checkJob.value,
+    ...counts,
+    phase,
+    finishedAt,
+    retryable: phase !== "succeeded",
   };
 }
 
 export function setError(message: any) {
   const s = checkSession.value;
   if (s.phase !== "running") return;
+  const counts = getJobCounts();
+  const phase = counts.completed > 0 ? "partial" : "failed";
+  const finishedAt = Date.now();
+  const error = message || "未知错误";
   checkSession.value = {
     ...s,
     phase: "error",
-    finishedAt: Date.now(),
-    error: message || "未知错误",
+    finishedAt,
+    error,
+  };
+  checkJob.value = {
+    ...checkJob.value,
+    ...counts,
+    phase,
+    finishedAt,
+    error,
+    retryable: true,
+  };
+}
+
+/**
+ * 只关闭当前 renderer job，不声称已经中止 main 进程中的检测工作。
+ * 当前用于 main 拒绝重复请求等“本地 job 未真正启动”的场景。
+ */
+export function cancelCheck(reason = "cancelled") {
+  const s = checkSession.value;
+  if (s.phase !== "running") return;
+  const counts = getJobCounts();
+  const finishedAt = Date.now();
+  checkSession.value = {
+    ...s,
+    phase: "cancelled",
+    finishedAt,
+    error: reason,
+  };
+  checkJob.value = {
+    ...checkJob.value,
+    ...counts,
+    phase: "cancelled",
+    finishedAt,
+    error: reason,
+    retryable: true,
   };
 }
 

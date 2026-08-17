@@ -374,7 +374,17 @@ export function AiLeaderboardPage() {
                 </div>
               )}
 
-              {error.value && (
+              {error.value && rows.length > 0 && (
+                <div class="ai-lb-state ai-lb-state--warn" role="alert">
+                  <span class="ai-lb-state-icon" aria-hidden="true">!</span>
+                  <span class="ai-lb-state-text">更新失败，已保留上次榜单：{error.value}</span>
+                  <button type="button" class="ai-lb-btn ai-lb-btn--ghost" onClick={() => refresh()}>
+                    重试
+                  </button>
+                </div>
+              )}
+
+              {error.value && rows.length === 0 && (
                 <ErrorState message={error.value} onRetry={() => refresh()} />
               )}
 
@@ -390,7 +400,7 @@ export function AiLeaderboardPage() {
                 <EmptyState onRetry={() => (searchQuery.value ? clearSearchQuery() : refresh())} />
               ) : null}
 
-              {!error.value && rows.length > 0 && !showInitialLoading && (
+              {rows.length > 0 && !showInitialLoading && (
                 <>
                   {view === "aa" && activeDim.value === "intelligence" && (
                     <p class="ai-leaderboard-sort-hint" role="note">

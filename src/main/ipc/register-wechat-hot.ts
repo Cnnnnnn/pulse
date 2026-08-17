@@ -12,6 +12,7 @@
 //          rewrite 依赖 path 保留裸名).
 
 import type {} from "electron";
+import type { IpcChannelMap, WechatHotPayload } from "../../shared/ipc-contracts";
 
 
 // ponytail: IPC glue; catch stays unknown. Ceiling: any deps until typed IpcCtx.
@@ -32,7 +33,7 @@ export function registerWechatHotHandlers(ctx: any) {
   const { safeHandle, sendToRenderer, getConfig } = ctx;
   if (typeof safeHandle !== "function") return;
 
-  function runKeywordWatchlist(items: any) {
+  function runKeywordWatchlist(items: WechatHotPayload["items"]) {
     try {
       const {
         checkWatchlistKeywordUpdates,
@@ -53,7 +54,7 @@ export function registerWechatHotHandlers(ctx: any) {
   const httpClient = new HttpClient({ timeout: TIMEOUT_MS, maxRetries: 0 });
   const cache = createWechatHotCache({
     fetcher: () => fetchWechatHot({ httpClient, timeoutMs: TIMEOUT_MS }),
-    onUpdate: (payload: any) => {
+    onUpdate: (payload: IpcChannelMap["wechat-hot:load"]["result"]) => {
       if (typeof sendToRenderer === "function") {
         try { sendToRenderer(UPDATED_CHANNEL, payload); } catch { /* noop */ }
       }
@@ -76,12 +77,18 @@ export function registerWechatHotHandlers(ctx: any) {
   // I6 v2: 已读词持久化 (仿 ithome:mark-read)
   safeHandle("wechat-hot:load-read", () => loadReadIds());
 
-  safeHandle("wechat-hot:mark-read", (_evt: any, title: any) => {
+  safeHandle(
+    "wechat-hot:mark-read",
+    (
+      _evt: unknown,
+      title: IpcChannelMap["wechat-hot:mark-read"]["args"][0],
+    ) => {
     if (!title || typeof title !== "string") {
       return { ok: false, reason: "invalid_args" };
     }
     return markItemRead(title);
-  });
+    },
+  );
 }
 
 module.exports = { registerWechatHotHandlers, UPDATED_CHANNEL };

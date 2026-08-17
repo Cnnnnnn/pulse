@@ -8,6 +8,7 @@ import {
   diagnosisState,
   loadDiagnosis,
   requestAiSummary,
+  reloadAngle,
 } from "../../../src/renderer/stocks/diagnosisStore.ts";
 
 // closeDiagnosis 不再清 stockDiagnosisCode (保留当"最近分析过的股票"语义),
@@ -188,5 +189,44 @@ describe("requestAiSummary (手动触发 AI 解读)", () => {
     await requestAiSummary(api, "300750");
     expect(diagnosisState.value.aiStatus).toBe("error");
     expect(diagnosisState.value.aiResult).toBeNull();
+  });
+
+  it("单角度数据重拉成功 → 重算分数/缺口并清理旧 AI 结论", async () => {
+    const previousScores = { overall: 1, dimensions: { profitability: 1 } };
+    diagnosisState.value = {
+      status: "ready",
+      code: "300750",
+      perAngleData: {
+        profitability: {
+          status: "failed",
+          reason: "fetch_failed",
+          data: null,
+        },
+        valuation: { status: "ok", data: { pe: 12 } },
+      },
+      scores: previousScores,
+      aiResult: { summary: "旧结论" },
+      aiStatus: "ready",
+      error: null,
+      errorReason: null,
+      aiStartedAt: null,
+      dataGaps: [{ key: "profitability" }],
+    };
+
+    await reloadAngle(
+      {
+        stocksAngleReload: vi.fn().mockResolvedValue({
+          ok: true,
+          perAngle: { status: "ok", data: { roe: 24 } },
+        }),
+      },
+      "profitability",
+    );
+
+    expect(diagnosisState.value.perAngleData.profitability.status).toBe("ok");
+    expect(diagnosisState.value.scores).not.toBe(previousScores);
+    expect(diagnosisState.value.dataGaps.some((x) => x.key === "profitability")).toBe(false);
+    expect(diagnosisState.value.aiResult).toBeNull();
+    expect(diagnosisState.value.aiStatus).toBe("idle");
   });
 });

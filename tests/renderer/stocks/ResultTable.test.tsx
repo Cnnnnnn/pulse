@@ -2,13 +2,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/preact";
 import { ResultTable } from "../../../src/renderer/stocks/ResultTable.tsx";
-import { results } from "../../../src/renderer/stocks/stockStore.ts";
+import { results, error } from "../../../src/renderer/stocks/stockStore.ts";
 import { stockDiagnosisCode, stockActiveTab } from "../../../src/renderer/stocks/diagnosisStore.ts";
 
 vi.mock("../../../src/renderer/api.ts", () => ({ api: {} }));
-afterEach(() => { cleanup(); results.value = []; stockDiagnosisCode.value = null; stockActiveTab.value = "screen"; });
+afterEach(() => { cleanup(); results.value = []; error.value = null; stockDiagnosisCode.value = null; stockActiveTab.value = "screen"; });
 
 describe("ResultTable 诊断按钮", () => {
+  it("有旧结果时显示失败提示但保留表格", () => {
+    results.value = [{ code: "300750", name: "宁德时代", price: 218 }];
+    error.value = "network";
+    const { container } = render(<ResultTable api={{}} />);
+    expect(container.querySelector(".stock-table")).toBeTruthy();
+    expect(container.querySelector(".stock-table-stale-banner").textContent).toContain("已保留上次结果");
+    expect(container.querySelector('[data-testid="diagnosis-btn"]')).toBeTruthy();
+  });
+
   it("每行末尾有「诊断」按钮", () => {
     results.value = [
       { code: "300750", name: "宁德时代", price: 218, changePct: 2.3, pe: 28, roe: 24, industry: "电池" },

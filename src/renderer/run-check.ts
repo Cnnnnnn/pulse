@@ -12,6 +12,7 @@ import {
   checkSession,
   finishCheck,
   isCheckRunning,
+  cancelCheck,
   setError,
   startCheck,
 } from "./store.ts";
@@ -43,7 +44,7 @@ export async function runCheck(): Promise<RunCheckResult> {
 
     if (checkSession.value.id === sessionId) {
       if (returned && !Array.isArray(returned) && returned.started === false) {
-        finishCheck();
+        cancelCheck(returned.reason || "check_rejected");
         return returned as RunCheckResult;
       }
       if (Array.isArray(returned) && returned.length > 0) {

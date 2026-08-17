@@ -17,6 +17,7 @@ import {
   searchResults,
   searchCounts,
   searchSelectedIndex,
+  searchDataState,
   openSearch,
   closeSearch,
   setSearchQuery,
@@ -39,9 +40,18 @@ describe('searchStore', () => {
   it('closeSearch sets isOpen=false and clears query', () => {
     openSearch();
     setSearchQuery('test');
+    searchDataState.value = {
+      phase: 'error',
+      data: { results: [], counts: { news: 0, 'ai-task': 0, reminder: 0, fund: 0, app: 0 } },
+      error: 'search_failed',
+      source: 'unknown',
+      fetchedAt: 0,
+      lastAttemptAt: 1,
+    };
     closeSearch();
     expect(isSearchOpen.value).toBe(false);
     expect(searchQuery.value).toBe('');
+    expect(searchDataState.value.phase).toBe('idle');
   });
 
   it('setSearchActiveSource updates signal', () => {

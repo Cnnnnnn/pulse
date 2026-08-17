@@ -31,6 +31,7 @@ import {
   subscribeTheme,
 } from "../theme/theme-manager.ts";
 import { showToast } from "../store.ts";
+import type { ThemeMode } from "../../shared/ipc-contracts";
 import {
   githubToken, setGithubToken, loadGithubSettings,
   downloadGithubBackup, pickGithubBackupFile, githubProjects,
@@ -58,13 +59,15 @@ const SETTINGS_TABS = [
   { key: "ai", label: "AI 配置" },
 ];
 
-const THEME_OPTIONS = [
+const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
   { value: "system", label: "跟随系统" },
   { value: "light", label: "浅色" },
   { value: "dark", label: "深色" },
 ];
 const THEME_TOAST = { system: "跟随系统", light: "浅色", dark: "深色" };
-const VALID_THEME = new Set(["system", "light", "dark"]);
+const VALID_THEME = new Set<ThemeMode>(["system", "light", "dark"]);
+const isThemeMode = (value: string): value is ThemeMode =>
+  VALID_THEME.has(value as ThemeMode);
 
 function themeSummary() {
   if (themeMode.value === "system") {
@@ -432,7 +435,7 @@ export function SettingsPage() {
       typeof document !== "undefined" ? document.documentElement : null;
     if (root) {
       const source = root.getAttribute("data-theme-source");
-      if (source && VALID_THEME.has(source)) themeMode.value = source;
+      if (source && isThemeMode(source)) themeMode.value = source;
       const resolved = root.getAttribute("data-theme");
       if (resolved === "dark" || resolved === "light")
         themeResolved.value = resolved;

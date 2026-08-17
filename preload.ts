@@ -1,118 +1,231 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { IpcRendererEvent } from "electron";
-import type { Callback, PlatformInfo } from "./src/shared/preload-types";
+import type { Callback, PlatformInfo, Unsubscribe } from "./src/shared/preload-types";
+import type {
+  AiLeaderboardApiContract,
+  AiPromptsApiContract,
+  AiSessionsApiContract,
+  AiSharedConfigApiContract,
+  AiTaskSummaryUpdatedPayload,
+  AiTasksApiContract,
+  AiSessionsConfigUpdatedPayload,
+  AiReadmeParsePayload,
+  AiAdviceApiContract,
+  AiFeedbackApiContract,
+  TokenBudgetApiContract,
+  MutesApiContract,
+  LastOpenedApiContract,
+  LastOpenedUpdatedPayload,
+  WindowApiContract,
+  OpenUrlApiContract,
+  BulkUpgradeApiContract,
+  BulkUpgradeProgressPayload,
+  BulkUpgradeSummary,
+  NavigationPersistenceApiContract,
+  ConfigStateApiContract,
+  CheckProgressPayload,
+  CheckStartedPayload,
+  CheckDetectingPayload,
+  CheckFinishedPayload,
+  TrayFocusPayload,
+  SidenavBadgePayload,
+  StateRecoveredPayload,
+  MainErrorPayload,
+  UpgradeActionsApiContract,
+  GithubApiContract,
+  UpdateCheckApiContract,
+  VersionsApiContract,
+  AiUsageApiContract,
+  DigestApiContract,
+  DigestOpenPayload,
+  AiUsageUpdatedPayload,
+  DiagnosticsApiContract,
+  ErrorAppendedPayload,
+  ConfigPortabilityApiContract,
+  CoreEventsApiContract,
+  FinanceApiContract,
+  FundsHistoryUpdatedPayload,
+  FundsApiContract,
+  FundsNavFetchedPayload,
+  FundsNavStatePayload,
+  IthomeApiContract,
+  IthomeArticleIdPayload,
+  IthomeSummarizePayload,
+  MetalQuoteChangedPayload,
+  MetalStateResponse,
+  MetalsApiContract,
+  RecentApiContract,
+  RecentUpdatedPayload,
+  ReleaseNotesApiContract,
+  ReminderFiredPayload,
+  ReminderOpenModalPayload,
+  RemindersApiContract,
+  StocksApiContract,
+  SelfUpdateApiContract,
+  SearchApiContract,
+  PulseTrayApiContract,
+  ThemeControlApiContract,
+  ThemeChangedPayload,
+  ThemeSyncApiContract,
+  WechatHotApiContract,
+  WechatHotPayload,
+  WatchlistApiContract,
+  IpcChannelMap,
+} from "./src/shared/ipc-contracts";
 
 export const platformInfo: PlatformInfo = {
   platform: process.platform,
 };
 
-export const api = {
-  getConfig: () => ipcRenderer.invoke("get-config"),
-  getCachedState: () => ipcRenderer.invoke("get-cached-state"),
-  searchQuery: (q: string, source: string) =>
-    ipcRenderer.invoke("search:query", { q, source }),
-  searchUpsert: (doc: unknown) => ipcRenderer.invoke("search:upsert", doc),
-  checkUpdates: () => ipcRenderer.invoke("check-updates"),
-  brewUpgrade: (cask: string) => ipcRenderer.invoke("brew-upgrade", cask),
-  brewUpdate: () => ipcRenderer.invoke("brew-update"),
-  getAppIcon: (b: string) => ipcRenderer.invoke("get-app-icon", b),
+function subscribe<T>(channel: string, cb: Callback<T>): Unsubscribe {
+  const handler = (_evt: IpcRendererEvent, data: unknown) =>
+    cb(data as T);
+  ipcRenderer.on(channel, handler);
+  return () => {
+    ipcRenderer.removeListener(channel, handler);
+  };
+}
 
-  onCheckProgress: (cb: Callback) =>
-    ipcRenderer.on("check-progress", (_, data) => cb(data)),
-  onCheckStarted: (cb: Callback) =>
-    ipcRenderer.on("check-started", (_, data) => cb(data)),
-  onCheckDetecting: (cb: Callback) =>
-    ipcRenderer.on("check-detecting", (_, data) => cb(data)),
-  onStartCheck: (cb: () => void) => ipcRenderer.on("start-check", () => cb()),
-  onAutoCheckFinished: (cb: Callback) =>
-    ipcRenderer.on("auto-check-finished", (_, data) => cb(data)),
-  onCheckFinished: (cb: Callback) =>
-    ipcRenderer.on("check-finished", (_, data) => cb(data)),
+function subscribeVoid(channel: string, cb: () => void): Unsubscribe {
+  const handler = (_evt: IpcRendererEvent) => cb();
+  ipcRenderer.on(channel, handler);
+  return () => {
+    ipcRenderer.removeListener(channel, handler);
+  };
+}
+
+/**
+ * Typed invoke boundary for channels that have entered IpcChannelMap.
+ * Keeping the cast here confines Electron's untyped invoke surface to one
+ * place; individual bridge methods then expose their domain argument/result.
+ */
+function invokeChannel<C extends keyof IpcChannelMap>(
+  channel: C,
+  ...args: IpcChannelMap[C]["args"]
+): Promise<IpcChannelMap[C]["result"]> {
+  return ipcRenderer.invoke(channel, ...args) as Promise<IpcChannelMap[C]["result"]>;
+}
+
+export const api = {
+  getConfig: () => invokeChannel("get-config"),
+  getCachedState: () => invokeChannel("get-cached-state"),
+  searchQuery: (q: string, source: string | null = null) =>
+    invokeChannel("search:query", { q, source }),
+  searchUpsert: (doc: IpcChannelMap["search:upsert"]["args"][0]) =>
+    invokeChannel("search:upsert", doc),
+  checkUpdates: () => invokeChannel("check-updates"),
+  cancelCheck: (jobId?: IpcChannelMap["check-updates:cancel"]["args"][0]) =>
+    invokeChannel("check-updates:cancel", jobId),
+  brewUpgrade: (cask: IpcChannelMap["brew-upgrade"]["args"][0]) =>
+    invokeChannel("brew-upgrade", cask),
+  getAppIcon: (bundlePath: IpcChannelMap["get-app-icon"]["args"][0]) =>
+    invokeChannel("get-app-icon", bundlePath),
+
+  onCheckProgress: (cb: Callback<CheckProgressPayload>) =>
+    subscribe("check-progress", cb),
+  onCheckStarted: (cb: Callback<CheckStartedPayload>) =>
+    subscribe("check-started", cb),
+  onCheckDetecting: (cb: Callback<CheckDetectingPayload>) =>
+    subscribe("check-detecting", cb),
+  onStartCheck: (cb: () => void) => subscribeVoid("start-check", cb),
+  onAutoCheckFinished: (cb: Callback<CheckFinishedPayload>) =>
+    subscribe("auto-check-finished", cb),
+  onCheckFinished: (cb: Callback<CheckFinishedPayload>) =>
+    subscribe("check-finished", cb),
   // v2.22: 菜单栏点击更新行 → renderer 接收定位指令
-  onTrayFocus: (cb: Callback) =>
-    ipcRenderer.on("tray:focus", (_, data) => cb(data)),
+  onTrayFocus: (cb: Callback<TrayFocusPayload>) =>
+    subscribe("tray:focus", cb),
 
   // Bulk Upgrade (Phase22)
-  bulkUpgradeStart: (items: unknown) =>
-    ipcRenderer.invoke("bulk-upgrade:start", items),
-  bulkUpgradeCancel: () => ipcRenderer.invoke("bulk-upgrade:cancel"),
-  onBulkUpgradeProgress: (cb: Callback) =>
-    ipcRenderer.on("bulk-upgrade:progress", (_, data) => cb(data)),
-  onBulkUpgradeDone: (cb: Callback) =>
-    ipcRenderer.on("bulk-upgrade:done", (_, data) => cb(data)),
+  bulkUpgradeStart: (items: IpcChannelMap["bulk-upgrade:start"]["args"][0]) =>
+    invokeChannel("bulk-upgrade:start", items),
+  bulkUpgradeCancel: () => invokeChannel("bulk-upgrade:cancel"),
+  onBulkUpgradeProgress: (cb: Callback<BulkUpgradeProgressPayload>) =>
+    subscribe("bulk-upgrade:progress", cb),
+  onBulkUpgradeDone: (cb: Callback<BulkUpgradeSummary>) =>
+    subscribe("bulk-upgrade:done", cb),
 
   // Phase27: Mutes (per-app静音)
-  getMutes: () => ipcRenderer.invoke("get-mutes"),
-  setMute: (name: string, durationSec: number) =>
-    ipcRenderer.invoke("set-mute", name, durationSec),
-  clearMute: (name: string) => ipcRenderer.invoke("clear-mute", name),
+  getMutes: () => invokeChannel("get-mutes"),
+  setMute: (
+    name: IpcChannelMap["set-mute"]["args"][0],
+    durationSec: IpcChannelMap["set-mute"]["args"][1],
+  ) => invokeChannel("set-mute", name, durationSec),
+  clearMute: (name: IpcChannelMap["clear-mute"]["args"][0]) =>
+    invokeChannel("clear-mute", name),
 
   // Phase29: Last-opened (per-app 最近打开)
-  getLastOpened: () => ipcRenderer.invoke("get-last-opened"),
-  refreshLastOpened: () => ipcRenderer.invoke("refresh-last-opened"),
-  onLastOpenedUpdated: (cb: Callback) =>
-    ipcRenderer.on("last-opened-updated", (_, data) => cb(data)),
+  getLastOpened: () => invokeChannel("get-last-opened"),
+  refreshLastOpened: () => invokeChannel("refresh-last-opened"),
+  onLastOpenedUpdated: (cb: Callback<LastOpenedUpdatedPayload>) =>
+    subscribe("last-opened-updated", cb),
 
   // Phase A (App Categorization): active category tab
-  getActiveCategory: () => ipcRenderer.invoke("get-active-category"),
-  saveActiveCategory: (id: string) => ipcRenderer.invoke("save-active-category", id),
+  getActiveCategory: () => invokeChannel("get-active-category"),
+  saveActiveCategory: (
+    id: IpcChannelMap["save-active-category"]["args"][0],
+  ) => invokeChannel("save-active-category", id),
 
   // P-N: HomeGrid 落点
-  getLastActiveNav: () => ipcRenderer.invoke("get-last-active-nav"),
-  saveLastActiveNav: (key: string) => ipcRenderer.invoke("save-last-active-nav", key),
+  getLastActiveNav: () => invokeChannel("get-last-active-nav"),
+  saveLastActiveNav: (
+    key: IpcChannelMap["save-last-active-nav"]["args"][0],
+  ) => invokeChannel("save-last-active-nav", key),
 
   // AI 任务总结 (重做版): 按需扫描 + 按需生成
-  listAiTasks: (opts: unknown) => ipcRenderer.invoke("ai-tasks:list", opts),
-  summarizeAiTasks: (opts: unknown) =>
-    ipcRenderer.invoke("ai-tasks:summarize", opts),
-  onAiTaskSummaryUpdated: (cb: Callback) =>
-    ipcRenderer.on("ai-task-summary-updated", (_, data) => cb(data)),
+  listAiTasks: (
+    opts?: IpcChannelMap["ai-tasks:list"]["args"][0],
+  ) => invokeChannel("ai-tasks:list", opts),
+  summarizeAiTasks: (
+    opts: IpcChannelMap["ai-tasks:summarize"]["args"][0],
+  ) => invokeChannel("ai-tasks:summarize", opts),
+  onAiTaskSummaryUpdated: (cb: Callback<AiTaskSummaryUpdatedPayload>) =>
+    subscribe("ai-task-summary-updated", cb),
   // 跳到原始 session (任务卡 "查看原始" 用)
-  openSession: (target: unknown) =>
-    ipcRenderer.invoke("ai-sessions:open-session", target),
+  openSession: (target: IpcChannelMap["ai-sessions:open-session"]["args"][0]) =>
+    invokeChannel("ai-sessions:open-session", target),
 
   // Phase B6c (AI Sessions Settings): safeStorage API key + config
-  setAiKey: (providerId: string, apiKey: string) =>
-    ipcRenderer.invoke("ai-sessions:set-key", providerId, apiKey),
-  clearAiKey: (providerId: string) =>
-    ipcRenderer.invoke("ai-sessions:clear-key", providerId),
-  hasAiKey: (providerId: string) =>
-    ipcRenderer.invoke("ai-sessions:has-key", providerId),
-  aiHealthcheck: (opts: unknown) => ipcRenderer.invoke("ai-sessions:healthcheck", opts),
-  getAiSessionsConfig: () => ipcRenderer.invoke("ai-sessions:get-config"),
-  saveAiSessionsConfig: (cfg: unknown) =>
-    ipcRenderer.invoke("ai-sessions:save-config", cfg),
-  onAiSessionsConfigUpdated: (cb: Callback) =>
-    ipcRenderer.on("ai-sessions-config-updated", (_, data) => cb(data)),
+  setAiKey: (
+    providerId: IpcChannelMap["ai-sessions:set-key"]["args"][0],
+    apiKey: IpcChannelMap["ai-sessions:set-key"]["args"][1],
+  ) => invokeChannel("ai-sessions:set-key", providerId, apiKey),
+  clearAiKey: (providerId: IpcChannelMap["ai-sessions:clear-key"]["args"][0]) =>
+    invokeChannel("ai-sessions:clear-key", providerId),
+  hasAiKey: (providerId: IpcChannelMap["ai-sessions:has-key"]["args"][0]) =>
+    invokeChannel("ai-sessions:has-key", providerId),
+  aiHealthcheck: (opts: IpcChannelMap["ai-sessions:healthcheck"]["args"][0]) =>
+    invokeChannel("ai-sessions:healthcheck", opts),
+  getAiSessionsConfig: () => invokeChannel("ai-sessions:get-config"),
+  saveAiSessionsConfig: (
+    cfg: IpcChannelMap["ai-sessions:save-config"]["args"][0],
+  ) => invokeChannel("ai-sessions:save-config", cfg),
+  onAiSessionsConfigUpdated: (cb: Callback<AiSessionsConfigUpdatedPayload>) =>
+    subscribe("ai-sessions-config-updated", cb),
 
   // A7: AI prompt 模板化
-  aiPromptsLoad: () => ipcRenderer.invoke("ai-prompts:load"),
-  aiPromptsSave: (prompts: unknown) => ipcRenderer.invoke("ai-prompts:save", prompts),
-  aiPromptsReset: (key: string) => ipcRenderer.invoke("ai-prompts:reset", key),
-  upgradeAdviceFetch: (opts: unknown) =>
-    ipcRenderer.invoke("upgrade-advice:fetch", opts),
-  changelogSummaryFetch: (opts: unknown) =>
-    ipcRenderer.invoke("changelog-summary:fetch", opts),
-  feedbackRecord: (payload: unknown) => ipcRenderer.invoke("feedback:record", payload),
-  feedbackExport: () => ipcRenderer.invoke("feedback:export"),
-  tokenBudgetGet: () => ipcRenderer.invoke("token-budget:get"),
-  tokenBudgetSet: (payload: unknown) => ipcRenderer.invoke("token-budget:set", payload),
+  aiPromptsLoad: () => invokeChannel("ai-prompts:load"),
+  aiPromptsSave: (prompts: IpcChannelMap["ai-prompts:save"]["args"][0]) =>
+    invokeChannel("ai-prompts:save", prompts),
+  aiPromptsReset: (key: IpcChannelMap["ai-prompts:reset"]["args"][0]) =>
+    invokeChannel("ai-prompts:reset", key),
+  upgradeAdviceFetch: (opts: IpcChannelMap["upgrade-advice:fetch"]["args"][0]) =>
+    invokeChannel("upgrade-advice:fetch", opts),
+  changelogSummaryFetch: (
+    opts: IpcChannelMap["changelog-summary:fetch"]["args"][0],
+  ) => invokeChannel("changelog-summary:fetch", opts),
+  feedbackRecord: (payload: IpcChannelMap["feedback:record"]["args"][0]) =>
+    invokeChannel("feedback:record", payload),
+  feedbackExport: () => invokeChannel("feedback:export"),
+  tokenBudgetGet: () => invokeChannel("token-budget:get"),
+  tokenBudgetSet: (payload: IpcChannelMap["token-budget:set"]["args"][0]) =>
+    invokeChannel("token-budget:set", payload),
   configExport: (pulseVersion: string = "") =>
-    ipcRenderer.invoke("config:export", pulseVersion) as Promise<{ ok: boolean; path?: string; sizeBytes?: number; reason?: string; error?: string } | null>,
-  configImportLoad: () =>
-    ipcRenderer.invoke("config:import-load") as Promise<
-      | {
-          ok: boolean;
-          path?: string;
-          fields?: unknown;
-          diff?: unknown;
-          reason?: string;
-          error?: string;
-        }
-      | null
-    >,
-  configImportApply: (payload: unknown) =>
-    ipcRenderer.invoke("config:import-apply", payload),
+    invokeChannel("config:export", pulseVersion),
+  configImportLoad: () => invokeChannel("config:import-load"),
+  configImportApply: (
+    payload: IpcChannelMap["config:import-apply"]["args"][0],
+  ) => invokeChannel("config:import-apply", payload),
   onAiPromptsUpdated: (cb: () => void) => {
     const handler = (_evt: IpcRendererEvent) => cb();
     ipcRenderer.on("ai-prompts-updated", handler);
@@ -121,109 +234,127 @@ export const api = {
 
   // P10: 主题切换顶层 bridge (renderer/index.tsx bootstrap + theme-manager 都用)
   // 同时也在 metalsApi 里留一份以兼容早期 theme-manager 直接用 window.metalsApi.themeSet 的代码.
-  themeSet: (mode: string) => ipcRenderer.invoke("theme:set", mode),
-  onThemeChanged: (cb: Callback) => {
-    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+  themeSet: (mode: IpcChannelMap["theme:set"]["args"][0]) =>
+    invokeChannel("theme:set", mode),
+  onThemeChanged: (cb: Callback<ThemeChangedPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as ThemeChangedPayload);
     ipcRenderer.on("theme:changed", handler);
     return () => ipcRenderer.removeListener("theme:changed", handler);
   },
 
   // v2.13 AI 用量 (Minimax coding plan)
-  aiUsageGetCached: () => ipcRenderer.invoke("ai-usage:get-cached"),
-  aiUsageFetch: (opts: unknown) => ipcRenderer.invoke("ai-usage:fetch", opts),
-  aiUsageAlertPrefsGet: () => ipcRenderer.invoke("ai-usage:alert-prefs:get"),
-  aiUsageAlertPrefsSet: (patch: unknown) =>
-    ipcRenderer.invoke("ai-usage:alert-prefs:set", patch),
-  onAiUsageUpdated: (cb: Callback) =>
-    ipcRenderer.on("ai-usage-updated", (_, data) => cb(data)),
-  onSidenavBadge: (cb: Callback) =>
-    ipcRenderer.on("sidenav:badge", (_, data) => cb(data)),
+  aiUsageGetCached: () => invokeChannel("ai-usage:get-cached"),
+  aiUsageFetch: (opts: IpcChannelMap["ai-usage:fetch"]["args"][0]) =>
+    invokeChannel("ai-usage:fetch", opts),
+  aiUsageAlertPrefsGet: () => invokeChannel("ai-usage:alert-prefs:get"),
+  aiUsageAlertPrefsSet: (
+    patch: IpcChannelMap["ai-usage:alert-prefs:set"]["args"][0],
+  ) => invokeChannel("ai-usage:alert-prefs:set", patch),
+  onAiUsageUpdated: (cb: Callback<AiUsageUpdatedPayload>) =>
+    subscribe("ai-usage-updated", cb),
+  onSidenavBadge: (cb: Callback<SidenavBadgePayload>) =>
+    subscribe("sidenav:badge", cb),
 
   // Phase Q8: state.json corruption self-recovery banner
-  onStateRecovered: (cb: Callback) =>
-    ipcRenderer.on("state:recovered", (_, data) => cb(data)),
+  onStateRecovered: (cb: Callback<StateRecoveredPayload>) =>
+    subscribe("state:recovered", cb),
 
   // Phase I5: daily digest
-  digestFetchSections: () => ipcRenderer.invoke("digest:fetch-sections"),
-  digestUpdateSettings: (cfg: unknown) =>
-    ipcRenderer.invoke("digest:update-settings", cfg),
-  onDigestOpen: (cb: Callback) =>
-    ipcRenderer.on("digest:open", (_, data) => cb(data)),
+  digestFetchSections: () => invokeChannel("digest:fetch-sections"),
+  digestUpdateSettings: (
+    cfg: IpcChannelMap["digest:update-settings"]["args"][0],
+  ) => invokeChannel("digest:update-settings", cfg),
+  onDigestOpen: (cb: Callback<DigestOpenPayload>) =>
+    subscribe("digest:open", cb),
 
   // Phase Q6: error aggregator
-  errorFetchEntries: (opts: unknown) =>
-    ipcRenderer.invoke("error:fetch-entries", opts),
-  errorCopyAll: () => ipcRenderer.invoke("error:copy-all"),
-  errorExportZip: (opts: unknown) => ipcRenderer.invoke("error:export-zip", opts),
-  errorClearOld: (opts: unknown) => ipcRenderer.invoke("error:clear-old", opts),
+  errorFetchEntries: (opts: IpcChannelMap["error:fetch-entries"]["args"][0]) =>
+    invokeChannel("error:fetch-entries", opts),
+  errorCopyAll: () => invokeChannel("error:copy-all"),
+  errorExportZip: (opts?: IpcChannelMap["error:export-zip"]["args"][0]) =>
+    invokeChannel("error:export-zip", opts),
+  errorClearOld: (opts?: IpcChannelMap["error:clear-old"]["args"][0]) =>
+    invokeChannel("error:clear-old", opts),
+  errorOpenFolder: () => invokeChannel("error:open-folder"),
+  errorReport: (entry: IpcChannelMap["error:report"]["args"][0]) =>
+    invokeChannel("error:report", entry),
   // Phase Q1 v2: diagnostics drawer
-  diagnosticsFetch: (opts: unknown) => ipcRenderer.invoke("diagnostics:fetch", opts),
-  diagnosticsFetchSamples: () =>
-    ipcRenderer.invoke("diagnostics:fetch-samples"),
+  diagnosticsFetch: (opts: IpcChannelMap["diagnostics:fetch"]["args"][0]) =>
+    invokeChannel("diagnostics:fetch", opts),
+  diagnosticsFetchSamples: () => invokeChannel("diagnostics:fetch-samples"),
   // C7 v2.35.0: 检测结果导出
-  detectResultsExport: (opts: unknown) =>
-    ipcRenderer.invoke("detect-results:export", opts),
+  detectResultsExport: (
+    opts: IpcChannelMap["detect-results:export"]["args"][0],
+  ) => invokeChannel("detect-results:export", opts),
   // I2 v1: watchlist (pinned apps)
-  watchlistList: () => ipcRenderer.invoke("watchlist:list"),
-  watchlistAdd: (payload: string | unknown) =>
-    ipcRenderer.invoke(
+  watchlistList: () => invokeChannel("watchlist:list"),
+  watchlistAdd: (
+    payload: string | IpcChannelMap["watchlist:add"]["args"][0],
+  ) =>
+    invokeChannel(
       "watchlist:add",
       typeof payload === "string" ? { appName: payload } : payload,
     ),
-  watchlistRemove: (payload: string | unknown) =>
-    ipcRenderer.invoke(
+  watchlistRemove: (
+    payload: string | IpcChannelMap["watchlist:remove"]["args"][0],
+  ) =>
+    invokeChannel(
       "watchlist:remove",
       typeof payload === "string" ? { appName: payload } : payload,
     ),
   // ON: release notes onboarding (nested form, 跟 spec §3.4 一致)
   releaseNotes: {
-    getCurrent: () => ipcRenderer.invoke("release-notes:get-current"),
-    getVersion: (version: string) =>
-      ipcRenderer.invoke("release-notes:get-version", version),
-    markSeen: (version: string) =>
-      ipcRenderer.invoke("release-notes:mark-seen", version),
+    getCurrent: () => invokeChannel("release-notes:get-current"),
+    getVersion: (
+      version: IpcChannelMap["release-notes:get-version"]["args"][0],
+    ) => invokeChannel("release-notes:get-version", version),
+    markSeen: (version: IpcChannelMap["release-notes:mark-seen"]["args"][0]) =>
+      invokeChannel("release-notes:mark-seen", version),
   },
-  errorOpenFolder: () => ipcRenderer.invoke("error:open-folder"),
-  errorReport: (entry: unknown) => ipcRenderer.invoke("error:report", entry),
-  onErrorAppended: (cb: Callback) =>
-    ipcRenderer.on("error:appended", (_, data) => cb(data)),
+  onErrorAppended: (cb: Callback<ErrorAppendedPayload>) =>
+    subscribe("error:appended", cb),
 
   // Phase C2: per-app snooze (C2 功能已退役, 移除)
   // setAppSnooze / clearAppSnooze IPC 已删除
 
 
-  getAiSharedConfig: () => ipcRenderer.invoke("ai:get-shared-config"),
+  getAiSharedConfig: () => invokeChannel("ai:get-shared-config"),
 
   // Universal "open URL in system browser" bridge (validated http/https in main process).
-  openUrl: (url: string) => ipcRenderer.invoke("open-url:open", url),
+  openUrl: (url: IpcChannelMap["open-url:open"]["args"][0]) =>
+    invokeChannel("open-url:open", url),
 
   // 微信热搜 (v2.24)
-  wechatHotLoad: () => ipcRenderer.invoke("wechat-hot:load"),
-  wechatHotRefresh: () => ipcRenderer.invoke("wechat-hot:refresh"),
-  wechatHotLoadRead: () => ipcRenderer.invoke("wechat-hot:load-read"),
-  wechatHotMarkRead: (title: string) =>
-    ipcRenderer.invoke("wechat-hot:mark-read", title),
-  onWechatHotUpdated: (cb: Callback) => {
-    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+  wechatHotLoad: () => invokeChannel("wechat-hot:load"),
+  wechatHotRefresh: () => invokeChannel("wechat-hot:refresh"),
+  wechatHotLoadRead: () => invokeChannel("wechat-hot:load-read"),
+  wechatHotMarkRead: (
+    title: IpcChannelMap["wechat-hot:mark-read"]["args"][0],
+  ) => invokeChannel("wechat-hot:mark-read", title),
+  onWechatHotUpdated: (cb: Callback<WechatHotPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as WechatHotPayload);
     ipcRenderer.on("wechat-hot:updated", handler);
     return () => ipcRenderer.removeListener("wechat-hot:updated", handler);
   },
 
   // IT之家新闻
-  ithomeLoadNews: () => ipcRenderer.invoke("ithome:load-news"),
-  ithomeRefreshNews: (dateKey: string) =>
-    ipcRenderer.invoke("ithome:refresh-news", dateKey),
-  ithomeFetchDay: (dateKey: string) =>
-    ipcRenderer.invoke("ithome:fetch-day", dateKey),
-  ithomeFetchArticleBody: (payload: unknown) =>
-    ipcRenderer.invoke("ithome:fetch-article-body", payload),
-  ithomeSummarizeArticle: (payload: unknown) =>
-    ipcRenderer.invoke("ithome:summarize-article", payload),
-  ithomeToggleFavorite: (payload: unknown) =>
-    ipcRenderer.invoke("ithome:toggle-favorite", payload),
-  ithomeMarkRead: (id: string) => ipcRenderer.invoke("ithome:mark-read", id),
+  ithomeLoadNews: () => invokeChannel("ithome:load-news"),
+  ithomeRefreshNews: (dateKey: IpcChannelMap["ithome:refresh-news"]["args"][0]) =>
+    invokeChannel("ithome:refresh-news", dateKey),
+  ithomeFetchDay: (dateKey: IpcChannelMap["ithome:fetch-day"]["args"][0]) =>
+    invokeChannel("ithome:fetch-day", dateKey),
+  ithomeFetchArticleBody: (payload: IthomeArticleIdPayload) =>
+    invokeChannel("ithome:fetch-article-body", payload),
+  ithomeSummarizeArticle: (payload: IthomeSummarizePayload) =>
+    invokeChannel("ithome:summarize-article", payload),
+  ithomeToggleFavorite: (payload: IthomeArticleIdPayload) =>
+    invokeChannel("ithome:toggle-favorite", payload),
+  ithomeMarkRead: (id: IpcChannelMap["ithome:mark-read"]["args"][0]) =>
+    invokeChannel("ithome:mark-read", id),
   ithomeShareCard: (id: string) =>
-    ipcRenderer.invoke("ithome:share-card", { id }),
+    invokeChannel("ithome:share-card", { id }),
 
   // For share-card off-screen page to receive share-data event
   onShareData: (cb: Callback) => {
@@ -238,149 +369,194 @@ export const api = {
   shareCardReady: () => ipcRenderer.send("share-card:ready"),
 
   // v2.10+ 基金管理: 持仓 CRUD + 净值拉取 / 推送
-  fundsList: () => ipcRenderer.invoke("funds:list"),
-  fundsAdd: (input: unknown) => ipcRenderer.invoke("funds:add", input),
-  fundsUpdate: (id: string, patch: unknown) =>
-    ipcRenderer.invoke("funds:update", id, patch),
-  fundsRemove: (id: string) => ipcRenderer.invoke("funds:remove", id),
-  fundsRestore: (id: string) => ipcRenderer.invoke("funds:restore", id),
-  fundsSearch: (query: string) => ipcRenderer.invoke("funds:search", query),
-  fundsBackfill: (code: string) => ipcRenderer.invoke("funds:backfill", code),
-  fundsNavFetch: () => ipcRenderer.invoke("funds:nav:fetch"),
-  fundsNavFetchCodes: (codes: unknown) =>
-    ipcRenderer.invoke("funds:nav:fetch-codes", codes),
-  fundsNavState: () => ipcRenderer.invoke("funds:nav:state"),
-  fundsHistoryList: () => ipcRenderer.invoke("funds:history:list"),
-  fundsNavHistory: (code: string, opts: unknown) =>
-    ipcRenderer.invoke("funds:nav:history", code, opts),
-  fundsIndexHistory: (symbol: string, opts: unknown) =>
-    ipcRenderer.invoke("funds:index:history", symbol, opts),
-  fundsSetNavSource: (source: string) =>
-    ipcRenderer.invoke("funds:set-nav-source", source),
-  fundsAlertPrefsGet: () => ipcRenderer.invoke("funds:alert-prefs:get"),
-  fundsAlertPrefsSet: (patch: unknown) =>
-    ipcRenderer.invoke("funds:alert-prefs:set", patch),
-  onFundsNavFetched: (cb: Callback) =>
-    ipcRenderer.on("funds:nav:fetched", (_, data) => cb(data)),
-  onFundsNavState: (cb: Callback) =>
-    ipcRenderer.on("funds:nav:state", (_, data) => cb(data)),
-  onFundsHistoryUpdated: (cb: Callback) =>
-    ipcRenderer.on("funds:history:updated", (_, data) => cb(data)),
+  fundsList: () => invokeChannel("funds:list"),
+  fundsAdd: (input: IpcChannelMap["funds:add"]["args"][0]) =>
+    invokeChannel("funds:add", input),
+  fundsUpdate: (
+    id: IpcChannelMap["funds:update"]["args"][0],
+    patch: IpcChannelMap["funds:update"]["args"][1],
+  ) => invokeChannel("funds:update", id, patch),
+  fundsRemove: (id: IpcChannelMap["funds:remove"]["args"][0]) =>
+    invokeChannel("funds:remove", id),
+  fundsRestore: (id: IpcChannelMap["funds:restore"]["args"][0]) =>
+    invokeChannel("funds:restore", id),
+  fundsSearch: (query: IpcChannelMap["funds:search"]["args"][0]) =>
+    invokeChannel("funds:search", query),
+  fundsBackfill: (code: IpcChannelMap["funds:backfill"]["args"][0]) =>
+    invokeChannel("funds:backfill", code),
+  fundsNavFetch: () => invokeChannel("funds:nav:fetch"),
+  fundsNavFetchCodes: (codes: IpcChannelMap["funds:nav:fetch-codes"]["args"][0]) =>
+    invokeChannel("funds:nav:fetch-codes", codes),
+  fundsNavState: () => invokeChannel("funds:nav:state"),
+  fundsHistoryList: () => invokeChannel("funds:history:list"),
+  fundsNavHistory: (
+    code: IpcChannelMap["funds:nav:history"]["args"][0],
+    opts: IpcChannelMap["funds:nav:history"]["args"][1],
+  ) => invokeChannel("funds:nav:history", code, opts),
+  fundsIndexHistory: (
+    symbol: IpcChannelMap["funds:index:history"]["args"][0],
+    opts: IpcChannelMap["funds:index:history"]["args"][1],
+  ) => invokeChannel("funds:index:history", symbol, opts),
+  fundsSetNavSource: (source: IpcChannelMap["funds:set-nav-source"]["args"][0]) =>
+    invokeChannel("funds:set-nav-source", source),
+  fundsAlertPrefsGet: () => invokeChannel("funds:alert-prefs:get"),
+  fundsAlertPrefsSet: (patch: IpcChannelMap["funds:alert-prefs:set"]["args"][0]) =>
+    invokeChannel("funds:alert-prefs:set", patch),
+  onFundsNavFetched: (cb: Callback<FundsNavFetchedPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as FundsNavFetchedPayload);
+    ipcRenderer.on("funds:nav:fetched", handler);
+    return () => ipcRenderer.removeListener("funds:nav:fetched", handler);
+  },
+  onFundsNavState: (cb: Callback<FundsNavStatePayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as FundsNavStatePayload);
+    ipcRenderer.on("funds:nav:state", handler);
+    return () => ipcRenderer.removeListener("funds:nav:state", handler);
+  },
+  onFundsHistoryUpdated: (cb: Callback<FundsHistoryUpdatedPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as FundsHistoryUpdatedPayload);
+    ipcRenderer.on("funds:history:updated", handler);
+    return () => ipcRenderer.removeListener("funds:history:updated", handler);
+  },
 
   // v2.11 提醒
-  remindersList: () => ipcRenderer.invoke("reminders:list"),
-  remindersCreate: (input: unknown) => ipcRenderer.invoke("reminders:create", input),
-  remindersUpdate: (id: string, patch: unknown) =>
-    ipcRenderer.invoke("reminders:update", { id, patch }),
-  remindersRemove: (id: string) => ipcRenderer.invoke("reminders:remove", id),
-  remindersMarkDone: (id: string) =>
-    ipcRenderer.invoke("reminders:mark-done", id),
-  remindersMarkDismissed: (id: string) =>
-    ipcRenderer.invoke("reminders:mark-dismissed", id),
-  onRemindersFired: (cb: Callback) =>
-    ipcRenderer.on("reminders:fired", (_, data) => cb(data)),
-  onRemindersOpenModal: (cb: Callback) =>
-    ipcRenderer.on("reminders:open-modal", (_, data) => cb(data)),
+  remindersList: () => invokeChannel("reminders:list"),
+  remindersCreate: (input: IpcChannelMap["reminders:create"]["args"][0]) =>
+    invokeChannel("reminders:create", input),
+  remindersUpdate: (
+    id: IpcChannelMap["reminders:update"]["args"][0]["id"],
+    patch: IpcChannelMap["reminders:update"]["args"][0]["patch"],
+  ) => invokeChannel("reminders:update", { id, patch }),
+  remindersRemove: (id: IpcChannelMap["reminders:remove"]["args"][0]) =>
+    invokeChannel("reminders:remove", id),
+  remindersMarkDone: (id: IpcChannelMap["reminders:mark-done"]["args"][0]) =>
+    invokeChannel("reminders:mark-done", id),
+  remindersMarkDismissed: (
+    id: IpcChannelMap["reminders:mark-dismissed"]["args"][0],
+  ) => invokeChannel("reminders:mark-dismissed", id),
+  onRemindersFired: (cb: Callback<ReminderFiredPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as ReminderFiredPayload);
+    ipcRenderer.on("reminders:fired", handler);
+    return () => ipcRenderer.removeListener("reminders:fired", handler);
+  },
+  onRemindersOpenModal: (cb: Callback<ReminderOpenModalPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as ReminderOpenModalPayload);
+    ipcRenderer.on("reminders:open-modal", handler);
+    return () => ipcRenderer.removeListener("reminders:open-modal", handler);
+  },
 
   // v2.11 时间线
-  recentList: () => ipcRenderer.invoke("recent:list"),
-  recentPush: (entry: unknown) => ipcRenderer.invoke("recent:push", entry),
-  onRecentUpdated: (cb: Callback) =>
-    ipcRenderer.on("recent:updated", (_, data) => cb(data)),
+  recentList: () => invokeChannel("recent:list"),
+  recentPush: (entry: IpcChannelMap["recent:push"]["args"][0]) =>
+    invokeChannel("recent:push", entry),
+  onRecentUpdated: (cb: Callback<RecentUpdatedPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as RecentUpdatedPayload);
+    ipcRenderer.on("recent:updated", handler);
+    return () => ipcRenderer.removeListener("recent:updated", handler);
+  },
 
   // v2.12 主进程未捕获错误兜底 (main:error)
-  onMainError: (cb: Callback) => ipcRenderer.on("main:error", (_, data) => cb(data)),
+  onMainError: (cb: Callback<MainErrorPayload>) =>
+    subscribe("main:error", cb),
 
   // Win 窗口控件: titleBarStyle:'hidden' 隐藏 OS 三键, renderer 画按钮调这里.
   // mac 走 hiddenInset 自带三颗灯, 不调这里.
-  windowMinimize: () => ipcRenderer.invoke("window:minimize"),
-  windowToggleMaximize: () => ipcRenderer.invoke("window:toggle-maximize"),
-  windowClose: () => ipcRenderer.invoke("window:close"),
+  windowMinimize: () => invokeChannel("window:minimize"),
+  windowToggleMaximize: () => invokeChannel("window:toggle-maximize"),
+  windowClose: () => invokeChannel("window:close"),
 
   // Phase C3: App rollback bridge (C3 功能已退役, 移除)
   // getVersionHistory / rollbackApp / deleteBackup / onVersionHistoryUpdated
   // / onVersionHistoryCountsUpdated IPC 已删除
 
   // P52: Pulse 自更新 (半自动档: 检测+下载+手动确认安装)
-  selfUpdateGetState: () => ipcRenderer.invoke("self-update:get-state"),
-  selfUpdateCheck: () => ipcRenderer.invoke("self-update:check"),
-  selfUpdateInstall: () => ipcRenderer.invoke("self-update:install"),
+  selfUpdateGetState: () => invokeChannel("self-update:get-state"),
+  selfUpdateCheck: () => invokeChannel("self-update:check"),
+  selfUpdateInstall: () => invokeChannel("self-update:install"),
 
   // 选股分析 (阶段一): 筛选 + 搜索
-  stocksScreen: (payload: unknown) =>
-    ipcRenderer.invoke("stocks:screen", payload),
-  stocksSearch: (query: string) =>
-    ipcRenderer.invoke("stocks:search", query),
+  stocksScreen: (payload: IpcChannelMap["stocks:screen"]["args"][0]) =>
+    invokeChannel("stocks:screen", payload),
+  stocksSearch: (query: IpcChannelMap["stocks:search"]["args"][0]) =>
+    invokeChannel("stocks:search", query),
   // 阶段二: AI 推荐筛选条件 (chatCompletion + 24h 缓存)
-  stocksAiAdvise: (payload: unknown) =>
-    ipcRenderer.invoke("stocks:ai-advise", payload),
+  stocksAiAdvise: (payload: IpcChannelMap["stocks:ai-advise"]["args"][0]) =>
+    invokeChannel("stocks:ai-advise", payload),
   // 阶段三: 个股多角度分析 + AI 详情
-  stocksDetailAngles: (payload: unknown) =>
-    ipcRenderer.invoke("stocks:detail-angles", payload),
-  stocksDetailAnalyze: (payload: unknown) =>
-    ipcRenderer.invoke("stocks:detail-analyze", payload),
+  stocksDetailAngles: (payload: IpcChannelMap["stocks:detail-angles"]["args"][0]) =>
+    invokeChannel("stocks:detail-angles", payload),
+  stocksDetailAnalyze: (payload: IpcChannelMap["stocks:detail-analyze"]["args"][0]) =>
+    invokeChannel("stocks:detail-analyze", payload),
   // ponytail: 2026-07-07 P1-2 — 单条 angle 的本地快速重解读 (不走 LLM)
-  stocksAngleRefresh: (payload: unknown) =>
-    ipcRenderer.invoke("stocks:angle-refresh", payload),
+  stocksAngleRefresh: (payload: IpcChannelMap["stocks:angle-refresh"]["args"][0]) =>
+    invokeChannel("stocks:angle-refresh", payload),
   // ponytail 2026-07-18 P0-1 polish #2 — 单条 angle 数据重拉 (走 fetcher, 不是 LLM)
-  stocksAngleReload: (payload: unknown) =>
-    ipcRenderer.invoke("stocks:angle-reload", payload),
+  stocksAngleReload: (payload: IpcChannelMap["stocks:angle-reload"]["args"][0]) =>
+    invokeChannel("stocks:angle-reload", payload),
   // 2026-07-07 — 诊断报告导出 PNG (主进程 capturePage + showSaveDialog)
-  stocksExportDiagnosisPng: (payload: unknown) =>
-    ipcRenderer.invoke("stocks:export-diagnosis-png", payload),
+  stocksExportDiagnosisPng: (payload: IpcChannelMap["stocks:export-diagnosis-png"]["args"][0]) =>
+    invokeChannel("stocks:export-diagnosis-png", payload),
 
   // v2.49 Overview + Command Palette (T5/T18): IPC bridge
   versionsCommandSearch: (q: string) =>
-    ipcRenderer.invoke("versions:command-search", { q }),
+    invokeChannel("versions:command-search", { q }),
   // v2.50 (T5): LibraryPage / PageHeader / OverviewEmptyState / CommandPalette
   // 兼容旧 renderer 调用, 实际仍复用唯一的 check-updates IPC 通道.
-  versionsRunCheck: () => ipcRenderer.invoke("check-updates"),
+  versionsRunCheck: () => invokeChannel("check-updates"),
 
   // v2.80 GitHub 优秀项目收录
   // 第二个参数 token 透传给主进程，用于解除未登录 60 次/小时限流。
-  githubFetch: (input: unknown, token: string) =>
-    ipcRenderer.invoke("github:fetch", { input, token }),
-  aiParseReadme: (payload: unknown) => ipcRenderer.invoke("ai:parse-readme", payload),
+  githubFetch: (input: string, token: string = "") =>
+    invokeChannel("github:fetch", { input, token }),
+  aiParseReadme: (payload: AiReadmeParsePayload) =>
+    invokeChannel("ai:parse-readme", payload),
   // Release 更新追踪：抓取某仓库 recent releases
-  githubFetchRelease: (input: unknown, token: string) =>
-    ipcRenderer.invoke("github:fetch-release", { input, token }),
+  githubFetchRelease: (input: string, token: string = "") =>
+    invokeChannel("github:fetch-release", { input, token }),
 
   // AI 榜单排名模块 (v2.82): 白名单双通道
-  getLeaderboard: (opts: unknown) => ipcRenderer.invoke("leaderboard:get", opts || {}),
-  refreshLeaderboard: (opts: unknown) =>
-    ipcRenderer.invoke("leaderboard:refresh", opts || {}),
-  rateBudget: () => ipcRenderer.invoke("leaderboard:rate-budget"),
+  getLeaderboard: (opts: IpcChannelMap["leaderboard:get"]["args"][0]) =>
+    invokeChannel("leaderboard:get", opts || {}),
+  refreshLeaderboard: (opts: IpcChannelMap["leaderboard:refresh"]["args"][0]) =>
+    invokeChannel("leaderboard:refresh", opts || {}),
+  rateBudget: () => invokeChannel("leaderboard:rate-budget"),
   // 2026-07-22: 工具栏「导出 CSV」→ 主进程 dialog.showSaveDialog + fs.writeFile
-  exportLeaderboardCsv: (payload: unknown) =>
-    ipcRenderer.invoke("leaderboard:export-csv", payload || {}),
+  exportLeaderboardCsv: (
+    payload: IpcChannelMap["leaderboard:export-csv"]["args"][0],
+  ) => invokeChannel("leaderboard:export-csv", payload),
 
   // 财经新闻 + 行情 (P0): 7 个主通道 + 2 个推送订阅
-  financeRefreshNews: (opts: unknown) =>
-    ipcRenderer.invoke("finance:refresh-news", opts || {}),
-  financeGetNews: (args: unknown) =>
-    ipcRenderer.invoke("finance:get-news", args || {}),
+  financeRefreshNews: (opts: IpcChannelMap["finance:refresh-news"]["args"][0]) =>
+    invokeChannel("finance:refresh-news", opts || {}),
+  financeGetNews: (args: IpcChannelMap["finance:get-news"]["args"][0]) =>
+    invokeChannel("finance:get-news", args || {}),
   // E2：各分类文章计数（含「全部」）
-  financeGetCategories: () => ipcRenderer.invoke("finance:categories"),
-  financeGetArticle: (args: unknown) =>
-    ipcRenderer.invoke("finance:get-article", args || {}),
+  financeGetCategories: () => invokeChannel("finance:categories"),
+  financeGetArticle: (args: IpcChannelMap["finance:get-article"]["args"][0]) =>
+    invokeChannel("finance:get-article", args),
   // 相关推荐（同标签优先 + 同分类补全），详情页列表为空时回退用
-  financeGetRelated: (args: unknown) =>
-    ipcRenderer.invoke("finance:get-related", args || {}),
-  financeRefreshQuotes: (opts: unknown) =>
-    ipcRenderer.invoke("finance:refresh-quotes", opts || {}),
-  financeGetQuotes: () => ipcRenderer.invoke("finance:get-quotes"),
-  financeToggleFavorite: (args: unknown) =>
-    ipcRenderer.invoke("finance:toggle-favorite", args || {}),
-  financeMarkRead: (args: unknown) =>
-    ipcRenderer.invoke("finance:mark-read", args || {}),
+  financeGetRelated: (args: IpcChannelMap["finance:get-related"]["args"][0]) =>
+    invokeChannel("finance:get-related", args),
+  financeRefreshQuotes: (opts: IpcChannelMap["finance:refresh-quotes"]["args"][0]) =>
+    invokeChannel("finance:refresh-quotes", opts || {}),
+  financeGetQuotes: () => invokeChannel("finance:get-quotes"),
+  financeToggleFavorite: (args: IpcChannelMap["finance:toggle-favorite"]["args"][0]) =>
+    invokeChannel("finance:toggle-favorite", args),
+  financeMarkRead: (args: IpcChannelMap["finance:mark-read"]["args"][0]) =>
+    invokeChannel("finance:mark-read", args),
   // 财经新闻 AI 解读（结果缓存到 finance_ai.json）
-  financeInterpret: (args: unknown) =>
-    ipcRenderer.invoke("finance:interpret", args || {}),
-  financeInterpretClear: (args: unknown) =>
-    ipcRenderer.invoke("finance:interpret-clear", args || {}),
+  financeInterpret: (args: IpcChannelMap["finance:interpret"]["args"][0]) =>
+    invokeChannel("finance:interpret", args),
+  financeInterpretClear: (args: IpcChannelMap["finance:interpret-clear"]["args"][0]) =>
+    invokeChannel("finance:interpret-clear", args),
   // P2：跨新闻聚合洞察
-  financeAggregate: (args: unknown) =>
-    ipcRenderer.invoke("finance:aggregate", args || {}),
+  financeAggregate: (args: IpcChannelMap["finance:aggregate"]["args"][0]) =>
+    invokeChannel("finance:aggregate", args || {}),
   onFinanceNewsUpdated: (cb: Callback) => {
     const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
     ipcRenderer.on("finance:news-updated", handler);
@@ -391,7 +567,44 @@ export const api = {
     ipcRenderer.on("finance:quotes-updated", handler);
     return () => ipcRenderer.removeListener("finance:quotes-updated", handler);
   },
-};
+} satisfies
+  CoreEventsApiContract &
+  ConfigStateApiContract &
+  ConfigPortabilityApiContract &
+  AiUsageApiContract &
+  DiagnosticsApiContract &
+  FundsApiContract &
+  FinanceApiContract &
+  IthomeApiContract &
+  AiLeaderboardApiContract &
+  StocksApiContract &
+  WechatHotApiContract &
+  RecentApiContract &
+  RemindersApiContract &
+  WatchlistApiContract &
+  ReleaseNotesApiContract &
+  ThemeSyncApiContract &
+  SelfUpdateApiContract &
+  AiPromptsApiContract &
+  SearchApiContract &
+  AiTasksApiContract &
+  AiSessionsApiContract &
+  AiSharedConfigApiContract &
+  AiAdviceApiContract &
+  AiFeedbackApiContract &
+  TokenBudgetApiContract &
+  UpdateCheckApiContract &
+  VersionsApiContract &
+  NavigationPersistenceApiContract &
+  UpgradeActionsApiContract &
+  MutesApiContract &
+  LastOpenedApiContract &
+  WindowApiContract &
+  OpenUrlApiContract &
+  BulkUpgradeApiContract &
+  GithubApiContract &
+  DigestApiContract &
+  Record<string, unknown>;
 
 // Phase v1: Tray 菜单配置 (主面板内 modal)
 // 独立 contextBridge 跟在 metalsApi 后面, 不并入 `api` 因为 spec 把这个当作"用户偏好面板",
@@ -402,8 +615,9 @@ export const pulse = {
     // 这里保留对称 API, 方便未来由 renderer 直接发起).
     openConfig: () => ipcRenderer.send("tray:open-config"),
     closeConfigModal: () => ipcRenderer.send("tray:close-config"),
-    getPrefs: () => ipcRenderer.invoke("tray:get-prefs"),
-    savePrefs: (prefs: unknown) => ipcRenderer.invoke("tray:save-prefs", prefs),
+    getPrefs: () => invokeChannel("tray:get-prefs"),
+    savePrefs: (prefs: IpcChannelMap["tray:save-prefs"]["args"][0]) =>
+      invokeChannel("tray:save-prefs", prefs),
     // main → renderer listener (返回 unsubscribe 函数, modal unmount 时清理).
     onOpenConfig: (cb: () => void) => {
       const handler = (_evt: IpcRendererEvent) => cb();
@@ -416,47 +630,55 @@ export const pulse = {
       return () => ipcRenderer.removeListener("tray:close-config", handler);
     },
   },
-};
+} satisfies { tray: PulseTrayApiContract } & Record<string, unknown>;
 
 // 贵金属 (v2.20.0) — 独立 contextBridge, 跟 funds / reminders / metals 一致
 export const metalsApi = {
-  list: () => ipcRenderer.invoke("metals:list"),
-  updateConfig: (patch: unknown) =>
-    ipcRenderer.invoke("metals:config:update", { patch }),
-  upsertHolding: (id: string, holding: unknown) =>
-    ipcRenderer.invoke("metals:holding:upsert", { id, holding }),
-  removeHolding: (id: string) =>
-    ipcRenderer.invoke("metals:holding:remove", { id }),
-  fetchNow: () => ipcRenderer.invoke("metals:quote:fetch"),
-  getState: () => ipcRenderer.invoke("metals:quote:state"),
-  onQuoteChanged: (cb: Callback) => {
-    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+  list: () => invokeChannel("metals:list"),
+  updateConfig: (
+    patch: IpcChannelMap["metals:config:update"]["args"][0]["patch"],
+  ) => invokeChannel("metals:config:update", { patch }),
+  upsertHolding: (
+    id: IpcChannelMap["metals:holding:upsert"]["args"][0]["id"],
+    holding: IpcChannelMap["metals:holding:upsert"]["args"][0]["holding"],
+  ) => invokeChannel("metals:holding:upsert", { id, holding }),
+  removeHolding: (id: IpcChannelMap["metals:holding:remove"]["args"][0]["id"]) =>
+    invokeChannel("metals:holding:remove", { id }),
+  fetchNow: () => invokeChannel("metals:quote:fetch"),
+  getState: () => invokeChannel("metals:quote:state"),
+  onQuoteChanged: (cb: Callback<MetalQuoteChangedPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as MetalQuoteChangedPayload);
     ipcRenderer.on("metals:quote:changed", handler);
     return () => ipcRenderer.removeListener("metals:quote:changed", handler);
   },
-  onStateUpdate: (cb: Callback) => {
-    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+  onStateUpdate: (cb: Callback<MetalStateResponse["scheduler"]>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as MetalStateResponse["scheduler"]);
     ipcRenderer.on("metals:quote:state-changed", handler);
     return () =>
       ipcRenderer.removeListener("metals:quote:state-changed", handler);
   },
-  getHistory: () => ipcRenderer.invoke("metals:history:get"),
-  onHistoryChanged: (cb: Callback) => {
-    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+  getHistory: () => invokeChannel("metals:history:get"),
+  onHistoryChanged: (cb: Callback<{ historyMap?: Record<string, unknown> }>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as { historyMap?: Record<string, unknown> });
     ipcRenderer.on("metals:history:changed", handler);
     return () => ipcRenderer.removeListener("metals:history:changed", handler);
   },
 
   // P10: 主题切换 IPC 桥接 (顶层 themeSet / onThemeChanged 在 api 上重复暴露,
   // 这里保留方便 theme-manager 之类直接走 metalsApi 的代码).
-  themeGet: () => ipcRenderer.invoke("theme:get"),
-  themeSet: (mode: string) => ipcRenderer.invoke("theme:set", mode),
-  onThemeChanged: (cb: Callback) => {
-    const handler = (_evt: IpcRendererEvent, data: unknown) => cb(data);
+  themeGet: () => invokeChannel("theme:get"),
+  themeSet: (mode: IpcChannelMap["theme:set"]["args"][0]) =>
+    invokeChannel("theme:set", mode),
+  onThemeChanged: (cb: Callback<ThemeChangedPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as ThemeChangedPayload);
     ipcRenderer.on("theme:changed", handler);
     return () => ipcRenderer.removeListener("theme:changed", handler);
   },
-};
+} satisfies MetalsApiContract & ThemeControlApiContract & Record<string, unknown>;
 
 contextBridge.exposeInMainWorld("platformInfo", platformInfo);
 contextBridge.exposeInMainWorld("api", api);

@@ -22,8 +22,46 @@ import * as recentActivity from "./recent-activity";
 import { detectStaleApps } from "../utils/stale-detect";
 
 const PER_APP_DETECT_TIMEOUT_MS = 95_000;
+let checkJobCounter = 0;
+
+export function createCheckJobId() {
+  return `check-${Date.now()}-${checkJobCounter++}`;
+}
 
 type ScheduleFn = (results: unknown, staleNames?: unknown) => void;
+
+type CheckJobControl = {
+  jobId: string;
+  pool: any;
+  silent: boolean;
+  cancelled: boolean;
+};
+
+const activeCheckJobs = new Map<string, CheckJobControl>();
+
+function isTaskCancelled(reason: any) {
+  return !!reason && reason.code === "TASK_CANCELLED";
+}
+
+export function cancelCheck(jobId?: string) {
+  const control = jobId
+    ? activeCheckJobs.get(jobId)
+    : [...activeCheckJobs.values()].find((job) => !job.silent);
+  if (!control) {
+    return { ok: false, reason: "not_running", ...(jobId ? { jobId } : {}) };
+  }
+
+  control.cancelled = true;
+  let poolResult = {};
+  try {
+    if (control.pool && typeof control.pool.cancelJob === "function") {
+      poolResult = control.pool.cancelJob(control.jobId) || {};
+    }
+  } catch {
+    /* cancellation is best effort; the per-app timeout remains a fallback */
+  }
+  return { ok: true, jobId: control.jobId, ...poolResult };
+}
 
 function scheduleOnCheckComplete(fn: ScheduleFn | undefined, results: unknown, staleNames?: unknown): void {
   if (typeof fn !== "function") return;
@@ -36,7 +74,14 @@ function scheduleOnCheckComplete(fn: ScheduleFn | undefined, results: unknown, s
   });
 }
 
-function enqueueDetectApp(pool: any, appCfg: any, history: any, incremental: any, forceRefresh: boolean) {
+function enqueueDetectApp(
+  pool: any,
+  appCfg: any,
+  history: any,
+  incremental: any,
+  forceRefresh: boolean,
+  jobId: string,
+) {
   const job = pool.enqueue({
     type: "detect-app",
     payload: {
@@ -48,22 +93,24 @@ function enqueueDetectApp(pool: any, appCfg: any, history: any, incremental: any
       // 手动刷新 (silent=false) 时 forceRefresh=true → 下游绕过熔断冷却,
       // 强制重试权威源. 后台自动 check 不强制, 仍走熔断保护.
       forceRefresh: !!forceRefresh,
+      jobId,
     },
   });
-  return Promise.race([
-    job,
-    new Promise((_: any, reject: any) => {
-      setTimeout(
-        () =>
-          reject(
-            new Error(
-              `detect-app timeout: ${(appCfg && appCfg.name) || "unknown"}`,
-            ),
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise((_: any, reject: any) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `detect-app timeout: ${(appCfg && appCfg.name) || "unknown"}`,
           ),
-        PER_APP_DETECT_TIMEOUT_MS,
-      );
-    }),
-  ]);
+        ),
+      PER_APP_DETECT_TIMEOUT_MS,
+    );
+  });
+  return Promise.race([job, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 export type RunCheckDeps = {
@@ -78,6 +125,7 @@ export type RunCheckDeps = {
 
 type RunCheckOpts = {
   silent?: boolean;
+  jobId?: string;
 };
 
 export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Promise<any[]> {
@@ -92,6 +140,16 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
   } = deps;
   const Notification = NotificationCtor || ElectronNotification;
   const silent = !!opts.silent;
+  const jobId = opts.jobId || createCheckJobId();
+  const control: CheckJobControl = {
+    jobId,
+    pool,
+    silent,
+    cancelled: false,
+  };
+  activeCheckJobs.set(jobId, control);
+
+  try {
   const config = getConfig() || { apps: [] };
   const apps = config.apps || [];
   const notifCfg = (config && config.notifications) || {};
@@ -112,6 +170,7 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
       count: apps.length,
       appNames: apps.map((app: any) => app && app.name).filter(Boolean),
       ts: Date.now(),
+      jobId,
     });
   }
 
@@ -138,6 +197,7 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
       history,
       incrementalPayload,
       forceRefreshPayload,
+      jobId,
     );
   });
   const settled = await Promise.allSettled(tasks);
@@ -146,14 +206,16 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
       return (s as any).value;
     }
     const appCfg = apps[i] || {};
+    const cancelled = control.cancelled || isTaskCancelled(s.reason);
     return {
       name: appCfg.name || `app-${i}`,
       installed_version: null,
       latest_version: null,
       has_update: false,
-      status: "error",
+      status: cancelled ? "cancelled" : "error",
       source: "",
-      note: ((s as any).reason && (s as any).reason.message) || "task failed",
+      note: ((s as any).reason && (s as any).reason.message) ||
+        (cancelled ? "task cancelled" : "task failed"),
       bundle: appCfg.bundle || "",
     };
   });
@@ -166,6 +228,8 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
     ts: Date.now(),
     stale: staleNames,
     freshestTs,
+    jobId,
+    cancelled: control.cancelled,
   };
 
   const state = typeof getState === "function" ? getState() : null;
@@ -184,6 +248,16 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
     }
 
     const updateApps = filteredResults.filter((r: any) => r.has_update);
+
+    if (control.cancelled) {
+      sendToRenderer("check-finished", finishPayload);
+      scheduleOnCheckComplete(
+        onCheckComplete,
+        filteredResults.filter((r: any) => r.status !== "cancelled"),
+        finishPayload.stale,
+      );
+      return filteredResults;
+    }
 
     // Phase 17: Quiet hours 抑制
     if (inQuietHours(new Date(), quietStart, quietEnd)) {
@@ -230,13 +304,18 @@ export async function runCheck(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
   } else {
     scheduleOnCheckComplete(
       onCheckComplete,
-      filteredResults,
+      control.cancelled
+        ? filteredResults.filter((r: any) => r.status !== "cancelled")
+        : filteredResults,
       finishPayload.stale,
     );
     sendToRenderer("auto-check-finished", finishPayload);
   }
 
   return filteredResults;
+  } finally {
+    if (activeCheckJobs.get(jobId) === control) activeCheckJobs.delete(jobId);
+  }
 }
 
 /** 串行化 check, 避免手动/自动检查同时占满 worker pool */
@@ -254,8 +333,9 @@ export function runCheckQueued(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
     // in-flight promise, 等了 N 秒才发现 UI 没新数据.
     return Promise.resolve({ started: false, reason: "already_running" });
   }
+  const jobId = opts.jobId || createCheckJobId();
   const job = checkTail.then(() => {
-    const running = runCheck(deps, opts);
+    const running = runCheck(deps, { ...opts, jobId });
     if (!silent) manualCheckInflight = running;
     return running.finally(() => {
       if (!silent && manualCheckInflight === running) {
@@ -267,4 +347,4 @@ export function runCheckQueued(deps: RunCheckDeps, opts: RunCheckOpts = {}): Pro
   return job;
 }
 
-module.exports = { runCheck, runCheckQueued };
+module.exports = { runCheck, runCheckQueued, cancelCheck };

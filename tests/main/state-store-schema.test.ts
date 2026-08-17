@@ -3,6 +3,7 @@ const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } =
 const {
   validateState,
   isStateValid,
+  migrateState,
   STATE_SCHEMA_VERSION,
 } = requireMain('state-store-schema');
 describe('state-store-schema', () => {
@@ -15,6 +16,38 @@ describe('state-store-schema', () => {
     expect(r.ok).toBe(true);
     expect(r.errors).toEqual([]);
     expect(isStateValid({ v: 1, ts: 0, apps: {} })).toBe(true);
+  });
+
+  it('migrates an unversioned legacy state to the current v1 envelope', () => {
+    const result = migrateState({
+      apps: { Cursor: { name: 'Cursor' } },
+      futureField: { keep: true },
+    });
+
+    expect(result).toMatchObject({
+      migrated: true,
+      fromVersion: 0,
+      toVersion: STATE_SCHEMA_VERSION,
+    });
+    expect(result.state).toMatchObject({
+      v: 1,
+      ts: 0,
+      mutes: {},
+      last_opened: {},
+      active_category: 'all',
+      futureField: { keep: true },
+    });
+    expect(isStateValid(result.state)).toBe(true);
+  });
+
+  it('does not rewrite an already current v1 state', () => {
+    const state = { v: 1, ts: 10, apps: {}, mutes: {} };
+    expect(migrateState(state)).toMatchObject({
+      migrated: false,
+      fromVersion: 1,
+      toVersion: STATE_SCHEMA_VERSION,
+      state,
+    });
   });
 
   it('rejects null / non-object', () => {
@@ -76,6 +109,53 @@ describe('state-store-schema', () => {
   it('rejects daily_digest with wrong type', () => {
     expect(isStateValid({ v: 1, ts: 0, apps: {}, daily_digest: 'bad' })).toBe(false);
     expect(isStateValid({ v: 1, ts: 0, apps: {}, daily_digest: [] })).toBe(false);
+  });
+
+  it('validates persisted domain fields that are part of the state-store preserve set', () => {
+    const valid = {
+      v: 1, ts: 0, apps: {},
+      ai_usage_alert_prefs: {},
+      tray_menu_prefs: {},
+      startup_samples: [],
+      watchlist: [],
+      last_seen_release: {},
+      wechat_hot: {},
+      ai_prompts: {},
+      upgrade_advice_cache: {},
+      changelog_summary_cache: {},
+      aiFeedback: [],
+      tokenSpend: {},
+      tokenBudgetConfig: {},
+      stockScreener: {},
+      aiStockAdviseCache: {},
+      stockDetailCache: {},
+      overviewCache: {},
+      metals: {},
+    };
+    expect(isStateValid(valid)).toBe(true);
+
+    const invalidCases = [
+      ['ai_usage_alert_prefs', []],
+      ['startup_samples', {}],
+      ['watchlist', {}],
+      ['last_seen_release', []],
+      ['wechat_hot', []],
+      ['ai_prompts', []],
+      ['upgrade_advice_cache', []],
+      ['changelog_summary_cache', []],
+      ['aiFeedback', {}],
+      ['tokenSpend', []],
+      ['tokenBudgetConfig', []],
+      ['stockScreener', []],
+      ['aiStockAdviseCache', []],
+      ['stockDetailCache', []],
+      ['overviewCache', []],
+      ['metals', []],
+    ] as const;
+
+    for (const [field, value] of invalidCases) {
+      expect(isStateValid({ v: 1, ts: 0, apps: {}, [field]: value })).toBe(false);
+    }
   });
 
   it('accepts app entries with snoozeUntil + skippedVersion sub-fields', () => {

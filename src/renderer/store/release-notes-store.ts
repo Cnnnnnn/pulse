@@ -16,10 +16,11 @@
  */
 
 import { signal } from '@preact/signals';
+import type { ReleaseNotesPayload } from '../../shared/ipc-contracts';
 
 export const releaseNotesOpen = signal(false);
-export const releaseNotesEntryPath = signal('auto'); // 'auto' | 'manual'
-export const releaseNotesPayload = signal(null);
+export const releaseNotesEntryPath = signal<'auto' | 'manual'>('auto');
+export const releaseNotesPayload = signal<ReleaseNotesPayload | null>(null);
 export const releaseNotesLoading = signal(false);
 
 /**
@@ -27,7 +28,10 @@ export const releaseNotesLoading = signal(false);
  * @param {'auto' | 'manual'} entryPath
  * @param {object} payload { version, changelogMd, slides }
  */
-export function openReleaseNotes(entryPath: any, payload: any) {
+export function openReleaseNotes(
+  entryPath: 'auto' | 'manual',
+  payload: ReleaseNotesPayload,
+) {
   releaseNotesEntryPath.value = entryPath;
   releaseNotesPayload.value = payload;
   releaseNotesOpen.value = true;

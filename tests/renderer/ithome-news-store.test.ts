@@ -3,14 +3,15 @@
  *
  * 覆盖 ithome store 的 read/new 行为：
  * - markIthomeRead: signal 更新 + IPC 调用 + 从 newIds 移除 + 同步 article.readAt
- * - loadIthomeNews: diff 产生 newIds (仅追踪本 session 首次出现的 id)
+ * - loadIthomeNews: diff 产生本次刷新新增的 newIds
  * - 切 viewMode / 切日期 / 切收藏日期 清空 newIds
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoadNewsMock } = vi.hoisted(() => {
+const { mockMarkRead, mockLoadNews, mockFetchDay, mockShareCard, setLoadNewsPayload, resetLoadNewsMock } = vi.hoisted(() => {
   const mockMarkRead = vi.fn().mockResolvedValue({ ok: true });
+  const mockFetchDay = vi.fn().mockResolvedValue({ ok: true });
   const queue = [];
   const mockLoadNews = vi.fn(() => {
     if (queue.length === 0) {
@@ -23,16 +24,19 @@ const { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoad
   const resetLoadNewsMock = () => {
     mockMarkRead.mockClear();
     mockLoadNews.mockClear();
+    mockFetchDay.mockReset();
+    mockFetchDay.mockResolvedValue({ ok: true });
     mockShareCard.mockClear();
     queue.length = 0;
   };
-  return { mockMarkRead, mockLoadNews, mockShareCard, setLoadNewsPayload, resetLoadNewsMock };
+  return { mockMarkRead, mockLoadNews, mockFetchDay, mockShareCard, setLoadNewsPayload, resetLoadNewsMock };
 });
 
 vi.mock("../../src/renderer/store/store-utils.ts", () => ({
   requireApiMethod: (name) => {
     if (name === "ithomeMarkRead") return mockMarkRead;
     if (name === "ithomeLoadNews") return mockLoadNews;
+    if (name === "ithomeFetchDay") return mockFetchDay;
     if (name === "ithomeShareCard") return mockShareCard;
     return undefined;
   },
@@ -50,8 +54,12 @@ import {
   ithomeSharingIds,
   ithomeUnreadBadge,
   ithomeArticles,
+  ithomeNewsLoading,
+  ithomeNewsState,
   markIthomeRead,
   loadIthomeNews,
+  fetchDayNews,
+  refreshIthomeNews,
   setIthomeViewMode,
   setIthomeSelectedDate,
   setIthomeFavoriteSelectedDate,
@@ -70,12 +78,23 @@ const ARTICLES_AFTER = {
   d: { id: "d", title: "new D", dateKey: "2026-06-12" },
 };
 
+function makeArticles(count, offset = 0) {
+  return Object.fromEntries(
+    Array.from({ length: count }, (_, index) => {
+      const id = `article-${offset + index}`;
+      return [id, { id, title: id, dateKey: "2026-06-12" }];
+    }),
+  );
+}
+
 describe("ithome store read/new flags", () => {
   beforeEach(() => {
     resetLoadNewsMock();
     ithomeReadIds.value = {};
     ithomeNewIds.value = {};
     ithomeArticles.value = {};
+    ithomeNewsLoading.value = false;
+    ithomeNewsState.value = { phase: "idle", data: {}, error: null, source: "unknown", fetchedAt: 0, lastAttemptAt: 0 };
   });
 
   it("markIthomeRead updates readIds signal and calls IPC", async () => {
@@ -97,17 +116,41 @@ describe("ithome store read/new flags", () => {
     expect(ithomeArticles.value.x.readAt).toBeGreaterThan(0);
   });
 
-  it("loadIthomeNews diff → newIds gets ids seen for the first time this session", async () => {
+  it("loadIthomeNews diff → only the latest refresh additions remain new", async () => {
     setLoadNewsPayload({ ok: true, articles: ARTICLES_BEFORE, dayStats: {}, summaries: {}, favorites: {} });
-    await loadIthomeNews();
+    await loadIthomeNews({ trackNew: true });
     expect(ithomeNewIds.value.a).toBe(1);
     expect(ithomeNewIds.value.b).toBe(1);
     setLoadNewsPayload({ ok: true, articles: ARTICLES_AFTER, dayStats: {}, summaries: {}, favorites: {} });
-    await loadIthomeNews();
+    await loadIthomeNews({ trackNew: true });
     expect(ithomeNewIds.value.c).toBe(1);
     expect(ithomeNewIds.value.d).toBe(1);
-    expect(ithomeNewIds.value.a).toBe(1);
-    expect(ithomeNewIds.value.b).toBe(1);
+    expect(ithomeNewIds.value.a).toBeUndefined();
+    expect(ithomeNewIds.value.b).toBeUndefined();
+  });
+
+  it("真实连续刷新 135 → 146 → 146 时，只保留本次新增文章为 new", async () => {
+    const firstRefresh = makeArticles(135);
+    const secondRefresh = {
+      ...firstRefresh,
+      ...makeArticles(11, 135),
+    };
+
+    setLoadNewsPayload({ ok: true, articles: firstRefresh, dayStats: {}, summaries: {}, favorites: {} });
+    await refreshIthomeNews();
+    expect(Object.keys(ithomeArticles.value)).toHaveLength(135);
+    expect(Object.keys(ithomeNewIds.value)).toHaveLength(135);
+
+    setLoadNewsPayload({ ok: true, articles: secondRefresh, dayStats: {}, summaries: {}, favorites: {} });
+    await refreshIthomeNews();
+    expect(Object.keys(ithomeArticles.value)).toHaveLength(146);
+    expect(Object.keys(ithomeNewIds.value)).toEqual(
+      Array.from({ length: 11 }, (_, index) => `article-${135 + index}`),
+    );
+
+    setLoadNewsPayload({ ok: true, articles: secondRefresh, dayStats: {}, summaries: {}, favorites: {} });
+    await refreshIthomeNews();
+    expect(Object.keys(ithomeNewIds.value)).toEqual([]);
   });
 
   it("setIthomeViewMode clears newIds", () => {
@@ -126,6 +169,24 @@ describe("ithome store read/new flags", () => {
     ithomeNewIds.value = { a: 1 };
     setIthomeFavoriteSelectedDate("2026-06-11");
     expect(ithomeNewIds.value).toEqual({});
+  });
+
+  it("successful load enters ready state with live source", async () => {
+    setLoadNewsPayload({ ok: true, articles: ARTICLES_BEFORE, dayStats: {}, summaries: {}, favorites: {}, ts: 123 });
+    await loadIthomeNews();
+    expect(ithomeNewsState.value.phase).toBe("ready");
+    expect(ithomeNewsState.value.source).toBe("live");
+    expect(ithomeNewsState.value.fetchedAt).toBe(123);
+  });
+
+  it("failed refresh keeps a usable cache as stale", async () => {
+    setLoadNewsPayload({ ok: true, articles: ARTICLES_BEFORE, dayStats: {}, summaries: {}, favorites: {}, ts: 123 });
+    await loadIthomeNews();
+    mockFetchDay.mockResolvedValueOnce({ ok: false, reason: "network_failed" });
+    await fetchDayNews("2026-06-12");
+    expect(ithomeNewsState.value.phase).toBe("stale");
+    expect(ithomeNewsState.value.fetchedAt).toBe(123);
+    expect(Object.keys(ithomeArticles.value)).toEqual(["a", "b"]);
   });
 });
 
