@@ -37,9 +37,9 @@ export function GithubProjectGrid({ projects, totalProjects = projects?.length |
       </div>
       {pageCount > 1 && (
         <div class="github-pager">
-          <button type="button" class="github-pager__btn" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>上一页</button>
+          <button type="button" class="github-control github-pager__btn" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>上一页</button>
           <span class="github-pager__info">{safePage} / {pageCount}（共 {projects.length} 个）</span>
-          <button type="button" class="github-pager__btn" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>下一页</button>
+          <button type="button" class="github-control github-pager__btn" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>下一页</button>
         </div>
       )}
     </>

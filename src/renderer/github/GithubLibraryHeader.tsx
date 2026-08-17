@@ -22,12 +22,12 @@ export function GithubLibraryHeader({
           </p>
         </div>
         <div class="github-library__primary-actions">
-          <button type="button" class="github-btn github-btn--primary" onClick={onAdd}>
+          <button type="button" class="github-control github-btn github-btn--primary" onClick={onAdd}>
             <IconSparkles size={14} /> 添加项目
           </button>
           <button
             type="button"
-            class="github-btn github-btn--ghost github-check-btn"
+            class="github-control github-btn github-btn--ghost github-check-btn"
             onClick={onCheckUpdates}
             disabled={checking || !(stats?.total > 0)}
           >
@@ -44,12 +44,12 @@ export function GithubLibraryHeader({
       </div>
       <div class="github-library__secondary-actions">
         {failedCount > 0 && (
-          <button type="button" class="github-btn github-btn--ghost" onClick={onRetryFailed} disabled={checking}>
+          <button type="button" class="github-control github-btn github-btn--ghost" onClick={onRetryFailed} disabled={checking}>
             <IconRefresh size={14} /> 重试失败项 {failedCount}
           </button>
         )}
         {unread > 0 && (
-          <button type="button" class="github-btn github-btn--ghost" onClick={onMarkAllSeen}>
+          <button type="button" class="github-control github-btn github-btn--ghost" onClick={onMarkAllSeen}>
             <IconCheck size={14} /> 全部已读 {unread}
           </button>
         )}

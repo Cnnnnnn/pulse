@@ -15,7 +15,7 @@ export function GithubLibrarySidebar({ stats, filters, onFiltersChange }: {
         <p class="github-library__sidebar-label">浏览</p>
         <button
           type="button"
-          class={`github-library__filter ${current.status === "all" ? "is-active" : ""}`}
+          class={`github-control github-library__filter ${current.status === "all" ? "is-active" : ""}`}
           aria-pressed={current.status === "all"}
           onClick={() => setFilter({ status: "all" })}
         >
@@ -23,7 +23,7 @@ export function GithubLibrarySidebar({ stats, filters, onFiltersChange }: {
         </button>
         <button
           type="button"
-          class={`github-library__filter ${current.status === "unread" ? "is-active" : ""}`}
+          class={`github-control github-library__filter ${current.status === "unread" ? "is-active" : ""}`}
           aria-pressed={current.status === "unread"}
           onClick={() => setFilter({ status: "unread" })}
         >
@@ -31,7 +31,7 @@ export function GithubLibrarySidebar({ stats, filters, onFiltersChange }: {
         </button>
         <button
           type="button"
-          class={`github-library__filter ${current.status === "recent" ? "is-active" : ""}`}
+          class={`github-control github-library__filter ${current.status === "recent" ? "is-active" : ""}`}
           aria-pressed={current.status === "recent"}
           onClick={() => setFilter({ status: "recent" })}
         >
@@ -39,7 +39,7 @@ export function GithubLibrarySidebar({ stats, filters, onFiltersChange }: {
         </button>
         <button
           type="button"
-          class={`github-library__filter ${current.status === "unparsed" ? "is-active" : ""}`}
+          class={`github-control github-library__filter ${current.status === "unparsed" ? "is-active" : ""}`}
           aria-pressed={current.status === "unparsed"}
           onClick={() => setFilter({ status: "unparsed" })}
         >
@@ -53,7 +53,7 @@ export function GithubLibrarySidebar({ stats, filters, onFiltersChange }: {
           {stats.languages.map((language: string) => (
             <button
               type="button"
-              class={`github-library__filter ${current.language === language ? "is-active" : ""}`}
+              class={`github-control github-library__filter ${current.language === language ? "is-active" : ""}`}
               aria-pressed={current.language === language}
               onClick={() => setFilter({ language: current.language === language ? "" : language })}
               key={language}
@@ -70,7 +70,7 @@ export function GithubLibrarySidebar({ stats, filters, onFiltersChange }: {
           {stats.tags.slice(0, 12).map((topic: string) => (
             <button
               type="button"
-              class={`github-library__filter ${current.topic === topic ? "is-active" : ""}`}
+              class={`github-control github-library__filter ${current.topic === topic ? "is-active" : ""}`}
               aria-pressed={current.topic === topic}
               onClick={() => setFilter({ topic: current.topic === topic ? "" : topic })}
               key={topic}

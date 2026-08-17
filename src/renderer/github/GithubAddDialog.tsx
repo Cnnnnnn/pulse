@@ -33,7 +33,7 @@ export function GithubAddDialog({ open, onClose }: { open: boolean; onClose: () 
             <p class="github-library__eyebrow">收录到我的开源库</p>
             <h3 id="github-add-dialog-title">添加项目</h3>
           </div>
-          <button type="button" class="github-icon-btn" aria-label="关闭" onClick={onClose}>×</button>
+          <button type="button" class="github-control github-icon-btn" aria-label="关闭" onClick={onClose}>×</button>
         </header>
         <div class="github-add-dialog__body">
           <GithubAddForm onComplete={onClose} />

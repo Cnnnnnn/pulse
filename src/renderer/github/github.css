@@ -1030,7 +1030,7 @@
   font-size: var(--font-size-base);
   line-height: 1.6;
   color: var(--text-primary);
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .readme-content h1,
 .readme-content h2,
@@ -1151,7 +1151,7 @@
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -1296,7 +1296,7 @@
   line-height: 1.6;
   color: var(--text-primary);
   white-space: normal;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .github-ai-usage code {
   font-family: var(--font-mono);
@@ -1622,6 +1622,67 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* ── 统一控件契约：按钮、筛选、卡片菜单、分页共享尺寸和键盘态 ── */
+.github-control {
+  box-sizing: border-box;
+  min-height: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.github-control:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.github-btn.github-control {
+  border-color: var(--border);
+}
+.github-btn.github-control.github-btn--primary {
+  border-color: color-mix(in srgb, var(--accent-primary) 75%, transparent);
+}
+.github-btn.github-control.github-btn--ghost,
+.github-pager__btn.github-control {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+.github-btn.github-control.github-btn--ghost:hover,
+.github-pager__btn.github-control:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.github-library__filter.github-control {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+}
+.github-library__filter.github-control:hover,
+.github-library__filter.github-control.is-active {
+  border-color: color-mix(in srgb, var(--accent-primary) 24%, var(--border));
+}
+.github-icon-btn.github-control,
+.github-card__actions > .github-icon-btn.github-control {
+  width: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.github-icon-btn.github-control:hover,
+.github-card__actions > .github-icon-btn.github-control:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+.github-icon-btn.github-control--danger:hover {
+  border-color: color-mix(in srgb, var(--color-danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--bg-secondary));
+  color: var(--color-danger);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .github-spinner {
     animation: none;
@@ -1807,10 +1868,10 @@
   line-height: 1.55;
   color: var(--text-secondary);
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   display: -webkit-box;
+  line-clamp: 4;
   -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .github-rel-notes.is-open {
@@ -1823,8 +1884,8 @@
    readme-content 是 GithubMarkdown 的固定 class。 */
 .github-rel-notes.readme-content {
   display: block;
+  line-clamp: unset;
   -webkit-line-clamp: unset;
-  -webkit-box-orient: initial;
   max-height: 6.2em; /* 约 4 行 line-height 1.55 */
   overflow: hidden;
 }

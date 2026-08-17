@@ -59,7 +59,7 @@ function GithubCardActions({ project, onView, onParse, onRemove, onTogglePin }: 
     <div class="github-card__actions">
       <button
         type="button"
-        class="github-icon-btn"
+        class="github-control github-icon-btn"
         aria-label="更多操作"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
