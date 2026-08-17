@@ -17,8 +17,11 @@ import {
   markGithubAllSeen,
   githubReasonText,
 } from "../store/github-projects-store.ts";
+import { getGithubLibraryStats } from "./github-library-selectors.ts";
 import { showToast } from "../store/toast-store.ts";
-import { GithubAddForm } from "./GithubAddForm.tsx";
+import { GithubAddDialog } from "./GithubAddDialog.tsx";
+import { GithubLibraryHeader } from "./GithubLibraryHeader.tsx";
+import { GithubLibrarySidebar } from "./GithubLibrarySidebar.tsx";
 import { GithubProjectList } from "./GithubProjectList.tsx";
 import { GithubProjectDrawer } from "./GithubProjectDrawer.tsx";
 
@@ -121,6 +124,8 @@ function _reportCheckResult(r) {
 export function GithubPage() {
   const [drawerId, setDrawerId] = useState(null);
   const [drawerTab, setDrawerTab] = useState("readme");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [filters, setFilters] = useState({ status: "all", language: "", topic: "" });
 
   function handleView(id, tab = "readme") {
     setDrawerTab(tab);
@@ -154,6 +159,7 @@ export function GithubPage() {
   }
 
   const count = githubProjects.value.length;
+  const stats = getGithubLibraryStats(githubProjects.value);
 
   return (
     <div class="github-page">
@@ -174,7 +180,18 @@ export function GithubPage() {
       </FeatureHeader>
 
       <div class="github-body">
-        <GithubAddForm />
+        <GithubLibraryHeader
+          stats={stats}
+          checking={false}
+          progress={{ done: 0, total: 0 }}
+          onAdd={() => setAddDialogOpen(true)}
+          onCheckUpdates={handleCheckUpdates}
+          onRetryFailed={handleRetryFailed}
+          onMarkAllSeen={handleMarkAllSeen}
+        />
+        <div class="github-library">
+          <GithubLibrarySidebar stats={stats} filters={filters} onFiltersChange={setFilters} />
+          <div class="github-library__content">
         {githubError.value && (
           <p class="github-page__err">
             操作失败：{githubError.value}
@@ -192,7 +209,11 @@ export function GithubPage() {
           onRetryFailed={handleRetryFailed}
           onMarkAllSeen={handleMarkAllSeen}
         />
+          </div>
+        </div>
       </div>
+
+      <GithubAddDialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} />
 
       {drawerId && (
         <GithubProjectDrawer

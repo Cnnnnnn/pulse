@@ -24,7 +24,7 @@ export function parseBatchInputs(text) {
     .filter((l) => l && !l.startsWith("#"));
 }
 
-export function GithubAddForm() {
+export function GithubAddForm({ onComplete }: { onComplete?: () => void } = {}) {
   const [value, setValue] = useState("");
   const [localErr, setLocalErr] = useState(null);
   const [batchMode, setBatchMode] = useState(false);
@@ -50,6 +50,7 @@ export function GithubAddForm() {
       } else {
         showToast(`已收录 ${v.split("/").slice(-1)[0]}`, "success", 2000);
       }
+      onComplete?.();
     } else {
       setLocalErr(githubReasonText(r.reason));
     }
@@ -73,6 +74,8 @@ export function GithubAddForm() {
     }
     if (r.failed.length > 0) {
       setBatchResults(r.failed);
+    } else {
+      onComplete?.();
     }
   }
 
