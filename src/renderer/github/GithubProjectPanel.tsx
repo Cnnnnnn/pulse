@@ -113,7 +113,7 @@ export function GithubProjectPanel({ projectId, initialTab = "overview", onClose
     { key: "overview", label: "概览", icon: IconSparkles },
     { key: "readme", label: "README", icon: IconBook },
     { key: "ai", label: "AI 解析", icon: IconSparkles },
-    { key: "update", label: "更新", icon: IconTag },
+    { key: "update", label: "版本更新", icon: IconTag },
   ];
 
   const header = (
@@ -160,7 +160,7 @@ export function GithubProjectPanel({ projectId, initialTab = "overview", onClose
             role="tab"
             aria-selected={tab === key}
             aria-controls={`github-panel-${key}`}
-            class={`github-tab${tab === key ? " is-active" : ""}`}
+            class={`github-tab github-tab--compact${tab === key ? " is-active" : ""}`}
             onClick={() => setTab(key)}
             key={key}
           >
@@ -168,7 +168,7 @@ export function GithubProjectPanel({ projectId, initialTab = "overview", onClose
           </button>
         ))}
       </div>
-      <div class="github-drawer__content" id={`github-panel-${tab}`} role="tabpanel" aria-label={tabs.find((item) => item.key === tab)?.label}>
+      <div class="github-drawer__content" data-tab={tab} id={`github-panel-${tab}`} role="tabpanel" aria-label={tabs.find((item) => item.key === tab)?.label}>
         {tab === "overview" ? (
           <GithubProjectOverview project={project} />
         ) : tab === "readme" ? (
