@@ -117,7 +117,7 @@ export function GithubProjectPanel({ projectId, initialTab = "overview", onClose
   ];
 
   const header = (
-    <header class="github-drawer__header">
+    <header class="github-drawer__header github-drawer__header--stacked">
       <div class="github-drawer__title-wrap">
         <div class="github-drawer__identity">
           <span class="github-drawer__title">{project.name}</span>
@@ -134,9 +134,9 @@ export function GithubProjectPanel({ projectId, initialTab = "overview", onClose
         </div>
       </div>
       <div class="github-drawer__actions">
-        <button type="button" class="github-icon-btn" title="刷新 README" onClick={handleRefresh} disabled={busy}><IconRefresh size={16} /></button>
-        <button type="button" class="github-icon-btn" title="在 GitHub 打开" onClick={openExternal}><IconGlobe size={16} /></button>
-        <button type="button" class="github-drawer__close" onClick={onClose} aria-label="关闭">×</button>
+        <button type="button" class="github-control github-icon-btn" title="刷新 README" onClick={handleRefresh} disabled={busy}><IconRefresh size={16} /></button>
+        <button type="button" class="github-control github-icon-btn" title="在 GitHub 打开" onClick={openExternal}><IconGlobe size={16} /></button>
+        <button type="button" class="github-control github-drawer__close" onClick={onClose} aria-label="关闭">×</button>
       </div>
       {project.description && <p class="github-drawer__desc">{project.description}</p>}
     </header>

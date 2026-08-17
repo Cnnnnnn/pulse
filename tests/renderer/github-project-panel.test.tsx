@@ -32,10 +32,11 @@ beforeEach(() => {
 
 describe("GithubProjectPanel", () => {
   it("opens with overview and exposes README, AI, and update tabs", () => {
-    const { getByRole, getByText, getAllByText } = render(
+    const { container, getByRole, getByText, getAllByText } = render(
       <GithubProjectPanel projectId="facebook/react" onClose={vi.fn()} />,
     );
 
+    expect(container.querySelector(".github-drawer__header--stacked")).toBeTruthy();
     expect(getAllByText("facebook/react").length).toBeGreaterThan(0);
     expect(getByRole("tab", { name: "概览" })).toBeTruthy();
     expect(getByRole("tab", { name: "README" })).toBeTruthy();

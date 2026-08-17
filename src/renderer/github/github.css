@@ -839,6 +839,27 @@
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border);
 }
+.github-drawer__header--stacked {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "identity actions"
+    "description actions";
+  align-items: start;
+}
+.github-drawer__header--stacked .github-drawer__title-wrap {
+  grid-area: identity;
+}
+.github-drawer__header--stacked .github-drawer__actions {
+  grid-area: actions;
+  align-self: start;
+}
+.github-drawer__header--stacked .github-drawer__desc {
+  grid-area: description;
+  min-width: 0;
+  max-width: 68ch;
+  margin-top: var(--space-2);
+}
 .github-drawer__title-wrap {
   display: flex;
   align-items: center;
