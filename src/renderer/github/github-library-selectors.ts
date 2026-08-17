@@ -7,6 +7,7 @@ export type GithubLibrarySort =
 
 export type GithubLibraryStatus =
   | "all"
+  | "recent"
   | "unread"
   | "unparsed"
   | "unchecked";
@@ -96,6 +97,7 @@ export function filterGithubProjects(
       if (status === "unread" && getGithubProjectStatus(project) !== "update") {
         return false;
       }
+      if (status === "recent" && !project?.lastViewedAt) return false;
       if (status === "unparsed" && project?.aiParse) return false;
       if (status === "unchecked" && project?.releaseFetchedAt) return false;
       return true;
@@ -111,6 +113,7 @@ export function getGithubLibraryStats(projects: any[]) {
     unread: list.filter((project) => getGithubProjectStatus(project) === "update").length,
     parsed: list.filter((project) => Boolean(project?.aiParse)).length,
     unchecked: list.filter((project) => !project?.releaseFetchedAt).length,
+    recent: list.filter((project) => Boolean(project?.lastViewedAt)).length,
     languages: [...new Set(
       list
         .map((project) => textOf(project?.language).trim())

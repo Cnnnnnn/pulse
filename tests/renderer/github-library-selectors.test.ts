@@ -20,6 +20,7 @@ const projects = [
     latestVersionPublishedAt: 500,
     latestVersion: "19.1.1",
     lastSeenVersion: "19.0.0",
+    lastViewedAt: 900,
     aiParse: { summary: "构建用户界面", tags: ["frontend"] },
   },
   {
@@ -85,6 +86,7 @@ describe("github library selectors", () => {
       unread: 1,
       parsed: 2,
       unchecked: 1,
+      recent: 1,
       languages: ["TypeScript"],
     });
     expect(getGithubLibraryStats(projects).tags).toEqual(
@@ -92,6 +94,12 @@ describe("github library selectors", () => {
         a.localeCompare(b),
       ),
     );
+  });
+
+  it("supports the recently viewed status filter", () => {
+    expect(filterGithubProjects(projects, { status: "recent" }).map((project) => project.id)).toEqual([
+      "facebook/react",
+    ]);
   });
 
   it("classifies project status from the existing record shape", () => {

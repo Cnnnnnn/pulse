@@ -6,12 +6,16 @@ export function GithubAddDialog({ open, onClose }: { open: boolean; onClose: () 
 
   useEffect(() => {
     if (!open) return undefined;
+    const previousFocus = document.activeElement as HTMLElement | null;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     queueMicrotask(() => dialogRef.current?.querySelector<HTMLElement>("input, textarea, button")?.focus());
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus?.();
+    };
   }, [open, onClose]);
 
   if (!open) return null;

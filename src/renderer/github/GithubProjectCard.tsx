@@ -9,6 +9,7 @@ import {
 import {
   formatAddedDate,
   formatStars,
+  githubBusyId,
   hasDistinctHomepage,
   hostnameOf,
   hasGithubUpdate,
@@ -52,7 +53,7 @@ function GithubUpdateBadge({ project, onView }: any) {
 function GithubCardActions({ project, onView, onParse, onRemove, onTogglePin }: any) {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
-  const busy = false;
+  const busy = githubBusyId.value === project.id;
 
   return (
     <div class="github-card__actions">

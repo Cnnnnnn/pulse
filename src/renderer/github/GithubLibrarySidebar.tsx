@@ -31,6 +31,14 @@ export function GithubLibrarySidebar({ stats, filters, onFiltersChange }: {
         </button>
         <button
           type="button"
+          class={`github-library__filter ${current.status === "recent" ? "is-active" : ""}`}
+          aria-pressed={current.status === "recent"}
+          onClick={() => setFilter({ status: "recent" })}
+        >
+          <span>最近查看</span><b>{stats?.recent || 0}</b>
+        </button>
+        <button
+          type="button"
           class={`github-library__filter ${current.status === "unparsed" ? "is-active" : ""}`}
           aria-pressed={current.status === "unparsed"}
           onClick={() => setFilter({ status: "unparsed" })}
