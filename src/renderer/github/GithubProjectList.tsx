@@ -44,6 +44,7 @@ import {
 } from "../store/github-projects-store.ts";
 import { openConfirm } from "../store/confirmStore.ts";
 import { api } from "../api.ts";
+import { GithubProjectCard as CuratedGithubProjectCard } from "./GithubProjectCard.tsx";
 
 const PAGE_SIZE = 8;
 
@@ -436,7 +437,7 @@ export function GithubProjectList({ onView, onParse, onCheckUpdates, onRetryFail
       ) : view === "card" ? (
         <div class="github-cards">
           {slice.map((p) => (
-            <GithubProjectCard
+              <CuratedGithubProjectCard
               key={p.id}
               project={p}
               onView={onView}
@@ -711,7 +712,7 @@ function GithubActions({ project, onView, onParse, onRemove, onTogglePin }) {
   );
 }
 
-export function GithubProjectCard({ project, onView, onParse, onRemove, onTogglePin }) {
+function GithubProjectCardLegacy({ project, onView, onParse, onRemove, onTogglePin }) {
   const added = formatAddedDate(project.addedAt);
   const summary = project.aiParse && project.aiParse.summary;
 
@@ -802,3 +803,5 @@ export function GithubProjectCard({ project, onView, onParse, onRemove, onToggle
     </div>
   );
 }
+
+export { CuratedGithubProjectCard as GithubProjectCard };

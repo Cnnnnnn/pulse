@@ -1523,6 +1523,35 @@
   padding-top: var(--space-3);
   border-top: 1px solid var(--border);
 }
+.github-card__head {
+  position: relative;
+}
+.github-card__actions {
+  position: relative;
+  flex: 0 0 auto;
+}
+.github-card__actions > .github-icon-btn {
+  width: 30px;
+  height: 30px;
+  background: var(--bg-secondary);
+}
+.github-card__menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 28;
+}
+.github-card__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 29;
+  min-width: 168px;
+  padding: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .github-spinner {
