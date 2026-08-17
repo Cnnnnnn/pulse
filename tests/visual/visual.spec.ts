@@ -235,6 +235,45 @@ test("overview (Library page) — win32 platform baseline (浅底 accent 验证)
   });
 });
 
+test("GitHub curated library — light theme interaction contract", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("app-theme-preference", "light");
+      localStorage.setItem(
+        "pulse.github.projects.v1",
+        JSON.stringify([
+          {
+            id: "facebook/react",
+            name: "facebook/react",
+            description: "用于构建用户界面的 JavaScript 库",
+            url: "https://github.com/facebook/react",
+            language: "JavaScript",
+            stars: 241000,
+            topics: ["ui", "frontend"],
+            aiParse: { summary: "构建用户界面", tags: ["react"] },
+            latestVersion: "19.1.1",
+            lastSeenVersion: "19.0.0",
+            latestVersionPublishedAt: Date.now(),
+            releaseFetchedAt: Date.now(),
+            releases: [],
+            readme: "# React",
+            addedAt: Date.now(),
+          },
+        ]),
+      );
+    } catch {}
+  });
+  await page.goto("/");
+  await waitForShell(page);
+  await openDrawerView(page, "news", "github");
+  await page.locator(".github-project-grid").waitFor({ state: "visible" });
+  await expect(page.getByText("我的开源库")).toBeVisible();
+  await expect(page.locator(".github-project-grid .github-card")).toHaveCount(1);
+  await page.getByRole("button", { name: "facebook/react" }).click();
+  await expect(page.getByRole("tab", { name: "概览" })).toBeVisible();
+});
+
 test("settings page — P13 4-section 卡片化 baseline", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.addInitScript(() => {

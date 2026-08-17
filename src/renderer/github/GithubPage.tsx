@@ -5,7 +5,7 @@
  * 列表分页、README 与 AI 解析结果在抽屉内以清晰布局呈现。
  */
 
-import { useState } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { FeatureHeader } from "../components/FeatureHeader.tsx";
 import {
   githubProjects,
@@ -15,14 +15,18 @@ import {
   retryFailedGithubUpdates,
   markGithubSeen,
   markGithubAllSeen,
+  lastFailedIds,
+  removeGithubProject,
+  togglePinGithubProject,
   githubReasonText,
 } from "../store/github-projects-store.ts";
-import { getGithubLibraryStats } from "./github-library-selectors.ts";
+import { filterGithubProjects, getGithubLibraryStats } from "./github-library-selectors.ts";
 import { showToast } from "../store/toast-store.ts";
+import { openConfirm } from "../store/confirmStore.ts";
 import { GithubAddDialog } from "./GithubAddDialog.tsx";
 import { GithubLibraryHeader } from "./GithubLibraryHeader.tsx";
 import { GithubLibrarySidebar } from "./GithubLibrarySidebar.tsx";
-import { GithubProjectList } from "./GithubProjectList.tsx";
+import { GithubProjectGrid } from "./GithubProjectGrid.tsx";
 import { GithubProjectDrawer } from "./GithubProjectDrawer.tsx";
 
 function GithubMark({ size = 18 }) {
@@ -123,11 +127,19 @@ function _reportCheckResult(r) {
 
 export function GithubPage() {
   const [drawerId, setDrawerId] = useState(null);
-  const [drawerTab, setDrawerTab] = useState("readme");
+  const [drawerTab, setDrawerTab] = useState("overview");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [filters, setFilters] = useState({ status: "all", language: "", topic: "" });
+  const [checking, setChecking] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [filters, setFilters] = useState({
+    status: "all",
+    language: "",
+    topic: "",
+    query: "",
+    sort: "added",
+  });
 
-  function handleView(id, tab = "readme") {
+  function handleView(id, tab = "overview") {
     setDrawerTab(tab);
     setDrawerId(id);
     // 通过「新版本」徽标进入更新 tab 时，主动标记为已读（徽标随即消失）
@@ -139,17 +151,37 @@ export function GithubPage() {
     setDrawerId(id);
   }
 
-  async function handleCheckUpdates(onProgress) {
-    const r = await checkGithubUpdates({ onProgress });
-    _reportCheckResult(r);
-    return r;
+  async function handleCheckUpdates() {
+    if (checking) return null;
+    setChecking(true);
+    setProgress({ done: 0, total: githubProjects.value.length });
+    try {
+      const r = await checkGithubUpdates({
+        onProgress: (done, total) => setProgress({ done, total }),
+      });
+      _reportCheckResult(r);
+      return r;
+    } finally {
+      setChecking(false);
+      setProgress({ done: 0, total: 0 });
+    }
   }
 
   /** 只重试上次失败的项目（工具栏「重试失败项」按钮触发）。 */
-  async function handleRetryFailed(onProgress) {
-    const r = await retryFailedGithubUpdates({ onProgress });
-    _reportCheckResult(r);
-    return r;
+  async function handleRetryFailed() {
+    if (checking || lastFailedIds.value.length === 0) return null;
+    setChecking(true);
+    setProgress({ done: 0, total: lastFailedIds.value.length });
+    try {
+      const r = await retryFailedGithubUpdates({
+        onProgress: (done, total) => setProgress({ done, total }),
+      });
+      _reportCheckResult(r);
+      return r;
+    } finally {
+      setChecking(false);
+      setProgress({ done: 0, total: 0 });
+    }
   }
 
   function handleMarkAllSeen() {
@@ -157,6 +189,25 @@ export function GithubPage() {
     if (n > 0) showToast(`已将 ${n} 个项目标记为已读`, "info");
     return n;
   }
+
+  async function handleRemove(project) {
+    const ok = await openConfirm({
+      title: "取消收录该项目？",
+      message: `将从你的 GitHub 收录库中移除「${project.name}」，此操作不可撤销。`,
+      confirmText: "移除",
+      cancelText: "取消",
+    });
+    if (ok) removeGithubProject(project.id);
+  }
+
+  function handleFilterChange(next) {
+    setFilters((current) => ({ ...current, ...next }));
+  }
+
+  const visibleProjects = useMemo(
+    () => filterGithubProjects(githubProjects.value, filters),
+    [githubProjects.value, filters],
+  );
 
   const count = githubProjects.value.length;
   const stats = getGithubLibraryStats(githubProjects.value);
@@ -182,33 +233,57 @@ export function GithubPage() {
       <div class="github-body">
         <GithubLibraryHeader
           stats={stats}
-          checking={false}
-          progress={{ done: 0, total: 0 }}
+          checking={checking}
+          progress={progress}
+          failedCount={lastFailedIds.value.length}
           onAdd={() => setAddDialogOpen(true)}
           onCheckUpdates={handleCheckUpdates}
           onRetryFailed={handleRetryFailed}
           onMarkAllSeen={handleMarkAllSeen}
         />
         <div class="github-library">
-          <GithubLibrarySidebar stats={stats} filters={filters} onFiltersChange={setFilters} />
+          <GithubLibrarySidebar stats={stats} filters={filters} onFiltersChange={handleFilterChange} />
           <div class="github-library__content">
-        {githubError.value && (
-          <p class="github-page__err">
-            操作失败：{githubError.value}
-          </p>
-        )}
-        {githubCheckDataState.value.error && (
-          <p class="github-page__err">
-            更新检查失败：{githubCheckDataState.value.error}，保留最近一次检查结果。
-          </p>
-        )}
-        <GithubProjectList
-          onView={handleView}
-          onParse={handleParse}
-          onCheckUpdates={handleCheckUpdates}
-          onRetryFailed={handleRetryFailed}
-          onMarkAllSeen={handleMarkAllSeen}
-        />
+            <div class="github-toolbar github-library__toolbar">
+              <div class="github-search">
+                <span aria-hidden="true">⌕</span>
+                <input
+                  id="filter-search-input"
+                  type="text"
+                  class="github-search__input"
+                  placeholder="搜索项目、简介或标签…"
+                  value={filters.query}
+                  onInput={(event) => handleFilterChange({ query: event.currentTarget.value })}
+                  aria-label="搜索收录项目"
+                />
+              </div>
+              <div class="github-select">
+                <select
+                  class="github-select__el"
+                  value={filters.sort}
+                  onChange={(event) => handleFilterChange({ sort: event.currentTarget.value })}
+                  aria-label="排序方式"
+                >
+                  <option value="added">最近收录</option>
+                  <option value="stars">Star 数</option>
+                  <option value="name">项目名称</option>
+                  <option value="published">最近发布</option>
+                  <option value="checked">最近检查</option>
+                </select>
+              </div>
+            </div>
+            {githubError.value && <p class="github-page__err">操作失败：{githubError.value}</p>}
+            {githubCheckDataState.value.error && (
+              <p class="github-page__err">更新检查失败：{githubCheckDataState.value.error}，保留最近一次检查结果。</p>
+            )}
+            <GithubProjectGrid
+              projects={visibleProjects}
+              totalProjects={githubProjects.value.length}
+              onView={handleView}
+              onParse={handleParse}
+              onRemove={handleRemove}
+              onTogglePin={(project) => togglePinGithubProject(project.id)}
+            />
           </div>
         </div>
       </div>
