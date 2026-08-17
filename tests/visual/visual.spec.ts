@@ -256,7 +256,20 @@ test("GitHub curated library — light theme interaction contract", async ({ pag
             lastSeenVersion: "19.0.0",
             latestVersionPublishedAt: Date.now(),
             releaseFetchedAt: Date.now(),
-            releases: [],
+            releases: [
+              {
+                version: "19.1.1",
+                publishedAt: Date.now() - 7 * 24 * 60 * 60 * 1000,
+                notesUrl: "https://github.com/facebook/react/releases/tag/v19.1.1",
+                body: "修复若干问题",
+              },
+              {
+                version: "19.0.0",
+                publishedAt: Date.now() - 31 * 24 * 60 * 60 * 1000,
+                notesUrl: "https://github.com/facebook/react/releases/tag/v19.0.0",
+                body: "稳定性改进",
+              },
+            ],
             readme: "# React",
             addedAt: Date.now(),
           },
@@ -278,18 +291,50 @@ test("GitHub curated library — light theme interaction contract", async ({ pag
   });
   expect(drawerBounds.top).toBeGreaterThanOrEqual(28);
   expect(drawerBounds.bottom).toBeLessThanOrEqual(drawerBounds.viewportHeight);
-  const drawerLayout = await page.locator(".github-drawer__header--stacked").evaluate((header) => {
-    const title = header.querySelector(".github-drawer__title-wrap")!.getBoundingClientRect();
-    const desc = header.querySelector(".github-drawer__desc")!.getBoundingClientRect();
+  const drawerLayout = await page.locator(".github-drawer__topbar").evaluate((topbar) => {
+    const identity = topbar.querySelector(".github-drawer__topbar-identity")!.getBoundingClientRect();
+    const tabs = topbar.parentElement!.querySelector(".github-drawer__tabs")!.getBoundingClientRect();
+    const content = topbar.parentElement!.querySelector(".github-drawer__content")!.getBoundingClientRect();
     return {
-      titleTop: title.top,
-      titleBottom: title.bottom,
-      descTop: desc.top,
-      headerTop: header.getBoundingClientRect().top,
+      identityTop: identity.top,
+      topbarTop: topbar.getBoundingClientRect().top,
+      topbarBottom: topbar.getBoundingClientRect().bottom,
+      tabsTop: tabs.top,
+      tabsBottom: tabs.bottom,
+      contentTop: content.top,
     };
   });
-  expect(drawerLayout.titleTop).toBeGreaterThanOrEqual(drawerLayout.headerTop);
-  expect(drawerLayout.descTop).toBeGreaterThan(drawerLayout.titleBottom - 1);
+  expect(drawerLayout.identityTop).toBeGreaterThanOrEqual(drawerLayout.topbarTop);
+  expect(drawerLayout.tabsTop).toBeGreaterThanOrEqual(drawerLayout.topbarBottom);
+  expect(drawerLayout.contentTop).toBeGreaterThanOrEqual(drawerLayout.tabsBottom);
+
+  const contentSpacing = await page.locator(".github-drawer__content").evaluate((content) => {
+    const panel = content.querySelector(".github-panel-content")!;
+    const contentRect = content.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    const style = getComputedStyle(content);
+    return {
+      paddingLeft: parseFloat(style.paddingLeft),
+      paddingRight: parseFloat(style.paddingRight),
+      panelLeft: panelRect.left,
+      panelRight: panelRect.right,
+      contentLeft: contentRect.left,
+      contentRight: contentRect.right,
+    };
+  });
+  expect(contentSpacing.paddingLeft).toBeGreaterThan(0);
+  expect(contentSpacing.paddingRight).toBeGreaterThan(0);
+  expect(contentSpacing.panelLeft).toBeGreaterThan(contentSpacing.contentLeft);
+  expect(contentSpacing.panelRight).toBeLessThan(contentSpacing.contentRight);
+
+  await page.getByRole("tab", { name: "版本更新" }).click();
+  await expect(page.locator(".github-rel")).toBeVisible();
+  const releaseLayout = await page.locator(".github-rel").evaluate((release) => {
+    const month = release.querySelector(".github-rel-month")!.getBoundingClientRect();
+    const body = release.querySelector(".github-rel-item__body")!.getBoundingClientRect();
+    return { monthLeft: month.left, bodyLeft: body.left };
+  });
+  expect(releaseLayout.monthLeft).toBeGreaterThanOrEqual(releaseLayout.bodyLeft - 1);
 });
 
 test("settings page — P13 4-section 卡片化 baseline", async ({ page }) => {

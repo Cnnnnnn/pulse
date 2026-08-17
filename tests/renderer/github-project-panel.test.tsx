@@ -36,7 +36,7 @@ describe("GithubProjectPanel", () => {
       <GithubProjectPanel projectId="facebook/react" onClose={vi.fn()} />,
     );
 
-    expect(container.querySelector(".github-drawer__header--stacked")).toBeTruthy();
+    expect(container.querySelector(".github-drawer__topbar")).toBeTruthy();
     expect(getAllByText("facebook/react").length).toBeGreaterThan(0);
     expect(getByRole("tab", { name: "概览" })).toBeTruthy();
     expect(getByRole("tab", { name: "README" })).toBeTruthy();
