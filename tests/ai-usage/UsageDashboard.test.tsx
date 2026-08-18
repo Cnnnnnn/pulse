@@ -50,9 +50,49 @@ describe("UsageDashboard", () => {
     expect(container.querySelector(".ai-usage-dashboard")).toBe(null);
   });
 
+  test("仅有基础配额时显示深入分析的可解释占位", () => {
+    const { container } = render(<UsageDashboard snapshot={{
+      provider: "minimax",
+      windows: { "5h": { usedPercent: 17, resetInSec: 3600 } },
+    }} provider="minimax" />);
+
+    const empty = container.querySelector(".ai-usage-insights-empty");
+    expect(empty).toBeTruthy();
+    expect(empty.textContent).toContain("暂无深入统计");
+  });
+
   test("snapshot=null → 不渲染", () => {
     const { container } = render(<UsageDashboard snapshot={null} />);
     expect(container.querySelector(".ai-usage-dashboard")).toBe(null);
+  });
+
+  test("MiniMax 把主配额提升为页面顶部状态带", () => {
+    const { container } = render(<UsageDashboard snapshot={{
+      provider: "minimax",
+      windows: {
+        "5h": { usedPercent: 17, remainingPercent: 83, resetInSec: 3 * 3600 },
+        weekly: { usedPercent: 28, remainingPercent: 72, resetInSec: 5 * 86400 },
+      },
+    }} provider="minimax" />);
+
+    const hero = container.querySelector(".ai-usage-provider-hero--minimax");
+    expect(hero).toBeTruthy();
+    expect(hero.textContent).toContain("当前可用");
+    expect(hero.textContent).toContain("83%");
+    expect(hero.textContent).toContain("5 小时窗口");
+    expect(hero.textContent).toContain("周窗口");
+  });
+
+  test("MiniMax 主状态带存在时不在补充资源区重复 5 小时和周额度", () => {
+    const { container } = render(<UsageDashboard snapshot={{
+      provider: "minimax",
+      windows: {
+        "5h": { usedPercent: 17, resetInSec: 3600 },
+        weekly: { usedPercent: 28, resetInSec: 86400 },
+      },
+    }} provider="minimax" />);
+
+    expect(container.querySelector(".ai-usage-overview")).toBe(null);
   });
 
   test("渲染顶部概览条 (4 格)", () => {
@@ -183,5 +223,52 @@ describe("UsageDashboard", () => {
       usageSummary: { ...SAMPLE, dailyTokenUsage: undefined },
     }} />);
     expect(container.querySelectorAll(".ai-usage-overview-line")).toHaveLength(2);
+  });
+
+  test("GLM 以三类额度和 MCP 工具分布替代 MiniMax 趋势分析", () => {
+    const snapshot = {
+      provider: "glm",
+      level: "pro",
+      windows: {
+        "5h": {
+          used: 120,
+          total: 300,
+          remaining: 180,
+          usedPercent: 40,
+          resetInSec: 3600,
+        },
+        weekly: {
+          used: 900,
+          total: 3000,
+          remaining: 2100,
+          usedPercent: 30,
+          resetInSec: 86400,
+        },
+        mcp: {
+          used: 12,
+          total: 60,
+          remaining: 48,
+          usedPercent: 20,
+          resetInSec: 7 * 86400,
+        },
+      },
+      toolUsageDetails: [
+        { modelCode: "search-prime", usage: 18 },
+        { modelCode: "web-reader", usage: 9 },
+      ],
+    };
+
+    const { container } = render(<UsageDashboard snapshot={snapshot} provider="glm" />);
+
+    expect(container.querySelector(".ai-usage-dashboard--glm")).toBeTruthy();
+    expect(container.querySelector(".ai-usage-glm-summary")).toBeTruthy();
+    expect(container.textContent).toContain("5 小时 Token");
+    expect(container.textContent).toContain("周 Token");
+    expect(container.textContent).toContain("MCP 时长（本月）");
+    expect(container.textContent).toContain("Pro");
+    expect(container.textContent).toContain("search-prime");
+    expect(container.textContent).toContain("web-reader");
+    expect(container.querySelector(".ai-usage-trend")).toBe(null);
+    expect(container.querySelector(".ai-usage-history-card")).toBe(null);
   });
 });

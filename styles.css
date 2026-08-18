@@ -6298,7 +6298,7 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 24px 32px;
+  padding: 32px 48px 40px;
   box-sizing: border-box;
   overflow-y: auto;
 }
@@ -6306,26 +6306,31 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 /* AI 用量页 provider 切换 tab (minimax / glm) */
 .ai-usage-tabs {
   display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--bg-secondary);
-  max-width: 880px;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  max-width: 1180px;
   width: 100%;
-  margin: 0 auto 4px;
+  margin: 0 auto 22px;
+  justify-content: flex-start;
+  box-sizing: border-box;
 }
 
 .ai-usage-tab {
-  padding: 8px 14px;
+  padding: 7px 16px;
   font-size: var(--font-size-md);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
   background: transparent;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: 7px;
   font-family: var(--font-system);
   white-space: nowrap;
   cursor: pointer;
   transition: all 150ms ease;
-  margin-bottom: -1px;
+  margin: 0;
 }
 
 .ai-usage-tab:hover {
@@ -6334,15 +6339,50 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 }
 
 .ai-usage-tab--active {
-  color: var(--accent-primary);
-  border-bottom-color: var(--accent-primary);
+  color: var(--text-inverse, #fff);
+  background: var(--accent-primary);
+}
+
+.ai-usage-header-actions .ai-usage-tabs {
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+.ai-usage-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.ai-usage-header-actions .ai-usage-tab {
+  min-height: 34px;
+}
+.ai-usage-header-actions .ai-usage-bell-btn,
+.ai-usage-header-actions .ai-usage-refresh-btn {
+  height: 34px;
+  box-sizing: border-box;
+  margin: 0;
+}
+.ai-usage-header-actions .ai-usage-bell-btn {
+  width: 34px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+.ai-usage-header-actions .ai-usage-refresh-btn {
+  padding: 0 14px;
+}
+@media (max-width: 720px) {
+  .ai-usage-header { align-items: stretch; flex-direction: column; }
+  .ai-usage-header-actions { justify-content: space-between; }
 }
 
 .ai-usage-page {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  max-width: 880px;
+  max-width: 1180px;
   width: 100%;
   margin: 0 auto;
 }
@@ -6351,13 +6391,15 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-5);
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
 }
 
 .ai-usage-title {
   margin: 0;
   font-size: var(--font-size-display-sm);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
@@ -6484,8 +6526,8 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   color: var(--text-primary);
-  border-radius: 6px;
-  padding: 6px 14px;
+  border-radius: 8px;
+  padding: 8px 16px;
   font-size: var(--font-size-md);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -6824,15 +6866,45 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-top: 16px;
-  padding: 18px;
-  background: var(--bg-primary);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  gap: 20px;
+  margin-top: 4px;
+  padding: 0;
+  background: transparent;
+  border: 0;
 }
+.ai-usage-provider-hero {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) 2fr;
+  gap: 28px;
+  padding: 24px 26px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.ai-usage-provider-hero-main { display: flex; flex-direction: column; gap: 4px; }
+.ai-usage-provider-hero-main > span { color: var(--text-secondary); font-size: 13px; }
+.ai-usage-provider-hero-main > strong { color: var(--accent-primary); font-size: 52px; line-height: 1; letter-spacing: -0.05em; }
+.ai-usage-provider-hero-main > small { color: var(--text-secondary); font-size: 13px; }
+.ai-usage-provider-hero-windows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: center; }
+.ai-usage-provider-hero-window { display: flex; flex-direction: column; gap: 5px; padding-left: 20px; border-left: 1px solid var(--border); }
+.ai-usage-provider-hero-window > span, .ai-usage-provider-hero-window > small { color: var(--text-secondary); font-size: 12px; }
+.ai-usage-provider-hero-window > strong { color: var(--text-primary); font-size: 19px; }
+@media (max-width: 720px) { .ai-usage-provider-hero { grid-template-columns: 1fr; gap: 18px; } }
+.ai-usage-insights-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent-primary) 3%, var(--surface));
+}
+.ai-usage-insights-empty > div { display: flex; flex-direction: column; gap: 4px; }
+.ai-usage-insights-empty strong { color: var(--text-primary); font-size: 16px; }
+.ai-usage-insights-empty p { margin: 0; font-size: 13px; }
+.ai-usage-insights-empty > span { color: var(--accent-primary); font-size: 30px; }
 
 /* 通用 section header (eyebrow + title) — 4 块都共用 */
 .ai-usage-section-header {
@@ -6858,7 +6930,7 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 .ai-usage-overview {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 14px;
 }
 @media (max-width: 720px) {
   .ai-usage-overview { grid-template-columns: repeat(2, 1fr); }
@@ -6869,8 +6941,8 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 16px 12px;
+  border-radius: 14px;
+  padding: 18px 18px 16px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -6919,7 +6991,7 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   letter-spacing: 0.01em;
 }
 .ai-usage-overview-value {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.025em;
@@ -6935,7 +7007,7 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   position: relative;
   margin-top: 8px;
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: var(--surface-2, rgba(0, 0, 0, 0.04));
   border-radius: 2px;
   overflow: hidden;
@@ -10070,8 +10142,8 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   gap: 10px;
 }
 .ai-usage-zone + .ai-usage-zone {
-  margin-top: 2px;
-  padding-top: 18px;
+  margin-top: 0;
+  padding-top: 22px;
   border-top: 1px solid var(--border);
 }
 .ai-usage-zone-label {
@@ -10090,6 +10162,55 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
   font-size: 11px;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
+}
+
+/* GLM 与 MiniMax 共用页面骨架；只在资源类型上做有限的语义区分。 */
+.ai-usage-dashboard--glm {
+  --glm-mcp-accent: var(--accent-teal, var(--accent-green));
+}
+.ai-usage-glm-summary {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.ai-usage-glm-summary-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+.ai-usage-glm-summary-copy strong {
+  color: var(--text-primary);
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.ai-usage-glm-summary-copy > span:last-child {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.ai-usage-dashboard--glm .ai-usage-overview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ai-usage-dashboard--glm .ai-usage-overview-cell:nth-child(3) .ai-usage-overview-icon,
+.ai-usage-dashboard--glm .ai-usage-overview-cell:nth-child(3) .ai-usage-overview-bar-fill {
+  background: var(--glm-mcp-accent);
+  color: var(--text-inverse, #fff);
+}
+.ai-usage-dashboard--glm .ai-usage-overview-cell:nth-child(3) .ai-usage-overview-value {
+  color: var(--glm-mcp-accent);
+}
+.ai-usage-dashboard--glm .ai-usage-tool-breakdown {
+  border-radius: 14px;
+  padding: 18px;
+}
+@media (max-width: 900px) {
+  .ai-usage-layout { padding: 24px; }
+  .ai-usage-dashboard--glm .ai-usage-overview { grid-template-columns: 1fr; }
 }
 
 /* === AI 用量 — 每日用量明细表 (UsageDetailList) === */

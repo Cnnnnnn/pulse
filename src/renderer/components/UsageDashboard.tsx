@@ -65,19 +65,27 @@ function formatDateShort(isoDate) {
  * 优先级: 5h / weekly / video / videoWeekly / credit — 有多少展示多少.
  * 信息量 >= 老 WindowCard 4 张: 已用% / 进度条 / 倒计时 / status / modelName.
  */
-function UsageWindowOverview({ snapshot }: { snapshot: any }) {
+function UsageWindowOverview({ snapshot, provider, excludedKeys = [] }: { snapshot: any; provider?: string; excludedKeys?: string[] }) {
   const windows = (snapshot && snapshot.windows) || {};
   const credit = snapshot && snapshot.credits;
+  const isGlm = provider === "glm" || snapshot?.provider === "glm";
   const entries = useMemo(() => {
     const out: any[] = [];
     type WindowMeta = { icon: string; label: string; accent: string; isWeekly?: boolean };
-    const order: Array<[string, WindowMeta]> = [
-      ["5h", { icon: "⏱", label: "5 小时窗口", accent: "var(--model-color-1)" }],
-      ["weekly", { icon: "📅", label: "周窗口", accent: "var(--model-color-3)", isWeekly: true }],
-      ["video", { icon: "🎬", label: "视频赠送", accent: "var(--model-color-4)" }],
-      ["videoWeekly", { icon: "🎞", label: "视频周额度", accent: "var(--model-color-6)" }],
+    const order: Array<[string, WindowMeta]> = isGlm
+      ? [
+          ["5h", { icon: "⏱", label: "5 小时 Token", accent: "var(--model-color-1)" }],
+          ["weekly", { icon: "📅", label: "周 Token", accent: "var(--model-color-3)", isWeekly: true }],
+          ["mcp", { icon: "⌘", label: "MCP 时长（本月）", accent: "var(--accent-teal, var(--model-color-4))" }],
+        ]
+      : [
+          ["5h", { icon: "⏱", label: "5 小时窗口", accent: "var(--model-color-1)" }],
+          ["weekly", { icon: "📅", label: "周窗口", accent: "var(--model-color-3)", isWeekly: true }],
+          ["video", { icon: "🎬", label: "视频赠送", accent: "var(--model-color-4)" }],
+          ["videoWeekly", { icon: "🎞", label: "视频周额度", accent: "var(--model-color-6)" }],
     ];
     for (const [key, meta] of order) {
+      if (excludedKeys.includes(key)) continue;
       const w = windows[key];
       if (!w || typeof w !== "object") continue;
       const usedPct = typeof w.usedPercent === "number" ? w.usedPercent : null;
@@ -117,7 +125,7 @@ function UsageWindowOverview({ snapshot }: { snapshot: any }) {
       });
     }
     return out;
-  }, [windows, credit]);
+  }, [windows, credit, isGlm, excludedKeys]);
 
   if (entries.length === 0) return null;
 
@@ -163,6 +171,39 @@ function UsageWindowOverview({ snapshot }: { snapshot: any }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function UsageProviderHero({ snapshot, provider }: { snapshot: any; provider?: string }) {
+  const isGlm = provider === "glm" || snapshot?.provider === "glm";
+  const primary = snapshot?.windows?.["5h"];
+  const weekly = snapshot?.windows?.weekly;
+  const usedPct = typeof primary?.usedPercent === "number" ? primary.usedPercent : null;
+  const availablePct = typeof primary?.remainingPercent === "number"
+    ? primary.remainingPercent
+    : usedPct == null ? null : Math.max(0, 100 - usedPct);
+  const rows = [
+    [isGlm ? "5 小时 Token" : "5 小时窗口", primary],
+    [isGlm ? "周 Token" : "周窗口", weekly],
+  ].filter(([, value]) => value && typeof value === "object") as Array<[string, any]>;
+
+  return (
+    <section class={`ai-usage-provider-hero ai-usage-provider-hero--${isGlm ? "glm" : "minimax"}`}>
+      <div class="ai-usage-provider-hero-main">
+        <span>当前可用</span>
+        <strong>{availablePct == null ? "—" : `${availablePct}%`}</strong>
+        <small>{availablePct == null ? "等待 API 返回配额" : availablePct >= 50 ? "可继续高强度编码" : "建议关注当前节奏"}</small>
+      </div>
+      <div class="ai-usage-provider-hero-windows">
+        {rows.map(([label, value]) => (
+          <div class="ai-usage-provider-hero-window" key={label}>
+            <span>{label}</span>
+            <strong>{typeof value.usedPercent === "number" ? `${value.usedPercent}% 已用` : "—"}</strong>
+            <small>{typeof value.resetInSec === "number" ? `重置 ${formatResetIn(value.resetInSec)}` : "重置时间暂不可用"}</small>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -457,8 +498,42 @@ export function UsageDashboard({ snapshot, history, provider }) {
     hasUsageSummary && Array.isArray(usageSummary.modelBreakdown) && usageSummary.modelBreakdown.length > 0;
   const hasMostActive = hasUsageSummary && usageSummary.mostActiveDay && usageSummary.mostActiveDay.date;
 
+  if (isGlm) {
+    return (
+      <div class="ai-usage-dashboard ai-usage-dashboard--glm">
+        <UsageProviderHero snapshot={snapshot} provider="glm" />
+        <section class="ai-usage-glm-summary">
+          {level && <UsagePlanBadge level={level} />}
+          <div class="ai-usage-glm-summary-copy">
+            <span class="ai-usage-zone-eyebrow">GLM 编程套餐</span>
+            <strong>Token 配额与 MCP 资源</strong>
+            <span>数据会在 API 返回后自动补齐</span>
+          </div>
+        </section>
+
+        <section class="ai-usage-zone">
+          <div class="ai-usage-zone-label">
+            <span class="ai-usage-zone-eyebrow">额度</span>
+          </div>
+          <UsageWindowOverview snapshot={snapshot} provider="glm" />
+        </section>
+
+        {toolUsageDetails && toolUsageDetails.length > 0 && (
+          <section class="ai-usage-zone">
+            <div class="ai-usage-zone-label">
+              <span class="ai-usage-zone-eyebrow">MCP 工具</span>
+              <span class="ai-usage-zone-count">本月调用分布</span>
+            </div>
+            <UsageToolBreakdown items={toolUsageDetails} />
+          </section>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div class="ai-usage-dashboard">
+      <UsageProviderHero snapshot={snapshot} provider={provider} />
       {/* ▸ 数据边界 banner — 只有当深度统计拿不到时提示 */}
       {!hasUsageSummary && hasWindows && (
         <div class="ai-usage-dashboard-banner" role="status">
@@ -470,12 +545,23 @@ export function UsageDashboard({ snapshot, history, provider }) {
         </div>
       )}
 
+      {!hasUsageSummary && hasWindows && (
+        <section class="ai-usage-insights-empty">
+          <div>
+            <span class="ai-usage-zone-eyebrow">深入分析</span>
+            <strong>暂无深入统计</strong>
+            <p>趋势、模型分布和每日明细会在 API 提供后自动出现。</p>
+          </div>
+          <span aria-hidden="true">◌</span>
+        </section>
+      )}
+
       {/* ▸ 分区: 概览 — windows KPI (公开 API) + 可选 usageSummary KPI */}
       <section class="ai-usage-zone">
         <div class="ai-usage-zone-label">
           <span class="ai-usage-zone-eyebrow">概览</span>
         </div>
-        <UsageWindowOverview snapshot={snapshot} />
+        <UsageWindowOverview snapshot={snapshot} provider={provider} excludedKeys={["5h", "weekly"]} />
         {hasUsageSummary && <UsageOverviewStrip usageSummary={usageSummary} />}
       </section>
 
@@ -514,20 +600,6 @@ export function UsageDashboard({ snapshot, history, provider }) {
         </section>
       )}
 
-      {/* ▸ 分区: GLM 专属 — 套餐 + 工具调用细分 (GLM 数据独有) */}
-      {isGlm && (level || (toolUsageDetails && toolUsageDetails.length > 0)) && (
-        <section class="ai-usage-zone">
-          <div class="ai-usage-zone-label">
-            <span class="ai-usage-zone-eyebrow">套餐</span>
-          </div>
-          <div class="ai-usage-glm-extras">
-            {level && <UsagePlanBadge level={level} />}
-            {toolUsageDetails && toolUsageDetails.length > 0 && (
-              <UsageToolBreakdown items={toolUsageDetails} />
-            )}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

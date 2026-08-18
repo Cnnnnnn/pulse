@@ -165,6 +165,20 @@ function ProviderUsageView({ provider }) {
           </div>
         </div>
         <div class="ai-usage-header-actions">
+          <div class="ai-usage-tabs" role="tablist" aria-label="AI 用量提供商">
+            {AI_USAGE_PROVIDERS.map((pid) => (
+              <button
+                key={pid}
+                type="button"
+                role="tab"
+                aria-selected={pid === provider}
+                class={`ai-usage-tab${pid === provider ? " ai-usage-tab--active" : ""}`}
+                onClick={() => setActiveProvider(pid)}
+              >
+                {(PROVIDER_META[pid] || { label: pid }).label}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             class="ai-usage-bell-btn fund-btn fund-btn-ghost"
@@ -259,17 +273,6 @@ export function AIUsagePage() {
 
   return (
     <div class="ai-usage-layout-inner">
-      <div class="ai-usage-tabs">
-        {AI_USAGE_PROVIDERS.map((pid) => (
-          <button
-            key={pid}
-            class={`ai-usage-tab${pid === active ? " ai-usage-tab--active" : ""}`}
-            onClick={() => setActiveProvider(pid)}
-          >
-            {(PROVIDER_META[pid] || { label: pid }).label}
-          </button>
-        ))}
-      </div>
       <ProviderUsageView provider={active} />
     </div>
   );

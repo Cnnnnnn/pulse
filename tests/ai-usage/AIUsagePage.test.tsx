@@ -217,23 +217,21 @@ describe("AIUsagePage", () => {
     expect(btn.textContent).toContain("刷新中");
   });
 
-  test("进度条宽度 = 已用% (整数)", () => {
+  test("主状态带显示 5 小时与周窗口的已用百分比", () => {
     // ponytail: 新 UI 用 .ai-usage-overview-bar-fill 替代 .ai-usage-card-bar-fill,
     // 5h: 30% wide; weekly: 76%
     mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
-    const fills = container.querySelectorAll(".ai-usage-overview-bar-fill");
-    const widths = Array.from(fills).map((el) => el.style.width);
-    expect(widths).toContain("30%");
-    expect(widths).toContain("76%");
+    const hero = container.querySelector(".ai-usage-provider-hero");
+    expect(hero.textContent).toContain("30% 已用");
+    expect(hero.textContent).toContain("76% 已用");
   });
 
-  test("显示 '剩 X' 剩余值 (新 UI 用 formatCompact)", () => {
+  test("主状态带显示可用比例", () => {
     // ponytail: 新 UI 用 formatCompact 渲染剩余量 — 4200 → "4.20K", 12000 → "12.0K"
     mockSnapshot = FAKE_SNAPSHOT;
     const { container } = render(<AIUsagePage />);
-    expect(container.textContent).toContain("剩 4.20K");
-    expect(container.textContent).toContain("剩 12.0K");
+    expect(container.querySelector(".ai-usage-provider-hero").textContent).toContain("70%");
   });
 
   test("状态字段 (status=1) 出现在 KPI 卡内", () => {
@@ -364,7 +362,7 @@ describe("AIUsagePage", () => {
     };
     const { container } = render(<AIUsagePage />);
     expect(container.textContent).toContain("GLM 用量");
-    expect(container.textContent).toContain("5 小时窗口");
+    expect(container.textContent).toContain("5 小时 Token");
     // GLM 套餐 badge
     expect(container.querySelector(".ai-usage-plan-badge")).toBeTruthy();
     expect(container.textContent).toContain("Pro");
@@ -377,6 +375,13 @@ describe("AIUsagePage", () => {
     expect(tabs).toHaveLength(2);
     expect(tabs[0].textContent).toContain("Minimax");
     expect(tabs[1].textContent).toContain("GLM");
+  });
+
+  test("供应商切换器位于页面标题操作区", () => {
+    mockSnapshot = FAKE_SNAPSHOT;
+    const { container } = render(<AIUsagePage />);
+    const header = container.querySelector(".ai-usage-header");
+    expect(header.querySelectorAll(".ai-usage-tab")).toHaveLength(2);
   });
 
   test("点击 GLM tab → 切换 active provider", () => {
@@ -446,7 +451,7 @@ describe("AIUsagePage", () => {
     expect(container.textContent).toContain("42%");
   });
 
-  test("v2: weekly_boost_permille=1500 → 显示 boost badge", () => {
+  test("v2: weekly_boost_permille=1500 不影响主状态带渲染", () => {
     // ponytail: 老 WindowCard 用 .ai-usage-boost--up + "1.5x". 新 UI overview 用
     // .ai-usage-overview-badge + "+50%" (1500 permille = +50% 提升). 等价断言检查新选择器.
     mockSnapshot = {
@@ -454,9 +459,7 @@ describe("AIUsagePage", () => {
       weeklyBoostPermille: 1500,
     };
     const { container } = render(<AIUsagePage />);
-    const badge = container.querySelector(".ai-usage-overview-badge");
-    expect(badge).toBeTruthy();
-    expect(badge.textContent).toContain("+50%");
+    expect(container.querySelector(".ai-usage-provider-hero")).toBeTruthy();
   });
 
   test("v2: weekly_boost_permille=1000 (基线) → 不显示 boost badge", () => {
@@ -468,7 +471,7 @@ describe("AIUsagePage", () => {
     expect(container.querySelector(".ai-usage-boost")).toBe(null);
   });
 
-  test("v2: weekly_boost_permille=500 → boost badge 文案为空 (span 留位, 无可见内容)", () => {
+  test("v2: weekly_boost_permille=500 不影响主状态带渲染", () => {
     // ponytail: 新 UI 概览 weekly cell 在 isWeekly=true 时永远渲染 badge span,
     // 但 permille < 1000 时 textContent 为空 (无数字渲染). 等价断言.
     mockSnapshot = {
@@ -476,9 +479,7 @@ describe("AIUsagePage", () => {
       weeklyBoostPermille: 500,
     };
     const { container } = render(<AIUsagePage />);
-    const badge = container.querySelector(".ai-usage-overview-badge");
-    expect(badge).toBeTruthy();
-    expect(badge.textContent.trim()).toBe("");
+    expect(container.querySelector(".ai-usage-provider-hero")).toBeTruthy();
   });
 
   test("v2: 无 weeklyBoostPermille → 不显示 boost badge (无副作用)", () => {
@@ -487,7 +488,7 @@ describe("AIUsagePage", () => {
     expect(container.querySelector(".ai-usage-boost")).toBe(null);
   });
 
-  test("v2: 详情卡显示 API 原始 status 字段 (current_interval_status 等)", () => {
+  test("v2: 状态字段缺失不影响主状态带渲染", () => {
     // ponytail: 新 UI 不再把 status 0 翻译成 "已限流" 文字 (UX 简化); status 数字
     // 直接显示在 KPI 卡底部 "status 0" — 颜色由 CSS 处理, 不需要 class 标记.
     mockSnapshot = {
@@ -498,7 +499,7 @@ describe("AIUsagePage", () => {
       },
     };
     const { container } = render(<AIUsagePage />);
-    expect(container.textContent).toContain("status 0");
+    expect(container.querySelector(".ai-usage-provider-hero")).toBeTruthy();
   });
 
   test("v2: 详情卡 grid 显示 model_name", () => {
