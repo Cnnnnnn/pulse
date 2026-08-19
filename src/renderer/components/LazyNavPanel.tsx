@@ -20,6 +20,8 @@ const LOADERS = {
     import('../github/GithubLayout.tsx').then((m) => m.GithubLayout),
   'ai-leaderboard': () =>
     import('../ai-leaderboard/AiLeaderboardLayout.tsx').then((m) => m.AiLeaderboardLayout),
+  movies: () =>
+    import('../movies/MoviesLayout.tsx').then((m) => m.MoviesLayout),
 };
 
 export function LazyNavPanel({
