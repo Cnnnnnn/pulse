@@ -22,6 +22,13 @@ export const BROWSER_UA_SAFARI =
 /** Sina 系接口要求 Referer 才不返 403 (funds / stocks / metals 共用). */
 export const SINA_REFERER = "https://finance.sina.com.cn";
 
+/** 猫眼 M 站 AJAX 接口需移动端 UA 才返回 JSON（否则可能 403/HTML）. */
+export const MOBILE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
+
+/** 猫眼直连接口 Referer（m.maoyan.com）. */
+export const MAOYAN_REFERER = "https://m.maoyan.com/";
+
 /** 东方财富行情接口 Referer (push2 / push2his / push2delay 共用). */
 export const EM_REFERER = "https://quote.eastmoney.com/";
 
