@@ -388,6 +388,18 @@ export function IconLoader({ size = 14 }) {
   );
 }
 
+export function IconFilm({ size = 18 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="7" y1="4" x2="7" y2="20" />
+      <line x1="17" y1="4" x2="17" y2="20" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="3" y1="15" x2="21" y2="15" />
+    </Svg>
+  );
+}
+
 const NAV_ICON = {
   ithome: IconNews,
   news: IconNews,
@@ -402,6 +414,7 @@ const NAV_ICON = {
   diagnostics: IconWrench,
   settings: IconSettings,
   github: IconLayers,
+  movies: IconFilm,
 };
 
 export function NavIcon({ navKey, size = 18 }) {

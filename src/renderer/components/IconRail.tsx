@@ -27,7 +27,7 @@ import {
   type NavSectionId,
 } from "../../shared/nav-keys.ts";
 import { collectNavStatusCtx, sectionBadge } from "./nav-status.ts";
-import { IconHome, IconSettings, IconTrendingUp, IconGlobe, IconLayers } from "./icons.tsx";
+import { IconHome, IconSettings, IconTrendingUp, IconGlobe, IconLayers, IconFilm } from "./icons.tsx";
 import { navigateTo } from "../store/route-store.ts";
 
 // section → 代表图标组件 (NAV_REGISTRY 无 section-icon 字段, 这里映射).
@@ -36,6 +36,7 @@ const SECTION_ICON: Record<NavSectionId, (p: { size?: number }) => any> = {
   holdings: IconTrendingUp,
   // Phase 9 收尾: system 改 IconLayers, 避免跟底部 Settings 按钮重复
   system: IconLayers,
+  entertainment: IconFilm,
 };
 
 export interface IconRailProps {

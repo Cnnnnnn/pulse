@@ -27,9 +27,10 @@ export type NavKey =
   | 'ai-usage'
   | 'versions'
   | 'github'
-  | 'ai-leaderboard';
+  | 'ai-leaderboard'
+  | 'movies';
 
-export type NavSectionId = 'news' | 'holdings' | 'system';
+export type NavSectionId = 'news' | 'holdings' | 'system' | 'entertainment';
 
 /** 模块元数据 (不含 lazy — renderer 专属) */
 export interface NavRegistryEntry {
@@ -45,7 +46,8 @@ export interface NavRegistryEntry {
     | 'bar-chart'
     | 'refresh'
     | 'layers'
-    | 'star';
+    | 'star'
+    | 'film';
   /** 归属分组 */
   section: NavSectionId;
   /** 首页磁贴标题 (短); 缺省用 label */
@@ -67,6 +69,7 @@ export const NAV_SECTIONS: NavSection[] = [
   { id: 'news', label: '资讯' },
   { id: 'holdings', label: '持仓' },
   { id: 'system', label: '系统' },
+  { id: 'entertainment', label: '娱乐' },
 ];
 
 // ─── 模块 registry (顺序 = 默认侧栏/磁贴顺序) ────────
@@ -98,6 +101,16 @@ export const NAV_REGISTRY: NavRegistryEntry[] = [
     icon: 'layers',
     section: 'news',
     subtitle: '优秀开源项目收录与管理',
+  },
+  {
+    key: 'movies',
+    label: '电影',
+    tooltip: '热映 / 即将上映 (v2.81)',
+    accent: 'pink',
+    icon: 'film',
+    section: 'entertainment',
+    homeTitle: '电影',
+    subtitle: '热映 / 即将上映',
   },
   {
     key: 'invest',
