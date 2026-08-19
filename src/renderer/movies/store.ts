@@ -81,7 +81,7 @@ export async function refreshMovies(): Promise<boolean> {
   moviesError.value = null;
   try {
     const r = await api.moviesRefresh();
-    if (!r || (r.ok === false && (!r.nowPlaying || r.nowPlaying.length === 0))) {
+    if (!r || !Array.isArray(r.nowPlaying) || r.nowPlaying.length === 0) {
       const reason = (r && (r as any).reason) || "empty";
       moviesError.value = mapReason(reason);
       moviesDataState.value = rejectData(moviesDataState.value, moviesError.value);
