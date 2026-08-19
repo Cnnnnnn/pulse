@@ -47,17 +47,18 @@ describe("IconRail — 渲染", () => {
     cleanup();
   });
 
-  it("5 个 .icon-rail-btn (1 Home + 3 section + 1 Settings)", () => {
+  it("6 个 .icon-rail-btn (1 Home + 4 section + 1 Settings)", () => {
     const { container } = render(<IconRail />);
     const buttons = container.querySelectorAll("button.icon-rail-btn");
-    expect(buttons.length).toBe(5);
+    expect(buttons.length).toBe(6);
   });
 
-  it("3 个 section 按钮各带 data-section attr (news/holdings/system)", () => {
+  it("4 个 section 按钮各带 data-section attr (news/holdings/system/entertainment)", () => {
     const { container } = render(<IconRail />);
     expect(container.querySelector('[data-section="news"]')).toBeTruthy();
     expect(container.querySelector('[data-section="holdings"]')).toBeTruthy();
     expect(container.querySelector('[data-section="system"]')).toBeTruthy();
+    expect(container.querySelector('[data-section="entertainment"]')).toBeTruthy();
   });
 
   it("Settings 按钮用 data-testid='icon-rail-settings-btn' (Phase 9 收尾改名)", () => {

@@ -125,9 +125,9 @@ describe("sidenav-prefs", () => {
     // order filter hidden → ["funds", "news", "versions"]
     // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 invest/ai-usage/github/ai-leaderboard
     //   (metals 在 hidden 不加, funds 不在 NAV_KEYS 也不加 — 但已经在 order 保留)
-    // 最终 Set: funds, news, versions, invest, ai-usage, github, ai-leaderboard
+    // 最终 Set: funds, news, versions, invest, ai-usage, github, ai-leaderboard, movies
     expect(new Set(listVisible(p))).toEqual(
-      new Set(["funds", "news", "versions", "invest", "ai-usage", "github", "ai-leaderboard"]),
+      new Set(["funds", "news", "versions", "invest", "ai-usage", "github", "ai-leaderboard", "movies"]),
     );
   });
 
@@ -149,8 +149,8 @@ describe("sidenav-prefs", () => {
     // 5 个老 order 项 + 兜底 2 个 (按当前 registry 顺序) = 全部 NAV_KEYS_LIST.length
     expect(visible).toHaveLength(NAV_KEYS_LIST.length);
     expect(new Set(visible)).toEqual(new Set(NAV_KEYS_LIST));
-    // 兜底项必须在末尾 (registry 顺序: ai-leaderboard, github)
-    expect(visible).toEqual(["news", "invest", "ai-usage", "versions", "ai-leaderboard", "github"]);
+    // 兜底项必须在末尾 (registry 顺序: ai-leaderboard, github, movies)
+    expect(visible).toEqual(["news", "invest", "ai-usage", "versions", "ai-leaderboard", "github", "movies"]);
   });
 
   it("listHidden: NAV_KEYS 中 prefs.hidden 标记的项 (按 NAV_KEYS 默认顺序)", () => {
@@ -236,12 +236,13 @@ describe("sidenav-prefs: reorderItems", () => {
   beforeEach(() => localStorage.clear());
 
   it("reorderItems: from → to 'before'", () => {
-    // Phase 9: 默认顺序按 section 分组 [news, ai-leaderboard, github, invest, ai-usage, versions].
+    // Phase 9: 默认顺序按 section 分组 [news, ai-leaderboard, github, movies, invest, ai-usage, versions].
     const p0 = resetPrefs();
     const p1 = reorderItems(p0, "news", "invest", "before");
     expect(p1.order).toEqual([
       "ai-leaderboard",
       "github",
+      "movies",
       "news",
       "invest",
       "ai-usage",
@@ -255,6 +256,7 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p1.order).toEqual([
       "ai-leaderboard",
       "github",
+      "movies",
       "invest",
       "news",
       "ai-usage",
@@ -293,8 +295,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 6 个 nav key (v2.80 删 worldcup)", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(6);
+  it("DEFAULTS_FOR_TESTS: 7 个 nav key (v2.81 加 movies)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(7);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

@@ -69,9 +69,7 @@ import type {
   ThemeSyncApiContract,
   WechatHotApiContract,
   WechatHotPayload,
-  MoviesApiContract,
   MoviesPayload,
-  MovieItem,
   WatchlistApiContract,
   IpcChannelMap,
 } from "./src/shared/ipc-contracts";
