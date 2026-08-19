@@ -22,6 +22,7 @@ import { registerIthomeHandlers } from "./register-ithome";
 import { registerIthomeShareHandlers } from "./register-ithome-share";
 import { registerFundsHandlers } from "./register-funds";
 import { registerWechatHotHandlers } from "./register-wechat-hot";
+import { registerMoviesHandlers } from "./register-movies";
 import { registerAiPromptsHandlers } from "./register-ai-prompts";
 import { registerUpgradeAdviceHandlers } from "./register-upgrade-advice";
 const {
@@ -59,6 +60,7 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
   registerIthomeShareHandlers(ctx);
   registerFundsHandlers(ctx);
   registerWechatHotHandlers(ctx); // ← 新增
+  registerMoviesHandlers(ctx); // 电影模块：热映/即将上映/详情
   registerAiPromptsHandlers(ctx); // A7: AI prompt 模板化
   registerUpgradeAdviceHandlers(ctx); // A2: 升级建议
   registerChangelogSummaryHandlers(ctx); // A1: changelog 摘要

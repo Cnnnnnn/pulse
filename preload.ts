@@ -69,6 +69,9 @@ import type {
   ThemeSyncApiContract,
   WechatHotApiContract,
   WechatHotPayload,
+  MoviesApiContract,
+  MoviesPayload,
+  MovieItem,
   WatchlistApiContract,
   IpcChannelMap,
 } from "./src/shared/ipc-contracts";
@@ -337,6 +340,18 @@ export const api = {
       cb(data as WechatHotPayload);
     ipcRenderer.on("wechat-hot:updated", handler);
     return () => ipcRenderer.removeListener("wechat-hot:updated", handler);
+  },
+
+  // 电影模块（热映 / 即将上映 / 详情）
+  moviesLoad: () => invokeChannel("movies:load"),
+  moviesRefresh: () => invokeChannel("movies:refresh"),
+  moviesDetail: (movieId: IpcChannelMap["movies:detail"]["args"][0]) =>
+    invokeChannel("movies:detail", movieId),
+  onMoviesUpdated: (cb: Callback<MoviesPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as MoviesPayload);
+    ipcRenderer.on("movies:updated", handler);
+    return () => ipcRenderer.removeListener("movies:updated", handler);
   },
 
   // IT之家新闻

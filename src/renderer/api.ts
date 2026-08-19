@@ -48,6 +48,7 @@ import type {
   UpdateCheckApiContract,
   VersionsApiContract,
   WechatHotApiContract,
+  MoviesApiContract,
   WatchlistApiContract,
 } from "../shared/ipc-contracts";
 
@@ -98,6 +99,7 @@ export type RendererApi =
   AiLeaderboardApiContract &
   StocksApiContract &
   WechatHotApiContract &
+  MoviesApiContract &
   RecentApiContract &
   RemindersApiContract &
   WatchlistApiContract &
@@ -205,6 +207,11 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     wechatHotLoadRead: pick(overrides, "wechatHotLoadRead"),
     wechatHotMarkRead: pick(overrides, "wechatHotMarkRead"),
     onWechatHotUpdated: pick(overrides, "onWechatHotUpdated"),
+    // 电影模块（热映 / 即将上映 / 详情）
+    moviesLoad: pick(overrides, "moviesLoad"),
+    moviesRefresh: pick(overrides, "moviesRefresh"),
+    moviesDetail: pick(overrides, "moviesDetail"),
+    onMoviesUpdated: pick(overrides, "onMoviesUpdated"),
     // v2.13 AI 用量 (Minimax coding plan)
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),
     aiUsageFetch: pick(overrides, "aiUsageFetch"),

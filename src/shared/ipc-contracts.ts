@@ -2024,6 +2024,43 @@ export interface WechatHotApiContract {
   onWechatHotUpdated(cb: Callback<WechatHotPayload>): Unsubscribe;
 }
 
+export interface MovieItem {
+  id: string;
+  title: string;
+  enTitle?: string;
+  rating?: number;
+  ratingLabel?: string;
+  poster?: string;
+  wish?: number;
+  showInfo?: string;
+  releaseDate?: string;
+  comingTitle?: string;
+  showState?: string;
+  genres?: string[];
+  durationMin?: number;
+  summary?: string;
+  director?: string;
+  trailerUrl?: string;
+  backdrop?: string;
+  source: string;
+  isSample?: boolean;
+}
+
+export interface MoviesPayload {
+  ok?: true;
+  nowPlaying: MovieItem[];
+  coming: MovieItem[];
+  fetchedAt: number;
+  source: string;
+}
+
+export interface MoviesApiContract {
+  moviesLoad(): Promise<MoviesPayload | null>;
+  moviesRefresh(): Promise<MoviesPayload>;
+  moviesDetail(movieId: string): Promise<MovieItem | IpcFailure>;
+  onMoviesUpdated(cb: Callback<MoviesPayload>): Unsubscribe;
+}
+
 export interface RecentActivityEntry {
   ts: number;
   kind: string;
@@ -2317,6 +2354,9 @@ export interface IpcChannelMap {
   "wechat-hot:refresh": { args: []; result: WechatHotPayload | IpcFailure };
   "wechat-hot:load-read": { args: []; result: Record<string, number> };
   "wechat-hot:mark-read": { args: [title: string]; result: WechatHotReadResponse };
+  "movies:load": { args: []; result: MoviesPayload | null };
+  "movies:refresh": { args: []; result: MoviesPayload };
+  "movies:detail": { args: [movieId: string]; result: MovieItem | IpcFailure };
   "recent:list": { args: []; result: RecentListResponse };
   "recent:push": { args: [entry: Omit<RecentActivityEntry, "ts"> & { ts?: number }]; result: RecentPushResponse };
   "tray:get-prefs": { args: []; result: TrayPrefsResponse };
