@@ -4498,6 +4498,7 @@ body.platform-mac .app-shell-collapsed .nav-drawer {
 .app-shell-view {
   flex: 1;
   min-width: 0;
+  min-height: 0; /* 让内部 height:100% + overflow 能滚，否则内容被 #content overflow:hidden 裁切 */
   overflow-y: auto;
   padding: var(--space-4) var(--space-5);
 }

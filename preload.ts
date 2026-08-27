@@ -70,6 +70,7 @@ import type {
   WechatHotApiContract,
   WechatHotPayload,
   MoviesPayload,
+  ConcertsPayload,
   WatchlistApiContract,
   IpcChannelMap,
 } from "./src/shared/ipc-contracts";
@@ -363,6 +364,24 @@ export const api = {
       cb(data as MoviesPayload);
     ipcRenderer.on("movies:updated", handler);
     return () => ipcRenderer.removeListener("movies:updated", handler);
+  },
+
+  // 演出票监控（票牛 + 摩天轮场次票价）
+  concertsLoad: () => invokeChannel("concerts:load"),
+  concertsRefresh: () => invokeChannel("concerts:refresh"),
+  concertsAdd: (input: IpcChannelMap["concerts:add"]["args"][0]) =>
+    invokeChannel("concerts:add", input),
+  concertsRemove: (id: IpcChannelMap["concerts:remove"]["args"][0]) =>
+    invokeChannel("concerts:remove", id),
+  concertsTiers: (input: IpcChannelMap["concerts:tiers"]["args"][0]) =>
+    invokeChannel("concerts:tiers", input),
+  concertsSetWatchedTiers: (input: IpcChannelMap["concerts:setWatchedTiers"]["args"][0]) =>
+    invokeChannel("concerts:setWatchedTiers", input),
+  onConcertsUpdated: (cb: Callback<ConcertsPayload>) => {
+    const handler = (_evt: IpcRendererEvent, data: unknown) =>
+      cb(data as ConcertsPayload);
+    ipcRenderer.on("concerts:updated", handler);
+    return () => ipcRenderer.removeListener("concerts:updated", handler);
   },
 
   // IT之家新闻

@@ -219,6 +219,14 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     moviesCinemaShows: pick(overrides, "moviesCinemaShows"),
     moviesCinemaFilters: pick(overrides, "moviesCinemaFilters"),
     onMoviesUpdated: pick(overrides, "onMoviesUpdated"),
+    // 演出票监控（票牛 + 摩天轮场次票价）
+    concertsLoad: pick(overrides, "concertsLoad"),
+    concertsRefresh: pick(overrides, "concertsRefresh"),
+    concertsAdd: pick(overrides, "concertsAdd"),
+    concertsRemove: pick(overrides, "concertsRemove"),
+    concertsTiers: pick(overrides, "concertsTiers"),
+    concertsSetWatchedTiers: pick(overrides, "concertsSetWatchedTiers"),
+    onConcertsUpdated: pick(overrides, "onConcertsUpdated"),
     // v2.13 AI 用量 (Minimax coding plan)
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),
     aiUsageFetch: pick(overrides, "aiUsageFetch"),

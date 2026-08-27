@@ -400,6 +400,18 @@ export function IconFilm({ size = 18 }: { size?: number }) {
   );
 }
 
+/* 票券 — 演出票价监控 nav 图标（带撕票缺口 + 打孔） */
+export function IconTicket({ size = 18 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a3 3 0 0 0 0 6v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a3 3 0 0 0 0-6z" />
+      <line x1="13" y1="5" x2="13" y2="8" />
+      <line x1="13" y1="11" x2="13" y2="14" />
+      <line x1="13" y1="17" x2="13" y2="19" />
+    </Svg>
+  );
+}
+
 const NAV_ICON = {
   ithome: IconNews,
   news: IconNews,
@@ -415,6 +427,7 @@ const NAV_ICON = {
   settings: IconSettings,
   github: IconLayers,
   movies: IconFilm,
+  concerts: IconTicket,
 };
 
 export function NavIcon({ navKey, size = 18 }) {

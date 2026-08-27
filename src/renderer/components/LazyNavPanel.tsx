@@ -22,6 +22,8 @@ const LOADERS = {
     import('../ai-leaderboard/AiLeaderboardLayout.tsx').then((m) => m.AiLeaderboardLayout),
   movies: () =>
     import('../movies/MoviesLayout.tsx').then((m) => m.MoviesLayout),
+  concerts: () =>
+    import('../concerts/ConcertsLayout.tsx').then((m) => m.ConcertsLayout),
 };
 
 export function LazyNavPanel({

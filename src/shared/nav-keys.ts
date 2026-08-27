@@ -28,7 +28,8 @@ export type NavKey =
   | 'versions'
   | 'github'
   | 'ai-leaderboard'
-  | 'movies';
+  | 'movies'
+  | 'concerts';
 
 export type NavSectionId = 'news' | 'holdings' | 'system' | 'entertainment';
 
@@ -47,7 +48,8 @@ export interface NavRegistryEntry {
     | 'refresh'
     | 'layers'
     | 'star'
-    | 'film';
+    | 'film'
+    | 'ticket';
   /** 归属分组 */
   section: NavSectionId;
   /** 首页磁贴标题 (短); 缺省用 label */
@@ -111,6 +113,16 @@ export const NAV_REGISTRY: NavRegistryEntry[] = [
     section: 'entertainment',
     homeTitle: '电影',
     subtitle: '热映 / 即将上映',
+  },
+  {
+    key: 'concerts',
+    label: '演出票价',
+    tooltip: '演唱会实时票价监控 (v2.82)',
+    accent: 'red',
+    icon: 'ticket',
+    section: 'entertainment',
+    homeTitle: '演出票',
+    subtitle: '演唱会实时票价监控',
   },
   {
     key: 'invest',

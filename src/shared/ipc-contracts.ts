@@ -2182,6 +2182,108 @@ export interface MoviesCinemaShowsResponse {
   source: string;
 }
 
+// ─── 演出票监控（票牛 + 摩天轮国际站） ────────────────
+
+export type ConcertPlatformId = "piaoniu" | "motianlun" | "moretickets";
+
+export interface ConcertSession {
+  id: string;
+  name: string;
+  time?: string;
+  minPrice?: string;
+  originalPrice?: string;
+  currencySymbol?: string;
+  /** 归一枚举：ONSALE / SOLDOUT / UPCOMING / ENDED */
+  status: string;
+  hasTicket: boolean;
+  ticketsNumber?: number;
+  /** 票牛：刷新时嵌入的票档明细（盯档差分用） */
+  tiers?: Array<{
+    id: string;
+    name: string;
+    lowPrice?: string;
+    originPrice?: string;
+    ticketsNum?: number;
+    hasTicket: boolean;
+    qtyPrices?: Array<{ qty: number; salePrice: string }>;
+  }>;
+}
+
+/** 单个 watch 的最新快照；error 字段 = 本轮抓取失败但保留了旧数据 */
+export interface ConcertSnapshot {
+  platform: ConcertPlatformId;
+  key: string;
+  title: string;
+  city?: string;
+  venue?: string;
+  posterUrl?: string;
+  detailUrl: string;
+  sessions: ConcertSession[];
+  fetchedAt: number;
+  source: string;
+  error?: string;
+}
+
+export interface ConcertWatchItem {
+  /** piaoniu:{activityId} | motianlun:{showId} | moretickets:{tourId}/{showId} */
+  id: string;
+  platform: ConcertPlatformId;
+  activityId?: string;
+  tourId?: string;
+  showId?: string;
+  sessionId?: string;
+  ticketCount?: number;
+  url: string;
+  createdAt: number;
+  /** 票牛 / 摩天轮国内：用户钉选盯价的票档 id */
+  watchedTierIds?: string[];
+  /** 钉选档购票张数（1–10，默认 1） */
+  watchedTierQty?: Record<string, number>;
+}
+
+export interface ConcertsPayload {
+  watches: ConcertWatchItem[];
+  snapshots: Record<string, ConcertSnapshot>;
+  fetchedAt: number;
+  source: string;
+}
+
+export interface ConcertTiersResponse {
+  ok: true;
+  eventId: string;
+  tiers: Array<{
+    id: string;
+    name: string;
+    lowPrice?: string;
+    originPrice?: string;
+    ticketsNum?: number;
+    hasTicket: boolean;
+  }>;
+}
+
+export interface ConcertAddResponse {
+  ok: boolean;
+  added?: boolean;
+  item?: ConcertWatchItem;
+  payload?: ConcertsPayload;
+  reason?: string;
+}
+
+export interface ConcertsApiContract {
+  concertsLoad(): Promise<ConcertsPayload | null>;
+  concertsRefresh(): Promise<ConcertsPayload>;
+  concertsAdd(input: { url: string }): Promise<ConcertAddResponse>;
+  concertsRemove(id: string): Promise<{ ok: boolean; reason?: string; payload?: ConcertsPayload }>;
+  concertsTiers(input: { eventId: string | number }): Promise<ConcertTiersResponse | IpcFailure>;
+  concertsSetWatchedTiers(input: {
+    watchId: string;
+    tierIds: string[];
+    tierQty?: Record<string, number>;
+  }): Promise<{ ok: boolean; item?: ConcertWatchItem; payload?: ConcertsPayload; reason?: string }>;
+  onConcertsUpdated(cb: Callback<ConcertsPayload>): Unsubscribe;
+}
+
+
 export interface RecentActivityEntry {
   ts: number;
   kind: string;
@@ -2485,6 +2587,15 @@ export interface IpcChannelMap {
   "movies:cinemas": { args: [input: MoviesCinemasInput]; result: MoviesCinemasResponse | IpcFailure };
   "movies:cinema-shows": { args: [input: MoviesCinemaShowsInput]; result: MoviesCinemaShowsResponse | IpcFailure };
   "movies:cinema-filters": { args: [input: MoviesCinemaFiltersInput]; result: MoviesCinemaFiltersResponse | IpcFailure };
+  "concerts:load": { args: []; result: ConcertsPayload | null };
+  "concerts:refresh": { args: []; result: ConcertsPayload };
+  "concerts:add": { args: [input: { url: string }]; result: ConcertAddResponse };
+  "concerts:remove": { args: [id: string]; result: { ok: boolean; reason?: string; payload?: ConcertsPayload } };
+  "concerts:tiers": { args: [input: { eventId: string | number }]; result: ConcertTiersResponse | IpcFailure };
+  "concerts:setWatchedTiers": {
+    args: [input: { watchId: string; tierIds: string[]; tierQty?: Record<string, number> }];
+    result: { ok: boolean; item?: ConcertWatchItem; payload?: ConcertsPayload; reason?: string };
+  };
   "recent:list": { args: []; result: RecentListResponse };
   "recent:push": { args: [entry: Omit<RecentActivityEntry, "ts"> & { ts?: number }]; result: RecentPushResponse };
   "tray:get-prefs": { args: []; result: TrayPrefsResponse };

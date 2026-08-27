@@ -2,6 +2,17 @@
 
 ---
 
+## v2.82.0 (🎫 演出票监控) — 2026-08-27
+
+**🎫 新增「演出票价」模块** — 监听票牛 / 摩天轮国内 / 摩天轮国际指定演唱会的实时在售票价:
+- **数据源** (均免登录、无签名, 2026-08 实测验证):
+  - 票牛 `piaoniu.com`: 场次 + 票档明细 + 按张数单价 (`/v4/tickets`); 可钉选盯档、降价系统通知
+  - 摩天轮国内 `m.motianlun.cn` (tking): 详情页仅 `showId` 即可; `transfer/session` 拉场次, 按 `seatPlanId` 串行 `find_tickets` 取各档在售最低价 (不带档过滤只会回最便宜一页)
+  - 摩天轮国际 `api-global.moretickets.com`: tour 场次最低价; **必须带上下文 header** `oc:MTS / lc:CN-HK / cc:HKD / lan:zh-Hant / src:PC / channel:PC`
+- **主进程** `src/main/concerts/`: fetcher-piaoniu / fetcher-motianlun / fetcher-moretickets + watch-store + cache (TTL 2min) + price-alerts (后台轮询降价通知); IPC `concerts:load|refresh|add|remove|tiers|setWatchedTiers`
+- **渲染层** `src/renderer/concerts/`: 粘贴 URL 添加监听; 场次×最低价 + 票档展开/钉选/张数; 相对上轮涨跌标色; 列表可滚动
+- **共享**: `src/shared/concerts-constants.ts` (TTL / 冷却 / 三平台 URL 解析)
+
 ## v2.80.0 (⚽ 世界杯模块下线) — 2026-08-07
 
 **⚽ 2026 世界杯模块整体下线** (赛事 2026-07-19 决赛后已过, 无新数据, 维护成本 > 价值):
