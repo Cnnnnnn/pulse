@@ -25,6 +25,7 @@ export const MOVIE_CITIES: ReadonlyArray<MovieCity> = [
   { id: 10, name: "上海" },
   { id: 20, name: "广州" },
   { id: 30, name: "深圳" },
+  { id: 92, name: "佛山" },
   { id: MOVIE_CITY_HK, name: "香港", tmdbRegion: "HK", language: "zh-HK" },
   { id: MOVIE_CITY_MO, name: "澳门", tmdbRegion: "MO", language: "zh-HK" },
   { id: 59, name: "成都" },
