@@ -51,6 +51,8 @@ describe("movies cache (L1-L4 degradation)", () => {
         calls.push("L4");
         return okSample();
       },
+      persist: opts.persist,
+      cityId: opts.cityId,
       onUpdate: opts.onUpdate,
     });
     return { c, calls };
@@ -142,6 +144,32 @@ describe("movies cache (L1-L4 degradation)", () => {
     expect(onUpdate.mock.calls[0][0].source).toBe("maoyan-netstart");
   });
 
+  it("未注入 fetcher 时走真实默认 L1（http 成功即不是示例）", async () => {
+    const http = {
+      get: async (url: string) => {
+        if (String(url).includes("movieOnInfoList")) {
+          return {
+            status: 200,
+            body: JSON.stringify({
+              movieList: [{ id: 1, nm: "真片", sc: 8.2, img: "//cdn/a.jpg" }],
+            }),
+          };
+        }
+        return {
+          status: 200,
+          body: JSON.stringify({
+            coming: [{ id: 2, nm: "未映", wish: 10, comingTitle: "9月" }],
+          }),
+        };
+      },
+    };
+    const c = createMoviesCache({ httpClient: http });
+    const p = await c.refresh();
+    expect(p.source).toBe("maoyan-netstart");
+    expect(p.nowPlaying[0].title).toBe("真片");
+    expect(p.coming[0].title).toBe("未映");
+  });
+
   it("load() 返回最近一次 refresh 的 payload 快照", async () => {
     const { c } = build();
     expect(c.load()).toBeNull(); // 初始空
@@ -149,5 +177,136 @@ describe("movies cache (L1-L4 degradation)", () => {
     const loaded = c.load();
     expect(loaded.source).toBe("maoyan-netstart");
     expect(loaded.nowPlaying).toEqual(p.nowPlaying);
+    expect(loaded.cityId).toBe(1);
+  });
+
+  it("persist hydrate：启动即可 load 到上次片单", () => {
+    const persist = {
+      state: { cityId: 10, payload: OK_NETSTART },
+      read() {
+        return this.state;
+      },
+      write(s: any) {
+        this.state = s;
+      },
+    };
+    const { c } = build({ persist });
+    const loaded = c.load();
+    expect(loaded.source).toBe("maoyan-netstart");
+    expect(loaded.cityId).toBe(10);
+  });
+
+  it("L1 成功写入 persist；示例不覆盖 live", async () => {
+    const persist = {
+      state: null as any,
+      read() {
+        return this.state;
+      },
+      write(s: any) {
+        this.state = s;
+      },
+    };
+    const { c } = build({ persist });
+    await c.refresh();
+    expect(persist.state.payload.source).toBe("maoyan-netstart");
+
+    const failing = createMoviesCache({
+      httpClient: {},
+      persist,
+      fetchMaoyanLists: async () => {
+        throw Object.assign(new Error("x"), { reason: "fetch_failed" });
+      },
+      fetchTmdbLists: async () => {
+        throw Object.assign(new Error("x"), { reason: "fetch_failed" });
+      },
+      getMoviesSample: okSample,
+    });
+    const p = await failing.refresh();
+    expect(p.source).toBe("maoyan-netstart");
+    expect(p.degraded).toBe(true);
+    expect(persist.state.payload.source).toBe("maoyan-netstart");
+  });
+
+  it("L1-L3 失败但内存已有 live → 不落到 sample", async () => {
+    let fail = false;
+    const c = createMoviesCache({
+      httpClient: {},
+      fetchMaoyanLists: async () => {
+        if (fail) throw Object.assign(new Error("x"), { reason: "fetch_failed" });
+        return OK_NETSTART;
+      },
+      fetchTmdbLists: async () => {
+        throw Object.assign(new Error("x"), { reason: "fetch_failed" });
+      },
+      getMoviesSample: okSample,
+    });
+    await c.refresh();
+    fail = true;
+    const p = await c.refresh();
+    expect(p.source).toBe("maoyan-netstart");
+    expect(p.degraded).toBe(true);
+  });
+
+  it("refresh 把 cityId 传给 L1", async () => {
+    let seen: any;
+    const c = createMoviesCache({
+      httpClient: {},
+      fetchMaoyanLists: async (opts: any) => {
+        seen = opts;
+        return OK_NETSTART;
+      },
+      fetchTmdbLists: async () => OK_TMDB,
+      getMoviesSample: okSample,
+    });
+    await c.refresh({ cityId: 30 });
+    expect(seen.cityId).toBe(30);
+    expect(c.load().cityId).toBe(30);
+  });
+
+  it("getItem 能从片单找到影片", async () => {
+    const { c } = build();
+    await c.refresh();
+    expect(c.getItem("1").title).toBe("A");
+    expect(c.getItem("2").title).toBe("B");
+    expect(c.getItem("missing")).toBeNull();
+  });
+
+  it("香港跳过猫眼，直接 TMDB region=HK", async () => {
+    const calls: string[] = [];
+    let tmdbOpts: any;
+    const c = createMoviesCache({
+      httpClient: {},
+      tmdbApiKey: "KEY",
+      fetchMaoyanLists: async () => {
+        calls.push("maoyan");
+        return OK_NETSTART;
+      },
+      fetchTmdbLists: async (opts: any) => {
+        tmdbOpts = opts;
+        calls.push("tmdb");
+        return OK_TMDB;
+      },
+      getMoviesSample: okSample,
+    });
+    const p = await c.refresh({ cityId: 90001 });
+    expect(calls).toEqual(["tmdb"]);
+    expect(tmdbOpts.region).toBe("HK");
+    expect(tmdbOpts.language).toBe("zh-HK");
+    expect(p.source).toBe("tmdb");
+    expect(p.cityId).toBe(90001);
+  });
+
+  it("切到港澳时不复用内地 stale 片单", async () => {
+    const c = createMoviesCache({
+      httpClient: {},
+      tmdbApiKey: "",
+      fetchMaoyanLists: async () => OK_NETSTART,
+      fetchTmdbLists: async () => OK_TMDB,
+      getMoviesSample: okSample,
+    });
+    await c.refresh({ cityId: 1 });
+    const p = await c.refresh({ cityId: 90002 });
+    expect(p.source).toBe("sample");
+    expect(p.cityId).toBe(90002);
   });
 });

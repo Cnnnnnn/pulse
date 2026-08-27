@@ -2052,13 +2052,134 @@ export interface MoviesPayload {
   coming: MovieItem[];
   fetchedAt: number;
   source: string;
+  cityId?: number;
+  degraded?: boolean;
+  comingNote?: string;
+}
+
+export interface MoviesTmdbKeyInfo {
+  ok: true;
+  key: string;
+  source: "settings" | "env" | "";
+}
+
+export interface MovieWatchlistItem {
+  movieId: string;
+  cityId: number;
+  title: string;
+  poster?: string;
+  releaseDate?: string;
+  createdAt: number;
+  reminderId?: string;
+}
+
+export interface MovieWatchlistResponse {
+  ok: boolean;
+  watched?: boolean;
+  items?: MovieWatchlistItem[];
+  reason?: string;
 }
 
 export interface MoviesApiContract {
   moviesLoad(): Promise<MoviesPayload | null>;
-  moviesRefresh(): Promise<MoviesPayload>;
+  moviesRefresh(cityId?: number): Promise<MoviesPayload>;
   moviesDetail(movieId: string): Promise<MovieItem | IpcFailure>;
+  moviesTmdbKeyGet(): Promise<MoviesTmdbKeyInfo>;
+  moviesTmdbKeySet(key: string): Promise<{ ok: true }>;
+  moviesWatchlistList(): Promise<MovieWatchlistResponse>;
+  moviesWatchlistToggle(input: Omit<MovieWatchlistItem, "createdAt" | "reminderId">): Promise<MovieWatchlistResponse>;
+  moviesCinemas(input: MoviesCinemasInput): Promise<MoviesCinemasResponse | IpcFailure>;
+  moviesCinemaShows(input: MoviesCinemaShowsInput): Promise<MoviesCinemaShowsResponse | IpcFailure>;
+  moviesCinemaFilters(input: MoviesCinemaFiltersInput): Promise<MoviesCinemaFiltersResponse | IpcFailure>;
   onMoviesUpdated(cb: Callback<MoviesPayload>): Unsubscribe;
+}
+
+export interface MoviesCinemasInput {
+  movieId: string;
+  cityId: number;
+  day: string;
+  districtId?: number;
+  areaId?: number;
+  offset?: number;
+}
+
+export interface MovieCinemaItem {
+  id: string;
+  name: string;
+  address?: string;
+  distance?: string;
+  sellPrice?: string;
+  hallTypes?: string[];
+  maoyanUrl?: string;
+}
+
+export interface MoviesCinemasResponse {
+  ok: true;
+  movieId: string;
+  cityId: number;
+  day: string;
+  districtId?: number;
+  areaId?: number;
+  cinemas: MovieCinemaItem[];
+  hasMore: boolean;
+  total: number;
+  source: string;
+}
+
+export interface MoviesCinemaFiltersInput {
+  cityId: number;
+}
+
+export interface MovieCinemaArea {
+  id: number;
+  name: string;
+  count?: number;
+}
+
+export interface MovieCinemaDistrict {
+  id: number;
+  name: string;
+  count?: number;
+  areas?: MovieCinemaArea[];
+}
+
+export interface MoviesCinemaFiltersResponse {
+  ok: true;
+  cityId: number;
+  districts: MovieCinemaDistrict[];
+  source: string;
+}
+
+export interface MoviesCinemaShowsInput {
+  movieId: string;
+  cinemaId: string;
+  cityId: number;
+  day?: string;
+}
+
+export interface MovieShowSlot {
+  time: string;
+  hall?: string;
+  lang?: string;
+  type?: string;
+  price?: string;
+  seqNo?: string;
+}
+
+export interface MovieShowDay {
+  date?: string;
+  label?: string;
+  slots: MovieShowSlot[];
+}
+
+export interface MoviesCinemaShowsResponse {
+  ok: true;
+  movieId: string;
+  cinemaId: string;
+  cinemaName?: string;
+  cityId: number;
+  days: MovieShowDay[];
+  source: string;
 }
 
 export interface RecentActivityEntry {
@@ -2355,8 +2476,15 @@ export interface IpcChannelMap {
   "wechat-hot:load-read": { args: []; result: Record<string, number> };
   "wechat-hot:mark-read": { args: [title: string]; result: WechatHotReadResponse };
   "movies:load": { args: []; result: MoviesPayload | null };
-  "movies:refresh": { args: []; result: MoviesPayload };
+  "movies:refresh": { args: [cityId?: number]; result: MoviesPayload };
   "movies:detail": { args: [movieId: string]; result: MovieItem | IpcFailure };
+  "movies:tmdb-key-get": { args: []; result: { ok: true; key: string; source: "settings" | "env" | "" } };
+  "movies:tmdb-key-set": { args: [key: string]; result: { ok: true } };
+  "movies:watchlist-list": { args: []; result: MovieWatchlistResponse };
+  "movies:watchlist-toggle": { args: [input: Omit<MovieWatchlistItem, "createdAt" | "reminderId">]; result: MovieWatchlistResponse };
+  "movies:cinemas": { args: [input: MoviesCinemasInput]; result: MoviesCinemasResponse | IpcFailure };
+  "movies:cinema-shows": { args: [input: MoviesCinemaShowsInput]; result: MoviesCinemaShowsResponse | IpcFailure };
+  "movies:cinema-filters": { args: [input: MoviesCinemaFiltersInput]; result: MoviesCinemaFiltersResponse | IpcFailure };
   "recent:list": { args: []; result: RecentListResponse };
   "recent:push": { args: [entry: Omit<RecentActivityEntry, "ts"> & { ts?: number }]; result: RecentPushResponse };
   "tray:get-prefs": { args: []; result: TrayPrefsResponse };

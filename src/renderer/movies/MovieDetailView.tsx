@@ -6,16 +6,18 @@
  *   按需 fetchMovieDetail(movieId)；单图失败兜底；预告可播放.
  */
 import { useEffect, useState } from "preact/hooks";
-import { fetchMovieDetail, moviesDetailLoading, moviesDetailError } from "./store.ts";
+import { api } from "../api.ts";
+import { fetchMovieDetail, moviesCityId, moviesDetailLoading, moviesDetailError } from "./store.ts";
+import { CinemaShowtimes } from "./CinemaShowtimes.tsx";
 
-function formatGenres(g: any): string {
-  if (Array.isArray(g) && g.length) return g.join(" / ");
-  return "未知";
+function isYoutubeTrailer(url: string): boolean {
+  return /youtube\.com\/watch|youtu\.be\/|youtube\.com\/embed/.test(url);
 }
 
 export function MovieDetailView({ movieId, onBack }: any) {
   const [detail, setDetail] = useState<any>(null);
   const [imgError, setImgError] = useState(false);
+  const [watched, setWatched] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -27,6 +29,12 @@ export function MovieDetailView({ movieId, onBack }: any) {
     return () => {
       alive = false;
     };
+  }, [movieId]);
+
+  useEffect(() => {
+    api.moviesWatchlistList().then((response: any) => {
+      setWatched(Boolean(response?.items?.some((item: any) => item.movieId === movieId && item.cityId === moviesCityId.value)));
+    });
   }, [movieId]);
 
   const loading = moviesDetailLoading.value;
@@ -56,19 +64,14 @@ export function MovieDetailView({ movieId, onBack }: any) {
 
   if (!detail) return null;
 
+  const summaryStyle = detail.backdrop ? { backgroundImage: `url(${detail.backdrop})` } : undefined;
+
   return (
-    <div
-      class="movie-detail"
-      style={
-        detail.backdrop
-          ? { backgroundImage: `linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.65)), url(${detail.backdrop})` }
-          : undefined
-      }
-    >
+    <div class="movie-detail movie-detail--light">
       <button class="movie-detail__back" onClick={onBack}>
         ← 返回
       </button>
-      <div class="movie-detail__hero">
+      <div class="movie-detail__layout">
         <div class="movie-detail__poster">
           {!imgError && detail.poster ? (
             <img src={detail.poster} alt={detail.title} onError={() => setImgError(true)} />
@@ -76,46 +79,80 @@ export function MovieDetailView({ movieId, onBack }: any) {
             <div class="movie-card__poster-fallback">🎬</div>
           )}
         </div>
-        <div class="movie-detail__headinfo">
-          <h2 class="movie-detail__title">{detail.title}</h2>
-          {detail.enTitle && <div class="movie-detail__entitle">{detail.enTitle}</div>}
-          <div class="movie-detail__line">
+        <main class="movie-detail__content">
+          <header class="movie-detail__headinfo">
+            <h2 class="movie-detail__title">{detail.title}</h2>
+            {detail.enTitle && <div class="movie-detail__entitle">{detail.enTitle}</div>}
             {typeof detail.rating === "number" ? (
-              <span class="movie-detail__rating">{detail.rating.toFixed(1)}</span>
-            ) : (
-              <span class="movie-detail__rating movie-card__rating--none">
-                {detail.ratingLabel || "暂无评分"}
-              </span>
-            )}
-            {detail.releaseDate && <span>上映 {detail.releaseDate}</span>}
-            {detail.durationMin && <span>片长 {detail.durationMin} 分钟</span>}
-          </div>
-          {detail.genres && (
-            <div class="movie-detail__genres">
-              {detail.genres.map((g: string, i: number) => (
-                <span class="movie-detail__chip" key={i}>
-                  {g}
-                </span>
-              ))}
+              <div class="movie-detail__rating">{detail.rating.toFixed(1)}</div>
+            ) : detail.ratingLabel ? (
+              <div class="movie-detail__rating movie-detail__rating--label">{detail.ratingLabel}</div>
+            ) : null}
+            <div class="movie-detail__facts">
+              {detail.releaseDate && <span>{detail.releaseDate}</span>}
+              {detail.durationMin && <span>{detail.durationMin} 分钟</span>}
+              {detail.genres?.map((genre: string, i: number) => <span key={i}>{genre}</span>)}
+              {detail.showInfo && <span>{detail.showInfo}</span>}
             </div>
+            <button
+              class="movie-detail__watch"
+              onClick={async () => {
+                const response: any = await api.moviesWatchlistToggle({
+                  movieId,
+                  cityId: moviesCityId.value,
+                  title: detail.title,
+                  poster: detail.poster,
+                  releaseDate: detail.releaseDate,
+                });
+                if (response?.ok) setWatched(Boolean(response.watched));
+              }}
+            >
+              {watched ? "已想看" : "想看"}
+            </button>
+          </header>
+
+          {detail.summary && (
+            <section
+              class={`movie-detail__summary-panel${detail.backdrop ? " movie-detail__summary-panel--backdrop" : ""}`}
+              style={summaryStyle}
+            >
+              <h3>剧情简介</h3>
+              <p>{detail.summary}</p>
+            </section>
           )}
-          {detail.showInfo && <div class="movie-detail__line movie-detail__muted">{detail.showInfo}</div>}
-          {detail.director && <div class="movie-detail__line movie-detail__muted">导演：{detail.director}</div>}
-          {detail.star && <div class="movie-detail__line movie-detail__muted">主演：{detail.star}</div>}
-        </div>
+
+          {(detail.director || detail.star) && (
+            <section class="movie-detail__credits">
+              {detail.director && <div><strong>导演</strong><span>{detail.director}</span></div>}
+              {detail.star && <div><strong>主演</strong><span>{detail.star}</span></div>}
+            </section>
+          )}
+
+          {detail.trailerUrl && (
+            <section class="movie-detail__trailer-section">
+              <h3>预告片</h3>
+              {isYoutubeTrailer(String(detail.trailerUrl)) ? (
+                <button
+                  class="movie-detail__trailer-open"
+                  type="button"
+                  onClick={() => api.openUrl(detail.trailerUrl)}
+                >
+                  在 YouTube 打开预告片
+                </button>
+              ) : (
+                <video class="movie-detail__trailer" src={detail.trailerUrl} controls preload="none" />
+              )}
+            </section>
+          )}
+
+          <CinemaShowtimes
+            movieId={movieId}
+            cityId={moviesCityId.value}
+            source={detail.source}
+            isSample={detail.isSample}
+          />
+        </main>
       </div>
-      {detail.summary && (
-        <div class="movie-detail__section">
-          <h3>剧情简介</h3>
-          <p class="movie-detail__summary">{detail.summary}</p>
-        </div>
-      )}
-      {detail.trailerUrl && (
-        <div class="movie-detail__section">
-          <h3>预告片</h3>
-          <video class="movie-detail__trailer" src={detail.trailerUrl} controls preload="none" />
-        </div>
-      )}
     </div>
   );
 }

@@ -211,6 +211,13 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     moviesLoad: pick(overrides, "moviesLoad"),
     moviesRefresh: pick(overrides, "moviesRefresh"),
     moviesDetail: pick(overrides, "moviesDetail"),
+    moviesTmdbKeyGet: pick(overrides, "moviesTmdbKeyGet"),
+    moviesTmdbKeySet: pick(overrides, "moviesTmdbKeySet"),
+    moviesWatchlistList: pick(overrides, "moviesWatchlistList"),
+    moviesWatchlistToggle: pick(overrides, "moviesWatchlistToggle"),
+    moviesCinemas: pick(overrides, "moviesCinemas"),
+    moviesCinemaShows: pick(overrides, "moviesCinemaShows"),
+    moviesCinemaFilters: pick(overrides, "moviesCinemaFilters"),
     onMoviesUpdated: pick(overrides, "onMoviesUpdated"),
     // v2.13 AI 用量 (Minimax coding plan)
     aiUsageGetCached: pick(overrides, "aiUsageGetCached"),

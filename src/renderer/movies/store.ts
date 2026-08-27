@@ -15,6 +15,11 @@ import {
   resolveData,
 } from "../../shared/data-state.ts";
 import type { DataSource, DataState } from "../../shared/data-state.ts";
+import {
+  DEFAULT_MOVIE_CITY_ID,
+  MOVIES_CACHE_TTL_MS,
+  sanitizeMovieCityId,
+} from "../../shared/movies-constants.ts";
 
 const COOLDOWN_MS = 30000;
 
@@ -32,6 +37,8 @@ export const moviesLastFetched = signal(0);
 export const moviesLastRefreshAt = signal(0);
 export const moviesUpdatedUnsub = signal<null | (() => void)>(null);
 export const moviesActiveTab = signal<"now" | "coming">("now");
+export const moviesCityId = signal(DEFAULT_MOVIE_CITY_ID);
+export const moviesComingNote = signal("");
 export const moviesDetailCache = signal<Record<string, any>>({});
 export const moviesDetailLoading = signal(false);
 export const moviesDetailError = signal<string | null>(null);
@@ -45,10 +52,12 @@ export function applyMoviesPayload(payload: any, source: DataSource = "live") {
   if (!payload || typeof payload !== "object") return;
   moviesNowPlaying.value = Array.isArray(payload.nowPlaying) ? payload.nowPlaying : [];
   moviesComing.value = Array.isArray(payload.coming) ? payload.coming : [];
+  moviesComingNote.value = typeof payload.comingNote === "string" ? payload.comingNote : "";
   moviesLastFetched.value = payload.fetchedAt || 0;
   moviesSource.value = payload.source || "";
+  if (payload.cityId != null) moviesCityId.value = sanitizeMovieCityId(payload.cityId);
   moviesLoaded.value = true;
-  moviesError.value = null;
+  moviesError.value = payload.degraded ? "网络失败，显示上次数据" : null;
   moviesDataState.value = resolveData(moviesDataState.value, payload, {
     source,
     fetchedAt: payload.fetchedAt || undefined,
@@ -59,16 +68,28 @@ export async function bootstrapMoviesTab() {
   try {
     const cached = await api.moviesLoad();
     applyMoviesPayload(cached, "cache");
+    const stale =
+      !cached ||
+      !cached.fetchedAt ||
+      Date.now() - cached.fetchedAt > MOVIES_CACHE_TTL_MS;
     if (
       !cached ||
       !Array.isArray(cached.nowPlaying) ||
-      cached.nowPlaying.length === 0
+      cached.nowPlaying.length === 0 ||
+      cached.source === "sample" ||
+      stale
     ) {
       await refreshMovies();
     }
   } catch {
     await refreshMovies();
   }
+}
+
+export async function setMoviesCity(id: number): Promise<boolean> {
+  moviesCityId.value = sanitizeMovieCityId(id);
+  moviesLastRefreshAt.value = 0;
+  return refreshMovies();
 }
 
 export async function refreshMovies(): Promise<boolean> {
@@ -80,7 +101,7 @@ export async function refreshMovies(): Promise<boolean> {
   moviesDataState.value = beginDataRequest(moviesDataState.value);
   moviesError.value = null;
   try {
-    const r = await api.moviesRefresh();
+    const r = await api.moviesRefresh(moviesCityId.value);
     if (!r || !Array.isArray(r.nowPlaying) || r.nowPlaying.length === 0) {
       const reason = (r && (r as any).reason) || "empty";
       moviesError.value = mapReason(reason);
@@ -96,6 +117,17 @@ export async function refreshMovies(): Promise<boolean> {
   } finally {
     moviesLoading.value = false;
   }
+}
+
+export function formatMoviesFetchedAt(ts: number, now = Date.now()): string {
+  if (!ts) return "";
+  const sec = Math.floor((now - ts) / 1000);
+  if (sec < 60) return "刚刚";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} 分钟前`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} 小时前`;
+  return `${Math.floor(hr / 24)} 天前`;
 }
 
 export async function fetchMovieDetail(movieId: string): Promise<any | null> {

@@ -3,18 +3,20 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockApi = vi.hoisted(() => ({
   moviesLoad: vi.fn(async () => null),
-  moviesRefresh: vi.fn(async () => SAMPLE_REFRESH()),
+  moviesRefresh: vi.fn(async (cityId?: number) => SAMPLE_REFRESH({ cityId: cityId ?? 1 })),
   moviesDetail: vi.fn(async () => ({ id: "1", title: "X", source: "maoyan-direct" })),
   onMoviesUpdated: vi.fn(() => () => {}),
 }));
 
-function SAMPLE_REFRESH() {
+function SAMPLE_REFRESH(extra: Record<string, unknown> = {}) {
   return {
     ok: true,
     nowPlaying: [{ id: "1", title: "A", source: "maoyan-netstart" }],
     coming: [{ id: "2", title: "B", wish: 100, source: "maoyan-netstart" }],
-    fetchedAt: 1700000000000,
+    fetchedAt: Date.now(),
     source: "maoyan-netstart",
+    cityId: 1,
+    ...extra,
   };
 }
 
@@ -32,20 +34,28 @@ import {
   moviesActiveList,
   moviesDetailCache,
   moviesDetailLoading,
+  moviesCityId,
+  moviesError,
+  moviesComingNote,
   applyMoviesPayload,
   bootstrapMoviesTab,
   refreshMovies,
+  setMoviesCity,
   fetchMovieDetail,
 } from "../../src/renderer/movies/store.ts";
+import { DEFAULT_MOVIE_CITY_ID } from "../../src/shared/movies-constants.ts";
 
 function reset() {
   moviesNowPlaying.value = [];
   moviesComing.value = [];
+  moviesComingNote.value = "";
   moviesSource.value = "";
   moviesLoaded.value = false;
   moviesLoading.value = false;
   moviesLastRefreshAt.value = 0;
   moviesActiveTab.value = "now";
+  moviesCityId.value = DEFAULT_MOVIE_CITY_ID;
+  moviesError.value = null;
   moviesDetailCache.value = {};
   moviesDataState.value = {
     phase: "idle",
@@ -58,7 +68,9 @@ function reset() {
   mockApi.moviesLoad.mockClear();
   mockApi.moviesRefresh.mockClear();
   mockApi.moviesDetail.mockClear();
-  mockApi.moviesRefresh.mockImplementation(async () => SAMPLE_REFRESH());
+  mockApi.moviesRefresh.mockImplementation(async (cityId?: number) =>
+    SAMPLE_REFRESH({ cityId: cityId ?? 1 }),
+  );
 }
 
 beforeEach(reset);
@@ -71,6 +83,11 @@ describe("movies store", () => {
     expect(moviesSource.value).toBe("maoyan-netstart");
     expect(moviesLoaded.value).toBe(true);
     expect(moviesDataState.value.phase).toBe("ready");
+  });
+
+  it("applyMoviesPayload 写入 comingNote", () => {
+    applyMoviesPayload(SAMPLE_REFRESH({ comingNote: "暂无澳门待映档期，以下为香港即将上映" }), "live");
+    expect(moviesComingNote.value).toMatch(/香港/);
   });
 
   it("moviesActiveList 随 tab 切换派生 now/coming", () => {
@@ -88,16 +105,26 @@ describe("movies store", () => {
     expect(moviesLoaded.value).toBe(true);
   });
 
-  it("bootstrapMoviesTab: load 有缓存 → 不触发 refresh", async () => {
+  it("bootstrapMoviesTab: load 有新鲜缓存 → 不触发 refresh", async () => {
     mockApi.moviesLoad.mockImplementation(async () => SAMPLE_REFRESH());
     await bootstrapMoviesTab();
     expect(mockApi.moviesRefresh).not.toHaveBeenCalled();
     expect(moviesLoaded.value).toBe(true);
   });
 
+  it("bootstrapMoviesTab: 缓存过期 → 先应用再 refresh", async () => {
+    mockApi.moviesLoad.mockImplementation(async () =>
+      SAMPLE_REFRESH({ fetchedAt: Date.now() - 31 * 60 * 1000 }),
+    );
+    await bootstrapMoviesTab();
+    expect(mockApi.moviesRefresh).toHaveBeenCalledTimes(1);
+    expect(moviesLoaded.value).toBe(true);
+  });
+
   it("refreshMovies: 冷却期内重复调用被跳过", async () => {
     await refreshMovies();
     expect(mockApi.moviesRefresh).toHaveBeenCalledTimes(1);
+    expect(mockApi.moviesRefresh).toHaveBeenCalledWith(DEFAULT_MOVIE_CITY_ID);
     await refreshMovies(); // 冷却期 < 30s，跳过
     expect(mockApi.moviesRefresh).toHaveBeenCalledTimes(1);
   });
@@ -128,5 +155,19 @@ describe("movies store", () => {
     const d = await fetchMovieDetail("9");
     expect(d).toBeNull();
     expect(moviesDetailLoading.value).toBe(false);
+  });
+
+  it("applyMoviesPayload: degraded 写入错误文案", () => {
+    applyMoviesPayload(SAMPLE_REFRESH({ degraded: true }), "cache");
+    expect(moviesError.value).toBe("网络失败，显示上次数据");
+  });
+
+  it("setMoviesCity 绕过冷却并带上 cityId", async () => {
+    await refreshMovies();
+    expect(mockApi.moviesRefresh).toHaveBeenCalledTimes(1);
+    await setMoviesCity(10);
+    expect(moviesCityId.value).toBe(10);
+    expect(mockApi.moviesRefresh).toHaveBeenCalledTimes(2);
+    expect(mockApi.moviesRefresh).toHaveBeenLastCalledWith(10);
   });
 });

@@ -342,9 +342,22 @@ export const api = {
 
   // 电影模块（热映 / 即将上映 / 详情）
   moviesLoad: () => invokeChannel("movies:load"),
-  moviesRefresh: () => invokeChannel("movies:refresh"),
+  moviesRefresh: (cityId?: IpcChannelMap["movies:refresh"]["args"][0]) =>
+    invokeChannel("movies:refresh", cityId),
   moviesDetail: (movieId: IpcChannelMap["movies:detail"]["args"][0]) =>
     invokeChannel("movies:detail", movieId),
+  moviesTmdbKeyGet: () => invokeChannel("movies:tmdb-key-get"),
+  moviesTmdbKeySet: (key: IpcChannelMap["movies:tmdb-key-set"]["args"][0]) =>
+    invokeChannel("movies:tmdb-key-set", key),
+  moviesWatchlistList: () => invokeChannel("movies:watchlist-list"),
+  moviesWatchlistToggle: (input: IpcChannelMap["movies:watchlist-toggle"]["args"][0]) =>
+    invokeChannel("movies:watchlist-toggle", input),
+  moviesCinemas: (input: IpcChannelMap["movies:cinemas"]["args"][0]) =>
+    invokeChannel("movies:cinemas", input),
+  moviesCinemaShows: (input: IpcChannelMap["movies:cinema-shows"]["args"][0]) =>
+    invokeChannel("movies:cinema-shows", input),
+  moviesCinemaFilters: (input: IpcChannelMap["movies:cinema-filters"]["args"][0]) =>
+    invokeChannel("movies:cinema-filters", input),
   onMoviesUpdated: (cb: Callback<MoviesPayload>) => {
     const handler = (_evt: IpcRendererEvent, data: unknown) =>
       cb(data as MoviesPayload);

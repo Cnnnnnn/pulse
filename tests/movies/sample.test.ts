@@ -25,3 +25,14 @@ describe("movies sample (L4)", () => {
     expect(b.nowPlaying[0].title).not.toBe("X");
   });
 });
+
+describe("shouldFetchMaoyanDetail", () => {
+  const { shouldFetchMaoyanDetail } = requireMain("movies/types");
+
+  it("示例和 TMDB 不打猫眼，猫眼片要打", () => {
+    expect(shouldFetchMaoyanDetail({ id: "s1", title: "x", source: "sample", isSample: true })).toBe(false);
+    expect(shouldFetchMaoyanDetail({ id: "9", title: "x", source: "tmdb" })).toBe(false);
+    expect(shouldFetchMaoyanDetail({ id: "1", title: "x", source: "maoyan-netstart" })).toBe(true);
+    expect(shouldFetchMaoyanDetail(null)).toBe(true);
+  });
+});

@@ -20,6 +20,7 @@ import { AISettingsScene } from "./AISettingsScene.tsx";
 import {
   IconBell,
   IconClock,
+  IconFilm,
   IconLock,
   IconPalette,
   IconShare,
@@ -185,6 +186,112 @@ async function handleImport() {
   } finally {
     dataBusy.value = false;
   }
+}
+
+function TmdbSettingsSection() {
+  const [draft, setDraft] = useState("");
+  const [reveal, setReveal] = useState(false);
+  const [source, setSource] = useState("");
+  const hasSaved = draft.trim().length > 0;
+
+  useEffect(() => {
+    let alive = true;
+    window.api
+      ?.moviesTmdbKeyGet?.()
+      .then((r) => {
+        if (!alive || !r || !r.ok) return;
+        setDraft(r.key || "");
+        setSource(r.source || "");
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const onSave = async () => {
+    const v = draft.trim();
+    if (!v) return;
+    await window.api.moviesTmdbKeySet(v);
+    setSource("settings");
+    showToast("TMDB API Key 已保存（仅存于本机）", "success", 2000);
+  };
+  const onClear = async () => {
+    setDraft("");
+    await window.api.moviesTmdbKeySet("");
+    const r = await window.api.moviesTmdbKeyGet();
+    setDraft((r && r.key) || "");
+    setSource((r && r.source) || "");
+    showToast("已清除设置中的 TMDB Key", "info", 2000);
+  };
+
+  const openTmdb = (e: Event) => {
+    e.preventDefault();
+    window.api?.openUrl?.("https://www.themoviedb.org/settings/api");
+  };
+
+  return (
+    <section class="settings-group" aria-labelledby="settings-tmdb-title">
+      <div class="settings-action-row">
+        <span class="settings-action-row__icon">
+          <IconFilm size={18} />
+        </span>
+        <div class="settings-row__label-block">
+          <h3 id="settings-tmdb-title">电影 · TMDB API Key</h3>
+          <span class="settings-row__hint">
+            香港 / 澳门片单与详情需要此 Key。申请免费 Developer Key。
+            {source === "env" ? " 当前来自 .env。" : source === "settings" ? " 当前来自本机设置。" : ""}
+          </span>
+        </div>
+      </div>
+      <div class="settings-row" style="margin-top:12px">
+        <div class="settings-row__buttons github-token-actions">
+          <div class="github-token-input-wrap">
+            <input
+              class="github-token-input"
+              type={reveal ? "text" : "password"}
+              value={draft}
+              placeholder="TMDB API Key"
+              autocomplete="off"
+              spellcheck={false}
+              onInput={(e: any) => setDraft(e.currentTarget.value)}
+            />
+            <button
+              type="button"
+              class="settings-btn settings-btn--ghost github-token-reveal"
+              onClick={() => setReveal(!reveal)}
+              aria-label={reveal ? "隐藏密钥" : "显示密钥"}
+            >
+              {reveal ? "隐藏" : "显示"}
+            </button>
+          </div>
+          <button
+            type="button"
+            class="settings-btn settings-btn--primary"
+            onClick={onSave}
+            disabled={draft.trim().length === 0}
+          >
+            保存
+          </button>
+          <button
+            type="button"
+            class="settings-btn settings-btn--danger-ghost"
+            onClick={onClear}
+            disabled={!hasSaved && source !== "settings"}
+          >
+            清除
+          </button>
+        </div>
+      </div>
+      <p class="settings-row__hint" style="margin-top:8px">
+        没有 Key？在{" "}
+        <a href="https://www.themoviedb.org/settings/api" class="settings-link" onClick={openTmdb}>
+          TMDB API 设置页
+        </a>{" "}
+        申请（选 Developer，用 API Key 不是 Access Token）。
+      </p>
+    </section>
+  );
 }
 
 /**
@@ -579,6 +686,8 @@ export function SettingsPage() {
                 </div>
               </div>
             </section>
+
+            <TmdbSettingsSection />
 
             <section class="settings-group settings-group--migration" aria-labelledby="settings-data-title">
               <div class="settings-action-row">

@@ -59,12 +59,15 @@ export class MovieCard extends Component<any, { imgError: boolean }> {
                 {movie.showState && (
                   <span class="movie-card__state">{movie.showState}</span>
                 )}
-                {movie.comingTitle && (
-                  <span class="movie-card__coming">{movie.comingTitle}</span>
+                {(movie.comingTitle || movie.releaseDate) && (
+                  <span class="movie-card__coming">
+                    {movie.comingTitle || movie.releaseDate}
+                  </span>
                 )}
               </>
             ) : (
               <>
+                <span class="movie-card__status">热映</span>
                 {typeof movie.rating === "number" ? (
                   <span class="movie-card__rating">{movie.rating.toFixed(1)}</span>
                 ) : (

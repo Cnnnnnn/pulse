@@ -34,6 +34,7 @@ export interface MovieItem {
   durationMin?: number;       // dur
   summary?: string;           // dra
   director?: string;          // dir
+  star?: string;              // star（主演文本）
   trailerUrl?: string;        // videourl
   backdrop?: string;          // photos[0] 或 img
   source: string;
@@ -46,6 +47,19 @@ export interface MoviesPayload {
   coming: MovieItem[];
   fetchedAt: number;
   source: string;
+  cityId?: number;
+  /** 网络失败时返回上次成功片单 */
+  degraded?: boolean;
+  /** 即将上映回退说明（如澳门空档用香港待映） */
+  comingNote?: string;
+}
+
+/** 示例 / TMDB 片不要打猫眼详情（ID 空间不同） */
+export function shouldFetchMaoyanDetail(item: MovieItem | null | undefined): boolean {
+  if (!item) return true;
+  if (item.isSample) return false;
+  if (item.source === SOURCE.SAMPLE || item.source === SOURCE.TMDB) return false;
+  return true;
 }
 
 /** 补 https: 协议到猫眼 //cdn 海报 URL；空返回 undefined */
@@ -61,4 +75,4 @@ export function splitGenres(cat?: string): string[] | undefined {
   return parts.length ? parts : undefined;
 }
 
-module.exports = { SOURCE, normalizePoster, splitGenres };
+module.exports = { SOURCE, normalizePoster, splitGenres, shouldFetchMaoyanDetail };
