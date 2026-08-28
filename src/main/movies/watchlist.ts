@@ -32,7 +32,7 @@ export function createMovieWatchlist({
     let watched = false;
     patch((state) => {
     const entries = Array.isArray(state.movieWatchlist) ? state.movieWatchlist.filter(isMovieWatchItem) : [];
-    const index = entries.findIndex((entry) => sameKey(entry, item));
+    const index = entries.findIndex((entry: any) => sameKey(entry, item));
     if (index >= 0) {
         item.reminderId = entries[index].reminderId;
         entries.splice(index, 1);
@@ -50,7 +50,7 @@ export function createMovieWatchlist({
     let updated = false;
     patch((state) => {
       const entries = Array.isArray(state.movieWatchlist) ? state.movieWatchlist.filter(isMovieWatchItem) : [];
-      const entry = entries.find((candidate) => candidate.movieId === movieId && candidate.cityId === cityId);
+      const entry = entries.find((candidate: any) => candidate.movieId === movieId && candidate.cityId === cityId);
       if (entry) {
         entry.reminderId = reminderId;
         updated = true;

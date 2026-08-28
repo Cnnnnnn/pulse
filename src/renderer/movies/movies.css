@@ -196,25 +196,30 @@
   color: var(--gray-500, #6b7280);
 }
 
-/* ── content / grid ── */
-.movies-content {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 12px 18px 18px;
-}
+/* ── content / grid ──
+ * library 必须 flex:1 吃满 layout 剩余高度；content 在 grid 里 flex:1 无效，
+ * 靠 min-height:0 + overflow 在撑满后的格子内滚动。
+ */
 .movies-library {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 32%);
   gap: 18px;
+  flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+.movies-content {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 18px 18px;
 }
 .movies-library .movies-content {
   padding-right: 0;
 }
 .movies-preview {
-  align-self: start;
-  overflow: hidden;
+  align-self: stretch;
+  min-height: 0;
+  overflow-y: auto;
   border-left: 1px solid color-mix(in oklch, var(--gray-300) 65%, transparent);
   background: color-mix(in oklch, var(--gray-50) 72%, #fff);
 }
