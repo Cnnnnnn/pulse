@@ -580,8 +580,8 @@ export const api = {
     invokeChannel("vault:delete", id),
   vaultReveal: (id: IpcChannelMap["vault:reveal"]["args"][0]) =>
     invokeChannel("vault:reveal", id),
-  vaultCopy: (id: IpcChannelMap["vault:copy"]["args"][0]) =>
-    invokeChannel("vault:copy", id),
+  vaultCopy: (id: IpcChannelMap["vault:copy"]["args"][0], fieldLabel?: string) =>
+    invokeChannel("vault:copy", id, fieldLabel),
   // 导出为明文 JSON（renderer 二次确认后调用）；导入预览只含掩码
   vaultExport: () => invokeChannel("vault:export"),
   vaultImportLoad: () => invokeChannel("vault:import-load"),

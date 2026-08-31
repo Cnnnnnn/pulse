@@ -25,6 +25,8 @@ export const vaultBusy = signal(false);
 export const vaultRevealedId = signal<string | null>(null);
 /** 短暂持有的明文，15s 后自动清空 */
 export const vaultRevealedValue = signal("");
+/** 明文展开时一并解密的附加字段（label + 明文），随 15s 计时一起清空 */
+export const vaultRevealedFields = signal<Array<{ label: string; value: string }>>([]);
 /** 导入预览（主进程只回掩码，不含明文） */
 export const vaultImportPreview = signal<null | {
   importId: string;
@@ -36,6 +38,7 @@ export const vaultImportPreview = signal<null | {
     category: string;
     hint: string;
     note: string;
+    fields: Array<{ label: string; hint: string }>;
     expiresAt: number | null;
     conflict: boolean;
   }>;
@@ -48,6 +51,8 @@ const REASON_TEXT: Record<string, string> = {
   no_safe_storage: "系统加密（Keychain）不可用，已拒绝明文保存",
   invalid_name: "名称不能为空（100 字以内）",
   invalid_value: "密钥内容不能为空",
+  invalid_fields: "附加字段格式有误：名称必填且不能重复，新字段需要值",
+  field_not_found: "附加字段不存在（可能已被修改）",
   name_conflict: "已存在同名条目，请换个名称",
   not_found: "条目不存在（可能已被删除）",
   blob_unreadable: "原密文读取失败，请重新输入密钥内容",
@@ -100,6 +105,7 @@ export async function saveVaultSecret(input: {
   category: string;
   value: string;
   note: string;
+  fields?: Array<{ label: string; value: string }>;
   expiresAt?: string | number | null;
 }): Promise<boolean> {
   vaultBusy.value = true;
@@ -133,10 +139,15 @@ export async function removeVaultSecret(entry: VaultEntryMeta): Promise<void> {
   }
 }
 
-export async function copyVaultSecret(entry: VaultEntryMeta): Promise<void> {
-  const res = await api.vaultCopy(entry.id);
+/** 复制主密钥值或指定附加字段（fieldLabel 缺省 = 主值）。 */
+export async function copyVaultSecret(
+  entry: VaultEntryMeta,
+  fieldLabel?: string,
+): Promise<void> {
+  const res = await api.vaultCopy(entry.id, fieldLabel);
   if (res && res.ok) {
-    showToast(`已复制「${entry.name}」，${res.clearAfterSec}s 后自动清空剪贴板`, "success", 2600);
+    const what = fieldLabel ? `${entry.name} · ${fieldLabel}` : `「${entry.name}」`;
+    showToast(`已复制 ${what}，${res.clearAfterSec}s 后自动清空剪贴板`, "success", 2600);
   } else {
     showToast(vaultReasonText(res && res.reason), "error", 3200);
   }
@@ -149,9 +160,10 @@ function hideRevealed(): void {
   }
   vaultRevealedId.value = null;
   vaultRevealedValue.value = "";
+  vaultRevealedFields.value = [];
 }
 
-/** 切换单条明文显示；同时只展开一条，15s 自动隐藏。 */
+/** 切换单条明文显示；同时只展开一条，15s 自动隐藏。附加字段随 reveal 一并解密。 */
 export async function toggleReveal(entry: VaultEntryMeta): Promise<void> {
   if (vaultRevealedId.value === entry.id) {
     hideRevealed();
@@ -161,7 +173,8 @@ export async function toggleReveal(entry: VaultEntryMeta): Promise<void> {
   if (res && res.ok) {
     if (_revealTimer !== null) clearTimeout(_revealTimer);
     vaultRevealedId.value = entry.id;
-    vaultRevealedValue.value = res.value;
+    vaultRevealedValue.value = res.value || "";
+    vaultRevealedFields.value = Array.isArray(res.fields) ? res.fields : [];
     _revealTimer = setTimeout(() => hideRevealed(), REVEAL_AUTO_HIDE_MS);
   } else {
     showToast(vaultReasonText(res && res.reason), "error", 3200);

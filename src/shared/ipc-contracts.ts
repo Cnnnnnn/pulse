@@ -2553,6 +2553,19 @@ export interface ReleaseNotesApiContract {
 // 安全约定：明文 value 只走 vault:reveal / vault:copy（主进程解密），
 // vault:list 只返回掩码 hint + note，永不返回 value。
 
+/** 附加字段（列表掩码视图）；如 coding plan 的 baseUrl 等 */
+export interface VaultFieldMeta {
+  label: string;
+  /** 掩码预览，同 hint 规则 */
+  hint: string;
+}
+
+/** 附加字段（明文；仅 vault:reveal / 导出文件出现） */
+export interface VaultFieldPlain {
+  label: string;
+  value: string;
+}
+
 export interface VaultEntryMeta {
   id: string;
   name: string;
@@ -2560,6 +2573,8 @@ export interface VaultEntryMeta {
   /** 掩码预览，如 "sk-…9f3a (43)"；短值 (≤8) 为 "••••" */
   hint: string;
   note: string;
+  /** 附加字段掩码列表（v2.84 多字段）；无附加字段时为空数组 */
+  fields: VaultFieldMeta[];
   createdAt: number;
   updatedAt: number;
   /** 过期时间 (ms epoch)；null = 未设置 */
@@ -2581,6 +2596,8 @@ export interface VaultSetInput {
   /** 编辑时传空串 = 保持原值 */
   value: string;
   note?: string;
+  /** 附加字段。编辑时 undefined = 保持原字段；[] = 清空；字段 value 空串 = 保持该字段原值 */
+  fields?: VaultFieldPlain[];
   /** true = 同名条目存在时改为更新（内置条目 github/tmdb 用） */
   upsert?: boolean;
   /** 过期时间："YYYY-MM-DD" | ms | null(清除)；编辑时 undefined = 保持原值 */
@@ -2597,6 +2614,8 @@ export type VaultDeleteResponse = { ok: boolean; reason?: string };
 export type VaultRevealResponse = {
   ok: boolean;
   value?: string;
+  /** 附加字段明文（v2.84 多字段） */
+  fields?: VaultFieldPlain[];
   reason?: string;
 };
 export type VaultCopyResponse = {
@@ -2619,6 +2638,8 @@ export type VaultImportPreviewEntry = {
   category: string;
   hint: string;
   note: string;
+  /** 附加字段掩码预览（v2.84 多字段） */
+  fields: Array<{ label: string; hint: string }>;
   expiresAt: number | null;
   /** true = 本地已有同名条目，应用后将覆盖 */
   conflict: boolean;
@@ -2648,7 +2669,8 @@ export interface VaultApiContract {
   vaultSet(input: VaultSetInput): Promise<VaultMutationResponse>;
   vaultDelete(id: string): Promise<VaultDeleteResponse>;
   vaultReveal(id: string): Promise<VaultRevealResponse>;
-  vaultCopy(id: string): Promise<VaultCopyResponse>;
+  /** fieldLabel 缺省 = 复制主密钥值；传字段名 = 复制该附加字段 */
+  vaultCopy(id: string, fieldLabel?: string): Promise<VaultCopyResponse>;
   vaultExport(): Promise<VaultExportResponse>;
   vaultImportLoad(): Promise<VaultImportLoadResponse>;
   vaultImportApply(importId: string): Promise<VaultImportApplyResponse>;
@@ -2829,7 +2851,7 @@ export interface IpcChannelMap {
   "vault:set": { args: [input: VaultSetInput]; result: VaultMutationResponse };
   "vault:delete": { args: [id: string]; result: VaultDeleteResponse };
   "vault:reveal": { args: [id: string]; result: VaultRevealResponse };
-  "vault:copy": { args: [id: string]; result: VaultCopyResponse };
+  "vault:copy": { args: [id: string, fieldLabel?: string]; result: VaultCopyResponse };
   "vault:export": { args: []; result: VaultExportResponse };
   "vault:import-load": { args: []; result: VaultImportLoadResponse };
   "vault:import-apply": { args: [importId: string]; result: VaultImportApplyResponse };

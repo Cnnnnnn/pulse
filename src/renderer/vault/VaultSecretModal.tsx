@@ -1,8 +1,8 @@
 /**
  * src/renderer/vault/VaultSecretModal.tsx
  *
- * 密钥库 新建/编辑弹窗 (v2.83)。
- * 编辑时 value 默认留空 = 保持原值（不回显明文，减少不必要的明文往返）。
+ * 密钥库 新建/编辑弹窗 (v2.83；v2.84 支持附加字段)。
+ * 编辑时 value / 附加字段值默认留空 = 保持原值（不回显明文，减少不必要的明文往返）。
  */
 
 import { useEffect, useState } from "preact/hooks";
@@ -24,6 +24,8 @@ function msToDateInput(ms: number): string {
   ).padStart(2, "0")}`;
 }
 
+type FieldRow = { label: string; value: string };
+
 export function VaultSecretModal() {
   const editing = vaultEditing.value;
   const open = vaultModalOpen.value;
@@ -33,6 +35,7 @@ export function VaultSecretModal() {
   const [value, setValue] = useState("");
   const [note, setNote] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
+  const [fields, setFields] = useState<FieldRow[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -43,9 +46,38 @@ export function VaultSecretModal() {
     setExpiresAt(
       editing && editing.expiresAt ? msToDateInput(editing.expiresAt) : "",
     );
+    // 已有字段：label 预填、value 留空 = 保持原值（不回显明文）
+    setFields(
+      editing && Array.isArray(editing.fields)
+        ? editing.fields.map((f) => ({ label: f.label, value: "" }))
+        : [],
+    );
   }, [open, editing]);
 
-  const canSubmit = name.trim().length > 0 && (editing || value.trim().length > 0);
+  const existingLabels = new Set(
+    (editing && Array.isArray(editing.fields)
+      ? editing.fields.map((f) => f.label.toLowerCase())
+      : []) as string[],
+  );
+  // 校验：label 必填；新 label 需要值（已有 label 留空 = 保持原值）；label 不可重复
+  const labelsSeen = new Set<string>();
+  const fieldsValid = fields.every((f) => {
+    const label = f.label.trim();
+    if (!label) return f.value.trim() === ""; // 全空行允许（提交时丢弃）
+    const key = label.toLowerCase();
+    if (labelsSeen.has(key)) return false;
+    labelsSeen.add(key);
+    if (f.value.trim()) return true;
+    return existingLabels.has(key); // 留空仅对已有字段合法
+  });
+  const fieldsTrimmed = fields
+    .map((f) => ({ label: f.label.trim(), value: f.value.trim() }))
+    .filter((f) => f.label || f.value);
+
+  const canSubmit =
+    name.trim().length > 0 &&
+    (editing || value.trim().length > 0) &&
+    fieldsValid;
 
   const submit = async () => {
     if (!canSubmit || vaultBusy.value) return;
@@ -55,9 +87,20 @@ export function VaultSecretModal() {
       category: category.trim(),
       value: value.trim(),
       note: note.trim(),
+      fields: fieldsTrimmed,
       // "" = 清除过期时间；未改动时也显式传值（简单起见总是传）
       expiresAt: expiresAt || null,
     });
+  };
+
+  const updateField = (idx: number, patch: Partial<FieldRow>) => {
+    setFields((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+  const removeField = (idx: number) => {
+    setFields((rows) => rows.filter((_, i) => i !== idx));
+  };
+  const addField = () => {
+    setFields((rows) => [...rows, { label: "", value: "" }]);
   };
 
   return (
@@ -137,6 +180,52 @@ export function VaultSecretModal() {
             onInput={(e: any) => setNote(e.target.value)}
           />
         </label>
+
+        <div class="vault-field">
+          <span class="vault-field__label">
+            附加字段（如 baseUrl / model，最多 10 个；留空值 = 保持原值）
+          </span>
+          {fields.map((f, idx) => (
+            <div class="vault-field-row" key={idx}>
+              <input
+                class="vault-field__input vault-field-row__label"
+                type="text"
+                placeholder="名称，如 baseUrl"
+                value={f.label}
+                maxLength={50}
+                spellcheck={false}
+                onInput={(e: any) => updateField(idx, { label: e.target.value })}
+              />
+              <input
+                class="vault-field__input vault-field-row__value"
+                type="text"
+                placeholder={
+                  f.label.trim() && existingLabels.has(f.label.trim().toLowerCase())
+                    ? "留空 = 保持原值"
+                    : "粘贴字段值…"
+                }
+                value={f.value}
+                maxLength={2000}
+                spellcheck={false}
+                autocomplete="off"
+                onInput={(e: any) => updateField(idx, { value: e.target.value })}
+              />
+              <button
+                type="button"
+                class="vault-field-row__remove"
+                onClick={() => removeField(idx)}
+                title="移除该字段"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          {fields.length < 10 ? (
+            <button type="button" class="vault-btn" onClick={addField}>
+              ＋ 添加字段
+            </button>
+          ) : null}
+        </div>
 
         <label class="vault-field">
           <span class="vault-field__label">过期时间（可选，到期前 7 天开始提醒）</span>

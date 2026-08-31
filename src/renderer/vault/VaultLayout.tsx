@@ -21,6 +21,7 @@ import {
   vaultSearchQuery,
   vaultRevealedId,
   vaultRevealedValue,
+  vaultRevealedFields,
   filterVaultEntries,
   formatExpiryBadge,
   openVaultModal,
@@ -171,6 +172,7 @@ async function onExport() {
 
 function VaultRow({ entry }: { entry: VaultEntryMeta }) {
   const revealed = vaultRevealedId.value === entry.id;
+  const revealedFields = vaultRevealedFields.value;
   const expiryBadge = formatExpiryBadge(entry.expiresAt);
 
   const onDelete = async () => {
@@ -199,6 +201,29 @@ function VaultRow({ entry }: { entry: VaultEntryMeta }) {
           <code>{revealed ? vaultRevealedValue.value : entry.hint || "••••"}</code>
           {revealed ? <span class="vault-row__reveal-hint">15s 后自动隐藏</span> : null}
         </div>
+        {(entry.fields || []).length > 0 ? (
+          <div class="vault-row__fields">
+            {(entry.fields || []).map((f) => {
+              const plain = revealed
+                ? revealedFields.find((rf) => rf.label === f.label)?.value
+                : undefined;
+              return (
+                <div class="vault-row__field" key={f.label}>
+                  <span class="vault-row__field-label">{f.label}</span>
+                  <code>{revealed ? plain ?? "—" : f.hint}</code>
+                  <button
+                    type="button"
+                    class="vault-row__field-copy"
+                    onClick={() => copyVaultSecret(entry, f.label)}
+                    title={`复制 ${f.label}（30s 后自动清空剪贴板）`}
+                  >
+                    复制
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
         {entry.note ? <div class="vault-row__note">{entry.note}</div> : null}
       </div>
       <div class="vault-row__actions">
@@ -206,7 +231,7 @@ function VaultRow({ entry }: { entry: VaultEntryMeta }) {
           type="button"
           class="vault-btn vault-btn--primary"
           onClick={() => copyVaultSecret(entry)}
-          title="复制到剪贴板（30s 后自动清空）"
+          title="复制主密钥到剪贴板（30s 后自动清空）"
         >
           复制
         </button>

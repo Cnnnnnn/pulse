@@ -59,6 +59,7 @@ coverage/
 .cache/
 .parcel-cache/
 .eslintcache
+.token-savior-cache.json
 
 # mavis / agent stuff (会话级, 不入库)
 .mavis/scratchpad/

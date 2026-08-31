@@ -103,8 +103,11 @@ export function registerVaultHandlers(ctx: any, opts: any = {}) {
 
   safeHandle(
     "vault:copy",
-    async (_event: unknown, id: IpcChannelMap["vault:copy"]["args"][0]) =>
-      copyEntry(id),
+    async (
+      _event: unknown,
+      id: IpcChannelMap["vault:copy"]["args"][0],
+      fieldLabel: IpcChannelMap["vault:copy"]["args"][1],
+    ) => copyEntry(id, fieldLabel),
   );
 
   safeHandle("vault:export", async () => exportVaultToFile(ctx.dialog));

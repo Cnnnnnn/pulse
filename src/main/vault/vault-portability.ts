@@ -28,11 +28,14 @@ import {
 const EXPORT_SCHEMA = "pulse.vault.export.v1";
 const IMPORT_PREVIEW_MAX = 200;
 
+type ImportField = { label: string; value: string };
+
 type ImportEntry = {
   name: string;
   category: string;
   value: string;
   note: string;
+  fields: ImportField[];
   expiresAt: number | null;
 };
 
@@ -92,6 +95,7 @@ export function exportVaultToFile(dialog: any): {
       category: meta.category,
       value: full.value,
       note: full.note,
+      fields: full.fields.map((f) => ({ label: f.label, value: f.value })),
       expiresAt: meta.expiresAt,
     });
   }
@@ -131,11 +135,29 @@ function parseImportPayload(raw: string): {
     if (typeof e.expiresAt === "number" && Number.isFinite(e.expiresAt) && e.expiresAt > 0) {
       expiresAt = e.expiresAt;
     }
+    // 附加字段（v2.84）：旧导出文件没有 fields → 空数组
+    const fields: ImportField[] = Array.isArray(e.fields)
+      ? e.fields
+          .filter(
+            (f: any) =>
+              f &&
+              typeof f.label === "string" &&
+              f.label.trim() &&
+              typeof f.value === "string" &&
+              f.value.trim(),
+          )
+          .map((f: any) => ({
+            label: String(f.label).trim().slice(0, 50),
+            value: String(f.value).trim().slice(0, 2000),
+          }))
+          .slice(0, 10)
+      : [];
     entries.push({
       name: String(e.name).trim().slice(0, 100),
       category: typeof e.category === "string" ? e.category.trim().slice(0, 50) : "",
       value: String(e.value).trim(),
       note: typeof e.note === "string" ? e.note.trim().slice(0, 500) : "",
+      fields,
       expiresAt,
     });
   }
@@ -194,6 +216,10 @@ export function loadVaultImportFile(dialog: any): {
       category: e.category,
       hint: maskHint(e.value),
       note: e.note,
+      fields: e.fields.map((f) => ({
+        label: f.label,
+        hint: maskHint(f.value),
+      })),
       expiresAt: e.expiresAt,
       conflict: hasEntryNamed(e.name),
     })),
@@ -223,6 +249,7 @@ export function applyVaultImport(importId: unknown): {
       category: e.category,
       value: e.value,
       note: e.note,
+      fields: e.fields,
       expiresAt: e.expiresAt,
       upsert: true,
     });

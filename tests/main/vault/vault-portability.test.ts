@@ -76,6 +76,67 @@ describe("vault-portability", () => {
     expect(aiMeta.expiresAt).toBe(new Date(2026, 9, 1).getTime());
   });
 
+  it("导出 → 导入 roundtrip：附加字段随条目导出导入（v2.84）", () => {
+    vault.setEntry({
+      name: "plan",
+      value: "pv1",
+      fields: [
+        { label: "baseUrl", value: "https://api.example.com" },
+        { label: "model", value: "glm-5.3" },
+      ],
+    });
+
+    const file = path.join(dir, "export-fields.json");
+    const exp = portability.exportVaultToFile(makeFakeDialog(file, undefined));
+    expect(exp.ok).toBe(true);
+
+    // 导出文件含字段明文（导出本来就是明文备份）
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+    expect(parsed.entries[0].fields).toEqual([
+      { label: "baseUrl", value: "https://api.example.com" },
+      { label: "model", value: "glm-5.3" },
+    ]);
+
+    // 预览只含字段掩码
+    const preview = portability.loadVaultImportFile(makeFakeDialog(undefined, [file]));
+    expect(preview.ok).toBe(true);
+    expect(preview.entries[0].fields).toEqual([
+      { label: "baseUrl", hint: "htt….com (23)" },
+      { label: "model", hint: "••••" },
+    ]);
+    expect(JSON.stringify(preview)).not.toContain("https://api.example.com");
+
+    // 换机导入：字段原样恢复
+    vault.deleteEntry(vault.listIndexEntries()[0].id);
+    const applied = portability.applyVaultImport(preview.importId);
+    expect(applied).toMatchObject({ ok: true, imported: 1, failed: 0 });
+    const rev = vault.revealEntry(vault.listIndexEntries()[0].id);
+    expect(rev.fields).toEqual([
+      { label: "baseUrl", value: "https://api.example.com" },
+      { label: "model", value: "glm-5.3" },
+    ]);
+  });
+
+  it("旧版导出文件（无 fields）导入兼容", () => {
+    const file = path.join(dir, "legacy.json");
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        schema: "pulse.vault.export.v1",
+        exportedAt: Date.now(),
+        entries: [{ name: "legacy", category: "", value: "lv1", note: "", expiresAt: null }],
+      }),
+    );
+    const preview = portability.loadVaultImportFile(makeFakeDialog(undefined, [file]));
+    expect(preview.ok).toBe(true);
+    expect(preview.entries[0].fields).toEqual([]);
+    const applied = portability.applyVaultImport(preview.importId);
+    expect(applied).toMatchObject({ ok: true, imported: 1, failed: 0 });
+    const rev = vault.revealEntry(vault.listIndexEntries()[0].id);
+    expect(rev.value).toBe("lv1");
+    expect(rev.fields).toEqual([]);
+  });
+
   it("导入预览标记同名冲突；apply 走覆盖并计数", () => {
     vault.setEntry({ name: "gh", value: "local-val", upsert: true });
 

@@ -93,12 +93,17 @@ export const CLIPBOARD_CLEAR_AFTER_SEC = 30;
 const NAME_MAX_LEN = 100;
 const CATEGORY_MAX_LEN = 50;
 const NOTE_MAX_LEN = 500;
+const FIELD_LABEL_MAX_LEN = 50;
+const FIELD_VALUE_MAX_LEN = 2000;
+const FIELDS_MAX_COUNT = 10;
 
 type IndexEntry = {
   id: string;
   name: string;
   category: string;
   hint: string;
+  /** 附加字段标签（明文元数据，值在加密 blob 里）；v2.84 多字段 */
+  fieldLabels: string[];
   createdAt: number;
   updatedAt: number;
   /** 过期时间 (ms epoch, 当地当天 0 点)；null = 未设置 */
@@ -107,7 +112,8 @@ type IndexEntry = {
   lastExpiryRemindAt: number | null;
 };
 
-type SecretPayload = { value: string; note: string };
+type SecretField = { label: string; value: string };
+type SecretPayload = { value: string; note: string; fields: SecretField[] };
 
 function vaultDir(): string | null {
   const userData = _tryGetUserDataDir();
@@ -167,6 +173,9 @@ function normalizeIndexEntry(e: any): IndexEntry {
     name: e.name,
     category: typeof e.category === "string" ? e.category : "",
     hint: typeof e.hint === "string" ? e.hint : "",
+    fieldLabels: Array.isArray(e.fieldLabels)
+      ? e.fieldLabels.filter((l: any): l is string => typeof l === "string")
+      : [],
     createdAt: typeof e.createdAt === "number" ? e.createdAt : 0,
     updatedAt: typeof e.updatedAt === "number" ? e.updatedAt : 0,
     expiresAt: typeof e.expiresAt === "number" ? e.expiresAt : null,
@@ -237,7 +246,18 @@ function readBlob(id: string): SecretPayload | null {
     const plain = ss.decryptString(fs.readFileSync(file));
     const parsed = JSON.parse(String(plain));
     if (typeof parsed.value !== "string") return null;
-    return { value: parsed.value, note: typeof parsed.note === "string" ? parsed.note : "" };
+    // 旧版 blob 无 fields → 空数组（向后兼容）
+    const fields = Array.isArray(parsed.fields)
+      ? parsed.fields.filter(
+          (f: any) =>
+            f && typeof f.label === "string" && typeof f.value === "string",
+        )
+      : [];
+    return {
+      value: parsed.value,
+      note: typeof parsed.note === "string" ? parsed.note : "",
+      fields,
+    };
   } catch (err: any) {
     _logWarn(`[vault] 解密 blob 失败: ${err && err.message}`);
     return null;
@@ -273,6 +293,44 @@ function cleanName(input: unknown): string | null {
 function cleanOptional(input: unknown, maxLen: number): string {
   if (typeof input !== "string") return "";
   return input.trim().slice(0, maxLen);
+}
+
+/**
+ * 归一化附加字段输入（v2.84 多字段）。
+ *   undefined        → undefined (编辑时 = 保持原字段)
+ *   []               → [] (清空全部附加字段)
+ *   [{label, value}] → 归一化数组；value 空串 = 保持该 label 的原值（编辑时）
+ * 非法（非数组 / 超量 / label 空 / 新 label 空值 / 原 label 空值且无原值）→ null。
+ */
+function cleanFields(
+  input: unknown,
+  prevFields: SecretField[] | null,
+): SecretField[] | null | undefined {
+  if (input === undefined) return undefined;
+  if (!Array.isArray(input)) return null;
+  if (input.length > FIELDS_MAX_COUNT) return null;
+  const out: SecretField[] = [];
+  const seen = new Set<string>();
+  for (const raw of input) {
+    if (!raw || typeof raw !== "object") return null;
+    const label = typeof raw.label === "string" ? raw.label.trim().slice(0, FIELD_LABEL_MAX_LEN) : "";
+    if (!label) return null;
+    if (seen.has(label.toLowerCase())) return null; // 重复 label
+    seen.add(label.toLowerCase());
+    const value = typeof raw.value === "string" ? raw.value.trim().slice(0, FIELD_VALUE_MAX_LEN) : "";
+    if (value) {
+      out.push({ label, value });
+      continue;
+    }
+    // 空值 = 保持原值（仅编辑且原字段存在时合法）
+    const prev = prevFields?.find((f) => f.label.toLowerCase() === label.toLowerCase());
+    if (prev) {
+      out.push({ label, value: prev.value });
+    } else {
+      return null;
+    }
+  }
+  return out;
 }
 
 /**
@@ -319,6 +377,9 @@ export function listEntries(): VaultListResponse {
         category: e.category || "",
         hint: e.hint || "",
         note: blob ? blob.note : "",
+        fields: blob
+          ? blob.fields.map((f) => ({ label: f.label, hint: maskHint(f.value) }))
+          : [],
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
         expiresAt: e.expiresAt ?? null,
@@ -359,7 +420,8 @@ export function markExpiryReminded(id: string, ts: number): boolean {
 
 /**
  * 新建 / 更新条目。id 缺省为新建；name 全库唯一（大小写不敏感）。
- * 编辑时 value 传空串表示「保持原值」（避免明文往返）。
+ * 编辑时 value 传空串表示「保持原值」（避免明文往返）；
+ * fields 传 undefined = 保持原附加字段，[] = 清空，字段 value 空串 = 保持该字段原值。
  * upsert=true 时同名条目存在则改为更新（业务模块按名写 tmdb/github 等）。
  */
 export function setEntry(input: {
@@ -368,6 +430,7 @@ export function setEntry(input: {
   category?: unknown;
   value: unknown;
   note?: unknown;
+  fields?: unknown;
   upsert?: boolean;
   /** "YYYY-MM-DD" | ms | null(清除)；编辑时 undefined = 保持原值 */
   expiresAt?: unknown;
@@ -405,10 +468,11 @@ export function setEntry(input: {
     return { ok: false, reason: "name_conflict" };
   }
 
+  const target = existing || (conflictIsUpsert ? nameConflict : undefined);
   // blob 载荷：编辑时 value 传空 = 沿用旧值
   let value = typeof (input && input.value) === "string" ? (input.value as string).trim() : "";
   if (!value) {
-    const old = existing || (conflictIsUpsert ? nameConflict : undefined);
+    const old = target;
     const prevBlob = old ? readBlob(old.id) : null;
     if (prevBlob) {
       value = prevBlob.value;
@@ -419,7 +483,14 @@ export function setEntry(input: {
     }
   }
 
-  const target = existing || (conflictIsUpsert ? nameConflict : undefined);
+  // 附加字段：undefined = 保持原字段；[] = 清空；字段空值 = 保持该字段原值
+  const prevBlobForFields = target ? readBlob(target.id) : null;
+  const fields = cleanFields(input && input.fields, prevBlobForFields ? prevBlobForFields.fields : null);
+  if (fields === null) {
+    return { ok: false, reason: "invalid_fields" };
+  }
+  const nextFields: SecretField[] = fields === undefined ? (prevBlobForFields ? prevBlobForFields.fields : []) : fields;
+
   const nextExpiresAt =
     expiry.value === undefined ? (target ? (target.expiresAt ?? null) : null) : expiry.value;
   const entry: IndexEntry = target
@@ -428,6 +499,7 @@ export function setEntry(input: {
         name,
         category,
         hint: maskHint(value),
+        fieldLabels: nextFields.map((f) => f.label),
         updatedAt: now,
         expiresAt: nextExpiresAt,
       }
@@ -436,13 +508,14 @@ export function setEntry(input: {
         name,
         category,
         hint: maskHint(value),
+        fieldLabels: nextFields.map((f) => f.label),
         createdAt: now,
         updatedAt: now,
         expiresAt: nextExpiresAt,
         lastExpiryRemindAt: null,
       };
 
-  if (!writeBlob(entry.id, { value, note })) {
+  if (!writeBlob(entry.id, { value, note, fields: nextFields })) {
     return { ok: false, reason: "encrypt_failed" };
   }
 
@@ -463,6 +536,7 @@ export function setEntry(input: {
       category: entry.category,
       hint: entry.hint,
       note,
+      fields: nextFields.map((f) => ({ label: f.label, hint: maskHint(f.value) })),
       createdAt: entry.createdAt,
       updatedAt: entry.updatedAt,
       expiresAt: entry.expiresAt ?? null,
@@ -493,13 +567,17 @@ export function revealEntry(id: unknown): VaultRevealResponse {
   }
   const blob = readBlob(id);
   if (!blob) return { ok: false, reason: "decrypt_failed" };
-  return { ok: true, value: blob.value };
+  return {
+    ok: true,
+    value: blob.value,
+    fields: blob.fields.map((f) => ({ label: f.label, value: f.value })),
+  };
 }
 
 /** 按 id 取解密载荷（主进程内部用：导出、AI 设置引用）；不存在/解密失败 → null。 */
 export function readEntryFull(
   id: unknown,
-): { value: string; note: string } | null {
+): { value: string; note: string; fields: SecretField[] } | null {
   if (typeof id !== "string" || !id) return null;
   if (!encryptionAvailable()) return null;
   if (!readIndex().some((e) => e.id === id)) return null;
@@ -529,8 +607,11 @@ function _scheduleClipboardClear(value: string) {
   }, CLIPBOARD_CLEAR_AFTER_SEC * 1000);
 }
 
-/** 主进程写剪贴板；renderer 不经手明文。 */
-export function copyEntry(id: unknown): VaultCopyResponse {
+/**
+ * 主进程写剪贴板；renderer 不经手明文。
+ * fieldLabel 缺省 = 复制主密钥值；传字段名 = 复制该附加字段。
+ */
+export function copyEntry(id: unknown, fieldLabel?: unknown): VaultCopyResponse {
   if (typeof id !== "string" || !id) return { ok: false, reason: "invalid_id" };
   if (!encryptionAvailable()) return { ok: false, reason: "no_safe_storage" };
   if (!readIndex().some((e) => e.id === id)) {
@@ -538,13 +619,21 @@ export function copyEntry(id: unknown): VaultCopyResponse {
   }
   const blob = readBlob(id);
   if (!blob) return { ok: false, reason: "decrypt_failed" };
+  let copied = blob.value;
+  if (typeof fieldLabel === "string" && fieldLabel) {
+    const field = blob.fields.find(
+      (f) => f.label.toLowerCase() === fieldLabel.toLowerCase(),
+    );
+    if (!field) return { ok: false, reason: "field_not_found" };
+    copied = field.value;
+  }
   const clipboard = _tryGetClipboard();
   if (!clipboard || typeof clipboard.writeText !== "function") {
     return { ok: false, reason: "no_clipboard" };
   }
   try {
-    clipboard.writeText(blob.value);
-    _scheduleClipboardClear(blob.value);
+    clipboard.writeText(copied);
+    _scheduleClipboardClear(copied);
     return { ok: true, clearAfterSec: CLIPBOARD_CLEAR_AFTER_SEC };
   } catch (err: any) {
     _logWarn(`[vault] 写剪贴板失败: ${err && err.message}`);

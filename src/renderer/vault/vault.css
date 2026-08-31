@@ -267,6 +267,61 @@
   font-weight: 600;
   color: var(--vault-accent);
 }
+
+/* ── 附加字段行（v2.84 多字段）── */
+.vault-row__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in oklch, var(--gray-200) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--gray-50) 75%, var(--surface, #fff));
+}
+.vault-row__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+.vault-row__field-label {
+  flex-shrink: 0;
+  min-width: 72px;
+  max-width: 160px;
+  font-weight: 600;
+  color: var(--gray-600, #48484a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vault-row__field code {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: var(--gray-700, #48484a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vault-row__field-copy {
+  flex-shrink: 0;
+  min-height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--gray-100) 80%, var(--surface, #fff));
+  color: var(--gray-600, #48484a);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.vault-row__field-copy:hover {
+  background: color-mix(in oklch, var(--accent-primary) 14%, var(--surface, #fff));
+  color: var(--accent-primary);
+}
 .vault-row__note {
   font-size: 12px;
   color: var(--gray-500, #6e6e73);
@@ -401,6 +456,37 @@
   font-size: 10px;
   line-height: 1.6;
   color: var(--gray-400, #9ca3af);
+}
+
+/* ── 弹窗附加字段编辑行 ── */
+.vault-field-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.vault-field-row__label {
+  width: 130px;
+  flex-shrink: 0;
+}
+.vault-field-row__value {
+  flex: 1;
+  min-width: 0;
+}
+.vault-field-row__remove {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--gray-100) 80%, var(--surface, #fff));
+  color: var(--gray-400, #8e8e93);
+  font-size: 11px;
+  cursor: pointer;
+}
+.vault-field-row__remove:hover {
+  background: color-mix(in oklch, #ff3b30 12%, var(--surface, #fff));
+  color: #ff3b30;
 }
 .vault-modal__foot {
   display: flex;

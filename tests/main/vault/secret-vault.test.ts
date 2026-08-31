@@ -97,7 +97,11 @@ describe("secret-vault", () => {
 
   it("revealEntry 显式返回明文；deleteEntry 删除", () => {
     const created = vault.setEntry({ name: "k", value: "secret-xyz" });
-    expect(vault.revealEntry(created.entry.id)).toEqual({ ok: true, value: "secret-xyz" });
+    expect(vault.revealEntry(created.entry.id)).toEqual({
+      ok: true,
+      value: "secret-xyz",
+      fields: [],
+    });
     expect(vault.deleteEntry(created.entry.id)).toEqual({ ok: true });
     expect(vault.revealEntry(created.entry.id).reason).toBe("not_found");
     expect(vault.listEntries().entries).toHaveLength(0);
@@ -175,8 +179,118 @@ describe("secret-vault", () => {
     expect(cleared.entry.expiresAt).toBeNull();
   });
 
-  it("listIndexEntries / markExpiryReminded 走索引（不解密）", () => {
-    vault.setEntry({ name: "k", value: "v", expiresAt: "2026-09-15" });
+  it("附加字段：新建带 fields，list 掩码 / reveal 明文 / 按字段复制", () => {
+    const created = vault.setEntry({
+      name: "Coding Plan",
+      value: "sk-plan-primary",
+      fields: [
+        { label: "baseUrl", value: "https://api.example.com" },
+        { label: "model", value: "glm-5.3" },
+      ],
+    });
+    expect(created.ok).toBe(true);
+
+    // list：字段只给掩码，永无明文
+    const meta = vault.listEntries().entries[0];
+    expect(meta.fields).toEqual([
+      { label: "baseUrl", hint: "htt….com (23)" },
+      { label: "model", hint: "••••" },
+    ]);
+    expect(JSON.stringify(vault.listEntries())).not.toContain("https://api.example.com");
+    expect(JSON.stringify(vault.listEntries())).not.toContain("glm-5.3");
+
+    // reveal：字段明文一并返回
+    const rev = vault.revealEntry(created.entry.id);
+    expect(rev.ok).toBe(true);
+    expect(rev.value).toBe("sk-plan-primary");
+    expect(rev.fields).toEqual([
+      { label: "baseUrl", value: "https://api.example.com" },
+      { label: "model", value: "glm-5.3" },
+    ]);
+
+    // 按字段复制
+    const copied = vault.copyEntry(created.entry.id, "baseUrl");
+    expect(copied.ok).toBe(true);
+    expect(clipboard.text).toBe("https://api.example.com");
+    // 大小写不敏感
+    expect(vault.copyEntry(created.entry.id, "MODEL").ok).toBe(true);
+    expect(clipboard.text).toBe("glm-5.3");
+    // 不存在的字段
+    expect(vault.copyEntry(created.entry.id, "nope").reason).toBe("field_not_found");
+    // 无 label = 主值
+    vault.copyEntry(created.entry.id);
+    expect(clipboard.text).toBe("sk-plan-primary");
+  });
+
+  it("附加字段：编辑时 value 留空 = 保持原字段值；新字段必须有值", () => {
+    const created = vault.setEntry({
+      name: "plan",
+      value: "pv1",
+      fields: [{ label: "baseUrl", value: "https://old.example.com" }],
+    });
+    const id = created.entry.id;
+
+    // 编辑：只改 model（新字段），baseUrl 留空 = 保持原值
+    const updated = vault.setEntry({
+      id,
+      name: "plan",
+      value: "",
+      fields: [
+        { label: "baseUrl", value: "" },
+        { label: "model", value: "glm-5.3" },
+      ],
+    });
+    expect(updated.ok).toBe(true);
+    const rev = vault.revealEntry(id);
+    expect(rev.fields).toEqual([
+      { label: "baseUrl", value: "https://old.example.com" },
+      { label: "model", value: "glm-5.3" },
+    ]);
+
+    // 新 label 留空值 → invalid_fields
+    expect(
+      vault.setEntry({ id, name: "plan", value: "", fields: [{ label: "region", value: "" }] }).reason,
+    ).toBe("invalid_fields");
+
+    // fields: [] = 清空全部附加字段
+    const cleared = vault.setEntry({ id, name: "plan", value: "", fields: [] });
+    expect(cleared.ok).toBe(true);
+    expect(cleared.entry.fields).toEqual([]);
+    expect(vault.revealEntry(id).fields).toEqual([]);
+
+    // 编辑不带 fields = 保持原字段（当前为空 → 仍空）
+    expect(vault.setEntry({ id, name: "plan", value: "" }).ok).toBe(true);
+    expect(vault.revealEntry(id).fields).toEqual([]);
+  });
+
+  it("附加字段：非法输入拒绝（非数组/超量/空 label/重复 label）", () => {
+    expect(vault.setEntry({ name: "a", value: "v", fields: "nope" }).reason).toBe("invalid_fields");
+    expect(
+      vault.setEntry({ name: "a", value: "v", fields: [{ label: "", value: "x" }] }).reason,
+    ).toBe("invalid_fields");
+    const dup = [
+      { label: "same", value: "1" },
+      { label: "Same", value: "2" },
+    ];
+    expect(vault.setEntry({ name: "a", value: "v", fields: dup }).reason).toBe("invalid_fields");
+    const many = Array.from({ length: 11 }, (_, i) => ({ label: `f${i}`, value: "v" }));
+    expect(vault.setEntry({ name: "a", value: "v", fields: many }).reason).toBe("invalid_fields");
+  });
+
+  it("附加字段：向后兼容旧版 blob（无 fields）读取为空数组", () => {
+    const created = vault.setEntry({ name: "legacy", value: "old-value" });
+    const blobFile = path.join(userData, "vault", "entries", `${created.entry.id}.bin`);
+    // 手写一个无 fields 的旧版 blob
+    const plain = JSON.stringify({ value: "old-value", note: "" });
+    const buf = Buffer.from(`enc1:${Buffer.from(plain, "utf8").toString("base64")}`, "utf8");
+    fs.writeFileSync(blobFile, buf);
+    const rev = vault.revealEntry(created.entry.id);
+    expect(rev.ok).toBe(true);
+    expect(rev.fields).toEqual([]);
+    expect(vault.listEntries().entries[0].fields).toEqual([]);
+  });
+
+  it("listIndexEntries / markExpiryReminded 走索引（不解密）", () => {    vault.setEntry({ name: "k", value: "v", expiresAt: "2026-09-15" });
     const metas = vault.listIndexEntries();
     expect(metas).toHaveLength(1);
     expect(metas[0].name).toBe("k");
