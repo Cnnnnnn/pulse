@@ -22,6 +22,13 @@ export const CONCERT_PLATFORM_LABEL: Record<string, string> = {
   moretickets: "摩天轮国际",
 };
 
+/** 各平台官网首页（演出页快捷跳转用） */
+export const CONCERT_PLATFORM_SITE: Record<ConcertPlatform, string> = {
+  piaoniu: "https://www.piaoniu.com",
+  motianlun: "https://www.motianlun.cn",
+  moretickets: "https://www.moretickets.com",
+};
+
 /** 场次售票状态 → UI 文案（源站枚举不同，归一到这里） */
 export const CONCERT_SESSION_STATUS_LABEL: Record<string, string> = {
   ONSALE: "在售",
