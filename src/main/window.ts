@@ -76,7 +76,7 @@ export function createWindowManager(opts: CreateWindowManagerOpts = {}): WindowM
     const MIN_W = 720, MIN_H = 540;
     const MAX_W = 1600, MAX_H = 1000;
     const TARGET_W_RATIO = 0.7; // 70% 宽
-    const TARGET_H_RATIO = 0.75; // 75% 高 (留 25% 给 dock + 用户切换窗口)
+    const TARGET_H_RATIO = 0.88; // 88% 高 — 聊天抽屉跟窗口等高, 拔高窗口直接拔高展示区
     const width  = Math.max(MIN_W, Math.min(MAX_W, Math.floor(wa.width  * TARGET_W_RATIO)));
     const height = Math.max(MIN_H, Math.min(MAX_H, Math.floor(wa.height * TARGET_H_RATIO)));
     // 居中: 屏幕中点 - 窗口一半
