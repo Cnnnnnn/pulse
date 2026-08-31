@@ -74,7 +74,7 @@ export class MovieCard extends Component<any, { imgError: boolean }> {
           <div class="movie-card__score">
             {kind === "coming" ? (
               <span class="movie-card__wish">{wishStr || "想看"}</span>
-            ) : typeof movie.rating === "number" ? (
+            ) : typeof movie.rating === "number" && movie.rating > 0 ? (
               <span class="movie-card__rating">{movie.rating.toFixed(1)}</span>
             ) : (
               <span class="movie-card__rating movie-card__rating--none">
@@ -94,3 +94,51 @@ export class MovieCard extends Component<any, { imgError: boolean }> {
 }
 
 export default MovieCard;
+
+/**
+ * 横滑海报排卡片（v2.84 布局重构）.
+ *   - now: 海报右上角评分角标（无评分不显示），下方类型
+ *   - coming: 蓝色想看数角标 + 上映日期
+ */
+export function MovieRailCard({ movie, kind, onClick }: any) {
+  if (!movie) return null;
+  const wishStr = formatWish(movie.wish);
+  const badge =
+    kind === "coming"
+      ? wishStr
+        ? { cls: "movie-rail-card__badge--wish", text: wishStr }
+        : null
+      : typeof movie.rating === "number" && movie.rating > 0
+        ? { cls: "", text: movie.rating.toFixed(1) }
+        : null;
+  const facts =
+    kind === "coming"
+      ? [movie.releaseDate || movie.showState || "日期待定", (movie.genres || []).join(" / ")]
+          .filter(Boolean)
+          .join(" · ")
+      : Array.isArray(movie.genres) && movie.genres.length > 0
+        ? movie.genres.join(" / ")
+        : movie.showInfo || "";
+
+  return (
+    <button
+      class="movie-rail-card"
+      onClick={() => onClick && onClick(movie)}
+      title={movie.title}
+    >
+      <span class="movie-rail-card__poster">
+        {movie.poster ? (
+          <img src={movie.poster} alt="" loading="lazy" onError={(e: any) => {
+            if (e && e.currentTarget) e.currentTarget.style.visibility = "hidden";
+          }} />
+        ) : (
+          <span class="movie-card__poster-fallback">🎬</span>
+        )}
+        {badge && <span class={`movie-rail-card__badge ${badge.cls}`}>{badge.text}</span>}
+        {movie.isSample && <span class="movie-card__sample">示例</span>}
+      </span>
+      <span class="movie-rail-card__title">{movie.title}</span>
+      {facts && <span class="movie-rail-card__facts">{facts}</span>}
+    </button>
+  );
+}

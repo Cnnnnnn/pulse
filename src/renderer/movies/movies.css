@@ -4,10 +4,14 @@
  */
 
 .movies-layout {
+  --movie-accent: #e97900;
   display: flex;
   flex-direction: column;
+  gap: 14px;
   height: 100%;
   min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 16px;
 }
 
 /* ── header ── */
@@ -78,117 +82,329 @@
   cursor: default;
 }
 
-/* ── tonight picks ── */
-.movies-tonight {
-  padding: 12px 18px 2px;
-}
-.movies-tonight__title {
-  margin: 0 0 10px;
-  font-size: 15px;
-  color: var(--gray-800, #1f2937);
-}
-.movies-tonight__picks {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-.movies-tonight__pick {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 10px;
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid color-mix(in oklch, var(--gray-300) 55%, transparent);
-  border-radius: 10px;
-  color: inherit;
-  background: color-mix(in oklch, var(--gray-50) 72%, #fff);
-  text-align: left;
-  cursor: pointer;
-}
-.movies-tonight__pick img {
-  width: 76px;
-  height: 76px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-.movies-tonight__pick:hover {
-  border-color: color-mix(in oklch, var(--accent, #6366f1) 46%, transparent);
-  background: #fff;
-}
-.movies-tonight__copy {
+/* ── 分区标题（rails / tonight / grid 共用）── */
+.movies-section__head {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-  gap: 4px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
-.movies-tonight__copy strong,
-.movies-tonight__copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.movies-tonight__copy strong {
-  font-size: 14px;
+.movies-section__title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
   color: var(--gray-800, #1f2937);
 }
-.movies-tonight__copy em {
-  font-size: 15px;
-  font-style: normal;
-  font-weight: 700;
-  color: var(--color-down, #b45309);
+.movies-section__title::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--movie-accent);
 }
-.movies-tonight__copy small {
-  font-size: 11px;
-  width: fit-content;
-  padding: 2px 5px;
-  border-radius: 4px;
-  background: color-mix(in oklch, #e97900 11%, transparent);
+.movies-section__title--blue::before {
+  background: var(--accent-primary, #007aff);
+}
+.movies-section__more {
+  font-size: 12px;
   color: var(--gray-500, #6b7280);
+  flex-shrink: 0;
 }
 
-/* ── tabs ── */
-.movies-tabs {
+/* ── controls：segmented + 搜索 + 排序 ── */
+.movies-controls {
   display: flex;
-  gap: 6px;
-  padding: 14px 18px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
 }
-.movies-tab {
-  font-size: 13px;
-  padding: 6px 14px;
+.movies-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: color-mix(in oklch, var(--gray-100) 85%, #000 2%);
+}
+.movies-segmented__item {
+  min-height: 26px;
+  padding: 2px 14px;
   border: none;
-  border-radius: 8px 8px 0 0;
+  border-radius: 7px;
   background: transparent;
   color: var(--gray-600, #4b5563);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
 }
-.movies-tab--active {
-  color: var(--gray-900, #111827);
+.movies-segmented__item--on {
+  background: var(--surface, #fff);
+  color: var(--gray-800, #1f2937);
   font-weight: 600;
-  background: color-mix(in oklch, var(--gray-200) 70%, transparent);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--gray-900) 12%, transparent);
 }
-
-.movies-discovery-controls {
+.movies-controls__right {
   display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 10px 18px 0;
+  min-width: 0;
 }
-.movies-discovery-controls__query,
-.movies-discovery-controls__sort {
+.movies-search {
+  width: 216px;
   min-height: 30px;
-  border: 1px solid color-mix(in oklch, var(--gray-300) 70%, transparent);
-  border-radius: 8px;
-  background: color-mix(in oklch, var(--gray-50) 72%, #fff);
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: color-mix(in oklch, var(--gray-100) 80%, var(--surface, #fff));
   color: var(--gray-700, #374151);
   font-size: 12px;
 }
-.movies-discovery-controls__query {
-  flex: 1;
-  min-width: 0;
-  padding: 0 10px;
+.movies-search::placeholder {
+  color: var(--gray-400, #8e8e93);
 }
-.movies-discovery-controls__sort {
+.movies-search:focus {
+  outline: none;
+  border-color: color-mix(in oklch, var(--accent-primary) 46%, transparent);
+}
+.movies-sort {
+  min-height: 30px;
   padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--gray-100) 80%, var(--surface, #fff));
+  color: var(--gray-700, #374151);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── spotlight：今晚首选焦点片 ── */
+.movies-spotlight {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin: 0 18px;
+  padding: 0 30px;
+  min-height: 212px;
+  border-radius: var(--radius-lg, 14px);
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(ellipse 60% 90% at 78% 15%, color-mix(in oklch, var(--color-down, #e97900) 50%, transparent), transparent 60%),
+    radial-gradient(ellipse 50% 80% at 12% 90%, color-mix(in oklch, #5856d6 42%, transparent), transparent 62%),
+    linear-gradient(120deg, #1c1c30 0%, #2c2340 55%, #43274a 100%);
+  cursor: pointer;
+}
+.movies-spotlight::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(10, 10, 18, 0.34), transparent 55%);
+  pointer-events: none;
+}
+.movies-spotlight > * {
+  position: relative;
+  z-index: 1;
+}
+.movies-spotlight__poster {
+  width: 134px;
+  height: 180px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md, 10px);
+  overflow: hidden;
+  font-size: 36px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(160deg, var(--movie-accent) 0%, #b4341f 70%);
+}
+.movies-spotlight__poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.movies-spotlight__body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.movies-spotlight__kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.66);
+}
+.movies-spotlight__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.movies-spotlight__score {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border: 1px solid rgba(255, 179, 64, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 179, 64, 0.16);
+  color: #ffb340;
+  font-size: 13px;
+  font-weight: 700;
+}
+.movies-spotlight__facts {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.78);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.movies-spotlight__reason {
+  max-width: 560px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.movies-spotlight__cta {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.movies-btn {
+  min-height: 30px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--gray-700, #374151);
+  background: color-mix(in oklch, var(--gray-100) 80%, #fff);
+}
+.movies-btn--primary {
+  color: #fff;
+  background: var(--accent-primary);
+}
+.movies-btn--ghost {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+.movies-btn:hover {
+  filter: brightness(1.06);
+}
+.movies-spotlight__dots {
+  position: absolute;
+  right: 28px;
+  bottom: 14px;
+  display: flex;
+  gap: 6px;
+  z-index: 1;
+}
+.movies-spotlight__dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.34);
+}
+.movies-spotlight__dots i.on {
+  width: 16px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+/* ── tonight：今晚值得看宽卡 ── */
+.movies-tonight {
+  padding: 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.movies-tonight__row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.movies-tonight__card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid color-mix(in oklch, var(--gray-200) 55%, transparent);
+  border-radius: var(--radius-lg, 14px);
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--gray-900) 5%, transparent);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.movies-tonight__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--gray-900) 10%, transparent);
+}
+.movies-tonight__poster {
+  width: 54px;
+  height: 76px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  overflow: hidden;
+  font-size: 18px;
+  background: linear-gradient(135deg, var(--gray-200, #e5e7eb), var(--gray-300, #d1d5db));
+}
+.movies-tonight__poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.movies-tonight__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.movies-tonight__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-800, #1f2937);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.movies-tonight__name em {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--movie-accent);
+}
+.movies-tonight__body small {
+  font-size: 11px;
+  color: var(--gray-500, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .movies-coming-note {
   margin: 8px 18px 0;
@@ -196,74 +412,19 @@
   color: var(--gray-500, #6b7280);
 }
 
-/* ── content / grid ──
- * library 必须 flex:1 吃满 layout 剩余高度；content 在 grid 里 flex:1 无效，
- * 靠 min-height:0 + overflow 在撑满后的格子内滚动。
- */
-.movies-library {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 32%);
-  gap: 18px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-.movies-content {
-  min-height: 0;
-  overflow-y: auto;
-  padding: 12px 18px 18px;
-}
-.movies-library .movies-content {
-  padding-right: 0;
-}
-.movies-preview {
-  align-self: stretch;
-  min-height: 0;
-  overflow-y: auto;
-  border-left: 1px solid color-mix(in oklch, var(--gray-300) 65%, transparent);
-  background: color-mix(in oklch, var(--gray-50) 72%, #fff);
-}
-.movies-preview > img {
-  width: 100%;
-  max-height: 320px;
-  object-fit: cover;
-}
-.movies-preview__body {
-  padding: 18px;
-}
-.movies-preview__body h2,
-.movies-preview__body p {
-  margin: 0 0 10px;
-}
-.movies-preview__body strong {
-  display: block;
-  margin-bottom: 10px;
-  color: #e97900;
-  font-size: 30px;
-}
-.movies-preview__summary {
-  color: var(--gray-600, #4b5563);
-  font-size: 13px;
-  line-height: 1.65;
-}
-.movies-preview button {
-  padding: 8px 12px;
-  border: 0;
-  border-radius: 8px;
-  color: #fff;
-  background: #e97900;
-  cursor: pointer;
+/* ── grid：全部影片（搜索/排序作用区）── */
+.movies-grid-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 18px 0;
+  min-width: 0;
 }
 .movies-empty {
   padding: 40px 0;
   text-align: center;
   color: var(--gray-500, #6b7280);
   font-size: 13px;
-}
-.movies-list {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid color-mix(in oklch, var(--gray-300) 60%, transparent);
 }
 .movies-gallery {
   display: grid;
@@ -293,14 +454,104 @@
 .movies-gallery .movie-card__status {
   display: none;
 }
-.movies-coming-groups {
-  display: grid;
-  gap: 18px;
+
+/* ── rail：横滑海报排 ── */
+.movies-rail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 18px;
+  min-width: 0;
 }
-.movies-coming-group h3 {
-  margin: 0 0 6px;
-  color: var(--gray-700, #374151);
-  font-size: 13px;
+.movies-rail-wrap {
+  position: relative;
+}
+.movies-rail-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 48px;
+  background: linear-gradient(90deg, transparent, var(--bg-primary, #f5f5f7) 72%);
+  pointer-events: none;
+  z-index: 2;
+}
+.movies-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.movies-rail::-webkit-scrollbar {
+  display: none;
+}
+.movie-rail-card {
+  width: 122px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 7px 9px;
+  border: 1px solid color-mix(in oklch, var(--gray-200) 55%, transparent);
+  border-radius: var(--radius-lg, 14px);
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--gray-900) 5%, transparent);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.movie-rail-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--gray-900) 10%, transparent);
+}
+.movie-rail-card__poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 22px;
+  background: linear-gradient(135deg, var(--gray-200, #e5e7eb), var(--gray-300, #d1d5db));
+}
+.movie-rail-card__poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.movie-rail-card__badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--movie-accent) 88%, transparent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.movie-rail-card__badge--wish {
+  background: color-mix(in oklch, var(--accent-primary) 82%, transparent);
+}
+.movie-rail-card__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-800, #1f2937);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.movie-rail-card__facts {
+  font-size: 11px;
+  color: var(--gray-500, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── card ── */
@@ -401,81 +652,6 @@
 }
 .movie-card__coming {
   color: var(--gray-600, #4b5563);
-}
-
-/* 连续列表：保留同一张 MovieCard 的信息与详情交互，仅换成快速扫读的行布局。 */
-.movies-list .movie-card {
-  display: flex;
-  flex-direction: row;
-  min-height: 104px;
-  overflow: visible;
-  border: 0;
-  border-bottom: 1px solid color-mix(in oklch, var(--gray-300) 60%, transparent);
-  border-radius: 0;
-  background: transparent;
-}
-.movies-list .movie-card:hover {
-  transform: none;
-  box-shadow: none;
-  background: color-mix(in oklch, var(--gray-100) 60%, transparent);
-}
-.movies-list .movie-card__poster {
-  width: 128px;
-  min-width: 128px;
-  height: 82px;
-  margin: 10px 0 10px 10px;
-  aspect-ratio: 1;
-  border-radius: 8px;
-}
-.movies-list .movie-card__body {
-  display: grid;
-  flex: 1;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
-  gap: 4px 16px;
-  align-content: center;
-  padding: 12px 18px;
-}
-.movies-list .movie-card__title {
-  grid-column: 1;
-  font-size: 15px;
-}
-.movies-list .movie-card__entitle {
-  grid-column: 1;
-  grid-row: 2;
-}
-.movies-list .movie-card__meta {
-  display: grid;
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  grid-template-columns: auto auto;
-  grid-template-rows: auto auto;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 2px 20px;
-}
-.movies-list .movie-card__rating {
-  grid-column: 1;
-  grid-row: 1 / span 2;
-  font-size: 22px;
-  line-height: 1;
-  color: #e97900;
-}
-.movies-list .movie-card__status {
-  grid-column: 2;
-  grid-row: 1;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--gray-700, #374151);
-}
-.movies-list .movie-card__show {
-  grid-column: 2;
-  grid-row: 2;
-  max-width: 180px;
-  overflow: hidden;
-  color: var(--gray-500, #6b7280);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* ── detail ── */

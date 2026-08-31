@@ -83,7 +83,7 @@ export function MovieDetailView({ movieId, onBack }: any) {
           <header class="movie-detail__headinfo">
             <h2 class="movie-detail__title">{detail.title}</h2>
             {detail.enTitle && <div class="movie-detail__entitle">{detail.enTitle}</div>}
-            {typeof detail.rating === "number" ? (
+            {typeof detail.rating === "number" && detail.rating > 0 ? (
               <div class="movie-detail__rating">{detail.rating.toFixed(1)}</div>
             ) : detail.ratingLabel ? (
               <div class="movie-detail__rating movie-detail__rating--label">{detail.ratingLabel}</div>
