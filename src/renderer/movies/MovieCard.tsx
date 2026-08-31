@@ -33,7 +33,18 @@ export class MovieCard extends Component<any, { imgError: boolean }> {
     const wishStr = formatWish(movie.wish);
 
     return (
-      <div class={`movie-card${sampleCls}`} onClick={() => onClick && onClick(movie)}>
+      <div
+        class={`movie-card${sampleCls}`}
+        role="button"
+        tabIndex={0}
+        onClick={() => onClick && onClick(movie)}
+        onKeyDown={(event: any) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onClick && onClick(movie);
+          }
+        }}
+      >
         <div class="movie-card__poster">
           {!this.state.imgError && movie.poster ? (
             <img
@@ -48,39 +59,34 @@ export class MovieCard extends Component<any, { imgError: boolean }> {
           {movie.isSample && <span class="movie-card__sample">示例</span>}
         </div>
         <div class="movie-card__body">
-          <div class="movie-card__title" title={movie.title}>
-            {movie.title}
+          <div class="movie-card__identity">
+            <div class="movie-card__title" title={movie.title}>
+              {movie.title}
+            </div>
+            {movie.enTitle && <div class="movie-card__entitle">{movie.enTitle}</div>}
+            <div class="movie-card__facts">
+              {Array.isArray(movie.genres) && movie.genres.length > 0
+                ? movie.genres.join(" / ")
+                : movie.showInfo || "类型待定"}
+              {movie.durationMin ? ` · ${movie.durationMin} 分钟` : ""}
+            </div>
           </div>
-          {movie.enTitle && <div class="movie-card__entitle">{movie.enTitle}</div>}
-          <div class="movie-card__meta">
+          <div class="movie-card__score">
             {kind === "coming" ? (
-              <>
-                {wishStr && <span class="movie-card__wish">{wishStr}</span>}
-                {movie.showState && (
-                  <span class="movie-card__state">{movie.showState}</span>
-                )}
-                {(movie.comingTitle || movie.releaseDate) && (
-                  <span class="movie-card__coming">
-                    {movie.comingTitle || movie.releaseDate}
-                  </span>
-                )}
-              </>
+              <span class="movie-card__wish">{wishStr || "想看"}</span>
+            ) : typeof movie.rating === "number" ? (
+              <span class="movie-card__rating">{movie.rating.toFixed(1)}</span>
             ) : (
-              <>
-                <span class="movie-card__status">热映</span>
-                {typeof movie.rating === "number" ? (
-                  <span class="movie-card__rating">{movie.rating.toFixed(1)}</span>
-                ) : (
-                  <span class="movie-card__rating movie-card__rating--none">
-                    {movie.ratingLabel || "暂无评分"}
-                  </span>
-                )}
-                {movie.showInfo && (
-                  <span class="movie-card__show">{movie.showInfo}</span>
-                )}
-              </>
+              <span class="movie-card__rating movie-card__rating--none">
+                {movie.ratingLabel || "暂无评分"}
+              </span>
             )}
           </div>
+          <div class="movie-card__status">
+            <strong>{kind === "coming" ? movie.showState || "即将上映" : movie.showInfo || "正在热映"}</strong>
+            <small>{kind === "coming" ? movie.releaseDate || movie.comingTitle || "日期待定" : movie.releaseDate ? `上映 ${movie.releaseDate}` : ""}</small>
+          </div>
+          <span class="movie-card__arrow" aria-hidden="true">›</span>
         </div>
       </div>
     );

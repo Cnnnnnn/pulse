@@ -8,11 +8,19 @@ const { ipcMain, shell }: { ipcMain: IpcMain; shell: Shell } = require("electron
 import * as stateStore from "../state-store";
 import { mainLog } from "../log";
 import * as aiStorage from "../../ai-sessions/storage";
+import { readEntryFull } from "../vault/secret-vault";
 import { CloudSummarizer, PROVIDER_ENDPOINTS } from "../../ai-sessions/provider-cloud";
 import { HttpClient } from "../http-client";
 import { resolveSharedAiConfig } from "../../ai/shared-llm";
 import type { IpcMainInvokeEvent } from "electron";
 import type { IpcChannelMap } from "../../shared/ipc-contracts";
+
+const { runAssistantAgent } = require("../../ai/assistant-agent.js");
+const {
+  beginChatSession,
+  cancelChatSession,
+  endChatSession,
+} = require("../../ai/chat-session.js");
 
 function localDateKey(offsetDays = 0) {
   const t = Date.now() - (offsetDays | 0) * 86400_000;
@@ -152,6 +160,35 @@ export function registerAiHandlers(ctx: any) {
       return { ok: true, cleared: r };
     },
     { logMeta: (_evt: unknown, providerId: IpcChannelMap["ai-sessions:clear-key"]["args"][0]) => ({ providerId }) },
+  );
+
+  // v2.83: 从密钥库引用 key → 主进程直接把密文解密后写入 ai-keys, renderer 不经手明文
+  safeHandle(
+    "ai-sessions:use-vault-key",
+    async (
+      _event: unknown,
+      payload: IpcChannelMap["ai-sessions:use-vault-key"]["args"][0],
+    ) => {
+      const providerId = payload && typeof payload === "object" ? payload.providerId : null;
+      const vaultId = payload && typeof payload === "object" ? payload.vaultId : null;
+      if (typeof providerId !== "string" || !/^[a-z0-9_-]+$/i.test(providerId)) {
+        return { ok: false, reason: "invalid_providerId" };
+      }
+      if (typeof vaultId !== "string" || !vaultId) {
+        return { ok: false, reason: "invalid_vaultId" };
+      }
+      const full = readEntryFull(vaultId);
+      if (!full || !full.value) {
+        return { ok: false, reason: "vault_entry_unreadable" };
+      }
+      const r = aiStorage.saveApiKey(providerId, full.value);
+      if (!r) {
+        return { ok: false, reason: "safeStorage_unavailable" };
+      }
+      mainLog.info(`[ipc] ai-sessions:use-vault-key ok provider=${providerId}`);
+      return { ok: true };
+    },
+    { logMeta: (_evt: unknown, payload: any) => ({ providerId: payload && payload.providerId }) },
   );
 
   ipcMain.handle(
@@ -304,6 +341,69 @@ export function registerAiHandlers(ctx: any) {
     },
     { log: false },
   );
+
+  safeHandle(
+    "ai:chat",
+    async (
+      _event: unknown,
+      opts: IpcChannelMap["ai:chat"]["args"][0],
+    ) => {
+      const messages = opts && Array.isArray(opts.messages) ? opts.messages : [];
+      if (messages.length === 0) {
+        return { ok: false, reason: "empty_messages" };
+      }
+      const ctx = (opts && opts.context) || {};
+      const wantStream = Boolean(opts && opts.stream);
+      const session = beginChatSession();
+      try {
+        const result = await runAssistantAgent(messages, {
+          activeNav: typeof ctx.activeNav === "string" ? ctx.activeNav : undefined,
+          route: typeof ctx.route === "string" ? ctx.route : undefined,
+          pageSnapshot:
+            typeof ctx.pageSnapshot === "string" ? ctx.pageSnapshot : undefined,
+          pageData:
+            ctx.pageData && typeof ctx.pageData === "object"
+              ? (ctx.pageData as Record<string, unknown>)
+              : undefined,
+        }, {
+          searchIndex: (globalThis as any).__pulse_searchIndex || null,
+          fundScheduler: (globalThis as any).__pulse_fundScheduler || null,
+          pageData:
+            ctx.pageData && typeof ctx.pageData === "object"
+              ? (ctx.pageData as Record<string, unknown>)
+              : undefined,
+          model:
+            typeof opts.model === "string" && opts.model.trim()
+              ? opts.model.trim()
+              : undefined,
+          onDelta: wantStream
+            ? (delta: string) => sendToRenderer("ai:chat-delta", { delta })
+            : undefined,
+          onStatus: (status: string) =>
+            sendToRenderer("ai:chat-status", { status }),
+          isAborted: session.isAborted,
+          onAbortRegister: session.setAbortHandler,
+        });
+        if (session.isAborted()) {
+          return { ok: false, reason: "cancelled" };
+        }
+        return result;
+      } finally {
+        endChatSession(session.id);
+      }
+    },
+    {
+      logMeta: (
+        _evt: unknown,
+        opts: IpcChannelMap["ai:chat"]["args"][0],
+      ) => ({ messageCount: opts && opts.messages ? opts.messages.length : 0 }),
+    },
+  );
+
+  safeHandle("ai:chat-cancel", async () => {
+    cancelChatSession();
+    return { ok: true };
+  });
 }
 
 module.exports = { registerAiHandlers };

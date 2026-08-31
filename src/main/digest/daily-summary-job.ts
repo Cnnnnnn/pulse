@@ -17,6 +17,7 @@
  *   now()                → Date (defaults to () => new Date())
  */
 
+import { DIGEST_UI_TITLE } from "../../shared/digest-labels";
 import { inQuietHours } from "../notification-policy";
 import { aggregate as defaultAggregate } from "./aggregate";
 const {
@@ -104,7 +105,7 @@ async function checkAndPush(deps: any): Promise<any> {
   }
 
   deps.sendNotification({
-    title: `🌅 Pulse 早报 · ${result.date}`,
+    title: `🌅 Pulse ${DIGEST_UI_TITLE} · ${result.date}`,
     body: bodyLines.join("\n"),
   });
 

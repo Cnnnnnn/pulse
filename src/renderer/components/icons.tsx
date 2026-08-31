@@ -412,6 +412,18 @@ export function IconTicket({ size = 18 }: { size?: number }) {
   );
 }
 
+/* 钥匙 — 密钥库 nav 图标 */
+export function IconKey({ size = 18 }: { size?: number }) {
+  return (
+    <Svg size={size}>
+      <circle cx="8" cy="15" r="4.5" />
+      <path d="M11.2 11.8 L20 3" />
+      <path d="M16.5 6.5 L19.5 9.5" />
+      <path d="M13.5 9.5 L15.8 11.8" />
+    </Svg>
+  );
+}
+
 const NAV_ICON = {
   ithome: IconNews,
   news: IconNews,
@@ -428,6 +440,7 @@ const NAV_ICON = {
   github: IconLayers,
   movies: IconFilm,
   concerts: IconTicket,
+  vault: IconKey,
 };
 
 export function NavIcon({ navKey, size = 18 }) {

@@ -304,6 +304,20 @@ export async function clearAIKey(providerId: any) {
   }
 }
 
+// v2.83: 从密钥库条目引用 key — 主进程解密后直接写 ai-keys, 明文不经过 renderer
+export async function aiUseVaultKey(providerId: any, vaultId: any) {
+  try {
+    const r = await api.aiUseVaultKey({ providerId, vaultId });
+    if (r && r.ok) {
+      setAIKeyStatus(providerId, { hasKey: true, available: true });
+      return { ok: true };
+    }
+    return { ok: false, reason: r && r.reason };
+  } catch (err: any) {
+    return { ok: false, reason: "threw", error: err && err.message };
+  }
+}
+
 export async function runAIHealthcheck(opts: AiHealthcheckOptions) {
   setAIHealthcheckBusy(true);
   try {

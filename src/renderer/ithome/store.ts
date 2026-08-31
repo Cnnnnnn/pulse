@@ -38,6 +38,8 @@ export const ithomeFavoriteSelectedDate = signal("");
 export const ithomeViewMode = signal("news");
 export const ithomeReadIds = signal({});
 export const ithomeNewIds = signal({});
+/** 助手 / 外部入口要选中的文章 id */
+export const ithomeSelectedArticleId = signal<string | null>(null);
 /**
  * SideNav 未读角标 (I6) — 最近一次刷新新增且未读的文章数.
  * 直接派生自 ithomeNewIds, 行为完全跟随:
@@ -356,4 +358,35 @@ export async function shareIthomeArticle(id: any) {
 export function clearIthomeUnreadBadge() {
   if (Object.keys(ithomeNewIds.value).length === 0) return;
   ithomeNewIds.value = {};
+}
+
+export function resolveIthomeArticleId(query: string): string | null {
+  const raw = String(query || "").trim();
+  if (!raw) return null;
+  const q = raw.toLowerCase();
+  const articles = Object.values(ithomeArticles.value || {}) as Array<{
+    id?: string;
+    title?: string;
+  }>;
+  for (const article of articles) {
+    if (!article?.id) continue;
+    if (String(article.id) === raw) return String(article.id);
+    const title = String(article.title || "").toLowerCase();
+    if (title && (title.includes(q) || q.includes(title))) {
+      return String(article.id);
+    }
+  }
+  return null;
+}
+
+export function openIthomeArticle(opts: {
+  id?: string;
+  title?: string;
+}): boolean {
+  const id =
+    (opts.id && String(opts.id).trim()) ||
+    (opts.title ? resolveIthomeArticleId(opts.title) : null);
+  if (!id) return false;
+  ithomeSelectedArticleId.value = id;
+  return true;
 }

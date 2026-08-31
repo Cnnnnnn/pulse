@@ -42,6 +42,8 @@ export const moviesComingNote = signal("");
 export const moviesDetailCache = signal<Record<string, any>>({});
 export const moviesDetailLoading = signal(false);
 export const moviesDetailError = signal<string | null>(null);
+/** 助手 / 全局入口打开的电影详情 id */
+export const moviesSelectedId = signal<string | null>(null);
 
 /** 当前 tab 对应的列表（卡片渲染直接消费） */
 export const moviesActiveList = computed(() =>
@@ -181,4 +183,47 @@ const REASON_MAP: Record<string, string> = {
 };
 function mapReason(reason: any): string {
   return REASON_MAP[reason] || reason || "刷新失败";
+}
+
+export function normalizeMovieQuery(q: string): string {
+  return String(q || "")
+    .replace(/[《》「」『』"""'!！?？。.\s]/g, "")
+    .toLowerCase();
+}
+
+export function resolveMovieIdByQuery(
+  query: string,
+): { id: string; title: string } | null {
+  const q = normalizeMovieQuery(query);
+  if (!q) return null;
+  const all = [...moviesNowPlaying.value, ...moviesComing.value];
+  let partial: { id: string; title: string } | null = null;
+  for (const movie of all) {
+    const title = normalizeMovieQuery(movie?.title || "");
+    const enTitle = normalizeMovieQuery(movie?.enTitle || "");
+    if (!title && !enTitle) continue;
+    if (title === q || enTitle === q) {
+      return { id: String(movie.id), title: movie.title || query };
+    }
+    if (title.includes(q) || q.includes(title) || (enTitle && enTitle.includes(q))) {
+      partial = { id: String(movie.id), title: movie.title || query };
+    }
+  }
+  return partial;
+}
+
+export function openMovieDetail(opts: {
+  movieId?: string;
+  title?: string;
+  q?: string;
+}): boolean {
+  if (opts.movieId) {
+    moviesSelectedId.value = opts.movieId;
+    return true;
+  }
+  const raw = opts.title || opts.q || "";
+  const hit = resolveMovieIdByQuery(raw);
+  if (!hit) return false;
+  moviesSelectedId.value = hit.id;
+  return true;
 }

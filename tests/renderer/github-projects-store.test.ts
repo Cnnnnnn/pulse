@@ -13,8 +13,8 @@ import {
   githubToken,
   markGithubAllSeen,
   setGithubDensity,
-  setGithubToken,
   loadGithubSettings,
+  migrateLegacyGithubToken,
   githubReasonText,
   addGithubProject,
   addGithubProjectsBatch,
@@ -88,41 +88,71 @@ describe("github store · 批量已读 + 视图密度", () => {
     expect(githubDensity.value).toBe("compact");
   });
 
-  it("setGithubToken 写信号并持久化（token 不被提交到版本库）", () => {
-    setGithubToken("github_pat_demo123");
-    expect(githubToken.value).toBe("github_pat_demo123");
-    const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
-    expect(raw).toContain("github_pat_demo123");
-    expect(raw).toContain("comfortable"); // 密度也一并保留
-  });
+  // ── v2.83: token 迁入密钥库，localStorage 不再存明文 ──
 
-  it("setGithubToken 去除首尾空白", () => {
-    setGithubToken("  github_pat_x  ");
-    expect(githubToken.value).toBe("github_pat_x");
-  });
+  function seedLegacyTokenStorage(token) {
+    globalThis.localStorage.setItem(
+      "pulse.github.settings.v1",
+      JSON.stringify({ density: "comfortable", token, autoCheck: true }),
+    );
+  }
 
-  it("loadGithubSettings 从持久化恢复 token", () => {
-    setGithubToken("github_pat_restore");
-    githubToken.value = "";
+  it("loadGithubSettings 读到旧 token 只进迁移缓存，不回填信号", () => {
+    seedLegacyTokenStorage("github_pat_legacy");
     loadGithubSettings();
-    expect(githubToken.value).toBe("github_pat_restore");
-  });
-
-  it("setGithubDensity 不会清掉已保存的 token", () => {
-    setGithubToken("github_pat_keep");
-    setGithubDensity("compact");
-    expect(githubToken.value).toBe("github_pat_keep");
-    const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
-    expect(raw).toContain("github_pat_keep");
-    expect(raw).toContain("compact");
-  });
-
-  it("setGithubToken('') 清除令牌", () => {
-    setGithubToken("github_pat_tmp");
-    setGithubToken("");
     expect(githubToken.value).toBe("");
+  });
+
+  it("migrateLegacyGithubToken 成功后写入密钥库并清除本地明文", async () => {
+    seedLegacyTokenStorage("github_pat_legacy");
+    loadGithubSettings();
+    const setCalls = [];
+    api.vaultList = async () => ({ ok: true, entries: [] });
+    api.vaultSet = async (input) => {
+      setCalls.push(input);
+      return { ok: true, entry: { id: "e1", name: "github", hint: "••••", category: "", note: "", createdAt: 1, updatedAt: 1 } };
+    };
+    await migrateLegacyGithubToken();
+    expect(setCalls.length).toBe(1);
+    expect(setCalls[0].name).toBe("github");
+    expect(setCalls[0].value).toBe("github_pat_legacy");
     const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
-    expect(raw).not.toContain("github_pat_tmp");
+    expect(raw).not.toContain("github_pat_legacy");
+    expect(raw).toContain("comfortable");
+  });
+
+  it("密钥库已有 github 条目时迁移只清本地明文，不覆盖密钥库", async () => {
+    seedLegacyTokenStorage("github_pat_legacy");
+    loadGithubSettings();
+    const setCalls = [];
+    api.vaultList = async () => ({
+      ok: true,
+      entries: [{ id: "e9", name: "github", hint: "", category: "", note: "", createdAt: 1, updatedAt: 1 }],
+    });
+    api.vaultSet = async (input) => {
+      setCalls.push(input);
+      return { ok: true, entry: {} };
+    };
+    await migrateLegacyGithubToken();
+    expect(setCalls.length).toBe(0);
+    const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
+    expect(raw).not.toContain("github_pat_legacy");
+  });
+
+  it("迁移失败（加密不可用）保留 localStorage 明文待下次重试", async () => {
+    seedLegacyTokenStorage("github_pat_keepme");
+    loadGithubSettings();
+    api.vaultList = async () => ({ ok: true, entries: [] });
+    api.vaultSet = async () => ({ ok: false, reason: "no_safe_storage" });
+    await migrateLegacyGithubToken();
+    const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
+    expect(raw).toContain("github_pat_keepme");
+  });
+
+  it("setGithubDensity 不会清掉已保存的设置", () => {
+    setGithubDensity("compact");
+    const raw = globalThis.localStorage.getItem("pulse.github.settings.v1");
+    expect(raw).toContain("compact");
   });
 
   it("githubReasonText: auth_invalid 指引重新生成 Token", () => {

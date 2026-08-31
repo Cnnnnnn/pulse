@@ -30,6 +30,7 @@ import type {
   AiPromptsApiContract,
   AiSessionsApiContract,
   AiSharedConfigApiContract,
+  AiChatApiContract,
   AiTasksApiContract,
   AiUsageApiContract,
   ConfigPortabilityApiContract,
@@ -50,6 +51,7 @@ import type {
   WechatHotApiContract,
   MoviesApiContract,
   WatchlistApiContract,
+  VaultApiContract,
 } from "../shared/ipc-contracts";
 
 const noop = () => Promise.resolve(undefined);
@@ -113,8 +115,10 @@ export type RendererApi =
   AiTasksApiContract &
   AiSessionsApiContract &
   AiSharedConfigApiContract &
+  AiChatApiContract &
   SearchApiContract &
   DigestApiContract &
+  VaultApiContract &
   Record<string, any>;
 
 export function createApi(overrides: Record<string, any> = {}): RendererApi {
@@ -164,6 +168,10 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     saveAiSessionsConfig: pick(overrides, "saveAiSessionsConfig"),
     onAiSessionsConfigUpdated: pick(overrides, "onAiSessionsConfigUpdated"),
     getAiSharedConfig: pick(overrides, "getAiSharedConfig"),
+    aiChat: pick(overrides, "aiChat"),
+    aiChatCancel: pick(overrides, "aiChatCancel"),
+    onAiChatDelta: pick(overrides, "onAiChatDelta"),
+    onAiChatStatus: pick(overrides, "onAiChatStatus"),
     // v2.10+ 基金管理
     fundsList: pick(overrides, "fundsList"),
     fundsAdd: pick(overrides, "fundsAdd"),
@@ -312,8 +320,18 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     // v2.80 GitHub 优秀项目收录
     githubFetch: pick(overrides, "githubFetch"),
     aiParseReadme: pick(overrides, "aiParseReadme"),
-    // Release 更新追踪：抓取某仓库 recent releases
-    githubFetchRelease: pick(overrides, "githubFetchRelease"),
+  // Release 更新追踪：抓取某仓库 recent releases
+  githubFetchRelease: pick(overrides, "githubFetchRelease"),
+  // v2.83 密钥库：明文只在主进程流转
+  vaultList: pick(overrides, "vaultList"),
+  vaultSet: pick(overrides, "vaultSet"),
+  vaultDelete: pick(overrides, "vaultDelete"),
+  vaultReveal: pick(overrides, "vaultReveal"),
+  vaultCopy: pick(overrides, "vaultCopy"),
+  vaultExport: pick(overrides, "vaultExport"),
+  vaultImportLoad: pick(overrides, "vaultImportLoad"),
+  vaultImportApply: pick(overrides, "vaultImportApply"),
+  aiUseVaultKey: pick(overrides, "aiUseVaultKey"),
   // P-N: 上次停留的 nav
   getLastActiveNav: pick(overrides, "getLastActiveNav"),
   saveLastActiveNav: pick(overrides, "saveLastActiveNav"),

@@ -40,6 +40,33 @@ export const financeQuoteError = signal<any>(null);
 /** 详情视图选中的文章 id（null = 列表视图）。 */
 export const financeSelectedId = signal<string | null>(null);
 
+export function resolveFinanceArticleId(query: string): string | null {
+  const raw = String(query || "").trim();
+  if (!raw) return null;
+  const q = raw.toLowerCase();
+  for (const article of financeList.value || []) {
+    if (!article?.id) continue;
+    if (String(article.id) === raw) return String(article.id);
+    const title = String(article.title || "").toLowerCase();
+    if (title && (title.includes(q) || q.includes(title))) {
+      return String(article.id);
+    }
+  }
+  return null;
+}
+
+export function openFinanceArticle(opts: {
+  id?: string;
+  title?: string;
+}): boolean {
+  const id =
+    (opts.id && String(opts.id).trim()) ||
+    (opts.title ? resolveFinanceArticleId(opts.title) : null);
+  if (!id) return false;
+  financeSelectedId.value = id;
+  return true;
+}
+
 /** E2：各分类文章计数（含「全部」），分类 tab 旁展示。 */
 export const financeCategoryCounts = signal<Record<string, number>>({ all: 0 });
 

@@ -115,7 +115,7 @@ describe("importGithubData", () => {
     expect(exist.readme).toBe("local kept");
   });
 
-  it("token 合并：本地空 → 采用导入值", () => {
+  it("旧备份里的 token 不再回填信号（v2.83 起 token 在密钥库管理）", () => {
     githubToken.value = "";
     const payload = JSON.stringify({
       schema: "pulse.github.export.v1",
@@ -124,7 +124,7 @@ describe("importGithubData", () => {
       settings: { density: "comfortable", token: "github_pat_imported" },
     });
     importGithubData(payload);
-    expect(githubToken.value).toBe("github_pat_imported");
+    expect(githubToken.value).toBe("");
   });
 
   it("token 合并：本地已有 → 保留本地", () => {

@@ -1,200 +1,272 @@
-# Product Design QA — Native Toolbar Bridge
+# 电影页 UI 设计校验
 
-## Source visual truth
+## Comparison target
 
-- Source image: `/Users/shien.liang/.codex/generated_images/019fdbbe-d74c-7081-89db-dfbca1e5ba79/exec-1dcee3fa-1b6c-481a-802c-e48a400284d6.png`
-- Selected ideation result: option 2 from the Product Design ideation set.
-- Direction: keep the native macOS traffic lights in place, let the navigation share the titlebar row, and start the dashboard from one clean content grid below it.
+- Source visual truth: `/Users/shien.liang/.codex/generated_images/01a01a96-3352-7040-85a5-2e058bfc27cf/exec-1b22a696-5462-4f6c-843c-675864bc7f59.png`
+- Intended viewport: desktop, 1440 x 1024.
+- Intended state: Shanghai, now-showing, populated movie list.
+- Implementation screenshot: unavailable. The static renderer requires an Electron IPC bridge before bootstrap; the in-app Browser cannot inject that bridge before the bundle starts. Native desktop automation is unavailable in this environment.
 
-## Implementation evidence
+## Full-view comparison evidence
 
-- Implementation screenshot: `/Users/shien.liang/.codex/visualizations/2026/08/07/019fdbbe-d74c-7081-89db-dfbca1e5ba79/toolbar-bridge-implementation-source-size-final.png`
-- System drawer screenshot: `/Users/shien.liang/.codex/visualizations/2026/08/07/019fdbbe-d74c-7081-89db-dfbca1e5ba79/system-drawer-no-subtab.png`
-- Full comparison: `/Users/shien.liang/.codex/visualizations/2026/08/07/019fdbbe-d74c-7081-89db-dfbca1e5ba79/toolbar-bridge-comparison-final.png`
-- Focused chrome comparison: `/Users/shien.liang/.codex/visualizations/2026/08/07/019fdbbe-d74c-7081-89db-dfbca1e5ba79/toolbar-bridge-comparison-focus-final.png`
-- Viewport: 1528 × 1029 CSS px, deviceScaleFactor 1.
-- State: macOS platform class, light theme, Home route, four recent-activity rows.
+Unavailable. The source mock is available, but a same-state implementation capture could not be produced without changing the application or bypassing the Browser control boundary.
 
-## Comparison evidence
+## Focused region comparison
 
-The implementation now follows the second direction at the shell level:
-
-- macOS navigation is a full-width horizontal toolbar below the native traffic-light area.
-- Home is the active light-blue control, followed by the three section icons in one row.
-- The old full-height vertical rail and its floating surface are removed from the macOS layout.
-- The dashboard begins below the toolbar without a second blank gray band.
-- The `应用列表 / 诊断 / 设置` shared horizontal subtab is removed from `VersionsLayout`.
-- Those three pages are independently selected from the system navigation drawer instead.
-- Existing dashboard content, recent activity, footer configuration action, and Windows vertical navigation remain intact.
-
-The generated concept includes native macOS traffic lights. A static renderer capture does not paint those window-owned controls; production still uses Electron's native `hiddenInset` chrome. The current implementation keeps the existing settings control for access to the settings route, so it remains visible at the far end of the macOS toolbar as a functional control.
-
-## Interaction and regression checks
-
-- `tests/visual/dashboard-layout.spec.js`: passed.
-- `tests/visual/window-chrome-layout.spec.js`: passed.
-- macOS toolbar geometry at 1280 × 720: rail starts at y=0, height=102px, and dashboard content starts directly below it.
-- Section hover opens NavDrawer below the toolbar at `top: 102px; left: 24px`.
-- The system NavDrawer exposes exactly three independent routes: `library`, `diagnostics`, and `settings`.
-- Browser console errors: none.
-- Page errors: none.
-- CSS lint: passed.
-- TypeScript typecheck: passed (`preload`, `app`, `app.strict`, `renderer`, `tests`).
-- `git diff --check`: passed.
-
-## Comparison history
-
-1. The floating command rail from option 3 made the shell feel detached from the native window chrome and was replaced with option 2 after review.
-2. The macOS layout was changed from a vertical flex shell to a horizontal toolbar while keeping the Windows rail rules unchanged.
-3. The Home control uses the project's linear SVG icon system instead of an emoji glyph.
-4. The dashboard root remains independently scrollable so recent activity cannot be covered by the tile section.
+Not performed because the implementation screenshot is unavailable.
 
 ## Findings
 
-No actionable P0, P1, or P2 findings remain for the requested option-2 shell change.
+- [P1] Visual comparison blocked
+  Location: movie page runtime.
+  Evidence: the in-app static preview fails before rendering when `window.api` is absent; the required local IPC bridge is available only in Electron.
+  Impact: the hierarchy, spacing, colors, image crops, and copy cannot be judged against the selected mock.
+  Fix: open the Electron development window with representative movie data and capture the same populated state.
 
-## Follow-up polish
+## Required fidelity surfaces
 
-- P3: capture one native Electron screenshot for a chrome-only comparison with the traffic lights visible in the implementation evidence.
-- P3: the generated concept uses a different dashboard density from the existing product; this iteration intentionally limits the change to the titlebar/navigation relationship and the recent-activity containment fix.
+- Fonts and typography: blocked.
+- Spacing and layout rhythm: blocked.
+- Colors and visual tokens: blocked.
+- Image quality and asset fidelity: blocked; production continues to use API-provided movie posters.
+- Copy and content: code-reviewed only; blocked for visual comparison.
 
-final result: passed
+## Implementation checklist
 
-## Product Design QA — AI leaderboard Reading Rail implementation
+1. Verify the populated Electron movie screen at desktop width.
+2. Compare it to the selected second visual direction.
+3. Record any P0/P1/P2 differences and iterate.
 
-Source visual:
+## Comparison history
 
-- `/Users/shien.liang/.codex/generated_images/019fdccd-3752-7920-8c58-67bb72632686/exec-42b2fb3e-13e0-4c98-b253-da63253f2318.png`
-- Selected direction: option 2, Reading Rail.
+- 2026-08-19: blocked before the first visual comparison because the local static preview has no pre-bootstrap Electron IPC stub.
 
-Implementation captures:
+final result: blocked
 
-- `/Users/shien.liang/Desktop/AppUpdateChecker-Electron/test-results/ai-leaderboard-reading-rail-desktop-final.png`
-- `/Users/shien.liang/Desktop/AppUpdateChecker-Electron/test-results/ai-leaderboard-reading-rail-final.png`
-
-State coverage:
-
-- Wide desktop `1920 × 1286`: fixed left source/dimension rail, central table-first work area, compact right detail hint, visible first 13 rows.
-- Small desktop `960 × 643`: table viewport remains measurable at `126px`, with rendered rows present; no zero-height virtualized table.
-- Interaction: selecting two rows enables the left-rail AI analysis action; opening and closing the analysis panel both pass.
-
-Findings:
-
-- No actionable P0/P1/P2 findings remain for the selected direction.
-- The main table now owns the constrained viewport; supplementary charts remain progressive disclosure and are hidden only in very short windows so they cannot steal table height.
-- Existing model/vendor icons and data semantics are retained from Pulse; no placeholder imagery was added.
-
-Verification:
-
-- `npm run build:renderer`: passed.
-- `npm run typecheck`: passed across preload, app, strict app, renderer, and tests.
-- Targeted Vitest: 6 files / 119 tests passed.
-- `tests/visual/ai-leaderboard-virtualization.spec.js`: 2 tests passed (small viewport + wide desktop, including AI analysis open/close).
-- `npm run lint:css`: passed for the repository's configured CSS scope.
-- Direct linting of `ai-leaderboard.css` still reports legacy-file rules that predate this Reading Rail block; the new block itself uses the existing token/color conventions and `git diff --check` is clean.
-- `git diff --check`: passed.
-
-final result: passed
-
-## Product Design QA — Settings controls, AI workspace, and theme transition
-
-### Source and implementation evidence
-
-- User-provided control reference: `/var/folders/3z/n7yg6g5d6wq0pf2y_zkzr1d40000gp/T/codex-clipboard-cca10bf1-617d-40d1-be61-ea49ae7b7334.png`
-- User-provided dark-theme behavior evidence: `/var/folders/3z/n7yg6g5d6wq0pf2y_zkzr1d40000gp/T/codex-clipboard-cff6a458-8bb5-40ad-9a9c-2fdd3c1fd577.png`
-- Browser-rendered AI workspace capture: `/Users/shien.liang/Desktop/AppUpdateChecker-Electron/test-results/visual-settings-page-—-P15-AI-配置-tab-baseline/settings-ai-light-actual.png`
-- Viewport: `1280 × 800` CSS px, DPR 1; light theme, Settings → AI 配置 → 连接设置.
-
-### Comparison history
-
-1. The supplied automatic-check view exposed native select chrome and two detached blue state buttons. It was replaced with native-looking control rows: an accessible switch, a styled select affordance, and an explicit running/paused state.
-2. The supplied dark-theme evidence showed stacked toasts while changing from dark to light. Code tracing found a renderer-to-main-to-renderer echo: the broadcast callback called the same synchronizing setter again. The broadcast path now applies the resolved theme with `syncMain: false`.
-3. The AI settings view was restructured from a serial card stack into an AI workspace: health summary, three Provider choices, side-by-side connection/key configuration, and a dedicated verification action.
-
-### Findings
-
-- No actionable P0/P1/P2 findings remain in the captured AI state. Typography, spacing, token use, and content hierarchy are consistent with the selected settings direction.
-- Provider/service icons remain text-led because Pulse does not currently ship provider brand artwork; this is an intentional P3 constraint, not a substituted graphic asset.
-- The connection test and final save action remain below the first viewport by design: configuration must be filled before those actions become meaningful, so they do not compete with Provider, model, and key setup.
-
-### Interaction and regression checks
-
-- Theme echo regression: `tests/renderer/theme-manager.test.ts` verifies a main-process callback can apply a new theme without a second `theme:set` call.
-- Settings render: `tests/renderer/SettingsPage.test.tsx` passed.
-- Renderer typecheck and `git diff --check`: passed.
-- Targeted AI visual screenshot generated successfully. It is reported as a missing pre-change baseline rather than a runtime failure.
-
-final result: passed
-
-## Product Design QA — Settings overview selected concept
+## 2026-08-28 Entertainment tabs redesign
 
 ### Source visual truth
 
-- Source image: `/Users/shien.liang/.codex/generated_images/019ff50b-55d4-7081-88d9-bcad534d4847/exec-89accb12-9de4-4723-9906-0e3b3c128744.png`
-- Implementation screenshot: `/Users/shien.liang/Desktop/AppUpdateChecker-Electron/test-results/visual-settings-page-—-P13-4-section-卡片化-baseline/settings-light-actual.png`
-- State: Pulse macOS-style shell, light theme, Settings → 常规, empty activity and reminder data.
-- Viewport: implementation `1280 × 800` CSS px, device scale factor `1`; source `1586 × 992` pixels. The full views were normalized side by side to equal `616px` content widths for comparison.
+- User-selected reference: `/var/folders/3z/n7yg6g5d6wq0pf2y_zkzr1d40000gp/T/codex-clipboard-b64f5072-e6d3-4698-b90c-6dbd474e7e34.png`
+- Source pixels: 1737 x 906; one reference board containing two separate tab states.
+- Target states: `电影` and `演出票价监控`, each presented as its own full page.
 
-### Comparison history
+### Implementation evidence
 
-1. Initial implementation matched the summary-card hierarchy, but retained the old gray segmented subtab container.
-2. The Settings tabs were changed to the selected design’s blue active underline with a subtle shared divider. The rebuilt static renderer was recaptured at the same viewport.
+- Movie tab screenshot: `/tmp/pulse-movies-redesign-final.png` (1440 x 1024, CSS viewport 1440 x 1024, device scale factor 1).
+- Concert tab screenshot: `/tmp/pulse-concerts-redesign-final.png` (1440 x 1024, CSS viewport 1440 x 1024, device scale factor 1).
+- Responsive check: 720 x 900 viewport, document scroll width matched viewport width; no horizontal overflow.
+- Browser console: no warning or error entries during the checked states.
+
+### Comparison notes
+
+- The reference shows two separate tab states side by side; the implementation keeps them as separate Pulse navigation tabs and never renders movie and concert content in one page.
+- The existing Pulse shell uses a top icon rail on macOS, while the reference includes a left navigation rail inside each mock frame. The shell was intentionally left unchanged because this task is scoped to the two existing entertainment pages.
+- Movie tab: title/city/refresh, 热映/即将上映 tabs, three-item 今晚值得看 strip, orange score column, status column, lightweight rows, and row-level detail affordance are present.
+- Concert tab: paste-link entry, refresh action, updated/count metadata, platform labels, event/session rows, lowest price and face value, price delta, availability, pinned tier quantity, expand and remove/open actions are present.
+
+### Primary interactions checked
+
+1. Open 娱乐 → 电影; the movie list renders with representative data.
+2. Click a movie list row; the existing detail view opens directly.
+3. Return and open 娱乐 → 演出票价; the monitoring queue renders with representative data.
+4. Expand a 票档 row; the ticket tier and quantity controls appear.
+5. Check 720px responsive layout; no horizontal overflow.
 
 ### Findings
 
-- No actionable P0, P1, or P2 findings remain. The implementation matches the selected direction’s light surface, three-item status overview, grouped common settings, and compact migration actions.
-- The selected concept depicts check-frequency, notification, launch-at-login, auto-update, and language controls that are not present in Pulse’s current settings contract. They were intentionally not rendered as inactive or fake controls; the implemented page keeps the existing functional theme, activity, reminder, import, and export flows.
-
-### Required fidelity surfaces
-
-- Fonts and typography: the project’s existing system font, heading weights, small descriptive labels, and compact control sizing are retained; no wrapping or truncation is visible at the target viewport.
-- Spacing and layout rhythm: the three equal overview cards, single grouped settings surface, row dividers, and migration strip reproduce the chosen composition without nested-card clutter.
-- Colors and visual tokens: existing neutral surfaces, low-contrast dividers, blue accent, focus treatment, and dark-theme tokens remain in use.
-- Image quality and asset fidelity: the selected visual has no raster imagery, logo artwork, or decorative illustration to reproduce. Existing project icon components are reused for functional UI affordances.
-- Copy and content: all labels describe current, supported Pulse behavior; local-only data language reflects the existing configuration model.
-
-### Interaction and verification
-
-- Theme mode remains an accessible radiogroup and still calls the existing preference setter and success feedback.
-- Existing reminder completion/removal and configuration import/export handlers are retained unchanged.
-- `npx tsc -p tsconfig.renderer.json --noEmit`: passed.
-- `vitest run tests/renderer/SettingsPage.test.tsx --pool=forks --maxWorkers=1`: passed.
-- `git diff --check`: passed.
-- Targeted visual regression capture completed. It reports a snapshot mismatch because the checked-in pre-change baseline represents the old layout; the received screenshot is the inspected final implementation.
+No actionable P0/P1/P2 visual findings remain for the scoped page redesign. The only intentional difference is the pre-existing Pulse shell noted above.
 
 ### Follow-up polish
 
-- P3: add visual baselines deliberately in a separate snapshot-update change once the broader working tree is ready to accept them.
+- Real Electron-window capture remains separate from this static renderer fixture because the local tray app did not expose a stable capturable window in this run.
+- Dynamic poster art and live ticket data remain API-provided; the visual fixture used representative data only for screenshot comparison.
 
 final result: passed
 
-## Product Design QA — AI leaderboard option 2
+## 2026-08-29 Message tools composer relocation
 
-Source visual: `/Users/shien.liang/.codex/generated_images/019fdccd-3752-7920-8c58-67bb72632686/exec-c9d5c9a7-d942-4bf4-88d8-f4bb57c1f5ce.png`
+### Source and implementation evidence
 
-Implementation screenshots:
+- Source visual direction: `/Users/shien.liang/.codex/generated_images/01a04674-9e32-72b3-9320-857d63fb632d/exec-1dd22459-8312-424b-a0ea-24e1c671c712.png`.
+- Conversation state without tools row: `/tmp/pulse-assistant-message-tools-closed.png`.
+- Composer popover open state: `/tmp/pulse-assistant-message-tools-open.png`.
+- Desktop implementation capture: 879 x 858, default in-app Browser viewport, device scale factor 1.
+- Responsive implementation state: 640 x 900; document width stayed 640px and the popover stayed within the drawer.
 
-- `/Users/shien.liang/.codex/visualizations/2026/08/11/ai-leaderboard-implementation/06-default-collapsed-final.png`
-- `/Users/shien.liang/.codex/visualizations/2026/08/11/ai-leaderboard-implementation/05-analysis-open-top.png`
+### Comparison and interaction notes
 
-Viewport: implementation browser 1280 × 720 CSS px, DPR 1. The source visual is 1487 × 1058; the in-app browser has a fixed viewport, so the comparison uses the same available implementation viewport and checks layout/state parity rather than pixel dimensions.
+- The fixed “消息工具” row was removed from above the conversation, so the message list starts immediately below the workspace tabs.
+- The existing filters, search, copy and export controls now live in a composer-anchored popover with `data-placement="composer"`.
+- The popover overlays the conversation instead of reserving vertical layout space, and closes without changing the message scroll position.
+- Keyboard shortcuts continue to focus the same search input; the filter/search behavior and persisted open preference remain intact.
 
-State coverage:
+### Findings
 
-- Default state: AI analysis panel is closed; the ranking table is primary and advanced filters are collapsed.
-- Analysis state: three models selected; selected rows show an accent; the bottom compare tray exposes the AI CTA; the right analysis panel is open.
-- Interaction state: closing AI analysis removes the dialog; `筛选` expands search/vendor/license controls and collapses them again.
+No actionable P0/P1/P2 findings remain. The only intentional deviation is that the popover is anchored to the composer rather than the source mock's fixed conversation toolbar, directly reflecting the user's request to remove the obstruction.
 
-Findings:
+final result: passed
 
-- No actionable P0, P1, or P2 findings remain.
-- P3: the product's existing 102px native macOS toolbar is taller than the generated visual, so the AI panel is intentionally anchored below it.
-- P3: model logos are not available in the current component system; existing vendor badges are retained.
-- P3: no live leaderboard AI provider endpoint exists in the current contract, so the panel currently presents a deterministic current-data analysis preview while preserving the future connection point.
+## 2026-08-29 AI assistant queue-first redesign
 
-Comparison history:
+### Source visual truth
 
-1. The AI panel was initially positioned at the viewport top and covered native navigation; it was moved below the 102px toolbar.
-2. The final open-state capture resets the leaderboard body scroll so the table, compare tray, and panel can be reviewed together.
+- User-selected option 2: `/Users/shien.liang/.codex/generated_images/01a04674-9e32-72b3-9320-857d63fb632d/exec-1dd22459-8312-424b-a0ea-24e1c671c712.png`.
+- Source pixels: 1487 x 1058; source state shows a wide right-side drawer with a floating session orb, 待处理/对话 tabs, grouped queue, selected item detail, and persistent composer.
+
+### Implementation evidence
+
+- Queue drawer screenshot: `/tmp/pulse-assistant-queue-final.png` (879 x 858, default in-app Browser viewport; device scale factor 1).
+- Desktop drawer width: 780px in the implementation preview.
+- Responsive screenshot/state: 640 x 900; drawer is 640px wide, the queue/detail split becomes a vertical stack, and document width remains 640px.
+- The source and implementation were opened together for comparison before recording this report.
+- Browser console: no warning or error entries in the checked state.
+
+### Comparison notes
+
+- The implementation is now structurally queue-first rather than a card-grid/chat hybrid: the drawer opens on 待处理, while 对话 is an explicit second surface.
+- The top session select was replaced by a compact floating session orb with current-session text; clicking it still opens the existing session panel.
+- Real proactive signals are converted into grouped rows for 应用更新、演出票价下降 and GitHub 新 release. The selected application exposes current/latest version, update type, risk and the existing upgrade confirmation action.
+- The composer stays persistent across both surfaces; sending from 待处理 switches to 对话 before using the existing AI request path.
+- No new backend capability was introduced. “全部标记已读” uses the existing proactive acknowledgement semantics and the queue count now reacts to the local read revision.
+
+### Primary interactions checked
+
+1. Open the global AI assistant; the queue-first drawer renders with 6 representative pending items across 3 groups.
+2. Click an app row; the detail pane updates with version facts and `更新` / `查看版本页` actions.
+3. Switch between 待处理 and 对话; both surfaces render in the same drawer and the composer remains available.
+4. Click the floating session orb; the existing sessions panel opens and `aria-expanded` becomes `true`.
+5. Click 全部标记已读; queue rows disappear and the tab badge updates to 0.
+6. Check 640 x 900 responsive layout; queue and detail stack without horizontal overflow.
+
+### Required fidelity surfaces
+
+- Fonts/typography: uses the existing Pulse font stack with a stronger 16px detail title, 12px queue labels and 10–11px metadata hierarchy matching the compact productivity reference.
+- Spacing/layout rhythm: 24px drawer gutters, 10–18px section rhythm, 42/58 queue-detail proportion, and explicit mobile stack breakpoint.
+- Colors/tokens: existing Pulse blue accent, neutral surfaces, thin token borders, pale selected state, and semantic warning/ready colors.
+- Image/assets: no new raster asset was required; all visible marks use existing icon components rather than emoji or CSS-drawn substitutes.
+- Copy/content: queue labels and action text are grounded in existing app update, concert and GitHub signal payloads; unsupported bulk/defer behavior was not added.
+
+### Findings
+
+No actionable P0/P1/P2 findings remain for the selected queue-first state. The implementation capture is smaller than the 1487 x 1058 source because the default in-app Browser viewport is 879 x 858; comparison was made on the drawer content geometry and a separate 640 x 900 responsive check was performed.
+
+final result: passed
+
+## 2026-08-29 AI assistant interaction refinement
+
+### Interaction changes verified
+
+- 待处理卡片由卡片内小链接改为整卡按钮，支持 hover、active、focus-visible、busy 和 disabled 状态，并继续调用现有 proactive action。
+- 快捷操作由纯文字 chip 改为带模块图标的操作按钮，首个动作使用 primary 层级，执行中显示处理中状态并锁定同组按钮。
+- 消息操作由默认不可见的弱 ghost 控件改为可发现的 action rail，保留复制、引用、重答、反馈和删除行为。
+- 结构化更新结果的每一行都提供清晰的 `更新` CTA，点击仍进入现有升级确认流程。
+- Composer 发送按钮使用图标化主按钮，并补齐 hover、active、focus-visible 状态。
+
+### Evidence
+
+- Final capture: `/tmp/pulse-assistant-attention-final.png`.
+- The visual fixture verified 3 attention cards, 3 explicit update CTAs, full-card click acknowledgement, and result-card auto-scroll; the fixture was removed after capture.
+
+final result: passed
+
+## 2026-08-29 AI assistant visual fidelity revision
+
+### Revision evidence
+
+- Revision target: same selected second visual direction at `/Users/shien.liang/.codex/generated_images/01a04674-9e32-72b3-9320-857d63fb632d/exec-2da709a5-bb1d-4bc2-83c3-edf68a1ac107.png`.
+- Overview capture: `/tmp/pulse-assistant-attention-overview.png`.
+- Structured-result capture: `/tmp/pulse-assistant-attention-final.png`.
+
+### Changes verified against the target
+
+- Drawer width increased from 720px to 780px on desktop while preserving the right-side drawer architecture.
+- Ready-state context was removed from the top of the drawer and kept beside the composer, matching the target's cleaner header-to-attention transition.
+- Message tools now start collapsed, leaving the conversation as the primary surface while retaining the existing filters/search on demand.
+- Assistant and user bubbles received stronger separation, and the tool result card now uses a table-like hierarchy with explicit per-item `更新` actions wired to the existing confirmation flow.
+- New responses scroll to the bottom after the message list grows, keeping the result card fully visible after an action.
+
+### Verification
+
+- Desktop overview and post-query result states rendered in the in-app Browser with no console warnings/errors.
+- 640 x 900 responsive state keeps the drawer within the viewport and stacks the attention cards.
+- Targeted assistant tests: 3 files, 8 tests passed.
+
+final result: passed
+
+## 2026-08-29 AI assistant attention queue drawer
+
+### Source visual truth
+
+- User-selected reference: `/Users/shien.liang/.codex/generated_images/01a04674-9e32-72b3-9320-857d63fb632d/exec-2da709a5-bb1d-4bc2-83c3-edf68a1ac107.png`
+- Source pixels: 1487 x 1058; source state shows the Pulse home surface dimmed behind a wide right-side drawer, with a three-card 待处理区 and an actionable application-update result.
+
+### Implementation evidence
+
+- Main attention drawer screenshot: `/tmp/pulse-assistant-attention-final.png` (879 x 858, default in-app browser viewport).
+- Drawer width: 720px on the desktop preview; 640px full-width fallback at the 640px responsive breakpoint.
+- Responsive check: 640 x 900 viewport; attention cards stack vertically and the drawer/document width stays within the viewport.
+- Browser console: no warning or error entries during the final checked state.
+
+### Comparison notes
+
+- The implementation keeps the AI assistant as the existing right-side drawer; no full-page AI route or merged entertainment tab was introduced.
+- The drawer now opens with the selected hierarchy: compact header, current session selector, 新对话, overflow actions, current-page context, 待处理 (3) attention cards, conversation stream, and composer.
+- The three cards are backed by existing signals: app updates, concert price drops, and GitHub releases. Each card reuses the existing assistant message/navigation action path.
+- Proactive system messages are not duplicated in the default conversation view because the same signals are represented in the attention queue. They remain discoverable through the 系统 filter/search and keep their existing dismiss/详情 actions.
+- The structured `query_apps` result card remains item-level because that is the current tool contract; each update action continues through the existing confirmation flow.
+
+### Primary interactions checked
+
+1. Open the existing global AI assistant FAB; the drawer opens over the Pulse home surface.
+2. Load representative app, concert, and GitHub signals; the three-card 待处理区 renders with real signal counts.
+3. Trigger a representative `query_apps` response; the structured result card is visible in the message viewport after generation.
+4. Check 640px responsive layout; cards stack without horizontal overflow.
+
+### Findings
+
+No actionable P0/P1/P2 visual findings remain for the selected drawer state. The only environment limitation is that the screenshot uses the repository fixture with representative local data; the native Electron tray window was not used for capture.
+
+final result: passed
+
+## 2026-08-28 AI assistant wide drawer redesign
+
+### Source visual truth
+
+- User-selected reference: `/Users/shien.liang/.codex/generated_images/01a04674-9e32-72b3-9320-857d63fb632d/exec-7b7f47e9-afaa-4a56-b0fd-b655c0c5e71d.png`
+- Source pixels: 1487 x 1058; source state shows Pulse dimmed behind a wide right-side AI drawer with the session selector open.
+
+### Implementation evidence
+
+- Main drawer screenshot: `/tmp/pulse-assistant-wide-final-1440x1024.png` (1440 x 1024, CSS viewport 1440 x 1024, device scale factor 1).
+- Session selector screenshot: `/tmp/pulse-assistant-sessions-wide-final-1440x1024.png` (1440 x 1024, CSS viewport 1440 x 1024, device scale factor 1).
+- Drawer width: 720px at 1440px desktop viewport; 640px full-width fallback at 640px viewport.
+- Responsive check: 640 x 900 viewport, document scroll width matched viewport width; no horizontal overflow.
+- Browser console: no warning or error entries during the final checked state.
+
+### Comparison notes
+
+- The implementation preserves the requested right-side drawer architecture; no AI route, standalone tab, or full-page workspace was added.
+- The drawer now uses the selected hierarchy: compact header, session selector, direct 新对话 action, overflow for model/export/clear controls, context/readiness strip, message stream, three prioritized quick actions, and a dominant composer.
+- Existing capabilities remain wired: session switching, model mode/custom model, duplicate/copy/export, export preferences, proactive-message cleanup, message search/filter, page-context attachment/insertion, feedback cleanup, message actions, tool result cards, send/stop/retry, and AI settings navigation.
+- Existing Pulse top navigation remains unchanged as an intentional product-shell constraint.
+
+### Primary interactions checked
+
+1. Open the global AI assistant from the existing FAB; drawer opens at 720px on desktop.
+2. Trigger a representative `query_apps` response; human-readable tool result card renders.
+3. Confirm only 3 prioritized quick actions are visible in the footer.
+4. Open the session selector; the history panel overlays the drawer body and `aria-expanded` becomes `true`.
+5. Open the overflow menu; model and secondary conversation actions remain available.
+6. Check 640px responsive layout; drawer becomes full width with no horizontal overflow.
+
+### Findings
+
+No actionable P0/P1/P2 visual findings remain for the scoped drawer redesign. The selected mock uses a representative result-card action layout; the live `query_apps` contract currently exposes per-item actions rather than an aggregate update action, so the implementation preserves the real contract and does not invent a bulk action.
+
+### Follow-up polish
+
+- The local Electron tray window did not expose a stable capturable surface in this run; browser evidence uses the repository's temporary fixture with representative data and the fixture is not part of production code.
+- The existing assistant test directory still contains unrelated baseline failures from extensionless imports and one proactive-sync assertion; the touched feedback and quick-action tests pass.
 
 final result: passed

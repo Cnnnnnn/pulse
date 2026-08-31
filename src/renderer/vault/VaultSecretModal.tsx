@@ -1,0 +1,175 @@
+/**
+ * src/renderer/vault/VaultSecretModal.tsx
+ *
+ * 密钥库 新建/编辑弹窗 (v2.83)。
+ * 编辑时 value 默认留空 = 保持原值（不回显明文，减少不必要的明文往返）。
+ */
+
+import { useEffect, useState } from "preact/hooks";
+import { BareModalShell } from "../components/ModalShell.tsx";
+import {
+  vaultModalOpen,
+  vaultEditing,
+  vaultBusy,
+  closeVaultModal,
+  saveVaultSecret,
+  VAULT_CATEGORY_PRESETS,
+} from "./store.ts";
+
+/** ms epoch → "YYYY-MM-DD"（date input 需要的格式，当地时区） */
+function msToDateInput(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+export function VaultSecretModal() {
+  const editing = vaultEditing.value;
+  const open = vaultModalOpen.value;
+
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [value, setValue] = useState("");
+  const [note, setNote] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setName(editing ? editing.name : "");
+    setCategory(editing ? editing.category : "");
+    setValue("");
+    setNote(editing ? editing.note : "");
+    setExpiresAt(
+      editing && editing.expiresAt ? msToDateInput(editing.expiresAt) : "",
+    );
+  }, [open, editing]);
+
+  const canSubmit = name.trim().length > 0 && (editing || value.trim().length > 0);
+
+  const submit = async () => {
+    if (!canSubmit || vaultBusy.value) return;
+    await saveVaultSecret({
+      id: editing ? editing.id : undefined,
+      name: name.trim(),
+      category: category.trim(),
+      value: value.trim(),
+      note: note.trim(),
+      // "" = 清除过期时间；未改动时也显式传值（简单起见总是传）
+      expiresAt: expiresAt || null,
+    });
+  };
+
+  return (
+    <BareModalShell
+      open={open}
+      onClose={() => closeVaultModal()}
+      overlayClass="modal-backdrop"
+      cardClass="vault-modal"
+      ariaLabel={editing ? "编辑密钥" : "添加密钥"}
+    >
+      <header class="vault-modal__head">
+        <h3>{editing ? `编辑「${editing.name}」` : "添加密钥"}</h3>
+        <button
+          type="button"
+          class="vault-modal__close"
+          onClick={() => closeVaultModal()}
+          aria-label="关闭"
+        >
+          ✕
+        </button>
+      </header>
+
+      <div class="vault-modal__body">
+        <label class="vault-field">
+          <span class="vault-field__label">名称 *</span>
+          <input
+            class="vault-field__input"
+            type="text"
+            placeholder="如：OpenAI 生产 Key"
+            value={name}
+            maxLength={100}
+            onInput={(e: any) => setName(e.target.value)}
+          />
+        </label>
+
+        <label class="vault-field">
+          <span class="vault-field__label">分类</span>
+          <input
+            class="vault-field__input"
+            type="text"
+            placeholder="内置功能 / AI / 开发 / 云服务…"
+            value={category}
+            maxLength={50}
+            list="vault-category-presets"
+            onInput={(e: any) => setCategory(e.target.value)}
+          />
+          <datalist id="vault-category-presets">
+            {VAULT_CATEGORY_PRESETS.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </label>
+
+        <label class="vault-field">
+          <span class="vault-field__label">
+            {editing ? "密钥内容（留空 = 保持原值）" : "密钥内容 *"}
+          </span>
+          <textarea
+            class="vault-field__input vault-field__input--area"
+            placeholder="粘贴 token / API key…"
+            value={value}
+            rows={3}
+            spellcheck={false}
+            autocomplete="off"
+            onInput={(e: any) => setValue(e.target.value)}
+          />
+        </label>
+
+        <label class="vault-field">
+          <span class="vault-field__label">备注</span>
+          <input
+            class="vault-field__input"
+            type="text"
+            placeholder="如：申请于 2026-08，配额 60 次/小时"
+            value={note}
+            maxLength={500}
+            onInput={(e: any) => setNote(e.target.value)}
+          />
+        </label>
+
+        <label class="vault-field">
+          <span class="vault-field__label">过期时间（可选，到期前 7 天开始提醒）</span>
+          <input
+            class="vault-field__input"
+            type="date"
+            value={expiresAt}
+            onChange={(e: any) => setExpiresAt(e.target.value)}
+          />
+        </label>
+
+        <p class="vault-modal__hint">
+          密钥经系统 Keychain 加密后落盘，列表中只显示掩码；复制 30 秒后自动清空剪贴板。
+        </p>
+      </div>
+
+      <footer class="vault-modal__foot">
+        <button
+          type="button"
+          class="vault-btn"
+          onClick={() => closeVaultModal()}
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          class="vault-btn vault-btn--primary"
+          disabled={!canSubmit || vaultBusy.value}
+          onClick={submit}
+        >
+          {vaultBusy.value ? "保存中…" : "保存"}
+        </button>
+      </footer>
+    </BareModalShell>
+  );
+}

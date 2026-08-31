@@ -12,3 +12,11 @@ export const DEFAULT_MODELS = {
   deepseek: "deepseek-chat",
   minimax: "MiniMax-M3",
 };
+
+/** 助手简单问答路由用的轻量模型（ponytail: 与主模型相同时路由无收益） */
+export const FAST_MODELS: Record<string, string> = {
+  openai: "gpt-4o-mini",
+  anthropic: "claude-3-5-haiku-latest",
+  deepseek: "deepseek-chat",
+  minimax: "MiniMax-M2.1",
+};

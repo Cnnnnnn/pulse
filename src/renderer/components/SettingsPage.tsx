@@ -34,7 +34,7 @@ import {
 import { showToast } from "../store.ts";
 import type { ThemeMode } from "../../shared/ipc-contracts";
 import {
-  githubToken, setGithubToken, loadGithubSettings,
+  loadGithubSettings,
   downloadGithubBackup, pickGithubBackupFile, githubProjects,
   githubAutoCheck, setGithubAutoCheck,
   githubAutoCheckIntervalMin, setGithubAutoCheckInterval,
@@ -212,9 +212,13 @@ function TmdbSettingsSection() {
   const onSave = async () => {
     const v = draft.trim();
     if (!v) return;
-    await window.api.moviesTmdbKeySet(v);
-    setSource("settings");
-    showToast("TMDB API Key 已保存（仅存于本机）", "success", 2000);
+    const res = await window.api.moviesTmdbKeySet(v);
+    if (res && !res.ok) {
+      showToast("保存失败：系统加密不可用，已拒绝明文保存", "error", 3200);
+      return;
+    }
+    setSource("vault");
+    showToast("TMDB API Key 已存入密钥库（加密）", "success", 2000);
   };
   const onClear = async () => {
     setDraft("");
@@ -222,7 +226,7 @@ function TmdbSettingsSection() {
     const r = await window.api.moviesTmdbKeyGet();
     setDraft((r && r.key) || "");
     setSource((r && r.source) || "");
-    showToast("已清除设置中的 TMDB Key", "info", 2000);
+    showToast("已清除 TMDB Key", "info", 2000);
   };
 
   const openTmdb = (e: Event) => {
@@ -240,7 +244,13 @@ function TmdbSettingsSection() {
           <h3 id="settings-tmdb-title">电影 · TMDB API Key</h3>
           <span class="settings-row__hint">
             香港 / 澳门片单与详情需要此 Key。申请免费 Developer Key。
-            {source === "env" ? " 当前来自 .env。" : source === "settings" ? " 当前来自本机设置。" : ""}
+            {source === "env"
+              ? " 当前来自 .env。"
+              : source === "vault"
+                ? " 当前来自密钥库（加密）。"
+                : source === "settings"
+                  ? " 当前来自本机设置。"
+                  : ""}
           </span>
         </div>
       </div>
@@ -277,7 +287,7 @@ function TmdbSettingsSection() {
             type="button"
             class="settings-btn settings-btn--danger-ghost"
             onClick={onClear}
-            disabled={!hasSaved && source !== "settings"}
+            disabled={!hasSaved && source !== "settings" && source !== "vault"}
           >
             清除
           </button>
@@ -296,31 +306,79 @@ function TmdbSettingsSection() {
 
 /**
  * GitHub 收录 — 访问令牌配置。
- * 令牌仅存于本机 localStorage（pulse.github.settings.v1），不会上传服务器。
+ * v2.83: token 存密钥库（主进程 safeStorage/Keychain 加密，名 "github"），
+ * 这里只读掩码状态；旧 localStorage 明文由 migrateLegacyGithubToken() 启动时迁移。
  * 用于解除 GitHub API 未登录 60 次/小时限流。
  */
 function GithubSettingsSection() {
-  const [draft, setDraft] = useState(githubToken.value);
+  const [draft, setDraft] = useState("");
   const [reveal, setReveal] = useState(false);
-  const hasSaved = githubToken.value.length > 0;
+  const [vaultStatus, setVaultStatus] = useState<{ id: string; hint: string } | null>(null);
+  const hasSaved = !!vaultStatus;
 
-  // 打开设置时确保从 localStorage 恢复已保存的 Token 并回填输入框，
-  // 避免「已保存过 Token、但未访问 GitHub 视图时 githubToken 信号仍为空」导致字段显示空白。
+  const loadVaultStatus = async () => {
+    try {
+      const list = await window.api?.vaultList?.();
+      if (!list || !list.ok) {
+        setVaultStatus(null);
+        return;
+      }
+      const found = (list.entries || []).find(
+        (e: any) => e.name.toLowerCase() === "github",
+      );
+      setVaultStatus(found ? { id: found.id, hint: found.hint } : null);
+    } catch {
+      setVaultStatus(null);
+    }
+  };
+
   useEffect(() => {
+    // 兜底恢复 density/autoCheck 等设置 + 旧 token 迁移缓存
     loadGithubSettings();
-    setDraft(githubToken.value);
+    loadVaultStatus();
   }, []);
 
-  const onSave = () => {
+  const onSave = async () => {
     const v = draft.trim();
     if (!v) return;
-    setGithubToken(v);
-    showToast("GitHub Token 已保存（仅存于本机）", "success", 2000);
+    try {
+      const res = await window.api?.vaultSet?.({
+        name: "github",
+        value: v,
+        category: "内置功能",
+        note: "GitHub 访问令牌",
+        upsert: true,
+      });
+      if (res && res.ok) {
+        setDraft("");
+        await loadVaultStatus();
+        showToast("GitHub Token 已存入密钥库（加密）", "success", 2200);
+      } else {
+        showToast(
+          res && res.reason === "no_safe_storage"
+            ? "系统加密不可用，已拒绝明文保存"
+            : "保存失败",
+          "error",
+          3200,
+        );
+      }
+    } catch (err: any) {
+      showToast(`保存失败: ${err && err.message}`, "error", 3200);
+    }
   };
-  const onClear = () => {
-    setDraft("");
-    setGithubToken("");
-    showToast("已清除 GitHub Token", "info", 2000);
+  const onClear = async () => {
+    if (!vaultStatus) return;
+    try {
+      const res = await window.api?.vaultDelete?.(vaultStatus.id);
+      if (res && res.ok) {
+        await loadVaultStatus();
+        showToast("已清除 GitHub Token", "info", 2000);
+      } else {
+        showToast("清除失败", "error", 3000);
+      }
+    } catch (err: any) {
+      showToast(`清除失败: ${err && err.message}`, "error", 3000);
+    }
   };
   const openTokens = (e) => {
     e.preventDefault();
@@ -358,14 +416,14 @@ function GithubSettingsSection() {
       <h3 class="settings-card__title">GitHub 访问令牌</h3>
       <p class="settings-row__hint" style="margin:0 0 12px">
         用于解除 GitHub API 未登录 <b>60 次/小时</b> 的限流，认证后提升至{" "}
-        <b>5000 次/小时</b>。令牌<b>只保存在本机浏览器</b>，不会上传到任何服务器。
+        <b>5000 次/小时</b>。令牌经系统 <b>Keychain 加密</b>保存在密钥库，不会上传到任何服务器。
       </p>
       <div class="settings-row">
         <div class="settings-row__label-block">
           <span class="settings-row__label">Personal Access Token</span>
           <span class="settings-row__hint">
             {hasSaved
-              ? "当前已保存令牌（已遮挡）。"
+              ? `已存入密钥库（掩码 ${vaultStatus.hint}）。`
               : "尚未配置，使用未登录限流额度。"}
           </span>
         </div>
@@ -423,7 +481,7 @@ function GithubSettingsSection() {
     <section class="settings-card">
       <h3 class="settings-card__title">数据备份</h3>
       <p class="settings-row__hint" style="margin:0 0 12px">
-        收录的项目、README、Release、AI 解析结果与 Token 都只存在本机浏览器，
+        收录的项目、README、Release、AI 解析结果只存在本机浏览器，Token 存在密钥库，
         换电脑或清理缓存会丢失。建议定期<b>导出备份</b>。
       </p>
       <div class="settings-row">

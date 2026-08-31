@@ -89,8 +89,8 @@ export function markGithubProjectViewed(id: string) {
 }
 
 export const loadGithubSettings = githubSettings.loadGithubSettings;
+export const migrateLegacyGithubToken = githubSettings.migrateLegacyGithubToken;
 export const setGithubDensity = githubSettings.setGithubDensity;
-export const setGithubToken = githubSettings.setGithubToken;
 export const setGithubAutoCheck = githubSettings.setGithubAutoCheck;
 export const setGithubAutoCheckInterval = githubSettings.setGithubAutoCheckInterval;
 export const setGithubNotifyOnNew = githubSettings.setGithubNotifyOnNew;
@@ -117,7 +117,8 @@ const githubBackupService = createGithubBackupService({
   getDensity: () => githubDensity.value,
   setDensity: setGithubDensity,
   getToken: () => githubToken.value,
-  setToken: setGithubToken,
+  // v2.83：token 迁入密钥库后 renderer 不再持有明文，旧备份里的 token 不回填
+  setToken: () => {},
   persist,
 });
 

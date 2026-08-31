@@ -15,6 +15,11 @@ import { runCheck } from "../run-check.ts";
 import { setThemePreference } from "../theme/theme-manager.ts";
 import { showToast } from "../store.ts";
 import { IconSearch } from "./icons.tsx";
+import { matchAssistantCommands } from "../assistant/chat-command-palette.ts";
+import {
+  openGlobalChat,
+  openGlobalChatWithMessage,
+} from "../assistant/assistant-store.ts";
 
 const KIND_LABEL: Record<string, string> = { app: "应用", action: "操作", view: "页面" };
 
@@ -96,13 +101,16 @@ export function CommandPalette() {
     }
     // P12: 主题切换命令放在最前 (renderer-local, 无延迟).
     const themeHits = matchThemeCommands(query);
+    const assistantHits = matchAssistantCommands(query);
     const timer = setTimeout(async () => {
       let ipcHits: PaletteItem[] = [];
       if (api.versionsCommandSearch) {
         const r = await api.versionsCommandSearch(query);
         if (r && r.ok) ipcHits = (r.results || []) as PaletteItem[];
       }
-      setPaletteResults([...themeHits, ...ipcHits].slice(0, 10));
+      setPaletteResults(
+        [...assistantHits, ...themeHits, ...ipcHits].slice(0, 10),
+      );
       setPaletteSelectedIndex(0);
     }, 250);
     return () => clearTimeout(timer);
@@ -112,6 +120,13 @@ export function CommandPalette() {
     if (item.kind === "view") navigateTo(item.id);
     else if (item.kind === "action" && item.id === "action-check") {
       runCheck();
+    }
+    else if (item.kind === "action" && item.id === "assistant-open") {
+      openGlobalChat();
+    }
+    else if (item.kind === "action" && item.id.startsWith("assistant-ask:")) {
+      const text = item.id.slice("assistant-ask:".length);
+      void openGlobalChatWithMessage(text);
     }
     else if (item.kind === "action" && typeof item.theme === "string") {
       // P12: Cmd+K 主题切换 + toast 反馈

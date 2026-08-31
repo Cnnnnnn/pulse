@@ -1,0 +1,348 @@
+/* src/renderer/vault/vault.css
+ * 密钥库模块样式 (v2.83)。仅用 var()/oklch()/color-mix()。
+ * 复用 --gray-* / --accent 全局变量，与 concerts.css 同基调。
+ */
+
+.vault-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ── header ── */
+.vault-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 8px;
+}
+.vault-header__left {
+  min-width: 0;
+}
+.vault-header__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+.vault-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--gray-500, #6b7280);
+}
+.vault-header__warn {
+  color: var(--color-down, #b45309);
+}
+.vault-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── 按钮 ── */
+.vault-btn {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklch, var(--gray-300) 70%, transparent);
+  background: var(--gray-100, #f3f4f6);
+  color: var(--gray-700, #374151);
+  cursor: pointer;
+}
+.vault-btn:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--gray-200) 80%, transparent);
+}
+.vault-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.vault-btn--primary {
+  background: color-mix(in oklch, var(--accent, oklch(62% 0.19 260)) 14%, var(--gray-100, #f3f4f6));
+  border-color: color-mix(in oklch, var(--accent, oklch(62% 0.19 260)) 45%, transparent);
+  font-weight: 500;
+}
+.vault-btn--danger {
+  color: var(--color-down, #b45309);
+}
+.vault-btn--danger:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--color-down, #b45309) 10%, transparent);
+}
+
+/* ── 工具栏 ── */
+.vault-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 4px 18px 8px;
+}
+.vault-search {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklch, var(--gray-300) 70%, transparent);
+  background: transparent;
+  color: var(--gray-700);
+}
+.vault-search:focus {
+  outline: none;
+  border-color: color-mix(in oklch, var(--accent, oklch(62% 0.19 260)) 60%, transparent);
+}
+
+/* ── 空态 ── */
+.vault-empty {
+  margin: 40px auto;
+  max-width: 420px;
+  text-align: center;
+  color: var(--gray-500, #6b7280);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.vault-empty__hint {
+  font-size: 11px;
+  color: var(--gray-400, #9ca3af);
+}
+
+/* ── 列表 ── */
+.vault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 18px 16px;
+}
+.vault-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklch, var(--gray-200) 80%, transparent);
+  background: color-mix(in oklch, var(--gray-100, #f3f4f6) 60%, transparent);
+}
+.vault-row--revealed {
+  border-color: color-mix(in oklch, var(--accent, oklch(62% 0.19 260)) 45%, transparent);
+}
+.vault-row__main {
+  min-width: 0;
+  flex: 1;
+}
+.vault-row__title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.vault-row__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vault-row__category {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--accent, oklch(62% 0.19 260)) 12%, transparent);
+  color: color-mix(in oklch, var(--accent, oklch(62% 0.19 260)) 70%, var(--gray-700));
+}
+/* ── 过期徽标 ── */
+.vault-row__expiry {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+.vault-row__expiry--danger {
+  background: color-mix(in oklch, var(--color-down, #b45309) 16%, transparent);
+  color: var(--color-down, #b45309);
+  font-weight: 600;
+}
+.vault-row__expiry--warn {
+  background: color-mix(in oklch, var(--color-up, #d97706) 14%, transparent);
+  color: var(--color-up, #d97706);
+}
+.vault-row__expiry--muted {
+  background: color-mix(in oklch, var(--gray-200) 70%, transparent);
+  color: var(--gray-500, #6b7280);
+}
+
+/* ── 导入预览 ── */
+.vault-modal--import {
+  width: 460px;
+}
+.vault-import-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+.vault-import-list__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.vault-import-list__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-800);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vault-import-list__conflict,
+.vault-import-list__new {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+.vault-import-list__conflict {
+  background: color-mix(in oklch, var(--color-down, #b45309) 14%, transparent);
+  color: var(--color-down, #b45309);
+}
+.vault-import-list__new {
+  background: color-mix(in oklch, var(--color-up, #16a34a) 12%, transparent);
+  color: var(--color-up, #16a34a);
+}
+.vault-import-list__hint {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--gray-500, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vault-row__secret {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  min-width: 0;
+}
+.vault-row__secret code {
+  font-size: 11px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--gray-600);
+  background: color-mix(in oklch, var(--gray-200) 60%, transparent);
+  padding: 2px 8px;
+  border-radius: 6px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vault-row__reveal-hint {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--gray-400, #9ca3af);
+}
+.vault-row__note {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--gray-500, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vault-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── 弹窗 ── */
+.vault-modal {
+  width: 420px;
+  max-width: calc(100vw - 48px);
+  background: var(--gray-50, #f9fafb);
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklch, var(--gray-300) 60%, transparent);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.18);
+  display: flex;
+  flex-direction: column;
+}
+.vault-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 0;
+}
+.vault-modal__head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+.vault-modal__close {
+  border: none;
+  background: transparent;
+  color: var(--gray-500);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.vault-modal__close:hover {
+  background: color-mix(in oklch, var(--gray-200) 80%, transparent);
+}
+.vault-modal__body {
+  padding: 12px 18px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vault-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vault-field__label {
+  font-size: 11px;
+  color: var(--gray-500, #6b7280);
+}
+.vault-field__input {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklch, var(--gray-300) 70%, transparent);
+  background: transparent;
+  color: var(--gray-700);
+  resize: vertical;
+}
+.vault-field__input--area {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+.vault-field__input:focus {
+  outline: none;
+  border-color: color-mix(in oklch, var(--accent, oklch(62% 0.19 260)) 60%, transparent);
+}
+.vault-modal__hint {
+  margin: 2px 0 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--gray-400, #9ca3af);
+}
+.vault-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 18px 14px;
+}

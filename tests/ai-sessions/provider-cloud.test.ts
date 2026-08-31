@@ -351,7 +351,7 @@ describe('CloudSummarizer —校验 +边界', () => {
  model: 'gpt-4o-mini',
  messages: [{ role: 'user', content: 'hi' }],
  stream: false,
- max_tokens:2048,
+ max_tokens:8192,
  temperature:0.3,
  }));
  });

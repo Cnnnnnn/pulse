@@ -25,8 +25,16 @@ import {
   clearAIKey,
   runAIHealthcheck,
   saveAISessionsConfig,
+  aiUseVaultKey,
 } from '../store.ts';
+import { showToast } from '../store/toast-store.ts';
+import { api } from '../api.ts';
 import { IconCheck, IconX } from './icons.tsx';
+import {
+  formatModelPresetsText,
+  parseModelPresetsText,
+  partitionModelPresetsByProvider,
+} from '../assistant/assistant-model-presets.ts';
 
 // Phase B7g: 默认 model + base URL 用2026官网最新.
 // - DeepSeek: deepseek-chat = DeepSeek-V3.1 (128K context, 默认非思考模式).
@@ -109,12 +117,28 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  const [cloudBaseUrl, setCloudBaseUrl] = useState(
  (cfg && cfg.cloud && cfg.cloud.baseUrl) || DEFAULT_BASE_URL[initialProviderId] || '',
  );
+ const [assistantFastModel, setAssistantFastModel] = useState(
+ (cfg && typeof cfg.assistantFastModel === 'string' && cfg.assistantFastModel) || '',
+ );
+ const [assistantLlmHistorySummary, setAssistantLlmHistorySummary] = useState(
+ cfg?.assistantLlmHistorySummary !== false,
+ );
+ const [assistantModelPresetsText, setAssistantModelPresetsText] = useState(
+ formatModelPresetsText(cfg?.assistantModelPresets),
+ );
  const [keyInput, setKeyInput] = useState('');
  const [saveStatus, setSaveStatus] = useState(null);
+ // v2.83: 密钥库引用 — 下拉选一条已存的 key, 主进程解密直写 Keychain, 明文不经过界面
+ const [vaultOptions, setVaultOptions] = useState([]);
+ const [vaultPick, setVaultPick] = useState('');
+ const [vaultBusy, setVaultBusy] = useState(false);
 
  // mount 时拉一次 keyStatus (modal复用也会调; drawer 用也安全 — 已 cached)
  useEffect(() => {
  probeAIKeyStatuses();
+ api.vaultList?.().then((r) => {
+ if (r && r.ok) setVaultOptions(r.entries || []);
+ }).catch(() => {});
  }, []);
 
  //外部 cfg变化 (e.g.另一个 settings同步了),重置表单
@@ -127,13 +151,31 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  setCloudModel(cfg.cloud.model || findProvider(pid).defaultModel);
  setCloudBaseUrl(cfg.cloud.baseUrl || DEFAULT_BASE_URL[pid] || '');
  }
+ if (typeof cfg.assistantFastModel === 'string') {
+ setAssistantFastModel(cfg.assistantFastModel);
+ }
+ setAssistantLlmHistorySummary(cfg.assistantLlmHistorySummary !== false);
+ if (Array.isArray(cfg.assistantModelPresets)) {
+ setAssistantModelPresetsText(formatModelPresetsText(cfg.assistantModelPresets));
+ }
  }
  }
  }, [cfg]);
 
  async function persistCloudConfig() {
- const next = buildConfigPayload(cloudProviderId, cloudModel, cloudBaseUrl);
- return saveAISessionsConfig(next);
+ const next: Record<string, unknown> = {
+ ...(cfg && typeof cfg === 'object' ? cfg : {}),
+ ...buildConfigPayload(cloudProviderId, cloudModel, cloudBaseUrl),
+ };
+ const trimmedFast = (assistantFastModel || '').trim();
+ if (trimmedFast) next.assistantFastModel = trimmedFast;
+ else delete next.assistantFastModel;
+ if (assistantLlmHistorySummary) delete next.assistantLlmHistorySummary;
+ else next.assistantLlmHistorySummary = false;
+ const presets = parseModelPresetsText(assistantModelPresetsText);
+ if (presets.length > 0) next.assistantModelPresets = presets;
+ else delete next.assistantModelPresets;
+ return saveAISessionsConfig(next as any);
  }
 
  async function handleSaveKey() {
@@ -159,6 +201,23 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  setSaveStatus('clearing-key');
  const r = await clearAIKey(cloudProviderId);
  setSaveStatus(r.ok ? 'key-cleared' : { error: 'threw' });
+ }
+
+ async function handleUseVaultKey() {
+ if (!vaultPick || !cloudProviderId || vaultBusy) return;
+ setVaultBusy(true);
+ const r = await aiUseVaultKey(cloudProviderId, vaultPick);
+ setVaultBusy(false);
+ if (r && r.ok) {
+ setVaultPick('');
+ setKeyInput('');
+ setSaveStatus('key-saved');
+ showToast('已从密钥库导入 key 到 Keychain', 'success', 2400);
+ } else {
+ showToast(r && r.reason === 'vault_entry_unreadable'
+ ? '密钥库条目读取失败'
+ : '从密钥库导入失败', 'error', 3000);
+ }
  }
 
  async function handleTestConnection() {
@@ -193,6 +252,10 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  const keyStatusText = keyStatus.available
  ? (keyStatus.hasKey ? { icon: 'check', text: `${cloudProviderId} 已存 key` } : { text: `${cloudProviderId} 尚未存 key` })
  : 'safeStorage 不可用，可临时改用环境变量';
+ const presetMismatch = partitionModelPresetsByProvider(
+  parseModelPresetsText(assistantModelPresetsText),
+  cloudProviderId,
+ ).mismatched;
 
  return (
  <div class="ai-config-form">
@@ -288,6 +351,51 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  placeholder={DEFAULT_BASE_URL[cloudProviderId] || 'https://...'}
  />
  </div>
+ <div class="settings-row">
+ <div class="settings-row__label-block">
+ <label class="settings-row__label">助手轻量模型 (可选)</label>
+ <span class="settings-row__hint">简单问答路由用；留空则用内置默认（如 gpt-4o-mini）。</span>
+ </div>
+ <input
+ class="settings-input"
+ type="text"
+ value={assistantFastModel}
+ onInput={(e) => setAssistantFastModel(e.currentTarget.value)}
+ placeholder="留空使用内置默认"
+ />
+ </div>
+ <div class="settings-row">
+ <div class="settings-row__label-block">
+ <label class="settings-row__label">长会话 LLM 摘要</label>
+ <span class="settings-row__hint">超过 18 条消息时，用轻量模型压缩更早历史（有少量 token 消耗）。</span>
+ </div>
+ <label class="settings-row__checkbox">
+ <input
+ type="checkbox"
+ checked={assistantLlmHistorySummary}
+ onChange={(e) => setAssistantLlmHistorySummary((e.target as HTMLInputElement).checked)}
+ />
+ 启用
+ </label>
+ </div>
+ <div class="settings-row">
+ <div class="settings-row__label-block">
+ <label class="settings-row__label">助手模型候选 (可选)</label>
+ <span class="settings-row__hint">每行一个模型 ID，用于助手抽屉自定义模型输入补全。</span>
+ </div>
+ <textarea
+ class="settings-input settings-input--block"
+ rows={3}
+ value={assistantModelPresetsText}
+ onInput={(e) => setAssistantModelPresetsText(e.currentTarget.value)}
+ placeholder="gpt-4o-mini&#10;deepseek-chat"
+ />
+ {presetMismatch.length > 0 && (
+ <span class="settings-row__hint settings-row__hint--warn">
+ 以下候选可能不属于当前 Provider（{prov.label}）：{presetMismatch.join('、')}
+ </span>
+ )}
+ </div>
  </div>
  </section>
 
@@ -344,6 +452,31 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  清空
  </button>
  </div>
+ {vaultOptions.length > 0 ? (
+ <div class="ai-settings-key-actions ai-settings-key-vault">
+ <select
+ class="settings-input"
+ value={vaultPick}
+ onChange={(e) => setVaultPick(e.currentTarget.value)}
+ disabled={vaultBusy || busy}
+ title="从密钥库选一条已保存的 key, 主进程解密后直接写入 Keychain"
+ >
+ <option value="">从密钥库导入…</option>
+ {vaultOptions.map((o) => (
+ <option key={o.id} value={o.id}>{o.name}</option>
+ ))}
+ </select>
+ <button
+ type="button"
+ class="settings-btn"
+ onClick={handleUseVaultKey}
+ disabled={!vaultPick || vaultBusy || busy}
+ title="引用所选密钥库条目作为当前 Provider 的 key"
+ >
+ {vaultBusy ? '导入中…' : '导入'}
+ </button>
+ </div>
+ ) : null}
  </section>
 
  {/* ── 验证连接段 ── */}

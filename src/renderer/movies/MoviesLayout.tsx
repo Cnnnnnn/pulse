@@ -6,7 +6,7 @@
  *   tonight: 热映按评分取 3 片
  *   tab: 热映 / 即将上映
  *   列表: MovieCard 纵向快速片单
- *   详情: 点卡片 → MovieDetailView（按需拉取）
+ *   详情: 点列表行 → MovieDetailView（按需拉取）
  */
 import { useEffect, useState } from "preact/hooks";
 import "./movies.css";
@@ -26,6 +26,7 @@ import {
   moviesLastFetched,
   moviesCityId,
   moviesComingNote,
+  moviesSelectedId,
 } from "./store.ts";
 import { MOVIE_CITIES, MOVIE_SOURCE_LABEL, getMovieCity } from "../../shared/movies-constants.ts";
 import { pickTonightMovies } from "./tonight.ts";
@@ -34,10 +35,9 @@ import { MovieCard } from "./MovieCard.tsx";
 import { MovieDetailView } from "./MovieDetailView.tsx";
 
 export function MoviesLayout() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [previewId, setPreviewId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"rating-desc" | "release-asc" | "wish-desc">("rating-desc");
+  const selectedId = moviesSelectedId.value;
 
   useEffect(() => {
     bootstrapMoviesTab();
@@ -48,7 +48,14 @@ export function MoviesLayout() {
   }, []);
 
   if (selectedId) {
-    return <MovieDetailView movieId={selectedId} onBack={() => setSelectedId(null)} />;
+    return (
+      <MovieDetailView
+        movieId={selectedId}
+        onBack={() => {
+          moviesSelectedId.value = null;
+        }}
+      />
+    );
   }
 
   const tab = moviesActiveTab.value;
@@ -61,7 +68,6 @@ export function MoviesLayout() {
   const fetchedLabel = formatMoviesFetchedAt(moviesLastFetched.value);
   const effectiveSort = tab === "now" && sort === "wish-desc" ? "rating-desc" : sort;
   const filteredList = filterAndSortMovies(list, { query, sort: effectiveSort });
-  const previewMovie = filteredList.find((movie: any) => movie.id === previewId) || filteredList[0] || null;
   const tonightMovies = tab === "now" ? pickTonightMovies(filteredList) : [];
   const comingGroups = tab === "coming" ? groupComingMovies(filteredList) : [];
   const err =
@@ -111,6 +117,25 @@ export function MoviesLayout() {
         </div>
       </div>
 
+      <div class="movies-tabs" role="tablist" aria-label="电影片单">
+        <button
+          class={`movies-tab${tab === "now" ? " movies-tab--active" : ""}`}
+          onClick={() => setTab("now")}
+          role="tab"
+          aria-selected={tab === "now"}
+        >
+          热映
+        </button>
+        <button
+          class={`movies-tab${tab === "coming" ? " movies-tab--active" : ""}`}
+          onClick={() => setTab("coming")}
+          role="tab"
+          aria-selected={tab === "coming"}
+        >
+          即将上映
+        </button>
+      </div>
+
       {tonightMovies.length > 0 && (
         <section class="movies-tonight">
           <h2 class="movies-tonight__title">今晚值得看</h2>
@@ -119,7 +144,9 @@ export function MoviesLayout() {
               <button
                 class="movies-tonight__pick"
                 key={movie.id}
-                onClick={() => setPreviewId(movie.id)}
+                onClick={() => {
+                  moviesSelectedId.value = movie.id;
+                }}
               >
                 {movie.poster && <img src={movie.poster} alt="" />}
                 <span class="movies-tonight__copy">
@@ -132,21 +159,6 @@ export function MoviesLayout() {
           </div>
         </section>
       )}
-
-      <div class="movies-tabs">
-        <button
-          class={`movies-tab${tab === "now" ? " movies-tab--active" : ""}`}
-          onClick={() => setTab("now")}
-        >
-          热映
-        </button>
-        <button
-          class={`movies-tab${tab === "coming" ? " movies-tab--active" : ""}`}
-          onClick={() => setTab("coming")}
-        >
-          即将上映
-        </button>
-      </div>
 
       <div class="movies-discovery-controls">
         <input
@@ -179,56 +191,55 @@ export function MoviesLayout() {
       )}
 
       <div class="movies-library">
-      <div class="movies-content">
-        {loading && list.length === 0 ? (
-          <div class="movies-empty">加载中…</div>
-        ) : !loaded && list.length === 0 ? (
-          <div class="movies-empty">暂无数据，请点击刷新</div>
-        ) : filteredList.length === 0 ? (
-          <div class="movies-empty">暂无片单</div>
-        ) : tab === "coming" ? (
-          <div class="movies-coming-groups">
-            {comingGroups.map((group) => (
-              <section class="movies-coming-group" key={group.key}>
-                <h3>{group.label}</h3>
-                <div class="movies-list">
-                  {group.movies.map((movie: any) => (
-                    <MovieCard
-                      key={movie.id}
-                      movie={movie}
-                      kind="coming"
-                      onClick={(nextMovie: any) => setPreviewId(nextMovie.id)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
+        <div class="movies-content">
+          <div class="movies-library-head" aria-hidden="true">
+            <span>影片</span>
+            <span>类型 / 时长</span>
+            <span>评分</span>
+            <span>{tab === "now" ? "上映状态" : "上映日期"}</span>
+            <span />
           </div>
-        ) : (
-          <div class="movies-gallery">
-            {filteredList.map((m: any) => (
-              <MovieCard
-                key={m.id}
-                movie={m}
-                kind="now"
-                onClick={(movie: any) => setPreviewId(movie.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-      {previewMovie && (
-        <aside class="movies-preview">
-          {previewMovie.poster && <img src={previewMovie.poster} alt="" />}
-          <div class="movies-preview__body">
-            <h2>{previewMovie.title}</h2>
-            {typeof previewMovie.rating === "number" && <strong>{previewMovie.rating.toFixed(1)}</strong>}
-            <p>{[...(previewMovie.genres || []), previewMovie.releaseDate, previewMovie.durationMin && `${previewMovie.durationMin} 分钟`].filter(Boolean).join(" · ")}</p>
-            {previewMovie.summary && <p class="movies-preview__summary">{previewMovie.summary}</p>}
-            <button onClick={() => setSelectedId(previewMovie.id)}>查看详情</button>
-          </div>
-        </aside>
-      )}
+          {loading && list.length === 0 ? (
+            <div class="movies-empty">加载中…</div>
+          ) : !loaded && list.length === 0 ? (
+            <div class="movies-empty">暂无数据，请点击刷新</div>
+          ) : filteredList.length === 0 ? (
+            <div class="movies-empty">暂无片单</div>
+          ) : tab === "coming" ? (
+            <div class="movies-coming-groups">
+              {comingGroups.map((group) => (
+                <section class="movies-coming-group" key={group.key}>
+                  <h3>{group.label}</h3>
+                  <div class="movies-list movies-gallery">
+                    {group.movies.map((movie: any) => (
+                      <MovieCard
+                        key={movie.id}
+                        movie={movie}
+                        kind="coming"
+                        onClick={(nextMovie: any) => {
+                          moviesSelectedId.value = nextMovie.id;
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div class="movies-gallery">
+              {filteredList.map((m: any) => (
+                <MovieCard
+                  key={m.id}
+                  movie={m}
+                  kind="now"
+                  onClick={(movie: any) => {
+                    moviesSelectedId.value = movie.id;
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -24,6 +24,8 @@ const LOADERS = {
     import('../movies/MoviesLayout.tsx').then((m) => m.MoviesLayout),
   concerts: () =>
     import('../concerts/ConcertsLayout.tsx').then((m) => m.ConcertsLayout),
+  vault: () =>
+    import('../vault/VaultLayout.tsx').then((m) => m.VaultLayout),
 };
 
 export function LazyNavPanel({

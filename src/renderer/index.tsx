@@ -12,6 +12,8 @@
 
 import { render } from 'preact';
 import { App } from './App.tsx';
+import { hydrateChatHistory } from './assistant/assistant-store.ts';
+import { startAssistantProactiveWatch } from './assistant/assistant-proactive-watch.ts';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import {
   openReleaseNotes,
@@ -172,6 +174,10 @@ function wireRendererListeners() {
     }
   });
 
+  window.addEventListener('app:trigger-check', () => {
+    void triggerCheck();
+  });
+
   if (typeof window !== 'undefined' && window.pulse && window.pulse.tray) {
     const trayApi = window.pulse.tray;
     if (typeof trayApi.onOpenConfig === 'function') {
@@ -251,6 +257,8 @@ function scheduleDeferredBootstrap(cfg) {
 async function bootstrap() {
   applyPlatformBodyClass();
   initTheme();
+  hydrateChatHistory();
+  startAssistantProactiveWatch();
 
   let cfg = { apps: [], check_on_launch: true };
   try {

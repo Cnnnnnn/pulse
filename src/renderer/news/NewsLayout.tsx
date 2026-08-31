@@ -13,6 +13,7 @@
 import { useState } from "preact/hooks";
 import { NEWS_SUBTABS } from "./NewsLayoutHeader.tsx";
 import { NewsLayoutHeader } from "./NewsLayoutHeader.tsx";
+import { newsSubTab, setNewsSubTab } from "./newsStore.ts";
 import { IthomeContent as IthomeContentRaw } from "../ithome/IthomeContent.tsx";
 import { WechatHotContent as WechatHotContentRaw } from "../wechat-hot/components/WechatHotContent.tsx";
 import { FinanceLayout as FinanceLayoutRaw } from "../finance/FinanceLayout.tsx";
@@ -26,11 +27,10 @@ import "./NewsLayout.css";
 export { NEWS_SUBTABS };
 
 export function NewsLayout() {
-  const [subTab, setSubTab] = useState("ithome");
-  // ponytail: search 跨 sub-tab 共用反而割裂体验 (微博搜 IT 文章会全部过滤掉), 切 tab 时重置.
+  const subTab = newsSubTab.value;
   const [search, setSearch] = useState("");
-  function handleSubTabChange(next) {
-    setSubTab(next);
+  function handleSubTabChange(next: string) {
+    setNewsSubTab(next);
     setSearch("");
   }
   return (

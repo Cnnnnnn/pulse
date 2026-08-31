@@ -3,15 +3,18 @@
  *
  * Interface: settings signals + load/set actions. 项目库、Release 检查和页面不需要
  * 了解 localStorage key、损坏数据回退或 scheduler 事件细节。
+ *
+ * v2.83：token 不再存 localStorage（明文），迁入密钥库（主进程 safeStorage 加密）。
+ * 旧 localStorage 里的 token 由 migrateLegacyGithubToken() 一次性搬进密钥库后清除。
  */
 
 import { signal } from "@preact/signals";
+import { api } from "../api.ts";
 
 export type GithubDensity = "comfortable" | "compact";
 
 type GithubSettingsPayload = {
   density: GithubDensity;
-  token: string;
   autoCheck: boolean;
   autoCheckIntervalMin: number;
   notifyOnNew: boolean;
@@ -19,8 +22,11 @@ type GithubSettingsPayload = {
 
 const SETTINGS_KEY = "pulse.github.settings.v1";
 const memoryFallback = new Map<string, string>();
+/** 旧 localStorage 读出、待迁移的 token（迁移成功前不清除原数据） */
+let legacyTokenCache: string | null = null;
 
 export const githubDensity = signal<GithubDensity>("comfortable");
+/** v2.83 起恒为空串：token 在主进程密钥库里，renderer 不再持有明文（保留导出兼容旧调用点） */
 export const githubToken = signal("");
 export const githubAutoCheck = signal(true);
 export const githubAutoCheckIntervalMin = signal(360);
@@ -62,7 +68,6 @@ function emitSettingsChanged(): void {
 function currentSettings(): GithubSettingsPayload {
   return {
     density: githubDensity.value,
-    token: githubToken.value,
     autoCheck: githubAutoCheck.value,
     autoCheckIntervalMin: githubAutoCheckIntervalMin.value,
     notifyOnNew: githubNotifyOnNew.value,
@@ -77,11 +82,14 @@ export function loadGithubSettings(): void {
   const raw = readStorage() ?? memoryFallback.get(SETTINGS_KEY) ?? null;
   if (!raw) return;
   try {
-    const value = JSON.parse(raw) as Partial<GithubSettingsPayload>;
+    const value = JSON.parse(raw) as Partial<GithubSettingsPayload & { token?: string }>;
     if (value.density === "compact" || value.density === "comfortable") {
       githubDensity.value = value.density;
     }
-    if (typeof value.token === "string") githubToken.value = value.token;
+    if (typeof value.token === "string" && value.token) {
+      // 旧版明文 token：只进迁移缓存，不再回填信号 / 不再持久化
+      legacyTokenCache = value.token;
+    }
     if (typeof value.autoCheck === "boolean") githubAutoCheck.value = value.autoCheck;
     if (typeof value.autoCheckIntervalMin === "number" && value.autoCheckIntervalMin > 0) {
       githubAutoCheckIntervalMin.value = value.autoCheckIntervalMin;
@@ -92,16 +100,51 @@ export function loadGithubSettings(): void {
   }
 }
 
+/**
+ * 一次性迁移：旧 localStorage 明文 token → 密钥库 "github" 条目，成功后清除明文。
+ * 密钥库已有 github 条目（用户手动建过）→ 只清除本地明文，不覆盖密钥库。
+ * 迁移失败（如加密不可用）保留 localStorage，下次启动重试。
+ */
+export async function migrateLegacyGithubToken(): Promise<void> {
+  const token = legacyTokenCache;
+  if (!token) return;
+  try {
+    const list = await api.vaultList();
+    const exists =
+      list &&
+      list.ok &&
+      (list.entries || []).some((e) => e.name.toLowerCase() === "github");
+    if (!exists) {
+      const res = await api.vaultSet({
+        name: "github",
+        value: token,
+        category: "内置功能",
+        note: "GitHub 访问令牌（自动迁移）",
+      });
+      if (!res || !res.ok) return; // 保留明文，下次启动重试
+    }
+    legacyTokenCache = null;
+    const stored = readStorage() ?? memoryFallback.get(SETTINGS_KEY) ?? null;
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === "object" && "token" in parsed) {
+          delete parsed.token;
+          writeStorage(JSON.stringify(parsed));
+        }
+      } catch {
+        /* 损坏数据忽略 */
+      }
+    }
+  } catch {
+    /* IPC 不可用（测试环境等）：保留明文，下次重试 */
+  }
+}
+
 export function setGithubDensity(value: GithubDensity): void {
   if (value !== "compact" && value !== "comfortable") return;
   githubDensity.value = value;
   persistSettings();
-}
-
-export function setGithubToken(value: unknown): void {
-  githubToken.value = typeof value === "string" ? value.trim() : "";
-  persistSettings();
-  emitSettingsChanged();
 }
 
 export function setGithubAutoCheck(value: unknown): void {

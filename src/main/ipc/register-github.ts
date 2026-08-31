@@ -23,12 +23,14 @@ function errMsg(err: unknown): string {
 }
 
 import { fetchGithubProject, fetchRepoRelease, getEnvGithubToken, parseGithubUrl } from "../github";
+import { getSecretValue } from "../vault/secret-vault";
 import { parseReadme } from "../../ai/readme-parse";
 
-/** 优先用 renderer 传入的 token；为空则回退 .env / 进程环境变量。 */
+/** 密钥库 "github" 条目 > renderer 传入 > .env / 进程环境变量 (v2.83 迁移后 token 只存密钥库)。 */
 function resolveToken(passed: unknown) {
+  const vaultToken = getSecretValue("github");
   const t = typeof passed === "string" ? passed.trim() : "";
-  return t || getEnvGithubToken();
+  return vaultToken || t || getEnvGithubToken();
 }
 
 export function registerGithubHandlers(ctx: any) {

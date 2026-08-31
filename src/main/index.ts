@@ -488,6 +488,7 @@ function registerAllIpc(selfUpdateHandle: any) {
   // A3: 全文搜索 — 启动构建索引 + 注册 IPC + 注入各模块 setter (实时 upsert)
   try {
     const searchIndex = createSearchIndex();
+    (globalThis as any).__pulse_searchIndex = searchIndex;
     registerSearchIpc({ ipcMain, searchIndex, stateStore });
     const { registerReleaseNotes } = require("./release-notes.ts");
     registerReleaseNotes({ ipcMain, app });
@@ -630,6 +631,7 @@ function startSchedulers() {
     sendToRenderer,
     getConfig: () => runtimeConfigRef.current,
   });
+  (globalThis as any).__pulse_fundScheduler = fundScheduler;
   startRemindersScheduler({ reminders, getWindow, sendToRenderer });
   wireRecentActivityListener({ recentActivity, sendToRenderer });
   startAutoCheckTimer({

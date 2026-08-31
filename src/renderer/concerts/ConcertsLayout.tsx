@@ -36,7 +36,6 @@ import {
   CONCERT_PLATFORM_LABEL,
   CONCERT_SESSION_STATUS_LABEL,
 } from "../../shared/concerts-constants.ts";
-import { NavIcon } from "../components/icons.tsx";
 
 export function ConcertsLayout() {
   const [urlInput, setUrlInput] = useState("");
@@ -72,17 +71,12 @@ export function ConcertsLayout() {
     <div class="concerts-layout">
       <div class="concerts-header">
         <div class="concerts-header__left">
-          <div class="concerts-header__title">
-            <span class="concerts-header__icon">
-              <NavIcon navKey="concerts" size={18} />
-            </span>
-            演出票价监控
-          </div>
+          <div class="concerts-header__title">演出票价监控</div>
           <div class="concerts-header__meta">
             <span>{watches.length} 个监听</span>
-            {fetchedLabel ? <span>· 更新于 {fetchedLabel}</span> : null}
+            {fetchedLabel ? <span>数据更新：{fetchedLabel}</span> : null}
             {concertsError.value ? (
-              <span class="concerts-header__err">· {concertsError.value}</span>
+              <span class="concerts-header__err">{concertsError.value}</span>
             ) : null}
           </div>
         </div>
@@ -99,19 +93,21 @@ export function ConcertsLayout() {
       </div>
 
       <div class="concerts-add">
-        <input
-          class="concerts-add__input"
-          type="text"
-          placeholder="粘贴链接：票牛 activity/… · 摩天轮国内详情页 showId · 摩天轮国际 tourId+showId"
-          value={urlInput}
-          onInput={(e: any) => setUrlInput(e.target.value)}
-          onKeyDown={(e: KeyboardEvent) => {
-            if (e.key === "Enter") submitAdd();
-          }}
-        />
-        <button class="concerts-btn concerts-btn--primary" disabled={concertsAddBusy.value} onClick={submitAdd}>
-          {concertsAddBusy.value ? "添加中…" : "添加监听"}
-        </button>
+        <div class="concerts-add__control">
+          <input
+            class="concerts-add__input"
+            type="text"
+            placeholder="粘贴演出链接到此处开始监控，如：https://…"
+            value={urlInput}
+            onInput={(e: any) => setUrlInput(e.target.value)}
+            onKeyDown={(e: KeyboardEvent) => {
+              if (e.key === "Enter") submitAdd();
+            }}
+          />
+          <button class="concerts-btn concerts-btn--primary" disabled={concertsAddBusy.value} onClick={submitAdd}>
+            {concertsAddBusy.value ? "添加中…" : "添加监听"}
+          </button>
+        </div>
       </div>
       {concertsAddError.value ? (
         <div class="concerts-add__error">{concertsAddError.value}</div>
@@ -127,6 +123,15 @@ export function ConcertsLayout() {
           </p>
         </div>
       ) : null}
+
+      <div class="concerts-list-head" aria-hidden="true">
+        <span>演出信息</span>
+        <span>最低在售价 / 票面价</span>
+        <span>价格变化</span>
+        <span>余票</span>
+        <span>已锁定票档（数量）</span>
+        <span>操作</span>
+      </div>
 
       <div class="concerts-list">
         {watches.map((watch) => {
@@ -162,8 +167,13 @@ function ConcertCard({ watch, snapshot, sessionDeltas, tierDeltas, onRemove }: C
     return (
       <div class="concerts-card" key={watch.id}>
         <div class="concerts-card__head">
-          <span class="concerts-card__platform">{CONCERT_PLATFORM_LABEL[watch.platform]}</span>
-          <span class="concerts-card__title">{watch.id}</span>
+          <div class="concerts-card__lead">
+            <div class="concerts-card__title-row">
+              <span class="concerts-card__platform">{CONCERT_PLATFORM_LABEL[watch.platform]}</span>
+              <span class="concerts-card__title">{watch.id}</span>
+            </div>
+            <div class="concerts-card__meta">等待首次抓取</div>
+          </div>
         </div>
         <div class="concerts-card__loading">等待首次抓取…</div>
       </div>
@@ -211,18 +221,22 @@ function ConcertCard({ watch, snapshot, sessionDeltas, tierDeltas, onRemove }: C
   return (
     <div class="concerts-card" key={watch.id}>
       <div class="concerts-card__head">
-        <span class={`concerts-card__platform concerts-card__platform--${watch.platform}`}>
-          {CONCERT_PLATFORM_LABEL[watch.platform]}
-        </span>
-        <a class="concerts-card__title" href="#" title={snapshot.detailUrl} onClick={(e: Event) => { e.preventDefault(); api.openUrl(snapshot.detailUrl); }}>
-          {snapshot.title || watch.id}
-        </a>
-        {snapshot.error ? (
-          <span class="concerts-card__stale" title="本轮刷新失败，显示上次数据">缓存</span>
-        ) : null}
-        <div class="concerts-card__spacer" />
-        {snapshot.venue ? <span class="concerts-card__chip">{snapshot.venue}</span> : null}
-        {snapshot.city ? <span class="concerts-card__chip">{snapshot.city}</span> : null}
+        <div class="concerts-card__lead">
+          <div class="concerts-card__title-row">
+            <span class={`concerts-card__platform concerts-card__platform--${watch.platform}`}>
+              {CONCERT_PLATFORM_LABEL[watch.platform]}
+            </span>
+            <a class="concerts-card__title" href="#" title={snapshot.detailUrl} onClick={(e: Event) => { e.preventDefault(); api.openUrl(snapshot.detailUrl); }}>
+              {snapshot.title || watch.id}
+            </a>
+            {snapshot.error ? (
+              <span class="concerts-card__stale" title="本轮刷新失败，显示上次数据">缓存</span>
+            ) : null}
+          </div>
+          {(snapshot.city || snapshot.venue) ? (
+            <div class="concerts-card__meta">{[snapshot.city, snapshot.venue].filter(Boolean).join(" · ")}</div>
+          ) : null}
+        </div>
         <button class="concerts-card__remove" onClick={onRemove} title="取消监听">✕</button>
       </div>
 
@@ -359,7 +373,7 @@ function TierRow({
   qty: number;
   delta?: number;
   onTogglePin: () => void;
-  onQtyChange: (qty: number) => void;
+  onQtyChange: (_qty: number) => void;
   showSession?: boolean;
   showQtyPicker?: boolean;
   showQtyHint?: boolean;

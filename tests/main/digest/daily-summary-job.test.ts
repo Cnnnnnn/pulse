@@ -58,7 +58,7 @@ describe("daily-summary-job", () => {
     const handle = startDailySummaryJob(deps);
     await handle.triggerNow();
     expect(sentNotifications).toHaveLength(1);
-    expect(sentNotifications[0].title).toContain("早报");
+    expect(sentNotifications[0].title).toContain("今日要点");
     expect(sentNotifications[0].body).toContain("Cursor");
     handle.stop();
   });

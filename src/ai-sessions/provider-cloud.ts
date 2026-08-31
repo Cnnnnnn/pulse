@@ -214,7 +214,8 @@ export class CloudSummarizer {
  messages,
  stream: false,
  temperature:0.3,
- max_tokens:2048,
+ // 思考型模型 (MiniMax-M2/M3 等) 的推理 token 计入 max_tokens，太小会截断正文
+ max_tokens:8192,
  };
  r = await httpClient.post(
  url,
@@ -229,7 +230,7 @@ export class CloudSummarizer {
  const body: any = {
  model,
  messages: chatMsgs,
- max_tokens:2048,
+ max_tokens:8192,
  temperature:0.3,
  };
  if (systemMsgs.length >0) {

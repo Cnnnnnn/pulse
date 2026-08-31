@@ -33,6 +33,7 @@ import type {
   MainErrorPayload,
   UpgradeActionsApiContract,
   GithubApiContract,
+  VaultApiContract,
   UpdateCheckApiContract,
   VersionsApiContract,
   AiUsageApiContract,
@@ -322,6 +323,13 @@ export const api = {
 
 
   getAiSharedConfig: () => invokeChannel("ai:get-shared-config"),
+  aiChat: (opts: IpcChannelMap["ai:chat"]["args"][0]) =>
+    invokeChannel("ai:chat", opts),
+  aiChatCancel: () => invokeChannel("ai:chat-cancel"),
+  onAiChatDelta: (cb: Callback<{ delta: string }>) =>
+    subscribe("ai:chat-delta", cb),
+  onAiChatStatus: (cb: Callback<{ status: string }>) =>
+    subscribe("ai:chat-status", cb),
 
   // Universal "open URL in system browser" bridge (validated http/https in main process).
   openUrl: (url: IpcChannelMap["open-url:open"]["args"][0]) =>
@@ -564,6 +572,26 @@ export const api = {
   githubFetchRelease: (input: string, token: string = "") =>
     invokeChannel("github:fetch-release", { input, token }),
 
+  // v2.83 密钥库：明文只在主进程流转，list 只给掩码
+  vaultList: () => invokeChannel("vault:list"),
+  vaultSet: (input: IpcChannelMap["vault:set"]["args"][0]) =>
+    invokeChannel("vault:set", input),
+  vaultDelete: (id: IpcChannelMap["vault:delete"]["args"][0]) =>
+    invokeChannel("vault:delete", id),
+  vaultReveal: (id: IpcChannelMap["vault:reveal"]["args"][0]) =>
+    invokeChannel("vault:reveal", id),
+  vaultCopy: (id: IpcChannelMap["vault:copy"]["args"][0]) =>
+    invokeChannel("vault:copy", id),
+  // 导出为明文 JSON（renderer 二次确认后调用）；导入预览只含掩码
+  vaultExport: () => invokeChannel("vault:export"),
+  vaultImportLoad: () => invokeChannel("vault:import-load"),
+  vaultImportApply: (importId: IpcChannelMap["vault:import-apply"]["args"][0]) =>
+    invokeChannel("vault:import-apply", importId),
+
+  // v2.83 AI 设置从密钥库引用 key（主进程解密写入 ai-keys）
+  aiUseVaultKey: (payload: IpcChannelMap["ai-sessions:use-vault-key"]["args"][0]) =>
+    invokeChannel("ai-sessions:use-vault-key", payload),
+
   // AI 榜单排名模块 (v2.82): 白名单双通道
   getLeaderboard: (opts: IpcChannelMap["leaderboard:get"]["args"][0]) =>
     invokeChannel("leaderboard:get", opts || {}),
@@ -648,6 +676,7 @@ export const api = {
   OpenUrlApiContract &
   BulkUpgradeApiContract &
   GithubApiContract &
+  VaultApiContract &
   DigestApiContract &
   Record<string, unknown>;
 

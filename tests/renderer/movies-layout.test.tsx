@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/preact";
+import { fireEvent, render } from "@testing-library/preact";
 
 const movieState = vi.hoisted(() => ({
   activeTab: { value: "now" as "now" | "coming" },
@@ -61,7 +61,7 @@ vi.mock("../../src/renderer/movies/store.ts", () => ({
 }));
 
 vi.mock("../../src/renderer/movies/MovieDetailView.tsx", () => ({
-  MovieDetailView: () => <div />,
+  MovieDetailView: ({ movieId }: { movieId: string }) => <div data-testid="movie-detail">{movieId}</div>,
 }));
 
 import { MoviesLayout } from "../../src/renderer/movies/MoviesLayout.tsx";
@@ -77,6 +77,15 @@ describe("MoviesLayout", () => {
     expect(titles).toEqual(["沙丘 2", "哪吒之魔童闹海", "编号 17"]);
     expect(container.querySelectorAll(".movies-gallery .movie-card")).toHaveLength(3);
     expect(container.querySelectorAll(".movies-gallery .movie-card__status")).toHaveLength(3);
-    expect(container.querySelector(".movies-preview")?.textContent).toContain("沙丘 2");
+    expect(container.querySelector(".movies-preview")).toBeNull();
+    expect(container.querySelectorAll(".movies-library-head span")).toHaveLength(5);
+  });
+
+  it("opens movie detail from a list row", () => {
+    const { container } = render(<MoviesLayout />);
+
+    fireEvent.click(container.querySelector(".movies-gallery .movie-card")!);
+
+    expect(container.querySelector("[data-testid=movie-detail]")?.textContent).toBe("dune-2");
   });
 });

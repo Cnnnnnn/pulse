@@ -397,6 +397,12 @@ export interface AiSessionsConfig {
   provider?: string;
   cloud?: AiSessionsCloudConfig | null;
   locale?: string;
+  /** 助手轻量模型覆盖（全局） */
+  assistantFastModel?: string;
+  /** 长会话裁剪时用 LLM 压缩更早历史（默认开启） */
+  assistantLlmHistorySummary?: boolean;
+  /** 助手会话自定义模型候选列表 */
+  assistantModelPresets?: string[];
   [key: string]: unknown;
 }
 
@@ -481,10 +487,95 @@ export interface AiSharedConfigResponse {
   error?: string;
 }
 
+export interface AiChatToolCardItem {
+  label: string;
+  meta?: string;
+  action?: AiChatAction;
+}
+
+export interface AiChatToolCard {
+  tool: string;
+  summary: string;
+  items?: AiChatToolCardItem[];
+}
+
+export interface AiChatSystemItem {
+  text: string;
+  action?: AiChatAction;
+  /** 无 action 时作为用户消息发送 */
+  message?: string;
+}
+
+export interface AiChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  toolCards?: AiChatToolCard[];
+  /** 消息创建时间（本地 ms） */
+  ts?: number;
+  /** 用户对助手回复的评价（本地持久化） */
+  feedback?: "up" | "down";
+  /** system 消息附带的跳转/查询操作（底部主操作） */
+  systemAction?: AiChatAction;
+  /** system 消息内逐条可点项 */
+  systemItems?: AiChatSystemItem[];
+}
+
+export interface AiChatAction {
+  tool: string;
+  params: Record<string, unknown>;
+}
+
+export interface AiChatToolResult {
+  tool: string;
+  summary: string;
+  items?: AiChatToolCardItem[];
+}
+
+export interface AiChatOptions {
+  messages: AiChatMessage[];
+  stream?: boolean;
+  /** 会话级模型覆盖（轻量模型等） */
+  model?: string;
+  context?: {
+    activeNav?: string;
+    route?: string;
+    pageSnapshot?: string;
+    pageData?: Record<string, unknown>;
+  };
+}
+
+export interface AiChatStreamDeltaPayload {
+  delta: string;
+}
+
+export interface AiChatStreamStatusPayload {
+  status: string;
+}
+
+export interface AiChatResponse {
+  ok: boolean;
+  text?: string;
+  reason?: string;
+  error?: string;
+  actions?: AiChatAction[];
+  toolResults?: AiChatToolResult[];
+}
+
+export interface AiChatApiContract {
+  aiChat(opts: AiChatOptions): Promise<AiChatResponse>;
+  aiChatCancel(): Promise<{ ok: boolean }>;
+  onAiChatDelta(cb: (payload: AiChatStreamDeltaPayload) => void): () => void;
+  onAiChatStatus(cb: (payload: AiChatStreamStatusPayload) => void): () => void;
+}
+
 export interface AiSessionsApiContract {
   openSession(target: string): Promise<AiSessionOpenResponse>;
   setAiKey(providerId: string, apiKey: string): Promise<AiKeySetResponse>;
   clearAiKey(providerId: string): Promise<AiKeyClearResponse>;
+  /** v2.83: 从密钥库条目引用 key（主进程解密后写入 ai-keys，renderer 不经手明文） */
+  aiUseVaultKey(
+    payload: { providerId: string; vaultId: string },
+  ): Promise<{ ok: boolean; reason?: string }>;
   hasAiKey(providerId: string): Promise<AiKeyStatusResponse>;
   aiHealthcheck(opts: AiHealthcheckOptions): Promise<AiHealthcheckResponse>;
   getAiSessionsConfig(): Promise<AiSessionsConfigResponse>;
@@ -2060,7 +2151,7 @@ export interface MoviesPayload {
 export interface MoviesTmdbKeyInfo {
   ok: true;
   key: string;
-  source: "settings" | "env" | "";
+  source: "vault" | "settings" | "env" | "";
 }
 
 export interface MovieWatchlistItem {
@@ -2458,6 +2549,111 @@ export interface ReleaseNotesApiContract {
   };
 }
 
+// ─── 密钥库 Vault (v2.83) ────────────────────────────
+// 安全约定：明文 value 只走 vault:reveal / vault:copy（主进程解密），
+// vault:list 只返回掩码 hint + note，永不返回 value。
+
+export interface VaultEntryMeta {
+  id: string;
+  name: string;
+  category: string;
+  /** 掩码预览，如 "sk-…9f3a (43)"；短值 (≤8) 为 "••••" */
+  hint: string;
+  note: string;
+  createdAt: number;
+  updatedAt: number;
+  /** 过期时间 (ms epoch)；null = 未设置 */
+  expiresAt: number | null;
+}
+
+export interface VaultListResponse {
+  ok: boolean;
+  reason?: "no_safe_storage";
+  entries?: VaultEntryMeta[];
+  encryptionAvailable?: boolean;
+}
+
+export interface VaultSetInput {
+  /** 缺省 = 新建；有值 = 编辑 */
+  id?: string;
+  name: string;
+  category?: string;
+  /** 编辑时传空串 = 保持原值 */
+  value: string;
+  note?: string;
+  /** true = 同名条目存在时改为更新（内置条目 github/tmdb 用） */
+  upsert?: boolean;
+  /** 过期时间："YYYY-MM-DD" | ms | null(清除)；编辑时 undefined = 保持原值 */
+  expiresAt?: string | number | null;
+}
+
+export type VaultMutationResponse = {
+  ok: boolean;
+  entry?: VaultEntryMeta;
+  reason?: string;
+};
+
+export type VaultDeleteResponse = { ok: boolean; reason?: string };
+export type VaultRevealResponse = {
+  ok: boolean;
+  value?: string;
+  reason?: string;
+};
+export type VaultCopyResponse = {
+  ok: boolean;
+  clearAfterSec?: number;
+  reason?: string;
+};
+
+/** 导出文件为明文 JSON (0600)，调用前 renderer 必须二次确认 */
+export type VaultExportResponse = {
+  ok: boolean;
+  reason?: string;
+  path?: string;
+  count?: number;
+  error?: string;
+};
+
+export type VaultImportPreviewEntry = {
+  name: string;
+  category: string;
+  hint: string;
+  note: string;
+  expiresAt: number | null;
+  /** true = 本地已有同名条目，应用后将覆盖 */
+  conflict: boolean;
+};
+
+export type VaultImportLoadResponse = {
+  ok: boolean;
+  reason?: string;
+  importId?: string;
+  fileName?: string;
+  total?: number;
+  invalidCount?: number;
+  error?: string;
+  entries?: VaultImportPreviewEntry[];
+};
+
+export type VaultImportApplyResponse = {
+  ok: boolean;
+  reason?: string;
+  imported?: number;
+  updated?: number;
+  failed?: number;
+};
+
+export interface VaultApiContract {
+  vaultList(): Promise<VaultListResponse>;
+  vaultSet(input: VaultSetInput): Promise<VaultMutationResponse>;
+  vaultDelete(id: string): Promise<VaultDeleteResponse>;
+  vaultReveal(id: string): Promise<VaultRevealResponse>;
+  vaultCopy(id: string): Promise<VaultCopyResponse>;
+  vaultExport(): Promise<VaultExportResponse>;
+  vaultImportLoad(): Promise<VaultImportLoadResponse>;
+  vaultImportApply(importId: string): Promise<VaultImportApplyResponse>;
+}
+
 /** Invoke-side channel map for the migrated domains. */
 export interface IpcChannelMap {
   "get-config": { args: []; result: AppConfig };
@@ -2516,11 +2712,17 @@ export interface IpcChannelMap {
   "ai-sessions:open-session": { args: [target: string]; result: AiSessionOpenResponse };
   "ai-sessions:set-key": { args: [providerId: string, apiKey: string]; result: AiKeySetResponse };
   "ai-sessions:clear-key": { args: [providerId: string]; result: AiKeyClearResponse };
+  "ai-sessions:use-vault-key": {
+    args: [payload: { providerId: string; vaultId: string }];
+    result: { ok: boolean; reason?: string };
+  };
   "ai-sessions:has-key": { args: [providerId: string]; result: AiKeyStatusResponse };
   "ai-sessions:healthcheck": { args: [opts: AiHealthcheckOptions]; result: AiHealthcheckResponse };
   "ai-sessions:get-config": { args: []; result: AiSessionsConfigResponse };
   "ai-sessions:save-config": { args: [config: AiSessionsConfig | null]; result: AiSessionsConfigResponse };
   "ai:get-shared-config": { args: []; result: AiSharedConfigResponse };
+  "ai:chat": { args: [opts: AiChatOptions]; result: AiChatResponse };
+  "ai:chat-cancel": { args: []; result: { ok: boolean } };
   "feedback:record": { args: [payload: AiFeedbackRecordPayload]; result: AiFeedbackRecordResponse };
   "feedback:export": { args: []; result: AiFeedbackExportResponse };
   "token-budget:get": { args: []; result: TokenBudgetGetResponse };
@@ -2580,8 +2782,8 @@ export interface IpcChannelMap {
   "movies:load": { args: []; result: MoviesPayload | null };
   "movies:refresh": { args: [cityId?: number]; result: MoviesPayload };
   "movies:detail": { args: [movieId: string]; result: MovieItem | IpcFailure };
-  "movies:tmdb-key-get": { args: []; result: { ok: true; key: string; source: "settings" | "env" | "" } };
-  "movies:tmdb-key-set": { args: [key: string]; result: { ok: true } };
+  "movies:tmdb-key-get": { args: []; result: { ok: true; key: string; source: "vault" | "settings" | "env" | "" } };
+  "movies:tmdb-key-set": { args: [key: string]; result: { ok: true } | { ok: false; reason: string } };
   "movies:watchlist-list": { args: []; result: MovieWatchlistResponse };
   "movies:watchlist-toggle": { args: [input: Omit<MovieWatchlistItem, "createdAt" | "reminderId">]; result: MovieWatchlistResponse };
   "movies:cinemas": { args: [input: MoviesCinemasInput]; result: MoviesCinemasResponse | IpcFailure };
@@ -2623,6 +2825,14 @@ export interface IpcChannelMap {
   "release-notes:get-current": { args: []; result: ReleaseNotesPayload | null };
   "release-notes:get-version": { args: [version: string]; result: ReleaseNotesPayload | null };
   "release-notes:mark-seen": { args: [version: string]; result: ReleaseNotesMarkSeenResponse };
+  "vault:list": { args: []; result: VaultListResponse };
+  "vault:set": { args: [input: VaultSetInput]; result: VaultMutationResponse };
+  "vault:delete": { args: [id: string]; result: VaultDeleteResponse };
+  "vault:reveal": { args: [id: string]; result: VaultRevealResponse };
+  "vault:copy": { args: [id: string]; result: VaultCopyResponse };
+  "vault:export": { args: []; result: VaultExportResponse };
+  "vault:import-load": { args: []; result: VaultImportLoadResponse };
+  "vault:import-apply": { args: [importId: string]; result: VaultImportApplyResponse };
 }
 
 export type IpcChannel = keyof IpcChannelMap;

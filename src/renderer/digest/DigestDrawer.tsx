@@ -5,6 +5,7 @@
  * Driven by digest-store signals. Fetches sections on open.
  */
 import { useEffect } from 'preact/hooks';
+import { DIGEST_UI_TITLE } from '../../shared/digest-labels.ts';
 import {
   digestDrawerOpen,
   digestSections,
@@ -47,12 +48,12 @@ export function DigestDrawer() {
     <DrawerShell
       open={open}
       onClose={close}
-      title="每日早报"
+      title={DIGEST_UI_TITLE}
       titleExtra={date ? <span class="digest-drawer__date">{date}</span> : null}
       showOverlay={false}
       overlayClass="digest-overlay"
       drawerClass="digest-drawer"
-      ariaLabel="每日早报"
+      ariaLabel={DIGEST_UI_TITLE}
     >
       {loading && <div class="digest-drawer__loading">加载中...</div>}
       {!loading && sections.length === 0 && (

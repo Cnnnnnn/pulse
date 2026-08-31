@@ -70,7 +70,12 @@ export function registerMoviesHandlers(ctx: any) {
   });
 
   safeHandle("movies:tmdb-key-set", (_evt: unknown, key: string) => {
-    const next = saveTmdbApiKey(typeof key === "string" ? key : "");
+    const requested = typeof key === "string" ? key.trim() : "";
+    const next = saveTmdbApiKey(requested);
+    // 非空 key 但保存失败（如 safeStorage 不可用拒绝明文）→ 明确报错
+    if (!next && requested) {
+      return { ok: false as const, reason: "no_safe_storage" };
+    }
     cache.setTmdbApiKey(next);
     return { ok: true as const };
   });

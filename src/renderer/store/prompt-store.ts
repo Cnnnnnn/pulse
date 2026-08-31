@@ -8,6 +8,7 @@ import type {
   AiPromptsLoadResponse,
   AiPromptsSavePayload,
 } from "../../shared/ipc-contracts";
+import { DIGEST_UI_TITLE } from "../../shared/digest-labels.ts";
 
 /** @type {Signal<Record<string, {system: string, rules: string, fewShot: string, isDefault: boolean}>|null>} */
 export const aiPrompts = signal<AiPromptsLoadResponse | null>(null);
@@ -19,7 +20,7 @@ const PROMPT_LABELS = {
   upgrade_advice: "升级建议 (该不该升)",
   changelog_summary: "Changelog 3 件大事",
   category_classify: "App 分类",
-  daily_digest_summary: "每日早报摘要",
+  daily_digest_summary: `${DIGEST_UI_TITLE}改写`,
 };
 
 export function promptLabel(key: any) {

@@ -123,11 +123,11 @@ describe("sidenav-prefs", () => {
     };
     // 注: listVisible 不做 legacy alias/filter, 直接用 prefs.order/hidden.
     // order filter hidden → ["funds", "news", "versions"]
-    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 invest/ai-usage/github/ai-leaderboard
+    // 兜底: NAV_KEYS 中漏掉 + 非 hidden → 加 invest/ai-usage/github/ai-leaderboard/vault
     //   (metals 在 hidden 不加, funds 不在 NAV_KEYS 也不加 — 但已经在 order 保留)
-    // 最终 Set: funds, news, versions, invest, ai-usage, github, ai-leaderboard, movies, concerts
+    // 最终 Set: funds, news, versions, invest, ai-usage, github, ai-leaderboard, movies, concerts, vault
     expect(new Set(listVisible(p))).toEqual(
-      new Set(["funds", "news", "versions", "invest", "ai-usage", "github", "ai-leaderboard", "movies", "concerts"]),
+      new Set(["funds", "news", "versions", "invest", "ai-usage", "github", "ai-leaderboard", "movies", "concerts", "vault"]),
     );
   });
 
@@ -149,7 +149,7 @@ describe("sidenav-prefs", () => {
     // 5 个老 order 项 + 兜底 2 个 (按当前 registry 顺序) = 全部 NAV_KEYS_LIST.length
     expect(visible).toHaveLength(NAV_KEYS_LIST.length);
     expect(new Set(visible)).toEqual(new Set(NAV_KEYS_LIST));
-    // 兜底项必须在末尾 (registry 顺序: ai-leaderboard, github, movies, concerts)
+    // 兜底项必须在末尾 (registry 顺序: ai-leaderboard, github, movies, concerts, vault)
     expect(visible).toEqual([
       "news",
       "invest",
@@ -159,6 +159,7 @@ describe("sidenav-prefs", () => {
       "github",
       "movies",
       "concerts",
+      "vault",
     ]);
   });
 
@@ -257,6 +258,7 @@ describe("sidenav-prefs: reorderItems", () => {
       "invest",
       "ai-usage",
       "versions",
+      "vault",
     ]);
   });
 
@@ -272,6 +274,7 @@ describe("sidenav-prefs: reorderItems", () => {
       "news",
       "ai-usage",
       "versions",
+      "vault",
     ]);
   });
 
@@ -306,8 +309,8 @@ describe("sidenav-prefs: reorderItems", () => {
     expect(p0.order).toEqual(before);
   });
 
-  it("DEFAULTS_FOR_TESTS: 8 个 nav key (v2.82 加 concerts)", () => {
-    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(8);
+  it("DEFAULTS_FOR_TESTS: 9 个 nav key (v2.83 加 vault)", () => {
+    expect(DEFAULTS_FOR_TESTS.order).toHaveLength(9);
     expect(DEFAULTS_FOR_TESTS.hidden).toEqual([]);
   });
 });

@@ -29,7 +29,8 @@ export type NavKey =
   | 'github'
   | 'ai-leaderboard'
   | 'movies'
-  | 'concerts';
+  | 'concerts'
+  | 'vault';
 
 export type NavSectionId = 'news' | 'holdings' | 'system' | 'entertainment';
 
@@ -49,7 +50,8 @@ export interface NavRegistryEntry {
     | 'layers'
     | 'star'
     | 'film'
-    | 'ticket';
+    | 'ticket'
+    | 'key';
   /** 归属分组 */
   section: NavSectionId;
   /** 首页磁贴标题 (短); 缺省用 label */
@@ -153,6 +155,16 @@ export const NAV_REGISTRY: NavRegistryEntry[] = [
     section: 'system',
     subtitle: 'App 版本监控',
     prefsSegment: 'updates',
+  },
+  {
+    key: 'vault',
+    label: '密钥库',
+    tooltip: 'Token / API key 加密管理 (v2.83)',
+    accent: 'indigo',
+    icon: 'key',
+    section: 'system',
+    homeTitle: '密钥库',
+    subtitle: 'Token / API key 加密管理',
   },
 ];
 

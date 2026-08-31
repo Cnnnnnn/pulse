@@ -44,6 +44,7 @@ const {
 import { registerThemeHandlers } from "./register-theme";
 import { registerLeaderboardHandlers } from "./register-leaderboard";
 import { registerFinanceHandlers } from "./register-finance";
+import { registerVaultHandlers } from "./register-vault";
 
 /**
  * @param {object} deps — 同原 registerIpcHandlers
@@ -93,6 +94,10 @@ export function registerIpcHandlers(deps: Record<string, unknown>) {
     electronApp: require("electron").app,
   }); // AI 榜单排名 (Arena + Artificial Analysis + 兜底链 + CSV 导出)
   registerFinanceHandlers(ctx); // 财经新闻 + 行情（P0）
+  registerVaultHandlers(
+    { ...ctx, dialog: require("electron").dialog },
+    { expiryWatch: true },
+  ); // 密钥库 (v2.83)：safeStorage 加密 token 管理 + 过期提醒 + 导入导出
 }
 
 module.exports = { registerIpcHandlers };

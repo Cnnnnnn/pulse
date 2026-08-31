@@ -2,6 +2,22 @@
 
 ---
 
+## v2.83.0 (🔑 密钥库) — 2026-08-29
+
+**🔑 新增「密钥库」模块** — 任意 token / API key 的本机加密管理，解决「申请完关闭页面就再也复制不到」的问题:
+- **加密存储** (复用 AI key 的 safeStorage 模式，macOS 落 Keychain):
+  - 索引 `userData/vault/secrets-index.json` (明文元数据: 名称/分类/掩码/时间戳) + 每条一个加密 blob `userData/vault/entries/<id>.bin` (0600，value 和备注都加密)
+  - safeStorage 不可用时拒绝保存 (宁可拒绝不落明文)；掩码显示首3尾4+长度，短值 (≤8) 只给 `••••`
+- **明文只在主进程流转**: 列表只回掩码；一键复制走主进程 clipboard (30s 后内容未变自动清空剪贴板)；单条「显示」临时展开明文 15s 自动隐藏；renderer 全程不持有明文
+- **UI** `src/renderer/vault/`: 侧栏「系统」组新入口 (🔑)；搜索名称/分类/备注；新建/编辑弹窗 (编辑时密钥留空 = 保持原值，不回显明文)；IPC `vault:list|set|delete|reveal|copy`
+- **旧明文凭据自动迁移**:
+  - GitHub token: localStorage 明文 (`pulse.github.settings.v1`) 启动时一次性迁入密钥库后清除；设置页改为「已存密钥库 (掩码)」状态 + 修改/清除；主进程 `github:fetch`/`fetch-release` 的 token 解析改为 密钥库 > renderer 透传 > .env；旧备份文件里的 token 不再回填
+  - TMDB key: `movies-prefs.json` 明文 `tmdbApiKey` 首次加载迁入密钥库 (名 `tmdb`) 并删除明文字段；解析优先级 密钥库 > 旧 prefs > env > .env；保存失败 (加密不可用) 明确报错不再静默落明文
+- **AI provider key 本就走 safeStorage (`ai-keys/*.bin`)，不迁移不动**
+- **导入/导出** (v2.83 追加): 导出为明文 JSON 备份 (0600, 导出前二次确认；safeStorage 机器绑定所以跨机只能明文)；导入走 主进程 dialog 读文件 + 明文缓存在主进程 (importId)，预览只给掩码 + 同名「覆盖」标记，确认后 upsert 合并；IPC `vault:export|import-load|import-apply`
+- **key 过期提醒** (v2.83 追加): 条目可选过期时间 (`YYYY-MM-DD`)，主进程每 6h 扫描 (启动 30s 后首查)，到期前 7 天 + 已过期发系统通知 (复用 watchlist 静默时段逻辑)，条目级 24h 去重；列表行过期徽标 (红=已过期 / 橙=7 天内 / 灰=日期)
+- **AI 设置从密钥库选 key** (v2.83 追加): AI 配置表单 key 区新增「从密钥库导入…」下拉，选中后主进程解密条目直写 ai-keys (`ai-sessions:use-vault-key`)，明文不经过 renderer；导入后可照常「测试连接」
+
 ## v2.82.0 (🎫 演出票监控) — 2026-08-27
 
 **🎫 新增「演出票价」模块** — 监听票牛 / 摩天轮国内 / 摩天轮国际指定演唱会的实时在售票价:

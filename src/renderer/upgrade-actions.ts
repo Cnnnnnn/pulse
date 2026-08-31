@@ -1,8 +1,7 @@
 /**
- * src/renderer/upgrade-actions.js
+ * src/renderer/upgrade-actions.ts
  *
- * 触发单个 app 的升级流程: 走已有 bulk-upgrade flow (openBulkUpgrade + bulkUpgradeStart IPC).
- * 由 tray-focus 在 action === 'upgrade' 时调用.
+ * 触发单个/批量 app 升级流程.
  */
 import { taggedLog } from "./log.ts";
 import { results } from "./store.ts";
@@ -10,11 +9,7 @@ import { openBulkUpgrade } from "./store/store-bulk-upgrade.ts";
 
 const log = taggedLog("[upgrade-actions]");
 
-/**
- * 把 result 转换成 bulk-upgrade item (与 BulkUpgradeButton.toBulkItem 保持一致).
- * @param {object} r
- */
-function toBulkItem(r: any) {
+export function toBulkItem(r: any) {
   return {
     id: r.name,
     name: r.name,
@@ -28,11 +23,18 @@ function toBulkItem(r: any) {
   };
 }
 
+export function collectUpgradableItems(): any[] {
+  const resMap = results.value;
+  if (!(resMap instanceof Map)) return [];
+  const items: any[] = [];
+  for (const [, r] of resMap.entries()) {
+    if (r && r.has_update) items.push(toBulkItem(r));
+  }
+  return items;
+}
+
 /**
  * 触发单个 app 升级.
- * 1) 用 openBulkUpgrade 打开 modal 并设好 items
- * 2) 立即调 window.api.bulkUpgradeStart(items) 起跑 (modal 内 Start 按钮的行为)
- * @param {string} appName
  */
 export async function requestUpgrade(appName: string) {
   if (!appName) return;
@@ -56,4 +58,27 @@ export async function requestUpgrade(appName: string) {
   } catch (err: any) {
     log.warn("bulkUpgradeStart failed:", err instanceof Error ? err.message : err);
   }
+}
+
+/**
+ * 批量升级所有有更新的应用.
+ */
+export async function requestBulkUpgradeAll(): Promise<number> {
+  const items = collectUpgradableItems();
+  if (items.length === 0) return 0;
+  log.info(`requestBulkUpgradeAll: ${items.length} apps`);
+  try {
+    openBulkUpgrade(items);
+  } catch (err: any) {
+    log.warn("openBulkUpgrade failed:", err instanceof Error ? err.message : err);
+    return 0;
+  }
+  try {
+    if (window.api && typeof window.api.bulkUpgradeStart === "function") {
+      await window.api.bulkUpgradeStart(items);
+    }
+  } catch (err: any) {
+    log.warn("bulkUpgradeStart failed:", err instanceof Error ? err.message : err);
+  }
+  return items.length;
 }

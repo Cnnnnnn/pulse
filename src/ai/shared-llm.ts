@@ -114,7 +114,7 @@ export async function chatCompletion(messages: any, opts: any = {}) {
     const result = await summarizer.summarize({
       messages,
       provider: resolved.providerId,
-      model: resolved.model,
+      model: opts.model || resolved.model,
       config: resolved.config,
       httpClient,
     });

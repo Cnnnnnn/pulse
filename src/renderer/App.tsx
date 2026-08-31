@@ -26,6 +26,8 @@ import { AppShell } from './components/AppShell.tsx';
 import { RemindersModal } from './reminders/RemindersModal.tsx';
 import { RecentActivityModal } from './recent/RecentActivityModal.tsx';
 import { TrayMenuConfigModal } from './components/TrayMenuConfigModal.tsx';
+import { GlobalChatFab } from './assistant/GlobalChatFab.tsx';
+import { GlobalChatDrawer } from './assistant/GlobalChatDrawer.tsx';
 
 const isWin = (typeof window !== 'undefined' && window.platformInfo && window.platformInfo.platform) === 'win32';
 
@@ -92,6 +94,8 @@ export function App({ onCheck }: { onCheck?: () => void }) {
       <Toast />
       <StateRecoveredBanner />
       <DigestDrawer />
+      <GlobalChatFab />
+      <GlobalChatDrawer />
       <WatchlistModal />
       <ReleaseNotesWizard />
     </div>

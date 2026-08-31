@@ -480,6 +480,8 @@ describe("dist/preload.js ↔ api.js IPC surface contract", () => {
       cloud: { providerId: "deepseek", model: "deepseek-chat" },
     });
     await api.getAiSharedConfig();
+    await api.aiChat({ messages: [{ role: "user", content: "hi" }], stream: true });
+    await api.aiChatCancel();
 
     expect(invokeCalls.map(([channel]) => channel)).toEqual([
       "ai-tasks:list",
@@ -492,6 +494,8 @@ describe("dist/preload.js ↔ api.js IPC surface contract", () => {
       "ai-sessions:get-config",
       "ai-sessions:save-config",
       "ai:get-shared-config",
+      "ai:chat",
+      "ai:chat-cancel",
     ]);
   });
 

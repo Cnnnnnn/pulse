@@ -18,6 +18,7 @@ import {
   ithomeFavoriteSelectedDate,
   ithomeViewMode,
   ithomeSummaries,
+  ithomeSelectedArticleId,
 } from "./store.ts";
 import {
   articlesForDate,
@@ -52,6 +53,7 @@ function articleSearchText(article, summary) {
 }
 
 export function NewsView({ search = "", onRefresh }) {
+  const externalPick = ithomeSelectedArticleId.value;
   const [selectedArticleId, setSelectedArticleId] = useState("");
   const loaded = ithomeNewsLoaded.value;
   const loading = ithomeNewsLoading.value;
@@ -74,6 +76,11 @@ export function NewsView({ search = "", onRefresh }) {
 
   const articleIds = articles.map((a) => a.id).join("|");
   useEffect(() => {
+    if (externalPick && articles.some((article) => article.id === externalPick)) {
+      setSelectedArticleId(externalPick);
+      ithomeSelectedArticleId.value = null;
+      return;
+    }
     if (articles.length === 0) {
       setSelectedArticleId("");
       return;
@@ -81,7 +88,7 @@ export function NewsView({ search = "", onRefresh }) {
     if (!articles.some((article) => article.id === selectedArticleId)) {
       setSelectedArticleId(articles[0].id);
     }
-  }, [articleIds, dateKey, mode, selectedArticleId, articles]);
+  }, [articleIds, dateKey, mode, selectedArticleId, articles, externalPick]);
 
   function handleSelectArticle(article) {
     if (!article) return;
