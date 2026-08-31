@@ -1,9 +1,10 @@
 /**
  * src/renderer/vault/VaultLayout.tsx
  *
- * 密钥库主视图 (v2.83)。
- *   header: 标题 + 条数 + 加密状态
- *   工具栏: 搜索 + 添加
+ * 密钥库主视图 (v2.84 布局重构：苹果原生风，与 movies/concerts 同族)。
+ *   header: 标题 + 加密状态/条数 + 刷新/导出/导入/添加密钥
+ *   stats:  密钥条目 / 7天内到期 / 已过期 / 长期有效（由过期徽标派生）
+ *   toolbar: 搜索
  *   列表:   掩码显示；复制 / 显示(15s 自动隐藏) / 编辑 / 删除
  */
 
@@ -41,28 +42,35 @@ export function VaultLayout() {
   const entries = vaultEntries.value;
   const visible = filterVaultEntries(entries, vaultSearchQuery.value);
 
+  // 概览统计：按过期徽标 tone 派生
+  let expiringSoon = 0;
+  let expired = 0;
+  let longLived = 0;
+  for (const entry of entries) {
+    const badge = formatExpiryBadge(entry.expiresAt);
+    if (badge?.tone === "warn") expiringSoon += 1;
+    else if (badge?.tone === "danger") expired += 1;
+    else longLived += 1;
+  }
+
   return (
     <div class="vault-layout">
       <div class="vault-header">
         <div class="vault-header__left">
-          <div class="vault-header__title">密钥库</div>
-          <div class="vault-header__meta">
-            <span>{entries.length} 条</span>
-            <span class={vaultEncryptionAvailable.value ? "" : "vault-header__warn"}>
-              {vaultEncryptionAvailable.value
-                ? "Keychain 加密"
-                : "系统加密不可用，无法保存新密钥"}
+          <div class="vault-header__title">
+            密钥库
+            <span class="vault-header__meta">
+              <span class="vault-header__lock" aria-hidden="true">
+                🔒
+              </span>
+              {vaultEncryptionAvailable.value ? "Keychain 加密" : "系统加密不可用，无法保存新密钥"}
+              {entries.length > 0 ? <span>· {entries.length} 条</span> : null}
             </span>
           </div>
         </div>
         <div class="vault-header__actions">
-          <button
-            class="vault-btn"
-            disabled={vaultLoading.value}
-            onClick={() => refreshVault()}
-            title="刷新列表"
-          >
-            {vaultLoading.value ? "刷新中…" : "刷新"}
+          <button class="vault-btn" disabled={vaultLoading.value} onClick={() => refreshVault()} title="刷新列表">
+            {vaultLoading.value ? "刷新中…" : "↻ 刷新"}
           </button>
           <button
             class="vault-btn"
@@ -72,31 +80,51 @@ export function VaultLayout() {
           >
             导出
           </button>
-          <button
-            class="vault-btn"
-            onClick={() => runVaultImportLoad()}
-            title="从导出的 JSON 备份导入"
-          >
+          <button class="vault-btn" onClick={() => runVaultImportLoad()} title="从导出的 JSON 备份导入">
             导入
           </button>
-          <button
-            class="vault-btn vault-btn--primary"
-            onClick={() => openVaultModal(null)}
-          >
-            添加密钥
+          <button class="vault-btn vault-btn--primary" onClick={() => openVaultModal(null)}>
+            ＋ 添加密钥
           </button>
         </div>
       </div>
 
-      <div class="vault-toolbar">
-        <input
-          class="vault-search"
-          type="text"
-          placeholder="搜索名称 / 分类 / 备注…"
-          value={vaultSearchQuery.value}
-          onInput={(e: any) => (vaultSearchQuery.value = e.target.value)}
-        />
-      </div>
+      {entries.length > 0 && (
+        <div class="vault-stats">
+          <div class="vault-stat">
+            <span class="vault-stat__num">{entries.length}</span>
+            <span class="vault-stat__label">密钥条目</span>
+          </div>
+          <div class="vault-stat">
+            <span class={`vault-stat__num${expiringSoon > 0 ? " vault-stat__num--warn" : ""}`}>
+              {expiringSoon}
+            </span>
+            <span class="vault-stat__label">7 天内到期</span>
+          </div>
+          <div class="vault-stat">
+            <span class={`vault-stat__num${expired > 0 ? " vault-stat__num--danger" : ""}`}>
+              {expired}
+            </span>
+            <span class="vault-stat__label">已过期</span>
+          </div>
+          <div class="vault-stat">
+            <span class="vault-stat__num">{longLived}</span>
+            <span class="vault-stat__label">长期有效</span>
+          </div>
+        </div>
+      )}
+
+      {entries.length > 0 && (
+        <div class="vault-toolbar">
+          <input
+            class="vault-search"
+            type="text"
+            placeholder="🔍 搜索名称 / 分类 / 备注…"
+            value={vaultSearchQuery.value}
+            onInput={(e: any) => (vaultSearchQuery.value = e.target.value)}
+          />
+        </div>
+      )}
 
       {!vaultLoaded.value ? <div class="vault-empty">加载中…</div> : null}
 
@@ -160,9 +188,7 @@ function VaultRow({ entry }: { entry: VaultEntryMeta }) {
       <div class="vault-row__main">
         <div class="vault-row__title-line">
           <span class="vault-row__name">{entry.name}</span>
-          {entry.category ? (
-            <span class="vault-row__category">{entry.category}</span>
-          ) : null}
+          {entry.category ? <span class="vault-row__category">{entry.category}</span> : null}
           {expiryBadge ? (
             <span class={`vault-row__expiry vault-row__expiry--${expiryBadge.tone}`}>
               {expiryBadge.text}
@@ -171,9 +197,7 @@ function VaultRow({ entry }: { entry: VaultEntryMeta }) {
         </div>
         <div class="vault-row__secret">
           <code>{revealed ? vaultRevealedValue.value : entry.hint || "••••"}</code>
-          {revealed ? (
-            <span class="vault-row__reveal-hint">15s 后自动隐藏</span>
-          ) : null}
+          {revealed ? <span class="vault-row__reveal-hint">15s 后自动隐藏</span> : null}
         </div>
         {entry.note ? <div class="vault-row__note">{entry.note}</div> : null}
       </div>
@@ -194,20 +218,10 @@ function VaultRow({ entry }: { entry: VaultEntryMeta }) {
         >
           {revealed ? "隐藏" : "显示"}
         </button>
-        <button
-          type="button"
-          class="vault-btn"
-          onClick={() => openVaultModal(entry)}
-          title="编辑"
-        >
+        <button type="button" class="vault-btn" onClick={() => openVaultModal(entry)} title="编辑">
           编辑
         </button>
-        <button
-          type="button"
-          class="vault-btn vault-btn--danger"
-          onClick={onDelete}
-          title="删除"
-        >
+        <button type="button" class="vault-btn vault-btn--danger" onClick={onDelete} title="删除">
           删除
         </button>
       </div>
