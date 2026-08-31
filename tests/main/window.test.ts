@@ -60,9 +60,9 @@ describe('window.js uses platform.getWindowOptions', () => {
     // Phase 9 收尾: 自适应窗口化 — 不再用固定 1080x780
     expect(windowSource).toMatch(/screen\.getPrimaryDisplay\(\)/);
     expect(windowSource).toMatch(/workArea/);
-    // 70% 宽 75% 高 (留 25% 给 dock / 切换窗口)
+    // 70% 宽 88% 高 (v2.84: 抽屉等高展示区, 拔高默认窗口)
     expect(windowSource).toMatch(/0\.7/);
-    expect(windowSource).toMatch(/0\.75/);
+    expect(windowSource).toMatch(/0\.88/);
     // MIN 上限 (maxWidth / maxHeight 也设了, 防止 4K 屏拖到 3000+px)
     expect(windowSource).toMatch(/minWidth:\s*MIN_W/);
     expect(windowSource).toMatch(/maxWidth:\s*MAX_W/);
