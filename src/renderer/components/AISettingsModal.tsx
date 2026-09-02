@@ -378,7 +378,7 @@ export function AIConfigForm({ onSaved, onCancel, compact = false }) {
  启用
  </label>
  </div>
- <div class="settings-row">
+ <div class="settings-row settings-row--stack">
  <div class="settings-row__label-block">
  <label class="settings-row__label">助手模型候选 (可选)</label>
  <span class="settings-row__hint">每行一个模型 ID，用于助手抽屉自定义模型输入补全。</span>

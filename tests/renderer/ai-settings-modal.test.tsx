@@ -103,6 +103,14 @@ describe('<AIConfigForm /> — Phase B7e: 只 deepseek + minimax', () => {
  const selected = Array.from(cards).find((c) => c.classList.contains('is-selected'));
  expect(selected.querySelector('.settings-list__row-name').textContent).toBe('MiniMax');
  });
+
+ it('助手模型候选 textarea 使用上下布局，避免标签被压成竖排', () => {
+ const { container } = render(<AIConfigForm />);
+ const row = Array.from(container.querySelectorAll('.settings-row')).find((item) =>
+   item.textContent.includes('助手模型候选'));
+ expect(row).toBeTruthy();
+ expect(row.classList.contains('settings-row--stack')).toBe(true);
+ });
 });
 
 describe('<AIConfigForm /> — Phase B7f: 没有 enabled toggle', () => {
