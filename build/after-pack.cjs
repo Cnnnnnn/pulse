@@ -8,8 +8,9 @@
  * 完全没有 designated requirement, safeStorage 走 SecKeychainAddGenericPassword 时
  * ACL 拒, isEncryptionAvailable() 返 false.
  *
- * ad-hoc 签名 (`codesign -s -`) 会给 .app 一个 empty team ID 的 designated requirement,
- * macOS 用它建 keychain ACL, 之后所有 safeStorage 调用都通过.
+ * ad-hoc 签名如果不指定 requirement, 默认会把 designated requirement 绑定到当前
+ * cdhash, 导致下一版本无法通过 Squirrel.Mac 的安装校验. 这里给主 app 指定稳定的
+ * identifier requirement, 让不同版本的 ad-hoc 包可以互相升级.
  *
  * 没签的 .app 还有"damaged"弹窗问题 (Apple Silicon Big Sur+), 签了才能消掉.
  *
@@ -19,6 +20,9 @@
  */
 const { execFileSync } = require("child_process");
 const path = require("path");
+const APP_IDENTIFIER = "com.appupdatechecker.pulse";
+const STABLE_DESIGNATED_REQUIREMENT =
+  `=designated => identifier "${APP_IDENTIFIER}"`;
 
 exports.default = async function (context) {
   // macOS-only: codesign 是 macOS 工具, Windows/Linux 上没. electron-builder
@@ -130,12 +134,14 @@ exports.default = async function (context) {
   console.log(`[after-pack]   ad-hoc sign (main) ${appPath}`);
   execFileSync(
     "codesign",
-    [
-      "--force",
-      "--sign",
-      "-",
-      "--entitlements",
-      entitlements,
+      [
+        "--force",
+        "--sign",
+        "-",
+        "--requirements",
+        STABLE_DESIGNATED_REQUIREMENT,
+        "--entitlements",
+        entitlements,
       "--timestamp=none",
       "--options=runtime",
       appPath,
