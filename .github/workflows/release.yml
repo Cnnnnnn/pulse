@@ -40,7 +40,7 @@ jobs:
         run: |
           npm install -g pnpm@9.15.9
           pnpm install --frozen-lockfile --reporter=append-only
-      - run: pnpm test -- --run --watch=false
+      - run: pnpm run test -- --run --watch=false
       - run: npm run build:renderer
       - name: Build macOS (electron-builder)
         run: npm run build:mac
@@ -93,7 +93,7 @@ jobs:
         run: |
           npm install -g pnpm@9.15.9
           pnpm install --frozen-lockfile --reporter=append-only
-      - run: pnpm test -- --run --watch=false
+      - run: pnpm run test -- --run --watch=false
       - run: npm run build:renderer
       - name: Build Windows (electron-builder NSIS)
         run: npm run build:win
