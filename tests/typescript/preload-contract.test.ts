@@ -37,6 +37,9 @@ import { describe, expect, it } from "vitest";
 
 const root = path.join(__dirname, "../..");
 const readJson = (name) => JSON.parse(fs.readFileSync(path.join(root, name), "utf8"));
+const binPath = (name) =>
+  path.join(root, "node_modules", ".bin", process.platform === "win32" ? `${name}.cmd` : name);
+const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const IPC_CALL_PATTERN =
   /\bipcRenderer\.(?:invoke|on|send|removeListener)\(\s*(?:"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`)/g;
 const extractIpcChannels = (source) =>
@@ -54,7 +57,7 @@ const extractIpcChannels = (source) =>
  * @returns {{ status: number|null, stdout: string, stderr: string }}
  */
 const runEslint = (files) => {
-  const eslintBin = path.join(root, "node_modules", ".bin", "eslint");
+  const eslintBin = binPath("eslint");
   return spawnSync(
     eslintBin,
     ["--no-config-lookup", "--config", path.join(root, "eslint.config.mjs"), ...files],
@@ -62,6 +65,7 @@ const runEslint = (files) => {
       cwd: root,
       encoding: "utf8",
       env: { ...process.env, NO_COLOR: "1" },
+      shell: process.platform === "win32",
     },
   );
 };
@@ -77,7 +81,7 @@ const runEslint = (files) => {
  * @returns {{ status: number|null, files: string[] }}
  */
 const listVitestFiles = () => {
-  const vitestBin = path.join(root, "node_modules", ".bin", "vitest");
+  const vitestBin = binPath("vitest");
   const proc = spawnSync(
     vitestBin,
     ["list", "--json", "--filesOnly"],
@@ -85,6 +89,7 @@ const listVitestFiles = () => {
       cwd: root,
       encoding: "utf8",
       env: { ...process.env, NO_COLOR: "1", TZ: "UTC" },
+      shell: process.platform === "win32",
     },
   );
   // vitest prints pure JSON on stdout (no leading banner) when --json is set.
@@ -201,10 +206,11 @@ describe("TypeScript foundation", () => {
     it("npm run build:renderer produces renderer-dist/{index.js,index.css,news-share-card.bundle.js}", () => {
       const distDir = path.join(root, "renderer-dist");
       // Run the script; tolerating "already exists" so this is idempotent.
-      const proc = spawnSync("npm", ["run", "build:renderer", "--silent"], {
+      const proc = spawnSync(npmCommand, ["run", "build:renderer", "--silent"], {
         cwd: root,
         encoding: "utf8",
         env: { ...process.env, NO_COLOR: "1" },
+        shell: process.platform === "win32",
       });
       expect(proc.status).toBe(0);
 

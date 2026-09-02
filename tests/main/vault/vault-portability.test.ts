@@ -49,8 +49,10 @@ describe("vault-portability", () => {
     const exp = portability.exportVaultToFile(makeFakeDialog(file, undefined));
     expect(exp.ok).toBe(true);
     expect(exp.count).toBe(2);
-    // 文件权限 0600
-    expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    // 文件权限 0600；Windows 不提供可比的 POSIX mode 位。
+    if (process.platform !== "win32") {
+      expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    }
 
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
     expect(parsed.schema).toBe("pulse.vault.export.v1");
