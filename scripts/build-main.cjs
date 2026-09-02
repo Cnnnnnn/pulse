@@ -1,32 +1,35 @@
 #!/usr/bin/env node
 const fs = require("node:fs");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const esbuild = require("esbuild");
 
 const rootDir = path.resolve(__dirname, "..");
 const outfile = path.join(rootDir, "dist", "main", "index.js");
 const workerOutfile = path.join(rootDir, "dist", "workers", "detect-worker.js");
-const esbuildBin = require.resolve("esbuild/bin/esbuild");
 
 fs.mkdirSync(path.dirname(outfile), { recursive: true });
-execFileSync(
-  esbuildBin,
-  [
-    "src/main/index.ts",
-    "--bundle",
-    "--platform=node",
-    "--format=cjs",
-    "--target=es2020",
-    "--external:electron",
-    "--packages=external",
-    "--outfile=dist/main/index.js",
+
+function buildMainBundle() {
+  esbuild.buildSync({
+    entryPoints: [path.join(rootDir, "src/main/index.ts")],
+    bundle: true,
+    platform: "node",
+    format: "cjs",
+    target: "es2020",
+    external: ["electron"],
+    packages: "external",
+    outfile,
+    logLevel: "info",
     // ponytail: Phase 11 静默 145 file dual-export 引发的 commonjs-variable-in-esm warning.
     // 这些是 Phase 7 7a-6 兼容性模式 (module.exports + export {} 共存), 不是 error.
     // 改 source 风险高 (test 靠 module.exports 拿 internal exports), 抑制此 warning 类别.
-    "--log-override:commonjs-variable-in-esm=silent",
-  ],
-  { cwd: rootDir, stdio: "inherit" },
-);
+    logOverride: {
+      "commonjs-variable-in-esm": "silent",
+    },
+  });
+}
+
+buildMainBundle();
 
 // Phase 5 Batch I: worker_threads 独立入口 — 不进 main bundle。
 // 把 detectors/utils/platform/http-client 等相对依赖打进 bundle
@@ -39,8 +42,6 @@ execFileSync(
 //    在 esbuild ESM 互操作下 base_exports 为空 → `class extends undefined`；
 //    把 export {} 换成真实 named export。
 fs.mkdirSync(path.dirname(workerOutfile), { recursive: true });
-const esbuild = require("esbuild");
-
 async function buildWorkerBundle() {
   await esbuild.build({
     entryPoints: [path.join(rootDir, "src/workers/detect-worker.ts")],

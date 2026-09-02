@@ -142,12 +142,21 @@ describe("TypeScript foundation", () => {
     const windowTypes = fs.readFileSync(path.join(root, "src/shared/window.d.ts"), "utf8");
     const packageJson = readJson("package.json");
     const windowManager = fs.readFileSync(path.join(root, "src/main/window.ts"), "utf8");
+    const preloadBuilder = fs.readFileSync(
+      path.join(root, "scripts/build-preload.cjs"),
+      "utf8",
+    );
 
     expect(windowTypes).toContain('import type { api, metalsApi, platformInfo, pulse } from "../../preload"');
     expect(windowTypes).toContain("api: typeof api");
     expect(windowTypes).toContain("pulse: typeof pulse");
     expect(windowTypes).toContain("metalsApi: typeof metalsApi");
-    expect(packageJson.scripts["build:preload"]).toContain("--outfile=dist/preload.js");
+    expect(packageJson.scripts["build:preload"]).toBe(
+      "node scripts/build-preload.cjs",
+    );
+    expect(preloadBuilder).toContain(
+      'outfile: path.join(rootDir, "dist", "preload.js")',
+    );
     expect(windowManager).toContain('"dist", "preload.js"');
   });
 

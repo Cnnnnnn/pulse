@@ -13,39 +13,51 @@ const path = require("path");
 
 const dir = path.join(__dirname, "..", "renderer-dist");
 const indexPath = path.join(dir, "index.css");
-if (!fs.existsSync(indexPath)) {
-  console.error("[merge-renderer-css] missing", indexPath);
-  process.exit(1);
-}
 
 const MERGE_MARKER = "\n/* --- merged ";
 
-const chunks = fs
-  .readdirSync(dir)
-  .filter((f) => /^chunk-.*\.css$/.test(f))
-  .sort();
+function mergeRendererCss() {
+  if (!fs.existsSync(indexPath)) {
+    throw new Error(`[merge-renderer-css] missing ${indexPath}`);
+  }
 
-let base = fs.readFileSync(indexPath, "utf8");
-const markerIdx = base.indexOf(MERGE_MARKER);
-if (markerIdx !== -1) base = base.slice(0, markerIdx);
+  const chunks = fs
+    .readdirSync(dir)
+    .filter((f) => /^chunk-.*\.css$/.test(f))
+    .sort();
 
-if (!chunks.length) {
-  fs.writeFileSync(indexPath, base);
-  console.log("[merge-renderer-css] no chunk css, wrote base index.css only");
-  process.exit(0);
+  let base = fs.readFileSync(indexPath, "utf8");
+  const markerIdx = base.indexOf(MERGE_MARKER);
+  if (markerIdx !== -1) base = base.slice(0, markerIdx);
+
+  if (!chunks.length) {
+    fs.writeFileSync(indexPath, base);
+    console.log("[merge-renderer-css] no chunk css, wrote base index.css only");
+    return;
+  }
+
+  let out = base;
+  for (const f of chunks) {
+    out += MERGE_MARKER + f + " --- */\n";
+    out += fs.readFileSync(path.join(dir, f), "utf8");
+    out += "\n";
+  }
+  fs.writeFileSync(indexPath, out);
+  console.log(
+    "[merge-renderer-css] merged",
+    chunks.length,
+    "chunk css → index.css (",
+    out.length,
+    "bytes)",
+  );
 }
 
-let out = base;
-for (const f of chunks) {
-  out += MERGE_MARKER + f + " --- */\n";
-  out += fs.readFileSync(path.join(dir, f), "utf8");
-  out += "\n";
+if (require.main === module) {
+  try {
+    mergeRendererCss();
+  } catch (error) {
+    console.error(error);
+    process.exitCode = 1;
+  }
 }
-fs.writeFileSync(indexPath, out);
-console.log(
-  "[merge-renderer-css] merged",
-  chunks.length,
-  "chunk css → index.css (",
-  out.length,
-  "bytes)",
-);
+module.exports = mergeRendererCss;
