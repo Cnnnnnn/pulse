@@ -8,10 +8,10 @@
 
 import * as stateStore from "../state-store";
 import { isValidSnapshot } from "../../funds/fund-history";
-const {
+import {
   normalizeNavSource,
   DEFAULT_NAV_SOURCE,
-} = require("../../funds/fund-nav-merge.js");
+} from "../../funds/fund-nav-merge";
 import { normalizeAlertPrefs } from "./fund-alerts";
 
 export const FUNDS_DELETED_GC_DAYS = 7;

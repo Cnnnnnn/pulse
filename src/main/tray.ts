@@ -56,6 +56,7 @@ type BuildMenuOpts = {
   themeMode?: string;
   onOpenPanel?: () => void;
   onCheck?: () => void;
+  onSelfUpdateCheck?: () => void;
   onOpenConfig?: () => void;
   onOpenTrayConfig?: () => void;
   onQuit?: () => void;
@@ -71,6 +72,7 @@ type CreateTrayManagerOpts = {
   getConfig?: () => { apps?: any[] };
   getConfigPath?: () => string;
   onCheck?: () => void;
+  onSelfUpdateCheck?: () => void;
   onOpenPanel?: () => void;
   onOpenConfig?: () => void;
   onOpenTrayConfig?: () => void;
@@ -184,6 +186,7 @@ export function buildMenu(opts: BuildMenuOpts): any[] {
     themeMode = "system", // P10: 当前主题偏好 (用于 submenu 选中标记)
     onOpenPanel = () => {},
     onCheck = () => {},
+    onSelfUpdateCheck = () => {},
     onOpenConfig = () => {},
     onOpenTrayConfig = () => {},
     onQuit = () => {},
@@ -317,6 +320,11 @@ export function buildMenu(opts: BuildMenuOpts): any[] {
         click: () => onThemeChange("dark"),
       },
     ],
+  });
+  template.push({ type: "separator" });
+  template.push({
+    label: "检查 Pulse 新版本",
+    click: () => onSelfUpdateCheck(),
   });
   template.push({ type: "separator" });
   if (seg.check_action) {
@@ -498,6 +506,7 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
   const getConfig = opts.getConfig || (() => ({ apps: [] }));
   const getConfigPath = opts.getConfigPath || (() => "");
   const onCheck = opts.onCheck || (() => {});
+  const onSelfUpdateCheck = opts.onSelfUpdateCheck || (() => {});
   const onOpenPanel = opts.onOpenPanel || (() => {});
   const onOpenConfig = opts.onOpenConfig || (() => {});
   const onOpenTrayConfig = opts.onOpenTrayConfig || (() => {});
@@ -543,6 +552,7 @@ export function createTrayManager(opts: CreateTrayManagerOpts) {
       getConfig: getConfig,
       onOpenPanel,
       onCheck,
+      onSelfUpdateCheck,
       onOpenConfig,
       onThemeChange, // P10
       onOpenTrayConfig,

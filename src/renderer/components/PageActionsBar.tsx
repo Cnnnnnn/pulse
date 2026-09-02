@@ -98,6 +98,26 @@ export function PageActionsBar() {
     return undefined;
   }
 
+  async function checkSelfUpdateNow() {
+    if (typeof api.selfUpdateCheck !== "function") {
+      showToast("Pulse 自更新暂不可用, 请检查 IPC", "info", 2500);
+      setMenuOpen(false);
+      return;
+    }
+    try {
+      const result = await api.selfUpdateCheck();
+      if (result && result.ok === false) {
+        showToast(`检查 Pulse 新版本失败: ${result.error || result.reason || "未知错误"}`, "error", 3000);
+      } else {
+        showToast("已发起 Pulse 新版本检查", "info", 1800);
+      }
+    } catch (err) {
+      showToast(`检查 Pulse 新版本异常: ${(err && err.message) || "未知错误"}`, "error", 3000);
+    } finally {
+      setMenuOpen(false);
+    }
+  }
+
   // Release Notes: 拉当前版本 payload 后打开 wizard (manual 入口, 不写 mark-seen)
   async function openReleaseNotesNow() {
     const getCurrent = api.releaseNotes && api.releaseNotes.getCurrent;
@@ -171,6 +191,7 @@ export function PageActionsBar() {
         >
           <li><button role="menuitem" data-testid="page-action-menu-watchlist" onClick={() => openDrawer(toggleWatchlistModal)}><IconStar size={14} />关注列表</button></li>
           <li><button role="menuitem" data-testid="page-action-menu-diagnostics" onClick={openDiagnosticsPage}><IconSettings size={14} />错误诊断</button></li>
+          <li><button role="menuitem" data-testid="page-action-menu-self-update" onClick={() => checkSelfUpdateNow()}>检查 Pulse 新版本</button></li>
           <li><button role="menuitem" data-testid="page-action-menu-reminders" onClick={() => openDrawer(toggleRemindersOpen)}><IconCalendar size={14} />Reminders</button></li>
           <li><button role="menuitem" data-testid="page-action-menu-recent" onClick={() => openDrawer(toggleRecentOpen)}><IconCalendar size={14} />Recent Activity</button></li>
           <li class="page-action-menu-divider" />

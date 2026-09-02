@@ -17,6 +17,7 @@
 import type {
   AiAdviceApiContract,
   AiFeedbackApiContract,
+  AppInfoApiContract,
   GithubApiContract,
   MutesApiContract,
   LastOpenedApiContract,
@@ -82,6 +83,7 @@ function pick(overrides: Record<string, any> | null | undefined, name: string): 
 }
 
 export type RendererApi =
+  AppInfoApiContract &
   AiAdviceApiContract &
   AiFeedbackApiContract &
   GithubApiContract &
@@ -125,6 +127,7 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
   return {
     getConfig: pick(overrides, "getConfig"),
     getCachedState: pick(overrides, "getCachedState"),
+    appGetVersion: pick(overrides, "appGetVersion"),
     searchQuery: pick(overrides, "searchQuery"),
     searchUpsert: pick(overrides, "searchUpsert"),
     checkUpdates: pick(overrides, "checkUpdates"),

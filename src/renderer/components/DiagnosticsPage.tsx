@@ -268,20 +268,32 @@ export function DiagnosticsPage() {
       )}
 
       <div class="diagnostics-content">
-        {updateState && updateState.available && (
+        {updateState && (
           <section class="diag-card diag-card--update">
             <div class="diag-card__title-row">
               <span class="diag-card__title">Pulse 自更新</span>
               <span class={`diag-update-pill diag-update-pill--${updateState.status}`}>
+                {updateState.status === "idle" && "未检查"}
                 {updateState.status === "checking" && "检测中"}
                 {updateState.status === "downloading" && `下载 ${updateState.downloadPercent}%`}
                 {updateState.status === "downloaded" && "已下载"}
                 {updateState.status === "error" && "出错"}
                 {updateState.status === "available" && "可升级"}
               </span>
+              <span class="diag-card__meta">
+                {updateState.lastCheckedAt
+                  ? `上次检查：${fmtTs(updateState.lastCheckedAt)}`
+                  : "尚未完成检查"}
+              </span>
             </div>
             <div class="diag-card__body">
-              <b>Pulse 有新版 v{updateState.version}</b>
+              {updateState.available && updateState.version ? (
+                <b>Pulse 有新版 v{updateState.version}</b>
+              ) : updateState.status === "error" ? (
+                <b>检查新版本失败</b>
+              ) : (
+                <b>当前没有可用更新</b>
+              )}
               {updateState.status === "error" && ` · 错误: ${updateState.error}`}
             </div>
             <div class="diag-card__actions">
@@ -290,8 +302,13 @@ export function DiagnosticsPage() {
                   退出并安装
                 </button>
               )}
-              <button type="button" class="btn btn-ghost btn-sm" onClick={onSelfUpdateCheck}>
-                重新检测
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                onClick={onSelfUpdateCheck}
+                disabled={updateState.status === "checking" || updateState.status === "downloading"}
+              >
+                {updateState.status === "checking" ? "检查中…" : "检查新版本"}
               </button>
             </div>
           </section>

@@ -98,7 +98,12 @@ export function reduceUpdateState(state: any, action: any): any {
         downloadPercent: 100,
       };
     case "ERROR":
-      return { ...state, status: "error", error: action.message || "unknown" };
+      return {
+        ...state,
+        status: "error",
+        error: action.message || "unknown",
+        lastCheckedAt: Date.now(),
+      };
     default:
       return state;
   }

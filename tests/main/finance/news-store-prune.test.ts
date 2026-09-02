@@ -87,7 +87,7 @@ describe("finance news-store · 全局裁剪上限 (B2)", () => {
   it("未超上限时全部保留（回归：不会误删）", async () => {
     const n = Math.min(50, FIN_ARTICLES_TOTAL_CAP - 10);
     const items: any[] = [];
-    for (let i = 0; i < n; i++) items.push(mkItem(i, i % 5));
+    for (let i = 0; i < n; i++) items.push(mkItem(i, 0));
     aggMock.mockResolvedValue({ items, errorsPerSource: {} });
 
     await store.refresh(tmp, { force: true });

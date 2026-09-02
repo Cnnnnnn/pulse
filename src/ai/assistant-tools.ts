@@ -8,23 +8,16 @@ import { NAV_REGISTRY } from "../shared/nav-keys";
 import { DIGEST_UI_TITLE } from "../shared/digest-labels";
 import type { AssistantAction } from "./assistant-prompt";
 import { MAIN_PROCESS_TOOLS } from "./assistant-prompt";
-
-const stateStore: any = require("../main/state-store.js");
-const fundStore: any = require("../main/funds/fund-store.js");
-const {
+import * as stateStore from "../main/state-store";
+import * as fundStore from "../main/funds/fund-store";
+import {
   zipHoldingsWithNav,
   calcPortfolioTotal,
   calcFundMetrics,
-}: {
-  zipHoldingsWithNav: (holdings: any[], navMap: Record<string, unknown>) => any[];
-  calcPortfolioTotal: (rows: any[]) => any;
-  calcFundMetrics: (holding: any, navSnap: any) => any;
-} = require("../funds/fundCalc.js");
-const { aggregate }: { aggregate: (state: any, opts?: { now?: Date }) => any } =
-  require("../main/digest/aggregate.js");
-const {
-  getLeaderboard,
-}: { getLeaderboard: (opts: any) => Promise<any> } = require("../main/ai-leaderboard/index");
+} from "../funds/fundCalc";
+import { aggregate } from "../main/digest/aggregate";
+import { getLeaderboard } from "../main/ai-leaderboard/index";
+
 
 export type ToolCardItem = {
   label: string;
@@ -168,10 +161,14 @@ function summarizeDigest(): ToolResult {
   for (const section of sections) {
     const kind = section.kind || "section";
     for (const it of (section.items || []).slice(0, 4)) {
+      const item =
+        typeof it === "object" && it !== null
+          ? (it as Record<string, unknown>)
+          : null;
       const label =
         typeof it === "string"
           ? it
-          : it.title || it.name || it.label || JSON.stringify(it).slice(0, 40);
+          : item?.title || item?.name || item?.label || JSON.stringify(it).slice(0, 40);
       items.push({ label: String(label), meta: kind });
       if (items.length >= 10) break;
     }

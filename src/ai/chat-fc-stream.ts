@@ -9,10 +9,10 @@ import { buildAnthropicFcRequest, buildOpenAiFcRequest } from "./fc-tool-policy"
 import type { AssistantPageCtx } from "../shared/assistant-page-tools";
 import type { UiInferContext } from "../shared/pulse-href";
 import type { FcRoundMeta, FcToolCall } from "./chat-fc-followup";
+import { ANTHROPIC_VERSION } from "../ai-sessions/provider-cloud";
 
 const https = require("node:https");
 const { URL } = require("node:url");
-const { ANTHROPIC_VERSION } = require("../ai-sessions/provider-cloud.js");
 
 type ToolCallAccum = {
   id?: string;

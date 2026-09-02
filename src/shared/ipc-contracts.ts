@@ -238,6 +238,10 @@ export interface SelfUpdateApiContract {
   selfUpdateInstall(): Promise<SelfUpdateActionResponse>;
 }
 
+export interface AppInfoApiContract {
+  appGetVersion(): Promise<string>;
+}
+
 export interface AiPromptValue {
   system: string;
   rules: string;
@@ -2680,6 +2684,7 @@ export interface VaultApiContract {
 export interface IpcChannelMap {
   "get-config": { args: []; result: AppConfig };
   "get-cached-state": { args: []; result: CachedState | null };
+  "app:get-version": { args: []; result: string };
   "brew-upgrade": { args: [cask: string]; result: BrewUpgradeResponse };
   "get-app-icon": { args: [bundlePath: string]; result: AppIconResponse };
   "funds:list": { args: []; result: FundsListResponse };

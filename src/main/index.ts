@@ -137,6 +137,22 @@ installErrorGuardBridge(sendToRenderer);
  */
 function initSelfUpdateTimer(ctx: any) {
   let selfUpdateHandle: any = null;
+
+  function pushSelfUpdateToTray(state: any = null) {
+    try {
+      const tray = ctx.getTrayMgr();
+      if (tray) {
+        const nextState = state ||
+          (selfUpdateHandle && selfUpdateHandle.controller
+            ? selfUpdateHandle.controller.getState()
+            : null);
+        if (nextState) tray.setSelfUpdateState(nextState);
+      }
+    } catch (err: any) {
+      mainLog.warn(`[self-update] push to tray failed: ${errMsg(err)}`);
+    }
+  }
+
   try {
     selfUpdateHandle = startSelfUpdateTimer({
       // 周期检查仅在系统空闲时运行；手动检查不受限。
@@ -156,23 +172,12 @@ function initSelfUpdateTimer(ctx: any) {
       },
       logSkip: (reason: any) =>
         mainLog.info(`[self-update] 6h tick skipped (${reason})`),
+      onStateChange: pushSelfUpdateToTray,
     });
   } catch (err: any) {
     mainLog.warn(`[self-update] bootstrap failed: ${errMsg(err)}`);
   }
 
-  function pushSelfUpdateToTray() {
-    try {
-      const tray = ctx.getTrayMgr();
-      if (tray && selfUpdateHandle && selfUpdateHandle.controller) {
-        tray.setSelfUpdateState(selfUpdateHandle.controller.getState());
-      }
-    } catch (err: any) {
-      mainLog.warn(`[self-update] push to tray failed: ${errMsg(err)}`);
-    }
-  }
-  setTimeout(pushSelfUpdateToTray, 35000);
-  setInterval(pushSelfUpdateToTray, 5 * 60 * 1000);
   return { handle: selfUpdateHandle };
 }
 
@@ -285,7 +290,7 @@ function createMainWindow(runtimeConfig: any) {
  * Bootstrap 子阶段: tray 安装. 大量回调闭包 winMgr/getWindow, 必须在 window 之后.
  * @returns {{ ms: number }}
  */
-function installTray() {
+function installTray(selfUpdateHandle: any = null) {
   const tTrayStart = Date.now();
   try {
     trayMgr = createTrayManager({
@@ -294,6 +299,20 @@ function installTray() {
       onCheck: () => {
         const w = getWindow();
         if (w && !w.isDestroyed()) w.webContents.send("start-check");
+      },
+      onSelfUpdateCheck: () => {
+        try {
+          const result = selfUpdateHandle && selfUpdateHandle.triggerNow
+            ? selfUpdateHandle.triggerNow()
+            : null;
+          if (result && typeof result.catch === "function") {
+            result.catch((err: any) => {
+              mainLog.warn(`[self-update] tray check failed: ${errMsg(err)}`);
+            });
+          }
+        } catch (err: any) {
+          mainLog.warn(`[self-update] tray check failed: ${errMsg(err)}`);
+        }
       },
       onOpenPanel: () => winMgr && winMgr.showWindow(),
       onQuit: () => {
@@ -340,6 +359,9 @@ function installTray() {
       },
     });
     trayMgr.install();
+    if (selfUpdateHandle && selfUpdateHandle.controller) {
+      trayMgr.setSelfUpdateState(selfUpdateHandle.controller.getState());
+    }
     registerTrayManager(trayMgr);
     try {
       trayMgr.setTrayMenuPrefs(stateStore.loadTrayMenuPrefs());
@@ -726,7 +748,7 @@ async function bootstrap() {
   timings.window = windowOut.ms;
 
   // 6) tray
-  const trayOut = installTray();
+  const trayOut = installTray(selfUpdateHandle);
   timings.tray = trayOut.ms;
 
   // 6.5) ai-usage tray

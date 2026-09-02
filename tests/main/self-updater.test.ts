@@ -94,6 +94,7 @@ describe("reduceUpdateState", () => {
     });
     expect(next.status).toBe("error");
     expect(next.error).toBe("网络失败");
+    expect(typeof next.lastCheckedAt).toBe("number");
   });
 
   it("CHECKING_FOR_UPDATE → checking", () => {

@@ -18,13 +18,13 @@ import {
 } from "./llm-circuit-breaker";
 import { resolveMaxOutputTokens } from "./default-models";
 import { recordLlmOutcome } from "./llm-telemetry";
+import {
+  PROVIDER_ENDPOINTS,
+  ANTHROPIC_VERSION,
+} from "../ai-sessions/provider-cloud";
 
 const https = require("node:https");
 const { URL } = require("node:url");
-const {
-  PROVIDER_ENDPOINTS,
-  ANTHROPIC_VERSION,
-} = require("../ai-sessions/provider-cloud.js");
 
 function joinUrl(baseUrl: string, path: string): string {
   if (path.startsWith("/v1/") && baseUrl.endsWith("/v1")) {

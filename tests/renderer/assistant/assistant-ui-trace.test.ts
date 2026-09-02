@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import {
   analyzeUiActionPipeline,
   assistantClaimsUiAction,
-} from "../../src/ai/assistant-ui-eval";
+} from "../../../src/ai/assistant-ui-eval.ts";
 import {
   captureEvalCandidateFromDownvote,
   classifyUiTraceEvent,
@@ -14,7 +14,7 @@ import {
   listUiTraceEvents,
   recordUiTurnTrace,
   summarizeUiTrace,
-} from "../../src/renderer/assistant/assistant-ui-trace";
+} from "../../../src/renderer/assistant/assistant-ui-trace.ts";
 
 describe("assistant-ui-trace", () => {
   beforeEach(() => {

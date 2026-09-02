@@ -3,7 +3,7 @@ import {
   buildAppUpdateSystemMessage,
   buildGithubUpdateSystemMessage,
   injectProactiveSystemMessage,
-} from "../../src/renderer/assistant/assistant-proactive";
+} from "../../../src/renderer/assistant/assistant-proactive.ts";
 
 describe("assistant-proactive tier12", () => {
   it("injectProactiveSystemMessage is stable without pending data", () => {

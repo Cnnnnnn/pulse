@@ -15,6 +15,20 @@ const {
 const { buildMenu } = _internal;
 
 describe("tray self-update 行", () => {
+  it("提供独立的 '检查 Pulse 新版本' 动作", () => {
+    const onSelfUpdateCheck = vi.fn();
+    const menu = buildMenu({
+      results: [],
+      getConfig: () => ({ apps: [] }),
+      onSelfUpdateCheck,
+    });
+    const row = menu.find((it) => it && it.label === "检查 Pulse 新版本");
+    expect(row).toBeDefined();
+    expect(typeof row.click).toBe("function");
+    row.click();
+    expect(onSelfUpdateCheck).toHaveBeenCalledTimes(1);
+  });
+
   it("无 selfUpdateState → 不出现 'Pulse 有新版' 行", () => {
     const menu = buildMenu({
       results: [],

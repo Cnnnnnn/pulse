@@ -94,6 +94,25 @@ describe("makeSelfUpdateController", () => {
     expect(au.checkForUpdates).toHaveBeenCalledTimes(1);
   });
 
+  it("并发 checkNow → 合并为一次 updater 请求并共享结果", async () => {
+    const au = makeMockAutoUpdater();
+    let resolveRequest: (() => void) | null = null;
+    au.checkForUpdates = vi.fn(
+      () => new Promise<void>((resolve) => { resolveRequest = resolve; }),
+    );
+    const c = makeSelfUpdateController({ autoUpdater: au });
+
+    const first = c.checkNow();
+    const second = c.checkNow();
+    expect(au.checkForUpdates).toHaveBeenCalledTimes(1);
+
+    resolveRequest?.();
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { ok: true },
+      { ok: true },
+    ]);
+  });
+
   it("checkNow 抛 → dispatch ERROR, 返 ok=false", async () => {
     const au = makeMockAutoUpdater();
     au.checkForUpdates.mockRejectedValue(new Error("网络失败"));
@@ -124,6 +143,22 @@ describe("makeSelfUpdateController", () => {
     au.emit("error", new Error("network timeout"));
     expect(c.getState().status).toBe("error");
     expect(c.getState().error).toBe("network timeout");
+  });
+
+  it("状态变化 → 调用 onStateChange 推送最新状态", () => {
+    const au = makeMockAutoUpdater();
+    const onStateChange = vi.fn();
+    const c = makeSelfUpdateController({ autoUpdater: au, onStateChange });
+
+    au.emit("update-available", { version: "2.83.0" });
+
+    expect(onStateChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        status: "available",
+        version: "2.83.0",
+      }),
+    );
+    expect(c.getState().version).toBe("2.83.0");
   });
 });
 

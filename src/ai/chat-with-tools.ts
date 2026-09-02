@@ -28,9 +28,12 @@ import {
 } from "./llm-circuit-breaker";
 import { resolveMaxOutputTokens } from "./default-models";
 import { recordLlmOutcome } from "./llm-telemetry";
+import {
+  PROVIDER_ENDPOINTS,
+  ANTHROPIC_VERSION,
+} from "../ai-sessions/provider-cloud";
 
 const { HttpClient } = require("../main/http-client.js");
-const { PROVIDER_ENDPOINTS, ANTHROPIC_VERSION } = require("../ai-sessions/provider-cloud.js");
 
 let _http: any = null;
 function getHttp() {

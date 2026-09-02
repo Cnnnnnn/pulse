@@ -337,6 +337,10 @@ export function wireRecentActivityListener(deps: any) {
  */
 export function makeSelfUpdateController(deps: any) {
   const { autoUpdater } = deps || {};
+  const onStateChange =
+    deps && typeof deps.onStateChange === "function"
+      ? deps.onStateChange
+      : null;
   const {
     INITIAL_UPDATE_STATE,
     reduceUpdateState,
@@ -345,6 +349,13 @@ export function makeSelfUpdateController(deps: any) {
 
   function dispatch(action: any) {
     state = reduceUpdateState(state, action);
+    if (onStateChange) {
+      try {
+        onStateChange(state);
+      } catch {
+        /* state consumers must not break the updater */
+      }
+    }
   }
 
   if (!autoUpdater || typeof autoUpdater.checkForUpdates !== "function") {
@@ -364,6 +375,8 @@ export function makeSelfUpdateController(deps: any) {
   } catch {
     /* mock 可能只读 — ignore */
   }
+
+  let checkPromise: Promise<any> | null = null;
 
   // 事件 → dispatch
   try {
@@ -402,15 +415,23 @@ export function makeSelfUpdateController(deps: any) {
   return {
     getState: () => state,
     checkNow: async () => {
+      if (checkPromise) return checkPromise;
+      checkPromise = (async () => {
+        try {
+          await autoUpdater.checkForUpdates();
+          return { ok: true };
+        } catch (err: any) {
+          dispatch({
+            type: "ERROR",
+            message: errMsg(err),
+          });
+          return { ok: false, reason: "threw", error: errMsg(err) };
+        }
+      })();
       try {
-        await autoUpdater.checkForUpdates();
-        return { ok: true };
-      } catch (err: any) {
-        dispatch({
-          type: "ERROR",
-          message: errMsg(err),
-        });
-        return { ok: false, reason: "threw", error: errMsg(err) };
+        return await checkPromise;
+      } finally {
+        checkPromise = null;
       }
     },
     quitAndInstall: () => {
@@ -443,6 +464,7 @@ export function startSelfUpdateTimer(deps: {
   intervalMs?: number;
   getPowerIdleState?: () => unknown;
   logSkip?: (reason: string) => void;
+  onStateChange?: (_state: unknown) => void;
 } = {}) {
   const intervalMs =
     typeof deps.intervalMs === "number" && deps.intervalMs > 0
@@ -469,7 +491,10 @@ export function startSelfUpdateTimer(deps: {
     }
   }
 
-  const controller = makeSelfUpdateController({ autoUpdater });
+  const controller = makeSelfUpdateController({
+    autoUpdater,
+    onStateChange: deps.onStateChange,
+  });
 
   // P52 §增量自更新: 6h 周期 tick 仅在 idle 跑. 启动检测 + 手动 trigger 不受限.
   // 决策跟 detector-chain-incremental 同款范式 (纯函数 + 接线层).

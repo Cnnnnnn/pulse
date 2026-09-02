@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { messagesToMarkdown } from "../../src/renderer/assistant/chat-export";
+import { messagesToMarkdown } from "../../../src/renderer/assistant/chat-export.ts";
 
 describe("chat-export", () => {
   it("messagesToMarkdown formats roles", () => {

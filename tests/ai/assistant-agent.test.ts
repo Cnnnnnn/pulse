@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_ROUNDS } from "../../src/ai/assistant-agent";
+import { MAX_ROUNDS } from "../../src/ai/assistant-agent.ts";
 
 describe("assistant-agent", () => {
   it("MAX_ROUNDS is 4 for multi-step tool chains", () => {

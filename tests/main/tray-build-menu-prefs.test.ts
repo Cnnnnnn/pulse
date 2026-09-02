@@ -27,7 +27,7 @@ describe("tray.buildMenu — trayPrefs 接线 (Phase v1)", () => {
     expect(labels.some((l) => l.includes("Codex"))).toBe(false);
   });
 
-  it("5 项全 false → 动态段全隐藏,底部只剩「打开面板」", () => {
+  it("5 项全 false → 动态段全隐藏,仍保留 Pulse 自更新入口", () => {
     const m = buildMenu({
       results: [{ name: "Codex", has_update: true, installed_version: "1.0", latest_version: "2.0" }],
       aiUsage: { minimax: { status: "ok", percent: 50, remainLabel: "1h", fetchedAt: Date.now() } },
@@ -37,6 +37,7 @@ describe("tray.buildMenu — trayPrefs 接线 (Phase v1)", () => {
     const labels = m.map((i) => i.label).filter(Boolean);
     // 锁死 2 项 (打开面板 + 退出) 必在
     expect(labels).toContain("打开面板");
+    expect(labels).toContain("检查 Pulse 新版本");
     expect(labels).toContain("退出");
     // 关闭的项消失
     expect(labels.some((l) => l.includes("Codex"))).toBe(false);

@@ -102,6 +102,18 @@ export interface StateStoreAdapter {
   loadAISessionsConfig(statePath?: string): StateRecord | null;
   saveAISessionsConfig(cfg: StateRecord | null, statePath?: string): StateRecord;
 
+  // assistant persistence (P3-12 / P3-14)
+  loadAssistantMemory(statePath?: string): unknown[];
+  saveAssistantMemory(items: unknown[], statePath?: string): StateRecord;
+  loadAssistantThreads(statePath?: string): StateRecord;
+  saveAssistantThreads(data: StateRecord, statePath?: string): StateRecord;
+
+  // assistant persistence (P3-12 / P3-14)
+  loadAssistantMemory(statePath?: string): unknown[];
+  saveAssistantMemory(items: unknown[], statePath?: string): StateRecord;
+  loadAssistantThreads(statePath?: string): StateRecord;
+  saveAssistantThreads(data: StateRecord, statePath?: string): StateRecord;
+
   // AI usage snapshot (v1 compat + v2 multi-provider)
   loadAiUsageSnapshot(statePath?: string): StateRecord | null;
   saveAiUsageSnapshot(snapshot: StateRecord, statePath?: string): StateRecord;

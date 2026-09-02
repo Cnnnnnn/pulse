@@ -3,6 +3,7 @@ import type { IpcRendererEvent } from "electron";
 import type { Callback, PlatformInfo, Unsubscribe } from "./src/shared/preload-types";
 import type {
   AiLeaderboardApiContract,
+  AppInfoApiContract,
   AiPromptsApiContract,
   AiSessionsApiContract,
   AiSharedConfigApiContract,
@@ -112,6 +113,7 @@ function invokeChannel<C extends keyof IpcChannelMap>(
 export const api = {
   getConfig: () => invokeChannel("get-config"),
   getCachedState: () => invokeChannel("get-cached-state"),
+  appGetVersion: () => invokeChannel("app:get-version"),
   searchQuery: (q: string, source: string | null = null) =>
     invokeChannel("search:query", { q, source }),
   searchUpsert: (doc: IpcChannelMap["search:upsert"]["args"][0]) =>
@@ -651,6 +653,7 @@ export const api = {
     return () => ipcRenderer.removeListener("finance:quotes-updated", handler);
   },
 } satisfies
+  AppInfoApiContract &
   CoreEventsApiContract &
   ConfigStateApiContract &
   ConfigPortabilityApiContract &

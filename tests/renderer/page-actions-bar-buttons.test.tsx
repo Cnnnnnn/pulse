@@ -8,6 +8,7 @@ vi.mock("../../src/renderer/api.ts", () => ({
   api: {
     detectResultsExport: vi.fn(async () => ({ ok: true })),
     versionsRunCheck: vi.fn(async () => ({ started: true })),
+    selfUpdateCheck: vi.fn(async () => ({ ok: true })),
     releaseNotes: {
       getCurrent: vi.fn(async () => ({
         version: "2.50.0",
@@ -97,9 +98,9 @@ describe("PageActionsBar buttons wiring (T6)", () => {
     const portal = document.body.querySelector(".page-action-menu-portal");
     expect(portal).toBeTruthy();
     expect(portal.tagName.toLowerCase()).toBe("ul");
-    // 7 个菜单项 (关注/诊断/Reminders/Recent + 导出JSON/CSV + Release Notes)
+    // 8 个菜单项 (关注/诊断/自更新/Reminders/Recent + 导出JSON/CSV + Release Notes)
     const items = portal.querySelectorAll('[role="menuitem"]');
-    expect(items.length).toBe(7);
+    expect(items.length).toBe(8);
     // 2 个 divider
     expect(portal.querySelectorAll(".page-action-menu-divider").length).toBe(2);
   });
@@ -111,6 +112,15 @@ describe("PageActionsBar buttons wiring (T6)", () => {
     expect(btn).toBeTruthy();
     fireEvent.click(btn);
     expect(navigateTo).toHaveBeenCalledWith("diagnostics");
+  });
+
+  it("overflow menu: 检查 Pulse 新版本调用 selfUpdateCheck", async () => {
+    const { container } = render(<PageActionsBar />);
+    fireEvent.click(container.querySelector('[data-testid="page-action-overflow-toggle"]'));
+    const btn = findMenuItem("page-action-menu-self-update");
+    expect(btn).toBeTruthy();
+    fireEvent.click(btn);
+    await waitFor(() => expect(api.selfUpdateCheck).toHaveBeenCalledTimes(1));
   });
 
   // 回归: portal 菜单的 mousedown 不能冒泡到 document 否则会被 doc listener

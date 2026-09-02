@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AiChatMessage } from "../../../src/shared/ipc-contracts";
-import { syncProactiveSystemMessages } from "../../../src/renderer/assistant/assistant-proactive-sync";
-import { proactiveKindFromMessage } from "../../../src/renderer/assistant/assistant-proactive";
+import { syncProactiveSystemMessages } from "../../../src/renderer/assistant/assistant-proactive-sync.ts";
+import { proactiveKindFromMessage } from "../../../src/renderer/assistant/assistant-proactive.ts";
 
 describe("assistant-proactive-sync", () => {
   it("proactiveKindFromMessage parses marker", () => {

@@ -3,7 +3,7 @@ import {
   titleFromMessages,
   touchThread,
   createThread,
-} from "../../src/renderer/assistant/chat-threads";
+} from "../../../src/renderer/assistant/chat-threads.ts";
 
 describe("chat-threads", () => {
   it("titleFromMessages uses first user message", () => {

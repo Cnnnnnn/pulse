@@ -10,6 +10,7 @@ import type {} from "electron";
 
 import { createIpcContext } from "./context";
 import { registerCoreHandlers } from "./register-core";
+import { registerAppInfoHandlers } from "./register-app-info";
 import { registerTrayConfigHandlers } from "./register-tray-config";
 import { registerOpenUrlHandlers } from "./register-open-url";
 const {
@@ -52,6 +53,7 @@ import { registerVaultHandlers } from "./register-vault";
 export function registerIpcHandlers(deps: Record<string, unknown>) {
   const ctx = createIpcContext(deps);
   registerCoreHandlers(ctx);
+  registerAppInfoHandlers();
   registerTrayConfigHandlers(ctx); // Phase v1: tray 菜单配置
   registerOpenUrlHandlers(ctx);
   registerRemindersRecentHandlers(ctx);

@@ -32,7 +32,7 @@ import {
   subscribeTheme,
 } from "../theme/theme-manager.ts";
 import { showToast } from "../store.ts";
-import type { ThemeMode } from "../../shared/ipc-contracts";
+import type { SelfUpdateState, ThemeMode } from "../../shared/ipc-contracts";
 import {
   loadGithubSettings,
   downloadGithubBackup, pickGithubBackupFile, githubProjects,
@@ -579,6 +579,117 @@ function GithubSettingsSection() {
   );
 }
 
+function PulseAboutSection() {
+  const [version, setVersion] = useState("");
+  const [updateState, setUpdateState] = useState<SelfUpdateState | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  async function refreshUpdateState() {
+    if (typeof window.api.selfUpdateGetState !== "function") return;
+    try {
+      const response = await window.api.selfUpdateGetState();
+      if (response && response.ok) setUpdateState(response.state);
+    } catch {
+      /* noop — the diagnostics page remains the detailed fallback */
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadVersion = async () => {
+      try {
+        const value = await window.api.appGetVersion();
+        if (!cancelled && typeof value === "string") setVersion(value);
+      } catch {
+        /* noop */
+      }
+    };
+    loadVersion();
+    refreshUpdateState();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function checkForPulseUpdate() {
+    if (checking || typeof window.api.selfUpdateCheck !== "function") return;
+    setChecking(true);
+    try {
+      const response = await window.api.selfUpdateCheck();
+      await refreshUpdateState();
+      if (response && response.ok === false) {
+        showToast(`检查失败: ${response.error || response.reason || "未知错误"}`, "error", 3000);
+      }
+    } catch (err) {
+      showToast(`检查失败: ${err && err.message ? err.message : "未知错误"}`, "error", 3000);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function installPulseUpdate() {
+    if (typeof window.api.selfUpdateInstall !== "function") return;
+    try {
+      const response = await window.api.selfUpdateInstall();
+      if (response && response.ok === false) {
+        window.alert(`退出并安装失败: ${response.error || response.reason || "未知错误"}`);
+      }
+    } catch (err) {
+      window.alert(`退出并安装失败: ${err && err.message ? err.message : "未知错误"}`);
+    }
+  }
+
+  const updateSummary = !updateState
+    ? "正在读取更新状态…"
+    : updateState.available && updateState.version
+      ? `发现新版本 v${updateState.version}`
+      : updateState.status === "error"
+        ? `检查失败：${updateState.error || "未知错误"}`
+        : updateState.lastCheckedAt
+          ? `当前已是最新 · ${_humanizeTs(updateState.lastCheckedAt)}`
+          : "尚未检查";
+
+  return (
+    <section class="settings-group settings-group--about" aria-labelledby="settings-about-title">
+      <div class="settings-group__header">
+        <h3 id="settings-about-title">关于 Pulse</h3>
+        <span>GitHub Releases</span>
+      </div>
+      <div class="settings-about__content">
+        <div class="settings-about__item settings-about__version">
+          <div class="settings-about__copy">
+            <span class="settings-row__label">当前版本</span>
+            <span class="settings-row__hint" data-testid="settings-update-summary">{updateSummary}</span>
+          </div>
+          <strong data-testid="settings-app-version">{version ? `v${version}` : "读取中…"}</strong>
+        </div>
+        <div class="settings-about__item settings-about__update">
+          <div class="settings-about__copy">
+            <span class="settings-row__label">检查新版本</span>
+            <span class="settings-row__hint">检查 GitHub Releases；发现更新后会自动下载。</span>
+          </div>
+          <div class="settings-row__buttons">
+            {updateState && updateState.status === "downloaded" && (
+              <button type="button" class="settings-btn settings-btn--primary" onClick={installPulseUpdate}>
+                退出并安装
+              </button>
+            )}
+            <button
+              type="button"
+              class="settings-btn settings-btn--ghost"
+              data-testid="settings-self-update-check"
+              onClick={checkForPulseUpdate}
+              disabled={checking || updateState?.status === "downloading"}
+            >
+              {checking ? "检查中…" : "检查新版本"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function SettingsPage() {
   // 进入页面时拉数据, 监听主进程推送
   useEffect(() => {
@@ -746,6 +857,8 @@ export function SettingsPage() {
             </section>
 
             <TmdbSettingsSection />
+
+            <PulseAboutSection />
 
             <section class="settings-group settings-group--migration" aria-labelledby="settings-data-title">
               <div class="settings-action-row">

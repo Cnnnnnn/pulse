@@ -23,10 +23,7 @@ export function syncProactiveSystemMessages(
     if (kind) freshByKind.set(kind, msg);
   }
 
-  const rest = messages.filter((m) => {
-    const kind = proactiveKindFromMessage(m);
-    return !kind || !freshByKind.has(kind);
-  });
+  const rest = messages.filter((m) => !proactiveKindFromMessage(m));
 
   return [...rest, ...freshByKind.values()];
 }

@@ -3,6 +3,7 @@
  */
 import { chatCompletion, resolveSharedAiConfig } from "./shared-llm";
 import { pickFastModel } from "./assistant-model-route";
+import { loadAISessionsConfig } from "../main/state-store";
 import {
   buildOmittedHistoryNote,
   buildOmittedHistoryNoteFromSummary,
@@ -25,8 +26,7 @@ export type TrimMessagesOpts = {
 
 function isLlmHistorySummaryEnabled(): boolean {
   try {
-    const stateStore: any = require("../main/state-store.js");
-    const cfg = stateStore.loadAISessionsConfig?.();
+    const cfg = loadAISessionsConfig();
     if (cfg?.assistantLlmHistorySummary === false) return false;
   } catch {
     /* ponytail: 读配置失败时保持默认开启 */

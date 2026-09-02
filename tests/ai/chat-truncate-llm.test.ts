@@ -3,8 +3,8 @@ import {
   LLM_SUMMARY_MIN_OMITTED,
   summarizeOmittedTurnsWithLlm,
   trimMessagesForLlmAsync,
-} from "../../src/ai/chat-truncate-llm";
-import { MAX_LLM_MESSAGES } from "../../src/ai/chat-truncate";
+} from "../../src/ai/chat-truncate-llm.ts";
+import { MAX_LLM_MESSAGES } from "../../src/ai/chat-truncate.ts";
 
 vi.mock("../../src/ai/shared-llm", () => ({
   resolveSharedAiConfig: vi.fn(() => ({
@@ -19,12 +19,12 @@ vi.mock("../../src/ai/assistant-model-route", () => ({
   pickFastModel: vi.fn(() => "gpt-4o-mini"),
 }));
 
-vi.mock("../../src/main/state-store.js", () => ({
+vi.mock("../../src/main/state-store.ts", () => ({
   loadAISessionsConfig: vi.fn(() => ({})),
 }));
 
-import { chatCompletion } from "../../src/ai/shared-llm";
-import { loadAISessionsConfig } from "../../src/main/state-store.js";
+import { chatCompletion } from "../../src/ai/shared-llm.ts";
+import { loadAISessionsConfig } from "../../src/main/state-store.ts";
 
 describe("chat-truncate-llm", () => {
   beforeEach(() => {

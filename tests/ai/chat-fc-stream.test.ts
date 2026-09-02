@@ -3,7 +3,7 @@ import {
   applyAnthropicStreamEvent,
   createAnthropicStreamState,
   mergeToolCallDelta,
-} from "../../src/ai/chat-fc-stream";
+} from "../../src/ai/chat-fc-stream.ts";
 
 describe("chat-fc-stream anthropic", () => {
   it("applyAnthropicStreamEvent streams text and tool_use", () => {

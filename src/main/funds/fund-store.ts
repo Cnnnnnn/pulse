@@ -16,13 +16,11 @@
 
 import * as crypto from "crypto";
 import * as fundRepository from "./fund-repository";
+import { normalizeNavSource } from "../../funds/fund-nav-merge";
 
 const FUNDS_DELETED_GC_DAYS = fundRepository.FUNDS_DELETED_GC_DAYS;
 
 const VALID_CATEGORIES = ["stock", "bond", "money", "qdii", "other"];
-const {
-  normalizeNavSource,
-} = require("../../funds/fund-nav-merge.js");
 import { normalizeAlertPrefs } from "./fund-alerts";
 
 export function loadAll(statePath?: any): any {

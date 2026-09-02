@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseReminderTriggerAt,
   formatReminderWhen,
-} from "../../src/renderer/assistant/reminder-parse";
+} from "../../../src/renderer/assistant/reminder-parse.ts";
 
 describe("reminder-parse", () => {
   it("parses ISO and relative offsets", () => {
