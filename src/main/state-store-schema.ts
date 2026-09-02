@@ -42,6 +42,8 @@ const FIELD_SPECS: Record<string, { kind: string; required?: boolean }> = {
   upgrade_advice_cache: { kind: 'object' },
   changelog_summary_cache: { kind: 'object' },
   aiFeedback:         { kind: 'array' },   // A8: AI 反馈样本 cap-500
+  assistantMemory:    { kind: 'array' },   // P3-14: 助手长期记忆 [{ id, text, createdAt }]
+  assistantThreads:   { kind: 'object' },  // P3-12: 助手会话持久化备份 { activeId, threads }
   tokenSpend:         { kind: 'object' },  // P71: 每日 token 消耗 {"YYYY-MM-DD": number}
   tokenBudgetConfig:  { kind: 'object' },  // P71: { dailyLimit, mode }
   stockScreener:      { kind: 'object' },

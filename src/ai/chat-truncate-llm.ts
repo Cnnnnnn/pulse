@@ -4,11 +4,10 @@
 import { chatCompletion, resolveSharedAiConfig } from "./shared-llm";
 import { pickFastModel } from "./assistant-model-route";
 import {
-  KEEP_RECENT_MESSAGES,
-  MAX_LLM_MESSAGES,
   buildOmittedHistoryNote,
   buildOmittedHistoryNoteFromSummary,
   summarizeOmittedTurns,
+  computeTrimStart,
 } from "./chat-truncate";
 
 export const LLM_SUMMARY_MIN_OMITTED = 4;
@@ -76,12 +75,11 @@ export async function summarizeOmittedTurnsWithLlm<
 export async function trimMessagesForLlmAsync<
   T extends { role: string; content: string },
 >(messages: T[], opts: TrimMessagesOpts = {}): Promise<T[]> {
-  if (!Array.isArray(messages) || messages.length <= MAX_LLM_MESSAGES) {
-    return messages;
-  }
-  const omittedCount = messages.length - KEEP_RECENT_MESSAGES;
-  const omitted = messages.slice(0, omittedCount);
-  const recent = messages.slice(-KEEP_RECENT_MESSAGES);
+  const start = computeTrimStart(messages);
+  if (start === 0) return messages;
+  const omittedCount = start;
+  const omitted = messages.slice(0, start);
+  const recent = messages.slice(start);
 
   if (opts.isAborted?.()) {
     return [buildOmittedHistoryNote(omitted, omittedCount) as T, ...recent];

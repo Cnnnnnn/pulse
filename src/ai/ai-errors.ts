@@ -15,6 +15,7 @@ export const REASON_LABELS = {
   app_not_found: "应用状态已变,刷新后重试",
   no_update: "当前没有可升级版本",
   invalid_args: "参数错误",
+  circuit_open: "AI 服务暂时熔断保护中, 稍后再试",
 };
 
 const REASON_HINT = {
@@ -22,6 +23,7 @@ const REASON_HINT = {
   parse_failed: "重试",
   timeout: "重试",
   llm_failed: "重试",
+  circuit_open: "稍后重试",
 };
 
 function truncate(s: any, n: any) {

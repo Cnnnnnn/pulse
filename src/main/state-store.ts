@@ -1744,6 +1744,55 @@ export function saveTokenBudgetConfig(cfg: any, statePath = defaultPath()) {
 }
 
 /**
+ * P3-14: load 助手长期记忆. 无/损坏 → [].
+ * @param {string} [statePath]
+ * @returns {Array<{id: string, text: string, createdAt: number}>}
+ */
+export function loadAssistantMemory(statePath = defaultPath()) {
+  const s = load(statePath);
+  const m = s && s.assistantMemory;
+  return Array.isArray(m) ? m : [];
+}
+
+/**
+ * P3-14: save 助手长期记忆. 走 patchState 不破坏其它字段.
+ * @param {Array<object>} items
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+export function saveAssistantMemory(items: any, statePath = defaultPath()) {
+  return patchState((next: any) => {
+    next.assistantMemory = Array.isArray(items) ? items : [];
+  }, statePath);
+}
+
+/**
+ * P3-12: load 助手会话持久化备份. 无/损坏 → { threads: [], activeId: null }.
+ * @param {string} [statePath]
+ * @returns {{threads: Array<object>, activeId: string|null}}
+ */
+export function loadAssistantThreads(statePath = defaultPath()) {
+  const s = load(statePath);
+  const t = s && s.assistantThreads;
+  if (t && typeof t === "object" && Array.isArray(t.threads)) {
+    return { threads: t.threads, activeId: typeof t.activeId === "string" ? t.activeId : null };
+  }
+  return { threads: [], activeId: null };
+}
+
+/**
+ * P3-12: save 助手会话持久化备份 (会话数据也进 state.json, 跨重启更可靠).
+ * @param {{threads: Array<object>, activeId: string|null}} data
+ * @param {string} [statePath]
+ * @returns {object} 写完后的完整 state
+ */
+export function saveAssistantThreads(data: any, statePath = defaultPath()) {
+  return patchState((next: any) => {
+    next.assistantThreads = data && typeof data === "object" ? data : { threads: [], activeId: null };
+  }, statePath);
+}
+
+/**
  * I2 v1: load watchlist (pinned apps).
  * I2 v2: 支持 type=app|fund|keyword, ref 为统一主键.
  * Old state.json without watchlist field → []. 兼容老数据 (appName → type:app).
@@ -1942,6 +1991,12 @@ module.exports = {
   saveTokenSpend,
   loadTokenBudgetConfig,
   saveTokenBudgetConfig,
+  // P3-14: 助手长期记忆
+  loadAssistantMemory,
+  saveAssistantMemory,
+  // P3-12: 助手会话持久化备份
+  loadAssistantThreads,
+  saveAssistantThreads,
   // I2 v1: watchlist
   loadWatchlist,
   saveWatchlist,

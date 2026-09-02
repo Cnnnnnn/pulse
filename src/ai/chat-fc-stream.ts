@@ -2,6 +2,8 @@
  * FC 流式 — Round 0 边出字边收 tool_calls（OpenAI + Anthropic）.
  */
 import { sanitizeLlmOutput } from "./sanitize-llm-output";
+import { recordTokenSpend } from "./shared-llm";
+import { resolveMaxOutputTokens } from "./default-models";
 import type { AssistantAction } from "./assistant-prompt";
 import { buildAnthropicFcRequest, buildOpenAiFcRequest } from "./fc-tool-policy";
 import type { AssistantPageCtx } from "../shared/assistant-page-tools";
@@ -266,7 +268,7 @@ function postOpenAiFcStream(
     isAborted?: () => boolean;
     onAbortRegister?: (fn: () => void) => void;
   },
-): Promise<{ text: string; toolAcc: Map<number, ToolCallAccum> }> {
+): Promise<{ text: string; toolAcc: Map<number, ToolCallAccum>; totalTokens: number }> {
   return new Promise((resolve, reject) => {
     if (opts.isAborted?.()) {
       reject(new Error("cancelled"));
@@ -277,6 +279,7 @@ function postOpenAiFcStream(
     let fullText = "";
     let sseBuf = "";
     let settled = false;
+    let totalTokens = 0;
     const toolAcc = new Map<number, ToolCallAccum>();
 
     const req = https.request(
@@ -317,7 +320,7 @@ function postOpenAiFcStream(
             if (!settled) {
               settled = true;
               req.destroy();
-              resolve({ text: fullText, toolAcc });
+              resolve({ text: fullText, toolAcc, totalTokens });
             }
             return;
           }
@@ -337,7 +340,11 @@ function postOpenAiFcStream(
                     tool_calls?: unknown;
                   };
                 }>;
+                usage?: { total_tokens?: number };
               };
+              if (typeof j.usage?.total_tokens === "number" && j.usage.total_tokens > 0) {
+                totalTokens = j.usage.total_tokens;
+              }
               const delta = j.choices?.[0]?.delta;
               if (!delta) continue;
               if (typeof delta.content === "string" && delta.content) {
@@ -353,7 +360,7 @@ function postOpenAiFcStream(
         res.on("end", () => {
           if (!settled) {
             settled = true;
-            resolve({ text: fullText, toolAcc });
+            resolve({ text: fullText, toolAcc, totalTokens });
           }
         });
       },
@@ -362,7 +369,7 @@ function postOpenAiFcStream(
       if (!settled) {
         settled = true;
         req.destroy();
-        resolve({ text: fullText, toolAcc });
+        resolve({ text: fullText, toolAcc, totalTokens });
       }
     });
     req.on("error", reject);
@@ -401,10 +408,10 @@ export async function chatWithToolsStreamOpenAi(
   try {
     const req = buildOpenAiFcRequest(messages, uiCtx, {
       model: opts.model,
-      max_tokens: 8192,
+      max_tokens: resolveMaxOutputTokens(opts.model),
       pageCtx: opts.pageCtx,
     });
-    const { text, toolAcc } = await postOpenAiFcStream(
+    const { text, toolAcc, totalTokens } = await postOpenAiFcStream(
       url,
       apiKey,
       {
@@ -414,6 +421,7 @@ export async function chatWithToolsStreamOpenAi(
         tool_choice: req.tool_choice,
         temperature: req.temperature,
         max_tokens: req.max_tokens,
+        stream_options: { include_usage: true },
       },
       {
         onDelta: opts.onDelta,
@@ -421,6 +429,7 @@ export async function chatWithToolsStreamOpenAi(
         onAbortRegister: opts.onAbortRegister,
       },
     );
+    recordTokenSpend(totalTokens);
     const { actions, fc } = toolCallsFromAccum(toolAcc);
     return {
       ok: true,
@@ -461,10 +470,11 @@ export async function chatWithToolsStreamAnthropic(
   try {
     const { body } = buildAnthropicFcRequest(messages, uiCtx, {
       model: opts.model,
-      max_tokens: 8192,
+      max_tokens: resolveMaxOutputTokens(opts.model),
       pageCtx: opts.pageCtx,
     });
     const state = createAnthropicStreamState();
+    let totalTokens = 0;
     await postSseStream(
       url,
       {
@@ -475,7 +485,18 @@ export async function chatWithToolsStreamAnthropic(
       (data) => {
         if (data === "[DONE]") return;
         try {
-          const event = JSON.parse(data) as { type?: string };
+          const event = JSON.parse(data) as {
+            type?: string;
+            message?: { usage?: { input_tokens?: number } };
+            usage?: { output_tokens?: number };
+          };
+          if (event.type === "message_start") {
+            const input = event.message?.usage?.input_tokens;
+            if (typeof input === "number" && input > 0) totalTokens += input;
+          } else if (event.type === "message_delta") {
+            const output = event.usage?.output_tokens;
+            if (typeof output === "number" && output > 0) totalTokens += output;
+          }
           applyAnthropicStreamEvent(event, state, opts.onDelta);
         } catch {
           /* ponytail: 跳过坏 SSE 行 */
@@ -490,6 +511,7 @@ export async function chatWithToolsStreamAnthropic(
       state.tools.push(state.currentTool);
       state.currentTool = null;
     }
+    recordTokenSpend(totalTokens);
     const { actions, fc } = anthropicToolsToFc(state.tools);
     return {
       ok: true,

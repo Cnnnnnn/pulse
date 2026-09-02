@@ -2745,6 +2745,9 @@ export interface IpcChannelMap {
   "ai:get-shared-config": { args: []; result: AiSharedConfigResponse };
   "ai:chat": { args: [opts: AiChatOptions]; result: AiChatResponse };
   "ai:chat-cancel": { args: []; result: { ok: boolean } };
+  "assistant-threads:save": { args: [payload: { threads: unknown[]; activeId: string | null }]; result: { ok: boolean } };
+  "assistant-threads:load": { args: []; result: { ok: boolean; threads: unknown[]; activeId: string | null } };
+  "assistant:screenshot": { args: []; result: { ok: boolean; dataUrl?: string; reason?: string; error?: string } };
   "feedback:record": { args: [payload: AiFeedbackRecordPayload]; result: AiFeedbackRecordResponse };
   "feedback:export": { args: []; result: AiFeedbackExportResponse };
   "token-budget:get": { args: []; result: TokenBudgetGetResponse };

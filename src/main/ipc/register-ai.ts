@@ -2,9 +2,9 @@
 //          `module.exports = ...`. 见 pool-size.ts 顶部注释原因 (post-build path
 //          rewrite 依赖 path 保留裸名).
 
-import type { IpcMain, Shell } from "electron";
+import type { IpcMain, Shell, BrowserWindow as BrowserWindowType } from "electron";
 
-const { ipcMain, shell }: { ipcMain: IpcMain; shell: Shell } = require("electron");
+const { ipcMain, shell, BrowserWindow }: { ipcMain: IpcMain; shell: Shell; BrowserWindow: typeof BrowserWindowType } = require("electron");
 import * as stateStore from "../state-store";
 import { mainLog } from "../log";
 import * as aiStorage from "../../ai-sessions/storage";
@@ -381,6 +381,8 @@ export function registerAiHandlers(ctx: any) {
             : undefined,
           onStatus: (status: string) =>
             sendToRenderer("ai:chat-status", { status }),
+          onToolResults: (toolResults: unknown) =>
+            sendToRenderer("ai:chat-tool-results", { toolResults }),
           isAborted: session.isAborted,
           onAbortRegister: session.setAbortHandler,
         });
@@ -403,6 +405,48 @@ export function registerAiHandlers(ctx: any) {
   safeHandle("ai:chat-cancel", async () => {
     cancelChatSession();
     return { ok: true };
+  });
+
+  // P3-12: 助手会话持久化备份 (state.json assistantThreads)
+  safeHandle("assistant-threads:save", async (_evt: unknown, payload: any) => {
+    try {
+      if (!payload || !Array.isArray(payload.threads)) {
+        return { ok: false, reason: "invalid_payload" };
+      }
+      stateStore.saveAssistantThreads({
+        threads: payload.threads,
+        activeId: typeof payload.activeId === "string" ? payload.activeId : null,
+      });
+      return { ok: true };
+    } catch {
+      return { ok: false, reason: "save_failed" };
+    }
+  });
+
+  safeHandle("assistant-threads:load", async () => {
+    const { threads, activeId } = stateStore.loadAssistantThreads();
+    return { ok: true, threads, activeId };
+  });
+
+  // P3-13: 当前页面截图 (供助手多模态附加)
+  safeHandle("assistant:screenshot", async (event: any) => {
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win || win.isDestroyed()) {
+        return { ok: false, reason: "no_window" };
+      }
+      const image = await win.webContents.capturePage();
+      if (!image || (typeof image.isEmpty === "function" && image.isEmpty())) {
+        return { ok: false, reason: "capture_empty" };
+      }
+      const buf = image.toPNG();
+      if (!buf || buf.length === 0) {
+        return { ok: false, reason: "capture_empty" };
+      }
+      return { ok: true, dataUrl: `data:image/png;base64,${buf.toString("base64")}` };
+    } catch (err: any) {
+      return { ok: false, reason: "capture_failed", error: err?.message };
+    }
   });
 }
 

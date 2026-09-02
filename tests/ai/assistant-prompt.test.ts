@@ -3,6 +3,8 @@ import {
   buildAssistantSystemPrompt,
   parseAssistantActions,
   stripActionTags,
+  untrustedToolResult,
+  MAX_TOOL_RESULT_CHARS,
   MAIN_PROCESS_TOOLS,
   RENDERER_TOOLS,
 } from "../../src/ai/assistant-prompt";
@@ -52,5 +54,21 @@ describe("assistant-prompt", () => {
     for (const t of MAIN_PROCESS_TOOLS) {
       expect(RENDERER_TOOLS.has(t)).toBe(false);
     }
+  });
+
+  it("untrustedToolResult 包不可信数据边界并截断", () => {
+    const s = untrustedToolResult("search", "找到 5 条");
+    expect(s).toContain("不可信数据");
+    expect(s).toContain("找到 5 条");
+    expect(s).toContain("来源");
+    const long = "x".repeat(MAX_TOOL_RESULT_CHARS + 100);
+    const t = untrustedToolResult("query_apps", long);
+    expect(t).toContain("已截断");
+    expect(t.length).toBeLessThan(MAX_TOOL_RESULT_CHARS + 150);
+  });
+
+  it("system prompt 要求来源标注", () => {
+    const p = buildAssistantSystemPrompt({ useFunctionCalling: true });
+    expect(p).toContain("来源");
   });
 });

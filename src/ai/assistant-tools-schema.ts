@@ -267,6 +267,30 @@ export const ASSISTANT_TOOL_DEFS: Array<{
     description: "刷新已监控演出的票价与场次数据",
     parameters: obj({}),
   },
+  {
+    name: "remember_fact",
+    description: "把用户要求记住的偏好/事实写入长期记忆（跨会话保留）。用户说「记住/记一下/记住X」时用",
+    parameters: obj(
+      {
+        fact: { type: "string", description: "要记住的内容（简洁一句话）" },
+      },
+      ["fact"],
+    ),
+  },
+  {
+    name: "forget_fact",
+    description: "从长期记忆删除一条（按 id / 文本关键词 / 显示序号）。用户说「忘掉/删掉记忆X」时用",
+    parameters: obj({
+      id: { type: "string", description: "记忆 id（已知时优先）" },
+      query: { type: "string", description: "文本关键词（模糊匹配）" },
+      index: { type: "number", description: "显示序号（1-based）" },
+    }),
+  },
+  {
+    name: "list_memory",
+    description: "列出用户长期记忆",
+    parameters: obj({}),
+  },
 ];
 
 export function toOpenAiTools() {
@@ -289,3 +313,57 @@ export function toAnthropicTools() {
 }
 
 export const TOOL_NAMES = new Set(ASSISTANT_TOOL_DEFS.map((t) => t.name));
+
+export type ToolCallValidation =
+  | { valid: true }
+  | { valid: false; reason: string };
+
+/**
+ * P0-3: 工具调用执行前统一校验 — tool 名白名单 + required + enum + 基础类型.
+ * 所有来自模型输出 / 注入数据的 action 必须过这关, 防止越界 tool 名与被越权参数执行.
+ * 空字符串的可选字段视为「未提供」, 避免误杀.
+ */
+export function validateToolCall(tool: unknown, params: unknown): ToolCallValidation {
+  if (typeof tool !== "string" || !TOOL_NAMES.has(tool)) {
+    return { valid: false, reason: `unknown_tool:${String(tool)}` };
+  }
+  const def = ASSISTANT_TOOL_DEFS.find((d) => d.name === tool);
+  if (!def) return { valid: false, reason: `no_def:${tool}` };
+
+  const p = def.parameters as {
+    properties?: Record<string, { type?: string; enum?: unknown[] }>;
+    required?: string[];
+  };
+  const obj =
+    params && typeof params === "object" && !Array.isArray(params)
+      ? (params as Record<string, unknown>)
+      : {};
+
+  for (const key of p.required || []) {
+    const v = obj[key];
+    if (v === undefined || v === null || v === "") {
+      return { valid: false, reason: `missing_required:${tool}.${key}` };
+    }
+  }
+
+  const props = p.properties || {};
+  for (const [key, raw] of Object.entries(props)) {
+    const v = obj[key];
+    if (v === undefined || v === null || v === "") continue;
+    const s = raw as { type?: string; enum?: unknown[] };
+    if (Array.isArray(s.enum) && s.enum.length > 0 && !s.enum.includes(v)) {
+      return { valid: false, reason: `invalid_enum:${tool}.${key}` };
+    }
+    if (s.type === "string" && typeof v !== "string") {
+      return { valid: false, reason: `invalid_type:${tool}.${key}` };
+    }
+    if (s.type === "number" && typeof v !== "number") {
+      return { valid: false, reason: `invalid_type:${tool}.${key}` };
+    }
+    if (s.type === "boolean" && typeof v !== "boolean") {
+      return { valid: false, reason: `invalid_type:${tool}.${key}` };
+    }
+  }
+
+  return { valid: true };
+}

@@ -5,15 +5,22 @@
  * ponytail: 未知 provider 回退非流式 chatCompletion.
  */
 import { sanitizeLlmOutput } from "./sanitize-llm-output";
-import { resolveSharedAiConfig, chatCompletion } from "./shared-llm";
+import {
+  resolveSharedAiConfig,
+  chatCompletion,
+  isBudgetBlocked,
+  recordTokenSpend,
+} from "./shared-llm";
+import {
+  isLlmOpen,
+  recordLlmSuccess,
+  recordLlmFailure,
+} from "./llm-circuit-breaker";
+import { resolveMaxOutputTokens } from "./default-models";
+import { recordLlmOutcome } from "./llm-telemetry";
 
 const https = require("node:https");
 const { URL } = require("node:url");
-const stateStore: any = require("../main/state-store.js");
-const {
-  isOverBudget,
-  todayKey,
-} = require("../main/token-budget.js");
 const {
   PROVIDER_ENDPOINTS,
   ANTHROPIC_VERSION,
@@ -57,6 +64,41 @@ function extractAnthropicTextDelta(dataLine: string): string | null {
   }
 }
 
+function extractOpenAiStreamUsage(line: string): number | null {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("data:")) return null;
+  const data = trimmed.slice(5).trim();
+  if (!data || data === "[DONE]") return null;
+  try {
+    const j = JSON.parse(data);
+    const t = j.usage && j.usage.total_tokens;
+    return typeof t === "number" && t > 0 ? t : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractAnthropicStreamUsage(line: string): number | null {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("data:")) return null;
+  const data = trimmed.slice(5).trim();
+  if (!data) return null;
+  try {
+    const j = JSON.parse(data);
+    if (j.type === "message_start") {
+      const t = j.message && j.message.usage && j.message.usage.input_tokens;
+      return typeof t === "number" && t > 0 ? t : null;
+    }
+    if (j.type === "message_delta") {
+      const t = j.usage && j.usage.output_tokens;
+      return typeof t === "number" && t > 0 ? t : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function postStream(
   url: string,
   headers: Record<string, string>,
@@ -66,8 +108,9 @@ function postStream(
   opts: {
     isAborted?: () => boolean;
     onAbortRegister?: (fn: () => void) => void;
+    parseUsage?: (line: string) => number | null;
   } = {},
-): Promise<string> {
+): Promise<{ text: string; totalTokens: number }> {
   return new Promise((resolve, reject) => {
     if (opts.isAborted?.()) {
       reject(new Error("cancelled"));
@@ -78,6 +121,7 @@ function postStream(
     let fullText = "";
     let sseBuf = "";
     let settled = false;
+    let totalTokens = 0;
 
     const req = https.request(
       {
@@ -122,7 +166,7 @@ function postStream(
             if (!settled) {
               settled = true;
               req.destroy();
-              resolve(fullText);
+              resolve({ text: fullText, totalTokens });
             }
             return;
           }
@@ -135,6 +179,10 @@ function postStream(
               fullText += delta;
               onDelta(delta);
             }
+            if (opts.parseUsage) {
+              const t = opts.parseUsage(line);
+              if (typeof t === "number" && t > 0) totalTokens += t;
+            }
           }
         });
         res.on("end", () => {
@@ -144,8 +192,12 @@ function postStream(
               fullText += delta;
               onDelta(delta);
             }
+            if (opts.parseUsage) {
+              const t = opts.parseUsage(sseBuf);
+              if (typeof t === "number" && t > 0) totalTokens += t;
+            }
           }
-          resolve(fullText);
+          resolve({ text: fullText, totalTokens });
         });
       },
     );
@@ -153,7 +205,7 @@ function postStream(
       if (!settled) {
         settled = true;
         req.destroy();
-        resolve(fullText);
+        resolve({ text: fullText, totalTokens });
       }
     });
     req.on("error", reject);
@@ -175,6 +227,7 @@ export async function chatCompletionStream(
     model?: string;
   } = {},
 ) {
+  const t0 = Date.now();
   if (!Array.isArray(messages) || messages.length === 0) {
     return { ok: false, reason: "empty_messages" };
   }
@@ -185,12 +238,8 @@ export async function chatCompletionStream(
   if (!resolved.ok) {
     return { ok: false, reason: resolved.reason };
   }
-  const cfg = stateStore.loadTokenBudgetConfig();
-  if (cfg.mode === "block" && cfg.dailyLimit > 0) {
-    const spend = stateStore.loadTokenSpend();
-    if (isOverBudget(spend, todayKey(), cfg.dailyLimit)) {
-      return { ok: false, reason: "budget_exceeded" };
-    }
+  if (isBudgetBlocked()) {
+    return { ok: false, reason: "budget_exceeded" };
   }
 
   if (typeof opts.onDelta !== "function") {
@@ -203,6 +252,9 @@ export async function chatCompletionStream(
   if (!ep) {
     return chatCompletion(messages, { model: opts.model });
   }
+  if (isLlmOpen(providerId)) {
+    return { ok: false, reason: "circuit_open" };
+  }
 
   const baseUrl = (
     (resolved.config && resolved.config.baseUrl) ||
@@ -214,7 +266,7 @@ export async function chatCompletionStream(
 
   try {
     if (ep.protocol === "openai") {
-      const text = await postStream(
+      const { text, totalTokens } = await postStream(
         url,
         { Authorization: `Bearer ${apiKey}` },
         {
@@ -222,12 +274,16 @@ export async function chatCompletionStream(
           messages,
           stream: true,
           temperature: 0.3,
-          max_tokens: 8192,
+          max_tokens: resolveMaxOutputTokens(model),
+          stream_options: { include_usage: true },
         },
         opts.onDelta,
         extractOpenAiDelta,
-        opts,
+        { ...opts, parseUsage: extractOpenAiStreamUsage },
       );
+      recordTokenSpend(totalTokens);
+      recordLlmSuccess(providerId);
+      recordLlmOutcome({ t0, providerId, model, ok: true, reason: "ok", totalTokens });
       return { ok: true, text: sanitizeLlmOutput(String(text || "").trim()) };
     }
 
@@ -236,7 +292,7 @@ export async function chatCompletionStream(
       const chatMsgs = messages.filter((m: any) => m.role !== "system");
       const body: Record<string, unknown> = {
         model,
-        max_tokens: 8192,
+        max_tokens: resolveMaxOutputTokens(model),
         temperature: 0.3,
         stream: true,
         messages: chatMsgs,
@@ -244,7 +300,7 @@ export async function chatCompletionStream(
       if (systemMsgs.length > 0) {
         body.system = systemMsgs.map((m: any) => m.content).join("\n\n");
       }
-      const text = await postStream(
+      const { text, totalTokens } = await postStream(
         url,
         {
           "x-api-key": apiKey,
@@ -253,13 +309,18 @@ export async function chatCompletionStream(
         body,
         opts.onDelta,
         extractAnthropicTextDelta,
-        opts,
+        { ...opts, parseUsage: extractAnthropicStreamUsage },
       );
+      recordTokenSpend(totalTokens);
+      recordLlmSuccess(providerId);
+      recordLlmOutcome({ t0, providerId, model, ok: true, reason: "ok", totalTokens });
       return { ok: true, text: sanitizeLlmOutput(String(text || "").trim()) };
     }
 
     return chatCompletion(messages, { model: opts.model });
   } catch (err: any) {
+    recordLlmFailure(providerId);
+    recordLlmOutcome({ t0, providerId, model, ok: false, reason: "llm_failed" });
     return {
       ok: false,
       reason: "llm_failed",

@@ -128,10 +128,54 @@ export function loadThreads(): { threads: ChatThread[]; activeId: string | null 
   return { threads: [thread], activeId: thread.id };
 }
 
+/**
+ * P3-12: 从主进程 state.json 恢复会话 (localStorage 被清/重装时兜底).
+ * 返回 null 表示无备份.
+ */
+export async function restoreThreadsFromMain(): Promise<{
+  threads: ChatThread[];
+  activeId: string | null;
+} | null> {
+  try {
+    const api = (window as any).pulseApi;
+    const r = await api?.assistantThreadsLoad?.();
+    if (r && r.ok && Array.isArray(r.threads) && r.threads.length > 0) {
+      const threads = (r.threads as ChatThread[])
+        .filter((t) => t && typeof t.id === "string")
+        .map((t) => ({
+          id: t.id,
+          title: typeof t.title === "string" ? t.title : "对话",
+          updatedAt: typeof t.updatedAt === "number" ? t.updatedAt : 0,
+          modelMode:
+            t.modelMode === "fast"
+              ? ("fast" as const)
+              : t.modelMode === "custom"
+                ? ("custom" as const)
+                : undefined,
+          modelCustom:
+            typeof t.modelCustom === "string" ? t.modelCustom : undefined,
+          pinned: !!t.pinned,
+          messages: sanitizeMessages(t.messages),
+        }))
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, MAX_THREADS);
+      const activeId =
+        typeof r.activeId === "string" && threads.some((t) => t.id === r.activeId)
+          ? r.activeId
+          : threads[0]?.id || null;
+      return { threads, activeId };
+    }
+  } catch {
+    /* noop */
+  }
+  return null;
+}
+
 export function saveThreads(threads: ChatThread[], activeId: string | null) {
   if (typeof localStorage === "undefined") return;
+  let sorted: ChatThread[] = threads;
   try {
-    const sorted = [...threads]
+    sorted = [...threads]
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, MAX_THREADS);
     localStorage.setItem(
@@ -141,6 +185,13 @@ export function saveThreads(threads: ChatThread[], activeId: string | null) {
     localStorage.removeItem(LEGACY_KEY);
   } catch {
     /* quota */
+  }
+  // P3-12: 备份到主进程 state.json (跨重启/重装更可靠, fire-and-forget)
+  try {
+    const api = (window as any).pulseApi;
+    api?.assistantThreadsSave?.({ threads: sorted, activeId });
+  } catch {
+    /* 备份失败静默, 不影响 localStorage 主路径 */
   }
 }
 

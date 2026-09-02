@@ -326,10 +326,20 @@ export const api = {
   aiChat: (opts: IpcChannelMap["ai:chat"]["args"][0]) =>
     invokeChannel("ai:chat", opts),
   aiChatCancel: () => invokeChannel("ai:chat-cancel"),
+  // P3-12: 助手会话持久化备份 (state.json assistantThreads)
+  assistantThreadsSave: (
+    payload: IpcChannelMap["assistant-threads:save"]["args"][0],
+  ) => invokeChannel("assistant-threads:save", payload),
+  assistantThreadsLoad: () => invokeChannel("assistant-threads:load"),
   onAiChatDelta: (cb: Callback<{ delta: string }>) =>
     subscribe("ai:chat-delta", cb),
   onAiChatStatus: (cb: Callback<{ status: string }>) =>
     subscribe("ai:chat-status", cb),
+  // P3-15: 工具结果即时展示 (渐进式)
+  onAiChatToolResults: (cb: Callback<{ toolResults: unknown }>) =>
+    subscribe("ai:chat-tool-results", cb),
+  // P3-13: 助手多模态 — 当前页面截图 (返回 data:image/png;base64,...)
+  assistantScreenshot: () => invokeChannel("assistant:screenshot"),
 
   // Universal "open URL in system browser" bridge (validated http/https in main process).
   openUrl: (url: IpcChannelMap["open-url:open"]["args"][0]) =>

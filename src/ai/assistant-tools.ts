@@ -639,6 +639,48 @@ export async function executeMainTool(
       const { runQueryConcerts } = require("./assistant-interpret-tools");
       return runQueryConcerts();
     }
+    case "remember_fact": {
+      const { addMemory } = require("./assistant-memory");
+      const fact =
+        typeof action.params.fact === "string" ? action.params.fact.trim() : "";
+      if (!fact) {
+        return { tool: "remember_fact", ok: false, summary: "缺少要记住的内容" };
+      }
+      const item = addMemory(fact);
+      return item
+        ? { tool: "remember_fact", ok: true, summary: `已记住：${item.text}` }
+        : { tool: "remember_fact", ok: false, summary: "未能记住（内容为空）" };
+    }
+    case "forget_fact": {
+      const { removeMemory } = require("./assistant-memory");
+      const removed = removeMemory({
+        id: typeof action.params.id === "string" ? action.params.id : undefined,
+        query:
+          typeof action.params.query === "string" ? action.params.query : undefined,
+        index:
+          typeof action.params.index === "number" ? action.params.index : undefined,
+      });
+      return removed
+        ? { tool: "forget_fact", ok: true, summary: "已删除该条记忆" }
+        : { tool: "forget_fact", ok: false, summary: "未找到匹配的记忆" };
+    }
+    case "list_memory": {
+      const { listMemory } = require("./assistant-memory");
+      const items = listMemory();
+      if (items.length === 0) {
+        return { tool: "list_memory", ok: true, summary: "目前没有任何长期记忆。" };
+      }
+      const lines = items.map((it: any, i: number) => `${i + 1}. ${it.text}`);
+      return {
+        tool: "list_memory",
+        ok: true,
+        summary: `共 ${items.length} 条长期记忆：\n${lines.join("\n")}`,
+        items: items.map((it: any, i: number) => ({
+          label: it.text,
+          meta: `#${i + 1}`,
+        })),
+      };
+    }
     default:
       return { tool: action.tool, ok: false, summary: "未知工具" };
   }

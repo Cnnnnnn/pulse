@@ -2,6 +2,7 @@
  * Function Calling 回合元数据 — 用于 tool_result 回注.
  */
 import type { ToolResult } from "./assistant-tools";
+import { untrustedToolResult } from "./assistant-prompt";
 
 export type FcToolCall = {
   id: string;
@@ -21,7 +22,7 @@ function resultForCall(
 ): string {
   const hit = results.find((r) => r.tool === call.tool);
   const r = hit || results[index];
-  return r?.summary || "无结果";
+  return untrustedToolResult(call.tool, r?.summary);
 }
 
 /**

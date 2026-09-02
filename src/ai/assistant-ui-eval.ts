@@ -338,6 +338,26 @@ export const ASSISTANT_UI_EVAL_CASES: AssistantUiEvalCase[] = [
   },
 ];
 
+/** P2-9: 格式化 eval 报告 (含失败详情 + tag 覆盖率), 供诊断/报告脚本用 */
+export function formatUiEvalReport(report: UiEvalReport): string {
+  const lines: string[] = [`UI eval: ${report.passed}/${report.total} passed`];
+  const failures = report.results.filter((r) => !r.pass);
+  if (failures.length > 0) {
+    lines.push(`失败 ${failures.length} 条:`);
+    for (const r of failures) {
+      lines.push(
+        `  - ${r.id}: expected ${JSON.stringify(r.expected)} got ${JSON.stringify(r.actual)}`,
+      );
+    }
+  }
+  const tags = new Set<string>();
+  for (const c of ASSISTANT_UI_EVAL_CASES) {
+    for (const t of c.tags ?? []) tags.add(t);
+  }
+  lines.push(`tags(${tags.size}): ${[...tags].sort().join(", ")}`);
+  return lines.join("\n");
+}
+
 /** 模型声称已跳转但无 UI tool — 应触发兜底推断 */
 export function inferFromClaimedAssistantText(
   userText: string,

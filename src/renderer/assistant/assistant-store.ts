@@ -42,6 +42,7 @@ import {
   touchThread,
   normalizeThreadTitle,
   titleFromMessages,
+  restoreThreadsFromMain,
   type ChatThread,
 } from "./chat-threads.ts";
 import { messagesToMarkdown, copyTextToClipboard, downloadChatMarkdown, messagesForShare, sanitizeExportFilename, type ShareMessagesOptions } from "./chat-export.ts";
@@ -152,6 +153,18 @@ export function hydrateChatHistory() {
   activeThreadId.value = activeId;
   const active = threads.find((t) => t.id === activeId);
   chatMessages.value = active?.messages || [];
+  // P3-12: localStorage 无有效会话时, 从主进程持久层恢复 (跨重启/重装兜底)
+  if (threads.every((t) => t.messages.length === 0)) {
+    void restoreThreadsFromMain().then((restored) => {
+      if (!restored || restored.threads.length === 0) return;
+      chatThreads.value = restored.threads;
+      activeThreadId.value = restored.activeId;
+      const activeRestored = restored.threads.find(
+        (t) => t.id === restored.activeId,
+      );
+      chatMessages.value = activeRestored?.messages || [];
+    });
+  }
 }
 
 export function refreshProactiveState() {
@@ -812,6 +825,7 @@ export async function sendChatMessage(
 
   let unsubDelta: (() => void) | null = null;
   let unsubStatus: (() => void) | null = null;
+  let unsubToolResults: (() => void) | null = null;
   if (typeof api.onAiChatDelta === "function") {
     unsubDelta = api.onAiChatDelta((payload) => {
       if (!payload || typeof payload.delta !== "string") return;
@@ -830,6 +844,27 @@ export async function sendChatMessage(
       if (!chatStreaming.value) {
         chatStatus.value = payload.status;
       }
+    });
+  }
+  // P3-15: 工具结果即时展示 (渐进式, 不等综合回复)
+  if (typeof api.onAiChatToolResults === "function") {
+    unsubToolResults = api.onAiChatToolResults((payload) => {
+      const results = (payload && (payload as { toolResults?: unknown }).toolResults) || [];
+      if (!Array.isArray(results) || results.length === 0) return;
+      const cards = results
+        .filter((t) => t && typeof (t as { tool?: unknown }).tool === "string")
+        .map((t) => {
+          const row = t as { tool: string; summary?: string; items?: unknown };
+          return {
+            tool: row.tool,
+            summary: typeof row.summary === "string" ? row.summary : "",
+            items: row.items as never,
+          };
+        });
+      if (cards.length === 0) return;
+      chatMessages.value = chatMessages.value.map((m, idx) =>
+        idx === assistantIndex ? { ...m, toolCards: cards } : m,
+      );
     });
   }
 
@@ -935,6 +970,7 @@ export async function sendChatMessage(
   } finally {
     if (unsubDelta) unsubDelta();
     if (unsubStatus) unsubStatus();
+    if (unsubToolResults) unsubToolResults();
     chatLoading.value = false;
     chatStreaming.value = false;
     chatStatus.value = null;

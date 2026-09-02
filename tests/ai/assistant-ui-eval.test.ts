@@ -8,6 +8,7 @@ import {
   inferFromClaimedAssistantText,
   runAssistantUiEval,
   runUiEvalCase,
+  formatUiEvalReport,
 } from "../../src/ai/assistant-ui-eval";
 import { PULSE_URI_CHEATSHEET } from "../../src/shared/pulse-href";
 
@@ -49,6 +50,26 @@ describe("assistant-ui-eval golden cases", () => {
     const p = analyzeUiActionPipeline("打开应用列表", []);
     expect(p.inferFallback).toBe(true);
     expect(p.finalUi).toEqual({ tool: "navigate", params: { nav: "versions" } });
+  });
+
+  it("formatUiEvalReport 输出通过数与 tag 覆盖", () => {
+    const report = runAssistantUiEval();
+    const text = formatUiEvalReport(report);
+    expect(text).toContain("passed");
+    expect(text).toContain("tags(");
+    expect(text).not.toContain("失败");
+  });
+
+  it("formatUiEvalReport 输出失败详情", () => {
+    const report = runAssistantUiEval([
+      {
+        id: "should-fail",
+        userText: "你好",
+        expect: { tool: "navigate", params: { nav: "movies" } },
+      },
+    ]);
+    const text = formatUiEvalReport(report);
+    expect(text).toContain("失败 1 条");
   });
 });
 

@@ -8,6 +8,12 @@
 import { sanitizeLlmOutput } from "./sanitize-llm-output";
 import { DEFAULT_MODELS } from "./default-models";
 import { CloudSummarizer } from "../ai-sessions/provider-cloud";
+import {
+  isLlmOpen,
+  recordLlmSuccess,
+  recordLlmFailure,
+} from "./llm-circuit-breaker";
+import { recordLlmCall } from "./llm-telemetry";
 // ponytail: main/{http-client,state-store,token-budget}.js 是 Phase 3 5 例外 (CJS
 // module.exports, 7a-6 才 ESM-ify). 保留 require() 让 TS 把 module 整体当 any,
 // 跑通 ESM-import 不到的 CJS 模块. 等 7a-6 完成再换成 named import.
@@ -87,11 +93,67 @@ export function resolveSharedAiConfig() {
 }
 
 /**
+ * token 预算前置拦截 (block 模式) — 超限时不消耗 token.
+ * 共享 / 流式 / FC 各路径统一走这里, 避免 FC 路径绕过预算.
+ */
+export function isBudgetBlocked(): boolean {
+  try {
+    const cfg = stateStore.loadTokenBudgetConfig();
+    if (cfg && cfg.mode === "block" && cfg.dailyLimit > 0) {
+      const spend = stateStore.loadTokenSpend();
+      return isOverBudget(spend, todayKey(), cfg.dailyLimit);
+    }
+  } catch {
+    /* 读预算失败不拦截 */
+  }
+  return false;
+}
+
+/**
+ * 归一各协议响应里的 token usage 总数.
+ * - openai 兼容: usage.total_tokens
+ * - anthropic: usage.input_tokens + usage.output_tokens
+ * @returns number | null (拿不到时 null, 由调用方静默跳过)
+ */
+export function extractUsageTotalTokens(parsed: any, protocol: string): number | null {
+  if (!parsed || typeof parsed !== "object") return null;
+  const usage = parsed.usage;
+  if (!usage || typeof usage !== "object") return null;
+  if (protocol === "anthropic") {
+    const input = typeof usage.input_tokens === "number" ? usage.input_tokens : 0;
+    const output = typeof usage.output_tokens === "number" ? usage.output_tokens : 0;
+    if (input <= 0 && output <= 0) return null;
+    return input + output;
+  }
+  const total = usage.total_tokens;
+  return typeof total === "number" && total > 0 ? total : null;
+}
+
+/**
+ * 统一 token 记账出口 — 共享 / 流式 / FC 各成功路径都累计每日用量.
+ * 失败静默 (预算统计不影响主流程).
+ */
+export function recordTokenSpend(totalTokens: unknown): void {
+  if (typeof totalTokens !== "number" || !Number.isFinite(totalTokens) || totalTokens <= 0) {
+    return;
+  }
+  try {
+    const dayKey = todayKey();
+    const spend = stateStore.loadTokenSpend();
+    const next = pruneDays(addSpend(spend, dayKey, totalTokens));
+    stateStore.saveTokenSpend(next);
+  } catch {
+    /* 预算统计失败不影响主流程 */
+  }
+}
+
+/**
  * @param {Array<{role: string, content: string}>} messages
  * @param {object} [opts]
  * @returns {Promise<{ ok: boolean, text?: string, reason?: string }>}
  */
 export async function chatCompletion(messages: any, opts: any = {}) {
+  const t0 = Date.now();
   if (!Array.isArray(messages) || messages.length === 0) {
     return { ok: false, reason: "empty_messages" };
   }
@@ -100,21 +162,22 @@ export async function chatCompletion(messages: any, opts: any = {}) {
     return { ok: false, reason: resolved.reason };
   }
   // P71: block 模式预算检查 — 超限直接拦截, 不消耗 token
-  const cfg = stateStore.loadTokenBudgetConfig();
-  if (cfg.mode === "block" && cfg.dailyLimit > 0) {
-    const spend = stateStore.loadTokenSpend();
-    if (isOverBudget(spend, todayKey(), cfg.dailyLimit)) {
-      return { ok: false, reason: "budget_exceeded" };
-    }
+  if (isBudgetBlocked()) {
+    return { ok: false, reason: "budget_exceeded" };
+  }
+  // P1-5: provider 熔断 — open 时短路, 不打 provider
+  if (isLlmOpen(resolved.providerId as string)) {
+    return { ok: false, reason: "circuit_open" };
   }
 
   const httpClient = opts.httpClient || _getHttp();
   const summarizer = opts.impl || new CloudSummarizer();
+  const model = opts.model || resolved.model;
   try {
     const result = await summarizer.summarize({
       messages,
       provider: resolved.providerId,
-      model: opts.model || resolved.model,
+      model,
       config: resolved.config,
       httpClient,
     });
@@ -122,21 +185,33 @@ export async function chatCompletion(messages: any, opts: any = {}) {
     const text = typeof result === "string" ? result : (result && result.content);
     const usage = result && typeof result === "object" ? result.usage : null;
     // P71: 累计 token 消耗 (warn/block 都记, 供 UI 显示 + 后续拦截判断)
-    if (usage && typeof usage.total_tokens === "number") {
-      try {
-        const dayKey = todayKey();
-        const spend = stateStore.loadTokenSpend();
-        const next = pruneDays(addSpend(spend, dayKey, usage.total_tokens));
-        stateStore.saveTokenSpend(next);
-      } catch {
-        /* 预算统计失败不影响主流程 */
-      }
-    }
+    recordTokenSpend(usage && usage.total_tokens);
+    recordLlmSuccess(resolved.providerId as string);
+    // P2-10: 埋点 (延迟/成本/结果归因)
+    recordLlmCall({
+      ts: t0,
+      providerId: resolved.providerId as string,
+      model: model as string,
+      latencyMs: Date.now() - t0,
+      totalTokens:
+        usage && typeof usage.total_tokens === "number" ? usage.total_tokens : undefined,
+      reason: "ok",
+      ok: true,
+    });
     return {
       ok: true,
       text: sanitizeLlmOutput(String(text || "").trim()),
     };
   } catch (err: any) {
+    recordLlmFailure(resolved.providerId as string);
+    recordLlmCall({
+      ts: t0,
+      providerId: resolved.providerId as string,
+      model: model as string,
+      latencyMs: Date.now() - t0,
+      reason: "llm_failed",
+      ok: false,
+    });
     return { ok: false, reason: "llm_failed", error: err && err.message };
   }
 }
@@ -149,4 +224,7 @@ module.exports = {
   SUPPORTED_PROVIDERS,
   resolveSharedAiConfig,
   chatCompletion,
+  isBudgetBlocked,
+  extractUsageTotalTokens,
+  recordTokenSpend,
 };
