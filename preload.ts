@@ -64,6 +64,7 @@ import type {
   RemindersApiContract,
   StocksApiContract,
   SelfUpdateApiContract,
+  SelfUpdateState,
   SearchApiContract,
   PulseTrayApiContract,
   ThemeControlApiContract,
@@ -543,6 +544,8 @@ export const api = {
   selfUpdateGetState: () => invokeChannel("self-update:get-state"),
   selfUpdateCheck: () => invokeChannel("self-update:check"),
   selfUpdateInstall: () => invokeChannel("self-update:install"),
+  onSelfUpdateState: (cb: Callback<SelfUpdateState>) =>
+    subscribe("self-update:state", cb),
 
   // 选股分析 (阶段一): 筛选 + 搜索
   stocksScreen: (payload: IpcChannelMap["stocks:screen"]["args"][0]) =>

@@ -278,6 +278,7 @@ export function createApi(overrides: Record<string, any> = {}): RendererApi {
     selfUpdateGetState: pick(overrides, "selfUpdateGetState"),
     selfUpdateCheck: pick(overrides, "selfUpdateCheck"),
     selfUpdateInstall: pick(overrides, "selfUpdateInstall"),
+    onSelfUpdateState: pick(overrides, "onSelfUpdateState"),
     // ON: release notes onboarding (nested, 跟 spec §3.4 + preload 一致).
     // preload 暴露 window.api.releaseNotes = { getCurrent, getVersion, markSeen },
     // 这里从 window.api.releaseNotes 整块取; 测试 overrides 时传 releaseNotes 子对象.

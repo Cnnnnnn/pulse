@@ -398,12 +398,16 @@ describe("dist/preload.js ↔ api.js IPC surface contract", () => {
     await api.selfUpdateGetState();
     await api.selfUpdateCheck();
     await api.selfUpdateInstall();
+    const unsubscribe = api.onSelfUpdateState(() => {});
 
     expect(invokeCalls.map(([channel]) => channel)).toEqual([
       "self-update:get-state",
       "self-update:check",
       "self-update:install",
     ]);
+    expect(eventBindings.map(([channel]) => channel)).toEqual(["self-update:state"]);
+    unsubscribe();
+    expect(removeListenerCalls.map(([channel]) => channel)).toEqual(["self-update:state"]);
   });
 
   it("AI Prompt bridge 覆盖 load、save、reset 与更新订阅", async () => {

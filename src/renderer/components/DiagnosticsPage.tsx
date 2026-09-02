@@ -94,9 +94,18 @@ export function DiagnosticsPage() {
     };
     pull();
     const interval = setInterval(pull, 2000);
+    const unsubscribe =
+      typeof api.onSelfUpdateState === "function"
+        ? api.onSelfUpdateState((state) => {
+            if (!cancelled && state && typeof state === "object") {
+              setUpdateState(state);
+            }
+          })
+        : undefined;
     return () => {
       cancelled = true;
       clearInterval(interval);
+      if (typeof unsubscribe === "function") unsubscribe();
     };
   }, []);
 

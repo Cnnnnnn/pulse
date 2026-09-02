@@ -236,6 +236,7 @@ export interface SelfUpdateApiContract {
   selfUpdateGetState(): Promise<SelfUpdateGetStateResponse>;
   selfUpdateCheck(): Promise<SelfUpdateActionResponse>;
   selfUpdateInstall(): Promise<SelfUpdateActionResponse>;
+  onSelfUpdateState(cb: Callback<SelfUpdateState>): Unsubscribe;
 }
 
 export interface AppInfoApiContract {

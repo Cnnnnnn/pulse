@@ -606,8 +606,17 @@ function PulseAboutSection() {
     };
     loadVersion();
     refreshUpdateState();
+    const unsubscribe =
+      typeof window.api.onSelfUpdateState === "function"
+        ? window.api.onSelfUpdateState((state) => {
+            if (!cancelled && state && typeof state === "object") {
+              setUpdateState(state);
+            }
+          })
+        : undefined;
     return () => {
       cancelled = true;
+      if (typeof unsubscribe === "function") unsubscribe();
     };
   }, []);
 
@@ -641,13 +650,19 @@ function PulseAboutSection() {
 
   const updateSummary = !updateState
     ? "正在读取更新状态…"
-    : updateState.available && updateState.version
-      ? `发现新版本 v${updateState.version}`
-      : updateState.status === "error"
-        ? `检查失败：${updateState.error || "未知错误"}`
-        : updateState.lastCheckedAt
-          ? `当前已是最新 · ${_humanizeTs(updateState.lastCheckedAt)}`
-          : "尚未检查";
+    : updateState.status === "checking"
+      ? "正在检查新版本…"
+      : updateState.status === "downloading" && updateState.version
+        ? `下载中 ${updateState.downloadPercent}% · v${updateState.version}`
+        : updateState.status === "downloaded" && updateState.version
+          ? `已下载 v${updateState.version} · 可以安装`
+          : updateState.status === "error"
+            ? `检查失败：${updateState.error || "未知错误"}`
+            : updateState.available && updateState.version
+              ? `发现新版本 v${updateState.version}`
+              : updateState.lastCheckedAt
+                ? `当前已是最新 · ${_humanizeTs(updateState.lastCheckedAt)}`
+                : "尚未检查";
 
   return (
     <section class="settings-group settings-group--about" aria-labelledby="settings-about-title">

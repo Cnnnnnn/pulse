@@ -172,7 +172,10 @@ function initSelfUpdateTimer(ctx: any) {
       },
       logSkip: (reason: any) =>
         mainLog.info(`[self-update] 6h tick skipped (${reason})`),
-      onStateChange: pushSelfUpdateToTray,
+      onStateChange: (state: any) => {
+        pushSelfUpdateToTray(state);
+        sendToRenderer("self-update:state", state);
+      },
     });
   } catch (err: any) {
     mainLog.warn(`[self-update] bootstrap failed: ${errMsg(err)}`);
