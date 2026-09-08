@@ -16,12 +16,16 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      # pnpm 必须在 setup-node 之前装好：`cache: pnpm` 会执行 `pnpm store path`。
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
       - uses: actions/setup-node@v4
         with:
           # Vite/Rolldown 与 electron-rebuild 当前要求 Node >=22.12；
           # 固定到已验证的 LTS 版本，避免 optional native binding 缺失。
           node-version: 22.23.2
-          cache: npm
+          cache: pnpm
       - run: npm install -g npm@10.9.8
       - name: Override registry to public npm
         # lockfile 里 250 处 resolved 指向 nexus.npt.seabank.io (公司私有
@@ -37,9 +41,8 @@ jobs:
       - name: Install deps
         # npm 在 GitHub runner 的 lifecycle 阶段会偶发 "Exit handler never
         # called!"；pnpm 搭配已提交的锁文件可稳定安装各平台 native binding。
-        run: |
-          npm install -g pnpm@9.15.9
-          pnpm install --frozen-lockfile --reporter=append-only
+        # pnpm 由 pnpm/action-setup 提供，这里不再全局安装。
+        run: pnpm install --frozen-lockfile --reporter=append-only
       - run: pnpm run test -- --run --watch=false
       - run: npm run build:renderer
       - name: Build macOS (electron-builder)
@@ -63,12 +66,16 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      # pnpm 必须在 setup-node 之前装好：`cache: pnpm` 会执行 `pnpm store path`。
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
       - uses: actions/setup-node@v4
         with:
           # Vite/Rolldown 与 electron-rebuild 当前要求 Node >=22.12；
           # 固定到已验证的 LTS 版本，避免 optional native binding 缺失。
           node-version: 22.23.2
-          cache: npm
+          cache: pnpm
       - run: npm install -g npm@10.9.8
       - name: Override registry to public npm
         # lockfile 里 250 处 resolved 指向 nexus.npt.seabank.io (公司私有
@@ -90,9 +97,8 @@ jobs:
       - name: Install deps
         # npm 在 GitHub runner 的 lifecycle 阶段会偶发 "Exit handler never
         # called!"；pnpm 搭配已提交的锁文件可稳定安装各平台 native binding。
-        run: |
-          npm install -g pnpm@9.15.9
-          pnpm install --frozen-lockfile --reporter=append-only
+        # pnpm 由 pnpm/action-setup 提供，这里不再全局安装。
+        run: pnpm install --frozen-lockfile --reporter=append-only
       - run: pnpm run test -- --run --watch=false
       - run: npm run build:renderer
       - name: Build Windows (electron-builder NSIS)

@@ -2,6 +2,10 @@
 node_modules/
 .pnp/
 .pnp.js
+# 单一 lockfile：本仓库用 pnpm（CI + release 都是 `pnpm install --frozen-lockfile`）。
+# package-lock.json 不再入库，避免两套锁文件解析出不同依赖树（Dependabot/npm audit/
+# pnpm audit 曾报出 10 / 2 / 5 三个不同结果）。
+package-lock.json
 
 # codegraph local cache (index db + daemon socket)
 .codegraph/
