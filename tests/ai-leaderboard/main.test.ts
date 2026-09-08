@@ -20,6 +20,8 @@ const { requireMain, requirePlatform, mainArtifactPath, platformArtifactPath } =
 const {
   getLeaderboard,
   matchesCategory,
+  __resetInflightForTest: resetInflight,
+  onRawRefreshed,
 } = requireMain("ai-leaderboard/aggregator");
 const { sortModels, filterByVendor, filterBySearch } = requireMain("ai-leaderboard/ranking");
 const {
@@ -33,7 +35,7 @@ const {
   resetLimiter,
   AA_DAILY_LIMIT,
 } = requireMain("ai-leaderboard/rate-limiter");
-const { __resetForTest: resetCache, cacheKey, writeCache } = requireMain("ai-leaderboard/cache");
+const { __resetForTest: resetCache, cacheKey, writeCache, __seedForTest: seedCache } = requireMain("ai-leaderboard/cache");
 const arenaFetcher = requireMain("ai-leaderboard/fetcher-arena");
 const aaFetcher = requireMain("ai-leaderboard/fetcher-aa");
 const { sanitize, boardCacheKey, cacheGet, cacheSet, resetLeaderboardCache } =
@@ -142,6 +144,7 @@ const ALL_FAIL = [
 beforeEach(() => {
   resetLimiter();
   resetCache(); // 清空进程内磁盘缓存（force:true 失败兜底仍会读 _memCache）
+  resetInflight(); // 清空 aggregator in-flight 去重表（SWR 用例会遗留挂起 fetch）
 });
 
 afterEach(() => {
@@ -981,5 +984,53 @@ describe("aggregator: errors 收集", () => {
       expect(typeof e.message).toBe("string");
       expect(typeof e.ts).toBe("string");
     }
+  });
+});
+
+// ── stale-while-revalidate + in-flight 去重（2026-09 上游挂起加固）──────────────
+describe("stale-while-revalidate 与 in-flight 去重", () => {
+  it("过期缓存非 force 立即返回（SWR）：fetch 挂起也不阻塞，stale=true", async () => {
+    // 预填「已过期」的 Arena 磁盘缓存（25h 前 > 24h TTL）
+    const staleTs = Date.now() - 25 * 60 * 60 * 1000;
+    seedCache(cacheKey("arena", "all-v11"), { boards: { text: ARENA_PAYLOAD } }, staleTs);
+    // datasets-server 永挂起 — 若实现仍阻塞等 fetch，本用例会超时失败
+    vi.stubGlobal("fetch", (url: any) => {
+      const u = String(url);
+      if (u.includes("datasets-server")) return new Promise(() => {});
+      return Promise.resolve({ ok: false, status: 599, json: async () => ({}) });
+    });
+    const res = await getLeaderboard({ category: "llm", dimension: "elo", force: false });
+    expect(res.ok).toBe(true);
+    expect(res.stale).toBe(true);
+    const m = res.items.find((it) => it.id === "openai-gpt-4o");
+    expect(m).toBeTruthy();
+    expect(m.arena.text.score).toBe(1400); // 数据来自过期缓存
+  });
+
+  it("in-flight 去重：并发两次 getLeaderboard 共享同一次 arena fetch", async () => {
+    vi.stubGlobal("fetch", makeFetchMock(ALL_LIVE));
+    const spy = vi.spyOn(arenaFetcher, "fetch");
+    await Promise.all([
+      getLeaderboard({ category: "llm", dimension: "elo", force: false }),
+      getLeaderboard({ category: "llm", dimension: "elo", force: false }),
+    ]);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("raw 刷新完成事件（SWR 推送链路）", () => {
+  it("源刷新成功 → onRawRefreshed 携 source 触发；取消订阅后不再触发", async () => {
+    const events: string[] = [];
+    const off = onRawRefreshed((source: string) => events.push(source));
+    vi.stubGlobal("fetch", makeFetchMock(ALL_LIVE));
+    await getLeaderboard({ category: "llm", dimension: "elo", force: false });
+    off();
+    expect(events).toContain("arena");
+    expect(events).toContain("openrouter");
+
+    // 取消订阅后不再触发
+    const countBefore = events.length;
+    await getLeaderboard({ category: "llm", dimension: "elo", force: true });
+    expect(events.length).toBe(countBefore);
   });
 });

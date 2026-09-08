@@ -3,6 +3,7 @@
  *
  * 主源2：Artificial Analysis（客观分 + 价格 + 速度）。
  * 官方 Free API（x-api-key 头，1000/天限流，强制署名）。
+ * key 解析链见 aa-key.ts：vault > env > .env（打包版 cwd 无 .env，必须 vault）。
  * 无 key 时走官方 API 会 401；全失败 → {ok:false}（aggregator 兜底链接管）。
  *
  * 单源失败不影响其它源；本 fetcher 内部 try/catch，失败仅返回 {ok:false}。
@@ -11,6 +12,7 @@
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
 import { logFetchError } from "./log";
+import { loadAaApiKey } from "./aa-key";
 
 /** 取首个有限数值, 否则返回默认. ponytail: 3 fetcher 各 1 份, 不抽 (esbuild 编译陷阱). */
 function num(v: any, d: number = 0): number {
@@ -22,46 +24,8 @@ const AA_API = "https://artificialanalysis.ai/api/v2/language/models/free";
 /** ponytail: 翻页安全上限 — Free 日配额 1000；24h TTL 下一天通常只打一轮。 */
 const AA_MAX_PAGES = 20;
 
-let _envLoaded = false;
-let _aaKey: string | undefined = undefined; // undefined = 尚未探测
-
-/**
- * 极简 .env 加载器：
- * 仅当进程尚未有 ARTIFICIAL_ANALYSIS_API_KEY 时，从 process.cwd()/.env 读取。
- */
 function loadAaKey(): string | undefined {
-  if (_envLoaded) return _aaKey;
-  _envLoaded = true;
-  if (process.env.ARTIFICIAL_ANALYSIS_API_KEY) {
-    _aaKey = process.env.ARTIFICIAL_ANALYSIS_API_KEY;
-    return _aaKey;
-  }
-  try {
-    const fs = require("fs");
-    const path = require("path");
-    const envPath = path.join(process.cwd(), ".env");
-    if (!fs.existsSync(envPath)) return _aaKey;
-    const txt = fs.readFileSync(envPath, "utf8");
-    for (const line of txt.split("\n")) {
-      const m = line.match(/^\s*ARTIFICIAL_ANALYSIS_API_KEY\s*=\s*(.+?)\s*$/);
-      if (m) {
-        let v = m[1].trim();
-        if (
-          (v.startsWith('"') && v.endsWith('"')) ||
-          (v.startsWith("'") && v.endsWith("'"))
-        ) {
-          v = v.slice(1, -1);
-        }
-        if (v) {
-          _aaKey = v;
-          break;
-        }
-      }
-    }
-  } catch (err: any) {
-    logFetchError("aa:env", err);
-  }
-  return _aaKey;
+  return loadAaApiKey() || undefined;
 }
 
 /** 从 evaluations 对象按候选键取首个有限数值（兼容不同字段命名）。 */

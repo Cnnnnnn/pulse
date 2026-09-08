@@ -32,6 +32,7 @@ vi.mock("../../src/main/ai-leaderboard/normalize", () => ({
 }));
 
 import { hfRowToModel, fetchOneBoardHf } from "../../src/main/ai-leaderboard/fetcher-arena.ts";
+import { fetchJson } from "../../src/main/ai-leaderboard/normalize";
 
 beforeEach(() => {
   for (const k of Object.keys(hfPages)) delete hfPages[k];
@@ -63,7 +64,7 @@ describe("hfRowToModel", () => {
 });
 
 describe("fetchOneBoardHf", () => {
-  it("text：6 个 category 子榜合并成 categories map（top-level = overall）", async () => {
+  it("text：9 个 category 子榜合并成 categories map（top-level = overall）", async () => {
     // overall 与 coding 给不同分数，验证合并 + overall 占顶层
     hfPages["text_style_control|overall"] = [
       { model_name: "claude-fable-5", organization: "anthropic", license: "Proprietary", rating: 1507.3, rating_lower: 1500.9, rating_upper: 1513.7, vote_count: 14646, rank: 1, category: "overall", leaderboard_publish_date: "2026-07-21" },
@@ -72,7 +73,7 @@ describe("fetchOneBoardHf", () => {
     hfPages["text_style_control|coding"] = [
       { model_name: "claude-fable-5", organization: "anthropic", license: "Proprietary", rating: 1553.0, rating_lower: 1543.0, rating_upper: 1563.0, vote_count: 3992, rank: 1, category: "coding", leaderboard_publish_date: "2026-07-21" },
     ];
-    // 其余 4 个 category 留空（mock 返回 []）→ 验证缺失 category 不崩
+    // 其余 7 个 category 留空（mock 返回 []）→ 验证缺失 category 不崩
     const res = await fetchOneBoardHf("text");
     expect(res).toBeTruthy();
     expect(res.meta.leaderboard).toBe("text");
@@ -136,5 +137,12 @@ describe("fetchOneBoardHf", () => {
   it("未知 board / 空 config → 返回 null（走快照兜底）", async () => {
     const res = await fetchOneBoardHf("nope-board");
     expect(res).toBeNull();
+  });
+
+  it("deadline 已过 → 零请求立即返回 null（HF 阶段总预算兜底，落快照）", async () => {
+    (fetchJson as any).mockClear();
+    const res = await fetchOneBoardHf("text", undefined, Date.now() - 1000);
+    expect(res).toBeNull();
+    expect((fetchJson as any).mock.calls.length).toBe(0);
   });
 });

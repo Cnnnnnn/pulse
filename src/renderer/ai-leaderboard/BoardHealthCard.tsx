@@ -45,6 +45,8 @@ export function BoardHealthCard({ total, items, compact = false }) {
     : null;
   const isSampleValue = isSample.value;
   const errors = Array.isArray(lastFetchErrors.value) ? lastFetchErrors.value : [];
+  // AA 401 = 未配 key（非网络故障）→ 给出可操作的配置引导，而不是笼统的"请求失败"
+  const aaMissingKey = errors.some((e) => e && e.source === "aa" && /401/.test(String(e.message || "")));
   // ponytail: rateBudget 信号默认 {}，消费端 cast 出 AA 预算字段
   const aaBudget = (rateBudget.value || {}) as { used?: number; limit?: number };
   const aaUsedPct = aaBudget && Number.isFinite(aaBudget.limit) && (aaBudget.limit as number) > 0
@@ -136,6 +138,12 @@ export function BoardHealthCard({ total, items, compact = false }) {
               {SOURCE_LABELS[e.source] || e.source}: {e.message}
             </span>
           ))}
+          {aaMissingKey && (
+            <span class="ai-lb-health__hint" role="note">
+              AA 需要API Key：在密钥库添加条目「artificial-analysis」，或在 .env 配置
+              ARTIFICIAL_ANALYSIS_API_KEY（Free tier 免费）
+            </span>
+          )}
         </div>
       )}
       {aaBudget && Number.isFinite(aaBudget.limit) && (

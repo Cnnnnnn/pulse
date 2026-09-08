@@ -14,6 +14,7 @@
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
 import { logFetchError } from "./log";
+import { loadHfToken } from "./hf-token";
 
 // 主端点（社区维护的 Arena 快照聚合，path 前缀是 /arena-ai-leaderboards/）
 const ARENA_BASE = "https://api.wulong.dev/arena-ai-leaderboards/v1/leaderboard";
@@ -25,6 +26,11 @@ const BOARDS = [
   // ponytail: arena.ai 现网 11 个 arena 全量接入 (v2.8x)
   "agent", "document", "search", "image-edit", "image-to-video", "video-edit",
 ];
+
+/** HF 阶段总预算：到期未完成的 board 直接走 wulong 快照。
+ *  datasets-server 对匿名 /filter 会间歇挂起 45s+（2026-09 实测），无预算时单 board
+ *  可拖数分钟、renderer 120s 超时先到 → UI 空转。90s 硬上限 + 快照 1-2s ≈ 95s 必出数据。 */
+const ARENA_HF_BUDGET_MS = 90 * 1000;
 
 // board → 模型大类（用于给合并后的模型标注 category 提示）
 const BOARD_TO_CATEGORY: Record<string, string> = {
@@ -114,8 +120,10 @@ const AGENT_HF_CONFIGS: { config: string; dim: string }[] = [
 ];
 
 // Text 榜 category 子榜（arena.ai 文本大类下的子排行榜）。overall 为默认；其余按需拉取合并成 categories map。
+// 2026-09 实测 text_style_control 现有 9 个 category；旧 "hard" 已被上游改名 "hard_prompts"。
 const TEXT_CATEGORY_KEYS = [
-  "overall", "coding", "math", "hard", "instruction_following", "non_english",
+  "overall", "coding", "math", "hard_prompts", "creative_writing",
+  "longer_query", "multi_turn", "instruction_following", "non_english",
 ];
 
 // Code 榜 category 子榜（arena.ai Code 大类下：WebDev + Image-to-WebDev）。
@@ -123,15 +131,28 @@ const CODE_CATEGORY_KEYS = [
   "overall", "image_to_webdev",
 ];
 
-/** 拉一个 HF config 的全部行（/filter category=<category>，分页 length=100）。 */
-async function fetchHfConfig(config: string, category = "overall", timeoutMs = 8000): Promise<any[]> {
-  const headers = { "User-Agent": BROWSER_UA, Accept: "application/json" };
+/** 拉一个 HF config 的全部行（/filter category=<category>，分页 length=100）。
+ *  ponytail: 默认超时 20s — datasets-server 对冷 (config,category) 首查要现场建索引，
+ *  经常 >8s（实测同 URL 冷 8s+ / 热 <3s）；8s 会误杀后靠重试+快照兜底拖慢整轮。
+ *  deadline: 整个 Arena HF 阶段的截止时间（ms epoch），到期立即抛错 → board 落快照；
+ *  单页超时也会夹到剩余预算内，避免最后一页把总时长拖穿。 */
+async function fetchHfConfig(config: string, category = "overall", timeoutMs = 20000, deadline?: number): Promise<any[]> {
+  // 可选 HF token（vault > env > .env）— datasets-server 匿名限流严格，带 token 额度显著放大
+  const hfToken = loadHfToken();
+  const headers: Record<string, string> = { "User-Agent": BROWSER_UA, Accept: "application/json" };
+  if (hfToken) headers.Authorization = `Bearer ${hfToken}`;
   const where = encodeURIComponent(`"category"='${category}'`);
   const out: any[] = [];
   let offset = 0;
   for (let page = 0; page < 5; page++) {
+    if (deadline != null && Date.now() >= deadline) {
+      throw new Error(`arena-hf: budget exhausted (${config}/${category})`);
+    }
+    const pageTimeout = deadline != null
+      ? Math.max(3000, Math.min(timeoutMs, deadline - Date.now()))
+      : timeoutMs;
     const url = `${HF_SERVER}/filter?dataset=${encodeURIComponent(HF_DATASET)}&config=${encodeURIComponent(config)}&split=latest&where=${where}&offset=${offset}&length=100`;
-    const d = await fetchJson(url, { timeoutMs, headers });
+    const d = await fetchJson(url, { timeoutMs: pageTimeout, headers });
     const rows = Array.isArray(d && d.rows) ? d.rows.map((r: any) => r.row) : [];
     out.push(...rows);
     const total = Number(d && d.num_rows_total) || 0;
@@ -161,14 +182,14 @@ export function hfRowToModel(row: any, agentStyle: boolean): any {
 }
 
 /** HF 主源拉一个 board（agent 合并 6 config 成 scores[]）。失败返回 null → 走快照兜底。 */
-export async function fetchOneBoardHf(board: string, timeoutMs?: number): Promise<any | null> {
+export async function fetchOneBoardHf(board: string, timeoutMs?: number, deadline?: number): Promise<any | null> {
   try {
     if (board === "agent") {
       // 拉 6 个 config，按 model_name 合并成 scores[]（顺序对齐 AGENT_DIMENSIONS）
       const models = new Map<string, any>();
       let lastUpdated = "";
       for (const { config, dim } of AGENT_HF_CONFIGS) {
-        const rows = await fetchHfConfig(config, "overall", timeoutMs);
+        const rows = await fetchHfConfig(config, "overall", timeoutMs, deadline);
         for (const row of rows) {
           const m = hfRowToModel(row, true);
           if (!m) continue;
@@ -200,7 +221,7 @@ export async function fetchOneBoardHf(board: string, timeoutMs?: number): Promis
       const models = new Map<string, any>();
       let lastUpdated = "";
       await mapWithConcurrency(TEXT_CATEGORY_KEYS, 3, async (cat: string) => {
-        const rows = await fetchHfConfig(config, cat, timeoutMs);
+        const rows = await fetchHfConfig(config, cat, timeoutMs, deadline);
         for (const row of rows) {
           const m = hfRowToModel(row, false);
           if (!m) continue;
@@ -223,7 +244,7 @@ export async function fetchOneBoardHf(board: string, timeoutMs?: number): Promis
       const models = new Map<string, any>();
       let lastUpdated = "";
       await mapWithConcurrency(CODE_CATEGORY_KEYS, 3, async (cat: string) => {
-        const rows = await fetchHfConfig(config, cat, timeoutMs);
+        const rows = await fetchHfConfig(config, cat, timeoutMs, deadline);
         for (const row of rows) {
           const m = hfRowToModel(row, false);
           if (!m) continue;
@@ -242,7 +263,7 @@ export async function fetchOneBoardHf(board: string, timeoutMs?: number): Promis
     }
     const config = BOARD_TO_HF[board];
     if (!config) return null;
-    const rows = await fetchHfConfig(config, undefined, timeoutMs);
+    const rows = await fetchHfConfig(config, undefined, timeoutMs, deadline);
     const models = rows.map((r: any) => hfRowToModel(r, false)).filter(Boolean);
     if (!models.length) return null;
     const lastUpdated = rows[0] && rows[0].leaderboard_publish_date ? String(rows[0].leaderboard_publish_date) : "";
@@ -284,9 +305,9 @@ async function fetchOneBoardSnapshot(board: string, timeoutMs?: number): Promise
   }
 }
 
-async function fetchOneBoard(board: string, timeoutMs?: number): Promise<any | null> {
+async function fetchOneBoard(board: string, timeoutMs?: number, deadline?: number): Promise<any | null> {
   // ponytail: 官方 HF 数据集为主源（满 blood + 稳定 + 免 Cloudflare），失败回落社区快照。
-  const hf = await fetchOneBoardHf(board, timeoutMs);
+  const hf = await fetchOneBoardHf(board, timeoutMs, deadline);
   if (hf && Array.isArray(hf.models) && hf.models.length) return hf;
   return fetchOneBoardSnapshot(board, timeoutMs);
 }
@@ -348,8 +369,13 @@ export async function fetch(opts: any = {}): Promise<any> {
   let anyOk = false;
   let failedBoards = 0;
   // ponytail: 限并发 3（原 Promise.all 11 个 board 在 Electron undici 下栈溢出）。
+  // HF 阶段共享总预算 deadline；到期未开始的 board 直接快照，已在跑的由页级 deadline 掐断。
+  const t0 = Date.now();
+  const deadline = t0 + ARENA_HF_BUDGET_MS;
   await mapWithConcurrency(BOARDS, 3, async (board: string) => {
-    const data = await fetchOneBoard(board, timeoutMs);
+    const data = Date.now() < deadline
+      ? await fetchOneBoard(board, timeoutMs, deadline)
+      : await fetchOneBoardSnapshot(board, timeoutMs);
     if (data && (Array.isArray(data.models) || (data.data && Array.isArray(data.data)))) {
       boardsMap[board] = data;
       anyOk = true;
@@ -442,7 +468,7 @@ export function normalize(raw: any): any[] {
       };
       if (sessions) entry.sessions = sessions;
       if (dimensions) entry.dimensions = dimensions;
-      // ponytail: text 榜 category 子榜映射（overall/coding/math/hard/instruction_following/non_english）
+      // ponytail: text 榜 category 子榜映射（overall/coding/math/hard_prompts/creative_writing/longer_query/multi_turn/instruction_following/non_english）
       if (m.categories && typeof m.categories === "object") entry.categories = m.categories;
       existing.arena[board] = entry;
       if (!existing.boardsPresent.includes(board)) existing.boardsPresent.push(board);

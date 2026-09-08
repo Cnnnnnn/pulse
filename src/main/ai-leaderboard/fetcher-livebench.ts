@@ -17,14 +17,38 @@ import { SOURCE, ATTRIBUTION, normalizeVendor } from "./types";
 import { logFetchError } from "./log";
 
 const BASE = "https://livebench.ai";
-const MAIN_JS_RE = /const pe=\[("[0-9]{4}-[0-9]{2}-[0-9]{2}",?)+\]/;
 // ponytail: 仅取最新 release。多 release 同时显示对用户无意义（最新 = 最相关）且需要更多渲染分支。
-// 升级路径: 想显示 release 切换? 加 query param + fetchEach。
+// 升级路径: 想显示 release 切换? 加 query param + fetchEach.
 const LB_TTL = 6 * 60 * 60 * 1000; // 6h；月度更新，但官方可能在月中插入补丁 (例 2025-12-23 中插 release)
 
 let _cachedMainJs: string | null = null;
 let _cachedReleaseAt = 0;
 const MAIN_JS_TTL = 60 * 60 * 1000; // main.js 1h 缓存一次，避免每次都拉 300K
+
+/**
+ * 从 index.html 提取 main.js 路径。兼容 hash 形态变化（hex 短 hash / 长哈希 / 含内容指纹），
+ * 只锚定 `/static/js/main.<无斜杠无引号片段>.js` 这个 CRA 固定结构。
+ */
+export function parseMainJsPath(html: string): string | null {
+  const m = html.match(/(\/static\/js\/main\.[A-Za-z0-9_-]+\.js)/);
+  return m ? m[1] : null;
+}
+
+/**
+ * 从 SPA bundle 提取 release 日期数组。
+ * 旧实现锚定压缩后的具体变量名 `const pe=[...]` — 压缩器换名（每次 build 都可能）即静默挂。
+ * 现改为「形如 =["YYYY-MM-DD","YYYY-MM-DD",…] 的赋值数组」通用匹配，命中多个时取最长的
+ * （release 全列表是 bundle 里最长的纯日期数组），并对结果升序排序后取尾 —— 不再信任 build 顺序。
+ */
+export function parseReleaseDates(bundle: string): string[] {
+  const re = /[A-Za-z_$][\w$]*\s*=\s*\[(?:"(20\d{2}-\d{2}-\d{2})"(?:\s*,\s*"(?:20\d{2}-\d{2}-\d{2})")*)\]/g;
+  let best: string[] = [];
+  for (const m of bundle.matchAll(re)) {
+    const dates = m[0].match(/20\d{2}-\d{2}-\d{2}/g) || [];
+    if (dates.length > best.length) best = dates;
+  }
+  return best.sort();
+}
 
 /**
  * ponytail: 极简 CSV parser — 仅支持无嵌套引号、无逗号在字段内的纯数值 CSV。
@@ -86,10 +110,9 @@ async function latestRelease(): Promise<string> {
   try {
     const idxRes = await fetchWithRetry(`${BASE}/`, {}, 1);
     const html = await idxRes.text();
-    // 找 <script src="/static/js/main.<hash>.js">
-    const m = html.match(/\/static\/js\/main\.([a-f0-9]+)\.js/);
-    if (!m) throw new Error("no main.js in index.html");
-    mainJsUrl = `${BASE}/static/js/main.${m[1]}.js`;
+    const mainPath = parseMainJsPath(html);
+    if (!mainPath) throw new Error("no main.js in index.html");
+    mainJsUrl = `${BASE}${mainPath}`;
   } catch (e: any) {
     // fallback: 用最近一次成功值 (callers 都会 catch, 此处抛让上层决定)
     const msg = e instanceof Error ? e.message : String(e);
@@ -98,12 +121,11 @@ async function latestRelease(): Promise<string> {
 
   const res = await fetchWithRetry(mainJsUrl, {}, 1);
   const body = await res.text();
-  const m = body.match(MAIN_JS_RE);
-  if (!m) throw new Error("livebench: release array pe=[...] not found in main.js");
-  const arr = (m[0].match(/"[0-9]{4}-[0-9]{2}-[0-9]{2}"/g) || []).map((s: any) => s.slice(1, -1));
-  if (arr.length === 0) throw new Error("livebench: empty release list");
-  // ponytail: 信任 build 输出已排序; 不重排以省 O(n log n).
-  // 若 build 改成乱序, 升序排序即可, 无副作用.
+  const arr = parseReleaseDates(body);
+  if (arr.length === 0) {
+    throw new Error("livebench: release date array not found in main.js (bundle shape changed?)");
+  }
+  // parseReleaseDates 已升序排序 — 尾元素即最新 release，不再信任 build 输出顺序。
   const latest = arr[arr.length - 1];
   _cachedMainJs = latest;
   _cachedReleaseAt = now;
@@ -269,5 +291,7 @@ module.exports = {
   attribution: ATTRIBUTION.livebench,
   fetch,
   normalize,
+  parseMainJsPath,
+  parseReleaseDates,
 
 };

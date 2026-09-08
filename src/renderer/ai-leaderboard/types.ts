@@ -155,12 +155,16 @@ export const AGENT_DIMENSION_DEFAULT = "Net Improvement";
 
 /* ── Arena 文本榜 category 子榜（arena.ai 文本大类的子排行榜）──
  * 对应 HF text_style_control 的 category 字段；overall 为默认。
- * 顺序与 fetcher-arena TEXT_CATEGORY_KEYS 一致。 */
+ * 顺序与 fetcher-arena TEXT_CATEGORY_KEYS 一致。
+ * 2026-09 上游把 "hard" 改名 "hard_prompts"，并新增 creative_writing/longer_query/multi_turn。 */
 export const TEXT_CATEGORIES = [
   { key: "overall", label: "综合" },
   { key: "coding", label: "代码" },
   { key: "math", label: "数学" },
-  { key: "hard", label: "硬题" },
+  { key: "hard_prompts", label: "硬题" },
+  { key: "creative_writing", label: "创意写作" },
+  { key: "longer_query", label: "长查询" },
+  { key: "multi_turn", label: "多轮" },
   { key: "instruction_following", label: "指令遵循" },
   { key: "non_english", label: "非英语" },
 ];

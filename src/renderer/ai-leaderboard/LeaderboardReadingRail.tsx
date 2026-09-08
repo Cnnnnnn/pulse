@@ -19,6 +19,7 @@ import {
   setLB,
   setTextCat,
   setView,
+  textCatAvailable,
   toggleSort,
 } from "./aiLeaderboardStore.ts";
 import {
@@ -90,26 +91,34 @@ function ArenaRailControls() {
           </button>
         ))}
       </div>
-      <RailSelect
-        label="子榜"
-        value={activeBoard.value}
-        onChange={setBoard}
-      >
-        {categoryMeta.boards.map((boardKey) => (
-          <option key={boardKey} value={boardKey}>
-            {ARENA_BOARDS[boardKey].label}
-          </option>
-        ))}
-      </RailSelect>
+      {/* 单 board 大类（Agent/Code）下「子榜」只有一个选项、且会与子维度默认值撞名
+          （Code→"WebDev"/"WebDev"），纯噪音 — 只有多 board 大类（Chat/Image/Video）才渲染。 */}
+      {categoryMeta.boards.length > 1 && (
+        <RailSelect
+          label="子榜"
+          value={activeBoard.value}
+          onChange={setBoard}
+        >
+          {categoryMeta.boards.map((boardKey) => (
+            <option key={boardKey} value={boardKey}>
+              {ARENA_BOARDS[boardKey].label}
+            </option>
+          ))}
+        </RailSelect>
+      )}
       {activeBoard.value === "agent" && (
         <RailSelect label="Agent 维度" value={activeAgentDim.value} onChange={setAgentDim}>
           {AGENT_DIMENSIONS.map((item) => <option key={item} value={item}>{item}</option>)}
         </RailSelect>
       )}
       {activeBoard.value === "text" && (
-        <RailSelect label="Text 子维度" value={activeTextCat.value} onChange={setTextCat}>
-          {TEXT_CATEGORIES.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
-        </RailSelect>
+        textCatAvailable.value ? (
+          <RailSelect label="Text 子维度" value={activeTextCat.value} onChange={setTextCat}>
+            {TEXT_CATEGORIES.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+          </RailSelect>
+        ) : (
+          <p class="ai-lb-rail__hint">快照兜底数据无子榜明细，仅展示综合榜</p>
+        )
       )}
       {activeBoard.value === "code" && (
         <RailSelect label="Code 子维度" value={activeCodeCat.value} onChange={setCodeCat}>

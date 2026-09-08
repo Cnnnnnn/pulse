@@ -16,7 +16,7 @@
  *  - vendor / sortDir / search → 纯本地派生，不重发 IPC。
  */
 
-import { signal, batch } from "@preact/signals";
+import { signal, batch, computed } from "@preact/signals";
 import { api } from "../api.ts";
 import {
   beginDataRequest,
@@ -91,7 +91,7 @@ export const hiddenHealthSources = signal(new Set());
  * 仅当 activeBoard==="agent" 时生效，驱动「按维度排名」。纯本地重排，不触发 IPC。 */
 export const activeAgentDim = signal(AGENT_DIMENSION_DEFAULT);
 
-/** 文本榜当前选中的 category 子榜（overall / coding / math / hard / instruction_following / non_english）。
+/** 文本榜当前选中的 category 子榜（与 types.ts TEXT_CATEGORIES 白名单一致）。
  * 仅当 activeBoard==="text" 时生效。纯本地切换（数据已在 categories map 里），不触发 IPC。 */
 export const activeTextCat = signal(TEXT_CATEGORY_DEFAULT);
 
@@ -144,6 +144,28 @@ function _crossSourceOpts(force: any) {
   };
 }
 
+/* ── IPC 总超时 ──
+ * 主进程全量聚合最坏情况（上游 datasets-server 间歇挂起 + 逐级兜底）可达 2-3 分钟，
+ * 但 UI 不能无限转圈：超时后停止等待并提示。主进程请求仍在跑且会写 5min 请求缓存，
+ * 稍后「刷新」通常命中缓存秒回。 */
+const IPC_TIMEOUT_MS = 120 * 1000;
+
+function withIpcTimeout<T>(p: Promise<T>, action: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(
+        new Error(
+          `${action}超时（>${Math.round(IPC_TIMEOUT_MS / 1000)}s）：上游数据源响应过慢，已停止等待；数据仍在后台拉取，稍后点「刷新」即可取回`,
+        ),
+      );
+    }, IPC_TIMEOUT_MS);
+    p.then(
+      (v: T) => { clearTimeout(timer); resolve(v); },
+      (e: unknown) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 /**
  * 触发一次三源联合拉取（未加载或非 force 时不重复发请求）。
  * 结果合并进 crossSourceItems，供跨源雷达在 Arena ELO / AA 智能 / LiveBench
@@ -156,8 +178,8 @@ export async function loadCrossSource(force: any) {
   crossSourceError.value = null;
   try {
     const res = force
-      ? await api.refreshLeaderboard(_crossSourceOpts(true))
-      : await api.getLeaderboard(_crossSourceOpts(false));
+      ? await withIpcTimeout(api.refreshLeaderboard(_crossSourceOpts(true)), "刷新")
+      : await withIpcTimeout(api.getLeaderboard(_crossSourceOpts(false)), "加载");
     if (token !== _csToken) return;
     const norm = normalizeBoardResult(res);
     if (norm.ok) {
@@ -174,6 +196,15 @@ export async function loadCrossSource(force: any) {
 }
 
 export const items = signal([]);
+/** 文本榜子榜明细是否可用 — HF 主源数据带 categories map；wulong 快照兜底没有。
+ *  不可用时 UI 隐藏子榜切换（读取端对缺 categories 已自动回退 overall 值），
+ *  避免用户切到"代码/数学"等子榜却看到综合数据的误导展示。 */
+export const textCatAvailable = computed(() =>
+  items.value.some((it: any) => {
+    const slice = it && it.arena && it.arena.text;
+    return Boolean(slice && slice.categories && Object.keys(slice.categories).length);
+  }),
+);
 export const sources = signal({});
 export const sourceCoverage = signal({
   arena: 0, aa: 0, openrouter: 0, livebench: 0, modelsdev: 0, huggingface: 0,
@@ -314,8 +345,8 @@ async function _run(force: any) {
 
   try {
     const res = force
-      ? await api.refreshLeaderboard(opts)
-      : await api.getLeaderboard(opts);
+      ? await withIpcTimeout(api.refreshLeaderboard(opts), "刷新")
+      : await withIpcTimeout(api.getLeaderboard(opts), "加载");
     if (token !== _reqToken) return;
     const norm = normalizeBoardResult(res);
     batch(() => {
@@ -807,4 +838,14 @@ export function hasAttribution(id: any) {
 
 export function deriveShown() {
   return getDisplayed();
+}
+
+// ── SWR 后台刷新完成 → 主进程推送 → 静默重取 ──
+// 收到事件时若正在展示 stale 数据且不在加载中，非 force 重取一次：
+// 主进程已清请求级缓存，此处命中刚写好的磁盘缓存秒回、stale 标记自动消失。
+// 空转保护：fresh 状态 / 加载中收到事件直接忽略（连续多源刷新只触发一次重取）。
+if (typeof api.onLeaderboardSourceUpdated === "function") {
+  api.onLeaderboardSourceUpdated(() => {
+    if (stale.value && !loading.value) loadLeaderboard();
+  });
 }

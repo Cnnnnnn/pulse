@@ -26,7 +26,7 @@ function errMsg(err: unknown): string {
 
 import { promises as fs } from "fs";
 import * as path from "path";
-import { getLeaderboard } from "../ai-leaderboard/index";
+import { getLeaderboard, onRawRefreshed } from "../ai-leaderboard/index";
 import { CATEGORY_META, DIMENSION_META, VENDOR_META } from "../ai-leaderboard/types";
 import { budget } from "../ai-leaderboard/rate-limiter";
 
@@ -131,6 +131,21 @@ export function registerLeaderboardHandlers(ctx: any) {
   // ponytail: 2026-07-22 CSV 导出 — dialog / BrowserWindow / app 从 ctx 注入
   // (与 register-stock-export 同构), 让测试可 mock.
   const { dialog, BrowserWindow, electronApp } = ctx;
+
+  // SWR 后台刷新完成 → 清请求级缓存（否则 5min 内重取还拿到旧 stale payload）
+  // → 推送 renderer 静默重取。订阅失败不阻断注册。
+  try {
+    onRawRefreshed((_source: string) => {
+      resetLeaderboardCache();
+      if (BrowserWindow && typeof BrowserWindow.getAllWindows === "function") {
+        for (const w of BrowserWindow.getAllWindows()) {
+          if (w && !w.isDestroyed()) w.webContents.send("leaderboard:source-updated", { source: _source });
+        }
+      }
+    });
+  } catch {
+    /* ignore */
+  }
 
   async function handleGet(
     _event: unknown,

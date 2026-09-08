@@ -28,6 +28,7 @@ import {
   setSearchQuery,
   clearSearchQuery,
   refresh,
+  textCatAvailable,
 } from "./aiLeaderboardStore.ts";
 import {
   VIEWS,
@@ -135,6 +136,8 @@ function ArenaSubDimSelect() {
     );
   }
   if (board === "text") {
+    // 快照兜底数据无 categories map — 子榜切换只会显示综合值，隐藏（rail 同步守卫）
+    if (!textCatAvailable.value) return null;
     return (
       <label class="ai-leaderboard-select ai-leaderboard-select--toolbar">
         <span class="ai-leaderboard-select__label">子榜</span>

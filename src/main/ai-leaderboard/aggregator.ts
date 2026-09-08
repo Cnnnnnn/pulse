@@ -69,6 +69,67 @@ function _today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// ponytail: in-flight 去重 — renderer 超时重试 / scheduler / 多视角并发共享同一 fetch，
+// 避免对上游（尤其 datasets-server 限流敏感）重复打请求。
+const _inflightRaws = new Map<string, Promise<{ ok: boolean; data?: any; error?: string }>>();
+
+function fetchRawDedup(fetcher: any, key: string, cacheSource: string): Promise<{ ok: boolean; data?: any; error?: string }> {
+  const existing = _inflightRaws.get(key);
+  if (existing) return existing;
+  const p = (async (): Promise<{ ok: boolean; data?: any; error?: string }> => {
+    try {
+      const res = await fetcher.fetch({});
+      if (res && res.ok && res.data) {
+        writeCache(key, res.data);
+        _fireRawRefreshed(cacheSource);
+        return { ok: true, data: res.data };
+      }
+      if (res && res.ok === false) {
+        _recordError(cacheSource, new Error(res.error || `${cacheSource} request failed`));
+      } else {
+        _recordError(cacheSource, new Error(`${cacheSource} returned an empty payload`));
+      }
+      return { ok: false, error: (res && res.error) || `${cacheSource} returned an empty payload` };
+    } catch (err: any) {
+      logFetchError(`agg:${cacheSource}`, err);
+      _recordError(cacheSource, err);
+      return { ok: false, error: (err && err.message) || String(err) };
+    } finally {
+      _inflightRaws.delete(key);
+    }
+  })();
+  _inflightRaws.set(key, p);
+  return p;
+}
+
+/** @internal — 测试用：清空 in-flight 去重表（SWR 挂起用例会遗留 pending promise）。 */
+export function __resetInflightForTest() {
+  _inflightRaws.clear();
+}
+
+// ── 刷新完成事件 ──
+// ponytail: SWR 把过期缓存立即交给 UI 后，后台刷新写完缓存 renderer 并不知情。
+// IPC 层订阅此事件推送给 renderer 静默重取，用户无需手动点刷新。
+type RawRefreshListener = (source: string) => void;
+const _refreshListeners = new Set<RawRefreshListener>();
+
+export function onRawRefreshed(cb: RawRefreshListener): () => void {
+  _refreshListeners.add(cb);
+  return () => {
+    _refreshListeners.delete(cb);
+  };
+}
+
+function _fireRawRefreshed(source: string) {
+  for (const cb of _refreshListeners) {
+    try {
+      cb(source);
+    } catch {
+      /* 单个监听者异常不阻塞其它 */
+    }
+  }
+}
+
 /**
  * 取某源原始 payload（带磁盘缓存 + 过期 stale 回退）。
  * @returns {{raw:object|null, stale:boolean, fromCache:boolean, error:{message:string,ts:string}|null}}
@@ -103,27 +164,19 @@ async function getBoardRaw(
     return { raw: null, stale: false, fromCache: false, error: _lastErrorFor(cacheSource) };
   }
 
-  let res: any;
-  try {
-    res = await fetcher.fetch({});
-  } catch (err: any) {
-    logFetchError(`agg:${cacheSource}`, err);
-    _recordError(cacheSource, err);
-    res = { ok: false, data: null };
-  }
-  if (res && res.ok && res.data) {
-    writeCache(key, res.data);
-      return { raw: res.data, stale: false, fromCache: false, error: null };
-  }
-  if (res && res.ok === false) {
-    _recordError(cacheSource, new Error(res.error || `${cacheSource} request failed`));
-  } else if (!res || !res.data) {
-    _recordError(cacheSource, new Error(`${cacheSource} returned an empty payload`));
-  }
-  // 实时失败：优先用今日过期缓存，再跨日找最近一份，避免新日首次失败直接掉 sample
+  // ponytail: stale-while-revalidate — 有过期缓存时立即把数据交给 UI（标 stale），
+  // 后台去重刷新写缓存供下次/其它视角。避免上游慢时（datasets-server 间歇挂起 45s+）
+  // 每次冷启动都阻塞 1-2 分钟空转。force=用户显式刷新仍阻塞等真实拉取。
   if (typeof staleRaw !== "undefined") {
+    void fetchRawDedup(fetcher, key, cacheSource);
     return { raw: staleRaw, stale: true, fromCache: true, error: _lastErrorFor(cacheSource) };
   }
+
+  const res = await fetchRawDedup(fetcher, key, cacheSource);
+  if (res.ok) {
+    return { raw: res.data, stale: false, fromCache: false, error: null };
+  }
+  // 实时失败：优先用今日过期缓存，再跨日找最近一份，避免新日首次失败直接掉 sample
   const c2 = readCache(key);
   if (c2) return { raw: c2.data, stale: true, fromCache: true, error: _lastErrorFor(cacheSource) };
   const latest = readLatestCache(cacheSource, cacheBoard);
@@ -369,4 +422,4 @@ export async function getLeaderboard(opts: any = {}): Promise<any> {
   };
 }
 
-module.exports = { getLeaderboard, matchesCategory };
+module.exports = { getLeaderboard, matchesCategory, __resetInflightForTest, onRawRefreshed };

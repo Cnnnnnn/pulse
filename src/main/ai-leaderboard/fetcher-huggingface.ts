@@ -26,6 +26,7 @@
 
 import { fetchJson, BROWSER_UA } from "./normalize";
 import { SOURCE, toAiModel, slugifyModel, normalizeVendor } from "./types";
+import { loadHfToken } from "./hf-token";
 
 /** 安全取数字 (HF 偶发返 null/missing). null/undefined 走默认. ponytail: 3 fetcher 各 1 份, 不抽. */
 function num(v: any, d: number = 0): number {
@@ -145,10 +146,11 @@ async function fetchPage(opts: any = {}): Promise<any[]> {
   const limit = Number.isFinite(opts.limit) ? Number(opts.limit) : HF_PAGE_SIZE;
   const timeoutMs = opts.timeoutMs || 15000;
   const url = `${HF_API}?sort=downloads&direction=-1&limit=${limit}&skip=${skip}&full=true`;
-  const data = await fetchJson(url, {
-    timeoutMs,
-    headers: { "User-Agent": BROWSER_UA, Accept: "application/json" },
-  });
+  // 可选 HF token（vault > env > .env）— 解除匿名限流（~1000/h）
+  const hfToken = loadHfToken();
+  const headers: Record<string, string> = { "User-Agent": BROWSER_UA, Accept: "application/json" };
+  if (hfToken) headers.Authorization = `Bearer ${hfToken}`;
+  const data = await fetchJson(url, { timeoutMs, headers });
   if (!Array.isArray(data)) return [];
   return data.filter((m: any) => m && m.id && !m.private && !m.gated);
 }

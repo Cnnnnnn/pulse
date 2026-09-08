@@ -1575,6 +1575,21 @@
   font-size: var(--font-size-xs, 11px);
 }
 
+/* 标签不缩不折行（"Text 子维度" 之类不能断成 "子维/度"）；空间不足时压缩 select */
+.ai-lb-rail__select > span:first-child {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* 子榜明细不可用（快照兜底）时的说明文字 */
+.ai-lb-rail__hint {
+  margin: 2px 6px 0;
+  padding: 0 9px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .ai-lb-rail__select-control {
   display: inline-flex;
   align-items: center;
@@ -1582,14 +1597,21 @@
   color: var(--text-secondary);
 }
 
+/* appearance:none 去掉系统箭头 — 控件里已渲染自定义 chevron，否则双重箭头 */
 .ai-lb-rail__select select {
+  appearance: none;
+  -webkit-appearance: none;
   max-width: 106px;
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
   color: inherit;
   font: inherit;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ai-lb-rail__select select:focus-visible,
@@ -3159,6 +3181,13 @@
   white-space: nowrap;
 }
 
+/* 可操作引导（如 AA 缺 key 的配置提示）— 整行展示，语气弱化为说明 */
+.ai-lb-health__hint {
+  flex-basis: 100%;
+  white-space: normal;
+  color: var(--text-tertiary);
+}
+
 /* ── v3.2: 健康卡 chip 可点击隐藏 + 恢复按钮 ── */
 .ai-lb-health__chip[role="button"] {
   cursor: pointer;
@@ -3432,6 +3461,7 @@
   font-weight: 600;
 }
 .ai-leaderboard-filter-toggle {
+  flex: 0 0 auto;
   min-height: 40px;
   padding: 0 var(--space-4);
   border: 1px solid var(--border);
@@ -3441,6 +3471,7 @@
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
@@ -3465,6 +3496,23 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+/* ponytail: 展开筛选时工具栏空间不够 — .ai-lb-main 把 row/right 锁了 nowrap，
+ * 硬塞会把「筛选」按钮挤成圆、把许可 chips 胶囊挤成竖排椭圆。展开态放行折行，
+ * 筛选控件独占一行贴右；刷新提到筛选行之前，保持第一行 [筛选|搜索|刷新]。 */
+.ai-leaderboard-filter-bar.is-filters-open .ai-leaderboard-toolbar-row,
+.ai-leaderboard-filter-bar.is-filters-open .ai-leaderboard-toolbar__right {
+  flex-wrap: wrap;
+}
+.ai-leaderboard-filter-bar.is-filters-open .ai-leaderboard-refresh {
+  order: 1;
+}
+.ai-leaderboard-filter-bar.is-filters-open .ai-leaderboard-advanced-control--right {
+  order: 2;
+  flex: 1 1 100%;
+  justify-content: flex-end;
+  padding-top: 2px;
 }
 
 .ai-lb-secondary-insights {

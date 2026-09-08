@@ -8,7 +8,7 @@
  */
 "use strict";
 
-import { getLeaderboard, matchesCategory } from "./aggregator";
+import { getLeaderboard, matchesCategory, onRawRefreshed } from "./aggregator";
 import { registerLeaderboardScheduler } from "./scheduler";
 
 let _scheduler: any = null;
@@ -39,11 +39,12 @@ async function triggerLeaderboardSync(): Promise<void> {
   await getLeaderboard({ force: false });
 }
 
-export { getLeaderboard, matchesCategory };
+export { getLeaderboard, matchesCategory, onRawRefreshed };
 export { registerLeaderboardSchedulerWrapped as registerLeaderboardScheduler };
 
 module.exports = {
   getLeaderboard,
   matchesCategory,
+  onRawRefreshed,
   registerLeaderboardScheduler: registerLeaderboardSchedulerWrapped,
 };

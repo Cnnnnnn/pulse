@@ -166,6 +166,11 @@ export function __setCacheDirForTest(dir: any) {
   _cacheDir = dir ? String(dir) : null;
 }
 
+/** @internal — 测试用：以指定 fetchedAt 写入内存缓存条目（构造过期/SWR 场景）。 */
+export function __seedForTest(key: string, data: any, fetchedAt: number) {
+  _memCache.set(key, { data, fetchedAt });
+}
+
 module.exports = {
   cacheKey,
   readCache,
@@ -175,4 +180,5 @@ module.exports = {
   getCacheDir,
   __resetForTest,
   __setCacheDirForTest,
+  __seedForTest,
 };
